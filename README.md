@@ -114,8 +114,9 @@ npm run deploy                   # 本番デプロイ (オーナーのみ)
 | **`bot/data-refresh`** | 日次データ更新 bot 専用。CloudKit から最新の `db/master.sql` が自動 push される | 保護なし（bot 用） |
 
 フロー:
-- **メンテナ/オーナー**: `develop` に直接マージしながら開発 → **リリース時に `develop` → `main`** をマージ。
-- **外部コントリビューター**: fork して `develop` への PR（オーナー承認でマージ）。
+- **作業ブランチは `feature/<topic>` で切る**（`develop` 起点）。修正・雑務は `fix/<topic>` / `chore/<topic>` でも可。`main`/`develop` で直接作業しない。
+- **メンテナ/オーナー**: `feature/...` → `develop` にマージしながら開発 → **リリース時に `develop` → `main`** をマージ。
+- **外部コントリビューター**: fork → `feature/...` → `develop` への PR（オーナー承認でマージ）。
 - **データ更新 bot**: `bot/data-refresh` に毎日 `db/master.sql` を出力 → オーナーが `bot/data-refresh` → `develop` の PR でレビュー&マージ。
 - 公開リポなので main/develop は保護。詳細は [`docs/DATA_PIPELINE.md`](docs/DATA_PIPELINE.md)。
 
