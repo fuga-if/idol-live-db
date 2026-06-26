@@ -52,7 +52,6 @@ final class IntroGameSession {
     private(set) var records: [IntroAnswerRecord] = []
     private(set) var selectedTitle: String? = nil
     private(set) var isCorrect: Bool? = nil
-    private(set) var isPlayingIntro: Bool = false
     /// Rush モードの残り時間 (秒)。UI のカウントダウン表示用。
     private(set) var rushRemaining: TimeInterval = 0
 
@@ -60,24 +59,11 @@ final class IntroGameSession {
 
     @ObservationIgnored private var rushTimerTask: Task<Void, Never>? = nil
 
-    private var playbackTask: Task<Void, Never>? = nil
-    private var previewPlayer: AVPlayer? = nil
-    private var previewEndObserver: NSObjectProtocol? = nil
+    /// イントロ再生は共通エンジンに委譲 (ソロ/Rush/パーティで同一の安定ロジックを共有)。
+    @ObservationIgnored let audio = IntroAudioEngine()
 
-    // /dev/intro (本家 IntroQuiz) の MusicService の安定パターンを移植:
-    // - 再生世代トークン: 新しい再生/停止指示ごとに +1。非同期処理は自分の世代が現役か
-    //   を確認してから副作用を起こす (問題の高速遷移で古い再生が次の問題を汚さない)。
-    // - 鳴り始め (playbackState/timeControlStatus == .playing) を待ってから停止タイマー開始
-    //   (play() 直後に固定 sleep すると起動レイテンシでイントロ長が不安定 = 主因だった)。
-    private var playSession: Int = 0
-    // MPMusicPlayerController.applicationMusicPlayer は ApplicationMusicPlayer(MusicKit) より
-    // setQueue(storeIDs:) で catalog 即キュー可能 (毎問の MusicCatalogResourceRequest が不要)。
-    // アクセス自体に副作用があるため lazy で初回フル再生時のみ生成する。
-    @ObservationIgnored private lazy var musicPlayer = MPMusicPlayerController.applicationMusicPlayer
-
-    private static let playingWaitCap: UInt64 = 3_000_000_000   // 鳴り始め待ちの上限 (3s)
-    private static let previewPlayHardCap: UInt64 = 5_000_000_000 // preview 鳴り始め上限 (5s)
-    private static let playWaitStep: UInt64 = 50_000_000          // ポーリング間隔 (50ms)
+    /// 再生中フラグはエンジンの状態をそのまま反映 (UI は従来どおり session.isPlayingIntro を見る)。
+    var isPlayingIntro: Bool { audio.isPlaying }
 
     var currentQuestion: IntroGameQuestion? {
         questions.indices.contains(currentIndex) ? questions[currentIndex] : nil
@@ -159,151 +145,36 @@ final class IntroGameSession {
         return choices
     }
 
-    // MARK: - Playback
-
-    private var usedFullPlayer = false
+    // MARK: - Playback (共通エンジンに委譲)
 
     func playCurrentIntro() async {
         guard let q = currentQuestion else { return }
-        stopPlayback()                  // 直前の再生を確実に止め、世代を進める
-        let session = playSession
-
-        // シミュレータでは MPMusicPlayerController が使えず触るとクラッシュするため、
-        // 再生処理自体をスキップして回答フェーズへ進める。
-        #if targetEnvironment(simulator)
-        phase = .answering
-        return
-        #else
-        let duration = settings.introDuration
-        // Apple Music 加入: MPMusicPlayerController で catalog をフル再生。
-        // 未加入/未取得: preview_url を AVPlayer で再生。どちらも無ければ即回答へ。
-        if MusicKitService.shared.hasAppleMusicSubscription, !q.appleMusicId.isEmpty {
-            playFullIntro(appleMusicId: q.appleMusicId, duration: duration, session: session)
-        } else if let s = q.previewUrl, let url = URL(string: s) {
-            playPreview(url: url, duration: duration, session: session)
-        } else {
-            phase = .answering
+        audio.play(
+            appleMusicId: q.appleMusicId,
+            previewUrl: q.previewUrl.flatMap(URL.init(string:)),
+            duration: settings.introDuration
+        ) { [weak self] in
+            // duration 経過 (または再生不可) で回答フェーズへ。早押し済み等で
+            // 既に .playing でなければ何もしない。
+            guard let self else { return }
+            if self.phase == .playing { self.phase = .answering }
         }
-        #endif
-    }
-
-    /// サブスク加入: MPMusicPlayerController で catalog を setQueue→prepareToPlay→play。
-    /// **playbackState==.playing を待ってから** duration を計測する (play() 直後の固定 sleep
-    /// だと起動レイテンシでイントロが短く/無音になり不安定だった = 報告された主因)。
-    private func playFullIntro(appleMusicId: String, duration: TimeInterval, session: Int) {
-        usedFullPlayer = true
-        try? AVAudioSession.sharedInstance().setCategory(.playback)
-        try? AVAudioSession.sharedInstance().setActive(true)
-
-        musicPlayer.setQueue(with: [appleMusicId])
-        musicPlayer.prepareToPlay()
-        musicPlayer.currentPlaybackTime = 0
-        musicPlayer.play()
-        isPlayingIntro = true
-
-        playbackTask = Task {
-            var waited: UInt64 = 0
-            while waited < Self.playingWaitCap {
-                if Task.isCancelled || session != self.playSession { return }
-                if self.musicPlayer.playbackState == .playing { break }
-                try? await Task.sleep(nanoseconds: Self.playWaitStep)
-                waited += Self.playWaitStep
-            }
-            if Task.isCancelled || session != self.playSession { return }
-            try? await Task.sleep(nanoseconds: UInt64(duration * 1_000_000_000))
-            if Task.isCancelled || session != self.playSession { return }
-            self.finishIntro(session: session)
-        }
-    }
-
-    /// 非加入/プレビュー: AVPlayerItem で status を観測しつつ AVPlayer で再生。
-    /// timeControlStatus==.playing を待ってから duration を計測。item.status==.failed の
-    /// 真の失敗 (403/期限切れ/地域制限) は無音で尺を消費させず即回答へ。
-    private func playPreview(url: URL, duration: TimeInterval, session: Int) {
-        try? AVAudioSession.sharedInstance().setCategory(.playback)
-        try? AVAudioSession.sharedInstance().setActive(true)
-
-        let item = AVPlayerItem(url: url)
-        let player = AVPlayer(playerItem: item)
-        player.volume = 1.0
-        previewPlayer = player
-        isPlayingIntro = true
-
-        // 30秒プレビューの自然終端で確実に止める (introDuration > 残尺のとき)。
-        previewEndObserver = NotificationCenter.default.addObserver(
-            forName: .AVPlayerItemDidPlayToEndTime, object: item, queue: .main
-        ) { [weak self] _ in
-            MainActor.assumeIsolated { self?.finishIntro(session: session) }
-        }
-
-        player.play()
-
-        playbackTask = Task {
-            var waited: UInt64 = 0
-            var failed = false
-            while waited < Self.previewPlayHardCap {
-                if Task.isCancelled || session != self.playSession { return }
-                if item.status == .failed { failed = true; break }
-                if player.timeControlStatus == .playing { break }
-                try? await Task.sleep(nanoseconds: Self.playWaitStep)
-                waited += Self.playWaitStep
-            }
-            if Task.isCancelled || session != self.playSession { return }
-            if failed { self.finishIntro(session: session); return }
-            try? await Task.sleep(nanoseconds: UInt64(duration * 1_000_000_000))
-            if Task.isCancelled || session != self.playSession { return }
-            self.finishIntro(session: session)
-        }
-    }
-
-    /// 再生を止めて回答フェーズへ (現役世代に対してのみ・重複/競合安全)。
-    private func finishIntro(session: Int) {
-        guard session == playSession else { return }
-        #if !targetEnvironment(simulator)
-        if usedFullPlayer { musicPlayer.pause() }
-        #endif
-        previewPlayer?.pause()
-        isPlayingIntro = false
-        if phase == .playing { phase = .answering }
     }
 
     func stopPlayback() {
-        playSession += 1            // 進行中の非同期再生を無効化 (世代を進める)
-        playbackTask?.cancel()
-        playbackTask = nil
-        if let token = previewEndObserver {
-            NotificationCenter.default.removeObserver(token)
-            previewEndObserver = nil
-        }
-        #if !targetEnvironment(simulator)
-        if usedFullPlayer { musicPlayer.pause() }
-        #endif
-        previewPlayer?.pause()
-        previewPlayer = nil
-        isPlayingIntro = false
+        audio.stop()
     }
 
     // MARK: - もう少し流す / リプレイ
 
-    /// 「もう少し流す」: 再生ボタン長押し中、停止タイマー無しで現在位置から再生を継続
-    /// (本家 IntroQuiz の playUntilStopped 相当)。回答フェーズ中に「あと少し聴きたい」用。
+    /// 「もう少し流す」: 再生ボタン長押し中、停止タイマー無しで現在位置から再生を継続。
     func continueIntro() {
-        playbackTask?.cancel()
-        playbackTask = nil
-        #if !targetEnvironment(simulator)
-        if usedFullPlayer { musicPlayer.play() }
-        #endif
-        previewPlayer?.play()
-        isPlayingIntro = true
+        audio.continuePlaying()
     }
 
     /// 長押しを離したら一時停止する (回答フェーズに留まる)。
     func pauseHeldIntro() {
-        #if !targetEnvironment(simulator)
-        if usedFullPlayer { musicPlayer.pause() }
-        #endif
-        previewPlayer?.pause()
-        isPlayingIntro = false
+        audio.pauseHeld()
     }
 
     /// 現在の問題のイントロを頭出しして再生し直す。
