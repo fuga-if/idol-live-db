@@ -105,6 +105,20 @@ npm run deploy                   # 本番デプロイ (オーナーのみ)
 
 詳細な規約は各プラットフォームの `CLAUDE.md` を参照。
 
+## 開発フロー / ブランチ戦略
+
+| ブランチ | 役割 | 保護 |
+|---|---|---|
+| **`main`** | 公開・安定版（リリース基準）。アプリのリリースはこの状態から | 保護: PR + オーナー承認必須 |
+| **`develop`** | 統合ブランチ。日常の開発はここに入れる | 保護: PR + オーナー承認必須（オーナー/メンテナは直接マージ可） |
+| **`bot/data-refresh`** | 日次データ更新 bot 専用。CloudKit から最新の `db/master.sql` が自動 push される | 保護なし（bot 用） |
+
+フロー:
+- **メンテナ/オーナー**: `develop` に直接マージしながら開発 → **リリース時に `develop` → `main`** をマージ。
+- **外部コントリビューター**: fork して `develop` への PR（オーナー承認でマージ）。
+- **データ更新 bot**: `bot/data-refresh` に毎日 `db/master.sql` を出力 → オーナーが `bot/data-refresh` → `develop` の PR でレビュー&マージ。
+- 公開リポなので main/develop は保護。詳細は [`docs/DATA_PIPELINE.md`](docs/DATA_PIPELINE.md)。
+
 ## ライセンス / 権利
 
 **[PolyForm Noncommercial 1.0.0](LICENSE.md)**。非公式ファンプロジェクトのため**商用利用は不可**。非商用（個人利用・改変・再配布）は可。版権物（キャラ画像・歌詞・公式ロゴ）は含みません。
