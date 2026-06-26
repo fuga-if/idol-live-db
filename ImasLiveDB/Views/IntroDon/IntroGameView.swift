@@ -7,7 +7,15 @@ struct IntroGameView: View {
     @State private var autoNextTask: Task<Void, Never>? = nil
     @State private var speechService = SpeechRecognitionService()
     @State private var showSpeechDenied = false
+    @State private var didHoldPlay = false   // 再生ボタン: 長押し(=もう少し流す)とタップ(=頭出し)の判別
     @Environment(\.dismiss) private var dismiss
+
+    /// 音声モードで実際に音声 UI を出すか。許可拒否/不可なら 4択にフォールバック。
+    private var useVoice: Bool {
+        session.settings.answerMode == .voice
+            && speechService.authStatus != .denied
+            && speechService.authStatus != .restricted
+    }
 
     var body: some View {
         ZStack {
@@ -63,7 +71,8 @@ struct IntroGameView: View {
         }
         // 画面遷移の瞬間に Speech 認可リクエストを発射するとシステムの
         // callback が遅れて actor 隔離違反でクラッシュする再現があったため、
-        // 認可は「音声入力」ボタンを押した時点で初めて要求する遅延発火に変更。
+        // 認可は回答フェーズに到達した時点で初めて要求する遅延発火にする。
+        .onChange(of: session.phase) { _, _ in syncVoice() }
         .onDisappear {
             stopSpeech()
             session.stopPlayback()
@@ -94,51 +103,57 @@ struct IntroGameView: View {
                 .padding(.top, 8)
                 .padding(.bottom, 10)
 
-            IDProgressBar(
-                progress: session.totalCount > 0
-                    ? Double(session.currentIndex) / Double(session.totalCount)
-                    : 0,
-                color: ID.accentPink,
-                bgColor: ID.surfaceDarkSubtle,
-                height: 3
-            )
-            .padding(.horizontal, 20)
-            .padding(.bottom, 16)
+            progressBar
+                .padding(.horizontal, 20)
+                .padding(.bottom, 16)
 
+            // カードは可変高(残り領域を埋め・小型端末では縮む)。これで下の選択肢が
+            // 画面外に押し出されない (旧: minHeight 230 + Spacer で溢れていた)。
             questionCard
                 .padding(.horizontal, 16)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-            Spacer(minLength: 12)
-
-            switch session.phase {
-            case .answering:
-                choicesArea
+            // 「もう少し流す」再生コントロール (回答前のみ)
+            if session.phase == .playing || session.phase == .answering {
+                playControlBar
                     .padding(.horizontal, 16)
-                    .padding(.bottom, 16)
-            case .revealed:
-                revealedArea
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 16)
-            default:
-                earlyAnswerArea
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 16)
+                    .padding(.bottom, 4)
             }
+
+            answerSection
+                .padding(.horizontal, 16)
+                .padding(.bottom, 16)
         }
     }
 
-    // MARK: - Header
+    @ViewBuilder
+    private var answerSection: some View {
+        switch session.phase {
+        case .answering:
+            if useVoice { voiceAnswerArea } else { choicesArea }
+        case .revealed:
+            revealedArea
+        default:
+            earlyAnswerArea
+        }
+    }
+
+    // MARK: - Header / Progress (Rush 対応)
 
     private var headerBar: some View {
         HStack(spacing: 12) {
-            Text("\(session.currentIndex + 1) / \(session.totalCount)")
-                .font(ID.font(13, weight: .bold))
-                .monospacedDigit()
-                .foregroundColor(ID.t2)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(ID.surfaceDarkCard)
-                .clipShape(IDCorner(radius: 8))
+            if session.settings.mode == .rush {
+                rushTimePill
+            } else {
+                Text("\(session.currentIndex + 1) / \(session.totalCount)")
+                    .font(ID.font(13, weight: .bold))
+                    .monospacedDigit()
+                    .foregroundColor(ID.t2)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(ID.surfaceDarkCard)
+                    .clipShape(IDCorner(radius: 8))
+            }
 
             Spacer()
 
@@ -156,6 +171,45 @@ struct IntroGameView: View {
             .background(ID.correct.opacity(0.12))
             .clipShape(IDCorner(radius: 8))
         }
+    }
+
+    private var rushTimePill: some View {
+        let urgent = session.rushRemaining <= 10
+        let secs = Int(session.rushRemaining.rounded(.up))
+        return HStack(spacing: 5) {
+            Image(systemName: "timer")
+                .font(.imasScaled( 12, weight: .bold))
+            Text(String(format: "%d:%02d", secs / 60, secs % 60))
+                .font(ID.font(15, weight: .black))
+                .monospacedDigit()
+        }
+        .foregroundColor(urgent ? ID.incorrect : ID.t0)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .background((urgent ? ID.incorrect : ID.accentPurple).opacity(0.14))
+        .clipShape(IDCorner(radius: 8))
+        .animation(.easeInOut(duration: 0.2), value: urgent)
+    }
+
+    private var progressBar: some View {
+        let progress: Double
+        let color: Color
+        if session.settings.mode == .rush {
+            let limit = session.settings.rushTimeLimit
+            progress = limit > 0 ? session.rushRemaining / limit : 0
+            color = session.rushRemaining <= 10 ? ID.incorrect : ID.accentPurple
+        } else {
+            progress = session.totalCount > 0
+                ? Double(session.currentIndex) / Double(session.totalCount)
+                : 0
+            color = ID.accentPink
+        }
+        return IDProgressBar(
+            progress: progress,
+            color: color,
+            bgColor: ID.surfaceDarkSubtle,
+            height: 3
+        )
     }
 
     // MARK: - Question Card
@@ -185,15 +239,14 @@ struct IntroGameView: View {
             }
             .padding(24)
         }
-        .frame(maxWidth: .infinity)
-        .frame(minHeight: 230)
+        .frame(maxWidth: .infinity, minHeight: 150)
         .animation(.easeInOut(duration: 0.3), value: session.phase)
     }
 
     @ViewBuilder
     private var cardVisual: some View {
         switch session.phase {
-        case .playing:
+        case .playing, .answering:
             VStack(spacing: 10) {
                 IDEQAnimation(
                     columns: 16,
@@ -291,7 +344,7 @@ struct IntroGameView: View {
             }
 
         case .answering:
-            Text("曲名を選んでください")
+            Text(useVoice ? "曲名を声で答えてください" : "曲名を選んでください")
                 .font(ID.font(13, weight: .semibold))
                 .foregroundColor(ID.t2)
 
@@ -328,52 +381,107 @@ struct IntroGameView: View {
             .clipShape(IDCorner(radius: 8))
     }
 
-    // MARK: - Early Answer (再生中の早押し)
+    // MARK: - もう少し流す (再生コントロール)
 
-    private var earlyAnswerArea: some View {
-        VStack(spacing: 8) {
-            if session.isPlayingIntro, let q = session.currentQuestion {
-                Text("早押し可能！")
-                    .font(ID.font(11, weight: .bold))
-                    .tracking(1.5)
-                    .foregroundColor(ID.accentPurple.opacity(0.7))
-                    .padding(.bottom, 2)
-
-                VStack(spacing: 6) {
-                    ForEach(q.choices, id: \.self) { title in
-                        IDChoiceButton(title: title) {
-                            AppAnalytics.tap("intro_game.choose_answer")
-                            session.submitAnswer(title)
-                        }
-                    }
+    /// タップで頭出し再生、長押しで「もう少し流す」(本家 playUntilStopped 相当)。
+    private var playControlBar: some View {
+        HStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(session.isPlayingIntro ? ID.accentPurple : ID.surfaceDarkCard)
+                    .frame(width: 52, height: 52)
+                Image(systemName: session.isPlayingIntro ? "waveform" : "play.fill")
+                    .font(.imasScaled( 20, weight: .bold))
+                    .foregroundColor(session.isPlayingIntro ? ID.t0 : ID.accentPurple)
+            }
+            .contentShape(Circle())
+            .scaleEffect(didHoldPlay ? 0.92 : 1.0)
+            .animation(.easeInOut(duration: 0.12), value: didHoldPlay)
+            // 長押し(0.2s)で「もう少し流す」、短いタップで頭出し再生し直し。
+            .onLongPressGesture(minimumDuration: 0.2, maximumDistance: 100) {
+                didHoldPlay = true
+                AppAnalytics.tap("intro_game.play_more")
+                stopSpeech()
+                session.continueIntro()
+            } onPressingChanged: { pressing in
+                if pressing {
+                    didHoldPlay = false
+                } else if didHoldPlay {
+                    didHoldPlay = false
+                    session.pauseHeldIntro()
+                    syncVoice()
+                } else {
+                    AppAnalytics.tap("intro_game.replay")
+                    stopSpeech()
+                    Task { await session.replayIntro() }
                 }
             }
 
-            // スキップボタン
-            Button {
-                AppAnalytics.tap("intro_game.skip")
-                stopSpeech()
-                session.skipQuestion()
-            } label: {
-                Text("スキップ")
-                    .font(ID.font(13, weight: .semibold))
+            VStack(alignment: .leading, spacing: 2) {
+                Text(session.isPlayingIntro ? "再生中…" : "タップでもう一度")
+                    .font(ID.font(13, weight: .bold))
+                    .foregroundColor(ID.t1)
+                Text("長押しでもう少し流す")
+                    .font(ID.font(11, weight: .semibold))
                     .foregroundColor(ID.t3)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 10)
+            }
+
+            Spacer()
+        }
+        .padding(.vertical, 6)
+    }
+
+    // MARK: - Early Answer (再生中の早押し)
+
+    @ViewBuilder
+    private var earlyAnswerArea: some View {
+        if useVoice {
+            // 音声モードでは再生中はマイクを使えない(録音と再生のカテゴリ競合)。
+            // 再生が終わると .answering に移って自動で聴取開始する。
+            VStack(spacing: 8) {
+                Text("イントロ終了後に声で回答できます")
+                    .font(ID.font(12, weight: .semibold))
+                    .foregroundColor(ID.t3)
+                skipButton
+            }
+        } else {
+            VStack(spacing: 8) {
+                if session.isPlayingIntro, let q = session.currentQuestion {
+                    Text("早押し可能！")
+                        .font(ID.font(11, weight: .bold))
+                        .tracking(1.5)
+                        .foregroundColor(ID.accentPurple.opacity(0.7))
+                        .padding(.bottom, 2)
+
+                    VStack(spacing: 6) {
+                        ForEach(q.choices, id: \.self) { title in
+                            IDChoiceButton(title: title) {
+                                AppAnalytics.tap("intro_game.choose_answer")
+                                session.submitAnswer(title)
+                            }
+                        }
+                    }
+                }
+
+                Button {
+                    AppAnalytics.tap("intro_game.skip")
+                    stopSpeech()
+                    session.skipQuestion()
+                } label: {
+                    Text("スキップ")
+                        .font(ID.font(13, weight: .semibold))
+                        .foregroundColor(ID.t3)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                }
             }
         }
     }
 
-    // MARK: - Choices (answering phase)
+    // MARK: - Choices (4択 / answering phase)
 
     private var choicesArea: some View {
         VStack(spacing: 0) {
-            // 音声入力ステータス
-            if speechService.isListening || !speechService.recognizedText.isEmpty {
-                speechStatusRow
-                    .padding(.bottom, 8)
-            }
-
             VStack(spacing: 8) {
                 if let q = session.currentQuestion {
                     ForEach(q.choices, id: \.self) { title in
@@ -388,6 +496,16 @@ struct IntroGameView: View {
 
             Spacer().frame(height: 10)
 
+            skipButton
+        }
+    }
+
+    // MARK: - Voice (音声判定 / answering phase)
+
+    private var voiceAnswerArea: some View {
+        VStack(spacing: 12) {
+            voiceStatusCard
+
             HStack(spacing: 12) {
                 micButton
                 skipButton
@@ -395,27 +513,35 @@ struct IntroGameView: View {
         }
     }
 
-    private var speechStatusRow: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "mic.fill")
-                .font(.imasScaled( 12))
-                .foregroundColor(ID.accentPink)
-            if speechService.recognizedText.isEmpty {
-                Text("聴取中...")
+    private var voiceStatusCard: some View {
+        VStack(spacing: 8) {
+            if speechService.authStatus == .notDetermined {
+                Text("マイクの使用を許可してください")
                     .font(ID.font(13, weight: .semibold))
                     .foregroundColor(ID.t2)
+            } else if speechService.isListening {
+                HStack(spacing: 8) {
+                    PulseDot(color: ID.accentPink)
+                    Text(speechService.recognizedText.isEmpty
+                        ? "聴取中… 曲名を声で答えてください"
+                        : "「\(speechService.recognizedText)」")
+                        .font(ID.font(14, weight: .bold))
+                        .foregroundColor(speechService.recognizedText.isEmpty ? ID.t2 : ID.t0)
+                        .lineLimit(1)
+                }
             } else {
-                Text("「\(speechService.recognizedText)」")
+                Text(speechService.recognizedText.isEmpty
+                    ? "マイクボタンで聴取を開始"
+                    : "「\(speechService.recognizedText)」")
                     .font(ID.font(13, weight: .semibold))
-                    .foregroundColor(ID.t1)
+                    .foregroundColor(ID.t2)
                     .lineLimit(1)
             }
-            Spacer()
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
-        .background(ID.accentPink.opacity(0.08))
-        .clipShape(IDCorner(radius: 8))
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 16)
+        .background(ID.accentPink.opacity(speechService.isListening ? 0.12 : 0.06))
+        .clipShape(IDCorner(radius: 14))
     }
 
     private var micButton: some View {
@@ -430,8 +556,8 @@ struct IntroGameView: View {
                     .font(ID.font(13, weight: .semibold))
             }
             .foregroundColor(speechService.isListening ? ID.incorrect : ID.t2)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
             .background(speechService.isListening ? ID.incorrect.opacity(0.12) : ID.surfaceDarkCard)
             .clipShape(IDCorner(radius: 10))
         }
@@ -448,7 +574,7 @@ struct IntroGameView: View {
                 .font(ID.font(13, weight: .semibold))
                 .foregroundColor(ID.t3)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 10)
+                .padding(.vertical, 12)
                 .background(ID.surfaceDarkSubtle)
                 .clipShape(IDCorner(radius: 10))
         }
@@ -475,7 +601,8 @@ struct IntroGameView: View {
                 autoNextTask?.cancel()
                 Task { await session.nextQuestion() }
             } label: {
-                let isLast = session.currentIndex + 1 >= session.totalCount
+                let isLast = session.settings.mode != .rush
+                    && session.currentIndex + 1 >= session.totalCount
                 HStack(spacing: 8) {
                     Text(isLast ? "結果を見る" : "次の問題へ")
                         .font(ID.font(16, weight: .bold))
@@ -492,9 +619,11 @@ struct IntroGameView: View {
             .idPress()
         }
         .onAppear {
+            // Rush は次々回す。それ以外は読ませる余裕を持たせる。
+            let delay: UInt64 = session.settings.mode == .rush ? 1_400_000_000 : 5_000_000_000
             autoNextTask?.cancel()
             autoNextTask = Task { @MainActor in
-                try? await Task.sleep(nanoseconds: 5_000_000_000)
+                try? await Task.sleep(nanoseconds: delay)
                 guard !Task.isCancelled else { return }
                 await session.nextQuestion()
             }
@@ -506,17 +635,40 @@ struct IntroGameView: View {
 
     // MARK: - Speech Helpers
 
+    /// 音声モードで回答フェーズに入ったら自動で聴取開始 (許可も遅延発火)。
+    private func syncVoice() {
+        guard session.settings.answerMode == .voice else { return }
+        guard session.phase == .answering else {
+            // 回答フェーズ外では聴取しない (再生と録音のカテゴリ競合を避ける)。
+            if speechService.isListening { speechService.stopListening() }
+            return
+        }
+        switch speechService.authStatus {
+        case .authorized:
+            beginVoiceListening()
+        case .notDetermined:
+            Task {
+                await speechService.requestAuthorization()
+                guard session.phase == .answering else { return }
+                if speechService.authStatus == .authorized {
+                    beginVoiceListening()
+                }
+            }
+        default:
+            break  // 拒否時は useVoice が false になり 4択にフォールバック
+        }
+    }
+
     private func handleMicTap() {
         if speechService.isListening {
             stopSpeech()
             return
         }
-        // 未判定のときはここで認可をリクエスト (画面遷移時の eager request を避けるため)
         if speechService.authStatus == .notDetermined {
             Task {
                 await speechService.requestAuthorization()
                 if speechService.authStatus == .authorized {
-                    beginSpeechListening()
+                    beginVoiceListening()
                 } else {
                     showSpeechDenied = true
                 }
@@ -527,15 +679,18 @@ struct IntroGameView: View {
             showSpeechDenied = true
             return
         }
-        beginSpeechListening()
+        beginVoiceListening()
     }
 
-    private func beginSpeechListening() {
-        guard let q = session.currentQuestion else { return }
+    private func beginVoiceListening() {
+        guard let q = session.currentQuestion, !speechService.isListening else { return }
+        // 音声モードは「正解タイトル」を唯一の対象に照合 (findMatch は双方向 contains で
+        // オープン判定になる)。4択モードでは選択肢全部を渡す。
+        let targets = useVoice ? [q.title] : q.choices
         speechService.onMatch = { [weak session] match in
             session?.submitAnswer(match)
         }
-        speechService.startListening(choices: q.choices)
+        speechService.startListening(choices: targets)
     }
 
     private func stopSpeech() {

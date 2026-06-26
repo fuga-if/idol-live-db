@@ -7,14 +7,20 @@ struct IntroGameSetupView: View {
     @State private var session = IntroGameSession()
     @State private var brands: [Brand] = []
     @State private var selectedBrandIds: Set<String> = []
+    @State private var mode: IntroGameMode = .normal
+    @State private var answerMode: IntroAnswerMode = .choices
     @State private var questionCount: Int = 10
     @State private var introDuration: TimeInterval = 5.0
+    @State private var rushTimeLimit: TimeInterval = 60
     @State private var isLoading = false
     @State private var navigateToGame = false
     @State private var errorMessage: String? = nil
     @State private var authStatus: MusicAuthorization.Status = MusicKitService.shared.authorizationStatus
 
     private let questionCounts = [5, 10, 20]
+    private let rushTimes: [(label: String, value: TimeInterval)] = [
+        ("30秒", 30), ("60秒", 60), ("120秒", 120),
+    ]
     private let durations: [(label: String, sub: String, value: TimeInterval)] = [
         ("0.2秒", "超イントロ", 0.2),
         ("2秒", "再生", 2.0),
@@ -25,6 +31,22 @@ struct IntroGameSetupView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
+                IDSectionLabel(text: "モード")
+                    .padding(.horizontal, 20)
+                Spacer().frame(height: 12)
+                modeSection
+                    .padding(.horizontal, 20)
+
+                Spacer().frame(height: 24)
+
+                IDSectionLabel(text: "回答方式")
+                    .padding(.horizontal, 20)
+                Spacer().frame(height: 12)
+                answerModeSection
+                    .padding(.horizontal, 20)
+
+                Spacer().frame(height: 24)
+
                 IDSectionLabel(text: "ブランド")
                     .padding(.horizontal, 20)
                 Spacer().frame(height: 12)
@@ -33,11 +55,19 @@ struct IntroGameSetupView: View {
 
                 Spacer().frame(height: 24)
 
-                IDSectionLabel(text: "問題数")
-                    .padding(.horizontal, 20)
-                Spacer().frame(height: 12)
-                countSection
-                    .padding(.horizontal, 20)
+                if mode == .rush {
+                    IDSectionLabel(text: "制限時間")
+                        .padding(.horizontal, 20)
+                    Spacer().frame(height: 12)
+                    rushTimeSection
+                        .padding(.horizontal, 20)
+                } else {
+                    IDSectionLabel(text: "問題数")
+                        .padding(.horizontal, 20)
+                    Spacer().frame(height: 12)
+                    countSection
+                        .padding(.horizontal, 20)
+                }
 
                 Spacer().frame(height: 24)
 
@@ -209,6 +239,94 @@ struct IntroGameSetupView: View {
         }
     }
 
+    // MARK: - Mode / Answer Mode
+
+    private var modeSection: some View {
+        VStack(spacing: 8) {
+            modeRow(.normal, icon: "list.number", title: "ノーマル", sub: "決めた問題数で挑戦")
+            modeRow(.rush, icon: "timer", title: "ラッシュ", sub: "制限時間内に何問正解できるか")
+            modeRow(.party, icon: "person.2.fill", title: "パーティ対戦", sub: "1台2人・分割画面で早押し")
+        }
+    }
+
+    private func modeRow(_ m: IntroGameMode, icon: String, title: String, sub: String) -> some View {
+        let selected = mode == m
+        return Button {
+            withAnimation(.easeInOut(duration: 0.15)) { mode = m }
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: icon)
+                    .font(.imasScaled( 16, weight: .semibold))
+                    .foregroundColor(selected ? ID.menuCardDarkText : ID.accentPurple)
+                    .frame(width: 36, height: 36)
+                    .background((selected ? Color.white.opacity(0.18) : ID.accentPurple.opacity(0.10)))
+                    .clipShape(IDCorner(radius: 10))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(ID.font(15, weight: .bold))
+                        .foregroundColor(selected ? ID.menuCardDarkText : ID.menuText)
+                    Text(sub)
+                        .font(ID.font(11, weight: .semibold))
+                        .foregroundColor(selected ? ID.menuCardDarkText.opacity(0.8) : ID.menuTextSecondary)
+                }
+                Spacer()
+                if selected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(ID.menuCardDarkText)
+                        .font(.imasScaled( 18))
+                }
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .background(selected ? ID.menuCardDark : ID.menuCardSubtle)
+            .clipShape(IDCorner(radius: 14))
+        }
+        .idPress()
+    }
+
+    private var answerModeSection: some View {
+        HStack(spacing: 8) {
+            answerModeButton(.choices, icon: "square.grid.2x2.fill", title: "4択", sub: "タップで回答")
+            answerModeButton(.voice, icon: "mic.fill", title: "音声判定", sub: "声で曲名を回答")
+        }
+    }
+
+    private func answerModeButton(_ a: IntroAnswerMode, icon: String, title: String, sub: String) -> some View {
+        let selected = answerMode == a
+        return Button {
+            withAnimation(.easeInOut(duration: 0.15)) { answerMode = a }
+        } label: {
+            VStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.imasScaled( 18, weight: .semibold))
+                Text(title)
+                    .font(ID.font(15, weight: .bold))
+                Text(sub)
+                    .font(ID.font(10, weight: .semibold))
+            }
+            .foregroundColor(selected ? ID.menuCardDarkText : ID.menuTextSecondary)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
+            .background(selected ? ID.menuCardDark : ID.menuCardSubtle)
+            .clipShape(IDCorner(radius: 16))
+        }
+        .idPress()
+    }
+
+    private var rushTimeSection: some View {
+        HStack(spacing: 8) {
+            ForEach(rushTimes, id: \.value) { t in
+                IDSegmentButton(
+                    primary: t.label.replacingOccurrences(of: "秒", with: ""),
+                    secondary: "秒",
+                    selected: abs(rushTimeLimit - t.value) < 0.001
+                ) {
+                    withAnimation(.easeInOut(duration: 0.15)) { rushTimeLimit = t.value }
+                }
+            }
+        }
+    }
+
     // MARK: - Warnings / Error
 
     private var authWarningCard: some View {
@@ -261,8 +379,11 @@ struct IntroGameSetupView: View {
         }
 
         session.settings = IntroGameSettings(
+            mode: mode,
+            answerMode: answerMode,
             questionCount: questionCount,
             introDuration: introDuration,
+            rushTimeLimit: rushTimeLimit,
             selectedBrandIds: selectedBrandIds.isEmpty ? nil : selectedBrandIds
         )
 
