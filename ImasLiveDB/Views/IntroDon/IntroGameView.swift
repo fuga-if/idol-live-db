@@ -92,10 +92,15 @@ struct IntroGameView: View {
         )) {
             IntroGameResultView(session: session)
         }
-        // 画面遷移の瞬間に Speech 認可リクエストを発射するとシステムの
-        // callback が遅れて actor 隔離違反でクラッシュする再現があったため、
-        // 認可は回答フェーズに到達した時点で初めて要求する遅延発火にする。
-        .onChange(of: session.phase) { _, _ in syncVoice() }
+        // 音声の起動 (認可リクエスト/録音セッション開始) を画面遷移の瞬間に撃つと
+        // システム callback の遅延で actor 隔離違反 (SIGTRAP) や録音セッション競合で
+        // クラッシュする。そのため音声判定は「マイクをタップして回答」の明示操作で開始し、
+        // フェーズが回答以外へ移ったら聴取を確実に止めるだけにする。
+        .onChange(of: session.phase) { _, newPhase in
+            if newPhase != .answering, speechService.isListening {
+                speechService.stopListening()
+            }
+        }
         .onDisappear {
             stopSpeech()
             session.stopPlayback()
@@ -432,7 +437,6 @@ struct IntroGameView: View {
                 } else if didHoldPlay {
                     didHoldPlay = false
                     session.pauseHeldIntro()
-                    syncVoice()
                 } else {
                     AppAnalytics.tap("intro_game.replay")
                     stopSpeech()
@@ -660,30 +664,6 @@ struct IntroGameView: View {
 
     // MARK: - Speech Helpers
 
-    /// 音声モードで回答フェーズに入ったら自動で聴取開始 (許可も遅延発火)。
-    private func syncVoice() {
-        guard session.settings.answerMode == .voice else { return }
-        guard session.phase == .answering else {
-            // 回答フェーズ外では聴取しない (再生と録音のカテゴリ競合を避ける)。
-            if speechService.isListening { speechService.stopListening() }
-            return
-        }
-        switch speechService.authStatus {
-        case .authorized:
-            beginVoiceListening()
-        case .notDetermined:
-            Task {
-                await speechService.requestAuthorization()
-                guard session.phase == .answering else { return }
-                if speechService.authStatus == .authorized {
-                    beginVoiceListening()
-                }
-            }
-        default:
-            break  // 拒否時は useVoice が false になり 4択にフォールバック
-        }
-    }
-
     private func handleMicTap() {
         if speechService.isListening {
             stopSpeech()
@@ -709,6 +689,9 @@ struct IntroGameView: View {
 
     private func beginVoiceListening() {
         guard let q = session.currentQuestion, !speechService.isListening else { return }
+        // 録音セッション開始前に再生を完全停止して .playback セッションを解放する
+        // (.playback ↔ .record の競合でクラッシュするのを防ぐ)。
+        session.stopPlayback()
         // 音声モードは「正解タイトル」を唯一の対象に照合 (findMatch は双方向 contains で
         // オープン判定になる)。4択モードでは選択肢全部を渡す。
         let targets = useVoice ? [q.title] : q.choices
