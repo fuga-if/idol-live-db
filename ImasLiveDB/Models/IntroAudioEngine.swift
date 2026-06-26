@@ -5,64 +5,133 @@ import MediaPlayer
 
 /// イントロ再生の共通エンジン (ソロ/Rush/パーティで共用)。
 ///
-/// /dev/intro (本家 IntroQuiz) の MusicService の安定パターンを移植:
-/// - 再生世代トークン: 新しい再生/停止指示ごとに +1。非同期処理は自分の世代が現役かを
-///   確認してから副作用を起こす (問題の高速遷移で古い再生が次の問題を汚さない)。
-/// - 鳴り始め (playbackState/timeControlStatus == .playing) を待ってから停止タイマー開始
-///   (play() 直後に固定 sleep すると起動レイテンシでイントロ長が不安定 = 報告された主因)。
-///
-/// 「再生 → duration 経過で onFinished」だけを責務とし、フェーズ遷移や採点は呼び出し側が持つ。
+/// /dev/intro (本家 IntroQuiz) の MusicService の手法を踏襲:
+/// - **preview 優先**: 30 秒プレビュー URL を AVPlayer で鳴らす (本家 preferPreviewMode 既定 ON)。
+///   カタログのフル再生 (MPMusicPlayerController.setQueue) は毎曲ネットワーク取得が走り
+///   ラグ/無音の原因になるため、preview_url があるならそちらを使う (= サクサク)。
+/// - **次曲プリフェッチ**: 次に出す曲の AVPlayerItem を裏でバッファしておき (prefetch)、
+///   出題時はその item を再利用して待ち時間ゼロで鳴らす (本家 prefetchUpcoming 相当)。
+/// - **鳴り始め待ち**: timeControlStatus==.playing を待ってから stop タイマーを開始
+///   (play 直後の固定 sleep は起動レイテンシでイントロ長が不安定になる)。
+/// - 再生世代トークンで古い非同期処理を破棄。
+/// - preview_url が無い曲のみカタログのフル再生にフォールバック。
 @Observable @MainActor
 final class IntroAudioEngine {
 
     private(set) var isPlaying: Bool = false
 
-    @ObservationIgnored private var playbackTask: Task<Void, Never>? = nil
+    @ObservationIgnored private var playSession: Int = 0
     @ObservationIgnored private var previewPlayer: AVPlayer? = nil
-    @ObservationIgnored private var previewEndObserver: NSObjectProtocol? = nil
-    @ObservationIgnored private var playGen: Int = 0
-    @ObservationIgnored private var usedFullPlayer = false
-    // duration 経過/失敗時に呼ぶハンドラ。@MainActor 隔離内でのみ保持・呼び出しするため
-    // クロージャを跨いで送らない (Swift 6 strict concurrency の sending 違反を避ける)。
+    @ObservationIgnored private var endObserver: NSObjectProtocol? = nil
+    @ObservationIgnored private var startTask: Task<Void, Never>? = nil
     @ObservationIgnored private var onFinished: (() -> Void)? = nil
-    // MPMusicPlayerController.applicationMusicPlayer は ApplicationMusicPlayer(MusicKit) より
-    // setQueue(storeIDs:) で catalog 即キュー可能 (毎問の MusicCatalogResourceRequest が不要)。
-    // アクセス自体に副作用があるため lazy で初回フル再生時のみ生成する。
+    @ObservationIgnored private var usedFullPlayer = false
     @ObservationIgnored private lazy var musicPlayer = MPMusicPlayerController.applicationMusicPlayer
 
-    private static let playingWaitCap: UInt64 = 3_000_000_000    // 鳴り始め待ちの上限 (3s)
-    private static let previewPlayHardCap: UInt64 = 5_000_000_000 // preview 鳴り始め上限 (5s)
-    private static let playWaitStep: UInt64 = 50_000_000          // ポーリング間隔 (50ms)
+    // 次曲プリフェッチ (本家 prefetchUpcoming 相当): 鳴らさず item をバッファしておく。
+    @ObservationIgnored private var prefetchedURL: URL? = nil
+    @ObservationIgnored private var prefetchedItem: AVPlayerItem? = nil
+    @ObservationIgnored private var prefetchPlayer: AVPlayer? = nil
 
-    /// 現在の問題のイントロを頭出し再生。duration 経過 (または失敗/シミュレータ) で onFinished を呼ぶ。
-    /// `duration == nil` のときは停止タイマーを張らず、stop() されるまで流し続ける
-    /// (Rush モードの「押すまで流す」用)。onFinished は現役世代のときだけ MainActor 上で呼ばれる。
+    private static let previewPlayHardCap: UInt64 = 5_000_000_000  // preview 鳴り始め上限 (5s)
+    private static let previewWaitStep: UInt64 = 50_000_000        // ポーリング間隔 (50ms)
+    private static let playingWaitCap: UInt64 = 3_000_000_000      // フル再生 鳴り始め上限 (3s)
+    private static let playWaitStep: UInt64 = 50_000_000
+
+    // MARK: - 次曲プリフェッチ
+
+    /// 次に出題しそうな曲の preview を裏でバッファしておく (再生はしない)。
+    /// 出題時に同 URL なら item を再利用して即再生できる。
+    func prefetch(previewUrl: URL?) {
+        guard let url = previewUrl, url != prefetchedURL else { return }
+        prefetchPlayer?.replaceCurrentItem(with: nil)
+        let item = AVPlayerItem(url: url)
+        let player = AVPlayer(playerItem: item)   // play() しない → readyToPlay までバッファ
+        player.volume = 0
+        prefetchedURL = url
+        prefetchedItem = item
+        prefetchPlayer = player
+    }
+
+    private func consumePrefetched(_ url: URL) -> AVPlayerItem? {
+        guard url == prefetchedURL, let item = prefetchedItem else { return nil }
+        prefetchPlayer?.replaceCurrentItem(with: nil)
+        prefetchPlayer = nil
+        prefetchedItem = nil
+        prefetchedURL = nil
+        return item
+    }
+
+    // MARK: - 再生
+
+    /// イントロを頭出し再生。`duration == nil` は停止タイマーを張らず stop() まで流す
+    /// (Rush の「押すまで流す」用)。duration 経過/失敗/シミュレータで onFinished を 1 回呼ぶ。
     func play(appleMusicId: String, previewUrl: URL?, duration: TimeInterval?,
               onFinished: @escaping () -> Void) {
-        stop()                  // 直前の再生を確実に止め、世代を進める
+        stop()
         self.onFinished = onFinished
-        let gen = playGen
+        let session = playSession
 
-        // シミュレータでは MPMusicPlayerController が使えず触るとクラッシュするため、
-        // 再生処理自体をスキップして即終了扱いにする。
         #if targetEnvironment(simulator)
-        finish(gen: gen)
+        finish(session: session)
         #else
-        // Apple Music 加入: MPMusicPlayerController で catalog をフル再生。
-        // 未加入/未取得: preview_url を AVPlayer で再生。どちらも無ければ即終了。
-        if MusicKitService.shared.hasAppleMusicSubscription, !appleMusicId.isEmpty {
-            playFull(appleMusicId: appleMusicId, fallbackPreview: previewUrl, duration: duration, gen: gen)
-        } else if let url = previewUrl {
-            playPreview(url: url, duration: duration, gen: gen)
+        // preview 優先 (サクサク)。無い曲のみカタログのフル再生にフォールバック。
+        if let url = previewUrl {
+            playPreview(url: url, duration: duration, session: session)
+        } else if MusicKitService.shared.hasAppleMusicSubscription, !appleMusicId.isEmpty {
+            playFull(appleMusicId: appleMusicId, duration: duration, session: session)
         } else {
-            finish(gen: gen)
+            finish(session: session)
         }
         #endif
     }
 
-    /// サブスク加入: MPMusicPlayerController で catalog を setQueue→prepareToPlay→play。
-    /// **playbackState==.playing を待ってから** duration を計測する。
-    private func playFull(appleMusicId: String, fallbackPreview: URL?, duration: TimeInterval?, gen: Int) {
+    /// preview URL を AVPlayer で再生。プリフェッチ済み item があれば再利用して即鳴らす。
+    private func playPreview(url: URL, duration: TimeInterval?, session: Int) {
+        try? AVAudioSession.sharedInstance().setCategory(.playback)
+        try? AVAudioSession.sharedInstance().setActive(true)
+
+        let item = consumePrefetched(url) ?? AVPlayerItem(url: url)
+        let player = AVPlayer(playerItem: item)
+        player.volume = 1.0
+        previewPlayer = player
+        usedFullPlayer = false
+        isPlaying = true
+
+        // 30 秒プレビューの自然終端で確実に止める (duration > 残尺のとき)。
+        endObserver = NotificationCenter.default.addObserver(
+            forName: .AVPlayerItemDidPlayToEndTime, object: item, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self, self.previewPlayer === player else { return }
+                self.finish(session: session)
+            }
+        }
+
+        player.play()
+
+        startTask = Task {
+            // 鳴り始め (.playing) か真の失敗 (.failed) を待つ。.failed のみ即終了。
+            var waited: UInt64 = 0
+            var failed = false
+            while waited < Self.previewPlayHardCap {
+                if Task.isCancelled || session != self.playSession { return }
+                if item.status == .failed { failed = true; break }
+                if player.timeControlStatus == .playing { break }
+                try? await Task.sleep(nanoseconds: Self.previewWaitStep)
+                waited += Self.previewWaitStep
+            }
+            if Task.isCancelled || session != self.playSession { return }
+            if failed { self.finish(session: session); return }
+            guard let duration else { return }   // 押すまで流す: 自動停止しない
+            try? await Task.sleep(nanoseconds: UInt64(duration * 1_000_000_000))
+            if Task.isCancelled || session != self.playSession { return }
+            self.finish(session: session)
+        }
+    }
+
+    /// preview_url が無い曲のフォールバック: カタログをフル再生。
+    private func playFull(appleMusicId: String, duration: TimeInterval?, session: Int) {
         usedFullPlayer = true
         try? AVAudioSession.sharedInstance().setCategory(.playback)
         try? AVAudioSession.sharedInstance().setActive(true)
@@ -73,95 +142,41 @@ final class IntroAudioEngine {
         musicPlayer.play()
         isPlaying = true
 
-        playbackTask = Task {
+        startTask = Task {
             var waited: UInt64 = 0
             while waited < Self.playingWaitCap {
-                if Task.isCancelled || gen != self.playGen { return }
+                if Task.isCancelled || session != self.playSession { return }
                 if self.musicPlayer.playbackState == .playing { break }
                 try? await Task.sleep(nanoseconds: Self.playWaitStep)
                 waited += Self.playWaitStep
             }
-            if Task.isCancelled || gen != self.playGen { return }
-            // フル再生が始まらない (カタログ未提供/地域制限/権利切れ等) → プレビューにフォールバック。
-            // これをしないと apple_music_id はあるのに無音になる曲が出る (報告された再生不能バグ)。
-            if self.musicPlayer.playbackState != .playing {
-                self.musicPlayer.pause()
-                self.usedFullPlayer = false
-                if let url = fallbackPreview {
-                    self.playPreview(url: url, duration: duration, gen: gen)
-                } else {
-                    self.finish(gen: gen)
-                }
-                return
-            }
-            guard let duration else { return }   // 押すまで流す: 自動停止しない
+            if Task.isCancelled || session != self.playSession { return }
+            guard let duration else { return }
             try? await Task.sleep(nanoseconds: UInt64(duration * 1_000_000_000))
-            if Task.isCancelled || gen != self.playGen { return }
-            self.finish(gen: gen)
+            if Task.isCancelled || session != self.playSession { return }
+            self.finish(session: session)
         }
     }
 
-    /// 非加入/プレビュー: AVPlayerItem で status を観測しつつ AVPlayer で再生。
-    /// timeControlStatus==.playing を待ってから duration を計測。item.status==.failed の
-    /// 真の失敗 (403/期限切れ/地域制限) は無音で尺を消費させず即終了。
-    private func playPreview(url: URL, duration: TimeInterval?, gen: Int) {
-        try? AVAudioSession.sharedInstance().setCategory(.playback)
-        try? AVAudioSession.sharedInstance().setActive(true)
-
-        let item = AVPlayerItem(url: url)
-        let player = AVPlayer(playerItem: item)
-        player.volume = 1.0
-        previewPlayer = player
-        isPlaying = true
-
-        // 30秒プレビューの自然終端で確実に止める (duration > 残尺のとき)。
-        previewEndObserver = NotificationCenter.default.addObserver(
-            forName: .AVPlayerItemDidPlayToEndTime, object: item, queue: .main
-        ) { [weak self] _ in
-            MainActor.assumeIsolated { self?.finish(gen: gen) }
-        }
-
-        player.play()
-
-        playbackTask = Task {
-            var waited: UInt64 = 0
-            var failed = false
-            while waited < Self.previewPlayHardCap {
-                if Task.isCancelled || gen != self.playGen { return }
-                if item.status == .failed { failed = true; break }
-                if player.timeControlStatus == .playing { break }
-                try? await Task.sleep(nanoseconds: Self.playWaitStep)
-                waited += Self.playWaitStep
-            }
-            if Task.isCancelled || gen != self.playGen { return }
-            if failed { self.finish(gen: gen); return }
-            guard let duration else { return }   // 押すまで流す: 自動停止しない (自然終端は observer 任せ)
-            try? await Task.sleep(nanoseconds: UInt64(duration * 1_000_000_000))
-            if Task.isCancelled || gen != self.playGen { return }
-            self.finish(gen: gen)
-        }
-    }
-
-    /// 再生を止めて終了通知 (現役世代に対してのみ・重複/競合安全)。
-    private func finish(gen: Int) {
-        guard gen == playGen else { return }
+    /// 再生を止めて終了通知 (現役世代のみ・重複/競合安全)。
+    private func finish(session: Int) {
+        guard session == playSession else { return }
         #if !targetEnvironment(simulator)
         if usedFullPlayer { musicPlayer.pause() }
         #endif
         previewPlayer?.pause()
         isPlaying = false
-        let handler = onFinished
-        handler?()
+        onFinished?()
     }
 
-    /// 再生を完全停止し世代を進める (進行中の非同期再生を無効化)。
+    /// 再生を完全停止し世代を進める (進行中の非同期再生を無効化)。プリフェッチは保持。
     func stop() {
-        playGen += 1
-        playbackTask?.cancel()
-        playbackTask = nil
-        if let token = previewEndObserver {
+        playSession += 1
+        startTask?.cancel()
+        startTask = nil
+        if let token = endObserver {
             NotificationCenter.default.removeObserver(token)
-            previewEndObserver = nil
+            endObserver = nil
         }
         #if !targetEnvironment(simulator)
         if usedFullPlayer { musicPlayer.pause() }
@@ -173,8 +188,8 @@ final class IntroAudioEngine {
 
     /// 「もう少し流す」: 停止タイマー無しで現在位置から再生継続 (本家 playUntilStopped 相当)。
     func continuePlaying() {
-        playbackTask?.cancel()
-        playbackTask = nil
+        startTask?.cancel()
+        startTask = nil
         #if !targetEnvironment(simulator)
         if usedFullPlayer { musicPlayer.play() }
         #endif
@@ -182,84 +197,7 @@ final class IntroAudioEngine {
         isPlaying = true
     }
 
-    // MARK: - Rush prefetch (サクサク化)
-
-    @ObservationIgnored private var rushStoreIDs: [String] = []
-    @ObservationIgnored private var rushPos: Int = -1     // キューが現在指している index
-    @ObservationIgnored private var rushActive: Bool = false
-
-    /// Rush 開始時に全曲を 1 キューに積んでおく。以降は skipToNextItem で進めるので
-    /// 毎曲の setQueue(catalog 再取得) によるラグ/無音をなくす ("曲のフェッチは開始前に")。
-    func prepareRushQueue(storeIDs: [String]) {
-        rushStoreIDs = storeIDs
-        rushPos = -1
-        rushActive = false
-        #if !targetEnvironment(simulator)
-        guard MusicKitService.shared.hasAppleMusicSubscription, !storeIDs.isEmpty else { return }
-        try? AVAudioSession.sharedInstance().setCategory(.playback)
-        try? AVAudioSession.sharedInstance().setActive(true)
-        usedFullPlayer = true
-        musicPlayer.setQueue(with: storeIDs)
-        musicPlayer.prepareToPlay()
-        rushActive = true
-        #endif
-    }
-
-    /// Rush: 事前に積んだキューで index の曲を頭出し再生 (押すまで流す = 自動停止なし)。
-    /// 連続 (index = 前回+1) は skipToNextItem で即切替。先頭/wrap はキュー張り直し。
-    /// キュー未使用 (未サブスク/シミュレータ) は通常の preview/フル再生にフォールバック。
-    func playRush(index: Int, appleMusicId: String, previewUrl: URL?) {
-        stop()
-        self.onFinished = nil
-        let gen = playGen
-
-        #if targetEnvironment(simulator)
-        return
-        #else
-        guard rushActive else {
-            // フォールバック (未サブスク等): 通常再生で押すまで流す。
-            if MusicKitService.shared.hasAppleMusicSubscription, !appleMusicId.isEmpty {
-                playFull(appleMusicId: appleMusicId, fallbackPreview: previewUrl, duration: nil, gen: gen)
-            } else if let url = previewUrl {
-                playPreview(url: url, duration: nil, gen: gen)
-            }
-            return
-        }
-
-        usedFullPlayer = true
-        if rushPos < 0 {
-            // 最初: キュー先頭が nowPlaying
-        } else if index == rushPos + 1 {
-            musicPlayer.skipToNextItem()
-        } else {
-            // wrap / 非連続: キューを張り直して先頭へ (rush の wrap は index 0)。
-            musicPlayer.setQueue(with: rushStoreIDs)
-            musicPlayer.prepareToPlay()
-        }
-        rushPos = index
-        musicPlayer.play()
-        isPlaying = true
-
-        // 鳴り始めを待つだけ (自動停止はしない = 押すまで流す)。
-        playbackTask = Task {
-            var waited: UInt64 = 0
-            while waited < Self.playingWaitCap {
-                if Task.isCancelled || gen != self.playGen { return }
-                if self.musicPlayer.playbackState == .playing { return }
-                try? await Task.sleep(nanoseconds: Self.playWaitStep)
-                waited += Self.playWaitStep
-            }
-        }
-        #endif
-    }
-
-    func endRushQueue() {
-        rushActive = false
-        rushStoreIDs = []
-        rushPos = -1
-    }
-
-    /// 長押しを離したら一時停止する (世代は進めない = 現在位置を保持)。
+    /// 長押しを離したら一時停止 (世代は進めない = 現在位置を保持)。
     func pauseHeld() {
         #if !targetEnvironment(simulator)
         if usedFullPlayer { musicPlayer.pause() }

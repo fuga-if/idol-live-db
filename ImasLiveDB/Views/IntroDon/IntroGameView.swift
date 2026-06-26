@@ -17,11 +17,10 @@ struct IntroGameView: View {
 
     private var isRush: Bool { session.settings.mode == .rush }
 
-    /// 音声モードで実際に音声 UI を出すか。許可拒否/不可なら 4択にフォールバック。
+    /// 音声判定 UI を出すか。音声モードでは常に音声 UI (選択肢は出さない)。
+    /// 未許可は voiceStatusCard で許可導線を出す。Rush は音声を使わず常に 4択。
     private var useVoice: Bool {
-        session.settings.answerMode == .voice
-            && speechService.authStatus != .denied
-            && speechService.authStatus != .restricted
+        session.settings.answerMode == .voice && !isRush
     }
 
     var body: some View {
@@ -397,7 +396,7 @@ struct IntroGameView: View {
 
     @ViewBuilder
     private var answerArea: some View {
-        if useVoice && !isRush {
+        if useVoice {
             voiceAnswerArea
         } else if let q = session.currentQuestion {
             VStack(spacing: 8) {
@@ -423,7 +422,12 @@ struct IntroGameView: View {
 
     private var voiceStatusCard: some View {
         VStack(spacing: 8) {
-            if speechService.authStatus == .notDetermined {
+            if speechService.authStatus == .denied || speechService.authStatus == .restricted {
+                Text("設定アプリでマイクと音声認識を許可してください")
+                    .font(ID.font(13, weight: .semibold))
+                    .foregroundColor(ID.incorrect)
+                    .multilineTextAlignment(.center)
+            } else if speechService.authStatus == .notDetermined {
                 Text("マイクをタップして声で回答")
                     .font(ID.font(13, weight: .semibold))
                     .foregroundColor(ID.t2)

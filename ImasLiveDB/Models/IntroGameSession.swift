@@ -109,11 +109,7 @@ final class IntroGameSession {
         }
 
         phase = .playing
-        if settings.mode == .rush {
-            // 全曲を 1 キューに積んでおく (毎曲の catalog 再取得をなくしサクサクに)。
-            audio.prepareRushQueue(storeIDs: questions.map(\.appleMusicId).filter { !$0.isEmpty })
-            startRushTimer()
-        }
+        if settings.mode == .rush { startRushTimer() }
         await playCurrentIntro()
     }
 
@@ -137,7 +133,6 @@ final class IntroGameSession {
         rushTimerTask?.cancel()
         rushTimerTask = nil
         stopPlayback()
-        audio.endRushQueue()
         phase = .finished
         saveBestScore()
     }
@@ -157,25 +152,27 @@ final class IntroGameSession {
 
     func playCurrentIntro() async {
         guard let q = currentQuestion else { return }
-        // Rush は事前キューから skip で即切替 (押すまで流す)。回答するまで .playing のまま。
-        if settings.mode == .rush {
-            audio.playRush(
-                index: currentIndex,
-                appleMusicId: q.appleMusicId,
-                previewUrl: q.previewUrl.flatMap(URL.init(string:))
-            )
-            return
-        }
+        // Rush は「押すまで流す」(duration=nil)。それ以外は introDuration で自動停止。
+        let isRush = settings.mode == .rush
         audio.play(
             appleMusicId: q.appleMusicId,
             previewUrl: q.previewUrl.flatMap(URL.init(string:)),
-            duration: settings.introDuration
+            duration: isRush ? nil : settings.introDuration
         ) { [weak self] in
-            // duration 経過 (または再生不可) で回答フェーズへ。早押し済み等で
-            // 既に .playing でなければ何もしない。
             guard let self else { return }
-            if self.phase == .playing { self.phase = .answering }
+            if !isRush, self.phase == .playing { self.phase = .answering }
         }
+        prefetchNext()
+    }
+
+    /// 次に出題する曲の preview を裏で先読みしておく (本家 prefetchUpcoming 相当)。
+    private func prefetchNext() {
+        guard !questions.isEmpty else { return }
+        let nextIndex = settings.mode == .rush
+            ? (currentIndex + 1) % questions.count
+            : currentIndex + 1
+        guard questions.indices.contains(nextIndex) else { return }
+        audio.prefetch(previewUrl: questions[nextIndex].previewUrl.flatMap(URL.init(string:)))
     }
 
     func stopPlayback() {
@@ -288,7 +285,6 @@ final class IntroGameSession {
         rushTimerTask = nil
         rushRemaining = 0
         stopPlayback()
-        audio.endRushQueue()
         phase = .idle
         questions = []
         currentIndex = 0

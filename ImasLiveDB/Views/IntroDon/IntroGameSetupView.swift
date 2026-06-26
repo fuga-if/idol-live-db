@@ -39,13 +39,16 @@ struct IntroGameSetupView: View {
                 modeSection
                     .padding(.horizontal, 20)
 
-                Spacer().frame(height: 24)
+                // Rush は連続早押しのため常に 4択 (音声判定 OFF) → 回答方式は出さない。
+                if mode != .rush {
+                    Spacer().frame(height: 24)
 
-                IDSectionLabel(text: "回答方式")
-                    .padding(.horizontal, 20)
-                Spacer().frame(height: 12)
-                answerModeSection
-                    .padding(.horizontal, 20)
+                    IDSectionLabel(text: "回答方式")
+                        .padding(.horizontal, 20)
+                    Spacer().frame(height: 12)
+                    answerModeSection
+                        .padding(.horizontal, 20)
+                }
 
                 Spacer().frame(height: 24)
 
