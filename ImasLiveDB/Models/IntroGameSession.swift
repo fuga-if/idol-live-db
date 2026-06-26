@@ -53,8 +53,12 @@ final class IntroGameSession {
     private(set) var selectedTitle: String? = nil
     private(set) var isCorrect: Bool? = nil
     private(set) var isPlayingIntro: Bool = false
+    /// Rush モードの残り時間 (秒)。UI のカウントダウン表示用。
+    private(set) var rushRemaining: TimeInterval = 0
 
     var settings: IntroGameSettings = IntroGameSettings()
+
+    @ObservationIgnored private var rushTimerTask: Task<Void, Never>? = nil
 
     private var playbackTask: Task<Void, Never>? = nil
     private var previewPlayer: AVPlayer? = nil
@@ -101,7 +105,9 @@ final class IntroGameSession {
             return
         }
 
-        questions = Array(pool.shuffled().prefix(settings.questionCount)).map { song in
+        // Rush は時間で終わるため尽きないよう多めに用意 (尽きたら先頭へ wrap)。
+        let count = settings.mode == .rush ? min(pool.count, 300) : settings.questionCount
+        questions = Array(pool.shuffled().prefix(count)).map { song in
             IntroGameQuestion(
                 id: song.id,
                 title: song.title,
@@ -114,7 +120,32 @@ final class IntroGameSession {
         }
 
         phase = .playing
+        if settings.mode == .rush { startRushTimer() }
         await playCurrentIntro()
+    }
+
+    // MARK: - Rush
+
+    private func startRushTimer() {
+        rushRemaining = settings.rushTimeLimit
+        let deadline = Date().addingTimeInterval(settings.rushTimeLimit)
+        rushTimerTask?.cancel()
+        rushTimerTask = Task {
+            while !Task.isCancelled {
+                let remaining = deadline.timeIntervalSinceNow
+                rushRemaining = max(0, remaining)
+                if remaining <= 0 { finishRush(); return }
+                try? await Task.sleep(nanoseconds: 100_000_000)
+            }
+        }
+    }
+
+    private func finishRush() {
+        rushTimerTask?.cancel()
+        rushTimerTask = nil
+        stopPlayback()
+        phase = .finished
+        saveBestScore()
     }
 
     private func makeChoices(for song: Song, pool: [Song]) -> [String] {
@@ -312,6 +343,14 @@ final class IntroGameSession {
         selectedTitle = nil
         isCorrect = nil
 
+        // Rush: 終了は rushTimerTask が .finished にする。ここでは出題を回し続ける (尽きたら先頭へ)。
+        if settings.mode == .rush {
+            currentIndex = questions.isEmpty ? 0 : (currentIndex + 1) % questions.count
+            phase = .playing
+            await playCurrentIntro()
+            return
+        }
+
         let next = currentIndex + 1
         if next >= questions.count {
             stopPlayback()
@@ -325,6 +364,9 @@ final class IntroGameSession {
     }
 
     func reset() {
+        rushTimerTask?.cancel()
+        rushTimerTask = nil
+        rushRemaining = 0
         stopPlayback()
         phase = .idle
         questions = []
@@ -348,7 +390,9 @@ final class IntroGameSession {
     private var bestScoreKey: String {
         // %g で整数は "2"、サブ秒は "0.2" になり、超イントロのベストスコアが別管理される
         // (Int だと 0.2→0 で衝突していた)。整数値の既存キーは "2" のまま維持される。
-        "introDonBestScore_\(String(format: "%g", settings.introDuration))s_\(settings.questionCount)q"
+        settings.mode == .rush
+            ? "introDonBestScore_rush_\(String(format: "%g", settings.rushTimeLimit))s"
+            : "introDonBestScore_\(String(format: "%g", settings.introDuration))s_\(settings.questionCount)q"
     }
 
     private func saveBestScore() {
