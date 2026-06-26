@@ -16,8 +16,9 @@ final class SpeechRecognitionService {
 
     private(set) var isListening: Bool = false
     private(set) var recognizedText: String = ""
-    /// 音声認識 + マイクの総合許可状態 (UI のゲーティング用)。
-    private(set) var authStatus: SFSpeechRecognizerAuthorizationStatus = SFSpeechRecognizer.authorizationStatus()
+    /// 音声認識 + マイクの総合許可状態 (UI のゲーティング用)。音声認識のみで判定すると
+    /// マイク未許可を取りこぼし「許可済みなのに未認可扱い」になるため両方を合成する。
+    private(set) var authStatus: SFSpeechRecognizerAuthorizationStatus = SpeechRecognitionService.combinedStatus()
     /// 一致した choice を渡すコールバック。
     var onMatch: ((String) -> Void)?
 
@@ -44,19 +45,28 @@ final class SpeechRecognitionService {
         let speech = await withCheckedContinuation { (c: CheckedContinuation<SFSpeechRecognizerAuthorizationStatus, Never>) in
             SFSpeechRecognizer.requestAuthorization { c.resume(returning: $0) }
         }
-        guard speech == .authorized else {
-            authStatus = speech   // notDetermined / denied / restricted をそのまま反映
-            return
+        // 音声認識が許可されたらマイクも要求する (両方そろって初めて録音できる)。
+        if speech == .authorized {
+            _ = await withCheckedContinuation { (c: CheckedContinuation<Bool, Never>) in
+                AVAudioApplication.requestRecordPermission { c.resume(returning: $0) }
+            }
         }
-        let mic = await withCheckedContinuation { (c: CheckedContinuation<Bool, Never>) in
-            AVAudioApplication.requestRecordPermission { c.resume(returning: $0) }
-        }
-        authStatus = mic ? .authorized : .denied
+        authStatus = Self.combinedStatus()
     }
 
     private func hasPermission() -> Bool {
         SFSpeechRecognizer.authorizationStatus() == .authorized
             && AVAudioApplication.shared.recordPermission == .granted
+    }
+
+    /// 音声認識 + マイクの現在状態を 1 つの status に合成する。
+    /// 両方 granted → authorized / どちらか拒否 → denied / それ以外 → notDetermined。
+    private static func combinedStatus() -> SFSpeechRecognizerAuthorizationStatus {
+        let speech = SFSpeechRecognizer.authorizationStatus()
+        let mic = AVAudioApplication.shared.recordPermission
+        if speech == .authorized && mic == .granted { return .authorized }
+        if speech == .denied || speech == .restricted || mic == .denied { return .denied }
+        return .notDetermined
     }
 
     // MARK: - Start / Stop
@@ -91,7 +101,7 @@ final class SpeechRecognitionService {
     private func beginRecognition(startTimer: Bool) {
         guard hasPermission() else {
             isListening = false
-            authStatus = .denied
+            authStatus = Self.combinedStatus()   // 未許可を notDetermined のまま保ち再要求できる
             stopEngine()
             return
         }

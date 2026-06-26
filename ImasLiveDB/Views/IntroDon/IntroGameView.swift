@@ -95,7 +95,9 @@ struct IntroGameView: View {
             }
         }
         .task {
-            if session.settings.answerMode == .voice, speechService.authStatus == .notDetermined {
+            // 音声モードは開始時にマイク+音声認識をまとめて要求しておく
+            // (音声のみ許可済み・マイク未要求の取りこぼしを防ぐ)。
+            if session.settings.answerMode == .voice, speechService.authStatus != .authorized {
                 await speechService.requestAuthorization()
             }
         }
