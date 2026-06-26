@@ -1,0 +1,25 @@
+{
+  "title": "新規楽曲の追加 (例)",
+  "author": "あなたのハンドル名 (任意)",
+  "_help": "各列の意味と enum は ../README.md 参照。id 規則: {brand_id}_{タイトルのsnake_case}",
+  "songs": [
+    {
+      "id": "ml_example_song_title",
+      "title": "曲名",
+      "title_kana": "キョクメイ",
+      "brand_id": "ml",
+      "song_type": "unit",
+      "release_date": "2024-09-04",
+      "unit_id": "",
+      "unit_name": "",
+      "composer": "",
+      "lyricist": "",
+      "arranger": "",
+      "apple_music_id": "",
+      "artwork_url": "",
+      "original_singers": ["ml_example_idol_a", "ml_example_idol_b"],
+      "source": "https://公式などの出典URL",
+      "note": "根拠・補足"
+    }
+  ]
+}

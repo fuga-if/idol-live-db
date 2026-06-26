@@ -1,0 +1,23 @@
+{
+  "name": "imas-live-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-01-01",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "imas-live-db",
+      "database_id": "853e9879-df05-49f6-b215-e5ec1a6c0d6b"
+    }
+  ],
+  "vars": {
+    "APPLE_BUNDLE_ID": "com.fugaif.ImasLiveDB",
+    // ALLOWED_ORIGINS: Web フロントエンドの Origin をカンマ区切りで列挙。
+    // iOS ネイティブは Origin ヘッダを送らないため、空文字列でも動作する。
+    // 例: "https://yourapp.example.com,https://admin.example.com"
+    "ALLOWED_ORIGINS": ""
+  },
+  // CLOUDKIT_KEY_ID and CLOUDKIT_PRIVATE_KEY are set via wrangler secret
+  "triggers": {
+    "crons": ["*/5 * * * *"]
+  }
+}

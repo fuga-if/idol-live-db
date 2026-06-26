@@ -1,0 +1,167 @@
+name: ImasLiveDB
+options:
+  bundleIdPrefix: com.fugaif
+  deploymentTarget:
+    iOS: "17.0"
+  xcodeVersion: "16.0"
+  generateEmptyDirectories: true
+  developmentLanguage: ja
+
+packages:
+  GRDB:
+    url: https://github.com/groue/GRDB.swift
+    from: "7.0.0"
+  Nuke:
+    url: https://github.com/kean/Nuke
+    from: "12.8.0"
+  Firebase:
+    url: https://github.com/firebase/firebase-ios-sdk
+    from: "11.0.0"
+
+targets:
+  ImasLiveDB:
+    type: application
+    platform: iOS
+    sources:
+      - path: ImasLiveDB
+        excludes:
+          - Resources/master.sqlite
+          - Resources/master.sqlite-shm
+          - Resources/master.sqlite-wal
+          # データ更新時に Resources に残る DB バックアップ (master.sqlite.bak_*) は
+          # アプリに同梱しない。放置すると 1 件 ~18MB が積み上がり .app が肥大化する。
+          - Resources/*.bak*
+          # CloudKit スキーマのメモ (コード隣のドキュメント) もバンドル不要。
+          - Services/README_CloudKit_Schema.md
+          - Resources/v7_event_kind_data.sql
+          - PrivacyInfo.xcprivacy
+          - Resources/GoogleService-Info.plist
+      - path: ImasLiveDB/Resources/master.sqlite
+        optional: true
+        buildPhase: resources
+      - path: ImasLiveDB/Resources/v7_event_kind_data.sql
+        buildPhase: resources
+      - path: ImasLiveDB/Resources/GoogleService-Info.plist
+        buildPhase: resources
+      - path: ImasLiveDB/PrivacyInfo.xcprivacy
+        buildPhase: resources
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        DEVELOPMENT_TEAM: GQ3WP34LFW
+        CODE_SIGN_STYLE: Automatic
+        PRODUCT_BUNDLE_IDENTIFIER: com.fugaif.ImasLiveDB
+        PRODUCT_NAME: ImasLiveDB
+        MARKETING_VERSION: "1.7.2"
+        CURRENT_PROJECT_VERSION: "41"
+        INFOPLIST_KEY_CFBundleDisplayName: アイドルライブDB
+        INFOPLIST_KEY_CFBundleDevelopmentRegion: ja
+        INFOPLIST_KEY_CFBundleAllowMixedLocalizations: YES
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: YES
+        INFOPLIST_KEY_NSAppleMusicUsageDescription: "楽曲のジャケット写真の表示とプレビュー再生に使用します"
+        INFOPLIST_KEY_NSCameraUsageDescription: "セットリストの写真を撮影してOCRで曲名を認識します"
+        INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "セットリストの写真を選択してOCRで曲名を認識します"
+        INFOPLIST_KEY_NSMicrophoneUsageDescription: "イントロドンで曲名を音声で答えるために使用します"
+        INFOPLIST_KEY_NSCalendarsWriteOnlyAccessUsageDescription: "ライブの予定をカレンダーに追加するために使用します"
+        INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription: "お手持ちのカレンダーの予定をアプリ内のスケジュールに重ねて表示するために使用します"
+        INFOPLIST_KEY_NSSpeechRecognitionUsageDescription: "発声した曲名をテキスト化してクイズに回答するために使用します"
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
+        INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
+        SWIFT_VERSION: "6.0"
+        SWIFT_STRICT_CONCURRENCY: complete
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+      configs:
+        Release:
+          CODE_SIGN_STYLE: Automatic
+    # custom URL scheme (imaslivedb://) は INFOPLIST_KEY_* では表現できないため
+    # info ブロックで Info.plist を生成する。GENERATE_INFOPLIST_FILE: YES と併用すると
+    # Xcode が INFOPLIST_KEY_* をこのファイルへマージする。
+    # CFBundleShortVersionString / CFBundleVersion は xcodegen のデフォルト ("1.0"/"1")
+    # に固定されないようビルド設定変数を明示する。
+    info:
+      path: ImasLiveDB/Info.plist
+      properties:
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CFBundleURLTypes:
+          - CFBundleURLName: com.fugaif.ImasLiveDB
+            CFBundleURLSchemes:
+              - imaslivedb
+    entitlements:
+      path: ImasLiveDB/ImasLiveDB.entitlements
+      properties:
+        com.apple.developer.applesignin:
+          - Default
+        com.apple.developer.associated-domains:
+          - applinks:imas-live-api.tokata3011.workers.dev
+        com.apple.developer.icloud-container-identifiers:
+          - iCloud.com.fugaif.ImasLiveDB
+        com.apple.developer.icloud-services:
+          - CloudKit
+        com.apple.developer.icloud-container-environment: Production
+        com.apple.security.application-groups:
+          - group.com.fugaif.ImasLiveDB
+    dependencies:
+      - package: GRDB
+        product: GRDB
+      - package: Nuke
+        product: Nuke
+      - package: Nuke
+        product: NukeUI
+      - package: Firebase
+        product: FirebaseAnalytics
+      - target: ImasLiveDBWidget
+    scheme:
+      testTargets:
+        - ImasLiveDBTests
+
+  ImasLiveDBTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: ImasLiveDBTests
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        DEVELOPMENT_TEAM: GQ3WP34LFW
+        PRODUCT_BUNDLE_IDENTIFIER: com.fugaif.ImasLiveDBTests
+        SWIFT_VERSION: "6.0"
+        SWIFT_STRICT_CONCURRENCY: complete
+    dependencies:
+      - target: ImasLiveDB
+
+  ImasLiveDBWidget:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: ImasLiveDBWidget
+      - path: ImasLiveDB/Shared
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        DEVELOPMENT_TEAM: GQ3WP34LFW
+        CODE_SIGN_STYLE: Automatic
+        PRODUCT_BUNDLE_IDENTIFIER: com.fugaif.ImasLiveDB.widget
+        PRODUCT_NAME: ImasLiveDBWidget
+        MARKETING_VERSION: "1.7.2"
+        CURRENT_PROJECT_VERSION: "41"
+        INFOPLIST_KEY_CFBundleDisplayName: 担当ウィジェット
+        SWIFT_VERSION: "6.0"
+        SWIFT_STRICT_CONCURRENCY: complete
+        SKIP_INSTALL: YES
+    info:
+      path: ImasLiveDBWidget/Info.plist
+      properties:
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    entitlements:
+      path: ImasLiveDBWidget/ImasLiveDBWidget.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.fugaif.ImasLiveDB

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">アイドルライブDB</string>
+
+    <!-- Bottom navigation tab labels -->
+    <string name="tab_events">ライブ</string>
+    <string name="tab_songs">楽曲</string>
+    <string name="tab_idols">アイドル</string>
+    <string name="tab_stats">統計</string>
+    <string name="tab_search">検索</string>
+
+    <!-- Common -->
+    <string name="label_setlist">セトリ</string>
+    <string name="label_song_count">曲数</string>
+    <string name="label_brand">ブランド</string>
+    <string name="label_cast">キャスト</string>
+    <string name="label_date">開催日</string>
+    <string name="label_venue">会場</string>
+</resources>

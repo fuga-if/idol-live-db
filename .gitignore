@@ -1,0 +1,76 @@
+# Xcode
+*.xcodeproj/
+*.xcworkspace/
+xcuserdata/
+DerivedData/
+build/
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+*.xccheckout
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Swift Package Manager
+.build/
+.swiftpm/
+Packages/
+Package.resolved
+
+# macOS
+.DS_Store
+*.swp
+*~
+
+# SQLite generated
+ImasLiveDB/Resources/master.sqlite
+
+# Secrets
+.env
+.dev.vars
+imas-live-api/.dev.vars
+.wrangler/
+eckey.pem
+firebase-debug.log
+imas-live-api/node_modules/
+
+# Claude Code ランタイム状態
+.claude/scheduled_tasks.lock
+
+# Contains personal info (phone/email) used only locally and via CI Secrets
+fastlane/metadata/review_information/
+
+# fastlane signing artifacts (regenerated as needed)
+*.mobileprovision
+*.certSigningRequest
+*.cer
+*.p12
+*.ipa
+fastlane/report.xml
+fastlane/README.md
+*.sqlite.bak*
+*.sqlite-shm
+*.sqlite-wal
+
+# データ更新時の DB バックアップ退避先 (バンドル対象外・ローカルのみ)
+db_backups_local/
+
+# Firebase iOS 設定 (非公開・各自配置。analytics は無くても動作)
+ImasLiveDB/Resources/GoogleService-Info.plist
+# XcodeBuildMCP のマシン固有設定 (絶対パス/シミュレータ UUID)
+.xcodebuildmcp/
+# ルートの空 master プレースホルダ
+/master.sqlite
+
+# Firebase Android 設定 (未使用の dead config・各自配置)
+ImasLiveDB-Android/app/google-services.json
+google-services.json
+
+# fastlane/ruby (fastlane はローカル専用化済み・各自保持)
+Gemfile
+Gemfile.lock
+.ruby-version

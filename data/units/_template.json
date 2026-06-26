@@ -1,0 +1,16 @@
+{
+  "title": "ユニットの追加 (例)",
+  "author": "あなたのハンドル名 (任意)",
+  "_help": "id はユニット名ベース。members に所属 idol_id を列挙。is_permanent=1 は常設ユニット。",
+  "source": "https://出典URL",
+  "units": [
+    {
+      "id": "example_unit",
+      "brand_id": "ml",
+      "name": "ユニット名",
+      "name_alt": "",
+      "is_permanent": 1,
+      "members": ["ml_example_idol_a", "ml_example_idol_b"]
+    }
+  ]
+}

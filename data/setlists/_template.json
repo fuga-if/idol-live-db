@@ -1,0 +1,12 @@
+{
+  "title": "セットリストの追加 (例)",
+  "author": "あなたのハンドル名 (任意)",
+  "_help": "show_id は shows.id。各曲は song_id (確実) か title (brand 内で曲名一致解決)。performers は \"all\" か idol_id 配列。詳細 ../README.md",
+  "show_id": "sh_対象公演のid",
+  "all_performers": ["ml_example_idol_a", "ml_example_idol_b"],
+  "source": "https://出典URL",
+  "songs": [
+    { "position": 1, "title": "曲名A", "performers": "all" },
+    { "position": 2, "song_id": "ml_example_song_title", "performers": ["ml_example_idol_a"], "section": "アンコール", "notes": "" }
+  ]
+}

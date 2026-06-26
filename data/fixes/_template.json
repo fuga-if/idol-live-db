@@ -1,0 +1,21 @@
+{
+  "title": "既存レコードの修正 (例: 楽曲の配信日を直す)",
+  "author": "あなたのハンドル名 (任意)",
+  "_help": "既存レコードのフィールドを直す。新規追加は data/<種類>/ を使う。詳細 ../README.md",
+  "fixes": [
+    {
+      "table": "songs",
+      "id": "対象レコードの id (master の id 列の値)",
+      "fields": { "release_date": "2024-09-04" },
+      "source": "https://一次ソース(公式サイト等)のURL",
+      "note": "なぜこの値が正しいかの根拠"
+    },
+    {
+      "table": "idols",
+      "id": "ml_kasuga_mirai",
+      "fields": { "height": 158 },
+      "source": "https://公式プロフィールのURL",
+      "note": "公式で確認"
+    }
+  ]
+}

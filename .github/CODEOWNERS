@@ -1,0 +1,5 @@
+# これらの変更はオーナーのレビュー必須にする (branch protection の
+# "Require review from Code Owners" と併用)。
+# secret に触れる箇所 (ワークフロー) と反映ツールの改ざんを防ぐのが目的。
+/.github/        @fuga-if
+/tools/          @fuga-if

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Base application theme. Compose handles most theming, this is the window background only. -->
+    <style name="Theme.ImasLiveDB" parent="android:Theme.Material.Light.NoActionBar" />
+</resources>

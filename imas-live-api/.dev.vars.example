@@ -1,0 +1,22 @@
+# imas-live-api ローカル開発用シークレットのテンプレート
+#
+# 使い方:
+#   cp .dev.vars.example .dev.vars
+#   各値を実際のものに置き換える (.dev.vars は .gitignore 済み・コミット厳禁)
+#
+# 本番 (wrangler deploy) では .dev.vars は使われない。
+# 本番値は `wrangler secret put <NAME>` で Cloudflare 側に登録する。
+#
+# 非秘密の設定 (APPLE_BUNDLE_ID / ALLOWED_ORIGINS / D1 binding) は
+# wrangler.jsonc 側にあるのでここには書かない。
+
+# CloudKit Server-to-Server 鍵 (CloudKit Dashboard → Tokens & Keys → Server-to-Server Keys)
+CLOUDKIT_KEY_ID=""
+# ECDSA 秘密鍵 (PEM)。改行は \n でエスケープして1行にするか、複数行のまま引用符で囲む。
+CLOUDKIT_PRIVATE_KEY=""
+
+# セッション JWT 署名用シークレット (任意のランダム長文字列)
+SESSION_JWT_SECRET=""
+
+# モデレーター権限を持つ Apple ユーザー ID をカンマ区切りで列挙
+ADMIN_USER_IDS=""

@@ -1,0 +1,372 @@
+DEFINE SCHEMA
+
+    RECORD TYPE Brand (
+        "___createTime" TIMESTAMP,
+        "___createdBy"  REFERENCE,
+        "___etag"       STRING,
+        "___modTime"    TIMESTAMP,
+        "___modifiedBy" REFERENCE,
+        "___recordID"   REFERENCE,
+        color           STRING QUERYABLE SEARCHABLE SORTABLE,
+        iconUrl         STRING QUERYABLE SEARCHABLE SORTABLE,
+        modifiedAt      TIMESTAMP QUERYABLE SORTABLE,
+        name            STRING QUERYABLE SEARCHABLE SORTABLE,
+        shortName       STRING QUERYABLE SEARCHABLE SORTABLE,
+        sortOrder       INT64 QUERYABLE SORTABLE,
+        deletedAt      TIMESTAMP QUERYABLE SORTABLE,
+        GRANT WRITE TO "_creator",
+        GRANT CREATE TO "_icloud",
+        GRANT READ TO "_world"
+    );
+
+    RECORD TYPE CastMember (
+        "___createTime" TIMESTAMP,
+        "___createdBy"  REFERENCE,
+        "___etag"       STRING,
+        "___modTime"    TIMESTAMP,
+        "___modifiedBy" REFERENCE,
+        "___recordID"   REFERENCE,
+        modifiedAt      TIMESTAMP QUERYABLE SORTABLE,
+        name            STRING QUERYABLE SEARCHABLE SORTABLE,
+        nameKana        STRING QUERYABLE SEARCHABLE SORTABLE,
+        nameRomaji      STRING QUERYABLE SEARCHABLE SORTABLE,
+        deletedAt      TIMESTAMP QUERYABLE SORTABLE,
+        GRANT WRITE TO "_creator",
+        GRANT CREATE TO "_icloud",
+        GRANT READ TO "_world"
+    );
+
+    RECORD TYPE Event (
+        "___createTime" TIMESTAMP,
+        "___createdBy"  REFERENCE,
+        "___etag"       STRING,
+        "___modTime"    TIMESTAMP,
+        "___modifiedBy" REFERENCE,
+        "___recordID"   REFERENCE,
+        brandId         STRING QUERYABLE SEARCHABLE SORTABLE,
+        eventType       STRING QUERYABLE SEARCHABLE SORTABLE,
+        isSolo          INT64 QUERYABLE SORTABLE,
+        isStreaming     INT64 QUERYABLE SORTABLE,
+        kind            STRING QUERYABLE SEARCHABLE SORTABLE,
+        modifiedAt      TIMESTAMP QUERYABLE SORTABLE,
+        name            STRING QUERYABLE SEARCHABLE SORTABLE,
+        ticketOpenDate    STRING QUERYABLE SEARCHABLE SORTABLE,
+        ticketDeadline    STRING QUERYABLE SEARCHABLE SORTABLE,
+        ticketLotteryDate STRING QUERYABLE SEARCHABLE SORTABLE,
+        ticketUrl         STRING QUERYABLE SEARCHABLE SORTABLE,
+        deletedAt      TIMESTAMP QUERYABLE SORTABLE,
+        jointBrandIds  STRING QUERYABLE SEARCHABLE,
+        GRANT WRITE TO "_creator",
+        GRANT CREATE TO "_icloud",
+        GRANT READ TO "_world"
+    );
+
+    RECORD TYPE Idol (
+        "___createTime" TIMESTAMP,
+        "___createdBy"  REFERENCE,
+        "___etag"       STRING,
+        "___modTime"    TIMESTAMP,
+        "___modifiedBy" REFERENCE,
+        "___recordID"   REFERENCE,
+        age             INT64 QUERYABLE SORTABLE,
+        aliases         STRING QUERYABLE SEARCHABLE SORTABLE,
+        attribute       STRING QUERYABLE SEARCHABLE SORTABLE,
+        birthPlace      STRING QUERYABLE SEARCHABLE SORTABLE,
+        birthday        STRING QUERYABLE SEARCHABLE SORTABLE,
+        bloodType       STRING QUERYABLE SEARCHABLE SORTABLE,
+        brandId         STRING QUERYABLE SEARCHABLE SORTABLE,
+        bust            DOUBLE QUERYABLE SORTABLE,
+        color           STRING QUERYABLE SEARCHABLE SORTABLE,
+        constellation   STRING QUERYABLE SEARCHABLE SORTABLE,
+        debutDate       STRING QUERYABLE SEARCHABLE SORTABLE,
+        description     STRING QUERYABLE SEARCHABLE SORTABLE,
+        gender          STRING QUERYABLE SEARCHABLE SORTABLE,
+        handedness      STRING QUERYABLE SEARCHABLE SORTABLE,
+        familyName      STRING QUERYABLE SEARCHABLE SORTABLE,
+        givenName       STRING QUERYABLE SEARCHABLE SORTABLE,
+        height          DOUBLE QUERYABLE SORTABLE,
+        hip             DOUBLE QUERYABLE SORTABLE,
+        hobbies         STRING QUERYABLE SEARCHABLE SORTABLE,
+        isExternal      INT64 QUERYABLE SORTABLE,
+        modifiedAt      TIMESTAMP QUERYABLE SORTABLE,
+        name            STRING QUERYABLE SEARCHABLE SORTABLE,
+        nameKana        STRING QUERYABLE SEARCHABLE SORTABLE,
+        nameRomaji      STRING QUERYABLE SEARCHABLE SORTABLE,
+        nickname        STRING QUERYABLE SEARCHABLE SORTABLE,
+        sortOrder       INT64 QUERYABLE SORTABLE,
+        talents         STRING QUERYABLE SEARCHABLE SORTABLE,
+        voiceActors     STRING QUERYABLE SEARCHABLE SORTABLE,
+        waist           DOUBLE QUERYABLE SORTABLE,
+        weight          DOUBLE QUERYABLE SORTABLE,
+        deletedAt      TIMESTAMP QUERYABLE SORTABLE,
+        GRANT WRITE TO "_creator",
+        GRANT CREATE TO "_icloud",
+        GRANT READ TO "_world"
+    );
+
+    RECORD TYPE IdolBrand (
+        "___createTime" TIMESTAMP,
+        "___createdBy"  REFERENCE,
+        "___etag"       STRING,
+        "___modTime"    TIMESTAMP,
+        "___modifiedBy" REFERENCE,
+        "___recordID"   REFERENCE,
+        brandId         STRING QUERYABLE SEARCHABLE SORTABLE,
+        idolId          STRING QUERYABLE SEARCHABLE SORTABLE,
+        isPrimary       INT64 QUERYABLE SORTABLE,
+        modifiedAt      TIMESTAMP QUERYABLE SORTABLE,
+        deletedAt      TIMESTAMP QUERYABLE SORTABLE,
+        GRANT WRITE TO "_creator",
+        GRANT CREATE TO "_icloud",
+        GRANT READ TO "_world"
+    );
+
+    RECORD TYPE IdolCast (
+        "___createTime" TIMESTAMP,
+        "___createdBy"  REFERENCE,
+        "___etag"       STRING,
+        "___modTime"    TIMESTAMP,
+        "___modifiedBy" REFERENCE,
+        "___recordID"   REFERENCE,
+        castId          STRING QUERYABLE SEARCHABLE SORTABLE,
+        idolId          STRING QUERYABLE SEARCHABLE SORTABLE,
+        isCurrent       INT64 QUERYABLE SORTABLE,
+        modifiedAt      TIMESTAMP QUERYABLE SORTABLE,
+        deletedAt      TIMESTAMP QUERYABLE SORTABLE,
+        GRANT WRITE TO "_creator",
+        GRANT CREATE TO "_icloud",
+        GRANT READ TO "_world"
+    );
+
+    RECORD TYPE ImasUnit (
+        "___createTime" TIMESTAMP,
+        "___createdBy"  REFERENCE,
+        "___etag"       STRING,
+        "___modTime"    TIMESTAMP,
+        "___modifiedBy" REFERENCE,
+        "___recordID"   REFERENCE,
+        brandId         STRING QUERYABLE SEARCHABLE SORTABLE,
+        isPermanent     INT64 QUERYABLE SORTABLE,
+        modifiedAt      TIMESTAMP QUERYABLE SORTABLE,
+        name            STRING QUERYABLE SEARCHABLE SORTABLE,
+        nameAlt         STRING QUERYABLE SEARCHABLE SORTABLE,
+        deletedAt      TIMESTAMP QUERYABLE SORTABLE,
+        GRANT WRITE TO "_creator",
+        GRANT CREATE TO "_icloud",
+        GRANT READ TO "_world"
+    );
+
+    RECORD TYPE MetaData (
+        "___createTime" TIMESTAMP,
+        "___createdBy"  REFERENCE,
+        "___etag"       STRING,
+        "___modTime"    TIMESTAMP,
+        "___modifiedBy" REFERENCE,
+        "___recordID"   REFERENCE,
+        key             STRING QUERYABLE SEARCHABLE SORTABLE,
+        modifiedAt      TIMESTAMP QUERYABLE SORTABLE,
+        value           STRING QUERYABLE SEARCHABLE SORTABLE,
+        deletedAt      TIMESTAMP QUERYABLE SORTABLE,
+        GRANT WRITE TO "_creator",
+        GRANT CREATE TO "_icloud",
+        GRANT READ TO "_world"
+    );
+
+    RECORD TYPE SetlistItem (
+        "___createTime" TIMESTAMP,
+        "___createdBy"  REFERENCE,
+        "___etag"       STRING,
+        "___modTime"    TIMESTAMP,
+        "___modifiedBy" REFERENCE,
+        "___recordID"   REFERENCE,
+        modifiedAt      TIMESTAMP QUERYABLE SORTABLE,
+        notes           STRING QUERYABLE SEARCHABLE SORTABLE,
+        position        INT64 QUERYABLE SORTABLE,
+        section         STRING QUERYABLE SEARCHABLE SORTABLE,
+        showId          STRING QUERYABLE SEARCHABLE SORTABLE,
+        songId          STRING QUERYABLE SEARCHABLE SORTABLE,
+        unitName        STRING QUERYABLE SEARCHABLE SORTABLE,
+        deletedAt      TIMESTAMP QUERYABLE SORTABLE,
+        GRANT WRITE TO "_creator",
+        GRANT CREATE TO "_icloud",
+        GRANT READ TO "_world"
+    );
+
+    RECORD TYPE SetlistPerformer (
+        "___createTime" TIMESTAMP,
+        "___createdBy"  REFERENCE,
+        "___etag"       STRING,
+        "___modTime"    TIMESTAMP,
+        "___modifiedBy" REFERENCE,
+        "___recordID"   REFERENCE,
+        castId          STRING QUERYABLE SEARCHABLE SORTABLE,
+        idolId          STRING QUERYABLE SEARCHABLE SORTABLE,
+        modifiedAt      TIMESTAMP QUERYABLE SORTABLE,
+        setlistItemId   STRING QUERYABLE SEARCHABLE SORTABLE,
+        deletedAt      TIMESTAMP QUERYABLE SORTABLE,
+        GRANT WRITE TO "_creator",
+        GRANT CREATE TO "_icloud",
+        GRANT READ TO "_world"
+    );
+
+    RECORD TYPE Show (
+        "___createTime" TIMESTAMP,
+        "___createdBy"  REFERENCE,
+        "___etag"       STRING,
+        "___modTime"    TIMESTAMP,
+        "___modifiedBy" REFERENCE,
+        "___recordID"   REFERENCE,
+        date            STRING QUERYABLE SEARCHABLE SORTABLE,
+        eventId         STRING QUERYABLE SEARCHABLE SORTABLE,
+        modifiedAt      TIMESTAMP QUERYABLE SORTABLE,
+        name            STRING QUERYABLE SEARCHABLE SORTABLE,
+        performerType   STRING QUERYABLE SEARCHABLE SORTABLE,
+        sortOrder       INT64 QUERYABLE SORTABLE,
+        startTime       STRING QUERYABLE SEARCHABLE SORTABLE,
+        venue           STRING QUERYABLE SEARCHABLE SORTABLE,
+        venueCity       STRING QUERYABLE SEARCHABLE SORTABLE,
+        deletedAt      TIMESTAMP QUERYABLE SORTABLE,
+        GRANT WRITE TO "_creator",
+        GRANT CREATE TO "_icloud",
+        GRANT READ TO "_world"
+    );
+
+    RECORD TYPE ShowCast (
+        "___createTime" TIMESTAMP,
+        "___createdBy"  REFERENCE,
+        "___etag"       STRING,
+        "___modTime"    TIMESTAMP,
+        "___modifiedBy" REFERENCE,
+        "___recordID"   REFERENCE,
+        castId          STRING QUERYABLE SEARCHABLE SORTABLE,
+        idolId          STRING QUERYABLE SEARCHABLE SORTABLE,
+        castRole        STRING QUERYABLE SORTABLE,
+        modifiedAt      TIMESTAMP QUERYABLE SORTABLE,
+        showId          STRING QUERYABLE SEARCHABLE SORTABLE,
+        deletedAt      TIMESTAMP QUERYABLE SORTABLE,
+        GRANT WRITE TO "_creator",
+        GRANT CREATE TO "_icloud",
+        GRANT READ TO "_world"
+    );
+
+    RECORD TYPE Song (
+        "___createTime"   TIMESTAMP,
+        "___createdBy"    REFERENCE,
+        "___etag"         STRING,
+        "___modTime"      TIMESTAMP,
+        "___modifiedBy"   REFERENCE,
+        "___recordID"     REFERENCE,
+        appleMusicAlbumId STRING QUERYABLE SEARCHABLE SORTABLE,
+        appleMusicId      STRING QUERYABLE SEARCHABLE SORTABLE,
+        arranger          STRING QUERYABLE SEARCHABLE SORTABLE,
+        artworkUrl        STRING QUERYABLE SEARCHABLE SORTABLE,
+        brandId           STRING QUERYABLE SEARCHABLE SORTABLE,
+        cdSeries          STRING QUERYABLE SEARCHABLE SORTABLE,
+        cdTitle           STRING QUERYABLE SEARCHABLE SORTABLE,
+        seriesGroup       STRING QUERYABLE SEARCHABLE SORTABLE,
+        composer          STRING QUERYABLE SEARCHABLE SORTABLE,
+        durationSec       INT64 QUERYABLE SORTABLE,
+        isrc              STRING QUERYABLE SEARCHABLE SORTABLE,
+        lyricist          STRING QUERYABLE SEARCHABLE SORTABLE,
+        lyricsUrl         STRING QUERYABLE SEARCHABLE SORTABLE,
+        modifiedAt        TIMESTAMP QUERYABLE SORTABLE,
+        parentSongId      STRING QUERYABLE SEARCHABLE SORTABLE,
+        previewUrl        STRING QUERYABLE SEARCHABLE SORTABLE,
+        releaseDate       STRING QUERYABLE SEARCHABLE SORTABLE,
+        singerLabel       STRING QUERYABLE SEARCHABLE SORTABLE,
+        songType          STRING QUERYABLE SEARCHABLE SORTABLE,
+        title             STRING QUERYABLE SEARCHABLE SORTABLE,
+        titleKana         STRING QUERYABLE SEARCHABLE SORTABLE,
+        unitId            STRING QUERYABLE SEARCHABLE SORTABLE,
+        unitName          STRING QUERYABLE SEARCHABLE SORTABLE,
+        deletedAt      TIMESTAMP QUERYABLE SORTABLE,
+        GRANT WRITE TO "_creator",
+        GRANT CREATE TO "_icloud",
+        GRANT READ TO "_world"
+    );
+
+    RECORD TYPE SongArtist (
+        "___createTime" TIMESTAMP,
+        "___createdBy"  REFERENCE,
+        "___etag"       STRING,
+        "___modTime"    TIMESTAMP,
+        "___modifiedBy" REFERENCE,
+        "___recordID"   REFERENCE,
+        idolId          STRING QUERYABLE SEARCHABLE SORTABLE,
+        modifiedAt      TIMESTAMP QUERYABLE SORTABLE,
+        role            STRING QUERYABLE SEARCHABLE SORTABLE,
+        songId          STRING QUERYABLE SEARCHABLE SORTABLE,
+        deletedAt      TIMESTAMP QUERYABLE SORTABLE,
+        GRANT WRITE TO "_creator",
+        GRANT CREATE TO "_icloud",
+        GRANT READ TO "_world"
+    );
+
+    RECORD TYPE SongCall (
+        "___createTime" TIMESTAMP,
+        "___createdBy"  REFERENCE,
+        "___etag"       STRING,
+        "___modTime"    TIMESTAMP,
+        "___modifiedBy" REFERENCE,
+        "___recordID"   REFERENCE,
+        authorDisplayName STRING QUERYABLE SEARCHABLE SORTABLE,
+        callText        STRING QUERYABLE SEARCHABLE SORTABLE,
+        createdAt       TIMESTAMP QUERYABLE SORTABLE,
+        modifiedAt      TIMESTAMP QUERYABLE SORTABLE,
+        songId          STRING QUERYABLE SEARCHABLE SORTABLE,
+        sourceUrl       STRING QUERYABLE SEARCHABLE SORTABLE,
+        deletedAt      TIMESTAMP QUERYABLE SORTABLE,
+        GRANT WRITE TO "_creator",
+        GRANT CREATE TO "_icloud",
+        GRANT READ TO "_world"
+    );
+
+    RECORD TYPE SongVideo (
+        "___createTime" TIMESTAMP,
+        "___createdBy"  REFERENCE,
+        "___etag"       STRING,
+        "___modTime"    TIMESTAMP,
+        "___modifiedBy" REFERENCE,
+        "___recordID"   REFERENCE,
+        authorDisplayName STRING QUERYABLE SEARCHABLE SORTABLE,
+        createdAt       TIMESTAMP QUERYABLE SORTABLE,
+        modifiedAt      TIMESTAMP QUERYABLE SORTABLE,
+        note            STRING QUERYABLE SEARCHABLE SORTABLE,
+        songId          STRING QUERYABLE SEARCHABLE SORTABLE,
+        videoTitle      STRING QUERYABLE SEARCHABLE SORTABLE,
+        youtubeUrl      STRING QUERYABLE SEARCHABLE SORTABLE,
+        deletedAt      TIMESTAMP QUERYABLE SORTABLE,
+        GRANT WRITE TO "_creator",
+        GRANT CREATE TO "_icloud",
+        GRANT READ TO "_world"
+    );
+
+    RECORD TYPE UnitMember (
+        "___createTime" TIMESTAMP,
+        "___createdBy"  REFERENCE,
+        "___etag"       STRING,
+        "___modTime"    TIMESTAMP,
+        "___modifiedBy" REFERENCE,
+        "___recordID"   REFERENCE,
+        idolId          STRING QUERYABLE SEARCHABLE SORTABLE,
+        modifiedAt      TIMESTAMP QUERYABLE SORTABLE,
+        unitId          STRING QUERYABLE SEARCHABLE SORTABLE,
+        deletedAt      TIMESTAMP QUERYABLE SORTABLE,
+        GRANT WRITE TO "_creator",
+        GRANT CREATE TO "_icloud",
+        GRANT READ TO "_world"
+    );
+
+    RECORD TYPE Users (
+        "___createTime" TIMESTAMP,
+        "___createdBy"  REFERENCE,
+        "___etag"       STRING,
+        "___modTime"    TIMESTAMP,
+        "___modifiedBy" REFERENCE,
+        "___recordID"   REFERENCE,
+        roles           LIST<INT64>,
+        deletedAt      TIMESTAMP QUERYABLE SORTABLE,
+        GRANT WRITE TO "_creator",
+        GRANT READ TO "_world"
+    );
+

@@ -1,0 +1,28 @@
+{
+  "title": "ライブ / イベントの追加 (例)",
+  "author": "あなたのハンドル名 (任意)",
+  "_help": "event id 規則: ev_{slug}, show id 規則: sh_{slug}_{連番}。kind は ../README.md 参照。",
+  "source": "https://出典URL",
+  "events": [
+    {
+      "id": "ev_example_live_2026",
+      "brand_id": "ml",
+      "name": "イベント名",
+      "event_type": "live",
+      "kind": "live",
+      "is_streaming": 0,
+      "is_solo": 0,
+      "shows": [
+        {
+          "id": "sh_example_live_2026_1",
+          "name": "DAY1",
+          "date": "2026-06-06",
+          "venue": "会場名",
+          "venue_city": "都市名",
+          "start_time": "17:00",
+          "sort_order": 1
+        }
+      ]
+    }
+  ]
+}

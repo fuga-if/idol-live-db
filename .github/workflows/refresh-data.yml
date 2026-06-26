@@ -1,0 +1,62 @@
+name: Refresh master data
+
+# CloudKit (source of truth) → db/master.sql を日次でエクスポートし、
+# 変化があれば自動コミット。コントリビューターが常に最新データに対して
+# tools/apply_data.py --check / apply_corrections.py --check を回せるようにする。
+#
+# ⚠️ セキュリティ前提 (設定は docs/DATA_PIPELINE.md 参照):
+#   - CloudKit 鍵は environment "cloudkit" の secret に置き、deployment branch を main 限定にする
+#     → feature ブランチ / PR で走る他ワークフローからは鍵を取得できない
+#   - main の branch protection + .github/ の CODEOWNERS でワークフロー改ざんを防ぐ
+#   - schedule は常に main で走るので、鍵に触れるのはこの自動エクスポートだけになる
+
+on:
+  schedule:
+    - cron: "0 18 * * *"   # 毎日 03:00 JST
+  workflow_dispatch: {}
+
+# 同時実行を1本に
+concurrency:
+  group: refresh-data
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    environment: cloudkit          # ← main 限定の environment secret を使う
+    permissions:
+      contents: write              # db/master.sql のコミットに必要
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install deps
+        run: pip install requests ecdsa
+
+      - name: Write CloudKit key
+        env:
+          CLOUDKIT_PRIVATE_KEY: ${{ secrets.CLOUDKIT_PRIVATE_KEY }}
+        run: |
+          printf '%s' "$CLOUDKIT_PRIVATE_KEY" > tools/eckey.pem
+
+      - name: Export CloudKit → db/master.sql
+        env:
+          CLOUDKIT_KEY_ID: ${{ secrets.CLOUDKIT_KEY_ID }}
+        run: |
+          python3 tools/export_cloudkit.py --production --key-file tools/eckey.pem
+
+      - name: Commit if changed
+        run: |
+          rm -f tools/eckey.pem
+          if git diff --quiet -- db/master.sql; then
+            echo "変化なし"
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add db/master.sql
+          git commit -m "chore(data): refresh db/master.sql ($(date -u +%Y-%m-%d))"
+          git push
