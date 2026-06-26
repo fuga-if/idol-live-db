@@ -5,6 +5,8 @@ struct IntroGameSetupView: View {
     @Environment(AppDatabase.self) private var database
 
     @State private var session = IntroGameSession()
+    @State private var partySession = IntroPartySession()
+    @State private var navigateToParty = false
     @State private var brands: [Brand] = []
     @State private var selectedBrandIds: Set<String> = []
     @State private var mode: IntroGameMode = .normal
@@ -111,6 +113,9 @@ struct IntroGameSetupView: View {
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(isPresented: $navigateToGame) {
             IntroGameView(session: session)
+        }
+        .navigationDestination(isPresented: $navigateToParty) {
+            IntroPartyGameView(session: partySession)
         }
         .task {
             brands = (try? await AppContainer.shared.brandReading.brands()) ?? []
@@ -378,7 +383,7 @@ struct IntroGameSetupView: View {
             authStatus = MusicKitService.shared.authorizationStatus
         }
 
-        session.settings = IntroGameSettings(
+        let settings = IntroGameSettings(
             mode: mode,
             answerMode: answerMode,
             questionCount: questionCount,
@@ -388,11 +393,22 @@ struct IntroGameSetupView: View {
         )
 
         do {
-            try await session.generateQuestions(database: database)
-            if session.questions.isEmpty {
-                errorMessage = "対象の曲が見つかりませんでした。ブランドを増やしてお試しください。"
+            if mode == .party {
+                partySession.settings = settings
+                try await partySession.generateQuestions(database: database)
+                if partySession.questions.isEmpty {
+                    errorMessage = "対象の曲が見つかりませんでした。ブランドを増やしてお試しください。"
+                } else {
+                    navigateToParty = true
+                }
             } else {
-                navigateToGame = true
+                session.settings = settings
+                try await session.generateQuestions(database: database)
+                if session.questions.isEmpty {
+                    errorMessage = "対象の曲が見つかりませんでした。ブランドを増やしてお試しください。"
+                } else {
+                    navigateToGame = true
+                }
             }
         } catch {
             errorMessage = "エラー: \(error.localizedDescription)"
