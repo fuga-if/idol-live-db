@@ -182,6 +182,83 @@ final class IntroAudioEngine {
         isPlaying = true
     }
 
+    // MARK: - Rush prefetch (サクサク化)
+
+    @ObservationIgnored private var rushStoreIDs: [String] = []
+    @ObservationIgnored private var rushPos: Int = -1     // キューが現在指している index
+    @ObservationIgnored private var rushActive: Bool = false
+
+    /// Rush 開始時に全曲を 1 キューに積んでおく。以降は skipToNextItem で進めるので
+    /// 毎曲の setQueue(catalog 再取得) によるラグ/無音をなくす ("曲のフェッチは開始前に")。
+    func prepareRushQueue(storeIDs: [String]) {
+        rushStoreIDs = storeIDs
+        rushPos = -1
+        rushActive = false
+        #if !targetEnvironment(simulator)
+        guard MusicKitService.shared.hasAppleMusicSubscription, !storeIDs.isEmpty else { return }
+        try? AVAudioSession.sharedInstance().setCategory(.playback)
+        try? AVAudioSession.sharedInstance().setActive(true)
+        usedFullPlayer = true
+        musicPlayer.setQueue(with: storeIDs)
+        musicPlayer.prepareToPlay()
+        rushActive = true
+        #endif
+    }
+
+    /// Rush: 事前に積んだキューで index の曲を頭出し再生 (押すまで流す = 自動停止なし)。
+    /// 連続 (index = 前回+1) は skipToNextItem で即切替。先頭/wrap はキュー張り直し。
+    /// キュー未使用 (未サブスク/シミュレータ) は通常の preview/フル再生にフォールバック。
+    func playRush(index: Int, appleMusicId: String, previewUrl: URL?) {
+        stop()
+        self.onFinished = nil
+        let gen = playGen
+
+        #if targetEnvironment(simulator)
+        return
+        #else
+        guard rushActive else {
+            // フォールバック (未サブスク等): 通常再生で押すまで流す。
+            if MusicKitService.shared.hasAppleMusicSubscription, !appleMusicId.isEmpty {
+                playFull(appleMusicId: appleMusicId, fallbackPreview: previewUrl, duration: nil, gen: gen)
+            } else if let url = previewUrl {
+                playPreview(url: url, duration: nil, gen: gen)
+            }
+            return
+        }
+
+        usedFullPlayer = true
+        if rushPos < 0 {
+            // 最初: キュー先頭が nowPlaying
+        } else if index == rushPos + 1 {
+            musicPlayer.skipToNextItem()
+        } else {
+            // wrap / 非連続: キューを張り直して先頭へ (rush の wrap は index 0)。
+            musicPlayer.setQueue(with: rushStoreIDs)
+            musicPlayer.prepareToPlay()
+        }
+        rushPos = index
+        musicPlayer.play()
+        isPlaying = true
+
+        // 鳴り始めを待つだけ (自動停止はしない = 押すまで流す)。
+        playbackTask = Task {
+            var waited: UInt64 = 0
+            while waited < Self.playingWaitCap {
+                if Task.isCancelled || gen != self.playGen { return }
+                if self.musicPlayer.playbackState == .playing { return }
+                try? await Task.sleep(nanoseconds: Self.playWaitStep)
+                waited += Self.playWaitStep
+            }
+        }
+        #endif
+    }
+
+    func endRushQueue() {
+        rushActive = false
+        rushStoreIDs = []
+        rushPos = -1
+    }
+
     /// 長押しを離したら一時停止する (世代は進めない = 現在位置を保持)。
     func pauseHeld() {
         #if !targetEnvironment(simulator)

@@ -39,14 +39,13 @@ struct IntroGameView: View {
 
             if rushFlash {
                 Image(systemName: rushFlashCorrect ? "circle" : "xmark")
-                    .font(.system(size: 180, weight: .heavy))
+                    .font(.system(size: 96, weight: .heavy))
                     .foregroundColor(rushFlashCorrect ? ID.correct : ID.incorrect)
-                    .shadow(color: (rushFlashCorrect ? ID.correct : ID.incorrect).opacity(0.6), radius: 24)
-                    .transition(.scale(scale: 0.5).combined(with: .opacity))
+                    .shadow(color: (rushFlashCorrect ? ID.correct : ID.incorrect).opacity(0.5), radius: 16)
+                    .transition(.scale(scale: 0.6).combined(with: .opacity))
                     .allowsHitTesting(false)
             }
         }
-        .animation(.spring(response: 0.3, dampingFraction: 0.6), value: rushFlash)
         .navigationBarBackButtonHidden(true)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
@@ -86,22 +85,30 @@ struct IntroGameView: View {
         )) {
             IntroGameResultView(session: session)
         }
-        // 音声の起動 (認可リクエスト/録音セッション開始) を画面遷移の瞬間に撃つと
-        // システム callback の遅延で actor 隔離違反 (SIGTRAP) や録音セッション競合で
-        // クラッシュする。そのため音声判定は「マイクをタップして回答」の明示操作で開始し、
-        // フェーズが回答以外へ移ったら聴取を確実に止めるだけにする。
+        // 音声判定: 回答フェーズに入ったら自動で聴取開始 (本家の堅牢ロジックを移植した
+        // SpeechRecognitionService が format 事前検証/リトライ/世代管理でクラッシュを防ぐ)。
+        // 認可は遷移の瞬間ではなくゲーム開始時 (.task) に先行要求しておく。
         .onChange(of: session.phase) { _, newPhase in
-            if newPhase != .answering, speechService.isListening {
+            if newPhase == .answering {
+                autoStartVoiceIfNeeded()
+            } else if speechService.isListening {
                 speechService.stopListening()
+            }
+        }
+        .task {
+            if session.settings.answerMode == .voice, speechService.authStatus == .notDetermined {
+                await speechService.requestAuthorization()
             }
         }
         .onChange(of: session.rushFlashTick) { _, _ in
             rushFlashCorrect = session.rushFlashCorrect
-            rushFlash = true
+            // アニメは flash 自身に限定 (ZStack 全体に乗せると出題切替までヌルッと
+            // 動いて "重い" 原因になる)。
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) { rushFlash = true }
             rushFlashTask?.cancel()
             rushFlashTask = Task { @MainActor in
-                try? await Task.sleep(nanoseconds: 500_000_000)
-                rushFlash = false
+                try? await Task.sleep(nanoseconds: 350_000_000)
+                withAnimation(.easeOut(duration: 0.2)) { rushFlash = false }
             }
         }
         .onDisappear {
@@ -558,6 +565,24 @@ struct IntroGameView: View {
     }
 
     // MARK: - Speech Helpers
+
+    /// 回答フェーズで音声モードなら自動聴取を開始 (許可済みのみ自動。未判定は遅延要求)。
+    private func autoStartVoiceIfNeeded() {
+        guard useVoice, !isRush, !speechService.isListening else { return }
+        switch speechService.authStatus {
+        case .authorized:
+            beginVoiceListening()
+        case .notDetermined:
+            Task {
+                await speechService.requestAuthorization()
+                if session.phase == .answering, speechService.authStatus == .authorized {
+                    beginVoiceListening()
+                }
+            }
+        default:
+            break  // 拒否時は useVoice が false になり 4択にフォールバック
+        }
+    }
 
     private func handleMicTap() {
         if speechService.isListening {

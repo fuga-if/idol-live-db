@@ -71,13 +71,16 @@ struct IntroGameSetupView: View {
                         .padding(.horizontal, 20)
                 }
 
-                Spacer().frame(height: 24)
+                // Rush は「押すまで流す」ので再生時間の選択は不要 → 非表示。
+                if mode != .rush {
+                    Spacer().frame(height: 24)
 
-                IDSectionLabel(text: "難易度", hint: "イントロ再生時間")
-                    .padding(.horizontal, 20)
-                Spacer().frame(height: 12)
-                durationSection
-                    .padding(.horizontal, 20)
+                    IDSectionLabel(text: "難易度", hint: "イントロ再生時間")
+                        .padding(.horizontal, 20)
+                    Spacer().frame(height: 12)
+                    durationSection
+                        .padding(.horizontal, 20)
+                }
 
                 if authStatus != .authorized {
                     Spacer().frame(height: 20)
