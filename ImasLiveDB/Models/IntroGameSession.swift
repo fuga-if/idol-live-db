@@ -182,6 +182,13 @@ final class IntroGameSession {
         audio.pauseHeld()
     }
 
+    /// 「わかった！」: 再生を止めて回答フェーズへ (本家の buzz 相当)。Rush では使わない。
+    func buzzToAnswer() {
+        guard phase == .playing, settings.mode != .rush else { return }
+        stopPlayback()
+        phase = .answering
+    }
+
     /// 現在の問題のイントロを頭出しして再生し直す。
     func replayIntro() async {
         await playCurrentIntro()
