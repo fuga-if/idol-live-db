@@ -11,6 +11,8 @@ struct IntroGameSetupView: View {
     @State private var selectedBrandIds: Set<String> = []
     @State private var mode: IntroGameMode = .normal
     @State private var answerMode: IntroAnswerMode = .choices
+    @AppStorage("introPlaybackMode") private var playbackRaw: String = IntroPlaybackMode.full.rawValue
+    private var playback: IntroPlaybackMode { IntroPlaybackMode(rawValue: playbackRaw) ?? .full }
     @State private var questionCount: Int = 10
     @State private var introDuration: TimeInterval = 5.0
     @State private var rushTimeLimit: TimeInterval = 60
@@ -49,6 +51,14 @@ struct IntroGameSetupView: View {
                     answerModeSection
                         .padding(.horizontal, 20)
                 }
+
+                Spacer().frame(height: 24)
+
+                IDSectionLabel(text: "再生方式")
+                    .padding(.horizontal, 20)
+                Spacer().frame(height: 12)
+                playbackSection
+                    .padding(.horizontal, 20)
 
                 Spacer().frame(height: 24)
 
@@ -324,6 +334,35 @@ struct IntroGameSetupView: View {
         .idPress()
     }
 
+    private var playbackSection: some View {
+        HStack(spacing: 8) {
+            playbackButton(.full, icon: "music.note", title: "フル再生", sub: "実イントロ(要サブスク)")
+            playbackButton(.preview, icon: "bolt.fill", title: "プレビュー", sub: "30秒・サクサク")
+        }
+    }
+
+    private func playbackButton(_ p: IntroPlaybackMode, icon: String, title: String, sub: String) -> some View {
+        let selected = playback == p
+        return Button {
+            withAnimation(.easeInOut(duration: 0.15)) { playbackRaw = p.rawValue }
+        } label: {
+            VStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.imasScaled( 18, weight: .semibold))
+                Text(title)
+                    .font(ID.font(15, weight: .bold))
+                Text(sub)
+                    .font(ID.font(10, weight: .semibold))
+            }
+            .foregroundColor(selected ? ID.menuCardDarkText : ID.menuTextSecondary)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
+            .background(selected ? ID.menuCardDark : ID.menuCardSubtle)
+            .clipShape(IDCorner(radius: 16))
+        }
+        .idPress()
+    }
+
     private var rushTimeSection: some View {
         HStack(spacing: 8) {
             ForEach(rushTimes, id: \.value) { t in
@@ -392,6 +431,7 @@ struct IntroGameSetupView: View {
         let settings = IntroGameSettings(
             mode: mode,
             answerMode: answerMode,
+            playback: playback,
             questionCount: questionCount,
             introDuration: introDuration,
             rushTimeLimit: rushTimeLimit,

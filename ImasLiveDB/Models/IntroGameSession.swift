@@ -32,9 +32,16 @@ enum IntroAnswerMode: String, Sendable, CaseIterable {
     case voice    // 音声で曲名を発話
 }
 
+/// 再生方式。フル再生=Apple Musicカタログの実イントロ(頭出し)、プレビュー=30秒クリップ(サクサク)。
+enum IntroPlaybackMode: String, Sendable, CaseIterable {
+    case full     // 実イントロ (要サブスク)
+    case preview  // 30秒プレビュー (高速)
+}
+
 struct IntroGameSettings: Sendable {
     var mode: IntroGameMode = .normal
     var answerMode: IntroAnswerMode = .choices
+    var playback: IntroPlaybackMode = .full
     var questionCount: Int = 10
     var introDuration: TimeInterval = 5.0
     /// Rush の制限時間 (秒)。mode == .rush のとき使用。
@@ -80,6 +87,7 @@ final class IntroGameSession {
 
     func generateQuestions(database: AppDatabase) async throws {
         phase = .loading
+        audio.preferFull = settings.playback == .full
         questions = []
         currentIndex = 0
         score = 0

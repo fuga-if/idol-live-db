@@ -64,6 +64,7 @@ final class IntroPartySession {
 
     func generateQuestions(database: AppDatabase) async throws {
         phase = .loading
+        audio.preferFull = settings.playback == .full
         let pool = try await database.fetchIntroDonSongs(brandIds: settings.selectedBrandIds)
         guard pool.count >= 4 else {
             questions = []

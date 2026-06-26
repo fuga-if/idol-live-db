@@ -20,6 +20,10 @@ final class IntroAudioEngine {
 
     private(set) var isPlaying: Bool = false
 
+    /// フル再生 (Apple Music カタログ = 実イントロ) を優先するか。
+    /// false (既定) は preview 優先でサクサク。設定で切替 (本家 preferPreviewMode 相当)。
+    var preferFull: Bool = false
+
     @ObservationIgnored private var playSession: Int = 0
     @ObservationIgnored private var previewPlayer: AVPlayer? = nil
     @ObservationIgnored private var endObserver: NSObjectProtocol? = nil
@@ -75,10 +79,15 @@ final class IntroAudioEngine {
         #if targetEnvironment(simulator)
         finish(session: session)
         #else
-        // preview 優先 (サクサク)。無い曲のみカタログのフル再生にフォールバック。
-        if let url = previewUrl {
+        let canFull = MusicKitService.shared.hasAppleMusicSubscription && !appleMusicId.isEmpty
+        if preferFull, canFull {
+            // フル再生 (実イントロを頭出し)。サブスク加入時のみ。
+            playFull(appleMusicId: appleMusicId, duration: duration, session: session)
+        } else if let url = previewUrl {
+            // preview 優先 (サクサク)。
             playPreview(url: url, duration: duration, session: session)
-        } else if MusicKitService.shared.hasAppleMusicSubscription, !appleMusicId.isEmpty {
+        } else if canFull {
+            // preview が無い曲はフル再生にフォールバック。
             playFull(appleMusicId: appleMusicId, duration: duration, session: session)
         } else {
             finish(session: session)
