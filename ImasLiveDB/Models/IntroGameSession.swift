@@ -19,9 +19,26 @@ struct IntroAnswerRecord: Identifiable, Sendable {
     let correct: Bool
 }
 
+/// ゲームモード (本家 IntroQuiz 準拠)。
+enum IntroGameMode: String, Sendable, CaseIterable {
+    case normal   // 固定問数
+    case rush     // 制限時間内に連続出題、正解数を競う
+    case party    // 1台2人・分割対戦 (早押し奪い合い)
+}
+
+/// 回答方式。ユーザーが切替可能。音声不可/未許可時は choices にフォールバック。
+enum IntroAnswerMode: String, Sendable, CaseIterable {
+    case choices  // 4択タップ
+    case voice    // 音声で曲名を発話
+}
+
 struct IntroGameSettings: Sendable {
+    var mode: IntroGameMode = .normal
+    var answerMode: IntroAnswerMode = .choices
     var questionCount: Int = 10
     var introDuration: TimeInterval = 5.0
+    /// Rush の制限時間 (秒)。mode == .rush のとき使用。
+    var rushTimeLimit: TimeInterval = 60
     var selectedBrandIds: Set<String>? = nil
 }
 
@@ -233,6 +250,34 @@ final class IntroGameSession {
         previewPlayer?.pause()
         previewPlayer = nil
         isPlayingIntro = false
+    }
+
+    // MARK: - もう少し流す / リプレイ
+
+    /// 「もう少し流す」: 再生ボタン長押し中、停止タイマー無しで現在位置から再生を継続
+    /// (本家 IntroQuiz の playUntilStopped 相当)。回答フェーズ中に「あと少し聴きたい」用。
+    func continueIntro() {
+        playbackTask?.cancel()
+        playbackTask = nil
+        #if !targetEnvironment(simulator)
+        if usedFullPlayer { musicPlayer.play() }
+        #endif
+        previewPlayer?.play()
+        isPlayingIntro = true
+    }
+
+    /// 長押しを離したら一時停止する (回答フェーズに留まる)。
+    func pauseHeldIntro() {
+        #if !targetEnvironment(simulator)
+        if usedFullPlayer { musicPlayer.pause() }
+        #endif
+        previewPlayer?.pause()
+        isPlayingIntro = false
+    }
+
+    /// 現在の問題のイントロを頭出しして再生し直す。
+    func replayIntro() async {
+        await playCurrentIntro()
     }
 
     // MARK: - Answer
