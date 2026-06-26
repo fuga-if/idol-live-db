@@ -27,7 +27,11 @@ jobs:
     permissions:
       contents: write              # db/master.sql のコミットに必要
     steps:
+      # main は保護ブランチ (PR+承認必須) なので bot は直接 push できない。
+      # データ鮮度は develop に push する (コントリビューターは develop 起点で作業)。
       - uses: actions/checkout@v4
+        with:
+          ref: develop
 
       - uses: actions/setup-python@v5
         with:
@@ -59,4 +63,4 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add db/master.sql
           git commit -m "chore(data): refresh db/master.sql ($(date -u +%Y-%m-%d))"
-          git push
+          git push origin HEAD:develop

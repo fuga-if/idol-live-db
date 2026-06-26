@@ -1,5 +1,7 @@
-# これらの変更はオーナーのレビュー必須にする (branch protection の
+# 全 PR をオーナー承認必須にする (branch protection の
 # "Require review from Code Owners" と併用)。
-# secret に触れる箇所 (ワークフロー) と反映ツールの改ざんを防ぐのが目的。
+# 既定で全ファイルをオーナーのコードオーナーに。
+*                @fuga-if
+# (secret に触れるワークフロー・反映ツールも当然対象。明示しておく)
 /.github/        @fuga-if
 /tools/          @fuga-if
