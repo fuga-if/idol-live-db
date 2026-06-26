@@ -8,6 +8,9 @@ struct IntroGameView: View {
     @State private var speechService = SpeechRecognitionService()
     @State private var showSpeechDenied = false
     @State private var didHoldPlay = false   // 再生ボタン: 長押し(=もう少し流す)とタップ(=頭出し)の判別
+    @State private var rushFlash = false      // Rush: ○/✕ エフェクトの表示中フラグ
+    @State private var rushFlashCorrect = true
+    @State private var rushFlashTask: Task<Void, Never>? = nil
     @Environment(\.dismiss) private var dismiss
 
     /// 音声モードで実際に音声 UI を出すか。許可拒否/不可なら 4択にフォールバック。
@@ -30,7 +33,27 @@ struct IntroGameView: View {
             default:
                 EmptyView()
             }
+
+            if rushFlash {
+                Image(systemName: rushFlashCorrect ? "circle" : "xmark")
+                    .font(.system(size: 180, weight: .heavy))
+                    .foregroundColor(rushFlashCorrect ? ID.correct : ID.incorrect)
+                    .shadow(color: (rushFlashCorrect ? ID.correct : ID.incorrect).opacity(0.6), radius: 24)
+                    .transition(.scale(scale: 0.5).combined(with: .opacity))
+                    .allowsHitTesting(false)
+            }
         }
+        .animation(.spring(response: 0.3, dampingFraction: 0.6), value: rushFlash)
+        .onChange(of: session.rushFlashTick) { _, _ in
+            rushFlashCorrect = session.rushFlashCorrect
+            rushFlash = true
+            rushFlashTask?.cancel()
+            rushFlashTask = Task { @MainActor in
+                try? await Task.sleep(nanoseconds: 500_000_000)
+                rushFlash = false
+            }
+        }
+        .toolbar(.hidden, for: .tabBar)
         .navigationBarBackButtonHidden(true)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
@@ -446,8 +469,10 @@ struct IntroGameView: View {
             }
         } else {
             VStack(spacing: 8) {
-                if session.isPlayingIntro, let q = session.currentQuestion {
-                    Text("早押し可能！")
+                // Rush は押すまで流し続けるため .playing のまま。選択肢を常時出す。
+                if (session.isPlayingIntro || session.settings.mode == .rush),
+                   let q = session.currentQuestion {
+                    Text(session.settings.mode == .rush ? "わかったらタップ！" : "早押し可能！")
                         .font(ID.font(11, weight: .bold))
                         .tracking(1.5)
                         .foregroundColor(ID.accentPurple.opacity(0.7))

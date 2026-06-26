@@ -54,6 +54,9 @@ final class IntroGameSession {
     private(set) var isCorrect: Bool? = nil
     /// Rush モードの残り時間 (秒)。UI のカウントダウン表示用。
     private(set) var rushRemaining: TimeInterval = 0
+    /// Rush の回答エフェクト用シグナル (tick が増えるたびに UI が○/✕を一瞬出す)。
+    private(set) var rushFlashTick: Int = 0
+    private(set) var rushFlashCorrect: Bool = false
 
     var settings: IntroGameSettings = IntroGameSettings()
 
@@ -149,15 +152,17 @@ final class IntroGameSession {
 
     func playCurrentIntro() async {
         guard let q = currentQuestion else { return }
+        // Rush は「押すまで流し続ける」(duration=nil で自動停止しない)。回答するまで .playing のまま。
+        let isRush = settings.mode == .rush
         audio.play(
             appleMusicId: q.appleMusicId,
             previewUrl: q.previewUrl.flatMap(URL.init(string:)),
-            duration: settings.introDuration
+            duration: isRush ? nil : settings.introDuration
         ) { [weak self] in
             // duration 経過 (または再生不可) で回答フェーズへ。早押し済み等で
-            // 既に .playing でなければ何もしない。
+            // 既に .playing でなければ何もしない。Rush では呼ばれない。
             guard let self else { return }
-            if self.phase == .playing { self.phase = .answering }
+            if !isRush, self.phase == .playing { self.phase = .answering }
         }
     }
 
@@ -195,7 +200,13 @@ final class IntroGameSession {
         isCorrect = correct
         if correct { score += 1 }
         records.append(IntroAnswerRecord(id: q.id, title: q.title, selectedTitle: title, correct: correct))
-        phase = .revealed
+        // Rush は正解画面を出さず、○/✕ エフェクトだけ出して即次へ。
+        if settings.mode == .rush {
+            flashRush(correct: correct)
+            advanceRush()
+        } else {
+            phase = .revealed
+        }
     }
 
     func skipQuestion() {
@@ -204,7 +215,26 @@ final class IntroGameSession {
         selectedTitle = nil
         isCorrect = false
         records.append(IntroAnswerRecord(id: q.id, title: q.title, selectedTitle: nil, correct: false))
-        phase = .revealed
+        if settings.mode == .rush {
+            advanceRush()
+        } else {
+            phase = .revealed
+        }
+    }
+
+    /// Rush: 正解画面を挟まず次の出題へ即移行 (尽きたら先頭へ wrap)。
+    private func advanceRush() {
+        currentIndex = questions.isEmpty ? 0 : (currentIndex + 1) % questions.count
+        selectedTitle = nil
+        isCorrect = nil
+        phase = .playing
+        Task { await playCurrentIntro() }
+    }
+
+    /// Rush の○/✕フラッシュ用シグナル。tick 変化を UI が監視してエフェクトを出す。
+    private func flashRush(correct: Bool) {
+        rushFlashCorrect = correct
+        rushFlashTick += 1
     }
 
     // MARK: - Navigation

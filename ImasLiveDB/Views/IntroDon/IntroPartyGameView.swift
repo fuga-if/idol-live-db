@@ -23,6 +23,7 @@ struct IntroPartyGameView: View {
                 splitLayout
             }
         }
+        .toolbar(.hidden, for: .tabBar)
         .navigationBarBackButtonHidden(true)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {

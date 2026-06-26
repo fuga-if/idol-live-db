@@ -35,8 +35,9 @@ final class IntroAudioEngine {
     private static let playWaitStep: UInt64 = 50_000_000          // ポーリング間隔 (50ms)
 
     /// 現在の問題のイントロを頭出し再生。duration 経過 (または失敗/シミュレータ) で onFinished を呼ぶ。
-    /// onFinished は現役世代のときだけ MainActor 上で 1 回呼ばれる。
-    func play(appleMusicId: String, previewUrl: URL?, duration: TimeInterval,
+    /// `duration == nil` のときは停止タイマーを張らず、stop() されるまで流し続ける
+    /// (Rush モードの「押すまで流す」用)。onFinished は現役世代のときだけ MainActor 上で呼ばれる。
+    func play(appleMusicId: String, previewUrl: URL?, duration: TimeInterval?,
               onFinished: @escaping () -> Void) {
         stop()                  // 直前の再生を確実に止め、世代を進める
         self.onFinished = onFinished
@@ -50,7 +51,7 @@ final class IntroAudioEngine {
         // Apple Music 加入: MPMusicPlayerController で catalog をフル再生。
         // 未加入/未取得: preview_url を AVPlayer で再生。どちらも無ければ即終了。
         if MusicKitService.shared.hasAppleMusicSubscription, !appleMusicId.isEmpty {
-            playFull(appleMusicId: appleMusicId, duration: duration, gen: gen)
+            playFull(appleMusicId: appleMusicId, fallbackPreview: previewUrl, duration: duration, gen: gen)
         } else if let url = previewUrl {
             playPreview(url: url, duration: duration, gen: gen)
         } else {
@@ -61,7 +62,7 @@ final class IntroAudioEngine {
 
     /// サブスク加入: MPMusicPlayerController で catalog を setQueue→prepareToPlay→play。
     /// **playbackState==.playing を待ってから** duration を計測する。
-    private func playFull(appleMusicId: String, duration: TimeInterval, gen: Int) {
+    private func playFull(appleMusicId: String, fallbackPreview: URL?, duration: TimeInterval?, gen: Int) {
         usedFullPlayer = true
         try? AVAudioSession.sharedInstance().setCategory(.playback)
         try? AVAudioSession.sharedInstance().setActive(true)
@@ -81,6 +82,19 @@ final class IntroAudioEngine {
                 waited += Self.playWaitStep
             }
             if Task.isCancelled || gen != self.playGen { return }
+            // フル再生が始まらない (カタログ未提供/地域制限/権利切れ等) → プレビューにフォールバック。
+            // これをしないと apple_music_id はあるのに無音になる曲が出る (報告された再生不能バグ)。
+            if self.musicPlayer.playbackState != .playing {
+                self.musicPlayer.pause()
+                self.usedFullPlayer = false
+                if let url = fallbackPreview {
+                    self.playPreview(url: url, duration: duration, gen: gen)
+                } else {
+                    self.finish(gen: gen)
+                }
+                return
+            }
+            guard let duration else { return }   // 押すまで流す: 自動停止しない
             try? await Task.sleep(nanoseconds: UInt64(duration * 1_000_000_000))
             if Task.isCancelled || gen != self.playGen { return }
             self.finish(gen: gen)
@@ -90,7 +104,7 @@ final class IntroAudioEngine {
     /// 非加入/プレビュー: AVPlayerItem で status を観測しつつ AVPlayer で再生。
     /// timeControlStatus==.playing を待ってから duration を計測。item.status==.failed の
     /// 真の失敗 (403/期限切れ/地域制限) は無音で尺を消費させず即終了。
-    private func playPreview(url: URL, duration: TimeInterval, gen: Int) {
+    private func playPreview(url: URL, duration: TimeInterval?, gen: Int) {
         try? AVAudioSession.sharedInstance().setCategory(.playback)
         try? AVAudioSession.sharedInstance().setActive(true)
 
@@ -121,6 +135,7 @@ final class IntroAudioEngine {
             }
             if Task.isCancelled || gen != self.playGen { return }
             if failed { self.finish(gen: gen); return }
+            guard let duration else { return }   // 押すまで流す: 自動停止しない (自然終端は observer 任せ)
             try? await Task.sleep(nanoseconds: UInt64(duration * 1_000_000_000))
             if Task.isCancelled || gen != self.playGen { return }
             self.finish(gen: gen)
