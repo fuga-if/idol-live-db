@@ -17,6 +17,7 @@ struct ImasLiveDBApp: App {
     private enum LaunchSheet: Int, Identifiable { case onboarding, announcements, dailyVote; var id: Int { rawValue } }
     @State private var launchSheet: LaunchSheet?
     @State private var updateService = UpdateCheckService.shared
+    @Environment(\.scenePhase) private var scenePhase
 
     init() {
         // アナリティクス起動 (GoogleService-Info.plist がある時だけ Firebase 有効化。無ければ no-op)。
@@ -94,6 +95,15 @@ struct ImasLiveDBApp: App {
                     Task { await InfoWidgetBridge.sync(database: appDatabase) }
                     // App Store に新版が出ていたらお知らせ (iTunes Lookup で自動判定)。
                     Task { await updateService.check() }
+                }
+                .onChange(of: scenePhase) { _, phase in
+                    // フォアグラウンド復帰で同期を再開/継続する。フルsyncが途中で中断されて
+                    // いれば残りステップ/チャンクから再開、そうでなければ差分syncで最新化。
+                    // (再入は SyncEngine 側でガード済みなので二重には走らない)
+                    guard phase == .active else { return }
+                    Task.detached(priority: .utility) {
+                        await syncEngine.performStartupSync(database: appDatabase)
+                    }
                 }
                 .onOpenURL { _ in
                     // deeplink 着地時は起動シート (オンボーディング/今日の1曲) を閉じて

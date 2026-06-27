@@ -96,6 +96,33 @@ actor CloudKitService {
         return Array(collected.values)
     }
 
+    /// modifiedAt > startDate のレコードを「最大 maxPages ページ分だけ」取得して返す。
+    /// 呼び出し側 (SyncEngine) がこれを繰り返し呼び、バッチごとに upsert + チェックポイント保存する
+    /// ことで、巨大ステップが途中中断されても次回その modifiedAt から再開できる。
+    /// 全件取得は呼び出し側で「返りが空 or 新規ゼロ」になるまでループして実現する。
+    func fetchChunk(type: String, after startDate: Date, maxPages: Int = 3) async throws -> [CKRecord] {
+        let predicate = NSPredicate(format: "modifiedAt > %@", startDate as NSDate)
+        let query = CKQuery(recordType: type, predicate: predicate)
+        query.sortDescriptors = [NSSortDescriptor(key: "modifiedAt", ascending: true)]
+
+        var batch: [CKRecord] = []
+        let (initialResults, initialCursor) = try await publicDB.records(
+            matching: query, resultsLimit: queryLimit
+        )
+        batch.append(contentsOf: try initialResults.map { try $0.1.get() })
+        var cursor = initialCursor
+        var pages = 1
+        while let currentCursor = cursor, pages < maxPages {
+            let (results, nextCursor) = try await publicDB.records(
+                continuingMatchFrom: currentCursor, resultsLimit: queryLimit
+            )
+            batch.append(contentsOf: try results.map { try $0.1.get() })
+            cursor = nextCursor
+            pages += 1
+        }
+        return batch
+    }
+
     /// 現在のiCloudユーザーのレコードIDを取得
     func fetchUserRecordID() async throws -> CKRecord.ID? {
         try await container.userRecordID()
