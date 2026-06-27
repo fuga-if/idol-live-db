@@ -574,7 +574,8 @@ struct IntroGameView: View {
 
     /// 回答フェーズで音声モードなら自動聴取を開始 (許可済みのみ自動。未判定は遅延要求)。
     private func autoStartVoiceIfNeeded() {
-        guard useVoice, !isRush, !speechService.isListening else { return }
+        // 再生中はマイクを起動しない (buzz/再生終了で停止してから音声判定する)。
+        guard useVoice, !isRush, !speechService.isListening, !session.isPlayingIntro else { return }
         switch speechService.authStatus {
         case .authorized:
             beginVoiceListening()
@@ -615,15 +616,19 @@ struct IntroGameView: View {
 
     private func beginVoiceListening() {
         guard let q = session.currentQuestion, !speechService.isListening else { return }
-        // 録音セッション開始前に再生を完全停止して .playback セッションを解放する
-        // (.playback ↔ .record の競合でクラッシュするのを防ぐ)。
+        // 再生とマイクを絶対に重ねない: まず再生を完全停止 (.playback セッション解放) し、
+        // **次の runloop** で録音を開始する。同一 tick で再生停止→録音開始すると
+        // AudioSession 競合で SIGTRAP するため、I/O を 1 tick ずらす (本家と同じ defer)。
         session.stopPlayback()
-        // 音声モードは「正解タイトル」を唯一の対象に照合 (findMatch は双方向 contains で
-        // オープン判定になる)。
         speechService.onMatch = { [weak session] match in
             session?.submitAnswer(match)
         }
-        speechService.startListening(choices: [q.title])
+        let title = q.title
+        DispatchQueue.main.async {
+            // ずらした先で状況が変わっていないか再確認 (回答済み/別フェーズなら開始しない)。
+            guard session.phase == .answering, !speechService.isListening, !session.isPlayingIntro else { return }
+            speechService.startListening(choices: [title])
+        }
     }
 
     private func stopSpeech() {

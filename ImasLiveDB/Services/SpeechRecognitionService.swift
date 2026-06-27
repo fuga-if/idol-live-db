@@ -149,15 +149,15 @@ final class SpeechRecognitionService {
         let generation = generationId
 
         task = recognizer.recognitionTask(with: req) { [weak self] result, error in
-            // 認識コールバックは任意スレッド。Sendable な値だけ取り出して main に集約する。
+            // 認識コールバックは任意スレッド。Sendable な値だけ取り出して MainActor へ hop する。
+            // MainActor.assumeIsolated は隔離不一致時に SIGTRAP で落ちる再現があったため、
+            // Task { @MainActor } で明示 hop する (旧実装で安定していた方式)。
             let spoken = result?.bestTranscription.formattedString
             let isFinal = result?.isFinal ?? false
             let hadError = error != nil
-            DispatchQueue.main.async {
-                MainActor.assumeIsolated {
-                    guard let self, generation == self.generationId else { return }
-                    self.handleResult(spoken: spoken, isFinal: isFinal, hadError: hadError)
-                }
+            Task { @MainActor [weak self] in
+                guard let self, generation == self.generationId else { return }
+                self.handleResult(spoken: spoken, isFinal: isFinal, hadError: hadError)
             }
         }
 
@@ -167,7 +167,7 @@ final class SpeechRecognitionService {
             isListening = true
             if startTimer {
                 matchTimer = Timer.scheduledTimer(withTimeInterval: Self.listenWindow, repeats: false) { [weak self] _ in
-                    MainActor.assumeIsolated { self?.stopListening() }
+                    Task { @MainActor in self?.stopListening() }
                 }
             }
         } catch {
@@ -209,7 +209,7 @@ final class SpeechRecognitionService {
         let saved = accumulated
         restartTask?.cancel()
         let task = DispatchWorkItem { [weak self] in
-            MainActor.assumeIsolated {
+            Task { @MainActor in
                 guard let self, self.isListening else { return }
                 self.accumulated = saved
                 self.beginRecognition(startTimer: false)
