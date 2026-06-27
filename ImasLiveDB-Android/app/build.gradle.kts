@@ -7,9 +7,10 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
-// CloudKit public read 用 API token は local.properties (git管理外) から注入する。
-// 直書き/コミットを避けつつ APK には埋め込む (public read 専用なので埋め込み可)。
-// local.properties (git管理外) を一度だけ読む。CloudKit token と署名情報を取り出す。
+// CloudKit public read 用 API token は local.properties (git管理外) / 環境変数から注入する。
+// 未設定でもアプリは起動する: 初回は db/master.sql から生成した seed DB を投入するので
+// (generateSeedDb タスク + SeedImporter)、コントリビューターは token 無しで完動できる。
+// token は「リリース版で CloudKit から最新差分を取る」ためだけに使う (未設定なら同期スキップ)。
 val localProps = Properties().apply {
     val f = rootProject.file("local.properties")
     if (f.exists()) f.inputStream().use { load(it) }
@@ -91,6 +92,26 @@ android {
         }
     }
 }
+
+// db/master.sql (monorepo の唯一の真実の源・text・diff可) から Android 同梱用の seed sqlite を
+// ビルド時に生成する。binary seed は gitignore で各自/CI が生成 (iOS の tools/build_db.sh と同じ思想)。
+// これで初回起動時に SeedImporter が実データを投入でき、コントリビューターは CloudKit token 無しで完動する。
+// dump が無い環境 (db/ を含まない clone 等) では skip し、従来通り CloudKit 同期にフォールバックする。
+val generateSeedDb by tasks.registering(Exec::class) {
+    description = "db/master.sql から Android 同梱 seed sqlite を生成"
+    val dump = rootProject.file("../db/master.sql")
+    val seed = file("src/main/assets/master_seed.sqlite")
+    onlyIf { dump.exists() }
+    inputs.file(dump).optional()
+    outputs.file(seed)
+    doFirst {
+        seed.parentFile.mkdirs()
+        seed.delete()
+    }
+    commandLine("sqlite3", seed.absolutePath, ".read ${dump.absolutePath}")
+}
+
+tasks.named("preBuild") { dependsOn(generateSeedDb) }
 
 dependencies {
     // AndroidX Core
