@@ -150,9 +150,6 @@ struct SetlistPredictionView: View {
 
                 utilitiesMenu
             }
-            Text("この曲が来る！と思ったら投票しよう")
-                .font(.imasCaption)
-                .foregroundStyle(DS.ink2)
         }
         .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 0, trailing: 16))
         // ヘッダは常時表示で安定しているのでログイン sheet のホストに使う
