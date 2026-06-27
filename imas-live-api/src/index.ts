@@ -788,11 +788,21 @@ export default {
       // ----------------------------------------------------------------
       if (path === "/auth/login" && request.method === "POST") {
         if (!env.SESSION_JWT_SECRET) return error("SESSION_JWT_SECRET not configured", 500);
-        const body = (await request.json().catch(() => null)) as { identityToken?: string; displayName?: string } | null;
-        if (!body?.identityToken) return error("identityToken required");
-        const verified = await verifyAppleToken(body.identityToken, env.APPLE_BUNDLE_ID);
+        // iOS の APIClient は JSONEncoder.keyEncodingStrategy = .convertToSnakeCase で
+        // 全リクエストボディを snake_case 化して送る (identityToken → identity_token,
+        // displayName → display_name)。この endpoint だけ camelCase を読んでいたため
+        // iOS のログインは常に 400 となり、session token が一度も発行されず、Apple
+        // identityToken を直接 Bearer (10分有効) に流用するフォールバックで誤魔化されていた。
+        // snake_case を正として読む (旧 camelCase クライアントも後方互換で許容)。
+        const body = (await request.json().catch(() => null)) as
+          | { identity_token?: string; identityToken?: string; display_name?: string; displayName?: string }
+          | null;
+        const identityToken = body?.identity_token ?? body?.identityToken;
+        const displayName = body?.display_name ?? body?.displayName;
+        if (!identityToken) return error("identityToken required");
+        const verified = await verifyAppleToken(identityToken, env.APPLE_BUNDLE_ID);
         if (!verified) return error("invalid identityToken", 401);
-        await upsertUser(env, verified.uid, body.displayName);
+        await upsertUser(env, verified.uid, displayName);
         const sessionToken = await signSessionToken(verified.uid, env.SESSION_JWT_SECRET);
         const isAdmin = await checkIsAdmin(env, verified.uid);
         return json({
