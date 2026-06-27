@@ -59,27 +59,25 @@ struct IdolGridView: View {
     // MARK: - Idol Cell (IdolAvatarView 主役・ブランド色をまとう)
 
     private func cell(_ idol: Idol, brand: Brand) -> some View {
-        ZStack(alignment: .topTrailing) {
-            Button {
-                onSelect(idol)
-            } label: {
-                VStack(spacing: DS.sp2) {
-                    IdolAvatarView(idol: idol, size: 60, isPick: pickIds.contains(idol.id))
-                    Text(idol.name)
-                        .font(.imasCaption)
-                        .foregroundStyle(DS.ink)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.6)
+        // 担当/お気に入りバッジは「アバター」の右上に重ねる。セル幅基準 (ZStack topTrailing
+        // + offset) だと中央のアバターから離れてセル右端に浮くため、overlay でアバター基準にする。
+        VStack(spacing: DS.sp2) {
+            IdolAvatarView(idol: idol, size: 60, isPick: pickIds.contains(idol.id))
+                .overlay(alignment: .topTrailing) {
+                    HStack(spacing: -4) {
+                        MyPickToggleButton(id: idol.id, size: 14)
+                        FavoriteToggleButton(entity: .idol, id: idol.id, size: 14)
+                    }
+                    .offset(x: 10, y: -6)
                 }
-                .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.plain)
-
-            HStack(spacing: -4) {
-                MyPickToggleButton(id: idol.id, size: 14)
-                FavoriteToggleButton(entity: .idol, id: idol.id, size: 14)
-            }
-            .offset(x: 12, y: -8)
+            Text(idol.name)
+                .font(.imasCaption)
+                .foregroundStyle(DS.ink)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
         }
+        .frame(maxWidth: .infinity)
+        .contentShape(Rectangle())
+        .onTapGesture { onSelect(idol) }
     }
 }

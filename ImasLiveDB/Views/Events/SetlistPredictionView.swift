@@ -363,7 +363,7 @@ private struct PredictionRowView: View {
                     seed: seed
                 )
 
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: DS.sp2) {
                     Text(prediction.songTitle)
                         .font(.imasSubhead.weight(.semibold))
                         .foregroundStyle(DS.ink)
@@ -402,7 +402,8 @@ private struct PredictionRowView: View {
                 .buttonStyle(.borderless)
             }
             .padding(.horizontal, DS.sp4)
-            .padding(.vertical, 9)
+            .padding(.top, DS.sp3)
+            .padding(.bottom, DS.sp2)
             .contentShape(Rectangle())
 
             // MARK: 「誰が歌う？」展開ブロック
@@ -439,7 +440,8 @@ private struct PredictionRowView: View {
             }
             .foregroundStyle(DS.ink3)
             .padding(.horizontal, DS.sp4)
-            .padding(.bottom, showPerformerPrediction ? DS.sp1 : DS.sp2)
+            .padding(.top, DS.sp2)
+            .padding(.bottom, showPerformerPrediction ? DS.sp2 : DS.sp3)
         }
         .buttonStyle(.borderless)
     }

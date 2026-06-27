@@ -94,10 +94,15 @@ struct PollListView: View {
                     if index > 0 {
                         Divider().background(DS.sep).padding(.leading, DS.sp5)
                     }
-                    NavigationLink(value: PollRoute.detail(poll.id)) {
-                        PollRowView(poll: poll)
-                    }
-                    .buttonStyle(.plain)
+                    // NavigationLink を可視ラベルで使うと List 文脈でシステムの開示シェブロンが
+                    // 重複表示される (PollRowView 自前の > と二重)。不可視リンクを overlay して
+                    // 行全体をタップ可能にしつつ、見た目は自前の > だけにする。
+                    PollRowView(poll: poll)
+                        .contentShape(Rectangle())
+                        .overlay {
+                            NavigationLink(value: PollRoute.detail(poll.id)) { EmptyView() }
+                                .opacity(0)
+                        }
                 }
             }
             .listRowInsets(EdgeInsets())
