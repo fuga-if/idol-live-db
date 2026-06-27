@@ -624,8 +624,10 @@ struct IntroGameView: View {
             session?.submitAnswer(match)
         }
         let title = q.title
-        DispatchQueue.main.async {
-            // ずらした先で状況が変わっていないか再確認 (回答済み/別フェーズなら開始しない)。
+        // 次の runloop に MainActor 隔離のまま defer する。DispatchQueue.main.async の
+        // 非隔離クロージャから MainActor 状態 (session/speechService) を触ると Swift6 の
+        // 動的隔離チェックで SIGTRAP するため Task{@MainActor} を使う。
+        Task { @MainActor in
             guard session.phase == .answering, !speechService.isListening, !session.isPlayingIntro else { return }
             speechService.startListening(choices: [title])
         }
