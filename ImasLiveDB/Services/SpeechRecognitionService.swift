@@ -3,49 +3,73 @@ import Speech
 import AVFoundation
 import Observation
 
-/// イントロドンの音声判定。/dev/intro (本家 IntroQuiz) の SpeechService の安定パターンを移植:
-/// - installTap 前に input format を事前検証 (sampleRate/channelCount==0 の過渡状態で
-///   installTap すると Swift で捕捉不可の ObjC 例外が飛びクラッシュする → 0.3s 後にリトライ)。
-/// - 認識セッション世代トークン: stop/再開のたびに +1。古いタスクの遅延コールバックを破棄。
-/// - 認識コールバックは任意スレッドで来るので DispatchQueue.main + MainActor.assumeIsolated に集約。
-/// - 録音は .playAndRecord(.measurement)、終了時に .playback へ戻す (カテゴリリークで
-///   直後の効果音が小音量になるのを防ぐ)。
-/// - isFinal / エラーで自動再開し、8 秒で打ち切り。
+/// イントロドンの音声判定。/dev/intro (本家 IntroQuiz) の SpeechService を忠実移植:
+/// - installTap 前の format 事前検証 + 0.3s リトライ (過渡状態の ObjC 例外クラッシュ回避)
+/// - 認識世代トークンで stale コールバック破棄
+/// - 割り込み / ルート変更 / mediaServicesReset を購読して engine を自動復帰
+/// - 変種マッチング (正規化 / カタカナ / ローマ字 / 読み / Latin) + 逐次一致
+/// - 録音は .playAndRecord(.measurement)、終了時 .playback へ復帰
+/// - isFinal / エラーで自動再開、8 秒で打ち切り
+///
+/// 認識コールバックの MainActor hop だけは assumeIsolated が SIGTRAP する実績があったため
+/// `Task { @MainActor }` にしている (Sendable な値だけ持ち込むので挙動は同じ)。
 @Observable @MainActor
 final class SpeechRecognitionService {
 
     private(set) var isListening: Bool = false
     private(set) var recognizedText: String = ""
-    /// 音声認識 + マイクの総合許可状態 (UI のゲーティング用)。音声認識のみで判定すると
-    /// マイク未許可を取りこぼし「許可済みなのに未認可扱い」になるため両方を合成する。
     private(set) var authStatus: SFSpeechRecognizerAuthorizationStatus = SpeechRecognitionService.combinedStatus()
-    /// 一致した choice を渡すコールバック。
+    /// 一致したら正解タイトルを渡す。
     var onMatch: ((String) -> Void)?
 
-    @ObservationIgnored private let jaRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "ja-JP"))
-    @ObservationIgnored private var recognizer: SFSpeechRecognizer?
-    @ObservationIgnored private var request: SFSpeechAudioBufferRecognitionRequest?
-    @ObservationIgnored private var task: SFSpeechRecognitionTask?
+    @ObservationIgnored private var accumulatedText: String = ""
+    @ObservationIgnored private var speechRecognizer: SFSpeechRecognizer?
+    @ObservationIgnored private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
+    @ObservationIgnored private var recognitionTask: SFSpeechRecognitionTask?
     @ObservationIgnored private var audioEngine: AVAudioEngine?
     @ObservationIgnored private var matchTimer: Timer?
     @ObservationIgnored private var restartTask: DispatchWorkItem?
-    @ObservationIgnored private var generationId: Int = 0
-    @ObservationIgnored private var choices: [String] = []
-    @ObservationIgnored private var normChoices: [(orig: String, norm: String)] = []
-    @ObservationIgnored private var accumulated: String = ""
+    @ObservationIgnored private var rebuildTask: DispatchWorkItem?
+    @ObservationIgnored private var rebuildRetryCount = 0
+    @ObservationIgnored private let rebuildRetryLimit = 5
+    @ObservationIgnored private var generationId = 0
+    // deinit (nonisolated) から removeObserver するため nonisolated(unsafe)。
+    @ObservationIgnored nonisolated(unsafe) private var sessionObservers: [NSObjectProtocol] = []
+    @ObservationIgnored private var wasListeningBeforeInterruption = false
+    @ObservationIgnored private var resolved = false
+
+    @ObservationIgnored private var targetTitle = ""
+    @ObservationIgnored private var targetVariants: [String] = []
+    @ObservationIgnored private var targetLatinVariants: [String] = []
+    @ObservationIgnored private var minTargetLen = 2
+    @ObservationIgnored private var timerStartDate: Date?
+
+    @ObservationIgnored private let jaRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "ja-JP"))
+    @ObservationIgnored private let enRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "en-US"))
+
+    @ObservationIgnored private var normalizeCache: [String: String] = [:]
+    @ObservationIgnored private var readingCache: [String: String] = [:]
+    @ObservationIgnored private var latinCache: [String: String] = [:]
 
     private static let listenWindow: TimeInterval = 8.0
 
+    init() {
+        registerSessionObservers()
+    }
+
+    deinit {
+        // engine/timer 等は stopListening / onDisappear で停止済み。observer は weak self なので
+        // 残っても無害だが、念のため解除する (nonisolated deinit から触れるのは observer のみ)。
+        let center = NotificationCenter.default
+        for o in sessionObservers { center.removeObserver(o) }
+    }
+
     // MARK: - Authorization
 
-    /// 音声認識 + マイクの両方を要求し、総合結果を authStatus に反映する。
-    /// continuation 経由で受け、代入は await 後の MainActor 上で行う (コールバック
-    /// スレッドから @MainActor プロパティを触る actor 隔離違反を避ける)。
     func requestAuthorization() async {
         let speech = await withCheckedContinuation { (c: CheckedContinuation<SFSpeechRecognizerAuthorizationStatus, Never>) in
             SFSpeechRecognizer.requestAuthorization { c.resume(returning: $0) }
         }
-        // 音声認識が許可されたらマイクも要求する (両方そろって初めて録音できる)。
         if speech == .authorized {
             _ = await withCheckedContinuation { (c: CheckedContinuation<Bool, Never>) in
                 AVAudioApplication.requestRecordPermission { c.resume(returning: $0) }
@@ -59,8 +83,7 @@ final class SpeechRecognitionService {
             && AVAudioApplication.shared.recordPermission == .granted
     }
 
-    /// 音声認識 + マイクの現在状態を 1 つの status に合成する。
-    /// 両方 granted → authorized / どちらか拒否 → denied / それ以外 → notDetermined。
+    /// 音声認識 + マイクの現在状態を合成 (両方 granted→authorized / 片方 denied→denied / 他→notDetermined)。
     private static func combinedStatus() -> SFSpeechRecognizerAuthorizationStatus {
         let speech = SFSpeechRecognizer.authorizationStatus()
         let mic = AVAudioApplication.shared.recordPermission
@@ -69,28 +92,121 @@ final class SpeechRecognitionService {
         return .notDetermined
     }
 
+    // MARK: - Session observers (割り込み/ルート変更/mediaReset 復帰)
+
+    private func registerSessionObservers() {
+        let center = NotificationCenter.default
+        let main = OperationQueue.main
+        let interruption = center.addObserver(forName: AVAudioSession.interruptionNotification,
+                                              object: AVAudioSession.sharedInstance(), queue: main) { [weak self] note in
+            // note は非 Sendable なので primitive(UInt?) だけ取り出して main へ渡す。
+            let typeRaw = note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt
+            let optRaw = note.userInfo?[AVAudioSessionInterruptionOptionKey] as? UInt
+            MainActor.assumeIsolated { self?.handleInterruption(typeRaw: typeRaw, optRaw: optRaw) }
+        }
+        let routeChange = center.addObserver(forName: AVAudioSession.routeChangeNotification,
+                                             object: AVAudioSession.sharedInstance(), queue: main) { [weak self] note in
+            let reasonRaw = note.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt
+            MainActor.assumeIsolated { self?.handleRouteChange(reasonRaw: reasonRaw) }
+        }
+        let mediaReset = center.addObserver(forName: AVAudioSession.mediaServicesWereResetNotification,
+                                            object: AVAudioSession.sharedInstance(), queue: main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.handleMediaServicesReset() }
+        }
+        sessionObservers = [interruption, routeChange, mediaReset]
+    }
+
+    private func handleInterruption(typeRaw: UInt?, optRaw: UInt?) {
+        guard let raw = typeRaw, let type = AVAudioSession.InterruptionType(rawValue: raw) else { return }
+        switch type {
+        case .began:
+            wasListeningBeforeInterruption = isListening
+            stopEngine()
+        case .ended:
+            guard wasListeningBeforeInterruption, !resolved else {
+                wasListeningBeforeInterruption = false
+                return
+            }
+            wasListeningBeforeInterruption = false
+            let shouldResume: Bool
+            if let optsRaw = optRaw {
+                shouldResume = AVAudioSession.InterruptionOptions(rawValue: optsRaw).contains(.shouldResume)
+            } else {
+                shouldResume = true
+            }
+            if shouldResume {
+                reinstateTimerIfNeeded()
+                beginRecognition(startTimer: false)
+            }
+        @unknown default:
+            break
+        }
+    }
+
+    private func handleRouteChange(reasonRaw: UInt?) {
+        guard isListening,
+              let raw = reasonRaw,
+              let reason = AVAudioSession.RouteChangeReason(rawValue: raw) else { return }
+        switch reason {
+        case .oldDeviceUnavailable, .newDeviceAvailable:
+            guard !resolved else { return }
+            scheduleRebuildDebounced()
+        default:
+            break
+        }
+    }
+
+    private func handleMediaServicesReset() {
+        let shouldRecover = isListening && !resolved
+        stopEngine()
+        if speechRecognizer === enRecognizer {
+            speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "en-US"))
+        } else {
+            speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "ja-JP"))
+        }
+        if shouldRecover { scheduleRebuildDebounced() }
+    }
+
     // MARK: - Start / Stop
 
     func startListening(choices: [String]) {
         stopEngine()
         invalidateTimer()
-        self.choices = choices.filter { !$0.isEmpty }
-        normChoices = self.choices.map { ($0, Self.normalize($0)) }
+        resolved = false
+        targetTitle = choices.first ?? ""
         recognizedText = ""
-        accumulated = ""
-        recognizer = jaRecognizer
+        accumulatedText = ""
+        wasListeningBeforeInterruption = false
+        timerStartDate = nil
+        rebuildRetryCount = 0
+        rebuildTask?.cancel(); rebuildTask = nil
+        normalizeCache.removeAll(); readingCache.removeAll(); latinCache.removeAll()
+
+        let clean = stripParentheses(targetTitle)
+        var variants = Set<String>(); var latinVars = Set<String>()
+        let n = normalize(clean); if n.count >= 2 { variants.insert(n) }
+        let kana = toKatakana(n); if kana != n && kana.count >= 2 { variants.insert(kana) }
+        let romaji = toRomaji(n); if romaji != n && romaji.count >= 2 { variants.insert(romaji) }
+        let jp = normalize(japaneseReading(clean)); if jp.count >= 2 { variants.insert(jp) }
+        let l = toLatin(clean); if l.count >= 2 { latinVars.insert(l) }
+        targetVariants = Array(variants)
+        targetLatinVariants = Array(latinVars)
+        minTargetLen = (targetVariants + targetLatinVariants).map(\.count).min() ?? 2
+
+        let useEnglish = !containsJapanese(clean) && isLikelyEnglish(clean)
+        speechRecognizer = useEnglish ? enRecognizer : jaRecognizer
         beginRecognition(startTimer: true)
     }
 
     func stopListening() {
         isListening = false
+        wasListeningBeforeInterruption = false
         invalidateTimer()
-        accumulated = ""
-        restartTask?.cancel()
-        restartTask = nil
+        timerStartDate = nil
+        accumulatedText = ""
+        restartTask?.cancel(); restartTask = nil
+        rebuildTask?.cancel(); rebuildTask = nil
         stopEngine()
-        // .playAndRecord のまま放置すると iOS が出力音量を絞り、直後の効果音/次のイントロが
-        // 小音量になる。.playback に戻して category リークを防ぐ。
         let session = AVAudioSession.sharedInstance()
         try? session.setCategory(.playback, options: .mixWithOthers)
         try? session.setActive(true)
@@ -101,25 +217,23 @@ final class SpeechRecognitionService {
     private func beginRecognition(startTimer: Bool) {
         guard hasPermission() else {
             isListening = false
-            authStatus = Self.combinedStatus()   // 未許可を notDetermined のまま保ち再要求できる
+            authStatus = Self.combinedStatus()
             stopEngine()
             return
         }
-
         let engine = AVAudioEngine()
         audioEngine = engine
-        guard let recognizer, recognizer.isAvailable else {
+        guard let recognizer = speechRecognizer, recognizer.isAvailable else {
             isListening = false
             stopEngine()
             return
         }
-
         let req = SFSpeechAudioBufferRecognitionRequest()
-        request = req
+        recognitionRequest = req
         req.shouldReportPartialResults = true
         req.taskHint = .search
         req.addsPunctuation = false
-        if let first = choices.first { req.contextualStrings = [first] }
+        req.contextualStrings = [stripParentheses(targetTitle)]
 
         do {
             let session = AVAudioSession.sharedInstance()
@@ -131,33 +245,27 @@ final class SpeechRecognitionService {
             return
         }
 
-        let input = engine.inputNode
-        // installTap 前に format を事前検証。setActive 直後/ルート変更直後は sampleRate・
-        // channelCount が 0 になることがあり、その format で installTap すると ObjC 例外
-        // (Swift 捕捉不可) でクラッシュする。不正なら engine を解体し 0.3s 後に再試行。
-        let format = input.outputFormat(forBus: 0)
+        let inputNode = engine.inputNode
+        // installTap 前に format 検証 (sr/ch==0 の過渡状態で installTap すると ObjC 例外で落ちる)。
+        let format = inputNode.outputFormat(forBus: 0)
         guard format.sampleRate > 0, format.channelCount > 0 else {
             stopEngine()
-            scheduleRetry()
+            scheduleRetry(carrying: nil)
             return
         }
-        input.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak req] buffer, _ in
+        inputNode.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak req] buffer, _ in
             req?.append(buffer)
         }
 
         generationId &+= 1
         let generation = generationId
-
-        task = recognizer.recognitionTask(with: req) { [weak self] result, error in
-            // 認識コールバックは任意スレッド。Sendable な値だけ取り出して MainActor へ hop する。
-            // MainActor.assumeIsolated は隔離不一致時に SIGTRAP で落ちる再現があったため、
-            // Task { @MainActor } で明示 hop する (旧実装で安定していた方式)。
+        recognitionTask = recognizer.recognitionTask(with: req) { [weak self] result, error in
             let spoken = result?.bestTranscription.formattedString
             let isFinal = result?.isFinal ?? false
             let hadError = error != nil
             Task { @MainActor [weak self] in
                 guard let self, generation == self.generationId else { return }
-                self.handleResult(spoken: spoken, isFinal: isFinal, hadError: hadError)
+                self.handleRecognitionResult(spoken: spoken, isFinal: isFinal, hadError: hadError)
             }
         }
 
@@ -166,8 +274,12 @@ final class SpeechRecognitionService {
             try engine.start()
             isListening = true
             if startTimer {
+                timerStartDate = Date()
                 matchTimer = Timer.scheduledTimer(withTimeInterval: Self.listenWindow, repeats: false) { [weak self] _ in
-                    Task { @MainActor in self?.stopListening() }
+                    MainActor.assumeIsolated {
+                        guard let self else { return }
+                        if !self.resolved { self.stopListening() }
+                    }
                 }
             }
         } catch {
@@ -175,43 +287,40 @@ final class SpeechRecognitionService {
         }
     }
 
-    private func handleResult(spoken: String?, isFinal: Bool, hadError: Bool) {
+    private func handleRecognitionResult(spoken: String?, isFinal: Bool, hadError: Bool) {
         if let spoken {
-            recognizedText = accumulated.isEmpty ? spoken : accumulated + spoken
-            if let matched = matchedChoice(in: recognizedText) {
-                stopListening()
-                onMatch?(matched)
-                return
-            }
+            recognizedText = accumulatedText.isEmpty ? spoken : accumulatedText + spoken
+            checkMatch(text: spoken)
             if isFinal {
-                restart(carrying: spoken)
+                if !resolved { restartListening(carrying: spoken) }
                 return
             }
         }
-        if hadError {
-            restart(carrying: nil)
+        if hadError, !resolved {
+            restartListening(carrying: nil)
         }
     }
 
-    /// isFinal / エラーで認識が切れたら、聴取窓の間は自動で再開する。
-    private func restart(carrying text: String?) {
+    private func restartListening(carrying text: String?) {
         guard isListening else { return }
-        stopEngine()
         if let text, !text.trimmingCharacters(in: .whitespaces).isEmpty {
-            accumulated += text
+            accumulatedText += text
         }
-        scheduleRetry()
+        stopEngine()
+        scheduleRetry(carrying: nil)
     }
 
-    /// 0.3s 後に beginRecognition を再実行 (format 未確定/再開で共用)。
-    private func scheduleRetry() {
+    private func scheduleRetry(carrying text: String?) {
         guard isListening else { return }
-        let saved = accumulated
+        if let text, !text.trimmingCharacters(in: .whitespaces).isEmpty {
+            accumulatedText += text
+        }
+        let saved = accumulatedText
         restartTask?.cancel()
         let task = DispatchWorkItem { [weak self] in
             Task { @MainActor in
-                guard let self, self.isListening else { return }
-                self.accumulated = saved
+                guard let self, !self.resolved, self.isListening else { return }
+                self.accumulatedText = saved
                 self.beginRecognition(startTimer: false)
             }
         }
@@ -219,15 +328,45 @@ final class SpeechRecognitionService {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: task)
     }
 
+    private func reinstateTimerIfNeeded() {
+        guard !resolved, let start = timerStartDate else { return }
+        let remaining = Self.listenWindow - Date().timeIntervalSince(start)
+        if remaining <= 0 {
+            stopListening()
+        } else {
+            invalidateTimer()
+            matchTimer = Timer.scheduledTimer(withTimeInterval: remaining, repeats: false) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    guard let self else { return }
+                    if !self.resolved { self.stopListening() }
+                }
+            }
+        }
+    }
+
+    private func scheduleRebuildDebounced() {
+        guard rebuildRetryCount < rebuildRetryLimit else { return }
+        rebuildTask?.cancel()
+        let task = DispatchWorkItem { [weak self] in
+            Task { @MainActor in
+                guard let self, !self.resolved, self.isListening else { return }
+                self.rebuildRetryCount += 1
+                self.stopEngine()
+                self.scheduleRetry(carrying: nil)
+            }
+        }
+        rebuildTask = task
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: task)
+    }
+
     private func stopEngine() {
         generationId &+= 1
-        matchTimer?.invalidate()   // 念のため (invalidateTimer 経由でも呼ばれる)
-        task?.cancel()
-        task = nil
-        request?.endAudio()
-        request = nil
         audioEngine?.stop()
         audioEngine?.inputNode.removeTap(onBus: 0)
+        recognitionRequest?.endAudio()
+        recognitionRequest = nil
+        recognitionTask?.cancel()
+        recognitionTask = nil
         audioEngine = nil
     }
 
@@ -236,23 +375,164 @@ final class SpeechRecognitionService {
         matchTimer = nil
     }
 
-    // MARK: - Matching
+    // MARK: - Match checking
 
-    /// 認識テキストに一致する choice を返す。正規化して双方向 contains で判定。
-    private func matchedChoice(in spoken: String) -> String? {
-        let n = Self.normalize(spoken)
-        guard n.count >= 2 else { return nil }
-        if let exact = normChoices.first(where: { $0.norm == n }) { return exact.orig }
-        return normChoices.first {
-            !$0.norm.isEmpty && ($0.norm.contains(n) || n.contains($0.norm))
-        }?.orig
+    private func checkMatch(text: String) {
+        guard !resolved else { return }
+        let input = normalize(text)
+        guard input.count >= max(minTargetLen * 7 / 10, 3) else { return }
+
+        for target in targetVariants where target.count >= 3 {
+            if input.contains(target) || sequentialMatch(input: input, target: target) { resolveCorrect(text); return }
+        }
+        if containsKanji(text), let reading = readingNormalized(text), reading != input {
+            for target in targetVariants where target.count >= 3 {
+                if reading.contains(target) || sequentialMatch(input: reading, target: target) { resolveCorrect(text); return }
+            }
+        }
+        if !accumulatedText.isEmpty {
+            let combinedRaw = accumulatedText + text
+            let combined = normalize(combinedRaw)
+            for target in targetVariants where target.count >= 3 {
+                if combined.contains(target) || sequentialMatch(input: combined, target: target) { resolveCorrect(text); return }
+            }
+            if containsKanji(combinedRaw), let reading = readingNormalized(combinedRaw), reading != combined {
+                for target in targetVariants where target.count >= 3 {
+                    if reading.contains(target) || sequentialMatch(input: reading, target: target) { resolveCorrect(text); return }
+                }
+            }
+        }
+        if !targetLatinVariants.isEmpty {
+            let inputLatin = latinCached(text)
+            let combinedLatin = accumulatedText.isEmpty ? inputLatin : latinCached(accumulatedText + text)
+            for target in targetLatinVariants where target.count >= 3 {
+                if inputLatin.contains(target) || sequentialMatch(input: inputLatin, target: target) { resolveCorrect(text); return }
+                if combinedLatin != inputLatin && combinedLatin.contains(target) { resolveCorrect(text); return }
+            }
+        }
     }
 
-    private static func normalize(_ s: String) -> String {
-        var t = s.lowercased()
-            .replacingOccurrences(of: " ", with: "")
-            .replacingOccurrences(of: "\u{3000}", with: "")
-        t = t.applyingTransform(.hiraganaToKatakana, reverse: false) ?? t
-        return t
+    private func resolveCorrect(_ spoken: String) {
+        guard isListening, !resolved else { return }
+        resolved = true
+        recognizedText = spoken
+        let cb = onMatch
+        let title = targetTitle
+        stopListening()
+        cb?(title)
+    }
+
+    private func sequentialMatch(input: String, target: String) -> Bool {
+        guard target.count >= 2, input.count >= max(target.count * 6 / 10, 2) else { return false }
+        var matched = 0
+        var idx = input.startIndex
+        for char in target {
+            while idx < input.endIndex {
+                if input[idx] == char { matched += 1; idx = input.index(after: idx); break }
+                idx = input.index(after: idx)
+            }
+        }
+        return matched >= target.count * 7 / 10
+    }
+
+    // MARK: - String helpers
+
+    private func latinCached(_ text: String) -> String {
+        if let c = latinCache[text] { return c }
+        let r = toLatin(text); latinCache[text] = r; return r
+    }
+
+    private func readingNormalized(_ text: String) -> String? {
+        if let c = readingCache[text] { return c.isEmpty ? nil : c }
+        let r = normalize(japaneseReading(text)); readingCache[text] = r; return r.isEmpty ? nil : r
+    }
+
+    private func containsKanji(_ text: String) -> Bool {
+        text.unicodeScalars.contains { $0.value >= 0x4E00 && $0.value <= 0x9FFF }
+    }
+
+    private func containsJapanese(_ text: String) -> Bool {
+        text.unicodeScalars.contains {
+            let v = $0.value
+            return (v >= 0x3040 && v <= 0x309F) || (v >= 0x30A0 && v <= 0x30FF) || (v >= 0x4E00 && v <= 0x9FFF)
+        }
+    }
+
+    private func normalize(_ text: String) -> String {
+        if let c = normalizeCache[text] { return c }
+        let r = computeNormalize(text); normalizeCache[text] = r; return r
+    }
+
+    private func computeNormalize(_ text: String) -> String {
+        let cleaned = text.lowercased().unicodeScalars.filter { scalar in
+            let v = scalar.value
+            return CharacterSet.alphanumerics.contains(scalar) ||
+                   (v >= 0x3040 && v <= 0x309F) || (v >= 0x30A0 && v <= 0x30FF) ||
+                   (v >= 0x4E00 && v <= 0x9FFF) || scalar == "\u{30FC}"
+        }.map(String.init).joined()
+        let m = NSMutableString(string: cleaned)
+        CFStringTransform(m, nil, "Hiragana-Katakana" as CFString, false)
+        return m as String
+    }
+
+    private func toKatakana(_ text: String) -> String {
+        let m = NSMutableString(string: text)
+        CFStringTransform(m, nil, "Latin-Katakana" as CFString, false)
+        return m as String
+    }
+
+    private func toRomaji(_ text: String) -> String {
+        let m = NSMutableString(string: text)
+        CFStringTransform(m, nil, "Katakana-Latin" as CFString, false)
+        CFStringTransform(m, nil, "Hiragana-Latin" as CFString, false)
+        return (m as String).lowercased()
+    }
+
+    private func japaneseReading(_ text: String) -> String {
+        let src = text as CFString
+        let tokenizer = CFStringTokenizerCreate(nil, src, CFRangeMake(0, CFStringGetLength(src)),
+                                                kCFStringTokenizerUnitWordBoundary, Locale(identifier: "ja") as CFLocale)
+        var result = ""
+        while CFStringTokenizerAdvanceToNextToken(tokenizer) != [] {
+            if let latin = CFStringTokenizerCopyCurrentTokenAttribute(tokenizer, kCFStringTokenizerAttributeLatinTranscription) as? String {
+                let m = NSMutableString(string: latin)
+                CFStringTransform(m, nil, "Latin-Katakana" as CFString, false)
+                result += m as String
+            } else {
+                let range = CFStringTokenizerGetCurrentTokenRange(tokenizer)
+                let start = text.index(text.startIndex, offsetBy: range.location)
+                let end = text.index(start, offsetBy: range.length)
+                result += String(text[start..<end])
+            }
+        }
+        return result
+    }
+
+    private func toLatin(_ text: String) -> String {
+        let m = NSMutableString(string: text)
+        CFStringTransform(m, nil, "Any-Latin" as CFString, false)
+        CFStringTransform(m, nil, "Latin-ASCII" as CFString, false)
+        return (m as String).lowercased().unicodeScalars
+            .filter { CharacterSet.alphanumerics.contains($0) }.map(String.init).joined()
+    }
+
+    private func stripParentheses(_ text: String) -> String {
+        var result = text.replacingOccurrences(of: "@", with: "a").replacingOccurrences(of: "＠", with: "a")
+        for pattern in ["\\(.*?\\)", "（.*?）", "\\[.*?\\]", "【.*?】", "〜.*?〜", "~.*?~",
+                        "\\s*[/／]\\s*.*$", "\\s*[:：]\\s*.*$", "\\s*-\\s*.*$",
+                        "(?i)\\s*feat\\.?\\s.*$", "(?i)\\s*ft\\.?\\s.*$", "(?i)\\s*with\\s.*$"] {
+            result = result.replacingOccurrences(of: pattern, with: "", options: .regularExpression)
+        }
+        result = String(result.unicodeScalars.filter { scalar in
+            let v = scalar.value
+            return v < 0x2600 || (v >= 0x3040 && v <= 0x9FFF) || (v >= 0xFF00 && v <= 0xFF9F)
+        })
+        return result.trimmingCharacters(in: .whitespaces)
+    }
+
+    private func isLikelyEnglish(_ text: String) -> Bool {
+        let ascii = text.unicodeScalars.filter { $0.isASCII && $0.value > 32 }.count
+        let total = text.unicodeScalars.filter { $0.value > 32 }.count
+        return total > 0 && Double(ascii) / Double(total) > 0.6
     }
 }
