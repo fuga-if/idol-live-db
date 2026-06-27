@@ -45,10 +45,25 @@ struct AboutView: View {
                     license: "楽曲・ライブ等のデータ参照元",
                     url: "https://imas-db.jp/"
                 )
+                ossCredit(
+                    name: "music765plus",
+                    license: "楽曲・ライブセトリのデータ参照元",
+                    url: "https://music765plus.com/"
+                )
+                ossCredit(
+                    name: "im@sparql",
+                    license: "アイドルのプロフィール (CV・カラー等)",
+                    url: "https://sparql.crssnky.xyz/imas/"
+                )
+                ossCredit(
+                    name: "imas-palette",
+                    license: "アイドルのイメージカラー",
+                    url: "https://github.com/arrow2nd/imas-palette"
+                )
             } header: {
                 Text("データ提供")
             } footer: {
-                Text("本アプリは「アイマスDB」(https://imas-db.jp/) の情報を参照しています。データはそのままの複製ではなく、独自の集計・整形を加えています。")
+                Text("各情報源のデータはそのままの複製ではなく、独自の集計・整形を加えて利用しています。")
             }
 
             Section("ライセンス情報") {
