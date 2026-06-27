@@ -3,6 +3,7 @@ import { fetchBadges, calcTier } from "./badges";
 import { handleScheduled } from "./apply";
 import { cloudKitModify, cloudKitLookup, buildForceUpdate, buildSoftDelete, CloudKitOperation } from "./cloudkit";
 import { handlePostEdits, handleGetRecordHistory } from "./edits";
+import { handlePostEditRequests } from "./edit_requests";
 import { handleGetFeed, handleGetMyEdits, maskDisplayName } from "./feed";
 import { handlePostGood, handleDeleteGood } from "./edit_good";
 import {
@@ -28,6 +29,9 @@ interface Env {
   APP_ATTEST_MODE?: string;        // "off" | "monitor" | "enforce" (既定 monitor)
   APP_ATTEST_ALLOW_DEV?: string;   // "true" のときだけ dev attestation (appattestdevelop) を許可
   GOOGLE_SERVICE_ACCOUNT?: string; // Play Integrity 検証用 (Android)
+  // マスタ修正リクエストの GitHub issue 化用 (secret: wrangler secret put GITHUB_TOKEN)。
+  GITHUB_TOKEN?: string;
+  GITHUB_REPO?: string;            // "owner/repo" 省略時 "fuga-if/idol-live-db"
 }
 
 const SESSION_JWT_ISSUER = "imas-live-db";
@@ -2686,6 +2690,19 @@ export default {
           getAuthUser,
           upsertUser,
           checkIsAdmin,
+          checkRateLimit,
+          json,
+          error,
+          rateLimitResponse,
+        });
+      }
+
+      // ----------------------------------------------------------------
+      // POST /edit-requests — マスタ修正リクエスト (GitHub issue 化, CloudKit に書かない)
+      // ----------------------------------------------------------------
+      if (path === "/edit-requests" && request.method === "POST") {
+        return handlePostEditRequests(request, env, {
+          getAuthUser,
           checkRateLimit,
           json,
           error,
