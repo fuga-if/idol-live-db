@@ -102,16 +102,16 @@ final class SpeechRecognitionService {
             // note は非 Sendable なので primitive(UInt?) だけ取り出して main へ渡す。
             let typeRaw = note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt
             let optRaw = note.userInfo?[AVAudioSessionInterruptionOptionKey] as? UInt
-            MainActor.assumeIsolated { self?.handleInterruption(typeRaw: typeRaw, optRaw: optRaw) }
+            Task { @MainActor in self?.handleInterruption(typeRaw: typeRaw, optRaw: optRaw) }
         }
         let routeChange = center.addObserver(forName: AVAudioSession.routeChangeNotification,
                                              object: AVAudioSession.sharedInstance(), queue: main) { [weak self] note in
             let reasonRaw = note.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt
-            MainActor.assumeIsolated { self?.handleRouteChange(reasonRaw: reasonRaw) }
+            Task { @MainActor in self?.handleRouteChange(reasonRaw: reasonRaw) }
         }
         let mediaReset = center.addObserver(forName: AVAudioSession.mediaServicesWereResetNotification,
                                             object: AVAudioSession.sharedInstance(), queue: main) { [weak self] _ in
-            MainActor.assumeIsolated { self?.handleMediaServicesReset() }
+            Task { @MainActor in self?.handleMediaServicesReset() }
         }
         sessionObservers = [interruption, routeChange, mediaReset]
     }
@@ -276,7 +276,7 @@ final class SpeechRecognitionService {
             if startTimer {
                 timerStartDate = Date()
                 matchTimer = Timer.scheduledTimer(withTimeInterval: Self.listenWindow, repeats: false) { [weak self] _ in
-                    MainActor.assumeIsolated {
+                    Task { @MainActor in
                         guard let self else { return }
                         if !self.resolved { self.stopListening() }
                     }
@@ -336,7 +336,7 @@ final class SpeechRecognitionService {
         } else {
             invalidateTimer()
             matchTimer = Timer.scheduledTimer(withTimeInterval: remaining, repeats: false) { [weak self] _ in
-                MainActor.assumeIsolated {
+                Task { @MainActor in
                     guard let self else { return }
                     if !self.resolved { self.stopListening() }
                 }
