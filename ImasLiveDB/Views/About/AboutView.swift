@@ -90,6 +90,12 @@ struct AboutView: View {
             }
 
             Section {
+                Text("担当・お気に入り・メモは iCloud に自動バックアップされ、再インストールや機種変更でも復元されます (同じ Apple ID でのサインインが必要)。")
+                    .font(.imasCaption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section {
                 Text("本アプリはアイドルマスターシリーズの非公式ファンメイドアプリです。バンダイナムコエンターテインメント等の権利者とは一切関係ありません。")
                     .font(.imasCaption)
                     .foregroundStyle(.secondary)

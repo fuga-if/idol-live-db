@@ -214,6 +214,27 @@ final class UserMarkService {
         return collectedIds
     }
 
+    // MARK: - 診断 / 手動バックアップ (デバッグ用)
+
+    /// ローカル DB の全マーク件数。
+    func localMarkCount() -> Int { (try? db.allUserMarks().count) ?? 0 }
+
+    /// iCloud(KVS) に保存されているマーク件数。
+    func iCloudBackupCount() -> Int { UserMarkBackup.shared.backedUpCount() }
+
+    /// 今すぐ iCloud にバックアップ (デバウンスせず即実行)。
+    func backupNow() {
+        if let marks = try? db.allUserMarks() { UserMarkBackup.shared.backup(marks) }
+    }
+
+    /// iCloud から非破壊復元を試みる (デバッグ/手動トリガ)。
+    func restoreNow() {
+        restoreFromBackup()
+        reloadBoolMarks()
+        refreshAutoCollected()
+        version &+= 1
+    }
+
     // MARK: - App Active
 
     /// アプリがフォアグラウンドに復帰したときに呼ぶ

@@ -43,6 +43,12 @@ final class UserMarkBackup {
         return payload.marks
     }
 
+    /// 診断用: KVS に入っているマーク件数 (iCloud から同期されたものを反映するため synchronize 後)。
+    func backedUpCount() -> Int {
+        store.synchronize()
+        return loadBackup()?.count ?? 0
+    }
+
     /// 他端末での更新を受け取るための監視を開始する。
     func startObserving(_ onExternalChange: @escaping @MainActor () -> Void) {
         NotificationCenter.default.addObserver(
