@@ -160,7 +160,7 @@ final class AuthService {
     func updateDisplayName(_ name: String) async throws {
         struct Body: Encodable { let display_name: String }
         try await APIClient.shared.requestVoid(
-            "PATCH",
+            "POST",
             path: "/users/me",
             body: Body(display_name: name),
             authorized: true
@@ -207,6 +207,7 @@ final class AuthService {
             let uid: String
             let email: String?
             let isAdmin: Bool
+            let displayName: String?
             let expiresIn: Int
         }
         for attempt in 0..<3 {
@@ -226,6 +227,12 @@ final class AuthService {
                 isAdmin = resp.isAdmin
                 KeychainStore.set(resp.sessionToken, forKey: sessionTokenKey)
                 KeychainStore.set(resp.isAdmin ? "1" : "0", forKey: isAdminKey)
+                // 再ログイン時 Apple は fullName を返さないので、サーバが返す正準 display_name で
+                // userName を復元する。これが無いとサインアウト→再ログインで表示名が空になる。
+                if let name = resp.displayName, !name.isEmpty {
+                    userName = name
+                    KeychainStore.set(name, forKey: userNameKey)
+                }
                 Logger.auth.notice("session_token_issued isAdmin=\(resp.isAdmin, privacy: .public)")
                 return
             } catch APIClientError.notAuthorized {

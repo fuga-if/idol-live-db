@@ -37,12 +37,13 @@ class MainActivity : ComponentActivity() {
         setContent {
             ImasLiveDBTheme {
                 val state by sync.state.collectAsState()
-                // null=判定中 / true=既存データあり / false=初回(データ無し)
+                // null=判定中 / true=データあり / false=データ無し
                 var hasData by remember { mutableStateOf<Boolean?>(null) }
                 LaunchedEffect(Unit) {
-                    hasData = sync.hasData()
-                    // 既存データありなら即UI表示してバックグラウンド差分同期。
-                    // 初回(データ無し)はフル同期完了まで下のローディングを出す。
+                    // 初回 (データ無し) は seed DB を投入してから判定する。これで CloudKit token
+                    // 未設定でも実データで起動できる (token はリリース版の最新化のためだけ)。
+                    hasData = sync.ensureLocalData()
+                    // データありなら即UI表示してバックグラウンド差分同期。
                     sync.sync()
                 }
                 val ready = hasData == true || state is CloudKitSyncEngine.SyncState.Completed

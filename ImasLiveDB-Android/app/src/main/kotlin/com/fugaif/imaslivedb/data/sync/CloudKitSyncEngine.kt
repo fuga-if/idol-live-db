@@ -15,9 +15,9 @@ import kotlinx.coroutines.flow.asStateFlow
  */
 class CloudKitSyncEngine(context: Context, private val db: AppDatabase) {
 
+    private val appContext = context.applicationContext
     private val client = CloudKitClient()
-    private val prefs = context.applicationContext
-        .getSharedPreferences("imas_sync", Context.MODE_PRIVATE)
+    private val prefs = appContext.getSharedPreferences("imas_sync", Context.MODE_PRIVATE)
 
     private val _state = MutableStateFlow<SyncState>(SyncState.Idle)
     val state: StateFlow<SyncState> = _state.asStateFlow()
@@ -80,10 +80,20 @@ class CloudKitSyncEngine(context: Context, private val db: AppDatabase) {
     /** ローカルに既にデータがあるか (初回判定用)。 */
     suspend fun hasData(): Boolean = db.syncDao().brandCount() > 0
 
+    /**
+     * 起動時のローカルデータ準備: DB が空なら seed (assets/master_seed.sqlite) を投入する。
+     * 「seed = 基準データ / CloudKit = 増分」の連続したパイプラインの第1段で、ここで投入してから
+     * sync() で最新差分を当てる。投入後にデータがあるか (= UI を即表示してよいか) を返す。
+     */
+    suspend fun ensureLocalData(): Boolean = SeedImporter.importIfNeeded(appContext, db)
+
     /** 差分同期 (初回 lastSync=0 → 全件)。 */
     suspend fun sync() {
         if (!CloudKitConfig.isConfigured) {
-            _state.value = SyncState.Error("CloudKit API token が未設定です (CloudKitConfig.API_TOKEN)")
+            // token 未設定でもエラーにしない: seed DB の実データで継続する (最新化だけ行わない)。
+            // 主にコントリビューターのローカルビルド向け。リリース版は token を注入する。
+            Log.i(TAG, "CloudKit API token 未設定 → 同期スキップ (seed/既存DBで継続)")
+            _state.value = SyncState.Idle
             return
         }
         val dao = db.syncDao()
