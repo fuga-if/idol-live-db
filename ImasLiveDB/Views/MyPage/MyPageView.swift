@@ -146,7 +146,7 @@ struct MyPageView: View {
                 Button("保存") {
                     Task { await saveDisplayName() }
                 }
-                .disabled(editingName.trimmingCharacters(in: .whitespaces).isEmpty || isSavingName)
+                .disabled(editingName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSavingName)
                 Button("キャンセル", role: .cancel) {}
             } message: {
                 Text("コミュニティ投稿で表示される名前です (40文字以内)")
@@ -720,7 +720,10 @@ struct MyPageView: View {
 
     @MainActor
     private func saveDisplayName() async {
-        let trimmed = editingName.trimmingCharacters(in: .whitespaces)
+        // サーバ側は JS String.trim() (改行や各種 Unicode 空白も除去) で正規化するため、
+        // クライアントも .whitespacesAndNewlines に揃える。.whitespaces だと末尾改行が残り、
+        // ローカルキャッシュ userName とサーバ保存値が乖離する。
+        let trimmed = editingName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
         isSavingName = true
         defer { isSavingName = false }
