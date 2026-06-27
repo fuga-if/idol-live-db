@@ -103,6 +103,19 @@ final class EditService {
         }
     }
 
+    /// 修正リクエスト (issue化) のレスポンス。CloudKit 未反映なのでローカル更新はしない。
+    struct EditRequestResponse: Decodable, Sendable {
+        let ok: Bool
+        let issueNumber: Int?
+        let issueUrl: String?
+    }
+
+    /// マスタ編集の結末。admin は直接反映、一般ユーザーは修正リクエスト(issue)。
+    enum MasterEditOutcome: Sendable {
+        case applied(EditResponse)
+        case requested(EditRequestResponse)
+    }
+
     struct EditResponse: Decodable, Sendable {
         let ok: Bool
         let batchId: Int?
@@ -162,5 +175,54 @@ final class EditService {
             }
         }
         return try decoder.decode(EditResponse.self, from: data)
+    }
+
+    /// マスタ修正リクエストを送る (CloudKit には書かず GitHub issue 化)。一般ユーザー用。
+    @discardableResult
+    func submitRequest(ops: [EditOperation], summary: String? = nil) async throws -> EditRequestResponse {
+        guard !ops.isEmpty else {
+            return EditRequestResponse(ok: true, issueNumber: nil, issueUrl: nil)
+        }
+        let url = APIEndpoints.baseURL.appendingPathComponent("/edit-requests")
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.setValue(DeviceIdentity.shared, forHTTPHeaderField: "X-Device-Id")
+        if let token = AuthService.shared.bearerToken {
+            req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        req.httpBody = try encoder.encode(EditRequest(ops: ops, summary: summary))
+
+        let (data, response) = try await session.data(for: req)
+        guard let http = response as? HTTPURLResponse else {
+            throw APIClientError.transport(URLError(.badServerResponse))
+        }
+        if !(200..<300).contains(http.statusCode) {
+            let body = String(data: data, encoding: .utf8) ?? ""
+            Logger.community.error("edit-requests HTTP \(http.statusCode, privacy: .public) body=\(body, privacy: .private)")
+            switch http.statusCode {
+            case 401:
+                AuthService.shared.invalidateToken()
+                throw APIClientError.notAuthorized
+            case 403:
+                AuthService.shared.markBannedFromServer()
+                throw APIClientError.notAuthorized
+            case 429:
+                throw APIClientError.rateLimited(retryAfter: nil)
+            default:
+                throw APIClientError.server(status: http.statusCode, body: body)
+            }
+        }
+        return try decoder.decode(EditRequestResponse.self, from: data)
+    }
+
+    /// マスタ編集の送信。admin は直接反映、一般ユーザーは修正リクエスト(issue)に回す。
+    /// 呼び出し側は outcome で「ローカル楽観更新するか」「リクエスト受付表示にするか」を分岐する。
+    func submitMaster(ops: [EditOperation], summary: String? = nil) async throws -> MasterEditOutcome {
+        if AuthService.shared.isAdmin {
+            return .applied(try await submit(ops: ops, summary: summary))
+        } else {
+            return .requested(try await submitRequest(ops: ops, summary: summary))
+        }
     }
 }

@@ -44,6 +44,7 @@ struct SongEditView: View {
 
     @State private var isSaving = false
     @State private var errorMessage: String?
+    @State private var requestSent = false
 
     private let songTypes = ["solo", "unit", "all", "original"]
 
@@ -191,6 +192,7 @@ struct SongEditView: View {
             )) {
                 Button("OK") {}
             } message: { Text(errorMessage ?? "") }
+            .editRequestSentAlert(isPresented: $requestSent, onDismiss: { dismiss() })
             .sheet(isPresented: $showArtistPicker) {
                 IdolMultiPickerView(selected: artistIdolIds, idols: allIdols) { newSelection in
                     artistIdolIds = newSelection
@@ -365,20 +367,22 @@ struct SongEditView: View {
         }
 
         do {
-            let resp = try await EditService.shared.submit(ops: ops, summary: mode.isCreate ? "曲を追加" : "曲編集")
-            // Song は ops[0]。ローカル upsert はサーバ確定 recordName を使う
-            // (Song は client 採番 UUID なので通常は送信値と一致するが、サーバ権威値に揃える。契約 #3)。
-            let resolvedId = resp.primaryRecordName(fallback: songId) ?? songId
-
-            // ローカル楽観更新: Song 本体 + (新規時) SongArtist。SongArtist の songId も確定 ID に揃える。
-            let savedSong = buildSong(id: resolvedId, brandId: resolvedBrandId, amId: trimmedAmId)
-            try await AppContainer.shared.songWriting.upsertSongs([savedSong])
-            if mode.isCreate {
-                let artists = artistIdolIds.map { SongArtist(songId: resolvedId, idolId: $0, role: "original") }
-                try await AppContainer.shared.songWriting.upsertSongArtists(artists)
+            let outcome = try await EditService.shared.submitMaster(ops: ops, summary: mode.isCreate ? "曲を追加" : "曲編集")
+            switch outcome {
+            case .applied(let resp):
+                // Song は ops[0]。ローカル upsert はサーバ確定 recordName を使う (契約 #3)。
+                let resolvedId = resp.primaryRecordName(fallback: songId) ?? songId
+                let savedSong = buildSong(id: resolvedId, brandId: resolvedBrandId, amId: trimmedAmId)
+                try await AppContainer.shared.songWriting.upsertSongs([savedSong])
+                if mode.isCreate {
+                    let artists = artistIdolIds.map { SongArtist(songId: resolvedId, idolId: $0, role: "original") }
+                    try await AppContainer.shared.songWriting.upsertSongArtists(artists)
+                }
+                Logger.database.notice("song_\(mode.isCreate ? "created" : "edited", privacy: .public) id=\(resolvedId, privacy: .public)")
+                dismiss()
+            case .requested:
+                requestSent = true
             }
-            Logger.database.notice("song_\(mode.isCreate ? "created" : "edited", privacy: .public) id=\(resolvedId, privacy: .public)")
-            dismiss()
         } catch {
             errorMessage = "保存失敗: \(error.localizedDescription)"
         }

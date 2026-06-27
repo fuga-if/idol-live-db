@@ -21,6 +21,7 @@ struct EventEditView: View {
     @State private var allBrands: [Brand] = []
     @State private var isSaving = false
     @State private var errorMessage: String?
+    @State private var requestSent = false
 
     /// 既存編集用。
     init(event: Event) {
@@ -105,6 +106,7 @@ struct EventEditView: View {
             )) {
                 Button("OK") {}
             } message: { Text(errorMessage ?? "") }
+            .editRequestSentAlert(isPresented: $requestSent, onDismiss: { dismiss() })
             .task {
                 allBrands = (try? await AppContainer.shared.brandReading.brands()) ?? []
             }
@@ -160,7 +162,11 @@ struct EventEditView: View {
         )
 
         do {
-            let resp = try await EditService.shared.submit(ops: [op], summary: mode.isCreate ? "イベント追加" : "イベント編集")
+            let outcome = try await EditService.shared.submitMaster(ops: [op], summary: mode.isCreate ? "イベント追加" : "イベント編集")
+            guard case .applied(let resp) = outcome else {
+                requestSent = true
+                return
+            }
             // ローカル upsert はサーバ確定 recordName を使う (create はサーバ採番 ID)。
             let resolvedId = resp.primaryRecordName(fallback: original?.id)
             guard let id = resolvedId else {
