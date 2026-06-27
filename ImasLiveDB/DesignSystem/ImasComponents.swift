@@ -199,6 +199,36 @@ struct ImasChip: View {
     }
 }
 
+// MARK: - AwardChip
+
+/// 「みんなの投票」終了お題での順位を表すバッジ。優勝=金の塗り、入賞(2〜3位)=金の淡色 tint。
+/// 配色はデザインシステムの warning(金) トークンに統一し、チップ家族 (Capsule・同タイポ/余白) と揃える。
+/// 曲詳細・アイドル詳細などに差し込んで使う共通部品。
+struct ImasAwardChip: View {
+    let title: String
+    let rank: Int
+
+    private var isWinner: Bool { rank == 1 }
+    private var rankLabel: String { isWinner ? "優勝" : "第\(rank)位" }
+
+    var body: some View {
+        HStack(spacing: 5) {
+            Image(systemName: isWinner ? "crown.fill" : "rosette")
+                .font(.imasScaled(12, weight: .semibold))
+            Text("\(title) \(rankLabel)")
+                .font(.imasScaled(13.5, weight: .semibold))
+                .lineLimit(1)
+        }
+        .padding(.horizontal, 13).padding(.vertical, 7)
+        .foregroundStyle(isWinner ? Color.white : DS.warning)
+        .background(
+            isWinner ? AnyShapeStyle(DS.warning) : AnyShapeStyle(DS.warning.opacity(0.14)),
+            in: Capsule()
+        )
+        .accessibilityLabel("\(title) で\(rankLabel)")
+    }
+}
+
 // MARK: - SectionHeader
 
 struct ImasSectionHeader: View {

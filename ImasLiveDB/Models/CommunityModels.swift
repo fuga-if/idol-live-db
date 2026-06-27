@@ -280,6 +280,8 @@ struct Poll: Codable, Identifiable, Hashable, Sendable {
     let status: String
     let totalVotes: Int?
     let entryCount: Int?
+    /// 認証付きで一覧取得した時のみ入る、自分の投票数 (未投票=0)。匿名取得時は nil。
+    var myVoteCount: Int?
 }
 
 struct PollEntry: Codable, Identifiable, Hashable, Sendable {

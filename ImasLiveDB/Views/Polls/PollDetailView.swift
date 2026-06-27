@@ -6,6 +6,8 @@ struct PollDetailView: View {
     @State private var vm: PollDetailViewModel
     @State private var showVotePicker = false
     @State private var showLogin = false
+    /// ランキングの曲/アイドルをタップで開く詳細シート。
+    @State private var sheetDestination: DetailDestination?
 
     // 投票用アイドル一覧（アイドルお題時に事前ロード）。master 参照なので View 側に残す。
     @State private var allIdols: [Idol] = []
@@ -36,6 +38,10 @@ struct PollDetailView: View {
             // ログイン完了で再ロード → myVoteCount 反映 + 投票可能に。
             LoginToEditSheet(onSignedIn: { Task { await loadDetail() } })
         }
+        .sheet(item: $sheetDestination) { dest in
+            DetailSheetView(destination: dest)
+                .environment(database)
+        }
         .toolbar {
             if let poll, canDelete(poll: poll) {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -59,6 +65,7 @@ struct PollDetailView: View {
             .padding(.vertical, DS.sp4)
             .padding(.bottom, DS.sp7)
         }
+        .refreshable { await loadDetail() }
     }
 
     // MARK: - Header
@@ -104,7 +111,8 @@ struct PollDetailView: View {
                             remaining: vm.remaining,
                             isAnyVoting: vm.isVoting,
                             onVote: { await vm.vote(entityId: entry.entityId) },
-                            onUnvote: { await vm.unvote(entityId: entry.entityId) }
+                            onUnvote: { await vm.unvote(entityId: entry.entityId) },
+                            onOpenDetail: { sheetDestination = $0 }
                         )
                     }
                 }
@@ -224,6 +232,8 @@ private struct PollEntryRow: View {
     let isAnyVoting: Bool
     let onVote: () async -> Void
     let onUnvote: () async -> Void
+    /// 曲/アイドル名をタップしたとき、解決済みの詳細を開く。
+    let onOpenDetail: (DetailDestination) -> Void
 
     @State private var resolvedSong: Song?
     @State private var resolvedIdol: Idol?
@@ -240,7 +250,14 @@ private struct PollEntryRow: View {
             TagRankBadge(rank: rank)
                 .frame(width: 30, alignment: .center)
 
-            entityView
+            Button {
+                openDetail()
+            } label: {
+                entityView
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .disabled(detailDestination == nil)
 
             Spacer(minLength: 8)
 
@@ -282,15 +299,28 @@ private struct PollEntryRow: View {
     @ViewBuilder
     private var entityView: some View {
         if targetType == .song, let song = resolvedSong {
-            SongTitleRow(song: song, showsChevron: false)
+            SongTitleRow(song: song, showsChevron: true)
         } else if targetType == .idol, let idol = resolvedIdol {
-            IdolNameRow(idol: idol, showsChevron: false)
+            IdolNameRow(idol: idol, showsChevron: true)
         } else {
             Text(entry.entityId)
                 .font(.imasSubhead.weight(.semibold))
                 .foregroundStyle(DS.ink)
                 .lineLimit(1)
         }
+    }
+
+    /// 解決済みの曲/アイドルから詳細遷移先を作る (未解決なら nil)。
+    private var detailDestination: DetailDestination? {
+        if targetType == .song, let song = resolvedSong { return .song(song) }
+        if targetType == .idol, let idol = resolvedIdol { return .idol(idol) }
+        return nil
+    }
+
+    private func openDetail() {
+        guard let dest = detailDestination else { return }
+        AppAnalytics.tap("poll_detail.open_entity")
+        onOpenDetail(dest)
     }
 
     private func resolveEntity() async {

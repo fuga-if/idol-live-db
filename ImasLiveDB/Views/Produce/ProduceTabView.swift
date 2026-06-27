@@ -439,10 +439,13 @@ struct ProduceTabView: View {
         await loadActivePoll()
     }
 
-    /// 開催中で最も票が集まっているお題を1件選んで先頭カードに出す (誰でも閲覧可)。
+    /// 開催中のお題から1件を先頭カードに出す (誰でも閲覧可)。
+    /// ユーザーがまだ投票していないお題を優先し、その中からランダムで選ぶ
+    /// (毎回違うお題に触れてもらう導線)。全部投票済み/匿名なら全体からランダム。
     private func loadActivePoll() async {
         let polls = (try? await AppContainer.shared.communityVoting.polls(status: "active")) ?? []
-        activePoll = polls.max { ($0.totalVotes ?? 0) < ($1.totalVotes ?? 0) }
+        let unvoted = polls.filter { ($0.myVoteCount ?? 0) == 0 }
+        activePoll = (unvoted.isEmpty ? polls : unvoted).randomElement()
     }
 
     /// ローカル DB から担当・活動・参加ライブを読む。
