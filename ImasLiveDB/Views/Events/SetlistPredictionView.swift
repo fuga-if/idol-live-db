@@ -21,6 +21,9 @@ struct SetlistPredictionView: View {
     let presentSongPicker: (@escaping ([Song]) -> Void) -> Void
 
     @State private var predictions: [SetlistPrediction] = []
+    /// 「歌唱メンバー予想」を展開中の曲 (songId)。行ローカル @State だと List 再描画/
+    /// id 重複時に展開状態が他行へ漏れる (開いたら別の曲も開く) ため、親で songId をキーに保持する。
+    @State private var expandedSongIds: Set<String> = []
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var showAlert = false
@@ -104,6 +107,8 @@ struct SetlistPredictionView: View {
                             prediction: prediction,
                             rank: index + 1,
                             seed: seed,
+                            isExpanded: expandedSongIds.contains(prediction.songId),
+                            onToggleExpand: { toggleExpand(songId: prediction.songId) },
                             onVote: { await handleVote(prediction: prediction) },
                             requireLogin: requireLogin
                         )
@@ -204,11 +209,23 @@ struct SetlistPredictionView: View {
         isLoading = true
         errorMessage = nil
         do {
+            // songId をキー (SetlistPrediction.id) にしているので、重複があると
+            // ForEach の id 衝突で展開状態が混線する。念のため songId で一意化する。
+            var seen = Set<String>()
             predictions = try await predictionService.fetch(showId: showId)
+                .filter { seen.insert($0.songId).inserted }
         } catch {
             errorMessage = error.localizedDescription
         }
         isLoading = false
+    }
+
+    private func toggleExpand(songId: String) {
+        if expandedSongIds.contains(songId) {
+            expandedSongIds.remove(songId)
+        } else {
+            expandedSongIds.insert(songId)
+        }
     }
 
     /// 複数曲をまとめて予想追加 (picker の複数選択に対応)。順番に投票し、最後に1回だけ再読込。
@@ -334,11 +351,13 @@ private struct PredictionRowView: View {
     let prediction: SetlistPrediction
     let rank: Int
     var seed: String? = nil
+    /// 「歌唱メンバー予想」の展開状態は親 (SetlistPredictionView) が songId キーで保持する。
+    /// 行ローカル @State にすると List 再描画/id 衝突で他行へ漏れるため、親から注入する。
+    let isExpanded: Bool
+    let onToggleExpand: () -> Void
     let onVote: () async -> Void
     /// 「誰が歌う？」の未ログイン投票導線用。親 SetlistPredictionView の requireLogin をそのまま流す。
     let requireLogin: (@escaping () -> Void) -> Void
-
-    @State private var showPerformerPrediction = false
 
     private var artworkURL: URL? { prediction.artworkUrl.flatMap { URL(string: $0) } }
     private var previewURL: URL? { prediction.previewUrl.flatMap { URL(string: $0) } }
@@ -406,7 +425,7 @@ private struct PredictionRowView: View {
             // MARK: 「誰が歌う？」展開ブロック
             performerToggle(theme: t)
 
-            if showPerformerPrediction {
+            if isExpanded {
                 PerformerPredictionView(
                     showId: prediction.showId,
                     songId: prediction.songId,
@@ -418,27 +437,27 @@ private struct PredictionRowView: View {
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
-        .animation(.easeInOut(duration: 0.18), value: showPerformerPrediction)
+        .animation(.easeInOut(duration: 0.18), value: isExpanded)
     }
 
     /// 「歌唱メンバー予想」トグルボタン。小さめの補助行として曲行下端に配置。
     private func performerToggle(theme t: ImasTheme) -> some View {
         Button {
             AppAnalytics.tap("setlist_prediction.toggle_performers")
-            showPerformerPrediction.toggle()
+            onToggleExpand()
         } label: {
             HStack(spacing: 4) {
                 Image(systemName: "person.2")
                     .font(.imasScaled(10, weight: .semibold))
                 Text("歌唱メンバー予想")
                     .font(.imasScaled(12, weight: .medium))
-                Image(systemName: showPerformerPrediction ? "chevron.up" : "chevron.down")
+                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                     .font(.imasScaled(9, weight: .semibold))
             }
             .foregroundStyle(DS.ink3)
             .padding(.horizontal, DS.sp4)
             .padding(.top, DS.sp2)
-            .padding(.bottom, showPerformerPrediction ? DS.sp2 : DS.sp3)
+            .padding(.bottom, isExpanded ? DS.sp2 : DS.sp3)
         }
         .buttonStyle(.borderless)
     }
