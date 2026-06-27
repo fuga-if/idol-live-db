@@ -342,7 +342,7 @@ struct ProduceTabView: View {
                 ImasEntryCard(
                     systemImage: "person.2.fill",
                     title: "みんなの動き",
-                    preview: "最近の編集・Good ・ 貢献ランキング",
+                    preview: "コーレス・参考動画など最近のコミュニティ投稿",
                     brand: secondaryBrandSeed
                 )
             }
@@ -367,17 +367,6 @@ struct ProduceTabView: View {
                     systemImage: "checklist",
                     title: "マイ予想",
                     preview: predictionCount > 0 ? "投票した予想 \(predictionCount)件" : "セトリを予想して的中を狙おう"
-                )
-            }
-            .buttonStyle(.plain)
-
-            NavigationLink {
-                LeaderboardView()
-            } label: {
-                ImasEntryCard(
-                    systemImage: "trophy.fill",
-                    title: "貢献ランキング",
-                    preview: "編集・Good でコミュニティに貢献"
                 )
             }
             .buttonStyle(.plain)
