@@ -431,18 +431,19 @@ function makeResponders(request: Request, env: Env) {
 // ---------------------------------------------------------------------------
 
 async function upsertUser(env: Env, uid: string, name?: string, picture?: string) {
-  // CONFLICT (既存ユーザー) 時は COALESCE で既存値を温存する。Apple Sign In は fullName を
-  // 初回認可時しか返さないため、2台目/再インストール後のログインは name=undefined で来る。
-  // ここで "匿名" やnullに上書きしてしまうと、ユーザーが POST /users/me で設定した表示名や
-  // 既存アバターが毎回ログインのたびに消える。新規 INSERT 時のみ "匿名" を既定にする。
+  // display_name は INSERT (初回ログインで行を作る) 時のみ設定し、CONFLICT では一切更新しない。
+  // 既存ユーザーの表示名は POST /users/me でのみ変更する設計にする。これにより:
+  //  - login: Apple は fullName を初回認可時しか返さず、2台目/再インストール後は name=undefined。
+  //  - community 書き込み: 各ハンドラが upsertUser(uid, user.email) と email を name に渡している。
+  // のどちらでも、ユーザーが POST /users/me で設定した display_name を毎回上書きする事故を防ぐ。
+  // avatar_url は渡されたときだけ更新し、無ければ COALESCE で既存を温存する。
   await env.DB.prepare(
     `INSERT INTO users (id, display_name, avatar_url) VALUES (?, ?, ?)
      ON CONFLICT(id) DO UPDATE SET
-       display_name = COALESCE(?, users.display_name),
-       avatar_url   = COALESCE(?, users.avatar_url),
-       updated_at   = datetime('now')`
+       avatar_url = COALESCE(?, users.avatar_url),
+       updated_at = datetime('now')`
   )
-    .bind(uid, name || "匿名", picture ?? null, name || null, picture ?? null)
+    .bind(uid, name || "匿名", picture ?? null, picture ?? null)
     .run();
 }
 
@@ -899,13 +900,15 @@ export default {
         if (!rl.allowed) return rateLimitResponse(rl.used, rl.limit, rl.reset_at);
 
         // upsertUser は使わない (display_name を email 等で上書きしうるため)。
-        // 行は login 時に必ず作られているが、念のため冪等な upsert で直接 display_name のみ更新。
-        await env.DB.prepare(
-          `INSERT INTO users (id, display_name) VALUES (?, ?)
-           ON CONFLICT(id) DO UPDATE SET display_name = ?, updated_at = datetime('now')`
+        // 行は login 時に必ず作られているので plain UPDATE。INSERT...ON CONFLICT にすると、
+        // 行が消えた (削除済みだがトークンだけ生きている) アカウントを display_name だけの
+        // 不完全な行で復活させてしまうため、ここでは新規作成しない。0件更新なら 404。
+        const updated = await env.DB.prepare(
+          `UPDATE users SET display_name = ?, updated_at = datetime('now') WHERE id = ?`
         )
-          .bind(user.uid, name, name)
+          .bind(name, user.uid)
           .run();
+        if (!updated.meta.changes) return error("user not found", 404);
 
         return json({ displayName: name });
       }
