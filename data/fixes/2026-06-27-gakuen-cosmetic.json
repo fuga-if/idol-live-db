@@ -1,0 +1,17 @@
+{
+  "title": "学マス Cosmetic の apple_music_id 欠落+ジャケ誤り是正",
+  "author": "claude",
+  "fixes": [
+    {
+      "table": "songs",
+      "id": "gakuen_cosmetic",
+      "fields": {
+        "apple_music_id": "1782051465",
+        "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/f1/f2/2c/f1f22ca4-d2f8-06ba-3a84-41b50f06d416/dj.vpbgnqlo.jpg/1200x1200bb.jpg",
+        "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/e5/0e/2d/e50e2d21-c5f3-c726-6293-e5fcf62fcb77/mzaf_2703783123288269043.plus.aac.p.m4a"
+      },
+      "source": "https://music.apple.com/jp/album/_/1782051462?i=1782051465",
+      "note": "apple_music_id 欠落かつジャケ写が別物だった → 『Cosmetic』/初星学園 & 十王星南 に是正"
+    }
+  ]
+}

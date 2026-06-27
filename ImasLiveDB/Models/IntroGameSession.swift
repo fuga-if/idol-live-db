@@ -187,6 +187,11 @@ final class IntroGameSession {
         audio.stop()
     }
 
+    /// 音声判定の録音へ引き継ぐ前に、再生を完全停止しオーディオセッションを解放する。
+    func releasePlaybackForRecording() {
+        audio.releaseForRecording()
+    }
+
     // MARK: - もう少し流す / リプレイ
 
     /// 「もう少し流す」: 再生ボタン長押し中、停止タイマー無しで現在位置から再生を継続。

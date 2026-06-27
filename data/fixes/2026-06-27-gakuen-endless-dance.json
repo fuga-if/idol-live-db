@@ -1,0 +1,17 @@
+{
+  "title": "学マス ENDLESS DANCE (花海佑芽・秦谷美鈴・十王星南 ver.) の id補完+ジャケ是正",
+  "author": "claude",
+  "fixes": [
+    {
+      "table": "songs",
+      "id": "gakuen_endless_dance",
+      "fields": {
+        "apple_music_id": "1794236168",
+        "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/ff/60/d6/ff60d6b1-7855-f351-46e8-dc9946d71855/PA00177892_0_214455_jacket.jpg/1200x1200bb.jpg",
+        "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/11/dd/8f/11dd8f23-0ddc-2d2e-1af8-1135457d7045/mzaf_14837595794334093502.plus.aac.p.m4a"
+      },
+      "source": "https://music.apple.com/jp/album/_/1794236160?i=1794236168",
+      "note": "apple_music_id 欠落+ジャケ誤り → 『ENDLESS DANCE (花海佑芽・秦谷美鈴・十王星南 ver.)』に是正 (ユーザー選択 ver.)"
+    }
+  ]
+}

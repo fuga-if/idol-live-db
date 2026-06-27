@@ -1,0 +1,28 @@
+{
+  "title": "学マス Top Secret / わかし・さわがし・スカパンク の apple_music_id 誤り修正",
+  "author": "claude",
+  "fixes": [
+    {
+      "table": "songs",
+      "id": "gakuen_top_secret",
+      "fields": {
+        "apple_music_id": "1801677790",
+        "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/f8/aa/48/f8aa4867-b3e0-22a0-68fc-2bd62764ea55/PA00180865_0_217938_jacket.jpg/1200x1200bb.jpg",
+        "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/39/6c/b8/396cb806-7c73-d6fd-0dac-d9611910e086/mzaf_12855875102673721191.plus.aac.p.m4a"
+      },
+      "source": "https://music.apple.com/jp/album/_/1801677785?i=1801677790",
+      "note": "apple_music_id が別曲を指していた誤りを修正→『Top Secret』/初星学園 & 有村麻央 に是正"
+    },
+    {
+      "table": "songs",
+      "id": "gakuen_わかしさわがしスカパンク",
+      "fields": {
+        "apple_music_id": "1877010047",
+        "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/c8/f7/93/c8f79368-3162-b8e0-5ac3-a927f002e475/PA00212840_0_239970_jacket.jpg/1200x1200bb.jpg",
+        "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/17/11/55/17115547-5c1e-600f-e26a-0bf3ecf84220/mzaf_12097086589678240501.plus.aac.p.m4a"
+      },
+      "source": "https://music.apple.com/jp/album/_/1877010045?i=1877010047",
+      "note": "apple_music_id が別曲を指していた誤りを修正→『わかし・さわがし・スカパンク』/初星学園 に是正"
+    }
+  ]
+}

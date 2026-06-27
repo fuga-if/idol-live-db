@@ -84,13 +84,11 @@ struct IntroGameView: View {
         )) {
             IntroGameResultView(session: session)
         }
-        // 音声判定: 回答フェーズに入ったら自動で聴取開始 (本家の堅牢ロジックを移植した
-        // SpeechRecognitionService が format 事前検証/リトライ/世代管理でクラッシュを防ぐ)。
-        // 認可は遷移の瞬間ではなくゲーム開始時 (.task) に先行要求しておく。
+        // 音声判定は「自動起動しない」(本家準拠)。再生中に録音セッションへ切替えると
+        // AVAudioSession 競合でクラッシュするため、voice 起動は buzz/マイクタップ時のみ。
+        // ここでは回答フェーズを抜けたら聴取を止めるだけ。
         .onChange(of: session.phase) { _, newPhase in
-            if newPhase == .answering {
-                autoStartVoiceIfNeeded()
-            } else if speechService.isListening {
+            if newPhase != .answering, speechService.isListening {
                 speechService.stopListening()
             }
         }
@@ -301,6 +299,8 @@ struct IntroGameView: View {
         return Button {
             AppAnalytics.tap("intro_game.buzz")
             session.buzzToAnswer()
+            // 本家準拠: buzz したら (音声モードなら) ここで音声判定を起動する。
+            if useVoice { beginVoiceListening() }
         } label: {
             Text("!")
                 .font(.system(size: max(48, size * 0.45), weight: .black, design: .rounded))
@@ -444,12 +444,10 @@ struct IntroGameView: View {
                         .lineLimit(1)
                 }
             } else {
-                Text(speechService.recognizedText.isEmpty
-                    ? "マイクをタップして回答"
-                    : "「\(speechService.recognizedText)」")
+                // 聴取していない時は前回の認識テキストを出さない (次の曲に残らないように)。
+                Text("マイクをタップして回答")
                     .font(ID.font(13, weight: .semibold))
                     .foregroundColor(ID.t2)
-                    .lineLimit(1)
             }
         }
         .frame(maxWidth: .infinity)
@@ -572,25 +570,6 @@ struct IntroGameView: View {
 
     // MARK: - Speech Helpers
 
-    /// 回答フェーズで音声モードなら自動聴取を開始 (許可済みのみ自動。未判定は遅延要求)。
-    private func autoStartVoiceIfNeeded() {
-        // 再生中はマイクを起動しない (buzz/再生終了で停止してから音声判定する)。
-        guard useVoice, !isRush, !speechService.isListening, !session.isPlayingIntro else { return }
-        switch speechService.authStatus {
-        case .authorized:
-            beginVoiceListening()
-        case .notDetermined:
-            Task {
-                await speechService.requestAuthorization()
-                if session.phase == .answering, speechService.authStatus == .authorized {
-                    beginVoiceListening()
-                }
-            }
-        default:
-            break  // 拒否時は useVoice が false になり 4択にフォールバック
-        }
-    }
-
     private func handleMicTap() {
         if speechService.isListening {
             stopSpeech()
@@ -614,22 +593,19 @@ struct IntroGameView: View {
         beginVoiceListening()
     }
 
+    /// 本家 SoloCoordinator.buzz と同じ順序: SwiftUI に1フレーム描かせてから
+    /// 再生を完全停止 (stop+deactivate) → voice 起動。すべて1つの Task で順次実行する。
     private func beginVoiceListening() {
         guard let q = session.currentQuestion, !speechService.isListening else { return }
-        // 再生とマイクを絶対に重ねない: まず再生を完全停止 (.playback セッション解放) し、
-        // **次の runloop** で録音を開始する。同一 tick で再生停止→録音開始すると
-        // AudioSession 競合で SIGTRAP するため、I/O を 1 tick ずらす (本家と同じ defer)。
-        session.stopPlayback()
+        let title = q.title
         speechService.onMatch = { [weak session] match in
             session?.submitAnswer(match)
         }
-        let title = q.title
-        // 次の runloop に MainActor 隔離のまま defer する。DispatchQueue.main.async の
-        // 非隔離クロージャから MainActor 状態 (session/speechService) を触ると Swift6 の
-        // 動的隔離チェックで SIGTRAP するため Task{@MainActor} を使う。
         Task { @MainActor in
-            guard session.phase == .answering, !speechService.isListening, !session.isPlayingIntro else { return }
-            speechService.startListening(choices: [title])
+            await Task.yield()                       // 1フレーム描画させる (本家)
+            session.releasePlaybackForRecording()    // 再生を完全停止+セッション解放 (本家 musicPlayback.stop)
+            guard session.phase == .answering, !speechService.isListening else { return }
+            speechService.startListening(choices: [title])   // 本家 voice.start
         }
     }
 

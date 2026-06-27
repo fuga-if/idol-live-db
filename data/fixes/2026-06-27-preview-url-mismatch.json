@@ -1,0 +1,456 @@
+{
+  "title": "preview_url が別曲(Luna等)を指していた誤りの一括是正 (apple_music_idから再取得)",
+  "author": "claude",
+  "fixes": [
+    {
+      "table": "songs",
+      "id": "765as_らららわんだぁらんど",
+      "fields": {
+        "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/c0/2d/c9/c02dc9e5-ab03-202d-d0a6-8b1f35796687/mzaf_1019505966140870795.plus.aac.p.m4a"
+      },
+      "source": "https://itunes.apple.com/lookup?id=1843819265",
+      "note": "preview_url が別曲を指していた誤りを apple_music_id=1843819265 の正しい preview に是正"
+    },
+    {
+      "table": "songs",
+      "id": "765as_choco_fondue",
+      "fields": {
+        "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/60/b6/93/60b69375-a9df-3b8b-c932-8e23107d147c/mzaf_16217513586276855278.plus.aac.p.m4a"
+      },
+      "source": "https://itunes.apple.com/lookup?id=1843819264",
+      "note": "preview_url が別曲を指していた誤りを apple_music_id=1843819264 の正しい preview に是正"
+    },
+    {
+      "table": "songs",
+      "id": "765as_today_with_me",
+      "fields": {
+        "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/25/a1/6b/25a16bf2-61b9-daad-75b1-42bb4a3263ab/mzaf_17742757586129616727.plus.aac.p.m4a"
+      },
+      "source": "https://itunes.apple.com/lookup?id=1843819266",
+      "note": "preview_url が別曲を指していた誤りを apple_music_id=1843819266 の正しい preview に是正"
+    },
+    {
+      "table": "songs",
+      "id": "765as_ドキッラブアトラクション",
+      "fields": {
+        "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/0f/30/55/0f305539-6838-e179-ac95-bb59b25949bc/mzaf_15512285834214506511.plus.aac.p.m4a"
+      },
+      "source": "https://itunes.apple.com/lookup?id=1843820036",
+      "note": "preview_url が別曲を指していた誤りを apple_music_id=1843820036 の正しい preview に是正"
+    },
+    {
+      "table": "songs",
+      "id": "765as_しあわせのレシピ",
+      "fields": {
+        "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/4b/e4/d5/4be4d56c-47c8-6480-d0cd-8d3b6f6457dd/mzaf_9825660984961567482.plus.aac.p.m4a"
+      },
+      "source": "https://itunes.apple.com/lookup?id=1844764842",
+      "note": "preview_url が別曲を指していた誤りを apple_music_id=1844764842 の正しい preview に是正"
+    },
+    {
+      "table": "songs",
+      "id": "765as_closet_fashion_lover",
+      "fields": {
+        "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/c6/8a/93/c68a93b6-fa04-fee5-e7fe-5db699f09b58/mzaf_5610108114440653699.plus.aac.p.m4a"
+      },
+      "source": "https://itunes.apple.com/lookup?id=1844764940",
+      "note": "preview_url が別曲を指していた誤りを apple_music_id=1844764940 の正しい preview に是正"
+    },
+    {
+      "table": "songs",
+      "id": "765as_ねがいひとつ",
+      "fields": {
+        "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/12/a8/cd/12a8cd0e-704a-c018-a849-066dca1845e6/mzaf_14185151574894959871.plus.aac.p.m4a"
+      },
+      "source": "https://itunes.apple.com/lookup?id=1844765117",
+      "note": "preview_url が別曲を指していた誤りを apple_music_id=1844765117 の正しい preview に是正"
+    },
+    {
+      "table": "songs",
+      "id": "765as_おんぷ",
+      "fields": {
+        "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/d7/73/94/d7739427-048c-2710-30f4-f75620265404/mzaf_14431778697449296653.plus.aac.p.m4a"
+      },
+      "source": "https://itunes.apple.com/lookup?id=1844778854",
+      "note": "preview_url が別曲を指していた誤りを apple_music_id=1844778854 の正しい preview に是正"
+    },
+    {
+      "table": "songs",
+      "id": "765as_ハローランチタイム",
+      "fields": {
+        "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/31/aa/2a/31aa2a0d-54e5-383f-6dd2-e531b97f1ec9/mzaf_8907861786329055656.plus.aac.p.m4a"
+      },
+      "source": "https://itunes.apple.com/lookup?id=1844751720",
+      "note": "preview_url が別曲を指していた誤りを apple_music_id=1844751720 の正しい preview に是正"
+    },
+    {
+      "table": "songs",
+      "id": "765as_カンゲキハッピーエコロジー",
+      "fields": {
+        "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/8e/20/c5/8e20c56b-bb9d-e0a6-f6d6-0063d07e298a/mzaf_952181137206512880.plus.aac.p.m4a"
+      },
+      "source": "https://itunes.apple.com/lookup?id=1844751474",
+      "note": "preview_url が別曲を指していた誤りを apple_music_id=1844751474 の正しい preview に是正"
+    },
+    {
+      "table": "songs",
+      "id": "765as_グッナイスターズ",
+      "fields": {
+        "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/36/fd/c3/36fdc33e-86ec-aafb-e533-3789b089fe48/mzaf_16996106707952781547.plus.aac.p.m4a"
+      },
+      "source": "https://itunes.apple.com/lookup?id=1844525294",
+      "note": "preview_url が別曲を指していた誤りを apple_music_id=1844525294 の正しい preview に是正"
+    },
+    {
+      "table": "songs",
+      "id": "765as_天と海の島",
+      "fields": {
+        "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/74/af/0f/74af0f09-8539-a0de-c24c-500647c730e8/mzaf_14542977601634963219.plus.aac.p.m4a"
+      },
+      "source": "https://itunes.apple.com/lookup?id=1843554403",
+      "note": "preview_url が別曲を指していた誤りを apple_music_id=1843554403 の正しい preview に是正"
+    },
+    {
+      "table": "songs",
+      "id": "765as_qa",
+      "fields": {
+        "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/f1/43/c1/f143c132-8f57-43a0-4fa4-34072f901728/mzaf_13291014672068496558.plus.aac.p.m4a"
+      },
+      "source": "https://itunes.apple.com/lookup?id=1844751478",
+      "note": "preview_url が別曲を指していた誤りを apple_music_id=1844751478 の正しい preview に是正"
+    },
+    {
+      "table": "songs",
+      "id": "765as_前向きで行こう",
+      "fields": {
+        "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/76/13/9e/76139e4f-6a49-e986-2be6-9e5859e6b0b6/mzaf_7851928153390865333.plus.aac.p.m4a"
+      },
+      "source": "https://itunes.apple.com/lookup?id=1843555017",
+      "note": "preview_url が別曲を指していた誤りを apple_music_id=1843555017 の正しい preview に是正"
+    },
+    {
+      "table": "songs",
+      "id": "765as_チャンピオン",
+      "fields": {
+        "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/2e/4e/de/2e4ede62-3208-6a73-b18d-8671104cadda/mzaf_15256233868963637086.plus.aac.p.m4a"
+      },
+      "source": "https://itunes.apple.com/lookup?id=1843575224",
+      "note": "preview_url が別曲を指していた誤りを apple_music_id=1843575224 の正しい preview に是正"
+    },
+    {
+      "table": "songs",
+      "id": "765as_どっきりハピバ",
+      "fields": {
+        "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/f3/42/1c/f3421ca1-40ea-4258-a8b6-64f4cfa82f20/mzaf_7473332317312946223.plus.aac.p.m4a"
+      },
+      "source": "https://itunes.apple.com/lookup?id=1844764655",
+      "note": "preview_url が別曲を指していた誤りを apple_music_id=1844764655 の正しい preview に是正"
+    },
+    {
+      "table": "songs",
+      "id": "765as_look_the_sky",
+      "fields": {
+        "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/ca/fc/15/cafc15a3-7d9c-107b-b19d-c29b96f8eb16/mzaf_11718391387780369629.plus.aac.p.m4a"
+      },
+      "source": "https://itunes.apple.com/lookup?id=1844525292",
+      "note": "preview_url が別曲を指していた誤りを apple_music_id=1844525292 の正しい preview に是正"
+    },
+    {
+      "table": "songs",
+      "id": "cg_dreaming_star",
+      "fields": {
+        "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview126/v4/36/70/01/36700119-be6a-4f88-ded7-26d8daf86c35/mzaf_11407171189729763055.plus.aac.p.m4a"
+      },
+      "source": "https://itunes.apple.com/lookup?id=1676894520",
+      "note": "preview_url が別曲を指していた誤りを apple_music_id=1676894520 の正しい preview に是正"
+    },
+    {
+      "table": "songs",
+      "id": "cg_delight",
+      "fields": {
+        "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview116/v4/9b/01/ec/9b01ecb9-7ff1-55e7-1d88-724e93c472a3/mzaf_6798106574336048438.plus.aac.p.m4a"
+      },
+      "source": "https://itunes.apple.com/lookup?id=1670045483",
+      "note": "preview_url が別曲を指していた誤りを apple_music_id=1670045483 の正しい preview に是正"
+    },
+    {
+      "table": "songs",
+      "id": "sc_13",
+      "fields": {
+        "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/4a/8e/da/4a8eda2c-a8e4-bfdd-f50e-d89290a6eda6/mzaf_8313366510401033493.plus.aac.p.m4a"
+      },
+      "source": "https://itunes.apple.com/lookup?id=1825565542",
+      "note": "preview_url が別曲を指していた誤りを apple_music_id=1825565542 の正しい preview に是正"
+    },
+    {
+      "table": "songs",
+      "id": "sc_愛しき日々",
+      "fields": {
+        "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/7e/81/da/7e81da29-9bac-9237-ca7d-e8ebc9a2788e/mzaf_9580753372388532083.plus.aac.p.m4a"
+      },
+      "source": "https://itunes.apple.com/lookup?id=1829877809",
+      "note": "preview_url が別曲を指していた誤りを apple_music_id=1829877809 の正しい preview に是正"
+    },
+    {
+      "table": "songs",
+      "id": "sc_fading_stars",
+      "fields": {
+        "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/f4/24/8e/f4248e66-29a0-ceb3-1f72-9673ac39749c/mzaf_8406372517703635270.plus.aac.p.m4a"
+      },
+      "source": "https://itunes.apple.com/lookup?id=1829877811",
+      "note": "preview_url が別曲を指していた誤りを apple_music_id=1829877811 の正しい preview に是正"
+    },
+    {
+      "table": "songs",
+      "id": "gakuen_try_it_now",
+      "fields": {
+        "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/5e/e4/0d/5ee40dd2-edf8-9cc4-cbcc-40ccd887ac49/mzaf_15135742694628892640.plus.aac.p.m4a"
+      },
+      "source": "https://itunes.apple.com/lookup?id=1804233547",
+      "note": "preview_url が別曲を指していた誤りを apple_music_id=1804233547 の正しい preview に是正"
+    },
+    {
+      "table": "songs",
+      "id": "cg_morgana",
+      "fields": {
+        "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/3c/5e/82/3c5e82b2-2272-0404-f182-17ec868103ee/mzaf_9984972413920207113.plus.aac.p.m4a"
+      },
+      "source": "https://itunes.apple.com/lookup?id=1837321841",
+      "note": "preview_url が別曲を指していた誤りを apple_music_id=1837321841 の正しい preview に是正"
+    },
+    {
+      "table": "songs",
+      "id": "gakuen_the_cute",
+      "fields": {
+        "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/ed/d3/8b/edd38b0e-0e04-16c6-9ec6-7eb6cde405df/mzaf_4917516088496110413.plus.aac.p.m4a"
+      },
+      "source": "https://itunes.apple.com/lookup?id=1810130330",
+      "note": "preview_url が別曲を指していた誤りを apple_music_id=1810130330 の正しい preview に是正"
+    },
+    {
+      "table": "songs",
+      "id": "sc_future_transit",
+      "fields": {
+        "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/cc/d8/21/ccd8210f-b95a-73ac-e1dc-845bbb6052c5/mzaf_10805910442341863884.plus.aac.p.m4a"
+      },
+      "source": "https://itunes.apple.com/lookup?id=1829877812",
+      "note": "preview_url が別曲を指していた誤りを apple_music_id=1829877812 の正しい preview に是正"
+    },
+    {
+      "table": "songs",
+      "id": "sidem_ムゲンダイグロウアップ",
+      "fields": {
+        "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/6b/88/fb/6b88fb68-c277-b315-cf49-6a298bce25c0/mzaf_11184119613837810995.plus.aac.p.m4a"
+      },
+      "source": "https://itunes.apple.com/lookup?id=1825101567",
+      "note": "preview_url が別曲を指していた誤りを apple_music_id=1825101567 の正しい preview に是正"
+    },
+    {
+      "table": "songs",
+      "id": "sidem_grand-new_universe",
+      "fields": {
+        "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/21/3a/17/213a175d-58b3-2604-4090-d7d3823b82af/mzaf_5008119627822501510.plus.aac.p.m4a"
+      },
+      "source": "https://itunes.apple.com/lookup?id=1825102183",
+      "note": "preview_url が別曲を指していた誤りを apple_music_id=1825102183 の正しい preview に是正"
+    },
+    {
+      "table": "songs",
+      "id": "ml_clash_of_colors",
+      "fields": {
+        "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/4c/d3/77/4cd3777b-a409-f606-2c8d-076991e747eb/mzaf_548200050861552943.plus.aac.p.m4a"
+      },
+      "source": "https://itunes.apple.com/lookup?id=1828113574",
+      "note": "preview_url が別曲を指していた誤りを apple_music_id=1828113574 の正しい preview に是正"
+    },
+    {
+      "table": "songs",
+      "id": "gakuen_superlative",
+      "fields": {
+        "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/26/46/16/264616e0-6777-be13-6bac-36caafaacfc9/mzaf_4414794935031126170.plus.aac.p.m4a"
+      },
+      "source": "https://itunes.apple.com/lookup?id=1864090212",
+      "note": "preview_url が別曲を指していた誤りを apple_music_id=1864090212 の正しい preview に是正"
+    },
+    {
+      "table": "songs",
+      "id": "ml_luvliminal_image",
+      "fields": {
+        "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/e3/ef/88/e3ef885f-1de0-1c5f-cb23-5d477f349359/mzaf_5809723967817865949.plus.aac.p.m4a"
+      },
+      "source": "https://itunes.apple.com/lookup?id=1834710449",
+      "note": "preview_url が別曲を指していた誤りを apple_music_id=1834710449 の正しい preview に是正"
+    },
+    {
+      "table": "songs",
+      "id": "gakuen_love_joy",
+      "fields": {
+        "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/f7/df/a7/f7dfa785-6339-9e4b-de54-00823683289f/mzaf_9726516772150159778.plus.aac.p.m4a"
+      },
+      "source": "https://itunes.apple.com/lookup?id=1820092066",
+      "note": "preview_url が別曲を指していた誤りを apple_music_id=1820092066 の正しい preview に是正"
+    },
+    {
+      "table": "songs",
+      "id": "sc_koikyun",
+      "fields": {
+        "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/33/98/e7/3398e713-5a88-3753-d369-67bd733e78df/mzaf_6414383101250737293.plus.aac.p.m4a"
+      },
+      "source": "https://itunes.apple.com/lookup?id=1829877813",
+      "note": "preview_url が別曲を指していた誤りを apple_music_id=1829877813 の正しい preview に是正"
+    },
+    {
+      "table": "songs",
+      "id": "gakuen_サンフェーデッド",
+      "fields": {
+        "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/04/e0/18/04e0186d-669d-b1d9-4c48-53a31af59b4a/mzaf_3017680975976537144.plus.aac.p.m4a"
+      },
+      "source": "https://itunes.apple.com/lookup?id=1825279997",
+      "note": "preview_url が別曲を指していた誤りを apple_music_id=1825279997 の正しい preview に是正"
+    },
+    {
+      "table": "songs",
+      "id": "ml_hug_a_nice_day",
+      "fields": {
+        "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/44/4a/b5/444ab5d0-663d-eb3f-5e20-7c3405795d6b/mzaf_9401430590224809883.plus.aac.p.m4a"
+      },
+      "source": "https://itunes.apple.com/lookup?id=1842264648",
+      "note": "preview_url が別曲を指していた誤りを apple_music_id=1842264648 の正しい preview に是正"
+    },
+    {
+      "table": "songs",
+      "id": "gakuen_自己肯定感爆上げしゅきしゅきソング",
+      "fields": {
+        "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/87/d0/86/87d08600-e47e-8f4e-a134-a78cc68f4f73/mzaf_5954897362821951801.plus.aac.p.m4a"
+      },
+      "source": "https://itunes.apple.com/lookup?id=1828134663",
+      "note": "preview_url が別曲を指していた誤りを apple_music_id=1828134663 の正しい preview に是正"
+    },
+    {
+      "table": "songs",
+      "id": "ml_shimmer",
+      "fields": {
+        "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/47/6f/97/476f9723-6bbb-986e-aba0-9f3158299aec/mzaf_9343912370028015735.plus.aac.p.m4a"
+      },
+      "source": "https://itunes.apple.com/lookup?id=1848034189",
+      "note": "preview_url が別曲を指していた誤りを apple_music_id=1848034189 の正しい preview に是正"
+    },
+    {
+      "table": "songs",
+      "id": "gakuen_supremacy",
+      "fields": {
+        "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/d7/a8/5c/d7a85c89-ea34-4c19-8677-72b476e7e90a/mzaf_6853894014243960172.plus.aac.p.m4a"
+      },
+      "source": "https://itunes.apple.com/lookup?id=1834297032",
+      "note": "preview_url が別曲を指していた誤りを apple_music_id=1834297032 の正しい preview に是正"
+    },
+    {
+      "table": "songs",
+      "id": "gakuen_36c_ubu",
+      "fields": {
+        "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/dc/fc/6c/dcfc6c2a-6809-2c96-6869-8740a658e30d/mzaf_12245247669992921506.plus.aac.p.m4a"
+      },
+      "source": "https://itunes.apple.com/lookup?id=1838598795",
+      "note": "preview_url が別曲を指していた誤りを apple_music_id=1838598795 の正しい preview に是正"
+    },
+    {
+      "table": "songs",
+      "id": "gakuen_理論武装して",
+      "fields": {
+        "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/5a/8c/87/5a8c8796-cb79-d32a-b8e8-6a73f62dc931/mzaf_10807610269614188499.plus.aac.p.m4a"
+      },
+      "source": "https://itunes.apple.com/lookup?id=1845255002",
+      "note": "preview_url が別曲を指していた誤りを apple_music_id=1845255002 の正しい preview に是正"
+    },
+    {
+      "table": "songs",
+      "id": "sidem_wonderlanders_party",
+      "fields": {
+        "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/81/f1/0a/81f10a12-0efe-dfd9-0c7d-340f427cf3be/mzaf_552968918411536682.plus.aac.p.m4a"
+      },
+      "source": "https://itunes.apple.com/lookup?id=1836351650",
+      "note": "preview_url が別曲を指していた誤りを apple_music_id=1836351650 の正しい preview に是正"
+    },
+    {
+      "table": "songs",
+      "id": "ml_irodori",
+      "fields": {
+        "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/45/0d/04/450d042f-dcab-0e8e-73ec-255eb3173817/mzaf_628905588552768391.plus.aac.p.m4a"
+      },
+      "source": "https://itunes.apple.com/lookup?id=1838405389",
+      "note": "preview_url が別曲を指していた誤りを apple_music_id=1838405389 の正しい preview に是正"
+    },
+    {
+      "table": "songs",
+      "id": "gakuen_見て",
+      "fields": {
+        "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/6a/52/09/6a520918-1a73-db76-e934-7e2a9ab138bc/mzaf_1712636316304012096.plus.aac.p.m4a"
+      },
+      "source": "https://itunes.apple.com/lookup?id=1846266418",
+      "note": "preview_url が別曲を指していた誤りを apple_music_id=1846266418 の正しい preview に是正"
+    },
+    {
+      "table": "songs",
+      "id": "876_no8",
+      "fields": {
+        "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/80/ec/ee/80eceed8-91cc-6fe3-e0df-9bb09d148448/mzaf_8895770041277109734.plus.aac.p.m4a"
+      },
+      "source": "https://itunes.apple.com/lookup?id=1849048425",
+      "note": "preview_url が別曲を指していた誤りを apple_music_id=1849048425 の正しい preview に是正"
+    },
+    {
+      "table": "songs",
+      "id": "sidem_竜宮逢幻記",
+      "fields": {
+        "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/bd/62/a4/bd62a4cd-4bf8-8bd4-9fe2-681dd89b4964/mzaf_14609900709047919357.plus.aac.p.m4a"
+      },
+      "source": "https://itunes.apple.com/lookup?id=1843564768",
+      "note": "preview_url が別曲を指していた誤りを apple_music_id=1843564768 の正しい preview に是正"
+    },
+    {
+      "table": "songs",
+      "id": "sidem_break_all_time",
+      "fields": {
+        "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/a9/bc/71/a9bc712d-9914-c809-1023-f164ac716c30/mzaf_8308648638854445107.plus.aac.p.m4a"
+      },
+      "source": "https://itunes.apple.com/lookup?id=1848033708",
+      "note": "preview_url が別曲を指していた誤りを apple_music_id=1848033708 の正しい preview に是正"
+    },
+    {
+      "table": "songs",
+      "id": "sidem_cast_a_spell",
+      "fields": {
+        "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/07/f7/8d/07f78d6c-ef4d-4d03-6593-c383671d7411/mzaf_9450804901504420362.plus.aac.p.m4a"
+      },
+      "source": "https://itunes.apple.com/lookup?id=1849595562",
+      "note": "preview_url が別曲を指していた誤りを apple_music_id=1849595562 の正しい preview に是正"
+    },
+    {
+      "table": "songs",
+      "id": "gakuen_atmosphere",
+      "fields": {
+        "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/89/7a/1c/897a1c2b-3775-d3cb-0023-b604c00886d7/mzaf_4035120220245673255.plus.aac.p.m4a"
+      },
+      "source": "https://itunes.apple.com/lookup?id=1857519707",
+      "note": "preview_url が別曲を指していた誤りを apple_music_id=1857519707 の正しい preview に是正"
+    },
+    {
+      "table": "songs",
+      "id": "765as_maybe_tomorrow_petit_specialver",
+      "fields": {
+        "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/45/b6/21/45b62162-6d8b-b8b3-7c83-9237b383f50d/mzaf_16352491911154221471.plus.aac.p.m4a"
+      },
+      "source": "https://itunes.apple.com/lookup?id=1844765356",
+      "note": "preview_url が別曲を指していた誤りを apple_music_id=1844765356 の正しい preview に是正"
+    },
+    {
+      "table": "songs",
+      "id": "765as_today_with_me_petit_specialver",
+      "fields": {
+        "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/bc/7e/66/bc7e666f-a0fe-ba17-f682-ac36610b2196/mzaf_5308504964849312476.plus.aac.p.m4a"
+      },
+      "source": "https://itunes.apple.com/lookup?id=1844765308",
+      "note": "preview_url が別曲を指していた誤りを apple_music_id=1844765308 の正しい preview に是正"
+    }
+  ]
+}

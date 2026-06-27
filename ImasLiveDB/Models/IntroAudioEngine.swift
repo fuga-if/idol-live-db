@@ -195,6 +195,19 @@ final class IntroAudioEngine {
         isPlaying = false
     }
 
+    /// 録音(音声判定)へ引き継ぐ前に再生を完全停止しセッションを解放する。
+    /// pause だけだとシステム音楽プレイヤー(MPMusicPlayerController)が生き残り、
+    /// 録音エンジン稼働中にオーディオ衝突で SIGTRAP する。本家の musicPlayback.stop+deactivate 相当。
+    func releaseForRecording() {
+        stop()
+        #if !targetEnvironment(simulator)
+        // フル再生を実際に使った時だけ MPMusicPlayerController に触れる。preview のみの曲で
+        // ここを無条件に呼ぶと applicationMusicPlayer が lazy 生成され、録音エンジンと衝突する。
+        if usedFullPlayer { musicPlayer.stop() }
+        #endif
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+    }
+
     /// 「もう少し流す」: 停止タイマー無しで現在位置から再生継続 (本家 playUntilStopped 相当)。
     func continuePlaying() {
         startTask?.cancel()

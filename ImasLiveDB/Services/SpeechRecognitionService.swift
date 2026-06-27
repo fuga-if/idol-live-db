@@ -13,6 +13,13 @@ import Observation
 ///
 /// 認識コールバックの MainActor hop だけは assumeIsolated が SIGTRAP する実績があったため
 /// `Task { @MainActor }` にしている (Sendable な値だけ持ち込むので挙動は同じ)。
+/// 非 Sendable な SFSpeechAudioBufferRecognitionRequest を @Sendable な tap クロージャへ
+/// 持ち込むための箱。append はオーディオスレッドからのみ呼ばれ、request 自体はスレッドセーフ。
+private final class RequestBox: @unchecked Sendable {
+    let request: SFSpeechAudioBufferRecognitionRequest
+    init(_ r: SFSpeechAudioBufferRecognitionRequest) { request = r }
+}
+
 @Observable @MainActor
 final class SpeechRecognitionService {
 
@@ -67,12 +74,21 @@ final class SpeechRecognitionService {
     // MARK: - Authorization
 
     func requestAuthorization() async {
-        let speech = await withCheckedContinuation { (c: CheckedContinuation<SFSpeechRecognizerAuthorizationStatus, Never>) in
-            SFSpeechRecognizer.requestAuthorization { c.resume(returning: $0) }
+        // 既に確定済みの権限は再要求しない。
+        // コールバックは @Sendable (=非隔離) にする: @MainActor 隔離のまま渡すと
+        // システムがバックグラウンドスレッドで呼んだ瞬間 executor アサーションで SIGTRAP する。
+        if SFSpeechRecognizer.authorizationStatus() == .notDetermined {
+            await withCheckedContinuation { (c: CheckedContinuation<Void, Never>) in
+                SFSpeechRecognizer.requestAuthorization { @Sendable _ in
+                    Task { @MainActor in c.resume() }
+                }
+            }
         }
-        if speech == .authorized {
-            _ = await withCheckedContinuation { (c: CheckedContinuation<Bool, Never>) in
-                AVAudioApplication.requestRecordPermission { c.resume(returning: $0) }
+        if AVAudioApplication.shared.recordPermission == .undetermined {
+            await withCheckedContinuation { (c: CheckedContinuation<Void, Never>) in
+                AVAudioApplication.requestRecordPermission { @Sendable _ in
+                    Task { @MainActor in c.resume() }
+                }
             }
         }
         authStatus = Self.combinedStatus()
@@ -253,13 +269,18 @@ final class SpeechRecognitionService {
             scheduleRetry(carrying: nil)
             return
         }
-        inputNode.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak req] buffer, _ in
-            req?.append(buffer)
+        // tap はオーディオスレッドで呼ばれる。@Sendable (非隔離) にしないと @MainActor 隔離と
+        // 推論され、オーディオスレッド呼び出しで executor アサーション SIGTRAP する。
+        // req は非 Sendable なので @unchecked Sendable の箱に入れて持ち込む。
+        let reqBox = RequestBox(req)
+        inputNode.installTap(onBus: 0, bufferSize: 1024, format: format) { @Sendable buffer, _ in
+            reqBox.request.append(buffer)
         }
 
         generationId &+= 1
         let generation = generationId
-        recognitionTask = recognizer.recognitionTask(with: req) { [weak self] result, error in
+        // recognitionTask の resultHandler もバックグラウンドスレッド呼び出し → @Sendable に。
+        recognitionTask = recognizer.recognitionTask(with: req) { @Sendable [weak self] result, error in
             let spoken = result?.bestTranscription.formattedString
             let isFinal = result?.isFinal ?? false
             let hadError = error != nil
