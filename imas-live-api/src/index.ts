@@ -922,7 +922,7 @@ export default {
         if (!user) return error("Unauthorized", 401);
 
         // 先にボディを検証する。checkRateLimit は原子的にカウンタを +1 するので、
-        // 検証より前に走らせると空文字・型不正など 400 になるリクエストでも 1日20枠を
+        // 検証より前に走らせると空文字・型不正など 400 になるリクエストでも 1日3枠を
         // 消費し、ユーザーが表示名を変更できなくなる (自爆ロックアウト)。検証後に課金する。
         const body = (await request.json().catch(() => null)) as { display_name?: unknown } | null;
         const raw = body?.display_name;
