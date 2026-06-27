@@ -805,11 +805,18 @@ export default {
         await upsertUser(env, verified.uid, displayName);
         const sessionToken = await signSessionToken(verified.uid, env.SESSION_JWT_SECRET);
         const isAdmin = await checkIsAdmin(env, verified.uid);
+        // 再ログイン時 Apple は fullName を初回認可時しか返さないため、クライアントは
+        // 自前で表示名を復元できない。upsert 後の正準 display_name を返し、クライアントが
+        // userName を即復元できるようにする (これが無いと再ログイン直後に表示名が空になる)。
+        const dbRow = await env.DB.prepare("SELECT display_name FROM users WHERE id = ?")
+          .bind(verified.uid)
+          .first<{ display_name: string }>();
         return json({
           sessionToken,
           uid: verified.uid,
           email: verified.email,
           isAdmin,
+          displayName: dbRow?.display_name ?? null,
           expiresIn: SESSION_JWT_TTL_SECONDS,
         });
       }
