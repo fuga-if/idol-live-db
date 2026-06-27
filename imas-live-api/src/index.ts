@@ -861,6 +861,44 @@ export default {
       }
 
       // ----------------------------------------------------------------
+      // POST /users/me — 自分の表示名 (display_name) を更新
+      //   メソッドは POST。この Worker の書き込みは POST/PUT/DELETE のみで、
+      //   PATCH は isWriteMethod にも CORS Allow-Methods にも無い (= 未サポート)。
+      //   既存の書き込み規約に合わせる。
+      // ----------------------------------------------------------------
+      if (path === "/users/me" && request.method === "POST") {
+        const user = await getAuthUser(request, env);
+        if (!user) return error("Unauthorized", 401);
+
+        const [dbUser, rl] = await Promise.all([
+          env.DB.prepare("SELECT is_banned FROM users WHERE id = ?")
+            .bind(user.uid)
+            .first<{ is_banned: number }>(),
+          checkRateLimit(env.DB, user.uid, "profile"),
+        ]);
+        if (dbUser?.is_banned) return error("Banned", 403);
+        if (!rl.allowed) return rateLimitResponse(rl.used, rl.limit, rl.reset_at);
+
+        const body = (await request.json().catch(() => null)) as { display_name?: unknown } | null;
+        const raw = body?.display_name;
+        if (typeof raw !== "string") return error("display_name is required");
+        const name = raw.trim();
+        if (name.length === 0) return error("display_name must not be empty");
+        if (name.length > 40) return error("display_name too long (max 40)");
+
+        // upsertUser は使わない (display_name を email 等で上書きしうるため)。
+        // 行は login 時に必ず作られているが、念のため冪等な upsert で直接 display_name のみ更新。
+        await env.DB.prepare(
+          `INSERT INTO users (id, display_name) VALUES (?, ?)
+           ON CONFLICT(id) DO UPDATE SET display_name = ?, updated_at = datetime('now')`
+        )
+          .bind(user.uid, name, name)
+          .run();
+
+        return json({ displayName: name });
+      }
+
+      // ----------------------------------------------------------------
       // POST /admin/cloudkit/save — admin 限定の CK forceUpdate+delete
       // iOS 直書きでは「他人 (S2S) のレコードを更新不可」なのでサーバ経由で S2S 借用。
       // ----------------------------------------------------------------

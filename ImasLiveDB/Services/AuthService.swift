@@ -160,7 +160,7 @@ final class AuthService {
     func updateDisplayName(_ name: String) async throws {
         struct Body: Encodable { let display_name: String }
         try await APIClient.shared.requestVoid(
-            "PATCH",
+            "POST",
             path: "/users/me",
             body: Body(display_name: name),
             authorized: true
