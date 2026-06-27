@@ -1,0 +1,20 @@
+{
+  "title": "総選挙曲の song_type を all→unit に是正 (全体曲ではなく特定9人編成)",
+  "author": "claude",
+  "fixes": [
+    {
+      "table": "songs",
+      "id": "cg_take_metake_you",
+      "fields": { "song_type": "unit" },
+      "source": "https://project-imas.wiki/Take_me%E2%98%86Take_you",
+      "note": "第6回シンデレラガール総選挙の上位9名 (THE IDOLM@STER CINDERELLA GIRLS!!) によるユニット曲。全体曲(all)ではないので unit に是正"
+    },
+    {
+      "table": "songs",
+      "id": "cg_absolute_nine",
+      "fields": { "song_type": "unit" },
+      "source": "https://imas-db.jp/song/detail/479.html",
+      "note": "第4回シンデレラガール総選挙 各属性上位3名=9名 (THE IDOLM@STER CINDERELLA GIRLS!!) によるユニット曲。全体曲(all)ではないので unit に是正"
+    }
+  ]
+}
