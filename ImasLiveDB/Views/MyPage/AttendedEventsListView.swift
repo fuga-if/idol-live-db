@@ -7,26 +7,51 @@ import SwiftUI
 struct AttendedEventsListView: View {
     let events: [EventWithDate]
 
-    enum AttendanceFilter: Int, CaseIterable { case all, live, stream }
+    enum AttendanceFilter: Int, CaseIterable { case all, live, stream, liveViewing }
 
     @State private var filterIndex = 0
     @State private var liveSet: Set<String> = []
     @State private var streamSet: Set<String> = []
+    @State private var liveViewingSet: Set<String> = []
     @State private var loaded = false
 
     private var filter: AttendanceFilter { AttendanceFilter(rawValue: filterIndex) ?? .all }
 
+    /// LV参加が1件もなければLVタブは出さない (データ駆動)。
+    private var showsLiveViewingTab: Bool { !liveViewingSet.isEmpty }
+
+    private var segmentLabels: [String] {
+        showsLiveViewingTab ? ["すべて", "現地", "配信", "LV"] : ["すべて", "現地", "配信"]
+    }
+
     private var filteredEvents: [EventWithDate] {
         switch filter {
-        case .all:    return events
-        case .live:   return events.filter { liveSet.contains($0.event.id) }
-        case .stream: return events.filter { streamSet.contains($0.event.id) }
+        case .all:         return events
+        case .live:        return events.filter { liveSet.contains($0.event.id) }
+        case .stream:      return events.filter { streamSet.contains($0.event.id) }
+        case .liveViewing: return events.filter { liveViewingSet.contains($0.event.id) }
+        }
+    }
+
+    private var emptyStateIcon: String {
+        switch filter {
+        case .stream:      return "play.tv"
+        case .liveViewing: return "popcorn"
+        default:           return "figure.wave"
+        }
+    }
+
+    private var emptyStateTitle: String {
+        switch filter {
+        case .stream:      return "配信参加のライブがありません"
+        case .liveViewing: return "ライブビューイング参加のライブがありません"
+        default:           return "現地参加のライブがありません"
         }
     }
 
     var body: some View {
         VStack(spacing: 0) {
-            ImasSegmented(labels: ["すべて", "現地", "配信"], selection: $filterIndex)
+            ImasSegmented(labels: segmentLabels, selection: $filterIndex)
                 .padding(.horizontal, DS.sp5)
                 .padding(.vertical, DS.sp3)
 
@@ -50,8 +75,8 @@ struct AttendedEventsListView: View {
             .overlay {
                 if filteredEvents.isEmpty {
                     ImasEmptyState(
-                        systemImage: filter == .stream ? "play.tv" : "figure.wave",
-                        title: filter == .stream ? "配信参加のライブがありません" : "現地参加のライブがありません"
+                        systemImage: emptyStateIcon,
+                        title: emptyStateTitle
                     )
                 }
             }
@@ -60,9 +85,10 @@ struct AttendedEventsListView: View {
         .navigationTitle("参加したライブ")
         .navigationBarTitleDisplayMode(.inline)
         .task {
-            let sets = (try? await AppContainer.shared.eventReading.attendedEventTypeSets()) ?? (live: [], stream: [])
+            let sets = (try? await AppContainer.shared.eventReading.attendedEventTypeSets()) ?? (live: [], stream: [], liveViewing: [])
             liveSet = sets.live
             streamSet = sets.stream
+            liveViewingSet = sets.liveViewing
             // 初回のみ、回収設定に追従して既定フィルタを決める。
             if !loaded {
                 loaded = true

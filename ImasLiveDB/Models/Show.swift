@@ -14,6 +14,11 @@ struct Show: Codable, FetchableRecord, PersistableRecord, Identifiable, Hashable
     var sortOrder: Int
     var performerType: String?
 
+    /// 配信実施の有無。nil=未設定→event 側にフォールバック。
+    var hasStreaming: Bool? = nil
+    /// ライブビューイング実施の有無。nil=未設定→event 側にフォールバック。
+    var hasLiveViewing: Bool? = nil
+
     /// キャラライブかどうか
     var isCharacterLive: Bool { performerType == "character" }
 
@@ -25,6 +30,8 @@ struct Show: Codable, FetchableRecord, PersistableRecord, Identifiable, Hashable
         case startTime = "start_time"
         case sortOrder = "sort_order"
         case performerType = "performer_type"
+        case hasStreaming = "has_streaming"
+        case hasLiveViewing = "has_live_viewing"
     }
 
     // MARK: - Associations

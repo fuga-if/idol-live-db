@@ -4,6 +4,8 @@ import SwiftUI
 /// 公演ごとに「現地 / 配信 / 不参加」を選ぶ (参加は show 単位の .attended に一本化)。
 struct EventAttendanceSheet: View {
     let shows: [Show]
+    /// 開催形態フォールバック元 (show に未設定の配信/LV 有無を event から継承)。
+    var event: Event? = nil
     var seed: String? = nil
     var brand: String? = nil
     /// 変更後に呼ぶ (呼び出し側で派生状態を再計算するため)。
@@ -37,7 +39,7 @@ struct EventAttendanceSheet: View {
                     }
                     .buttonStyle(.plain)
                 } footer: {
-                    Text("公演ごとに「現地」「配信」を選べます。回収率には現地参加だけが数えられます。")
+                    Text("公演ごとに参加形態を選べます（配信・ライブビューイングは開催があった公演のみ）。回収率には現地参加だけが数えられます。")
                 }
                 .listRowBackground(DS.surface)
 
@@ -51,8 +53,10 @@ struct EventAttendanceSheet: View {
                                     .font(.imasCaption).foregroundStyle(DS.ink2).lineLimit(1)
                             }
                             HStack(spacing: DS.sp2) {
-                                typePill(show: show, type: .live, theme: t)
-                                typePill(show: show, type: .stream, theme: t)
+                                // そのライブに実在した形態だけ出す (show優先・eventフォールバック)。
+                                ForEach(AttendanceAvailability.options(show: show, event: event), id: \.self) { type in
+                                    typePill(show: show, type: type, theme: t)
+                                }
                                 Spacer(minLength: 0)
                             }
                         }

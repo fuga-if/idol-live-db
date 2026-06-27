@@ -42,6 +42,8 @@ struct SetlistView: View {
     @State private var showBrandHex: String? = nil
     /// イベント名 (シェア文を「イベント名 + 公演名」にするため保持)。
     @State private var eventName: String? = nil
+    /// 開催形態フォールバック用に親イベントを保持 (参加形態の出し分け)。
+    @State private var event: Event? = nil
     /// 公演内の各曲への「良かった」 like 状態 (post-vote)。 song_id 索引。
     @State private var likesBySongId: [String: SetlistLikeService.LikeEntry] = [:]
     /// 予想セトリの「曲を追加」picker。安定した List 上で presentation するため親が保持する
@@ -244,8 +246,10 @@ struct SetlistView: View {
         .listStyle(.plain)
         .listSectionSpacing(.compact)
         .confirmationDialog("この公演への参加", isPresented: $showAttendanceDialog, titleVisibility: .visible) {
-            Button("現地参加") { setAttendance(.live) }
-            Button("配信参加") { setAttendance(.stream) }
+            // そのライブに実在した形態だけ提示 (show優先・eventフォールバック)。
+            ForEach(AttendanceAvailability.options(show: show, event: event), id: \.self) { type in
+                Button("\(type.label)で参加") { setAttendance(type) }
+            }
             if UserMarkService.shared.attendance(entity: .show, id: show.id) != nil {
                 Button("参加を取り消す", role: .destructive) { setAttendance(nil) }
             }
@@ -407,6 +411,7 @@ struct SetlistView: View {
                 brand.color.map { (brand.id, $0) }
             })
             if let event = try await AppContainer.shared.eventReading.event(id: show.eventId) {
+                self.event = event
                 eventName = event.name
                 if let bid = event.brandId {
                     showBrandHex = brandHexById[bid]
