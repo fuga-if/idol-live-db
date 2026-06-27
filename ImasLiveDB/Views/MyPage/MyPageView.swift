@@ -727,7 +727,13 @@ struct MyPageView: View {
         do {
             try await AuthService.shared.updateDisplayName(trimmed)
         } catch {
-            nameErrorMessage = error.localizedDescription
+            // レート制限 (429) は「失敗」というより日次上限なので、表示名専用の文言に差し替える。
+            // グローバルな APIClientError.rateLimited 文言は他エンドポイントと共有なので触らない。
+            if case APIClientError.rateLimited = error {
+                nameErrorMessage = "今日はこれ以上、表示名を変更できません。明日また試してください"
+            } else {
+                nameErrorMessage = error.localizedDescription
+            }
         }
     }
 
