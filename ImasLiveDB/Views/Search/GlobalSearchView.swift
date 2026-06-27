@@ -6,6 +6,7 @@ struct GlobalSearchView: View {
     var initialQuery: String = ""
 
     @Environment(AppDatabase.self) private var database
+    @Environment(\.dismiss) private var dismiss
     @State private var searchText = ""
     @State private var results = SearchResults(songs: [], idols: [], events: [])
     @State private var sheetDestination: DetailDestination?
@@ -22,6 +23,11 @@ struct GlobalSearchView: View {
             }
             .navigationTitle("検索")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("閉じる") { dismiss() }
+                }
+            }
         }
         .onAppear {
             if searchText.isEmpty && !initialQuery.isEmpty {
@@ -126,18 +132,24 @@ struct GlobalSearchView: View {
 
     // MARK: - History View
 
+    @ViewBuilder
     private var historyView: some View {
         let history = SearchHistoryManager.shared.history(for: .events) +
                       SearchHistoryManager.shared.history(for: .songs) +
                       SearchHistoryManager.shared.history(for: .idols)
-        return List {
-            if history.isEmpty {
+        if history.isEmpty {
+            VStack(spacing: 8) {
+                Image(systemName: "clock.arrow.circlepath")
+                    .font(.imasScaled(34))
+                    .foregroundStyle(DS.ink3)
                 Text("検索履歴はありません")
                     .foregroundStyle(DS.ink2)
                     .font(.imasSubhead)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .listRowBackground(Color.clear)
-            } else {
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(DS.bg)
+        } else {
+            List {
                 Section {
                     ForEach(Array(Set(history)).prefix(10), id: \.self) { item in
                         Button {
@@ -172,10 +184,10 @@ struct GlobalSearchView: View {
                     }
                 }
             }
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+            .background(DS.bg)
         }
-        .listStyle(.plain)
-        .scrollContentBackground(.hidden)
-        .background(DS.bg)
     }
 
     // MARK: - Logic

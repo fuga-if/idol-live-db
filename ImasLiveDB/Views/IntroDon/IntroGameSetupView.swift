@@ -8,6 +8,14 @@ struct IntroGameSetupView: View {
     var presetPool: [Song]? = nil
     var presetLabel: String? = nil
 
+    /// 設定画面内で「絞り込んで出題」から曲一覧を開いて選び直したプリセット。
+    @State private var pickedPool: [Song]? = nil
+    @State private var pickedLabel: String? = nil
+
+    /// 実際に使う出題範囲 (アプリ内で選び直したものを優先)。
+    private var effectivePool: [Song]? { pickedPool ?? presetPool }
+    private var effectiveLabel: String? { pickedLabel ?? presetLabel }
+
     @State private var session = IntroGameSession()
     @State private var partySession = IntroPartySession()
     @State private var navigateToParty = false
@@ -50,17 +58,20 @@ struct IntroGameSetupView: View {
 
                 // ② 出題範囲: プリセット(曲一覧の絞り込み) があればそれを表示、無ければブランド選択。
                 Spacer().frame(height: 24)
-                IDSectionLabel(text: "出題範囲", hint: presetPool == nil ? "ブランドで絞る" : nil)
+                IDSectionLabel(text: "出題範囲", hint: effectivePool == nil ? "ブランドで絞る" : nil)
                     .padding(.horizontal, 20)
                 Spacer().frame(height: 12)
-                if let presetPool {
-                    presetRangeCard(count: IntroGameSession.playable(presetPool).count)
+                if let pool = effectivePool {
+                    presetRangeCard(count: IntroGameSession.playable(pool).count)
+                        .padding(.horizontal, 20)
+                    Spacer().frame(height: 10)
+                    refineButton(title: "出題範囲を変更")
                         .padding(.horizontal, 20)
                 } else {
                     brandSection
                         .padding(.horizontal, 20)
                     Spacer().frame(height: 10)
-                    refineButton
+                    refineButton(title: "タグ・担当・検索で絞り込んで出題")
                         .padding(.horizontal, 20)
                 }
 
@@ -108,8 +119,16 @@ struct IntroGameSetupView: View {
             IntroGameView(session: session)
         }
         .navigationDestination(isPresented: $showSongFilter) {
-            // 曲一覧でタグ/担当/検索などで絞り込み → 一覧の「この絞り込みでイントロドン」で出題。
-            SongListView().environment(database)
+            // 曲一覧でタグ/担当/検索などで絞り込み →「この範囲で出題」で設定に戻りプール反映。
+            SongListView(
+                selectionMode: true,
+                onSelectPool: { pool, label in
+                    pickedPool = pool
+                    pickedLabel = label
+                    showSongFilter = false
+                }
+            )
+            .environment(database)
         }
         .navigationDestination(isPresented: $navigateToParty) {
             IntroPartyGameView(session: partySession)
@@ -192,7 +211,7 @@ struct IntroGameSetupView: View {
     }
 
     /// タグ・担当・検索で細かく絞って出題したい時に曲一覧へ飛ぶボタン。
-    private var refineButton: some View {
+    private func refineButton(title: String) -> some View {
         Button {
             AppAnalytics.tap("intro_game_setup.refine")
             showSongFilter = true
@@ -200,7 +219,7 @@ struct IntroGameSetupView: View {
             HStack(spacing: 8) {
                 Image(systemName: "line.3.horizontal.decrease.circle")
                     .font(.imasScaled( 14, weight: .semibold))
-                Text("タグ・担当・検索で絞り込んで出題")
+                Text(title)
                     .font(ID.font(13, weight: .semibold))
                 Spacer(minLength: 0)
                 Image(systemName: "chevron.right")
@@ -222,7 +241,7 @@ struct IntroGameSetupView: View {
                 .font(.imasScaled( 18, weight: .bold))
                 .foregroundColor(ID.accentPurple)
             VStack(alignment: .leading, spacing: 2) {
-                Text(presetLabel ?? "曲一覧の絞り込み")
+                Text(effectiveLabel ?? "曲一覧の絞り込み")
                     .font(ID.font(14, weight: .bold))
                     .foregroundColor(ID.menuText)
                     .lineLimit(1)
@@ -505,7 +524,7 @@ struct IntroGameSetupView: View {
         do {
             if mode == .party {
                 partySession.settings = settings
-                partySession.presetPool = presetPool
+                partySession.presetPool = effectivePool
                 try await partySession.generateQuestions(database: database)
                 if partySession.questions.isEmpty {
                     errorMessage = "対象の曲が見つかりませんでした。ブランドを増やしてお試しください。"
@@ -514,7 +533,7 @@ struct IntroGameSetupView: View {
                 }
             } else {
                 session.settings = settings
-                session.presetPool = presetPool
+                session.presetPool = effectivePool
                 try await session.generateQuestions(database: database)
                 if session.questions.isEmpty {
                     errorMessage = "対象の曲が見つかりませんでした。ブランドを増やしてお試しください。"

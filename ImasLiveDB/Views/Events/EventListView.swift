@@ -95,7 +95,11 @@ struct EventListView: View {
 
     var body: some View {
         NavigationStack(path: $navPath) {
-            ScrollView {
+            VStack(spacing: 0) {
+                if isSearching {
+                    InTabSearchField(prompt: "ライブ名で検索", text: $searchText, isSearching: $isSearching)
+                }
+                ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0) {
                     ImasSegmented(labels: ["今後の予定", "開催済み"], selection: $timeFilter)
                         .padding(.horizontal, 16)
@@ -141,57 +145,22 @@ struct EventListView: View {
                 await syncEngine.performIncrementalSync(database: database)
                 await vm.loadData(includeEmpty: showEmptyEvents, query: listQuery)
             }
+            }
             .navigationTitle("ライブ")
             .navigationBarTitleDisplayMode(.large)
-            .searchable(
-                text: $searchText,
-                isPresented: $isSearching,
-                placement: .navigationBarDrawer(displayMode: .automatic),
-                prompt: "ライブ名で検索"
-            )
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    SettingsToolbarButton()
-                }
-                ToolbarItem(placement: .topBarLeading) {
-                    GlobalSearchToolbarButton()
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    HStack(spacing: 4) {
-                        if EditPermission.showEditAffordance {
-                            Button {
-                                AppAnalytics.tap("event_list.add")
-                                startCreate()
-                            } label: {
-                                Image(systemName: "plus")
-                            }
-                            .accessibilityLabel("イベントを追加")
-                        }
-
-                        Button {
-                            AppAnalytics.tap("event_list.search_open")
-                            isSearching = true
-                        } label: {
-                            Image(systemName: "magnifyingglass")
-                        }
-
-                        if activeFilterCount > 0 {
-                            Button {
-                                AppAnalytics.tap("event_list.filter_clear")
-                                clearAllFilters()
-                            } label: {
-                                Image(systemName: "xmark.circle.fill")
-                                    .foregroundStyle(.secondary)
-                            }
-                            .accessibilityLabel("フィルタを解除")
-                        }
-
-                        FilterBarButton(activeCount: activeFilterCount) {
-                            AppAnalytics.tap("event_list.filter")
-                            showFilterSheet = true
-                        }
-                    }
-                }
+                standardListToolbar(
+                    onSearch: {
+                        AppAnalytics.tap("event_list.search_open")
+                        isSearching = true
+                    },
+                    filterBadge: activeFilterCount,
+                    onFilter: {
+                        AppAnalytics.tap("event_list.filter")
+                        showFilterSheet = true
+                    },
+                    menuActions: eventMenuActions
+                )
             }
             .navigationDestination(for: Event.self) { event in
                 EventDetailView(event: event)
@@ -277,6 +246,24 @@ struct EventListView: View {
         } else {
             showLoginPrompt = true
         }
+    }
+
+    private var eventMenuActions: [ListToolbarAction] {
+        var actions: [ListToolbarAction] = []
+        if EditPermission.showEditAffordance {
+            actions.append(ListToolbarAction(id: "add", title: "イベントを追加", systemImage: "plus") {
+                AppAnalytics.tap("event_list.add")
+                startCreate()
+            })
+        }
+        if activeFilterCount > 0 {
+            actions.append(ListToolbarAction(id: "clear", title: "フィルタを解除",
+                                             systemImage: "xmark.circle", isDestructive: true) {
+                AppAnalytics.tap("event_list.filter_clear")
+                clearAllFilters()
+            })
+        }
+        return actions
     }
 
     private func clearAllFilters() {
