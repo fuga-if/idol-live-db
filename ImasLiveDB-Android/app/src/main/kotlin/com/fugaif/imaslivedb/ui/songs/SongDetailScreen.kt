@@ -20,11 +20,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.OndemandVideo
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -96,7 +95,7 @@ fun SongDetailScreen(
                 actions = {
                     MarkToggleAction(
                         entityType = UserMark.SONG, entityId = songId, kind = UserMark.FAVORITE,
-                        activeIcon = Icons.Filled.Favorite, inactiveIcon = Icons.Filled.FavoriteBorder,
+                        activeIcon = Icons.Filled.Star, inactiveIcon = Icons.Filled.Star,
                         activeTint = DS.favorite, contentDescription = "お気に入り"
                     )
                 }
