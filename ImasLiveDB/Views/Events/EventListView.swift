@@ -107,6 +107,11 @@ struct EventListView: View {
 
                     activeFilterChips
 
+                    if vm.isLoading {
+                        ImasListSkeleton(rows: 10, thumb: .none)
+                            .padding(.top, DS.sp3)
+                    }
+
                     ForEach(Array(vm.groupedByYear.enumerated()), id: \.element.id) { index, group in
                         VStack(alignment: .leading, spacing: 8) {
                             ImasSectionHeader(title: group.year, tight: true)
@@ -132,7 +137,7 @@ struct EventListView: View {
                         .padding(.top, index == 0 && !hasActiveFilterChips ? 6 : 18)
                     }
 
-                    if vm.groupedByYear.isEmpty {
+                    if vm.groupedByYear.isEmpty && !vm.isLoading {
                         emptyState
                     }
 

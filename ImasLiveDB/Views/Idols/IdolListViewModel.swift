@@ -17,6 +17,8 @@ final class IdolListViewModel {
     private(set) var idols: [Idol] = []
     private(set) var brands: [Brand] = []
     private(set) var castNames: [String: String] = [:]
+    /// 初回ロード中 (スケルトン表示用)。初回完了で false。
+    private(set) var isLoading = true
 
     // フィルタ済み派生結果
     private(set) var filteredIdols: [Idol] = []
@@ -38,6 +40,7 @@ final class IdolListViewModel {
     }
 
     func loadData(filter: IdolFilterContext) async {
+        defer { isLoading = false }
         do {
             async let b = brandReading.brands()
             async let i = idolReading.idols(brandId: nil)

@@ -93,7 +93,16 @@ struct IdolListView: View {
                     InTabSearchField(prompt: "アイドル・CV名で検索", text: $searchText, isSearching: $isSearching)
                 }
 
-                if !searchText.isEmpty && vm.filteredIdols.isEmpty {
+                if vm.isLoading {
+                    ScrollView {
+                        if idolListMode == .grid {
+                            ImasGridSkeleton(columns: 4, count: 16)
+                        } else {
+                            ImasListSkeleton(rows: 12, thumb: .circle).padding(.top, DS.sp3)
+                        }
+                    }
+                    .scrollDisabled(true)
+                } else if !searchText.isEmpty && vm.filteredIdols.isEmpty {
                     InTabSearchEmptyView(query: searchText)
                 } else if idolListMode == .grid {
                     IdolGridView(

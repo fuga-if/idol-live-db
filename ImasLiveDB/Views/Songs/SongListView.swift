@@ -426,12 +426,11 @@ struct SongListView: View {
     private var songsListContent: some View {
         Group {
             if vm.isLoading {
-                List {
-                    HStack { Spacer(); ProgressView(); Spacer() }
-                        .listRowBackground(Color.clear)
+                ScrollView {
+                    ImasListSkeleton(rows: 12, thumb: .square)
+                        .padding(.top, DS.sp3)
                 }
-                .listStyle(.plain)
-                .scrollContentBackground(.hidden)
+                .scrollDisabled(true)
                 .background(DS.bg)
             } else if vm.songs.isEmpty && filter.activeFilterCount > 0 {
                 ContentUnavailableView.search(text: "条件に一致する楽曲")
