@@ -18,7 +18,6 @@ struct IdolListView: View {
     @AppStorage("idol_list_mode") private var idolListModeRaw: String = IdolListMode.list.rawValue
     @State private var navPath = NavigationPath()
     @State private var vm = IdolListViewModel()
-    @FocusState private var searchFieldFocused: Bool
     @AppStorage("idol_display_mode") private var displayModeRaw: String = IdolDisplayMode.idolName.rawValue
     /// アイドル名表示中に CV 名を別行で併記するか。
     @AppStorage("idol_show_cv") private var showCV: Bool = false
@@ -64,12 +63,46 @@ struct IdolListView: View {
         return count
     }
 
+    private var idolMenuActions: [ListToolbarAction] {
+        var actions: [ListToolbarAction] = [
+            ListToolbarAction(
+                id: "grid",
+                title: idolListMode == .grid ? "リスト表示" : "グリッド表示",
+                systemImage: idolListMode == .grid ? "list.bullet" : "square.grid.3x2"
+            ) {
+                AppAnalytics.tap("idol_list.grid_toggle")
+                idolListModeRaw = (idolListMode == .grid ? IdolListMode.list : .grid).rawValue
+            }
+        ]
+        if filterBadgeCount > 0 {
+            actions.append(ListToolbarAction(id: "clear", title: "フィルタを解除",
+                                             systemImage: "xmark.circle", isDestructive: true) {
+                AppAnalytics.tap("idol_list.filter_clear")
+                selectedBrandIds = []
+                selectedAttribute = nil
+                displayModeRaw = IdolDisplayMode.idolName.rawValue
+            })
+        }
+        return actions
+    }
+
     var body: some View {
         NavigationStack(path: $navPath) {
             VStack(spacing: 0) {
-                if isSearching { searchBar }
+                if isSearching {
+                    InTabSearchField(prompt: "アイドル・CV名で検索", text: $searchText, isSearching: $isSearching)
+                }
 
-                if !searchText.isEmpty && vm.filteredIdols.isEmpty {
+                if vm.isLoading {
+                    ScrollView {
+                        if idolListMode == .grid {
+                            ImasGridSkeleton(columns: 4, count: 16)
+                        } else {
+                            ImasListSkeleton(rows: 12, thumb: .circle).padding(.top, DS.sp3)
+                        }
+                    }
+                    .scrollDisabled(true)
+                } else if !searchText.isEmpty && vm.filteredIdols.isEmpty {
                     InTabSearchEmptyView(query: searchText)
                 } else if idolListMode == .grid {
                     IdolGridView(
@@ -89,52 +122,19 @@ struct IdolListView: View {
             .onChange(of: searchText) { _, _ in
                 vm.rebuild(filter: filterContext)
             }
-            .onChange(of: isSearching) { _, newValue in
-                searchFieldFocused = newValue
-            }
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    SettingsToolbarButton()
-                }
-                ToolbarItem(placement: .topBarLeading) {
-                    GlobalSearchToolbarButton()
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    HStack(spacing: 12) {
-                        Button {
-                            AppAnalytics.tap("idol_list.grid_toggle")
-                            idolListModeRaw = (idolListMode == .grid ? IdolListMode.list : .grid).rawValue
-                        } label: {
-                            Image(systemName: idolListMode == .grid ? "list.bullet" : "square.grid.3x2")
-                        }
-
-                        Button {
-                            AppAnalytics.tap("idol_list.search_open")
-                            isSearching = true
-                        } label: {
-                            Image(systemName: "magnifyingglass")
-                        }
-
-                        if filterBadgeCount > 0 {
-                            Button {
-                                AppAnalytics.tap("idol_list.filter_clear")
-                                selectedBrandIds = []
-                                selectedAttribute = nil
-                                displayModeRaw = IdolDisplayMode.idolName.rawValue
-                            } label: {
-                                Image(systemName: "xmark.circle.fill")
-                                    .foregroundStyle(.secondary)
-                            }
-                            .accessibilityLabel("フィルタを解除")
-                        }
-
-                        FilterBarButton(activeCount: filterBadgeCount) {
-                            AppAnalytics.tap("idol_list.filter")
-                            showFilterSheet = true
-                        }
-                    }
-                    .tint(DS.ink)
-                }
+                standardListToolbar(
+                    onSearch: {
+                        AppAnalytics.tap("idol_list.search_open")
+                        isSearching = true
+                    },
+                    filterBadge: filterBadgeCount,
+                    onFilter: {
+                        AppAnalytics.tap("idol_list.filter")
+                        showFilterSheet = true
+                    },
+                    menuActions: idolMenuActions
+                )
             }
             .navigationDestination(for: Idol.self) { idol in
                 IdolDetailView(idol: idol)
@@ -173,34 +173,6 @@ struct IdolListView: View {
             }
             .trackScreen("idol_list")
         }
-    }
-
-    // MARK: - Search Bar
-
-    private var searchBar: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "magnifyingglass").foregroundStyle(DS.ink3)
-            TextField("アイドル・CV名で検索", text: $searchText)
-                .textFieldStyle(.plain)
-                .submitLabel(.search)
-                .focused($searchFieldFocused)
-            if !searchText.isEmpty {
-                Button { searchText = "" } label: {
-                    Image(systemName: "xmark.circle.fill").foregroundStyle(DS.ink3)
-                }
-            }
-            Button("キャンセル") {
-                searchText = ""
-                isSearching = false
-                searchFieldFocused = false
-            }
-            .font(.imasSubhead)
-            .tint(DS.sys)
-        }
-        .padding(.horizontal, DS.sp4)
-        .padding(.vertical, DS.sp3)
-        .background(DS.surface)
-        .overlay(alignment: .bottom) { Divider().overlay(DS.sep) }
     }
 
     // MARK: - List Body (ブランド別・inset grouped 風)

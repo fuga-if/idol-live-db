@@ -1,0 +1,17 @@
+{
+  "title": "学マス SUGAR FLAVOR の apple_music_id 補完",
+  "author": "claude",
+  "fixes": [
+    {
+      "table": "songs",
+      "id": "gakuen_sugar_flavor",
+      "fields": {
+        "apple_music_id": "6776533430",
+        "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/5d/22/52/5d22528d-d39d-ebae-5366-4adbd4e1e86d/PA00220366_0_247792_jacket.jpg/1200x1200bb.jpg",
+        "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/59/41/e0/5941e08a-2dcc-2cbb-ddd8-3142a3bab338/mzaf_10762062755188516158.plus.aac.p.m4a"
+      },
+      "source": "https://music.apple.com/jp/album/_/6776533418?i=6776533430",
+      "note": "apple_music_id 欠落を補完 → 『SUGAR FLAVOR』/初星学園, 有村麻央 & 姫崎莉波"
+    }
+  ]
+}

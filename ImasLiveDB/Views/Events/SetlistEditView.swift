@@ -32,6 +32,7 @@ struct SetlistEditView: View {
     @State private var isLoading = true
     @State private var isSaving = false
     @State private var errorMessage: String?
+    @State private var requestSent = false
     @State private var showClearConfirm = false
 
     @State private var songPickerForRowId: PickerSheetRowId?
@@ -79,6 +80,7 @@ struct SetlistEditView: View {
                 } message: {
                     Text(errorMessage ?? "")
                 }
+                .editRequestSentAlert(isPresented: $requestSent, onDismiss: { dismiss() })
                 .alert("セトリを全削除しますか?", isPresented: $showClearConfirm) {
                     Button("削除する", role: .destructive) {
                         Task { await save() }
@@ -241,12 +243,16 @@ struct SetlistEditView: View {
         let deletedPerformerNames = initialPerformerNames.subtracting(newPerformerNames)
 
         do {
-            try await pushViaServer(
+            let applied = try await pushViaServer(
                 items: newItems,
                 performers: newPerformers,
                 deletedItemNames: deletedItemNames,
                 deletedPerformerNames: Array(deletedPerformerNames)
             )
+            guard applied else {
+                requestSent = true
+                return
+            }
             try await AppContainer.shared.showWriting.replaceSetlist(showId: show.id, items: newItems, performers: newPerformers)
             Logger.database.notice("setlist_edit_saved show=\(show.id, privacy: .public) items=\(newItems.count) performers=\(newPerformers.count) delItems=\(deletedItemNames.count) delPerf=\(deletedPerformerNames.count)")
             dismiss()
@@ -255,12 +261,13 @@ struct SetlistEditView: View {
         }
     }
 
+    /// 戻り値: true=admin で直接反映済み (ローカル置換してよい)、false=修正リクエスト(issue)化。
     private func pushViaServer(
         items: [SetlistItem],
         performers: [SetlistPerformer],
         deletedItemNames: [String],
         deletedPerformerNames: [String]
-    ) async throws {
+    ) async throws -> Bool {
         var ops: [EditService.EditOperation] = []
 
         // 既存行は update、新規行 (existingItemId が無いので id が sli_<uuid>) は create。
@@ -309,7 +316,9 @@ struct SetlistEditView: View {
             ops.append(EditService.EditOperation(op: .delete, recordType: "SetlistPerformer", recordName: name))
         }
 
-        _ = try await EditService.shared.submit(ops: ops, summary: "セトリ編集")
+        let outcome = try await EditService.shared.submitMaster(ops: ops, summary: "セトリ編集")
+        if case .applied = outcome { return true }
+        return false
     }
 
     /// SetlistPerformer の決定論的 recordName。seed / CKRecordMapper と同じ規約。

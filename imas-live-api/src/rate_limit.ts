@@ -25,6 +25,8 @@ const LIMITS: Record<string, number> = {
   // edit: 1 日あたりの編集 batch 数 (1 セトリ保存 = 1 batch なので op 数ではなく操作回数)。
   // 大量改竄の速度を抑える一次防御。根本対策は BAN + ユーザー単位 revert。
   edit: 100,
+  // edit_request: マスタ修正リクエスト (GitHub issue 化)。スパム防止で控えめ。
+  edit_request: 30,
   // good: 編集フィードを流し読みしながら拍手する操作。緩めに許容。
   good: 300,
   // poll: お題作成。スパム防止のため厳しめ（1日5件まで）。

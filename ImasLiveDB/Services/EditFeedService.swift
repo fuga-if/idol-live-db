@@ -209,46 +209,6 @@ enum JSONValue: Decodable, Sendable, Equatable {
     }
 }
 
-/// 貢献ランキング 1 行 (`GET /leaderboard`)。
-///
-/// 貢献度は 2 指標を「個別集計」する (合成しない。確定契約 §3):
-///   - `editCount`     = 編集 batch 件数 (source='app' かつ cloudkit_ok=1。tier の主指標)
-///   - `goodsReceived` = 自分の編集が受けた Good 累計
-///
-/// 契約 §1: サーバは素の camelCase (`editCount` / `goodsReceived`) を直返しする。
-/// 旧名 `contribution_count` / `total_approved` は廃止されたため、`editCount` を
-/// 別フィールドとして直接 decode する (旧 `contributionCount` 別名マップは撤去)。
-/// `tier` はサーバ側 calcTier の文字列。
-struct LeaderboardEntry: Decodable, Identifiable, Sendable {
-    let id: String
-    let displayName: String
-    let avatarUrl: String?
-    /// 編集件数 (= サーバ `editCount`)。tier 判定の主指標。欠落時は 0。
-    let editCount: Int
-    /// 受け取った Good 累計 (= サーバ `goodsReceived`)。欠落時は 0。
-    let goodsReceived: Int
-    let tier: String?
-
-    private enum CodingKeys: String, CodingKey {
-        case id
-        case displayName
-        case avatarUrl
-        case editCount
-        case goodsReceived
-        case tier
-    }
-
-    init(from decoder: Decoder) throws {
-        let c = try decoder.container(keyedBy: CodingKeys.self)
-        id = try c.decode(String.self, forKey: .id)
-        displayName = try c.decode(String.self, forKey: .displayName)
-        avatarUrl = try c.decodeIfPresent(String.self, forKey: .avatarUrl)
-        editCount = (try c.decodeIfPresent(Int.self, forKey: .editCount)) ?? 0
-        goodsReceived = (try c.decodeIfPresent(Int.self, forKey: .goodsReceived)) ?? 0
-        tier = try c.decodeIfPresent(String.self, forKey: .tier)
-    }
-}
-
 // MARK: - Service
 
 /// オープン編集フィード (`GET /edits`) と Good トグルの薄いラッパ。
@@ -301,12 +261,6 @@ actor EditFeedService {
             "DELETE", path: "/edits/\(batchId)/good",
             authorized: true
         )
-    }
-
-    // MARK: - Leaderboard (Good ランキング)
-
-    func fetchLeaderboard() async throws -> [LeaderboardEntry] {
-        try await APIClient.shared.request("GET", path: "/leaderboard")
     }
 
     // MARK: - Record history (任意レコードの編集履歴)

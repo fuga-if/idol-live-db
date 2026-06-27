@@ -230,6 +230,20 @@ export async function handlePostEdits<E extends EditsEnv>(
 
   const isAdmin = await deps.checkIsAdmin(env, user.uid);
 
+  // マスタ事実 (Song/Idol/Event/Show/Setlist 等) の直接編集は管理者のみ。
+  // 一般ユーザーは /edit-requests (GitHub issue 化 → 人手で取り込み) に回す。
+  // コミュニティ投稿 (コーレス SongCall / 参考動画 SongVideo) は従来どおり全員オープン。
+  if (!isAdmin) {
+    const COMMUNITY_TYPES = new Set(["SongCall", "SongVideo"]);
+    const masterOp = ops.find((o) => !COMMUNITY_TYPES.has(String(o?.recordType ?? "")));
+    if (masterOp) {
+      return error(
+        "master edits are request-based; submit a correction request via /edit-requests",
+        422
+      );
+    }
+  }
+
   // (4) 各 op を検証 + 正規化。1 件でも不正なら 400 で全体中断 (CloudKit には一切書かない)。
   interface NormalizedOp {
     op: EditOp;

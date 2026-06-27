@@ -15,6 +15,8 @@ import os
 final class EventListViewModel {
     private(set) var eventsWithDate: [EventWithDate] = []
     private(set) var brands: [Brand] = []
+    /// 初回ロード中 (スケルトン表示用)。初回完了で false。
+    private(set) var isLoading = true
 
     // 絞り込み + 年グルーピング済みの派生結果
     private(set) var filteredCount: Int = 0
@@ -32,6 +34,7 @@ final class EventListViewModel {
     }
 
     func loadData(includeEmpty: Bool, query: EventListQuery) async {
+        defer { isLoading = false }
         do {
             // 全 kind を取ってきて、表示時に excludedKinds で client-side filter。
             eventsWithDate = try await eventReading.eventsWithFirstDate(

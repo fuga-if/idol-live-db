@@ -25,10 +25,14 @@ struct PollListView: View {
                     .padding(.horizontal, DS.sp5)
                     .padding(.vertical, DS.sp3)
 
-                if vm.isLoading {
+                if vm.isLoading && currentPolls.isEmpty {
                     Spacer()
                     ProgressView()
                     Spacer()
+                } else if !currentPolls.isEmpty {
+                    // 既にデータがあれば、リロードが一時的に失敗してもリストは消さない
+                    // (引っ張って更新が通信エラーで全消えになる UX を防ぐ)。
+                    pollList
                 } else if let loadError = vm.loadError {
                     Spacer()
                     ImasEmptyState(
@@ -37,7 +41,7 @@ struct PollListView: View {
                         message: loadError
                     )
                     Spacer()
-                } else if currentPolls.isEmpty {
+                } else {
                     Spacer()
                     ImasEmptyState(
                         systemImage: "chart.bar.doc.horizontal",
@@ -45,25 +49,6 @@ struct PollListView: View {
                         message: segmentIndex == 0 ? "右上の「＋」から新しいお題を投稿できます。" : nil
                     )
                     Spacer()
-                } else {
-                    List {
-                        ImasListContainer {
-                            ForEach(Array(currentPolls.enumerated()), id: \.element.id) { index, poll in
-                                if index > 0 {
-                                    Divider().background(DS.sep).padding(.leading, DS.sp5)
-                                }
-                                NavigationLink(value: PollRoute.detail(poll.id)) {
-                                    PollRowView(poll: poll)
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-                        .listRowInsets(EdgeInsets())
-                        .listRowBackground(Color.clear)
-                        .listRowSeparator(.hidden)
-                    }
-                    .listStyle(.plain)
-                    .scrollContentBackground(.hidden)
                 }
             }
             .background(DS.bg.ignoresSafeArea())
@@ -100,6 +85,32 @@ struct PollListView: View {
             .onChange(of: segmentIndex) { _, _ in Task { await vm.load(active: segmentIndex == 0) } }
             .refreshable { await vm.load(active: segmentIndex == 0) }
             .trackScreen("poll_list")
+    }
+
+    private var pollList: some View {
+        List {
+            ImasListContainer {
+                ForEach(Array(currentPolls.enumerated()), id: \.element.id) { index, poll in
+                    if index > 0 {
+                        Divider().background(DS.sep).padding(.leading, DS.sp5)
+                    }
+                    // NavigationLink を可視ラベルで使うと List 文脈でシステムの開示シェブロンが
+                    // 重複表示される (PollRowView 自前の > と二重)。不可視リンクを overlay して
+                    // 行全体をタップ可能にしつつ、見た目は自前の > だけにする。
+                    PollRowView(poll: poll)
+                        .contentShape(Rectangle())
+                        .overlay {
+                            NavigationLink(value: PollRoute.detail(poll.id)) { EmptyView() }
+                                .opacity(0)
+                        }
+                }
+            }
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+        }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
     }
 }
 

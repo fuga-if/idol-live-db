@@ -15,6 +15,8 @@ struct IdolMultiPickerView: View {
     @State private var selectedBrandIds: Set<String> = []
     @State private var brands: [Brand] = []
     @State private var showUnitPicker = false
+    /// 呼び出し元が idols を渡さなかった (空) 場合に自力ロードした全アイドル。
+    @State private var loadedIdols: [Idol] = []
 
     init(
         selected: Set<String>,
@@ -27,8 +29,11 @@ struct IdolMultiPickerView: View {
         self._selection = State(initialValue: selected)
     }
 
+    /// 表示に使うアイドル。呼び出し元の配列が空 (ロード未完/失敗) なら自力ロード分にフォールバック。
+    private var sourceIdols: [Idol] { idols.isEmpty ? loadedIdols : idols }
+
     private var filtered: [Idol] {
-        var result = idols
+        var result = sourceIdols
         if !selectedBrandIds.isEmpty {
             result = result.filter { selectedBrandIds.contains($0.brandId) }
         }
@@ -90,6 +95,9 @@ struct IdolMultiPickerView: View {
             }
             .task {
                 brands = (try? await AppContainer.shared.brandReading.brands()) ?? []
+                if idols.isEmpty {
+                    loadedIdols = (try? await AppContainer.shared.idolReading.idols(brandId: nil)) ?? []
+                }
             }
             .trackScreen("idol_multi_picker")
         }

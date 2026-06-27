@@ -232,7 +232,9 @@ actor CommunityAPI {
     // MARK: - Polls
 
     func polls(status: String) async throws -> [Poll] {
-        return try await APIClient.shared.request("GET", path: "/polls", query: ["status": status])
+        // authorized: true で署名済みなら myVoteCount が入る (未投票お題の判定用)。
+        // 未ログインは匿名取得 (myVoteCount=nil)。poll(id:) と同じ任意認証の扱い。
+        return try await APIClient.shared.request("GET", path: "/polls", query: ["status": status], authorized: true)
     }
 
     func poll(id: String) async throws -> PollDetail {

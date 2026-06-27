@@ -35,6 +35,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.fugaif.imaslivedb.ui.components.ImasListSkeleton
+import com.fugaif.imaslivedb.ui.components.SkeletonThumb
 import com.fugaif.imaslivedb.ui.components.SongRow
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -108,9 +110,7 @@ fun SongListScreen(
             HorizontalDivider()
 
             if (uiState.isLoading) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
+                ImasListSkeleton(rows = 12, thumb = SkeletonThumb.Square)
             } else {
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                     items(uiState.songs, key = { it.song.id }) { item ->

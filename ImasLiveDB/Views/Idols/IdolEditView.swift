@@ -25,6 +25,7 @@ struct IdolEditView: View {
     @State private var allBrands: [Brand] = []
     @State private var isSaving = false
     @State private var errorMessage: String?
+    @State private var requestSent = false
 
     init(idol: Idol) {
         self.original = idol
@@ -93,6 +94,7 @@ struct IdolEditView: View {
             )) {
                 Button("OK") {}
             } message: { Text(errorMessage ?? "") }
+            .editRequestSentAlert(isPresented: $requestSent, onDismiss: { dismiss() })
             .task { allBrands = (try? await AppContainer.shared.brandReading.brands()) ?? [] }
             .trackScreen("idol_edit")
         }
@@ -148,14 +150,17 @@ struct IdolEditView: View {
         )
 
         do {
-            let resp = try await EditService.shared.submit(ops: [op], summary: "アイドル編集")
-            // アイドルは update のみ (新規作成不可) だが、ローカル upsert はサーバ確定
-            // recordName に揃える (送信値ではなくサーバ権威値を使う。契約 #3)。
-            var saved = updated
-            saved.id = resp.primaryRecordName(fallback: updated.id) ?? updated.id
-            try await AppContainer.shared.idolWriting.upsertIdols([saved])
-            Logger.database.notice("idol_edit_saved id=\(saved.id, privacy: .public)")
-            dismiss()
+            let outcome = try await EditService.shared.submitMaster(ops: [op], summary: "アイドル編集")
+            switch outcome {
+            case .applied(let resp):
+                var saved = updated
+                saved.id = resp.primaryRecordName(fallback: updated.id) ?? updated.id
+                try await AppContainer.shared.idolWriting.upsertIdols([saved])
+                Logger.database.notice("idol_edit_saved id=\(saved.id, privacy: .public)")
+                dismiss()
+            case .requested:
+                requestSent = true
+            }
         } catch {
             errorMessage = "保存失敗: \(error.localizedDescription)"
         }

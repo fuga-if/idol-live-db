@@ -1,17 +1,32 @@
 import SwiftUI
 import NukeUI
 
+/// イントロドンのプレイ画面。本家 IntroQuiz の IntroRoundBody レイアウトに準拠:
+/// ステータス(EQ) → 中央の大きな「!」ボタン → ヒント → 操作列 → 回答エリア。
 struct IntroGameView: View {
     @Bindable var session: IntroGameSession
     @State private var showExitAlert = false
     @State private var autoNextTask: Task<Void, Never>? = nil
     @State private var speechService = SpeechRecognitionService()
     @State private var showSpeechDenied = false
+    @State private var didHoldPlay = false   // 再生ボタン: 長押し(=もう少し流す)とタップ(=頭出し)の判別
+    @State private var rushFlash = false      // Rush: ○/✕ エフェクトの表示中フラグ
+    @State private var rushFlashCorrect = true
+    @State private var rushFlashTask: Task<Void, Never>? = nil
     @Environment(\.dismiss) private var dismiss
+
+    private var isRush: Bool { session.settings.mode == .rush }
+    /// 高速形式 (押すまで流す・選択肢常時・即次へ)。Rush と 全曲チャレンジ。
+    private var isFast: Bool { session.settings.mode == .rush || session.settings.mode == .allSongs }
+
+    /// 音声判定 UI を出すか。音声モードでは常に音声 UI (選択肢は出さない)。
+    /// 未許可は voiceStatusCard で許可導線を出す。Rush は音声を使わず常に 4択。
+    private var useVoice: Bool {
+        session.settings.answerMode == .voice && !isFast
+    }
 
     var body: some View {
         ZStack {
-            // ダーク背景
             ID.bgDark.ignoresSafeArea()
 
             switch session.phase {
@@ -21,6 +36,15 @@ struct IntroGameView: View {
                 gameContent
             default:
                 EmptyView()
+            }
+
+            if rushFlash {
+                Image(systemName: rushFlashCorrect ? "circle" : "xmark")
+                    .font(.system(size: 96, weight: .heavy))
+                    .foregroundColor(rushFlashCorrect ? ID.correct : ID.incorrect)
+                    .shadow(color: (rushFlashCorrect ? ID.correct : ID.incorrect).opacity(0.5), radius: 16)
+                    .transition(.scale(scale: 0.6).combined(with: .opacity))
+                    .allowsHitTesting(false)
             }
         }
         .navigationBarBackButtonHidden(true)
@@ -41,6 +65,7 @@ struct IntroGameView: View {
             }
         }
         .toolbarColorScheme(.dark, for: .navigationBar)
+        .toolbar(.hidden, for: .tabBar)
         .alert("ゲームを終了しますか？", isPresented: $showExitAlert) {
             Button("終了", role: .destructive) {
                 stopSpeech()
@@ -61,9 +86,32 @@ struct IntroGameView: View {
         )) {
             IntroGameResultView(session: session)
         }
-        // 画面遷移の瞬間に Speech 認可リクエストを発射するとシステムの
-        // callback が遅れて actor 隔離違反でクラッシュする再現があったため、
-        // 認可は「音声入力」ボタンを押した時点で初めて要求する遅延発火に変更。
+        // 音声判定は「自動起動しない」(本家準拠)。再生中に録音セッションへ切替えると
+        // AVAudioSession 競合でクラッシュするため、voice 起動は buzz/マイクタップ時のみ。
+        // ここでは回答フェーズを抜けたら聴取を止めるだけ。
+        .onChange(of: session.phase) { _, newPhase in
+            if newPhase != .answering, speechService.isListening {
+                speechService.stopListening()
+            }
+        }
+        .task {
+            // 音声モードは開始時にマイク+音声認識をまとめて要求しておく
+            // (音声のみ許可済み・マイク未要求の取りこぼしを防ぐ)。
+            if session.settings.answerMode == .voice, speechService.authStatus != .authorized {
+                await speechService.requestAuthorization()
+            }
+        }
+        .onChange(of: session.rushFlashTick) { _, _ in
+            rushFlashCorrect = session.rushFlashCorrect
+            // アニメは flash 自身に限定 (ZStack 全体に乗せると出題切替までヌルッと
+            // 動いて "重い" 原因になる)。
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) { rushFlash = true }
+            rushFlashTask?.cancel()
+            rushFlashTask = Task { @MainActor in
+                try? await Task.sleep(nanoseconds: 350_000_000)
+                withAnimation(.easeOut(duration: 0.2)) { rushFlash = false }
+            }
+        }
         .onDisappear {
             stopSpeech()
             session.stopPlayback()
@@ -94,53 +142,115 @@ struct IntroGameView: View {
                 .padding(.top, 8)
                 .padding(.bottom, 10)
 
-            IDProgressBar(
-                progress: session.totalCount > 0
-                    ? Double(session.currentIndex) / Double(session.totalCount)
-                    : 0,
-                color: ID.accentPink,
-                bgColor: ID.surfaceDarkSubtle,
-                height: 3
-            )
-            .padding(.horizontal, 20)
-            .padding(.bottom, 16)
+            progressBar
+                .padding(.horizontal, 20)
+                .padding(.bottom, 8)
 
-            questionCard
-                .padding(.horizontal, 16)
-
-            Spacer(minLength: 12)
-
-            switch session.phase {
-            case .answering:
-                choicesArea
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 16)
-            case .revealed:
-                revealedArea
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 16)
-            default:
-                earlyAnswerArea
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 16)
+            if session.phase == .revealed {
+                revealedBody
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .padding(.horizontal, 20)
+            } else {
+                roundBody
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .padding(.horizontal, 20)
             }
         }
     }
 
-    // MARK: - Header
+    // MARK: - Round Body (本家 IntroRoundBody 準拠)
+
+    private var roundBody: some View {
+        GeometryReader { geo in
+            let buzzSize = min(geo.size.height * 0.24, 168)
+            VStack(spacing: 0) {
+                Spacer(minLength: 0)
+
+                statusArea
+                    .frame(height: 60)
+
+                // 通常モードは中央の大きな「!」ボタンで早押し → 回答。
+                // 高速形式(Rush/全曲)は押すまで流し選択肢を常時出すのでボタンは出さない。
+                if !isFast {
+                    buzzButton(size: buzzSize)
+                        .frame(height: buzzSize)
+                    buzzHint
+                        .frame(height: 16)
+                        .padding(.top, 8)
+                }
+
+                controlsRow
+                    .frame(height: 46)
+                    .padding(.top, 16)
+
+                answerArea
+                    .padding(.top, 14)
+                    .opacity(showAnswer ? 1 : 0)
+                    .allowsHitTesting(showAnswer)
+
+                Spacer(minLength: 0)
+            }
+            .frame(width: geo.size.width, height: geo.size.height)
+        }
+    }
+
+    /// 回答エリアを出すか。Rush は常時、通常は回答フェーズのみ。
+    private var showAnswer: Bool { isFast || session.phase == .answering }
+
+    // MARK: - Header / Progress
 
     private var headerBar: some View {
         HStack(spacing: 12) {
-            Text("\(session.currentIndex + 1) / \(session.totalCount)")
-                .font(ID.font(13, weight: .bold))
-                .monospacedDigit()
-                .foregroundColor(ID.t2)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(ID.surfaceDarkCard)
-                .clipShape(IDCorner(radius: 8))
+            if isRush {
+                rushTimePill
+            } else {
+                Text("\(session.currentIndex + 1) / \(session.totalCount)")
+                    .font(ID.font(13, weight: .bold))
+                    .monospacedDigit()
+                    .foregroundColor(ID.t2)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(ID.surfaceDarkCard)
+                    .clipShape(IDCorner(radius: 8))
+            }
+
+            // 全曲チャレンジ: ライブ経過タイム (タイムを競う)。
+            if session.isAllSongsChallenge {
+                TimelineView(.periodic(from: .now, by: 0.1)) { _ in
+                    let secs = Int(session.elapsedSoFar)
+                    Label(String(format: "%d:%02d", secs / 60, secs % 60), systemImage: "stopwatch")
+                        .font(ID.font(14, weight: .black))
+                        .monospacedDigit()
+                        .foregroundColor(ID.accentGold)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(ID.accentGold.opacity(0.14))
+                        .clipShape(IDCorner(radius: 8))
+                }
+            }
 
             Spacer()
+
+            // コンボ (本家準拠): 2連続以上で炎+×N、伸びるほど派手に。
+            if session.combo >= 2 {
+                let tier = session.combo
+                let color: Color = tier >= 8 ? ID.accentPink : (tier >= 5 ? ID.accentGold : ID.accentPurple)
+                HStack(spacing: 3) {
+                    Image(systemName: "flame.fill")
+                        .font(.imasScaled( tier >= 5 ? 14 : 12, weight: .bold))
+                    Text("×\(session.combo)")
+                        .font(ID.font(tier >= 5 ? 17 : 14, weight: .black))
+                        .monospacedDigit()
+                }
+                .foregroundColor(color)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(color.opacity(0.14))
+                .clipShape(IDCorner(radius: 8))
+                .id(session.combo)
+                .transition(.scale.combined(with: .opacity))
+                .animation(.spring(response: 0.3, dampingFraction: 0.6), value: session.combo)
+            }
 
             HStack(spacing: 5) {
                 Image(systemName: "checkmark.circle.fill")
@@ -158,264 +268,230 @@ struct IntroGameView: View {
         }
     }
 
-    // MARK: - Question Card
-
-    private var questionCard: some View {
-        ZStack {
-            IDCorner()
-                .fill(ID.surfaceDarkCard)
-                .shadow(color: Color.black.opacity(0.35), radius: 16, y: 8)
-
-            // Glow border when playing
-            if session.phase == .playing && session.isPlayingIntro {
-                IDCorner()
-                    .stroke(
-                        LinearGradient(
-                            colors: [ID.accentPurple.opacity(0.8), ID.accentBlue.opacity(0.4)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 1.5
-                    )
-            }
-
-            VStack(spacing: 20) {
-                cardVisual
-                cardLabel
-            }
-            .padding(24)
+    private var rushTimePill: some View {
+        let urgent = session.rushRemaining <= 10
+        let secs = Int(session.rushRemaining.rounded(.up))
+        return HStack(spacing: 5) {
+            Image(systemName: "timer")
+                .font(.imasScaled( 12, weight: .bold))
+            Text(String(format: "%d:%02d", secs / 60, secs % 60))
+                .font(ID.font(15, weight: .black))
+                .monospacedDigit()
         }
-        .frame(maxWidth: .infinity)
-        .frame(minHeight: 230)
-        .animation(.easeInOut(duration: 0.3), value: session.phase)
+        .foregroundColor(urgent ? ID.incorrect : ID.t0)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .background((urgent ? ID.incorrect : ID.accentPurple).opacity(0.14))
+        .clipShape(IDCorner(radius: 8))
+        .animation(.easeInOut(duration: 0.2), value: urgent)
     }
 
-    @ViewBuilder
-    private var cardVisual: some View {
-        switch session.phase {
-        case .playing:
-            VStack(spacing: 10) {
-                IDEQAnimation(
-                    columns: 16,
-                    rows: 5,
-                    dotSize: 9,
-                    spacing: 3,
-                    color: ID.t0,
-                    isAnimating: session.isPlayingIntro
-                )
-                .frame(height: 65)
-
-                if session.isPlayingIntro {
-                    HStack(spacing: 6) {
-                        PulseDot(color: ID.accentPurple)
-                        Text("再生中")
-                            .font(ID.font(12, weight: .bold))
-                            .foregroundColor(ID.t2)
-                        PulseDot(color: ID.accentBlue)
-                    }
-                }
-            }
-
-        case .revealed:
-            if let q = session.currentQuestion,
-               let artworkUrl = q.artworkUrl,
-               let url = URL(string: artworkUrl) {
-                LazyImage(url: url) { state in
-                    if let image = state.image {
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                            .frame(width: 110, height: 110)
-                            .clipShape(IDCorner(radius: 16))
-                            .shadow(color: Color.black.opacity(0.3), radius: 10, y: 5)
-                    } else {
-                        musicNoteIcon(size: 110)
-                    }
-                }
-                .frame(width: 110, height: 110)
-            } else {
-                musicNoteIcon(size: 110)
-            }
-
-        default:
-            ZStack {
-                IDCorner(radius: 40)
-                    .fill(
-                        LinearGradient(
-                            colors: [ID.accentPurple.opacity(0.25), ID.accentBlue.opacity(0.15)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .frame(width: 96, height: 96)
-
-                Text("?")
-                    .font(.imasScaled( 50, weight: .black, design: .rounded))
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [ID.accentPurple, ID.accentBlue],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-            }
-        }
-    }
-
-    private func musicNoteIcon(size: CGFloat) -> some View {
-        ZStack {
-            IDCorner(radius: 16)
-                .fill(ID.surfaceDarkSubtle)
-                .frame(width: size, height: size)
-            Image(systemName: "music.note")
-                .font(.imasScaled( size * 0.32))
-                .foregroundColor(ID.t3)
-        }
-    }
-
-    @ViewBuilder
-    private var cardLabel: some View {
-        switch session.phase {
-        case .revealed:
-            if let q = session.currentQuestion {
-                VStack(spacing: 8) {
-                    Text(q.title)
-                        .font(ID.font(18, weight: .bold))
-                        .foregroundColor(ID.t0)
-                        .multilineTextAlignment(.center)
-
-                    if let isCorrect = session.isCorrect {
-                        resultBadge(isCorrect: isCorrect, skipped: session.selectedTitle == nil)
-                    }
-                }
-            }
-
-        case .answering:
-            Text("曲名を選んでください")
-                .font(ID.font(13, weight: .semibold))
-                .foregroundColor(ID.t2)
-
-        default:
-            Text("イントロを聴いてください")
-                .font(ID.font(13, weight: .semibold))
-                .foregroundColor(ID.t2.opacity(0.8))
-        }
-    }
-
-    private func resultBadge(isCorrect: Bool, skipped: Bool) -> some View {
-        let label: String
-        let tint: Color
-        let icon: String
-        if isCorrect {
-            label = "正解！"
-            tint  = ID.correct
-            icon  = "checkmark.circle.fill"
-        } else if skipped {
-            label = "スキップ"
-            tint  = ID.incorrect
-            icon  = "xmark.circle.fill"
+    private var progressBar: some View {
+        let progress: Double
+        let color: Color
+        if isRush {
+            let limit = session.settings.rushTimeLimit
+            progress = limit > 0 ? session.rushRemaining / limit : 0
+            color = session.rushRemaining <= 10 ? ID.incorrect : ID.accentPurple
         } else {
-            label = "不正解"
-            tint  = ID.incorrect
-            icon  = "xmark.circle.fill"
+            progress = session.totalCount > 0
+                ? Double(session.currentIndex) / Double(session.totalCount)
+                : 0
+            color = ID.accentPink
         }
-        return Label(label, systemImage: icon)
-            .font(ID.font(13, weight: .bold))
-            .foregroundColor(tint)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 6)
-            .background(tint.opacity(0.15))
-            .clipShape(IDCorner(radius: 8))
+        return IDProgressBar(progress: progress, color: color, bgColor: ID.surfaceDarkSubtle, height: 3)
     }
 
-    // MARK: - Early Answer (再生中の早押し)
+    // MARK: - Status Area
 
-    private var earlyAnswerArea: some View {
-        VStack(spacing: 8) {
-            if session.isPlayingIntro, let q = session.currentQuestion {
-                Text("早押し可能！")
-                    .font(ID.font(11, weight: .bold))
-                    .tracking(1.5)
-                    .foregroundColor(ID.accentPurple.opacity(0.7))
-                    .padding(.bottom, 2)
+    @ViewBuilder
+    private var statusArea: some View {
+        switch session.phase {
+        case .playing where isFast:
+            VStack(spacing: 8) {
+                Image(systemName: session.isPlayingIntro ? "speaker.wave.2.fill" : "music.note")
+                    .font(.imasScaled( 24, weight: .bold))
+                    .foregroundColor(ID.t0)
+                Text("曲名は？")
+                    .font(ID.font(13, weight: .black))
+                    .tracking(2)
+                    .foregroundColor(ID.t2)
+            }
+        case .playing:
+            IDEQAnimation(columns: 16, rows: 5, dotSize: 7, spacing: 2,
+                          color: ID.t0, isAnimating: session.isPlayingIntro)
+                .frame(height: 50)
+        case .answering:
+            Text(useVoice ? "曲名を声で答えてください" : "曲名を選んでください")
+                .font(ID.font(14, weight: .bold))
+                .foregroundColor(ID.t2)
+        default:
+            EmptyView()
+        }
+    }
 
-                VStack(spacing: 6) {
-                    ForEach(q.choices, id: \.self) { title in
-                        IDChoiceButton(title: title) {
-                            AppAnalytics.tap("intro_game.choose_answer")
-                            session.submitAnswer(title)
-                        }
-                    }
-                }
+    // MARK: - Buzz Button
+
+    private func buzzButton(size: CGFloat) -> some View {
+        let canBuzz = session.phase == .playing
+        return Button {
+            AppAnalytics.tap("intro_game.buzz")
+            session.buzzToAnswer()
+            // 本家準拠: buzz したら (音声モードなら) ここで音声判定を起動する。
+            if useVoice { beginVoiceListening() }
+        } label: {
+            Text("!")
+                .font(.system(size: max(48, size * 0.45), weight: .black, design: .rounded))
+                .foregroundColor(canBuzz ? ID.bgDark : ID.t3)
+                .frame(width: size, height: size)
+                .background(canBuzz ? ID.t0 : ID.surfaceDarkCard)
+                .clipShape(Circle())
+                .shadow(color: canBuzz ? ID.t0.opacity(0.25) : .clear, radius: 16, y: 6)
+        }
+        .idPress()
+        .disabled(!canBuzz)
+    }
+
+    @ViewBuilder
+    private var buzzHint: some View {
+        if session.phase == .playing {
+            Text("わかったらタップ")
+                .font(ID.font(12, weight: .semibold))
+                .foregroundColor(ID.t2)
+        } else {
+            Color.clear
+        }
+    }
+
+    // MARK: - Controls Row (頭出し / もう少し流す / スキップ)
+
+    private var controlsRow: some View {
+        HStack(spacing: 28) {
+            controlButton(icon: "arrow.counterclockwise", label: "もう一度") {
+                AppAnalytics.tap("intro_game.replay")
+                stopSpeech()
+                Task { await session.replayIntro() }
             }
 
-            // スキップボタン
-            Button {
+            // 長押しで「もう少し流す」、タップでも頭出し。
+            VStack(spacing: 4) {
+                ZStack {
+                    Circle()
+                        .fill(session.isPlayingIntro ? ID.accentPurple : ID.surfaceDarkCard)
+                        .frame(width: 46, height: 46)
+                    Image(systemName: session.isPlayingIntro ? "waveform" : "play.fill")
+                        .font(.imasScaled( 17, weight: .bold))
+                        .foregroundColor(session.isPlayingIntro ? ID.t0 : ID.accentPurple)
+                }
+                .scaleEffect(didHoldPlay ? 0.9 : 1.0)
+                .animation(.easeInOut(duration: 0.12), value: didHoldPlay)
+                .onLongPressGesture(minimumDuration: 0.2, maximumDistance: 100) {
+                    didHoldPlay = true
+                    AppAnalytics.tap("intro_game.play_more")
+                    stopSpeech()
+                    session.continueIntro()
+                } onPressingChanged: { pressing in
+                    if pressing {
+                        didHoldPlay = false
+                    } else if didHoldPlay {
+                        didHoldPlay = false
+                        session.pauseHeldIntro()
+                    } else {
+                        stopSpeech()
+                        Task { await session.replayIntro() }
+                    }
+                }
+                Text(session.isPlayingIntro ? "再生中" : "続きから")
+                    .font(ID.font(10, weight: .semibold))
+                    .foregroundColor(ID.t3)
+            }
+
+            controlButton(icon: "forward.end.fill", label: "次の曲") {
                 AppAnalytics.tap("intro_game.skip")
                 stopSpeech()
                 session.skipQuestion()
-            } label: {
-                Text("スキップ")
-                    .font(ID.font(13, weight: .semibold))
-                    .foregroundColor(ID.t3)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 10)
             }
         }
+        .frame(maxWidth: .infinity)
     }
 
-    // MARK: - Choices (answering phase)
-
-    private var choicesArea: some View {
-        VStack(spacing: 0) {
-            // 音声入力ステータス
-            if speechService.isListening || !speechService.recognizedText.isEmpty {
-                speechStatusRow
-                    .padding(.bottom, 8)
+    private func controlButton(icon: String, label: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(spacing: 4) {
+                ZStack {
+                    Circle().fill(ID.surfaceDarkCard).frame(width: 46, height: 46)
+                    Image(systemName: icon)
+                        .font(.imasScaled( 16, weight: .bold))
+                        .foregroundColor(ID.t1)
+                }
+                Text(label)
+                    .font(ID.font(10, weight: .semibold))
+                    .foregroundColor(ID.t3)
             }
+        }
+        .idPress()
+    }
 
+    // MARK: - Answer Area
+
+    @ViewBuilder
+    private var answerArea: some View {
+        if useVoice {
+            voiceAnswerArea
+        } else if let q = session.currentQuestion {
             VStack(spacing: 8) {
-                if let q = session.currentQuestion {
-                    ForEach(q.choices, id: \.self) { title in
-                        IDChoiceButton(title: title) {
-                            AppAnalytics.tap("intro_game.choose_answer")
-                            stopSpeech()
-                            session.submitAnswer(title)
-                        }
+                ForEach(q.choices, id: \.self) { title in
+                    IDChoiceButton(title: title) {
+                        AppAnalytics.tap("intro_game.choose_answer")
+                        stopSpeech()
+                        session.submitAnswer(title)
                     }
                 }
             }
-
-            Spacer().frame(height: 10)
-
-            HStack(spacing: 12) {
-                micButton
-                skipButton
-            }
         }
     }
 
-    private var speechStatusRow: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "mic.fill")
-                .font(.imasScaled( 12))
-                .foregroundColor(ID.accentPink)
-            if speechService.recognizedText.isEmpty {
-                Text("聴取中...")
+    // MARK: - Voice (音声判定)
+
+    private var voiceAnswerArea: some View {
+        VStack(spacing: 12) {
+            voiceStatusCard
+            micButton
+        }
+    }
+
+    private var voiceStatusCard: some View {
+        VStack(spacing: 8) {
+            if speechService.authStatus == .denied || speechService.authStatus == .restricted {
+                Text("設定アプリでマイクと音声認識を許可してください")
+                    .font(ID.font(13, weight: .semibold))
+                    .foregroundColor(ID.incorrect)
+                    .multilineTextAlignment(.center)
+            } else if speechService.authStatus == .notDetermined {
+                Text("マイクをタップして声で回答")
                     .font(ID.font(13, weight: .semibold))
                     .foregroundColor(ID.t2)
+            } else if speechService.isListening {
+                HStack(spacing: 8) {
+                    PulseDot(color: ID.accentPink)
+                    Text(speechService.recognizedText.isEmpty
+                        ? "聴取中… 曲名を声で答えてください"
+                        : "「\(speechService.recognizedText)」")
+                        .font(ID.font(14, weight: .bold))
+                        .foregroundColor(speechService.recognizedText.isEmpty ? ID.t2 : ID.t0)
+                        .lineLimit(1)
+                }
             } else {
-                Text("「\(speechService.recognizedText)」")
+                // 聴取していない時は前回の認識テキストを出さない (次の曲に残らないように)。
+                Text("マイクをタップして回答")
                     .font(ID.font(13, weight: .semibold))
-                    .foregroundColor(ID.t1)
-                    .lineLimit(1)
+                    .foregroundColor(ID.t2)
             }
-            Spacer()
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
-        .background(ID.accentPink.opacity(0.08))
-        .clipShape(IDCorner(radius: 8))
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 18)
+        .background(ID.accentPink.opacity(speechService.isListening ? 0.12 : 0.06))
+        .clipShape(IDCorner(radius: 14))
     }
 
     private var micButton: some View {
@@ -423,43 +499,41 @@ struct IntroGameView: View {
             AppAnalytics.tap("intro_game.mic_toggle")
             handleMicTap()
         } label: {
-            HStack(spacing: 6) {
+            HStack(spacing: 8) {
                 Image(systemName: speechService.isListening ? "mic.slash.fill" : "mic.fill")
-                    .font(.imasScaled( 13, weight: .semibold))
-                Text(speechService.isListening ? "停止" : "音声入力")
-                    .font(ID.font(13, weight: .semibold))
+                    .font(.imasScaled( 15, weight: .bold))
+                Text(speechService.isListening ? "聴取を停止" : "マイクで回答")
+                    .font(ID.font(14, weight: .bold))
             }
-            .foregroundColor(speechService.isListening ? ID.incorrect : ID.t2)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
-            .background(speechService.isListening ? ID.incorrect.opacity(0.12) : ID.surfaceDarkCard)
-            .clipShape(IDCorner(radius: 10))
-        }
-        .idPress()
-    }
-
-    private var skipButton: some View {
-        Button {
-            AppAnalytics.tap("intro_game.skip")
-            stopSpeech()
-            session.skipQuestion()
-        } label: {
-            Text("スキップ")
-                .font(ID.font(13, weight: .semibold))
-                .foregroundColor(ID.t3)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 10)
-                .background(ID.surfaceDarkSubtle)
-                .clipShape(IDCorner(radius: 10))
+            .foregroundColor(speechService.isListening ? ID.incorrect : ID.t0)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .background(speechService.isListening ? ID.incorrect.opacity(0.12) : ID.accentPink.opacity(0.18))
+            .clipShape(IDCorner(radius: 12))
         }
         .idPress()
     }
 
     // MARK: - Revealed
 
-    private var revealedArea: some View {
-        VStack(spacing: 10) {
+    private var revealedBody: some View {
+        VStack(spacing: 14) {
+            Spacer(minLength: 0)
+
+            if let isCorrect = session.isCorrect {
+                Image(systemName: isCorrect ? "checkmark.circle.fill" : "xmark.circle.fill")
+                    .font(.system(size: 40, weight: .bold))
+                    .foregroundColor(isCorrect ? ID.correct : ID.incorrect)
+            }
+
             if let q = session.currentQuestion {
+                artwork(for: q)
+
+                Text(q.title)
+                    .font(ID.font(20, weight: .black))
+                    .foregroundColor(ID.t0)
+                    .multilineTextAlignment(.center)
+
                 IDAnswerReveal(
                     title: q.title,
                     choices: q.choices,
@@ -468,14 +542,12 @@ struct IntroGameView: View {
                 )
             }
 
-            Spacer().frame(height: 4)
-
             Button {
                 AppAnalytics.tap("intro_game.next")
                 autoNextTask?.cancel()
                 Task { await session.nextQuestion() }
             } label: {
-                let isLast = session.currentIndex + 1 >= session.totalCount
+                let isLast = !isRush && session.currentIndex + 1 >= session.totalCount
                 HStack(spacing: 8) {
                     Text(isLast ? "結果を見る" : "次の問題へ")
                         .font(ID.font(16, weight: .bold))
@@ -484,23 +556,53 @@ struct IntroGameView: View {
                 }
                 .foregroundColor(ID.menuCardDarkText)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
+                .padding(.vertical, 15)
                 .background(ID.menuCardDark)
                 .clipShape(IDCorner())
-                .shadow(color: Color.black.opacity(0.2), radius: 10, y: 4)
             }
             .idPress()
+
+            Spacer(minLength: 0)
         }
         .onAppear {
+            let delay: UInt64 = isRush ? 1_400_000_000 : 5_000_000_000
             autoNextTask?.cancel()
             autoNextTask = Task { @MainActor in
-                try? await Task.sleep(nanoseconds: 5_000_000_000)
+                try? await Task.sleep(nanoseconds: delay)
                 guard !Task.isCancelled else { return }
                 await session.nextQuestion()
             }
         }
-        .onDisappear {
-            autoNextTask?.cancel()
+        .onDisappear { autoNextTask?.cancel() }
+    }
+
+    @ViewBuilder
+    private func artwork(for q: IntroGameQuestion) -> some View {
+        if let artworkUrl = q.artworkUrl, let url = URL(string: artworkUrl) {
+            LazyImage(url: url) { state in
+                if let image = state.image {
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: 110, height: 110)
+                        .clipShape(IDCorner(radius: 16))
+                        .shadow(color: Color.black.opacity(0.3), radius: 10, y: 5)
+                } else {
+                    musicNoteIcon(size: 110)
+                }
+            }
+            .frame(width: 110, height: 110)
+        } else {
+            musicNoteIcon(size: 110)
+        }
+    }
+
+    private func musicNoteIcon(size: CGFloat) -> some View {
+        ZStack {
+            IDCorner(radius: 16).fill(ID.surfaceDarkSubtle).frame(width: size, height: size)
+            Image(systemName: "music.note")
+                .font(.imasScaled( size * 0.32))
+                .foregroundColor(ID.t3)
         }
     }
 
@@ -511,12 +613,11 @@ struct IntroGameView: View {
             stopSpeech()
             return
         }
-        // 未判定のときはここで認可をリクエスト (画面遷移時の eager request を避けるため)
         if speechService.authStatus == .notDetermined {
             Task {
                 await speechService.requestAuthorization()
                 if speechService.authStatus == .authorized {
-                    beginSpeechListening()
+                    beginVoiceListening()
                 } else {
                     showSpeechDenied = true
                 }
@@ -527,15 +628,23 @@ struct IntroGameView: View {
             showSpeechDenied = true
             return
         }
-        beginSpeechListening()
+        beginVoiceListening()
     }
 
-    private func beginSpeechListening() {
-        guard let q = session.currentQuestion else { return }
+    /// 本家 SoloCoordinator.buzz と同じ順序: SwiftUI に1フレーム描かせてから
+    /// 再生を完全停止 (stop+deactivate) → voice 起動。すべて1つの Task で順次実行する。
+    private func beginVoiceListening() {
+        guard let q = session.currentQuestion, !speechService.isListening else { return }
+        let title = q.title
         speechService.onMatch = { [weak session] match in
             session?.submitAnswer(match)
         }
-        speechService.startListening(choices: q.choices)
+        Task { @MainActor in
+            await Task.yield()                       // 1フレーム描画させる (本家)
+            session.releasePlaybackForRecording()    // 再生を完全停止+セッション解放 (本家 musicPlayback.stop)
+            guard session.phase == .answering, !speechService.isListening else { return }
+            speechService.startListening(choices: [title])   // 本家 voice.start
+        }
     }
 
     private func stopSpeech() {
@@ -572,7 +681,7 @@ private struct IDChoiceButton: View {
                     .foregroundColor(ID.t3)
             }
             .padding(.horizontal, 14)
-            .padding(.vertical, 14)
+            .padding(.vertical, 13)
             .background(ID.surfaceDarkCard)
             .clipShape(IDCorner(radius: 14))
             .overlay(

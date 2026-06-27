@@ -36,6 +36,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fugaif.imaslivedb.data.model.EventWithDate
 import com.fugaif.imaslivedb.ui.components.BrandColorBar
+import com.fugaif.imaslivedb.ui.components.ImasListSkeleton
+import com.fugaif.imaslivedb.ui.components.SkeletonThumb
 import com.fugaif.imaslivedb.ui.components.ImasLeadBar
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.components.BrandFilterChips
@@ -95,9 +97,7 @@ fun EventListScreen(
             HorizontalDivider()
 
             if (uiState.isLoading) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
+                ImasListSkeleton(rows = 10, thumb = SkeletonThumb.None)
             } else {
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                     uiState.groupedByYear.forEach { group ->

@@ -49,7 +49,7 @@ struct MyPickToggleButton: View {
             try? UserMarkService.shared.toggle(.myPick, entity: .idol, id: id)
             refresh.toggle()
         } label: {
-            Image(systemName: isMyPick ? "p.circle.fill" : "p.circle")
+            Image(systemName: isMyPick ? "heart.fill" : "heart")
                 .font(.imasScaled( size))
                 .foregroundStyle(isMyPick ? .pink : .secondary)
                 .frame(minWidth: 44, minHeight: 44)

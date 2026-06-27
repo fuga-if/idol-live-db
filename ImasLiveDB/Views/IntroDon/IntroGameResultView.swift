@@ -4,9 +4,67 @@ struct IntroGameResultView: View {
     let session: IntroGameSession
     @Environment(\.dismiss) private var dismiss
 
+    /// 実際に回答した問題数 (スキップ含む)。正答率の母数。
+    /// Rush は候補曲(最大300)を全部出せるわけがないので totalCount ではなく回答数で割る。
+    private var answered: Int { session.records.count }
+
     private var percentage: Int {
-        guard session.totalCount > 0 else { return 0 }
-        return session.score * 100 / session.totalCount
+        guard answered > 0 else { return 0 }
+        return session.score * 100 / answered
+    }
+
+    private func timeString(_ t: TimeInterval) -> String {
+        let s = Int(t.rounded())
+        return String(format: "%d:%02d", s / 60, s % 60)
+    }
+
+    private var modeLabel: String {
+        if session.isAllSongsChallenge { return "全曲チャレンジ" }
+        switch session.settings.mode {
+        case .rush: return "ラッシュ \(Int(session.settings.rushTimeLimit))秒"
+        case .party: return "パーティ対戦"
+        case .allSongs, .normal: return "ノーマル"
+        }
+    }
+
+    /// 結果カードを画像化してシェア (本家宣伝フッター付き)。
+    private func shareResultImage() {
+        // 全曲チャレンジは曲数が多すぎて内訳が無意味なのでサマリ+タイムのみ。
+        let lines = session.isAllSongsChallenge
+            ? []
+            : session.records.map { IntroShareLine(title: $0.title, correct: $0.correct) }
+        let card = IntroResultShareCard(
+            modeLabel: modeLabel,
+            score: session.score,
+            total: answered,
+            percentage: percentage,
+            timeText: session.isAllSongsChallenge ? timeString(session.elapsedTime) : nil,
+            bestCombo: session.bestCombo,
+            lines: lines
+        )
+        let image = IntroShareImageRenderer.render(size: CGSize(width: 1080, height: 1350)) { card }
+        IntroShareImageRenderer.share(image: image, text: shareText)
+    }
+
+    /// シェア用テキスト (本家アプリの宣伝も兼ねる)。
+    private var shareText: String {
+        let pct = percentage
+        let base: String
+        if session.isAllSongsChallenge {
+            base = "🎵イントロドン 全曲チャレンジ \(timeString(session.elapsedTime))・正答率\(pct)% (\(session.score)/\(answered))"
+        } else {
+            switch session.settings.mode {
+            case .rush:
+                let secs = Int(session.settings.rushTimeLimit)
+                base = "🎵イントロドン・ラッシュ \(secs)秒で \(session.score)問正解！(正答率\(pct)%)"
+            case .party:
+                base = "🎵イントロドン パーティ対戦であそんだよ！"
+            case .allSongs, .normal:
+                base = "🎵イントロドンで \(session.score)/\(answered) 正解！(正答率\(pct)%)"
+            }
+        }
+        let combo = session.bestCombo >= 2 ? " 最大\(session.bestCombo)連続🔥" : ""
+        return base + combo + "\n#イントロドン #アイマス"
     }
 
     var body: some View {
@@ -16,7 +74,11 @@ struct IntroGameResultView: View {
                     .padding(.horizontal, 20)
                     .padding(.top, 24)
 
-                if session.isNewBest {
+                if session.isAllSongsChallenge && session.newBestTimeAchieved {
+                    banner(icon: "stopwatch.fill", text: "ベストタイム更新！", tag: "NEW TIME")
+                        .padding(.horizontal, 20)
+                        .padding(.top, 12)
+                } else if session.isNewBest {
                     bestBanner
                         .padding(.horizontal, 20)
                         .padding(.top, 12)
@@ -53,7 +115,7 @@ struct IntroGameResultView: View {
                     Text("\(session.score)")
                         .font(ID.font(64, weight: .black))
                         .foregroundColor(ID.menuText)
-                    Text("/ \(session.totalCount)")
+                    Text("/ \(answered)")
                         .font(ID.font(22, weight: .bold))
                         .foregroundColor(ID.menuTextSecondary)
                         .padding(.bottom, 6)
@@ -62,6 +124,15 @@ struct IntroGameResultView: View {
                 Text("正答率 \(percentage)%")
                     .font(ID.font(16, weight: .bold))
                     .foregroundColor(ID.menuTextSecondary)
+
+                // 全曲チャレンジはタイムを競う。
+                if session.isAllSongsChallenge {
+                    Label(timeString(session.elapsedTime), systemImage: "stopwatch")
+                        .font(ID.font(15, weight: .bold))
+                        .foregroundColor(ID.menuText)
+                        .monospacedDigit()
+                        .padding(.top, 2)
+                }
             }
 
             // Grade badge
@@ -96,15 +167,19 @@ struct IntroGameResultView: View {
     }
 
     private var bestBanner: some View {
+        banner(icon: "star.fill", text: "ベストスコア更新！", tag: "NEW BEST")
+    }
+
+    private func banner(icon: String, text: String, tag: String) -> some View {
         HStack(spacing: 10) {
-            Image(systemName: "star.fill")
+            Image(systemName: icon)
                 .foregroundColor(ID.accentGold)
                 .font(.imasScaled( 16))
-            Text("ベストスコア更新！")
+            Text(text)
                 .font(ID.font(14, weight: .bold))
                 .foregroundColor(ID.menuText)
             Spacer()
-            Text("NEW BEST")
+            Text(tag)
                 .font(ID.font(10, weight: .bold))
                 .tracking(1.5)
                 .foregroundColor(ID.accentGold)
@@ -171,6 +246,25 @@ struct IntroGameResultView: View {
 
     private var actionButtons: some View {
         VStack(spacing: 12) {
+            Button {
+                AppAnalytics.tap("intro_game_result.share")
+                shareResultImage()
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "square.and.arrow.up")
+                        .font(.imasScaled( 15, weight: .semibold))
+                    Text("結果を画像でシェア")
+                        .font(ID.font(16, weight: .bold))
+                }
+                .foregroundColor(ID.menuText)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 15)
+                .background(ID.menuCardSubtle)
+                .clipShape(IDCorner())
+                .overlay(IDCorner().stroke(ID.menuDivider, lineWidth: 1))
+            }
+            .idPress()
+
             NavigationLink {
                 IntroGameSetupView()
             } label: {

@@ -39,6 +39,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fugaif.imaslivedb.data.model.Brand
 import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.ui.components.BrandFilterChips
+import com.fugaif.imaslivedb.ui.components.ImasListSkeleton
+import com.fugaif.imaslivedb.ui.components.SkeletonThumb
 import com.fugaif.imaslivedb.ui.components.BrandFilterItem
 import com.fugaif.imaslivedb.ui.components.ImasAvatar
 import com.fugaif.imaslivedb.ui.theme.DS
@@ -90,7 +92,7 @@ fun IdolListScreen(
             )
 
             if (state.isLoading) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+                ImasListSkeleton(rows = 12, thumb = SkeletonThumb.Circle)
             } else {
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                     visibleBrands.forEach { brand ->

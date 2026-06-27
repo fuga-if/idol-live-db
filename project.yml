@@ -52,8 +52,8 @@ targets:
         CODE_SIGN_STYLE: Automatic
         PRODUCT_BUNDLE_IDENTIFIER: com.fugaif.ImasLiveDB
         PRODUCT_NAME: ImasLiveDB
-        MARKETING_VERSION: "1.7.2"
-        CURRENT_PROJECT_VERSION: "41"
+        MARKETING_VERSION: "1.8.0"
+        CURRENT_PROJECT_VERSION: "42"
         INFOPLIST_KEY_CFBundleDisplayName: アイドルライブDB
         INFOPLIST_KEY_CFBundleDevelopmentRegion: ja
         INFOPLIST_KEY_CFBundleAllowMixedLocalizations: YES
@@ -103,6 +103,7 @@ targets:
         com.apple.developer.icloud-services:
           - CloudKit
         com.apple.developer.icloud-container-environment: Production
+        com.apple.developer.ubiquity-kvstore-identifier: $(TeamIdentifierPrefix)$(CFBundleIdentifier)
         com.apple.security.application-groups:
           - group.com.fugaif.ImasLiveDB
     dependencies:
@@ -147,8 +148,8 @@ targets:
         CODE_SIGN_STYLE: Automatic
         PRODUCT_BUNDLE_IDENTIFIER: com.fugaif.ImasLiveDB.widget
         PRODUCT_NAME: ImasLiveDBWidget
-        MARKETING_VERSION: "1.7.2"
-        CURRENT_PROJECT_VERSION: "41"
+        MARKETING_VERSION: "1.8.0"
+        CURRENT_PROJECT_VERSION: "42"
         INFOPLIST_KEY_CFBundleDisplayName: 担当ウィジェット
         SWIFT_VERSION: "6.0"
         SWIFT_STRICT_CONCURRENCY: complete

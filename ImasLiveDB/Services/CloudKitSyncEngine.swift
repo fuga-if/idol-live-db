@@ -77,6 +77,19 @@ final class CloudKitSyncEngine: @unchecked Sendable {
 
     private static let maxRetries = 3
 
+    /// 同期の再入防止 (フォアグラウンド復帰トリガと起動 sync が重ならないように)。
+    private var running = false
+
+    // フルsyncの途中再開用。中断 (バックグラウンド suspend 等) されても、
+    // 完了済みステップを覚えておき、次回は残りのステップだけ取得する。
+    private let pendingFullStartKey = "sync_pending_full_start"   // Double (epoch秒)
+    private let pendingFullDoneKey = "sync_pending_full_done"     // [String] recordType
+
+    /// フルsyncが途中 (未完了) で保留されているか。
+    var hasPendingFullSync: Bool {
+        UserDefaults.standard.object(forKey: pendingFullStartKey) != nil
+    }
+
     /// 同期順序（外部キー依存関係を考慮）
     private let syncSteps: [SyncStep] = [
         // Phase 1: 独立テーブル
@@ -144,7 +157,10 @@ final class CloudKitSyncEngine: @unchecked Sendable {
             }
         }
         let shouldFull: Bool
-        if let last = (try? database.lastFullSyncDate()) ?? nil {
+        if hasPendingFullSync {
+            // 前回のフルsyncが途中で中断されている → 残りを再開 (フル扱い)。
+            shouldFull = true
+        } else if let last = (try? database.lastFullSyncDate()) ?? nil {
             shouldFull = Date().timeIntervalSince(last) > 24 * 3600
         } else {
             shouldFull = true
@@ -169,6 +185,11 @@ final class CloudKitSyncEngine: @unchecked Sendable {
     // MARK: - Private
 
     private func performSync(database: AppDatabase, modifiedSince: Date?) async {
+        // 再入防止: 既に走っている同期があれば何もしない (二重 fetch を避ける)。
+        if running { logger.info("[Sync] skip: already running"); return }
+        running = true
+        defer { running = false }
+
         // iCloudアカウント確認
         do {
             let status = try await CloudKitService.shared.accountStatus()
@@ -187,64 +208,79 @@ final class CloudKitSyncEngine: @unchecked Sendable {
 
         let syncStartDate = Date()
         let isFullSync = (modifiedSince == nil)
-        if let modifiedSince {
-            logger.info("[Sync] incremental start: modifiedSince=\(modifiedSince.ISO8601Format())")
+
+        // フルsyncは途中再開対応: 中断 (バックグラウンド suspend 等) されても、
+        // 開始時刻と完了ステップを永続化しておき、再開時は残りステップだけ取得する。
+        let ud = UserDefaults.standard
+        let effectiveStart: Date
+        var doneSteps: Set<String> = []
+        if isFullSync {
+            if let saved = ud.object(forKey: pendingFullStartKey) as? Double {
+                effectiveStart = Date(timeIntervalSince1970: saved)
+                doneSteps = Set(ud.stringArray(forKey: pendingFullDoneKey) ?? [])
+                logger.info("[Sync] full RESUME: \(doneSteps.count)/\(self.syncSteps.count) steps already done")
+            } else {
+                effectiveStart = syncStartDate
+                ud.set(syncStartDate.timeIntervalSince1970, forKey: pendingFullStartKey)
+                ud.set([String](), forKey: pendingFullDoneKey)
+                logger.info("[Sync] full start (modifiedSince=nil)")
+            }
         } else {
-            logger.info("[Sync] full start (modifiedSince=nil)")
+            effectiveStart = syncStartDate
+            logger.info("[Sync] incremental start: modifiedSince=\(modifiedSince!.ISO8601Format())")
         }
 
         var totalFetched = 0
         var fetchedByType: [String: Int] = [:]
         for step in syncSteps {
+            // フルsync再開: 完了済みステップはスキップ。
+            if isFullSync && doneSteps.contains(step.recordType) { continue }
             await MainActor.run {
                 state = .syncing(step.displayName)
             }
 
+            let ckptKey = "sync_ckpt_\(step.recordType)"
             do {
-                let records = try await fetchWithRetry(
-                    type: step.recordType,
-                    modifiedSince: modifiedSince
-                )
+                // ステップ内チャンクループ: バッチ毎に upsert + チェックポイント保存。
+                // 巨大ステップ (SongArtist ~20k 等) が途中中断されても、保存した modifiedAt
+                // から再開できる (= 全件取り直さない)。
+                var start = (ud.object(forKey: ckptKey) as? Double).map { Date(timeIntervalSince1970: $0) }
+                    ?? modifiedSince ?? Date(timeIntervalSince1970: 0)
+                var seen = Set<String>()
+                while true {
+                    let records = try await fetchChunkWithRetry(type: step.recordType, after: start)
+                    if records.isEmpty { break }
 
-                if !records.isEmpty {
-                    totalFetched += records.count
-                    fetchedByType[step.recordType] = records.count
-                    let atCount = records.filter { $0.recordID.recordName.contains("@") }.count
-                    logger.info("[Sync] \(step.recordType): fetched \(records.count) (\(atCount) with @)")
-                    if step.recordType == "Event" {
-                        let ml13 = records.first { $0.recordID.recordName == "ev_the_idolm@ster_million_live_13thlive" }
-                        if let ml13 {
-                            logger.info("[Sync] ML 13thLIVE found: name=\(String(describing: ml13["name"])) brandId=\(String(describing: ml13["brandId"])) kind=\(String(describing: ml13["kind"]))")
-                        } else {
-                            logger.warning("[Sync] ML 13thLIVE NOT in fetched Event batch")
-                        }
+                    let before = seen.count
+                    for r in records { seen.insert(r.recordID.recordName) }
+                    let added = seen.count - before
+
+                    // deletedAt フィールドで生存/削除を分割
+                    let deleted = records.filter { CKRecordMapper.deletedAt(from: $0) != nil }
+                    let alive = records.filter { CKRecordMapper.deletedAt(from: $0) == nil }
+                    if !alive.isEmpty {
+                        try upsertRecords(alive, type: step.recordType, database: database)
                     }
-                }
-                guard !records.isEmpty else { continue }
+                    // 削除伝搬は soft delete (deletedAt) 経由のみ。
+                    if !deleted.isEmpty {
+                        let ids = deleted.map { $0.recordID.recordName }
+                        try database.deleteRecords(recordType: step.recordType, ids: ids)
+                    }
+                    totalFetched += records.count
+                    fetchedByType[step.recordType, default: 0] += records.count
 
-                // deletedAt フィールドで生存/削除を分割
-                let deleted = records.filter { CKRecordMapper.deletedAt(from: $0) != nil }
-                let alive = records.filter { CKRecordMapper.deletedAt(from: $0) == nil }
-
-                // 生存レコードを upsert
-                if !alive.isEmpty {
-                    try upsertRecords(alive, type: step.recordType, database: database)
-                }
-
-                // soft delete 済みレコードをローカルから物理削除（削除伝搬）
-                if !deleted.isEmpty {
-                    let ids = deleted.map { $0.recordID.recordName }
-                    try database.deleteRecords(recordType: step.recordType, ids: ids)
-                    logger.info("[Sync] \(step.recordType): soft-deleted \(ids.count) record(s)")
+                    guard let maxDate = records.compactMap({ $0["modifiedAt"] as? Date }).max() else { break }
+                    ud.set(maxDate.timeIntervalSince1970, forKey: ckptKey)   // 途中チェックポイント
+                    if added == 0 { break }                                 // 新規ゼロ = 取得完了
+                    start = maxDate.addingTimeInterval(-0.001)
                 }
 
-                // 旧仕様で fullSync 時に「CloudKit にない ID をローカルから消す」処理を
-                // 入れていたが、CloudKit fetchAllRecords が cursor pagination で全件
-                // 揃わない (modifiedAt 同値衝突等) ケースに当たると、部分取得結果を
-                // valid 全集合とみなしてローカルの大半 (例: setlist_items 全部) を
-                // orphan として削除してしまう致命バグがあった。削除伝搬は soft delete
-                // (deletedAt フィールド) 経由のみ受け付ける。
-                _ = isFullSync
+                // ステップ完了: チェックポイント削除 + (フルsync) 完了ステップを記録。
+                ud.removeObject(forKey: ckptKey)
+                if isFullSync {
+                    doneSteps.insert(step.recordType)
+                    ud.set(Array(doneSteps), forKey: pendingFullDoneKey)
+                }
             } catch let ckError as CKError {
                 switch ckError.code {
                 case .unknownItem:
@@ -282,9 +318,11 @@ final class CloudKitSyncEngine: @unchecked Sendable {
             }
         }
 
-        // メタデータ更新
+        // メタデータ更新。フルsyncは「開始時刻 (再開なら元の開始時刻)」を lastSync にして、
+        // 長時間同期の最中に変わったレコードを次回の差分syncで拾えるようにする。
+        let lastSyncToSave = isFullSync ? effectiveStart : syncStartDate
         do {
-            try database.updateLastSyncDate(syncStartDate)
+            try database.updateLastSyncDate(lastSyncToSave)
         } catch {
             await MainActor.run {
                 state = .error("同期日時の保存に失敗: \(error.localizedDescription)")
@@ -292,7 +330,13 @@ final class CloudKitSyncEngine: @unchecked Sendable {
             return
         }
 
-        logger.info("[Sync] complete: total fetched=\(totalFetched), lastSync→\(syncStartDate.ISO8601Format())")
+        // フルsync完了: 途中再開用の保留状態をクリア。
+        if isFullSync {
+            ud.removeObject(forKey: pendingFullStartKey)
+            ud.removeObject(forKey: pendingFullDoneKey)
+        }
+
+        logger.info("[Sync] complete: total fetched=\(totalFetched), lastSync→\(lastSyncToSave.ISO8601Format())")
 
         let summary = SyncSummary(
             modifiedSince: modifiedSince,
@@ -306,24 +350,19 @@ final class CloudKitSyncEngine: @unchecked Sendable {
         }
     }
 
-    /// リトライ付きfetch（.networkUnavailable/.networkFailure/.serviceUnavailable/.zoneBusy/.requestRateLimited → 最大3回）
-    private func fetchWithRetry(type: String, modifiedSince: Date?) async throws -> [CKRecord] {
+    /// リトライ付きチャンク fetch (modifiedAt > after を最大数ページ分)。途中再開ループで使う。
+    private func fetchChunkWithRetry(type: String, after startDate: Date) async throws -> [CKRecord] {
         var lastError: Error?
         for attempt in 0..<Self.maxRetries {
             do {
-                return try await CloudKitService.shared.fetchAllRecords(
-                    type: type,
-                    modifiedSince: modifiedSince
-                )
+                return try await CloudKitService.shared.fetchChunk(type: type, after: startDate)
             } catch let ckError as CKError {
                 switch ckError.code {
                 case .networkUnavailable, .networkFailure, .serviceUnavailable, .zoneBusy, .requestRateLimited:
                     lastError = ckError
                     let retryAfter = ckError.retryAfterSeconds ?? Double(2 << attempt)
-                    logger.warning("[Sync] \(type) attempt \(attempt + 1) failed (\(ckError.code.rawValue)), retry after \(retryAfter)s")
+                    logger.warning("[Sync] \(type) chunk attempt \(attempt + 1) failed (\(ckError.code.rawValue)), retry after \(retryAfter)s")
                     try await Task.sleep(nanoseconds: UInt64(retryAfter * 1_000_000_000))
-                case .unknownItem:
-                    throw ckError
                 default:
                     throw ckError
                 }

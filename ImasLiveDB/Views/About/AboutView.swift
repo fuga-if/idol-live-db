@@ -39,6 +39,33 @@ struct AboutView: View {
                 }
             }
 
+            Section {
+                ossCredit(
+                    name: "アイマスDB",
+                    license: "楽曲・ライブ等のデータ参照元",
+                    url: "https://imas-db.jp/"
+                )
+                ossCredit(
+                    name: "music765plus",
+                    license: "楽曲・ライブセトリのデータ参照元",
+                    url: "https://music765plus.com/"
+                )
+                ossCredit(
+                    name: "im@sparql",
+                    license: "アイドルのプロフィール (CV・カラー等)",
+                    url: "https://sparql.crssnky.xyz/imas/"
+                )
+                ossCredit(
+                    name: "imas-palette",
+                    license: "アイドルのイメージカラー",
+                    url: "https://github.com/arrow2nd/imas-palette"
+                )
+            } header: {
+                Text("データ提供")
+            } footer: {
+                Text("各情報源のデータはそのままの複製ではなく、独自の集計・整形を加えて利用しています。")
+            }
+
             Section("ライセンス情報") {
                 ossCredit(name: "GRDB.swift", license: "MIT License", url: "https://github.com/groue/GRDB.swift")
                 ossCredit(name: "Nuke", license: "MIT License", url: "https://github.com/kean/Nuke")
@@ -60,6 +87,12 @@ struct AboutView: View {
                 } label: {
                     Label("アプリを評価する", systemImage: "star.fill")
                 }
+            }
+
+            Section {
+                Text("担当・お気に入り・メモは iCloud に自動バックアップされ、再インストールや機種変更でも復元されます (同じ Apple ID でのサインインが必要)。")
+                    .font(.imasCaption)
+                    .foregroundStyle(.secondary)
             }
 
             Section {

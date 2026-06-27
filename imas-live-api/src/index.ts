@@ -3,6 +3,7 @@ import { fetchBadges, calcTier } from "./badges";
 import { handleScheduled } from "./apply";
 import { cloudKitModify, cloudKitLookup, buildForceUpdate, buildSoftDelete, CloudKitOperation } from "./cloudkit";
 import { handlePostEdits, handleGetRecordHistory } from "./edits";
+import { handlePostEditRequests } from "./edit_requests";
 import { handleGetFeed, handleGetMyEdits, maskDisplayName } from "./feed";
 import { handlePostGood, handleDeleteGood } from "./edit_good";
 import {
@@ -28,6 +29,9 @@ interface Env {
   APP_ATTEST_MODE?: string;        // "off" | "monitor" | "enforce" (既定 monitor)
   APP_ATTEST_ALLOW_DEV?: string;   // "true" のときだけ dev attestation (appattestdevelop) を許可
   GOOGLE_SERVICE_ACCOUNT?: string; // Play Integrity 検証用 (Android)
+  // マスタ修正リクエストの GitHub issue 化用 (secret: wrangler secret put GITHUB_TOKEN)。
+  GITHUB_TOKEN?: string;
+  GITHUB_REPO?: string;            // "owner/repo" 省略時 "fuga-if/idol-live-db"
 }
 
 const SESSION_JWT_ISSUER = "imas-live-db";
@@ -552,7 +556,7 @@ function renderAppFallbackPage(opts: {
 // ---------------------------------------------------------------------------
 
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const requestId = crypto.randomUUID();
     const { json, error, rateLimitResponse, rateLimitSimple, cors } = makeResponders(request, env);
 
@@ -570,6 +574,28 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
 
+    // ----------------------------------------------------------------
+    // エッジキャッシュ (Cache API)
+    // ----------------------------------------------------------------
+    // 公開GET (レスポンスに Cache-Control: public を返すエンドポイント) を Cloudflare
+    // エッジで全端末横断キャッシュし、Worker 起動回数と D1 行読みを大幅に削減する。
+    // - ユーザー依存エンドポイント (my_tag_ids / has_user_voted / my_vote_count 等) は
+    //   意図的に Cache-Control を付けていないので自動的に対象外になる。
+    // - 認証付きリクエストは絶対にキャッシュしない (個人データ漏洩防止)。
+    // - キャッシュキーは URL のみ (device/app-token ヘッダに依存させない) で正規化する。
+    const edgeCacheEligible = request.method === "GET" && !request.headers.get("Authorization");
+    const cacheKey = new Request(url.toString(), { method: "GET" });
+    if (edgeCacheEligible) {
+      const cached = await caches.default.match(cacheKey);
+      if (cached) {
+        // 観測用: エッジキャッシュ命中を明示 (cf-cache-status は Cache API では出ないため)。
+        const hit = new Response(cached.body, cached);
+        hit.headers.set("X-Edge-Cache", "HIT");
+        return hit;
+      }
+    }
+
+    const handle = async (): Promise<Response> => {
     try {
       // ----------------------------------------------------------------
       // アプリ証明 (App Attest / Play Integrity) — クローンただ乗り対策
@@ -1651,7 +1677,8 @@ export default {
             CAST(strftime('%s', p.ends_at) AS INTEGER) AS ends_at,
             p.status,
             COALESCE(SUM(pe.vote_count), 0) AS total_votes,
-            COUNT(pe.entity_id) AS entry_count
+            COUNT(pe.entity_id) AS entry_count,
+            (SELECT COUNT(*) FROM poll_votes pv WHERE pv.poll_id = p.id AND pv.user_id = ?) AS my_vote_count
           FROM polls p
           LEFT JOIN poll_entries pe ON pe.poll_id = p.id
           WHERE p.status = 'active' AND ${timeCondition}
@@ -1659,7 +1686,7 @@ export default {
           ORDER BY ${orderBy}
           LIMIT ? OFFSET ?
         `)
-          .bind(limit, offset)
+          .bind(uid, limit, offset)
           .all();
 
         return json(
@@ -1674,6 +1701,7 @@ export default {
             status: r.status,
             total_votes: r.total_votes,
             entry_count: r.entry_count,
+            my_vote_count: r.my_vote_count,
           }))
         );
       }
@@ -2740,6 +2768,19 @@ export default {
       }
 
       // ----------------------------------------------------------------
+      // POST /edit-requests — マスタ修正リクエスト (GitHub issue 化, CloudKit に書かない)
+      // ----------------------------------------------------------------
+      if (path === "/edit-requests" && request.method === "POST") {
+        return handlePostEditRequests(request, env, {
+          getAuthUser,
+          checkRateLimit,
+          json,
+          error,
+          rateLimitResponse,
+        });
+      }
+
+      // ----------------------------------------------------------------
       // GET /master/:recordType/:recordName/history — レコードの編集履歴
       // ----------------------------------------------------------------
       const masterHistoryMatch = path.match(/^\/master\/([^/]+)\/([^/]+)\/history$/);
@@ -2766,6 +2807,17 @@ export default {
         requestId
       );
     }
+    };
+
+    const response = await handle();
+    // 公開 (Cache-Control: public) かつ成功GETのみエッジへ保存。TTL はレスポンスの max-age に従う。
+    if (edgeCacheEligible && response.ok) {
+      const cc = response.headers.get("Cache-Control");
+      if (cc && cc.includes("public") && cc.includes("max-age")) {
+        ctx.waitUntil(caches.default.put(cacheKey, response.clone()));
+      }
+    }
+    return response;
   },
 
   // ----------------------------------------------------------------

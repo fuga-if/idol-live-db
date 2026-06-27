@@ -5,10 +5,27 @@ import SwiftUI
 /// ContentView の TabView に `.safeAreaInset(edge: .bottom)` で差し込む。
 struct SyncStatusBar: View {
     @Environment(CloudKitSyncEngine.self) private var syncEngine
+    /// 待機/完了表示を一定時間で自動的に畳む。同期中は常に表示。
+    @State private var visible = false
+    @State private var hideTask: Task<Void, Never>? = nil
+
+    /// 待機/完了を見せておく時間。これを過ぎると勝手に消える。
+    private static let autoHideAfter: UInt64 = 4_000_000_000
 
     var body: some View {
+        Group {
+            if visible {
+                barContent
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .onAppear { refresh(isSyncing: syncEngine.isSyncing) }
+        .onChange(of: syncEngine.isSyncing) { _, syncing in refresh(isSyncing: syncing) }
+    }
+
+    private var barContent: some View {
         let state = syncEngine.state
-        VStack(spacing: 0) {
+        return VStack(spacing: 0) {
             // 同期中は実進捗の細いバー、それ以外は区切り線。
             if syncEngine.isSyncing {
                 ProgressView(value: syncEngine.syncProgress ?? 0)
@@ -35,6 +52,18 @@ struct SyncStatusBar: View {
         }
         .background(.bar)
         .animation(.easeInOut(duration: 0.2), value: syncEngine.isSyncing)
+    }
+
+    /// 同期中は出しっぱなし、それ以外は出してから autoHideAfter で畳む。
+    private func refresh(isSyncing: Bool) {
+        hideTask?.cancel()
+        withAnimation(.easeInOut(duration: 0.3)) { visible = true }
+        if isSyncing { return }
+        hideTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: Self.autoHideAfter)
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeInOut(duration: 0.3)) { visible = false }
+        }
     }
 
     @ViewBuilder

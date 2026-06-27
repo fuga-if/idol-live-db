@@ -34,6 +34,15 @@ struct SongListView: View {
     /// コミュニティタグ絞り込み (複数指定可)。選択タグ全てが付いた曲 (AND) に絞る。
     @State private var selectedTags: [CommunityTag] = []
     @State private var showTagPicker = false
+    @State private var showIntroDon = false
+    /// 曲一覧の「この絞り込みでイントロドン」導線の表示/非表示 (設定アプリから戻せる)。
+    @AppStorage("songlist_introdon_bar_hidden") private var introDonBarHidden = false
+
+    /// イントロドン設定から「絞り込んで出題」で来た時の選択モード。
+    /// true のとき常に「この範囲で出題」ボタンを出し、押すと onSelectPool で呼び元へ返す。
+    var selectionMode = false
+    var onSelectPool: (([Song], String) -> Void)? = nil
+    @Environment(\.dismiss) private var dismissSelf
 
     private var activeFilterCount: Int { filter.activeFilterCount }
 
@@ -64,35 +73,14 @@ struct SongListView: View {
         vm.scheduleLoad(loadRequest, debounce: false)
     }
 
-    @FocusState private var searchFieldFocused: Bool
-
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
                 if isSearching {
-                    HStack(spacing: 8) {
-                        Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
-                        TextField(searchPrompt, text: $searchText)
-                            .textFieldStyle(.plain)
-                            .submitLabel(.search)
-                            .focused($searchFieldFocused)
-                        if !searchText.isEmpty {
-                            Button { searchText = "" } label: {
-                                Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
-                            }
-                        }
-                        Button("キャンセル") {
-                            searchText = ""
-                            isSearching = false
-                            searchFieldFocused = false
-                        }
-                        .font(.imasSubhead)
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(.bar)
+                    InTabSearchField(prompt: searchPrompt, text: $searchText, isSearching: $isSearching)
                 }
                 removableFilterBar
+                introDonLaunchBar
                 listContent
                     .refreshable {
                         await syncEngine.performIncrementalSync(database: database)
@@ -100,9 +88,6 @@ struct SongListView: View {
                     }
             }
             .background(DS.bg)
-            .onChange(of: isSearching) { _, newValue in
-                searchFieldFocused = newValue
-            }
             .onChange(of: searchText) { _, _ in vm.recomputeDisplayed(searchText: searchText) }
                 .navigationTitle("楽曲")
                 .navigationBarTitleDisplayMode(.large)
@@ -136,6 +121,14 @@ struct SongListView: View {
                 .sheet(isPresented: $showTagPicker) {
                     TagFilterPicker(initialSelection: selectedTags, onDone: applyTagFilter)
                 }
+                .navigationDestination(isPresented: $showIntroDon) {
+                    // いま表示中(絞り込み済み)の曲をそのまま出題プールにしてイントロドンへ。
+                    IntroGameSetupView(
+                        presetPool: vm.displayedSongs.map(\.song),
+                        presetLabel: "曲一覧の絞り込み"
+                    )
+                    .environment(database)
+                }
                 // 初回(またはマーク依存フィルタ時)だけ全件ロード。タブ再表示のたびに
                 // 重い fetchSongs+出演者マップを走らせてスピナーを出さないよう、既にロード済みなら
                 // 行アイコン用のマーク集合だけ軽く更新する (他タブでのお気に入り変更を反映)。
@@ -164,6 +157,106 @@ struct SongListView: View {
 
     /// 適用中フィルタの removable チップ列 (デザインの filters セクション)。
     /// マイマーク / 回収 / 表示形式 / タグ を横スクロールで一覧し、各チップ右の × で個別解除。
+    /// いま表示中の曲でイントロドンを始める導線 (絞り込みバーの直下)。
+    /// 絞り込み/検索している時のみ・4曲以上・非表示でないとき表示。
+    @ViewBuilder
+    private var introDonLaunchBar: some View {
+        let playable = IntroGameSession.playable(vm.displayedSongs.map(\.song)).count
+        if selectionMode {
+            // イントロドン設定から「絞り込んで出題」で来た選択モード。
+            // 絞り込みの有無に関わらず常に出し、押したら呼び元(設定)に範囲を返して戻る。
+            selectionConfirmBar(playable: playable)
+        } else {
+            let filtering = filterBadgeCount > 0 || !searchText.isEmpty
+            if filtering && playable >= 4 && !introDonBarHidden {
+                normalIntroDonBar(playable: playable)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func selectionConfirmBar(playable: Int) -> some View {
+        Button {
+            AppAnalytics.tap("song_list.introdon_select")
+            onSelectPool?(vm.displayedSongs.map(\.song), selectionRangeLabel)
+            dismissSelf()
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.imasScaled(15, weight: .bold))
+                Text("この範囲で出題")
+                    .font(.imasSubhead.weight(.bold))
+                Text("\(playable)曲")
+                    .font(.imasCaption)
+                    .foregroundStyle(playable >= 4 ? .white.opacity(0.85) : Color.white.opacity(0.85))
+                Spacer(minLength: 0)
+                if playable < 4 {
+                    Text("4曲以上必要")
+                        .font(.imasCaption.weight(.bold))
+                }
+                Image(systemName: "chevron.right")
+                    .font(.imasScaled(12, weight: .bold))
+            }
+            .foregroundStyle(.white)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .frame(maxWidth: .infinity)
+            .background(playable >= 4 ? DS.sys : Color.secondary)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(playable < 4)
+    }
+
+    /// いま表示中の曲でこの場でイントロドンを始める通常導線 (絞り込みバー直下)。
+    @ViewBuilder
+    private func normalIntroDonBar(playable: Int) -> some View {
+        HStack(spacing: 0) {
+            Button {
+                AppAnalytics.tap("song_list.introdon")
+                showIntroDon = true
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "music.note.list")
+                        .font(.imasScaled( 14, weight: .bold))
+                    Text("この絞り込みでイントロドン")
+                        .font(.imasSubhead.weight(.bold))
+                    Text("\(playable)曲")
+                        .font(.imasCaption)
+                        .foregroundStyle(.secondary)
+                    Spacer(minLength: 0)
+                }
+                .foregroundStyle(DS.sys)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                AppAnalytics.tap("song_list.introdon_hide")
+                withAnimation { introDonBarHidden = true }
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.imasScaled( 12, weight: .bold))
+                    .foregroundStyle(.secondary)
+                    .padding(.leading, 10)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("イントロドン導線を隠す")
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(DS.sys.opacity(0.10))
+    }
+
+    /// 選択モードで呼び元に返す範囲ラベル (適用中フィルタの簡潔な説明)。
+    private var selectionRangeLabel: String {
+        if !searchText.isEmpty { return "「\(searchText)」検索" }
+        let chips = activeFilterChips
+        if !chips.isEmpty { return chips.map(\.label).joined(separator: "・") }
+        return "曲一覧の絞り込み"
+    }
+
     @ViewBuilder
     private var removableFilterBar: some View {
         let chips = activeFilterChips
@@ -253,56 +346,44 @@ struct SongListView: View {
 
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
-        ToolbarItem(placement: .topBarLeading) {
-            SettingsToolbarButton()
+        standardListToolbar(
+            onSearch: {
+                AppAnalytics.tap("song_list.search_open")
+                isSearching = true
+            },
+            filterBadge: filterBadgeCount,
+            onFilter: {
+                AppAnalytics.tap("song_list.filter")
+                showFilter = true
+            },
+            menuActions: songMenuActions
+        )
+    }
+
+    private var songMenuActions: [ListToolbarAction] {
+        var actions: [ListToolbarAction] = []
+        if EditPermission.showEditAffordance {
+            actions.append(ListToolbarAction(id: "add", title: "曲を追加", systemImage: "plus") {
+                AppAnalytics.tap("song_list.add")
+                startCreate()
+            })
         }
-        ToolbarItem(placement: .topBarLeading) {
-            GlobalSearchToolbarButton()
+        actions.append(ListToolbarAction(
+            id: "tag",
+            title: selectedTags.isEmpty ? "タグで絞り込み" : "タグ: \(selectedTags.count)件",
+            systemImage: selectedTags.isEmpty ? "tag" : "tag.fill"
+        ) {
+            AppAnalytics.tap("song_list.tag_filter")
+            showTagPicker = true
+        })
+        if filterBadgeCount > 0 {
+            actions.append(ListToolbarAction(id: "clear", title: "フィルタを解除",
+                                             systemImage: "xmark.circle", isDestructive: true) {
+                AppAnalytics.tap("song_list.filter_clear")
+                resetAllFilters()
+            })
         }
-        ToolbarItem(placement: .topBarTrailing) {
-            HStack(spacing: 12) {
-                if EditPermission.showEditAffordance {
-                    Button {
-                        AppAnalytics.tap("song_list.add")
-                        startCreate()
-                    } label: {
-                        Image(systemName: "plus")
-                    }
-                    .accessibilityLabel("曲を追加")
-                }
-
-                Button {
-                    AppAnalytics.tap("song_list.search_open")
-                    isSearching = true
-                } label: {
-                    Image(systemName: "magnifyingglass")
-                }
-
-                Button {
-                    AppAnalytics.tap("song_list.tag_filter")
-                    showTagPicker = true
-                } label: {
-                    Image(systemName: selectedTags.isEmpty ? "tag" : "tag.fill")
-                }
-                .accessibilityLabel("タグで絞り込み")
-
-                if filterBadgeCount > 0 {
-                    Button {
-                        AppAnalytics.tap("song_list.filter_clear")
-                        resetAllFilters()
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.secondary)
-                    }
-                    .accessibilityLabel("フィルタを解除")
-                }
-
-                FilterBarButton(activeCount: filterBadgeCount) {
-                    AppAnalytics.tap("song_list.filter")
-                    showFilter = true
-                }
-            }
-        }
+        return actions
     }
 
     private func resetAllFilters() {
@@ -345,12 +426,11 @@ struct SongListView: View {
     private var songsListContent: some View {
         Group {
             if vm.isLoading {
-                List {
-                    HStack { Spacer(); ProgressView(); Spacer() }
-                        .listRowBackground(Color.clear)
+                ScrollView {
+                    ImasListSkeleton(rows: 12, thumb: .square)
+                        .padding(.top, DS.sp3)
                 }
-                .listStyle(.plain)
-                .scrollContentBackground(.hidden)
+                .scrollDisabled(true)
                 .background(DS.bg)
             } else if vm.songs.isEmpty && filter.activeFilterCount > 0 {
                 ContentUnavailableView.search(text: "条件に一致する楽曲")

@@ -98,7 +98,11 @@ fun SettingsScreen(
             item {
                 SettingsSectionTitle("クレジット")
                 CreditText("本アプリは株式会社バンダイナムコエンターテインメント様とは一切関係のない非公式ファンメイドアプリです。")
-                CreditText("キャラクターデータ: im@sparql")
+                CreditText("アイドルのプロフィール(CV/カラー等): im@sparql (https://sparql.crssnky.xyz/imas/)")
+                CreditText("楽曲・ライブ等のデータ参照元: アイマスDB (https://imas-db.jp/)")
+                CreditText("楽曲・ライブセトリのデータ参照元: music765plus (https://music765plus.com/)")
+                CreditText("アイドルのイメージカラー: imas-palette (https://github.com/arrow2nd/imas-palette)")
+                CreditText("※各情報源のデータは独自に集計・整形して利用しています")
                 val version = try {
                     context.packageManager.getPackageInfo(context.packageName, 0).versionName
                 } catch (_: PackageManager.NameNotFoundException) {

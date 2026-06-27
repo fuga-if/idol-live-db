@@ -11,6 +11,8 @@ struct MyPageView: View {
     @AppStorage("text_scale") private var textScale: Double = 1.0
     /// イベント名の作品名プレフィックスを省略表示するか (既定 ON)。OFF でフル表示。
     @AppStorage("event_name_abbreviate") private var abbreviateEventNames: Bool = true
+    /// 曲一覧の「この絞り込みでイントロドン」導線を隠すか (曲一覧側の×と同じキー)。
+    @AppStorage("songlist_introdon_bar_hidden") private var introDonBarHidden: Bool = false
     /// 回収に配信参加も含めるか (既定=現地のみ)。地方勢など配信中心の人向け。
     @AppStorage("collection_include_stream") private var includeStreamInCollection: Bool = false
     /// 担当(推し)カラーをアプリ全体テーマに使うか。
@@ -361,6 +363,12 @@ struct MyPageView: View {
             Text(eventDisplayName("THE IDOLM@STER SHINY COLORS 3rdLIVE TOUR"))
                 .font(.imasCaption)
                 .foregroundStyle(DS.ink2)
+
+            // 曲一覧の「この絞り込みでイントロドン」導線の表示/非表示 (×で隠した後ここで戻せる)。
+            Toggle("曲一覧にイントロドン導線を表示", isOn: Binding(
+                get: { !introDonBarHidden },
+                set: { introDonBarHidden = !$0 }
+            ))
         }
         .listRowBackground(DS.surface)
         .listRowSeparatorTint(DS.sep)

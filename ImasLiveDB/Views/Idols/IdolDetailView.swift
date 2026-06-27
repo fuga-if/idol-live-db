@@ -173,7 +173,7 @@ struct IdolDetailView: View {
 
             HStack(spacing: DS.sp3) {
                 heroActionButton(
-                    title: "担当にする",
+                    title: "担当",
                     activeTitle: "担当",
                     systemImage: isPick ? "heart.fill" : "heart",
                     isOn: isPick,
@@ -218,7 +218,10 @@ struct IdolDetailView: View {
         Button(action: action) {
             HStack(spacing: 6) {
                 Image(systemName: systemImage).font(.imasScaled( 15, weight: .semibold))
-                Text(isOn ? activeTitle : title).font(.imasSubhead.weight(.semibold))
+                Text(isOn ? activeTitle : title)
+                    .font(.imasSubhead.weight(.semibold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
             }
             .padding(.horizontal, DS.sp4)
             .padding(.vertical, 9)
