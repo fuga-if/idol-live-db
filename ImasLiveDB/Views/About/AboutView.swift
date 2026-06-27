@@ -39,6 +39,18 @@ struct AboutView: View {
                 }
             }
 
+            Section {
+                ossCredit(
+                    name: "アイマスDB",
+                    license: "楽曲・ライブ等のデータ参照元",
+                    url: "https://imas-db.jp/"
+                )
+            } header: {
+                Text("データ提供")
+            } footer: {
+                Text("本アプリは「アイマスDB」(https://imas-db.jp/) の情報を参照しています。データはそのままの複製ではなく、独自の集計・整形を加えています。")
+            }
+
             Section("ライセンス情報") {
                 ossCredit(name: "GRDB.swift", license: "MIT License", url: "https://github.com/groue/GRDB.swift")
                 ossCredit(name: "Nuke", license: "MIT License", url: "https://github.com/kean/Nuke")

@@ -99,6 +99,7 @@ fun SettingsScreen(
                 SettingsSectionTitle("クレジット")
                 CreditText("本アプリは株式会社バンダイナムコエンターテインメント様とは一切関係のない非公式ファンメイドアプリです。")
                 CreditText("キャラクターデータ: im@sparql")
+                CreditText("楽曲・ライブ等のデータ参照元: アイマスDB (https://imas-db.jp/) ※独自に集計・整形しています")
                 val version = try {
                     context.packageManager.getPackageInfo(context.packageName, 0).versionName
                 } catch (_: PackageManager.NameNotFoundException) {
