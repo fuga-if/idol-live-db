@@ -1854,6 +1854,40 @@ final class AppDatabase: @unchecked Sendable {
         }
     }
 
+    /// 参加したイベントを「現地参加を含む」「配信参加を含む」の2集合に分類して返す。
+    /// 1イベント内で現地公演と配信公演が混在する場合は両方に入る。
+    /// 種別は user_marks.text_value ("live"/"stream")。旧データ(種別なし)は現地扱い。
+    /// 参加ライブ一覧の現地/配信フィルタで使用。
+    func fetchAttendedEventTypeSets() throws -> (live: Set<String>, stream: Set<String>) {
+        try dbQueue.read { db in
+            let sql = """
+                SELECT event_id, text_value AS atype FROM (
+                    SELECT entity_id AS event_id, text_value
+                    FROM user_marks
+                    WHERE entity_type='event' AND kind='attended' AND bool_value=1
+                    UNION ALL
+                    SELECT sh.event_id AS event_id, um.text_value
+                    FROM user_marks um
+                    JOIN shows sh ON sh.id = um.entity_id
+                    WHERE um.entity_type='show' AND um.kind='attended' AND um.bool_value=1
+                )
+                """
+            var live: Set<String> = []
+            var stream: Set<String> = []
+            for row in try Row.fetchAll(db, sql: sql) {
+                guard let eventId: String = row["event_id"] else { continue }
+                let atype: String? = row["atype"]
+                if atype == "stream" {
+                    stream.insert(eventId)
+                } else {
+                    // "live" または種別なし(旧データ) は現地扱い
+                    live.insert(eventId)
+                }
+            }
+            return (live, stream)
+        }
+    }
+
     /// ShowFilterCriterion で公演一覧を取得
     func fetchShows(criterion: ShowFilterCriterion) throws -> [Show] {
         switch criterion {
