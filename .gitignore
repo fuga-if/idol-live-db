@@ -28,6 +28,8 @@ Package.resolved
 
 # SQLite generated
 ImasLiveDB/Resources/master.sqlite
+# Android: db/master.sql からビルド時生成する seed (generateSeedDb タスク)
+ImasLiveDB-Android/app/src/main/assets/master_seed.sqlite
 
 # Secrets
 .env
