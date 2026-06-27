@@ -191,8 +191,9 @@ struct GamesHubView: View {
     private func destination(for kind: GameKind) -> some View {
         switch kind {
         case .introDon: IntroDonHomeView()
-        case .idolQuiz: IdolQuizView()
-        case .songSingerQuiz: SongSingerQuizView()
+        // アイドル当て・ソロ曲はブランド絞り込み設定画面を先に挟む。
+        case .idolQuiz: IdolQuizSetupView()
+        case .songSingerQuiz: SongSingerQuizSetupView()
         case .colorMatch: ColorMatchGameView()
         }
     }
