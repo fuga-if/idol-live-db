@@ -7,6 +7,13 @@ import SwiftUI
 struct SongSingerQuizView: View {
     @Environment(AppDatabase.self) private var database
 
+    /// 出題ブランド絞り込み（空集合 = 全ブランド対象）。SongSingerQuizSetupView から渡す。
+    let selectedBrandIds: Set<String>
+
+    init(selectedBrandIds: Set<String> = []) {
+        self.selectedBrandIds = selectedBrandIds
+    }
+
     private let sessionLength = 10
 
     @State private var pool: [(song: Song, singer: Idol)] = []
@@ -16,9 +23,9 @@ struct SongSingerQuizView: View {
     @State private var revealed = 0          // 0=曲名のみ / 1=ジャケ / 2=プレビュー
     @State private var points = 0
     @State private var correct = 0
-    @State private var perfectCount = 0
     @State private var asked = 0
     @State private var sessionDone = false
+    @State private var isNewBest = false
     @State private var isLoading = true
 
     private struct Question {
@@ -34,7 +41,8 @@ struct SongSingerQuizView: View {
                     ProgressView().tint(DS.sys).frame(maxWidth: .infinity).padding(.top, DS.sp9)
                 } else if sessionDone {
                     QuizResultView(points: points, maxPoints: QuizScoring.sessionMax(questions: sessionLength),
-                                   correct: correct, questions: asked, perfectCount: perfectCount,
+                                   correct: correct, questions: asked,
+                                   kind: .songSingerQuiz, isNewBest: isNewBest,
                                    onReplay: { restart() })
                 } else if let q = question {
                     QuizProgressHeader(current: min(asked + (selectedId != nil ? 0 : 1), sessionLength),
@@ -140,7 +148,6 @@ struct SongSingerQuizView: View {
         if isCorrect {
             correct += 1
             points += QuizScoring.points(revealed: revealed)
-            if revealed == 0 { perfectCount += 1 }
         }
     }
 
@@ -152,15 +159,19 @@ struct SongSingerQuizView: View {
     }
 
     private func restart() {
-        points = 0; correct = 0; perfectCount = 0; asked = 0
-        sessionDone = false; selectedId = nil; revealed = 0
+        points = 0; correct = 0; asked = 0
+        sessionDone = false; selectedId = nil; revealed = 0; isNewBest = false
         question = makeQuestion()
     }
 
     private func finish() {
+        let outOf = QuizScoring.sessionMax(questions: asked)
+        let before = GameProgressStore.shared.record(for: .songSingerQuiz)
+        let beforeRate = before.bestOutOf > 0 ? Double(before.bestScore) / Double(before.bestOutOf) : -1
+        let newRate = outOf > 0 ? Double(points) / Double(outOf) : 0
+        isNewBest = before.hasPlayed && newRate > beforeRate
         sessionDone = true
-        GameProgressStore.shared.recordResult(.songSingerQuiz, score: points,
-                                              outOf: QuizScoring.sessionMax(questions: asked))
+        GameProgressStore.shared.recordResult(.songSingerQuiz, score: points, outOf: outOf)
     }
 
     // MARK: - Data
@@ -176,6 +187,8 @@ struct SongSingerQuizView: View {
         pool = solos.compactMap { sw in
             guard let ids = origMap[sw.song.id], ids.count == 1,
                   let singer = idolById[ids.first!], !singer.isExternal else { return nil }
+            // ブランド絞り込み: 空集合のときは全ブランドを対象とする。
+            guard selectedBrandIds.isEmpty || selectedBrandIds.contains(singer.brandId) else { return nil }
             return (sw.song, singer)
         }
         idolPool = Array(Set(pool.map { $0.singer.id })).compactMap { idolById[$0] }

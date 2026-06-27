@@ -63,21 +63,18 @@ struct QuizProgressHeader: View {
     }
 }
 
-/// 現在の獲得可能点を示す「配点バッジ」。ヒントを開くほど下がる様子を可視化する。
+/// 正解で獲得できるポイントを示すバッジ。加点表現に統一 (減点語は使わない)。
 struct QuizValueBadge: View {
     let revealed: Int
     var body: some View {
         let pts = QuizScoring.points(revealed: revealed)
         HStack(spacing: 5) {
-            Image(systemName: "target").font(.imasScaled( 11, weight: .bold))
-            Text("正解で \(pts)pt").font(.imasCaption.weight(.bold))
-            if revealed > 0 {
-                Text("(ヒント\(revealed))").font(.imasCaption).opacity(0.7)
-            }
+            Image(systemName: "plus.circle.fill").font(.imasScaled( 11, weight: .bold))
+            Text("正解で +\(pts)pt").font(.imasCaption.weight(.bold))
         }
-        .foregroundStyle(revealed == 0 ? DS.success : DS.warning)
+        .foregroundStyle(DS.success)
         .padding(.horizontal, 11).padding(.vertical, 6)
-        .background((revealed == 0 ? DS.success : DS.warning).opacity(0.14), in: Capsule())
+        .background(DS.success.opacity(0.14), in: Capsule())
     }
 }
 
@@ -97,7 +94,7 @@ struct QuizHintButton: View {
                     .background(DS.warning.opacity(0.14), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                 VStack(alignment: .leading, spacing: 1) {
                     Text(title).font(.imasSubhead.weight(.semibold)).foregroundStyle(DS.ink)
-                    Text("開くと正解 \(nextValue)pt に下がる").font(.imasCaption).foregroundStyle(DS.ink3)
+                    Text("開いた後は正解で +\(nextValue)pt").font(.imasCaption).foregroundStyle(DS.ink3)
                 }
                 Spacer(minLength: 0)
                 Image(systemName: "chevron.down").font(.imasScaled( 13, weight: .semibold)).foregroundStyle(DS.ink3)
@@ -212,48 +209,133 @@ struct IdolChoiceGrid: View {
     }
 }
 
-/// セッション終了時の結果画面。獲得ポイント / 満点と「ヒント無し正解数」を出す。
+/// クイズのグレード (正答率ベース)。リザルトの主役。
+enum QuizGrade: String {
+    case s = "S", a = "A", b = "B", c = "C", d = "D"
+
+    static func from(rate: Int) -> QuizGrade {
+        switch rate {
+        case 95...: return .s
+        case 80...: return .a
+        case 60...: return .b
+        case 40...: return .c
+        default:    return .d
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .s: return DS.favorite
+        case .a: return DS.success
+        case .b: return DS.sys
+        case .c: return DS.warning
+        case .d: return DS.ink3
+        }
+    }
+}
+
+/// セッション終了時の結果画面。グレード・自己ベスト・新記録・連続日数・シェアまで載せる。
 struct QuizResultView: View {
     let points: Int
     let maxPoints: Int
     let correct: Int
     let questions: Int
-    /// ヒントを 1 つも開かずに正解した数 (= 満点正解)。
-    let perfectCount: Int
+    /// どのゲームの結果か (自己ベスト参照・シェア文言用)。
+    var kind: GameKind = .idolQuiz
+    /// 今回が自己ベスト更新だったか。
+    var isNewBest: Bool = false
     let onReplay: () -> Void
 
+    @State private var appeared = false
+
     private var rate: Int { maxPoints > 0 ? Int((Double(points) / Double(maxPoints) * 100).rounded()) : 0 }
+    private var grade: QuizGrade { .from(rate: rate) }
+
+    private var bestRate: Int {
+        let rec = GameProgressStore.shared.record(for: kind)
+        guard rec.bestOutOf > 0 else { return rate }
+        return Int((Double(rec.bestScore) / Double(rec.bestOutOf) * 100).rounded())
+    }
+    private var streak: Int { GameProgressStore.shared.displayStreak }
 
     private var comment: String {
         switch rate {
-        case 100: return "全問ノーヒント正解！さすがプロデューサー"
-        case 80...: return "お見事！担当への愛が伝わる"
-        case 50...: return "いい線いってる！ヒントを減らして高得点を狙おう"
+        case 95...: return "お見事！担当への愛が伝わる"
+        case 80...: return "高得点！プロデューサーの貫禄"
+        case 50...: return "いい線いってる！次はもっと高みへ"
         default: return "これから一緒に覚えていこう"
         }
     }
 
+    private var shareText: String {
+        "\(kind.displayName)で \(points)/\(maxPoints)pt・グレード\(grade.rawValue)（正解 \(correct)/\(questions)）でした！ #アイドルライブDB"
+    }
+
     var body: some View {
         VStack(spacing: DS.sp4) {
-            Spacer().frame(height: DS.sp6)
-            Image(systemName: rate >= 80 ? "trophy.fill" : "checkmark.seal.fill")
-                .font(.imasScaled( 52, weight: .semibold))
-                .foregroundStyle(rate >= 80 ? DS.favorite : DS.sys)
+            Spacer().frame(height: DS.sp5)
+
+            // グレードリング (主役)。
+            ZStack {
+                Circle().fill(grade.color.opacity(0.14)).frame(width: 116, height: 116)
+                Circle().strokeBorder(grade.color, lineWidth: 4).frame(width: 116, height: 116)
+                Text(grade.rawValue)
+                    .font(.imasDisplay(56, weight: .bold))
+                    .foregroundStyle(grade.color)
+            }
+            .scaleEffect(appeared ? 1 : 0.6)
+            .opacity(appeared ? 1 : 0)
+            .animation(.spring(response: 0.45, dampingFraction: 0.6), value: appeared)
+
+            if isNewBest {
+                HStack(spacing: 5) {
+                    Image(systemName: "crown.fill").font(.imasScaled(12, weight: .bold))
+                    Text("自己ベスト更新！").font(.imasFootnote.weight(.bold))
+                }
+                .foregroundStyle(DS.favorite)
+                .padding(.horizontal, 12).padding(.vertical, 6)
+                .background(DS.favorite.opacity(0.16), in: Capsule())
+                .transition(.scale.combined(with: .opacity))
+            }
+
             HStack(alignment: .firstTextBaseline, spacing: 4) {
                 Text("\(points)").font(.imasDisplay(40, weight: .bold)).foregroundStyle(DS.ink)
                 Text("/ \(maxPoints) pt").font(.imasTitle3.weight(.bold)).foregroundStyle(DS.ink3)
             }
+
             HStack(spacing: DS.sp3) {
                 resultStat(value: "\(correct)/\(questions)", label: "正解")
-                resultStat(value: "\(perfectCount)", label: "ノーヒント正解")
+                resultStat(value: "\(rate)%", label: "正答率")
+                resultStat(value: "\(bestRate)%", label: "自己ベスト")
             }
+            if streak > 0 {
+                HStack(spacing: 5) {
+                    Image(systemName: "flame.fill").font(.imasScaled(12, weight: .bold)).foregroundStyle(DS.warning)
+                    Text("\(streak)日連続プレイ中").font(.imasCaption.weight(.semibold)).foregroundStyle(DS.ink2)
+                }
+            }
+
             Text(comment)
                 .font(.imasFootnote).foregroundStyle(DS.ink3)
-                .multilineTextAlignment(.center).padding(.top, DS.sp2)
-            QuizPrimaryButton(title: "もう一度", action: onReplay)
-                .padding(.top, DS.sp4)
+                .multilineTextAlignment(.center).padding(.top, DS.sp1)
+
+            VStack(spacing: DS.sp3) {
+                QuizPrimaryButton(title: "もう一度", action: onReplay)
+                ShareLink(item: shareText) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "square.and.arrow.up").font(.imasScaled(14, weight: .semibold))
+                        Text("結果をシェア").font(.imasSubhead.weight(.semibold))
+                    }
+                    .foregroundStyle(DS.sys)
+                    .frame(maxWidth: .infinity).padding(.vertical, 12)
+                    .background(DS.sys.opacity(0.12), in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.top, DS.sp3)
         }
         .frame(maxWidth: .infinity)
+        .onAppear { appeared = true }
     }
 
     private func resultStat(value: String, label: String) -> some View {

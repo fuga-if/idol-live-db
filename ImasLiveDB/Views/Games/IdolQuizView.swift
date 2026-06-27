@@ -1,11 +1,19 @@
 import SwiftUI
 
-/// アイドル当てクイズ (ヒント式減点採点)。最初はシルエット＋曖昧なプロフィール1項目だけで出題し、
-/// 並んだヒントの中から好きなものを好きな順で開ける。素点は 10pt で、ヒントを 1 つ開くごとに
-/// 1pt 下がる (CV=声優は一気にバレるので -2pt)。最低保証 1pt。全 sessionLength 問のセッション制。
-/// データは Idol マスタの数値/テキストのプロフィール事実のみ (キャラ絵・歌詞・ロゴは使わない)。
+/// アイドル当てクイズ。最初はシルエット＋曖昧なプロフィール1項目だけで出題し、
+/// 並んだ「？」スロットからヒントを好きな順で開ける。ヒントを開くほど正解時の獲得点は
+/// 少なくなる (素点 10pt から最低 1pt)。CV はスロット内容を伏せて常設し、開封すると
+/// 「声優未発表」も含めて見えるようにすることで、声優の有無が無料でバレないようにする。
+/// 全 sessionLength 問のセッション制。データは Idol マスタの数値/テキストのプロフィール事実のみ。
 struct IdolQuizView: View {
     @Environment(AppDatabase.self) private var database
+
+    /// 出題ブランド絞り込み（空集合 = 全ブランド対象）。IdolQuizSetupView から渡す。
+    let selectedBrandIds: Set<String>
+
+    init(selectedBrandIds: Set<String> = []) {
+        self.selectedBrandIds = selectedBrandIds
+    }
 
     private let sessionLength = 10
     /// ノーヒント正解の素点。
@@ -15,11 +23,11 @@ struct IdolQuizView: View {
     @State private var question: Question?
     @State private var selectedId: String?
     @State private var opened: Set<Int> = []   // 開いたヒントの facts インデックス (1...)
-    @State private var points = 0              // 累計獲得ポイント
+    @State private var points = 0              // 累計獲得ポイント (加点式・上昇のみ)
     @State private var correct = 0             // 正解数
-    @State private var perfectCount = 0        // ノーヒント正解数
     @State private var asked = 0               // 解答済み問題数
     @State private var sessionDone = false
+    @State private var isNewBest = false
     @State private var isLoading = true
 
     private struct Fact {
@@ -49,7 +57,8 @@ struct IdolQuizView: View {
                     ProgressView().tint(DS.sys).frame(maxWidth: .infinity).padding(.top, DS.sp9)
                 } else if sessionDone {
                     QuizResultView(points: points, maxPoints: sessionLength * basePoints,
-                                   correct: correct, questions: asked, perfectCount: perfectCount,
+                                   correct: correct, questions: asked,
+                                   kind: .idolQuiz, isNewBest: isNewBest,
                                    onReplay: { restart() })
                 } else if let q = question {
                     QuizProgressHeader(current: min(asked + (selectedId != nil ? 0 : 1), sessionLength),
@@ -116,18 +125,16 @@ struct IdolQuizView: View {
         .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rLG, style: .continuous))
     }
 
-    /// 現在の獲得可能点を示す配点バッジ。ヒントを開くほど下がる様子を可視化する。
+    /// 正解で獲得できるポイントを示すバッジ (加点表現で統一)。
     private func valueBadge(_ q: Question) -> some View {
         let pts = currentValue(q)
-        let noHint = opened.isEmpty
         return HStack(spacing: 5) {
-            Image(systemName: "target").font(.imasScaled( 11, weight: .bold))
-            Text("正解で \(pts)pt").font(.imasCaption.weight(.bold))
-            if !noHint { Text("(ヒント\(opened.count))").font(.imasCaption).opacity(0.7) }
+            Image(systemName: "plus.circle.fill").font(.imasScaled( 11, weight: .bold))
+            Text("正解で +\(pts)pt").font(.imasCaption.weight(.bold))
         }
-        .foregroundStyle(noHint ? DS.success : DS.warning)
+        .foregroundStyle(DS.success)
         .padding(.horizontal, 11).padding(.vertical, 6)
-        .background((noHint ? DS.success : DS.warning).opacity(0.14), in: Capsule())
+        .background(DS.success.opacity(0.14), in: Capsule())
     }
 
     /// メンバーカラーのヒントは色そのものが答えなので、HEX 文字列ではなく色チップで見せる。
@@ -161,13 +168,16 @@ struct IdolQuizView: View {
 
     // MARK: - ヒント
 
-    /// 未公開の事実を一覧で並べ、好きなものを好きな順で開けるようにする。
+    /// 未公開の事実を「？」スロットで並べる。中身は開くまで分からない
+    /// (どの属性枠が在る/無いかで CV未発表などが無料でバレるのを防ぐ)。
+    /// 開封後の獲得点だけは見せて加点表現で誘導する。
     private func hintList(_ q: Question) -> some View {
         let remaining = (1..<q.facts.count).filter { !opened.contains($0) }
         return VStack(spacing: DS.sp3) {
-            ForEach(remaining, id: \.self) { idx in
+            ForEach(Array(remaining.enumerated()), id: \.element) { pos, idx in
                 let f = q.facts[idx]
-                IdolHintRow(label: f.label, cost: f.cost) {
+                let nextValue = max(1, currentValue(q) - f.cost)
+                IdolHintRow(number: pos + 1, nextValue: nextValue) {
                     AppAnalytics.tap("idol_quiz.hint")
                     withAnimation(.easeInOut(duration: 0.2)) { _ = opened.insert(idx) }
                 }
@@ -185,7 +195,6 @@ struct IdolQuizView: View {
         if isCorrect {
             correct += 1
             points += currentValue(q)
-            if opened.isEmpty { perfectCount += 1 }
         }
     }
 
@@ -196,15 +205,20 @@ struct IdolQuizView: View {
     }
 
     private func restart() {
-        points = 0; correct = 0; perfectCount = 0; asked = 0
-        sessionDone = false; selectedId = nil; opened = []
+        points = 0; correct = 0; asked = 0
+        sessionDone = false; selectedId = nil; opened = []; isNewBest = false
         question = makeQuestion()
     }
 
     private func finish() {
+        let outOf = asked * basePoints
+        // recordResult が best を上書きする前に「更新したか」を判定する。
+        let before = GameProgressStore.shared.record(for: .idolQuiz)
+        let beforeRate = before.bestOutOf > 0 ? Double(before.bestScore) / Double(before.bestOutOf) : -1
+        let newRate = outOf > 0 ? Double(points) / Double(outOf) : 0
+        isNewBest = before.hasPlayed && newRate > beforeRate
         sessionDone = true
-        GameProgressStore.shared.recordResult(.idolQuiz, score: points,
-                                              outOf: asked * basePoints)
+        GameProgressStore.shared.recordResult(.idolQuiz, score: points, outOf: outOf)
     }
 
     // MARK: - Data
@@ -214,7 +228,10 @@ struct IdolQuizView: View {
         defer { isLoading = false }
         let all = (try? await AppContainer.shared.idolReading.idols(brandId: nil)) ?? []
         pool = all.filter { idol in
-            !idol.isExternal && (idol.color?.isEmpty == false) && facts(for: idol).count >= 3
+            // ブランド絞り込み: 空集合のときは全ブランドを対象とする。
+            let brandMatch = selectedBrandIds.isEmpty || selectedBrandIds.contains(idol.brandId)
+            return !idol.isExternal && (idol.color?.isEmpty == false)
+                && facts(for: idol).count >= 3 && brandMatch
         }
         question = makeQuestion()
     }
@@ -235,7 +252,10 @@ struct IdolQuizView: View {
         if let b = idol.birthdayDisplay, !b.isEmpty { f.append(Fact(label: "誕生日", value: b, cost: 1)) }
         // メンバーカラー・CV は一気にバレるのでコストを重く (-2pt)。
         if let color = idol.color, !color.isEmpty { f.append(Fact(label: "メンバーカラー", value: color, cost: 2)) }
-        if let cv = idol.currentVoiceActor, !cv.isEmpty { f.append(Fact(label: "CV", value: cv, cost: 2)) }
+        // CV は常にスロットを出す。声優未発表キャラは開封で「未発表」と分かる
+        // (枠の有無で声優の有無が無料でバレるのを防ぐ)。
+        let cvValue = (idol.currentVoiceActor?.isEmpty == false) ? idol.currentVoiceActor! : "声優未発表"
+        f.append(Fact(label: "CV", value: cvValue, cost: 2))
         return f
     }
 
@@ -246,22 +266,24 @@ struct IdolQuizView: View {
     }
 }
 
-/// アイドル当てクイズ専用のヒント行。開くと指定コスト分だけ獲得点が下がることを明示する。
+/// アイドル当てクイズ専用のヒント行。属性ラベルは伏せ「ヒント①②③」だけ見せる。
+/// (どの属性が出題に積まれているかで CV未発表などが無料でバレるのを防ぐ)
+/// 開いた後の獲得点を加点表現で見せる。
 private struct IdolHintRow: View {
-    let label: String
-    let cost: Int
+    let number: Int
+    let nextValue: Int
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             HStack(spacing: DS.sp3) {
-                Image(systemName: "lightbulb.fill")
-                    .font(.imasScaled( 16, weight: .semibold)).foregroundStyle(DS.warning)
+                Image(systemName: "questionmark")
+                    .font(.imasScaled( 16, weight: .bold)).foregroundStyle(DS.warning)
                     .frame(width: 34, height: 34)
                     .background(DS.warning.opacity(0.14), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                 VStack(alignment: .leading, spacing: 1) {
-                    Text("ヒント: \(label)を見る").font(.imasSubhead.weight(.semibold)).foregroundStyle(DS.ink)
-                    Text("開くと −\(cost)pt").font(.imasCaption).foregroundStyle(DS.ink3)
+                    Text("ヒント \(number) を見る").font(.imasSubhead.weight(.semibold)).foregroundStyle(DS.ink)
+                    Text("開いた後は正解で +\(nextValue)pt").font(.imasCaption).foregroundStyle(DS.ink3)
                 }
                 Spacer(minLength: 0)
                 Image(systemName: "chevron.down").font(.imasScaled( 13, weight: .semibold)).foregroundStyle(DS.ink3)
