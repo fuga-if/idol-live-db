@@ -435,11 +435,19 @@ function makeResponders(request: Request, env: Env) {
 // ---------------------------------------------------------------------------
 
 async function upsertUser(env: Env, uid: string, name?: string, picture?: string) {
+  // display_name は INSERT (初回ログインで行を作る) 時のみ設定し、CONFLICT では一切更新しない。
+  // 既存ユーザーの表示名は POST /users/me でのみ変更する設計にする。これにより:
+  //  - login: Apple は fullName を初回認可時しか返さず、2台目/再インストール後は name=undefined。
+  //  - community 書き込み: 各ハンドラが upsertUser(uid, user.email) と email を name に渡している。
+  // のどちらでも、ユーザーが POST /users/me で設定した display_name を毎回上書きする事故を防ぐ。
+  // avatar_url は渡されたときだけ更新し、無ければ COALESCE で既存を温存する。
   await env.DB.prepare(
     `INSERT INTO users (id, display_name, avatar_url) VALUES (?, ?, ?)
-     ON CONFLICT(id) DO UPDATE SET display_name = ?, avatar_url = ?, updated_at = datetime('now')`
+     ON CONFLICT(id) DO UPDATE SET
+       avatar_url = COALESCE(?, users.avatar_url),
+       updated_at = datetime('now')`
   )
-    .bind(uid, name || "匿名", picture ?? null, name || "匿名", picture ?? null)
+    .bind(uid, name || "匿名", picture ?? null, picture ?? null)
     .run();
 }
 
@@ -806,18 +814,35 @@ export default {
       // ----------------------------------------------------------------
       if (path === "/auth/login" && request.method === "POST") {
         if (!env.SESSION_JWT_SECRET) return error("SESSION_JWT_SECRET not configured", 500);
-        const body = (await request.json().catch(() => null)) as { identityToken?: string; displayName?: string } | null;
-        if (!body?.identityToken) return error("identityToken required");
-        const verified = await verifyAppleToken(body.identityToken, env.APPLE_BUNDLE_ID);
+        // iOS の APIClient は JSONEncoder.keyEncodingStrategy = .convertToSnakeCase で
+        // 全リクエストボディを snake_case 化して送る (identityToken → identity_token,
+        // displayName → display_name)。この endpoint だけ camelCase を読んでいたため
+        // iOS のログインは常に 400 となり、session token が一度も発行されず、Apple
+        // identityToken を直接 Bearer (10分有効) に流用するフォールバックで誤魔化されていた。
+        // snake_case を正として読む (旧 camelCase クライアントも後方互換で許容)。
+        const body = (await request.json().catch(() => null)) as
+          | { identity_token?: string; identityToken?: string; display_name?: string; displayName?: string }
+          | null;
+        const identityToken = body?.identity_token ?? body?.identityToken;
+        const displayName = body?.display_name ?? body?.displayName;
+        if (!identityToken) return error("identityToken required");
+        const verified = await verifyAppleToken(identityToken, env.APPLE_BUNDLE_ID);
         if (!verified) return error("invalid identityToken", 401);
-        await upsertUser(env, verified.uid, body.displayName);
+        await upsertUser(env, verified.uid, displayName);
         const sessionToken = await signSessionToken(verified.uid, env.SESSION_JWT_SECRET);
         const isAdmin = await checkIsAdmin(env, verified.uid);
+        // 再ログイン時 Apple は fullName を初回認可時しか返さないため、クライアントは
+        // 自前で表示名を復元できない。upsert 後の正準 display_name を返し、クライアントが
+        // userName を即復元できるようにする (これが無いと再ログイン直後に表示名が空になる)。
+        const dbRow = await env.DB.prepare("SELECT display_name FROM users WHERE id = ?")
+          .bind(verified.uid)
+          .first<{ display_name: string }>();
         return json({
           sessionToken,
           uid: verified.uid,
           email: verified.email,
           isAdmin,
+          displayName: dbRow?.display_name ?? null,
           expiresIn: SESSION_JWT_TTL_SECONDS,
         });
       }
@@ -884,6 +909,51 @@ export default {
           editCount,
           goodsReceived: row?.goods_received ?? 0,
         });
+      }
+
+      // ----------------------------------------------------------------
+      // POST /users/me — 自分の表示名 (display_name) を更新
+      //   メソッドは POST。この Worker の書き込みは POST/PUT/DELETE のみで、
+      //   PATCH は isWriteMethod にも CORS Allow-Methods にも無い (= 未サポート)。
+      //   既存の書き込み規約に合わせる。
+      // ----------------------------------------------------------------
+      if (path === "/users/me" && request.method === "POST") {
+        const user = await getAuthUser(request, env);
+        if (!user) return error("Unauthorized", 401);
+
+        // 先にボディを検証する。checkRateLimit は原子的にカウンタを +1 するので、
+        // 検証より前に走らせると空文字・型不正など 400 になるリクエストでも 1日3枠を
+        // 消費し、ユーザーが表示名を変更できなくなる (自爆ロックアウト)。検証後に課金する。
+        const body = (await request.json().catch(() => null)) as { display_name?: unknown } | null;
+        const raw = body?.display_name;
+        if (typeof raw !== "string") return error("display_name is required");
+        const name = raw.trim();
+        if (name.length === 0) return error("display_name must not be empty");
+        // 長さは UTF-16 code unit ではなく Unicode code point で数える ([...name])。
+        // 絵文字等を 2 文字とカウントして見た目40字未満を弾く誤判定を避ける。
+        if ([...name].length > 40) return error("display_name too long (max 40)");
+
+        const [dbUser, rl] = await Promise.all([
+          env.DB.prepare("SELECT is_banned FROM users WHERE id = ?")
+            .bind(user.uid)
+            .first<{ is_banned: number }>(),
+          checkRateLimit(env.DB, user.uid, "profile"),
+        ]);
+        if (dbUser?.is_banned) return error("Banned", 403);
+        if (!rl.allowed) return rateLimitResponse(rl.used, rl.limit, rl.reset_at);
+
+        // upsertUser は使わない (display_name を email 等で上書きしうるため)。
+        // 行は login 時に必ず作られているので plain UPDATE。INSERT...ON CONFLICT にすると、
+        // 行が消えた (削除済みだがトークンだけ生きている) アカウントを display_name だけの
+        // 不完全な行で復活させてしまうため、ここでは新規作成しない。0件更新なら 404。
+        const updated = await env.DB.prepare(
+          `UPDATE users SET display_name = ?, updated_at = datetime('now') WHERE id = ?`
+        )
+          .bind(name, user.uid)
+          .run();
+        if (!updated.meta.changes) return error("user not found", 404);
+
+        return json({ displayName: name });
       }
 
       // ----------------------------------------------------------------

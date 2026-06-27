@@ -148,7 +148,7 @@ struct MyPageView: View {
                 Button("保存") {
                     Task { await saveDisplayName() }
                 }
-                .disabled(editingName.trimmingCharacters(in: .whitespaces).isEmpty || isSavingName)
+                .disabled(editingName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSavingName)
                 Button("キャンセル", role: .cancel) {}
             } message: {
                 Text("コミュニティ投稿で表示される名前です (40文字以内)")
@@ -728,14 +728,23 @@ struct MyPageView: View {
 
     @MainActor
     private func saveDisplayName() async {
-        let trimmed = editingName.trimmingCharacters(in: .whitespaces)
+        // サーバ側は JS String.trim() (改行や各種 Unicode 空白も除去) で正規化するため、
+        // クライアントも .whitespacesAndNewlines に揃える。.whitespaces だと末尾改行が残り、
+        // ローカルキャッシュ userName とサーバ保存値が乖離する。
+        let trimmed = editingName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
         isSavingName = true
         defer { isSavingName = false }
         do {
             try await AuthService.shared.updateDisplayName(trimmed)
         } catch {
-            nameErrorMessage = error.localizedDescription
+            // レート制限 (429) は「失敗」というより日次上限なので、表示名専用の文言に差し替える。
+            // グローバルな APIClientError.rateLimited 文言は他エンドポイントと共有なので触らない。
+            if case APIClientError.rateLimited = error {
+                nameErrorMessage = "今日はこれ以上、表示名を変更できません。明日また試してください"
+            } else {
+                nameErrorMessage = error.localizedDescription
+            }
         }
     }
 
