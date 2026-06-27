@@ -173,7 +173,7 @@ struct IdolDetailView: View {
 
             HStack(spacing: DS.sp3) {
                 heroActionButton(
-                    title: "担当にする",
+                    title: "担当",
                     activeTitle: "担当",
                     systemImage: isPick ? "heart.fill" : "heart",
                     isOn: isPick,
