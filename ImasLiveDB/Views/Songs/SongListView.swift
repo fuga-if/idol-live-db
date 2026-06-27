@@ -34,6 +34,9 @@ struct SongListView: View {
     /// コミュニティタグ絞り込み (複数指定可)。選択タグ全てが付いた曲 (AND) に絞る。
     @State private var selectedTags: [CommunityTag] = []
     @State private var showTagPicker = false
+    @State private var showIntroDon = false
+    /// 曲一覧の「この絞り込みでイントロドン」導線の表示/非表示 (設定アプリから戻せる)。
+    @AppStorage("songlist_introdon_bar_hidden") private var introDonBarHidden = false
 
     private var activeFilterCount: Int { filter.activeFilterCount }
 
@@ -93,6 +96,7 @@ struct SongListView: View {
                     .background(.bar)
                 }
                 removableFilterBar
+                introDonLaunchBar
                 listContent
                     .refreshable {
                         await syncEngine.performIncrementalSync(database: database)
@@ -136,6 +140,14 @@ struct SongListView: View {
                 .sheet(isPresented: $showTagPicker) {
                     TagFilterPicker(initialSelection: selectedTags, onDone: applyTagFilter)
                 }
+                .navigationDestination(isPresented: $showIntroDon) {
+                    // いま表示中(絞り込み済み)の曲をそのまま出題プールにしてイントロドンへ。
+                    IntroGameSetupView(
+                        presetPool: vm.displayedSongs.map(\.song),
+                        presetLabel: "曲一覧の絞り込み"
+                    )
+                    .environment(database)
+                }
                 // 初回(またはマーク依存フィルタ時)だけ全件ロード。タブ再表示のたびに
                 // 重い fetchSongs+出演者マップを走らせてスピナーを出さないよう、既にロード済みなら
                 // 行アイコン用のマーク集合だけ軽く更新する (他タブでのお気に入り変更を反映)。
@@ -164,6 +176,52 @@ struct SongListView: View {
 
     /// 適用中フィルタの removable チップ列 (デザインの filters セクション)。
     /// マイマーク / 回収 / 表示形式 / タグ を横スクロールで一覧し、各チップ右の × で個別解除。
+    /// いま表示中の曲でイントロドンを始める導線 (絞り込みバーの直下)。
+    /// 絞り込み/検索している時のみ・4曲以上・非表示でないとき表示。
+    @ViewBuilder
+    private var introDonLaunchBar: some View {
+        let playable = IntroGameSession.playable(vm.displayedSongs.map(\.song)).count
+        let filtering = filterBadgeCount > 0 || !searchText.isEmpty
+        if filtering && playable >= 4 && !introDonBarHidden {
+            HStack(spacing: 0) {
+                Button {
+                    AppAnalytics.tap("song_list.introdon")
+                    showIntroDon = true
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "music.note.list")
+                            .font(.imasScaled( 14, weight: .bold))
+                        Text("この絞り込みでイントロドン")
+                            .font(.imasSubhead.weight(.bold))
+                        Text("\(playable)曲")
+                            .font(.imasCaption)
+                            .foregroundStyle(.secondary)
+                        Spacer(minLength: 0)
+                    }
+                    .foregroundStyle(DS.sys)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+
+                Button {
+                    AppAnalytics.tap("song_list.introdon_hide")
+                    withAnimation { introDonBarHidden = true }
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.imasScaled( 12, weight: .bold))
+                        .foregroundStyle(.secondary)
+                        .padding(.leading, 10)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("イントロドン導線を隠す")
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(DS.sys.opacity(0.10))
+        }
+    }
+
     @ViewBuilder
     private var removableFilterBar: some View {
         let chips = activeFilterChips

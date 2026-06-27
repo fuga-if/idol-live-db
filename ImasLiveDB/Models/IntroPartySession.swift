@@ -39,6 +39,9 @@ final class IntroPartySession {
 
     var settings: IntroGameSettings = IntroGameSettings()
 
+    /// 曲一覧の絞り込みをそのまま出題プールに使う場合のプリセット。
+    @ObservationIgnored var presetPool: [Song]? = nil
+
     let players: [Player] = [
         Player(name: "1P", colorHex: "3B82F6"),  // accentBlue 系
         Player(name: "2P", colorHex: "EC4899"),  // accentPink 系
@@ -65,7 +68,8 @@ final class IntroPartySession {
     func generateQuestions(database: AppDatabase) async throws {
         phase = .loading
         audio.preferFull = settings.playback == .full
-        let pool = try await database.fetchIntroDonSongs(brandIds: settings.selectedBrandIds)
+        let pool = try presetPool.map { IntroGameSession.playable($0) }
+            ?? database.fetchIntroDonSongs(brandIds: settings.selectedBrandIds)
         guard pool.count >= 4 else {
             questions = []
             return

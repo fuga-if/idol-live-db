@@ -23,6 +23,7 @@ struct IntroAnswerRecord: Identifiable, Sendable {
 enum IntroGameMode: String, Sendable, CaseIterable {
     case normal   // 固定問数
     case rush     // 制限時間内に連続出題、正解数を競う
+    case allSongs // 全曲チャレンジ: 全曲出し切るまで終わらない、タイムと正答率を競う
     case party    // 1台2人・分割対戦 (早押し奪い合い)
 }
 
@@ -56,16 +57,39 @@ final class IntroGameSession {
     private(set) var questions: [IntroGameQuestion] = []
     private(set) var currentIndex: Int = 0
     private(set) var score: Int = 0
+    /// 連続正解数 (本家のコンボ表示用)。正解で+1、不正解/スキップで0。
+    private(set) var combo: Int = 0
+    private(set) var bestCombo: Int = 0
     private(set) var records: [IntroAnswerRecord] = []
     private(set) var selectedTitle: String? = nil
     private(set) var isCorrect: Bool? = nil
     /// Rush モードの残り時間 (秒)。UI のカウントダウン表示用。
     private(set) var rushRemaining: TimeInterval = 0
+    /// 全曲チャレンジ等の経過タイム (秒)。完走時に確定。タイムと正答率を競う用。
+    private(set) var elapsedTime: TimeInterval = 0
+    @ObservationIgnored private var sessionStart: Date? = nil
+
+    /// 全曲チャレンジか (全曲を出し切るまで終わらない・タイムを競う)。
+    var isAllSongsChallenge: Bool { settings.mode == .allSongs }
+
+    /// プレイ中の現在経過秒 (ライブ表示用)。完走後は確定値 elapsedTime を返す。
+    var elapsedSoFar: TimeInterval {
+        if elapsedTime > 0 { return elapsedTime }
+        return sessionStart.map { Date().timeIntervalSince($0) } ?? 0
+    }
     /// Rush の回答エフェクト用シグナル (tick が増えるたびに UI が○/✕を一瞬出す)。
     private(set) var rushFlashTick: Int = 0
     private(set) var rushFlashCorrect: Bool = false
 
     var settings: IntroGameSettings = IntroGameSettings()
+
+    /// 曲一覧の絞り込みをそのまま出題プールに使う場合のプリセット (nil ならブランド条件でDB取得)。
+    @ObservationIgnored var presetPool: [Song]? = nil
+
+    /// IntroDon 出題に使える曲だけに絞る (apple_music_id あり・親曲でない)。
+    static func playable(_ songs: [Song]) -> [Song] {
+        songs.filter { ($0.appleMusicId?.isEmpty == false) && $0.parentSongId == nil }
+    }
 
     @ObservationIgnored private var rushTimerTask: Task<Void, Never>? = nil
 
@@ -91,19 +115,23 @@ final class IntroGameSession {
         questions = []
         currentIndex = 0
         score = 0
+        combo = 0
+        bestCombo = 0
         records = []
         selectedTitle = nil
         isCorrect = nil
 
-        let pool = try database.fetchIntroDonSongs(brandIds: settings.selectedBrandIds)
+        // プリセット (曲一覧の絞り込み) があればそれを使う。無ければブランド条件でDB取得。
+        let pool = try presetPool.map { Self.playable($0) }
+            ?? database.fetchIntroDonSongs(brandIds: settings.selectedBrandIds)
 
         guard pool.count >= 4 else {
             phase = .idle
             return
         }
 
-        // Rush は時間で終わるため尽きないよう多めに用意 (尽きたら先頭へ wrap)。
-        let count = settings.mode == .rush ? min(pool.count, 300) : settings.questionCount
+        // Rush / 全曲チャレンジ は選択ブランドの全曲をプール。Normal は questionCount 問。
+        let count = (settings.mode == .rush || settings.mode == .allSongs) ? pool.count : settings.questionCount
         questions = Array(pool.shuffled().prefix(count)).map { song in
             IntroGameQuestion(
                 id: song.id,
@@ -117,6 +145,9 @@ final class IntroGameSession {
         }
 
         phase = .playing
+        elapsedTime = 0
+        newBestTimeAchieved = false
+        sessionStart = Date()
         if settings.mode == .rush { startRushTimer() }
         await playCurrentIntro()
     }
@@ -158,17 +189,20 @@ final class IntroGameSession {
 
     // MARK: - Playback (共通エンジンに委譲)
 
+    /// 高速形式 (押すまで流す・選択肢常時・即次へ)。Rush と 全曲チャレンジ。
+    var isFastFlow: Bool { settings.mode == .rush || settings.mode == .allSongs }
+
     func playCurrentIntro() async {
         guard let q = currentQuestion else { return }
-        // Rush は「押すまで流す」(duration=nil)。それ以外は introDuration で自動停止。
-        let isRush = settings.mode == .rush
+        // 高速形式は「押すまで流す」(duration=nil)。通常は introDuration で自動停止。
+        let fast = isFastFlow
         audio.play(
             appleMusicId: q.appleMusicId,
             previewUrl: q.previewUrl.flatMap(URL.init(string:)),
-            duration: isRush ? nil : settings.introDuration
+            duration: fast ? nil : settings.introDuration
         ) { [weak self] in
             guard let self else { return }
-            if !isRush, self.phase == .playing { self.phase = .answering }
+            if !fast, self.phase == .playing { self.phase = .answering }
         }
         prefetchNext()
     }
@@ -227,12 +261,21 @@ final class IntroGameSession {
         selectedTitle = title
         let correct = title == q.title
         isCorrect = correct
-        if correct { score += 1 }
+        if correct {
+            score += 1
+            combo += 1
+            bestCombo = max(bestCombo, combo)
+        } else {
+            combo = 0
+        }
         records.append(IntroAnswerRecord(id: q.id, title: q.title, selectedTitle: title, correct: correct))
-        // Rush は正解画面を出さず、○/✕ エフェクトだけ出して即次へ。
+        // 高速形式 (Rush/全曲) は正解画面を出さず ○/✕ エフェクトで即次へ。
         if settings.mode == .rush {
             flashRush(correct: correct)
             advanceRush()
+        } else if settings.mode == .allSongs {
+            flashRush(correct: correct)
+            advanceAllSongs()
         } else {
             phase = .revealed
         }
@@ -243,11 +286,32 @@ final class IntroGameSession {
         stopPlayback()
         selectedTitle = nil
         isCorrect = false
+        combo = 0
         records.append(IntroAnswerRecord(id: q.id, title: q.title, selectedTitle: nil, correct: false))
         if settings.mode == .rush {
             advanceRush()
+        } else if settings.mode == .allSongs {
+            advanceAllSongs()
         } else {
             phase = .revealed
+        }
+    }
+
+    /// 全曲チャレンジ: 高速で次へ。最後まで行ったら完走 (タイム確定)。
+    private func advanceAllSongs() {
+        selectedTitle = nil
+        isCorrect = nil
+        let next = currentIndex + 1
+        if next >= questions.count {
+            stopPlayback()
+            if let s = sessionStart { elapsedTime = Date().timeIntervalSince(s) }
+            phase = .finished
+            saveBestScore()
+            saveBestTime()
+        } else {
+            currentIndex = next
+            phase = .playing
+            Task { await playCurrentIntro() }
         }
     }
 
@@ -284,8 +348,10 @@ final class IntroGameSession {
         let next = currentIndex + 1
         if next >= questions.count {
             stopPlayback()
+            if let s = sessionStart { elapsedTime = Date().timeIntervalSince(s) }
             phase = .finished
             saveBestScore()
+            if isAllSongsChallenge { saveBestTime() }
         } else {
             currentIndex = next
             phase = .playing
@@ -302,6 +368,8 @@ final class IntroGameSession {
         questions = []
         currentIndex = 0
         score = 0
+        combo = 0
+        bestCombo = 0
         records = []
         selectedTitle = nil
         isCorrect = nil
@@ -320,15 +388,43 @@ final class IntroGameSession {
     private var bestScoreKey: String {
         // %g で整数は "2"、サブ秒は "0.2" になり、超イントロのベストスコアが別管理される
         // (Int だと 0.2→0 で衝突していた)。整数値の既存キーは "2" のまま維持される。
-        settings.mode == .rush
-            ? "introDonBestScore_rush_\(String(format: "%g", settings.rushTimeLimit))s"
-            : "introDonBestScore_\(String(format: "%g", settings.introDuration))s_\(settings.questionCount)q"
+        switch settings.mode {
+        case .rush:
+            return "introDonBestScore_rush_\(String(format: "%g", settings.rushTimeLimit))s"
+        case .allSongs:
+            return "introDonBestScore_allsongs"
+        default:
+            return "introDonBestScore_\(String(format: "%g", settings.introDuration))s_\(settings.questionCount)q"
+        }
     }
 
     private func saveBestScore() {
         let key = bestScoreKey
         if score > UserDefaults.standard.integer(forKey: key) {
             UserDefaults.standard.set(score, forKey: key)
+        }
+    }
+
+    // MARK: - Best Time (全曲チャレンジ: タイムを競う)
+
+    /// 全曲チャレンジのベストタイム (秒)。0 = 未記録。ブランド選択ごとに別管理。
+    private var bestTimeKey: String {
+        let brands = settings.selectedBrandIds.map { $0.sorted().joined(separator: ",") } ?? "all"
+        return "introDonBestTime_\(brands)"
+    }
+
+    var bestTime: TimeInterval {
+        UserDefaults.standard.double(forKey: bestTimeKey)
+    }
+
+    /// 今回が自己ベストタイム更新だったか (保存時に確定。結果画面はこれを見る)。
+    private(set) var newBestTimeAchieved = false
+
+    private func saveBestTime() {
+        let prev = UserDefaults.standard.double(forKey: bestTimeKey)
+        if elapsedTime > 0, prev == 0 || elapsedTime < prev {
+            newBestTimeAchieved = true
+            UserDefaults.standard.set(elapsedTime, forKey: bestTimeKey)
         }
     }
 }

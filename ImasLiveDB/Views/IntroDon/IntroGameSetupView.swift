@@ -4,6 +4,10 @@ import MusicKit
 struct IntroGameSetupView: View {
     @Environment(AppDatabase.self) private var database
 
+    /// 曲一覧の絞り込みをそのまま出題プールにする場合のプリセット (nil ならブランド選択)。
+    var presetPool: [Song]? = nil
+    var presetLabel: String? = nil
+
     @State private var session = IntroGameSession()
     @State private var partySession = IntroPartySession()
     @State private var navigateToParty = false
@@ -17,6 +21,8 @@ struct IntroGameSetupView: View {
     @State private var introDuration: TimeInterval = 5.0
     @State private var rushTimeLimit: TimeInterval = 60
     @State private var isLoading = false
+    @State private var showAdvanced = false
+    @State private var showSongFilter = false
     @State private var navigateToGame = false
     @State private var errorMessage: String? = nil
     @State private var authStatus: MusicAuthorization.Status = MusicKitService.shared.authorizationStatus
@@ -35,65 +41,36 @@ struct IntroGameSetupView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
+                // ① モード (先に決める)
                 IDSectionLabel(text: "モード")
                     .padding(.horizontal, 20)
                 Spacer().frame(height: 12)
                 modeSection
                     .padding(.horizontal, 20)
 
-                // Rush は連続早押しのため常に 4択 (音声判定 OFF) → 回答方式は出さない。
-                if mode != .rush {
-                    Spacer().frame(height: 24)
-
-                    IDSectionLabel(text: "回答方式")
-                        .padding(.horizontal, 20)
-                    Spacer().frame(height: 12)
-                    answerModeSection
-                        .padding(.horizontal, 20)
-                }
-
+                // ② 出題範囲: プリセット(曲一覧の絞り込み) があればそれを表示、無ければブランド選択。
                 Spacer().frame(height: 24)
-
-                IDSectionLabel(text: "再生方式")
+                IDSectionLabel(text: "出題範囲", hint: presetPool == nil ? "ブランドで絞る" : nil)
                     .padding(.horizontal, 20)
                 Spacer().frame(height: 12)
-                playbackSection
-                    .padding(.horizontal, 20)
-
-                Spacer().frame(height: 24)
-
-                IDSectionLabel(text: "ブランド")
-                    .padding(.horizontal, 20)
-                Spacer().frame(height: 12)
-                brandSection
-                    .padding(.horizontal, 20)
-
-                Spacer().frame(height: 24)
-
-                if mode == .rush {
-                    IDSectionLabel(text: "制限時間")
-                        .padding(.horizontal, 20)
-                    Spacer().frame(height: 12)
-                    rushTimeSection
+                if let presetPool {
+                    presetRangeCard(count: IntroGameSession.playable(presetPool).count)
                         .padding(.horizontal, 20)
                 } else {
-                    IDSectionLabel(text: "問題数")
+                    brandSection
                         .padding(.horizontal, 20)
-                    Spacer().frame(height: 12)
-                    countSection
+                    Spacer().frame(height: 10)
+                    refineButton
                         .padding(.horizontal, 20)
                 }
 
-                // Rush は「押すまで流す」ので再生時間の選択は不要 → 非表示。
-                if mode != .rush {
-                    Spacer().frame(height: 24)
+                // ③ モード別の設定 (必要な項目だけ出す)
+                modeSpecificSection
 
-                    IDSectionLabel(text: "難易度", hint: "イントロ再生時間")
-                        .padding(.horizontal, 20)
-                    Spacer().frame(height: 12)
-                    durationSection
-                        .padding(.horizontal, 20)
-                }
+                // ④ 詳細設定 (折りたたみ): 再生方式・難易度
+                Spacer().frame(height: 24)
+                advancedSection
+                    .padding(.horizontal, 20)
 
                 if authStatus != .authorized {
                     Spacer().frame(height: 20)
@@ -130,6 +107,10 @@ struct IntroGameSetupView: View {
         .navigationDestination(isPresented: $navigateToGame) {
             IntroGameView(session: session)
         }
+        .navigationDestination(isPresented: $showSongFilter) {
+            // 曲一覧でタグ/担当/検索などで絞り込み → 一覧の「この絞り込みでイントロドン」で出題。
+            SongListView().environment(database)
+        }
         .navigationDestination(isPresented: $navigateToParty) {
             IntroPartyGameView(session: partySession)
         }
@@ -141,75 +122,25 @@ struct IntroGameSetupView: View {
 
     // MARK: - Brand Section
 
+    /// ブランド選択 = 曲フィルターと同じ丸アイコングリッド (BrandIconCell)。複数選択可・空=全て。
     private var brandSection: some View {
-        VStack(spacing: 0) {
-            Button {
-                withAnimation(.easeInOut(duration: 0.15)) {
-                    selectedBrandIds.removeAll()
-                }
-            } label: {
-                HStack {
-                    Text("全ブランド")
-                        .font(ID.font(14, weight: .semibold))
-                        .foregroundColor(ID.menuText)
-                    Spacer()
-                    checkIcon(selected: selectedBrandIds.isEmpty)
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 14)
+        let columns = [GridItem(.adaptive(minimum: 56, maximum: 80), spacing: 10)]
+        return LazyVGrid(columns: columns, alignment: .center, spacing: 10) {
+            BrandIconCell(brandId: nil, label: "全て", iconText: "全", color: nil,
+                          isSelected: selectedBrandIds.isEmpty) {
+                withAnimation(.easeInOut(duration: 0.15)) { selectedBrandIds = [] }
             }
-            .idPress()
-
-            brandDivider
-
-            ForEach(Array(brands.enumerated()), id: \.element.id) { index, brand in
-                let selected = selectedBrandIds.contains(brand.id)
-                Button {
+            ForEach(brands) { brand in
+                BrandIconCell(brandId: brand.id, label: brand.shortName, iconText: brand.iconText,
+                              color: brand.color, isSelected: selectedBrandIds.contains(brand.id)) {
                     withAnimation(.easeInOut(duration: 0.15)) {
-                        if selected {
+                        if !selectedBrandIds.insert(brand.id).inserted {
                             selectedBrandIds.remove(brand.id)
-                        } else {
-                            selectedBrandIds.insert(brand.id)
                         }
                     }
-                } label: {
-                    HStack(spacing: 10) {
-                        if let hex = brand.color {
-                            Circle()
-                                .fill(Color(hexString: hex))
-                                .frame(width: 8, height: 8)
-                        }
-                        Text(brand.shortName)
-                            .font(ID.font(14, weight: .semibold))
-                            .foregroundColor(ID.menuText)
-                        Spacer()
-                        checkIcon(selected: selected)
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 14)
-                }
-                .idPress()
-
-                if index < brands.count - 1 {
-                    brandDivider
                 }
             }
         }
-        .background(ID.menuCardSubtle)
-        .clipShape(IDCorner(radius: 16))
-    }
-
-    private func checkIcon(selected: Bool) -> some View {
-        Image(systemName: selected ? "checkmark.circle.fill" : "circle")
-            .foregroundColor(selected ? ID.correct : ID.menuTextMuted)
-            .font(.imasScaled( 18))
-    }
-
-    private var brandDivider: some View {
-        Rectangle()
-            .fill(ID.menuDivider)
-            .frame(height: 1)
-            .padding(.horizontal, 16)
     }
 
     // MARK: - Count / Duration Sections
@@ -260,12 +191,145 @@ struct IntroGameSetupView: View {
         }
     }
 
+    /// タグ・担当・検索で細かく絞って出題したい時に曲一覧へ飛ぶボタン。
+    private var refineButton: some View {
+        Button {
+            AppAnalytics.tap("intro_game_setup.refine")
+            showSongFilter = true
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "line.3.horizontal.decrease.circle")
+                    .font(.imasScaled( 14, weight: .semibold))
+                Text("タグ・担当・検索で絞り込んで出題")
+                    .font(ID.font(13, weight: .semibold))
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(.imasScaled( 12, weight: .semibold))
+            }
+            .foregroundColor(ID.accentPurple)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .background(ID.accentPurple.opacity(0.08))
+            .clipShape(IDCorner(radius: 12))
+        }
+        .idPress()
+    }
+
+    /// 出題範囲: 曲一覧の絞り込みプリセットの表示カード。
+    private func presetRangeCard(count: Int) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: "line.3.horizontal.decrease.circle.fill")
+                .font(.imasScaled( 18, weight: .bold))
+                .foregroundColor(ID.accentPurple)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(presetLabel ?? "曲一覧の絞り込み")
+                    .font(ID.font(14, weight: .bold))
+                    .foregroundColor(ID.menuText)
+                    .lineLimit(1)
+                Text("\(count)曲から出題")
+                    .font(.imasScaled(12))
+                    .foregroundColor(ID.menuTextSecondary)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(14)
+        .background(ID.menuCardSubtle)
+        .clipShape(IDCorner(radius: 14))
+    }
+
+    // MARK: - Section layout helpers
+
+    /// 見出し付きセクション (上に余白 + ラベル + 中身)。
+    @ViewBuilder
+    private func labeledSection<C: View>(_ title: String, hint: String? = nil, @ViewBuilder _ content: () -> C) -> some View {
+        Spacer().frame(height: 24)
+        IDSectionLabel(text: title, hint: hint).padding(.horizontal, 20)
+        Spacer().frame(height: 12)
+        content().padding(.horizontal, 20)
+    }
+
+    /// ③ モード別に必要な設定だけ出す。
+    @ViewBuilder
+    private var modeSpecificSection: some View {
+        switch mode {
+        case .normal:
+            labeledSection("回答方式") { answerModeSection }
+            labeledSection("問題数") { countSection }
+        case .rush:
+            labeledSection("制限時間") { rushTimeSection }
+        case .allSongs:
+            Spacer().frame(height: 20)
+            allSongsNote.padding(.horizontal, 20)
+        case .party:
+            labeledSection("ラウンド数") { countSection }
+        }
+    }
+
+    private var allSongsNote: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "infinity")
+                .font(.imasScaled( 16, weight: .bold))
+                .foregroundColor(ID.accentGold)
+            Text("選択した出題範囲の全曲を出し切るまで挑戦。タイムと正答率を競います。")
+                .font(.imasScaled(12))
+                .foregroundColor(ID.menuTextSecondary)
+            Spacer(minLength: 0)
+        }
+        .padding(14)
+        .background(ID.accentGold.opacity(0.08))
+        .clipShape(IDCorner(radius: 14))
+    }
+
+    /// ④ 詳細設定 (折りたたみ): 再生方式・難易度。
+    private var advancedSection: some View {
+        VStack(spacing: 0) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) { showAdvanced.toggle() }
+            } label: {
+                HStack {
+                    Text("詳細設定")
+                        .font(ID.font(11, weight: .bold))
+                        .tracking(2)
+                        .foregroundColor(ID.menuTextMuted)
+                    Spacer()
+                    Image(systemName: showAdvanced ? "chevron.up" : "chevron.down")
+                        .font(.imasScaled( 12, weight: .bold))
+                        .foregroundColor(ID.menuTextMuted)
+                }
+                .padding(.vertical, 6)
+            }
+            .idPress()
+
+            if showAdvanced {
+                VStack(spacing: 18) {
+                    advancedBlock("再生方式") { playbackSection }
+                    if mode == .normal || mode == .party {
+                        advancedBlock("難易度 (イントロ再生時間)") { durationSection }
+                    }
+                }
+                .padding(.top, 14)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func advancedBlock<C: View>(_ title: String, @ViewBuilder _ content: () -> C) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(title)
+                .font(ID.font(11, weight: .bold))
+                .tracking(1.5)
+                .foregroundColor(ID.menuTextMuted)
+            content()
+        }
+    }
+
     // MARK: - Mode / Answer Mode
 
     private var modeSection: some View {
         VStack(spacing: 8) {
             modeRow(.normal, icon: "list.number", title: "ノーマル", sub: "決めた問題数で挑戦")
             modeRow(.rush, icon: "timer", title: "ラッシュ", sub: "制限時間内に何問正解できるか")
+            modeRow(.allSongs, icon: "infinity", title: "全曲チャレンジ", sub: "全曲出し切るまで・タイムと正答率を競う")
             modeRow(.party, icon: "person.2.fill", title: "パーティ対戦", sub: "1台2人・分割画面で早押し")
         }
     }
@@ -441,6 +505,7 @@ struct IntroGameSetupView: View {
         do {
             if mode == .party {
                 partySession.settings = settings
+                partySession.presetPool = presetPool
                 try await partySession.generateQuestions(database: database)
                 if partySession.questions.isEmpty {
                     errorMessage = "対象の曲が見つかりませんでした。ブランドを増やしてお試しください。"
@@ -449,6 +514,7 @@ struct IntroGameSetupView: View {
                 }
             } else {
                 session.settings = settings
+                session.presetPool = presetPool
                 try await session.generateQuestions(database: database)
                 if session.questions.isEmpty {
                     errorMessage = "対象の曲が見つかりませんでした。ブランドを増やしてお試しください。"

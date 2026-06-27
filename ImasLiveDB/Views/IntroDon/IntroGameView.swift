@@ -16,11 +16,13 @@ struct IntroGameView: View {
     @Environment(\.dismiss) private var dismiss
 
     private var isRush: Bool { session.settings.mode == .rush }
+    /// 高速形式 (押すまで流す・選択肢常時・即次へ)。Rush と 全曲チャレンジ。
+    private var isFast: Bool { session.settings.mode == .rush || session.settings.mode == .allSongs }
 
     /// 音声判定 UI を出すか。音声モードでは常に音声 UI (選択肢は出さない)。
     /// 未許可は voiceStatusCard で許可導線を出す。Rush は音声を使わず常に 4択。
     private var useVoice: Bool {
-        session.settings.answerMode == .voice && !isRush
+        session.settings.answerMode == .voice && !isFast
     }
 
     var body: some View {
@@ -168,8 +170,8 @@ struct IntroGameView: View {
                     .frame(height: 60)
 
                 // 通常モードは中央の大きな「!」ボタンで早押し → 回答。
-                // Rush は押すまで流し続け、選択肢を常時出すのでボタンは出さない。
-                if !isRush {
+                // 高速形式(Rush/全曲)は押すまで流し選択肢を常時出すのでボタンは出さない。
+                if !isFast {
                     buzzButton(size: buzzSize)
                         .frame(height: buzzSize)
                     buzzHint
@@ -193,7 +195,7 @@ struct IntroGameView: View {
     }
 
     /// 回答エリアを出すか。Rush は常時、通常は回答フェーズのみ。
-    private var showAnswer: Bool { isRush || session.phase == .answering }
+    private var showAnswer: Bool { isFast || session.phase == .answering }
 
     // MARK: - Header / Progress
 
@@ -212,7 +214,43 @@ struct IntroGameView: View {
                     .clipShape(IDCorner(radius: 8))
             }
 
+            // 全曲チャレンジ: ライブ経過タイム (タイムを競う)。
+            if session.isAllSongsChallenge {
+                TimelineView(.periodic(from: .now, by: 0.1)) { _ in
+                    let secs = Int(session.elapsedSoFar)
+                    Label(String(format: "%d:%02d", secs / 60, secs % 60), systemImage: "stopwatch")
+                        .font(ID.font(14, weight: .black))
+                        .monospacedDigit()
+                        .foregroundColor(ID.accentGold)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(ID.accentGold.opacity(0.14))
+                        .clipShape(IDCorner(radius: 8))
+                }
+            }
+
             Spacer()
+
+            // コンボ (本家準拠): 2連続以上で炎+×N、伸びるほど派手に。
+            if session.combo >= 2 {
+                let tier = session.combo
+                let color: Color = tier >= 8 ? ID.accentPink : (tier >= 5 ? ID.accentGold : ID.accentPurple)
+                HStack(spacing: 3) {
+                    Image(systemName: "flame.fill")
+                        .font(.imasScaled( tier >= 5 ? 14 : 12, weight: .bold))
+                    Text("×\(session.combo)")
+                        .font(ID.font(tier >= 5 ? 17 : 14, weight: .black))
+                        .monospacedDigit()
+                }
+                .foregroundColor(color)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(color.opacity(0.14))
+                .clipShape(IDCorner(radius: 8))
+                .id(session.combo)
+                .transition(.scale.combined(with: .opacity))
+                .animation(.spring(response: 0.3, dampingFraction: 0.6), value: session.combo)
+            }
 
             HStack(spacing: 5) {
                 Image(systemName: "checkmark.circle.fill")
@@ -269,7 +307,7 @@ struct IntroGameView: View {
     @ViewBuilder
     private var statusArea: some View {
         switch session.phase {
-        case .playing where isRush:
+        case .playing where isFast:
             VStack(spacing: 8) {
                 Image(systemName: session.isPlayingIntro ? "speaker.wave.2.fill" : "music.note")
                     .font(.imasScaled( 24, weight: .bold))
@@ -329,7 +367,7 @@ struct IntroGameView: View {
 
     private var controlsRow: some View {
         HStack(spacing: 28) {
-            controlButton(icon: "arrow.counterclockwise", label: "頭出し") {
+            controlButton(icon: "arrow.counterclockwise", label: "もう一度") {
                 AppAnalytics.tap("intro_game.replay")
                 stopSpeech()
                 Task { await session.replayIntro() }
@@ -363,12 +401,12 @@ struct IntroGameView: View {
                         Task { await session.replayIntro() }
                     }
                 }
-                Text("もう少し流す")
+                Text(session.isPlayingIntro ? "再生中" : "続きから")
                     .font(ID.font(10, weight: .semibold))
                     .foregroundColor(ID.t3)
             }
 
-            controlButton(icon: "forward.end.fill", label: "スキップ") {
+            controlButton(icon: "forward.end.fill", label: "次の曲") {
                 AppAnalytics.tap("intro_game.skip")
                 stopSpeech()
                 session.skipQuestion()
