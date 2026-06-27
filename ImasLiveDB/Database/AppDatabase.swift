@@ -2509,6 +2509,32 @@ final class AppDatabase: @unchecked Sendable {
 
     /// entity 横断で kind に一致する全 UserMark を返す。
     /// note 種別は textValue が非空のもの、それ以外は boolValue == true のもの。
+    /// 全ユーザーマーク (全 kind・bool false 行も含む) を返す。iCloud バックアップ用。
+    func allUserMarks() throws -> [UserMark] {
+        try dbQueue.read { db in try UserMark.fetchAll(db) }
+    }
+
+    /// バックアップからの復元 (非破壊): ローカルに無い (entity,id,kind) の行だけ追加する。
+    /// 既存ローカル行は決して上書き/削除しない。戻り値は追加件数。
+    @discardableResult
+    func restoreUserMarksIfAbsent(_ marks: [UserMark]) throws -> Int {
+        try dbQueue.write { db in
+            var inserted = 0
+            for m in marks {
+                let exists = try UserMark
+                    .filter(UserMark.Columns.entityType == m.entityType
+                            && UserMark.Columns.entityId == m.entityId
+                            && UserMark.Columns.kind == m.kind)
+                    .fetchCount(db) > 0
+                if !exists {
+                    try m.insert(db)
+                    inserted += 1
+                }
+            }
+            return inserted
+        }
+    }
+
     func fetchAllUserMarks(kind: UserMarkKind) throws -> [UserMark] {
         try dbQueue.read { db in
             let base = UserMark.filter(UserMark.Columns.kind == kind.rawValue)

@@ -433,8 +433,12 @@ struct ProduceTabView: View {
     /// (毎回違うお題に触れてもらう導線)。全部投票済み/匿名なら全体からランダム。
     private func loadActivePoll() async {
         let polls = (try? await AppContainer.shared.communityVoting.polls(status: "active")) ?? []
-        let unvoted = polls.filter { ($0.myVoteCount ?? 0) == 0 }
-        activePoll = (unvoted.isEmpty ? polls : unvoted).randomElement()
+        // 全票(3票)使い切ったお題はバナーに出さない。残票のあるものだけ対象。
+        // (匿名は myVoteCount=nil=0 扱いなので常に対象)
+        let votable = polls.filter { ($0.myVoteCount ?? 0) < 3 }
+        // 未投票を優先、その中からランダム。全部投票済みなら非表示 (nil)。
+        let unvoted = votable.filter { ($0.myVoteCount ?? 0) == 0 }
+        activePoll = (unvoted.isEmpty ? votable : unvoted).randomElement()
     }
 
     /// ローカル DB から担当・活動・参加ライブを読む。

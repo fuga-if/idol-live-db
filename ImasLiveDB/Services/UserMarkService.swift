@@ -22,12 +22,47 @@ final class UserMarkService {
     /// 自動回収済み song_id キャッシュ（attended 変更時に更新）
     private var collectedIds: Set<String> = []
 
+    /// マーク変更を iCloud KVS にミラーするデバウンス用タスク。
+    private var backupTask: Task<Void, Never>?
+
     private init() {
         self.db = AppDatabase.shared
+        // iCloud バックアップから非破壊で復元 (再インストール/機種変対策)。ローカルは消さない。
+        restoreFromBackup()
         reloadBoolMarks()
         refreshAutoCollected()
+        // 他端末での変更を受信したら非破壊マージ + キャッシュ更新。
+        UserMarkBackup.shared.startObserving { [weak self] in
+            self?.restoreFromBackup()
+            self?.reloadBoolMarks()
+            self?.refreshAutoCollected()
+            self?.version &+= 1
+        }
         // 起動時に保留中のファボ送信をリトライ
         PendingCommunityActions.shared.flushPendingFavorites()
+    }
+
+    /// iCloud バックアップ → ローカルに非破壊復元 (無い行だけ追加)。
+    private func restoreFromBackup() {
+        guard let backed = UserMarkBackup.shared.loadBackup(), !backed.isEmpty else { return }
+        do {
+            let added = try db.restoreUserMarksIfAbsent(backed)
+            if added > 0 { logger.info("restored \(added) user marks from iCloud backup") }
+        } catch {
+            logger.error("restore from backup failed: \(error.localizedDescription)")
+        }
+    }
+
+    /// ローカル全マークを iCloud KVS にミラーする (デバウンス)。マーク変更後に呼ぶ。
+    private func scheduleBackup() {
+        backupTask?.cancel()
+        backupTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(1))
+            guard !Task.isCancelled, let self else { return }
+            if let marks = try? self.db.allUserMarks() {
+                UserMarkBackup.shared.backup(marks)
+            }
+        }
     }
 
     private static func markKey(_ entity: UserMarkEntity, _ kind: UserMarkKind, _ id: String) -> String {
@@ -76,6 +111,7 @@ final class UserMarkService {
             }
         }
         version &+= 1
+        scheduleBackup()
     }
 
     func toggle(_ kind: UserMarkKind, entity: UserMarkEntity, id: String) throws {
@@ -95,6 +131,7 @@ final class UserMarkService {
     func setNote(entity: UserMarkEntity, id: String, text: String?) throws {
         try db.upsertUserMarkNote(entity: entity, id: id, text: text)
         version &+= 1
+        scheduleBackup()
     }
 
     /// 座席メモ (公演単位)。 空/空白なら nil で消す。
@@ -113,6 +150,7 @@ final class UserMarkService {
         try db.upsertUserMarkText(entity: entity, id: id, kind: .seat,
                                   text: (trimmed?.isEmpty ?? true) ? nil : trimmed)
         version &+= 1
+        scheduleBackup()
     }
 
     // MARK: - 参加種別 (現地 / 配信)
@@ -139,6 +177,7 @@ final class UserMarkService {
         }
         refreshAutoCollected()
         version &+= 1
+        scheduleBackup()
     }
 
     func allMarked(kind: UserMarkKind, entity: UserMarkEntity) -> [String] {
