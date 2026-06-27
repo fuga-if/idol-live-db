@@ -431,11 +431,18 @@ function makeResponders(request: Request, env: Env) {
 // ---------------------------------------------------------------------------
 
 async function upsertUser(env: Env, uid: string, name?: string, picture?: string) {
+  // CONFLICT (既存ユーザー) 時は COALESCE で既存値を温存する。Apple Sign In は fullName を
+  // 初回認可時しか返さないため、2台目/再インストール後のログインは name=undefined で来る。
+  // ここで "匿名" やnullに上書きしてしまうと、ユーザーが POST /users/me で設定した表示名や
+  // 既存アバターが毎回ログインのたびに消える。新規 INSERT 時のみ "匿名" を既定にする。
   await env.DB.prepare(
     `INSERT INTO users (id, display_name, avatar_url) VALUES (?, ?, ?)
-     ON CONFLICT(id) DO UPDATE SET display_name = ?, avatar_url = ?, updated_at = datetime('now')`
+     ON CONFLICT(id) DO UPDATE SET
+       display_name = COALESCE(?, users.display_name),
+       avatar_url   = COALESCE(?, users.avatar_url),
+       updated_at   = datetime('now')`
   )
-    .bind(uid, name || "匿名", picture ?? null, name || "匿名", picture ?? null)
+    .bind(uid, name || "匿名", picture ?? null, name || null, picture ?? null)
     .run();
 }
 
@@ -870,6 +877,18 @@ export default {
         const user = await getAuthUser(request, env);
         if (!user) return error("Unauthorized", 401);
 
+        // 先にボディを検証する。checkRateLimit は原子的にカウンタを +1 するので、
+        // 検証より前に走らせると空文字・型不正など 400 になるリクエストでも 1日20枠を
+        // 消費し、ユーザーが表示名を変更できなくなる (自爆ロックアウト)。検証後に課金する。
+        const body = (await request.json().catch(() => null)) as { display_name?: unknown } | null;
+        const raw = body?.display_name;
+        if (typeof raw !== "string") return error("display_name is required");
+        const name = raw.trim();
+        if (name.length === 0) return error("display_name must not be empty");
+        // 長さは UTF-16 code unit ではなく Unicode code point で数える ([...name])。
+        // 絵文字等を 2 文字とカウントして見た目40字未満を弾く誤判定を避ける。
+        if ([...name].length > 40) return error("display_name too long (max 40)");
+
         const [dbUser, rl] = await Promise.all([
           env.DB.prepare("SELECT is_banned FROM users WHERE id = ?")
             .bind(user.uid)
@@ -878,13 +897,6 @@ export default {
         ]);
         if (dbUser?.is_banned) return error("Banned", 403);
         if (!rl.allowed) return rateLimitResponse(rl.used, rl.limit, rl.reset_at);
-
-        const body = (await request.json().catch(() => null)) as { display_name?: unknown } | null;
-        const raw = body?.display_name;
-        if (typeof raw !== "string") return error("display_name is required");
-        const name = raw.trim();
-        if (name.length === 0) return error("display_name must not be empty");
-        if (name.length > 40) return error("display_name too long (max 40)");
 
         // upsertUser は使わない (display_name を email 等で上書きしうるため)。
         // 行は login 時に必ず作られているが、念のため冪等な upsert で直接 display_name のみ更新。
