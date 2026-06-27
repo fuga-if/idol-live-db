@@ -957,6 +957,65 @@ export default {
       }
 
       // ----------------------------------------------------------------
+      // DELETE /users/me — 本人によるアカウント削除 (App Store 5.1.1(v) 対応)
+      //   退会を妨げないため BAN 中でも許可する。リクエストボディは無い。
+      //   ログインで初めて作られるアカウント紐付けデータ (投票・like・編集履歴・Good) は
+      //   すべて物理削除する。Good 数や like 数は保存値ではなく都度 COUNT(*) なので、
+      //   本人の行を消せば表示カウントも自然に減る。予想/投票の集計テーブル (vote_count 等) は
+      //   端末・匿名の共有データなので触らない。
+      //   foreign_keys が ON でも通るよう、子テーブルの参照を先に外してから親 → users の順に消す。
+      //   一連の操作は env.DB.batch() で原子的に実行し、途中失敗で中途半端な状態を残さない。
+      // ----------------------------------------------------------------
+      if (path === "/users/me" && request.method === "DELETE") {
+        const user = await getAuthUser(request, env);
+        if (!user) return error("Unauthorized", 401);
+        const uid = user.uid;
+
+        await env.DB.batch([
+          // 本人だけに紐づく個人データ。FK は無いのでそのまま削除する。
+          env.DB.prepare("DELETE FROM rate_limits WHERE user_id = ?").bind(uid),
+          env.DB.prepare("DELETE FROM setlist_prediction_votes WHERE user_id = ?").bind(uid),
+          env.DB
+            .prepare("DELETE FROM setlist_performer_prediction_votes WHERE user_id = ?")
+            .bind(uid),
+          env.DB.prepare("DELETE FROM poll_votes WHERE user_id = ?").bind(uid),
+          env.DB.prepare("DELETE FROM setlist_song_likes WHERE user_id = ?").bind(uid),
+
+          // Good は本人が付けた分と、本人の編集が受け取った分の双方を削除する。
+          // edit_batch を消す前に、それを参照する edit_good を先に消す (FK)。
+          env.DB.prepare("DELETE FROM edit_good WHERE user_id = ?").bind(uid),
+          env.DB
+            .prepare(
+              "DELETE FROM edit_good WHERE batch_id IN (SELECT id FROM edit_batch WHERE editor_id = ?)"
+            )
+            .bind(uid),
+
+          // edit_history も edit_batch を参照するので先に消す (FK)。
+          env.DB
+            .prepare(
+              "DELETE FROM edit_history WHERE batch_id IN (SELECT id FROM edit_batch WHERE editor_id = ?)"
+            )
+            .bind(uid),
+
+          // 他者の batch に残る本人の batch / 本人への参照を外す (FK)。
+          //   reverts_batch_id: 本人の編集を revert した他者 batch から、消える batch への参照を外す
+          //   reverted_by:      本人が他者の編集を revert した記録の実行者参照を外す
+          env.DB
+            .prepare(
+              "UPDATE edit_batch SET reverts_batch_id = NULL WHERE reverts_batch_id IN (SELECT id FROM edit_batch WHERE editor_id = ?)"
+            )
+            .bind(uid),
+          env.DB.prepare("UPDATE edit_batch SET reverted_by = NULL WHERE reverted_by = ?").bind(uid),
+
+          // 参照を外したので本人の編集 batch を削除し、最後に users 行を削除する。
+          env.DB.prepare("DELETE FROM edit_batch WHERE editor_id = ?").bind(uid),
+          env.DB.prepare("DELETE FROM users WHERE id = ?").bind(uid),
+        ]);
+
+        return json({ deleted: true });
+      }
+
+      // ----------------------------------------------------------------
       // POST /admin/cloudkit/save — admin 限定の CK forceUpdate+delete
       // iOS 直書きでは「他人 (S2S) のレコードを更新不可」なのでサーバ経由で S2S 借用。
       // ----------------------------------------------------------------
