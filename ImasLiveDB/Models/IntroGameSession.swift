@@ -87,7 +87,10 @@ final class IntroGameSession {
 
     func generateQuestions(database: AppDatabase) async throws {
         phase = .loading
-        audio.preferFull = settings.playback == .full
+        // 音声判定モードは必ずプレビュー(AVPlayer)再生にする。フル再生は
+        // MPMusicPlayerController(システム音楽プレイヤー)を使い、録音セッションと衝突して
+        // クラッシュする (本家も音声判定はプレビュー再生)。
+        audio.preferFull = settings.playback == .full && settings.answerMode != .voice
         questions = []
         currentIndex = 0
         score = 0
