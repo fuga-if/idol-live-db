@@ -90,7 +90,7 @@ struct PollListView: View {
     private var pollList: some View {
         List {
             ImasListContainer {
-                ForEach(Array(currentPolls.enumerated()), id: \.element.id) { index, poll in
+                ForEach(currentPolls.indexed(), id: \.element.id) { index, poll in
                     if index > 0 {
                         Divider().background(DS.sep).padding(.leading, DS.sp5)
                     }
