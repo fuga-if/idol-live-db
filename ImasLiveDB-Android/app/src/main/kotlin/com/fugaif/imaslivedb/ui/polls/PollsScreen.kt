@@ -15,9 +15,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.HowToVote
+import androidx.compose.material.icons.filled.Sell
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -81,7 +84,10 @@ private fun PollCardView(card: PollCard, onVote: (String) -> Unit) {
     val total = (detail?.totalVotes ?: 0).coerceAtLeast(1)
     Column(Modifier.fillMaxWidth().padding(16.dp)) {
         Text(card.poll.title, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = DS.ink)
-        Text("${detail?.totalVotes ?: 0}票", fontSize = 12.sp, color = DS.ink3, modifier = Modifier.padding(bottom = 8.dp))
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 8.dp)) {
+            Text("${detail?.totalVotes ?: 0}票", fontSize = 12.sp, color = DS.ink3)
+            if (detail != null) ScopeBadge(detail)
+        }
         val t = ImasTheme.derive(null, null, dark = true)
         detail?.entries?.sortedByDescending { it.voteCount }?.forEach { entry ->
             val name = card.entityNames[entry.entityId] ?: entry.entityId
@@ -105,5 +111,31 @@ private fun PollCardView(card: PollCard, onVote: (String) -> Unit) {
             }
         }
         Text("タップで投票", fontSize = 11.sp, color = DS.ink3, modifier = Modifier.padding(top = 6.dp))
+    }
+}
+
+/** お題の候補スコープ (ブランド限定 / 指定候補) を示す小さなチップ。 `all` の時は何も出さない。 */
+@Composable
+private fun ScopeBadge(detail: CommunityApi.PollDetail) {
+    val (icon, label) = when (detail.candidateScope) {
+        CommunityApi.PollCandidateScope.ALL -> return
+        CommunityApi.PollCandidateScope.BRAND -> {
+            val n = detail.scopeBrandIds.size
+            Icons.Filled.Sell to if (n <= 1) "ブランド限定" else "ブランド限定×$n"
+        }
+        CommunityApi.PollCandidateScope.MANUAL -> {
+            Icons.AutoMirrored.Filled.List to "指定候補${detail.scopeEntityIds.size}件"
+        }
+    }
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .padding(start = 8.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(DS.fill)
+            .padding(horizontal = 8.dp, vertical = 3.dp)
+    ) {
+        Icon(icon, contentDescription = null, tint = DS.ink2, modifier = Modifier.size(12.dp))
+        Text(label, fontSize = 11.sp, color = DS.ink2, modifier = Modifier.padding(start = 4.dp))
     }
 }

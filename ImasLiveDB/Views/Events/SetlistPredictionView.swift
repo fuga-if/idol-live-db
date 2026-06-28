@@ -51,7 +51,7 @@ struct SetlistPredictionView: View {
             }
 
             predictionBody
-                .listRowInsets(EdgeInsets(top: 0, leading: DS.sp5, bottom: DS.sp3, trailing: DS.sp5))
+                .listRowInsets(EdgeInsets(top: DS.sp4, leading: DS.sp5, bottom: DS.sp3, trailing: DS.sp5))
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
         }
@@ -97,7 +97,11 @@ struct SetlistPredictionView: View {
             VStack(alignment: .leading, spacing: DS.sp2) {
                 ImasListContainer {
                     ForEach(Array(predictions.enumerated()), id: \.element.id) { index, prediction in
-                        if index > 0 { Divider().overlay(DS.sep).padding(.leading, 58) }
+                        // 行と行の区切りは、ぴったり密着すると詰まって見えるので、
+                        // フル幅 Divider + 上下に少し余白を確保する。
+                        if index > 0 {
+                            Divider().overlay(DS.sep)
+                        }
                         // 投票ボタン自体が投票/取消のトグル (handleVote が hasUserVoted を見て分岐)。
                         // かつて取消導線を .contextMenu で付けていたが、List セル内ボタンに
                         // contextMenu を重ねると long-press ジェスチャがタップを飲み込み、
@@ -156,7 +160,7 @@ struct SetlistPredictionView: View {
                 utilitiesMenu
             }
         }
-        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 0, trailing: 16))
+        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: DS.sp4, trailing: 16))
         // ヘッダは常時表示で安定しているのでログイン sheet のホストに使う
         // (InlineLoginPrompt はログイン後に消えるためホストにできない)。
         .sheet(isPresented: $showLogin) {
@@ -418,8 +422,8 @@ private struct PredictionRowView: View {
                 .buttonStyle(.borderless)
             }
             .padding(.horizontal, DS.sp4)
-            .padding(.top, DS.sp3)
-            .padding(.bottom, DS.sp2)
+            .padding(.top, DS.sp4)
+            .padding(.bottom, DS.sp3)
             .contentShape(Rectangle())
 
             // MARK: 「誰が歌う？」展開ブロック
@@ -440,7 +444,8 @@ private struct PredictionRowView: View {
         .animation(.easeInOut(duration: 0.18), value: isExpanded)
     }
 
-    /// 「歌唱メンバー予想」トグルボタン。小さめの補助行として曲行下端に配置。
+    /// 「歌唱メンバー予想」トグルボタン。曲行下端に補助行として配置。
+    /// 「次の曲」と紛らわしくならないよう、淡い塗りのチップ形にして曲行から視覚的に分離する。
     private func performerToggle(theme t: ImasTheme) -> some View {
         Button {
             AppAnalytics.tap("setlist_prediction.toggle_performers")
@@ -450,16 +455,17 @@ private struct PredictionRowView: View {
                 Image(systemName: "person.2")
                     .font(.imasScaled(10, weight: .semibold))
                 Text("歌唱メンバー予想")
-                    .font(.imasScaled(12, weight: .medium))
+                    .font(.imasScaled(12, weight: .semibold))
                 Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                     .font(.imasScaled(9, weight: .semibold))
             }
-            .foregroundStyle(DS.ink3)
-            .padding(.horizontal, DS.sp4)
-            .padding(.top, DS.sp2)
-            .padding(.bottom, isExpanded ? DS.sp2 : DS.sp3)
+            .foregroundStyle(DS.ink2)
+            .padding(.horizontal, 10).padding(.vertical, 5)
+            .background(DS.fill, in: Capsule())
         }
         .buttonStyle(.borderless)
+        .padding(.leading, DS.sp4 + 22 + DS.sp3) // rank(22) + spacing でジャケと水平揃え
+        .padding(.bottom, isExpanded ? DS.sp2 : DS.sp4)
     }
 }
 

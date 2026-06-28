@@ -88,28 +88,27 @@ struct PollListView: View {
     }
 
     private var pollList: some View {
-        List {
+        // List ではなく ScrollView を使う。List の中に ImasListContainer (VStack) を
+        // 入れると、List は ImasListContainer 全体を「1つのセル」として扱うため、
+        // その1セル内に N 個の NavigationLink が詰め込まれた状態になる。
+        // この状態だと、詳細から戻る時に List が「セル」を再評価する際に複数の
+        // NavigationLink が同時にアクティブ状態として復元されてしまい、「戻ると
+        // 隣のお題も開く」現象が起きる。ScrollView ならセル概念が無いので回避できる。
+        ScrollView {
             ImasListContainer {
-                ForEach(currentPolls.indexed(), id: \.element.id) { index, poll in
-                    if index > 0 {
+                ForEach(currentPolls) { poll in
+                    if poll.id != currentPolls.first?.id {
                         Divider().background(DS.sep).padding(.leading, DS.sp5)
                     }
-                    // NavigationLink を可視ラベルで使うと List 文脈でシステムの開示シェブロンが
-                    // 重複表示される (PollRowView 自前の > と二重)。不可視リンクを overlay して
-                    // 行全体をタップ可能にしつつ、見た目は自前の > だけにする。
-                    PollRowView(poll: poll)
-                        .contentShape(Rectangle())
-                        .overlay {
-                            NavigationLink(value: PollRoute.detail(poll.id)) { EmptyView() }
-                                .opacity(0)
-                        }
+                    NavigationLink(value: PollRoute.detail(poll.id)) {
+                        PollRowView(poll: poll)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
-            .listRowInsets(EdgeInsets())
-            .listRowBackground(Color.clear)
-            .listRowSeparator(.hidden)
+            .padding(.horizontal, DS.sp5)
+            .padding(.vertical, DS.sp3)
         }
-        .listStyle(.plain)
         .scrollContentBackground(.hidden)
     }
 }
@@ -118,6 +117,13 @@ struct PollListView: View {
 
 private struct PollRowView: View {
     let poll: Poll
+
+    @ViewBuilder
+    private var scopeBadge: some View {
+        if let label = poll.scopeShortLabel, let icon = poll.scopeShortIcon {
+            ImasChip(text: label, systemImage: icon)
+        }
+    }
 
     var body: some View {
         HStack(spacing: DS.sp3) {
@@ -129,6 +135,7 @@ private struct PollRowView: View {
 
                 HStack(spacing: DS.sp2) {
                     ImasChip(text: poll.targetType == .song ? "曲" : "アイドル")
+                    scopeBadge
                     Text(poll.statusLabel)
                         .font(.imasCaption)
                         .foregroundStyle(poll.isActive ? DS.success : DS.ink3)
@@ -162,5 +169,28 @@ extension Poll {
         let days = Calendar.current.dateComponents([.day], from: Date(), to: endsAt).day ?? 0
         if days == 0 { return "本日締切" }
         return "残り\(days)日"
+    }
+
+    /// 一覧・ヘッダで使う、スコープを一目で示すバッジ用ラベル。 `.all` は nil。
+    var scopeShortLabel: String? {
+        switch scope {
+        case .all:
+            return nil
+        case .brand:
+            let count = scopeBrandIds?.count ?? 0
+            return count <= 1 ? "ブランド限定" : "ブランド限定×\(count)"
+        case .manual:
+            let count = scopeEntityIds?.count ?? 0
+            return "指定候補\(count)件"
+        }
+    }
+
+    /// `scopeShortLabel` と対になる SF Symbol 名。 `.all` は nil。
+    var scopeShortIcon: String? {
+        switch scope {
+        case .all: return nil
+        case .brand: return "tag.fill"
+        case .manual: return "list.bullet"
+        }
     }
 }

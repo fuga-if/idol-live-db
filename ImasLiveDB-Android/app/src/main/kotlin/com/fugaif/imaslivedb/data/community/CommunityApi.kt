@@ -16,7 +16,34 @@ class CommunityApi(private val appContext: Context) {
     data class SongTag(val id: String, val name: String, val color: String?, val voteCount: Int, val mine: Boolean)
     data class PollSummary(val id: String, val title: String, val targetType: String)
     data class PollEntry(val entityId: String, val voteCount: Int, val mine: Boolean)
-    data class PollDetail(val id: String, val title: String, val targetType: String, val totalVotes: Int, val entries: List<PollEntry>)
+    /**
+     * 投票候補の絞り込みスコープ。
+     * - `all`: 既存挙動 (全曲/全アイドルから自由選択)
+     * - `brand`: scopeBrandIds に含まれる brand_id のみ
+     * - `manual`: scopeEntityIds に列挙された候補のみ
+     *
+     * サーバの未知値・古いレスポンスでは `all` にフォールバック (前方互換)。
+     */
+    enum class PollCandidateScope(val raw: String) {
+        ALL("all"), BRAND("brand"), MANUAL("manual");
+        companion object {
+            fun fromRaw(s: String?): PollCandidateScope = when (s) {
+                "brand" -> BRAND
+                "manual" -> MANUAL
+                else -> ALL
+            }
+        }
+    }
+    data class PollDetail(
+        val id: String,
+        val title: String,
+        val targetType: String,
+        val totalVotes: Int,
+        val entries: List<PollEntry>,
+        val candidateScope: PollCandidateScope = PollCandidateScope.ALL,
+        val scopeBrandIds: List<String> = emptyList(),
+        val scopeEntityIds: List<String> = emptyList(),
+    )
     data class PenlightSet(val key: String, val colors: List<String>, val count: Int)
     data class PenlightResult(val topSets: List<PenlightSet>, val totalVotes: Int)
 
@@ -81,9 +108,20 @@ class CommunityApi(private val appContext: Context) {
             val e = entriesArr.getJSONObject(i)
             PollEntry(e.optString("entity_id"), e.optInt("vote_count"), e.optBoolean("has_user_voted"))
         }
-        PollDetail(poll.optString("id"), poll.optString("title"), poll.optString("target_type"),
-            poll.optInt("total_votes"), entries)
+        PollDetail(
+            id = poll.optString("id"),
+            title = poll.optString("title"),
+            targetType = poll.optString("target_type"),
+            totalVotes = poll.optInt("total_votes"),
+            entries = entries,
+            candidateScope = PollCandidateScope.fromRaw(poll.optString("candidate_scope").ifEmpty { null }),
+            scopeBrandIds = poll.optJSONArray("scope_brand_ids")?.toStringList().orEmpty(),
+            scopeEntityIds = poll.optJSONArray("scope_entity_ids")?.toStringList().orEmpty(),
+        )
     }
+
+    private fun JSONArray.toStringList(): List<String> =
+        (0 until length()).map { optString(it) }.filter { it.isNotEmpty() }
 
     /** POST /polls/{id}/votes — entity に投票。 */
     suspend fun votePoll(pollId: String, entityId: String): Boolean = withContext(Dispatchers.IO) {

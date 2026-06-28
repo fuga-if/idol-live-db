@@ -40,6 +40,7 @@ final class PollDetailViewModel {
         await mutate(errorText: "投票できませんでした") {
             let result = try await self.voting.votePoll(pollId: self.pollId, entityId: entityId)
             self.applyVote(entityId: entityId, voteCount: result.voteCount, hasUserVoted: true, myVoteCount: result.myVoteCount)
+            LocalPollVoteLog.shared.recordVote(pollId: self.pollId, entityId: entityId)
         }
     }
 
@@ -48,6 +49,7 @@ final class PollDetailViewModel {
         await mutate(errorText: "取消できませんでした") {
             let result = try await self.voting.unvotePoll(pollId: self.pollId, entityId: entityId)
             self.applyVote(entityId: entityId, voteCount: result.voteCount, hasUserVoted: false, myVoteCount: result.myVoteCount)
+            LocalPollVoteLog.shared.removeVote(pollId: self.pollId, entityId: entityId)
         }
     }
 
@@ -57,6 +59,7 @@ final class PollDetailViewModel {
             for id in entityIds {
                 let result = try await self.voting.votePoll(pollId: self.pollId, entityId: id)
                 self.applyVote(entityId: id, voteCount: result.voteCount, hasUserVoted: true, myVoteCount: result.myVoteCount)
+                LocalPollVoteLog.shared.recordVote(pollId: self.pollId, entityId: id)
             }
         }
     }
@@ -85,15 +88,18 @@ final class PollDetailViewModel {
     /// エントリの票数/投票状態をローカルで楽観的更新し、票数降順で並べ替える。
     private func applyVote(entityId: String, voteCount: Int, hasUserVoted: Bool, myVoteCount: Int) {
         guard let detail else { return }
+        // manual スコープは「指定候補のリストそのもの」が見えてないと選びようがないので、
+        // 0 票になっても entries から削除せず 0 票エントリのまま残す。
+        let keepZeroVote = detail.poll.scope == .manual
         var entries = detail.entries
         let updated = PollEntry(entityId: entityId, voteCount: voteCount, hasUserVoted: hasUserVoted)
         if let index = entries.firstIndex(where: { $0.entityId == entityId }) {
-            if voteCount == 0 && !hasUserVoted {
+            if voteCount == 0 && !hasUserVoted && !keepZeroVote {
                 entries.remove(at: index)
             } else {
                 entries[index] = updated
             }
-        } else if voteCount > 0 {
+        } else if voteCount > 0 || keepZeroVote {
             entries.append(updated)
         }
         entries.sort { $0.voteCount > $1.voteCount }

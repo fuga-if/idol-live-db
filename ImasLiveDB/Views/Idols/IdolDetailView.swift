@@ -62,14 +62,23 @@ struct IdolDetailView: View {
     // MARK: - Body
 
     var body: some View {
-        ScrollView {
-            LazyVStack(spacing: 0, pinnedViews: [.sectionHeaders]) {
-                Section {
-                    segmentBody(for: segment)
-                        .padding(.bottom, DS.sp7)
-                } header: {
-                    fixedHeader
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(spacing: 0, pinnedViews: [.sectionHeaders]) {
+                    Section {
+                        segmentBody(for: segment)
+                            .padding(.bottom, DS.sp7)
+                    } header: {
+                        fixedHeader
+                            .id("idol_detail_top")
+                    }
                 }
+            }
+            // タブ切替時にスクロールを先頭へリセット。
+            // 共通 ScrollView を使っているとタブ間で offset が引き継がれてしまうため、
+            // 切り替え時にヒーロー直下へ戻す (アニメーション無しで即時)。
+            .onChange(of: segment) { _, _ in
+                proxy.scrollTo("idol_detail_top", anchor: .top)
             }
         }
         .background(DS.bg)

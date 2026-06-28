@@ -11,6 +11,8 @@ struct PollDetailView: View {
 
     // 投票用アイドル一覧（アイドルお題時に事前ロード）。master 参照なので View 側に残す。
     @State private var allIdols: [Idol] = []
+    /// スコープ表示用のブランド辞書 (brand スコープ時のみ使う)。
+    @State private var brandsById: [String: Brand] = [:]
 
     init(pollId: String) {
         _vm = State(initialValue: PollDetailViewModel(pollId: pollId, voting: AppContainer.shared.communityVoting))
@@ -86,6 +88,47 @@ struct PollDetailView: View {
                 ImasChip(text: poll.targetType == .song ? "曲" : "アイドル")
                 ImasChip(text: poll.statusLabel)
             }
+
+            scopeChips(poll: poll)
+        }
+    }
+
+    /// 候補スコープを表す小さなチップ列 (all は何も出さない)。
+    @ViewBuilder
+    private func scopeChips(poll: Poll) -> some View {
+        switch poll.scope {
+        case .all:
+            EmptyView()
+        case .brand:
+            let ids = poll.scopeBrandIds ?? []
+            if !ids.isEmpty {
+                HStack(spacing: DS.sp2) {
+                    Image(systemName: "tag.fill")
+                        .font(.imasCaption)
+                        .foregroundStyle(DS.ink3)
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: DS.sp2) {
+                            ForEach(ids, id: \.self) { id in
+                                if let brand = brandsById[id] {
+                                    ImasChip(text: brand.shortName, seed: brand.color)
+                                } else {
+                                    ImasChip(text: id)
+                                }
+                            }
+                        }
+                    }
+                }
+                .padding(.top, 2)
+            }
+        case .manual:
+            let count = poll.scopeEntityIds?.count ?? 0
+            HStack(spacing: DS.sp2) {
+                Image(systemName: "list.bullet")
+                    .font(.imasCaption)
+                    .foregroundStyle(DS.ink3)
+                ImasChip(text: "候補\(count)件から選択")
+            }
+            .padding(.top, 2)
         }
     }
 
@@ -128,6 +171,7 @@ struct PollDetailView: View {
             InlineLoginPrompt(message: "投票にはログインが必要です")
         } else if detail.poll.isActive {
             let remaining = vm.remaining
+            let scope = detail.poll.scope
             VStack(spacing: DS.sp3) {
                 if let msg = vm.errorMessage {
                     Text(msg)
@@ -141,46 +185,62 @@ struct PollDetailView: View {
                     .foregroundStyle(DS.ink2)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
-                Button {
-                    AppAnalytics.tap("poll_detail.add_vote")
-                    showVotePicker = true
-                } label: {
-                    HStack {
-                        Image(systemName: "plus.circle.fill")
-                        Text(remaining > 0 ? "候補を追加して投票（残り\(remaining)/3）" : "投票済み（3/3）")
-                            .font(.imasSubhead.weight(.semibold))
+                // manual スコープは候補がすでにランキングに全件並んでいるので「候補を追加」ボタン不要。
+                if scope != .manual {
+                    Button {
+                        AppAnalytics.tap("poll_detail.add_vote")
+                        showVotePicker = true
+                    } label: {
+                        HStack {
+                            Image(systemName: "plus.circle.fill")
+                            Text(remaining > 0 ? "候補を追加して投票（残り\(remaining)/3）" : "投票済み（3/3）")
+                                .font(.imasSubhead.weight(.semibold))
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, DS.sp3)
+                        .background(remaining > 0 ? DS.sys : DS.fill, in: RoundedRectangle(cornerRadius: DS.rSM, style: .continuous))
+                        .foregroundStyle(remaining > 0 ? DS.bg : DS.ink3)
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, DS.sp3)
-                    .background(remaining > 0 ? DS.sys : DS.fill, in: RoundedRectangle(cornerRadius: DS.rSM, style: .continuous))
-                    .foregroundStyle(remaining > 0 ? DS.bg : DS.ink3)
+                    .disabled(remaining <= 0 || vm.isVoting)
+                    .buttonStyle(.plain)
                 }
-                .disabled(remaining <= 0 || vm.isVoting)
-                .buttonStyle(.plain)
             }
             .sheet(isPresented: $showVotePicker) {
-                if detail.poll.targetType == .song {
-                    SongSearchPickerView { songs in
-                        showVotePicker = false
-                        let ids = Array(songs.prefix(remaining)).map(\.id)
-                        Task { await vm.voteForEntities(ids) }
-                    }
-                    .environment(database)
-                } else {
-                    IdolMultiPickerView(
-                        selected: Set(detail.entries.filter(\.hasUserVoted).map(\.entityId)),
-                        idols: allIdols
-                    ) { selectedIds in
-                        showVotePicker = false
-                        let alreadyVoted = Set(detail.entries.filter(\.hasUserVoted).map(\.entityId))
-                        let newIds = Array(Array(selectedIds.subtracting(alreadyVoted)).prefix(remaining))
-                        Task { await vm.voteForEntities(newIds) }
-                    }
-                    .environment(database)
-                }
+                votePicker(detail: detail, remaining: remaining)
             }
         }
         // 終了済みの場合は投票 UI なし（ランキングのみ表示）
+    }
+
+    @ViewBuilder
+    private func votePicker(detail: PollDetail, remaining: Int) -> some View {
+        let scope = detail.poll.scope
+        let brandIds = scope == .brand ? Set(detail.poll.scopeBrandIds ?? []) : nil
+        if detail.poll.targetType == .song {
+            SongSearchPickerView(restrictedBrandIds: brandIds) { songs in
+                showVotePicker = false
+                let ids = Array(songs.prefix(remaining)).map(\.id)
+                Task { await vm.voteForEntities(ids) }
+            }
+            .environment(database)
+        } else {
+            let pickIdols: [Idol] = {
+                if let allowed = brandIds {
+                    return allIdols.filter { allowed.contains($0.brandId) }
+                }
+                return allIdols
+            }()
+            IdolMultiPickerView(
+                selected: Set(detail.entries.filter(\.hasUserVoted).map(\.entityId)),
+                idols: pickIdols
+            ) { selectedIds in
+                showVotePicker = false
+                let alreadyVoted = Set(detail.entries.filter(\.hasUserVoted).map(\.entityId))
+                let newIds = Array(Array(selectedIds.subtracting(alreadyVoted)).prefix(remaining))
+                Task { await vm.voteForEntities(newIds) }
+            }
+            .environment(database)
+        }
     }
 
     // MARK: - Delete
@@ -208,6 +268,10 @@ struct PollDetailView: View {
         await vm.load()
         if vm.poll?.targetType == .idol {
             allIdols = (try? await AppContainer.shared.idolReading.idols(brandId: nil)) ?? []
+        }
+        if vm.poll?.scope == .brand, brandsById.isEmpty {
+            let list = (try? await AppContainer.shared.brandReading.brands()) ?? []
+            brandsById = Dictionary(uniqueKeysWithValues: list.map { ($0.id, $0) })
         }
         // アクティブなお題を未ログインで開いたら、表示時点でログイン誘導 (投票はログイン必須)。
         // 「投票しようとして初めてログイン判定」を避け、最初に意図を明示する。

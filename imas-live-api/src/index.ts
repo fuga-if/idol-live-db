@@ -107,6 +107,70 @@ function escapeLike(s: string): string {
   return s.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
 }
 
+/** polls.scope_brand_ids / scope_entity_ids の JSON 配列文字列を string[] にパース。NULL や不正値は null を返す。 */
+function parseScopeIds(raw: string | null | undefined): string[] | null {
+  if (raw == null) return null;
+  try {
+    const v = JSON.parse(raw);
+    if (Array.isArray(v) && v.every((x) => typeof x === "string")) return v;
+  } catch {
+    /* fallthrough */
+  }
+  return null;
+}
+
+/**
+ * 投票候補スコープの ID 配列を検証 + DB 実在チェック。
+ * - 配列型/文字列型/長さ範囲/エントリ長/重複の有無を順に検査
+ * - allowDuplicates=false なら重複を 400 で弾く、true なら dedup して通す
+ * - 通れば dedup 済み配列を JSON 文字列で返す。失敗時は error メッセージ文字列を返す。
+ *
+ * brand スコープ ({minLen:1, maxLen:16, maxEntryLen:32, allowDuplicates:true})、
+ * manual スコープ ({minLen:2, maxLen:500, maxEntryLen:64, allowDuplicates:false}) で共用。
+ */
+async function validateScopeIdsAgainstTable(
+  db: D1Database,
+  input: any,
+  opts: {
+    minLen: number;
+    maxLen: number;
+    maxEntryLen: number;
+    allowDuplicates: boolean;
+    /**
+     * 実在チェック対象テーブル。 null の場合は実在チェックをスキップ。
+     * - `brands`: 件数が少なく typo を弾きたいので必須
+     * - `songs`/`idols`: バンドル master.sqlite と server D1 の同期ラグで
+     *   クライアント側に存在する ID が server に未投入のことがあるため null 推奨
+     */
+    table: "brands" | "songs" | "idols" | null;
+    fieldName: string;
+  }
+): Promise<{ json: string } | { error: string }> {
+  if (!Array.isArray(input) || input.length < opts.minLen) {
+    return { error: `${opts.fieldName} must contain at least ${opts.minLen} ${opts.minLen === 1 ? "entry" : "entries"}` };
+  }
+  if (input.length > opts.maxLen) {
+    return { error: `${opts.fieldName} must contain at most ${opts.maxLen} entries` };
+  }
+  if (!input.every((v: any) => typeof v === "string" && v.length > 0 && v.length <= opts.maxEntryLen)) {
+    return { error: `${opts.fieldName} entries must be non-empty strings` };
+  }
+  const unique = Array.from(new Set(input as string[]));
+  if (!opts.allowDuplicates && unique.length !== input.length) {
+    return { error: `${opts.fieldName} contains duplicates` };
+  }
+  if (opts.table != null) {
+    const rows = await db
+      .prepare(`SELECT id FROM ${opts.table} WHERE id IN (${unique.map(() => "?").join(",")})`)
+      .bind(...unique)
+      .all<{ id: string }>();
+    if ((rows.results?.length ?? 0) !== unique.length) {
+      return { error: `${opts.fieldName} contains unknown id` };
+    }
+  }
+  return { json: JSON.stringify(unique) };
+}
+
 /** チェックのみ（+1 しない）。成功時のみ commitIpRateLimit を呼ぶ。 */
 async function dryCheckIpRateLimit(
   db: D1Database,
@@ -1735,6 +1799,9 @@ export default {
             CAST(strftime('%s', p.created_at) AS INTEGER) AS created_at,
             CAST(strftime('%s', p.ends_at) AS INTEGER) AS ends_at,
             p.status,
+            p.candidate_scope,
+            p.scope_brand_ids,
+            p.scope_entity_ids,
             COALESCE(SUM(pe.vote_count), 0) AS total_votes,
             COUNT(pe.entity_id) AS entry_count,
             (SELECT COUNT(*) FROM poll_votes pv WHERE pv.poll_id = p.id AND pv.user_id = ?) AS my_vote_count
@@ -1758,6 +1825,9 @@ export default {
             created_at: r.created_at,
             ends_at: r.ends_at,
             status: r.status,
+            candidate_scope: r.candidate_scope ?? "all",
+            scope_brand_ids: parseScopeIds(r.scope_brand_ids),
+            scope_entity_ids: parseScopeIds(r.scope_entity_ids),
             total_votes: r.total_votes,
             entry_count: r.entry_count,
             my_vote_count: r.my_vote_count,
@@ -1842,6 +1912,9 @@ export default {
             CAST(strftime('%s', p.created_at) AS INTEGER) AS created_at,
             CAST(strftime('%s', p.ends_at) AS INTEGER) AS ends_at,
             p.status,
+            p.candidate_scope,
+            p.scope_brand_ids,
+            p.scope_entity_ids,
             COALESCE(SUM(pe.vote_count), 0) AS total_votes,
             COUNT(pe.entity_id) AS entry_count
           FROM polls p
@@ -1853,6 +1926,9 @@ export default {
           .first<any>();
 
         if (!poll) return error("Poll not found", 404);
+
+        const scopeBrandIds = parseScopeIds(poll.scope_brand_ids);
+        const scopeEntityIds = parseScopeIds(poll.scope_entity_ids);
 
         const { results: entries } = await env.DB.prepare(`
           SELECT
@@ -1870,6 +1946,16 @@ export default {
           .bind(uid, pollId)
           .all<any>();
 
+        // manual スコープでは未投票の指定候補も 0 票で返す（候補が見えないと投票できない）
+        let resultEntries = entries as any[];
+        if ((poll.candidate_scope ?? "all") === "manual" && scopeEntityIds && scopeEntityIds.length > 0) {
+          const seen = new Set(resultEntries.map((e: any) => e.entity_id));
+          const placeholders = scopeEntityIds
+            .filter((id) => !seen.has(id))
+            .map((entity_id) => ({ entity_id, vote_count: 0, has_user_voted: 0 }));
+          resultEntries = [...resultEntries, ...placeholders];
+        }
+
         const myVoteRow = await env.DB.prepare(
           "SELECT COUNT(*) AS c FROM poll_votes WHERE poll_id = ? AND user_id = ?"
         )
@@ -1886,10 +1972,13 @@ export default {
             created_at: poll.created_at,
             ends_at: poll.ends_at,
             status: poll.status,
+            candidate_scope: poll.candidate_scope ?? "all",
+            scope_brand_ids: scopeBrandIds,
+            scope_entity_ids: scopeEntityIds,
             total_votes: poll.total_votes,
             entry_count: poll.entry_count,
           },
-          entries: entries.map((e: any) => ({
+          entries: resultEntries.map((e: any) => ({
             entity_id: e.entity_id,
             vote_count: e.vote_count,
             has_user_voted: e.has_user_voted === 1,
@@ -1918,6 +2007,9 @@ export default {
 
         const body = (await request.json()) as any;
         const { title, description, target_type, days } = body;
+        const candidateScope: string = body.candidate_scope ?? "all";
+        const scopeBrandIdsInput = body.scope_brand_ids;
+        const scopeEntityIdsInput = body.scope_entity_ids;
 
         if (!title || typeof title !== "string" || title.trim().length === 0) {
           return error("title is required");
@@ -1933,6 +2025,31 @@ export default {
         if (!target_type || (target_type !== "song" && target_type !== "idol")) {
           return error("target_type must be 'song' or 'idol'");
         }
+        if (candidateScope !== "all" && candidateScope !== "brand" && candidateScope !== "manual") {
+          return error("candidate_scope must be 'all', 'brand', or 'manual'");
+        }
+
+        let scopeBrandIdsStored: string | null = null;
+        let scopeEntityIdsStored: string | null = null;
+
+        if (candidateScope === "brand") {
+          const result = await validateScopeIdsAgainstTable(env.DB, scopeBrandIdsInput, {
+            minLen: 1, maxLen: 16, maxEntryLen: 32,
+            allowDuplicates: true, table: "brands", fieldName: "scope_brand_ids",
+          });
+          if ("error" in result) return error(result.error);
+          scopeBrandIdsStored = result.json;
+        } else if (candidateScope === "manual") {
+          // 実在チェックは行わない (バンドル master.sqlite と server D1 の同期ラグで
+          // クライアントに存在する曲が server 側に未投入のケースがある)
+          const result = await validateScopeIdsAgainstTable(env.DB, scopeEntityIdsInput, {
+            minLen: 2, maxLen: 500, maxEntryLen: 64,
+            allowDuplicates: false, table: null,
+            fieldName: "scope_entity_ids",
+          });
+          if ("error" in result) return error(result.error);
+          scopeEntityIdsStored = result.json;
+        }
 
         const daysNum = typeof days === "number" ? Math.min(Math.max(1, Math.floor(days)), 30) : 14;
         const pollId = crypto.randomUUID();
@@ -1941,17 +2058,28 @@ export default {
         const endsAtStr = endsAt.toISOString().replace("T", " ").replace(/\.\d{3}Z$/, "");
 
         await env.DB.prepare(
-          `INSERT INTO polls (id, title, description, target_type, created_by, ends_at)
-           VALUES (?, ?, ?, ?, ?, ?)`
+          `INSERT INTO polls (id, title, description, target_type, created_by, ends_at,
+                              candidate_scope, scope_brand_ids, scope_entity_ids)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
         )
-          .bind(pollId, title.trim(), description ?? null, target_type, user.uid, endsAtStr)
+          .bind(
+            pollId,
+            title.trim(),
+            description ?? null,
+            target_type,
+            user.uid,
+            endsAtStr,
+            candidateScope,
+            scopeBrandIdsStored,
+            scopeEntityIdsStored
+          )
           .run();
 
         const created = await env.DB.prepare(
           `SELECT id, title, description, target_type, created_by,
                   CAST(strftime('%s', created_at) AS INTEGER) AS created_at,
                   CAST(strftime('%s', ends_at) AS INTEGER) AS ends_at,
-                  status
+                  status, candidate_scope, scope_brand_ids, scope_entity_ids
            FROM polls WHERE id = ?`
         )
           .bind(pollId)
@@ -1967,6 +2095,9 @@ export default {
             created_at: created.created_at,
             ends_at: created.ends_at,
             status: created.status,
+            candidate_scope: created.candidate_scope ?? "all",
+            scope_brand_ids: parseScopeIds(created.scope_brand_ids),
+            scope_entity_ids: parseScopeIds(created.scope_entity_ids),
             total_votes: 0,
             entry_count: 0,
           },
@@ -2000,10 +2131,18 @@ export default {
 
         // poll 存在確認 + active チェック
         const poll = await env.DB.prepare(
-          "SELECT id, status, ends_at FROM polls WHERE id = ?"
+          "SELECT id, status, ends_at, target_type, candidate_scope, scope_brand_ids, scope_entity_ids FROM polls WHERE id = ?"
         )
           .bind(pollId)
-          .first<{ id: string; status: string; ends_at: string }>();
+          .first<{
+            id: string;
+            status: string;
+            ends_at: string;
+            target_type: string;
+            candidate_scope: string | null;
+            scope_brand_ids: string | null;
+            scope_entity_ids: string | null;
+          }>();
 
         if (!poll) return error("Poll not found", 404);
         if (poll.status !== "active") {
@@ -2013,6 +2152,21 @@ export default {
         const endsAtMs = new Date(poll.ends_at.replace(" ", "T") + (poll.ends_at.includes("T") ? "" : "Z")).getTime();
         if (Date.now() > endsAtMs) {
           return error("Poll has ended", 409);
+        }
+
+        // candidate_scope による entity_id 妥当性チェック
+        // - manual: scope_entity_ids 配列との照合 (サーバ自己完結)
+        // - brand : クライアントの picker UI 側で brand 内に絞り込むので、サーバでは検証しない。
+        //           server には songs/idols マスタが無い (バンドル master.sqlite 側にしかない)
+        //           ので brand_id を引けない。万一クライアント改造で scope 外の entity_id が
+        //           来ても、悪用シナリオは「他ブランド限定の投票枠を埋める」程度で、
+        //           レート制限 (60票/日) と合わせて実害は低い。
+        const scope = poll.candidate_scope ?? "all";
+        if (scope === "manual") {
+          const allowed = new Set(parseScopeIds(poll.scope_entity_ids) ?? []);
+          if (!allowed.has(entity_id)) {
+            return error("entity_id is not in poll candidates", 422);
+          }
         }
 
         // 3票上限チェック
