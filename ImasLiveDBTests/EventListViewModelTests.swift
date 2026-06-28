@@ -27,6 +27,9 @@ final class EventListViewModelTests: XCTestCase {
         func eventsWithDate(criterion: EventFilterCriterion, includeEmpty: Bool) async throws -> [EventWithDate] { [] }
         func eventNames() async throws -> [String] { [] }
         func attendedEventsWithDate() async throws -> [EventWithDate] { [] }
+        func attendedEventTypeSets() async throws -> (live: Set<String>, stream: Set<String>, liveViewing: Set<String>) {
+            ([], [], [])
+        }
     }
 
     private struct FakeBrandReading: BrandReading {

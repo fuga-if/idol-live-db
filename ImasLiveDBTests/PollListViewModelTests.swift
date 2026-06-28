@@ -8,7 +8,8 @@ final class PollListViewModelTests: XCTestCase {
         Poll(id: id, title: "お題\(id)", description: nil, targetType: .song,
              createdBy: "u1", createdAt: Date(),
              endsAt: Date().addingTimeInterval(active ? 86400 : -86400),
-             status: "active", totalVotes: 0, entryCount: 0)
+             status: "active", totalVotes: 0, entryCount: 0,
+             candidateScope: .all, scopeBrandIds: nil, scopeEntityIds: nil)
     }
 
     func testLoadActivePopulatesActiveList() async {

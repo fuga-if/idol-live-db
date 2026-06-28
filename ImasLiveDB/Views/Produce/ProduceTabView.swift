@@ -371,7 +371,10 @@ struct ProduceTabView: View {
             }
             .buttonStyle(.plain)
 
-            NavigationLink(value: PollRoute.list) {
+            NavigationLink {
+                PollListView()
+                    .environment(database)
+            } label: {
                 ImasEntryCard(
                     systemImage: "chart.bar.doc.horizontal",
                     title: "みんなの投票",

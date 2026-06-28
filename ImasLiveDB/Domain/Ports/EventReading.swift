@@ -28,6 +28,6 @@ protocol EventReading: Sendable {
     func eventNames() async throws -> [String]
     /// 参加マーク済みイベント (日付つき)。
     func attendedEventsWithDate() async throws -> [EventWithDate]
-    /// 参加イベントを現地/配信の2集合に分類 (混在は両方に含む)。
-    func attendedEventTypeSets() async throws -> (live: Set<String>, stream: Set<String>)
+    /// 参加イベントを現地/配信/LVの3集合に分類 (混在は複数に含む)。
+    func attendedEventTypeSets() async throws -> (live: Set<String>, stream: Set<String>, liveViewing: Set<String>)
 }

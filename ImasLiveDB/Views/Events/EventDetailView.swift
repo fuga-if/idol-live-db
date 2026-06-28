@@ -217,7 +217,7 @@ struct EventDetailView: View {
             LoginToEditSheet(onSignedIn: { resumePendingIntent() })
         }
         .sheet(isPresented: $showAttendanceSheet) {
-            EventAttendanceSheet(shows: vm.shows, seed: seed, brand: brandSeed) {
+            EventAttendanceSheet(shows: vm.shows, event: event, seed: seed, brand: brandSeed) {
                 vm.recomputeAttendedShows()
             }
         }
@@ -386,6 +386,9 @@ struct EventDetailView: View {
             }
 
             ticketInfoSection
+
+            // 映像円盤 (BD/DVD) 所有チェック。event_releases があるイベントだけ表示。
+            EventReleasesSection(eventId: event.id, seed: seed, brand: brandSeed)
 
             // ブランド / 年度メタ
             VStack(alignment: .leading, spacing: DS.sp2) {

@@ -68,6 +68,11 @@ struct Event: Codable, FetchableRecord, PersistableRecord, Identifiable, Hashabl
     /// この各ブランドのアイドル。 ハッチポッチ等の合同公演対応。
     var jointBrandIds: String?
 
+    /// 配信実施の有無。nil=不明。show 側が nil のときのフォールバック元。
+    var hasStreaming: Bool?
+    /// ライブビューイング実施の有無。nil=未設定。明示 true のときだけ LV 参加を選択肢に出す。
+    var hasLiveViewing: Bool?
+
     /// `joint_brand_ids` を配列にして返す。 nil/空文字列は空配列。
     var jointBrandIdList: [String] {
         guard let raw = jointBrandIds, !raw.isEmpty else { return [] }
@@ -100,7 +105,9 @@ struct Event: Codable, FetchableRecord, PersistableRecord, Identifiable, Hashabl
         ticketDeadline: String? = nil,
         ticketLotteryDate: String? = nil,
         ticketUrl: String? = nil,
-        jointBrandIds: String? = nil
+        jointBrandIds: String? = nil,
+        hasStreaming: Bool? = nil,
+        hasLiveViewing: Bool? = nil
     ) {
         self.id = id
         self.brandId = brandId
@@ -114,6 +121,8 @@ struct Event: Codable, FetchableRecord, PersistableRecord, Identifiable, Hashabl
         self.ticketLotteryDate = ticketLotteryDate
         self.ticketUrl = ticketUrl
         self.jointBrandIds = jointBrandIds
+        self.hasStreaming = hasStreaming
+        self.hasLiveViewing = hasLiveViewing
     }
 
     enum CodingKeys: String, CodingKey {
@@ -129,6 +138,8 @@ struct Event: Codable, FetchableRecord, PersistableRecord, Identifiable, Hashabl
         case ticketLotteryDate = "ticket_lottery_date"
         case ticketUrl = "ticket_url"
         case jointBrandIds = "joint_brand_ids"
+        case hasStreaming = "has_streaming"
+        case hasLiveViewing = "has_live_viewing"
     }
 
     // MARK: - Associations

@@ -254,16 +254,35 @@ actor CommunityAPI {
         return try await APIClient.shared.request("GET", path: "/polls/achievements/\(entityId)")
     }
 
-    func createPoll(title: String, description: String?, targetType: PollTargetType, days: Int) async throws -> Poll {
+    func createPoll(
+        title: String,
+        description: String?,
+        targetType: PollTargetType,
+        days: Int,
+        candidateScope: PollCandidateScope,
+        scopeBrandIds: [String]?,
+        scopeEntityIds: [String]?
+    ) async throws -> Poll {
         struct Body: Encodable {
             let title: String
             let description: String?
             let targetType: String
             let days: Int
+            let candidateScope: String
+            let scopeBrandIds: [String]?
+            let scopeEntityIds: [String]?
         }
         return try await APIClient.shared.request(
             "POST", path: "/polls",
-            body: Body(title: title, description: description, targetType: targetType.rawValue, days: days),
+            body: Body(
+                title: title,
+                description: description,
+                targetType: targetType.rawValue,
+                days: days,
+                candidateScope: candidateScope.rawValue,
+                scopeBrandIds: candidateScope == .brand ? scopeBrandIds : nil,
+                scopeEntityIds: candidateScope == .manual ? scopeEntityIds : nil
+            ),
             authorized: true
         )
     }

@@ -3,16 +3,20 @@ import SwiftUI
 
 // MARK: - Brand Filter Section (shared across filter sheets)
 
-struct BrandFilterSection: View {
+/// ブランドを丸アイコンの格子で選ぶ素のグリッド。 List/Form/ScrollView いずれでも置ける。
+/// 「全て」セルの有無は `includeAllOption` で切り替える (絞り込み画面では出し、
+/// 投票候補のブランド限定では出さない＝必ず1つは選ばせる)。
+struct BrandGridPicker: View {
     let brands: [Brand]
-    /// 空集合 = 全ブランド対象。 複数選択は OR (= IN) で結合される。
+    /// 空集合 = `includeAllOption` 時は全ブランド対象、それ以外は未選択。 複数選択は OR (= IN) で結合。
     @Binding var selectedBrandIds: Set<String>
+    var includeAllOption: Bool = false
 
     private let columns = [GridItem(.adaptive(minimum: 56, maximum: 80), spacing: 10)]
 
     var body: some View {
-        Section {
-            LazyVGrid(columns: columns, alignment: .center, spacing: 10) {
+        LazyVGrid(columns: columns, alignment: .center, spacing: 10) {
+            if includeAllOption {
                 BrandIconCell(
                     brandId: nil,
                     label: "全て",
@@ -20,22 +24,34 @@ struct BrandFilterSection: View {
                     color: nil,
                     isSelected: selectedBrandIds.isEmpty
                 ) { selectedBrandIds = [] }
+            }
 
-                ForEach(brands) { brand in
-                    BrandIconCell(
-                        brandId: brand.id,
-                        label: brand.shortName,
-                        iconText: brand.iconText,
-                        color: brand.color,
-                        isSelected: selectedBrandIds.contains(brand.id)
-                    ) {
-                        if !selectedBrandIds.insert(brand.id).inserted {
-                            selectedBrandIds.remove(brand.id)
-                        }
+            ForEach(brands) { brand in
+                BrandIconCell(
+                    brandId: brand.id,
+                    label: brand.shortName,
+                    iconText: brand.iconText,
+                    color: brand.color,
+                    isSelected: selectedBrandIds.contains(brand.id)
+                ) {
+                    if !selectedBrandIds.insert(brand.id).inserted {
+                        selectedBrandIds.remove(brand.id)
                     }
                 }
             }
-            .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16))
+        }
+    }
+}
+
+struct BrandFilterSection: View {
+    let brands: [Brand]
+    /// 空集合 = 全ブランド対象。 複数選択は OR (= IN) で結合される。
+    @Binding var selectedBrandIds: Set<String>
+
+    var body: some View {
+        Section {
+            BrandGridPicker(brands: brands, selectedBrandIds: $selectedBrandIds, includeAllOption: true)
+                .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16))
         } header: {
             Text("ブランド")
         } footer: {

@@ -17,7 +17,19 @@ protocol CommunityVoting: Sendable {
     /// ある曲/アイドルが終了お題で取った順位 (詳細バッジ用)。
     func pollAchievements(entityId: String) async throws -> [PollAchievement]
     /// 新しいお題を作成。
-    func createPoll(title: String, description: String?, targetType: PollTargetType, days: Int) async throws -> Poll
+    /// - Parameters:
+    ///   - candidateScope: 候補スコープ。`.all` で旧来挙動。
+    ///   - scopeBrandIds: `.brand` 時の許可 brand_id 配列。それ以外では nil。
+    ///   - scopeEntityIds: `.manual` 時の候補 entityId 配列。それ以外では nil。
+    func createPoll(
+        title: String,
+        description: String?,
+        targetType: PollTargetType,
+        days: Int,
+        candidateScope: PollCandidateScope,
+        scopeBrandIds: [String]?,
+        scopeEntityIds: [String]?
+    ) async throws -> Poll
     /// 既存候補へ1票投じる。
     func votePoll(pollId: String, entityId: String) async throws -> PollVoteResult
     /// 自分の票を取り消す。

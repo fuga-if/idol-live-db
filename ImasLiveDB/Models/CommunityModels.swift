@@ -269,6 +269,22 @@ enum PollTargetType: String, Codable, Sendable {
     case idol
 }
 
+/// 投票候補の絞り込みスコープ。
+/// - `all`: 全曲 / 全アイドルから自由選択 (デフォルト・既存挙動)。
+/// - `brand`: `scopeBrandIds` に含まれる brand_id の曲/アイドルのみ。
+/// - `manual`: `scopeEntityIds` に列挙された候補のみ。
+enum PollCandidateScope: String, Codable, Sendable {
+    case all
+    case brand
+    case manual
+
+    /// 未知の値が来ても安全に `.all` フォールバック (前方互換)。
+    init(from decoder: Decoder) throws {
+        let raw = try decoder.singleValueContainer().decode(String.self)
+        self = PollCandidateScope(rawValue: raw) ?? .all
+    }
+}
+
 struct Poll: Codable, Identifiable, Hashable, Sendable {
     let id: String
     let title: String
@@ -282,6 +298,15 @@ struct Poll: Codable, Identifiable, Hashable, Sendable {
     let entryCount: Int?
     /// 認証付きで一覧取得した時のみ入る、自分の投票数 (未投票=0)。匿名取得時は nil。
     var myVoteCount: Int?
+    /// 候補スコープ。古いサーバから来た時は `nil` を `.all` 扱いにする (アクセサ参照)。
+    let candidateScope: PollCandidateScope?
+    /// `candidateScope == .brand` のときの許可ブランド ID 群。それ以外は nil。
+    let scopeBrandIds: [String]?
+    /// `candidateScope == .manual` のときの候補エンティティ ID 群。それ以外は nil。
+    let scopeEntityIds: [String]?
+
+    /// nil 時のフォールバックを内包したアクセサ。
+    var scope: PollCandidateScope { candidateScope ?? .all }
 }
 
 struct PollEntry: Codable, Identifiable, Hashable, Sendable {

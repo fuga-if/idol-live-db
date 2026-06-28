@@ -667,6 +667,50 @@ enum DatabaseMigrations {
             }
         }
 
+        // v23: 開催形態フラグ (配信有無/ライブビューイング有無)。
+        // 参加形態UIで「そのライブに実在した形態だけ」選択肢に出すためのデータ駆動の根拠。
+        // show単位 + eventフォールバック。nullable (null=未設定→上位/現地にフォールバック)。
+        migrator.registerMigration("v23_event_show_formats") { db in
+            let eventCols = try Row.fetchAll(db, sql: "PRAGMA table_info(events)")
+                .map { $0["name"] as String? }
+            if !eventCols.contains("has_streaming") {
+                try db.execute(sql: "ALTER TABLE events ADD COLUMN has_streaming INTEGER")
+                // 既存の is_streaming (廃止予定だが配信有無の最良データ) から初期移行。
+                try db.execute(sql: "UPDATE events SET has_streaming = is_streaming")
+            }
+            if !eventCols.contains("has_live_viewing") {
+                try db.execute(sql: "ALTER TABLE events ADD COLUMN has_live_viewing INTEGER")
+            }
+
+            let showCols = try Row.fetchAll(db, sql: "PRAGMA table_info(shows)")
+                .map { $0["name"] as String? }
+            if !showCols.contains("has_streaming") {
+                try db.execute(sql: "ALTER TABLE shows ADD COLUMN has_streaming INTEGER")
+            }
+            if !showCols.contains("has_live_viewing") {
+                try db.execute(sql: "ALTER TABLE shows ADD COLUMN has_live_viewing INTEGER")
+            }
+        }
+
+        // v24: イベント映像円盤 (ライブBD/DVD)。所有チェックの母集団。
+        // レコードがあるライブだけ所有UIを出す (データ駆動)。所有フラグ自体は user_marks(kind=owned)。
+        migrator.registerMigration("v24_event_releases") { db in
+            try db.create(table: "event_releases", ifNotExists: true) { t in
+                t.primaryKey("id", .text)
+                // モデルの CodingKeys (event_id/show_id) と一致させるため列名を明示する。
+                t.column("event_id", .text).notNull().indexed().references("events")
+                // 公演単位の円盤なら show_id を持つ。イベント全体BOXなら null。
+                t.column("show_id", .text).references("shows")
+                t.column("product_type", .text).notNull()   // blu_ray / dvd / dvd_box
+                t.column("title", .text).notNull()
+                t.column("catalog_number", .text)            // 品番 (例: EYXA-13123)
+                t.column("release_date", .text)              // YYYY-MM-DD
+                t.column("jacket_url", .text)
+                t.column("purchase_url", .text)
+                t.column("sort_order", .integer).notNull().defaults(to: 0)
+            }
+        }
+
         return migrator
     }
 }

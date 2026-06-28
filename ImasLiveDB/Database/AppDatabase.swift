@@ -974,6 +974,16 @@ final class AppDatabase: @unchecked Sendable {
         }
     }
 
+    /// イベントの映像円盤 (event_releases)。所有チェックUIの母集団。発売日→sort_order 順。
+    func fetchEventReleases(eventId: String) throws -> [EventRelease] {
+        try dbQueue.read { db in
+            try EventRelease
+                .filter(Column("event_id") == eventId)
+                .order(Column("release_date").asc, Column("sort_order").asc)
+                .fetchAll(db)
+        }
+    }
+
     /// イベント一括取得（ID配列） — 全フィールド（ticketDeadline 等）を含む完全な Event を返す。N+1防止用。
     func fetchFullEvents(ids: [String]) throws -> [Event] {
         guard !ids.isEmpty else { return [] }
@@ -1858,7 +1868,7 @@ final class AppDatabase: @unchecked Sendable {
     /// 1イベント内で現地公演と配信公演が混在する場合は両方に入る。
     /// 種別は user_marks.text_value ("live"/"stream")。旧データ(種別なし)は現地扱い。
     /// 参加ライブ一覧の現地/配信フィルタで使用。
-    func fetchAttendedEventTypeSets() throws -> (live: Set<String>, stream: Set<String>) {
+    func fetchAttendedEventTypeSets() throws -> (live: Set<String>, stream: Set<String>, liveViewing: Set<String>) {
         try dbQueue.read { db in
             let sql = """
                 SELECT event_id, text_value AS atype FROM (
@@ -1874,17 +1884,17 @@ final class AppDatabase: @unchecked Sendable {
                 """
             var live: Set<String> = []
             var stream: Set<String> = []
+            var liveViewing: Set<String> = []
             for row in try Row.fetchAll(db, sql: sql) {
                 guard let eventId: String = row["event_id"] else { continue }
                 let atype: String? = row["atype"]
-                if atype == "stream" {
-                    stream.insert(eventId)
-                } else {
-                    // "live" または種別なし(旧データ) は現地扱い
-                    live.insert(eventId)
+                switch atype {
+                case "stream":       stream.insert(eventId)
+                case "live_viewing": liveViewing.insert(eventId)
+                default:             live.insert(eventId)  // "live" または種別なし(旧データ) は現地扱い
                 }
             }
-            return (live, stream)
+            return (live, stream, liveViewing)
         }
     }
 

@@ -72,7 +72,7 @@ final class UserMarkService {
     /// 全 bool 系マークを DB から読み直してメモリ集合を再構築する (起動時に1回)。
     private func reloadBoolMarks() {
         var marks: Set<String> = []
-        for kind in [UserMarkKind.collected, .favorite, .myPick, .attended] {
+        for kind in [UserMarkKind.collected, .favorite, .myPick, .attended, .owned] {
             guard let rows = try? db.fetchAllUserMarks(kind: kind) else { continue }
             for mark in rows where mark.boolValue {
                 guard let entity = UserMarkEntity(rawValue: mark.entityType) else { continue }

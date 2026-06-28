@@ -14,6 +14,16 @@ enum GameKind: String, CaseIterable, Codable, Sendable {
     case songSingerQuiz
     case colorMatch
 
+    /// 表示名 (リザルト・シェア文言で使う)。
+    var displayName: String {
+        switch self {
+        case .introDon:       return "イントロドン"
+        case .idolQuiz:       return "アイドル当てクイズ"
+        case .songSingerQuiz: return "ソロ曲クイズ"
+        case .colorMatch:     return "カラーマッチ"
+        }
+    }
+
     /// 0–100 の正規化スコア (正答率) を扱うゲームか。それ以外は「点」をそのまま表示。
     var scoreIsPercent: Bool {
         switch self {

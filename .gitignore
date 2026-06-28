@@ -43,6 +43,9 @@ imas-live-api/node_modules/
 # Claude Code ランタイム状態
 .claude/scheduled_tasks.lock
 
+# ASC API の Issuer/Key ID を含む個人用スキル (本人のみ使用・公開不要)
+.claude/skills/submit-to-appstore/
+
 # Contains personal info (phone/email) used only locally and via CI Secrets
 fastlane/metadata/review_information/
 
