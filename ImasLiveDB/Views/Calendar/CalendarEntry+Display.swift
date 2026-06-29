@@ -11,6 +11,12 @@ extension CalendarEntry {
             return DS.warning
         case .birthday(let idol):
             return Color(hexString: idol.color, default: .pink)
+        case .staffBirthday:
+            // 事務員は固有色が無いので汎用桃 (アイドル誕生日と同じ色域、ロウ寄り)。
+            return .pink
+        case .anniversary:
+            // 記念日は祝祭色: ティール (公演=ブランド色 / リリース=橙 / 誕生日=桃 と被らない色域)。
+            return .teal
         case .personal(let event):
             return event.color
         case .ticket(let row):
