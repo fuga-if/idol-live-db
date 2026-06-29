@@ -21,6 +21,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -48,10 +50,14 @@ import com.fugaif.imaslivedb.data.model.CalReleaseRow
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.brandColor
 import java.time.LocalDate
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.graphics.vector.ImageVector
 
 private val ShowColor = Color(0xFF3E6DD6)
 private val ReleaseColor = DS.warning
 private val BirthdayColor = DS.pick
+private val StaffColor = Color(0xFFE91E63)
+private val AnniversaryColor = Color(0xFF26A69A)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -101,6 +107,8 @@ fun CalendarScreen(
                 CalFilterChip("公演", ShowColor, state.showShows) { viewModel.toggleShows() }
                 CalFilterChip("リリース", ReleaseColor, state.showReleases) { viewModel.toggleReleases() }
                 CalFilterChip("誕生日", BirthdayColor, state.showBirthdays) { viewModel.toggleBirthdays() }
+                CalFilterChip("事務員", StaffColor, state.showStaffBirthdays) { viewModel.toggleStaffBirthdays() }
+                CalFilterChip("記念日", AnniversaryColor, state.showAnniversaries) { viewModel.toggleAnniversaries() }
             }
 
             // 月ナビ
@@ -170,6 +178,25 @@ fun CalendarScreen(
                         is CalEntry.Birthday -> EntryRow(BirthdayColor, "誕生日", entry.row.name,
                             brandColor(entry.row.brandId)) { onNavigateToIdol(entry.row.id) }
                         is CalEntry.Release -> ReleaseRows(entry.rows, onNavigateToSong)
+                        is CalEntry.StaffBirthday -> IconEntryRow(
+                            accent = StaffColor,
+                            icon = Icons.Filled.Person,
+                            label = "${entry.row.name} 誕生日",
+                            sub = entry.row.role ?: "",
+                            brand = brandColor(entry.row.brandId)
+                        )
+                        is CalEntry.AnniversaryEntry -> {
+                            val title = if (entry.years == 0) "${entry.row.label} (初日)"
+                                        else "${entry.years}周年 ・ ${entry.row.label}"
+                            val startYear = entry.row.date.take(4)
+                            IconEntryRow(
+                                accent = AnniversaryColor,
+                                icon = Icons.Filled.AutoAwesome,
+                                label = title,
+                                sub = "${startYear} 起点",
+                                brand = brandColor(entry.row.brandId)
+                            )
+                        }
                     }
                 }
                 if (selectedDay != null && entries.isEmpty()) {
@@ -281,7 +308,10 @@ private fun DayCell(day: Int, isToday: Boolean, isSelected: Boolean, dots: Set<I
             dots.forEach { kind ->
                 Box(
                     modifier = Modifier.size(5.dp).clip(CircleShape).background(
-                        when (kind) { 0 -> ShowColor; 1 -> ReleaseColor; else -> BirthdayColor }
+                        when (kind) {
+                            0 -> ShowColor; 1 -> ReleaseColor; 2 -> BirthdayColor
+                            3 -> StaffColor; else -> AnniversaryColor
+                        }
                     )
                 )
             }
@@ -299,6 +329,31 @@ private fun DaySectionHeader(ym: java.time.YearMonth, day: Int?) {
         fontWeight = FontWeight.Bold,
         color = DS.ink2
     )
+}
+
+/** アイコン付きエントリ行 (事務員誕生日・記念日など、詳細画面なしのエントリ用)。 */
+@Composable
+private fun IconEntryRow(accent: Color, icon: ImageVector, label: String, sub: String, brand: Color) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(modifier = Modifier.size(width = 4.dp, height = 36.dp).clip(RoundedCornerShape(2.dp)).background(brand))
+        Spacer(Modifier.size(12.dp))
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = accent,
+            modifier = Modifier.size(18.dp)
+        )
+        Spacer(Modifier.width(8.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(label, style = MaterialTheme.typography.bodyMedium, color = DS.ink, maxLines = 2)
+            if (sub.isNotEmpty()) {
+                Text(sub, style = MaterialTheme.typography.labelSmall, color = DS.ink2, maxLines = 1)
+            }
+        }
+    }
 }
 
 @Composable
