@@ -135,7 +135,9 @@ actor CommunityAPI {
         return response.tag
     }
 
-    func tags(search: String = "", category: String = "", sort: String = "popular", limit: Int = 50, offset: Int = 0) async throws -> [CommunityTag] {
+    // タグ本体は軽量かつ多層キャッシュ (サーバ 60s + SWR 300s、Cloudflare エッジ、クライアント 5min) されるので、
+    // ピッカーやフィルタで全件取得する前提で上限を大きく取る。ページネーション不要。
+    func tags(search: String = "", category: String = "", sort: String = "popular", limit: Int = 1000, offset: Int = 0) async throws -> [CommunityTag] {
         let cacheKey = "\(sort)|\(limit)|\(offset)|\(category)|\(search)"
         if let hit = tagsCache[cacheKey], Date().timeIntervalSince(hit.at) < tagsCacheTTL {
             return hit.tags

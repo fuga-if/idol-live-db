@@ -2648,7 +2648,9 @@ export default {
         const search = url.searchParams.get("search") || "";
         const category = url.searchParams.get("category") || "";
         const sort = url.searchParams.get("sort") || "popular";
-        const limit = parsePositiveInt(url.searchParams.get("limit"), 50, 100);
+        // タグ本体は軽量 (name/color/count のみ) かつ Cloudflare + アプリ両側でキャッシュされるので、
+        // ピッカーが全件取れるように上限を大きく取る。ページネーションは実質廃止。
+        const limit = parsePositiveInt(url.searchParams.get("limit"), 1000, 2000);
         const offset = Math.min(10000, Math.max(0, parseInt(url.searchParams.get("offset") || "0") || 0));
 
         const params: unknown[] = [];
