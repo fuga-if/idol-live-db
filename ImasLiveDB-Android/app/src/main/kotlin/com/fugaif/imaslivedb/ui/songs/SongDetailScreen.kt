@@ -21,6 +21,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.OndemandVideo
@@ -39,6 +40,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.collectAsState
@@ -55,6 +57,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.data.model.PerformanceHistoryRow
 import com.fugaif.imaslivedb.data.model.Song
+import com.fugaif.imaslivedb.data.model.SongCall
 import com.fugaif.imaslivedb.data.model.UserMark
 import com.fugaif.imaslivedb.ui.components.ArtworkImage
 import com.fugaif.imaslivedb.ui.components.ImasAvatar
@@ -85,6 +88,8 @@ fun SongDetailScreen(
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
     var showTagPicker by rememberSaveable { mutableStateOf(false) }
+    var showCallSheet by rememberSaveable { mutableStateOf(false) }
+    var editingCall by remember { mutableStateOf<SongCall?>(null) }
     LaunchedEffect(songId) { viewModel.load(context, songId) }
 
     Scaffold(
@@ -117,7 +122,9 @@ fun SongDetailScreen(
                 modifier = Modifier.fillMaxSize().padding(padding),
                 onIdolClick = onIdolClick, onShowClick = onShowClick,
                 onToggleTag = viewModel::toggleTag,
-                onOpenTagPicker = { showTagPicker = true }
+                onOpenTagPicker = { showTagPicker = true },
+                onCreateCall = { editingCall = null; showCallSheet = true },
+                onEditCall = { editingCall = it; showCallSheet = true }
             )
         }
     }
@@ -130,6 +137,15 @@ fun SongDetailScreen(
             onApplied = { viewModel.onTagsApplied() }
         )
     }
+
+    if (showCallSheet) {
+        CallEditSheet(
+            songId = songId,
+            existing = editingCall,
+            onDismiss = { showCallSheet = false },
+            onSaved = { viewModel.onCallSaved(it) }
+        )
+    }
 }
 
 @Composable
@@ -140,7 +156,9 @@ private fun SongSheetContent(
     onIdolClick: (String) -> Unit,
     onShowClick: (String) -> Unit,
     onToggleTag: (com.fugaif.imaslivedb.data.community.CommunityApi.SongTag) -> Unit,
-    onOpenTagPicker: () -> Unit
+    onOpenTagPicker: () -> Unit,
+    onCreateCall: () -> Unit,
+    onEditCall: (SongCall) -> Unit
 ) {
     // 配色シード: ソロ (歌唱1人) はその個人カラー、それ以外はブランド色。
     val seed = if (state.originalArtists.size == 1) state.originalArtists.first().color else null
@@ -157,7 +175,7 @@ private fun SongSheetContent(
         when (segment) {
             0 -> InfoTab(song, state, seed, onIdolClick)
             1 -> HistoryTab(state.performanceHistory, seed, song.brandId, onShowClick)
-            else -> CommunityTab(state, seed, song.brandId, onToggleTag, onOpenTagPicker)
+            else -> CommunityTab(state, seed, song.brandId, onToggleTag, onOpenTagPicker, onCreateCall, onEditCall)
         }
         Box(Modifier.size(24.dp))
     }
@@ -256,7 +274,9 @@ private fun IdolGridSection(title: String, idols: List<Idol>, onIdolClick: (Stri
 private fun CommunityTab(
     state: SongDetailUiState, seed: String?, brand: String?,
     onToggleTag: (com.fugaif.imaslivedb.data.community.CommunityApi.SongTag) -> Unit,
-    onOpenTagPicker: () -> Unit
+    onOpenTagPicker: () -> Unit,
+    onCreateCall: () -> Unit,
+    onEditCall: (SongCall) -> Unit
 ) {
     val context = LocalContext.current
     Column(modifier = Modifier.padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -319,18 +339,39 @@ private fun CommunityTab(
                 }
             }
         }
-        // コーレス (構造化コミュニティ・CloudKit)
+        // コーレス (構造化コミュニティ・CloudKit 直書き。POST /edits 経由で全ユーザーが投稿/編集可能)
         Column {
-            ImasSectionHeader("コーレス", count = "${state.songCalls.size}")
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                ImasSectionHeader("コーレス", count = "${state.songCalls.size}", modifier = Modifier.weight(1f))
+                IconButton(onClick = onCreateCall, modifier = Modifier.padding(end = 8.dp)) {
+                    Icon(Icons.Filled.Add, contentDescription = "コーレスを投稿", tint = DS.ink2)
+                }
+            }
             if (state.songCalls.isEmpty()) {
                 ImasEmptyState(Icons.Filled.Campaign, "コーレスはまだありません",
-                    "この曲のコール&レスポンスが登録されると、ここに表示されます。", seed = seed, brand = brand)
+                    "サビ前のコールなど、現地の盛り上げ方を共有しませんか？", seed = seed, brand = brand)
             } else {
                 state.songCalls.forEach { call ->
                     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
                         Text(call.callText, fontSize = 15.sp, color = DS.ink)
-                        if (!call.authorDisplayName.isNullOrEmpty()) {
-                            Text("by ${call.authorDisplayName}", fontSize = 12.sp, color = DS.ink3, modifier = Modifier.padding(top = 2.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(top = 4.dp)) {
+                            if (!call.sourceUrl.isNullOrEmpty()) {
+                                Text(
+                                    "出典", fontSize = 12.sp, color = DS.ink2,
+                                    modifier = Modifier.clickable {
+                                        runCatching {
+                                            context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(call.sourceUrl)))
+                                        }
+                                    }
+                                )
+                            }
+                            if (!call.authorDisplayName.isNullOrEmpty()) {
+                                Text("投稿者: ${call.authorDisplayName}", fontSize = 12.sp, color = DS.ink3)
+                            }
+                            Box(Modifier.weight(1f))
+                            IconButton(onClick = { onEditCall(call) }, modifier = Modifier.size(28.dp)) {
+                                Icon(Icons.Filled.Edit, contentDescription = "コーレスを編集", tint = DS.ink2, modifier = Modifier.size(16.dp))
+                            }
                         }
                     }
                     HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 16.dp))

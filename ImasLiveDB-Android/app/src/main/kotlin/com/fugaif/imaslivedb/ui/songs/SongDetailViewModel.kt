@@ -94,4 +94,15 @@ class SongDetailViewModel : ViewModel() {
         val songId = currentSongId ?: return
         viewModelScope.launch { loadCommunity(songId) }
     }
+
+    /** コーレス投稿/編集 (CallEditSheet) 成功後、一覧を差し替える (新規は先頭に追加)。 */
+    fun onCallSaved(call: SongCall) {
+        val current = _uiState.value.songCalls
+        val updated = if (current.any { it.id == call.id }) {
+            current.map { if (it.id == call.id) call else it }
+        } else {
+            listOf(call) + current
+        }
+        _uiState.value = _uiState.value.copy(songCalls = updated)
+    }
 }
