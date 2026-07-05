@@ -232,7 +232,7 @@ class EditApi(private val appContext: Context, private val authService: AuthServ
 
     /** 成功時は JSON を返し、失敗時は契約に沿った [ApiException] を投げる (CommunityApi と違い、
      *  呼び出し側が 401/403/429 を UI 分岐 [ログイン誘導 / BAN / レート制限] できるようにする)。 */
-    private fun request(method: String, path: String, body: JSONObject?): JSONObject {
+    private suspend fun request(method: String, path: String, body: JSONObject?): JSONObject = withContext(Dispatchers.IO) {
         val conn = try {
             (URL(BASE + path).openConnection() as HttpURLConnection).apply {
                 requestMethod = method
@@ -245,7 +245,7 @@ class EditApi(private val appContext: Context, private val authService: AuthServ
         } catch (e: Exception) {
             throw ApiException.Transport(e.message ?: "connection failed")
         }
-        return try {
+        try {
             if (body != null) {
                 conn.doOutput = true
                 conn.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }

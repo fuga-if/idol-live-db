@@ -98,7 +98,7 @@ class CommunityApi(private val appContext: Context, private val authService: Aut
         val tags = json.optJSONArray("tags") ?: JSONArray()
         (0 until tags.length()).map { i ->
             val t = tags.getJSONObject(i)
-            SongTag(t.getString("id"), t.optString("name"), t.optString("color").ifEmpty { null },
+            SongTag(t.getString("id"), t.optString("name"), t.strOrNull("color"),
                 t.optInt("vote_count"), mine.contains(t.getString("id")))
         }
     }
@@ -180,8 +180,8 @@ class CommunityApi(private val appContext: Context, private val authService: Aut
         (0 until arr.length()).map {
             val o = arr.getJSONObject(it)
             TagHistoryEntry(
-                descriptionAfter = o.optString("description_after").ifEmpty { null },
-                descriptionBefore = o.optString("description_before").ifEmpty { null },
+                descriptionAfter = o.strOrNull("description_after"),
+                descriptionBefore = o.strOrNull("description_before"),
                 editedBy = o.optString("edited_by"),
                 editedAt = o.optLong("edited_at")
             )
@@ -198,9 +198,9 @@ class CommunityApi(private val appContext: Context, private val authService: Aut
     private fun parseTagListItem(o: JSONObject): CommunityTag = CommunityTag(
         id = o.optString("id"),
         name = o.optString("name"),
-        description = o.optString("description_preview").ifEmpty { null },
-        category = o.optString("category").ifEmpty { null },
-        color = o.optString("color").ifEmpty { null },
+        description = o.strOrNull("description_preview"),
+        category = o.strOrNull("category"),
+        color = o.strOrNull("color"),
         createdAt = o.optLong("created_at"),
         totalUses = o.optInt("total_uses")
     )
@@ -208,9 +208,9 @@ class CommunityApi(private val appContext: Context, private val authService: Aut
     private fun parseTagFull(o: JSONObject): CommunityTag = CommunityTag(
         id = o.optString("id"),
         name = o.optString("name"),
-        description = o.optString("description").ifEmpty { null },
-        category = o.optString("category").ifEmpty { null },
-        color = o.optString("color").ifEmpty { null },
+        description = o.strOrNull("description"),
+        category = o.strOrNull("category"),
+        color = o.strOrNull("color"),
         createdAt = o.optLong("created_at"),
         totalUses = o.optInt("total_uses")
     )
@@ -260,11 +260,11 @@ class CommunityApi(private val appContext: Context, private val authService: Aut
             targetType = poll.optString("target_type"),
             totalVotes = poll.optInt("total_votes"),
             entries = entries,
-            candidateScope = PollCandidateScope.fromRaw(poll.optString("candidate_scope").ifEmpty { null }),
+            candidateScope = PollCandidateScope.fromRaw(poll.strOrNull("candidate_scope")),
             scopeBrandIds = poll.optJSONArray("scope_brand_ids")?.toStringList().orEmpty(),
             scopeEntityIds = poll.optJSONArray("scope_entity_ids")?.toStringList().orEmpty(),
             myVoteCount = poll.optInt("my_vote_count"),
-            status = poll.optString("status").ifEmpty { "active" },
+            status = poll.strOrNull("status") ?: "active",
             endsAtMs = parseEndsAt(poll.optString("ends_at")),
         )
     }
@@ -290,7 +290,7 @@ class CommunityApi(private val appContext: Context, private val authService: Aut
         val json = sendJson("POST", "/polls/${enc(pollId)}/votes", JSONObject().put("entity_id", entityId))
             ?: return@withContext null
         PollVoteResult(
-            entityId = json.optString("entity_id").ifEmpty { entityId },
+            entityId = json.strOrNull("entity_id") ?: entityId,
             voteCount = json.optInt("vote_count"),
             myVoteCount = json.optInt("my_vote_count"),
         )
@@ -301,7 +301,7 @@ class CommunityApi(private val appContext: Context, private val authService: Aut
         val json = sendJson("DELETE", "/polls/${enc(pollId)}/votes/${enc(entityId)}", null)
             ?: return@withContext null
         PollVoteResult(
-            entityId = json.optString("entity_id").ifEmpty { entityId },
+            entityId = json.strOrNull("entity_id") ?: entityId,
             voteCount = json.optInt("vote_count"),
             myVoteCount = json.optInt("my_vote_count"),
         )
@@ -310,6 +310,10 @@ class CommunityApi(private val appContext: Context, private val authService: Aut
     // --- HTTP ---
 
     private fun enc(s: String): String = URLEncoder.encode(s, "UTF-8").replace("+", "%20")
+
+    /** JSON null と欠損キーを確実に null にする (JSONObject.optString は JSON null を文字列 "null" として返すため .ifEmpty{} では捕捉できない)。 */
+    private fun JSONObject.strOrNull(key: String): String? =
+        if (isNull(key)) null else optString(key).ifEmpty { null }
 
     private fun open(method: String, path: String): HttpURLConnection {
         val conn = (URL(BASE + path).openConnection() as HttpURLConnection).apply {
