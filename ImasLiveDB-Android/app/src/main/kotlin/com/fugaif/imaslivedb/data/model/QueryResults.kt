@@ -109,6 +109,25 @@ data class AllPerformerRow(
     @ColumnInfo(name = "idol_id") val idolId: String?
 )
 
+/** 公演 + 所属イベント名 (オープン編集のセトリピッカー用)。 */
+data class ShowWithEventName(
+    @ColumnInfo(name = "id") val id: String,
+    @ColumnInfo(name = "event_id") val eventId: String,
+    @ColumnInfo(name = "name") val name: String,
+    @ColumnInfo(name = "date") val date: String,
+    @ColumnInfo(name = "venue") val venue: String?,
+    @ColumnInfo(name = "venue_city") val venueCity: String?,
+    @ColumnInfo(name = "start_time") val startTime: String?,
+    @ColumnInfo(name = "sort_order") val sortOrder: Int,
+    @ColumnInfo(name = "performer_type") val performerType: String?,
+    @ColumnInfo(name = "event_name") val eventName: String
+) {
+    fun toShow() = Show(
+        id = id, eventId = eventId, name = name, date = date, venue = venue,
+        venueCity = venueCity, startTime = startTime, sortOrder = sortOrder, performerType = performerType
+    )
+}
+
 // MARK: - Song Query Results
 
 data class PerformanceHistoryRow(
@@ -132,6 +151,12 @@ data class SongPlayCount(
 data class SongPerfCount(
     @ColumnInfo(name = "song_id") val songId: String,
     @ColumnInfo(name = "cnt") val cnt: Int
+)
+
+/** ソロ曲 (song_type='solo') とその原唱アイドルの対応行。ソロ曲クイズの出題母集団構築に使う。 */
+data class SoloOriginalSingerRow(
+    @ColumnInfo(name = "song_id") val songId: String,
+    @ColumnInfo(name = "idol_id") val idolId: String
 )
 
 // MARK: - Cast Query Results

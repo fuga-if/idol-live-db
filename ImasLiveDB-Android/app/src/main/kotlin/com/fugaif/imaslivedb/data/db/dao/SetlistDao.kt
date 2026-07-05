@@ -1,9 +1,13 @@
 package com.fugaif.imaslivedb.data.db.dao
 
 import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.fugaif.imaslivedb.data.model.AllPerformerRow
 import com.fugaif.imaslivedb.data.model.PerformerRow
+import com.fugaif.imaslivedb.data.model.SetlistItem
+import com.fugaif.imaslivedb.data.model.SetlistPerformer
 import com.fugaif.imaslivedb.data.model.SetlistRow
 
 @Dao
@@ -37,4 +41,22 @@ interface SetlistDao {
         WHERE si.show_id = :showId
     """)
     suspend fun fetchAllPerformers(showId: String): List<AllPerformerRow>
+
+    /** ある SetlistItem が属する showId (編集フィードの対象タイトル解決用)。 */
+    @Query("SELECT show_id FROM setlist_items WHERE id = :itemId LIMIT 1")
+    suspend fun fetchShowIdForItem(itemId: String): String?
+
+    // --- オープン編集 (セトリ編集) のローカル楽観反映用書き込み ---
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertItems(items: List<SetlistItem>)
+
+    @Query("DELETE FROM setlist_items WHERE id IN (:ids)")
+    suspend fun deleteItems(ids: List<String>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertPerformers(performers: List<SetlistPerformer>)
+
+    @Query("DELETE FROM setlist_performers WHERE setlist_item_id = :setlistItemId AND idol_id = :idolId")
+    suspend fun deletePerformer(setlistItemId: String, idolId: String)
 }

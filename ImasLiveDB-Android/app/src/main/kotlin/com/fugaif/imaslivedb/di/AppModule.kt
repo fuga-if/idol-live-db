@@ -34,6 +34,8 @@ class AppModule private constructor(context: Context) {
     val userMarkRepository: UserMarkRepository by lazy { UserMarkRepository(database) }
     val authService: AuthService by lazy { AuthService(appContext) }
     val communityApi: CommunityApi by lazy { CommunityApi(appContext, authService) }
+    val editApi: EditApi by lazy { EditApi(appContext, authService) }
+    val editFeedRepository: EditFeedRepository by lazy { EditFeedRepository(database) }
     val syncEngine: CloudKitSyncEngine by lazy { CloudKitSyncEngine(appContext, database) }
     val localContributionLog: LocalContributionLog by lazy { LocalContributionLog(appContext) }
     val localPollVoteLog: LocalPollVoteLog by lazy { LocalPollVoteLog(appContext) }
