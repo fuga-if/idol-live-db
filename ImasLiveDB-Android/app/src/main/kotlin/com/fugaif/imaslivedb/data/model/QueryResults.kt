@@ -24,6 +24,43 @@ data class EventWithDate(
     val firstDate: String?
 )
 
+// Raw Room query result for events joined with first/last show date (お気に入り・参加ライブ一覧用)
+data class EventWithDateRangeRow(
+    @ColumnInfo(name = "id") val id: String,
+    @ColumnInfo(name = "brand_id") val brandId: String?,
+    @ColumnInfo(name = "name") val name: String,
+    @ColumnInfo(name = "event_type") val eventType: String,
+    @ColumnInfo(name = "is_streaming") val isStreaming: Boolean,
+    @ColumnInfo(name = "first_date") val firstDate: String?,
+    @ColumnInfo(name = "last_date") val lastDate: String?
+) {
+    fun toEventWithDateRange() = EventWithDateRange(
+        event = Event(id, brandId, name, eventType, isStreaming),
+        firstDate = firstDate,
+        lastDate = lastDate
+    )
+}
+
+data class EventWithDateRange(
+    val event: Event,
+    val firstDate: String?,
+    val lastDate: String?
+) {
+    /** 表示用の開催日。複数日なら "first〜last"、単日なら first のみ。 */
+    val dateRange: String?
+        get() {
+            val first = firstDate?.takeIf { it.isNotEmpty() } ?: return null
+            val last = lastDate?.takeIf { it.isNotEmpty() && it != first }
+            return if (last != null) "$first〜$last" else first
+        }
+}
+
+/** 参加マークの行 (event_id + 参加種別 text_value)。live/stream/live_viewing 分類用。 */
+data class AttendedEventTypeRow(
+    @ColumnInfo(name = "event_id") val eventId: String,
+    @ColumnInfo(name = "atype") val atype: String?
+)
+
 data class EventStats(
     @ColumnInfo(name = "show_count") val showCount: Int,
     @ColumnInfo(name = "total_songs") val totalSongs: Int,

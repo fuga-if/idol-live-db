@@ -1,6 +1,7 @@
 package com.fugaif.imaslivedb.data.repository
 
 import com.fugaif.imaslivedb.data.db.AppDatabase
+import com.fugaif.imaslivedb.data.model.EventWithDateRange
 import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.data.model.Song
 import com.fugaif.imaslivedb.data.model.UserMark
@@ -39,8 +40,46 @@ class UserMarkRepository(private val db: AppDatabase) {
             ids.mapNotNull { sdao.fetchSong(it) }
         }
 
+    /** お気に入りライブ(イベント)一覧。開催日降順。 */
+    suspend fun favoriteEvents(): List<EventWithDateRange> {
+        val ids = dao.idsFor(UserMark.EVENT, UserMark.FAVORITE)
+        if (ids.isEmpty()) return emptyList()
+        return db.eventDao().fetchEventsWithDateRangeByIds(ids).map { it.toEventWithDateRange() }
+    }
+
+    /**
+     * 参加したライブ(イベント)を重複なしで開催日降順に返す。
+     * イベント単位/公演単位どちらの参加マークも拾う (UNION は EventDao 側)。
+     */
+    suspend fun attendedEvents(): List<EventWithDateRange> =
+        db.eventDao().fetchAttendedEventsWithDateRange().map { it.toEventWithDateRange() }
+
+    /**
+     * 参加したイベントを「現地参加を含む」「配信参加を含む」「LV参加を含む」の集合に分類して返す。
+     * 1イベント内で現地公演と配信公演が混在する場合は両方に入る。種別なし(旧データ)は現地扱い。
+     */
+    suspend fun attendedEventTypeSets(): AttendedEventTypeSets {
+        val live = mutableSetOf<String>()
+        val stream = mutableSetOf<String>()
+        val liveViewing = mutableSetOf<String>()
+        db.eventDao().fetchAttendedEventTypeRows().forEach { row ->
+            when (row.atype) {
+                "stream" -> stream.add(row.eventId)
+                "live_viewing" -> liveViewing.add(row.eventId)
+                else -> live.add(row.eventId)
+            }
+        }
+        return AttendedEventTypeSets(live, stream, liveViewing)
+    }
+
     private suspend fun fetchIdols(ids: List<String>): List<Idol> {
         val idao = db.idolDao()
         return ids.mapNotNull { idao.fetchIdol(it) }
     }
 }
+
+data class AttendedEventTypeSets(
+    val live: Set<String>,
+    val stream: Set<String>,
+    val liveViewing: Set<String>
+)
