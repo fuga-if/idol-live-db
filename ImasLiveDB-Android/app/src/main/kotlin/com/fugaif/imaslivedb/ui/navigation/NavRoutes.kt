@@ -55,6 +55,31 @@ sealed class NavRoutes(val route: String) {
     }
     data object GamesHub : NavRoutes("games_hub")
     data object IntroDonHome : NavRoutes("introdon_home")
+    data object IntroDonSetup : NavRoutes("introdon_setup")
+    data class IntroDonGame(
+        val mode: String,
+        val brandIds: String,
+        val questionCount: Int,
+        val introDurationMs: Long,
+        val rushTimeLimitSec: Int
+    ) : NavRoutes("introdon_game/{mode}/{brandIds}/{questionCount}/{introDurationMs}/{rushTimeLimitSec}") {
+        companion object {
+            const val ROUTE = "introdon_game/{mode}/{brandIds}/{questionCount}/{introDurationMs}/{rushTimeLimitSec}"
+            fun createRoute(mode: String, brandIds: String, questionCount: Int, introDurationMs: Long, rushTimeLimitSec: Int) =
+                "introdon_game/$mode/$brandIds/$questionCount/$introDurationMs/$rushTimeLimitSec"
+        }
+    }
+    data class IntroDonParty(
+        val brandIds: String,
+        val questionCount: Int,
+        val introDurationMs: Long
+    ) : NavRoutes("introdon_party/{brandIds}/{questionCount}/{introDurationMs}") {
+        companion object {
+            const val ROUTE = "introdon_party/{brandIds}/{questionCount}/{introDurationMs}"
+            fun createRoute(brandIds: String, questionCount: Int, introDurationMs: Long) =
+                "introdon_party/$brandIds/$questionCount/$introDurationMs"
+        }
+    }
     data object GamesColorMatch : NavRoutes("games_colormatch")
     data object GamesIdolQuizSetup : NavRoutes("games_idolquiz_setup")
     data class GamesIdolQuiz(val brandIds: String) : NavRoutes("games_idolquiz/{brandIds}") {

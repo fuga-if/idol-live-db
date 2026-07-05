@@ -30,6 +30,13 @@ import com.fugaif.imaslivedb.ui.games.SongSingerQuizSetupScreen
 import com.fugaif.imaslivedb.ui.idols.IdolDetailScreen
 import com.fugaif.imaslivedb.ui.idols.IdolListScreen
 import com.fugaif.imaslivedb.ui.introdon.IntroDonHomeScreen
+import com.fugaif.imaslivedb.ui.introdon.IntroDonGameScreen
+import com.fugaif.imaslivedb.ui.introdon.IntroDonMode
+import com.fugaif.imaslivedb.ui.introdon.IntroDonPartyScreen
+import com.fugaif.imaslivedb.ui.introdon.IntroDonSettings
+import com.fugaif.imaslivedb.ui.introdon.IntroDonSetupScreen
+import com.fugaif.imaslivedb.ui.introdon.decodeIntroDonBrandIds
+import com.fugaif.imaslivedb.ui.introdon.encodeIntroDonBrandIds
 import com.fugaif.imaslivedb.ui.mypage.AttendedEventsScreen
 import com.fugaif.imaslivedb.ui.mypage.FavoritesScreen
 import com.fugaif.imaslivedb.ui.mypage.MyContributionsScreen
@@ -435,7 +442,56 @@ private fun NavGraphBuilder.produceNavGraph(navController: NavHostController) {
         )
     }
     composable(NavRoutes.IntroDonHome.route) {
-        IntroDonHomeScreen(onBack = { navController.popBackStack() })
+        IntroDonHomeScreen(
+            onBack = { navController.popBackStack() },
+            onNavigateToSetup = { navController.navigate(NavRoutes.IntroDonSetup.route) }
+        )
+    }
+    composable(NavRoutes.IntroDonSetup.route) {
+        IntroDonSetupScreen(
+            onBack = { navController.popBackStack() },
+            onStartGame = { settings ->
+                navController.navigate(
+                    NavRoutes.IntroDonGame.createRoute(
+                        mode = settings.mode.name,
+                        brandIds = encodeIntroDonBrandIds(settings.selectedBrandIds),
+                        questionCount = settings.questionCount,
+                        introDurationMs = settings.introDurationMs,
+                        rushTimeLimitSec = settings.rushTimeLimitSec
+                    )
+                )
+            },
+            onStartParty = { settings ->
+                navController.navigate(
+                    NavRoutes.IntroDonParty.createRoute(
+                        brandIds = encodeIntroDonBrandIds(settings.selectedBrandIds),
+                        questionCount = settings.questionCount,
+                        introDurationMs = settings.introDurationMs
+                    )
+                )
+            }
+        )
+    }
+    composable(NavRoutes.IntroDonGame.ROUTE) { backStackEntry ->
+        val args = backStackEntry.arguments
+        val settings = IntroDonSettings(
+            mode = IntroDonMode.valueOf(args?.getString("mode") ?: IntroDonMode.NORMAL.name),
+            questionCount = args?.getString("questionCount")?.toIntOrNull() ?: 10,
+            introDurationMs = args?.getString("introDurationMs")?.toLongOrNull() ?: 5_000L,
+            rushTimeLimitSec = args?.getString("rushTimeLimitSec")?.toIntOrNull() ?: 60,
+            selectedBrandIds = decodeIntroDonBrandIds(args?.getString("brandIds"))
+        )
+        IntroDonGameScreen(settings = settings, onExit = { navController.popBackStack(NavRoutes.IntroDonHome.route, false) })
+    }
+    composable(NavRoutes.IntroDonParty.ROUTE) { backStackEntry ->
+        val args = backStackEntry.arguments
+        val settings = IntroDonSettings(
+            mode = IntroDonMode.PARTY,
+            questionCount = args?.getString("questionCount")?.toIntOrNull() ?: 10,
+            introDurationMs = args?.getString("introDurationMs")?.toLongOrNull() ?: 5_000L,
+            selectedBrandIds = decodeIntroDonBrandIds(args?.getString("brandIds"))
+        )
+        IntroDonPartyScreen(settings = settings, onExit = { navController.popBackStack(NavRoutes.IntroDonHome.route, false) })
     }
     composable(NavRoutes.GamesColorMatch.route) {
         ColorMatchGameScreen(onBack = { navController.popBackStack() })

@@ -176,4 +176,19 @@ class SongRepository(private val db: AppDatabase) {
     suspend fun fetchSoloOriginalSingers(): List<SoloOriginalSingerRow> {
         return db.songDao().fetchSoloOriginalSingers()
     }
+
+    /**
+     * イントロドン出題プール。Android には Apple Music フル再生の手段が無いため、
+     * iOS の `apple_music_id` 条件ではなく実際に再生できる `preview_url` の有無で絞り込む。
+     */
+    suspend fun fetchIntroDonSongs(brandIds: Set<String> = emptySet()): List<Song> {
+        var sql = "SELECT * FROM songs WHERE preview_url IS NOT NULL AND preview_url != '' AND parent_song_id IS NULL"
+        val args = mutableListOf<Any>()
+        if (brandIds.isNotEmpty()) {
+            sql += " AND brand_id IN (${brandIds.joinToString(",") { "?" }})"
+            args.addAll(brandIds)
+        }
+        sql += " ORDER BY RANDOM()"
+        return db.songDao().fetchSongsRaw(SimpleSQLiteQuery(sql, args.toTypedArray()))
+    }
 }
