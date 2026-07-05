@@ -27,6 +27,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fugaif.imaslivedb.data.edit.EditApi
+import com.fugaif.imaslivedb.data.edit.friendlyMessage
 import com.fugaif.imaslivedb.data.model.SongCall
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.theme.DS
@@ -144,7 +145,7 @@ fun CallEditSheet(
                                 onDismiss()
                             } catch (e: EditApi.ApiException) {
                                 isSaving = false
-                                errorMessage = friendlyEditError(e)
+                                errorMessage = e.friendlyMessage()
                             } catch (e: Exception) {
                                 isSaving = false
                                 errorMessage = "保存に失敗しました: ${e.message}"
@@ -175,10 +176,3 @@ private fun isValidHttpUrlOrEmpty(url: String): Boolean {
     }
 }
 
-private fun friendlyEditError(e: EditApi.ApiException): String = when (e) {
-    is EditApi.ApiException.NotAuthorized -> "認証の有効期限が切れています。再度サインインしてください。"
-    is EditApi.ApiException.Banned -> "この操作は制限されています。"
-    is EditApi.ApiException.RateLimited -> "投稿が多すぎます。しばらく待ってからお試しください。"
-    is EditApi.ApiException.Server -> "保存に失敗しました (${e.status})"
-    is EditApi.ApiException.Transport -> "通信に失敗しました: ${e.message}"
-}

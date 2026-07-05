@@ -122,9 +122,14 @@ fun TagCreateSheet(
                 Button(
                     onClick = {
                         errorMessage = null
+                        val module = AppModule.from(context)
+                        if (!module.authService.state.value.isSignedIn) {
+                            errorMessage = "タグの作成にはサインインが必要です(設定画面からサインインしてください)"
+                            return@Button
+                        }
                         isSaving = true
                         scope.launch {
-                            val api = AppModule.from(context).communityApi
+                            val api = module.communityApi
                             when (val result = api.createTag(
                                 name = trimmedName,
                                 description = description.ifBlank { null },

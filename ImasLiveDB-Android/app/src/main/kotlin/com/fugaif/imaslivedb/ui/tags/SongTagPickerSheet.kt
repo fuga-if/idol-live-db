@@ -74,6 +74,7 @@ fun SongTagPickerSheet(
 
     LaunchedEffect(query) {
         isLoading = true
+        if (trimmedQuery.isNotEmpty()) kotlinx.coroutines.delay(200)
         val api = AppModule.from(context).communityApi
         tags = runCatching { api.tags(search = trimmedQuery, sort = "popular") }.getOrDefault(emptyList())
         isLoading = false
@@ -134,10 +135,15 @@ fun SongTagPickerSheet(
                 TextButton(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text("キャンセル") }
                 Button(
                     onClick = {
-                        isApplying = true
                         errorMessage = null
+                        val module = AppModule.from(context)
+                        if (!module.authService.state.value.isSignedIn) {
+                            errorMessage = "タグの追加にはサインインが必要です(設定画面からサインインしてください)"
+                            return@Button
+                        }
+                        isApplying = true
                         scope.launch {
-                            val api = AppModule.from(context).communityApi
+                            val api = module.communityApi
                             val ok = runCatching { api.applySongTags(songId, selected.toList()) }.getOrNull()
                             isApplying = false
                             if (ok != null) {

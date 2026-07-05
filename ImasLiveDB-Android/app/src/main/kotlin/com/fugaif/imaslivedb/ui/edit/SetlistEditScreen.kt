@@ -42,6 +42,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -52,6 +53,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fugaif.imaslivedb.data.edit.EditApi
+import com.fugaif.imaslivedb.data.edit.friendlyMessage
 import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.data.model.SetlistItem
 import com.fugaif.imaslivedb.data.model.SetlistPerformer
@@ -292,6 +294,8 @@ class SetlistEditViewModel(app: Application, private val show: Show) : AndroidVi
                         )
                     }
                 }
+            } catch (e: EditApi.ApiException) {
+                _uiState.value = _uiState.value.copy(isSaving = false, errorMessage = e.friendlyMessage())
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(isSaving = false, errorMessage = "保存失敗: ${e.message}")
             }
@@ -322,10 +326,19 @@ fun SetlistEditScreen(
     var castPickerForRow by remember { mutableStateOf<String?>(null) }
     var showClearConfirm by remember { mutableStateOf(false) }
 
+    var requestedOutcome by remember { mutableStateOf<SetlistSaveOutcome.Requested?>(null) }
+
     LaunchedEffect(state.saveOutcome) {
-        if (state.saveOutcome != null) {
-            viewModel.consumeSaveOutcome()
-            onSaved()
+        when (val outcome = state.saveOutcome) {
+            is SetlistSaveOutcome.Applied -> {
+                viewModel.consumeSaveOutcome()
+                onSaved()
+            }
+            is SetlistSaveOutcome.Requested -> {
+                viewModel.consumeSaveOutcome()
+                requestedOutcome = outcome
+            }
+            else -> {}
         }
     }
 
@@ -411,6 +424,31 @@ fun SetlistEditScreen(
             confirmButton = { TextButton(onClick = { viewModel.clearError() }) { Text("OK") } },
             title = { Text("エラー") },
             text = { Text(state.errorMessage ?: "") }
+        )
+    }
+
+    if (requestedOutcome != null) {
+        val issueUrl = requestedOutcome?.issueUrl
+        val uriHandler = LocalUriHandler.current
+        AlertDialog(
+            onDismissRequest = { requestedOutcome = null; onSaved() },
+            title = { Text("編集リクエストを送信しました") },
+            text = {
+                Column {
+                    Text("この編集はすぐには反映されず、承認後に反映されます。")
+                    if (issueUrl != null) {
+                        Text(
+                            "進捗を見る",
+                            color = DS.pick,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(top = 8.dp).clickable { uriHandler.openUri(issueUrl) }
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { requestedOutcome = null; onSaved() }) { Text("OK") }
+            }
         )
     }
 

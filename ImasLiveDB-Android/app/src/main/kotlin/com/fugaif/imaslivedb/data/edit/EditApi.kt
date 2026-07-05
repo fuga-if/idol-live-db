@@ -277,3 +277,12 @@ class EditApi(private val appContext: Context, private val authService: AuthServ
         private const val BASE = "https://imas-live-api.tokata3011.workers.dev"
     }
 }
+
+/** [EditApi.ApiException] をユーザー向け文言に変換する共通ヘルパー。 */
+fun EditApi.ApiException.friendlyMessage(): String = when (this) {
+    is EditApi.ApiException.NotAuthorized -> "認証の有効期限が切れています。再度サインインしてください。"
+    is EditApi.ApiException.Banned -> "この操作は制限されています。"
+    is EditApi.ApiException.RateLimited -> "投稿が多すぎます。しばらく待ってからお試しください。"
+    is EditApi.ApiException.Server -> "保存に失敗しました (${status})"
+    is EditApi.ApiException.Transport -> "通信に失敗しました: ${message}"
+}

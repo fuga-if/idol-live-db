@@ -102,9 +102,14 @@ fun TagEditSheet(
                 Button(
                     onClick = {
                         errorMessage = null
+                        val module = AppModule.from(context)
+                        if (!module.authService.state.value.isSignedIn) {
+                            errorMessage = "タグの編集にはサインインが必要です(設定画面からサインインしてください)"
+                            return@Button
+                        }
                         isSaving = true
                         scope.launch {
-                            val api = AppModule.from(context).communityApi
+                            val api = module.communityApi
                             val updated = api.updateTag(
                                 id = tag.id,
                                 description = description,
