@@ -40,7 +40,43 @@ sealed class NavRoutes(val route: String) {
     data object Stats : NavRoutes("stats")
     data object Settings : NavRoutes("settings")
     data object Search : NavRoutes("search")
+
+    data object Favorites : NavRoutes("favorites")
+    data object AttendedEvents : NavRoutes("attended_events")
+    data object MyContributions : NavRoutes("my_contributions")
+    data object MyVotes : NavRoutes("my_votes")
+    data object EditHistory : NavRoutes("edit_history")
+    data object TagList : NavRoutes("tag_list")
+    data class TagDetail(val tagId: String) : NavRoutes("tag_detail/{tagId}") {
+        companion object {
+            const val ROUTE = "tag_detail/{tagId}"
+            fun createRoute(tagId: String) = "tag_detail/$tagId"
+        }
+    }
+    data object GamesHub : NavRoutes("games_hub")
+    data object IntroDonHome : NavRoutes("introdon_home")
+    data object GamesColorMatch : NavRoutes("games_colormatch")
+    data object GamesIdolQuizSetup : NavRoutes("games_idolquiz_setup")
+    data class GamesIdolQuiz(val brandIds: String) : NavRoutes("games_idolquiz/{brandIds}") {
+        companion object {
+            const val ROUTE = "games_idolquiz/{brandIds}"
+            fun createRoute(brandIds: Set<String>) =
+                "games_idolquiz/" + (if (brandIds.isEmpty()) "all" else brandIds.sorted().joinToString(","))
+        }
+    }
+    data object GamesSongQuizSetup : NavRoutes("games_songquiz_setup")
+    data class GamesSongQuiz(val brandIds: String) : NavRoutes("games_songquiz/{brandIds}") {
+        companion object {
+            const val ROUTE = "games_songquiz/{brandIds}"
+            fun createRoute(brandIds: Set<String>) =
+                "games_songquiz/" + (if (brandIds.isEmpty()) "all" else brandIds.sorted().joinToString(","))
+        }
+    }
 }
+
+/** ゲームのブランド絞り込みをルート引数の1文字列にエンコード/デコードする ("all" = 未選択=全ブランド)。 */
+fun decodeGameBrandIds(raw: String?): Set<String> =
+    if (raw.isNullOrEmpty() || raw == "all") emptySet() else raw.split(",").filter { it.isNotEmpty() }.toSet()
 
 // Top-level tab routes (iOS の確定 IA に合わせる: スケジュール/ライブ/楽曲/アイドル/プロデュース)
 enum class TopLevelTab(val route: String) {
