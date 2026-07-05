@@ -88,4 +88,10 @@ class SongDetailViewModel : ViewModel() {
             loadCommunity(songId)
         }
     }
+
+    /** タグ追加ピッカー (SongTagPickerSheet) で新規タグを適用した後の再取得。 */
+    fun onTagsApplied() {
+        val songId = currentSongId ?: return
+        viewModelScope.launch { loadCommunity(songId) }
+    }
 }

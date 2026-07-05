@@ -3,6 +3,7 @@ package com.fugaif.imaslivedb.ui.songs
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.fugaif.imaslivedb.data.community.CommunityApi
 import com.fugaif.imaslivedb.data.model.SongSearchFilter
 import com.fugaif.imaslivedb.data.model.SongSortOrder
 import com.fugaif.imaslivedb.data.model.SongWithArtists
@@ -18,7 +19,9 @@ data class SongListUiState(
     val songs: List<SongWithArtists> = emptyList(),
     val searchText: String = "",
     val filter: SongSearchFilter = SongSearchFilter(),
-    val sortOrder: SongSortOrder = SongSortOrder.TITLE_KANA
+    val sortOrder: SongSortOrder = SongSortOrder.TITLE_KANA,
+    // タグ絞り込み (TagFilterSheet) で選択中のタグ。複数選択時は AND (全タグを含む曲) で絞る。
+    val selectedTags: List<CommunityApi.CommunityTag> = emptyList()
 ) {
     val activeFilterCount: Int get() = filter.activeFilterCount
 }
@@ -46,6 +49,11 @@ class SongListViewModel : ViewModel() {
         loadSongs()
     }
 
+    fun applyTagFilter(tags: List<CommunityApi.CommunityTag>) {
+        _uiState.value = _uiState.value.copy(selectedTags = tags)
+        loadSongs()
+    }
+
     private fun loadSongs() {
         val ctx = appContext ?: return
         loadJob?.cancel()
@@ -56,9 +64,21 @@ class SongListViewModel : ViewModel() {
             } else {
                 state.filter
             }
+            // タグ絞り込み: Worker D1 (コミュニティタグ) は端末外データなので、選択中タグそれぞれの
+            // 詳細 (付いた曲の song_id 一覧) を取得して AND (積集合) を取る。
+            val tagFilterSongIds = if (state.selectedTags.isNotEmpty()) {
+                val api = AppModule.from(ctx).communityApi
+                val sets = state.selectedTags.map { tag ->
+                    runCatching { api.tagDetail(tag.id) }.getOrNull()?.songs?.map { it.songId }?.toSet() ?: emptySet()
+                }
+                sets.reduce { acc, s -> acc intersect s }
+            } else {
+                null
+            }
             val songs = AppModule.from(ctx).songRepository.fetchSongs(
                 filter = effectiveFilter,
-                sortOrder = state.sortOrder
+                sortOrder = state.sortOrder,
+                tagFilterSongIds = tagFilterSongIds
             )
             _uiState.value = _uiState.value.copy(isLoading = false, songs = songs)
         }

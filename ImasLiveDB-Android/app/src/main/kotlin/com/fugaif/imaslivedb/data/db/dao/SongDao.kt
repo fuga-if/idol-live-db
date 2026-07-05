@@ -7,6 +7,7 @@ import androidx.sqlite.db.SupportSQLiteQuery
 import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.data.model.PerformanceHistoryRow
 import com.fugaif.imaslivedb.data.model.Song
+import com.fugaif.imaslivedb.data.model.SoloOriginalSingerRow
 import com.fugaif.imaslivedb.data.model.SongPerfCount
 import com.fugaif.imaslivedb.data.model.SongPlayCount
 
@@ -15,6 +16,9 @@ interface SongDao {
 
     @Query("SELECT * FROM songs WHERE id = :id LIMIT 1")
     suspend fun fetchSong(id: String): Song?
+
+    @Query("SELECT * FROM songs WHERE id IN (:ids)")
+    suspend fun fetchSongsByIds(ids: List<String>): List<Song>
 
     @RawQuery
     suspend fun fetchSongsRaw(query: SupportSQLiteQuery): List<Song>
@@ -95,4 +99,13 @@ interface SongDao {
         LIMIT 20
     """)
     suspend fun searchSongs(pattern: String): List<Song>
+
+    /** ソロ曲クイズ用: ソロ曲 (リミックス除く) と原唱アイドルの対応。song_id 単位で複数行になり得る (原唱が複数人の曲)。 */
+    @Query("""
+        SELECT s.id AS song_id, sa.idol_id AS idol_id
+        FROM songs s
+        JOIN song_artists sa ON s.id = sa.song_id
+        WHERE s.song_type = 'solo' AND s.parent_song_id IS NULL AND sa.role = 'original'
+    """)
+    suspend fun fetchSoloOriginalSingers(): List<SoloOriginalSingerRow>
 }

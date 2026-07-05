@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.Sell
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.CircularProgressIndicator
@@ -38,6 +39,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fugaif.imaslivedb.ui.components.ImasListSkeleton
 import com.fugaif.imaslivedb.ui.components.SkeletonThumb
 import com.fugaif.imaslivedb.ui.components.SongRow
+import com.fugaif.imaslivedb.ui.tags.TagFilterSheet
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,6 +50,7 @@ fun SongListScreen(
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
     var showFilter by remember { mutableStateOf(false) }
+    var showTagFilter by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) { viewModel.init(context) }
 
@@ -56,6 +59,21 @@ fun SongListScreen(
             TopAppBar(
                 title = { Text("楽曲") },
                 actions = {
+                    BadgedBox(
+                        badge = {
+                            if (uiState.selectedTags.isNotEmpty()) {
+                                Badge { Text("${uiState.selectedTags.size}") }
+                            }
+                        },
+                        modifier = Modifier.padding(end = 8.dp)
+                    ) {
+                        IconButton(onClick = { showTagFilter = true }) {
+                            Icon(
+                                imageVector = Icons.Filled.Sell,
+                                contentDescription = "タグで絞り込み"
+                            )
+                        }
+                    }
                     BadgedBox(
                         badge = {
                             if (uiState.activeFilterCount > 0) {
@@ -142,6 +160,14 @@ fun SongListScreen(
                 viewModel.applyFilter(filter, sort)
                 showFilter = false
             }
+        )
+    }
+
+    if (showTagFilter) {
+        TagFilterSheet(
+            initialSelection = uiState.selectedTags,
+            onDismiss = { showTagFilter = false },
+            onDone = { viewModel.applyTagFilter(it) }
         )
     }
 }

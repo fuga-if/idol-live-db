@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Mic
@@ -37,6 +38,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.collectAsState
@@ -62,6 +64,7 @@ import com.fugaif.imaslivedb.ui.components.ImasSectionHeader
 import com.fugaif.imaslivedb.ui.components.ImasSegmented
 import com.fugaif.imaslivedb.ui.components.ImasStatTile
 import com.fugaif.imaslivedb.ui.components.MarkToggleAction
+import com.fugaif.imaslivedb.ui.tags.SongTagPickerSheet
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasTheme
 
@@ -81,6 +84,7 @@ fun SongDetailScreen(
 ) {
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
+    var showTagPicker by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(songId) { viewModel.load(context, songId) }
 
     Scaffold(
@@ -112,9 +116,19 @@ fun SongDetailScreen(
                 state = uiState, song = song,
                 modifier = Modifier.fillMaxSize().padding(padding),
                 onIdolClick = onIdolClick, onShowClick = onShowClick,
-                onToggleTag = viewModel::toggleTag
+                onToggleTag = viewModel::toggleTag,
+                onOpenTagPicker = { showTagPicker = true }
             )
         }
+    }
+
+    if (showTagPicker) {
+        SongTagPickerSheet(
+            songId = songId,
+            alreadyAppliedTagIds = uiState.tags.filter { it.mine }.map { it.id }.toSet(),
+            onDismiss = { showTagPicker = false },
+            onApplied = { viewModel.onTagsApplied() }
+        )
     }
 }
 
@@ -125,7 +139,8 @@ private fun SongSheetContent(
     modifier: Modifier,
     onIdolClick: (String) -> Unit,
     onShowClick: (String) -> Unit,
-    onToggleTag: (com.fugaif.imaslivedb.data.community.CommunityApi.SongTag) -> Unit
+    onToggleTag: (com.fugaif.imaslivedb.data.community.CommunityApi.SongTag) -> Unit,
+    onOpenTagPicker: () -> Unit
 ) {
     // 配色シード: ソロ (歌唱1人) はその個人カラー、それ以外はブランド色。
     val seed = if (state.originalArtists.size == 1) state.originalArtists.first().color else null
@@ -142,7 +157,7 @@ private fun SongSheetContent(
         when (segment) {
             0 -> InfoTab(song, state, seed, onIdolClick)
             1 -> HistoryTab(state.performanceHistory, seed, song.brandId, onShowClick)
-            else -> CommunityTab(state, seed, song.brandId, onToggleTag)
+            else -> CommunityTab(state, seed, song.brandId, onToggleTag, onOpenTagPicker)
         }
         Box(Modifier.size(24.dp))
     }
@@ -240,13 +255,19 @@ private fun IdolGridSection(title: String, idols: List<Idol>, onIdolClick: (Stri
 @Composable
 private fun CommunityTab(
     state: SongDetailUiState, seed: String?, brand: String?,
-    onToggleTag: (com.fugaif.imaslivedb.data.community.CommunityApi.SongTag) -> Unit
+    onToggleTag: (com.fugaif.imaslivedb.data.community.CommunityApi.SongTag) -> Unit,
+    onOpenTagPicker: () -> Unit
 ) {
     val context = LocalContext.current
     Column(modifier = Modifier.padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        // タグ (集計系コミュニティ・Worker D1)。タップで自分の投票をトグル。
+        // タグ (集計系コミュニティ・Worker D1)。タップで自分の投票をトグル、+ で全タグから追加。
         Column {
-            ImasSectionHeader("タグ", count = "${state.tags.size}")
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                ImasSectionHeader("タグ", count = "${state.tags.size}", modifier = Modifier.weight(1f))
+                IconButton(onClick = onOpenTagPicker, modifier = Modifier.padding(end = 8.dp)) {
+                    Icon(Icons.Filled.Add, contentDescription = "タグを追加", tint = DS.ink2)
+                }
+            }
             if (state.tags.isEmpty()) {
                 Text("タグはまだありません", fontSize = 13.sp, color = DS.ink3,
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp))

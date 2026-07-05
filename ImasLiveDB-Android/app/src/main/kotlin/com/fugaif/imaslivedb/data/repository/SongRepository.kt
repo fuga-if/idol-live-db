@@ -5,6 +5,7 @@ import com.fugaif.imaslivedb.data.db.AppDatabase
 import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.data.model.PerformanceHistoryRow
 import com.fugaif.imaslivedb.data.model.Song
+import com.fugaif.imaslivedb.data.model.SoloOriginalSingerRow
 import com.fugaif.imaslivedb.data.model.SongPlayCount
 import com.fugaif.imaslivedb.data.model.SongSearchFilter
 import com.fugaif.imaslivedb.data.model.SongSortOrder
@@ -14,10 +15,22 @@ class SongRepository(private val db: AppDatabase) {
 
     suspend fun fetchSongs(
         filter: SongSearchFilter = SongSearchFilter(),
-        sortOrder: SongSortOrder = SongSortOrder.TITLE_KANA
+        sortOrder: SongSortOrder = SongSortOrder.TITLE_KANA,
+        // タグ絞り込み(TagFilterSheet)の結果song_id集合。Worker D1 (コミュニティタグ)は端末外データなので
+        // ローカルSQLに直接JOINできず、呼び出し側(SongListViewModel)が解決した集合をここでIN句に渡す。
+        // 非nullかつ空集合 = 該当曲なし(クエリを投げず即空リストで返す)。
+        tagFilterSongIds: Set<String>? = null
     ): List<SongWithArtists> {
+        if (tagFilterSongIds != null && tagFilterSongIds.isEmpty()) return emptyList()
+
         val conditions = mutableListOf<String>()
         val args = mutableListOf<Any>()
+
+        if (tagFilterSongIds != null) {
+            val placeholders = tagFilterSongIds.joinToString(",") { "?" }
+            conditions.add("s.id IN ($placeholders)")
+            args.addAll(tagFilterSongIds)
+        }
 
         // Exclude remixes by default
         if (!filter.includeRemixes) {
@@ -117,6 +130,12 @@ class SongRepository(private val db: AppDatabase) {
         return db.songDao().fetchSong(id)
     }
 
+    /** タグ詳細画面の曲ランキング表示用。N+1を避けてIN句で一括取得する。 */
+    suspend fun fetchSongsByIds(ids: List<String>): List<Song> {
+        if (ids.isEmpty()) return emptyList()
+        return db.songDao().fetchSongsByIds(ids)
+    }
+
     suspend fun fetchSongArtists(songId: String, role: String? = null): List<Idol> {
         return if (role != null) {
             db.songDao().fetchSongArtistsByRole(songId, role)
@@ -151,5 +170,10 @@ class SongRepository(private val db: AppDatabase) {
         } else {
             db.songDao().fetchIdolSongs(idolId)
         }
+    }
+
+    /** ソロ曲クイズ用: ソロ曲と原唱アイドルの対応行 (song_id, idol_id)。 */
+    suspend fun fetchSoloOriginalSingers(): List<SoloOriginalSingerRow> {
+        return db.songDao().fetchSoloOriginalSingers()
     }
 }
