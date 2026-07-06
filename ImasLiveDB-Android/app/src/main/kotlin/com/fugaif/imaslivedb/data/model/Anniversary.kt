@@ -2,6 +2,7 @@ package com.fugaif.imaslivedb.data.model
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
 /** アニバーサリーの種別。raw は DB 格納値。 */
@@ -18,7 +19,15 @@ enum class AnniversaryKind(val raw: String) {
     }
 }
 
-@Entity(tableName = "anniversaries")
+/** MIGRATION_4_5 が作る idx_anniversaries_brand / idx_anniversaries_date と indices を一致させること
+ *  (ずれると Room の期待スキーマ検証で起動時クラッシュする)。 */
+@Entity(
+    tableName = "anniversaries",
+    indices = [
+        Index(value = ["brand_id"], name = "idx_anniversaries_brand"),
+        Index(value = ["date"], name = "idx_anniversaries_date"),
+    ]
+)
 data class Anniversary(
     @PrimaryKey
     @ColumnInfo(name = "id")
@@ -37,7 +46,7 @@ data class Anniversary(
     @ColumnInfo(name = "kind")
     val kind: String,
 
-    @ColumnInfo(name = "sort_order")
+    @ColumnInfo(name = "sort_order", defaultValue = "0")
     val sortOrder: Int = 0
 ) {
     /**
