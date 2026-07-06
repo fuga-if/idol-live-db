@@ -137,11 +137,21 @@ private fun ArtworkFallback(title: String, t: ImasTheme, size: Dp) {
 
 /** 一覧の控えめなエンティティ色マーカー (行頭の細い縦バー)。 */
 @Composable
-fun ImasLeadBar(seed: String? = null, brand: String? = null, height: Dp = 40.dp) {
-    val t = ImasTheme.derive(seed, brand, dark = true)
+fun ImasLeadBar(seed: String? = null, brand: String? = null, height: Dp = 40.dp, rainbow: Boolean = false) {
+    val background = if (rainbow) {
+        androidx.compose.ui.graphics.Brush.verticalGradient(
+            listOf(
+                Color(0xFFFF0000), Color(0xFFFFA500), Color(0xFFFFFF00),
+                Color(0xFF00FF00), Color(0xFF0000FF), Color(0xFF800080)
+            )
+        )
+    } else {
+        val t = ImasTheme.derive(seed, brand, dark = true)
+        androidx.compose.ui.graphics.SolidColor(t.bar)
+    }
     Box(
         modifier = Modifier.size(width = 3.dp, height = height)
-            .clip(RoundedCornerShape(2.dp)).background(t.bar)
+            .clip(RoundedCornerShape(2.dp)).background(background)
     )
 }
 

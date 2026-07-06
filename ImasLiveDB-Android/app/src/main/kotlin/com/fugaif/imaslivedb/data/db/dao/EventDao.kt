@@ -7,7 +7,6 @@ import com.fugaif.imaslivedb.data.model.Event
 import com.fugaif.imaslivedb.data.model.EventCastRow
 import com.fugaif.imaslivedb.data.model.EventStats
 import com.fugaif.imaslivedb.data.model.EventWithDateRangeRow
-import com.fugaif.imaslivedb.data.model.EventWithDateRow
 
 @Dao
 interface EventDao {
@@ -22,25 +21,14 @@ interface EventDao {
     suspend fun fetchEvent(id: String): Event?
 
     @Query("""
-        SELECT e.id, e.brand_id, e.name, e.event_type, e.is_streaming,
-               MIN(s.date) AS first_date
+        SELECT e.id, e.brand_id, e.name, e.event_type, e.is_streaming, e.joint_brand_ids,
+               MIN(s.date) AS first_date, MAX(s.date) AS last_date
         FROM events e
         LEFT JOIN shows s ON s.event_id = e.id
         GROUP BY e.id
         ORDER BY COALESCE(MIN(s.date), '') DESC
     """)
-    suspend fun fetchEventsWithFirstDate(): List<EventWithDateRow>
-
-    @Query("""
-        SELECT e.id, e.brand_id, e.name, e.event_type, e.is_streaming,
-               MIN(s.date) AS first_date
-        FROM events e
-        LEFT JOIN shows s ON s.event_id = e.id
-        WHERE e.brand_id = :brandId
-        GROUP BY e.id
-        ORDER BY COALESCE(MIN(s.date), '') DESC
-    """)
-    suspend fun fetchEventsWithFirstDateByBrand(brandId: String): List<EventWithDateRow>
+    suspend fun fetchEventsWithFirstDate(): List<EventWithDateRangeRow>
 
     @Query("""
         WITH event_shows AS (SELECT id FROM shows WHERE event_id = :eventId)
@@ -71,7 +59,7 @@ interface EventDao {
 
     /** id 指定でイベント + 開催日レンジ(初日/最終日)を取得。お気に入りライブ一覧用。 */
     @Query("""
-        SELECT e.id, e.brand_id, e.name, e.event_type, e.is_streaming,
+        SELECT e.id, e.brand_id, e.name, e.event_type, e.is_streaming, e.joint_brand_ids,
                MIN(s.date) AS first_date, MAX(s.date) AS last_date
         FROM events e
         LEFT JOIN shows s ON s.event_id = e.id
@@ -87,7 +75,7 @@ interface EventDao {
      * (参加を公演単位で付けるユーザーが多く、event マークだけ見るとリストが取りこぼすため)。
      */
     @Query("""
-        SELECT e.id, e.brand_id, e.name, e.event_type, e.is_streaming,
+        SELECT e.id, e.brand_id, e.name, e.event_type, e.is_streaming, e.joint_brand_ids,
                MIN(s.date) AS first_date, MAX(s.date) AS last_date
         FROM events e
         LEFT JOIN shows s ON s.event_id = e.id

@@ -4,27 +4,7 @@ import androidx.room.ColumnInfo
 
 // MARK: - Event Query Results
 
-// Raw Room query result for events joined with first show date
-data class EventWithDateRow(
-    @ColumnInfo(name = "id") val id: String,
-    @ColumnInfo(name = "brand_id") val brandId: String?,
-    @ColumnInfo(name = "name") val name: String,
-    @ColumnInfo(name = "event_type") val eventType: String,
-    @ColumnInfo(name = "is_streaming") val isStreaming: Boolean,
-    @ColumnInfo(name = "first_date") val firstDate: String?
-) {
-    fun toEventWithDate() = EventWithDate(
-        event = Event(id, brandId, name, eventType, isStreaming),
-        firstDate = firstDate
-    )
-}
-
-data class EventWithDate(
-    val event: Event,
-    val firstDate: String?
-)
-
-// Raw Room query result for events joined with first/last show date (お気に入り・参加ライブ一覧用)
+// Raw Room query result for events joined with first/last show date (一覧・お気に入り・参加ライブ共通)
 data class EventWithDateRangeRow(
     @ColumnInfo(name = "id") val id: String,
     @ColumnInfo(name = "brand_id") val brandId: String?,
@@ -32,10 +12,14 @@ data class EventWithDateRangeRow(
     @ColumnInfo(name = "event_type") val eventType: String,
     @ColumnInfo(name = "is_streaming") val isStreaming: Boolean,
     @ColumnInfo(name = "first_date") val firstDate: String?,
-    @ColumnInfo(name = "last_date") val lastDate: String?
+    @ColumnInfo(name = "last_date") val lastDate: String?,
+    @ColumnInfo(name = "joint_brand_ids") val jointBrandIds: String?
 ) {
     fun toEventWithDateRange() = EventWithDateRange(
-        event = Event(id, brandId, name, eventType, isStreaming),
+        event = Event(
+            id = id, brandId = brandId, name = name, eventType = eventType,
+            isStreaming = isStreaming, jointBrandIds = jointBrandIds
+        ),
         firstDate = firstDate,
         lastDate = lastDate
     )
@@ -53,6 +37,12 @@ data class EventWithDateRange(
             val last = lastDate?.takeIf { it.isNotEmpty() && it != first }
             return if (last != null) "$first〜$last" else first
         }
+
+    /** 最終公演日 (無ければ初回公演日) が today 以降なら今後の予定。日付未定のイベントは常に今後扱い。 */
+    fun isUpcoming(todayKey: String): Boolean {
+        val last = lastDate?.takeIf { it.isNotEmpty() } ?: firstDate?.takeIf { it.isNotEmpty() } ?: return true
+        return last >= todayKey
+    }
 }
 
 /** 参加マークの行 (event_id + 参加種別 text_value)。live/stream/live_viewing 分類用。 */

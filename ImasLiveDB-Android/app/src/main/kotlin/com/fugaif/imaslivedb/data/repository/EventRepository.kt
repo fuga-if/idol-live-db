@@ -5,7 +5,7 @@ import com.fugaif.imaslivedb.data.model.AllPerformerRow
 import com.fugaif.imaslivedb.data.model.Event
 import com.fugaif.imaslivedb.data.model.EventCastRow
 import com.fugaif.imaslivedb.data.model.EventStats
-import com.fugaif.imaslivedb.data.model.EventWithDate
+import com.fugaif.imaslivedb.data.model.EventWithDateRange
 import com.fugaif.imaslivedb.data.model.SetlistItem
 import com.fugaif.imaslivedb.data.model.SetlistPerformer
 import com.fugaif.imaslivedb.data.model.SetlistRow
@@ -22,13 +22,8 @@ class EventRepository(private val db: AppDatabase) {
         }
     }
 
-    suspend fun fetchEventsWithFirstDate(brandId: String? = null): List<EventWithDate> {
-        val rows = if (brandId != null) {
-            db.eventDao().fetchEventsWithFirstDateByBrand(brandId)
-        } else {
-            db.eventDao().fetchEventsWithFirstDate()
-        }
-        return rows.map { it.toEventWithDate() }
+    suspend fun fetchEventsWithFirstDate(): List<EventWithDateRange> {
+        return db.eventDao().fetchEventsWithFirstDate().map { it.toEventWithDateRange() }
     }
 
     suspend fun fetchEventStats(eventId: String): EventStats {

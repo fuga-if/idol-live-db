@@ -20,5 +20,30 @@ data class Event(
     val eventType: String,
 
     @ColumnInfo(name = "is_streaming")
-    val isStreaming: Boolean
-)
+    val isStreaming: Boolean,
+
+    @ColumnInfo(name = "is_solo", defaultValue = "1")
+    val isSolo: Boolean = true,
+
+    @ColumnInfo(name = "kind", defaultValue = "'live'")
+    val kind: String = "live",
+
+    @ColumnInfo(name = "ticket_open_date")
+    val ticketOpenDate: String? = null,
+
+    @ColumnInfo(name = "ticket_deadline")
+    val ticketDeadline: String? = null,
+
+    @ColumnInfo(name = "ticket_lottery_date")
+    val ticketLotteryDate: String? = null,
+
+    @ColumnInfo(name = "ticket_url")
+    val ticketUrl: String? = null,
+
+    @ColumnInfo(name = "joint_brand_ids")
+    val jointBrandIds: String? = null
+) {
+    /** `joint_brand_ids` をリストにして返す。null/空文字列は空リスト。 */
+    val jointBrandIdList: List<String>
+        get() = jointBrandIds?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() } ?: emptyList()
+}
