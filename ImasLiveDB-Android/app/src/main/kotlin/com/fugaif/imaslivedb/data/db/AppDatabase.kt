@@ -60,7 +60,7 @@ import com.fugaif.imaslivedb.data.model.UserMark
         Staff::class,
         Anniversary::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -101,7 +101,7 @@ abstract class AppDatabase : RoomDatabase() {
             )
                 // スキーマ変更時は破壊的再構築せず Room Migration を書く (iOS の DatabaseMigrations と対)。
                 // UserMark 等のローカル唯一データを保全するため (.fallbackToDestructiveMigration は使わない)。
-                .addMigrations(MIGRATION_4_5)
+                .addMigrations(MIGRATION_4_5, MIGRATION_5_6)
                 .addCallback(seedCallback)
                 .build()
         }
@@ -184,6 +184,20 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL("CREATE INDEX IF NOT EXISTS idx_anniversaries_date ON anniversaries(date)")
 
                 insertStaffAndAnniversarySeeds(db)
+            }
+        }
+
+        /** events のチケット情報/kind/is_solo/合同ブランド、songs の series_group を追加 (iOS 側で先行実装済みのフィールドに追いつく)。 */
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE events ADD COLUMN is_solo INTEGER NOT NULL DEFAULT 1")
+                db.execSQL("ALTER TABLE events ADD COLUMN kind TEXT NOT NULL DEFAULT 'live'")
+                db.execSQL("ALTER TABLE events ADD COLUMN ticket_open_date TEXT")
+                db.execSQL("ALTER TABLE events ADD COLUMN ticket_deadline TEXT")
+                db.execSQL("ALTER TABLE events ADD COLUMN ticket_lottery_date TEXT")
+                db.execSQL("ALTER TABLE events ADD COLUMN ticket_url TEXT")
+                db.execSQL("ALTER TABLE events ADD COLUMN joint_brand_ids TEXT")
+                db.execSQL("ALTER TABLE songs ADD COLUMN series_group TEXT")
             }
         }
     }

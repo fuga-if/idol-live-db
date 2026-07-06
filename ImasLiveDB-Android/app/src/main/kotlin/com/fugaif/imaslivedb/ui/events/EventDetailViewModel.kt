@@ -18,7 +18,11 @@ data class EventDetailUiState(
     val brandId: String? = null,
     val shows: List<Show> = emptyList(),
     val stats: EventStats? = null,
-    val castMembers: List<EventCastRow> = emptyList()
+    val castMembers: List<EventCastRow> = emptyList(),
+    val isJoint: Boolean = false,
+    val ticketDeadline: String? = null,
+    val ticketLotteryDate: String? = null,
+    val ticketUrl: String? = null
 )
 
 class EventDetailViewModel : ViewModel() {
@@ -39,7 +43,11 @@ class EventDetailViewModel : ViewModel() {
                 brandId = event?.brandId,
                 shows = shows,
                 stats = stats,
-                castMembers = castMembers
+                castMembers = castMembers,
+                isJoint = !event?.jointBrandIds.isNullOrBlank(),
+                ticketDeadline = event?.ticketDeadline?.takeIf { it.isNotBlank() },
+                ticketLotteryDate = event?.ticketLotteryDate?.takeIf { it.isNotBlank() },
+                ticketUrl = event?.ticketUrl?.takeIf { it.isNotBlank() }
             )
         }
     }

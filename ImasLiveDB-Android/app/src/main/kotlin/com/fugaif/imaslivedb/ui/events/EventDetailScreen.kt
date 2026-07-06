@@ -43,6 +43,7 @@ import com.fugaif.imaslivedb.data.model.EventStats
 import com.fugaif.imaslivedb.data.model.Show
 import com.fugaif.imaslivedb.ui.components.ColorDot
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -89,19 +90,41 @@ fun EventDetailScreen(
                 item {
                     Box(modifier = Modifier.fillMaxWidth()) {
                         GradientHeader(color = brandColor(uiState.brandId), height = 96.dp)
-                        Text(
-                            uiState.eventName,
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = DS.ink,
-                            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 48.dp, bottom = 8.dp)
-                        )
+                        Column(modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 48.dp, bottom = 8.dp)) {
+                            Text(
+                                uiState.eventName,
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = DS.ink
+                            )
+                            if (uiState.isJoint) {
+                                Text(
+                                    "合同",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.padding(top = 2.dp)
+                                )
+                            }
+                        }
                     }
                 }
                 // Stats section
                 uiState.stats?.let { stats ->
                     item {
                         EventStatsSection(stats = stats)
+                        HorizontalDivider()
+                    }
+                }
+
+                // チケット情報 (期限/当落発表/URL のいずれかがあれば表示)
+                if (uiState.ticketDeadline != null || uiState.ticketLotteryDate != null || uiState.ticketUrl != null) {
+                    item {
+                        SectionHeader(title = "チケット情報")
+                        TicketInfoSection(
+                            deadline = uiState.ticketDeadline,
+                            lotteryDate = uiState.ticketLotteryDate,
+                            url = uiState.ticketUrl
+                        )
                         HorizontalDivider()
                     }
                 }
@@ -142,6 +165,51 @@ fun EventDetailScreen(
 @Composable
 private fun SectionHeader(title: String) {
     com.fugaif.imaslivedb.ui.components.ImasSectionHeader(title = title)
+}
+
+@Composable
+private fun TicketInfoSection(deadline: String?, lotteryDate: String?, url: String?) {
+    val uriHandler = LocalUriHandler.current
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        if (deadline != null) {
+            TicketInfoRow(label = "申込期限", value = deadline)
+        }
+        if (lotteryDate != null) {
+            TicketInfoRow(label = "当落発表", value = lotteryDate)
+        }
+        if (url != null) {
+            Text(
+                text = "チケット情報を見る",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { uriHandler.openUri(url) }
+                    .padding(vertical = 4.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun TicketInfoRow(label: String, value: String) {
+    Row(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(modifier = Modifier.weight(1f))
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium
+        )
+    }
 }
 
 @Composable

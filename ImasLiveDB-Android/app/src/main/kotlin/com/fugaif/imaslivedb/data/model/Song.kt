@@ -78,7 +78,10 @@ data class Song(
     val unitName: String?,
 
     @ColumnInfo(name = "unit_id")
-    val unitId: String?
+    val unitId: String?,
+
+    @ColumnInfo(name = "series_group")
+    val seriesGroup: String? = null
 ) {
     val isRemix: Boolean get() = parentSongId != null
 }
