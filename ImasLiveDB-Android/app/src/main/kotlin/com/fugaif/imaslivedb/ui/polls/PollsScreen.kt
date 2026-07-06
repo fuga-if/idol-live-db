@@ -19,8 +19,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.HowToVote
 import androidx.compose.material.icons.filled.Sell
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -31,18 +33,25 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fugaif.imaslivedb.data.community.CommunityApi
+import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.components.ImasEmptyState
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasTheme
+import kotlinx.coroutines.launch
 
 /** 投票・予想。Worker D1 のポールを表示し、選択肢に投票できる (端末ベース)。 */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -52,6 +61,14 @@ fun PollsScreen(
     viewModel: PollsViewModel = viewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
+    var pickerForPollId by remember { mutableStateOf<String?>(null) }
+
+    val context = LocalContext.current
+    val authService = remember { AppModule.from(context).authService }
+    val authState by authService.state.collectAsState()
+    val scope = rememberCoroutineScope()
+    fun signIn() { scope.launch { authService.signIn(context) } }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -70,18 +87,60 @@ fun PollsScreen(
             }
         } else {
             LazyColumn(modifier = Modifier.fillMaxSize().padding(padding)) {
+                if (!authState.isSignedIn) {
+                    item { LoginPromptBanner(onSignIn = ::signIn) }
+                }
                 items(state.cards, key = { it.poll.id }) { card ->
-                    PollCardView(card) { entityId -> viewModel.vote(card.poll.id, entityId) }
+                    PollCardView(
+                        card = card,
+                        isSignedIn = authState.isSignedIn,
+                        onToggleVote = { entityId, mine -> viewModel.toggleVote(card.poll.id, entityId, mine) },
+                        onAddCandidate = { pickerForPollId = card.poll.id }
+                    )
                 }
             }
+        }
+    }
+
+    val pickerCard = state.cards.firstOrNull { it.poll.id == pickerForPollId }
+    if (pickerCard != null) {
+        val remaining = (3 - (pickerCard.detail?.myVoteCount ?: 0)).coerceAtLeast(0)
+        val alreadySelected = pickerCard.detail?.entries?.filter { it.mine }?.map { it.entityId }?.toSet() ?: emptySet()
+        IdolPollCandidatePicker(
+            alreadySelected = alreadySelected,
+            remaining = remaining,
+            onDismiss = { pickerForPollId = null },
+            onConfirm = { newIds ->
+                viewModel.voteForNewEntities(pickerCard.poll.id, newIds)
+                pickerForPollId = null
+            }
+        )
+    }
+}
+
+@Composable
+private fun LoginPromptBanner(onSignIn: () -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
+            .clip(RoundedCornerShape(10.dp)).background(DS.surface).padding(16.dp)
+    ) {
+        Text("投票にはログインが必要です", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = DS.ink)
+        Button(onClick = onSignIn, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+            Text("Googleでログイン")
         }
     }
 }
 
 @Composable
-private fun PollCardView(card: PollCard, onVote: (String) -> Unit) {
+private fun PollCardView(
+    card: PollCard,
+    isSignedIn: Boolean,
+    onToggleVote: (String, Boolean) -> Unit,
+    onAddCandidate: () -> Unit
+) {
     val detail = card.detail
     val total = (detail?.totalVotes ?: 0).coerceAtLeast(1)
+    val remaining = (3 - (detail?.myVoteCount ?: 0)).coerceAtLeast(0)
     Column(Modifier.fillMaxWidth().padding(16.dp)) {
         Text(card.poll.title, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = DS.ink)
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 8.dp)) {
@@ -97,7 +156,7 @@ private fun PollCardView(card: PollCard, onVote: (String) -> Unit) {
                     .clip(RoundedCornerShape(10.dp))
                     .then(if (entry.mine) Modifier.border(1.5.dp, DS.pick, RoundedCornerShape(10.dp)) else Modifier)
                     .background(DS.surface)
-                    .clickable { onVote(entry.entityId) }
+                    .then(if (isSignedIn) Modifier.clickable { onToggleVote(entry.entityId, entry.mine) } else Modifier)
                     .padding(horizontal = 12.dp, vertical = 10.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -110,7 +169,25 @@ private fun PollCardView(card: PollCard, onVote: (String) -> Unit) {
                 }
             }
         }
-        Text("タップで投票", fontSize = 11.sp, color = DS.ink3, modifier = Modifier.padding(top = 6.dp))
+        if (isSignedIn) {
+            Text("タップで投票/取消 (残り${remaining}/3)", fontSize = 11.sp, color = DS.ink3, modifier = Modifier.padding(top = 6.dp))
+        }
+
+        // アイドルお題かつ候補が指定制 (manual) でなければ、新規候補を追加できる。
+        if (isSignedIn && card.poll.targetType == "idol" && detail?.candidateScope != CommunityApi.PollCandidateScope.MANUAL) {
+            Button(
+                onClick = onAddCandidate,
+                enabled = remaining > 0,
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+            ) {
+                Icon(Icons.Filled.AddCircle, contentDescription = null, modifier = Modifier.size(18.dp))
+                Text(
+                    if (remaining > 0) "候補を追加して投票 (残り${remaining}/3)" else "投票済み (3/3)",
+                    fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(start = 6.dp)
+                )
+            }
+        }
     }
 }
 

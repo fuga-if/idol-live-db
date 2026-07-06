@@ -21,11 +21,14 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -33,6 +36,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.fugaif.imaslivedb.di.AppModule
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -64,6 +69,13 @@ fun SettingsScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
+            // アカウント (投票に必要)
+            item {
+                SettingsSectionTitle("アカウント")
+                AccountSection()
+                HorizontalDivider()
+            }
+
             // フィルタ設定
             item {
                 SettingsSectionTitle("フィルタ設定")
@@ -164,6 +176,38 @@ private fun DefaultBrandPicker(
 @Composable
 private fun SettingsSectionTitle(title: String) {
     com.fugaif.imaslivedb.ui.components.ImasSectionHeader(title = title, tight = true)
+}
+
+/** 投票 (お題) に必要なログイン状態の表示・切替。iOS の AuthService (Sign in with Apple) 相当。 */
+@Composable
+private fun AccountSection() {
+    val context = LocalContext.current
+    val authService = remember { AppModule.from(context).authService }
+    val authState by authService.state.collectAsState()
+    val scope = rememberCoroutineScope()
+
+    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+        if (authState.isSignedIn) {
+            Text(
+                authState.displayName?.takeIf { it.isNotBlank() } ?: "ログイン済み",
+                style = MaterialTheme.typography.bodyMedium
+            )
+            OutlinedButton(
+                onClick = { authService.signOut() },
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+            ) { Text("ログアウト") }
+        } else {
+            Text(
+                "投票 (お題) にはログインが必要です",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Button(
+                onClick = { scope.launch { authService.signIn(context) } },
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+            ) { Text("Googleでログイン") }
+        }
+    }
 }
 
 @Composable
