@@ -52,11 +52,15 @@ extension AttendanceStatus {
         return .attended
     }
 
+    /// JST 固定: 海外渡航中でも「あとN日」等の表示が現地時間でズレないようにする
+    /// (プロジェクト全体の他の日付判定 (AppDatabase.swift 等) と同じ方針)。
+    private static let jstTimeZone = TimeZone(identifier: "Asia/Tokyo")!
+
     private static func dayFormatter() -> DateFormatter {
         let f = DateFormatter()
         f.locale = Locale(identifier: "en_US_POSIX")
         f.dateFormat = "yyyy-MM-dd"
-        f.timeZone = .current
+        f.timeZone = jstTimeZone
         return f
     }
 
@@ -65,7 +69,8 @@ extension AttendanceStatus {
     /// 今日(0:00)から対象公演日(0:00)までの日数。過去は負。
     private static func daysBetween(target: String, now: Date) -> Int? {
         guard let t = dayFormatter().date(from: target) else { return nil }
-        let cal = Calendar.current
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = jstTimeZone
         return cal.dateComponents([.day], from: cal.startOfDay(for: now), to: cal.startOfDay(for: t)).day
     }
 }
