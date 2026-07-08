@@ -342,6 +342,10 @@ struct IdolFilterSheet: View {
     @State private var localMyPick: Bool = false
     @State private var localFavorite: Bool = false
     @State private var localNote: Bool = false
+    /// `.task` での初期値復元が完了するまでは true。復元中の localBrandIds 代入で
+    /// onChange(of: localBrandIds) が誤発火し、復元直後の localAttribute を
+    /// リセットしてしまうのを防ぐためのガード。
+    @State private var didRestore = false
 
     /// 属性チップは「単一ブランドが選択されている」場合のみ表示。
     /// 0 件 or 複数ブランドではブランド共通のサブ属性が無いので空。
@@ -368,7 +372,10 @@ struct IdolFilterSheet: View {
 
                 BrandFilterSection(brands: brands, selectedBrandIds: $localBrandIds)
                     .onChange(of: localBrandIds) { _, _ in
-                        // ブランド変更時は属性絞り込みリセット
+                        // ブランド変更時は属性絞り込みリセット。
+                        // ただし .task による初期値復元中はスキップ (復元した
+                        // localAttribute を巻き添えで消してしまうため)。
+                        guard didRestore else { return }
                         localAttribute = nil
                     }
 
@@ -453,6 +460,7 @@ struct IdolFilterSheet: View {
                 localMyPick = requireMyPick
                 localFavorite = requireFavorite
                 localNote = requireNote
+                didRestore = true
             }
             .trackScreen("idol_filter_sheet")
         }
