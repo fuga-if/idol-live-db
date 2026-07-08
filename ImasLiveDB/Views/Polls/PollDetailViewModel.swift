@@ -17,6 +17,10 @@ final class PollDetailViewModel {
     /// いずれかの投票/取消が進行中。連打・複数候補同時タップを直列化するガード。
     private(set) var isVoting = false
     var errorMessage: String?
+    /// お題削除の進行中フラグ (連打防止)。投票の連打ガード (isVoting) とは独立に扱う。
+    private(set) var isDeleting = false
+    /// 削除失敗時のエラーメッセージ。投票エラー (errorMessage) とは表示箇所が異なるため分離する。
+    var deleteErrorMessage: String?
 
     /// View の init (nonisolated) から生成できるよう init も nonisolated にする。
     nonisolated init(pollId: String, voting: any CommunityVoting) {
@@ -64,8 +68,34 @@ final class PollDetailViewModel {
         }
     }
 
-    func delete() async {
-        try? await voting.deletePoll(id: pollId)
+    /// ピッカーで選択解除された既投票の候補をまとめて取り消す (曲/アイドル共通の entityId 配列)。
+    func unvoteForEntities(_ entityIds: [String]) async {
+        await mutate(errorText: "取消できませんでした") {
+            for id in entityIds {
+                let result = try await self.voting.unvotePoll(pollId: self.pollId, entityId: id)
+                self.applyVote(entityId: id, voteCount: result.voteCount, hasUserVoted: false, myVoteCount: result.myVoteCount)
+                LocalPollVoteLog.shared.removeVote(pollId: self.pollId, entityId: id)
+            }
+        }
+    }
+
+    /// お題を削除する。成否を返す (呼び出し元は成功時のみ pop する)。
+    /// 連打防止のため isDeleting でガードし、失敗時は deleteErrorMessage にメッセージを立てる。
+    @discardableResult
+    func delete() async -> Bool {
+        guard !isDeleting else { return false }
+        isDeleting = true
+        defer { isDeleting = false }
+        deleteErrorMessage = nil
+        do {
+            try await voting.deletePoll(id: pollId)
+            AppAnalytics.event("poll_delete")
+            return true
+        } catch {
+            deleteErrorMessage = (error as? APIClientError)?.errorDescription ?? "削除に失敗しました。時間をおいて再試行してください。"
+            AppAnalytics.event("poll_delete_failed")
+            return false
+        }
     }
 
     // MARK: - Private

@@ -81,7 +81,9 @@ struct PollListView: View {
                     vm.insertCreated(newPoll)
                 }
             }
-            .task { await vm.load(active: segmentIndex == 0) }
+            // .task ではなく .onAppear にして、詳細画面 (削除・投票) から戻ってきた際にも
+            // 再ロードされるようにする (削除したお題が一覧から消える等)。
+            .onAppear { Task { await vm.load(active: segmentIndex == 0) } }
             .onChange(of: segmentIndex) { _, _ in Task { await vm.load(active: segmentIndex == 0) } }
             .refreshable { await vm.load(active: segmentIndex == 0) }
             .trackScreen("poll_list")

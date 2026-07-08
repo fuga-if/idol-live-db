@@ -3,9 +3,13 @@ import SwiftUI
 /// お題詳細・ランキング・投票。
 struct PollDetailView: View {
     @Environment(AppDatabase.self) private var database
+    @Environment(\.dismiss) private var dismiss
     @State private var vm: PollDetailViewModel
     @State private var showVotePicker = false
     @State private var showLogin = false
+    /// 未ログイン時のログイン誘導シートを初回表示でのみ出すためのガード
+    /// (pull-to-refresh のたびに再ポップしないように)。
+    @State private var didPromptLogin = false
     /// ランキングの曲/アイドルをタップで開く詳細シート。
     @State private var sheetDestination: DetailDestination?
 
@@ -50,6 +54,14 @@ struct PollDetailView: View {
                     deleteButton(poll: poll)
                 }
             }
+        }
+        .alert("エラー", isPresented: Binding(
+            get: { vm.deleteErrorMessage != nil },
+            set: { if !$0 { vm.deleteErrorMessage = nil } }
+        )) {
+            Button("OK") { vm.deleteErrorMessage = nil }
+        } message: {
+            Text(vm.deleteErrorMessage ?? "")
         }
     }
 
@@ -217,9 +229,12 @@ struct PollDetailView: View {
         let scope = detail.poll.scope
         let brandIds = scope == .brand ? Set(detail.poll.scopeBrandIds ?? []) : nil
         if detail.poll.targetType == .song {
+            // 投票済みの曲を除外してから残票分だけ切り出す (除外しないと votePoll が
+            // 無言 no-op になり残票を無駄撃ちしてしまう)。
             SongSearchPickerView(restrictedBrandIds: brandIds) { songs in
                 showVotePicker = false
-                let ids = Array(songs.prefix(remaining)).map(\.id)
+                let alreadyVoted = Set(detail.entries.filter(\.hasUserVoted).map(\.entityId))
+                let ids = Array(songs.filter { !alreadyVoted.contains($0.id) }.prefix(remaining)).map(\.id)
                 Task { await vm.voteForEntities(ids) }
             }
             .environment(database)
@@ -236,8 +251,17 @@ struct PollDetailView: View {
             ) { selectedIds in
                 showVotePicker = false
                 let alreadyVoted = Set(detail.entries.filter(\.hasUserVoted).map(\.entityId))
-                let newIds = Array(Array(selectedIds.subtracting(alreadyVoted)).prefix(remaining))
-                Task { await vm.voteForEntities(newIds) }
+                // 外された (投票済みなのに選択解除された) 候補は取消を発火する。
+                let removed = Array(alreadyVoted.subtracting(selectedIds))
+                // 新規追加分。Set のままだと prefix の結果が実行毎に変わりうるので、
+                // pickIdols の表示順で並べ替えてから切り出す (可能な範囲での決定的化)。
+                let addedSet = selectedIds.subtracting(alreadyVoted)
+                let orderedAdded = pickIdols.map(\.id).filter { addedSet.contains($0) }
+                let newIds = Array(orderedAdded.prefix(remaining))
+                Task {
+                    if !removed.isEmpty { await vm.unvoteForEntities(removed) }
+                    if !newIds.isEmpty { await vm.voteForEntities(newIds) }
+                }
             }
             .environment(database)
         }
@@ -253,11 +277,21 @@ struct PollDetailView: View {
     private func deleteButton(poll: Poll) -> some View {
         Button(role: .destructive) {
             AppAnalytics.tap("poll_detail.delete")
-            // ナビゲーションスタックを戻る（dismiss はここでは不可なのでフラグ等で制御）
-            Task { await vm.delete() }
+            Task {
+                if await vm.delete() {
+                    // 削除成功時のみ pop。一覧側は PollListView の再表示時 (.onAppear) の
+                    // 再ロードで自動的に消える。
+                    dismiss()
+                }
+            }
         } label: {
-            Image(systemName: "trash")
+            if vm.isDeleting {
+                ProgressView()
+            } else {
+                Image(systemName: "trash")
+            }
         }
+        .disabled(vm.isDeleting)
     }
 
     // MARK: - Data Loading
@@ -275,7 +309,10 @@ struct PollDetailView: View {
         }
         // アクティブなお題を未ログインで開いたら、表示時点でログイン誘導 (投票はログイン必須)。
         // 「投票しようとして初めてログイン判定」を避け、最初に意図を明示する。
-        if vm.poll?.isActive == true, !AuthService.shared.isSignedIn {
+        // ただし初回のみ (didPromptLogin) — さもないと refreshable/再 loadDetail のたびに
+        // ログインシートが再ポップしてしまう。
+        if vm.poll?.isActive == true, !AuthService.shared.isSignedIn, !didPromptLogin {
+            didPromptLogin = true
             showLogin = true
             AppAnalytics.event("login_prompt", ["where": "poll"])
         }
