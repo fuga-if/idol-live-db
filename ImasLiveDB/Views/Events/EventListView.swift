@@ -74,9 +74,7 @@ struct EventListView: View {
             excludedKinds: excludedKinds,
             searchText: searchText,
             attendanceFilter: attendanceFilter)
-        if attendanceFilter != "all" {
-            ctx.attendedEventIds = Set(markService.allMarked(kind: .attended, entity: .event))
-        }
+        // attendedEventIds は VM.rebuild が show→event 逆引きで非同期解決するため、ここでは設定しない。
         if requireFavorite {
             ctx.requireFavorite = true
             ctx.favoriteIds = Set(markService.allMarked(kind: .favorite, entity: .event))
@@ -193,7 +191,7 @@ struct EventListView: View {
             .task { await vm.loadData(includeEmpty: showEmptyEvents, query: listQuery) }
             // フィルタ変化時のみ再計算
             .task(id: filterKey) {
-                vm.rebuild(query: listQuery)
+                await vm.rebuild(query: listQuery)
             }
             .trackScreen("event_list")
         }

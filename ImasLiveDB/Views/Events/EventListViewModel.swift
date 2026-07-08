@@ -24,13 +24,16 @@ final class EventListViewModel {
 
     private let eventReading: any EventReading
     private let brandReading: any BrandReading
+    private let showReading: any ShowReading
 
     nonisolated init(
         eventReading: any EventReading = AppContainer.shared.eventReading,
-        brandReading: any BrandReading = AppContainer.shared.brandReading
+        brandReading: any BrandReading = AppContainer.shared.brandReading,
+        showReading: any ShowReading = AppContainer.shared.showReading
     ) {
         self.eventReading = eventReading
         self.brandReading = brandReading
+        self.showReading = showReading
     }
 
     func loadData(includeEmpty: Bool, query: EventListQuery) async {
@@ -44,17 +47,44 @@ final class EventListViewModel {
                 kinds: EventKind.allCases
             )
             brands = try await brandReading.brands()
-            rebuild(query: query)
+            await rebuild(query: query)
         } catch {
             Logger.database.error("load_failed events: \(error.localizedDescription)")
         }
     }
 
-    func rebuild(query: EventListQuery) {
-        let filtered = filterEvents(eventsWithDate, query.filter)
+    func rebuild(query: EventListQuery) async {
+        var filter = query.filter
+        // 参加記録は show 単位でしか保存されない (UserMarkService.setAttendance は entity: .show)。
+        // event 単位の参加フィルタは、参加済み show の event_id を逆引きして構築する。
+        if filter.attendanceFilter != "all" {
+            filter.attendedEventIds = await resolveAttendedEventIds()
+        }
+        let filtered = filterEvents(eventsWithDate, filter)
         let groups = groupEventsByYear(filtered, upcoming: query.upcoming, todayKey: query.todayKey)
         filteredCount = groups.reduce(0) { $0 + $1.events.count }
         groupedByYear = groups
+    }
+
+    /// 参加済み (show 単位) マークから、該当する event_id の集合を解決する。
+    /// show→event の一括逆引き API が存在しないため、既存の単発 `show(id:)` を
+    /// 参加済み show id ごとに並行 fetch して event_id を集約する。
+    private func resolveAttendedEventIds() async -> Set<String> {
+        let attendedShowIds = UserMarkService.shared.allMarked(kind: .attended, entity: .show)
+        guard !attendedShowIds.isEmpty else { return [] }
+        let showReading = self.showReading
+        return await withTaskGroup(of: String?.self) { group in
+            for showId in attendedShowIds {
+                group.addTask {
+                    (try? await showReading.show(id: showId))?.eventId
+                }
+            }
+            var result: Set<String> = []
+            for await eventId in group {
+                if let eventId { result.insert(eventId) }
+            }
+            return result
+        }
     }
 }
 
