@@ -2044,22 +2044,32 @@ final class AppDatabase: @unchecked Sendable {
             return byDate.map { date, songs in CalendarEntry.release(date: date, songs: songs) }
         }
 
-        let birthdays: [CalendarEntry] = try dbQueue.read { db in
+        // 誕生日は解決した実際の Date も一緒に持ち回る (birthday/staffBirthday は CalendarEntry に
+        // 年を持たせていないため、ソート時に「実際に出現する年」を引けるよう id をキーに退避する)。
+        var resolvedOccurrence: [String: Date] = [:]
+
+        let birthdayPairs: [(CalendarEntry, Date)] = try dbQueue.read { db in
             let allIdols = try Idol.filter(Column("birthday") != nil).fetchAll(db)
-            return allIdols.compactMap { idol -> CalendarEntry? in
+            return allIdols.compactMap { idol -> (CalendarEntry, Date)? in
                 guard let birthdayDate = Self.expandMonthDay(idol.birthday, in: interval) else { return nil }
-                guard birthdayDate >= interval.start && birthdayDate <= interval.end else { return nil }
-                return .birthday(idol)
+                return (.birthday(idol), birthdayDate)
             }
         }
+        let birthdays: [CalendarEntry] = birthdayPairs.map { entry, date in
+            resolvedOccurrence[entry.id] = date
+            return entry
+        }
 
-        let staffBirthdays: [CalendarEntry] = try dbQueue.read { db in
+        let staffBirthdayPairs: [(CalendarEntry, Date)] = try dbQueue.read { db in
             let staffList = try Staff.filter(Column("birthday") != nil).fetchAll(db)
-            return staffList.compactMap { staff -> CalendarEntry? in
+            return staffList.compactMap { staff -> (CalendarEntry, Date)? in
                 guard let birthdayDate = Self.expandMonthDay(staff.birthday, in: interval) else { return nil }
-                guard birthdayDate >= interval.start && birthdayDate <= interval.end else { return nil }
-                return .staffBirthday(staff)
+                return (.staffBirthday(staff), birthdayDate)
             }
+        }
+        let staffBirthdays: [CalendarEntry] = staffBirthdayPairs.map { entry, date in
+            resolvedOccurrence[entry.id] = date
+            return entry
         }
 
         // 記念日: 起点日 YYYY-MM-DD の MM-DD を interval 内の年に展開して当て、起点年以降だけ採用
@@ -2142,14 +2152,30 @@ final class AppDatabase: @unchecked Sendable {
             return rows
         }
 
+        // 誕生日系は dateString が "--MM-DD" (実年を持たない) で文字列比較すると常に月内先頭に
+        // 固まってしまうため、resolvedOccurrence にある実際の出現年で "YYYY-MM-DD" 化してから比較する。
+        func sortDateString(_ entry: CalendarEntry) -> String {
+            if let resolved = resolvedOccurrence[entry.id] {
+                return Self.calendarDateFormatter.string(from: resolved)
+            }
+            return entry.dateString
+        }
+
         return (shows + releases + birthdays + staffBirthdays + anniversaries + tickets).sorted { lhs, rhs in
-            if lhs.dateString != rhs.dateString { return lhs.dateString < rhs.dateString }
+            let l = sortDateString(lhs)
+            let r = sortDateString(rhs)
+            if l != r { return l < r }
             return lhs.sortOrder < rhs.sortOrder
         }
     }
 
     /// "--MM-DD" 形式の月日を interval 内の年に展開して Date を返す
     /// 2月29日など非閏年に存在しない日付は 2月28日にフォールバック。Idol/Staff の誕生日共用。
+    ///
+    /// WHY 候補2年: interval.start の年だけで解決すると、月グリッドが前年12月から
+    /// 始まる月 (特に1月) で誕生日の年がずれて interval 範囲外に落ち、その月の誕生日が
+    /// 全て消える。記念日ロジック (anniversaries ブロック) と同様に intervalYear /
+    /// intervalYear+1 の両方を候補にして interval に収まる方を採用する。
     private static func expandMonthDay(_ monthDay: String?, in interval: DateInterval) -> Date? {
         guard let monthDay, monthDay.hasPrefix("--") else { return nil }
         let parts = monthDay.dropFirst(2).split(separator: "-")
@@ -2157,12 +2183,19 @@ final class AppDatabase: @unchecked Sendable {
 
         var jstCalendar = Calendar(identifier: .gregorian)
         jstCalendar.timeZone = TimeZone(identifier: "Asia/Tokyo")!
-        let year = jstCalendar.component(.year, from: interval.start)
-        let comps = DateComponents(year: year, month: month, day: day)
-        if let date = jstCalendar.date(from: comps) { return date }
-        // 非閏年の 2/29 → 2/28 にフォールバック
-        if month == 2 && day == 29 {
-            return jstCalendar.date(from: DateComponents(year: year, month: 2, day: 28))
+        let intervalYear = jstCalendar.component(.year, from: interval.start)
+
+        for year in [intervalYear, intervalYear + 1] {
+            let comps = DateComponents(year: year, month: month, day: day)
+            if let date = jstCalendar.date(from: comps), date >= interval.start, date <= interval.end {
+                return date
+            }
+            // 非閏年の 2/29 → 2/28 にフォールバック
+            if month == 2 && day == 29,
+               let fallback = jstCalendar.date(from: DateComponents(year: year, month: 2, day: 28)),
+               fallback >= interval.start, fallback <= interval.end {
+                return fallback
+            }
         }
         return nil
     }
