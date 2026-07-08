@@ -18,6 +18,8 @@ final class IntroPartySession {
         case buzzed     // 誰かが押して回答中
         case revealed   // 答え開示
         case finished
+        /// 出題プールが不足 (4曲未満) 等で開始不能。.loading のまま固着させないための終端フェーズ。
+        case error
     }
 
     struct Player: Sendable {
@@ -72,6 +74,8 @@ final class IntroPartySession {
             ?? database.fetchIntroDonSongs(brandIds: settings.selectedBrandIds)
         guard pool.count >= 4 else {
             questions = []
+            // .loading のまま固着させない (再戦ボタン等が読み込み中表示のまま止まる不具合対策)。
+            phase = .error
             return
         }
         questions = Array(pool.shuffled().prefix(settings.questionCount)).map { song in
@@ -91,12 +95,16 @@ final class IntroPartySession {
         await playCurrentIntro()
     }
 
+    /// 不正解選択肢を pool から3つ選ぶ。同名異曲 (別バージョン等) が pool に複数存在すると
+    /// タイトル重複した選択肢が並びうるため、タイトルでユニーク化してから選ぶ。
     private func makeChoices(for song: Song, pool: [Song]) -> [String] {
-        let wrongs = pool
-            .filter { $0.id != song.id && $0.title != song.title }
-            .shuffled()
-            .prefix(3)
-            .map(\.title)
+        var seenTitles: Set<String> = [song.title]
+        let candidates = pool.filter { candidate in
+            guard candidate.id != song.id, !seenTitles.contains(candidate.title) else { return false }
+            seenTitles.insert(candidate.title)
+            return true
+        }
+        let wrongs = candidates.shuffled().prefix(3).map(\.title)
         var choices = wrongs + [song.title]
         choices.shuffle()
         return choices
