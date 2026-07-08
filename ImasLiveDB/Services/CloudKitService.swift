@@ -96,22 +96,40 @@ actor CloudKitService {
         return Array(collected.values)
     }
 
-    /// modifiedAt > startDate のレコードを「最大 maxPages ページ分だけ」取得して返す。
-    /// 呼び出し側 (SyncEngine) がこれを繰り返し呼び、バッチごとに upsert + チェックポイント保存する
-    /// ことで、巨大ステップが途中中断されても次回その modifiedAt から再開できる。
-    /// 全件取得は呼び出し側で「返りが空 or 新規ゼロ」になるまでループして実現する。
-    func fetchChunk(type: String, after startDate: Date, maxPages: Int = 3) async throws -> [CKRecord] {
-        let predicate = NSPredicate(format: "modifiedAt > %@", startDate as NSDate)
-        let query = CKQuery(recordType: type, predicate: predicate)
-        query.sortDescriptors = [NSSortDescriptor(key: "modifiedAt", ascending: true)]
-
+    /// modifiedAt > startDate のレコードを「最大 maxPages ページ分だけ」取得し、続きがあれば
+    /// 継続用の cursor も返す。呼び出し側 (SyncEngine) がこれを繰り返し呼び、バッチごとに
+    /// upsert + チェックポイント保存することで、巨大ステップが途中中断されても再開できる。
+    ///
+    /// `continuing` に前回の cursor を渡すと、新しいクエリを張り直さず同じクエリの続きを取得する。
+    /// これが無いと `start = maxDate - 1ms` で張り直すため、**同一 modifiedAt のレコードが
+    /// 1 チャンク (maxPages×queryLimit) を超える**ケースで、張り直したクエリが毎回同じ先頭
+    /// チャンクを返して新規ゼロで打ち切られ、それ以降のレコードが永久に欠落する。
+    /// cursor で読み切ってから start を進めることで、単一 modifiedAt が何件あっても取りこぼさない。
+    func fetchChunk(
+        type: String,
+        after startDate: Date,
+        continuing inCursor: CKQueryOperation.Cursor? = nil,
+        maxPages: Int = 3
+    ) async throws -> (records: [CKRecord], cursor: CKQueryOperation.Cursor?) {
         var batch: [CKRecord] = []
-        let (initialResults, initialCursor) = try await publicDB.records(
-            matching: query, resultsLimit: queryLimit
-        )
-        batch.append(contentsOf: try initialResults.map { try $0.1.get() })
-        var cursor = initialCursor
-        var pages = 1
+        var cursor: CKQueryOperation.Cursor?
+        var pages = 0
+
+        if let inCursor {
+            // 同一クエリの続き (単一 modifiedAt がチャンク超のケースを cursor で読み切る)。
+            cursor = inCursor
+        } else {
+            let predicate = NSPredicate(format: "modifiedAt > %@", startDate as NSDate)
+            let query = CKQuery(recordType: type, predicate: predicate)
+            query.sortDescriptors = [NSSortDescriptor(key: "modifiedAt", ascending: true)]
+            let (initialResults, initialCursor) = try await publicDB.records(
+                matching: query, resultsLimit: queryLimit
+            )
+            batch.append(contentsOf: try initialResults.map { try $0.1.get() })
+            cursor = initialCursor
+            pages = 1
+        }
+
         while let currentCursor = cursor, pages < maxPages {
             let (results, nextCursor) = try await publicDB.records(
                 continuingMatchFrom: currentCursor, resultsLimit: queryLimit
@@ -120,7 +138,8 @@ actor CloudKitService {
             cursor = nextCursor
             pages += 1
         }
-        return batch
+        // cursor が非 nil なら「このクエリにまだ続きがある」= 呼び出し側は同じ cursor で継続する。
+        return (batch, cursor)
     }
 
     /// 現在のiCloudユーザーのレコードIDを取得

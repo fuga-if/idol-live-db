@@ -270,32 +270,58 @@ final class CloudKitSyncEngine: @unchecked Sendable {
                 var start = (ud.object(forKey: ckptKey) as? Double).map { Date(timeIntervalSince1970: $0) }
                     ?? modifiedSince ?? Date(timeIntervalSince1970: 0)
                 var seen = Set<String>()
+                // 現在のクエリ (modifiedAt > start) を cursor で読み切るためのカーソル。
+                var cursor: CKQueryOperation.Cursor?
+                // 「今の start で張り直したクエリ」で見た新規件数と最大 modifiedAt。
+                // cursor を跨いで累積し、クエリを読み切った時点で判定する。
+                var addedSinceRestart = 0
+                var maxDateSinceRestart: Date?
                 while true {
-                    let records = try await fetchChunkWithRetry(type: step.recordType, after: start)
-                    if records.isEmpty { break }
+                    let (records, nextCursor) = try await fetchChunkWithRetry(
+                        type: step.recordType, after: start, continuing: cursor
+                    )
 
                     let before = seen.count
                     for r in records { seen.insert(r.recordID.recordName) }
-                    let added = seen.count - before
+                    addedSinceRestart += seen.count - before
 
-                    // deletedAt フィールドで生存/削除を分割
-                    let deleted = records.filter { CKRecordMapper.deletedAt(from: $0) != nil }
-                    let alive = records.filter { CKRecordMapper.deletedAt(from: $0) == nil }
-                    if !alive.isEmpty {
-                        try upsertRecords(alive, type: step.recordType, database: database)
-                    }
-                    // 削除伝搬は soft delete (deletedAt) 経由のみ。
-                    if !deleted.isEmpty {
-                        let ids = deleted.map { $0.recordID.recordName }
-                        try database.deleteRecords(recordType: step.recordType, ids: ids)
-                    }
-                    totalFetched += records.count
-                    fetchedByType[step.recordType, default: 0] += records.count
+                    if !records.isEmpty {
+                        // deletedAt フィールドで生存/削除を分割
+                        let deleted = records.filter { CKRecordMapper.deletedAt(from: $0) != nil }
+                        let alive = records.filter { CKRecordMapper.deletedAt(from: $0) == nil }
+                        if !alive.isEmpty {
+                            try upsertRecords(alive, type: step.recordType, database: database)
+                        }
+                        // 削除伝搬は soft delete (deletedAt) 経由のみ。
+                        if !deleted.isEmpty {
+                            let ids = deleted.map { $0.recordID.recordName }
+                            try database.deleteRecords(recordType: step.recordType, ids: ids)
+                        }
+                        totalFetched += records.count
+                        fetchedByType[step.recordType, default: 0] += records.count
 
-                    guard let maxDate = records.compactMap({ $0["modifiedAt"] as? Date }).max() else { break }
-                    ud.set(maxDate.timeIntervalSince1970, forKey: ckptKey)   // 途中チェックポイント
-                    if added == 0 { break }                                 // 新規ゼロ = 取得完了
+                        if let maxDate = records.compactMap({ $0["modifiedAt"] as? Date }).max() {
+                            maxDateSinceRestart = max(maxDateSinceRestart ?? maxDate, maxDate)
+                            ud.set(maxDate.timeIntervalSince1970, forKey: ckptKey)   // 途中チェックポイント
+                        }
+                    }
+
+                    if let nextCursor {
+                        // クエリにまだ続きがある → 同じ cursor で読み切る。
+                        // (単一 modifiedAt がチャンク超でも取りこぼさない。start 張り直しでは
+                        //  同じ先頭チャンクを再取得して新規ゼロで打ち切られ欠落するのを防ぐ。)
+                        cursor = nextCursor
+                        continue
+                    }
+
+                    // このクエリ (modifiedAt > start) を完全に読み切った。
+                    guard let maxDate = maxDateSinceRestart else { break }  // 1件も取れなかった = 完了
+                    if addedSinceRestart == 0 { break }                    // 張り直しても新規ゼロ = 全件取得済み
+                    // 境界 (同一 modifiedAt) を取りこぼさないよう -1ms して再クエリ。重複は seen で dedup。
+                    cursor = nil
                     start = maxDate.addingTimeInterval(-0.001)
+                    addedSinceRestart = 0
+                    maxDateSinceRestart = nil
                 }
 
                 // ステップ完了: チェックポイント削除 + (フルsync) 完了ステップを記録。
@@ -374,11 +400,17 @@ final class CloudKitSyncEngine: @unchecked Sendable {
     }
 
     /// リトライ付きチャンク fetch (modifiedAt > after を最大数ページ分)。途中再開ループで使う。
-    private func fetchChunkWithRetry(type: String, after startDate: Date) async throws -> [CKRecord] {
+    /// `continuing` に前回 cursor を渡すと同じクエリの続きを取得する (単一 modifiedAt がチャンク超でも
+    /// 取りこぼさない)。戻り cursor が非 nil ならまだ続きがある。
+    private func fetchChunkWithRetry(
+        type: String,
+        after startDate: Date,
+        continuing cursor: CKQueryOperation.Cursor? = nil
+    ) async throws -> (records: [CKRecord], cursor: CKQueryOperation.Cursor?) {
         var lastError: Error?
         for attempt in 0..<Self.maxRetries {
             do {
-                return try await CloudKitService.shared.fetchChunk(type: type, after: startDate)
+                return try await CloudKitService.shared.fetchChunk(type: type, after: startDate, continuing: cursor)
             } catch let ckError as CKError {
                 switch ckError.code {
                 case .networkUnavailable, .networkFailure, .serviceUnavailable, .zoneBusy, .requestRateLimited:

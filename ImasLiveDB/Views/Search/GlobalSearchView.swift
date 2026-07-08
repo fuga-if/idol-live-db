@@ -134,9 +134,7 @@ struct GlobalSearchView: View {
 
     @ViewBuilder
     private var historyView: some View {
-        let history = SearchHistoryManager.shared.history(for: .events) +
-                      SearchHistoryManager.shared.history(for: .songs) +
-                      SearchHistoryManager.shared.history(for: .idols)
+        let history = mergedRecentHistory()
         if history.isEmpty {
             VStack(spacing: 8) {
                 Image(systemName: "clock.arrow.circlepath")
@@ -151,7 +149,7 @@ struct GlobalSearchView: View {
         } else {
             List {
                 Section {
-                    ForEach(Array(Set(history)).prefix(10), id: \.self) { item in
+                    ForEach(history.prefix(10), id: \.self) { item in
                         Button {
                             searchText = item
                             commitSearch()
@@ -192,6 +190,33 @@ struct GlobalSearchView: View {
 
     // MARK: - Logic
 
+    /// events/songs/idols の3スコープの検索履歴を、重複を除きつつ recency 順に近い形でマージする。
+    /// 各スコープ内は新しい順に並んでいる (record 時に先頭挿入) が、スコープ間の記録時刻は
+    /// 持っていないため、単純連結だと常に同じスコープが先頭を独占して非決定的にも見える。
+    /// ここではラウンドロビン方式(各スコープの新しい方から順番に取り出す)でスコープ間の
+    /// 偏りを均しつつ、`Set` 化のような順序シャッフルは行わない(再描画のたびに順序が
+    /// 変わらないようにするため)。
+    private func mergedRecentHistory() -> [String] {
+        let lists = [
+            SearchHistoryManager.shared.history(for: .events),
+            SearchHistoryManager.shared.history(for: .songs),
+            SearchHistoryManager.shared.history(for: .idols),
+        ]
+        var seen = Set<String>()
+        var merged: [String] = []
+        let maxCount = lists.map(\.count).max() ?? 0
+        for index in 0..<maxCount {
+            for list in lists {
+                guard index < list.count else { continue }
+                let item = list[index]
+                if seen.insert(item).inserted {
+                    merged.append(item)
+                }
+            }
+        }
+        return merged
+    }
+
     private func scheduleSearch(_ query: String) {
         searchTask?.cancel()
 
@@ -223,7 +248,17 @@ struct GlobalSearchView: View {
 
     private func commitSearch() {
         guard !searchText.isEmpty else { return }
-        SearchHistoryManager.shared.record(query: searchText, scope: .songs)
+        // グローバル検索なので、直前の検索結果 (results) で実際にヒットしたスコープにのみ記録する。
+        // 常に .songs 固定だと、曲に関係ない検索語がタブ別(曲一覧)の検索履歴を汚染してしまう。
+        // まだ結果が確定していない/ノーヒットの場合は songs にフォールバックする。
+        var matchedScopes: [SearchScope] = []
+        if !results.idols.isEmpty { matchedScopes.append(.idols) }
+        if !results.songs.isEmpty { matchedScopes.append(.songs) }
+        if !results.events.isEmpty { matchedScopes.append(.events) }
+        if matchedScopes.isEmpty { matchedScopes = [.songs] }
+        for scope in matchedScopes {
+            SearchHistoryManager.shared.record(query: searchText, scope: scope)
+        }
         scheduleSearch(searchText)
     }
 }
