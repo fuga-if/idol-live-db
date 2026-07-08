@@ -78,20 +78,24 @@ final class CloudKitSyncEngine: @unchecked Sendable {
     private static let maxRetries = 3
 
     /// 同期の再入防止 (フォアグラウンド復帰トリガと起動 sync が重ならないように)。
-    /// MainActor 隔離。複数の同期起点 (起動時 / フォアグラウンド復帰 / 手動更新) がほぼ同時に
-    /// 呼ばれても、check-and-set が MainActor で直列化されるため二重同期にならない
-    /// (非アトミックな race で両方が通過するのを防ぐ)。
-    @MainActor private var running = false
+    /// OSAllocatedUnfairLock でcheck-and-setをatomicにし、複数の同期起点 (起動時 /
+    /// フォアグラウンド復帰 / 手動更新) がほぼ同時に呼ばれても二重同期にならないようにする
+    /// (非アトミックなBoolだと両方が `running == false` を見て通過しうる)。
+    /// クラス自体はMainActor隔離しない(重いGRDB書き込みをメインに載せないため)ので、
+    /// ロックはグローバルActor分離とは独立した単純な排他制御として使う。
+    private let runningLock = OSAllocatedUnfairLock(initialState: false)
 
     /// 再入防止の atomic な取得。既に走っていれば false (この呼び出しはスキップすべき)。
-    @MainActor private func beginRunningIfIdle() -> Bool {
-        if running { return false }
-        running = true
-        return true
+    private func beginRunningIfIdle() -> Bool {
+        runningLock.withLock { running in
+            if running { return false }
+            running = true
+            return true
+        }
     }
 
-    @MainActor private func endRunning() {
-        running = false
+    private func endRunning() {
+        runningLock.withLock { running in running = false }
     }
 
     // フルsyncの途中再開用。中断 (バックグラウンド suspend 等) されても、
@@ -202,12 +206,12 @@ final class CloudKitSyncEngine: @unchecked Sendable {
         // 再入防止 (atomic): MainActor で check-and-set し、既に走っていればスキップ。
         // 重い DB 書き込み (GRDB DatabaseQueue の blocking write) を MainActor に載せないため、
         // ガードだけ MainActor に隔離し、本体は非隔離のまま実行する。
-        guard await beginRunningIfIdle() else {
+        guard beginRunningIfIdle() else {
             logger.info("[Sync] skip: already running")
             return
         }
         await performSyncBody(database: database, modifiedSince: modifiedSince)
-        await endRunning()
+        endRunning()
     }
 
     /// performSync の本体。再入ガード取得後にのみ呼ばれる。内部の早期 return はここから返り、
