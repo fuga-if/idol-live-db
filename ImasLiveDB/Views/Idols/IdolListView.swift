@@ -26,6 +26,11 @@ struct IdolListView: View {
         IdolDisplayMode(rawValue: displayModeRaw) ?? .idolName
     }
     @State private var selectedBrandIds: Set<String> = []
+    /// `selectedBrandIds` に一度でも変化があったか (デフォルトブランドの自動適用も含む)。
+    /// true になった後は `onAppear` でのデフォルトブランド再適用を行わない
+    /// (ユーザーが明示的にブランドフィルタを解除した状態で、タブ再訪時に無言で
+    /// デフォルトが復活するのを防ぐため)。
+    @State private var hasUserInteractedWithBrandFilter = false
     @State private var selectedAttribute: String? = nil
     @AppStorage("idols_require_my_pick") private var requireMyPick: Bool = false
     @AppStorage("idols_require_favorite") private var requireFavorite: Bool = false
@@ -78,12 +83,22 @@ struct IdolListView: View {
             actions.append(ListToolbarAction(id: "clear", title: "フィルタを解除",
                                              systemImage: "xmark.circle", isDestructive: true) {
                 AppAnalytics.tap("idol_list.filter_clear")
-                selectedBrandIds = []
-                selectedAttribute = nil
-                displayModeRaw = IdolDisplayMode.idolName.rawValue
+                clearAllFilters()
             })
         }
         return actions
+    }
+
+    /// 全フィルタを解除する。`activeFilterCount`/`filterBadgeCount` が数える全項目
+    /// (ブランド/属性/表示形式 + 担当/お気に入り/メモ) を漏れなくリセットする。
+    /// ユーザーの明示的な操作なので、以後 `onAppear` のデフォルトブランド再適用は行わない。
+    private func clearAllFilters() {
+        selectedBrandIds = []
+        selectedAttribute = nil
+        displayModeRaw = IdolDisplayMode.idolName.rawValue
+        requireMyPick = false
+        requireFavorite = false
+        requireNote = false
     }
 
     var body: some View {
@@ -165,8 +180,11 @@ struct IdolListView: View {
                 vm.refreshPickIds()
                 vm.rebuild(filter: filterContext)
             }
+            .onChange(of: selectedBrandIds) { _, _ in
+                hasUserInteractedWithBrandFilter = true
+            }
             .onAppear {
-                if !defaultBrandId.isEmpty && selectedBrandIds.isEmpty {
+                if !defaultBrandId.isEmpty && selectedBrandIds.isEmpty && !hasUserInteractedWithBrandFilter {
                     selectedBrandIds = [defaultBrandId]
                 }
                 vm.refreshPickIds()
