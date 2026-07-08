@@ -29,7 +29,7 @@ class AppModule private constructor(context: Context) {
     val eventRepository: EventRepository by lazy { EventRepository(database) }
     val songRepository: SongRepository by lazy { SongRepository(database) }
     val idolRepository: IdolRepository by lazy { IdolRepository(database) }
-    val statsRepository: StatsRepository by lazy { StatsRepository(database) }
+    val statsRepository: StatsRepository by lazy { StatsRepository(database, communityApi) }
     val searchRepository: SearchRepository by lazy { SearchRepository(database) }
     val userMarkRepository: UserMarkRepository by lazy { UserMarkRepository(database) }
     val authService: AuthService by lazy { AuthService(appContext) }

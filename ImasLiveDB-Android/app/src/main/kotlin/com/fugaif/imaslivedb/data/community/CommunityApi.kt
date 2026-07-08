@@ -67,6 +67,9 @@ class CommunityApi(private val appContext: Context, private val authService: Aut
     data class PollVoteResult(val entityId: String, val voteCount: Int, val myVoteCount: Int)
     data class PenlightSet(val key: String, val colors: List<String>, val count: Int)
     data class PenlightResult(val topSets: List<PenlightSet>, val totalVotes: Int)
+    data class PenlightPaletteEntry(val colorHex: String?, val name: String, val sortOrder: Int, val note: String?)
+    /** タグが似ている楽曲 (songId, 共有タグ数)。この曲が好きな人向けのおすすめ算出に使う。 */
+    data class SimilarSongEntry(val songId: String, val sharedTags: Int)
 
     data class CommunityTag(
         val id: String,
@@ -231,6 +234,36 @@ class CommunityApi(private val appContext: Context, private val authService: Aut
     suspend fun votePenlight(songId: String, colors: List<String>): Boolean = withContext(Dispatchers.IO) {
         val body = JSONObject().put("song_id", songId).put("colors", JSONArray(colors))
         send("POST", "/penlight/vote", body)
+    }
+
+    /** GET /penlight/palette — 投票ピッカー用の色候補一覧。 */
+    suspend fun penlightPalette(): List<PenlightPaletteEntry> = withContext(Dispatchers.IO) {
+        val arr = getArray("/penlight/palette") ?: return@withContext emptyList()
+        (0 until arr.length()).map { i ->
+            val o = arr.getJSONObject(i)
+            PenlightPaletteEntry(o.strOrNull("color_hex"), o.optString("name"), o.optInt("sort_order"), o.strOrNull("note"))
+        }.sortedBy { it.sortOrder }
+    }
+
+    /** GET /songs/{id}/similar — タグが似ている楽曲 (共有タグ数の降順、ユーザー非依存の集計)。 */
+    suspend fun similarSongsByTags(songId: String, limit: Int = 10): List<SimilarSongEntry> = withContext(Dispatchers.IO) {
+        val json = get("/songs/${enc(songId)}/similar?limit=$limit") ?: return@withContext emptyList()
+        val arr = json.optJSONArray("songs") ?: JSONArray()
+        (0 until arr.length()).map { i ->
+            val o = arr.getJSONObject(i)
+            SimilarSongEntry(o.optString("song_id"), o.optInt("shared_tags"))
+        }
+    }
+
+    data class FavoriteRankingDto(val songId: String, val count: Int)
+
+    /** GET /favorites/ranking — お気に入りの曲別集計 (曲メタは呼び出し側でローカルカタログから解決する)。 */
+    suspend fun favoritesRanking(): List<FavoriteRankingDto> = withContext(Dispatchers.IO) {
+        val arr = getArray("/favorites/ranking") ?: return@withContext emptyList()
+        (0 until arr.length()).map { i ->
+            val o = arr.getJSONObject(i)
+            FavoriteRankingDto(o.optString("song_id"), o.optInt("count"))
+        }
     }
 
     /** 進行中/最近のポール一覧 (/polls/results は poll ごとに首位 entity を返すので poll_id で集約)。 */
