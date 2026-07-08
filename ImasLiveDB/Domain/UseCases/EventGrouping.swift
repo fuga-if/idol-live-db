@@ -27,7 +27,11 @@ func groupEventsByYear(_ events: [EventWithDate], upcoming: Bool, todayKey: Stri
     // 時系列分割。日付不明 (4桁未満) は開催済みに入れず今後タブにのみ残す (登録途中の予定扱い)。
     let timeFiltered = events.filter { ew in
         guard let date = yearDateKey(ew) else { return upcoming }
-        return upcoming ? date >= todayKey : date < todayKey
+        // date が todayKey (フル "YYYY-MM-DD") より粒度の粗い部分日付 ("YYYY" や "YYYY-MM" 等) の場合、
+        // 桁数が揃わないまま文字列比較すると短い方が辞書順で前に来てしまい誤判定になる。
+        // todayKey 側を date と同じ精度に切り詰めてから比較する。
+        let comparableToday = String(todayKey.prefix(date.count))
+        return upcoming ? date >= comparableToday : date < comparableToday
     }
 
     var yearMap: [String: [EventWithDate]] = [:]
