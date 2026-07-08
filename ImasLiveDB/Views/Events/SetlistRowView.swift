@@ -86,7 +86,9 @@ struct SetlistRowView: View {
             Button {
                 guard let showId, !likeBusy else { return }
                 // 未ログインは投票不可 → 親にログイン誘導を依頼 (黙って失敗させない)。
-                guard AuthService.shared.isSignedIn, AuthService.shared.bearerToken != nil else {
+                // bearerToken の事前チェックはしない (セッション更新中の窓で bearerToken == nil に
+                // なる瞬間があり、401 の自動リフレッシュを潰して誤ってログイン誘導してしまうため)。
+                guard AuthService.shared.isSignedIn else {
                     onRequireLogin?(); return
                 }
                 likeBusy = true
