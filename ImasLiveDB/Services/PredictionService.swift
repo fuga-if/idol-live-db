@@ -61,9 +61,10 @@ final class PredictionService {
 
     /// 自分が投票した予想一覧 (新しい順)。曲/公演メタは呼び出し側が local カタログで解決する。
     func myPredictions() async throws -> [MyPredictionDTO] {
-        guard AuthService.shared.bearerToken != nil else {
-            throw PredictionError.unauthorized
-        }
+        // bearerToken の事前チェックはしない。vote()/unvote() と同じ理由 (401 自動リフレッシュに委ねる)。
+        // トークンが期限切れ (nil) でも isSignedIn は true のまま残ることがあり、ここで弾くと
+        // APIClient の 401→sliding refresh 経路に乗らず、セッション更新中の窓で誤って
+        // 「未ログイン」エラーになる。authorized: true で送れば未トークン→401→refresh→リトライで自己回復する。
         return try await APIClient.shared.request(
             "GET",
             path: "/me/predictions",
