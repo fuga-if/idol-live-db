@@ -10,6 +10,8 @@ struct IdolSearchPickerView: View {
 
     @State private var query = ""
     @State private var results: [Idol] = []
+    /// 検索デバウンス用の世代 ID (SongSearchPickerView.scheduleLoad と同方式)。
+    @State private var searchToken = 0
 
     var body: some View {
         NavigationStack {
@@ -60,12 +62,24 @@ struct IdolSearchPickerView: View {
                 }
             }
             .onChange(of: query) { _, newValue in
-                Task { await performSearch(query: newValue) }
+                scheduleSearch(query: newValue)
             }
             .task {
                 results = (try? await AppContainer.shared.idolReading.idols(brandId: nil)) ?? []
             }
             .trackScreen("idol_search_picker")
+        }
+    }
+
+    /// 入力中の連打を抑える簡易デバウンス + 古い検索結果が新しい入力を上書きしないための
+    /// 世代ガード。
+    private func scheduleSearch(query: String) {
+        searchToken += 1
+        let token = searchToken
+        Task {
+            try? await Task.sleep(nanoseconds: 200_000_000)
+            guard token == searchToken else { return }
+            await performSearch(query: query)
         }
     }
 
