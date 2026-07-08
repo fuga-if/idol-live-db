@@ -345,6 +345,49 @@ fun ImasLabeledRow(
     }
 }
 
+/** チップのスタイル (iOS ImasChipStyle の移植)。 */
+enum class ImasChipStyle { THEMED, SELECTED, NEUTRAL }
+
+/** アイコン + テキストのカプセルチップ。style で配色を切替 (テーマ色/accent反転/中立)。 */
+@Composable
+fun ImasChip(
+    text: String,
+    icon: ImageVector? = null,
+    style: ImasChipStyle = ImasChipStyle.NEUTRAL,
+    seed: String? = null,
+    brand: String? = null,
+    onClick: (() -> Unit)? = null
+) {
+    val t = ImasTheme.derive(seed, brand, dark = true)
+    val (bg, fg) = when (style) {
+        ImasChipStyle.THEMED -> t.chipBg to t.chipText
+        ImasChipStyle.SELECTED -> t.accent to t.onAccent
+        ImasChipStyle.NEUTRAL -> DS.fill to DS.ink2
+    }
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(50))
+            .background(bg)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .padding(horizontal = 13.dp, vertical = 7.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        if (icon != null) Icon(icon, null, tint = fg, modifier = Modifier.size(14.dp))
+        Text(text, fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold, color = fg, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+/** カード風の角丸リストコンテナ (行は呼び出し側で Divider を挟んで並べる)。 */
+@Composable
+fun ImasListContainer(content: @Composable () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+    ) { content() }
+}
+
 /** 空状態 (任意で投稿アクション)。 */
 @Composable
 fun ImasEmptyState(
@@ -367,5 +410,27 @@ fun ImasEmptyState(
         if (message != null) {
             Text(message, fontSize = 13.5.sp, color = DS.ink2, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 6.dp))
         }
+    }
+}
+
+/** 役割/種別を示す小さめのピルバッジ (主演・ゲスト・ユニット名等)。 */
+@Composable
+fun ImasTagChip(text: String, seed: String? = null, brand: String? = null, outlined: Boolean = false) {
+    val t = ImasTheme.derive(seed, brand, dark = true)
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(999.dp))
+            .then(
+                if (outlined) Modifier.border(1.dp, t.accent, RoundedCornerShape(999.dp))
+                else Modifier.background(t.accent)
+            )
+            .padding(horizontal = 9.dp, vertical = 3.dp)
+    ) {
+        Text(
+            text,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            color = if (outlined) t.accent else t.onAccent
+        )
     }
 }

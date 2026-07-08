@@ -4,9 +4,9 @@ import androidx.room.Dao
 import androidx.room.Query
 import com.fugaif.imaslivedb.data.model.AttendedEventTypeRow
 import com.fugaif.imaslivedb.data.model.Event
-import com.fugaif.imaslivedb.data.model.EventCastRow
 import com.fugaif.imaslivedb.data.model.EventStats
 import com.fugaif.imaslivedb.data.model.EventWithDateRangeRow
+import com.fugaif.imaslivedb.data.model.ShowCast
 
 @Dao
 interface EventDao {
@@ -40,15 +40,13 @@ interface EventDao {
     """)
     suspend fun fetchEventStats(eventId: String): EventStats
 
+    /** イベント配下の全 show_cast 行 (show 単位の出演/主演/ゲスト判定用)。 */
     @Query("""
-        SELECT DISTINCT i.id AS id, i.name AS name, i.color AS idol_color, i.name AS idol_name, i.id AS idol_id
-        FROM show_cast sc
+        SELECT sc.* FROM show_cast sc
         JOIN shows sh ON sc.show_id = sh.id
-        JOIN idols i ON sc.idol_id = i.id
         WHERE sh.event_id = :eventId
-        ORDER BY i.sort_order
     """)
-    suspend fun fetchEventCastMembers(eventId: String): List<EventCastRow>
+    suspend fun fetchEventShowCast(eventId: String): List<ShowCast>
 
     @Query("""
         SELECT * FROM events
