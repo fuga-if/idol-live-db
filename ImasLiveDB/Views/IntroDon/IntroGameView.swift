@@ -5,7 +5,14 @@ import NukeUI
 /// ステータス(EQ) → 中央の大きな「!」ボタン → ヒント → 操作列 → 回答エリア。
 struct IntroGameView: View {
     @Bindable var session: IntroGameSession
+    /// Setup/Result と共有する「ホームに戻る」「もう一度あそぶ」シグナル。
+    let exitSignal: IntroDonExitSignal
     @State private var showExitAlert = false
+    /// Result 画面への遷移フラグ。Setupから受け取る `navigateToGame` と同様、実体のある
+    /// `@State` にすることで、Result側の `dismiss()` が確実に1階層分だけpopできるようにする
+    /// (session.phase から直接導出するcomputed bindingは setter が no-op になり、
+    /// dismiss()を呼んでも実際には何もpopされずリザルト後に空白画面になるバグの原因だった)。
+    @State private var showResult = false
     @State private var autoNextTask: Task<Void, Never>? = nil
     @State private var speechService = SpeechRecognitionService()
     @State private var showSpeechDenied = false
@@ -13,6 +20,8 @@ struct IntroGameView: View {
     @State private var rushFlash = false      // Rush: ○/✕ エフェクトの表示中フラグ
     @State private var rushFlashCorrect = true
     @State private var rushFlashTask: Task<Void, Never>? = nil
+    /// 経過秒ラベルの 0 リセット用 token (次の問題 / もう一度で bump)。
+    @State private var playbackResetToken = 0
     @Environment(\.dismiss) private var dismiss
 
     private var isRush: Bool { session.settings.mode == .rush }
@@ -34,8 +43,15 @@ struct IntroGameView: View {
                 loadingOverlay
             case .playing, .answering, .revealed:
                 gameContent
-            default:
-                EmptyView()
+            case .idle:
+                // 通常はここに来る前に showResult / exitSignal 経由でこの画面ごとpopされる想定だが、
+                // 何らかの理由で reset() 後もこの画面が残ってしまった場合の保険。
+                // 空白のまま留まらせず、自動でこの階層を閉じる。
+                Color.clear.onAppear { dismiss() }
+            case .finished:
+                // showResult 側の navigationDestination が処理するため、ここでは何も描かない
+                // (finished 中に一瞬 gameContent が消えて空白になるのを避けるため Color.clear)。
+                Color.clear
             }
 
             if rushFlash {
@@ -80,11 +96,8 @@ struct IntroGameView: View {
         } message: {
             Text("設定アプリから「マイク」と「音声認識」の権限を許可してください。")
         }
-        .navigationDestination(isPresented: Binding(
-            get: { session.phase == .finished },
-            set: { _ in }
-        )) {
-            IntroGameResultView(session: session)
+        .navigationDestination(isPresented: $showResult) {
+            IntroGameResultView(session: session, exitSignal: exitSignal)
         }
         // 音声判定は「自動起動しない」(本家準拠)。再生中に録音セッションへ切替えると
         // AVAudioSession 競合でクラッシュするため、voice 起動は buzz/マイクタップ時のみ。
@@ -93,7 +106,28 @@ struct IntroGameView: View {
             if newPhase != .answering, speechService.isListening {
                 speechService.stopListening()
             }
+            // finished になったら実体のある @State (showResult) を立てて Result へ遷移する。
+            // session.phase を直接 isPresented の get/set に使うと setter が no-op になり、
+            // Result側の dismiss() が効かず空白画面になるバグの原因だったため、
+            // ここで一度 @State に写して正しく双方向にpopできるようにする。
+            if newPhase == .finished {
+                showResult = true
+            }
         }
+        // Result の「ホームに戻る」: Setupと同じシグナルを見て、自分(Game)も実体のある
+        // dismiss() (Setupが持つ本物の navigateToGame Binding) を呼び1階層閉じる。
+        // Setup側も同じトークンを見て自分自身を閉じるため、結果的に3階層まとめて閉じる。
+        .onChange(of: exitSignal.exitToHomeToken) { _, _ in
+            dismiss()
+        }
+        // Result の「もう一度あそぶ」: Game だけを閉じ、Setup (積み上げ済み) まで戻す。
+        // Setup はこのトークンを無視するので、Setupより上へは戻らない。
+        .onChange(of: exitSignal.replayToken) { _, _ in
+            dismiss()
+        }
+        // 次の問題に進む (currentIndex 変化) や「もう一度」 (replay) のたびに
+        // PlaybackElapsedLabel を 0 に戻すための token bump。
+        .onChange(of: session.currentIndex) { _, _ in playbackResetToken &+= 1 }
         .task {
             // 音声モードは開始時にマイク+音声認識をまとめて要求しておく
             // (音声のみ許可済み・マイク未要求の取りこぼしを防ぐ)。
@@ -165,6 +199,9 @@ struct IntroGameView: View {
             let buzzSize = min(geo.size.height * 0.24, 168)
             VStack(spacing: 0) {
                 Spacer(minLength: 0)
+
+                elapsedLabel
+                    .padding(.bottom, 14)
 
                 statusArea
                     .frame(height: 60)
@@ -304,6 +341,26 @@ struct IntroGameView: View {
 
     // MARK: - Status Area
 
+    /// 経過秒ラベルを見せる phase (再生・回答・正解前の停止中)。
+    private var showsElapsed: Bool {
+        switch session.phase {
+        case .playing, .answering: return true
+        default: return false
+        }
+    }
+
+    /// 経過秒ラベル。statusArea や Buzz ボタンと縦に分離して被らない位置に常設。
+    /// phase 分岐の外に常設し opacity で見せ隠し (取り外すと @State がリセットされる)。
+    @ViewBuilder
+    private var elapsedLabel: some View {
+        PlaybackElapsedLabel(
+            isRunning: session.isPlayingIntro,
+            resetToken: playbackResetToken
+        )
+        .opacity(showsElapsed ? 1 : 0)
+        .frame(height: 18)
+    }
+
     @ViewBuilder
     private var statusArea: some View {
         switch session.phase {
@@ -370,6 +427,7 @@ struct IntroGameView: View {
             controlButton(icon: "arrow.counterclockwise", label: "もう一度") {
                 AppAnalytics.tap("intro_game.replay")
                 stopSpeech()
+                playbackResetToken &+= 1   // 経過秒を 0 に戻す
                 Task { await session.replayIntro() }
             }
 
@@ -386,10 +444,11 @@ struct IntroGameView: View {
                 .scaleEffect(didHoldPlay ? 0.9 : 1.0)
                 .animation(.easeInOut(duration: 0.12), value: didHoldPlay)
                 .onLongPressGesture(minimumDuration: 0.2, maximumDistance: 100) {
+                    // 長押し中 = もう少し流す (押してる間ずっと流す)。
                     didHoldPlay = true
                     AppAnalytics.tap("intro_game.play_more")
                     stopSpeech()
-                    session.continueIntro()
+                    session.continueIntroHeld()
                 } onPressingChanged: { pressing in
                     if pressing {
                         didHoldPlay = false
@@ -397,8 +456,11 @@ struct IntroGameView: View {
                         didHoldPlay = false
                         session.pauseHeldIntro()
                     } else {
+                        // タップ(短押し) = 「続きから」: 停止位置から introDuration 秒だけ再生。
+                        // continueIntroHeld を呼ぶと停止タイマー無しでずっと流れ続けるため、
+                        // 短押しは時間指定付きの continueIntroForDuration を使う。
                         stopSpeech()
-                        Task { await session.replayIntro() }
+                        session.continueIntroForDuration()
                     }
                 }
                 Text(session.isPlayingIntro ? "再生中" : "続きから")

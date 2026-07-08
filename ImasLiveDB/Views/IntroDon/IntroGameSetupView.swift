@@ -19,6 +19,9 @@ struct IntroGameSetupView: View {
     @State private var session = IntroGameSession()
     @State private var partySession = IntroPartySession()
     @State private var navigateToParty = false
+    /// Game/Result から「ホームに戻る」「もう一度あそぶ」を受け取るための共有シグナル。
+    @State private var exitSignal = IntroDonExitSignal()
+    @Environment(\.dismiss) private var dismiss
     @State private var brands: [Brand] = []
     @State private var selectedBrandIds: Set<String> = []
     @State private var mode: IntroGameMode = .normal
@@ -116,7 +119,13 @@ struct IntroGameSetupView: View {
         .navigationTitle("設定")
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(isPresented: $navigateToGame) {
-            IntroGameView(session: session)
+            IntroGameView(session: session, exitSignal: exitSignal)
+        }
+        // 「ホームに戻る」: Game/Result が同じシグナルで自分のdismiss()を呼ぶのに合わせて、
+        // Setup自身もここで実体のあるdismiss() (呼び出し元のHome/SongListが持つ本物のBinding) を
+        // 呼び、3階層まとめて閉じる。「もう一度あそぶ」はSetupより下だけ閉じるのでここでは無視。
+        .onChange(of: exitSignal.exitToHomeToken) { _, _ in
+            dismiss()
         }
         .navigationDestination(isPresented: $showSongFilter) {
             // 曲一覧でタグ/担当/検索などで絞り込み →「この範囲で出題」で設定に戻りプール反映。

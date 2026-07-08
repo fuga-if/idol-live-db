@@ -2,7 +2,10 @@ import SwiftUI
 
 struct IntroGameResultView: View {
     let session: IntroGameSession
-    @Environment(\.dismiss) private var dismiss
+    /// Setup/Game と共有する「ホームに戻る」「もう一度あそぶ」シグナル。
+    /// このView自身はdismiss()を呼ばず、シグナルを立てるだけにする。実際のpopはSetup/Gameが
+    /// それぞれ自分の(実体のある)dismiss()で行うことで、複数階層をまとめて確実に閉じられる。
+    let exitSignal: IntroDonExitSignal
 
     /// 実際に回答した問題数 (スキップ含む)。正答率の母数。
     /// Rush は候補曲(最大300)を全部出せるわけがないので totalCount ではなく回答数で割る。
@@ -265,8 +268,13 @@ struct IntroGameResultView: View {
             }
             .idPress()
 
-            NavigationLink {
-                IntroGameSetupView()
+            Button {
+                AppAnalytics.tap("intro_game_result.replay")
+                session.reset()
+                // Setup画面(積み上げ済み)まで戻すだけ。IntroGameSetupView() を新規pushしていた
+                // 従来実装は Home→Setup→Game→Result→Setup→Game→Result… とスタックが際限なく
+                // 伸びるバグの原因だったため、既存のSetupを再利用する形に変更。
+                exitSignal.requestReplay()
             } label: {
                 HStack(spacing: 8) {
                     Image(systemName: "arrow.counterclockwise")
@@ -286,8 +294,7 @@ struct IntroGameResultView: View {
             Button {
                 AppAnalytics.tap("intro_game_result.go_home")
                 session.reset()
-                dismiss()
-                dismiss()
+                exitSignal.requestExitToHome()
             } label: {
                 Text("ホームに戻る")
                     .font(ID.font(14, weight: .semibold))
