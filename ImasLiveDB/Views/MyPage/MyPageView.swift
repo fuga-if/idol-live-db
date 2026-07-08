@@ -145,6 +145,10 @@ struct MyPageView: View {
             .alert("表示名を変更", isPresented: $showEditName) {
                 TextField("表示名", text: $editingName)
                     .textInputAutocapitalization(.never)
+                    .onChange(of: editingName) { _, new in
+                        // アラート文言「40文字以内」に実際の入力を追従させる (無制限に打てるとサーバ側で弾かれる)。
+                        if new.count > 40 { editingName = String(new.prefix(40)) }
+                    }
                 Button("保存") {
                     Task { await saveDisplayName() }
                 }
@@ -293,10 +297,15 @@ struct MyPageView: View {
             } label: {
                 Label("ユーザーをモデレーション", systemImage: "person.badge.shield.checkmark")
             }
+            NavigationLink {
+                PlayabilityCheckView()
+            } label: {
+                Label("再生可否チェック (Apple Music)", systemImage: "music.note.list")
+            }
         } header: {
             Text("管理者")
         } footer: {
-            Text("対象ユーザー ID を指定して編集履歴の確認・BAN・一括取り消しを行います。")
+            Text("対象ユーザー ID を指定して編集履歴の確認・BAN・一括取り消し、 全曲のサブスク再生可否チェック等を行います。")
         }
         .listRowBackground(DS.surface)
         .listRowSeparatorTint(DS.sep)
