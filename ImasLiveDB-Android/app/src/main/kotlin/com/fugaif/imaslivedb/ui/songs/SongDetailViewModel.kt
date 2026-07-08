@@ -3,12 +3,14 @@ package com.fugaif.imaslivedb.ui.songs
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.fugaif.imaslivedb.data.model.Brand
 import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.data.model.ImasUnit
 import com.fugaif.imaslivedb.data.model.PerformanceHistoryRow
 import com.fugaif.imaslivedb.data.model.Song
 import com.fugaif.imaslivedb.data.model.SongCall
 import com.fugaif.imaslivedb.data.model.SongVideo
+import com.fugaif.imaslivedb.data.model.UserMark
 import com.fugaif.imaslivedb.data.community.CommunityApi
 import com.fugaif.imaslivedb.di.AppModule
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,10 +25,20 @@ data class SongDetailUiState(
     val performerArtists: List<Idol> = emptyList(),
     val performanceHistory: List<PerformanceHistoryRow> = emptyList(),
     val unit: ImasUnit? = null,
+    val brand: Brand? = null,
+    /** 現地回収済み (参加ライブでこの曲が披露された) 公演一覧。 */
+    val collectedShows: List<PerformanceHistoryRow> = emptyList(),
+    /** 関連楽曲 (同シリーズ/ユニット/原唱共有, ローカル算出)。 */
+    val relatedSongs: List<Song> = emptyList(),
+    /** タグが似ている楽曲 (この曲が好きな人にはこれも, サーバ算出)。 */
+    val similarTagSongs: List<Song> = emptyList(),
+    val similarSharedTags: Map<String, Int> = emptyMap(),
     val songCalls: List<SongCall> = emptyList(),
     val songVideos: List<SongVideo> = emptyList(),
     val tags: List<CommunityApi.SongTag> = emptyList(),
-    val penlight: CommunityApi.PenlightResult? = null
+    val penlight: CommunityApi.PenlightResult? = null,
+    val isFavorite: Boolean = false,
+    val isSignedIn: Boolean = false
 )
 
 class SongDetailViewModel : ViewModel() {
@@ -36,11 +48,13 @@ class SongDetailViewModel : ViewModel() {
 
     private var api: CommunityApi? = null
     private var currentSongId: String? = null
+    private var appModule: AppModule? = null
 
     fun load(context: Context, songId: String) {
         currentSongId = songId
         viewModelScope.launch {
             val module = AppModule.from(context)
+            appModule = module
             api = module.communityApi
             val song = module.songRepository.fetchSong(songId)
             val originalArtists = module.songRepository.fetchSongArtists(songId, "original")
@@ -51,8 +65,14 @@ class SongDetailViewModel : ViewModel() {
             } else {
                 null
             }
+            val brand = song?.brandId?.let { brandId ->
+                module.database.brandDao().fetchBrands().firstOrNull { it.id == brandId }
+            }
+            val collectedShows = module.songRepository.fetchCollectedShows(songId)
+            val relatedSongs = if (song != null) module.songRepository.fetchRelatedSongs(song, limit = 8) else emptyList()
             val calls = module.database.communityDao().callsForSong(songId)
             val videos = module.database.communityDao().videosForSong(songId)
+            val isFavorite = module.userMarkRepository.isOn(UserMark.SONG, songId, UserMark.FAVORITE)
             _uiState.value = SongDetailUiState(
                 isLoading = false,
                 song = song,
@@ -60,11 +80,17 @@ class SongDetailViewModel : ViewModel() {
                 performerArtists = performerArtists,
                 performanceHistory = history,
                 unit = unit,
+                brand = brand,
+                collectedShows = collectedShows,
+                relatedSongs = relatedSongs,
                 songCalls = calls,
-                songVideos = videos
+                songVideos = videos,
+                isFavorite = isFavorite,
+                isSignedIn = module.authService.sessionToken != null
             )
             // 集計系コミュニティ (Worker D1) はネットワーク。失敗しても本体表示は維持。
             loadCommunity(songId)
+            loadSimilarSongs(songId)
         }
     }
 
@@ -74,6 +100,21 @@ class SongDetailViewModel : ViewModel() {
         val pen = runCatching { a.penlightVotes(songId) }.getOrNull()
         if (currentSongId == songId) {
             _uiState.value = _uiState.value.copy(tags = tags, penlight = pen)
+        }
+    }
+
+    /** タグ類似のおすすめ楽曲をサーバから取得し、ローカル DB で Song に解決する (共有タグ数の降順を維持)。 */
+    private suspend fun loadSimilarSongs(songId: String) {
+        val a = api ?: return
+        val module = appModule ?: return
+        val entries = runCatching { a.similarSongsByTags(songId) }.getOrDefault(emptyList())
+        if (entries.isEmpty() || currentSongId != songId) return
+        val resolved = module.songRepository.fetchSongsByIds(entries.map { it.songId })
+        val byId = resolved.associateBy { it.id }
+        val sharedTags = entries.associate { it.songId to it.sharedTags }
+        val ordered = entries.mapNotNull { byId[it.songId] }
+        if (currentSongId == songId) {
+            _uiState.value = _uiState.value.copy(similarTagSongs = ordered, similarSharedTags = sharedTags)
         }
     }
 
@@ -104,5 +145,21 @@ class SongDetailViewModel : ViewModel() {
             listOf(call) + current
         }
         _uiState.value = _uiState.value.copy(songCalls = updated)
+    }
+
+    /** お気に入りトグル (端末ローカル)。 */
+    fun toggleFavorite() {
+        val songId = currentSongId ?: return
+        val module = appModule ?: return
+        viewModelScope.launch {
+            val now = module.userMarkRepository.toggle(UserMark.SONG, songId, UserMark.FAVORITE)
+            _uiState.value = _uiState.value.copy(isFavorite = now)
+        }
+    }
+
+    /** ペンライト投票完了後の再取得。 */
+    fun onPenlightVoted() {
+        val songId = currentSongId ?: return
+        viewModelScope.launch { loadCommunity(songId) }
     }
 }
