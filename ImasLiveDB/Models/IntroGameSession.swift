@@ -120,6 +120,7 @@ final class IntroGameSession {
         records = []
         selectedTitle = nil
         isCorrect = nil
+        isNewBest = false
 
         // プリセット (曲一覧の絞り込み) があればそれを使う。無ければブランド条件でDB取得。
         let pool = try presetPool.map { Self.playable($0) }
@@ -176,12 +177,16 @@ final class IntroGameSession {
         saveBestScore()
     }
 
+    /// 不正解選択肢を pool から3つ選ぶ。同名異曲 (別バージョン等) が pool に複数存在すると
+    /// タイトル重複した選択肢が並びうるため、タイトルでユニーク化してから選ぶ。
     private func makeChoices(for song: Song, pool: [Song]) -> [String] {
-        let wrongs = pool
-            .filter { $0.id != song.id && $0.title != song.title }
-            .shuffled()
-            .prefix(3)
-            .map(\.title)
+        var seenTitles: Set<String> = [song.title]
+        let candidates = pool.filter { candidate in
+            guard candidate.id != song.id, !seenTitles.contains(candidate.title) else { return false }
+            seenTitles.insert(candidate.title)
+            return true
+        }
+        let wrongs = candidates.shuffled().prefix(3).map(\.title)
         var choices = wrongs + [song.title]
         choices.shuffle()
         return choices
@@ -381,9 +386,9 @@ final class IntroGameSession {
         UserDefaults.standard.integer(forKey: bestScoreKey)
     }
 
-    var isNewBest: Bool {
-        score > 0 && score >= bestScore
-    }
+    /// 今回のプレイが新記録だったか。saveBestScore() が更新した**後の** bestScore と比較すると
+    /// 同点タイでも常に true になってしまうため、更新前のベストスコアと比較したスナップショットを保持する。
+    private(set) var isNewBest: Bool = false
 
     private var bestScoreKey: String {
         // %g で整数は "2"、サブ秒は "0.2" になり、超イントロのベストスコアが別管理される
@@ -400,7 +405,9 @@ final class IntroGameSession {
 
     private func saveBestScore() {
         let key = bestScoreKey
-        if score > UserDefaults.standard.integer(forKey: key) {
+        let previousBest = UserDefaults.standard.integer(forKey: key)
+        isNewBest = score > 0 && score > previousBest
+        if score > previousBest {
             UserDefaults.standard.set(score, forKey: key)
         }
     }
