@@ -2321,11 +2321,6 @@ final class AppDatabase: @unchecked Sendable {
 
     // MARK: - CloudKit Sync Delete Methods
 
-    /// recordType に対応するテーブル名を返す（単一PK テーブルのみ）
-    private static func tableName(for recordType: String) -> String? {
-        tableInfo(for: recordType)?.table
-    }
-
     /// recordType ごとの (table 名, PK カラム) マップ。
     /// 複合 PK の場合 recordName は "{table}-{pk1}-{pk2}" 形式 (seed_cloudkit.py の make_record_name と一致)。
     private static func tableInfo(for recordType: String) -> (table: String, pkColumns: [String])? {
@@ -2391,7 +2386,11 @@ final class AppDatabase: @unchecked Sendable {
     /// orphan 削除: fullSync 時に CloudKit に存在しない ID をローカルDBから削除する (safety net)
     /// validIds が空の場合は何もしない（全件削除を防ぐため）
     func deleteOrphans(recordType: String, validIds: Set<String>) throws {
-        guard !validIds.isEmpty, let table = Self.tableName(for: recordType) else { return }
+        guard !validIds.isEmpty, let info = Self.tableInfo(for: recordType) else { return }
+        // 複合 PK テーブル (song_artists 等) には単一の "id" 列が無く `SELECT id FROM ...` が
+        // 例外を投げるため、単一 PK テーブルのみ対象にするガード。
+        guard info.pkColumns == ["id"] else { return }
+        let table = info.table
         try dbQueue.write { db in
             // ローカルの全 ID を取得して差分を計算
             let localIds = try String.fetchAll(db, sql: "SELECT id FROM \(table)")
