@@ -29,6 +29,9 @@ final class SongListViewModel {
     // タグ絞り込みの解決済み集合 (selectedTags から導出)。
     private(set) var tagSongIds: Set<String>?
     private(set) var tagVoteCounts: [String: Int] = [:]
+    /// 直近の `resolveTagFilter` がオフライン等で失敗したか。
+    /// 失敗時は「タグに合致する曲が0件」と誤読させないよう、絞り込み自体は適用せず本フラグで通知する。
+    private(set) var tagFilterError = false
 
     private var loadTask: Task<Void, Never>?
     private var currentTaskId: UUID = UUID()
@@ -40,15 +43,18 @@ final class SongListViewModel {
         self.songReading = songReading
     }
 
-    func scheduleLoad(_ request: SongListRequest, debounce: Bool) {
+    @discardableResult
+    func scheduleLoad(_ request: SongListRequest, debounce: Bool) -> Task<Void, Never> {
         loadTask?.cancel()
-        loadTask = Task {
+        let task = Task {
             if debounce {
                 try? await Task.sleep(for: .milliseconds(200))
                 guard !Task.isCancelled else { return }
             }
             await load(request)
         }
+        loadTask = task
+        return task
     }
 
     func load(_ request: SongListRequest) async {
@@ -76,6 +82,8 @@ final class SongListViewModel {
             for i in results.indices {
                 results[i].performerIdols = performerMap[results[i].song.id] ?? []
             }
+            // 世代ガード: await の間により新しい load が始まっていたら、この結果は stale なので捨てる。
+            guard currentTaskId == taskId else { return }
             songs = results
             recomputeDisplayed(searchText: request.searchText)
             await refreshMarkDisplays()
@@ -144,21 +152,34 @@ final class SongListViewModel {
 
     /// タグ絞り込みの song_id 集合を解決する。複数選択時は各タグの song_id 集合の **積集合** (AND)。
     /// 空なら絞り込み解除。単一タグ時のみ票数バッジ用に voteCount を保持する。
+    /// 取得失敗時 (オフライン等) は `tagFilterError` を立てて絞り込みを適用しない
+    /// (「タグに合致する曲が0件」と「取得失敗」を区別し、オフライン時に一覧を誤って空にしないため)。
     func resolveTagFilter(_ tags: [CommunityTag]) async {
         guard !tags.isEmpty else {
             tagSongIds = nil
             tagVoteCounts = [:]
+            tagFilterError = false
             return
         }
         var intersection: Set<String>?
         var counts: [String: Int] = [:]
+        var failed = false
         for tag in tags {
-            let tagSongs = (try? await CommunityAPI.shared.tag(id: tag.id))?.songs ?? []
-            let ids = Set(tagSongs.map(\.songId))
-            intersection = intersection.map { $0.intersection(ids) } ?? ids
-            if tags.count == 1 {
-                counts = Dictionary(tagSongs.map { ($0.songId, $0.voteCount) }, uniquingKeysWith: { a, _ in a })
+            do {
+                let tagSongs = try await CommunityAPI.shared.tag(id: tag.id).songs
+                let ids = Set(tagSongs.map(\.songId))
+                intersection = intersection.map { $0.intersection(ids) } ?? ids
+                if tags.count == 1 {
+                    counts = Dictionary(tagSongs.map { ($0.songId, $0.voteCount) }, uniquingKeysWith: { a, _ in a })
+                }
+            } catch {
+                failed = true
             }
+        }
+        tagFilterError = failed
+        guard !failed else {
+            // 失敗時は絞り込み状態を変更しない (stale な既存集合を保持し、誤って0件にしない)。
+            return
         }
         tagSongIds = intersection ?? []
         tagVoteCounts = counts
