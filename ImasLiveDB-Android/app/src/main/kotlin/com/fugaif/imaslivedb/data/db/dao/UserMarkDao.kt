@@ -24,4 +24,8 @@ interface UserMarkDao {
 
     @Query("SELECT text_value FROM user_marks WHERE entity_type = :type AND entity_id = :id AND kind = 'memo' LIMIT 1")
     suspend fun memo(type: String, id: String): String?
+
+    /** メモ本文が入っているエンティティID一覧 (「メモがあるアイドルのみ」等の絞り込み用)。 */
+    @Query("SELECT entity_id FROM user_marks WHERE entity_type = :type AND kind = 'memo' AND text_value IS NOT NULL AND text_value != ''")
+    suspend fun idsWithNote(type: String): List<String>
 }

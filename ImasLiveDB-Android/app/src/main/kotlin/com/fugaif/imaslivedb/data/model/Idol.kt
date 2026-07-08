@@ -22,6 +22,15 @@ data class Idol(
     @ColumnInfo(name = "name_romaji")
     val nameRomaji: String?,
 
+    @ColumnInfo(name = "family_name")
+    val familyName: String? = null,
+
+    @ColumnInfo(name = "given_name")
+    val givenName: String? = null,
+
+    @ColumnInfo(name = "nickname")
+    val nickname: String? = null,
+
     @ColumnInfo(name = "color")
     val color: String?,
 
@@ -71,5 +80,35 @@ data class Idol(
     val gender: String?,
 
     @ColumnInfo(name = "handedness")
-    val handedness: String?
-)
+    val handedness: String?,
+
+    /** 実装(初登場)日 ISO8601 (YYYY-MM-DD)。 */
+    @ColumnInfo(name = "debut_date")
+    val debutDate: String? = null,
+
+    /** ブランド内サブカテゴリ属性 (cute/cool/passion 等)。 */
+    @ColumnInfo(name = "attribute")
+    val attribute: String? = null,
+
+    /** 外部ゲスト演者フラグ。true ならアイドル一覧・検索・統計から除外対象。 */
+    @ColumnInfo(name = "is_external")
+    val isExternal: Boolean = false,
+
+    /** 別名 (ステージ名・通称・略称) のカンマ区切り。 */
+    @ColumnInfo(name = "aliases")
+    val aliases: String? = null,
+
+    /** 担当声優のカンマ区切り。先頭が現役、以降は過去 CV (古い順)。 */
+    @ColumnInfo(name = "voice_actors")
+    val voiceActors: String? = null
+) {
+    /** 表示用の短縮名。優先順位: nickname > given_name > name。 */
+    val shortName: String
+        get() = nickname?.takeIf { it.isNotEmpty() }
+            ?: givenName?.takeIf { it.isNotEmpty() }
+            ?: name
+
+    /** 現役 CV 名 (voiceActors 先頭)。 */
+    val currentVoiceActor: String?
+        get() = voiceActors?.split(",")?.firstOrNull()?.trim()?.takeIf { it.isNotEmpty() }
+}

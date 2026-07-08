@@ -38,6 +38,9 @@ object SyncMappers {
             name = name,
             nameKana = r.str("nameKana"),
             nameRomaji = r.str("nameRomaji"),
+            familyName = r.str("familyName"),
+            givenName = r.str("givenName"),
+            nickname = r.str("nickname"),
             color = r.str("color"),
             sortOrder = r.int("sortOrder"),
             birthday = r.str("birthday"),
@@ -54,7 +57,12 @@ object SyncMappers {
             talents = r.str("talents"),
             description = r.str("description"),
             gender = r.str("gender"),
-            handedness = r.str("handedness")
+            handedness = r.str("handedness"),
+            debutDate = r.str("debutDate"),
+            attribute = r.str("attribute"),
+            isExternal = r.bool("isExternal"),
+            aliases = r.str("aliases"),
+            voiceActors = r.str("voiceActors")
         )
     }
 

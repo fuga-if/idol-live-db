@@ -60,7 +60,7 @@ import com.fugaif.imaslivedb.data.model.UserMark
         Staff::class,
         Anniversary::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -101,7 +101,7 @@ abstract class AppDatabase : RoomDatabase() {
             )
                 // スキーマ変更時は破壊的再構築せず Room Migration を書く (iOS の DatabaseMigrations と対)。
                 // UserMark 等のローカル唯一データを保全するため (.fallbackToDestructiveMigration は使わない)。
-                .addMigrations(MIGRATION_4_5, MIGRATION_5_6)
+                .addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
                 .addCallback(seedCallback)
                 .build()
         }
@@ -198,6 +198,20 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE events ADD COLUMN ticket_url TEXT")
                 db.execSQL("ALTER TABLE events ADD COLUMN joint_brand_ids TEXT")
                 db.execSQL("ALTER TABLE songs ADD COLUMN series_group TEXT")
+            }
+        }
+
+        /** idols に iOS Idol.swift 相当のプロフィール/属性フィールドを追加 (アイドル一覧のCV名表示・属性フィルタに必要)。 */
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE idols ADD COLUMN family_name TEXT")
+                db.execSQL("ALTER TABLE idols ADD COLUMN given_name TEXT")
+                db.execSQL("ALTER TABLE idols ADD COLUMN nickname TEXT")
+                db.execSQL("ALTER TABLE idols ADD COLUMN debut_date TEXT")
+                db.execSQL("ALTER TABLE idols ADD COLUMN attribute TEXT")
+                db.execSQL("ALTER TABLE idols ADD COLUMN is_external INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE idols ADD COLUMN aliases TEXT")
+                db.execSQL("ALTER TABLE idols ADD COLUMN voice_actors TEXT")
             }
         }
     }

@@ -29,6 +29,18 @@ class UserMarkRepository(private val db: AppDatabase) {
     suspend fun pickedIdols(): List<Idol> =
         db.songDao().let { _ -> fetchIdols(dao.idsFor(UserMark.IDOL, UserMark.PICK)) }
 
+    /** 担当アイドルの ID セット (回収ダッシュボードの担当スコープ絞り込み用)。 */
+    suspend fun pickedIdolIds(): Set<String> = dao.idsFor(UserMark.IDOL, UserMark.PICK).toSet()
+
+    /** お気に入りアイドルの ID セット。 */
+    suspend fun favoriteIdolIds(): Set<String> = dao.idsFor(UserMark.IDOL, UserMark.FAVORITE).toSet()
+
+    /** メモがあるアイドルの ID セット。 */
+    suspend fun notedIdolIds(): Set<String> = dao.idsWithNote(UserMark.IDOL).toSet()
+
+    /** attended ライブのセトリから自動判定した「回収済み」song_id セット (回収ダッシュボード用)。 */
+    suspend fun autoCollectedSongIds(): Set<String> = db.statsDao().fetchAutoCollectedSongIds().toSet()
+
     /** お気に入りアイドル一覧。 */
     suspend fun favoriteIdols(): List<Idol> =
         fetchIdols(dao.idsFor(UserMark.IDOL, UserMark.FAVORITE))
@@ -39,6 +51,9 @@ class UserMarkRepository(private val db: AppDatabase) {
             val ids = dao.idsFor(UserMark.SONG, UserMark.FAVORITE)
             ids.mapNotNull { sdao.fetchSong(it) }
         }
+
+    /** お気に入り曲 ID セット (曲一覧行アイコン/絞り込み用の軽量版)。 */
+    suspend fun favoriteSongIds(): Set<String> = dao.idsFor(UserMark.SONG, UserMark.FAVORITE).toSet()
 
     /** お気に入りライブ(イベント)一覧。開催日降順。 */
     suspend fun favoriteEvents(): List<EventWithDateRange> {
