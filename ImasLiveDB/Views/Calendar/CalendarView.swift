@@ -544,16 +544,23 @@ struct CalendarView: View {
     }
 
     /// "--MM-DD" の月日を interval 内の年に展開して Date を返す (誕生日系の共通処理)。
+    /// グリッド開始日 (interval.start) の年だけで固定すると、月初が日曜でない月 (特に1月、
+    /// グリッドが前年12月から始まる) で年がずれて誕生日が丸ごと消える。
+    /// そのため記念日ロジックと同様に intervalYear / intervalYear+1 の両方を候補にし、
+    /// interval に収まる方を採用する (2/29→2/28フォールバックも各候補年に適用)。
     private func monthDayDate(_ monthDay: String?, in interval: DateInterval) -> Date? {
         guard let monthDay, monthDay.hasPrefix("--") else { return nil }
         let parts = monthDay.dropFirst(2).split(separator: "-")
         guard parts.count == 2, let month = Int(parts[0]), let day = Int(parts[1]) else { return nil }
         var jstCalendar = Calendar(identifier: .gregorian)
         jstCalendar.timeZone = TimeZone(identifier: "Asia/Tokyo")!
-        let year = jstCalendar.component(.year, from: interval.start)
-        if let date = jstCalendar.date(from: DateComponents(year: year, month: month, day: day)) { return date }
-        if month == 2 && day == 29 {
-            return jstCalendar.date(from: DateComponents(year: year, month: 2, day: 28))
+        let intervalYear = jstCalendar.component(.year, from: interval.start)
+        for y in [intervalYear, intervalYear + 1] {
+            let candidate = jstCalendar.date(from: DateComponents(year: y, month: month, day: day))
+                ?? (month == 2 && day == 29 ? jstCalendar.date(from: DateComponents(year: y, month: 2, day: 28)) : nil)
+            if let candidate, candidate >= interval.start, candidate < interval.end {
+                return candidate
+            }
         }
         return nil
     }
@@ -579,9 +586,13 @@ struct CalendarView: View {
             jstCalendar.timeZone = TimeZone(identifier: "Asia/Tokyo")!
             let intervalYear = jstCalendar.component(.year, from: interval.start)
             for y in [intervalYear, intervalYear + 1] {
-                if let date = jstCalendar.date(from: DateComponents(year: y, month: month, day: day)),
-                   date >= start, date >= interval.start, date <= interval.end {
-                    return date
+                // 非閏年では 2/29 が nil になるため、誕生日側と同様に 2/28 へフォールバックする。
+                let candidate = jstCalendar.date(from: DateComponents(year: y, month: month, day: day))
+                    ?? (month == 2 && day == 29 ? jstCalendar.date(from: DateComponents(year: y, month: 2, day: 28)) : nil)
+                // interval.end は gridStart+42日の排他的上限 (0〜41番目のセルまでしか描画されない)。
+                // <= だと end ちょうどの記念日が集計だけされて描画セルが無く消えるため < にする。
+                if let candidate, candidate >= start, candidate >= interval.start, candidate < interval.end {
+                    return candidate
                 }
             }
             return nil
