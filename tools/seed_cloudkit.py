@@ -359,7 +359,7 @@ def seed_table(
 
     where, params = "", []
     if song_ids:
-        id_col = {"songs": "id", "song_artists": "song_id", "show_cast": "show_id", "setlist_items": "id", "idols": "id"}.get(table)
+        id_col = {"songs": "id", "song_artists": "song_id", "show_cast": "show_id", "setlist_items": "id", "idols": "id", "setlist_performers": "setlist_item_id"}.get(table)
         if id_col:
             where = f" WHERE {id_col} IN ({','.join('?' for _ in song_ids)})"
             params = song_ids
