@@ -11,6 +11,9 @@ interface BrandDao {
     @Query("SELECT * FROM brands ORDER BY sort_order")
     suspend fun fetchBrands(): List<Brand>
 
+    @Query("SELECT * FROM brands WHERE id = :id LIMIT 1")
+    suspend fun fetchBrand(id: String): Brand?
+
     @Query("""
         SELECT b.id, b.short_name, b.color, COUNT(s.id) AS song_count
         FROM brands b LEFT JOIN songs s ON b.id = s.brand_id
