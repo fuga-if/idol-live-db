@@ -51,8 +51,12 @@ struct SetlistView: View {
     @State private var songPicker: SongPickerRequest?
 
     /// 公演が未来か (今日も含む)。 セトリ未登録時の文言出し分けに使う。
+    /// 端末ローカルのタイムゾーンで「今日」を判定する (`EventListView.todayKey` /
+    /// `EventDetailView.isFutureEvent` / `AttendanceStatus.derive` と同じ方式に統一。
+    /// `ISO8601DateFormatter` は既定 GMT 基準になるため、ここでは使わない)。
     private var isFutureShow: Bool {
-        let today = ISO8601DateFormatter.fullDate.string(from: Date())
+        let c = Calendar.current.dateComponents([.year, .month, .day], from: Date())
+        let today = String(format: "%04d-%02d-%02d", c.year ?? 0, c.month ?? 0, c.day ?? 0)
         return show.date >= today
     }
 
