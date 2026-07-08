@@ -78,7 +78,21 @@ final class CloudKitSyncEngine: @unchecked Sendable {
     private static let maxRetries = 3
 
     /// 同期の再入防止 (フォアグラウンド復帰トリガと起動 sync が重ならないように)。
-    private var running = false
+    /// MainActor 隔離。複数の同期起点 (起動時 / フォアグラウンド復帰 / 手動更新) がほぼ同時に
+    /// 呼ばれても、check-and-set が MainActor で直列化されるため二重同期にならない
+    /// (非アトミックな race で両方が通過するのを防ぐ)。
+    @MainActor private var running = false
+
+    /// 再入防止の atomic な取得。既に走っていれば false (この呼び出しはスキップすべき)。
+    @MainActor private func beginRunningIfIdle() -> Bool {
+        if running { return false }
+        running = true
+        return true
+    }
+
+    @MainActor private func endRunning() {
+        running = false
+    }
 
     // フルsyncの途中再開用。中断 (バックグラウンド suspend 等) されても、
     // 完了済みステップを覚えておき、次回は残りのステップだけ取得する。
@@ -185,11 +199,20 @@ final class CloudKitSyncEngine: @unchecked Sendable {
     // MARK: - Private
 
     private func performSync(database: AppDatabase, modifiedSince: Date?) async {
-        // 再入防止: 既に走っている同期があれば何もしない (二重 fetch を避ける)。
-        if running { logger.info("[Sync] skip: already running"); return }
-        running = true
-        defer { running = false }
+        // 再入防止 (atomic): MainActor で check-and-set し、既に走っていればスキップ。
+        // 重い DB 書き込み (GRDB DatabaseQueue の blocking write) を MainActor に載せないため、
+        // ガードだけ MainActor に隔離し、本体は非隔離のまま実行する。
+        guard await beginRunningIfIdle() else {
+            logger.info("[Sync] skip: already running")
+            return
+        }
+        await performSyncBody(database: database, modifiedSince: modifiedSince)
+        await endRunning()
+    }
 
+    /// performSync の本体。再入ガード取得後にのみ呼ばれる。内部の早期 return はここから返り、
+    /// 呼び出し元 performSync が確実に endRunning() を実行する (ガードのリークを防ぐ)。
+    private func performSyncBody(database: AppDatabase, modifiedSince: Date?) async {
         // iCloudアカウント確認
         do {
             let status = try await CloudKitService.shared.accountStatus()
