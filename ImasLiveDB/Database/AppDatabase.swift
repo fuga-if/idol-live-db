@@ -1580,14 +1580,14 @@ final class AppDatabase: @unchecked Sendable {
     /// venue は同 event 内の複数 shows をまたぐので EXISTS で結合。
     func searchEventsByNameOrVenue(query: String, limit: Int = 100) throws -> [Event] {
         try dbQueue.read { db in
-            let pattern = "%\(query.lowercased())%"
+            let pattern = "%\(query.lowercased().likeEscaped)%"
             return try Event.fetchAll(
                 db,
                 sql: """
                     SELECT DISTINCT e.* FROM events e
                     LEFT JOIN shows sh ON sh.event_id = e.id
-                    WHERE LOWER(e.name) LIKE ?
-                       OR LOWER(IFNULL(sh.venue, '')) LIKE ?
+                    WHERE LOWER(e.name) LIKE ? ESCAPE '\\'
+                       OR LOWER(IFNULL(sh.venue, '')) LIKE ? ESCAPE '\\'
                     LIMIT ?
                     """,
                 arguments: [pattern, pattern, limit]
@@ -1598,11 +1598,11 @@ final class AppDatabase: @unchecked Sendable {
     /// アイドルを名前 / かな / ローマ字の部分一致で検索 (ピッカー用)。
     func searchIdols(query: String, limit: Int = 50) throws -> [Idol] {
         try dbQueue.read { db in
-            let pattern = "%\(query)%"
+            let pattern = "%\(query.likeEscaped)%"
             return try Idol.filter(
-                Column("name").like(pattern) ||
-                Column("name_kana").like(pattern) ||
-                Column("name_romaji").like(pattern)
+                Column("name").like(pattern, escape: "\\") ||
+                Column("name_kana").like(pattern, escape: "\\") ||
+                Column("name_romaji").like(pattern, escape: "\\")
             )
             .order(Column("sort_order"))
             .limit(limit)
@@ -1635,20 +1635,20 @@ final class AppDatabase: @unchecked Sendable {
     /// グローバル検索
     func search(query: String) throws -> SearchResults {
         try dbQueue.read { db in
-            let pattern = "%\(query)%"
+            let pattern = "%\(query.likeEscaped)%"
 
             let songs = try Song.filter(
-                Column("title").like(pattern) ||
-                Column("title_kana").like(pattern)
+                Column("title").like(pattern, escape: "\\") ||
+                Column("title_kana").like(pattern, escape: "\\")
             ).limit(20).fetchAll(db)
 
             let idols = try Idol.filter(
-                Column("name").like(pattern) ||
-                Column("name_kana").like(pattern)
+                Column("name").like(pattern, escape: "\\") ||
+                Column("name_kana").like(pattern, escape: "\\")
             ).limit(20).fetchAll(db)
 
             let events = try Event.filter(
-                Column("name").like(pattern)
+                Column("name").like(pattern, escape: "\\")
             ).limit(20).fetchAll(db)
 
             return SearchResults(songs: songs, idols: idols, events: events)
@@ -1753,11 +1753,11 @@ final class AppDatabase: @unchecked Sendable {
         guard !trimmedName.isEmpty else { return [] }
 
         let candidates: [Song] = try dbQueue.read { db in
-            let pattern = "%\(trimmedName)%"
+            let pattern = "%\(trimmedName.likeEscaped)%"
             return try Song.filter(
-                Column("composer").like(pattern) ||
-                Column("lyricist").like(pattern) ||
-                Column("arranger").like(pattern)
+                Column("composer").like(pattern, escape: "\\") ||
+                Column("lyricist").like(pattern, escape: "\\") ||
+                Column("arranger").like(pattern, escape: "\\")
             ).order(Column("title_kana"), Column("title")).fetchAll(db)
         }
 
@@ -1982,9 +1982,9 @@ final class AppDatabase: @unchecked Sendable {
             if !exact.isEmpty { return exact }
 
             // 部分一致
-            let pattern = "%\(trimmed)%"
+            let pattern = "%\(trimmed.likeEscaped)%"
             return try Song
-                .filter(Column("title").like(pattern) || Column("title_kana").like(pattern))
+                .filter(Column("title").like(pattern, escape: "\\") || Column("title_kana").like(pattern, escape: "\\"))
                 .limit(limit)
                 .fetchAll(db)
         }
