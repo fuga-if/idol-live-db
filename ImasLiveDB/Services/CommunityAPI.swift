@@ -217,7 +217,11 @@ actor CommunityAPI {
         if let hit = similarSongsCache[songId], Date().timeIntervalSince(hit.at) < similarSongsCacheTTL {
             return hit.response
         }
-        let response: SimilarSongsResponse = try await APIClient.shared.request("GET", path: "/songs/\(songId)/similar?limit=\(limit)")
+        // limit はクエリ辞書で渡す。path に "?limit=" を埋めると URLComponents が
+        // "?" を %3F にエンコードしてパスの一部になり 404 になる (他メソッドと同じ query: 方式に揃える)。
+        let response: SimilarSongsResponse = try await APIClient.shared.request(
+            "GET", path: "/songs/\(songId)/similar", query: ["limit": "\(limit)"]
+        )
         similarSongsCache[songId] = (response, Date())
         return response
     }
