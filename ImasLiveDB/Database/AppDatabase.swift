@@ -2217,11 +2217,17 @@ final class AppDatabase: @unchecked Sendable {
 
     /// 全レコードを1トランザクション内に一括 upsert する。
     /// 中断時は全体ロールバックされ、FK孤立を防ぐ。メモリ節約のためチャンク単位で処理。
+    ///
+    /// WHY upsert (INSERT ON CONFLICT DO UPDATE) not insert(onConflict: .replace):
+    /// REPLACE は既存行を DELETE→INSERT するため、foreign_keys=ON 環境では
+    /// ON DELETE CASCADE の子テーブル (song_artists / setlist_items / setlist_performers /
+    /// unit_members 等) を巻き込んで削除する。増分 Pull で親レコードのメタだけ来た場合に
+    /// 原唱者情報等が消える。upsert は行を更新するだけなので CASCADE を発火させない。
     private func upsertChunked<T: PersistableRecord>(_ records: [T], chunkSize: Int = 500) throws {
         try dbQueue.write { db in
             for chunk in records.chunks(ofCount: chunkSize) {
                 for record in chunk {
-                    try record.insert(db, onConflict: .replace)
+                    try record.upsert(db)
                 }
             }
         }
@@ -2296,9 +2302,11 @@ final class AppDatabase: @unchecked Sendable {
     }
 
     private func upsertAll<T: PersistableRecord>(_ records: [T]) throws {
+        // WHY upsert: REPLACE の DELETE→INSERT は ON DELETE CASCADE を発火させ子行を消す。
+        // 行更新の upsert で回避する (upsertChunked と同じ理由)。
         try dbQueue.write { db in
             for record in records {
-                try record.insert(db, onConflict: .replace)
+                try record.upsert(db)
             }
         }
     }
