@@ -74,23 +74,41 @@ struct SongListView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        // selectionMode = true (イントロドン設定画面から push されてくるケース) では、
+        // 親が既に NavigationStack を持っているため自前で持つとネストになり、
+        // タイトルバー領域が二重表示されて空白が大きく出る + 戻る操作が2回分働く。
+        // root 用途 (タブの root) でだけ自前 NavigationStack を使う。
+        if selectionMode {
+            content
+        } else {
+            NavigationStack {
+                content
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var content: some View {
             VStack(spacing: 0) {
                 if isSearching {
                     InTabSearchField(prompt: searchPrompt, text: $searchText, isSearching: $isSearching)
                 }
                 removableFilterBar
+                tagFilterErrorBanner
                 introDonLaunchBar
                 listContent
                     .refreshable {
                         await syncEngine.performIncrementalSync(database: database)
-                        await vm.load(loadRequest)
+                        await vm.scheduleLoad(loadRequest, debounce: false).value
                     }
             }
             .background(DS.bg)
             .onChange(of: searchText) { _, _ in vm.recomputeDisplayed(searchText: searchText) }
                 .navigationTitle("楽曲")
-                .navigationBarTitleDisplayMode(.large)
+                // selectionMode (設定から push) では inline。.large だと push 先で大タイトル
+                // 領域 (≈100px) が確保され、フィルタチップの下に空白として見える + 2階層
+                // ナビバー扱いで戻る挙動が崩れることがある。タブ root のときだけ .large。
+                .navigationBarTitleDisplayMode(selectionMode ? .inline : .large)
                 .toolbar { toolbarContent }
                 .sheet(isPresented: $showFilter) {
                     SongFilterView(
@@ -134,7 +152,7 @@ struct SongListView: View {
                 // 行アイコン用のマーク集合だけ軽く更新する (他タブでのお気に入り変更を反映)。
                 .task {
                     if vm.songs.isEmpty || isMarkDependentFilterActive {
-                        await vm.load(loadRequest)
+                        await vm.scheduleLoad(loadRequest, debounce: false).value
                     } else {
                         await vm.refreshMarkDisplays()
                     }
@@ -143,7 +161,6 @@ struct SongListView: View {
                 .onChange(of: showOtherBrand) { _, _ in reload() }
                 .onChange(of: excludeLiveOnly) { _, _ in reload() }
                 .trackScreen("song_list")
-        }
     }
 
     /// 新規曲作成導線。ログイン済みなら作成 sheet、未ログインならログイン誘導。
@@ -176,10 +193,13 @@ struct SongListView: View {
 
     @ViewBuilder
     private func selectionConfirmBar(playable: Int) -> some View {
+        // 呼び元 (IntroGameSetupView) が onSelectPool 内で showSongFilter = false を実行する
+        // ことで navigationDestination が解除されて 1 回戻る。ここで追加で dismissSelf() を
+        // 呼ぶと 2 回戻りになる (= 設定画面を更に飛び越えて IntroDonHome まで戻る) ため、
+        // dismiss はせず onSelectPool だけ呼ぶ。
         Button {
             AppAnalytics.tap("song_list.introdon_select")
             onSelectPool?(vm.displayedSongs.map(\.song), selectionRangeLabel)
-            dismissSelf()
         } label: {
             HStack(spacing: 8) {
                 Image(systemName: "checkmark.circle.fill")
@@ -188,7 +208,7 @@ struct SongListView: View {
                     .font(.imasSubhead.weight(.bold))
                 Text("\(playable)曲")
                     .font(.imasCaption)
-                    .foregroundStyle(playable >= 4 ? .white.opacity(0.85) : Color.white.opacity(0.85))
+                    .opacity(0.85)
                 Spacer(minLength: 0)
                 if playable < 4 {
                     Text("4曲以上必要")
@@ -197,11 +217,14 @@ struct SongListView: View {
                 Image(systemName: "chevron.right")
                     .font(.imasScaled(12, weight: .bold))
             }
-            .foregroundStyle(.white)
+            // DS.sys はシステムのテキスト色 (ダーク=白 / ライト=黒)。背景にこれを使うと、
+            // 上に乗せる文字色は必ず DS.onSys (反転色) でなければならない。
+            // 旧コードは固定 .white を載せており、ダークモードで「白背景白文字」になっていた。
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
             .frame(maxWidth: .infinity)
-            .background(playable >= 4 ? DS.sys : Color.secondary)
+            .foregroundStyle(playable >= 4 ? DS.onSys : Color.white)
+            .background(playable >= 4 ? AnyShapeStyle(DS.sys) : AnyShapeStyle(Color.secondary))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -255,6 +278,25 @@ struct SongListView: View {
         let chips = activeFilterChips
         if !chips.isEmpty { return chips.map(\.label).joined(separator: "・") }
         return "曲一覧の絞り込み"
+    }
+
+    /// タグ絞り込みの取得に失敗した (オフライン等) ことを知らせるバナー。
+    /// 「タグに合致する曲が0件」との誤読を避けるため、`resolveTagFilter` は失敗時に一覧を
+    /// 空にせず本フラグだけ立てる。ここでその状態をユーザーに明示する。
+    @ViewBuilder
+    private var tagFilterErrorBanner: some View {
+        if vm.tagFilterError {
+            HStack(spacing: 6) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.imasCaption)
+                    .foregroundStyle(.orange)
+                Text("タグ絞り込みの取得に失敗しました。表示中の一覧にはタグ条件が反映されていません。")
+                    .font(.imasCaption)
+                    .foregroundStyle(DS.ink2)
+            }
+            .padding(.horizontal, DS.sp5)
+            .padding(.vertical, DS.sp2)
+        }
     }
 
     @ViewBuilder
