@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.QueueMusic
+import androidx.compose.material.icons.filled.Undo
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -55,6 +56,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -96,6 +98,7 @@ fun RecentEditsScreen(onBack: () -> Unit, viewModel: RecentEditsViewModel = view
     var showShowPicker by remember { mutableStateOf(false) }
     var editingShow by remember { mutableStateOf<ShowWithEventName?>(null) }
     var historyEntry by remember { mutableStateOf<EditApi.EditFeedEntry?>(null) }
+    var revertTarget by remember { mutableStateOf<EditApi.EditFeedEntry?>(null) }
 
     LaunchedEffect(tab) { viewModel.setMineOnly(tab == 1) }
 
@@ -156,8 +159,12 @@ fun RecentEditsScreen(onBack: () -> Unit, viewModel: RecentEditsViewModel = view
                             gooded = gooded,
                             goodCount = goodCount,
                             recordTitle = state.recordTitles[entry.batchId],
+                            showRevertAction = tab == 1,
+                            isReverted = viewModel.isReverted(entry),
+                            isReverting = state.revertingId == entry.batchId,
                             onToggleGood = { viewModel.toggleGood(entry) },
-                            onOpenHistory = { historyEntry = entry }
+                            onOpenHistory = { historyEntry = entry },
+                            onRevertRequest = { revertTarget = entry }
                         )
                         if (index >= state.entries.size - 3) {
                             LaunchedEffect(entry.batchId) { viewModel.loadMore() }
@@ -231,6 +238,28 @@ fun RecentEditsScreen(onBack: () -> Unit, viewModel: RecentEditsViewModel = view
     val currentHistoryEntry = historyEntry
     if (currentHistoryEntry != null) {
         RecordHistorySheet(entry = currentHistoryEntry, onDismiss = { historyEntry = null })
+    }
+
+    val currentRevertTarget = revertTarget
+    if (currentRevertTarget != null) {
+        AlertDialog(
+            onDismissRequest = { revertTarget = null },
+            title = { Text("この編集を取り消しますか？") },
+            text = {
+                val label = currentRevertTarget.summary
+                    ?: EditFeedFormat.recordTypeLabel(currentRevertTarget.recordType)
+                Text("「$label」を編集前の状態に戻します。この操作も履歴に記録されます。")
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.revert(currentRevertTarget)
+                    revertTarget = null
+                }) { Text("取り消す", color = DS.danger) }
+            },
+            dismissButton = {
+                TextButton(onClick = { revertTarget = null }) { Text("やめる") }
+            }
+        )
     }
 }
 
@@ -327,8 +356,12 @@ private fun EditFeedCard(
     gooded: Boolean,
     goodCount: Int,
     recordTitle: String?,
+    showRevertAction: Boolean,
+    isReverted: Boolean,
+    isReverting: Boolean,
     onToggleGood: () -> Unit,
-    onOpenHistory: () -> Unit
+    onOpenHistory: () -> Unit,
+    onRevertRequest: () -> Unit
 ) {
     Column(
         modifier = Modifier.fillMaxWidth()
@@ -350,12 +383,21 @@ private fun EditFeedCard(
                     Text(entry.editorDisplayLabel, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = DS.ink,
                         maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
                     OpBadge(entry.op)
+                    if (showRevertAction && isReverted) {
+                        Text(
+                            "差戻し済み", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = DS.ink2,
+                            modifier = Modifier.clip(RoundedCornerShape(50)).background(DS.fill)
+                                .padding(horizontal = 7.dp, vertical = 2.dp)
+                        )
+                    }
                     Spacer(Modifier.weight(1f))
                     Text(EditFeedFormat.relativeTime(entry.createdAt), fontSize = 11.sp, color = DS.ink2)
                 }
                 Text(
                     recordTitle ?: EditFeedFormat.recordTypeLabel(entry.recordType),
-                    fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink,
+                    fontSize = 15.sp, fontWeight = FontWeight.SemiBold,
+                    color = if (showRevertAction && isReverted) DS.ink2 else DS.ink,
+                    textDecoration = if (showRevertAction && isReverted) TextDecoration.LineThrough else null,
                     modifier = Modifier.padding(top = 4.dp)
                 )
                 if (!entry.summary.isNullOrEmpty()) {
@@ -369,37 +411,63 @@ private fun EditFeedCard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            if (entry.isOwnEdit) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Filled.Person, contentDescription = null, tint = DS.ink2, modifier = Modifier.size(14.dp))
-                    Text("あなたの編集", fontSize = 12.sp, color = DS.ink2, modifier = Modifier.padding(start = 4.dp))
+            if (showRevertAction) {
+                if (entry.goodCount > 0) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Filled.Favorite, contentDescription = null, tint = DS.pick, modifier = Modifier.size(14.dp))
+                        Text("${entry.goodCount}", fontSize = 12.sp, color = DS.pick, modifier = Modifier.padding(start = 4.dp))
+                    }
+                }
+                Spacer(Modifier.weight(1f))
+                when {
+                    isReverting -> CircularProgressIndicator(modifier = Modifier.size(16.dp))
+                    entry.isRevertable && !isReverted -> {
+                        Row(
+                            modifier = Modifier.clip(RoundedCornerShape(50))
+                                .background(DS.danger.copy(alpha = 0.12f))
+                                .clickable(onClick = onRevertRequest)
+                                .padding(horizontal = 12.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Filled.Undo, contentDescription = null, tint = DS.danger, modifier = Modifier.size(14.dp))
+                            Text("取り消す", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = DS.danger,
+                                modifier = Modifier.padding(start = 5.dp))
+                        }
+                    }
                 }
             } else {
-                Row(
-                    modifier = Modifier.clip(RoundedCornerShape(50))
-                        .background((if (gooded) DS.pick else DS.ink2).copy(alpha = 0.12f))
-                        .clickable(onClick = onToggleGood)
-                        .padding(horizontal = 12.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        if (gooded) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                        contentDescription = if (gooded) "Good を取り消す" else "Good を付ける",
-                        tint = if (gooded) DS.pick else DS.ink2,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Text(
-                        if (goodCount > 0) "$goodCount" else "Good",
-                        fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
-                        color = if (gooded) DS.pick else DS.ink2,
-                        modifier = Modifier.padding(start = 5.dp)
-                    )
+                if (entry.isOwnEdit) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Filled.Person, contentDescription = null, tint = DS.ink2, modifier = Modifier.size(14.dp))
+                        Text("あなたの編集", fontSize = 12.sp, color = DS.ink2, modifier = Modifier.padding(start = 4.dp))
+                    }
+                } else {
+                    Row(
+                        modifier = Modifier.clip(RoundedCornerShape(50))
+                            .background((if (gooded) DS.pick else DS.ink2).copy(alpha = 0.12f))
+                            .clickable(onClick = onToggleGood)
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            if (gooded) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                            contentDescription = if (gooded) "Good を取り消す" else "Good を付ける",
+                            tint = if (gooded) DS.pick else DS.ink2,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            if (goodCount > 0) "$goodCount" else "Good",
+                            fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
+                            color = if (gooded) DS.pick else DS.ink2,
+                            modifier = Modifier.padding(start = 5.dp)
+                        )
+                    }
                 }
-            }
-            Spacer(Modifier.weight(1f))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Filled.History, contentDescription = null, tint = DS.ink3, modifier = Modifier.size(13.dp))
-                Text("変更履歴", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = DS.ink2, modifier = Modifier.padding(start = 4.dp))
+                Spacer(Modifier.weight(1f))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Filled.History, contentDescription = null, tint = DS.ink3, modifier = Modifier.size(13.dp))
+                    Text("変更履歴", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = DS.ink2, modifier = Modifier.padding(start = 4.dp))
+                }
             }
         }
     }

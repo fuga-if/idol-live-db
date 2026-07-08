@@ -92,6 +92,59 @@ class AuthService(private val appContext: Context) {
         _state.value = AuthState()
     }
 
+    /** 表示名を変更する (`POST /users/me`)。iOS `AuthService.updateDisplayName` と同じ契約。 */
+    suspend fun updateDisplayName(name: String): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val body = JSONObject().put("display_name", name)
+            requestVoid("POST", "/users/me", body)
+            prefs.edit().putString(KEY_DISPLAY_NAME, name).apply()
+            _state.value = _state.value.copy(displayName = name)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * App Store/Play Store のアカウント削除要件対応:
+     * サーバー上の本人データ (投稿・投票・予想・rate limit・user レコード) を削除した上でサインアウトする。
+     * iOS `AuthService.deleteAccount` と同じ契約 (`DELETE /users/me`)。
+     */
+    suspend fun deleteAccount(): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            requestVoid("DELETE", "/users/me", null)
+            signOut()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    private fun requestVoid(method: String, path: String, body: JSONObject?) {
+        val conn = (URL(BASE + path).openConnection() as HttpURLConnection).apply {
+            requestMethod = method
+            connectTimeout = 15_000
+            readTimeout = 15_000
+            setRequestProperty("Content-Type", "application/json")
+            setRequestProperty("X-Device-Id", DeviceIdentity.get(appContext))
+            sessionToken?.let { setRequestProperty("Authorization", "Bearer $it") }
+        }
+        try {
+            if (body != null) {
+                conn.doOutput = true
+                conn.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
+            }
+            val code = conn.responseCode
+            if (code !in 200..299) {
+                val text = conn.errorStream?.bufferedReader()?.use { it.readText() }
+                Log.w(TAG, "$method $path -> HTTP $code body=$text")
+                throw IllegalStateException("HTTP $code")
+            }
+        } finally {
+            conn.disconnect()
+        }
+    }
+
     private suspend fun exchangeForSession(googleIdToken: String): Result<Unit> =
         withContext(Dispatchers.IO) {
             try {

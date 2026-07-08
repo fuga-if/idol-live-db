@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.fugaif.imaslivedb.data.auth.AuthService
 import com.fugaif.imaslivedb.data.edit.EditApi
+import com.fugaif.imaslivedb.data.edit.friendlyMessage
 import com.fugaif.imaslivedb.di.AppModule
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -22,7 +23,11 @@ data class RecentEditsUiState(
     val isLoadingMore: Boolean = false,
     val errorMessage: String? = null,
     val mineOnly: Boolean = false,
-    val showLoginPrompt: Boolean = false
+    val showLoginPrompt: Boolean = false,
+    /** revert 実行中の batchId (二度押し防止 + スピナー表示)。 */
+    val revertingId: Int? = null,
+    /** 楽観的に revert 済みへ倒した batchId 群 (サーバ反映成功で確定。iOS `MyEditsView.locallyReverted` の移植)。 */
+    val locallyReverted: Set<Int> = emptySet()
 )
 
 /**
@@ -129,6 +134,38 @@ class RecentEditsViewModel(app: Application) : AndroidViewModel(app) {
                 } else {
                     _uiState.value = _uiState.value.copy(errorMessage = errorText(e))
                 }
+            }
+        }
+    }
+
+    /** 現在の revert 済み状態 (サーバ値 or 楽観オーバーレイ)。iOS `MyEditsView.isReverted` の移植。 */
+    fun isReverted(entry: EditApi.EditFeedEntry): Boolean =
+        entry.reverted || entry.batchId in _uiState.value.locallyReverted
+
+    /** 自分の編集 batch を巻き戻す。iOS `MyEditsView.revert` の移植。 */
+    fun revert(entry: EditApi.EditFeedEntry) {
+        if (_uiState.value.revertingId != null) return
+        _uiState.value = _uiState.value.copy(revertingId = entry.batchId)
+        viewModelScope.launch {
+            try {
+                when (editApi.revertBatch(entry.batchId)) {
+                    EditApi.RevertOutcome.REVERTED, EditApi.RevertOutcome.ALREADY_REVERTED ->
+                        _uiState.value = _uiState.value.copy(
+                            locallyReverted = _uiState.value.locallyReverted + entry.batchId
+                        )
+                    EditApi.RevertOutcome.SKIPPED_CONFLICT ->
+                        _uiState.value = _uiState.value.copy(
+                            errorMessage = "別のユーザーがこの後に編集したため取り消せませんでした。"
+                        )
+                    else -> {}
+                }
+            } catch (e: EditApi.ApiException) {
+                _uiState.value = _uiState.value.copy(errorMessage = e.friendlyMessage())
+                if (e is EditApi.ApiException.NotAuthorized) {
+                    _uiState.value = _uiState.value.copy(showLoginPrompt = true)
+                }
+            } finally {
+                _uiState.value = _uiState.value.copy(revertingId = null)
             }
         }
     }

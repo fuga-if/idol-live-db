@@ -84,6 +84,39 @@ class EditApi(private val appContext: Context, private val authService: AuthServ
                 if (name.contains("@")) return "名無しのプロデューサー"
                 return name
             }
+
+        /** 本人 / admin が revert 可能か。既に revert 済み、もしくは revert 操作自体の batch は不可。 */
+        val isRevertable: Boolean
+            get() = !reverted && source != "revert"
+    }
+
+    /**
+     * `POST /edits/:batchId/revert` の結果値。iOS `RevertOutcome` と契約値を厳密一致させる。
+     * 200 系レスポンスはこの値、404/409/403/5xx は [ApiException] として throw される。
+     */
+    enum class RevertOutcome(val raw: String) {
+        REVERTED("reverted"),
+        ALREADY_REVERTED("already_reverted"),
+        SKIPPED_CONFLICT("skipped_conflict"),
+        NOT_FOUND("not_found"),
+        NOT_APPLIED("not_applied"),
+        FORBIDDEN("forbidden"),
+        FAILED("failed");
+
+        val label: String
+            get() = when (this) {
+                REVERTED -> "巻き戻し済み"
+                ALREADY_REVERTED -> "スキップ (revert 済み)"
+                SKIPPED_CONFLICT -> "スキップ (後続編集あり)"
+                NOT_FOUND -> "対象なし"
+                NOT_APPLIED -> "未適用"
+                FORBIDDEN -> "権限なし"
+                FAILED -> "失敗"
+            }
+
+        companion object {
+            fun from(raw: String): RevertOutcome = values().find { it.raw == raw } ?: FAILED
+        }
     }
 
     data class EditFeedPage(val items: List<EditFeedEntry>, val total: Int, val page: Int, val limit: Int)
@@ -170,6 +203,15 @@ class EditApi(private val appContext: Context, private val authService: AuthServ
     suspend fun ungood(batchId: Int): GoodResult {
         val json = request("DELETE", "/edits/$batchId/good", null)
         return GoodResult(json.optInt("batchId", batchId), json.optInt("goodCount"), json.optBoolean("gooded"))
+    }
+
+    /**
+     * 1 件の編集 batch を巻き戻す (`POST /edits/:batchId/revert`)。本人 revert / admin の
+     * ピンポイント修正の双方で使う (サーバが権限判定)。iOS `AdminModerationService.revertBatch` の移植。
+     */
+    suspend fun revertBatch(batchId: Int): RevertOutcome {
+        val json = request("POST", "/edits/$batchId/revert", null)
+        return RevertOutcome.from(json.optString("outcome"))
     }
 
     /** `GET /master/:recordType/:recordName/history` — あるレコードの変更履歴 (差分の主要キーのみ)。 */
