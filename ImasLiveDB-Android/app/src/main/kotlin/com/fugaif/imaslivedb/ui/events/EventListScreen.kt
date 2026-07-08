@@ -2,7 +2,6 @@ package com.fugaif.imaslivedb.ui.events
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,8 +13,10 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material.icons.filled.VideocamOff
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
@@ -34,14 +35,17 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.fugaif.imaslivedb.data.model.EventWithDate
-import com.fugaif.imaslivedb.ui.components.BrandColorBar
-import com.fugaif.imaslivedb.ui.components.ImasListSkeleton
-import com.fugaif.imaslivedb.ui.components.SkeletonThumb
-import com.fugaif.imaslivedb.ui.components.ImasLeadBar
-import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.data.model.EventWithDateRange
+import com.fugaif.imaslivedb.data.model.UserMark
 import com.fugaif.imaslivedb.ui.components.BrandFilterChips
 import com.fugaif.imaslivedb.ui.components.BrandFilterItem
+import com.fugaif.imaslivedb.ui.components.ImasEmptyState
+import com.fugaif.imaslivedb.ui.components.ImasLeadBar
+import com.fugaif.imaslivedb.ui.components.ImasListSkeleton
+import com.fugaif.imaslivedb.ui.components.ImasSegmented
+import com.fugaif.imaslivedb.ui.components.MarkToggleAction
+import com.fugaif.imaslivedb.ui.components.SkeletonThumb
+import com.fugaif.imaslivedb.ui.theme.DS
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -60,6 +64,13 @@ fun EventListScreen(
         }
     ) { innerPadding ->
         Column(modifier = Modifier.padding(innerPadding)) {
+            ImasSegmented(
+                labels = listOf("今後の予定", "開催済み"),
+                selection = uiState.timeFilter,
+                onSelect = { viewModel.selectTimeFilter(it) },
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp)
+            )
+
             // Brand filter chips
             val brandItems = uiState.brands.map { BrandFilterItem(it.id, it.shortName) }
             BrandFilterChips(
@@ -98,6 +109,16 @@ fun EventListScreen(
 
             if (uiState.isLoading) {
                 ImasListSkeleton(rows = 10, thumb = SkeletonThumb.None)
+            } else if (uiState.groupedByYear.isEmpty()) {
+                ImasEmptyState(
+                    icon = Icons.Filled.MusicNote,
+                    title = if (uiState.timeFilter == 0) "今後の予定はありません" else "開催済みのライブがありません",
+                    message = if (uiState.timeFilter == 0) {
+                        "現在、登録されている今後のライブはありません。「開催済み」タブもご確認ください。"
+                    } else {
+                        "開催済みのライブはまだ登録されていません。"
+                    }
+                )
             } else {
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                     uiState.groupedByYear.forEach { group ->
@@ -132,10 +153,11 @@ private fun YearSectionHeader(year: String) {
 
 @Composable
 private fun EventRow(
-    eventWithDate: EventWithDate,
+    eventWithDate: EventWithDateRange,
     onClick: () -> Unit
 ) {
     val event = eventWithDate.event
+    val isJoint = event.jointBrandIdList.isNotEmpty()
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -144,7 +166,7 @@ private fun EventRow(
             .padding(horizontal = 16.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        ImasLeadBar(brand = event.brandId, height = 38.dp)
+        ImasLeadBar(brand = event.brandId, height = 38.dp, rainbow = isJoint)
 
         Column(modifier = Modifier.weight(1f)) {
             Text(
@@ -155,9 +177,20 @@ private fun EventRow(
                 maxLines = 2,
                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
             )
-            eventWithDate.firstDate?.let { d ->
+            eventWithDate.dateRange?.let { d ->
                 Text(text = d, style = MaterialTheme.typography.bodySmall, color = DS.ink2)
             }
         }
+
+        Spacer(modifier = Modifier.width(4.dp))
+        MarkToggleAction(
+            entityType = UserMark.EVENT,
+            entityId = event.id,
+            kind = UserMark.FAVORITE,
+            activeIcon = Icons.Filled.Star,
+            inactiveIcon = Icons.Filled.StarBorder,
+            activeTint = DS.favorite,
+            contentDescription = "お気に入り"
+        )
     }
 }

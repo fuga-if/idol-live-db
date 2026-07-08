@@ -165,15 +165,27 @@ final class AppDatabase: @unchecked Sendable {
         try dbQueue.write { db in
             // ⚠️ PRAGMA foreign_keys はトランザクション内では変更できない (no-op)。
             // defer_foreign_keys はトランザクション内で有効で、FK 検証を COMMIT 時まで遅延する。
-            // これにより masterRows(順序不定) を DELETE+INSERT しても親子順序に依存せず、
-            // 最終状態が整合していれば commit 時に一括検証される (無言 skip を防ぐ)。
+            // ただし **CASCADE (ON DELETE CASCADE) は FK 検証ではなくアクションなので、
+            // defer の対象外**。 1 ループ内で DELETE+INSERT を交互に行うと、 子テーブルを
+            // 先に INSERT した後に親テーブルを DELETE すると CASCADE で再削除される
+            // (例: setlist_performers を INSERT → setlist_items の DELETE で CASCADE → 空に戻る)。
+            // 対策として **全テーブル DELETE → 全テーブル INSERT** の 2 段に分ける。
             try db.execute(sql: "PRAGMA defer_foreign_keys = ON")
             let localTables = Set(try String.fetchAll(db, sql: "SELECT name FROM sqlite_master WHERE type='table'"))
             var ok = 0
             var skipped = 0
-            for (table, rows) in masterRows where localTables.contains(table) {
+
+            // Phase 1: 全テーブル DELETE (CASCADE による意図しない再削除を完了させる)
+            for table in masterRows.keys where localTables.contains(table) {
                 do {
                     try db.execute(sql: "DELETE FROM \(table)")
+                } catch {
+                    Logger.database.error("[reseed] DELETE \(table, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
+                }
+            }
+            // Phase 2: 全テーブル INSERT (この時点ではどのテーブルも空なので CASCADE は無害)
+            for (table, rows) in masterRows where localTables.contains(table) {
+                do {
                     guard let first = rows.first else { continue }
                     let cols = first.columnNames
                     let localCols = try String.fetchAll(db, sql: "SELECT name FROM pragma_table_info(?)", arguments: [table])
@@ -189,7 +201,7 @@ final class AppDatabase: @unchecked Sendable {
                     }
                     ok += 1
                 } catch {
-                    Logger.database.error("[reseed] table \(table, privacy: .public) failed: \(error.localizedDescription, privacy: .public) | \(String(describing: error), privacy: .public)")
+                    Logger.database.error("[reseed] INSERT \(table, privacy: .public) failed: \(error.localizedDescription, privacy: .public) | \(String(describing: error), privacy: .public)")
                     skipped += 1
                 }
             }
@@ -2035,9 +2047,44 @@ final class AppDatabase: @unchecked Sendable {
         let birthdays: [CalendarEntry] = try dbQueue.read { db in
             let allIdols = try Idol.filter(Column("birthday") != nil).fetchAll(db)
             return allIdols.compactMap { idol -> CalendarEntry? in
-                guard let birthdayDate = Self.birthdayDate(for: idol, in: interval) else { return nil }
+                guard let birthdayDate = Self.expandMonthDay(idol.birthday, in: interval) else { return nil }
                 guard birthdayDate >= interval.start && birthdayDate <= interval.end else { return nil }
                 return .birthday(idol)
+            }
+        }
+
+        let staffBirthdays: [CalendarEntry] = try dbQueue.read { db in
+            let staffList = try Staff.filter(Column("birthday") != nil).fetchAll(db)
+            return staffList.compactMap { staff -> CalendarEntry? in
+                guard let birthdayDate = Self.expandMonthDay(staff.birthday, in: interval) else { return nil }
+                guard birthdayDate >= interval.start && birthdayDate <= interval.end else { return nil }
+                return .staffBirthday(staff)
+            }
+        }
+
+        // 記念日: 起点日 YYYY-MM-DD の MM-DD を interval 内の年に展開して当て、起点年以降だけ採用
+        // (起点より前の年は周年として意味を成さない)。
+        let anniversaries: [CalendarEntry] = try dbQueue.read { db in
+            let all = try Anniversary.fetchAll(db)
+            var jst = Calendar(identifier: .gregorian)
+            jst.timeZone = TimeZone(identifier: "Asia/Tokyo")!
+            return all.compactMap { ann -> CalendarEntry? in
+                guard let startDate = Self.parseDate(ann.date) else { return nil }
+                let parts = ann.date.split(separator: "-")
+                guard parts.count == 3,
+                      let month = Int(parts[1]),
+                      let day = Int(parts[2]) else { return nil }
+                let intervalYear = jst.component(.year, from: interval.start)
+                // 同 interval が年をまたぐ可能性は低いが念のため候補2年で試す。
+                for y in [intervalYear, intervalYear + 1] {
+                    guard let recurring = jst.date(from: DateComponents(year: y, month: month, day: day)) else { continue }
+                    // 起点年より前 (= 0周年未満) は表示しない。起点年当日 (0周年=その日) も出す。
+                    guard recurring >= startDate else { continue }
+                    if recurring >= interval.start && recurring <= interval.end {
+                        return .anniversary(ann)
+                    }
+                }
+                return nil
             }
         }
 
@@ -2095,17 +2142,17 @@ final class AppDatabase: @unchecked Sendable {
             return rows
         }
 
-        return (shows + releases + birthdays + tickets).sorted { lhs, rhs in
+        return (shows + releases + birthdays + staffBirthdays + anniversaries + tickets).sorted { lhs, rhs in
             if lhs.dateString != rhs.dateString { return lhs.dateString < rhs.dateString }
             return lhs.sortOrder < rhs.sortOrder
         }
     }
 
-    /// "--MM-DD" 形式の誕生日を interval 内の年に展開して Date を返す
-    /// 2月29日など非閏年に存在しない日付は 2月28日にフォールバック
-    private static func birthdayDate(for idol: Idol, in interval: DateInterval) -> Date? {
-        guard let birthday = idol.birthday, birthday.hasPrefix("--") else { return nil }
-        let parts = birthday.dropFirst(2).split(separator: "-")
+    /// "--MM-DD" 形式の月日を interval 内の年に展開して Date を返す
+    /// 2月29日など非閏年に存在しない日付は 2月28日にフォールバック。Idol/Staff の誕生日共用。
+    private static func expandMonthDay(_ monthDay: String?, in interval: DateInterval) -> Date? {
+        guard let monthDay, monthDay.hasPrefix("--") else { return nil }
+        let parts = monthDay.dropFirst(2).split(separator: "-")
         guard parts.count == 2, let month = Int(parts[0]), let day = Int(parts[1]) else { return nil }
 
         var jstCalendar = Calendar(identifier: .gregorian)

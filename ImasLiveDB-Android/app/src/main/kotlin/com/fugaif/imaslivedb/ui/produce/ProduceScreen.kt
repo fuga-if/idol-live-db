@@ -16,10 +16,16 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.ListAlt
 import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.EventAvailable
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.HowToVote
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Sell
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.SportsEsports
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -54,6 +60,13 @@ fun ProduceScreen(
     onNavigateToPolls: () -> Unit,
     onNavigateToIdol: (String) -> Unit,
     onNavigateToSong: (String) -> Unit,
+    onNavigateToFavorites: () -> Unit,
+    onNavigateToAttendedEvents: () -> Unit,
+    onNavigateToMyContributions: () -> Unit,
+    onNavigateToMyVotes: () -> Unit,
+    onNavigateToEditHistory: () -> Unit,
+    onNavigateToTagList: () -> Unit,
+    onNavigateToGamesHub: () -> Unit,
     viewModel: ProduceViewModel = viewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -89,7 +102,21 @@ fun ProduceScreen(
             }
 
             HorizontalDivider(color = DS.sep, modifier = Modifier.padding(top = 8.dp))
+            HubRow(Icons.Filled.Favorite, "お気に入り一覧", "曲・アイドル・ライブ", DS.ink2, onNavigateToFavorites)
+            HorizontalDivider(color = DS.sep)
+            HubRow(Icons.Filled.EventAvailable, "参加したライブ", "", DS.ink2, onNavigateToAttendedEvents)
+            HorizontalDivider(color = DS.sep)
             HubRow(Icons.Filled.HowToVote, "投票・予想", "タグ・ペンライト・ポール", DS.ink2, onNavigateToPolls)
+            HorizontalDivider(color = DS.sep)
+            HubRow(Icons.Filled.Sell, "みんなのタグ", "楽曲タグの作成・閲覧", DS.ink2, onNavigateToTagList)
+            HorizontalDivider(color = DS.sep)
+            HubRow(Icons.AutoMirrored.Filled.ListAlt, "マイ投稿・編集履歴", "", DS.ink2, onNavigateToMyContributions)
+            HorizontalDivider(color = DS.sep)
+            HubRow(Icons.Filled.HowToVote, "投票履歴", "", DS.ink2, onNavigateToMyVotes)
+            HorizontalDivider(color = DS.sep)
+            HubRow(Icons.Filled.History, "みんなの編集履歴", "", DS.ink2, onNavigateToEditHistory)
+            HorizontalDivider(color = DS.sep)
+            HubRow(Icons.Filled.SportsEsports, "ゲーム", "クイズ・イントロ当てクイズ", DS.ink2, onNavigateToGamesHub)
             HorizontalDivider(color = DS.sep)
             HubRow(Icons.Filled.BarChart, "統計", "ブランド別・年別・ランキング", DS.ink2, onNavigateToStats)
             HorizontalDivider(color = DS.sep)

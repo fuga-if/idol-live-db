@@ -38,6 +38,9 @@ object SyncMappers {
             name = name,
             nameKana = r.str("nameKana"),
             nameRomaji = r.str("nameRomaji"),
+            familyName = r.str("familyName"),
+            givenName = r.str("givenName"),
+            nickname = r.str("nickname"),
             color = r.str("color"),
             sortOrder = r.int("sortOrder"),
             birthday = r.str("birthday"),
@@ -54,14 +57,32 @@ object SyncMappers {
             talents = r.str("talents"),
             description = r.str("description"),
             gender = r.str("gender"),
-            handedness = r.str("handedness")
+            handedness = r.str("handedness"),
+            debutDate = r.str("debutDate"),
+            attribute = r.str("attribute"),
+            isExternal = r.bool("isExternal"),
+            aliases = r.str("aliases"),
+            voiceActors = r.str("voiceActors")
         )
     }
 
     fun event(r: CkRecord): Event? {
         val id = id(r) ?: return null
         val name = r.str("name") ?: return null
-        return Event(id, r.str("brandId"), name, r.str("eventType") ?: "live", r.bool("isStreaming"))
+        return Event(
+            id = id,
+            brandId = r.str("brandId"),
+            name = name,
+            eventType = r.str("eventType") ?: "live",
+            isStreaming = r.bool("isStreaming"),
+            isSolo = r.bool("isSolo", default = true),
+            kind = r.str("kind") ?: "live",
+            ticketOpenDate = r.str("ticketOpenDate"),
+            ticketDeadline = r.str("ticketDeadline"),
+            ticketLotteryDate = r.str("ticketLotteryDate"),
+            ticketUrl = r.str("ticketUrl"),
+            jointBrandIds = r.str("jointBrandIds")
+        )
     }
 
     fun show(r: CkRecord): Show? {
@@ -106,7 +127,8 @@ object SyncMappers {
             parentSongId = r.str("parentSongId"),
             singerLabel = r.str("singerLabel"),
             unitName = r.str("unitName"),
-            unitId = r.str("unitId")
+            unitId = r.str("unitId"),
+            seriesGroup = r.str("seriesGroup")
         )
     }
 

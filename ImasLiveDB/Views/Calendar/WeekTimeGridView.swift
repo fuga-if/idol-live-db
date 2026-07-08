@@ -405,6 +405,8 @@ struct WeekTimeGridView: View {
         case .show(let row): return row.eventName
         case .release(_, let songs): return songs.first?.title ?? "リリース"
         case .birthday(let idol): return idol.name
+        case .staffBirthday(let staff): return staff.name
+        case .anniversary(let ann): return ann.label
         case .personal(let event): return event.title
         case .ticket(let row): return "\(row.kind.label)・\(row.eventName)"
         case .ticketPeriod(let row): return "受付・\(row.eventName)"
@@ -464,7 +466,7 @@ struct WeekTimeGridView: View {
             guard let start = Self.parseTimeMinutes(row.show.startTime) else { return nil }
             // 終了時刻データは無いため仮に 2 時間ぶんの高さで描画する
             return (start, min(start + Metric.defaultShowDurationMinutes, 24 * 60))
-        case .release, .birthday, .ticket, .ticketPeriod:
+        case .release, .birthday, .staffBirthday, .anniversary, .ticket, .ticketPeriod:
             return nil
         case .personal(let event):
             guard !event.isAllDay else { return nil }

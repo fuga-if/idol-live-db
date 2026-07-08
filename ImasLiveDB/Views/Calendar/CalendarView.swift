@@ -8,6 +8,10 @@ struct CalendarView: View {
     @AppStorage("calendar_show_shows") private var showShows = true
     @AppStorage("calendar_show_releases") private var showReleases = true
     @AppStorage("calendar_show_birthdays") private var showBirthdays = false
+    /// 事務員 (音無小鳥・千川ちひろ・青羽美咲 等) の誕生日。アイドル誕生日とは別チップ。
+    @AppStorage("calendar_show_staff_birthdays") private var showStaffBirthdays = false
+    /// ブランド/アプリ記念日 (サービス開始・アニメ放映 等)。N周年表示。
+    @AppStorage("calendar_show_anniversaries") private var showAnniversaries = true
     @AppStorage("calendar_show_tickets") private var showTickets = true
     /// 端末カレンダーのマイ予定オーバーレイ (オプトイン、デフォルト OFF)
     @AppStorage("calendar_show_personal") private var showPersonal = false
@@ -59,6 +63,8 @@ struct CalendarView: View {
                 case .show: return showShows
                 case .release: return showReleases
                 case .birthday: return showBirthdays
+                case .staffBirthday: return showStaffBirthdays
+                case .anniversary: return showAnniversaries
                 case .ticket, .ticketPeriod: return showTickets
                 case .personal: return false  // マイ予定は personalEntriesByDate 側で管理
                 }
@@ -186,6 +192,8 @@ struct CalendarView: View {
             .onChange(of: showShows) { _, _ in rebuildFiltered() }
             .onChange(of: showReleases) { _, _ in rebuildFiltered() }
             .onChange(of: showBirthdays) { _, _ in rebuildFiltered() }
+            .onChange(of: showStaffBirthdays) { _, _ in rebuildFiltered() }
+            .onChange(of: showAnniversaries) { _, _ in rebuildFiltered() }
             .onChange(of: showTickets) { _, _ in rebuildFiltered() }
             .onChange(of: showPersonal) { _, isOn in
                 if isOn {
@@ -287,6 +295,8 @@ struct CalendarView: View {
                 CalendarFilterChip(label: "公演", systemImage: "music.mic", color: Color(hexString: "#3E6DD6"), isOn: $showShows)
                 CalendarFilterChip(label: "リリース", systemImage: "opticaldisc", color: DS.warning, isOn: $showReleases)
                 CalendarFilterChip(label: "誕生日", systemImage: "gift", color: .pink, isOn: $showBirthdays)
+                CalendarFilterChip(label: "事務員", systemImage: "person.text.rectangle", color: .pink, isOn: $showStaffBirthdays)
+                CalendarFilterChip(label: "記念日", systemImage: "sparkles", color: .teal, isOn: $showAnniversaries)
                 CalendarFilterChip(label: "チケット", systemImage: "ticket", color: DS.danger, isOn: $showTickets)
                 CalendarFilterChip(label: "マイ予定", systemImage: "person.crop.circle", color: DS.sys, isOn: $showPersonal)
             }
@@ -376,6 +386,12 @@ struct CalendarView: View {
             }
         case .birthday(let idol):
             sheetDestination = .idol(idol)
+        case .staffBirthday:
+            // 事務員はアイドル詳細を持たないため、その日の日詳細シートを開く。
+            daySheet = DaySheet(date: calendar.startOfDay(for: selectedDate))
+        case .anniversary:
+            // 記念日もブランド詳細導線は今は持たないため日詳細へ。
+            daySheet = DaySheet(date: calendar.startOfDay(for: selectedDate))
         case .personal(let event):
             personalDetail = event
         case .ticket(let row):
@@ -439,7 +455,8 @@ struct CalendarView: View {
                     DayEntryRow(
                         entry: entry,
                         onSelect: { dest in sheetDestination = dest },
-                        onSelectPersonal: { event in personalDetail = event }
+                        onSelectPersonal: { event in personalDetail = event },
+                        displayDate: selectedDate
                     )
                     .environment(database)
                     .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
@@ -526,6 +543,21 @@ struct CalendarView: View {
         return days
     }
 
+    /// "--MM-DD" の月日を interval 内の年に展開して Date を返す (誕生日系の共通処理)。
+    private func monthDayDate(_ monthDay: String?, in interval: DateInterval) -> Date? {
+        guard let monthDay, monthDay.hasPrefix("--") else { return nil }
+        let parts = monthDay.dropFirst(2).split(separator: "-")
+        guard parts.count == 2, let month = Int(parts[0]), let day = Int(parts[1]) else { return nil }
+        var jstCalendar = Calendar(identifier: .gregorian)
+        jstCalendar.timeZone = TimeZone(identifier: "Asia/Tokyo")!
+        let year = jstCalendar.component(.year, from: interval.start)
+        if let date = jstCalendar.date(from: DateComponents(year: year, month: month, day: day)) { return date }
+        if month == 2 && day == 29 {
+            return jstCalendar.date(from: DateComponents(year: year, month: 2, day: 28))
+        }
+        return nil
+    }
+
     private func entryDate(_ entry: CalendarEntry, in interval: DateInterval) -> Date? {
         switch entry {
         case .show(let row):
@@ -533,18 +565,24 @@ struct CalendarView: View {
         case .release(let dateStr, _):
             return AppDatabase.parseDate(dateStr)
         case .birthday(let idol):
-            guard let birthday = idol.birthday, birthday.hasPrefix("--") else { return nil }
-            let parts = birthday.dropFirst(2).split(separator: "-")
-            guard parts.count == 2,
-                  let month = Int(parts[0]),
-                  let day = Int(parts[1]) else { return nil }
+            return monthDayDate(idol.birthday, in: interval)
+        case .staffBirthday(let staff):
+            return monthDayDate(staff.birthday, in: interval)
+        case .anniversary(let ann):
+            // 起点日 YYYY-MM-DD を interval の年に展開。起点より前の年は出さない。
+            guard let start = AppDatabase.parseDate(ann.date) else { return nil }
+            let parts = ann.date.split(separator: "-")
+            guard parts.count == 3,
+                  let month = Int(parts[1]),
+                  let day = Int(parts[2]) else { return nil }
             var jstCalendar = Calendar(identifier: .gregorian)
             jstCalendar.timeZone = TimeZone(identifier: "Asia/Tokyo")!
-            let year = jstCalendar.component(.year, from: interval.start)
-            if let date = jstCalendar.date(from: DateComponents(year: year, month: month, day: day)) { return date }
-            // 非閏年の 2/29 → 2/28 にフォールバック
-            if month == 2 && day == 29 {
-                return jstCalendar.date(from: DateComponents(year: year, month: 2, day: 28))
+            let intervalYear = jstCalendar.component(.year, from: interval.start)
+            for y in [intervalYear, intervalYear + 1] {
+                if let date = jstCalendar.date(from: DateComponents(year: y, month: month, day: day)),
+                   date >= start, date >= interval.start, date <= interval.end {
+                    return date
+                }
             }
             return nil
         case .personal(let event):

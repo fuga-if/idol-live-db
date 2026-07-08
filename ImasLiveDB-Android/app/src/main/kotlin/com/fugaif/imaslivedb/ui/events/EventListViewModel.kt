@@ -4,30 +4,34 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.fugaif.imaslivedb.data.model.Brand
-import com.fugaif.imaslivedb.data.model.EventWithDate
+import com.fugaif.imaslivedb.data.model.EventWithDateRange
 import com.fugaif.imaslivedb.di.AppModule
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 
 data class YearGroup(
     val year: String,
-    val events: List<EventWithDate>
+    val events: List<EventWithDateRange>
 )
 
 data class EventListUiState(
     val isLoading: Boolean = true,
-    val eventsWithDate: List<EventWithDate> = emptyList(),
+    val eventsWithDate: List<EventWithDateRange> = emptyList(),
     val brands: List<Brand> = emptyList(),
     val selectedBrandId: String? = null,
-    val hideStreaming: Boolean = false
+    val hideStreaming: Boolean = false,
+    /** 0 = 今後の予定 / 1 = 開催済み */
+    val timeFilter: Int = 0,
+    val todayKey: String = LocalDate.now().toString()
 ) {
-    val filteredEvents: List<EventWithDate>
+    val filteredEvents: List<EventWithDateRange>
         get() {
-            var result = eventsWithDate
+            var result = eventsWithDate.filter { it.isUpcoming(todayKey) == (timeFilter == 0) }
             if (selectedBrandId != null) {
-                result = result.filter { it.event.brandId == selectedBrandId }
+                result = result.filter { it.event.brandId == selectedBrandId || it.event.jointBrandIdList.contains(selectedBrandId) }
             }
             if (hideStreaming) {
                 result = result.filter { !it.event.isStreaming }
@@ -37,7 +41,7 @@ data class EventListUiState(
 
     val groupedByYear: List<YearGroup>
         get() {
-            val yearMap = mutableMapOf<String, MutableList<EventWithDate>>()
+            val yearMap = mutableMapOf<String, MutableList<EventWithDateRange>>()
             for (ew in filteredEvents) {
                 val year = if (ew.firstDate != null && ew.firstDate.length >= 4) {
                     ew.firstDate.take(4) + "年"
@@ -50,6 +54,7 @@ data class EventListUiState(
                 when {
                     a == "年度不明" -> 1
                     b == "年度不明" -> -1
+                    timeFilter == 0 -> a.compareTo(b)
                     else -> b.compareTo(a)
                 }
             }
@@ -81,5 +86,9 @@ class EventListViewModel : ViewModel() {
 
     fun toggleHideStreaming() {
         _uiState.value = _uiState.value.copy(hideStreaming = !_uiState.value.hideStreaming)
+    }
+
+    fun selectTimeFilter(index: Int) {
+        _uiState.value = _uiState.value.copy(timeFilter = index)
     }
 }

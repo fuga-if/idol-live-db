@@ -711,6 +711,36 @@ enum DatabaseMigrations {
             }
         }
 
+        // v25: 事務員 (staff) + ブランド記念日 (anniversaries)。カレンダー機能の拡充。
+        // staff: 音無小鳥・高木社長等の「アイドル本人ではない関係者」の誕生日を持つ。
+        // anniversaries: ブランド/アプリの service_start/app_start/anime_start/movie_release/cd_debut。
+        // 中身は bundle master.sqlite から reseed で投入される (Documents DB 側はスキーマだけ作る)。
+        migrator.registerMigration("v25_staff_and_anniversaries") { db in
+            try db.create(table: "staff", ifNotExists: true) { t in
+                t.primaryKey("id", .text)
+                t.column("brand_id", .text).notNull().references("brands")
+                t.column("name", .text).notNull()
+                t.column("name_kana", .text)
+                t.column("name_romaji", .text)
+                t.column("role", .text)
+                t.column("birthday", .text)  // '--MM-DD'
+                t.column("sort_order", .integer).notNull().defaults(to: 0)
+            }
+            try db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_staff_brand ON staff(brand_id)")
+            try db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_staff_birthday ON staff(birthday)")
+
+            try db.create(table: "anniversaries", ifNotExists: true) { t in
+                t.primaryKey("id", .text)
+                t.column("brand_id", .text).notNull().references("brands")
+                t.column("label", .text).notNull()
+                t.column("date", .text).notNull()  // 'YYYY-MM-DD' (年あり、N周年計算用)
+                t.column("kind", .text).notNull()  // service_start / app_start / anime_start / movie_release / cd_debut
+                t.column("sort_order", .integer).notNull().defaults(to: 0)
+            }
+            try db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_anniversaries_brand ON anniversaries(brand_id)")
+            try db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_anniversaries_date ON anniversaries(date)")
+        }
+
         return migrator
     }
 }

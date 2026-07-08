@@ -17,11 +17,30 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.fugaif.imaslivedb.ui.edit.RecentEditsScreen
 import com.fugaif.imaslivedb.ui.events.EventDetailScreen
 import com.fugaif.imaslivedb.ui.events.EventListScreen
 import com.fugaif.imaslivedb.ui.events.SetlistScreen
+import com.fugaif.imaslivedb.ui.games.ColorMatchGameScreen
+import com.fugaif.imaslivedb.ui.games.GamesHubScreen
+import com.fugaif.imaslivedb.ui.games.IdolQuizScreen
+import com.fugaif.imaslivedb.ui.games.IdolQuizSetupScreen
+import com.fugaif.imaslivedb.ui.games.SongSingerQuizScreen
+import com.fugaif.imaslivedb.ui.games.SongSingerQuizSetupScreen
 import com.fugaif.imaslivedb.ui.idols.IdolDetailScreen
 import com.fugaif.imaslivedb.ui.idols.IdolListScreen
+import com.fugaif.imaslivedb.ui.introdon.IntroDonHomeScreen
+import com.fugaif.imaslivedb.ui.introdon.IntroDonGameScreen
+import com.fugaif.imaslivedb.ui.introdon.IntroDonMode
+import com.fugaif.imaslivedb.ui.introdon.IntroDonPartyScreen
+import com.fugaif.imaslivedb.ui.introdon.IntroDonSettings
+import com.fugaif.imaslivedb.ui.introdon.IntroDonSetupScreen
+import com.fugaif.imaslivedb.ui.introdon.decodeIntroDonBrandIds
+import com.fugaif.imaslivedb.ui.introdon.encodeIntroDonBrandIds
+import com.fugaif.imaslivedb.ui.mypage.AttendedEventsScreen
+import com.fugaif.imaslivedb.ui.mypage.FavoritesScreen
+import com.fugaif.imaslivedb.ui.mypage.MyContributionsScreen
+import com.fugaif.imaslivedb.ui.polls.MyVotesScreen
 import com.fugaif.imaslivedb.ui.polls.PollsScreen
 import com.fugaif.imaslivedb.ui.produce.ProduceScreen
 import com.fugaif.imaslivedb.ui.schedule.CalendarScreen
@@ -30,6 +49,8 @@ import com.fugaif.imaslivedb.ui.settings.SettingsScreen
 import com.fugaif.imaslivedb.ui.songs.SongDetailScreen
 import com.fugaif.imaslivedb.ui.songs.SongListScreen
 import com.fugaif.imaslivedb.ui.stats.StatsScreen
+import com.fugaif.imaslivedb.ui.tags.TagDetailScreen
+import com.fugaif.imaslivedb.ui.tags.TagListScreen
 import com.fugaif.imaslivedb.ui.units.UnitDetailScreen
 
 @Composable
@@ -361,12 +382,140 @@ private fun NavGraphBuilder.produceNavGraph(navController: NavHostController) {
             onNavigateToSearch = { navController.navigate(NavRoutes.Search.route) },
             onNavigateToPolls = { navController.navigate(NavRoutes.Polls.route) },
             onNavigateToIdol = { navController.navigate(NavRoutes.IdolDetail.createRoute(it)) },
-            onNavigateToSong = { navController.navigate(NavRoutes.SongDetail.createRoute(it)) }
+            onNavigateToSong = { navController.navigate(NavRoutes.SongDetail.createRoute(it)) },
+            onNavigateToFavorites = { navController.navigate(NavRoutes.Favorites.route) },
+            onNavigateToAttendedEvents = { navController.navigate(NavRoutes.AttendedEvents.route) },
+            onNavigateToMyContributions = { navController.navigate(NavRoutes.MyContributions.route) },
+            onNavigateToMyVotes = { navController.navigate(NavRoutes.MyVotes.route) },
+            onNavigateToEditHistory = { navController.navigate(NavRoutes.EditHistory.route) },
+            onNavigateToTagList = { navController.navigate(NavRoutes.TagList.route) },
+            onNavigateToGamesHub = { navController.navigate(NavRoutes.GamesHub.route) }
         )
     }
     composable(NavRoutes.Stats.route) { StatsScreen() }
     composable(NavRoutes.Settings.route) { SettingsScreen() }
     composable(NavRoutes.Polls.route) { PollsScreen(onBack = { navController.popBackStack() }) }
+    composable(NavRoutes.Favorites.route) {
+        FavoritesScreen(
+            onBack = { navController.popBackStack() },
+            onNavigateToSong = { navController.navigate(NavRoutes.SongDetail.createRoute(it)) },
+            onNavigateToIdol = { navController.navigate(NavRoutes.IdolDetail.createRoute(it)) }
+        )
+    }
+    composable(NavRoutes.AttendedEvents.route) {
+        AttendedEventsScreen(
+            onBack = { navController.popBackStack() },
+            onEventClick = { navController.navigate(NavRoutes.EventDetail.createRoute(it)) }
+        )
+    }
+    composable(NavRoutes.MyContributions.route) {
+        MyContributionsScreen(onBack = { navController.popBackStack() })
+    }
+    composable(NavRoutes.MyVotes.route) {
+        MyVotesScreen(onBack = { navController.popBackStack() })
+    }
+    composable(NavRoutes.EditHistory.route) {
+        RecentEditsScreen(onBack = { navController.popBackStack() })
+    }
+    composable(NavRoutes.TagList.route) {
+        TagListScreen(
+            onBack = { navController.popBackStack() },
+            onTagClick = { navController.navigate(NavRoutes.TagDetail.createRoute(it)) },
+            onSongClick = { navController.navigate(NavRoutes.SongDetail.createRoute(it)) }
+        )
+    }
+    composable(NavRoutes.TagDetail.ROUTE) { backStackEntry ->
+        val tagId = backStackEntry.arguments?.getString("tagId") ?: return@composable
+        TagDetailScreen(
+            tagId = tagId,
+            onBack = { navController.popBackStack() },
+            onSongClick = { navController.navigate(NavRoutes.SongDetail.createRoute(it)) }
+        )
+    }
+    composable(NavRoutes.GamesHub.route) {
+        GamesHubScreen(
+            onBack = { navController.popBackStack() },
+            onNavigateToIntroDon = { navController.navigate(NavRoutes.IntroDonHome.route) },
+            onNavigateToColorMatch = { navController.navigate(NavRoutes.GamesColorMatch.route) },
+            onNavigateToIdolQuizSetup = { navController.navigate(NavRoutes.GamesIdolQuizSetup.route) },
+            onNavigateToSongQuizSetup = { navController.navigate(NavRoutes.GamesSongQuizSetup.route) }
+        )
+    }
+    composable(NavRoutes.IntroDonHome.route) {
+        IntroDonHomeScreen(
+            onBack = { navController.popBackStack() },
+            onNavigateToSetup = { navController.navigate(NavRoutes.IntroDonSetup.route) }
+        )
+    }
+    composable(NavRoutes.IntroDonSetup.route) {
+        IntroDonSetupScreen(
+            onBack = { navController.popBackStack() },
+            onStartGame = { settings ->
+                navController.navigate(
+                    NavRoutes.IntroDonGame.createRoute(
+                        mode = settings.mode.name,
+                        brandIds = encodeIntroDonBrandIds(settings.selectedBrandIds),
+                        questionCount = settings.questionCount,
+                        introDurationMs = settings.introDurationMs,
+                        rushTimeLimitSec = settings.rushTimeLimitSec
+                    )
+                )
+            },
+            onStartParty = { settings ->
+                navController.navigate(
+                    NavRoutes.IntroDonParty.createRoute(
+                        brandIds = encodeIntroDonBrandIds(settings.selectedBrandIds),
+                        questionCount = settings.questionCount,
+                        introDurationMs = settings.introDurationMs
+                    )
+                )
+            }
+        )
+    }
+    composable(NavRoutes.IntroDonGame.ROUTE) { backStackEntry ->
+        val args = backStackEntry.arguments
+        val settings = IntroDonSettings(
+            mode = IntroDonMode.valueOf(args?.getString("mode") ?: IntroDonMode.NORMAL.name),
+            questionCount = args?.getString("questionCount")?.toIntOrNull() ?: 10,
+            introDurationMs = args?.getString("introDurationMs")?.toLongOrNull() ?: 5_000L,
+            rushTimeLimitSec = args?.getString("rushTimeLimitSec")?.toIntOrNull() ?: 60,
+            selectedBrandIds = decodeIntroDonBrandIds(args?.getString("brandIds"))
+        )
+        IntroDonGameScreen(settings = settings, onExit = { navController.popBackStack(NavRoutes.IntroDonHome.route, false) })
+    }
+    composable(NavRoutes.IntroDonParty.ROUTE) { backStackEntry ->
+        val args = backStackEntry.arguments
+        val settings = IntroDonSettings(
+            mode = IntroDonMode.PARTY,
+            questionCount = args?.getString("questionCount")?.toIntOrNull() ?: 10,
+            introDurationMs = args?.getString("introDurationMs")?.toLongOrNull() ?: 5_000L,
+            selectedBrandIds = decodeIntroDonBrandIds(args?.getString("brandIds"))
+        )
+        IntroDonPartyScreen(settings = settings, onExit = { navController.popBackStack(NavRoutes.IntroDonHome.route, false) })
+    }
+    composable(NavRoutes.GamesColorMatch.route) {
+        ColorMatchGameScreen(onBack = { navController.popBackStack() })
+    }
+    composable(NavRoutes.GamesIdolQuizSetup.route) {
+        IdolQuizSetupScreen(
+            onBack = { navController.popBackStack() },
+            onStart = { brandIds -> navController.navigate(NavRoutes.GamesIdolQuiz.createRoute(brandIds)) }
+        )
+    }
+    composable(NavRoutes.GamesIdolQuiz.ROUTE) { backStackEntry ->
+        val brandIds = decodeGameBrandIds(backStackEntry.arguments?.getString("brandIds"))
+        IdolQuizScreen(selectedBrandIds = brandIds, onBack = { navController.popBackStack() })
+    }
+    composable(NavRoutes.GamesSongQuizSetup.route) {
+        SongSingerQuizSetupScreen(
+            onBack = { navController.popBackStack() },
+            onStart = { brandIds -> navController.navigate(NavRoutes.GamesSongQuiz.createRoute(brandIds)) }
+        )
+    }
+    composable(NavRoutes.GamesSongQuiz.ROUTE) { backStackEntry ->
+        val brandIds = decodeGameBrandIds(backStackEntry.arguments?.getString("brandIds"))
+        SongSingerQuizScreen(selectedBrandIds = brandIds, onBack = { navController.popBackStack() })
+    }
     detailRoutes(navController)
 }
 

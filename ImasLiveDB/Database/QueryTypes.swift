@@ -443,6 +443,10 @@ enum CalendarEntry: Identifiable, Hashable, Sendable {
     case show(CalendarShowRow)
     case release(date: String, songs: [Song])
     case birthday(Idol)
+    /// 「アイドル本人ではない関係者」(事務員・社長・幹部) の誕生日。
+    case staffBirthday(Staff)
+    /// ブランド/アプリ記念日 (サービス開始・アプリ稼働・アニメ放映 等)。N周年表示用。
+    case anniversary(Anniversary)
     /// 端末カレンダーから取り込んだマイ予定 (アプリ内表示のみ。DB には保存しない)
     case personal(PersonalCalendarEvent)
     /// チケット日程 (申込締切 / 当落発表)。
@@ -457,6 +461,8 @@ enum CalendarEntry: Identifiable, Hashable, Sendable {
         case .show(let row): return "show_\(row.show.id)"
         case .release(let date, let songs): return "release_\(date)_\(songs.map(\.id).sorted().joined(separator: "_"))"
         case .birthday(let idol): return "birthday_\(idol.id)"
+        case .staffBirthday(let staff): return "staffbirthday_\(staff.id)"
+        case .anniversary(let ann): return "anniversary_\(ann.id)"
         case .personal(let event): return "personal_\(event.id)"
         case .ticket(let row): return "ticket_\(row.eventId)_\(row.kind.rawValue)"
         case .ticketPeriod(let row): return "ticketperiod_\(row.eventId)"
@@ -482,6 +488,10 @@ enum CalendarEntry: Identifiable, Hashable, Sendable {
         case .release(let date, _): return date
         case .birthday(let idol):
             return idol.birthday ?? ""
+        case .staffBirthday(let staff):
+            return staff.birthday ?? ""
+        case .anniversary(let ann):
+            return ann.date
         case .personal(let event):
             return event.start.formatted(.iso8601.year().month().day().dateSeparator(.dash))
         case .ticket(let row):
@@ -491,17 +501,19 @@ enum CalendarEntry: Identifiable, Hashable, Sendable {
         }
     }
 
-    /// 同日内ソート順: 受付期間帯=0, ticket=1, show=2, release=3, birthday=4, personal=5
+    /// 同日内ソート順: 受付期間帯=0, ticket=1, show=2, release=3, anniversary=4, birthday=5, staffBirthday=6, personal=7
     /// チケット系は「その日やるべきこと」なので最上段に出す。受付期間の帯は各日で
-    /// 縦位置を揃えたいので最優先 (0)。
+    /// 縦位置を揃えたいので最優先 (0)。記念日はアイドル誕生日より上 (ブランド全体のトピックなので)。
     var sortOrder: Int {
         switch self {
         case .ticketPeriod: return 0
         case .ticket: return 1
         case .show: return 2
         case .release: return 3
-        case .birthday: return 4
-        case .personal: return 5
+        case .anniversary: return 4
+        case .birthday: return 5
+        case .staffBirthday: return 6
+        case .personal: return 7
         }
     }
 }

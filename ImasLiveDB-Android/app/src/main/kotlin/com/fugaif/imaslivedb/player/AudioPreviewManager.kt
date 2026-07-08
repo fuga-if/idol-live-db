@@ -85,6 +85,16 @@ object AudioPreviewManager {
         playUrl(url, title)
     }
 
+    /** Pause playback without clearing the media item (position is kept, use [resume] to continue). */
+    fun pause() {
+        player?.pause()
+    }
+
+    /** Resume playback from the paused position set by [pause]. No-op if nothing is loaded. */
+    fun resume() {
+        player?.play()
+    }
+
     /** Stop playback and clear state. */
     fun stop() {
         player?.stop()

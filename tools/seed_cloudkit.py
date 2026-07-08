@@ -309,12 +309,21 @@ def upload_operations(
             processed += len(batch)
             continue
 
+        if batch_start > 0:
+            time.sleep(1.0)
         payload = {"operations": batch}
         try:
             result = post_json(url, payload)
         except Exception as e:
-            print(f"  [error] batch upload failed: {e}", file=sys.stderr)
-            raise
+            # CloudKit がまれに "could not find handler for endpoint" 404 を返す
+            # (連続リクエストでのスロットリングらしき挙動)。少し待って1回だけ再試行する。
+            print(f"  [warn] batch upload failed, retrying once: {e}", file=sys.stderr)
+            time.sleep(3.0)
+            try:
+                result = post_json(url, payload)
+            except Exception as e2:
+                print(f"  [error] batch upload failed after retry: {e2}", file=sys.stderr)
+                raise
 
         errors = [r for r in result.get("records", []) if "serverErrorCode" in r]
         if errors:
@@ -350,7 +359,7 @@ def seed_table(
 
     where, params = "", []
     if song_ids:
-        id_col = {"songs": "id", "song_artists": "song_id", "show_cast": "show_id"}.get(table)
+        id_col = {"songs": "id", "song_artists": "song_id", "show_cast": "show_id", "setlist_items": "id", "idols": "id", "setlist_performers": "setlist_item_id"}.get(table)
         if id_col:
             where = f" WHERE {id_col} IN ({','.join('?' for _ in song_ids)})"
             params = song_ids

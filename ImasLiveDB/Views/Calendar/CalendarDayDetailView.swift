@@ -13,6 +13,8 @@ struct DayEntryRow: View {
     /// マイ予定タップ時に親へ通知する (DetailDestination を持たないため別経路)。
     /// 親は簡易詳細シート (PersonalEventDetailView) を出す。
     var onSelectPersonal: ((PersonalCalendarEvent) -> Void)? = nil
+    /// この行が表示される暦日。記念日のN周年計算に使う (省略時は当日)。
+    var displayDate: Date = Date()
 
     var body: some View {
         switch entry {
@@ -55,6 +57,12 @@ struct DayEntryRow: View {
                 birthdayRow(idol: idol)
             }
             .buttonStyle(.plain)
+        case .staffBirthday(let staff):
+            // 事務員は専用詳細画面が無いのでタップ無効 (View だけ)。
+            staffBirthdayRow(staff: staff)
+        case .anniversary(let ann):
+            // 記念日も詳細導線無し。タップ無効。
+            anniversaryRow(ann)
         case .personal(let event):
             Button {
                 onSelectPersonal?(event)
@@ -155,6 +163,54 @@ struct DayEntryRow: View {
             subtitle: idol.birthdayDisplay,
             leading: { IdolAvatarView(idol: idol, size: 36) },
             trailing: { BirthdayGiftChip(seed: idol.color) }
+        )
+    }
+
+    /// 事務員 (音無小鳥・千川ちひろ 等) の誕生日行。アイドル詳細を持たないので非タップ。
+    private func staffBirthdayRow(staff: Staff) -> some View {
+        rowShell(
+            seed: nil,
+            title: "\(staff.name) 誕生日",
+            subtitle: staff.role,
+            leading: {
+                Image(systemName: "person.text.rectangle.fill")
+                    .font(.imasScaled(16, weight: .semibold))
+                    .foregroundStyle(.pink)
+                    .frame(width: 36, height: 36)
+                    .background(Color.pink.opacity(0.16), in: Circle())
+            },
+            trailing: { BirthdayGiftChip(seed: nil) }
+        )
+    }
+
+    /// ブランド記念日 (N周年表示)。
+    private func anniversaryRow(_ ann: Anniversary) -> some View {
+        let kind = AnniversaryKind(rawValue: ann.kind)
+        let icon = kind?.systemImage ?? "sparkles"
+        var jst = Calendar(identifier: .gregorian)
+        jst.timeZone = TimeZone(identifier: "Asia/Tokyo")!
+        let thisYear = jst.component(.year, from: displayDate)
+        let years = ann.anniversaryYears(in: thisYear)
+        // 表示: 「21周年・アーケード版稼働」 (起点年=0周年は「初日」と表示)
+        let title: String
+        if let years {
+            title = years == 0 ? "\(ann.label) (初日)" : "\(years)周年 ・ \(ann.label)"
+        } else {
+            title = ann.label
+        }
+        let subtitle = "\(ann.date.prefix(4)) 起点"
+        return rowShell(
+            seed: nil,
+            title: title,
+            subtitle: subtitle,
+            leading: {
+                Image(systemName: icon)
+                    .font(.imasScaled(16, weight: .semibold))
+                    .foregroundStyle(.teal)
+                    .frame(width: 36, height: 36)
+                    .background(Color.teal.opacity(0.16), in: Circle())
+            },
+            trailing: { EmptyView() }
         )
     }
 
@@ -326,7 +382,7 @@ struct CalendarDayDetailView: View {
 
     @ViewBuilder
     private func entryRow(for entry: CalendarEntry) -> some View {
-        DayEntryRow(entry: entry, onSelect: onSelect, onSelectPersonal: onSelectPersonal)
+        DayEntryRow(entry: entry, onSelect: onSelect, onSelectPersonal: onSelectPersonal, displayDate: selectedDate)
             .environment(database)
             .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
             .listRowBackground(DS.surface)
@@ -413,7 +469,13 @@ struct CalendarDayDetailView: View {
     private var entryTypeSummary: some View {
         let showCount = entries.filter { if case .show = $0 { true } else { false } }.count
         let releaseCount = entries.filter { if case .release = $0 { true } else { false } }.count
-        let birthdayCount = entries.filter { if case .birthday = $0 { true } else { false } }.count
+        // アイドル誕生日と事務員誕生日は同じ「gift」アイコンでまとめて集計。
+        let birthdayCount = entries.filter {
+            if case .birthday = $0 { return true }
+            if case .staffBirthday = $0 { return true }
+            return false
+        }.count
+        let anniversaryCount = entries.filter { if case .anniversary = $0 { true } else { false } }.count
         let ticketCount = entries.filter {
             if case .ticket = $0 { return true }
             if case .ticketPeriod = $0 { return true }
@@ -429,6 +491,9 @@ struct CalendarDayDetailView: View {
             }
             if birthdayCount > 0 {
                 summaryBadge(count: birthdayCount, systemImage: "gift", color: .pink)
+            }
+            if anniversaryCount > 0 {
+                summaryBadge(count: anniversaryCount, systemImage: "sparkles", color: .teal)
             }
             if ticketCount > 0 {
                 summaryBadge(count: ticketCount, systemImage: "ticket", color: DS.danger)

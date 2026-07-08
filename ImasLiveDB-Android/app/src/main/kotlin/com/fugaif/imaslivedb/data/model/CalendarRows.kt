@@ -27,3 +27,21 @@ data class CalBirthdayRow(
     @ColumnInfo(name = "brand_id") val brandId: String,
     @ColumnInfo(name = "birthday") val birthday: String
 )
+
+/** カレンダー用: 月内に誕生日を迎える事務員。 */
+data class CalStaffBirthdayRow(
+    @ColumnInfo(name = "id") val id: String,
+    @ColumnInfo(name = "name") val name: String,
+    @ColumnInfo(name = "brand_id") val brandId: String,
+    @ColumnInfo(name = "birthday") val birthday: String,
+    @ColumnInfo(name = "role") val role: String?
+)
+
+/** カレンダー用: 月内に該当する記念日。 */
+data class CalAnniversaryRow(
+    @ColumnInfo(name = "id") val id: String,
+    @ColumnInfo(name = "label") val label: String,
+    @ColumnInfo(name = "date") val date: String,
+    @ColumnInfo(name = "brand_id") val brandId: String,
+    @ColumnInfo(name = "kind") val kind: String
+)

@@ -1,11 +1,18 @@
 package com.fugaif.imaslivedb.data.repository
 
 import com.fugaif.imaslivedb.data.db.AppDatabase
+import com.fugaif.imaslivedb.data.model.AllPerformerRow
+import com.fugaif.imaslivedb.data.model.Brand
 import com.fugaif.imaslivedb.data.model.Event
-import com.fugaif.imaslivedb.data.model.EventCastRow
 import com.fugaif.imaslivedb.data.model.EventStats
-import com.fugaif.imaslivedb.data.model.EventWithDate
+import com.fugaif.imaslivedb.data.model.EventWithDateRange
+import com.fugaif.imaslivedb.data.model.Idol
+import com.fugaif.imaslivedb.data.model.SetlistItem
+import com.fugaif.imaslivedb.data.model.SetlistPerformer
+import com.fugaif.imaslivedb.data.model.SetlistRow
 import com.fugaif.imaslivedb.data.model.Show
+import com.fugaif.imaslivedb.data.model.ShowCast
+import com.fugaif.imaslivedb.data.model.ShowWithEventName
 
 class EventRepository(private val db: AppDatabase) {
 
@@ -17,21 +24,27 @@ class EventRepository(private val db: AppDatabase) {
         }
     }
 
-    suspend fun fetchEventsWithFirstDate(brandId: String? = null): List<EventWithDate> {
-        val rows = if (brandId != null) {
-            db.eventDao().fetchEventsWithFirstDateByBrand(brandId)
-        } else {
-            db.eventDao().fetchEventsWithFirstDate()
-        }
-        return rows.map { it.toEventWithDate() }
+    suspend fun fetchEventsWithFirstDate(): List<EventWithDateRange> {
+        return db.eventDao().fetchEventsWithFirstDate().map { it.toEventWithDateRange() }
     }
 
     suspend fun fetchEventStats(eventId: String): EventStats {
         return db.eventDao().fetchEventStats(eventId)
     }
 
-    suspend fun fetchEventCastMembers(eventId: String): List<EventCastRow> {
-        return db.eventDao().fetchEventCastMembers(eventId)
+    /** イベント配下の show_cast 全行 (主演/ゲスト/DAY別出演の判定用)。 */
+    suspend fun fetchEventShowCast(eventId: String): List<ShowCast> {
+        return db.eventDao().fetchEventShowCast(eventId)
+    }
+
+    /** ブランド全体のアイドル名簿 (出演/欠席の対象集合)。 */
+    suspend fun fetchBrandRoster(brandId: String): List<Idol> {
+        return db.idolDao().fetchIdolsByBrand(brandId)
+    }
+
+    /** ヒーロー配色に使うブランド情報 (color hex)。 */
+    suspend fun fetchBrand(brandId: String): Brand? {
+        return db.brandDao().fetchBrand(brandId)
     }
 
     suspend fun fetchShows(eventId: String): List<Show> {
@@ -48,5 +61,39 @@ class EventRepository(private val db: AppDatabase) {
 
     suspend fun fetchLatestShow(): Show? {
         return db.showDao().fetchLatestShow()
+    }
+
+    /** オープン編集「セトリ編集」の対象公演を選ぶピッカー用。 */
+    suspend fun searchShows(query: String, limit: Int = 30): List<ShowWithEventName> {
+        val trimmed = query.trim()
+        return if (trimmed.isEmpty()) {
+            db.showDao().fetchRecentShowsWithEventName(limit)
+        } else {
+            db.showDao().searchShowsWithEventName("%$trimmed%", limit)
+        }
+    }
+
+    suspend fun fetchSetlist(showId: String): List<SetlistRow> {
+        return db.setlistDao().fetchSetlist(showId)
+    }
+
+    suspend fun fetchAllPerformers(showId: String): List<AllPerformerRow> {
+        return db.setlistDao().fetchAllPerformers(showId)
+    }
+
+    /**
+     * セトリ編集の保存後、サーバ確定値でローカル DB を全置換する (iOS `showWriting.replaceSetlist` と同じ)。
+     * ローカル反映は admin が直接反映 (POST /edits) できた場合のみ呼ばれる想定。
+     */
+    suspend fun replaceSetlist(
+        deletedItemIds: List<String>,
+        deletedPerformers: List<Pair<String, String>>,
+        items: List<SetlistItem>,
+        performers: List<SetlistPerformer>
+    ) {
+        if (deletedItemIds.isNotEmpty()) db.setlistDao().deleteItems(deletedItemIds)
+        for ((itemId, idolId) in deletedPerformers) db.setlistDao().deletePerformer(itemId, idolId)
+        if (items.isNotEmpty()) db.setlistDao().upsertItems(items)
+        if (performers.isNotEmpty()) db.setlistDao().upsertPerformers(performers)
     }
 }

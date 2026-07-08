@@ -2,10 +2,11 @@ package com.fugaif.imaslivedb.data.db.dao
 
 import androidx.room.Dao
 import androidx.room.Query
+import com.fugaif.imaslivedb.data.model.AttendedEventTypeRow
 import com.fugaif.imaslivedb.data.model.Event
-import com.fugaif.imaslivedb.data.model.EventCastRow
 import com.fugaif.imaslivedb.data.model.EventStats
-import com.fugaif.imaslivedb.data.model.EventWithDateRow
+import com.fugaif.imaslivedb.data.model.EventWithDateRangeRow
+import com.fugaif.imaslivedb.data.model.ShowCast
 
 @Dao
 interface EventDao {
@@ -20,25 +21,14 @@ interface EventDao {
     suspend fun fetchEvent(id: String): Event?
 
     @Query("""
-        SELECT e.id, e.brand_id, e.name, e.event_type, e.is_streaming,
-               MIN(s.date) AS first_date
+        SELECT e.id, e.brand_id, e.name, e.event_type, e.is_streaming, e.joint_brand_ids,
+               MIN(s.date) AS first_date, MAX(s.date) AS last_date
         FROM events e
         LEFT JOIN shows s ON s.event_id = e.id
         GROUP BY e.id
         ORDER BY COALESCE(MIN(s.date), '') DESC
     """)
-    suspend fun fetchEventsWithFirstDate(): List<EventWithDateRow>
-
-    @Query("""
-        SELECT e.id, e.brand_id, e.name, e.event_type, e.is_streaming,
-               MIN(s.date) AS first_date
-        FROM events e
-        LEFT JOIN shows s ON s.event_id = e.id
-        WHERE e.brand_id = :brandId
-        GROUP BY e.id
-        ORDER BY COALESCE(MIN(s.date), '') DESC
-    """)
-    suspend fun fetchEventsWithFirstDateByBrand(brandId: String): List<EventWithDateRow>
+    suspend fun fetchEventsWithFirstDate(): List<EventWithDateRangeRow>
 
     @Query("""
         WITH event_shows AS (SELECT id FROM shows WHERE event_id = :eventId)
@@ -50,15 +40,13 @@ interface EventDao {
     """)
     suspend fun fetchEventStats(eventId: String): EventStats
 
+    /** イベント配下の全 show_cast 行 (show 単位の出演/主演/ゲスト判定用)。 */
     @Query("""
-        SELECT DISTINCT i.id AS id, i.name AS name, i.color AS idol_color, i.name AS idol_name, i.id AS idol_id
-        FROM show_cast sc
+        SELECT sc.* FROM show_cast sc
         JOIN shows sh ON sc.show_id = sh.id
-        JOIN idols i ON sc.idol_id = i.id
         WHERE sh.event_id = :eventId
-        ORDER BY i.sort_order
     """)
-    suspend fun fetchEventCastMembers(eventId: String): List<EventCastRow>
+    suspend fun fetchEventShowCast(eventId: String): List<ShowCast>
 
     @Query("""
         SELECT * FROM events
@@ -66,4 +54,54 @@ interface EventDao {
         LIMIT 20
     """)
     suspend fun searchEvents(pattern: String): List<Event>
+
+    /** id 指定でイベント + 開催日レンジ(初日/最終日)を取得。お気に入りライブ一覧用。 */
+    @Query("""
+        SELECT e.id, e.brand_id, e.name, e.event_type, e.is_streaming, e.joint_brand_ids,
+               MIN(s.date) AS first_date, MAX(s.date) AS last_date
+        FROM events e
+        LEFT JOIN shows s ON s.event_id = e.id
+        WHERE e.id IN (:ids)
+        GROUP BY e.id
+        ORDER BY COALESCE(MIN(s.date), '') DESC
+    """)
+    suspend fun fetchEventsWithDateRangeByIds(ids: List<String>): List<EventWithDateRangeRow>
+
+    /**
+     * 参加したライブ(イベント)を重複なしで返す。
+     * 「イベント単位の参加マーク」と「公演(show)単位の参加マーク→所属イベント」を UNION で統合する
+     * (参加を公演単位で付けるユーザーが多く、event マークだけ見るとリストが取りこぼすため)。
+     */
+    @Query("""
+        SELECT e.id, e.brand_id, e.name, e.event_type, e.is_streaming, e.joint_brand_ids,
+               MIN(s.date) AS first_date, MAX(s.date) AS last_date
+        FROM events e
+        LEFT JOIN shows s ON s.event_id = e.id
+        WHERE e.id IN (
+            SELECT entity_id FROM user_marks
+            WHERE entity_type = 'event' AND kind = 'attended' AND bool_value = 1
+            UNION
+            SELECT sh.event_id FROM user_marks um
+            JOIN shows sh ON sh.id = um.entity_id
+            WHERE um.entity_type = 'show' AND um.kind = 'attended' AND um.bool_value = 1
+        )
+        GROUP BY e.id
+        ORDER BY COALESCE(MIN(s.date), '') DESC
+    """)
+    suspend fun fetchAttendedEventsWithDateRange(): List<EventWithDateRangeRow>
+
+    /** 参加したイベントを現地/配信/LVに分類するための生行 (text_value = 参加種別)。 */
+    @Query("""
+        SELECT event_id, text_value AS atype FROM (
+            SELECT entity_id AS event_id, text_value
+            FROM user_marks
+            WHERE entity_type='event' AND kind='attended' AND bool_value=1
+            UNION ALL
+            SELECT sh.event_id AS event_id, um.text_value
+            FROM user_marks um
+            JOIN shows sh ON sh.id = um.entity_id
+            WHERE um.entity_type='show' AND um.kind='attended' AND um.bool_value=1
+        )
+    """)
+    suspend fun fetchAttendedEventTypeRows(): List<AttendedEventTypeRow>
 }
