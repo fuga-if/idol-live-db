@@ -51,6 +51,49 @@ interface SongDao {
     """)
     suspend fun fetchSongPerformanceHistory(songId: String): List<PerformanceHistoryRow>
 
+    /**
+     * 現地回収済み公演一覧 (参加したリアルライブでこの曲が披露された公演)。
+     * iOS AppDatabase.fetchCollectedShows と同じ判定 (show/event 単位の attended マーク)。
+     */
+    @Query(
+        """
+        SELECT DISTINCT sh.id AS show_id, e.id AS event_id,
+               e.name AS event_name, sh.name AS show_name, sh.date, sh.venue,
+               si.position, si.section
+        FROM setlist_items si
+        JOIN shows sh ON si.show_id = sh.id
+        JOIN events e ON sh.event_id = e.id
+        WHERE si.song_id = :songId
+        AND (
+            sh.id IN (
+                SELECT entity_id FROM user_marks
+                WHERE entity_type = 'show' AND kind = 'attended' AND bool_value = 1
+            )
+            OR sh.event_id IN (
+                SELECT entity_id FROM user_marks
+                WHERE entity_type = 'event' AND kind = 'attended' AND bool_value = 1
+            )
+        )
+        ORDER BY sh.date DESC
+        """
+    )
+    suspend fun fetchCollectedShows(songId: String): List<PerformanceHistoryRow>
+
+    @Query("SELECT series_group FROM songs WHERE id = :songId LIMIT 1")
+    suspend fun fetchSeriesGroup(songId: String): String?
+
+    @Query("SELECT * FROM songs WHERE series_group = :seriesGroup")
+    suspend fun fetchSongsBySeriesGroup(seriesGroup: String): List<Song>
+
+    @Query("""
+        SELECT DISTINCT s.* FROM songs s
+        JOIN song_artists sa ON s.id = sa.song_id
+        WHERE sa.role = 'original' AND sa.idol_id IN (
+            SELECT idol_id FROM song_artists WHERE song_id = :songId AND role = 'original'
+        )
+    """)
+    suspend fun fetchSongsSharingOriginalArtist(songId: String): List<Song>
+
     @Query("""
         SELECT s.id, s.title, COUNT(si.id) AS play_count, s.brand_id
         FROM songs s
@@ -63,6 +106,39 @@ interface SongDao {
 
     @Query("SELECT song_id, COUNT(*) as cnt FROM setlist_items GROUP BY song_id")
     suspend fun fetchSongPerfCounts(): List<SongPerfCount>
+
+    /**
+     * song_id → 現地回収回数 (参加したリアルライブ(live/festival)で披露された distinct 公演数)。
+     * iOS AppDatabase.fetchSongCollectedCounts と同一クエリ。参加種別は既定(現地のみ)固定
+     * (iOS の配信含む設定トグルは Android 未移植)。
+     */
+    @Query(
+        """
+        SELECT si.song_id AS song_id, COUNT(DISTINCT si.show_id) AS cnt
+        FROM setlist_items si
+        JOIN shows sh ON sh.id = si.show_id
+        JOIN events e ON e.id = sh.event_id
+        WHERE e.kind IN ('live', 'festival')
+        AND (
+            si.show_id IN (
+                SELECT entity_id FROM user_marks
+                WHERE entity_type = 'show' AND kind = 'attended' AND bool_value = 1
+                  AND (text_value IS NULL OR text_value = 'live')
+            ) OR si.show_id IN (
+                SELECT id FROM shows WHERE event_id IN (
+                    SELECT entity_id FROM user_marks
+                    WHERE entity_type = 'event' AND kind = 'attended' AND bool_value = 1
+                )
+            )
+        )
+        GROUP BY si.song_id
+        """
+    )
+    suspend fun fetchSongCollectedCounts(): List<SongPerfCount>
+
+    /** 指定アイドルのいずれかが歌唱者にいる song_id 集合 (担当マーク由来の「担当」表示用)。 */
+    @Query("SELECT DISTINCT song_id FROM song_artists WHERE idol_id IN (:idolIds)")
+    suspend fun fetchSongIdsWithAnyArtist(idolIds: List<String>): List<String>
 
     @Query("""
         SELECT DISTINCT cd_series FROM songs

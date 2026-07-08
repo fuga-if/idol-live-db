@@ -16,6 +16,8 @@ class SongRepository(private val db: AppDatabase) {
     suspend fun fetchSongs(
         filter: SongSearchFilter = SongSearchFilter(),
         sortOrder: SongSortOrder = SongSortOrder.TITLE_KANA,
+        // nil = sortOrder のデフォルト方向 (iOS SongListView と同じ tri-state)。
+        ascending: Boolean? = null,
         // タグ絞り込み(TagFilterSheet)の結果song_id集合。Worker D1 (コミュニティタグ)は端末外データなので
         // ローカルSQLに直接JOINできず、呼び出し側(SongListViewModel)が解決した集合をここでIN句に渡す。
         // 非nullかつ空集合 = 該当曲なし(クエリを投げず即空リストで返す)。
@@ -40,6 +42,9 @@ class SongRepository(private val db: AppDatabase) {
         if (filter.brandId != null) {
             conditions.add("s.brand_id = ?")
             args.add(filter.brandId)
+        } else if (!filter.includeOtherBrand) {
+            // ブランド未選択(全件)のときは既定で other (歌枠カバー等) を隠す。
+            conditions.add("s.brand_id IS NOT 'other'")
         }
         if (!filter.title.isNullOrEmpty()) {
             conditions.add("(s.title LIKE ? OR s.title_kana LIKE ?)")
@@ -105,10 +110,13 @@ class SongRepository(private val db: AppDatabase) {
             sql += " WHERE " + conditions.joinToString(" AND ")
         }
 
+        val asc = ascending ?: sortOrder.defaultAscending
+        val dir = if (asc) "ASC" else "DESC"
         when (sortOrder) {
-            SongSortOrder.TITLE_KANA -> sql += " ORDER BY s.title_kana, s.title"
-            SongSortOrder.RELEASE_DATE -> sql += " ORDER BY s.release_date DESC, s.title_kana"
-            SongSortOrder.PERFORMANCE_COUNT -> { /* sorted in memory below */ }
+            SongSortOrder.TITLE_KANA -> sql += " ORDER BY s.title_kana $dir, s.title $dir"
+            SongSortOrder.RELEASE_DATE -> sql += " ORDER BY s.release_date $dir, s.title_kana"
+            SongSortOrder.PERFORMANCE_COUNT, SongSortOrder.COLLECTED_COUNT, SongSortOrder.COLLECTED_RATE ->
+                { /* sorted in memory below */ }
         }
 
         val songs = db.songDao().fetchSongsRaw(SimpleSQLiteQuery(sql, args.toTypedArray()))
@@ -117,13 +125,47 @@ class SongRepository(private val db: AppDatabase) {
             SongWithArtists(song = song, artistNames = song.singerLabel ?: "")
         }
 
-        if (sortOrder == SongSortOrder.PERFORMANCE_COUNT) {
-            val counts = db.songDao().fetchSongPerfCounts()
-            val countMap = counts.associate { it.songId to it.cnt }
-            results = results.sortedByDescending { countMap[it.song.id] ?: 0 }
+        when (sortOrder) {
+            SongSortOrder.TITLE_KANA, SongSortOrder.RELEASE_DATE -> {}
+            SongSortOrder.PERFORMANCE_COUNT -> {
+                val countMap = db.songDao().fetchSongPerfCounts().associate { it.songId to it.cnt }
+                results = if (asc) results.sortedBy { countMap[it.song.id] ?: 0 }
+                else results.sortedByDescending { countMap[it.song.id] ?: 0 }
+            }
+            SongSortOrder.COLLECTED_COUNT -> {
+                val countMap = db.songDao().fetchSongCollectedCounts().associate { it.songId to it.cnt }
+                results = if (asc) results.sortedBy { countMap[it.song.id] ?: 0 }
+                else results.sortedByDescending { countMap[it.song.id] ?: 0 }
+            }
+            SongSortOrder.COLLECTED_RATE -> {
+                val attendedMap = db.songDao().fetchSongCollectedCounts().associate { it.songId to it.cnt }
+                val totalMap = db.songDao().fetchSongPerfCounts().associate { it.songId to it.cnt }
+                fun rate(id: String): Double {
+                    val total = totalMap[id] ?: 0
+                    return if (total > 0) (attendedMap[id] ?: 0).toDouble() / total else 0.0
+                }
+                results = if (asc) {
+                    results.sortedWith(compareBy({ rate(it.song.id) }, { attendedMap[it.song.id] ?: 0 }))
+                } else {
+                    results.sortedWith(
+                        compareByDescending<SongWithArtists> { rate(it.song.id) }
+                            .thenByDescending { attendedMap[it.song.id] ?: 0 }
+                    )
+                }
+            }
         }
 
         return results
+    }
+
+    /** song_id → 現地回収回数 (行アイコン/回収済みフィルタ用の bulk 取得)。 */
+    suspend fun fetchSongCollectedCounts(): Map<String, Int> =
+        db.songDao().fetchSongCollectedCounts().associate { it.songId to it.cnt }
+
+    /** 指定アイドルのいずれかが歌唱者にいる song_id 集合 (担当マーク由来の「担当」表示/絞り込み用)。 */
+    suspend fun fetchSongIdsWithAnyArtist(idolIds: Collection<String>): Set<String> {
+        if (idolIds.isEmpty()) return emptySet()
+        return db.songDao().fetchSongIdsWithAnyArtist(idolIds.toList()).toSet()
     }
 
     suspend fun fetchSong(id: String): Song? {
@@ -162,6 +204,42 @@ class SongRepository(private val db: AppDatabase) {
 
     suspend fun fetchUnitSongs(unitId: String): List<Song> {
         return db.songDao().fetchUnitSongs(unitId)
+    }
+
+    suspend fun fetchCollectedShows(songId: String): List<PerformanceHistoryRow> {
+        return db.songDao().fetchCollectedShows(songId)
+    }
+
+    /**
+     * 関連楽曲 (同じシリーズ/ユニット/原唱アイドルでつながる曲)。iOS fetchRelatedSongs と同じ重み付け
+     * (シリーズ=3, ユニット=2, 原唱共有=1) で足し合わせ、スコア降順→リリース日降順で並べる。
+     */
+    suspend fun fetchRelatedSongs(song: Song, limit: Int = 8): List<Song> {
+        val dao = db.songDao()
+        val ordered = mutableListOf<String>()
+        val byId = mutableMapOf<String, Pair<Song, Int>>()
+        fun add(songs: List<Song>, weight: Int) {
+            for (s in songs) {
+                if (s.id == song.id) continue
+                if (byId[s.id] == null) ordered.add(s.id)
+                val (existing, score) = byId[s.id] ?: (s to 0)
+                byId[s.id] = existing to (score + weight)
+            }
+        }
+
+        val seriesGroup = dao.fetchSeriesGroup(song.id)
+        if (!seriesGroup.isNullOrEmpty()) {
+            add(dao.fetchSongsBySeriesGroup(seriesGroup), weight = 3)
+        }
+        if (!song.unitId.isNullOrEmpty()) {
+            add(dao.fetchUnitSongs(song.unitId), weight = 2)
+        }
+        add(dao.fetchSongsSharingOriginalArtist(song.id), weight = 1)
+
+        return ordered.mapNotNull { byId[it] }
+            .sortedWith(compareByDescending<Pair<Song, Int>> { it.second }.thenByDescending { it.first.releaseDate ?: "" })
+            .take(limit)
+            .map { it.first }
     }
 
     suspend fun fetchIdolSongs(idolId: String, role: String? = null): List<Song> {
