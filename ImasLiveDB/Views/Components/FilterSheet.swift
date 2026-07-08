@@ -339,6 +339,8 @@ struct IdolFilterSheet: View {
     @State private var brands: [Brand] = []
     @State private var localBrandIds: Set<String> = []
     @State private var localAttribute: String?
+    @State private var localDisplayMode: IdolDisplayMode = .idolName
+    @State private var localShowCV: Bool = false
     @State private var localMyPick: Bool = false
     @State private var localFavorite: Bool = false
     @State private var localNote: Bool = false
@@ -358,7 +360,7 @@ struct IdolFilterSheet: View {
         NavigationStack {
             List {
                 Section("表示形式") {
-                    Picker("名前表示", selection: $displayMode) {
+                    Picker("名前表示", selection: $localDisplayMode) {
                         ForEach(IdolDisplayMode.allCases, id: \.self) { mode in
                             Text(mode.rawValue).tag(mode)
                         }
@@ -366,8 +368,8 @@ struct IdolFilterSheet: View {
                     .pickerStyle(.segmented)
 
                     // アイドル名表示のとき、CV 名を別行で併記するか。CV 名表示中は CV がタイトルなので無効。
-                    Toggle("CV名を併記", isOn: $showCV)
-                        .disabled(displayMode == .cvName)
+                    Toggle("CV名を併記", isOn: $localShowCV)
+                        .disabled(localDisplayMode == .cvName)
                 }
 
                 BrandFilterSection(brands: brands, selectedBrandIds: $localBrandIds)
@@ -407,12 +409,14 @@ struct IdolFilterSheet: View {
                     }
                 }
 
-                if !localBrandIds.isEmpty || localAttribute != nil || localMyPick || localFavorite || localNote {
+                if !localBrandIds.isEmpty || localAttribute != nil || localDisplayMode != .idolName || localShowCV || localMyPick || localFavorite || localNote {
                     Section {
                         Button(role: .destructive) {
                             AppAnalytics.tap("filter_sheet.reset")
                             localBrandIds = []
                             localAttribute = nil
+                            localDisplayMode = .idolName
+                            localShowCV = false
                             localMyPick = false
                             localFavorite = false
                             localNote = false
@@ -430,17 +434,21 @@ struct IdolFilterSheet: View {
                         AppAnalytics.tap("filter_sheet.reset")
                         localBrandIds = []
                         localAttribute = nil
+                        localDisplayMode = .idolName
+                        localShowCV = false
                         localMyPick = false
                         localFavorite = false
                         localNote = false
                     }
-                    .disabled(localBrandIds.isEmpty && localAttribute == nil && !localMyPick && !localFavorite && !localNote)
+                    .disabled(localBrandIds.isEmpty && localAttribute == nil && localDisplayMode == .idolName && !localShowCV && !localMyPick && !localFavorite && !localNote)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("適用") {
                         AppAnalytics.tap("filter_sheet.apply")
                         selectedBrandIds = localBrandIds
                         selectedAttribute = localAttribute
+                        displayMode = localDisplayMode
+                        showCV = localShowCV
                         requireMyPick = localMyPick
                         requireFavorite = localFavorite
                         requireNote = localNote
@@ -457,6 +465,8 @@ struct IdolFilterSheet: View {
                 }
                 localBrandIds = selectedBrandIds
                 localAttribute = selectedAttribute
+                localDisplayMode = displayMode
+                localShowCV = showCV
                 localMyPick = requireMyPick
                 localFavorite = requireFavorite
                 localNote = requireNote
