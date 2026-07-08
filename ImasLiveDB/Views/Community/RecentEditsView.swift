@@ -35,6 +35,8 @@ struct RecentEditsView: View {
     /// Good の楽観更新オーバーレイ。サーバ確定値が来るまで UI 即時反映する。
     /// editId -> 上書き済みの (gooded, count)。未操作の行はここに無く entry の値をそのまま使う。
     @State private var goodOverrides: [Int: (gooded: Bool, count: Int)] = [:]
+    /// Good/取消の連打防止ガード。処理中の entry.id を保持する。
+    @State private var goodInFlight: Set<Int> = []
 
     private let limit = 20
 
@@ -205,22 +207,32 @@ struct RecentEditsView: View {
         guard hasMore, !isLoadingMore else { return }
         isLoadingMore = true
         defer { isLoadingMore = false }
-        let next = page + 1
+        var next = page
         do {
-            let result = try await EditFeedService.shared.fetchEdits(
-                page: next, limit: limit, brandId: brandId, mine: mineOnly
-            )
-            // 重複防止 (id 既出はスキップ)。
-            let existing = Set(entries.map(\.id))
-            let fresh = result.items.filter { !existing.contains($0.id) }
-            entries.append(contentsOf: fresh)
-            await resolveTitles(for: fresh)
-            page = next
-            hasMore = result.items.count >= limit
+            // 重複が多いページ (fresh が空) でも、まだ次ページがある限り自動的に
+            // 進める。entries が変化しないと末尾付近の onAppear が再発火せず
+            // 無限スクロールが詰まってしまうため、ここでループして次を取りに行く。
+            while true {
+                next += 1
+                let result = try await EditFeedService.shared.fetchEdits(
+                    page: next, limit: limit, brandId: brandId, mine: mineOnly
+                )
+                let existing = Set(entries.map(\.id))
+                let fresh = result.items.filter { !existing.contains($0.id) }
+                entries.append(contentsOf: fresh)
+                await resolveTitles(for: fresh)
+                page = next
+                // 生の受信件数が limit 未満の時だけ「もう次が無い」と判定する
+                // (重複除去後の件数で判定すると、全件重複ページで誤って
+                // hasMore=false になってしまう)。
+                hasMore = result.items.count >= limit
+                if !fresh.isEmpty || !hasMore { break }
+            }
         } catch {
-            // 追加読み込み失敗はサイレント (アラートで邪魔しない)。
+            // 一過性の通信エラーではページネーションを恒久停止させない。
+            // hasMore は変更せず、エラー表示のみに留めて再試行の余地を残す。
             Logger.community.error("edits_load_more_failed: \(error.localizedDescription)")
-            hasMore = false
+            errorMessage = errorText(error)
         }
     }
 
@@ -235,6 +247,11 @@ struct RecentEditsView: View {
         // 自分の編集には Good 不可 (自己賞賛防止)。UI 上もボタンは出ないが二重ガード。
         // 本人判定はサーバ算出の isOwnEdit を権威とする (契約 §1)。
         guard !entry.isOwnEdit else { return }
+        // 連打防止: 同一 entry の Good/取消が並行発火すると表示が一時的にサーバ状態と
+        // ずれるため、処理中はこの entry への操作を弾く。
+        guard !goodInFlight.contains(entry.id) else { return }
+        goodInFlight.insert(entry.id)
+        defer { goodInFlight.remove(entry.id) }
 
         let currentlyGooded = isGooded(entry)
         let currentCount = goodCount(entry)
