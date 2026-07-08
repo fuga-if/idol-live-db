@@ -190,15 +190,15 @@ struct IdolQuizSetupView: View {
     // MARK: - Data
 
     /// 選択ブランドで絞り込んだときの出題候補アイドル数を計算する。
-    /// facts チェックを省いた近似値（実際の pool より若干多い場合がある）。
+    /// IdolQuizView.load() と同じ isIdolQuizEligible(_:selectedBrandIds:) (QuizComponents.swift) を
+    /// 使うことで、ここでの見積りと実際の出題プールを完全一致させる。
+    /// (以前は facts (プロフィール事実3件以上) チェックを省いた近似値だったため、
+    /// 見積り上は開始可能でも実際は候補不足で始まってしまうことがあった)
     private func estimatePool() async {
         isEstimating = true
         defer { isEstimating = false }
         let all = (try? await AppContainer.shared.idolReading.idols(brandId: nil)) ?? []
-        estimatedCount = all.filter { idol in
-            let brandMatch = selectedBrandIds.isEmpty || selectedBrandIds.contains(idol.brandId)
-            return !idol.isExternal && (idol.color?.isEmpty == false) && brandMatch
-        }.count
+        estimatedCount = all.filter { isIdolQuizEligible($0, selectedBrandIds: selectedBrandIds) }.count
     }
 
     // MARK: - Helpers

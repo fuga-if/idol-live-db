@@ -1,10 +1,10 @@
 import SwiftUI
 
 /// アイドル当てクイズ。最初はシルエット＋曖昧なプロフィール1項目だけで出題し、
-/// 並んだ「？」スロットからヒントを好きな順で開ける。ヒントを開くほど正解時の獲得点は
-/// 少なくなる (素点 10pt から最低 1pt)。CV はスロット内容を伏せて常設し、開封すると
-/// 「声優未発表」も含めて見えるようにすることで、声優の有無が無料でバレないようにする。
-/// 全 sessionLength 問のセッション制。データは Idol マスタの数値/テキストのプロフィール事実のみ。
+/// 並んだヒントの属性をユーザがどれから開けるか選ぶ (戦略性)。
+/// 素点は 10pt で、ヒントを 1 つ開くごとに獲得点が下がる (CV/メンバーカラーは -2pt)。
+/// CV枠は常設し、声優未発表キャラは開封して初めて「声優未発表」と分かる
+/// (CV枠の有無で不在が無料でバレないようにする)。全 sessionLength 問のセッション制。
 struct IdolQuizView: View {
     @Environment(AppDatabase.self) private var database
 
@@ -26,22 +26,18 @@ struct IdolQuizView: View {
     @State private var points = 0              // 累計獲得ポイント (加点式・上昇のみ)
     @State private var correct = 0             // 正解数
     @State private var asked = 0               // 解答済み問題数
+    @State private var seenIds: Set<String> = []   // セッション中に出題済みアイドル (重複出題防止)
+    @State private var history: [QuizHistoryItem] = []  // 各問の振り返り (リザルトに渡す)
     @State private var sessionDone = false
     @State private var isNewBest = false
     @State private var isLoading = true
-
-    private struct Fact {
-        let label: String
-        let value: String
-        /// 開いたときに下がる点数。CV のように一気にバレる項目は重く。
-        let cost: Int
-    }
 
     private struct Question {
         let answer: Idol
         let choices: [Idol]
         /// 出題に使う事実。先頭 (facts[0]) が無料公開、以降がヒントとして任意順で開ける。
-        let facts: [Fact]
+        /// (IdolQuizSetupView の見積りとも共有する `idolQuizFacts(for:)` が返す型)
+        let facts: [IdolQuizFact]
     }
 
     /// 現在この問題に正解した場合の獲得点 (素点 − 開いたヒントのコスト合計、最低 1pt)。
@@ -59,6 +55,7 @@ struct IdolQuizView: View {
                     QuizResultView(points: points, maxPoints: sessionLength * basePoints,
                                    correct: correct, questions: asked,
                                    kind: .idolQuiz, isNewBest: isNewBest,
+                                   history: history,
                                    onReplay: { restart() })
                 } else if let q = question {
                     QuizProgressHeader(current: min(asked + (selectedId != nil ? 0 : 1), sessionLength),
@@ -168,16 +165,16 @@ struct IdolQuizView: View {
 
     // MARK: - ヒント
 
-    /// 未公開の事実を「？」スロットで並べる。中身は開くまで分からない
-    /// (どの属性枠が在る/無いかで CV未発表などが無料でバレるのを防ぐ)。
-    /// 開封後の獲得点だけは見せて加点表現で誘導する。
+    /// 未公開の事実を一覧で並べ、どのヒントを開くかユーザが選べるようにする (戦略性)。
+    /// CV枠は常設 (facts() 側で「声優未発表」も含めてスロット化済) なので、CV ラベルの
+    /// 有無で声優未発表キャラの正体がバレることはない。
     private func hintList(_ q: Question) -> some View {
         let remaining = (1..<q.facts.count).filter { !opened.contains($0) }
         return VStack(spacing: DS.sp3) {
-            ForEach(Array(remaining.enumerated()), id: \.element) { pos, idx in
+            ForEach(remaining, id: \.self) { idx in
                 let f = q.facts[idx]
                 let nextValue = max(1, currentValue(q) - f.cost)
-                IdolHintRow(number: pos + 1, nextValue: nextValue) {
+                IdolHintRow(label: f.label, nextValue: nextValue) {
                     AppAnalytics.tap("idol_quiz.hint")
                     withAnimation(.easeInOut(duration: 0.2)) { _ = opened.insert(idx) }
                 }
@@ -192,10 +189,23 @@ struct IdolQuizView: View {
         AppAnalytics.tap("idol_quiz.answer")
         selectedId = idol.id
         asked += 1
+        let earned = isCorrect ? currentValue(q) : 0
         if isCorrect {
             correct += 1
-            points += currentValue(q)
+            points += earned
         }
+        // 振り返り用に1問の記録を残す。題材はアバター無しの抽象 (シルエット出題なので)、
+        // 補助情報として「ブランド」を出すと一覧が読みやすい。
+        history.append(QuizHistoryItem(
+            id: "\(asked)-\(q.answer.id)",
+            index: asked,
+            subjectTitle: "プロフィール問題",
+            subjectSubtitle: q.facts.first.map { "\($0.label): \($0.value)" },
+            answer: q.answer,
+            picked: idol,
+            earnedPoints: earned,
+            revealedHints: opened.count
+        ))
     }
 
     private func nextQuestion() {
@@ -207,6 +217,7 @@ struct IdolQuizView: View {
     private func restart() {
         points = 0; correct = 0; asked = 0
         sessionDone = false; selectedId = nil; opened = []; isNewBest = false
+        seenIds = []; history = []
         question = makeQuestion()
     }
 
@@ -227,62 +238,49 @@ struct IdolQuizView: View {
         isLoading = true
         defer { isLoading = false }
         let all = (try? await AppContainer.shared.idolReading.idols(brandId: nil)) ?? []
-        pool = all.filter { idol in
-            // ブランド絞り込み: 空集合のときは全ブランドを対象とする。
-            let brandMatch = selectedBrandIds.isEmpty || selectedBrandIds.contains(idol.brandId)
-            return !idol.isExternal && (idol.color?.isEmpty == false)
-                && facts(for: idol).count >= 3 && brandMatch
-        }
+        // IdolQuizSetupView.estimatePool() と同じ isIdolQuizEligible(_:selectedBrandIds:) を共有。
+        // ここだけ別条件になると、見積りでは開始可能なのに実際は候補不足という
+        // ズレが起きる (以前の facts>=3 チェック漏れがまさにそれだった)。
+        pool = all.filter { isIdolQuizEligible($0, selectedBrandIds: selectedBrandIds) }
         question = makeQuestion()
     }
 
-    /// プロフィール事実を「曖昧 (絞り込みにくい) → 特定 (バレやすい)」の順で返す。
-    /// 先頭が無料公開、後ろほど答えに近づく。CV は一気にバレるのでコストを重く (-2pt)。
-    private func facts(for idol: Idol) -> [Fact] {
-        var f: [Fact] = []
-        // 曖昧グループ (該当者が多い)
-        if let bt = idol.bloodType, !bt.isEmpty { f.append(Fact(label: "血液型", value: bt, cost: 1)) }
-        if let c = idol.constellation, !c.isEmpty { f.append(Fact(label: "星座", value: c, cost: 1)) }
-        if let p = idol.birthPlace, !p.isEmpty { f.append(Fact(label: "出身", value: p, cost: 1)) }
-        if let h = idol.heightDisplay { f.append(Fact(label: "身長", value: h, cost: 1)) }
-        if let age = idol.age { f.append(Fact(label: "年齢", value: "\(age)歳", cost: 1)) }
-        // 特定グループ (一気に絞れる)
-        if let h = idol.hobbies, !h.isEmpty { f.append(Fact(label: "趣味", value: h, cost: 1)) }
-        if let t = idol.talents, !t.isEmpty { f.append(Fact(label: "特技", value: t, cost: 1)) }
-        if let b = idol.birthdayDisplay, !b.isEmpty { f.append(Fact(label: "誕生日", value: b, cost: 1)) }
-        // メンバーカラー・CV は一気にバレるのでコストを重く (-2pt)。
-        if let color = idol.color, !color.isEmpty { f.append(Fact(label: "メンバーカラー", value: color, cost: 2)) }
-        // CV は常にスロットを出す。声優未発表キャラは開封で「未発表」と分かる
-        // (枠の有無で声優の有無が無料でバレるのを防ぐ)。
-        let cvValue = (idol.currentVoiceActor?.isEmpty == false) ? idol.currentVoiceActor! : "声優未発表"
-        f.append(Fact(label: "CV", value: cvValue, cost: 2))
-        return f
+    /// プロフィール事実。IdolQuizSetupView とも共有する `idolQuizFacts(for:)` (QuizComponents.swift) に委譲。
+    private func facts(for idol: Idol) -> [IdolQuizFact] {
+        idolQuizFacts(for: idol)
     }
 
     private func makeQuestion() -> Question? {
-        guard pool.count >= 4, let answer = pool.randomElement() else { return nil }
+        guard pool.count >= 4 else { return nil }
+        // 既出を除外。母数が尽きたら一巡してリセット (短いセッション中の重複は防げる)。
+        var candidates = pool.filter { !seenIds.contains($0.id) }
+        if candidates.count < 1 {
+            seenIds = []
+            candidates = pool
+        }
+        guard let answer = candidates.randomElement() else { return nil }
+        seenIds.insert(answer.id)
         let choices = (quizDistractors(from: pool, answer: answer) + [answer]).shuffled()
         return Question(answer: answer, choices: choices, facts: facts(for: answer))
     }
 }
 
-/// アイドル当てクイズ専用のヒント行。属性ラベルは伏せ「ヒント①②③」だけ見せる。
-/// (どの属性が出題に積まれているかで CV未発表などが無料でバレるのを防ぐ)
-/// 開いた後の獲得点を加点表現で見せる。
+/// アイドル当てクイズ専用のヒント行。属性ラベルを見せ、どれを開くかユーザが選べる戦略性を残す。
+/// CV枠は facts() で常設しているため、CV ラベルが並んでも声優未発表キャラの正体は漏れない。
 private struct IdolHintRow: View {
-    let number: Int
+    let label: String
     let nextValue: Int
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             HStack(spacing: DS.sp3) {
-                Image(systemName: "questionmark")
-                    .font(.imasScaled( 16, weight: .bold)).foregroundStyle(DS.warning)
+                Image(systemName: "lightbulb.fill")
+                    .font(.imasScaled( 16, weight: .semibold)).foregroundStyle(DS.warning)
                     .frame(width: 34, height: 34)
                     .background(DS.warning.opacity(0.14), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                 VStack(alignment: .leading, spacing: 1) {
-                    Text("ヒント \(number) を見る").font(.imasSubhead.weight(.semibold)).foregroundStyle(DS.ink)
+                    Text("ヒント: \(label)を見る").font(.imasSubhead.weight(.semibold)).foregroundStyle(DS.ink)
                     Text("開いた後は正解で +\(nextValue)pt").font(.imasCaption).foregroundStyle(DS.ink3)
                 }
                 Spacer(minLength: 0)

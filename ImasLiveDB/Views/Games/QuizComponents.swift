@@ -209,6 +209,64 @@ struct IdolChoiceGrid: View {
     }
 }
 
+/// セッション内の1問分の振り返り。リザルト画面の「何が出て何を間違えたか」一覧に使う。
+/// アイドル当てとソロ曲クイズで共通 (どちらも 4択 + 正解アイドル)。
+struct QuizHistoryItem: Identifiable, Hashable {
+    let id: String                  // 一意キー (出題順 + 題材ID で衝突を防ぐ)
+    let index: Int                  // 1始まりの問題番号
+    let subjectTitle: String        // 題材の表示名 (アイドル当て=「プロフィール」/ソロ曲=曲名)
+    let subjectSubtitle: String?    // 補助情報 (CD名等、無ければnil)
+    let answer: Idol                // 正解
+    let picked: Idol?               // ユーザが選んだ選択肢 (未解答なら nil)
+    let earnedPoints: Int           // この問題で獲得した点 (0 = 不正解)
+    let revealedHints: Int          // 開いたヒント数
+
+    var isCorrect: Bool { picked?.id == answer.id }
+}
+
+/// アイドル当てクイズの「未公開プロフィール事実」1件。IdolQuizView (実際の出題・ヒント表示) と
+/// IdolQuizSetupView (出題候補数の見積り) の両方から参照する共通の型。
+struct IdolQuizFact {
+    let label: String
+    let value: String
+    let cost: Int
+}
+
+/// プロフィール事実を「曖昧 (絞り込みにくい) → 特定 (バレやすい)」の順で返す。
+/// 先頭が無料公開、後ろほど答えに近づく。CV は一気にバレるのでコストを重く (-2pt)。
+///
+/// IdolQuizView.load() の実絞り込みと IdolQuizSetupView.estimatePool() の見積りが
+/// 別々にこの判定を持つと、見積りでは開始可能でも実際は候補不足で
+/// 「出題できる候補が不足しています」に落ちるズレが起きるため、必ずこれを共有する。
+func idolQuizFacts(for idol: Idol) -> [IdolQuizFact] {
+    var f: [IdolQuizFact] = []
+    // 曖昧グループ (該当者が多い)
+    if let bt = idol.bloodType, !bt.isEmpty { f.append(IdolQuizFact(label: "血液型", value: bt, cost: 1)) }
+    if let c = idol.constellation, !c.isEmpty { f.append(IdolQuizFact(label: "星座", value: c, cost: 1)) }
+    if let p = idol.birthPlace, !p.isEmpty { f.append(IdolQuizFact(label: "出身", value: p, cost: 1)) }
+    if let h = idol.heightDisplay { f.append(IdolQuizFact(label: "身長", value: h, cost: 1)) }
+    if let age = idol.age { f.append(IdolQuizFact(label: "年齢", value: "\(age)歳", cost: 1)) }
+    // 特定グループ (一気に絞れる)
+    if let h = idol.hobbies, !h.isEmpty { f.append(IdolQuizFact(label: "趣味", value: h, cost: 1)) }
+    if let t = idol.talents, !t.isEmpty { f.append(IdolQuizFact(label: "特技", value: t, cost: 1)) }
+    if let b = idol.birthdayDisplay, !b.isEmpty { f.append(IdolQuizFact(label: "誕生日", value: b, cost: 1)) }
+    // メンバーカラー・CV は一気にバレるのでコストを重く (-2pt)。
+    if let color = idol.color, !color.isEmpty { f.append(IdolQuizFact(label: "メンバーカラー", value: color, cost: 2)) }
+    // CV は常にスロットを出す。声優未発表キャラは開封で「未発表」と分かる
+    // (枠の有無で声優の有無が無料でバレるのを防ぐ)。
+    let cvValue = (idol.currentVoiceActor?.isEmpty == false) ? idol.currentVoiceActor! : "声優未発表"
+    f.append(IdolQuizFact(label: "CV", value: cvValue, cost: 2))
+    return f
+}
+
+/// アイドル当てクイズの出題対象として使えるか。外部人物除外・メンバーカラー必須に加えて
+/// facts が最低3件 (ヒントとして機能する数) 無いと出題に使えない。
+func isIdolQuizEligible(_ idol: Idol, selectedBrandIds: Set<String>) -> Bool {
+    let brandMatch = selectedBrandIds.isEmpty || selectedBrandIds.contains(idol.brandId)
+    return !idol.isExternal && (idol.color?.isEmpty == false)
+        && idolQuizFacts(for: idol).count >= 3 && brandMatch
+}
+
 /// クイズのグレード (正答率ベース)。リザルトの主役。
 enum QuizGrade: String {
     case s = "S", a = "A", b = "B", c = "C", d = "D"
@@ -234,7 +292,7 @@ enum QuizGrade: String {
     }
 }
 
-/// セッション終了時の結果画面。グレード・自己ベスト・新記録・連続日数・シェアまで載せる。
+/// セッション終了時の結果画面。グレード・自己ベスト・新記録・出題履歴・シェアまで載せる。
 struct QuizResultView: View {
     let points: Int
     let maxPoints: Int
@@ -244,6 +302,8 @@ struct QuizResultView: View {
     var kind: GameKind = .idolQuiz
     /// 今回が自己ベスト更新だったか。
     var isNewBest: Bool = false
+    /// 各問の振り返り (空なら履歴セクション非表示)。
+    var history: [QuizHistoryItem] = []
     let onReplay: () -> Void
 
     @State private var appeared = false
@@ -256,7 +316,6 @@ struct QuizResultView: View {
         guard rec.bestOutOf > 0 else { return rate }
         return Int((Double(rec.bestScore) / Double(rec.bestOutOf) * 100).rounded())
     }
-    private var streak: Int { GameProgressStore.shared.displayStreak }
 
     private var comment: String {
         switch rate {
@@ -308,16 +367,13 @@ struct QuizResultView: View {
                 resultStat(value: "\(rate)%", label: "正答率")
                 resultStat(value: "\(bestRate)%", label: "自己ベスト")
             }
-            if streak > 0 {
-                HStack(spacing: 5) {
-                    Image(systemName: "flame.fill").font(.imasScaled(12, weight: .bold)).foregroundStyle(DS.warning)
-                    Text("\(streak)日連続プレイ中").font(.imasCaption.weight(.semibold)).foregroundStyle(DS.ink2)
-                }
-            }
-
             Text(comment)
                 .font(.imasFootnote).foregroundStyle(DS.ink3)
                 .multilineTextAlignment(.center).padding(.top, DS.sp1)
+
+            if !history.isEmpty {
+                QuizHistoryList(items: history).padding(.top, DS.sp4)
+            }
 
             VStack(spacing: DS.sp3) {
                 QuizPrimaryButton(title: "もう一度", action: onReplay)
@@ -346,5 +402,85 @@ struct QuizResultView: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, DS.sp4)
         .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
+    }
+}
+
+// MARK: - 出題履歴 (リザルトの「何が出て何を間違えたか」一覧)
+
+/// セッション中の各問の振り返り一覧。題材 / 正解 / 自分の選択 / 正誤 を出す。
+struct QuizHistoryList: View {
+    let items: [QuizHistoryItem]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DS.sp3) {
+            HStack(spacing: 6) {
+                Image(systemName: "list.bullet.rectangle.portrait")
+                    .font(.imasScaled(13, weight: .semibold)).foregroundStyle(DS.ink2)
+                Text("出題の振り返り").font(.imasSubhead.weight(.bold)).foregroundStyle(DS.ink)
+                Spacer(minLength: 0)
+            }
+            VStack(spacing: DS.sp2) {
+                ForEach(items) { item in QuizHistoryRow(item: item) }
+            }
+        }
+    }
+}
+
+private struct QuizHistoryRow: View {
+    let item: QuizHistoryItem
+
+    var body: some View {
+        HStack(alignment: .top, spacing: DS.sp3) {
+            // 問題番号 + 正誤アイコン
+            VStack(spacing: 2) {
+                Text("Q\(item.index)").font(.imasCaption.weight(.bold).monospacedDigit()).foregroundStyle(DS.ink3)
+                Image(systemName: item.isCorrect ? "checkmark.circle.fill" : "xmark.circle.fill")
+                    .font(.imasScaled(16))
+                    .foregroundStyle(item.isCorrect ? DS.success : DS.danger)
+            }
+            .frame(width: 36)
+
+            VStack(alignment: .leading, spacing: 3) {
+                // 題材 (アイドル当て=「プロフィール」、ソロ曲=曲名)
+                Text(item.subjectTitle)
+                    .font(.imasSubhead.weight(.semibold)).foregroundStyle(DS.ink)
+                    .lineLimit(2)
+                if let sub = item.subjectSubtitle, !sub.isEmpty {
+                    Text(sub).font(.imasCaption).foregroundStyle(DS.ink3).lineLimit(1)
+                }
+                // 正解と (誤答時のみ) 自分の選択
+                HStack(spacing: DS.sp2) {
+                    answerChip(label: "正解", idol: item.answer, tone: DS.success)
+                    if !item.isCorrect, let picked = item.picked {
+                        answerChip(label: "選択", idol: picked, tone: DS.danger)
+                    }
+                }
+                // ヒント数と獲得点
+                HStack(spacing: 10) {
+                    Label("\(item.earnedPoints)pt", systemImage: "plus.circle.fill")
+                        .font(.imasCaption.weight(.semibold).monospacedDigit())
+                        .foregroundStyle(item.earnedPoints > 0 ? DS.success : DS.ink3)
+                    if item.revealedHints > 0 {
+                        Label("ヒント\(item.revealedHints)", systemImage: "lightbulb.fill")
+                            .font(.imasCaption.weight(.semibold))
+                            .foregroundStyle(DS.warning)
+                    }
+                }
+                .labelStyle(.titleAndIcon)
+            }
+        }
+        .padding(.horizontal, DS.sp3).padding(.vertical, DS.sp3)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
+    }
+
+    private func answerChip(label: String, idol: Idol, tone: Color) -> some View {
+        HStack(spacing: 6) {
+            IdolAvatarView(idol: idol, size: 20)
+            Text(label).font(.imasCaption.weight(.bold)).foregroundStyle(tone)
+            Text(idol.name).font(.imasCaption.weight(.semibold)).foregroundStyle(DS.ink).lineLimit(1)
+        }
+        .padding(.horizontal, 8).padding(.vertical, 4)
+        .background(tone.opacity(0.12), in: Capsule())
     }
 }
