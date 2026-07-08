@@ -37,25 +37,22 @@ final class NotificationService {
 
         center.removeAllPendingNotificationRequests()
 
-        var requests: [UNNotificationRequest] = []
-
+        // カテゴリごとに独立したグループとして組み立てる。
         // 1. 担当アイドル誕生日 (repeats annually)
-        if notifEnabled("notif_oshi_birthday") {
-            let birthdayRequests = await buildBirthdayRequests(database: database)
-            requests += birthdayRequests
-        }
-
+        let birthdayRequests = notifEnabled("notif_oshi_birthday")
+            ? await buildBirthdayRequests(database: database)
+            : []
         // 2. 月曜ミーム (今後数週の日曜 20:00。回ごとにレア文言を抽選するため個別スケジュール)
-        if notifEnabled("notif_monday") {
-            requests += buildMondayMemeRequests()
-        }
-
-        // 3. ライブ1週間前 + 4. チケット締切/当落 (非repeat, 近い順にcap)
+        let mondayRequests = notifEnabled("notif_monday")
+            ? buildMondayMemeRequests()
+            : []
+        // 3. ライブ1週間前 + 4. チケット締切/当落 (非repeat, 近い順ソート済み)
         let eventRequests = await buildEventRequests(database: database)
-        requests += eventRequests
 
-        // 合計60件cap（誕生日・月曜は少数なので後ろをトリム）
-        let capped = Array(requests.prefix(60))
+        // 合計60件cap。単純連結+prefix だと誕生日が並び順で枠を食い尽くし、
+        // イベント/月曜通知が 0 件になりうる。カテゴリを round-robin で混ぜて、
+        // どのカテゴリも枠を独占しないようにする (各グループ内の順序は保つ)。
+        let capped = Self.roundRobinMerge([birthdayRequests, mondayRequests, eventRequests], cap: 60)
 
         for request in capped {
             do {
@@ -66,6 +63,27 @@ final class NotificationService {
         }
 
         Logger.notification.info("notif_rescheduled total=\(capped.count, privacy: .public)")
+    }
+
+    /// 複数カテゴリのリクエスト列を round-robin で 1 列に混ぜ、cap 件で打ち切る。
+    /// 各グループ内の相対順序は保つ (誕生日は fetch 順、イベントは近い順ソート済み)。
+    /// 単純連結+prefix だと先頭カテゴリが枠を独占しうるため、カテゴリ間で均等に配分する。
+    private static func roundRobinMerge(_ groups: [[UNNotificationRequest]], cap: Int) -> [UNNotificationRequest] {
+        var result: [UNNotificationRequest] = []
+        result.reserveCapacity(min(cap, groups.reduce(0) { $0 + $1.count }))
+        var indices = [Int](repeating: 0, count: groups.count)
+        var remaining = groups.reduce(0) { $0 + $1.count }
+        while result.count < cap && remaining > 0 {
+            for g in groups.indices {
+                guard result.count < cap else { break }
+                let i = indices[g]
+                guard i < groups[g].count else { continue }
+                result.append(groups[g][i])
+                indices[g] += 1
+                remaining -= 1
+            }
+        }
+        return result
     }
 
     // MARK: - Birthday Notifications
