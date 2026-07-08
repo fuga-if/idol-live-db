@@ -26,6 +26,9 @@ struct Song: Codable, FetchableRecord, PersistableRecord, Identifiable, Hashable
     var singerLabel: String?
     var unitName: String?
     var unitId: String?
+    /// 上位シリーズ (例: LIVE THE@TER FORWARD)。DB には存在するが宣言漏れで
+    /// 同期のたび NULL に戻っていたため CodingKeys に追加。
+    var seriesGroup: String?
 
     enum CodingKeys: String, CodingKey {
         case id, title, composer, lyricist, arranger, isrc
@@ -45,6 +48,7 @@ struct Song: Codable, FetchableRecord, PersistableRecord, Identifiable, Hashable
         case singerLabel = "singer_label"
         case unitName = "unit_name"
         case unitId = "unit_id"
+        case seriesGroup = "series_group"
     }
 
     var isRemix: Bool { parentSongId != nil }
