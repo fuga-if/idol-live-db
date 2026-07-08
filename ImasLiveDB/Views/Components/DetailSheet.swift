@@ -370,8 +370,6 @@ struct SongSheetContent: View {
         do {
             try markService.toggle(.favorite, entity: .song, id: song.id)
             markVersion += 1
-            let value = markService.bool(.favorite, entity: .song, id: song.id)
-            Task { try? await CommunityAPI.shared.toggleFavorite(songId: song.id, value: value) }
         } catch {
             Logger.database.error("toggle_favorite_failed: \(error.localizedDescription)")
         }
