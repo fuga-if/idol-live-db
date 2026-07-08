@@ -64,11 +64,15 @@ struct TagListView: View {
                             showFilterSheet = true
                         }
 
-                        Button {
-                            AppAnalytics.tap("tag_list.create")
-                            showCreateSheet = true
-                        } label: {
-                            Image(systemName: "plus")
+                        // 未サインイン時は押しても汎用エラーになりログイン導線も出ないため、
+                        // PollListView と同様にボタン自体を出し分ける。
+                        if AuthService.shared.isSignedIn {
+                            Button {
+                                AppAnalytics.tap("tag_list.create")
+                                showCreateSheet = true
+                            } label: {
+                                Image(systemName: "plus")
+                            }
                         }
                     }
                 }
@@ -90,7 +94,10 @@ struct TagListView: View {
                 }
             }
             .sheet(isPresented: $showCreateSheet) {
-                TagCreateSheet()
+                TagCreateSheet(onCreated: { newTag in
+                    // 作成直後に一覧へ即時反映 (人気順ソート等の並びはそのまま次回ロードに委ねる)。
+                    tags.insert(newTag, at: 0)
+                })
             }
             .sheet(isPresented: $showFilterSheet) {
                 TagFilterSheet(

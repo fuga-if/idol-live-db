@@ -84,7 +84,10 @@ struct TagCreateSheet: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("作成") {
+                        // タップ直後に同期的にガードを立てる (SongTagPicker.apply と同じ理由)。
+                        guard !isCreating else { return }
                         AppAnalytics.tap("tag_create.submit")
+                        isCreating = true
                         Task { await create() }
                     }
                     .fontWeight(.semibold)

@@ -21,6 +21,9 @@ struct SongTagPicker: View {
     /// 適用完了後のシェア導線。非 nil で完了 + シェア画面に切り替わる。
     @State private var appliedShare: TagShareContext?
     @State private var applyError: String?
+    /// 検索デバウンス用の世代 ID。古い Task の結果が新しい入力を上書きしないためのガード
+    /// (SongSearchPickerView の scheduleLoad と同じ方式)。
+    @State private var loadToken = 0
 
     private var trimmedSearch: String { searchText.trimmingCharacters(in: .whitespaces) }
     private var exactMatchExists: Bool { tags.contains { $0.name == trimmedSearch } }
@@ -112,7 +115,11 @@ struct SongTagPicker: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("追加") {
+                        // タップ直後に同期的にガードを立てる。Task 起動〜isApplying=true までの
+                        // 間隙での連打による二重送信を防ぐ (サーバは冪等だが UI 上のフラッシュ防止)。
+                        guard !isApplying else { return }
                         AppAnalytics.tap("song_tag_picker.apply")
+                        isApplying = true
                         Task { await applyTags() }
                     }
                     .fontWeight(.semibold)
@@ -132,7 +139,7 @@ struct SongTagPicker: View {
                 Text(applyError ?? "")
             }
             .task { await loadData() }
-            .onChange(of: searchText) { _, _ in Task { await loadTags() } }
+            .onChange(of: searchText) { _, _ in scheduleLoadTags() }
     }
 
     /// タグ chip。未適用=ニュートラル / 選択中=タグ色 / 適用済=タグ色+チェック(無効)。
@@ -195,8 +202,24 @@ struct SongTagPicker: View {
         }
     }
 
+    /// 入力中の連打を抑えるための簡易デバウンス + 古い結果で新しい入力を上書きしないための
+    /// 世代ガード (SongSearchPickerView.scheduleLoad と同方式)。
+    private func scheduleLoadTags() {
+        loadToken += 1
+        let token = loadToken
+        Task {
+            try? await Task.sleep(nanoseconds: 200_000_000)
+            guard token == loadToken else { return }
+            await loadTags()
+        }
+    }
+
     private func loadTags() async {
-        tags = (try? await CommunityAPI.shared.tags(search: searchText, sort: "popular")) ?? []
+        let searchAt = searchText
+        let result = (try? await CommunityAPI.shared.tags(search: searchAt, sort: "popular")) ?? []
+        // 検索語が変わらないまま完了した結果だけ反映する (世代ガードの二重防御)。
+        guard searchAt == searchText else { return }
+        tags = result
     }
 
     private func applyTags() async {
