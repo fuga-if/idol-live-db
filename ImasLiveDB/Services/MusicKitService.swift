@@ -1,5 +1,6 @@
 import AVFoundation
 import Foundation
+import MediaPlayer
 import os
 import MusicKit
 import Observation
@@ -42,6 +43,17 @@ final class MusicKitService {
     func requestAuthorization() async {
         authorizationStatus = await MusicAuthorization.request()
         await checkSubscription()
+        // MPMediaLibrary 認可も同時に要求する。これがないと MPMediaQuery で
+        // ユーザのライブラリにある曲 (プレイリスト/ライブラリ追加済み曲) を引けない。
+        // Catalog ストリーミング再生が失敗する曲 (Orange Sapphire game version 等) を
+        // Library 経由でフル尺再生する経路に必須 (本家 IntroQuiz 方式)。
+        if MPMediaLibrary.authorizationStatus() == .notDetermined {
+            await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+                MPMediaLibrary.requestAuthorization { _ in
+                    continuation.resume()
+                }
+            }
+        }
         Task { await observeSubscriptionUpdates() }
     }
 
@@ -142,9 +154,11 @@ final class MusicKitService {
         }
         player?.pause()
         player = nil
-        if isFullPlayback {
-            musicPlayer.pause()
-        }
+        // MusicKit の ApplicationMusicPlayer.shared は MPMusicPlayerController.application
+        // MusicPlayer と OS 上で同一キューを共有する。 ここで pause だけで queue を残すと、
+        // 次に IntroDon (MPMusicPlayer 経路) が setQueue を打っても残骸 queue が干渉して
+        // .stopped 固着する事例があった。 必ず stop で queue を解放する。
+        musicPlayer.stop()
         isPlaying = false
         isFullPlayback = false
         nowPlayingTitle = nil
