@@ -250,7 +250,7 @@ private struct MyEditRow: View {
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
-                .tint(.red)
+                .tint(DS.danger)
             }
         }
         .padding(.top, 2)

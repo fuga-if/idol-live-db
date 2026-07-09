@@ -9,6 +9,13 @@ struct MyPageView: View {
     @AppStorage("defaultBrandId") private var defaultBrandId: String = ""
     /// 文字サイズ (極小 0.7 / 小 0.85 / 中 1.0)。密度の高いセトリ等を読みやすくする。
     @AppStorage("text_scale") private var textScale: Double = 1.0
+    private static let textScaleOptions: [Double] = [0.7, 0.85, 1.0]
+    private var textScaleIndex: Binding<Int> {
+        Binding(
+            get: { Self.textScaleOptions.firstIndex(of: textScale) ?? Self.textScaleOptions.count - 1 },
+            set: { textScale = Self.textScaleOptions[$0] }
+        )
+    }
     /// イベント名の作品名プレフィックスを省略表示するか (既定 ON)。OFF でフル表示。
     @AppStorage("event_name_abbreviate") private var abbreviateEventNames: Bool = true
     /// 曲一覧の「この絞り込みでイントロドン」導線を隠すか (曲一覧側の×と同じキー)。
@@ -346,12 +353,10 @@ struct MyPageView: View {
                     Text(brand.shortName).tag(brand.id)
                 }
             }
-            Picker("文字サイズ", selection: $textScale) {
-                Text("極小").tag(0.7)
-                Text("小").tag(0.85)
-                Text("中").tag(1.0)
+            VStack(alignment: .leading, spacing: DS.sp2) {
+                Text("文字サイズ")
+                ImasSegmented(labels: ["極小", "小", "中"], selection: textScaleIndex)
             }
-            .pickerStyle(.segmented)
             // プレビュー: 選んだサイズで実際の見え方を即確認できる (設定画面のラベル自体は
             // システム既定フォントなので変化しないため、ここで反映後の文字を見せる)。
             VStack(alignment: .leading, spacing: 3) {
