@@ -42,6 +42,21 @@ struct ImasTheme: Equatable {
         return derive(hex: hex, dark: scheme == .dark)
     }
 
+    /// 実体色を持たない「分類キー」(タグのカテゴリ名、編集フィードのレコード種別名等) から
+    /// 安定した色を導出する。同じキーは常に同じ色になる (文字列の安定ハッシュ → 色相)。
+    /// アイドル/ブランドの「本当の色」を表すものではなく、3種類以上の区分を見分けやすく
+    /// 塗り分けたいだけの場面向け。個別に固定パレット (`.purple`/`.indigo`/... 等) を
+    /// 手書きする代わりにこちらを使うと、区分がいくつ増えても保守なしで書き分けられる。
+    static func derive(categoryKey: String, scheme: ColorScheme) -> ImasTheme {
+        derive(hex: ColorMath.hexFromStableHue(ColorMath.stableHue(for: categoryKey)), dark: scheme == .dark)
+    }
+
+    /// SwiftUI `Color` を直接シードにしたい場面 (ユーザーが選んだ任意色等、hex文字列を
+    /// 経由せず既に `Color` を持っている) 用のエントリポイント。
+    static func derive(colorSeed: Color, scheme: ColorScheme) -> ImasTheme {
+        derive(hex: ColorMath.hexString(from: colorSeed), dark: scheme == .dark)
+    }
+
     /// 導出結果のメモ。(hex|dark) ごとに 1 度だけ計算する。一覧では全行の avatar/chip が
     /// 同じ少数の色を何度も導出するため、HSL 演算 + 十数トークン生成を毎描画で繰り返すと
     /// スクロール/タブ切替のフレーム落ちになる。distinct な色数は高々アイドル数×2 で有界。
@@ -185,6 +200,33 @@ enum ColorMath {
 
     static func color(h: Double, s: Double, l: Double) -> Color {
         color(hslToRgb(h, clamp(s, 0, 1), clamp(l, 0, 1)))
+    }
+
+    /// RGB → `#rrggbb`。
+    static func hexString(_ rgb: RGB) -> String {
+        String(format: "#%02x%02x%02x", Int(clamp(rgb.r, 0, 255).rounded()),
+               Int(clamp(rgb.g, 0, 255).rounded()), Int(clamp(rgb.b, 0, 255).rounded()))
+    }
+
+    /// SwiftUI `Color` → `#rrggbb` (現在のトレイトで解決した sRGB 値)。
+    static func hexString(from color: Color) -> String {
+        hexString(rgb(of: color))
+    }
+
+    /// 文字列から安定した色相 (0–360) を作る単純ハッシュ (FNV-1a)。同じ文字列は常に同じ色相になる。
+    static func stableHue(for key: String) -> Double {
+        var hash: UInt64 = 1469598103934665603
+        for byte in key.utf8 {
+            hash ^= UInt64(byte)
+            hash = hash &* 1099511628211
+        }
+        return Double(hash % 360)
+    }
+
+    /// 安定した色相から `#rrggbb` を合成する (`derive(categoryKey:)` 用。実体色を持たない
+    /// 分類キーのための、中彩度・中明度の基準シード)。
+    static func hexFromStableHue(_ hue: Double) -> String {
+        hexString(hslToRgb(hue, 0.55, 0.50))
     }
 
     // WCAG 相対輝度

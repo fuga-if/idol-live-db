@@ -177,10 +177,16 @@ struct ImasChip: View {
     var style: ImasChipStyle = .neutral
     var seed: String? = nil
     var brand: String? = nil
+    /// 実体色そのものを表現したい場面 (ユーザーが選んだ任意色等) 用の明示オーバーライド。
+    /// 指定すると `seed`/`brand` より優先され、この `Color` をシードに導出する
+    /// (素の `Color` をそのまま塗るのではなく、通常の seed/brand と同じ WCAG コントラスト
+    /// 計算を経由するので、選択色がどんな明るさでも前景色が自動で読める側に倒れる)。
+    var color: Color? = nil
     @Environment(\.colorScheme) private var scheme
 
     var body: some View {
-        let t = ImasTheme.derive(seed: seed, brand: brand, scheme: scheme)
+        let t = color.map { ImasTheme.derive(colorSeed: $0, scheme: scheme) }
+            ?? ImasTheme.derive(seed: seed, brand: brand, scheme: scheme)
         let (bg, fg): (Color, Color) = {
             switch style {
             case .themed:   return (t.chipBg, t.chipText)
@@ -425,22 +431,36 @@ struct ImasRankingRow: View {
 
 // MARK: - Segmented (詳細画面の内部セグメント)
 
-struct ImasSegmented: View {
-    let labels: [String]
-    @Binding var selection: Int
+/// セグメント切替。選択肢は `Int` インデックスに限らず、任意の `Hashable`
+/// (enum・String タグ等) を直接 `selection` に束縛できる (`options:`/`label:` イニシャライザ)。
+/// 最も多い「ラベル配列 + インデックス選択」の場合は下の `labels:` イニシャライザで
+/// 従来通り書ける (内部的にはこちらも `Selection == Int` の特殊形)。
+struct ImasSegmented<Selection: Hashable>: View {
+    let options: [Selection]
+    @Binding var selection: Selection
+    let label: (Selection) -> String
     var seed: String? = nil
     var brand: String? = nil
     @Environment(\.colorScheme) private var scheme
 
+    init(options: [Selection], selection: Binding<Selection>, seed: String? = nil, brand: String? = nil,
+         label: @escaping (Selection) -> String) {
+        self.options = options
+        self._selection = selection
+        self.label = label
+        self.seed = seed
+        self.brand = brand
+    }
+
     var body: some View {
         let t = ImasTheme.derive(seed: seed, brand: brand, scheme: scheme)
         HStack(spacing: 2) {
-            ForEach(Array(labels.enumerated()), id: \.offset) { idx, label in
-                let on = idx == selection
+            ForEach(options, id: \.self) { option in
+                let on = option == selection
                 Button {
-                    withAnimation(.easeInOut(duration: 0.15)) { selection = idx }
+                    withAnimation(.easeInOut(duration: 0.15)) { selection = option }
                 } label: {
-                    Text(label)
+                    Text(label(option))
                         .font(.imasScaled( 13.5, weight: .semibold))
                         .foregroundStyle(on ? DS.ink : DS.ink2)
                         .frame(maxWidth: .infinity)
@@ -454,6 +474,13 @@ struct ImasSegmented: View {
         .padding(2)
         .background(DS.fill, in: RoundedRectangle(cornerRadius: DS.rSM, style: .continuous))
         .accentEnvironment(t)
+    }
+}
+
+extension ImasSegmented where Selection == Int {
+    /// ラベル配列 + インデックス選択の簡易イニシャライザ (既存呼び出し元はこちらのまま動く)。
+    init(labels: [String], selection: Binding<Int>, seed: String? = nil, brand: String? = nil) {
+        self.init(options: Array(labels.indices), selection: selection, seed: seed, brand: brand) { labels[$0] }
     }
 }
 
