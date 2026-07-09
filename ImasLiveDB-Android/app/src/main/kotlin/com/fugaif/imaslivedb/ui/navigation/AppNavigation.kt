@@ -429,7 +429,8 @@ private fun NavGraphBuilder.produceNavGraph(navController: NavHostController) {
         TagDetailScreen(
             tagId = tagId,
             onBack = { navController.popBackStack() },
-            onSongClick = { navController.navigate(NavRoutes.SongDetail.createRoute(it)) }
+            onSongClick = { navController.navigate(NavRoutes.SongDetail.createRoute(it)) },
+            onIdolClick = { navController.navigate(NavRoutes.IdolDetail.createRoute(it)) }
         )
     }
     composable(NavRoutes.GamesHub.route) {

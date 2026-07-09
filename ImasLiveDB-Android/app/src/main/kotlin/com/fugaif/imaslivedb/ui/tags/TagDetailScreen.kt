@@ -42,16 +42,18 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.fugaif.imaslivedb.ui.components.ImasAvatar
 import com.fugaif.imaslivedb.ui.components.SongRow
 import com.fugaif.imaslivedb.ui.theme.DS
 
-/** タグ詳細。iOS TagDetailView の移植 (説明 + 付いた曲ランキング + 編集/履歴/通報)。 */
+/** タグ詳細。iOS TagDetailView の移植 (説明 + 付いた曲/アイドルランキング + 編集/履歴/通報)。 */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TagDetailScreen(
     tagId: String,
     onBack: () -> Unit,
     onSongClick: (String) -> Unit,
+    onIdolClick: (String) -> Unit = {},
     viewModel: TagDetailViewModel = viewModel(key = tagId)
 ) {
     val context = LocalContext.current
@@ -136,10 +138,10 @@ fun TagDetailScreen(
                             )
                         }
                     }
-                    if (uiState.songs.isEmpty()) {
+                    if (uiState.songs.isEmpty() && uiState.idols.isEmpty()) {
                         item {
                             Text(
-                                "まだこのタグが付いた曲はありません", color = DS.ink2, fontSize = 13.sp,
+                                "まだこのタグが付いた曲・アイドルはありません", color = DS.ink2, fontSize = 13.sp,
                                 modifier = Modifier.fillMaxWidth().padding(16.dp)
                             )
                         }
@@ -166,6 +168,39 @@ fun TagDetailScreen(
                                     )
                                 } else {
                                     Text(row.songId, fontSize = 13.sp, color = DS.ink2, modifier = Modifier.weight(1f))
+                                }
+                                Text("${row.voteCount}票", fontSize = 12.sp, color = DS.ink2)
+                            }
+                            HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 16.dp))
+                        }
+                    }
+                    if (tag != null && uiState.idols.isNotEmpty()) {
+                        item {
+                            Text(
+                                "「${tag.name}」なアイドルランキング (${uiState.idols.size}人)",
+                                fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = DS.ink2,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
+                            )
+                        }
+                        itemsIndexed(uiState.idols) { idx, row ->
+                            val idol = row.idol
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.fillMaxWidth()
+                                    .clickable(enabled = idol != null) { idol?.let { onIdolClick(it.id) } }
+                                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                            ) {
+                                TagRankBadge(idx + 1)
+                                if (idol != null) {
+                                    ImasAvatar(label = idol.name, seed = idol.color, brand = idol.brandId, size = 32.dp)
+                                    Text(
+                                        idol.name, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink,
+                                        modifier = Modifier.weight(1f).padding(start = 4.dp),
+                                        maxLines = 1, overflow = TextOverflow.Ellipsis
+                                    )
+                                } else {
+                                    Text(row.idolId, fontSize = 13.sp, color = DS.ink2, modifier = Modifier.weight(1f))
                                 }
                                 Text("${row.voteCount}票", fontSize = 12.sp, color = DS.ink2)
                             }

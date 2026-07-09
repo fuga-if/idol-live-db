@@ -20,9 +20,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Star
@@ -58,6 +61,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.fugaif.imaslivedb.data.community.CommunityApi
 import com.fugaif.imaslivedb.data.model.CastShowRow
 import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.data.model.IdolPerformedSong
@@ -72,6 +76,7 @@ import com.fugaif.imaslivedb.ui.components.ImasLabeledRow
 import com.fugaif.imaslivedb.ui.components.ImasSectionHeader
 import com.fugaif.imaslivedb.ui.components.ImasSegmented
 import com.fugaif.imaslivedb.ui.components.MarkToggleAction
+import com.fugaif.imaslivedb.ui.tags.IdolTagPickerSheet
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasTheme
 import kotlinx.coroutines.launch
@@ -101,10 +106,13 @@ fun IdolDetailScreen(
         )
     )
 ) {
+    val context = LocalContext.current
     val state by viewModel.uiState.collectAsState()
     val idol = state.idol
     val t = ImasTheme.derive(idol?.color, idol?.brandId, dark = true)
     var segment by rememberSaveable(idolId) { mutableIntStateOf(0) }
+    var showTagPicker by rememberSaveable { mutableStateOf(false) }
+    val authState by AppModule.from(context).authService.state.collectAsState()
 
     Scaffold(
         topBar = {
@@ -126,16 +134,86 @@ fun IdolDetailScreen(
             Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState())) {
                 Hero(idol, state.brand?.shortName, t)
                 ImasSegmented(
-                    labels = listOf("ライブ", "楽曲・ユニット", "プロフィール"),
+                    labels = listOf("ライブ", "楽曲・ユニット", "プロフィール", "コミュニティ"),
                     selection = segment, onSelect = { segment = it },
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)
                 )
                 when (segment) {
                     0 -> LiveBody(state, idol, onNavigateToSongDetail, onNavigateToShowDetail)
                     1 -> SongsBody(state, idol, onNavigateToUnitDetail, onNavigateToSongDetail)
-                    else -> ProfileBody(idol)
+                    2 -> ProfileBody(idol)
+                    else -> CommunityBody(
+                        tags = state.tags,
+                        isSignedIn = authState.isSignedIn,
+                        onToggleTag = viewModel::toggleTag,
+                        onOpenTagPicker = { showTagPicker = true }
+                    )
                 }
                 Box(Modifier.size(24.dp))
+            }
+        }
+    }
+
+    if (showTagPicker && idol != null) {
+        IdolTagPickerSheet(
+            idolId = idol.id,
+            alreadyAppliedTagIds = state.tags.filter { it.mine }.map { it.id }.toSet(),
+            onDismiss = { showTagPicker = false },
+            onApplied = { viewModel.onTagsApplied() }
+        )
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
+@Composable
+private fun CommunityBody(
+    tags: List<CommunityApi.IdolTag>,
+    isSignedIn: Boolean,
+    onToggleTag: (CommunityApi.IdolTag) -> Unit,
+    onOpenTagPicker: () -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        if (!isSignedIn) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+                    .clip(RoundedCornerShape(12.dp)).background(DS.fill).padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("タグ付け・投票にはログインが必要です", fontSize = 12.5.sp, color = DS.ink2)
+            }
+        }
+        Column {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                ImasSectionHeader("タグ", count = "${tags.size}", modifier = Modifier.weight(1f))
+                IconButton(onClick = onOpenTagPicker, modifier = Modifier.padding(end = 8.dp)) {
+                    Icon(Icons.Filled.Add, contentDescription = "タグを追加", tint = DS.ink2)
+                }
+            }
+            if (tags.isEmpty()) {
+                Text("タグはまだありません", fontSize = 13.sp, color = DS.ink3,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp))
+            } else {
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    tags.forEach { tag ->
+                        val bg = if (tag.mine) DS.pick.copy(alpha = 0.18f) else DS.fill
+                        val fg = if (tag.mine) DS.pick else DS.ink
+                        Row(
+                            modifier = Modifier.clip(RoundedCornerShape(999.dp)).background(bg)
+                                .combinedClickable(onClick = { onToggleTag(tag) })
+                                .padding(horizontal = 12.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(tag.name, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = fg)
+                            if (tag.voteCount > 0) {
+                                Text(" ${tag.voteCount}", fontSize = 12.sp, color = DS.ink3)
+                            }
+                        }
+                    }
+                }
             }
         }
     }

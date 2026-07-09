@@ -123,7 +123,8 @@ fun SongDetailScreen(
         TagDetailScreen(
             tagId = tagDetailId!!,
             onBack = { tagDetailId = null },
-            onSongClick = { id -> tagDetailId = null; currentSongId = id }
+            onSongClick = { id -> tagDetailId = null; currentSongId = id },
+            onIdolClick = { id -> tagDetailId = null; onIdolClick(id) }
         )
         return
     }

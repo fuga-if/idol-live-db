@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.fugaif.imaslivedb.data.community.CommunityApi
+import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.data.model.Song
 import com.fugaif.imaslivedb.di.AppModule
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -12,11 +13,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 data class TagSongRankRow(val songId: String, val voteCount: Int, val song: Song?)
+data class TagIdolRankRow(val idolId: String, val voteCount: Int, val idol: Idol?)
 
 data class TagDetailUiState(
     val isLoading: Boolean = true,
     val tag: CommunityApi.CommunityTag? = null,
     val songs: List<TagSongRankRow> = emptyList(),
+    val idols: List<TagIdolRankRow> = emptyList(),
     val reportSubmitted: Boolean = false,
     val reportError: String? = null
 )
@@ -51,8 +54,9 @@ class TagDetailViewModel : ViewModel() {
         }
         val songs = module.songRepository.fetchSongsByIds(detail.songs.map { it.songId })
         val songsById = songs.associateBy { it.id }
-        val rows = detail.songs.map { TagSongRankRow(it.songId, it.voteCount, songsById[it.songId]) }
-        _uiState.value = _uiState.value.copy(isLoading = false, tag = detail.tag, songs = rows)
+        val songRows = detail.songs.map { TagSongRankRow(it.songId, it.voteCount, songsById[it.songId]) }
+        val idolRows = detail.idols.map { TagIdolRankRow(it.idolId, it.voteCount, module.idolRepository.fetchIdol(it.idolId)) }
+        _uiState.value = _uiState.value.copy(isLoading = false, tag = detail.tag, songs = songRows, idols = idolRows)
     }
 
     fun onTagUpdated(tag: CommunityApi.CommunityTag) {

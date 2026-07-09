@@ -10,6 +10,7 @@ import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.data.model.IdolPerformedSong
 import com.fugaif.imaslivedb.data.model.ImasUnit
 import com.fugaif.imaslivedb.data.model.Song
+import com.fugaif.imaslivedb.data.community.CommunityApi
 import com.fugaif.imaslivedb.di.AppModule
 import java.time.LocalDate
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,6 +26,7 @@ data class IdolDetailUiState(
     val unitsWithSongs: List<ImasUnit> = emptyList(),
     val unitsWithoutSongs: List<ImasUnit> = emptyList(),
     val castShows: List<CastShowRow> = emptyList(),
+    val tags: List<CommunityApi.IdolTag> = emptyList(),
     val isLoading: Boolean = true
 ) {
     /** 出演履歴のうち今日以降で最も近い公演 (= 次の出演)。無ければ null。 */
@@ -39,6 +41,7 @@ class IdolDetailViewModel(app: Application, private val idolId: String) : Androi
 
     private val repo = AppModule.from(app).idolRepository
     private val songRepo = AppModule.from(app).songRepository
+    private val api = AppModule.from(app).communityApi
 
     private val _uiState = MutableStateFlow(IdolDetailUiState())
     val uiState: StateFlow<IdolDetailUiState> = _uiState.asStateFlow()
@@ -67,7 +70,28 @@ class IdolDetailViewModel(app: Application, private val idolId: String) : Androi
                 castShows = castShows,
                 isLoading = false
             )
+            loadTags()
         }
+    }
+
+    private suspend fun loadTags() {
+        val tags = runCatching { api.idolTags(idolId) }.getOrDefault(emptyList())
+        _uiState.value = _uiState.value.copy(tags = tags)
+    }
+
+    /** タグ投票のトグル (端末ベース)。完了後にタグを再取得。 */
+    fun toggleTag(tag: CommunityApi.IdolTag) {
+        viewModelScope.launch {
+            runCatching {
+                if (tag.mine) api.removeIdolTag(idolId, tag.id) else api.applyIdolTags(idolId, listOf(tag.id))
+            }
+            loadTags()
+        }
+    }
+
+    /** タグ追加ピッカー (IdolTagPickerSheet) で新規タグを適用した後の再取得。 */
+    fun onTagsApplied() {
+        viewModelScope.launch { loadTags() }
     }
 
     class Factory(private val app: Application, private val idolId: String) :

@@ -17,6 +17,7 @@ import java.net.URLEncoder
 class CommunityApi(private val appContext: Context, private val authService: AuthService) {
 
     data class SongTag(val id: String, val name: String, val color: String?, val voteCount: Int, val mine: Boolean)
+    data class IdolTag(val id: String, val name: String, val color: String?, val voteCount: Int, val mine: Boolean)
     data class PollSummary(val id: String, val title: String, val targetType: String)
     data class PollEntry(val entityId: String, val voteCount: Int, val mine: Boolean)
     /**
@@ -81,7 +82,8 @@ class CommunityApi(private val appContext: Context, private val authService: Aut
         val totalUses: Int
     )
     data class TagSongEntry(val songId: String, val voteCount: Int)
-    data class TagDetail(val tag: CommunityTag, val songs: List<TagSongEntry>)
+    data class TagIdolEntry(val idolId: String, val voteCount: Int)
+    data class TagDetail(val tag: CommunityTag, val songs: List<TagSongEntry>, val idols: List<TagIdolEntry> = emptyList())
     data class TagHistoryEntry(
         val descriptionAfter: String?,
         val descriptionBefore: String?,
@@ -125,6 +127,32 @@ class CommunityApi(private val appContext: Context, private val authService: Aut
         (0 until arr.length()).map { arr.getString(it) }
     }
 
+    /** GET /idols/{id}/tags — タグ一覧 (件数 + 自分が付けたか)。song 版と対のメソッド。 */
+    suspend fun idolTags(idolId: String): List<IdolTag> = withContext(Dispatchers.IO) {
+        val json = get("/idols/${enc(idolId)}/tags") ?: return@withContext emptyList()
+        val mine = json.optJSONArray("my_tag_ids")?.let { a -> (0 until a.length()).map { a.getString(it) }.toSet() } ?: emptySet()
+        val tags = json.optJSONArray("tags") ?: JSONArray()
+        (0 until tags.length()).map { i ->
+            val t = tags.getJSONObject(i)
+            IdolTag(t.getString("id"), t.optString("name"), t.strOrNull("color"),
+                t.optInt("vote_count"), mine.contains(t.getString("id")))
+        }
+    }
+
+    /** DELETE /idols/{id}/tags/{tagId} — 自分のタグ投票を外す。 */
+    suspend fun removeIdolTag(idolId: String, tagId: String): Boolean = withContext(Dispatchers.IO) {
+        send("DELETE", "/idols/${enc(idolId)}/tags/${enc(tagId)}", null)
+    }
+
+    /** POST /idols/{id}/tags — 複数タグをまとめてアイドルに適用 (タグ追加ピッカーの「追加」)。 */
+    suspend fun applyIdolTags(idolId: String, tagIds: List<String>): List<String> = withContext(Dispatchers.IO) {
+        if (tagIds.isEmpty()) return@withContext emptyList()
+        val json = sendJson("POST", "/idols/${enc(idolId)}/tags", JSONObject().put("tag_ids", JSONArray(tagIds)))
+            ?: return@withContext emptyList()
+        val arr = json.optJSONArray("applied_tag_ids") ?: JSONArray()
+        (0 until arr.length()).map { arr.getString(it) }
+    }
+
     /** GET /tags — 全タグ検索/一覧 (人気・新着・名前順)。 */
     suspend fun tags(search: String = "", category: String = "", sort: String = "popular", limit: Int = 1000): List<CommunityTag> =
         withContext(Dispatchers.IO) {
@@ -163,7 +191,12 @@ class CommunityApi(private val appContext: Context, private val authService: Aut
             val s = songsArr.getJSONObject(it)
             TagSongEntry(s.optString("song_id"), s.optInt("vote_count"))
         }
-        TagDetail(parseTagFull(tagObj), songs)
+        val idolsArr = json.optJSONArray("idols") ?: JSONArray()
+        val idols = (0 until idolsArr.length()).map {
+            val i = idolsArr.getJSONObject(it)
+            TagIdolEntry(i.optString("idol_id"), i.optInt("vote_count"))
+        }
+        TagDetail(parseTagFull(tagObj), songs, idols)
     }
 
     /** PUT /tags/{id} — 説明文・カテゴリ・色を更新。 */
