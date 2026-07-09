@@ -236,12 +236,39 @@ struct SimilarSongEntry: Decodable, Identifiable, Hashable, Sendable {
 struct TagDetailResponse: Decodable, Sendable {
     let tag: CommunityTag
     let songs: [TagSongEntry]
+    /// このタグが付いたアイドル。旧レスポンス (idols キー無し) との互換のため既定は空配列。
+    let idols: [TagIdolEntry]
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.tag = try c.decode(CommunityTag.self, forKey: .tag)
+        self.songs = try c.decode([TagSongEntry].self, forKey: .songs)
+        self.idols = try c.decodeIfPresent([TagIdolEntry].self, forKey: .idols) ?? []
+    }
+
+    private enum CodingKeys: String, CodingKey { case tag, songs, idols }
 }
 
 struct TagSongEntry: Codable, Identifiable, Hashable, Sendable {
     var id: String { songId }
     let songId: String
     let voteCount: Int
+}
+
+struct TagIdolEntry: Codable, Identifiable, Hashable, Sendable {
+    var id: String { idolId }
+    let idolId: String
+    let voteCount: Int
+}
+
+struct IdolTagListResponse: Decodable, Sendable {
+    let tags: [SongTagEntry]
+    let myTagIds: [String]
+}
+
+struct IdolTagApplyResponse: Decodable, Sendable {
+    let idolId: String
+    let appliedTagIds: [String]
 }
 
 struct TagHistoryEntry: Codable, Identifiable, Hashable, Sendable {

@@ -13,6 +13,7 @@ struct TagDetailView: View {
     @State private var reportSuccessAlert = false
     @State private var alertError: CommunityAPIError?
     @State private var songCache: [String: Song] = [:]
+    @State private var idolCache: [String: Idol] = [:]
     @State private var nextDestination: DetailDestination?
     @Environment(\.colorScheme) private var scheme
 
@@ -111,11 +112,49 @@ struct TagDetailView: View {
                         .listRowBackground(DS.surface)
                         .listRowSeparatorTint(DS.sep)
                     }
-                } else {
+                } else if detail.idols.isEmpty {
                     Section {
                         ImasEmptyState(systemImage: "tag", title: "まだこのタグが付いた曲はありません")
                             .listRowBackground(DS.surface)
                             .listRowSeparatorTint(DS.sep)
+                    }
+                }
+
+                // 付いたアイドルセクション
+                if !detail.idols.isEmpty {
+                    Section("「\(detail.tag.name)」なアイドルランキング（\(detail.idols.count)人）") {
+                        ForEach(Array(detail.idols.enumerated()), id: \.element.id) { idx, entry in
+                            if let idol = idolCache[entry.idolId] {
+                                Button { nextDestination = .idol(idol) } label: {
+                                    HStack(spacing: DS.sp2) {
+                                        TagRankBadge(rank: idx + 1)
+                                        IdolAvatarView(idol: idol, size: 32)
+                                        Text(idol.name).font(.imasSubhead.weight(.semibold)).foregroundStyle(DS.ink)
+                                        Spacer(minLength: 4)
+                                        Text("\(entry.voteCount)票")
+                                            .font(.imasCaption.monospacedDigit())
+                                            .foregroundStyle(DS.ink2)
+                                        Image(systemName: "chevron.right")
+                                            .font(.imasCaption)
+                                            .foregroundStyle(DS.ink3)
+                                    }
+                                }
+                                .buttonStyle(.plain)
+                            } else {
+                                HStack(spacing: DS.sp2) {
+                                    TagRankBadge(rank: idx + 1)
+                                    Text(entry.idolId)
+                                        .font(.imasCaption)
+                                        .foregroundStyle(DS.ink2)
+                                    Spacer()
+                                    Text("\(entry.voteCount)票")
+                                        .font(.imasCaption)
+                                        .foregroundStyle(DS.ink2)
+                                }
+                            }
+                        }
+                        .listRowBackground(DS.surface)
+                        .listRowSeparatorTint(DS.sep)
                     }
                 }
             }
@@ -204,6 +243,14 @@ struct TagDetailView: View {
             if let fetched = try? await AppContainer.shared.songReading.songs(ids: missingIds) {
                 for song in fetched {
                     songCache[song.id] = song
+                }
+            }
+        }
+        if let idols = detail?.idols {
+            let missingIds = idols.map(\.idolId).filter { idolCache[$0] == nil }
+            if let fetched = try? await AppContainer.shared.idolReading.idols(ids: missingIds) {
+                for idol in fetched {
+                    idolCache[idol.id] = idol
                 }
             }
         }

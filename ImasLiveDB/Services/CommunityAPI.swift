@@ -45,15 +45,22 @@ actor CommunityAPI {
     private var songTagsCache: [String: (response: SongTagListResponse, at: Date)] = [:]
     private let songTagsCacheTTL: TimeInterval = 120
 
+    /// アイドルタグ一覧 (/idols/:id/tags) の TTL キャッシュ。song 版と同じ理由・同じ TTL。
+    private var idolTagsCache: [String: (response: IdolTagListResponse, at: Date)] = [:]
+    private let idolTagsCacheTTL: TimeInterval = 120
+
     /// タグ一覧・タグ詳細の両キャッシュを無効化する (タグ作成/付与/取消で件数・票数が変わるため)。
-    /// あわせて、その曲のタグ集計に依存する曲タグ一覧・類似曲キャッシュも song 単位で無効化する。
-    private func invalidateTagsCache(songId: String? = nil) {
+    /// あわせて、その曲/アイドルのタグ集計に依存するタグ一覧・類似曲キャッシュも単位で無効化する。
+    private func invalidateTagsCache(songId: String? = nil, idolId: String? = nil) {
         tagsCache.removeAll()
         tagDetailCache.removeAll()
         if let songId {
             songTagsCache[songId] = nil
             // 自分のタグ付けは類似関係 (共有タグ) を変えうるので、その曲の類似キャッシュも捨てる。
             similarSongsCache[songId] = nil
+        }
+        if let idolId {
+            idolTagsCache[idolId] = nil
         }
     }
 
@@ -207,6 +214,34 @@ actor CommunityAPI {
         // レスポンスに my_tag_ids (ユーザー固有) を含むため per-device メモリキャッシュのみ。
         let response: SongTagListResponse = try await APIClient.shared.request("GET", path: "/songs/\(songId)/tags")
         songTagsCache[songId] = (response, Date())
+        return response
+    }
+
+    func applyIdolTags(idolId: String, tagIds: [String]) async throws {
+        struct Body: Encodable { let tagIds: [String] }
+        let _: IdolTagApplyResponse = try await APIClient.shared.request(
+            "POST", path: "/idols/\(idolId)/tags",
+            body: Body(tagIds: tagIds)
+        )
+        // 自分のタグ付けで my_tag_ids・票数が変わるので該当 idol も無効化。
+        invalidateTagsCache(idolId: idolId)
+    }
+
+    func removeIdolTag(idolId: String, tagId: String) async throws {
+        try await APIClient.shared.requestVoid(
+            "DELETE", path: "/idols/\(idolId)/tags/\(tagId)"
+        )
+        // 自分のタグ取消で my_tag_ids・票数が変わるので該当 idol も無効化。
+        invalidateTagsCache(idolId: idolId)
+    }
+
+    func idolTags(idolId: String) async throws -> IdolTagListResponse {
+        if let hit = idolTagsCache[idolId], Date().timeIntervalSince(hit.at) < idolTagsCacheTTL {
+            return hit.response
+        }
+        // レスポンスに my_tag_ids (ユーザー固有) を含むため per-device メモリキャッシュのみ。
+        let response: IdolTagListResponse = try await APIClient.shared.request("GET", path: "/idols/\(idolId)/tags")
+        idolTagsCache[idolId] = (response, Date())
         return response
     }
 
