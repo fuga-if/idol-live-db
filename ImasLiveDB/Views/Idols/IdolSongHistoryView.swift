@@ -16,10 +16,10 @@ struct IdolSongHistoryView: View {
                 ProgressView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if history.isEmpty {
-                ContentUnavailableView(
-                    "披露履歴がありません",
+                ImasEmptyState(
                     systemImage: "music.microphone",
-                    description: Text("\(idol.name) による「\(song.title)」の披露記録はありません")
+                    title: "披露履歴がありません",
+                    message: "\(idol.name) による「\(song.title)」の披露記録はありません"
                 )
             } else {
                 List {
