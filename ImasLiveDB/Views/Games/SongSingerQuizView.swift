@@ -24,6 +24,8 @@ struct SongSingerQuizView: View {
     @State private var points = 0
     @State private var correct = 0
     @State private var asked = 0
+    @State private var seenSongIds: Set<String> = []   // 出題済みソロ曲 (重複出題防止)
+    @State private var history: [QuizHistoryItem] = [] // 各問の振り返り (リザルトに渡す)
     @State private var sessionDone = false
     @State private var isNewBest = false
     @State private var isLoading = true
@@ -43,6 +45,7 @@ struct SongSingerQuizView: View {
                     QuizResultView(points: points, maxPoints: QuizScoring.sessionMax(questions: sessionLength),
                                    correct: correct, questions: asked,
                                    kind: .songSingerQuiz, isNewBest: isNewBest,
+                                   history: history,
                                    onReplay: { restart() })
                 } else if let q = question {
                     QuizProgressHeader(current: min(asked + (selectedId != nil ? 0 : 1), sessionLength),
@@ -140,15 +143,26 @@ struct SongSingerQuizView: View {
     // MARK: - 進行
 
     private func pick(_ idol: Idol, isCorrect: Bool) {
-        guard selectedId == nil else { return }
+        guard selectedId == nil, let q = question else { return }
         AppAnalytics.tap("song_singer_quiz.answer")
         MusicKitService.shared.stop()
         selectedId = idol.id
         asked += 1
+        let earned = isCorrect ? QuizScoring.points(revealed: revealed) : 0
         if isCorrect {
             correct += 1
-            points += QuizScoring.points(revealed: revealed)
+            points += earned
         }
+        history.append(QuizHistoryItem(
+            id: "\(asked)-\(q.song.id)",
+            index: asked,
+            subjectTitle: q.song.title,
+            subjectSubtitle: q.song.cdTitle,
+            answer: q.answer,
+            picked: idol,
+            earnedPoints: earned,
+            revealedHints: revealed
+        ))
     }
 
     private func nextQuestion() {
@@ -161,6 +175,7 @@ struct SongSingerQuizView: View {
     private func restart() {
         points = 0; correct = 0; asked = 0
         sessionDone = false; selectedId = nil; revealed = 0; isNewBest = false
+        seenSongIds = []; history = []
         question = makeQuestion()
     }
 
@@ -196,7 +211,15 @@ struct SongSingerQuizView: View {
     }
 
     private func makeQuestion() -> Question? {
-        guard pool.count >= 4, let entry = pool.randomElement() else { return nil }
+        guard pool.count >= 4 else { return nil }
+        // 既出曲を除外。母数が尽きたら一巡してリセット (短いセッション中の重複は防げる)。
+        var candidates = pool.filter { !seenSongIds.contains($0.song.id) }
+        if candidates.count < 1 {
+            seenSongIds = []
+            candidates = pool
+        }
+        guard let entry = candidates.randomElement() else { return nil }
+        seenSongIds.insert(entry.song.id)
         let answer = entry.singer
         let choices = (quizDistractors(from: idolPool, answer: answer) + [answer]).shuffled()
         return Question(song: entry.song, answer: answer, choices: choices)

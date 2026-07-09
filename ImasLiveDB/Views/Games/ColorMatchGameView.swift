@@ -10,6 +10,7 @@ struct ColorMatchGameView: View {
 
     @State private var brandPools: [(brand: Brand, members: [Idol])] = []
     @State private var allColored: [Idol] = []
+    @State private var brands: [Brand] = []
 
     // 設定
     @State private var selectedBrandIds: Set<String> = []
@@ -87,11 +88,7 @@ struct ColorMatchGameView: View {
                 ImasSectionHeader(title: "出題ブランド", tight: true)
                 Text("未選択なら全ブランドから出題")
                     .font(.imasCaption).foregroundStyle(DS.ink3)
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: DS.sp3), count: 2), spacing: DS.sp3) {
-                    ForEach(brandPools, id: \.brand.id) { pool in
-                        brandToggle(pool)
-                    }
-                }
+                brandGrid
             }
 
             let canStart = effectivePool.count >= 2
@@ -101,36 +98,32 @@ struct ColorMatchGameView: View {
         }
     }
 
-    private func brandToggle(_ pool: (brand: Brand, members: [Idol])) -> some View {
-        let on = selectedBrandIds.contains(pool.brand.id)
-        return Button {
-            withAnimation(.easeInOut(duration: 0.15)) {
-                if on { selectedBrandIds.remove(pool.brand.id) } else { selectedBrandIds.insert(pool.brand.id) }
+    /// 他のクイズ (アイドル当て・ソロ曲) と共通の BrandIconCell 丸アイコングリッド。
+    /// メンバーカラーチップを並べるとそれ自体が問題のヒント(版権キャラの色)になり得るため、
+    /// 共通UIに揃えてヒント漏れも防ぐ。
+    private var brandGrid: some View {
+        let columns = [GridItem(.adaptive(minimum: 56, maximum: 80), spacing: 10)]
+        return LazyVGrid(columns: columns, alignment: .center, spacing: 10) {
+            BrandIconCell(
+                brandId: nil, label: "全て", iconText: "全", color: nil,
+                isSelected: selectedBrandIds.isEmpty
+            ) {
+                withAnimation(.easeInOut(duration: 0.15)) { selectedBrandIds = [] }
             }
-        } label: {
-            VStack(alignment: .leading, spacing: DS.sp3) {
-                HStack {
-                    Text(pool.brand.shortName).font(.imasHeadline.weight(.bold)).foregroundStyle(DS.ink)
-                    Spacer(minLength: 0)
-                    Image(systemName: on ? "checkmark.circle.fill" : "circle")
-                        .foregroundStyle(on ? DS.sys : DS.ink3)
-                }
-                HStack(spacing: 4) {
-                    ForEach(Array(pool.members.prefix(6)), id: \.id) { m in
-                        Circle().fill(Color(hexString: m.color)).frame(width: 11, height: 11)
+            ForEach(brands) { brand in
+                BrandIconCell(
+                    brandId: brand.id, label: brand.shortName,
+                    iconText: brand.iconText, color: brand.color,
+                    isSelected: selectedBrandIds.contains(brand.id)
+                ) {
+                    withAnimation(.easeInOut(duration: 0.15)) {
+                        if !selectedBrandIds.insert(brand.id).inserted {
+                            selectedBrandIds.remove(brand.id)
+                        }
                     }
                 }
-                Text("\(pool.members.count)人").font(.imasCaption).foregroundStyle(DS.ink3)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(DS.sp4)
-            .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: DS.rMD, style: .continuous)
-                    .strokeBorder(on ? DS.sys : .clear, lineWidth: 1.5)
-            )
         }
-        .buttonStyle(.plain)
     }
 
     // MARK: - ゲーム
@@ -415,8 +408,10 @@ struct ColorMatchGameView: View {
         isLoading = true
         defer { isLoading = false }
         let all = (try? await AppContainer.shared.idolReading.idols(brandId: nil)) ?? []
-        let brands = (try? await AppContainer.shared.brandReading.brands()) ?? []
-        let brandById = Dictionary(uniqueKeysWithValues: brands.map { ($0.id, $0) })
+        let allBrands = (try? await AppContainer.shared.brandReading.brands()) ?? []
+        let brandById = Dictionary(uniqueKeysWithValues: allBrands.map { ($0.id, $0) })
+        // BrandFilterSection 用 (他クイズと共通UI)。'other' は出題対象外なので除外。
+        brands = allBrands.filter { $0.id != "other" }
         // 'other' (ラブライブ/.KR 等の非アイマス・コラボ枠) はメンバーカラー合わせから除外。
         let colored = all.filter { !$0.isExternal && $0.brandId != "other" && ($0.color?.isEmpty == false) }
 
