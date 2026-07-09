@@ -29,12 +29,14 @@ interface Env {
   APP_ATTEST_MODE?: string;        // "off" | "monitor" | "enforce" (既定 monitor)
   APP_ATTEST_ALLOW_DEV?: string;   // "true" のときだけ dev attestation (appattestdevelop) を許可
   GOOGLE_SERVICE_ACCOUNT?: string; // Play Integrity 検証用 (Android)
+  GOOGLE_WEB_CLIENT_ID?: string;   // Android Sign in with Google の ID トークン検証用 (aud として使う Web クライアント ID)
   // マスタ修正リクエストの GitHub issue 化用 (secret: wrangler secret put GITHUB_TOKEN)。
   GITHUB_TOKEN?: string;
   GITHUB_REPO?: string;            // "owner/repo" 省略時 "fuga-if/idol-live-db"
 }
 
 const SESSION_JWT_ISSUER = "imas-live-db";
+// 名前は "-ios" だが実体は自前セッションJWT共通の aud 固定値 (Android の Google Sign-In 経由でも同じ値を使う)。
 const SESSION_JWT_AUDIENCE = "imas-live-db-ios";
 const SESSION_JWT_TTL_SECONDS = 60 * 60 * 24 * 365;
 
@@ -280,6 +282,70 @@ async function verifyAppleToken(
     if (!signatureValid) return null;
 
     return { uid: payload.sub, email: payload.email };
+  } catch {
+    return null;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Google Sign In ID token verification (Android)
+// ---------------------------------------------------------------------------
+
+let cachedGoogleKeys: { keys: JsonWebKey[]; fetchedAt: number } | null = null;
+
+async function getGooglePublicKeys(): Promise<JsonWebKey[]> {
+  if (cachedGoogleKeys && Date.now() - cachedGoogleKeys.fetchedAt < 3600000) {
+    return cachedGoogleKeys.keys;
+  }
+  const res = await fetch("https://www.googleapis.com/oauth2/v3/certs");
+  const jwks = (await res.json()) as { keys: JsonWebKey[] };
+  cachedGoogleKeys = { keys: jwks.keys, fetchedAt: Date.now() };
+  return jwks.keys;
+}
+
+/** Android の Credential Manager (GetGoogleIdOption) が返す ID トークンを検証する。
+ *  aud は Android クライアント ID ではなく指定した serverClientId (= Web クライアント ID) になる仕様。
+ *  uid は Apple の sub と衝突しないよう "google:" を前置する (users テーブルは provider 非依存の opaque id)。 */
+async function verifyGoogleToken(
+  token: string,
+  webClientId: string
+): Promise<{ uid: string; email?: string; picture?: string; name?: string } | null> {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return null;
+
+    const headerJson = JSON.parse(new TextDecoder().decode(base64UrlDecode(parts[0])));
+    const payload = JSON.parse(new TextDecoder().decode(base64UrlDecode(parts[1])));
+
+    if (headerJson.alg !== "RS256") return null;
+    if (typeof payload.exp !== "number" || payload.exp < Date.now() / 1000) return null;
+    if (typeof payload.iat !== "number" || payload.iat > Date.now() / 1000 + 60) return null;
+    if (payload.iss !== "https://accounts.google.com" && payload.iss !== "accounts.google.com") return null;
+    if (payload.aud !== webClientId) return null;
+    if (typeof payload.sub !== "string" || !payload.sub) return null;
+
+    const keys = await getGooglePublicKeys();
+    const key = keys.find((k: any) => k.kid === headerJson.kid);
+    if (!key) return null;
+
+    const cryptoKey = await crypto.subtle.importKey(
+      "jwk",
+      key,
+      { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+      false,
+      ["verify"]
+    );
+
+    const signatureValid = await crypto.subtle.verify(
+      "RSASSA-PKCS1-v1_5",
+      cryptoKey,
+      base64UrlDecode(parts[2]),
+      new TextEncoder().encode(parts[0] + "." + parts[1])
+    );
+
+    if (!signatureValid) return null;
+
+    return { uid: `google:${payload.sub}`, email: payload.email, picture: payload.picture, name: payload.name };
   } catch {
     return null;
   }
@@ -874,7 +940,7 @@ export default {
       }
 
       // ----------------------------------------------------------------
-      // POST /auth/login — Apple identityToken → 1 年有効 sessionToken
+      // POST /auth/login — Apple identityToken または Google idToken (Android) → 1年有効 sessionToken
       // ----------------------------------------------------------------
       if (path === "/auth/login" && request.method === "POST") {
         if (!env.SESSION_JWT_SECRET) return error("SESSION_JWT_SECRET not configured", 500);
@@ -884,15 +950,33 @@ export default {
         // iOS のログインは常に 400 となり、session token が一度も発行されず、Apple
         // identityToken を直接 Bearer (10分有効) に流用するフォールバックで誤魔化されていた。
         // snake_case を正として読む (旧 camelCase クライアントも後方互換で許容)。
+        // Android は Google の ID トークンを google_id_token として送る (identity_token とは別枠)。
         const body = (await request.json().catch(() => null)) as
-          | { identity_token?: string; identityToken?: string; display_name?: string; displayName?: string }
+          | {
+              identity_token?: string; identityToken?: string;
+              google_id_token?: string; googleIdToken?: string;
+              display_name?: string; displayName?: string;
+            }
           | null;
         const identityToken = body?.identity_token ?? body?.identityToken;
+        const googleIdToken = body?.google_id_token ?? body?.googleIdToken;
         const displayName = body?.display_name ?? body?.displayName;
-        if (!identityToken) return error("identityToken required");
-        const verified = await verifyAppleToken(identityToken, env.APPLE_BUNDLE_ID);
-        if (!verified) return error("invalid identityToken", 401);
-        await upsertUser(env, verified.uid, displayName);
+
+        let verified: { uid: string; email?: string; picture?: string; name?: string } | null = null;
+        if (googleIdToken) {
+          if (!env.GOOGLE_WEB_CLIENT_ID) return error("GOOGLE_WEB_CLIENT_ID not configured", 500);
+          verified = await verifyGoogleToken(googleIdToken, env.GOOGLE_WEB_CLIENT_ID);
+          if (!verified) return error("invalid googleIdToken", 401);
+        } else if (identityToken) {
+          verified = await verifyAppleToken(identityToken, env.APPLE_BUNDLE_ID);
+          if (!verified) return error("invalid identityToken", 401);
+        } else {
+          return error("identityToken or googleIdToken required");
+        }
+
+        // Google は検証済みトークンの name クレームを信頼できる表示名として使う
+        // (Apple はクライアント供給の displayName に頼る既存挙動を維持)。
+        await upsertUser(env, verified.uid, verified.name ?? displayName, verified.picture);
         const sessionToken = await signSessionToken(verified.uid, env.SESSION_JWT_SECRET);
         const isAdmin = await checkIsAdmin(env, verified.uid);
         // 再ログイン時 Apple は fullName を初回認可時しか返さないため、クライアントは

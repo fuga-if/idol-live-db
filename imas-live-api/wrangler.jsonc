@@ -14,7 +14,11 @@
     // ALLOWED_ORIGINS: Web フロントエンドの Origin をカンマ区切りで列挙。
     // iOS ネイティブは Origin ヘッダを送らないため、空文字列でも動作する。
     // 例: "https://yourapp.example.com,https://admin.example.com"
-    "ALLOWED_ORIGINS": ""
+    "ALLOWED_ORIGINS": "",
+    // Android Sign in with Google (Credential Manager) の ID トークン検証用 aud。
+    // 秘密情報ではない (公開して問題ない値) ので vars でよい。クライアントシークレットは
+    // ID トークン署名検証方式では不要なため一切保持しない。
+    "GOOGLE_WEB_CLIENT_ID": "612236234738-q1ku8tnnf4ce9jm1q006jp45k6mmmluc.apps.googleusercontent.com"
   },
   // CLOUDKIT_KEY_ID and CLOUDKIT_PRIVATE_KEY are set via wrangler secret
   "triggers": {
