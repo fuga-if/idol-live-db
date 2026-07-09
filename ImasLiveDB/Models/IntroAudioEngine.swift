@@ -278,8 +278,6 @@ final class IntroAudioEngine {
                 waited += Self.playWaitStep
             }
             guard let self else { return }
-            let pbState = self.musicPlayer.playbackState
-            let nowPlaying = self.musicPlayer.nowPlayingItem?.title ?? "nil"
             if Task.isCancelled || session != self.playSession { return }
             // 起動 cap に達しても .playing にならない = サブスクで再生不可 (Orange Sapphire等)。
             // preview にフォールバック、無ければ無音を流さず即終了。
