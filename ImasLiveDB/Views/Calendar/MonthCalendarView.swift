@@ -11,6 +11,10 @@ struct MonthCalendarView: View {
     @Binding var visibleMonth: Date
     @Binding var selectedDate: Date
     let entriesByDate: [Date: [CalendarEntry]]
+    @Environment(\.colorScheme) private var scheme
+
+    /// チケット受付期間帯の装飾テーマ seed (iOS system indigo 相当。CalendarDayDetailView のチケット行と揃える)。
+    private static let ticketSeed = "#5856D6"
 
     private let today = Calendar.current.startOfDay(for: Date())
     private let weekdaySymbols = ["日", "月", "火", "水", "木", "金", "土"]
@@ -122,19 +126,20 @@ struct MonthCalendarView: View {
     private func bandOverlay(_ bands: [CalendarPeriodBand], width: CGFloat) -> some View {
         let colSpacing = Layout.columnSpacing
         let cellW = (width - colSpacing * CGFloat(Layout.columnCount - 1)) / CGFloat(Layout.columnCount)
+        let ticketAccent = ImasTheme.derive(seed: Self.ticketSeed, scheme: scheme).accent
         return ZStack(alignment: .topLeading) {
             ForEach(bands) { band in
                 let x = CGFloat(band.startCol) * (cellW + colSpacing)
                 let w = CGFloat(band.endCol - band.startCol) * (cellW + colSpacing) + cellW
                 Text(band.roundLeading ? "受付 \(band.name)" : " ")
                     .font(.imasScaled( 8, weight: .semibold))
-                    .foregroundStyle(ColorMath.onColor(.indigo))
+                    .foregroundStyle(ColorMath.onColor(ticketAccent))
                     .lineLimit(1)
                     .truncationMode(.tail)
                     .padding(.horizontal, 3)
                     .frame(width: w, height: MonthGridMetric.bandHeight, alignment: .leading)
                     .background(
-                        Color.indigo,
+                        ticketAccent,
                         in: UnevenRoundedRectangle(
                             topLeadingRadius: band.roundLeading ? 2 : 0,
                             bottomLeadingRadius: band.roundLeading ? 2 : 0,
@@ -342,6 +347,7 @@ struct CalendarEntryBar: View {
     let entry: CalendarEntry
     /// 帯の高さ。月セル=10pt / 週終日レーン=15pt 等、置き場所で変える。
     var height: CGFloat = 11
+    @Environment(\.colorScheme) private var scheme
 
     private var label: String {
         switch entry {
@@ -367,12 +373,12 @@ struct CalendarEntryBar: View {
     var body: some View {
         Text(label)
             .font(.imasScaled( 8, weight: .semibold))
-            .foregroundStyle(entry.accentInk)
+            .foregroundStyle(entry.accentInk(scheme: scheme))
             .lineLimit(1)
             .truncationMode(.tail)
             .padding(.horizontal, 2)
             .frame(maxWidth: .infinity, alignment: .leading)
             .frame(height: height)
-            .background(entry.accentColor, in: RoundedRectangle(cornerRadius: 2, style: .continuous))
+            .background(entry.accentColor(scheme: scheme), in: RoundedRectangle(cornerRadius: 2, style: .continuous))
     }
 }

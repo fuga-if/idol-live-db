@@ -13,6 +13,10 @@ struct WeekTimeGridView: View {
     let onSelectEntry: (CalendarEntry) -> Void
     /// 終日レーンの "+n" タップ → 親が日詳細シートを開く。
     let onShowDay: (Date) -> Void
+    @Environment(\.colorScheme) private var scheme
+
+    /// チケット受付期間帯の装飾テーマ seed (iOS system indigo 相当。CalendarDayDetailView のチケット行と揃える)。
+    private static let ticketSeed = "#5856D6"
 
     private let cal = Calendar.current
     private let today = Calendar.current.startOfDay(for: Date())
@@ -178,6 +182,7 @@ struct WeekTimeGridView: View {
         let bands = weekPeriodBands
         let laneCount = CalendarPeriodBand.laneCount(of: bands)
         let h = BandMetric.height, gap = BandMetric.gap
+        let ticketAccent = ImasTheme.derive(seed: Self.ticketSeed, scheme: scheme).accent
         ZStack(alignment: .topLeading) {
             ForEach(bands) { band in
                 let x = Metric.gutterWidth + CGFloat(band.startCol) * dayWidth
@@ -187,13 +192,13 @@ struct WeekTimeGridView: View {
                 } label: {
                     Text("受付 \(band.name)")
                         .font(.imasScaled( 10, weight: .semibold))
-                        .foregroundStyle(ColorMath.onColor(.indigo))
+                        .foregroundStyle(ColorMath.onColor(ticketAccent))
                         .lineLimit(1)
                         .truncationMode(.tail)
                         .padding(.horizontal, 6)
                         .frame(width: max(0, w - 2), height: h, alignment: .leading)
                         .background(
-                            Color.indigo,
+                            ticketAccent,
                             in: UnevenRoundedRectangle(
                                 topLeadingRadius: band.roundLeading ? 4 : 0,
                                 bottomLeadingRadius: band.roundLeading ? 4 : 0,
@@ -391,10 +396,10 @@ struct WeekTimeGridView: View {
                     .font(.imasDisplay(9, weight: .medium))
                     .opacity(0.85)
             }
-            .foregroundStyle(block.entry.accentInk)
+            .foregroundStyle(block.entry.accentInk(scheme: scheme))
             .padding(4)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .background(block.entry.accentColor, in: RoundedRectangle(cornerRadius: 5, style: .continuous))
+            .background(block.entry.accentColor(scheme: scheme), in: RoundedRectangle(cornerRadius: 5, style: .continuous))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
