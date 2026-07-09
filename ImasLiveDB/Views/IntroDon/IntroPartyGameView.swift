@@ -281,7 +281,7 @@ struct IntroPartyGameView: View {
             .scaleEffect(didHoldPlay ? 0.9 : 1.0)
             .onLongPressGesture(minimumDuration: 0.2, maximumDistance: 100) {
                 didHoldPlay = true
-                session.continueIntro()
+                session.continueIntroHeld()
             } onPressingChanged: { pressing in
                 if pressing {
                     didHoldPlay = false

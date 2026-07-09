@@ -123,7 +123,7 @@ final class IntroPartySession {
     }
 
     func stopPlayback() { audio.stop() }
-    func continueIntro() { audio.continuePlaying() }
+    func continueIntroHeld() { audio.continuePlaying() }
     func pauseHeldIntro() { audio.pauseHeld() }
     func replayIntro() async { await playCurrentIntro() }
 

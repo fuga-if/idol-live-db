@@ -233,9 +233,14 @@ final class IntroGameSession {
 
     // MARK: - もう少し流す / リプレイ
 
-    /// 「もう少し流す」: 再生ボタン長押し中、停止タイマー無しで現在位置から再生を継続。
-    func continueIntro() {
+    /// 「もう少し流す」(長押し中): 停止タイマー無しで現在位置から再生継続 (押してる間ずっと)。
+    func continueIntroHeld() {
         audio.continuePlaying()
+    }
+
+    /// 「続きから」(タップ): 停止位置から introDuration 秒だけ再生して自動停止。
+    func continueIntroForDuration() {
+        audio.continueForDuration(settings.introDuration)
     }
 
     /// 長押しを離したら一時停止する (回答フェーズに留まる)。
@@ -283,7 +288,21 @@ final class IntroGameSession {
             advanceAllSongs()
         } else {
             phase = .revealed
+            // 本家相当: 答え合わせフェーズに入ったタイミングで次の問題のフル再生を
+            // 裏で preload しておく。「次の問題」ボタン押下までの数秒で prepare 完了
+            // → 押下時に即 play() で鳴る (Orange Sapphire 等の固着回避)。
+            preloadNextFullIfAvailable()
         }
+    }
+
+    /// 次の問題が分かっているなら、 そのフル再生 prepare を裏で開始する (本家 preloadIntro 相当)。
+    private func preloadNextFullIfAvailable() {
+        guard settings.playback == .full else { return }
+        let nextIndex = currentIndex + 1
+        guard questions.indices.contains(nextIndex) else { return }
+        let next = questions[nextIndex]
+        guard !next.appleMusicId.isEmpty else { return }
+        audio.preloadFull(appleMusicId: next.appleMusicId)
     }
 
     func skipQuestion() {
