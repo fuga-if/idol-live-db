@@ -103,6 +103,7 @@ fun SongDetailScreen(
     onUnitClick: (String) -> Unit,
     onIdolClick: (String) -> Unit,
     onShowClick: (String) -> Unit,
+    onPollClick: (String) -> Unit = {},
     viewModel: SongDetailViewModel = viewModel(key = songId)
 ) {
     val context = LocalContext.current
@@ -184,7 +185,8 @@ fun SongDetailScreen(
                 onCreateCall = { editingCall = null; showCallSheet = true },
                 onEditCall = { editingCall = it; showCallSheet = true },
                 onOpenPenlightVote = { showPenlightSheet = true },
-                onUnitClick = onUnitClick
+                onUnitClick = onUnitClick,
+                onPollClick = onPollClick
             )
         }
     }
@@ -246,7 +248,8 @@ private fun SongSheetContent(
     onCreateCall: () -> Unit,
     onEditCall: (SongCall) -> Unit,
     onOpenPenlightVote: () -> Unit,
-    onUnitClick: (String) -> Unit
+    onUnitClick: (String) -> Unit,
+    onPollClick: (String) -> Unit
 ) {
     // 配色シード: ソロ (歌唱1人) はその個人カラー、それ以外はブランド色。
     val seed = if (state.originalArtists.size == 1) state.originalArtists.first().color else null
@@ -266,7 +269,7 @@ private fun SongSheetContent(
             else -> CommunityTab(
                 state, seed, song.brandId, isSignedIn, onSongClick,
                 onToggleTag, onOpenTagPicker, onTagDetailClick,
-                onCreateCall, onEditCall, onOpenPenlightVote
+                onCreateCall, onEditCall, onOpenPenlightVote, onPollClick
             )
         }
         Box(Modifier.size(24.dp))
@@ -538,10 +541,14 @@ private fun CommunityTab(
     onTagDetailClick: (String) -> Unit,
     onCreateCall: () -> Unit,
     onEditCall: (SongCall) -> Unit,
-    onOpenPenlightVote: () -> Unit
+    onOpenPenlightVote: () -> Unit,
+    onPollClick: (String) -> Unit
 ) {
     val context = LocalContext.current
     Column(modifier = Modifier.padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        state.song?.let { song ->
+            com.fugaif.imaslivedb.ui.polls.PollAchievementBadges(entityId = song.id, onOpenPoll = onPollClick)
+        }
         if (!isSignedIn) {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)

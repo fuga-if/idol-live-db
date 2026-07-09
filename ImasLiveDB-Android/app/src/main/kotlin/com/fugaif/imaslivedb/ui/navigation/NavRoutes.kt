@@ -24,6 +24,12 @@ sealed class NavRoutes(val route: String) {
     data object Schedule : NavRoutes("schedule")
     data object Produce : NavRoutes("produce")
     data object Polls : NavRoutes("polls")
+    data class PollDetail(val pollId: String) : NavRoutes("poll_detail/{pollId}") {
+        companion object {
+            const val ROUTE = "poll_detail/{pollId}"
+            fun createRoute(pollId: String) = "poll_detail/$pollId"
+        }
+    }
     data object IdolList : NavRoutes("idol_list")
     data class IdolDetail(val idolId: String) : NavRoutes("idol_detail/{idolId}") {
         companion object {

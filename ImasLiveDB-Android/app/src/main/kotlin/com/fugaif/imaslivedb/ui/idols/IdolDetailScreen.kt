@@ -100,6 +100,7 @@ fun IdolDetailScreen(
     onNavigateToUnitDetail: (String) -> Unit,
     onNavigateToSongDetail: (String) -> Unit,
     onNavigateToShowDetail: (String) -> Unit,
+    onPollClick: (String) -> Unit = {},
     viewModel: IdolDetailViewModel = viewModel(
         factory = IdolDetailViewModel.Factory(
             LocalContext.current.applicationContext as android.app.Application, idolId
@@ -143,10 +144,12 @@ fun IdolDetailScreen(
                     1 -> SongsBody(state, idol, onNavigateToUnitDetail, onNavigateToSongDetail)
                     2 -> ProfileBody(idol)
                     else -> CommunityBody(
+                        idolId = idol.id,
                         tags = state.tags,
                         isSignedIn = authState.isSignedIn,
                         onToggleTag = viewModel::toggleTag,
-                        onOpenTagPicker = { showTagPicker = true }
+                        onOpenTagPicker = { showTagPicker = true },
+                        onPollClick = onPollClick
                     )
                 }
                 Box(Modifier.size(24.dp))
@@ -167,12 +170,15 @@ fun IdolDetailScreen(
 @OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
 @Composable
 private fun CommunityBody(
+    idolId: String,
     tags: List<CommunityApi.IdolTag>,
     isSignedIn: Boolean,
     onToggleTag: (CommunityApi.IdolTag) -> Unit,
-    onOpenTagPicker: () -> Unit
+    onOpenTagPicker: () -> Unit,
+    onPollClick: (String) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        com.fugaif.imaslivedb.ui.polls.PollAchievementBadges(entityId = idolId, onOpenPoll = onPollClick)
         if (!isSignedIn) {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)

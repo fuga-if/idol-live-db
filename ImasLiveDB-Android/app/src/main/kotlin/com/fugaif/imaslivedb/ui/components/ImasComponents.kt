@@ -17,6 +17,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -431,6 +433,36 @@ fun ImasTagChip(text: String, seed: String? = null, brand: String? = null, outli
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
             color = if (outlined) t.accent else t.onAccent
+        )
+    }
+}
+
+/** 「投票の優勝経験」バッジ。1位は王冠+金塗り、2〜3位はロゼット+アウトライン。iOS ImasAwardChip の移植。 */
+@Composable
+fun ImasAwardChip(title: String, rank: Int) {
+    val isWinner = rank == 1
+    val rankLabel = if (isWinner) "優勝" else "第${rank}位"
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .clip(RoundedCornerShape(999.dp))
+            .background(if (isWinner) DS.warning else DS.warning.copy(alpha = 0.14f))
+            .padding(horizontal = 10.dp, vertical = 5.dp)
+    ) {
+        Icon(
+            if (isWinner) Icons.Filled.EmojiEvents else Icons.Filled.WorkspacePremium,
+            contentDescription = null,
+            tint = if (isWinner) Color.White else DS.warning,
+            modifier = Modifier.size(14.dp)
+        )
+        Text(
+            "$title $rankLabel",
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = if (isWinner) Color.White else DS.warning,
+            modifier = Modifier.padding(start = 4.dp),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
     }
 }

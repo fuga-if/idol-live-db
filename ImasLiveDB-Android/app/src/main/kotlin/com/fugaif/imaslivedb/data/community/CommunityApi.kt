@@ -41,6 +41,7 @@ class CommunityApi(private val appContext: Context, private val authService: Aut
     data class PollDetail(
         val id: String,
         val title: String,
+        val description: String? = null,
         val targetType: String,
         val totalVotes: Int,
         val entries: List<PollEntry>,
@@ -66,6 +67,17 @@ class CommunityApi(private val appContext: Context, private val authService: Aut
     }
     /** 投票/取消のレスポンス (対象 entity の確定票数 + 自分の合計投票数)。 */
     data class PollVoteResult(val entityId: String, val voteCount: Int, val myVoteCount: Int)
+    /** 指定エンティティ(曲/アイドル)が終了お題で取った順位実績 (上位3位まで)。 */
+    data class PollAchievement(
+        val pollId: String,
+        val title: String,
+        val targetType: String,
+        val endsAtMs: Long,
+        val voteCount: Int,
+        val rank: Int
+    ) {
+        val rankLabel: String get() = if (rank == 1) "優勝" else "第${rank}位"
+    }
     data class PenlightSet(val key: String, val colors: List<String>, val count: Int)
     data class PenlightResult(val topSets: List<PenlightSet>, val totalVotes: Int)
     data class PenlightPaletteEntry(val colorHex: String?, val name: String, val sortOrder: Int, val note: String?)
@@ -299,15 +311,13 @@ class CommunityApi(private val appContext: Context, private val authService: Aut
         }
     }
 
-    /** 進行中/最近のポール一覧 (/polls/results は poll ごとに首位 entity を返すので poll_id で集約)。 */
+    /** 進行中のポール一覧。 */
     suspend fun polls(): List<PollSummary> = withContext(Dispatchers.IO) {
-        val arr = getArray("/polls/results") ?: return@withContext emptyList()
-        val seen = HashSet<String>()
+        val arr = getArray("/polls?status=active") ?: return@withContext emptyList()
         (0 until arr.length()).mapNotNull { i ->
             val o = arr.getJSONObject(i)
-            val id = o.optString("poll_id")
-            if (id.isEmpty() || !seen.add(id)) null
-            else PollSummary(id, o.optString("title"), o.optString("target_type"))
+            val id = o.optString("id")
+            if (id.isEmpty()) null else PollSummary(id, o.optString("title"), o.optString("target_type"))
         }
     }
 
@@ -323,6 +333,7 @@ class CommunityApi(private val appContext: Context, private val authService: Aut
         PollDetail(
             id = poll.optString("id"),
             title = poll.optString("title"),
+            description = poll.strOrNull("description"),
             targetType = poll.optString("target_type"),
             totalVotes = poll.optInt("total_votes"),
             entries = entries,
@@ -331,25 +342,31 @@ class CommunityApi(private val appContext: Context, private val authService: Aut
             scopeEntityIds = poll.optJSONArray("scope_entity_ids")?.toStringList().orEmpty(),
             myVoteCount = poll.optInt("my_vote_count"),
             status = poll.strOrNull("status") ?: "active",
-            endsAtMs = parseEndsAt(poll.optString("ends_at")),
+            endsAtMs = epochSecToMs(poll.optLong("ends_at")),
         )
+    }
+
+    /** GET /polls/achievements/{entityId} — 終了お題での順位実績 (上位3位まで)。 */
+    suspend fun pollAchievements(entityId: String): List<PollAchievement> = withContext(Dispatchers.IO) {
+        val arr = getArray("/polls/achievements/${enc(entityId)}") ?: return@withContext emptyList()
+        (0 until arr.length()).map { i ->
+            val o = arr.getJSONObject(i)
+            PollAchievement(
+                pollId = o.optString("poll_id"),
+                title = o.optString("title"),
+                targetType = o.optString("target_type"),
+                endsAtMs = epochSecToMs(o.optLong("ends_at")),
+                voteCount = o.optInt("vote_count"),
+                rank = o.optInt("rnk"),
+            )
+        }
     }
 
     private fun JSONArray.toStringList(): List<String> =
         (0 until length()).map { optString(it) }.filter { it.isNotEmpty() }
 
-    /** SQLite datetime ("YYYY-MM-DD HH:MM:SS", UTC想定) をエポックミリ秒へ。サーバ (Worker) 側の
-     *  `new Date(ends_at.replace(" ", "T") + "Z")` と同じ解釈にする。 */
-    private fun parseEndsAt(raw: String): Long {
-        if (raw.isEmpty()) return Long.MAX_VALUE
-        return try {
-            val iso = raw.replace(" ", "T")
-            val withZone = if (iso.endsWith("Z") || Regex("[+-]\\d{2}:?\\d{2}$").containsMatchIn(iso)) iso else "${iso}Z"
-            java.time.Instant.parse(withZone).toEpochMilli()
-        } catch (e: Exception) {
-            Long.MAX_VALUE
-        }
-    }
+    /** サーバは ends_at を epoch 秒の数値で返す (`CAST(strftime('%s', ...) AS INTEGER)`)。0/欠損は Long.MAX_VALUE (常に「開催中」扱い)。 */
+    private fun epochSecToMs(sec: Long): Long = if (sec <= 0) Long.MAX_VALUE else sec * 1000L
 
     /** POST /polls/{id}/votes — entity に投票 (新規候補も可。サーバが未存在なら作る)。 */
     suspend fun votePoll(pollId: String, entityId: String): PollVoteResult? = withContext(Dispatchers.IO) {

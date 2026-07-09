@@ -41,6 +41,7 @@ import com.fugaif.imaslivedb.ui.mypage.AttendedEventsScreen
 import com.fugaif.imaslivedb.ui.mypage.FavoritesScreen
 import com.fugaif.imaslivedb.ui.mypage.MyContributionsScreen
 import com.fugaif.imaslivedb.ui.polls.MyVotesScreen
+import com.fugaif.imaslivedb.ui.polls.PollDetailScreen
 import com.fugaif.imaslivedb.ui.polls.PollsScreen
 import com.fugaif.imaslivedb.ui.produce.ProduceScreen
 import com.fugaif.imaslivedb.ui.schedule.CalendarScreen
@@ -177,6 +178,9 @@ private fun NavGraphBuilder.eventsNavGraph(navController: NavHostController) {
             },
             onNavigateToShowDetail = { showId ->
                 navController.navigate(NavRoutes.Setlist.createRoute(showId))
+            },
+            onPollClick = { pollId ->
+                navController.navigate(NavRoutes.PollDetail.createRoute(pollId))
             }
         )
     }
@@ -193,6 +197,9 @@ private fun NavGraphBuilder.eventsNavGraph(navController: NavHostController) {
             },
             onShowClick = { showId ->
                 navController.navigate(NavRoutes.Setlist.createRoute(showId))
+            },
+            onPollClick = { pollId ->
+                navController.navigate(NavRoutes.PollDetail.createRoute(pollId))
             }
         )
     }
@@ -245,6 +252,9 @@ private fun NavGraphBuilder.songsNavGraph(navController: NavHostController) {
             },
             onShowClick = { showId ->
                 navController.navigate(NavRoutes.Setlist.createRoute(showId))
+            },
+            onPollClick = { pollId ->
+                navController.navigate(NavRoutes.PollDetail.createRoute(pollId))
             }
         )
     }
@@ -261,6 +271,9 @@ private fun NavGraphBuilder.songsNavGraph(navController: NavHostController) {
             },
             onNavigateToShowDetail = { showId ->
                 navController.navigate(NavRoutes.Setlist.createRoute(showId))
+            },
+            onPollClick = { pollId ->
+                navController.navigate(NavRoutes.PollDetail.createRoute(pollId))
             }
         )
     }
@@ -313,6 +326,9 @@ private fun NavGraphBuilder.idolsNavGraph(navController: NavHostController) {
             },
             onNavigateToShowDetail = { showId ->
                 navController.navigate(NavRoutes.Setlist.createRoute(showId))
+            },
+            onPollClick = { pollId ->
+                navController.navigate(NavRoutes.PollDetail.createRoute(pollId))
             }
         )
     }
@@ -342,6 +358,9 @@ private fun NavGraphBuilder.idolsNavGraph(navController: NavHostController) {
             },
             onShowClick = { showId ->
                 navController.navigate(NavRoutes.Setlist.createRoute(showId))
+            },
+            onPollClick = { pollId ->
+                navController.navigate(NavRoutes.PollDetail.createRoute(pollId))
             }
         )
     }
@@ -394,7 +413,16 @@ private fun NavGraphBuilder.produceNavGraph(navController: NavHostController) {
     }
     composable(NavRoutes.Stats.route) { StatsScreen() }
     composable(NavRoutes.Settings.route) { SettingsScreen() }
-    composable(NavRoutes.Polls.route) { PollsScreen(onBack = { navController.popBackStack() }) }
+    composable(NavRoutes.Polls.route) {
+        PollsScreen(
+            onBack = { navController.popBackStack() },
+            onPollClick = { navController.navigate(NavRoutes.PollDetail.createRoute(it)) }
+        )
+    }
+    composable(NavRoutes.PollDetail.ROUTE) { backStackEntry ->
+        val pollId = backStackEntry.arguments?.getString("pollId") ?: return@composable
+        PollDetailScreen(pollId = pollId, onBack = { navController.popBackStack() })
+    }
     composable(NavRoutes.Favorites.route) {
         FavoritesScreen(
             onBack = { navController.popBackStack() },
@@ -547,7 +575,8 @@ private fun NavGraphBuilder.detailRoutes(navController: NavHostController) {
             onBack = { navController.popBackStack() },
             onUnitClick = { navController.navigate(NavRoutes.UnitDetail.createRoute(it)) },
             onIdolClick = { navController.navigate(NavRoutes.IdolDetail.createRoute(it)) },
-            onShowClick = { navController.navigate(NavRoutes.Setlist.createRoute(it)) }
+            onShowClick = { navController.navigate(NavRoutes.Setlist.createRoute(it)) },
+            onPollClick = { navController.navigate(NavRoutes.PollDetail.createRoute(it)) }
         )
     }
     composable(NavRoutes.IdolDetail.ROUTE) { backStackEntry ->
@@ -557,7 +586,8 @@ private fun NavGraphBuilder.detailRoutes(navController: NavHostController) {
             onNavigateBack = { navController.popBackStack() },
             onNavigateToUnitDetail = { navController.navigate(NavRoutes.UnitDetail.createRoute(it)) },
             onNavigateToSongDetail = { navController.navigate(NavRoutes.SongDetail.createRoute(it)) },
-            onNavigateToShowDetail = { navController.navigate(NavRoutes.Setlist.createRoute(it)) }
+            onNavigateToShowDetail = { navController.navigate(NavRoutes.Setlist.createRoute(it)) },
+            onPollClick = { navController.navigate(NavRoutes.PollDetail.createRoute(it)) }
         )
     }
     composable(NavRoutes.UnitDetail.ROUTE) { backStackEntry ->
