@@ -322,12 +322,16 @@ struct YearWrappedShareSheet: View {
             ScrollView {
                 VStack(spacing: DS.sp5) {
                     if availableYears.count > 1 {
-                        Picker("年", selection: $selectedYear) {
-                            ForEach(availableYears, id: \.self) { year in
-                                Text("\(String(year))年").tag(year)
-                            }
-                        }
-                        .pickerStyle(.segmented)
+                        ImasSegmented(
+                            labels: availableYears.map { "\($0)年" },
+                            selection: Binding(
+                                get: { availableYears.firstIndex(of: selectedYear) ?? 0 },
+                                set: { newIndex in
+                                    guard availableYears.indices.contains(newIndex) else { return }
+                                    selectedYear = availableYears[newIndex]
+                                }
+                            )
+                        )
                     }
 
                     if isLoading {
@@ -359,20 +363,11 @@ struct YearWrappedShareSheet: View {
     }
 
     private var emptyState: some View {
-        VStack(spacing: DS.sp3) {
-            Image(systemName: "calendar.badge.clock")
-                .font(.imasScaled( 40))
-                .foregroundStyle(DS.ink3)
-            Text("この年の参加記録がまだありません")
-                .font(.imasSubhead)
-                .foregroundStyle(DS.ink2)
-            Text("ライブに「参加した」を付けると、その年のまとめが作れます。")
-                .font(.imasFootnote)
-                .foregroundStyle(DS.ink3)
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, DS.sp8)
+        ImasEmptyState(
+            systemImage: "calendar.badge.clock",
+            title: "この年の参加記録がまだありません",
+            message: "ライブに「参加した」を付けると、その年のまとめが作れます。"
+        )
     }
 
     /// 参加実績のある年を洗い出し、初期表示年 (今年 → 無ければ最新実績年) を決める。
