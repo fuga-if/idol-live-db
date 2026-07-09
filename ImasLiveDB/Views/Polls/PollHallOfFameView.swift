@@ -87,7 +87,7 @@ private struct HallOfFameRow: View {
             Image(systemName: "crown.fill")
                 .font(.imasScaled(16))
                 .foregroundStyle(
-                    LinearGradient(colors: [.orange, .yellow],
+                    LinearGradient(colors: [DS.warning, .yellow],
                                    startPoint: .top, endPoint: .bottom)
                 )
                 .frame(width: 30, alignment: .center)
@@ -105,7 +105,7 @@ private struct HallOfFameRow: View {
             VStack(alignment: .trailing, spacing: DS.sp2) {
                 Text("優勝")
                     .font(.imasCaption.weight(.bold))
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(DS.warning)
                 Text("\(result.voteCount)票")
                     .font(.imasCaption.monospacedDigit())
                     .foregroundStyle(DS.ink3)

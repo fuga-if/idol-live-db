@@ -31,10 +31,10 @@ struct MyVotesView: View {
             if isLoading && entries.isEmpty {
                 ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if entries.isEmpty {
-                ContentUnavailableView(
-                    "まだ投票していません",
+                ImasEmptyState(
                     systemImage: "chart.bar.doc.horizontal",
-                    description: Text("みんなの投票でお題に投票すると、ここに履歴が残ります")
+                    title: "まだ投票していません",
+                    message: "みんなの投票でお題に投票すると、ここに履歴が残ります"
                 )
             } else {
                 List {

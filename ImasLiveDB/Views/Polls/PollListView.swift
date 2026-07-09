@@ -57,7 +57,7 @@ struct PollListView: View {
                 ToolbarItem(placement: .topBarLeading) {
                     NavigationLink(value: PollRoute.hallOfFame) {
                         Image(systemName: "crown.fill")
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(DS.warning)
                     }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
