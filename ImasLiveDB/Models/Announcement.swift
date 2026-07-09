@@ -21,8 +21,8 @@ enum AnnouncementCatalog {
     /// 新しいものほど上 (表示順)。
     static let all: [Announcement] = [
         Announcement(
-            id: "v1.8.0_polls_scope",
-            date: "2026-06-28",
+            id: "v1.8.1_polls_scope",
+            date: "2026-06-29",
             title: "投票の候補を絞り込める",
             summary: "ブランド限定や候補リスト指定で、企画ものの「お題」が立てやすくなりました。",
             body: [
