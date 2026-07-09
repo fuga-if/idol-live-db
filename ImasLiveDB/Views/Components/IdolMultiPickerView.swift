@@ -17,6 +17,8 @@ struct IdolMultiPickerView: View {
     @State private var showUnitPicker = false
     /// 呼び出し元が idols を渡さなかった (空) 場合に自力ロードした全アイドル。
     @State private var loadedIdols: [Idol] = []
+    /// リスト/グリッド表示切替。人数が多いお題(全ブランド等)でも顔写真で見渡せるように。
+    @State private var displayMode: IdolListMode = .grid
 
     init(
         selected: Set<String>,
@@ -62,13 +64,26 @@ struct IdolMultiPickerView: View {
         NavigationStack {
             VStack(spacing: 0) {
                 brandFilterBar
-                idolList
+                if displayMode == .grid {
+                    idolGrid
+                } else {
+                    idolList
+                }
             }
             .navigationTitle("出演者を選択 (\(selection.count))")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("キャンセル") { dismiss() }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        AppAnalytics.tap("idol_multi_picker.display_mode_toggle")
+                        displayMode = displayMode == .grid ? .list : .grid
+                    } label: {
+                        Image(systemName: displayMode == .grid ? "list.bullet" : "square.grid.3x2")
+                    }
+                    .accessibilityLabel(displayMode == .grid ? "リスト表示" : "グリッド表示")
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -148,17 +163,12 @@ struct IdolMultiPickerView: View {
 
     @ViewBuilder
     private func idolRow(_ idol: Idol) -> some View {
+        let isSelected = selection.contains(idol.id)
         Button {
-            AppAnalytics.tap("idol_multi_picker.toggle_idol")
-            if selection.contains(idol.id) {
-                selection.remove(idol.id)
-            } else {
-                selection.insert(idol.id)
-            }
+            toggle(idol)
         } label: {
-            HStack {
-                Image(systemName: selection.contains(idol.id) ? "checkmark.circle.fill" : "circle")
-                    .foregroundStyle(selection.contains(idol.id) ? Color.accentColor : DS.ink2)
+            HStack(spacing: DS.sp3) {
+                IdolAvatarView(idol: idol, size: 40)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(idol.name)
                     if let cv = idol.currentVoiceActor {
@@ -168,9 +178,72 @@ struct IdolMultiPickerView: View {
                     }
                 }
                 Spacer()
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .foregroundStyle(isSelected ? Color.accentColor : DS.ink2)
             }
         }
         .buttonStyle(.plain)
+    }
+
+    private func toggle(_ idol: Idol) {
+        AppAnalytics.tap("idol_multi_picker.toggle_idol")
+        if selection.contains(idol.id) {
+            selection.remove(idol.id)
+        } else {
+            selection.insert(idol.id)
+        }
+    }
+
+    // MARK: - Grid
+
+    /// 顔写真で見渡せるグリッド表示。人数の多いお題(スコープ=all等)向け。
+    private var idolGrid: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: DS.sp5) {
+                ForEach(grouped, id: \.brand.id) { section in
+                    VStack(alignment: .leading, spacing: DS.sp3) {
+                        BrandSectionHeader(brand: section.brand, count: section.idols.count)
+                            .padding(.horizontal, DS.sp5)
+                        LazyVGrid(columns: gridColumns, spacing: DS.sp4) {
+                            ForEach(section.idols) { idol in
+                                gridCell(idol)
+                            }
+                        }
+                        .padding(.horizontal, DS.sp4)
+                    }
+                }
+            }
+            .padding(.top, DS.sp3)
+            .padding(.bottom, DS.sp7)
+        }
+        .background(DS.bg)
+    }
+
+    private var gridColumns: [GridItem] {
+        Array(repeating: GridItem(.flexible(), spacing: DS.sp3), count: 4)
+    }
+
+    private func gridCell(_ idol: Idol) -> some View {
+        let isSelected = selection.contains(idol.id)
+        return VStack(spacing: DS.sp2) {
+            IdolAvatarView(idol: idol, size: 60)
+                .overlay(alignment: .bottomTrailing) {
+                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                        .font(.imasScaled(16, weight: .semibold))
+                        .foregroundStyle(isSelected ? Color.accentColor : DS.ink3)
+                        .background(DS.bg, in: Circle())
+                        .offset(x: 2, y: 2)
+                }
+                .opacity(isSelected ? 1 : 0.55)
+            Text(idol.name)
+                .font(.imasCaption)
+                .foregroundStyle(DS.ink)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+        }
+        .frame(maxWidth: .infinity)
+        .contentShape(Rectangle())
+        .onTapGesture { toggle(idol) }
     }
 }
 
