@@ -6,7 +6,9 @@ import SwiftUI
 struct HelpSection: Identifiable {
     let id = UUID()
     let icon: String
-    let tint: Color
+    /// カテゴリ識別用の装飾テーマ seed (hex)。`ImasTheme.derive(seed:scheme:)` に渡して
+    /// ライト/ダーク双方で一貫したトークンを導出する (生の SwiftUI システムカラーは使わない)。
+    let tint: String
     let title: String
     let summary: String
     let body: [HelpItem]
@@ -24,7 +26,7 @@ enum HelpCatalog {
     static let sections: [HelpSection] = [
         HelpSection(
             icon: "music.mic",
-            tint: .pink,
+            tint: "#FF2D55",
             title: "ライブを探す",
             summary: "全ブランドのライブ・公演・セットリストを年別に閲覧できます。",
             body: [
@@ -42,7 +44,7 @@ enum HelpCatalog {
         ),
         HelpSection(
             icon: "music.note.list",
-            tint: .indigo,
+            tint: "#5856D6",
             title: "楽曲を探す",
             summary: "2300曲以上を曲名・アルバム・シリーズで探索できます。",
             body: [
@@ -60,7 +62,7 @@ enum HelpCatalog {
         ),
         HelpSection(
             icon: "person.3.fill",
-            tint: .orange,
+            tint: "#FF9500",
             title: "アイドル・CVを探す",
             summary: "全ブランドのアイドルを名前・CV名・属性で横断検索できます。",
             body: [
@@ -78,7 +80,7 @@ enum HelpCatalog {
         ),
         HelpSection(
             icon: "bookmark.fill",
-            tint: .red,
+            tint: "#FF3B30",
             title: "マイマーク（記録）",
             summary: "担当アイドル・回収済楽曲・参加ライブを記録できます。",
             body: [
@@ -94,7 +96,7 @@ enum HelpCatalog {
         ),
         HelpSection(
             icon: "square.and.pencil",
-            tint: .blue,
+            tint: "#007AFF",
             title: "みんなで編集",
             summary: "ログインすればセトリ・楽曲・ライブ情報を直接編集でき、その場で全員に反映されます。",
             body: [
@@ -114,7 +116,7 @@ enum HelpCatalog {
         ),
         HelpSection(
             icon: "tag.fill",
-            tint: .teal,
+            tint: "#30B0C7",
             title: "タグ",
             summary: "ユーザー投稿のタグで曲を自由に分類できます。",
             body: [
@@ -128,7 +130,7 @@ enum HelpCatalog {
         ),
         HelpSection(
             icon: "circle.hexagongrid.fill",
-            tint: .purple,
+            tint: "#AF52DE",
             title: "ペンライト投票",
             summary: "曲ごとの「振る色」をみんなで投票して可視化。",
             body: [
@@ -142,7 +144,7 @@ enum HelpCatalog {
         ),
         HelpSection(
             icon: "music.note.house.fill",
-            tint: .pink,
+            tint: "#FF2D55",
             title: "イントロドン",
             summary: "曲のイントロを聴いて曲名を当てるクイズ。",
             body: [
@@ -158,7 +160,7 @@ enum HelpCatalog {
         ),
         HelpSection(
             icon: "magnifyingglass",
-            tint: .gray,
+            tint: "#8E8E93",
             title: "検索",
             summary: "「このタブを絞り込む」検索と、「全体を横断する」検索の 2 種類があります。",
             body: [
@@ -174,7 +176,7 @@ enum HelpCatalog {
         ),
         HelpSection(
             icon: "calendar",
-            tint: .green,
+            tint: "#34C759",
             title: "カレンダー",
             summary: "ライブ・CD リリース・アイドル誕生日を月別に表示。",
             body: [
@@ -186,7 +188,7 @@ enum HelpCatalog {
         ),
         HelpSection(
             icon: "photo.on.rectangle.angled",
-            tint: .mint,
+            tint: "#00C7BE",
             title: "画像インポート",
             summary: "アイドル・ブランドのアイコン画像を一括取り込み。",
             body: [
@@ -202,7 +204,7 @@ enum HelpCatalog {
         ),
         HelpSection(
             icon: "icloud.fill",
-            tint: .cyan,
+            tint: "#32ADE6",
             title: "同期とアカウント",
             summary: "CloudKit で常に最新のデータ、 Sign in with Apple で編集に参加。",
             body: [
@@ -221,6 +223,7 @@ enum HelpCatalog {
 
 struct HelpView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var scheme
 
     var body: some View {
         NavigationStack {
@@ -268,15 +271,16 @@ struct HelpView: View {
 
                 Section("機能カテゴリ") {
                     ForEach(HelpCatalog.sections) { section in
+                        let t = ImasTheme.derive(seed: section.tint, scheme: scheme)
                         NavigationLink {
                             HelpDetailView(section: section)
                         } label: {
                             HStack(spacing: 14) {
                                 Image(systemName: section.icon)
                                     .font(.imasTitle3)
-                                    .foregroundStyle(.white)
+                                    .foregroundStyle(t.onAccent)
                                     .frame(width: 36, height: 36)
-                                    .background(section.tint.gradient, in: RoundedRectangle(cornerRadius: 9))
+                                    .background(t.accent.gradient, in: RoundedRectangle(cornerRadius: 9))
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(section.title).font(.imasHeadline)
                                     Text(section.summary)
@@ -319,16 +323,18 @@ struct HelpView: View {
 
 private struct HelpDetailView: View {
     let section: HelpSection
+    @Environment(\.colorScheme) private var scheme
 
     var body: some View {
+        let t = ImasTheme.derive(seed: section.tint, scheme: scheme)
         List {
             Section {
                 VStack(spacing: 14) {
                     Image(systemName: section.icon)
                         .font(.imasScaled( 36, weight: .semibold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(t.onAccent)
                         .frame(width: 72, height: 72)
-                        .background(section.tint.gradient, in: RoundedRectangle(cornerRadius: 18))
+                        .background(t.accent.gradient, in: RoundedRectangle(cornerRadius: 18))
                     Text(section.title)
                         .font(.imasTitle2)
                     Text(section.summary)
@@ -346,7 +352,7 @@ private struct HelpDetailView: View {
                     VStack(alignment: .leading, spacing: 6) {
                         HStack(alignment: .top, spacing: 8) {
                             Image(systemName: "checkmark.circle.fill")
-                                .foregroundStyle(section.tint)
+                                .foregroundStyle(t.accent)
                                 .padding(.top, 2)
                             Text(item.label)
                                 .font(.imasSubhead.bold())
