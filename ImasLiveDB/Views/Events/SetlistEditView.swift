@@ -370,13 +370,10 @@ private struct SetlistEditRow: View {
             }
             .buttonStyle(.plain)
 
-            Picker("セクション", selection: Binding(
-                get: { row.section ?? "本編" },
-                set: { row.section = ($0 == "本編") ? nil : $0 }
-            )) {
-                ForEach(sections, id: \.self) { Text($0).tag($0) }
-            }
-            .pickerStyle(.segmented)
+            ImasSegmented(labels: sections, selection: Binding(
+                get: { sections.firstIndex(of: row.section ?? "本編") ?? 0 },
+                set: { row.section = (sections[$0] == "本編") ? nil : sections[$0] }
+            ))
 
             Button(action: onPickCasts) {
                 HStack(alignment: .top) {

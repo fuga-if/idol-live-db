@@ -27,16 +27,16 @@ struct MyPredictionsView: View {
             if isLoading {
                 ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if !isSignedIn {
-                ContentUnavailableView(
-                    "ログインが必要です",
+                ImasEmptyState(
                     systemImage: "person.crop.circle.badge.questionmark",
-                    description: Text("Apple Sign In すると、投票した予想がここにまとまります")
+                    title: "ログインが必要です",
+                    message: "Apple Sign In すると、投票した予想がここにまとまります"
                 )
             } else if groups.isEmpty {
-                ContentUnavailableView(
-                    "まだ予想していません",
+                ImasEmptyState(
                     systemImage: "music.note.list",
-                    description: Text("未来公演のセトリ予想で投票すると、ここに表示されます")
+                    title: "まだ予想していません",
+                    message: "未来公演のセトリ予想で投票すると、ここに表示されます"
                 )
             } else {
                 List {
