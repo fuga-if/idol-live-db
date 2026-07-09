@@ -34,9 +34,7 @@ struct TagListView: View {
                     HStack { Spacer(); ProgressView(); Spacer() }
                         .listRowBackground(Color.clear)
                 } else if tags.isEmpty {
-                    Text("タグはまだありません")
-                        .foregroundStyle(DS.ink2)
-                        .frame(maxWidth: .infinity, alignment: .center)
+                    ImasEmptyState(systemImage: "tag", title: "タグはまだありません")
                         .listRowBackground(Color.clear)
                 } else {
                     ForEach(Array(tags.enumerated()), id: \.element.id) { idx, tag in

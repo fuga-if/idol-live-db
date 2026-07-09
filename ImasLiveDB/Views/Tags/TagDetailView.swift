@@ -112,9 +112,7 @@ struct TagDetailView: View {
                     }
                 } else {
                     Section {
-                        Text("まだこのタグが付いた曲はありません")
-                            .foregroundStyle(DS.ink2)
-                            .font(.imasCaption)
+                        ImasEmptyState(systemImage: "tag", title: "まだこのタグが付いた曲はありません")
                             .listRowBackground(DS.surface)
                             .listRowSeparatorTint(DS.sep)
                     }
