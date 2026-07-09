@@ -42,7 +42,7 @@ struct GenericGridView<Item: GridCardItem>: View {
                     .frame(maxWidth: .infinity)
                     .padding(.top, 60)
             } else if items.isEmpty {
-                ContentUnavailableView(emptyTitle, systemImage: emptySystemImage)
+                ImasEmptyState(systemImage: emptySystemImage, title: emptyTitle)
                     .padding(.top, 60)
             } else {
                 LazyVGrid(columns: columns, spacing: 16) {

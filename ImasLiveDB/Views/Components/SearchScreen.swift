@@ -77,7 +77,16 @@ struct SearchScreen<Result: Identifiable & Sendable, RowContent: View>: View {
         } else if !suggestions.isEmpty && results.isEmpty {
             suggestionsView
         } else if results.isEmpty {
-            ContentUnavailableView.search(text: searchText)
+            VStack {
+                Spacer()
+                ImasEmptyState(
+                    systemImage: "magnifyingglass",
+                    title: "見つかりません",
+                    message: "「\(searchText)」に一致する結果がありません"
+                )
+                Spacer()
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
             resultsList
         }
