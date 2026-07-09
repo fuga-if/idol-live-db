@@ -37,6 +37,7 @@ enum ID {
     static let accentPink   = DS.pick
     static let accentBlue   = DS.sys
     static let accentPurple = Color(red: 0.58, green: 0.34, blue: 0.92)
+    static let warning      = DS.warning
 
     // MARK: - Dividers → DS
     static let dividerDark  = DS.sep

@@ -55,7 +55,7 @@ struct IntroResultShareCard: View {
         case 100:   return ("パーフェクト！", ID.accentGold)
         case 80...: return ("すごい！", ID.correct)
         case 60...: return ("なかなか！", ID.accentBlue)
-        case 40...: return ("もう少し！", .orange)
+        case 40...: return ("もう少し！", ID.warning)
         default:    return ("練習あるのみ！", ID.accentPink)
         }
     }

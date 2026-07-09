@@ -123,17 +123,17 @@ struct IntroPartyGameView: View {
             if eliminated {
                 Image(systemName: "xmark.circle.fill")
                     .font(.imasScaled( 30, weight: .bold))
-                    .foregroundColor(.white.opacity(0.35))
+                    .foregroundColor(ID.menuCardDarkText.opacity(0.35))
                 Text("OUT")
                     .font(ID.font(16, weight: .black))
-                    .foregroundColor(.white.opacity(0.4))
+                    .foregroundColor(ID.menuCardDarkText.opacity(0.4))
             } else {
                 Text(player.name)
                     .font(.imasScaled( 40, weight: .black))
-                    .foregroundColor(.white)
+                    .foregroundColor(ID.menuCardDarkText)
                 Text("タップで早押し！")
                     .font(ID.font(14, weight: .bold))
-                    .foregroundColor(.white.opacity(0.85))
+                    .foregroundColor(ID.menuCardDarkText.opacity(0.85))
             }
         }
     }
