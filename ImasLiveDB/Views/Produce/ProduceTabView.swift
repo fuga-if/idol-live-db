@@ -17,14 +17,13 @@ struct ProduceTabView: View {
 
     // あなたの活動サマリ。
     @State private var attendedCount: Int = 0
-    @State private var editCount: Int = 0
-    @State private var receivedGoodCount: Int = 0
     @State private var predictionCount: Int = 0
-    @State private var favoriteCount: Int = 0
+    @State private var favoriteCount: Int = 0    // 曲+アイドル+ライブの合計
     @State private var collectedCount: Int = 0
-    /// お気に入り / 記録曲タイルのタップ遷移先で表示する楽曲ID。
-    @State private var favoriteSongIds: [String] = []
     @State private var collectedSongIds: [String] = []
+    // ローカル履歴 (投稿・投票) は @Observable で参照するだけでカウントが見える。
+    @State private var voteLog = LocalPollVoteLog.shared
+    @State private var contributionLog = LocalContributionLog.shared
 
     // 参加したライブ。
     @State private var attendedEvents: [EventWithDate] = []
@@ -206,20 +205,20 @@ struct ProduceTabView: View {
                 statTileLink(route: .attendedEvents) {
                     ImasStatTile(systemImage: "music.mic", value: numberString(attendedCount), label: "参加ライブ", brand: pickBrandSeed, tappable: true)
                 }
-                statTileLink(route: .myEdits) {
-                    ImasStatTile(systemImage: "square.and.pencil", value: numberString(editCount), label: "編集", brand: pickBrandSeed, tappable: true)
-                }
-                statTileLink(route: .myEdits) {
-                    ImasStatTile(systemImage: "hands.clap.fill", value: numberString(receivedGoodCount), label: "受Good", brand: pickBrandSeed, tappable: true)
-                }
                 statTileLink(route: .myPredictions) {
                     ImasStatTile(systemImage: "sparkles", value: numberString(predictionCount), label: "予想", brand: pickBrandSeed, tappable: true)
                 }
-                statTileLink(route: .favoriteSongs) {
+                statTileLink(route: .favorites) {
                     ImasStatTile(systemImage: "star.fill", value: numberString(favoriteCount), label: "お気に入り", brand: pickBrandSeed, tappable: true)
                 }
+                statTileLink(route: .myContributions) {
+                    ImasStatTile(systemImage: "square.and.pencil", value: numberString(contributionLog.total), label: "投稿", brand: pickBrandSeed, tappable: true)
+                }
+                statTileLink(route: .myVotes) {
+                    ImasStatTile(systemImage: "chart.bar.doc.horizontal", value: numberString(voteLog.votedPollCount), label: "投票", brand: pickBrandSeed, tappable: true)
+                }
                 statTileLink(route: .collectedSongs) {
-                    ImasStatTile(systemImage: "music.note", value: numberString(collectedCount), label: "記録曲", brand: pickBrandSeed, tappable: true)
+                    ImasStatTile(systemImage: "music.note", value: numberString(collectedCount), label: "回収", brand: pickBrandSeed, tappable: true)
                 }
             }
         }
@@ -227,17 +226,18 @@ struct ProduceTabView: View {
 
     /// あなたの活動タイルの遷移先。値ベース push にして二重 push をスロットルで防ぐ。
     enum ActivityRoute: Hashable {
-        case attendedEvents, myEdits, myPredictions, favoriteSongs, collectedSongs
+        case attendedEvents, myPredictions, favorites, myVotes, myContributions, collectedSongs
     }
 
     @ViewBuilder
     private func activityDestination(_ route: ActivityRoute) -> some View {
         switch route {
         case .attendedEvents: AttendedEventsListView(events: attendedEvents)
-        case .myEdits: MyEditsView()
         case .myPredictions: MyPredictionsView()
-        case .favoriteSongs: songListDestination(ids: favoriteSongIds, title: "お気に入りの楽曲")
-        case .collectedSongs: songListDestination(ids: collectedSongIds, title: "記録した楽曲")
+        case .favorites: FavoritesListView().environment(database)
+        case .myVotes: MyVotesView().environment(database)
+        case .myContributions: MyContributionsView()
+        case .collectedSongs: songListDestination(ids: collectedSongIds, title: "回収した楽曲")
         }
     }
 
@@ -371,10 +371,11 @@ struct ProduceTabView: View {
             }
             .buttonStyle(.plain)
 
-            NavigationLink {
-                PollListView()
-                    .environment(database)
-            } label: {
+            // 値ベース (PollRoute.list) に統一。クロージャベースで直接 PollListView() を
+            // push すると、その中の値ベース NavigationLink(value: PollRoute.detail) と
+            // 混在し、詳細遷移時に navigationDestination が再評価されて PollList が
+            // 二重 push される (Detail の上に List が乗る現象) ため。
+            NavigationLink(value: PollRoute.list) {
                 ImasEntryCard(
                     systemImage: "chart.bar.doc.horizontal",
                     title: "みんなの投票",
@@ -461,10 +462,11 @@ struct ProduceTabView: View {
             collectedSongIds = Array(try await mark.autoCollectedSongIds())
             collectedCount = collectedSongIds.count
 
-            favoriteSongIds = try await mark.markedEntityIds(entity: .song, kind: .favorite)
+            // お気に入りは曲・アイドル・ライブの全種別合算 (FavoritesListView 側で内訳タブ)。
+            let songFav = try await mark.markedEntityIds(entity: .song, kind: .favorite).count
             let idolFav = try await mark.markedEntityIds(entity: .idol, kind: .favorite).count
             let eventFav = try await mark.markedEntityIds(entity: .event, kind: .favorite).count
-            favoriteCount = favoriteSongIds.count + idolFav + eventFav
+            favoriteCount = songFav + idolFav + eventFav
         } catch {
             Logger.database.error("load_failed produce_local: \(error.localizedDescription)")
         }
@@ -478,17 +480,12 @@ struct ProduceTabView: View {
         }
     }
 
-    /// サーバー指標 (編集数 / 受 Good / 予想数)。未ログインなら 0。
+    /// サーバー指標 (予想数)。未ログインなら 0。
+    /// 編集数 / 受Good は UI 上で出さなくなったため取得を停止 (badges API は別画面で必要なら再開)。
     private func loadServerActivity() async {
         guard AuthService.shared.isSignedIn else {
-            editCount = 0
-            receivedGoodCount = 0
             predictionCount = 0
             return
-        }
-        if let badges = await BadgeService.shared.currentUserBadges() {
-            editCount = badges.editCount
-            receivedGoodCount = badges.goodsReceived
         }
         if let predictions = try? await PredictionService.shared.myPredictions() {
             predictionCount = predictions.count
