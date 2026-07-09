@@ -428,9 +428,10 @@ struct EditHistoryTarget: Identifiable, Hashable {
 
 private struct EditRecordIcon: View {
     let recordType: String
+    @Environment(\.colorScheme) private var scheme
 
     var body: some View {
-        let design = EditFeedFormat.recordTypeDesign(recordType)
+        let design = EditFeedFormat.recordTypeDesign(recordType, scheme: scheme)
         Circle()
             .fill(design.color.opacity(0.15))
             .frame(width: 40, height: 40)
@@ -464,18 +465,24 @@ private struct EditOpBadge: View {
 /// record_type / op の表示メタ + 相対時刻整形を 1 箇所に集約。
 /// (旧 SubmissionTypeInfo を撤去したため、フィード専用に最小マッピングを持つ。)
 enum EditFeedFormat {
-    static func recordTypeDesign(_ type: String) -> (icon: String, color: Color) {
+    /// アイコンは種別ごとの意味のある固定シンボル、色は分類キー(record_type)から
+    /// `ImasTheme.derive(categoryKey:)` で安定導出する (種別が増えても手書きパレット不要)。
+    static func recordTypeDesign(_ type: String, scheme: ColorScheme) -> (icon: String, color: Color) {
+        (recordTypeIcon(type), ImasTheme.derive(categoryKey: type, scheme: scheme).accent)
+    }
+
+    static func recordTypeIcon(_ type: String) -> String {
         switch type {
-        case "Event":            return ("calendar", .purple)
-        case "Show":             return ("music.mic", .indigo)
-        case "Song":             return ("music.note", .pink)
-        case "Idol":             return ("person.fill", .blue)
+        case "Event":            return "calendar"
+        case "Show":             return "music.mic"
+        case "Song":             return "music.note"
+        case "Idol":             return "person.fill"
         case "SetlistItem", "ShowSetlist":
-            return ("music.note.list", .teal)
-        case "SetlistPerformer": return ("person.2.fill", .teal)
-        case "SongArtist":       return ("music.quarternote.3", .green)
-        case "ShowCast":         return ("person.3.fill", .orange)
-        default:                 return ("doc.text", .gray)
+            return "music.note.list"
+        case "SetlistPerformer": return "person.2.fill"
+        case "SongArtist":       return "music.quarternote.3"
+        case "ShowCast":         return "person.3.fill"
+        default:                 return "doc.text"
         }
     }
 

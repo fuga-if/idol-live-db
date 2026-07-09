@@ -262,9 +262,10 @@ private struct MyEditRow: View {
 /// record_type のアイコンチップ (RecentEditsView の EditRecordIcon と同一の見た目)。
 struct EditTypeIcon: View {
     let recordType: String
+    @Environment(\.colorScheme) private var scheme
 
     var body: some View {
-        let design = EditFeedFormat.recordTypeDesign(recordType)
+        let design = EditFeedFormat.recordTypeDesign(recordType, scheme: scheme)
         Circle()
             .fill(design.color.opacity(0.15))
             .frame(width: 40, height: 40)

@@ -14,6 +14,7 @@ struct TagDetailView: View {
     @State private var alertError: CommunityAPIError?
     @State private var songCache: [String: Song] = [:]
     @State private var nextDestination: DetailDestination?
+    @Environment(\.colorScheme) private var scheme
 
     var body: some View {
         List {
@@ -218,13 +219,9 @@ struct TagDetailView: View {
         }
     }
 
+    /// 4種のタグカテゴリを見分けやすく塗り分ける。カテゴリは実体色を持たないので
+    /// `ImasTheme.derive(categoryKey:)` で安定した色を導出する (増えても手書きパレット不要)。
     private func categoryColor(_ cat: String) -> Color {
-        switch cat {
-        case "mood": return .purple
-        case "scene": return .blue
-        case "special": return .orange
-        case "free": return .green
-        default: return .secondary
-        }
+        ImasTheme.derive(categoryKey: cat, scheme: scheme).accent
     }
 }

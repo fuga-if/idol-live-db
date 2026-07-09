@@ -27,6 +27,7 @@ struct UserModerationView: View {
     @State private var serverDisplayName: String?
     @State private var isLoading = false
     @State private var loadError: String?
+    @Environment(\.colorScheme) private var scheme
 
     // revert フロー
     @State private var alsoBan = true
@@ -249,9 +250,9 @@ struct UserModerationView: View {
             } else {
                 ForEach(edits) { edit in
                     HStack(spacing: 10) {
-                        Image(systemName: EditFeedFormat.recordTypeDesign(edit.recordType).icon)
+                        Image(systemName: EditFeedFormat.recordTypeIcon(edit.recordType))
                             .font(.imasCallout)
-                            .foregroundStyle(EditFeedFormat.recordTypeDesign(edit.recordType).color)
+                            .foregroundStyle(EditFeedFormat.recordTypeDesign(edit.recordType, scheme: scheme).color)
                             .frame(width: 24)
                         VStack(alignment: .leading, spacing: 2) {
                             HStack(spacing: 6) {
