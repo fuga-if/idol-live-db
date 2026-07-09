@@ -67,11 +67,11 @@ struct SongFilterView: View {
                     Section {
                         Toggle(isOn: $myMarkFilter.requireMyPick) {
                             Label("担当アイドルの曲のみ", systemImage: "heart.fill")
-                                .foregroundStyle(.pink)
+                                .foregroundStyle(DS.pick)
                         }
                         Toggle(isOn: $myMarkFilter.requireFavorite) {
                             Label("お気に入りのみ", systemImage: "star.fill")
-                                .foregroundStyle(.yellow)
+                                .foregroundStyle(DS.favorite)
                         }
                         Toggle(isOn: $myMarkFilter.requireNote) {
                             Label("メモがある曲のみ", systemImage: "note.text")

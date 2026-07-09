@@ -289,7 +289,7 @@ struct SongListView: View {
             HStack(spacing: 6) {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(.imasCaption)
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(DS.warning)
                 Text("タグ絞り込みの取得に失敗しました。表示中の一覧にはタグ条件が反映されていません。")
                     .font(.imasCaption)
                     .foregroundStyle(DS.ink2)
