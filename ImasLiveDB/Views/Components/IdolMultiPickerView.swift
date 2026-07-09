@@ -123,17 +123,23 @@ struct IdolMultiPickerView: View {
         if !brands.isEmpty {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 6) {
-                    BrandChip(label: "すべて", isOn: selectedBrandIds.isEmpty) {
-                        selectedBrandIds = []
+                    Button { selectedBrandIds = [] } label: {
+                        ImasChip(text: "すべて", style: selectedBrandIds.isEmpty ? .selected : .neutral)
                     }
+                    .buttonStyle(.plain)
                     ForEach(brands) { brand in
-                        BrandChip(label: brand.shortName, isOn: selectedBrandIds.contains(brand.id)) {
+                        Button {
                             if selectedBrandIds.contains(brand.id) {
                                 selectedBrandIds.remove(brand.id)
                             } else {
                                 selectedBrandIds.insert(brand.id)
                             }
+                        } label: {
+                            ImasChip(text: brand.shortName,
+                                      style: selectedBrandIds.contains(brand.id) ? .selected : .neutral,
+                                      brand: brand.color)
                         }
+                        .buttonStyle(.plain)
                     }
                 }
                 .padding(.horizontal, 12)
@@ -247,25 +253,6 @@ struct IdolMultiPickerView: View {
     }
 }
 
-private struct BrandChip: View {
-    let label: String
-    let isOn: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Text(label)
-                .font(.imasCaption.weight(isOn ? .semibold : .regular))
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(isOn ? Color.accentColor : DS.fill)
-                .foregroundStyle(isOn ? Color.white : DS.ink)
-                .clipShape(Capsule())
-        }
-        .buttonStyle(.plain)
-    }
-}
-
 /// ユニット選択 → メンバー一括追加用 sub-picker。
 private struct UnitMemberAddPicker: View {
     let onAdd: (Set<String>) -> Void
@@ -300,17 +287,23 @@ private struct UnitMemberAddPicker: View {
                 if !brands.isEmpty {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 6) {
-                            BrandChip(label: "すべて", isOn: selectedBrandIds.isEmpty) {
-                                selectedBrandIds = []
+                            Button { selectedBrandIds = [] } label: {
+                                ImasChip(text: "すべて", style: selectedBrandIds.isEmpty ? .selected : .neutral)
                             }
+                            .buttonStyle(.plain)
                             ForEach(brands) { brand in
-                                BrandChip(label: brand.shortName, isOn: selectedBrandIds.contains(brand.id)) {
+                                Button {
                                     if selectedBrandIds.contains(brand.id) {
                                         selectedBrandIds.remove(brand.id)
                                     } else {
                                         selectedBrandIds.insert(brand.id)
                                     }
+                                } label: {
+                                    ImasChip(text: brand.shortName,
+                                              style: selectedBrandIds.contains(brand.id) ? .selected : .neutral,
+                                              brand: brand.color)
                                 }
+                                .buttonStyle(.plain)
                             }
                         }
                         .padding(.horizontal, 12)

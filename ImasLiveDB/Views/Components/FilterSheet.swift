@@ -193,12 +193,14 @@ struct EventFilterSheet: View {
                 }
 
                 Section("参加状態") {
-                    Picker("参加", selection: $localAttendance) {
-                        Text("すべて").tag("all")
-                        Text("参加済み").tag("attended")
-                        Text("未参加").tag("not_attended")
+                    ImasSegmented(options: ["all", "attended", "not_attended"], selection: $localAttendance) {
+                        switch $0 {
+                        case "attended": "参加済み"
+                        case "not_attended": "未参加"
+                        default: "すべて"
+                        }
                     }
-                    .pickerStyle(.segmented)
+                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                 }
 
                 Section("マイマーク") {
@@ -360,12 +362,8 @@ struct IdolFilterSheet: View {
         NavigationStack {
             List {
                 Section("表示形式") {
-                    Picker("名前表示", selection: $localDisplayMode) {
-                        ForEach(IdolDisplayMode.allCases, id: \.self) { mode in
-                            Text(mode.rawValue).tag(mode)
-                        }
-                    }
-                    .pickerStyle(.segmented)
+                    ImasSegmented(options: IdolDisplayMode.allCases, selection: $localDisplayMode) { $0.rawValue }
+                        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
 
                     // アイドル名表示のとき、CV 名を別行で併記するか。CV 名表示中は CV がタイトルなので無効。
                     Toggle("CV名を併記", isOn: $localShowCV)
@@ -527,12 +525,9 @@ struct TagFilterSheet: View {
                 }
 
                 Section("並び順") {
-                    Picker("並び順", selection: $localSort) {
-                        ForEach(sortOptions, id: \.value) { opt in
-                            Text(opt.label).tag(opt.value)
-                        }
+                    ImasSegmented(options: sortOptions.map(\.value), selection: $localSort) { value in
+                        sortOptions.first { $0.value == value }?.label ?? value
                     }
-                    .pickerStyle(.segmented)
                     .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                 }
 
