@@ -2755,14 +2755,15 @@ export default {
         if (sort === "popular") orderBy = "ORDER BY COALESCE(total_uses, 0) DESC";
         else if (sort === "recent") orderBy = "ORDER BY t.created_at DESC";
 
+        // song_tags/idol_tags を LEFT JOIN すると tag 1件につき (曲行数 × アイドル行数) に
+        // fan-out して SUM が水増しされるため、相関サブクエリで別々に集計してから足す。
         const sql = `
           SELECT t.id, t.name, SUBSTR(t.description, 1, 40) as description_preview,
                  t.category, t.color, t.created_at,
-                 COALESCE(SUM(st.vote_count), 0) as total_uses
+                 COALESCE((SELECT SUM(vote_count) FROM song_tags WHERE tag_id = t.id), 0)
+                   + COALESCE((SELECT SUM(vote_count) FROM idol_tags WHERE tag_id = t.id), 0) as total_uses
           FROM tags t
-          LEFT JOIN song_tags st ON st.tag_id = t.id
           ${where}
-          GROUP BY t.id
           ${orderBy}
           LIMIT ? OFFSET ?
         `;
@@ -2789,16 +2790,19 @@ export default {
         const tag = await env.DB.prepare("SELECT * FROM tags WHERE id = ?").bind(tagId).first();
         if (!tag) return error("Tag not found", 404);
 
-        // タグが付いた全曲を票数降順で返す (旧 LIMIT 50 だと 150 曲付いたタグでも
+        // タグが付いた全曲・全アイドルを票数降順で返す (旧 LIMIT 50 だと 150 曲付いたタグでも
         // 50 曲しか返らず、絞り込み一覧・曲数バッジが欠落していた)。
         const { results: songs } = await env.DB.prepare(
           `SELECT song_id, vote_count FROM song_tags WHERE tag_id = ? ORDER BY vote_count DESC LIMIT 1000`
+        ).bind(tagId).all();
+        const { results: idolResults } = await env.DB.prepare(
+          `SELECT idol_id, vote_count FROM idol_tags WHERE tag_id = ? ORDER BY vote_count DESC LIMIT 1000`
         ).bind(tagId).all();
 
         // タグ詳細はユーザー非依存・変化が緩やか。エッジ (Cloudflare) で全ユーザ共有
         // キャッシュして D1 負荷を削減 (max-age 5分 + SWR 30分。自分のタグ付けは
         // クライアント側キャッシュが即無効化するので、この程度の鮮度で十分)。
-        return json({ tag, songs }, 200, {
+        return json({ tag, songs, idols: idolResults }, 200, {
           "Cache-Control": "public, max-age=300, stale-while-revalidate=1800",
         });
       }
@@ -3013,6 +3017,110 @@ export default {
           const { results: myRows } = await env.DB.prepare(
             "SELECT tag_id FROM device_song_tag WHERE device_id = ? AND song_id = ?"
           ).bind(deviceId, songId).all<{ tag_id: string }>();
+          myTagIds = myRows.map((r) => r.tag_id);
+        }
+
+        return json({ tags, my_tag_ids: myTagIds });
+      }
+
+      // ----------------------------------------------------------------
+      // POST /idols/:idol_id/tags — アイドルにタグを付ける (song 版と同じロジック)
+      // ----------------------------------------------------------------
+      const idolTagsPostMatch = path.match(/^\/idols\/([^/]+)\/tags$/);
+      if (idolTagsPostMatch && request.method === "POST") {
+        const idolId = decodeURIComponent(idolTagsPostMatch[1]);
+        const deviceId = request.headers.get("X-Device-Id");
+        if (!deviceId) return error("X-Device-Id header is required");
+
+        const ip = request.headers.get("CF-Connecting-IP") ?? "unknown";
+        const ipDry = await dryCheckIpRateLimit(env.DB, ip);
+        if (!ipDry.allowed) {
+          return rateLimitSimple();
+        }
+
+        const body = (await request.json()) as any;
+        const tagIds = body.tag_ids as string[];
+        if (!Array.isArray(tagIds) || tagIds.length === 0) return error("tag_ids must be a non-empty array");
+
+        const now = Math.floor(Date.now() / 1000);
+        const appliedTagIds: string[] = [];
+
+        for (const tagId of tagIds) {
+          const tag = await env.DB.prepare("SELECT id FROM tags WHERE id = ? AND status != 'removed'").bind(tagId).first();
+          if (!tag) continue;
+
+          const [deviceResult] = await env.DB.batch([
+            env.DB.prepare(
+              `INSERT OR IGNORE INTO device_idol_tag (device_id, idol_id, tag_id, created_at) VALUES (?, ?, ?, ?)`
+            ).bind(deviceId, idolId, tagId, now),
+            env.DB.prepare(
+              `INSERT INTO idol_tags (idol_id, tag_id, vote_count) VALUES (?, ?, 1)
+               ON CONFLICT(idol_id, tag_id) DO UPDATE SET vote_count = vote_count + 1`
+            ).bind(idolId, tagId),
+          ]);
+
+          if (deviceResult.meta.changes > 0) {
+            appliedTagIds.push(tagId);
+          }
+        }
+
+        await commitIpRateLimit(env.DB, ip, ipDry.bucket);
+        return json({ idol_id: idolId, applied_tag_ids: appliedTagIds });
+      }
+
+      // ----------------------------------------------------------------
+      // DELETE /idols/:idol_id/tags/:tag_id — タグを外す
+      // ----------------------------------------------------------------
+      const idolTagDeleteMatch = path.match(/^\/idols\/([^/]+)\/tags\/([^/]+)$/);
+      if (idolTagDeleteMatch && request.method === "DELETE") {
+        const idolId = decodeURIComponent(idolTagDeleteMatch[1]);
+        const tagId = decodeURIComponent(idolTagDeleteMatch[2]);
+        const deviceId = request.headers.get("X-Device-Id");
+        if (!deviceId) return error("X-Device-Id header is required");
+
+        const ip = request.headers.get("CF-Connecting-IP") ?? "unknown";
+        const ipDry = await dryCheckIpRateLimit(env.DB, ip);
+        if (!ipDry.allowed) {
+          return rateLimitSimple();
+        }
+
+        const [deleted] = await env.DB.batch([
+          env.DB.prepare(
+            "DELETE FROM device_idol_tag WHERE device_id = ? AND idol_id = ? AND tag_id = ?"
+          ).bind(deviceId, idolId, tagId),
+          env.DB.prepare(
+            `UPDATE idol_tags SET vote_count = MAX(0, vote_count - 1) WHERE idol_id = ? AND tag_id = ?`
+          ).bind(idolId, tagId),
+          env.DB.prepare(
+            `DELETE FROM idol_tags WHERE idol_id = ? AND tag_id = ? AND vote_count <= 0`
+          ).bind(idolId, tagId),
+        ]);
+
+        await commitIpRateLimit(env.DB, ip, ipDry.bucket);
+        return json({ idol_id: idolId, tag_id: tagId, removed: deleted.meta.changes > 0 });
+      }
+
+      // ----------------------------------------------------------------
+      // GET /idols/:idol_id/tags — アイドルのタグ一覧
+      // ----------------------------------------------------------------
+      const idolTagsGetMatch = path.match(/^\/idols\/([^/]+)\/tags$/);
+      if (idolTagsGetMatch && request.method === "GET") {
+        const idolId = decodeURIComponent(idolTagsGetMatch[1]);
+        const deviceId = request.headers.get("X-Device-Id");
+
+        const { results: tags } = await env.DB.prepare(
+          `SELECT t.id, t.name, t.color, t.category, it.vote_count
+           FROM idol_tags it
+           JOIN tags t ON t.id = it.tag_id
+           WHERE it.idol_id = ? AND t.status != 'removed'
+           ORDER BY it.vote_count DESC`
+        ).bind(idolId).all();
+
+        let myTagIds: string[] = [];
+        if (deviceId) {
+          const { results: myRows } = await env.DB.prepare(
+            "SELECT tag_id FROM device_idol_tag WHERE device_id = ? AND idol_id = ?"
+          ).bind(deviceId, idolId).all<{ tag_id: string }>();
           myTagIds = myRows.map((r) => r.tag_id);
         }
 
