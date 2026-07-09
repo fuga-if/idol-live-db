@@ -496,12 +496,12 @@ enum EditFeedFormat {
 
     static func opDesign(_ op: String) -> (label: String, color: Color) {
         switch op {
-        case "create":            return ("追加", .green)
-        case "update", "replace": return ("更新", .blue)
-        case "delete":            return ("削除", .red)
-        case "revert":            return ("差戻し", .orange)
+        case "create":            return ("追加", DS.success)
+        case "update", "replace": return ("更新", DS.sys2)
+        case "delete":            return ("削除", DS.danger)
+        case "revert":            return ("差戻し", DS.warning)
         case "snapshot":          return ("セトリ更新", .teal)
-        default:                  return (op, .gray)
+        default:                  return (op, DS.ink3)
         }
     }
 
