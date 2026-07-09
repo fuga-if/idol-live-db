@@ -16,9 +16,9 @@ struct FilteredShowsView: View {
                 ProgressView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if shows.isEmpty {
-                ContentUnavailableView(
-                    "公演が見つかりません",
-                    systemImage: "ticket"
+                ImasEmptyState(
+                    systemImage: "ticket",
+                    title: "公演が見つかりません"
                 )
             } else {
                 List {

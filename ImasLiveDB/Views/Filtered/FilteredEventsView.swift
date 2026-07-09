@@ -16,9 +16,9 @@ struct FilteredEventsView: View {
                 ProgressView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if eventsWithDate.isEmpty {
-                ContentUnavailableView(
-                    "ライブが見つかりません",
-                    systemImage: "music.mic"
+                ImasEmptyState(
+                    systemImage: "music.mic",
+                    title: "ライブが見つかりません"
                 )
             } else {
                 List {

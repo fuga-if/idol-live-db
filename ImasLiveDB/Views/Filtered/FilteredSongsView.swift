@@ -19,13 +19,13 @@ struct FilteredSongsView: View {
                 switch criterion {
                 case .creator:
                     if songsWithRoles.isEmpty {
-                        ContentUnavailableView("楽曲が見つかりません", systemImage: "music.note.list")
+                        ImasEmptyState(systemImage: "music.note.list", title: "楽曲が見つかりません")
                     } else {
                         creatorList
                     }
                 default:
                     if songs.isEmpty {
-                        ContentUnavailableView("楽曲が見つかりません", systemImage: "music.note.list")
+                        ImasEmptyState(systemImage: "music.note.list", title: "楽曲が見つかりません")
                     } else {
                         standardList
                     }

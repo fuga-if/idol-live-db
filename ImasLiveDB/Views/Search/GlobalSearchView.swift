@@ -83,7 +83,11 @@ struct GlobalSearchView: View {
             ProgressView()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else if results.isEmpty {
-            ContentUnavailableView.search(text: searchText)
+            ImasEmptyState(
+                systemImage: "magnifyingglass",
+                title: "検索結果がありません",
+                message: "\"\(searchText)\" に一致する結果が見つかりませんでした"
+            )
         } else {
             List {
                 if !results.idols.isEmpty {
@@ -136,14 +140,10 @@ struct GlobalSearchView: View {
     private var historyView: some View {
         let history = mergedRecentHistory()
         if history.isEmpty {
-            VStack(spacing: 8) {
-                Image(systemName: "clock.arrow.circlepath")
-                    .font(.imasScaled(34))
-                    .foregroundStyle(DS.ink3)
-                Text("検索履歴はありません")
-                    .foregroundStyle(DS.ink2)
-                    .font(.imasSubhead)
-            }
+            ImasEmptyState(
+                systemImage: "clock.arrow.circlepath",
+                title: "検索履歴はありません"
+            )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(DS.bg)
         } else {

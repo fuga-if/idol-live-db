@@ -9,7 +9,7 @@ struct InboxView: View {
         NavigationStack {
             Group {
                 if AnnouncementCatalog.all.isEmpty {
-                    ContentUnavailableView("お知らせはありません", systemImage: "bell.slash")
+                    ImasEmptyState(systemImage: "bell.slash", title: "お知らせはありません")
                 } else {
                     List {
                         ForEach(AnnouncementCatalog.all) { a in
@@ -49,7 +49,7 @@ struct InboxView: View {
         HStack(spacing: 12) {
             Image(systemName: a.icon)
                 .font(.imasTitle3)
-                .foregroundStyle(.white)
+                .foregroundStyle(ColorMath.onColor(a.tint))
                 .frame(width: 38, height: 38)
                 .background(a.tint.gradient, in: RoundedRectangle(cornerRadius: 10))
             VStack(alignment: .leading, spacing: 3) {
@@ -84,7 +84,7 @@ private struct AnnouncementDetailView: View {
             VStack(alignment: .leading, spacing: 16) {
                 Image(systemName: announcement.icon)
                     .font(.imasScaled(40, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(ColorMath.onColor(announcement.tint))
                     .frame(width: 76, height: 76)
                     .background(announcement.tint.gradient, in: RoundedRectangle(cornerRadius: 19))
 
@@ -109,7 +109,7 @@ private struct AnnouncementDetailView: View {
                             .frame(maxWidth: .infinity)
                             .padding()
                             .background(announcement.tint.gradient, in: RoundedRectangle(cornerRadius: DS.rMD))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(ColorMath.onColor(announcement.tint))
                     }
                     .padding(.top, 4)
                 }
