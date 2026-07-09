@@ -24,6 +24,10 @@ struct IdolDetailView: View {
     @State private var editIdol: Idol?
     @State private var showLoginPrompt = false
     @State private var segment = 0
+    /// コミュニティタブ: このアイドルに付いたタグ (自分が付けたタグ含む)。
+    @State private var idolTagData: IdolTagListResponse?
+    @State private var showIdolTagPicker = false
+    @State private var showCommunityLoginPrompt = false
 
     @Environment(\.colorScheme) private var scheme
 
@@ -244,7 +248,7 @@ struct IdolDetailView: View {
 
     private var segmentedBar: some View {
         ImasSegmented(
-            labels: ["ライブ", "楽曲・ユニット", "プロフィール"],
+            labels: ["ライブ", "楽曲・ユニット", "プロフィール", "コミュニティ"],
             selection: $segment,
             seed: seed,
             brand: brandColor
@@ -261,7 +265,8 @@ struct IdolDetailView: View {
         switch segment {
         case 0: liveBody
         case 1: songsBody
-        default: profileBody
+        case 2: profileBody
+        default: communityBody
         }
     }
 
@@ -435,9 +440,6 @@ struct IdolDetailView: View {
     @ViewBuilder
     private var profileBody: some View {
         VStack(spacing: DS.sp6) {
-            PollAchievementBadges(entityId: idol.id)
-                .padding(.horizontal, DS.sp5)
-
             ImasListContainer {
                 profileRows
             }
@@ -454,6 +456,91 @@ struct IdolDetailView: View {
             gallerySection
         }
         .padding(.top, DS.sp4)
+    }
+
+    // MARK: - コミュニティ (投票の優勝経験 + タグ)
+
+    @ViewBuilder
+    private var communityBody: some View {
+        VStack(spacing: DS.sp5) {
+            PollAchievementBadges(entityId: idol.id)
+            InlineLoginPrompt(message: "タグ付け・投票にはログインが必要です", seed: seed)
+            communityIdolTags
+        }
+        .padding(.top, DS.sp4)
+        .padding(.horizontal, DS.sp5)
+        .task { await loadIdolTags() }
+        .sheet(isPresented: $showIdolTagPicker, onDismiss: { Task { await loadIdolTags() } }) {
+            IdolTagPicker(idol: idol)
+        }
+        .sheet(isPresented: $showCommunityLoginPrompt) {
+            LoginToEditSheet(onSignedIn: { if EditPermission.canEdit { showIdolTagPicker = true } })
+        }
+    }
+
+    @ViewBuilder
+    private var communityIdolTags: some View {
+        VStack(alignment: .leading, spacing: DS.sp3) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("タグ").font(.imasTitle3.weight(.bold)).foregroundStyle(DS.ink)
+                Spacer(minLength: 12)
+                if EditPermission.showEditAffordance {
+                    Button {
+                        AppAnalytics.tap("idol_detail.tag_action")
+                        startCommunityEdit { showIdolTagPicker = true }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "plus").font(.imasScaled( 13, weight: .semibold))
+                            Text("タグ").font(.imasScaled( 14, weight: .semibold))
+                        }
+                        .foregroundStyle(ImasTheme.derive(seed: seed, brand: brandColor, scheme: scheme).accent)
+                    }
+                }
+            }
+            if let tagData = idolTagData, !tagData.tags.isEmpty {
+                FlowLayout(spacing: 8) {
+                    ForEach(tagData.tags) { tag in
+                        let isMine = Set(tagData.myTagIds).contains(tag.id)
+                        Button { sheetDestination = .tagDetail(tag) } label: {
+                            ImasChip(text: "\(tag.name) \(tag.voteCount)",
+                                     style: isMine ? .selected : .themed,
+                                     seed: seed)
+                        }
+                        .buttonStyle(.plain)
+                        .contextMenu {
+                            if isMine {
+                                Button(role: .destructive) {
+                                    Task {
+                                        try? await CommunityAPI.shared.removeIdolTag(idolId: idol.id, tagId: tag.id)
+                                        await loadIdolTags()
+                                    }
+                                } label: { Label("タグを外す", systemImage: "tag.slash") }
+                            }
+                            Button { sheetDestination = .tagDetail(tag) } label: { Label("タグ詳細を見る", systemImage: "tag") }
+                        }
+                    }
+                }
+            } else {
+                ImasEmptyState(systemImage: "tag", title: "タグはまだありません",
+                               message: "このアイドルを一言で表すタグを付けてみませんか？",
+                               actionTitle: EditPermission.showEditAffordance ? "タグを追加" : nil,
+                               action: EditPermission.showEditAffordance ? { startCommunityEdit { showIdolTagPicker = true } } : nil,
+                               seed: seed)
+            }
+        }
+    }
+
+    /// 投稿/編集導線の共通ゲート (DetailSheet.startCommunityEdit と同じ方針)。
+    private func startCommunityEdit(_ present: () -> Void) {
+        if EditPermission.canEdit {
+            present()
+        } else if EditPermission.shouldPromptLogin {
+            showCommunityLoginPrompt = true
+        }
+    }
+
+    private func loadIdolTags() async {
+        idolTagData = try? await CommunityAPI.shared.idolTags(idolId: idol.id)
     }
 
     // MARK: - 画像ギャラリー (ユーザーがローカルに持たせる複数画像)
