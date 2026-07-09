@@ -98,7 +98,7 @@ struct WidgetHowToView: View {
             LinearGradient(colors: [pink.opacity(0.85), purple.opacity(0.85)],
                            startPoint: .topLeading, endPoint: .bottomTrailing)
             Image(systemName: "person.fill")
-                .font(.system(size: 52, weight: .regular))
+                .font(.imasScaled(52, weight: .regular))
                 .foregroundStyle(.white.opacity(0.9))
                 .offset(y: 6)
         }
@@ -109,7 +109,7 @@ struct WidgetHowToView: View {
             phoneFrame { imageFill }
                 .frame(width: 92, height: 92)
             Image(systemName: "plus.circle.fill")
-                .font(.system(size: 30))
+                .font(.imasScaled(30))
                 .symbolRenderingMode(.palette)
                 .foregroundStyle(.white, .green)
                 .offset(x: 6, y: 6)
@@ -127,7 +127,7 @@ struct WidgetHowToView: View {
             }
             .frame(width: 122)
             Image(systemName: "plus.circle.fill")
-                .font(.system(size: 26))
+                .font(.imasScaled(26))
                 .symbolRenderingMode(.palette)
                 .foregroundStyle(.white, purple)
                 .offset(x: -10, y: -10)
@@ -166,7 +166,7 @@ struct WidgetHowToView: View {
         ZStack(alignment: .bottomTrailing) {
             phoneFrame { imageFill }.frame(width: 92, height: 92)
             Image(systemName: "hand.tap.fill")
-                .font(.system(size: 26))
+                .font(.imasScaled(26))
                 .foregroundStyle(.white)
                 .padding(7)
                 .background(.black.opacity(0.4), in: Circle())
@@ -174,7 +174,7 @@ struct WidgetHowToView: View {
         }
         .overlay(alignment: .topTrailing) {
             Image(systemName: "arrow.triangle.2.circlepath")
-                .font(.system(size: 20, weight: .bold))
+                .font(.imasScaled(20, weight: .bold))
                 .foregroundStyle(pink)
                 .offset(x: 10, y: -4)
         }
