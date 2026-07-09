@@ -45,7 +45,8 @@ BRAND_SEEDS: dict[str, list[str]] = {
     "sidem":  ["アイドルマスター SideM", "SideM ST@RTING LINE", "DRAMATIC STARS"],
     "sc":     ["シャイニーカラーズ", "ストレイライト", "ノクチル", "アルストロメリア",
               "イルミネーションスターズ", "アンティーカ", "放課後クライマックスガールズ",
-              "SHHis", "コメティック"],
+              "SHHis", "コメティック", "No 1 feel alone", "彼岸流", "Fumage",
+              "Sonic Heart", "Σ Desire", "I'm a Cutie Finder"],
     "gakuen": ["学園アイドルマスター", "初星学園", "GAKUMAS"],
 }
 
@@ -61,7 +62,9 @@ BRAND_KEYWORDS = {
               "C.FIRST", "ピアレスガーベラ", "S.E.M", "THE 虎牙道"],
     "sc":     ["シャイニーカラーズ", "Shiny Colors", "283", "ストレイライト", "ノクチル",
               "アルストロメリア", "イルミネーションスターズ", "アンティーカ",
-              "放課後クライマックスガールズ", "SHHis", "コメティック", "ザ・ふたりトラベラー"],
+              "放課後クライマックスガールズ", "SHHis", "コメティック", "ザ・ふたりトラベラー",
+              "No 1 feel alone", "彼岸流", "Fumage", "Sonic Heart", "Desire",
+              "Cutie Finder"],
     "gakuen": ["学園アイドルマスター", "学マス", "GAKUMAS", "初星学園"],
 }
 
