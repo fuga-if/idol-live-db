@@ -204,11 +204,11 @@ struct EventFilterSheet: View {
                 Section("マイマーク") {
                     Toggle(isOn: $localFavorite) {
                         Label("お気に入りのみ", systemImage: "star.fill")
-                            .foregroundStyle(.yellow)
+                            .foregroundStyle(DS.favorite)
                     }
                     Toggle(isOn: $localNote) {
                         Label("メモがあるイベントのみ", systemImage: "note.text")
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(DS.warning)
                     }
                 }
 
@@ -397,15 +397,15 @@ struct IdolFilterSheet: View {
                 Section("マイマーク") {
                     Toggle(isOn: $localMyPick) {
                         Label("担当のみ", systemImage: "heart.fill")
-                            .foregroundStyle(.pink)
+                            .foregroundStyle(DS.pick)
                     }
                     Toggle(isOn: $localFavorite) {
                         Label("お気に入りのみ", systemImage: "star.fill")
-                            .foregroundStyle(.yellow)
+                            .foregroundStyle(DS.favorite)
                     }
                     Toggle(isOn: $localNote) {
                         Label("メモがあるアイドルのみ", systemImage: "note.text")
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(DS.warning)
                     }
                 }
 
@@ -613,7 +613,7 @@ struct FilterBarButton: View {
                         .font(.imasScaled(11).weight(.bold))
                         .foregroundStyle(.white)
                         .frame(width: 16, height: 16)
-                        .background(.red)
+                        .background(DS.danger)
                         .clipShape(Circle())
                         .offset(x: 6, y: -6)
                 }

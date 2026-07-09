@@ -119,10 +119,10 @@ private struct HistoryRow: View {
     private var sourceBadge: some View {
         Text(entry.source == "admin" ? "運営" : "巻き戻し")
             .font(.imasScaled(11).weight(.semibold))
-            .foregroundStyle(.orange)
+            .foregroundStyle(DS.warning)
             .padding(.horizontal, 7)
             .padding(.vertical, 2)
-            .background(Color.orange.opacity(0.15), in: Capsule())
+            .background(DS.warning.opacity(0.15), in: Capsule())
     }
 
     @ViewBuilder
