@@ -42,18 +42,17 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.fugaif.imaslivedb.ui.components.SongRow
+import com.fugaif.imaslivedb.ui.components.ImasAvatar
 import com.fugaif.imaslivedb.ui.theme.DS
 
-/** 曲タグ詳細。iOS TagDetailView の移植 (説明 + 付いた曲ランキング + 編集/履歴/通報)。
- * アイドルタグは idol_tag_master に分離済みなので IdolTagDetailScreen 側にある。 */
+/** アイドルタグ詳細。TagDetailScreen (曲タグ) と同じ構成の別プール (idol_tag_master) 版。 */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TagDetailScreen(
+fun IdolTagDetailScreen(
     tagId: String,
     onBack: () -> Unit,
-    onSongClick: (String) -> Unit,
-    viewModel: TagDetailViewModel = viewModel(key = tagId)
+    onIdolClick: (String) -> Unit,
+    viewModel: IdolTagDetailViewModel = viewModel(key = tagId)
 ) {
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
@@ -131,42 +130,39 @@ fun TagDetailScreen(
                         }
                         item {
                             Text(
-                                "「${tag.name}」な曲ランキング (${uiState.songs.size}曲)",
+                                "「${tag.name}」なアイドルランキング (${uiState.idols.size}人)",
                                 fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = DS.ink2,
                                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
                             )
                         }
                     }
-                    if (uiState.songs.isEmpty()) {
+                    if (uiState.idols.isEmpty()) {
                         item {
                             Text(
-                                "まだこのタグが付いた曲はありません", color = DS.ink2, fontSize = 13.sp,
+                                "まだこのタグが付いたアイドルはいません", color = DS.ink2, fontSize = 13.sp,
                                 modifier = Modifier.fillMaxWidth().padding(16.dp)
                             )
                         }
                     } else {
-                        itemsIndexed(uiState.songs) { idx, row ->
-                            val song = row.song
+                        itemsIndexed(uiState.idols) { idx, row ->
+                            val idol = row.idol
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 modifier = Modifier.fillMaxWidth()
-                                    .clickable(enabled = song != null) { song?.let { onSongClick(it.id) } }
+                                    .clickable(enabled = idol != null) { idol?.let { onIdolClick(it.id) } }
                                     .padding(horizontal = 16.dp, vertical = 4.dp)
                             ) {
                                 TagRankBadge(idx + 1)
-                                if (song != null) {
-                                    SongRow(
-                                        title = song.title,
-                                        artistNames = song.singerLabel ?: "",
-                                        unitName = song.unitName,
-                                        artworkUrl = song.artworkUrl,
-                                        previewUrl = song.previewUrl,
-                                        brandId = song.brandId,
-                                        modifier = Modifier.weight(1f)
+                                if (idol != null) {
+                                    ImasAvatar(label = idol.name, seed = idol.color, brand = idol.brandId, size = 32.dp)
+                                    Text(
+                                        idol.name, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink,
+                                        modifier = Modifier.weight(1f).padding(start = 4.dp),
+                                        maxLines = 1, overflow = TextOverflow.Ellipsis
                                     )
                                 } else {
-                                    Text(row.songId, fontSize = 13.sp, color = DS.ink2, modifier = Modifier.weight(1f))
+                                    Text(row.idolId, fontSize = 13.sp, color = DS.ink2, modifier = Modifier.weight(1f))
                                 }
                                 Text("${row.voteCount}票", fontSize = 12.sp, color = DS.ink2)
                             }
@@ -181,12 +177,13 @@ fun TagDetailScreen(
     if (showEditSheet && uiState.tag != null) {
         TagEditSheet(
             tag = uiState.tag!!,
+            domain = TagDomain.IDOL,
             onDismiss = { showEditSheet = false },
             onSaved = { viewModel.onTagUpdated(it) }
         )
     }
     if (showHistorySheet) {
-        TagHistorySheet(tagId = tagId, onDismiss = { showHistorySheet = false })
+        TagHistorySheet(tagId = tagId, domain = TagDomain.IDOL, onDismiss = { showHistorySheet = false })
     }
     if (showReportConfirm) {
         AlertDialog(

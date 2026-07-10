@@ -4,28 +4,28 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.fugaif.imaslivedb.data.community.CommunityApi
-import com.fugaif.imaslivedb.data.model.Song
+import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.di.AppModule
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-data class TagSongRankRow(val songId: String, val voteCount: Int, val song: Song?)
+data class IdolTagRankRow(val idolId: String, val voteCount: Int, val idol: Idol?)
 
-data class TagDetailUiState(
+data class IdolTagDetailUiState(
     val isLoading: Boolean = true,
     val tag: CommunityApi.CommunityTag? = null,
-    val songs: List<TagSongRankRow> = emptyList(),
+    val idols: List<IdolTagRankRow> = emptyList(),
     val reportSubmitted: Boolean = false,
     val reportError: String? = null
 )
 
-/** タグ詳細。iOS TagDetailView の移植 (説明 + 付いた曲ランキング + 編集/履歴/通報)。 */
-class TagDetailViewModel : ViewModel() {
+/** アイドルタグ (idol_tag_master) 詳細。TagDetailViewModel (曲タグ) と同じ構成の別プール版。 */
+class IdolTagDetailViewModel : ViewModel() {
 
-    private val _uiState = MutableStateFlow(TagDetailUiState())
-    val uiState: StateFlow<TagDetailUiState> = _uiState.asStateFlow()
+    private val _uiState = MutableStateFlow(IdolTagDetailUiState())
+    val uiState: StateFlow<IdolTagDetailUiState> = _uiState.asStateFlow()
 
     private var api: CommunityApi? = null
     private var appModule: AppModule? = null
@@ -44,15 +44,13 @@ class TagDetailViewModel : ViewModel() {
         val a = api ?: return
         val module = appModule ?: return
         _uiState.value = _uiState.value.copy(isLoading = true)
-        val detail = runCatching { a.tagDetail(id) }.getOrNull()
+        val detail = runCatching { a.idolTagDetail(id) }.getOrNull()
         if (detail == null) {
             _uiState.value = _uiState.value.copy(isLoading = false)
             return
         }
-        val songs = module.songRepository.fetchSongsByIds(detail.songs.map { it.songId })
-        val songsById = songs.associateBy { it.id }
-        val songRows = detail.songs.map { TagSongRankRow(it.songId, it.voteCount, songsById[it.songId]) }
-        _uiState.value = _uiState.value.copy(isLoading = false, tag = detail.tag, songs = songRows)
+        val idolRows = detail.idols.map { IdolTagRankRow(it.idolId, it.voteCount, module.idolRepository.fetchIdol(it.idolId)) }
+        _uiState.value = _uiState.value.copy(isLoading = false, tag = detail.tag, idols = idolRows)
     }
 
     fun onTagUpdated(tag: CommunityApi.CommunityTag) {
@@ -63,7 +61,7 @@ class TagDetailViewModel : ViewModel() {
         val id = tagId ?: return
         val a = api ?: return
         viewModelScope.launch {
-            val ok = runCatching { a.reportTag(id, reason) }.getOrDefault(false)
+            val ok = runCatching { a.reportIdolTagOption(id, reason) }.getOrDefault(false)
             _uiState.value = if (ok) {
                 _uiState.value.copy(reportSubmitted = true, reportError = null)
             } else {

@@ -101,6 +101,7 @@ fun IdolDetailScreen(
     onNavigateToSongDetail: (String) -> Unit,
     onNavigateToShowDetail: (String) -> Unit,
     onPollClick: (String) -> Unit = {},
+    onIdolTagClick: (String) -> Unit = {},
     viewModel: IdolDetailViewModel = viewModel(
         factory = IdolDetailViewModel.Factory(
             LocalContext.current.applicationContext as android.app.Application, idolId
@@ -149,7 +150,8 @@ fun IdolDetailScreen(
                         isSignedIn = authState.isSignedIn,
                         onToggleTag = viewModel::toggleTag,
                         onOpenTagPicker = { showTagPicker = true },
-                        onPollClick = onPollClick
+                        onPollClick = onPollClick,
+                        onTagDetailClick = onIdolTagClick
                     )
                 }
                 Box(Modifier.size(24.dp))
@@ -175,7 +177,8 @@ private fun CommunityBody(
     isSignedIn: Boolean,
     onToggleTag: (CommunityApi.IdolTag) -> Unit,
     onOpenTagPicker: () -> Unit,
-    onPollClick: (String) -> Unit
+    onPollClick: (String) -> Unit,
+    onTagDetailClick: (String) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         com.fugaif.imaslivedb.ui.polls.PollAchievementBadges(entityId = idolId, onOpenPoll = onPollClick)
@@ -209,7 +212,10 @@ private fun CommunityBody(
                         val fg = if (tag.mine) DS.pick else DS.ink
                         Row(
                             modifier = Modifier.clip(RoundedCornerShape(999.dp)).background(bg)
-                                .combinedClickable(onClick = { onToggleTag(tag) })
+                                .combinedClickable(
+                                    onClick = { onToggleTag(tag) },
+                                    onLongClick = { onTagDetailClick(tag.id) }
+                                )
                                 .padding(horizontal = 12.dp, vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {

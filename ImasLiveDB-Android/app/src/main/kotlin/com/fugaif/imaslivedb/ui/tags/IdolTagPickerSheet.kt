@@ -75,7 +75,7 @@ fun IdolTagPickerSheet(
         isLoading = true
         if (trimmedQuery.isNotEmpty()) kotlinx.coroutines.delay(200)
         val api = AppModule.from(context).communityApi
-        tags = runCatching { api.tags(search = trimmedQuery, sort = "popular") }.getOrDefault(emptyList())
+        tags = runCatching { api.idolTagCatalog(search = trimmedQuery, sort = "popular") }.getOrDefault(emptyList())
         isLoading = false
     }
 
@@ -168,6 +168,7 @@ fun IdolTagPickerSheet(
 
     if (showCreateSheet) {
         TagCreateSheet(
+            domain = TagDomain.IDOL,
             initialName = trimmedQuery,
             onDismiss = { showCreateSheet = false },
             onCreated = { newTag ->

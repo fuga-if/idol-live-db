@@ -38,6 +38,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun TagEditSheet(
     tag: CommunityApi.CommunityTag,
+    domain: TagDomain = TagDomain.SONG,
     onDismiss: () -> Unit,
     onSaved: (CommunityApi.CommunityTag) -> Unit
 ) {
@@ -110,12 +111,10 @@ fun TagEditSheet(
                         isSaving = true
                         scope.launch {
                             val api = module.communityApi
-                            val updated = api.updateTag(
-                                id = tag.id,
-                                description = description,
-                                category = category,
-                                color = color
-                            )
+                            val updated = when (domain) {
+                                TagDomain.SONG -> api.updateTag(id = tag.id, description = description, category = category, color = color)
+                                TagDomain.IDOL -> api.updateIdolTagOption(id = tag.id, description = description, category = category, color = color)
+                            }
                             isSaving = false
                             if (updated != null) {
                                 onSaved(updated)

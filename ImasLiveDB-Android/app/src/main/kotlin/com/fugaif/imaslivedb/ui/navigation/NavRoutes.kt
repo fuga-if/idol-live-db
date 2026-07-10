@@ -59,6 +59,12 @@ sealed class NavRoutes(val route: String) {
             fun createRoute(tagId: String) = "tag_detail/$tagId"
         }
     }
+    data class IdolTagDetail(val tagId: String) : NavRoutes("idol_tag_detail/{tagId}") {
+        companion object {
+            const val ROUTE = "idol_tag_detail/{tagId}"
+            fun createRoute(tagId: String) = "idol_tag_detail/$tagId"
+        }
+    }
     data object GamesHub : NavRoutes("games_hub")
     data object IntroDonHome : NavRoutes("introdon_home")
     data object IntroDonSetup : NavRoutes("introdon_setup")

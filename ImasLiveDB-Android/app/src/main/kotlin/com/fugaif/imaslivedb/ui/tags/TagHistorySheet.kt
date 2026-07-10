@@ -36,7 +36,7 @@ import java.util.Locale
 /** タグの説明文編集履歴。iOS TagHistoryView の移植。 */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TagHistorySheet(tagId: String, onDismiss: () -> Unit) {
+fun TagHistorySheet(tagId: String, domain: TagDomain = TagDomain.SONG, onDismiss: () -> Unit) {
     val context = LocalContext.current
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var isLoading by remember { mutableStateOf(true) }
@@ -44,7 +44,12 @@ fun TagHistorySheet(tagId: String, onDismiss: () -> Unit) {
 
     LaunchedEffect(tagId) {
         val api = AppModule.from(context).communityApi
-        history = runCatching { api.tagHistory(tagId) }.getOrDefault(emptyList())
+        history = runCatching {
+            when (domain) {
+                TagDomain.SONG -> api.tagHistory(tagId)
+                TagDomain.IDOL -> api.idolTagOptionHistory(tagId)
+            }
+        }.getOrDefault(emptyList())
         isLoading = false
     }
 

@@ -33,6 +33,10 @@ import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.theme.DS
 import kotlinx.coroutines.launch
 
+/** タグの作成先プール。曲タグ (tags) とアイドルタグ (idol_tag_master) は別マスタなので、
+ * UI は共通のままこのフラグで作成 API だけ切り替える。iOS TagDomain の移植。 */
+enum class TagDomain { SONG, IDOL }
+
 /**
  * 新規タグ作成シート。iOS TagCreateSheet の移植。
  * タグ名(1〜30文字, 必須) + 説明(任意) + カテゴリ(任意) + 色(任意)。
@@ -41,6 +45,7 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TagCreateSheet(
+    domain: TagDomain = TagDomain.SONG,
     initialName: String = "",
     onDismiss: () -> Unit,
     onCreated: (CommunityApi.CommunityTag) -> Unit
@@ -130,12 +135,21 @@ fun TagCreateSheet(
                         isSaving = true
                         scope.launch {
                             val api = module.communityApi
-                            when (val result = api.createTag(
-                                name = trimmedName,
-                                description = description.ifBlank { null },
-                                category = category.ifEmpty { null },
-                                color = color.ifEmpty { null }
-                            )) {
+                            val createResult = when (domain) {
+                                TagDomain.SONG -> api.createTag(
+                                    name = trimmedName,
+                                    description = description.ifBlank { null },
+                                    category = category.ifEmpty { null },
+                                    color = color.ifEmpty { null }
+                                )
+                                TagDomain.IDOL -> api.createIdolTagOption(
+                                    name = trimmedName,
+                                    description = description.ifBlank { null },
+                                    category = category.ifEmpty { null },
+                                    color = color.ifEmpty { null }
+                                )
+                            }
+                            when (val result = createResult) {
                                 is CommunityApi.TagCreateResult.Success -> {
                                     isSaving = false
                                     onCreated(result.tag)

@@ -95,7 +95,10 @@ class CommunityApi(private val appContext: Context, private val authService: Aut
     )
     data class TagSongEntry(val songId: String, val voteCount: Int)
     data class TagIdolEntry(val idolId: String, val voteCount: Int)
-    data class TagDetail(val tag: CommunityTag, val songs: List<TagSongEntry>, val idols: List<TagIdolEntry> = emptyList())
+    /** 曲タグ (tags マスタ) の詳細。アイドルタグは idol_tag_master に分離済みなのでここには出ない (→ IdolTagDetail)。 */
+    data class TagDetail(val tag: CommunityTag, val songs: List<TagSongEntry>)
+    /** アイドルタグ (idol_tag_master) の詳細。曲タグとは別プールなので songs を持たない。 */
+    data class IdolTagDetail(val tag: CommunityTag, val idols: List<TagIdolEntry>)
     data class TagHistoryEntry(
         val descriptionAfter: String?,
         val descriptionBefore: String?,
@@ -203,12 +206,7 @@ class CommunityApi(private val appContext: Context, private val authService: Aut
             val s = songsArr.getJSONObject(it)
             TagSongEntry(s.optString("song_id"), s.optInt("vote_count"))
         }
-        val idolsArr = json.optJSONArray("idols") ?: JSONArray()
-        val idols = (0 until idolsArr.length()).map {
-            val i = idolsArr.getJSONObject(it)
-            TagIdolEntry(i.optString("idol_id"), i.optInt("vote_count"))
-        }
-        TagDetail(parseTagFull(tagObj), songs, idols)
+        TagDetail(parseTagFull(tagObj), songs)
     }
 
     /** PUT /tags/{id} — 説明文・カテゴリ・色を更新。 */
@@ -241,6 +239,81 @@ class CommunityApi(private val appContext: Context, private val authService: Aut
         val body = JSONObject()
         reason?.let { body.put("reason", it) }
         send("POST", "/tags/${enc(id)}/report", body)
+    }
+
+    // --- アイドルタグカタログ (idol_tag_master — 曲タグ (tags) とは別プール) ---
+
+    /** GET /idol-tags — 全アイドルタグ検索/一覧。tags() の idol_tag_master 版。 */
+    suspend fun idolTagCatalog(search: String = "", category: String = "", sort: String = "popular", limit: Int = 1000): List<CommunityTag> =
+        withContext(Dispatchers.IO) {
+            val query = buildString {
+                append("?sort=").append(enc(sort)).append("&limit=").append(limit)
+                if (search.isNotEmpty()) append("&search=").append(enc(search))
+                if (category.isNotEmpty()) append("&category=").append(enc(category))
+            }
+            val json = get("/idol-tags$query") ?: return@withContext emptyList()
+            val arr = json.optJSONArray("tags") ?: JSONArray()
+            (0 until arr.length()).map { parseTagListItem(arr.getJSONObject(it)) }
+        }
+
+    /** POST /idol-tags — 新規アイドルタグ作成。createTag() の idol_tag_master 版。 */
+    suspend fun createIdolTagOption(name: String, description: String? = null, category: String? = null, color: String? = null): TagCreateResult =
+        withContext(Dispatchers.IO) {
+            val body = JSONObject().put("name", name)
+            description?.let { body.put("description", it) }
+            category?.let { body.put("category", it) }
+            color?.let { body.put("color", it) }
+            val (code, json) = sendJsonWithStatus("POST", "/idol-tags", body, allowedExtra = setOf(409))
+            when {
+                code == 429 -> TagCreateResult.RateLimited
+                json?.optJSONObject("tag") != null ->
+                    TagCreateResult.Success(parseTagFull(json.getJSONObject("tag")), alreadyExisted = code == 409)
+                else -> TagCreateResult.Error(null)
+            }
+        }
+
+    /** GET /idol-tags/{id} — アイドルタグ詳細 + 付いたアイドル一覧 (票数降順)。 */
+    suspend fun idolTagDetail(id: String): IdolTagDetail? = withContext(Dispatchers.IO) {
+        val json = get("/idol-tags/${enc(id)}") ?: return@withContext null
+        val tagObj = json.optJSONObject("tag") ?: return@withContext null
+        val idolsArr = json.optJSONArray("idols") ?: JSONArray()
+        val idols = (0 until idolsArr.length()).map {
+            val i = idolsArr.getJSONObject(it)
+            TagIdolEntry(i.optString("idol_id"), i.optInt("vote_count"))
+        }
+        IdolTagDetail(parseTagFull(tagObj), idols)
+    }
+
+    /** PUT /idol-tags/{id} — 説明文・カテゴリ・色を更新。 */
+    suspend fun updateIdolTagOption(id: String, description: String? = null, category: String? = null, color: String? = null): CommunityTag? =
+        withContext(Dispatchers.IO) {
+            val body = JSONObject()
+            description?.let { body.put("description", it) }
+            category?.let { body.put("category", it) }
+            color?.let { body.put("color", it) }
+            val json = sendJson("PUT", "/idol-tags/${enc(id)}", body) ?: return@withContext null
+            json.optJSONObject("tag")?.let { parseTagFull(it) }
+        }
+
+    /** GET /idol-tags/{id}/history — 説明文の編集履歴。 */
+    suspend fun idolTagOptionHistory(id: String): List<TagHistoryEntry> = withContext(Dispatchers.IO) {
+        val arr = getArray("/idol-tags/${enc(id)}/history") ?: return@withContext emptyList()
+        (0 until arr.length()).map {
+            val o = arr.getJSONObject(it)
+            TagHistoryEntry(
+                descriptionAfter = o.strOrNull("description_after"),
+                descriptionBefore = o.strOrNull("description_before"),
+                editedBy = o.optString("edited_by"),
+                editedAt = o.optLong("edited_at")
+            )
+        }
+    }
+
+    /** POST /idol-tags/{id}/report — 不適切なアイドルタグを通報。 */
+    suspend fun reportIdolTagOption(id: String, reason: String? = null): Boolean = withContext(Dispatchers.IO) {
+        val body = JSONObject()
+        reason?.let { body.put("reason", it) }
+        send("POST", "/idol-tags/${enc(id)}/report", body)
     }
 
     private fun parseTagListItem(o: JSONObject): CommunityTag = CommunityTag(
