@@ -1,7 +1,15 @@
 import SwiftUI
 
+/// タグの作成先プール。曲タグ (tags) とアイドルタグ (idol_tag_master) は別マスタなので、
+/// UI は共通のままこのフラグで作成 API だけ切り替える。
+enum TagDomain {
+    case song
+    case idol
+}
+
 struct TagCreateSheet: View {
     @Environment(\.dismiss) private var dismiss
+    var domain: TagDomain = .song
     var onCreated: ((CommunityTag) -> Void)?
     /// 呼び出し側で入力済みのタグ名を引き継ぐ (タグ追加シートの検索語など)。
     var initialName: String = ""
@@ -102,12 +110,17 @@ struct TagCreateSheet: View {
         defer { isCreating = false }
         errorMessage = nil
         do {
-            let tag = try await CommunityAPI.shared.createTag(
-                name: name.trimmingCharacters(in: .whitespaces),
-                description: description.isEmpty ? nil : description,
-                category: selectedCategory.isEmpty ? nil : selectedCategory,
-                color: selectedColor.isEmpty ? nil : selectedColor
-            )
+            let trimmedName = name.trimmingCharacters(in: .whitespaces)
+            let desc = description.isEmpty ? nil : description
+            let cat = selectedCategory.isEmpty ? nil : selectedCategory
+            let color = selectedColor.isEmpty ? nil : selectedColor
+            let tag: CommunityTag
+            switch domain {
+            case .song:
+                tag = try await CommunityAPI.shared.createTag(name: trimmedName, description: desc, category: cat, color: color)
+            case .idol:
+                tag = try await CommunityAPI.shared.createIdolTag(name: trimmedName, description: desc, category: cat, color: color)
+            }
             onCreated?(tag)
             dismiss()
         } catch let error as CommunityAPIError {

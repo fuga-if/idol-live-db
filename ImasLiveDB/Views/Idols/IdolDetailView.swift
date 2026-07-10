@@ -4,7 +4,7 @@ import PhotosUI
 
 /// アイドル詳細 (新デザインシステム / 内部セグメント版)。
 /// ヒーロー (アバター + 名前 + ブランド + CV + 担当/お気に入りアクション) を固定し、
-/// その下のボディを ImasSegmented で [ライブ][楽曲・ユニット][プロフィール] に切り替える。
+/// その下のボディを ImasSegmented で [ライブ][楽曲][プロフィール][コミュニティ] に切り替える。
 struct IdolDetailView: View {
     @Environment(AppDatabase.self) private var database
     let idol: Idol
@@ -248,7 +248,7 @@ struct IdolDetailView: View {
 
     private var segmentedBar: some View {
         ImasSegmented(
-            labels: ["ライブ", "楽曲・ユニット", "プロフィール", "コミュニティ"],
+            labels: ["ライブ", "楽曲", "プロフィール", "コミュニティ"],
             selection: $segment,
             seed: seed,
             brand: brandColor
@@ -362,10 +362,45 @@ struct IdolDetailView: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: - 楽曲・ユニット
+    // MARK: - 楽曲
 
     @ViewBuilder
     private var songsBody: some View {
+        VStack(spacing: DS.sp6) {
+            if !vm.originalSongs.isEmpty {
+                VStack(spacing: DS.sp3) {
+                    ImasSectionHeader(title: "楽曲（原曲）", count: "\(vm.originalSongs.count)", tight: true)
+                    ImasListContainer {
+                        ForEach(Array(vm.originalSongs.enumerated()), id: \.element.id) { idx, song in
+                            if idx > 0 { Divider().overlay(DS.sep).padding(.leading, 66) }
+                            songRow(
+                                song: song,
+                                detailLabel: song.unitName ?? "",
+                                performCount: nil
+                            ) {
+                                go(.song(song))
+                            }
+                        }
+                    }
+                }
+                .padding(.horizontal, DS.sp5)
+            } else {
+                ImasEmptyState(
+                    systemImage: "music.note.list",
+                    title: "楽曲がありません",
+                    message: "原曲の情報はまだ登録されていません。",
+                    seed: seed,
+                    brand: brandColor
+                )
+            }
+        }
+        .padding(.top, DS.sp4)
+    }
+
+    // MARK: - プロフィール
+
+    @ViewBuilder
+    private var profileBody: some View {
         VStack(spacing: DS.sp6) {
             if !vm.unitsWithSongs.isEmpty {
                 VStack(alignment: .leading, spacing: DS.sp3) {
@@ -403,43 +438,6 @@ struct IdolDetailView: View {
                 .padding(.horizontal, DS.sp5)
             }
 
-            if !vm.originalSongs.isEmpty {
-                VStack(spacing: DS.sp3) {
-                    ImasSectionHeader(title: "楽曲（原曲）", count: "\(vm.originalSongs.count)", tight: true)
-                    ImasListContainer {
-                        ForEach(Array(vm.originalSongs.enumerated()), id: \.element.id) { idx, song in
-                            if idx > 0 { Divider().overlay(DS.sep).padding(.leading, 66) }
-                            songRow(
-                                song: song,
-                                detailLabel: song.unitName ?? "",
-                                performCount: nil
-                            ) {
-                                go(.song(song))
-                            }
-                        }
-                    }
-                }
-                .padding(.horizontal, DS.sp5)
-            }
-
-            if vm.units.isEmpty && vm.originalSongs.isEmpty {
-                ImasEmptyState(
-                    systemImage: "music.note.list",
-                    title: "楽曲・ユニットがありません",
-                    message: "原曲・所属ユニットの情報はまだ登録されていません。",
-                    seed: seed,
-                    brand: brandColor
-                )
-            }
-        }
-        .padding(.top, DS.sp4)
-    }
-
-    // MARK: - プロフィール
-
-    @ViewBuilder
-    private var profileBody: some View {
-        VStack(spacing: DS.sp6) {
             ImasListContainer {
                 profileRows
             }
@@ -501,7 +499,7 @@ struct IdolDetailView: View {
                 FlowLayout(spacing: 8) {
                     ForEach(tagData.tags) { tag in
                         let isMine = Set(tagData.myTagIds).contains(tag.id)
-                        Button { sheetDestination = .tagDetail(tag) } label: {
+                        Button { sheetDestination = .idolTagDetail(tag) } label: {
                             ImasChip(text: "\(tag.name) \(tag.voteCount)",
                                      style: isMine ? .selected : .themed,
                                      seed: seed)
@@ -516,7 +514,7 @@ struct IdolDetailView: View {
                                     }
                                 } label: { Label("タグを外す", systemImage: "tag.slash") }
                             }
-                            Button { sheetDestination = .tagDetail(tag) } label: { Label("タグ詳細を見る", systemImage: "tag") }
+                            Button { sheetDestination = .idolTagDetail(tag) } label: { Label("タグ詳細を見る", systemImage: "tag") }
                         }
                     }
                 }

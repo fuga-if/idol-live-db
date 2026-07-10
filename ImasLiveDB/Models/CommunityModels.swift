@@ -233,20 +233,17 @@ struct SimilarSongEntry: Decodable, Identifiable, Hashable, Sendable {
     let sharedTags: Int
 }
 
+/// 曲タグ (tags マスタ) の詳細。アイドルタグは idol_tag_master に分離済みなのでここには出ない
+/// (→ `IdolTagDetailResponse` / `CommunityAPI.idolTagDetail(id:)`)。
 struct TagDetailResponse: Decodable, Sendable {
     let tag: CommunityTag
     let songs: [TagSongEntry]
-    /// このタグが付いたアイドル。旧レスポンス (idols キー無し) との互換のため既定は空配列。
+}
+
+/// アイドルタグ (idol_tag_master) の詳細。曲タグとは別プールなので `songs` を持たない。
+struct IdolTagDetailResponse: Decodable, Sendable {
+    let tag: CommunityTag
     let idols: [TagIdolEntry]
-
-    init(from decoder: Decoder) throws {
-        let c = try decoder.container(keyedBy: CodingKeys.self)
-        self.tag = try c.decode(CommunityTag.self, forKey: .tag)
-        self.songs = try c.decode([TagSongEntry].self, forKey: .songs)
-        self.idols = try c.decodeIfPresent([TagIdolEntry].self, forKey: .idols) ?? []
-    }
-
-    private enum CodingKeys: String, CodingKey { case tag, songs, idols }
 }
 
 struct TagSongEntry: Codable, Identifiable, Hashable, Sendable {

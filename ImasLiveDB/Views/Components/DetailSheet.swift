@@ -17,6 +17,8 @@ enum DetailDestination: Identifiable, Hashable {
     case filteredEvents(EventFilterCriterion)
     case filteredShows(ShowFilterCriterion)
     case tagDetail(SongTagEntry)
+    /// アイドルタグ (idol_tag_master) 詳細。曲タグとは別プールなので tagDetail とは別ケース。
+    case idolTagDetail(SongTagEntry)
 
     var id: String {
         switch self {
@@ -32,6 +34,7 @@ enum DetailDestination: Identifiable, Hashable {
         case .filteredEvents(let c): return "filteredEvents_\(c.navigationTitle)"
         case .filteredShows(let c): return "filteredShows_\(c.navigationTitle)"
         case .tagDetail(let t): return "tagDetail_\(t.id)"
+        case .idolTagDetail(let t): return "idolTagDetail_\(t.id)"
         }
     }
 
@@ -99,6 +102,8 @@ struct DetailSheetView: View {
             FilteredShowsView(criterion: criterion, navigate: { path.append($0) })
         case .tagDetail(let tag):
             TagDetailView(tagId: tag.id, tagName: tag.name)
+        case .idolTagDetail(let tag):
+            IdolTagDetailView(tagId: tag.id, tagName: tag.name)
         }
     }
 

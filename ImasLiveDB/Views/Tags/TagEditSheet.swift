@@ -3,6 +3,7 @@ import SwiftUI
 struct TagEditSheet: View {
     @Environment(\.dismiss) private var dismiss
     let tag: CommunityTag
+    var domain: TagDomain = .song
 
     @State private var description: String
     @State private var selectedCategory: String
@@ -12,8 +13,9 @@ struct TagEditSheet: View {
 
     private let categories = [("", "なし"), ("mood", "ムード"), ("scene", "シーン"), ("special", "特別"), ("free", "フリー")]
 
-    init(tag: CommunityTag) {
+    init(tag: CommunityTag, domain: TagDomain = .song) {
         self.tag = tag
+        self.domain = domain
         _description = State(initialValue: tag.description ?? "")
         _selectedCategory = State(initialValue: tag.category?.rawValue ?? "")
         _selectedColor = State(initialValue: tag.color?.rawValue ?? "")
@@ -83,12 +85,15 @@ struct TagEditSheet: View {
         isSaving = true
         defer { isSaving = false }
         do {
-            _ = try await CommunityAPI.shared.updateTag(
-                id: tag.id,
-                description: description.isEmpty ? nil : description,
-                category: selectedCategory.isEmpty ? nil : selectedCategory,
-                color: selectedColor.isEmpty ? nil : selectedColor
-            )
+            let desc = description.isEmpty ? nil : description
+            let cat = selectedCategory.isEmpty ? nil : selectedCategory
+            let color = selectedColor.isEmpty ? nil : selectedColor
+            switch domain {
+            case .song:
+                _ = try await CommunityAPI.shared.updateTag(id: tag.id, description: desc, category: cat, color: color)
+            case .idol:
+                _ = try await CommunityAPI.shared.updateIdolTag(id: tag.id, description: desc, category: cat, color: color)
+            }
             dismiss()
         } catch let error as CommunityAPIError {
             errorMessage = error.errorDescription ?? "保存に失敗しました"

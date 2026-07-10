@@ -1,7 +1,8 @@
 import SwiftUI
 
-/// アイドルにタグを付ける picker。SongTagPicker と同じ見た目・操作感 (タグは曲と共有の
-/// マスタを使う)。曲版にある付与完了シェア導線は無く、付与したらそのまま閉じる。
+/// アイドルにタグを付ける picker。SongTagPicker と同じ見た目・操作感だが、タグは曲とは
+/// 別プール (idol_tag_master) から検索・作成する。曲版にある付与完了シェア導線は無く、
+/// 付与したらそのまま閉じる。
 struct IdolTagPicker: View {
     @Environment(\.dismiss) private var dismiss
     /// タグ色なしチップの背景 .accentColor (= 推しカラー tint) を実色解決するために保持。
@@ -108,7 +109,7 @@ struct IdolTagPicker: View {
                 }
             }
             .sheet(isPresented: $showCreateSheet) {
-                TagCreateSheet(onCreated: { newTag in
+                TagCreateSheet(domain: .idol, onCreated: { newTag in
                     tags.insert(newTag, at: 0)
                     selectedTagIds.insert(newTag.id)
                     selectedTagsById[newTag.id] = newTag
@@ -174,7 +175,7 @@ struct IdolTagPicker: View {
     private func loadData() async {
         isLoading = true
         defer { isLoading = false }
-        async let tagResult = CommunityAPI.shared.tags(sort: "popular")
+        async let tagResult = CommunityAPI.shared.idolTagCatalog(sort: "popular")
         async let idolTagResult = CommunityAPI.shared.idolTags(idolId: idol.id)
         tags = (try? await tagResult) ?? []
         if let result = try? await idolTagResult {
@@ -194,7 +195,7 @@ struct IdolTagPicker: View {
 
     private func loadTags() async {
         let searchAt = searchText
-        let result = (try? await CommunityAPI.shared.tags(search: searchAt, sort: "popular")) ?? []
+        let result = (try? await CommunityAPI.shared.idolTagCatalog(search: searchAt, sort: "popular")) ?? []
         guard searchAt == searchText else { return }
         tags = result
     }

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct TagHistoryView: View {
     let tagId: String
+    var domain: TagDomain = .song
 
     @State private var history: [TagHistoryEntry] = []
     @State private var isLoading = true
@@ -57,6 +58,11 @@ struct TagHistoryView: View {
     private func loadHistory() async {
         isLoading = true
         defer { isLoading = false }
-        history = (try? await CommunityAPI.shared.tagHistory(id: tagId)) ?? []
+        switch domain {
+        case .song:
+            history = (try? await CommunityAPI.shared.tagHistory(id: tagId)) ?? []
+        case .idol:
+            history = (try? await CommunityAPI.shared.idolTagHistory(id: tagId)) ?? []
+        }
     }
 }

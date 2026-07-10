@@ -1,18 +1,20 @@
 import SwiftUI
 
-struct TagDetailView: View {
+/// アイドルタグ (idol_tag_master) の詳細。TagDetailView (曲タグ) と同じ構成だが、
+/// タグプールが別なので付いたアイドルのランキングのみを表示する。
+struct IdolTagDetailView: View {
     @Environment(AppDatabase.self) private var database
     let tagId: String
     let tagName: String
 
-    @State private var detail: TagDetailResponse?
+    @State private var detail: IdolTagDetailResponse?
     @State private var isLoading = true
     @State private var showEditSheet = false
     @State private var showHistoryView = false
     @State private var showReportAlert = false
     @State private var reportSuccessAlert = false
     @State private var alertError: CommunityAPIError?
-    @State private var songCache: [String: Song] = [:]
+    @State private var idolCache: [String: Idol] = [:]
     @State private var nextDestination: DetailDestination?
     @Environment(\.colorScheme) private var scheme
 
@@ -22,7 +24,6 @@ struct TagDetailView: View {
                 HStack { Spacer(); ProgressView(); Spacer() }
                     .listRowBackground(Color.clear)
             } else if let detail {
-                // タグ情報セクション
                 Section {
                     VStack(alignment: .leading, spacing: 10) {
                         HStack(spacing: 8) {
@@ -63,29 +64,29 @@ struct TagDetailView: View {
                 } footer: {
                     HStack {
                         Button("説明を編集") {
-                            AppAnalytics.tap("tag_detail.edit")
+                            AppAnalytics.tap("idol_tag_detail.edit")
                             showEditSheet = true
                         }
                             .font(.imasCaption)
                         Spacer()
                         Button("編集履歴") {
-                            AppAnalytics.tap("tag_detail.history")
+                            AppAnalytics.tap("idol_tag_detail.history")
                             showHistoryView = true
                         }
                             .font(.imasCaption)
                     }
                 }
 
-                // 付いた曲セクション
-                if !detail.songs.isEmpty {
-                    // 「このタグが一番多く付いた曲」ランキング (票数降順)。順位バッジ + 票数。
-                    Section("「\(detail.tag.name)」な曲ランキング（\(detail.songs.count)曲）") {
-                        ForEach(Array(detail.songs.enumerated()), id: \.element.id) { idx, entry in
-                            if let song = songCache[entry.songId] {
-                                Button { nextDestination = .song(song) } label: {
+                if !detail.idols.isEmpty {
+                    Section("「\(detail.tag.name)」なアイドルランキング（\(detail.idols.count)人）") {
+                        ForEach(Array(detail.idols.enumerated()), id: \.element.id) { idx, entry in
+                            if let idol = idolCache[entry.idolId] {
+                                Button { nextDestination = .idol(idol) } label: {
                                     HStack(spacing: DS.sp2) {
                                         TagRankBadge(rank: idx + 1)
-                                        SongTitleRow(song: song, subtitle: song.singerLabel, showsChevron: false)
+                                        IdolAvatarView(idol: idol, size: 32)
+                                        Text(idol.name).font(.imasSubhead.weight(.semibold)).foregroundStyle(DS.ink)
+                                        Spacer(minLength: 4)
                                         Text("\(entry.voteCount)票")
                                             .font(.imasCaption.monospacedDigit())
                                             .foregroundStyle(DS.ink2)
@@ -98,7 +99,7 @@ struct TagDetailView: View {
                             } else {
                                 HStack(spacing: DS.sp2) {
                                     TagRankBadge(rank: idx + 1)
-                                    Text(entry.songId)
+                                    Text(entry.idolId)
                                         .font(.imasCaption)
                                         .foregroundStyle(DS.ink2)
                                     Spacer()
@@ -113,7 +114,7 @@ struct TagDetailView: View {
                     }
                 } else {
                     Section {
-                        ImasEmptyState(systemImage: "tag", title: "まだこのタグが付いた曲はありません")
+                        ImasEmptyState(systemImage: "tag", title: "まだこのタグが付いたアイドルはいません")
                             .listRowBackground(DS.surface)
                             .listRowSeparatorTint(DS.sep)
                     }
@@ -129,7 +130,7 @@ struct TagDetailView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
                     Button(role: .destructive) {
-                        AppAnalytics.tap("tag_detail.report")
+                        AppAnalytics.tap("idol_tag_detail.report")
                         showReportAlert = true
                     } label: {
                         Label("不適切なタグを通報", systemImage: "flag")
@@ -141,11 +142,11 @@ struct TagDetailView: View {
             }
         }
         .sheet(isPresented: $showEditSheet, onDismiss: { Task { await loadDetail() } }) {
-            if let detail { TagEditSheet(tag: detail.tag) }
+            if let detail { TagEditSheet(tag: detail.tag, domain: .idol) }
         }
         .sheet(isPresented: $showHistoryView) {
             NavigationStack {
-                TagHistoryView(tagId: tagId)
+                TagHistoryView(tagId: tagId, domain: .idol)
             }
         }
         .sheet(item: $nextDestination) { dest in
@@ -180,12 +181,12 @@ struct TagDetailView: View {
             }
         }
         .task { await loadDetail() }
-        .trackScreen("tag_detail")
+        .trackScreen("idol_tag_detail")
     }
 
     private func reportTag() async {
         do {
-            try await CommunityAPI.shared.reportTag(id: tagId)
+            try await CommunityAPI.shared.reportIdolTag(id: tagId)
             reportSuccessAlert = true
         } catch let error as CommunityAPIError {
             alertError = error
@@ -197,13 +198,12 @@ struct TagDetailView: View {
     private func loadDetail() async {
         isLoading = true
         defer { isLoading = false }
-        detail = try? await CommunityAPI.shared.tag(id: tagId)
-        if let songs = detail?.songs {
-            // N+1 を避けてIN句で一括取得し、O(1)辞書化。表示順序は ForEach(detail.songs) が維持。
-            let missingIds = songs.map(\.songId).filter { songCache[$0] == nil }
-            if let fetched = try? await AppContainer.shared.songReading.songs(ids: missingIds) {
-                for song in fetched {
-                    songCache[song.id] = song
+        detail = try? await CommunityAPI.shared.idolTagDetail(id: tagId)
+        if let idols = detail?.idols {
+            let missingIds = idols.map(\.idolId).filter { idolCache[$0] == nil }
+            if let fetched = try? await AppContainer.shared.idolReading.idols(ids: missingIds) {
+                for idol in fetched {
+                    idolCache[idol.id] = idol
                 }
             }
         }
@@ -219,8 +219,6 @@ struct TagDetailView: View {
         }
     }
 
-    /// 4種のタグカテゴリを見分けやすく塗り分ける。カテゴリは実体色を持たないので
-    /// `ImasTheme.derive(categoryKey:)` で安定した色を導出する (増えても手書きパレット不要)。
     private func categoryColor(_ cat: String) -> Color {
         ImasTheme.derive(categoryKey: cat, scheme: scheme).accent
     }
