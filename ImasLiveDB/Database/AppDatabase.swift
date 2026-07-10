@@ -3,6 +3,8 @@ import GRDB
 import Observation
 import os
 
+private let syncUpsertLogger = Logger(subsystem: "com.fugaif.ImasLiveDB", category: "SyncUpsert")
+
 @Observable
 final class AppDatabase: @unchecked Sendable {
     /// シングルトン
@@ -2215,19 +2217,32 @@ final class AppDatabase: @unchecked Sendable {
 
     // MARK: - CloudKit Sync Upsert Methods
 
-    /// 全レコードを1トランザクション内に一括 upsert する。
-    /// 中断時は全体ロールバックされ、FK孤立を防ぐ。メモリ節約のためチャンク単位で処理。
+    /// 全レコードを1トランザクション内に一括 upsert する。メモリ節約のためチャンク単位で処理。
     ///
     /// WHY upsert (INSERT ON CONFLICT DO UPDATE) not insert(onConflict: .replace):
     /// REPLACE は既存行を DELETE→INSERT するため、foreign_keys=ON 環境では
     /// ON DELETE CASCADE の子テーブル (song_artists / setlist_items / setlist_performers /
     /// unit_members 等) を巻き込んで削除する。増分 Pull で親レコードのメタだけ来た場合に
     /// 原唱者情報等が消える。upsert は行を更新するだけなので CASCADE を発火させない。
+    ///
+    /// WHY per-record savepoint: CloudKit の同期データは他ユーザーのコミュニティ編集も含む
+    /// 外部境界の入力であり、親レコード未着 (取りこぼし) や不整合な参照が混ざりうる。
+    /// savepoint 無しで1件が FK 違反すると `dbQueue.write` の外側トランザクション全体が
+    /// ロールバックされ、そのステップの他の正常なレコードまで全滅する。さらに次回起動でも
+    /// 同じ差分範囲を再取得して同じ行で失敗し続け、実質そのユーザーの同期が永久に止まる。
+    /// 1件ずつ savepoint で保護し、違反した行だけ捨てて続行する。
     private func upsertChunked<T: PersistableRecord>(_ records: [T], chunkSize: Int = 500) throws {
         try dbQueue.write { db in
             for chunk in records.chunks(ofCount: chunkSize) {
                 for record in chunk {
-                    try record.upsert(db)
+                    do {
+                        try db.inSavepoint {
+                            try record.upsert(db)
+                            return .commit
+                        }
+                    } catch {
+                        syncUpsertLogger.error("upsert skip (\(T.databaseTableName)): \(error.localizedDescription)")
+                    }
                 }
             }
         }
