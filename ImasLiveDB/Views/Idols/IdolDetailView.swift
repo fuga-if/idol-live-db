@@ -28,6 +28,8 @@ struct IdolDetailView: View {
     @State private var idolTagData: IdolTagListResponse?
     @State private var showIdolTagPicker = false
     @State private var showCommunityLoginPrompt = false
+    @State private var showingNote = false
+    @State private var noteDraft = ""
 
     @Environment(\.colorScheme) private var scheme
 
@@ -38,6 +40,7 @@ struct IdolDetailView: View {
 
     private var isPick: Bool { markService.bool(.myPick, entity: .idol, id: idol.id) }
     private var isFavorite: Bool { markService.bool(.favorite, entity: .idol, id: idol.id) }
+    private var hasNote: Bool { !(markService.note(entity: .idol, id: idol.id) ?? "").isEmpty }
 
     /// 出演履歴のうち今日以降で最も近い公演 (= 次の出演)。無ければ nil。
     private var nextShow: CastShowRow? {
@@ -207,8 +210,20 @@ struct IdolDetailView: View {
                     try? markService.toggle(.favorite, entity: .idol, id: idol.id)
                 }
                 Spacer(minLength: 0)
-                // メモ (既存の UserMarkBar の note を維持)
-                UserMarkBar(entity: .idol, entityId: idol.id, kinds: [.note], seed: idol.color)
+                // メモ。担当/お気に入りと同じピル型ボタンに揃える (UserMarkBar のタイル型は
+                // 50pt四方+ラベルで縦に大きく、横並びだと担当/お気に入りより不釣り合いに高かった)。
+                heroActionButton(
+                    title: "メモ",
+                    activeTitle: "メモあり",
+                    systemImage: hasNote ? "note.text.badge.plus" : "note.text",
+                    isOn: hasNote,
+                    onColor: t.chipBg,
+                    onText: t.chipText,
+                    ghost: true
+                ) {
+                    noteDraft = markService.note(entity: .idol, id: idol.id) ?? ""
+                    showingNote = true
+                }
             }
         }
         .padding(.horizontal, DS.sp5)
@@ -216,6 +231,9 @@ struct IdolDetailView: View {
         .padding(.bottom, DS.sp5)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(t.heroSurface)
+        .sheet(isPresented: $showingNote) {
+            NoteEditorSheet(entity: .idol, entityId: idol.id, draft: $noteDraft)
+        }
     }
 
     private func heroActionButton(
