@@ -53,6 +53,7 @@ struct PollListView: View {
             }
             .background(DS.bg.ignoresSafeArea())
             .navigationTitle("みんなの投票")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     NavigationLink(value: PollRoute.hallOfFame) {
@@ -119,6 +120,16 @@ struct PollListView: View {
 
 private struct PollRowView: View {
     let poll: Poll
+    @Environment(\.colorScheme) private var scheme
+
+    @State private var topSong: Song?
+    @State private var topIdol: Idol?
+
+    /// 曲/アイドルで安定して塗り分けるアクセント (両者に固有色は無いので categoryKey 由来)。
+    /// 1位の実写が引ければそちらを優先するので、これは無投票時のフォールバックのみで使う。
+    private var accent: Color {
+        ImasTheme.derive(categoryKey: poll.targetType.rawValue, scheme: scheme).accent
+    }
 
     @ViewBuilder
     private var scopeBadge: some View {
@@ -127,8 +138,27 @@ private struct PollRowView: View {
         }
     }
 
+    /// 先頭サムネイル。1位が解決できていれば曲ジャケ/アイドル写真の「実写」、
+    /// まだ無投票 (topEntityId なし) ならジャンルアイコンにフォールバックする。
+    @ViewBuilder
+    private var thumbnail: some View {
+        if poll.targetType == .song, let topSong {
+            ImasArtwork(title: topSong.title, size: 42, imageURL: topSong.artworkUrl.flatMap(URL.init))
+        } else if poll.targetType == .idol, let topIdol {
+            IdolAvatarView(idol: topIdol, size: 42)
+        } else {
+            Image(systemName: poll.targetType == .song ? "music.note" : "person.fill")
+                .font(.imasTitle3)
+                .foregroundStyle(ColorMath.onColor(accent))
+                .frame(width: 42, height: 42)
+                .background(accent.gradient, in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+        }
+    }
+
     var body: some View {
         HStack(spacing: DS.sp3) {
+            thumbnail
+
             VStack(alignment: .leading, spacing: DS.sp2) {
                 Text(poll.title)
                     .font(.imasSubhead.weight(.semibold))
@@ -136,7 +166,6 @@ private struct PollRowView: View {
                     .lineLimit(2)
 
                 HStack(spacing: DS.sp2) {
-                    ImasChip(text: poll.targetType == .song ? "曲" : "アイドル")
                     scopeBadge
                     Text(poll.statusLabel)
                         .font(.imasCaption)
@@ -156,6 +185,16 @@ private struct PollRowView: View {
         .padding(.horizontal, DS.sp4)
         .padding(.vertical, DS.sp3)
         .contentShape(Rectangle())
+        .task { await resolveTopEntity() }
+    }
+
+    private func resolveTopEntity() async {
+        guard let topEntityId = poll.topEntityId else { return }
+        if poll.targetType == .song {
+            topSong = try? await AppContainer.shared.songReading.song(id: topEntityId)
+        } else {
+            topIdol = try? await AppContainer.shared.idolReading.idol(id: topEntityId)
+        }
     }
 }
 

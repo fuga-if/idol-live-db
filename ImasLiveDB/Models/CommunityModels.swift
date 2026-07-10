@@ -383,6 +383,8 @@ struct Poll: Codable, Identifiable, Hashable, Sendable {
     let scopeBrandIds: [String]?
     /// `candidateScope == .manual` のときの候補エンティティ ID 群。それ以外は nil。
     let scopeEntityIds: [String]?
+    /// 現在1位の曲/アイドルの entity_id (無投票なら nil)。一覧行のサムネイルに使う。
+    let topEntityId: String?
 
     /// nil 時のフォールバックを内包したアクセサ。
     var scope: PollCandidateScope { candidateScope ?? .all }

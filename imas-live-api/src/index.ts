@@ -1888,7 +1888,9 @@ export default {
             p.scope_entity_ids,
             COALESCE(SUM(pe.vote_count), 0) AS total_votes,
             COUNT(pe.entity_id) AS entry_count,
-            (SELECT COUNT(*) FROM poll_votes pv WHERE pv.poll_id = p.id AND pv.user_id = ?) AS my_vote_count
+            (SELECT COUNT(*) FROM poll_votes pv WHERE pv.poll_id = p.id AND pv.user_id = ?) AS my_vote_count,
+            (SELECT pe2.entity_id FROM poll_entries pe2 WHERE pe2.poll_id = p.id AND pe2.vote_count > 0
+               ORDER BY pe2.vote_count DESC LIMIT 1) AS top_entity_id
           FROM polls p
           LEFT JOIN poll_entries pe ON pe.poll_id = p.id
           WHERE p.status = 'active' AND ${timeCondition}
@@ -1915,6 +1917,9 @@ export default {
             total_votes: r.total_votes,
             entry_count: r.entry_count,
             my_vote_count: r.my_vote_count,
+            // 一覧行に現在1位の曲/アイドルの写真を出すための ID (アイマスらしい実写優先の
+            // デザインシステムに合わせる。まだ無投票なら null → クライアント側で汎用表示)。
+            top_entity_id: r.top_entity_id,
           }))
         );
       }
