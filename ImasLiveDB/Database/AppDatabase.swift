@@ -1954,9 +1954,19 @@ final class AppDatabase: @unchecked Sendable {
     /// アイドルが特定の曲を披露した公演履歴（最新順）
     func fetchIdolSongHistory(idolId: String, songId: String) throws -> [CastShowRow] {
         try dbQueue.read { db in
+            // CastShowRow.castRole は非 Optional (既定値 .member) だが、GRDB の FetchableRecord は
+            // Codable 合成デコード時に列自体が無いとキー不在で decode 失敗する (Swift のプロパティ
+            // 既定値は synthesized Decodable には効かない)。cast_role を SELECT しないと
+            // CastShowRow.fetchAll が毎回 throw し、呼び出し元 (IdolSongHistoryView) がそれを
+            // 握りつぶして常に「披露記録はありません」になっていた。fetchIdolShows と同じ
+            // COALESCE で明示的に補う。
             let sql = """
                 SELECT DISTINCT sh.id AS show_id, e.id AS event_id,
-                       e.name AS event_name, sh.name AS show_name, sh.date, sh.venue
+                       e.name AS event_name, sh.name AS show_name, sh.date, sh.venue,
+                       COALESCE(
+                           (SELECT cast_role FROM show_cast WHERE show_id = sh.id AND idol_id = ?),
+                           'member'
+                       ) AS cast_role
                 FROM setlist_items si
                 JOIN shows sh ON si.show_id = sh.id
                 JOIN events e ON sh.event_id = e.id
@@ -1964,7 +1974,7 @@ final class AppDatabase: @unchecked Sendable {
                 WHERE si.song_id = ? AND sp.idol_id = ?
                 ORDER BY sh.date DESC
                 """
-            return try CastShowRow.fetchAll(db, sql: sql, arguments: [songId, idolId])
+            return try CastShowRow.fetchAll(db, sql: sql, arguments: [idolId, songId, idolId])
         }
     }
 
