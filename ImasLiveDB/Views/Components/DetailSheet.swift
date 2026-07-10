@@ -1149,12 +1149,13 @@ struct UnitSheetContent: View {
                             ImasListContainer {
                                 ForEach(Array(songs.enumerated()), id: \.element.id) { idx, song in
                                     if idx > 0 { Divider().overlay(DS.sep).padding(.leading, 66) }
-                                    Button { navigate(.song(song)) } label: {
-                                        SongTitleRow(song: song)
-                                            .padding(.horizontal, DS.sp4)
-                                            .padding(.vertical, 10)
-                                    }
-                                    .buttonStyle(.plain)
+                                    // Button でラップすると内側のジャケ写プレビュー再生タップが
+                                    // 吸われるため、行全体は onTapGesture で遷移を受ける。
+                                    SongTitleRow(song: song)
+                                        .padding(.horizontal, DS.sp4)
+                                        .padding(.vertical, 10)
+                                        .contentShape(Rectangle())
+                                        .onTapGesture { navigate(.song(song)) }
                                 }
                             }
                         }

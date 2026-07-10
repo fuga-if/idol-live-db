@@ -82,19 +82,20 @@ struct TagDetailView: View {
                     Section("「\(detail.tag.name)」な曲ランキング（\(detail.songs.count)曲）") {
                         ForEach(Array(detail.songs.enumerated()), id: \.element.id) { idx, entry in
                             if let song = songCache[entry.songId] {
-                                Button { nextDestination = .song(song) } label: {
-                                    HStack(spacing: DS.sp2) {
-                                        TagRankBadge(rank: idx + 1)
-                                        SongTitleRow(song: song, subtitle: song.singerLabel, showsChevron: false)
-                                        Text("\(entry.voteCount)票")
-                                            .font(.imasCaption.monospacedDigit())
-                                            .foregroundStyle(DS.ink2)
-                                        Image(systemName: "chevron.right")
-                                            .font(.imasCaption)
-                                            .foregroundStyle(DS.ink3)
-                                    }
+                                // Button でラップすると内側のジャケ写プレビュー再生タップが
+                                // 吸われるため、行全体は onTapGesture で遷移を受ける。
+                                HStack(spacing: DS.sp2) {
+                                    TagRankBadge(rank: idx + 1)
+                                    SongTitleRow(song: song, subtitle: song.singerLabel, showsChevron: false)
+                                    Text("\(entry.voteCount)票")
+                                        .font(.imasCaption.monospacedDigit())
+                                        .foregroundStyle(DS.ink2)
+                                    Image(systemName: "chevron.right")
+                                        .font(.imasCaption)
+                                        .foregroundStyle(DS.ink3)
                                 }
-                                .buttonStyle(.plain)
+                                .contentShape(Rectangle())
+                                .onTapGesture { nextDestination = .song(song) }
                             } else {
                                 HStack(spacing: DS.sp2) {
                                     TagRankBadge(rank: idx + 1)

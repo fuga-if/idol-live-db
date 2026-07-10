@@ -105,12 +105,13 @@ struct GlobalSearchView: View {
                 if !results.songs.isEmpty {
                     Section("楽曲") {
                         ForEach(results.songs) { song in
-                            Button { sheetDestination = .song(song) } label: {
-                                SongTitleRow(song: song)
-                            }
-                            .buttonStyle(.plain)
-                            .listRowBackground(DS.surface)
-                            .listRowSeparatorTint(DS.sep)
+                            // Button でラップすると内側のジャケ写プレビュー再生タップが
+                            // 吸われるため、行全体は onTapGesture で遷移を受ける。
+                            SongTitleRow(song: song)
+                                .contentShape(Rectangle())
+                                .onTapGesture { sheetDestination = .song(song) }
+                                .listRowBackground(DS.surface)
+                                .listRowSeparatorTint(DS.sep)
                         }
                     }
                 }

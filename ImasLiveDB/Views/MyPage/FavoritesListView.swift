@@ -53,12 +53,13 @@ struct FavoritesListView: View {
                 List {
                     Section {
                         ForEach(songs) { song in
-                            Button { sheetDestination = .song(song) } label: {
-                                SongTitleRow(song: song, showsChevron: false)
-                            }
-                            .buttonStyle(.plain)
-                            .listRowBackground(DS.surface)
-                            .listRowSeparatorTint(DS.sep)
+                            // Button でラップすると内側のジャケ写プレビュー再生タップが
+                            // 吸われるため、行全体は onTapGesture で遷移を受ける。
+                            SongTitleRow(song: song, showsChevron: false)
+                                .contentShape(Rectangle())
+                                .onTapGesture { sheetDestination = .song(song) }
+                                .listRowBackground(DS.surface)
+                                .listRowSeparatorTint(DS.sep)
                         }
                     } header: {
                         Text("\(songs.count)曲").font(.imasCaption).foregroundStyle(DS.ink2)

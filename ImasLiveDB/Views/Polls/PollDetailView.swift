@@ -351,14 +351,14 @@ private struct PollEntryRow: View {
             TagRankBadge(rank: rank)
                 .frame(width: 30, alignment: .center)
 
-            Button {
-                openDetail()
-            } label: {
-                entityView
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .disabled(detailDestination == nil)
+            // Button でラップすると内側のジャケ写プレビュー再生タップが吸われてしまう
+            // (SongListView と同じ iOS 18 の button-in-button 問題)。行全体は
+            // onTapGesture で遷移を受け、ジャケ写の再生タップは独立して機能させる。
+            entityView
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    if detailDestination != nil { openDetail() }
+                }
 
             Spacer(minLength: 8)
 

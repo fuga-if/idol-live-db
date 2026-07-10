@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// アイドル名表示の統一行レイアウト。
-/// 色ドット + 名前 + (サブタイトル) + chevron。
+/// アバター写真 + 名前 + (サブタイトル) + chevron。
 /// Button や NavigationLink でラップしてもテキスト色が青に染まらない (foregroundStyle(.primary) を明示)。
 struct IdolNameRow: View {
     let idol: Idol
@@ -10,7 +10,7 @@ struct IdolNameRow: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            ColorDotView(hex: idol.color, size: 10)
+            IdolAvatarView(idol: idol, size: 36)
             VStack(alignment: .leading, spacing: 2) {
                 Text(idol.name)
                     .font(.imasSubhead)
@@ -70,7 +70,13 @@ struct SongTitleRow: View {
     private var songArtwork: some View {
         let size: CGFloat = 36
         let url = song.artworkUrl.flatMap { URL(string: $0) }
-        return ArtworkImageView(url: url, size: size, previewURL: nil, songTitle: song.title)
+        return ArtworkImageView(url: url, size: size, previewURL: previewURL, songTitle: song.title)
+    }
+
+    /// タップでプレビュー再生できるよう song.previewUrl を渡す (SongRowView と同じ配線)。
+    private var previewURL: URL? {
+        guard let dbUrl = song.previewUrl else { return nil }
+        return URL(string: dbUrl)
     }
 }
 

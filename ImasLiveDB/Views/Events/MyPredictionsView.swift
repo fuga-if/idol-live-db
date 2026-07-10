@@ -43,15 +43,16 @@ struct MyPredictionsView: View {
                     ForEach(groups) { group in
                         Section {
                             ForEach(group.entries) { entry in
-                                Button { sheetDestination = .song(entry.song) } label: {
-                                    HStack(spacing: DS.sp2) {
-                                        SongTitleRow(song: entry.song, showsChevron: false)
-                                        Label("\(entry.voteCount)", systemImage: "hand.thumbsup.fill")
-                                            .font(.imasCaption)
-                                            .foregroundStyle(DS.ink2)
-                                    }
+                                // Button でラップすると内側のジャケ写プレビュー再生タップが
+                                // 吸われるため、行全体は onTapGesture で遷移を受ける。
+                                HStack(spacing: DS.sp2) {
+                                    SongTitleRow(song: entry.song, showsChevron: false)
+                                    Label("\(entry.voteCount)", systemImage: "hand.thumbsup.fill")
+                                        .font(.imasCaption)
+                                        .foregroundStyle(DS.ink2)
                                 }
-                                .buttonStyle(.plain)
+                                .contentShape(Rectangle())
+                                .onTapGesture { sheetDestination = .song(entry.song) }
                             }
                         } header: {
                             Button { sheetDestination = .show(group.show) } label: {
