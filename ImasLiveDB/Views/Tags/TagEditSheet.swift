@@ -11,8 +11,6 @@ struct TagEditSheet: View {
     @State private var isSaving = false
     @State private var errorMessage: String?
 
-    private let categories = [("", "なし"), ("mood", "ムード"), ("scene", "シーン"), ("special", "特別"), ("free", "フリー")]
-
     init(tag: CommunityTag, domain: TagDomain = .song) {
         self.tag = tag
         self.domain = domain
@@ -23,46 +21,53 @@ struct TagEditSheet: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section("説明文") {
-                    TextEditor(text: $description)
-                        .scrollContentBackground(.hidden)
-                        .background(DS.surface)
-                        .frame(minHeight: 140)
-                        .font(.imasBody)
-                }
-                .listRowBackground(DS.surface)
-                .listRowSeparatorTint(DS.sep)
-
-                Section("カテゴリ") {
-                    Picker("カテゴリ", selection: $selectedCategory) {
-                        ForEach(categories, id: \.0) { cat in
-                            Text(cat.1).tag(cat.0)
+            ScrollView {
+                VStack(alignment: .leading, spacing: DS.sp6) {
+                    VStack(alignment: .leading, spacing: DS.sp3) {
+                        ImasSectionHeader(title: "説明文", tight: true)
+                        ImasListContainer {
+                            TextField("どんな時に使うタグか", text: $description, axis: .vertical)
+                                .font(.imasSubhead)
+                                .foregroundStyle(DS.ink)
+                                .lineLimit(3...6)
+                                .padding(.horizontal, DS.sp4)
+                                .padding(.vertical, DS.sp3)
                         }
                     }
-                    .pickerStyle(.menu)
-                }
-                .listRowBackground(DS.surface)
-                .listRowSeparatorTint(DS.sep)
 
-                Section("色") {
-                    TagColorPicker(selectedHex: $selectedColor)
-                }
-                .listRowBackground(DS.surface)
-                .listRowSeparatorTint(DS.sep)
-
-                if let errorMessage {
-                    Section {
-                        Text(errorMessage)
-                            .foregroundStyle(DS.danger)
-                            .font(.imasCaption)
+                    VStack(alignment: .leading, spacing: DS.sp3) {
+                        ImasSectionHeader(title: "カテゴリ", tight: true)
+                        FlowLayout(spacing: DS.sp2) {
+                            categoryChip(value: "", label: "なし")
+                            ForEach(TagCategoryOptions.options(for: domain), id: \.value) { cat in
+                                categoryChip(value: cat.value, label: cat.label)
+                            }
+                        }
                     }
-                    .listRowBackground(DS.surface)
+
+                    VStack(alignment: .leading, spacing: DS.sp3) {
+                        ImasSectionHeader(title: "色", tight: true)
+                        ImasListContainer {
+                            TagColorPicker(selectedHex: $selectedColor)
+                                .padding(.horizontal, DS.sp4)
+                                .padding(.vertical, DS.sp3)
+                        }
+                    }
+
+                    if let errorMessage {
+                        Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
+                            .font(.imasFootnote)
+                            .foregroundStyle(DS.danger)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
+                .padding(.horizontal, DS.sp5)
+                .padding(.top, DS.sp4)
+                .padding(.bottom, DS.sp7)
             }
-            .scrollContentBackground(.hidden)
             .background(DS.bg.ignoresSafeArea())
-            .navigationTitle("タグを編集")
+            .scrollContentBackground(.hidden)
+            .navigationTitle("「\(tag.name)」を編集")
             .navigationBarTitleDisplayMode(.inline)
             .trackScreen("tag_edit")
             .toolbar {
@@ -79,6 +84,18 @@ struct TagEditSheet: View {
                 }
             }
         }
+    }
+
+    private func categoryChip(value: String, label: String) -> some View {
+        let on = selectedCategory == value
+        return Button { selectedCategory = value } label: {
+            Text(label)
+                .font(.imasScaled(13.5, weight: .semibold))
+                .padding(.horizontal, 13).padding(.vertical, 7)
+                .foregroundStyle(on ? Color.white : DS.ink2)
+                .background(on ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(DS.fill), in: Capsule())
+        }
+        .buttonStyle(.plain)
     }
 
     private func save() async {

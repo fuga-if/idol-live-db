@@ -210,13 +210,7 @@ struct TagDetailView: View {
     }
 
     private func categoryLabel(_ cat: String) -> String {
-        switch cat {
-        case "mood": return "ムード"
-        case "scene": return "シーン"
-        case "special": return "特別"
-        case "free": return "フリー"
-        default: return cat
-        }
+        TagCategoryOptions.song.first { $0.value == cat }?.label ?? cat
     }
 
     /// 4種のタグカテゴリを見分けやすく塗り分ける。カテゴリは実体色を持たないので

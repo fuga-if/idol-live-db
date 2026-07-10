@@ -210,13 +210,7 @@ struct IdolTagDetailView: View {
     }
 
     private func categoryLabel(_ cat: String) -> String {
-        switch cat {
-        case "mood": return "ムード"
-        case "scene": return "シーン"
-        case "special": return "特別"
-        case "free": return "フリー"
-        default: return cat
-        }
+        TagCategoryOptions.idol.first { $0.value == cat }?.label ?? cat
     }
 
     private func categoryColor(_ cat: String) -> Color {
