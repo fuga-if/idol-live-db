@@ -55,6 +55,11 @@ actor CommunityAPI {
     /// アイドルタグマスタ詳細 (/idol-tags/:id) の TTL キャッシュ。tagDetailCache と同じ理由・同じ TTL。
     private var idolTagDetailCache: [String: (detail: IdolTagDetailResponse, at: Date)] = [:]
 
+    /// タグ活動サマリ (/tags/activity) の TTL キャッシュ。完全にユーザー非依存 (自分のタグ付けの有無に
+    /// 関わらず同じ集計) なので、エッジキャッシュ (10分) に合わせて端末側も同程度の TTL でよい。
+    private var tagActivityCache: (response: TagActivityResponse, at: Date)?
+    private let tagActivityCacheTTL: TimeInterval = 600
+
     /// タグ一覧・タグ詳細の両キャッシュを無効化する (タグ作成/付与/取消で件数・票数が変わるため)。
     /// あわせて、その曲/アイドルのタグ集計に依存するタグ一覧・類似曲キャッシュも単位で無効化する。
     private func invalidateTagsCache(songId: String? = nil, idolId: String? = nil) {
@@ -336,6 +341,18 @@ actor CommunityAPI {
             "GET", path: "/songs/\(songId)/similar", query: ["limit": "\(limit)"]
         )
         similarSongsCache[songId] = (response, Date())
+        return response
+    }
+
+    /// タグ付けの盛り上がり (直近フィード/トレンドタグ/急上昇コンテンツ)。ユーザー非依存の集計。
+    func tagActivity(windowDays: Int = 7) async throws -> TagActivityResponse {
+        if let hit = tagActivityCache, Date().timeIntervalSince(hit.at) < tagActivityCacheTTL {
+            return hit.response
+        }
+        let response: TagActivityResponse = try await APIClient.shared.request(
+            "GET", path: "/tags/activity", query: ["window_days": "\(windowDays)"]
+        )
+        tagActivityCache = (response, Date())
         return response
     }
 

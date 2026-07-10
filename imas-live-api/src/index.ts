@@ -2780,6 +2780,98 @@ export default {
       }
 
       // ----------------------------------------------------------------
+      // GET /tags/activity — タグ付けの盛り上がり (曲/アイドル両ドメイン横断)
+      // device_song_tag / device_idol_tag は「端末1件ごとのタグ付与イベント」を
+      // created_at 付きで持つ既存ログなので、新規テーブル無しで直近フィード・
+      // 期間内急増を算出できる。曲名/アイドル名は解決せず entity_id のみ返し、
+      // クライアント側のローカル DB (CloudKit 同期済み) で名前・色を引く
+      // (GET /tags/:id 等の既存レスポンスと同じ役割分担)。
+      // ※ 汎用マッチの GET /tags/:id (下) より前に置かないと "activity" が
+      //    タグ id として食われてしまうので、パス完全一致はここで先に判定する。
+      // ----------------------------------------------------------------
+      if (path === "/tags/activity" && request.method === "GET") {
+        const windowDays = Math.min(30, Math.max(1, parseInt(url.searchParams.get("window_days") || "7") || 7));
+        const windowStart = Math.floor(Date.now() / 1000) - windowDays * 86400;
+
+        const [recentSongRows, recentIdolRows, trendSongRows, trendIdolRows, risingSongRows, risingIdolRows] =
+          await Promise.all([
+            env.DB.prepare(
+              `SELECT dst.song_id as entity_id, dst.tag_id, t.name as tag_name, t.color as tag_color,
+                      t.category as tag_category, dst.created_at
+               FROM device_song_tag dst JOIN tags t ON t.id = dst.tag_id
+               WHERE t.status != 'removed'
+               ORDER BY dst.created_at DESC LIMIT 40`
+            ).all(),
+            env.DB.prepare(
+              `SELECT dit.idol_id as entity_id, dit.tag_id, t.name as tag_name, t.color as tag_color,
+                      t.category as tag_category, dit.created_at
+               FROM device_idol_tag dit JOIN idol_tag_master t ON t.id = dit.tag_id
+               WHERE t.status != 'removed'
+               ORDER BY dit.created_at DESC LIMIT 40`
+            ).all(),
+            env.DB.prepare(
+              `SELECT dst.tag_id, t.name as tag_name, t.color as tag_color, t.category as tag_category,
+                      COUNT(*) as recent_count,
+                      COALESCE((SELECT SUM(vote_count) FROM song_tags WHERE tag_id = t.id), 0) as total_count
+               FROM device_song_tag dst JOIN tags t ON t.id = dst.tag_id
+               WHERE dst.created_at >= ? AND t.status != 'removed'
+               GROUP BY dst.tag_id ORDER BY recent_count DESC LIMIT 10`
+            ).bind(windowStart).all(),
+            env.DB.prepare(
+              `SELECT dit.tag_id, t.name as tag_name, t.color as tag_color, t.category as tag_category,
+                      COUNT(*) as recent_count,
+                      COALESCE((SELECT SUM(vote_count) FROM idol_tags WHERE tag_id = t.id), 0) as total_count
+               FROM device_idol_tag dit JOIN idol_tag_master t ON t.id = dit.tag_id
+               WHERE dit.created_at >= ? AND t.status != 'removed'
+               GROUP BY dit.tag_id ORDER BY recent_count DESC LIMIT 10`
+            ).bind(windowStart).all(),
+            env.DB.prepare(
+              `SELECT dst.song_id as entity_id, dst.tag_id, t.name as tag_name, t.color as tag_color,
+                      COUNT(*) as recent_count
+               FROM device_song_tag dst JOIN tags t ON t.id = dst.tag_id
+               WHERE dst.created_at >= ? AND t.status != 'removed'
+               GROUP BY dst.song_id, dst.tag_id HAVING COUNT(*) >= 2
+               ORDER BY recent_count DESC LIMIT 10`
+            ).bind(windowStart).all(),
+            env.DB.prepare(
+              `SELECT dit.idol_id as entity_id, dit.tag_id, t.name as tag_name, t.color as tag_color,
+                      COUNT(*) as recent_count
+               FROM device_idol_tag dit JOIN idol_tag_master t ON t.id = dit.tag_id
+               WHERE dit.created_at >= ? AND t.status != 'removed'
+               GROUP BY dit.idol_id, dit.tag_id HAVING COUNT(*) >= 2
+               ORDER BY recent_count DESC LIMIT 10`
+            ).bind(windowStart).all(),
+          ]);
+
+        const recent = [
+          ...recentSongRows.results.map((r: any) => ({ domain: "song", ...r })),
+          ...recentIdolRows.results.map((r: any) => ({ domain: "idol", ...r })),
+        ]
+          .sort((a: any, b: any) => b.created_at - a.created_at)
+          .slice(0, 40);
+
+        const trendingTags = [
+          ...trendSongRows.results.map((r: any) => ({ domain: "song", ...r })),
+          ...trendIdolRows.results.map((r: any) => ({ domain: "idol", ...r })),
+        ]
+          .sort((a: any, b: any) => b.recent_count - a.recent_count)
+          .slice(0, 12);
+
+        const risingEntities = [
+          ...risingSongRows.results.map((r: any) => ({ domain: "song", ...r })),
+          ...risingIdolRows.results.map((r: any) => ({ domain: "idol", ...r })),
+        ]
+          .sort((a: any, b: any) => b.recent_count - a.recent_count)
+          .slice(0, 12);
+
+        // アクセス集中対策のエッジキャッシュ (max-age 10分)。日次だと「最近つけられたタグ」の
+        // 反映が最大24時間遅れて盛り上がり感が薄れるため、鮮度と負荷軽減のバランスでこの値にする。
+        return json({ window_days: windowDays, recent, trending_tags: trendingTags, rising_entities: risingEntities }, 200, {
+          "Cache-Control": "public, max-age=600, stale-while-revalidate=1800",
+        });
+      }
+
+      // ----------------------------------------------------------------
       // GET /tags/:id — タグ詳細
       // ----------------------------------------------------------------
       const tagDetailMatch = path.match(/^\/tags\/([^/]+)$/);

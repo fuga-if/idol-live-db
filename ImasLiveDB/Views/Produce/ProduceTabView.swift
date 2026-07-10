@@ -384,6 +384,18 @@ struct ProduceTabView: View {
                 )
             }
             .buttonStyle(.plain)
+
+            NavigationLink {
+                TagActivityView()
+            } label: {
+                ImasEntryCard(
+                    systemImage: "flame.fill",
+                    title: "タグの動き",
+                    preview: "伸びてるタグ・急上昇の曲やアイドルをチェック",
+                    brand: secondaryBrandSeed
+                )
+            }
+            .buttonStyle(.plain)
         }
     }
 

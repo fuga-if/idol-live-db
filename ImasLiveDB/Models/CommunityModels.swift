@@ -268,6 +268,61 @@ struct IdolTagApplyResponse: Decodable, Sendable {
     let appliedTagIds: [String]
 }
 
+// MARK: - Tag Activity (盛り上がり)
+
+/// タグ付けの対象ドメイン (曲/アイドル)。GET /tags/activity は両方を横断して返す。
+enum TagActivityDomain: String, Codable, Sendable {
+    case song
+    case idol
+}
+
+/// GET /tags/activity レスポンス。新規テーブル無しで device_song_tag / device_idol_tag の
+/// タイムスタンプ付きイベントログから直近フィード・トレンドを算出したもの。
+struct TagActivityResponse: Decodable, Sendable {
+    let windowDays: Int
+    let recent: [TagActivityEvent]
+    let trendingTags: [TagActivityTrend]
+    let risingEntities: [TagActivityRise]
+}
+
+/// 直近のタグ付けイベント1件。曲/アイドル名は entityId を元にクライアント側のローカル DB で解決する。
+struct TagActivityEvent: Decodable, Identifiable, Sendable {
+    let domain: TagActivityDomain
+    let entityId: String
+    let tagId: String
+    let tagName: String
+    let tagColor: HexColor?
+    let tagCategory: TagCategory?
+    let createdAt: Date
+
+    var id: String { "\(domain.rawValue)_\(entityId)_\(tagId)_\(createdAt.timeIntervalSince1970)" }
+}
+
+/// 直近 window_days 日間で伸びているタグ。
+struct TagActivityTrend: Decodable, Identifiable, Sendable {
+    let domain: TagActivityDomain
+    let tagId: String
+    let tagName: String
+    let tagColor: HexColor?
+    let tagCategory: TagCategory?
+    let recentCount: Int
+    let totalCount: Int
+
+    var id: String { "\(domain.rawValue)_\(tagId)" }
+}
+
+/// 直近 window_days 日間で特定の曲/アイドルにタグが急増した組み合わせ。
+struct TagActivityRise: Decodable, Identifiable, Sendable {
+    let domain: TagActivityDomain
+    let entityId: String
+    let tagId: String
+    let tagName: String
+    let tagColor: HexColor?
+    let recentCount: Int
+
+    var id: String { "\(domain.rawValue)_\(entityId)_\(tagId)" }
+}
+
 struct TagHistoryEntry: Codable, Identifiable, Hashable, Sendable {
     let id: Int
     let description: String?
