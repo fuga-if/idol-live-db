@@ -352,6 +352,33 @@ export async function handlePostEdits<E extends EditsEnv>(
         if (typeof sid === "string") itemIdToShowId.set(name, sid);
       }
     }
+
+    // SetlistPerformer.idolId の実在検証。ここを飛ばすと、存在しない idolId を指す行が
+    // そのまま CloudKit へ書かれ、他ユーザー端末の増分同期で INSERT 時に FK 違反
+    // (setlist_performers.idol_id REFERENCES idols(id)) を起こしてクラッシュ/同期停止する
+    // (delete op は破棄済みの参照でも問題ないため対象外)。
+    const idolIdsToCheck = new Set<string>();
+    for (const n of normalized) {
+      if (n.recordType !== "SetlistPerformer" || n.op === "delete") continue;
+      const idolId =
+        (typeof n.fields.idolId === "string" && n.fields.idolId) ||
+        (beforeMap.get(n.recordName)?.idolId as string | undefined);
+      if (idolId) idolIdsToCheck.add(idolId);
+    }
+    if (idolIdsToCheck.size > 0) {
+      const idolLookup = await cloudKitLookup(
+        [...idolIdsToCheck],
+        env.CLOUDKIT_KEY_ID,
+        env.CLOUDKIT_PRIVATE_KEY
+      );
+      if (!idolLookup.ok) return error(`cloudkit_lookup_error: ${idolLookup.error}`, 502);
+      const foundIdolIds = new Set(idolLookup.records?.keys() ?? []);
+      for (const idolId of idolIdsToCheck) {
+        if (!foundIdolIds.has(idolId)) {
+          return error(`SetlistPerformer references unknown idolId: ${idolId}`, 400);
+        }
+      }
+    }
   }
 
   // CloudKit op を構築 (create/update → forceUpdate, delete → soft delete)。

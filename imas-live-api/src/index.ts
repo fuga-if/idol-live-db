@@ -2705,7 +2705,7 @@ export default {
         ).bind(deviceId, dateYmd).first<{ count: number }>();
         if ((quotaRow?.count ?? 0) >= 10) return error("Daily tag creation limit reached", 429);
 
-        const candidateId = await resolveSlug(env.DB, name);
+        const candidateId = await resolveSlugFromTable(env.DB, "tags", name);
         const now = Math.floor(Date.now() / 1000);
 
         // tag INSERT + quota++ を batch で原子化 (race condition 解消)
@@ -2755,13 +2755,11 @@ export default {
         if (sort === "popular") orderBy = "ORDER BY COALESCE(total_uses, 0) DESC";
         else if (sort === "recent") orderBy = "ORDER BY t.created_at DESC";
 
-        // song_tags/idol_tags を LEFT JOIN すると tag 1件につき (曲行数 × アイドル行数) に
-        // fan-out して SUM が水増しされるため、相関サブクエリで別々に集計してから足す。
+        // 曲タグ専用マスタ (アイドルタグは idol_tag_master に分離済み、GET /idol-tags 参照)。
         const sql = `
           SELECT t.id, t.name, SUBSTR(t.description, 1, 40) as description_preview,
                  t.category, t.color, t.created_at,
-                 COALESCE((SELECT SUM(vote_count) FROM song_tags WHERE tag_id = t.id), 0)
-                   + COALESCE((SELECT SUM(vote_count) FROM idol_tags WHERE tag_id = t.id), 0) as total_uses
+                 COALESCE((SELECT SUM(vote_count) FROM song_tags WHERE tag_id = t.id), 0) as total_uses
           FROM tags t
           ${where}
           ${orderBy}
@@ -2790,19 +2788,17 @@ export default {
         const tag = await env.DB.prepare("SELECT * FROM tags WHERE id = ?").bind(tagId).first();
         if (!tag) return error("Tag not found", 404);
 
-        // タグが付いた全曲・全アイドルを票数降順で返す (旧 LIMIT 50 だと 150 曲付いたタグでも
+        // タグが付いた全曲を票数降順で返す (旧 LIMIT 50 だと 150 曲付いたタグでも
         // 50 曲しか返らず、絞り込み一覧・曲数バッジが欠落していた)。
+        // アイドルタグは idol_tag_master に分離済み (GET /idol-tags/:id 参照) なのでここには出さない。
         const { results: songs } = await env.DB.prepare(
           `SELECT song_id, vote_count FROM song_tags WHERE tag_id = ? ORDER BY vote_count DESC LIMIT 1000`
-        ).bind(tagId).all();
-        const { results: idolResults } = await env.DB.prepare(
-          `SELECT idol_id, vote_count FROM idol_tags WHERE tag_id = ? ORDER BY vote_count DESC LIMIT 1000`
         ).bind(tagId).all();
 
         // タグ詳細はユーザー非依存・変化が緩やか。エッジ (Cloudflare) で全ユーザ共有
         // キャッシュして D1 負荷を削減 (max-age 5分 + SWR 30分。自分のタグ付けは
         // クライアント側キャッシュが即無効化するので、この程度の鮮度で十分)。
-        return json({ tag, songs, idols: idolResults }, 200, {
+        return json({ tag, songs }, 200, {
           "Cache-Control": "public, max-age=300, stale-while-revalidate=1800",
         });
       }
@@ -2910,6 +2906,243 @@ export default {
         if (total >= REPORT_THRESHOLD) {
           await env.DB.prepare(
             "UPDATE tags SET status = 'under_review' WHERE id = ? AND status = 'active'"
+          ).bind(tagId).run();
+        }
+
+        await commitIpRateLimit(env.DB, ip, ipDry.bucket);
+        return json({ ok: true, total_reports: total });
+      }
+
+      // ==================================================================
+      // アイドルタグ (idol_tag_master) — /tags 系と同じ形の別プール。
+      // 曲タグ (tags) とは意味的に別語彙 (性格/属性 vs ムード/ジャンル) なので
+      // マスタごと分離している (idol_tags/song_tags のドメイン並走パターンをマスタにも適用)。
+      // ==================================================================
+
+      // ----------------------------------------------------------------
+      // POST /idol-tags — アイドルタグ新規作成
+      // ----------------------------------------------------------------
+      if (path === "/idol-tags" && request.method === "POST") {
+        const deviceId = request.headers.get("X-Device-Id");
+        if (!deviceId) return error("X-Device-Id header is required");
+
+        const ip = request.headers.get("CF-Connecting-IP") ?? "unknown";
+        const ipDry = await dryCheckIpRateLimit(env.DB, ip);
+        if (!ipDry.allowed) {
+          return rateLimitSimple();
+        }
+
+        const body = (await request.json()) as any;
+        let { name, description, category, color } = body as {
+          name: string;
+          description?: string;
+          category?: string;
+          color?: string;
+        };
+
+        if (!name || typeof name !== "string") return error("name is required");
+        name = name.trim();
+        if (name.length < 1 || name.length > 30) return error("name must be 1-30 characters");
+
+        const existingByName = await env.DB.prepare("SELECT * FROM idol_tag_master WHERE name = ?").bind(name).first();
+        if (existingByName) return json({ tag: existingByName, created: false }, 409);
+
+        // タグ作成レート制限は曲タグと共有 (乱立防止という目的が同じなので、
+        // ドメインで分けると片方の quota で回避できてしまう)。
+        const dateYmd = new Date().toISOString().slice(0, 10);
+        await env.DB.prepare(
+          `INSERT OR IGNORE INTO device_tag_create_quota (device_id, date_ymd, count) VALUES (?, ?, 0)`
+        ).bind(deviceId, dateYmd).run();
+        const quotaRow = await env.DB.prepare(
+          "SELECT count FROM device_tag_create_quota WHERE device_id = ? AND date_ymd = ?"
+        ).bind(deviceId, dateYmd).first<{ count: number }>();
+        if ((quotaRow?.count ?? 0) >= 10) return error("Daily tag creation limit reached", 429);
+
+        const candidateId = await resolveSlugFromTable(env.DB, "idol_tag_master", name);
+        const now = Math.floor(Date.now() / 1000);
+
+        await env.DB.batch([
+          env.DB.prepare(
+            `INSERT INTO idol_tag_master (id, name, description, category, color, created_by, created_at, updated_at, is_official, status)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 'active')`
+          ).bind(candidateId, name, description ?? null, category ?? null, color ?? null, deviceId, now, now),
+          env.DB.prepare(
+            `UPDATE device_tag_create_quota SET count = count + 1
+             WHERE device_id = ? AND date_ymd = ?`
+          ).bind(deviceId, dateYmd),
+        ]);
+
+        const tag = await env.DB.prepare("SELECT * FROM idol_tag_master WHERE id = ?").bind(candidateId).first();
+        await commitIpRateLimit(env.DB, ip, ipDry.bucket);
+        return json({ tag, created: true }, 201);
+      }
+
+      // ----------------------------------------------------------------
+      // GET /idol-tags — アイドルタグ一覧検索
+      // ----------------------------------------------------------------
+      if (path === "/idol-tags" && request.method === "GET") {
+        const search = url.searchParams.get("search") || "";
+        const category = url.searchParams.get("category") || "";
+        const sort = url.searchParams.get("sort") || "popular";
+        const limit = parsePositiveInt(url.searchParams.get("limit"), 1000, 2000);
+        const offset = Math.min(10000, Math.max(0, parseInt(url.searchParams.get("offset") || "0") || 0));
+
+        const params: unknown[] = [];
+        const conditions: string[] = ["t.status != 'removed'"];
+
+        if (search) {
+          conditions.push("t.name LIKE ? ESCAPE '\\'");
+          params.push(`%${escapeLike(search)}%`);
+        }
+        if (category) {
+          conditions.push("t.category = ?");
+          params.push(category);
+        }
+
+        const where = conditions.length ? "WHERE " + conditions.join(" AND ") : "";
+
+        let orderBy = "ORDER BY t.name ASC";
+        if (sort === "popular") orderBy = "ORDER BY COALESCE(total_uses, 0) DESC";
+        else if (sort === "recent") orderBy = "ORDER BY t.created_at DESC";
+
+        const sql = `
+          SELECT t.id, t.name, SUBSTR(t.description, 1, 40) as description_preview,
+                 t.category, t.color, t.created_at,
+                 COALESCE((SELECT SUM(vote_count) FROM idol_tags WHERE tag_id = t.id), 0) as total_uses
+          FROM idol_tag_master t
+          ${where}
+          ${orderBy}
+          LIMIT ? OFFSET ?
+        `;
+        params.push(limit, offset);
+
+        const { results } = await env.DB.prepare(sql).bind(...params).all();
+
+        const countSql = `SELECT COUNT(*) as cnt FROM idol_tag_master t ${where}`;
+        const countRow = await env.DB.prepare(countSql).bind(...params.slice(0, params.length - 2)).first<{ cnt: number }>();
+
+        return json({ tags: results, total: countRow?.cnt ?? 0 }, 200, {
+          "Cache-Control": "public, max-age=60, stale-while-revalidate=300",
+        });
+      }
+
+      // ----------------------------------------------------------------
+      // GET /idol-tags/:id — アイドルタグ詳細
+      // ----------------------------------------------------------------
+      const idolTagDetailMatch = path.match(/^\/idol-tags\/([^/]+)$/);
+      if (idolTagDetailMatch && request.method === "GET") {
+        const tagId = decodeURIComponent(idolTagDetailMatch[1]);
+        const tag = await env.DB.prepare("SELECT * FROM idol_tag_master WHERE id = ?").bind(tagId).first();
+        if (!tag) return error("Tag not found", 404);
+
+        const { results: idols } = await env.DB.prepare(
+          `SELECT idol_id, vote_count FROM idol_tags WHERE tag_id = ? ORDER BY vote_count DESC LIMIT 1000`
+        ).bind(tagId).all();
+
+        return json({ tag, idols }, 200, {
+          "Cache-Control": "public, max-age=300, stale-while-revalidate=1800",
+        });
+      }
+
+      // ----------------------------------------------------------------
+      // PUT /idol-tags/:id — アイドルタグ情報更新
+      // ----------------------------------------------------------------
+      if (idolTagDetailMatch && request.method === "PUT") {
+        const tagId = decodeURIComponent(idolTagDetailMatch![1]);
+        const authUser = await getAuthUser(request, env);
+        if (!authUser) return error("Unauthorized", 401);
+        const deviceId = request.headers.get("X-Device-Id") || authUser.uid;
+
+        const tag = await env.DB.prepare("SELECT * FROM idol_tag_master WHERE id = ?").bind(tagId).first<{
+          id: string; description: string | null; status: string;
+        }>();
+        if (!tag) return error("Tag not found", 404);
+        if (tag.status === "removed") return error("Tag has been removed", 403);
+
+        const body = (await request.json()) as any;
+        const { description, category, color } = body as {
+          description?: string;
+          category?: string;
+          color?: string;
+        };
+        const now = Math.floor(Date.now() / 1000);
+
+        if (description !== undefined && description !== tag.description) {
+          await env.DB.prepare(
+            `INSERT INTO idol_tag_description_history (tag_id, description, description_before, edited_by, edited_at)
+             VALUES (?, ?, ?, ?, ?)`
+          ).bind(tagId, description ?? null, tag.description ?? null, deviceId, now).run();
+        }
+
+        const updates: string[] = ["updated_by = ?", "updated_at = ?"];
+        const vals: unknown[] = [deviceId, now];
+
+        if (description !== undefined) { updates.push("description = ?"); vals.push(description); }
+        if (category !== undefined) { updates.push("category = ?"); vals.push(category); }
+        if (color !== undefined) { updates.push("color = ?"); vals.push(color); }
+
+        vals.push(tagId);
+        await env.DB.prepare(`UPDATE idol_tag_master SET ${updates.join(", ")} WHERE id = ?`).bind(...vals).run();
+
+        const updated = await env.DB.prepare("SELECT * FROM idol_tag_master WHERE id = ?").bind(tagId).first();
+        return json({ tag: updated });
+      }
+
+      // ----------------------------------------------------------------
+      // GET /idol-tags/:id/history — 編集履歴
+      // ----------------------------------------------------------------
+      const idolTagHistoryMatch = path.match(/^\/idol-tags\/([^/]+)\/history$/);
+      if (idolTagHistoryMatch && request.method === "GET") {
+        const tagId = decodeURIComponent(idolTagHistoryMatch[1]);
+        const { results } = await env.DB.prepare(
+          `SELECT id, tag_id,
+                  description AS description_after,
+                  description_before,
+                  edited_by, edited_at
+           FROM idol_tag_description_history
+           WHERE tag_id = ? ORDER BY edited_at DESC LIMIT 30`
+        ).bind(tagId).all();
+        return json(results);
+      }
+
+      // ----------------------------------------------------------------
+      // POST /idol-tags/:id/report — アイドルタグ通報
+      // ----------------------------------------------------------------
+      const idolTagReportMatch = path.match(/^\/idol-tags\/([^/]+)\/report$/);
+      if (idolTagReportMatch && request.method === "POST") {
+        const tagId = decodeURIComponent(idolTagReportMatch[1]);
+        const deviceId = request.headers.get("X-Device-Id");
+        if (!deviceId) return error("X-Device-Id header is required");
+
+        const ip = request.headers.get("CF-Connecting-IP") ?? "unknown";
+        const ipDry = await dryCheckIpRateLimit(env.DB, ip);
+        if (!ipDry.allowed) {
+          return rateLimitSimple();
+        }
+
+        const tag = await env.DB.prepare("SELECT id FROM idol_tag_master WHERE id = ?").bind(tagId).first();
+        if (!tag) return error("Tag not found", 404);
+
+        const today = new Date().toISOString().slice(0, 10);
+        const alreadyReported = await env.DB.prepare(
+          `SELECT 1 FROM idol_tag_reports WHERE tag_id = ? AND reported_by = ? AND DATE(reported_at, 'unixepoch') = ?`
+        ).bind(tagId, deviceId, today).first();
+        if (alreadyReported) return error("Already reported today", 429);
+
+        const body = (await request.json()) as any;
+        const now = Math.floor(Date.now() / 1000);
+        await env.DB.prepare(
+          `INSERT INTO idol_tag_reports (tag_id, reported_by, reason, reported_at) VALUES (?, ?, ?, ?)`
+        ).bind(tagId, deviceId, body.reason ?? null, now).run();
+
+        const reportCount = await env.DB.prepare(
+          "SELECT COUNT(*) as cnt FROM idol_tag_reports WHERE tag_id = ?"
+        ).bind(tagId).first<{ cnt: number }>();
+        const total = reportCount?.cnt ?? 1;
+
+        if (total >= REPORT_THRESHOLD) {
+          await env.DB.prepare(
+            "UPDATE idol_tag_master SET status = 'under_review' WHERE id = ? AND status = 'active'"
           ).bind(tagId).run();
         }
 
@@ -3046,7 +3279,7 @@ export default {
         const appliedTagIds: string[] = [];
 
         for (const tagId of tagIds) {
-          const tag = await env.DB.prepare("SELECT id FROM tags WHERE id = ? AND status != 'removed'").bind(tagId).first();
+          const tag = await env.DB.prepare("SELECT id FROM idol_tag_master WHERE id = ? AND status != 'removed'").bind(tagId).first();
           if (!tag) continue;
 
           const [deviceResult] = await env.DB.batch([
@@ -3111,7 +3344,7 @@ export default {
         const { results: tags } = await env.DB.prepare(
           `SELECT t.id, t.name, t.color, t.category, it.vote_count
            FROM idol_tags it
-           JOIN tags t ON t.id = it.tag_id
+           JOIN idol_tag_master t ON t.id = it.tag_id
            WHERE it.idol_id = ? AND t.status != 'removed'
            ORDER BY it.vote_count DESC`
         ).bind(idolId).all();
@@ -3258,13 +3491,17 @@ function slugify(input: string): string {
   return ascii;
 }
 
-async function resolveSlug(db: D1Database, name: string): Promise<string> {
+/**
+ * name から一意な id (slug) を解決する。table は "tags" | "idol_tag_master" のみを渡す
+ * 想定 (呼び出し元固定・ユーザー入力を直接渡さない → SQL 組み立てに使っても injection 経路にならない)。
+ */
+async function resolveSlugFromTable(db: D1Database, table: "tags" | "idol_tag_master", name: string): Promise<string> {
   const base = slugify(name);
   // 衝突時は -2, -3, ... を最大10回試みる (name の UNIQUE 制約で同名は弾けるが PK 衝突を防ぐ)
   for (let i = 0; i <= 10; i++) {
     const candidate = i === 0 ? base : `${base}-${i + 1}`;
     const existing = await db
-      .prepare("SELECT id FROM tags WHERE id = ?")
+      .prepare(`SELECT id FROM ${table} WHERE id = ?`)
       .bind(candidate)
       .first();
     if (!existing) return candidate;
