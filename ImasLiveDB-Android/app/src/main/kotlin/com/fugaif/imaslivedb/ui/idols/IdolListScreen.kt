@@ -178,8 +178,6 @@ fun IdolListScreen(
                             pickIds = state.pickIds,
                             favoriteIds = state.favoriteIds,
                             onToggleBrand = viewModel::toggleBrandCollapse,
-                            onToggleMyPick = viewModel::toggleMyPick,
-                            onToggleFavorite = viewModel::toggleFavorite,
                             onSelect = { onNavigateToIdolDetail(it.id) }
                         )
                     }
@@ -319,8 +317,6 @@ private fun IdolGrid(
     pickIds: Set<String>,
     favoriteIds: Set<String>,
     onToggleBrand: (String) -> Unit,
-    onToggleMyPick: (String) -> Unit,
-    onToggleFavorite: (String) -> Unit,
     onSelect: (Idol) -> Unit
 ) {
     val columns = if (LocalConfiguration.current.screenWidthDp >= 600) 6 else 4
@@ -344,9 +340,7 @@ private fun IdolGrid(
                         idol = idol,
                         isPick = pickIds.contains(idol.id),
                         isFavorite = favoriteIds.contains(idol.id),
-                        onClick = { onSelect(idol) },
-                        onToggleMyPick = { onToggleMyPick(idol.id) },
-                        onToggleFavorite = { onToggleFavorite(idol.id) }
+                        onClick = { onSelect(idol) }
                     )
                 }
             }
@@ -359,23 +353,13 @@ private fun IdolGridCell(
     idol: Idol,
     isPick: Boolean,
     isFavorite: Boolean,
-    onClick: () -> Unit,
-    onToggleMyPick: () -> Unit,
-    onToggleFavorite: () -> Unit
+    onClick: () -> Unit
 ) {
     Column(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(4.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Box {
-            ImasAvatar(label = idol.name, seed = idol.color, brand = idol.brandId, size = 60.dp, isPick = isPick)
-            Row(modifier = Modifier.align(Alignment.TopEnd).offset(x = 6.dp, y = (-4).dp)) {
-                MarkIconButton(active = isPick, activeIcon = Icons.Filled.Favorite, inactiveIcon = Icons.Filled.FavoriteBorder,
-                    tint = DS.pick, contentDescription = if (isPick) "担当解除" else "担当に追加", onClick = onToggleMyPick)
-                MarkIconButton(active = isFavorite, activeIcon = Icons.Filled.Star, inactiveIcon = Icons.Filled.StarBorder,
-                    tint = DS.favorite, contentDescription = if (isFavorite) "お気に入り解除" else "お気に入りに追加", onClick = onToggleFavorite)
-            }
-        }
+        ImasAvatar(label = idol.name, seed = idol.color, brand = idol.brandId, size = 60.dp, isPick = isPick)
         Text(idol.name, fontSize = 12.sp, color = DS.ink, maxLines = 1, overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(top = 2.dp))
     }
