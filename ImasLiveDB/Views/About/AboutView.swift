@@ -40,6 +40,14 @@ struct AboutView: View {
             }
 
             Section {
+                Link(destination: URL(string: "https://ko-fi.com/fugaapp")!) {
+                    Label("開発をサポートする", systemImage: "heart.fill")
+                }
+            } footer: {
+                Text("サーバー運用費等の足しにさせていただきます。任意のご支援です。")
+            }
+
+            Section {
                 ossCredit(
                     name: "アイマスDB",
                     license: "楽曲・ライブ等のデータ参照元",

@@ -150,6 +150,9 @@ fun SettingsScreen(
                 SettingsNavRow("プライバシーポリシー") { infoScreen = SettingsInfoScreen.PRIVACY }
                 SettingsNavRow("利用規約") { infoScreen = SettingsInfoScreen.TERMS }
                 SettingsNavRow("サポート") { infoScreen = SettingsInfoScreen.SUPPORT }
+                SettingsNavRow("開発をサポートする") {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://ko-fi.com/fugaapp")))
+                }
                 SettingsNavRow("アプリを評価する") {
                     val marketIntent = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=${context.packageName}")).apply {
                         setPackage("com.android.vending")
