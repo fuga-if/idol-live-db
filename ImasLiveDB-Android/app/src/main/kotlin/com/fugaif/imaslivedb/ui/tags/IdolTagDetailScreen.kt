@@ -104,8 +104,8 @@ fun IdolTagDetailScreen(
                                     Box(Modifier.weight(1f))
                                     if (!tag.category.isNullOrEmpty()) {
                                         Text(
-                                            tagCategoryLabel(tag.category), fontSize = 12.sp,
-                                            color = tagCategoryColor(tag.category)
+                                            idolTagCategoryLabel(tag.category), fontSize = 12.sp,
+                                            color = idolTagCategoryColor(tag.category)
                                         )
                                     }
                                 }

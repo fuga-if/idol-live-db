@@ -1,18 +1,22 @@
 package com.fugaif.imaslivedb.ui.tags
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -25,7 +29,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fugaif.imaslivedb.data.community.CommunityApi
@@ -33,16 +40,12 @@ import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.theme.DS
 import kotlinx.coroutines.launch
 
-/** タグの作成先プール。曲タグ (tags) とアイドルタグ (idol_tag_master) は別マスタなので、
- * UI は共通のままこのフラグで作成 API だけ切り替える。iOS TagDomain の移植。 */
-enum class TagDomain { SONG, IDOL }
-
 /**
  * 新規タグ作成シート。iOS TagCreateSheet の移植。
  * タグ名(1〜30文字, 必須) + 説明(任意) + カテゴリ(任意) + 色(任意)。
  * 同名タグが既にあればサーバが既存タグを返す(冪等)ので、それをそのまま採用する。
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun TagCreateSheet(
     domain: TagDomain = TagDomain.SONG,
@@ -58,7 +61,6 @@ fun TagCreateSheet(
     var description by remember { mutableStateOf("") }
     var category by remember { mutableStateOf("") }
     var color by remember { mutableStateOf("") }
-    var categoryMenuExpanded by remember { mutableStateOf(false) }
     var isSaving by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
@@ -98,17 +100,10 @@ fun TagCreateSheet(
 
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("カテゴリ(任意)", fontSize = 13.sp, color = DS.ink2)
-                Row {
-                    TextButton(onClick = { categoryMenuExpanded = true }) {
-                        Text(tagCategoryLabel(category).ifEmpty { "なし" })
-                    }
-                    DropdownMenu(expanded = categoryMenuExpanded, onDismissRequest = { categoryMenuExpanded = false }) {
-                        TAG_CATEGORIES.forEach { (value, label) ->
-                            DropdownMenuItem(text = { Text(label) }, onClick = {
-                                category = value
-                                categoryMenuExpanded = false
-                            })
-                        }
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    CategoryChip(label = "なし", selected = category.isEmpty()) { category = "" }
+                    tagCategoryOptions(domain).filter { it.first.isNotEmpty() }.forEach { (value, label) ->
+                        CategoryChip(label = label, selected = category == value) { category = value }
                     }
                 }
             }
