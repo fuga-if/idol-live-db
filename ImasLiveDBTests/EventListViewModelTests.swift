@@ -95,7 +95,7 @@ final class EventListViewModelTests: XCTestCase {
 
         var filter = EventFilterContext()
         filter.selectedBrandIds = ["ml"]
-        vm.rebuild(query: query(filter, upcoming: false, today: "2026-06-18"))
+        await vm.rebuild(query: query(filter, upcoming: false, today: "2026-06-18"))
 
         XCTAssertEqual(vm.filteredCount, 1)
         XCTAssertEqual(vm.groupedByYear.flatMap { $0.events.map(\.id) }, ["b"])

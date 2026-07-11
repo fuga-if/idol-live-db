@@ -9,7 +9,7 @@ final class PollListViewModelTests: XCTestCase {
              createdBy: "u1", createdAt: Date(),
              endsAt: Date().addingTimeInterval(active ? 86400 : -86400),
              status: "active", totalVotes: 0, entryCount: 0,
-             candidateScope: .all, scopeBrandIds: nil, scopeEntityIds: nil)
+             candidateScope: .all, scopeBrandIds: nil, scopeEntityIds: nil, topEntityId: nil)
     }
 
     func testLoadActivePopulatesActiveList() async {

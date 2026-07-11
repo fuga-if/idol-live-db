@@ -80,7 +80,7 @@ final class PollDetailViewModelTests: XCTestCase {
         Poll(id: "p1", title: "好きな曲", description: nil, targetType: targetType,
              createdBy: "u1", createdAt: Date(), endsAt: Date().addingTimeInterval(86400),
              status: "active", totalVotes: 1, entryCount: 1,
-             candidateScope: scope, scopeBrandIds: brandIds, scopeEntityIds: entityIds)
+             candidateScope: scope, scopeBrandIds: brandIds, scopeEntityIds: entityIds, topEntityId: nil)
     }
 
     func testLoadPopulatesDetail() async {
@@ -178,7 +178,7 @@ final class PollDetailViewModelTests: XCTestCase {
         let p = Poll(id: "p1", title: "t", description: nil, targetType: .song,
                      createdBy: "u", createdAt: Date(), endsAt: Date().addingTimeInterval(60),
                      status: "active", totalVotes: 0, entryCount: 0,
-                     candidateScope: nil, scopeBrandIds: nil, scopeEntityIds: nil)
+                     candidateScope: nil, scopeBrandIds: nil, scopeEntityIds: nil, topEntityId: nil)
         XCTAssertEqual(p.scope, .all)
     }
 
