@@ -80,6 +80,39 @@ struct SongTitleRow: View {
     }
 }
 
+/// ユニット名表示の統一行レイアウト。
+/// アバター (person.3.fill モノグラム) + 名前 + (サブタイトル) + chevron。
+struct UnitNameRow: View {
+    let unit: Unit
+    var subtitle: String? = nil
+    var showsChevron: Bool = true
+
+    var body: some View {
+        HStack(spacing: 10) {
+            UnitAvatarView(unit: unit, size: 36)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(unit.displayName)
+                    .font(.imasSubhead)
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                if let subtitle, !subtitle.isEmpty {
+                    Text(subtitle)
+                        .font(.imasScaled(11))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+            }
+            Spacer(minLength: 8)
+            if showsChevron {
+                Image(systemName: "chevron.right")
+                    .font(.imasCaption)
+                    .foregroundStyle(.tertiary)
+            }
+        }
+        .contentShape(Rectangle())
+    }
+}
+
 /// イベント名表示の統一行レイアウト。
 struct EventNameRow: View {
     let event: Event

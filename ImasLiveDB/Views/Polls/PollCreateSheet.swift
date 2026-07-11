@@ -15,10 +15,13 @@ struct PollCreateSheet: View {
     @State private var selectedBrandIds: Set<String> = []
     @State private var selectedSongs: [Song] = []
     @State private var selectedIdols: [Idol] = []
+    @State private var selectedUnits: [Unit] = []
     @State private var brands: [Brand] = []
     @State private var allIdolsForPicker: [Idol] = []
+    @State private var allUnitsForPicker: [Unit] = []
     @State private var showSongPicker = false
     @State private var showIdolPicker = false
+    @State private var showUnitPicker = false
     @State private var isSubmitting = false
     @State private var errorMessage: String?
 
@@ -34,7 +37,15 @@ struct PollCreateSheet: View {
     }
 
     private var trimmedTitle: String { title.trimmingCharacters(in: .whitespaces) }
-    private var manualCount: Int { targetType == .song ? selectedSongs.count : selectedIdols.count }
+    private var manualCount: Int {
+        switch targetType {
+        case .song: return selectedSongs.count
+        case .idol: return selectedIdols.count
+        case .unit: return selectedUnits.count
+        }
+    }
+
+    private var targetLabel: String { targetType.label }
 
     private var canSubmit: Bool {
         guard !trimmedTitle.isEmpty, !isSubmitting else { return false }
@@ -79,6 +90,7 @@ struct PollCreateSheet: View {
                         HStack(spacing: DS.sp3) {
                             targetCard(.song, icon: "music.note", label: "曲")
                             targetCard(.idol, icon: "person.fill", label: "アイドル")
+                            targetCard(.unit, icon: "person.3.fill", label: "ユニット")
                         }
                     }
 
@@ -121,13 +133,16 @@ struct PollCreateSheet: View {
             .task {
                 async let brandsTask = AppContainer.shared.brandReading.brands()
                 async let idolsTask = AppContainer.shared.idolReading.idols(brandId: nil)
+                async let unitsTask = AppContainer.shared.unitReading.allUnits()
                 brands = (try? await brandsTask) ?? []
                 allIdolsForPicker = (try? await idolsTask) ?? []
+                allUnitsForPicker = (try? await unitsTask) ?? []
             }
             .onChange(of: targetType) { _, _ in
                 // 種類を切り替えたら manual 選択をリセット (混在不可)
                 selectedSongs.removeAll()
                 selectedIdols.removeAll()
+                selectedUnits.removeAll()
             }
             .sheet(isPresented: $showSongPicker) {
                 SongSearchPickerView { songs in
@@ -139,6 +154,9 @@ struct PollCreateSheet: View {
             }
             .sheet(isPresented: $showIdolPicker) {
                 idolPickerSheet
+            }
+            .sheet(isPresented: $showUnitPicker) {
+                unitPickerSheet
             }
         }
     }
@@ -194,7 +212,7 @@ struct PollCreateSheet: View {
 
             switch scope {
             case .all:
-                Text(targetType == .song ? "全曲から自由に投票できます。" : "全アイドルから自由に投票できます。")
+                Text("全\(targetLabel)から自由に投票できます。")
                     .font(.imasFootnote)
                     .foregroundStyle(DS.ink3)
             case .brand:
@@ -207,7 +225,7 @@ struct PollCreateSheet: View {
 
     private var brandScopePicker: some View {
         VStack(alignment: .leading, spacing: DS.sp3) {
-            Text("チェックしたブランドの\(targetType == .song ? "曲" : "アイドル")だけが候補になります。複数選択可。")
+            Text("チェックしたブランドの\(targetLabel)だけが候補になります。複数選択可。")
                 .font(.imasFootnote)
                 .foregroundStyle(DS.ink3)
 
@@ -242,19 +260,27 @@ struct PollCreateSheet: View {
 
             ImasListContainer {
                 VStack(spacing: 0) {
-                    if targetType == .song {
+                    switch targetType {
+                    case .song:
                         ForEach(Array(selectedSongs.enumerated()), id: \.element.id) { idx, song in
                             manualRow(label: song.title, subtitle: song.titleKana) {
                                 selectedSongs.remove(at: idx)
                             }
                             if idx < selectedSongs.count - 1 { Divider().background(DS.sep) }
                         }
-                    } else {
+                    case .idol:
                         ForEach(Array(selectedIdols.enumerated()), id: \.element.id) { idx, idol in
                             manualRow(label: idol.name, subtitle: idol.nameKana) {
                                 selectedIdols.remove(at: idx)
                             }
                             if idx < selectedIdols.count - 1 { Divider().background(DS.sep) }
+                        }
+                    case .unit:
+                        ForEach(Array(selectedUnits.enumerated()), id: \.element.id) { idx, unit in
+                            manualRow(label: unit.displayName, subtitle: nil) {
+                                selectedUnits.remove(at: idx)
+                            }
+                            if idx < selectedUnits.count - 1 { Divider().background(DS.sep) }
                         }
                     }
 
@@ -270,10 +296,10 @@ struct PollCreateSheet: View {
 
             Button {
                 AppAnalytics.tap("poll_create.add_manual_candidate")
-                if targetType == .song {
-                    showSongPicker = true
-                } else {
-                    showIdolPicker = true
+                switch targetType {
+                case .song: showSongPicker = true
+                case .idol: showIdolPicker = true
+                case .unit: showUnitPicker = true
                 }
             } label: {
                 Label("候補を追加", systemImage: "plus.circle.fill")
@@ -328,6 +354,24 @@ struct PollCreateSheet: View {
         }
     }
 
+    private var unitPickerSheet: some View {
+        UnitMultiPickerView(
+            selected: Set(selectedUnits.map(\.id)),
+            units: allUnitsForPicker
+        ) { newIds in
+            // 順序保持: 既存はそのまま、新規分だけ末尾に追加
+            let existing = Set(selectedUnits.map(\.id))
+            let added = newIds.subtracting(existing)
+            let removed = existing.subtracting(newIds)
+            selectedUnits.removeAll { removed.contains($0.id) }
+            for id in added {
+                if let unit = allUnitsForPicker.first(where: { $0.id == id }) {
+                    selectedUnits.append(unit)
+                }
+            }
+        }
+    }
+
     // MARK: - Submit
 
     private func submit() async {
@@ -337,9 +381,14 @@ struct PollCreateSheet: View {
 
         let trimmedDesc = description.trimmingCharacters(in: .whitespaces)
         let scopeBrandIds: [String]? = scope == .brand ? Array(selectedBrandIds).sorted() : nil
-        let scopeEntityIds: [String]? = scope == .manual
-            ? (targetType == .song ? selectedSongs.map(\.id) : selectedIdols.map(\.id))
-            : nil
+        let manualEntityIds: [String] = {
+            switch targetType {
+            case .song: return selectedSongs.map(\.id)
+            case .idol: return selectedIdols.map(\.id)
+            case .unit: return selectedUnits.map(\.id)
+            }
+        }()
+        let scopeEntityIds: [String]? = scope == .manual ? manualEntityIds : nil
 
         do {
             let poll = try await AppContainer.shared.communityVoting.createPoll(

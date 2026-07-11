@@ -359,6 +359,23 @@ struct SongTagApplyResponse: Decodable, Sendable {
 enum PollTargetType: String, Codable, Sendable {
     case song
     case idol
+    case unit
+
+    /// 未知の値が来ても安全に `.song` フォールバック (前方互換)。
+    /// サーバが新ケースを返し始めた瞬間に既存クライアントのデコードが全滅しないようにするため。
+    init(from decoder: Decoder) throws {
+        let raw = try decoder.singleValueContainer().decode(String.self)
+        self = PollTargetType(rawValue: raw) ?? .song
+    }
+
+    /// UI 表示用の日本語ラベル。
+    var label: String {
+        switch self {
+        case .song: return "曲"
+        case .idol: return "アイドル"
+        case .unit: return "ユニット"
+        }
+    }
 }
 
 /// 投票候補の絞り込みスコープ。

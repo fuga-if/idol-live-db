@@ -124,6 +124,7 @@ private struct PollRowView: View {
 
     @State private var topSong: Song?
     @State private var topIdol: Idol?
+    @State private var topUnit: Unit?
 
     /// 曲/アイドルで安定して塗り分けるアクセント (両者に固有色は無いので categoryKey 由来)。
     /// 1位の実写が引ければそちらを優先するので、これは無投票時のフォールバックのみで使う。
@@ -146,12 +147,22 @@ private struct PollRowView: View {
             ImasArtwork(title: topSong.title, size: 42, imageURL: topSong.artworkUrl.flatMap(URL.init))
         } else if poll.targetType == .idol, let topIdol {
             IdolAvatarView(idol: topIdol, size: 42)
+        } else if poll.targetType == .unit, let topUnit {
+            UnitAvatarView(unit: topUnit, size: 42)
         } else {
-            Image(systemName: poll.targetType == .song ? "music.note" : "person.fill")
+            Image(systemName: thumbnailFallbackIcon)
                 .font(.imasTitle3)
                 .foregroundStyle(ColorMath.onColor(accent))
                 .frame(width: 42, height: 42)
                 .background(accent.gradient, in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+        }
+    }
+
+    private var thumbnailFallbackIcon: String {
+        switch poll.targetType {
+        case .song: return "music.note"
+        case .idol: return "person.fill"
+        case .unit: return "person.3.fill"
         }
     }
 
@@ -190,10 +201,13 @@ private struct PollRowView: View {
 
     private func resolveTopEntity() async {
         guard let topEntityId = poll.topEntityId else { return }
-        if poll.targetType == .song {
+        switch poll.targetType {
+        case .song:
             topSong = try? await AppContainer.shared.songReading.song(id: topEntityId)
-        } else {
+        case .idol:
             topIdol = try? await AppContainer.shared.idolReading.idol(id: topEntityId)
+        case .unit:
+            topUnit = try? await AppContainer.shared.unitReading.unit(id: topEntityId)
         }
     }
 }

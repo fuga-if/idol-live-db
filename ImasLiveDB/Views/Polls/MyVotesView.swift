@@ -91,6 +91,7 @@ struct MyVotesView: View {
         // 必要な曲/アイドル ID を全部一括解決してから組み立てる (お題ごとに個別 API するより速い)。
         var allSongIds: Set<String> = []
         var allIdolIds: Set<String> = []
+        var allUnitIds: Set<String> = []
 
         var pollDetails: [(Poll, Set<String>)] = []
         for (pollId, entityIds) in log {
@@ -98,14 +99,17 @@ struct MyVotesView: View {
             switch detail.poll.targetType {
             case .song:  allSongIds.formUnion(entityIds)
             case .idol:  allIdolIds.formUnion(entityIds)
+            case .unit:  allUnitIds.formUnion(entityIds)
             }
             pollDetails.append((detail.poll, entityIds))
         }
 
         let songs = (try? await AppContainer.shared.songReading.songs(ids: Array(allSongIds))) ?? []
         let idols = (try? await AppContainer.shared.idolReading.idols(ids: Array(allIdolIds))) ?? []
+        let allUnitsList = (try? await AppContainer.shared.unitReading.allUnits()) ?? []
         let songById = Dictionary(uniqueKeysWithValues: songs.map { ($0.id, $0) })
         let idolById = Dictionary(uniqueKeysWithValues: idols.map { ($0.id, $0) })
+        let unitById = Dictionary(uniqueKeysWithValues: allUnitsList.filter { allUnitIds.contains($0.id) }.map { ($0.id, $0) })
 
         let resolved: [Entry] = pollDetails.map { (poll, ids) in
             let choices: [Choice] = ids.sorted().map { entityId in
@@ -118,6 +122,11 @@ struct MyVotesView: View {
                 case .idol:
                     if let i = idolById[entityId] {
                         return Choice(entityId: entityId, label: i.name, destination: .idol(i))
+                    }
+                    return Choice(entityId: entityId, label: "(削除済み)", destination: nil)
+                case .unit:
+                    if let u = unitById[entityId] {
+                        return Choice(entityId: entityId, label: u.displayName, destination: .unit(u))
                     }
                     return Choice(entityId: entityId, label: "(削除済み)", destination: nil)
                 }

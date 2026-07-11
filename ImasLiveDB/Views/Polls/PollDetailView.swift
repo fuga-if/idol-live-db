@@ -15,6 +15,8 @@ struct PollDetailView: View {
 
     // 投票用アイドル一覧（アイドルお題時に事前ロード）。master 参照なので View 側に残す。
     @State private var allIdols: [Idol] = []
+    // 投票用ユニット一覧（ユニットお題時に事前ロード）。
+    @State private var allUnits: [Unit] = []
     /// スコープ表示用のブランド辞書 (brand スコープ時のみ使う)。
     @State private var brandsById: [String: Brand] = [:]
 
@@ -97,7 +99,7 @@ struct PollDetailView: View {
             }
 
             HStack(spacing: DS.sp2) {
-                ImasChip(text: poll.targetType == .song ? "曲" : "アイドル")
+                ImasChip(text: poll.targetType.label)
                 ImasChip(text: poll.statusLabel)
             }
 
@@ -228,7 +230,8 @@ struct PollDetailView: View {
     private func votePicker(detail: PollDetail, remaining: Int) -> some View {
         let scope = detail.poll.scope
         let brandIds = scope == .brand ? Set(detail.poll.scopeBrandIds ?? []) : nil
-        if detail.poll.targetType == .song {
+        switch detail.poll.targetType {
+        case .song:
             // 投票済みの曲を除外してから残票分だけ切り出す (除外しないと votePoll が
             // 無言 no-op になり残票を無駄撃ちしてしまう)。
             SongSearchPickerView(restrictedBrandIds: brandIds) { songs in
@@ -238,7 +241,7 @@ struct PollDetailView: View {
                 Task { await vm.voteForEntities(ids) }
             }
             .environment(database)
-        } else {
+        case .idol:
             let pickIdols: [Idol] = {
                 if let allowed = brandIds {
                     return allIdols.filter { allowed.contains($0.brandId) }
@@ -250,20 +253,39 @@ struct PollDetailView: View {
                 idols: pickIdols
             ) { selectedIds in
                 showVotePicker = false
-                let alreadyVoted = Set(detail.entries.filter(\.hasUserVoted).map(\.entityId))
-                // 外された (投票済みなのに選択解除された) 候補は取消を発火する。
-                let removed = Array(alreadyVoted.subtracting(selectedIds))
-                // 新規追加分。Set のままだと prefix の結果が実行毎に変わりうるので、
-                // pickIdols の表示順で並べ替えてから切り出す (可能な範囲での決定的化)。
-                let addedSet = selectedIds.subtracting(alreadyVoted)
-                let orderedAdded = pickIdols.map(\.id).filter { addedSet.contains($0) }
-                let newIds = Array(orderedAdded.prefix(remaining))
-                Task {
-                    if !removed.isEmpty { await vm.unvoteForEntities(removed) }
-                    if !newIds.isEmpty { await vm.voteForEntities(newIds) }
-                }
+                applyPickerSelection(selectedIds, ordered: pickIdols.map(\.id), detail: detail, remaining: remaining)
             }
             .environment(database)
+        case .unit:
+            let pickUnits: [Unit] = {
+                if let allowed = brandIds {
+                    return allUnits.filter { allowed.contains($0.brandId) }
+                }
+                return allUnits
+            }()
+            UnitMultiPickerView(
+                selected: Set(detail.entries.filter(\.hasUserVoted).map(\.entityId)),
+                units: pickUnits
+            ) { selectedIds in
+                showVotePicker = false
+                applyPickerSelection(selectedIds, ordered: pickUnits.map(\.id), detail: detail, remaining: remaining)
+            }
+        }
+    }
+
+    /// アイドル/ユニット共通のまとめ投票ロジック。選択差分から投票/取消をまとめて発火する。
+    private func applyPickerSelection(_ selectedIds: Set<String>, ordered: [String], detail: PollDetail, remaining: Int) {
+        let alreadyVoted = Set(detail.entries.filter(\.hasUserVoted).map(\.entityId))
+        // 外された (投票済みなのに選択解除された) 候補は取消を発火する。
+        let removed = Array(alreadyVoted.subtracting(selectedIds))
+        // 新規追加分。Set のままだと prefix の結果が実行毎に変わりうるので、
+        // ピッカーの表示順で並べ替えてから切り出す (可能な範囲での決定的化)。
+        let addedSet = selectedIds.subtracting(alreadyVoted)
+        let orderedAdded = ordered.filter { addedSet.contains($0) }
+        let newIds = Array(orderedAdded.prefix(remaining))
+        Task {
+            if !removed.isEmpty { await vm.unvoteForEntities(removed) }
+            if !newIds.isEmpty { await vm.voteForEntities(newIds) }
         }
     }
 
@@ -303,6 +325,9 @@ struct PollDetailView: View {
         if vm.poll?.targetType == .idol {
             allIdols = (try? await AppContainer.shared.idolReading.idols(brandId: nil)) ?? []
         }
+        if vm.poll?.targetType == .unit {
+            allUnits = (try? await AppContainer.shared.unitReading.allUnits()) ?? []
+        }
         if vm.poll?.scope == .brand, brandsById.isEmpty {
             let list = (try? await AppContainer.shared.brandReading.brands()) ?? []
             brandsById = Dictionary(uniqueKeysWithValues: list.map { ($0.id, $0) })
@@ -338,6 +363,7 @@ private struct PollEntryRow: View {
 
     @State private var resolvedSong: Song?
     @State private var resolvedIdol: Idol?
+    @State private var resolvedUnit: Unit?
     @State private var isBusy = false
 
     /// 未投票だが残票が無い (この候補にはこれ以上投票できない)。
@@ -403,6 +429,8 @@ private struct PollEntryRow: View {
             SongTitleRow(song: song, showsChevron: true)
         } else if targetType == .idol, let idol = resolvedIdol {
             IdolNameRow(idol: idol, showsChevron: true)
+        } else if targetType == .unit, let unit = resolvedUnit {
+            UnitNameRow(unit: unit, showsChevron: true)
         } else {
             Text(entry.entityId)
                 .font(.imasSubhead.weight(.semibold))
@@ -411,10 +439,11 @@ private struct PollEntryRow: View {
         }
     }
 
-    /// 解決済みの曲/アイドルから詳細遷移先を作る (未解決なら nil)。
+    /// 解決済みの曲/アイドル/ユニットから詳細遷移先を作る (未解決なら nil)。
     private var detailDestination: DetailDestination? {
         if targetType == .song, let song = resolvedSong { return .song(song) }
         if targetType == .idol, let idol = resolvedIdol { return .idol(idol) }
+        if targetType == .unit, let unit = resolvedUnit { return .unit(unit) }
         return nil
     }
 
@@ -425,10 +454,13 @@ private struct PollEntryRow: View {
     }
 
     private func resolveEntity() async {
-        if targetType == .song {
+        switch targetType {
+        case .song:
             resolvedSong = try? await AppContainer.shared.songReading.song(id: entry.entityId)
-        } else {
+        case .idol:
             resolvedIdol = try? await AppContainer.shared.idolReading.idol(id: entry.entityId)
+        case .unit:
+            resolvedUnit = try? await AppContainer.shared.unitReading.unit(id: entry.entityId)
         }
     }
 }
