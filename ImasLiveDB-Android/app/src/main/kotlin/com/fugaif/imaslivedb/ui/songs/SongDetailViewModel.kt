@@ -61,7 +61,7 @@ class SongDetailViewModel : ViewModel() {
             val performerArtists = module.songRepository.fetchSongArtists(songId, "performer")
             val history = module.songRepository.fetchSongPerformanceHistory(songId)
             val unit = if (song?.unitId != null) {
-                module.idolRepository.fetchUnit(song.unitId)
+                module.unitRepository.fetchUnit(song.unitId)
             } else {
                 null
             }

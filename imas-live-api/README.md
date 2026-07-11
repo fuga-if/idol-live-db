@@ -151,6 +151,16 @@ Cron (scheduled) は `rate_limits` テーブルの日次掃除 (7 日より古�
 | DELETE | /songs/:id/tags/:tid | Bearer | 曲のタグ削除 |
 | GET | /songs/:id/similar | - | 類似曲 (タグ共起ベース) |
 | GET | /idols/:id/similar | - | 似てるアイドル (タグ共起ベース) |
+| POST | /unit-tags | X-Device-Id | ユニットタグ作成 |
+| GET | /unit-tags | - | ユニットタグ一覧 (検索/カテゴリ/ソート) |
+| GET | /unit-tags/:id | - | ユニットタグ詳細 |
+| PUT | /unit-tags/:id | Bearer | ユニットタグ編集 |
+| GET | /unit-tags/:id/history | - | ユニットタグ編集履歴 |
+| POST | /unit-tags/:id/report | X-Device-Id | ユニットタグ通報 |
+| GET | /units/:id/tags | - | ユニットのタグ一覧 |
+| POST | /units/:id/tags | X-Device-Id | ユニットにタグ付与 |
+| DELETE | /units/:id/tags/:tid | X-Device-Id | ユニットのタグ削除 |
+| GET | /units/:id/similar | - | 似てるユニット (タグ共起ベース) |
 
 ### 管理 (admin)
 

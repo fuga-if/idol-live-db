@@ -46,6 +46,7 @@ data class IdolDetailUiState(
 class IdolDetailViewModel(app: Application, private val idolId: String) : AndroidViewModel(app) {
 
     private val repo = AppModule.from(app).idolRepository
+    private val unitRepo = AppModule.from(app).unitRepository
     private val songRepo = AppModule.from(app).songRepository
     private val api = AppModule.from(app).communityApi
     private val personalTagRepo = AppModule.from(app).personalTagRepository
@@ -63,8 +64,8 @@ class IdolDetailViewModel(app: Application, private val idolId: String) : Androi
             val brand = repo.fetchBrand(idol.brandId)
             val originalSongs = songRepo.fetchIdolSongs(idolId, "original")
             val performedSongs = repo.fetchIdolPerformedSongs(idolId)
-            val units = repo.fetchIdolUnits(idolId)
-            val unitIdsWithSongs = repo.fetchIdolUnitIdsWithSongs(idolId)
+            val units = unitRepo.fetchUnitsForIdol(idolId)
+            val unitIdsWithSongs = unitRepo.fetchUnitIdsForIdolWithSongs(idolId)
             val castShows = repo.fetchIdolShows(idolId)
 
             _uiState.value = IdolDetailUiState(

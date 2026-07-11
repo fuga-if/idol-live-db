@@ -107,6 +107,15 @@ fun PollsScreen(
                     pickerForPollId = null
                 }
             )
+            "unit" -> UnitPollCandidatePicker(
+                alreadySelected = alreadySelected,
+                remaining = remaining,
+                onDismiss = { pickerForPollId = null },
+                onConfirm = { newIds ->
+                    viewModel.voteForNewEntities(pickerCard.poll.id, newIds)
+                    pickerForPollId = null
+                }
+            )
             else -> {
                 val scope2 = pickerCard.detail?.candidateScope
                 val restrictedBrandIds = if (scope2 == CommunityApi.PollCandidateScope.BRAND) {

@@ -22,3 +22,12 @@ protocol UnitReading: Sendable {
     /// 全ユニット (ピッカー用)。
     func allUnits() async throws -> [Unit]
 }
+
+extension UnitReading {
+    /// 曲ありユニットのみ (`UnitIndex.unitsWithSongs`)。ユニット一覧・Poll候補ピッカー等、
+    /// 曲を持たないユニットを対象外にしたい場面で共通して使う唯一の正。
+    func unitsWithSongs() async throws -> [Unit] {
+        let index = try await unitIndex()
+        return index.units.filter { index.unitsWithSongs.contains($0.id) }
+    }
+}

@@ -18,6 +18,7 @@ class CommunityApi(private val appContext: Context, private val authService: Aut
 
     data class SongTag(val id: String, val name: String, val color: String?, val voteCount: Int, val mine: Boolean)
     data class IdolTag(val id: String, val name: String, val color: String?, val voteCount: Int, val mine: Boolean)
+    data class UnitTag(val id: String, val name: String, val color: String?, val voteCount: Int, val mine: Boolean)
     data class PollSummary(val id: String, val title: String, val targetType: String)
     data class PollEntry(val entityId: String, val voteCount: Int, val mine: Boolean)
     /**
@@ -85,6 +86,8 @@ class CommunityApi(private val appContext: Context, private val authService: Aut
     data class SimilarSongEntry(val songId: String, val sharedTags: Int)
     /** タグが似ているアイドル (idolId, 共有タグ数)。この人が好きな人向けのおすすめ算出に使う。 */
     data class SimilarIdolEntry(val idolId: String, val sharedTags: Int)
+    /** タグが似ているユニット (unitId, 共有タグ数)。このユニットが好きな人向けのおすすめ算出に使う。 */
+    data class SimilarUnitEntry(val unitId: String, val sharedTags: Int)
 
     data class CommunityTag(
         val id: String,
@@ -97,10 +100,13 @@ class CommunityApi(private val appContext: Context, private val authService: Aut
     )
     data class TagSongEntry(val songId: String, val voteCount: Int)
     data class TagIdolEntry(val idolId: String, val voteCount: Int)
+    data class TagUnitEntry(val unitId: String, val voteCount: Int)
     /** 曲タグ (tags マスタ) の詳細。アイドルタグは idol_tag_master に分離済みなのでここには出ない (→ IdolTagDetail)。 */
     data class TagDetail(val tag: CommunityTag, val songs: List<TagSongEntry>)
     /** アイドルタグ (idol_tag_master) の詳細。曲タグとは別プールなので songs を持たない。 */
     data class IdolTagDetail(val tag: CommunityTag, val idols: List<TagIdolEntry>)
+    /** ユニットタグ (unit_tag_master) の詳細。曲/アイドルタグとは別プール。 */
+    data class UnitTagDetail(val tag: CommunityTag, val units: List<TagUnitEntry>)
     data class TagHistoryEntry(
         val descriptionAfter: String?,
         val descriptionBefore: String?,
@@ -165,6 +171,32 @@ class CommunityApi(private val appContext: Context, private val authService: Aut
     suspend fun applyIdolTags(idolId: String, tagIds: List<String>): List<String> = withContext(Dispatchers.IO) {
         if (tagIds.isEmpty()) return@withContext emptyList()
         val json = sendJson("POST", "/idols/${enc(idolId)}/tags", JSONObject().put("tag_ids", JSONArray(tagIds)))
+            ?: return@withContext emptyList()
+        val arr = json.optJSONArray("applied_tag_ids") ?: JSONArray()
+        (0 until arr.length()).map { arr.getString(it) }
+    }
+
+    /** GET /units/{id}/tags — タグ一覧 (件数 + 自分が付けたか)。idol 版と対のメソッド。 */
+    suspend fun unitTags(unitId: String): List<UnitTag> = withContext(Dispatchers.IO) {
+        val json = get("/units/${enc(unitId)}/tags") ?: return@withContext emptyList()
+        val mine = json.optJSONArray("my_tag_ids")?.let { a -> (0 until a.length()).map { a.getString(it) }.toSet() } ?: emptySet()
+        val tags = json.optJSONArray("tags") ?: JSONArray()
+        (0 until tags.length()).map { i ->
+            val t = tags.getJSONObject(i)
+            UnitTag(t.getString("id"), t.optString("name"), t.strOrNull("color"),
+                t.optInt("vote_count"), mine.contains(t.getString("id")))
+        }
+    }
+
+    /** DELETE /units/{id}/tags/{tagId} — 自分のタグ投票を外す。 */
+    suspend fun removeUnitTag(unitId: String, tagId: String): Boolean = withContext(Dispatchers.IO) {
+        send("DELETE", "/units/${enc(unitId)}/tags/${enc(tagId)}", null)
+    }
+
+    /** POST /units/{id}/tags — 複数タグをまとめてユニットに適用 (タグ追加ピッカーの「追加」)。 */
+    suspend fun applyUnitTags(unitId: String, tagIds: List<String>): List<String> = withContext(Dispatchers.IO) {
+        if (tagIds.isEmpty()) return@withContext emptyList()
+        val json = sendJson("POST", "/units/${enc(unitId)}/tags", JSONObject().put("tag_ids", JSONArray(tagIds)))
             ?: return@withContext emptyList()
         val arr = json.optJSONArray("applied_tag_ids") ?: JSONArray()
         (0 until arr.length()).map { arr.getString(it) }
@@ -318,6 +350,81 @@ class CommunityApi(private val appContext: Context, private val authService: Aut
         send("POST", "/idol-tags/${enc(id)}/report", body)
     }
 
+    // --- ユニットタグカタログ (unit_tag_master — 曲/アイドルタグとは別プール) ---
+
+    /** GET /unit-tags — 全ユニットタグ検索/一覧。tags()/idolTagCatalog() の unit_tag_master 版。 */
+    suspend fun unitTagCatalog(search: String = "", category: String = "", sort: String = "popular", limit: Int = 1000): List<CommunityTag> =
+        withContext(Dispatchers.IO) {
+            val query = buildString {
+                append("?sort=").append(enc(sort)).append("&limit=").append(limit)
+                if (search.isNotEmpty()) append("&search=").append(enc(search))
+                if (category.isNotEmpty()) append("&category=").append(enc(category))
+            }
+            val json = get("/unit-tags$query") ?: return@withContext emptyList()
+            val arr = json.optJSONArray("tags") ?: JSONArray()
+            (0 until arr.length()).map { parseTagListItem(arr.getJSONObject(it)) }
+        }
+
+    /** POST /unit-tags — 新規ユニットタグ作成。createIdolTagOption() の unit_tag_master 版。 */
+    suspend fun createUnitTagOption(name: String, description: String? = null, category: String? = null, color: String? = null): TagCreateResult =
+        withContext(Dispatchers.IO) {
+            val body = JSONObject().put("name", name)
+            description?.let { body.put("description", it) }
+            category?.let { body.put("category", it) }
+            color?.let { body.put("color", it) }
+            val (code, json) = sendJsonWithStatus("POST", "/unit-tags", body, allowedExtra = setOf(409))
+            when {
+                code == 429 -> TagCreateResult.RateLimited
+                json?.optJSONObject("tag") != null ->
+                    TagCreateResult.Success(parseTagFull(json.getJSONObject("tag")), alreadyExisted = code == 409)
+                else -> TagCreateResult.Error(null)
+            }
+        }
+
+    /** GET /unit-tags/{id} — ユニットタグ詳細 + 付いたユニット一覧 (票数降順)。 */
+    suspend fun unitTagDetail(id: String): UnitTagDetail? = withContext(Dispatchers.IO) {
+        val json = get("/unit-tags/${enc(id)}") ?: return@withContext null
+        val tagObj = json.optJSONObject("tag") ?: return@withContext null
+        val unitsArr = json.optJSONArray("units") ?: JSONArray()
+        val units = (0 until unitsArr.length()).map {
+            val u = unitsArr.getJSONObject(it)
+            TagUnitEntry(u.optString("unit_id"), u.optInt("vote_count"))
+        }
+        UnitTagDetail(parseTagFull(tagObj), units)
+    }
+
+    /** PUT /unit-tags/{id} — 説明文・カテゴリ・色を更新。 */
+    suspend fun updateUnitTagOption(id: String, description: String? = null, category: String? = null, color: String? = null): CommunityTag? =
+        withContext(Dispatchers.IO) {
+            val body = JSONObject()
+            description?.let { body.put("description", it) }
+            category?.let { body.put("category", it) }
+            color?.let { body.put("color", it) }
+            val json = sendJson("PUT", "/unit-tags/${enc(id)}", body) ?: return@withContext null
+            json.optJSONObject("tag")?.let { parseTagFull(it) }
+        }
+
+    /** GET /unit-tags/{id}/history — 説明文の編集履歴。 */
+    suspend fun unitTagOptionHistory(id: String): List<TagHistoryEntry> = withContext(Dispatchers.IO) {
+        val arr = getArray("/unit-tags/${enc(id)}/history") ?: return@withContext emptyList()
+        (0 until arr.length()).map {
+            val o = arr.getJSONObject(it)
+            TagHistoryEntry(
+                descriptionAfter = o.strOrNull("description_after"),
+                descriptionBefore = o.strOrNull("description_before"),
+                editedBy = o.optString("edited_by"),
+                editedAt = o.optLong("edited_at")
+            )
+        }
+    }
+
+    /** POST /unit-tags/{id}/report — 不適切なユニットタグを通報。 */
+    suspend fun reportUnitTagOption(id: String, reason: String? = null): Boolean = withContext(Dispatchers.IO) {
+        val body = JSONObject()
+        reason?.let { body.put("reason", it) }
+        send("POST", "/unit-tags/${enc(id)}/report", body)
+    }
+
     private fun parseTagListItem(o: JSONObject): CommunityTag = CommunityTag(
         id = o.optString("id"),
         name = o.optString("name"),
@@ -382,6 +489,16 @@ class CommunityApi(private val appContext: Context, private val authService: Aut
         (0 until arr.length()).map { i ->
             val o = arr.getJSONObject(i)
             SimilarIdolEntry(o.optString("idol_id"), o.optInt("shared_tags"))
+        }
+    }
+
+    /** GET /units/{id}/similar — タグが似ているユニット (共有タグ数の降順、ユーザー非依存の集計)。idol 版と対のメソッド。 */
+    suspend fun similarUnitsByTags(unitId: String, limit: Int = 10): List<SimilarUnitEntry> = withContext(Dispatchers.IO) {
+        val json = get("/units/${enc(unitId)}/similar?limit=$limit") ?: return@withContext emptyList()
+        val arr = json.optJSONArray("units") ?: JSONArray()
+        (0 until arr.length()).map { i ->
+            val o = arr.getJSONObject(i)
+            SimilarUnitEntry(o.optString("unit_id"), o.optInt("shared_tags"))
         }
     }
 

@@ -19,9 +19,9 @@ import com.fugaif.imaslivedb.ui.theme.DS
 // タグ画面群 (TagListScreen / TagDetailScreen / TagCreateSheet / TagEditSheet / TagFilterSheet /
 // SongTagPickerSheet) 共通のカテゴリ定義・色・順位バッジ。iOS Views/Tags/*.swift の移植。
 
-/** タグの作成先プール。曲タグ (tags) とアイドルタグ (idol_tag_master) は別マスタなので、
- * UI は共通のままこのフラグで作成 API・カテゴリ候補だけ切り替える。iOS TagDomain の移植。 */
-enum class TagDomain { SONG, IDOL }
+/** タグの作成先プール。曲タグ (tags) / アイドルタグ (idol_tag_master) / ユニットタグ (unit_tag_master) は
+ * それぞれ別マスタなので、UI は共通のままこのフラグで作成 API・カテゴリ候補だけ切り替える。iOS TagDomain の移植。 */
+enum class TagDomain { SONG, IDOL, UNIT }
 
 val TAG_CATEGORIES: List<Pair<String, String>> = listOf(
     "" to "なし", "mood" to "ムード", "scene" to "シーン", "special" to "特別", "free" to "フリー"
@@ -32,8 +32,16 @@ val TAG_CATEGORIES_IDOL: List<Pair<String, String>> = listOf(
     "" to "なし", "personality" to "性格", "charm" to "魅力・外見", "talent" to "特技", "free" to "フリー"
 )
 
-fun tagCategoryOptions(domain: TagDomain): List<Pair<String, String>> =
-    if (domain == TagDomain.IDOL) TAG_CATEGORIES_IDOL else TAG_CATEGORIES
+/** ユニットタグのカテゴリ候補。iOS `TagCategoryOptions.unit` と同一語彙 (concept/mood/charm/free)。 */
+val TAG_CATEGORIES_UNIT: List<Pair<String, String>> = listOf(
+    "" to "なし", "concept" to "コンセプト", "mood" to "雰囲気", "charm" to "魅力", "free" to "フリー"
+)
+
+fun tagCategoryOptions(domain: TagDomain): List<Pair<String, String>> = when (domain) {
+    TagDomain.IDOL -> TAG_CATEGORIES_IDOL
+    TagDomain.UNIT -> TAG_CATEGORIES_UNIT
+    TagDomain.SONG -> TAG_CATEGORIES
+}
 
 fun tagCategoryLabel(category: String?): String =
     TAG_CATEGORIES.firstOrNull { it.first == category }?.second ?: (category ?: "")
@@ -53,6 +61,17 @@ fun idolTagCategoryColor(category: String?): Color = when (category) {
     "personality" -> Color(0xFFFF375F)
     "charm" -> Color(0xFFBF5AF2)
     "talent" -> Color(0xFF30D158)
+    "free" -> Color(0xFF34C759)
+    else -> DS.ink2
+}
+
+fun unitTagCategoryLabel(category: String?): String =
+    TAG_CATEGORIES_UNIT.firstOrNull { it.first == category }?.second ?: (category ?: "")
+
+fun unitTagCategoryColor(category: String?): Color = when (category) {
+    "concept" -> Color(0xFF5E5CE6)
+    "mood" -> Color(0xFFAF52DE)
+    "charm" -> Color(0xFFBF5AF2)
     "free" -> Color(0xFF34C759)
     else -> DS.ink2
 }

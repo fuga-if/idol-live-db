@@ -55,6 +55,7 @@ import com.fugaif.imaslivedb.ui.tags.TagActivityScreen
 import com.fugaif.imaslivedb.ui.tags.TagDetailScreen
 import com.fugaif.imaslivedb.ui.tags.TagListScreen
 import com.fugaif.imaslivedb.ui.units.UnitDetailScreen
+import com.fugaif.imaslivedb.ui.units.UnitListScreen
 
 @Composable
 fun AppNavigation() {
@@ -221,6 +222,12 @@ private fun NavGraphBuilder.eventsNavGraph(navController: NavHostController) {
             },
             onNavigateToSongDetail = { songId ->
                 navController.navigate(NavRoutes.SongDetail.createRoute(songId))
+            },
+            onNavigateToUnitDetail = { otherUnitId ->
+                navController.navigate(NavRoutes.UnitDetail.createRoute(otherUnitId))
+            },
+            onPollClick = { pollId ->
+                navController.navigate(NavRoutes.PollDetail.createRoute(pollId))
             }
         )
     }
@@ -301,6 +308,12 @@ private fun NavGraphBuilder.songsNavGraph(navController: NavHostController) {
             },
             onNavigateToSongDetail = { songId ->
                 navController.navigate(NavRoutes.SongDetail.createRoute(songId))
+            },
+            onNavigateToUnitDetail = { otherUnitId ->
+                navController.navigate(NavRoutes.UnitDetail.createRoute(otherUnitId))
+            },
+            onPollClick = { pollId ->
+                navController.navigate(NavRoutes.PollDetail.createRoute(pollId))
             }
         )
     }
@@ -324,6 +337,15 @@ private fun NavGraphBuilder.idolsNavGraph(navController: NavHostController) {
         IdolListScreen(
             onNavigateToIdolDetail = { idolId ->
                 navController.navigate(NavRoutes.IdolDetail.createRoute(idolId))
+            },
+            onNavigateToUnitList = { navController.navigate(NavRoutes.UnitList.route) }
+        )
+    }
+    composable(NavRoutes.UnitList.route) {
+        UnitListScreen(
+            onNavigateBack = { navController.popBackStack() },
+            onNavigateToUnitDetail = { unitId ->
+                navController.navigate(NavRoutes.UnitDetail.createRoute(unitId))
             }
         )
     }
@@ -362,6 +384,12 @@ private fun NavGraphBuilder.idolsNavGraph(navController: NavHostController) {
             },
             onNavigateToSongDetail = { songId ->
                 navController.navigate(NavRoutes.SongDetail.createRoute(songId))
+            },
+            onNavigateToUnitDetail = { otherUnitId ->
+                navController.navigate(NavRoutes.UnitDetail.createRoute(otherUnitId))
+            },
+            onPollClick = { pollId ->
+                navController.navigate(NavRoutes.PollDetail.createRoute(pollId))
             }
         )
     }
@@ -635,7 +663,9 @@ private fun NavGraphBuilder.detailRoutes(navController: NavHostController) {
             unitId = unitId,
             onNavigateBack = { navController.popBackStack() },
             onNavigateToIdolDetail = { navController.navigate(NavRoutes.IdolDetail.createRoute(it)) },
-            onNavigateToSongDetail = { navController.navigate(NavRoutes.SongDetail.createRoute(it)) }
+            onNavigateToSongDetail = { navController.navigate(NavRoutes.SongDetail.createRoute(it)) },
+            onNavigateToUnitDetail = { navController.navigate(NavRoutes.UnitDetail.createRoute(it)) },
+            onPollClick = { navController.navigate(NavRoutes.PollDetail.createRoute(it)) }
         )
     }
     composable(NavRoutes.Search.route) {

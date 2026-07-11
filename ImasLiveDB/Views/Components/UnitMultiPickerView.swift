@@ -93,7 +93,9 @@ struct UnitMultiPickerView: View {
             .task {
                 brands = (try? await AppContainer.shared.brandReading.brands()) ?? []
                 if units.isEmpty {
-                    loadedUnits = (try? await AppContainer.shared.unitReading.allUnits()) ?? []
+                    // 呼び出し元 (Poll候補ピッカー等) は曲ありユニットのみを渡す前提だが、
+                    // 万一空のまま呼ばれた場合のフォールバックも同じ母集団に揃える。
+                    loadedUnits = (try? await AppContainer.shared.unitReading.unitsWithSongs()) ?? []
                 }
             }
             .trackScreen("unit_multi_picker")

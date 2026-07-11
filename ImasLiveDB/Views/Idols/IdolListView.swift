@@ -40,6 +40,7 @@ struct IdolListView: View {
     @State private var showFilterSheet = false
     @State private var searchText = ""
     @State private var isSearching = false
+    @State private var showUnitList = false
 
     private var idolListMode: IdolListMode {
         IdolListMode(rawValue: idolListModeRaw) ?? .list
@@ -79,6 +80,12 @@ struct IdolListView: View {
                 idolListModeRaw = (idolListMode == .grid ? IdolListMode.list : .grid).rawValue
             }
         ]
+        actions.append(ListToolbarAction(
+            id: "unit_list", title: "ユニット一覧", systemImage: "person.3"
+        ) {
+            AppAnalytics.tap("idol_list.unit_list_open")
+            showUnitList = true
+        })
         if filterBadgeCount > 0 {
             actions.append(ListToolbarAction(id: "clear", title: "フィルタを解除",
                                              systemImage: "xmark.circle", isDestructive: true) {
@@ -153,6 +160,9 @@ struct IdolListView: View {
             }
             .navigationDestination(for: Idol.self) { idol in
                 IdolDetailView(idol: idol)
+            }
+            .navigationDestination(isPresented: $showUnitList) {
+                UnitListView()
             }
             .sheet(item: $sheetIdol) { idol in
                 DetailSheetView(destination: .idol(idol))

@@ -106,6 +106,7 @@ fun TagEditSheet(
                             val updated = when (domain) {
                                 TagDomain.SONG -> api.updateTag(id = tag.id, description = description, category = category, color = color)
                                 TagDomain.IDOL -> api.updateIdolTagOption(id = tag.id, description = description, category = category, color = color)
+                                TagDomain.UNIT -> api.updateUnitTagOption(id = tag.id, description = description, category = category, color = color)
                             }
                             isSaving = false
                             if (updated != null) {

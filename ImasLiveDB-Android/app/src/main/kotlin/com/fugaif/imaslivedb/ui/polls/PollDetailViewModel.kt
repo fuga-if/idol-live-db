@@ -22,6 +22,7 @@ class PollDetailViewModel(app: Application) : AndroidViewModel(app) {
     private val api = AppModule.from(app).communityApi
     private val songRepo = AppModule.from(app).songRepository
     private val idolRepo = AppModule.from(app).idolRepository
+    private val unitRepo = AppModule.from(app).unitRepository
     private val voteLog = AppModule.from(app).localPollVoteLog
 
     private val _uiState = MutableStateFlow(PollDetailUiState())
@@ -52,6 +53,7 @@ class PollDetailViewModel(app: Application) : AndroidViewModel(app) {
 
     private suspend fun resolveOneName(targetType: String, id: String): String = when (targetType) {
         "idol" -> idolRepo.fetchIdol(id)?.name ?: id
+        "unit" -> unitRepo.fetchUnit(id)?.displayName ?: id
         else -> songRepo.fetchSong(id)?.title ?: id
     }
 

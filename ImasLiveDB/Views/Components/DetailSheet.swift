@@ -19,6 +19,8 @@ enum DetailDestination: Identifiable, Hashable {
     case tagDetail(SongTagEntry)
     /// アイドルタグ (idol_tag_master) 詳細。曲タグとは別プールなので tagDetail とは別ケース。
     case idolTagDetail(SongTagEntry)
+    /// ユニットタグ (unit_tag_master) 詳細。曲/アイドルタグとも別プールなので別ケース。
+    case unitTagDetail(SongTagEntry)
 
     var id: String {
         switch self {
@@ -35,6 +37,7 @@ enum DetailDestination: Identifiable, Hashable {
         case .filteredShows(let c): return "filteredShows_\(c.navigationTitle)"
         case .tagDetail(let t): return "tagDetail_\(t.id)"
         case .idolTagDetail(let t): return "idolTagDetail_\(t.id)"
+        case .unitTagDetail(let t): return "unitTagDetail_\(t.id)"
         }
     }
 
@@ -89,7 +92,7 @@ struct DetailSheetView: View {
         case .show(let show):
             SetlistView(show: show, navigate: { path.append($0) })
         case .unit(let unit):
-            UnitSheetContent(unit: unit, navigate: { path.append($0) })
+            UnitDetailView(unit: unit, navigate: { path.append($0) })
         case .idolSongHistory(let idol, let song):
             IdolSongHistoryView(idol: idol, song: song, navigate: { path.append($0) })
         case .filteredSongs(let criterion):
@@ -104,6 +107,8 @@ struct DetailSheetView: View {
             TagDetailView(tagId: tag.id, tagName: tag.name)
         case .idolTagDetail(let tag):
             IdolTagDetailView(tagId: tag.id, tagName: tag.name)
+        case .unitTagDetail(let tag):
+            UnitTagDetailView(tagId: tag.id, tagName: tag.name)
         }
     }
 
@@ -1109,149 +1114,6 @@ struct SongSheetContent: View {
 }
 /// 旧 IdolRowLabel 互換 (新規実装は IdolNameRow を直接使うこと)。
 private typealias IdolRowLabel = IdolNameRow
-
-// MARK: - Unit Sheet Content
-
-struct UnitSheetContent: View {
-    @Environment(AppDatabase.self) private var database
-    @Environment(\.colorScheme) private var scheme
-    let unit: Unit
-    let navigate: (DetailDestination) -> Void
-
-    @State private var members: [Idol] = []
-    @State private var songs: [Song] = []
-    @State private var brand: Brand?
-    @State private var isLoading = true
-
-    private var brandColor: String? { brand?.color }
-
-    var body: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                heroView
-                VStack(spacing: DS.sp6) {
-                    if !members.isEmpty {
-                        VStack(alignment: .leading, spacing: DS.sp3) {
-                            ImasSectionHeader(title: "メンバー", count: "\(members.count)", tight: true)
-                            ImasListContainer {
-                                ForEach(Array(members.enumerated()), id: \.element.id) { idx, memberIdol in
-                                    if idx > 0 { Divider().overlay(DS.sep).padding(.leading, 66) }
-                                    memberRow(memberIdol)
-                                }
-                            }
-                        }
-                        .padding(.horizontal, DS.sp5)
-                    }
-
-                    if !songs.isEmpty {
-                        VStack(alignment: .leading, spacing: DS.sp3) {
-                            ImasSectionHeader(title: "楽曲", count: "\(songs.count)", tight: true)
-                            ImasListContainer {
-                                ForEach(Array(songs.enumerated()), id: \.element.id) { idx, song in
-                                    if idx > 0 { Divider().overlay(DS.sep).padding(.leading, 66) }
-                                    // Button でラップすると内側のジャケ写プレビュー再生タップが
-                                    // 吸われるため、行全体は onTapGesture で遷移を受ける。
-                                    SongTitleRow(song: song)
-                                        .padding(.horizontal, DS.sp4)
-                                        .padding(.vertical, 10)
-                                        .contentShape(Rectangle())
-                                        .onTapGesture { navigate(.song(song)) }
-                                }
-                            }
-                        }
-                        .padding(.horizontal, DS.sp5)
-                    }
-
-                    if !isLoading && members.isEmpty && songs.isEmpty {
-                        ImasEmptyState(
-                            systemImage: "person.3",
-                            title: "情報がありません",
-                            message: "メンバー・楽曲の情報はまだ登録されていません。",
-                            brand: brandColor
-                        )
-                    }
-                }
-                .padding(.top, DS.sp5)
-                .padding(.bottom, DS.sp7)
-            }
-        }
-        .background(DS.bg.ignoresSafeArea())
-        .navigationTitle(unit.displayName)
-        .navigationBarTitleDisplayMode(.inline)
-        .task {
-            do {
-                let unitReading = AppContainer.shared.unitReading
-                async let membersTask = unitReading.unitMembers(unitId: unit.id)
-                async let songsTask = unitReading.unitSongs(unitId: unit.id)
-                async let brandsTask = AppContainer.shared.brandReading.brands()
-                members = try await membersTask
-                songs = try await songsTask
-                brand = try? await brandsTask.first { $0.id == unit.brandId }
-            } catch {
-                Logger.database.error("load_failed unit: \(error.localizedDescription)")
-            }
-            isLoading = false
-        }
-        .trackScreen("unit_detail")
-    }
-
-    private var heroView: some View {
-        let t = ImasTheme.derive(seed: nil, brand: brandColor, scheme: scheme)
-        return VStack(spacing: DS.sp3) {
-            ZStack {
-                Circle().fill(t.chipBg).frame(width: 72, height: 72)
-                Image(systemName: "person.3.fill")
-                    .font(.imasScaled(28, weight: .semibold))
-                    .foregroundStyle(t.chipText)
-            }
-            VStack(spacing: 3) {
-                Text(unit.displayName)
-                    .font(.imasTitle1.weight(.bold))
-                    .foregroundStyle(DS.ink)
-                    .multilineTextAlignment(.center)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.7)
-                if let brand {
-                    Text(brand.shortName)
-                        .font(.imasSubhead)
-                        .foregroundStyle(DS.ink2)
-                }
-            }
-        }
-        .padding(.horizontal, DS.sp5)
-        .padding(.vertical, DS.sp6)
-        .frame(maxWidth: .infinity)
-        .background(t.heroSurface)
-    }
-
-    private func memberRow(_ member: Idol) -> some View {
-        Button { navigate(.idol(member)) } label: {
-            HStack(spacing: DS.sp3) {
-                IdolAvatarView(idol: member, size: 44)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(member.name)
-                        .font(.imasBody.weight(.semibold))
-                        .foregroundStyle(DS.ink)
-                        .lineLimit(1)
-                    if !member.voiceActorList.isEmpty {
-                        Text("CV \(member.voiceActorList.joined(separator: " / "))")
-                            .font(.imasFootnote)
-                            .foregroundStyle(DS.ink3)
-                            .lineLimit(1)
-                    }
-                }
-                Spacer(minLength: 0)
-                Image(systemName: "chevron.right")
-                    .font(.imasScaled(13, weight: .semibold))
-                    .foregroundStyle(DS.ink3)
-            }
-            .padding(.horizontal, DS.sp4)
-            .padding(.vertical, 10)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-    }
-}
 
 // MARK: - タップ可能な履歴行コンポーネント
 

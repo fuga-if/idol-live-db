@@ -259,6 +259,12 @@ struct IdolTagDetailResponse: Decodable, Sendable {
     let idols: [TagIdolEntry]
 }
 
+/// ユニットタグ (unit_tag_master) の詳細。曲/アイドルタグとも別プール。
+struct UnitTagDetailResponse: Decodable, Sendable {
+    let tag: CommunityTag
+    let units: [TagUnitEntry]
+}
+
 struct TagSongEntry: Codable, Identifiable, Hashable, Sendable {
     var id: String { songId }
     let songId: String
@@ -271,7 +277,18 @@ struct TagIdolEntry: Codable, Identifiable, Hashable, Sendable {
     let voteCount: Int
 }
 
+struct TagUnitEntry: Codable, Identifiable, Hashable, Sendable {
+    var id: String { unitId }
+    let unitId: String
+    let voteCount: Int
+}
+
 struct IdolTagListResponse: Decodable, Sendable {
+    let tags: [SongTagEntry]
+    let myTagIds: [String]
+}
+
+struct UnitTagListResponse: Decodable, Sendable {
     let tags: [SongTagEntry]
     let myTagIds: [String]
 }
@@ -279,6 +296,24 @@ struct IdolTagListResponse: Decodable, Sendable {
 struct IdolTagApplyResponse: Decodable, Sendable {
     let idolId: String
     let appliedTagIds: [String]
+}
+
+struct UnitTagApplyResponse: Decodable, Sendable {
+    let unitId: String
+    let appliedTagIds: [String]
+}
+
+/// GET /units/:id/similar — タグが似ているユニット。
+struct SimilarUnitsResponse: Decodable, Sendable {
+    let unitId: String
+    let units: [SimilarUnitEntry]
+}
+
+struct SimilarUnitEntry: Decodable, Identifiable, Hashable, Sendable {
+    var id: String { unitId }
+    let unitId: String
+    /// このユニットと共有しているタグ数 (近さの指標)。
+    let sharedTags: Int
 }
 
 // MARK: - Tag Activity (盛り上がり)

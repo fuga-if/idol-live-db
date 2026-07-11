@@ -133,7 +133,7 @@ struct PollCreateSheet: View {
             .task {
                 async let brandsTask = AppContainer.shared.brandReading.brands()
                 async let idolsTask = AppContainer.shared.idolReading.idols(brandId: nil)
-                async let unitsTask = AppContainer.shared.unitReading.allUnits()
+                async let unitsTask = AppContainer.shared.unitReading.unitsWithSongs()
                 brands = (try? await brandsTask) ?? []
                 allIdolsForPicker = (try? await idolsTask) ?? []
                 allUnitsForPicker = (try? await unitsTask) ?? []

@@ -1,14 +1,15 @@
 import SwiftUI
 
-/// タグの作成先プール。曲タグ (tags) とアイドルタグ (idol_tag_master) は別マスタなので、
-/// UI は共通のままこのフラグで作成 API・カテゴリ候補だけ切り替える。
+/// タグの作成先プール。曲タグ (tags)・アイドルタグ (idol_tag_master)・ユニットタグ
+/// (unit_tag_master) は別マスタなので、UI は共通のままこのフラグで作成 API・カテゴリ候補だけ切り替える。
 enum TagDomain {
     case song
     case idol
+    case unit
 }
 
 /// タグカテゴリの候補。ドメインごとに語彙が異なる (曲=ムード/シーン等、アイドル=性格/魅力等) ので
-/// tags/idol_tag_master 分離にあわせてここも分ける。
+/// tags/idol_tag_master/unit_tag_master 分離にあわせてここも分ける。
 enum TagCategoryOptions {
     static let song: [(value: String, label: String)] = [
         ("mood", "ムード"), ("scene", "シーン"), ("special", "特別"), ("free", "フリー"),
@@ -16,11 +17,15 @@ enum TagCategoryOptions {
     static let idol: [(value: String, label: String)] = [
         ("personality", "性格"), ("charm", "魅力・外見"), ("talent", "特技"), ("free", "フリー"),
     ]
+    static let unit: [(value: String, label: String)] = [
+        ("concept", "コンセプト"), ("mood", "雰囲気"), ("charm", "魅力"), ("free", "フリー"),
+    ]
 
     static func options(for domain: TagDomain) -> [(value: String, label: String)] {
         switch domain {
         case .song: return song
         case .idol: return idol
+        case .unit: return unit
         }
     }
 }
@@ -169,6 +174,8 @@ struct TagCreateSheet: View {
                 tag = try await CommunityAPI.shared.createTag(name: trimmedName, description: desc, category: cat, color: color)
             case .idol:
                 tag = try await CommunityAPI.shared.createIdolTag(name: trimmedName, description: desc, category: cat, color: color)
+            case .unit:
+                tag = try await CommunityAPI.shared.createUnitTag(name: trimmedName, description: desc, category: cat, color: color)
             }
             onCreated?(tag)
             dismiss()

@@ -23,5 +23,6 @@ data class PersonalTag(
         const val SONG = "song"
         const val EVENT = "event"
         const val SHOW = "show"
+        const val UNIT = "unit"
     }
 }

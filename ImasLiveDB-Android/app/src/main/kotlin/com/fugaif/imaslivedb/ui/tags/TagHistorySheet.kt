@@ -48,6 +48,7 @@ fun TagHistorySheet(tagId: String, domain: TagDomain = TagDomain.SONG, onDismiss
             when (domain) {
                 TagDomain.SONG -> api.tagHistory(tagId)
                 TagDomain.IDOL -> api.idolTagOptionHistory(tagId)
+                TagDomain.UNIT -> api.unitTagOptionHistory(tagId)
             }
         }.getOrDefault(emptyList())
         isLoading = false

@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
@@ -77,6 +78,7 @@ import com.fugaif.imaslivedb.ui.theme.DS
 @Composable
 fun IdolListScreen(
     onNavigateToIdolDetail: (String) -> Unit,
+    onNavigateToUnitList: () -> Unit = {},
     viewModel: IdolListViewModel = viewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -120,6 +122,9 @@ fun IdolListScreen(
             TopAppBar(
                 title = { Text("アイドル", fontWeight = FontWeight.Bold) },
                 actions = {
+                    IconButton(onClick = onNavigateToUnitList) {
+                        Icon(Icons.Filled.Groups, contentDescription = "ユニット一覧")
+                    }
                     IconButton(onClick = {
                         viewModel.setListMode(if (state.listMode == IdolListMode.GRID) IdolListMode.LIST else IdolListMode.GRID)
                     }) {

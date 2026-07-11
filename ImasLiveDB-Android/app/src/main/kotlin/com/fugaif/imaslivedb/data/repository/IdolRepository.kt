@@ -6,7 +6,6 @@ import com.fugaif.imaslivedb.data.model.CastShowCount
 import com.fugaif.imaslivedb.data.model.CastShowRow
 import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.data.model.IdolPerformedSong
-import com.fugaif.imaslivedb.data.model.ImasUnit
 
 class IdolRepository(private val db: AppDatabase) {
 
@@ -37,10 +36,6 @@ class IdolRepository(private val db: AppDatabase) {
         return db.idolDao().fetchIdolsByIds(ids)
     }
 
-    suspend fun fetchIdolUnits(idolId: String): List<ImasUnit> {
-        return db.idolDao().fetchIdolUnits(idolId)
-    }
-
     /** このアイドルが出演した公演一覧 (show_cast 経由)。 */
     suspend fun fetchIdolShows(idolId: String): List<CastShowRow> {
         return db.idolDao().fetchIdolShows(idolId)
@@ -56,20 +51,7 @@ class IdolRepository(private val db: AppDatabase) {
         return db.idolDao().fetchIdolPerformedSongs(idolId)
     }
 
-    /** このアイドルの所属ユニットのうち楽曲が紐づいているものの id 集合。 */
-    suspend fun fetchIdolUnitIdsWithSongs(idolId: String): Set<String> {
-        return db.idolDao().fetchIdolUnitIdsWithSongs(idolId).toSet()
-    }
-
     suspend fun fetchBrand(brandId: String): Brand? {
         return db.brandDao().fetchBrand(brandId)
-    }
-
-    suspend fun fetchUnit(id: String): ImasUnit? {
-        return db.unitDao().fetchUnit(id)
-    }
-
-    suspend fun fetchUnitMembers(unitId: String): List<Idol> {
-        return db.idolDao().fetchUnitMembers(unitId)
     }
 }

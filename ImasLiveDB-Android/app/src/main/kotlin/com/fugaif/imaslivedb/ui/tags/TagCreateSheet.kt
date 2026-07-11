@@ -143,6 +143,12 @@ fun TagCreateSheet(
                                     category = category.ifEmpty { null },
                                     color = color.ifEmpty { null }
                                 )
+                                TagDomain.UNIT -> api.createUnitTagOption(
+                                    name = trimmedName,
+                                    description = description.ifBlank { null },
+                                    category = category.ifEmpty { null },
+                                    color = color.ifEmpty { null }
+                                )
                             }
                             when (val result = createResult) {
                                 is CommunityApi.TagCreateResult.Success -> {

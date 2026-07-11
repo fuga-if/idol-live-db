@@ -12,6 +12,7 @@ import com.fugaif.imaslivedb.data.repository.PersonalTagRepository
 import com.fugaif.imaslivedb.data.repository.SearchRepository
 import com.fugaif.imaslivedb.data.repository.SongRepository
 import com.fugaif.imaslivedb.data.repository.StatsRepository
+import com.fugaif.imaslivedb.data.repository.UnitRepository
 import com.fugaif.imaslivedb.data.repository.UserMarkRepository
 import com.fugaif.imaslivedb.data.community.CommunityApi
 import com.fugaif.imaslivedb.data.community.LocalContributionLog
@@ -31,6 +32,7 @@ class AppModule private constructor(context: Context) {
     val eventRepository: EventRepository by lazy { EventRepository(database) }
     val songRepository: SongRepository by lazy { SongRepository(database) }
     val idolRepository: IdolRepository by lazy { IdolRepository(database) }
+    val unitRepository: UnitRepository by lazy { UnitRepository(database) }
     val statsRepository: StatsRepository by lazy { StatsRepository(database, communityApi) }
     val searchRepository: SearchRepository by lazy { SearchRepository(database) }
     val userMarkRepository: UserMarkRepository by lazy { UserMarkRepository(database) }

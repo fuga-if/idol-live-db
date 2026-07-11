@@ -37,6 +37,7 @@ sealed class NavRoutes(val route: String) {
             fun createRoute(idolId: String) = "idol_detail/$idolId"
         }
     }
+    data object UnitList : NavRoutes("unit_list")
     data class UnitDetail(val unitId: String) : NavRoutes("unit_detail/{unitId}") {
         companion object {
             const val ROUTE = "unit_detail/{unitId}"

@@ -63,6 +63,8 @@ struct TagHistoryView: View {
             history = (try? await CommunityAPI.shared.tagHistory(id: tagId)) ?? []
         case .idol:
             history = (try? await CommunityAPI.shared.idolTagHistory(id: tagId)) ?? []
+        case .unit:
+            history = (try? await CommunityAPI.shared.unitTagHistory(id: tagId)) ?? []
         }
     }
 }

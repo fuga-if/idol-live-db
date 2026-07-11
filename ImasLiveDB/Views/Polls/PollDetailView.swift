@@ -326,7 +326,7 @@ struct PollDetailView: View {
             allIdols = (try? await AppContainer.shared.idolReading.idols(brandId: nil)) ?? []
         }
         if vm.poll?.targetType == .unit {
-            allUnits = (try? await AppContainer.shared.unitReading.allUnits()) ?? []
+            allUnits = (try? await AppContainer.shared.unitReading.unitsWithSongs()) ?? []
         }
         if vm.poll?.scope == .brand, brandsById.isEmpty {
             let list = (try? await AppContainer.shared.brandReading.brands()) ?? []

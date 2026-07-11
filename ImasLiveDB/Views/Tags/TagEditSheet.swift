@@ -110,6 +110,8 @@ struct TagEditSheet: View {
                 _ = try await CommunityAPI.shared.updateTag(id: tag.id, description: desc, category: cat, color: color)
             case .idol:
                 _ = try await CommunityAPI.shared.updateIdolTag(id: tag.id, description: desc, category: cat, color: color)
+            case .unit:
+                _ = try await CommunityAPI.shared.updateUnitTag(id: tag.id, description: desc, category: cat, color: color)
             }
             dismiss()
         } catch let error as CommunityAPIError {

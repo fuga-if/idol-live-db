@@ -131,6 +131,12 @@ fun PollDetailScreen(
                 onDismiss = { showPicker = false },
                 onConfirm = { newIds -> viewModel.voteForNewEntities(newIds); showPicker = false }
             )
+            "unit" -> UnitPollCandidatePicker(
+                alreadySelected = alreadySelected,
+                remaining = remaining,
+                onDismiss = { showPicker = false },
+                onConfirm = { newIds -> viewModel.voteForNewEntities(newIds); showPicker = false }
+            )
             else -> SongPollCandidatePicker(
                 alreadySelected = alreadySelected,
                 remaining = remaining,
