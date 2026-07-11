@@ -1,10 +1,17 @@
 package com.fugaif.imaslivedb.ui.settings
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -20,6 +27,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -49,9 +57,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.fugaif.imaslivedb.data.backup.BackupFormatException
+import com.fugaif.imaslivedb.data.backup.BackupImportResult
+import com.fugaif.imaslivedb.data.backup.BackupTransferException
+import com.fugaif.imaslivedb.data.backup.TransferCodeResult
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.theme.DS
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 private enum class SettingsInfoScreen { PRIVACY, TERMS, SUPPORT }
 
@@ -111,6 +125,13 @@ fun SettingsScreen(
                 SettingsSectionTitle("データ")
                 SettingsInfoRow("スキーマバージョン", state.schemaVersion)
                 SettingsInfoRow("データバージョン", state.dataVersion)
+                HorizontalDivider()
+            }
+
+            // バックアップ
+            item {
+                SettingsSectionTitle("バックアップ")
+                BackupSection(viewModel)
                 HorizontalDivider()
             }
 
@@ -434,4 +455,226 @@ private fun CreditText(text: String) {
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
     )
+}
+
+/**
+ * 引き継ぎコード (サーバー経由) + ファイルエクスポート/インポート (SAF) の両方でお気に入り/担当/
+ * 投票履歴をバックアップ/復元する。iOS `MyPageView.backupSection` の Android 移植。
+ * 復元は常に非破壊マージ (ローカルの既存データを上書き・削除しない)。
+ */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun BackupSection(viewModel: SettingsViewModel) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    var restoreDeviceId by remember { mutableStateOf(false) }
+
+    var isCreatingCode by remember { mutableStateOf(false) }
+    var transferCodeResult by remember { mutableStateOf<TransferCodeResult?>(null) }
+    var transferError by remember { mutableStateOf<String?>(null) }
+
+    var codeInput by remember { mutableStateOf("") }
+    var isRestoringCode by remember { mutableStateOf(false) }
+
+    var isExporting by remember { mutableStateOf(false) }
+    var isImportingFile by remember { mutableStateOf(false) }
+
+    var importResult by remember { mutableStateOf<BackupImportResult?>(null) }
+    var importError by remember { mutableStateOf<String?>(null) }
+
+    fun handleImportFailure(e: Exception) {
+        importError = when (e) {
+            is BackupFormatException -> e.message
+            is BackupTransferException -> e.message
+            else -> "読み込みに失敗しました"
+        } ?: "読み込みに失敗しました"
+    }
+
+    val exportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        scope.launch {
+            isExporting = true
+            try {
+                val json = viewModel.exportBackupJson()
+                withContext(Dispatchers.IO) {
+                    context.contentResolver.openOutputStream(uri)?.use {
+                        it.write(json.toByteArray(Charsets.UTF_8))
+                    }
+                }
+            } catch (e: Exception) {
+                importError = "書き出しに失敗しました"
+            } finally {
+                isExporting = false
+            }
+        }
+    }
+
+    val importLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        scope.launch {
+            isImportingFile = true
+            try {
+                val json = withContext(Dispatchers.IO) {
+                    context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
+                } ?: throw BackupFormatException("ファイルを読み込めませんでした")
+                importResult = viewModel.importBackup(json, restoreDeviceId)
+            } catch (e: Exception) {
+                handleImportFailure(e)
+            } finally {
+                isImportingFile = false
+            }
+        }
+    }
+
+    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+        Text(
+            "機種変更やアプリの再インストール時に、お気に入り・担当・投票履歴を引き継げます",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        // 引き継ぎコード発行
+        Button(
+            onClick = {
+                scope.launch {
+                    isCreatingCode = true
+                    transferError = null
+                    try {
+                        transferCodeResult = viewModel.createTransferCode()
+                    } catch (e: BackupTransferException) {
+                        transferError = e.message
+                    } catch (e: Exception) {
+                        transferError = "発行に失敗しました"
+                    } finally {
+                        isCreatingCode = false
+                    }
+                }
+            },
+            enabled = !isCreatingCode,
+            modifier = Modifier.fillMaxWidth().padding(top = 12.dp)
+        ) { Text(if (isCreatingCode) "発行中..." else "引き継ぎコードを発行する") }
+
+        transferCodeResult?.let { result ->
+            val clipboardManager = remember(context) {
+                context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            }
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp)
+                    .combinedClickable(
+                        onClick = {},
+                        onLongClick = {
+                            clipboardManager.setPrimaryClip(ClipData.newPlainText("transfer_code", result.code))
+                        }
+                    )
+            ) {
+                Text(
+                    result.code,
+                    style = MaterialTheme.typography.headlineMedium,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+                Text(
+                    "長押しでコピー・24時間有効・1回のみ使用可能です",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+            }
+        }
+
+        // 引き継ぎコードで復元
+        OutlinedTextField(
+            value = codeInput,
+            onValueChange = { codeInput = it.uppercase() },
+            singleLine = true,
+            label = { Text("引き継ぎコード") },
+            modifier = Modifier.fillMaxWidth().padding(top = 16.dp)
+        )
+        Button(
+            onClick = {
+                scope.launch {
+                    isRestoringCode = true
+                    try {
+                        importResult = viewModel.restoreFromTransferCode(codeInput.trim(), restoreDeviceId)
+                        codeInput = ""
+                    } catch (e: Exception) {
+                        handleImportFailure(e)
+                    } finally {
+                        isRestoringCode = false
+                    }
+                }
+            },
+            enabled = !isRestoringCode && codeInput.isNotBlank(),
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+        ) { Text(if (isRestoringCode) "復元中..." else "引き継ぎコードで復元する") }
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
+
+        // ファイルエクスポート/インポート
+        OutlinedButton(
+            onClick = { exportLauncher.launch("imas-live-backup.json") },
+            enabled = !isExporting,
+            modifier = Modifier.fillMaxWidth()
+        ) { Text(if (isExporting) "書き出し中..." else "ファイルに保存する") }
+        OutlinedButton(
+            onClick = { importLauncher.launch(arrayOf("application/json", "text/plain", "*/*")) },
+            enabled = !isImportingFile,
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+        ) { Text(if (isImportingFile) "読み込み中..." else "ファイルから復元する") }
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth().padding(top = 12.dp)
+        ) {
+            Checkbox(checked = restoreDeviceId, onCheckedChange = { restoreDeviceId = it })
+            Text(
+                "復元時に端末IDも引き継ぐ (上級者向け・通常はオフ)",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+
+    if (transferError != null) {
+        AlertDialog(
+            onDismissRequest = { transferError = null },
+            title = { Text("発行に失敗しました") },
+            text = { Text(transferError ?: "") },
+            confirmButton = { TextButton(onClick = { transferError = null }) { Text("OK") } }
+        )
+    }
+
+    if (importResult != null) {
+        AlertDialog(
+            onDismissRequest = { importResult = null },
+            title = { Text("復元が完了しました") },
+            text = {
+                val r = importResult!!
+                Column {
+                    Text("追加されたマーク: ${r.addedMarks}件")
+                    Text("追加された投票履歴: ${r.addedVotes}件")
+                    if (r.skippedMarks > 0) Text("一部のデータの形式が読み取れず、${r.skippedMarks}件をスキップしました")
+                    if (r.deviceIdRestored) Text("端末IDを引き継ぎました")
+                }
+            },
+            confirmButton = { TextButton(onClick = { importResult = null }) { Text("OK") } }
+        )
+    }
+
+    if (importError != null) {
+        AlertDialog(
+            onDismissRequest = { importError = null },
+            title = { Text("復元に失敗しました") },
+            text = { Text(importError ?: "") },
+            confirmButton = { TextButton(onClick = { importError = null }) { Text("OK") } }
+        )
+    }
 }

@@ -3,6 +3,7 @@ import { fetchBadges, calcTier } from "./badges";
 import { handleScheduled } from "./apply";
 import { cloudKitModify, cloudKitLookup, buildForceUpdate, buildSoftDelete, CloudKitOperation } from "./cloudkit";
 import { handlePostEdits, handleGetRecordHistory } from "./edits";
+import { handleCreateTransfer, handleFetchTransfer } from "./transfer";
 import { handlePostEditRequests } from "./edit_requests";
 import { handleGetFeed, handleGetMyEdits, maskDisplayName } from "./feed";
 import { handlePostGood, handleDeleteGood } from "./edit_good";
@@ -208,6 +209,13 @@ async function cleanOldRateLimitBuckets(db: D1Database): Promise<void> {
   await db
     .prepare("DELETE FROM api_rate_limits WHERE minute_bucket < ?")
     .bind(oneDayAgo)
+    .run();
+}
+
+async function cleanExpiredTransferCodes(db: D1Database): Promise<void> {
+  await db
+    .prepare("DELETE FROM transfer_codes WHERE expires_at < ?")
+    .bind(new Date().toISOString())
     .run();
 }
 
@@ -3527,6 +3535,31 @@ export default {
         return handleGetRecordHistory(recordType, recordName, url, env, { json, error });
       }
 
+      // ----------------------------------------------------------------
+      // POST /transfer — 引き継ぎコード発行 (auth必須・rate limit "transfer_create")
+      // GET  /transfer/:code — 引き継ぎコードでペイロード取得 (取得と同時に消費)
+      // ----------------------------------------------------------------
+      if (path === "/transfer" && request.method === "POST") {
+        return handleCreateTransfer(request, env, {
+          getAuthUser,
+          checkRateLimit,
+          json,
+          error,
+          rateLimitResponse,
+        });
+      }
+      const transferFetchMatch = path.match(/^\/transfer\/([^/]+)$/);
+      if (transferFetchMatch && request.method === "GET") {
+        const code = decodeURIComponent(transferFetchMatch[1]);
+        return handleFetchTransfer(request, env, code, {
+          getAuthUser,
+          checkRateLimit,
+          json,
+          error,
+          rateLimitResponse,
+        });
+      }
+
       return addRequestId(error("Not found", 404), requestId);
     } catch (e: unknown) {
       console.error("route_failed", {
@@ -3561,7 +3594,11 @@ export default {
   // Scheduled handler: approved → applied (via CloudKit) + rate limit cleanup
   // ----------------------------------------------------------------
   async scheduled(_event: ScheduledEvent, env: Env, _ctx: ExecutionContext): Promise<void> {
-    await Promise.all([handleScheduled(env), cleanOldRateLimitBuckets(env.DB)]);
+    await Promise.all([
+      handleScheduled(env),
+      cleanOldRateLimitBuckets(env.DB),
+      cleanExpiredTransferCodes(env.DB),
+    ]);
   },
 };
 

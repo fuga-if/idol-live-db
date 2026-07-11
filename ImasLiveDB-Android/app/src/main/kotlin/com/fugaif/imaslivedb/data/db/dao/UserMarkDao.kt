@@ -28,4 +28,12 @@ interface UserMarkDao {
     /** メモ本文が入っているエンティティID一覧 (「メモがあるアイドルのみ」等の絞り込み用)。 */
     @Query("SELECT entity_id FROM user_marks WHERE entity_type = :type AND kind = 'memo' AND text_value IS NOT NULL AND text_value != ''")
     suspend fun idsWithNote(type: String): List<String>
+
+    /** バックアップ全件エクスポート用。 */
+    @Query("SELECT * FROM user_marks")
+    suspend fun getAll(): List<UserMark>
+
+    /** バックアップ復元用。既存の (entity_type, entity_id, kind) は無視し、新規のみ追加する。 */
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertAll(marks: List<UserMark>)
 }

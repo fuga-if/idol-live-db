@@ -24,6 +24,13 @@ enum DeviceIdentity {
         }
     }
 
+    /// バックアップ復元時に端末IDを引き継ぐ (上級者向け・任意)。以後の `shared` はこの値を返す。
+    static func restore(_ value: String) {
+        queue.sync {
+            saveToKeychain(value)
+        }
+    }
+
     // MARK: - Keychain
 
     private static func loadFromKeychain() -> String? {

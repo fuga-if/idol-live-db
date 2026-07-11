@@ -90,6 +90,13 @@ Cron (scheduled) は `rate_limits` テーブルの日次掃除 (7 日より古�
 | GET | /users/:id/badges | - | ユーザーのバッジ一覧 |
 | GET | /leaderboard | - | 貢献ランキング |
 
+### 引き継ぎコード (ユーザー生成ローカルデータの端末間転送)
+
+| Method | Path | 認証 | 概要 |
+|--------|------|------|------|
+| POST | /transfer | Bearer | 引き継ぎコードを発行 (24時間有効) |
+| GET | /transfer/:code | Bearer | コードでペイロード取得 (取得と同時に消費・再取得不可) |
+
 ### 出演者予想 / いいね (shows 配下)
 
 | Method | Path | 認証 | 概要 |

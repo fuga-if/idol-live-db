@@ -2,6 +2,7 @@ package com.fugaif.imaslivedb.di
 
 import android.content.Context
 import com.fugaif.imaslivedb.data.auth.AuthService
+import com.fugaif.imaslivedb.data.backup.BackupTransferApi
 import com.fugaif.imaslivedb.data.db.AppDatabase
 import com.fugaif.imaslivedb.data.edit.EditApi
 import com.fugaif.imaslivedb.data.repository.EditFeedRepository
@@ -40,6 +41,7 @@ class AppModule private constructor(context: Context) {
     val localContributionLog: LocalContributionLog by lazy { LocalContributionLog(appContext) }
     val localPollVoteLog: LocalPollVoteLog by lazy { LocalPollVoteLog(appContext) }
     val gameProgressStore: GameProgressStore by lazy { GameProgressStore(appContext) }
+    val backupTransferApi: BackupTransferApi by lazy { BackupTransferApi(appContext, authService) }
 
     companion object {
         @Volatile

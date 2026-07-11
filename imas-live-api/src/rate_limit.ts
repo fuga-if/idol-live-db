@@ -40,6 +40,10 @@ const LIMITS: Record<string, number> = {
   // app_attest: アプリ証明 (/app/*) の IP 単位上限。正規端末は 1 日数回程度。
   // Google Play Integrity / ECDSA 検証コストのクォータ枯渇 (自爆 DoS) を防ぐ一次防御。
   app_attest: 50,
+  // transfer_create: 引き継ぎコード発行。機種変更等での利用を想定し控えめ。
+  transfer_create: 5,
+  // transfer_fetch: 引き継ぎコード取得 (入力ミスの再試行を考慮しやや緩め)。
+  transfer_fetch: 20,
 };
 
 /**

@@ -51,6 +51,30 @@ final class LocalPollVoteLog {
         UserDefaults.standard.removeObject(forKey: key)
     }
 
+    // MARK: - バックアップ
+
+    /// バックアップ書き出し用に現在の投票履歴を並べ替え済みの配列で返す。
+    func allEntries() -> [BackupPollVote] {
+        votes.map { BackupPollVote(pollId: $0.key, entityIds: Array($0.value).sorted()) }
+    }
+
+    /// バックアップからの復元 (非破壊): 既存に無い entityId のみ追加する。戻り値は追加件数。
+    @discardableResult
+    func mergeIfAbsent(_ entries: [BackupPollVote]) -> Int {
+        var added = 0
+        for entry in entries {
+            var current = votes[entry.pollId] ?? []
+            for entityId in entry.entityIds where current.insert(entityId).inserted {
+                added += 1
+            }
+            if !current.isEmpty {
+                votes[entry.pollId] = current
+            }
+        }
+        if added > 0 { save() }
+        return added
+    }
+
     // MARK: - 永続化 (UserDefaults)
 
     private func load() {

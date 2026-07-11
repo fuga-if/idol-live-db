@@ -91,6 +91,20 @@ class UserMarkRepository(private val db: AppDatabase) {
         val idao = db.idolDao()
         return ids.mapNotNull { idao.fetchIdol(it) }
     }
+
+    /** バックアップエクスポート用の全件取得。 */
+    suspend fun getAll(): List<UserMark> = dao.getAll()
+
+    /**
+     * バックアップからの復元 (非破壊): ローカルに無い (entityType, entityId, kind) の組だけ追加する。
+     * 既存のマークは一切上書きしない。
+     */
+    suspend fun restoreIfAbsent(marks: List<UserMark>): Int {
+        val existingKeys = dao.getAll().map { Triple(it.entityType, it.entityId, it.kind) }.toSet()
+        val toInsert = marks.filter { Triple(it.entityType, it.entityId, it.kind) !in existingKeys }
+        if (toInsert.isNotEmpty()) dao.insertAll(toInsert)
+        return toInsert.size
+    }
 }
 
 data class AttendedEventTypeSets(

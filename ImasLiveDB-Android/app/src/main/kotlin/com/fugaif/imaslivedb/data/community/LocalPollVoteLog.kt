@@ -41,6 +41,31 @@ class LocalPollVoteLog(context: Context) {
         save(updated)
     }
 
+    /** バックアップエクスポート用の全件取得。 */
+    fun allEntries(): Map<String, Set<String>> = _votes.value
+
+    /**
+     * バックアップからの復元 (非破壊): 存在しない (pollId, entityId) の組だけ追加する。
+     * 戻り値は新規に追加された組の数。
+     */
+    fun mergeIfAbsent(entries: Map<String, Set<String>>): Int {
+        var added = 0
+        var updated = _votes.value
+        entries.forEach { (pollId, entityIds) ->
+            val current = updated[pollId] ?: emptySet()
+            val missing = entityIds - current
+            if (missing.isNotEmpty()) {
+                updated = updated + (pollId to (current + missing))
+                added += missing.size
+            }
+        }
+        if (added > 0) {
+            _votes.value = updated
+            save(updated)
+        }
+        return added
+    }
+
     private fun load(): Map<String, Set<String>> {
         val raw = prefs.getString(KEY, null) ?: return emptyMap()
         return try {

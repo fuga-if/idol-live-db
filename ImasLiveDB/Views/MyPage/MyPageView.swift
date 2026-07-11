@@ -1,5 +1,6 @@
 import os
 import SwiftUI
+import UniformTypeIdentifiers
 import UserNotifications
 
 struct MyPageView: View {
@@ -60,6 +61,21 @@ struct MyPageView: View {
     @State private var isSavingName = false
     @State private var nameErrorMessage: String?
 
+    // MARK: - バックアップ/引き継ぎコード
+    /// 復元時に端末IDも引き継ぐか (上級者向け・既定OFF)。同一端末からの復元でない限りOFFのままにすべき。
+    @AppStorage("backup_restore_device_id") private var restoreDeviceIdOnImport: Bool = false
+    @State private var isCreatingTransferCode = false
+    @State private var transferCode: String?
+    @State private var transferCodeExpiresAt: Date?
+    @State private var transferCodeErrorMessage: String?
+    @State private var importCodeInput = ""
+    @State private var isImportingByCode = false
+    @State private var backupFileURL: URL?
+    @State private var exportErrorMessage: String?
+    @State private var showBackupFileImporter = false
+    @State private var importResultMessage: String?
+    @State private var importErrorMessage: String?
+
     // admin モデレーション導線。確定契約 §1 で公開フィードは editorId を返さない
     // (編集者匿名性) ため、admin は対象ユーザー ID を直接指定してモデレーション画面を開く。
     @State private var showModerationPrompt = false
@@ -87,6 +103,7 @@ struct MyPageView: View {
     private var lowerSections: some View {
         settingsSection
         dataSyncSection
+        dataBackupSection
         if let stats = dbStats {
             dataStatsSection(stats)
         }
@@ -208,6 +225,44 @@ struct MyPageView: View {
                 Button("OK", role: .cancel) { deleteAccountErrorMessage = nil }
             } message: {
                 Text(deleteAccountErrorMessage ?? "")
+            }
+            .alert("引き継ぎコードの発行に失敗しました", isPresented: Binding(
+                get: { transferCodeErrorMessage != nil },
+                set: { if !$0 { transferCodeErrorMessage = nil } }
+            )) {
+                Button("OK", role: .cancel) { transferCodeErrorMessage = nil }
+            } message: {
+                Text(transferCodeErrorMessage ?? "")
+            }
+            .alert("バックアップの保存に失敗しました", isPresented: Binding(
+                get: { exportErrorMessage != nil },
+                set: { if !$0 { exportErrorMessage = nil } }
+            )) {
+                Button("OK", role: .cancel) { exportErrorMessage = nil }
+            } message: {
+                Text(exportErrorMessage ?? "")
+            }
+            .fileImporter(isPresented: $showBackupFileImporter, allowedContentTypes: [.json]) { result in
+                switch result {
+                case .success(let url):
+                    Task { await importBackupFromFile(url) }
+                case .failure(let error):
+                    importErrorMessage = error.localizedDescription
+                }
+            }
+            .alert(
+                importErrorMessage != nil ? "復元に失敗しました" : "復元しました",
+                isPresented: Binding(
+                    get: { importResultMessage != nil || importErrorMessage != nil },
+                    set: { if !$0 { importResultMessage = nil; importErrorMessage = nil } }
+                )
+            ) {
+                Button("OK", role: .cancel) {
+                    importResultMessage = nil
+                    importErrorMessage = nil
+                }
+            } message: {
+                Text(importErrorMessage ?? importResultMessage ?? "")
             }
             .overlay {
                 if importer.isImporting {
@@ -664,6 +719,93 @@ struct MyPageView: View {
         .listRowSeparatorTint(DS.sep)
     }
 
+    // MARK: - Data Backup Section
+
+    @ViewBuilder
+    private var dataBackupSection: some View {
+        Section {
+            if let code = transferCode {
+                VStack(alignment: .leading, spacing: DS.sp2) {
+                    Text(code)
+                        .font(.system(.title, design: .monospaced, weight: .bold))
+                        .textSelection(.enabled)
+                    if let expiresAt = transferCodeExpiresAt {
+                        Text("24時間有効・1回のみ使用可能です (期限: \(expiresAt.formatted(date: .abbreviated, time: .shortened)))")
+                            .font(.imasCaption)
+                            .foregroundStyle(DS.ink2)
+                    }
+                    Button {
+                        UIPasteboard.general.string = code
+                    } label: {
+                        Label("コピー", systemImage: "doc.on.doc")
+                    }
+                    .font(.imasCaption)
+                }
+                .padding(.vertical, 4)
+            }
+            Button {
+                AppAnalytics.tap("my_page.backup_create_transfer_code")
+                Task { await createTransferCode() }
+            } label: {
+                if isCreatingTransferCode {
+                    HStack {
+                        ProgressView()
+                        Text("発行中...")
+                    }
+                } else {
+                    Label("引き継ぎコードを発行する", systemImage: "arrow.up.doc")
+                }
+            }
+            .disabled(isCreatingTransferCode)
+
+            HStack {
+                TextField("引き継ぎコード", text: $importCodeInput)
+                    .textInputAutocapitalization(.characters)
+                    .autocorrectionDisabled()
+                Button {
+                    AppAnalytics.tap("my_page.backup_import_by_code")
+                    Task { await importByCode() }
+                } label: {
+                    if isImportingByCode {
+                        ProgressView()
+                    } else {
+                        Text("復元")
+                    }
+                }
+                .disabled(isImportingByCode || importCodeInput.trimmingCharacters(in: .whitespaces).isEmpty)
+            }
+
+            Button {
+                AppAnalytics.tap("my_page.backup_export_file")
+                exportBackupFile()
+            } label: {
+                Label("ファイルに保存する", systemImage: "square.and.arrow.up")
+            }
+            if let url = backupFileURL {
+                ShareLink(item: url) {
+                    Label("バックアップファイルを共有", systemImage: "square.and.arrow.up.on.square")
+                        .font(.imasCaption)
+                        .foregroundStyle(DS.ink2)
+                }
+            }
+
+            Button {
+                AppAnalytics.tap("my_page.backup_import_file")
+                showBackupFileImporter = true
+            } label: {
+                Label("ファイルから復元する", systemImage: "square.and.arrow.down")
+            }
+
+            Toggle("復元時に端末IDも引き継ぐ(上級者向け・通常はOFF)", isOn: $restoreDeviceIdOnImport)
+        } header: {
+            Text("バックアップ")
+        } footer: {
+            Text("担当/お気に入りはiCloudで自動バックアップされていますが、これは投票履歴・端末IDも含めた手動バックアップです。機種変更やAndroid版への移行、iCloudが使えない場合にご利用ください。同一端末からの復元でない場合は「端末IDも引き継ぐ」はオフのままにしてください。引き継ぎコードの発行・復元にはログインが必要です。ファイル保存はログイン不要です。")
+        }
+        .listRowBackground(DS.surface)
+        .listRowSeparatorTint(DS.sep)
+    }
+
     // MARK: - Data Stats Section
 
     @ViewBuilder
@@ -770,6 +912,73 @@ struct MyPageView: View {
             try await AuthService.shared.deleteAccount()
         } catch {
             deleteAccountErrorMessage = error.localizedDescription
+        }
+    }
+
+    // MARK: - Backup / Transfer Code
+
+    private func createTransferCode() async {
+        isCreatingTransferCode = true
+        defer { isCreatingTransferCode = false }
+        do {
+            let json = try BackupExportImportService.buildEnvelopeJSON(database: database)
+            let (code, expiresAt) = try await BackupTransferClient.createTransferCode(payloadJSON: json)
+            transferCode = code
+            transferCodeExpiresAt = expiresAt
+        } catch {
+            transferCodeErrorMessage = error.localizedDescription
+        }
+    }
+
+    private func importByCode() async {
+        let code = importCodeInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !code.isEmpty else { return }
+        isImportingByCode = true
+        defer { isImportingByCode = false }
+        do {
+            let json = try await BackupTransferClient.fetchTransferCode(code)
+            applyBackupImport(json: json)
+            importCodeInput = ""
+        } catch {
+            importErrorMessage = error.localizedDescription
+        }
+    }
+
+    private func exportBackupFile() {
+        do {
+            backupFileURL = try BackupExportImportService.exportToFile(database: database)
+        } catch {
+            exportErrorMessage = error.localizedDescription
+        }
+    }
+
+    private func importBackupFromFile(_ url: URL) async {
+        let accessed = url.startAccessingSecurityScopedResource()
+        defer { if accessed { url.stopAccessingSecurityScopedResource() } }
+        do {
+            let json = try String(contentsOf: url, encoding: .utf8)
+            applyBackupImport(json: json)
+        } catch {
+            importErrorMessage = error.localizedDescription
+        }
+    }
+
+    /// 引き継ぎコード復元・ファイル復元の共通処理。結果/エラーをアラート用の State に反映する。
+    private func applyBackupImport(json: String) {
+        do {
+            let result = try BackupExportImportService.importEnvelopeJSON(
+                json, database: database, restoreDeviceId: restoreDeviceIdOnImport
+            )
+            var message = "担当/お気に入り等を \(result.addedMarks) 件、投票履歴を \(result.addedVotes) 件 追加しました。"
+            if result.skippedMarks > 0 {
+                message += "\n(\(result.skippedMarks) 件は形式不正のためスキップされました)"
+            }
+            if result.deviceIdRestored {
+                message += "\n端末IDも復元しました。"
+            }
+            importResultMessage = message
+        } catch {
+            importErrorMessage = error.localizedDescription
         }
     }
 
