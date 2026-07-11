@@ -2667,6 +2667,62 @@ final class AppDatabase: @unchecked Sendable {
         }
     }
 
+    // MARK: - PersonalTag Methods (個人用タグ、完全ローカル専用・サーバー非送信)
+
+    /// 同一 (entity_type, entity_id, tag_name) の二重登録は無視する (INSERT OR IGNORE 相当)。
+    func addPersonalTag(entityType: String, entityId: String, tagName: String) throws {
+        try dbQueue.write { db in
+            let tag = PersonalTag(entityType: entityType, entityId: entityId, tagName: tagName,
+                                   createdAt: ISO8601DateFormatter.shared.string(from: Date()))
+            try tag.insert(db, onConflict: .ignore)
+        }
+    }
+
+    func removePersonalTag(entityType: String, entityId: String, tagName: String) throws {
+        try dbQueue.write { db in
+            _ = try PersonalTag.filter(
+                PersonalTag.Columns.entityType == entityType &&
+                PersonalTag.Columns.entityId == entityId &&
+                PersonalTag.Columns.tagName == tagName
+            ).deleteAll(db)
+        }
+    }
+
+    func fetchPersonalTags(entityType: String, entityId: String) throws -> [PersonalTag] {
+        try dbQueue.read { db in
+            try PersonalTag.filter(
+                PersonalTag.Columns.entityType == entityType &&
+                PersonalTag.Columns.entityId == entityId
+            ).order(PersonalTag.Columns.createdAt).fetchAll(db)
+        }
+    }
+
+    /// 将来のバックアップ機能連携用 (現状はローカル保存のみで未使用)。
+    func allPersonalTags() throws -> [PersonalTag] {
+        try dbQueue.read { db in try PersonalTag.fetchAll(db) }
+    }
+
+    /// バックアップからの非破壊復元: ローカルに無い (entity,id,tagName) の行だけ追加する。
+    /// UserMark の restoreUserMarksIfAbsent と同じ方針で、既存ローカル行は上書き/削除しない。
+    @discardableResult
+    func restorePersonalTagsIfAbsent(_ tags: [PersonalTag]) throws -> Int {
+        try dbQueue.write { db in
+            var inserted = 0
+            for t in tags {
+                let exists = try PersonalTag
+                    .filter(PersonalTag.Columns.entityType == t.entityType
+                            && PersonalTag.Columns.entityId == t.entityId
+                            && PersonalTag.Columns.tagName == t.tagName)
+                    .fetchCount(db) > 0
+                if !exists {
+                    try t.insert(db)
+                    inserted += 1
+                }
+            }
+            return inserted
+        }
+    }
+
     // MARK: - Auto Collected (参加ライブから自動判定)
 
     /// 指定 idol_id 群のうち、 いずれかが歌唱者 (role='original') として紐付いてる song_id 集合。

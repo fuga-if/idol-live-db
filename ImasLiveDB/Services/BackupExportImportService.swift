@@ -12,6 +12,7 @@ struct BackupPayload: Codable {
     var deviceId: String
     var userMarks: [BackupUserMark]
     var pollVotes: [BackupPollVote]
+    var personalTags: [BackupPersonalTag]
 }
 
 struct BackupUserMark: Codable {
@@ -27,6 +28,15 @@ struct BackupUserMark: Codable {
 struct BackupPollVote: Codable {
     var pollId: String
     var entityIds: [String]
+}
+
+/// 個人用タグ (ローカル専用・サーバー非送信)。バックアップ/引き継ぎコードには含めて機種変更・
+/// 再インストールで失われないようにするが、コミュニティタグと違いサーバーには一切送信しない。
+struct BackupPersonalTag: Codable {
+    var entityType: String
+    var entityId: String
+    var tagName: String
+    var createdAt: String
 }
 
 // MARK: - Envelope
@@ -59,6 +69,7 @@ enum BackupError: LocalizedError {
 struct BackupImportResult {
     var addedMarks: Int
     var addedVotes: Int
+    var addedPersonalTags: Int
     var deviceIdRestored: Bool
     var skippedMarks: Int
 }
@@ -85,6 +96,9 @@ enum BackupExportImportService {
             )
         }
         let votes = LocalPollVoteLog.shared.allEntries()
+        let personalTags = try database.allPersonalTags().map {
+            BackupPersonalTag(entityType: $0.entityType, entityId: $0.entityId, tagName: $0.tagName, createdAt: $0.createdAt)
+        }
 
         let payload = BackupPayload(
             schemaVersion: currentSchemaVersion,
@@ -93,7 +107,8 @@ enum BackupExportImportService {
             appVersion: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown",
             deviceId: DeviceIdentity.shared,
             userMarks: marks,
-            pollVotes: votes
+            pollVotes: votes,
+            personalTags: personalTags
         )
 
         let encoder = JSONEncoder()
@@ -197,8 +212,28 @@ enum BackupExportImportService {
             }
         }
 
+        // personalTags は古いバックアップ (schemaVersion 1 の追加前) には存在しないため、無ければ空扱い。
+        var personalTags: [PersonalTag] = []
+        if let rawTags = topLevel["personalTags"] as? [[String: Any]] {
+            for raw in rawTags {
+                do {
+                    let data = try JSONSerialization.data(withJSONObject: raw)
+                    let tag = try decoder.decode(BackupPersonalTag.self, from: data)
+                    personalTags.append(PersonalTag(
+                        entityType: tag.entityType,
+                        entityId: tag.entityId,
+                        tagName: tag.tagName,
+                        createdAt: tag.createdAt
+                    ))
+                } catch {
+                    skipped += 1
+                }
+            }
+        }
+
         let addedMarks = try database.restoreUserMarksIfAbsent(marks)
         let addedVotes = LocalPollVoteLog.shared.mergeIfAbsent(votes)
+        let addedPersonalTags = try database.restorePersonalTagsIfAbsent(personalTags)
 
         var deviceIdRestored = false
         if restoreDeviceId, let deviceId = topLevel["deviceId"] as? String, !deviceId.isEmpty {
@@ -209,6 +244,7 @@ enum BackupExportImportService {
         return BackupImportResult(
             addedMarks: addedMarks,
             addedVotes: addedVotes,
+            addedPersonalTags: addedPersonalTags,
             deviceIdRestored: deviceIdRestored,
             skippedMarks: skipped
         )

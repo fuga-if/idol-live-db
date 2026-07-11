@@ -799,7 +799,9 @@ private struct AttendancePanel: View {
                     navigate(.idol(idol))
                 } label: {
                     VStack(spacing: 4) {
-                        IdolAvatarView(idol: idol, size: 56)
+                        // isPick は使わず roleAvatarRing で独自の accent リングを重ねるため、
+                        // 担当リング分の外形余白は予約しない (可視アバターぴったりの size に戻す)。
+                        IdolAvatarView(idol: idol, size: 56, reservesPickRing: false)
                             .overlay { roleAvatarRing(show: ringAccent) }
                         ImasTagChip(text: chipText, kind: chipKind, seed: seed, brand: brandSeed)
                         Text(idol.shortName)

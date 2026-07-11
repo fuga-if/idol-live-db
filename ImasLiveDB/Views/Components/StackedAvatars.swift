@@ -30,7 +30,9 @@ struct StackedAvatars: View {
     private var stackBody: some View {
         HStack(spacing: -(size * 0.4)) {
             ForEach(Array(idols.prefix(maxVisible).enumerated()), id: \.offset) { idx, idol in
-                IdolAvatarView(idol: idol, size: size)
+                // isPick は使わずここで独自の背景色リングを重ねるため、担当リング分の外形余白は
+                // 予約しない (予約すると可視アバターより一回り大きい場所にリングが浮いて見える)。
+                IdolAvatarView(idol: idol, size: size, reservesPickRing: false)
                     .overlay(
                         Circle().strokeBorder(Color(.systemBackground), lineWidth: 2)
                     )

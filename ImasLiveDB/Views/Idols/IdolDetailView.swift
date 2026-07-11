@@ -33,6 +33,8 @@ struct IdolDetailView: View {
     @State private var showCommunityLoginPrompt = false
     @State private var showingNote = false
     @State private var noteDraft = ""
+    @State private var personalTagService = PersonalTagService.shared
+    @State private var newPersonalTagName = ""
 
     @Environment(\.colorScheme) private var scheme
 
@@ -161,7 +163,13 @@ struct IdolDetailView: View {
                             .background(t.accent, in: Circle())
                             .overlay(Circle().strokeBorder(DS.surface, lineWidth: 2))
                     }
-                    .offset(x: 4, y: 4)
+                    // IdolAvatarView の外形フレームは isPick に関わらず一定 (担当リング込みサイズ) だが、
+                    // isPick=false では可視アバターがその中央に余白 ImasAvatar.ringPadding 分だけ
+                    // 小さく描画される。ボタンをリングの有無に関係なく可視アバターの縁に揃えるため補正する。
+                    .offset(
+                        x: isPick ? 4 : 4 - ImasAvatar.ringPadding,
+                        y: isPick ? 4 : 4 - ImasAvatar.ringPadding
+                    )
                 }
 
                 VStack(alignment: .leading, spacing: 3) {
@@ -485,6 +493,7 @@ struct IdolDetailView: View {
             PollAchievementBadges(entityId: idol.id)
             InlineLoginPrompt(message: "タグ付け・投票にはログインが必要です", seed: seed)
             communityIdolTags
+            personalIdolTags
             if !similarTagIdols.isEmpty { communitySimilarIdols }
         }
         .padding(.top, DS.sp4)
@@ -551,6 +560,65 @@ struct IdolDetailView: View {
                                seed: seed)
             }
         }
+    }
+
+    /// マイタグ (個人用タグ)。コミュニティタグと違いローカル専用・サーバー非送信。
+    /// 見た目もコミュニティタグ (themed/selected の彩色チップ) とはっきり区別し、
+    /// グレー系 + 鍵アイコンの neutral チップで「自分だけに見える」ことを示す。
+    @ViewBuilder
+    private var personalIdolTags: some View {
+        let tags = personalTagService.tags(for: "idol", entityId: idol.id)
+        VStack(alignment: .leading, spacing: DS.sp3) {
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 6) {
+                    Image(systemName: "lock.fill").font(.imasScaled(13, weight: .semibold)).foregroundStyle(DS.ink3)
+                    Text("マイタグ").font(.imasTitle3.weight(.bold)).foregroundStyle(DS.ink)
+                }
+                Text("自分だけに表示されます (コミュニティには公開されません)")
+                    .font(.imasCaption).foregroundStyle(DS.ink3)
+            }
+            if !tags.isEmpty {
+                FlowLayout(spacing: 8) {
+                    ForEach(tags) { tag in
+                        ImasChip(text: tag.tagName, systemImage: "lock.fill", style: .neutral)
+                            .contextMenu {
+                                Button(role: .destructive) {
+                                    personalTagService.removeTag(entityType: "idol", entityId: idol.id, name: tag.tagName)
+                                } label: { Label("マイタグを削除", systemImage: "trash") }
+                            }
+                    }
+                }
+            }
+            HStack(spacing: 8) {
+                TextField("マイタグを追加 (例: 聞いた)", text: $newPersonalTagName)
+                    .font(.imasSubhead)
+                    .foregroundStyle(DS.ink)
+                    .autocorrectionDisabled()
+                    .padding(.horizontal, 13).padding(.vertical, 8)
+                    .background(DS.fill, in: Capsule())
+                    .onChange(of: newPersonalTagName) { _, new in
+                        if new.count > 30 { newPersonalTagName = String(new.prefix(30)) }
+                    }
+                    .onSubmit(addPersonalTag)
+                Button(action: addPersonalTag) {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.imasScaled(26, weight: .semibold))
+                        .foregroundStyle(canAddPersonalTag ? DS.ink : DS.ink3)
+                }
+                .buttonStyle(.plain)
+                .disabled(!canAddPersonalTag)
+            }
+        }
+    }
+
+    private var canAddPersonalTag: Bool {
+        !newPersonalTagName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private func addPersonalTag() {
+        guard canAddPersonalTag else { return }
+        personalTagService.addTag(entityType: "idol", entityId: idol.id, name: newPersonalTagName)
+        newPersonalTagName = ""
     }
 
     /// 投稿/編集導線の共通ゲート (DetailSheet.startCommunityEdit と同じ方針)。

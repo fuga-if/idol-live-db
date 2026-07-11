@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.EventAvailable
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.HowToVote
+import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Sell
 import androidx.compose.material.icons.filled.Settings
@@ -66,6 +67,7 @@ fun ProduceScreen(
     onNavigateToMyVotes: () -> Unit,
     onNavigateToEditHistory: () -> Unit,
     onNavigateToTagList: () -> Unit,
+    onNavigateToTagActivity: () -> Unit,
     onNavigateToGamesHub: () -> Unit,
     viewModel: ProduceViewModel = viewModel()
 ) {
@@ -109,6 +111,8 @@ fun ProduceScreen(
             HubRow(Icons.Filled.HowToVote, "投票・予想", "タグ・ペンライト・ポール", DS.ink2, onNavigateToPolls)
             HorizontalDivider(color = DS.sep)
             HubRow(Icons.Filled.Sell, "みんなのタグ", "楽曲タグの作成・閲覧", DS.ink2, onNavigateToTagList)
+            HorizontalDivider(color = DS.sep)
+            HubRow(Icons.Filled.LocalFireDepartment, "タグの動き", "伸びてるタグ・急上昇の曲やアイドルをチェック", DS.ink2, onNavigateToTagActivity)
             HorizontalDivider(color = DS.sep)
             HubRow(Icons.AutoMirrored.Filled.ListAlt, "マイ投稿・編集履歴", "", DS.ink2, onNavigateToMyContributions)
             HorizontalDivider(color = DS.sep)

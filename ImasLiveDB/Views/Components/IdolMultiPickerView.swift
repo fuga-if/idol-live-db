@@ -238,7 +238,10 @@ struct IdolMultiPickerView: View {
                         .font(.imasScaled(16, weight: .semibold))
                         .foregroundStyle(isSelected ? Color.accentColor : DS.ink3)
                         .background(DS.bg, in: Circle())
-                        .offset(x: 2, y: 2)
+                        // IdolAvatarView は isPick=false でも担当リング込みの外形フレームを確保するため、
+                        // 可視アバターは中央に ImasAvatar.ringPadding 分小さく描画される。ここは isPick を
+                        // 渡さない (常に false) ので、その余白を差し引いて可視アバターの縁に揃える。
+                        .offset(x: 2 - ImasAvatar.ringPadding, y: 2 - ImasAvatar.ringPadding)
                 }
                 .opacity(isSelected ? 1 : 0.55)
             Text(idol.name)

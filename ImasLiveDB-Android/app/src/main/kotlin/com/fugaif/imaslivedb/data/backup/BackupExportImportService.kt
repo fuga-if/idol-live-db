@@ -6,9 +6,11 @@ import com.fugaif.imaslivedb.data.community.DeviceIdentity
 import com.fugaif.imaslivedb.data.community.LocalPollVoteLog
 import com.fugaif.imaslivedb.data.model.BackupPollVote
 import com.fugaif.imaslivedb.data.model.BackupUserMark
+import com.fugaif.imaslivedb.data.model.PersonalTag
 import com.fugaif.imaslivedb.data.model.UserMark
 import com.fugaif.imaslivedb.data.model.canonicalKindToAndroid
 import com.fugaif.imaslivedb.data.model.toCanonicalKind
+import com.fugaif.imaslivedb.data.repository.PersonalTagRepository
 import com.fugaif.imaslivedb.data.repository.UserMarkRepository
 import org.json.JSONArray
 import org.json.JSONObject
@@ -21,6 +23,7 @@ class BackupFormatException(message: String) : Exception(message)
 data class BackupImportResult(
     val addedMarks: Int,
     val addedVotes: Int,
+    val addedPersonalTags: Int,
     val deviceIdRestored: Boolean,
     val skippedMarks: Int
 )
@@ -37,7 +40,8 @@ object BackupExportImportService {
     suspend fun buildEnvelopeJson(
         context: Context,
         userMarkRepository: UserMarkRepository,
-        pollVoteLog: LocalPollVoteLog
+        pollVoteLog: LocalPollVoteLog,
+        personalTagRepository: PersonalTagRepository
     ): String {
         val marks = userMarkRepository.getAll()
         val marksJson = JSONArray()
@@ -61,6 +65,17 @@ object BackupExportImportService {
             )
         }
 
+        val personalTagsJson = JSONArray()
+        personalTagRepository.getAll().forEach { tag ->
+            personalTagsJson.put(
+                JSONObject()
+                    .put("entityType", tag.entityType)
+                    .put("entityId", tag.entityId)
+                    .put("tagName", tag.tagName)
+                    .put("createdAt", tag.createdAt)
+            )
+        }
+
         val payload = JSONObject()
             .put("schemaVersion", CURRENT_SCHEMA_VERSION)
             .put("exportedAt", Instant.now().toString())
@@ -69,6 +84,7 @@ object BackupExportImportService {
             .put("deviceId", DeviceIdentity.get(context))
             .put("userMarks", marksJson)
             .put("pollVotes", votesJson)
+            .put("personalTags", personalTagsJson)
 
         val payloadString = payload.toString()
         val envelope = JSONObject()
@@ -83,6 +99,7 @@ object BackupExportImportService {
         json: String,
         userMarkRepository: UserMarkRepository,
         pollVoteLog: LocalPollVoteLog,
+        personalTagRepository: PersonalTagRepository,
         restoreDeviceId: Boolean
     ): BackupImportResult {
         val envelope = try {
@@ -150,6 +167,22 @@ object BackupExportImportService {
         }
         val addedVotes = pollVoteLog.mergeIfAbsent(voteEntries)
 
+        val personalTagsArr = payload.optJSONArray("personalTags") ?: JSONArray()
+        val personalTags = (0 until personalTagsArr.length()).mapNotNull { i ->
+            try {
+                val o = personalTagsArr.getJSONObject(i)
+                PersonalTag(
+                    entityType = o.getString("entityType"),
+                    entityId = o.getString("entityId"),
+                    tagName = o.getString("tagName"),
+                    createdAt = o.getString("createdAt")
+                )
+            } catch (e: Exception) {
+                null
+            }
+        }
+        val addedPersonalTags = personalTagRepository.restoreIfAbsent(personalTags)
+
         var deviceIdRestored = false
         if (restoreDeviceId) {
             val deviceId = payload.optString("deviceId", "")
@@ -162,6 +195,7 @@ object BackupExportImportService {
         return BackupImportResult(
             addedMarks = addedMarks,
             addedVotes = addedVotes,
+            addedPersonalTags = addedPersonalTags,
             deviceIdRestored = deviceIdRestored,
             skippedMarks = skippedMarks
         )

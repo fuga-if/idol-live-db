@@ -9,6 +9,7 @@ import com.fugaif.imaslivedb.data.model.CastShowRow
 import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.data.model.IdolPerformedSong
 import com.fugaif.imaslivedb.data.model.ImasUnit
+import com.fugaif.imaslivedb.data.model.PersonalTag
 import com.fugaif.imaslivedb.data.model.Song
 import com.fugaif.imaslivedb.data.community.CommunityApi
 import com.fugaif.imaslivedb.di.AppModule
@@ -30,6 +31,8 @@ data class IdolDetailUiState(
     /** タグが似ているアイドル (この人が好きな人にはこの人も, サーバ算出)。 */
     val similarTagIdols: List<Idol> = emptyList(),
     val similarSharedTags: Map<String, Int> = emptyMap(),
+    /** 個人用タグ (端末ローカルのみ、サーバーには送信しない)。 */
+    val personalTags: List<PersonalTag> = emptyList(),
     val isLoading: Boolean = true
 ) {
     /** 出演履歴のうち今日以降で最も近い公演 (= 次の出演)。無ければ null。 */
@@ -45,6 +48,7 @@ class IdolDetailViewModel(app: Application, private val idolId: String) : Androi
     private val repo = AppModule.from(app).idolRepository
     private val songRepo = AppModule.from(app).songRepository
     private val api = AppModule.from(app).communityApi
+    private val personalTagRepo = AppModule.from(app).personalTagRepository
 
     private val _uiState = MutableStateFlow(IdolDetailUiState())
     val uiState: StateFlow<IdolDetailUiState> = _uiState.asStateFlow()
@@ -75,6 +79,28 @@ class IdolDetailViewModel(app: Application, private val idolId: String) : Androi
             )
             loadTags()
             loadSimilarIdols()
+            loadPersonalTags()
+        }
+    }
+
+    private suspend fun loadPersonalTags() {
+        val tags = personalTagRepo.tagsFor(PersonalTag.IDOL, idolId)
+        _uiState.value = _uiState.value.copy(personalTags = tags)
+    }
+
+    /** 個人用タグを追加。サーバーには送信しない。 */
+    fun addPersonalTag(name: String) {
+        viewModelScope.launch {
+            personalTagRepo.addTag(PersonalTag.IDOL, idolId, name)
+            loadPersonalTags()
+        }
+    }
+
+    /** 個人用タグを削除。 */
+    fun removePersonalTag(name: String) {
+        viewModelScope.launch {
+            personalTagRepo.removeTag(PersonalTag.IDOL, idolId, name)
+            loadPersonalTags()
         }
     }
 

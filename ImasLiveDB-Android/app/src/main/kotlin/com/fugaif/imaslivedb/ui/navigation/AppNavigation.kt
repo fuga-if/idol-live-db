@@ -51,6 +51,7 @@ import com.fugaif.imaslivedb.ui.songs.SongDetailScreen
 import com.fugaif.imaslivedb.ui.songs.SongListScreen
 import com.fugaif.imaslivedb.ui.stats.StatsScreen
 import com.fugaif.imaslivedb.ui.tags.IdolTagDetailScreen
+import com.fugaif.imaslivedb.ui.tags.TagActivityScreen
 import com.fugaif.imaslivedb.ui.tags.TagDetailScreen
 import com.fugaif.imaslivedb.ui.tags.TagListScreen
 import com.fugaif.imaslivedb.ui.units.UnitDetailScreen
@@ -427,6 +428,7 @@ private fun NavGraphBuilder.produceNavGraph(navController: NavHostController) {
             onNavigateToMyVotes = { navController.navigate(NavRoutes.MyVotes.route) },
             onNavigateToEditHistory = { navController.navigate(NavRoutes.EditHistory.route) },
             onNavigateToTagList = { navController.navigate(NavRoutes.TagList.route) },
+            onNavigateToTagActivity = { navController.navigate(NavRoutes.TagActivity.route) },
             onNavigateToGamesHub = { navController.navigate(NavRoutes.GamesHub.route) }
         )
     }
@@ -484,6 +486,15 @@ private fun NavGraphBuilder.produceNavGraph(navController: NavHostController) {
         IdolTagDetailScreen(
             tagId = tagId,
             onBack = { navController.popBackStack() },
+            onIdolClick = { navController.navigate(NavRoutes.IdolDetail.createRoute(it)) }
+        )
+    }
+    composable(NavRoutes.TagActivity.route) {
+        TagActivityScreen(
+            onBack = { navController.popBackStack() },
+            onSongTagClick = { navController.navigate(NavRoutes.TagDetail.createRoute(it)) },
+            onIdolTagClick = { navController.navigate(NavRoutes.IdolTagDetail.createRoute(it)) },
+            onSongClick = { navController.navigate(NavRoutes.SongDetail.createRoute(it)) },
             onIdolClick = { navController.navigate(NavRoutes.IdolDetail.createRoute(it)) }
         )
     }

@@ -65,6 +65,7 @@ sealed class NavRoutes(val route: String) {
             fun createRoute(tagId: String) = "idol_tag_detail/$tagId"
         }
     }
+    data object TagActivity : NavRoutes("tag_activity")
     data object GamesHub : NavRoutes("games_hub")
     data object IntroDonHome : NavRoutes("introdon_home")
     data object IntroDonSetup : NavRoutes("introdon_setup")

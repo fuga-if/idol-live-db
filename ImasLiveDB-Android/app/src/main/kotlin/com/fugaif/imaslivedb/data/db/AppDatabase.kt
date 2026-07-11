@@ -12,6 +12,7 @@ import com.fugaif.imaslivedb.data.db.dao.CommunityDao
 import com.fugaif.imaslivedb.data.db.dao.EventDao
 import com.fugaif.imaslivedb.data.db.dao.IdolDao
 import com.fugaif.imaslivedb.data.db.dao.MetaDao
+import com.fugaif.imaslivedb.data.db.dao.PersonalTagDao
 import com.fugaif.imaslivedb.data.db.dao.SearchDao
 import com.fugaif.imaslivedb.data.db.dao.SetlistDao
 import com.fugaif.imaslivedb.data.db.dao.ShowDao
@@ -27,6 +28,7 @@ import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.data.model.IdolBrand
 import com.fugaif.imaslivedb.data.model.ImasUnit
 import com.fugaif.imaslivedb.data.model.Meta
+import com.fugaif.imaslivedb.data.model.PersonalTag
 import com.fugaif.imaslivedb.data.model.SetlistItem
 import com.fugaif.imaslivedb.data.model.SetlistPerformer
 import com.fugaif.imaslivedb.data.model.Show
@@ -58,9 +60,10 @@ import com.fugaif.imaslivedb.data.model.UserMark
         UserMark::class,
         Meta::class,
         Staff::class,
-        Anniversary::class
+        Anniversary::class,
+        PersonalTag::class
     ],
-    version = 7,
+    version = 8,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -79,6 +82,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun metaDao(): MetaDao
     abstract fun syncDao(): SyncDao
     abstract fun userMarkDao(): UserMarkDao
+    abstract fun personalTagDao(): PersonalTagDao
 
     companion object {
         @Volatile
@@ -101,7 +105,7 @@ abstract class AppDatabase : RoomDatabase() {
             )
                 // スキーマ変更時は破壊的再構築せず Room Migration を書く (iOS の DatabaseMigrations と対)。
                 // UserMark 等のローカル唯一データを保全するため (.fallbackToDestructiveMigration は使わない)。
-                .addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+                .addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
                 .addCallback(seedCallback)
                 .build()
         }
@@ -212,6 +216,20 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE idols ADD COLUMN is_external INTEGER NOT NULL DEFAULT 0")
                 db.execSQL("ALTER TABLE idols ADD COLUMN aliases TEXT")
                 db.execSQL("ALTER TABLE idols ADD COLUMN voice_actors TEXT")
+            }
+        }
+
+        /** 個人用タグ (personal_tags) を追加。コミュニティタグと違いサーバーには一切送信しない端末ローカル専用データ。 */
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS personal_tags (" +
+                        "entity_type TEXT NOT NULL, " +
+                        "entity_id TEXT NOT NULL, " +
+                        "tag_name TEXT NOT NULL, " +
+                        "created_at TEXT NOT NULL, " +
+                        "PRIMARY KEY(entity_type, entity_id, tag_name))"
+                )
             }
         }
     }

@@ -19,10 +19,24 @@ struct ImasAvatar: View {
     var size: CGFloat = 40
     var isPick: Bool = false
     var imageURL: URL? = nil
+    /// true (既定) のとき、担当リング込みの外形サイズ (`size + ringPadding*2`) を isPick の値に
+    /// 関わらず常に予約する (担当/非担当混在の一覧・グリッドでの占有スペース統一が目的)。
+    /// 呼び出し元が独自に `.overlay(Circle())` 等でリングを重ねており、`isPick` を使わない場合は
+    /// false を指定して外形を可視アバターぴったり (`size`) に戻すこと。さもないと呼び出し元の
+    /// リングが可視アバターから浮いて見える。
+    var reservesPickRing: Bool = true
 
     @Environment(\.colorScheme) private var scheme
 
-    private var ringInset: CGFloat { isPick ? 5.5 : 0 }
+    /// 可視アバター (直径 size) と外形フレームの間の片側余白。isPick=false のときもこの余白ぶん
+    /// 外形フレームを広く取ることで、担当/非担当が混在する一覧・グリッドでコンポーネントの
+    /// 占有スペースを一致させる。isPick=false でオーバーレイ (編集ボタン等) を可視アバターの
+    /// 真の縁に合わせたい呼び出し元は、このオフセット分を補正すること。
+    static let ringPadding: CGFloat = 5.5
+
+    /// 担当リング込みの外形サイズ。isPick の値に関わらず常にこの枠を占有する
+    /// (reservesPickRing=false の呼び出し元は可視アバターぴったりの size に戻す)。
+    private var outerSize: CGFloat { reservesPickRing ? size + Self.ringPadding * 2 : size }
 
     var body: some View {
         let t = ImasTheme.derive(seed: seed, brand: brand, scheme: scheme)
@@ -38,7 +52,7 @@ struct ImasAvatar: View {
                 .clipShape(Circle())
                 .overlay(Circle().strokeBorder(t.ring, lineWidth: 1.5))
         }
-        .frame(width: size + ringInset * 2, height: size + ringInset * 2)
+        .frame(width: outerSize, height: outerSize)
         .accessibilityLabel(label)
     }
 

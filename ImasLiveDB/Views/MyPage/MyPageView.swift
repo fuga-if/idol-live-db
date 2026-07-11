@@ -970,6 +970,9 @@ struct MyPageView: View {
                 json, database: database, restoreDeviceId: restoreDeviceIdOnImport
             )
             var message = "担当/お気に入り等を \(result.addedMarks) 件、投票履歴を \(result.addedVotes) 件 追加しました。"
+            if result.addedPersonalTags > 0 {
+                message += "\nマイタグを \(result.addedPersonalTags) 件 追加しました。"
+            }
             if result.skippedMarks > 0 {
                 message += "\n(\(result.skippedMarks) 件は形式不正のためスキップされました)"
             }

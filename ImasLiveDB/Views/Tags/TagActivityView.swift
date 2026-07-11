@@ -11,6 +11,9 @@ struct TagActivityView: View {
     @State private var idolCache: [String: Idol] = [:]
     @State private var isLoading = true
     @State private var nextDestination: DetailDestination?
+    @State private var domainTab: Int = 0
+
+    private var selectedDomain: TagActivityDomain { domainTab == 0 ? .song : .idol }
 
     var body: some View {
         ScrollView {
@@ -20,9 +23,22 @@ struct TagActivityView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.top, DS.sp7)
                 } else if let activity, !activity.trendingTags.isEmpty || !activity.risingEntities.isEmpty || !activity.recent.isEmpty {
-                    trendingSection(activity.trendingTags)
-                    risingSection(activity.risingEntities)
-                    recentSection(activity.recent)
+                    domainPicker
+                    let trends = activity.trendingTags.filter { $0.domain == selectedDomain }
+                    let rises = activity.risingEntities.filter { $0.domain == selectedDomain }
+                    let events = activity.recent.filter { $0.domain == selectedDomain }
+                    if trends.isEmpty && rises.isEmpty && events.isEmpty {
+                        ImasEmptyState(
+                            systemImage: "tag",
+                            title: "まだ動きがありません",
+                            message: selectedDomain == .song ? "曲にタグを付けると、ここに反映されます。" : "アイドルにタグを付けると、ここに反映されます。"
+                        )
+                        .padding(.top, DS.sp6)
+                    } else {
+                        trendingSection(trends)
+                        risingSection(rises)
+                        recentSection(events)
+                    }
                 } else {
                     ImasEmptyState(
                         systemImage: "tag",
@@ -46,6 +62,10 @@ struct TagActivityView: View {
         .task { await load() }
         .refreshable { await load() }
         .trackScreen("tag_activity")
+    }
+
+    private var domainPicker: some View {
+        ImasSegmented(labels: ["曲", "アイドル"], selection: $domainTab)
     }
 
     // MARK: - 伸びてるタグ
@@ -75,15 +95,10 @@ struct TagActivityView: View {
                 if let color = trend.tagColor {
                     Circle().fill(Color(hexColor: color)).frame(width: 10, height: 10)
                 }
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(trend.tagName)
-                        .font(.imasBody.weight(.semibold))
-                        .foregroundStyle(DS.ink)
-                        .lineLimit(1)
-                    Text(trend.domain == .song ? "曲タグ" : "アイドルタグ")
-                        .font(.imasFootnote)
-                        .foregroundStyle(DS.ink3)
-                }
+                Text(trend.tagName)
+                    .font(.imasBody.weight(.semibold))
+                    .foregroundStyle(DS.ink)
+                    .lineLimit(1)
                 Spacer(minLength: 0)
                 VStack(alignment: .trailing, spacing: 1) {
                     Text("直近\(trend.recentCount)件")

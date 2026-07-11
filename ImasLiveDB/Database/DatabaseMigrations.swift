@@ -741,6 +741,25 @@ enum DatabaseMigrations {
             try db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_anniversaries_date ON anniversaries(date)")
         }
 
+        // v26: 個人用タグ (personal_tags)。コミュニティタグ (共有マスタ・サーバー同期・投票制) とは別に、
+        // ユーザーが自由入力で付ける私用の分類 (例:「聞いた」) を完全ローカル専用で保存する。
+        // サーバー(Worker)には一切送信しない。同一 (entity_type, entity_id, tag_name) は複合PKで重複排除。
+        migrator.registerMigration("v26_personal_tags") { db in
+            try db.create(table: "personal_tags", ifNotExists: true) { t in
+                t.column("entity_type", .text).notNull()
+                t.column("entity_id", .text).notNull()
+                t.column("tag_name", .text).notNull()
+                t.column("created_at", .text).notNull()
+                t.primaryKey(["entity_type", "entity_id", "tag_name"])
+            }
+            try db.create(
+                index: "idx_personal_tags_entity",
+                on: "personal_tags",
+                columns: ["entity_type", "entity_id"],
+                ifNotExists: true
+            )
+        }
+
         return migrator
     }
 }

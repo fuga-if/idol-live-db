@@ -385,6 +385,101 @@ class CommunityApi(private val appContext: Context, private val authService: Aut
         }
     }
 
+    /** タグ付けの盛り上がりの対象領域 (曲タグ / アイドルタグ)。iOS TagActivityDomain の移植。 */
+    enum class TagActivityDomain(val raw: String) {
+        SONG("song"), IDOL("idol");
+        companion object {
+            fun fromRaw(s: String?): TagActivityDomain? = entries.firstOrNull { it.raw == s }
+        }
+    }
+    /** 直近のタグ付けイベント1件。曲/アイドル名は entityId を元にクライアント側のローカル DB で解決する。 */
+    data class TagActivityEvent(
+        val domain: TagActivityDomain,
+        val entityId: String,
+        val tagId: String,
+        val tagName: String,
+        val tagColor: String?,
+        val tagCategory: String?,
+        val createdAtMs: Long
+    )
+    /** 直近 window_days 日間で伸びているタグ。 */
+    data class TagActivityTrend(
+        val domain: TagActivityDomain,
+        val tagId: String,
+        val tagName: String,
+        val tagColor: String?,
+        val tagCategory: String?,
+        val recentCount: Int,
+        val totalCount: Int
+    )
+    /** 直近 window_days 日間で特定の曲/アイドルにタグが急増した組み合わせ。 */
+    data class TagActivityRise(
+        val domain: TagActivityDomain,
+        val entityId: String,
+        val tagId: String,
+        val tagName: String,
+        val tagColor: String?,
+        val recentCount: Int
+    )
+    data class TagActivityResponse(
+        val windowDays: Int,
+        val recent: List<TagActivityEvent>,
+        val trendingTags: List<TagActivityTrend>,
+        val risingEntities: List<TagActivityRise>
+    )
+
+    /** GET /tags/activity — タグ付けの盛り上がり (直近フィード/トレンドタグ/急上昇コンテンツ)。ユーザー非依存の集計。 */
+    suspend fun tagActivity(windowDays: Int = 7): TagActivityResponse? = withContext(Dispatchers.IO) {
+        val json = get("/tags/activity?window_days=$windowDays") ?: return@withContext null
+        val recentArr = json.optJSONArray("recent") ?: JSONArray()
+        val recent = (0 until recentArr.length()).mapNotNull { i ->
+            val o = recentArr.getJSONObject(i)
+            val domain = TagActivityDomain.fromRaw(o.optString("domain")) ?: return@mapNotNull null
+            TagActivityEvent(
+                domain = domain,
+                entityId = o.optString("entity_id"),
+                tagId = o.optString("tag_id"),
+                tagName = o.optString("tag_name"),
+                tagColor = o.strOrNull("tag_color"),
+                tagCategory = o.strOrNull("tag_category"),
+                createdAtMs = epochSecToMs(o.optLong("created_at"))
+            )
+        }
+        val trendArr = json.optJSONArray("trending_tags") ?: JSONArray()
+        val trendingTags = (0 until trendArr.length()).mapNotNull { i ->
+            val o = trendArr.getJSONObject(i)
+            val domain = TagActivityDomain.fromRaw(o.optString("domain")) ?: return@mapNotNull null
+            TagActivityTrend(
+                domain = domain,
+                tagId = o.optString("tag_id"),
+                tagName = o.optString("tag_name"),
+                tagColor = o.strOrNull("tag_color"),
+                tagCategory = o.strOrNull("tag_category"),
+                recentCount = o.optInt("recent_count"),
+                totalCount = o.optInt("total_count")
+            )
+        }
+        val riseArr = json.optJSONArray("rising_entities") ?: JSONArray()
+        val risingEntities = (0 until riseArr.length()).mapNotNull { i ->
+            val o = riseArr.getJSONObject(i)
+            val domain = TagActivityDomain.fromRaw(o.optString("domain")) ?: return@mapNotNull null
+            TagActivityRise(
+                domain = domain,
+                entityId = o.optString("entity_id"),
+                tagId = o.optString("tag_id"),
+                tagName = o.optString("tag_name"),
+                tagColor = o.strOrNull("tag_color"),
+                recentCount = o.optInt("recent_count")
+            )
+        }
+        TagActivityResponse(
+            windowDays = json.optInt("window_days", windowDays),
+            recent = recent,
+            trendingTags = trendingTags,
+            risingEntities = risingEntities
+        )
+    }
+
     data class FavoriteRankingDto(val songId: String, val count: Int)
 
     /** GET /favorites/ranking — お気に入りの曲別集計 (曲メタは呼び出し側でローカルカタログから解決する)。 */

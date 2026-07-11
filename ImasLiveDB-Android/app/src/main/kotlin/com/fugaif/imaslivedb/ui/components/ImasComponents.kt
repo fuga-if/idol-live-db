@@ -57,9 +57,10 @@ fun ImasAvatar(
     imageUrl: String? = null
 ) {
     val t = ImasTheme.derive(seed, brand, dark = true)
-    val ringInset = if (isPick) 5.5.dp else 0.dp
+    // 占有スペースは isPick に関わらず常に一定 (担当リング分の size + 11.dp) にする。
+    // isPick で外形が変わると一覧/グリッド/詳細でレイアウトが崩れるため (リングは中央に重ねて描画するのみ)。
     Box(
-        modifier = Modifier.size(size + ringInset * 2),
+        modifier = Modifier.size(size + 11.dp),
         contentAlignment = Alignment.Center
     ) {
         if (isPick) {

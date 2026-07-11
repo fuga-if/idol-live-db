@@ -11,7 +11,8 @@ data class BackupPayload(
     val appVersion: String,
     val deviceId: String,
     val userMarks: List<BackupUserMark>,
-    val pollVotes: List<BackupPollVote>
+    val pollVotes: List<BackupPollVote>,
+    val personalTags: List<BackupPersonalTag>
 )
 
 data class BackupUserMark(
@@ -27,6 +28,14 @@ data class BackupUserMark(
 data class BackupPollVote(
     val pollId: String,
     val entityIds: List<String>
+)
+
+/** 個人用タグ (端末ローカル専用、サーバーには送信しないがバックアップ/引き継ぎコードの対象にはなる)。 */
+data class BackupPersonalTag(
+    val entityType: String,
+    val entityId: String,
+    val tagName: String,
+    val createdAt: String
 )
 
 /** Android 内部表記 (pick/memo 等) → iOS と共通の canonical kind。 */
