@@ -150,6 +150,7 @@ Cron (scheduled) は `rate_limits` テーブルの日次掃除 (7 日より古�
 | POST | /songs/:id/tags | Bearer | 曲にタグ付与 |
 | DELETE | /songs/:id/tags/:tid | Bearer | 曲のタグ削除 |
 | GET | /songs/:id/similar | - | 類似曲 (タグ共起ベース) |
+| GET | /idols/:id/similar | - | 似てるアイドル (タグ共起ベース) |
 
 ### 管理 (admin)
 

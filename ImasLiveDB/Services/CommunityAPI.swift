@@ -30,6 +30,10 @@ actor CommunityAPI {
     private var similarSongsCache: [String: (response: SimilarSongsResponse, at: Date)] = [:]
     private let similarSongsCacheTTL: TimeInterval = 600
 
+    /// タグ類似アイドル (/idols/:id/similar) の TTL キャッシュ。idol_id 単位。similarSongsCache と同じ理由・同じ TTL。
+    private var similarIdolsCache: [String: (response: SimilarIdolsResponse, at: Date)] = [:]
+    private let similarIdolsCacheTTL: TimeInterval = 600
+
     /// ペンライト投票集計 (/penlight/votes/:id) の TTL キャッシュ。song_id 単位。
     /// レスポンスに my_vote (自分の投票) が含まれるため **ユーザー固有** であり、
     /// エッジ共有キャッシュには絶対載せられない (端末ごとに my_vote が異なる)。
@@ -72,6 +76,8 @@ actor CommunityAPI {
         }
         if let idolId {
             idolTagsCache[idolId] = nil
+            // 自分のタグ付けは類似関係 (共有タグ) を変えうるので、そのアイドルの類似キャッシュも捨てる。
+            similarIdolsCache[idolId] = nil
         }
     }
 
@@ -341,6 +347,18 @@ actor CommunityAPI {
             "GET", path: "/songs/\(songId)/similar", query: ["limit": "\(limit)"]
         )
         similarSongsCache[songId] = (response, Date())
+        return response
+    }
+
+    /// タグが似ているアイドル (このアイドルが好きな人にはこれもおすすめ)。共有タグ数の多い順。
+    func similarIdolsByTags(idolId: String, limit: Int = 10) async throws -> SimilarIdolsResponse {
+        if let hit = similarIdolsCache[idolId], Date().timeIntervalSince(hit.at) < similarIdolsCacheTTL {
+            return hit.response
+        }
+        let response: SimilarIdolsResponse = try await APIClient.shared.request(
+            "GET", path: "/idols/\(idolId)/similar", query: ["limit": "\(limit)"]
+        )
+        similarIdolsCache[idolId] = (response, Date())
         return response
     }
 

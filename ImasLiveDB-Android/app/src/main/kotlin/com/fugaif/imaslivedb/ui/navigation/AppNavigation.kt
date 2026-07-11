@@ -180,6 +180,9 @@ private fun NavGraphBuilder.eventsNavGraph(navController: NavHostController) {
             onNavigateToShowDetail = { showId ->
                 navController.navigate(NavRoutes.Setlist.createRoute(showId))
             },
+            onNavigateToIdolDetail = { otherIdolId ->
+                navController.navigate(NavRoutes.IdolDetail.createRoute(otherIdolId))
+            },
             onPollClick = { pollId ->
                 navController.navigate(NavRoutes.PollDetail.createRoute(pollId))
             },
@@ -276,6 +279,9 @@ private fun NavGraphBuilder.songsNavGraph(navController: NavHostController) {
             onNavigateToShowDetail = { showId ->
                 navController.navigate(NavRoutes.Setlist.createRoute(showId))
             },
+            onNavigateToIdolDetail = { otherIdolId ->
+                navController.navigate(NavRoutes.IdolDetail.createRoute(otherIdolId))
+            },
             onPollClick = { pollId ->
                 navController.navigate(NavRoutes.PollDetail.createRoute(pollId))
             },
@@ -333,6 +339,9 @@ private fun NavGraphBuilder.idolsNavGraph(navController: NavHostController) {
             },
             onNavigateToShowDetail = { showId ->
                 navController.navigate(NavRoutes.Setlist.createRoute(showId))
+            },
+            onNavigateToIdolDetail = { otherIdolId ->
+                navController.navigate(NavRoutes.IdolDetail.createRoute(otherIdolId))
             },
             onPollClick = { pollId ->
                 navController.navigate(NavRoutes.PollDetail.createRoute(pollId))
@@ -604,6 +613,7 @@ private fun NavGraphBuilder.detailRoutes(navController: NavHostController) {
             onNavigateToUnitDetail = { navController.navigate(NavRoutes.UnitDetail.createRoute(it)) },
             onNavigateToSongDetail = { navController.navigate(NavRoutes.SongDetail.createRoute(it)) },
             onNavigateToShowDetail = { navController.navigate(NavRoutes.Setlist.createRoute(it)) },
+            onNavigateToIdolDetail = { navController.navigate(NavRoutes.IdolDetail.createRoute(it)) },
             onPollClick = { navController.navigate(NavRoutes.PollDetail.createRoute(it)) },
             onIdolTagClick = { navController.navigate(NavRoutes.IdolTagDetail.createRoute(it)) }
         )

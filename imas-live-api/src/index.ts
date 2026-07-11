@@ -503,6 +503,7 @@ function isCommunityRead(path: string, method: string): boolean {
   // D1 固定無料枠に乗る集計 read を網羅する (CLAUDE.md 名指しの予想/いいね/ランキング含む)
   if (/^\/(polls|favorites|penlight|tags|master|leaderboard)(\/|$)/.test(path)) return true;
   if (/^\/songs\/[^/]+\/(tags|similar)$/.test(path)) return true;
+  if (/^\/idols\/[^/]+\/similar$/.test(path)) return true;
   if (/^\/shows\/[^/]+\/(predictions|likes)$/.test(path)) return true;
   return false;
 }
@@ -3493,6 +3494,40 @@ export default {
         // 全ユーザ共有キャッシュして D1 負荷を削減。曲詳細を開くたびに叩かれるため
         // 効果が大きい。鮮度は粗くてよい (max-age 10分 + SWR 1時間)。
         return json({ song_id: songId, songs }, 200, {
+          "Cache-Control": "public, max-age=600, stale-while-revalidate=3600",
+        });
+      }
+
+      // ----------------------------------------------------------------
+      // GET /idols/:idol_id/similar — タグが似ているアイドル (この人が好きな人にはこの人もおすすめ)
+      //   共有タグ数を第一キー、共有タグの票数合計を第二キーで近い順に並べる。
+      //   D1 には idols マスタテーブルが存在しない (0019 で削除済み。マスタの真実は
+      //   クライアント bundle の master.sqlite / CloudKit) ため、songs 版と同じく
+      //   idol_id は不透明文字列として集計するのみで、外部ゲスト演者の除外はしない
+      //   (is_external はクライアント側の master.sqlite にしか無い情報)。
+      // ----------------------------------------------------------------
+      const idolSimilarMatch = path.match(/^\/idols\/([^/]+)\/similar$/);
+      if (idolSimilarMatch && request.method === "GET") {
+        const idolId = decodeURIComponent(idolSimilarMatch[1]);
+        const limitParam = parseInt(url.searchParams.get("limit") ?? "10", 10);
+        const limit = Math.min(Math.max(Number.isFinite(limitParam) ? limitParam : 10, 1), 30);
+
+        const { results: idols } = await env.DB.prepare(
+          `SELECT it2.idol_id AS idol_id,
+                  COUNT(*) AS shared_tags,
+                  SUM(it2.vote_count) AS score
+           FROM idol_tags it1
+           JOIN idol_tags it2 ON it2.tag_id = it1.tag_id AND it2.idol_id != it1.idol_id
+           JOIN idol_tag_master m ON m.id = it1.tag_id AND m.status != 'removed'
+           WHERE it1.idol_id = ?
+           GROUP BY it2.idol_id
+           ORDER BY shared_tags DESC, score DESC
+           LIMIT ?`
+        ).bind(idolId, limit).all();
+
+        // タグ類似は完全にユーザー非依存 (my_* フラグを一切含まない集計のみ)。songs 版と同じ理由で
+        // エッジ (Cloudflare) で全ユーザ共有キャッシュして D1 負荷を削減する。
+        return json({ idol_id: idolId, idols }, 200, {
           "Cache-Control": "public, max-age=600, stale-while-revalidate=3600",
         });
       }

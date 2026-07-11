@@ -6,6 +6,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -35,6 +37,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.SubcomposeAsyncImage
+import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasTheme
 
@@ -464,5 +467,45 @@ fun ImasAwardChip(title: String, rank: Int) {
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
+    }
+}
+
+/**
+ * アバター + 名前のグリッド表示。原曲アイドル・歌唱アイドル一覧 (SongDetailScreen) と
+ * タグが似ているアイドル (IdolDetailScreen) で共用する。
+ * [badge] は idolId -> 共有タグ数 のマップ。渡すと名前の下に「タグN個一致」を表示する。
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun IdolGridSection(
+    title: String,
+    idols: List<Idol>,
+    onIdolClick: (String) -> Unit,
+    badge: Map<String, Int>? = null
+) {
+    Column {
+        ImasSectionHeader(title, count = "${idols.size}")
+        FlowRow(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            idols.forEach { idol ->
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.width(64.dp).clickable { onIdolClick(idol.id) }
+                ) {
+                    ImasAvatar(label = idol.name, seed = idol.color, brand = idol.brandId, size = 52.dp)
+                    Text(idol.name, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = DS.ink2,
+                        textAlign = TextAlign.Center, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(top = 6.dp))
+                    val b = badge?.get(idol.id)
+                    if (b != null) {
+                        Text("タグ${b}個一致", fontSize = 10.sp, color = DS.ink3,
+                            textAlign = TextAlign.Center, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                }
+            }
+        }
     }
 }

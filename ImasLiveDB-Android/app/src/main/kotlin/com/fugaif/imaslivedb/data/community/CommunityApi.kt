@@ -83,6 +83,8 @@ class CommunityApi(private val appContext: Context, private val authService: Aut
     data class PenlightPaletteEntry(val colorHex: String?, val name: String, val sortOrder: Int, val note: String?)
     /** タグが似ている楽曲 (songId, 共有タグ数)。この曲が好きな人向けのおすすめ算出に使う。 */
     data class SimilarSongEntry(val songId: String, val sharedTags: Int)
+    /** タグが似ているアイドル (idolId, 共有タグ数)。この人が好きな人向けのおすすめ算出に使う。 */
+    data class SimilarIdolEntry(val idolId: String, val sharedTags: Int)
 
     data class CommunityTag(
         val id: String,
@@ -370,6 +372,16 @@ class CommunityApi(private val appContext: Context, private val authService: Aut
         (0 until arr.length()).map { i ->
             val o = arr.getJSONObject(i)
             SimilarSongEntry(o.optString("song_id"), o.optInt("shared_tags"))
+        }
+    }
+
+    /** GET /idols/{id}/similar — タグが似ているアイドル (共有タグ数の降順、ユーザー非依存の集計)。song 版と対のメソッド。 */
+    suspend fun similarIdolsByTags(idolId: String, limit: Int = 10): List<SimilarIdolEntry> = withContext(Dispatchers.IO) {
+        val json = get("/idols/${enc(idolId)}/similar?limit=$limit") ?: return@withContext emptyList()
+        val arr = json.optJSONArray("idols") ?: JSONArray()
+        (0 until arr.length()).map { i ->
+            val o = arr.getJSONObject(i)
+            SimilarIdolEntry(o.optString("idol_id"), o.optInt("shared_tags"))
         }
     }
 

@@ -74,6 +74,7 @@ import com.fugaif.imaslivedb.ui.components.ArtworkImage
 import com.fugaif.imaslivedb.ui.components.ImasArtwork
 import com.fugaif.imaslivedb.ui.components.ImasAvatar
 import com.fugaif.imaslivedb.ui.components.ImasEmptyState
+import com.fugaif.imaslivedb.ui.components.IdolGridSection
 import com.fugaif.imaslivedb.ui.components.ImasLabeledRow
 import com.fugaif.imaslivedb.ui.components.ImasLeadBar
 import com.fugaif.imaslivedb.ui.components.ImasSectionHeader
@@ -499,31 +500,6 @@ private fun RelatedSongsSection(
                         Text("タグ${b}個一致", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = DS.ink3,
                             modifier = Modifier.padding(end = 4.dp))
                     }
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun IdolGridSection(title: String, idols: List<Idol>, onIdolClick: (String) -> Unit) {
-    Column {
-        ImasSectionHeader(title, count = "${idols.size}")
-        FlowRow(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            idols.forEach { idol ->
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.width(64.dp).clickable { onIdolClick(idol.id) }
-                ) {
-                    ImasAvatar(label = idol.name, seed = idol.color, brand = idol.brandId, size = 52.dp)
-                    Text(idol.name, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = DS.ink2,
-                        textAlign = TextAlign.Center, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(top = 6.dp))
                 }
             }
         }

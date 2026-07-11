@@ -31,6 +31,12 @@ class IdolRepository(private val db: AppDatabase) {
         return db.idolDao().fetchIdol(id)
     }
 
+    /** タグが似ているアイドルランキング表示用。N+1を避けてIN句で一括取得する。 */
+    suspend fun fetchIdolsByIds(ids: List<String>): List<Idol> {
+        if (ids.isEmpty()) return emptyList()
+        return db.idolDao().fetchIdolsByIds(ids)
+    }
+
     suspend fun fetchIdolUnits(idolId: String): List<ImasUnit> {
         return db.idolDao().fetchIdolUnits(idolId)
     }

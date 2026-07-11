@@ -41,6 +41,10 @@ interface IdolDao {
     @Query("SELECT * FROM idols WHERE id = :id LIMIT 1")
     suspend fun fetchIdol(id: String): Idol?
 
+    /** タグが似ているアイドルの解決用。N+1を避けてIN句で一括取得する (SongDao.fetchSongsByIds と同型)。 */
+    @Query("SELECT * FROM idols WHERE id IN (:ids)")
+    suspend fun fetchIdolsByIds(ids: List<String>): List<Idol>
+
     @Query("""
         SELECT u.* FROM units u
         JOIN unit_members um ON u.id = um.unit_id

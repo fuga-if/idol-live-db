@@ -233,6 +233,19 @@ struct SimilarSongEntry: Decodable, Identifiable, Hashable, Sendable {
     let sharedTags: Int
 }
 
+/// GET /idols/:id/similar — タグが似ているアイドル。
+struct SimilarIdolsResponse: Decodable, Sendable {
+    let idolId: String
+    let idols: [SimilarIdolEntry]
+}
+
+struct SimilarIdolEntry: Decodable, Identifiable, Hashable, Sendable {
+    var id: String { idolId }
+    let idolId: String
+    /// このアイドルと共有しているタグ数 (近さの指標)。
+    let sharedTags: Int
+}
+
 /// 曲タグ (tags マスタ) の詳細。アイドルタグは idol_tag_master に分離済みなのでここには出ない
 /// (→ `IdolTagDetailResponse` / `CommunityAPI.idolTagDetail(id:)`)。
 struct TagDetailResponse: Decodable, Sendable {

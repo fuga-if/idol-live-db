@@ -27,6 +27,9 @@ struct IdolDetailView: View {
     /// コミュニティタブ: このアイドルに付いたタグ (自分が付けたタグ含む)。
     @State private var idolTagData: IdolTagListResponse?
     @State private var showIdolTagPicker = false
+    /// コミュニティタブ: タグが似ているアイドル (サーバ算出、共有タグ数の降順を維持)。
+    @State private var similarTagIdols: [Idol] = []
+    @State private var similarSharedTags: [String: Int] = [:]
     @State private var showCommunityLoginPrompt = false
     @State private var showingNote = false
     @State private var noteDraft = ""
@@ -482,10 +485,14 @@ struct IdolDetailView: View {
             PollAchievementBadges(entityId: idol.id)
             InlineLoginPrompt(message: "タグ付け・投票にはログインが必要です", seed: seed)
             communityIdolTags
+            if !similarTagIdols.isEmpty { communitySimilarIdols }
         }
         .padding(.top, DS.sp4)
         .padding(.horizontal, DS.sp5)
-        .task { await loadIdolTags() }
+        .task {
+            await loadIdolTags()
+            await loadSimilarIdols()
+        }
         .sheet(isPresented: $showIdolTagPicker, onDismiss: { Task { await loadIdolTags() } }) {
             IdolTagPicker(idol: idol)
         }
@@ -557,6 +564,66 @@ struct IdolDetailView: View {
 
     private func loadIdolTags() async {
         idolTagData = try? await CommunityAPI.shared.idolTags(idolId: idol.id)
+    }
+
+    /// このアイドルが好きな人にはこれもおすすめ — タグが似ているアイドル (サーバ算出)。
+    @ViewBuilder
+    private var communitySimilarIdols: some View {
+        VStack(alignment: .leading, spacing: DS.sp3) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("タグが似ているアイドル")
+                    .font(.imasTitle3.weight(.bold)).foregroundStyle(DS.ink)
+                Text("つけられたタグが似ているアイドル")
+                    .font(.imasCaption).foregroundStyle(DS.ink2)
+            }
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(alignment: .top, spacing: DS.sp4) {
+                    ForEach(similarTagIdols) { other in
+                        Button {
+                            go(.idol(other))
+                        } label: {
+                            VStack(spacing: 4) {
+                                IdolAvatarView(idol: other, size: 56)
+                                Text(other.shortName)
+                                    .font(.imasCaption.weight(.semibold))
+                                    .lineLimit(1)
+                                    .foregroundStyle(DS.ink)
+                                if let shared = similarSharedTags[other.id] {
+                                    Text("タグ\(shared)個一致")
+                                        .font(.imasScaled(10))
+                                        .foregroundStyle(DS.ink3)
+                                }
+                            }
+                            .frame(width: 72)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, 1)
+            }
+        }
+    }
+
+    /// 表示件数 (サーバー算出の共有タグ数上位から採用する件数)。
+    private static let similarIdolsDisplayLimit = 10
+    /// サーバーへの取得件数。D1 に idols テーブルが無く is_external フィルタをサーバー側で
+    /// 適用できないため、クライアント側除外後に表示件数を確保できるよう多めに over-fetch する。
+    private static let similarIdolsFetchLimit = 25
+
+    /// タグ類似のおすすめアイドルをサーバから取得し、ローカル DB で Idol に解決する。
+    /// 返却順 (共有タグ数の降順) を維持する。
+    private func loadSimilarIdols() async {
+        guard let response = try? await CommunityAPI.shared.similarIdolsByTags(
+            idolId: idol.id, limit: Self.similarIdolsFetchLimit
+        ) else { return }
+        let ids = response.idols.map(\.idolId)
+        guard !ids.isEmpty,
+              let resolved = try? await AppContainer.shared.idolReading.idols(ids: ids) else { return }
+        // サーバー (D1) には idols テーブルが無く is_external でのフィルタができないため、
+        // ローカル DB 解決後にここで外部ゲスト演者を除外し、表示件数分だけ採用する。
+        let byId = Dictionary(resolved.filter { !$0.isExternal }.map { ($0.id, $0) }) { a, _ in a }
+        similarSharedTags = Dictionary(response.idols.map { ($0.idolId, $0.sharedTags) }) { a, _ in a }
+        similarTagIdols = Array(ids.compactMap { byId[$0] }.prefix(Self.similarIdolsDisplayLimit))
     }
 
     // MARK: - 画像ギャラリー (ユーザーがローカルに持たせる複数画像)

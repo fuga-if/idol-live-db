@@ -71,6 +71,7 @@ import com.fugaif.imaslivedb.data.model.UserMark
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.components.ImasArtwork
 import com.fugaif.imaslivedb.ui.components.ImasAvatar
+import com.fugaif.imaslivedb.ui.components.IdolGridSection
 import com.fugaif.imaslivedb.ui.components.ImasEmptyState
 import com.fugaif.imaslivedb.ui.components.ImasLabeledRow
 import com.fugaif.imaslivedb.ui.components.ImasSectionHeader
@@ -100,6 +101,7 @@ fun IdolDetailScreen(
     onNavigateToUnitDetail: (String) -> Unit,
     onNavigateToSongDetail: (String) -> Unit,
     onNavigateToShowDetail: (String) -> Unit,
+    onNavigateToIdolDetail: (String) -> Unit = {},
     onPollClick: (String) -> Unit = {},
     onIdolTagClick: (String) -> Unit = {},
     viewModel: IdolDetailViewModel = viewModel(
@@ -148,10 +150,13 @@ fun IdolDetailScreen(
                         idolId = idol.id,
                         tags = state.tags,
                         isSignedIn = authState.isSignedIn,
+                        similarTagIdols = state.similarTagIdols,
+                        similarSharedTags = state.similarSharedTags,
                         onToggleTag = viewModel::toggleTag,
                         onOpenTagPicker = { showTagPicker = true },
                         onPollClick = onPollClick,
-                        onTagDetailClick = onIdolTagClick
+                        onTagDetailClick = onIdolTagClick,
+                        onIdolClick = onNavigateToIdolDetail
                     )
                 }
                 Box(Modifier.size(24.dp))
@@ -175,10 +180,13 @@ private fun CommunityBody(
     idolId: String,
     tags: List<CommunityApi.IdolTag>,
     isSignedIn: Boolean,
+    similarTagIdols: List<Idol>,
+    similarSharedTags: Map<String, Int>,
     onToggleTag: (CommunityApi.IdolTag) -> Unit,
     onOpenTagPicker: () -> Unit,
     onPollClick: (String) -> Unit,
-    onTagDetailClick: (String) -> Unit
+    onTagDetailClick: (String) -> Unit,
+    onIdolClick: (String) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         com.fugaif.imaslivedb.ui.polls.PollAchievementBadges(entityId = idolId, onOpenPoll = onPollClick)
@@ -227,6 +235,10 @@ private fun CommunityBody(
                     }
                 }
             }
+        }
+        // タグが似ているアイドル (この人が好きな人にはこの人も, サーバ算出)
+        if (similarTagIdols.isNotEmpty()) {
+            IdolGridSection("タグが似ているアイドル", similarTagIdols, onIdolClick, badge = similarSharedTags)
         }
     }
 }
