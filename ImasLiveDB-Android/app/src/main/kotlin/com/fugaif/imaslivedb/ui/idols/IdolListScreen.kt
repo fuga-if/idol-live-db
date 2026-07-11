@@ -26,7 +26,6 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.GridView
-import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
@@ -46,8 +45,10 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -66,8 +67,12 @@ import com.fugaif.imaslivedb.ui.components.ImasEmptyState
 import com.fugaif.imaslivedb.ui.components.ImasGridSkeleton
 import com.fugaif.imaslivedb.ui.components.ImasLeadBar
 import com.fugaif.imaslivedb.ui.components.ImasListSkeleton
+import com.fugaif.imaslivedb.ui.components.ImasSegmented
 import com.fugaif.imaslivedb.ui.components.SkeletonThumb
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.units.UnitListBody
+import com.fugaif.imaslivedb.ui.units.UnitListMode
+import com.fugaif.imaslivedb.ui.units.UnitListViewModel
 
 /**
  * アイドル一覧。iOS `IdolListView` の構成: ブランド別セクション (見出し + 行/グリッド)。
@@ -78,11 +83,14 @@ import com.fugaif.imaslivedb.ui.theme.DS
 @Composable
 fun IdolListScreen(
     onNavigateToIdolDetail: (String) -> Unit,
-    onNavigateToUnitList: () -> Unit = {},
-    viewModel: IdolListViewModel = viewModel()
+    onNavigateToUnitDetail: (String) -> Unit = {},
+    viewModel: IdolListViewModel = viewModel(),
+    unitListViewModel: UnitListViewModel = viewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
+    val unitState by unitListViewModel.uiState.collectAsState()
     var showFilterSheet by remember { mutableStateOf(false) }
+    var tab by rememberSaveable { mutableIntStateOf(0) }
 
     val q = state.searchText.trim().lowercase()
 
@@ -120,24 +128,28 @@ fun IdolListScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("アイドル", fontWeight = FontWeight.Bold) },
+                title = { Text(if (tab == 0) "アイドル" else "ユニット", fontWeight = FontWeight.Bold) },
                 actions = {
-                    IconButton(onClick = onNavigateToUnitList) {
-                        Icon(Icons.Filled.Groups, contentDescription = "ユニット一覧")
-                    }
                     IconButton(onClick = {
-                        viewModel.setListMode(if (state.listMode == IdolListMode.GRID) IdolListMode.LIST else IdolListMode.GRID)
+                        if (tab == 0) {
+                            viewModel.setListMode(if (state.listMode == IdolListMode.GRID) IdolListMode.LIST else IdolListMode.GRID)
+                        } else {
+                            unitListViewModel.setListMode(if (unitState.listMode == UnitListMode.GRID) UnitListMode.LIST else UnitListMode.GRID)
+                        }
                     }) {
+                        val isGrid = if (tab == 0) state.listMode == IdolListMode.GRID else unitState.listMode == UnitListMode.GRID
                         Icon(
-                            if (state.listMode == IdolListMode.GRID) Icons.Filled.ViewList else Icons.Filled.GridView,
-                            contentDescription = if (state.listMode == IdolListMode.GRID) "リスト表示" else "グリッド表示"
+                            if (isGrid) Icons.Filled.ViewList else Icons.Filled.GridView,
+                            contentDescription = if (isGrid) "リスト表示" else "グリッド表示"
                         )
                     }
-                    IconButton(onClick = { showFilterSheet = true }) {
-                        BadgedBox(badge = {
-                            if (state.filterBadgeCount > 0) Badge { Text("${state.filterBadgeCount}") }
-                        }) {
-                            Icon(Icons.Filled.FilterList, contentDescription = "フィルタ")
+                    if (tab == 0) {
+                        IconButton(onClick = { showFilterSheet = true }) {
+                            BadgedBox(badge = {
+                                if (state.filterBadgeCount > 0) Badge { Text("${state.filterBadgeCount}") }
+                            }) {
+                                Icon(Icons.Filled.FilterList, contentDescription = "フィルタ")
+                            }
                         }
                     }
                 }
@@ -145,6 +157,14 @@ fun IdolListScreen(
         }
     ) { innerPadding ->
         Column(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
+            ImasSegmented(
+                labels = listOf("アイドル", "ユニット"),
+                selection = tab, onSelect = { tab = it },
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)
+            )
+            if (tab == 1) {
+                UnitListBody(onNavigateToUnitDetail = onNavigateToUnitDetail, viewModel = unitListViewModel)
+            } else {
             OutlinedTextField(
                 value = state.searchText,
                 onValueChange = viewModel::setSearchText,
@@ -219,6 +239,7 @@ fun IdolListScreen(
                         }
                     }
                 }
+            }
             }
         }
     }

@@ -55,7 +55,6 @@ import com.fugaif.imaslivedb.ui.tags.TagActivityScreen
 import com.fugaif.imaslivedb.ui.tags.TagDetailScreen
 import com.fugaif.imaslivedb.ui.tags.TagListScreen
 import com.fugaif.imaslivedb.ui.units.UnitDetailScreen
-import com.fugaif.imaslivedb.ui.units.UnitListScreen
 
 @Composable
 fun AppNavigation() {
@@ -338,12 +337,6 @@ private fun NavGraphBuilder.idolsNavGraph(navController: NavHostController) {
             onNavigateToIdolDetail = { idolId ->
                 navController.navigate(NavRoutes.IdolDetail.createRoute(idolId))
             },
-            onNavigateToUnitList = { navController.navigate(NavRoutes.UnitList.route) }
-        )
-    }
-    composable(NavRoutes.UnitList.route) {
-        UnitListScreen(
-            onNavigateBack = { navController.popBackStack() },
             onNavigateToUnitDetail = { unitId ->
                 navController.navigate(NavRoutes.UnitDetail.createRoute(unitId))
             }

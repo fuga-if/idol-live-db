@@ -40,7 +40,11 @@ struct IdolListView: View {
     @State private var showFilterSheet = false
     @State private var searchText = ""
     @State private var isSearching = false
-    @State private var showUnitList = false
+    /// 一覧タブ (0=アイドル, 1=ユニット)。
+    @State private var listTab = 0
+    /// ユニットタブの ViewModel。ここで hoist して `UnitListContent` に注入することで、
+    /// タブ切替で `UnitListContent` が再生成されても検索語・ロード済みデータ・スクロール位置を保持する。
+    @State private var unitVM = UnitListViewModel()
 
     private var idolListMode: IdolListMode {
         IdolListMode(rawValue: idolListModeRaw) ?? .list
@@ -80,12 +84,6 @@ struct IdolListView: View {
                 idolListModeRaw = (idolListMode == .grid ? IdolListMode.list : .grid).rawValue
             }
         ]
-        actions.append(ListToolbarAction(
-            id: "unit_list", title: "ユニット一覧", systemImage: "person.3"
-        ) {
-            AppAnalytics.tap("idol_list.unit_list_open")
-            showUnitList = true
-        })
         if filterBadgeCount > 0 {
             actions.append(ListToolbarAction(id: "clear", title: "フィルタを解除",
                                              systemImage: "xmark.circle", isDestructive: true) {
@@ -111,96 +109,115 @@ struct IdolListView: View {
     var body: some View {
         NavigationStack(path: $navPath) {
             VStack(spacing: 0) {
-                if isSearching {
-                    InTabSearchField(prompt: "アイドル・CV名で検索", text: $searchText, isSearching: $isSearching)
-                }
-
-                if vm.isLoading {
-                    ScrollView {
-                        if idolListMode == .grid {
-                            ImasGridSkeleton(columns: 4, count: 16)
-                        } else {
-                            ImasListSkeleton(rows: 12, thumb: .circle).padding(.top, DS.sp3)
-                        }
+                listTabBar
+                Group {
+                    if listTab == 0 {
+                        idolBody
+                    } else {
+                        UnitListContent(vm: unitVM)
                     }
-                    .scrollDisabled(true)
-                } else if !searchText.isEmpty && vm.filteredIdols.isEmpty {
-                    InTabSearchEmptyView(query: searchText)
-                } else if idolListMode == .grid {
-                    IdolGridView(
-                        idols: vm.filteredIdols,
-                        brands: vm.visibleBrands,
-                        pickIds: vm.pickIds
-                    ) { idol in
-                        sheetIdol = idol
-                    }
-                } else {
-                    listBody
                 }
             }
-            .background(DS.bg.ignoresSafeArea())
-            .navigationTitle("アイドル")
-            .navigationBarTitleDisplayMode(.large)
-            .onChange(of: searchText) { _, _ in
-                vm.rebuild(filter: filterContext)
-            }
-            .toolbar {
-                standardListToolbar(
-                    onSearch: {
-                        AppAnalytics.tap("idol_list.search_open")
-                        isSearching = true
-                    },
-                    filterBadge: filterBadgeCount,
-                    onFilter: {
-                        AppAnalytics.tap("idol_list.filter")
-                        showFilterSheet = true
-                    },
-                    menuActions: idolMenuActions
-                )
-            }
-            .navigationDestination(for: Idol.self) { idol in
-                IdolDetailView(idol: idol)
-            }
-            .navigationDestination(isPresented: $showUnitList) {
-                UnitListView()
-            }
-            .sheet(item: $sheetIdol) { idol in
-                DetailSheetView(destination: .idol(idol))
-                    .environment(database)
-            }
-            .sheet(isPresented: $showFilterSheet) {
-                IdolFilterSheet(
-                    selectedBrandIds: $selectedBrandIds,
-                    selectedAttribute: $selectedAttribute,
-                    displayMode: Binding(
-                        get: { displayMode },
-                        set: { displayModeRaw = $0.rawValue }
-                    ),
-                    showCV: $showCV,
-                    requireMyPick: $requireMyPick,
-                    requireFavorite: $requireFavorite,
-                    requireNote: $requireNote
-                )
-                .environment(database)
-                .presentationDetents([.medium, .large])
-            }
-            .task { await vm.loadData(filter: filterContext) }
-            // フィルタ変化時のみ再計算
-            .task(id: filterKey) {
-                vm.refreshPickIds()
-                vm.rebuild(filter: filterContext)
-            }
-            .onChange(of: selectedBrandIds) { _, _ in
-                hasUserInteractedWithBrandFilter = true
-            }
-            .onAppear {
-                if !defaultBrandId.isEmpty && selectedBrandIds.isEmpty && !hasUserInteractedWithBrandFilter {
-                    selectedBrandIds = [defaultBrandId]
-                }
-                vm.refreshPickIds()
-            }
-            .trackScreen("idol_list")
         }
+    }
+
+    /// 一覧タブ (アイドル/ユニット)。ナビゲーションタイトル下・検索バー上に固定表示する。
+    private var listTabBar: some View {
+        ImasSegmented(labels: ["アイドル", "ユニット"], selection: $listTab)
+            .padding(.horizontal, DS.sp5)
+            .padding(.top, DS.sp3)
+            .padding(.bottom, DS.sp2)
+    }
+
+    @ViewBuilder
+    private var idolBody: some View {
+        VStack(spacing: 0) {
+            if isSearching {
+                InTabSearchField(prompt: "アイドル・CV名で検索", text: $searchText, isSearching: $isSearching)
+            }
+
+            if vm.isLoading {
+                ScrollView {
+                    if idolListMode == .grid {
+                        ImasGridSkeleton(columns: 4, count: 16)
+                    } else {
+                        ImasListSkeleton(rows: 12, thumb: .circle).padding(.top, DS.sp3)
+                    }
+                }
+                .scrollDisabled(true)
+            } else if !searchText.isEmpty && vm.filteredIdols.isEmpty {
+                InTabSearchEmptyView(query: searchText)
+            } else if idolListMode == .grid {
+                IdolGridView(
+                    idols: vm.filteredIdols,
+                    brands: vm.visibleBrands,
+                    pickIds: vm.pickIds
+                ) { idol in
+                    sheetIdol = idol
+                }
+            } else {
+                listBody
+            }
+        }
+        .background(DS.bg.ignoresSafeArea())
+        .navigationTitle("アイドル")
+        .navigationBarTitleDisplayMode(.large)
+        .onChange(of: searchText) { _, _ in
+            vm.rebuild(filter: filterContext)
+        }
+        .toolbar {
+            standardListToolbar(
+                onSearch: {
+                    AppAnalytics.tap("idol_list.search_open")
+                    isSearching = true
+                },
+                filterBadge: filterBadgeCount,
+                onFilter: {
+                    AppAnalytics.tap("idol_list.filter")
+                    showFilterSheet = true
+                },
+                menuActions: idolMenuActions
+            )
+        }
+        .navigationDestination(for: Idol.self) { idol in
+            IdolDetailView(idol: idol)
+        }
+        .sheet(item: $sheetIdol) { idol in
+            DetailSheetView(destination: .idol(idol))
+                .environment(database)
+        }
+        .sheet(isPresented: $showFilterSheet) {
+            IdolFilterSheet(
+                selectedBrandIds: $selectedBrandIds,
+                selectedAttribute: $selectedAttribute,
+                displayMode: Binding(
+                    get: { displayMode },
+                    set: { displayModeRaw = $0.rawValue }
+                ),
+                showCV: $showCV,
+                requireMyPick: $requireMyPick,
+                requireFavorite: $requireFavorite,
+                requireNote: $requireNote
+            )
+            .environment(database)
+            .presentationDetents([.medium, .large])
+        }
+        .task { await vm.loadData(filter: filterContext) }
+        // フィルタ変化時のみ再計算
+        .task(id: filterKey) {
+            vm.refreshPickIds()
+            vm.rebuild(filter: filterContext)
+        }
+        .onChange(of: selectedBrandIds) { _, _ in
+            hasUserInteractedWithBrandFilter = true
+        }
+        .onAppear {
+            if !defaultBrandId.isEmpty && selectedBrandIds.isEmpty && !hasUserInteractedWithBrandFilter {
+                selectedBrandIds = [defaultBrandId]
+            }
+            vm.refreshPickIds()
+        }
+        .trackScreen("idol_list")
     }
 
     // MARK: - List Body (ブランド別・inset grouped 風)

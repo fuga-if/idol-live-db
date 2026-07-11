@@ -17,23 +17,18 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.ViewList
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -57,14 +52,16 @@ import com.fugaif.imaslivedb.ui.components.SkeletonThumb
 import com.fugaif.imaslivedb.ui.theme.DS
 
 /**
- * ユニット一覧 (曲ありユニットのみ)。`ui.idols.IdolListScreen` と同じ骨格
+ * ユニット一覧の本体 (曲ありユニットのみ)。`ui.idols.IdolListScreen` の「アイドル」タブと同じ骨格
  * (ブランド別グルーピング + list/grid 切替 + 検索) を踏襲。ユニットには担当/お気に入りマークが無いため
  * フィルタシートは持たない。
+ *
+ * Scaffold/TopAppBar は持たない (list/grid 切替は呼び出し側の TopAppBar が担う)。
+ * `IdolListScreen` の「ユニット」タブに埋め込んで使う。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun UnitListScreen(
-    onNavigateBack: () -> Unit,
+fun UnitListBody(
     onNavigateToUnitDetail: (String) -> Unit,
     viewModel: UnitListViewModel = viewModel()
 ) {
@@ -82,90 +79,67 @@ fun UnitListScreen(
     val groupedByBrand = filteredUnits.groupBy { it.brandId }
     val visibleBrands = state.brands.filter { !groupedByBrand[it.id].isNullOrEmpty() }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("ユニット", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "戻る")
-                    }
-                },
-                actions = {
-                    IconButton(onClick = {
-                        viewModel.setListMode(if (state.listMode == UnitListMode.GRID) UnitListMode.LIST else UnitListMode.GRID)
-                    }) {
-                        Icon(
-                            if (state.listMode == UnitListMode.GRID) Icons.Filled.ViewList else Icons.Filled.GridView,
-                            contentDescription = if (state.listMode == UnitListMode.GRID) "リスト表示" else "グリッド表示"
-                        )
+    Column(modifier = Modifier.fillMaxSize()) {
+        OutlinedTextField(
+            value = state.searchText,
+            onValueChange = viewModel::setSearchText,
+            placeholder = { Text("ユニット名で検索") },
+            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+            trailingIcon = {
+                if (state.searchText.isNotEmpty()) {
+                    IconButton(onClick = { viewModel.setSearchText("") }) {
+                        Icon(Icons.Filled.Clear, contentDescription = "クリア")
                     }
                 }
-            )
-        }
-    ) { innerPadding ->
-        Column(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
-            OutlinedTextField(
-                value = state.searchText,
-                onValueChange = viewModel::setSearchText,
-                placeholder = { Text("ユニット名で検索") },
-                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-                trailingIcon = {
-                    if (state.searchText.isNotEmpty()) {
-                        IconButton(onClick = { viewModel.setSearchText("") }) {
-                            Icon(Icons.Filled.Clear, contentDescription = "クリア")
-                        }
-                    }
-                },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
-            )
-            HorizontalDivider(color = DS.sep)
+            },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
+        )
+        HorizontalDivider(color = DS.sep)
 
-            when {
-                state.isLoading -> {
-                    if (state.listMode == UnitListMode.GRID) ImasGridSkeleton(columns = 4, count = 16)
-                    else ImasListSkeleton(rows = 12, thumb = SkeletonThumb.Circle)
-                }
-                q.isNotEmpty() && filteredUnits.isEmpty() -> {
-                    ImasEmptyState(
-                        icon = Icons.Filled.Groups,
-                        title = "見つかりませんでした",
-                        message = "「${state.searchText}」に一致するユニットはいません。"
+        when {
+            state.isLoading -> {
+                if (state.listMode == UnitListMode.GRID) ImasGridSkeleton(columns = 4, count = 16)
+                else ImasListSkeleton(rows = 12, thumb = SkeletonThumb.Circle)
+            }
+            q.isNotEmpty() && filteredUnits.isEmpty() -> {
+                ImasEmptyState(
+                    icon = Icons.Filled.Groups,
+                    title = "見つかりませんでした",
+                    message = "「${state.searchText}」に一致するユニットはいません。"
+                )
+            }
+            state.listMode == UnitListMode.GRID -> {
+                PullToRefreshBox(
+                    isRefreshing = state.isRefreshing,
+                    onRefresh = { viewModel.refresh() },
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    UnitGrid(
+                        visibleBrands = visibleBrands,
+                        groupedByBrand = groupedByBrand,
+                        collapsedBrands = state.collapsedBrands,
+                        onToggleBrand = viewModel::toggleBrandCollapse,
+                        onSelect = { onNavigateToUnitDetail(it.id) }
                     )
                 }
-                state.listMode == UnitListMode.GRID -> {
-                    PullToRefreshBox(
-                        isRefreshing = state.isRefreshing,
-                        onRefresh = { viewModel.refresh() },
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        UnitGrid(
-                            visibleBrands = visibleBrands,
-                            groupedByBrand = groupedByBrand,
-                            collapsedBrands = state.collapsedBrands,
-                            onToggleBrand = viewModel::toggleBrandCollapse,
-                            onSelect = { onNavigateToUnitDetail(it.id) }
-                        )
-                    }
-                }
-                else -> {
-                    PullToRefreshBox(
-                        isRefreshing = state.isRefreshing,
-                        onRefresh = { viewModel.refresh() },
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        LazyColumn(modifier = Modifier.fillMaxSize()) {
-                            visibleBrands.forEach { brand ->
-                                val units = groupedByBrand[brand.id] ?: emptyList()
-                                val collapsed = state.collapsedBrands.contains(brand.id)
-                                item(key = "h_${brand.id}") {
-                                    BrandSectionHeader(brand, units.size, !collapsed) { viewModel.toggleBrandCollapse(brand.id) }
-                                }
-                                if (!collapsed) {
-                                    items(units, key = { it.id }) { unit ->
-                                        UnitRow(unit = unit, onClick = { onNavigateToUnitDetail(unit.id) })
-                                    }
+            }
+            else -> {
+                PullToRefreshBox(
+                    isRefreshing = state.isRefreshing,
+                    onRefresh = { viewModel.refresh() },
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        visibleBrands.forEach { brand ->
+                            val units = groupedByBrand[brand.id] ?: emptyList()
+                            val collapsed = state.collapsedBrands.contains(brand.id)
+                            item(key = "h_${brand.id}") {
+                                BrandSectionHeader(brand, units.size, !collapsed) { viewModel.toggleBrandCollapse(brand.id) }
+                            }
+                            if (!collapsed) {
+                                items(units, key = { it.id }) { unit ->
+                                    UnitRow(unit = unit, onClick = { onNavigateToUnitDetail(unit.id) })
                                 }
                             }
                         }

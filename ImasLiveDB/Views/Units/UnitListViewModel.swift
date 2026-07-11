@@ -16,6 +16,14 @@ final class UnitListViewModel {
     private(set) var groupedByBrand: [String: [Unit]] = [:]
     private(set) var visibleBrands: [Brand] = []
 
+    // UnitListContent の UI 状態。IdolListView の「ユニット」タブ切替で UnitListContent
+    // (View インスタンス) 自体が破棄・再生成されても失われないよう、ここ (hoist された
+    // ViewModel) に持たせる。Android 版 UnitListViewModel の uiState と同じ設計。
+    var searchText: String = ""
+    var isSearching: Bool = false
+    var collapsedBrands: Set<String> = []
+    var sheetUnit: Unit?
+
     private let unitReading: any UnitReading
     private let brandReading: any BrandReading
 
@@ -27,7 +35,10 @@ final class UnitListViewModel {
         self.brandReading = brandReading
     }
 
+    /// タブ切替のたびに View が再生成されて `.task` が再実行されても、初回ロード済みなら
+    /// 再フェッチしない (状態は vm 側にあるので再ロードの必要が無い)。
     func loadData() async {
+        guard units.isEmpty else { return }
         defer { isLoading = false }
         do {
             async let b = brandReading.brands()
@@ -35,7 +46,7 @@ final class UnitListViewModel {
             let (loadedBrands, loadedUnits) = try await (b, u)
             brands = loadedBrands
             units = loadedUnits
-            rebuild(searchText: "")
+            rebuild(searchText: searchText)
         } catch {
             Logger.database.error("load_failed units: \(error.localizedDescription)")
         }
