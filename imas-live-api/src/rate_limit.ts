@@ -44,6 +44,12 @@ const LIMITS: Record<string, number> = {
   transfer_create: 5,
   // transfer_fetch: 引き継ぎコード取得 (入力ミスの再試行を考慮しやや緩め)。
   transfer_fetch: 20,
+  // auth_login: 未認証で叩ける /auth/login の IP 単位上限。Apple/Google トークン検証
+  // (外部 JWKS fetch・署名検証コスト) の枯渇を防ぐ一次防御。CGNAT 環境で多数ユーザーが
+  // 同一 IP を共有しうるため、正当ユーザーを弾かないよう広めに確保する。
+  auth_login: 500,
+  // auth_refresh: 自前 JWT 検証のみで外部コストは無いが、同じ理由で下限の防御を掛ける。
+  auth_refresh: 500,
 };
 
 /**

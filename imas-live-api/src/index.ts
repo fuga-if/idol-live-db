@@ -224,6 +224,62 @@ async function cleanExpiredTransferCodes(db: D1Database): Promise<void> {
 const REPORT_THRESHOLD = 3;
 
 // ---------------------------------------------------------------------------
+// タグ (song/idol/unit 共通) フィールド検証
+// ---------------------------------------------------------------------------
+
+const TAG_HEX_COLOR_RE = /^#[0-9a-fA-F]{6}$/;
+const TAG_DESCRIPTION_MAX_LEN = 300;
+const TAG_CATEGORY_MAX_LEN = 30;
+
+/**
+ * /tags, /idol-tags, /unit-tags の POST (新規作成) と PUT (更新) 共通で使う
+ * description/category/color の検証。キーが undefined のときは「指定なし」として
+ * 素通しする (POST は任意項目、PUT は未指定フィールドを更新しない仕様のため)。
+ * null は「クリア」として許容する。
+ */
+function validateTagFields(fields: {
+  description?: unknown;
+  category?: unknown;
+  color?: unknown;
+}): string | null {
+  const { description, category, color } = fields;
+  if (description !== undefined && description !== null) {
+    if (typeof description !== "string") return "description must be a string";
+    if (description.length > TAG_DESCRIPTION_MAX_LEN) {
+      return `description must be ${TAG_DESCRIPTION_MAX_LEN} characters or less`;
+    }
+  }
+  if (category !== undefined && category !== null) {
+    if (typeof category !== "string") return "category must be a string";
+    if (category.length > TAG_CATEGORY_MAX_LEN) {
+      return `category must be ${TAG_CATEGORY_MAX_LEN} characters or less`;
+    }
+  }
+  if (color !== undefined && color !== null && color !== "") {
+    if (typeof color !== "string" || !TAG_HEX_COLOR_RE.test(color)) {
+      return "color must be a #RRGGBB hex code";
+    }
+  }
+  return null;
+}
+
+// ---------------------------------------------------------------------------
+// 不透明キー (song_id / idol_id / entity_id) 検証
+// ---------------------------------------------------------------------------
+
+// predictions / performers / likes / poll votes / favorites は songs・idols マスタの
+// 実在チェックをせず「不透明キー」として保存する設計 (CloudKit 新曲が D1 未同期でも
+// 投票できるようにするため。各エンドポイントのコメント参照)。実在チェックの代わりに
+// 長さ上限 + 空文字拒否だけを行い、無制限文字列によるストレージ濫用を防ぐ。
+const OPAQUE_KEY_MAX_LEN = 200;
+
+function validateOpaqueKey(value: unknown, fieldName: string): string | null {
+  if (typeof value !== "string" || value.length === 0) return `${fieldName} is required`;
+  if (value.length > OPAQUE_KEY_MAX_LEN) return `${fieldName} must be ${OPAQUE_KEY_MAX_LEN} characters or less`;
+  return null;
+}
+
+// ---------------------------------------------------------------------------
 // Apple Sign In JWT verification
 // ---------------------------------------------------------------------------
 
@@ -522,6 +578,33 @@ function addRequestId(response: Response, requestId: string): Response {
   return new Response(response.body, { status: response.status, headers: newHeaders });
 }
 
+/**
+ * JSON 応答共通の X-Content-Type-Options: nosniff と、Universal Links フォールバック
+ * HTML (renderAppFallbackPage) 共通の CSP を、応答経路の合流点で一括付与する。
+ * 個々の handler 内の大量の return json(...) 呼び出し側は一切変更しない。
+ * HTML はインライン <style> のみで外部リソース・script を持たないため、
+ * default-src 'none' + style-src 'unsafe-inline' で十分 (<a href> のトップレベル遷移は
+ * default-src の対象外)。
+ */
+function applySecurityHeaders(response: Response): Response {
+  const contentType = response.headers.get("Content-Type") || "";
+  if (contentType.includes("application/json")) {
+    const headers = new Headers(response.headers);
+    headers.set("X-Content-Type-Options", "nosniff");
+    return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
+  }
+  if (contentType.includes("text/html")) {
+    const headers = new Headers(response.headers);
+    headers.set("X-Content-Type-Options", "nosniff");
+    headers.set(
+      "Content-Security-Policy",
+      "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+    );
+    return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
+  }
+  return response;
+}
+
 function makeResponders(request: Request, env: Env) {
   const cors = getCorsHeaders(request, env);
 
@@ -707,7 +790,12 @@ export default {
     if (!checkOrigin(request, env)) {
       return new Response(JSON.stringify({ error: "Forbidden: origin not allowed" }), {
         status: 403,
-        headers: { "Content-Type": "application/json; charset=utf-8", "Vary": "Origin", "X-Request-Id": requestId },
+        headers: {
+          "Content-Type": "application/json; charset=utf-8",
+          "Vary": "Origin",
+          "X-Content-Type-Options": "nosniff",
+          "X-Request-Id": requestId,
+        },
       });
     }
 
@@ -954,6 +1042,15 @@ export default {
       // ----------------------------------------------------------------
       if (path === "/auth/login" && request.method === "POST") {
         if (!env.SESSION_JWT_SECRET) return error("SESSION_JWT_SECRET not configured", 500);
+
+        // IP 単位のレート制限 (未認証エンドポイントなので device/user 単位の制限は使えない)。
+        // Apple/Google トークン検証の外部コスト枯渇を防ぐ一次防御。
+        const authLoginIp = request.headers.get("CF-Connecting-IP") ?? "unknown";
+        const authLoginRl = await checkRateLimit(env.DB, "ip:" + authLoginIp, "auth_login");
+        if (!authLoginRl.allowed) {
+          return rateLimitResponse(authLoginRl.used, authLoginRl.limit, authLoginRl.reset_at);
+        }
+
         // iOS の APIClient は JSONEncoder.keyEncodingStrategy = .convertToSnakeCase で
         // 全リクエストボディを snake_case 化して送る (identityToken → identity_token,
         // displayName → display_name)。この endpoint だけ camelCase を読んでいたため
@@ -1011,6 +1108,14 @@ export default {
       // ----------------------------------------------------------------
       if (path === "/auth/refresh" && request.method === "POST") {
         if (!env.SESSION_JWT_SECRET) return error("SESSION_JWT_SECRET not configured", 500);
+
+        // IP 単位のレート制限 (auth/login と同じ理由。refresh は外部コストは無いが下限の防御)。
+        const authRefreshIp = request.headers.get("CF-Connecting-IP") ?? "unknown";
+        const authRefreshRl = await checkRateLimit(env.DB, "ip:" + authRefreshIp, "auth_refresh");
+        if (!authRefreshRl.allowed) {
+          return rateLimitResponse(authRefreshRl.used, authRefreshRl.limit, authRefreshRl.reset_at);
+        }
+
         const auth = request.headers.get("Authorization");
         if (!auth?.startsWith("Bearer ")) return error("Unauthorized", 401);
         const oldToken = auth.slice(7);
@@ -1500,7 +1605,8 @@ export default {
 
         const body = (await request.json()) as any;
         const { song_id } = body;
-        if (!song_id) return error("song_id is required");
+        const songIdErr = validateOpaqueKey(song_id, "song_id");
+        if (songIdErr) return error(songIdErr);
 
         // 曲存在チェックは行わない。song_id は不透明キーとして保存し、曲メタは iOS local が解決する。
         // (D1 songs ミラーで検証すると、CloudKit にあるが D1 に未同期の新曲が 404 になる)
@@ -1664,7 +1770,8 @@ export default {
 
         const body = (await request.json()) as any;
         const { idol_id } = body;
-        if (!idol_id) return error("idol_id is required");
+        const idolIdErr = validateOpaqueKey(idol_id, "idol_id");
+        if (idolIdErr) return error(idolIdErr);
 
         // idol_id は不透明キーとして保存 — 実在検証は行わない (既存 setlist 予想と同方針)。
 
@@ -1813,6 +1920,9 @@ export default {
         const songId = decodeURIComponent(likePostMatch[2]);
         const user = await getAuthUser(request, env);
         if (!user) return error("Unauthorized", 401);
+
+        const likeSongIdErr = validateOpaqueKey(songId, "song_id");
+        if (likeSongIdErr) return error(likeSongIdErr);
 
         const dbUser = await env.DB.prepare("SELECT is_banned FROM users WHERE id = ?")
           .bind(user.uid)
@@ -2226,7 +2336,8 @@ export default {
 
         const body = (await request.json()) as any;
         const { entity_id } = body;
-        if (!entity_id) return error("entity_id is required");
+        const entityIdErr = validateOpaqueKey(entity_id, "entity_id");
+        if (entityIdErr) return error(entityIdErr);
 
         // poll 存在確認 + active チェック
         const poll = await env.DB.prepare(
@@ -2445,7 +2556,8 @@ export default {
 
         const body = (await request.json()) as any;
         const { song_id, value } = body;
-        if (!song_id) return error("song_id is required");
+        const favSongIdErr = validateOpaqueKey(song_id, "song_id");
+        if (favSongIdErr) return error(favSongIdErr);
         if (typeof value !== "boolean") return error("value must be boolean");
 
         if (value) {
@@ -2528,7 +2640,8 @@ export default {
 
         const body = (await request.json()) as any;
         const { song_id, colors } = body;
-        if (!song_id) return error("song_id is required");
+        const penlightSongIdErr = validateOpaqueKey(song_id, "song_id");
+        if (penlightSongIdErr) return error(penlightSongIdErr);
         if (!Array.isArray(colors) || colors.length === 0) return error("colors must be a non-empty array");
 
         const colorSetKey = [...colors].sort().join("-");
@@ -2705,6 +2818,8 @@ export default {
         if (!name || typeof name !== "string") return error("name is required");
         name = name.trim();
         if (name.length < 1 || name.length > 30) return error("name must be 1-30 characters");
+        const tagFieldsErr = validateTagFields({ description, category, color });
+        if (tagFieldsErr) return error(tagFieldsErr);
 
         // 同名チェック
         const existingByName = await env.DB.prepare("SELECT * FROM tags WHERE name = ?").bind(name).first();
@@ -2920,6 +3035,18 @@ export default {
         if (!authUser) return error("Unauthorized", 401);
         const deviceId = request.headers.get("X-Device-Id") || authUser.uid;
 
+        // is_banned チェック + レート制限 (マスタ編集 /edits と同じ "edit" quota を共有し、
+        // 大量改竄の速度を抑える一次防御とする)。POST 側の同名チェックに対応する
+        // タグ乱立防止は device_tag_create_quota が既に別途担っている。
+        const [dbUser, rl] = await Promise.all([
+          env.DB.prepare("SELECT is_banned FROM users WHERE id = ?")
+            .bind(authUser.uid)
+            .first<{ is_banned: number }>(),
+          checkRateLimit(env.DB, authUser.uid, "edit"),
+        ]);
+        if (dbUser?.is_banned) return error("Banned", 403);
+        if (!rl.allowed) return rateLimitResponse(rl.used, rl.limit, rl.reset_at);
+
         const tag = await env.DB.prepare("SELECT * FROM tags WHERE id = ?").bind(tagId).first<{
           id: string; description: string | null; status: string;
         }>();
@@ -2932,6 +3059,8 @@ export default {
           category?: string;
           color?: string;
         };
+        const tagFieldsErr = validateTagFields({ description, category, color });
+        if (tagFieldsErr) return error(tagFieldsErr);
         const now = Math.floor(Date.now() / 1000);
 
         // 説明文変更なら履歴保存 (before + after 両方記録)
@@ -3050,6 +3179,8 @@ export default {
         if (!name || typeof name !== "string") return error("name is required");
         name = name.trim();
         if (name.length < 1 || name.length > 30) return error("name must be 1-30 characters");
+        const tagFieldsErr = validateTagFields({ description, category, color });
+        if (tagFieldsErr) return error(tagFieldsErr);
 
         const existingByName = await env.DB.prepare("SELECT * FROM idol_tag_master WHERE name = ?").bind(name).first();
         if (existingByName) return json({ tag: existingByName, created: false }, 409);
@@ -3160,6 +3291,16 @@ export default {
         if (!authUser) return error("Unauthorized", 401);
         const deviceId = request.headers.get("X-Device-Id") || authUser.uid;
 
+        // is_banned チェック + レート制限 (/tags/:id PUT と同方針。"edit" quota を共有)。
+        const [dbUser, rl] = await Promise.all([
+          env.DB.prepare("SELECT is_banned FROM users WHERE id = ?")
+            .bind(authUser.uid)
+            .first<{ is_banned: number }>(),
+          checkRateLimit(env.DB, authUser.uid, "edit"),
+        ]);
+        if (dbUser?.is_banned) return error("Banned", 403);
+        if (!rl.allowed) return rateLimitResponse(rl.used, rl.limit, rl.reset_at);
+
         const tag = await env.DB.prepare("SELECT * FROM idol_tag_master WHERE id = ?").bind(tagId).first<{
           id: string; description: string | null; status: string;
         }>();
@@ -3172,6 +3313,8 @@ export default {
           category?: string;
           color?: string;
         };
+        const tagFieldsErr = validateTagFields({ description, category, color });
+        if (tagFieldsErr) return error(tagFieldsErr);
         const now = Math.floor(Date.now() / 1000);
 
         if (description !== undefined && description !== tag.description) {
@@ -3495,6 +3638,8 @@ export default {
         if (!name || typeof name !== "string") return error("name is required");
         name = name.trim();
         if (name.length < 1 || name.length > 30) return error("name must be 1-30 characters");
+        const tagFieldsErr = validateTagFields({ description, category, color });
+        if (tagFieldsErr) return error(tagFieldsErr);
 
         const existingByName = await env.DB.prepare("SELECT * FROM unit_tag_master WHERE name = ?").bind(name).first();
         if (existingByName) return json({ tag: existingByName, created: false }, 409);
@@ -3605,6 +3750,16 @@ export default {
         if (!authUser) return error("Unauthorized", 401);
         const deviceId = request.headers.get("X-Device-Id") || authUser.uid;
 
+        // is_banned チェック + レート制限 (/tags/:id PUT と同方針。"edit" quota を共有)。
+        const [dbUser, rl] = await Promise.all([
+          env.DB.prepare("SELECT is_banned FROM users WHERE id = ?")
+            .bind(authUser.uid)
+            .first<{ is_banned: number }>(),
+          checkRateLimit(env.DB, authUser.uid, "edit"),
+        ]);
+        if (dbUser?.is_banned) return error("Banned", 403);
+        if (!rl.allowed) return rateLimitResponse(rl.used, rl.limit, rl.reset_at);
+
         const tag = await env.DB.prepare("SELECT * FROM unit_tag_master WHERE id = ?").bind(tagId).first<{
           id: string; description: string | null; status: string;
         }>();
@@ -3617,6 +3772,8 @@ export default {
           category?: string;
           color?: string;
         };
+        const tagFieldsErr = validateTagFields({ description, category, color });
+        if (tagFieldsErr) return error(tagFieldsErr);
         const now = Math.floor(Date.now() / 1000);
 
         if (description !== undefined && description !== tag.description) {
@@ -3985,7 +4142,7 @@ export default {
     }
     };
 
-    const response = await handle();
+    const response = applySecurityHeaders(await handle());
     // 公開 (Cache-Control: public) かつ成功GETのみエッジへ保存。TTL はレスポンスの max-age に従う。
     if (edgeCacheEligible && response.ok) {
       const cc = response.headers.get("Cache-Control");
