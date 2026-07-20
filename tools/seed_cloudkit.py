@@ -377,6 +377,48 @@ def seed_table(
 
 
 # ---------------------------------------------------------------------------
+# Delete logic (誤データ是正用)
+# ---------------------------------------------------------------------------
+
+def delete_records(pairs: list[tuple[str, str]], dry_run: bool) -> tuple[int, int]:
+    """(recordType, recordName) のリストを CloudKit から物理削除する。
+
+    物理削除は差分同期 (modifiedAt > lastSync) では既存クライアントに伝わらないが、
+    - 日次 cron の export_cloudkit.py に誤レコードが再流入しなくなる
+    - クライアントはフル同期完走時の CloudKitSyncEngine の deleteOrphans が掃除する
+    - マスタテーブルは bundle data_version bump の reseed でも上書きされる
+    の 3 経路で収束する。soft delete (deletedAt) は export が生存扱いで再取込して
+    しまうため、マスタ誤データの是正には物理削除を使う。
+    """
+    known_types = set(RECORD_TYPE_MAP.values())
+    unknown = sorted({t for t, _ in pairs if t not in known_types})
+    if unknown:
+        raise SystemExit(f"Error: unknown record type(s) in delete file: {', '.join(unknown)}")
+    ops = [
+        {
+            "operationType": "forceDelete",
+            "record": {"recordType": rtype, "recordName": rname},
+        }
+        for rtype, rname in pairs
+    ]
+    return upload_operations(ops, dry_run, "delete")
+
+
+def parse_delete_file(path: Path) -> list[tuple[str, str]]:
+    """'RecordType<TAB>recordName' 形式の TSV を読む (空行・#コメント行は無視)。"""
+    pairs = []
+    for i, line in enumerate(path.read_text().splitlines(), 1):
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        parts = line.split("\t")
+        if len(parts) != 2 or not parts[0] or not parts[1]:
+            raise SystemExit(f"Error: {path}:{i} は 'RecordType<TAB>recordName' 形式ではない: {line!r}")
+        pairs.append((parts[0], parts[1]))
+    return pairs
+
+
+# ---------------------------------------------------------------------------
 # Verify logic
 # ---------------------------------------------------------------------------
 
@@ -503,6 +545,18 @@ def main() -> None:
         type=Path,
         help="1 行 1 song id のファイル (--ids と同義)",
     )
+    parser.add_argument(
+        "--delete-file",
+        type=Path,
+        help="削除モード: 'RecordType<TAB>recordName' 形式の TSV を読み、該当レコードを "
+             "CloudKit から物理削除 (forceDelete)。誤データ是正用。他のシード処理は行わない。"
+             "クライアント側はフル同期完走時の deleteOrphans が掃除する前提。",
+    )
+    parser.add_argument(
+        "--yes",
+        action="store_true",
+        help="--delete-file の実削除を確認なしで実行 (指定が無ければ dry-run 以外は中断)",
+    )
     args = parser.parse_args()
 
     song_ids: list[str] = []
@@ -528,6 +582,24 @@ def main() -> None:
             print(f"Error: key file not found at {key_file}", file=sys.stderr)
             sys.exit(1)
         init_session(args.key_id, key_file)
+
+    # 削除モード: シードは行わず、TSV のレコードを物理削除して終了する。
+    if args.delete_file:
+        pairs = parse_delete_file(args.delete_file)
+        print(f"=== CloudKit Record Deletion [{'DRY-RUN' if args.dry_run else 'LIVE'}] ===")
+        print(f"Container: {CONTAINER} / {env} / public")
+        print(f"Targets  : {len(pairs)} records from {args.delete_file}")
+        by_type: dict[str, int] = {}
+        for rtype, _ in pairs:
+            by_type[rtype] = by_type.get(rtype, 0) + 1
+        for rtype, n in sorted(by_type.items()):
+            print(f"  {rtype:<20} {n}")
+        if not args.dry_run and not args.yes:
+            print("Error: 実削除には --yes が必要 (安全ガード)。まず --dry-run で内容確認を。", file=sys.stderr)
+            sys.exit(1)
+        succeeded, errors = delete_records(pairs, args.dry_run)
+        print(f"\nDone. {succeeded} deleted / {errors} errors")
+        sys.exit(1 if errors else 0)
 
     db_path = Path(args.db)
     if not db_path.exists():

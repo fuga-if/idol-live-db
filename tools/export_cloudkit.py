@@ -89,8 +89,14 @@ def refresh_table(conn, table):
     recs = query_all(record_type)
 
     conn.execute(f"DELETE FROM {table}")
-    inserted = skipped = 0
+    inserted = skipped = soft_deleted = 0
     for r in recs:
+        # soft delete (deletedAt) 済みレコードは「削除」なので master に再取込しない。
+        # master 側テーブルに deleted_at 列が無いため、取り込むと生存レコードとして
+        # 復活してしまう (是正で消したはずの誤データが cron で蘇る事故の防止)。
+        if r.get("fields", {}).get("deletedAt", {}).get("value"):
+            soft_deleted += 1
+            continue
         row = record_to_row(conn, table, r, pk_cols, table_cols)
         if not row:
             skipped += 1
@@ -107,6 +113,8 @@ def refresh_table(conn, table):
             if skipped <= 5:
                 print(f"    skip {table} {r.get('recordName')}: {e}", file=sys.stderr)
     note = f" (skip {skipped})" if skipped else ""
+    if soft_deleted:
+        note += f" (soft-deleted {soft_deleted})"
     print(f"  {table:<22} CloudKit {len(recs):>6} → 反映 {inserted:>6}{note}")
     return inserted
 
