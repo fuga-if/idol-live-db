@@ -143,7 +143,18 @@ struct UnitDetailView: View {
     @ViewBuilder
     private var songsBody: some View {
         VStack(spacing: DS.sp6) {
-            if !vm.songs.isEmpty {
+            if vm.isLoading {
+                ImasListSkeleton(rows: 5, thumb: .square)
+            } else if let loadError = vm.loadError {
+                ImasEmptyState(
+                    systemImage: "exclamationmark.triangle",
+                    title: "読み込みに失敗しました",
+                    message: loadError,
+                    actionTitle: "再試行",
+                    action: { Task { await vm.loadDetails(unit: unit) } },
+                    brand: brandColor
+                )
+            } else if !vm.songs.isEmpty {
                 VStack(spacing: DS.sp3) {
                     ImasSectionHeader(title: "楽曲", count: "\(vm.songs.count)", tight: true)
                     ImasListContainer {
@@ -201,6 +212,7 @@ struct UnitDetailView: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(favorited ? "お気に入り解除" : "お気に入りに追加")
             }
             .padding(.horizontal, DS.sp4)
             .padding(.vertical, 9)
@@ -218,7 +230,18 @@ struct UnitDetailView: View {
             GallerySectionView(kind: .unit, entityId: unit.id, entityLabel: "アイコン")
                 .padding(.top, DS.sp2)
 
-            if !vm.members.isEmpty {
+            if vm.isLoading {
+                ImasListSkeleton(rows: 5, thumb: .circle)
+            } else if let loadError = vm.loadError {
+                ImasEmptyState(
+                    systemImage: "exclamationmark.triangle",
+                    title: "読み込みに失敗しました",
+                    message: loadError,
+                    actionTitle: "再試行",
+                    action: { Task { await vm.loadDetails(unit: unit) } },
+                    brand: brandColor
+                )
+            } else if !vm.members.isEmpty {
                 VStack(spacing: DS.sp3) {
                     ImasSectionHeader(title: "メンバー", count: "\(vm.members.count)", tight: true)
                     ImasListContainer {
@@ -389,6 +412,7 @@ struct UnitDetailView: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(!canAddPersonalTag)
+                .accessibilityLabel("マイタグを追加")
             }
         }
     }
