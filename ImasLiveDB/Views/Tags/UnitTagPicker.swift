@@ -9,21 +9,21 @@ struct UnitTagPicker: View {
     let unit: Unit
     var onApplied: (() -> Void)?
 
+    @State private var vm: UnitTagPickerViewModel
     @State private var searchText = ""
-    @State private var tags: [CommunityTag] = []
-    @State private var myTagIds: Set<String> = []
     @State private var selectedTagIds: Set<String> = []
     /// 選択された CommunityTag の実体辞書。検索で tags が差し替わっても選択済みを保持する。
     @State private var selectedTagsById: [String: CommunityTag] = [:]
-    @State private var isLoading = false
-    @State private var isApplying = false
     @State private var showCreateSheet = false
-    @State private var applyError: String?
-    /// 検索デバウンス用の世代 ID (IdolTagPicker と同じ方式)。
-    @State private var loadToken = 0
+
+    init(unit: Unit, onApplied: (() -> Void)? = nil) {
+        self.unit = unit
+        self.onApplied = onApplied
+        _vm = State(initialValue: UnitTagPickerViewModel(unitId: unit.id))
+    }
 
     private var trimmedSearch: String { searchText.trimmingCharacters(in: .whitespaces) }
-    private var exactMatchExists: Bool { tags.contains { $0.name == trimmedSearch } }
+    private var exactMatchExists: Bool { vm.tags.contains { $0.name == trimmedSearch } }
 
     var body: some View {
         NavigationStack {
@@ -62,13 +62,13 @@ struct UnitTagPicker: View {
                         Text(trimmedSearch.isEmpty ? "よく使われるタグ" : "候補")
                             .font(.imasFootnote.weight(.semibold))
                             .foregroundStyle(DS.ink3)
-                        if isLoading {
+                        if vm.isLoading {
                             ProgressView().frame(maxWidth: .infinity).padding(.vertical, DS.sp5)
-                        } else if tags.isEmpty {
+                        } else if vm.tags.isEmpty {
                             Text("タグが見つかりません").font(.imasFootnote).foregroundStyle(DS.ink3)
                         } else {
                             FlowLayout(spacing: DS.sp2) {
-                                ForEach(tags) { tag in tagChip(tag) }
+                                ForEach(vm.tags) { tag in tagChip(tag) }
                             }
                         }
                     }
@@ -98,36 +98,40 @@ struct UnitTagPicker: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("追加") {
-                        guard !isApplying else { return }
+                        guard !vm.isApplying else { return }
                         AppAnalytics.tap("unit_tag_picker.apply")
-                        isApplying = true
-                        Task { await applyTags() }
+                        Task {
+                            if await vm.applyTags(selectedTagIds) {
+                                onApplied?()
+                                dismiss()
+                            }
+                        }
                     }
                     .fontWeight(.semibold)
-                    .disabled(selectedTagIds.isEmpty || isApplying)
+                    .disabled(selectedTagIds.isEmpty || vm.isApplying)
                 }
             }
             .sheet(isPresented: $showCreateSheet) {
                 TagCreateSheet(domain: .unit, onCreated: { newTag in
-                    tags.insert(newTag, at: 0)
+                    vm.insertCreated(newTag)
                     selectedTagIds.insert(newTag.id)
                     selectedTagsById[newTag.id] = newTag
                 }, initialName: trimmedSearch)
             }
-            .alert("タグの追加に失敗しました", isPresented: Binding(get: { applyError != nil }, set: { if !$0 { applyError = nil } })) {
-                Button("OK") { applyError = nil }
+            .alert("タグの追加に失敗しました", isPresented: Binding(get: { vm.applyError != nil }, set: { if !$0 { vm.applyError = nil } })) {
+                Button("OK") { vm.applyError = nil }
             } message: {
-                Text(applyError ?? "")
+                Text(vm.applyError ?? "")
             }
-            .task { await loadData() }
-            .onChange(of: searchText) { _, _ in scheduleLoadTags() }
+            .task { await vm.loadData() }
+            .onChange(of: searchText) { _, new in vm.scheduleSearch(new) }
         }
     }
 
     /// タグ chip。未適用=ニュートラル / 選択中=タグ色 / 適用済=タグ色+チェック(無効)。
     @ViewBuilder
     private func tagChip(_ tag: CommunityTag) -> some View {
-        let applied = myTagIds.contains(tag.id)
+        let applied = vm.myTagIds.contains(tag.id)
         let selected = selectedTagIds.contains(tag.id)
         let on = applied || selected
         let tagColor = tag.color.map { Color(hexColor: $0) } ?? .accentColor
@@ -171,44 +175,4 @@ struct UnitTagPicker: View {
         ))
     }
 
-    private func loadData() async {
-        isLoading = true
-        defer { isLoading = false }
-        async let tagResult = CommunityAPI.shared.unitTagCatalog(sort: "popular")
-        async let unitTagResult = CommunityAPI.shared.unitTags(unitId: unit.id)
-        tags = (try? await tagResult) ?? []
-        if let result = try? await unitTagResult {
-            myTagIds = Set(result.myTagIds)
-        }
-    }
-
-    private func scheduleLoadTags() {
-        loadToken += 1
-        let token = loadToken
-        Task {
-            try? await Task.sleep(nanoseconds: 200_000_000)
-            guard token == loadToken else { return }
-            await loadTags()
-        }
-    }
-
-    private func loadTags() async {
-        let searchAt = searchText
-        let result = (try? await CommunityAPI.shared.unitTagCatalog(search: searchAt, sort: "popular")) ?? []
-        guard searchAt == searchText else { return }
-        tags = result
-    }
-
-    private func applyTags() async {
-        guard !selectedTagIds.isEmpty else { return }
-        isApplying = true
-        defer { isApplying = false }
-        do {
-            try await CommunityAPI.shared.applyUnitTags(unitId: unit.id, tagIds: Array(selectedTagIds))
-            onApplied?()
-            dismiss()
-        } catch {
-            applyError = (error as? APIClientError)?.errorDescription ?? error.localizedDescription
-        }
-    }
 }

@@ -6,27 +6,27 @@ struct SongTagPicker: View {
     @Environment(\.self) private var environment
     let songId: String
     /// 対象曲（どの曲にタグを付けているか明示する見出し用）。汎用の SongRowView で表示する。
-    var song: SongWithArtists? = nil
+    var song: SongWithArtists?
     var onApplied: (() -> Void)?
 
+    @State private var vm: SongTagPickerViewModel
     @State private var searchText = ""
-    @State private var tags: [CommunityTag] = []
-    @State private var myTagIds: Set<String> = []
     @State private var selectedTagIds: Set<String> = []
     /// 選択された CommunityTag の実体辞書。検索で tags が差し替わっても選択済みを保持する。
     @State private var selectedTagsById: [String: CommunityTag] = [:]
-    @State private var isLoading = false
-    @State private var isApplying = false
     @State private var showCreateSheet = false
     /// 適用完了後のシェア導線。非 nil で完了 + シェア画面に切り替わる。
     @State private var appliedShare: TagShareContext?
-    @State private var applyError: String?
-    /// 検索デバウンス用の世代 ID。古い Task の結果が新しい入力を上書きしないためのガード
-    /// (SongSearchPickerView の scheduleLoad と同じ方式)。
-    @State private var loadToken = 0
+
+    init(songId: String, song: SongWithArtists? = nil, onApplied: (() -> Void)? = nil) {
+        self.songId = songId
+        self.song = song
+        self.onApplied = onApplied
+        _vm = State(initialValue: SongTagPickerViewModel(songId: songId))
+    }
 
     private var trimmedSearch: String { searchText.trimmingCharacters(in: .whitespaces) }
-    private var exactMatchExists: Bool { tags.contains { $0.name == trimmedSearch } }
+    private var exactMatchExists: Bool { vm.tags.contains { $0.name == trimmedSearch } }
 
     var body: some View {
         NavigationStack {
@@ -78,13 +78,13 @@ struct SongTagPicker: View {
                         Text(trimmedSearch.isEmpty ? "よく使われるタグ" : "候補")
                             .font(.imasFootnote.weight(.semibold))
                             .foregroundStyle(DS.ink3)
-                        if isLoading {
+                        if vm.isLoading {
                             ProgressView().frame(maxWidth: .infinity).padding(.vertical, DS.sp5)
-                        } else if tags.isEmpty {
+                        } else if vm.tags.isEmpty {
                             Text("タグが見つかりません").font(.imasFootnote).foregroundStyle(DS.ink3)
                         } else {
                             FlowLayout(spacing: DS.sp2) {
-                                ForEach(tags) { tag in tagChip(tag) }
+                                ForEach(vm.tags) { tag in tagChip(tag) }
                             }
                         }
                     }
@@ -117,35 +117,40 @@ struct SongTagPicker: View {
                     Button("追加") {
                         // タップ直後に同期的にガードを立てる。Task 起動〜isApplying=true までの
                         // 間隙での連打による二重送信を防ぐ (サーバは冪等だが UI 上のフラッシュ防止)。
-                        guard !isApplying else { return }
+                        guard !vm.isApplying else { return }
                         AppAnalytics.tap("song_tag_picker.apply")
-                        isApplying = true
-                        Task { await applyTags() }
+                        Task {
+                            if let share = await vm.applyTags(selectedTagIds, selectedTagsById: selectedTagsById, song: song) {
+                                onApplied?()
+                                // 即 dismiss せず、完了 + シェア導線に切り替える (閉じるのはユーザー操作)。
+                                appliedShare = share
+                            }
+                        }
                     }
                     .fontWeight(.semibold)
-                    .disabled(selectedTagIds.isEmpty || isApplying)
+                    .disabled(selectedTagIds.isEmpty || vm.isApplying)
                 }
             }
             .sheet(isPresented: $showCreateSheet) {
                 TagCreateSheet(onCreated: { newTag in
-                    tags.insert(newTag, at: 0)
+                    vm.insertCreated(newTag)
                     selectedTagIds.insert(newTag.id)
                     selectedTagsById[newTag.id] = newTag
                 }, initialName: trimmedSearch)
             }
-            .alert("タグの追加に失敗しました", isPresented: Binding(get: { applyError != nil }, set: { if !$0 { applyError = nil } })) {
-                Button("OK") { applyError = nil }
+            .alert("タグの追加に失敗しました", isPresented: Binding(get: { vm.applyError != nil }, set: { if !$0 { vm.applyError = nil } })) {
+                Button("OK") { vm.applyError = nil }
             } message: {
-                Text(applyError ?? "")
+                Text(vm.applyError ?? "")
             }
-            .task { await loadData() }
-            .onChange(of: searchText) { _, _ in scheduleLoadTags() }
+            .task { await vm.loadData() }
+            .onChange(of: searchText) { _, new in vm.scheduleSearch(new) }
     }
 
     /// タグ chip。未適用=ニュートラル / 選択中=タグ色 / 適用済=タグ色+チェック(無効)。
     @ViewBuilder
     private func tagChip(_ tag: CommunityTag) -> some View {
-        let applied = myTagIds.contains(tag.id)
+        let applied = vm.myTagIds.contains(tag.id)
         let selected = selectedTagIds.contains(tag.id)
         let on = applied || selected
         let tagColor = tag.color.map { Color(hexColor: $0) } ?? .accentColor
@@ -191,71 +196,4 @@ struct SongTagPicker: View {
         ))
     }
 
-    private func loadData() async {
-        isLoading = true
-        defer { isLoading = false }
-        async let tagResult = CommunityAPI.shared.tags(sort: "popular")
-        async let songTagResult = CommunityAPI.shared.songTags(songId: songId)
-        tags = (try? await tagResult) ?? []
-        if let result = try? await songTagResult {
-            myTagIds = Set(result.myTagIds)
-        }
-    }
-
-    /// 入力中の連打を抑えるための簡易デバウンス + 古い結果で新しい入力を上書きしないための
-    /// 世代ガード (SongSearchPickerView.scheduleLoad と同方式)。
-    private func scheduleLoadTags() {
-        loadToken += 1
-        let token = loadToken
-        Task {
-            try? await Task.sleep(nanoseconds: 200_000_000)
-            guard token == loadToken else { return }
-            await loadTags()
-        }
-    }
-
-    private func loadTags() async {
-        let searchAt = searchText
-        let result = (try? await CommunityAPI.shared.tags(search: searchAt, sort: "popular")) ?? []
-        // 検索語が変わらないまま完了した結果だけ反映する (世代ガードの二重防御)。
-        guard searchAt == searchText else { return }
-        tags = result
-    }
-
-    private func applyTags() async {
-        guard !selectedTagIds.isEmpty else { return }
-        isApplying = true
-        defer { isApplying = false }
-        do {
-            try await CommunityAPI.shared.applySongTags(songId: songId, tagIds: Array(selectedTagIds))
-            onApplied?()
-            // 即 dismiss せず、完了 + シェア導線に切り替える (閉じるのはユーザー操作)。
-            let appliedTags = selectedTagIds.compactMap { selectedTagsById[$0] }
-            appliedShare = await makeShareContext(applied: appliedTags)
-        } catch {
-            applyError = (error as? APIClientError)?.errorDescription ?? error.localizedDescription
-        }
-    }
-
-    /// 付与完了シェアの内容を組み立てる。seed は曲のブランドカラー → 先頭タグ色。
-    /// 曲・ブランドの引き当ては SongReading / BrandReading ポート経由 (AppDatabase 直叩きを排除)。
-    private func makeShareContext(applied: [CommunityTag]) async -> TagShareContext {
-        let resolvedSong: Song?
-        if let loaded = song?.song {
-            resolvedSong = loaded
-        } else {
-            resolvedSong = try? await AppContainer.shared.songReading.song(id: songId)
-        }
-        var brandColor: String?
-        if let bid = resolvedSong?.brandId {
-            brandColor = (try? await AppContainer.shared.brandReading.brands())?.first { $0.id == bid }?.color
-        }
-        return TagShareContext(
-            songTitle: resolvedSong?.title ?? "この曲",
-            artistNames: song?.artistNames ?? resolvedSong?.singerLabel,
-            tags: applied,
-            seed: ColorMath.firstValidHex(brandColor, applied.first?.color?.rawValue),
-            artworkUrl: resolvedSong?.artworkUrl
-        )
-    }
 }

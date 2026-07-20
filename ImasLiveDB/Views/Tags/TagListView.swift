@@ -8,13 +8,11 @@ enum TagRoute: Hashable {
 
 struct TagListView: View {
     @State private var navPath = NavigationPath()
-    @State private var tags: [CommunityTag] = []
+    @State private var vm = TagListViewModel()
     @State private var selectedCategory = ""
     @State private var selectedSort = "popular"
-    @State private var isLoading = false
     @State private var showCreateSheet = false
     @State private var showFilterSheet = false
-    @State private var loadTask: Task<Void, Never>?
 
     private let categories: [(value: String, label: String)] = [
         ("", "全て"), ("mood", "ムード"), ("scene", "シーン"), ("special", "特別"), ("free", "フリー")
@@ -30,14 +28,14 @@ struct TagListView: View {
     var body: some View {
         NavigationStack(path: $navPath) {
             List {
-                if isLoading {
+                if vm.isLoading {
                     HStack { Spacer(); ProgressView(); Spacer() }
                         .listRowBackground(Color.clear)
-                } else if tags.isEmpty {
+                } else if vm.tags.isEmpty {
                     ImasEmptyState(systemImage: "tag", title: "タグはまだありません")
                         .listRowBackground(Color.clear)
                 } else {
-                    ForEach(Array(tags.enumerated()), id: \.element.id) { idx, tag in
+                    ForEach(Array(vm.tags.enumerated()), id: \.element.id) { idx, tag in
                         NavigationLink(value: TagRoute.detail(id: tag.id, name: tag.name)) {
                             // 人気ソート時は順位を出して「人気ランキング」として見せる。
                             TagRowView(tag: tag, rank: selectedSort == "popular" ? idx + 1 : nil)
@@ -93,8 +91,7 @@ struct TagListView: View {
             }
             .sheet(isPresented: $showCreateSheet) {
                 TagCreateSheet(onCreated: { newTag in
-                    // 作成直後に一覧へ即時反映 (人気順ソート等の並びはそのまま次回ロードに委ねる)。
-                    tags.insert(newTag, at: 0)
+                    vm.insertCreated(newTag)
                 })
             }
             .sheet(isPresented: $showFilterSheet) {
@@ -105,42 +102,12 @@ struct TagListView: View {
                     selectedSort: $selectedSort
                 )
                 .presentationDetents([.medium, .large])
-                .onDisappear { scheduleLoadTags(debounce: false) }
+                .onDisappear { vm.scheduleLoad(category: selectedCategory, sort: selectedSort, debounce: false) }
             }
-            .task { await loadTags() }
-            .onChange(of: selectedCategory) { _, _ in scheduleLoadTags(debounce: false) }
-            .onChange(of: selectedSort) { _, _ in scheduleLoadTags(debounce: false) }
+            .task { await vm.load(category: selectedCategory, sort: selectedSort) }
+            .onChange(of: selectedCategory) { _, _ in vm.scheduleLoad(category: selectedCategory, sort: selectedSort, debounce: false) }
+            .onChange(of: selectedSort) { _, _ in vm.scheduleLoad(category: selectedCategory, sort: selectedSort, debounce: false) }
             .trackScreen("tag_list")
-        }
-    }
-
-    private func scheduleLoadTags(debounce: Bool) {
-        loadTask?.cancel()
-        loadTask = Task {
-            if debounce {
-                try? await Task.sleep(for: .milliseconds(200))
-                guard !Task.isCancelled else { return }
-            }
-            await loadTags()
-        }
-    }
-
-    private func loadTags() async {
-        isLoading = true
-        defer { isLoading = false }
-        do {
-            try Task.checkCancellation()
-            let result = try await CommunityAPI.shared.tags(
-                search: "",
-                category: selectedCategory,
-                sort: selectedSort
-            )
-            try Task.checkCancellation()
-            tags = result
-        } catch is CancellationError {
-            // キャンセル済み
-        } catch {
-            tags = []
         }
     }
 }
@@ -231,10 +198,10 @@ private struct TagSearchScreen: View {
             prompt: "タグを検索",
             historyScope: .submissions,
             searchAction: { query in
-                (try? await CommunityAPI.shared.tags(search: query, category: "", sort: "popular")) ?? []
+                (try? await AppContainer.shared.communityTagReading.tags(search: query, category: "", sort: "popular", limit: 1000, offset: 0)) ?? []
             },
             suggestionsAction: { query in
-                let results = (try? await CommunityAPI.shared.tags(search: query, category: "", sort: "popular")) ?? []
+                let results = (try? await AppContainer.shared.communityTagReading.tags(search: query, category: "", sort: "popular", limit: 1000, offset: 0)) ?? []
                 return results.prefix(8).map { tag in
                     SearchSuggestionItem(text: tag.name, subtitle: tag.description, icon: "tag")
                 }
