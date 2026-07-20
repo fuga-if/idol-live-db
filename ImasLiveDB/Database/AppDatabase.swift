@@ -187,14 +187,41 @@ final class AppDatabase: @unchecked Sendable {
             "device_song_tag", "device_song_penlight",
         ]
 
-        // ATTACH はトランザクション内では実行できないため writeWithoutTransaction で開き、
-        // コピー本体だけを明示トランザクションで囲う。 全 13 万行を [String:[Row]] に
-        // メモリロードして行単位 execute していた旧実装 (アプデ後初回起動が数秒フリーズ) を、
-        // `INSERT INTO main.t SELECT ... FROM bundle.t` の一括コピーに置換する。
+        // コピー本体は純処理として分離 (テスト可能性 + 責務分離)。
+        let (ok, skipped) = try Self.copyMasterTables(
+            into: dbQueue,
+            fromBundleAt: tmpURL.path,
+            preserving: preservedTables,
+            newVersion: bundleVersion
+        )
+        let summary = "v\(localVersion)→v\(bundleVersion) ok=\(ok) skipped=\(skipped)"
+        reseedState.withLock {
+            $0.summary = summary
+            $0.failureDetail = nil
+        }
+        Logger.database.info("[reseed] done \(summary, privacy: .public)")
+    }
+
+    /// Bundle DB (`bundlePath`) の内容で `writer` 側マスタテーブルを一括コピーする純処理。
+    /// `preservedTables` は触らず、`newVersion` を `meta.data_version` に書き、`(ok, skipped)` を返す。
+    /// Bundle 取得やバージョン比較から分離してあり、テストは 2 つの一時 DB を渡して検証できる。
+    ///
+    /// - 一括コピー: 全 13 万行を `[String:[Row]]` にメモリロードして行単位 execute していた旧実装
+    ///   (アプデ後初回起動が数秒フリーズ) を、`INSERT INTO main.t SELECT ... FROM bundle.t` に置換。
+    /// - ATTACH はトランザクション内では実行できないため `writeWithoutTransaction` で開き、コピー本体
+    ///   だけを明示トランザクションで囲う。
+    /// - FK 違反があれば COMMIT で例外を投げ、トランザクション全体がロールバックする (呼び出し元の
+    ///   `openDatabase` が捕捉してユーザー可視アラートにする / 旧: サイレント全停止)。
+    static func copyMasterTables(
+        into writer: any DatabaseWriter,
+        fromBundleAt bundlePath: String,
+        preserving preservedTables: Set<String>,
+        newVersion: Int
+    ) throws -> (ok: Int, skipped: Int) {
         var ok = 0
         var skipped = 0
-        try dbQueue.writeWithoutTransaction { db in
-            try db.execute(sql: "ATTACH DATABASE ? AS bundle", arguments: [tmpURL.path])
+        try writer.writeWithoutTransaction { db in
+            try db.execute(sql: "ATTACH DATABASE ? AS bundle", arguments: [bundlePath])
             defer { try? db.execute(sql: "DETACH DATABASE bundle") }
 
             let bundleTables = try String.fetchAll(db, sql: "SELECT name FROM bundle.sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
@@ -226,18 +253,11 @@ final class AppDatabase: @unchecked Sendable {
                     try db.execute(sql: "INSERT INTO main.\"\(table)\" (\(colList)) SELECT \(colList) FROM bundle.\"\(table)\"")
                     ok += 1
                 }
-                try db.execute(sql: "UPDATE main.meta SET value = ? WHERE key = 'data_version'", arguments: [String(bundleVersion)])
-                // FK 違反があれば、この COMMIT で例外を投げてトランザクション全体がロールバックし、
-                // openDatabase 側で捕捉されてユーザー可視のアラートになる (旧: サイレント全停止)。
+                try db.execute(sql: "UPDATE main.meta SET value = ? WHERE key = 'data_version'", arguments: [String(newVersion)])
                 return .commit
             }
         }
-        let summary = "v\(localVersion)→v\(bundleVersion) ok=\(ok) skipped=\(skipped)"
-        reseedState.withLock {
-            $0.summary = summary
-            $0.failureDetail = nil
-        }
-        Logger.database.info("[reseed] done \(summary, privacy: .public)")
+        return (ok, skipped)
     }
 
     /// CloudKit 同期で `kind` が default 'live' に上書きされる対策。
