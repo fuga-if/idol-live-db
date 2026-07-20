@@ -140,7 +140,7 @@ struct FavoritesListView: View {
             idols = (try? await AppContainer.shared.idolReading.idols(ids: idolIds)) ?? []
         }
         if !eventIds.isEmpty {
-            events = (try? AppDatabase.shared.fetchEventsByIds(eventIds)) ?? []
+            events = (try? await AppContainer.shared.eventReading.eventsByIds(eventIds)) ?? []
         }
     }
 }

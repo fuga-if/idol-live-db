@@ -123,7 +123,7 @@ struct EventReleasesSection: View {
     }
 
     private func load() async {
-        let list = (try? AppDatabase.shared.fetchEventReleases(eventId: eventId)) ?? []
+        let list = (try? await AppContainer.shared.eventReading.eventReleases(eventId: eventId)) ?? []
         releases = list
         ownedIds = Set(list.filter { markService.bool(.owned, entity: .release, id: $0.id) }.map(\.id))
     }

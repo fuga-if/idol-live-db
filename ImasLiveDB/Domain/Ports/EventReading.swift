@@ -30,4 +30,8 @@ protocol EventReading: Sendable {
     func attendedEventsWithDate() async throws -> [EventWithDate]
     /// 参加イベントを現地/配信/LVの3集合に分類 (混在は複数に含む)。
     func attendedEventTypeSets() async throws -> (live: Set<String>, stream: Set<String>, liveViewing: Set<String>)
+    /// 指定 id 群のイベント (日付つき・お気に入り一覧用)。
+    func eventsByIds(_ ids: [String]) async throws -> [EventWithDate]
+    /// イベントの映像円盤 (Blu-ray / DVD) 一覧。
+    func eventReleases(eventId: String) async throws -> [EventRelease]
 }

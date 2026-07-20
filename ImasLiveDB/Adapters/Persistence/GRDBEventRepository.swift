@@ -50,4 +50,12 @@ struct GRDBEventRepository: EventReading {
     func attendedEventTypeSets() async throws -> (live: Set<String>, stream: Set<String>, liveViewing: Set<String>) {
         try database.fetchAttendedEventTypeSets()
     }
+
+    func eventsByIds(_ ids: [String]) async throws -> [EventWithDate] {
+        try database.fetchEventsByIds(ids)
+    }
+
+    func eventReleases(eventId: String) async throws -> [EventRelease] {
+        try database.fetchEventReleases(eventId: eventId)
+    }
 }

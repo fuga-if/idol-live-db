@@ -46,4 +46,8 @@ struct GRDBShowRepository: ShowReading {
     func searchShows(query: String, limit: Int) async throws -> [ShowWithEventName] {
         try database.searchShows(query: query, limit: limit)
     }
+
+    func showCastIdols(showId: String) async throws -> [Idol] {
+        try database.fetchShowCastIdols(showId: showId)
+    }
 }

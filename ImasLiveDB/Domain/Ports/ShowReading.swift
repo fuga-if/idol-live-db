@@ -27,4 +27,6 @@ protocol ShowReading: Sendable {
     func allShows(limit: Int) async throws -> [ShowWithEventName]
     /// ピッカー用の公演検索 (イベント名つき)。
     func searchShows(query: String, limit: Int) async throws -> [ShowWithEventName]
+    /// 公演の出演キャストを Idol として取得 (出演者予想の対象一覧用)。
+    func showCastIdols(showId: String) async throws -> [Idol]
 }
