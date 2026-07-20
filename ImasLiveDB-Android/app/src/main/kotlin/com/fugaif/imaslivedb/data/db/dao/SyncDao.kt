@@ -53,4 +53,16 @@ interface SyncDao {
     @Query("DELETE FROM song_videos WHERE id IN (:ids)") suspend fun deleteSongVideos(ids: List<String>)
 
     @Query("SELECT COUNT(*) FROM brands") suspend fun brandCount(): Int
+
+    // 単一PK (id) テーブルのローカル全ID。フル同期完走後の孤児掃除 (CloudKit側でtombstone無しに
+    // 物理削除されたレコードの検出) に使う。iOS AppDatabase.deleteOrphans の Android 版。
+    @Query("SELECT id FROM brands") suspend fun brandIds(): List<String>
+    @Query("SELECT id FROM idols") suspend fun idolIds(): List<String>
+    @Query("SELECT id FROM events") suspend fun eventIds(): List<String>
+    @Query("SELECT id FROM shows") suspend fun showIds(): List<String>
+    @Query("SELECT id FROM songs") suspend fun songIds(): List<String>
+    @Query("SELECT id FROM units") suspend fun unitIds(): List<String>
+    @Query("SELECT id FROM setlist_items") suspend fun setlistItemIds(): List<String>
+    @Query("SELECT id FROM song_calls") suspend fun songCallIds(): List<String>
+    @Query("SELECT id FROM song_videos") suspend fun songVideoIds(): List<String>
 }
