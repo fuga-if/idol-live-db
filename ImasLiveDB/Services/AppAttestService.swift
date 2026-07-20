@@ -1,6 +1,9 @@
 import Foundation
 import DeviceCheck
 import CryptoKit
+import OSLog
+
+private let logger = Logger(subsystem: "com.fugaif.ImasLiveDB", category: "app_attest")
 
 /// クローンアプリのただ乗り対策。App Attest で「正規アプリ」を証明し、
 /// Worker から短命の app token を取得して X-App-Token ヘッダに載せる。
@@ -35,9 +38,7 @@ actor AppAttestService {
         do {
             try await refresh()
         } catch {
-            #if DEBUG
-            print("[AppAttest] refresh failed: \(error)")
-            #endif
+            logger.debug("refresh failed: \(String(describing: error))")
         }
         return cachedToken
     }
