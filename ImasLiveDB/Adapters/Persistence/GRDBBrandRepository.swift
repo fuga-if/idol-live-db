@@ -8,6 +8,6 @@ struct GRDBBrandRepository: BrandReading {
     let database: AppDatabase
 
     func brands() async throws -> [Brand] {
-        try database.fetchBrands()
+        try await database.fetchBrandsAsync()
     }
 }

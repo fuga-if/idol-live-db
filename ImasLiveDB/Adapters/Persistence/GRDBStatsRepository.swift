@@ -8,18 +8,18 @@ struct GRDBStatsRepository: StatsReading {
     let database: AppDatabase
 
     func brandSongCounts() async throws -> [BrandSongCount] {
-        try database.fetchBrandSongCounts()
+        try await database.fetchBrandSongCountsAsync()
     }
 
     func songPlayCountRanking(limit: Int) async throws -> [SongPlayCount] {
-        try database.fetchSongPlayCountRanking(limit: limit)
+        try await database.fetchSongPlayCountRankingAsync(limit: limit)
     }
 
     func castShowCountRanking(limit: Int) async throws -> [CastShowCount] {
-        try database.fetchCastShowCountRanking(limit: limit)
+        try await database.fetchCastShowCountRankingAsync(limit: limit)
     }
 
     func yearlyShowCounts() async throws -> [YearlyShowCount] {
-        try database.fetchYearlyShowCounts()
+        try await database.fetchYearlyShowCountsAsync()
     }
 }

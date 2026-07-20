@@ -8,54 +8,54 @@ struct GRDBIdolRepository: IdolReading {
     let database: AppDatabase
 
     func idols(brandId: String?) async throws -> [Idol] {
-        try database.fetchIdols(brandId: brandId)
+        try await database.fetchIdolsAsync(brandId: brandId)
     }
 
     func idol(id: String) async throws -> Idol? {
-        try database.fetchIdol(id: id)
+        try await database.fetchIdolAsync(id: id)
     }
 
     func idols(ids: [String]) async throws -> [Idol] {
-        try database.fetchIdols(ids: ids)
+        try await database.fetchIdolsAsync(ids: ids)
     }
 
     func idols(criterion: IdolFilterCriterion) async throws -> [Idol] {
-        try database.fetchIdols(criterion: criterion)
+        try await database.fetchIdolsAsync(criterion: criterion)
     }
 
     func idolCastNames() async throws -> [String: String] {
-        try database.fetchIdolCastNames()
+        try await database.fetchIdolCastNamesAsync()
     }
 
     func idolsByVoiceActor(name: String) async throws -> [Idol] {
-        try database.fetchIdolsByVoiceActor(name: name)
+        try await database.fetchIdolsByVoiceActorAsync(name: name)
     }
 
     func searchIdols(query: String, limit: Int) async throws -> [Idol] {
-        try database.searchIdols(query: query, limit: limit)
+        try await database.searchIdolsAsync(query: query, limit: limit)
     }
 
     func idolSongs(idolId: String, role: String?) async throws -> [Song] {
-        try database.fetchIdolSongs(idolId: idolId, role: role)
+        try await database.fetchIdolSongsAsync(idolId: idolId, role: role)
     }
 
     func idolPerformedSongs(idolId: String) async throws -> [IdolPerformedSong] {
-        try database.fetchIdolPerformedSongs(idolId: idolId)
+        try await database.fetchIdolPerformedSongsAsync(idolId: idolId)
     }
 
     func idolUnits(idolId: String) async throws -> [Unit] {
-        try database.fetchIdolUnits(idolId: idolId)
+        try await database.fetchIdolUnitsAsync(idolId: idolId)
     }
 
     func idolShows(idolId: String) async throws -> [CastShowRow] {
-        try database.fetchIdolShows(idolId: idolId)
+        try await database.fetchIdolShowsAsync(idolId: idolId)
     }
 
     func allIdolsForPicker() async throws -> [Idol] {
-        try database.fetchAllIdolsForPicker()
+        try await database.fetchAllIdolsForPickerAsync()
     }
 
     func idolSongHistory(idolId: String, songId: String) async throws -> [CastShowRow] {
-        try database.fetchIdolSongHistory(idolId: idolId, songId: songId)
+        try await database.fetchIdolSongHistoryAsync(idolId: idolId, songId: songId)
     }
 }

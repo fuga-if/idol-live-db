@@ -9,98 +9,98 @@ struct GRDBSongRepository: SongReading {
     let database: AppDatabase
 
     func songs(filter: SongSearchFilter, sortOrder: SongSortOrder, ascending: Bool?) async throws -> [SongWithArtists] {
-        try database.fetchSongs(filter: filter, sortOrder: sortOrder, ascending: ascending)
+        try await database.fetchSongsAsync(filter: filter, sortOrder: sortOrder, ascending: ascending)
     }
 
     func song(id: String) async throws -> Song? {
-        try database.fetchSong(id: id)
+        try await database.fetchSongAsync(id: id)
     }
 
     func songs(ids: [String]) async throws -> [Song] {
-        try database.fetchSongs(ids: ids)
+        try await database.fetchSongsAsync(ids: ids)
     }
 
     func songIdsWithAnyArtist(idolIds: Set<String>) async throws -> Set<String> {
-        try database.fetchSongIdsWithAnyArtist(idolIds: idolIds)
+        try await database.fetchSongIdsWithAnyArtistAsync(idolIds: idolIds)
     }
 
     func songPerformerIdolsMap(songIds: [String]) async throws -> [String: [Idol]] {
-        try database.fetchSongPerformerIdolsMap(songIds: songIds)
+        try await database.fetchSongPerformerIdolsMapAsync(songIds: songIds)
     }
 
     func songCollectedCounts() async throws -> [String: Int] {
-        try database.fetchSongCollectedCounts()
+        try await database.fetchSongCollectedCountsAsync()
     }
 
     func songSuggestions(query: String, limit: Int) async throws -> [SearchSuggestionItem] {
-        try database.fetchSongSuggestions(query: query, limit: limit)
+        try await database.fetchSongSuggestionsAsync(query: query, limit: limit)
     }
 
     func searchSongs(query: String, limit: Int) async throws -> [Song] {
-        try database.searchSongs(query: query, limit: limit)
+        try await database.searchSongsAsync(query: query, limit: limit)
     }
 
     func songPerformanceHistory(songId: String) async throws -> [PerformanceHistoryRow] {
-        try database.fetchSongPerformanceHistory(songId: songId)
+        try await database.fetchSongPerformanceHistoryAsync(songId: songId)
     }
 
     func songArtists(songId: String, role: String?) async throws -> [Idol] {
-        try database.fetchSongArtists(songId: songId, role: role)
+        try await database.fetchSongArtistsAsync(songId: songId, role: role)
     }
 
     func relatedSongs(to song: Song, limit: Int) async throws -> [Song] {
-        try database.fetchRelatedSongs(to: song, limit: limit)
+        try await database.fetchRelatedSongsAsync(to: song, limit: limit)
     }
 
     func collectedShows(for songId: String) async throws -> [ShowWithEventName] {
-        try database.fetchCollectedShows(for: songId)
+        try await database.fetchCollectedShowsAsync(for: songId)
     }
 
     func songs(criterion: SongFilterCriterion) async throws -> [SongWithArtists] {
-        try database.fetchSongs(criterion: criterion)
+        try await database.fetchSongsAsync(criterion: criterion)
     }
 
     func songsByCreator(_ name: String) async throws -> [SongWithRoles] {
-        try database.fetchSongsByCreator(name)
+        try await database.fetchSongsByCreatorAsync(name)
     }
 
     func allSongsForPicker() async throws -> [PickedSong] {
-        try database.fetchAllSongsForPicker()
+        try await database.fetchAllSongsForPickerAsync()
     }
 
     func albums(brandIds: Set<String>, query: String?) async throws -> [AlbumSummary] {
-        try database.fetchAlbums(brandIds: brandIds, query: query)
+        try await database.fetchAlbumsAsync(brandIds: brandIds, query: query)
     }
 
     func series(brandIds: Set<String>, query: String?) async throws -> [SeriesSummary] {
-        try database.fetchSeries(brandIds: brandIds, query: query)
+        try await database.fetchSeriesAsync(brandIds: brandIds, query: query)
     }
 
     func cdSeriesList() async throws -> [String] {
-        try database.fetchCdSeriesList()
+        try await database.fetchCdSeriesListAsync()
     }
 
     func seriesGroups(brandIds: Set<String>) async throws -> [String] {
-        try database.fetchSeriesGroups(brandIds: brandIds)
+        try await database.fetchSeriesGroupsAsync(brandIds: brandIds)
     }
 
     func songIds(brandId: String, includeCovers: Bool, excludeRemixes: Bool) async throws -> [String] {
-        try database.fetchSongIds(brandId: brandId, includeCovers: includeCovers, excludeRemixes: excludeRemixes)
+        try await database.fetchSongIdsAsync(brandId: brandId, includeCovers: includeCovers, excludeRemixes: excludeRemixes)
     }
 
     func originalSongIds(forShowCastOf showId: String) async throws -> Set<String> {
-        try database.fetchOriginalSongIds(forShowCastOf: showId)
+        try await database.fetchOriginalSongIdsAsync(forShowCastOf: showId)
     }
 
     func brandedSongIds() async throws -> Set<String> {
-        try database.fetchBrandedSongIds()
+        try await database.fetchBrandedSongIdsAsync()
     }
 
     func songCalls(songId: String) async throws -> [SongCall] {
-        try database.fetchCallResponsesForSong(songId: songId)
+        try await database.fetchCallResponsesForSongAsync(songId: songId)
     }
 
     func songVideos(songId: String) async throws -> [SongVideo] {
-        try database.fetchVideosForSong(songId: songId)
+        try await database.fetchVideosForSongAsync(songId: songId)
     }
 }

@@ -8,30 +8,30 @@ struct GRDBUnitRepository: UnitReading {
     let database: AppDatabase
 
     func unitIndex() async throws -> UnitIndex {
-        try database.fetchUnitIndex()
+        try await database.fetchUnitIndexAsync()
     }
 
     func unit(id: String) async throws -> Unit? {
-        try database.fetchUnit(id: id)
+        try await database.fetchUnitAsync(id: id)
     }
 
     func unitMembers(unitId: String) async throws -> [Idol] {
-        try database.fetchUnitMembers(unitId: unitId)
+        try await database.fetchUnitMembersAsync(unitId: unitId)
     }
 
     func unitSongs(unitId: String) async throws -> [Song] {
-        try database.fetchUnitSongs(unitId: unitId)
+        try await database.fetchUnitSongsAsync(unitId: unitId)
     }
 
     func unitIdsWithSongs(unitIds: [String]) async throws -> Set<String> {
-        try database.fetchUnitIdsWithSongs(unitIds: unitIds)
+        try await database.fetchUnitIdsWithSongsAsync(unitIds: unitIds)
     }
 
     func performedUnitIds(eventId: String) async throws -> Set<String> {
-        try database.fetchPerformedUnitIds(eventId: eventId)
+        try await database.fetchPerformedUnitIdsAsync(eventId: eventId)
     }
 
     func allUnits() async throws -> [Unit] {
-        try database.fetchAllUnits()
+        try await database.fetchAllUnitsAsync()
     }
 }

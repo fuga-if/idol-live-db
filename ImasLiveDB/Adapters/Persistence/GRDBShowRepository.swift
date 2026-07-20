@@ -8,46 +8,46 @@ struct GRDBShowRepository: ShowReading {
     let database: AppDatabase
 
     func shows(eventId: String) async throws -> [Show] {
-        try database.fetchShows(eventId: eventId)
+        try await database.fetchShowsAsync(eventId: eventId)
     }
 
     func show(id: String) async throws -> Show? {
-        try database.fetchShow(id: id)
+        try await database.fetchShowAsync(id: id)
     }
 
     func latestShow() async throws -> Show? {
-        try database.fetchLatestShow()
+        try await database.fetchLatestShowAsync()
     }
 
     func setlist(showId: String) async throws -> [SetlistRow] {
-        try database.fetchSetlist(showId: showId)
+        try await database.fetchSetlistAsync(showId: showId)
     }
 
     func allPerformers(showId: String) async throws -> [String: [PerformerRow]] {
-        try database.fetchAllPerformers(showId: showId)
+        try await database.fetchAllPerformersAsync(showId: showId)
     }
 
     func showIdolIds(showId: String) async throws -> Set<String> {
-        try database.fetchShowIdolIds(showId: showId)
+        try await database.fetchShowIdolIdsAsync(showId: showId)
     }
 
     func originalArtistIds(songIds: [String]) async throws -> [String: Set<String>] {
-        try database.fetchOriginalArtistIds(songIds: songIds)
+        try await database.fetchOriginalArtistIdsAsync(songIds: songIds)
     }
 
     func shows(criterion: ShowFilterCriterion) async throws -> [Show] {
-        try database.fetchShows(criterion: criterion)
+        try await database.fetchShowsAsync(criterion: criterion)
     }
 
     func allShows(limit: Int) async throws -> [ShowWithEventName] {
-        try database.fetchAllShows(limit: limit)
+        try await database.fetchAllShowsAsync(limit: limit)
     }
 
     func searchShows(query: String, limit: Int) async throws -> [ShowWithEventName] {
-        try database.searchShows(query: query, limit: limit)
+        try await database.searchShowsAsync(query: query, limit: limit)
     }
 
     func showCastIdols(showId: String) async throws -> [Idol] {
-        try database.fetchShowCastIdols(showId: showId)
+        try await database.fetchShowCastIdolsAsync(showId: showId)
     }
 }

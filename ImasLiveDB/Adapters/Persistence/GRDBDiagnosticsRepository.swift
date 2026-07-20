@@ -5,14 +5,14 @@ struct GRDBDiagnosticsRepository: DiagnosticsReading {
     let database: AppDatabase
 
     func metaValue(forKey key: String) async throws -> String? {
-        try database.fetchMetaValue(forKey: key)
+        try await database.fetchMetaValueAsync(forKey: key)
     }
 
     func databaseStats() async throws -> DatabaseStats {
-        try database.fetchDatabaseStats()
+        try await database.fetchDatabaseStatsAsync()
     }
 
     func syncDiagnostics() async throws -> SyncDiagnostics {
-        try database.fetchSyncDiagnostics()
+        try await database.fetchSyncDiagnosticsAsync()
     }
 }

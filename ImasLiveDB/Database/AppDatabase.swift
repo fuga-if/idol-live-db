@@ -98,6 +98,13 @@ final class AppDatabase: @unchecked Sendable {
             }
             #endif
         }
+        // デフォルト 5 だと、詳細画面の async let 並行 fetch (4並行程度) に一覧画面や
+        // カレンダー等の同時読み込みが重なるとリーダー接続を奪い合い、GRDB 内部で
+        // read の順番待ちが発生する (cooperative pool 自体は解放されるが体感レイテンシが伸びる)。
+        // 実運用の最大同時読み込み想定 (詳細画面の fan-out 4 + 一覧/カレンダー等の並行読み込み
+        // 数本) をまかなえるよう、デフォルトの2倍の 10 を確保する。書き込みは write 側の
+        // 単一コネクションのみを使うため増やしても衝突リスクは増えない。
+        config.maximumReaderCount = 10
 
         if let bundleURL = Bundle.main.url(forResource: "master", withExtension: "sqlite") {
             if !fileManager.fileExists(atPath: dbURL.path) {
@@ -339,13 +346,19 @@ final class AppDatabase: @unchecked Sendable {
     // MARK: - Event Queries
 
     func fetchEvents(brandId: String? = nil) throws -> [Event] {
-        try dbQueue.read { db in
-            var request = Event.all()
-            if let brandId {
-                request = request.filter(Column("brand_id") == brandId)
-            }
-            return try request.fetchAll(db)
+        try dbQueue.read { db in try Self.fetchEventsQuery(db, brandId: brandId) }
+    }
+
+    func fetchEventsAsync(brandId: String? = nil) async throws -> [Event] {
+        try await dbQueue.read { db in try Self.fetchEventsQuery(db, brandId: brandId) }
+    }
+
+    private static func fetchEventsQuery(_ db: Database, brandId: String?) throws -> [Event] {
+        var request = Event.all()
+        if let brandId {
+            request = request.filter(Column("brand_id") == brandId)
         }
+        return try request.fetchAll(db)
     }
 
     /// イベント一覧（最初の公演日付付き、降順）
@@ -361,52 +374,64 @@ final class AppDatabase: @unchecked Sendable {
         liveOnly: Bool = false,
         kinds: [EventKind]? = nil
     ) throws -> [EventWithDate] {
-        try dbQueue.read { db in
-            var conditions: [String] = []
-            var arguments = StatementArguments()
+        try dbQueue.read { db in try Self.fetchEventsWithFirstDateQuery(db, brandId: brandId, includeEmpty: includeEmpty, liveOnly: liveOnly, kinds: kinds) }
+    }
 
-            // kind フィルタ: 明示指定 > liveOnly > デフォルト(live+festival)
-            let targetKinds: [EventKind] = kinds ?? (liveOnly ? [.live] : [.live, .festival])
-            let kindPlaceholders = targetKinds.map { _ in "?" }.joined(separator: ", ")
-            conditions.append("e.kind IN (\(kindPlaceholders))")
-            arguments += StatementArguments(targetKinds.map(\.rawValue))
+    func fetchEventsWithFirstDateAsync(brandId: String? = nil, includeEmpty: Bool = true, liveOnly: Bool = false, kinds: [EventKind]? = nil) async throws -> [EventWithDate] {
+        try await dbQueue.read { db in try Self.fetchEventsWithFirstDateQuery(db, brandId: brandId, includeEmpty: includeEmpty, liveOnly: liveOnly, kinds: kinds) }
+    }
 
-            if let brandId {
-                conditions.append("e.brand_id = ?")
-                arguments += StatementArguments([brandId])
-            }
-            if !includeEmpty {
-                conditions.append(Self.hasSetlistCondition)
-            }
+    private static func fetchEventsWithFirstDateQuery(_ db: Database, brandId: String?, includeEmpty: Bool, liveOnly: Bool, kinds: [EventKind]?) throws -> [EventWithDate] {
+        var conditions: [String] = []
+        var arguments = StatementArguments()
 
-            var sql = """
-                SELECT e.id, e.brand_id, e.name, e.event_type, e.is_streaming, e.is_solo, e.kind,
-                       MIN(s.date) AS first_date,
-                       MAX(s.date) AS last_date
-                FROM events e
-                LEFT JOIN shows s ON s.event_id = e.id
-                """
-            sql += "\nWHERE " + conditions.joined(separator: "\nAND ")
-            sql += "\nGROUP BY e.id ORDER BY COALESCE(MIN(s.date), '') DESC"
+        // kind フィルタ: 明示指定 > liveOnly > デフォルト(live+festival)
+        let targetKinds: [EventKind] = kinds ?? (liveOnly ? [.live] : [.live, .festival])
+        let kindPlaceholders = targetKinds.map { _ in "?" }.joined(separator: ", ")
+        conditions.append("e.kind IN (\(kindPlaceholders))")
+        arguments += StatementArguments(targetKinds.map(\.rawValue))
 
-            return try Row.fetchAll(db, sql: sql, arguments: arguments).map(Self.eventWithDate)
+        if let brandId {
+            conditions.append("e.brand_id = ?")
+            arguments += StatementArguments([brandId])
         }
+        if !includeEmpty {
+            conditions.append(Self.hasSetlistCondition)
+        }
+
+        var sql = """
+            SELECT e.id, e.brand_id, e.name, e.event_type, e.is_streaming, e.is_solo, e.kind,
+                   MIN(s.date) AS first_date,
+                   MAX(s.date) AS last_date
+            FROM events e
+            LEFT JOIN shows s ON s.event_id = e.id
+            """
+        sql += "\nWHERE " + conditions.joined(separator: "\nAND ")
+        sql += "\nGROUP BY e.id ORDER BY COALESCE(MIN(s.date), '') DESC"
+
+        return try Row.fetchAll(db, sql: sql, arguments: arguments).map(Self.eventWithDate)
     }
 
     /// イベント統計（公演数・楽曲数・ユニーク曲数・キャスト数）
     func fetchEventStats(eventId: String) throws -> EventStats {
-        try dbQueue.read { db in
-            let sql = """
-                WITH event_shows AS (SELECT id FROM shows WHERE event_id = ?)
-                SELECT
-                    (SELECT COUNT(*) FROM event_shows) AS show_count,
-                    (SELECT COUNT(*) FROM setlist_items WHERE show_id IN (SELECT id FROM event_shows)) AS total_songs,
-                    (SELECT COUNT(DISTINCT song_id) FROM setlist_items WHERE show_id IN (SELECT id FROM event_shows)) AS unique_songs,
-                    (SELECT COUNT(DISTINCT idol_id) FROM show_cast WHERE show_id IN (SELECT id FROM event_shows)) AS cast_count
-                """
-            return try EventStats.fetchOne(db, sql: sql, arguments: [eventId])
-                ?? EventStats(showCount: 0, totalSongs: 0, uniqueSongs: 0, castCount: 0)
-        }
+        try dbQueue.read { db in try Self.fetchEventStatsQuery(db, eventId: eventId) }
+    }
+
+    func fetchEventStatsAsync(eventId: String) async throws -> EventStats {
+        try await dbQueue.read { db in try Self.fetchEventStatsQuery(db, eventId: eventId) }
+    }
+
+    private static func fetchEventStatsQuery(_ db: Database, eventId: String) throws -> EventStats {
+        let sql = """
+            WITH event_shows AS (SELECT id FROM shows WHERE event_id = ?)
+            SELECT
+                (SELECT COUNT(*) FROM event_shows) AS show_count,
+                (SELECT COUNT(*) FROM setlist_items WHERE show_id IN (SELECT id FROM event_shows)) AS total_songs,
+                (SELECT COUNT(DISTINCT song_id) FROM setlist_items WHERE show_id IN (SELECT id FROM event_shows)) AS unique_songs,
+                (SELECT COUNT(DISTINCT idol_id) FROM show_cast WHERE show_id IN (SELECT id FROM event_shows)) AS cast_count
+            """
+        return try EventStats.fetchOne(db, sql: sql, arguments: [eventId])
+            ?? EventStats(showCount: 0, totalSongs: 0, uniqueSongs: 0, castCount: 0)
     }
 
     /// イベントの出演キャスト一覧（アイドル情報付き）
@@ -427,128 +452,134 @@ final class AppDatabase: @unchecked Sendable {
 
     /// イベントの show ごとの出席アイドル集合を返す (DAY 別表示用)。
     func fetchEventAttendance(eventId: String) throws -> EventAttendance? {
-        try dbQueue.read { db in
-            // event の primary brand と joint_brand_ids を取得
-            guard let eventRow = try Row.fetchOne(db, sql: "SELECT brand_id, joint_brand_ids FROM events WHERE id = ?", arguments: [eventId]),
-                  let brandId = eventRow["brand_id"] as? String
-            else { return nil }
-            let jointBrandIds = (eventRow["joint_brand_ids"] as? String)?
-                .split(separator: ",")
-                .map { $0.trimmingCharacters(in: .whitespaces) }
-                .filter { !$0.isEmpty } ?? []
-            let candidateBrandIds = [brandId] + jointBrandIds
+        try dbQueue.read { db in try Self.fetchEventAttendanceQuery(db, eventId: eventId) }
+    }
 
-            let shows = try Show
-                .filter(Column("event_id") == eventId)
-                .order(Column("date"), Column("sort_order"))
-                .fetchAll(db)
+    func fetchEventAttendanceAsync(eventId: String) async throws -> EventAttendance? {
+        try await dbQueue.read { db in try Self.fetchEventAttendanceQuery(db, eventId: eventId) }
+    }
 
-            // ライブ最初の公演日。アイドル実装日 (idols.debut_date) がこれより
-            // 後のアイドルは「未実装期 = 出席判定対象外」として brandIdols から除外。
-            // debut_date 未登録 (NULL) は対象に含める (安全側)。
-            let eventStartDate = shows.first?.date
+    private static func fetchEventAttendanceQuery(_ db: Database, eventId: String) throws -> EventAttendance? {
+        // event の primary brand と joint_brand_ids を取得
+        guard let eventRow = try Row.fetchOne(db, sql: "SELECT brand_id, joint_brand_ids FROM events WHERE id = ?", arguments: [eventId]),
+              let brandId = eventRow["brand_id"] as? String
+        else { return nil }
+        let jointBrandIds = (eventRow["joint_brand_ids"] as? String)?
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty } ?? []
+        let candidateBrandIds = [brandId] + jointBrandIds
 
-            // 欠席判定の母集団:
-            //  - **primary** = idols.brand_id == event.brand_id (例: ML 13th なら ML 専属だけ)
-            //  - **joint** = joint_brand_ids に列挙された各ブランドの primary アイドル
-            //  → 多重所属 (idol_brands) でゲスト出演として登録されているアイドルは含めない。
-            //    そうしないと AS が ML 13th で「欠席」表示される誤検出が起きる。
-            let placeholders = candidateBrandIds.map { _ in "?" }.joined(separator: ",")
-            let brandIdols: [Idol]
-            if candidateBrandIds.count >= 3 {
-                // 3ブランド以上の越境フェス (MOIW / IWSF 等) は選抜出演なので、
-                // 「母集団 = 実出演者 (show_cast ∪ 歌唱)」にする。ブランド全員を欠席候補に
-                // 出すと数百人が「欠席」表示になり無意味なため。2 ブランド以下 (765MILLIONSTARS
-                // 等) は従来通りブランド全員を母集団にして「誰が欠席か」を出す。
-                brandIdols = try Idol.fetchAll(db, sql: """
-                    SELECT * FROM idols WHERE id IN (
-                        SELECT sc.idol_id FROM show_cast sc
-                          JOIN shows sh ON sh.id = sc.show_id WHERE sh.event_id = ?
-                        UNION
-                        SELECT sp.idol_id FROM setlist_performers sp
-                          JOIN setlist_items si ON si.id = sp.setlist_item_id
-                          JOIN shows sh ON sh.id = si.show_id WHERE sh.event_id = ?
-                    ) AND is_external = 0
-                    ORDER BY sort_order
-                    """, arguments: [eventId, eventId])
-            } else if let eventStartDate {
-                brandIdols = try Idol.fetchAll(db, sql: """
-                    SELECT * FROM idols
-                    WHERE brand_id IN (\(placeholders))
-                      AND is_external = 0
-                      AND (debut_date IS NULL OR debut_date <= ?)
-                    ORDER BY sort_order
-                    """, arguments: StatementArguments(candidateBrandIds + [eventStartDate])!)
-            } else {
-                brandIdols = try Idol.fetchAll(db, sql: """
-                    SELECT * FROM idols
-                    WHERE brand_id IN (\(placeholders))
-                      AND is_external = 0
-                    ORDER BY sort_order
-                    """, arguments: StatementArguments(candidateBrandIds)!)
-            }
+        let shows = try Show
+            .filter(Column("event_id") == eventId)
+            .order(Column("date"), Column("sort_order"))
+            .fetchAll(db)
 
-            guard !brandIdols.isEmpty else { return nil }
+        // ライブ最初の公演日。アイドル実装日 (idols.debut_date) がこれより
+        // 後のアイドルは「未実装期 = 出席判定対象外」として brandIdols から除外。
+        // debut_date 未登録 (NULL) は対象に含める (安全側)。
+        let eventStartDate = shows.first?.date
 
-            // 出演者判定:
-            // - setlist_performers (歌唱ベース) を主とする (show_cast は過去公演で欠損あり、 例:円環 second)
-            // - 未来公演や setlist 未入力イベントでは setlist_performers が空なので、
-            //   show_cast を fallback で UNION して出演者を拾う。
-            // - 母集団は primary brand + joint_brand_ids なので、 idols.brand_id で
-            //   絞ってマッチさせる (idol_brands ではない)。
-            let presenceArgs = StatementArguments([eventId] + candidateBrandIds + [eventId] + candidateBrandIds)!
-            let presenceRows = try Row.fetchAll(db, sql: """
-                SELECT show_id, idol_id FROM (
-                    SELECT DISTINCT si.show_id AS show_id, sp.idol_id AS idol_id
-                    FROM setlist_items si
-                    JOIN setlist_performers sp ON sp.setlist_item_id = si.id
-                    JOIN shows sh ON sh.id = si.show_id
-                    JOIN idols i ON i.id = sp.idol_id
-                    WHERE sh.event_id = ? AND i.brand_id IN (\(placeholders))
+        // 欠席判定の母集団:
+        //  - **primary** = idols.brand_id == event.brand_id (例: ML 13th なら ML 専属だけ)
+        //  - **joint** = joint_brand_ids に列挙された各ブランドの primary アイドル
+        //  → 多重所属 (idol_brands) でゲスト出演として登録されているアイドルは含めない。
+        //    そうしないと AS が ML 13th で「欠席」表示される誤検出が起きる。
+        let placeholders = candidateBrandIds.map { _ in "?" }.joined(separator: ",")
+        let brandIdols: [Idol]
+        if candidateBrandIds.count >= 3 {
+            // 3ブランド以上の越境フェス (MOIW / IWSF 等) は選抜出演なので、
+            // 「母集団 = 実出演者 (show_cast ∪ 歌唱)」にする。ブランド全員を欠席候補に
+            // 出すと数百人が「欠席」表示になり無意味なため。2 ブランド以下 (765MILLIONSTARS
+            // 等) は従来通りブランド全員を母集団にして「誰が欠席か」を出す。
+            brandIdols = try Idol.fetchAll(db, sql: """
+                SELECT * FROM idols WHERE id IN (
+                    SELECT sc.idol_id FROM show_cast sc
+                      JOIN shows sh ON sh.id = sc.show_id WHERE sh.event_id = ?
                     UNION
-                    SELECT DISTINCT sc.show_id AS show_id, sc.idol_id AS idol_id
-                    FROM show_cast sc
-                    JOIN shows sh ON sh.id = sc.show_id
-                    JOIN idols i ON i.id = sc.idol_id
-                    WHERE sh.event_id = ? AND i.brand_id IN (\(placeholders))
-                )
-                """, arguments: presenceArgs)
+                    SELECT sp.idol_id FROM setlist_performers sp
+                      JOIN setlist_items si ON si.id = sp.setlist_item_id
+                      JOIN shows sh ON sh.id = si.show_id WHERE sh.event_id = ?
+                ) AND is_external = 0
+                ORDER BY sort_order
+                """, arguments: [eventId, eventId])
+        } else if let eventStartDate {
+            brandIdols = try Idol.fetchAll(db, sql: """
+                SELECT * FROM idols
+                WHERE brand_id IN (\(placeholders))
+                  AND is_external = 0
+                  AND (debut_date IS NULL OR debut_date <= ?)
+                ORDER BY sort_order
+                """, arguments: StatementArguments(candidateBrandIds + [eventStartDate])!)
+        } else {
+            brandIdols = try Idol.fetchAll(db, sql: """
+                SELECT * FROM idols
+                WHERE brand_id IN (\(placeholders))
+                  AND is_external = 0
+                ORDER BY sort_order
+                """, arguments: StatementArguments(candidateBrandIds)!)
+        }
 
-            var presenceByShow: [String: Set<String>] = [:]
-            for row in presenceRows {
-                let showId: String = row["show_id"]
-                let idolId: String = row["idol_id"]
-                presenceByShow[showId, default: []].insert(idolId)
-            }
+        guard !brandIdols.isEmpty else { return nil }
 
-            // 役割付き出演 (cast_role が 'lead' / 'guest') を show 別に収集。
-            let roleRows = try Row.fetchAll(db, sql: """
-                SELECT sc.show_id AS show_id, sc.idol_id AS idol_id, sc.cast_role AS cast_role
+        // 出演者判定:
+        // - setlist_performers (歌唱ベース) を主とする (show_cast は過去公演で欠損あり、 例:円環 second)
+        // - 未来公演や setlist 未入力イベントでは setlist_performers が空なので、
+        //   show_cast を fallback で UNION して出演者を拾う。
+        // - 母集団は primary brand + joint_brand_ids なので、 idols.brand_id で
+        //   絞ってマッチさせる (idol_brands ではない)。
+        let presenceArgs = StatementArguments([eventId] + candidateBrandIds + [eventId] + candidateBrandIds)!
+        let presenceRows = try Row.fetchAll(db, sql: """
+            SELECT show_id, idol_id FROM (
+                SELECT DISTINCT si.show_id AS show_id, sp.idol_id AS idol_id
+                FROM setlist_items si
+                JOIN setlist_performers sp ON sp.setlist_item_id = si.id
+                JOIN shows sh ON sh.id = si.show_id
+                JOIN idols i ON i.id = sp.idol_id
+                WHERE sh.event_id = ? AND i.brand_id IN (\(placeholders))
+                UNION
+                SELECT DISTINCT sc.show_id AS show_id, sc.idol_id AS idol_id
                 FROM show_cast sc
                 JOIN shows sh ON sh.id = sc.show_id
-                WHERE sh.event_id = ? AND sc.cast_role IN ('lead', 'guest')
-                """, arguments: [eventId])
-            var leadByShow: [String: Set<String>] = [:]
-            var guestByShow: [String: Set<String>] = [:]
-            for row in roleRows {
-                let showId: String = row["show_id"]
-                let idolId: String = row["idol_id"]
-                let role: String = row["cast_role"]
-                if role == "lead" {
-                    leadByShow[showId, default: []].insert(idolId)
-                } else if role == "guest" {
-                    guestByShow[showId, default: []].insert(idolId)
-                }
-            }
-
-            return EventAttendance(
-                brandIdols: brandIdols,
-                shows: shows,
-                presenceByShow: presenceByShow,
-                leadByShow: leadByShow,
-                guestByShow: guestByShow
+                JOIN idols i ON i.id = sc.idol_id
+                WHERE sh.event_id = ? AND i.brand_id IN (\(placeholders))
             )
+            """, arguments: presenceArgs)
+
+        var presenceByShow: [String: Set<String>] = [:]
+        for row in presenceRows {
+            let showId: String = row["show_id"]
+            let idolId: String = row["idol_id"]
+            presenceByShow[showId, default: []].insert(idolId)
         }
+
+        // 役割付き出演 (cast_role が 'lead' / 'guest') を show 別に収集。
+        let roleRows = try Row.fetchAll(db, sql: """
+            SELECT sc.show_id AS show_id, sc.idol_id AS idol_id, sc.cast_role AS cast_role
+            FROM show_cast sc
+            JOIN shows sh ON sh.id = sc.show_id
+            WHERE sh.event_id = ? AND sc.cast_role IN ('lead', 'guest')
+            """, arguments: [eventId])
+        var leadByShow: [String: Set<String>] = [:]
+        var guestByShow: [String: Set<String>] = [:]
+        for row in roleRows {
+            let showId: String = row["show_id"]
+            let idolId: String = row["idol_id"]
+            let role: String = row["cast_role"]
+            if role == "lead" {
+                leadByShow[showId, default: []].insert(idolId)
+            } else if role == "guest" {
+                guestByShow[showId, default: []].insert(idolId)
+            }
+        }
+
+        return EventAttendance(
+            brandIdols: brandIdols,
+            shows: shows,
+            presenceByShow: presenceByShow,
+            leadByShow: leadByShow,
+            guestByShow: guestByShow
+        )
     }
 
     /// イベントのメンバー出席状況（不在アイドル情報）
@@ -597,60 +628,84 @@ final class AppDatabase: @unchecked Sendable {
 
     /// イベント詳細（公演リスト付き、日付昇順）
     func fetchShows(eventId: String) throws -> [Show] {
-        try dbQueue.read { db in
-            try Show
-                .filter(Column("event_id") == eventId)
-                .order(Column("date"), Column("sort_order"))
-                .fetchAll(db)
-        }
+        try dbQueue.read { db in try Self.fetchShowsByEventQuery(db, eventId: eventId) }
+    }
+
+    func fetchShowsAsync(eventId: String) async throws -> [Show] {
+        try await dbQueue.read { db in try Self.fetchShowsByEventQuery(db, eventId: eventId) }
+    }
+
+    private static func fetchShowsByEventQuery(_ db: Database, eventId: String) throws -> [Show] {
+        try Show
+            .filter(Column("event_id") == eventId)
+            .order(Column("date"), Column("sort_order"))
+            .fetchAll(db)
     }
 
     /// 公演をイベント名・公演名で検索（コミュニティ投稿用）
     func searchShows(query: String, limit: Int = 30) throws -> [ShowWithEventName] {
-        try dbQueue.read { db in
-            let pattern = "%\(query.likeEscaped)%"
-            let sql = """
-                SELECT s.id, s.event_id, s.name, s.date, s.venue, e.name AS event_name
-                FROM shows s
-                JOIN events e ON s.event_id = e.id
-                WHERE s.name LIKE ? ESCAPE '\\' OR e.name LIKE ? ESCAPE '\\'
-                ORDER BY s.date DESC
-                LIMIT ?
-                """
-            return try ShowWithEventName.fetchAll(db, sql: sql, arguments: [pattern, pattern, limit])
-        }
+        try dbQueue.read { db in try Self.searchShowsQuery(db, query: query, limit: limit) }
+    }
+
+    func searchShowsAsync(query: String, limit: Int = 30) async throws -> [ShowWithEventName] {
+        try await dbQueue.read { db in try Self.searchShowsQuery(db, query: query, limit: limit) }
+    }
+
+    private static func searchShowsQuery(_ db: Database, query: String, limit: Int) throws -> [ShowWithEventName] {
+        let pattern = "%\(query.likeEscaped)%"
+        let sql = """
+            SELECT s.id, s.event_id, s.name, s.date, s.venue, e.name AS event_name
+            FROM shows s
+            JOIN events e ON s.event_id = e.id
+            WHERE s.name LIKE ? ESCAPE '\\' OR e.name LIKE ? ESCAPE '\\'
+            ORDER BY s.date DESC
+            LIMIT ?
+            """
+        return try ShowWithEventName.fetchAll(db, sql: sql, arguments: [pattern, pattern, limit])
     }
 
     /// 公演全件取得（初期表示用）
     func fetchAllShows(limit: Int = 50) throws -> [ShowWithEventName] {
-        try dbQueue.read { db in
-            let sql = """
-                SELECT s.id, s.event_id, s.name, s.date, s.venue, e.name AS event_name
-                FROM shows s
-                JOIN events e ON s.event_id = e.id
-                ORDER BY s.date DESC
-                LIMIT ?
-                """
-            return try ShowWithEventName.fetchAll(db, sql: sql, arguments: [limit])
-        }
+        try dbQueue.read { db in try Self.fetchAllShowsQuery(db, limit: limit) }
+    }
+
+    func fetchAllShowsAsync(limit: Int = 50) async throws -> [ShowWithEventName] {
+        try await dbQueue.read { db in try Self.fetchAllShowsQuery(db, limit: limit) }
+    }
+
+    private static func fetchAllShowsQuery(_ db: Database, limit: Int) throws -> [ShowWithEventName] {
+        let sql = """
+            SELECT s.id, s.event_id, s.name, s.date, s.venue, e.name AS event_name
+            FROM shows s
+            JOIN events e ON s.event_id = e.id
+            ORDER BY s.date DESC
+            LIMIT ?
+            """
+        return try ShowWithEventName.fetchAll(db, sql: sql, arguments: [limit])
     }
 
     // MARK: - Setlist Queries
 
     /// セトリ取得（公演ID指定）
     func fetchSetlist(showId: String) throws -> [SetlistRow] {
-        try dbQueue.read { db in
-            let sql = """
-                SELECT si.id, si.position, si.section, si.notes, si.unit_name,
-                       s.id AS song_id, s.title AS song_title, s.apple_music_id,
-                       s.artwork_url, s.preview_url, s.brand_id AS song_brand_id
-                FROM setlist_items si
-                JOIN songs s ON si.song_id = s.id
-                WHERE si.show_id = ?
-                ORDER BY si.position
-                """
-            return try SetlistRow.fetchAll(db, sql: sql, arguments: [showId])
-        }
+        try dbQueue.read { db in try Self.fetchSetlistQuery(db, showId: showId) }
+    }
+
+    func fetchSetlistAsync(showId: String) async throws -> [SetlistRow] {
+        try await dbQueue.read { db in try Self.fetchSetlistQuery(db, showId: showId) }
+    }
+
+    private static func fetchSetlistQuery(_ db: Database, showId: String) throws -> [SetlistRow] {
+        let sql = """
+            SELECT si.id, si.position, si.section, si.notes, si.unit_name,
+                   s.id AS song_id, s.title AS song_title, s.apple_music_id,
+                   s.artwork_url, s.preview_url, s.brand_id AS song_brand_id
+            FROM setlist_items si
+            JOIN songs s ON si.song_id = s.id
+            WHERE si.show_id = ?
+            ORDER BY si.position
+            """
+        return try SetlistRow.fetchAll(db, sql: sql, arguments: [showId])
     }
 
     /// セトリ曲の出演アイドル取得 (Cast 廃止後は idol 直結)。
@@ -670,69 +725,88 @@ final class AppDatabase: @unchecked Sendable {
 
     /// セトリ全曲の出演アイドルを一括取得 (N+1 防止)。
     func fetchAllPerformers(showId: String) throws -> [String: [PerformerRow]] {
-        try dbQueue.read { db in
-            let sql = """
-                SELECT sp.setlist_item_id,
-                       i.id AS performer_id,
-                       COALESCE(i.voice_actors, i.name) AS cast_name,
-                       i.color AS idol_color, i.name AS idol_name, i.id AS idol_id
-                FROM setlist_items si
-                JOIN setlist_performers sp ON si.id = sp.setlist_item_id
-                JOIN idols i ON i.id = sp.idol_id
-                WHERE si.show_id = ?
-                """
-            let rows = try Row.fetchAll(db, sql: sql, arguments: [showId])
-            var result: [String: [PerformerRow]] = [:]
-            for row in rows {
-                let itemId: String = row["setlist_item_id"]
-                // voice_actors は "中村繪里子,過去CV" のカンマ区切り。 先頭 (現役) のみ表示。
-                let rawName: String = row["cast_name"]
-                let displayName = rawName.split(separator: ",").first.map(String.init) ?? rawName
-                let performer = PerformerRow(
-                    id: row["performer_id"],
-                    name: displayName,
-                    idolColor: row["idol_color"],
-                    idolName: row["idol_name"],
-                    idolId: row["idol_id"]
-                )
-                result[itemId, default: []].append(performer)
-            }
-            return result
+        try dbQueue.read { db in try Self.fetchAllPerformersQuery(db, showId: showId) }
+    }
+
+    func fetchAllPerformersAsync(showId: String) async throws -> [String: [PerformerRow]] {
+        try await dbQueue.read { db in try Self.fetchAllPerformersQuery(db, showId: showId) }
+    }
+
+    private static func fetchAllPerformersQuery(_ db: Database, showId: String) throws -> [String: [PerformerRow]] {
+        let sql = """
+            SELECT sp.setlist_item_id,
+                   i.id AS performer_id,
+                   COALESCE(i.voice_actors, i.name) AS cast_name,
+                   i.color AS idol_color, i.name AS idol_name, i.id AS idol_id
+            FROM setlist_items si
+            JOIN setlist_performers sp ON si.id = sp.setlist_item_id
+            JOIN idols i ON i.id = sp.idol_id
+            WHERE si.show_id = ?
+            """
+        let rows = try Row.fetchAll(db, sql: sql, arguments: [showId])
+        var result: [String: [PerformerRow]] = [:]
+        for row in rows {
+            let itemId: String = row["setlist_item_id"]
+            // voice_actors は "中村繪里子,過去CV" のカンマ区切り。 先頭 (現役) のみ表示。
+            let rawName: String = row["cast_name"]
+            let displayName = rawName.split(separator: ",").first.map(String.init) ?? rawName
+            let performer = PerformerRow(
+                id: row["performer_id"],
+                name: displayName,
+                idolColor: row["idol_color"],
+                idolName: row["idol_name"],
+                idolId: row["idol_id"]
+            )
+            result[itemId, default: []].append(performer)
         }
+        return result
     }
 
     /// 複数楽曲のオリメンIDを一括取得: [song_id: Set<idol_id>]
     func fetchOriginalArtistIds(songIds: [String]) throws -> [String: Set<String>] {
         guard !songIds.isEmpty else { return [:] }
-        return try dbQueue.read { db in
-            let placeholders = songIds.map { _ in "?" }.joined(separator: ",")
-            let sql = """
-                SELECT song_id, idol_id FROM song_artists
-                WHERE song_id IN (\(placeholders)) AND role = 'original'
-                """
-            let rows = try Row.fetchAll(db, sql: sql, arguments: StatementArguments(songIds))
-            var result: [String: Set<String>] = [:]
-            for row in rows {
-                let songId: String = row["song_id"]
-                let idolId: String = row["idol_id"]
-                result[songId, default: []].insert(idolId)
-            }
-            return result
+        return try dbQueue.read { db in try Self.fetchOriginalArtistIdsQuery(db, songIds: songIds) }
+    }
+
+    func fetchOriginalArtistIdsAsync(songIds: [String]) async throws -> [String: Set<String>] {
+        guard !songIds.isEmpty else { return [:] }
+        return try await dbQueue.read { db in try Self.fetchOriginalArtistIdsQuery(db, songIds: songIds) }
+    }
+
+    private static func fetchOriginalArtistIdsQuery(_ db: Database, songIds: [String]) throws -> [String: Set<String>] {
+        let placeholders = songIds.map { _ in "?" }.joined(separator: ",")
+        let sql = """
+            SELECT song_id, idol_id FROM song_artists
+            WHERE song_id IN (\(placeholders)) AND role = 'original'
+            """
+        let rows = try Row.fetchAll(db, sql: sql, arguments: StatementArguments(songIds))
+        var result: [String: Set<String>] = [:]
+        for row in rows {
+            let songId: String = row["song_id"]
+            let idolId: String = row["idol_id"]
+            result[songId, default: []].insert(idolId)
         }
+        return result
     }
 
     /// 指定公演の出演者 (show_cast) がオリメンの曲 song_id 集合を返す。
     /// 「この公演の出演者が歌う曲」で予想ピッカーを絞り込むために使う。
     func fetchOriginalSongIds(forShowCastOf showId: String) throws -> Set<String> {
-        try dbQueue.read { db in
-            let sql = """
-                SELECT DISTINCT sa.song_id
-                FROM song_artists sa
-                JOIN show_cast sc ON sc.idol_id = sa.idol_id
-                WHERE sa.role = 'original' AND sc.show_id = ?
-                """
-            return Set(try String.fetchAll(db, sql: sql, arguments: [showId]))
-        }
+        try dbQueue.read { db in try Self.fetchOriginalSongIdsQuery(db, forShowCastOf: showId) }
+    }
+
+    func fetchOriginalSongIdsAsync(forShowCastOf showId: String) async throws -> Set<String> {
+        try await dbQueue.read { db in try Self.fetchOriginalSongIdsQuery(db, forShowCastOf: showId) }
+    }
+
+    private static func fetchOriginalSongIdsQuery(_ db: Database, forShowCastOf showId: String) throws -> Set<String> {
+        let sql = """
+            SELECT DISTINCT sa.song_id
+            FROM song_artists sa
+            JOIN show_cast sc ON sc.idol_id = sa.idol_id
+            WHERE sa.role = 'original' AND sc.show_id = ?
+            """
+        return Set(try String.fetchAll(db, sql: sql, arguments: [showId]))
     }
 
     // MARK: - Song Queries
@@ -743,26 +817,33 @@ final class AppDatabase: @unchecked Sendable {
     /// 一覧表示でアイドルアイコンを並べるため一括取得する。
     func fetchSongPerformerIdolsMap(songIds: [String]) throws -> [String: [Idol]] {
         guard !songIds.isEmpty else { return [:] }
-        return try dbQueue.read { db in
-            let placeholders = songIds.map { _ in "?" }.joined(separator: ", ")
-            let sql = """
-                SELECT sa.song_id AS sid, i.*
-                FROM song_artists sa
-                JOIN idols i ON i.id = sa.idol_id
-                WHERE sa.song_id IN (\(placeholders))
-                  AND sa.role = 'original'
-                ORDER BY sa.song_id, i.sort_order
-                """
-            var result: [String: [Idol]] = [:]
-            for row in try Row.fetchAll(db, sql: sql, arguments: StatementArguments(songIds)) {
-                let sid: String = row["sid"]
-                let idol = try Idol(row: row)
-                if !(result[sid]?.contains(where: { $0.id == idol.id }) ?? false) {
-                    result[sid, default: []].append(idol)
-                }
+        return try dbQueue.read { db in try Self.fetchSongPerformerIdolsMapQuery(db, songIds: songIds) }
+    }
+
+    func fetchSongPerformerIdolsMapAsync(songIds: [String]) async throws -> [String: [Idol]] {
+        guard !songIds.isEmpty else { return [:] }
+        return try await dbQueue.read { db in try Self.fetchSongPerformerIdolsMapQuery(db, songIds: songIds) }
+    }
+
+    private static func fetchSongPerformerIdolsMapQuery(_ db: Database, songIds: [String]) throws -> [String: [Idol]] {
+        let placeholders = songIds.map { _ in "?" }.joined(separator: ", ")
+        let sql = """
+            SELECT sa.song_id AS sid, i.*
+            FROM song_artists sa
+            JOIN idols i ON i.id = sa.idol_id
+            WHERE sa.song_id IN (\(placeholders))
+              AND sa.role = 'original'
+            ORDER BY sa.song_id, i.sort_order
+            """
+        var result: [String: [Idol]] = [:]
+        for row in try Row.fetchAll(db, sql: sql, arguments: StatementArguments(songIds)) {
+            let sid: String = row["sid"]
+            let idol = try Idol(row: row)
+            if !(result[sid]?.contains(where: { $0.id == idol.id }) ?? false) {
+                result[sid, default: []].append(idol)
             }
-            return result
         }
+        return result
     }
 
     func fetchSongs(
@@ -770,141 +851,147 @@ final class AppDatabase: @unchecked Sendable {
         sortOrder: SongSortOrder = .titleKana,
         ascending: Bool? = nil
     ) throws -> [SongWithArtists] {
+        try dbQueue.read { db in try Self.fetchSongsByFilterQuery(db, filter: filter, sortOrder: sortOrder, ascending: ascending) }
+    }
+
+    func fetchSongsAsync(filter: SongSearchFilter = SongSearchFilter(), sortOrder: SongSortOrder = .titleKana, ascending: Bool? = nil) async throws -> [SongWithArtists] {
+        try await dbQueue.read { db in try Self.fetchSongsByFilterQuery(db, filter: filter, sortOrder: sortOrder, ascending: ascending) }
+    }
+
+    private static func fetchSongsByFilterQuery(_ db: Database, filter: SongSearchFilter, sortOrder: SongSortOrder, ascending: Bool?) throws -> [SongWithArtists] {
         let asc = ascending ?? sortOrder.defaultAscending
-        return try dbQueue.read { db in
-            // SQL + WHERE条件を動的構築
-            var conditions: [String] = []
-            var args: [DatabaseValueConvertible] = []
+        // SQL + WHERE条件を動的構築
+        var conditions: [String] = []
+        var args: [DatabaseValueConvertible] = []
 
-            // デフォルトではリミックス・別バージョンを除外
-            if !filter.includeRemixes {
-                conditions.append("s.parent_song_id IS NULL")
-            }
-
-            if !filter.brandIds.isEmpty {
-                let placeholders = filter.brandIds.map { _ in "?" }.joined(separator: ",")
-                conditions.append("s.brand_id IN (\(placeholders))")
-                for id in filter.brandIds { args.append(id) }
-            } else if !filter.includeOtherBrand {
-                // ブランド未選択 (全件) のときは既定で other (歌枠カバー等) を隠す。
-                conditions.append("s.brand_id IS NOT 'other'")
-            }
-            if filter.excludeLiveOnly {
-                // ライブ履歴のみのファントム曲を除外。カタログメタ (配信ID / 原唱者 /
-                // リリース日 / CD / 作家) を1つでも持てば正規曲として出す。何も無い曲
-                // (セトリ追加で生まれただけのカバー等) だけを隠す。
-                conditions.append("""
-                    (
-                        (s.apple_music_id IS NOT NULL AND s.apple_music_id <> '')
-                        OR (s.release_date IS NOT NULL AND s.release_date <> '')
-                        OR (s.cd_title IS NOT NULL AND s.cd_title <> '')
-                        OR (s.cd_series IS NOT NULL AND s.cd_series <> '')
-                        OR (s.composer IS NOT NULL AND s.composer <> '')
-                        OR (s.lyricist IS NOT NULL AND s.lyricist <> '')
-                        OR (s.arranger IS NOT NULL AND s.arranger <> '')
-                        OR EXISTS (SELECT 1 FROM song_artists sa WHERE sa.song_id = s.id)
-                    )
-                    """)
-            }
-            if let title = filter.title, !title.isEmpty {
-                conditions.append("(s.title LIKE ? ESCAPE '\\' OR s.title_kana LIKE ? ESCAPE '\\')")
-                args.append("%\(title.likeEscaped)%")
-                args.append("%\(title.likeEscaped)%")
-            }
-            if let songwriter = filter.songwriter, !songwriter.isEmpty {
-                conditions.append("(s.composer LIKE ? ESCAPE '\\' OR s.lyricist LIKE ? ESCAPE '\\' OR s.arranger LIKE ? ESCAPE '\\')")
-                args.append("%\(songwriter.likeEscaped)%")
-                args.append("%\(songwriter.likeEscaped)%")
-                args.append("%\(songwriter.likeEscaped)%")
-            }
-            if let cdSeries = filter.cdSeries, !cdSeries.isEmpty {
-                conditions.append("s.cd_series LIKE ? ESCAPE '\\'")
-                args.append("%\(cdSeries.likeEscaped)%")
-            }
-            if let seriesGroup = filter.seriesGroup, !seriesGroup.isEmpty {
-                conditions.append("s.series_group = ?")
-                args.append(seriesGroup)
-            }
-            if let songType = filter.songType {
-                conditions.append("s.song_type = ?")
-                args.append(songType)
-            }
-
-            // アイドル名フィルタ（song_artists JOIN）
-            let hasIdolIds = !(filter.idolIds ?? []).isEmpty
-            let hasIdolName = !(filter.idolName ?? "").isEmpty
-            let needsArtistJoin = hasIdolIds || hasIdolName
-            let needsLiveJoin = !(filter.liveName ?? "").isEmpty
-
-            var sql = "SELECT DISTINCT s.* FROM songs s"
-            if needsArtistJoin {
-                sql += " JOIN song_artists sa ON s.id = sa.song_id JOIN idols i ON sa.idol_id = i.id"
-                if hasIdolIds, let idolIds = filter.idolIds, !idolIds.isEmpty {
-                    let placeholders = idolIds.map { _ in "?" }.joined(separator: ",")
-                    conditions.append("sa.idol_id IN (\(placeholders))")
-                    for id in idolIds { args.append(id) }
-                } else if hasIdolName, let idolName = filter.idolName, !idolName.isEmpty {
-                    conditions.append("(i.name LIKE ? ESCAPE '\\' OR i.name_kana LIKE ? ESCAPE '\\')")
-                    args.append("%\(idolName.likeEscaped)%")
-                    args.append("%\(idolName.likeEscaped)%")
-                }
-            }
-            if needsLiveJoin, let liveName = filter.liveName, !liveName.isEmpty {
-                sql += " JOIN setlist_items si ON s.id = si.song_id JOIN shows sh ON si.show_id = sh.id JOIN events ev ON sh.event_id = ev.id"
-                conditions.append("ev.name LIKE ? ESCAPE '\\'")
-                args.append("%\(liveName.likeEscaped)%")
-            }
-
-            if !conditions.isEmpty {
-                sql += " WHERE " + conditions.joined(separator: " AND ")
-            }
-
-            let dirSQL = asc ? "ASC" : "DESC"
-            switch sortOrder {
-            case .titleKana:
-                sql += " ORDER BY s.title_kana \(dirSQL), s.title \(dirSQL)"
-            case .releaseDate:
-                sql += " ORDER BY s.release_date \(dirSQL), s.title_kana"
-            case .performanceCount, .collectedCount, .collectedRate:
-                break
-            }
-
-            let songs = try Song.fetchAll(db, sql: sql, arguments: StatementArguments(args))
-
-            var results = songs.map { song in
-                SongWithArtists(song: song, artistNames: song.singerLabel ?? "")
-            }
-
-            // 数値系ソートは fetch 後に Swift で並び替え。 asc=true ならで小→大、 false なら大→小。
-            func cmp(_ a: Int, _ b: Int) -> Bool { asc ? a < b : a > b }
-            switch sortOrder {
-            case .titleKana, .releaseDate:
-                break
-            case .performanceCount:
-                let countMap = try totalSongPerformanceCountMap(db)
-                results.sort { cmp(countMap[$0.song.id, default: 0], countMap[$1.song.id, default: 0]) }
-            case .collectedCount:
-                let countMap = try attendedSongCountMap(db)
-                results.sort { cmp(countMap[$0.song.id, default: 0], countMap[$1.song.id, default: 0]) }
-            case .collectedRate:
-                let attendedMap = try attendedSongCountMap(db)
-                let totalMap = try totalSongPerformanceCountMap(db)
-                results.sort { lhs, rhs in
-                    let lt = totalMap[lhs.song.id, default: 0]
-                    let rt = totalMap[rhs.song.id, default: 0]
-                    let lr = lt > 0 ? Double(attendedMap[lhs.song.id, default: 0]) / Double(lt) : 0
-                    let rr = rt > 0 ? Double(attendedMap[rhs.song.id, default: 0]) / Double(rt) : 0
-                    if lr != rr { return asc ? lr < rr : lr > rr }
-                    return cmp(attendedMap[lhs.song.id, default: 0], attendedMap[rhs.song.id, default: 0])
-                }
-            }
-
-            return results
+        // デフォルトではリミックス・別バージョンを除外
+        if !filter.includeRemixes {
+            conditions.append("s.parent_song_id IS NULL")
         }
+
+        if !filter.brandIds.isEmpty {
+            let placeholders = filter.brandIds.map { _ in "?" }.joined(separator: ",")
+            conditions.append("s.brand_id IN (\(placeholders))")
+            for id in filter.brandIds { args.append(id) }
+        } else if !filter.includeOtherBrand {
+            // ブランド未選択 (全件) のときは既定で other (歌枠カバー等) を隠す。
+            conditions.append("s.brand_id IS NOT 'other'")
+        }
+        if filter.excludeLiveOnly {
+            // ライブ履歴のみのファントム曲を除外。カタログメタ (配信ID / 原唱者 /
+            // リリース日 / CD / 作家) を1つでも持てば正規曲として出す。何も無い曲
+            // (セトリ追加で生まれただけのカバー等) だけを隠す。
+            conditions.append("""
+                (
+                    (s.apple_music_id IS NOT NULL AND s.apple_music_id <> '')
+                    OR (s.release_date IS NOT NULL AND s.release_date <> '')
+                    OR (s.cd_title IS NOT NULL AND s.cd_title <> '')
+                    OR (s.cd_series IS NOT NULL AND s.cd_series <> '')
+                    OR (s.composer IS NOT NULL AND s.composer <> '')
+                    OR (s.lyricist IS NOT NULL AND s.lyricist <> '')
+                    OR (s.arranger IS NOT NULL AND s.arranger <> '')
+                    OR EXISTS (SELECT 1 FROM song_artists sa WHERE sa.song_id = s.id)
+                )
+                """)
+        }
+        if let title = filter.title, !title.isEmpty {
+            conditions.append("(s.title LIKE ? ESCAPE '\\' OR s.title_kana LIKE ? ESCAPE '\\')")
+            args.append("%\(title.likeEscaped)%")
+            args.append("%\(title.likeEscaped)%")
+        }
+        if let songwriter = filter.songwriter, !songwriter.isEmpty {
+            conditions.append("(s.composer LIKE ? ESCAPE '\\' OR s.lyricist LIKE ? ESCAPE '\\' OR s.arranger LIKE ? ESCAPE '\\')")
+            args.append("%\(songwriter.likeEscaped)%")
+            args.append("%\(songwriter.likeEscaped)%")
+            args.append("%\(songwriter.likeEscaped)%")
+        }
+        if let cdSeries = filter.cdSeries, !cdSeries.isEmpty {
+            conditions.append("s.cd_series LIKE ? ESCAPE '\\'")
+            args.append("%\(cdSeries.likeEscaped)%")
+        }
+        if let seriesGroup = filter.seriesGroup, !seriesGroup.isEmpty {
+            conditions.append("s.series_group = ?")
+            args.append(seriesGroup)
+        }
+        if let songType = filter.songType {
+            conditions.append("s.song_type = ?")
+            args.append(songType)
+        }
+
+        // アイドル名フィルタ（song_artists JOIN）
+        let hasIdolIds = !(filter.idolIds ?? []).isEmpty
+        let hasIdolName = !(filter.idolName ?? "").isEmpty
+        let needsArtistJoin = hasIdolIds || hasIdolName
+        let needsLiveJoin = !(filter.liveName ?? "").isEmpty
+
+        var sql = "SELECT DISTINCT s.* FROM songs s"
+        if needsArtistJoin {
+            sql += " JOIN song_artists sa ON s.id = sa.song_id JOIN idols i ON sa.idol_id = i.id"
+            if hasIdolIds, let idolIds = filter.idolIds, !idolIds.isEmpty {
+                let placeholders = idolIds.map { _ in "?" }.joined(separator: ",")
+                conditions.append("sa.idol_id IN (\(placeholders))")
+                for id in idolIds { args.append(id) }
+            } else if hasIdolName, let idolName = filter.idolName, !idolName.isEmpty {
+                conditions.append("(i.name LIKE ? ESCAPE '\\' OR i.name_kana LIKE ? ESCAPE '\\')")
+                args.append("%\(idolName.likeEscaped)%")
+                args.append("%\(idolName.likeEscaped)%")
+            }
+        }
+        if needsLiveJoin, let liveName = filter.liveName, !liveName.isEmpty {
+            sql += " JOIN setlist_items si ON s.id = si.song_id JOIN shows sh ON si.show_id = sh.id JOIN events ev ON sh.event_id = ev.id"
+            conditions.append("ev.name LIKE ? ESCAPE '\\'")
+            args.append("%\(liveName.likeEscaped)%")
+        }
+
+        if !conditions.isEmpty {
+            sql += " WHERE " + conditions.joined(separator: " AND ")
+        }
+
+        let dirSQL = asc ? "ASC" : "DESC"
+        switch sortOrder {
+        case .titleKana:
+            sql += " ORDER BY s.title_kana \(dirSQL), s.title \(dirSQL)"
+        case .releaseDate:
+            sql += " ORDER BY s.release_date \(dirSQL), s.title_kana"
+        case .performanceCount, .collectedCount, .collectedRate:
+            break
+        }
+
+        let songs = try Song.fetchAll(db, sql: sql, arguments: StatementArguments(args))
+
+        var results = songs.map { song in
+            SongWithArtists(song: song, artistNames: song.singerLabel ?? "")
+        }
+
+        // 数値系ソートは fetch 後に Swift で並び替え。 asc=true ならで小→大、 false なら大→小。
+        func cmp(_ a: Int, _ b: Int) -> Bool { asc ? a < b : a > b }
+        switch sortOrder {
+        case .titleKana, .releaseDate:
+            break
+        case .performanceCount:
+            let countMap = try totalSongPerformanceCountMap(db)
+            results.sort { cmp(countMap[$0.song.id, default: 0], countMap[$1.song.id, default: 0]) }
+        case .collectedCount:
+            let countMap = try attendedSongCountMap(db)
+            results.sort { cmp(countMap[$0.song.id, default: 0], countMap[$1.song.id, default: 0]) }
+        case .collectedRate:
+            let attendedMap = try attendedSongCountMap(db)
+            let totalMap = try totalSongPerformanceCountMap(db)
+            results.sort { lhs, rhs in
+                let lt = totalMap[lhs.song.id, default: 0]
+                let rt = totalMap[rhs.song.id, default: 0]
+                let lr = lt > 0 ? Double(attendedMap[lhs.song.id, default: 0]) / Double(lt) : 0
+                let rr = rt > 0 ? Double(attendedMap[rhs.song.id, default: 0]) / Double(rt) : 0
+                if lr != rr { return asc ? lr < rr : lr > rr }
+                return cmp(attendedMap[lhs.song.id, default: 0], attendedMap[rhs.song.id, default: 0])
+            }
+        }
+
+        return results
     }
 
     /// song_id → 全公演での披露回数。
-    private func totalSongPerformanceCountMap(_ db: Database) throws -> [String: Int] {
+    private static func totalSongPerformanceCountMap(_ db: Database) throws -> [String: Int] {
         let rows = try SongPerfCount.fetchAll(
             db, sql: "SELECT song_id, COUNT(*) as cnt FROM setlist_items GROUP BY song_id"
         )
@@ -913,7 +1000,7 @@ final class AppDatabase: @unchecked Sendable {
 
     /// ユーザが参加した show (event 単位の attended も配下 show を含む) 経由の
     /// song_id → 回収回数。 楽曲一覧の「現地回収回数順 / 回収率順」で使用。
-    private func attendedSongCountMap(_ db: Database) throws -> [String: Int] {
+    private static func attendedSongCountMap(_ db: Database) throws -> [String: Int] {
         let sql = """
             SELECT si.song_id AS song_id, COUNT(DISTINCT si.show_id) AS cnt
             FROM setlist_items si
@@ -935,85 +1022,141 @@ final class AppDatabase: @unchecked Sendable {
 
     /// 楽曲取得（ID指定）
     func fetchSong(id: String) throws -> Song? {
-        try dbQueue.read { db in
-            try Song.fetchOne(db, key: id)
-        }
+        try dbQueue.read { db in try Self.fetchSongQuery(db, id: id) }
+    }
+
+    func fetchSongAsync(id: String) async throws -> Song? {
+        try await dbQueue.read { db in try Self.fetchSongQuery(db, id: id) }
+    }
+
+    private static func fetchSongQuery(_ db: Database, id: String) throws -> Song? {
+        try Song.fetchOne(db, key: id)
     }
 
     /// 楽曲一括取得（複数ID指定・IN句1回）。N+1防止用。
     func fetchSongs(ids: [String]) throws -> [Song] {
         guard !ids.isEmpty else { return [] }
-        return try dbQueue.read { db in
-            let placeholders = ids.map { _ in "?" }.joined(separator: ",")
-            return try Song.fetchAll(db, sql: "SELECT * FROM songs WHERE id IN (\(placeholders))",
-                                    arguments: StatementArguments(ids))
-        }
+        return try dbQueue.read { db in try Self.fetchSongsByIdsQuery(db, ids: ids) }
+    }
+
+    func fetchSongsAsync(ids: [String]) async throws -> [Song] {
+        guard !ids.isEmpty else { return [] }
+        return try await dbQueue.read { db in try Self.fetchSongsByIdsQuery(db, ids: ids) }
+    }
+
+    private static func fetchSongsByIdsQuery(_ db: Database, ids: [String]) throws -> [Song] {
+        let placeholders = ids.map { _ in "?" }.joined(separator: ",")
+        return try Song.fetchAll(db, sql: "SELECT * FROM songs WHERE id IN (\(placeholders))",
+                                arguments: StatementArguments(ids))
     }
 
     /// 指定ブランドの非カバー楽曲IDを id 昇順で返す (今日の1曲の決定論的ピック用・軽量)。
     func fetchSongIds(brandId: String, includeCovers: Bool = false, excludeRemixes: Bool = false) throws -> [String] {
-        try dbQueue.read { db in
-            var sql = "SELECT id FROM songs WHERE brand_id=?"
-            if !includeCovers { sql += " AND song_type<>'cover'" }
-            // 今日の1曲などでリミックス変種(同名の紛らわしい重複)を避けるため除外可能に。
-            if excludeRemixes { sql += " AND (parent_song_id IS NULL OR parent_song_id='')" }
-            sql += " ORDER BY id"
-            return try String.fetchAll(db, sql: sql, arguments: [brandId])
-        }
+        try dbQueue.read { db in try Self.fetchSongIdsQuery(db, brandId: brandId, includeCovers: includeCovers, excludeRemixes: excludeRemixes) }
+    }
+
+    func fetchSongIdsAsync(brandId: String, includeCovers: Bool = false, excludeRemixes: Bool = false) async throws -> [String] {
+        try await dbQueue.read { db in try Self.fetchSongIdsQuery(db, brandId: brandId, includeCovers: includeCovers, excludeRemixes: excludeRemixes) }
+    }
+
+    private static func fetchSongIdsQuery(_ db: Database, brandId: String, includeCovers: Bool, excludeRemixes: Bool) throws -> [String] {
+        var sql = "SELECT id FROM songs WHERE brand_id=?"
+        if !includeCovers { sql += " AND song_type<>'cover'" }
+        // 今日の1曲などでリミックス変種(同名の紛らわしい重複)を避けるため除外可能に。
+        if excludeRemixes { sql += " AND (parent_song_id IS NULL OR parent_song_id='')" }
+        sql += " ORDER BY id"
+        return try String.fetchAll(db, sql: sql, arguments: [brandId])
     }
 
     /// 楽曲シリーズ(series_group)の一覧。ブランド指定時はそのブランドに絞る。曲数降順。
     func fetchSeriesGroups(brandIds: Set<String> = []) throws -> [String] {
-        try dbQueue.read { db in
-            let base = "SELECT series_group FROM songs WHERE series_group IS NOT NULL AND series_group<>''"
-            if brandIds.isEmpty {
-                return try String.fetchAll(db, sql: base + " GROUP BY series_group ORDER BY COUNT(*) DESC")
-            }
-            let ph = brandIds.map { _ in "?" }.joined(separator: ",")
-            return try String.fetchAll(db, sql: base + " AND brand_id IN (\(ph)) GROUP BY series_group ORDER BY COUNT(*) DESC",
-                                       arguments: StatementArguments(Array(brandIds)))
+        try dbQueue.read { db in try Self.fetchSeriesGroupsQuery(db, brandIds: brandIds) }
+    }
+
+    func fetchSeriesGroupsAsync(brandIds: Set<String> = []) async throws -> [String] {
+        try await dbQueue.read { db in try Self.fetchSeriesGroupsQuery(db, brandIds: brandIds) }
+    }
+
+    private static func fetchSeriesGroupsQuery(_ db: Database, brandIds: Set<String>) throws -> [String] {
+        let base = "SELECT series_group FROM songs WHERE series_group IS NOT NULL AND series_group<>''"
+        if brandIds.isEmpty {
+            return try String.fetchAll(db, sql: base + " GROUP BY series_group ORDER BY COUNT(*) DESC")
         }
+        let ph = brandIds.map { _ in "?" }.joined(separator: ",")
+        return try String.fetchAll(db, sql: base + " AND brand_id IN (\(ph)) GROUP BY series_group ORDER BY COUNT(*) DESC",
+                                   arguments: StatementArguments(Array(brandIds)))
     }
 
     /// アイドル一括取得（ID配列）— N+1 解消用
     func fetchIdols(ids: [String]) throws -> [Idol] {
         guard !ids.isEmpty else { return [] }
-        let placeholders = ids.map { _ in "?" }.joined(separator: ", ")
-        return try dbQueue.read { db in
-            try Idol.fetchAll(db, sql: "SELECT * FROM idols WHERE id IN (\(placeholders))",
-                              arguments: StatementArguments(ids))
-        }
+        return try dbQueue.read { db in try Self.fetchIdolsByIdsQuery(db, ids: ids) }
+    }
+
+    func fetchIdolsAsync(ids: [String]) async throws -> [Idol] {
+        guard !ids.isEmpty else { return [] }
+        return try await dbQueue.read { db in try Self.fetchIdolsByIdsQuery(db, ids: ids) }
+    }
+
+    private static func fetchIdolsByIdsQuery(_ db: Database, ids: [String]) throws -> [Idol] {
+        let placeholders = ids.map { _ in "?" }.joined(separator: ",")
+        return try Idol.fetchAll(db, sql: "SELECT * FROM idols WHERE id IN (\(placeholders))",
+                                 arguments: StatementArguments(ids))
     }
 
     /// アイドル取得（ID指定）
     func fetchIdol(id: String) throws -> Idol? {
-        try dbQueue.read { db in
-            try Idol.fetchOne(db, key: id)
-        }
+        try dbQueue.read { db in try Self.fetchIdolQuery(db, id: id) }
+    }
+
+    func fetchIdolAsync(id: String) async throws -> Idol? {
+        try await dbQueue.read { db in try Self.fetchIdolQuery(db, id: id) }
+    }
+
+    private static func fetchIdolQuery(_ db: Database, id: String) throws -> Idol? {
+        try Idol.fetchOne(db, key: id)
     }
 
     /// 公演取得（ID指定）
     func fetchShow(id: String) throws -> Show? {
-        try dbQueue.read { db in
-            try Show.fetchOne(db, key: id)
-        }
+        try dbQueue.read { db in try Self.fetchShowQuery(db, id: id) }
+    }
+
+    func fetchShowAsync(id: String) async throws -> Show? {
+        try await dbQueue.read { db in try Self.fetchShowQuery(db, id: id) }
+    }
+
+    private static func fetchShowQuery(_ db: Database, id: String) throws -> Show? {
+        try Show.fetchOne(db, key: id)
     }
 
     /// イベント取得（ID指定）
     func fetchEvent(id: String) throws -> Event? {
-        try dbQueue.read { db in
-            try Event.fetchOne(db, key: id)
-        }
+        try dbQueue.read { db in try Self.fetchEventQuery(db, id: id) }
+    }
+
+    func fetchEventAsync(id: String) async throws -> Event? {
+        try await dbQueue.read { db in try Self.fetchEventQuery(db, id: id) }
+    }
+
+    private static func fetchEventQuery(_ db: Database, id: String) throws -> Event? {
+        try Event.fetchOne(db, key: id)
     }
 
     /// イベントの映像円盤 (event_releases)。所有チェックUIの母集団。発売日→sort_order 順。
     func fetchEventReleases(eventId: String) throws -> [EventRelease] {
-        try dbQueue.read { db in
-            try EventRelease
-                .filter(Column("event_id") == eventId)
-                .order(Column("release_date").asc, Column("sort_order").asc)
-                .fetchAll(db)
-        }
+        try dbQueue.read { db in try Self.fetchEventReleasesQuery(db, eventId: eventId) }
+    }
+
+    func fetchEventReleasesAsync(eventId: String) async throws -> [EventRelease] {
+        try await dbQueue.read { db in try Self.fetchEventReleasesQuery(db, eventId: eventId) }
+    }
+
+    private static func fetchEventReleasesQuery(_ db: Database, eventId: String) throws -> [EventRelease] {
+        try EventRelease
+            .filter(Column("event_id") == eventId)
+            .order(Column("release_date").asc, Column("sort_order").asc)
+            .fetchAll(db)
     }
 
     /// イベント一括取得（ID配列） — 全フィールド（ticketDeadline 等）を含む完全な Event を返す。N+1防止用。
@@ -1028,89 +1171,113 @@ final class AppDatabase: @unchecked Sendable {
 
     /// 楽曲の歌唱アイドル取得
     func fetchSongArtists(songId: String, role: String? = nil) throws -> [Idol] {
-        try dbQueue.read { db in
-            var sql = """
-                SELECT i.* FROM idols i
-                JOIN song_artists sa ON i.id = sa.idol_id
-                WHERE sa.song_id = ?
-                """
-            var args: [DatabaseValueConvertible] = [songId]
-            if let role {
-                sql += " AND sa.role = ?"
-                args.append(role)
-            }
-            sql += " ORDER BY i.sort_order"
-            return try Idol.fetchAll(db, sql: sql, arguments: StatementArguments(args))
+        try dbQueue.read { db in try Self.fetchSongArtistsQuery(db, songId: songId, role: role) }
+    }
+
+    func fetchSongArtistsAsync(songId: String, role: String? = nil) async throws -> [Idol] {
+        try await dbQueue.read { db in try Self.fetchSongArtistsQuery(db, songId: songId, role: role) }
+    }
+
+    private static func fetchSongArtistsQuery(_ db: Database, songId: String, role: String?) throws -> [Idol] {
+        var sql = """
+            SELECT i.* FROM idols i
+            JOIN song_artists sa ON i.id = sa.idol_id
+            WHERE sa.song_id = ?
+            """
+        var args: [DatabaseValueConvertible] = [songId]
+        if let role {
+            sql += " AND sa.role = ?"
+            args.append(role)
         }
+        sql += " ORDER BY i.sort_order"
+        return try Idol.fetchAll(db, sql: sql, arguments: StatementArguments(args))
     }
 
     func fetchSongSuggestions(query: String, limit: Int = 8) throws -> [SearchSuggestionItem] {
-        try dbQueue.read { db in
-            let pattern = "%\(query.likeEscaped)%"
+        try dbQueue.read { db in try Self.fetchSongSuggestionsQuery(db, query: query, limit: limit) }
+    }
 
-            let songSQL = """
-                SELECT DISTINCT title AS text, cd_series AS subtitle FROM songs
-                WHERE title LIKE ? ESCAPE '\\' OR title_kana LIKE ? ESCAPE '\\'
-                ORDER BY title_kana
-                LIMIT ?
-                """
-            var items = try Row.fetchAll(db, sql: songSQL, arguments: [pattern, pattern, limit])
-                .map { SearchSuggestionItem(text: $0["text"], subtitle: $0["subtitle"], icon: "music.note") }
+    func fetchSongSuggestionsAsync(query: String, limit: Int = 8) async throws -> [SearchSuggestionItem] {
+        try await dbQueue.read { db in try Self.fetchSongSuggestionsQuery(db, query: query, limit: limit) }
+    }
 
-            let remaining = limit - items.count
-            guard remaining > 0 else { return items }
+    private static func fetchSongSuggestionsQuery(_ db: Database, query: String, limit: Int) throws -> [SearchSuggestionItem] {
+        let pattern = "%\(query.likeEscaped)%"
 
-            let albumSQL = """
-                SELECT DISTINCT cd_series AS text FROM songs
-                WHERE cd_series LIKE ? ESCAPE '\\' AND cd_series IS NOT NULL
-                ORDER BY cd_series
-                LIMIT ?
-                """
-            let existingTexts = Set(items.map(\.text))
-            let albumItems = try Row.fetchAll(db, sql: albumSQL, arguments: [pattern, remaining])
-                .map { SearchSuggestionItem(text: $0["text"], subtitle: "アルバム", icon: "square.grid.2x2") }
-                .filter { !existingTexts.contains($0.text) }
-            items += albumItems
-            return items
-        }
+        let songSQL = """
+            SELECT DISTINCT title AS text, cd_series AS subtitle FROM songs
+            WHERE title LIKE ? ESCAPE '\\' OR title_kana LIKE ? ESCAPE '\\'
+            ORDER BY title_kana
+            LIMIT ?
+            """
+        var items = try Row.fetchAll(db, sql: songSQL, arguments: [pattern, pattern, limit])
+            .map { SearchSuggestionItem(text: $0["text"], subtitle: $0["subtitle"], icon: "music.note") }
+
+        let remaining = limit - items.count
+        guard remaining > 0 else { return items }
+
+        let albumSQL = """
+            SELECT DISTINCT cd_series AS text FROM songs
+            WHERE cd_series LIKE ? ESCAPE '\\' AND cd_series IS NOT NULL
+            ORDER BY cd_series
+            LIMIT ?
+            """
+        let existingTexts = Set(items.map(\.text))
+        let albumItems = try Row.fetchAll(db, sql: albumSQL, arguments: [pattern, remaining])
+            .map { SearchSuggestionItem(text: $0["text"], subtitle: "アルバム", icon: "square.grid.2x2") }
+            .filter { !existingTexts.contains($0.text) }
+        items += albumItems
+        return items
     }
 
     /// 楽曲の披露履歴
     func fetchSongPerformanceHistory(songId: String) throws -> [PerformanceHistoryRow] {
-        try dbQueue.read { db in
-            let sql = """
-                SELECT sh.id AS show_id, e.id AS event_id,
-                       e.name AS event_name, sh.name AS show_name, sh.date, sh.venue,
-                       si.position, si.section
-                FROM setlist_items si
-                JOIN shows sh ON si.show_id = sh.id
-                JOIN events e ON sh.event_id = e.id
-                WHERE si.song_id = ?
-                ORDER BY sh.date DESC
-                """
-            return try PerformanceHistoryRow.fetchAll(db, sql: sql, arguments: [songId])
-        }
+        try dbQueue.read { db in try Self.fetchSongPerformanceHistoryQuery(db, songId: songId) }
+    }
+
+    func fetchSongPerformanceHistoryAsync(songId: String) async throws -> [PerformanceHistoryRow] {
+        try await dbQueue.read { db in try Self.fetchSongPerformanceHistoryQuery(db, songId: songId) }
+    }
+
+    private static func fetchSongPerformanceHistoryQuery(_ db: Database, songId: String) throws -> [PerformanceHistoryRow] {
+        let sql = """
+            SELECT sh.id AS show_id, e.id AS event_id,
+                   e.name AS event_name, sh.name AS show_name, sh.date, sh.venue,
+                   si.position, si.section
+            FROM setlist_items si
+            JOIN shows sh ON si.show_id = sh.id
+            JOIN events e ON sh.event_id = e.id
+            WHERE si.song_id = ?
+            ORDER BY sh.date DESC
+            """
+        return try PerformanceHistoryRow.fetchAll(db, sql: sql, arguments: [songId])
     }
 
     // MARK: - Idol Queries
 
     /// アイドル一覧 (外部ゲスト演者は除外)
     func fetchIdols(brandId: String? = nil) throws -> [Idol] {
-        try dbQueue.read { db in
-            if let brandId {
-                let sql = """
-                    SELECT DISTINCT i.* FROM idols i
-                    JOIN idol_brands ib ON i.id = ib.idol_id
-                    WHERE ib.brand_id = ? AND i.is_external = 0
-                    ORDER BY i.sort_order
-                    """
-                return try Idol.fetchAll(db, sql: sql, arguments: [brandId])
-            }
-            return try Idol
-                .filter(Column("is_external") == 0)
-                .order(Column("sort_order"))
-                .fetchAll(db)
+        try dbQueue.read { db in try Self.fetchIdolsByBrandQuery(db, brandId: brandId) }
+    }
+
+    func fetchIdolsAsync(brandId: String? = nil) async throws -> [Idol] {
+        try await dbQueue.read { db in try Self.fetchIdolsByBrandQuery(db, brandId: brandId) }
+    }
+
+    private static func fetchIdolsByBrandQuery(_ db: Database, brandId: String?) throws -> [Idol] {
+        if let brandId {
+            let sql = """
+                SELECT DISTINCT i.* FROM idols i
+                JOIN idol_brands ib ON i.id = ib.idol_id
+                WHERE ib.brand_id = ? AND i.is_external = 0
+                ORDER BY i.sort_order
+                """
+            return try Idol.fetchAll(db, sql: sql, arguments: [brandId])
         }
+        return try Idol
+            .filter(Column("is_external") == 0)
+            .order(Column("sort_order"))
+            .fetchAll(db)
     }
 
     /// アイドル詳細のCV取得 (Cast 廃止後は idol.voice_actors から現役を返す)。
@@ -1128,101 +1295,125 @@ final class AppDatabase: @unchecked Sendable {
 
     /// アイドルの所属ユニット一覧
     func fetchIdolUnits(idolId: String) throws -> [Unit] {
-        try dbQueue.read { db in
-            let sql = """
-                SELECT u.* FROM units u
-                JOIN unit_members um ON u.id = um.unit_id
-                WHERE um.idol_id = ?
-                ORDER BY u.name
-                """
-            return try Unit.fetchAll(db, sql: sql, arguments: [idolId])
-        }
+        try dbQueue.read { db in try Self.fetchIdolUnitsQuery(db, idolId: idolId) }
+    }
+
+    func fetchIdolUnitsAsync(idolId: String) async throws -> [Unit] {
+        try await dbQueue.read { db in try Self.fetchIdolUnitsQuery(db, idolId: idolId) }
+    }
+
+    private static func fetchIdolUnitsQuery(_ db: Database, idolId: String) throws -> [Unit] {
+        let sql = """
+            SELECT u.* FROM units u
+            JOIN unit_members um ON u.id = um.unit_id
+            WHERE um.idol_id = ?
+            ORDER BY u.name
+            """
+        return try Unit.fetchAll(db, sql: sql, arguments: [idolId])
     }
 
     /// 編集フィード用: recordType + recordName から人間可読のタイトル(曲名/公演名/アイドル名 等)を引く。
     /// 解決できない recordType (コミュニティ投稿等) は nil。
     func fetchEditRecordTitle(recordType: String, recordName: String) throws -> String? {
-        try dbQueue.read { db in
-            func one(_ sql: String) -> String? {
-                (try? String.fetchOne(db, sql: sql, arguments: [recordName])) ?? nil
-            }
-            switch recordType {
-            case "Song":
-                return one("SELECT title FROM songs WHERE id = ?")
-            case "Event":
-                return one("SELECT name FROM events WHERE id = ?")
-            case "Show", "ShowSetlist":
-                return one("SELECT name FROM shows WHERE id = ?")
-            case "Idol":
-                return one("SELECT name FROM idols WHERE id = ?")
-            case "SetlistItem":
-                // 「どのセトリ(公演)を編集したか」を示すため公演名を返す。
-                return one("""
-                    SELECT sh.name FROM setlist_items si
-                    JOIN shows sh ON sh.id = si.show_id WHERE si.id = ?
-                    """)
-            case "SetlistPerformer":
-                return one("""
-                    SELECT sh.name FROM setlist_performers sp
-                    JOIN setlist_items si ON si.id = sp.setlist_item_id
-                    JOIN shows sh ON sh.id = si.show_id WHERE sp.setlist_item_id = ?
-                    """)
-            case "SongVideo":
-                // ytref_xxx → song_videos.song_id を辿って曲名を返す。
-                return one("""
-                    SELECT s.title FROM song_videos sv
-                    JOIN songs s ON s.id = sv.song_id WHERE sv.id = ?
-                    """)
-            case "SongCall":
-                // call_xxx → song_calls.song_id を辿って曲名を返す。
-                return one("""
-                    SELECT s.title FROM song_calls sc
-                    JOIN songs s ON s.id = sc.song_id WHERE sc.id = ?
-                    """)
-            default:
-                return nil
-            }
+        try dbQueue.read { db in try Self.fetchEditRecordTitleQuery(db, recordType: recordType, recordName: recordName) }
+    }
+
+    func fetchEditRecordTitleAsync(recordType: String, recordName: String) async throws -> String? {
+        try await dbQueue.read { db in try Self.fetchEditRecordTitleQuery(db, recordType: recordType, recordName: recordName) }
+    }
+
+    private static func fetchEditRecordTitleQuery(_ db: Database, recordType: String, recordName: String) throws -> String? {
+        func one(_ sql: String) -> String? {
+            (try? String.fetchOne(db, sql: sql, arguments: [recordName])) ?? nil
+        }
+        switch recordType {
+        case "Song":
+            return one("SELECT title FROM songs WHERE id = ?")
+        case "Event":
+            return one("SELECT name FROM events WHERE id = ?")
+        case "Show", "ShowSetlist":
+            return one("SELECT name FROM shows WHERE id = ?")
+        case "Idol":
+            return one("SELECT name FROM idols WHERE id = ?")
+        case "SetlistItem":
+            // 「どのセトリ(公演)を編集したか」を示すため公演名を返す。
+            return one("""
+                SELECT sh.name FROM setlist_items si
+                JOIN shows sh ON sh.id = si.show_id WHERE si.id = ?
+                """)
+        case "SetlistPerformer":
+            return one("""
+                SELECT sh.name FROM setlist_performers sp
+                JOIN setlist_items si ON si.id = sp.setlist_item_id
+                JOIN shows sh ON sh.id = si.show_id WHERE sp.setlist_item_id = ?
+                """)
+        case "SongVideo":
+            // ytref_xxx → song_videos.song_id を辿って曲名を返す。
+            return one("""
+                SELECT s.title FROM song_videos sv
+                JOIN songs s ON s.id = sv.song_id WHERE sv.id = ?
+                """)
+        case "SongCall":
+            // call_xxx → song_calls.song_id を辿って曲名を返す。
+            return one("""
+                SELECT s.title FROM song_calls sc
+                JOIN songs s ON s.id = sc.song_id WHERE sc.id = ?
+                """)
+        default:
+            return nil
         }
     }
 
     /// 編集レコードが属する公演 ID を解決する (セトリ系編集 → 該当公演のセトリへ遷移するため)。
     /// Show/ShowSetlist は recordName 自体が公演 ID。SetlistItem/SetlistPerformer は親を辿る。
     func fetchEditRecordShowId(recordType: String, recordName: String) throws -> String? {
-        try dbQueue.read { db in
-            func one(_ sql: String) -> String? {
-                (try? String.fetchOne(db, sql: sql, arguments: [recordName])) ?? nil
-            }
-            switch recordType {
-            case "Show", "ShowSetlist":
-                return one("SELECT id FROM shows WHERE id = ?")
-            case "SetlistItem":
-                return one("SELECT show_id FROM setlist_items WHERE id = ?")
-            case "SetlistPerformer":
-                return one("""
-                    SELECT si.show_id FROM setlist_performers sp
-                    JOIN setlist_items si ON si.id = sp.setlist_item_id
-                    WHERE sp.setlist_item_id = ?
-                    """)
-            default:
-                return nil
-            }
+        try dbQueue.read { db in try Self.fetchEditRecordShowIdQuery(db, recordType: recordType, recordName: recordName) }
+    }
+
+    func fetchEditRecordShowIdAsync(recordType: String, recordName: String) async throws -> String? {
+        try await dbQueue.read { db in try Self.fetchEditRecordShowIdQuery(db, recordType: recordType, recordName: recordName) }
+    }
+
+    private static func fetchEditRecordShowIdQuery(_ db: Database, recordType: String, recordName: String) throws -> String? {
+        func one(_ sql: String) -> String? {
+            (try? String.fetchOne(db, sql: sql, arguments: [recordName])) ?? nil
+        }
+        switch recordType {
+        case "Show", "ShowSetlist":
+            return one("SELECT id FROM shows WHERE id = ?")
+        case "SetlistItem":
+            return one("SELECT show_id FROM setlist_items WHERE id = ?")
+        case "SetlistPerformer":
+            return one("""
+                SELECT si.show_id FROM setlist_performers sp
+                JOIN setlist_items si ON si.id = sp.setlist_item_id
+                WHERE sp.setlist_item_id = ?
+                """)
+        default:
+            return nil
         }
     }
 
     /// 編集レコードが属する曲 ID を解決する (SongVideo/SongCall 編集 → 該当曲詳細へ遷移するため)。
     func fetchEditRecordSongId(recordType: String, recordName: String) throws -> String? {
-        try dbQueue.read { db in
-            func one(_ sql: String) -> String? {
-                (try? String.fetchOne(db, sql: sql, arguments: [recordName])) ?? nil
-            }
-            switch recordType {
-            case "SongVideo":
-                return one("SELECT song_id FROM song_videos WHERE id = ?")
-            case "SongCall":
-                return one("SELECT song_id FROM song_calls WHERE id = ?")
-            default:
-                return nil
-            }
+        try dbQueue.read { db in try Self.fetchEditRecordSongIdQuery(db, recordType: recordType, recordName: recordName) }
+    }
+
+    func fetchEditRecordSongIdAsync(recordType: String, recordName: String) async throws -> String? {
+        try await dbQueue.read { db in try Self.fetchEditRecordSongIdQuery(db, recordType: recordType, recordName: recordName) }
+    }
+
+    private static func fetchEditRecordSongIdQuery(_ db: Database, recordType: String, recordName: String) throws -> String? {
+        func one(_ sql: String) -> String? {
+            (try? String.fetchOne(db, sql: sql, arguments: [recordName])) ?? nil
+        }
+        switch recordType {
+        case "SongVideo":
+            return one("SELECT song_id FROM song_videos WHERE id = ?")
+        case "SongCall":
+            return one("SELECT song_id FROM song_calls WHERE id = ?")
+        default:
+            return nil
         }
     }
 
@@ -1230,68 +1421,93 @@ final class AppDatabase: @unchecked Sendable {
     /// アイドル詳細で「曲ありユニット / 曲なしユニット」を分けるのに使う。
     func fetchUnitIdsWithSongs(unitIds: [String]) throws -> Set<String> {
         guard !unitIds.isEmpty else { return [] }
-        return try dbQueue.read { db in
-            let placeholders = unitIds.map { _ in "?" }.joined(separator: ",")
-            let rows = try String.fetchAll(
-                db,
-                sql: "SELECT DISTINCT unit_id FROM songs WHERE unit_id IN (\(placeholders))",
-                arguments: StatementArguments(unitIds)
-            )
-            return Set(rows)
-        }
+        return try dbQueue.read { db in try Self.fetchUnitIdsWithSongsQuery(db, unitIds: unitIds) }
+    }
+
+    func fetchUnitIdsWithSongsAsync(unitIds: [String]) async throws -> Set<String> {
+        guard !unitIds.isEmpty else { return [] }
+        return try await dbQueue.read { db in try Self.fetchUnitIdsWithSongsQuery(db, unitIds: unitIds) }
+    }
+
+    private static func fetchUnitIdsWithSongsQuery(_ db: Database, unitIds: [String]) throws -> Set<String> {
+        let placeholders = unitIds.map { _ in "?" }.joined(separator: ",")
+        let rows = try String.fetchAll(
+            db,
+            sql: "SELECT DISTINCT unit_id FROM songs WHERE unit_id IN (\(placeholders))",
+            arguments: StatementArguments(unitIds)
+        )
+        return Set(rows)
     }
 
     /// アイドルの楽曲一覧（song_type指定可）
     func fetchIdolSongs(idolId: String, role: String? = nil) throws -> [Song] {
-        try dbQueue.read { db in
-            var sql = """
-                SELECT s.* FROM songs s
-                JOIN song_artists sa ON s.id = sa.song_id
-                WHERE sa.idol_id = ?
-                """
-            var args: [String] = [idolId]
-            if let role {
-                sql += " AND sa.role = ?"
-                args.append(role)
-            }
-            sql += " ORDER BY s.release_date DESC"
-            return try Song.fetchAll(db, sql: sql, arguments: StatementArguments(args))
+        try dbQueue.read { db in try Self.fetchIdolSongsQuery(db, idolId: idolId, role: role) }
+    }
+
+    func fetchIdolSongsAsync(idolId: String, role: String? = nil) async throws -> [Song] {
+        try await dbQueue.read { db in try Self.fetchIdolSongsQuery(db, idolId: idolId, role: role) }
+    }
+
+    private static func fetchIdolSongsQuery(_ db: Database, idolId: String, role: String?) throws -> [Song] {
+        var sql = """
+            SELECT s.* FROM songs s
+            JOIN song_artists sa ON s.id = sa.song_id
+            WHERE sa.idol_id = ?
+            """
+        var args: [String] = [idolId]
+        if let role {
+            sql += " AND sa.role = ?"
+            args.append(role)
         }
+        sql += " ORDER BY s.release_date DESC"
+        return try Song.fetchAll(db, sql: sql, arguments: StatementArguments(args))
     }
 
     /// 声優名で担当アイドルを逆引き (idol.voice_actors の カンマ区切りに合致するもの)。
     func fetchIdolsByVoiceActor(name: String) throws -> [Idol] {
-        try dbQueue.read { db in
-            // voice_actors が "中村繪里子" 単独、もしくは "中村繪里子,旧CV" のような形式に対応。
-            let sql = """
-                SELECT * FROM idols
-                WHERE voice_actors = ?
-                   OR voice_actors LIKE ? || ',%'
-                   OR voice_actors LIKE '%,' || ?
-                   OR voice_actors LIKE '%,' || ? || ',%'
-                ORDER BY sort_order
-                """
-            return try Idol.fetchAll(db, sql: sql, arguments: [name, name, name, name])
-        }
+        try dbQueue.read { db in try Self.fetchIdolsByVoiceActorQuery(db, name: name) }
+    }
+
+    func fetchIdolsByVoiceActorAsync(name: String) async throws -> [Idol] {
+        try await dbQueue.read { db in try Self.fetchIdolsByVoiceActorQuery(db, name: name) }
+    }
+
+    private static func fetchIdolsByVoiceActorQuery(_ db: Database, name: String) throws -> [Idol] {
+        // voice_actors が "中村繪里子" 単独、もしくは "中村繪里子,旧CV" のような形式に対応。
+        let sql = """
+            SELECT * FROM idols
+            WHERE voice_actors = ?
+               OR voice_actors LIKE ? || ',%'
+               OR voice_actors LIKE '%,' || ?
+               OR voice_actors LIKE '%,' || ? || ',%'
+            ORDER BY sort_order
+            """
+        return try Idol.fetchAll(db, sql: sql, arguments: [name, name, name, name])
     }
 
     /// アイドル全員のCV名マップ (idol_id → 現役 voice_actor)。
     func fetchIdolCastNames() throws -> [String: String] {
-        try dbQueue.read { db in
-            let rows = try Row.fetchAll(
-                db,
-                sql: "SELECT id, voice_actors FROM idols WHERE voice_actors IS NOT NULL"
-            )
-            var result: [String: String] = [:]
-            for row in rows {
-                let id: String = row["id"]
-                let raw: String = row["voice_actors"]
-                if let first = raw.split(separator: ",").first {
-                    result[id] = first.trimmingCharacters(in: .whitespaces)
-                }
+        try dbQueue.read { db in try Self.fetchIdolCastNamesQuery(db) }
+    }
+
+    func fetchIdolCastNamesAsync() async throws -> [String: String] {
+        try await dbQueue.read { db in try Self.fetchIdolCastNamesQuery(db) }
+    }
+
+    private static func fetchIdolCastNamesQuery(_ db: Database) throws -> [String: String] {
+        let rows = try Row.fetchAll(
+            db,
+            sql: "SELECT id, voice_actors FROM idols WHERE voice_actors IS NOT NULL"
+        )
+        var result: [String: String] = [:]
+        for row in rows {
+            let id: String = row["id"]
+            let raw: String = row["voice_actors"]
+            if let first = raw.split(separator: ",").first {
+                result[id] = first.trimmingCharacters(in: .whitespaces)
             }
-            return result
         }
+        return result
     }
 
     /// キャストの出演公演一覧
@@ -1302,130 +1518,172 @@ final class AppDatabase: @unchecked Sendable {
     /// setlist_performers の歌唱メンバーが unit_members と完全一致する曲があるユニットだけを返す。
     /// (legacy: setlist_items.unit_id / songs.unit_id 由来は誤検出が多いので採用しない)
     func fetchPerformedUnitIds(eventId: String) throws -> Set<String> {
-        try dbQueue.read { db in
-            // step 1: this event's setlist_items 各曲の歌唱 idol set を取る
-            let perfRows = try Row.fetchAll(db, sql: """
-                SELECT si.id AS item_id, sp.idol_id AS idol_id
-                FROM setlist_items si
-                JOIN shows sh ON sh.id = si.show_id
-                JOIN setlist_performers sp ON sp.setlist_item_id = si.id
-                WHERE sh.event_id = ?
-                """, arguments: [eventId])
-            var perfByItem: [String: Set<String>] = [:]
-            for row in perfRows {
-                let itemId: String = row["item_id"]
-                let idolId: String = row["idol_id"]
-                perfByItem[itemId, default: []].insert(idolId)
-            }
-            guard !perfByItem.isEmpty else { return [] }
-            // step 2: 楽曲のあるユニットの member set を取得
-            let unitRows = try Row.fetchAll(db, sql: """
-                SELECT um.unit_id AS uid, um.idol_id AS iid
-                FROM unit_members um
-                JOIN units u ON u.id = um.unit_id
-                WHERE EXISTS (SELECT 1 FROM songs s WHERE s.unit_id = u.id)
-                """)
-            var membersByUnit: [String: Set<String>] = [:]
-            for row in unitRows {
-                let uid: String = row["uid"]
-                let iid: String = row["iid"]
-                membersByUnit[uid, default: []].insert(iid)
-            }
-            // step 3: 完全一致 (1-unit exact) するユニットを集める
-            var matched: Set<String> = []
-            for (_, perfSet) in perfByItem where perfSet.count >= 2 {
-                for (uid, members) in membersByUnit where members.count >= 2 && members == perfSet {
-                    matched.insert(uid)
-                }
-            }
-            return matched
+        try dbQueue.read { db in try Self.fetchPerformedUnitIdsQuery(db, eventId: eventId) }
+    }
+
+    func fetchPerformedUnitIdsAsync(eventId: String) async throws -> Set<String> {
+        try await dbQueue.read { db in try Self.fetchPerformedUnitIdsQuery(db, eventId: eventId) }
+    }
+
+    private static func fetchPerformedUnitIdsQuery(_ db: Database, eventId: String) throws -> Set<String> {
+        // step 1: this event's setlist_items 各曲の歌唱 idol set を取る
+        let perfRows = try Row.fetchAll(db, sql: """
+            SELECT si.id AS item_id, sp.idol_id AS idol_id
+            FROM setlist_items si
+            JOIN shows sh ON sh.id = si.show_id
+            JOIN setlist_performers sp ON sp.setlist_item_id = si.id
+            WHERE sh.event_id = ?
+            """, arguments: [eventId])
+        var perfByItem: [String: Set<String>] = [:]
+        for row in perfRows {
+            let itemId: String = row["item_id"]
+            let idolId: String = row["idol_id"]
+            perfByItem[itemId, default: []].insert(idolId)
         }
+        guard !perfByItem.isEmpty else { return [] }
+        // step 2: 楽曲のあるユニットの member set を取得
+        let unitRows = try Row.fetchAll(db, sql: """
+            SELECT um.unit_id AS uid, um.idol_id AS iid
+            FROM unit_members um
+            JOIN units u ON u.id = um.unit_id
+            WHERE EXISTS (SELECT 1 FROM songs s WHERE s.unit_id = u.id)
+            """)
+        var membersByUnit: [String: Set<String>] = [:]
+        for row in unitRows {
+            let uid: String = row["uid"]
+            let iid: String = row["iid"]
+            membersByUnit[uid, default: []].insert(iid)
+        }
+        // step 3: 完全一致 (1-unit exact) するユニットを集める
+        var matched: Set<String> = []
+        for (_, perfSet) in perfByItem where perfSet.count >= 2 {
+            for (uid, members) in membersByUnit where members.count >= 2 && members == perfSet {
+                matched.insert(uid)
+            }
+        }
+        return matched
     }
 
     /// 公演 (show) に出演している全アイドル ID のセット (show_cast)。 Cast 廃止後は idol_id 直結。
     func fetchShowIdolIds(showId: String) throws -> Set<String> {
-        try dbQueue.read { db in
-            let ids = try String.fetchAll(
-                db,
-                sql: "SELECT idol_id FROM show_cast WHERE show_id = ?",
-                arguments: [showId]
-            )
-            return Set(ids)
-        }
+        try dbQueue.read { db in try Self.fetchShowIdolIdsQuery(db, showId: showId) }
+    }
+
+    func fetchShowIdolIdsAsync(showId: String) async throws -> Set<String> {
+        try await dbQueue.read { db in try Self.fetchShowIdolIdsQuery(db, showId: showId) }
+    }
+
+    private static func fetchShowIdolIdsQuery(_ db: Database, showId: String) throws -> Set<String> {
+        let ids = try String.fetchAll(
+            db,
+            sql: "SELECT idol_id FROM show_cast WHERE show_id = ?",
+            arguments: [showId]
+        )
+        return Set(ids)
     }
 
     /// 指定公演の出演アイドル一覧 (show_cast JOIN idols)。sort_order 順。
     /// 「誰が歌う」予想の候補アイドルリストとして使う。
     func fetchShowCastIdols(showId: String) throws -> [Idol] {
-        try dbQueue.read { db in
-            try Idol.fetchAll(
-                db,
-                sql: """
-                    SELECT i.* FROM idols i
-                    JOIN show_cast sc ON sc.idol_id = i.id
-                    WHERE sc.show_id = ?
-                    ORDER BY i.sort_order
-                    """,
-                arguments: [showId]
-            )
-        }
+        try dbQueue.read { db in try Self.fetchShowCastIdolsQuery(db, showId: showId) }
+    }
+
+    func fetchShowCastIdolsAsync(showId: String) async throws -> [Idol] {
+        try await dbQueue.read { db in try Self.fetchShowCastIdolsQuery(db, showId: showId) }
+    }
+
+    private static func fetchShowCastIdolsQuery(_ db: Database, showId: String) throws -> [Idol] {
+        try Idol.fetchAll(
+            db,
+            sql: """
+                SELECT i.* FROM idols i
+                JOIN show_cast sc ON sc.idol_id = i.id
+                WHERE sc.show_id = ?
+                ORDER BY i.sort_order
+                """,
+            arguments: [showId]
+        )
     }
 
     /// 指定アイドルの出演公演一覧 (setlist_performers ∪ show_cast)。
     /// セトリ未登録の公演でも出演履歴を拾えるよう UNION で結合する。
     func fetchIdolShows(idolId: String) throws -> [CastShowRow] {
-        try dbQueue.read { db in
-            let sql = """
-                SELECT sh.id AS show_id, e.id AS event_id,
-                       e.name AS event_name, sh.name AS show_name, sh.date, sh.venue,
-                       COALESCE(
-                           (SELECT cast_role FROM show_cast WHERE show_id = sh.id AND idol_id = ?),
-                           'member'
-                       ) AS cast_role
-                FROM shows sh
-                JOIN events e ON sh.event_id = e.id
-                WHERE sh.id IN (
-                    SELECT DISTINCT si.show_id
-                    FROM setlist_performers sp
-                    JOIN setlist_items si ON si.id = sp.setlist_item_id
-                    WHERE sp.idol_id = ?
-                    UNION
-                    SELECT show_id FROM show_cast WHERE idol_id = ?
-                )
-                ORDER BY sh.date DESC
-                """
-            return try CastShowRow.fetchAll(db, sql: sql, arguments: [idolId, idolId, idolId])
-        }
+        try dbQueue.read { db in try Self.fetchIdolShowsQuery(db, idolId: idolId) }
+    }
+
+    func fetchIdolShowsAsync(idolId: String) async throws -> [CastShowRow] {
+        try await dbQueue.read { db in try Self.fetchIdolShowsQuery(db, idolId: idolId) }
+    }
+
+    private static func fetchIdolShowsQuery(_ db: Database, idolId: String) throws -> [CastShowRow] {
+        let sql = """
+            SELECT sh.id AS show_id, e.id AS event_id,
+                   e.name AS event_name, sh.name AS show_name, sh.date, sh.venue,
+                   COALESCE(
+                       (SELECT cast_role FROM show_cast WHERE show_id = sh.id AND idol_id = ?),
+                       'member'
+                   ) AS cast_role
+            FROM shows sh
+            JOIN events e ON sh.event_id = e.id
+            WHERE sh.id IN (
+                SELECT DISTINCT si.show_id
+                FROM setlist_performers sp
+                JOIN setlist_items si ON si.id = sp.setlist_item_id
+                WHERE sp.idol_id = ?
+                UNION
+                SELECT show_id FROM show_cast WHERE idol_id = ?
+            )
+            ORDER BY sh.date DESC
+            """
+        return try CastShowRow.fetchAll(db, sql: sql, arguments: [idolId, idolId, idolId])
     }
 
     // MARK: - Stats Queries
 
     /// ブランド別楽曲数
     func fetchBrandSongCounts() throws -> [BrandSongCount] {
-        try dbQueue.read { db in
-            let sql = """
-                SELECT b.id, b.short_name, b.color, COUNT(s.id) AS song_count
-                FROM brands b LEFT JOIN songs s ON b.id = s.brand_id
-                GROUP BY b.id ORDER BY b.sort_order
-                """
-            return try BrandSongCount.fetchAll(db, sql: sql)
-        }
+        try dbQueue.read { db in try Self.fetchBrandSongCountsQuery(db) }
+    }
+
+    func fetchBrandSongCountsAsync() async throws -> [BrandSongCount] {
+        try await dbQueue.read { db in try Self.fetchBrandSongCountsQuery(db) }
+    }
+
+    private static func fetchBrandSongCountsQuery(_ db: Database) throws -> [BrandSongCount] {
+        let sql = """
+            SELECT b.id, b.short_name, b.color, COUNT(s.id) AS song_count
+            FROM brands b LEFT JOIN songs s ON b.id = s.brand_id
+            GROUP BY b.id ORDER BY b.sort_order
+            """
+        return try BrandSongCount.fetchAll(db, sql: sql)
     }
 
     /// brand_id が設定されている曲 ID セット。
     /// 回収率集計で分子と分母の母集合を揃えるために使う。
     func fetchBrandedSongIds() throws -> Set<String> {
-        try dbQueue.read { db in
-            let ids = try String.fetchAll(db, sql: "SELECT id FROM songs WHERE brand_id IS NOT NULL")
-            return Set(ids)
-        }
+        try dbQueue.read { db in try Self.fetchBrandedSongIdsQuery(db) }
+    }
+
+    func fetchBrandedSongIdsAsync() async throws -> Set<String> {
+        try await dbQueue.read { db in try Self.fetchBrandedSongIdsQuery(db) }
+    }
+
+    private static func fetchBrandedSongIdsQuery(_ db: Database) throws -> Set<String> {
+        let ids = try String.fetchAll(db, sql: "SELECT id FROM songs WHERE brand_id IS NOT NULL")
+        return Set(ids)
     }
 
     /// 全ブランド取得
     func fetchBrands() throws -> [Brand] {
-        try dbQueue.read { db in
-            try Brand.order(Column("sort_order")).fetchAll(db)
-        }
+        try dbQueue.read { db in try Self.fetchBrandsQuery(db) }
+    }
+
+    func fetchBrandsAsync() async throws -> [Brand] {
+        try await dbQueue.read { db in try Self.fetchBrandsQuery(db) }
+    }
+
+    private static func fetchBrandsQuery(_ db: Database) throws -> [Brand] {
+        try Brand.order(Column("sort_order")).fetchAll(db)
     }
 
     func fetchIntroDonSongs(brandIds: Set<String>? = nil) throws -> [Song] {
@@ -1447,232 +1705,334 @@ final class AppDatabase: @unchecked Sendable {
 
     /// ライブ披露回数ランキング
     func fetchSongPlayCountRanking(limit: Int = 20) throws -> [SongPlayCount] {
-        try dbQueue.read { db in
-            let sql = """
-                SELECT s.id, s.title, COUNT(si.id) AS play_count, s.brand_id
-                FROM songs s
-                JOIN setlist_items si ON s.id = si.song_id
-                GROUP BY s.id
-                ORDER BY play_count DESC
-                LIMIT ?
-                """
-            return try SongPlayCount.fetchAll(db, sql: sql, arguments: [limit])
-        }
+        try dbQueue.read { db in try Self.fetchSongPlayCountRankingQuery(db, limit: limit) }
+    }
+
+    func fetchSongPlayCountRankingAsync(limit: Int = 20) async throws -> [SongPlayCount] {
+        try await dbQueue.read { db in try Self.fetchSongPlayCountRankingQuery(db, limit: limit) }
+    }
+
+    private static func fetchSongPlayCountRankingQuery(_ db: Database, limit: Int) throws -> [SongPlayCount] {
+        let sql = """
+            SELECT s.id, s.title, COUNT(si.id) AS play_count, s.brand_id
+            FROM songs s
+            JOIN setlist_items si ON s.id = si.song_id
+            GROUP BY s.id
+            ORDER BY play_count DESC
+            LIMIT ?
+            """
+        return try SongPlayCount.fetchAll(db, sql: sql, arguments: [limit])
     }
 
     /// アイドル別出演回数ランキング (Cast 廃止後は idol 単位)。
     /// 表示名は idol.name を採用 (旧 cast.name の代わり)。
     func fetchCastShowCountRanking(limit: Int = 20) throws -> [CastShowCount] {
-        try dbQueue.read { db in
-            let sql = """
-                SELECT i.id, i.name, COUNT(DISTINCT sc.show_id) AS show_count
-                FROM idols i
-                JOIN show_cast sc ON i.id = sc.idol_id
-                GROUP BY i.id
-                ORDER BY show_count DESC
-                LIMIT ?
-                """
-            return try CastShowCount.fetchAll(db, sql: sql, arguments: [limit])
-        }
+        try dbQueue.read { db in try Self.fetchCastShowCountRankingQuery(db, limit: limit) }
+    }
+
+    func fetchCastShowCountRankingAsync(limit: Int = 20) async throws -> [CastShowCount] {
+        try await dbQueue.read { db in try Self.fetchCastShowCountRankingQuery(db, limit: limit) }
+    }
+
+    private static func fetchCastShowCountRankingQuery(_ db: Database, limit: Int) throws -> [CastShowCount] {
+        let sql = """
+            SELECT i.id, i.name, COUNT(DISTINCT sc.show_id) AS show_count
+            FROM idols i
+            JOIN show_cast sc ON i.id = sc.idol_id
+            GROUP BY i.id
+            ORDER BY show_count DESC
+            LIMIT ?
+            """
+        return try CastShowCount.fetchAll(db, sql: sql, arguments: [limit])
     }
 
     /// 全ユニット (picker 用)。
     func fetchAllUnits() throws -> [Unit] {
-        try dbQueue.read { db in
-            try Unit.order(Column("brand_id"), Column("name")).fetchAll(db)
-        }
+        try dbQueue.read { db in try Self.fetchAllUnitsQuery(db) }
+    }
+
+    func fetchAllUnitsAsync() async throws -> [Unit] {
+        try await dbQueue.read { db in try Self.fetchAllUnitsQuery(db) }
+    }
+
+    private static func fetchAllUnitsQuery(_ db: Database) throws -> [Unit] {
+        try Unit.order(Column("brand_id"), Column("name")).fetchAll(db)
     }
 
     /// ユニット取得
     func fetchUnit(id: String) throws -> Unit? {
-        try dbQueue.read { db in
-            try Unit.fetchOne(db, key: id)
-        }
+        try dbQueue.read { db in try Self.fetchUnitQuery(db, id: id) }
+    }
+
+    func fetchUnitAsync(id: String) async throws -> Unit? {
+        try await dbQueue.read { db in try Self.fetchUnitQuery(db, id: id) }
+    }
+
+    private static func fetchUnitQuery(_ db: Database, id: String) throws -> Unit? {
+        try Unit.fetchOne(db, key: id)
     }
 
     /// ユニットメンバー取得
     func fetchUnitMembers(unitId: String) throws -> [Idol] {
-        try dbQueue.read { db in
-            let sql = """
-                SELECT i.* FROM idols i
-                JOIN unit_members um ON i.id = um.idol_id
-                WHERE um.unit_id = ?
-                ORDER BY i.sort_order
-                """
-            return try Idol.fetchAll(db, sql: sql, arguments: [unitId])
-        }
+        try dbQueue.read { db in try Self.fetchUnitMembersQuery(db, unitId: unitId) }
+    }
+
+    func fetchUnitMembersAsync(unitId: String) async throws -> [Idol] {
+        try await dbQueue.read { db in try Self.fetchUnitMembersQuery(db, unitId: unitId) }
+    }
+
+    private static func fetchUnitMembersQuery(_ db: Database, unitId: String) throws -> [Idol] {
+        let sql = """
+            SELECT i.* FROM idols i
+            JOIN unit_members um ON i.id = um.idol_id
+            WHERE um.unit_id = ?
+            ORDER BY i.sort_order
+            """
+        return try Idol.fetchAll(db, sql: sql, arguments: [unitId])
     }
 
     /// setlist 表示で「performer が unit 全員揃ったら unit 名を出す」ために使うインデックス。
     /// 全 unit を一度に取得して、idol_id → 属する unit 一覧のマップを構築する。
     func fetchUnitIndex() throws -> UnitIndex {
-        try dbQueue.read { db in
-            let units = try Unit.fetchAll(db)
-            let members = try Row.fetchAll(db, sql: "SELECT unit_id, idol_id FROM unit_members")
-            var memberIds: [String: Set<String>] = [:]
-            var byIdol: [String: Set<String>] = [:]
-            for row in members {
-                let uid: String = row["unit_id"]
-                let iid: String = row["idol_id"]
-                memberIds[uid, default: []].insert(iid)
-                byIdol[iid, default: []].insert(uid)
-            }
-            // 楽曲を持つ unit (songs.unit_id で参照されている) を集める。
-            // セトリ表示では「楽曲あり unit」だけを逆引き候補にして、
-            // 名前だけ同じ合同メンバー集合で誤検出しないようにする。
-            let songUnitIds = try Row.fetchAll(db, sql: """
-                SELECT DISTINCT unit_id FROM songs
-                WHERE unit_id IS NOT NULL AND unit_id != ''
-                """).compactMap { $0["unit_id"] as String? }
-            let unitsWithSongs = Set(songUnitIds)
-            return UnitIndex(
-                units: units,
-                memberIds: memberIds,
-                byIdol: byIdol,
-                unitsWithSongs: unitsWithSongs
-            )
+        try dbQueue.read { db in try Self.fetchUnitIndexQuery(db) }
+    }
+
+    func fetchUnitIndexAsync() async throws -> UnitIndex {
+        try await dbQueue.read { db in try Self.fetchUnitIndexQuery(db) }
+    }
+
+    private static func fetchUnitIndexQuery(_ db: Database) throws -> UnitIndex {
+        let units = try Unit.fetchAll(db)
+        let members = try Row.fetchAll(db, sql: "SELECT unit_id, idol_id FROM unit_members")
+        var memberIds: [String: Set<String>] = [:]
+        var byIdol: [String: Set<String>] = [:]
+        for row in members {
+            let uid: String = row["unit_id"]
+            let iid: String = row["idol_id"]
+            memberIds[uid, default: []].insert(iid)
+            byIdol[iid, default: []].insert(uid)
         }
+        // 楽曲を持つ unit (songs.unit_id で参照されている) を集める。
+        // セトリ表示では「楽曲あり unit」だけを逆引き候補にして、
+        // 名前だけ同じ合同メンバー集合で誤検出しないようにする。
+        let songUnitIds = try Row.fetchAll(db, sql: """
+            SELECT DISTINCT unit_id FROM songs
+            WHERE unit_id IS NOT NULL AND unit_id != ''
+            """).compactMap { $0["unit_id"] as String? }
+        let unitsWithSongs = Set(songUnitIds)
+        return UnitIndex(
+            units: units,
+            memberIds: memberIds,
+            byIdol: byIdol,
+            unitsWithSongs: unitsWithSongs
+        )
     }
 
     /// ユニット楽曲取得
     func fetchUnitSongs(unitId: String) throws -> [Song] {
-        try dbQueue.read { db in
-            try Song.filter(Column("unit_id") == unitId).order(Column("release_date")).fetchAll(db)
-        }
+        try dbQueue.read { db in try Self.fetchUnitSongsQuery(db, unitId: unitId) }
+    }
+
+    func fetchUnitSongsAsync(unitId: String) async throws -> [Song] {
+        try await dbQueue.read { db in try Self.fetchUnitSongsQuery(db, unitId: unitId) }
+    }
+
+    private static func fetchUnitSongsQuery(_ db: Database, unitId: String) throws -> [Song] {
+        try Song.filter(Column("unit_id") == unitId).order(Column("release_date")).fetchAll(db)
     }
 
     /// DB全体の統計 (外部ゲスト演者は除外)
     func fetchDatabaseStats() throws -> DatabaseStats {
-        try dbQueue.read { db in
-            DatabaseStats(
-                songCount: try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM songs") ?? 0,
-                idolCount: try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM idols WHERE is_external = 0") ?? 0,
-                eventCount: try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM events") ?? 0,
-                showCount: try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM shows") ?? 0
-            )
-        }
+        try dbQueue.read { db in try Self.fetchDatabaseStatsQuery(db) }
+    }
+
+    func fetchDatabaseStatsAsync() async throws -> DatabaseStats {
+        try await dbQueue.read { db in try Self.fetchDatabaseStatsQuery(db) }
+    }
+
+    private static func fetchDatabaseStatsQuery(_ db: Database) throws -> DatabaseStats {
+        DatabaseStats(
+            songCount: try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM songs") ?? 0,
+            idolCount: try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM idols WHERE is_external = 0") ?? 0,
+            eventCount: try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM events") ?? 0,
+            showCount: try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM shows") ?? 0
+        )
     }
 
     /// 同期診断用 — recordName に '@' が入ったレコード数を集計し、ML 13thLIVE が
     /// 存在するかチェックする。@-roundtrip バグの切り分けに使う。
     func fetchSyncDiagnostics() throws -> SyncDiagnostics {
-        try dbQueue.read { db in
-            SyncDiagnostics(
-                eventsAt: try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM events WHERE id LIKE '%@%'") ?? 0,
-                showsAt: try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM shows WHERE id LIKE '%@%'") ?? 0,
-                setlistItemsAt: try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM setlist_items WHERE id LIKE '%@%'") ?? 0,
-                ml13thLiveExists: try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM events WHERE id = ?", arguments: ["ev_the_idolm@ster_million_live_13thlive"]) ?? 0 > 0,
-                ml13thShowsCount: try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM shows WHERE event_id = ?", arguments: ["ev_the_idolm@ster_million_live_13thlive"]) ?? 0,
-                ml13thSetlistItemsCount: try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM setlist_items WHERE show_id LIKE 'sh_the_idolm@ster_million_live_13thlive%'") ?? 0,
-                sc8thName: try String.fetchOne(db, sql: "SELECT name FROM events WHERE id = ?", arguments: ["ev_the_idolm@ster_shiny_colors_8th_live_ito_yume"]),
-                sc8thKind: try String.fetchOne(db, sql: "SELECT kind FROM events WHERE id = ?", arguments: ["ev_the_idolm@ster_shiny_colors_8th_live_ito_yume"]),
-                sc8thShowsCount: try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM shows WHERE event_id = ?", arguments: ["ev_the_idolm@ster_shiny_colors_8th_live_ito_yume"]) ?? 0
-            )
-        }
+        try dbQueue.read { db in try Self.fetchSyncDiagnosticsQuery(db) }
+    }
+
+    func fetchSyncDiagnosticsAsync() async throws -> SyncDiagnostics {
+        try await dbQueue.read { db in try Self.fetchSyncDiagnosticsQuery(db) }
+    }
+
+    private static func fetchSyncDiagnosticsQuery(_ db: Database) throws -> SyncDiagnostics {
+        SyncDiagnostics(
+            eventsAt: try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM events WHERE id LIKE '%@%'") ?? 0,
+            showsAt: try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM shows WHERE id LIKE '%@%'") ?? 0,
+            setlistItemsAt: try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM setlist_items WHERE id LIKE '%@%'") ?? 0,
+            ml13thLiveExists: try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM events WHERE id = ?", arguments: ["ev_the_idolm@ster_million_live_13thlive"]) ?? 0 > 0,
+            ml13thShowsCount: try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM shows WHERE event_id = ?", arguments: ["ev_the_idolm@ster_million_live_13thlive"]) ?? 0,
+            ml13thSetlistItemsCount: try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM setlist_items WHERE show_id LIKE 'sh_the_idolm@ster_million_live_13thlive%'") ?? 0,
+            sc8thName: try String.fetchOne(db, sql: "SELECT name FROM events WHERE id = ?", arguments: ["ev_the_idolm@ster_shiny_colors_8th_live_ito_yume"]),
+            sc8thKind: try String.fetchOne(db, sql: "SELECT kind FROM events WHERE id = ?", arguments: ["ev_the_idolm@ster_shiny_colors_8th_live_ito_yume"]),
+            sc8thShowsCount: try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM shows WHERE event_id = ?", arguments: ["ev_the_idolm@ster_shiny_colors_8th_live_ito_yume"]) ?? 0
+        )
     }
 
     /// 直近公演取得
     func fetchLatestShow() throws -> Show? {
-        try dbQueue.read { db in
-            try Show.order(Column("date").desc).fetchOne(db)
-        }
+        try dbQueue.read { db in try Self.fetchLatestShowQuery(db) }
+    }
+
+    func fetchLatestShowAsync() async throws -> Show? {
+        try await dbQueue.read { db in try Self.fetchLatestShowQuery(db) }
+    }
+
+    private static func fetchLatestShowQuery(_ db: Database) throws -> Show? {
+        try Show.order(Column("date").desc).fetchOne(db)
     }
 
     /// CDシリーズ一覧（ユニーク値）
     func fetchCdSeriesList() throws -> [String] {
-        try dbQueue.read { db in
-            try String.fetchAll(db, sql: """
-                SELECT DISTINCT cd_series FROM songs
-                WHERE cd_series IS NOT NULL AND cd_series != ''
-                ORDER BY cd_series
-                """)
-        }
+        try dbQueue.read { db in try Self.fetchCdSeriesListQuery(db) }
+    }
+
+    func fetchCdSeriesListAsync() async throws -> [String] {
+        try await dbQueue.read { db in try Self.fetchCdSeriesListQuery(db) }
+    }
+
+    private static func fetchCdSeriesListQuery(_ db: Database) throws -> [String] {
+        try String.fetchAll(db, sql: """
+            SELECT DISTINCT cd_series FROM songs
+            WHERE cd_series IS NOT NULL AND cd_series != ''
+            ORDER BY cd_series
+            """)
     }
 
     /// イベント名一覧
     func fetchEventNames() throws -> [String] {
-        try dbQueue.read { db in
-            try String.fetchAll(db, sql: "SELECT name FROM events ORDER BY name")
-        }
+        try dbQueue.read { db in try Self.fetchEventNamesQuery(db) }
+    }
+
+    func fetchEventNamesAsync() async throws -> [String] {
+        try await dbQueue.read { db in try Self.fetchEventNamesQuery(db) }
+    }
+
+    private static func fetchEventNamesQuery(_ db: Database) throws -> [String] {
+        try String.fetchAll(db, sql: "SELECT name FROM events ORDER BY name")
     }
 
     /// イベント名 OR 公演会場 (shows.venue) のいずれかが query に部分一致するイベントを返す。
     /// venue は同 event 内の複数 shows をまたぐので EXISTS で結合。
     func searchEventsByNameOrVenue(query: String, limit: Int = 100) throws -> [Event] {
-        try dbQueue.read { db in
-            let pattern = "%\(query.lowercased().likeEscaped)%"
-            return try Event.fetchAll(
-                db,
-                sql: """
-                    SELECT DISTINCT e.* FROM events e
-                    LEFT JOIN shows sh ON sh.event_id = e.id
-                    WHERE LOWER(e.name) LIKE ? ESCAPE '\\'
-                       OR LOWER(IFNULL(sh.venue, '')) LIKE ? ESCAPE '\\'
-                    LIMIT ?
-                    """,
-                arguments: [pattern, pattern, limit]
-            )
-        }
+        try dbQueue.read { db in try Self.searchEventsByNameOrVenueQuery(db, query: query, limit: limit) }
+    }
+
+    func searchEventsByNameOrVenueAsync(query: String, limit: Int = 100) async throws -> [Event] {
+        try await dbQueue.read { db in try Self.searchEventsByNameOrVenueQuery(db, query: query, limit: limit) }
+    }
+
+    private static func searchEventsByNameOrVenueQuery(_ db: Database, query: String, limit: Int) throws -> [Event] {
+        let pattern = "%\(query.lowercased().likeEscaped)%"
+        return try Event.fetchAll(
+            db,
+            sql: """
+                SELECT DISTINCT e.* FROM events e
+                LEFT JOIN shows sh ON sh.event_id = e.id
+                WHERE LOWER(e.name) LIKE ? ESCAPE '\\'
+                   OR LOWER(IFNULL(sh.venue, '')) LIKE ? ESCAPE '\\'
+                LIMIT ?
+                """,
+            arguments: [pattern, pattern, limit]
+        )
     }
 
     /// アイドルを名前 / かな / ローマ字の部分一致で検索 (ピッカー用)。
     func searchIdols(query: String, limit: Int = 50) throws -> [Idol] {
-        try dbQueue.read { db in
-            let pattern = "%\(query.likeEscaped)%"
-            return try Idol.filter(
-                Column("name").like(pattern, escape: "\\") ||
-                Column("name_kana").like(pattern, escape: "\\") ||
-                Column("name_romaji").like(pattern, escape: "\\")
-            )
-            .order(Column("sort_order"))
-            .limit(limit)
-            .fetchAll(db)
-        }
+        try dbQueue.read { db in try Self.searchIdolsQuery(db, query: query, limit: limit) }
+    }
+
+    func searchIdolsAsync(query: String, limit: Int = 50) async throws -> [Idol] {
+        try await dbQueue.read { db in try Self.searchIdolsQuery(db, query: query, limit: limit) }
+    }
+
+    private static func searchIdolsQuery(_ db: Database, query: String, limit: Int) throws -> [Idol] {
+        let pattern = "%\(query.likeEscaped)%"
+        return try Idol.filter(
+            Column("name").like(pattern, escape: "\\") ||
+            Column("name_kana").like(pattern, escape: "\\") ||
+            Column("name_romaji").like(pattern, escape: "\\")
+        )
+        .order(Column("sort_order"))
+        .limit(limit)
+        .fetchAll(db)
     }
 
     /// metaテーブルから値取得
     func fetchMetaValue(forKey key: String) throws -> String? {
-        try dbQueue.read { db in
-            try Meta.getValue(db, forKey: key)
-        }
+        try dbQueue.read { db in try Self.fetchMetaValueQuery(db, forKey: key) }
+    }
+
+    func fetchMetaValueAsync(forKey key: String) async throws -> String? {
+        try await dbQueue.read { db in try Self.fetchMetaValueQuery(db, forKey: key) }
+    }
+
+    private static func fetchMetaValueQuery(_ db: Database, forKey key: String) throws -> String? {
+        try Meta.getValue(db, forKey: key)
     }
 
     /// 年別ライブ開催数推移
     func fetchYearlyShowCounts() throws -> [YearlyShowCount] {
-        try dbQueue.read { db in
-            let sql = """
-                SELECT strftime('%Y', date) AS year, COUNT(*) AS show_count
-                FROM shows
-                GROUP BY year
-                ORDER BY year
-                """
-            return try YearlyShowCount.fetchAll(db, sql: sql)
-        }
+        try dbQueue.read { db in try Self.fetchYearlyShowCountsQuery(db) }
+    }
+
+    func fetchYearlyShowCountsAsync() async throws -> [YearlyShowCount] {
+        try await dbQueue.read { db in try Self.fetchYearlyShowCountsQuery(db) }
+    }
+
+    private static func fetchYearlyShowCountsQuery(_ db: Database) throws -> [YearlyShowCount] {
+        let sql = """
+            SELECT strftime('%Y', date) AS year, COUNT(*) AS show_count
+            FROM shows
+            GROUP BY year
+            ORDER BY year
+            """
+        return try YearlyShowCount.fetchAll(db, sql: sql)
     }
 
     // MARK: - Search
 
     /// グローバル検索
     func search(query: String) throws -> SearchResults {
-        try dbQueue.read { db in
-            let pattern = "%\(query.likeEscaped)%"
+        try dbQueue.read { db in try Self.searchQuery(db, query: query) }
+    }
 
-            let songs = try Song.filter(
-                Column("title").like(pattern, escape: "\\") ||
-                Column("title_kana").like(pattern, escape: "\\")
-            ).limit(20).fetchAll(db)
+    func searchAsync(query: String) async throws -> SearchResults {
+        try await dbQueue.read { db in try Self.searchQuery(db, query: query) }
+    }
 
-            let idols = try Idol.filter(
-                Column("name").like(pattern, escape: "\\") ||
-                Column("name_kana").like(pattern, escape: "\\")
-            ).limit(20).fetchAll(db)
+    private static func searchQuery(_ db: Database, query: String) throws -> SearchResults {
+        let pattern = "%\(query.likeEscaped)%"
 
-            let events = try Event.filter(
-                Column("name").like(pattern, escape: "\\")
-            ).limit(20).fetchAll(db)
+        let songs = try Song.filter(
+            Column("title").like(pattern, escape: "\\") ||
+            Column("title_kana").like(pattern, escape: "\\")
+        ).limit(20).fetchAll(db)
 
-            return SearchResults(songs: songs, idols: idols, events: events)
-        }
+        let idols = try Idol.filter(
+            Column("name").like(pattern, escape: "\\") ||
+            Column("name_kana").like(pattern, escape: "\\")
+        ).limit(20).fetchAll(db)
+
+        let events = try Event.filter(
+            Column("name").like(pattern, escape: "\\")
+        ).limit(20).fetchAll(db)
+
+        return SearchResults(songs: songs, idols: idols, events: events)
     }
 
     // MARK: - Filtered Fetch Methods
@@ -1683,104 +2043,163 @@ final class AppDatabase: @unchecked Sendable {
         case .brand(let id, _):
             return try fetchSongs(filter: SongSearchFilter(brandId: id))
         case .cdSeries(let series):
-            let songs: [Song] = try dbQueue.read { db in
-                try Song.filter(Column("cd_series") == series).order(Column("release_date"), Column("title_kana")).fetchAll(db)
-            }
-            return songs.map { SongWithArtists(song: $0, artistNames: $0.singerLabel ?? "") }
+            let songs = try dbQueue.read { db in try Self.songsByCdSeriesQuery(db, series: series) }
+            return Self.songsWithArtists(songs)
         case .seriesGroup(let name):
-            let songs: [Song] = try dbQueue.read { db in
-                try Song.filter(Column("series_group") == name)
-                    .order(Column("release_date"), Column("title_kana"))
-                    .fetchAll(db)
-            }
-            return songs.map { SongWithArtists(song: $0, artistNames: $0.singerLabel ?? "") }
+            let songs = try dbQueue.read { db in try Self.songsBySeriesGroupQuery(db, name: name) }
+            return Self.songsWithArtists(songs)
         case .songType(let type):
             return try fetchSongs(filter: SongSearchFilter(songType: type))
         case .releaseYear(let year):
-            let songs: [Song] = try dbQueue.read { db in
-                try Song.filter(Column("release_date").like("\(year)%"))
-                    .order(Column("release_date"), Column("title_kana"))
-                    .fetchAll(db)
-            }
-            return songs.map { SongWithArtists(song: $0, artistNames: $0.singerLabel ?? "") }
+            let songs = try dbQueue.read { db in try Self.songsByReleaseYearQuery(db, year: year) }
+            return Self.songsWithArtists(songs)
         case .creator(let name):
             let withRoles = try fetchSongsByCreator(name)
             return withRoles.map { SongWithArtists(song: $0.song, artistNames: $0.song.singerLabel ?? "") }
         case .songIds(let ids, _):
             guard !ids.isEmpty else { return [] }
-            let songs: [Song] = try dbQueue.read { db in
-                try Song.filter(ids.contains(Column("id")))
-                    .order(Column("title_kana"), Column("title"))
-                    .fetchAll(db)
-            }
-            return songs.map { SongWithArtists(song: $0, artistNames: $0.singerLabel ?? "") }
+            let songs = try dbQueue.read { db in try Self.songsByIdsOrderedQuery(db, ids: ids) }
+            return Self.songsWithArtists(songs)
         }
+    }
+
+    /// (async) SongFilterCriterion で楽曲一覧を取得。cooperative thread pool をブロックしない。
+    func fetchSongsAsync(criterion: SongFilterCriterion) async throws -> [SongWithArtists] {
+        switch criterion {
+        case .brand(let id, _):
+            return try await fetchSongsAsync(filter: SongSearchFilter(brandId: id))
+        case .cdSeries(let series):
+            let songs = try await dbQueue.read { db in try Self.songsByCdSeriesQuery(db, series: series) }
+            return Self.songsWithArtists(songs)
+        case .seriesGroup(let name):
+            let songs = try await dbQueue.read { db in try Self.songsBySeriesGroupQuery(db, name: name) }
+            return Self.songsWithArtists(songs)
+        case .songType(let type):
+            return try await fetchSongsAsync(filter: SongSearchFilter(songType: type))
+        case .releaseYear(let year):
+            let songs = try await dbQueue.read { db in try Self.songsByReleaseYearQuery(db, year: year) }
+            return Self.songsWithArtists(songs)
+        case .creator(let name):
+            let withRoles = try await fetchSongsByCreatorAsync(name)
+            return withRoles.map { SongWithArtists(song: $0.song, artistNames: $0.song.singerLabel ?? "") }
+        case .songIds(let ids, _):
+            guard !ids.isEmpty else { return [] }
+            let songs = try await dbQueue.read { db in try Self.songsByIdsOrderedQuery(db, ids: ids) }
+            return Self.songsWithArtists(songs)
+        }
+    }
+
+    private static func songsWithArtists(_ songs: [Song]) -> [SongWithArtists] {
+        songs.map { SongWithArtists(song: $0, artistNames: $0.singerLabel ?? "") }
+    }
+
+    private static func songsByCdSeriesQuery(_ db: Database, series: String) throws -> [Song] {
+        try Song.filter(Column("cd_series") == series).order(Column("release_date"), Column("title_kana")).fetchAll(db)
+    }
+
+    private static func songsBySeriesGroupQuery(_ db: Database, name: String) throws -> [Song] {
+        try Song.filter(Column("series_group") == name)
+            .order(Column("release_date"), Column("title_kana"))
+            .fetchAll(db)
+    }
+
+    private static func songsByReleaseYearQuery(_ db: Database, year: String) throws -> [Song] {
+        try Song.filter(Column("release_date").like("\(year)%"))
+            .order(Column("release_date"), Column("title_kana"))
+            .fetchAll(db)
+    }
+
+    private static func songsByIdsOrderedQuery(_ db: Database, ids: [String]) throws -> [Song] {
+        try Song.filter(ids.contains(Column("id")))
+            .order(Column("title_kana"), Column("title"))
+            .fetchAll(db)
     }
 
     /// 関連楽曲: 同じシリーズ → 同じユニット → 歌唱アイドル共有 の重み付けでスコアし、近い順に返す。
     /// マスタ (ローカル) のみで完結する関連性。コミュニティのタグ類似は別系統 (CommunityAPI.similarSongsByTags)。
     func fetchRelatedSongs(to song: Song, limit: Int = 8) throws -> [Song] {
-        try dbQueue.read { db in
-            let seriesGroup = try String.fetchOne(
-                db, sql: "SELECT series_group FROM songs WHERE id = ?", arguments: [song.id]
-            )
-            let artistIds = try String.fetchAll(
-                db, sql: "SELECT idol_id FROM song_artists WHERE song_id = ? AND role = 'original'",
-                arguments: [song.id]
-            )
+        try dbQueue.read { db in try Self.fetchRelatedSongsQuery(db, to: song, limit: limit) }
+    }
 
-            var ordered: [String] = []
-            var byId: [String: (song: Song, score: Int)] = [:]
-            func add(_ songs: [Song], weight: Int) {
-                for s in songs where s.id != song.id {
-                    if byId[s.id] == nil { ordered.append(s.id) }
-                    byId[s.id, default: (s, 0)].score += weight
-                }
-            }
+    func fetchRelatedSongsAsync(to song: Song, limit: Int = 8) async throws -> [Song] {
+        try await dbQueue.read { db in try Self.fetchRelatedSongsQuery(db, to: song, limit: limit) }
+    }
 
-            if let sg = seriesGroup, !sg.isEmpty {
-                add(try Song.filter(Column("series_group") == sg).fetchAll(db), weight: 3)
-            }
-            if let unitId = song.unitId, !unitId.isEmpty {
-                add(try Song.filter(Column("unit_id") == unitId).fetchAll(db), weight: 2)
-            }
-            if !artistIds.isEmpty {
-                let placeholders = artistIds.map { _ in "?" }.joined(separator: ",")
-                let sharedSongIds = try String.fetchAll(
-                    db,
-                    sql: "SELECT DISTINCT song_id FROM song_artists WHERE role = 'original' AND idol_id IN (\(placeholders))",
-                    arguments: StatementArguments(artistIds)
-                )
-                if !sharedSongIds.isEmpty {
-                    add(try Song.filter(sharedSongIds.contains(Column("id"))).fetchAll(db), weight: 1)
-                }
-            }
+    private static func fetchRelatedSongsQuery(_ db: Database, to song: Song, limit: Int) throws -> [Song] {
+        let seriesGroup = try String.fetchOne(
+            db, sql: "SELECT series_group FROM songs WHERE id = ?", arguments: [song.id]
+        )
+        let artistIds = try String.fetchAll(
+            db, sql: "SELECT idol_id FROM song_artists WHERE song_id = ? AND role = 'original'",
+            arguments: [song.id]
+        )
 
-            return ordered
-                .compactMap { byId[$0] }
-                .sorted { lhs, rhs in
-                    if lhs.score != rhs.score { return lhs.score > rhs.score }
-                    return (lhs.song.releaseDate ?? "") > (rhs.song.releaseDate ?? "")
-                }
-                .prefix(limit)
-                .map(\.song)
+        var ordered: [String] = []
+        var byId: [String: (song: Song, score: Int)] = [:]
+        func add(_ songs: [Song], weight: Int) {
+            for s in songs where s.id != song.id {
+                if byId[s.id] == nil { ordered.append(s.id) }
+                byId[s.id, default: (s, 0)].score += weight
+            }
         }
+
+        if let sg = seriesGroup, !sg.isEmpty {
+            add(try Song.filter(Column("series_group") == sg).fetchAll(db), weight: 3)
+        }
+        if let unitId = song.unitId, !unitId.isEmpty {
+            add(try Song.filter(Column("unit_id") == unitId).fetchAll(db), weight: 2)
+        }
+        if !artistIds.isEmpty {
+            let placeholders = artistIds.map { _ in "?" }.joined(separator: ",")
+            let sharedSongIds = try String.fetchAll(
+                db,
+                sql: "SELECT DISTINCT song_id FROM song_artists WHERE role = 'original' AND idol_id IN (\(placeholders))",
+                arguments: StatementArguments(artistIds)
+            )
+            if !sharedSongIds.isEmpty {
+                add(try Song.filter(sharedSongIds.contains(Column("id"))).fetchAll(db), weight: 1)
+            }
+        }
+
+        return ordered
+            .compactMap { byId[$0] }
+            .sorted { lhs, rhs in
+                if lhs.score != rhs.score { return lhs.score > rhs.score }
+                return (lhs.song.releaseDate ?? "") > (rhs.song.releaseDate ?? "")
+            }
+            .prefix(limit)
+            .map(\.song)
     }
 
     /// クリエイター名（作曲・作詞・編曲 横断）で楽曲を検索し、各曲での役割付きで返す
     func fetchSongsByCreator(_ name: String) throws -> [SongWithRoles] {
-        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedName.isEmpty else { return [] }
+        guard let trimmedName = Self.normalizedCreatorName(name) else { return [] }
+        let candidates = try dbQueue.read { db in try Self.fetchSongsByCreatorQuery(db, trimmedName: trimmedName) }
+        return Self.songsWithCreatorRoles(candidates, trimmedName: trimmedName)
+    }
 
-        let candidates: [Song] = try dbQueue.read { db in
-            let pattern = "%\(trimmedName.likeEscaped)%"
-            return try Song.filter(
-                Column("composer").like(pattern, escape: "\\") ||
-                Column("lyricist").like(pattern, escape: "\\") ||
-                Column("arranger").like(pattern, escape: "\\")
-            ).order(Column("title_kana"), Column("title")).fetchAll(db)
-        }
+    /// (async) クリエイター名検索。cooperative thread pool をブロックしない。
+    func fetchSongsByCreatorAsync(_ name: String) async throws -> [SongWithRoles] {
+        guard let trimmedName = Self.normalizedCreatorName(name) else { return [] }
+        let candidates = try await dbQueue.read { db in try Self.fetchSongsByCreatorQuery(db, trimmedName: trimmedName) }
+        return Self.songsWithCreatorRoles(candidates, trimmedName: trimmedName)
+    }
 
+    private static func normalizedCreatorName(_ name: String) -> String? {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+
+    private static func fetchSongsByCreatorQuery(_ db: Database, trimmedName: String) throws -> [Song] {
+        let pattern = "%\(trimmedName.likeEscaped)%"
+        return try Song.filter(
+            Column("composer").like(pattern, escape: "\\") ||
+            Column("lyricist").like(pattern, escape: "\\") ||
+            Column("arranger").like(pattern, escape: "\\")
+        ).order(Column("title_kana"), Column("title")).fetchAll(db)
+    }
+
+    private static func songsWithCreatorRoles(_ candidates: [Song], trimmedName: String) -> [SongWithRoles] {
         let separators = CharacterSet(charactersIn: "/／,、・")
         return candidates.compactMap { song in
             let roles = [("作曲", song.composer), ("作詞", song.lyricist), ("編曲", song.arranger)]
@@ -1801,25 +2220,49 @@ final class AppDatabase: @unchecked Sendable {
         case .brand(let id, _):
             return try fetchIdols(brandId: id)
         case .birthMonth(let month):
-            let paddedMonth = String(format: "--%02d-", month)
-            return try dbQueue.read { db in
-                try Idol.filter(Column("birthday").like("\(paddedMonth)%"))
-                    .order(Column("sort_order"))
-                    .fetchAll(db)
-            }
+            return try dbQueue.read { db in try Self.idolsByBirthMonthQuery(db, month: month) }
         case .constellation(let c):
-            return try dbQueue.read { db in
-                try Idol.filter(Column("constellation") == c).order(Column("sort_order")).fetchAll(db)
-            }
+            return try dbQueue.read { db in try Self.idolsByConstellationQuery(db, constellation: c) }
         case .birthPlace(let p):
-            return try dbQueue.read { db in
-                try Idol.filter(Column("birth_place") == p).order(Column("sort_order")).fetchAll(db)
-            }
+            return try dbQueue.read { db in try Self.idolsByBirthPlaceQuery(db, birthPlace: p) }
         case .bloodType(let t):
-            return try dbQueue.read { db in
-                try Idol.filter(Column("blood_type") == t).order(Column("sort_order")).fetchAll(db)
-            }
+            return try dbQueue.read { db in try Self.idolsByBloodTypeQuery(db, bloodType: t) }
         }
+    }
+
+    /// (async) IdolFilterCriterion でアイドル一覧を取得。cooperative thread pool をブロックしない。
+    func fetchIdolsAsync(criterion: IdolFilterCriterion) async throws -> [Idol] {
+        switch criterion {
+        case .brand(let id, _):
+            return try await fetchIdolsAsync(brandId: id)
+        case .birthMonth(let month):
+            return try await dbQueue.read { db in try Self.idolsByBirthMonthQuery(db, month: month) }
+        case .constellation(let c):
+            return try await dbQueue.read { db in try Self.idolsByConstellationQuery(db, constellation: c) }
+        case .birthPlace(let p):
+            return try await dbQueue.read { db in try Self.idolsByBirthPlaceQuery(db, birthPlace: p) }
+        case .bloodType(let t):
+            return try await dbQueue.read { db in try Self.idolsByBloodTypeQuery(db, bloodType: t) }
+        }
+    }
+
+    private static func idolsByBirthMonthQuery(_ db: Database, month: Int) throws -> [Idol] {
+        let paddedMonth = String(format: "--%02d-", month)
+        return try Idol.filter(Column("birthday").like("\(paddedMonth)%"))
+            .order(Column("sort_order"))
+            .fetchAll(db)
+    }
+
+    private static func idolsByConstellationQuery(_ db: Database, constellation: String) throws -> [Idol] {
+        try Idol.filter(Column("constellation") == constellation).order(Column("sort_order")).fetchAll(db)
+    }
+
+    private static func idolsByBirthPlaceQuery(_ db: Database, birthPlace: String) throws -> [Idol] {
+        try Idol.filter(Column("birth_place") == birthPlace).order(Column("sort_order")).fetchAll(db)
+    }
+
+    private static func idolsByBloodTypeQuery(_ db: Database, bloodType: String) throws -> [Idol] {
+        try Idol.filter(Column("blood_type") == bloodType).order(Column("sort_order")).fetchAll(db)
     }
 
     /// EventFilterCriterion でイベント一覧を取得（first_date付き）
@@ -1829,71 +2272,96 @@ final class AppDatabase: @unchecked Sendable {
         case .brand(let id, _):
             return try fetchEventsWithFirstDate(brandId: id, includeEmpty: includeEmpty)
         case .year(let year):
-            return try dbQueue.read { db in
-                var havingConditions = ["strftime('%Y', first_date) = ?"]
-                if !includeEmpty {
-                    havingConditions.append(Self.hasSetlistCondition)
-                }
-                let sql = """
-                    SELECT e.id, e.brand_id, e.name, e.event_type, e.is_streaming, e.is_solo, e.kind,
-                           MIN(s.date) AS first_date
-                    FROM events e
-                    LEFT JOIN shows s ON s.event_id = e.id
-                    WHERE e.kind IN ('live', 'festival')
-                    GROUP BY e.id
-                    HAVING \(havingConditions.joined(separator: " AND "))
-                    ORDER BY COALESCE(MIN(s.date), '') DESC
-                    """
-                return try Row.fetchAll(db, sql: sql, arguments: [String(year)]).map(Self.eventWithDate)
-            }
+            return try dbQueue.read { db in try Self.eventsWithDateByYearQuery(db, year: year, includeEmpty: includeEmpty) }
         }
+    }
+
+    /// (async) EventFilterCriterion でイベント一覧を取得。cooperative thread pool をブロックしない。
+    func fetchEventsWithDateAsync(criterion: EventFilterCriterion, includeEmpty: Bool = true) async throws -> [EventWithDate] {
+        switch criterion {
+        case .brand(let id, _):
+            return try await fetchEventsWithFirstDateAsync(brandId: id, includeEmpty: includeEmpty)
+        case .year(let year):
+            return try await dbQueue.read { db in try Self.eventsWithDateByYearQuery(db, year: year, includeEmpty: includeEmpty) }
+        }
+    }
+
+    private static func eventsWithDateByYearQuery(_ db: Database, year: Int, includeEmpty: Bool) throws -> [EventWithDate] {
+        var havingConditions = ["strftime('%Y', first_date) = ?"]
+        if !includeEmpty {
+            havingConditions.append(Self.hasSetlistCondition)
+        }
+        let sql = """
+            SELECT e.id, e.brand_id, e.name, e.event_type, e.is_streaming, e.is_solo, e.kind,
+                   MIN(s.date) AS first_date
+            FROM events e
+            LEFT JOIN shows s ON s.event_id = e.id
+            WHERE e.kind IN ('live', 'festival')
+            GROUP BY e.id
+            HAVING \(havingConditions.joined(separator: " AND "))
+            ORDER BY COALESCE(MIN(s.date), '') DESC
+            """
+        return try Row.fetchAll(db, sql: sql, arguments: [String(year)]).map(Self.eventWithDate)
     }
 
     /// 指定 event_id 集合に該当する EventWithDate を、最新公演日降順で返す。
     /// MyPage の参加ライブ一覧などで使用。 空配列を渡したら空配列を返す。
     func fetchEventsByIds(_ ids: [String]) throws -> [EventWithDate] {
         guard !ids.isEmpty else { return [] }
-        return try dbQueue.read { db in
-            let placeholders = ids.map { _ in "?" }.joined(separator: ", ")
-            let sql = """
-                SELECT e.id, e.brand_id, e.name, e.event_type, e.is_streaming, e.is_solo, e.kind,
-                       MIN(s.date) AS first_date,
-                       MAX(s.date) AS last_date
-                FROM events e
-                LEFT JOIN shows s ON s.event_id = e.id
-                WHERE e.id IN (\(placeholders))
-                GROUP BY e.id
-                ORDER BY COALESCE(MIN(s.date), '') DESC
-                """
-            return try Row.fetchAll(db, sql: sql, arguments: StatementArguments(ids))
-                .map(Self.eventWithDate)
-        }
+        return try dbQueue.read { db in try Self.fetchEventsByIdsQuery(db, ids) }
+    }
+
+    func fetchEventsByIdsAsync(_ ids: [String]) async throws -> [EventWithDate] {
+        guard !ids.isEmpty else { return [] }
+        return try await dbQueue.read { db in try Self.fetchEventsByIdsQuery(db, ids) }
+    }
+
+    private static func fetchEventsByIdsQuery(_ db: Database, _ ids: [String]) throws -> [EventWithDate] {
+        let placeholders = ids.map { _ in "?" }.joined(separator: ", ")
+        let sql = """
+            SELECT e.id, e.brand_id, e.name, e.event_type, e.is_streaming, e.is_solo, e.kind,
+                   MIN(s.date) AS first_date,
+                   MAX(s.date) AS last_date
+            FROM events e
+            LEFT JOIN shows s ON s.event_id = e.id
+            WHERE e.id IN (\(placeholders))
+            GROUP BY e.id
+            ORDER BY COALESCE(MIN(s.date), '') DESC
+            """
+        return try Row.fetchAll(db, sql: sql, arguments: StatementArguments(ids))
+            .map(Self.eventWithDate)
     }
 
     /// 参加したライブ(イベント)を重複なしで返す。
     /// 「イベント単位の参加マーク」と「公演(show)単位の参加マーク→所属イベント」を UNION で統合する。
     /// (参加を公演単位で付けるユーザーが多く、event マークだけ見るとリストが取りこぼすため)
     func fetchAttendedEventsWithDate() throws -> [EventWithDate] {
-        try dbQueue.read { db in
-            let sql = """
-                SELECT e.id, e.brand_id, e.name, e.event_type, e.is_streaming, e.is_solo, e.kind,
-                       MIN(s.date) AS first_date,
-                       MAX(s.date) AS last_date
-                FROM events e
-                LEFT JOIN shows s ON s.event_id = e.id
-                WHERE e.id IN (
-                    SELECT entity_id FROM user_marks
-                    WHERE entity_type = 'event' AND kind = 'attended' AND bool_value = 1
-                    UNION
-                    SELECT sh.event_id FROM user_marks um
-                    JOIN shows sh ON sh.id = um.entity_id
-                    WHERE um.entity_type = 'show' AND um.kind = 'attended' AND um.bool_value = 1
-                )
-                GROUP BY e.id
-                ORDER BY COALESCE(MIN(s.date), '') DESC
-                """
-            return try Row.fetchAll(db, sql: sql).map(Self.eventWithDate)
-        }
+        try dbQueue.read { db in try Self.fetchAttendedEventsWithDateQuery(db) }
+    }
+
+    func fetchAttendedEventsWithDateAsync() async throws -> [EventWithDate] {
+        try await dbQueue.read { db in try Self.fetchAttendedEventsWithDateQuery(db) }
+    }
+
+    private static func fetchAttendedEventsWithDateQuery(_ db: Database) throws -> [EventWithDate] {
+        let sql = """
+            SELECT e.id, e.brand_id, e.name, e.event_type, e.is_streaming, e.is_solo, e.kind,
+                   MIN(s.date) AS first_date,
+                   MAX(s.date) AS last_date
+            FROM events e
+            LEFT JOIN shows s ON s.event_id = e.id
+            WHERE e.id IN (
+                SELECT entity_id FROM user_marks
+                WHERE entity_type = 'event' AND kind = 'attended' AND bool_value = 1
+                UNION
+                SELECT sh.event_id FROM user_marks um
+                JOIN shows sh ON sh.id = um.entity_id
+                WHERE um.entity_type = 'show' AND um.kind = 'attended' AND um.bool_value = 1
+            )
+            GROUP BY e.id
+            ORDER BY COALESCE(MIN(s.date), '') DESC
+            """
+        return try Row.fetchAll(db, sql: sql).map(Self.eventWithDate)
     }
 
     /// 参加したイベントを「現地参加を含む」「配信参加を含む」の2集合に分類して返す。
@@ -1901,123 +2369,161 @@ final class AppDatabase: @unchecked Sendable {
     /// 種別は user_marks.text_value ("live"/"stream")。旧データ(種別なし)は現地扱い。
     /// 参加ライブ一覧の現地/配信フィルタで使用。
     func fetchAttendedEventTypeSets() throws -> (live: Set<String>, stream: Set<String>, liveViewing: Set<String>) {
-        try dbQueue.read { db in
-            let sql = """
-                SELECT event_id, text_value AS atype FROM (
-                    SELECT entity_id AS event_id, text_value
-                    FROM user_marks
-                    WHERE entity_type='event' AND kind='attended' AND bool_value=1
-                    UNION ALL
-                    SELECT sh.event_id AS event_id, um.text_value
-                    FROM user_marks um
-                    JOIN shows sh ON sh.id = um.entity_id
-                    WHERE um.entity_type='show' AND um.kind='attended' AND um.bool_value=1
-                )
-                """
-            var live: Set<String> = []
-            var stream: Set<String> = []
-            var liveViewing: Set<String> = []
-            for row in try Row.fetchAll(db, sql: sql) {
-                guard let eventId: String = row["event_id"] else { continue }
-                let atype: String? = row["atype"]
-                switch atype {
-                case "stream":       stream.insert(eventId)
-                case "live_viewing": liveViewing.insert(eventId)
-                default:             live.insert(eventId)  // "live" または種別なし(旧データ) は現地扱い
-                }
+        try dbQueue.read { db in try Self.fetchAttendedEventTypeSetsQuery(db) }
+    }
+
+    func fetchAttendedEventTypeSetsAsync() async throws -> (live: Set<String>, stream: Set<String>, liveViewing: Set<String>) {
+        try await dbQueue.read { db in try Self.fetchAttendedEventTypeSetsQuery(db) }
+    }
+
+    private static func fetchAttendedEventTypeSetsQuery(_ db: Database) throws -> (live: Set<String>, stream: Set<String>, liveViewing: Set<String>) {
+        let sql = """
+            SELECT event_id, text_value AS atype FROM (
+                SELECT entity_id AS event_id, text_value
+                FROM user_marks
+                WHERE entity_type='event' AND kind='attended' AND bool_value=1
+                UNION ALL
+                SELECT sh.event_id AS event_id, um.text_value
+                FROM user_marks um
+                JOIN shows sh ON sh.id = um.entity_id
+                WHERE um.entity_type='show' AND um.kind='attended' AND um.bool_value=1
+            )
+            """
+        var live: Set<String> = []
+        var stream: Set<String> = []
+        var liveViewing: Set<String> = []
+        for row in try Row.fetchAll(db, sql: sql) {
+            guard let eventId: String = row["event_id"] else { continue }
+            let atype: String? = row["atype"]
+            switch atype {
+            case "stream":       stream.insert(eventId)
+            case "live_viewing": liveViewing.insert(eventId)
+            default:             live.insert(eventId)  // "live" または種別なし(旧データ) は現地扱い
             }
-            return (live, stream, liveViewing)
         }
+        return (live, stream, liveViewing)
     }
 
     /// ShowFilterCriterion で公演一覧を取得
     func fetchShows(criterion: ShowFilterCriterion) throws -> [Show] {
         switch criterion {
         case .venue(let venue):
-            return try dbQueue.read { db in
-                try Show.filter(Column("venue") == venue).order(Column("date").desc).fetchAll(db)
-            }
+            return try dbQueue.read { db in try Self.showsByVenueQuery(db, venue: venue) }
         case .date(let date):
-            return try dbQueue.read { db in
-                try Show.filter(Column("date") == date).order(Column("sort_order")).fetchAll(db)
-            }
+            return try dbQueue.read { db in try Self.showsByDateQuery(db, date: date) }
         }
+    }
+
+    /// (async) ShowFilterCriterion で公演一覧を取得。cooperative thread pool をブロックしない。
+    func fetchShowsAsync(criterion: ShowFilterCriterion) async throws -> [Show] {
+        switch criterion {
+        case .venue(let venue):
+            return try await dbQueue.read { db in try Self.showsByVenueQuery(db, venue: venue) }
+        case .date(let date):
+            return try await dbQueue.read { db in try Self.showsByDateQuery(db, date: date) }
+        }
+    }
+
+    private static func showsByVenueQuery(_ db: Database, venue: String) throws -> [Show] {
+        try Show.filter(Column("venue") == venue).order(Column("date").desc).fetchAll(db)
+    }
+
+    private static func showsByDateQuery(_ db: Database, date: String) throws -> [Show] {
+        try Show.filter(Column("date") == date).order(Column("sort_order")).fetchAll(db)
     }
 
     // MARK: - Idol Song Queries
 
     /// アイドルがライブで披露した曲一覧（披露回数付き）
     func fetchIdolPerformedSongs(idolId: String) throws -> [IdolPerformedSong] {
-        try dbQueue.read { db in
-            // setlist_performers 経由で idol_cast → idols と辿り、回数を集計
-            let sql = """
-                SELECT s.*, COUNT(DISTINCT si.id) AS perform_count
-                FROM songs s
-                JOIN setlist_items si ON s.id = si.song_id
-                JOIN setlist_performers sp ON si.id = sp.setlist_item_id
-                WHERE sp.idol_id = ?
-                GROUP BY s.id
-                ORDER BY perform_count DESC, s.title_kana
-                """
-            let rows = try Row.fetchAll(db, sql: sql, arguments: [idolId])
-            return rows.compactMap { row -> IdolPerformedSong? in
-                let count: Int = row["perform_count"] ?? 0
-                // Song は FetchableRecord なので Row から直接デコード
-                guard let song = try? Song(row: row) else { return nil }
-                return IdolPerformedSong(song: song, performCount: count)
-            }
+        try dbQueue.read { db in try Self.fetchIdolPerformedSongsQuery(db, idolId: idolId) }
+    }
+
+    func fetchIdolPerformedSongsAsync(idolId: String) async throws -> [IdolPerformedSong] {
+        try await dbQueue.read { db in try Self.fetchIdolPerformedSongsQuery(db, idolId: idolId) }
+    }
+
+    private static func fetchIdolPerformedSongsQuery(_ db: Database, idolId: String) throws -> [IdolPerformedSong] {
+        // setlist_performers 経由で idol_cast → idols と辿り、回数を集計
+        let sql = """
+            SELECT s.*, COUNT(DISTINCT si.id) AS perform_count
+            FROM songs s
+            JOIN setlist_items si ON s.id = si.song_id
+            JOIN setlist_performers sp ON si.id = sp.setlist_item_id
+            WHERE sp.idol_id = ?
+            GROUP BY s.id
+            ORDER BY perform_count DESC, s.title_kana
+            """
+        let rows = try Row.fetchAll(db, sql: sql, arguments: [idolId])
+        return rows.compactMap { row -> IdolPerformedSong? in
+            let count: Int = row["perform_count"] ?? 0
+            // Song は FetchableRecord なので Row から直接デコード
+            guard let song = try? Song(row: row) else { return nil }
+            return IdolPerformedSong(song: song, performCount: count)
         }
     }
 
     /// アイドルが特定の曲を披露した公演履歴（最新順）
     func fetchIdolSongHistory(idolId: String, songId: String) throws -> [CastShowRow] {
-        try dbQueue.read { db in
-            // CastShowRow.castRole は非 Optional (既定値 .member) だが、GRDB の FetchableRecord は
-            // Codable 合成デコード時に列自体が無いとキー不在で decode 失敗する (Swift のプロパティ
-            // 既定値は synthesized Decodable には効かない)。cast_role を SELECT しないと
-            // CastShowRow.fetchAll が毎回 throw し、呼び出し元 (IdolSongHistoryView) がそれを
-            // 握りつぶして常に「披露記録はありません」になっていた。fetchIdolShows と同じ
-            // COALESCE で明示的に補う。
-            let sql = """
-                SELECT DISTINCT sh.id AS show_id, e.id AS event_id,
-                       e.name AS event_name, sh.name AS show_name, sh.date, sh.venue,
-                       COALESCE(
-                           (SELECT cast_role FROM show_cast WHERE show_id = sh.id AND idol_id = ?),
-                           'member'
-                       ) AS cast_role
-                FROM setlist_items si
-                JOIN shows sh ON si.show_id = sh.id
-                JOIN events e ON sh.event_id = e.id
-                JOIN setlist_performers sp ON si.id = sp.setlist_item_id
-                WHERE si.song_id = ? AND sp.idol_id = ?
-                ORDER BY sh.date DESC
-                """
-            return try CastShowRow.fetchAll(db, sql: sql, arguments: [idolId, songId, idolId])
-        }
+        try dbQueue.read { db in try Self.fetchIdolSongHistoryQuery(db, idolId: idolId, songId: songId) }
+    }
+
+    func fetchIdolSongHistoryAsync(idolId: String, songId: String) async throws -> [CastShowRow] {
+        try await dbQueue.read { db in try Self.fetchIdolSongHistoryQuery(db, idolId: idolId, songId: songId) }
+    }
+
+    private static func fetchIdolSongHistoryQuery(_ db: Database, idolId: String, songId: String) throws -> [CastShowRow] {
+        // CastShowRow.castRole は非 Optional (既定値 .member) だが、GRDB の FetchableRecord は
+        // Codable 合成デコード時に列自体が無いとキー不在で decode 失敗する (Swift のプロパティ
+        // 既定値は synthesized Decodable には効かない)。cast_role を SELECT しないと
+        // CastShowRow.fetchAll が毎回 throw し、呼び出し元 (IdolSongHistoryView) がそれを
+        // 握りつぶして常に「披露記録はありません」になっていた。fetchIdolShows と同じ
+        // COALESCE で明示的に補う。
+        let sql = """
+            SELECT DISTINCT sh.id AS show_id, e.id AS event_id,
+                   e.name AS event_name, sh.name AS show_name, sh.date, sh.venue,
+                   COALESCE(
+                       (SELECT cast_role FROM show_cast WHERE show_id = sh.id AND idol_id = ?),
+                       'member'
+                   ) AS cast_role
+            FROM setlist_items si
+            JOIN shows sh ON si.show_id = sh.id
+            JOIN events e ON sh.event_id = e.id
+            JOIN setlist_performers sp ON si.id = sp.setlist_item_id
+            WHERE si.song_id = ? AND sp.idol_id = ?
+            ORDER BY sh.date DESC
+            """
+        return try CastShowRow.fetchAll(db, sql: sql, arguments: [idolId, songId, idolId])
     }
 
     // MARK: - Song Search (for OCR matching)
 
     /// 楽曲をタイトルで検索（完全一致優先、部分一致も含む）
     func searchSongs(query: String, limit: Int = 10) throws -> [Song] {
-        try dbQueue.read { db in
-            let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !trimmed.isEmpty else { return [] }
+        try dbQueue.read { db in try Self.searchSongsQuery(db, query: query, limit: limit) }
+    }
 
-            // 完全一致を先に取得
-            let exact = try Song
-                .filter(Column("title") == trimmed)
-                .fetchAll(db)
+    func searchSongsAsync(query: String, limit: Int = 10) async throws -> [Song] {
+        try await dbQueue.read { db in try Self.searchSongsQuery(db, query: query, limit: limit) }
+    }
 
-            if !exact.isEmpty { return exact }
+    private static func searchSongsQuery(_ db: Database, query: String, limit: Int) throws -> [Song] {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return [] }
 
-            // 部分一致
-            let pattern = "%\(trimmed.likeEscaped)%"
-            return try Song
-                .filter(Column("title").like(pattern, escape: "\\") || Column("title_kana").like(pattern, escape: "\\"))
-                .limit(limit)
-                .fetchAll(db)
-        }
+        // 完全一致を先に取得
+        let exact = try Song
+            .filter(Column("title") == trimmed)
+            .fetchAll(db)
+
+        if !exact.isEmpty { return exact }
+
+        // 部分一致
+        let pattern = "%\(trimmed.likeEscaped)%"
+        return try Song
+            .filter(Column("title").like(pattern, escape: "\\") || Column("title_kana").like(pattern, escape: "\\"))
+            .limit(limit)
+            .fetchAll(db)
     }
 
     // MARK: - Calendar Queries
@@ -2027,159 +2533,198 @@ final class AppDatabase: @unchecked Sendable {
         let startStr = Self.calendarDateFormatter.string(from: interval.start)
         let endStr = Self.calendarDateFormatter.string(from: interval.end)
 
-        let shows: [CalendarEntry] = try dbQueue.read { db in
-            let sql = """
-                SELECT s.id, s.event_id, s.name, s.date, s.venue, s.venue_city,
-                       s.start_time, s.sort_order, s.performer_type,
-                       e.name AS event_name, e.brand_id, e.kind AS event_kind,
-                       b.color AS brand_color
-                FROM shows s
-                JOIN events e ON s.event_id = e.id
-                LEFT JOIN brands b ON e.brand_id = b.id
-                WHERE s.date >= ? AND s.date <= ?
-                ORDER BY s.date, s.sort_order
-                """
-            return try Row.fetchAll(db, sql: sql, arguments: [startStr, endStr]).map { row in
-                CalendarEntry.show(CalendarShowRow(
-                    show: Show(
-                        id: row["id"],
-                        eventId: row["event_id"],
-                        name: row["name"],
-                        date: row["date"],
-                        venue: row["venue"],
-                        venueCity: row["venue_city"],
-                        startTime: row["start_time"],
-                        sortOrder: row["sort_order"],
-                        performerType: row["performer_type"]
-                    ),
-                    eventName: row["event_name"],
-                    brandId: row["brand_id"],
-                    brandColor: row["brand_color"],
-                    eventKind: row["event_kind"]
-                ))
+        let shows = try dbQueue.read { db in try Self.calendarShowsQuery(db, startStr: startStr, endStr: endStr) }
+        let releases = try dbQueue.read { db in try Self.calendarReleasesQuery(db, startStr: startStr, endStr: endStr) }
+        let birthdayPairs = try dbQueue.read { db in try Self.calendarBirthdayPairsQuery(db, interval: interval) }
+        let staffBirthdayPairs = try dbQueue.read { db in try Self.calendarStaffBirthdayPairsQuery(db, interval: interval) }
+        let anniversaries = try dbQueue.read { db in try Self.calendarAnniversariesQuery(db, interval: interval) }
+        let tickets = try dbQueue.read { db in try Self.calendarTicketsQuery(db, startStr: startStr, endStr: endStr) }
+
+        return Self.assembleCalendarEntries(
+            shows: shows, releases: releases,
+            birthdayPairs: birthdayPairs, staffBirthdayPairs: staffBirthdayPairs,
+            anniversaries: anniversaries, tickets: tickets
+        )
+    }
+
+    /// (async) 指定期間のカレンダーエントリを取得。cooperative thread pool をブロックしない。
+    func fetchCalendarEntriesAsync(in interval: DateInterval) async throws -> [CalendarEntry] {
+        let startStr = Self.calendarDateFormatter.string(from: interval.start)
+        let endStr = Self.calendarDateFormatter.string(from: interval.end)
+
+        let shows = try await dbQueue.read { db in try Self.calendarShowsQuery(db, startStr: startStr, endStr: endStr) }
+        let releases = try await dbQueue.read { db in try Self.calendarReleasesQuery(db, startStr: startStr, endStr: endStr) }
+        let birthdayPairs = try await dbQueue.read { db in try Self.calendarBirthdayPairsQuery(db, interval: interval) }
+        let staffBirthdayPairs = try await dbQueue.read { db in try Self.calendarStaffBirthdayPairsQuery(db, interval: interval) }
+        let anniversaries = try await dbQueue.read { db in try Self.calendarAnniversariesQuery(db, interval: interval) }
+        let tickets = try await dbQueue.read { db in try Self.calendarTicketsQuery(db, startStr: startStr, endStr: endStr) }
+
+        return Self.assembleCalendarEntries(
+            shows: shows, releases: releases,
+            birthdayPairs: birthdayPairs, staffBirthdayPairs: staffBirthdayPairs,
+            anniversaries: anniversaries, tickets: tickets
+        )
+    }
+
+    private static func calendarShowsQuery(_ db: Database, startStr: String, endStr: String) throws -> [CalendarEntry] {
+        let sql = """
+            SELECT s.id, s.event_id, s.name, s.date, s.venue, s.venue_city,
+                   s.start_time, s.sort_order, s.performer_type,
+                   e.name AS event_name, e.brand_id, e.kind AS event_kind,
+                   b.color AS brand_color
+            FROM shows s
+            JOIN events e ON s.event_id = e.id
+            LEFT JOIN brands b ON e.brand_id = b.id
+            WHERE s.date >= ? AND s.date <= ?
+            ORDER BY s.date, s.sort_order
+            """
+        return try Row.fetchAll(db, sql: sql, arguments: [startStr, endStr]).map { row in
+            CalendarEntry.show(CalendarShowRow(
+                show: Show(
+                    id: row["id"],
+                    eventId: row["event_id"],
+                    name: row["name"],
+                    date: row["date"],
+                    venue: row["venue"],
+                    venueCity: row["venue_city"],
+                    startTime: row["start_time"],
+                    sortOrder: row["sort_order"],
+                    performerType: row["performer_type"]
+                ),
+                eventName: row["event_name"],
+                brandId: row["brand_id"],
+                brandColor: row["brand_color"],
+                eventKind: row["event_kind"]
+            ))
+        }
+    }
+
+    private static func calendarReleasesQuery(_ db: Database, startStr: String, endStr: String) throws -> [CalendarEntry] {
+        let songs = try Song
+            .filter(Column("release_date") >= startStr && Column("release_date") <= endStr)
+            .filter(Column("parent_song_id") == nil)
+            .order(Column("release_date"), Column("title_kana"))
+            .fetchAll(db)
+        var byDate: [String: [Song]] = [:]
+        for song in songs {
+            guard let date = song.releaseDate else { continue }
+            byDate[date, default: []].append(song)
+        }
+        return byDate.map { date, songs in CalendarEntry.release(date: date, songs: songs) }
+    }
+
+    private static func calendarBirthdayPairsQuery(_ db: Database, interval: DateInterval) throws -> [(CalendarEntry, Date)] {
+        let allIdols = try Idol.filter(Column("birthday") != nil).fetchAll(db)
+        return allIdols.compactMap { idol -> (CalendarEntry, Date)? in
+            guard let birthdayDate = Self.expandMonthDay(idol.birthday, in: interval) else { return nil }
+            return (.birthday(idol), birthdayDate)
+        }
+    }
+
+    private static func calendarStaffBirthdayPairsQuery(_ db: Database, interval: DateInterval) throws -> [(CalendarEntry, Date)] {
+        let staffList = try Staff.filter(Column("birthday") != nil).fetchAll(db)
+        return staffList.compactMap { staff -> (CalendarEntry, Date)? in
+            guard let birthdayDate = Self.expandMonthDay(staff.birthday, in: interval) else { return nil }
+            return (.staffBirthday(staff), birthdayDate)
+        }
+    }
+
+    /// 記念日: 起点日 YYYY-MM-DD の MM-DD を interval 内の年に展開して当て、起点年以降だけ採用
+    /// (起点より前の年は周年として意味を成さない)。
+    private static func calendarAnniversariesQuery(_ db: Database, interval: DateInterval) throws -> [CalendarEntry] {
+        let all = try Anniversary.fetchAll(db)
+        var jst = Calendar(identifier: .gregorian)
+        jst.timeZone = TimeZone(identifier: "Asia/Tokyo")!
+        return all.compactMap { ann -> CalendarEntry? in
+            guard let startDate = Self.parseDate(ann.date) else { return nil }
+            let parts = ann.date.split(separator: "-")
+            guard parts.count == 3,
+                  let month = Int(parts[1]),
+                  let day = Int(parts[2]) else { return nil }
+            let intervalYear = jst.component(.year, from: interval.start)
+            // 同 interval が年をまたぐ可能性は低いが念のため候補2年で試す。
+            for y in [intervalYear, intervalYear + 1] {
+                guard let recurring = jst.date(from: DateComponents(year: y, month: month, day: day)) else { continue }
+                // 起点年より前 (= 0周年未満) は表示しない。起点年当日 (0周年=その日) も出す。
+                guard recurring >= startDate else { continue }
+                if recurring >= interval.start && recurring <= interval.end {
+                    return .anniversary(ann)
+                }
+            }
+            return nil
+        }
+    }
+
+    /// チケット日程。受付開始 + 締切が揃えば「受付期間」を日跨ぎ帯 (.ticketPeriod) に、
+    /// 開始が無ければ締切を単日点に。当落発表は常に単日点。
+    /// ticket_deadline は自由記述もあり得るので YYYY-MM-DD にパースできた値だけ採用する。
+    private static func calendarTicketsQuery(_ db: Database, startStr: String, endStr: String) throws -> [CalendarEntry] {
+        let sql = """
+            SELECT e.id, e.name, e.ticket_open_date, e.ticket_deadline, e.ticket_lottery_date, e.ticket_url,
+                   b.color AS brand_color
+            FROM events e
+            LEFT JOIN brands b ON e.brand_id = b.id
+            WHERE e.ticket_open_date IS NOT NULL
+               OR e.ticket_deadline IS NOT NULL
+               OR e.ticket_lottery_date IS NOT NULL
+            """
+        // YYYY-MM-DD としてパースできる文字列だけ返す (自由記述を弾く)。
+        func validDate(_ value: String?) -> String? {
+            guard let v = value, Self.calendarDateFormatter.date(from: v) != nil else { return nil }
+            return v
+        }
+        var rows: [CalendarEntry] = []
+        for row in try Row.fetchAll(db, sql: sql) {
+            let eventId: String = row["id"]
+            let name: String = row["name"]
+            let brandColor: String? = row["brand_color"]
+            let url: String? = row["ticket_url"]
+            let open = validDate(row["ticket_open_date"])
+            let deadline = validDate(row["ticket_deadline"])
+            let lottery = validDate(row["ticket_lottery_date"])
+
+            if let open, let deadline, open <= deadline {
+                // 受付開始 + 締切が揃う → 受付期間スパン (表示レンジと重なる場合のみ)。
+                if open <= endStr, deadline >= startStr {
+                    rows.append(.ticketPeriod(TicketPeriodRow(
+                        eventId: eventId, eventName: name, brandColor: brandColor,
+                        start: open, end: deadline, url: url
+                    )))
+                }
+            } else if let deadline, deadline >= startStr, deadline <= endStr {
+                // 受付開始が無い場合は締切を単日点で。
+                rows.append(.ticket(TicketCalendarRow(
+                    eventId: eventId, eventName: name, brandColor: brandColor,
+                    date: deadline, kind: .deadline, url: url
+                )))
+            }
+            // 当落発表は常に単日点。
+            if let lottery, lottery >= startStr, lottery <= endStr {
+                rows.append(.ticket(TicketCalendarRow(
+                    eventId: eventId, eventName: name, brandColor: brandColor,
+                    date: lottery, kind: .lottery, url: url
+                )))
             }
         }
+        return rows
+    }
 
-        let releases: [CalendarEntry] = try dbQueue.read { db in
-            let songs = try Song
-                .filter(Column("release_date") >= startStr && Column("release_date") <= endStr)
-                .filter(Column("parent_song_id") == nil)
-                .order(Column("release_date"), Column("title_kana"))
-                .fetchAll(db)
-            var byDate: [String: [Song]] = [:]
-            for song in songs {
-                guard let date = song.releaseDate else { continue }
-                byDate[date, default: []].append(song)
-            }
-            return byDate.map { date, songs in CalendarEntry.release(date: date, songs: songs) }
-        }
-
+    /// DB から取得した6系統のエントリを統合してソートする (純 Swift、DB アクセスなし)。
+    private static func assembleCalendarEntries(
+        shows: [CalendarEntry], releases: [CalendarEntry],
+        birthdayPairs: [(CalendarEntry, Date)], staffBirthdayPairs: [(CalendarEntry, Date)],
+        anniversaries: [CalendarEntry], tickets: [CalendarEntry]
+    ) -> [CalendarEntry] {
         // 誕生日は解決した実際の Date も一緒に持ち回る (birthday/staffBirthday は CalendarEntry に
         // 年を持たせていないため、ソート時に「実際に出現する年」を引けるよう id をキーに退避する)。
         var resolvedOccurrence: [String: Date] = [:]
-
-        let birthdayPairs: [(CalendarEntry, Date)] = try dbQueue.read { db in
-            let allIdols = try Idol.filter(Column("birthday") != nil).fetchAll(db)
-            return allIdols.compactMap { idol -> (CalendarEntry, Date)? in
-                guard let birthdayDate = Self.expandMonthDay(idol.birthday, in: interval) else { return nil }
-                return (.birthday(idol), birthdayDate)
-            }
-        }
         let birthdays: [CalendarEntry] = birthdayPairs.map { entry, date in
             resolvedOccurrence[entry.id] = date
             return entry
         }
-
-        let staffBirthdayPairs: [(CalendarEntry, Date)] = try dbQueue.read { db in
-            let staffList = try Staff.filter(Column("birthday") != nil).fetchAll(db)
-            return staffList.compactMap { staff -> (CalendarEntry, Date)? in
-                guard let birthdayDate = Self.expandMonthDay(staff.birthday, in: interval) else { return nil }
-                return (.staffBirthday(staff), birthdayDate)
-            }
-        }
         let staffBirthdays: [CalendarEntry] = staffBirthdayPairs.map { entry, date in
             resolvedOccurrence[entry.id] = date
             return entry
-        }
-
-        // 記念日: 起点日 YYYY-MM-DD の MM-DD を interval 内の年に展開して当て、起点年以降だけ採用
-        // (起点より前の年は周年として意味を成さない)。
-        let anniversaries: [CalendarEntry] = try dbQueue.read { db in
-            let all = try Anniversary.fetchAll(db)
-            var jst = Calendar(identifier: .gregorian)
-            jst.timeZone = TimeZone(identifier: "Asia/Tokyo")!
-            return all.compactMap { ann -> CalendarEntry? in
-                guard let startDate = Self.parseDate(ann.date) else { return nil }
-                let parts = ann.date.split(separator: "-")
-                guard parts.count == 3,
-                      let month = Int(parts[1]),
-                      let day = Int(parts[2]) else { return nil }
-                let intervalYear = jst.component(.year, from: interval.start)
-                // 同 interval が年をまたぐ可能性は低いが念のため候補2年で試す。
-                for y in [intervalYear, intervalYear + 1] {
-                    guard let recurring = jst.date(from: DateComponents(year: y, month: month, day: day)) else { continue }
-                    // 起点年より前 (= 0周年未満) は表示しない。起点年当日 (0周年=その日) も出す。
-                    guard recurring >= startDate else { continue }
-                    if recurring >= interval.start && recurring <= interval.end {
-                        return .anniversary(ann)
-                    }
-                }
-                return nil
-            }
-        }
-
-        // チケット日程。受付開始 + 締切が揃えば「受付期間」を日跨ぎ帯 (.ticketPeriod) に、
-        // 開始が無ければ締切を単日点に。当落発表は常に単日点。
-        // ticket_deadline は自由記述もあり得るので YYYY-MM-DD にパースできた値だけ採用する。
-        let tickets: [CalendarEntry] = try dbQueue.read { db in
-            let sql = """
-                SELECT e.id, e.name, e.ticket_open_date, e.ticket_deadline, e.ticket_lottery_date, e.ticket_url,
-                       b.color AS brand_color
-                FROM events e
-                LEFT JOIN brands b ON e.brand_id = b.id
-                WHERE e.ticket_open_date IS NOT NULL
-                   OR e.ticket_deadline IS NOT NULL
-                   OR e.ticket_lottery_date IS NOT NULL
-                """
-            // YYYY-MM-DD としてパースできる文字列だけ返す (自由記述を弾く)。
-            func validDate(_ value: String?) -> String? {
-                guard let v = value, Self.calendarDateFormatter.date(from: v) != nil else { return nil }
-                return v
-            }
-            var rows: [CalendarEntry] = []
-            for row in try Row.fetchAll(db, sql: sql) {
-                let eventId: String = row["id"]
-                let name: String = row["name"]
-                let brandColor: String? = row["brand_color"]
-                let url: String? = row["ticket_url"]
-                let open = validDate(row["ticket_open_date"])
-                let deadline = validDate(row["ticket_deadline"])
-                let lottery = validDate(row["ticket_lottery_date"])
-
-                if let open, let deadline, open <= deadline {
-                    // 受付開始 + 締切が揃う → 受付期間スパン (表示レンジと重なる場合のみ)。
-                    if open <= endStr, deadline >= startStr {
-                        rows.append(.ticketPeriod(TicketPeriodRow(
-                            eventId: eventId, eventName: name, brandColor: brandColor,
-                            start: open, end: deadline, url: url
-                        )))
-                    }
-                } else if let deadline, deadline >= startStr, deadline <= endStr {
-                    // 受付開始が無い場合は締切を単日点で。
-                    rows.append(.ticket(TicketCalendarRow(
-                        eventId: eventId, eventName: name, brandColor: brandColor,
-                        date: deadline, kind: .deadline, url: url
-                    )))
-                }
-                // 当落発表は常に単日点。
-                if let lottery, lottery >= startStr, lottery <= endStr {
-                    rows.append(.ticket(TicketCalendarRow(
-                        eventId: eventId, eventName: name, brandColor: brandColor,
-                        date: lottery, kind: .lottery, url: url
-                    )))
-                }
-            }
-            return rows
         }
 
         // 誕生日系は dateString が "--MM-DD" (実年を持たない) で文字列比較すると常に月内先頭に
@@ -2260,17 +2805,25 @@ final class AppDatabase: @unchecked Sendable {
     /// 同じ差分範囲を再取得して同じ行で失敗し続け、実質そのユーザーの同期が永久に止まる。
     /// 1件ずつ savepoint で保護し、違反した行だけ捨てて続行する。
     private func upsertChunked<T: PersistableRecord>(_ records: [T], chunkSize: Int = 500) throws {
-        try dbQueue.write { db in
-            for chunk in records.chunks(ofCount: chunkSize) {
-                for record in chunk {
-                    do {
-                        try db.inSavepoint {
-                            try record.upsert(db)
-                            return .commit
-                        }
-                    } catch {
-                        syncUpsertLogger.error("upsert skip (\(T.databaseTableName)): \(error.localizedDescription)")
+        try dbQueue.write { db in try Self.upsertChunkedQuery(db, records, chunkSize) }
+    }
+
+    /// (async) upsertChunked の非同期版。cooperative thread pool をブロックしない。
+    /// リポジトリ経由の書き込み (upsertEvents/Shows/Idols/Songs/SongArtists/SetlistItems) から使う。
+    private func upsertChunkedAsync<T: PersistableRecord & Sendable>(_ records: [T], chunkSize: Int = 500) async throws {
+        try await dbQueue.write { db in try Self.upsertChunkedQuery(db, records, chunkSize) }
+    }
+
+    private static func upsertChunkedQuery<T: PersistableRecord>(_ db: Database, _ records: [T], _ chunkSize: Int) throws {
+        for chunk in records.chunks(ofCount: chunkSize) {
+            for record in chunk {
+                do {
+                    try db.inSavepoint {
+                        try record.upsert(db)
+                        return .commit
                     }
+                } catch {
+                    syncUpsertLogger.error("upsert skip (\(T.databaseTableName)): \(error.localizedDescription)")
                 }
             }
         }
@@ -2278,51 +2831,76 @@ final class AppDatabase: @unchecked Sendable {
 
     func upsertBrands(_ brands: [Brand]) throws { try upsertChunked(brands) }
     func upsertIdols(_ idols: [Idol]) throws { try upsertChunked(idols) }
+    func upsertIdolsAsync(_ idols: [Idol]) async throws { try await upsertChunkedAsync(idols) }
     func upsertEvents(_ events: [Event]) throws { try upsertChunked(events) }
+    func upsertEventsAsync(_ events: [Event]) async throws { try await upsertChunkedAsync(events) }
     func upsertShows(_ shows: [Show]) throws { try upsertChunked(shows) }
+    func upsertShowsAsync(_ shows: [Show]) async throws { try await upsertChunkedAsync(shows) }
     func upsertSongs(_ songs: [Song]) throws { try upsertChunked(songs) }
+    func upsertSongsAsync(_ songs: [Song]) async throws { try await upsertChunkedAsync(songs) }
     func upsertUnits(_ units: [Unit]) throws { try upsertChunked(units) }
     func upsertIdolBrands(_ idolBrands: [IdolBrand]) throws { try upsertChunked(idolBrands) }
     func upsertSongArtists(_ songArtists: [SongArtist]) throws { try upsertChunked(songArtists) }
+    func upsertSongArtistsAsync(_ songArtists: [SongArtist]) async throws { try await upsertChunkedAsync(songArtists) }
     func upsertUnitMembers(_ unitMembers: [UnitMember]) throws { try upsertChunked(unitMembers) }
     func upsertShowCasts(_ showCasts: [ShowCast]) throws { try upsertChunked(showCasts) }
     func upsertSetlistItems(_ setlistItems: [SetlistItem]) throws { try upsertChunked(setlistItems) }
+    func upsertSetlistItemsAsync(_ setlistItems: [SetlistItem]) async throws { try await upsertChunkedAsync(setlistItems) }
     func upsertSetlistPerformers(_ setlistPerformers: [SetlistPerformer]) throws { try upsertChunked(setlistPerformers) }
 
     /// 編集 UI 用: 全曲を id+title だけのコンパクト型で返す。
     func fetchAllSongsForPicker() throws -> [PickedSong] {
-        try dbQueue.read { db in
-            let rows = try Row.fetchAll(db, sql: "SELECT id, title FROM songs ORDER BY title")
-            return rows.map { PickedSong(id: $0["id"], title: $0["title"]) }
-        }
+        try dbQueue.read { db in try Self.fetchAllSongsForPickerQuery(db) }
+    }
+
+    func fetchAllSongsForPickerAsync() async throws -> [PickedSong] {
+        try await dbQueue.read { db in try Self.fetchAllSongsForPickerQuery(db) }
+    }
+
+    private static func fetchAllSongsForPickerQuery(_ db: Database) throws -> [PickedSong] {
+        let rows = try Row.fetchAll(db, sql: "SELECT id, title FROM songs ORDER BY title")
+        return rows.map { PickedSong(id: $0["id"], title: $0["title"]) }
     }
 
     /// 編集 UI 用: 出演者 picker に出す全アイドル (sort_order 順)。
     /// Cast 廃止により idol を直接返すようになった。
     func fetchAllIdolsForPicker() throws -> [Idol] {
-        try dbQueue.read { db in
-            try Idol.order(Column("sort_order")).fetchAll(db)
-        }
+        try dbQueue.read { db in try Self.fetchAllIdolsForPickerQuery(db) }
+    }
+
+    func fetchAllIdolsForPickerAsync() async throws -> [Idol] {
+        try await dbQueue.read { db in try Self.fetchAllIdolsForPickerQuery(db) }
+    }
+
+    private static func fetchAllIdolsForPickerQuery(_ db: Database) throws -> [Idol] {
+        try Idol.order(Column("sort_order")).fetchAll(db)
     }
 
     /// admin 編集: 指定 show の setlist を完全置換 (旧 items/performers 削除 → 新 items/performers 挿入)。
     /// CloudKit 側書き込み成功後にローカル DB を一致させるために呼ぶ。
     func replaceSetlist(showId: String, items: [SetlistItem], performers: [SetlistPerformer]) throws {
-        try dbQueue.write { db in
-            try db.execute(
-                sql: """
-                    DELETE FROM setlist_performers
-                    WHERE setlist_item_id IN (SELECT id FROM setlist_items WHERE show_id = ?)
-                    """,
-                arguments: [showId]
-            )
-            try db.execute(sql: "DELETE FROM setlist_items WHERE show_id = ?", arguments: [showId])
-            for item in items {
-                try item.insert(db, onConflict: .replace)
-            }
-            for performer in performers {
-                try performer.insert(db, onConflict: .replace)
-            }
+        try dbQueue.write { db in try Self.replaceSetlistQuery(db, showId: showId, items: items, performers: performers) }
+    }
+
+    /// (async) admin 編集: 指定 show の setlist を完全置換。cooperative thread pool をブロックしない。
+    func replaceSetlistAsync(showId: String, items: [SetlistItem], performers: [SetlistPerformer]) async throws {
+        try await dbQueue.write { db in try Self.replaceSetlistQuery(db, showId: showId, items: items, performers: performers) }
+    }
+
+    private static func replaceSetlistQuery(_ db: Database, showId: String, items: [SetlistItem], performers: [SetlistPerformer]) throws {
+        try db.execute(
+            sql: """
+                DELETE FROM setlist_performers
+                WHERE setlist_item_id IN (SELECT id FROM setlist_items WHERE show_id = ?)
+                """,
+            arguments: [showId]
+        )
+        try db.execute(sql: "DELETE FROM setlist_items WHERE show_id = ?", arguments: [showId])
+        for item in items {
+            try item.insert(db, onConflict: .replace)
+        }
+        for performer in performers {
+            try performer.insert(db, onConflict: .replace)
         }
     }
 
@@ -2332,34 +2910,62 @@ final class AppDatabase: @unchecked Sendable {
         try upsertAll(calls)
     }
 
+    func upsertSongCallsAsync(_ calls: [SongCall]) async throws {
+        try await upsertAllAsync(calls)
+    }
+
     func fetchCallResponsesForSong(songId: String) throws -> [SongCall] {
         try fetchBySongId(songId)
+    }
+
+    func fetchCallResponsesForSongAsync(songId: String) async throws -> [SongCall] {
+        try await fetchBySongIdAsync(songId)
     }
 
     func upsertSongVideos(_ videos: [SongVideo]) throws {
         try upsertAll(videos)
     }
 
+    func upsertSongVideosAsync(_ videos: [SongVideo]) async throws {
+        try await upsertAllAsync(videos)
+    }
+
     func fetchVideosForSong(songId: String) throws -> [SongVideo] {
         try fetchBySongId(songId)
     }
 
+    func fetchVideosForSongAsync(songId: String) async throws -> [SongVideo] {
+        try await fetchBySongIdAsync(songId)
+    }
+
+    // WHY upsert: REPLACE の DELETE→INSERT は ON DELETE CASCADE を発火させ子行を消す。
+    // 行更新の upsert で回避する (upsertChunked と同じ理由)。
     private func upsertAll<T: PersistableRecord>(_ records: [T]) throws {
-        // WHY upsert: REPLACE の DELETE→INSERT は ON DELETE CASCADE を発火させ子行を消す。
-        // 行更新の upsert で回避する (upsertChunked と同じ理由)。
-        try dbQueue.write { db in
-            for record in records {
-                try record.upsert(db)
-            }
+        try dbQueue.write { db in try Self.upsertAllQuery(db, records) }
+    }
+
+    private func upsertAllAsync<T: PersistableRecord & Sendable>(_ records: [T]) async throws {
+        try await dbQueue.write { db in try Self.upsertAllQuery(db, records) }
+    }
+
+    private static func upsertAllQuery<T: PersistableRecord>(_ db: Database, _ records: [T]) throws {
+        for record in records {
+            try record.upsert(db)
         }
     }
 
     private func fetchBySongId<T: FetchableRecord & TableRecord>(_ songId: String) throws -> [T] {
-        try dbQueue.read { db in
-            try T.filter(Column("song_id") == songId)
-                .order(Column("created_at").desc)
-                .fetchAll(db)
-        }
+        try dbQueue.read { db in try Self.fetchBySongIdQuery(db, songId) }
+    }
+
+    private func fetchBySongIdAsync<T: FetchableRecord & TableRecord & Sendable>(_ songId: String) async throws -> [T] {
+        try await dbQueue.read { db in try Self.fetchBySongIdQuery(db, songId) }
+    }
+
+    private static func fetchBySongIdQuery<T: FetchableRecord & TableRecord>(_ db: Database, _ songId: String) throws -> [T] {
+        try T.filter(Column("song_id") == songId)
+            .order(Column("created_at").desc)
+            .fetchAll(db)
     }
 
     // MARK: - CloudKit Sync Delete Methods
@@ -2480,91 +3086,103 @@ final class AppDatabase: @unchecked Sendable {
 
     /// CDシリーズ別アルバム一覧
     func fetchAlbums(brandIds: Set<String> = [], query: String?) throws -> [AlbumSummary] {
-        try dbQueue.read { db in
-            var sql = """
-                SELECT cd_series,
-                       MIN(artwork_url) AS artwork_url,
-                       COUNT(*) AS song_count,
-                       MIN(release_date) AS earliest_date,
-                       MAX(release_date) AS latest_date,
-                       GROUP_CONCAT(DISTINCT brand_id) AS brand_ids
-                FROM songs
-                WHERE cd_series IS NOT NULL AND cd_series != ''
-                """
-            var args: [DatabaseValueConvertible] = []
+        try dbQueue.read { db in try Self.fetchAlbumsQuery(db, brandIds: brandIds, query: query) }
+    }
 
-            if !brandIds.isEmpty {
-                let placeholders = brandIds.map { _ in "?" }.joined(separator: ",")
-                sql += " AND brand_id IN (\(placeholders))"
-                for id in brandIds { args.append(id) }
-            }
-            if let query, !query.isEmpty {
-                sql += " AND cd_series LIKE ? ESCAPE '\\'"
-                args.append("%\(query.likeEscaped)%")
-            }
+    func fetchAlbumsAsync(brandIds: Set<String> = [], query: String?) async throws -> [AlbumSummary] {
+        try await dbQueue.read { db in try Self.fetchAlbumsQuery(db, brandIds: brandIds, query: query) }
+    }
 
-            sql += " GROUP BY cd_series ORDER BY MIN(release_date) DESC"
+    private static func fetchAlbumsQuery(_ db: Database, brandIds: Set<String>, query: String?) throws -> [AlbumSummary] {
+        var sql = """
+            SELECT cd_series,
+                   MIN(artwork_url) AS artwork_url,
+                   COUNT(*) AS song_count,
+                   MIN(release_date) AS earliest_date,
+                   MAX(release_date) AS latest_date,
+                   GROUP_CONCAT(DISTINCT brand_id) AS brand_ids
+            FROM songs
+            WHERE cd_series IS NOT NULL AND cd_series != ''
+            """
+        var args: [DatabaseValueConvertible] = []
 
-            return try Row.fetchAll(db, sql: sql, arguments: StatementArguments(args)).map { row in
-                let brandIds = (row["brand_ids"] as String?)
-                    .map { $0.split(separator: ",").map(String.init).filter { !$0.isEmpty } } ?? []
-                return AlbumSummary(
-                    cdSeries: row["cd_series"],
-                    artworkUrl: row["artwork_url"],
-                    songCount: row["song_count"] ?? 0,
-                    earliestDate: row["earliest_date"],
-                    latestDate: row["latest_date"],
-                    brandIds: brandIds
-                )
-            }
+        if !brandIds.isEmpty {
+            let placeholders = brandIds.map { _ in "?" }.joined(separator: ",")
+            sql += " AND brand_id IN (\(placeholders))"
+            for id in brandIds { args.append(id) }
+        }
+        if let query, !query.isEmpty {
+            sql += " AND cd_series LIKE ? ESCAPE '\\'"
+            args.append("%\(query.likeEscaped)%")
+        }
+
+        sql += " GROUP BY cd_series ORDER BY MIN(release_date) DESC"
+
+        return try Row.fetchAll(db, sql: sql, arguments: StatementArguments(args)).map { row in
+            let brandIds = (row["brand_ids"] as String?)
+                .map { $0.split(separator: ",").map(String.init).filter { !$0.isEmpty } } ?? []
+            return AlbumSummary(
+                cdSeries: row["cd_series"],
+                artworkUrl: row["artwork_url"],
+                songCount: row["song_count"] ?? 0,
+                earliestDate: row["earliest_date"],
+                latestDate: row["latest_date"],
+                brandIds: brandIds
+            )
         }
     }
 
     /// CDシリーズグループ別一覧 (LIVE THE@TER PERFORMANCE 等の括り)
     func fetchSeries(brandIds: Set<String> = [], query: String?) throws -> [SeriesSummary] {
-        try dbQueue.read { db in
-            var sql = """
-                SELECT series_group AS name,
-                       COUNT(*) AS song_count,
-                       COUNT(DISTINCT cd_series) AS cd_count,
-                       MIN(release_date) AS earliest_date,
-                       MAX(release_date) AS latest_date,
-                       GROUP_CONCAT(DISTINCT brand_id) AS brand_ids,
-                       (SELECT s2.artwork_url FROM songs s2
-                        WHERE s2.series_group = songs.series_group
-                          AND s2.artwork_url IS NOT NULL AND s2.artwork_url != ''
-                        ORDER BY s2.release_date LIMIT 1) AS artwork_url
-                FROM songs
-                WHERE series_group IS NOT NULL AND series_group != ''
-                """
-            var args: [DatabaseValueConvertible] = []
+        try dbQueue.read { db in try Self.fetchSeriesQuery(db, brandIds: brandIds, query: query) }
+    }
 
-            if !brandIds.isEmpty {
-                let placeholders = brandIds.map { _ in "?" }.joined(separator: ",")
-                sql += " AND brand_id IN (\(placeholders))"
-                for id in brandIds { args.append(id) }
-            }
-            if let query, !query.isEmpty {
-                sql += " AND series_group LIKE ? ESCAPE '\\'"
-                args.append("%\(query.likeEscaped)%")
-            }
+    func fetchSeriesAsync(brandIds: Set<String> = [], query: String?) async throws -> [SeriesSummary] {
+        try await dbQueue.read { db in try Self.fetchSeriesQuery(db, brandIds: brandIds, query: query) }
+    }
 
-            sql += " GROUP BY series_group ORDER BY MIN(release_date) DESC"
+    private static func fetchSeriesQuery(_ db: Database, brandIds: Set<String>, query: String?) throws -> [SeriesSummary] {
+        var sql = """
+            SELECT series_group AS name,
+                   COUNT(*) AS song_count,
+                   COUNT(DISTINCT cd_series) AS cd_count,
+                   MIN(release_date) AS earliest_date,
+                   MAX(release_date) AS latest_date,
+                   GROUP_CONCAT(DISTINCT brand_id) AS brand_ids,
+                   (SELECT s2.artwork_url FROM songs s2
+                    WHERE s2.series_group = songs.series_group
+                      AND s2.artwork_url IS NOT NULL AND s2.artwork_url != ''
+                    ORDER BY s2.release_date LIMIT 1) AS artwork_url
+            FROM songs
+            WHERE series_group IS NOT NULL AND series_group != ''
+            """
+        var args: [DatabaseValueConvertible] = []
 
-            let summaries = try Row.fetchAll(db, sql: sql, arguments: StatementArguments(args))
-            return summaries.map { row in
-                let brandIds = (row["brand_ids"] as String?)
-                    .map { $0.split(separator: ",").map(String.init).filter { !$0.isEmpty } } ?? []
-                return SeriesSummary(
-                    name: row["name"],
-                    songCount: row["song_count"] ?? 0,
-                    cdCount: row["cd_count"] ?? 0,
-                    earliestDate: row["earliest_date"],
-                    latestDate: row["latest_date"],
-                    artworkUrl: row["artwork_url"],
-                    brandIds: brandIds
-                )
-            }
+        if !brandIds.isEmpty {
+            let placeholders = brandIds.map { _ in "?" }.joined(separator: ",")
+            sql += " AND brand_id IN (\(placeholders))"
+            for id in brandIds { args.append(id) }
+        }
+        if let query, !query.isEmpty {
+            sql += " AND series_group LIKE ? ESCAPE '\\'"
+            args.append("%\(query.likeEscaped)%")
+        }
+
+        sql += " GROUP BY series_group ORDER BY MIN(release_date) DESC"
+
+        let summaries = try Row.fetchAll(db, sql: sql, arguments: StatementArguments(args))
+        return summaries.map { row in
+            let brandIds = (row["brand_ids"] as String?)
+                .map { $0.split(separator: ",").map(String.init).filter { !$0.isEmpty } } ?? []
+            return SeriesSummary(
+                name: row["name"],
+                songCount: row["song_count"] ?? 0,
+                cdCount: row["cd_count"] ?? 0,
+                earliestDate: row["earliest_date"],
+                latestDate: row["latest_date"],
+                artworkUrl: row["artwork_url"],
+                brandIds: brandIds
+            )
         }
     }
 
@@ -2638,13 +3256,19 @@ final class AppDatabase: @unchecked Sendable {
     }
 
     func fetchMarkedEntityIds(entity: UserMarkEntity, kind: UserMarkKind) throws -> [String] {
-        try dbQueue.read { db in
-            try UserMark.filter(
-                UserMark.Columns.entityType == entity.rawValue &&
-                UserMark.Columns.kind == kind.rawValue &&
-                UserMark.Columns.boolValue == true
-            ).fetchAll(db).map(\.entityId)
-        }
+        try dbQueue.read { db in try Self.fetchMarkedEntityIdsQuery(db, entity: entity, kind: kind) }
+    }
+
+    func fetchMarkedEntityIdsAsync(entity: UserMarkEntity, kind: UserMarkKind) async throws -> [String] {
+        try await dbQueue.read { db in try Self.fetchMarkedEntityIdsQuery(db, entity: entity, kind: kind) }
+    }
+
+    private static func fetchMarkedEntityIdsQuery(_ db: Database, entity: UserMarkEntity, kind: UserMarkKind) throws -> [String] {
+        try UserMark.filter(
+            UserMark.Columns.entityType == entity.rawValue &&
+            UserMark.Columns.kind == kind.rawValue &&
+            UserMark.Columns.boolValue == true
+        ).fetchAll(db).map(\.entityId)
     }
 
     /// entity 横断で kind に一致する全 UserMark を返す。
@@ -2747,12 +3371,19 @@ final class AppDatabase: @unchecked Sendable {
     /// 「担当アイドル の曲」 など bulk 絞り込み用。
     func fetchSongIdsWithAnyArtist(idolIds: Set<String>) throws -> Set<String> {
         guard !idolIds.isEmpty else { return [] }
-        return try dbQueue.read { db in
-            let placeholders = idolIds.map { _ in "?" }.joined(separator: ",")
-            let sql = "SELECT DISTINCT song_id FROM song_artists WHERE role='original' AND idol_id IN (\(placeholders))"
-            let rows = try Row.fetchAll(db, sql: sql, arguments: StatementArguments(Array(idolIds)))
-            return Set(rows.compactMap { row -> String? in row["song_id"] })
-        }
+        return try dbQueue.read { db in try Self.fetchSongIdsWithAnyArtistQuery(db, idolIds: idolIds) }
+    }
+
+    func fetchSongIdsWithAnyArtistAsync(idolIds: Set<String>) async throws -> Set<String> {
+        guard !idolIds.isEmpty else { return [] }
+        return try await dbQueue.read { db in try Self.fetchSongIdsWithAnyArtistQuery(db, idolIds: idolIds) }
+    }
+
+    private static func fetchSongIdsWithAnyArtistQuery(_ db: Database, idolIds: Set<String>) throws -> Set<String> {
+        let placeholders = idolIds.map { _ in "?" }.joined(separator: ",")
+        let sql = "SELECT DISTINCT song_id FROM song_artists WHERE role='original' AND idol_id IN (\(placeholders))"
+        let rows = try Row.fetchAll(db, sql: sql, arguments: StatementArguments(Array(idolIds)))
+        return Set(rows.compactMap { row -> String? in row["song_id"] })
     }
 
     /// 一覧表示用に Song を SongWithArtists 化 (artistNames + performerIdols を一括解決)。
@@ -2771,36 +3402,45 @@ final class AppDatabase: @unchecked Sendable {
     /// ユーザが参加した event/show のセトリで、 song_id ごとの回収回数 (同 show 重複は 1 と数える)。
     /// マイマーク回収済タブの「現地回収 N 回」 表示用。
     func fetchSongCollectedCounts() throws -> [String: Int] {
-        try dbQueue.read { db in
-            let sql = """
-                SELECT si.song_id AS song_id, COUNT(DISTINCT si.show_id) AS cnt
-                FROM setlist_items si
-                JOIN shows sh ON sh.id = si.show_id
-                JOIN events e ON e.id = sh.event_id
-                WHERE e.kind IN (\(Self.realLiveKinds))
-                AND (
-                    si.show_id IN (
+        let condition = attendedTypeCondition
+        return try dbQueue.read { db in try Self.fetchSongCollectedCountsQuery(db, attendedTypeCondition: condition) }
+    }
+
+    /// (async) 現地回収回数マップ取得。cooperative thread pool をブロックしない。
+    func fetchSongCollectedCountsAsync() async throws -> [String: Int] {
+        let condition = attendedTypeCondition
+        return try await dbQueue.read { db in try Self.fetchSongCollectedCountsQuery(db, attendedTypeCondition: condition) }
+    }
+
+    private static func fetchSongCollectedCountsQuery(_ db: Database, attendedTypeCondition: String) throws -> [String: Int] {
+        let sql = """
+            SELECT si.song_id AS song_id, COUNT(DISTINCT si.show_id) AS cnt
+            FROM setlist_items si
+            JOIN shows sh ON sh.id = si.show_id
+            JOIN events e ON e.id = sh.event_id
+            WHERE e.kind IN (\(Self.realLiveKinds))
+            AND (
+                si.show_id IN (
+                    SELECT entity_id FROM user_marks
+                    WHERE entity_type='show' AND kind='attended' AND bool_value=1
+                      AND \(attendedTypeCondition)
+                ) OR si.show_id IN (
+                    SELECT id FROM shows WHERE event_id IN (
                         SELECT entity_id FROM user_marks
-                        WHERE entity_type='show' AND kind='attended' AND bool_value=1
-                          AND \(attendedTypeCondition)
-                    ) OR si.show_id IN (
-                        SELECT id FROM shows WHERE event_id IN (
-                            SELECT entity_id FROM user_marks
-                            WHERE entity_type='event' AND kind='attended' AND bool_value=1
-                        )
+                        WHERE entity_type='event' AND kind='attended' AND bool_value=1
                     )
                 )
-                GROUP BY si.song_id
-                """
-            let rows = try Row.fetchAll(db, sql: sql)
-            var m: [String: Int] = [:]
-            for row in rows {
-                let sid: String = row["song_id"]
-                let cnt: Int = row["cnt"] ?? 0
-                m[sid] = cnt
-            }
-            return m
+            )
+            GROUP BY si.song_id
+            """
+        let rows = try Row.fetchAll(db, sql: sql)
+        var m: [String: Int] = [:]
+        for row in rows {
+            let sid: String = row["song_id"]
+            let cnt: Int = row["cnt"] ?? 0
+            m[sid] = cnt
         }
+        return m
     }
 
     /// 回収に配信参加も含めるユーザー設定 (既定=現地のみ)。地方勢など配信中心の人向け。
@@ -2819,54 +3459,69 @@ final class AppDatabase: @unchecked Sendable {
     /// ユーザが参加した「リアルライブ」のセトリに含まれる全 song_id を返す (回収済み)。
     /// 回収はリアルライブ(live/festival)のみ・参加種別は設定に従う(既定=現地のみ)。
     func fetchAutoCollectedSongIds() throws -> Set<String> {
-        try dbQueue.read { db in
-            let sql = """
-                SELECT DISTINCT si.song_id
-                FROM setlist_items si
-                JOIN shows sh ON si.show_id = sh.id
-                JOIN events e ON e.id = sh.event_id
-                WHERE e.kind IN (\(Self.realLiveKinds))
-                AND (
-                    sh.id IN (
-                        SELECT entity_id FROM user_marks
-                        WHERE entity_type='show' AND kind='attended' AND bool_value=1
-                          AND \(attendedTypeCondition)
-                    )
-                    OR sh.event_id IN (
-                        SELECT entity_id FROM user_marks
-                        WHERE entity_type='event' AND kind='attended' AND bool_value=1
-                    )
+        let condition = attendedTypeCondition
+        return try dbQueue.read { db in try Self.fetchAutoCollectedSongIdsQuery(db, attendedTypeCondition: condition) }
+    }
+
+    /// (async) 自動回収曲ID取得。cooperative thread pool をブロックしない。
+    func fetchAutoCollectedSongIdsAsync() async throws -> Set<String> {
+        let condition = attendedTypeCondition
+        return try await dbQueue.read { db in try Self.fetchAutoCollectedSongIdsQuery(db, attendedTypeCondition: condition) }
+    }
+
+    private static func fetchAutoCollectedSongIdsQuery(_ db: Database, attendedTypeCondition: String) throws -> Set<String> {
+        let sql = """
+            SELECT DISTINCT si.song_id
+            FROM setlist_items si
+            JOIN shows sh ON si.show_id = sh.id
+            JOIN events e ON e.id = sh.event_id
+            WHERE e.kind IN (\(Self.realLiveKinds))
+            AND (
+                sh.id IN (
+                    SELECT entity_id FROM user_marks
+                    WHERE entity_type='show' AND kind='attended' AND bool_value=1
+                      AND \(attendedTypeCondition)
                 )
-                """
-            let rows = try Row.fetchAll(db, sql: sql)
-            return Set(rows.compactMap { row -> String? in row["song_id"] })
-        }
+                OR sh.event_id IN (
+                    SELECT entity_id FROM user_marks
+                    WHERE entity_type='event' AND kind='attended' AND bool_value=1
+                )
+            )
+            """
+        let rows = try Row.fetchAll(db, sql: sql)
+        return Set(rows.compactMap { row -> String? in row["song_id"] })
     }
 
     /// その曲を披露した、ユーザが参加済みの show 一覧 (親 event 名込み)
     func fetchCollectedShows(for songId: String) throws -> [ShowWithEventName] {
-        try dbQueue.read { db in
-            let sql = """
-                SELECT DISTINCT sh.id, sh.event_id, sh.name, sh.date, sh.venue,
-                                e.name AS event_name
-                FROM shows sh
-                JOIN setlist_items si ON si.show_id = sh.id
-                JOIN events e ON e.id = sh.event_id
-                WHERE si.song_id = ?
-                AND (
-                    sh.id IN (
-                        SELECT entity_id FROM user_marks
-                        WHERE entity_type='show' AND kind='attended' AND bool_value=1
-                    )
-                    OR sh.event_id IN (
-                        SELECT entity_id FROM user_marks
-                        WHERE entity_type='event' AND kind='attended' AND bool_value=1
-                    )
+        try dbQueue.read { db in try Self.fetchCollectedShowsQuery(db, for: songId) }
+    }
+
+    func fetchCollectedShowsAsync(for songId: String) async throws -> [ShowWithEventName] {
+        try await dbQueue.read { db in try Self.fetchCollectedShowsQuery(db, for: songId) }
+    }
+
+    private static func fetchCollectedShowsQuery(_ db: Database, for songId: String) throws -> [ShowWithEventName] {
+        let sql = """
+            SELECT DISTINCT sh.id, sh.event_id, sh.name, sh.date, sh.venue,
+                            e.name AS event_name
+            FROM shows sh
+            JOIN setlist_items si ON si.show_id = sh.id
+            JOIN events e ON e.id = sh.event_id
+            WHERE si.song_id = ?
+            AND (
+                sh.id IN (
+                    SELECT entity_id FROM user_marks
+                    WHERE entity_type='show' AND kind='attended' AND bool_value=1
                 )
-                ORDER BY sh.date DESC
-                """
-            return try ShowWithEventName.fetchAll(db, sql: sql, arguments: [songId])
-        }
+                OR sh.event_id IN (
+                    SELECT entity_id FROM user_marks
+                    WHERE entity_type='event' AND kind='attended' AND bool_value=1
+                )
+            )
+            ORDER BY sh.date DESC
+            """
+        return try ShowWithEventName.fetchAll(db, sql: sql, arguments: [songId])
     }
 
     // MARK: - Collection Dashboard

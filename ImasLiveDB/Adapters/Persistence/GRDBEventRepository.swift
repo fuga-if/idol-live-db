@@ -12,50 +12,50 @@ struct GRDBEventRepository: EventReading {
     let database: AppDatabase
 
     func events(brandId: String?) async throws -> [Event] {
-        try database.fetchEvents(brandId: brandId)
+        try await database.fetchEventsAsync(brandId: brandId)
     }
 
     func event(id: String) async throws -> Event? {
-        try database.fetchEvent(id: id)
+        try await database.fetchEventAsync(id: id)
     }
 
     func eventsWithFirstDate(brandId: String?, includeEmpty: Bool, liveOnly: Bool, kinds: [EventKind]?) async throws -> [EventWithDate] {
-        try database.fetchEventsWithFirstDate(brandId: brandId, includeEmpty: includeEmpty, liveOnly: liveOnly, kinds: kinds)
+        try await database.fetchEventsWithFirstDateAsync(brandId: brandId, includeEmpty: includeEmpty, liveOnly: liveOnly, kinds: kinds)
     }
 
     func searchEventsByNameOrVenue(query: String, limit: Int) async throws -> [Event] {
-        try database.searchEventsByNameOrVenue(query: query, limit: limit)
+        try await database.searchEventsByNameOrVenueAsync(query: query, limit: limit)
     }
 
     func eventStats(eventId: String) async throws -> EventStats {
-        try database.fetchEventStats(eventId: eventId)
+        try await database.fetchEventStatsAsync(eventId: eventId)
     }
 
     func eventAttendance(eventId: String) async throws -> EventAttendance? {
-        try database.fetchEventAttendance(eventId: eventId)
+        try await database.fetchEventAttendanceAsync(eventId: eventId)
     }
 
     func eventsWithDate(criterion: EventFilterCriterion, includeEmpty: Bool) async throws -> [EventWithDate] {
-        try database.fetchEventsWithDate(criterion: criterion, includeEmpty: includeEmpty)
+        try await database.fetchEventsWithDateAsync(criterion: criterion, includeEmpty: includeEmpty)
     }
 
     func eventNames() async throws -> [String] {
-        try database.fetchEventNames()
+        try await database.fetchEventNamesAsync()
     }
 
     func attendedEventsWithDate() async throws -> [EventWithDate] {
-        try database.fetchAttendedEventsWithDate()
+        try await database.fetchAttendedEventsWithDateAsync()
     }
 
     func attendedEventTypeSets() async throws -> (live: Set<String>, stream: Set<String>, liveViewing: Set<String>) {
-        try database.fetchAttendedEventTypeSets()
+        try await database.fetchAttendedEventTypeSetsAsync()
     }
 
     func eventsByIds(_ ids: [String]) async throws -> [EventWithDate] {
-        try database.fetchEventsByIds(ids)
+        try await database.fetchEventsByIdsAsync(ids)
     }
 
     func eventReleases(eventId: String) async throws -> [EventRelease] {
-        try database.fetchEventReleases(eventId: eventId)
+        try await database.fetchEventReleasesAsync(eventId: eventId)
     }
 }

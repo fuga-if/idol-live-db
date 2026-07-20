@@ -5,6 +5,6 @@ struct GRDBGlobalSearchRepository: GlobalSearchReading {
     let database: AppDatabase
 
     func search(query: String) async throws -> SearchResults {
-        try database.search(query: query)
+        try await database.searchAsync(query: query)
     }
 }

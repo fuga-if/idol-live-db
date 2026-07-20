@@ -8,14 +8,14 @@ struct GRDBEditFeedRepository: EditFeedReading {
     let database: AppDatabase
 
     func editRecordShowId(recordType: String, recordName: String) async throws -> String? {
-        try database.fetchEditRecordShowId(recordType: recordType, recordName: recordName)
+        try await database.fetchEditRecordShowIdAsync(recordType: recordType, recordName: recordName)
     }
 
     func editRecordSongId(recordType: String, recordName: String) async throws -> String? {
-        try database.fetchEditRecordSongId(recordType: recordType, recordName: recordName)
+        try await database.fetchEditRecordSongIdAsync(recordType: recordType, recordName: recordName)
     }
 
     func editRecordTitle(recordType: String, recordName: String) async throws -> String? {
-        try database.fetchEditRecordTitle(recordType: recordType, recordName: recordName)
+        try await database.fetchEditRecordTitleAsync(recordType: recordType, recordName: recordName)
     }
 }

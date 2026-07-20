@@ -5,27 +5,27 @@ import Foundation
 
 struct GRDBEventWriting: EventWriting {
     let database: AppDatabase
-    func upsertEvents(_ events: [Event]) async throws { try database.upsertEvents(events) }
+    func upsertEvents(_ events: [Event]) async throws { try await database.upsertEventsAsync(events) }
 }
 
 struct GRDBShowWriting: ShowWriting {
     let database: AppDatabase
-    func upsertShows(_ shows: [Show]) async throws { try database.upsertShows(shows) }
-    func upsertSetlistItems(_ items: [SetlistItem]) async throws { try database.upsertSetlistItems(items) }
+    func upsertShows(_ shows: [Show]) async throws { try await database.upsertShowsAsync(shows) }
+    func upsertSetlistItems(_ items: [SetlistItem]) async throws { try await database.upsertSetlistItemsAsync(items) }
     func replaceSetlist(showId: String, items: [SetlistItem], performers: [SetlistPerformer]) async throws {
-        try database.replaceSetlist(showId: showId, items: items, performers: performers)
+        try await database.replaceSetlistAsync(showId: showId, items: items, performers: performers)
     }
 }
 
 struct GRDBIdolWriting: IdolWriting {
     let database: AppDatabase
-    func upsertIdols(_ idols: [Idol]) async throws { try database.upsertIdols(idols) }
+    func upsertIdols(_ idols: [Idol]) async throws { try await database.upsertIdolsAsync(idols) }
 }
 
 struct GRDBSongWriting: SongWriting {
     let database: AppDatabase
-    func upsertSongs(_ songs: [Song]) async throws { try database.upsertSongs(songs) }
-    func upsertSongArtists(_ songArtists: [SongArtist]) async throws { try database.upsertSongArtists(songArtists) }
-    func upsertSongCalls(_ calls: [SongCall]) async throws { try database.upsertSongCalls(calls) }
-    func upsertSongVideos(_ videos: [SongVideo]) async throws { try database.upsertSongVideos(videos) }
+    func upsertSongs(_ songs: [Song]) async throws { try await database.upsertSongsAsync(songs) }
+    func upsertSongArtists(_ songArtists: [SongArtist]) async throws { try await database.upsertSongArtistsAsync(songArtists) }
+    func upsertSongCalls(_ calls: [SongCall]) async throws { try await database.upsertSongCallsAsync(calls) }
+    func upsertSongVideos(_ videos: [SongVideo]) async throws { try await database.upsertSongVideosAsync(videos) }
 }
