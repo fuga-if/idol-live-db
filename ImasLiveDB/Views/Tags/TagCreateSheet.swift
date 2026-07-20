@@ -169,13 +169,14 @@ struct TagCreateSheet: View {
             let cat = selectedCategory.isEmpty ? nil : selectedCategory
             let color = selectedColor.isEmpty ? nil : selectedColor
             let tag: CommunityTag
+            let writing = AppContainer.shared.communityTagWriting
             switch domain {
             case .song:
-                tag = try await CommunityAPI.shared.createTag(name: trimmedName, description: desc, category: cat, color: color)
+                tag = try await writing.createTag(name: trimmedName, description: desc, category: cat, color: color)
             case .idol:
-                tag = try await CommunityAPI.shared.createIdolTag(name: trimmedName, description: desc, category: cat, color: color)
+                tag = try await writing.createIdolTag(name: trimmedName, description: desc, category: cat, color: color)
             case .unit:
-                tag = try await CommunityAPI.shared.createUnitTag(name: trimmedName, description: desc, category: cat, color: color)
+                tag = try await writing.createUnitTag(name: trimmedName, description: desc, category: cat, color: color)
             }
             onCreated?(tag)
             dismiss()

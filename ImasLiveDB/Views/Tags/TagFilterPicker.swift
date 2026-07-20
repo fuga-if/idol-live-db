@@ -111,6 +111,6 @@ struct TagFilterPicker: View {
     private func load() async {
         isLoading = true
         defer { isLoading = false }
-        tags = (try? await CommunityAPI.shared.tags(search: query, sort: "popular", limit: 100)) ?? []
+        tags = (try? await AppContainer.shared.communityTagReading.tags(search: query, category: "", sort: "popular", limit: 100, offset: 0)) ?? []
     }
 }

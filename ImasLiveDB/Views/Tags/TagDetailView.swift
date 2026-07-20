@@ -186,7 +186,7 @@ struct TagDetailView: View {
 
     private func reportTag() async {
         do {
-            try await CommunityAPI.shared.reportTag(id: tagId)
+            try await AppContainer.shared.communityTagWriting.reportTag(id: tagId, reason: nil)
             reportSuccessAlert = true
         } catch let error as CommunityAPIError {
             alertError = error
@@ -198,7 +198,7 @@ struct TagDetailView: View {
     private func loadDetail() async {
         isLoading = true
         defer { isLoading = false }
-        detail = try? await CommunityAPI.shared.tag(id: tagId)
+        detail = try? await AppContainer.shared.communityTagReading.tag(id: tagId)
         if let songs = detail?.songs {
             // N+1 を避けてIN句で一括取得し、O(1)辞書化。表示順序は ForEach(detail.songs) が維持。
             let missingIds = songs.map(\.songId).filter { songCache[$0] == nil }

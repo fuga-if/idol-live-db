@@ -186,7 +186,7 @@ struct UnitTagDetailView: View {
 
     private func reportTag() async {
         do {
-            try await CommunityAPI.shared.reportUnitTag(id: tagId)
+            try await AppContainer.shared.communityTagWriting.reportUnitTag(id: tagId, reason: nil)
             reportSuccessAlert = true
         } catch let error as CommunityAPIError {
             alertError = error
@@ -198,7 +198,7 @@ struct UnitTagDetailView: View {
     private func loadDetail() async {
         isLoading = true
         defer { isLoading = false }
-        detail = try? await CommunityAPI.shared.unitTagDetail(id: tagId)
+        detail = try? await AppContainer.shared.communityTagReading.unitTagDetail(id: tagId)
         if let units = detail?.units,
            let index = try? await AppContainer.shared.unitReading.unitIndex() {
             let missingIds = Set(units.map(\.unitId)).subtracting(unitCache.keys)

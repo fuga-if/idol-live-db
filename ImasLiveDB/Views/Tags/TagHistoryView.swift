@@ -58,13 +58,14 @@ struct TagHistoryView: View {
     private func loadHistory() async {
         isLoading = true
         defer { isLoading = false }
+        let reading = AppContainer.shared.communityTagReading
         switch domain {
         case .song:
-            history = (try? await CommunityAPI.shared.tagHistory(id: tagId)) ?? []
+            history = (try? await reading.tagHistory(id: tagId)) ?? []
         case .idol:
-            history = (try? await CommunityAPI.shared.idolTagHistory(id: tagId)) ?? []
+            history = (try? await reading.idolTagHistory(id: tagId)) ?? []
         case .unit:
-            history = (try? await CommunityAPI.shared.unitTagHistory(id: tagId)) ?? []
+            history = (try? await reading.unitTagHistory(id: tagId)) ?? []
         }
     }
 }

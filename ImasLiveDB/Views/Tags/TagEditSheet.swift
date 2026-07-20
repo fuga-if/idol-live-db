@@ -105,13 +105,14 @@ struct TagEditSheet: View {
             let desc = description.isEmpty ? nil : description
             let cat = selectedCategory.isEmpty ? nil : selectedCategory
             let color = selectedColor.isEmpty ? nil : selectedColor
+            let writing = AppContainer.shared.communityTagWriting
             switch domain {
             case .song:
-                _ = try await CommunityAPI.shared.updateTag(id: tag.id, description: desc, category: cat, color: color)
+                _ = try await writing.updateTag(id: tag.id, description: desc, category: cat, color: color)
             case .idol:
-                _ = try await CommunityAPI.shared.updateIdolTag(id: tag.id, description: desc, category: cat, color: color)
+                _ = try await writing.updateIdolTag(id: tag.id, description: desc, category: cat, color: color)
             case .unit:
-                _ = try await CommunityAPI.shared.updateUnitTag(id: tag.id, description: desc, category: cat, color: color)
+                _ = try await writing.updateUnitTag(id: tag.id, description: desc, category: cat, color: color)
             }
             dismiss()
         } catch let error as CommunityAPIError {

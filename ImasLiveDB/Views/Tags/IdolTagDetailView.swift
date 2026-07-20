@@ -186,7 +186,7 @@ struct IdolTagDetailView: View {
 
     private func reportTag() async {
         do {
-            try await CommunityAPI.shared.reportIdolTag(id: tagId)
+            try await AppContainer.shared.communityTagWriting.reportIdolTag(id: tagId, reason: nil)
             reportSuccessAlert = true
         } catch let error as CommunityAPIError {
             alertError = error
@@ -198,7 +198,7 @@ struct IdolTagDetailView: View {
     private func loadDetail() async {
         isLoading = true
         defer { isLoading = false }
-        detail = try? await CommunityAPI.shared.idolTagDetail(id: tagId)
+        detail = try? await AppContainer.shared.communityTagReading.idolTagDetail(id: tagId)
         if let idols = detail?.idols {
             let missingIds = idols.map(\.idolId).filter { idolCache[$0] == nil }
             if let fetched = try? await AppContainer.shared.idolReading.idols(ids: missingIds) {

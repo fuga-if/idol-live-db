@@ -287,7 +287,7 @@ struct TagActivityView: View {
     private func load() async {
         isLoading = songCache.isEmpty && idolCache.isEmpty
         defer { isLoading = false }
-        guard let response = try? await CommunityAPI.shared.tagActivity() else { return }
+        guard let response = try? await AppContainer.shared.communityTagReading.tagActivity(windowDays: 7) else { return }
         activity = response
 
         var songIds = Set<String>()
