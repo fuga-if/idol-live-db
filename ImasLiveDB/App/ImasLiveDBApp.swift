@@ -17,6 +17,8 @@ struct ImasLiveDBApp: App {
     private enum LaunchSheet: Int, Identifiable { case onboarding, announcements, dailyVote; var id: Int { rawValue } }
     @State private var launchSheet: LaunchSheet?
     @State private var updateService = UpdateCheckService.shared
+    /// 起動時 reseed が失敗したときに 1 度だけ出すアラートの表示フラグ。
+    @State private var showReseedAlert = false
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -75,9 +77,15 @@ struct ImasLiveDBApp: App {
                 .environment(appDatabase)
                 .environment(syncEngine)
                 .task {
+                    // 起動時 reseed が失敗していれば、旧データで動作中であることをユーザーに知らせる。
+                    if appDatabase.reseedFailureMessage != nil {
+                        showReseedAlert = true
+                    }
                     #if !targetEnvironment(simulator)
                     await MusicKitService.shared.requestAuthorization()
                     #endif
+                    // 以降はいずれも初回描画に不要な非緊急処理。 .utility の detached に落として
+                    // メインスレッド/協調プールの高優先度枠を初回レンダリングに明け渡す。
                     // CloudKit sync は fire-and-forget で fullSync が走っても UI が
                     // 待たされないようにする (既存ローカルデータはすぐ表示される)。
                     // 進捗は SyncEngine.state を見て UI 側で控えめバナー等に出せる。
@@ -86,15 +94,15 @@ struct ImasLiveDBApp: App {
                     }
                     // sessionToken / isAdmin を起動時に最新化。
                     // sessionToken が期限切れだった場合はここで再ログインを促す UI に切り替わる。
-                    Task { await AuthService.shared.refreshMe() }
+                    Task.detached(priority: .utility) { await AuthService.shared.refreshMe() }
                     // ローカル通知を再スケジュール (既認可の場合のみ実行される)。
-                    Task { await NotificationService.shared.rescheduleAll(database: appDatabase) }
+                    Task.detached(priority: .utility) { await NotificationService.shared.rescheduleAll(database: appDatabase) }
                     // 担当画像ウィジェット用に App Group へギャラリーをミラー。
-                    Task { await WidgetImageBridge.sync(database: appDatabase) }
+                    Task.detached(priority: .utility) { await WidgetImageBridge.sync(database: appDatabase) }
                     // 情報ウィジェット(次のライブ/今日の1曲/チケット締切)用スナップショットを更新。
-                    Task { await InfoWidgetBridge.sync(database: appDatabase) }
+                    Task.detached(priority: .utility) { await InfoWidgetBridge.sync(database: appDatabase) }
                     // App Store に新版が出ていたらお知らせ (iTunes Lookup で自動判定)。
-                    Task { await updateService.check() }
+                    Task.detached(priority: .utility) { await updateService.check() }
                 }
                 .onChange(of: scenePhase) { _, phase in
                     // フォアグラウンド復帰で同期を再開/継続する。フルsyncが途中で中断されて
@@ -136,6 +144,11 @@ struct ImasLiveDBApp: App {
                     Button("後で", role: .cancel) { updateService.dismiss() }
                 } message: {
                     Text("バージョン \(updateService.availableVersion ?? "") が App Store で公開されています。")
+                }
+                .alert("データ更新に失敗しました", isPresented: $showReseedAlert) {
+                    Button("OK", role: .cancel) {}
+                } message: {
+                    Text(appDatabase.reseedFailureMessage ?? "")
                 }
         }
     }

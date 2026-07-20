@@ -52,6 +52,13 @@ jobs:
         run: |
           python3 tools/export_cloudkit.py --production --key-file tools/eckey.pem
 
+      # 同梱される master.sqlite を生成し、外部キー整合性を検証する (必須ゲート)。
+      # FK 違反があると初回起動 reseed が全ロールバックしユーザーに無言で旧データが残るため、
+      # 壊れたスナップショットを bot/data-refresh に流さないようここで job を失敗させる。
+      - name: FK integrity gate
+        run: |
+          bash tools/build_db.sh
+
       - name: Commit if changed
         run: |
           rm -f tools/eckey.pem

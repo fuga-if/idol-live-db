@@ -15,8 +15,29 @@ final class AppDatabase: @unchecked Sendable {
     /// 一覧/詳細の read が WAL スナップショットから並行実行される。型は `any DatabaseWriter`
     /// にして、テストでは in-memory な `DatabaseQueue` を注入できるようにする。
     let dbQueue: any DatabaseWriter
+
+    /// reseed の共有状態。起動時の DB セットアップ (非 MainActor) から書き込まれ、
+    /// マイページ診断や起動アラートから読まれるため、`OSAllocatedUnfairLock` で保護する
+    /// (旧 `nonisolated(unsafe) static var` のデータ競合対策)。
+    private struct ReseedState: Sendable {
+        var summary: String = "未実行"
+        /// non-nil の間はユーザー可視のアラート対象 (reseed が失敗した)。
+        var failureDetail: String?
+    }
+    private static let reseedState = OSAllocatedUnfairLock(initialState: ReseedState())
+
     /// 最後の reseedMasterTablesIfNeeded の結果サマリ。 マイページ診断で表示する。
-    nonisolated(unsafe) static var lastReseedStatus: String = "未実行"
+    static var lastReseedStatus: String {
+        reseedState.withLock { $0.summary }
+    }
+    /// reseed が失敗した場合のユーザー可視メッセージ (成功時は nil)。起動アラートに使う。
+    static var lastReseedFailure: String? {
+        reseedState.withLock { $0.failureDetail }
+    }
+
+    /// 起動時 reseed が失敗した場合のユーザー可視メッセージ。UI 監視用に init 時点で確定する。
+    /// (静的状態を @Observable なインスタンスに写して、起動フローの alert から参照できるようにする)
+    var reseedFailureMessage: String?
 
     private init() {
         do {
@@ -24,6 +45,7 @@ final class AppDatabase: @unchecked Sendable {
         } catch {
             fatalError("Database initialization failed: \(error)")
         }
+        self.reseedFailureMessage = Self.lastReseedFailure
     }
 
     /// テスト用イニシャライザ
@@ -108,7 +130,11 @@ final class AppDatabase: @unchecked Sendable {
             try reseedMasterTablesIfNeeded(pool)
         } catch {
             let detail = "\(error.localizedDescription) | \(String(describing: error))"
-            Self.lastReseedStatus = "失敗: \(detail)"
+            reseedState.withLock {
+                $0.summary = "失敗: \(detail)"
+                // ユーザーには「マスタ更新が反映されず旧データで動作している」ことを伝える。
+                $0.failureDetail = "最新のデータ更新の取り込みに失敗しました。アプリを再起動しても直らない場合は再インストールをお試しください。\n(詳細: \(error.localizedDescription))"
+            }
             Logger.database.error("reseedMasterTablesIfNeeded failed: \(detail, privacy: .public)")
         }
         return pool
@@ -124,22 +150,21 @@ final class AppDatabase: @unchecked Sendable {
             Logger.database.info("[reseed] bundle master.sqlite not found, skip")
             return
         }
-        // Bundle 内は read-only 領域なので GRDB の open 試行 (WAL sidecar 等) で
-        // SQLITE_CANTOPEN になる。 一旦 tmp に複製してそちらを開く。
+        // Bundle 内は read-only 領域なので GRDB/SQLite の open 試行 (WAL sidecar 等) で
+        // SQLITE_CANTOPEN になる。 一旦 tmp に複製してそちらを ATTACH する。
         let tmpURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("bundle_master_\(UUID().uuidString).sqlite")
         defer { try? FileManager.default.removeItem(at: tmpURL) }
         try FileManager.default.copyItem(at: bundleURL, to: tmpURL)
+
+        // バージョン比較は ATTACH 前に軽量な read で済ませる。
         var roConfig = Configuration()
         roConfig.readonly = true
-        let bundleQueue = try DatabaseQueue(path: tmpURL.path, configuration: roConfig)
-        let bundleVersion = try bundleQueue.read { db -> Int in
-            let v = try String.fetchOne(db, sql: "SELECT value FROM meta WHERE key='data_version'") ?? "0"
-            return Int(v) ?? 0
+        let bundleVersion = try DatabaseQueue(path: tmpURL.path, configuration: roConfig).read { db -> Int in
+            Int(try String.fetchOne(db, sql: "SELECT value FROM meta WHERE key='data_version'") ?? "0") ?? 0
         }
         let localVersion = try dbQueue.read { db -> Int in
-            let v = try String.fetchOne(db, sql: "SELECT value FROM meta WHERE key='data_version'") ?? "0"
-            return Int(v) ?? 0
+            Int(try String.fetchOne(db, sql: "SELECT value FROM meta WHERE key='data_version'") ?? "0") ?? 0
         }
         Logger.database.info("[reseed] bundle=\(bundleVersion, privacy: .public) local=\(localVersion, privacy: .public)")
         guard bundleVersion > localVersion else { return }
@@ -155,64 +180,57 @@ final class AppDatabase: @unchecked Sendable {
             "device_song_tag", "device_song_penlight",
         ]
 
-        let masterRows: [String: [Row]] = try bundleQueue.read { db -> [String: [Row]] in
-            let names = try String.fetchAll(db, sql: "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
-            var dump: [String: [Row]] = [:]
-            for name in names where !preservedTables.contains(name) {
-                dump[name] = try Row.fetchAll(db, sql: "SELECT * FROM \(name)")
-            }
-            return dump
-        }
+        // ATTACH はトランザクション内では実行できないため writeWithoutTransaction で開き、
+        // コピー本体だけを明示トランザクションで囲う。 全 13 万行を [String:[Row]] に
+        // メモリロードして行単位 execute していた旧実装 (アプデ後初回起動が数秒フリーズ) を、
+        // `INSERT INTO main.t SELECT ... FROM bundle.t` の一括コピーに置換する。
+        var ok = 0
+        var skipped = 0
+        try dbQueue.writeWithoutTransaction { db in
+            try db.execute(sql: "ATTACH DATABASE ? AS bundle", arguments: [tmpURL.path])
+            defer { try? db.execute(sql: "DETACH DATABASE bundle") }
 
-        try dbQueue.write { db in
-            // ⚠️ PRAGMA foreign_keys はトランザクション内では変更できない (no-op)。
-            // defer_foreign_keys はトランザクション内で有効で、FK 検証を COMMIT 時まで遅延する。
-            // ただし **CASCADE (ON DELETE CASCADE) は FK 検証ではなくアクションなので、
-            // defer の対象外**。 1 ループ内で DELETE+INSERT を交互に行うと、 子テーブルを
-            // 先に INSERT した後に親テーブルを DELETE すると CASCADE で再削除される
-            // (例: setlist_performers を INSERT → setlist_items の DELETE で CASCADE → 空に戻る)。
-            // 対策として **全テーブル DELETE → 全テーブル INSERT** の 2 段に分ける。
-            try db.execute(sql: "PRAGMA defer_foreign_keys = ON")
-            let localTables = Set(try String.fetchAll(db, sql: "SELECT name FROM sqlite_master WHERE type='table'"))
-            var ok = 0
-            var skipped = 0
+            let bundleTables = try String.fetchAll(db, sql: "SELECT name FROM bundle.sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
+            let localTables = Set(try String.fetchAll(db, sql: "SELECT name FROM main.sqlite_master WHERE type='table'"))
+            // Bundle 側に存在し、ローカルにもあり、保護対象でないテーブルのみ再投入する。
+            let targets = bundleTables.filter { !preservedTables.contains($0) && localTables.contains($0) }
 
-            // Phase 1: 全テーブル DELETE (CASCADE による意図しない再削除を完了させる)
-            for table in masterRows.keys where localTables.contains(table) {
-                do {
-                    try db.execute(sql: "DELETE FROM \(table)")
-                } catch {
-                    Logger.database.error("[reseed] DELETE \(table, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
+            try db.inTransaction {
+                // ⚠️ PRAGMA foreign_keys はトランザクション内では変更できない (no-op)。
+                // defer_foreign_keys はトランザクション内で有効で、FK 検証を COMMIT 時まで遅延する。
+                // ただし **CASCADE (ON DELETE CASCADE) は FK 検証ではなくアクションなので defer の
+                // 対象外**。 子テーブルを先に INSERT した後に親テーブルを DELETE すると CASCADE で
+                // 再削除される (例: setlist_performers INSERT → setlist_items DELETE で空に戻る)。
+                // 対策として **全テーブル DELETE → 全テーブル INSERT** の 2 段に分ける。
+                try db.execute(sql: "PRAGMA defer_foreign_keys = ON")
+
+                // Phase 1: 全テーブル DELETE (CASCADE による意図しない再削除を先に完了させる)
+                for table in targets {
+                    try db.execute(sql: "DELETE FROM main.\"\(table)\"")
                 }
-            }
-            // Phase 2: 全テーブル INSERT (この時点ではどのテーブルも空なので CASCADE は無害)
-            for (table, rows) in masterRows where localTables.contains(table) {
-                do {
-                    guard let first = rows.first else { continue }
-                    let cols = first.columnNames
-                    let localCols = try String.fetchAll(db, sql: "SELECT name FROM pragma_table_info(?)", arguments: [table])
-                    let localColSet = Set(localCols)
-                    let safeCols = cols.filter { localColSet.contains($0) }
-                    guard !safeCols.isEmpty else { continue }
-                    let placeholders = safeCols.map { _ in "?" }.joined(separator: ",")
+                // Phase 2: 一括コピー。列差分 (バンドル側に無い列 / 余分な列) に備え、
+                // main と bundle の共通列だけを対象にする (旧 safeCols 相当)。
+                for table in targets {
+                    let mainCols = Set(try String.fetchAll(db, sql: "SELECT name FROM pragma_table_info(?, 'main')", arguments: [table]))
+                    let bundleCols = try String.fetchAll(db, sql: "SELECT name FROM pragma_table_info(?, 'bundle')", arguments: [table])
+                    let safeCols = bundleCols.filter { mainCols.contains($0) }
+                    guard !safeCols.isEmpty else { skipped += 1; continue }
                     let colList = safeCols.map { "\"\($0)\"" }.joined(separator: ",")
-                    let sql = "INSERT INTO \(table) (\(colList)) VALUES (\(placeholders))"
-                    for row in rows {
-                        let values = safeCols.map { row[$0] as DatabaseValue }
-                        try db.execute(sql: sql, arguments: StatementArguments(values))
-                    }
+                    try db.execute(sql: "INSERT INTO main.\"\(table)\" (\(colList)) SELECT \(colList) FROM bundle.\"\(table)\"")
                     ok += 1
-                } catch {
-                    Logger.database.error("[reseed] INSERT \(table, privacy: .public) failed: \(error.localizedDescription, privacy: .public) | \(String(describing: error), privacy: .public)")
-                    skipped += 1
                 }
+                try db.execute(sql: "UPDATE main.meta SET value = ? WHERE key = 'data_version'", arguments: [String(bundleVersion)])
+                // FK 違反があれば、この COMMIT で例外を投げてトランザクション全体がロールバックし、
+                // openDatabase 側で捕捉されてユーザー可視のアラートになる (旧: サイレント全停止)。
+                return .commit
             }
-            try db.execute(sql: "UPDATE meta SET value = ? WHERE key = 'data_version'", arguments: [String(bundleVersion)])
-            // defer_foreign_keys はトランザクション終了時に自動リセットされるため明示復帰は不要。
-            let summary = "v\(localVersion)→v\(bundleVersion) ok=\(ok) skipped=\(skipped)"
-            Self.lastReseedStatus = summary
-            Logger.database.info("[reseed] done \(summary, privacy: .public)")
         }
+        let summary = "v\(localVersion)→v\(bundleVersion) ok=\(ok) skipped=\(skipped)"
+        reseedState.withLock {
+            $0.summary = summary
+            $0.failureDetail = nil
+        }
+        Logger.database.info("[reseed] done \(summary, privacy: .public)")
     }
 
     /// CloudKit 同期で `kind` が default 'live' に上書きされる対策。
