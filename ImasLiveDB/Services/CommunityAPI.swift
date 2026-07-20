@@ -608,3 +608,9 @@ typealias CommunityAPIError = APIClientError
 /// `CommunityVoting` (Domain の口) への適合。既存の poll 系メソッドがそのまま witness になる。
 /// Presentation はこの actor 具象ではなく `any CommunityVoting` に依存する。
 extension CommunityAPI: CommunityVoting {}
+
+/// `CommunityTagReading` / `CommunityTagWriting` (Domain の口) への適合。既存のタグ系メソッドが
+/// そのまま witness になる (プロトコル側はデフォルト引数を持てないため、呼び出し側で明示指定する)。
+/// Presentation はこの actor 具象ではなく `any CommunityTagReading` / `any CommunityTagWriting` に依存する。
+extension CommunityAPI: CommunityTagReading {}
+extension CommunityAPI: CommunityTagWriting {}

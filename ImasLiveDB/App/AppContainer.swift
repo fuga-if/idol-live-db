@@ -14,6 +14,12 @@ final class AppContainer: Sendable {
     /// 「みんなの投票」のユースケース実装 (Worker D1 集計 API)。
     let communityVoting: any CommunityVoting = CommunityAPI.shared
 
+    /// コミュニティタグ (曲/アイドル/ユニット) の読み取り実装 (Worker D1 集計 API)。
+    let communityTagReading: any CommunityTagReading = CommunityAPI.shared
+
+    /// コミュニティタグ (曲/アイドル/ユニット) の書き込み実装 (Worker D1 集計 API)。
+    let communityTagWriting: any CommunityTagWriting = CommunityAPI.shared
+
     /// イベント (ライブ/公演) マスタ読み取りの実装 (GRDB / 共有 AppDatabase)。
     let eventReading: any EventReading = GRDBEventRepository(database: .shared)
 
