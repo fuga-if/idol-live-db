@@ -7,6 +7,8 @@ struct PollDetailView: View {
     @State private var vm: PollDetailViewModel
     @State private var showVotePicker = false
     @State private var showLogin = false
+    /// 削除ボタンタップ→即実行を防ぐ確認ダイアログの表示状態。
+    @State private var showDeleteConfirm = false
     /// 未ログイン時のログイン誘導シートを初回表示でのみ出すためのガード
     /// (pull-to-refresh のたびに再ポップしないように)。
     @State private var didPromptLogin = false
@@ -64,6 +66,16 @@ struct PollDetailView: View {
             Button("OK") { vm.deleteErrorMessage = nil }
         } message: {
             Text(vm.deleteErrorMessage ?? "")
+        }
+        .confirmationDialog(
+            "このお題を削除しますか？",
+            isPresented: $showDeleteConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("削除", role: .destructive) { performDelete() }
+            Button("キャンセル", role: .cancel) {}
+        } message: {
+            Text("ランキング・投票データも一緒に削除され、元に戻せません。")
         }
     }
 
@@ -150,7 +162,10 @@ struct PollDetailView: View {
 
     private func rankingSection(detail: PollDetail) -> some View {
         VStack(alignment: .leading, spacing: DS.sp3) {
-            ImasSectionHeader(title: "ランキング", count: detail.entries.isEmpty ? nil : "\(detail.entries.count)曲")
+            ImasSectionHeader(
+                title: "ランキング",
+                count: detail.entries.isEmpty ? nil : "\(detail.entries.count)\(entryCountUnit(for: detail.poll.targetType))"
+            )
 
             if detail.entries.isEmpty {
                 ImasEmptyState(systemImage: "chart.bar", title: "まだ票がありません", message: "最初の一票を入れましょう！")
@@ -289,6 +304,15 @@ struct PollDetailView: View {
         }
     }
 
+    /// ランキング件数表示の単位。お題の対象種別で数え方の助数詞が変わる (曲/人/組)。
+    private func entryCountUnit(for targetType: PollTargetType) -> String {
+        switch targetType {
+        case .song: return "曲"
+        case .idol: return "人"
+        case .unit: return "組"
+        }
+    }
+
     // MARK: - Delete
 
     private func canDelete(poll: Poll) -> Bool {
@@ -299,13 +323,7 @@ struct PollDetailView: View {
     private func deleteButton(poll: Poll) -> some View {
         Button(role: .destructive) {
             AppAnalytics.tap("poll_detail.delete")
-            Task {
-                if await vm.delete() {
-                    // 削除成功時のみ pop。一覧側は PollListView の再表示時 (.onAppear) の
-                    // 再ロードで自動的に消える。
-                    dismiss()
-                }
-            }
+            showDeleteConfirm = true
         } label: {
             if vm.isDeleting {
                 ProgressView()
@@ -314,6 +332,17 @@ struct PollDetailView: View {
             }
         }
         .disabled(vm.isDeleting)
+        .accessibilityLabel("このお題を削除")
+    }
+
+    private func performDelete() {
+        Task {
+            if await vm.delete() {
+                // 削除成功時のみ pop。一覧側は PollListView の再表示時 (.onAppear) の
+                // 再ロードで自動的に消える。
+                dismiss()
+            }
+        }
     }
 
     // MARK: - Data Loading
@@ -411,6 +440,7 @@ private struct PollEntryRow: View {
                     }
                     .buttonStyle(.plain)
                     .disabled(voteDisabled || lockedByOther)
+                    .accessibilityLabel(entry.hasUserVoted ? "投票を取消" : "投票")
                 } else if entry.hasUserVoted {
                     Image(systemName: "hand.thumbsup.fill")
                         .foregroundStyle(DS.ink3)

@@ -60,6 +60,7 @@ struct PollListView: View {
                         Image(systemName: "crown.fill")
                             .foregroundStyle(DS.warning)
                     }
+                    .accessibilityLabel("殿堂を見る")
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     if AuthService.shared.isSignedIn {
@@ -69,6 +70,7 @@ struct PollListView: View {
                         } label: {
                             Image(systemName: "plus")
                         }
+                        .accessibilityLabel("お題を作成")
                     } else {
                         EmptyView()
                     }
