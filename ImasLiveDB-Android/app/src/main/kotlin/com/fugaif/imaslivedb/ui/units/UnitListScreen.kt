@@ -36,6 +36,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -107,6 +108,13 @@ fun UnitListBody(
                     icon = Icons.Filled.Groups,
                     title = "見つかりませんでした",
                     message = "「${state.searchText}」に一致するユニットはいません。"
+                )
+            }
+            filteredUnits.isEmpty() -> {
+                ImasEmptyState(
+                    icon = Icons.Filled.Groups,
+                    title = "ユニットがありません",
+                    message = "登録されているユニットがまだありません。"
                 )
             }
             state.listMode == UnitListMode.GRID -> {
@@ -219,7 +227,9 @@ private fun UnitGrid(
 @Composable
 private fun UnitGridCell(unit: ImasUnit, onClick: () -> Unit) {
     Column(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(4.dp),
+        modifier = Modifier.fillMaxWidth()
+            .clickable(onClickLabel = unit.displayName, role = Role.Button, onClick = onClick)
+            .padding(4.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         ImasAvatar(label = unit.name, seed = unit.id, brand = unit.brandId, size = 60.dp)

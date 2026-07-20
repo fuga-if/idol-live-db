@@ -22,6 +22,8 @@ object DS {
     val success = Color(0xFF34D364)
     val warning = Color(0xFFFFB23E)
     val danger = Color(0xFFFF5247)
+    /** システムクロムは「ほぼ無彩」。色は常にエンティティ側から来る → けばけばしさ回避 (iOS DS.sys 相当)。 */
+    val sys = ink
     val onSys = Color(0xFF1C1C1E)
 
     // マイマーク

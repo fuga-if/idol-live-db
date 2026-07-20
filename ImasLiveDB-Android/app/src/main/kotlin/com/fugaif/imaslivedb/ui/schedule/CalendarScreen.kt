@@ -56,8 +56,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 private val ShowColor = Color(0xFF3E6DD6)
 private val ReleaseColor = DS.warning
 private val BirthdayColor = DS.pick
-private val StaffColor = Color(0xFFE91E63)
-private val AnniversaryColor = Color(0xFF26A69A)
+private val StaffColor = DS.pick
+private val AnniversaryColor = DS.sys
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

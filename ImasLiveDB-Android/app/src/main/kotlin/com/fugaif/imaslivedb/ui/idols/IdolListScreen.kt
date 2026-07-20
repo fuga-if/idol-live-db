@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.FilterAltOff
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Person
@@ -189,6 +190,15 @@ fun IdolListScreen(
                 }
                 q.isNotEmpty() && filteredIdols.isEmpty() -> {
                     ImasEmptyState(icon = Icons.Filled.Person, title = "見つかりませんでした", message = "「${state.searchText}」に一致するアイドルはいません。")
+                }
+                filteredIdols.isEmpty() -> {
+                    ImasEmptyState(
+                        icon = Icons.Filled.FilterAltOff,
+                        title = "該当するアイドルがいません",
+                        message = "フィルタ条件を変更するか、フィルタを解除してください。",
+                        actionTitle = if (state.filterBadgeCount > 0) "フィルタを解除" else null,
+                        onAction = if (state.filterBadgeCount > 0) { { viewModel.clearQuickFilters() } } else null
+                    )
                 }
                 state.listMode == IdolListMode.GRID -> {
                     PullToRefreshBox(
