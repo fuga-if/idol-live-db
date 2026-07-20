@@ -195,6 +195,8 @@ struct OshiImageWidget: Widget {
     var body: some WidgetConfiguration {
         AppIntentConfiguration(kind: "OshiImageWidget", intent: SelectOshiIntent.self, provider: OshiProvider()) { entry in
             OshiImageWidgetView(entry: entry)
+                // 画像主体の省スペースウィジェット。プレースホルダ文言の暴走を防ぐため上限クランプ。
+                .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                 .containerBackground(.fill.tertiary, for: .widget)
         }
         .configurationDisplayName("担当の画像（タップで切替）")
@@ -208,6 +210,7 @@ struct OshiLauncherWidget: Widget {
     var body: some WidgetConfiguration {
         AppIntentConfiguration(kind: "OshiLauncherWidget", intent: SelectOshiIntent.self, provider: OshiProvider()) { entry in
             OshiLauncherWidgetView(entry: entry)
+                .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                 .containerBackground(.fill.tertiary, for: .widget)
         }
         .configurationDisplayName("担当の画像（タップでアプリ）")

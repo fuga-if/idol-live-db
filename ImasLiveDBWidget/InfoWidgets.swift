@@ -137,6 +137,8 @@ struct NextLiveWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: "NextLiveWidget", provider: NextLiveProvider()) { entry in
             NextLiveWidgetView(entry: entry)
+                // 省スペースのウィジェットはアクセシビリティ特大でレイアウトが破綻するため上限クランプ。
+                .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                 .containerBackground(.fill.tertiary, for: .widget)
         }
         .configurationDisplayName("次のライブ")
@@ -260,6 +262,7 @@ struct TodaySongWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: "TodaySongWidget", provider: TodaySongProvider()) { entry in
             TodaySongWidgetView(entry: entry)
+                .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                 .containerBackground(.fill.tertiary, for: .widget)
         }
         .configurationDisplayName("今日の1曲")
@@ -350,6 +353,7 @@ struct TicketDeadlineWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: "TicketDeadlineWidget", provider: TicketDeadlineProvider()) { entry in
             TicketDeadlineWidgetView(entry: entry)
+                .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                 .containerBackground(.fill.tertiary, for: .widget)
         }
         .configurationDisplayName("チケット締切")

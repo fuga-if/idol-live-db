@@ -66,33 +66,95 @@ enum DS {
 // =============================================================================
 
 extension Font {
-    /// ユーザー設定の文字サイズ倍率 (極小 / 小 / 中)。UserDefaults "text_scale" を読む。
-    /// 未設定 (0) は 1.0 = 中。タイポトークンを `static var` (毎回評価) にすることで、
-    /// 設定変更後に View が再評価されれば新しいサイズが反映される。
+    /// アプリ内の文字サイズ倍率 (極小 / 小 / 中 / 大 / 特大)。UserDefaults "text_scale" を読む。
+    /// 未設定 (0) は 1.0 = 中。これは OS の Dynamic Type とは独立した「アプリ内追加倍率」で、
+    /// Dynamic Type によるスケールに対して乗算で併用される。タイポトークンを `static var`
+    /// (毎回評価) にすることで、設定変更・Dynamic Type 変更後に View が再評価されれば反映される。
     static var imasTextScale: CGFloat {
         let v = UserDefaults.standard.double(forKey: "text_scale")
         return v == 0 ? 1.0 : CGFloat(v)
     }
 
+    /// 固定 pt サイズを「OS の Dynamic Type」と「アプリ内倍率 imasTextScale」の両方でスケールさせる中核。
+    /// 指定した TextStyle のスケール曲線に沿って追随する。SwiftUI の `.system(size:)` 単体は
+    /// Dynamic Type に追随しないため、UIFontMetrics で包んで Dynamic Type 対応にする。
+    private static func scaled(
+        _ size: CGFloat,
+        relativeTo style: UIFont.TextStyle,
+        weight: UIFont.Weight,
+        design: UIFontDescriptor.SystemDesign = .default
+    ) -> Font {
+        let pointSize = size * imasTextScale
+        let base = UIFont.systemFont(ofSize: pointSize, weight: weight)
+        let uiFont: UIFont
+        if design == .default {
+            uiFont = base
+        } else if let descriptor = base.fontDescriptor.withDesign(design) {
+            uiFont = UIFont(descriptor: descriptor, size: pointSize)
+        } else {
+            uiFont = base
+        }
+        return Font(UIFontMetrics(forTextStyle: style).scaledFont(for: uiFont))
+    }
+
     /// 数値・順位・日付・英字ラベル用の「ディスプレイ」フォント。等幅数字付き。
     static func imasDisplay(_ size: CGFloat, weight: Font.Weight = .semibold) -> Font {
-        .system(size: size * imasTextScale, weight: weight, design: .default).monospacedDigit()
+        scaled(size, relativeTo: textStyle(forSize: size), weight: uiWeight(weight)).monospacedDigit()
     }
-    /// 生の固定サイズ指定 (.system(size:)) を文字サイズ設定でスケールするショートカット。
+    /// 生の固定サイズ指定を Dynamic Type + アプリ内倍率でスケールするショートカット。
     static func imasScaled(_ size: CGFloat, weight: Font.Weight = .regular, design: Font.Design = .default) -> Font {
-        .system(size: size * imasTextScale, weight: weight, design: design)
+        scaled(size, relativeTo: textStyle(forSize: size), weight: uiWeight(weight), design: uiDesign(design))
     }
-    /// iOS タイポスケール準拠の本文系ショートカット (文字サイズ設定でスケール)。
-    static var imasLargeTitle: Font { .system(size: 34 * imasTextScale, weight: .bold) }
-    static var imasTitle1: Font     { .system(size: 28 * imasTextScale, weight: .bold) }
-    static var imasTitle2: Font     { .system(size: 22 * imasTextScale, weight: .bold) }
-    static var imasTitle3: Font     { .system(size: 20 * imasTextScale, weight: .semibold) }
-    static var imasHeadline: Font   { .system(size: 17 * imasTextScale, weight: .semibold) }
-    static var imasBody: Font       { .system(size: 17 * imasTextScale, weight: .regular) }
-    static var imasCallout: Font    { .system(size: 16 * imasTextScale, weight: .regular) }
-    static var imasSubhead: Font    { .system(size: 15 * imasTextScale, weight: .regular) }
-    static var imasFootnote: Font   { .system(size: 13 * imasTextScale, weight: .regular) }
-    static var imasCaption: Font    { .system(size: 12 * imasTextScale, weight: .regular) }
+    /// iOS タイポスケール準拠の本文系ショートカット (Dynamic Type + アプリ内倍率でスケール)。
+    static var imasLargeTitle: Font { scaled(34, relativeTo: .largeTitle, weight: .bold) }
+    static var imasTitle1: Font     { scaled(28, relativeTo: .title1, weight: .bold) }
+    static var imasTitle2: Font     { scaled(22, relativeTo: .title2, weight: .bold) }
+    static var imasTitle3: Font     { scaled(20, relativeTo: .title3, weight: .semibold) }
+    static var imasHeadline: Font   { scaled(17, relativeTo: .headline, weight: .semibold) }
+    static var imasBody: Font       { scaled(17, relativeTo: .body, weight: .regular) }
+    static var imasCallout: Font    { scaled(16, relativeTo: .callout, weight: .regular) }
+    static var imasSubhead: Font    { scaled(15, relativeTo: .subheadline, weight: .regular) }
+    static var imasFootnote: Font   { scaled(13, relativeTo: .footnote, weight: .regular) }
+    static var imasCaption: Font    { scaled(12, relativeTo: .caption1, weight: .regular) }
+
+    // MARK: - UIKit マッピング (SwiftUI → UIKit の橋渡し)
+
+    /// 任意 pt サイズを最も近い TextStyle に割り当て、Dynamic Type の増分カーブを役割相応にする。
+    private static func textStyle(forSize size: CGFloat) -> UIFont.TextStyle {
+        switch size {
+        case 33...:        return .largeTitle
+        case 25 ..< 33:    return .title1
+        case 21 ..< 25:    return .title2
+        case 19 ..< 21:    return .title3
+        case 16.5 ..< 19:  return .body
+        case 15.5 ..< 16.5: return .callout
+        case 14 ..< 15.5:  return .subheadline
+        case 12.5 ..< 14:  return .footnote
+        case 11.5 ..< 12.5: return .caption1
+        default:           return .caption2
+        }
+    }
+    private static func uiWeight(_ w: Font.Weight) -> UIFont.Weight {
+        switch w {
+        case .ultraLight: return .ultraLight
+        case .thin:       return .thin
+        case .light:      return .light
+        case .medium:     return .medium
+        case .semibold:   return .semibold
+        case .bold:       return .bold
+        case .heavy:      return .heavy
+        case .black:      return .black
+        default:          return .regular
+        }
+    }
+    private static func uiDesign(_ d: Font.Design) -> UIFontDescriptor.SystemDesign {
+        switch d {
+        case .serif:      return .serif
+        case .rounded:    return .rounded
+        case .monospaced: return .monospaced
+        default:          return .default
+        }
+    }
 }
 
 /// 文字サイズ設定をルートから環境に流す依存源。静的 Font ヘルパーは UserDefaults を

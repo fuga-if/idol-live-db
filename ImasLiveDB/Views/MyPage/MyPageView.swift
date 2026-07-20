@@ -8,12 +8,16 @@ struct MyPageView: View {
     @Environment(CloudKitSyncEngine.self) private var syncEngine
     @Environment(\.dismiss) private var dismiss
     @AppStorage("defaultBrandId") private var defaultBrandId: String = ""
-    /// 文字サイズ (極小 0.7 / 小 0.85 / 中 1.0)。密度の高いセトリ等を読みやすくする。
+    /// 文字サイズ (極小 0.7 / 小 0.85 / 中 1.0 / 大 1.15 / 特大 1.3)。OS の Dynamic Type に
+    /// 乗算で併用するアプリ内倍率。中(1.0) を境に縮小・拡大の両方向へ調整できる。
     @AppStorage("text_scale") private var textScale: Double = 1.0
-    private static let textScaleOptions: [Double] = [0.7, 0.85, 1.0]
+    private static let textScaleOptions: [Double] = [0.7, 0.85, 1.0, 1.15, 1.3]
+    private static let textScaleLabels = ["極小", "小", "中", "大", "特大"]
     private var textScaleIndex: Binding<Int> {
         Binding(
-            get: { Self.textScaleOptions.firstIndex(of: textScale) ?? Self.textScaleOptions.count - 1 },
+            // 既存ユーザーの保存値 (0.7/0.85/1.0) はそのまま該当インデックスに載る。
+            // 未知値のフォールバックは「中」(1.0)。
+            get: { Self.textScaleOptions.firstIndex(of: textScale) ?? Self.textScaleOptions.firstIndex(of: 1.0) ?? 2 },
             set: { textScale = Self.textScaleOptions[$0] }
         )
     }
@@ -410,7 +414,7 @@ struct MyPageView: View {
             }
             VStack(alignment: .leading, spacing: DS.sp2) {
                 Text("文字サイズ")
-                ImasSegmented(labels: ["極小", "小", "中"], selection: textScaleIndex)
+                ImasSegmented(labels: Self.textScaleLabels, selection: textScaleIndex)
             }
             // プレビュー: 選んだサイズで実際の見え方を即確認できる (設定画面のラベル自体は
             // システム既定フォントなので変化しないため、ここで反映後の文字を見せる)。
