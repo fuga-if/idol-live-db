@@ -23,6 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -90,7 +91,14 @@ fun PollEntriesList(
                 .clip(RoundedCornerShape(10.dp))
                 .then(if (entry.mine) Modifier.border(1.5.dp, DS.pick, RoundedCornerShape(10.dp)) else Modifier)
                 .background(DS.surface)
-                .then(if (isSignedIn) Modifier.clickable { onToggleVote(entry.entityId, entry.mine) } else Modifier)
+                .then(
+                    if (isSignedIn) {
+                        Modifier.clickable(
+                            onClickLabel = if (entry.mine) "投票を取消" else "投票",
+                            role = Role.Button
+                        ) { onToggleVote(entry.entityId, entry.mine) }
+                    } else Modifier
+                )
                 .padding(horizontal = 12.dp, vertical = 10.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
