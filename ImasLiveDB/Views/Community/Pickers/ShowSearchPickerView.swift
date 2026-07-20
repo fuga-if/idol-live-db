@@ -42,11 +42,11 @@ struct ShowSearchPickerView: View {
                     } label: {
                         HStack(spacing: 12) {
                             Circle()
-                                .fill(Color.teal.opacity(0.12))
+                                .fill(DS.fill)
                                 .frame(width: 36, height: 36)
                                 .overlay {
                                     Image(systemName: "ticket")
-                                        .foregroundStyle(.teal)
+                                        .foregroundStyle(DS.sys)
                                         .font(.imasCaption)
                                 }
 

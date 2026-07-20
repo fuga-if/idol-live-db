@@ -75,7 +75,7 @@ struct SongFilterView: View {
                         }
                         Toggle(isOn: $myMarkFilter.requireNote) {
                             Label("メモがある曲のみ", systemImage: "note.text")
-                                .foregroundStyle(.orange)
+                                .foregroundStyle(DS.warning)
                         }
                     } header: {
                         Text("マイマーク")

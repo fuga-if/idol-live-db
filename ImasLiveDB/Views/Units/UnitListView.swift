@@ -49,6 +49,14 @@ struct UnitListContent: View {
                 .scrollDisabled(true)
             } else if !vm.searchText.isEmpty && vm.filteredUnits.isEmpty {
                 InTabSearchEmptyView(query: vm.searchText)
+            } else if vm.filteredUnits.isEmpty {
+                Spacer()
+                ImasEmptyState(
+                    systemImage: "person.3",
+                    title: "ユニットがありません",
+                    message: "登録されているユニットがまだありません。"
+                )
+                Spacer()
             } else if listMode == .grid {
                 gridBody
             } else {
@@ -175,21 +183,23 @@ struct UnitListContent: View {
     }
 
     private func unitGridCell(_ unit: Unit, brand: Brand) -> some View {
-        VStack(spacing: DS.sp2) {
-            UnitAvatarView(unit: unit, size: 60)
-            Text(unit.displayName)
-                .font(.imasCaption)
-                .foregroundStyle(DS.ink)
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
-            ImasChip(text: brand.shortName, seed: brand.color)
-        }
-        .frame(maxWidth: .infinity)
-        .contentShape(Rectangle())
-        .onTapGesture {
+        Button {
             AppAnalytics.tap("unit_list.grid_select")
             vm.sheetUnit = unit
+        } label: {
+            VStack(spacing: DS.sp2) {
+                UnitAvatarView(unit: unit, size: 60)
+                Text(unit.displayName)
+                    .font(.imasCaption)
+                    .foregroundStyle(DS.ink)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+                ImasChip(text: brand.shortName, seed: brand.color)
+            }
+            .frame(maxWidth: .infinity)
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
     }
 }
 

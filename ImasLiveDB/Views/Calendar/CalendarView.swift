@@ -294,9 +294,9 @@ struct CalendarView: View {
             HStack(spacing: DS.sp3) {
                 CalendarFilterChip(label: "公演", systemImage: "music.mic", color: Color(hexString: "#3E6DD6"), isOn: $showShows)
                 CalendarFilterChip(label: "リリース", systemImage: "opticaldisc", color: DS.warning, isOn: $showReleases)
-                CalendarFilterChip(label: "誕生日", systemImage: "gift", color: .pink, isOn: $showBirthdays)
-                CalendarFilterChip(label: "事務員", systemImage: "person.text.rectangle", color: .pink, isOn: $showStaffBirthdays)
-                CalendarFilterChip(label: "記念日", systemImage: "sparkles", color: .teal, isOn: $showAnniversaries)
+                CalendarFilterChip(label: "誕生日", systemImage: "gift", color: DS.pick, isOn: $showBirthdays)
+                CalendarFilterChip(label: "事務員", systemImage: "person.text.rectangle", color: DS.pick, isOn: $showStaffBirthdays)
+                CalendarFilterChip(label: "記念日", systemImage: "sparkles", color: DS.sys, isOn: $showAnniversaries)
                 CalendarFilterChip(label: "チケット", systemImage: "ticket", color: DS.danger, isOn: $showTickets)
                 CalendarFilterChip(label: "マイ予定", systemImage: "person.crop.circle", color: DS.sys, isOn: $showPersonal)
             }

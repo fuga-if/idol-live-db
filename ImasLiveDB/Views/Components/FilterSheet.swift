@@ -216,7 +216,7 @@ struct EventFilterSheet: View {
 
                 Section("表示設定") {
                     Toggle("セトリ情報がないイベントも表示", isOn: $localShowEmpty)
-                        .tint(.green)
+                        .tint(DS.success)
                 }
 
                 if !localBrandIds.isEmpty || !localExcluded.isEmpty || localShowEmpty || localAttendance != "all" || localFavorite || localNote {

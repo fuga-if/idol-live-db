@@ -19,7 +19,7 @@ struct PreviewPlayButton: View {
                 } icon: {
                     Image(systemName: isCurrentlyPlaying ? "stop.circle.fill" : "play.circle.fill")
                         .font(.imasTitle3)
-                        .foregroundStyle(isCurrentlyPlaying ? .red : .accentColor)
+                        .foregroundStyle(isCurrentlyPlaying ? .red : DS.sys)
                 }
                 Spacer()
             }

@@ -21,7 +21,7 @@ struct FavoriteToggleButton: View {
         } label: {
             Image(systemName: isFavorite ? "star.fill" : "star")
                 .font(.imasScaled( size))
-                .foregroundStyle(isFavorite ? .yellow : .secondary)
+                .foregroundStyle(isFavorite ? DS.favorite : DS.ink3)
                 .frame(minWidth: 44, minHeight: 44)
                 .contentShape(Rectangle())
         }
@@ -51,7 +51,7 @@ struct MyPickToggleButton: View {
         } label: {
             Image(systemName: isMyPick ? "heart.fill" : "heart")
                 .font(.imasScaled( size))
-                .foregroundStyle(isMyPick ? .pink : .secondary)
+                .foregroundStyle(isMyPick ? DS.pick : DS.ink3)
                 .frame(minWidth: 44, minHeight: 44)
                 .contentShape(Rectangle())
         }

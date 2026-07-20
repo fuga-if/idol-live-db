@@ -235,7 +235,7 @@ private struct MyEditRow: View {
             if entry.goodCount > 0 {
                 Label("\(entry.goodCount)", systemImage: "hands.clap.fill")
                     .font(.imasCaption)
-                    .foregroundStyle(.pink)
+                    .foregroundStyle(DS.pick)
             }
             Spacer()
             if isReverting {

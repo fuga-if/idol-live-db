@@ -69,7 +69,7 @@ struct MyContributionsView: View {
     private var breakdown: some View {
         VStack(alignment: .leading, spacing: DS.sp3) {
             ImasSectionHeader(title: "内訳", tight: true)
-            VStack(spacing: DS.sp2) {
+            LazyVStack(spacing: DS.sp2) {
                 ForEach(LocalContributionLog.Kind.allCases, id: \.rawValue) { kind in
                     HStack(spacing: DS.sp3) {
                         Image(systemName: kind.systemImage)

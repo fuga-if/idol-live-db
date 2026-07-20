@@ -372,11 +372,11 @@ private struct EditFeedCard: View {
                         Text(goodCount > 0 ? "\(goodCount)" : "Good")
                             .font(.imasCaption.weight(.semibold))
                     }
-                    .foregroundStyle(gooded ? AnyShapeStyle(.pink) : AnyShapeStyle(DS.ink2))
+                    .foregroundStyle(gooded ? AnyShapeStyle(DS.pick) : AnyShapeStyle(DS.ink2))
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
                     .background(
-                        (gooded ? Color.pink : Color.secondary).opacity(0.12),
+                        (gooded ? DS.pick : DS.ink3).opacity(0.12),
                         in: Capsule()
                     )
                 }
@@ -387,7 +387,7 @@ private struct EditFeedCard: View {
             if isOwn, goodCount > 0 {
                 Label("\(goodCount)", systemImage: "hands.clap.fill")
                     .font(.imasCaption)
-                    .foregroundStyle(.pink)
+                    .foregroundStyle(DS.pick)
             }
 
             Spacer(minLength: 4)

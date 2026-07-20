@@ -41,7 +41,7 @@ struct UnitAvatarView: View {
         ZStack {
             t.tint
             Image(systemName: "person.3.fill")
-                .font(.system(size: size * 0.42, weight: .semibold))
+                .font(.imasDisplay(size * 0.42, weight: .semibold))
                 .foregroundStyle(t.accent)
         }
     }

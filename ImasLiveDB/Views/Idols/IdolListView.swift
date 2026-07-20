@@ -147,6 +147,19 @@ struct IdolListView: View {
                 .scrollDisabled(true)
             } else if !searchText.isEmpty && vm.filteredIdols.isEmpty {
                 InTabSearchEmptyView(query: searchText)
+            } else if vm.filteredIdols.isEmpty {
+                Spacer()
+                ImasEmptyState(
+                    systemImage: "line.3.horizontal.decrease.circle",
+                    title: "該当するアイドルがいません",
+                    message: "フィルタ条件を変更するか、フィルタを解除してください。",
+                    actionTitle: activeFilterCount > 0 ? "フィルタを解除" : nil,
+                    action: activeFilterCount > 0 ? {
+                        AppAnalytics.tap("idol_list.filter_clear")
+                        clearAllFilters()
+                    } : nil
+                )
+                Spacer()
             } else if idolListMode == .grid {
                 IdolGridView(
                     idols: vm.filteredIdols,
