@@ -30,6 +30,8 @@ final class EventListViewModelTests: XCTestCase {
         func attendedEventTypeSets() async throws -> (live: Set<String>, stream: Set<String>, liveViewing: Set<String>) {
             ([], [], [])
         }
+        func eventsByIds(_ ids: [String]) async throws -> [EventWithDate] { [] }
+        func eventReleases(eventId: String) async throws -> [EventRelease] { [] }
     }
 
     private struct FakeBrandReading: BrandReading {
