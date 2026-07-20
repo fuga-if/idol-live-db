@@ -271,6 +271,9 @@ final class CloudKitSyncEngine: @unchecked Sendable {
                 // ステップ内チャンクループ: バッチ毎に upsert + チェックポイント保存。
                 // 巨大ステップ (SongArtist ~20k 等) が途中中断されても、保存した modifiedAt
                 // から再開できる (= 全件取り直さない)。
+                // このステップを epoch から全件取得するか (= フルsync かつ checkpoint 途中再開でない)。
+                // orphan 掃除は「完走した全件パス」でのみ安全に行える (途中再開だと seen が不完全)。
+                let stepStartedFromEpoch = isFullSync && ud.object(forKey: ckptKey) == nil
                 var start = (ud.object(forKey: ckptKey) as? Double).map { Date(timeIntervalSince1970: $0) }
                     ?? modifiedSince ?? Date(timeIntervalSince1970: 0)
                 var seen = Set<String>()
@@ -326,6 +329,19 @@ final class CloudKitSyncEngine: @unchecked Sendable {
                     start = maxDate.addingTimeInterval(-0.001)
                     addedSinceRestart = 0
                     maxDateSinceRestart = nil
+                }
+
+                // フル再取得 (epoch から全件) を完走したステップに限り、CloudKit 側で
+                // tombstone 無しに物理削除されたレコードをローカルからも掃除する (safety net)。
+                // deleteOrphans は単一 PK ("id") テーブルのみ・validIds 空なら no-op。seen には
+                // alive/deleted 双方の recordName が入っており、deleted は別途物理削除済みなので
+                // valid 扱いでも害はない。掃除対象は「CloudKit から消えたのにローカルに残る」孤児のみ。
+                if stepStartedFromEpoch {
+                    do {
+                        try database.deleteOrphans(recordType: step.recordType, validIds: seen)
+                    } catch {
+                        logger.error("[Sync] deleteOrphans(\(step.recordType)) failed: \(error.localizedDescription)")
+                    }
                 }
 
                 // ステップ完了: チェックポイント削除 + (フルsync) 完了ステップを記録。
