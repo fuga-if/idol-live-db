@@ -31,11 +31,24 @@ object SeedImporter {
     private val SKIP_TABLES = setOf("room_master_table", "android_metadata", "sqlite_sequence")
 
     /**
+     * 直近の import 失敗のユーザー可視メッセージ (成功時/未実行時は null)。
+     * iOS AppDatabase.lastReseedFailure 相当。CloudKit token 未設定 + seed import 失敗の
+     * 組み合わせだと、旧実装では Log.e だけで握り潰され、UI は「データを準備中…」のまま
+     * 無限に待たされていた (MainActivity の hasData が false のまま state も進まない)。
+     * @Volatile: importIfNeeded は Dispatchers.IO、読み手は Main スレッド。
+     */
+    @Volatile var lastImportError: String? = null
+        private set
+
+    /**
      * DB が空 (初回) で seed asset がある時だけ投入する。冪等。
      * 投入後にデータがあるか (UI を即表示してよいか) を返す。
      */
     suspend fun importIfNeeded(context: Context, db: AppDatabase): Boolean = withContext(Dispatchers.IO) {
-        if (db.syncDao().brandCount() > 0) return@withContext true  // 既に投入済み
+        if (db.syncDao().brandCount() > 0) {
+            lastImportError = null
+            return@withContext true  // 既に投入済み
+        }
         if (!hasAsset(context)) {
             Log.i(TAG, "seed asset 無し → skip (CloudKit 同期にフォールバック)")
             return@withContext false
@@ -67,11 +80,13 @@ object SeedImporter {
                     sdb.endTransaction()
                 }
                 Log.i(TAG, "seed import 完了: ${tables.size} tables")
+                lastImportError = null
             } finally {
                 sdb.execSQL("DETACH DATABASE seed")
             }
         } catch (e: Exception) {
             Log.e(TAG, "seed import 失敗 (CloudKit 同期にフォールバック)", e)
+            lastImportError = "初期データの読み込みに失敗しました。アプリを再起動しても直らない場合は再インストールをお試しください。\n(詳細: ${e.message})"
         } finally {
             tmp.delete()
         }

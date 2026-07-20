@@ -39,7 +39,8 @@ class MainActivity : ComponentActivity() {
                 val state by sync.state.collectAsState()
                 // null=判定中 / true=データあり / false=データ無し
                 var hasData by remember { mutableStateOf<Boolean?>(null) }
-                LaunchedEffect(Unit) {
+                var retryKey by remember { mutableStateOf(0) }
+                LaunchedEffect(retryKey) {
                     // 初回 (データ無し) は seed DB を投入してから判定する。これで CloudKit token
                     // 未設定でも実データで起動できる (token はリリース版の最新化のためだけ)。
                     hasData = sync.ensureLocalData()
@@ -50,7 +51,9 @@ class MainActivity : ComponentActivity() {
                 if (ready) {
                     AppNavigation()
                 } else {
-                    SyncLoadingScreen(state)
+                    // seed 投入失敗などでデータが無いまま Error になった場合、再起動せず
+                    // その場でやり直せるように再試行を用意する (無限「データを準備中…」の防止)。
+                    SyncLoadingScreen(state, onRetry = { retryKey++ })
                 }
             }
         }
@@ -58,7 +61,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-private fun SyncLoadingScreen(state: CloudKitSyncEngine.SyncState) {
+private fun SyncLoadingScreen(state: CloudKitSyncEngine.SyncState, onRetry: () -> Unit) {
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
             modifier = Modifier.fillMaxSize().padding(32.dp),
@@ -79,6 +82,9 @@ private fun SyncLoadingScreen(state: CloudKitSyncEngine.SyncState) {
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(top = 8.dp)
                     )
+                    androidx.compose.material3.Button(onClick = onRetry, modifier = Modifier.padding(top = 16.dp)) {
+                        Text("再試行")
+                    }
                 }
                 is CloudKitSyncEngine.SyncState.Syncing -> {
                     CircularProgressIndicator(modifier = Modifier.size(48.dp))
