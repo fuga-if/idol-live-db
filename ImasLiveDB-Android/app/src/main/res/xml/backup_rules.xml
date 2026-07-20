@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  API 30 以下向けのレガシー Auto Backup ルール (android:fullBackupContent)。
+  data_extraction_rules.xml (API 31+) と同じ理由で imas_auth_secure を除外する。
+-->
+<full-backup-content>
+    <exclude domain="sharedpref" path="imas_auth_secure.xml" />
+</full-backup-content>

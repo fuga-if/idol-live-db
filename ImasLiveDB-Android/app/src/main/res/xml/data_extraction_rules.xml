@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android 12+ (API 31+) 用のバックアップ/デバイス間転送ルール。
+  imas_auth_secure (AuthService の EncryptedSharedPreferences) は AndroidKeyStore に
+  紐づく鍵で暗号化されており、鍵は端末外に持ち出せない。バックアップに含めても復元先では
+  復号不能なゴミになるだけなので、両方から明示的に除外する (iOS 側の Keychain 相当の扱い)。
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="sharedpref" path="imas_auth_secure.xml" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="sharedpref" path="imas_auth_secure.xml" />
+    </device-transfer>
+</data-extraction-rules>
