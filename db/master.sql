@@ -46634,7 +46634,7 @@ INSERT INTO song_artists VALUES('765as_キミはメロディ','765as_双海亜�
 INSERT INTO song_artists VALUES('765as_キミはメロディ','765as_双海真美','original');
 CREATE TABLE meta (key TEXT PRIMARY KEY NOT NULL, value TEXT);
 INSERT INTO meta VALUES('schema_version','1');
-INSERT INTO meta VALUES('data_version','57');
+INSERT INTO meta VALUES('data_version','59');
 INSERT INTO meta VALUES('migration_v14_idol_is_external','applied');
 CREATE TABLE song_units (
   song_id TEXT NOT NULL,
