@@ -190,6 +190,13 @@ ImasLiveDB/
 - **List/Detail の正式 ViewModel 化 (済)**: 3リスト (`IdolListViewModel` / `SongListViewModel` / `EventListViewModel`) + 2詳細 (`EventDetailViewModel` / `IdolDetailViewModel`)。いずれも `@MainActor @Observable final class` + `nonisolated init` でポート注入。View は `@AppStorage`・選択状態・`@Observable` サービス観測 (UserMark/CustomImage) のみ保持し、Request/Context/Query 構造体で条件を VM へ渡す。`SongDetailView` は薄いラッパ (データ取得なし) のため VM 不要。
 - **テスト 36本** 全パス (投票11 + フィルタ/グルーピング22 + IdolListViewModel 3)。
 
+### 進捗 (2026-07)
+- **タグ機能 (Views/Tags/ 13ファイル) をポート化**: `CommunityTagReading` (13メソッド) + `CommunityTagWriting` (12メソッド) を新設し、`extension CommunityAPI: CommunityTagReading/CommunityTagWriting {}` で適合、`AppContainer` に登録。`CommunityAPI.shared` 直叩きは Views/Tags 配下で **0 件**。
+  - **ポート総数 19** (読み12 + 書き4 + CommunityVoting + CommunityTagReading + CommunityTagWriting)。
+  - **VM 化 (4画面)**: `TagListViewModel` (一覧+フィルタ+検索デバウンス)、`SongTagPickerViewModel` / `IdolTagPickerViewModel` / `UnitTagPickerViewModel` (検索デバウンス+選択+付与+曲版はシェア導線組立)。いずれも `Poll*ViewModel` と同じ `@MainActor @Observable` + `nonisolated init` + ポート注入の型。
+  - **VM を導入しなかった9画面**: `TagDetailView` 系3画面・`TagCreateSheet`・`TagEditSheet`・`TagHistoryView`・`TagActivityView`・`TagFilterPicker`・`TagColorPicker`。「fetch+display」または「1回のCRUD呼び出し+dismiss」のみで、既存の `MyVotesView`(フェッチ+多ソース解決、VM無し) / `PollCreateSheet`(単発作成、VM無し) / `PollHallOfFameView`(フェッチのみ、VM無し) と同等の複雑度のため、View から `AppContainer.shared.communityTagReading/communityTagWriting` を直接呼ぶ既存パターンに揃えた (ドキュメント上の許容: 「View: ViewModel にのみ依存 (合成ルート `AppContainer.shared` 経由は可)」)。`TagColorPicker` はそもそもデータ取得を持たない純 UI 部品。
+- **レイヤ違反の機械チェックを CI 化**: `tools/check_domain_purity.sh` を `.github/workflows/architecture-guard.yml` として push(main/develop)/PR 時に実行するようにした (`ImasLiveDB/Domain/**` 変更時)。違反があれば exit 1 でジョブが落ちる。
+
 ### レイヤ違反の検査
 - `Domain/` 配下で `import SwiftUI|GRDB|CloudKit` を grep して 0 を保つ。**`tools/check_domain_purity.sh`** が自動チェック (違反で exit 1)。pre-commit / CI 組み込み候補。
 
