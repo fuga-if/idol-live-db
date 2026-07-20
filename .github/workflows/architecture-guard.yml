@@ -1,0 +1,26 @@
+name: Architecture Guard
+
+# Hexagonal Architecture (docs/ARCHITECTURE.md) の依存方向を機械的にガードする。
+# Domain 層 (ImasLiveDB/Domain/) は SwiftUI/GRDB/CloudKit を import してはいけない。
+# import があれば tools/check_domain_purity.sh が exit 1 になり、このジョブを落とす。
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'ImasLiveDB/Domain/**'
+      - 'tools/check_domain_purity.sh'
+  pull_request:
+    paths:
+      - 'ImasLiveDB/Domain/**'
+      - 'tools/check_domain_purity.sh'
+  workflow_dispatch:
+
+jobs:
+  domain-purity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check Domain purity (no SwiftUI/GRDB/CloudKit import)
+        run: |
+          chmod +x tools/check_domain_purity.sh
+          ./tools/check_domain_purity.sh
