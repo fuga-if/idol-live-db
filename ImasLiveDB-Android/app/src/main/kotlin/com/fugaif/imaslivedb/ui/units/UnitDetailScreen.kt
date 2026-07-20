@@ -19,6 +19,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material3.CircularProgressIndicator
@@ -100,7 +101,17 @@ fun UnitDetailScreen(
             )
         }
     ) { padding ->
-        if (state.isLoading || unit == null) {
+        if (state.loadError != null) {
+            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                ImasEmptyState(
+                    icon = Icons.Filled.ErrorOutline,
+                    title = "読み込みに失敗しました",
+                    message = state.loadError,
+                    actionTitle = "再試行",
+                    onAction = { viewModel.retry() }
+                )
+            }
+        } else if (state.isLoading || unit == null) {
             Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }

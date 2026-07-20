@@ -401,7 +401,9 @@ fun ImasEmptyState(
     title: String,
     message: String? = null,
     seed: String? = null,
-    brand: String? = null
+    brand: String? = null,
+    actionTitle: String? = null,
+    onAction: (() -> Unit)? = null
 ) {
     val t = ImasTheme.derive(seed, brand, dark = true)
     Column(
@@ -415,6 +417,11 @@ fun ImasEmptyState(
         Text(title, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = DS.ink, modifier = Modifier.padding(top = 14.dp))
         if (message != null) {
             Text(message, fontSize = 13.5.sp, color = DS.ink2, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 6.dp))
+        }
+        if (actionTitle != null && onAction != null) {
+            androidx.compose.material3.Button(onClick = onAction, modifier = Modifier.padding(top = 14.dp)) {
+                Text(actionTitle)
+            }
         }
     }
 }
