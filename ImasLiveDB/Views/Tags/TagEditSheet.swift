@@ -32,6 +32,9 @@ struct TagEditSheet: View {
                                 .lineLimit(3...6)
                                 .padding(.horizontal, DS.sp4)
                                 .padding(.vertical, DS.sp3)
+                                .onChange(of: description) { _, new in
+                                    if new.count > 300 { description = String(new.prefix(300)) }
+                                }
                         }
                     }
 

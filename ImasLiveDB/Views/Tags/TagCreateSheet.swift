@@ -64,11 +64,14 @@ struct TagCreateSheet: View {
                             }
                     }
 
-                    fieldSection(header: "説明文（任意）", counter: nil) {
+                    fieldSection(header: "説明文（任意）", counter: "\(description.count) / 300文字", counterIsError: false) {
                         TextField("どんな時に使うタグか（任意）", text: $description, axis: .vertical)
                             .font(.imasSubhead)
                             .foregroundStyle(DS.ink)
                             .lineLimit(2...5)
+                            .onChange(of: description) { _, new in
+                                if new.count > 300 { description = String(new.prefix(300)) }
+                            }
                     }
 
                     VStack(alignment: .leading, spacing: DS.sp3) {
