@@ -3521,7 +3521,7 @@ INSERT INTO events VALUES('ev_shiny_the_first_refrac7ions_still_blue','sc','shin
 INSERT INTO events VALUES('ev_the_idolmster_sidem_passionable_reading_show_魂環の人形','sidem','THE IDOLM@STER SideM PASSIONABLE READING SHOW ～魂環の人形～','live',0,0,'live',NULL,NULL,NULL,NULL,NULL);
 INSERT INTO events VALUES('ev_the_idolmster_sidem_11th_stage_ever_everfter','sidem','THE IDOLM@STER SideM 11th STAGE ～EVER EVER＠FTER～','live',0,1,'live',NULL,NULL,NULL,NULL,NULL);
 INSERT INTO events VALUES('ev_animelo_summer_live_2026_-messenger-','sc','Animelo Summer Live 2026 -Messenger-','live',0,0,'festival',NULL,NULL,NULL,NULL,NULL);
-INSERT INTO events VALUES('ev_shibuya_lovez_opening_series_lantis_dayz','sidem','Shibuya LOVEZ OPENING SERIES 「Lantis DAYZ」','live',0,0,'festival',NULL,NULL,NULL,'sc',NULL);
+INSERT INTO events VALUES('ev_shibuya_lovez_opening_series_lantis_dayz','other','Shibuya LOVEZ OPENING SERIES 「Lantis DAYZ」','live',0,0,'festival',NULL,NULL,NULL,'sc',NULL);
 INSERT INTO events VALUES('ev_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~','sidem','315 Production presents F＠NTASTIC BATTLE FES ～Wanna step in～','live',0,0,'live',NULL,NULL,NULL,NULL,NULL);
 INSERT INTO events VALUES('ev_kimchikura_fes_26','other','KIMCHIKURA Fes ''26','live',0,0,'live',NULL,NULL,NULL,NULL,NULL);
 CREATE TABLE shows (id TEXT PRIMARY KEY NOT NULL, event_id TEXT NOT NULL, name TEXT NOT NULL, date TEXT NOT NULL, venue TEXT, venue_city TEXT, start_time TEXT, sort_order INTEGER NOT NULL, performer_type TEXT DEFAULT 'cast');
@@ -18283,6 +18283,15 @@ INSERT INTO setlist_items VALUES('sh_cinderella_girls_musical_第2弾_2_0018','s
 INSERT INTO setlist_items VALUES('sh_cinderella_girls_musical_第2弾_2_0019','sh_cinderella_girls_musical_第2弾_2','cg_パリラ',19,NULL,NULL,NULL);
 INSERT INTO setlist_items VALUES('sh_cinderella_girls_musical_第2弾_2_0020','sh_cinderella_girls_musical_第2弾_2','cg_ダンシングデッド',20,'アンコール','カーテンコール',NULL);
 INSERT INTO setlist_items VALUES('sh_cinderella_girls_musical_第2弾_2_0021','sh_cinderella_girls_musical_第2弾_2','cg_シンデレラno1',21,NULL,NULL,NULL);
+INSERT INTO setlist_items VALUES('sli_5c904377-ad1f-4568-b5e2-d89caa47fccf','sh_animelo_summer_live_2026_-messenger-_1','sc_koikyun',1,NULL,NULL,NULL);
+INSERT INTO setlist_items VALUES('sli_4c410020-318f-4c1c-afe0-4acf41182766','sh_animelo_summer_live_2026_-messenger-_1','sc_we_can_go_now',2,NULL,NULL,NULL);
+INSERT INTO setlist_items VALUES('sli_20df8524-df32-4230-ab6f-3266b7fa49c4','sh_animelo_summer_live_2026_-messenger-_1','sc_太陽キッス',3,NULL,NULL,NULL);
+INSERT INTO setlist_items VALUES('sli_52eb74eb-93e2-4f1a-8c6c-48951db3223e','sh_shibuya_lovez_opening_series_lantis_dayz_1','sidem_victory_believer',1,NULL,NULL,NULL);
+INSERT INTO setlist_items VALUES('sli_65c45bf3-f9cd-413e-925d-d2f1ee754508','sh_shibuya_lovez_opening_series_lantis_dayz_1','sidem_café_parade',2,NULL,NULL,NULL);
+INSERT INTO setlist_items VALUES('sli_cabd70c6-b74f-483c-8522-6b90effb4c2e','sh_shibuya_lovez_opening_series_lantis_dayz_1','sidem_beyond_the_dream',3,NULL,NULL,NULL);
+INSERT INTO setlist_items VALUES('sli_4301dc61-2275-4d9d-b176-5a4f4578d84a','sh_shibuya_lovez_opening_series_lantis_dayz_2','sc_いつだって僕らは',1,NULL,NULL,NULL);
+INSERT INTO setlist_items VALUES('sli_0fcff2c2-a065-4ab3-ac6a-be2bcbf2e655','sh_shibuya_lovez_opening_series_lantis_dayz_2','sc_愛しき日々',2,NULL,NULL,NULL);
+INSERT INTO setlist_items VALUES('sli_6a9c8644-85b9-4363-a67f-4e94829d94b3','sh_shibuya_lovez_opening_series_lantis_dayz_2','sc_シャイノグラフィ',3,NULL,NULL,NULL);
 CREATE TABLE idols (id TEXT PRIMARY KEY NOT NULL, brand_id TEXT NOT NULL, name TEXT NOT NULL, name_kana TEXT, name_romaji TEXT, color TEXT, sort_order INTEGER NOT NULL, birthday TEXT, blood_type TEXT, height REAL, weight REAL, birth_place TEXT, age INTEGER, bust REAL, waist REAL, hip REAL, constellation TEXT, hobbies TEXT, talents TEXT, description TEXT, gender TEXT, handedness TEXT, family_name TEXT, given_name TEXT, nickname TEXT, debut_date TEXT, attribute TEXT, is_external INTEGER NOT NULL DEFAULT 0, aliases TEXT, voice_actors TEXT);
 INSERT INTO idols VALUES('cg_大石泉','cg','大石泉','おおいしいずみ',NULL,'#74D1EA',2000,'--11-11','A',157.0,41.0,'静岡',15,83.0,55.0,82.0,'蠍座','プログラミング',NULL,'静岡出身の15歳のプログラミングが得意なアイドル。クールで知的だが家族や友人に温かい。CV: 大木咲絵子。','female','right','大石','泉',NULL,'2012-08-14','cool',0,NULL,'大木咲絵子');
 INSERT INTO idols VALUES('cg_双葉杏','cg','双葉杏','ふたばあんず',NULL,'#F8A3BC',2001,'--09-02','B',139.0,30.0,'北海道',17,NULL,NULL,NULL,'花も恥じらう乙女座','なし',NULL,'ゴロゴロするのが大好きな脱力系アイドル。働いたら負けという独特の哲学を持つ17歳。CV: 五十嵐裕美。','female','right','双葉','杏',NULL,'2011-11-28','cute',0,NULL,'五十嵐裕美');
@@ -107177,6 +107186,43 @@ INSERT INTO setlist_performers VALUES('sh_cinderella_girls_musical_第2弾_2_002
 INSERT INTO setlist_performers VALUES('sh_cinderella_girls_musical_第2弾_2_0021','cg_的場梨沙');
 INSERT INTO setlist_performers VALUES('sh_cinderella_girls_musical_第2弾_2_0021','cg_向井拓海');
 INSERT INTO setlist_performers VALUES('sh_cinderella_girls_musical_第2弾_2_0021','cg_夢見りあむ');
+INSERT INTO setlist_performers VALUES('sli_5c904377-ad1f-4568-b5e2-d89caa47fccf','sc_八宮めぐる');
+INSERT INTO setlist_performers VALUES('sli_5c904377-ad1f-4568-b5e2-d89caa47fccf','sc_櫻木真乃');
+INSERT INTO setlist_performers VALUES('sli_5c904377-ad1f-4568-b5e2-d89caa47fccf','sc_風野灯織');
+INSERT INTO setlist_performers VALUES('sli_4c410020-318f-4c1c-afe0-4acf41182766','sc_八宮めぐる');
+INSERT INTO setlist_performers VALUES('sli_4c410020-318f-4c1c-afe0-4acf41182766','sc_櫻木真乃');
+INSERT INTO setlist_performers VALUES('sli_4c410020-318f-4c1c-afe0-4acf41182766','sc_風野灯織');
+INSERT INTO setlist_performers VALUES('sli_20df8524-df32-4230-ab6f-3266b7fa49c4','sc_八宮めぐる');
+INSERT INTO setlist_performers VALUES('sli_20df8524-df32-4230-ab6f-3266b7fa49c4','sc_風野灯織');
+INSERT INTO setlist_performers VALUES('sli_20df8524-df32-4230-ab6f-3266b7fa49c4','sc_櫻木真乃');
+INSERT INTO setlist_performers VALUES('sli_52eb74eb-93e2-4f1a-8c6c-48951db3223e','sidem_蒼井享介');
+INSERT INTO setlist_performers VALUES('sli_52eb74eb-93e2-4f1a-8c6c-48951db3223e','sidem_蒼井悠介');
+INSERT INTO setlist_performers VALUES('sli_65c45bf3-f9cd-413e-925d-d2f1ee754508','sidem_神谷幸広');
+INSERT INTO setlist_performers VALUES('sli_65c45bf3-f9cd-413e-925d-d2f1ee754508','sidem_卯月巻緒');
+INSERT INTO setlist_performers VALUES('sli_65c45bf3-f9cd-413e-925d-d2f1ee754508','sidem_東雲荘一郎');
+INSERT INTO setlist_performers VALUES('sli_65c45bf3-f9cd-413e-925d-d2f1ee754508','sidem_アスランbbⅱ世');
+INSERT INTO setlist_performers VALUES('sli_65c45bf3-f9cd-413e-925d-d2f1ee754508','sidem_水嶋咲');
+INSERT INTO setlist_performers VALUES('sli_cabd70c6-b74f-483c-8522-6b90effb4c2e','sidem_水嶋咲');
+INSERT INTO setlist_performers VALUES('sli_cabd70c6-b74f-483c-8522-6b90effb4c2e','sidem_東雲荘一郎');
+INSERT INTO setlist_performers VALUES('sli_cabd70c6-b74f-483c-8522-6b90effb4c2e','sidem_蒼井悠介');
+INSERT INTO setlist_performers VALUES('sli_cabd70c6-b74f-483c-8522-6b90effb4c2e','sidem_卯月巻緒');
+INSERT INTO setlist_performers VALUES('sli_cabd70c6-b74f-483c-8522-6b90effb4c2e','sidem_天ヶ瀬冬馬');
+INSERT INTO setlist_performers VALUES('sli_cabd70c6-b74f-483c-8522-6b90effb4c2e','sidem_神谷幸広');
+INSERT INTO setlist_performers VALUES('sli_cabd70c6-b74f-483c-8522-6b90effb4c2e','sidem_蒼井享介');
+INSERT INTO setlist_performers VALUES('sli_cabd70c6-b74f-483c-8522-6b90effb4c2e','sidem_アスランbbⅱ世');
+INSERT INTO setlist_performers VALUES('sli_4301dc61-2275-4d9d-b176-5a4f4578d84a','sc_福丸小糸');
+INSERT INTO setlist_performers VALUES('sli_4301dc61-2275-4d9d-b176-5a4f4578d84a','sc_樋口円香');
+INSERT INTO setlist_performers VALUES('sli_4301dc61-2275-4d9d-b176-5a4f4578d84a','sc_浅倉透');
+INSERT INTO setlist_performers VALUES('sli_4301dc61-2275-4d9d-b176-5a4f4578d84a','sc_市川雛菜');
+INSERT INTO setlist_performers VALUES('sli_0fcff2c2-a065-4ab3-ac6a-be2bcbf2e655','sc_市川雛菜');
+INSERT INTO setlist_performers VALUES('sli_0fcff2c2-a065-4ab3-ac6a-be2bcbf2e655','sc_樋口円香');
+INSERT INTO setlist_performers VALUES('sli_0fcff2c2-a065-4ab3-ac6a-be2bcbf2e655','sc_福丸小糸');
+INSERT INTO setlist_performers VALUES('sli_0fcff2c2-a065-4ab3-ac6a-be2bcbf2e655','sc_浅倉透');
+INSERT INTO setlist_performers VALUES('sli_6a9c8644-85b9-4363-a67f-4e94829d94b3','sc_市川雛菜');
+INSERT INTO setlist_performers VALUES('sli_6a9c8644-85b9-4363-a67f-4e94829d94b3','sc_樋口円香');
+INSERT INTO setlist_performers VALUES('sli_6a9c8644-85b9-4363-a67f-4e94829d94b3','sc_福丸小糸');
+INSERT INTO setlist_performers VALUES('sli_6a9c8644-85b9-4363-a67f-4e94829d94b3','sc_浅倉透');
+INSERT INTO setlist_performers VALUES('sli_6a9c8644-85b9-4363-a67f-4e94829d94b3','sc_芹沢あさひ');
 CREATE TABLE IF NOT EXISTS "show_cast" (
             show_id TEXT NOT NULL,
             idol_id TEXT NOT NULL, cast_role TEXT NOT NULL DEFAULT 'member',
