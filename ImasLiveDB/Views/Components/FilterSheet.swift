@@ -55,7 +55,7 @@ struct BrandFilterSection: View {
         } header: {
             Text("ブランド")
         } footer: {
-            Text("複数選択可能").font(.imasScaled(11)).foregroundStyle(.tertiary)
+            Text("複数選択可能").font(.imasScaled(11)).foregroundStyle(DS.ink3)
         }
     }
 }
@@ -74,7 +74,7 @@ struct BrandIconCell: View {
     @State private var imageService = CustomImageService.shared
 
     private var background: Color {
-        color.map { Color(hexString: $0) } ?? .accentColor
+        color.map { Color(hexString: $0) } ?? DS.sys
     }
 
     private var fontSize: CGFloat {

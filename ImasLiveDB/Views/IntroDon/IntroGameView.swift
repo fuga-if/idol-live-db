@@ -56,7 +56,7 @@ struct IntroGameView: View {
 
             if rushFlash {
                 Image(systemName: rushFlashCorrect ? "circle" : "xmark")
-                    .font(.system(size: 96, weight: .heavy))
+                    .font(.imasScaled(96, weight: .heavy))
                     .foregroundColor(rushFlashCorrect ? ID.correct : ID.incorrect)
                     .shadow(color: (rushFlashCorrect ? ID.correct : ID.incorrect).opacity(0.5), radius: 16)
                     .transition(.scale(scale: 0.6).combined(with: .opacity))
@@ -398,6 +398,8 @@ struct IntroGameView: View {
             if useVoice { beginVoiceListening() }
         } label: {
             Text("!")
+                // 円の直径 (size) に対する比率で決まるグリフ。単独でスケールさせると
+                // 固定直径の円からはみ出すため、ここは意図的に固定 pt のままにする。
                 .font(.system(size: max(48, size * 0.45), weight: .black, design: .rounded))
                 .foregroundColor(canBuzz ? ID.bgDark : ID.t3)
                 .frame(width: size, height: size)
@@ -584,7 +586,7 @@ struct IntroGameView: View {
 
             if let isCorrect = session.isCorrect {
                 Image(systemName: isCorrect ? "checkmark.circle.fill" : "xmark.circle.fill")
-                    .font(.system(size: 40, weight: .bold))
+                    .font(.imasScaled(40, weight: .bold))
                     .foregroundColor(isCorrect ? ID.correct : ID.incorrect)
             }
 

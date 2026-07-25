@@ -23,10 +23,10 @@ struct AboutView: View {
                         .font(.imasTitle2.bold())
                     Text("非公式ファンメイドアプリ")
                         .font(.imasCaption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(DS.ink2)
                     Text("ver. \(appVersion) (\(buildNumber))")
                         .font(.imasScaled(11))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(DS.ink2)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
@@ -100,13 +100,13 @@ struct AboutView: View {
             Section {
                 Text("担当・お気に入り・メモは iCloud に自動バックアップされ、再インストールや機種変更でも復元されます (同じ Apple ID でのサインインが必要)。")
                     .font(.imasCaption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(DS.ink2)
             }
 
             Section {
                 Text("本アプリはアイドルマスターシリーズの非公式ファンメイドアプリです。バンダイナムコエンターテインメント等の権利者とは一切関係ありません。")
                     .font(.imasCaption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(DS.ink2)
             }
         }
         .navigationTitle("アプリについて")
@@ -119,10 +119,10 @@ struct AboutView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(name)
                     .font(.imasSubhead)
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(DS.ink)
                 Text(license)
                     .font(.imasCaption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(DS.ink2)
             }
         }
     }

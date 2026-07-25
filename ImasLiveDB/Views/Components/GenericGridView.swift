@@ -84,7 +84,7 @@ struct GridCardView<Item: GridCardItem>: View {
             if let subtitle = item.subtitle {
                 Text(subtitle)
                     .font(.imasCaption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(DS.ink2)
             }
         }
     }
@@ -107,17 +107,17 @@ struct GridCardView<Item: GridCardItem>: View {
     private var placeholderView: some View {
         ZStack {
             LinearGradient(
-                colors: [Color(.systemGray4), Color(.systemGray5)],
+                colors: [DS.fill, DS.surface2],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
             VStack(spacing: 6) {
                 Image(systemName: item.placeholderSystemImage)
                     .font(.imasScaled( 28))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(DS.ink2)
                 Text(item.title)
                     .font(.imasScaled(11))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(DS.ink2)
                     .multilineTextAlignment(.center)
                     .lineLimit(3)
                     .padding(.horizontal, 8)

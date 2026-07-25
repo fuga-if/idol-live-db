@@ -55,7 +55,7 @@ struct PrivacyPolicyView: View {
 
                 Text("最終更新日: 2026年4月23日")
                     .font(.imasCaption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(DS.ink2)
                     .padding(.top, 8)
             }
             .padding(20)
@@ -71,7 +71,7 @@ struct PrivacyPolicyView: View {
                 .font(.imasHeadline)
             Text(content)
                 .font(.imasSubhead)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(DS.ink2)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }

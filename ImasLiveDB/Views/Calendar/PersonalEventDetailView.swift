@@ -37,7 +37,7 @@ struct PersonalEventDetailView: View {
             Button { dismiss() } label: {
                 Image(systemName: "xmark.circle.fill")
                     .font(.imasScaled( 22))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(DS.ink2)
             }
             .buttonStyle(.plain)
             .accessibilityLabel("閉じる")

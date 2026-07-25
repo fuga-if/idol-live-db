@@ -65,7 +65,7 @@ struct SongTagPicker: View {
                                 Text("「\(trimmedSearch)」を作成").font(.imasSubhead.weight(.semibold))
                                 Spacer()
                             }
-                            .foregroundStyle(Color.accentColor)
+                            .foregroundStyle(DS.sys)
                             .padding(.horizontal, DS.sp4).padding(.vertical, 13)
                             .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
                             .contentShape(Rectangle())

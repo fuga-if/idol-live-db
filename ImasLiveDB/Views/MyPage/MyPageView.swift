@@ -731,7 +731,7 @@ struct MyPageView: View {
             if let code = transferCode {
                 VStack(alignment: .leading, spacing: DS.sp2) {
                     Text(code)
-                        .font(.system(.title, design: .monospaced, weight: .bold))
+                        .font(.imasScaled(28, weight: .bold, design: .monospaced))
                         .textSelection(.enabled)
                     if let expiresAt = transferCodeExpiresAt {
                         Text("24時間有効・1回のみ使用可能です (期限: \(expiresAt.formatted(date: .abbreviated, time: .shortened)))")
@@ -878,9 +878,9 @@ struct MyPageView: View {
 
     private var syncStateColor: Color {
         switch syncEngine.state {
-        case .idle: return .secondary
-        case .syncing: return .accentColor
-        case .completed: return .green
+        case .idle: return DS.ink2
+        case .syncing: return DS.sys
+        case .completed: return DS.success
         case .error:
             return syncEngine.state == .requiresFullResync ? .orange : .red
         }

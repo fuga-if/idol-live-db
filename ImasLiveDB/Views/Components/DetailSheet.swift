@@ -1024,20 +1024,20 @@ struct ShowHistoryButton: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(eventDisplayName(eventName))
                         .font(.imasSubhead)
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(DS.ink)
                     HStack {
                         Text(showName)
                             .font(.imasCaption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(DS.ink2)
                         Spacer()
                         Text(date)
                             .font(.imasCaption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(DS.ink2)
                     }
                 }
                 Image(systemName: "chevron.right")
                     .font(.imasCaption)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(DS.ink3)
             }
         }
     }

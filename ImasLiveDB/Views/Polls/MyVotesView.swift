@@ -64,7 +64,7 @@ struct MyVotesView: View {
                                     Text(entry.poll.title).textCase(nil)
                                         .font(.imasSubhead.weight(.semibold)).foregroundStyle(DS.ink)
                                     Spacer()
-                                    Text(entry.poll.statusLabel).font(.imasCaption).foregroundStyle(.secondary)
+                                    Text(entry.poll.statusLabel).font(.imasCaption).foregroundStyle(DS.ink2)
                                 }
                             }
                             .buttonStyle(.plain)

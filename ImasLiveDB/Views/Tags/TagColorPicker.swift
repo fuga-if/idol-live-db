@@ -69,7 +69,7 @@ struct TagColorPicker: View {
                 Circle().fill(fill)
             } else {
                 Circle().strokeBorder(Color.secondary.opacity(0.4), lineWidth: 1)
-                Image(systemName: "slash.circle").font(.imasCaption).foregroundStyle(.secondary)
+                Image(systemName: "slash.circle").font(.imasCaption).foregroundStyle(DS.ink2)
             }
             if selected {
                 Circle().strokeBorder(Color.primary, lineWidth: 2.5)

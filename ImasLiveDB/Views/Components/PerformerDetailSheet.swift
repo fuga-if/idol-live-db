@@ -19,11 +19,11 @@ struct PerformerDetailSheet: View {
                             IdolAvatarView(idol: idol, size: 40)
                             Text(idol.name)
                                 .font(.imasBody)
-                                .foregroundStyle(.primary)
+                                .foregroundStyle(DS.ink)
                             Spacer()
                             Image(systemName: "chevron.right")
                                 .font(.imasCaption)
-                                .foregroundStyle(.tertiary)
+                                .foregroundStyle(DS.ink3)
                         }
                     }
                     .buttonStyle(.plain)

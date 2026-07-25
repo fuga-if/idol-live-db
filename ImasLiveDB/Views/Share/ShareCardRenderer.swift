@@ -160,7 +160,7 @@ struct ShareRatioToggle: View {
                     .padding(.vertical, 9)
                     .background(
                         RoundedRectangle(cornerRadius: DS.rMD, style: .continuous)
-                            .fill(selected ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(DS.surface))
+                            .fill(selected ? AnyShapeStyle(DS.sys) : AnyShapeStyle(DS.surface))
                     )
                     .foregroundStyle(selected ? Color.white : DS.ink2)
                 }

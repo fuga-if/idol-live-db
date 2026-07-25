@@ -2,6 +2,10 @@ import SwiftUI
 import UIKit
 
 /// イントロドンの結果を「映える画像」でシェアするためのカード + レンダラ。
+///
+/// NOTE: このファイルのフォントは意図的に `.font(.system(size:))` の固定 pt を使う。
+/// `ImageRenderer` で固定 CGSize のキャンバスへ焼くため、Dynamic Type やアプリ内文字サイズ
+/// 倍率に追随させると出力画像でレイアウトが破綻する。画面表示用の文字は `.imasScaled` を使うこと。
 /// /dev/intro (本家 IntroQuiz) の ShareImage / SoloShareCard の手法を踏襲:
 /// ImageRenderer で SwiftUI カードを UIImage 化 → UIActivityViewController で共有。
 /// カード下部に本家アプリ「イントロクイズ」のダウンロード導線を載せ、広告も兼ねる。

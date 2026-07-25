@@ -165,7 +165,7 @@ private struct PenlightColorChip: View {
                         .overlay(
                             RoundedRectangle(cornerRadius: 8)
                                 .stroke(
-                                    isSelected ? Color.accentColor : DS.sep,
+                                    isSelected ? DS.sys : DS.sep,
                                     lineWidth: isSelected ? 3 : 1
                                 )
                         )

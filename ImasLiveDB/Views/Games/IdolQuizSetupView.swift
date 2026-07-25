@@ -179,7 +179,7 @@ struct IdolQuizSetupView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
                 .background(
-                    canStart ? DS.sys : Color(.systemGray4),
+                    canStart ? DS.sys : DS.fill,
                     in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous)
                 )
         }

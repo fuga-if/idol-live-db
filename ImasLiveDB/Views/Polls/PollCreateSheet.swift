@@ -190,14 +190,14 @@ struct PollCreateSheet: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, DS.sp4)
-            .foregroundStyle(on ? Color.accentColor : DS.ink2)
+            .foregroundStyle(on ? DS.sys : DS.ink2)
             .background(
-                on ? Color.accentColor.opacity(0.12) : DS.surface,
+                on ? DS.sys.opacity(0.12) : DS.surface,
                 in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: DS.rMD, style: .continuous)
-                    .strokeBorder(on ? Color.accentColor : DS.sep, lineWidth: on ? 1.5 : 1)
+                    .strokeBorder(on ? DS.sys : DS.sep, lineWidth: on ? 1.5 : 1)
             )
         }
         .buttonStyle(.plain)
@@ -306,9 +306,9 @@ struct PollCreateSheet: View {
                     .font(.imasSubhead.weight(.semibold))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, DS.sp3)
-                    .foregroundStyle(Color.accentColor)
+                    .foregroundStyle(DS.sys)
                     .background(
-                        Color.accentColor.opacity(0.12),
+                        DS.sys.opacity(0.12),
                         in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous)
                     )
             }

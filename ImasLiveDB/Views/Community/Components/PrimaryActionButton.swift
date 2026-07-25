@@ -5,7 +5,7 @@ struct PrimaryActionButton: View {
     let icon: String
     var isLoading: Bool = false
     var isDisabled: Bool = false
-    var color: Color = .accentColor
+    var color: Color = DS.sys
     let action: () -> Void
 
     var body: some View {
@@ -29,7 +29,7 @@ struct PrimaryActionButton: View {
             .frame(maxWidth: .infinity)
             .padding(.vertical, 16)
             .background(
-                (isDisabled || isLoading) ? Color(.systemGray4) : color,
+                (isDisabled || isLoading) ? DS.fill : color,
                 in: RoundedRectangle(cornerRadius: 14)
             )
             .foregroundStyle(.white)

@@ -27,8 +27,10 @@ enum ID {
     static let t3 = DS.ink3
 
     // MARK: - 反転強調カード → accent CTA
-    static let menuCardDark     = Color.accentColor
-    static let menuCardDarkText = Color.white
+    // ここだけ DS 化から漏れて Color.accentColor のままだった。DS.sys / DS.onSys は
+    // ライト/ダークで反転するので、ダークモードでも白文字固定にならない。
+    static let menuCardDark     = DS.sys
+    static let menuCardDarkText = DS.onSys
 
     // MARK: - Accent → DS
     static let correct   = DS.success

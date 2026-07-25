@@ -34,14 +34,14 @@ struct StackedAvatars: View {
                 // 予約しない (予約すると可視アバターより一回り大きい場所にリングが浮いて見える)。
                 IdolAvatarView(idol: idol, size: size, reservesPickRing: false)
                     .overlay(
-                        Circle().strokeBorder(Color(.systemBackground), lineWidth: 2)
+                        Circle().strokeBorder(DS.surface, lineWidth: 2)
                     )
                     .zIndex(Double(maxVisible - idx))
             }
             if idols.count > maxVisible {
                 Text("+\(idols.count - maxVisible)")
                     .font(.imasScaled(11).bold())
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(DS.ink2)
                     .padding(.leading, 4)
                     .zIndex(0)
             }

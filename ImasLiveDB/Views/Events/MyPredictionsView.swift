@@ -59,7 +59,7 @@ struct MyPredictionsView: View {
                                 HStack {
                                     Text(group.show.name).textCase(nil)
                                     Spacer()
-                                    Text(group.show.date).foregroundStyle(.secondary)
+                                    Text(group.show.date).foregroundStyle(DS.ink2)
                                 }
                             }
                             .buttonStyle(.plain)

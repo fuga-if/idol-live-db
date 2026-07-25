@@ -161,8 +161,7 @@ struct UnitMultiPickerView: View {
                 UnitAvatarView(unit: unit, size: 40)
                 Text(unit.displayName)
                 Spacer()
-                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .foregroundStyle(isSelected ? Color.accentColor : DS.ink2)
+                ImasSelectionMark(isSelected: isSelected, brand: unit.brandId)
             }
         }
         .buttonStyle(.plain)
@@ -210,9 +209,7 @@ struct UnitMultiPickerView: View {
         return VStack(spacing: DS.sp2) {
             UnitAvatarView(unit: unit, size: 60)
                 .overlay(alignment: .bottomTrailing) {
-                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                        .font(.imasScaled(16, weight: .semibold))
-                        .foregroundStyle(isSelected ? Color.accentColor : DS.ink3)
+                    ImasSelectionMark(isSelected: isSelected, brand: unit.brandId)
                         .background(DS.bg, in: Circle())
                         .offset(x: 2, y: 2)
                 }

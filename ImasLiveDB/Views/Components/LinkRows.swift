@@ -2,7 +2,7 @@ import SwiftUI
 
 /// アイドル名表示の統一行レイアウト。
 /// アバター写真 + 名前 + (サブタイトル) + chevron。
-/// Button や NavigationLink でラップしてもテキスト色が青に染まらない (foregroundStyle(.primary) を明示)。
+/// Button や NavigationLink でラップしてもテキスト色が青に染まらない (foregroundStyle(DS.ink) を明示)。
 struct IdolNameRow: View {
     let idol: Idol
     var subtitle: String? = nil
@@ -14,12 +14,12 @@ struct IdolNameRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(idol.name)
                     .font(.imasSubhead)
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(DS.ink)
                     .lineLimit(1)
                 if let subtitle, !subtitle.isEmpty {
                     Text(subtitle)
                         .font(.imasScaled(11))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(DS.ink2)
                         .lineLimit(1)
                 }
             }
@@ -27,7 +27,7 @@ struct IdolNameRow: View {
             if showsChevron {
                 Image(systemName: "chevron.right")
                     .font(.imasCaption)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(DS.ink3)
             }
         }
         .contentShape(Rectangle())
@@ -47,13 +47,13 @@ struct SongTitleRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(song.title)
                     .font(.imasBody)
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(DS.ink)
                     .lineLimit(1)
                 if let label = subtitle ?? song.unitName ?? song.singerLabel,
                    !label.isEmpty {
                     Text(label)
                         .font(.imasScaled(11))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(DS.ink2)
                         .lineLimit(1)
                 }
             }
@@ -61,7 +61,7 @@ struct SongTitleRow: View {
             if showsChevron {
                 Image(systemName: "chevron.right")
                     .font(.imasCaption)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(DS.ink3)
             }
         }
         .contentShape(Rectangle())
@@ -93,12 +93,12 @@ struct UnitNameRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(unit.displayName)
                     .font(.imasSubhead)
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(DS.ink)
                     .lineLimit(1)
                 if let subtitle, !subtitle.isEmpty {
                     Text(subtitle)
                         .font(.imasScaled(11))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(DS.ink2)
                         .lineLimit(1)
                 }
             }
@@ -106,7 +106,7 @@ struct UnitNameRow: View {
             if showsChevron {
                 Image(systemName: "chevron.right")
                     .font(.imasCaption)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(DS.ink3)
             }
         }
         .contentShape(Rectangle())
@@ -125,12 +125,12 @@ struct EventNameRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(eventDisplayName(event.name))
                     .font(.imasSubhead)
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(DS.ink)
                     .lineLimit(2)
                 if let subtitle, !subtitle.isEmpty {
                     Text(subtitle)
                         .font(.imasScaled(11))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(DS.ink2)
                         .lineLimit(1)
                 }
             }
@@ -138,7 +138,7 @@ struct EventNameRow: View {
             if showsChevron {
                 Image(systemName: "chevron.right")
                     .font(.imasCaption)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(DS.ink3)
             }
         }
         .contentShape(Rectangle())

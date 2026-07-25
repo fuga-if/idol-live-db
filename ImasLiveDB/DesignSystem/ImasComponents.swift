@@ -273,13 +273,19 @@ struct ImasSelectionMark: View {
     let isSelected: Bool
     var seed: String? = nil
     var brand: String? = nil
+    /// 実体色そのもの (ユーザーが選んだタグ色等)。指定すると seed/brand より優先する。
+    var color: Color? = nil
     var size: CGFloat = 16
     @Environment(\.colorScheme) private var scheme
 
     var body: some View {
-        let accent: Color = (seed != nil || brand != nil)
-            ? ImasTheme.derive(seed: seed, brand: brand, scheme: scheme).accent
-            : DS.sys
+        let accent: Color = {
+            if let color { return ImasTheme.derive(colorSeed: color, scheme: scheme).accent }
+            if seed != nil || brand != nil {
+                return ImasTheme.derive(seed: seed, brand: brand, scheme: scheme).accent
+            }
+            return DS.sys
+        }()
         Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
             .font(.imasScaled(size, weight: .semibold))
             .foregroundStyle(isSelected ? accent : DS.ink3)

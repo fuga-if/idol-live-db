@@ -71,8 +71,7 @@ struct TagFilterPicker: View {
                                         Text("\(uses)曲").font(.imasCaption).foregroundStyle(DS.ink2)
                                     }
                                     if isSelected(tag) {
-                                        Image(systemName: "checkmark.circle.fill")
-                                            .foregroundStyle(Color.accentColor)
+                                        ImasSelectionMark(isSelected: true, color: tag.color.map { Color(hexColor: $0) })
                                     }
                                 }
                             }

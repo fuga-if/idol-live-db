@@ -23,10 +23,18 @@ struct SongRowView: View {
     /// タグ絞り込み中、その曲に付いたタグ票数。nil で非表示。
     var tagVoteCount: Int? = nil
 
+    @Environment(\.colorScheme) private var scheme
+
     private var song: Song { item.song }
 
     /// フォールバック (画像なし) と行頭リードバーに使うブランド色 hex。
     private var brandHex: String? { Self.brandColorHex(for: song.brandId) }
+
+    /// タグ票数バッジの色。行のブランド色から導出する
+    /// (DS 原則: システム accent を塗らず、色は常にエンティティ側から来る)。
+    private var tagBadgeAccent: Color {
+        ImasTheme.derive(seed: nil, brand: brandHex, scheme: scheme).accent
+    }
 
     private var artworkURL: URL? {
         guard let dbUrl = song.artworkUrl else { return nil }
@@ -82,9 +90,9 @@ struct SongRowView: View {
                             Image(systemName: "tag.fill").font(.imasScaled( 9, weight: .bold))
                             Text("\(tagVoteCount)").font(.imasCaption.weight(.bold)).monospacedDigit()
                         }
-                        .foregroundStyle(Color.accentColor)
+                        .foregroundStyle(tagBadgeAccent)
                         .padding(.horizontal, 6).padding(.vertical, 2)
-                        .background(Color.accentColor.opacity(0.14), in: Capsule())
+                        .background(tagBadgeAccent.opacity(0.14), in: Capsule())
                     }
                 }
 

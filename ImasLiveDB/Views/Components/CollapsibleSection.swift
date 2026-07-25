@@ -34,15 +34,15 @@ struct CollapsibleSection<Content: View>: View {
                 HStack(spacing: 8) {
                     Text(title)
                         .font(.imasSubhead.weight(.semibold))
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(DS.ink)
                         .textCase(nil)
                     Text("\(count)件")
                         .font(.imasCaption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(DS.ink2)
                     Spacer()
                     Image(systemName: "chevron.right")
                         .font(.imasCaption.weight(.semibold))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(DS.ink2)
                         .rotationEffect(.degrees(isExpanded ? 90 : 0))
                 }
                 .contentShape(Rectangle())

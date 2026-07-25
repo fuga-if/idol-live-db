@@ -235,7 +235,7 @@ struct SongListView: View {
                         .font(.imasSubhead.weight(.bold))
                     Text("\(playable)曲")
                         .font(.imasCaption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(DS.ink2)
                     Spacer(minLength: 0)
                 }
                 .foregroundStyle(DS.sys)
@@ -249,7 +249,7 @@ struct SongListView: View {
             } label: {
                 Image(systemName: "xmark")
                     .font(.imasScaled( 12, weight: .bold))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(DS.ink2)
                     .padding(.leading, 10)
                     .contentShape(Rectangle())
             }

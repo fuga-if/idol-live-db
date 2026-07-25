@@ -34,7 +34,7 @@ struct SongPickerView: View {
                                 Text(song.title)
                                 Text(song.id)
                                     .font(.imasScaled(11))
-                                    .foregroundStyle(.tertiary)
+                                    .foregroundStyle(DS.ink3)
                             }
                         }
                         .buttonStyle(.plain)
