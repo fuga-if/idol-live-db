@@ -74,7 +74,6 @@ struct SetlistCommentShareCard: View {
 /// 感想入力 + ライブプレビュー + シェアの compose sheet。
 /// セトリ曲行のコンテキストメニューから開く。
 struct SetlistCommentComposeSheet: View {
-    @Environment(\.dismiss) private var dismiss
     let songTitle: String
     var showName: String?
     var showDate: String?
@@ -110,9 +109,8 @@ struct SetlistCommentComposeSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: DS.sp5) {
+        ShareCardSheet(title: "感想カードを作る", screenName: "setlist_comment_share") {
+            VStack(alignment: .leading, spacing: DS.sp5) {
                     VStack(alignment: .leading, spacing: DS.sp3) {
                         Text("この曲の感想")
                             .font(.imasFootnote.weight(.semibold))
@@ -125,24 +123,13 @@ struct SetlistCommentComposeSheet: View {
                             .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
                     }
 
-                    ShareCardActionPane(
-                        card: { size in card(size: size) },
-                        isPreparingCard: artwork.isPreparing(urlString: artworkUrl)
-                    )
-                }
-                .padding(DS.sp5)
+                ShareCardActionPane(
+                    card: { size in card(size: size) },
+                    isPreparingCard: artwork.isPreparing(urlString: artworkUrl)
+                )
             }
-            .background(DS.bg)
-            .task { await artwork.load(from: artworkUrl) }
-            .navigationTitle("感想カードを作る")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("閉じる") { dismiss() }
-                }
-            }
-            .onAppear { commentFocused = true }
-            .trackScreen("setlist_comment_share")
         }
+        .task { await artwork.load(from: artworkUrl) }
+        .onAppear { commentFocused = true }
     }
 }

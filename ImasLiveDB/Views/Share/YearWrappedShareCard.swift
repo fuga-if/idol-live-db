@@ -309,7 +309,6 @@ struct YearWrappedShareCard: View {
 /// MyPage の「今年のまとめをシェア」から開く年間まとめ sheet。
 /// 既定で今年を表示し、データのある過去年があれば年セグメントで切り替えられる。
 struct YearWrappedShareSheet: View {
-    @Environment(\.dismiss) private var dismiss
 
     /// 選択可能な年 (参加実績のある年・降順)。空なら今年だけ出す。
     @State private var availableYears: [Int] = []
@@ -318,46 +317,34 @@ struct YearWrappedShareSheet: View {
     @State private var isLoading = true
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: DS.sp5) {
-                    if availableYears.count > 1 {
-                        ImasSegmented(
-                            labels: availableYears.map { "\($0)年" },
-                            selection: Binding(
-                                get: { availableYears.firstIndex(of: selectedYear) ?? 0 },
-                                set: { newIndex in
-                                    guard availableYears.indices.contains(newIndex) else { return }
-                                    selectedYear = availableYears[newIndex]
-                                }
-                            )
+        ShareCardSheet(title: "今年のまとめ", screenName: "year_wrapped_share") {
+            VStack(spacing: DS.sp5) {
+                if availableYears.count > 1 {
+                    ImasSegmented(
+                        labels: availableYears.map { "\($0)年" },
+                        selection: Binding(
+                            get: { availableYears.firstIndex(of: selectedYear) ?? 0 },
+                            set: { newIndex in
+                                guard availableYears.indices.contains(newIndex) else { return }
+                                selectedYear = availableYears[newIndex]
+                            }
                         )
-                    }
+                    )
+                }
 
-                    if isLoading {
-                        ImasInlineLoading()
-                    } else if let stats, stats.hasContent {
-                        ShareCardActionPane { size in
-                            YearWrappedShareCard(stats: stats, size: size)
-                        }
-                    } else {
-                        emptyState
+                if isLoading {
+                    ImasInlineLoading()
+                } else if let stats, stats.hasContent {
+                    ShareCardActionPane { size in
+                        YearWrappedShareCard(stats: stats, size: size)
                     }
-                }
-                .padding(DS.sp5)
-            }
-            .background(DS.bg)
-            .navigationTitle("今年のまとめ")
-            .navigationBarTitleDisplayMode(.inline)
-            .trackScreen("year_wrapped_share")
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("閉じる") { dismiss() }
+                } else {
+                    emptyState
                 }
             }
-            .task { await prepareYears() }
-            .onChange(of: selectedYear) { _, year in Task { await reload(year: year) } }
         }
+        .task { await prepareYears() }
+        .onChange(of: selectedYear) { _, year in Task { await reload(year: year) } }
     }
 
     private var emptyState: some View {

@@ -163,70 +163,28 @@ struct ShareCardPreview<Card: View>: View {
     }
 }
 
-/// アスペクト比トグル。選択中の比率を強調表示する小さなセグメント。
-/// ラベル (1:1 / 4:5 / 9:16) + 用途キャプションを縦に並べ、押下で切替。
-struct ShareRatioToggle: View {
-    @Binding var ratio: ShareCard.Ratio
-
-    var body: some View {
-        HStack(spacing: DS.sp3) {
-            ForEach(ShareCard.Ratio.allCases) { option in
-                let selected = option == ratio
-                Button {
-                    ratio = option
-                } label: {
-                    VStack(spacing: DS.sp1) {
-                        Text(option.label)
-                            .font(.imasSubhead.weight(.bold))
-                        Text(option.caption)
-                            .font(.imasScaled( 10, weight: .medium))
-                            .opacity(0.75)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 9)
-                    .background(
-                        RoundedRectangle(cornerRadius: DS.rMD, style: .continuous)
-                            .fill(selected ? AnyShapeStyle(DS.sys) : AnyShapeStyle(DS.surface))
-                    )
-                    .foregroundStyle(selected ? Color.white : DS.ink2)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("\(option.label) \(option.caption)")
-                .accessibilityAddTraits(selected ? .isSelected : [])
-            }
-        }
-    }
-}
-
-/// プレビュー + 比率トグル + シェア実行ボタンの共通ボディ。
+/// プレビュー + シェア実行ボタンの共通ボディ。
 /// 各エントリポイントの sheet / 完了画面に埋め込んで使う。
 ///
-/// カードは選択中の比率 (`ShareCard.Size`) で都度ビルドし直すため、
-/// `card` は「サイズを受け取ってカードを返すビルダー」で受け取る。
-/// プレビューも生成画像も常に選択中の比率で生成される。
+/// カードは `ShareCard.Size` を受け取って組み立てるので、`card` は
+/// 「サイズを受け取ってカードを返すビルダー」で受け取る。
+/// プレビューと生成画像が必ず同じサイズで作られることを保証するため。
 struct ShareCardActionPane<Card: View>: View {
-    /// 選択中のサイズを受け取りカードを構築するビルダー。
+    /// サイズを受け取りカードを構築するビルダー。
     @ViewBuilder let card: (ShareCard.Size) -> Card
-    /// 比率トグルを表示するか (固定比率で使いたい場合は false)。
-    var showsRatioToggle: Bool = true
     /// ジャケット画像のロード待ちなど、カードがまだ完成形でない間 true を渡すと
     /// シェアボタンが「準備中」になる (中途半端なカードが焼かれるのを防ぐ)。
     var isPreparingCard: Bool = false
 
-    @State private var ratio: ShareCard.Ratio = ShareCard.defaultRatio
     @State private var showRenderError = false
 
-    private var cardSize: ShareCard.Size { ratio.size }
+    // 比率は既定 (縦長) 固定。 1:1 / 4:5 / 9:16 を選ばせていたが、 どれを選んでも
+    // 同じ内容が出るだけで判断の助けにならず、 シートの一番目立つ位置を占めていた。
+    private var cardSize: ShareCard.Size { ShareCard.defaultRatio.size }
 
     var body: some View {
         VStack(spacing: DS.sp5) {
-            if showsRatioToggle {
-                ShareRatioToggle(ratio: $ratio)
-            }
-
             ShareCardPreview(size: cardSize) { card(cardSize) }
-                // 比率切替時にプレビューがふわっと差し替わるように。
-                .animation(.easeInOut(duration: 0.2), value: ratio)
 
             Button {
                 AppAnalytics.tap("share_card.share")
@@ -261,4 +219,36 @@ struct ShareCardActionPane<Card: View>: View {
         }
     }
 
+}
+
+/// シェアカードを出すシートの外枠。
+///
+/// 回収率 / 年まとめ / タグ / 感想 の 4 つが NavigationStack + ScrollView + 背景 +
+/// タイトル + 「閉じる」を各自で書いていて、閉じるの位置が leading と trailing で
+/// 割れていたり、trackScreen を付け忘れていたりした。枠はここに一本化する。
+struct ShareCardSheet<Content: View>: View {
+    let title: String
+    /// AppAnalytics の画面名 (例: "collection_share")。
+    let screenName: String
+    @ViewBuilder var content: Content
+
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                content
+                    .padding(DS.sp5)
+            }
+            .background(DS.bg)
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("閉じる") { dismiss() }
+                }
+            }
+            .trackScreen(screenName)
+        }
+    }
 }

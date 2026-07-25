@@ -106,13 +106,10 @@ struct TagShareCompletionView: View {
                 }
                 .padding(.top, DS.sp4)
 
-                // タグ付与のシェアは 4:5 (TagShareCard のデザイン比率) 固定。
-                // 比率トグルは「選ばせるほどの差が出ない・完了画面で手数が増える」ので出さない。
                 ShareCardActionPane(
                     card: { size in
                         TagShareCard(context: context, artwork: artwork.image, size: size)
                     },
-                    showsRatioToggle: false,
                     isPreparingCard: artwork.isPreparing(urlString: context.artworkUrl)
                 )
 

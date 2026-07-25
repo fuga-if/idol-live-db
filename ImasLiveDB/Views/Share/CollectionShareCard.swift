@@ -156,31 +156,18 @@ struct CollectionShareCard: View {
 /// Stats タブから開く回収率シェア sheet。
 struct CollectionShareSheet: View {
     @Environment(AppDatabase.self) private var database
-    @Environment(\.dismiss) private var dismiss
     @State private var stats: CollectionShareStats?
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                if let stats {
-                    ShareCardActionPane { size in
-                        CollectionShareCard(stats: stats, size: size)
-                    }
-                    .padding(DS.sp5)
-                } else {
-                    ImasInlineLoading()
+        ShareCardSheet(title: "回収率をシェア", screenName: "collection_share") {
+            if let stats {
+                ShareCardActionPane { size in
+                    CollectionShareCard(stats: stats, size: size)
                 }
+            } else {
+                ImasInlineLoading()
             }
-            .background(DS.bg)
-            .navigationTitle("回収率をシェア")
-            .navigationBarTitleDisplayMode(.inline)
-            .trackScreen("collection_share")
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("閉じる") { dismiss() }
-                }
-            }
-            .task { stats = await CollectionShareStats.load() }
         }
+        .task { stats = await CollectionShareStats.load() }
     }
 }
