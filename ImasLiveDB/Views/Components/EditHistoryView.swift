@@ -98,7 +98,7 @@ private struct HistoryRow: View {
                 }
                 if entry.reverted {
                     Text("差戻し済み")
-                        .font(.imasScaled(11).weight(.semibold))
+                        .font(.imasCaption2.weight(.semibold))
                         .foregroundStyle(DS.ink2)
                         .padding(.horizontal, 7)
                         .padding(.vertical, DS.sp1)
@@ -106,7 +106,7 @@ private struct HistoryRow: View {
                 }
                 Spacer(minLength: 4)
                 Text(EditFeedFormat.relativeTime(entry.createdDate))
-                    .font(.imasScaled(11))
+                    .font(.imasCaption2)
                     .foregroundStyle(DS.ink2)
             }
 
@@ -118,7 +118,7 @@ private struct HistoryRow: View {
 
     private var sourceBadge: some View {
         Text(entry.source == "admin" ? "運営" : "巻き戻し")
-            .font(.imasScaled(11).weight(.semibold))
+            .font(.imasCaption2.weight(.semibold))
             .foregroundStyle(DS.warning)
             .padding(.horizontal, 7)
             .padding(.vertical, DS.sp1)
@@ -186,7 +186,7 @@ private struct FieldDiffRow: View {
                     .strikethrough(true, color: DS.ink3)
                     .lineLimit(2)
                 Image(systemName: "arrow.right")
-                    .font(.imasScaled(11))
+                    .font(.imasCaption2)
                     .foregroundStyle(DS.ink3)
                 Text(after?.displayString ?? "(なし)")
                     .font(.imasCaption.weight(.medium))

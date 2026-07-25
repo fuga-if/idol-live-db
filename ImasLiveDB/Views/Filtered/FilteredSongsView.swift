@@ -66,7 +66,7 @@ struct FilteredSongsView: View {
                         VStack(alignment: .leading, spacing: DS.sp1) {
                             SongRowView(item: SongWithArtists(song: item.song, artistNames: item.song.singerLabel ?? ""))
                             Text(item.rolesLabel)
-                                .font(.imasScaled(11))
+                                .font(.imasCaption2)
                                 .foregroundStyle(.tint)
                                 .padding(.leading, 62)
                         }

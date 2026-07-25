@@ -55,7 +55,7 @@ struct BrandFilterSection: View {
         } header: {
             Text("ブランド")
         } footer: {
-            Text("複数選択可能").font(.imasScaled(11)).foregroundStyle(DS.ink3)
+            Text("複数選択可能").font(.imasCaption2).foregroundStyle(DS.ink3)
         }
     }
 }
@@ -95,7 +95,7 @@ struct BrandIconCell: View {
             VStack(spacing: DS.sp2) {
                 iconView
                 Text(label)
-                    .font(.imasScaled(11))
+                    .font(.imasCaption2)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
                     .foregroundStyle(isSelected ? .primary : .secondary)
@@ -617,7 +617,7 @@ struct FilterBarButton: View {
                       : "line.3.horizontal.decrease.circle")
                 if activeCount > 0 {
                     Text("\(activeCount)")
-                        .font(.imasScaled(11).weight(.bold))
+                        .font(.imasCaption2.weight(.bold))
                         .foregroundStyle(.white)
                         .frame(width: 16, height: 16)
                         .background(DS.danger)

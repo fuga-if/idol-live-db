@@ -418,7 +418,7 @@ private struct UnitMemberAddPicker: View {
                     } label: {
                         HStack(spacing: DS.sp3) {
                             Image(systemName: "person.3.fill")
-                                .font(.imasScaled(15))
+                                .font(.imasSubhead)
                                 .foregroundStyle(DS.ink2)
                             VStack(alignment: .leading, spacing: DS.sp1) {
                                 Text(unit.name)

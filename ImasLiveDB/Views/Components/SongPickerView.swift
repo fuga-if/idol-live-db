@@ -33,7 +33,7 @@ struct SongPickerView: View {
                             VStack(alignment: .leading, spacing: DS.sp1) {
                                 Text(song.title)
                                 Text(song.id)
-                                    .font(.imasScaled(11))
+                                    .font(.imasCaption2)
                                     .foregroundStyle(DS.ink3)
                             }
                         }

@@ -57,7 +57,7 @@ struct EventSearchPickerView: View {
                                     .foregroundStyle(DS.ink)
                                 if let brandId = event.brandId {
                                     Text(brandId)
-                                        .font(.imasScaled(11))
+                                        .font(.imasCaption2)
                                         .foregroundStyle(DS.ink2)
                                 }
                             }

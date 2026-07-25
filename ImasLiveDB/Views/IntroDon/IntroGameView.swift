@@ -292,7 +292,7 @@ struct IntroGameView: View {
             HStack(spacing: 5) {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundColor(ID.correct)
-                    .font(.imasScaled( 12))
+                    .font(.imasCaption)
                 Text("\(session.score)")
                     .font(ID.font(15, weight: .bold))
                     .monospacedDigit()
@@ -741,7 +741,7 @@ private struct IDChoiceButton: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
 
                 Image(systemName: "chevron.right")
-                    .font(.imasScaled(11).weight(.semibold))
+                    .font(.imasCaption2.weight(.semibold))
                     .foregroundColor(ID.t3)
             }
             .padding(.horizontal, 14)

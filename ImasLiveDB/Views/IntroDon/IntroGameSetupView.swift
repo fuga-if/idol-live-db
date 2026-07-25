@@ -255,7 +255,7 @@ struct IntroGameSetupView: View {
                     .foregroundColor(ID.menuText)
                     .lineLimit(1)
                 Text("\(count)曲から出題")
-                    .font(.imasScaled(12))
+                    .font(.imasCaption)
                     .foregroundColor(ID.menuTextSecondary)
             }
             Spacer(minLength: 0)
@@ -299,7 +299,7 @@ struct IntroGameSetupView: View {
                 .font(.imasScaled( 16, weight: .bold))
                 .foregroundColor(ID.accentGold)
             Text("選択した出題範囲の全曲を出し切るまで挑戦。タイムと正答率を競います。")
-                .font(.imasScaled(12))
+                .font(.imasCaption)
                 .foregroundColor(ID.menuTextSecondary)
             Spacer(minLength: 0)
         }
@@ -499,7 +499,7 @@ struct IntroGameSetupView: View {
             Image(systemName: "xmark.circle.fill")
                 .foregroundColor(ID.incorrect)
             Text(msg)
-                .font(.imasScaled( 13))
+                .font(.imasFootnote)
                 .foregroundColor(ID.menuText)
             Spacer()
         }

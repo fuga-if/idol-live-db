@@ -138,7 +138,7 @@ struct IntroDonHomeView: View {
                         .tracking(-0.3)
                         .foregroundColor(ID.menuText)
                     Text("姉妹アプリ「イントロドン」でローカル\n・オンライン対戦ができます")
-                        .font(.imasScaled( 12))
+                        .font(.imasCaption)
                         .foregroundColor(ID.menuTextSecondary)
                         .lineSpacing(2)
                         .padding(.top, DS.sp1)

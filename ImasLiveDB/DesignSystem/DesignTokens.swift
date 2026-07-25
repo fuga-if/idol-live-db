@@ -116,6 +116,9 @@ extension Font {
     static var imasSubhead: Font    { scaled(15, relativeTo: .subheadline, weight: .regular) }
     static var imasFootnote: Font   { scaled(13, relativeTo: .footnote, weight: .regular) }
     static var imasCaption: Font    { scaled(12, relativeTo: .caption1, weight: .regular) }
+    /// 補助ラベル (バッジ内の数字、チップの添え字 等)。 アプリで最も多く使われる小サイズ
+    /// なのに名前が無く、 50 箇所以上が `imasScaled(11)` を直接書いていた。
+    static var imasCaption2: Font   { scaled(11, relativeTo: .caption2, weight: .regular) }
 
     // MARK: - UIKit マッピング (SwiftUI → UIKit の橋渡し)
 

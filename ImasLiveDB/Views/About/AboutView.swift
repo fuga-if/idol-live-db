@@ -25,7 +25,7 @@ struct AboutView: View {
                         .font(.imasCaption)
                         .foregroundStyle(DS.ink2)
                     Text("ver. \(appVersion) (\(buildNumber))")
-                        .font(.imasScaled(11))
+                        .font(.imasCaption2)
                         .foregroundStyle(DS.ink2)
                 }
                 .frame(maxWidth: .infinity)

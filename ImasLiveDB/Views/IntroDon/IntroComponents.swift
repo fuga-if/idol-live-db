@@ -201,7 +201,7 @@ struct IDModeCard: View {
                         .foregroundColor(style.textColor)
                     if let description {
                         Text(description)
-                            .font(.imasScaled( 12))
+                            .font(.imasCaption)
                             .foregroundColor(style.labelColor)
                     }
                 }
@@ -289,7 +289,7 @@ struct IDSectionLabel: View {
                 .foregroundColor(ID.menuTextMuted)
             if let hint {
                 Text(hint)
-                    .font(.imasScaled(11))
+                    .font(.imasCaption2)
                     .minimumScaleFactor(0.8)
                     .foregroundColor(ID.menuTextMuted.opacity(0.7))
             }

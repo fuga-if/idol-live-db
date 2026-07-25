@@ -333,7 +333,7 @@ struct MyPageView: View {
                         #if DEBUG
                         if let uid = AuthService.shared.userId {
                             Text("ID: \(uid)")
-                                .font(.imasScaled(11).monospaced())
+                                .font(.imasCaption2.monospaced())
                                 .foregroundStyle(DS.ink3)
                                 .lineLimit(1)
                                 .truncationMode(.middle)
@@ -568,7 +568,7 @@ struct MyPageView: View {
                     ForEach(importer.failures) { f in
                         VStack(alignment: .leading, spacing: 1) {
                             Text(f.key).font(.imasCaption).bold()
-                            Text(f.reason).font(.imasScaled(11)).foregroundStyle(DS.ink2)
+                            Text(f.reason).font(.imasCaption2).foregroundStyle(DS.ink2)
                         }
                     }
                 } label: {
@@ -690,17 +690,17 @@ struct MyPageView: View {
             if let summary = syncEngine.lastSyncSummary {
                 DisclosureGroup {
                     LabeledContent("modifiedSince", value: summary.modifiedSinceLabel)
-                        .font(.imasScaled(11))
+                        .font(.imasCaption2)
                     LabeledContent("総取得件数", value: "\(summary.totalFetched)")
-                        .font(.imasScaled(11))
+                        .font(.imasCaption2)
                     if summary.fetchedByType.isEmpty {
                         Text("(各 RecordType 0 件)")
-                            .font(.imasScaled(11))
+                            .font(.imasCaption2)
                             .foregroundStyle(DS.ink2)
                     } else {
                         ForEach(summary.fetchedByType.sorted { $0.key < $1.key }, id: \.key) { (k, v) in
                             LabeledContent(k, value: "\(v)")
-                                .font(.imasScaled(11))
+                                .font(.imasCaption2)
                         }
                     }
                 } label: {
@@ -713,27 +713,27 @@ struct MyPageView: View {
             #if DEBUG
             if let diag = syncDiagnostics {
                 DisclosureGroup {
-                    LabeledContent("@ events", value: "\(diag.eventsAt)").font(.imasScaled(11))
-                    LabeledContent("@ shows", value: "\(diag.showsAt)").font(.imasScaled(11))
-                    LabeledContent("@ setlist_items", value: "\(diag.setlistItemsAt)").font(.imasScaled(11))
-                    LabeledContent("ML 13thLIVE event", value: diag.ml13thLiveExists ? "✅" : "❌").font(.imasScaled(11))
-                    LabeledContent("ML 13thLIVE shows", value: "\(diag.ml13thShowsCount)").font(.imasScaled(11))
-                    LabeledContent("ML 13thLIVE items", value: "\(diag.ml13thSetlistItemsCount)").font(.imasScaled(11))
-                    LabeledContent("SC 8th name", value: diag.sc8thName ?? "(nil)").font(.imasScaled(11))
-                    LabeledContent("SC 8th kind", value: diag.sc8thKind ?? "(nil)").font(.imasScaled(11))
-                    LabeledContent("SC 8th shows", value: "\(diag.sc8thShowsCount)").font(.imasScaled(11))
+                    LabeledContent("@ events", value: "\(diag.eventsAt)").font(.imasCaption2)
+                    LabeledContent("@ shows", value: "\(diag.showsAt)").font(.imasCaption2)
+                    LabeledContent("@ setlist_items", value: "\(diag.setlistItemsAt)").font(.imasCaption2)
+                    LabeledContent("ML 13thLIVE event", value: diag.ml13thLiveExists ? "✅" : "❌").font(.imasCaption2)
+                    LabeledContent("ML 13thLIVE shows", value: "\(diag.ml13thShowsCount)").font(.imasCaption2)
+                    LabeledContent("ML 13thLIVE items", value: "\(diag.ml13thSetlistItemsCount)").font(.imasCaption2)
+                    LabeledContent("SC 8th name", value: diag.sc8thName ?? "(nil)").font(.imasCaption2)
+                    LabeledContent("SC 8th kind", value: diag.sc8thKind ?? "(nil)").font(.imasCaption2)
+                    LabeledContent("SC 8th shows", value: "\(diag.sc8thShowsCount)").font(.imasCaption2)
 
                     if let probe = ckQueryProbeResult {
-                        LabeledContent("CK Query probe (showId)", value: probe).font(.imasScaled(11))
+                        LabeledContent("CK Query probe (showId)", value: probe).font(.imasCaption2)
                     }
                     Button {
                         Task { await probeCKQuery() }
                     } label: {
                         Label("CK Query probe", systemImage: "play.circle")
-                            .font(.imasScaled(11))
+                            .font(.imasCaption2)
                     }
                     LabeledContent("reseed 結果", value: AppDatabase.lastReseedStatus)
-                        .font(.imasScaled(11))
+                        .font(.imasCaption2)
                         .textSelection(.enabled)
                         .contextMenu {
                             Button {

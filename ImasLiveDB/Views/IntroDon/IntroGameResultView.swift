@@ -177,7 +177,7 @@ struct IntroGameResultView: View {
         HStack(spacing: 10) {
             Image(systemName: icon)
                 .foregroundColor(ID.accentGold)
-                .font(.imasScaled( 16))
+                .font(.imasCallout)
             Text(text)
                 .font(ID.font(14, weight: .bold))
                 .foregroundColor(ID.menuText)
@@ -224,7 +224,7 @@ struct IntroGameResultView: View {
 
             Image(systemName: record.correct ? "checkmark.circle.fill" : "xmark.circle.fill")
                 .foregroundColor(record.correct ? ID.correct : ID.incorrect)
-                .font(.imasScaled( 16))
+                .font(.imasCallout)
 
             VStack(alignment: .leading, spacing: DS.sp1) {
                 Text(record.title)
@@ -234,7 +234,7 @@ struct IntroGameResultView: View {
 
                 if !record.correct {
                     Text(record.selectedTitle.map { "回答: \($0)" } ?? "スキップ")
-                        .font(.imasScaled(11))
+                        .font(.imasCaption2)
                         .minimumScaleFactor(0.8)
                         .foregroundColor(ID.menuTextSecondary)
                         .lineLimit(1)

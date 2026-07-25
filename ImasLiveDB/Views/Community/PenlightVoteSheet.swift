@@ -171,7 +171,7 @@ private struct PenlightColorChip: View {
                         )
                     if entry.note != nil {
                         Image(systemName: "info.circle.fill")
-                            .font(.imasScaled(11))
+                            .font(.imasCaption2)
                             .foregroundStyle(.white.opacity(0.9))
                             .shadow(radius: 1)
                             .padding(DS.sp2)

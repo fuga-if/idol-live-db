@@ -40,7 +40,7 @@ struct StackedAvatars: View {
             }
             if idols.count > maxVisible {
                 Text("+\(idols.count - maxVisible)")
-                    .font(.imasScaled(11).bold())
+                    .font(.imasCaption2.bold())
                     .foregroundStyle(DS.ink2)
                     .padding(.leading, DS.sp2)
                     .zIndex(0)

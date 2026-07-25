@@ -114,7 +114,7 @@ struct GridCardView<Item: GridCardItem>: View {
                     .font(.imasScaled( 28))
                     .foregroundStyle(DS.ink2)
                 Text(item.title)
-                    .font(.imasScaled(11))
+                    .font(.imasCaption2)
                     .foregroundStyle(DS.ink2)
                     .multilineTextAlignment(.center)
                     .lineLimit(3)

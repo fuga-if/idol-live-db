@@ -149,7 +149,7 @@ struct TagRowView: View {
                     .accessibilityLabel("タグ: \(tag.name)")
                 if let cat = tag.category {
                     Text(cat.rawValue)
-                        .font(.imasScaled(11))
+                        .font(.imasCaption2)
                         .foregroundStyle(DS.ink2)
                         .padding(.horizontal, 6)
                         .padding(.vertical, DS.sp1)

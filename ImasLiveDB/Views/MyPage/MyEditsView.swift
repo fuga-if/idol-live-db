@@ -203,7 +203,7 @@ private struct MyEditRow: View {
                     OpBadge(op: entry.op)
                     if isReverted {
                         Text("差戻し済み")
-                            .font(.imasScaled(11).weight(.semibold))
+                            .font(.imasCaption2.weight(.semibold))
                             .foregroundStyle(DS.ink2)
                             .padding(.horizontal, 7)
                             .padding(.vertical, DS.sp1)
@@ -211,7 +211,7 @@ private struct MyEditRow: View {
                     }
                     Spacer(minLength: 4)
                     Text(EditFeedFormat.relativeTime(entry.createdDate))
-                        .font(.imasScaled(11))
+                        .font(.imasCaption2)
                         .foregroundStyle(DS.ink2)
                 }
 
@@ -284,7 +284,7 @@ struct OpBadge: View {
     var body: some View {
         let (label, color) = EditFeedFormat.opDesign(op)
         Text(label)
-            .font(.imasScaled(11).weight(.semibold))
+            .font(.imasCaption2.weight(.semibold))
             .foregroundStyle(color)
             .padding(.horizontal, 7)
             .padding(.vertical, DS.sp1)

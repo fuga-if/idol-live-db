@@ -26,7 +26,7 @@ struct TagHistoryView: View {
                                 .foregroundStyle(DS.ink2)
                             Spacer()
                             Text(String(entry.editedBy.prefix(8)) + "...")
-                                .font(.imasScaled(11))
+                                .font(.imasCaption2)
                                 .foregroundStyle(DS.ink3)
                         }
                         if let desc = entry.description, !desc.isEmpty {

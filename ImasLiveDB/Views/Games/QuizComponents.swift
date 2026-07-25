@@ -41,7 +41,7 @@ struct QuizProgressHeader: View {
                 Text("第 \(current) / \(total) 問").font(.imasFootnote.weight(.semibold)).foregroundStyle(DS.ink2)
                 Spacer()
                 HStack(spacing: DS.sp2) {
-                    Image(systemName: "star.fill").font(.imasScaled( 12)).foregroundStyle(DS.favorite)
+                    Image(systemName: "star.fill").font(.imasCaption).foregroundStyle(DS.favorite)
                     Text("\(points) pt").font(.imasDisplay(15, weight: .bold)).foregroundStyle(DS.ink)
                 }
             }
@@ -435,7 +435,7 @@ private struct QuizHistoryRow: View {
             VStack(spacing: DS.sp1) {
                 Text("Q\(item.index)").font(.imasCaption.weight(.bold).monospacedDigit()).foregroundStyle(DS.ink3)
                 Image(systemName: item.isCorrect ? "checkmark.circle.fill" : "xmark.circle.fill")
-                    .font(.imasScaled(16))
+                    .font(.imasCallout)
                     .foregroundStyle(item.isCorrect ? DS.success : DS.danger)
             }
             .frame(width: 36)

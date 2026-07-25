@@ -379,7 +379,7 @@ struct IdolDetailView: View {
                         .foregroundStyle(DS.ink)
                         .lineLimit(2)
                     HStack(spacing: DS.sp2) {
-                        Image(systemName: "mappin.and.ellipse").font(.imasScaled( 12))
+                        Image(systemName: "mappin.and.ellipse").font(.imasCaption)
                         Text([row.venue, row.showName].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " ・ "))
                             .lineLimit(1)
                     }

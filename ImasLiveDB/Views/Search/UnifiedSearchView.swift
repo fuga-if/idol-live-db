@@ -85,7 +85,7 @@ struct UnifiedSearchView: View {
                     clearResults()
                 } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .font(.imasScaled(15))
+                        .font(.imasSubhead)
                         .foregroundStyle(DS.ink3)
                 }
                 .buttonStyle(.plain)

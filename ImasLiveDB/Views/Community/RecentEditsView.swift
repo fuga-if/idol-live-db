@@ -318,7 +318,7 @@ private struct EditFeedCard: View {
                             EditOpBadge(op: entry.op)
                             Spacer(minLength: 4)
                             Text(EditFeedFormat.relativeTime(entry.createdDate))
-                                .font(.imasScaled(11))
+                                .font(.imasCaption2)
                                 .foregroundStyle(DS.ink2)
                         }
 
@@ -330,7 +330,7 @@ private struct EditFeedCard: View {
                                 .fixedSize(horizontal: false, vertical: true)
                                 .multilineTextAlignment(.leading)
                             Image(systemName: "chevron.right")
-                                .font(.imasScaled(11).weight(.semibold))
+                                .font(.imasCaption2.weight(.semibold))
                                 .foregroundStyle(DS.ink3)
                         }
 
@@ -451,7 +451,7 @@ private struct EditOpBadge: View {
     var body: some View {
         let (label, color) = EditFeedFormat.opDesign(op)
         Text(label)
-            .font(.imasScaled(11).weight(.semibold))
+            .font(.imasCaption2.weight(.semibold))
             .foregroundStyle(color)
             .padding(.horizontal, 7)
             .padding(.vertical, DS.sp1)

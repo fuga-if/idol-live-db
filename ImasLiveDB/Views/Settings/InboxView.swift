@@ -67,7 +67,7 @@ struct InboxView: View {
                     .foregroundStyle(DS.ink2)
                     .lineLimit(2)
                 Text(a.date)
-                    .font(.imasScaled(11))
+                    .font(.imasCaption2)
                     .foregroundStyle(DS.ink3)
             }
         }

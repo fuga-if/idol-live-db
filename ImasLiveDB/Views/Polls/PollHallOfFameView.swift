@@ -90,7 +90,7 @@ private struct HallOfFameRow: View {
     var body: some View {
         HStack(spacing: DS.sp3) {
             Image(systemName: "crown.fill")
-                .font(.imasScaled(16))
+                .font(.imasCallout)
                 .foregroundStyle(
                     LinearGradient(colors: [DS.warning, .yellow],
                                    startPoint: .top, endPoint: .bottom)

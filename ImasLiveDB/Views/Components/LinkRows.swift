@@ -18,7 +18,7 @@ struct IdolNameRow: View {
                     .lineLimit(1)
                 if let subtitle, !subtitle.isEmpty {
                     Text(subtitle)
-                        .font(.imasScaled(11))
+                        .font(.imasCaption2)
                         .foregroundStyle(DS.ink2)
                         .lineLimit(1)
                 }
@@ -51,7 +51,7 @@ struct SongTitleRow: View {
                 if let label = subtitle ?? song.unitName ?? song.singerLabel,
                    !label.isEmpty {
                     Text(label)
-                        .font(.imasScaled(11))
+                        .font(.imasCaption2)
                         .foregroundStyle(DS.ink2)
                         .lineLimit(1)
                 }
@@ -95,7 +95,7 @@ struct UnitNameRow: View {
                     .lineLimit(1)
                 if let subtitle, !subtitle.isEmpty {
                     Text(subtitle)
-                        .font(.imasScaled(11))
+                        .font(.imasCaption2)
                         .foregroundStyle(DS.ink2)
                         .lineLimit(1)
                 }
@@ -125,7 +125,7 @@ struct EventNameRow: View {
                     .lineLimit(2)
                 if let subtitle, !subtitle.isEmpty {
                     Text(subtitle)
-                        .font(.imasScaled(11))
+                        .font(.imasCaption2)
                         .foregroundStyle(DS.ink2)
                         .lineLimit(1)
                 }

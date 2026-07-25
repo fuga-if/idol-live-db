@@ -446,7 +446,7 @@ private struct SongPickerFilterSheet: View {
                     Text("タグ")
                 } footer: {
                     Text("複数選択時は全てのタグを含む曲だけに絞り込みます。")
-                        .font(.imasScaled(11)).foregroundStyle(DS.ink3)
+                        .font(.imasCaption2).foregroundStyle(DS.ink3)
                 }
 
                 BrandFilterSection(brands: brands, selectedBrandIds: $brandIds)
@@ -461,7 +461,7 @@ private struct SongPickerFilterSheet: View {
                     Text("絞り込み")
                 } footer: {
                     Text("「ライブ履歴のみ」は、セトリ追加で生まれただけでカタログ情報が無い曲 (カバー・歌枠等) を隠します。")
-                        .font(.imasScaled(11)).foregroundStyle(DS.ink3)
+                        .font(.imasCaption2).foregroundStyle(DS.ink3)
                 }
 
                 Section("曲タイプ") {
