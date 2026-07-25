@@ -60,9 +60,10 @@ struct ContentView: View {
         themeOshiColorHex.isEmpty ? nil : Color(hexString: themeOshiColorHex)
     }
 
-    /// TabBar のアクティブ tint だけ .label にする (.tint(.primary) を View 階層に
-    /// かけると配下の Color.accentColor まで上書きされて chip 系が真っ白になるため、
-    /// SwiftUI の .tint() ではなく UITabBar.appearance() を使う。
+    /// TabBar のアクティブ tint だけ .label にする。`.tint(.primary)` を View 階層にかけると
+    /// 配下の tint 依存表示 (Toggle・Link 等の標準コントロール) まで巻き添えになるため、
+    /// SwiftUI の `.tint()` ではなく UITabBar.appearance() を使う。
+    /// (chip 系は既に Color.accentColor をやめ ImasTheme 由来に統一済みなので影響しない)
     init() {
         UITabBar.appearance().tintColor = .label
     }
