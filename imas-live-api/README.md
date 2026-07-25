@@ -145,7 +145,8 @@ Cron (scheduled) は `rate_limits` テーブルの日次掃除 (7 日より古�
 | GET | /tags/:id | - | タグ詳細 |
 | PUT | /tags/:id | Bearer | タグ編集 |
 | GET | /tags/:id/history | - | タグ編集履歴 |
-| POST | /tags/:id/report | X-Device-Id | タグ通報 |
+| POST | /tags/:id/report | X-Device-Id | タグ通報 (3 件で under_review) |
+| DELETE | /tags/:id | admin Bearer | タグ削除 (soft delete: status='removed') |
 | GET | /songs/:id/tags | - | 曲のタグ一覧 |
 | POST | /songs/:id/tags | Bearer | 曲にタグ付与 |
 | DELETE | /songs/:id/tags/:tid | Bearer | 曲のタグ削除 |
@@ -157,6 +158,7 @@ Cron (scheduled) は `rate_limits` テーブルの日次掃除 (7 日より古�
 | PUT | /unit-tags/:id | Bearer | ユニットタグ編集 |
 | GET | /unit-tags/:id/history | - | ユニットタグ編集履歴 |
 | POST | /unit-tags/:id/report | X-Device-Id | ユニットタグ通報 |
+| DELETE | /unit-tags/:id | admin Bearer | ユニットタグ削除 (soft delete) |
 | GET | /units/:id/tags | - | ユニットのタグ一覧 |
 | POST | /units/:id/tags | X-Device-Id | ユニットにタグ付与 |
 | DELETE | /units/:id/tags/:tid | X-Device-Id | ユニットのタグ削除 |
@@ -170,9 +172,20 @@ Cron (scheduled) は `rate_limits` テーブルの日次掃除 (7 日より古�
 | POST | /admin/ban | admin Bearer | ユーザー BAN |
 | POST | /admin/revert-user | admin Bearer | ユーザーの全編集を差し戻し |
 | GET | /admin/users/:id/edits | admin Bearer | 特定ユーザーの編集一覧 |
+| DELETE | /tags/:id | admin Bearer | 曲タグ削除 |
+| DELETE | /idol-tags/:id | admin Bearer | アイドルタグ削除 |
+| DELETE | /unit-tags/:id | admin Bearer | ユニットタグ削除 |
 
 admin エンドポイントは `Authorization: Bearer <セッション JWT>` ヘッダーが必要で、
 `ADMIN_USER_IDS` に含まれるか `users.is_admin = 1` のユーザーのみアクセス可能。
+
+タグ削除は物理削除ではなく `status='removed'` の soft delete。読み取り経路 (一覧 /
+詳細 / 付与 / 曲・アイドル・ユニット別 / 類似) はすべて `status != 'removed'` を見るので
+これだけで全経路から消える。付与実績は残るため、誤操作なら `status` を戻せば復旧できる。
+通報 3 件で付く `under_review` は「印」であって非表示にはしない (削除は人が判断する)。
+
+⚠️ 一覧は `max-age=60`、詳細は `max-age=300` のエッジキャッシュに載るので、削除が
+全ユーザーに行き渡るまで最大 5 分かかる。
 
 ---
 
