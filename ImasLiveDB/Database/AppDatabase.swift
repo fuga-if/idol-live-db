@@ -946,7 +946,13 @@ final class AppDatabase: @unchecked Sendable {
 
         var sql = "SELECT DISTINCT s.* FROM songs s"
         if needsArtistJoin {
-            sql += " JOIN song_artists sa ON s.id = sa.song_id JOIN idols i ON sa.idol_id = i.id"
+            // 持ち曲 (role='original') だけに絞る。role を見ないと 'performer'
+            // (そのアイドルがライブで一度歌っただけの曲) まで拾ってしまい、
+            // 「このアイドルの曲」を見たいのに他人の持ち曲がずらりと並ぶ。
+            // 担当アイドル絞り込み (fetchSongIdsWithAnyArtistQuery) 側は元から original 限定で、
+            // ここだけ条件が抜けていた。
+            sql += " JOIN song_artists sa ON s.id = sa.song_id AND sa.role = 'original'"
+            sql += " JOIN idols i ON sa.idol_id = i.id"
             if hasIdolIds, let idolIds = filter.idolIds, !idolIds.isEmpty {
                 let placeholders = idolIds.map { _ in "?" }.joined(separator: ",")
                 conditions.append("sa.idol_id IN (\(placeholders))")

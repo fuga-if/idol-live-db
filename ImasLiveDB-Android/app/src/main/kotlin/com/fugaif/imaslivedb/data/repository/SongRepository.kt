@@ -89,7 +89,11 @@ class SongRepository(private val db: AppDatabase) {
 
         var sql = "SELECT DISTINCT s.* FROM songs s"
         if (needsArtistJoin) {
-            sql += " JOIN song_artists sa ON s.id = sa.song_id JOIN idols i ON sa.idol_id = i.id"
+            // 持ち曲 (role='original') だけに絞る。role を見ないと 'performer'
+            // (そのアイドルがライブで一度歌っただけの曲) まで拾ってしまい、
+            // 「このアイドルの曲」を見たいのに他人の持ち曲がずらりと並ぶ。
+            sql += " JOIN song_artists sa ON s.id = sa.song_id AND sa.role = 'original'"
+            sql += " JOIN idols i ON sa.idol_id = i.id"
             if (hasIdolIds) {
                 val placeholders = filter.idolIds!!.joinToString(",") { "?" }
                 conditions.add("sa.idol_id IN ($placeholders)")

@@ -136,8 +136,11 @@ interface SongDao {
     )
     suspend fun fetchSongCollectedCounts(): List<SongPerfCount>
 
-    /** 指定アイドルのいずれかが歌唱者にいる song_id 集合 (担当マーク由来の「担当」表示用)。 */
-    @Query("SELECT DISTINCT song_id FROM song_artists WHERE idol_id IN (:idolIds)")
+    /**
+     * 指定アイドルのいずれかが**歌唱者 (role='original')** の song_id 集合 (担当マーク由来の「担当」表示用)。
+     * role を見ないとライブで一度歌っただけの曲まで「担当の曲」になってしまう (iOS 側は元から original 限定)。
+     */
+    @Query("SELECT DISTINCT song_id FROM song_artists WHERE role = 'original' AND idol_id IN (:idolIds)")
     suspend fun fetchSongIdsWithAnyArtist(idolIds: List<String>): List<String>
 
     @Query("""
