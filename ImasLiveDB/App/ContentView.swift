@@ -11,7 +11,13 @@ extension Notification.Name {
 }
 
 /// 検索画面を開くときの要求。呼び出し元タブのスコープを引き継ぐ。
-struct SearchRequest {
+///
+/// `Identifiable` にして `.sheet(item:)` で提示する。`.sheet(isPresented:)` + 別 `@State` だと
+/// 「要求の格納」と「提示フラグ」が別更新になり、初回提示で content closure が更新前の
+/// 要求を読んでスコープが `.all` に落ちることがあった (実機で再現)。item 方式なら値と提示が
+/// 不可分になる。`id` を毎回変えることで、同じスコープでも再提示できる。
+struct SearchRequest: Identifiable {
+    let id = UUID()
     var scope: UnifiedSearchScope = .all
     var query: String = ""
 }
@@ -23,9 +29,8 @@ struct ContentView: View {
         }
         return 0
     }()
-    @State private var showSearch = false
-    /// 呼び出し元タブから引き継いだ検索スコープ・初期クエリ。
-    @State private var searchRequest = SearchRequest()
+    /// 提示中の検索要求 (nil = 非表示)。呼び出し元タブのスコープ・初期クエリを運ぶ。
+    @State private var searchRequest: SearchRequest?
     /// 設定・マイページ sheet (全タブ共通)。
     @State private var showSettings = false
     /// deeplink (Universal Links / imaslivedb://) で開く詳細 sheet。
@@ -97,13 +102,12 @@ struct ContentView: View {
         .environment(\.font, .imasBody)
         .onReceive(NotificationCenter.default.publisher(for: .openSearch)) { note in
             searchRequest = (note.object as? SearchRequest) ?? SearchRequest()
-            showSearch = true
         }
         .onReceive(NotificationCenter.default.publisher(for: .openSettings)) { _ in
             showSettings = true
         }
-        .sheet(isPresented: $showSearch, onDismiss: presentPendingDeeplink) {
-            UnifiedSearchView(initialScope: searchRequest.scope, initialQuery: searchRequest.query)
+        .sheet(item: $searchRequest, onDismiss: presentPendingDeeplink) { request in
+            UnifiedSearchView(initialScope: request.scope, initialQuery: request.query)
         }
         .sheet(isPresented: $showSettings, onDismiss: presentPendingDeeplink) {
             MyPageView().environment(database).environment(syncEngine)
@@ -160,9 +164,9 @@ struct ContentView: View {
             return
         }
         pendingDeeplinkDestination = destination
-        if showSearch || showSettings {
+        if searchRequest != nil || showSettings {
             // 開いている sheet を閉じる → onDismiss → presentPendingDeeplink で提示する。
-            showSearch = false
+            searchRequest = nil
             showSettings = false
         } else {
             presentPendingDeeplink()

@@ -338,7 +338,7 @@ struct PollCreateSheet: View {
 
     private var idolPickerSheet: some View {
         IdolPickerView(
-            title: "候補アイドルを選択",
+            title: "候補アイドル",
             idols: allIdolsForPicker,
             selected: Set(selectedIdols.map(\.id))
         ) { newIds in

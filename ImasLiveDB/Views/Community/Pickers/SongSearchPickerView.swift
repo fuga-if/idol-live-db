@@ -543,7 +543,7 @@ private struct SongPickerFilterSheet: View {
             }
             .sheet(isPresented: $showIdolPicker) {
                 IdolPickerView(
-                    title: "アイドルで絞り込み",
+                    title: "アイドル",
                     idols: idols,
                     selected: selectedIdolIds
                 ) { selectedIdolIds = $0 }

@@ -10,16 +10,23 @@ import SwiftUI
 /// - 呼び出し元のタブに応じた `initialScope` で開く (楽曲タブから開けば楽曲スコープ)。
 /// - 結果タップは sheet ではなく push。旧全体検索は sheet on sheet で行き止まりになっていた。
 struct UnifiedSearchView: View {
-    /// 各タブの虫眼鏡から引き継ぐ初期スコープ。
-    var initialScope: UnifiedSearchScope = .all
     /// 外部から引き継ぐ初期クエリ (ディープリンク等)。空なら履歴表示で開く。
-    var initialQuery: String = ""
+    private let initialQuery: String
 
     @Environment(AppDatabase.self) private var database
     @Environment(\.dismiss) private var dismiss
 
-    @State private var searchText = ""
-    @State private var scope: UnifiedSearchScope = .all
+    @State private var searchText: String
+    /// 初期スコープは `@State` の初期値として渡す。`onAppear` で代入すると
+    /// 最初の 1 フレームだけ `.all` が描かれてセグメントがちらつく。
+    @State private var scope: UnifiedSearchScope
+
+    init(initialScope: UnifiedSearchScope = .all, initialQuery: String = "") {
+        self.initialQuery = initialQuery
+        _scope = State(initialValue: initialScope)
+        _searchText = State(initialValue: initialQuery)
+    }
+
     @State private var results = SearchResults(songs: [], idols: [], events: [])
     @State private var isSearching = false
     @State private var searchTask: Task<Void, Never>?
@@ -48,11 +55,7 @@ struct UnifiedSearchView: View {
             }
         }
         .onAppear {
-            scope = initialScope
-            if searchText.isEmpty && !initialQuery.isEmpty {
-                searchText = initialQuery
-                scheduleSearch(initialQuery)
-            }
+            if !initialQuery.isEmpty { scheduleSearch(initialQuery, debounce: false) }
             isTextFieldFocused = true
         }
         .trackScreen("search")

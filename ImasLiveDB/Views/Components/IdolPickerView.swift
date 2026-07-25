@@ -13,7 +13,9 @@ import SwiftUI
 struct IdolPickerView: View {
     enum Mode { case single, multi }
 
-    var title: String = "アイドルを選択"
+    /// ナビバーのタイトル。ツールバー項目が最大 4 つ並ぶので **短く** すること
+    /// (長いと iOS が「アイド…」のように省略する)。
+    var title: String = "アイドル"
     var mode: Mode = .multi
     /// 呼び出し元が既に持っているアイドル配列。空なら自力でロードする。
     var idols: [Idol] = []
@@ -33,7 +35,7 @@ struct IdolPickerView: View {
     @AppStorage("idol_picker_mode") private var displayModeRaw: String = IdolListMode.grid.rawValue
 
     init(
-        title: String = "アイドルを選択",
+        title: String = "アイドル",
         mode: Mode = .multi,
         idols: [Idol] = [],
         selected: Set<String> = [],

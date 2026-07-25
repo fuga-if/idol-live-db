@@ -264,7 +264,7 @@ struct PollDetailView: View {
                 return allIdols
             }()
             IdolPickerView(
-                title: "投票するアイドルを選択",
+                title: "投票する",
                 idols: pickIdols,
                 selected: Set(detail.entries.filter(\.hasUserVoted).map(\.entityId))
             ) { selectedIds in
