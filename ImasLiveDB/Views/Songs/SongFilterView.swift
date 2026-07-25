@@ -174,9 +174,7 @@ struct SongFilterView: View {
                                 }
                             }
                             Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.imasCaption)
-                                .foregroundStyle(DS.ink3)
+                            ImasRowChevron()
                         }
                     }
                 }

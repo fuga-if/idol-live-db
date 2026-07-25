@@ -476,9 +476,7 @@ private struct IdolRowView: View {
             MyPickToggleButton(id: idol.id)
             FavoriteToggleButton(entity: .idol, id: idol.id)
 
-            Image(systemName: "chevron.right")
-                .font(.imasScaled( 14, weight: .semibold))
-                .foregroundStyle(DS.ink3)
+            ImasRowChevron()
                 .padding(.trailing, DS.sp2)
         }
         .padding(.vertical, DS.sp3)

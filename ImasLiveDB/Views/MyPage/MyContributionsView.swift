@@ -39,9 +39,7 @@ struct MyContributionsView: View {
                     Text("ライブ・楽曲・セトリの編集履歴").font(.imasCaption).foregroundStyle(DS.ink3)
                 }
                 Spacer(minLength: 0)
-                Image(systemName: "chevron.right")
-                    .font(.imasCaption)
-                    .foregroundStyle(DS.ink3)
+                ImasRowChevron()
             }
             .padding(.horizontal, DS.sp4).padding(.vertical, DS.sp3)
             .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))

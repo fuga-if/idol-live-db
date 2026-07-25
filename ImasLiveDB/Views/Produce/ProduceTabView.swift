@@ -604,9 +604,7 @@ private struct ProduceEventRow: View {
                 }
             }
             Spacer(minLength: 8)
-            Image(systemName: "chevron.right")
-                .font(.imasScaled( 13, weight: .semibold))
-                .foregroundStyle(DS.ink3)
+            ImasRowChevron()
         }
         .padding(.horizontal, DS.sp4)
         .padding(.vertical, DS.sp3)

@@ -25,9 +25,7 @@ struct IdolNameRow: View {
             }
             Spacer(minLength: 8)
             if showsChevron {
-                Image(systemName: "chevron.right")
-                    .font(.imasCaption)
-                    .foregroundStyle(DS.ink3)
+                ImasRowChevron()
             }
         }
         .contentShape(Rectangle())
@@ -60,9 +58,7 @@ struct SongTitleRow: View {
             }
             Spacer(minLength: 8)
             if showsChevron {
-                Image(systemName: "chevron.right")
-                    .font(.imasCaption)
-                    .foregroundStyle(DS.ink3)
+                ImasRowChevron()
             }
         }
         .contentShape(Rectangle())
@@ -106,9 +102,7 @@ struct UnitNameRow: View {
             }
             Spacer(minLength: 8)
             if showsChevron {
-                Image(systemName: "chevron.right")
-                    .font(.imasCaption)
-                    .foregroundStyle(DS.ink3)
+                ImasRowChevron()
             }
         }
         .contentShape(Rectangle())
@@ -138,9 +132,7 @@ struct EventNameRow: View {
             }
             Spacer(minLength: 8)
             if showsChevron {
-                Image(systemName: "chevron.right")
-                    .font(.imasCaption)
-                    .foregroundStyle(DS.ink3)
+                ImasRowChevron()
             }
         }
         .contentShape(Rectangle())

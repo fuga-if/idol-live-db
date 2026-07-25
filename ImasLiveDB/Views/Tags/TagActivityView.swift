@@ -106,9 +106,7 @@ struct TagActivityView: View {
                         .font(.imasCaption)
                         .foregroundStyle(DS.ink3)
                 }
-                Image(systemName: "chevron.right")
-                    .font(.imasScaled(13, weight: .semibold))
-                    .foregroundStyle(DS.ink3)
+                ImasRowChevron()
             }
             .padding(.horizontal, DS.sp4)
             .padding(.vertical, 10)
@@ -161,9 +159,7 @@ struct TagActivityView: View {
                         .font(.imasFootnote.weight(.bold))
                 }
                 .foregroundStyle(DS.favorite)
-                Image(systemName: "chevron.right")
-                    .font(.imasScaled(13, weight: .semibold))
-                    .foregroundStyle(DS.ink3)
+                ImasRowChevron()
             }
             .padding(.horizontal, DS.sp4)
             .padding(.vertical, 10)

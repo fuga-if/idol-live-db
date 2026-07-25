@@ -21,9 +21,7 @@ struct PerformerDetailSheet: View {
                                 .font(.imasBody)
                                 .foregroundStyle(DS.ink)
                             Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.imasCaption)
-                                .foregroundStyle(DS.ink3)
+                            ImasRowChevron()
                         }
                     }
                     .buttonStyle(.plain)

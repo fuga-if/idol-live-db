@@ -439,7 +439,7 @@ private struct SongPickerFilterSheet: View {
                                 Text(selectedTags.map(\.name).joined(separator: " ＋ "))
                             }
                             Spacer()
-                            Image(systemName: "chevron.right").font(.imasCaption).foregroundStyle(DS.ink3)
+                            ImasRowChevron()
                         }
                     }
                 } header: {
@@ -488,7 +488,7 @@ private struct SongPickerFilterSheet: View {
                                 }
                             }
                             Spacer()
-                            Image(systemName: "chevron.right").font(.imasCaption).foregroundStyle(DS.ink3)
+                            ImasRowChevron()
                         }
                     }
                 }

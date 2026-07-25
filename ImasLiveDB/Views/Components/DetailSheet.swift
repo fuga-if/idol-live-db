@@ -444,7 +444,7 @@ struct SongSheetContent: View {
             if let badge {
                 Text(badge).font(.imasCaption.weight(.semibold)).foregroundStyle(DS.ink3)
             }
-            Image(systemName: "chevron.right").font(.imasCaption.weight(.semibold)).foregroundStyle(DS.ink3)
+            ImasRowChevron()
         }
         .padding(.horizontal, DS.sp5).padding(.vertical, 9)
         .contentShape(Rectangle())
@@ -496,7 +496,7 @@ struct SongSheetContent: View {
                     .font(.imasCaption).foregroundStyle(DS.ink2).lineLimit(1)
             }
             Spacer(minLength: 8)
-            Image(systemName: "chevron.right").font(.imasScaled( 13, weight: .semibold)).foregroundStyle(DS.ink3)
+            ImasRowChevron()
         }
         .padding(.horizontal, DS.sp5).padding(.vertical, 11)
         .contentShape(Rectangle())
@@ -659,7 +659,7 @@ struct SongSheetContent: View {
                         .font(.imasCaption).foregroundStyle(DS.ink2).lineLimit(1)
                 }
                 Spacer(minLength: 8)
-                Image(systemName: "chevron.right").font(.imasScaled( 13, weight: .semibold)).foregroundStyle(DS.ink3)
+                ImasRowChevron()
             }
             .padding(.horizontal, DS.sp4).padding(.vertical, 10)
             .contentShape(Rectangle())
@@ -1045,9 +1045,7 @@ struct ShowHistoryButton: View {
                             .foregroundStyle(DS.ink2)
                     }
                 }
-                Image(systemName: "chevron.right")
-                    .font(.imasCaption)
-                    .foregroundStyle(DS.ink3)
+                ImasRowChevron()
             }
         }
     }

@@ -155,11 +155,15 @@ struct ImasLeadBar: View {
 
 // MARK: - リードバー付きの一覧行
 
-/// 一覧行の末尾に出す「>」。 行コンポーネント間で大きさが揃うようにここに集約する。
+/// 一覧行の末尾に出す「>」。
+///
+/// 41 箇所が 12pt regular / 12pt semibold / 12pt bold / 13pt semibold / 14pt semibold /
+/// 16pt semibold と 6 通りに散らばっていた。 最多だった 12pt regular と次点の
+/// 13pt semibold の中間を採り、 グリフとして視認しやすい **13pt semibold** に統一する。
 struct ImasRowChevron: View {
     var body: some View {
         Image(systemName: "chevron.right")
-            .font(.imasScaled(14, weight: .semibold))
+            .font(.imasScaled(13, weight: .semibold))
             .foregroundStyle(DS.ink3)
     }
 }

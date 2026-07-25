@@ -364,9 +364,7 @@ private struct SetlistEditRow: View {
                         .foregroundStyle(row.songId.isEmpty ? DS.ink2 : DS.ink)
                         .lineLimit(2)
                     Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.imasCaption)
-                        .foregroundStyle(DS.ink3)
+                    ImasRowChevron()
                 }
             }
             .buttonStyle(.plain)

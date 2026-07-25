@@ -90,9 +90,7 @@ struct IdolTagDetailView: View {
                                         Text("\(entry.voteCount)票")
                                             .font(.imasCaption.monospacedDigit())
                                             .foregroundStyle(DS.ink2)
-                                        Image(systemName: "chevron.right")
-                                            .font(.imasCaption)
-                                            .foregroundStyle(DS.ink3)
+                                        ImasRowChevron()
                                     }
                                 }
                                 .buttonStyle(.plain)

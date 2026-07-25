@@ -281,9 +281,7 @@ struct UnitDetailView: View {
                     }
                 }
                 Spacer(minLength: 0)
-                Image(systemName: "chevron.right")
-                    .font(.imasScaled(13, weight: .semibold))
-                    .foregroundStyle(DS.ink3)
+                ImasRowChevron()
             }
             .padding(.horizontal, DS.sp4)
             .padding(.vertical, 10)

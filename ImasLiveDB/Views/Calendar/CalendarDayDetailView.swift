@@ -281,9 +281,7 @@ struct DayEntryRow: View {
     }
 
     private var chevron: some View {
-        Image(systemName: "chevron.right")
-            .font(.imasScaled( 13, weight: .semibold))
-            .foregroundStyle(DS.ink3)
+        ImasRowChevron()
     }
 
 }

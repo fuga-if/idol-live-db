@@ -230,9 +230,7 @@ struct SongEditView: View {
                             .multilineTextAlignment(.leading)
                     }
                     Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.imasCaption)
-                        .foregroundStyle(DS.ink3)
+                    ImasRowChevron()
                 }
             }
             .buttonStyle(.plain)
