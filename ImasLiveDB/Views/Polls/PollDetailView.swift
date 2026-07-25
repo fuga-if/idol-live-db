@@ -21,6 +21,8 @@ struct PollDetailView: View {
     @State private var allUnits: [Unit] = []
     /// スコープ表示用のブランド辞書 (brand スコープ時のみ使う)。
     @State private var brandsById: [String: Brand] = [:]
+    /// 自分が投票した候補の表示名 (シェア文面用)。entityId は不透明キーなので master で解決する。
+    @State private var myVoteNames: [String] = []
 
     init(pollId: String) {
         _vm = State(initialValue: PollDetailViewModel(pollId: pollId, voting: AppContainer.shared.communityVoting))
@@ -53,12 +55,23 @@ struct PollDetailView: View {
                 .environment(database)
         }
         .toolbar {
+            if let poll {
+                ToolbarItem(placement: .topBarTrailing) {
+                    // お題そのもののシェア (「このお題に投票しよう！」)。投票有無に関係なく常に出す。
+                    SocialShareMenu(payload: pollPayload(poll: poll), analyticsKey: "poll_detail.share_poll") {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+                    .accessibilityLabel("このお題をシェア")
+                }
+            }
             if let poll, canDelete(poll: poll) {
                 ToolbarItem(placement: .topBarTrailing) {
                     deleteButton(poll: poll)
                 }
             }
         }
+        // 自分の票が変わるたびに表示名を解決し直す (シェア文面の候補名に使う)。
+        .task(id: myVotedEntityIds) { await loadMyVoteNames() }
         .alert("エラー", isPresented: Binding(
             get: { vm.deleteErrorMessage != nil },
             set: { if !$0 { vm.deleteErrorMessage = nil } }
@@ -88,6 +101,8 @@ struct PollDetailView: View {
                 pollHeader(poll: detail.poll)
                 rankingSection(detail: detail)
                 voteSection(detail: detail)
+                // 自分の投票のシェアは締切後も残す (結果が出てからの方が話題になる)。
+                myVoteShareBar(poll: detail.poll)
             }
             .padding(.horizontal, DS.sp5)
             .padding(.vertical, DS.sp4)
@@ -158,6 +173,71 @@ struct PollDetailView: View {
         }
     }
 
+    // MARK: - Share
+
+    /// 自分が投票した候補の entityId (ランキング順)。シェア文面と名前解決のキー。
+    private var myVotedEntityIds: [String] {
+        vm.detail?.entries.filter(\.hasUserVoted).map(\.entityId) ?? []
+    }
+
+    /// お題そのもののシェア内容 (まだ投票していない人への誘い)。
+    private func pollPayload(poll: Poll) -> SocialSharePayload {
+        SocialSharePayload(
+            message: ShareMessage.pollInvite(title: poll.title, endsAt: poll.isActive ? poll.endsAt : nil),
+            url: DeeplinkBuilder.pollURL(id: poll.id)
+        )
+    }
+
+    /// 「〇〇に投票しました！」のシェア内容。名前が1つも解決できていなければ nil。
+    private func myVotePayload(poll: Poll) -> SocialSharePayload? {
+        guard !myVoteNames.isEmpty else { return nil }
+        return SocialSharePayload(
+            message: ShareMessage.pollVotes(pollTitle: poll.title, entityNames: myVoteNames),
+            url: DeeplinkBuilder.pollURL(id: poll.id)
+        )
+    }
+
+    @ViewBuilder
+    private func myVoteShareBar(poll: Poll) -> some View {
+        if let payload = myVotePayload(poll: poll) {
+            HStack(spacing: DS.sp2) {
+                Text("あなたの投票 \(myVoteNames.count)/\(CommunityVoteLimit.perTarget)")
+                    .font(.imasCaption)
+                    .foregroundStyle(DS.ink3)
+                Spacer(minLength: 8)
+                SocialShareMenu(payload: payload, analyticsKey: "poll_detail.share_votes") {
+                    SocialShareChipLabel(title: "投票をシェア")
+                }
+                .accessibilityLabel("自分の投票をシェア")
+            }
+        }
+    }
+
+    /// entityId (不透明キー) を master から表示名に解決する。解決できない候補は落とす
+    /// (シェア文面に生 ID が出るより、その候補が抜けている方がマシ)。
+    private func loadMyVoteNames() async {
+        let ids = myVotedEntityIds
+        guard !ids.isEmpty, let targetType = vm.poll?.targetType else {
+            myVoteNames = []
+            return
+        }
+        // マイ投票一覧 (MyVotesView) と同じくバッチ解決する。1件ずつ await すると票数分の
+        // ラウンドトリップになるうえ、名前の出どころが2系統に割れる。
+        let namesById: [String: String]
+        switch targetType {
+        case .song:
+            let songs = (try? await AppContainer.shared.songReading.songs(ids: ids)) ?? []
+            namesById = Dictionary(uniqueKeysWithValues: songs.map { ($0.id, $0.title) })
+        case .idol:
+            let idols = (try? await AppContainer.shared.idolReading.idols(ids: ids)) ?? []
+            namesById = Dictionary(uniqueKeysWithValues: idols.map { ($0.id, $0.name) })
+        case .unit:
+            let units = (try? await AppContainer.shared.unitReading.allUnits()) ?? []
+            namesById = Dictionary(uniqueKeysWithValues: units.map { ($0.id, $0.displayName) })
+        }
+        myVoteNames = ids.compactMap { namesById[$0] }
+    }
+
     // MARK: - Ranking
 
     private func rankingSection(detail: PollDetail) -> some View {
@@ -209,7 +289,7 @@ struct PollDetailView: View {
                 }
 
                 // ランキングの各行で直接投票できるので、このボタンは「新しい候補を追加」専用。
-                Text("👍 上のランキングをタップで投票/取消（残り\(remaining)/3）")
+                Text("👍 上のランキングをタップで投票/取消（残り\(remaining)/\(CommunityVoteLimit.perTarget)）")
                     .font(.imasFootnote)
                     .foregroundStyle(DS.ink2)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -222,7 +302,9 @@ struct PollDetailView: View {
                     } label: {
                         HStack {
                             Image(systemName: "plus.circle.fill")
-                            Text(remaining > 0 ? "候補を追加して投票（残り\(remaining)/3）" : "投票済み（3/3）")
+                            Text(remaining > 0
+                                 ? "候補を追加して投票（残り\(remaining)/\(CommunityVoteLimit.perTarget)）"
+                                 : "投票済み（\(CommunityVoteLimit.perTarget)/\(CommunityVoteLimit.perTarget)）")
                                 .font(.imasSubhead.weight(.semibold))
                         }
                         .frame(maxWidth: .infinity)

@@ -39,6 +39,25 @@ struct SetlistPredictionView: View {
 
     private var totalVotes: Int { predictions.reduce(0) { $0 + $1.voteCount } }
 
+    /// 自分が投票済みの曲 (票数順のまま)。残り票数の算出とシェア文面の両方で使う。
+    private var myVotedPredictions: [SetlistPrediction] { predictions.filter(\.hasUserVoted) }
+
+    /// 残り投票可能数 (1公演3票まで)。上限導入前に3票超で投票済みなら 0 に丸める。
+    private var remaining: Int { max(0, CommunityVoteLimit.perTarget - myVotedPredictions.count) }
+
+    /// 「予想を追加」を押せるか。未ログインはログイン誘導のため常に押せる (残票は投票後に効く)。
+    private var canAddVote: Bool { !authService.isSignedIn || remaining > 0 }
+
+    /// 「〇〇に投票しました！」のシェア内容。1票も入れていなければ nil (導線ごと隠す)。
+    private var votePayload: SocialSharePayload? {
+        let titles = myVotedPredictions.map(\.songTitle)
+        guard !titles.isEmpty else { return nil }
+        return SocialSharePayload(
+            message: ShareMessage.predictionVotes(showName: showName, songTitles: titles),
+            url: DeeplinkBuilder.showURL(id: showId)
+        )
+    }
+
     var body: some View {
         Section {
             predictionHeader
@@ -94,6 +113,10 @@ struct SetlistPredictionView: View {
                            message: "「予想を追加」から、来そうな曲に投票しよう",
                            seed: seed)
         } else {
+            // 残票 0 なら未投票曲の「予想」ボタンを落とす (押してから 409 で弾かれるより、
+            // 押せない理由が見えている方が早い)。行ごとに remaining を引くと
+            // filter が行数分走るので、ここで1回だけ畳んで各行に配る。
+            let canAdd = remaining > 0
             VStack(alignment: .leading, spacing: DS.sp2) {
                 ImasListContainer {
                     ForEach(Array(predictions.enumerated()), id: \.element.id) { index, prediction in
@@ -111,6 +134,7 @@ struct SetlistPredictionView: View {
                             prediction: prediction,
                             rank: index + 1,
                             seed: seed,
+                            canAddVote: canAdd,
                             isExpanded: expandedSongIds.contains(prediction.songId),
                             onToggleExpand: { toggleExpand(songId: prediction.songId) },
                             onVote: { await handleVote(prediction: prediction) },
@@ -118,12 +142,32 @@ struct SetlistPredictionView: View {
                         )
                     }
                 }
+                myVoteShareBar
                 if let errorMessage {
                     Label(errorMessage, systemImage: "exclamationmark.triangle")
                         .font(.imasCaption).foregroundStyle(DS.danger)
                         .padding(.leading, DS.sp1)
                 }
             }
+        }
+    }
+
+    /// 自分の予想をまとめてシェアする導線。1票も入れていない間は出さない。
+    @ViewBuilder
+    private var myVoteShareBar: some View {
+        if let votePayload {
+            let t = ImasTheme.derive(seed: seed, scheme: scheme)
+            HStack(spacing: DS.sp2) {
+                Text("あなたの予想 \(myVotedPredictions.count)/\(CommunityVoteLimit.perTarget)")
+                    .font(.imasCaption)
+                    .foregroundStyle(DS.ink3)
+                Spacer(minLength: 8)
+                SocialShareMenu(payload: votePayload, analyticsKey: "setlist_prediction.share") {
+                    SocialShareChipLabel(title: "予想をシェア", accent: t.accent)
+                }
+                .accessibilityLabel("自分のセトリ予想をシェア")
+            }
+            .padding(.top, DS.sp1)
         }
     }
 
@@ -139,6 +183,12 @@ struct SetlistPredictionView: View {
                 if totalVotes > 0 {
                     Text("\(totalVotes)票").font(.imasFootnote.weight(.semibold)).foregroundStyle(DS.ink3)
                 }
+                // 残り票数はログイン済みのときだけ意味を持つ (未ログインは常に3票のままなので出さない)。
+                if authService.isSignedIn {
+                    Text("残り\(remaining)/\(CommunityVoteLimit.perTarget)")
+                        .font(.imasFootnote.weight(.semibold))
+                        .foregroundStyle(remaining > 0 ? DS.ink3 : DS.danger)
+                }
                 Spacer(minLength: 12)
 
                 Button {
@@ -153,9 +203,10 @@ struct SetlistPredictionView: View {
                         Image(systemName: "plus").font(.imasScaled( 13, weight: .semibold))
                         Text("予想を追加").font(.imasScaled( 14, weight: .semibold))
                     }
-                    .foregroundStyle(t.accent)
+                    .foregroundStyle(canAddVote ? t.accent : DS.ink3)
                 }
                 .buttonStyle(.plain)
+                .disabled(!canAddVote)
 
                 utilitiesMenu
             }
@@ -233,22 +284,34 @@ struct SetlistPredictionView: View {
     }
 
     /// 複数曲をまとめて予想追加 (picker の複数選択に対応)。順番に投票し、最後に1回だけ再読込。
+    /// 残票を超える選択は先頭から残票分だけ投票し、溢れた分はメッセージで伝える
+    /// (サーバも 409 で弾くが、何票入ったのかを画面側で確定させる)。
     private func addPredictions(songs: [Song]) async {
         guard authService.isSignedIn, !songs.isEmpty else { return }
+        // 既に投票済みの曲は残票を消費しないので、新規分だけを残票で切り出す。
+        let alreadyVoted = Set(myVotedPredictions.map(\.songId))
+        let newSongs = songs.filter { !alreadyVoted.contains($0.id) }
+        let accepted = Array(newSongs.prefix(remaining))
+        let overflow = newSongs.count - accepted.count
         var failed = 0
-        for song in songs {
+        for song in accepted {
             do {
-                // 既に投票済み (alreadyVoted) でもサーバが現在の票数を返すだけなので、結果は再読込で吸収する。
                 _ = try await predictionService.vote(showId: showId, songId: song.id)
             } catch {
                 failed += 1
                 Logger.community.error("add_prediction_failed song=\(song.id, privacy: .public): \(error.localizedDescription)")
             }
         }
-        if failed > 0 {
-            errorMessage = "\(failed)曲の追加に失敗しました"
+        // loadPredictions() が errorMessage をクリアするので、メッセージは再読込の後に立てる。
+        let notice: String? = if failed > 0 {
+            "\(failed)曲の追加に失敗しました"
+        } else if overflow > 0 {
+            "1公演\(CommunityVoteLimit.perTarget)票までなので、\(overflow)曲は投票できませんでした"
+        } else {
+            nil
         }
         await loadPredictions()
+        if let notice { errorMessage = notice }
     }
 
     /// ログイン必須アクションのゲート。未ログインならログイン誘導 → 完了後に action を実行。
@@ -355,6 +418,8 @@ private struct PredictionRowView: View {
     let prediction: SetlistPrediction
     let rank: Int
     var seed: String? = nil
+    /// 残票が残っているか。false かつ未投票の曲は「予想」ボタンを押せない (投票済みの取消は常に可能)。
+    let canAddVote: Bool
     /// 「歌唱メンバー予想」の展開状態は親 (SetlistPredictionView) が songId キーで保持する。
     /// 行ローカル @State にすると List 再描画/id 衝突で他行へ漏れるため、親から注入する。
     let isExpanded: Bool
@@ -401,6 +466,8 @@ private struct PredictionRowView: View {
                 Spacer(minLength: 4)
 
                 // 投票 = Good ボタン (★お気に入り/★like と区別するため thumbsup)。右寄せ。
+                // 残票切れの未投票曲は押せない (投票済みの取消は上限に関係なく常に可能)。
+                let voteDisabled = !prediction.hasUserVoted && !canAddVote
                 Button {
                     Task { await onVote() }
                 } label: {
@@ -410,7 +477,7 @@ private struct PredictionRowView: View {
                         Text(prediction.hasUserVoted ? "投票済" : "予想")
                             .font(.imasCaption.weight(.semibold))
                     }
-                    .foregroundStyle(prediction.hasUserVoted ? t.onAccent : t.accent)
+                    .foregroundStyle(prediction.hasUserVoted ? t.onAccent : (voteDisabled ? DS.ink3 : t.accent))
                     .padding(.horizontal, 11).padding(.vertical, 7)
                     .background(prediction.hasUserVoted ? AnyShapeStyle(t.accent) : AnyShapeStyle(t.chipBg),
                                 in: Capsule())
@@ -420,6 +487,7 @@ private struct PredictionRowView: View {
                 // List セル内に複数ボタンがある時 .plain だとタップがセル全体に散って効かない。
                 // .borderless で各ボタンにタップをスコープする。
                 .buttonStyle(.borderless)
+                .disabled(voteDisabled)
             }
             .padding(.horizontal, DS.sp4)
             .padding(.top, DS.sp4)

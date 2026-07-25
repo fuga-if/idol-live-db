@@ -8,7 +8,16 @@ struct Show: Codable, FetchableRecord, PersistableRecord, Identifiable, Hashable
     var eventId: String
     var name: String
     var date: String
+    /// 会場の生文字列 (当時名)。`venueId` が未解決の公演でも表示が壊れないよう残すフォールバック。
     var venue: String?
+    /// 会場 ID。名前が変わっても履歴が分断されないよう、同一性はこちらで持つ。
+    /// 配信のみの公演は nil。
+    var venueId: String?
+    /// ホール/構成名 (メインアリーナ / 幕張イベントホール / スタジアムモード 等)。
+    /// `venue_halls.name` と突き合わせてキャパを引く。
+    var hall: String?
+    /// 配信プラットフォーム (ASOBI STAGE 等)。配信は会場ではないのでここへ逃がす。
+    var streamPlatform: String?
     var venueCity: String?
     var startTime: String?
     var sortOrder: Int
@@ -25,7 +34,9 @@ struct Show: Codable, FetchableRecord, PersistableRecord, Identifiable, Hashable
     enum CodingKeys: String, CodingKey {
         case id
         case eventId = "event_id"
-        case name, date, venue
+        case name, date, venue, hall
+        case venueId = "venue_id"
+        case streamPlatform = "stream_platform"
         case venueCity = "venue_city"
         case startTime = "start_time"
         case sortOrder = "sort_order"
@@ -37,6 +48,7 @@ struct Show: Codable, FetchableRecord, PersistableRecord, Identifiable, Hashable
     // MARK: - Associations
 
     static let event = belongsTo(Event.self)
+    static let venue_ = belongsTo(Venue.self)
     static let setlistItems = hasMany(SetlistItem.self)
     static let showCasts = hasMany(ShowCast.self)
     static let idols = hasMany(Idol.self, through: showCasts, using: ShowCast.idol)

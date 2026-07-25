@@ -85,12 +85,18 @@ final class PredictionService {
             let songId: String
             enum CodingKeys: String, CodingKey { case songId = "song_id" }
         }
-        let result: PredictionVoteResult = try await APIClient.shared.request(
-            "POST",
-            path: "/shows/\(showId)/predictions",
-            body: Body(songId: songId),
-            authorized: true
-        )
+        let result: PredictionVoteResult
+        do {
+            result = try await APIClient.shared.request(
+                "POST",
+                path: "/shows/\(showId)/predictions",
+                body: Body(songId: songId),
+                authorized: true
+            )
+        } catch let APIClientError.server(status, _) where status == 409 {
+            // 3票上限 (サーバ生文字列 "vote limit") を専用和文に握り替える (8人上限と同じ流儀)。
+            throw PredictionError.voteLimitReached
+        }
         invalidate(showId: showId)
         return result
     }
@@ -181,6 +187,7 @@ enum PredictionError: LocalizedError {
     case unauthorized
     case rateLimited
     case tooManyPerformers
+    case voteLimitReached
     case notFound
     case invalidResponse
     case serverError(String)
@@ -193,6 +200,8 @@ enum PredictionError: LocalizedError {
             return "投票の制限に達しました。明日またお試しください"
         case .tooManyPerformers:
             return "1曲につき予想できるのは8人までです"
+        case .voteLimitReached:
+            return "1公演につき投票できるのは\(CommunityVoteLimit.perTarget)曲までです"
         case .notFound:
             return "対象が見つかりませんでした"
         case .invalidResponse:

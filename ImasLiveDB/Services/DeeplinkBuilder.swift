@@ -21,6 +21,11 @@ enum DeeplinkBuilder {
         universalLinkBase.appending(components: "app", "shows", id)
     }
 
+    /// みんなの投票のお題への共有 URL (https://…/app/polls/{pollId})。
+    static func pollURL(id: String) -> URL {
+        universalLinkBase.appending(components: "app", "polls", id)
+    }
+
     /// SNS シェア文。イベント名/公演名 + URL のシンプルな形式。
     static func shareText(name: String, url: URL) -> String {
         "\(name)\n\(url.absoluteString)"

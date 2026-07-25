@@ -760,6 +760,64 @@ enum DatabaseMigrations {
             )
         }
 
+        // 会場を ID で管理する。
+        //
+        // それまで `shows.venue` は自由文字列で、同じ会場が最大 14 通りに割れていた
+        // (幕張メッセ = `千葉・幕張メッセイベントホール` / `幕張イベントホール` / `幕張メッセ` …)。
+        // 名前が変わる会場もある (武蔵野の森総合スポーツプラザ → 京王アリーナTOKYO) ため、
+        // 名前ではなく ID で同一性を持たせて履歴が分断されないようにする。
+        migrator.registerMigration("v27_venues") { db in
+            // 施設。ホールは venue_halls 側に分けるので、ここは「建物」の単位。
+            try db.create(table: "venues", ifNotExists: true) { t in
+                t.primaryKey("id", .text)
+                /// 現行名。過去公演の表示には venue_names の当時名を使う。
+                t.column("name", .text).notNull()
+                t.column("name_kana", .text)
+                t.column("prefecture", .text)
+                t.column("city", .text)
+                /// 検索用の別名 (改行区切り)。旧名・通称を入れる。
+                t.column("aliases", .text)
+                /// 施設の代表キャパ (最大構成)。構成で変わる場合は venue_halls が優先。
+                t.column("capacity", .integer)
+                t.column("sort_order", .integer).notNull().defaults(to: 0)
+            }
+
+            // 改名履歴。表示は「公演日時点の名前」なので有効期間で引く。
+            // valid_from が NULL = 開業時から / valid_to が NULL = 現在も。
+            try db.create(table: "venue_names", ifNotExists: true) { t in
+                t.primaryKey("id", .text)
+                t.column("venue_id", .text).notNull().references("venues", onDelete: .cascade)
+                t.column("name", .text).notNull()
+                t.column("valid_from", .text)
+                t.column("valid_to", .text)
+            }
+            try db.create(index: "idx_venue_names_venue", on: "venue_names",
+                          columns: ["venue_id"], ifNotExists: true)
+
+            // ホール/構成。キャパは構成で変わる
+            // (さいたまスーパーアリーナ: スタジアム37,000 / アリーナ22,500) ため施設と分ける。
+            try db.create(table: "venue_halls", ifNotExists: true) { t in
+                t.primaryKey("id", .text)
+                t.column("venue_id", .text).notNull().references("venues", onDelete: .cascade)
+                t.column("name", .text).notNull()
+                t.column("capacity", .integer)
+            }
+            try db.create(index: "idx_venue_halls_venue", on: "venue_halls",
+                          columns: ["venue_id"], ifNotExists: true)
+
+            // shows 側。venue (生文字列) は当時名のフォールバックとして残す
+            // (venue_id が未解決の公演でも表示が壊れないようにするため)。
+            try db.alter(table: "shows") { t in
+                t.add(column: "venue_id", .text)
+                /// ホール名。venue_halls.name と突き合わせてキャパを引く。
+                t.add(column: "hall", .text)
+                /// 配信プラットフォーム (ASOBI STAGE 等)。配信は会場ではないのでここへ逃がす。
+                t.add(column: "stream_platform", .text)
+            }
+            try db.create(index: "idx_shows_venue_id", on: "shows",
+                          columns: ["venue_id"], ifNotExists: true)
+        }
+
         return migrator
     }
 }

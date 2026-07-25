@@ -151,8 +151,12 @@ struct ContentView: View {
 
     private func handleDeeplink(_ url: URL) {
         guard let link = DeeplinkRouter.parse(url) else { return }
-        // 着地タブはライブ (Events)。
-        selectedTab = 1
+        // 着地タブは対象の住所に合わせる (イベント/公演=ライブ、お題=プロデュース)。
+        // シートを閉じた後に「元居た場所」として自然な一覧が残るようにする。
+        selectedTab = switch link {
+        case .poll: 4
+        default: 1
+        }
         let destination: DetailDestination?
         do {
             destination = try DeeplinkRouter.destination(for: link, database: database)
