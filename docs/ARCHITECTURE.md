@@ -196,6 +196,24 @@ ImasLiveDB/
   - **VM 化 (4画面)**: `TagListViewModel` (一覧+フィルタ+検索デバウンス)、`SongTagPickerViewModel` / `IdolTagPickerViewModel` / `UnitTagPickerViewModel` (検索デバウンス+選択+付与+曲版はシェア導線組立)。いずれも `Poll*ViewModel` と同じ `@MainActor @Observable` + `nonisolated init` + ポート注入の型。
   - **VM を導入しなかった9画面**: `TagDetailView` 系3画面・`TagCreateSheet`・`TagEditSheet`・`TagHistoryView`・`TagActivityView`・`TagFilterPicker`・`TagColorPicker`。「fetch+display」または「1回のCRUD呼び出し+dismiss」のみで、既存の `MyVotesView`(フェッチ+多ソース解決、VM無し) / `PollCreateSheet`(単発作成、VM無し) / `PollHallOfFameView`(フェッチのみ、VM無し) と同等の複雑度のため、View から `AppContainer.shared.communityTagReading/communityTagWriting` を直接呼ぶ既存パターンに揃えた (ドキュメント上の許容: 「View: ViewModel にのみ依存 (合成ルート `AppContainer.shared` 経由は可)」)。`TagColorPicker` はそもそもデータ取得を持たない純 UI 部品。
 - **レイヤ違反の機械チェックを CI 化**: `tools/check_domain_purity.sh` を `.github/workflows/architecture-guard.yml` として push(main/develop)/PR 時に実行するようにした (`ImasLiveDB/Domain/**` 変更時)。違反があれば exit 1 でジョブが落ちる。
+- **`AppDatabase` の神オブジェクト解体 (第一段)**: 3,770 行 / 173 関数だった `Database/AppDatabase.swift` を、
+  **起動時 DB セットアップ + reseed だけの 364 行**に縮めた。クエリ群は MARK 境界をそのまま分割線にして
+  `AppDatabase+<領域>Queries.swift` (Event / Song / Idol / Stats / Calendar / Sync / UserMarks の 7 ファイル) へ
+  **純粋移動**した (シグネチャ・本文・順序・コメントは不変)。
+  - 分割線は「`private` メンバーの実依存」で引いた。`hasSetlistCondition` / `eventWithDate` を共有する
+    Event Queries と Filtered Fetch は同じファイル、`realLiveKinds` を共有する Auto Collected と
+    Collection Dashboard も同じファイル。**アクセス修飾子を緩めて分割線を通すことはしない**
+    (`private` → `internal` が必要になったら分割線の方が間違っている)。
+  - これは Repository へクエリ実体を移す作業の前段。Repository が `AppDatabase` へ 1:1 委譲している
+    中間状態は**意図通りのまま**で変えていない。
+  - 併せて、`fooAsync()` と対で存在しながらどこからも呼ばれていない同期版 **54 個 (253 行)** を削除した
+    (実体は共通の `private static func fooQuery` なので実装は 1 つも失われていない)。残るペアは 34 組。
+- **マイグレーション追加規約を明文化**: 既適用判定に旧方式 (`seedMigrationHistoryIfNeeded` の事前挿入) と
+  新方式 (マイグレーション本体を冪等に書く) が混在していたため、**v23 以降は新方式**と
+  `DatabaseMigrations.swift` の先頭に固定した。旧方式のロジックは互換のため不変。
+- **Worker の型チェックを CI 化**: `imas-live-api` は `tsc --noEmit` が通っていなかった (TS2304)。
+  修正のうえ `npm run typecheck` を追加し、`.github/workflows/worker-guard.yml` で
+  typecheck + `wrangler deploy --dry-run` を回すようにした。
 
 ### レイヤ違反の検査
 - `Domain/` 配下で `import SwiftUI|GRDB|CloudKit` を grep して 0 を保つ。**`tools/check_domain_purity.sh`** が自動チェック (違反で exit 1)。pre-commit / CI 組み込み候補。
