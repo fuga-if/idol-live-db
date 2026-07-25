@@ -6,7 +6,6 @@
 // admin はフィールド allowlist を免除 (構造マスタの保守のため)。
 
 import {
-  ckFieldType,
   isKnownRecordType,
   ADMIN_ONLY_TYPES,
   NO_CREATE_TYPES,

@@ -1,5 +1,3 @@
-import type { Env } from "./env";
-
 // validation.ts — リクエスト入力の共通バリデータ
 //
 // index.ts と routes/ の双方から使うため独立させている (index.ts に置くと

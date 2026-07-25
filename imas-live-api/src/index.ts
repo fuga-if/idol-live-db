@@ -1,15 +1,10 @@
 import type { Env } from "./env";
 import {
   verifyAppleToken, verifyGoogleToken, signSessionToken,
-  verifySessionToken, verifySessionTokenForRefresh, getAuthUser,
-  base64UrlEncode, peekJwtIssuer,
+  verifySessionTokenForRefresh, getAuthUser, peekJwtIssuer,
   SESSION_JWT_ISSUER, SESSION_JWT_TTL_SECONDS,
 } from "./auth";
-import { checkRateLimit, dryCheckIpRateLimit, commitIpRateLimit, VOTE_LIMIT } from "./rate_limit";
-import {
-  parsePositiveInt, validateOpaqueKey, escapeLike,
-  parseScopeIds, validateScopeIdsAgainstTable,
-} from "./validation";
+import { checkRateLimit, dryCheckIpRateLimit, commitIpRateLimit } from "./rate_limit";
 import { upsertUser, checkIsAdmin } from "./users";
 import { handleDeviceAggregates } from "./routes/device_aggregates";
 import { handlePolls } from "./routes/polls";

@@ -43,7 +43,7 @@ async function guardWrite(
  * どのルートにも一致しなければ `null` を返し、呼び出し元の if チェーンへ処理を戻す。
  */
 export async function handleDeviceAggregates(ctx: RouteContext): Promise<Response | null> {
-  const { request, env, url, path, json, error, rateLimitSimple } = ctx;
+  const { request, env, url, path, json, error } = ctx;
 
     // ----------------------------------------------------------------
     // POST /favorites/toggle — お気に入り登録/解除
