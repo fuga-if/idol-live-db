@@ -43,6 +43,10 @@ data class IdolListUiState(
     val requireMyPick: Boolean = false,
     val requireFavorite: Boolean = false,
     val requireNote: Boolean = false,
+    /** 並び順。公式順以外はブランドの区切りを外した通し表示になる。 */
+    val sortOrder: IdolSortOrder = IdolSortOrder.OFFICIAL,
+    /** null = sortOrder の既定方向、true=昇順、false=降順。 */
+    val sortAscending: Boolean? = null,
     val pickIds: Set<String> = emptySet(),
     val favoriteIds: Set<String> = emptySet(),
     val noteIds: Set<String> = emptySet(),
@@ -57,7 +61,9 @@ data class IdolListUiState(
             (if (requireNote) 1 else 0)
 
     val filterBadgeCount: Int
-        get() = activeFilterCount + (if (displayMode != IdolDisplayMode.IDOL_NAME) 1 else 0)
+        get() = activeFilterCount +
+            (if (displayMode != IdolDisplayMode.IDOL_NAME) 1 else 0) +
+            (if (sortOrder != IdolSortOrder.OFFICIAL) 1 else 0)
 }
 
 /**
@@ -87,6 +93,14 @@ class IdolListViewModel(app: Application) : AndroidViewModel(app) {
                 IdolListMode.GRID
             } else {
                 IdolListMode.LIST
+            },
+            sortOrder = runCatching {
+                IdolSortOrder.valueOf(prefs.getString(KEY_SORT_ORDER, null) ?: IdolSortOrder.OFFICIAL.name)
+            }.getOrDefault(IdolSortOrder.OFFICIAL),
+            sortAscending = when (prefs.getInt(KEY_SORT_ASCENDING, 0)) {
+                1 -> true
+                2 -> false
+                else -> null
             }
         )
     )
@@ -183,11 +197,15 @@ class IdolListViewModel(app: Application) : AndroidViewModel(app) {
         showCV: Boolean,
         requireMyPick: Boolean,
         requireFavorite: Boolean,
-        requireNote: Boolean
+        requireNote: Boolean,
+        sortOrder: IdolSortOrder,
+        sortAscending: Boolean?
     ) {
         prefs.edit()
             .putString(KEY_DISPLAY_MODE, if (displayMode == IdolDisplayMode.CV_NAME) VALUE_CV else VALUE_IDOL)
             .putBoolean(KEY_SHOW_CV, showCV)
+            .putString(KEY_SORT_ORDER, sortOrder.name)
+            .putInt(KEY_SORT_ASCENDING, if (sortAscending == null) 0 else if (sortAscending) 1 else 2)
             .apply()
         _uiState.value = _uiState.value.copy(
             selectedBrandIds = brandIds,
@@ -196,7 +214,9 @@ class IdolListViewModel(app: Application) : AndroidViewModel(app) {
             showCV = showCV,
             requireMyPick = requireMyPick,
             requireFavorite = requireFavorite,
-            requireNote = requireNote
+            requireNote = requireNote,
+            sortOrder = sortOrder,
+            sortAscending = sortAscending
         )
     }
 
@@ -205,6 +225,8 @@ class IdolListViewModel(app: Application) : AndroidViewModel(app) {
         private const val KEY_DISPLAY_MODE = "display_mode"
         private const val KEY_SHOW_CV = "show_cv"
         private const val KEY_LIST_MODE = "list_mode"
+        private const val KEY_SORT_ORDER = "sort_order"
+        private const val KEY_SORT_ASCENDING = "sort_ascending"
         private const val VALUE_CV = "cv"
         private const val VALUE_IDOL = "idol"
         private const val VALUE_GRID = "grid"

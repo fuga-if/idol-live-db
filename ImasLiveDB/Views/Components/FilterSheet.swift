@@ -306,6 +306,9 @@ struct IdolFilterSheet: View {
     @Environment(AppDatabase.self) private var database
     @Environment(\.dismiss) private var dismiss
 
+    @Binding var sortOrder: IdolSortOrder
+    /// nil = sortOrder の既定方向、true=昇順、false=降順。
+    @Binding var sortAscending: Bool?
     @Binding var selectedBrandIds: Set<String>
     @Binding var selectedAttribute: String?
     @Binding var displayMode: IdolDisplayMode
@@ -315,6 +318,8 @@ struct IdolFilterSheet: View {
     @Binding var requireNote: Bool
 
     @State private var brands: [Brand] = []
+    @State private var localSortOrder: IdolSortOrder = .official
+    @State private var localSortAscending: Bool?
     @State private var localBrandIds: Set<String> = []
     @State private var localAttribute: String?
     @State private var localDisplayMode: IdolDisplayMode = .idolName
@@ -344,6 +349,31 @@ struct IdolFilterSheet: View {
                     // アイドル名表示のとき、CV 名を別行で併記するか。CV 名表示中は CV がタイトルなので無効。
                     Toggle("CV名を併記", isOn: $localShowCV)
                         .disabled(localDisplayMode == .cvName)
+                }
+
+                Section {
+                    Picker("並び順", selection: $localSortOrder) {
+                        ForEach(IdolSortOrder.allCases, id: \.rawValue) { order in
+                            Text(order.rawValue).tag(order)
+                        }
+                    }
+                    .pickerStyle(.menu)
+
+                    // 方向 toggle (nil なら並び順ごとの既定を表示値にする)
+                    Picker("方向", selection: Binding(
+                        get: { localSortAscending ?? localSortOrder.defaultAscending },
+                        set: { localSortAscending = $0 }
+                    )) {
+                        Label(localSortOrder.ascendingLabel, systemImage: "arrow.up").tag(true)
+                        Label(localSortOrder.descendingLabel, systemImage: "arrow.down").tag(false)
+                    }
+                    .pickerStyle(.segmented)
+                } header: {
+                    Text("並び順")
+                } footer: {
+                    if !localSortOrder.keepsBrandGrouping {
+                        Text("ブランドの区切りを外して通しで並べます")
+                    }
                 }
 
                 BrandFilterSection(brands: brands, selectedBrandIds: $localBrandIds)
@@ -399,6 +429,8 @@ struct IdolFilterSheet: View {
                 } catch {
                     Logger.database.error("load_failed brands (FilterSheet/idol): \(error.localizedDescription)")
                 }
+                localSortOrder = sortOrder
+                localSortAscending = sortAscending
                 localBrandIds = selectedBrandIds
                 localAttribute = selectedAttribute
                 localDisplayMode = displayMode
@@ -413,11 +445,14 @@ struct IdolFilterSheet: View {
     }
 
     private var hasActiveFilters: Bool {
-        !localBrandIds.isEmpty || localAttribute != nil || localDisplayMode != .idolName
+        localSortOrder != .official || localSortAscending != nil
+            || !localBrandIds.isEmpty || localAttribute != nil || localDisplayMode != .idolName
             || localShowCV || localMyPick || localFavorite || localNote
     }
 
     private func reset() {
+        localSortOrder = .official
+        localSortAscending = nil
         localBrandIds = []
         localAttribute = nil
         localDisplayMode = .idolName
@@ -428,6 +463,8 @@ struct IdolFilterSheet: View {
     }
 
     private func apply() {
+        sortOrder = localSortOrder
+        sortAscending = localSortAscending
         selectedBrandIds = localBrandIds
         selectedAttribute = localAttribute
         displayMode = localDisplayMode

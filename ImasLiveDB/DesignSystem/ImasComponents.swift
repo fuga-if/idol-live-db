@@ -617,11 +617,20 @@ struct ImasLabeledRow: View {
     var tappable: Bool = false
     /// タップで省略を解除して全文を改行表示する (特技など長文向け)。
     /// 遷移/コピー等の action を持つ行とは併用しない想定。
+    ///
+    /// なお `expandable` を立てても、値が 1 行に収まっている行では
+    /// トグル (chevron) もタップ操作も出さない。展開する中身が無いのに
+    /// 「開けそうな見た目」を出すと、押しても何も起きない行が並んでしまうため。
     var expandable: Bool = false
     var seed: String? = nil
     var brand: String? = nil
     @Environment(\.colorScheme) private var scheme
     @State private var expanded = false
+    /// 値が実際に省略されている (= 展開する中身がある) か。実測して決める。
+    @State private var isTruncated = false
+
+    /// トグルを出すか。省略が起きている時、または展開済み (畳む導線が要る) 時だけ。
+    private var showsToggle: Bool { expandable && (isTruncated || expanded) }
 
     var body: some View {
         let t = ImasTheme.derive(seed: seed, brand: brand, scheme: scheme)
@@ -637,9 +646,13 @@ struct ImasLabeledRow: View {
                 .lineLimit(expandable ? (expanded ? nil : 1) : 1)
                 .truncationMode(.tail)
                 .multilineTextAlignment(.trailing)
+                .truncationDetector(isTruncated: $isTruncated,
+                                    text: value,
+                                    font: mono ? .imasDisplay(15) : .imasSubhead,
+                                    enabled: expandable)
             if showChevron {
                 Image(systemName: "chevron.right").font(.imasScaled( 13, weight: .semibold)).foregroundStyle(tappable ? t.accent : DS.ink3)
-            } else if expandable {
+            } else if showsToggle {
                 Image(systemName: "chevron.down")
                     .font(.imasScaled( 11, weight: .semibold)).foregroundStyle(DS.ink3)
                     .rotationEffect(.degrees(expanded ? 180 : 0))
@@ -649,10 +662,43 @@ struct ImasLabeledRow: View {
         .background(DS.surface)
         .contentShape(Rectangle())
 
-        if expandable {
+        if showsToggle {
             row.onTapGesture { withAnimation(.easeInOut(duration: 0.2)) { expanded.toggle() } }
         } else {
             row
+        }
+    }
+}
+
+// MARK: - 省略検出
+
+private extension View {
+    /// 1 行表示のテキストが実際に省略されているかを実測して `isTruncated` に反映する。
+    ///
+    /// 与えられた幅 (制約後) と、同じ文字列を折り返さずに描いたときの自然幅を比べる。
+    /// iOS 17 が下限のため `onGeometryChange` (iOS 18+) は使わず GeometryReader で測る。
+    /// 測定用のテキストは `hidden()` + `accessibilityHidden` で、表示にも読み上げにも出さない。
+    func truncationDetector(isTruncated: Binding<Bool>, text: String, font: Font, enabled: Bool) -> some View {
+        background {
+            if enabled {
+                GeometryReader { available in
+                    Text(text)
+                        .font(font)
+                        .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
+                        .hidden()
+                        .accessibilityHidden(true)
+                        .background {
+                            GeometryReader { natural in
+                                Color.clear
+                                    .task(id: natural.size.width) {
+                                        // 端数で誤検知しないよう 0.5pt の余裕を見る。
+                                        isTruncated.wrappedValue = natural.size.width > available.size.width + 0.5
+                                    }
+                            }
+                        }
+                }
+            }
         }
     }
 }

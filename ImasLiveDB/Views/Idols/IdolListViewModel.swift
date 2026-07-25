@@ -39,14 +39,14 @@ final class IdolListViewModel {
         self.brandReading = brandReading
     }
 
-    func loadData(filter: IdolFilterContext) async {
+    func loadData(filter: IdolFilterContext, sortOrder: IdolSortOrder = .official, ascending: Bool? = nil) async {
         defer { isLoading = false }
         do {
             async let b = brandReading.brands()
             async let i = idolReading.idols(brandId: nil)
             async let c = idolReading.idolCastNames()
             (brands, idols, castNames) = try await (b, i, c)
-            rebuild(filter: filter)
+            rebuild(filter: filter, sortOrder: sortOrder, ascending: ascending)
         } catch {
             Logger.database.error("load_failed idols: \(error.localizedDescription)")
         }
@@ -56,15 +56,23 @@ final class IdolListViewModel {
         pickIds = Set(UserMarkService.shared.allMarked(kind: .myPick, entity: .idol))
     }
 
-    /// 絞り込み + ブランド別グループ化を再計算する。
+    /// 絞り込み + 並び替え + ブランド別グループ化を再計算する。
     /// `filter.castNames` は呼び出し側で詰めなくてもよい (ここで VM 保持の値を補完する)。
-    func rebuild(filter: IdolFilterContext) {
+    ///
+    /// 公式順以外を選んだときはブランドの区切りを外し、通しの 1 リストにする
+    /// (`visibleBrands` を空にすることで View 側が通し表示に切り替わる)。
+    func rebuild(filter: IdolFilterContext, sortOrder: IdolSortOrder = .official, ascending: Bool? = nil) {
         var ctx = filter
         ctx.castNames = castNames
 
-        let result = filterIdols(idols, ctx)
+        let result = sortIdols(filterIdols(idols, ctx), by: sortOrder, ascending: ascending)
         filteredIdols = result
 
+        guard sortOrder.keepsBrandGrouping else {
+            groupedByBrand = [:]
+            visibleBrands = []
+            return
+        }
         // grouped に載るのは必ず 1 件以上なので、キー有無で表示ブランドを判定できる。
         let grouped = Dictionary(grouping: result, by: \.brandId)
         groupedByBrand = grouped

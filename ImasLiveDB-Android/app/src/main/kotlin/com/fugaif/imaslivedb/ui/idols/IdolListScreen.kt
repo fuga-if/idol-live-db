@@ -72,6 +72,7 @@ import com.fugaif.imaslivedb.ui.components.ImasListSkeleton
 import com.fugaif.imaslivedb.ui.components.ImasSegmented
 import com.fugaif.imaslivedb.ui.components.SkeletonThumb
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.theme.ImasTheme
 import com.fugaif.imaslivedb.ui.units.UnitListBody
 import com.fugaif.imaslivedb.ui.units.UnitListMode
 import com.fugaif.imaslivedb.ui.units.UnitListViewModel
@@ -113,9 +114,16 @@ fun IdolListScreen(
         return matchesSearch(idol)
     }
 
-    val filteredIdols = state.idols.filter { matchesFilters(it) }
-    val groupedByBrand = filteredIdols.groupBy { it.brandId }
+    val filteredIdols = sortIdols(state.idols.filter { matchesFilters(it) }, state.sortOrder, state.sortAscending)
+    // 公式順以外はブランドの区切りを外した通し並びにする
+    // (身長順・年齢順はブランドを跨いで初めて意味を持つ指標のため)。
+    val groupedByBrand = if (state.sortOrder.keepsBrandGrouping) filteredIdols.groupBy { it.brandId } else emptyMap()
     val visibleBrands = state.brands.filter { !groupedByBrand[it.id].isNullOrEmpty() }
+    val flatHeader = if (state.sortOrder.keepsBrandGrouping) {
+        null
+    } else {
+        "${state.sortOrder.label}順 ・ ${filteredIdols.size}人"
+    }
 
     fun displayName(idol: Idol): String =
         if (state.displayMode == IdolDisplayMode.CV_NAME) (state.castNames[idol.id] ?: idol.name) else idol.name
@@ -204,6 +212,9 @@ fun IdolListScreen(
                         IdolGrid(
                             visibleBrands = visibleBrands,
                             groupedByBrand = groupedByBrand,
+                            flatIdols = if (flatHeader == null) emptyList() else filteredIdols,
+                            flatHeader = flatHeader,
+                            sortOrder = state.sortOrder,
                             collapsedBrands = state.collapsedBrands,
                             pickIds = state.pickIds,
                             favoriteIds = state.favoriteIds,
@@ -219,6 +230,31 @@ fun IdolListScreen(
                         modifier = Modifier.fillMaxSize()
                     ) {
                         LazyColumn(modifier = Modifier.fillMaxSize()) {
+                            if (flatHeader != null) {
+                                item(key = "flat_header") {
+                                    Text(
+                                        flatHeader,
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = DS.ink2,
+                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                                    )
+                                }
+                                items(filteredIdols, key = { it.id }) { idol ->
+                                    IdolRow(
+                                        idol = idol,
+                                        isPick = state.pickIds.contains(idol.id),
+                                        isFavorite = state.favoriteIds.contains(idol.id),
+                                        displayName = displayName(idol),
+                                        secondary = secondaryText(idol),
+                                        cvLine = cvLine(idol),
+                                        metric = state.sortOrder.metricLabel(idol),
+                                        onClick = { onNavigateToIdolDetail(idol.id) },
+                                        onToggleMyPick = { viewModel.toggleMyPick(idol.id) },
+                                        onToggleFavorite = { viewModel.toggleFavorite(idol.id) }
+                                    )
+                                }
+                            }
                             visibleBrands.forEach { brand ->
                                 val idols = groupedByBrand[brand.id] ?: emptyList()
                                 val collapsed = state.collapsedBrands.contains(brand.id)
@@ -259,9 +295,14 @@ fun IdolListScreen(
             currentRequireMyPick = state.requireMyPick,
             currentRequireFavorite = state.requireFavorite,
             currentRequireNote = state.requireNote,
+            currentSortOrder = state.sortOrder,
+            currentSortAscending = state.sortAscending,
             onDismiss = { showFilterSheet = false },
-            onApply = { brandIds, attribute, displayMode, showCV, requireMyPick, requireFavorite, requireNote ->
-                viewModel.applyFilterSheet(brandIds, attribute, displayMode, showCV, requireMyPick, requireFavorite, requireNote)
+            onApply = { brandIds, attribute, displayMode, showCV, requireMyPick, requireFavorite, requireNote, sortOrder, sortAscending ->
+                viewModel.applyFilterSheet(
+                    brandIds, attribute, displayMode, showCV,
+                    requireMyPick, requireFavorite, requireNote, sortOrder, sortAscending
+                )
             }
         )
     }
@@ -290,6 +331,8 @@ private fun IdolRow(
     displayName: String,
     secondary: String?,
     cvLine: String?,
+    /** 並び替えのキー値 (「17歳」「158cm」等)。公式順/五十音順のときは null。 */
+    metric: String? = null,
     onClick: () -> Unit,
     onToggleMyPick: () -> Unit,
     onToggleFavorite: () -> Unit
@@ -311,6 +354,15 @@ private fun IdolRow(
             cvLine?.let {
                 Text(it, fontSize = 12.sp, color = DS.ink2, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
+        }
+        if (metric != null) {
+            Text(
+                metric,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold,
+                color = ImasTheme.derive(idol.color, idol.brandId).accent,
+                modifier = Modifier.padding(end = 4.dp)
+            )
         }
         MarkIconButton(active = isPick, activeIcon = Icons.Filled.Favorite, inactiveIcon = Icons.Filled.FavoriteBorder,
             tint = DS.pick, contentDescription = if (isPick) "担当解除" else "担当に追加", onClick = onToggleMyPick)
@@ -344,6 +396,10 @@ private fun MarkIconButton(
 private fun IdolGrid(
     visibleBrands: List<Brand>,
     groupedByBrand: Map<String, List<Idol>>,
+    /** 通し表示 (公式順以外) のアイドル。空ならブランド別表示。 */
+    flatIdols: List<Idol> = emptyList(),
+    flatHeader: String? = null,
+    sortOrder: IdolSortOrder = IdolSortOrder.OFFICIAL,
     collapsedBrands: Set<String>,
     pickIds: Set<String>,
     favoriteIds: Set<String>,
@@ -356,6 +412,28 @@ private fun IdolGrid(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(vertical = 8.dp)
     ) {
+        if (flatIdols.isNotEmpty()) {
+            if (flatHeader != null) {
+                item(key = "flat_header", span = { GridItemSpan(maxLineSpan) }) {
+                    Text(
+                        flatHeader,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = DS.ink2,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
+                }
+            }
+            items(flatIdols, key = { it.id }) { idol ->
+                IdolGridCell(
+                    idol = idol,
+                    isPick = pickIds.contains(idol.id),
+                    isFavorite = favoriteIds.contains(idol.id),
+                    metric = sortOrder.metricLabel(idol),
+                    onClick = { onSelect(idol) }
+                )
+            }
+        }
         visibleBrands.forEach { brand ->
             val idols = groupedByBrand[brand.id] ?: emptyList()
             val collapsed = collapsedBrands.contains(brand.id)
@@ -371,6 +449,7 @@ private fun IdolGrid(
                         idol = idol,
                         isPick = pickIds.contains(idol.id),
                         isFavorite = favoriteIds.contains(idol.id),
+                        metric = sortOrder.metricLabel(idol),
                         onClick = { onSelect(idol) }
                     )
                 }
@@ -384,6 +463,8 @@ private fun IdolGridCell(
     idol: Idol,
     isPick: Boolean,
     isFavorite: Boolean,
+    /** 並び替えのキー値 (「17歳」「158cm」等)。何順に並んでいるかセルから読めるように出す。 */
+    metric: String? = null,
     onClick: () -> Unit
 ) {
     Column(
@@ -393,5 +474,8 @@ private fun IdolGridCell(
         ImasAvatar(label = idol.name, seed = idol.color, brand = idol.brandId, size = 60.dp, isPick = isPick)
         Text(idol.name, fontSize = 12.sp, color = DS.ink, maxLines = 1, overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(top = 2.dp))
+        if (metric != null) {
+            Text(metric, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = DS.ink3, maxLines = 1)
+        }
     }
 }

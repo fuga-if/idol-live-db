@@ -35,6 +35,10 @@ struct IdolListView: View {
     @AppStorage("idols_require_my_pick") private var requireMyPick: Bool = false
     @AppStorage("idols_require_favorite") private var requireFavorite: Bool = false
     @AppStorage("idols_require_note") private var requireNote: Bool = false
+    /// 並び順。公式順以外はブランドの区切りを外した通し表示になる。
+    @AppStorage("idols_sort_order") private var sortOrderRaw: String = IdolSortOrder.official.rawValue
+    /// nil = sortOrder の既定方向、true=昇順、false=降順。
+    @AppStorage("idols_sort_ascending") private var sortAscendingRaw: Int = 0
     @State private var collapsedBrands: Set<String> = []
     @State private var sheetIdol: Idol?
     @State private var showFilterSheet = false
@@ -47,6 +51,19 @@ struct IdolListView: View {
 
     private var idolListMode: IdolListMode {
         IdolListMode(rawValue: idolListModeRaw) ?? .list
+    }
+
+    private var sortOrder: IdolSortOrder {
+        IdolSortOrder(rawValue: sortOrderRaw) ?? .official
+    }
+
+    /// AppStorage は Optional<Bool> を持てないので Int で三値を表す (0=既定 / 1=昇順 / 2=降順)。
+    private var sortAscending: Bool? {
+        switch sortAscendingRaw {
+        case 1: return true
+        case 2: return false
+        default: return nil
+        }
     }
 
     private var activeFilterCount: Int {
@@ -62,8 +79,10 @@ struct IdolListView: View {
     }
 
     /// 絞り込み状態をまとめた識別子（task(id:) 用。selectedBrandIds 等の変化でのみ再計算）。
+    /// 再計算 (`task(id:)`) のトリガーキー。並び順もここに含める
+    /// (含め忘れると、フィルタシートで並び順を変えても一覧が旧い並びのまま残る)。
     private var filterKey: String {
-        "\(brandsKey)_\(selectedAttribute ?? "")_\(requireMyPick)_\(requireFavorite)_\(requireNote)"
+        "\(brandsKey)_\(selectedAttribute ?? "")_\(requireMyPick)_\(requireFavorite)_\(requireNote)_\(sortOrderRaw)_\(sortAscendingRaw)"
     }
 
     private var filterBadgeCount: Int {
@@ -167,7 +186,11 @@ struct IdolListView: View {
                 IdolGridView(
                     idols: vm.filteredIdols,
                     brands: vm.visibleBrands,
-                    pickIds: vm.pickIds
+                    pickIds: vm.pickIds,
+                    sortOrder: sortOrder,
+                    flatHeader: sortOrder.keepsBrandGrouping
+                        ? nil
+                        : "\(sortOrder.rawValue)順 ・ \(vm.filteredIdols.count)人"
                 ) { idol in
                     sheetIdol = idol
                 }
@@ -179,7 +202,7 @@ struct IdolListView: View {
         .navigationTitle("アイドル")
         .navigationBarTitleDisplayMode(.large)
         .onChange(of: searchText) { _, _ in
-            vm.rebuild(filter: filterContext)
+            vm.rebuild(filter: filterContext, sortOrder: sortOrder, ascending: sortAscending)
         }
         .toolbar {
             standardListToolbar(
@@ -201,6 +224,14 @@ struct IdolListView: View {
         }
         .sheet(isPresented: $showFilterSheet) {
             IdolFilterSheet(
+                sortOrder: Binding(
+                    get: { sortOrder },
+                    set: { sortOrderRaw = $0.rawValue }
+                ),
+                sortAscending: Binding(
+                    get: { sortAscending },
+                    set: { sortAscendingRaw = $0 == nil ? 0 : ($0! ? 1 : 2) }
+                ),
                 selectedBrandIds: $selectedBrandIds,
                 selectedAttribute: $selectedAttribute,
                 displayMode: Binding(
@@ -215,11 +246,11 @@ struct IdolListView: View {
             .environment(database)
             .presentationDetents([.medium, .large])
         }
-        .task { await vm.loadData(filter: filterContext) }
+        .task { await vm.loadData(filter: filterContext, sortOrder: sortOrder, ascending: sortAscending) }
         // フィルタ変化時のみ再計算
         .task(id: filterKey) {
             vm.refreshPickIds()
-            vm.rebuild(filter: filterContext)
+            vm.rebuild(filter: filterContext, sortOrder: sortOrder, ascending: sortAscending)
         }
         .onChange(of: selectedBrandIds) { _, _ in
             hasUserInteractedWithBrandFilter = true
@@ -233,11 +264,57 @@ struct IdolListView: View {
         .trackScreen("idol_list")
     }
 
+    /// 公式順以外の並びで使う「ブランドの区切りを外した通しリスト」。
+    ///
+    /// 身長順・年齢順はブランドを跨いで初めて意味を持つ指標なので、セクションで割らない。
+    /// 各行には並び替えのキー値を併記して、何順に並んでいるか行から読めるようにする。
+    private var flatListSection: some View {
+        VStack(alignment: .leading, spacing: DS.sp3) {
+            HStack {
+                Text("\(sortOrder.rawValue)順")
+                    .font(.imasScaled(13, weight: .semibold))
+                    .foregroundStyle(DS.ink2)
+                Spacer()
+                Text("\(vm.filteredIdols.count)人")
+                    .font(.imasCaption)
+                    .foregroundStyle(DS.ink3)
+            }
+            .padding(.horizontal, DS.sp2)
+
+            ImasListContainer {
+                ForEach(Array(vm.filteredIdols.enumerated()), id: \.element.id) { index, idol in
+                    if index > 0 { Divider().overlay(DS.sep).padding(.leading, 69) }
+                    NavigationLink(value: idol) {
+                        IdolRowView(
+                            idol: idol,
+                            brandColor: brandColorHex(for: idol),
+                            isPick: vm.pickIds.contains(idol.id),
+                            displayName: displayName(for: idol),
+                            secondary: secondaryText(for: idol),
+                            cvLine: cvText(for: idol),
+                            metric: sortOrder.metricLabel(for: idol)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .padding(.horizontal, DS.sp5)
+    }
+
+    /// 通しリストではブランド別セクションが無いので、行ごとにブランド色を引く。
+    private func brandColorHex(for idol: Idol) -> String? {
+        vm.brands.first(where: { $0.id == idol.brandId })?.color
+    }
+
     // MARK: - List Body (ブランド別・inset grouped 風)
 
     private var listBody: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: DS.sp6, pinnedViews: []) {
+                if !sortOrder.keepsBrandGrouping {
+                    flatListSection
+                }
                 ForEach(vm.visibleBrands) { brand in
                     let group = vm.groupedByBrand[brand.id] ?? []
                     VStack(alignment: .leading, spacing: DS.sp3) {
@@ -258,7 +335,8 @@ struct IdolListView: View {
                                             isPick: vm.pickIds.contains(idol.id),
                                             displayName: displayName(for: idol),
                                             secondary: secondaryText(for: idol),
-                                            cvLine: cvText(for: idol)
+                                            cvLine: cvText(for: idol),
+                                            metric: sortOrder.metricLabel(for: idol)
                                         )
                                     }
                                     .buttonStyle(.plain)
@@ -274,7 +352,7 @@ struct IdolListView: View {
         }
         .refreshable {
             await syncEngine.performIncrementalSync(database: database)
-            await vm.loadData(filter: filterContext)
+            await vm.loadData(filter: filterContext, sortOrder: sortOrder, ascending: sortAscending)
         }
     }
 
@@ -358,6 +436,9 @@ private struct IdolRowView: View {
     let displayName: String
     var secondary: String? = nil
     var cvLine: String? = nil
+    /// 並び替えのキー値 (「17歳」「158cm」等)。並び順が公式順/五十音順のときは nil。
+    /// 何順で並んでいるか行から読めないと、並び替えても意味が分からないため出す。
+    var metric: String? = nil
 
     var body: some View {
         HStack(spacing: DS.sp3) {
@@ -386,6 +467,11 @@ private struct IdolRowView: View {
             }
 
             Spacer(minLength: DS.sp2)
+
+            if let metric {
+                ImasMetricBadge(value: metric, unit: "", seed: idol.color)
+                    .padding(.trailing, DS.sp1)
+            }
 
             MyPickToggleButton(id: idol.id)
             FavoriteToggleButton(entity: .idol, id: idol.id)

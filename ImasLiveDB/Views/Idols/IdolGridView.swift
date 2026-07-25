@@ -5,6 +5,10 @@ struct IdolGridView: View {
     let brands: [Brand]
     /// 担当アイドル ID。アバターの二重輪 (isPick) 表示に使う。
     var pickIds: Set<String> = []
+    /// 並び順。公式順以外は `brands` を空で渡して通しグリッドにし、セルに指標を併記する。
+    var sortOrder: IdolSortOrder = .official
+    /// 通し表示時の見出し (「年齢順 / 342人」等)。
+    var flatHeader: String? = nil
     let onSelect: (Idol) -> Void
 
     @Environment(\.horizontalSizeClass) private var sizeClass
@@ -30,6 +34,24 @@ struct IdolGridView: View {
     var body: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: DS.sp6) {
+                // 公式順以外はブランドの区切りを外した通しグリッド
+                // (身長順・年齢順はブランドを跨いで初めて意味を持つ指標のため)。
+                if brands.isEmpty {
+                    VStack(alignment: .leading, spacing: DS.sp4) {
+                        if let flatHeader {
+                            Text(flatHeader)
+                                .font(.imasScaled(13, weight: .semibold))
+                                .foregroundStyle(DS.ink2)
+                                .padding(.horizontal, DS.sp5)
+                        }
+                        LazyVGrid(columns: columns, spacing: DS.sp5) {
+                            ForEach(idols) { idol in
+                                cell(idol, brand: nil)
+                            }
+                        }
+                        .padding(.horizontal, DS.sp4)
+                    }
+                }
                 ForEach(groupedIdols, id: \.brand.id) { group in
                     VStack(alignment: .leading, spacing: DS.sp4) {
                         header(group.brand, count: group.idols.count)
@@ -58,7 +80,7 @@ struct IdolGridView: View {
 
     // MARK: - Idol Cell (IdolAvatarView 主役・ブランド色をまとう)
 
-    private func cell(_ idol: Idol, brand: Brand) -> some View {
+    private func cell(_ idol: Idol, brand: Brand?) -> some View {
         VStack(spacing: DS.sp2) {
             IdolAvatarView(idol: idol, size: 60, isPick: pickIds.contains(idol.id))
             Text(idol.name)
@@ -66,6 +88,13 @@ struct IdolGridView: View {
                 .foregroundStyle(DS.ink)
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
+            // 何順に並んでいるかセルから読めるようにする。
+            if let metric = sortOrder.metricLabel(for: idol) {
+                Text(metric)
+                    .font(.imasDisplay(11, weight: .semibold))
+                    .foregroundStyle(DS.ink3)
+                    .lineLimit(1)
+            }
         }
         .frame(maxWidth: .infinity)
         .contentShape(Rectangle())

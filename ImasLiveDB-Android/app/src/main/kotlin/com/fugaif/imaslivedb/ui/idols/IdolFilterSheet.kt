@@ -1,5 +1,6 @@
 package com.fugaif.imaslivedb.ui.idols
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -14,6 +15,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -51,6 +58,8 @@ fun IdolFilterSheet(
     currentRequireMyPick: Boolean,
     currentRequireFavorite: Boolean,
     currentRequireNote: Boolean,
+    currentSortOrder: IdolSortOrder,
+    currentSortAscending: Boolean?,
     onDismiss: () -> Unit,
     onApply: (
         brandIds: Set<String>,
@@ -59,7 +68,9 @@ fun IdolFilterSheet(
         showCV: Boolean,
         requireMyPick: Boolean,
         requireFavorite: Boolean,
-        requireNote: Boolean
+        requireNote: Boolean,
+        sortOrder: IdolSortOrder,
+        sortAscending: Boolean?
     ) -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -71,6 +82,9 @@ fun IdolFilterSheet(
     var requireMyPick by remember { mutableStateOf(currentRequireMyPick) }
     var requireFavorite by remember { mutableStateOf(currentRequireFavorite) }
     var requireNote by remember { mutableStateOf(currentRequireNote) }
+    var sortOrder by remember { mutableStateOf(currentSortOrder) }
+    var sortAscending by remember { mutableStateOf(currentSortAscending) }
+    var sortMenuExpanded by remember { mutableStateOf(false) }
 
     // 属性チップは単一ブランド選択時のみ (ブランド共通のサブ属性が無いため)。
     val attributesForBrand = brandIds.singleOrNull()?.let { IDOL_BRAND_ATTRIBUTES[it] } ?: emptyList()
@@ -102,6 +116,43 @@ fun IdolFilterSheet(
                 enabled = displayMode == IdolDisplayMode.IDOL_NAME,
                 onCheckedChange = { showCV = it }
             )
+
+            HorizontalDivider(color = DS.sep)
+            SectionLabel("並び順")
+            Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                OutlinedButton(onClick = { sortMenuExpanded = true }) {
+                    Text(sortOrder.label, color = DS.ink)
+                    Icon(Icons.Filled.ArrowDropDown, contentDescription = null, tint = DS.ink2)
+                }
+                DropdownMenu(expanded = sortMenuExpanded, onDismissRequest = { sortMenuExpanded = false }) {
+                    IdolSortOrder.entries.forEach { order ->
+                        DropdownMenuItem(
+                            text = { Text(order.label) },
+                            onClick = {
+                                sortOrder = order
+                                // 並び順を変えたら方向は新しい並び順の既定に戻す
+                                // (「高い順」のまま誕生日に切り替わると 12月からになって驚くため)。
+                                sortAscending = null
+                                sortMenuExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
+            ImasSegmented(
+                labels = listOf(sortOrder.ascendingLabel, sortOrder.descendingLabel),
+                selection = if (sortAscending ?: sortOrder.defaultAscending) 0 else 1,
+                onSelect = { sortAscending = it == 0 },
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+            if (!sortOrder.keepsBrandGrouping) {
+                Text(
+                    "ブランドの区切りを外して通しで並べます",
+                    fontSize = 12.sp,
+                    color = DS.ink3,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                )
+            }
 
             HorizontalDivider(color = DS.sep)
             SectionLabel("ブランド")
@@ -161,12 +212,14 @@ fun IdolFilterSheet(
                         requireMyPick = false
                         requireFavorite = false
                         requireNote = false
+                        sortOrder = IdolSortOrder.OFFICIAL
+                        sortAscending = null
                     },
                     modifier = Modifier.weight(1f)
                 ) { Text("リセット") }
                 Button(
                     onClick = {
-                        onApply(brandIds, attribute, displayMode, showCV, requireMyPick, requireFavorite, requireNote)
+                        onApply(brandIds, attribute, displayMode, showCV, requireMyPick, requireFavorite, requireNote, sortOrder, sortAscending)
                         onDismiss()
                     },
                     modifier = Modifier.weight(1f)
