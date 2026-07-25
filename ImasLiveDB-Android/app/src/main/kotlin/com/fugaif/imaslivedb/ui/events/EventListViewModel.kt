@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.fugaif.imaslivedb.data.model.Brand
 import com.fugaif.imaslivedb.data.model.EventWithDateRange
+import com.fugaif.imaslivedb.data.model.VenueDirectory
 import com.fugaif.imaslivedb.di.AppModule
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
