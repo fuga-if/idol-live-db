@@ -110,10 +110,11 @@ struct BrandIconCell: View {
         if let url = customImageURL, let uiImage = UIImage(contentsOfFile: url.path) {
             // ブランドロゴは横長のロックアップも来る。 .fill だと両端が切れて
             // 判別できなくなるので .fit で円の中に収める (下地はブランド色)。
+            // 配布しているブランド画像は「円 + 四隅透過」なので余白なしでちょうど収まる。
+            // 下地の円は、ユーザーが独自に横長画像を入れたときに絵が浮かないための保険。
             Image(uiImage: uiImage)
                 .resizable()
                 .scaledToFit()
-                .padding(4)
                 .frame(width: 48, height: 48)
                 .background(background.opacity(isSelected ? 0.18 : 0.10), in: Circle())
                 .clipShape(Circle())

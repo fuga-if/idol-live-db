@@ -32,7 +32,9 @@ struct UnitAvatarView: View {
                     if let img = state.image {
                         // ユニットアイコンは横長のロゴタイプが多い (SideM 等)。
                         // .fill だと左右が切れて何のユニットか判らなくなるので .fit で全体を収める。
-                        img.resizable().scaledToFit().padding(size * 0.08)
+                        // シャニの円形アイコンは 1:1 なのでほぼ余白なしで収まり、
+                        // SideM の横長ロゴだけがひと回り小さく収まる。
+                        img.resizable().scaledToFit().padding(size * 0.04)
                     } else {
                         fallback(t)
                     }

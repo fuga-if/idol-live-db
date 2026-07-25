@@ -88,7 +88,7 @@ final class CustomImageService {
     private func manifest(_ entityId: String, kind: GalleryKind = .idol) -> [GalleryImageMeta] {
         let folder = idolFolder(entityId, kind: kind)
         let onDisk = Set(((try? FileManager.default.contentsOfDirectory(atPath: folder.path)) ?? [])
-            .filter { $0.hasSuffix(".jpg") })
+            .filter { Self.isImageFile($0) })
         let saved = (try? Data(contentsOf: manifestURL(entityId, kind: kind))).map(Self.parseManifest) ?? []
         // 消えたファイルを除外 + 同一ファイル名の重複エントリを除去 (過去の不正 manifest 対策)。
         var order = Self.dedupedByName(saved.filter { onDisk.contains($0.name) })
@@ -203,7 +203,7 @@ final class CustomImageService {
     func addImage(_ image: UIImage, for idolId: String, kind: GalleryKind = .idol) async throws -> URL {
         let folder = idolFolder(idolId, kind: kind)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        let name = "\(UUID().uuidString).jpg"
+        let name = "\(UUID().uuidString).\(Self.fileExtension(for: image))"
         let url = folder.appendingPathComponent(name)
         // manifest を「書き込み前」に読む。先に書くと manifest() の reconcile が
         // 新ファイルを拾い、続く append と二重登録になる (同じ画像が2枚並ぶ不具合)。
@@ -254,18 +254,36 @@ final class CustomImageService {
 
     // MARK: - Brand (single image)
 
+    /// ブランドは 1 ブランド 1 ファイル。 拡張子は中身次第 (透過ロゴ=png / 写真=jpg) なので、
+    /// 決め打ちせず実在するものを探す。
+    private func brandFileURL(for brandId: String) -> URL? {
+        for ext in Self.imageExtensions {
+            let url = brandDirectory.appendingPathComponent("\(brandId).\(ext)")
+            if FileManager.default.fileExists(atPath: url.path) { return url }
+        }
+        return nil
+    }
+
     func brandImageURL(for brandId: String) -> URL? {
         guard brandsWithImages.contains(brandId) else { return nil }
-        return brandDirectory.appendingPathComponent("\(brandId).jpg")
+        return brandFileURL(for: brandId)
     }
 
     func saveBrandImage(_ image: UIImage, for brandId: String) async throws {
-        try await Self.write(image, to: brandDirectory.appendingPathComponent("\(brandId).jpg"))
+        // 形式が変わると別名になるので、 先に旧ファイルを消さないと jpg と png が併存し、
+        // brandFileURL が古い方を拾い続ける。
+        for ext in Self.imageExtensions {
+            try? await Self.delete(at: brandDirectory.appendingPathComponent("\(brandId).\(ext)"))
+        }
+        let ext = Self.fileExtension(for: image)
+        try await Self.write(image, to: brandDirectory.appendingPathComponent("\(brandId).\(ext)"))
         brandsWithImages.insert(brandId)
     }
 
     func deleteBrandImage(for brandId: String) async throws {
-        try await Self.delete(at: brandDirectory.appendingPathComponent("\(brandId).jpg"))
+        for ext in Self.imageExtensions {
+            try? await Self.delete(at: brandDirectory.appendingPathComponent("\(brandId).\(ext)"))
+        }
         brandsWithImages.remove(brandId)
     }
 
@@ -306,7 +324,7 @@ final class CustomImageService {
         await Task.detached(priority: .utility) {
             let fm = FileManager.default
             let files = (try? fm.contentsOfDirectory(atPath: dir.path)) ?? []
-            for f in files where f.hasSuffix(".jpg") {
+            for f in files where Self.isImageFile(f) {
                 try? fm.removeItem(atPath: dir.appendingPathComponent(f).path)
             }
         }.value
@@ -320,12 +338,12 @@ final class CustomImageService {
     private func migrateLegacySingleImages() {
         let fm = FileManager.default
         let entries = (try? fm.contentsOfDirectory(atPath: idolDirectory.path)) ?? []
-        for entry in entries where entry.hasSuffix(".jpg") {
-            let idolId = String(entry.dropLast(4))
+        for entry in entries where Self.isImageFile(entry) {
+            let idolId = Self.stem(entry)
             let legacy = idolDirectory.appendingPathComponent(entry)
             let folder = idolFolder(idolId)
             try? fm.createDirectory(at: folder, withIntermediateDirectories: true)
-            let name = "\(UUID().uuidString).jpg"
+            let name = "\(UUID().uuidString).\((entry as NSString).pathExtension)"
             try? fm.moveItem(at: legacy, to: folder.appendingPathComponent(name))
             writeManifest([GalleryImageMeta(name: name)], for: idolId)
         }
@@ -347,20 +365,38 @@ final class CustomImageService {
 
     private static func scanIds(in directory: URL) -> Set<String> {
         let files = (try? FileManager.default.contentsOfDirectory(atPath: directory.path)) ?? []
-        return Set(files.compactMap { $0.hasSuffix(".jpg") ? String($0.dropLast(4)) : nil })
+        return Set(files.compactMap { isImageFile($0) ? stem($0) : nil })
     }
 
     // MARK: - File IO (off main)
+
+    /// 保存に使う拡張子。 透過ロゴは PNG、写真は JPEG なので両方を読み書きの対象にする。
+    /// detached な FS 走査からも使うので nonisolated。
+    nonisolated static let imageExtensions = ["jpg", "png"]
+
+    nonisolated static func isImageFile(_ name: String) -> Bool {
+        imageExtensions.contains { name.hasSuffix("." + $0) }
+    }
+
+    /// 拡張子を除いたファイル名。 `isImageFile` を通ったものにだけ使う。
+    nonisolated static func stem(_ name: String) -> String {
+        (name as NSString).deletingPathExtension
+    }
 
     private static func write(_ image: UIImage, to url: URL) async throws {
         try await Task.detached(priority: .utility) {
             // ギャラリー/ウィジェット用に元のアスペクトを保ったまま最大 1024px へ縮小する
             // (アバターは円内 aspectFill で正方クロップされるので元データを正方化しない)。
-            guard let data = downsampledJPEGNonisolated(image, maxPixels: 1024, quality: 0.82) else {
+            guard let data = downsampledNonisolated(image, maxPixels: 1024, quality: 0.82)?.data else {
                 throw ImageError.compressionFailed
             }
             try data.write(to: url)
         }.value
+    }
+
+    /// この画像を保存するときの拡張子 (透過があれば png)。 ファイル名を決める側で使う。
+    private static func fileExtension(for image: UIImage) -> String {
+        hasAlphaChannel(image) ? "png" : "jpg"
     }
 
     private static func delete(at url: URL) async throws {
@@ -374,16 +410,41 @@ final class CustomImageService {
     }
 }
 
-/// MainActor 外で安全に呼べるダウンサンプリング + JPEG 化。元のアスペクト比を保つ。
-/// 既に小さい画像はそのまま JPEG 化する。
-private func downsampledJPEGNonisolated(_ image: UIImage, maxPixels: CGFloat, quality: CGFloat) -> Data? {
-    func originalJPEG() -> Data? { image.jpegData(compressionQuality: quality) }
+/// 透過を持つ画像か。 ロゴ (透過 PNG) と写真 (不透明 JPEG) を保存形式で振り分けるのに使う。
+func hasAlphaChannel(_ image: UIImage) -> Bool {
+    guard let info = image.cgImage?.alphaInfo else { return false }
+    switch info {
+    case .first, .last, .premultipliedFirst, .premultipliedLast, .alphaOnly:
+        return true
+    case .none, .noneSkipFirst, .noneSkipLast:
+        return false
+    @unknown default:
+        return false
+    }
+}
 
-    guard let cg = image.cgImage else { return originalJPEG() }
+/// MainActor 外で安全に呼べるダウンサンプリング + エンコード。元のアスペクト比を保つ。
+///
+/// **透過があれば PNG、無ければ JPEG。** ここを JPEG 固定にしていたため、インポートした
+/// 透過ロゴ (ユニット/ブランド) の背景が黒く潰れていた。 JPEG はアルファチャンネルを持てない。
+/// 写真まで PNG にすると 1024px で数 MB になるので、 形式は画像ごとに選ぶ。
+private func downsampledNonisolated(
+    _ image: UIImage, maxPixels: CGFloat, quality: CGFloat
+) -> (data: Data, ext: String)? {
+    let alpha = hasAlphaChannel(image)
+
+    func encode(_ img: UIImage) -> (data: Data, ext: String)? {
+        if alpha {
+            return img.pngData().map { ($0, "png") }
+        }
+        return img.jpegData(compressionQuality: quality).map { ($0, "jpg") }
+    }
+
+    guard let cg = image.cgImage else { return encode(image) }
     let w = CGFloat(cg.width)
     let h = CGFloat(cg.height)
     let longSide = max(w, h)
-    guard longSide > maxPixels else { return originalJPEG() }
+    guard longSide > maxPixels else { return encode(image) }
 
     let scale = maxPixels / longSide
     let tw = max(1, Int((w * scale).rounded()))
@@ -397,10 +458,10 @@ private func downsampledJPEGNonisolated(_ image: UIImage, maxPixels: CGFloat, qu
         space: CGColorSpaceCreateDeviceRGB(),
         bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
     ) else {
-        return originalJPEG()
+        return encode(image)
     }
     ctx.interpolationQuality = .high
     ctx.draw(cg, in: CGRect(x: 0, y: 0, width: tw, height: th))
-    guard let scaled = ctx.makeImage() else { return originalJPEG() }
-    return UIImage(cgImage: scaled).jpegData(compressionQuality: quality)
+    guard let scaled = ctx.makeImage() else { return encode(image) }
+    return encode(UIImage(cgImage: scaled))
 }
