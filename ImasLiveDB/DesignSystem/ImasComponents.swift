@@ -153,6 +153,81 @@ struct ImasLeadBar: View {
     }
 }
 
+// MARK: - リードバー付きの一覧行
+
+/// 一覧行の末尾に出す「>」。 行コンポーネント間で大きさが揃うようにここに集約する。
+struct ImasRowChevron: View {
+    var body: some View {
+        Image(systemName: "chevron.right")
+            .font(.imasScaled(14, weight: .semibold))
+            .foregroundStyle(DS.ink3)
+    }
+}
+
+/// `ImasLeadBar` + 見出し + 副題 + 末尾スロット、という一覧行の共通レイアウト。
+///
+/// イベント一覧・イベント詳細の公演行・会場での公演一覧が、それぞれ手書きで同じ形を
+/// 作っていて、間隔 (8/12)・余白 (14/9 と DS.sp4/sp3)・バー高 (36/38/40)・副題フォント
+/// (imasCaption と imasScaled(11)) が画面ごとにズレていた。 寸法をここに一本化する。
+///
+/// 末尾はお気に入りトグルだったり「>」だったりするのでスロットにしている。
+/// 「>」だけで良い場合は trailing を省略できる。
+struct ImasLeadRow<Trailing: View>: View {
+    let title: String
+    var subtitle: String? = nil
+    /// リードバーの色。 seed = エンティティ由来 hex、 brand = ブランド ID。
+    var seed: String? = nil
+    var brand: String? = nil
+    /// 合同ライブ等で虹色にする。
+    var rainbow: Bool = false
+    var titleLineLimit: Int = 2
+    @ViewBuilder var trailing: () -> Trailing
+
+    var body: some View {
+        HStack(spacing: DS.sp4) {
+            ImasLeadBar(seed: seed, brand: brand, rainbow: rainbow)
+                .frame(height: 36)
+
+            VStack(alignment: .leading, spacing: DS.sp1) {
+                Text(title)
+                    .font(.imasSubhead.weight(.semibold))
+                    .foregroundStyle(DS.ink)
+                    .lineLimit(titleLineLimit)
+                if let subtitle, !subtitle.isEmpty {
+                    Text(subtitle)
+                        .font(.imasCaption)
+                        .foregroundStyle(DS.ink2)
+                        .lineLimit(1)
+                }
+            }
+
+            Spacer(minLength: DS.sp3)
+
+            trailing()
+        }
+        .padding(.horizontal, DS.sp4)
+        .padding(.vertical, DS.sp3)
+        .contentShape(Rectangle())
+    }
+}
+
+extension ImasLeadRow where Trailing == ImasRowChevron {
+    init(
+        title: String,
+        subtitle: String? = nil,
+        seed: String? = nil,
+        brand: String? = nil,
+        rainbow: Bool = false,
+        titleLineLimit: Int = 2
+    ) {
+        self.init(
+            title: title, subtitle: subtitle, seed: seed, brand: brand,
+            rainbow: rainbow, titleLineLimit: titleLineLimit,
+            trailing: { ImasRowChevron() }
+        )
+    }
+}
+
 // MARK: - Chip / FilterChip
 
 enum ImasChipStyle { case themed, selected, neutral }

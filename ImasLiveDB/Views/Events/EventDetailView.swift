@@ -314,27 +314,14 @@ struct EventDetailView: View {
     @ViewBuilder
     private func showRow(_ show: Show) -> some View {
         Button { openShow(show) } label: {
-            HStack(spacing: DS.sp3) {
-                ImasLeadBar(seed: seed, brand: brandSeed, rainbow: isJoint)
-                    .frame(height: 36)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(show.name)
-                        .font(.imasSubhead.weight(.semibold))
-                        .foregroundStyle(DS.ink)
-                        .lineLimit(1)
-                    Text([show.venue, show.date].compactMap { $0 }.joined(separator: " ・ "))
-                        .font(.imasCaption)
-                        .foregroundStyle(DS.ink2)
-                        .lineLimit(1)
-                }
-                Spacer(minLength: 8)
-                Image(systemName: "chevron.right")
-                    .font(.imasScaled( 14, weight: .semibold))
-                    .foregroundStyle(DS.ink3)
-            }
-            .padding(.horizontal, DS.sp4)
-            .padding(.vertical, DS.sp3)
-            .contentShape(Rectangle())
+            ImasLeadRow(
+                title: show.name,
+                subtitle: [show.venue, show.date].compactMap { $0 }.joined(separator: " ・ "),
+                seed: seed,
+                brand: brandSeed,
+                rainbow: isJoint,
+                titleLineLimit: 1
+            )
         }
         .buttonStyle(.plain)
         .contextMenu {

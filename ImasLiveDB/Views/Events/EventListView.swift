@@ -343,30 +343,14 @@ private struct EventRowView: View {
     private var isJoint: Bool { !event.jointBrandIdList.isEmpty }
 
     var body: some View {
-        HStack(spacing: 12) {
-            ImasLeadBar(seed: seedHex, rainbow: isJoint)
-                .frame(height: 40)
-
-            VStack(alignment: .leading, spacing: 1) {
-                Text(eventDisplayName(event.name))
-                    .font(.imasSubhead.weight(.semibold))
-                    .foregroundStyle(DS.ink)
-                    .lineLimit(2)
-                if let dateText, !dateText.isEmpty {
-                    Text(dateText)
-                        .font(.imasCaption)
-                        .foregroundStyle(DS.ink2)
-                        .lineLimit(1)
-                }
-            }
-
-            Spacer(minLength: 8)
-
+        ImasLeadRow(
+            title: eventDisplayName(event.name),
+            subtitle: dateText,
+            seed: seedHex,
+            rainbow: isJoint
+        ) {
             FavoriteToggleButton(entity: .event, id: event.id, size: 20)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
         .background(DS.surface)
-        .contentShape(Rectangle())
     }
 }

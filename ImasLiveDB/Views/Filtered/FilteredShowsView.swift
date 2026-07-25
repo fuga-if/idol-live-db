@@ -83,31 +83,12 @@ struct FilteredShowsView: View {
     @ViewBuilder
     private func showRow(_ show: Show) -> some View {
         let event = events[show.eventId]
-        let brandHex = BrandPalette.hex(for: event?.brandId)
-        HStack(spacing: 12) {
-            ImasLeadBar(seed: brandHex, rainbow: !(event?.jointBrandIdList.isEmpty ?? true))
-                .frame(height: 38)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(event.map { eventDisplayName($0.name) } ?? show.name)
-                    .font(.imasSubhead.weight(.semibold))
-                    .foregroundStyle(DS.ink)
-                    .lineLimit(2)
-                Text(subtitle(show))
-                    .font(.imasScaled(11))
-                    .foregroundStyle(DS.ink2)
-                    .lineLimit(1)
-            }
-
-            Spacer(minLength: 8)
-
-            Image(systemName: "chevron.right")
-                .font(.imasCaption)
-                .foregroundStyle(DS.ink3)
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 9)
-        .contentShape(Rectangle())
+        ImasLeadRow(
+            title: event.map { eventDisplayName($0.name) } ?? show.name,
+            subtitle: subtitle(show),
+            seed: BrandPalette.hex(for: event?.brandId),
+            rainbow: !(event?.jointBrandIdList.isEmpty ?? true)
+        )
         .imasCopyable([
             ("ライブ名をコピー", event?.name),
             ("公演名をコピー", show.name),
