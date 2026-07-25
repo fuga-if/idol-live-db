@@ -106,13 +106,13 @@ fun SetlistScreen(
                 uiState.sections.forEach { section ->
                     stickyHeader(key = section.sectionName) {
                         Surface(
-                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            color = DS.surface2,
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(
                                 text = section.sectionName,
                                 style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = DS.ink2,
                                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
                             )
                         }
@@ -159,7 +159,7 @@ private fun SetlistItemRow(
         Text(
             text = "$displayNumber",
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+            color = DS.ink2.copy(alpha = 0.6f),
             modifier = Modifier
                 .width(28.dp)
                 .padding(top = 2.dp),
@@ -191,12 +191,12 @@ private fun SetlistItemRow(
             if (item.unitName != null) {
                 Surface(
                     shape = RoundedCornerShape(50),
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                    color = DS.sys.copy(alpha = 0.1f)
                 ) {
                     Text(
                         text = item.unitName,
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = DS.sys,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                     )
                 }
@@ -227,7 +227,7 @@ private fun SetlistItemRow(
                 Text(
                     text = item.notes,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = DS.ink2
                 )
             }
         }

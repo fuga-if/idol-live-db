@@ -64,6 +64,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fugaif.imaslivedb.data.model.Brand
 import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.ui.components.ImasAvatar
+import com.fugaif.imaslivedb.ui.components.NameFilterField
 import com.fugaif.imaslivedb.ui.components.ImasEmptyState
 import com.fugaif.imaslivedb.ui.components.ImasGridSkeleton
 import com.fugaif.imaslivedb.ui.components.ImasLeadBar
@@ -85,6 +86,7 @@ import com.fugaif.imaslivedb.ui.units.UnitListViewModel
 fun IdolListScreen(
     onNavigateToIdolDetail: (String) -> Unit,
     onNavigateToUnitDetail: (String) -> Unit = {},
+    onNavigateToSearch: () -> Unit = {},
     viewModel: IdolListViewModel = viewModel(),
     unitListViewModel: UnitListViewModel = viewModel()
 ) {
@@ -131,6 +133,9 @@ fun IdolListScreen(
             TopAppBar(
                 title = { Text(if (tab == 0) "アイドル" else "ユニット", fontWeight = FontWeight.Bold) },
                 actions = {
+                    IconButton(onClick = onNavigateToSearch) {
+                        Icon(Icons.Filled.Search, contentDescription = "検索")
+                    }
                     IconButton(onClick = {
                         if (tab == 0) {
                             viewModel.setListMode(if (state.listMode == IdolListMode.GRID) IdolListMode.LIST else IdolListMode.GRID)
@@ -166,20 +171,10 @@ fun IdolListScreen(
             if (tab == 1) {
                 UnitListBody(onNavigateToUnitDetail = onNavigateToUnitDetail, viewModel = unitListViewModel)
             } else {
-            OutlinedTextField(
+            NameFilterField(
+                prompt = "アイドル・CV名で絞り込み",
                 value = state.searchText,
-                onValueChange = viewModel::setSearchText,
-                placeholder = { Text("アイドル・CV名で検索") },
-                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-                trailingIcon = {
-                    if (state.searchText.isNotEmpty()) {
-                        IconButton(onClick = { viewModel.setSearchText("") }) {
-                            Icon(Icons.Filled.Clear, contentDescription = "クリア")
-                        }
-                    }
-                },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
+                onValueChange = viewModel::setSearchText
             )
             HorizontalDivider(color = DS.sep)
 

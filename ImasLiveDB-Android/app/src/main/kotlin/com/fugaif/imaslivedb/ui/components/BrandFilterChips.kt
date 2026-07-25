@@ -51,7 +51,6 @@ fun BrandFilterChips(
             label = "全て",
             selected = selectedBrandId == null,
             onClick = { onBrandSelected(null) },
-            tintColor = Color.Unspecified
         )
 
         brands.forEach { brand ->

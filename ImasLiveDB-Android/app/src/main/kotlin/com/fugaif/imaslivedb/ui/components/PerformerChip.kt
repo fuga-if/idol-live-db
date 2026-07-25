@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.fugaif.imaslivedb.ui.theme.DS
 
 /**
  * Small capsule chip showing a performer with color dot.
@@ -44,7 +45,7 @@ fun PerformerChip(
 
     Surface(
         shape = CircleShape,
-        color = MaterialTheme.colorScheme.surfaceVariant,
+        color = DS.surface2,
         modifier = modifier
     ) {
         Row(
@@ -65,7 +66,7 @@ fun PerformerChip(
                     Text(
                         text = subName,
                         style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = DS.ink2,
                         maxLines = 1
                     )
                 }

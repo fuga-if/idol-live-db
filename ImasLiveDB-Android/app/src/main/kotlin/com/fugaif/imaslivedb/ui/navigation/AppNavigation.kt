@@ -13,10 +13,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavGraphBuilder
+import androidx.navigation.NavType
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.fugaif.imaslivedb.ui.edit.RecentEditsScreen
 import com.fugaif.imaslivedb.ui.events.EventDetailScreen
 import com.fugaif.imaslivedb.ui.events.EventListScreen
@@ -45,6 +47,7 @@ import com.fugaif.imaslivedb.ui.polls.PollDetailScreen
 import com.fugaif.imaslivedb.ui.polls.PollsScreen
 import com.fugaif.imaslivedb.ui.produce.ProduceScreen
 import com.fugaif.imaslivedb.ui.schedule.CalendarScreen
+import com.fugaif.imaslivedb.data.repository.SearchScope
 import com.fugaif.imaslivedb.ui.search.SearchScreen
 import com.fugaif.imaslivedb.ui.settings.SettingsScreen
 import com.fugaif.imaslivedb.ui.songs.SongDetailScreen
@@ -138,6 +141,9 @@ private fun NavGraphBuilder.eventsNavGraph(navController: NavHostController) {
         EventListScreen(
             onEventClick = { eventId ->
                 navController.navigate(NavRoutes.EventDetail.createRoute(eventId))
+            },
+            onNavigateToSearch = {
+                navController.navigate(NavRoutes.Search.createRoute(SearchScope.EVENTS.name))
             }
         )
     }
@@ -230,17 +236,21 @@ private fun NavGraphBuilder.eventsNavGraph(navController: NavHostController) {
             }
         )
     }
-    composable(NavRoutes.Search.route) {
+    composable(
+        route = NavRoutes.Search.ROUTE,
+        arguments = listOf(navArgument("scope") {
+            type = NavType.StringType
+            defaultValue = SearchScope.ALL.name
+        })
+    ) { backStackEntry ->
+        val scope = runCatching {
+            SearchScope.valueOf(backStackEntry.arguments?.getString("scope") ?: SearchScope.ALL.name)
+        }.getOrDefault(SearchScope.ALL)
         SearchScreen(
-            onNavigateToIdolDetail = { idolId ->
-                navController.navigate(NavRoutes.IdolDetail.createRoute(idolId))
-            },
-            onNavigateToSongDetail = { songId ->
-                navController.navigate(NavRoutes.SongDetail.createRoute(songId))
-            },
-            onNavigateToEventDetail = { eventId ->
-                navController.navigate(NavRoutes.EventDetail.createRoute(eventId))
-            }
+            initialScope = scope,
+            onNavigateToIdolDetail = { navController.navigate(NavRoutes.IdolDetail.createRoute(it)) },
+            onNavigateToSongDetail = { navController.navigate(NavRoutes.SongDetail.createRoute(it)) },
+            onNavigateToEventDetail = { navController.navigate(NavRoutes.EventDetail.createRoute(it)) }
         )
     }
 }
@@ -250,6 +260,9 @@ private fun NavGraphBuilder.songsNavGraph(navController: NavHostController) {
         SongListScreen(
             onSongClick = { songId ->
                 navController.navigate(NavRoutes.SongDetail.createRoute(songId))
+            },
+            onNavigateToSearch = {
+                navController.navigate(NavRoutes.Search.createRoute(SearchScope.SONGS.name))
             }
         )
     }
@@ -339,6 +352,9 @@ private fun NavGraphBuilder.idolsNavGraph(navController: NavHostController) {
             },
             onNavigateToUnitDetail = { unitId ->
                 navController.navigate(NavRoutes.UnitDetail.createRoute(unitId))
+            },
+            onNavigateToSearch = {
+                navController.navigate(NavRoutes.Search.createRoute(SearchScope.IDOLS.name))
             }
         )
     }
@@ -426,7 +442,7 @@ private fun NavGraphBuilder.scheduleNavGraph(navController: NavHostController) {
             onNavigateToShow = { navController.navigate(NavRoutes.Setlist.createRoute(it)) },
             onNavigateToSong = { navController.navigate(NavRoutes.SongDetail.createRoute(it)) },
             onNavigateToIdol = { navController.navigate(NavRoutes.IdolDetail.createRoute(it)) },
-            onNavigateToSearch = { navController.navigate(NavRoutes.Search.route) },
+            onNavigateToSearch = { navController.navigate(NavRoutes.Search.createRoute()) },
             onNavigateToSettings = { navController.navigate(NavRoutes.Settings.route) }
         )
     }
@@ -439,7 +455,7 @@ private fun NavGraphBuilder.produceNavGraph(navController: NavHostController) {
         ProduceScreen(
             onNavigateToStats = { navController.navigate(NavRoutes.Stats.route) },
             onNavigateToSettings = { navController.navigate(NavRoutes.Settings.route) },
-            onNavigateToSearch = { navController.navigate(NavRoutes.Search.route) },
+            onNavigateToSearch = { navController.navigate(NavRoutes.Search.createRoute()) },
             onNavigateToPolls = { navController.navigate(NavRoutes.Polls.route) },
             onNavigateToIdol = { navController.navigate(NavRoutes.IdolDetail.createRoute(it)) },
             onNavigateToSong = { navController.navigate(NavRoutes.SongDetail.createRoute(it)) },
@@ -661,8 +677,18 @@ private fun NavGraphBuilder.detailRoutes(navController: NavHostController) {
             onPollClick = { navController.navigate(NavRoutes.PollDetail.createRoute(it)) }
         )
     }
-    composable(NavRoutes.Search.route) {
+    composable(
+        route = NavRoutes.Search.ROUTE,
+        arguments = listOf(navArgument("scope") {
+            type = NavType.StringType
+            defaultValue = SearchScope.ALL.name
+        })
+    ) { backStackEntry ->
+        val scope = runCatching {
+            SearchScope.valueOf(backStackEntry.arguments?.getString("scope") ?: SearchScope.ALL.name)
+        }.getOrDefault(SearchScope.ALL)
         SearchScreen(
+            initialScope = scope,
             onNavigateToIdolDetail = { navController.navigate(NavRoutes.IdolDetail.createRoute(it)) },
             onNavigateToSongDetail = { navController.navigate(NavRoutes.SongDetail.createRoute(it)) },
             onNavigateToEventDetail = { navController.navigate(NavRoutes.EventDetail.createRoute(it)) }

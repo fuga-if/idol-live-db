@@ -1,8 +1,8 @@
 package com.fugaif.imaslivedb.ui.components
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -17,48 +17,44 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.fugaif.imaslivedb.ui.theme.DS
 
 /**
- * Generic styled filter chip with capsule shape and optional color tint.
- * Used in filter rows for song type, brand, etc.
+ * 押して on/off できるチップ。フィルタ・カテゴリ・種別の選択に使う「唯一の正」。
  *
- * @param label    Text displayed in the chip
- * @param selected Whether this chip is currently selected
- * @param tintColor Optional color for selected state (defaults to MaterialTheme primary)
- * @param onClick  Called when the chip is tapped
+ * 見た目は [ImasChip] と完全に同一 (同じ Capsule・タイポ・余白) で、押下と選択状態だけを足す。
+ * 以前は Material の primary / outline を直に塗っており、DS の「システムクロムはほぼ無彩、
+ * 色は常にエンティティ側から来る」原則から外れ、余白・タイポも ImasChip と揃っていなかった。
+ *
+ * @param label     チップの表示文言
+ * @param selected  選択中かどうか
+ * @param seed      配色シード (アイドル色など)。指定するとその色から accent を導出する
+ * @param brand     ブランド色シード
+ * @param icon      先頭アイコン (任意)
  */
 @Composable
 fun ImasFilterChip(
     label: String,
     selected: Boolean,
     onClick: () -> Unit,
-    tintColor: Color = Color.Unspecified,
+    seed: String? = null,
+    brand: String? = null,
+    /** 実体色そのもの (ブランド色 Color 等)。WCAG コントラスト計算を通してから塗る。 */
+    tintColor: Color? = null,
+    icon: ImageVector? = null,
     modifier: Modifier = Modifier
 ) {
-    val resolvedTint = if (tintColor == Color.Unspecified) {
-        MaterialTheme.colorScheme.primary
-    } else {
-        tintColor
-    }
-
-    val backgroundColor = if (selected) resolvedTint.copy(alpha = 0.15f) else Color.Transparent
-    val borderColor = if (selected) resolvedTint else MaterialTheme.colorScheme.outline
-    val textColor = if (selected) resolvedTint else MaterialTheme.colorScheme.onSurface
-
-    Surface(
-        onClick = onClick,
-        shape = CircleShape,
-        color = backgroundColor,
-        border = BorderStroke(width = 1.dp, color = borderColor),
-        modifier = modifier
-    ) {
-        Text(
+    Box(modifier = modifier) {
+        ImasChip(
             text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = textColor,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+            icon = icon,
+            style = if (selected) ImasChipStyle.SELECTED else ImasChipStyle.NEUTRAL,
+            seed = seed,
+            brand = brand,
+            color = tintColor,
+            onClick = onClick
         )
     }
 }

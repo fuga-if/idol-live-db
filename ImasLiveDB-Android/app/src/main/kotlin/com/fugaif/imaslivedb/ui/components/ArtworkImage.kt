@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.SubcomposeAsyncImage
 import com.fugaif.imaslivedb.player.AudioPreviewManager
+import com.fugaif.imaslivedb.ui.theme.DS
 
 /**
  * Artwork image composable with optional audio preview playback on tap.
@@ -100,13 +101,13 @@ private fun ArtworkPlaceholder(size: Dp) {
     Box(
         modifier = Modifier
             .size(size)
-            .background(MaterialTheme.colorScheme.surfaceVariant),
+            .background(DS.surface2),
         contentAlignment = Alignment.Center
     ) {
         Icon(
             imageVector = Icons.Filled.MusicNote,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            tint = DS.ink2,
             modifier = Modifier.size(size * 0.4f)
         )
     }

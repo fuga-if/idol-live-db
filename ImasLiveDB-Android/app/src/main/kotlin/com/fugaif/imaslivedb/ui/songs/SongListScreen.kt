@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Sell
@@ -52,6 +53,7 @@ import com.fugaif.imaslivedb.ui.theme.DS
 @Composable
 fun SongListScreen(
     onSongClick: (String) -> Unit,
+    onNavigateToSearch: () -> Unit = {},
     viewModel: SongListViewModel = viewModel()
 ) {
     val context = LocalContext.current
@@ -66,6 +68,9 @@ fun SongListScreen(
             TopAppBar(
                 title = { Text("楽曲") },
                 actions = {
+                    IconButton(onClick = onNavigateToSearch) {
+                        Icon(Icons.Filled.Search, contentDescription = "検索")
+                    }
                     BadgedBox(
                         badge = {
                             if (uiState.selectedTags.isNotEmpty()) {

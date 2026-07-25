@@ -1,6 +1,7 @@
 package com.fugaif.imaslivedb.ui.theme
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow
@@ -35,6 +36,19 @@ data class ImasTheme(
         /** シード hex (アイドル色) → トークン。無ければブランド色 → ニュートラルへフォールバック。 */
         fun derive(seed: String?, brand: String? = null, dark: Boolean = true): ImasTheme {
             val hex = ColorMath.firstValidHex(seed, brand) ?: ColorMath.NEUTRAL_SEED
+            return derive(hex, dark)
+        }
+
+        /**
+         * 実体色 (`Color`) からトークンを導出する。
+         *
+         * 素の `Color` をそのまま塗るのではなく、通常の seed/brand と同じ WCAG コントラスト
+         * 計算を経由するので、選択色がどんな明るさでも前景色が自動で読める側に倒れる。
+         * iOS `ImasTheme.derive(colorSeed:scheme:)` 相当。
+         */
+        fun derive(color: Color, dark: Boolean = true): ImasTheme {
+            val argb = color.toArgb()
+            val hex = "#%06X".format(argb and 0xFFFFFF)
             return derive(hex, dark)
         }
 

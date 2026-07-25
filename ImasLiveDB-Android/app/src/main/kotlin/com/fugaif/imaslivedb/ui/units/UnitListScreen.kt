@@ -50,6 +50,7 @@ import com.fugaif.imaslivedb.ui.components.ImasGridSkeleton
 import com.fugaif.imaslivedb.ui.components.ImasLeadBar
 import com.fugaif.imaslivedb.ui.components.ImasListSkeleton
 import com.fugaif.imaslivedb.ui.components.SkeletonThumb
+import com.fugaif.imaslivedb.ui.components.NameFilterField
 import com.fugaif.imaslivedb.ui.theme.DS
 
 /**
@@ -81,20 +82,10 @@ fun UnitListBody(
     val visibleBrands = state.brands.filter { !groupedByBrand[it.id].isNullOrEmpty() }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        OutlinedTextField(
+        NameFilterField(
+            prompt = "ユニット名で絞り込み",
             value = state.searchText,
-            onValueChange = viewModel::setSearchText,
-            placeholder = { Text("ユニット名で検索") },
-            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-            trailingIcon = {
-                if (state.searchText.isNotEmpty()) {
-                    IconButton(onClick = { viewModel.setSearchText("") }) {
-                        Icon(Icons.Filled.Clear, contentDescription = "クリア")
-                    }
-                }
-            },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
+            onValueChange = viewModel::setSearchText
         )
         HorizontalDivider(color = DS.sep)
 

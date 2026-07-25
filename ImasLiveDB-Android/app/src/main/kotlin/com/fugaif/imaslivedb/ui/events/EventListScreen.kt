@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material.icons.filled.VideocamOff
@@ -24,6 +25,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -51,6 +53,7 @@ import com.fugaif.imaslivedb.ui.theme.DS
 @Composable
 fun EventListScreen(
     onEventClick: (String) -> Unit,
+    onNavigateToSearch: () -> Unit = {},
     viewModel: EventListViewModel = viewModel()
 ) {
     val context = LocalContext.current
@@ -60,7 +63,14 @@ fun EventListScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("ライブ") })
+            TopAppBar(
+                title = { Text("ライブ") },
+                actions = {
+                    IconButton(onClick = onNavigateToSearch) {
+                        Icon(Icons.Filled.Search, contentDescription = "検索")
+                    }
+                }
+            )
         }
     ) { innerPadding ->
         Column(modifier = Modifier.padding(innerPadding)) {
@@ -101,7 +111,7 @@ fun EventListScreen(
                 Text(
                     text = "${uiState.filteredEvents.size}件",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = DS.ink2
                 )
             }
 
@@ -144,7 +154,7 @@ private fun YearSectionHeader(year: String) {
     Text(
         text = year,
         style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        color = DS.ink2,
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 6.dp)

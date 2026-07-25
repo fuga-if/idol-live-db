@@ -115,8 +115,14 @@ fun IdolPollCandidatePicker(
     val filtered = remember(state.idols, query, selectedBrandId) {
         val q = query.trim().lowercase()
         state.idols.filter { idol ->
-            (selectedBrandId == null || idol.brandId == selectedBrandId) &&
-                (q.isEmpty() || idol.name.lowercase().contains(q) || idol.nameKana?.lowercase()?.contains(q) == true)
+            (selectedBrandId == null || idol.brandId == selectedBrandId) && (
+                q.isEmpty() ||
+                    idol.name.lowercase().contains(q) ||
+                    idol.nameKana?.lowercase()?.contains(q) == true ||
+                    // CV 名・別名でも引けるようにする (声優名で探すのは主要な導線)。
+                    idol.voiceActors?.lowercase()?.contains(q) == true ||
+                    idol.aliases?.lowercase()?.contains(q) == true
+            )
         }
     }
     val grouped = remember(filtered, state.brands) {
@@ -163,7 +169,7 @@ fun IdolPollCandidatePicker(
             OutlinedTextField(
                 value = query,
                 onValueChange = { query = it },
-                placeholder = { Text("アイドル名で検索") },
+                placeholder = { Text("アイドル名 / CV名で検索") },
                 leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
                 trailingIcon = {
                     if (query.isNotEmpty()) {

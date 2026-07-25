@@ -45,7 +45,14 @@ sealed class NavRoutes(val route: String) {
     }
     data object Stats : NavRoutes("stats")
     data object Settings : NavRoutes("settings")
-    data object Search : NavRoutes("search")
+    /**
+     * 検索。呼び出し元タブのスコープを引き継ぐ (`SearchScope` の name)。
+     * 省略時は ALL。
+     */
+    data object Search : NavRoutes("search?scope={scope}") {
+        const val ROUTE = "search?scope={scope}"
+        fun createRoute(scope: String = "ALL") = "search?scope=$scope"
+    }
 
     data object Favorites : NavRoutes("favorites")
     data object AttendedEvents : NavRoutes("attended_events")

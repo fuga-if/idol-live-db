@@ -362,9 +362,12 @@ fun ImasChip(
     style: ImasChipStyle = ImasChipStyle.NEUTRAL,
     seed: String? = null,
     brand: String? = null,
+    /** 実体色そのもの (ブランド色 Color 等)。指定すると seed/brand より優先する。 */
+    color: Color? = null,
     onClick: (() -> Unit)? = null
 ) {
-    val t = ImasTheme.derive(seed, brand, dark = true)
+    val t = if (color != null) ImasTheme.derive(color, dark = true)
+            else ImasTheme.derive(seed, brand, dark = true)
     val (bg, fg) = when (style) {
         ImasChipStyle.THEMED -> t.chipBg to t.chipText
         ImasChipStyle.SELECTED -> t.accent to t.onAccent

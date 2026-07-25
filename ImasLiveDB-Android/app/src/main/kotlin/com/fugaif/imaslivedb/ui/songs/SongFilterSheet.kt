@@ -33,6 +33,7 @@ import com.fugaif.imaslivedb.data.model.SongSortOrder
 import com.fugaif.imaslivedb.ui.components.BrandFilterChips
 import com.fugaif.imaslivedb.ui.components.BrandFilterItem
 import com.fugaif.imaslivedb.ui.components.ImasFilterChip
+import com.fugaif.imaslivedb.ui.theme.DS
 
 private val ALL_BRANDS = listOf(
     BrandFilterItem("765as", "765"),
@@ -98,7 +99,7 @@ fun SongFilterSheet(
             Text(
                 text = "並び順",
                 style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = DS.ink2,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
             )
             Row(
@@ -138,7 +139,7 @@ fun SongFilterSheet(
             Text(
                 text = "ブランド",
                 style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = DS.ink2,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
             )
             BrandFilterChips(
@@ -174,7 +175,7 @@ fun SongFilterSheet(
             Text(
                 text = "マイマーク",
                 style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = DS.ink2,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
             )
             SwitchRow(
@@ -195,7 +196,7 @@ fun SongFilterSheet(
             Text(
                 text = "現地回収",
                 style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = DS.ink2,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
             )
             Row(
@@ -270,7 +271,7 @@ private fun SwitchRow(
         Column(modifier = Modifier.weight(1f)) {
             Text(text = title, style = MaterialTheme.typography.bodyMedium)
             if (subtitle != null) {
-                Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = DS.ink2)
             }
         }
         Switch(checked = checked, onCheckedChange = onCheckedChange)
