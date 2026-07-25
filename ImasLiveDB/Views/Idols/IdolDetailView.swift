@@ -49,18 +49,11 @@ struct IdolDetailView: View {
 
     /// 出演履歴のうち今日以降で最も近い公演 (= 次の出演)。無ければ nil。
     private var nextShow: CastShowRow? {
-        let today = Self.todayString
+        let today = JSTDay.today()
         return vm.castShows
             .filter { $0.date >= today }
             .min { $0.date < $1.date }
     }
-
-    private static let todayString: String = {
-        let f = DateFormatter()
-        f.dateFormat = "yyyy-MM-dd"
-        f.locale = Locale(identifier: "en_US_POSIX")
-        return f.string(from: Date())
-    }()
 
     /// 子遷移の単一窓口。sheet 内 (navigate 非 nil) は共有 path に push、standalone は自前 sheet。
     private func go(_ dest: DetailDestination) {

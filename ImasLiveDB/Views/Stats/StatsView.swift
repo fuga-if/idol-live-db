@@ -582,7 +582,7 @@ struct StatsView: View {
 
         let collected = UserMarkService.shared.autoCollectedSongIds()
         let pickIdolIds = Set(UserMarkService.shared.allMarked(kind: .myPick, entity: .idol))
-        let today = Self.todayString()
+        let today = JSTDay.today()
         let db = database
 
         let result: DashboardResult? = await Task.detached(priority: .userInitiated) {
@@ -643,14 +643,7 @@ struct StatsView: View {
         let catchChances: [UpcomingCatchChance]
     }
 
-    /// "yyyy-MM-dd" 形式の今日。 公演日 (TEXT) との文字列比較に使う。
-    private static func todayString() -> String {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "en_US_POSIX")
-        f.timeZone = TimeZone(identifier: "Asia/Tokyo")
-        f.dateFormat = "yyyy-MM-dd"
-        return f.string(from: Date())
-    }
+
 
     private func loadFavoritesRanking() async {
         isLoadingFavorites = true

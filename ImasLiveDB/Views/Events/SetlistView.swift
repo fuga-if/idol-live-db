@@ -56,13 +56,10 @@ struct SetlistView: View {
     @State private var songPicker: SongPickerRequest?
 
     /// 公演が未来か (今日も含む)。 セトリ未登録時の文言出し分けに使う。
-    /// 端末ローカルのタイムゾーンで「今日」を判定する (`EventListView.todayKey` /
-    /// `EventDetailView.isFutureEvent` / `AttendanceStatus.derive` と同じ方式に統一。
-    /// `ISO8601DateFormatter` は既定 GMT 基準になるため、ここでは使わない)。
+    /// 「今日」は JST 固定 (`JSTDay`)。公演日は日本のライブの開催日なので、
+    /// 端末ローカル TZ で判定すると海外にいるユーザーだけ 1 日ずれる。
     private var isFutureShow: Bool {
-        let c = Calendar.current.dateComponents([.year, .month, .day], from: Date())
-        let today = String(format: "%04d-%02d-%02d", c.year ?? 0, c.month ?? 0, c.day ?? 0)
-        return show.date >= today
+        JSTDay.isTodayOrLater(show.date)
     }
 
     /// シェア文に使う公演の表示名。イベント名が取れていれば「イベント名 公演名」、
@@ -72,6 +69,35 @@ struct SetlistView: View {
             return "\(eventName) \(show.name)"
         }
         return show.name
+    }
+
+    /// シェア文。 セトリ画面なので **セトリ本文まで載せる**。
+    ///
+    /// 以前は「公演名 + URL」だけで、 セトリ画面から共有したのに中身が何も入らず、
+    /// 受け取った側はリンクを踏まないと何のライブか分からなかった。
+    ///
+    /// 曲数が多いと SNS の文字数制限に当たるので、 曲は 20 曲までにして残りは
+    /// 「ほか N 曲」と畳む (全部見たい人はリンクを踏む導線として URL を残す)。
+    private var shareText: String {
+        var lines = [shareName]
+        let venue = venueDirectory.displayName(for: show) ?? show.venue
+        let sub = [show.date, venue].compactMap { $0 }.joined(separator: " ・ ")
+        if !sub.isEmpty { lines.append(sub) }
+
+        if !setlist.isEmpty {
+            lines.append("")
+            let limit = 20
+            for (index, item) in setlist.prefix(limit).enumerated() {
+                lines.append(String(format: "%02d. %@", index + 1, item.songTitle))
+            }
+            if setlist.count > limit {
+                lines.append("ほか \(setlist.count - limit) 曲")
+            }
+        }
+
+        lines.append("")
+        lines.append(DeeplinkBuilder.showURL(id: show.id).absoluteString)
+        return lines.joined(separator: "\n")
     }
 
     /// 遷移の単一窓口。sheet 内 (navigate 非 nil) は共有 path に push、standalone は自前 sheet。
@@ -341,12 +367,7 @@ struct SetlistView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 // SNS シェア (Universal Links)。リンクを踏むとこの公演セトリに直接着地する。
-                ShareLink(
-                    item: DeeplinkBuilder.shareText(
-                        name: shareName,
-                        url: DeeplinkBuilder.showURL(id: show.id)
-                    )
-                ) {
+                ShareLink(item: shareText) {
                     Image(systemName: "square.and.arrow.up")
                 }
                 .accessibilityLabel("この公演をシェア")

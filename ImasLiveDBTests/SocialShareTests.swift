@@ -102,4 +102,31 @@ final class SocialShareTests: XCTestCase {
     func testUnknownKindIsIgnored() {
         XCTAssertNil(DeeplinkRouter.parse(URL(string: "imaslivedb://unknown/1")!))
     }
+
+    // MARK: - ID に @ を含む公演の共有 URL
+
+    /// `@` は SNS のリンク検出がメールアドレスの境界と誤認して URL をそこで切る。
+    /// `sh_the_idolm@ster_...` が `sh_the_idolm` で切られ、共有リンクが 404 になっていた。
+    func testShareURLPercentEncodesAtSign() {
+        let id = "sh_the_idolm@ster_20th_anniversary_2026_1"
+        let url = DeeplinkBuilder.showURL(id: id)
+        XCTAssertFalse(url.absoluteString.contains("@"), "生の @ を残さないこと")
+        XCTAssertTrue(url.absoluteString.contains("%40"))
+    }
+
+    /// エンコードしても受け側が元の ID に戻せること (pathComponents が percent-decode する)。
+    func testEncodedShareURLRoundTripsToOriginalId() {
+        let id = "sh_the_idolm@ster_20th_anniversary_2026_1"
+        guard case .show(let parsed)? = DeeplinkRouter.parse(DeeplinkBuilder.showURL(id: id)) else {
+            return XCTFail("show として解析できること")
+        }
+        XCTAssertEqual(parsed, id)
+    }
+
+    /// イベント / お題の URL も同じ扱いであること。
+    func testEventAndPollURLsAlsoEncodeAtSign() {
+        let id = "ev_the_idolm@ster_2026"
+        XCTAssertTrue(DeeplinkBuilder.eventURL(id: id).absoluteString.contains("%40"))
+        XCTAssertTrue(DeeplinkBuilder.pollURL(id: id).absoluteString.contains("%40"))
+    }
 }

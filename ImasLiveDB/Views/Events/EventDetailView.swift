@@ -66,15 +66,10 @@ struct EventDetailView: View {
         return Int(show.date.prefix(4))
     }
 
-    /// 未来イベントかどうか（最初の公演日が今日以降）
+    /// 未来イベントかどうか（最初の公演日が今日以降）。「今日」は JST 固定 (`JSTDay`)。
     private var isFutureEvent: Bool {
         guard let firstShow = vm.shows.first else { return false }
-        let today = ISO8601DateFormatter.string(
-            from: Date(),
-            timeZone: .current,
-            formatOptions: .withFullDate
-        )
-        return firstShow.date >= today
+        return JSTDay.isTodayOrLater(firstShow.date)
     }
 
     /// 参加マーク済み公演の日付から導く「参加予定 (あとN日) / 参加済み」状態。

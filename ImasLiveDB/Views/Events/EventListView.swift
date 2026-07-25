@@ -55,10 +55,9 @@ struct EventListView: View {
     }
 
     /// 端末ローカルの今日 (YYYY-MM-DD)。今後/開催済みの境界。
-    private var todayKey: String {
-        let c = Calendar.current.dateComponents([.year, .month, .day], from: Date())
-        return String(format: "%04d-%02d-%02d", c.year ?? 0, c.month ?? 0, c.day ?? 0)
-    }
+    /// 「今日」は JST 固定 (`JSTDay`)。公演日は日本のライブの開催日なので、
+    /// 端末ローカル TZ で判定すると海外にいるユーザーだけ 1 日ずれる。
+    private var todayKey: String { JSTDay.today() }
 
     /// brand_id → ブランドカラー hex の引き当て表 (リードバーの seed 用)。
     private var brandColorMap: [String: String] {
