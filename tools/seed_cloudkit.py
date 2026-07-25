@@ -67,6 +67,11 @@ TABLE_ORDER = [
     "events",
     "units",
     "songs",
+    # 会場は shows より先。 shows.venue_id が会場を指すので、
+    # 先に会場側を投入しないと参照先が無い状態の Show が一時的に生まれる。
+    "venues",
+    "venue_names",
+    "venue_halls",
     "shows",
     "idol_brands",
     "unit_members",
@@ -92,6 +97,9 @@ RECORD_TYPE_MAP = {
     "unit_members": "UnitMember",
     "song_artists": "SongArtist",
     "show_cast": "ShowCast",
+    "venues": "Venue",
+    "venue_names": "VenueName",
+    "venue_halls": "VenueHall",
     "meta": "MetaData",
 }
 

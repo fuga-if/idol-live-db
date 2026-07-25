@@ -25,6 +25,9 @@ const NON_STRING_FIELDS: Record<string, Record<string, CKFieldType>> = {
   // (authorDisplayName は STRING なので未掲載で既定の STRING になる)。
   SongCall: { createdAt: "TIMESTAMP" },
   SongVideo: { createdAt: "TIMESTAMP" },
+  Venue: { capacity: "INT64", sortOrder: "INT64" },
+  // キャパは施設 (Venue) 既定値をホール構成が上書きするので、両方に持つ。
+  VenueHall: { capacity: "INT64" },
 };
 
 const COMMON_TIMESTAMP_FIELDS = new Set(["modifiedAt", "deletedAt"]);
@@ -46,6 +49,9 @@ export const OPEN_EDIT_TYPES = new Set([
 /** admin 限定の構造マスタ。一般ユーザーは編集不可。 */
 export const ADMIN_ONLY_TYPES = new Set([
   "Brand", "IdolBrand", "IdolCast", "ImasUnit", "UnitMember", "CastMember", "MetaData", "Users",
+  // 会場マスタは ID が公演の同一性を支える基盤なので、一般ユーザーには開けない。
+  // 公演側 (Show.venueId) から既存会場を選ぶのは OPEN_EDIT の Show 経由で可能。
+  "Venue", "VenueName", "VenueHall",
 ]);
 
 /** 一般ユーザーが create できない型 (既存編集のみ)。Idol は新規作成スコープ外。 */

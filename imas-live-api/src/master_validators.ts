@@ -60,6 +60,11 @@ const FIELD_RULES: Record<string, Record<string, FieldRule>> = {
     eventId: { type: "STRING", required: true, maxLen: 200 },
     date: { type: "STRING", pattern: ISO_DATE_RE },
     venue: { type: "STRING", maxLen: 200 },
+    // venueId は会場マスタへの参照。表示名は Venue/VenueName 側から解決するので、
+    // venue (生文字列) は会場が特定できない公演のフォールバックとして残している。
+    venueId: { type: "STRING", maxLen: 200 },
+    hall: { type: "STRING", maxLen: 200 },
+    streamPlatform: { type: "STRING", maxLen: 200 },
     venueCity: { type: "STRING", maxLen: 100 },
     startTime: { type: "STRING", maxLen: 20 },
     performerType: { type: "STRING", maxLen: 50 },

@@ -8,14 +8,15 @@ enum CloudKitSchemaBootstrap {
     static func createSchema() async {
         let db = CKContainer(identifier: "iCloud.com.fugaif.ImasLiveDB").publicCloudDatabase
 
-        // TODO: CloudKit Dashboard で各 record type の deletedAt フィールドを
-        // Queryable/Sortable に手動設定すること（以下参照: docs/cloudkit-schema.md）
+        // スキーマの正は `tools/cloudkit_schema.ckdb` (cktool import-schema で反映)。
+        // ここはダミーレコード保存によるフィールド定義しかできず、 index (QUERYABLE /
+        // SORTABLE) は付かないので、 差分同期に必要な modifiedAt の index は ckdb 経由で入れること。
         let types: [(String, [String: any CKRecordValueProtocol])] = [
             ("Brand", ["name": "x", "shortName": "x", "color": "x", "sortOrder": 0]),
             ("Idol", ["brandId": "x", "name": "x", "nameKana": "x", "nameRomaji": "x", "color": "x", "sortOrder": 0, "birthday": "x", "bloodType": "x", "height": 0.0, "weight": 0.0, "birthPlace": "x", "age": 0, "bust": 0.0, "waist": 0.0, "hip": 0.0, "constellation": "x", "hobbies": "x", "talents": "x", "description": "x", "gender": "x", "handedness": "x", "debutDate": "x", "attribute": "x", "isExternal": 0]),
             ("CastMember", ["name": "x", "nameKana": "x", "nameRomaji": "x"]),
             ("Event", ["brandId": "x", "name": "x", "eventType": "x", "isStreaming": 0, "isSolo": 1, "kind": "live", "ticketOpenDate": "x", "ticketDeadline": "x", "ticketLotteryDate": "x", "ticketUrl": "x"]),
-            ("Show", ["eventId": "x", "name": "x", "date": "x", "venue": "x", "venueCity": "x", "startTime": "x", "sortOrder": 0, "performerType": "x"]),
+            ("Show", ["eventId": "x", "name": "x", "date": "x", "venue": "x", "venueId": "x", "hall": "x", "streamPlatform": "x", "venueCity": "x", "startTime": "x", "sortOrder": 0, "performerType": "x"]),
             ("Song", ["title": "x", "titleKana": "x", "brandId": "x", "songType": "x", "releaseDate": "x", "durationSec": 0, "composer": "x", "lyricist": "x", "arranger": "x", "cdSeries": "x", "cdTitle": "x", "artworkUrl": "x", "previewUrl": "x", "appleMusicId": "x", "appleMusicAlbumId": "x", "isrc": "x", "lyricsUrl": "x", "parentSongId": "x", "singerLabel": "x", "unitName": "x", "unitId": "x"]),
             ("ImasUnit", ["brandId": "x", "name": "x", "isPermanent": 0, "nameAlt": "x"]),
             ("SetlistItem", ["showId": "x", "songId": "x", "position": 0, "section": "x", "notes": "x", "unitName": "x"]),
@@ -28,6 +29,9 @@ enum CloudKitSchemaBootstrap {
             ("MetaData", ["value": "x"]),
             ("SongCall", ["songId": "x", "callText": "x", "sourceUrl": "x", "authorDisplayName": "x", "createdAt": Date()]),
             ("SongVideo", ["songId": "x", "youtubeUrl": "x", "videoTitle": "x", "note": "x", "authorDisplayName": "x", "createdAt": Date()]),
+            ("Venue", ["name": "x", "nameKana": "x", "prefecture": "x", "city": "x", "aliases": "x", "capacity": 0, "sortOrder": 0]),
+            ("VenueName", ["venueId": "x", "name": "x", "validFrom": "x", "validTo": "x"]),
+            ("VenueHall", ["venueId": "x", "name": "x", "capacity": 0]),
         ]
 
         for (typeName, fields) in types {
