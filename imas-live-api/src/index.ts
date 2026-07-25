@@ -685,6 +685,13 @@ const APPLE_APP_ID = "GQ3WP34LFW.com.fugaif.ImasLiveDB";
 const APP_STORE_URL = "https://apps.apple.com/jp/app/id6763342297";
 const APP_STORE_NUMERIC_ID = "6763342297";
 
+/**
+ * コミュニティ投票の 1人あたり票数上限。
+ * 「みんなの投票」(お題1件) と「セトリ予想」(公演1件) で同じ 3票に揃えている
+ * (iOS の CommunityVoteLimit.perTarget と同値)。
+ */
+const VOTE_LIMIT = 3;
+
 /** HTML テキスト/属性値に埋め込む動的文字列のエスケープ (XSS 防止)。 */
 function escapeHtml(s: string): string {
   return s
@@ -702,7 +709,7 @@ function escapeHtml(s: string): string {
  * title が null (未知 ID) でも安全に静的文言へフォールバックする。
  */
 function renderAppFallbackPage(opts: {
-  kind: "events" | "shows";
+  kind: "events" | "shows" | "polls";
   id: string;
   title: string | null;
   subtitle: string | null;
@@ -712,9 +719,15 @@ function renderAppFallbackPage(opts: {
   let description: string;
   if (title !== null) {
     heading = escapeHtml(title);
-    description = `「${heading}」のセットリスト・出演情報をアプリでチェック`;
+    description = opts.kind === "polls"
+      ? `「${heading}」の投票にアプリから参加しよう`
+      : `「${heading}」のセットリスト・出演情報をアプリでチェック`;
   } else {
-    heading = opts.kind === "events" ? "イベントが見つかりません" : "公演が見つかりません";
+    heading = {
+      events: "イベントが見つかりません",
+      shows: "公演が見つかりません",
+      polls: "お題が見つかりません",
+    }[opts.kind];
     description = "アイマス全ブランドのライブ・セットリストデータベース";
   }
   const subtitleHtml = opts.subtitle
@@ -956,7 +969,11 @@ export default {
                 {
                   appIDs: [APPLE_APP_ID],
                   // アプリが実際に処理できるパスだけに絞る (それ以外は素直にブラウザで開かせる)。
-                  components: [{ "/": "/app/events/*" }, { "/": "/app/shows/*" }],
+                  components: [
+                    { "/": "/app/events/*" },
+                    { "/": "/app/shows/*" },
+                    { "/": "/app/polls/*" },
+                  ],
                 },
               ],
             },
@@ -972,13 +989,13 @@ export default {
       }
 
       // ----------------------------------------------------------------
-      // GET /app/events/:id, /app/shows/:id — Universal Links フォールバック
+      // GET /app/events/:id, /app/shows/:id, /app/polls/:id — Universal Links フォールバック
       //   アプリ未インストールのブラウザアクセスに App Store 誘導 HTML を返す。
       //   (インストール済み端末では iOS がアプリを直接開くため通常表示されない)
       // ----------------------------------------------------------------
-      const appLinkMatch = path.match(/^\/app\/(events|shows)\/([^/]+)$/);
+      const appLinkMatch = path.match(/^\/app\/(events|shows|polls)\/([^/]+)$/);
       if (appLinkMatch && request.method === "GET") {
-        const kind = appLinkMatch[1] as "events" | "shows";
+        const kind = appLinkMatch[1] as "events" | "shows" | "polls";
         let id: string;
         try {
           id = decodeURIComponent(appLinkMatch[2]);
@@ -1001,7 +1018,18 @@ export default {
         let title: string | null = null;
         let subtitle: string | null = null;
         try {
-          if (kind === "events") {
+          if (kind === "polls") {
+            // お題は CloudKit ではなく D1 (polls テーブル) が正。
+            const poll = await env.DB.prepare(
+              "SELECT title, description, ends_at FROM polls WHERE id = ? AND status = 'active'"
+            )
+              .bind(id)
+              .first<{ title: string; description: string | null; ends_at: string }>();
+            if (poll) {
+              title = poll.title;
+              subtitle = poll.description || null;
+            }
+          } else if (kind === "events") {
             const res = await cloudKitLookup([id], env.CLOUDKIT_KEY_ID, env.CLOUDKIT_PRIVATE_KEY);
             const fields = res.records?.get(id)?.fields;
             title = (fields?.name?.value as string | undefined) ?? null;
@@ -1611,11 +1639,15 @@ export default {
         // 曲存在チェックは行わない。song_id は不透明キーとして保存し、曲メタは iOS local が解決する。
         // (D1 songs ミラーで検証すると、CloudKit にあるが D1 に未同期の新曲が 404 になる)
 
-        const existingVote = await env.DB.prepare(
-          "SELECT 1 FROM setlist_prediction_votes WHERE show_id = ? AND song_id = ? AND user_id = ?"
+        // 「この曲に投票済みか」と「この公演で何票使ったか」は同じ行集合から判るので、
+        // D1 は 1 クエリで済ませる (投票 POST ごとのクエリ数を増やさない)。
+        const { results: myVotes } = await env.DB.prepare(
+          "SELECT song_id FROM setlist_prediction_votes WHERE show_id = ? AND user_id = ?"
         )
-          .bind(showId, song_id, user.uid)
-          .first();
+          .bind(showId, user.uid)
+          .all<{ song_id: string }>();
+        const myVoteCount = myVotes.length;
+        const existingVote = myVotes.some((v) => v.song_id === song_id);
 
         if (existingVote) {
           const current = await env.DB.prepare(
@@ -1623,7 +1655,18 @@ export default {
           )
             .bind(showId, song_id)
             .first<{ vote_count: number }>();
-          return json({ song_id, vote_count: current?.vote_count ?? 1, already_voted: true });
+          return json({
+            song_id,
+            vote_count: current?.vote_count ?? 1,
+            already_voted: true,
+            my_vote_count: myVoteCount,
+          });
+        }
+
+        // 1公演あたり 1人 3票まで (poll_votes と同じ上限)。
+        // 上限導入前に3票超で投票済みのユーザーは、取り消して3以下に戻すまで新規投票のみ弾かれる。
+        if (myVoteCount >= VOTE_LIMIT) {
+          return error("vote limit", 409);
         }
 
         await env.DB.prepare(
@@ -1657,7 +1700,10 @@ export default {
             .run();
         }
 
-        return json({ song_id, vote_count: voteCount, already_voted: false }, 201);
+        return json(
+          { song_id, vote_count: voteCount, already_voted: false, my_vote_count: myVoteCount + 1 },
+          201
+        );
       }
 
       // ----------------------------------------------------------------
@@ -2386,7 +2432,7 @@ export default {
           .bind(pollId, user.uid)
           .first<{ c: number }>();
         const myVoteCount = myVoteRow?.c ?? 0;
-        if (myVoteCount >= 3) {
+        if (myVoteCount >= VOTE_LIMIT) {
           return error("vote limit", 409);
         }
 
