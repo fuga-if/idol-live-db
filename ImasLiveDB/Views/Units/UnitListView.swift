@@ -34,9 +34,9 @@ struct UnitListContent: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            if vm.isSearching {
-                InTabSearchField(prompt: "ユニット名で検索", text: $vm.searchText, isSearching: $vm.isSearching)
-            }
+            NameFilterField(prompt: "ユニット名で絞り込み", text: $vm.searchText)
+                .padding(.horizontal, DS.sp5)
+                .padding(.bottom, DS.sp3)
 
             if vm.isLoading {
                 ScrollView {
@@ -48,7 +48,15 @@ struct UnitListContent: View {
                 }
                 .scrollDisabled(true)
             } else if !vm.searchText.isEmpty && vm.filteredUnits.isEmpty {
-                InTabSearchEmptyView(query: vm.searchText)
+                Spacer()
+                ImasEmptyState(
+                    systemImage: "line.3.horizontal.decrease",
+                    title: "絞り込み結果がありません",
+                    message: "「\(vm.searchText)」に一致するユニットがありません",
+                    actionTitle: "絞り込みを解除",
+                    action: { vm.searchText = "" }
+                )
+                Spacer()
             } else if vm.filteredUnits.isEmpty {
                 Spacer()
                 ImasEmptyState(
@@ -70,15 +78,6 @@ struct UnitListContent: View {
             vm.rebuild(searchText: new)
         }
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    AppAnalytics.tap("unit_list.search_open")
-                    vm.isSearching = true
-                } label: {
-                    Image(systemName: "magnifyingglass")
-                }
-                .accessibilityLabel("検索")
-            }
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     AppAnalytics.tap("unit_list.grid_toggle")

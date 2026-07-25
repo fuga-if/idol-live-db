@@ -18,7 +18,6 @@ struct SongListView: View {
     @State private var showFilter = false
     @State private var sheetDestination: DetailDestination?
     @State private var searchText = ""
-    @State private var isSearching = false
     /// 新規曲作成 sheet。
     @State private var showSongCreate = false
     /// 未ログイン時のログイン誘導 sheet。
@@ -60,14 +59,6 @@ struct SongListView: View {
             searchText: searchText)
     }
 
-    private var searchPrompt: String {
-        switch listMode {
-        case .songs: "曲名で検索"
-        case .albums: "アルバム名で検索"
-        case .series: "シリーズ名で検索"
-        }
-    }
-
     /// 現在の UI 状態で曲リストを即時再ロードする（チップ解除などフィルタ変更の共通導線）。
     private func reload() {
         vm.scheduleLoad(loadRequest, debounce: false)
@@ -90,9 +81,6 @@ struct SongListView: View {
     @ViewBuilder
     private var content: some View {
             VStack(spacing: 0) {
-                if isSearching {
-                    InTabSearchField(prompt: searchPrompt, text: $searchText, isSearching: $isSearching)
-                }
                 removableFilterBar
                 tagFilterErrorBanner
                 introDonLaunchBar
@@ -112,6 +100,7 @@ struct SongListView: View {
                 .toolbar { toolbarContent }
                 .sheet(isPresented: $showFilter) {
                     SongFilterView(
+                        nameFilter: $searchText,
                         filter: $filter,
                         sortOrder: $sortOrder,
                         sortAscending: $sortAscending,
@@ -389,10 +378,7 @@ struct SongListView: View {
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         standardListToolbar(
-            onSearch: {
-                AppAnalytics.tap("song_list.search_open")
-                isSearching = true
-            },
+            searchScope: .songs,
             filterBadge: filterBadgeCount,
             onFilter: {
                 AppAnalytics.tap("song_list.filter")
@@ -479,7 +465,11 @@ struct SongListView: View {
             } else {
                 let display = vm.displayedSongs
                 if !searchText.isEmpty && display.isEmpty {
-                    InTabSearchEmptyView(query: searchText)
+                    ImasEmptyState(
+                        systemImage: "line.3.horizontal.decrease",
+                        title: "絞り込み結果がありません",
+                        message: "「\(searchText)」に一致する楽曲がありません"
+                    )
                 } else {
                     VStack(spacing: 0) {
                         countSortBar(count: display.count)
@@ -557,35 +547,5 @@ struct SongListView: View {
     private var isMarkDependentFilterActive: Bool {
         myMarkFilter.requireFavorite || myMarkFilter.requireNote || myMarkFilter.requireMyPick
             || collectFilter != .all
-    }
-}
-
-// MARK: - Song Search Screen
-
-private struct SongSearchScreen: View {
-    let prompt: String
-    let filter: SongSearchFilter
-    @Binding var sheetDestination: DetailDestination?
-
-    var body: some View {
-        SearchScreen(
-            prompt: prompt,
-            historyScope: .songs,
-            searchAction: { query in
-                var f = filter
-                f.title = query
-                return (try? await AppContainer.shared.songReading.songs(filter: f, sortOrder: .titleKana, ascending: nil)) ?? []
-            },
-            suggestionsAction: { query in
-                (try? await AppContainer.shared.songReading.songSuggestions(query: query, limit: 8)) ?? []
-            }
-        ) { item in
-            Button {
-                sheetDestination = .song(item.song)
-            } label: {
-                SongRowView(item: item)
-            }
-            .buttonStyle(.plain)
-        }
     }
 }

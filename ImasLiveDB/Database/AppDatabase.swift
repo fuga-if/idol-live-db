@@ -1213,43 +1213,6 @@ final class AppDatabase: @unchecked Sendable {
         return try Idol.fetchAll(db, sql: sql, arguments: StatementArguments(args))
     }
 
-    func fetchSongSuggestions(query: String, limit: Int = 8) throws -> [SearchSuggestionItem] {
-        try dbQueue.read { db in try Self.fetchSongSuggestionsQuery(db, query: query, limit: limit) }
-    }
-
-    func fetchSongSuggestionsAsync(query: String, limit: Int = 8) async throws -> [SearchSuggestionItem] {
-        try await dbQueue.read { db in try Self.fetchSongSuggestionsQuery(db, query: query, limit: limit) }
-    }
-
-    private static func fetchSongSuggestionsQuery(_ db: Database, query: String, limit: Int) throws -> [SearchSuggestionItem] {
-        let pattern = "%\(query.likeEscaped)%"
-
-        let songSQL = """
-            SELECT DISTINCT title AS text, cd_series AS subtitle FROM songs
-            WHERE title LIKE ? ESCAPE '\\' OR title_kana LIKE ? ESCAPE '\\'
-            ORDER BY title_kana
-            LIMIT ?
-            """
-        var items = try Row.fetchAll(db, sql: songSQL, arguments: [pattern, pattern, limit])
-            .map { SearchSuggestionItem(text: $0["text"], subtitle: $0["subtitle"], icon: "music.note") }
-
-        let remaining = limit - items.count
-        guard remaining > 0 else { return items }
-
-        let albumSQL = """
-            SELECT DISTINCT cd_series AS text FROM songs
-            WHERE cd_series LIKE ? ESCAPE '\\' AND cd_series IS NOT NULL
-            ORDER BY cd_series
-            LIMIT ?
-            """
-        let existingTexts = Set(items.map(\.text))
-        let albumItems = try Row.fetchAll(db, sql: albumSQL, arguments: [pattern, remaining])
-            .map { SearchSuggestionItem(text: $0["text"], subtitle: "アルバム", icon: "square.grid.2x2") }
-            .filter { !existingTexts.contains($0.text) }
-        items += albumItems
-        return items
-    }
-
     /// 楽曲の披露履歴
     func fetchSongPerformanceHistory(songId: String) throws -> [PerformanceHistoryRow] {
         try dbQueue.read { db in try Self.fetchSongPerformanceHistoryQuery(db, songId: songId) }
@@ -1982,10 +1945,14 @@ final class AppDatabase: @unchecked Sendable {
 
     private static func searchIdolsQuery(_ db: Database, query: String, limit: Int) throws -> [Idol] {
         let pattern = "%\(query.likeEscaped)%"
+        // CV 名 (voice_actors) と別名 (aliases) も対象にする。声優名でアイドルを引くのは
+        // このアプリでは主要な探し方なので、名前系カラムだけだと取りこぼす。
         return try Idol.filter(
             Column("name").like(pattern, escape: "\\") ||
             Column("name_kana").like(pattern, escape: "\\") ||
-            Column("name_romaji").like(pattern, escape: "\\")
+            Column("name_romaji").like(pattern, escape: "\\") ||
+            Column("voice_actors").like(pattern, escape: "\\") ||
+            Column("aliases").like(pattern, escape: "\\")
         )
         .order(Column("sort_order"))
         .limit(limit)

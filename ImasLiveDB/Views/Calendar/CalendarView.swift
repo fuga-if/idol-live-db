@@ -141,7 +141,7 @@ struct CalendarView: View {
                     .accessibilityHint("各ブランドの日替わり1曲を試聴・タグ投票します")
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    GlobalSearchToolbarButton()
+                    SearchToolbarButton(scope: .all)
                 }
             }
             .sheet(isPresented: $showDailySong) {

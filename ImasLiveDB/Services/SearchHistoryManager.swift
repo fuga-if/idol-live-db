@@ -5,7 +5,6 @@ enum SearchScope: String {
     case songs = "search_history_songs"
     case idols = "search_history_idols"
     case events = "search_history_events"
-    case submissions = "search_history_submissions"
 }
 
 @Observable
@@ -43,6 +42,17 @@ final class SearchHistoryManager {
         UserDefaults.standard.set(items, forKey: key)
     }
 
+    /// 履歴 1 件だけを削除する。
+    /// (旧実装は個別削除 API が無く「全消し → 逆順で record し直し」で代用していたため、
+    ///  削除のたびに全件が書き戻され順序も崩れていた)
+    func remove(query: String, scope: SearchScope) {
+        let key = scope.rawValue
+        var items = history(for: scope)
+        items.removeAll { $0 == query }
+        cache[key] = items
+        UserDefaults.standard.set(items, forKey: key)
+    }
+
     func clear(scope: SearchScope) {
         let key = scope.rawValue
         cache[key] = []
@@ -51,7 +61,7 @@ final class SearchHistoryManager {
 
     /// 全スコープの検索履歴を一括削除
     func clearAll() {
-        for scope in [SearchScope.songs, .idols, .events, .submissions] {
+        for scope in [SearchScope.songs, .idols, .events] {
             clear(scope: scope)
         }
     }

@@ -62,47 +62,68 @@ struct DetailSheetView: View {
 
     var body: some View {
         NavigationStack(path: $path) {
-            content(for: destination)
+            DetailContentView(destination: destination) { path.append($0) }
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
                         dismissButton
                     }
                 }
                 .navigationDestination(for: DetailDestination.self) { dest in
-                    content(for: dest)
+                    DetailContentView(destination: dest) { path.append($0) }
                 }
         }
+    }
+
+    private var dismissButton: some View {
+        Button { dismiss() } label: {
+            Image(systemName: "xmark.circle.fill")
+                .foregroundStyle(DS.ink3)
+        }
+    }
+}
+
+/// `DetailDestination` 1 件を実際の詳細画面に解決する唯一の場所。
+///
+/// シート表示 (`DetailSheetView`) と検索結果からの push (`UnifiedSearchView`) の
+/// 両方から使う。ここに集約しておかないと「シートから開いた詳細」と「push で開いた詳細」で
+/// 到達できる画面がズレる。子への遷移は呼び出し元の path に委ねる (`navigate`)。
+struct DetailContentView: View {
+    let destination: DetailDestination
+    let navigate: (DetailDestination) -> Void
+
+    var body: some View {
+        content(for: destination)
     }
 
     @ViewBuilder
     private func content(for dest: DetailDestination) -> some View {
         switch dest {
         case .song(let song):
-            SongSheetContent(song: song, navigate: { path.append($0) })
+            SongSheetContent(song: song, navigate: { navigate($0) })
                 .onAppear { RecentsService.shared.record(kind: .song, id: song.id, name: song.title) }
         case .songHistory(let song):
-            SongSheetContent(song: song, initialSegment: 1, navigate: { path.append($0) })
+            SongSheetContent(song: song, initialSegment: 1, navigate: { navigate($0) })
                 .onAppear { RecentsService.shared.record(kind: .song, id: song.id, name: song.title) }
         case .idol(let idol):
             // 共通のアイドル詳細 (一覧と同一コンポーネント)。子遷移は共有 path に push。
-            IdolDetailView(idol: idol, navigate: { path.append($0) })
+            IdolDetailView(idol: idol, navigate: { navigate($0) })
                 .onAppear { RecentsService.shared.record(kind: .idol, id: idol.id, name: idol.name) }
         case .event(let event):
-            EventDetailView(event: event, navigate: { path.append($0) })
+            EventDetailView(event: event, navigate: { navigate($0) })
         case .show(let show):
-            SetlistView(show: show, navigate: { path.append($0) })
+            SetlistView(show: show, navigate: { navigate($0) })
         case .unit(let unit):
-            UnitDetailView(unit: unit, navigate: { path.append($0) })
+            UnitDetailView(unit: unit, navigate: { navigate($0) })
         case .idolSongHistory(let idol, let song):
-            IdolSongHistoryView(idol: idol, song: song, navigate: { path.append($0) })
+            IdolSongHistoryView(idol: idol, song: song, navigate: { navigate($0) })
         case .filteredSongs(let criterion):
-            FilteredSongsView(criterion: criterion, navigate: { path.append($0) })
+            FilteredSongsView(criterion: criterion, navigate: { navigate($0) })
         case .filteredIdols(let criterion):
-            FilteredIdolsView(criterion: criterion, navigate: { path.append($0) })
+            FilteredIdolsView(criterion: criterion, navigate: { navigate($0) })
         case .filteredEvents(let criterion):
-            FilteredEventsView(criterion: criterion, navigate: { path.append($0) })
+            FilteredEventsView(criterion: criterion, navigate: { navigate($0) })
         case .filteredShows(let criterion):
-            FilteredShowsView(criterion: criterion, navigate: { path.append($0) })
+            FilteredShowsView(criterion: criterion, navigate: { navigate($0) })
         case .tagDetail(let tag):
             TagDetailView(tagId: tag.id, tagName: tag.name)
         case .idolTagDetail(let tag):
@@ -112,13 +133,8 @@ struct DetailSheetView: View {
         }
     }
 
-    private var dismissButton: some View {
-        Button { dismiss() } label: {
-            Image(systemName: "xmark.circle.fill")
-                .foregroundStyle(.secondary)
-        }
-    }
 }
+
 
 // MARK: - Song Sheet Content
 

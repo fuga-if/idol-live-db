@@ -2,12 +2,18 @@ import SwiftUI
 import UIKit
 
 extension Notification.Name {
-    /// 全タブ共通で発火させる「全体検索を開く」通知。
-    /// 各タブの toolbar `globe` ボタンが post し、 ContentView の sheet が拾う。
-    static let openGlobalSearch = Notification.Name("openGlobalSearch")
+    /// 全タブ共通で発火させる「検索を開く」通知。
+    /// 各タブの toolbar 虫眼鏡が `SearchRequest` を添えて post し、ContentView の sheet が拾う。
+    static let openSearch = Notification.Name("openSearch")
     /// 全タブ共通で発火させる「設定・マイページを開く」通知。
     /// 各タブの toolbar 歯車が post し、ContentView の sheet が拾う。
     static let openSettings = Notification.Name("openSettings")
+}
+
+/// 検索画面を開くときの要求。呼び出し元タブのスコープを引き継ぐ。
+struct SearchRequest {
+    var scope: UnifiedSearchScope = .all
+    var query: String = ""
 }
 
 struct ContentView: View {
@@ -18,8 +24,8 @@ struct ContentView: View {
         return 0
     }()
     @State private var showSearch = false
-    /// 個別検索から引き継いだ全体検索の初期クエリ。
-    @State private var searchQuery = ""
+    /// 呼び出し元タブから引き継いだ検索スコープ・初期クエリ。
+    @State private var searchRequest = SearchRequest()
     /// 設定・マイページ sheet (全タブ共通)。
     @State private var showSettings = false
     /// deeplink (Universal Links / imaslivedb://) で開く詳細 sheet。
@@ -89,15 +95,15 @@ struct ContentView: View {
         // Picker/Toggle 等コントロールのラベルも文字サイズ設定に追従する。
         // (ナビタイトル/タブバー等の UIKit chrome は OS 管轄なので対象外)
         .environment(\.font, .imasBody)
-        .onReceive(NotificationCenter.default.publisher(for: .openGlobalSearch)) { note in
-            searchQuery = (note.object as? String) ?? ""
+        .onReceive(NotificationCenter.default.publisher(for: .openSearch)) { note in
+            searchRequest = (note.object as? SearchRequest) ?? SearchRequest()
             showSearch = true
         }
         .onReceive(NotificationCenter.default.publisher(for: .openSettings)) { _ in
             showSettings = true
         }
         .sheet(isPresented: $showSearch, onDismiss: presentPendingDeeplink) {
-            GlobalSearchView(initialQuery: searchQuery)
+            UnifiedSearchView(initialScope: searchRequest.scope, initialQuery: searchRequest.query)
         }
         .sheet(isPresented: $showSettings, onDismiss: presentPendingDeeplink) {
             MyPageView().environment(database).environment(syncEngine)
@@ -189,38 +195,19 @@ struct SettingsToolbarButton: View {
     }
 }
 
-/// 各タブ最上位の toolbar に置く「全体検索」ボタン。
-/// タブ内検索 (このタブの一覧を絞り込む) とは役割が異なり、楽曲/アイドル/ライブを横断して探す。
-struct GlobalSearchToolbarButton: View {
+/// 各タブ最上位の toolbar に置く検索ボタン (全タブ共通・虫眼鏡はアプリ全体でこの 1 つだけ)。
+/// 呼び出し元タブのスコープを引き継いで `UnifiedSearchView` を開く。
+struct SearchToolbarButton: View {
+    let scope: UnifiedSearchScope
+
     var body: some View {
         Button {
-            NotificationCenter.default.post(name: .openGlobalSearch, object: nil)
+            AppAnalytics.tap("search.open")
+            NotificationCenter.default.post(name: .openSearch, object: SearchRequest(scope: scope))
         } label: {
-            Image(systemName: "sparkle.magnifyingglass")
+            Image(systemName: "magnifyingglass")
         }
-        .accessibilityLabel("全体検索")
-        .accessibilityHint("楽曲・アイドル・ライブを横断して検索します")
-    }
-}
-
-/// タブ内検索で結果が無い時に表示する空状態。同じ語句で「全体検索」へ 1 タップで橋渡しする。
-/// (タブ内検索=この一覧の絞り込み、全体検索=横断検索、という役割の違いを自然な導線で繋ぐ)
-struct InTabSearchEmptyView: View {
-    let query: String
-
-    var body: some View {
-        ContentUnavailableView {
-            Label("見つかりません", systemImage: "magnifyingglass")
-        } description: {
-            Text("「\(query)」はこのタブにありません")
-        } actions: {
-            Button {
-                NotificationCenter.default.post(name: .openGlobalSearch, object: query)
-            } label: {
-                Label("全体から検索", systemImage: "sparkle.magnifyingglass")
-            }
-            .buttonStyle(.borderedProminent)
-        }
-        .onAppear { AppAnalytics.event("search_empty") }
+        .accessibilityLabel("検索")
+        .accessibilityHint("ライブ・楽曲・アイドルを名前で探します")
     }
 }

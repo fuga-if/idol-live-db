@@ -20,7 +20,6 @@ final class UnitListViewModel {
     // (View インスタンス) 自体が破棄・再生成されても失われないよう、ここ (hoist された
     // ViewModel) に持たせる。Android 版 UnitListViewModel の uiState と同じ設計。
     var searchText: String = ""
-    var isSearching: Bool = false
     var collapsedBrands: Set<String> = []
     var sheetUnit: Unit?
 

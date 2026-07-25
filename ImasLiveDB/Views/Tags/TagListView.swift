@@ -3,7 +3,6 @@ import SwiftUI
 /// タグ画面の push 遷移先。値ベース push にして二重 push をスロットルで防ぐ。
 enum TagRoute: Hashable {
     case detail(id: String, name: String)
-    case search
 }
 
 struct TagListView: View {
@@ -13,6 +12,8 @@ struct TagListView: View {
     @State private var selectedSort = "popular"
     @State private var showCreateSheet = false
     @State private var showFilterSheet = false
+    /// 一覧の名前絞り込み。タグは全件 (limit 1000) を取得済みなのでクライアント側で絞る。
+    @State private var nameFilter = ""
 
     private let categories: [(value: String, label: String)] = [
         ("", "全て"), ("mood", "ムード"), ("scene", "シーン"), ("special", "特別"), ("free", "フリー")
@@ -22,20 +23,40 @@ struct TagListView: View {
     ]
 
     private var activeFilterCount: Int {
-        selectedCategory.isEmpty ? 0 : 1
+        (selectedCategory.isEmpty ? 0 : 1) + (nameFilter.isEmpty ? 0 : 1)
+    }
+
+    /// 名前絞り込み適用後のタグ。名前・説明の部分一致で絞る。
+    private var filteredTags: [CommunityTag] {
+        let trimmed = nameFilter.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return vm.tags }
+        return vm.tags.filter {
+            $0.name.localizedCaseInsensitiveContains(trimmed)
+                || ($0.description?.localizedCaseInsensitiveContains(trimmed) ?? false)
+        }
     }
 
     var body: some View {
         NavigationStack(path: $navPath) {
             List {
+                Section {
+                    NameFilterField(prompt: "タグ名で絞り込み", text: $nameFilter)
+                        .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 8, trailing: 16))
+                }
+                .listRowBackground(Color.clear)
+
                 if vm.isLoading {
                     HStack { Spacer(); ProgressView(); Spacer() }
                         .listRowBackground(Color.clear)
-                } else if vm.tags.isEmpty {
-                    ImasEmptyState(systemImage: "tag", title: "タグはまだありません")
-                        .listRowBackground(Color.clear)
+                } else if filteredTags.isEmpty {
+                    ImasEmptyState(
+                        systemImage: nameFilter.isEmpty ? "tag" : "line.3.horizontal.decrease",
+                        title: nameFilter.isEmpty ? "タグはまだありません" : "絞り込み結果がありません",
+                        message: nameFilter.isEmpty ? nil : "「\(nameFilter)」に一致するタグがありません"
+                    )
+                    .listRowBackground(Color.clear)
                 } else {
-                    ForEach(Array(vm.tags.enumerated()), id: \.element.id) { idx, tag in
+                    ForEach(Array(filteredTags.enumerated()), id: \.element.id) { idx, tag in
                         NavigationLink(value: TagRoute.detail(id: tag.id, name: tag.name)) {
                             // 人気ソート時は順位を出して「人気ランキング」として見せる。
                             TagRowView(tag: tag, rank: selectedSort == "popular" ? idx + 1 : nil)
@@ -52,10 +73,6 @@ struct TagListView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     HStack(spacing: 8) {
-                        NavigationLink(value: TagRoute.search) {
-                            Image(systemName: "magnifyingglass")
-                        }
-
                         FilterBarButton(activeCount: activeFilterCount) {
                             showFilterSheet = true
                         }
@@ -85,8 +102,6 @@ struct TagListView: View {
                 switch route {
                 case let .detail(id, name):
                     TagDetailView(tagId: id, tagName: name)
-                case .search:
-                    TagSearchScreen()
                 }
             }
             .sheet(isPresented: $showCreateSheet) {
@@ -188,28 +203,4 @@ struct TagRankBadge: View {
 
     private var textColor: Color { medalColor ?? DS.ink2 }
     private var bgColor: Color { (medalColor ?? DS.ink3).opacity(0.16) }
-}
-
-// MARK: - Tag Search Screen
-
-private struct TagSearchScreen: View {
-    var body: some View {
-        SearchScreen(
-            prompt: "タグを検索",
-            historyScope: .submissions,
-            searchAction: { query in
-                (try? await AppContainer.shared.communityTagReading.tags(search: query, category: "", sort: "popular", limit: 1000, offset: 0)) ?? []
-            },
-            suggestionsAction: { query in
-                let results = (try? await AppContainer.shared.communityTagReading.tags(search: query, category: "", sort: "popular", limit: 1000, offset: 0)) ?? []
-                return results.prefix(8).map { tag in
-                    SearchSuggestionItem(text: tag.name, subtitle: tag.description, icon: "tag")
-                }
-            }
-        ) { tag in
-            NavigationLink(value: TagRoute.detail(id: tag.id, name: tag.name)) {
-                TagRowView(tag: tag)
-            }
-        }
-    }
 }

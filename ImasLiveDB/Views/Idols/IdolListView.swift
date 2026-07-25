@@ -39,7 +39,6 @@ struct IdolListView: View {
     @State private var sheetIdol: Idol?
     @State private var showFilterSheet = false
     @State private var searchText = ""
-    @State private var isSearching = false
     /// 一覧タブ (0=アイドル, 1=ユニット)。
     @State private var listTab = 0
     /// ユニットタブの ViewModel。ここで hoist して `UnitListContent` に注入することで、
@@ -132,10 +131,6 @@ struct IdolListView: View {
     @ViewBuilder
     private var idolBody: some View {
         VStack(spacing: 0) {
-            if isSearching {
-                InTabSearchField(prompt: "アイドル・CV名で検索", text: $searchText, isSearching: $isSearching)
-            }
-
             if vm.isLoading {
                 ScrollView {
                     if idolListMode == .grid {
@@ -146,7 +141,15 @@ struct IdolListView: View {
                 }
                 .scrollDisabled(true)
             } else if !searchText.isEmpty && vm.filteredIdols.isEmpty {
-                InTabSearchEmptyView(query: searchText)
+                Spacer()
+                ImasEmptyState(
+                    systemImage: "line.3.horizontal.decrease",
+                    title: "絞り込み結果がありません",
+                    message: "「\(searchText)」に一致するアイドルがいません",
+                    actionTitle: "絞り込みを解除",
+                    action: { searchText = "" }
+                )
+                Spacer()
             } else if vm.filteredIdols.isEmpty {
                 Spacer()
                 ImasEmptyState(
@@ -180,10 +183,7 @@ struct IdolListView: View {
         }
         .toolbar {
             standardListToolbar(
-                onSearch: {
-                    AppAnalytics.tap("idol_list.search_open")
-                    isSearching = true
-                },
+                searchScope: .idols,
                 filterBadge: filterBadgeCount,
                 onFilter: {
                     AppAnalytics.tap("idol_list.filter")
@@ -398,52 +398,5 @@ private struct IdolRowView: View {
         .padding(.vertical, DS.sp3)
         .padding(.leading, DS.sp2)
         .contentShape(Rectangle())
-    }
-}
-
-// MARK: - Idol Search Screen
-
-private struct IdolSearchScreen: View {
-    let idols: [Idol]
-    let castNames: [String: String]
-    @Binding var sheetIdol: Idol?
-
-    var body: some View {
-        SearchScreen(
-            prompt: "アイドル・CV名で検索",
-            historyScope: .idols,
-            searchAction: { query in
-                let lower = query.lowercased()
-                return idols.filter { idol in
-                    idol.name.lowercased().contains(lower) ||
-                    idol.nameKana?.lowercased().contains(lower) == true ||
-                    (castNames[idol.id] ?? "").lowercased().contains(lower)
-                }
-            },
-            suggestionsAction: { query in
-                let lower = query.lowercased()
-                return idols
-                    .filter {
-                        $0.name.lowercased().contains(lower) ||
-                        $0.nameKana?.lowercased().contains(lower) == true ||
-                        (castNames[$0.id] ?? "").lowercased().contains(lower)
-                    }
-                    .prefix(8)
-                    .map { idol in
-                        SearchSuggestionItem(
-                            text: idol.name,
-                            subtitle: castNames[idol.id].map { "CV: \($0)" },
-                            icon: "person.fill"
-                        )
-                    }
-            }
-        ) { idol in
-            Button {
-                sheetIdol = idol
-            } label: {
-                IdolNameRow(idol: idol, subtitle: idol.nameKana)
-            }
-            .buttonStyle(.plain)
-        }
     }
 }

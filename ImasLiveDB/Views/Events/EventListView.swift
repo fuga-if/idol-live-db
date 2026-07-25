@@ -19,7 +19,6 @@ struct EventListView: View {
     @State private var selectedBrandIds: Set<String> = []
     @State private var showFilterSheet = false
     @State private var searchText = ""
-    @State private var isSearching = false
     /// 新規イベント作成 sheet。
     @State private var showEventCreate = false
     /// 未ログイン時のログイン誘導 sheet。ログイン後に新規作成を再開する。
@@ -94,9 +93,6 @@ struct EventListView: View {
     var body: some View {
         NavigationStack(path: $navPath) {
             VStack(spacing: 0) {
-                if isSearching {
-                    InTabSearchField(prompt: "ライブ名で検索", text: $searchText, isSearching: $isSearching)
-                }
                 ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0) {
                     ImasSegmented(labels: ["今後の予定", "開催済み"], selection: $timeFilter)
@@ -153,10 +149,7 @@ struct EventListView: View {
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 standardListToolbar(
-                    onSearch: {
-                        AppAnalytics.tap("event_list.search_open")
-                        isSearching = true
-                    },
+                    searchScope: .events,
                     filterBadge: activeFilterCount,
                     onFilter: {
                         AppAnalytics.tap("event_list.filter")
@@ -289,8 +282,14 @@ struct EventListView: View {
 
     @ViewBuilder private var emptyState: some View {
         if !searchText.isEmpty {
-            InTabSearchEmptyView(query: searchText)
-                .padding(.top, 40)
+            ImasEmptyState(
+                systemImage: "line.3.horizontal.decrease",
+                title: "絞り込み結果がありません",
+                message: "「\(searchText)」に一致するライブがありません",
+                actionTitle: "絞り込みを解除",
+                action: { searchText = "" }
+            )
+            .padding(.top, 40)
         } else {
             ImasEmptyState(
                 systemImage: "music.mic",
@@ -349,54 +348,5 @@ private struct EventRowView: View {
         .padding(.vertical, 8)
         .background(DS.surface)
         .contentShape(Rectangle())
-    }
-}
-
-// MARK: - Event Search Screen
-
-private struct EventSearchScreen: View {
-    let eventsWithDate: [EventWithDate]
-
-    var body: some View {
-        SearchScreen(
-            prompt: "ライブ名 / 会場で検索",
-            historyScope: .events,
-            searchAction: { query in
-                // venue 一致を含めるため DB 経由で検索 (eventsWithDate には venue 情報がない)。
-                // EventReading ポート経由。
-                (try? await AppContainer.shared.eventReading.searchEventsByNameOrVenue(query: query, limit: 100)) ?? []
-            },
-            suggestionsAction: { query in
-                let lower = query.lowercased()
-                return eventsWithDate
-                    .filter { $0.event.name.lowercased().contains(lower) }
-                    .prefix(8)
-                    .map { ew in
-                        let subtitle = ew.firstDate.map { String($0.prefix(4)) + "年" }
-                        return SearchSuggestionItem(text: ew.event.name, subtitle: subtitle, icon: "music.mic")
-                    }
-            }
-        ) { event in
-            NavigationLink(value: event) {
-                EventSearchRowView(event: event)
-            }
-        }
-        .navigationDestination(for: Event.self) { event in
-            EventDetailView(event: event)
-        }
-    }
-}
-
-private struct EventSearchRowView: View {
-    let event: Event
-
-    var body: some View {
-        HStack(spacing: 12) {
-            ImasLeadBar(seed: nil, brand: nil, rainbow: !event.jointBrandIdList.isEmpty)
-                .frame(height: 28)
-            Text(eventDisplayName(event.name))
-                .font(.imasSubhead.weight(.semibold))
-                .foregroundStyle(DS.ink)
-        }
     }
 }
