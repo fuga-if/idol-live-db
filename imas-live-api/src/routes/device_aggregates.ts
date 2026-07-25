@@ -29,6 +29,30 @@ export interface RouteContext {
 }
 
 /**
+ * 書き込み系の共通ガード: X-Device-Id 必須 → IP レート制限の dry check。
+ *
+ * 元は各ルートに同じ 8 行がコピーされており、1 箇所で書き忘れるとそのルートだけ
+ * 無防備になる形だった。判定の順序・エラー文言・ステータスは元のまま。
+ * 実際の +1 コミットは成功直前に commitIpRateLimit(env.DB, ip, bucket) を呼ぶ。
+ */
+async function guardWrite(
+  ctx: RouteContext
+): Promise<{ deviceId: string; ip: string; bucket: number } | Response> {
+  const { request, env, error, rateLimitSimple } = ctx;
+
+  const deviceId = request.headers.get("X-Device-Id");
+  if (!deviceId) return error("X-Device-Id header is required");
+
+  const ip = request.headers.get("CF-Connecting-IP") ?? "unknown";
+  const ipDry = await dryCheckIpRateLimit(env.DB, ip);
+  if (!ipDry.allowed) {
+    return rateLimitSimple();
+  }
+
+  return { deviceId, ip, bucket: ipDry.bucket };
+}
+
+/**
  * /favorites/* と /penlight/* を処理する。
  * どのルートにも一致しなければ `null` を返し、呼び出し元の if チェーンへ処理を戻す。
  */
@@ -39,14 +63,9 @@ export async function handleDeviceAggregates(ctx: RouteContext): Promise<Respons
     // POST /favorites/toggle — お気に入り登録/解除
     // ----------------------------------------------------------------
     if (path === "/favorites/toggle" && request.method === "POST") {
-      const deviceId = request.headers.get("X-Device-Id");
-      if (!deviceId) return error("X-Device-Id header is required");
-
-      const ip = request.headers.get("CF-Connecting-IP") ?? "unknown";
-      const ipDry = await dryCheckIpRateLimit(env.DB, ip);
-      if (!ipDry.allowed) {
-        return rateLimitSimple();
-      }
+      const guard = await guardWrite(ctx);
+      if (guard instanceof Response) return guard;
+      const { deviceId, ip, bucket } = guard;
 
       const body = (await request.json()) as any;
       const { song_id, value } = body;
@@ -81,7 +100,7 @@ export async function handleDeviceAggregates(ctx: RouteContext): Promise<Respons
         .bind(song_id)
         .first<{ count: number }>();
 
-      await commitIpRateLimit(env.DB, ip, ipDry.bucket);
+      await commitIpRateLimit(env.DB, ip, bucket);
       return json({ song_id, count: row?.count ?? 0 });
     }
 
@@ -123,14 +142,9 @@ export async function handleDeviceAggregates(ctx: RouteContext): Promise<Respons
     // POST /penlight/vote — ペンライト色セット投票
     // ----------------------------------------------------------------
     if (path === "/penlight/vote" && request.method === "POST") {
-      const deviceId = request.headers.get("X-Device-Id");
-      if (!deviceId) return error("X-Device-Id header is required");
-
-      const ip = request.headers.get("CF-Connecting-IP") ?? "unknown";
-      const ipDry = await dryCheckIpRateLimit(env.DB, ip);
-      if (!ipDry.allowed) {
-        return rateLimitSimple();
-      }
+      const guard = await guardWrite(ctx);
+      if (guard instanceof Response) return guard;
+      const { deviceId, ip, bucket } = guard;
 
       const body = (await request.json()) as any;
       const { song_id, colors } = body;
@@ -189,7 +203,7 @@ export async function handleDeviceAggregates(ctx: RouteContext): Promise<Respons
         .bind(song_id, colorSetKey)
         .first<{ count: number }>();
 
-      await commitIpRateLimit(env.DB, ip, ipDry.bucket);
+      await commitIpRateLimit(env.DB, ip, bucket);
       return json({ song_id, color_set_key: colorSetKey, count: row?.count ?? 1 });
     }
 
@@ -197,14 +211,9 @@ export async function handleDeviceAggregates(ctx: RouteContext): Promise<Respons
     // DELETE /penlight/vote — 投票取消
     // ----------------------------------------------------------------
     if (path === "/penlight/vote" && request.method === "DELETE") {
-      const deviceId = request.headers.get("X-Device-Id");
-      if (!deviceId) return error("X-Device-Id header is required");
-
-      const ip = request.headers.get("CF-Connecting-IP") ?? "unknown";
-      const ipDry = await dryCheckIpRateLimit(env.DB, ip);
-      if (!ipDry.allowed) {
-        return rateLimitSimple();
-      }
+      const guard = await guardWrite(ctx);
+      if (guard instanceof Response) return guard;
+      const { deviceId, ip, bucket } = guard;
 
       const songId = url.searchParams.get("song_id");
       if (!songId) return error("song_id is required");
@@ -231,7 +240,7 @@ export async function handleDeviceAggregates(ctx: RouteContext): Promise<Respons
         ).bind(deviceId, songId),
       ]);
 
-      await commitIpRateLimit(env.DB, ip, ipDry.bucket);
+      await commitIpRateLimit(env.DB, ip, bucket);
       return json({ song_id: songId, cancelled: true });
     }
 
