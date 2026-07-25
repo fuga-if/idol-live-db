@@ -10,6 +10,8 @@ struct SetlistView: View {
     /// nil の時 (タブ内 standalone) は従来どおり自前 sheet。
     var navigate: ((DetailDestination) -> Void)? = nil
     @State private var setlist: [SetlistRow] = []
+    /// 会場マスタ。当時名とキャパの解決に使う。
+    @State private var venueDirectory: VenueDirectory = .empty
     /// 予想/実セトリ両方ある時の内部タブ (0=セットリスト / 1=予想)。
     @State private var contentTab = 0
     @State private var performersByItemId: [String: [PerformerRow]] = [:]
@@ -113,10 +115,23 @@ struct SetlistView: View {
             // 会場 / 日付 カード
             Section {
                 ImasListContainer {
-                    if let venue = show.venue {
-                        ImasLabeledRow(key: "会場", value: venue, showChevron: true, tappable: true, seed: showBrandHex)
+                    // 会場は ID で持つ。表示は公演日時点の名前 (改名前の公演は当時名)。
+                    if let venueLabel = venueDirectory.displayName(for: show) {
+                        ImasLabeledRow(key: "会場", value: venueLabel, showChevron: true, tappable: true, seed: showBrandHex)
                             .contentShape(Rectangle())
-                            .onTapGesture { go(.filteredShows(.venue(venue))) }
+                            .onTapGesture {
+                                if let vid = show.venueId { go(.filteredShows(.venue(vid))) }
+                            }
+                            .imasCopyable(venueLabel, label: "会場名をコピー")
+                        Divider().overlay(DS.sep).padding(.leading, 16)
+                    }
+                    // キャパが分かる会場では規模も出す (ホール指定があればホール側を優先)。
+                    if let cap = venueDirectory.capacity(for: show) {
+                        ImasLabeledRow(key: "キャパ", value: "\(cap.formatted(.number.grouping(.automatic)))人", seed: showBrandHex)
+                        Divider().overlay(DS.sep).padding(.leading, 16)
+                    }
+                    if let stream = show.streamPlatform, !stream.isEmpty {
+                        ImasLabeledRow(key: "配信", value: stream, seed: showBrandHex)
                         Divider().overlay(DS.sep).padding(.leading, 16)
                     }
                     ImasLabeledRow(key: "日付", value: show.date, showChevron: true, tappable: true, seed: showBrandHex)
@@ -363,6 +378,9 @@ struct SetlistView: View {
         }
         .animation(.easeInOut(duration: 0.15), value: isCreatingPlaylist)
         .task { await loadSetlist() }
+        .task {
+            venueDirectory = (try? await AppContainer.shared.showReading.venueDirectory()) ?? .empty
+        }
         .trackScreen("setlist")
     }
 

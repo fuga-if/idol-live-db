@@ -289,6 +289,11 @@ struct SongSheetContent: View {
                     .foregroundStyle(DS.ink)
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
+                    .imasCopyable([
+                        ("曲名をコピー", song.title),
+                        ("よみをコピー", song.titleKana),
+                        ("歌唱者をコピー", vm.artistLine(for: song)),
+                    ])
                 if let artistLine = vm.artistLine(for: song) {
                     Text(artistLine)
                         .font(.imasSubhead)

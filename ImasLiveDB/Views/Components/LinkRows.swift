@@ -31,6 +31,7 @@ struct IdolNameRow: View {
             }
         }
         .contentShape(Rectangle())
+        .imasCopyable([("アイドル名をコピー", idol.name), ("よみをコピー", idol.nameKana)])
     }
 }
 
@@ -65,6 +66,7 @@ struct SongTitleRow: View {
             }
         }
         .contentShape(Rectangle())
+        .imasCopyable([("曲名をコピー", song.title), ("よみをコピー", song.titleKana), ("歌唱者をコピー", song.singerLabel)])
     }
 
     private var songArtwork: some View {
@@ -142,5 +144,6 @@ struct EventNameRow: View {
             }
         }
         .contentShape(Rectangle())
+        .imasCopyable([("ライブ名をコピー", event.name)])
     }
 }

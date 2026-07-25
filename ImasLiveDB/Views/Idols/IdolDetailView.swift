@@ -178,6 +178,11 @@ struct IdolDetailView: View {
                         .foregroundStyle(DS.ink)
                         .lineLimit(2)
                         .minimumScaleFactor(0.7)
+                        .imasCopyable([
+                            ("アイドル名をコピー", idol.name),
+                            ("よみをコピー", idol.nameKana),
+                            ("CV名をコピー", idol.currentVoiceActor),
+                        ])
                     if let brand = vm.brand {
                         Button {
                             go(.filteredIdols(.brand(id: brand.id, label: brand.shortName)))

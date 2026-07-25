@@ -46,10 +46,18 @@ fun SongRow(
     onFavoriteToggle: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
+    // 長押しで曲名などをコピーできるようにする (正式な曲名で外部検索したい用途)。
+    Copyable(
+        items = listOf(
+            CopyItem("曲名をコピー", title),
+            CopyItem("歌唱者をコピー", artistNames.ifEmpty { unitName }),
+        ),
+        modifier = modifier.fillMaxWidth()
+    ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
-        modifier = modifier.fillMaxWidth().padding(vertical = 4.dp)
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
     ) {
         ImasLeadBar(brand = brandId, height = 44.dp)
         ArtworkImage(url = artworkUrl, size = 44.dp, previewUrl = previewUrl, songTitle = title)
@@ -83,6 +91,7 @@ fun SongRow(
             }
         }
     }
+}
 }
 
 @Composable

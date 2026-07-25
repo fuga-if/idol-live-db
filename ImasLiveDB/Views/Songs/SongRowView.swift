@@ -107,6 +107,12 @@ struct SongRowView: View {
             FavoriteToggleButton(entity: .song, id: song.id)
         }
         .padding(.vertical, 6)
+        .contentShape(Rectangle())
+        .imasCopyable([
+            ("曲名をコピー", song.title),
+            ("よみをコピー", song.titleKana),
+            ("歌唱者をコピー", item.artistNames),
+        ])
     }
 
     // MARK: - 歌唱者 + ユニット/演者ラベル
