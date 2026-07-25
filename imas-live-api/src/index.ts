@@ -427,7 +427,14 @@ function base64UrlEncode(bytes: Uint8Array): string {
   return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-async function importHmacKey(secret: string, usage: KeyUsage[]): Promise<CryptoKey> {
+/**
+ * Web Crypto の鍵用途。`@cloudflare/workers-types` の `importKey` は `keyUsages` を
+ * `string[]` としか型付けしないため (DOM lib は Worker に無い API まで見えるので入れない)、
+ * 実際に使う用途だけを列挙したローカル型で呼び出し側を縛る。
+ */
+type HmacKeyUsage = "sign" | "verify";
+
+async function importHmacKey(secret: string, usage: HmacKeyUsage[]): Promise<CryptoKey> {
   return crypto.subtle.importKey(
     "raw",
     new TextEncoder().encode(secret),
