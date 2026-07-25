@@ -83,3 +83,39 @@ export async function checkRateLimit(
     reset_at: tomorrowMidnightUtc(),
   };
 }
+
+/**
+ * IP 単位の分割り当て。未認証エンドポイント (auth/login 等) や device 集計の
+ * 一次防御に使う。user/device 単位の checkRateLimit とは別枠。
+ */
+const IP_RATE_LIMIT_PER_MINUTE = 30;
+
+/** チェックのみ（+1 しない）。成功時のみ commitIpRateLimit を呼ぶ。 */
+export async function dryCheckIpRateLimit(
+  db: D1Database,
+  ip: string
+): Promise<{ allowed: boolean; count: number; bucket: number }> {
+  const bucket = Math.floor(Date.now() / 1000 / 60);
+  const row = await db
+    .prepare("SELECT count FROM api_rate_limits WHERE ip = ? AND minute_bucket = ?")
+    .bind(ip, bucket)
+    .first<{ count: number }>();
+  const count = row?.count ?? 0;
+  return { allowed: count < IP_RATE_LIMIT_PER_MINUTE, count, bucket };
+}
+
+/** handler 成功直前にのみ呼ぶ（+1 コミット）。 */
+export async function commitIpRateLimit(
+  db: D1Database,
+  ip: string,
+  bucket: number
+): Promise<void> {
+  await db
+    .prepare(
+      `INSERT INTO api_rate_limits (ip, minute_bucket, count)
+       VALUES (?, ?, 1)
+       ON CONFLICT(ip, minute_bucket) DO UPDATE SET count = count + 1`
+    )
+    .bind(ip, bucket)
+    .run();
+}

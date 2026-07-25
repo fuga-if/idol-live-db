@@ -1,4 +1,4 @@
-import { checkRateLimit } from "./rate_limit";
+import { checkRateLimit, dryCheckIpRateLimit, commitIpRateLimit } from "./rate_limit";
 import { fetchBadges, calcTier } from "./badges";
 import { handleScheduled } from "./apply";
 import { cloudKitModify, cloudKitLookup, buildForceUpdate, buildSoftDelete, CloudKitOperation } from "./cloudkit";
@@ -88,8 +88,6 @@ function checkOrigin(request: Request, env: Env): boolean {
   return getAllowlist(env).includes(origin);
 }
 
-const IP_RATE_LIMIT_PER_MINUTE = 30;
-
 // ---------------------------------------------------------------------------
 // Input helpers
 // ---------------------------------------------------------------------------
@@ -172,36 +170,6 @@ async function validateScopeIdsAgainstTable(
     }
   }
   return { json: JSON.stringify(unique) };
-}
-
-/** チェックのみ（+1 しない）。成功時のみ commitIpRateLimit を呼ぶ。 */
-async function dryCheckIpRateLimit(
-  db: D1Database,
-  ip: string
-): Promise<{ allowed: boolean; count: number; bucket: number }> {
-  const bucket = Math.floor(Date.now() / 1000 / 60);
-  const row = await db
-    .prepare("SELECT count FROM api_rate_limits WHERE ip = ? AND minute_bucket = ?")
-    .bind(ip, bucket)
-    .first<{ count: number }>();
-  const count = row?.count ?? 0;
-  return { allowed: count < IP_RATE_LIMIT_PER_MINUTE, count, bucket };
-}
-
-/** handler 成功直前にのみ呼ぶ（+1 コミット）。 */
-async function commitIpRateLimit(
-  db: D1Database,
-  ip: string,
-  bucket: number
-): Promise<void> {
-  await db
-    .prepare(
-      `INSERT INTO api_rate_limits (ip, minute_bucket, count)
-       VALUES (?, ?, 1)
-       ON CONFLICT(ip, minute_bucket) DO UPDATE SET count = count + 1`
-    )
-    .bind(ip, bucket)
-    .run();
 }
 
 async function cleanOldRateLimitBuckets(db: D1Database): Promise<void> {
