@@ -6,7 +6,6 @@ import SwiftUI
 struct IdolTagPicker: View {
     @Environment(\.dismiss) private var dismiss
     /// タグ色なしチップの背景 .accentColor (= 推しカラー tint) を実色解決するために保持。
-    @Environment(\.self) private var environment
     let idol: Idol
     var onApplied: (() -> Void)?
 
@@ -129,51 +128,21 @@ struct IdolTagPicker: View {
         }
     }
 
-    /// タグ chip。未適用=ニュートラル / 選択中=タグ色 / 適用済=タグ色+チェック(無効)。
     @ViewBuilder
     private func tagChip(_ tag: CommunityTag) -> some View {
-        let applied = vm.myTagIds.contains(tag.id)
-        let selected = selectedTagIds.contains(tag.id)
-        let on = applied || selected
-        let tagColor = tag.color.map { Color(hexColor: $0) } ?? .accentColor
-        Button {
-            if applied { return }
-            if selected {
+        TagSelectChip(
+            tag: tag,
+            isApplied: vm.myTagIds.contains(tag.id),
+            isSelected: selectedTagIds.contains(tag.id)
+        ) {
+            if selectedTagIds.contains(tag.id) {
                 selectedTagIds.remove(tag.id)
                 selectedTagsById.removeValue(forKey: tag.id)
             } else {
                 selectedTagIds.insert(tag.id)
                 selectedTagsById[tag.id] = tag
             }
-        } label: {
-            HStack(spacing: 6) {
-                Image(systemName: applied ? "checkmark" : (selected ? "checkmark.circle.fill" : "plus"))
-                    .font(.imasScaled( 12, weight: .bold))
-                Text(tag.name).font(.imasScaled( 13.5, weight: .semibold))
-                if let uses = tag.totalUses, uses > 0 {
-                    Text("\(uses)").font(.imasDisplay(11, weight: .semibold)).opacity(0.7)
-                }
-            }
-            .padding(.horizontal, 13).padding(.vertical, 7)
-            .foregroundStyle(on ? onColor(tag.color, chipBackground: tagColor) : DS.ink2)
-            .background(on ? AnyShapeStyle(tagColor) : AnyShapeStyle(DS.fill), in: Capsule())
         }
-        .buttonStyle(.plain)
-        .disabled(applied)
-        .opacity(applied ? 0.7 : 1)
-    }
-
-    /// タグ色の上に乗せる前景色を WCAG コントラストで黒/白から選ぶ (SongTagPicker と同ロジック)。
-    private func onColor(_ hex: HexColor?, chipBackground: Color) -> Color {
-        if let raw = hex?.rawValue, ColorMath.normalizedHex(raw) != nil {
-            return ColorMath.onColor(ColorMath.hexToRgb(raw))
-        }
-        let resolved = chipBackground.resolve(in: environment)
-        return ColorMath.onColor(ColorMath.RGB(
-            r: ColorMath.clamp(Double(resolved.red), 0, 1) * 255,
-            g: ColorMath.clamp(Double(resolved.green), 0, 1) * 255,
-            b: ColorMath.clamp(Double(resolved.blue), 0, 1) * 255
-        ))
     }
 
 }

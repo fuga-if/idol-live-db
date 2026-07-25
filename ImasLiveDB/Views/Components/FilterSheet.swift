@@ -290,26 +290,13 @@ struct EventKindChip: View {
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
-            HStack(spacing: 6) {
-                Image(systemName: kind.iconName)
-                    .font(.imasCaption)
-                Text(kind.displayLabel)
-                    .font(.imasCaption)
-                    .fontWeight(.medium)
-            }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 8)
-            .frame(maxWidth: .infinity)
-            .background(isOn ? Color.accentColor : Color(.systemGray5))
-            .foregroundStyle(isOn ? .white : .secondary)
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-            .overlay(
-                RoundedRectangle(cornerRadius: 8)
-                    .strokeBorder(isOn ? .clear : Color(.systemGray4), lineWidth: 1)
-            )
-        }
-        .buttonStyle(.plain)
+        ImasFilterChip(
+            text: kind.displayLabel,
+            systemImage: kind.iconName,
+            isSelected: isOn,
+            fillsWidth: true,
+            action: action
+        )
         .accessibilityLabel("\(kind.displayLabel) \(isOn ? "表示" : "除外")")
     }
 }
@@ -475,20 +462,9 @@ struct IdolFilterSheet: View {
     }
 
     private func attributeChip(value: String?, label: String) -> some View {
-        let isSelected = localAttribute == value
-        return Button {
+        ImasFilterChip(text: label, isSelected: localAttribute == value) {
             localAttribute = value
-        } label: {
-            Text(label)
-                .font(.imasCaption)
-                .fontWeight(.medium)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(isSelected ? Color.accentColor : Color(.systemGray5))
-                .foregroundStyle(isSelected ? .white : .primary)
-                .clipShape(Capsule())
         }
-        .buttonStyle(.plain)
     }
 }
 
@@ -573,20 +549,9 @@ struct TagFilterSheet: View {
     }
 
     private func categoryChip(value: String, label: String) -> some View {
-        let isSelected = localCategory == value
-        return Button {
+        ImasFilterChip(text: label, isSelected: localCategory == value) {
             localCategory = value
-        } label: {
-            Text(label)
-                .font(.imasCaption)
-                .fontWeight(.medium)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(isSelected ? Color.accentColor : Color(.systemGray5))
-                .foregroundStyle(isSelected ? .white : .primary)
-                .clipShape(Capsule())
         }
-        .buttonStyle(.plain)
     }
 }
 

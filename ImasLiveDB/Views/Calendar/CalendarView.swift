@@ -625,19 +625,12 @@ private struct CalendarFilterChip: View {
     @Binding var isOn: Bool
 
     var body: some View {
-        Button {
-            isOn.toggle()
-        } label: {
-            HStack(spacing: 6) {
-                Image(systemName: systemImage).font(.imasScaled( 13, weight: .semibold))
-                Text(label).font(.imasScaled( 13.5, weight: .semibold))
-            }
-            .padding(.horizontal, 13)
-            .padding(.vertical, 7)
-            .foregroundStyle(isOn ? ColorMath.onColor(color) : DS.ink2)
-            .background(isOn ? AnyShapeStyle(color) : AnyShapeStyle(DS.fill), in: Capsule())
-        }
-        .buttonStyle(.plain)
+        ImasFilterChip(
+            text: label,
+            systemImage: systemImage,
+            isSelected: isOn,
+            color: color
+        ) { isOn.toggle() }
         .accessibilityLabel(label)
         .accessibilityValue(isOn ? "表示" : "非表示")
     }

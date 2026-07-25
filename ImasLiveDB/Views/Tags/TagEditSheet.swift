@@ -90,15 +90,9 @@ struct TagEditSheet: View {
     }
 
     private func categoryChip(value: String, label: String) -> some View {
-        let on = selectedCategory == value
-        return Button { selectedCategory = value } label: {
-            Text(label)
-                .font(.imasScaled(13.5, weight: .semibold))
-                .padding(.horizontal, 13).padding(.vertical, 7)
-                .foregroundStyle(on ? Color.white : DS.ink2)
-                .background(on ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(DS.fill), in: Capsule())
+        ImasFilterChip(text: label, isSelected: selectedCategory == value) {
+            selectedCategory = value
         }
-        .buttonStyle(.plain)
     }
 
     private func save() async {

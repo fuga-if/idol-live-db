@@ -196,6 +196,8 @@ struct ImasChip: View {
     /// (素の `Color` をそのまま塗るのではなく、通常の seed/brand と同じ WCAG コントラスト
     /// 計算を経由するので、選択色がどんな明るさでも前景色が自動で読める側に倒れる)。
     var color: Color? = nil
+    /// グリッド内で幅を揃えたいとき true。塗りごと広げるため `.background` より前に効かせる。
+    var fillsWidth: Bool = false
     @Environment(\.colorScheme) private var scheme
 
     var body: some View {
@@ -213,9 +215,51 @@ struct ImasChip: View {
             Text(text).font(.imasScaled( 13.5, weight: .semibold))
         }
         .padding(.horizontal, 13).padding(.vertical, 7)
+        .frame(maxWidth: fillsWidth ? .infinity : nil)
         .foregroundStyle(fg)
         .background(bg, in: Capsule())
         .lineLimit(1)
+    }
+}
+
+// MARK: - FilterChip (選択トグルできるチップ)
+
+/// 押して on/off できるチップ。フィルタ・カテゴリ・種別・タグの選択に使う「唯一の正」。
+///
+/// 以前は画面ごとに 19 種の自前実装があり、角丸 (8 と Capsule)・フォント (`.imasCaption` と
+/// 13.5pt)・余白 (10/8・12/6・13/7) がバラバラだった。さらに選択色に `Color.accentColor` を
+/// 直に塗っていたため、DS の「色は常にエンティティ側から来る」原則も崩れていた。
+/// 見た目は `ImasChip` と完全に同一 (同じ Capsule・タイポ・余白) で、押下と選択状態だけを足す。
+struct ImasFilterChip: View {
+    let text: String
+    var systemImage: String? = nil
+    let isSelected: Bool
+    /// 配色シード。エンティティ色 (アイドル/ブランド/タグ) があれば渡す。
+    var seed: String? = nil
+    var brand: String? = nil
+    /// 実体色そのもの (ユーザーが選んだタグ色等)。`ImasChip` と同じく WCAG 計算を通す。
+    var color: Color? = nil
+    /// グリッド内で幅を揃えたいとき true。
+    var fillsWidth: Bool = false
+    var isDisabled: Bool = false
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            ImasChip(
+                text: text,
+                systemImage: systemImage,
+                style: isSelected ? .selected : .neutral,
+                seed: seed,
+                brand: brand,
+                color: color,
+                fillsWidth: fillsWidth
+            )
+        }
+        .buttonStyle(.plain)
+        .disabled(isDisabled)
+        .opacity(isDisabled ? 0.55 : 1)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
 
