@@ -47,6 +47,45 @@ CLOUDKIT_KEY_ID=$KID python3 tools/apply_data.py --apply --push --production  # 
 スキーマを変えた時 (列追加等) は、ローカル master.sqlite から `sqlite3 ... .dump > db/master.sql` で
 dump を作り直してコミットする (cron はデータのみ更新し、スキーマは db/master.sql 由来のため)。
 
+## コミュニティデータ (D1) のバックアップ / スナップショット
+
+マスタ (CloudKit) は日次 cron で `db/master.sql` に落ちるので失っても戻せる。
+一方 **D1 は集計系コミュニティ (タグ・投票・お気に入り・予想・いいね) の唯一の正で、
+バックアップの仕組みが無かった**。飛ばすとユーザーの投稿が丸ごと消える。
+
+用途が違う 2 つを分けている。**混ぜないこと。**
+
+| | 完全バックアップ | 公開スナップショット |
+|---|---|---|
+| ツール | `tools/backup_d1.sh` | `tools/export_community_snapshot.py --remote` |
+| 出力 | `db_backups_local/d1_<日時>.sql` | `db/community.sql` |
+| git | **載せない** (gitignore 済み) | 載せる (diff で履歴が追える) |
+| 中身 | 全テーブル・全列 (Apple uid / device_id / 表示名 / 引き継ぎコードを含む) | 「誰が」を含まない集計のみ |
+| 目的 | 災害復旧 | 「この時点でどんなタグがあり何が人気だったか」の記録 |
+
+⚠️ **このリポジトリは public。** D1 の生ダンプを git に載せると Apple uid と device_id が
+恒久的に公開される。だから完全バックアップは手元 (`db_backups_local/`) にだけ置き、
+git に載せる方は識別子を含む列を一切出力しない。`export_community_snapshot.py` は
+出力対象の列に `user_id` / `device_id` / `created_by` 等が混ざっていたら
+実行前に落ちるようになっている。
+
+```bash
+# リリース前に (オーナー)
+bash tools/backup_d1.sh                                  # 完全バックアップ → 手元
+python3 tools/export_community_snapshot.py --remote      # 公開スナップショット → db/community.sql
+git add db/community.sql && git commit -m "data(community): リリース時点のスナップショット"
+
+# 動作確認 (誰でも・鍵不要)
+python3 tools/export_community_snapshot.py --local
+
+# 復元 (災害時)
+npx wrangler d1 execute imas-live-db --remote --file db_backups_local/d1_<日時>.sql
+```
+
+> `wrangler d1 execute --json` は SQL の NULL を文字列 `"null"` として返し、本物の
+> 文字列 `'null'` と区別できない。スナップショット生成は値の整形を Python でやらず
+> SQLite の `quote()` に任せてこれを回避している (`export_community_snapshot.py` の注記)。
+
 ## 日次自動エクスポート (GitHub Actions)
 
 `.github/workflows/refresh-data.yml` が毎日 CloudKit → `db/master.sql` を出力し、変化があれば自動コミット。
