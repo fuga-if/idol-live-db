@@ -58,6 +58,6 @@ struct SupportView: View {
                 .foregroundStyle(DS.ink2)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, DS.sp2)
     }
 }

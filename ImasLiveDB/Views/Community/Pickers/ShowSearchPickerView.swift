@@ -40,7 +40,7 @@ struct ShowSearchPickerView: View {
                         onSelect(show)
                         dismiss()
                     } label: {
-                        HStack(spacing: 12) {
+                        HStack(spacing: DS.sp4) {
                             Circle()
                                 .fill(DS.fill)
                                 .frame(width: 36, height: 36)
@@ -55,7 +55,7 @@ struct ShowSearchPickerView: View {
                                     .font(.imasSubhead)
                                     .fontWeight(.medium)
                                     .foregroundStyle(DS.ink)
-                                HStack(spacing: 8) {
+                                HStack(spacing: DS.sp3) {
                                     Text(show.name)
                                         .font(.imasCaption)
                                         .foregroundStyle(DS.ink2)

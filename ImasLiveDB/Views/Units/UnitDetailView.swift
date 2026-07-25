@@ -189,7 +189,7 @@ struct UnitDetailView: View {
             HStack(spacing: DS.sp3) {
                 ImasLeadBar(seed: nil, brand: brandColor)
                 ArtworkImageView(url: artURL, size: 44, previewURL: prevURL, songTitle: song.title, seed: brandColor)
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: DS.sp2) {
                     Text(song.title)
                         .font(.imasBody.weight(.semibold))
                         .foregroundStyle(DS.ink)
@@ -268,7 +268,7 @@ struct UnitDetailView: View {
         Button { go(.idol(member)) } label: {
             HStack(spacing: DS.sp3) {
                 IdolAvatarView(idol: member, size: 44, isPick: markService.bool(.myPick, entity: .idol, id: member.id))
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: DS.sp1) {
                     Text(member.name)
                         .font(.imasBody.weight(.semibold))
                         .foregroundStyle(DS.ink)
@@ -326,7 +326,7 @@ struct UnitDetailView: View {
                         AppAnalytics.tap("unit_detail.tag_action")
                         startCommunityEdit { showUnitTagPicker = true }
                     } label: {
-                        HStack(spacing: 4) {
+                        HStack(spacing: DS.sp2) {
                             Image(systemName: "plus").font(.imasScaled( 13, weight: .semibold))
                             Text("タグ").font(.imasScaled( 14, weight: .semibold))
                         }
@@ -335,7 +335,7 @@ struct UnitDetailView: View {
                 }
             }
             if let tagData = unitTagData, !tagData.tags.isEmpty {
-                FlowLayout(spacing: 8) {
+                FlowLayout(spacing: DS.sp3) {
                     ForEach(tagData.tags) { tag in
                         let isMine = Set(tagData.myTagIds).contains(tag.id)
                         Button { sheetDestination = .unitTagDetail(tag) } label: {
@@ -372,7 +372,7 @@ struct UnitDetailView: View {
     private var personalUnitTags: some View {
         let tags = personalTagService.tags(for: "unit", entityId: unit.id)
         VStack(alignment: .leading, spacing: DS.sp3) {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: DS.sp1) {
                 HStack(spacing: 6) {
                     Image(systemName: "lock.fill").font(.imasScaled(13, weight: .semibold)).foregroundStyle(DS.ink3)
                     Text("マイタグ").font(.imasTitle3.weight(.bold)).foregroundStyle(DS.ink)
@@ -381,7 +381,7 @@ struct UnitDetailView: View {
                     .font(.imasCaption).foregroundStyle(DS.ink3)
             }
             if !tags.isEmpty {
-                FlowLayout(spacing: 8) {
+                FlowLayout(spacing: DS.sp3) {
                     ForEach(tags) { tag in
                         ImasChip(text: tag.tagName, systemImage: "lock.fill", style: .neutral)
                             .contextMenu {
@@ -392,12 +392,12 @@ struct UnitDetailView: View {
                     }
                 }
             }
-            HStack(spacing: 8) {
+            HStack(spacing: DS.sp3) {
                 TextField("マイタグを追加 (例: 聞いた)", text: $newPersonalTagName)
                     .font(.imasSubhead)
                     .foregroundStyle(DS.ink)
                     .autocorrectionDisabled()
-                    .padding(.horizontal, 13).padding(.vertical, 8)
+                    .padding(.horizontal, 13).padding(.vertical, DS.sp3)
                     .background(DS.fill, in: Capsule())
                     .onChange(of: newPersonalTagName) { _, new in
                         if new.count > 30 { newPersonalTagName = String(new.prefix(30)) }
@@ -442,7 +442,7 @@ struct UnitDetailView: View {
     @ViewBuilder
     private var communitySimilarUnits: some View {
         VStack(alignment: .leading, spacing: DS.sp3) {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: DS.sp1) {
                 Text("タグが似ているユニット")
                     .font(.imasTitle3.weight(.bold)).foregroundStyle(DS.ink)
                 Text("つけられたタグが似ているユニット")
@@ -454,7 +454,7 @@ struct UnitDetailView: View {
                         Button {
                             go(.unit(other))
                         } label: {
-                            VStack(spacing: 4) {
+                            VStack(spacing: DS.sp2) {
                                 UnitAvatarView(unit: other, size: 56)
                                 Text(other.displayName)
                                     .font(.imasCaption.weight(.semibold))

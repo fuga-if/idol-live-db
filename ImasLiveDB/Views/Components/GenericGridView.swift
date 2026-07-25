@@ -19,7 +19,7 @@ struct GenericGridView<Item: GridCardItem>: View {
     let emptySystemImage: String
     let onSelect: (Item) -> Void
 
-    private let columns = [GridItem(.adaptive(minimum: 150, maximum: 220), spacing: 16)]
+    private let columns = [GridItem(.adaptive(minimum: 150, maximum: 220), spacing: DS.sp5)]
 
     init(
         items: [Item],
@@ -43,7 +43,7 @@ struct GenericGridView<Item: GridCardItem>: View {
                 ImasEmptyState(systemImage: emptySystemImage, title: emptyTitle)
                     .padding(.top, 60)
             } else {
-                LazyVGrid(columns: columns, spacing: 16) {
+                LazyVGrid(columns: columns, spacing: DS.sp5) {
                     ForEach(items) { item in
                         Button { onSelect(item) } label: {
                             GridCardView(item: item)
@@ -51,9 +51,9 @@ struct GenericGridView<Item: GridCardItem>: View {
                         .buttonStyle(.plain)
                     }
                 }
-                .padding(.horizontal, 16)
-                .padding(.top, 16)
-                .padding(.bottom, 24)
+                .padding(.horizontal, DS.sp5)
+                .padding(.top, DS.sp5)
+                .padding(.bottom, DS.sp7)
             }
         }
         .clipped()
@@ -70,7 +70,7 @@ struct GridCardView<Item: GridCardItem>: View {
             artworkSection
                 .frame(maxWidth: .infinity)
                 .aspectRatio(1, contentMode: .fit)
-                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .clipShape(RoundedRectangle(cornerRadius: DS.rSM))
                 .shadow(color: .black.opacity(0.15), radius: 4, y: 2)
 
             Text(item.title)
@@ -118,7 +118,7 @@ struct GridCardView<Item: GridCardItem>: View {
                     .foregroundStyle(DS.ink2)
                     .multilineTextAlignment(.center)
                     .lineLimit(3)
-                    .padding(.horizontal, 8)
+                    .padding(.horizontal, DS.sp3)
             }
         }
     }

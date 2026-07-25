@@ -64,14 +64,14 @@ struct DailySongVoteSheet: View {
                 songTitle: song.title,
                 seed: seed
             )
-            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: DS.rSM, style: .continuous))
 
             Button {
                 AppAnalytics.tap("daily_song_vote.vote")
                 tagTarget = song
             } label: {
                 HStack(spacing: DS.sp2) {
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: DS.sp1) {
                         Text(brand?.shortName ?? "").font(.imasCaption.weight(.semibold)).foregroundStyle(DS.ink3)
                         Text(song.title).font(.imasSubhead.weight(.bold)).foregroundStyle(DS.ink).lineLimit(2)
                         if let label = song.singerLabel, !label.isEmpty {
@@ -79,7 +79,7 @@ struct DailySongVoteSheet: View {
                         }
                     }
                     Spacer(minLength: DS.sp2)
-                    HStack(spacing: 4) {
+                    HStack(spacing: DS.sp2) {
                         Image(systemName: tagged ? "checkmark.circle.fill" : "tag")
                         Text(tagged ? "投票済" : "タグ").font(.imasFootnote.weight(.semibold))
                     }

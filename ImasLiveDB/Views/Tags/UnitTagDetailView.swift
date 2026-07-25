@@ -26,7 +26,7 @@ struct UnitTagDetailView: View {
             } else if let detail {
                 Section {
                     VStack(alignment: .leading, spacing: 10) {
-                        HStack(spacing: 8) {
+                        HStack(spacing: DS.sp3) {
                             if let hexColor = detail.tag.color {
                                 RoundedRectangle(cornerRadius: 4)
                                     .fill(Color(hexColor: hexColor))
@@ -39,7 +39,7 @@ struct UnitTagDetailView: View {
                             if let cat = detail.tag.category {
                                 Text(categoryLabel(cat.rawValue))
                                     .font(.imasCaption)
-                                    .padding(.horizontal, 8)
+                                    .padding(.horizontal, DS.sp3)
                                     .padding(.vertical, 3)
                                     .background(categoryColor(cat.rawValue).opacity(0.2))
                                     .foregroundStyle(categoryColor(cat.rawValue))

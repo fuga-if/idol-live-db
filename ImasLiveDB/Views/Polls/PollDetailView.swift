@@ -158,7 +158,7 @@ struct PollDetailView: View {
                         }
                     }
                 }
-                .padding(.top, 2)
+                .padding(.top, DS.sp1)
             }
         case .manual:
             let count = poll.scopeEntityIds?.count ?? 0
@@ -168,7 +168,7 @@ struct PollDetailView: View {
                     .foregroundStyle(DS.ink3)
                 ImasChip(text: "候補\(count)件から選択")
             }
-            .padding(.top, 2)
+            .padding(.top, DS.sp1)
         }
     }
 

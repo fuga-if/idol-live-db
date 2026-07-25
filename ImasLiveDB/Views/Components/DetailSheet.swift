@@ -433,7 +433,7 @@ struct SongSheetContent: View {
         HStack(spacing: DS.sp3) {
             ImasArtwork(title: s.title, seed: songSeed, size: 44,
                         imageURL: URL.safeHTTP(string: s.artworkUrl))
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: DS.sp1) {
                 Text(s.title).font(.imasSubhead.weight(.semibold))
                     .foregroundStyle(DS.ink).lineLimit(1)
                 if let sub = s.singerLabel ?? s.unitName, !sub.isEmpty {
@@ -465,7 +465,7 @@ struct SongSheetContent: View {
                 Label("参加ライブを登録して現地回収", systemImage: "plus")
                     .font(.imasSubhead.weight(.semibold))
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
+                    .padding(.vertical, DS.sp4)
                     .foregroundStyle(DS.ink2)
                     .background(DS.fill, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
             }
@@ -490,7 +490,7 @@ struct SongSheetContent: View {
             Image(systemName: "checkmark.seal.fill")
                 .font(.imasScaled( 15, weight: .semibold))
                 .foregroundStyle(DS.success)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: DS.sp1) {
                 Text(eventDisplayName(show.eventName)).font(.imasSubhead.weight(.semibold)).foregroundStyle(DS.ink).lineLimit(1)
                 Text([show.name, show.date].joined(separator: " ・ "))
                     .font(.imasCaption).foregroundStyle(DS.ink2).lineLimit(1)
@@ -552,10 +552,10 @@ struct SongSheetContent: View {
 
     /// クレジット行: 分割済みの名前を各クリエイター絞り込みへタップ可能に表示する。
     private func creditRow(key: String, names: [String]) -> some View {
-        HStack(spacing: 12) {
+        HStack(spacing: DS.sp4) {
             Text(key).font(.imasSubhead).foregroundStyle(DS.ink2)
             Spacer(minLength: 12)
-            HStack(spacing: 4) {
+            HStack(spacing: DS.sp2) {
                 ForEach(Array(names.enumerated()), id: \.offset) { idx, name in
                     if idx > 0 { Text("/").font(.imasSubhead).foregroundStyle(DS.ink3) }
                     Button { navigate(.filteredSongs(.creator(name))) } label: {
@@ -566,7 +566,7 @@ struct SongSheetContent: View {
             }
             .lineLimit(1)
         }
-        .padding(.horizontal, 16).padding(.vertical, 11)
+        .padding(.horizontal, DS.sp5).padding(.vertical, 11)
         .background(DS.surface)
     }
 
@@ -653,7 +653,7 @@ struct SongSheetContent: View {
                 ImasLeadBar(seed: songSeed)
                     .frame(height: 34)
                     .padding(.trailing, DS.sp4)
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: DS.sp1) {
                     Text(eventDisplayName(row.eventName)).font(.imasSubhead.weight(.semibold)).foregroundStyle(DS.ink).lineLimit(1)
                     Text([row.showName, row.date].joined(separator: " ・ "))
                         .font(.imasCaption).foregroundStyle(DS.ink2).lineLimit(1)
@@ -696,7 +696,7 @@ struct SongSheetContent: View {
     /// この曲が好きな人にはこれもおすすめ — タグが似ている楽曲 (サーバ算出)。
     private var similarByTagsSection: some View {
         VStack(alignment: .leading, spacing: DS.sp3) {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: DS.sp1) {
                 Text("この曲が好きな人にはこれも")
                     .font(.imasTitle3.weight(.bold)).foregroundStyle(DS.ink)
                 Text("つけられたタグが似ている楽曲")
@@ -722,7 +722,7 @@ struct SongSheetContent: View {
                 startCommunityEdit { showTagPicker = true }
             }
             if let tagData = vm.songTagData, !tagData.tags.isEmpty {
-                FlowLayout(spacing: 8) {
+                FlowLayout(spacing: DS.sp3) {
                     ForEach(tagData.tags) { tag in
                         let isMine = Set(tagData.myTagIds).contains(tag.id)
                         Button { navigate(.tagDetail(tag)) } label: {
@@ -828,7 +828,7 @@ struct SongSheetContent: View {
 
     private func videoRow(_ video: SongVideo) -> some View {
         let videoID = YouTube.videoID(from: video.youtubeUrl)
-        return VStack(alignment: .leading, spacing: 8) {
+        return VStack(alignment: .leading, spacing: DS.sp3) {
             if let videoID, let url = URL.safeHTTP(string: video.youtubeUrl) {
                 // 公式 MV は埋め込み無効が多くアプリ内再生不可 (YouTube仕様) のため、
                 // サムネタップで YouTube アプリ/Safari を開く。
@@ -953,7 +953,7 @@ struct SongSheetContent: View {
             Spacer(minLength: 12)
             if EditPermission.showEditAffordance {
                 Button(action: action) {
-                    HStack(spacing: 4) {
+                    HStack(spacing: DS.sp2) {
                         Image(systemName: systemImage).font(.imasScaled( 13, weight: .semibold))
                         Text(actionLabel).font(.imasScaled( 14, weight: .semibold))
                     }
@@ -1031,7 +1031,7 @@ struct ShowHistoryButton: View {
             }
         } label: {
             HStack {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: DS.sp2) {
                     Text(eventDisplayName(eventName))
                         .font(.imasSubhead)
                         .foregroundStyle(DS.ink)

@@ -72,7 +72,7 @@ struct TagListView: View {
             .navigationTitle("タグ")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    HStack(spacing: 8) {
+                    HStack(spacing: DS.sp3) {
                         FilterBarButton(activeCount: activeFilterCount) {
                             showFilterSheet = true
                         }
@@ -133,7 +133,7 @@ struct TagRowView: View {
     var rank: Int? = nil
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: DS.sp2) {
             HStack(spacing: 6) {
                 if let rank {
                     TagRankBadge(rank: rank)
@@ -152,7 +152,7 @@ struct TagRowView: View {
                         .font(.imasScaled(11))
                         .foregroundStyle(DS.ink2)
                         .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
+                        .padding(.vertical, DS.sp1)
                         .background(DS.fill)
                         .clipShape(Capsule())
                 }
@@ -170,7 +170,7 @@ struct TagRowView: View {
                     .lineLimit(1)
             }
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, DS.sp1)
     }
 }
 
@@ -186,7 +186,7 @@ struct TagRankBadge: View {
             .font(.imasCaption.bold().monospacedDigit())
             .foregroundStyle(textColor)
             .frame(minWidth: 22)
-            .padding(.vertical, 2)
+            .padding(.vertical, DS.sp1)
             .padding(.horizontal, 5)
             .background(bgColor, in: Capsule())
             .accessibilityLabel("\(rank)位")

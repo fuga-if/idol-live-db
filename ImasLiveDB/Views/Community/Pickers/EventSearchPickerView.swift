@@ -40,7 +40,7 @@ struct EventSearchPickerView: View {
                         onSelect(event)
                         dismiss()
                     } label: {
-                        HStack(spacing: 12) {
+                        HStack(spacing: DS.sp4) {
                             Circle()
                                 .fill(DS.fill)
                                 .frame(width: 36, height: 36)
@@ -50,7 +50,7 @@ struct EventSearchPickerView: View {
                                         .font(.imasCaption)
                                 }
 
-                            VStack(alignment: .leading, spacing: 2) {
+                            VStack(alignment: .leading, spacing: DS.sp1) {
                                 Text(eventDisplayName(event.name))
                                     .font(.imasSubhead)
                                     .fontWeight(.medium)

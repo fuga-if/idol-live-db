@@ -190,7 +190,7 @@ struct SongListView: View {
             AppAnalytics.tap("song_list.introdon_select")
             onSelectPool?(vm.displayedSongs.map(\.song), selectionRangeLabel)
         } label: {
-            HStack(spacing: 8) {
+            HStack(spacing: DS.sp3) {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.imasScaled(15, weight: .bold))
                 Text("この範囲で出題")
@@ -209,8 +209,8 @@ struct SongListView: View {
             // DS.sys はシステムのテキスト色 (ダーク=白 / ライト=黒)。背景にこれを使うと、
             // 上に乗せる文字色は必ず DS.onSys (反転色) でなければならない。
             // 旧コードは固定 .white を載せており、ダークモードで「白背景白文字」になっていた。
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            .padding(.horizontal, DS.sp5)
+            .padding(.vertical, DS.sp4)
             .frame(maxWidth: .infinity)
             .foregroundStyle(playable >= 4 ? DS.onSys : Color.white)
             .background(playable >= 4 ? AnyShapeStyle(DS.sys) : AnyShapeStyle(Color.secondary))
@@ -228,7 +228,7 @@ struct SongListView: View {
                 AppAnalytics.tap("song_list.introdon")
                 showIntroDon = true
             } label: {
-                HStack(spacing: 8) {
+                HStack(spacing: DS.sp3) {
                     Image(systemName: "music.note.list")
                         .font(.imasScaled( 14, weight: .bold))
                     Text("この絞り込みでイントロドン")
@@ -293,7 +293,7 @@ struct SongListView: View {
         let chips = activeFilterChips
         if !chips.isEmpty {
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
+                HStack(spacing: DS.sp3) {
                     ForEach(chips) { chip in
                         ImasRemovableChip(text: chip.label, onRemove: chip.remove)
                     }

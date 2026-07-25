@@ -65,15 +65,15 @@ struct RecentEditsView: View {
                     ImasInlineLoading()
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            .padding(.horizontal, DS.sp5)
+            .padding(.vertical, DS.sp4)
         }
         .background(DS.bg)
         .navigationTitle(mineOnly ? "自分の編集" : "最近の編集")
         .overlay {
             if isLoading && entries.isEmpty {
                 ProgressView("読み込み中...")
-                    .padding(24)
+                    .padding(DS.sp7)
                     .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
             } else if entries.isEmpty && !isLoading {
                 ImasEmptyState(
@@ -303,10 +303,10 @@ private struct EditFeedCard: View {
     let onToggleGood: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: DS.sp3) {
             // 上半分タップで該当ページ (該当ページが無いレコードは変更履歴) へ。
             Button(action: onOpen) {
-                HStack(alignment: .top, spacing: 12) {
+                HStack(alignment: .top, spacing: DS.sp4) {
                     EditRecordIcon(recordType: entry.recordType)
 
                     VStack(alignment: .leading, spacing: 6) {
@@ -351,7 +351,7 @@ private struct EditFeedCard: View {
             goodRow
         }
         .padding(14)
-        .background(DS.surface, in: RoundedRectangle(cornerRadius: 14))
+        .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rMD))
     }
 
     @ViewBuilder
@@ -372,7 +372,7 @@ private struct EditFeedCard: View {
                             .font(.imasCaption.weight(.semibold))
                     }
                     .foregroundStyle(gooded ? AnyShapeStyle(DS.pick) : AnyShapeStyle(DS.ink2))
-                    .padding(.horizontal, 12)
+                    .padding(.horizontal, DS.sp4)
                     .padding(.vertical, 6)
                     .background(
                         (gooded ? DS.pick : DS.ink3).opacity(0.12),
@@ -404,7 +404,7 @@ private struct EditFeedCard: View {
                 .buttonStyle(.plain)
             }
         }
-        .padding(.top, 2)
+        .padding(.top, DS.sp1)
     }
 }
 
@@ -454,7 +454,7 @@ private struct EditOpBadge: View {
             .font(.imasScaled(11).weight(.semibold))
             .foregroundStyle(color)
             .padding(.horizontal, 7)
-            .padding(.vertical, 2)
+            .padding(.vertical, DS.sp1)
             .background(color.opacity(0.15), in: Capsule())
     }
 }

@@ -51,7 +51,7 @@ struct PlayabilityCheckView: View {
                 .disabled(isRunning)
 
                 if totalCount > 0 {
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: DS.sp2) {
                         ProgressView(value: Double(processed), total: Double(totalCount))
                         Text("\(processed) / \(totalCount) (再生不可 \(unplayable.count))")
                             .font(.caption).foregroundStyle(DS.ink2)
@@ -71,7 +71,7 @@ struct PlayabilityCheckView: View {
                     }
                     .disabled(altRunning || isRunning)
                     if altTotal > 0 {
-                        VStack(alignment: .leading, spacing: 4) {
+                        VStack(alignment: .leading, spacing: DS.sp2) {
                             ProgressView(value: Double(altProcessed), total: Double(altTotal))
                             let hits = altRows.filter { $0.candidateAppleMusicId != nil }.count
                             Text("\(altProcessed) / \(altTotal) (代替見つかった: \(hits))")
@@ -94,9 +94,9 @@ struct PlayabilityCheckView: View {
                         }
                     }
                     ForEach(unplayable) { row in
-                        VStack(alignment: .leading, spacing: 2) {
+                        VStack(alignment: .leading, spacing: DS.sp1) {
                             Text(row.title).font(.subheadline.weight(.semibold))
-                            HStack(spacing: 8) {
+                            HStack(spacing: DS.sp3) {
                                 Text(row.brandId).font(.caption.monospaced()).foregroundStyle(.blue)
                                 Text("amid: \(row.appleMusicId)").font(.caption.monospaced())
                                 if let d = row.catalogDurationSec { Text("cat \(d)s").font(.caption) }
@@ -107,7 +107,7 @@ struct PlayabilityCheckView: View {
                                 Text(err).font(.caption2).foregroundStyle(.red).lineLimit(2)
                             }
                         }
-                        .padding(.vertical, 2)
+                        .padding(.vertical, DS.sp1)
                     }
                 }
             }

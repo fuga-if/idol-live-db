@@ -15,7 +15,7 @@ struct PerformerDetailSheet: View {
                         AppAnalytics.tap("performer_detail.select_idol")
                         navigate(.idol(idol))
                     } label: {
-                        HStack(spacing: 12) {
+                        HStack(spacing: DS.sp4) {
                             IdolAvatarView(idol: idol, size: 40)
                             Text(idol.name)
                                 .font(.imasBody)

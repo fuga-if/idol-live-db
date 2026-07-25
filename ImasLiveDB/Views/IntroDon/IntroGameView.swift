@@ -156,7 +156,7 @@ struct IntroGameView: View {
     // MARK: - Loading
 
     private var loadingOverlay: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: DS.sp5) {
             ProgressView()
                 .tint(ID.t2)
                 .scaleEffect(1.2)
@@ -172,22 +172,22 @@ struct IntroGameView: View {
     private var gameContent: some View {
         VStack(spacing: 0) {
             headerBar
-                .padding(.horizontal, 20)
-                .padding(.top, 8)
+                .padding(.horizontal, DS.sp6)
+                .padding(.top, DS.sp3)
                 .padding(.bottom, 10)
 
             progressBar
-                .padding(.horizontal, 20)
-                .padding(.bottom, 8)
+                .padding(.horizontal, DS.sp6)
+                .padding(.bottom, DS.sp3)
 
             if session.phase == .revealed {
                 revealedBody
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, DS.sp6)
             } else {
                 roundBody
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, DS.sp6)
             }
         }
     }
@@ -213,12 +213,12 @@ struct IntroGameView: View {
                         .frame(height: buzzSize)
                     buzzHint
                         .frame(height: 16)
-                        .padding(.top, 8)
+                        .padding(.top, DS.sp3)
                 }
 
                 controlsRow
                     .frame(height: 46)
-                    .padding(.top, 16)
+                    .padding(.top, DS.sp5)
 
                 answerArea
                     .padding(.top, 14)
@@ -237,7 +237,7 @@ struct IntroGameView: View {
     // MARK: - Header / Progress
 
     private var headerBar: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: DS.sp4) {
             if isRush {
                 rushTimePill
             } else {
@@ -245,7 +245,7 @@ struct IntroGameView: View {
                     .font(ID.font(13, weight: .bold))
                     .monospacedDigit()
                     .foregroundColor(ID.t2)
-                    .padding(.horizontal, 12)
+                    .padding(.horizontal, DS.sp4)
                     .padding(.vertical, 6)
                     .background(ID.surfaceDarkCard)
                     .clipShape(IDCorner(radius: 8))
@@ -298,7 +298,7 @@ struct IntroGameView: View {
                     .monospacedDigit()
                     .foregroundColor(ID.t0)
             }
-            .padding(.horizontal, 12)
+            .padding(.horizontal, DS.sp4)
             .padding(.vertical, 6)
             .background(ID.correct.opacity(0.12))
             .clipShape(IDCorner(radius: 8))
@@ -316,7 +316,7 @@ struct IntroGameView: View {
                 .monospacedDigit()
         }
         .foregroundColor(urgent ? ID.incorrect : ID.t0)
-        .padding(.horizontal, 12)
+        .padding(.horizontal, DS.sp4)
         .padding(.vertical, 6)
         .background((urgent ? ID.incorrect : ID.accentPurple).opacity(0.14))
         .clipShape(IDCorner(radius: 8))
@@ -365,7 +365,7 @@ struct IntroGameView: View {
     private var statusArea: some View {
         switch session.phase {
         case .playing where isFast:
-            VStack(spacing: 8) {
+            VStack(spacing: DS.sp3) {
                 Image(systemName: session.isPlayingIntro ? "speaker.wave.2.fill" : "music.note")
                     .font(.imasScaled( 24, weight: .bold))
                     .foregroundColor(ID.t0)
@@ -375,7 +375,7 @@ struct IntroGameView: View {
                     .foregroundColor(ID.t2)
             }
         case .playing:
-            IDEQAnimation(columns: 16, rows: 5, dotSize: 7, spacing: 2,
+            IDEQAnimation(columns: 16, rows: 5, dotSize: 7, spacing: DS.sp1,
                           color: ID.t0, isAnimating: session.isPlayingIntro)
                 .frame(height: 50)
         case .answering:
@@ -434,7 +434,7 @@ struct IntroGameView: View {
             }
 
             // 長押しで「もう少し流す」、タップでも頭出し。
-            VStack(spacing: 4) {
+            VStack(spacing: DS.sp2) {
                 ZStack {
                     Circle()
                         .fill(session.isPlayingIntro ? ID.accentPurple : ID.surfaceDarkCard)
@@ -481,7 +481,7 @@ struct IntroGameView: View {
 
     private func controlButton(icon: String, label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            VStack(spacing: 4) {
+            VStack(spacing: DS.sp2) {
                 ZStack {
                     Circle().fill(ID.surfaceDarkCard).frame(width: 46, height: 46)
                     Image(systemName: icon)
@@ -503,7 +503,7 @@ struct IntroGameView: View {
         if useVoice {
             voiceAnswerArea
         } else if let q = session.currentQuestion {
-            VStack(spacing: 8) {
+            VStack(spacing: DS.sp3) {
                 ForEach(q.choices, id: \.self) { title in
                     IDChoiceButton(title: title) {
                         AppAnalytics.tap("intro_game.choose_answer")
@@ -518,14 +518,14 @@ struct IntroGameView: View {
     // MARK: - Voice (音声判定)
 
     private var voiceAnswerArea: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: DS.sp4) {
             voiceStatusCard
             micButton
         }
     }
 
     private var voiceStatusCard: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: DS.sp3) {
             if speechService.authStatus == .denied || speechService.authStatus == .restricted {
                 Text("設定アプリでマイクと音声認識を許可してください")
                     .font(ID.font(13, weight: .semibold))
@@ -536,7 +536,7 @@ struct IntroGameView: View {
                     .font(ID.font(13, weight: .semibold))
                     .foregroundColor(ID.t2)
             } else if speechService.isListening {
-                HStack(spacing: 8) {
+                HStack(spacing: DS.sp3) {
                     PulseDot(color: ID.accentPink)
                     Text(speechService.recognizedText.isEmpty
                         ? "聴取中… 曲名を声で答えてください"
@@ -563,7 +563,7 @@ struct IntroGameView: View {
             AppAnalytics.tap("intro_game.mic_toggle")
             handleMicTap()
         } label: {
-            HStack(spacing: 8) {
+            HStack(spacing: DS.sp3) {
                 Image(systemName: speechService.isListening ? "mic.slash.fill" : "mic.fill")
                     .font(.imasScaled( 15, weight: .bold))
                 Text(speechService.isListening ? "聴取を停止" : "マイクで回答")
@@ -612,7 +612,7 @@ struct IntroGameView: View {
                 Task { await session.nextQuestion() }
             } label: {
                 let isLast = !isRush && session.currentIndex + 1 >= session.totalCount
-                HStack(spacing: 8) {
+                HStack(spacing: DS.sp3) {
                     Text(isLast ? "結果を見る" : "次の問題へ")
                         .font(ID.font(16, weight: .bold))
                     Image(systemName: isLast ? "flag.checkered" : "arrow.right")
@@ -726,7 +726,7 @@ private struct IDChoiceButton: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 12) {
+            HStack(spacing: DS.sp4) {
                 Image(systemName: "music.note")
                     .font(.imasScaled( 13, weight: .semibold))
                     .foregroundColor(ID.accentPurple.opacity(0.7))

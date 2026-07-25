@@ -162,7 +162,7 @@ struct SetlistRowView: View {
                 .font(.imasDisplay(13))
                 .foregroundStyle(DS.ink3)
                 .frame(width: 22, alignment: .trailing)
-                .padding(.top, 12)
+                .padding(.top, DS.sp4)
 
             // ジャケ (画像/プレビュー対応。フォールバックは曲のブランド色ソリッド)。
             // 文字サイズ設定に合わせて縮小し、行全体のサイズ感を揃える。
@@ -223,7 +223,7 @@ struct SetlistRowView: View {
                 RoundedRectangle(cornerRadius: 1.5, style: .continuous)
                     .fill(DS.pick.opacity(0.7))
                     .frame(width: 3)
-                    .padding(.vertical, 8)
+                    .padding(.vertical, DS.sp3)
             }
         }
         .contentShape(Rectangle())
@@ -295,7 +295,7 @@ struct SetlistRowView: View {
                 }
             } else {
                 // アイドル情報なし → テキスト chip フォールバック
-                FlowLayout(spacing: 4) {
+                FlowLayout(spacing: DS.sp2) {
                     ForEach(performers) { performer in
                         PerformerChip(performer: performer, isCharacterLive: isCharacterLive)
                     }
@@ -326,7 +326,7 @@ private struct PerformerChip: View {
     }
 
     var body: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: DS.sp2) {
             Circle()
                 .fill(Color(hexString: performer.idolColor, default: DS.ink3))
                 .frame(width: 6, height: 6)

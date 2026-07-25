@@ -85,7 +85,7 @@ struct EventReleasesSection: View {
 
             // 所有トグル
             Button { toggleOwned(release) } label: {
-                VStack(spacing: 2) {
+                VStack(spacing: DS.sp1) {
                     Image(systemName: owned ? "opticaldisc.fill" : "opticaldisc")
                         .font(.imasTitle3)
                     Text(owned ? "所有" : "未所有")

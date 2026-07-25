@@ -63,7 +63,7 @@ struct FilteredSongsView: View {
                     Button {
                         navigate(.song(item.song))
                     } label: {
-                        VStack(alignment: .leading, spacing: 2) {
+                        VStack(alignment: .leading, spacing: DS.sp1) {
                             SongRowView(item: SongWithArtists(song: item.song, artistNames: item.song.singerLabel ?? ""))
                             Text(item.rolesLabel)
                                 .font(.imasScaled(11))

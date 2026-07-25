@@ -74,31 +74,31 @@ struct IntroGameResultView: View {
         ScrollView {
             VStack(spacing: 0) {
                 scoreHero
-                    .padding(.horizontal, 20)
-                    .padding(.top, 24)
+                    .padding(.horizontal, DS.sp6)
+                    .padding(.top, DS.sp7)
 
                 if session.isAllSongsChallenge && session.newBestTimeAchieved {
                     banner(icon: "stopwatch.fill", text: "ベストタイム更新！", tag: "NEW TIME")
-                        .padding(.horizontal, 20)
-                        .padding(.top, 12)
+                        .padding(.horizontal, DS.sp6)
+                        .padding(.top, DS.sp4)
                 } else if session.isNewBest {
                     bestBanner
-                        .padding(.horizontal, 20)
-                        .padding(.top, 12)
+                        .padding(.horizontal, DS.sp6)
+                        .padding(.top, DS.sp4)
                 }
 
                 Spacer().frame(height: 28)
 
                 IDSectionLabel(text: "全問の結果")
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, DS.sp6)
                 Spacer().frame(height: 12)
                 questionsLog
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, DS.sp6)
 
                 Spacer().frame(height: 28)
 
                 actionButtons
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, DS.sp6)
 
                 Spacer().frame(height: 40)
             }
@@ -111,10 +111,10 @@ struct IntroGameResultView: View {
     }
 
     private var scoreHero: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: DS.sp6) {
             // Score number
-            VStack(spacing: 4) {
-                HStack(alignment: .lastTextBaseline, spacing: 4) {
+            VStack(spacing: DS.sp2) {
+                HStack(alignment: .lastTextBaseline, spacing: DS.sp2) {
                     Text("\(session.score)")
                         .font(ID.font(64, weight: .black))
                         .foregroundColor(ID.menuText)
@@ -134,7 +134,7 @@ struct IntroGameResultView: View {
                         .font(ID.font(15, weight: .bold))
                         .foregroundColor(ID.menuText)
                         .monospacedDigit()
-                        .padding(.top, 2)
+                        .padding(.top, DS.sp1)
                 }
             }
 
@@ -142,7 +142,7 @@ struct IntroGameResultView: View {
             gradeBadge
         }
         .frame(maxWidth: .infinity)
-        .padding(32)
+        .padding(DS.sp8)
         .background(ID.menuCardSubtle)
         .clipShape(IDCorner())
         .shadow(color: Color.black.opacity(0.08), radius: 12, y: 6)
@@ -153,8 +153,8 @@ struct IntroGameResultView: View {
         return Text(label)
             .font(ID.font(14, weight: .bold))
             .foregroundColor(color)
-            .padding(.horizontal, 20)
-            .padding(.vertical, 8)
+            .padding(.horizontal, DS.sp6)
+            .padding(.vertical, DS.sp3)
             .background(color.opacity(0.12))
             .clipShape(IDCorner(radius: 10))
     }
@@ -187,7 +187,7 @@ struct IntroGameResultView: View {
                 .tracking(1.5)
                 .foregroundColor(ID.accentGold)
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, DS.sp6)
         .padding(.vertical, 14)
         .background(ID.accentGold.opacity(0.10))
         .clipShape(IDCorner(radius: 14))
@@ -206,7 +206,7 @@ struct IntroGameResultView: View {
                     Rectangle()
                         .fill(ID.menuDivider)
                         .frame(height: 1)
-                        .padding(.horizontal, 16)
+                        .padding(.horizontal, DS.sp5)
                 }
             }
         }
@@ -215,7 +215,7 @@ struct IntroGameResultView: View {
     }
 
     private func recordRow(index: Int, record: IntroAnswerRecord) -> some View {
-        HStack(spacing: 12) {
+        HStack(spacing: DS.sp4) {
             Text("\(index + 1)")
                 .font(ID.font(11, weight: .bold))
                 .monospacedDigit()
@@ -226,7 +226,7 @@ struct IntroGameResultView: View {
                 .foregroundColor(record.correct ? ID.correct : ID.incorrect)
                 .font(.imasScaled( 16))
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: DS.sp1) {
                 Text(record.title)
                     .font(ID.font(13, weight: .semibold))
                     .foregroundColor(ID.menuText)
@@ -243,17 +243,17 @@ struct IntroGameResultView: View {
 
             Spacer()
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .padding(.horizontal, DS.sp5)
+        .padding(.vertical, DS.sp4)
     }
 
     private var actionButtons: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: DS.sp4) {
             Button {
                 AppAnalytics.tap("intro_game_result.share")
                 shareResultImage()
             } label: {
-                HStack(spacing: 8) {
+                HStack(spacing: DS.sp3) {
                     Image(systemName: "square.and.arrow.up")
                         .font(.imasScaled( 15, weight: .semibold))
                     Text("結果を画像でシェア")
@@ -276,7 +276,7 @@ struct IntroGameResultView: View {
                 // 伸びるバグの原因だったため、既存のSetupを再利用する形に変更。
                 exitSignal.requestReplay()
             } label: {
-                HStack(spacing: 8) {
+                HStack(spacing: DS.sp3) {
                     Image(systemName: "arrow.counterclockwise")
                         .font(.imasScaled( 15, weight: .semibold))
                     Text("もう一度あそぶ")
@@ -284,7 +284,7 @@ struct IntroGameResultView: View {
                 }
                 .foregroundColor(ID.menuCardDarkText)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
+                .padding(.vertical, DS.sp5)
                 .background(ID.menuCardDark)
                 .clipShape(IDCorner())
                 .shadow(color: Color.black.opacity(0.15), radius: 10, y: 4)
@@ -300,7 +300,7 @@ struct IntroGameResultView: View {
                     .font(ID.font(14, weight: .semibold))
                     .foregroundColor(ID.menuTextSecondary)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
+                    .padding(.vertical, DS.sp4)
                     .background(ID.menuCardSubtle)
                     .clipShape(IDCorner(radius: 14))
             }

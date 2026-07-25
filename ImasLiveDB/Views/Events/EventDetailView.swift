@@ -125,7 +125,7 @@ struct EventDetailView: View {
                             .font(.imasScaled(13, weight: .semibold))
                     }
                     .foregroundStyle(attendanceStatus.isPlanned ? t.onAccent : DS.ink2)
-                    .padding(.horizontal, 12)
+                    .padding(.horizontal, DS.sp4)
                     .padding(.vertical, 6)
                     .background(
                         attendanceStatus.isPlanned ? AnyShapeStyle(t.accent) : AnyShapeStyle(DS.fill),
@@ -455,7 +455,7 @@ struct EventDetailView: View {
                         Button {
                             start(.editEvent)
                         } label: {
-                            HStack(spacing: 4) {
+                            HStack(spacing: DS.sp2) {
                                 Image(systemName: hasAny ? "pencil" : "plus").font(.imasScaled( 13, weight: .semibold))
                                 Text(hasAny ? "編集" : "登録").font(.imasScaled( 14, weight: .semibold))
                             }
@@ -764,7 +764,7 @@ private struct AttendancePanel: View {
             Text("DAY\(index + 1)")
                 .font(.imasCaption.weight(.bold))
                 .foregroundStyle(DS.onSys)
-                .padding(.horizontal, 8).padding(.vertical, 3)
+                .padding(.horizontal, DS.sp3).padding(.vertical, 3)
                 .background(panelAccent, in: Capsule())
             if let d = shortDate(show.date) {
                 Text(d).font(.imasCaption.weight(.medium)).foregroundStyle(DS.ink2)
@@ -785,7 +785,7 @@ private struct AttendancePanel: View {
                 Button {
                     navigate(.idol(idol))
                 } label: {
-                    VStack(spacing: 4) {
+                    VStack(spacing: DS.sp2) {
                         // isPick は使わず roleAvatarRing で独自の accent リングを重ねるため、
                         // 担当リング分の外形余白は予約しない (可視アバターぴったりの size に戻す)。
                         IdolAvatarView(idol: idol, size: 56, reservesPickRing: false)
@@ -844,7 +844,7 @@ private struct AttendancePanel: View {
                 Button {
                     navigate(.idol(idol))
                 } label: {
-                    VStack(spacing: 4) {
+                    VStack(spacing: DS.sp2) {
                         IdolAvatarView(idol: idol, size: 48)
                             .grayscale(absent ? 0.5 : 0)
                             .opacity(absent ? 0.45 : 1)

@@ -92,7 +92,7 @@ struct BrandIconCell: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 4) {
+            VStack(spacing: DS.sp2) {
                 iconView
                 Text(label)
                     .font(.imasScaled(11))
@@ -195,7 +195,7 @@ struct EventFilterSheet: View {
                 BrandFilterSection(brands: brands, selectedBrandIds: $localBrandIds)
 
                 Section {
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 88), spacing: 8)], spacing: 8) {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 88), spacing: DS.sp3)], spacing: DS.sp3) {
                         ForEach(EventKind.allCases, id: \.rawValue) { kind in
                             EventKindChip(
                                 kind: kind,
@@ -546,7 +546,7 @@ struct TagFilterSheet: View {
             List {
                 Section("カテゴリ") {
                     ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
+                        HStack(spacing: DS.sp3) {
                             ForEach(categories, id: \.value) { cat in
                                 categoryChip(value: cat.value, label: cat.label)
                             }

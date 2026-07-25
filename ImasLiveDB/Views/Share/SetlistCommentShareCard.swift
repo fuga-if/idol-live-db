@@ -49,7 +49,7 @@ struct SetlistCommentShareCard: View {
                     .foregroundStyle(.white)
                     .lineLimit(2)
                     .minimumScaleFactor(0.6)
-                    .padding(.top, 12)
+                    .padding(.top, DS.sp4)
 
                 if let meta = showMetaLine {
                     Text(meta)

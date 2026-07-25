@@ -42,7 +42,7 @@ struct StackedAvatars: View {
                 Text("+\(idols.count - maxVisible)")
                     .font(.imasScaled(11).bold())
                     .foregroundStyle(DS.ink2)
-                    .padding(.leading, 4)
+                    .padding(.leading, DS.sp2)
                     .zIndex(0)
             }
         }

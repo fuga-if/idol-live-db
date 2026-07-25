@@ -190,7 +190,7 @@ struct ProduceTabView: View {
                         }
                     }
                     .padding(.horizontal, 1)
-                    .padding(.vertical, 2)
+                    .padding(.vertical, DS.sp1)
                 }
             }
         }
@@ -278,7 +278,7 @@ struct ProduceTabView: View {
                                 .buttonStyle(.plain)
                         }
                     }
-                    .padding(.vertical, 2)
+                    .padding(.vertical, DS.sp1)
                 }
             }
         }
@@ -532,7 +532,7 @@ private struct HeroIdolCard: View {
                         .foregroundStyle(DS.ink2)
                         .lineLimit(1)
                     ImasChip(text: "担当", systemImage: "heart.fill", style: .themed, seed: idol.color, brand: brandColor)
-                        .padding(.top, 2)
+                        .padding(.top, DS.sp1)
                 }
                 Spacer(minLength: 0)
             }

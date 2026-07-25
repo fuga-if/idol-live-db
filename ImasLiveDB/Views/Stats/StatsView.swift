@@ -92,7 +92,7 @@ struct StatsView: View {
                 .frame(width: 92, height: 92)
 
                 VStack(alignment: .leading, spacing: DS.sp3) {
-                    HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    HStack(alignment: .firstTextBaseline, spacing: DS.sp2) {
                         Text("\(overallCollected)")
                             .font(.imasDisplay(30, weight: .bold))
                             .foregroundStyle(DS.ink)
@@ -188,7 +188,7 @@ struct StatsView: View {
                 }
             }
             Spacer(minLength: 0)
-            VStack(spacing: 2) {
+            VStack(spacing: DS.sp1) {
                 ImasMetricBadge(value: "\(chance.likelyCount)", unit: "曲", seed: chance.brandColor)
                 Text("過去に披露")
                     .font(.imasScaled( 10, weight: .medium))
@@ -265,7 +265,7 @@ struct StatsView: View {
                 size: 44,
                 imageURL: artworkURL(item.song.artworkUrl)
             )
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: DS.sp1) {
                 Text(item.song.title)
                     .font(.imasSubhead.weight(.semibold))
                     .foregroundStyle(DS.ink)
@@ -297,10 +297,10 @@ struct StatsView: View {
             fg = DS.ink3
             bg = DS.fill
         }
-        return VStack(alignment: .trailing, spacing: 2) {
+        return VStack(alignment: .trailing, spacing: DS.sp1) {
             Text(item.frequencyLabel)
                 .font(.imasScaled( 11, weight: .semibold))
-                .padding(.horizontal, 8).padding(.vertical, 2)
+                .padding(.horizontal, DS.sp3).padding(.vertical, DS.sp1)
                 .foregroundStyle(fg)
                 .background(bg, in: Capsule())
             if item.playCount > 0 {

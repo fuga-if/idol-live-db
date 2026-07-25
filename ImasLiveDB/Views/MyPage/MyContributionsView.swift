@@ -33,8 +33,8 @@ struct MyContributionsView: View {
                     .font(.imasScaled(18, weight: .semibold))
                     .foregroundStyle(DS.sys)
                     .frame(width: 36, height: 36)
-                    .background(DS.fill, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-                VStack(alignment: .leading, spacing: 2) {
+                    .background(DS.fill, in: RoundedRectangle(cornerRadius: DS.rSM, style: .continuous))
+                VStack(alignment: .leading, spacing: DS.sp1) {
                     Text("自分の編集を確認・取り消す").font(.imasSubhead.weight(.semibold)).foregroundStyle(DS.ink)
                     Text("ライブ・楽曲・セトリの編集履歴").font(.imasCaption).foregroundStyle(DS.ink3)
                 }
@@ -53,7 +53,7 @@ struct MyContributionsView: View {
                 .font(.imasScaled(36, weight: .semibold))
                 .foregroundStyle(DS.sys)
                 .padding(.top, DS.sp3)
-            HStack(alignment: .firstTextBaseline, spacing: 4) {
+            HStack(alignment: .firstTextBaseline, spacing: DS.sp2) {
                 Text("\(log.total)").font(.imasDisplay(36, weight: .bold)).foregroundStyle(DS.ink)
                 Text("件").font(.imasTitle3.weight(.bold)).foregroundStyle(DS.ink3)
             }
@@ -74,7 +74,7 @@ struct MyContributionsView: View {
                             .font(.imasScaled(18, weight: .semibold))
                             .foregroundStyle(DS.sys)
                             .frame(width: 36, height: 36)
-                            .background(DS.fill, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                            .background(DS.fill, in: RoundedRectangle(cornerRadius: DS.rSM, style: .continuous))
                         Text(kind.label).font(.imasSubhead.weight(.semibold)).foregroundStyle(DS.ink)
                         Spacer(minLength: 0)
                         Text("\(log.count(of: kind))")

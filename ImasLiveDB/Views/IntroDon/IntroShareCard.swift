@@ -67,7 +67,7 @@ struct IntroResultShareCard: View {
     var body: some View {
         VStack(spacing: 0) {
             // ヘッダ
-            VStack(spacing: 12) {
+            VStack(spacing: DS.sp4) {
                 Text("イントロドン")
                     .font(.system(size: 52, weight: .black, design: .rounded))
                     .foregroundColor(ID.t0)
@@ -85,7 +85,7 @@ struct IntroResultShareCard: View {
 
             // 大スコア + グレード
             VStack(spacing: 10) {
-                HStack(alignment: .lastTextBaseline, spacing: 8) {
+                HStack(alignment: .lastTextBaseline, spacing: DS.sp3) {
                     Text("\(score)")
                         .font(.system(size: 130, weight: .black, design: .rounded))
                         .foregroundColor(ID.t0)
@@ -96,7 +96,7 @@ struct IntroResultShareCard: View {
                 Text(grade.0)
                     .font(.system(size: 34, weight: .black))
                     .foregroundColor(grade.1)
-                    .padding(.horizontal, 28).padding(.vertical, 12)
+                    .padding(.horizontal, 28).padding(.vertical, DS.sp4)
                     .background(grade.1.opacity(0.14))
                     .clipShape(Capsule())
             }
@@ -119,7 +119,7 @@ struct IntroResultShareCard: View {
             if !lines.isEmpty {
                 breakdown
                     .padding(.horizontal, 56)
-                    .padding(.top, 24)
+                    .padding(.top, DS.sp7)
             }
 
             Spacer(minLength: 0)
@@ -143,7 +143,7 @@ struct IntroResultShareCard: View {
     }
 
     private func statItem(_ label: String, _ value: String) -> some View {
-        VStack(spacing: 8) {
+        VStack(spacing: DS.sp3) {
             Text(value)
                 .font(.system(size: 52, weight: .black, design: .rounded))
                 .foregroundColor(ID.t0)
@@ -158,9 +158,9 @@ struct IntroResultShareCard: View {
     private var breakdown: some View {
         let shown = Array(lines.prefix(Self.maxRows))
         let extra = lines.count - shown.count
-        return VStack(spacing: 12) {
+        return VStack(spacing: DS.sp4) {
             ForEach(shown) { line in
-                HStack(spacing: 16) {
+                HStack(spacing: DS.sp5) {
                     Image(systemName: line.correct ? "checkmark.circle.fill" : "xmark.circle.fill")
                         .font(.system(size: 28))
                         .foregroundColor(line.correct ? ID.correct : ID.t3)
@@ -176,18 +176,18 @@ struct IntroResultShareCard: View {
                     .font(.system(size: 22, weight: .semibold))
                     .foregroundColor(ID.t2)
                     .frame(maxWidth: .infinity)
-                    .padding(.top, 2)
+                    .padding(.top, DS.sp1)
             }
         }
         .padding(.vertical, 28)
-        .padding(.horizontal, 32)
+        .padding(.horizontal, DS.sp8)
         .frame(maxWidth: .infinity)
         .background(ID.surfaceDarkCard)
         .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
     }
 
     private var footer: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: DS.sp3) {
             Text("もっと遊ぶなら 本家アプリ")
                 .font(.system(size: 22, weight: .medium))
                 .foregroundColor(ID.t2)

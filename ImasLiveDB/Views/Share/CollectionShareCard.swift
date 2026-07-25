@@ -82,10 +82,10 @@ struct CollectionShareCard: View {
                     .font(.imasScaled( 18, weight: .semibold))
                     .tracking(1.0)
                     .foregroundStyle(ink2)
-                    .padding(.bottom, 4)
+                    .padding(.bottom, DS.sp2)
 
                 // ヒーロー: 巨大な回収率を明朝で。
-                HStack(alignment: .firstTextBaseline, spacing: 2) {
+                HStack(alignment: .firstTextBaseline, spacing: DS.sp1) {
                     Text(stats.overallPercentText)
                         .font(.imasScaled( 132, weight: .bold, design: .serif).monospacedDigit())
                         .foregroundStyle(ink)
@@ -99,14 +99,14 @@ struct CollectionShareCard: View {
                 Text("\(stats.overallCollected) / \(stats.overallTotal) 曲を回収")
                     .font(.imasScaled( 17, weight: .medium).monospacedDigit())
                     .foregroundStyle(ink2)
-                    .padding(.top, 4)
+                    .padding(.top, DS.sp2)
 
                 progressBar(ratio: stats.overallRatio, height: 10)
-                    .padding(.top, 20)
+                    .padding(.top, DS.sp6)
 
                 if !stats.idolLines.isEmpty {
-                    Rectangle().fill(ink.opacity(0.14)).frame(height: 0.75).padding(.top, 32)
-                    VStack(alignment: .leading, spacing: 16) {
+                    Rectangle().fill(ink.opacity(0.14)).frame(height: 0.75).padding(.top, DS.sp8)
+                    VStack(alignment: .leading, spacing: DS.sp5) {
                         ForEach(stats.idolLines) { line in
                             idolRow(line)
                         }

@@ -84,7 +84,7 @@ struct VenuePickerView: View {
             dismiss()
         } label: {
             HStack(spacing: DS.sp3) {
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: DS.sp1) {
                     Text(label)
                         .font(.imasSubhead)
                         .foregroundStyle(muted ? DS.ink2 : DS.ink)

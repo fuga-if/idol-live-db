@@ -30,7 +30,7 @@ struct SongPickerView: View {
                             onPick(song)
                             dismiss()
                         } label: {
-                            VStack(alignment: .leading, spacing: 2) {
+                            VStack(alignment: .leading, spacing: DS.sp1) {
                                 Text(song.title)
                                 Text(song.id)
                                     .font(.imasScaled(11))

@@ -139,12 +139,12 @@ struct TagActivityView: View {
         } label: {
             HStack(spacing: DS.sp3) {
                 entityLead(domain: rise.domain, entityId: rise.entityId)
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: DS.sp1) {
                     Text(entityName(domain: rise.domain, entityId: rise.entityId))
                         .font(.imasBody.weight(.semibold))
                         .foregroundStyle(DS.ink)
                         .lineLimit(1)
-                    HStack(spacing: 4) {
+                    HStack(spacing: DS.sp2) {
                         Text("「\(rise.tagName)」")
                             .font(.imasFootnote)
                             .foregroundStyle(DS.ink2)
@@ -193,7 +193,7 @@ struct TagActivityView: View {
         } label: {
             HStack(spacing: DS.sp3) {
                 entityLead(domain: event.domain, entityId: event.entityId)
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: DS.sp1) {
                     Text(entityName(domain: event.domain, entityId: event.entityId))
                         .font(.imasBody.weight(.semibold))
                         .foregroundStyle(DS.ink)

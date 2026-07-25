@@ -31,7 +31,7 @@ struct CollapsibleSection<Content: View>: View {
             Button {
                 withAnimation(.easeInOut(duration: 0.2)) { isExpanded.toggle() }
             } label: {
-                HStack(spacing: 8) {
+                HStack(spacing: DS.sp3) {
                     Text(title)
                         .font(.imasSubhead.weight(.semibold))
                         .foregroundStyle(DS.ink)
@@ -46,7 +46,7 @@ struct CollapsibleSection<Content: View>: View {
                         .rotationEffect(.degrees(isExpanded ? 90 : 0))
                 }
                 .contentShape(Rectangle())
-                .padding(.vertical, 4)
+                .padding(.vertical, DS.sp2)
             }
             .buttonStyle(.plain)
         }

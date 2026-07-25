@@ -40,7 +40,7 @@ struct QuizProgressHeader: View {
             HStack {
                 Text("第 \(current) / \(total) 問").font(.imasFootnote.weight(.semibold)).foregroundStyle(DS.ink2)
                 Spacer()
-                HStack(spacing: 4) {
+                HStack(spacing: DS.sp2) {
                     Image(systemName: "star.fill").font(.imasScaled( 12)).foregroundStyle(DS.favorite)
                     Text("\(points) pt").font(.imasDisplay(15, weight: .bold)).foregroundStyle(DS.ink)
                 }
@@ -91,7 +91,7 @@ struct QuizHintButton: View {
                 Image(systemName: systemImage)
                     .font(.imasScaled( 16, weight: .semibold)).foregroundStyle(DS.warning)
                     .frame(width: 34, height: 34)
-                    .background(DS.warning.opacity(0.14), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .background(DS.warning.opacity(0.14), in: RoundedRectangle(cornerRadius: DS.rSM, style: .continuous))
                 VStack(alignment: .leading, spacing: 1) {
                     Text(title).font(.imasSubhead.weight(.semibold)).foregroundStyle(DS.ink)
                     Text("開いた後は正解で +\(nextValue)pt").font(.imasCaption).foregroundStyle(DS.ink3)
@@ -352,12 +352,12 @@ struct QuizResultView: View {
                     Text("自己ベスト更新！").font(.imasFootnote.weight(.bold))
                 }
                 .foregroundStyle(DS.favorite)
-                .padding(.horizontal, 12).padding(.vertical, 6)
+                .padding(.horizontal, DS.sp4).padding(.vertical, 6)
                 .background(DS.favorite.opacity(0.16), in: Capsule())
                 .transition(.scale.combined(with: .opacity))
             }
 
-            HStack(alignment: .firstTextBaseline, spacing: 4) {
+            HStack(alignment: .firstTextBaseline, spacing: DS.sp2) {
                 Text("\(points)").font(.imasDisplay(40, weight: .bold)).foregroundStyle(DS.ink)
                 Text("/ \(maxPoints) pt").font(.imasTitle3.weight(.bold)).foregroundStyle(DS.ink3)
             }
@@ -383,7 +383,7 @@ struct QuizResultView: View {
                         Text("結果をシェア").font(.imasSubhead.weight(.semibold))
                     }
                     .foregroundStyle(DS.sys)
-                    .frame(maxWidth: .infinity).padding(.vertical, 12)
+                    .frame(maxWidth: .infinity).padding(.vertical, DS.sp4)
                     .background(DS.sys.opacity(0.12), in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
                 }
                 .buttonStyle(.plain)
@@ -395,7 +395,7 @@ struct QuizResultView: View {
     }
 
     private func resultStat(value: String, label: String) -> some View {
-        VStack(spacing: 2) {
+        VStack(spacing: DS.sp1) {
             Text(value).font(.imasDisplay(20, weight: .bold)).foregroundStyle(DS.ink)
             Text(label).font(.imasCaption).foregroundStyle(DS.ink2)
         }
@@ -432,7 +432,7 @@ private struct QuizHistoryRow: View {
     var body: some View {
         HStack(alignment: .top, spacing: DS.sp3) {
             // 問題番号 + 正誤アイコン
-            VStack(spacing: 2) {
+            VStack(spacing: DS.sp1) {
                 Text("Q\(item.index)").font(.imasCaption.weight(.bold).monospacedDigit()).foregroundStyle(DS.ink3)
                 Image(systemName: item.isCorrect ? "checkmark.circle.fill" : "xmark.circle.fill")
                     .font(.imasScaled(16))
@@ -480,7 +480,7 @@ private struct QuizHistoryRow: View {
             Text(label).font(.imasCaption.weight(.bold)).foregroundStyle(tone)
             Text(idol.name).font(.imasCaption.weight(.semibold)).foregroundStyle(DS.ink).lineLimit(1)
         }
-        .padding(.horizontal, 8).padding(.vertical, 4)
+        .padding(.horizontal, DS.sp3).padding(.vertical, DS.sp2)
         .background(tone.opacity(0.12), in: Capsule())
     }
 }

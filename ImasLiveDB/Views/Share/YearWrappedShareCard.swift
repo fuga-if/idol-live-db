@@ -191,7 +191,7 @@ struct YearWrappedShareCard: View {
                     .font(.imasScaled( 16, weight: .semibold))
                     .tracking(0.8)
                     .foregroundStyle(ink2)
-                    .padding(.top, 2)
+                    .padding(.top, DS.sp1)
 
                 // KPI タイル (公演数 / 回収曲数)。
                 HStack(spacing: 14) {
@@ -237,7 +237,7 @@ struct YearWrappedShareCard: View {
     }
 
     private func metricTile(value: String, unit: String, caption: String) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: DS.sp2) {
             HStack(alignment: .firstTextBaseline, spacing: 3) {
                 Text(value)
                     .font(.imasScaled( 46, weight: .bold, design: .serif).monospacedDigit())
@@ -259,7 +259,7 @@ struct YearWrappedShareCard: View {
 
     private func topSongBlock(_ top: YearWrappedStats.TopSong) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 8) {
+            HStack(spacing: DS.sp3) {
                 Rectangle().fill(palette.accent).frame(width: 18, height: 3)
                 Text("いちばん多く出会った曲")
                     .font(.imasScaled( 14, weight: .bold))

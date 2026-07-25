@@ -106,7 +106,7 @@ struct UserModerationView: View {
                         .foregroundStyle(.red)
                 }
             }
-            .padding(.vertical, 2)
+            .padding(.vertical, DS.sp1)
         } header: {
             Text("対象ユーザー")
         } footer: {
@@ -181,7 +181,7 @@ struct UserModerationView: View {
                         .font(.imasCaption)
                         .foregroundStyle(item.outcome.color)
                         .frame(width: 22)
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: DS.sp1) {
                         Text("編集 #\(item.batchId)")
                             .font(.imasSubhead.monospacedDigit())
                         if let reason = item.reason, !reason.isEmpty {
@@ -212,7 +212,7 @@ struct UserModerationView: View {
     private func revertCounts(_ p: UserRevertResult) -> some View {
         // スキップ = 競合保護 (skipped) + 既 revert (alreadyReverted)。どちらも巻き戻しを
         // 安全に見送ったケースなので 1 つの「スキップ」にまとめて見せる。
-        HStack(spacing: 16) {
+        HStack(spacing: DS.sp5) {
             countPill("巻き戻し", p.reverted, .green)
             countPill("スキップ", p.skipped + p.alreadyReverted, .secondary)
             countPill("失敗", p.failed, .red)
@@ -221,7 +221,7 @@ struct UserModerationView: View {
     }
 
     private func countPill(_ label: String, _ value: Int, _ color: Color) -> some View {
-        VStack(spacing: 2) {
+        VStack(spacing: DS.sp1) {
             Text("\(value)")
                 .font(.imasTitle3.monospacedDigit())
                 .foregroundStyle(color)
@@ -254,7 +254,7 @@ struct UserModerationView: View {
                             .font(.imasCallout)
                             .foregroundStyle(EditFeedFormat.recordTypeDesign(edit.recordType, scheme: scheme).color)
                             .frame(width: 24)
-                        VStack(alignment: .leading, spacing: 2) {
+                        VStack(alignment: .leading, spacing: DS.sp1) {
                             HStack(spacing: 6) {
                                 Text(EditFeedFormat.recordTypeLabel(edit.recordType))
                                     .font(.imasSubhead)

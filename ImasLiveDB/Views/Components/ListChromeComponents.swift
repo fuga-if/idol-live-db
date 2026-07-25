@@ -32,7 +32,7 @@ struct NameFilterField: View {
             }
         }
         .padding(.horizontal, DS.sp4)
-        .padding(.vertical, 8)
+        .padding(.vertical, DS.sp3)
         .background(DS.fill, in: Capsule())
     }
 }

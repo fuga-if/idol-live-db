@@ -63,8 +63,8 @@ struct IdolQuizSetupView: View {
                 .font(.imasScaled(28, weight: .semibold))
                 .foregroundStyle(DS.sys)
                 .frame(width: 52, height: 52)
-                .background(DS.fill, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-            VStack(alignment: .leading, spacing: 4) {
+                .background(DS.fill, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
+            VStack(alignment: .leading, spacing: DS.sp2) {
                 Text("アイドル当てクイズ")
                     .font(.imasTitle3.weight(.bold)).foregroundStyle(DS.ink)
                 Text("プロフィールのヒントを手がかりに誰かを 4 択で当てよう")
@@ -82,7 +82,7 @@ struct IdolQuizSetupView: View {
     private var brandSection: some View {
         VStack(alignment: .leading, spacing: DS.sp3) {
             HStack(alignment: .firstTextBaseline) {
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: DS.sp1) {
                     Text("出題ブランド").font(.imasSubhead.weight(.bold)).foregroundStyle(DS.ink)
                     Text("複数選択可 · 空=全ブランド対象")
                         .font(.imasCaption).foregroundStyle(DS.ink3)

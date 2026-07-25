@@ -378,7 +378,7 @@ struct IdolDetailView: View {
                         .font(.imasHeadline.weight(.bold))
                         .foregroundStyle(DS.ink)
                         .lineLimit(2)
-                    HStack(spacing: 4) {
+                    HStack(spacing: DS.sp2) {
                         Image(systemName: "mappin.and.ellipse").font(.imasScaled( 12))
                         Text([row.venue, row.showName].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " ・ "))
                             .lineLimit(1)
@@ -526,7 +526,7 @@ struct IdolDetailView: View {
                         AppAnalytics.tap("idol_detail.tag_action")
                         startCommunityEdit { showIdolTagPicker = true }
                     } label: {
-                        HStack(spacing: 4) {
+                        HStack(spacing: DS.sp2) {
                             Image(systemName: "plus").font(.imasScaled( 13, weight: .semibold))
                             Text("タグ").font(.imasScaled( 14, weight: .semibold))
                         }
@@ -535,7 +535,7 @@ struct IdolDetailView: View {
                 }
             }
             if let tagData = idolTagData, !tagData.tags.isEmpty {
-                FlowLayout(spacing: 8) {
+                FlowLayout(spacing: DS.sp3) {
                     ForEach(tagData.tags) { tag in
                         let isMine = Set(tagData.myTagIds).contains(tag.id)
                         Button { sheetDestination = .idolTagDetail(tag) } label: {
@@ -574,7 +574,7 @@ struct IdolDetailView: View {
     private var personalIdolTags: some View {
         let tags = personalTagService.tags(for: "idol", entityId: idol.id)
         VStack(alignment: .leading, spacing: DS.sp3) {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: DS.sp1) {
                 HStack(spacing: 6) {
                     Image(systemName: "lock.fill").font(.imasScaled(13, weight: .semibold)).foregroundStyle(DS.ink3)
                     Text("マイタグ").font(.imasTitle3.weight(.bold)).foregroundStyle(DS.ink)
@@ -583,7 +583,7 @@ struct IdolDetailView: View {
                     .font(.imasCaption).foregroundStyle(DS.ink3)
             }
             if !tags.isEmpty {
-                FlowLayout(spacing: 8) {
+                FlowLayout(spacing: DS.sp3) {
                     ForEach(tags) { tag in
                         ImasChip(text: tag.tagName, systemImage: "lock.fill", style: .neutral)
                             .contextMenu {
@@ -594,12 +594,12 @@ struct IdolDetailView: View {
                     }
                 }
             }
-            HStack(spacing: 8) {
+            HStack(spacing: DS.sp3) {
                 TextField("マイタグを追加 (例: 聞いた)", text: $newPersonalTagName)
                     .font(.imasSubhead)
                     .foregroundStyle(DS.ink)
                     .autocorrectionDisabled()
-                    .padding(.horizontal, 13).padding(.vertical, 8)
+                    .padding(.horizontal, 13).padding(.vertical, DS.sp3)
                     .background(DS.fill, in: Capsule())
                     .onChange(of: newPersonalTagName) { _, new in
                         if new.count > 30 { newPersonalTagName = String(new.prefix(30)) }
@@ -643,7 +643,7 @@ struct IdolDetailView: View {
     @ViewBuilder
     private var communitySimilarIdols: some View {
         VStack(alignment: .leading, spacing: DS.sp3) {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: DS.sp1) {
                 Text("タグが似ているアイドル")
                     .font(.imasTitle3.weight(.bold)).foregroundStyle(DS.ink)
                 Text("つけられたタグが似ているアイドル")
@@ -655,7 +655,7 @@ struct IdolDetailView: View {
                         Button {
                             go(.idol(other))
                         } label: {
-                            VStack(spacing: 4) {
+                            VStack(spacing: DS.sp2) {
                                 IdolAvatarView(idol: other, size: 56)
                                 Text(other.shortName)
                                     .font(.imasCaption.weight(.semibold))
@@ -938,7 +938,7 @@ struct IdolDetailView: View {
             HStack(spacing: DS.sp3) {
                 ImasLeadBar(seed: seed, brand: brandColor)
                 ArtworkImageView(url: artURL, size: 44, previewURL: prevURL, songTitle: song.title, seed: seed ?? brandColor)
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: DS.sp2) {
                     Text(song.title)
                         .font(.imasBody.weight(.semibold))
                         .foregroundStyle(DS.ink)
@@ -950,7 +950,7 @@ struct IdolDetailView: View {
                             .lineLimit(1)
                     }
                     if collected || performCount != nil {
-                        HStack(spacing: 8) {
+                        HStack(spacing: DS.sp3) {
                             if collected {
                                 Label("回収済", systemImage: "checkmark")
                                     .labelStyle(.titleAndIcon)
@@ -996,7 +996,7 @@ struct IdolDetailView: View {
         } label: {
             HStack(spacing: DS.sp3) {
                 ImasLeadBar(seed: seed, brand: brandColor)
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: DS.sp1) {
                     HStack(spacing: 6) {
                         Text(eventDisplayName(row.eventName))
                             .font(.imasBody.weight(.semibold))

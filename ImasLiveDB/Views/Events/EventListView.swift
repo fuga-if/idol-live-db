@@ -106,7 +106,7 @@ struct EventListView: View {
                 ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0) {
                     ImasSegmented(labels: ["今後の予定", "開催済み"], selection: $timeFilter)
-                        .padding(.horizontal, 16)
+                        .padding(.horizontal, DS.sp5)
                         .padding(.top, 6)
 
                     activeFilterChips
@@ -117,9 +117,9 @@ struct EventListView: View {
                     }
 
                     ForEach(Array(vm.groupedByYear.enumerated()), id: \.element.id) { index, group in
-                        VStack(alignment: .leading, spacing: 8) {
+                        VStack(alignment: .leading, spacing: DS.sp3) {
                             ImasSectionHeader(title: group.year, tight: true)
-                                .padding(.horizontal, 16)
+                                .padding(.horizontal, DS.sp5)
 
                             ImasListContainer {
                                 ForEach(Array(group.events.enumerated()), id: \.element.id) { rowIndex, ew in
@@ -136,7 +136,7 @@ struct EventListView: View {
                                     .buttonStyle(.plain)
                                 }
                             }
-                            .padding(.horizontal, 16)
+                            .padding(.horizontal, DS.sp5)
                         }
                         .padding(.top, index == 0 && !hasActiveFilterChips ? 6 : 18)
                     }
@@ -213,7 +213,7 @@ struct EventListView: View {
     @ViewBuilder private var activeFilterChips: some View {
         if hasActiveFilterChips {
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
+                HStack(spacing: DS.sp3) {
                     ForEach(selectedBrandIds.sorted(), id: \.self) { bid in
                         removableChip(brandNameMap[bid] ?? bid, seed: brandColorMap[bid]) {
                             selectedBrandIds.remove(bid)
@@ -241,8 +241,8 @@ struct EventListView: View {
                         }
                     }
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 2)
+                .padding(.horizontal, DS.sp5)
+                .padding(.vertical, DS.sp1)
             }
             .padding(.top, 6)
         }

@@ -14,7 +14,7 @@ struct SectionCard<Content: View>: View {
                     .fontWeight(.semibold)
                     .foregroundStyle(headerColor)
                     .textCase(.uppercase)
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal, DS.sp5)
                     .padding(.bottom, 6)
             }
 
@@ -27,7 +27,7 @@ struct SectionCard<Content: View>: View {
                 Text(footer)
                     .font(.imasCaption)
                     .foregroundStyle(DS.ink2)
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal, DS.sp5)
                     .padding(.top, 6)
             }
         }
@@ -43,8 +43,8 @@ struct SectionCardRow<Content: View>: View {
     var body: some View {
         VStack(spacing: 0) {
             content()
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
+                .padding(.horizontal, DS.sp5)
+                .padding(.vertical, DS.sp4)
 
             if showDivider {
                 ImasRowDivider(inset: 16)
@@ -55,7 +55,7 @@ struct SectionCardRow<Content: View>: View {
 
 #Preview {
     ScrollView {
-        VStack(spacing: 16) {
+        VStack(spacing: DS.sp5) {
             SectionCard(header: "イベント情報", footer: "公演の基本情報を入力してください") {
                 SectionCardRow {
                     Text("ラジオ3000% LIVE")

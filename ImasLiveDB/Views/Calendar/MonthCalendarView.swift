@@ -323,7 +323,7 @@ private struct DayCell: View {
                         .foregroundStyle(DS.ink3)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .frame(height: MonthGridMetric.overflowHeight)
-                        .padding(.horizontal, 2)
+                        .padding(.horizontal, DS.sp1)
                 }
             }
             .padding(.top, bandInset)
@@ -376,7 +376,7 @@ struct CalendarEntryBar: View {
             .foregroundStyle(entry.accentInk(scheme: scheme))
             .lineLimit(1)
             .truncationMode(.tail)
-            .padding(.horizontal, 2)
+            .padding(.horizontal, DS.sp1)
             .frame(maxWidth: .infinity, alignment: .leading)
             .frame(height: height)
             .background(entry.accentColor(scheme: scheme), in: RoundedRectangle(cornerRadius: 2, style: .continuous))

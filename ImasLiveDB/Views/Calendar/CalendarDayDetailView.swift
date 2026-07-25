@@ -110,7 +110,7 @@ struct DayEntryRow: View {
             ImasLeadBar(seed: seed)
                 .frame(height: 36)
             leading()
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: DS.sp1) {
                 Text(title)
                     .font(.imasSubhead.weight(.semibold))
                     .foregroundStyle(DS.ink)
@@ -262,7 +262,7 @@ struct DayEntryRow: View {
                 .foregroundStyle(event.color)
                 .frame(width: 36, height: 36)
                 .background(event.color.opacity(0.16), in: Circle())
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: DS.sp1) {
                 Text(event.title)
                     .font(.imasSubhead.weight(.semibold))
                     .foregroundStyle(DS.ink)
@@ -451,7 +451,7 @@ struct CalendarDayDetailView: View {
 
     private var dayHeader: some View {
         HStack(alignment: .center, spacing: DS.sp4) {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: DS.sp1) {
                 Text(selectedDate.formatted(.dateTime.year().month(.wide).day()))
                     .font(.imasTitle3.weight(.bold))
                     .foregroundStyle(DS.ink)

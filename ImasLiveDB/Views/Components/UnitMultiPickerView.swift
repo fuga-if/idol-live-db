@@ -126,8 +126,8 @@ struct UnitMultiPickerView: View {
                         .buttonStyle(.plain)
                     }
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
+                .padding(.horizontal, DS.sp4)
+                .padding(.vertical, DS.sp3)
             }
             .background(.regularMaterial)
         }

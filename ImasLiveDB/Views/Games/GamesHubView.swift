@@ -66,7 +66,7 @@ struct GamesHubView: View {
                 .foregroundStyle(DS.sys)
                 .frame(width: 44, height: 44)
                 .background(DS.fill, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: DS.sp1) {
                 Text(entry.title).font(.imasSubhead.weight(.bold)).foregroundStyle(DS.ink)
                     .lineLimit(1).minimumScaleFactor(0.8)
                 Text(entry.blurb).font(.imasCaption).foregroundStyle(DS.ink3).lineLimit(2)

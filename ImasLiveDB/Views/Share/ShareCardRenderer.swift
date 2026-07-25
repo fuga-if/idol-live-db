@@ -143,13 +143,13 @@ struct ShareRatioToggle: View {
     @Binding var ratio: ShareCard.Ratio
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: DS.sp3) {
             ForEach(ShareCard.Ratio.allCases) { option in
                 let selected = option == ratio
                 Button {
                     ratio = option
                 } label: {
-                    VStack(spacing: 2) {
+                    VStack(spacing: DS.sp1) {
                         Text(option.label)
                             .font(.imasSubhead.weight(.bold))
                         Text(option.caption)
@@ -215,7 +215,7 @@ struct ShareCardActionPane<Card: View>: View {
                 renderedImage = image
                 showActivity = true
             } label: {
-                HStack(spacing: 8) {
+                HStack(spacing: DS.sp3) {
                     if isPreparingCard {
                         ProgressView()
                             .controlSize(.small)

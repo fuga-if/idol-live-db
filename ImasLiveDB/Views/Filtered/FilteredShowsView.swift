@@ -57,10 +57,10 @@ struct FilteredShowsView: View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
                 ForEach(Array(groupedByYear.enumerated()), id: \.element.year) { index, group in
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: DS.sp3) {
                         // tight は count を描画しないので渡さない (イベント一覧と同じ見出し)。
                         ImasSectionHeader(title: "\(group.year)年", tight: true)
-                            .padding(.horizontal, 16)
+                            .padding(.horizontal, DS.sp5)
 
                         ImasListContainer {
                             ForEach(Array(group.shows.enumerated()), id: \.element.id) { rowIndex, show in
@@ -71,7 +71,7 @@ struct FilteredShowsView: View {
                                     .buttonStyle(.plain)
                             }
                         }
-                        .padding(.horizontal, 16)
+                        .padding(.horizontal, DS.sp5)
                     }
                     .padding(.top, index == 0 ? 8 : 18)
                 }

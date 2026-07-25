@@ -10,12 +10,12 @@ struct IntroDonHomeView: View {
         ScrollView {
             VStack(spacing: 0) {
                 heroSection
-                    .padding(.horizontal, 20)
-                    .padding(.top, 24)
+                    .padding(.horizontal, DS.sp6)
+                    .padding(.top, DS.sp7)
 
                 Spacer().frame(height: 28)
 
-                VStack(spacing: 12) {
+                VStack(spacing: DS.sp4) {
                     IDActionButton(
                         title: "ゲームをはじめる",
                         icon: "play.fill",
@@ -24,23 +24,23 @@ struct IntroDonHomeView: View {
                         AppAnalytics.tap("intro_don_home.start_game")
                         showSetup = true
                     }
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, DS.sp6)
 
                     if authStatus != .authorized {
                         authWarningCard
-                            .padding(.horizontal, 20)
+                            .padding(.horizontal, DS.sp6)
                     }
                 }
 
                 Spacer().frame(height: 28)
 
                 IDSectionLabel(text: "対戦モード")
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, DS.sp6)
 
                 Spacer().frame(height: 12)
 
                 battleModeCard
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, DS.sp6)
 
                 Spacer().frame(height: 32)
             }
@@ -61,7 +61,7 @@ struct IntroDonHomeView: View {
     }
 
     private var heroSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: DS.sp5) {
             HStack(spacing: 14) {
                 ZStack {
                     IDCorner(radius: 16)
@@ -72,7 +72,7 @@ struct IntroDonHomeView: View {
                         .foregroundColor(ID.menuCardDarkText)
                 }
 
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: DS.sp2) {
                     Text("INTRO DON")
                         .font(ID.font(11, weight: .bold))
                         .tracking(2)
@@ -90,14 +90,14 @@ struct IntroDonHomeView: View {
                 .lineSpacing(3)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(24)
+        .padding(DS.sp7)
         .background(ID.menuCardSubtle)
         .clipShape(IDCorner())
     }
 
     private var authWarningCard: some View {
-        VStack(spacing: 12) {
-            HStack(spacing: 8) {
+        VStack(spacing: DS.sp4) {
+            HStack(spacing: DS.sp3) {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundColor(ID.accentGold)
                 Text("Apple Music が未認証です")
@@ -114,7 +114,7 @@ struct IntroDonHomeView: View {
                 }
             }
         }
-        .padding(16)
+        .padding(DS.sp5)
         .background(ID.accentGold.opacity(0.08))
         .clipShape(IDCorner(radius: 16))
         .overlay(
@@ -128,7 +128,7 @@ struct IntroDonHomeView: View {
 
         return VStack(spacing: 0) {
             HStack {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: DS.sp2) {
                     Text("BATTLE MODE")
                         .font(ID.font(11, weight: .bold))
                         .tracking(2)
@@ -141,23 +141,23 @@ struct IntroDonHomeView: View {
                         .font(.imasScaled( 12))
                         .foregroundColor(ID.menuTextSecondary)
                         .lineSpacing(2)
-                        .padding(.top, 2)
+                        .padding(.top, DS.sp1)
                 }
                 Spacer()
                 Image(systemName: "person.2.fill")
                     .font(.imasScaled( 28))
                     .foregroundColor(ID.menuTextMuted)
             }
-            .padding(.horizontal, 24)
-            .padding(.top, 24)
-            .padding(.bottom, 16)
+            .padding(.horizontal, DS.sp7)
+            .padding(.top, DS.sp7)
+            .padding(.bottom, DS.sp5)
 
             Divider()
                 .background(ID.menuDivider)
-                .padding(.horizontal, 16)
+                .padding(.horizontal, DS.sp5)
 
             Link(destination: searchUrl) {
-                HStack(spacing: 8) {
+                HStack(spacing: DS.sp3) {
                     Text("App Store で開く")
                         .font(ID.font(14, weight: .semibold))
                         .foregroundColor(ID.menuTextSecondary)
@@ -166,8 +166,8 @@ struct IntroDonHomeView: View {
                         .foregroundColor(ID.menuTextMuted)
                     Spacer()
                 }
-                .padding(.horizontal, 24)
-                .padding(.vertical, 16)
+                .padding(.horizontal, DS.sp7)
+                .padding(.vertical, DS.sp5)
             }
         }
         .background(ID.menuCardSubtle)

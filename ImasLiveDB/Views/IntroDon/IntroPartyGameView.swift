@@ -119,7 +119,7 @@ struct IntroPartyGameView: View {
     }
 
     private func buzzContent(player: IntroPartySession.Player, eliminated: Bool) -> some View {
-        VStack(spacing: 8) {
+        VStack(spacing: DS.sp3) {
             if eliminated {
                 Image(systemName: "xmark.circle.fill")
                     .font(.imasScaled( 30, weight: .bold))
@@ -144,8 +144,8 @@ struct IntroPartyGameView: View {
                 .font(ID.font(12, weight: .bold))
                 .foregroundColor(ID.t2)
             if let q = session.currentQuestion {
-                let cols = [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)]
-                LazyVGrid(columns: cols, spacing: 8) {
+                let cols = [GridItem(.flexible(), spacing: DS.sp3), GridItem(.flexible(), spacing: DS.sp3)]
+                LazyVGrid(columns: cols, spacing: DS.sp3) {
                     ForEach(q.choices, id: \.self) { title in
                         Button {
                             AppAnalytics.tap("intro_party.answer")
@@ -166,7 +166,7 @@ struct IntroPartyGameView: View {
                 }
             }
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, DS.sp6)
     }
 
     private func revealedColor(for index: Int) -> Color {
@@ -188,7 +188,7 @@ struct IntroPartyGameView: View {
                     .foregroundColor(ID.correct)
             }
         } else if let q = session.currentQuestion {
-            VStack(spacing: 4) {
+            VStack(spacing: DS.sp2) {
                 Text("正解")
                     .font(ID.font(11, weight: .bold))
                     .foregroundColor(ID.t3)
@@ -198,7 +198,7 @@ struct IntroPartyGameView: View {
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, DS.sp5)
         }
     }
 
@@ -208,8 +208,8 @@ struct IntroPartyGameView: View {
         ZStack {
             ID.surfaceDarkCard
 
-            VStack(spacing: 8) {
-                HStack(spacing: 16) {
+            VStack(spacing: DS.sp3) {
+                HStack(spacing: DS.sp5) {
                     scoreChip(0)
                     Text(session.roundText)
                         .font(ID.font(12, weight: .bold))
@@ -247,7 +247,7 @@ struct IntroPartyGameView: View {
                     }
                 }
             }
-            .padding(.horizontal, 12)
+            .padding(.horizontal, DS.sp4)
         }
         .overlay(Rectangle().stroke(Color.black.opacity(0.5), lineWidth: 1))
     }
@@ -268,7 +268,7 @@ struct IntroPartyGameView: View {
     }
 
     private var playButton: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: DS.sp3) {
             ZStack {
                 Circle()
                     .fill(session.isPlayingIntro ? ID.accentPurple : ID.surfaceDarkSubtle)
@@ -317,7 +317,7 @@ struct IntroPartyGameView: View {
     // MARK: - Loading / Finished
 
     private var loadingOverlay: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: DS.sp5) {
             ProgressView().tint(ID.t2).scaleEffect(1.2)
             Text("問題を生成中...")
                 .font(ID.font(14, weight: .semibold))
@@ -327,7 +327,7 @@ struct IntroPartyGameView: View {
     }
 
     private var finishedOverlay: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: DS.sp6) {
             if let w = session.winner {
                 Text("\(session.players[w].name) の勝ち！")
                     .font(.imasScaled( 28, weight: .black))
@@ -338,7 +338,7 @@ struct IntroPartyGameView: View {
                     .foregroundColor(ID.t0)
             }
 
-            HStack(spacing: 24) {
+            HStack(spacing: DS.sp7) {
                 finalScore(0)
                 Text("vs").font(ID.font(14, weight: .bold)).foregroundColor(ID.t3)
                 finalScore(1)

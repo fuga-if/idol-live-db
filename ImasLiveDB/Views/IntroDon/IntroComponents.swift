@@ -18,7 +18,7 @@ struct IDActionButton: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 8) {
+            HStack(spacing: DS.sp3) {
                 if isLoading {
                     ProgressView()
                         .tint(foregroundColor)
@@ -34,7 +34,7 @@ struct IDActionButton: View {
             }
             .foregroundColor(foregroundColor)
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
+            .padding(.vertical, DS.sp5)
             .background(backgroundColor)
             .clipShape(IDCorner())
             .shadow(color: shadowColor, radius: 12, y: 4)
@@ -188,7 +188,7 @@ struct IDModeCard: View {
     var body: some View {
         Button(action: action) {
             HStack {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: DS.sp2) {
                     if let label {
                         Text(label)
                             .font(ID.font(11, weight: .bold))
@@ -210,7 +210,7 @@ struct IDModeCard: View {
                     .font(.imasScaled( 28))
                     .foregroundColor(style.labelColor)
             }
-            .padding(.horizontal, 24)
+            .padding(.horizontal, DS.sp7)
             .padding(.vertical, 26)
             .background(style.bg)
             .clipShape(IDCorner())
@@ -228,7 +228,7 @@ struct IDAnswerReveal: View {
     let selectedTitle: String?
 
     var body: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: DS.sp3) {
             ForEach(choices, id: \.self) { choice in
                 revealRow(choice)
             }
@@ -282,7 +282,7 @@ struct IDSectionLabel: View {
     var hint: String? = nil
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
+        HStack(alignment: .firstTextBaseline, spacing: DS.sp3) {
             Text(text)
                 .font(ID.font(11, weight: .bold))
                 .tracking(2)
@@ -295,6 +295,6 @@ struct IDSectionLabel: View {
             }
             Spacer()
         }
-        .padding(.top, 4)
+        .padding(.top, DS.sp2)
     }
 }

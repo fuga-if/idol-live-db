@@ -318,7 +318,7 @@ struct PollCreateSheet: View {
 
     private func manualRow(label: String, subtitle: String?, onRemove: @escaping () -> Void) -> some View {
         HStack(spacing: DS.sp3) {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: DS.sp1) {
                 Text(label).font(.imasSubhead).foregroundStyle(DS.ink)
                 if let s = subtitle, !s.isEmpty {
                     Text(s).font(.imasCaption).foregroundStyle(DS.ink3)

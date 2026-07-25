@@ -125,7 +125,7 @@ struct SongFilterView: View {
 
                 Section {
                     Toggle(isOn: $excludeLiveOnly) {
-                        VStack(alignment: .leading, spacing: 2) {
+                        VStack(alignment: .leading, spacing: DS.sp1) {
                             Text("ライブ限定曲を隠す")
                             Text("セトリにしか無い曲(カバー等)を一覧から隠します。既定 ON")
                                 .font(.imasCaption).foregroundStyle(DS.ink3)
@@ -134,7 +134,7 @@ struct SongFilterView: View {
                     .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
 
                     Toggle(isOn: $showOtherBrand) {
-                        VStack(alignment: .leading, spacing: 2) {
+                        VStack(alignment: .leading, spacing: DS.sp1) {
                             Text("「その他」を表示")
                             Text("歌枠で歌っただけのカバー等。既定では隠しています")
                                 .font(.imasCaption).foregroundStyle(DS.ink3)
@@ -162,12 +162,12 @@ struct SongFilterView: View {
                                     .foregroundStyle(DS.ink2)
                             } else {
                                 let names = selectedIdolNames
-                                FlowLayout(spacing: 4) {
+                                FlowLayout(spacing: DS.sp2) {
                                     ForEach(names, id: \.self) { name in
                                         Text(name)
                                             .font(.imasCaption)
-                                            .padding(.horizontal, 8)
-                                            .padding(.vertical, 4)
+                                            .padding(.horizontal, DS.sp3)
+                                            .padding(.vertical, DS.sp2)
                                             .background(DS.fill)
                                             .clipShape(Capsule())
                                     }

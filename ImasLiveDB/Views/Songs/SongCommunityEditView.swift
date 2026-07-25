@@ -423,7 +423,7 @@ private struct SavingOverlay: View {
     var body: some View {
         ZStack {
             Color.black.opacity(0.3).ignoresSafeArea()
-            ProgressView("保存中…").padding(24)
+            ProgressView("保存中…").padding(DS.sp7)
                 .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
         }
     }

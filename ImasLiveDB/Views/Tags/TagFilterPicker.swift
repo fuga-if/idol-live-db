@@ -55,7 +55,7 @@ struct TagFilterPicker: View {
                                 AppAnalytics.tap("tag_filter.toggle_tag")
                                 toggle(tag)
                             } label: {
-                                HStack(spacing: 8) {
+                                HStack(spacing: DS.sp3) {
                                     // 検索していない時は人気順そのものなので順位バッジを出す。
                                     if query.isEmpty {
                                         TagRankBadge(rank: idx + 1)

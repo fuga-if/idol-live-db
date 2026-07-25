@@ -177,7 +177,7 @@ struct SetlistPredictionView: View {
     /// communityHeader と同じ「タイトル + アクセント色の＋投稿ボタン」パターンに揃える。
     private var predictionHeader: some View {
         let t = ImasTheme.derive(seed: seed, scheme: scheme)
-        return VStack(alignment: .leading, spacing: 4) {
+        return VStack(alignment: .leading, spacing: DS.sp2) {
             HStack(alignment: .firstTextBaseline) {
                 Text("セトリ予想").font(.imasTitle3.weight(.bold)).foregroundStyle(DS.ink)
                 if totalVotes > 0 {
@@ -199,7 +199,7 @@ struct SetlistPredictionView: View {
                         }
                     }
                 } label: {
-                    HStack(spacing: 4) {
+                    HStack(spacing: DS.sp2) {
                         Image(systemName: "plus").font(.imasScaled( 13, weight: .semibold))
                         Text("予想を追加").font(.imasScaled( 14, weight: .semibold))
                     }
@@ -453,7 +453,7 @@ private struct PredictionRowView: View {
                         .font(.imasSubhead.weight(.semibold))
                         .foregroundStyle(DS.ink)
                         .lineLimit(2)
-                    HStack(spacing: 4) {
+                    HStack(spacing: DS.sp2) {
                         Image(systemName: "hand.thumbsup.fill")
                             .font(.imasScaled( 10))
                             .foregroundStyle(DS.ink3)
@@ -471,7 +471,7 @@ private struct PredictionRowView: View {
                 Button {
                     Task { await onVote() }
                 } label: {
-                    HStack(spacing: 4) {
+                    HStack(spacing: DS.sp2) {
                         Image(systemName: prediction.hasUserVoted ? "hand.thumbsup.fill" : "hand.thumbsup")
                             .font(.imasSubhead.weight(.semibold))
                         Text(prediction.hasUserVoted ? "投票済" : "予想")
@@ -519,7 +519,7 @@ private struct PredictionRowView: View {
             AppAnalytics.tap("setlist_prediction.toggle_performers")
             onToggleExpand()
         } label: {
-            HStack(spacing: 4) {
+            HStack(spacing: DS.sp2) {
                 Image(systemName: "person.2")
                     .font(.imasScaled(10, weight: .semibold))
                 Text("歌唱メンバー予想")

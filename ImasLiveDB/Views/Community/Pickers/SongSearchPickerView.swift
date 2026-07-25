@@ -212,7 +212,7 @@ struct SongSearchPickerView: View {
                 if tagFilterError {
                     Text("タグ絞り込みの取得に失敗しました。電波状況をご確認ください。")
                         .font(.imasCaption).foregroundStyle(DS.warning)
-                        .padding(.top, 8)
+                        .padding(.top, DS.sp3)
                 }
                 Spacer()
             }
@@ -477,11 +477,11 @@ private struct SongPickerFilterSheet: View {
                             if selectedIdolIds.isEmpty {
                                 Text("選択なし").foregroundStyle(DS.ink2)
                             } else {
-                                FlowLayout(spacing: 4) {
+                                FlowLayout(spacing: DS.sp2) {
                                     ForEach(selectedIdolNames, id: \.self) { name in
                                         Text(name)
                                             .font(.imasCaption)
-                                            .padding(.horizontal, 8).padding(.vertical, 4)
+                                            .padding(.horizontal, DS.sp3).padding(.vertical, DS.sp2)
                                             .background(DS.fill)
                                             .clipShape(Capsule())
                                     }

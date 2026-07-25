@@ -40,7 +40,7 @@ struct TagHistoryView: View {
                                 .italic()
                         }
                     }
-                    .padding(.vertical, 4)
+                    .padding(.vertical, DS.sp2)
                     .listRowBackground(DS.surface)
                     .listRowSeparatorTint(DS.sep)
                 }

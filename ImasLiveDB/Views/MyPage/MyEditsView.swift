@@ -44,8 +44,8 @@ struct MyEditsView: View {
                     ImasInlineLoading()
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            .padding(.horizontal, DS.sp5)
+            .padding(.vertical, DS.sp4)
         }
         .background(DS.bg)
         .navigationTitle("自分の編集")
@@ -54,7 +54,7 @@ struct MyEditsView: View {
         .overlay {
             if isLoading && entries.isEmpty {
                 ProgressView("読み込み中...")
-                    .padding(24)
+                    .padding(DS.sp7)
                     .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
             } else if entries.isEmpty && !isLoading {
                 ImasEmptyState(
@@ -195,7 +195,7 @@ private struct MyEditRow: View {
     let onRevert: () -> Void
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: DS.sp4) {
             EditTypeIcon(recordType: entry.recordType)
 
             VStack(alignment: .leading, spacing: 6) {
@@ -206,7 +206,7 @@ private struct MyEditRow: View {
                             .font(.imasScaled(11).weight(.semibold))
                             .foregroundStyle(DS.ink2)
                             .padding(.horizontal, 7)
-                            .padding(.vertical, 2)
+                            .padding(.vertical, DS.sp1)
                             .background(DS.fill, in: Capsule())
                     }
                     Spacer(minLength: 4)
@@ -225,7 +225,7 @@ private struct MyEditRow: View {
             }
         }
         .padding(14)
-        .background(DS.surface, in: RoundedRectangle(cornerRadius: 14))
+        .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rMD))
     }
 
     @ViewBuilder
@@ -252,7 +252,7 @@ private struct MyEditRow: View {
                 .tint(DS.danger)
             }
         }
-        .padding(.top, 2)
+        .padding(.top, DS.sp1)
     }
 }
 
@@ -287,7 +287,7 @@ struct OpBadge: View {
             .font(.imasScaled(11).weight(.semibold))
             .foregroundStyle(color)
             .padding(.horizontal, 7)
-            .padding(.vertical, 2)
+            .padding(.vertical, DS.sp1)
             .background(color.opacity(0.15), in: Capsule())
     }
 }

@@ -140,7 +140,7 @@ struct WeekTimeGridView: View {
             ForEach(Array(weekDays.enumerated()), id: \.offset) { idx, date in
                 let isToday = cal.isDate(date, inSameDayAs: today)
                 let isSelected = cal.isDate(date, inSameDayAs: selectedDate)
-                VStack(spacing: 2) {
+                VStack(spacing: DS.sp1) {
                     Text(weekdaySymbols[idx])
                         .font(.imasScaled( 10, weight: .semibold))
                         .foregroundStyle(isToday ? DS.ink : DS.ink3)
@@ -239,7 +239,7 @@ struct WeekTimeGridView: View {
     @ViewBuilder
     private func allDayCell(for date: Date) -> some View {
         let entries = allDayEntries(on: date)
-        VStack(spacing: 2) {
+        VStack(spacing: DS.sp1) {
             ForEach(entries.prefix(maxAllDayBands)) { entry in
                 Button {
                     onSelectEntry(entry)
@@ -256,7 +256,7 @@ struct WeekTimeGridView: View {
                         .font(.imasDisplay(9, weight: .semibold))
                         .foregroundStyle(DS.ink2)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 2)
+                        .padding(.horizontal, DS.sp1)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -371,8 +371,8 @@ struct WeekTimeGridView: View {
                     Text("+\(item.count)")
                         .font(.imasDisplay(9, weight: .bold))
                         .foregroundStyle(DS.onSys)
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 2)
+                        .padding(.horizontal, DS.sp2)
+                        .padding(.vertical, DS.sp1)
                         .background(DS.sys, in: Capsule())
                 }
                 .buttonStyle(.plain)
@@ -397,7 +397,7 @@ struct WeekTimeGridView: View {
                     .opacity(0.85)
             }
             .foregroundStyle(block.entry.accentInk(scheme: scheme))
-            .padding(4)
+            .padding(DS.sp2)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .background(block.entry.accentColor(scheme: scheme), in: RoundedRectangle(cornerRadius: 5, style: .continuous))
             .contentShape(Rectangle())

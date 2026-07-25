@@ -99,7 +99,7 @@ struct SocialShareChipLabel: View {
                 .font(.imasScaled(13, weight: .semibold))
         }
         .foregroundStyle(accent)
-        .padding(.horizontal, 12)
+        .padding(.horizontal, DS.sp4)
         .padding(.vertical, 7)
         .background(accent.opacity(0.12), in: Capsule())
         .contentShape(Capsule())

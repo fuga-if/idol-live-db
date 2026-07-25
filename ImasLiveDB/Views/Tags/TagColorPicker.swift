@@ -22,7 +22,7 @@ struct TagColorPicker: View {
         "#4D96FF", "#5F6CAF", "#9B5DE5", "#F15BB5", "#8D99AE",
     ]
 
-    private let columns = Array(repeating: GridItem(.flexible(), spacing: 12), count: 6)
+    private let columns = Array(repeating: GridItem(.flexible(), spacing: DS.sp4), count: 6)
 
     private func normalize(_ s: String) -> String {
         s.trimmingCharacters(in: CharacterSet(charactersIn: "#")).uppercased()
@@ -33,7 +33,7 @@ struct TagColorPicker: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            LazyVGrid(columns: columns, spacing: 12) {
+            LazyVGrid(columns: columns, spacing: DS.sp4) {
                 // 「なし」(色をクリア)
                 Button { selectedHex = "" } label: {
                     swatch(fill: nil, selected: selectedHex.isEmpty)
@@ -58,7 +58,7 @@ struct TagColorPicker: View {
                 selectedHex = newColor.tagHexString()
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, DS.sp2)
     }
 
     /// 円形スウォッチ。fill=nil は「なし」(スラッシュ)。selected で選択リングを出す。

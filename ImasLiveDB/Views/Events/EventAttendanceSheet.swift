@@ -46,7 +46,7 @@ struct EventAttendanceSheet: View {
                 Section {
                     ForEach(shows) { show in
                         VStack(alignment: .leading, spacing: DS.sp3) {
-                            VStack(alignment: .leading, spacing: 2) {
+                            VStack(alignment: .leading, spacing: DS.sp1) {
                                 Text(show.name)
                                     .font(.imasSubhead).foregroundStyle(DS.ink).lineLimit(1)
                                 Text([show.venue, show.date].compactMap { $0 }.joined(separator: " ・ "))
@@ -60,7 +60,7 @@ struct EventAttendanceSheet: View {
                                 Spacer(minLength: 0)
                             }
                         }
-                        .padding(.vertical, 2)
+                        .padding(.vertical, DS.sp1)
                     }
                 } header: {
                     Text("公演ごとに選ぶ")

@@ -89,7 +89,7 @@ struct IdolQuizView: View {
         return VStack(alignment: .leading, spacing: DS.sp4) {
             HStack(spacing: DS.sp4) {
                 silhouette(q.answer, revealed: answered)
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: DS.sp2) {
                     Text("このプロフィールは誰？").font(.imasHeadline.weight(.bold)).foregroundStyle(DS.ink)
                     if answered {
                         Text(q.answer.name).font(.imasTitle3.weight(.bold)).foregroundStyle(DS.ink)
@@ -136,7 +136,7 @@ struct IdolQuizView: View {
 
     /// メンバーカラーのヒントは色そのものが答えなので、HEX 文字列ではなく色チップで見せる。
     private func colorSwatch(_ hex: String) -> some View {
-        HStack(spacing: 8) {
+        HStack(spacing: DS.sp3) {
             RoundedRectangle(cornerRadius: 5, style: .continuous)
                 .fill(Color(hexString: hex))
                 .frame(width: 28, height: 18)
@@ -278,7 +278,7 @@ private struct IdolHintRow: View {
                 Image(systemName: "lightbulb.fill")
                     .font(.imasScaled( 16, weight: .semibold)).foregroundStyle(DS.warning)
                     .frame(width: 34, height: 34)
-                    .background(DS.warning.opacity(0.14), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .background(DS.warning.opacity(0.14), in: RoundedRectangle(cornerRadius: DS.rSM, style: .continuous))
                 VStack(alignment: .leading, spacing: 1) {
                     Text("ヒント: \(label)を見る").font(.imasSubhead.weight(.semibold)).foregroundStyle(DS.ink)
                     Text("開いた後は正解で +\(nextValue)pt").font(.imasCaption).foregroundStyle(DS.ink3)

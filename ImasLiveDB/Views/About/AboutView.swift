@@ -15,7 +15,7 @@ struct AboutView: View {
     var body: some View {
         List {
             Section {
-                VStack(spacing: 8) {
+                VStack(spacing: DS.sp3) {
                     Image(systemName: "music.mic.circle.fill")
                         .font(.imasScaled( 64))
                         .foregroundStyle(.tint)
@@ -29,7 +29,7 @@ struct AboutView: View {
                         .foregroundStyle(DS.ink2)
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
+                .padding(.vertical, DS.sp4)
             }
 
             Section("開発者") {
@@ -116,7 +116,7 @@ struct AboutView: View {
 
     private func ossCredit(name: String, license: String, url: String) -> some View {
         Link(destination: URL(string: url)!) {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: DS.sp1) {
                 Text(name)
                     .font(.imasSubhead)
                     .foregroundStyle(DS.ink)

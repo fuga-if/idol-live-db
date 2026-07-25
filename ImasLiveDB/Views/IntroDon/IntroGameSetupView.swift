@@ -54,28 +54,28 @@ struct IntroGameSetupView: View {
             VStack(spacing: 0) {
                 // ① モード (先に決める)
                 IDSectionLabel(text: "モード")
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, DS.sp6)
                 Spacer().frame(height: 12)
                 modeSection
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, DS.sp6)
 
                 // ② 出題範囲: プリセット(曲一覧の絞り込み) があればそれを表示、無ければブランド選択。
                 Spacer().frame(height: 24)
                 IDSectionLabel(text: "出題範囲", hint: effectivePool == nil ? "ブランドで絞る" : nil)
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, DS.sp6)
                 Spacer().frame(height: 12)
                 if let pool = effectivePool {
                     presetRangeCard(count: IntroGameSession.playable(pool).count)
-                        .padding(.horizontal, 20)
+                        .padding(.horizontal, DS.sp6)
                     Spacer().frame(height: 10)
                     refineButton(title: "出題範囲を変更")
-                        .padding(.horizontal, 20)
+                        .padding(.horizontal, DS.sp6)
                 } else {
                     brandSection
-                        .padding(.horizontal, 20)
+                        .padding(.horizontal, DS.sp6)
                     Spacer().frame(height: 10)
                     refineButton(title: "タグ・担当・検索で絞り込んで出題")
-                        .padding(.horizontal, 20)
+                        .padding(.horizontal, DS.sp6)
                 }
 
                 // ③ モード別の設定 (必要な項目だけ出す)
@@ -84,18 +84,18 @@ struct IntroGameSetupView: View {
                 // ④ 詳細設定 (折りたたみ): 再生方式・難易度
                 Spacer().frame(height: 24)
                 advancedSection
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, DS.sp6)
 
                 if authStatus != .authorized {
                     Spacer().frame(height: 20)
                     authWarningCard
-                        .padding(.horizontal, 20)
+                        .padding(.horizontal, DS.sp6)
                 }
 
                 if let err = errorMessage {
                     Spacer().frame(height: 16)
                     errorCard(err)
-                        .padding(.horizontal, 20)
+                        .padding(.horizontal, DS.sp6)
                 }
 
                 Spacer().frame(height: 32)
@@ -109,11 +109,11 @@ struct IntroGameSetupView: View {
                     AppAnalytics.tap("intro_game_setup.start")
                     Task { await startGame() }
                 }
-                .padding(.horizontal, 20)
+                .padding(.horizontal, DS.sp6)
 
                 Spacer().frame(height: 32)
             }
-            .padding(.top, 16)
+            .padding(.top, DS.sp5)
         }
         .background(ID.menuBg.ignoresSafeArea())
         .navigationTitle("設定")
@@ -174,7 +174,7 @@ struct IntroGameSetupView: View {
     // MARK: - Count / Duration Sections
 
     private var countSection: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: DS.sp3) {
             ForEach(questionCounts, id: \.self) { n in
                 IDSegmentButton(
                     primary: "\(n)",
@@ -189,7 +189,7 @@ struct IntroGameSetupView: View {
 
     private var durationSection: some View {
         VStack(spacing: 14) {
-            HStack(spacing: 8) {
+            HStack(spacing: DS.sp3) {
                 ForEach(durations, id: \.value) { d in
                     IDSegmentButton(
                         primary: d.label,
@@ -225,7 +225,7 @@ struct IntroGameSetupView: View {
             AppAnalytics.tap("intro_game_setup.refine")
             showSongFilter = true
         } label: {
-            HStack(spacing: 8) {
+            HStack(spacing: DS.sp3) {
                 Image(systemName: "line.3.horizontal.decrease.circle")
                     .font(.imasScaled( 14, weight: .semibold))
                 Text(title)
@@ -236,7 +236,7 @@ struct IntroGameSetupView: View {
             }
             .foregroundColor(ID.accentPurple)
             .padding(.horizontal, 14)
-            .padding(.vertical, 12)
+            .padding(.vertical, DS.sp4)
             .background(ID.accentPurple.opacity(0.08))
             .clipShape(IDCorner(radius: 12))
         }
@@ -249,7 +249,7 @@ struct IntroGameSetupView: View {
             Image(systemName: "line.3.horizontal.decrease.circle.fill")
                 .font(.imasScaled( 18, weight: .bold))
                 .foregroundColor(ID.accentPurple)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: DS.sp1) {
                 Text(effectiveLabel ?? "曲一覧の絞り込み")
                     .font(ID.font(14, weight: .bold))
                     .foregroundColor(ID.menuText)
@@ -271,9 +271,9 @@ struct IntroGameSetupView: View {
     @ViewBuilder
     private func labeledSection<C: View>(_ title: String, hint: String? = nil, @ViewBuilder _ content: () -> C) -> some View {
         Spacer().frame(height: 24)
-        IDSectionLabel(text: title, hint: hint).padding(.horizontal, 20)
+        IDSectionLabel(text: title, hint: hint).padding(.horizontal, DS.sp6)
         Spacer().frame(height: 12)
-        content().padding(.horizontal, 20)
+        content().padding(.horizontal, DS.sp6)
     }
 
     /// ③ モード別に必要な設定だけ出す。
@@ -287,7 +287,7 @@ struct IntroGameSetupView: View {
             labeledSection("制限時間") { rushTimeSection }
         case .allSongs:
             Spacer().frame(height: 20)
-            allSongsNote.padding(.horizontal, 20)
+            allSongsNote.padding(.horizontal, DS.sp6)
         case .party:
             labeledSection("ラウンド数") { countSection }
         }
@@ -354,7 +354,7 @@ struct IntroGameSetupView: View {
     // MARK: - Mode / Answer Mode
 
     private var modeSection: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: DS.sp3) {
             modeRow(.normal, icon: "list.number", title: "ノーマル", sub: "決めた問題数で挑戦")
             modeRow(.rush, icon: "timer", title: "ラッシュ", sub: "制限時間内に何問正解できるか")
             modeRow(.allSongs, icon: "infinity", title: "全曲チャレンジ", sub: "全曲出し切るまで・タイムと正答率を競う")
@@ -367,14 +367,14 @@ struct IntroGameSetupView: View {
         return Button {
             withAnimation(.easeInOut(duration: 0.15)) { mode = m }
         } label: {
-            HStack(spacing: 12) {
+            HStack(spacing: DS.sp4) {
                 Image(systemName: icon)
                     .font(.imasScaled( 16, weight: .semibold))
                     .foregroundColor(selected ? ID.menuCardDarkText : ID.accentPurple)
                     .frame(width: 36, height: 36)
                     .background((selected ? Color.white.opacity(0.18) : ID.accentPurple.opacity(0.10)))
                     .clipShape(IDCorner(radius: 10))
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: DS.sp1) {
                     Text(title)
                         .font(ID.font(15, weight: .bold))
                         .foregroundColor(selected ? ID.menuCardDarkText : ID.menuText)
@@ -390,7 +390,7 @@ struct IntroGameSetupView: View {
                 }
             }
             .padding(.horizontal, 14)
-            .padding(.vertical, 12)
+            .padding(.vertical, DS.sp4)
             .background(selected ? ID.menuCardDark : ID.menuCardSubtle)
             .clipShape(IDCorner(radius: 14))
         }
@@ -398,7 +398,7 @@ struct IntroGameSetupView: View {
     }
 
     private var answerModeSection: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: DS.sp3) {
             answerModeButton(.choices, icon: "square.grid.2x2.fill", title: "4択", sub: "タップで回答")
             answerModeButton(.voice, icon: "mic.fill", title: "音声判定", sub: "声で曲名を回答")
         }
@@ -419,7 +419,7 @@ struct IntroGameSetupView: View {
             }
             .foregroundColor(selected ? ID.menuCardDarkText : ID.menuTextSecondary)
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
+            .padding(.vertical, DS.sp5)
             .background(selected ? ID.menuCardDark : ID.menuCardSubtle)
             .clipShape(IDCorner(radius: 16))
         }
@@ -427,7 +427,7 @@ struct IntroGameSetupView: View {
     }
 
     private var playbackSection: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: DS.sp3) {
             playbackButton(.full, icon: "music.note", title: "フル再生", sub: "実イントロ(要サブスク)")
             playbackButton(.preview, icon: "bolt.fill", title: "プレビュー", sub: "30秒・サクサク")
         }
@@ -448,7 +448,7 @@ struct IntroGameSetupView: View {
             }
             .foregroundColor(selected ? ID.menuCardDarkText : ID.menuTextSecondary)
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
+            .padding(.vertical, DS.sp5)
             .background(selected ? ID.menuCardDark : ID.menuCardSubtle)
             .clipShape(IDCorner(radius: 16))
         }
@@ -456,7 +456,7 @@ struct IntroGameSetupView: View {
     }
 
     private var rushTimeSection: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: DS.sp3) {
             ForEach(rushTimes, id: \.value) { t in
                 IDSegmentButton(
                     primary: t.label.replacingOccurrences(of: "秒", with: ""),
@@ -473,7 +473,7 @@ struct IntroGameSetupView: View {
 
     private var authWarningCard: some View {
         VStack(spacing: 10) {
-            HStack(spacing: 8) {
+            HStack(spacing: DS.sp3) {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundColor(ID.accentGold)
                 Text("Apple Music が未認証です")
@@ -495,7 +495,7 @@ struct IntroGameSetupView: View {
     }
 
     private func errorCard(_ msg: String) -> some View {
-        HStack(spacing: 8) {
+        HStack(spacing: DS.sp3) {
             Image(systemName: "xmark.circle.fill")
                 .foregroundColor(ID.incorrect)
             Text(msg)
@@ -567,7 +567,7 @@ private struct IDSegmentButton: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 2) {
+            VStack(spacing: DS.sp1) {
                 Text(primary)
                     .font(ID.font(22, weight: .black))
                 Text(secondary)
@@ -575,7 +575,7 @@ private struct IDSegmentButton: View {
             }
             .foregroundColor(selected ? ID.menuCardDarkText : ID.menuTextSecondary)
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
+            .padding(.vertical, DS.sp5)
             .background(selected ? ID.menuCardDark : ID.menuCardSubtle)
             .clipShape(IDCorner(radius: 16))
         }

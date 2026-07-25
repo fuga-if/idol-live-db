@@ -286,13 +286,13 @@ struct MyPageView: View {
             }
             .overlay {
                 if importer.isImporting {
-                    VStack(spacing: 16) {
+                    VStack(spacing: DS.sp5) {
                         ProgressView(value: importer.progress)
                             .frame(width: 200)
                         Text(importer.statusMessage)
                             .font(.imasCaption)
                     }
-                    .padding(24)
+                    .padding(DS.sp7)
                     .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
                 }
             }
@@ -310,7 +310,7 @@ struct MyPageView: View {
                     Image(systemName: "person.crop.circle.fill")
                         .font(.imasTitle2)
                         .foregroundStyle(DS.ink2)
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: DS.sp1) {
                         HStack(spacing: 6) {
                             Text(AuthService.shared.userName ?? "ユーザー")
                                 .font(.imasHeadline)
@@ -352,13 +352,13 @@ struct MyPageView: View {
                 }
                 .disabled(isDeletingAccount)
             } else {
-                VStack(spacing: 8) {
+                VStack(spacing: DS.sp3) {
                     Text("ログインするとライブ・セトリ・楽曲データの編集や Good ができます")
                         .font(.imasCaption)
                         .foregroundStyle(DS.ink2)
                     AppleSignInButton()
                 }
-                .padding(.vertical, 4)
+                .padding(.vertical, DS.sp2)
             }
         }
         .listRowBackground(DS.surface)
@@ -445,7 +445,7 @@ struct MyPageView: View {
                     .font(.imasCaption)
                     .foregroundStyle(DS.ink2)
             }
-            .padding(.vertical, 2)
+            .padding(.vertical, DS.sp1)
 
             Toggle("ライブ名を省略表示", isOn: $abbreviateEventNames)
             // 設定値で見え方が変わるサンプル。ON なら作品名プレフィックスを省く。
@@ -491,7 +491,7 @@ struct MyPageView: View {
                 } else {
                     Picker("テーマにする担当", selection: $themeOshiIdolId) {
                         ForEach(pickIdols) { idol in
-                            HStack(spacing: 8) {
+                            HStack(spacing: DS.sp3) {
                                 Circle()
                                     .fill(Color(hexString: idol.color))
                                     .frame(width: 14, height: 14)
@@ -775,7 +775,7 @@ struct MyPageView: View {
                     }
                     .font(.imasCaption)
                 }
-                .padding(.vertical, 4)
+                .padding(.vertical, DS.sp2)
             }
             Button {
                 AppAnalytics.tap("my_page.backup_create_transfer_code")

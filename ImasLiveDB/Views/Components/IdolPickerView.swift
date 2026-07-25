@@ -233,7 +233,7 @@ struct IdolPickerView: View {
         } label: {
             HStack(spacing: DS.sp3) {
                 IdolAvatarView(idol: idol, size: 40)
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: DS.sp1) {
                     Text(idol.name)
                         .font(.imasSubhead)
                         .foregroundStyle(DS.ink)
@@ -420,7 +420,7 @@ private struct UnitMemberAddPicker: View {
                             Image(systemName: "person.3.fill")
                                 .font(.imasScaled(15))
                                 .foregroundStyle(DS.ink2)
-                            VStack(alignment: .leading, spacing: 2) {
+                            VStack(alignment: .leading, spacing: DS.sp1) {
                                 Text(unit.name)
                                     .font(.imasSubhead)
                                     .foregroundStyle(DS.ink)

@@ -212,7 +212,7 @@ struct ColorMatchGameView: View {
                     .foregroundStyle(correct ? DS.success : DS.danger)
             }
         }
-        .padding(.horizontal, DS.sp5).padding(.vertical, 12)
+        .padding(.horizontal, DS.sp5).padding(.vertical, DS.sp4)
         .background(dropTargetId == idol.id ? DS.fill : DS.surface)
         .contentShape(Rectangle())
         .dropDestination(for: String.self) { items, _ in

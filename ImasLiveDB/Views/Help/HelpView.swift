@@ -229,14 +229,14 @@ struct HelpView: View {
         NavigationStack {
             List {
                 Section {
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: DS.sp3) {
                         Text("アイドルライブDB の使い方")
                             .font(.imasTitle3)
                         Text("各カテゴリで「こんなことができる」を一覧で紹介しています。気になる項目から覗いてみてください。")
                             .font(.imasSubhead)
                             .foregroundStyle(DS.ink2)
                     }
-                    .padding(.vertical, 4)
+                    .padding(.vertical, DS.sp2)
                 }
                 .listRowBackground(DS.surface)
                 .listRowSeparatorTint(DS.sep)
@@ -255,7 +255,7 @@ struct HelpView: View {
                                                             Color(red: 0.55, green: 0.35, blue: 0.95)],
                                                    startPoint: .topLeading, endPoint: .bottomTrailing),
                                     in: RoundedRectangle(cornerRadius: 9))
-                            VStack(alignment: .leading, spacing: 2) {
+                            VStack(alignment: .leading, spacing: DS.sp1) {
                                 Text("担当ウィジェットの使い方").font(.imasHeadline)
                                 Text("推しの画像をホーム画面に。画像付きで手順を案内します。")
                                     .font(.imasCaption)
@@ -263,7 +263,7 @@ struct HelpView: View {
                                     .lineLimit(2)
                             }
                         }
-                        .padding(.vertical, 2)
+                        .padding(.vertical, DS.sp1)
                     }
                 }
                 .listRowBackground(DS.surface)
@@ -281,7 +281,7 @@ struct HelpView: View {
                                     .foregroundStyle(t.onAccent)
                                     .frame(width: 36, height: 36)
                                     .background(t.accent.gradient, in: RoundedRectangle(cornerRadius: 9))
-                                VStack(alignment: .leading, spacing: 2) {
+                                VStack(alignment: .leading, spacing: DS.sp1) {
                                     Text(section.title).font(.imasHeadline)
                                     Text(section.summary)
                                         .font(.imasCaption)
@@ -289,7 +289,7 @@ struct HelpView: View {
                                         .lineLimit(2)
                                 }
                             }
-                            .padding(.vertical, 2)
+                            .padding(.vertical, DS.sp1)
                         }
                     }
                 }
@@ -334,7 +334,7 @@ private struct HelpDetailView: View {
                         .font(.imasScaled( 36, weight: .semibold))
                         .foregroundStyle(t.onAccent)
                         .frame(width: 72, height: 72)
-                        .background(t.accent.gradient, in: RoundedRectangle(cornerRadius: 18))
+                        .background(t.accent.gradient, in: RoundedRectangle(cornerRadius: DS.rLG))
                     Text(section.title)
                         .font(.imasTitle2)
                     Text(section.summary)
@@ -350,10 +350,10 @@ private struct HelpDetailView: View {
             Section("できること") {
                 ForEach(section.body) { item in
                     VStack(alignment: .leading, spacing: 6) {
-                        HStack(alignment: .top, spacing: 8) {
+                        HStack(alignment: .top, spacing: DS.sp3) {
                             Image(systemName: "checkmark.circle.fill")
                                 .foregroundStyle(t.accent)
-                                .padding(.top, 2)
+                                .padding(.top, DS.sp1)
                             Text(item.label)
                                 .font(.imasSubhead.bold())
                         }
@@ -362,7 +362,7 @@ private struct HelpDetailView: View {
                             .foregroundStyle(DS.ink2)
                             .padding(.leading, 26)
                     }
-                    .padding(.vertical, 4)
+                    .padding(.vertical, DS.sp2)
                 }
             }
             .listRowBackground(DS.surface)

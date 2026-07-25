@@ -11,7 +11,7 @@ struct PrimaryActionButton: View {
     var body: some View {
         Button(action: action) {
             ZStack {
-                HStack(spacing: 8) {
+                HStack(spacing: DS.sp3) {
                     if !isLoading {
                         Image(systemName: icon)
                     }
@@ -27,10 +27,10 @@ struct PrimaryActionButton: View {
             }
             .font(.imasBody)
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
+            .padding(.vertical, DS.sp5)
             .background(
                 (isDisabled || isLoading) ? DS.fill : color,
-                in: RoundedRectangle(cornerRadius: 14)
+                in: RoundedRectangle(cornerRadius: DS.rMD)
             )
             .foregroundStyle(.white)
         }
@@ -42,7 +42,7 @@ struct PrimaryActionButton: View {
 }
 
 #Preview {
-    VStack(spacing: 16) {
+    VStack(spacing: DS.sp5) {
         PrimaryActionButton(label: "投稿する", icon: "paperplane.fill", action: {})
         PrimaryActionButton(label: "送信中...", icon: "paperplane.fill", isLoading: true, action: {})
         PrimaryActionButton(label: "投稿する", icon: "paperplane.fill", isDisabled: true, action: {})

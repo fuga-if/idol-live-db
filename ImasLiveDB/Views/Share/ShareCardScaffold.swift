@@ -148,7 +148,7 @@ struct ShareEyebrow: View {
     var ink: Color
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: DS.sp3) {
             Rectangle()
                 .fill(accent)
                 .frame(width: 18, height: 3)

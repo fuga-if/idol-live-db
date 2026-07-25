@@ -61,7 +61,7 @@ struct IdolSongHistoryView: View {
         } label: {
             HStack(spacing: DS.sp3) {
                 ImasLeadBar(seed: seed, brand: brandColor)
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: DS.sp1) {
                     Text(row.eventName)
                         .font(.imasBody.weight(.semibold))
                         .foregroundStyle(DS.ink)

@@ -3,7 +3,7 @@ import SwiftUI
 struct PrivacyPolicyView: View {
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: DS.sp6) {
                 Group {
                     policySection(
                         title: "アプリの概要",
@@ -56,9 +56,9 @@ struct PrivacyPolicyView: View {
                 Text("最終更新日: 2026年4月23日")
                     .font(.imasCaption)
                     .foregroundStyle(DS.ink2)
-                    .padding(.top, 8)
+                    .padding(.top, DS.sp3)
             }
-            .padding(20)
+            .padding(DS.sp6)
         }
         .navigationTitle("プライバシーポリシー")
         .navigationBarTitleDisplayMode(.inline)
@@ -66,7 +66,7 @@ struct PrivacyPolicyView: View {
     }
 
     private func policySection(title: String, content: String) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: DS.sp3) {
             Text(title)
                 .font(.imasHeadline)
             Text(content)

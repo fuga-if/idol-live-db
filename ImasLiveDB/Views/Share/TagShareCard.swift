@@ -42,18 +42,18 @@ struct TagShareCard: View {
                     .foregroundStyle(.white)
                     .lineLimit(3)
                     .minimumScaleFactor(0.55)
-                    .padding(.top, 12)
+                    .padding(.top, DS.sp4)
 
                 if let artists = context.artistNames, !artists.isEmpty {
                     Text(artists)
                         .font(.imasScaled( 15, weight: .medium))
                         .foregroundStyle(.white.opacity(0.66))
                         .lineLimit(1)
-                        .padding(.top, 8)
+                        .padding(.top, DS.sp3)
                 }
 
                 // 付けたタグを線画チップで最小限に (最大 6 個)。
-                FlowLayout(spacing: 8) {
+                FlowLayout(spacing: DS.sp3) {
                     ForEach(context.tags.prefix(6)) { tag in
                         tagChip(tag)
                     }

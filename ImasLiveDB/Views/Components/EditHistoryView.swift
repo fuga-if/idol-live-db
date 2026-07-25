@@ -29,8 +29,8 @@ struct EditHistoryView: View {
                     HistoryRow(entry: entry, recordType: recordType)
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            .padding(.horizontal, DS.sp5)
+            .padding(.vertical, DS.sp4)
         }
         .background(DS.bg)
         .navigationTitle("編集履歴")
@@ -38,7 +38,7 @@ struct EditHistoryView: View {
         .overlay {
             if isLoading && entries.isEmpty {
                 ProgressView("読み込み中...")
-                    .padding(24)
+                    .padding(DS.sp7)
                     .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
             } else if entries.isEmpty && !isLoading && errorMessage == nil {
                 ImasEmptyState(
@@ -86,7 +86,7 @@ private struct HistoryRow: View {
     let recordType: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: DS.sp3) {
             // 編集者 + op バッジ + 相対時刻
             HStack(spacing: 6) {
                 Text(entry.editorDisplayLabel)
@@ -101,7 +101,7 @@ private struct HistoryRow: View {
                         .font(.imasScaled(11).weight(.semibold))
                         .foregroundStyle(DS.ink2)
                         .padding(.horizontal, 7)
-                        .padding(.vertical, 2)
+                        .padding(.vertical, DS.sp1)
                         .background(DS.fill, in: Capsule())
                 }
                 Spacer(minLength: 4)
@@ -113,7 +113,7 @@ private struct HistoryRow: View {
             diffBody
         }
         .padding(14)
-        .background(DS.surface, in: RoundedRectangle(cornerRadius: 14))
+        .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rMD))
     }
 
     private var sourceBadge: some View {
@@ -121,7 +121,7 @@ private struct HistoryRow: View {
             .font(.imasScaled(11).weight(.semibold))
             .foregroundStyle(DS.warning)
             .padding(.horizontal, 7)
-            .padding(.vertical, 2)
+            .padding(.vertical, DS.sp1)
             .background(DS.warning.opacity(0.15), in: Capsule())
     }
 
@@ -175,7 +175,7 @@ private struct FieldDiffRow: View {
     let after: JSONValue?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: DS.sp1) {
             Text(label)
                 .font(.imasCaption.weight(.semibold))
                 .foregroundStyle(DS.ink2)
@@ -195,7 +195,7 @@ private struct FieldDiffRow: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(8)
+        .padding(DS.sp3)
         .background(DS.surface2, in: RoundedRectangle(cornerRadius: 8))
     }
 }

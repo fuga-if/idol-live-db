@@ -53,7 +53,7 @@ struct MyVotesView: View {
                                             .lineLimit(2)
                                         Spacer(minLength: 0)
                                     }
-                                    .padding(.vertical, 2)
+                                    .padding(.vertical, DS.sp1)
                                 }
                                 .buttonStyle(.plain)
                                 .disabled(choice.destination == nil)

@@ -65,7 +65,7 @@ struct SongRowView: View {
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: DS.sp4) {
             // 行頭の控えめなブランド色マーカー (集約 = 細いリードバー)。
             ImasLeadBar(brand: brandHex)
                 .frame(height: 50)
@@ -91,7 +91,7 @@ struct SongRowView: View {
                             Text("\(tagVoteCount)").font(.imasCaption.weight(.bold)).monospacedDigit()
                         }
                         .foregroundStyle(tagBadgeAccent)
-                        .padding(.horizontal, 6).padding(.vertical, 2)
+                        .padding(.horizontal, 6).padding(.vertical, DS.sp1)
                         .background(tagBadgeAccent.opacity(0.14), in: Capsule())
                     }
                 }
@@ -140,7 +140,7 @@ struct SongRowView: View {
     @ViewBuilder
     private var markRow: some View {
         if hasAnyMark {
-            HStack(spacing: 8) {
+            HStack(spacing: DS.sp3) {
                 if let date = song.releaseDate {
                     Text(date)
                         .font(.imasDisplay(11, weight: .regular))
@@ -158,7 +158,7 @@ struct SongRowView: View {
                         .foregroundStyle(DS.warning)
                 }
                 if let count = collectedCount, count > 0 {
-                    let badge = HStack(spacing: 2) {
+                    let badge = HStack(spacing: DS.sp1) {
                         Image(systemName: "checkmark")
                         Text("\(count)").font(.imasDisplay(11, weight: .bold))
                     }

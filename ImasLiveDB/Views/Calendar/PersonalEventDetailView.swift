@@ -24,7 +24,7 @@ struct PersonalEventDetailView: View {
             RoundedRectangle(cornerRadius: 2, style: .continuous)
                 .fill(event.color)
                 .frame(width: 4, height: 44)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: DS.sp1) {
                 Text(event.title)
                     .font(.imasTitle3.weight(.bold))
                     .foregroundStyle(DS.ink)
@@ -72,7 +72,7 @@ struct PersonalEventDetailView: View {
                 .font(.imasScaled( 15, weight: .semibold))
                 .foregroundStyle(event.color)
                 .frame(width: 28)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: DS.sp1) {
                 Text(title)
                     .font(.imasCaption)
                     .foregroundStyle(DS.ink2)

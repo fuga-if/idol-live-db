@@ -11,7 +11,7 @@ struct IdolNameRow: View {
     var body: some View {
         HStack(spacing: 10) {
             IdolAvatarView(idol: idol, size: 36)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: DS.sp1) {
                 Text(idol.name)
                     .font(.imasSubhead)
                     .foregroundStyle(DS.ink)
@@ -41,9 +41,9 @@ struct SongTitleRow: View {
     var showsChevron: Bool = true
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: DS.sp4) {
             songArtwork
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: DS.sp1) {
                 Text(song.title)
                     .font(.imasBody)
                     .foregroundStyle(DS.ink)
@@ -88,7 +88,7 @@ struct UnitNameRow: View {
     var body: some View {
         HStack(spacing: 10) {
             UnitAvatarView(unit: unit, size: 36)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: DS.sp1) {
                 Text(unit.displayName)
                     .font(.imasSubhead)
                     .foregroundStyle(DS.ink)
@@ -118,7 +118,7 @@ struct EventNameRow: View {
     var body: some View {
         HStack(spacing: 10) {
             BrandColorBar(brandId: event.brandId)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: DS.sp1) {
                 Text(eventDisplayName(event.name))
                     .font(.imasSubhead)
                     .foregroundStyle(DS.ink)

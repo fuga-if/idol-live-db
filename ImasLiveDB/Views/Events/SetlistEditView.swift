@@ -68,7 +68,7 @@ struct SetlistEditView: View {
                     if isSaving {
                         Color.black.opacity(0.3).ignoresSafeArea()
                         ProgressView("保存中…")
-                            .padding(24)
+                            .padding(DS.sp7)
                             .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
                     }
                 }
@@ -355,7 +355,7 @@ private struct SetlistEditRow: View {
     private let sections = ["本編", "アンコール", "MC", "ダブルアンコール"]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: DS.sp3) {
             Button(action: onPickSong) {
                 HStack {
                     Image(systemName: "music.note")
@@ -392,7 +392,7 @@ private struct SetlistEditRow: View {
             }
             .buttonStyle(.plain)
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, DS.sp2)
     }
 
     private func performerNames() -> String {
