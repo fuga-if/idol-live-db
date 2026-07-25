@@ -1420,10 +1420,6 @@ final class AppDatabase: @unchecked Sendable {
     /// この event のセトリで「ユニット単独曲として披露された」ユニット ID 集合。
     /// setlist_performers の歌唱メンバーが unit_members と完全一致する曲があるユニットだけを返す。
     /// (legacy: setlist_items.unit_id / songs.unit_id 由来は誤検出が多いので採用しない)
-    func fetchPerformedUnitIds(eventId: String) throws -> Set<String> {
-        try dbQueue.read { db in try Self.fetchPerformedUnitIdsQuery(db, eventId: eventId) }
-    }
-
     func fetchPerformedUnitIdsAsync(eventId: String) async throws -> Set<String> {
         try await dbQueue.read { db in try Self.fetchPerformedUnitIdsQuery(db, eventId: eventId) }
     }
@@ -1468,10 +1464,6 @@ final class AppDatabase: @unchecked Sendable {
     }
 
     /// 公演 (show) に出演している全アイドル ID のセット (show_cast)。 Cast 廃止後は idol_id 直結。
-    func fetchShowIdolIds(showId: String) throws -> Set<String> {
-        try dbQueue.read { db in try Self.fetchShowIdolIdsQuery(db, showId: showId) }
-    }
-
     func fetchShowIdolIdsAsync(showId: String) async throws -> Set<String> {
         try await dbQueue.read { db in try Self.fetchShowIdolIdsQuery(db, showId: showId) }
     }
@@ -1487,10 +1479,6 @@ final class AppDatabase: @unchecked Sendable {
 
     /// 指定公演の出演アイドル一覧 (show_cast JOIN idols)。sort_order 順。
     /// 「誰が歌う」予想の候補アイドルリストとして使う。
-    func fetchShowCastIdols(showId: String) throws -> [Idol] {
-        try dbQueue.read { db in try Self.fetchShowCastIdolsQuery(db, showId: showId) }
-    }
-
     func fetchShowCastIdolsAsync(showId: String) async throws -> [Idol] {
         try await dbQueue.read { db in try Self.fetchShowCastIdolsQuery(db, showId: showId) }
     }
@@ -1510,10 +1498,6 @@ final class AppDatabase: @unchecked Sendable {
 
     /// 指定アイドルの出演公演一覧 (setlist_performers ∪ show_cast)。
     /// セトリ未登録の公演でも出演履歴を拾えるよう UNION で結合する。
-    func fetchIdolShows(idolId: String) throws -> [CastShowRow] {
-        try dbQueue.read { db in try Self.fetchIdolShowsQuery(db, idolId: idolId) }
-    }
-
     func fetchIdolShowsAsync(idolId: String) async throws -> [CastShowRow] {
         try await dbQueue.read { db in try Self.fetchIdolShowsQuery(db, idolId: idolId) }
     }
@@ -1544,10 +1528,6 @@ final class AppDatabase: @unchecked Sendable {
     // MARK: - Stats Queries
 
     /// ブランド別楽曲数
-    func fetchBrandSongCounts() throws -> [BrandSongCount] {
-        try dbQueue.read { db in try Self.fetchBrandSongCountsQuery(db) }
-    }
-
     func fetchBrandSongCountsAsync() async throws -> [BrandSongCount] {
         try await dbQueue.read { db in try Self.fetchBrandSongCountsQuery(db) }
     }
@@ -1607,10 +1587,6 @@ final class AppDatabase: @unchecked Sendable {
     }
 
     /// ライブ披露回数ランキング
-    func fetchSongPlayCountRanking(limit: Int = 20) throws -> [SongPlayCount] {
-        try dbQueue.read { db in try Self.fetchSongPlayCountRankingQuery(db, limit: limit) }
-    }
-
     func fetchSongPlayCountRankingAsync(limit: Int = 20) async throws -> [SongPlayCount] {
         try await dbQueue.read { db in try Self.fetchSongPlayCountRankingQuery(db, limit: limit) }
     }
@@ -1629,10 +1605,6 @@ final class AppDatabase: @unchecked Sendable {
 
     /// アイドル別出演回数ランキング (Cast 廃止後は idol 単位)。
     /// 表示名は idol.name を採用 (旧 cast.name の代わり)。
-    func fetchCastShowCountRanking(limit: Int = 20) throws -> [CastShowCount] {
-        try dbQueue.read { db in try Self.fetchCastShowCountRankingQuery(db, limit: limit) }
-    }
-
     func fetchCastShowCountRankingAsync(limit: Int = 20) async throws -> [CastShowCount] {
         try await dbQueue.read { db in try Self.fetchCastShowCountRankingQuery(db, limit: limit) }
     }
@@ -1663,10 +1635,6 @@ final class AppDatabase: @unchecked Sendable {
     }
 
     /// ユニット取得
-    func fetchUnit(id: String) throws -> Unit? {
-        try dbQueue.read { db in try Self.fetchUnitQuery(db, id: id) }
-    }
-
     func fetchUnitAsync(id: String) async throws -> Unit? {
         try await dbQueue.read { db in try Self.fetchUnitQuery(db, id: id) }
     }
@@ -1676,10 +1644,6 @@ final class AppDatabase: @unchecked Sendable {
     }
 
     /// ユニットメンバー取得
-    func fetchUnitMembers(unitId: String) throws -> [Idol] {
-        try dbQueue.read { db in try Self.fetchUnitMembersQuery(db, unitId: unitId) }
-    }
-
     func fetchUnitMembersAsync(unitId: String) async throws -> [Idol] {
         try await dbQueue.read { db in try Self.fetchUnitMembersQuery(db, unitId: unitId) }
     }
@@ -1732,10 +1696,6 @@ final class AppDatabase: @unchecked Sendable {
     }
 
     /// ユニット楽曲取得
-    func fetchUnitSongs(unitId: String) throws -> [Song] {
-        try dbQueue.read { db in try Self.fetchUnitSongsQuery(db, unitId: unitId) }
-    }
-
     func fetchUnitSongsAsync(unitId: String) async throws -> [Song] {
         try await dbQueue.read { db in try Self.fetchUnitSongsQuery(db, unitId: unitId) }
     }
@@ -1745,10 +1705,6 @@ final class AppDatabase: @unchecked Sendable {
     }
 
     /// DB全体の統計 (外部ゲスト演者は除外)
-    func fetchDatabaseStats() throws -> DatabaseStats {
-        try dbQueue.read { db in try Self.fetchDatabaseStatsQuery(db) }
-    }
-
     func fetchDatabaseStatsAsync() async throws -> DatabaseStats {
         try await dbQueue.read { db in try Self.fetchDatabaseStatsQuery(db) }
     }
@@ -1764,10 +1720,6 @@ final class AppDatabase: @unchecked Sendable {
 
     /// 同期診断用 — recordName に '@' が入ったレコード数を集計し、ML 13thLIVE が
     /// 存在するかチェックする。@-roundtrip バグの切り分けに使う。
-    func fetchSyncDiagnostics() throws -> SyncDiagnostics {
-        try dbQueue.read { db in try Self.fetchSyncDiagnosticsQuery(db) }
-    }
-
     func fetchSyncDiagnosticsAsync() async throws -> SyncDiagnostics {
         try await dbQueue.read { db in try Self.fetchSyncDiagnosticsQuery(db) }
     }
@@ -1787,10 +1739,6 @@ final class AppDatabase: @unchecked Sendable {
     }
 
     /// 直近公演取得
-    func fetchLatestShow() throws -> Show? {
-        try dbQueue.read { db in try Self.fetchLatestShowQuery(db) }
-    }
-
     func fetchLatestShowAsync() async throws -> Show? {
         try await dbQueue.read { db in try Self.fetchLatestShowQuery(db) }
     }
@@ -1800,10 +1748,6 @@ final class AppDatabase: @unchecked Sendable {
     }
 
     /// CDシリーズ一覧（ユニーク値）
-    func fetchCdSeriesList() throws -> [String] {
-        try dbQueue.read { db in try Self.fetchCdSeriesListQuery(db) }
-    }
-
     func fetchCdSeriesListAsync() async throws -> [String] {
         try await dbQueue.read { db in try Self.fetchCdSeriesListQuery(db) }
     }
@@ -1817,10 +1761,6 @@ final class AppDatabase: @unchecked Sendable {
     }
 
     /// イベント名一覧
-    func fetchEventNames() throws -> [String] {
-        try dbQueue.read { db in try Self.fetchEventNamesQuery(db) }
-    }
-
     func fetchEventNamesAsync() async throws -> [String] {
         try await dbQueue.read { db in try Self.fetchEventNamesQuery(db) }
     }
@@ -1893,10 +1833,6 @@ final class AppDatabase: @unchecked Sendable {
     }
 
     /// 年別ライブ開催数推移
-    func fetchYearlyShowCounts() throws -> [YearlyShowCount] {
-        try dbQueue.read { db in try Self.fetchYearlyShowCountsQuery(db) }
-    }
-
     func fetchYearlyShowCountsAsync() async throws -> [YearlyShowCount] {
         try await dbQueue.read { db in try Self.fetchYearlyShowCountsQuery(db) }
     }
