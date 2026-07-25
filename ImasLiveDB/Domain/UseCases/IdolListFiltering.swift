@@ -170,6 +170,11 @@ func filterIdols(_ idols: [Idol], _ ctx: IdolFilterContext) -> [Idol] {
             idol.name.localizedCaseInsensitiveContains(q)
                 || idol.nameKana?.localizedCaseInsensitiveContains(q) == true
                 || (ctx.castNames[idol.id] ?? "").localizedCaseInsensitiveContains(q)
+                // 別名 (フルネーム・旧名・ステージ名) も引けるようにする。
+                // 表示名を短くしたアイドル (レトラ = サラ・レトラ・オリヴェイラ・ウタガワ) が
+                // フルネームで検索できなくなるのを防ぐ。
+                || idol.aliasList.contains { $0.localizedCaseInsensitiveContains(q) }
+                || idol.nickname?.localizedCaseInsensitiveContains(q) == true
         }
     }
 
