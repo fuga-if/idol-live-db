@@ -46860,7 +46860,7 @@ INSERT INTO song_artists VALUES('ml_7daysaweek高山紗代子ver','ml_高山紗�
 INSERT INTO song_artists VALUES('ml_グッドサイン高山紗代子ver','ml_高山紗代子','original');
 CREATE TABLE meta (key TEXT PRIMARY KEY NOT NULL, value TEXT);
 INSERT INTO meta VALUES('schema_version','1');
-INSERT INTO meta VALUES('data_version','61');
+INSERT INTO meta VALUES('data_version','62');
 INSERT INTO meta VALUES('migration_v14_idol_is_external','applied');
 CREATE TABLE song_units (
   song_id TEXT NOT NULL,
