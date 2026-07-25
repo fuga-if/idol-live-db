@@ -24,7 +24,14 @@
 
 | ファイル | 役割 |
 |---|---|
-| `index.ts` | エントリ。`fetch` ハンドラ = 全ルーティング (大きな switch 的ルーター) + `scheduled` (cron) 委譲。認証 (`getAuthUser`)・CORS・レスポンスヘルパもここ |
+| `index.ts` | エントリ。`fetch` ハンドラ = ルーティング + `scheduled` (cron) 委譲。CORS・レスポンスヘルパ (`makeResponders`)・エッジキャッシュもここ。**切り出し済みのルート群は `routes/` へ委譲する** |
+| `env.ts` | `Env` インターフェース (D1 binding + vars/secrets) の単一ソース |
+| `auth.ts` | Apple / Google の ID トークン検証、自前セッション JWT の署名・検証、`getAuthUser` |
+| `users.ts` | `users` テーブルの共通操作 (`upsertUser` / `checkIsAdmin`) |
+| `validation.ts` | リクエスト入力の共通バリデータ (`parsePositiveInt` / `validateOpaqueKey` / `escapeLike` / スコープ ID 検証) |
+| `routes/context.ts` | ルートハンドラが受け取る `RouteContext` (リクエスト毎のレスポンダを引数で渡す) |
+| `routes/device_aggregates.ts` | `/favorites/*` `/penlight/*` (device 単位の集計。認証不要) |
+| `routes/polls.ts` | `/polls/*` (みんなの投票) |
 | `cloudkit.ts` | CloudKit S2S クライアント (`cloudKitModify` / `cloudKitLookup` / forceUpdate・softDelete ビルダ)。`modifiedAt` 強制注入 |
 | `ck_schema.ts` | CloudKit Public DB スキーマ型情報の単一ソース |
 | `edits.ts` | `/edits` 投稿の受付・検証 (`master_validators.ts`) → CloudKit 反映 |
@@ -60,7 +67,27 @@
 日次 cron で CloudKit → `db/master.sql` をエクスポートし、コントリビューターが最新マスタに対して
 検証できるようにする (詳細 [`DATA_PIPELINE.md`](DATA_PIPELINE.md))。
 
-## 改善余地 (公開時点)
+## ルートを `routes/` へ切り出す手順
 
-- `index.ts` が大きいルーター。リソース別サブモジュールへの分割余地 (重い処理は既に各モジュールへ委譲済み)。
-- 不正 JSON ボディが一部 500 になる箇所あり (400 へ統一の余地)。
+`index.ts` は元々 4,271 行の単一 `fetch` ハンドラだった。1 グループずつ切り出して縮めている
+(2026-07 時点で 3,073 行)。新しく切り出す時は同じ手順を踏むこと:
+
+1. **依存を先に外へ出す。** ルートが使う共有ヘルパが `index.ts` にあると、`routes/` から
+   import し返して循環する。`auth.ts` / `users.ts` / `validation.ts` / `rate_limit.ts` の
+   いずれか適切な持ち主へ先に移す (移動のみ。`tsc` が全参照を検証する)。
+2. **移動前の応答を記録する。** `wrangler dev` を上げ、対象ルートの正常系・異常系を curl して
+   ステータス・`Cache-Control`・本文を保存する。レート制限は状態依存なので、実行前に
+   `rate_limits` / `api_rate_limits` を空にして再現性を出す。auth 必須ルートは
+   `SESSION_JWT_SECRET` をローカルに置いて自分でセッション JWT を発行すれば通せる。
+3. **`handleXxx(ctx: RouteContext): Promise<Response | null>` として移す。** 未一致なら `null` を
+   返し、呼び出し元の if チェーンへ処理を戻す。`json` / `error` / `rateLimit*` はリクエスト毎の
+   クロージャなので `RouteContext` で渡す。**本文は 1 行も書き換えない。**
+4. **移動後に同じ curl を流し、差分ゼロを確認する。** 審査済みリリース版の iOS / Android が
+   本番のこの API を叩いているので、レスポンスキー・ステータス・`Cache-Control` の変化は
+   そのまま既存インストールの不具合になる。
+
+## 改善余地
+
+- `index.ts` は依然 3,000 行超。残るルート群 (`/edits` `/tags` `/idol-tags` `/unit-tags`
+  `/shows/:id/*` `/admin/*` `/auth/*`) も上記手順で `routes/` へ切り出せる。
+- ~~不正 JSON ボディが一部 500 になる~~ → 解消済み (全ルートで 400 + `{"error":"invalid JSON body"}`)。

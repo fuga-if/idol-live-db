@@ -214,6 +214,20 @@ ImasLiveDB/
 - **Worker の型チェックを CI 化**: `imas-live-api` は `tsc --noEmit` が通っていなかった (TS2304)。
   修正のうえ `npm run typecheck` を追加し、`.github/workflows/worker-guard.yml` で
   typecheck + `wrangler deploy --dry-run` を回すようにした。
+- **iOS / Android のビルド・テストも CI 化**: `ios-guard.yml` (macos, xcodegen → `tools/build_db.sh`
+  → `xcodebuild test`) と `android-guard.yml` (ubuntu, JDK 21, `assembleDebug` + `test`) を追加。
+  公開リポジトリなので macOS runner も無料枠で、ランニングコスト 0 制約に抵触しない。
+  シミュレータ名は runner イメージで変わるため `tools/pick_simulator.py` で実在するものを選ぶ。
+  署名はアドホック (`CODE_SIGN_IDENTITY="-"`)。`CODE_SIGNING_ALLOWED=NO` にすると Keychain が
+  `SecItemCopyMatching -34018` で失敗しテストが落ちるので使わない。
+- **Worker の単一ルーターを分解 (第一段)**: `imas-live-api/src/index.ts` を **4,271 → 3,073 行**に縮めた。
+  - 共有基盤を持ち主のモジュールへ: `env.ts` (Env 型) / `auth.ts` (Apple・Google・セッション JWT +
+    `getAuthUser`) / `users.ts` (`upsertUser` / `checkIsAdmin`) / `validation.ts` (入力バリデータ) /
+    `rate_limit.ts` (IP レート制限・`VOTE_LIMIT`)。
+  - ルート群を `routes/` へ: `device_aggregates.ts` (`/favorites/*` `/penlight/*`)、`polls.ts` (`/polls/*`)。
+    `handleXxx(ctx): Promise<Response | null>` で未一致なら元の if チェーンへ戻す形。
+  - **不正 JSON の 500 を全 19 箇所で 400 に統一**。`docs/ARCHITECTURE-worker.md` の既知課題を解消。
+  - 切り出し手順と検証方法は [`ARCHITECTURE-worker.md`](ARCHITECTURE-worker.md) に明文化した。
 
 ### レイヤ違反の検査
 - `Domain/` 配下で `import SwiftUI|GRDB|CloudKit` を grep して 0 を保つ。**`tools/check_domain_purity.sh`** が自動チェック (違反で exit 1)。pre-commit / CI 組み込み候補。
