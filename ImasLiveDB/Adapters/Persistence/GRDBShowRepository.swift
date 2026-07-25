@@ -51,12 +51,12 @@ struct GRDBShowRepository: ShowReading {
         try await database.fetchShowCastIdolsAsync(showId: showId)
     }
 
-    func venueNames() async throws -> [String] {
-        try await database.fetchVenueNamesAsync()
+    func venueDirectory() async throws -> VenueDirectory {
+        try await database.fetchVenueDirectoryAsync()
     }
 
-    func eventIdsAtVenue(_ venue: String) async throws -> Set<String> {
-        try await database.fetchEventIdsAtVenueAsync(venue)
+    func eventIdsAtVenue(_ venueId: String) async throws -> Set<String> {
+        try await database.fetchEventIdsAtVenueAsync(venueId)
     }
 
     func venuesMatching(query: String, eventIds: [String]) async throws -> [String: String] {

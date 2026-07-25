@@ -2421,34 +2421,41 @@ final class AppDatabase: @unchecked Sendable {
         try Show.filter(Column("venue") == venue).order(Column("date").desc).fetchAll(db)
     }
 
-    /// 会場名の一覧 (ピッカー用)。空文字・NULL は除く。
-    /// 会場は "千葉・幕張メッセ国際展示場" のように「都道府県・会場名」形式なので、
-    /// 素直に名前順で並べると地域ごとにまとまる。
-    func fetchVenueNames() throws -> [String] {
-        try dbQueue.read { db in try Self.fetchVenueNamesQuery(db) }
+    /// 会場マスタ一式。245施設 + 名前246件 + ホール40件と小さいので一括で読み、
+    /// 当時名やキャパの解決はメモリ上 (`VenueDirectory`) で行う (公演ごとの N+1 を避ける)。
+    func fetchVenueDirectory() throws -> VenueDirectory {
+        try dbQueue.read { db in try Self.fetchVenueDirectoryQuery(db) }
     }
 
-    func fetchVenueNamesAsync() async throws -> [String] {
-        try await dbQueue.read { db in try Self.fetchVenueNamesQuery(db) }
+    func fetchVenueDirectoryAsync() async throws -> VenueDirectory {
+        try await dbQueue.read { db in try Self.fetchVenueDirectoryQuery(db) }
     }
 
-    private static func fetchVenueNamesQuery(_ db: Database) throws -> [String] {
-        try String.fetchAll(db, sql: """
-            SELECT DISTINCT venue FROM shows
-            WHERE venue IS NOT NULL AND venue <> ''
-            ORDER BY venue
-            """)
+    private static func fetchVenueDirectoryQuery(_ db: Database) throws -> VenueDirectory {
+        VenueDirectory(
+            venues: try Venue.order(Column("sort_order")).fetchAll(db),
+            names: try VenueName.fetchAll(db),
+            halls: try VenueHall.fetchAll(db)
+        )
     }
 
     /// 指定会場で公演があったイベントの id 集合。
     /// 会場は show 単位、絞り込み対象は event 単位なので逆引きが要る
-    /// (1 イベントが複数会場をまたぐツアーもあるため EXISTS 相当の DISTINCT で取る)。
-    func fetchEventIdsAtVenue(_ venue: String) throws -> Set<String> {
-        try dbQueue.read { db in try Self.fetchEventIdsAtVenueQuery(db, venue: venue) }
+    /// (1 イベントが複数会場をまたぐツアーもあるため DISTINCT で取る)。
+    func fetchEventIdsAtVenue(_ venueId: String) throws -> Set<String> {
+        try dbQueue.read { db in try Self.fetchEventIdsAtVenueQuery(db, venueId: venueId) }
     }
 
-    func fetchEventIdsAtVenueAsync(_ venue: String) async throws -> Set<String> {
-        try await dbQueue.read { db in try Self.fetchEventIdsAtVenueQuery(db, venue: venue) }
+    func fetchEventIdsAtVenueAsync(_ venueId: String) async throws -> Set<String> {
+        try await dbQueue.read { db in try Self.fetchEventIdsAtVenueQuery(db, venueId: venueId) }
+    }
+
+    private static func fetchEventIdsAtVenueQuery(_ db: Database, venueId: String) throws -> Set<String> {
+        Set(try String.fetchAll(
+            db,
+            sql: "SELECT DISTINCT event_id FROM shows WHERE venue_id = ?",
+            arguments: [venueId]
+        ))
     }
 
     /// 検索語に一致した会場を event_id ごとに 1 件返す。
@@ -2481,13 +2488,6 @@ final class AppDatabase: @unchecked Sendable {
         return result
     }
 
-    private static func fetchEventIdsAtVenueQuery(_ db: Database, venue: String) throws -> Set<String> {
-        Set(try String.fetchAll(
-            db,
-            sql: "SELECT DISTINCT event_id FROM shows WHERE venue = ?",
-            arguments: [venue]
-        ))
-    }
 
     private static func showsByDateQuery(_ db: Database, date: String) throws -> [Show] {
         try Show.filter(Column("date") == date).order(Column("sort_order")).fetchAll(db)

@@ -58,7 +58,7 @@ struct PollDetailView: View {
             if let poll {
                 ToolbarItem(placement: .topBarTrailing) {
                     // お題そのもののシェア (「このお題に投票しよう！」)。投票有無に関係なく常に出す。
-                    SocialShareMenu(payload: pollPayload(poll: poll), analyticsKey: "poll_detail.share_poll") {
+                    SocialShareMenu(payload: .pollInvite(poll: poll), analyticsKey: "poll_detail.share_poll") {
                         Image(systemName: "square.and.arrow.up")
                     }
                     .accessibilityLabel("このお題をシェア")
@@ -178,14 +178,6 @@ struct PollDetailView: View {
     /// 自分が投票した候補の entityId (ランキング順)。シェア文面と名前解決のキー。
     private var myVotedEntityIds: [String] {
         vm.detail?.entries.filter(\.hasUserVoted).map(\.entityId) ?? []
-    }
-
-    /// お題そのもののシェア内容 (まだ投票していない人への誘い)。
-    private func pollPayload(poll: Poll) -> SocialSharePayload {
-        SocialSharePayload(
-            message: ShareMessage.pollInvite(title: poll.title, endsAt: poll.isActive ? poll.endsAt : nil),
-            url: DeeplinkBuilder.pollURL(id: poll.id)
-        )
     }
 
     /// 「〇〇に投票しました！」のシェア内容。名前が1つも解決できていなければ nil。

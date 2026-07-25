@@ -11,8 +11,11 @@ struct EventListView: View {
     @AppStorage("events_attendance_filter") private var attendanceFilter: String = "all"
     @AppStorage("events_require_favorite") private var requireFavorite: Bool = false
     @AppStorage("events_require_note") private var requireNote: Bool = false
-    /// 会場絞り込み (空 = 絞り込みなし)。会場は show 単位なので VM 側で event_id に逆引きされる。
-    @AppStorage("events_venue") private var venueFilter: String = ""
+    /// 会場絞り込み (venue_id。空 = 絞り込みなし)。会場は show 単位なので VM 側で event_id に逆引きされる。
+    /// 名前ではなく ID で持つので、会場が改名しても絞り込みが外れない。
+    @AppStorage("events_venue_id") private var venueFilter: String = ""
+    /// 会場チップに現行名を出すためのマスタ。
+    @State private var venueDirectory: VenueDirectory = .empty
     /// 0=今後の予定 / 1=開催済み。内部タブで時系列を分ける。
     @AppStorage("events_time_filter") private var timeFilter: Int = 0
 
@@ -194,6 +197,9 @@ struct EventListView: View {
             .task(id: filterKey) {
                 await vm.rebuild(query: listQuery)
             }
+            .task {
+                venueDirectory = (try? await AppContainer.shared.showReading.venueDirectory()) ?? .empty
+            }
             .trackScreen("event_list")
         }
     }
@@ -230,7 +236,9 @@ struct EventListView: View {
                         removableChip("メモあり") { requireNote = false }
                     }
                     if !venueFilter.isEmpty {
-                        removableChip(venueFilter) { venueFilter = "" }
+                        removableChip(venueDirectory.venue(id: venueFilter)?.name ?? venueFilter) {
+                            venueFilter = ""
+                        }
                     }
                 }
                 .padding(.horizontal, 16)

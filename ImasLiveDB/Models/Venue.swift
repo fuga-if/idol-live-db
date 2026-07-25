@@ -121,3 +121,60 @@ extension Collection where Element == VenueName {
         return self.max(by: { ($0.validFrom ?? "") < ($1.validFrom ?? "") })?.name
     }
 }
+
+// MARK: - VenueDirectory
+
+/// 会場マスタ一式をメモリに載せた解決器。
+///
+/// 245施設 + 名前246件 + ホール40件と小さいので一括で読み、公演ごとの引き直し (N+1) を避ける。
+/// 「公演日時点の名前」「その構成でのキャパ」の解決はここに集約する。
+struct VenueDirectory: Sendable {
+    let venues: [Venue]
+    private let byId: [String: Venue]
+    private let namesByVenue: [String: [VenueName]]
+    private let hallsByVenue: [String: [VenueHall]]
+
+    init(venues: [Venue], names: [VenueName], halls: [VenueHall]) {
+        self.venues = venues
+        self.byId = Dictionary(venues.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+        self.namesByVenue = Dictionary(grouping: names, by: \.venueId)
+        self.hallsByVenue = Dictionary(grouping: halls, by: \.venueId)
+    }
+
+    static let empty = VenueDirectory(venues: [], names: [], halls: [])
+
+    func venue(id: String?) -> Venue? {
+        guard let id else { return nil }
+        return byId[id]
+    }
+
+    func halls(of venueId: String) -> [VenueHall] { hallsByVenue[venueId] ?? [] }
+
+    /// 公演日時点の会場名。改名前の公演には当時の名前を返す
+    /// (2021年の公演は「武蔵野の森総合スポーツプラザ」、2025-05-01 以降は「京王アリーナTOKYO」)。
+    func name(venueId: String, on date: String) -> String? {
+        namesByVenue[venueId]?.name(on: date) ?? byId[venueId]?.name
+    }
+
+    /// 公演の会場表示名。会場が未解決 (配信のみ等) なら生文字列にフォールバックする。
+    /// ホールがあれば「幕張メッセ 幕張イベントホール」のように併記する。
+    func displayName(for show: Show) -> String? {
+        guard let venueId = show.venueId, let base = name(venueId: venueId, on: show.date) else {
+            return show.venue
+        }
+        guard let hall = show.hall, !hall.isEmpty else { return base }
+        return "\(base) \(hall)"
+    }
+
+    /// 公演のキャパ。ホール指定があればホール側を優先する
+    /// (さいたまスーパーアリーナはスタジアム37,000 / アリーナ22,500 と倍近く違う)。
+    func capacity(for show: Show) -> Int? {
+        guard let venueId = show.venueId else { return nil }
+        if let hall = show.hall,
+           let match = halls(of: venueId).first(where: { $0.name == hall }),
+           let capacity = match.capacity {
+            return capacity
+        }
+        return byId[venueId]?.capacity
+    }
+}

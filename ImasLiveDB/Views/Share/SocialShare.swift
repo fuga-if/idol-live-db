@@ -22,6 +22,17 @@ struct SocialSharePayload {
     }
 }
 
+extension SocialSharePayload {
+    /// お題への誘いシェア。一覧と詳細で文面/リンクがズレないよう組み立てはここだけ。
+    /// 締切は開催中のときだけ載せる (終了済みに締切を出しても意味がない)。
+    static func pollInvite(poll: Poll) -> SocialSharePayload {
+        SocialSharePayload(
+            message: ShareMessage.pollInvite(title: poll.title, endsAt: poll.isActive ? poll.endsAt : nil),
+            url: DeeplinkBuilder.pollURL(id: poll.id)
+        )
+    }
+}
+
 enum SocialShare {
     /// X (Twitter) の投稿画面 URL。X アプリ未インストールでもブラウザの投稿画面に着地する。
     static func xPostURL(_ payload: SocialSharePayload) -> URL? {

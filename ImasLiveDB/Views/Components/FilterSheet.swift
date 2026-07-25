@@ -144,7 +144,8 @@ struct EventFilterSheet: View {
     @Environment(AppDatabase.self) private var database
     @Environment(\.dismiss) private var dismiss
 
-    /// 会場絞り込み (空 = 絞り込みなし)。
+    /// 会場絞り込み (venue_id。空 = 絞り込みなし)。
+    /// 名前ではなく ID で持つので、会場が改名しても絞り込みが外れない。
     @Binding var venue: String
     @Binding var selectedBrandIds: Set<String>
     /// 除外する EventKind の rawValue を CSV で保持
@@ -156,8 +157,8 @@ struct EventFilterSheet: View {
     @Binding var requireNote: Bool
 
     @State private var brands: [Brand] = []
-    @State private var venueNames: [String] = []
-    /// ListPickerView が Optional<String> を扱うので nil ⇄ "" を橋渡しする。
+    @State private var venueDirectory: VenueDirectory = .empty
+    /// 選択中の会場 (venue_id)。nil = 未選択。
     @State private var localVenue: String?
     @State private var localBrandIds: Set<String> = []
     @State private var localExcluded: Set<EventKind> = []
@@ -175,9 +176,9 @@ struct EventFilterSheet: View {
             List {
                 Section {
                     NavigationLink {
-                        ListPickerView(title: "会場", items: venueNames, selected: $localVenue)
+                        VenuePickerView(directory: venueDirectory, selected: $localVenue)
                     } label: {
-                        Text(localVenue ?? "選択なし")
+                        Text(selectedVenueLabel)
                             .foregroundStyle(localVenue == nil ? DS.ink2 : DS.ink)
                     }
                 } header: {
@@ -257,7 +258,7 @@ struct EventFilterSheet: View {
                 } catch {
                     Logger.database.error("load_failed brands (FilterSheet/event): \(error.localizedDescription)")
                 }
-                venueNames = (try? await AppContainer.shared.showReading.venueNames()) ?? []
+                venueDirectory = (try? await AppContainer.shared.showReading.venueDirectory()) ?? .empty
                 guard !didRestore else { return }
                 localVenue = venue.isEmpty ? nil : venue
                 localBrandIds = selectedBrandIds
@@ -271,6 +272,12 @@ struct EventFilterSheet: View {
             }
             .trackScreen("event_filter_sheet")
         }
+    }
+
+    /// 選択中の会場ラベル。ID から現行名 + 都道府県を引く。
+    private var selectedVenueLabel: String {
+        guard let localVenue, let v = venueDirectory.venue(id: localVenue) else { return "選択なし" }
+        return v.displayNameWithArea
     }
 
     private var hasActiveFilters: Bool {

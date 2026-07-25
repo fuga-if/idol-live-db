@@ -111,16 +111,7 @@ struct PollListView: View {
                     .buttonStyle(.plain)
                     // 一覧から直接お題を拡散できるように (詳細を開かずに誘える)。
                     .contextMenu {
-                        SocialShareMenuItems(
-                            payload: SocialSharePayload(
-                                message: ShareMessage.pollInvite(
-                                    title: poll.title,
-                                    endsAt: poll.isActive ? poll.endsAt : nil
-                                ),
-                                url: DeeplinkBuilder.pollURL(id: poll.id)
-                            ),
-                            analyticsKey: "poll_list.share"
-                        )
+                        SocialShareMenuItems(payload: .pollInvite(poll: poll), analyticsKey: "poll_list.share")
                     }
                 }
             }
