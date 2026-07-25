@@ -228,6 +228,13 @@ ImasLiveDB/
     `handleXxx(ctx): Promise<Response | null>` で未一致なら元の if チェーンへ戻す形。
   - **不正 JSON の 500 を全 19 箇所で 400 に統一**。`docs/ARCHITECTURE-worker.md` の既知課題を解消。
   - 切り出し手順と検証方法は [`ARCHITECTURE-worker.md`](ARCHITECTURE-worker.md) に明文化した。
+- **Worker の単一ルーターを分解 (第二段)**: さらに `routes/tags.ts` (タグ 3 プール + 類似、1,281 行) と
+  `routes/setlist_predictions.ts` (予想セトリ / 出演者予想 / いいね、472 行) を切り出し、
+  **`index.ts` は 4,271 → 1,256 行 (−71%)**。残るのは横断的関心事と `/auth/*` `/admin/*` `/edits` 系。
+- **D1 スキーマの drift を 2 件検出**: `setlist_song_likes` は `CREATE TABLE` がどの migration にも
+  無く (`0025` で補完)、`setlist_predictions` 系は migration が `event_id` なのにコードは `show_id`
+  (未解決)。**`migrations/` だけから作った D1 は本番と一致しない。** 詳細と対処方針は
+  [`ARCHITECTURE-worker.md`](ARCHITECTURE-worker.md) の「D1 スキーマの drift」節。
 
 ### レイヤ違反の検査
 - `Domain/` 配下で `import SwiftUI|GRDB|CloudKit` を grep して 0 を保つ。**`tools/check_domain_purity.sh`** が自動チェック (違反で exit 1)。pre-commit / CI 組み込み候補。

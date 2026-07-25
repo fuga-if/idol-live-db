@@ -32,6 +32,8 @@
 | `routes/context.ts` | ルートハンドラが受け取る `RouteContext` (リクエスト毎のレスポンダを引数で渡す) |
 | `routes/device_aggregates.ts` | `/favorites/*` `/penlight/*` (device 単位の集計。認証不要) |
 | `routes/polls.ts` | `/polls/*` (みんなの投票) |
+| `routes/tags.ts` | `/tags` `/idol-tags` `/unit-tags` の 3 プール + `/{songs,idols,units}/:id/tags` + `/{songs,idols,units}/:id/similar`。タグ専用ヘルパもここに閉じている |
+| `routes/setlist_predictions.ts` | `/me/predictions` `/shows/:id/predictions` `/shows/:id/songs/:id/performers` `/shows/:id/likes` `/shows/:id/songs/:id/like` |
 | `cloudkit.ts` | CloudKit S2S クライアント (`cloudKitModify` / `cloudKitLookup` / forceUpdate・softDelete ビルダ)。`modifiedAt` 強制注入 |
 | `ck_schema.ts` | CloudKit Public DB スキーマ型情報の単一ソース |
 | `edits.ts` | `/edits` 投稿の受付・検証 (`master_validators.ts`) → CloudKit 反映 |
@@ -86,8 +88,35 @@
    本番のこの API を叩いているので、レスポンスキー・ステータス・`Cache-Control` の変化は
    そのまま既存インストールの不具合になる。
 
+## ⚠️ D1 スキーマの drift (未解決・要オーナー確認)
+
+**`migrations/` だけから作った D1 は、本番と同じスキーマにならない。** ローカル開発・新環境・
+災害復旧で「動かない」原因になるので、本番の実スキーマを確認したうえで migration を補うこと。
+
+| 対象 | 状態 |
+|---|---|
+| `setlist_song_likes` | `CREATE TABLE` がどの migration にも無かった → **`0025_setlist_song_likes.sql` で補完済み** (`IF NOT EXISTS` なので本番にあれば no-op)。**適用前に本番の `PRAGMA table_info` と一致するか確認すること。** |
+| `setlist_predictions` / `setlist_prediction_votes` | migration は **`event_id`**、コードは **`show_id`**。rename の migration が存在しない (後発の `setlist_performer_predictions` は正しく `show_id`)。**未解決。** |
+
+`event_id → show_id` を直すには本番の現状を先に見る必要がある:
+
+```bash
+npx wrangler d1 execute imas-live-db --remote \
+  --command "PRAGMA table_info(setlist_predictions);"
+```
+
+- 本番が既に `show_id` なら → 「ローカルだけ古い」ので、追いつくための migration を書く。
+  ただし D1 の migration は本番でも走るため、素の `ALTER TABLE ... RENAME COLUMN` は
+  本番側で `no such column: event_id` になって失敗する。テーブル作り直し (新テーブルへ
+  `INSERT SELECT` → `DROP` → `RENAME`) など、両方の状態で成立する形にする必要がある。
+- 本番が `event_id` のままなら → 予想セトリ機能は本番でも壊れている。まず動作を確認する。
+
+**推測で migration を書かないこと。** ユーザーの投票データが入っているテーブル。
+
 ## 改善余地
 
-- `index.ts` は依然 3,000 行超。残るルート群 (`/edits` `/tags` `/idol-tags` `/unit-tags`
-  `/shows/:id/*` `/admin/*` `/auth/*`) も上記手順で `routes/` へ切り出せる。
+- `index.ts` は 1,256 行 (着手時 4,271 行) まで縮んだ。残っているのは横断的関心事
+  (CORS・レスポンダ・エッジキャッシュ・App Attest・Universal Links) と、
+  `/auth/*` `/users/me` `/admin/*` `/edits` 系 `/leaderboard` `/transfer`。
+  さらに切り出すなら `/auth/*` + `/users/me` あたりが次の単位。
 - ~~不正 JSON ボディが一部 500 になる~~ → 解消済み (全ルートで 400 + `{"error":"invalid JSON body"}`)。
