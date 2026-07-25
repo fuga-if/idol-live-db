@@ -800,8 +800,17 @@ extension AppDatabase {
         }
     }
 
+    /// 会場での公演一覧。 `venue` は会場マスタの ID (`venue_...`)。
+    ///
+    /// 会場を ID 管理にする前は生の会場文字列 (`shows.venue`) で突き合わせていたが、
+    /// 表記ゆれで同じ会場が分断されるため venue_id を正とする。 ID を持たない公演
+    /// (会場が特定できなかったもの) は venue 文字列でしか辿れないので、 後方互換として
+    /// 「ID 一致 または 生文字列一致」の OR にしておく。
     private static func showsByVenueQuery(_ db: Database, venue: String) throws -> [Show] {
-        try Show.filter(Column("venue") == venue).order(Column("date").desc).fetchAll(db)
+        try Show
+            .filter(Column("venue_id") == venue || Column("venue") == venue)
+            .order(Column("date").desc)
+            .fetchAll(db)
     }
 
     /// 会場マスタ一式。245施設 + 名前246件 + ホール40件と小さいので一括で読み、

@@ -9,6 +9,18 @@ struct FilteredShowsView: View {
     @State private var shows: [Show] = []
     @State private var eventNames: [String: String] = [:]
     @State private var isLoading = true
+    /// 会場 ID → 表示名。 criterion が持つのは ID なので、 タイトルに出す前に名前へ解決する
+    /// (解決前は ID がそのまま "venue_京王アリーナtokyo での公演" と出てしまう)。
+    @State private var venueName: String?
+    @State private var venueDirectory: VenueDirectory = .empty
+
+    /// 会場は名前を解決できたらそれを使う。 日付など他の criterion は既定のまま。
+    private var resolvedTitle: String {
+        if case .venue = criterion, let venueName {
+            return "\(venueName)での公演"
+        }
+        return criterion.navigationTitle
+    }
 
     var body: some View {
         Group {
@@ -42,7 +54,7 @@ struct FilteredShowsView: View {
                 .background(DS.bg)
             }
         }
-        .navigationTitle(criterion.navigationTitle)
+        .navigationTitle(resolvedTitle)
         .navigationBarTitleDisplayMode(.inline)
         .task { await loadShows() }
         .trackScreen("filtered_shows")
@@ -62,7 +74,9 @@ struct FilteredShowsView: View {
                         .font(.imasSubhead)
                         .foregroundStyle(DS.ink2)
                 }
-                if let venue = show.venue {
+                // 会場マスタがあれば公演日時点の名前を出す (改称前の公演は当時の名前)。
+                // 無い公演は生の venue 文字列にフォールバックする。
+                if let venue = venueDirectory.displayName(for: show) ?? show.venue {
                     if !eventName.isEmpty {
                         Text("·").font(.imasCaption).foregroundStyle(DS.ink3)
                     }
@@ -83,6 +97,13 @@ struct FilteredShowsView: View {
         isLoading = true
         do {
             shows = try await AppContainer.shared.showReading.shows(criterion: criterion)
+            let directory = try await AppContainer.shared.showReading.venueDirectory()
+            venueDirectory = directory
+            if case .venue(let venueId) = criterion {
+                // 会場は改称するので、 一覧の代表として最新の名前 (venues.name) を使う。
+                // 各行の「当時の名前」は show 側で解決済み。
+                venueName = directory.venue(id: venueId)?.name
+            }
             let eventIds = Set(shows.map(\.eventId))
             var names: [String: String] = [:]
             for id in eventIds {
