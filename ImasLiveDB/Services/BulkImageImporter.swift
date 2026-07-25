@@ -45,6 +45,44 @@ final class BulkImageImporter {
         )
     }
 
+    /// ユニット画像 JSON を取得し、各ユニットのアイコンを custom_images_units/{unitId}/ に保存。
+    /// JSON 形式: { "ユニット名 or name_alt or unit_id": "https://画像URL" }
+    ///
+    /// 同名ユニットが複数ある (315 STARS / Café Parade の表記ゆれ等) 場合、名前で引くと
+    /// どちらに入るか不定になる。 常設ユニット (is_permanent) を優先して登録し、
+    /// 非常設の重複エントリで上書きされないようにする。
+    func importUnitImagesFromURL(_ urlString: String, database: AppDatabase) async {
+        await runImport(
+            urlString: urlString,
+            label: "ユニット",
+            run: { _ in
+                let units = try database.fetchAllUnits()
+                var nameToId: [String: String] = [:]
+                func register(_ key: String, _ id: String, overwrite: Bool) {
+                    for k in [key, Self.normalizeName(key)] {
+                        if overwrite || nameToId[k] == nil { nameToId[k] = id }
+                    }
+                }
+                // 非常設 → 常設 の順に入れ、常設が最後に勝つようにする。
+                for unit in units where !unit.isPermanent {
+                    register(unit.id, unit.id, overwrite: false)
+                    register(unit.name, unit.id, overwrite: false)
+                    if let alt = unit.nameAlt { register(alt, unit.id, overwrite: false) }
+                }
+                for unit in units where unit.isPermanent {
+                    register(unit.id, unit.id, overwrite: true)
+                    register(unit.name, unit.id, overwrite: true)
+                    if let alt = unit.nameAlt { register(alt, unit.id, overwrite: true) }
+                }
+                return (nameToId, { id, image in
+                    // ユニットはギャラリー方式。 一括インポートは「アイコンを設定」なので
+                    // 既存を消して 1 枚にする (再実行で同じ絵が積み上がらない)。
+                    try await self.imageService.saveImage(image, for: id, kind: .unit)
+                })
+            }
+        )
+    }
+
     /// アイドル画像 JSON を取得して一括ダウンロード。既存画像は上書きする。
     func importFromURL(_ urlString: String, database: AppDatabase) async {
         await runImport(

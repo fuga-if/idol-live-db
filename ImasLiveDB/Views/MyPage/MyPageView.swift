@@ -52,8 +52,11 @@ struct MyPageView: View {
     @State private var showImageImport = false
     @State private var brandImageURL: String = ""
     @State private var showBrandImageImport = false
+    @State private var unitImageURL: String = ""
+    @State private var showUnitImageImport = false
     @State private var idolTemplateURL: URL?
     @State private var brandTemplateURL: URL?
+    @State private var unitTemplateURL: URL?
     @State private var syncDiagnostics: SyncDiagnostics?
     @State private var ckQueryProbeResult: String?
     @State private var showDeleteAccountConfirm = false
@@ -166,6 +169,19 @@ struct MyPageView: View {
                 Button("キャンセル", role: .cancel) {}
             } message: {
                 Text("ブランド名(または short_name / id)と画像URLのJSONファイルのURLを入力してください。\n形式: {\"765AS\": \"画像URL\", ...}")
+            }
+            .alert("ユニット画像インポート", isPresented: $showUnitImageImport) {
+                TextField("JSON URL", text: $unitImageURL)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                Button("インポート") {
+                    Task {
+                        await importer.importUnitImagesFromURL(unitImageURL, database: database)
+                    }
+                }
+                Button("キャンセル", role: .cancel) {}
+            } message: {
+                Text("ユニット名(または id)と画像URLのJSONファイルのURLを入力してください。\n形式: {\"S.E.M\": \"画像URL\", ...}")
             }
             .sheet(isPresented: $showHelp) {
                 HelpView()
@@ -523,6 +539,20 @@ struct MyPageView: View {
             if let url = brandTemplateURL {
                 ShareLink(item: url) {
                     Label("型紙 JSON をダウンロード (ブランド)", systemImage: "square.and.arrow.down")
+                        .font(.imasCaption)
+                        .foregroundStyle(DS.ink2)
+                }
+            }
+
+            Button {
+                AppAnalytics.tap("my_page.unit_image_import")
+                showUnitImageImport = true
+            } label: {
+                Label("ユニット画像をインポート", systemImage: "person.3")
+            }
+            if let url = unitTemplateURL {
+                ShareLink(item: url) {
+                    Label("型紙 JSON をダウンロード (ユニット)", systemImage: "square.and.arrow.down")
                         .font(.imasCaption)
                         .foregroundStyle(DS.ink2)
                 }
@@ -1035,6 +1065,15 @@ struct MyPageView: View {
             brandTemplateURL = try Self.writeJSONTemplate(
                 pairs: brandMapping,
                 fileName: "brand_images_template.json"
+            )
+
+            // ユニットは常設のみ。 公演ごとの臨時ユニット (「〇〇 + 〇〇」等) まで並べると
+            // 型紙が数百行になり、 アイコンを用意したい常設ユニットが埋もれる。
+            let units = try await AppContainer.shared.unitReading.unitIndex().units
+            let unitMapping = units.filter(\.isPermanent).map { ($0.name, "") }
+            unitTemplateURL = try Self.writeJSONTemplate(
+                pairs: unitMapping,
+                fileName: "unit_images_template.json"
             )
         } catch {
             Logger.database.error("template_generation_failed: \(error.localizedDescription)")
