@@ -119,3 +119,10 @@ export async function commitIpRateLimit(
     .bind(ip, bucket)
     .run();
 }
+
+/**
+ * コミュニティ投票の 1人あたり票数上限。
+ * 「みんなの投票」(お題1件) と「セトリ予想」(公演1件) で同じ 3票に揃えている
+ * (iOS の CommunityVoteLimit.perTarget と同値)。
+ */
+export const VOTE_LIMIT = 3;

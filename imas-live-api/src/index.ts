@@ -5,8 +5,12 @@ import {
   base64UrlEncode, peekJwtIssuer,
   SESSION_JWT_ISSUER, SESSION_JWT_TTL_SECONDS,
 } from "./auth";
-import { checkRateLimit, dryCheckIpRateLimit, commitIpRateLimit } from "./rate_limit";
-import { parsePositiveInt, validateOpaqueKey } from "./validation";
+import { checkRateLimit, dryCheckIpRateLimit, commitIpRateLimit, VOTE_LIMIT } from "./rate_limit";
+import {
+  parsePositiveInt, validateOpaqueKey, escapeLike,
+  parseScopeIds, validateScopeIdsAgainstTable,
+} from "./validation";
+import { upsertUser, checkIsAdmin } from "./users";
 import { handleDeviceAggregates } from "./routes/device_aggregates";
 import { fetchBadges, calcTier } from "./badges";
 import { handleScheduled } from "./apply";
@@ -85,21 +89,8 @@ function checkOrigin(request: Request, env: Env): boolean {
  */
 
 /** Escape LIKE wildcards so user input is treated literally. */
-function escapeLike(s: string): string {
-  return s.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
-}
 
 /** polls.scope_brand_ids / scope_entity_ids の JSON 配列文字列を string[] にパース。NULL や不正値は null を返す。 */
-function parseScopeIds(raw: string | null | undefined): string[] | null {
-  if (raw == null) return null;
-  try {
-    const v = JSON.parse(raw);
-    if (Array.isArray(v) && v.every((x) => typeof x === "string")) return v;
-  } catch {
-    /* fallthrough */
-  }
-  return null;
-}
 
 /**
  * 投票候補スコープの ID 配列を検証 + DB 実在チェック。
@@ -110,48 +101,6 @@ function parseScopeIds(raw: string | null | undefined): string[] | null {
  * brand スコープ ({minLen:1, maxLen:16, maxEntryLen:32, allowDuplicates:true})、
  * manual スコープ ({minLen:2, maxLen:500, maxEntryLen:64, allowDuplicates:false}) で共用。
  */
-async function validateScopeIdsAgainstTable(
-  db: D1Database,
-  input: any,
-  opts: {
-    minLen: number;
-    maxLen: number;
-    maxEntryLen: number;
-    allowDuplicates: boolean;
-    /**
-     * 実在チェック対象テーブル。 null の場合は実在チェックをスキップ。
-     * - `brands`: 件数が少なく typo を弾きたいので必須
-     * - `songs`/`idols`: バンドル master.sqlite と server D1 の同期ラグで
-     *   クライアント側に存在する ID が server に未投入のことがあるため null 推奨
-     */
-    table: "brands" | "songs" | "idols" | null;
-    fieldName: string;
-  }
-): Promise<{ json: string } | { error: string }> {
-  if (!Array.isArray(input) || input.length < opts.minLen) {
-    return { error: `${opts.fieldName} must contain at least ${opts.minLen} ${opts.minLen === 1 ? "entry" : "entries"}` };
-  }
-  if (input.length > opts.maxLen) {
-    return { error: `${opts.fieldName} must contain at most ${opts.maxLen} entries` };
-  }
-  if (!input.every((v: any) => typeof v === "string" && v.length > 0 && v.length <= opts.maxEntryLen)) {
-    return { error: `${opts.fieldName} entries must be non-empty strings` };
-  }
-  const unique = Array.from(new Set(input as string[]));
-  if (!opts.allowDuplicates && unique.length !== input.length) {
-    return { error: `${opts.fieldName} contains duplicates` };
-  }
-  if (opts.table != null) {
-    const rows = await db
-      .prepare(`SELECT id FROM ${opts.table} WHERE id IN (${unique.map(() => "?").join(",")})`)
-      .bind(...unique)
-      .all<{ id: string }>();
-    if ((rows.results?.length ?? 0) !== unique.length) {
-      return { error: `${opts.fieldName} contains unknown id` };
-    }
-  }
-  return { json: JSON.stringify(unique) };
-}
 
 async function cleanOldRateLimitBuckets(db: D1Database): Promise<void> {
   const oneDayAgo = Math.floor(Date.now() / 1000 / 60) - 1440;
@@ -320,22 +269,6 @@ function makeResponders(request: Request, env: Env) {
 // Upsert user helper
 // ---------------------------------------------------------------------------
 
-async function upsertUser(env: Env, uid: string, name?: string, picture?: string) {
-  // display_name は INSERT (初回ログインで行を作る) 時のみ設定し、CONFLICT では一切更新しない。
-  // 既存ユーザーの表示名は POST /users/me でのみ変更する設計にする。これにより:
-  //  - login: Apple は fullName を初回認可時しか返さず、2台目/再インストール後は name=undefined。
-  //  - community 書き込み: 各ハンドラが upsertUser(uid, user.email) と email を name に渡している。
-  // のどちらでも、ユーザーが POST /users/me で設定した display_name を毎回上書きする事故を防ぐ。
-  // avatar_url は渡されたときだけ更新し、無ければ COALESCE で既存を温存する。
-  await env.DB.prepare(
-    `INSERT INTO users (id, display_name, avatar_url) VALUES (?, ?, ?)
-     ON CONFLICT(id) DO UPDATE SET
-       avatar_url = COALESCE(?, users.avatar_url),
-       updated_at = datetime('now')`
-  )
-    .bind(uid, name || "匿名", picture ?? null, picture ?? null)
-    .run();
-}
 
 // ---------------------------------------------------------------------------
 // Universal Links (deeplink) helpers
@@ -348,12 +281,6 @@ const APPLE_APP_ID = "GQ3WP34LFW.com.fugaif.ImasLiveDB";
 const APP_STORE_URL = "https://apps.apple.com/jp/app/id6763342297";
 const APP_STORE_NUMERIC_ID = "6763342297";
 
-/**
- * コミュニティ投票の 1人あたり票数上限。
- * 「みんなの投票」(お題1件) と「セトリ予想」(公演1件) で同じ 3票に揃えている
- * (iOS の CommunityVoteLimit.perTarget と同値)。
- */
-const VOTE_LIMIT = 3;
 
 /** HTML テキスト/属性値に埋め込む動的文字列のエスケープ (XSS 防止)。 */
 function escapeHtml(s: string): string {
@@ -3697,15 +3624,3 @@ async function resolveSlugFromTable(
   return `${base}-${Date.now()}`;
 }
 
-async function checkIsAdmin(env: Env, uid: string): Promise<boolean> {
-  // allowlist check via env var
-  if (env.ADMIN_USER_IDS) {
-    const allowed = env.ADMIN_USER_IDS.split(",").map((s) => s.trim()).filter(Boolean);
-    if (allowed.includes(uid)) return true;
-  }
-  // DB check
-  const row = await env.DB.prepare("SELECT is_admin FROM users WHERE id = ?")
-    .bind(uid)
-    .first<{ is_admin: number }>();
-  return !!row?.is_admin;
-}
