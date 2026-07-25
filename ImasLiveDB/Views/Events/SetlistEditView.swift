@@ -119,7 +119,7 @@ struct SetlistEditView: View {
     @ViewBuilder
     private var content: some View {
         if isLoading {
-            ProgressView()
+            ImasLoadingState()
         } else {
             List {
                 ForEach($rows) { $row in

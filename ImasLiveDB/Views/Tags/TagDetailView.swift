@@ -19,7 +19,7 @@ struct TagDetailView: View {
     var body: some View {
         List {
             if isLoading {
-                HStack { Spacer(); ProgressView(); Spacer() }
+                ImasInlineLoading()
                     .listRowBackground(Color.clear)
             } else if let detail {
                 // タグ情報セクション

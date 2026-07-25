@@ -26,9 +26,7 @@ struct PollListView: View {
                     .padding(.vertical, DS.sp3)
 
                 if vm.isLoading && currentPolls.isEmpty {
-                    Spacer()
-                    ProgressView()
-                    Spacer()
+                    ImasLoadingState()
                 } else if !currentPolls.isEmpty {
                     // 既にデータがあれば、リロードが一時的に失敗してもリストは消さない
                     // (引っ張って更新が通信エラーで全消えになる UX を防ぐ)。

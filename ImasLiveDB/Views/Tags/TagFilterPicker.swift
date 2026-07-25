@@ -44,7 +44,7 @@ struct TagFilterPicker: View {
                 }
                 Section {
                     if isLoading {
-                        HStack { Spacer(); ProgressView(); Spacer() }
+                        ImasInlineLoading()
                             .listRowBackground(Color.clear)
                     } else if tags.isEmpty {
                         Text("タグがありません").foregroundStyle(DS.ink2)

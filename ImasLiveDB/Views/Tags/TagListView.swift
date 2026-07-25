@@ -46,7 +46,7 @@ struct TagListView: View {
                 .listRowBackground(Color.clear)
 
                 if vm.isLoading {
-                    HStack { Spacer(); ProgressView(); Spacer() }
+                    ImasInlineLoading()
                         .listRowBackground(Color.clear)
                 } else if filteredTags.isEmpty {
                     ImasEmptyState(

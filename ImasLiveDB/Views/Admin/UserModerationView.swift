@@ -238,7 +238,7 @@ struct UserModerationView: View {
     private var editsSection: some View {
         Section("最近の編集") {
             if isLoading && edits.isEmpty {
-                HStack { Spacer(); ProgressView(); Spacer() }
+                ImasInlineLoading()
             } else if let loadError, edits.isEmpty {
                 Text(loadError)
                     .font(.imasSubhead)

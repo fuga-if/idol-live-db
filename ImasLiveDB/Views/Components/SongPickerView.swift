@@ -22,7 +22,7 @@ struct SongPickerView: View {
         NavigationStack {
             Group {
                 if isLoading {
-                    ProgressView()
+                    ImasLoadingState()
                 } else {
                     List(filtered) { song in
                         Button {

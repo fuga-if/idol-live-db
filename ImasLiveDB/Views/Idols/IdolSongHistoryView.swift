@@ -18,9 +18,7 @@ struct IdolSongHistoryView: View {
         ScrollView {
             VStack(spacing: DS.sp6) {
                 if isLoading {
-                    ProgressView()
-                        .frame(maxWidth: .infinity)
-                        .padding(.top, DS.sp7)
+                    ImasInlineLoading()
                 } else if history.isEmpty {
                     ImasEmptyState(
                         systemImage: "music.microphone",

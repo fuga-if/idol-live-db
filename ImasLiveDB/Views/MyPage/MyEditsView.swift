@@ -41,8 +41,7 @@ struct MyEditsView: View {
                 }
 
                 if isLoadingMore {
-                    ProgressView()
-                        .padding(.vertical, 12)
+                    ImasInlineLoading()
                 }
             }
             .padding(.horizontal, 16)

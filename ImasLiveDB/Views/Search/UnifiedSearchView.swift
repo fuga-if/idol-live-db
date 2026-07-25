@@ -120,8 +120,7 @@ struct UnifiedSearchView: View {
         if searchText.isEmpty {
             historyView
         } else if isSearching {
-            ProgressView()
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            ImasLoadingState()
                 .background(DS.bg)
         } else if visibleResultCount == 0 {
             ImasEmptyState(

@@ -168,9 +168,7 @@ struct CollectionShareSheet: View {
                     }
                     .padding(DS.sp5)
                 } else {
-                    ProgressView()
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, DS.sp8)
+                    ImasInlineLoading()
                 }
             }
             .background(DS.bg)

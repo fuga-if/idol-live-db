@@ -38,9 +38,7 @@ struct GenericGridView<Item: GridCardItem>: View {
     var body: some View {
         ScrollView {
             if isLoading {
-                ProgressView()
-                    .frame(maxWidth: .infinity)
-                    .padding(.top, 60)
+                ImasInlineLoading()
             } else if items.isEmpty {
                 ImasEmptyState(systemImage: emptySystemImage, title: emptyTitle)
                     .padding(.top, 60)

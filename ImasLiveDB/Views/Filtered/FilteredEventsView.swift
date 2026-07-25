@@ -13,8 +13,7 @@ struct FilteredEventsView: View {
     var body: some View {
         Group {
             if isLoading {
-                ProgressView()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                ImasLoadingState()
             } else if eventsWithDate.isEmpty {
                 ImasEmptyState(
                     systemImage: "music.mic",

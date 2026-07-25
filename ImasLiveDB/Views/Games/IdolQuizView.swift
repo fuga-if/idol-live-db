@@ -50,7 +50,7 @@ struct IdolQuizView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: DS.sp5) {
                 if isLoading {
-                    ProgressView().tint(DS.sys).frame(maxWidth: .infinity).padding(.top, DS.sp9)
+                    ImasInlineLoading(tint: DS.sys)
                 } else if sessionDone {
                     QuizResultView(points: points, maxPoints: sessionLength * basePoints,
                                    correct: correct, questions: asked,

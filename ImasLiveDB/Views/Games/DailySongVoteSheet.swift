@@ -21,7 +21,7 @@ struct DailySongVoteSheet: View {
                         .padding(.bottom, DS.sp1)
 
                     if isLoading {
-                        ProgressView().tint(DS.sys).frame(maxWidth: .infinity).padding(.top, DS.sp8)
+                        ImasInlineLoading(tint: DS.sys)
                     } else {
                         ForEach(picks, id: \.song.id) { pair in
                             songCard(pair.song, brand: pair.brand)

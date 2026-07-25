@@ -19,9 +19,7 @@ struct TagActivityView: View {
         ScrollView {
             VStack(spacing: DS.sp6) {
                 if isLoading {
-                    ProgressView()
-                        .frame(maxWidth: .infinity)
-                        .padding(.top, DS.sp7)
+                    ImasInlineLoading()
                 } else if let activity, !activity.trendingTags.isEmpty || !activity.risingEntities.isEmpty || !activity.recent.isEmpty {
                     domainPicker
                     let trends = activity.trendingTags.filter { $0.domain == selectedDomain }

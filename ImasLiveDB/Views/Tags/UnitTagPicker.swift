@@ -62,7 +62,7 @@ struct UnitTagPicker: View {
                             .font(.imasFootnote.weight(.semibold))
                             .foregroundStyle(DS.ink3)
                         if vm.isLoading {
-                            ProgressView().frame(maxWidth: .infinity).padding(.vertical, DS.sp5)
+                            ImasInlineLoading()
                         } else if vm.tags.isEmpty {
                             Text("タグが見つかりません").font(.imasFootnote).foregroundStyle(DS.ink3)
                         } else {

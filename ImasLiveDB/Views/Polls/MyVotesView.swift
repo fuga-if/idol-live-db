@@ -29,7 +29,7 @@ struct MyVotesView: View {
     var body: some View {
         Group {
             if isLoading && entries.isEmpty {
-                ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+                ImasLoadingState()
             } else if entries.isEmpty {
                 ImasEmptyState(
                     systemImage: "chart.bar.doc.horizontal",

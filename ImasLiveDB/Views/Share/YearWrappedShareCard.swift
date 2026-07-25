@@ -335,9 +335,7 @@ struct YearWrappedShareSheet: View {
                     }
 
                     if isLoading {
-                        ProgressView()
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, DS.sp8)
+                        ImasInlineLoading()
                     } else if let stats, stats.hasContent {
                         ShareCardActionPane { size in
                             YearWrappedShareCard(stats: stats, size: size)

@@ -39,7 +39,7 @@ struct FilteredShowsView: View {
     var body: some View {
         Group {
             if isLoading {
-                ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+                ImasLoadingState()
             } else if shows.isEmpty {
                 ImasEmptyState(systemImage: "ticket", title: "公演が見つかりません")
             } else {

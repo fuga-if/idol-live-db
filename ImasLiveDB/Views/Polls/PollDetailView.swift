@@ -33,8 +33,7 @@ struct PollDetailView: View {
     var body: some View {
         Group {
             if vm.isLoading {
-                ProgressView()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                ImasLoadingState()
             } else if let detail = vm.detail {
                 contentView(detail: detail)
             } else {

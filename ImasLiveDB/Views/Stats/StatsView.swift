@@ -218,7 +218,7 @@ struct StatsView: View {
                 .onChange(of: uncollectedScope) { _, _ in applyUncollectedScope() }
 
             if isLoadingDashboard {
-                HStack { Spacer(); ProgressView(); Spacer() }
+                ImasInlineLoading()
                     .padding(.vertical, DS.sp6)
             } else if uncollectedSongs.isEmpty {
                 ImasEmptyState(
@@ -387,9 +387,7 @@ struct StatsView: View {
 
             if isLoadingFavorites {
                 HStack {
-                    Spacer()
-                    ProgressView()
-                    Spacer()
+                    ImasLoadingState()
                 }
                 .padding(.vertical, DS.sp6)
             } else if favoritesRanking.isEmpty {

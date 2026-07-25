@@ -780,6 +780,37 @@ private extension View {
 
 // MARK: - EmptyState (投稿導線つき)
 
+// MARK: - ローディング
+
+/// 画面・シート本体の読み込み中。 空いている領域いっぱいに出して中央に置く。
+///
+/// 各画面が `ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)` を
+/// 手書きしていて、 付ける修飾子が画面ごとに違っていた (何も付けず左上に寄るものもあった)。
+/// 空状態が `ImasEmptyState` に集約されているのと対になる存在。
+struct ImasLoadingState: View {
+    var body: some View {
+        ProgressView()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+/// 一覧の途中やセクション内の読み込み中。 行 1 つ分の高さで横中央に置く。
+///
+/// `HStack { Spacer(); ProgressView(); Spacer() }` の置き換え。 上下の余白が
+/// 呼び出し側でまちまちだったので既定を持たせ、 必要なら `padding` で調整する。
+struct ImasInlineLoading: View {
+    /// テーマ色の背景に置く場合の色。 既定 (nil) はシステム標準。
+    /// ゲーム系のように背景が濃い画面では既定色が沈むので明示する。
+    var tint: Color? = nil
+
+    var body: some View {
+        ProgressView()
+            .tint(tint)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, DS.sp5)
+    }
+}
+
 struct ImasEmptyState: View {
     let systemImage: String
     let title: String

@@ -106,7 +106,7 @@ struct SetlistPredictionView: View {
     @ViewBuilder
     private var predictionBody: some View {
         if isLoading && predictions.isEmpty {
-            ProgressView().frame(maxWidth: .infinity).padding(.vertical, DS.sp4)
+            ImasInlineLoading()
         } else if predictions.isEmpty {
             ImasEmptyState(systemImage: "music.note.list",
                            title: "まだ予想がありません",
