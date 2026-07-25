@@ -1062,10 +1062,6 @@ final class AppDatabase: @unchecked Sendable {
     }
 
     /// 楽曲シリーズ(series_group)の一覧。ブランド指定時はそのブランドに絞る。曲数降順。
-    func fetchSeriesGroups(brandIds: Set<String> = []) throws -> [String] {
-        try dbQueue.read { db in try Self.fetchSeriesGroupsQuery(db, brandIds: brandIds) }
-    }
-
     func fetchSeriesGroupsAsync(brandIds: Set<String> = []) async throws -> [String] {
         try await dbQueue.read { db in try Self.fetchSeriesGroupsQuery(db, brandIds: brandIds) }
     }
@@ -1098,10 +1094,6 @@ final class AppDatabase: @unchecked Sendable {
     }
 
     /// アイドル取得（ID指定）
-    func fetchIdol(id: String) throws -> Idol? {
-        try dbQueue.read { db in try Self.fetchIdolQuery(db, id: id) }
-    }
-
     func fetchIdolAsync(id: String) async throws -> Idol? {
         try await dbQueue.read { db in try Self.fetchIdolQuery(db, id: id) }
     }
@@ -1137,10 +1129,6 @@ final class AppDatabase: @unchecked Sendable {
     }
 
     /// イベントの映像円盤 (event_releases)。所有チェックUIの母集団。発売日→sort_order 順。
-    func fetchEventReleases(eventId: String) throws -> [EventRelease] {
-        try dbQueue.read { db in try Self.fetchEventReleasesQuery(db, eventId: eventId) }
-    }
-
     func fetchEventReleasesAsync(eventId: String) async throws -> [EventRelease] {
         try await dbQueue.read { db in try Self.fetchEventReleasesQuery(db, eventId: eventId) }
     }
@@ -1163,10 +1151,6 @@ final class AppDatabase: @unchecked Sendable {
     }
 
     /// 楽曲の歌唱アイドル取得
-    func fetchSongArtists(songId: String, role: String? = nil) throws -> [Idol] {
-        try dbQueue.read { db in try Self.fetchSongArtistsQuery(db, songId: songId, role: role) }
-    }
-
     func fetchSongArtistsAsync(songId: String, role: String? = nil) async throws -> [Idol] {
         try await dbQueue.read { db in try Self.fetchSongArtistsQuery(db, songId: songId, role: role) }
     }
@@ -1187,10 +1171,6 @@ final class AppDatabase: @unchecked Sendable {
     }
 
     /// 楽曲の披露履歴
-    func fetchSongPerformanceHistory(songId: String) throws -> [PerformanceHistoryRow] {
-        try dbQueue.read { db in try Self.fetchSongPerformanceHistoryQuery(db, songId: songId) }
-    }
-
     func fetchSongPerformanceHistoryAsync(songId: String) async throws -> [PerformanceHistoryRow] {
         try await dbQueue.read { db in try Self.fetchSongPerformanceHistoryQuery(db, songId: songId) }
     }
@@ -1250,10 +1230,6 @@ final class AppDatabase: @unchecked Sendable {
     }
 
     /// アイドルの所属ユニット一覧
-    func fetchIdolUnits(idolId: String) throws -> [Unit] {
-        try dbQueue.read { db in try Self.fetchIdolUnitsQuery(db, idolId: idolId) }
-    }
-
     func fetchIdolUnitsAsync(idolId: String) async throws -> [Unit] {
         try await dbQueue.read { db in try Self.fetchIdolUnitsQuery(db, idolId: idolId) }
     }
@@ -1270,10 +1246,6 @@ final class AppDatabase: @unchecked Sendable {
 
     /// 編集フィード用: recordType + recordName から人間可読のタイトル(曲名/公演名/アイドル名 等)を引く。
     /// 解決できない recordType (コミュニティ投稿等) は nil。
-    func fetchEditRecordTitle(recordType: String, recordName: String) throws -> String? {
-        try dbQueue.read { db in try Self.fetchEditRecordTitleQuery(db, recordType: recordType, recordName: recordName) }
-    }
-
     func fetchEditRecordTitleAsync(recordType: String, recordName: String) async throws -> String? {
         try await dbQueue.read { db in try Self.fetchEditRecordTitleQuery(db, recordType: recordType, recordName: recordName) }
     }
@@ -1322,10 +1294,6 @@ final class AppDatabase: @unchecked Sendable {
 
     /// 編集レコードが属する公演 ID を解決する (セトリ系編集 → 該当公演のセトリへ遷移するため)。
     /// Show/ShowSetlist は recordName 自体が公演 ID。SetlistItem/SetlistPerformer は親を辿る。
-    func fetchEditRecordShowId(recordType: String, recordName: String) throws -> String? {
-        try dbQueue.read { db in try Self.fetchEditRecordShowIdQuery(db, recordType: recordType, recordName: recordName) }
-    }
-
     func fetchEditRecordShowIdAsync(recordType: String, recordName: String) async throws -> String? {
         try await dbQueue.read { db in try Self.fetchEditRecordShowIdQuery(db, recordType: recordType, recordName: recordName) }
     }
@@ -1351,10 +1319,6 @@ final class AppDatabase: @unchecked Sendable {
     }
 
     /// 編集レコードが属する曲 ID を解決する (SongVideo/SongCall 編集 → 該当曲詳細へ遷移するため)。
-    func fetchEditRecordSongId(recordType: String, recordName: String) throws -> String? {
-        try dbQueue.read { db in try Self.fetchEditRecordSongIdQuery(db, recordType: recordType, recordName: recordName) }
-    }
-
     func fetchEditRecordSongIdAsync(recordType: String, recordName: String) async throws -> String? {
         try await dbQueue.read { db in try Self.fetchEditRecordSongIdQuery(db, recordType: recordType, recordName: recordName) }
     }
@@ -1375,11 +1339,6 @@ final class AppDatabase: @unchecked Sendable {
 
     /// 指定ユニット ID のうち、楽曲を 1 曲以上持つもの (songs.unit_id 参照) を返す。
     /// アイドル詳細で「曲ありユニット / 曲なしユニット」を分けるのに使う。
-    func fetchUnitIdsWithSongs(unitIds: [String]) throws -> Set<String> {
-        guard !unitIds.isEmpty else { return [] }
-        return try dbQueue.read { db in try Self.fetchUnitIdsWithSongsQuery(db, unitIds: unitIds) }
-    }
-
     func fetchUnitIdsWithSongsAsync(unitIds: [String]) async throws -> Set<String> {
         guard !unitIds.isEmpty else { return [] }
         return try await dbQueue.read { db in try Self.fetchUnitIdsWithSongsQuery(db, unitIds: unitIds) }
@@ -1396,10 +1355,6 @@ final class AppDatabase: @unchecked Sendable {
     }
 
     /// アイドルの楽曲一覧（song_type指定可）
-    func fetchIdolSongs(idolId: String, role: String? = nil) throws -> [Song] {
-        try dbQueue.read { db in try Self.fetchIdolSongsQuery(db, idolId: idolId, role: role) }
-    }
-
     func fetchIdolSongsAsync(idolId: String, role: String? = nil) async throws -> [Song] {
         try await dbQueue.read { db in try Self.fetchIdolSongsQuery(db, idolId: idolId, role: role) }
     }
@@ -1420,10 +1375,6 @@ final class AppDatabase: @unchecked Sendable {
     }
 
     /// 声優名で担当アイドルを逆引き (idol.voice_actors の カンマ区切りに合致するもの)。
-    func fetchIdolsByVoiceActor(name: String) throws -> [Idol] {
-        try dbQueue.read { db in try Self.fetchIdolsByVoiceActorQuery(db, name: name) }
-    }
-
     func fetchIdolsByVoiceActorAsync(name: String) async throws -> [Idol] {
         try await dbQueue.read { db in try Self.fetchIdolsByVoiceActorQuery(db, name: name) }
     }
@@ -1442,10 +1393,6 @@ final class AppDatabase: @unchecked Sendable {
     }
 
     /// アイドル全員のCV名マップ (idol_id → 現役 voice_actor)。
-    func fetchIdolCastNames() throws -> [String: String] {
-        try dbQueue.read { db in try Self.fetchIdolCastNamesQuery(db) }
-    }
-
     func fetchIdolCastNamesAsync() async throws -> [String: String] {
         try await dbQueue.read { db in try Self.fetchIdolCastNamesQuery(db) }
     }
