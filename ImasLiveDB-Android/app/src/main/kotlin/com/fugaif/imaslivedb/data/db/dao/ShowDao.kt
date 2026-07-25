@@ -4,6 +4,9 @@ import androidx.room.Dao
 import androidx.room.Query
 import com.fugaif.imaslivedb.data.model.Show
 import com.fugaif.imaslivedb.data.model.ShowWithEventName
+import com.fugaif.imaslivedb.data.model.Venue
+import com.fugaif.imaslivedb.data.model.VenueHall
+import com.fugaif.imaslivedb.data.model.VenueName
 
 @Dao
 interface ShowDao {
@@ -39,23 +42,23 @@ interface ShowDao {
     """)
     suspend fun searchShowsWithEventName(pattern: String, limit: Int): List<ShowWithEventName>
 
-    /**
-     * 会場名の一覧 (ピッカー用)。空文字・NULL は除く。
-     * 会場は "千葉・幕張メッセ国際展示場" のように「都道府県・会場名」形式なので、
-     * 名前順で並べると地域ごとにまとまる。
-     */
-    @Query("""
-        SELECT DISTINCT venue FROM shows
-        WHERE venue IS NOT NULL AND venue <> ''
-        ORDER BY venue
-    """)
-    suspend fun fetchVenueNames(): List<String>
+    /** 会場マスタ (施設)。表示順は公演数順に振ってある。 */
+    @Query("SELECT * FROM venues ORDER BY sort_order")
+    suspend fun fetchVenues(): List<Venue>
+
+    /** 改名履歴。当時名の解決に使う。 */
+    @Query("SELECT * FROM venue_names")
+    suspend fun fetchVenueNameRecords(): List<VenueName>
+
+    /** ホール/構成。キャパは構成で変わるので施設と分けて持つ。 */
+    @Query("SELECT * FROM venue_halls")
+    suspend fun fetchVenueHalls(): List<VenueHall>
 
     /**
-     * 指定会場で公演があったイベントの id 一覧。
+     * 指定会場 (venue_id) で公演があったイベントの id 一覧。
      * 会場は show 単位・絞り込み対象は event 単位なので逆引きが要る
      * (1 イベントが複数会場をまたぐツアーもある)。
      */
-    @Query("SELECT DISTINCT event_id FROM shows WHERE venue = :venue")
-    suspend fun fetchEventIdsAtVenue(venue: String): List<String>
+    @Query("SELECT DISTINCT event_id FROM shows WHERE venue_id = :venueId")
+    suspend fun fetchEventIdsAtVenue(venueId: String): List<String>
 }

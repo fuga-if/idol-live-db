@@ -39,6 +39,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fugaif.imaslivedb.data.community.CommunityApi
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.components.ImasEmptyState
+import com.fugaif.imaslivedb.ui.share.ShareMessage
+import com.fugaif.imaslivedb.ui.share.SocialShareIconButton
 import com.fugaif.imaslivedb.ui.theme.DS
 import kotlinx.coroutines.launch
 
@@ -147,7 +149,22 @@ private fun PollCardView(
     val detail = card.detail
     val remaining = (3 - (detail?.myVoteCount ?: 0)).coerceAtLeast(0)
     Column(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(16.dp)) {
-        Text(card.poll.title, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = DS.ink)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                card.poll.title,
+                fontSize = 17.sp,
+                fontWeight = FontWeight.Bold,
+                color = DS.ink,
+                modifier = Modifier.weight(1f)
+            )
+            // 一覧から直接お題を拡散できるように (詳細を開かずに誘える)。
+            SocialShareIconButton(
+                payload = ShareMessage.pollInvitePayload(
+                    card.poll.id, card.poll.title, detail?.endsAtMs, detail?.isActive == true
+                ),
+                contentDescription = "このお題をシェア"
+            )
+        }
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 8.dp)) {
             Text("${detail?.totalVotes ?: 0}票", fontSize = 12.sp, color = DS.ink3)
             if (detail != null) ScopeBadge(detail)

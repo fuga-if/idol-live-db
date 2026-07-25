@@ -11,6 +11,7 @@ import com.fugaif.imaslivedb.data.model.SetlistItem
 import com.fugaif.imaslivedb.data.model.SetlistPerformer
 import com.fugaif.imaslivedb.data.model.SetlistRow
 import com.fugaif.imaslivedb.data.model.Show
+import com.fugaif.imaslivedb.data.model.VenueDirectory
 import com.fugaif.imaslivedb.data.model.ShowCast
 import com.fugaif.imaslivedb.data.model.ShowWithEventName
 
@@ -63,12 +64,19 @@ class EventRepository(private val db: AppDatabase) {
         return db.showDao().fetchLatestShow()
     }
 
-    /** 会場名の一覧 (ピッカー用・名前順)。 */
-    suspend fun fetchVenueNames(): List<String> = db.showDao().fetchVenueNames()
+    /**
+     * 会場マスタ一式。244施設 + 名前245件 + ホール39件と小さいので一括で読み、
+     * 当時名やキャパの解決はメモリ上 (VenueDirectory) で行う (公演ごとの N+1 を避ける)。
+     */
+    suspend fun fetchVenueDirectory(): VenueDirectory = VenueDirectory(
+        venues = db.showDao().fetchVenues(),
+        names = db.showDao().fetchVenueNameRecords(),
+        halls = db.showDao().fetchVenueHalls()
+    )
 
-    /** 指定会場で公演があったイベントの id 集合 (ライブ一覧の会場絞り込み用)。 */
-    suspend fun fetchEventIdsAtVenue(venue: String): Set<String> =
-        db.showDao().fetchEventIdsAtVenue(venue).toSet()
+    /** 指定会場 (venue_id) で公演があったイベントの id 集合 (ライブ一覧の会場絞り込み用)。 */
+    suspend fun fetchEventIdsAtVenue(venueId: String): Set<String> =
+        db.showDao().fetchEventIdsAtVenue(venueId).toSet()
 
     /** オープン編集「セトリ編集」の対象公演を選ぶピッカー用。 */
     suspend fun searchShows(query: String, limit: Int = 30): List<ShowWithEventName> {

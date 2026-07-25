@@ -3,6 +3,7 @@ package com.fugaif.imaslivedb.ui.polls
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -39,6 +40,11 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fugaif.imaslivedb.data.community.CommunityApi
 import com.fugaif.imaslivedb.di.AppModule
+import com.fugaif.imaslivedb.ui.share.ShareLinkBuilder
+import com.fugaif.imaslivedb.ui.share.ShareMessage
+import com.fugaif.imaslivedb.ui.share.SocialShareChip
+import com.fugaif.imaslivedb.ui.share.SocialShareIconButton
+import com.fugaif.imaslivedb.ui.share.SocialSharePayload
 import com.fugaif.imaslivedb.ui.theme.DS
 import kotlinx.coroutines.launch
 
@@ -68,6 +74,17 @@ fun PollDetailScreen(
                 title = { Text(detail?.title ?: "", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                 navigationIcon = {
                     IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "戻る") }
+                },
+                actions = {
+                    // お題そのもののシェア (「このお題に投票しよう！」)。投票有無に関係なく常に出す。
+                    if (detail != null) {
+                        SocialShareIconButton(
+                            payload = ShareMessage.pollInvitePayload(
+                                detail.id, detail.title, detail.endsAtMs, detail.isActive
+                            ),
+                            contentDescription = "このお題をシェア"
+                        )
+                    }
                 }
             )
         }
@@ -112,6 +129,27 @@ fun PollDetailScreen(
                                 if (remaining > 0) "候補を追加して投票 (残り${remaining}/3)" else "投票済み (3/3)",
                                 fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
                                 modifier = Modifier.padding(start = 6.dp)
+                            )
+                        }
+                    }
+
+                    // 自分の投票のシェアは締切後も残す (結果が出てからの方が話題になる)。
+                    val myVoteNames = detail.entries
+                        .filter { it.mine }
+                        .map { state.entityNames[it.entityId] ?: it.entityId }
+                    if (myVoteNames.isNotEmpty()) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
+                        ) {
+                            Text("あなたの投票 ${myVoteNames.size}/3", fontSize = 12.sp, color = DS.ink3)
+                            Spacer(Modifier.weight(1f))
+                            SocialShareChip(
+                                title = "投票をシェア",
+                                payload = SocialSharePayload(
+                                    message = ShareMessage.pollVotes(detail.title, myVoteNames),
+                                    url = ShareLinkBuilder.pollUrl(detail.id)
+                                )
                             )
                         }
                     }

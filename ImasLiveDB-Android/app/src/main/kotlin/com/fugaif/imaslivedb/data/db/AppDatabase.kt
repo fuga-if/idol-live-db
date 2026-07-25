@@ -22,6 +22,9 @@ import com.fugaif.imaslivedb.data.db.dao.SyncDao
 import com.fugaif.imaslivedb.data.db.dao.UnitDao
 import com.fugaif.imaslivedb.data.db.dao.UserMarkDao
 import com.fugaif.imaslivedb.data.model.Anniversary
+import com.fugaif.imaslivedb.data.model.Venue
+import com.fugaif.imaslivedb.data.model.VenueHall
+import com.fugaif.imaslivedb.data.model.VenueName
 import com.fugaif.imaslivedb.data.model.Brand
 import com.fugaif.imaslivedb.data.model.Event
 import com.fugaif.imaslivedb.data.model.Idol
@@ -61,9 +64,12 @@ import com.fugaif.imaslivedb.data.model.UserMark
         Meta::class,
         Staff::class,
         Anniversary::class,
-        PersonalTag::class
+        PersonalTag::class,
+        Venue::class,
+        VenueName::class,
+        VenueHall::class
     ],
-    version = 8,
+    version = 9,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -105,7 +111,7 @@ abstract class AppDatabase : RoomDatabase() {
             )
                 // スキーマ変更時は破壊的再構築せず Room Migration を書く (iOS の DatabaseMigrations と対)。
                 // UserMark 等のローカル唯一データを保全するため (.fallbackToDestructiveMigration は使わない)。
-                .addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
+                .addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
                 .addCallback(seedCallback)
                 .build()
         }
@@ -230,6 +236,43 @@ abstract class AppDatabase : RoomDatabase() {
                         "created_at TEXT NOT NULL, " +
                         "PRIMARY KEY(entity_type, entity_id, tag_name))"
                 )
+            }
+        }
+
+        /**
+         * 会場を ID で管理する (iOS v27_venues と対応)。
+         *
+         * それまで shows.venue は自由文字列で、同じ会場が最大14通りに割れていた。
+         * 改名する会場もある (武蔵野の森総合スポーツプラザ → 京王アリーナTOKYO) ため、
+         * 名前ではなく ID で同一性を持たせて履歴が分断されないようにする。
+         */
+        val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS venues (" +
+                        "id TEXT NOT NULL, name TEXT NOT NULL, name_kana TEXT, " +
+                        "prefecture TEXT, city TEXT, aliases TEXT, capacity INTEGER, " +
+                        "sort_order INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(id))"
+                )
+                // 改名履歴。表示は「公演日時点の名前」なので有効期間で引く。
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS venue_names (" +
+                        "id TEXT NOT NULL, venue_id TEXT NOT NULL, name TEXT NOT NULL, " +
+                        "valid_from TEXT, valid_to TEXT, PRIMARY KEY(id))"
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS idx_venue_names_venue ON venue_names(venue_id)")
+                // ホール/構成。キャパは構成で変わるので施設と分ける。
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS venue_halls (" +
+                        "id TEXT NOT NULL, venue_id TEXT NOT NULL, name TEXT NOT NULL, " +
+                        "capacity INTEGER, PRIMARY KEY(id))"
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS idx_venue_halls_venue ON venue_halls(venue_id)")
+                // shows 側。venue (生文字列) は当時名のフォールバックとして残す。
+                db.execSQL("ALTER TABLE shows ADD COLUMN venue_id TEXT")
+                db.execSQL("ALTER TABLE shows ADD COLUMN hall TEXT")
+                db.execSQL("ALTER TABLE shows ADD COLUMN stream_platform TEXT")
+                db.execSQL("CREATE INDEX IF NOT EXISTS idx_shows_venue_id ON shows(venue_id)")
             }
         }
     }

@@ -31,20 +31,24 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.fugaif.imaslivedb.data.model.Venue
+import com.fugaif.imaslivedb.data.model.VenueDirectory
 import com.fugaif.imaslivedb.ui.components.ImasEmptyState
 import com.fugaif.imaslivedb.ui.components.NameFilterField
 import com.fugaif.imaslivedb.ui.theme.DS
 
 /**
- * 会場を 1 つ選ぶピッカー (iOS `ListPickerView` の会場用途に相当)。
+ * 会場を 1 つ選ぶピッカー (iOS `VenuePickerView` の移植)。
  *
- * 会場は 400 件近くあるので、絞り込みフィールドを常設する。
- * 会場名は "千葉・幕張メッセ国際展示場" 形式なので、「幕張」でも「千葉」でも引ける。
+ * 会場は **ID で選ぶ**。名前で持つと改名 (武蔵野の森総合スポーツプラザ →
+ * 京王アリーナTOKYO) や表記揺れで絞り込みが外れてしまうため。
+ * 検索は現行名に加えて **旧名・別名・都道府県** も対象にするので、「武蔵野の森」でも
+ * 「京王アリーナ」でも同じ会場に辿り着ける。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VenuePickerSheet(
-    venues: List<String>,
+    directory: VenueDirectory,
     selected: String?,
     onSelect: (String?) -> Unit,
     onDismiss: () -> Unit
@@ -52,9 +56,24 @@ fun VenuePickerSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var query by remember { mutableStateOf("") }
 
-    val filtered = remember(venues, query) {
+    val filtered = remember(directory, query) {
         val q = query.trim()
-        if (q.isEmpty()) venues else venues.filter { it.contains(q, ignoreCase = true) }
+        if (q.isEmpty()) {
+            directory.venues
+        } else {
+            directory.venues.filter { v ->
+                v.name.contains(q, ignoreCase = true) ||
+                    (v.prefecture?.contains(q, ignoreCase = true) == true) ||
+                    // 旧名でも引けるようにする (「武蔵野の森」→ 京王アリーナTOKYO)
+                    v.aliasList.any { it.contains(q, ignoreCase = true) }
+            }
+        }
+    }
+    // 都道府県ごとにまとめる。244件あるので地域で塊にしないと探せない。
+    val grouped = remember(filtered) {
+        filtered.groupBy { it.prefecture ?: "その他" }
+            .toList()
+            .sortedWith(compareBy({ it.first == "その他" }, { it.second.minOf { v -> v.sortOrder } }))
     }
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
@@ -86,15 +105,31 @@ fun VenuePickerSheet(
 
             LazyColumn(Modifier.fillMaxWidth()) {
                 item {
-                    VenueRow(label = "選択なし", isSelected = selected == null, muted = true) {
+                    VenueRow(label = "選択なし", subtitle = null, isSelected = selected == null, muted = true) {
                         onSelect(null)
                         onDismiss()
                     }
                 }
-                items(filtered, key = { it }) { venue ->
-                    VenueRow(label = venue, isSelected = selected == venue, muted = false) {
-                        onSelect(venue)
-                        onDismiss()
+                grouped.forEach { (area, venues) ->
+                    item(key = "h_$area") {
+                        Text(
+                            area,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = DS.ink2,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
+                    }
+                    items(venues, key = { it.id }) { venue ->
+                        VenueRow(
+                            label = venue.name,
+                            subtitle = venueSubtitle(venue),
+                            isSelected = selected == venue.id,
+                            muted = false
+                        ) {
+                            onSelect(venue.id)
+                            onDismiss()
+                        }
                     }
                 }
             }
@@ -102,8 +137,23 @@ fun VenuePickerSheet(
     }
 }
 
+/** キャパと旧名を副題に出す。キャパは出典が取れた会場だけ入っているので null もある。 */
+private fun venueSubtitle(venue: Venue): String? {
+    val parts = buildList {
+        venue.capacityLabel?.let { add(it) }
+        venue.aliasList.firstOrNull()?.let { add("旧: $it") }
+    }
+    return parts.joinToString(" ・ ").ifEmpty { null }
+}
+
 @Composable
-private fun VenueRow(label: String, isSelected: Boolean, muted: Boolean, onClick: () -> Unit) {
+private fun VenueRow(
+    label: String,
+    subtitle: String?,
+    isSelected: Boolean,
+    muted: Boolean,
+    onClick: () -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -113,7 +163,12 @@ private fun VenueRow(label: String, isSelected: Boolean, muted: Boolean, onClick
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Text(label, fontSize = 15.sp, color = if (muted) DS.ink2 else DS.ink, modifier = Modifier.weight(1f))
+        Column(Modifier.weight(1f)) {
+            Text(label, fontSize = 15.sp, color = if (muted) DS.ink2 else DS.ink)
+            if (subtitle != null) {
+                Text(subtitle, fontSize = 12.sp, color = DS.ink3, maxLines = 1)
+            }
+        }
         if (isSelected) {
             Icon(Icons.Filled.Check, contentDescription = null, tint = DS.sys, modifier = Modifier.size(18.dp))
         }

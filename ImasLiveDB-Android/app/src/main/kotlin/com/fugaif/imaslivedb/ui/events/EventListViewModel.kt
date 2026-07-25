@@ -25,12 +25,12 @@ data class EventListUiState(
     val hideStreaming: Boolean = false,
     /** 0 = 今後の予定 / 1 = 開催済み */
     val timeFilter: Int = 0,
-    /** 会場絞り込み (null = 絞り込みなし)。 */
+    /** 会場絞り込み (venue_id。null = 絞り込みなし)。名前でなく ID なので改名しても外れない。 */
     val venue: String? = null,
     /** `venue` で公演があったイベントの id 集合 (会場は show 単位なので逆引きして持つ)。 */
     val venueEventIds: Set<String> = emptySet(),
-    /** 会場ピッカーの候補。 */
-    val venueNames: List<String> = emptyList(),
+    /** 会場マスタ (ピッカー候補・当時名/キャパの解決)。 */
+    val venueDirectory: VenueDirectory = VenueDirectory.EMPTY,
     val todayKey: String = LocalDate.now().toString()
 ) {
     val filteredEvents: List<EventWithDateRange>
@@ -81,12 +81,12 @@ class EventListViewModel : ViewModel() {
             val module = AppModule.from(context)
             val events = module.eventRepository.fetchEventsWithFirstDate()
             val brands = module.database.brandDao().fetchBrands()
-            val venues = module.eventRepository.fetchVenueNames()
+            val directory = module.eventRepository.fetchVenueDirectory()
             _uiState.value = _uiState.value.copy(
                 isLoading = false,
                 eventsWithDate = events,
                 brands = brands,
-                venueNames = venues
+                venueDirectory = directory
             )
         }
     }

@@ -71,7 +71,7 @@ fun EventListScreen(
 
     if (showVenuePicker) {
         VenuePickerSheet(
-            venues = uiState.venueNames,
+            directory = uiState.venueDirectory,
             selected = uiState.venue,
             onSelect = { viewModel.selectVenue(context, it) },
             onDismiss = { showVenuePicker = false }
@@ -130,7 +130,11 @@ fun EventListScreen(
                     selected = uiState.venue != null,
                     onClick = { showVenuePicker = true },
                     label = {
-                        Text(uiState.venue ?: "会場", style = MaterialTheme.typography.labelMedium, maxLines = 1)
+                        Text(
+                            uiState.venueDirectory.venue(uiState.venue)?.name ?: "会場",
+                            style = MaterialTheme.typography.labelMedium,
+                            maxLines = 1
+                        )
                     },
                     leadingIcon = {
                         Icon(imageVector = Icons.Filled.Place, contentDescription = null)
