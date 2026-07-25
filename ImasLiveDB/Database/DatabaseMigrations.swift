@@ -2,6 +2,31 @@ import Foundation
 import GRDB
 import os
 
+/// GRDB マイグレーション定義。
+///
+/// ## マイグレーションを追加する時の規約 (重要)
+///
+/// **v23 以降は「マイグレーション本体を冪等に書く」。**
+/// 追加するカラム/テーブルが既にあるかを `PRAGMA table_info` や `ifNotExists:` で
+/// 確かめてから実行する (v23_event_show_formats や v27_venues が手本)。
+/// この方式なら、同梱 master.sqlite が既にそのスキーマを持っていても安全に空振りする。
+///
+/// **`AppDatabase.seedMigrationHistoryIfNeeded` への追記は不要。**
+/// あちらは v1〜v22 で使っていた旧方式 (同梱 DB のスキーマを嗅ぎつけて
+/// `grdb_migrations` に識別子を事前挿入し、マイグレーションを丸ごとスキップさせる) で、
+/// 互換のため残してあるだけ。新規マイグレーションで旧方式を選ぶと、事前挿入の条件を
+/// 書き忘れた時に**新規インストールが起動時にクラッシュする** (v19 で実際に起き、
+/// Apple 審査 reject の原因になった)。
+///
+/// ## 共通の絶対ルール
+///
+/// - **破壊的マイグレーション (DB 削除・作り直し) は使わない。**
+///   `user_marks` (担当/お気に入り/メモ/参加済み) はクラウドに無い端末ローカル唯一
+///   データで、消すと復旧手段が無い。
+/// - マスタテーブルは drop+recreate して CloudKit 再同期に委ねてよいが、
+///   ローカル唯一データは必ず保全する。
+/// - **スキーマを変えたら Android (Room `Migration`) にも対で書く。**
+///   詳細は docs/ARCHITECTURE.md「データの所在・同期・マイグレーション」。
 enum DatabaseMigrations {
     static var migrator: DatabaseMigrator {
         var migrator = DatabaseMigrator()
