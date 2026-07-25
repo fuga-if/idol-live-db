@@ -1960,10 +1960,6 @@ final class AppDatabase: @unchecked Sendable {
 
     /// 関連楽曲: 同じシリーズ → 同じユニット → 歌唱アイドル共有 の重み付けでスコアし、近い順に返す。
     /// マスタ (ローカル) のみで完結する関連性。コミュニティのタグ類似は別系統 (CommunityAPI.similarSongsByTags)。
-    func fetchRelatedSongs(to song: Song, limit: Int = 8) throws -> [Song] {
-        try dbQueue.read { db in try Self.fetchRelatedSongsQuery(db, to: song, limit: limit) }
-    }
-
     func fetchRelatedSongsAsync(to song: Song, limit: Int = 8) async throws -> [Song] {
         try await dbQueue.read { db in try Self.fetchRelatedSongsQuery(db, to: song, limit: limit) }
     }
@@ -2108,17 +2104,6 @@ final class AppDatabase: @unchecked Sendable {
         try Idol.filter(Column("blood_type") == bloodType).order(Column("sort_order")).fetchAll(db)
     }
 
-    /// EventFilterCriterion でイベント一覧を取得（first_date付き）
-    /// `kind IN ('live','festival')` のみ含む（release_event/radio/stream は除外）。
-    func fetchEventsWithDate(criterion: EventFilterCriterion, includeEmpty: Bool = true) throws -> [EventWithDate] {
-        switch criterion {
-        case .brand(let id, _):
-            return try fetchEventsWithFirstDate(brandId: id, includeEmpty: includeEmpty)
-        case .year(let year):
-            return try dbQueue.read { db in try Self.eventsWithDateByYearQuery(db, year: year, includeEmpty: includeEmpty) }
-        }
-    }
-
     /// (async) EventFilterCriterion でイベント一覧を取得。cooperative thread pool をブロックしない。
     func fetchEventsWithDateAsync(criterion: EventFilterCriterion, includeEmpty: Bool = true) async throws -> [EventWithDate] {
         switch criterion {
@@ -2211,10 +2196,6 @@ final class AppDatabase: @unchecked Sendable {
     /// 1イベント内で現地公演と配信公演が混在する場合は両方に入る。
     /// 種別は user_marks.text_value ("live"/"stream")。旧データ(種別なし)は現地扱い。
     /// 参加ライブ一覧の現地/配信フィルタで使用。
-    func fetchAttendedEventTypeSets() throws -> (live: Set<String>, stream: Set<String>, liveViewing: Set<String>) {
-        try dbQueue.read { db in try Self.fetchAttendedEventTypeSetsQuery(db) }
-    }
-
     func fetchAttendedEventTypeSetsAsync() async throws -> (live: Set<String>, stream: Set<String>, liveViewing: Set<String>) {
         try await dbQueue.read { db in try Self.fetchAttendedEventTypeSetsQuery(db) }
     }
@@ -2263,10 +2244,6 @@ final class AppDatabase: @unchecked Sendable {
 
     /// 会場マスタ一式。245施設 + 名前246件 + ホール40件と小さいので一括で読み、
     /// 当時名やキャパの解決はメモリ上 (`VenueDirectory`) で行う (公演ごとの N+1 を避ける)。
-    func fetchVenueDirectory() throws -> VenueDirectory {
-        try dbQueue.read { db in try Self.fetchVenueDirectoryQuery(db) }
-    }
-
     func fetchVenueDirectoryAsync() async throws -> VenueDirectory {
         try await dbQueue.read { db in try Self.fetchVenueDirectoryQuery(db) }
     }
@@ -2282,10 +2259,6 @@ final class AppDatabase: @unchecked Sendable {
     /// 指定会場で公演があったイベントの id 集合。
     /// 会場は show 単位、絞り込み対象は event 単位なので逆引きが要る
     /// (1 イベントが複数会場をまたぐツアーもあるため DISTINCT で取る)。
-    func fetchEventIdsAtVenue(_ venueId: String) throws -> Set<String> {
-        try dbQueue.read { db in try Self.fetchEventIdsAtVenueQuery(db, venueId: venueId) }
-    }
-
     func fetchEventIdsAtVenueAsync(_ venueId: String) async throws -> Set<String> {
         try await dbQueue.read { db in try Self.fetchEventIdsAtVenueQuery(db, venueId: venueId) }
     }
@@ -2301,10 +2274,6 @@ final class AppDatabase: @unchecked Sendable {
     /// 検索語に一致した会場を event_id ごとに 1 件返す。
     /// 「武道館」で検索してライブ名だけ並ぶと、なぜヒットしたのか分からないため、
     /// 会場一致で拾えたものは行に会場名を出して理由を見せる。
-    func fetchVenuesMatching(query: String, eventIds: [String]) throws -> [String: String] {
-        try dbQueue.read { db in try Self.fetchVenuesMatchingQuery(db, query: query, eventIds: eventIds) }
-    }
-
     func fetchVenuesMatchingAsync(query: String, eventIds: [String]) async throws -> [String: String] {
         try await dbQueue.read { db in try Self.fetchVenuesMatchingQuery(db, query: query, eventIds: eventIds) }
     }
@@ -2336,10 +2305,6 @@ final class AppDatabase: @unchecked Sendable {
     // MARK: - Idol Song Queries
 
     /// アイドルがライブで披露した曲一覧（披露回数付き）
-    func fetchIdolPerformedSongs(idolId: String) throws -> [IdolPerformedSong] {
-        try dbQueue.read { db in try Self.fetchIdolPerformedSongsQuery(db, idolId: idolId) }
-    }
-
     func fetchIdolPerformedSongsAsync(idolId: String) async throws -> [IdolPerformedSong] {
         try await dbQueue.read { db in try Self.fetchIdolPerformedSongsQuery(db, idolId: idolId) }
     }
@@ -2365,10 +2330,6 @@ final class AppDatabase: @unchecked Sendable {
     }
 
     /// アイドルが特定の曲を披露した公演履歴（最新順）
-    func fetchIdolSongHistory(idolId: String, songId: String) throws -> [CastShowRow] {
-        try dbQueue.read { db in try Self.fetchIdolSongHistoryQuery(db, idolId: idolId, songId: songId) }
-    }
-
     func fetchIdolSongHistoryAsync(idolId: String, songId: String) async throws -> [CastShowRow] {
         try await dbQueue.read { db in try Self.fetchIdolSongHistoryQuery(db, idolId: idolId, songId: songId) }
     }
@@ -2428,25 +2389,6 @@ final class AppDatabase: @unchecked Sendable {
     }
 
     // MARK: - Calendar Queries
-
-    /// 指定期間のカレンダーエントリを取得（公演・リリース・誕生日）
-    func fetchCalendarEntries(in interval: DateInterval) throws -> [CalendarEntry] {
-        let startStr = Self.calendarDateFormatter.string(from: interval.start)
-        let endStr = Self.calendarDateFormatter.string(from: interval.end)
-
-        let shows = try dbQueue.read { db in try Self.calendarShowsQuery(db, startStr: startStr, endStr: endStr) }
-        let releases = try dbQueue.read { db in try Self.calendarReleasesQuery(db, startStr: startStr, endStr: endStr) }
-        let birthdayPairs = try dbQueue.read { db in try Self.calendarBirthdayPairsQuery(db, interval: interval) }
-        let staffBirthdayPairs = try dbQueue.read { db in try Self.calendarStaffBirthdayPairsQuery(db, interval: interval) }
-        let anniversaries = try dbQueue.read { db in try Self.calendarAnniversariesQuery(db, interval: interval) }
-        let tickets = try dbQueue.read { db in try Self.calendarTicketsQuery(db, startStr: startStr, endStr: endStr) }
-
-        return Self.assembleCalendarEntries(
-            shows: shows, releases: releases,
-            birthdayPairs: birthdayPairs, staffBirthdayPairs: staffBirthdayPairs,
-            anniversaries: anniversaries, tickets: tickets
-        )
-    }
 
     /// (async) 指定期間のカレンダーエントリを取得。cooperative thread pool をブロックしない。
     func fetchCalendarEntriesAsync(in interval: DateInterval) async throws -> [CalendarEntry] {
