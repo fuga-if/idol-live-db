@@ -1,0 +1,46 @@
+name: Worker Guard
+
+# imas-live-api (Cloudflare Worker) の型チェックとバンドル検証。
+# wrangler は esbuild で型を無視してバンドルするため、型エラーはデプロイまで
+# 気付けない。tsc --noEmit を CI に置いて、壊れた型のまま develop/main に
+# 入らないようにする。
+#
+# ⚠️ secret は一切使わない。deploy --dry-run はバンドルまでで実際の公開はしない
+#    (デプロイはオーナーの手元操作)。
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'imas-live-api/**'
+      - '.github/workflows/worker-guard.yml'
+  pull_request:
+    paths:
+      - 'imas-live-api/**'
+      - '.github/workflows/worker-guard.yml'
+  workflow_dispatch:
+
+jobs:
+  typecheck:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: imas-live-api
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: imas-live-api/package-lock.json
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      # バンドルできることまで確認する (import 漏れ・構文エラーの検出)。
+      # --dry-run なので Cloudflare へは何も送らない。
+      - name: Bundle check
+        run: npx wrangler deploy --dry-run
