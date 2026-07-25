@@ -1,8 +1,19 @@
 # refactor-instructions.md
 
-> **状態 (2026-07-26): Phase 0〜5 は実施済み。** 実施内容は git log の
-> `refactor(db)` / `refactor(worker)` / `ci(worker)` / `docs(db)` コミット群を参照。
-> 残っているのは **Phase 6 (提案のみ)** と、Out-of-scope に置いた項目。
+> **状態 (2026-07-26): Phase 0〜5 に加え、Phase 6 の提案のうち検証可能なものも実施済み。**
+> 実施内容は git log の `refactor(db)` / `refactor(worker)` / `ci` / `fix(worker)` / `docs` コミット群を参照。
+>
+> 追加で実施したもの:
+> - 不正 JSON の 400 統一を**全ルート (19 箇所)** へ展開
+> - Worker の共有基盤を `env.ts` / `auth.ts` / `users.ts` / `validation.ts` へ分離
+> - `/polls/*` を `routes/polls.ts` へ切り出し (index.ts: 4,271 → 3,073 行)
+> - iOS / Android のビルド・テストを CI 化
+>
+> 残っているのは **index.ts の残りルート分割**と、Out-of-scope に置いた項目
+> (`Views/`→`Presentation/` 移動、Repository へのクエリ移動、`.shared` のポート化、
+> Android ネットワーク層書き換え、依存追加)。切り出し手順は
+> `docs/ARCHITECTURE-worker.md` に明文化済み。
+>
 > 以下は当時の調査結果と手順の記録として残す (数値は着手時点のもの)。
 
 > 実装担当モデルへ: このファイルに書かれたことを、書かれた順番で完遂しろ。
