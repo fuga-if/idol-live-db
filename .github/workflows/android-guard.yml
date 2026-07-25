@@ -1,0 +1,50 @@
+name: Android Guard
+
+# Android のビルドとユニットテスト。
+#
+# iOS の変更は 1:1 で Android に横展開する運用 (CONTRIBUTING.md §3) なのに、
+# 横展開が壊れていないかを機械的に確認する手段が無かった。実際 import 1 行の
+# 欠落で develop がビルド不能になっていたことがある。
+#
+# 公開リポジトリなので ubuntu runner は無料枠。secret は使わない
+# (CLOUDKIT_API_TOKEN 未設定でも seed DB からビルドできる設計)。
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'ImasLiveDB-Android/**'
+      - 'db/master.sql'
+      - '.github/workflows/android-guard.yml'
+  pull_request:
+    paths:
+      - 'ImasLiveDB-Android/**'
+      - 'db/master.sql'
+      - '.github/workflows/android-guard.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Gradle 8.11.1 は JDK 25 未対応。21 に固定する。
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # app/build.gradle.kts の generateSeedDb が db/master.sql から
+      # 同梱 seed を作るのに sqlite3 を使う。
+      - name: Ensure sqlite3
+        run: sqlite3 --version
+
+      - name: Build (debug)
+        working-directory: ImasLiveDB-Android
+        run: ./gradlew --no-daemon assembleDebug
+
+      - name: Unit tests
+        working-directory: ImasLiveDB-Android
+        run: ./gradlew --no-daemon test

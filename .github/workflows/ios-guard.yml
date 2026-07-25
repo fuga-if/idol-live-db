@@ -1,0 +1,66 @@
+name: iOS Guard
+
+# iOS のビルドとユニットテスト。
+#
+# テストは 90 本以上あるのに CI で守られておらず、ローカル実行の記憶に頼っていた。
+# 公開リポジトリなので macOS runner も無料枠。secret は使わず、署名も行わない
+# (CODE_SIGNING_ALLOWED=NO でシミュレータ向けにビルドする)。
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'ImasLiveDB/**'
+      - 'ImasLiveDBTests/**'
+      - 'ImasLiveDBWidget/**'
+      - 'project.yml'
+      - '.github/workflows/ios-guard.yml'
+  pull_request:
+    paths:
+      - 'ImasLiveDB/**'
+      - 'ImasLiveDBTests/**'
+      - 'ImasLiveDBWidget/**'
+      - 'project.yml'
+      - '.github/workflows/ios-guard.yml'
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install xcodegen
+        run: brew install xcodegen
+
+      # 同梱 master.sqlite は gitignore で各自生成する運用 (docs/DATA_PIPELINE.md)。
+      # FK 整合性ゲートも兼ねるので CI でも同じ手順で作る。
+      - name: Build master.sqlite from db/master.sql
+        run: bash tools/build_db.sh
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      # 利用可能なシミュレータは runner イメージによって変わるので、
+      # 名前を決め打ちせず実在する iPhone を 1 台選ぶ。
+      - name: Pick a simulator
+        id: sim
+        run: |
+          xcrun simctl list devices available --json > /tmp/sims.json
+          python3 tools/pick_simulator.py /tmp/sims.json >> "$GITHUB_OUTPUT"
+          cat "$GITHUB_OUTPUT"
+
+      # 署名はアドホック ("-") にする。runner に Apple Developer の証明書は無いので
+      # DEVELOPMENT_TEAM を空にして自動プロビジョニングを止める。
+      # ⚠️ CODE_SIGNING_ALLOWED=NO は使えない。署名が無いと Keychain (KeychainStore /
+      #    Firebase Installations) が SecItemCopyMatching -34018 で失敗しテストが落ちる。
+      - name: Test
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -scheme ImasLiveDB \
+            -destination "id=${{ steps.sim.outputs.udid }}" \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGN_STYLE=Manual \
+            DEVELOPMENT_TEAM="" \
+            PROVISIONING_PROFILE_SPECIFIER="" \
+            | tail -60
