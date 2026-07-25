@@ -75,16 +75,42 @@ final class ShareArtworkLoader {
     }
 }
 
-/// テキスト + 画像を一緒に渡せる UIActivityViewController ラッパー。
-/// (ShareLink は異種 item の同時シェアが不安定なためこちらを使う)
-struct ActivityShareSheet: UIViewControllerRepresentable {
-    let items: [Any]
+/// OS 標準のシェアシートをそのまま出す。
+///
+/// 以前は `UIActivityViewController` を `UIViewControllerRepresentable` にして
+/// SwiftUI の `.sheet` + `presentationDetents` で包んでいた。 これだと
+/// **シェアシートの上に SwiftUI のシート外装がもう一枚乗る**ため、
+/// グラバーが二重に出たり、 中身が medium detent に押し込められて
+/// アプリ候補が数個しか見えなかったりと、 標準の見え方から外れていた。
+///
+/// シェアシート自身が detent と presentation を持っているので、 包まずに
+/// 最前面の ViewController から直接 present するのが正しい。
+enum SystemShare {
+    @MainActor
+    static func present(items: [Any]) {
+        guard !items.isEmpty else { return }
+        guard let scene = UIApplication.shared.connectedScenes
+            .compactMap({ $0 as? UIWindowScene })
+            .first(where: { $0.activationState == .foregroundActive }),
+            let root = scene.windows.first(where: \.isKeyWindow)?.rootViewController
+        else {
+            logger.error("system_share_no_root_vc")
+            return
+        }
+        // シートの上から呼ばれることがあるので、 最前面まで辿ってから present する
+        // (root に出すと「別のシートが出ている」と怒られて何も出ない)。
+        var top = root
+        while let presented = top.presentedViewController { top = presented }
 
-    func makeUIViewController(context: Context) -> UIActivityViewController {
-        UIActivityViewController(activityItems: items, applicationActivities: nil)
+        let controller = UIActivityViewController(activityItems: items, applicationActivities: nil)
+        // iPad は popover 必須。 アンカーが無いとクラッシュする。
+        if let popover = controller.popoverPresentationController {
+            popover.sourceView = top.view
+            popover.sourceRect = CGRect(x: top.view.bounds.midX, y: top.view.bounds.maxY, width: 0, height: 0)
+            popover.permittedArrowDirections = []
+        }
+        top.present(controller, animated: true)
     }
-
-    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 
 /// 共有カード画像を確実に「画像」として供給するアイテムソース。
@@ -188,8 +214,6 @@ struct ShareCardActionPane<Card: View>: View {
     var isPreparingCard: Bool = false
 
     @State private var ratio: ShareCard.Ratio = ShareCard.defaultRatio
-    @State private var renderedImage: UIImage?
-    @State private var showActivity = false
     @State private var showRenderError = false
 
     private var cardSize: ShareCard.Size { ratio.size }
@@ -206,14 +230,12 @@ struct ShareCardActionPane<Card: View>: View {
 
             Button {
                 AppAnalytics.tap("share_card.share")
-                let image = ShareCardRenderer.render(card(cardSize))
-                if image == nil {
+                guard let image = ShareCardRenderer.render(card(cardSize)) else {
                     logger.error("share_card_render_failed: ImageRenderer returned nil")
                     showRenderError = true
                     return
                 }
-                renderedImage = image
-                showActivity = true
+                SystemShare.present(items: [ShareCardImageSource(image)])
             } label: {
                 HStack(spacing: DS.sp3) {
                     if isPreparingCard {
@@ -232,10 +254,6 @@ struct ShareCardActionPane<Card: View>: View {
             .buttonStyle(.borderedProminent)
             .disabled(isPreparingCard)
         }
-        .sheet(isPresented: $showActivity) {
-            ActivityShareSheet(items: activityItems)
-                .presentationDetents([.medium, .large])
-        }
         .alert("シェア画像の生成に失敗しました", isPresented: $showRenderError) {
             Button("OK") {}
         } message: {
@@ -243,10 +261,4 @@ struct ShareCardActionPane<Card: View>: View {
         }
     }
 
-    private var activityItems: [Any] {
-        // 画像のみを渡す。X はテキスト同梱だと画像を落とすため、キャプションは
-        // クリップボード経由 (ボタン押下時にコピー済み) にしている。
-        guard let renderedImage else { return [] }
-        return [ShareCardImageSource(renderedImage)]
-    }
 }
