@@ -47,8 +47,7 @@ struct SectionCardRow<Content: View>: View {
                 .padding(.vertical, 12)
 
             if showDivider {
-                Divider()
-                    .padding(.leading, 16)
+                ImasRowDivider(inset: 16)
             }
         }
     }

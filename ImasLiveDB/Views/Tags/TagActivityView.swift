@@ -75,7 +75,7 @@ struct TagActivityView: View {
                     ImasSectionHeader(title: "伸びてるタグ", tight: true)
                     ImasListContainer {
                         ForEach(Array(trends.enumerated()), id: \.element.id) { idx, trend in
-                            if idx > 0 { Divider().overlay(DS.sep).padding(.leading, DS.sp4) }
+                            if idx > 0 { ImasRowDivider(inset: DS.sp4) }
                             trendRow(trend, rank: idx + 1)
                         }
                     }
@@ -126,7 +126,7 @@ struct TagActivityView: View {
                     ImasSectionHeader(title: "タグが急増中", tight: true)
                     ImasListContainer {
                         ForEach(Array(rises.enumerated()), id: \.element.id) { idx, rise in
-                            if idx > 0 { Divider().overlay(DS.sep).padding(.leading, DS.sp4) }
+                            if idx > 0 { ImasRowDivider(inset: DS.sp4) }
                             riseRow(rise)
                         }
                     }
@@ -182,7 +182,7 @@ struct TagActivityView: View {
                     ImasSectionHeader(title: "最近つけられたタグ", tight: true)
                     ImasListContainer {
                         ForEach(Array(events.enumerated()), id: \.element.id) { idx, event in
-                            if idx > 0 { Divider().overlay(DS.sep).padding(.leading, DS.sp4) }
+                            if idx > 0 { ImasRowDivider(inset: DS.sp4) }
                             recentRow(event)
                         }
                     }

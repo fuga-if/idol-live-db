@@ -318,7 +318,7 @@ struct IdolDetailView: View {
                     ImasSectionHeader(title: "ライブ歌唱曲", count: "\(vm.performedSongs.count)", tight: true)
                     ImasListContainer {
                         ForEach(Array(vm.performedSongs.enumerated()), id: \.element.id) { idx, item in
-                            if idx > 0 { Divider().overlay(DS.sep).padding(.leading, 66) }
+                            if idx > 0 { ImasRowDivider(inset: 66) }
                             songRow(
                                 song: item.song,
                                 detailLabel: item.song.unitName ?? "",
@@ -337,7 +337,7 @@ struct IdolDetailView: View {
                     ImasSectionHeader(title: "出演履歴", count: "\(vm.castShows.count)", tight: true)
                     ImasListContainer {
                         ForEach(Array(vm.castShows.enumerated()), id: \.offset) { idx, row in
-                            if idx > 0 { Divider().overlay(DS.sep).padding(.leading, DS.sp4) }
+                            if idx > 0 { ImasRowDivider(inset: DS.sp4) }
                             eventRow(row)
                         }
                     }
@@ -406,7 +406,7 @@ struct IdolDetailView: View {
                     ImasSectionHeader(title: "楽曲（原曲）", count: "\(vm.originalSongs.count)", tight: true)
                     ImasListContainer {
                         ForEach(Array(vm.originalSongs.enumerated()), id: \.element.id) { idx, song in
-                            if idx > 0 { Divider().overlay(DS.sep).padding(.leading, 66) }
+                            if idx > 0 { ImasRowDivider(inset: 66) }
                             songRow(
                                 song: song,
                                 detailLabel: song.unitName ?? "",
@@ -872,7 +872,7 @@ struct IdolDetailView: View {
     private var profileRows: some View {
         let models = profileRowModels
         ForEach(Array(models.enumerated()), id: \.element.id) { idx, row in
-            if idx > 0 { Divider().overlay(DS.sep) }
+            if idx > 0 { ImasRowDivider() }
             let content = ImasLabeledRow(
                 key: row.key,
                 value: row.value,

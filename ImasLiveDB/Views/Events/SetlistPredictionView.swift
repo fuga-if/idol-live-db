@@ -123,7 +123,7 @@ struct SetlistPredictionView: View {
                         // 行と行の区切りは、ぴったり密着すると詰まって見えるので、
                         // フル幅 Divider + 上下に少し余白を確保する。
                         if index > 0 {
-                            Divider().overlay(DS.sep)
+                            ImasRowDivider()
                         }
                         // 投票ボタン自体が投票/取消のトグル (handleVote が hasUserVoted を見て分岐)。
                         // かつて取消導線を .contextMenu で付けていたが、List セル内ボタンに

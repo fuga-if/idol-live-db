@@ -42,7 +42,7 @@ struct UnifiedSearchView: View {
             VStack(spacing: 0) {
                 searchField
                 scopeBar
-                Divider().overlay(DS.sep)
+                ImasRowDivider()
                 content
             }
             .background(DS.bg)

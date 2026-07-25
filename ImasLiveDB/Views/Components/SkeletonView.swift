@@ -79,7 +79,7 @@ struct ImasListSkeleton: View {
                 .padding(.horizontal, DS.sp5)
                 .padding(.vertical, DS.sp3)
                 if i < rows - 1 {
-                    Divider().overlay(DS.sep).padding(.leading, DS.sp5)
+                    ImasRowDivider(inset: DS.sp5)
                 }
             }
         }

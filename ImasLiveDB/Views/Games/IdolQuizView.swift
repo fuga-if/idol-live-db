@@ -101,7 +101,7 @@ struct IdolQuizView: View {
             }
             ImasListContainer {
                 ForEach(Array(shownIndices.enumerated()), id: \.element) { pos, idx in
-                    if pos > 0 { Divider().overlay(DS.sep).padding(.leading, DS.sp5) }
+                    if pos > 0 { ImasRowDivider(inset: DS.sp5) }
                     let f = q.facts[idx]
                     HStack {
                         Text(f.label).font(.imasSubhead).foregroundStyle(DS.ink2)

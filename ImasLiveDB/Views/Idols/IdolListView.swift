@@ -283,7 +283,7 @@ struct IdolListView: View {
 
             ImasListContainer {
                 ForEach(Array(vm.filteredIdols.enumerated()), id: \.element.id) { index, idol in
-                    if index > 0 { Divider().overlay(DS.sep).padding(.leading, 69) }
+                    if index > 0 { ImasRowDivider(inset: 69) }
                     NavigationLink(value: idol) {
                         IdolRowView(
                             idol: idol,
@@ -327,7 +327,7 @@ struct IdolListView: View {
                                     // IdolAvatarView の外形フレームは isPick に関わらず一定 (担当リング込み
                                     // サイズ) になったため、テキスト開始位置は常に旧・担当時相当分右へ寄る。
                                     // 旧インセット (58) にリング分の増分 (+11) を足して追従させる。
-                                    if index > 0 { Divider().overlay(DS.sep).padding(.leading, 69) }
+                                    if index > 0 { ImasRowDivider(inset: 69) }
                                     NavigationLink(value: idol) {
                                         IdolRowView(
                                             idol: idol,

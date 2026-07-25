@@ -780,6 +780,24 @@ private extension View {
 
 // MARK: - EmptyState (投稿導線つき)
 
+// MARK: - 区切り線
+
+/// 一覧行のあいだの区切り線。 色は `DS.sep` に固定する。
+///
+/// 各画面が `Divider().overlay(DS.sep)` を手書きしていて、 `.overlay` を忘れた
+/// 素の `Divider()` がシステム色のまま混ざっていた (同じ一覧の中で線の色が違う)。
+///
+/// `inset` は行の内容に合わせた左の食い込み。 アバターやサムネのぶんだけ線を
+/// 下げたい場合に使う (画面ごとに 48/52/66/69/70/72 と実測値が入る)。
+struct ImasRowDivider: View {
+    var inset: CGFloat = 0
+    var body: some View {
+        Divider()
+            .overlay(DS.sep)
+            .padding(.leading, inset)
+    }
+}
+
 // MARK: - ローディング
 
 /// 画面・シート本体の読み込み中。 空いている領域いっぱいに出して中央に置く。

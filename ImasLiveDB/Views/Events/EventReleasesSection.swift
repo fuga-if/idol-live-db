@@ -32,7 +32,7 @@ struct EventReleasesSection: View {
 
                     ImasListContainer {
                         ForEach(Array(releases.enumerated()), id: \.element.id) { index, release in
-                            if index > 0 { Divider().overlay(DS.sep).padding(.leading, 72) }
+                            if index > 0 { ImasRowDivider(inset: 72) }
                             releaseRow(release, theme: t)
                         }
                     }

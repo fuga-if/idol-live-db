@@ -244,7 +244,7 @@ struct PollDetailView: View {
                 ImasListContainer {
                     ForEach(Array(detail.entries.enumerated()), id: \.element.id) { index, entry in
                         if index > 0 {
-                            Divider().background(DS.sep).padding(.leading, 56)
+                            ImasRowDivider(inset: 56)
                         }
                         PollEntryRow(
                             rank: index + 1,

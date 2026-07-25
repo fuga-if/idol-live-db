@@ -65,7 +65,7 @@ struct FilteredShowsView: View {
                         ImasListContainer {
                             ForEach(Array(group.shows.enumerated()), id: \.element.id) { rowIndex, show in
                                 if rowIndex > 0 {
-                                    Divider().overlay(DS.sep).padding(.leading, 16)
+                                    ImasRowDivider(inset: 16)
                                 }
                                 Button { navigate(.show(show)) } label: { showRow(show) }
                                     .buttonStyle(.plain)

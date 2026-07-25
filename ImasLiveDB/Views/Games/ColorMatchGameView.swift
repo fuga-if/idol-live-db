@@ -166,7 +166,7 @@ struct ColorMatchGameView: View {
     private var memberList: some View {
         ImasListContainer {
             ForEach(Array(members.enumerated()), id: \.element.id) { idx, idol in
-                if idx > 0 { Divider().overlay(DS.sep).padding(.leading, DS.sp5) }
+                if idx > 0 { ImasRowDivider(inset: DS.sp5) }
                 memberRow(idol)
             }
         }

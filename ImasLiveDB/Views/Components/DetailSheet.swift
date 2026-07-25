@@ -420,7 +420,7 @@ struct SongSheetContent: View {
             ImasSectionHeader(title: "関連楽曲", count: "\(vm.relatedSongs.count)")
             ImasListContainer {
                 ForEach(Array(vm.relatedSongs.enumerated()), id: \.element.id) { idx, s in
-                    if idx > 0 { Divider().overlay(DS.sep).padding(.leading, DS.sp5 + 44) }
+                    if idx > 0 { ImasRowDivider(inset: DS.sp5 + 44) }
                     Button { navigate(.song(s)) } label: { relatedSongRow(s, badge: nil) }
                         .buttonStyle(.plain)
                 }
@@ -474,7 +474,7 @@ struct SongSheetContent: View {
             if !vm.collectedShows.isEmpty {
                 ImasListContainer {
                     ForEach(Array(vm.collectedShows.enumerated()), id: \.element.id) { idx, show in
-                        if idx > 0 { Divider().overlay(DS.sep).padding(.leading, DS.sp5) }
+                        if idx > 0 { ImasRowDivider(inset: DS.sp5) }
                         Button { navigate(.show(show.asShow)) } label: {
                             collectedRow(show)
                         }
@@ -522,7 +522,7 @@ struct SongSheetContent: View {
     private var infoRows: some View {
         let rows = vm.infoRows(for: song)
         ForEach(Array(rows.enumerated()), id: \.element.id) { idx, row in
-            if idx > 0 { Divider().overlay(DS.sep).padding(.leading, DS.sp5) }
+            if idx > 0 { ImasRowDivider(inset: DS.sp5) }
             infoRow(row)
         }
     }
@@ -634,7 +634,7 @@ struct SongSheetContent: View {
                     ImasSectionHeader(title: "ライブ披露履歴", count: "\(vm.history.count)回", tight: true)
                     ImasListContainer {
                         ForEach(Array(vm.history.enumerated()), id: \.offset) { idx, row in
-                            if idx > 0 { Divider().overlay(DS.sep).padding(.leading, DS.sp4) }
+                            if idx > 0 { ImasRowDivider(inset: DS.sp4) }
                             historyRow(row)
                         }
                     }
@@ -704,7 +704,7 @@ struct SongSheetContent: View {
             }
             ImasListContainer {
                 ForEach(Array(vm.similarTagSongs.enumerated()), id: \.element.id) { idx, s in
-                    if idx > 0 { Divider().overlay(DS.sep).padding(.leading, DS.sp5 + 44) }
+                    if idx > 0 { ImasRowDivider(inset: DS.sp5 + 44) }
                     Button { navigate(.song(s)) } label: {
                         relatedSongRow(s, badge: vm.similarSharedTags[s.id].map { "タグ\($0)個一致" })
                     }
@@ -768,7 +768,7 @@ struct SongSheetContent: View {
             } else {
                 ImasListContainer {
                     ForEach(Array(vm.songCalls.enumerated()), id: \.element.id) { idx, call in
-                        if idx > 0 { Divider().overlay(DS.sep).padding(.leading, DS.sp5) }
+                        if idx > 0 { ImasRowDivider(inset: DS.sp5) }
                         callRow(call)
                     }
                 }
@@ -818,7 +818,7 @@ struct SongSheetContent: View {
             } else {
                 ImasListContainer {
                     ForEach(Array(vm.songVideos.enumerated()), id: \.element.id) { idx, video in
-                        if idx > 0 { Divider().overlay(DS.sep).padding(.leading, DS.sp5) }
+                        if idx > 0 { ImasRowDivider(inset: DS.sp5) }
                         videoRow(video)
                     }
                 }
@@ -902,7 +902,7 @@ struct SongSheetContent: View {
             if let votes = vm.penlightVotes, !votes.topColorSets.isEmpty {
                 ImasListContainer {
                     ForEach(Array(votes.topColorSets.enumerated()), id: \.element.id) { idx, set in
-                        if idx > 0 { Divider().overlay(DS.sep).padding(.leading, DS.sp5) }
+                        if idx > 0 { ImasRowDivider(inset: DS.sp5) }
                         penlightRow(set, myKey: votes.myColorSet?.key, total: max(votes.totalVotes, 1))
                     }
                 }

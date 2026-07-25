@@ -159,7 +159,7 @@ struct UnitDetailView: View {
                     ImasSectionHeader(title: "楽曲", count: "\(vm.songs.count)", tight: true)
                     ImasListContainer {
                         ForEach(Array(vm.songs.enumerated()), id: \.element.id) { idx, song in
-                            if idx > 0 { Divider().overlay(DS.sep).padding(.leading, 66) }
+                            if idx > 0 { ImasRowDivider(inset: 66) }
                             songRow(song) {
                                 go(.song(song))
                             }
@@ -246,7 +246,7 @@ struct UnitDetailView: View {
                     ImasSectionHeader(title: "メンバー", count: "\(vm.members.count)", tight: true)
                     ImasListContainer {
                         ForEach(Array(vm.members.enumerated()), id: \.element.id) { idx, member in
-                            if idx > 0 { Divider().overlay(DS.sep).padding(.leading, 66) }
+                            if idx > 0 { ImasRowDivider(inset: 66) }
                             memberRow(member)
                         }
                     }

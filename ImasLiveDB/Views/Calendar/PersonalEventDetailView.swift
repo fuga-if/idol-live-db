@@ -53,10 +53,10 @@ struct PersonalEventDetailView: View {
     private var infoRows: some View {
         VStack(alignment: .leading, spacing: 0) {
             infoRow(systemImage: "clock", title: "日時", value: dateRangeText)
-            Divider().overlay(DS.sep).padding(.leading, 48)
+            ImasRowDivider(inset: 48)
             infoRow(systemImage: "calendar", title: "カレンダー", value: event.calendarTitle)
             if let location = event.location {
-                Divider().overlay(DS.sep).padding(.leading, 48)
+                ImasRowDivider(inset: 48)
                 infoRow(systemImage: "mappin.and.ellipse", title: "場所", value: location)
             }
         }

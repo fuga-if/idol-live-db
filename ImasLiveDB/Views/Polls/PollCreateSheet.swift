@@ -266,21 +266,21 @@ struct PollCreateSheet: View {
                             manualRow(label: song.title, subtitle: song.titleKana) {
                                 selectedSongs.remove(at: idx)
                             }
-                            if idx < selectedSongs.count - 1 { Divider().background(DS.sep) }
+                            if idx < selectedSongs.count - 1 { ImasRowDivider() }
                         }
                     case .idol:
                         ForEach(Array(selectedIdols.enumerated()), id: \.element.id) { idx, idol in
                             manualRow(label: idol.name, subtitle: idol.nameKana) {
                                 selectedIdols.remove(at: idx)
                             }
-                            if idx < selectedIdols.count - 1 { Divider().background(DS.sep) }
+                            if idx < selectedIdols.count - 1 { ImasRowDivider() }
                         }
                     case .unit:
                         ForEach(Array(selectedUnits.enumerated()), id: \.element.id) { idx, unit in
                             manualRow(label: unit.displayName, subtitle: nil) {
                                 selectedUnits.remove(at: idx)
                             }
-                            if idx < selectedUnits.count - 1 { Divider().background(DS.sep) }
+                            if idx < selectedUnits.count - 1 { ImasRowDivider() }
                         }
                     }
 

@@ -29,7 +29,7 @@ struct PollHallOfFameView: View {
                     ImasListContainer {
                         ForEach(Array(vm.results.enumerated()), id: \.element.id) { index, result in
                             if index > 0 {
-                                Divider().background(DS.sep).padding(.leading, DS.sp5)
+                                ImasRowDivider(inset: DS.sp5)
                             }
                             Button {
                                 AppAnalytics.tap("poll_hall_of_fame.view_result")

@@ -294,7 +294,7 @@ struct ProduceTabView: View {
                 ImasListContainer {
                     ForEach(Array(attendedEvents.prefix(5).enumerated()), id: \.element.id) { index, ew in
                         if index > 0 {
-                            Divider().background(DS.sep).padding(.leading, DS.sp4)
+                            ImasRowDivider(inset: DS.sp4)
                         }
                         NavigationLink(value: ew.event) {
                             ProduceEventRow(

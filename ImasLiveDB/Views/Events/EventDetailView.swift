@@ -302,7 +302,7 @@ struct EventDetailView: View {
             } else {
                 ImasListContainer {
                     ForEach(Array(vm.shows.enumerated()), id: \.element.id) { idx, show in
-                        if idx > 0 { Divider().overlay(DS.sep).padding(.leading, DS.sp5) }
+                        if idx > 0 { ImasRowDivider(inset: DS.sp5) }
                         showRow(show)
                     }
                 }
@@ -393,7 +393,7 @@ struct EventDetailView: View {
                         .buttonStyle(.plain)
                     }
                     if let year = firstShowYear {
-                        if vm.brand != nil { Divider().overlay(DS.sep).padding(.leading, DS.sp5) }
+                        if vm.brand != nil { ImasRowDivider(inset: DS.sp5) }
                         Button {
                             go(.filteredEvents(.year(year)))
                         } label: {
@@ -467,7 +467,7 @@ struct EventDetailView: View {
                 .padding(.horizontal, DS.sp5)
                 ImasListContainer {
                     ForEach(Array(ticketRows.enumerated()), id: \.element.id) { idx, row in
-                        if idx > 0 { Divider().overlay(DS.sep).padding(.leading, DS.sp5) }
+                        if idx > 0 { ImasRowDivider(inset: DS.sp5) }
                         ticketRowView(row)
                     }
                 }

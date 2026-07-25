@@ -100,7 +100,7 @@ struct IdolPickerView: View {
                 // 複数選択では、いま何を選んでいるかを常に見えるようにする
                 // (スクロールで選択済みが視界から消えるため)。
                 if mode == .multi, !selection.isEmpty {
-                    Divider().overlay(DS.sep)
+                    ImasRowDivider()
                     selectedBar
                 }
             }
@@ -203,7 +203,7 @@ struct IdolPickerView: View {
                 .padding(.vertical, DS.sp3)
             }
             .background(DS.surface)
-            Divider().overlay(DS.sep)
+            ImasRowDivider()
         }
     }
 
@@ -404,7 +404,7 @@ private struct UnitMemberAddPicker: View {
                         .padding(.vertical, DS.sp3)
                     }
                     .background(DS.surface)
-                    Divider().overlay(DS.sep)
+                    ImasRowDivider()
                 }
                 List(filtered) { unit in
                     Button {

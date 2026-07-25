@@ -33,7 +33,7 @@ struct IdolSongHistoryView: View {
                         ImasSectionHeader(title: "披露履歴", count: "\(history.count)", tight: true)
                         ImasListContainer {
                             ForEach(Array(history.enumerated()), id: \.offset) { idx, row in
-                                if idx > 0 { Divider().overlay(DS.sep).padding(.leading, DS.sp4) }
+                                if idx > 0 { ImasRowDivider(inset: DS.sp4) }
                                 historyRow(row)
                             }
                         }

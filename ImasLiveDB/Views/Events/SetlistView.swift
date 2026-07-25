@@ -123,16 +123,16 @@ struct SetlistView: View {
                                 if let vid = show.venueId { go(.filteredShows(.venue(vid))) }
                             }
                             .imasCopyable(venueLabel, label: "会場名をコピー")
-                        Divider().overlay(DS.sep).padding(.leading, 16)
+                        ImasRowDivider(inset: 16)
                     }
                     // キャパが分かる会場では規模も出す (ホール指定があればホール側を優先)。
                     if let cap = venueDirectory.capacity(for: show) {
                         ImasLabeledRow(key: "キャパ", value: "\(cap.formatted(.number.grouping(.automatic)))人", seed: showBrandHex)
-                        Divider().overlay(DS.sep).padding(.leading, 16)
+                        ImasRowDivider(inset: 16)
                     }
                     if let stream = show.streamPlatform, !stream.isEmpty {
                         ImasLabeledRow(key: "配信", value: stream, seed: showBrandHex)
-                        Divider().overlay(DS.sep).padding(.leading, 16)
+                        ImasRowDivider(inset: 16)
                     }
                     ImasLabeledRow(key: "日付", value: show.date, showChevron: true, tappable: true, seed: showBrandHex)
                         .contentShape(Rectangle())
@@ -223,7 +223,7 @@ struct SetlistView: View {
                     // セクションの曲を 1 枚の角丸カード (ImasListContainer) にまとめる (デザイン 03 の .list)。
                     ImasListContainer {
                         ForEach(Array(section.items.enumerated()), id: \.element.id) { index, item in
-                            if index > 0 { Divider().overlay(DS.sep).padding(.leading, 66) }
+                            if index > 0 { ImasRowDivider(inset: 66) }
                             let performers = performersByItemId[item.id] ?? []
                             let performerIdolIds = Set(performers.compactMap(\.idolId))
                             let originalIds = originalIdsBySongId[item.songId] ?? []

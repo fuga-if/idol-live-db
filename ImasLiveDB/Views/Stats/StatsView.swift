@@ -240,7 +240,7 @@ struct StatsView: View {
                         }
                         .buttonStyle(.plain)
                         if index < shown.count - 1 {
-                            Divider().overlay(DS.sep).padding(.leading, 70)
+                            ImasRowDivider(inset: 70)
                         }
                     }
                 }
@@ -415,7 +415,7 @@ struct StatsView: View {
                         }
                         .buttonStyle(.plain)
                         if index < favoritesRanking.count - 1 {
-                            Divider().overlay(DS.sep).padding(.leading, 52)
+                            ImasRowDivider(inset: 52)
                         }
                     }
                 }
@@ -443,7 +443,7 @@ struct StatsView: View {
                             brand: brandHex(for: item.brandId)
                         )
                         if index < songPlayCounts.count - 1 {
-                            Divider().overlay(DS.sep).padding(.leading, 52)
+                            ImasRowDivider(inset: 52)
                         }
                     }
                 }
@@ -468,7 +468,7 @@ struct StatsView: View {
                             unit: "人"
                         )
                         if index < castShowCounts.count - 1 {
-                            Divider().overlay(DS.sep).padding(.leading, 52)
+                            ImasRowDivider(inset: 52)
                         }
                     }
                 }

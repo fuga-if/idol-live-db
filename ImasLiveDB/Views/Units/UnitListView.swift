@@ -113,7 +113,7 @@ struct UnitListContent: View {
                         if !vm.collapsedBrands.contains(brand.id) {
                             ImasListContainer {
                                 ForEach(Array(group.enumerated()), id: \.element.id) { index, unit in
-                                    if index > 0 { Divider().overlay(DS.sep).padding(.leading, 69) }
+                                    if index > 0 { ImasRowDivider(inset: 69) }
                                     NavigationLink(value: unit) {
                                         UnitRowView(unit: unit, brandColor: brand.color)
                                     }

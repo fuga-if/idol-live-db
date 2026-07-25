@@ -101,7 +101,7 @@ struct PollListView: View {
             ImasListContainer {
                 ForEach(currentPolls) { poll in
                     if poll.id != currentPolls.first?.id {
-                        Divider().background(DS.sep).padding(.leading, DS.sp5)
+                        ImasRowDivider(inset: DS.sp5)
                     }
                     NavigationLink(value: PollRoute.detail(poll.id)) {
                         PollRowView(poll: poll)

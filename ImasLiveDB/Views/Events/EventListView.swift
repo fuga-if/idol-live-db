@@ -124,7 +124,7 @@ struct EventListView: View {
                             ImasListContainer {
                                 ForEach(Array(group.events.enumerated()), id: \.element.id) { rowIndex, ew in
                                     if rowIndex > 0 {
-                                        Divider().overlay(DS.sep).padding(.leading, 16)
+                                        ImasRowDivider(inset: 16)
                                     }
                                     NavigationLink(value: ew.event) {
                                         EventRowView(
