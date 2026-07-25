@@ -40,13 +40,10 @@ struct MyPageView: View {
     @AppStorage("notif_ticket") private var notifTicket: Bool = true
     @AppStorage("notif_monday") private var notifMonday: Bool = true
     /// 現在の通知認可状態。View の onAppear で更新する。
+    /// データ取得はすべて VM 側 (ポート注入)。View は UI 状態だけ持つ。
+    @State private var vm = MyPageViewModel()
     @State private var notifAuthStatus: UNAuthorizationStatus = .notDetermined
     /// 担当(推し)に設定済みのアイドル一覧 (テーマ選択用)。
-    @State private var pickIdols: [Idol] = []
-    @State private var schemaVersion: String = "..."
-    @State private var dataVersion: String = "..."
-    @State private var dbStats: DatabaseStats?
-    @State private var brands: [Brand] = []
     @State private var imageURL: String = ""
     @State private var importer = BulkImageImporter()
     @State private var showImageImport = false
@@ -54,10 +51,6 @@ struct MyPageView: View {
     @State private var showBrandImageImport = false
     @State private var unitImageURL: String = ""
     @State private var showUnitImageImport = false
-    @State private var idolTemplateURL: URL?
-    @State private var brandTemplateURL: URL?
-    @State private var unitTemplateURL: URL?
-    @State private var syncDiagnostics: SyncDiagnostics?
     @State private var ckQueryProbeResult: String?
     @State private var showDeleteAccountConfirm = false
     @State private var isDeletingAccount = false
@@ -111,7 +104,7 @@ struct MyPageView: View {
         settingsSection
         dataSyncSection
         dataBackupSection
-        if let stats = dbStats {
+        if let stats = vm.dbStats {
             dataStatsSection(stats)
         }
         creditsSection
@@ -424,7 +417,7 @@ struct MyPageView: View {
         Section("設定") {
             Picker("デフォルトブランド", selection: $defaultBrandId) {
                 Text("すべて").tag("")
-                ForEach(brands) { brand in
+                ForEach(vm.brands) { brand in
                     Text(brand.shortName).tag(brand.id)
                 }
             }
@@ -484,13 +477,13 @@ struct MyPageView: View {
         Section {
             Toggle("担当の色をテーマに使う", isOn: $useOshiColor)
             if useOshiColor {
-                if pickIdols.isEmpty {
+                if vm.pickIdols.isEmpty {
                     Text("アイドル詳細で担当(推し)に設定すると、ここで色を選べます。")
                         .font(.imasCaption)
                         .foregroundStyle(DS.ink2)
                 } else {
                     Picker("テーマにする担当", selection: $themeOshiIdolId) {
-                        ForEach(pickIdols) { idol in
+                        ForEach(vm.pickIdols) { idol in
                             HStack(spacing: DS.sp3) {
                                 Circle()
                                     .fill(Color(hexString: idol.color))
@@ -522,7 +515,7 @@ struct MyPageView: View {
             } label: {
                 Label("キャラクター画像をインポート", systemImage: "photo.on.rectangle.angled")
             }
-            if let url = idolTemplateURL {
+            if let url = vm.idolTemplateURL {
                 ShareLink(item: url) {
                     Label("型紙 JSON をダウンロード (アイドル)", systemImage: "square.and.arrow.down")
                         .font(.imasCaption)
@@ -536,7 +529,7 @@ struct MyPageView: View {
             } label: {
                 Label("ブランド画像をインポート", systemImage: "tag")
             }
-            if let url = brandTemplateURL {
+            if let url = vm.brandTemplateURL {
                 ShareLink(item: url) {
                     Label("型紙 JSON をダウンロード (ブランド)", systemImage: "square.and.arrow.down")
                         .font(.imasCaption)
@@ -550,7 +543,7 @@ struct MyPageView: View {
             } label: {
                 Label("ユニット画像をインポート", systemImage: "person.3")
             }
-            if let url = unitTemplateURL {
+            if let url = vm.unitTemplateURL {
                 ShareLink(item: url) {
                     Label("型紙 JSON をダウンロード (ユニット)", systemImage: "square.and.arrow.down")
                         .font(.imasCaption)
@@ -684,8 +677,8 @@ struct MyPageView: View {
             .disabled(isSyncing)
 
             #if DEBUG
-            LabeledContent("スキーマバージョン", value: schemaVersion)
-            LabeledContent("データバージョン", value: dataVersion)
+            LabeledContent("スキーマバージョン", value: vm.schemaVersion)
+            LabeledContent("データバージョン", value: vm.dataVersion)
 
             if let summary = syncEngine.lastSyncSummary {
                 DisclosureGroup {
@@ -711,7 +704,7 @@ struct MyPageView: View {
             #endif
 
             #if DEBUG
-            if let diag = syncDiagnostics {
+            if let diag = vm.syncDiagnostics {
                 DisclosureGroup {
                     LabeledContent("@ events", value: "\(diag.eventsAt)").font(.imasCaption2)
                     LabeledContent("@ shows", value: "\(diag.showsAt)").font(.imasCaption2)
@@ -1018,21 +1011,8 @@ struct MyPageView: View {
     // MARK: - Data Loading
 
     private func loadAll() async {
-        do {
-            let diagnostics = AppContainer.shared.diagnosticsReading
-            schemaVersion = try await diagnostics.metaValue(forKey: "schema_version") ?? "不明"
-            dataVersion = try await diagnostics.metaValue(forKey: "data_version") ?? "不明"
-            dbStats = try await diagnostics.databaseStats()
-            syncDiagnostics = try await diagnostics.syncDiagnostics()
-            brands = try await AppContainer.shared.brandReading.brands()
-            let pickIds = try await AppContainer.shared.markReading.markedEntityIds(entity: .idol, kind: .myPick)
-            pickIdols = try await AppContainer.shared.idolReading.idols(ids: pickIds)
-            syncThemeColor()
-        } catch {
-            Logger.database.error("load_failed settings: \(error.localizedDescription)")
-        }
-
-        await regenerateImportTemplates()
+        await vm.load()
+        syncThemeColor()
     }
 
     /// 担当テーマ色を現在の選択から再計算し、ContentView 参照用 hex を更新する。
@@ -1041,7 +1021,7 @@ struct MyPageView: View {
         let resolved = resolveOshiTheme(
             isEnabled: useOshiColor,
             currentIdolId: themeOshiIdolId,
-            pickIdols: pickIdols
+            pickIdols: vm.pickIdols
         )
         if let idolId = resolved.idolId {
             themeOshiIdolId = idolId
@@ -1049,42 +1029,7 @@ struct MyPageView: View {
         themeOshiColorHex = resolved.colorHex
     }
 
-    private func regenerateImportTemplates() async {
-        do {
-            let idols = try await AppContainer.shared.idolReading.idols(brandId: nil)
-            let idolMapping = idols.map { ($0.name, "") }
-            idolTemplateURL = try Self.writeJSONTemplate(
-                pairs: idolMapping,
-                fileName: "idol_images_template.json"
-            )
 
-            let brandMapping = brands.map { ($0.shortName, "") }
-            brandTemplateURL = try Self.writeJSONTemplate(
-                pairs: brandMapping,
-                fileName: "brand_images_template.json"
-            )
-
-            // ユニットは常設のみ。 公演ごとの臨時ユニット (「〇〇 + 〇〇」等) まで並べると
-            // 型紙が数百行になり、 アイコンを用意したい常設ユニットが埋もれる。
-            let units = try await AppContainer.shared.unitReading.unitIndex().units
-            let unitMapping = units.filter(\.isPermanent).map { ($0.name, "") }
-            unitTemplateURL = try Self.writeJSONTemplate(
-                pairs: unitMapping,
-                fileName: "unit_images_template.json"
-            )
-        } catch {
-            Logger.database.error("template_generation_failed: \(error.localizedDescription)")
-        }
-    }
-
-    /// 型紙 JSON を一時ファイルに書き出す。JSON の組み立て・エスケープは
-    /// `imageTemplateJSON` (Domain/UseCases) 側でテスト済み。
-    private static func writeJSONTemplate(pairs: [(String, String)], fileName: String) throws -> URL {
-        let json = imageTemplateJSON(pairs: pairs)
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
-        try json.data(using: .utf8)?.write(to: url, options: .atomic)
-        return url
-    }
 
     private func probeCKQuery() async {
         ckQueryProbeResult = "実行中..."
@@ -1095,7 +1040,7 @@ struct MyPageView: View {
             let mapped = recs.compactMap { CKRecordMapper.setlistItem(from: $0) }
             if !mapped.isEmpty {
                 try await AppContainer.shared.showWriting.upsertSetlistItems(mapped)
-                syncDiagnostics = try await AppContainer.shared.diagnosticsReading.syncDiagnostics()
+                await vm.refreshSyncDiagnostics()
                 ckQueryProbeResult = (ckQueryProbeResult ?? "") + " / upsert \(mapped.count) 件"
             }
         } catch {

@@ -14,6 +14,9 @@ struct SetlistView: View {
     @State private var venueDirectory: VenueDirectory = .empty
     /// 予想/実セトリ両方ある時の内部タブ (0=セットリスト / 1=予想)。
     @State private var contentTab = 0
+    /// シンプル表示 (番号・曲名・演者だけ)。 20 曲超のセトリを 1 枚のスクショに
+    /// 収めたい用途向け。 公演をまたいで保持したいので AppStorage。
+    @AppStorage("setlist_simple_mode") private var simpleMode = false
     @State private var performersByItemId: [String: [PerformerRow]] = [:]
     @State private var originalIdsBySongId: [String: Set<String>] = [:]
     @State private var idolsById: [String: Idol] = [:]
@@ -81,6 +84,74 @@ struct SetlistView: View {
     }
 
     /// 曲のフォールバックジャケ/チップ色シード。曲のブランド色 → 公演ブランド色の順。
+    /// セトリ 1 行。 通常表示とシンプル表示の分岐ごと ForEach の外に出す。
+    /// ForEach のクロージャ内に両方の巨大な View 生成式を並べると
+    /// 「unable to type-check this expression in reasonable time」で通らなくなる。
+    @ViewBuilder
+    private func setlistRow(item: SetlistRow, index: Int) -> some View {
+        let performers = performersByItemId[item.id] ?? []
+        let performerIdolIds = Set(performers.compactMap(\.idolId))
+        if simpleMode {
+            SetlistSimpleRowView(
+                item: item,
+                displayNumber: index + 1,
+                performerLabel: performerLabel(performers: performers, idolIds: performerIdolIds),
+                brandHex: brandHex(for: item)
+            )
+            .onTapGesture {
+                // 通常行と同じで、 曲は id だけ持っているので取得してから遷移する。
+                Task {
+                    if let song = try? await AppContainer.shared.songReading.song(id: item.songId) {
+                        go(.song(song))
+                    }
+                }
+            }
+        } else {
+            let originalIds = originalIdsBySongId[item.songId] ?? []
+            SetlistRowView(
+                item: item,
+                displayNumber: index + 1,
+                performers: performers,
+                idolsById: idolsById,
+                unitIndex: unitIndex,
+                showAllCastIds: showAllCastIds,
+                activeUnitIds: activeUnitIds,
+                coverType: classifyCover(originalIds: originalIds, performerIds: performerIdolIds),
+                myPickIdolIds: myPickIdolIds,
+                showId: show.id,
+                showName: shareName,
+                showDate: show.date,
+                likeEntry: likesBySongId[item.songId],
+                onToggleLike: { entry in
+                    likesBySongId[item.songId] = SetlistLikeService.LikeEntry(
+                        songId: item.songId,
+                        likeCount: entry.likeCount,
+                        hasUserLiked: entry.liked
+                    )
+                },
+                brandHex: brandHex(for: item),
+                navigate: navigate,
+                onRequireLogin: { showVoteLoginPrompt = true }
+            )
+        }
+    }
+
+    /// シンプル表示の演者ラベル。 通常行の performerMeta と同じ優先順で決める:
+    /// ユニット単独曲ならユニット名 → 出演者全員なら「全員」→ それ以外は名前を「／」で連結。
+    /// 名前の区切りは公式のセトリ画像に合わせて全角スラッシュ。
+    private func performerLabel(performers: [PerformerRow], idolIds: Set<String>) -> String {
+        if let unitIndex {
+            let units = unitIndex.exactMatchingUnits(for: idolIds, requireSongs: true)
+                .filter { activeUnitIds.isEmpty || activeUnitIds.contains($0.id) }
+            if !units.isEmpty { return units.map(\.name).joined(separator: "／") }
+        }
+        // showAllCastIds は cast_id 集合。 PerformerRow.id が cast_id なのでそのまま比較できる。
+        if showAllCastIds.count >= 2, Set(performers.map(\.id)) == showAllCastIds { return "全員" }
+        let names = performers.compactMap { $0.idolId.flatMap { idolsById[$0]?.name } }
+        if !names.isEmpty { return names.joined(separator: "／") }
+        return performers.map(\.name).joined(separator: "／")
+    }
+
     private func brandHex(for item: SetlistRow) -> String? {
         if let bid = item.songBrandId, let hex = brandHexById[bid] { return hex }
         return showBrandHex
@@ -112,7 +183,23 @@ struct SetlistView: View {
                     .listRowSeparator(.hidden)
             }
 
+            // シンプル表示では会場カードとマークバーを畳み、 会場・日付だけの 1 行にする。
+            // ここが 280pt 前後あり、 残したままだと 20 曲超のセトリが 1 枚のスクショに
+            // 収まらない (シンプル表示を作った意味が無くなる)。
+            if simpleMode {
+                Section {
+                    Text([venueDirectory.displayName(for: show), show.date]
+                        .compactMap { $0 }.joined(separator: " ・ "))
+                        .font(.imasCaption)
+                        .foregroundStyle(DS.ink2)
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets(top: 2, leading: 16, bottom: 6, trailing: 16))
+                        .listRowSeparator(.hidden)
+                }
+            }
+
             // 会場 / 日付 カード
+            if !simpleMode {
             Section {
                 ImasListContainer {
                     // 会場は ID で持つ。表示は公演日時点の名前 (改名前の公演は当時名)。
@@ -156,6 +243,7 @@ struct SetlistView: View {
             }
             .listRowBackground(Color.clear)
             .listRowInsets(EdgeInsets(top: 14, leading: 16, bottom: 8, trailing: 16))
+            }
 
             // 予想と実セトリが両方あるときは内部タブで切替 (実セトリ確定後も予想を見られる)。
             if isFutureShow && !setlist.isEmpty {
@@ -198,7 +286,9 @@ struct SetlistView: View {
             }
 
             // 良かった曲に投票しよう Note / 未ログインはログイン導線 (実セトリ表示中のみ)。
-            if !setlist.isEmpty && !(isFutureShow && contentTab == 1) {
+            // シンプル表示では出さない。 投票導線はシンプル表示に 👍 自体が無いので意味が無く、
+            // スクショに誘導文が写り込むだけになる。
+            if !simpleMode && !setlist.isEmpty && !(isFutureShow && contentTab == 1) {
                 Section {
                     Group {
                         if AuthService.shared.isSignedIn {
@@ -223,36 +313,8 @@ struct SetlistView: View {
                     // セクションの曲を 1 枚の角丸カード (ImasListContainer) にまとめる (デザイン 03 の .list)。
                     ImasListContainer {
                         ForEach(Array(section.items.enumerated()), id: \.element.id) { index, item in
-                            if index > 0 { ImasRowDivider(inset: 66) }
-                            let performers = performersByItemId[item.id] ?? []
-                            let performerIdolIds = Set(performers.compactMap(\.idolId))
-                            let originalIds = originalIdsBySongId[item.songId] ?? []
-                            let coverType = classifyCover(originalIds: originalIds, performerIds: performerIdolIds)
-                            SetlistRowView(
-                                item: item,
-                                displayNumber: index + 1,
-                                performers: performers,
-                                idolsById: idolsById,
-                                unitIndex: unitIndex,
-                                showAllCastIds: showAllCastIds,
-                                activeUnitIds: activeUnitIds,
-                                coverType: coverType,
-                                myPickIdolIds: myPickIdolIds,
-                                showId: show.id,
-                                showName: shareName,
-                                showDate: show.date,
-                                likeEntry: likesBySongId[item.songId],
-                                onToggleLike: { entry in
-                                    likesBySongId[item.songId] = SetlistLikeService.LikeEntry(
-                                        songId: item.songId,
-                                        likeCount: entry.likeCount,
-                                        hasUserLiked: entry.liked
-                                    )
-                                },
-                                brandHex: brandHex(for: item),
-                                navigate: navigate,
-                                onRequireLogin: { showVoteLoginPrompt = true }
-                            )
+                            if index > 0 { ImasRowDivider(inset: simpleMode ? 34 : 66) }
+                            setlistRow(item: item, index: index)
                         }
                     }
                     .listRowBackground(Color.clear)
@@ -291,6 +353,16 @@ struct SetlistView: View {
             }
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
+                    Button {
+                        AppAnalytics.tap("setlist.toggle_simple")
+                        withAnimation(.easeInOut(duration: 0.15)) { simpleMode.toggle() }
+                    } label: {
+                        Label(
+                            simpleMode ? "通常表示に戻す" : "シンプル表示",
+                            systemImage: simpleMode ? "list.bullet.rectangle" : "list.bullet"
+                        )
+                    }
+
                     if EditPermission.showEditAffordance {
                         Button { startEdit() } label: {
                             Label("セトリを編集", systemImage: "pencil")
