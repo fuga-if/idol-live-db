@@ -24,14 +24,25 @@ struct UnitAvatarView: View {
     @ViewBuilder private func core(_ t: ImasTheme) -> some View {
         if let imageURL = imageService.imageURL(for: unit.id, kind: .unit) {
             let px = Int(size * UIScreen.main.scale)
-            LazyImage(url: imageURL) { state in
-                if let img = state.image {
-                    img.resizable().scaledToFill()
-                } else {
-                    fallback(t)
+            ZStack {
+                // 透過ロゴの下地。 .fit だと円の四隅が余るので、 敷かないと
+                // リングの中に絵が浮いて見える。
+                t.tint
+                LazyImage(url: imageURL) { state in
+                    if let img = state.image {
+                        // ユニットアイコンは横長のロゴタイプが多い (SideM 等)。
+                        // .fill だと左右が切れて何のユニットか判らなくなるので .fit で全体を収める。
+                        img.resizable().scaledToFit().padding(size * 0.08)
+                    } else {
+                        fallback(t)
+                    }
                 }
+                .processors([
+                    ImageProcessors.Resize(
+                        size: CGSize(width: px, height: px), unit: .pixels, contentMode: .aspectFit
+                    )
+                ])
             }
-            .processors([ImageProcessors.Resize(size: CGSize(width: px, height: px), unit: .pixels)])
         } else {
             fallback(t)
         }

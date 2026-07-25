@@ -108,10 +108,14 @@ struct BrandIconCell: View {
     @ViewBuilder
     private var iconView: some View {
         if let url = customImageURL, let uiImage = UIImage(contentsOfFile: url.path) {
+            // ブランドロゴは横長のロックアップも来る。 .fill だと両端が切れて
+            // 判別できなくなるので .fit で円の中に収める (下地はブランド色)。
             Image(uiImage: uiImage)
                 .resizable()
-                .scaledToFill()
+                .scaledToFit()
+                .padding(4)
                 .frame(width: 48, height: 48)
+                .background(background.opacity(isSelected ? 0.18 : 0.10), in: Circle())
                 .clipShape(Circle())
                 .overlay(
                     Circle()
