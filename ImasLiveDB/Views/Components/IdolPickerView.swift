@@ -1,10 +1,23 @@
 import SwiftUI
 
-/// セトリ編集等で出演アイドルを複数選択する picker。 IdolListView と同じ感覚で
-/// ブランドフィルタ + 検索 + ユニットから一括追加が可能。
-struct IdolMultiPickerView: View {
+/// アプリ唯一のアイドル選択画面。
+///
+/// 以前は用途ごとに 3 実装が並立し、品質に大差があった:
+/// - 出演者選択用 (ブランド絞り込み・グリッド・ユニット一括追加あり)
+/// - 楽曲フィルタ用 (395 人を素のリストに全部出すだけ。アバターも絞り込みも無し)
+/// - 単一選択用 (どこからも未使用)
+/// 同じ「アイドルを選ぶ」行為が別 UI になる理由が無いので、いちばん良かった実装に寄せて統合した。
+///
+/// - `mode` で単一選択 / 複数選択を切り替える (単一選択はタップ即確定)。
+/// - 検索は名前・かな・CV名・別名を対象にする。
+struct IdolPickerView: View {
+    enum Mode { case single, multi }
+
+    var title: String = "アイドルを選択"
+    var mode: Mode = .multi
+    /// 呼び出し元が既に持っているアイドル配列。空なら自力でロードする。
+    var idols: [Idol] = []
     let initialSelection: Set<String>
-    let idols: [Idol]
     let onCommit: (Set<String>) -> Void
 
     @Environment(AppDatabase.self) private var database
@@ -14,24 +27,31 @@ struct IdolMultiPickerView: View {
     @State private var query: String = ""
     @State private var selectedBrandIds: Set<String> = []
     @State private var brands: [Brand] = []
-    @State private var showUnitPicker = false
-    /// 呼び出し元が idols を渡さなかった (空) 場合に自力ロードした全アイドル。
     @State private var loadedIdols: [Idol] = []
-    /// リスト/グリッド表示切替。人数が多いお題(全ブランド等)でも顔写真で見渡せるように。
-    @State private var displayMode: IdolListMode = .grid
+    @State private var showUnitPicker = false
+    /// リスト/グリッド表示切替。人数が多いとき (全ブランド等) でも顔で見渡せるように。
+    @AppStorage("idol_picker_mode") private var displayModeRaw: String = IdolListMode.grid.rawValue
 
     init(
-        selected: Set<String>,
-        idols: [Idol],
+        title: String = "アイドルを選択",
+        mode: Mode = .multi,
+        idols: [Idol] = [],
+        selected: Set<String> = [],
         onCommit: @escaping (Set<String>) -> Void
     ) {
-        self.initialSelection = selected
+        self.title = title
+        self.mode = mode
         self.idols = idols
+        self.initialSelection = selected
         self.onCommit = onCommit
         self._selection = State(initialValue: selected)
     }
 
-    /// 表示に使うアイドル。呼び出し元の配列が空 (ロード未完/失敗) なら自力ロード分にフォールバック。
+    private var displayMode: IdolListMode {
+        IdolListMode(rawValue: displayModeRaw) ?? .grid
+    }
+
+    /// 表示に使うアイドル。呼び出し元の配列が空 (ロード未完/未指定) なら自力ロード分にフォールバック。
     private var sourceIdols: [Idol] { idols.isEmpty ? loadedIdols : idols }
 
     private var filtered: [Idol] {
@@ -60,48 +80,33 @@ struct IdolMultiPickerView: View {
         }
     }
 
+    private var selectedIdols: [Idol] {
+        sourceIdols.filter { selection.contains($0.id) }
+    }
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
                 brandFilterBar
-                if displayMode == .grid {
+                if filtered.isEmpty {
+                    emptyState
+                } else if displayMode == .grid {
                     idolGrid
                 } else {
                     idolList
                 }
+                // 複数選択では、いま何を選んでいるかを常に見えるようにする
+                // (スクロールで選択済みが視界から消えるため)。
+                if mode == .multi, !selection.isEmpty {
+                    Divider().overlay(DS.sep)
+                    selectedBar
+                }
             }
-            .navigationTitle("出演者を選択 (\(selection.count))")
+            .background(DS.bg)
+            .navigationTitle(mode == .multi ? "\(title) (\(selection.count))" : title)
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("キャンセル") { dismiss() }
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        AppAnalytics.tap("idol_multi_picker.display_mode_toggle")
-                        displayMode = displayMode == .grid ? .list : .grid
-                    } label: {
-                        Image(systemName: displayMode == .grid ? "list.bullet" : "square.grid.3x2")
-                    }
-                    .accessibilityLabel(displayMode == .grid ? "リスト表示" : "グリッド表示")
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        showUnitPicker = true
-                    } label: {
-                        Image(systemName: "person.3.fill")
-                    }
-                    .accessibilityLabel("ユニットから追加")
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("決定") {
-                        AppAnalytics.tap("idol_multi_picker.commit")
-                        onCommit(selection)
-                        dismiss()
-                    }
-                }
-            }
-            .searchable(text: $query, prompt: "アイドル名 / 声優名で検索")
+            .toolbar { toolbarContent }
+            .searchable(text: $query, prompt: "アイドル名 / CV名で検索")
             .sheet(isPresented: $showUnitPicker) {
                 UnitMemberAddPicker { addedIdolIds in
                     selection.formUnion(addedIdolIds)
@@ -114,42 +119,94 @@ struct IdolMultiPickerView: View {
                     loadedIdols = (try? await AppContainer.shared.idolReading.idols(brandId: nil)) ?? []
                 }
             }
-            .trackScreen("idol_multi_picker")
+            .trackScreen("idol_picker")
         }
     }
+
+    @ToolbarContentBuilder
+    private var toolbarContent: some ToolbarContent {
+        ToolbarItem(placement: .cancellationAction) {
+            Button("キャンセル") { dismiss() }
+        }
+        ToolbarItem(placement: .topBarTrailing) {
+            Button {
+                AppAnalytics.tap("idol_picker.display_mode_toggle")
+                displayModeRaw = (displayMode == .grid ? IdolListMode.list : .grid).rawValue
+            } label: {
+                Image(systemName: displayMode == .grid ? "list.bullet" : "square.grid.3x2")
+            }
+            .accessibilityLabel(displayMode == .grid ? "リスト表示" : "グリッド表示")
+        }
+        if mode == .multi {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showUnitPicker = true
+                } label: {
+                    Image(systemName: "person.3.fill")
+                }
+                .accessibilityLabel("ユニットから追加")
+            }
+            ToolbarItem(placement: .confirmationAction) {
+                Button("決定") {
+                    AppAnalytics.tap("idol_picker.commit")
+                    onCommit(selection)
+                    dismiss()
+                }
+                .fontWeight(.bold)
+            }
+        }
+    }
+
+    private var emptyState: some View {
+        VStack {
+            Spacer()
+            ImasEmptyState(
+                systemImage: "magnifyingglass",
+                title: "見つかりません",
+                message: query.isEmpty
+                    ? "このブランドに該当するアイドルがいません"
+                    : "「\(query)」に一致するアイドルがいません"
+            )
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(DS.bg)
+    }
+
+    // MARK: - ブランド絞り込み
 
     @ViewBuilder
     private var brandFilterBar: some View {
         if !brands.isEmpty {
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 6) {
+                HStack(spacing: DS.sp3) {
                     Button { selectedBrandIds = [] } label: {
                         ImasChip(text: "すべて", style: selectedBrandIds.isEmpty ? .selected : .neutral)
                     }
                     .buttonStyle(.plain)
                     ForEach(brands) { brand in
                         Button {
-                            if selectedBrandIds.contains(brand.id) {
+                            if !selectedBrandIds.insert(brand.id).inserted {
                                 selectedBrandIds.remove(brand.id)
-                            } else {
-                                selectedBrandIds.insert(brand.id)
                             }
                         } label: {
                             ImasChip(text: brand.shortName,
-                                      style: selectedBrandIds.contains(brand.id) ? .selected : .neutral,
-                                      brand: brand.color)
+                                     style: selectedBrandIds.contains(brand.id) ? .selected : .neutral,
+                                     brand: brand.color)
                         }
                         .buttonStyle(.plain)
                     }
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
+                .padding(.horizontal, DS.sp4)
+                .padding(.vertical, DS.sp3)
             }
-            .background(.regularMaterial)
+            .background(DS.surface)
+            Divider().overlay(DS.sep)
         }
     }
 
-    @ViewBuilder
+    // MARK: - リスト
+
     private var idolList: some View {
         List {
             ForEach(grouped, id: \.brand.id) { section in
@@ -167,16 +224,17 @@ struct IdolMultiPickerView: View {
         .background(DS.bg)
     }
 
-    @ViewBuilder
     private func idolRow(_ idol: Idol) -> some View {
         let isSelected = selection.contains(idol.id)
-        Button {
+        return Button {
             toggle(idol)
         } label: {
             HStack(spacing: DS.sp3) {
                 IdolAvatarView(idol: idol, size: 40)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(idol.name)
+                        .font(.imasSubhead)
+                        .foregroundStyle(DS.ink)
                     if let cv = idol.currentVoiceActor {
                         Text(cv)
                             .font(.imasCaption)
@@ -184,25 +242,16 @@ struct IdolMultiPickerView: View {
                     }
                 }
                 Spacer()
-                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .foregroundStyle(isSelected ? Color.accentColor : DS.ink2)
+                selectionIndicator(isSelected: isSelected, seed: idol.color)
             }
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(idol.name)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
-    private func toggle(_ idol: Idol) {
-        AppAnalytics.tap("idol_multi_picker.toggle_idol")
-        if selection.contains(idol.id) {
-            selection.remove(idol.id)
-        } else {
-            selection.insert(idol.id)
-        }
-    }
+    // MARK: - グリッド
 
-    // MARK: - Grid
-
-    /// 顔写真で見渡せるグリッド表示。人数の多いお題(スコープ=all等)向け。
     private var idolGrid: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: DS.sp5) {
@@ -234,9 +283,7 @@ struct IdolMultiPickerView: View {
         return VStack(spacing: DS.sp2) {
             IdolAvatarView(idol: idol, size: 60)
                 .overlay(alignment: .bottomTrailing) {
-                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                        .font(.imasScaled(16, weight: .semibold))
-                        .foregroundStyle(isSelected ? Color.accentColor : DS.ink3)
+                    selectionIndicator(isSelected: isSelected, seed: idol.color)
                         .background(DS.bg, in: Circle())
                         // IdolAvatarView は isPick=false でも担当リング込みの外形フレームを確保するため、
                         // 可視アバターは中央に ImasAvatar.ringPadding 分小さく描画される。ここは isPick を
@@ -253,8 +300,52 @@ struct IdolMultiPickerView: View {
         .frame(maxWidth: .infinity)
         .contentShape(Rectangle())
         .onTapGesture { toggle(idol) }
+        .accessibilityLabel(idol.name)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    /// 選択マーク。色はアイドル固有色から導出する (システム accent を塗らない)。
+    private func selectionIndicator(isSelected: Bool, seed: String?) -> some View {
+        ImasSelectionMark(isSelected: isSelected, seed: seed)
+    }
+
+    // MARK: - 選択中バー
+
+    private var selectedBar: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: DS.sp3) {
+                ForEach(selectedIdols) { idol in
+                    ImasRemovableChip(text: idol.name, seed: idol.color) {
+                        withAnimation { toggle(idol) }
+                    }
+                }
+            }
+            .padding(.horizontal, DS.sp5)
+            .padding(.vertical, DS.sp4)
+        }
+        .background(DS.surface)
+    }
+
+    // MARK: - 選択
+
+    private func toggle(_ idol: Idol) {
+        AppAnalytics.tap("idol_picker.toggle_idol")
+        switch mode {
+        case .single:
+            // 単一選択はタップで即確定。「決定」を押させる意味がない。
+            onCommit([idol.id])
+            dismiss()
+        case .multi:
+            if selection.contains(idol.id) {
+                selection.remove(idol.id)
+            } else {
+                selection.insert(idol.id)
+            }
+        }
     }
 }
+
+// MARK: - ユニットから一括追加
 
 /// ユニット選択 → メンバー一括追加用 sub-picker。
 private struct UnitMemberAddPicker: View {
@@ -289,47 +380,48 @@ private struct UnitMemberAddPicker: View {
             VStack(spacing: 0) {
                 if !brands.isEmpty {
                     ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 6) {
+                        HStack(spacing: DS.sp3) {
                             Button { selectedBrandIds = [] } label: {
                                 ImasChip(text: "すべて", style: selectedBrandIds.isEmpty ? .selected : .neutral)
                             }
                             .buttonStyle(.plain)
                             ForEach(brands) { brand in
                                 Button {
-                                    if selectedBrandIds.contains(brand.id) {
+                                    if !selectedBrandIds.insert(brand.id).inserted {
                                         selectedBrandIds.remove(brand.id)
-                                    } else {
-                                        selectedBrandIds.insert(brand.id)
                                     }
                                 } label: {
                                     ImasChip(text: brand.shortName,
-                                              style: selectedBrandIds.contains(brand.id) ? .selected : .neutral,
-                                              brand: brand.color)
+                                             style: selectedBrandIds.contains(brand.id) ? .selected : .neutral,
+                                             brand: brand.color)
                                 }
                                 .buttonStyle(.plain)
                             }
                         }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
+                        .padding(.horizontal, DS.sp4)
+                        .padding(.vertical, DS.sp3)
                     }
-                    .background(.regularMaterial)
+                    .background(DS.surface)
+                    Divider().overlay(DS.sep)
                 }
                 List(filtered) { unit in
                     Button {
-                        AppAnalytics.tap("idol_multi_picker.add_unit")
+                        AppAnalytics.tap("idol_picker.add_unit")
                         Task {
                             if let members = try? await AppContainer.shared.unitReading.unitMembers(unitId: unit.id) {
-                                let ids = Set(members.map(\.id))
-                                onAdd(ids)
+                                onAdd(Set(members.map(\.id)))
                                 dismiss()
                             }
                         }
                     } label: {
-                        HStack {
+                        HStack(spacing: DS.sp3) {
                             Image(systemName: "person.3.fill")
-                                .foregroundStyle(.tint)
+                                .font(.imasScaled(15))
+                                .foregroundStyle(DS.ink2)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(unit.name)
+                                    .font(.imasSubhead)
+                                    .foregroundStyle(DS.ink)
                                 if let alt = unit.nameAlt, !alt.isEmpty {
                                     Text(alt)
                                         .font(.imasCaption)

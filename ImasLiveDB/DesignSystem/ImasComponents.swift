@@ -219,6 +219,30 @@ struct ImasChip: View {
     }
 }
 
+// MARK: - SelectionMark (選択チェック)
+
+/// ピッカー・複数選択リストのチェックマーク。
+/// システムの `Color.accentColor` を直に塗らず、エンティティ色 (seed/brand) から導出する
+/// ── DS の原則「システムクロムはほぼ無彩、色は常にエンティティ側から来る」に従う。
+/// seed が無い場面では `DS.sys` に落ちる。
+struct ImasSelectionMark: View {
+    let isSelected: Bool
+    var seed: String? = nil
+    var brand: String? = nil
+    var size: CGFloat = 16
+    @Environment(\.colorScheme) private var scheme
+
+    var body: some View {
+        let accent: Color = (seed != nil || brand != nil)
+            ? ImasTheme.derive(seed: seed, brand: brand, scheme: scheme).accent
+            : DS.sys
+        Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+            .font(.imasScaled(size, weight: .semibold))
+            .foregroundStyle(isSelected ? accent : DS.ink3)
+            .accessibilityHidden(true)
+    }
+}
+
 // MARK: - AwardChip
 
 /// 「みんなの投票」終了お題での順位を表すバッジ。優勝=金の塗り、入賞(2〜3位)=金の淡色 tint。

@@ -194,7 +194,7 @@ struct SongEditView: View {
             } message: { Text(errorMessage ?? "") }
             .editRequestSentAlert(isPresented: $requestSent, onDismiss: { dismiss() })
             .sheet(isPresented: $showArtistPicker) {
-                IdolMultiPickerView(selected: artistIdolIds, idols: allIdols) { newSelection in
+                IdolPickerView(title: "歌唱アイドルを選択", idols: allIdols, selected: artistIdolIds) { newSelection in
                     artistIdolIds = newSelection
                     showArtistPicker = false
                 }

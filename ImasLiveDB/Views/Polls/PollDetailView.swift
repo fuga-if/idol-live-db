@@ -263,9 +263,10 @@ struct PollDetailView: View {
                 }
                 return allIdols
             }()
-            IdolMultiPickerView(
-                selected: Set(detail.entries.filter(\.hasUserVoted).map(\.entityId)),
-                idols: pickIdols
+            IdolPickerView(
+                title: "投票するアイドルを選択",
+                idols: pickIdols,
+                selected: Set(detail.entries.filter(\.hasUserVoted).map(\.entityId))
             ) { selectedIds in
                 showVotePicker = false
                 applyPickerSelection(selectedIds, ordered: pickIdols.map(\.id), detail: detail, remaining: remaining)

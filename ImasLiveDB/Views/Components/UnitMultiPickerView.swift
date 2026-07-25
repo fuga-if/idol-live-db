@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// お題作成・投票でユニットを複数選択する picker。
-/// IdolMultiPickerView と同じ感覚で、ブランドフィルタ + 検索 + リスト/グリッド切替に対応する。
+/// IdolPickerView と同じ感覚で、ブランドフィルタ + 検索 + リスト/グリッド切替に対応する。
 struct UnitMultiPickerView: View {
     let initialSelection: Set<String>
     let units: [Unit]

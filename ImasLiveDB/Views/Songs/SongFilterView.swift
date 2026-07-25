@@ -38,9 +38,6 @@ struct SongFilterView: View {
 
     // サブシート
     @State private var showIdolPicker = false
-    @State private var showCdSeriesPicker = false
-    @State private var showSeriesPicker = false
-    @State private var showEventPicker = false
 
     var body: some View {
         NavigationStack {
@@ -192,17 +189,11 @@ struct SongFilterView: View {
 
                 // シリーズ (series_group: LTF / BRILLI@NT WING 等)
                 Section("シリーズ") {
-                    Button {
-                        showSeriesPicker = true
+                    NavigationLink {
+                        ListPickerView(title: "シリーズ", items: seriesGroupList, selected: $selectedSeriesGroup)
                     } label: {
-                        HStack {
-                            Text(selectedSeriesGroup ?? "選択なし")
-                                .foregroundStyle(selectedSeriesGroup == nil ? DS.ink2 : DS.ink)
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.imasCaption)
-                                .foregroundStyle(DS.ink3)
-                        }
+                        Text(selectedSeriesGroup ?? "選択なし")
+                            .foregroundStyle(selectedSeriesGroup == nil ? DS.ink2 : DS.ink)
                     }
                 }
                 .listRowBackground(DS.surface)
@@ -210,17 +201,11 @@ struct SongFilterView: View {
 
                 // CDシリーズ
                 Section("CDシリーズ") {
-                    Button {
-                        showCdSeriesPicker = true
+                    NavigationLink {
+                        ListPickerView(title: "CDシリーズ", items: cdSeriesList, selected: $selectedCdSeries)
                     } label: {
-                        HStack {
-                            Text(selectedCdSeries ?? "選択なし")
-                                .foregroundStyle(selectedCdSeries == nil ? DS.ink2 : DS.ink)
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.imasCaption)
-                                .foregroundStyle(DS.ink3)
-                        }
+                        Text(selectedCdSeries ?? "選択なし")
+                            .foregroundStyle(selectedCdSeries == nil ? DS.ink2 : DS.ink)
                     }
                 }
                 .listRowBackground(DS.surface)
@@ -228,17 +213,11 @@ struct SongFilterView: View {
 
                 // ライブ名
                 Section("ライブで絞込") {
-                    Button {
-                        showEventPicker = true
+                    NavigationLink {
+                        ListPickerView(title: "ライブ", items: eventNames, selected: $selectedEventName)
                     } label: {
-                        HStack {
-                            Text(selectedEventName ?? "選択なし")
-                                .foregroundStyle(selectedEventName == nil ? DS.ink2 : DS.ink)
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.imasCaption)
-                                .foregroundStyle(DS.ink3)
-                        }
+                        Text(selectedEventName ?? "選択なし")
+                            .foregroundStyle(selectedEventName == nil ? DS.ink2 : DS.ink)
                     }
                 }
                 .listRowBackground(DS.surface)
@@ -277,33 +256,13 @@ struct SongFilterView: View {
                 }
             }
             .sheet(isPresented: $showIdolPicker) {
-                IdolPickerView(idols: idols, selectedIds: $selectedIdolIds)
+                IdolPickerView(
+                    title: "アイドルで絞り込み",
+                    idols: idols,
+                    selected: selectedIdolIds
+                ) { selectedIdolIds = $0 }
                     .environment(database)
                     .presentationDetents([.large])
-            }
-            .sheet(isPresented: $showSeriesPicker) {
-                ListPickerView(
-                    title: "シリーズ",
-                    items: seriesGroupList,
-                    selected: $selectedSeriesGroup
-                )
-                .presentationDetents([.large])
-            }
-            .sheet(isPresented: $showCdSeriesPicker) {
-                ListPickerView(
-                    title: "CDシリーズ",
-                    items: cdSeriesList,
-                    selected: $selectedCdSeries
-                )
-                .presentationDetents([.large])
-            }
-            .sheet(isPresented: $showEventPicker) {
-                ListPickerView(
-                    title: "ライブ",
-                    items: eventNames,
-                    selected: $selectedEventName
-                )
-                .presentationDetents([.large])
             }
             .task { await loadData() }
             .trackScreen("song_filter")
@@ -398,198 +357,5 @@ struct SongFilterView: View {
         selectedSeriesGroup = filter.seriesGroup
         selectedEventName = filter.liveName
         selectedSongType = filter.songType
-    }
-}
-
-// MARK: - Idol Picker
-
-struct IdolPickerView: View {
-    @Environment(AppDatabase.self) private var database
-    let idols: [Idol]
-    @Binding var selectedIds: Set<String>
-    @Environment(\.dismiss) private var dismiss
-    @State private var searchText = ""
-    @State private var brands: [Brand] = []
-
-    private var filteredIdols: [Idol] {
-        guard !searchText.isEmpty else { return idols }
-        return idols.filter {
-            $0.name.localizedCaseInsensitiveContains(searchText) ||
-            ($0.nameKana ?? "").localizedCaseInsensitiveContains(searchText)
-        }
-    }
-
-    private var selectedIdols: [Idol] {
-        idols.filter { selectedIds.contains($0.id) }
-    }
-
-    private func idolsForBrand(_ brandId: String) -> [Idol] {
-        filteredIdols.filter { $0.brandId == brandId }
-    }
-
-    private var visibleBrands: [Brand] {
-        brands.filter { !idolsForBrand($0.id).isEmpty }
-    }
-
-    var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                List {
-                    ForEach(visibleBrands) { brand in
-                        Section(brand.shortName) {
-                            ForEach(idolsForBrand(brand.id)) { idol in
-                                Button {
-                                    toggleSelection(idol.id)
-                                } label: {
-                                    idolRow(idol)
-                                }
-                            }
-                        }
-                        .listRowBackground(DS.surface)
-                        .listRowSeparatorTint(DS.sep)
-                    }
-                }
-                .listStyle(.plain)
-                .scrollContentBackground(.hidden)
-                .background(DS.bg)
-                .searchable(text: $searchText, prompt: "アイドル名で検索")
-
-                // 選択中のアイドル（下部固定）
-                if !selectedIds.isEmpty {
-                    Divider()
-                    selectedBar
-                }
-            }
-            .background(DS.bg)
-            .navigationTitle("アイドル選択（\(selectedIds.count)名）")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    if !selectedIds.isEmpty {
-                        Button("クリア") {
-                            withAnimation { selectedIds = [] }
-                        }
-                    }
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("完了") { dismiss() }
-                        .fontWeight(.bold)
-                }
-            }
-            .task {
-                do {
-                    brands = try await AppContainer.shared.brandReading.brands()
-                } catch {
-                    Logger.database.error("fetchBrands failed: \(error.localizedDescription, privacy: .public)")
-                }
-            }
-        }
-    }
-
-    private func idolRow(_ idol: Idol) -> some View {
-        HStack(spacing: 0) {
-            IdolNameRow(idol: idol, showsChevron: false)
-            if selectedIds.contains(idol.id) {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(Color.accentColor)
-            } else {
-                Image(systemName: "circle")
-                    .foregroundStyle(DS.ink3)
-            }
-        }
-    }
-
-    private var selectedBar: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 6) {
-                ForEach(selectedIdols) { idol in
-                    ImasRemovableChip(text: idol.name, seed: idol.color) {
-                        withAnimation { toggleSelection(idol.id) }
-                    }
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
-        }
-        .background(DS.surface)
-    }
-
-    private func toggleSelection(_ id: String) {
-        if selectedIds.contains(id) {
-            selectedIds.remove(id)
-        } else {
-            selectedIds.insert(id)
-        }
-    }
-}
-
-// MARK: - List Picker (CDシリーズ / ライブ名 共通)
-
-struct ListPickerView: View {
-    let title: String
-    let items: [String]
-    @Binding var selected: String?
-    @Environment(\.dismiss) private var dismiss
-    @State private var searchText = ""
-
-    private var filteredItems: [String] {
-        guard !searchText.isEmpty else { return items }
-        return items.filter { $0.localizedCaseInsensitiveContains(searchText) }
-    }
-
-    var body: some View {
-        NavigationStack {
-            List {
-                // 「選択なし」オプション
-                Button {
-                    selected = nil
-                    dismiss()
-                } label: {
-                    HStack {
-                        Text("選択なし")
-                            .foregroundStyle(DS.ink2)
-                        Spacer()
-                        if selected == nil {
-                            Image(systemName: "checkmark")
-                                .foregroundStyle(Color.accentColor)
-                        }
-                    }
-                }
-                .listRowBackground(DS.surface)
-                .listRowSeparatorTint(DS.sep)
-
-                ForEach(filteredItems, id: \.self) { item in
-                    Button {
-                        selected = item
-                        dismiss()
-                    } label: {
-                        HStack {
-                            Text(item)
-                                .font(.imasSubhead)
-                                .foregroundStyle(DS.ink)
-                                .lineLimit(2)
-                            Spacer()
-                            if selected == item {
-                                Image(systemName: "checkmark")
-                                    .foregroundStyle(Color.accentColor)
-                            }
-                        }
-                    }
-                    .listRowBackground(DS.surface)
-                    .listRowSeparatorTint(DS.sep)
-                }
-            }
-            .listStyle(.plain)
-            .scrollContentBackground(.hidden)
-            .background(DS.bg)
-            .searchable(text: $searchText, prompt: "検索")
-            .navigationTitle(title)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("完了") { dismiss() }
-                }
-            }
-        }
     }
 }

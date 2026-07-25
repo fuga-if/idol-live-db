@@ -337,9 +337,10 @@ struct PollCreateSheet: View {
     }
 
     private var idolPickerSheet: some View {
-        IdolMultiPickerView(
-            selected: Set(selectedIdols.map(\.id)),
-            idols: allIdolsForPicker
+        IdolPickerView(
+            title: "候補アイドルを選択",
+            idols: allIdolsForPicker,
+            selected: Set(selectedIdols.map(\.id))
         ) { newIds in
             // 順序保持: 既存はそのまま、新規分だけ末尾に追加
             let existing = Set(selectedIdols.map(\.id))

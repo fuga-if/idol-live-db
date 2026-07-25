@@ -101,9 +101,10 @@ struct SetlistEditView: View {
                 }
                 .sheet(item: $castPickerForRowId) { wrapper in
                     if let idx = rows.firstIndex(where: { $0.id == wrapper.id }) {
-                        IdolMultiPickerView(
-                            selected: rows[idx].castIds,
-                            idols: allIdols
+                        IdolPickerView(
+                            title: "出演者を選択",
+                            idols: allIdols,
+                            selected: rows[idx].castIds
                         ) { newSelection in
                             rows[idx].castIds = newSelection
                             castPickerForRowId = nil

@@ -387,8 +387,6 @@ private struct SongPickerFilterSheet: View {
     @Binding var selectedTags: [CommunityTag]
 
     @State private var showIdolPicker = false
-    @State private var showSeriesPicker = false
-    @State private var showCdSeriesPicker = false
     @State private var showTagPicker = false
 
     /// ピッカーで意味のある並び順だけ。回収率・現地回収回数は SongListView 専用。
@@ -500,28 +498,20 @@ private struct SongPickerFilterSheet: View {
                 }
 
                 Section("シリーズ") {
-                    Button {
-                        showSeriesPicker = true
+                    NavigationLink {
+                        ListPickerView(title: "シリーズ", items: seriesGroupList, selected: $selectedSeriesGroup)
                     } label: {
-                        HStack {
-                            Text(selectedSeriesGroup ?? "選択なし")
-                                .foregroundStyle(selectedSeriesGroup == nil ? DS.ink2 : DS.ink)
-                            Spacer()
-                            Image(systemName: "chevron.right").font(.imasCaption).foregroundStyle(DS.ink3)
-                        }
+                        Text(selectedSeriesGroup ?? "選択なし")
+                            .foregroundStyle(selectedSeriesGroup == nil ? DS.ink2 : DS.ink)
                     }
                 }
 
                 Section("CDシリーズ") {
-                    Button {
-                        showCdSeriesPicker = true
+                    NavigationLink {
+                        ListPickerView(title: "CDシリーズ", items: cdSeriesList, selected: $selectedCdSeries)
                     } label: {
-                        HStack {
-                            Text(selectedCdSeries ?? "選択なし")
-                                .foregroundStyle(selectedCdSeries == nil ? DS.ink2 : DS.ink)
-                            Spacer()
-                            Image(systemName: "chevron.right").font(.imasCaption).foregroundStyle(DS.ink3)
-                        }
+                        Text(selectedCdSeries ?? "選択なし")
+                            .foregroundStyle(selectedCdSeries == nil ? DS.ink2 : DS.ink)
                     }
                 }
             }
@@ -552,16 +542,12 @@ private struct SongPickerFilterSheet: View {
                 }
             }
             .sheet(isPresented: $showIdolPicker) {
-                IdolPickerView(idols: idols, selectedIds: $selectedIdolIds)
+                IdolPickerView(
+                    title: "アイドルで絞り込み",
+                    idols: idols,
+                    selected: selectedIdolIds
+                ) { selectedIdolIds = $0 }
                     .environment(database)
-                    .presentationDetents([.large])
-            }
-            .sheet(isPresented: $showSeriesPicker) {
-                ListPickerView(title: "シリーズ", items: seriesGroupList, selected: $selectedSeriesGroup)
-                    .presentationDetents([.large])
-            }
-            .sheet(isPresented: $showCdSeriesPicker) {
-                ListPickerView(title: "CDシリーズ", items: cdSeriesList, selected: $selectedCdSeries)
                     .presentationDetents([.large])
             }
             .sheet(isPresented: $showTagPicker) {
