@@ -1473,7 +1473,8 @@ export default {
         if (!(await checkIsAdmin(env, user.uid)))
           return error("Forbidden", 403);
 
-        const body = (await request.json()) as any;
+        const body = (await request.json().catch(() => null)) as any;
+        if (body === null) return error("invalid JSON body");
         if (!body.user_id) return error("user_id required");
         const targetUserId = body.user_id as string;
 
@@ -1592,7 +1593,8 @@ export default {
 
         await upsertUser(env, user.uid, user.email);
 
-        const body = (await request.json()) as any;
+        const body = (await request.json().catch(() => null)) as any;
+        if (body === null) return error("invalid JSON body");
         const { song_id } = body;
         const songIdErr = validateOpaqueKey(song_id, "song_id");
         if (songIdErr) return error(songIdErr);
@@ -1775,7 +1777,8 @@ export default {
           .first<{ is_banned: number }>();
         if (dbUser?.is_banned) return error("Banned", 403);
 
-        const body = (await request.json()) as any;
+        const body = (await request.json().catch(() => null)) as any;
+        if (body === null) return error("invalid JSON body");
         const { idol_id } = body;
         const idolIdErr = validateOpaqueKey(idol_id, "idol_id");
         if (idolIdErr) return error(idolIdErr);
@@ -2221,7 +2224,8 @@ export default {
 
         await upsertUser(env, user.uid, user.email);
 
-        const body = (await request.json()) as any;
+        const body = (await request.json().catch(() => null)) as any;
+        if (body === null) return error("invalid JSON body");
         const { title, description, target_type, days } = body;
         const candidateScope: string = body.candidate_scope ?? "all";
         const scopeBrandIdsInput = body.scope_brand_ids;
@@ -2341,7 +2345,8 @@ export default {
 
         await upsertUser(env, user.uid, user.email);
 
-        const body = (await request.json()) as any;
+        const body = (await request.json().catch(() => null)) as any;
+        if (body === null) return error("invalid JSON body");
         const { entity_id } = body;
         const entityIdErr = validateOpaqueKey(entity_id, "entity_id");
         if (entityIdErr) return error(entityIdErr);
@@ -2574,7 +2579,8 @@ export default {
           return rateLimitSimple();
         }
 
-        const body = (await request.json()) as any;
+        const body = (await request.json().catch(() => null)) as any;
+        if (body === null) return error("invalid JSON body");
         let { name, description, category, color } = body as {
           name: string;
           description?: string;
@@ -2820,7 +2826,8 @@ export default {
         if (!tag) return error("Tag not found", 404);
         if (tag.status === "removed") return error("Tag has been removed", 403);
 
-        const body = (await request.json()) as any;
+        const body = (await request.json().catch(() => null)) as any;
+        if (body === null) return error("invalid JSON body");
         const { description, category, color } = body as {
           description?: string;
           category?: string;
@@ -2895,7 +2902,8 @@ export default {
         ).bind(tagId, deviceId, today).first();
         if (alreadyReported) return error("Already reported today", 429);
 
-        const body = (await request.json()) as any;
+        const body = (await request.json().catch(() => null)) as any;
+        if (body === null) return error("invalid JSON body");
         const now = Math.floor(Date.now() / 1000);
         await env.DB.prepare(
           `INSERT INTO tag_reports (tag_id, reported_by, reason, reported_at) VALUES (?, ?, ?, ?)`
@@ -2935,7 +2943,8 @@ export default {
           return rateLimitSimple();
         }
 
-        const body = (await request.json()) as any;
+        const body = (await request.json().catch(() => null)) as any;
+        if (body === null) return error("invalid JSON body");
         let { name, description, category, color } = body as {
           name: string;
           description?: string;
@@ -3074,7 +3083,8 @@ export default {
         if (!tag) return error("Tag not found", 404);
         if (tag.status === "removed") return error("Tag has been removed", 403);
 
-        const body = (await request.json()) as any;
+        const body = (await request.json().catch(() => null)) as any;
+        if (body === null) return error("invalid JSON body");
         const { description, category, color } = body as {
           description?: string;
           category?: string;
@@ -3146,7 +3156,8 @@ export default {
         ).bind(tagId, deviceId, today).first();
         if (alreadyReported) return error("Already reported today", 429);
 
-        const body = (await request.json()) as any;
+        const body = (await request.json().catch(() => null)) as any;
+        if (body === null) return error("invalid JSON body");
         const now = Math.floor(Date.now() / 1000);
         await env.DB.prepare(
           `INSERT INTO idol_tag_reports (tag_id, reported_by, reason, reported_at) VALUES (?, ?, ?, ?)`
@@ -3182,7 +3193,8 @@ export default {
           return rateLimitSimple();
         }
 
-        const body = (await request.json()) as any;
+        const body = (await request.json().catch(() => null)) as any;
+        if (body === null) return error("invalid JSON body");
         const tagIds = body.tag_ids as string[];
         if (!Array.isArray(tagIds) || tagIds.length === 0) return error("tag_ids must be a non-empty array");
 
@@ -3288,7 +3300,8 @@ export default {
           return rateLimitSimple();
         }
 
-        const body = (await request.json()) as any;
+        const body = (await request.json().catch(() => null)) as any;
+        if (body === null) return error("invalid JSON body");
         const tagIds = body.tag_ids as string[];
         if (!Array.isArray(tagIds) || tagIds.length === 0) return error("tag_ids must be a non-empty array");
 
@@ -3394,7 +3407,8 @@ export default {
           return rateLimitSimple();
         }
 
-        const body = (await request.json()) as any;
+        const body = (await request.json().catch(() => null)) as any;
+        if (body === null) return error("invalid JSON body");
         let { name, description, category, color } = body as {
           name: string;
           description?: string;
@@ -3533,7 +3547,8 @@ export default {
         if (!tag) return error("Tag not found", 404);
         if (tag.status === "removed") return error("Tag has been removed", 403);
 
-        const body = (await request.json()) as any;
+        const body = (await request.json().catch(() => null)) as any;
+        if (body === null) return error("invalid JSON body");
         const { description, category, color } = body as {
           description?: string;
           category?: string;
@@ -3605,7 +3620,8 @@ export default {
         ).bind(tagId, deviceId, today).first();
         if (alreadyReported) return error("Already reported today", 429);
 
-        const body = (await request.json()) as any;
+        const body = (await request.json().catch(() => null)) as any;
+        if (body === null) return error("invalid JSON body");
         const now = Math.floor(Date.now() / 1000);
         await env.DB.prepare(
           `INSERT INTO unit_tag_reports (tag_id, reported_by, reason, reported_at) VALUES (?, ?, ?, ?)`
@@ -3641,7 +3657,8 @@ export default {
           return rateLimitSimple();
         }
 
-        const body = (await request.json()) as any;
+        const body = (await request.json().catch(() => null)) as any;
+        if (body === null) return error("invalid JSON body");
         const tagIds = body.tag_ids as string[];
         if (!Array.isArray(tagIds) || tagIds.length === 0) return error("tag_ids must be a non-empty array");
 
