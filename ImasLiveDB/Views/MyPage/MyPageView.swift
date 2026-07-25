@@ -1003,17 +1003,13 @@ struct MyPageView: View {
             let result = try BackupExportImportService.importEnvelopeJSON(
                 json, database: database, restoreDeviceId: restoreDeviceIdOnImport
             )
-            var message = "担当/お気に入り等を \(result.addedMarks) 件、投票履歴を \(result.addedVotes) 件 追加しました。"
-            if result.addedPersonalTags > 0 {
-                message += "\nマイタグを \(result.addedPersonalTags) 件 追加しました。"
-            }
-            if result.skippedMarks > 0 {
-                message += "\n(\(result.skippedMarks) 件は形式不正のためスキップされました)"
-            }
-            if result.deviceIdRestored {
-                message += "\n端末IDも復元しました。"
-            }
-            importResultMessage = message
+            importResultMessage = backupImportSummary(
+                addedMarks: result.addedMarks,
+                addedVotes: result.addedVotes,
+                addedPersonalTags: result.addedPersonalTags,
+                skippedMarks: result.skippedMarks,
+                deviceIdRestored: result.deviceIdRestored
+            )
         } catch {
             importErrorMessage = error.localizedDescription
         }
@@ -1040,16 +1036,17 @@ struct MyPageView: View {
     }
 
     /// 担当テーマ色を現在の選択から再計算し、ContentView 参照用 hex を更新する。
-    /// 無効時は空にする。選択未設定なら先頭の担当を既定にする。
+    /// 解決規則は `resolveOshiTheme` (Domain/UseCases) 側でテスト済み。
     private func syncThemeColor() {
-        guard useOshiColor else {
-            themeOshiColorHex = ""
-            return
+        let resolved = resolveOshiTheme(
+            isEnabled: useOshiColor,
+            currentIdolId: themeOshiIdolId,
+            pickIdols: pickIdols
+        )
+        if let idolId = resolved.idolId {
+            themeOshiIdolId = idolId
         }
-        if themeOshiIdolId.isEmpty || !pickIdols.contains(where: { $0.id == themeOshiIdolId }) {
-            themeOshiIdolId = pickIdols.first?.id ?? ""
-        }
-        themeOshiColorHex = pickIdols.first { $0.id == themeOshiIdolId }?.color ?? ""
+        themeOshiColorHex = resolved.colorHex
     }
 
     private func regenerateImportTemplates() async {
@@ -1080,24 +1077,13 @@ struct MyPageView: View {
         }
     }
 
+    /// 型紙 JSON を一時ファイルに書き出す。JSON の組み立て・エスケープは
+    /// `imageTemplateJSON` (Domain/UseCases) 側でテスト済み。
     private static func writeJSONTemplate(pairs: [(String, String)], fileName: String) throws -> URL {
-        var lines: [String] = ["{"]
-        for (i, (key, value)) in pairs.enumerated() {
-            let comma = i < pairs.count - 1 ? "," : ""
-            lines.append("  \(jsonEscape(key)): \(jsonEscape(value))\(comma)")
-        }
-        lines.append("}")
-        let json = lines.joined(separator: "\n")
-
+        let json = imageTemplateJSON(pairs: pairs)
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
         try json.data(using: .utf8)?.write(to: url, options: .atomic)
         return url
-    }
-
-    private static func jsonEscape(_ s: String) -> String {
-        let data = (try? JSONSerialization.data(withJSONObject: [s], options: [])) ?? Data()
-        let arrayString = String(data: data, encoding: .utf8) ?? "[\"\"]"
-        return String(arrayString.dropFirst().dropLast())
     }
 
     private func probeCKQuery() async {
