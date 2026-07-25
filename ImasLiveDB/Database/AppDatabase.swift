@@ -2695,10 +2695,6 @@ final class AppDatabase: @unchecked Sendable {
     func upsertSetlistPerformers(_ setlistPerformers: [SetlistPerformer]) throws { try upsertChunked(setlistPerformers) }
 
     /// 編集 UI 用: 全曲を id+title だけのコンパクト型で返す。
-    func fetchAllSongsForPicker() throws -> [PickedSong] {
-        try dbQueue.read { db in try Self.fetchAllSongsForPickerQuery(db) }
-    }
-
     func fetchAllSongsForPickerAsync() async throws -> [PickedSong] {
         try await dbQueue.read { db in try Self.fetchAllSongsForPickerQuery(db) }
     }
@@ -2710,10 +2706,6 @@ final class AppDatabase: @unchecked Sendable {
 
     /// 編集 UI 用: 出演者 picker に出す全アイドル (sort_order 順)。
     /// Cast 廃止により idol を直接返すようになった。
-    func fetchAllIdolsForPicker() throws -> [Idol] {
-        try dbQueue.read { db in try Self.fetchAllIdolsForPickerQuery(db) }
-    }
-
     func fetchAllIdolsForPickerAsync() async throws -> [Idol] {
         try await dbQueue.read { db in try Self.fetchAllIdolsForPickerQuery(db) }
     }
@@ -2760,10 +2752,6 @@ final class AppDatabase: @unchecked Sendable {
         try await upsertAllAsync(calls)
     }
 
-    func fetchCallResponsesForSong(songId: String) throws -> [SongCall] {
-        try fetchBySongId(songId)
-    }
-
     func fetchCallResponsesForSongAsync(songId: String) async throws -> [SongCall] {
         try await fetchBySongIdAsync(songId)
     }
@@ -2774,10 +2762,6 @@ final class AppDatabase: @unchecked Sendable {
 
     func upsertSongVideosAsync(_ videos: [SongVideo]) async throws {
         try await upsertAllAsync(videos)
-    }
-
-    func fetchVideosForSong(songId: String) throws -> [SongVideo] {
-        try fetchBySongId(songId)
     }
 
     func fetchVideosForSongAsync(songId: String) async throws -> [SongVideo] {
@@ -2934,10 +2918,6 @@ final class AppDatabase: @unchecked Sendable {
     // MARK: - Album Queries
 
     /// CDシリーズ別アルバム一覧
-    func fetchAlbums(brandIds: Set<String> = [], query: String?) throws -> [AlbumSummary] {
-        try dbQueue.read { db in try Self.fetchAlbumsQuery(db, brandIds: brandIds, query: query) }
-    }
-
     func fetchAlbumsAsync(brandIds: Set<String> = [], query: String?) async throws -> [AlbumSummary] {
         try await dbQueue.read { db in try Self.fetchAlbumsQuery(db, brandIds: brandIds, query: query) }
     }
@@ -2982,10 +2962,6 @@ final class AppDatabase: @unchecked Sendable {
     }
 
     /// CDシリーズグループ別一覧 (LIVE THE@TER PERFORMANCE 等の括り)
-    func fetchSeries(brandIds: Set<String> = [], query: String?) throws -> [SeriesSummary] {
-        try dbQueue.read { db in try Self.fetchSeriesQuery(db, brandIds: brandIds, query: query) }
-    }
-
     func fetchSeriesAsync(brandIds: Set<String> = [], query: String?) async throws -> [SeriesSummary] {
         try await dbQueue.read { db in try Self.fetchSeriesQuery(db, brandIds: brandIds, query: query) }
     }
@@ -3248,13 +3224,6 @@ final class AppDatabase: @unchecked Sendable {
         }
     }
 
-    /// ユーザが参加した event/show のセトリで、 song_id ごとの回収回数 (同 show 重複は 1 と数える)。
-    /// マイマーク回収済タブの「現地回収 N 回」 表示用。
-    func fetchSongCollectedCounts() throws -> [String: Int] {
-        let condition = attendedTypeCondition
-        return try dbQueue.read { db in try Self.fetchSongCollectedCountsQuery(db, attendedTypeCondition: condition) }
-    }
-
     /// (async) 現地回収回数マップ取得。cooperative thread pool をブロックしない。
     func fetchSongCollectedCountsAsync() async throws -> [String: Int] {
         let condition = attendedTypeCondition
@@ -3342,10 +3311,6 @@ final class AppDatabase: @unchecked Sendable {
     }
 
     /// その曲を披露した、ユーザが参加済みの show 一覧 (親 event 名込み)
-    func fetchCollectedShows(for songId: String) throws -> [ShowWithEventName] {
-        try dbQueue.read { db in try Self.fetchCollectedShowsQuery(db, for: songId) }
-    }
-
     func fetchCollectedShowsAsync(for songId: String) async throws -> [ShowWithEventName] {
         try await dbQueue.read { db in try Self.fetchCollectedShowsQuery(db, for: songId) }
     }
