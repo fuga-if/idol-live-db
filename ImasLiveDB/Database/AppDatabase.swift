@@ -433,10 +433,6 @@ final class AppDatabase: @unchecked Sendable {
     }
 
     /// イベント統計（公演数・楽曲数・ユニーク曲数・キャスト数）
-    func fetchEventStats(eventId: String) throws -> EventStats {
-        try dbQueue.read { db in try Self.fetchEventStatsQuery(db, eventId: eventId) }
-    }
-
     func fetchEventStatsAsync(eventId: String) async throws -> EventStats {
         try await dbQueue.read { db in try Self.fetchEventStatsQuery(db, eventId: eventId) }
     }
@@ -471,10 +467,6 @@ final class AppDatabase: @unchecked Sendable {
     }
 
     /// イベントの show ごとの出席アイドル集合を返す (DAY 別表示用)。
-    func fetchEventAttendance(eventId: String) throws -> EventAttendance? {
-        try dbQueue.read { db in try Self.fetchEventAttendanceQuery(db, eventId: eventId) }
-    }
-
     func fetchEventAttendanceAsync(eventId: String) async throws -> EventAttendance? {
         try await dbQueue.read { db in try Self.fetchEventAttendanceQuery(db, eventId: eventId) }
     }
@@ -647,10 +639,6 @@ final class AppDatabase: @unchecked Sendable {
     }
 
     /// イベント詳細（公演リスト付き、日付昇順）
-    func fetchShows(eventId: String) throws -> [Show] {
-        try dbQueue.read { db in try Self.fetchShowsByEventQuery(db, eventId: eventId) }
-    }
-
     func fetchShowsAsync(eventId: String) async throws -> [Show] {
         try await dbQueue.read { db in try Self.fetchShowsByEventQuery(db, eventId: eventId) }
     }
@@ -685,10 +673,6 @@ final class AppDatabase: @unchecked Sendable {
     }
 
     /// 公演全件取得（初期表示用）
-    func fetchAllShows(limit: Int = 50) throws -> [ShowWithEventName] {
-        try dbQueue.read { db in try Self.fetchAllShowsQuery(db, limit: limit) }
-    }
-
     func fetchAllShowsAsync(limit: Int = 50) async throws -> [ShowWithEventName] {
         try await dbQueue.read { db in try Self.fetchAllShowsQuery(db, limit: limit) }
     }
@@ -707,10 +691,6 @@ final class AppDatabase: @unchecked Sendable {
     // MARK: - Setlist Queries
 
     /// セトリ取得（公演ID指定）
-    func fetchSetlist(showId: String) throws -> [SetlistRow] {
-        try dbQueue.read { db in try Self.fetchSetlistQuery(db, showId: showId) }
-    }
-
     func fetchSetlistAsync(showId: String) async throws -> [SetlistRow] {
         try await dbQueue.read { db in try Self.fetchSetlistQuery(db, showId: showId) }
     }
@@ -744,10 +724,6 @@ final class AppDatabase: @unchecked Sendable {
     }
 
     /// セトリ全曲の出演アイドルを一括取得 (N+1 防止)。
-    func fetchAllPerformers(showId: String) throws -> [String: [PerformerRow]] {
-        try dbQueue.read { db in try Self.fetchAllPerformersQuery(db, showId: showId) }
-    }
-
     func fetchAllPerformersAsync(showId: String) async throws -> [String: [PerformerRow]] {
         try await dbQueue.read { db in try Self.fetchAllPerformersQuery(db, showId: showId) }
     }
@@ -783,11 +759,6 @@ final class AppDatabase: @unchecked Sendable {
     }
 
     /// 複数楽曲のオリメンIDを一括取得: [song_id: Set<idol_id>]
-    func fetchOriginalArtistIds(songIds: [String]) throws -> [String: Set<String>] {
-        guard !songIds.isEmpty else { return [:] }
-        return try dbQueue.read { db in try Self.fetchOriginalArtistIdsQuery(db, songIds: songIds) }
-    }
-
     func fetchOriginalArtistIdsAsync(songIds: [String]) async throws -> [String: Set<String>] {
         guard !songIds.isEmpty else { return [:] }
         return try await dbQueue.read { db in try Self.fetchOriginalArtistIdsQuery(db, songIds: songIds) }
@@ -811,10 +782,6 @@ final class AppDatabase: @unchecked Sendable {
 
     /// 指定公演の出演者 (show_cast) がオリメンの曲 song_id 集合を返す。
     /// 「この公演の出演者が歌う曲」で予想ピッカーを絞り込むために使う。
-    func fetchOriginalSongIds(forShowCastOf showId: String) throws -> Set<String> {
-        try dbQueue.read { db in try Self.fetchOriginalSongIdsQuery(db, forShowCastOf: showId) }
-    }
-
     func fetchOriginalSongIdsAsync(forShowCastOf showId: String) async throws -> Set<String> {
         try await dbQueue.read { db in try Self.fetchOriginalSongIdsQuery(db, forShowCastOf: showId) }
     }
@@ -2395,16 +2362,6 @@ final class AppDatabase: @unchecked Sendable {
             }
         }
         return (live, stream, liveViewing)
-    }
-
-    /// ShowFilterCriterion で公演一覧を取得
-    func fetchShows(criterion: ShowFilterCriterion) throws -> [Show] {
-        switch criterion {
-        case .venue(let venue):
-            return try dbQueue.read { db in try Self.showsByVenueQuery(db, venue: venue) }
-        case .date(let date):
-            return try dbQueue.read { db in try Self.showsByDateQuery(db, date: date) }
-        }
     }
 
     /// (async) ShowFilterCriterion で公演一覧を取得。cooperative thread pool をブロックしない。
