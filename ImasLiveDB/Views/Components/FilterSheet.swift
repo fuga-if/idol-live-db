@@ -219,50 +219,15 @@ struct EventFilterSheet: View {
                         .tint(DS.success)
                 }
 
-                if !localBrandIds.isEmpty || !localExcluded.isEmpty || localShowEmpty || localAttendance != "all" || localFavorite || localNote {
-                    Section {
-                        Button(role: .destructive) {
-                            AppAnalytics.tap("filter_sheet.reset")
-                            localBrandIds = []
-                            localExcluded = []
-                            localShowEmpty = false
-                            localAttendance = "all"
-                            localFavorite = false
-                            localNote = false
-                        } label: {
-                            Label("リセット", systemImage: "arrow.counterclockwise")
-                        }
-                    }
-                }
             }
-            .navigationTitle("フィルタ")
-            .navigationBarTitleDisplayMode(.inline)
+            .imasFilterSheetChrome()
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("リセット") {
-                        AppAnalytics.tap("filter_sheet.reset")
-                        localBrandIds = []
-                        localExcluded = []
-                        localShowEmpty = false
-                        localAttendance = "all"
-                        localFavorite = false
-                        localNote = false
-                    }
-                    .disabled(localBrandIds.isEmpty && localExcluded.isEmpty && !localShowEmpty && localAttendance == "all" && !localFavorite && !localNote)
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("適用") {
-                        AppAnalytics.tap("filter_sheet.apply")
-                        selectedBrandIds = localBrandIds
-                        excludedKindsRaw = localExcluded.map(\.rawValue).sorted().joined(separator: ",")
-                        showEmptyEvents = localShowEmpty
-                        attendanceFilter = localAttendance
-                        requireFavorite = localFavorite
-                        requireNote = localNote
-                        dismiss()
-                    }
-                    .fontWeight(.bold)
-                }
+                filterSheetToolbar(
+                    analyticsPrefix: "event_filter",
+                    canReset: hasActiveFilters,
+                    onReset: reset,
+                    onApply: apply
+                )
             }
             .task {
                 do {
@@ -280,6 +245,30 @@ struct EventFilterSheet: View {
             }
             .trackScreen("event_filter_sheet")
         }
+    }
+
+    private var hasActiveFilters: Bool {
+        !localBrandIds.isEmpty || !localExcluded.isEmpty || localShowEmpty
+            || localAttendance != "all" || localFavorite || localNote
+    }
+
+    private func reset() {
+        localBrandIds = []
+        localExcluded = []
+        localShowEmpty = false
+        localAttendance = "all"
+        localFavorite = false
+        localNote = false
+    }
+
+    private func apply() {
+        selectedBrandIds = localBrandIds
+        excludedKindsRaw = localExcluded.map(\.rawValue).sorted().joined(separator: ",")
+        showEmptyEvents = localShowEmpty
+        attendanceFilter = localAttendance
+        requireFavorite = localFavorite
+        requireNote = localNote
+        dismiss()
     }
 }
 
@@ -394,53 +383,15 @@ struct IdolFilterSheet: View {
                     }
                 }
 
-                if !localBrandIds.isEmpty || localAttribute != nil || localDisplayMode != .idolName || localShowCV || localMyPick || localFavorite || localNote {
-                    Section {
-                        Button(role: .destructive) {
-                            AppAnalytics.tap("filter_sheet.reset")
-                            localBrandIds = []
-                            localAttribute = nil
-                            localDisplayMode = .idolName
-                            localShowCV = false
-                            localMyPick = false
-                            localFavorite = false
-                            localNote = false
-                        } label: {
-                            Label("リセット", systemImage: "arrow.counterclockwise")
-                        }
-                    }
-                }
             }
-            .navigationTitle("フィルタ")
-            .navigationBarTitleDisplayMode(.inline)
+            .imasFilterSheetChrome()
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("リセット") {
-                        AppAnalytics.tap("filter_sheet.reset")
-                        localBrandIds = []
-                        localAttribute = nil
-                        localDisplayMode = .idolName
-                        localShowCV = false
-                        localMyPick = false
-                        localFavorite = false
-                        localNote = false
-                    }
-                    .disabled(localBrandIds.isEmpty && localAttribute == nil && localDisplayMode == .idolName && !localShowCV && !localMyPick && !localFavorite && !localNote)
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("適用") {
-                        AppAnalytics.tap("filter_sheet.apply")
-                        selectedBrandIds = localBrandIds
-                        selectedAttribute = localAttribute
-                        displayMode = localDisplayMode
-                        showCV = localShowCV
-                        requireMyPick = localMyPick
-                        requireFavorite = localFavorite
-                        requireNote = localNote
-                        dismiss()
-                    }
-                    .fontWeight(.bold)
-                }
+                filterSheetToolbar(
+                    analyticsPrefix: "idol_filter",
+                    canReset: hasActiveFilters,
+                    onReset: reset,
+                    onApply: apply
+                )
             }
             .task {
                 do {
@@ -459,6 +410,32 @@ struct IdolFilterSheet: View {
             }
             .trackScreen("idol_filter_sheet")
         }
+    }
+
+    private var hasActiveFilters: Bool {
+        !localBrandIds.isEmpty || localAttribute != nil || localDisplayMode != .idolName
+            || localShowCV || localMyPick || localFavorite || localNote
+    }
+
+    private func reset() {
+        localBrandIds = []
+        localAttribute = nil
+        localDisplayMode = .idolName
+        localShowCV = false
+        localMyPick = false
+        localFavorite = false
+        localNote = false
+    }
+
+    private func apply() {
+        selectedBrandIds = localBrandIds
+        selectedAttribute = localAttribute
+        displayMode = localDisplayMode
+        showCV = localShowCV
+        requireMyPick = localMyPick
+        requireFavorite = localFavorite
+        requireNote = localNote
+        dismiss()
     }
 
     private func attributeChip(value: String?, label: String) -> some View {
@@ -507,38 +484,15 @@ struct TagFilterSheet: View {
                     .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                 }
 
-                if !localCategory.isEmpty {
-                    Section {
-                        Button(role: .destructive) {
-                            AppAnalytics.tap("filter_sheet.reset")
-                            localCategory = ""
-                            localSort = "popular"
-                        } label: {
-                            Label("リセット", systemImage: "arrow.counterclockwise")
-                        }
-                    }
-                }
             }
-            .navigationTitle("フィルタ")
-            .navigationBarTitleDisplayMode(.inline)
+            .imasFilterSheetChrome()
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("リセット") {
-                        AppAnalytics.tap("filter_sheet.reset")
-                        localCategory = ""
-                        localSort = "popular"
-                    }
-                    .disabled(localCategory.isEmpty && localSort == "popular")
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("適用") {
-                        AppAnalytics.tap("filter_sheet.apply")
-                        selectedCategory = localCategory
-                        selectedSort = localSort
-                        dismiss()
-                    }
-                    .fontWeight(.bold)
-                }
+                filterSheetToolbar(
+                    analyticsPrefix: "tag_filter",
+                    canReset: hasActiveFilters,
+                    onReset: reset,
+                    onApply: apply
+                )
             }
             .onAppear {
                 localCategory = selectedCategory
@@ -546,6 +500,21 @@ struct TagFilterSheet: View {
             }
             .trackScreen("tag_filter_sheet")
         }
+    }
+
+    private var hasActiveFilters: Bool {
+        !localCategory.isEmpty || localSort != "popular"
+    }
+
+    private func reset() {
+        localCategory = ""
+        localSort = "popular"
+    }
+
+    private func apply() {
+        selectedCategory = localCategory
+        selectedSort = localSort
+        dismiss()
     }
 
     private func categoryChip(value: String, label: String) -> some View {

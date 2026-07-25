@@ -236,24 +236,17 @@ struct SongFilterView: View {
                     .listRowSeparatorTint(DS.sep)
                 }
             }
-            .listStyle(.plain)
-            .scrollContentBackground(.hidden)
-            .background(DS.bg)
-            .navigationTitle("フィルタ")
-            .navigationBarTitleDisplayMode(.inline)
+            .imasFilterSheetChrome()
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("リセット") { AppAnalytics.tap("song_filter.reset"); resetAll() }
-                        .disabled(!hasActiveFilters)
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("適用") {
-                        AppAnalytics.tap("song_filter.apply")
+                filterSheetToolbar(
+                    analyticsPrefix: "song_filter",
+                    canReset: hasActiveFilters,
+                    onReset: resetAll,
+                    onApply: {
                         applyFilter()
                         dismiss()
                     }
-                    .fontWeight(.bold)
-                }
+                )
             }
             .sheet(isPresented: $showIdolPicker) {
                 IdolPickerView(

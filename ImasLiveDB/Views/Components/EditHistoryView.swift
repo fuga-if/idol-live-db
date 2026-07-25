@@ -41,17 +41,17 @@ struct EditHistoryView: View {
                     .padding(24)
                     .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
             } else if entries.isEmpty && !isLoading && errorMessage == nil {
-                EmptyStateCard(
-                    icon: "clock.arrow.circlepath",
+                ImasEmptyState(
+                    systemImage: "clock.arrow.circlepath",
                     title: "編集履歴はありません",
                     message: "このデータがまだ一度も編集されていないか、編集が反映待ちです。"
                 )
             } else if let errorMessage, entries.isEmpty {
-                EmptyStateCard(
-                    icon: "exclamationmark.triangle",
+                ImasEmptyState(
+                    systemImage: "exclamationmark.triangle",
                     title: "読み込みに失敗しました",
                     message: errorMessage,
-                    actionLabel: "再試行",
+                    actionTitle: "再試行",
                     action: { Task { await reload() } }
                 )
             }

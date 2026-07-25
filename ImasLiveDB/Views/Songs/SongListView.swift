@@ -461,7 +461,11 @@ struct SongListView: View {
                 .scrollDisabled(true)
                 .background(DS.bg)
             } else if vm.songs.isEmpty && filter.activeFilterCount > 0 {
-                ContentUnavailableView.search(text: "条件に一致する楽曲")
+                ImasEmptyState(
+                    systemImage: "line.3.horizontal.decrease",
+                    title: "条件に一致する楽曲がありません",
+                    message: "フィルタ条件を変更するか、フィルタを解除してください。"
+                )
             } else {
                 let display = vm.displayedSongs
                 if !searchText.isEmpty && display.isEmpty {

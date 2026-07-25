@@ -77,8 +77,8 @@ struct RecentEditsView: View {
                     .padding(24)
                     .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
             } else if entries.isEmpty && !isLoading {
-                EmptyStateCard(
-                    icon: "square.and.pencil",
+                ImasEmptyState(
+                    systemImage: "square.and.pencil",
                     title: "まだ編集がありません",
                     message: mineOnly
                         ? "ライブ・楽曲・セトリを編集すると、ここに履歴が残ります。"

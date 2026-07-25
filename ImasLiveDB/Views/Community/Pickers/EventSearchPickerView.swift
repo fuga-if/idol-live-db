@@ -17,16 +17,16 @@ struct EventSearchPickerView: View {
         NavigationStack {
             List {
                 if results.isEmpty && !query.isEmpty {
-                    EmptyStateCard(
-                        icon: "magnifyingglass",
+                    ImasEmptyState(
+                        systemImage: "magnifyingglass",
                         title: "見つかりません",
                         message: "「\(query)」に一致するイベントがありません"
                     )
                     .listRowBackground(Color.clear)
                     .listRowInsets(EdgeInsets())
                 } else if results.isEmpty && query.isEmpty {
-                    EmptyStateCard(
-                        icon: "calendar",
+                    ImasEmptyState(
+                        systemImage: "calendar",
                         title: "イベントを検索",
                         message: "イベント名を入力して検索してください"
                     )

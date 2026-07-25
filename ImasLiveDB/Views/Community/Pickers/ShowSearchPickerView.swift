@@ -17,16 +17,16 @@ struct ShowSearchPickerView: View {
         NavigationStack {
             List {
                 if results.isEmpty && !query.isEmpty {
-                    EmptyStateCard(
-                        icon: "magnifyingglass",
+                    ImasEmptyState(
+                        systemImage: "magnifyingglass",
                         title: "見つかりません",
                         message: "「\(query)」に一致する公演がありません"
                     )
                     .listRowBackground(Color.clear)
                     .listRowInsets(EdgeInsets())
                 } else if results.isEmpty && query.isEmpty {
-                    EmptyStateCard(
-                        icon: "ticket",
+                    ImasEmptyState(
+                        systemImage: "ticket",
                         title: "公演を検索",
                         message: "公演名またはイベント名を入力して検索してください"
                     )
