@@ -16,6 +16,12 @@ struct EventFilterContext {
     var favoriteIds: Set<String> = []
     var requireNote: Bool = false
     var noteIds: Set<String> = []
+    /// 会場名で絞り込む (空 = 絞り込みなし)。表示用に保持するだけで、
+    /// 実際の判定は解決済みの `venueEventIds` で行う。
+    var venue: String = ""
+    /// `venue` で公演があったイベントの id 集合 (呼び出し側が DB から解決して渡す)。
+    /// 会場は show 単位・絞り込み対象は event 単位なので、ここで橋渡しする。
+    var venueEventIds: Set<String> = []
 }
 
 /// イベント一覧へブランド/kind/検索/参加状態/お気に入り/メモ絞り込みを適用する純粋ロジック。
@@ -49,6 +55,9 @@ func filterEvents(_ events: [EventWithDate], _ ctx: EventFilterContext) -> [Even
     }
     if ctx.requireNote {
         result = result.filter { ctx.noteIds.contains($0.event.id) }
+    }
+    if !ctx.venue.isEmpty {
+        result = result.filter { ctx.venueEventIds.contains($0.event.id) }
     }
 
     return result

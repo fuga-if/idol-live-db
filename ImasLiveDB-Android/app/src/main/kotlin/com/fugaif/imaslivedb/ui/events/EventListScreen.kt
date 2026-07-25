@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -14,6 +15,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.Place
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
@@ -30,6 +33,9 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -59,7 +65,18 @@ fun EventListScreen(
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
 
+    var showVenuePicker by remember { mutableStateOf(false) }
+
     LaunchedEffect(Unit) { viewModel.load(context) }
+
+    if (showVenuePicker) {
+        VenuePickerSheet(
+            venues = uiState.venueNames,
+            selected = uiState.venue,
+            onSelect = { viewModel.selectVenue(context, it) },
+            onDismiss = { showVenuePicker = false }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -105,6 +122,31 @@ fun EventListScreen(
                             imageVector = Icons.Filled.VideocamOff,
                             contentDescription = null
                         )
+                    }
+                )
+                Spacer(modifier = Modifier.padding(horizontal = 4.dp))
+                // 会場で絞り込む。選択中は会場名を出し、もう一度押すとピッカーを開き直せる。
+                FilterChip(
+                    selected = uiState.venue != null,
+                    onClick = { showVenuePicker = true },
+                    label = {
+                        Text(uiState.venue ?: "会場", style = MaterialTheme.typography.labelMedium, maxLines = 1)
+                    },
+                    leadingIcon = {
+                        Icon(imageVector = Icons.Filled.Place, contentDescription = null)
+                    },
+                    trailingIcon = if (uiState.venue != null) {
+                        {
+                            Icon(
+                                imageVector = Icons.Filled.Clear,
+                                contentDescription = "会場絞り込みを解除",
+                                modifier = Modifier
+                                    .size(18.dp)
+                                    .clickable { viewModel.selectVenue(context, null) }
+                            )
+                        }
+                    } else {
+                        null
                     }
                 )
                 Spacer(modifier = Modifier.weight(1f))

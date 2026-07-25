@@ -11,6 +11,8 @@ struct EventListView: View {
     @AppStorage("events_attendance_filter") private var attendanceFilter: String = "all"
     @AppStorage("events_require_favorite") private var requireFavorite: Bool = false
     @AppStorage("events_require_note") private var requireNote: Bool = false
+    /// 会場絞り込み (空 = 絞り込みなし)。会場は show 単位なので VM 側で event_id に逆引きされる。
+    @AppStorage("events_venue") private var venueFilter: String = ""
     /// 0=今後の予定 / 1=開催済み。内部タブで時系列を分ける。
     @AppStorage("events_time_filter") private var timeFilter: Int = 0
 
@@ -35,6 +37,7 @@ struct EventListView: View {
         + (attendanceFilter == "all" ? 0 : 1)
         + (requireFavorite ? 1 : 0)
         + (requireNote ? 1 : 0)
+        + (venueFilter.isEmpty ? 0 : 1)
     }
 
     private var brandsKey: String {
@@ -42,8 +45,10 @@ struct EventListView: View {
     }
 
     /// フィルタ状態をまとめた識別子（task(id:) 用）
+    /// 再計算のトリガーキー。絞り込み条件を足したらここにも必ず含める
+    /// (含め忘れると、シートで条件を変えても一覧が旧い結果のまま残る)。
     private var filterKey: String {
-        "\(brandsKey)_\(excludedKindsRaw)_\(showEmptyEvents)_\(searchText)_\(attendanceFilter)_\(requireFavorite)_\(requireNote)_\(timeFilter)"
+        "\(brandsKey)_\(excludedKindsRaw)_\(showEmptyEvents)_\(searchText)_\(attendanceFilter)_\(requireFavorite)_\(requireNote)_\(timeFilter)_\(venueFilter)"
     }
 
     /// 端末ローカルの今日 (YYYY-MM-DD)。今後/開催済みの境界。
@@ -82,6 +87,8 @@ struct EventListView: View {
             ctx.requireNote = true
             ctx.noteIds = Set(markService.allMarked(kind: .note, entity: .event))
         }
+        // venueEventIds は VM.rebuild が show→event 逆引きで非同期解決するため、ここでは名前だけ渡す。
+        ctx.venue = venueFilter
         return ctx
     }
 
@@ -163,6 +170,7 @@ struct EventListView: View {
             }
             .sheet(isPresented: $showFilterSheet) {
                 EventFilterSheet(
+                    venue: $venueFilter,
                     selectedBrandIds: $selectedBrandIds,
                     excludedKindsRaw: $excludedKindsRaw,
                     showEmptyEvents: $showEmptyEvents,
@@ -221,6 +229,9 @@ struct EventListView: View {
                     if requireNote {
                         removableChip("メモあり") { requireNote = false }
                     }
+                    if !venueFilter.isEmpty {
+                        removableChip(venueFilter) { venueFilter = "" }
+                    }
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 2)
@@ -269,6 +280,7 @@ struct EventListView: View {
         showEmptyEvents = false
         requireFavorite = false
         requireNote = false
+        venueFilter = ""
     }
 
     /// 除外 kind 集合から 1 件だけ外す (CSV へ書き戻す)。

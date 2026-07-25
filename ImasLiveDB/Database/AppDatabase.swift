@@ -2421,6 +2421,74 @@ final class AppDatabase: @unchecked Sendable {
         try Show.filter(Column("venue") == venue).order(Column("date").desc).fetchAll(db)
     }
 
+    /// 会場名の一覧 (ピッカー用)。空文字・NULL は除く。
+    /// 会場は "千葉・幕張メッセ国際展示場" のように「都道府県・会場名」形式なので、
+    /// 素直に名前順で並べると地域ごとにまとまる。
+    func fetchVenueNames() throws -> [String] {
+        try dbQueue.read { db in try Self.fetchVenueNamesQuery(db) }
+    }
+
+    func fetchVenueNamesAsync() async throws -> [String] {
+        try await dbQueue.read { db in try Self.fetchVenueNamesQuery(db) }
+    }
+
+    private static func fetchVenueNamesQuery(_ db: Database) throws -> [String] {
+        try String.fetchAll(db, sql: """
+            SELECT DISTINCT venue FROM shows
+            WHERE venue IS NOT NULL AND venue <> ''
+            ORDER BY venue
+            """)
+    }
+
+    /// 指定会場で公演があったイベントの id 集合。
+    /// 会場は show 単位、絞り込み対象は event 単位なので逆引きが要る
+    /// (1 イベントが複数会場をまたぐツアーもあるため EXISTS 相当の DISTINCT で取る)。
+    func fetchEventIdsAtVenue(_ venue: String) throws -> Set<String> {
+        try dbQueue.read { db in try Self.fetchEventIdsAtVenueQuery(db, venue: venue) }
+    }
+
+    func fetchEventIdsAtVenueAsync(_ venue: String) async throws -> Set<String> {
+        try await dbQueue.read { db in try Self.fetchEventIdsAtVenueQuery(db, venue: venue) }
+    }
+
+    /// 検索語に一致した会場を event_id ごとに 1 件返す。
+    /// 「武道館」で検索してライブ名だけ並ぶと、なぜヒットしたのか分からないため、
+    /// 会場一致で拾えたものは行に会場名を出して理由を見せる。
+    func fetchVenuesMatching(query: String, eventIds: [String]) throws -> [String: String] {
+        try dbQueue.read { db in try Self.fetchVenuesMatchingQuery(db, query: query, eventIds: eventIds) }
+    }
+
+    func fetchVenuesMatchingAsync(query: String, eventIds: [String]) async throws -> [String: String] {
+        try await dbQueue.read { db in try Self.fetchVenuesMatchingQuery(db, query: query, eventIds: eventIds) }
+    }
+
+    private static func fetchVenuesMatchingQuery(_ db: Database, query: String, eventIds: [String]) throws -> [String: String] {
+        guard !eventIds.isEmpty, !query.isEmpty else { return [:] }
+        let placeholders = eventIds.map { _ in "?" }.joined(separator: ",")
+        let pattern = "%\(query.lowercased().likeEscaped)%"
+        let sql = """
+            SELECT event_id, MIN(venue) AS venue FROM shows
+            WHERE event_id IN (\(placeholders))
+              AND venue IS NOT NULL AND LOWER(venue) LIKE ? ESCAPE '\\'
+            GROUP BY event_id
+            """
+        var args: [DatabaseValueConvertible] = eventIds
+        args.append(pattern)
+        var result: [String: String] = [:]
+        for row in try Row.fetchAll(db, sql: sql, arguments: StatementArguments(args)) {
+            result[row["event_id"]] = row["venue"]
+        }
+        return result
+    }
+
+    private static func fetchEventIdsAtVenueQuery(_ db: Database, venue: String) throws -> Set<String> {
+        Set(try String.fetchAll(
+            db,
+            sql: "SELECT DISTINCT event_id FROM shows WHERE venue = ?",
+            arguments: [venue]
+        ))
+    }
+
     private static func showsByDateQuery(_ db: Database, date: String) throws -> [Show] {
         try Show.filter(Column("date") == date).order(Column("sort_order")).fetchAll(db)
     }

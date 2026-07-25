@@ -144,6 +144,8 @@ struct EventFilterSheet: View {
     @Environment(AppDatabase.self) private var database
     @Environment(\.dismiss) private var dismiss
 
+    /// 会場絞り込み (空 = 絞り込みなし)。
+    @Binding var venue: String
     @Binding var selectedBrandIds: Set<String>
     /// 除外する EventKind の rawValue を CSV で保持
     @Binding var excludedKindsRaw: String
@@ -154,16 +156,36 @@ struct EventFilterSheet: View {
     @Binding var requireNote: Bool
 
     @State private var brands: [Brand] = []
+    @State private var venueNames: [String] = []
+    /// ListPickerView が Optional<String> を扱うので nil ⇄ "" を橋渡しする。
+    @State private var localVenue: String?
     @State private var localBrandIds: Set<String> = []
     @State private var localExcluded: Set<EventKind> = []
     @State private var localShowEmpty: Bool = false
     @State private var localAttendance: String = "all"
     @State private var localFavorite: Bool = false
     @State private var localNote: Bool = false
+    /// `.task` での初期値復元が済んだか。会場ピッカーを push → pop すると `.task` が
+    /// 再実行され、選んだばかりの localVenue を「適用前の venue (空)」で上書きして
+    /// 選択が消える。復元は 1 度きりにする (IdolFilterSheet の didRestore と同じ対策)。
+    @State private var didRestore = false
 
     var body: some View {
         NavigationStack {
             List {
+                Section {
+                    NavigationLink {
+                        ListPickerView(title: "会場", items: venueNames, selected: $localVenue)
+                    } label: {
+                        Text(localVenue ?? "選択なし")
+                            .foregroundStyle(localVenue == nil ? DS.ink2 : DS.ink)
+                    }
+                } header: {
+                    Text("会場")
+                } footer: {
+                    Text("その会場で公演があったライブに絞ります")
+                }
+
                 BrandFilterSection(brands: brands, selectedBrandIds: $localBrandIds)
 
                 Section {
@@ -235,6 +257,9 @@ struct EventFilterSheet: View {
                 } catch {
                     Logger.database.error("load_failed brands (FilterSheet/event): \(error.localizedDescription)")
                 }
+                venueNames = (try? await AppContainer.shared.showReading.venueNames()) ?? []
+                guard !didRestore else { return }
+                localVenue = venue.isEmpty ? nil : venue
                 localBrandIds = selectedBrandIds
                 localExcluded = Set(excludedKindsRaw.split(separator: ",")
                     .compactMap { EventKind(rawValue: String($0)) })
@@ -242,17 +267,20 @@ struct EventFilterSheet: View {
                 localAttendance = attendanceFilter
                 localFavorite = requireFavorite
                 localNote = requireNote
+                didRestore = true
             }
             .trackScreen("event_filter_sheet")
         }
     }
 
     private var hasActiveFilters: Bool {
-        !localBrandIds.isEmpty || !localExcluded.isEmpty || localShowEmpty
+        localVenue != nil
+            || !localBrandIds.isEmpty || !localExcluded.isEmpty || localShowEmpty
             || localAttendance != "all" || localFavorite || localNote
     }
 
     private func reset() {
+        localVenue = nil
         localBrandIds = []
         localExcluded = []
         localShowEmpty = false
@@ -262,6 +290,7 @@ struct EventFilterSheet: View {
     }
 
     private func apply() {
+        venue = localVenue ?? ""
         selectedBrandIds = localBrandIds
         excludedKindsRaw = localExcluded.map(\.rawValue).sorted().joined(separator: ",")
         showEmptyEvents = localShowEmpty

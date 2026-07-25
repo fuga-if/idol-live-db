@@ -60,6 +60,10 @@ final class EventListViewModel {
         if filter.attendanceFilter != "all" {
             filter.attendedEventIds = await resolveAttendedEventIds()
         }
+        // 会場は show 単位なので、event 単位の絞り込みに使うため id 集合へ逆引きする。
+        if !filter.venue.isEmpty {
+            filter.venueEventIds = (try? await showReading.eventIdsAtVenue(filter.venue)) ?? []
+        }
         let filtered = filterEvents(eventsWithDate, filter)
         let groups = groupEventsByYear(filtered, upcoming: query.upcoming, todayKey: query.todayKey)
         filteredCount = groups.reduce(0) { $0 + $1.events.count }

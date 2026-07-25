@@ -25,6 +25,12 @@ data class EventListUiState(
     val hideStreaming: Boolean = false,
     /** 0 = 今後の予定 / 1 = 開催済み */
     val timeFilter: Int = 0,
+    /** 会場絞り込み (null = 絞り込みなし)。 */
+    val venue: String? = null,
+    /** `venue` で公演があったイベントの id 集合 (会場は show 単位なので逆引きして持つ)。 */
+    val venueEventIds: Set<String> = emptySet(),
+    /** 会場ピッカーの候補。 */
+    val venueNames: List<String> = emptyList(),
     val todayKey: String = LocalDate.now().toString()
 ) {
     val filteredEvents: List<EventWithDateRange>
@@ -35,6 +41,9 @@ data class EventListUiState(
             }
             if (hideStreaming) {
                 result = result.filter { !it.event.isStreaming }
+            }
+            if (venue != null) {
+                result = result.filter { venueEventIds.contains(it.event.id) }
             }
             return result
         }
@@ -72,10 +81,12 @@ class EventListViewModel : ViewModel() {
             val module = AppModule.from(context)
             val events = module.eventRepository.fetchEventsWithFirstDate()
             val brands = module.database.brandDao().fetchBrands()
+            val venues = module.eventRepository.fetchVenueNames()
             _uiState.value = _uiState.value.copy(
                 isLoading = false,
                 eventsWithDate = events,
-                brands = brands
+                brands = brands,
+                venueNames = venues
             )
         }
     }
@@ -90,5 +101,20 @@ class EventListViewModel : ViewModel() {
 
     fun selectTimeFilter(index: Int) {
         _uiState.value = _uiState.value.copy(timeFilter = index)
+    }
+
+    /**
+     * 会場で絞り込む (null で解除)。
+     * 会場は show 単位なので、絞り込みに使う event_id 集合をここで解決して state に載せる。
+     */
+    fun selectVenue(context: Context, venue: String?) {
+        if (venue == null) {
+            _uiState.value = _uiState.value.copy(venue = null, venueEventIds = emptySet())
+            return
+        }
+        viewModelScope.launch {
+            val ids = AppModule.from(context).eventRepository.fetchEventIdsAtVenue(venue)
+            _uiState.value = _uiState.value.copy(venue = venue, venueEventIds = ids)
+        }
     }
 }

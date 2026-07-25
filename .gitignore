@@ -82,3 +82,6 @@ Gemfile.lock
 
 # AI エージェント用の作業ガイド (ローカル管理・追跡外)
 CLAUDE.md
+
+# xcodegen/実行時に生成される空の作業用 DB (正は db/master.sql)
+db/master.sqlite

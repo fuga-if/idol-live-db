@@ -38,4 +38,24 @@ interface ShowDao {
         LIMIT :limit
     """)
     suspend fun searchShowsWithEventName(pattern: String, limit: Int): List<ShowWithEventName>
+
+    /**
+     * 会場名の一覧 (ピッカー用)。空文字・NULL は除く。
+     * 会場は "千葉・幕張メッセ国際展示場" のように「都道府県・会場名」形式なので、
+     * 名前順で並べると地域ごとにまとまる。
+     */
+    @Query("""
+        SELECT DISTINCT venue FROM shows
+        WHERE venue IS NOT NULL AND venue <> ''
+        ORDER BY venue
+    """)
+    suspend fun fetchVenueNames(): List<String>
+
+    /**
+     * 指定会場で公演があったイベントの id 一覧。
+     * 会場は show 単位・絞り込み対象は event 単位なので逆引きが要る
+     * (1 イベントが複数会場をまたぐツアーもある)。
+     */
+    @Query("SELECT DISTINCT event_id FROM shows WHERE venue = :venue")
+    suspend fun fetchEventIdsAtVenue(venue: String): List<String>
 }

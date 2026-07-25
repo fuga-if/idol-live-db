@@ -36,7 +36,11 @@ struct SongFilterView: View {
     @State private var selectedBrandIds: Set<String> = []
     @State private var selectedSongType: String? = nil
 
-    // サブシート
+    /// `.task` での初期値復元が済んだか。シリーズ/CD/ライブのピッカーを push → pop すると
+    /// `.task` が再実行され、選んだばかりの値を「適用前の filter」で上書きして選択が消える。
+    /// 復元は 1 度きりにする。
+    @State private var didRestore = false
+
     @State private var showIdolPicker = false
 
     var body: some View {
@@ -343,12 +347,14 @@ struct SongFilterView: View {
             Logger.database.error("load_failed SongFilterView: \(error.localizedDescription)")
         }
 
-        // 既存フィルタから状態を復元
+        // 既存フィルタから状態を復元 (初回のみ)
+        guard !didRestore else { return }
         selectedBrandIds = filter.brandIds
         songwriterText = filter.songwriter ?? ""
         selectedCdSeries = filter.cdSeries
         selectedSeriesGroup = filter.seriesGroup
         selectedEventName = filter.liveName
         selectedSongType = filter.songType
+        didRestore = true
     }
 }

@@ -28,6 +28,9 @@ struct UnifiedSearchView: View {
     }
 
     @State private var results = SearchResults(songs: [], idols: [], events: [])
+    /// event_id → 検索語に一致した会場名。「武道館」で検索した時に、ライブ名だけ並んで
+    /// なぜヒットしたか分からない状態を避けるため、一致理由として行に出す。
+    @State private var matchedVenues: [String: String] = [:]
     @State private var isSearching = false
     @State private var searchTask: Task<Void, Never>?
     @State private var path: [DetailDestination] = []
@@ -166,7 +169,7 @@ struct UnifiedSearchView: View {
                 Section {
                     ForEach(results.events) { event in
                         NavigationLink(value: DetailDestination.event(event)) {
-                            EventNameRow(event: event)
+                            EventNameRow(event: event, subtitle: matchedVenues[event.id])
                         }
                         .listRowBackground(DS.surface)
                         .listRowSeparatorTint(DS.sep)
@@ -304,6 +307,7 @@ struct UnifiedSearchView: View {
 
     private func clearResults() {
         results = SearchResults(songs: [], idols: [], events: [])
+        matchedVenues = [:]
         isSearching = false
         searchTask?.cancel()
     }
@@ -328,6 +332,7 @@ struct UnifiedSearchView: View {
                 let r = try await fetchResults(query: trimmed, scope: currentScope)
                 try Task.checkCancellation()
                 results = r
+                matchedVenues = await resolveMatchedVenues(query: trimmed, events: r.events)
                 isSearching = false
             } catch is CancellationError {
                 // キャンセル済み。結果は捨てる (isSearching は後続タスクが引き継ぐ)。
@@ -355,6 +360,19 @@ struct UnifiedSearchView: View {
             let events = try await container.eventReading.searchEventsByNameOrVenue(query: query, limit: 200)
             return SearchResults(songs: [], idols: [], events: events)
         }
+    }
+
+    /// 会場一致で拾えたイベントの会場名を解決する。ライブ名自体が一致している行には出さない
+    /// (自明な情報でリストを埋めないため)。
+    private func resolveMatchedVenues(query: String, events: [Event]) async -> [String: String] {
+        guard !events.isEmpty else { return [:] }
+        let lower = query.lowercased()
+        let byVenueOnly = events.filter { !$0.name.lowercased().contains(lower) }
+        guard !byVenueOnly.isEmpty else { return [:] }
+        return (try? await AppContainer.shared.showReading.venuesMatching(
+            query: query,
+            eventIds: byVenueOnly.map(\.id)
+        )) ?? [:]
     }
 
     private func commitSearch() {
