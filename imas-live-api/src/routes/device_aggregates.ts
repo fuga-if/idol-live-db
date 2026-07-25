@@ -67,7 +67,12 @@ export async function handleDeviceAggregates(ctx: RouteContext): Promise<Respons
       if (guard instanceof Response) return guard;
       const { deviceId, ip, bucket } = guard;
 
-      const body = (await request.json()) as any;
+      // 不正な JSON は catch-all に落として 500 にせず 400 で返す
+      // (クライアントのバグがサーバ障害として観測されるのを防ぐ)。
+      // JSON として妥当な非オブジェクト (数値・文字列) は従来どおり
+      // 後段のフィールド検証に流し、エラー文言を変えない。
+      const body = (await request.json().catch(() => null)) as any;
+      if (body === null) return error("invalid JSON body");
       const { song_id, value } = body;
       const favSongIdErr = validateOpaqueKey(song_id, "song_id");
       if (favSongIdErr) return error(favSongIdErr);
@@ -146,7 +151,12 @@ export async function handleDeviceAggregates(ctx: RouteContext): Promise<Respons
       if (guard instanceof Response) return guard;
       const { deviceId, ip, bucket } = guard;
 
-      const body = (await request.json()) as any;
+      // 不正な JSON は catch-all に落として 500 にせず 400 で返す
+      // (クライアントのバグがサーバ障害として観測されるのを防ぐ)。
+      // JSON として妥当な非オブジェクト (数値・文字列) は従来どおり
+      // 後段のフィールド検証に流し、エラー文言を変えない。
+      const body = (await request.json().catch(() => null)) as any;
+      if (body === null) return error("invalid JSON body");
       const { song_id, colors } = body;
       const penlightSongIdErr = validateOpaqueKey(song_id, "song_id");
       if (penlightSongIdErr) return error(penlightSongIdErr);
