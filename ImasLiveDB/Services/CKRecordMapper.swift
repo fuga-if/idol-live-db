@@ -99,11 +99,56 @@ enum CKRecordMapper {
             name: record["name"] as? String ?? "",
             date: date,
             venue: record["venue"] as? String,
+            venueId: record["venueId"] as? String,
+            hall: record["hall"] as? String,
+            streamPlatform: record["streamPlatform"] as? String,
             venueCity: record["venueCity"] as? String,
             startTime: record["startTime"] as? String,
             sortOrder: intValue(record["sortOrder"]),
             performerType: record["performerType"] as? String
         )
+    }
+
+    /// 会場 (施設)。会場は ID で管理するので、名前が変わっても履歴が分断されない。
+    static func venue(from record: CKRecord) -> Venue? {
+        let id = record["id"] as? String ?? record.recordID.recordName
+        guard !id.isEmpty else { return nil }
+        let name = record["name"] as? String ?? ""
+        guard !name.isEmpty else { return nil }
+        return Venue(
+            id: id,
+            name: name,
+            nameKana: record["nameKana"] as? String,
+            prefecture: record["prefecture"] as? String,
+            city: record["city"] as? String,
+            aliases: record["aliases"] as? String,
+            capacity: record["capacity"] as? Int,
+            sortOrder: intValue(record["sortOrder"])
+        )
+    }
+
+    /// 会場名と有効期間。表示を「公演日時点の名前」にするために使う。
+    static func venueName(from record: CKRecord) -> VenueName? {
+        let id = record["id"] as? String ?? record.recordID.recordName
+        guard !id.isEmpty else { return nil }
+        let venueId = record["venueId"] as? String ?? ""
+        let name = record["name"] as? String ?? ""
+        guard !venueId.isEmpty, !name.isEmpty else { return nil }
+        return VenueName(
+            id: id, venueId: venueId, name: name,
+            validFrom: record["validFrom"] as? String,
+            validTo: record["validTo"] as? String
+        )
+    }
+
+    /// 会場のホール/構成。キャパは構成で変わるので施設と分けて持つ。
+    static func venueHall(from record: CKRecord) -> VenueHall? {
+        let id = record["id"] as? String ?? record.recordID.recordName
+        guard !id.isEmpty else { return nil }
+        let venueId = record["venueId"] as? String ?? ""
+        let name = record["name"] as? String ?? ""
+        guard !venueId.isEmpty, !name.isEmpty else { return nil }
+        return VenueHall(id: id, venueId: venueId, name: name, capacity: record["capacity"] as? Int)
     }
 
     static func song(from record: CKRecord) -> Song? {

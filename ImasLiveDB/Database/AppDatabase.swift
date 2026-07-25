@@ -2895,6 +2895,9 @@ final class AppDatabase: @unchecked Sendable {
     func upsertIdolsAsync(_ idols: [Idol]) async throws { try await upsertChunkedAsync(idols) }
     func upsertEvents(_ events: [Event]) throws { try upsertChunked(events) }
     func upsertEventsAsync(_ events: [Event]) async throws { try await upsertChunkedAsync(events) }
+    func upsertVenues(_ venues: [Venue]) throws { try upsertChunked(venues) }
+    func upsertVenueNames(_ names: [VenueName]) throws { try upsertChunked(names) }
+    func upsertVenueHalls(_ halls: [VenueHall]) throws { try upsertChunked(halls) }
     func upsertShows(_ shows: [Show]) throws { try upsertChunked(shows) }
     func upsertShowsAsync(_ shows: [Show]) async throws { try await upsertChunkedAsync(shows) }
     func upsertSongs(_ songs: [Song]) throws { try upsertChunked(songs) }
@@ -3040,6 +3043,9 @@ final class AppDatabase: @unchecked Sendable {
         case "Event":            return ("events", ["id"])
         case "ImasUnit":         return ("units", ["id"])
         case "Show":             return ("shows", ["id"])
+        case "Venue":            return ("venues", ["id"])
+        case "VenueName":        return ("venue_names", ["id"])
+        case "VenueHall":        return ("venue_halls", ["id"])
         case "Song":             return ("songs", ["id"])
         case "SongCall":         return ("song_calls", ["id"])
         case "SongVideo":        return ("song_videos", ["id"])

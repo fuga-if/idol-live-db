@@ -116,6 +116,10 @@ final class CloudKitSyncEngine: @unchecked Sendable {
         SyncStep(recordType: "Idol", displayName: "アイドル"),
         SyncStep(recordType: "Event", displayName: "イベント"),
         SyncStep(recordType: "ImasUnit", displayName: "ユニット"),
+        // 会場は Show より前。Show が venue_id で参照するため。
+        SyncStep(recordType: "Venue", displayName: "会場"),
+        SyncStep(recordType: "VenueName", displayName: "会場名 (改名履歴)"),
+        SyncStep(recordType: "VenueHall", displayName: "会場ホール"),
         // Phase 3: 上記に依存 (CastMember/IdolCast は廃止)
         SyncStep(recordType: "IdolBrand", displayName: "アイドル×ブランド"),
         SyncStep(recordType: "Show", displayName: "公演"),
@@ -474,6 +478,12 @@ final class CloudKitSyncEngine: @unchecked Sendable {
             break
         case "IdolBrand":
             try database.upsertIdolBrands(mapped(CKRecordMapper.idolBrand))
+        case "Venue":
+            try database.upsertVenues(mapped(CKRecordMapper.venue))
+        case "VenueName":
+            try database.upsertVenueNames(mapped(CKRecordMapper.venueName))
+        case "VenueHall":
+            try database.upsertVenueHalls(mapped(CKRecordMapper.venueHall))
         case "Show":
             try database.upsertShows(mapped(CKRecordMapper.show))
         case "Song":
