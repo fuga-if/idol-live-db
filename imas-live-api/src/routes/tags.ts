@@ -12,6 +12,7 @@
 
 import { getAuthUser } from "../auth";
 import { checkRateLimit, dryCheckIpRateLimit, commitIpRateLimit } from "../rate_limit";
+import { checkIsAdmin } from "../users";
 import { parsePositiveInt, escapeLike } from "../validation";
 import type { RouteContext } from "./context";
 
@@ -327,7 +328,12 @@ export async function handleTags(ctx: RouteContext): Promise<Response | null> {
     const tagDetailMatch = path.match(/^\/tags\/([^/]+)$/);
     if (tagDetailMatch && request.method === "GET") {
       const tagId = decodeURIComponent(tagDetailMatch[1]);
-      const tag = await env.DB.prepare("SELECT * FROM tags WHERE id = ?").bind(tagId).first();
+      // 削除済み (status='removed') は詳細でも返さない。一覧・付与・曲/アイドル/
+      // ユニット別・類似は全て status != 'removed' で除外しているのに、ここだけ
+      // 素通しだと安定 URL から削除済みタグが読めてしまう。
+      const tag = await env.DB.prepare(
+        "SELECT * FROM tags WHERE id = ? AND status != 'removed'"
+      ).bind(tagId).first();
       if (!tag) return error("Tag not found", 404);
 
       // タグが付いた全曲を票数降順で返す (旧 LIMIT 50 だと 150 曲付いたタグでも
@@ -421,6 +427,43 @@ export async function handleTags(ctx: RouteContext): Promise<Response | null> {
          WHERE tag_id = ? ORDER BY edited_at DESC LIMIT 30`
       ).bind(tagId).all();
       return json(results);
+    }
+
+    // ----------------------------------------------------------------
+    // DELETE /tags/:id — 曲タグの削除 (admin 限定 → status='removed')
+    // ----------------------------------------------------------------
+    // 「きいた」「持ってる」のような**個人的なメモ**は共有タグの語彙に混ざると
+    // 他ユーザーには意味が無く一覧を汚す。そういう用途にはアプリ内の PersonalTag
+    // (端末ローカル専用・サーバー非送信) がある。共有プールから外すのはモデレーター判断。
+    //
+    // 通報 3 件で付く under_review は「印」でしかなく、読み取り側は
+    // status != 'removed' しか見ていない (= under_review でも表示され続ける)。
+    // 実際に消せるのはこの status='removed' だけ。
+    //
+    // 物理削除ではなく soft delete にする。付与実績 (song_tags) は残すので、
+    // 誤操作なら status を戻すだけで復旧できる。
+    const tagDeleteMatch = path.match(/^\/tags\/([^/]+)$/);
+    if (tagDeleteMatch && request.method === "DELETE") {
+      const tagId = decodeURIComponent(tagDeleteMatch[1]);
+      const user = await getAuthUser(request, env);
+      if (!user) return error("Unauthorized", 401);
+      if (!(await checkIsAdmin(env, user.uid))) return error("Forbidden", 403);
+
+      const tag = await env.DB.prepare(
+        "SELECT id, status FROM tags WHERE id = ?"
+      )
+        .bind(tagId)
+        .first<{ id: string; status: string }>();
+
+      if (!tag) return error("Tag not found", 404);
+      // 冪等: 既に removed なら何もせず同じ応答を返す
+      if (tag.status === "removed") return json({ id: tagId, status: "removed" });
+
+      await env.DB.prepare("UPDATE tags SET status = 'removed' WHERE id = ?")
+        .bind(tagId)
+        .run();
+
+      return json({ id: tagId, status: "removed" });
     }
 
     // ----------------------------------------------------------------
@@ -593,7 +636,12 @@ export async function handleTags(ctx: RouteContext): Promise<Response | null> {
     const idolTagDetailMatch = path.match(/^\/idol-tags\/([^/]+)$/);
     if (idolTagDetailMatch && request.method === "GET") {
       const tagId = decodeURIComponent(idolTagDetailMatch[1]);
-      const tag = await env.DB.prepare("SELECT * FROM idol_tag_master WHERE id = ?").bind(tagId).first();
+      // 削除済み (status='removed') は詳細でも返さない。一覧・付与・曲/アイドル/
+      // ユニット別・類似は全て status != 'removed' で除外しているのに、ここだけ
+      // 素通しだと安定 URL から削除済みタグが読めてしまう。
+      const tag = await env.DB.prepare(
+        "SELECT * FROM idol_tag_master WHERE id = ? AND status != 'removed'"
+      ).bind(tagId).first();
       if (!tag) return error("Tag not found", 404);
 
       const { results: idols } = await env.DB.prepare(
@@ -677,6 +725,43 @@ export async function handleTags(ctx: RouteContext): Promise<Response | null> {
          WHERE tag_id = ? ORDER BY edited_at DESC LIMIT 30`
       ).bind(tagId).all();
       return json(results);
+    }
+
+    // ----------------------------------------------------------------
+    // DELETE /idol-tags/:id — アイドルタグの削除 (admin 限定 → status='removed')
+    // ----------------------------------------------------------------
+    // 「きいた」「持ってる」のような**個人的なメモ**は共有タグの語彙に混ざると
+    // 他ユーザーには意味が無く一覧を汚す。そういう用途にはアプリ内の PersonalTag
+    // (端末ローカル専用・サーバー非送信) がある。共有プールから外すのはモデレーター判断。
+    //
+    // 通報 3 件で付く under_review は「印」でしかなく、読み取り側は
+    // status != 'removed' しか見ていない (= under_review でも表示され続ける)。
+    // 実際に消せるのはこの status='removed' だけ。
+    //
+    // 物理削除ではなく soft delete にする。付与実績 (idol_tags) は残すので、
+    // 誤操作なら status を戻すだけで復旧できる。
+    const idolTagMasterDeleteMatch = path.match(/^\/idol-tags\/([^/]+)$/);
+    if (idolTagMasterDeleteMatch && request.method === "DELETE") {
+      const tagId = decodeURIComponent(idolTagMasterDeleteMatch[1]);
+      const user = await getAuthUser(request, env);
+      if (!user) return error("Unauthorized", 401);
+      if (!(await checkIsAdmin(env, user.uid))) return error("Forbidden", 403);
+
+      const tag = await env.DB.prepare(
+        "SELECT id, status FROM idol_tag_master WHERE id = ?"
+      )
+        .bind(tagId)
+        .first<{ id: string; status: string }>();
+
+      if (!tag) return error("Tag not found", 404);
+      // 冪等: 既に removed なら何もせず同じ応答を返す
+      if (tag.status === "removed") return json({ id: tagId, status: "removed" });
+
+      await env.DB.prepare("UPDATE idol_tag_master SET status = 'removed' WHERE id = ?")
+        .bind(tagId)
+        .run();
+
+      return json({ id: tagId, status: "removed" });
     }
 
     // ----------------------------------------------------------------
@@ -1057,7 +1142,12 @@ export async function handleTags(ctx: RouteContext): Promise<Response | null> {
     const unitTagDetailMatch = path.match(/^\/unit-tags\/([^/]+)$/);
     if (unitTagDetailMatch && request.method === "GET") {
       const tagId = decodeURIComponent(unitTagDetailMatch[1]);
-      const tag = await env.DB.prepare("SELECT * FROM unit_tag_master WHERE id = ?").bind(tagId).first();
+      // 削除済み (status='removed') は詳細でも返さない。一覧・付与・曲/アイドル/
+      // ユニット別・類似は全て status != 'removed' で除外しているのに、ここだけ
+      // 素通しだと安定 URL から削除済みタグが読めてしまう。
+      const tag = await env.DB.prepare(
+        "SELECT * FROM unit_tag_master WHERE id = ? AND status != 'removed'"
+      ).bind(tagId).first();
       if (!tag) return error("Tag not found", 404);
 
       const { results: units } = await env.DB.prepare(
@@ -1141,6 +1231,43 @@ export async function handleTags(ctx: RouteContext): Promise<Response | null> {
          WHERE tag_id = ? ORDER BY edited_at DESC LIMIT 30`
       ).bind(tagId).all();
       return json(results);
+    }
+
+    // ----------------------------------------------------------------
+    // DELETE /unit-tags/:id — ユニットタグの削除 (admin 限定 → status='removed')
+    // ----------------------------------------------------------------
+    // 「きいた」「持ってる」のような**個人的なメモ**は共有タグの語彙に混ざると
+    // 他ユーザーには意味が無く一覧を汚す。そういう用途にはアプリ内の PersonalTag
+    // (端末ローカル専用・サーバー非送信) がある。共有プールから外すのはモデレーター判断。
+    //
+    // 通報 3 件で付く under_review は「印」でしかなく、読み取り側は
+    // status != 'removed' しか見ていない (= under_review でも表示され続ける)。
+    // 実際に消せるのはこの status='removed' だけ。
+    //
+    // 物理削除ではなく soft delete にする。付与実績 (unit_tags) は残すので、
+    // 誤操作なら status を戻すだけで復旧できる。
+    const unitTagMasterDeleteMatch = path.match(/^\/unit-tags\/([^/]+)$/);
+    if (unitTagMasterDeleteMatch && request.method === "DELETE") {
+      const tagId = decodeURIComponent(unitTagMasterDeleteMatch[1]);
+      const user = await getAuthUser(request, env);
+      if (!user) return error("Unauthorized", 401);
+      if (!(await checkIsAdmin(env, user.uid))) return error("Forbidden", 403);
+
+      const tag = await env.DB.prepare(
+        "SELECT id, status FROM unit_tag_master WHERE id = ?"
+      )
+        .bind(tagId)
+        .first<{ id: string; status: string }>();
+
+      if (!tag) return error("Tag not found", 404);
+      // 冪等: 既に removed なら何もせず同じ応答を返す
+      if (tag.status === "removed") return json({ id: tagId, status: "removed" });
+
+      await env.DB.prepare("UPDATE unit_tag_master SET status = 'removed' WHERE id = ?")
+        .bind(tagId)
+        .run();
+
+      return json({ id: tagId, status: "removed" });
     }
 
     // ----------------------------------------------------------------
