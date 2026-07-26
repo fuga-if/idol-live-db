@@ -142,9 +142,12 @@ struct SongCommunityTab: View {
 
     private func callRow(_ call: SongCall) -> some View {
         VStack(alignment: .leading, spacing: 6) {
+            // コーレスは長文で「サビ前のここだけ引用したい」需要があるので、
+            // 全文一括ではなくネイティブの選択バーで部分コピーできるようにする。
             Text(call.callText)
                 .font(.imasSubhead).foregroundStyle(DS.ink)
                 .fixedSize(horizontal: false, vertical: true)
+                .imasSelectableText()
             HStack(spacing: DS.sp3) {
                 if let link = URL.safeHTTP(string: call.sourceUrl) {
                     Link(destination: link) {
@@ -216,6 +219,7 @@ struct SongCommunityTab: View {
             }
             if let note = video.note, !note.isEmpty {
                 Text(note).font(.imasCaption).foregroundStyle(DS.ink2)
+                    .imasSelectableText()
             }
             HStack(spacing: DS.sp3) {
                 if let author = video.authorDisplayName {

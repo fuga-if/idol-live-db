@@ -51,6 +51,7 @@ struct UnitTagDetailView: View {
                             Text(desc)
                                 .font(.imasBody)
                                 .foregroundStyle(DS.ink)
+                                .imasSelectableText()
                         } else {
                             Text("説明なし")
                                 .font(.imasBody)
