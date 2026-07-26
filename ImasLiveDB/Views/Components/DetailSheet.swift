@@ -421,33 +421,11 @@ struct SongSheetContent: View {
             ImasListContainer {
                 ForEach(Array(vm.relatedSongs.enumerated()), id: \.element.id) { idx, s in
                     if idx > 0 { ImasRowDivider(inset: DS.sp5 + 44) }
-                    Button { navigate(.song(s)) } label: { relatedSongRow(s, badge: nil) }
+                    Button { navigate(.song(s)) } label: { RelatedSongRow(song: s, seed: songSeed) }
                         .buttonStyle(.plain)
                 }
             }
         }
-    }
-
-    /// 関連/おすすめ楽曲の共通行。badge に共有タグ数などの補足を出せる。
-    private func relatedSongRow(_ s: Song, badge: String?) -> some View {
-        HStack(spacing: DS.sp3) {
-            ImasArtwork(title: s.title, seed: songSeed, size: 44,
-                        imageURL: URL.safeHTTP(string: s.artworkUrl))
-            VStack(alignment: .leading, spacing: DS.sp1) {
-                Text(s.title).font(.imasSubhead.weight(.semibold))
-                    .foregroundStyle(DS.ink).lineLimit(1)
-                if let sub = s.singerLabel ?? s.unitName, !sub.isEmpty {
-                    Text(sub).font(.imasCaption).foregroundStyle(DS.ink2).lineLimit(1)
-                }
-            }
-            Spacer(minLength: 4)
-            if let badge {
-                Text(badge).font(.imasCaption.weight(.semibold)).foregroundStyle(DS.ink3)
-            }
-            ImasRowChevron()
-        }
-        .padding(.horizontal, DS.sp5).padding(.vertical, 9)
-        .contentShape(Rectangle())
     }
 
     private var performanceStats: some View {
@@ -678,289 +656,24 @@ struct SongSheetContent: View {
 
     // MARK: - Tab 2: コミュニティ
 
-    @ViewBuilder
+    /// 中身は `SongCommunityTab`。ここではシート表示を伴う操作だけ引き受ける。
     private var communityTab: some View {
-        VStack(spacing: DS.sp5) {
-            PollAchievementBadges(entityId: song.id)
-            InlineLoginPrompt(message: "タグ・コーレス・投票にはログインが必要です", seed: songSeed)
-            communityTags
-            if !vm.similarTagSongs.isEmpty { similarByTagsSection }
-            communityCalls
-            communityVideos
-            communityPenlight
-        }
-        .padding(.top, DS.sp4)
-        .padding(.horizontal, DS.sp5)
-    }
-
-    /// この曲が好きな人にはこれもおすすめ — タグが似ている楽曲 (サーバ算出)。
-    private var similarByTagsSection: some View {
-        VStack(alignment: .leading, spacing: DS.sp3) {
-            VStack(alignment: .leading, spacing: DS.sp1) {
-                Text("この曲が好きな人にはこれも")
-                    .font(.imasTitle3.weight(.bold)).foregroundStyle(DS.ink)
-                Text("つけられたタグが似ている楽曲")
-                    .font(.imasCaption).foregroundStyle(DS.ink2)
-            }
-            ImasListContainer {
-                ForEach(Array(vm.similarTagSongs.enumerated()), id: \.element.id) { idx, s in
-                    if idx > 0 { ImasRowDivider(inset: DS.sp5 + 44) }
-                    Button { navigate(.song(s)) } label: {
-                        relatedSongRow(s, badge: vm.similarSharedTags[s.id].map { "タグ\($0)個一致" })
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
+        SongCommunityTab(song: song, seed: songSeed, vm: vm, navigate: navigate) { intent in
+            handle(intent)
         }
     }
 
-    @ViewBuilder
-    private var communityTags: some View {
-        VStack(alignment: .leading, spacing: DS.sp3) {
-            communityHeader(title: "タグ", actionLabel: "タグ", systemImage: "plus") {
-                AppAnalytics.tap("song_detail.tag_action")
-                startCommunityEdit { showTagPicker = true }
-            }
-            if let tagData = vm.songTagData, !tagData.tags.isEmpty {
-                FlowLayout(spacing: DS.sp3) {
-                    ForEach(tagData.tags) { tag in
-                        let isMine = Set(tagData.myTagIds).contains(tag.id)
-                        Button { navigate(.tagDetail(tag)) } label: {
-                            // 何人がこのタグを付けたか (票数) を常に表示。
-                            ImasChip(text: "\(tag.name) \(tag.voteCount)",
-                                     style: isMine ? .selected : .themed,
-                                     seed: songSeed)
-                        }
-                        .buttonStyle(.plain)
-                        .contextMenu {
-                            if isMine {
-                                Button(role: .destructive) {
-                                    Task { await vm.removeSongTag(song: song, tagId: tag.id) }
-                                } label: { Label("タグを外す", systemImage: "tag.slash") }
-                            }
-                            Button { navigate(.tagDetail(tag)) } label: { Label("タグ詳細を見る", systemImage: "tag") }
-                        }
-                    }
-                }
-            } else {
-                ImasEmptyState(systemImage: "tag", title: "タグはまだありません",
-                               message: "この曲を一言で表すタグを付けてみませんか？",
-                               actionTitle: EditPermission.showEditAffordance ? "タグを追加" : nil,
-                               action: EditPermission.showEditAffordance ? { startCommunityEdit { showTagPicker = true } } : nil,
-                               seed: songSeed)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var communityCalls: some View {
-        VStack(alignment: .leading, spacing: DS.sp3) {
-            communityHeader(title: "コーレス", actionLabel: "コール", systemImage: "megaphone") {
-                AppAnalytics.tap("song_detail.call_action")
-                startCommunityEdit { callSheet = .create }
-            }
-            if vm.songCalls.isEmpty {
-                ImasEmptyState(systemImage: "megaphone", title: "コーレスはまだありません",
-                               message: "サビ前のコールなど、現地の盛り上げ方を共有しませんか？",
-                               actionTitle: EditPermission.showEditAffordance ? "コーレスを投稿" : nil,
-                               action: EditPermission.showEditAffordance ? { startCommunityEdit { callSheet = .create } } : nil,
-                               seed: songSeed)
-            } else {
-                ImasListContainer {
-                    ForEach(Array(vm.songCalls.enumerated()), id: \.element.id) { idx, call in
-                        if idx > 0 { ImasRowDivider(inset: DS.sp5) }
-                        callRow(call)
-                    }
-                }
-            }
-        }
-    }
-
-    private func callRow(_ call: SongCall) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(call.callText)
-                .font(.imasSubhead).foregroundStyle(DS.ink)
-                .fixedSize(horizontal: false, vertical: true)
-            HStack(spacing: DS.sp3) {
-                if let link = URL.safeHTTP(string: call.sourceUrl) {
-                    Link(destination: link) {
-                        Label("出典", systemImage: "link").font(.imasCaption).foregroundStyle(DS.ink2)
-                    }
-                }
-                if let author = call.authorDisplayName {
-                    Text("投稿者: \(author)").font(.imasCaption).foregroundStyle(DS.ink3)
-                }
-                Spacer(minLength: 4)
-                if EditPermission.showEditAffordance {
-                    Button { startCommunityEdit { callSheet = .edit(call) } } label: {
-                        Image(systemName: "pencil").font(.imasCaption.weight(.semibold)).foregroundStyle(DS.ink2)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
-        .padding(.horizontal, DS.sp5).padding(.vertical, 11)
-    }
-
-    @ViewBuilder
-    private var communityVideos: some View {
-        VStack(alignment: .leading, spacing: DS.sp3) {
-            communityHeader(title: "参考動画", actionLabel: "動画", systemImage: "play.fill") {
-                AppAnalytics.tap("song_detail.video_action")
-                startCommunityEdit { videoSheet = .create }
-            }
-            if vm.songVideos.isEmpty {
-                ImasEmptyState(systemImage: "play.rectangle", title: "参考動画はまだありません",
-                               message: "最初の1本を投稿しませんか？",
-                               actionTitle: EditPermission.showEditAffordance ? "動画を投稿" : nil,
-                               action: EditPermission.showEditAffordance ? { startCommunityEdit { videoSheet = .create } } : nil,
-                               seed: songSeed)
-            } else {
-                ImasListContainer {
-                    ForEach(Array(vm.songVideos.enumerated()), id: \.element.id) { idx, video in
-                        if idx > 0 { ImasRowDivider(inset: DS.sp5) }
-                        videoRow(video)
-                    }
-                }
-            }
-        }
-    }
-
-    private func videoRow(_ video: SongVideo) -> some View {
-        let videoID = YouTube.videoID(from: video.youtubeUrl)
-        return VStack(alignment: .leading, spacing: DS.sp3) {
-            if let videoID, let url = URL.safeHTTP(string: video.youtubeUrl) {
-                // 公式 MV は埋め込み無効が多くアプリ内再生不可 (YouTube仕様) のため、
-                // サムネタップで YouTube アプリ/Safari を開く。
-                Button { openURL(url) } label: {
-                    ZStack {
-                        LazyImage(url: YouTube.thumbnailURL(for: videoID)) { state in
-                            if let image = state.image {
-                                image.resizable().aspectRatio(contentMode: .fill)
-                            } else if state.error != nil {
-                                // maxresdefault が無い動画は mqdefault にフォールバック。
-                                LazyImage(url: YouTube.fallbackThumbnailURL(for: videoID)) { fb in
-                                    if let image = fb.image {
-                                        image.resizable().aspectRatio(contentMode: .fill)
-                                    } else {
-                                        Rectangle().fill(DS.surface2)
-                                    }
-                                }
-                            } else {
-                                Rectangle().fill(DS.surface2)
-                            }
-                        }
-                        .aspectRatio(16.0 / 9.0, contentMode: .fill)
-                        .frame(maxWidth: .infinity)
-                        .clipShape(RoundedRectangle(cornerRadius: DS.rXS, style: .continuous))
-                        Image(systemName: "play.circle.fill")
-                            .font(.imasScaled( 46))
-                            .foregroundStyle(.white.opacity(0.94))
-                            .shadow(color: .black.opacity(0.35), radius: 5)
-                    }
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-            }
-            if let title = video.videoTitle {
-                Text(title).font(.imasSubhead.weight(.semibold)).foregroundStyle(DS.ink)
-            }
-            if videoID == nil, let url = URL.safeHTTP(string: video.youtubeUrl) {
-                // YouTube 以外 (または ID 解析不可) は従来どおり外部リンク。
-                Link(destination: url) {
-                    Label(video.youtubeUrl, systemImage: "play.rectangle.fill")
-                        .font(.imasCaption).foregroundStyle(DS.danger)
-                        .lineLimit(1).truncationMode(.middle)
-                }
-            }
-            if let note = video.note, !note.isEmpty {
-                Text(note).font(.imasCaption).foregroundStyle(DS.ink2)
-            }
-            HStack(spacing: DS.sp3) {
-                if let author = video.authorDisplayName {
-                    Text("投稿者: \(author)").font(.imasCaption).foregroundStyle(DS.ink3)
-                }
-                Spacer(minLength: 4)
-                if EditPermission.showEditAffordance {
-                    Button { startCommunityEdit { videoSheet = .edit(video) } } label: {
-                        Image(systemName: "pencil").font(.imasCaption.weight(.semibold)).foregroundStyle(DS.ink2)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
-        .padding(.horizontal, DS.sp5).padding(.vertical, 11)
-    }
-
-    @ViewBuilder
-    private var communityPenlight: some View {
-        VStack(alignment: .leading, spacing: DS.sp3) {
-            communityHeader(title: "ペンライト投票", actionLabel: "投票する", systemImage: "sparkles") {
-                AppAnalytics.tap("song_detail.penlight_action")
-                startCommunityEdit { showPenlightVoteSheet = true }
-            }
-            if let votes = vm.penlightVotes, !votes.topColorSets.isEmpty {
-                ImasListContainer {
-                    ForEach(Array(votes.topColorSets.enumerated()), id: \.element.id) { idx, set in
-                        if idx > 0 { ImasRowDivider(inset: DS.sp5) }
-                        penlightRow(set, myKey: votes.myColorSet?.key, total: max(votes.totalVotes, 1))
-                    }
-                }
-                Text("この曲のペンライト色 ・ \(votes.totalVotes)票")
-                    .font(.imasCaption).foregroundStyle(DS.ink2)
-                    .padding(.leading, DS.sp1)
-            } else {
-                ImasEmptyState(systemImage: "lightspectrum.horizontal", title: "まだ投票がありません",
-                               message: "あなたが思うこの曲のペンライト色を投票しませんか？",
-                               actionTitle: EditPermission.showEditAffordance ? "ペンライト色を投票" : nil,
-                               action: EditPermission.showEditAffordance ? { startCommunityEdit { showPenlightVoteSheet = true } } : nil,
-                               seed: songSeed)
-            }
-        }
-    }
-
-    private func penlightRow(_ set: PenlightColorSet, myKey: String?, total: Int) -> some View {
-        let isMine = myKey == set.key
-        return VStack(spacing: 7) {
-            HStack(spacing: DS.sp3) {
-                PenlightColorBar(colors: set.colors.map(\.rawValue), height: 22)
-                    .clipShape(RoundedRectangle(cornerRadius: DS.rXS, style: .continuous))
-                    .frame(maxWidth: 120)
-                if isMine {
-                    Text("自分の投票").font(.imasCaption.weight(.semibold)).foregroundStyle(DS.pick)
-                }
-                Spacer(minLength: 4)
-                Text("\(set.count)票").font(.imasDisplay(13, weight: .semibold)).foregroundStyle(DS.ink2)
-            }
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(DS.fill)
-                    Capsule().fill(DS.pick.opacity(0.7))
-                        .frame(width: max(4, geo.size.width * CGFloat(set.count) / CGFloat(total)))
-                }
-            }
-            .frame(height: 4)
-        }
-        .padding(.horizontal, DS.sp5).padding(.vertical, 10)
-    }
-
-    /// セクション見出し + 文脈投稿導線 (＋タグ / ＋コール / ▶動画 / ✦投票)。
-    @ViewBuilder
-    private func communityHeader(title: String, actionLabel: String, systemImage: String, action: @escaping () -> Void) -> some View {
-        let t = ImasTheme.derive(seed: songSeed, scheme: scheme)
-        HStack(alignment: .firstTextBaseline) {
-            Text(title).font(.imasTitle3.weight(.bold)).foregroundStyle(DS.ink)
-            Spacer(minLength: 12)
-            if EditPermission.showEditAffordance {
-                Button(action: action) {
-                    HStack(spacing: DS.sp2) {
-                        Image(systemName: systemImage).font(.imasScaled( 13, weight: .semibold))
-                        Text(actionLabel).font(.imasScaled( 14, weight: .semibold))
-                    }
-                    .foregroundStyle(t.accent)
-                }
-                .buttonStyle(.plain)
-            }
+    /// コミュニティタブからの要求を、この画面が持つシート状態へ落とす。
+    private func handle(_ intent: SongCommunityIntent) {
+        switch intent {
+        case .addTag:        startCommunityEdit { showTagPicker = true }
+        case .createCall:    startCommunityEdit { callSheet = .create }
+        case .editCall(let call):   startCommunityEdit { callSheet = .edit(call) }
+        case .createVideo:   startCommunityEdit { videoSheet = .create }
+        case .editVideo(let video): startCommunityEdit { videoSheet = .edit(video) }
+        case .votePenlight:  startCommunityEdit { showPenlightVoteSheet = true }
+        case .removeTag(let id):
+            Task { await vm.removeSongTag(song: song, tagId: id) }
         }
     }
 
@@ -993,12 +706,11 @@ struct SongSheetContent: View {
     /// 投稿/編集導線の共通ゲート: 未ログインはログイン誘導、BAN 済みは何もしない、
     /// ログイン済み・未 BAN のみ `present` を実行する (EditPermission に集約)。
     private func startCommunityEdit(_ present: () -> Void) {
-        if EditPermission.canEdit {
-            present()
-        } else if EditPermission.shouldPromptLogin {
-            showCommunityLoginPrompt = true
+        switch EditPermission.rules.outcomeOnEditTap {
+        case .present: present()
+        case .promptLogin: showCommunityLoginPrompt = true
+        case .ignore: break  // BAN 済み。導線自体を出していない。
         }
-        // BAN 済みは導線自体を出さない (showEditAffordance=false) ので no-op。
     }
 
     private var lyricsURL: URL {
