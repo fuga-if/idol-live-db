@@ -9,11 +9,11 @@ import com.fugaif.imaslivedb.data.model.CastShowRow
 import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.data.model.IdolPerformedSong
 import com.fugaif.imaslivedb.data.model.ImasUnit
+import com.fugaif.imaslivedb.data.model.JstDay
 import com.fugaif.imaslivedb.data.model.PersonalTag
 import com.fugaif.imaslivedb.data.model.Song
 import com.fugaif.imaslivedb.data.community.CommunityApi
 import com.fugaif.imaslivedb.di.AppModule
-import java.time.LocalDate
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -38,7 +38,7 @@ data class IdolDetailUiState(
     /** 出演履歴のうち今日以降で最も近い公演 (= 次の出演)。無ければ null。 */
     val nextShow: CastShowRow?
         get() {
-            val today = LocalDate.now().toString()
+            val today = JstDay.today()
             return castShows.filter { it.date >= today }.minByOrNull { it.date }
         }
 }

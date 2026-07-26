@@ -66,6 +66,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fugaif.imaslivedb.data.model.EventStats
 import com.fugaif.imaslivedb.data.model.Idol
+import com.fugaif.imaslivedb.data.model.JstDay
 import com.fugaif.imaslivedb.data.model.Show
 import com.fugaif.imaslivedb.data.model.UserMark
 import com.fugaif.imaslivedb.di.AppModule
@@ -190,7 +191,7 @@ private data class AttendanceStatusUi(val label: String, val planned: Boolean)
 /** 参加マーク(イベント単位)と公演日から「参加予定 (あとN日) / 参加済み」を導く。 */
 private fun attendanceStatus(state: EventDetailUiState, marked: Boolean): AttendanceStatusUi? {
     if (!marked) return null
-    val today = LocalDate.now()
+    val today = JstDay.date()
     val futureDates = state.shows.map { it.date }
         .filter { it.isNotEmpty() }
         .mapNotNull { runCatching { LocalDate.parse(it) }.getOrNull() }

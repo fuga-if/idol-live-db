@@ -5,13 +5,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.fugaif.imaslivedb.data.model.Brand
 import com.fugaif.imaslivedb.data.model.EventWithDateRange
+import com.fugaif.imaslivedb.data.model.JstDay
 import com.fugaif.imaslivedb.data.model.VenueDirectory
 import com.fugaif.imaslivedb.di.AppModule
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.time.LocalDate
 
 data class YearGroup(
     val year: String,
@@ -32,7 +32,8 @@ data class EventListUiState(
     val venueEventIds: Set<String> = emptySet(),
     /** 会場マスタ (ピッカー候補・当時名/キャパの解決)。 */
     val venueDirectory: VenueDirectory = VenueDirectory.EMPTY,
-    val todayKey: String = LocalDate.now().toString()
+    /** 公演日との比較なので JST 固定 (端末ローカルだと海外で 1 日ずれる)。 */
+    val todayKey: String = JstDay.today()
 ) {
     val filteredEvents: List<EventWithDateRange>
         get() {

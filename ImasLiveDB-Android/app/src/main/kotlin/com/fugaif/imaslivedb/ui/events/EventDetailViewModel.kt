@@ -4,14 +4,13 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.fugaif.imaslivedb.data.model.EventStats
+import com.fugaif.imaslivedb.data.model.JstDay
 import com.fugaif.imaslivedb.data.model.Show
 import com.fugaif.imaslivedb.di.AppModule
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 
 data class EventDetailUiState(
     val isLoading: Boolean = true,
@@ -42,7 +41,7 @@ data class EventDetailUiState(
     val isFutureEvent: Boolean
         get() {
             val firstDate = shows.firstOrNull()?.date ?: return false
-            val today = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
+            val today = JstDay.today()
             return firstDate >= today
         }
 }

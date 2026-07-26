@@ -2,6 +2,7 @@ package com.fugaif.imaslivedb.data.repository
 
 import com.fugaif.imaslivedb.data.community.CommunityApi
 import com.fugaif.imaslivedb.data.db.AppDatabase
+import com.fugaif.imaslivedb.data.model.JstDay
 import com.fugaif.imaslivedb.data.model.Brand
 import com.fugaif.imaslivedb.data.model.BrandCollectionProgress
 import com.fugaif.imaslivedb.data.model.BrandSongCount
@@ -11,8 +12,6 @@ import com.fugaif.imaslivedb.data.model.FavoriteRankingEntry
 import com.fugaif.imaslivedb.data.model.UncollectedSong
 import com.fugaif.imaslivedb.data.model.UpcomingCatchChance
 import com.fugaif.imaslivedb.data.model.YearlyShowCount
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 
 class StatsRepository(private val db: AppDatabase, private val communityApi: CommunityApi) {
 
@@ -137,8 +136,7 @@ class StatsRepository(private val db: AppDatabase, private val communityApi: Com
     }
 
     /** "yyyy-MM-dd" 形式の今日 (Asia/Tokyo)。公演日 (TEXT) との文字列比較に使う。 */
-    private fun today(): String =
-        DateTimeFormatter.ofPattern("yyyy-MM-dd").format(java.time.LocalDate.now(ZoneId.of("Asia/Tokyo")))
+    private fun today(): String = JstDay.today()
 
     // MARK: - コミュニティの熱量 (お気に入りランキング)
 
