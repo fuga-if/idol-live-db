@@ -229,8 +229,17 @@ struct SimilarSongsResponse: Decodable, Sendable {
 struct SimilarSongEntry: Decodable, Identifiable, Hashable, Sendable {
     var id: String { songId }
     let songId: String
-    /// この曲と共有しているタグ数 (近さの指標)。
+    /// この曲と共有しているタグ数 (バッジ表示用)。
     let sharedTags: Int
+    /// 減衰つき Jaccard 係数による近さ (0〜1)。おすすめの抽選重みに使う。
+    ///
+    /// サーバ側が旧実装のままだと返ってこないので optional。
+    /// 未配信の Worker と新しいアプリが同時に存在しうる (審査期間など)。
+    let score: Double?
+
+    /// 抽選に使う重み。`score` が無い旧サーバでは共有タグ数で代用する
+    /// (人気バイアスは残るが、少なくとも「近い順」ではある)。
+    var pickWeight: Double { score ?? Double(sharedTags) }
 }
 
 /// GET /idols/:id/similar — タグが似ているアイドル。

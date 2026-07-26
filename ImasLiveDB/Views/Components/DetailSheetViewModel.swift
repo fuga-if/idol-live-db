@@ -89,16 +89,25 @@ final class DetailSheetViewModel {
     }
 
     /// タグ類似のおすすめ楽曲をサーバから取得し、ローカル DB で Song に解決する。
-    /// 返却順 (共有タグ数の降順) を維持する。
+    ///
+    /// サーバは候補を近い順に多め (30 件) 返すので、そこから表示分を**毎回抽選**する。
+    /// 近さを重みにした重み付き抽選なので、似ている曲が中心に出つつ、
+    /// 少しだけタグが被っている曲もときどき混ざる。曲を開き直すと顔ぶれが変わる。
     func loadSimilarSongs(song: Song) async {
         guard let response = try? await CommunityAPI.shared.similarSongsByTags(songId: song.id) else { return }
-        let ids = response.songs.map(\.songId)
+        let picked = WeightedSampling.pick(
+            response.songs, count: Self.similarSongsDisplayCount, weight: \.pickWeight)
+        let ids = picked.map(\.songId)
         guard !ids.isEmpty,
               let resolved = try? await songReading.songs(criterion: .songIds(ids, title: "")) else { return }
         let byId = Dictionary(resolved.map { ($0.song.id, $0.song) }) { a, _ in a }
-        similarSharedTags = Dictionary(response.songs.map { ($0.songId, $0.sharedTags) }) { a, _ in a }
+        similarSharedTags = Dictionary(picked.map { ($0.songId, $0.sharedTags) }) { a, _ in a }
+        // 抽選順 (重み付きのランダム順) を維持する。
         similarTagSongs = ids.compactMap { byId[$0] }
     }
+
+    /// おすすめとして画面に出す件数。候補はサーバから多めに取り、ここまで絞る。
+    private static let similarSongsDisplayCount = 6
 
     func loadPenlightVotes(song: Song) async {
         penlightVotes = try? await CommunityAPI.shared.penlightVotes(songId: song.id)

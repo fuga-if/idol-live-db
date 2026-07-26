@@ -103,6 +103,19 @@ async function resolveSlugFromTable(
 }
 
 /**
+ * タグ類似スコアの平滑化定数。Jaccard 係数の分母に足す。
+ *
+ * `shared / (tags_a + tags_b - shared + DAMPING)`
+ *
+ * 0 にすると素の Jaccard になり「タグ2個中2個一致 = 100%」が
+ * 「10個中8個一致」に勝ってしまう。タグはユーザー投稿のみで自動付与しない方針なので
+ * タグ数の少ない曲が多数派であり、この小サンプル事故が主流になる。
+ * 大きくするほど「タグがよく付いている曲」が有利になり、旧実装 (共有タグ数順) の
+ * 人気バイアスに近づく。5 はその中間。
+ */
+const SIMILARITY_DAMPING = 5;
+
+/**
  * /tags, /idol-tags, /unit-tags, /{songs,idols,units}/:id/tags,
  * および /{songs,idols,units}/:id/similar を処理する。
  * どのルートにも一致しなければ `null` を返し、呼び出し元の if チェーンへ処理を戻す。
@@ -1454,26 +1467,53 @@ export async function handleTags(ctx: RouteContext): Promise<Response | null> {
 
     // ----------------------------------------------------------------
     // GET /songs/:song_id/similar — タグが似ている楽曲 (この曲が好きな人にはこれもおすすめ)
-    //   共有タグ数を第一キー、共有タグの票数合計を第二キーで近い順に並べる。
+    //
+    //   減衰つき Jaccard 係数で「近さ」を出す:
+    //       score = shared / (tags_a + tags_b - shared + SIMILARITY_DAMPING)
+    //
+    //   旧実装は共有タグ数 → 相手の票数合計の順で並べていたが、これだと
+    //   「タグがたくさん付いている有名曲」が何にでも上位に出る (共有数も票数も
+    //   タグ数に比例して増えるため)。かといって素の Jaccard にすると今度は
+    //   「タグが1〜2個しかない曲がたまたま全部一致して 100%」が勝ってしまう。
+    //   タグはユーザー投稿のみで自動付与しない方針なのでタグ数の少ない曲が多数派
+    //   であり、この小サンプル事故が例外ではなく主流になる。
+    //   分母に定数を足して平滑化すると、件数が少ないうちは慎重に、タグが貯まるほど
+    //   素の Jaccard に近づく。
+    //
+    //   ここでは候補をスコア順に返すだけで、実際に何件見せるか / どれを見せるかは
+    //   クライアントが決める (毎回同じ並びにならないよう重み付き抽選する)。
+    //   サーバ応答は決定的なままなのでエッジキャッシュがそのまま効く。
     // ----------------------------------------------------------------
     const songSimilarMatch = path.match(/^\/songs\/([^/]+)\/similar$/);
     if (songSimilarMatch && request.method === "GET") {
       const songId = decodeURIComponent(songSimilarMatch[1]);
       const limitParam = parseInt(url.searchParams.get("limit") ?? "10", 10);
-      const limit = Math.min(Math.max(Number.isFinite(limitParam) ? limitParam : 10, 1), 30);
+      const limit = Math.min(Math.max(Number.isFinite(limitParam) ? limitParam : 10, 1), 50);
 
       const { results: songs } = await env.DB.prepare(
-        `SELECT st2.song_id AS song_id,
+        `WITH a_tags AS (
+           SELECT st.tag_id
+           FROM song_tags st
+           JOIN tags t ON t.id = st.tag_id AND t.status != 'removed'
+           WHERE st.song_id = ?
+         )
+         SELECT st2.song_id AS song_id,
                 COUNT(*) AS shared_tags,
-                SUM(st2.vote_count) AS score
-         FROM song_tags st1
-         JOIN song_tags st2 ON st2.tag_id = st1.tag_id AND st2.song_id != st1.song_id
-         JOIN tags t ON t.id = st1.tag_id AND t.status != 'removed'
-         WHERE st1.song_id = ?
+                SUM(st2.vote_count) AS vote_score,
+                CAST(COUNT(*) AS REAL) / (
+                  (SELECT COUNT(*) FROM a_tags)
+                  + (SELECT COUNT(*) FROM song_tags s
+                     JOIN tags t2 ON t2.id = s.tag_id AND t2.status != 'removed'
+                     WHERE s.song_id = st2.song_id)
+                  - COUNT(*) + ?
+                ) AS score
+         FROM song_tags st2
+         JOIN a_tags ON a_tags.tag_id = st2.tag_id
+         WHERE st2.song_id != ?
          GROUP BY st2.song_id
-         ORDER BY shared_tags DESC, score DESC
+         ORDER BY score DESC, shared_tags DESC
          LIMIT ?`
-      ).bind(songId, limit).all();
+      ).bind(songId, SIMILARITY_DAMPING, songId, limit).all();
 
       // タグ類似は完全にユーザー非依存 (my_* フラグを一切含まない集計のみ)。
       // タグ付けの分布で決まり変化が非常に緩やかなので、エッジ (Cloudflare) で
