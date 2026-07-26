@@ -2688,6 +2688,7 @@ INSERT INTO songs VALUES('ml_harmony4you高山紗代子ver','Harmony 4 You (高�
 INSERT INTO songs VALUES('ml_夢にかけるrainbow高山紗代子ver','夢にかけるRainbow (高山紗代子 Ver.)',NULL,'ml','solo','2026-01-07',NULL,NULL,NULL,NULL,'THE IDOLM@STER MILLION LIVE! SPECIAL SOLO RECORDS 高山紗代子',NULL,'https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/30/4d/0f/304d0f3f-ffc5-7c9b-51a9-e7cace4347a8/4540774252053.png/600x600bb.jpg',NULL,'6776935368','6776935360',NULL,NULL,NULL,NULL,NULL,NULL,NULL);
 INSERT INTO songs VALUES('ml_7daysaweek高山紗代子ver','7Days A Week!! (高山紗代子 Ver.)',NULL,'ml','solo','2026-01-07',NULL,NULL,NULL,NULL,'THE IDOLM@STER MILLION LIVE! SPECIAL SOLO RECORDS 高山紗代子',NULL,'https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/30/4d/0f/304d0f3f-ffc5-7c9b-51a9-e7cace4347a8/4540774252053.png/600x600bb.jpg',NULL,'6776935463','6776935360',NULL,NULL,NULL,NULL,NULL,NULL,NULL);
 INSERT INTO songs VALUES('ml_グッドサイン高山紗代子ver','グッドサイン (高山紗代子 Ver.)',NULL,'ml','solo','2026-01-07',NULL,NULL,NULL,NULL,'THE IDOLM@STER MILLION LIVE! SPECIAL SOLO RECORDS 高山紗代子',NULL,'https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/30/4d/0f/304d0f3f-ffc5-7c9b-51a9-e7cace4347a8/4540774252053.png/600x600bb.jpg',NULL,'6776935461','6776935360',NULL,NULL,NULL,NULL,NULL,NULL,NULL);
+INSERT INTO songs VALUES('961_エクストリームオーバードライブ','エクストリーム・オーバードライブ',NULL,'961','solo','2026-07-24',NULL,'篠崎あやと','篠崎あやと','篠崎あやと','THE IDOLM@STER 20th Anniversary MORE RE@LITY LIVE 「IDOL WORLD SUPER FESTIVAL 2026」【961PRODUCTION & KOHAKU & 765PRO ALLSTARS】（会場オリジナルCD）','THE IDOLM@STER 20th Anniversary MORE RE@LITY LIVE 「IDOL WORLD SUPER FESTIVAL 2026」【961PRODUCTION & KOHAKU & 765PRO ALLSTARS】（会場オリジナルCD）',NULL,NULL,NULL,NULL,NULL,NULL,NULL,'玲音',NULL,NULL,NULL);
 CREATE TABLE events (id TEXT PRIMARY KEY NOT NULL, brand_id TEXT, name TEXT NOT NULL, event_type TEXT NOT NULL, is_streaming INTEGER NOT NULL DEFAULT 0, is_solo INTEGER NOT NULL DEFAULT 1, kind TEXT NOT NULL DEFAULT 'live', ticket_deadline TEXT, ticket_lottery_date TEXT, ticket_url TEXT, joint_brand_ids TEXT, ticket_open_date TEXT);
 INSERT INTO events VALUES('ev_アギューitv24com公開録音','765as','「アギュー」itv24.com公開録音','live',1,1,'radio',NULL,NULL,NULL,NULL,NULL);
 INSERT INTO events VALUES('ev_web番組今井麻美と中村繪里子のprestarスペシャル_アイドルマスターロケテ記念今年もお世話になりましたプリスタープチライブ','765as','Web番組「今井麻美と中村繪里子のPreStar」スペシャル アイドルマスターロケテ記念＆今年もお世話になりましたプリスタープチライブ','live',0,1,'live',NULL,NULL,NULL,NULL,NULL);
@@ -18362,6 +18363,7 @@ INSERT INTO setlist_items VALUES('sli_sh_the_idolm@ster_20th_anniversary_more_re
 INSERT INTO setlist_items VALUES('sli_sh_the_idolm@ster_20th_anniversary_more_re@lity_live_idol_world_super_festival_2026_3_21','sh_the_idolm@ster_20th_anniversary_more_re@lity_live_idol_world_super_festival_2026_3','765as_im_yours',21,NULL,NULL,NULL);
 INSERT INTO setlist_items VALUES('sli_sh_the_idolm@ster_20th_anniversary_more_re@lity_live_idol_world_super_festival_2026_3_22','sh_the_idolm@ster_20th_anniversary_more_re@lity_live_idol_world_super_festival_2026_3','765as_shyshining',22,NULL,NULL,NULL);
 INSERT INTO setlist_items VALUES('sli_sh_the_idolm@ster_20th_anniversary_more_re@lity_live_idol_world_super_festival_2026_3_23','sh_the_idolm@ster_20th_anniversary_more_re@lity_live_idol_world_super_festival_2026_3','765as_アイ_need_youfor_wonderful_story',23,NULL,NULL,NULL);
+INSERT INTO setlist_items VALUES('sli_sh_the_idolm@ster_20th_anniversary_more_re@lity_live_idol_world_super_festival_2026_1_14','sh_the_idolm@ster_20th_anniversary_more_re@lity_live_idol_world_super_festival_2026_1','961_エクストリームオーバードライブ',14,NULL,NULL,NULL);
 CREATE TABLE idols (id TEXT PRIMARY KEY NOT NULL, brand_id TEXT NOT NULL, name TEXT NOT NULL, name_kana TEXT, name_romaji TEXT, color TEXT, sort_order INTEGER NOT NULL, birthday TEXT, blood_type TEXT, height REAL, weight REAL, birth_place TEXT, age INTEGER, bust REAL, waist REAL, hip REAL, constellation TEXT, hobbies TEXT, talents TEXT, description TEXT, gender TEXT, handedness TEXT, family_name TEXT, given_name TEXT, nickname TEXT, debut_date TEXT, attribute TEXT, is_external INTEGER NOT NULL DEFAULT 0, aliases TEXT, voice_actors TEXT);
 INSERT INTO idols VALUES('cg_大石泉','cg','大石泉','おおいしいずみ',NULL,'#74D1EA',2000,'--11-11','A',157.0,41.0,'静岡',15,83.0,55.0,82.0,'蠍座','プログラミング',NULL,'静岡出身の15歳のプログラミングが得意なアイドル。クールで知的だが家族や友人に温かい。CV: 大木咲絵子。','female','right','大石','泉',NULL,'2012-08-14','cool',0,NULL,'大木咲絵子');
 INSERT INTO idols VALUES('cg_双葉杏','cg','双葉杏','ふたばあんず',NULL,'#F8A3BC',2001,'--09-02','B',139.0,30.0,'北海道',17,NULL,NULL,NULL,'花も恥じらう乙女座','なし',NULL,'ゴロゴロするのが大好きな脱力系アイドル。働いたら負けという独特の哲学を持つ17歳。CV: 五十嵐裕美。','female','right','双葉','杏',NULL,'2011-11-28','cute',0,NULL,'五十嵐裕美');
@@ -46881,9 +46883,10 @@ INSERT INTO song_artists VALUES('ml_harmony4you高山紗代子ver','ml_高山紗
 INSERT INTO song_artists VALUES('ml_夢にかけるrainbow高山紗代子ver','ml_高山紗代子','original');
 INSERT INTO song_artists VALUES('ml_7daysaweek高山紗代子ver','ml_高山紗代子','original');
 INSERT INTO song_artists VALUES('ml_グッドサイン高山紗代子ver','ml_高山紗代子','original');
+INSERT INTO song_artists VALUES('961_エクストリームオーバードライブ','765as_玲音','original');
 CREATE TABLE meta (key TEXT PRIMARY KEY NOT NULL, value TEXT);
 INSERT INTO meta VALUES('schema_version','1');
-INSERT INTO meta VALUES('data_version','64');
+INSERT INTO meta VALUES('data_version','65');
 INSERT INTO meta VALUES('migration_v14_idol_is_external','applied');
 CREATE TABLE song_units (
   song_id TEXT NOT NULL,
@@ -107552,6 +107555,11 @@ INSERT INTO setlist_performers VALUES('sli_sh_the_idolm@ster_20th_anniversary_mo
 INSERT INTO setlist_performers VALUES('sli_sh_the_idolm@ster_20th_anniversary_more_re@lity_live_idol_world_super_festival_2026_3_23','876_灯里愛夏');
 INSERT INTO setlist_performers VALUES('sli_sh_the_idolm@ster_20th_anniversary_more_re@lity_live_idol_world_super_festival_2026_3_23','961_奥空心白');
 INSERT INTO setlist_performers VALUES('sli_sh_the_idolm@ster_20th_anniversary_more_re@lity_live_idol_world_super_festival_2026_3_23','876_日高愛');
+INSERT INTO setlist_performers VALUES('sli_sh_the_idolm@ster_20th_anniversary_more_re@lity_live_idol_world_super_festival_2026_1_14','765as_玲音');
+INSERT INTO setlist_performers VALUES('sli_sh_the_idolm@ster_20th_anniversary_more_re@lity_live_idol_world_super_festival_2026_1_14','765as_星井美希');
+INSERT INTO setlist_performers VALUES('sli_sh_the_idolm@ster_20th_anniversary_more_re@lity_live_idol_world_super_festival_2026_1_14','gakuen_十王星南');
+INSERT INTO setlist_performers VALUES('sli_sh_the_idolm@ster_20th_anniversary_more_re@lity_live_idol_world_super_festival_2026_1_14','876_上水流宇宙');
+INSERT INTO setlist_performers VALUES('sli_sh_the_idolm@ster_20th_anniversary_more_re@lity_live_idol_world_super_festival_2026_1_14','sc_緋田美琴');
 CREATE TABLE IF NOT EXISTS "show_cast" (
             show_id TEXT NOT NULL,
             idol_id TEXT NOT NULL, cast_role TEXT NOT NULL DEFAULT 'member',
