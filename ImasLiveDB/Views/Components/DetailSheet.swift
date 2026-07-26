@@ -290,9 +290,9 @@ struct SongSheetContent: View {
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
                     .imasCopyable([
-                        ("曲名をコピー", song.title),
-                        ("よみをコピー", song.titleKana),
-                        ("歌唱者をコピー", vm.artistLine(for: song)),
+                        CopyItem("曲名をコピー", song.title, key: "song_title"),
+                        CopyItem("よみをコピー", song.titleKana, key: "kana"),
+                        CopyItem("歌唱者をコピー", vm.artistLine(for: song), key: "artists"),
                     ])
                 if let artistLine = vm.artistLine(for: song) {
                     Text(artistLine)

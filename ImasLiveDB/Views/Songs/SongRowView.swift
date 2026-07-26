@@ -109,9 +109,9 @@ struct SongRowView: View {
         .padding(.vertical, 6)
         .contentShape(Rectangle())
         .imasCopyable([
-            ("曲名をコピー", song.title),
-            ("よみをコピー", song.titleKana),
-            ("歌唱者をコピー", item.artistNames),
+            CopyItem("曲名をコピー", song.title, key: "song_title"),
+            CopyItem("よみをコピー", song.titleKana, key: "kana"),
+            CopyItem("歌唱者をコピー", item.artistNames, key: "artists"),
         ])
     }
 

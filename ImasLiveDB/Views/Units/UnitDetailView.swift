@@ -95,6 +95,9 @@ struct UnitDetailView: View {
                     .foregroundStyle(DS.ink)
                     .lineLimit(2)
                     .minimumScaleFactor(0.7)
+                    // 表示は 2 行に省略されうるので、コピーは原文 (displayName) を渡す。
+                    .imasCopyable([CopyItem("ユニット名をコピー", unit.displayName, key: "unit_name"),
+                                   CopyItem("別名をコピー", unit.nameAlt, key: "unit_name_alt")])
                 if let brand = vm.brand {
                     Button {
                         go(.filteredIdols(.brand(id: brand.id, label: brand.shortName)))

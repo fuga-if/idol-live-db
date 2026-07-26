@@ -235,7 +235,7 @@ struct SetlistView: View {
                             .onTapGesture {
                                 if let vid = show.venueId { go(.filteredShows(.venue(vid))) }
                             }
-                            .imasCopyable(venueLabel, label: "会場名をコピー")
+                            // コピーは ImasLabeledRow が既定で持つ (ここで重ねると contextMenu が二重になる)。
                         ImasRowDivider(inset: 16)
                     }
                     // キャパが分かる会場では規模も出す (ホール指定があればホール側を優先)。

@@ -701,6 +701,12 @@ struct ImasLabeledRow: View {
     /// トグル (chevron) もタップ操作も出さない。展開する中身が無いのに
     /// 「開けそうな見た目」を出すと、押しても何も起きない行が並んでしまうため。
     var expandable: Bool = false
+    /// 長押しで値をコピーできるようにする (既定 ON)。
+    ///
+    /// この行は「よみ」「CV」「作曲」「会場」など**外部で検索したり貼りたくなる値**の
+    /// 表示に使われるので、コピーは画面ごとに付け外しするものではなく既定の性質にする。
+    /// 呼び出し側で別の contextMenu を出す行だけ false にする (メニューが競合するため)。
+    var copyable: Bool = true
     var seed: String? = nil
     var brand: String? = nil
     @Environment(\.colorScheme) private var scheme
@@ -741,10 +747,14 @@ struct ImasLabeledRow: View {
         .background(DS.surface)
         .contentShape(Rectangle())
 
+        // 省略されている値も原文 (`value`) を渡すので、全文がコピーできる。
+        let copyableRow = row.imasCopyable(
+            copyable ? [CopyItem("\(key)をコピー", value, key: "labeled_row")] : [])
+
         if showsToggle {
-            row.onTapGesture { withAnimation(.easeInOut(duration: 0.2)) { expanded.toggle() } }
+            copyableRow.onTapGesture { withAnimation(.easeInOut(duration: 0.2)) { expanded.toggle() } }
         } else {
-            row
+            copyableRow
         }
     }
 }

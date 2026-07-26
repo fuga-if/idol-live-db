@@ -90,8 +90,8 @@ struct FilteredShowsView: View {
             rainbow: !(event?.jointBrandIdList.isEmpty ?? true)
         )
         .imasCopyable([
-            ("ライブ名をコピー", event?.name),
-            ("公演名をコピー", show.name),
+            CopyItem("ライブ名をコピー", event?.name, key: "event_name"),
+            CopyItem("公演名をコピー", show.name, key: "show_name"),
         ])
     }
 

@@ -482,6 +482,7 @@ private struct IdolRowView: View {
         .padding(.vertical, DS.sp3)
         .padding(.leading, DS.sp2)
         .contentShape(Rectangle())
-        .imasCopyable([("アイドル名をコピー", idol.name), ("よみをコピー", idol.nameKana)])
+        .imasCopyable([CopyItem("アイドル名をコピー", idol.name, key: "idol_name"),
+                       CopyItem("よみをコピー", idol.nameKana, key: "kana")])
     }
 }

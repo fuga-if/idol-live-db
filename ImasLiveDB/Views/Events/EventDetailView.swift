@@ -240,6 +240,7 @@ struct EventDetailView: View {
                 .font(.imasTitle2.weight(.bold))
                 .foregroundStyle(DS.ink)
                 .fixedSize(horizontal: false, vertical: true)
+                .imasCopyable(event.name, label: "ライブ名をコピー", key: "event_name")
 
             if !heroSub.isEmpty {
                 HStack(spacing: 6) {

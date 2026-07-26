@@ -172,9 +172,9 @@ struct IdolDetailView: View {
                         .lineLimit(2)
                         .minimumScaleFactor(0.7)
                         .imasCopyable([
-                            ("アイドル名をコピー", idol.name),
-                            ("よみをコピー", idol.nameKana),
-                            ("CV名をコピー", idol.currentVoiceActor),
+                            CopyItem("アイドル名をコピー", idol.name, key: "idol_name"),
+                            CopyItem("よみをコピー", idol.nameKana, key: "kana"),
+                            CopyItem("CV名をコピー", idol.currentVoiceActor, key: "voice_actor"),
                         ])
                     if let brand = vm.brand {
                         Button {

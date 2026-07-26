@@ -50,8 +50,8 @@ struct SetlistSimpleRowView: View {
         .padding(.vertical, DS.sp2)
         .contentShape(Rectangle())
         .imasCopyable([
-            ("曲名をコピー", item.songTitle),
-            ("演者をコピー", performerLabel.isEmpty ? nil : performerLabel),
+            CopyItem("曲名をコピー", item.songTitle, key: "song_title"),
+            CopyItem("演者をコピー", performerLabel.isEmpty ? nil : performerLabel, key: "performers"),
         ])
     }
 }
