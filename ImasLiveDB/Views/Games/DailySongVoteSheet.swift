@@ -98,7 +98,7 @@ struct DailySongVoteSheet: View {
     private func load() async {
         isLoading = true
         defer { isLoading = false }
-        let key = Self.dayKey()
+        let key = DailyPick.dayKey()
         let brands = ((try? await AppContainer.shared.brandReading.brands()) ?? [])
             .filter { $0.id != "other" }
             .sorted { $0.sortOrder < $1.sortOrder }
@@ -107,7 +107,7 @@ struct DailySongVoteSheet: View {
             // リミックス変種を除外 (同名曲の紛らわしい連日重複を防ぐ)。
             let ids = (try? await AppContainer.shared.songReading.songIds(brandId: brand.id, includeCovers: false, excludeRemixes: true)) ?? []
             guard !ids.isEmpty else { continue }
-            let idx = Self.stableIndex(key + "|" + brand.id, mod: ids.count)
+            let idx = DailyPick.songIndex(dayKey: key, brandId: brand.id, count: ids.count)
             chosen.append((brand, ids[idx]))
         }
         let songs = (try? await AppContainer.shared.songReading.songs(ids: chosen.map(\.id))) ?? []
@@ -115,17 +115,4 @@ struct DailySongVoteSheet: View {
         picks = chosen.compactMap { c in byId[c.id].map { ($0, Optional(c.brand)) } }
     }
 
-    /// 端末ローカルの YYYY-MM-DD。日替わりピックの種。
-    static func dayKey(_ date: Date = Date()) -> String {
-        let c = Calendar.current.dateComponents([.year, .month, .day], from: date)
-        return String(format: "%04d-%02d-%02d", c.year ?? 0, c.month ?? 0, c.day ?? 0)
-    }
-
-    /// 文字列 → [0, mod) の安定インデックス (FNV-1a)。プロセス間で同一。
-    static func stableIndex(_ s: String, mod: Int) -> Int {
-        guard mod > 0 else { return 0 }
-        var h: UInt64 = 1469598103934665603
-        for b in s.utf8 { h = (h ^ UInt64(b)) &* 1099511628211 }
-        return Int(h % UInt64(mod))
-    }
 }

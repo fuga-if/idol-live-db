@@ -55,12 +55,13 @@ enum InfoWidgetBridge {
             .filter { $0.id != "other" }
             .sorted { $0.sortOrder < $1.sortOrder }
 
-        // 各ブランドから決定論的に1曲選ぶ(DailySongVoteSheet.stableIndex と同じアルゴリズム)
+        // 各ブランドから決定論的に1曲選ぶ。アプリ内の DailySongVoteSheet と
+        // 同じ曲になる必要があるので、選び方は DailyPick に集約している。
         var chosen: (brand: Brand, songId: String)?
         for brand in brands {
             guard let ids = try? database.fetchSongIds(brandId: brand.id, includeCovers: false, excludeRemixes: true),
                   !ids.isEmpty else { continue }
-            let idx = stableIndex(today + "|" + brand.id, mod: ids.count)
+            let idx = DailyPick.songIndex(dayKey: today, brandId: brand.id, count: ids.count)
             // 最初に見つかったブランドの1曲を代表として使う(ウィジェットは1曲のみ)
             chosen = (brand, ids[idx])
             break
@@ -101,17 +102,6 @@ enum InfoWidgetBridge {
 
     // MARK: - ユーティリティ
 
-    /// 端末ローカルの YYYY-MM-DD。DailySongVoteSheet.dayKey() と同一実装。
-    static func dateKey(_ date: Date = Date()) -> String {
-        let c = Calendar.current.dateComponents([.year, .month, .day], from: date)
-        return String(format: "%04d-%02d-%02d", c.year ?? 0, c.month ?? 0, c.day ?? 0)
-    }
-
-    /// 文字列 → [0, mod) の安定インデックス (FNV-1a)。DailySongVoteSheet.stableIndex() と同一。
-    private static func stableIndex(_ s: String, mod: Int) -> Int {
-        guard mod > 0 else { return 0 }
-        var h: UInt64 = 1469598103934665603
-        for b in s.utf8 { h = (h ^ UInt64(b)) &* 1099511628211 }
-        return Int(h % UInt64(mod))
-    }
+    /// 端末ローカルの YYYY-MM-DD。
+    static func dateKey(_ date: Date = Date()) -> String { DailyPick.dayKey(date) }
 }

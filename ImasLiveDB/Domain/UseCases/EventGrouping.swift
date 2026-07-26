@@ -15,7 +15,8 @@ struct YearGroup: Identifiable {
 /// - Parameters:
 ///   - events: ブランド/kind/参加状態など事前フィルタ済みのイベント。
 ///   - upcoming: true=今後の予定 (近い順/昇順)、false=開催済み (新しい順/降順)。
-///   - todayKey: 端末ローカルの今日 "YYYY-MM-DD"。今後/開催済みの境界。
+///   - todayKey: 今日 "YYYY-MM-DD"。今後/開催済みの境界。呼び出し側は `JSTDay.today()` を渡す
+///     (公演日は日本の開催日なので、端末ローカル日で切ると海外で 1 日ずれる)。
 /// - Returns: 年度グループの配列。今後=年昇順、開催済み=年降順。「年度不明」は常に末尾。
 func groupEventsByYear(_ events: [EventWithDate], upcoming: Bool, todayKey: String) -> [YearGroup] {
     // 年度キーとして使える日付か (4桁未満は不明扱い)。

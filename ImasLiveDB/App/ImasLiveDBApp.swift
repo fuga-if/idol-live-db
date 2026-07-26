@@ -49,7 +49,7 @@ struct ImasLiveDBApp: App {
             // アプデ後の初回起動で未読のお知らせがあれば、新機能としてお知らせを開く。
             _launchSheet = State(initialValue: .announcements)
         } else {
-            let today = DailySongVoteSheet.dayKey()
+            let today = DailyPick.dayKey()
             if UserDefaults.standard.string(forKey: Self.dailyVoteKey) != today {
                 UserDefaults.standard.set(today, forKey: Self.dailyVoteKey)
                 _launchSheet = State(initialValue: .dailyVote)
