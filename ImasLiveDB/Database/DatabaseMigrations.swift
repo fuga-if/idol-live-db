@@ -832,12 +832,21 @@ enum DatabaseMigrations {
 
             // shows 側。venue (生文字列) は当時名のフォールバックとして残す
             // (venue_id が未解決の公演でも表示が壊れないようにするため)。
-            try db.alter(table: "shows") { t in
-                t.add(column: "venue_id", .text)
-                /// ホール名。venue_halls.name と突き合わせてキャパを引く。
-                t.add(column: "hall", .text)
-                /// 配信プラットフォーム (ASOBI STAGE 等)。配信は会場ではないのでここへ逃がす。
-                t.add(column: "stream_platform", .text)
+            //
+            // バンドルの master.sqlite は「この migration 適用後の DB」を dump して作るので、
+            // 新規インストールではカラムが既に存在する。無条件 ALTER だと duplicate column で
+            // 起動時に落ちるため、他の migration と同じくカラム存在チェックで挟む。
+            let showCols = try Row.fetchAll(db, sql: "PRAGMA table_info(shows)").map { $0["name"] as String? }
+            if !showCols.contains("venue_id") {
+                try db.execute(sql: "ALTER TABLE shows ADD COLUMN venue_id TEXT")
+            }
+            // ホール名。venue_halls.name と突き合わせてキャパを引く。
+            if !showCols.contains("hall") {
+                try db.execute(sql: "ALTER TABLE shows ADD COLUMN hall TEXT")
+            }
+            // 配信プラットフォーム (ASOBI STAGE 等)。配信は会場ではないのでここへ逃がす。
+            if !showCols.contains("stream_platform") {
+                try db.execute(sql: "ALTER TABLE shows ADD COLUMN stream_platform TEXT")
             }
             try db.create(index: "idx_shows_venue_id", on: "shows",
                           columns: ["venue_id"], ifNotExists: true)
