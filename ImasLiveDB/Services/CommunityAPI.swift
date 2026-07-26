@@ -458,7 +458,11 @@ actor CommunityAPI {
     ///
     /// 実際に画面に出す数件はクライアント側で重み付き抽選する (`WeightedSampling`) ため、
     /// ここでは表示数より多めに取っておく。サーバ応答は決定的なのでエッジキャッシュが効く。
-    func similarSongsByTags(songId: String, limit: Int = 30) async throws -> SimilarSongsResponse {
+    ///
+    /// 上限いっぱい (50) を取るのは、タグが疎で**同点が大量に出る**ため。
+    /// 本番実測でタグ 6 個の曲に候補 581 曲、最高スコアだけで 6 曲以上が同点だった。
+    /// 母数を絞るとスコアで区別がつかない集団の中から毎回同じ顔ぶれを見ることになる。
+    func similarSongsByTags(songId: String, limit: Int = 50) async throws -> SimilarSongsResponse {
         // limit は呼び出し側で固定 (DetailSheet=既定)。同一 song の再オープンを即時化するため
         // song_id 単位でキャッシュ。完全にユーザー非依存なので長め TTL でよい。
         if let hit = similarSongsCache[songId], Date().timeIntervalSince(hit.at) < similarSongsCacheTTL {
