@@ -141,7 +141,7 @@ final class IntroGameSession {
                 appleMusicId: song.appleMusicId ?? "",
                 previewUrl: song.previewUrl,
                 artworkUrl: song.artworkUrl,
-                choices: makeChoices(for: song, pool: pool)
+                choices: IntroQuizChoices.make(for: song, pool: pool)
             )
         }
 
@@ -175,21 +175,6 @@ final class IntroGameSession {
         stopPlayback()
         phase = .finished
         saveBestScore()
-    }
-
-    /// 不正解選択肢を pool から3つ選ぶ。同名異曲 (別バージョン等) が pool に複数存在すると
-    /// タイトル重複した選択肢が並びうるため、タイトルでユニーク化してから選ぶ。
-    private func makeChoices(for song: Song, pool: [Song]) -> [String] {
-        var seenTitles: Set<String> = [song.title]
-        let candidates = pool.filter { candidate in
-            guard candidate.id != song.id, !seenTitles.contains(candidate.title) else { return false }
-            seenTitles.insert(candidate.title)
-            return true
-        }
-        let wrongs = candidates.shuffled().prefix(3).map(\.title)
-        var choices = wrongs + [song.title]
-        choices.shuffle()
-        return choices
     }
 
     // MARK: - Playback (共通エンジンに委譲)

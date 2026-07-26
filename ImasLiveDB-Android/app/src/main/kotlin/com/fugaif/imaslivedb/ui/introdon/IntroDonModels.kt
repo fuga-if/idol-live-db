@@ -1,6 +1,7 @@
 package com.fugaif.imaslivedb.ui.introdon
 
 import com.fugaif.imaslivedb.data.model.Song
+import kotlin.random.Random
 
 /**
  * イントロドンのゲームモード。iOS IntroGameMode の移植。
@@ -46,9 +47,32 @@ enum class IntroDonPhase { LOADING, PLAYING, ANSWERING, REVEALED, FINISHED }
 fun introDonPlayable(songs: List<Song>): List<Song> =
     songs.filter { !it.previewUrl.isNullOrEmpty() && it.parentSongId == null }
 
-private fun makeChoices(song: Song, pool: List<Song>): List<String> {
-    val wrongs = pool.filter { it.id != song.id && it.title != song.title }.shuffled().take(3).map { it.title }
-    return (wrongs + song.title).shuffled()
+/**
+ * 不正解の候補。正解自身・正解と同じタイトル・既出タイトルを除く。
+ * 順序は `pool` のまま (シャッフルしない) ので、規則だけを単体で検証できる。
+ *
+ * 同名異曲 (別バージョン・リミックス等) が pool に複数あると、不正解として同じタイトルが
+ * 2 つ並びうる。**タイトル**で重複を落とす (曲 ID ではなく)。iOS の `IntroQuizChoices` と 1:1。
+ */
+fun introDonWrongCandidates(song: Song, pool: List<Song>): List<Song> {
+    val seenTitles = mutableSetOf(song.title)
+    return pool.filter { it.id != song.id && seenTitles.add(it.title) }
+}
+
+/**
+ * 出題する選択肢。正解 1 つ + 不正解 [wrongCount] 個を混ぜて返す。
+ * 候補が足りなければその分だけ少ない選択肢になる (正解は必ず含む)。
+ *
+ * @param random テストから固定乱数を差せるようにするための乱数源。
+ */
+fun introDonChoices(
+    song: Song,
+    pool: List<Song>,
+    wrongCount: Int = 3,
+    random: Random = Random.Default
+): List<String> {
+    val wrongs = introDonWrongCandidates(song, pool).shuffled(random).take(wrongCount).map { it.title }
+    return (wrongs + song.title).shuffled(random)
 }
 
 /** プール曲から出題数分をランダム抽出し、選択肢付きの出題リストを組む。 */
@@ -61,7 +85,7 @@ fun buildIntroDonQuestions(pool: List<Song>, count: Int): List<IntroDonQuestion>
             brandId = song.brandId,
             previewUrl = song.previewUrl,
             artworkUrl = song.artworkUrl,
-            choices = makeChoices(song, pool)
+            choices = introDonChoices(song, pool)
         )
     }
 }
