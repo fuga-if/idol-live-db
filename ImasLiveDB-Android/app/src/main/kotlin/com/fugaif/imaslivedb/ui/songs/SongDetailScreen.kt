@@ -1,5 +1,6 @@
 package com.fugaif.imaslivedb.ui.songs
 
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -618,7 +619,11 @@ private fun CommunityTab(
             } else {
                 state.songCalls.forEach { call ->
                     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
-                        Text(call.callText, fontSize = 15.sp, color = DS.ink)
+                        // コーレスは長文で「サビ前のここだけ引用したい」需要があるので、
+                        // 全文一括ではなく標準の選択メニューで部分コピーできるようにする。
+                        SelectionContainer {
+                            Text(call.callText, fontSize = 15.sp, color = DS.ink)
+                        }
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(top = 4.dp)) {
                             if (!call.sourceUrl.isNullOrEmpty()) {
                                 Text(

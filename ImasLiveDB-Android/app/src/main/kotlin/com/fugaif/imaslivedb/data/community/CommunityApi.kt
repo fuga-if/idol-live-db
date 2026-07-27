@@ -83,7 +83,14 @@ class CommunityApi(private val appContext: Context, private val authService: Aut
     data class PenlightResult(val topSets: List<PenlightSet>, val totalVotes: Int)
     data class PenlightPaletteEntry(val colorHex: String?, val name: String, val sortOrder: Int, val note: String?)
     /** タグが似ている楽曲 (songId, 共有タグ数)。この曲が好きな人向けのおすすめ算出に使う。 */
-    data class SimilarSongEntry(val songId: String, val sharedTags: Int)
+    /**
+     * タグが似ている楽曲。[score] は減衰つき Jaccard 係数による近さ (0〜1) で、おすすめの抽選重みに使う。
+     * サーバが旧実装のままだと返ってこないので null 許容 (新アプリが旧 Worker に当たる期間がある)。
+     */
+    data class SimilarSongEntry(val songId: String, val sharedTags: Int, val score: Double? = null) {
+        /** 抽選に使う重み。score が無い旧サーバでは共有タグ数で代用する。 */
+        val pickWeight: Double get() = score ?: sharedTags.toDouble()
+    }
     /** タグが似ているアイドル (idolId, 共有タグ数)。この人が好きな人向けのおすすめ算出に使う。 */
     data class SimilarIdolEntry(val idolId: String, val sharedTags: Int)
     /** タグが似ているユニット (unitId, 共有タグ数)。このユニットが好きな人向けのおすすめ算出に使う。 */
@@ -472,13 +479,24 @@ class CommunityApi(private val appContext: Context, private val authService: Aut
         }.sortedBy { it.sortOrder }
     }
 
-    /** GET /songs/{id}/similar — タグが似ている楽曲 (共有タグ数の降順、ユーザー非依存の集計)。 */
-    suspend fun similarSongsByTags(songId: String, limit: Int = 10): List<SimilarSongEntry> = withContext(Dispatchers.IO) {
+    /**
+     * GET /songs/{id}/similar — タグが似ている楽曲 (近い順の**候補**、ユーザー非依存の集計)。
+     *
+     * 実際に画面に出す数件はクライアント側で重み付き抽選する ([WeightedSampling]) ため、
+     * 表示数より多めに取っておく。サーバ応答は決定的なのでエッジキャッシュが効く。
+     * 上限いっぱい (50) を取るのは、タグが疎でスコアの同点が大量に出るため
+     * (本番実測でタグ 6 個の曲に候補 581 曲、最高スコアだけで 6 曲以上が同点)。
+     */
+    suspend fun similarSongsByTags(songId: String, limit: Int = 50): List<SimilarSongEntry> = withContext(Dispatchers.IO) {
         val json = get("/songs/${enc(songId)}/similar?limit=$limit") ?: return@withContext emptyList()
         val arr = json.optJSONArray("songs") ?: JSONArray()
         (0 until arr.length()).map { i ->
             val o = arr.getJSONObject(i)
-            SimilarSongEntry(o.optString("song_id"), o.optInt("shared_tags"))
+            SimilarSongEntry(
+                o.optString("song_id"),
+                o.optInt("shared_tags"),
+                if (o.has("score") && !o.isNull("score")) o.optDouble("score") else null
+            )
         }
     }
 

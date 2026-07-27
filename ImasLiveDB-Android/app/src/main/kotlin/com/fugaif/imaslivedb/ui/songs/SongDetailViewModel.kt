@@ -3,6 +3,7 @@ package com.fugaif.imaslivedb.ui.songs
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.fugaif.imaslivedb.data.model.WeightedSampling
 import com.fugaif.imaslivedb.data.model.Brand
 import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.data.model.ImasUnit
@@ -103,16 +104,24 @@ class SongDetailViewModel : ViewModel() {
         }
     }
 
-    /** タグ類似のおすすめ楽曲をサーバから取得し、ローカル DB で Song に解決する (共有タグ数の降順を維持)。 */
+    /**
+     * タグ類似のおすすめ楽曲をサーバから取得し、ローカル DB で Song に解決する。
+     *
+     * サーバは候補を近い順に多め (50 件) 返すので、そこから表示分を**毎回抽選**する。
+     * 近さを重みにした重み付き抽選なので、似ている曲が中心に出つつ、
+     * 少しだけタグが被っている曲もときどき混ざる。曲を開き直すと顔ぶれが変わる。
+     */
     private suspend fun loadSimilarSongs(songId: String) {
         val a = api ?: return
         val module = appModule ?: return
-        val entries = runCatching { a.similarSongsByTags(songId) }.getOrDefault(emptyList())
-        if (entries.isEmpty() || currentSongId != songId) return
-        val resolved = module.songRepository.fetchSongsByIds(entries.map { it.songId })
+        val candidates = runCatching { a.similarSongsByTags(songId) }.getOrDefault(emptyList())
+        if (candidates.isEmpty() || currentSongId != songId) return
+        val picked = WeightedSampling.pick(candidates, SIMILAR_SONGS_DISPLAY_COUNT) { it.pickWeight }
+        val resolved = module.songRepository.fetchSongsByIds(picked.map { it.songId })
         val byId = resolved.associateBy { it.id }
-        val sharedTags = entries.associate { it.songId to it.sharedTags }
-        val ordered = entries.mapNotNull { byId[it.songId] }
+        val sharedTags = picked.associate { it.songId to it.sharedTags }
+        // 抽選順 (重み付きのランダム順) を維持する。
+        val ordered = picked.mapNotNull { byId[it.songId] }
         if (currentSongId == songId) {
             _uiState.value = _uiState.value.copy(similarTagSongs = ordered, similarSharedTags = sharedTags)
         }
@@ -161,5 +170,10 @@ class SongDetailViewModel : ViewModel() {
     fun onPenlightVoted() {
         val songId = currentSongId ?: return
         viewModelScope.launch { loadCommunity(songId) }
+    }
+
+    private companion object {
+        /** おすすめとして画面に出す件数。候補はサーバから多めに取り、ここまで絞る。 */
+        const val SIMILAR_SONGS_DISPLAY_COUNT = 6
     }
 }

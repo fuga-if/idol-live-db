@@ -317,7 +317,14 @@ fun ImasSegmented(
     }
 }
 
-/** よみ / CV / 会場 等の key-value 行。 */
+/**
+ * よみ / CV / 会場 等の key-value 行。
+ *
+ * [copyable] が true (既定) なら長押しで値をコピーできる。この行は
+ * 「外部で検索したり貼りたくなる値」の表示に使われるので、コピーは画面ごとに
+ * 付け外しするものではなく既定の性質にする (iOS の ImasLabeledRow と 1:1)。
+ * 呼び出し側で別の長押しメニューを出す行だけ false にする。
+ */
 @Composable
 fun ImasLabeledRow(
     key: String,
@@ -325,29 +332,46 @@ fun ImasLabeledRow(
     showSwatch: Boolean = false,
     mono: Boolean = false,
     tappable: Boolean = false,
+    copyable: Boolean = true,
     seed: String? = null,
     brand: String? = null,
     onClick: (() -> Unit)? = null
 ) {
     val t = ImasTheme.derive(seed, brand, dark = true)
-    Row(
-        modifier = Modifier.fillMaxWidth()
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-            .background(DS.surface)
-            .padding(horizontal = 16.dp, vertical = 11.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Text(key, fontSize = 15.sp, color = DS.ink2)
-        Box(Modifier.weight(1f))
-        if (showSwatch) Box(Modifier.size(16.dp).clip(CircleShape).background(t.accent))
-        Text(
-            value,
-            fontSize = 15.sp,
-            color = if (tappable) t.accent else DS.ink,
-            maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.End
+    val row: @Composable () -> Unit = {
+        Row(
+            modifier = Modifier.fillMaxWidth()
+                .background(DS.surface)
+                .padding(horizontal = 16.dp, vertical = 11.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(key, fontSize = 15.sp, color = DS.ink2)
+            Box(Modifier.weight(1f))
+            if (showSwatch) Box(Modifier.size(16.dp).clip(CircleShape).background(t.accent))
+            Text(
+                value,
+                fontSize = 15.sp,
+                color = if (tappable) t.accent else DS.ink,
+                maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.End
+            )
+            if (tappable) Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = t.accent, modifier = Modifier.size(13.dp))
+        }
+    }
+
+    if (copyable) {
+        // 省略表示 (Ellipsis) されていても原文 (value) を渡すので全文がコピーできる。
+        Copyable(
+            items = listOf(CopyItem("${key}をコピー", value)),
+            modifier = Modifier.fillMaxWidth(),
+            onClick = onClick,
+            content = row
         )
-        if (tappable) Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = t.accent, modifier = Modifier.size(13.dp))
+    } else {
+        Box(
+            Modifier.fillMaxWidth()
+                .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+        ) { row() }
     }
 }
 
