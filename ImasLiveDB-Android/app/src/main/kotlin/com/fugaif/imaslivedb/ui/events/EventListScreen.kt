@@ -222,7 +222,7 @@ private fun EventRow(
             .padding(horizontal = 16.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        ImasLeadBar(brand = event.brandId, height = 38.dp, rainbow = isJoint)
+        ImasLeadBar(brandId = event.brandId, height = 38.dp, rainbow = isJoint)
 
         Column(modifier = Modifier.weight(1f)) {
             Text(

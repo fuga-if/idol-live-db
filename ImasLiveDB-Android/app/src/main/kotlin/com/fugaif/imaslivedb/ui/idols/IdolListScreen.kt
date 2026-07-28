@@ -341,7 +341,7 @@ private fun IdolRow(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 8.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        ImasLeadBar(seed = idol.color, brand = idol.brandId, height = 36.dp)
+        ImasLeadBar(seedHex = idol.color, brandId = idol.brandId, height = 36.dp)
         Box(Modifier.padding(start = 8.dp)) {
             ImasAvatar(label = idol.name, seed = idol.color, brand = idol.brandId, size = 40.dp, isPick = isPick)
         }
