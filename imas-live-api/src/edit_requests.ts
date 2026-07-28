@@ -31,17 +31,19 @@ export interface EditRequestDeps<E extends EditRequestEnv> {
   rateLimitResponse: (used: number, limit: number, resetAt: string) => Response;
 }
 
-const MAX_BODY = 256 * 1024;
-
 /**
- * 1 リクエストあたりの op 上限。
+ * リクエスト本文の上限。**これが唯一の量的な上限**。
  *
- * セトリ編集は差分ではなく**全曲・全出演者を毎回送る**ので op 数が跳ねる。
- * 本番マスタ実測で、セトリ登録済み 1252 公演のうち 403 件 (32.2%) が 50 ops 超、
- * 最大 606 ops。旧上限 50 では 3 件に 1 件のセトリが修正リクエストすら出せなかった。
- * 実測最大に余裕を持たせた値にする (本文サイズは MAX_BODY 側でも縛られる)。
+ * 以前は op 件数の上限 (50) も別に持っていたが、
+ * - セトリ編集は差分ではなく全曲・全出演者を毎回送るので簡単に超える
+ *   (本番実測: セトリ登録済み 1252 公演のうち 403 件が 50 ops 超、最大 606 ops)
+ * - 生データはコメントへ**バイト数で**分割するので、op が何件でもコメント数は増えない
+ *   (256KB ÷ 1 チャンク 60KB ≒ 最大 5 コメント。op が極小でも同じ)
+ * という理由で、件数の上限は意味を持たない二重の縛りだった。
+ *
+ * 送れる量も、GitHub を叩く回数も、ここだけで有界になる。
  */
-const MAX_OPS = 800;
+const MAX_BODY = 256 * 1024;
 
 /**
  * GitHub の issue body / comment body は 65,536 文字が上限。
@@ -189,7 +191,6 @@ export async function handlePostEditRequests<E extends EditRequestEnv>(
   }
   const ops = body?.ops ?? [];
   if (!Array.isArray(ops) || ops.length === 0) return error("ops is required (non-empty array)");
-  if (ops.length > MAX_OPS) return error(`too many ops (max ${MAX_OPS})`, 413);
 
   const [dbUser, rl] = await Promise.all([
     env.DB.prepare("SELECT is_banned FROM users WHERE id = ?")
