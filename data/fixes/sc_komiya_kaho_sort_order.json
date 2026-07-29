@@ -1,0 +1,16 @@
+{
+  "title": "アイドル編集 (sc_小宮果穂) #58",
+  "author": "fuga-if",
+  "_help": "アプリからの自動投稿マスタ修正リクエスト #58 に基づく。#67 の黛冬優子の sort_order 変更と同時適用が必要。",
+  "fixes": [
+    {
+      "table": "idols",
+      "id": "sc_小宮果穂",
+      "fields": {
+        "sort_order": 4009
+      },
+      "source": "https://github.com/fuga-if/idol-live-db/issues/58",
+      "note": "アプリからの修正リクエスト #58。sort_order を 4018 から 4009 に変更。sc_黛冬優子 (#67) の sort_order 変更 (4009→4018) と同時に適用することで重複を回避。"
+    }
+  ]
+}
