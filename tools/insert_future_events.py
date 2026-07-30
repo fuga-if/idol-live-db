@@ -37,6 +37,13 @@ def show_id(eid: str, idx: int) -> str:
     return f"sh_{eid[3:]}_{idx + 1}"  # ev_ プレフィックス除去
 
 
+def has_cast_table(cur) -> bool:
+    """旧 cast テーブルの有無。スキーマ移行で消えているので参照前に確認する。"""
+    return cur.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='cast'"
+    ).fetchone() is not None
+
+
 def cast_id_lookup(name: str, cur) -> str | None:
     """cast 名 → cast.id 解決。NFKC + 大文字小文字・スペース無視で一致を探す。"""
     norm = unicodedata.normalize("NFKC", name).replace(" ", "").replace("　", "").lower()
@@ -56,6 +63,12 @@ def main() -> None:
 
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
+
+    # 旧 cast テーブルはスキーマ移行で削除済み。残っている cast 記載は無視する
+    # (出演者はコミュニティのオープン編集に委ねる方針)。
+    cast_available = has_cast_table(cur)
+    if not cast_available:
+        print("cast テーブルが無いため cast/show_cast の登録はスキップする")
 
     inserted_events, inserted_shows, inserted_show_casts = 0, 0, 0
     unknown_casts: set[str] = set()
@@ -117,7 +130,7 @@ def main() -> None:
                 },
             })
 
-            for cast_name in ev.get("cast", []):
+            for cast_name in (ev.get("cast", []) if cast_available else []):
                 cid = cast_id_lookup(cast_name, cur)
                 if cid is None:
                     unknown_casts.add(cast_name)
