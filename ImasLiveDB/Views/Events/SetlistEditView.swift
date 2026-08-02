@@ -271,9 +271,22 @@ struct SetlistEditView: View {
     ) async throws -> Bool {
         var ops: [EditService.EditOperation] = []
 
+        // 変わっていない行は送らない (差分規則と削減幅は SetlistDiff 側でテスト済み)。
+        // 以前は 1 曲直すだけでも全曲・全出演者を送っていたため、実測最大 606 ops に達し、
+        // 一般ユーザーの修正リクエストが op 上限で弾かれていた。
+        let originalSnapshots = originalItems.mapValues {
+            SetlistItemSnapshot(songId: $0.songId, position: $0.position, section: $0.section)
+        }
+        let changedItems = SetlistDiff.itemsNeedingSync(items: items, original: originalSnapshots)
+        let addedPerformers = SetlistDiff.performersNeedingSync(
+            performers: performers,
+            initialRecordNames: initialPerformerNames,
+            recordName: { Self.performerRecordName(itemId: $0.setlistItemId, idolId: $0.idolId) }
+        )
+
         // 既存行は update、新規行 (existingItemId が無いので id が sli_<uuid>) は create。
         let existingIds = Set(initialItemIds)
-        for item in items {
+        for item in changedItems {
             var fields: [String: AnyEncodable] = [
                 "showId": AnyEncodable(item.showId),
                 "songId": AnyEncodable(item.songId),
@@ -294,14 +307,14 @@ struct SetlistEditView: View {
             ))
         }
 
-        for performer in performers {
-            let recordName = Self.performerRecordName(itemId: performer.setlistItemId, idolId: performer.idolId)
-            // 既存出演者は update、新規は create (recordName 決定論的なので冪等)。
-            let op: EditService.EditOp = initialPerformerNames.contains(recordName) ? .update : .create
+        // 出演者は create と delete しか意味を持たない。SetlistPerformer は
+        // (setlistItemId, idolId) しか持たず recordName がその 2 つから決まるので、
+        // 既存出演者を update しても書く値が recordName と同じで変化しようがない。
+        for performer in addedPerformers {
             ops.append(EditService.EditOperation(
-                op: op,
+                op: .create,
                 recordType: "SetlistPerformer",
-                recordName: recordName,
+                recordName: Self.performerRecordName(itemId: performer.setlistItemId, idolId: performer.idolId),
                 fields: [
                     "setlistItemId": AnyEncodable(performer.setlistItemId),
                     "idolId": AnyEncodable(performer.idolId),
@@ -316,6 +329,10 @@ struct SetlistEditView: View {
         for name in deletedPerformerNames {
             ops.append(EditService.EditOperation(op: .delete, recordType: "SetlistPerformer", recordName: name))
         }
+
+        // 差分が空 = 何も変えずに保存した。サーバに送るものが無いので、
+        // 「修正リクエストを送信しました」の表示も出さずに閉じる (何も送っていないため)。
+        guard !ops.isEmpty else { return true }
 
         let outcome = try await EditService.shared.submitMaster(ops: ops, summary: "セトリ編集")
         if case .applied = outcome { return true }
