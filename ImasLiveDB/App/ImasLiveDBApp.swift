@@ -105,6 +105,11 @@ struct ImasLiveDBApp: App {
                     Task.detached(priority: .utility) { await updateService.check() }
                 }
                 .onChange(of: scenePhase) { _, phase in
+                    // 歌詞は JASRAC 許諾の条件でメモリ以外に残せない。
+                    // バックグラウンドに落ちた時点でメモリ上の保持ぶんも捨てる。
+                    if phase == .background {
+                        Task { await AppContainer.shared.lyricsReading.purge() }
+                    }
                     // フォアグラウンド復帰で同期を再開/継続する。フルsyncが途中で中断されて
                     // いれば残りステップ/チャンクから再開、そうでなければ差分syncで最新化。
                     // (再入は SyncEngine 側でガード済みなので二重には走らない)

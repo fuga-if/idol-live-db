@@ -56,6 +56,18 @@ final class AppContainer: Sendable {
     /// 横断検索の実装 (GRDB / 共有 AppDatabase)。
     let globalSearchReading: any GlobalSearchReading = GRDBGlobalSearchRepository(database: .shared)
 
+    /// 歌詞読み取りの実装 (Worker API / メモリのみ保持)。
+    /// ⚠️ JASRAC 許諾の条件によりディスクへは一切書けない。永続化アダプタを差し込まないこと。
+    /// DEBUG かつ `FAKE_LYRICS=1` のときだけ、サーバ未完成でも見た目を確認できるフェイクに差し替える。
+    let lyricsReading: any LyricsReading = {
+        #if DEBUG
+        if ProcessInfo.processInfo.environment["FAKE_LYRICS"] == "1" {
+            return FakeLyricsReading()
+        }
+        #endif
+        return LyricsAPI.shared
+    }()
+
     // MARK: - 書き込み (編集/インポート系のローカル DB upsert)
 
     let eventWriting: any EventWriting = GRDBEventWriting(database: .shared)

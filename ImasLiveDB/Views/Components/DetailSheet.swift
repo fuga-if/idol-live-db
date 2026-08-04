@@ -227,8 +227,16 @@ struct SongSheetContent: View {
                         Label("編集履歴", systemImage: "clock.arrow.circlepath")
                     }
                     Divider()
-                    Button { openURL(lyricsURL) } label: {
+                    // アプリ内の歌詞表示。歌詞が無い曲でも導線は出す (中で空状態を出す)。
+                    // 事前に有無を判定するにはサーバへ問い合わせるしかなく、
+                    // タグ/コーレス等と同じく「セクションは常に出して空状態で伝える」作法に合わせる。
+                    NavigationLink {
+                        LyricsView(song: song, seed: songSeed)
+                    } label: {
                         Label("歌詞を見る", systemImage: "text.quote")
+                    }
+                    Button { openURL(lyricsURL) } label: {
+                        Label("歌詞サイトで探す", systemImage: "safari")
                     }
                     if let appleMusicURL = vm.artworkInfo?.appleMusicURL {
                         Button { openURL(appleMusicURL) } label: {

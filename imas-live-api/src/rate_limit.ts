@@ -50,6 +50,14 @@ const LIMITS: Record<string, number> = {
   auth_login: 500,
   // auth_refresh: 自前 JWT 検証のみで外部コストは無いが、同じ理由で下限の防御を掛ける。
   auth_refresh: 500,
+  // lyrics: GET /songs/:id/lyrics (1リクエスト1曲)。ライブ1本ぶんを追いながら
+  // 読んでも数十曲なので 200 で足りる。歌詞全体をスクレイプで抜かれる速度を
+  // 抑える一次防御でもある (JASRAC 許諾の「一括ダウンロード不可」の実効性)。
+  // ⚠️ 存在しない曲での自爆消費を防ぐため、routes/lyrics.ts は 404 を先に返す。
+  lyrics: 200,
+  // lyrics_admin: PUT /admin/lyrics/:id。投入ツールが1曲1リクエストで流すため、
+  // 一括投入が枠で止まらないよう十分広く取る (admin しか叩けない)。
+  lyrics_admin: 5000,
 };
 
 /**

@@ -9,6 +9,7 @@ import { upsertUser, checkIsAdmin } from "./users";
 import { handleDeviceAggregates } from "./routes/device_aggregates";
 import { handlePolls } from "./routes/polls";
 import { handleTags } from "./routes/tags";
+import { handleLyrics } from "./routes/lyrics";
 import { handleSetlistPredictions } from "./routes/setlist_predictions";
 import { fetchBadges, calcTier } from "./badges";
 import { handleScheduled } from "./apply";
@@ -499,6 +500,9 @@ export default {
             "POST /polls/:id/votes",
             "DELETE /polls/:id/votes/:entityId",
             "DELETE /polls/:id",
+            // 歌詞は 1 リクエスト 1 曲・認証必須 (JASRAC 許諾の「一括ダウンロード不可」)。
+            "GET /songs/:song_id/lyrics",
+            "PUT /admin/lyrics/:song_id",
           ],
         });
       }
@@ -1138,6 +1142,20 @@ export default {
         request, env, url, path, json, error, rateLimitResponse, rateLimitSimple,
       });
       if (tagsResponse) return tagsResponse;
+
+      // ----------------------------------------------------------------
+      // 歌詞 API (GET /songs/:id/lyrics, PUT /admin/lyrics/:id) は
+      // routes/lyrics.ts へ切り出し済み。一致しなければ null が返る。
+      //
+      // ⚠️ isCommunityRead には足さないこと。GET が Authorization を必須にしている
+      //    ことで上の edgeCacheEligible が false になり、歌詞がエッジキャッシュに
+      //    載らない。歌詞は JASRAC 許諾の条件上「一括ダウンロードできない形式」で
+      //    配信する必要があり、共有キャッシュに置くのはその条件に反する。
+      // ----------------------------------------------------------------
+      const lyricsResponse = await handleLyrics({
+        request, env, url, path, json, error, rateLimitResponse, rateLimitSimple,
+      });
+      if (lyricsResponse) return lyricsResponse;
 
       // ----------------------------------------------------------------
       // POST /edits — マスタ create/update/delete (オープン編集, 1 リクエスト = 1 edit_batch)
