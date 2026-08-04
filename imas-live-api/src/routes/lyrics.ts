@@ -109,18 +109,21 @@ export function parseLines(linesJson: string | null): LyricLineRow[] {
  */
 export async function fetchPublishedLyrics(
   db: D1Database,
-  songId: string
-): Promise<ReturnType<typeof buildLyricsPayload> | null> {
+  songId: string,
+  includeDraft = false
+): Promise<(ReturnType<typeof buildLyricsPayload> & { status: string }) | null> {
   const header = await db
     .prepare(
-      `SELECT source, updated_at, lines_json FROM song_lyrics
-        WHERE song_id = ? AND status = 'published'`
+      `SELECT source, updated_at, lines_json, status FROM song_lyrics
+        WHERE song_id = ? AND (status = 'published' OR ?)`
     )
-    .bind(songId)
-    .first<{ source: string | null; updated_at: string; lines_json: string | null }>();
+    .bind(songId, includeDraft ? 1 : 0)
+    .first<{ source: string | null; updated_at: string; lines_json: string | null;
+             status: string }>();
   if (!header) return null;
   // 行は同じ 1 行に JSON で入っているので、追加の読み取りは発生しない。
-  return buildLyricsPayload(songId, header, parseLines(header.lines_json));
+  return { ...buildLyricsPayload(songId, header, parseLines(header.lines_json)),
+           status: header.status };
 }
 
 /** PUT のボディ検証。問題があればエラーメッセージ、無ければ null。 */
@@ -206,13 +209,21 @@ export async function handleLyrics(ctx: RouteContext): Promise<Response | null> 
 
     // ⚠️ レート制限より先に 404 を返す。存在しない曲を叩かれても枠を減らさない
     //    ためで、POST /users/me と同じ作法。
+    // 未公開 (draft) は admin にだけ返す。JASRAC の許諾が下りるまで一般ユーザーには
+    // 配信できないが、開発中のプレビューは必要なため。
+    // ⚠️ ビルド種別 (DEBUG) では判定しない。クライアントの自己申告は信用できず、
+    //    Release ビルドを改変されると防げないので、サーバ側の権限で切る。
     const header = await env.DB.prepare(
-      `SELECT source, updated_at, lines_json FROM song_lyrics
-        WHERE song_id = ? AND status = 'published'`
+      `SELECT source, updated_at, lines_json, status FROM song_lyrics WHERE song_id = ?`
     )
       .bind(songId)
-      .first<{ source: string | null; updated_at: string; lines_json: string | null }>();
+      .first<{ source: string | null; updated_at: string; lines_json: string | null;
+               status: string }>();
     if (!header) return error("lyrics not found", 404);
+    if (header.status !== "published" && !(await checkIsAdmin(env, user.uid))) {
+      // 存在自体を伏せる必要はないが、公開済みと同じ 404 に揃える。
+      return error("lyrics not found", 404);
+    }
 
     // 日次上限は置かない (rate_limit.ts のコメント参照)。IP 単位のバースト制限
     // だけを掛ける。人間が1分に30曲読むことはないので正常利用には当たらず、
@@ -224,7 +235,8 @@ export async function handleLyrics(ctx: RouteContext): Promise<Response | null> 
 
     const lines = parseLines(header.lines_json);
     await commitIpRateLimit(env.DB, ip, ipRl.bucket);
-    return json(buildLyricsPayload(songId, header, lines), 200, NO_STORE);
+    return json({ ...buildLyricsPayload(songId, header, lines), status: header.status },
+                200, NO_STORE);
   }
 
   // ----------------------------------------------------------------

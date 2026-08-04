@@ -131,7 +131,7 @@ struct FakeLyricsReading: LyricsReading {
         add(.blank, "")
         add(.marker, "アウトロ")
         return Lyrics(songId: songId, source: "ダミーデータ (表示確認用)",
-                      updatedAt: 1_754_300_000, lines: lines)
+                      updatedAt: 1_754_300_000, lines: lines, status: "draft")
     }
 
     func purge() async {}

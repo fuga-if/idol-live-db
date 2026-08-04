@@ -27,6 +27,7 @@
 //      これも index.ts 側の条件で担保している。
 
 import { getAuthUser } from "../auth";
+import { checkIsAdmin } from "../users";
 import { dryCheckIpRateLimit, commitIpRateLimit } from "../rate_limit";
 import { fetchPenlightVotes } from "./device_aggregates";
 import { fetchPublishedLyrics, NO_STORE } from "./lyrics";
@@ -109,7 +110,8 @@ async function fetchSimilarSongsCached(
  */
 async function loadLyrics(
   ctx: RouteContext,
-  songId: string
+  songId: string,
+  isAdmin: boolean
 ): Promise<Awaited<ReturnType<typeof fetchPublishedLyrics>>> {
   const { request, env } = ctx;
   const ip = request.headers.get("CF-Connecting-IP") || "unknown";
@@ -118,7 +120,8 @@ async function loadLyrics(
     console.log("song_detail_lyrics_rate_limited", { songId });
     return null;
   }
-  const lyrics = await fetchPublishedLyrics(env.DB, songId);
+  // 未公開 (draft) は admin にだけ返す。許諾が下りるまでの開発プレビュー用。
+  const lyrics = await fetchPublishedLyrics(env.DB, songId, isAdmin);
   // 単体エンドポイントと同じく、歌詞を実際に返したときだけ枠を消費する
   // (歌詞未投入の曲を開いただけで枠を減らさない)。
   if (lyrics) await commitIpRateLimit(env.DB, ip, ipRl.bucket);
@@ -150,12 +153,16 @@ export async function handleSongDetail(ctx: RouteContext): Promise<Response | nu
 
   // 認証は任意。付いていれば歌詞も同梱する (未認証は歌詞を返さない)。
   const user = await getAuthUser(request, env);
+  // 未公開 (draft) の歌詞は admin にだけ見せる。JASRAC の許諾が下りるまで
+  // 一般ユーザーには配信できないが、開発中のプレビューは必要なため。
+  // ビルド種別では判定しない (クライアントの自己申告は信用できない)。
+  const isAdmin = user ? await checkIsAdmin(env, user.uid) : false;
 
   const [tags, similar, penlight, lyrics] = await Promise.all([
     optional("tags", fetchSongTagList(env.DB, songId, deviceId)),
     optional("similar", fetchSimilarSongsCached(ctx, songId, similarLimit)),
     optional("penlight", fetchPenlightVotes(env.DB, songId, deviceId)),
-    user ? optional("lyrics", loadLyrics(ctx, songId)) : Promise.resolve(null),
+    user ? optional("lyrics", loadLyrics(ctx, songId, isAdmin)) : Promise.resolve(null),
   ]);
 
   // Cache-Control の分岐 (ファイル冒頭のコメントと対):

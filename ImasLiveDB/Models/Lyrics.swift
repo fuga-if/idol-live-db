@@ -58,6 +58,16 @@ struct Lyrics: Decodable, Sendable, Hashable {
     /// サーバ側の最終更新時刻 (epoch 秒)。
     let updatedAt: Int?
     let lines: [LyricLine]
+    /// サーバ上の公開状態。"published" / "draft"。
+    ///
+    /// draft はサーバが admin にしか返さない。JASRAC の許諾が下りるまで一般ユーザーに
+    /// 配信できないが、開発中のプレビューは必要なため。判定はサーバ側で行っており、
+    /// ビルド種別 (DEBUG) では切っていない — クライアントの自己申告は信用できないので。
+    /// 旧サーバは status を返さないので optional。
+    let status: String?
+
+    /// 未公開 (下書き) か。画面に明示して、公開済みと取り違えないようにする。
+    var isDraft: Bool { status == "draft" }
 
     /// 表示すべき本文行が 1 行でもあるか (マーカー/空行しか無い場合は「歌詞なし」扱い)。
     var hasContent: Bool { lines.contains { $0.kind == .lyric && !$0.text.isEmpty } }
@@ -65,7 +75,7 @@ struct Lyrics: Decodable, Sendable, Hashable {
 
 extension Lyrics {
     private enum CodingKeys: String, CodingKey {
-        case songId, source, updatedAt, lines
+        case songId, source, updatedAt, lines, status
     }
 
     /// 単体取得 (`/songs/{id}/lyrics`) は `songId` を含むが、束ね取得
@@ -80,12 +90,16 @@ extension Lyrics {
             songId: try c.decodeIfPresent(String.self, forKey: .songId) ?? "",
             source: try c.decodeIfPresent(String.self, forKey: .source),
             updatedAt: try c.decodeIfPresent(Int.self, forKey: .updatedAt),
-            lines: try c.decodeIfPresent([LyricLine].self, forKey: .lines) ?? []
+            lines: try c.decodeIfPresent([LyricLine].self, forKey: .lines) ?? [],
+            status: try c.decodeIfPresent(String.self, forKey: .status)
         )
     }
 
     /// `songId` が空 (束ねの入れ子で省略された) なら曲 ID を補った複製を返す。
     func resolvingSongId(_ id: String) -> Lyrics {
-        songId.isEmpty ? Lyrics(songId: id, source: source, updatedAt: updatedAt, lines: lines) : self
+        songId.isEmpty
+            ? Lyrics(songId: id, source: source, updatedAt: updatedAt,
+                     lines: lines, status: status)
+            : self
     }
 }

@@ -44,6 +44,19 @@ struct SongLyricsTab: View {
                            seed: seed)
         case .loaded:
             if let lyrics = vm.lyrics, lyrics.hasContent {
+                // 未公開 (draft) はサーバが admin にしか返さない。公開済みと
+                // 取り違えないよう画面に明示する。JASRAC の許諾が下りるまで
+                // 一般ユーザーには配信されない。
+                if lyrics.isDraft {
+                    Label("下書き（未公開）。この表示は管理者のみ",
+                          systemImage: "eye.slash")
+                        .font(.imasCaption)
+                        .foregroundStyle(DS.ink2)
+                        .padding(.horizontal, DS.sp2)
+                        .padding(.vertical, DS.sp1)
+                        .background(DS.ink3.opacity(0.12), in: Capsule())
+                        .padding(.horizontal, DS.sp1)
+                }
                 lyricsCard(lyrics)
                 if let source = lyrics.source, !source.isEmpty {
                     Text("出典: \(source)")
