@@ -68,6 +68,12 @@ MAX_LINES = 400
 # 空行が2つ以上続いたら間奏とみなす閾値
 INTERLUDE_BLANKS = 2
 
+# HTML の改行タグ。Web からコピーした歌詞に混ざるので改行に潰す。
+# <br> <br/> <br /> <BR> いずれも。
+BR_RE = re.compile(r"<\s*br\s*/?\s*>", re.IGNORECASE)
+# 素の HTML タグが残っていたら検出して警告する (取りこぼしの発見用)
+TAG_RE = re.compile(r"<[^>]{1,40}>")
+
 
 def default_source():
     """lyrics_local/config.json の default_source。毎回 --source を打たずに済む。"""
@@ -112,7 +118,9 @@ def text_to_lines(text, auto_marker=True):
     - 行頭行末の空白は落とす (歌詞の意味を変えないため)
     - 全角空白は残す (詞の間合いとして意味を持つことがある)
     - 空行が2つ以上続いたら間奏マーカーを挿入する
+    - <br> は改行として扱う (Web からコピーした歌詞に混ざるため)
     """
+    text = BR_RE.sub("\n", text)
     raw = [ln.rstrip() for ln in text.replace("\r\n", "\n").replace("\r", "\n").split("\n")]
 
     lines = []
@@ -190,6 +198,9 @@ def validate_doc(doc, path):
             errors.append("%s text に改行が含まれる。1行1要素にすること" % where)
         if len(text) > MAX_LINE_CHARS:
             errors.append("%s text が長すぎる (%d文字)。行を分けること" % (where, len(text)))
+        tag = TAG_RE.search(text)
+        if tag:
+            errors.append("%s に HTML タグが残っている: %r" % (where, tag.group(0)))
         sec = ln.get("section", "")
         if sec not in SECTIONS:
             warnings.append("%s section が未知: %r" % (where, sec))
