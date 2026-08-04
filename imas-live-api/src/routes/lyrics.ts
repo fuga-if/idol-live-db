@@ -18,7 +18,7 @@
 // このファイルは日時文字列を JS 側で組み立てず、必ず SQL の datetime('now') で書く。
 
 import { getAuthUser } from "../auth";
-import { checkRateLimit } from "../rate_limit";
+import { checkRateLimit, dryCheckIpRateLimit, commitIpRateLimit } from "../rate_limit";
 import { checkIsAdmin } from "../users";
 import type { RouteContext } from "./context";
 
@@ -128,7 +128,7 @@ function validateLyricsBody(body: unknown): string | null {
 }
 
 export async function handleLyrics(ctx: RouteContext): Promise<Response | null> {
-  const { request, env, path, json, error, rateLimitResponse } = ctx;
+  const { request, env, path, json, error, rateLimitResponse, rateLimitSimple } = ctx;
 
   // ----------------------------------------------------------------
   // GET /songs/:song_id/lyrics — 1曲ぶんの歌詞 (セッション JWT 必須)
@@ -147,9 +147,8 @@ export async function handleLyrics(ctx: RouteContext): Promise<Response | null> 
       return error("invalid song_id", 400);
     }
 
-    // ⚠️ レート制限より先に 404 を返す。checkRateLimit は原子的に +1 するので、
-    //    存在しない曲を叩かれるとユーザーの 1日200枠が減っていき、正規の曲まで
-    //    読めなくなる (自爆ロックアウト)。POST /users/me と同じ作法。
+    // ⚠️ レート制限より先に 404 を返す。存在しない曲を叩かれても枠を減らさない
+    //    ためで、POST /users/me と同じ作法。
     const header = await env.DB.prepare(
       `SELECT source, updated_at FROM song_lyrics
         WHERE song_id = ? AND status = 'published'`
@@ -158,10 +157,16 @@ export async function handleLyrics(ctx: RouteContext): Promise<Response | null> 
       .first<{ source: string | null; updated_at: string }>();
     if (!header) return error("lyrics not found", 404);
 
-    const rl = await checkRateLimit(env.DB, user.uid, "lyrics");
-    if (!rl.allowed) return rateLimitResponse(rl.used, rl.limit, rl.reset_at);
+    // 日次上限は置かない (rate_limit.ts のコメント参照)。IP 単位のバースト制限
+    // だけを掛ける。人間が1分に30曲読むことはないので正常利用には当たらず、
+    // クライアントの暴走やスクリプトによる連打だけを抑える。
+    // 成功が確定してから commit する (404 等で枠を消費させない)。
+    const ip = request.headers.get("CF-Connecting-IP") || "unknown";
+    const ipRl = await dryCheckIpRateLimit(env.DB, ip);
+    if (!ipRl.allowed) return rateLimitSimple();
 
     const lines = await fetchLines(env.DB, songId);
+    await commitIpRateLimit(env.DB, ip, ipRl.bucket);
     return json(buildLyricsPayload(songId, header, lines), 200, NO_STORE);
   }
 
