@@ -78,16 +78,23 @@ export function buildLyricsPayload(
   };
 }
 
-export async function fetchLines(db: D1Database, songId: string): Promise<LyricLineRow[]> {
-  // ord の同値はありえない想定だが、順序を決定的にするため id を第二キーに置く。
-  const { results } = await db
-    .prepare(
-      `SELECT id, ord, kind, text, section, start_ms
-         FROM lyric_lines WHERE song_id = ? ORDER BY ord, id`
-    )
-    .bind(songId)
-    .all<LyricLineRow>();
-  return results ?? [];
+/**
+ * 保存された lines_json を行の配列に戻す。壊れていたら空配列。
+ *
+ * 行を別テーブルではなく JSON 1 列で持つのは D1 の行読み取り上限のため
+ * (migration 0027 のコメント参照)。1 曲 60 行を別テーブルに持つと歌詞 1 曲の
+ * 取得で 60 行読み、Worker のリクエスト上限より先に D1 が上限に当たる。
+ */
+export function parseLines(linesJson: string | null): LyricLineRow[] {
+  if (!linesJson) return [];
+  try {
+    const parsed = JSON.parse(linesJson);
+    return Array.isArray(parsed) ? (parsed as LyricLineRow[]) : [];
+  } catch {
+    // 壊れた JSON で曲詳細ごと落とさない。歌詞だけ空で返す。
+    console.log("lyrics_lines_json_parse_failed");
+    return [];
+  }
 }
 
 /**
@@ -95,7 +102,7 @@ export async function fetchLines(db: D1Database, songId: string): Promise<LyricL
  *
  * 曲詳細バンドル (routes/song_detail.ts) 用。GET /songs/:id/lyrics は 404 を
  * レート制限より前に返す必要があるため header 取得と行取得を分けたままにしてあり、
- * この関数は使わない (どちらも fetchLines / buildLyricsPayload を共有する)。
+ * この関数は使わない (どちらも parseLines / buildLyricsPayload を共有する)。
  *
  * ⚠️ 呼び出し側は「認証済みであること」と「応答に Cache-Control: no-store を付けること」を
  *    必ず守ること。歌詞は JASRAC 許諾の条件上、共有キャッシュに置いてはならない。
@@ -106,14 +113,14 @@ export async function fetchPublishedLyrics(
 ): Promise<ReturnType<typeof buildLyricsPayload> | null> {
   const header = await db
     .prepare(
-      `SELECT source, updated_at FROM song_lyrics
+      `SELECT source, updated_at, lines_json FROM song_lyrics
         WHERE song_id = ? AND status = 'published'`
     )
     .bind(songId)
-    .first<{ source: string | null; updated_at: string }>();
+    .first<{ source: string | null; updated_at: string; lines_json: string | null }>();
   if (!header) return null;
-  const lines = await fetchLines(db, songId);
-  return buildLyricsPayload(songId, header, lines);
+  // 行は同じ 1 行に JSON で入っているので、追加の読み取りは発生しない。
+  return buildLyricsPayload(songId, header, parseLines(header.lines_json));
 }
 
 /** PUT のボディ検証。問題があればエラーメッセージ、無ければ null。 */
@@ -200,11 +207,11 @@ export async function handleLyrics(ctx: RouteContext): Promise<Response | null> 
     // ⚠️ レート制限より先に 404 を返す。存在しない曲を叩かれても枠を減らさない
     //    ためで、POST /users/me と同じ作法。
     const header = await env.DB.prepare(
-      `SELECT source, updated_at FROM song_lyrics
+      `SELECT source, updated_at, lines_json FROM song_lyrics
         WHERE song_id = ? AND status = 'published'`
     )
       .bind(songId)
-      .first<{ source: string | null; updated_at: string }>();
+      .first<{ source: string | null; updated_at: string; lines_json: string | null }>();
     if (!header) return error("lyrics not found", 404);
 
     // 日次上限は置かない (rate_limit.ts のコメント参照)。IP 単位のバースト制限
@@ -215,7 +222,7 @@ export async function handleLyrics(ctx: RouteContext): Promise<Response | null> 
     const ipRl = await dryCheckIpRateLimit(env.DB, ip);
     if (!ipRl.allowed) return rateLimitSimple();
 
-    const lines = await fetchLines(env.DB, songId);
+    const lines = parseLines(header.lines_json);
     await commitIpRateLimit(env.DB, ip, ipRl.bucket);
     return json(buildLyricsPayload(songId, header, lines), 200, NO_STORE);
   }
@@ -255,14 +262,15 @@ export async function handleLyrics(ctx: RouteContext): Promise<Response | null> 
       lines: Array<{ kind?: string; text?: string | null; section?: string | null }>;
     };
 
-    // ⚠️ 全消し全入れにしない。行 ID は発行後不変という契約 (将来コールがこの ID を
-    //    参照する) なので、ord 順に既存 id を再利用し、過不足だけ INSERT / DELETE する。
-    const { results: existingRows } = await env.DB.prepare(
-      "SELECT id FROM lyric_lines WHERE song_id = ? ORDER BY ord, id"
+    // ⚠️ 行 ID は発行後不変という契約 (将来コールがこの ID を参照する)。
+    //    ord 順に既存 id を再利用し、増えた分だけ新しく採番する。
+    //    既存 start_ms も同じ位置の行に引き継ぐ (本文修正でタイミングを消さない)。
+    const prev = await env.DB.prepare(
+      "SELECT lines_json FROM song_lyrics WHERE song_id = ?"
     )
       .bind(songId)
-      .all<{ id: string }>();
-    const existingIds = (existingRows ?? []).map((r) => r.id);
+      .first<{ lines_json: string | null }>();
+    const existing = parseLines(prev?.lines_json ?? null);
 
     const statements: D1PreparedStatement[] = [
       env.DB.prepare(
@@ -281,44 +289,30 @@ export async function handleLyrics(ctx: RouteContext): Promise<Response | null> 
       ).bind(songId, source ?? null, status, status),
     ];
 
-    for (let i = 0; i < lines.length; i++) {
-      const kind = lines[i].kind ?? "lyric";
-      const text = lines[i].text ?? "";
-      const section = lines[i].section ?? null;
-      if (i < existingIds.length) {
-        // start_ms は触らない (将来この列を埋めたとき、本文修正で消さないため)。
-        statements.push(
-          env.DB.prepare(
-            "UPDATE lyric_lines SET ord = ?, kind = ?, text = ?, section = ? WHERE id = ?"
-          ).bind(i, kind, text, section, existingIds[i])
-        );
-      } else {
-        statements.push(
-          env.DB.prepare(
-            `INSERT INTO lyric_lines (id, song_id, ord, kind, text, section)
-             VALUES (?, ?, ?, ?, ?, ?)`
-          ).bind("ll_" + crypto.randomUUID(), songId, i, kind, text, section)
-        );
-      }
-    }
+    const nextLines: LyricLineRow[] = lines.map((line, i) => ({
+      id: existing[i]?.id ?? "ll_" + crypto.randomUUID(),
+      ord: i,
+      kind: line.kind ?? "lyric",
+      text: line.text ?? "",
+      section: line.section ?? null,
+      // 同じ位置に既存行があればタイミングを引き継ぐ。本文だけ直したときに消えない。
+      start_ms: existing[i]?.start_ms ?? null,
+    }));
 
-    // 減った分だけ末尾を削る。
-    const surplus = existingIds.slice(lines.length);
-    if (surplus.length > 0) {
-      const placeholders = surplus.map(() => "?").join(", ");
-      statements.push(
-        env.DB.prepare(`DELETE FROM lyric_lines WHERE id IN (${placeholders})`).bind(...surplus)
-      );
-    }
+    statements.push(
+      env.DB.prepare("UPDATE song_lyrics SET lines_json = ? WHERE song_id = ?")
+        .bind(JSON.stringify(nextLines), songId)
+    );
 
     await env.DB.batch(statements);
 
     const header = await env.DB.prepare(
-      "SELECT source, status, updated_at FROM song_lyrics WHERE song_id = ?"
+      "SELECT source, status, updated_at, lines_json FROM song_lyrics WHERE song_id = ?"
     )
       .bind(songId)
-      .first<{ source: string | null; status: string; updated_at: string }>();
-    const saved = await fetchLines(env.DB, songId);
+      .first<{ source: string | null; status: string; updated_at: string;
+               lines_json: string | null }>();
+    const saved = parseLines(header?.lines_json ?? null);
     // GET と同じ形 + status (投入ツールが公開状態を確認できるように)。
     const payload = buildLyricsPayload(songId, header ?? { source: null, updated_at: null }, saved);
     return json({ ...payload, status: header?.status ?? status }, 200, NO_STORE);

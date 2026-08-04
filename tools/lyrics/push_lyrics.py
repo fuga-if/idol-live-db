@@ -167,7 +167,9 @@ def main():
     ap.add_argument("--all", action="store_true", help="lyrics_local/lyrics/*.json 全部")
     ap.add_argument("--base-url", default=DEFAULT_BASE_URL,
                     help="API のベース URL (ローカル検証は http://127.0.0.1:8787)")
-    ap.add_argument("--status", default="published", choices=["draft", "published"],
+    # 既定は draft。JASRAC の許諾が下りるまで公開してはいけないので、
+    # 事故で配信状態にならないよう published は明示指定を要求する。
+    ap.add_argument("--status", default="draft", choices=["draft", "published"],
                     help="JSON 側に status が無いときの既定 (既定: published)")
     # トークンは常にファイルから読む。値そのものを引数で渡す経路は作らない
     # (ps とシェル履歴に残る)。ここで受けるのは置き場所だけ。
