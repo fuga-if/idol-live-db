@@ -116,18 +116,70 @@ struct FakeLyricsReading: LyricsReading {
         guard !songId.contains("nolyrics") else { return nil }
         var lines: [LyricLine] = []
         var ord = 0
-        func add(_ kind: LyricLineKind, _ text: String, section: String? = nil) {
+        func add(_ kind: LyricLineKind, _ text: String, section: String? = nil,
+                 clap: LyricClap? = nil, calls: [LyricCall] = []) {
             lines.append(LyricLine(id: "ll_\(ord)", ord: ord, kind: kind,
-                                   text: text, section: section, startMs: nil))
+                                   text: text, section: section, startMs: nil,
+                                   clap: clap, calls: calls))
             ord += 1
         }
-        add(.marker, "イントロ")
+        /// スカラー範囲からアンカー文字列を切り出してコールを 1 件作る。
+        /// `start`/`end` は Unicode スカラー単位 (本番と同じ規約)。
+        func call(_ id: String, in text: String, _ range: Range<Int>, _ callText: String,
+                  _ emphasis: CallEmphasis = .normal, stale: Bool? = nil) -> LyricCall {
+            let scalars = Array(text.unicodeScalars)
+            let clamped = min(range.lowerBound, scalars.count)..<min(range.upperBound, scalars.count)
+            return LyricCall(id: id, start: clamped.lowerBound, end: clamped.upperBound,
+                             anchorText: String(String.UnicodeScalarView(scalars[clamped])),
+                             text: callText, emphasis: emphasis, stale: stale)
+        }
+
+        add(.marker, "イントロ", calls: [
+            LyricCall(id: "c_intro", start: 0, end: 0, anchorText: "",
+                      text: "（いち・にの・さん・レッツ・ゴー！）", emphasis: .normal, stale: nil),
+        ])
         add(.blank, "")
         add(.marker, "1番", section: "A")
-        for i in 1...4 { add(.lyric, "ダミー歌詞のサンプル行です \(i)", section: "A") }
+        for i in 1...4 {
+            let text = "ダミー歌詞のサンプル行です \(i)"
+            var calls: [LyricCall] = []
+            var clap: LyricClap?
+            switch i {
+            case 1:
+                clap = .backBeat
+                calls = [call("c_1a", in: text, 0..<3, "(Hi!)")]
+            case 2:
+                clap = .fourOnFloor
+                calls = [
+                    call("c_2a", in: text, 0..<3, "(Fuu--!)"),
+                    call("c_2b", in: text, 0..<3, "(Hi! Hi!)", .optional),
+                    call("c_2c", in: text, 7..<13, "（サンプル行です）"),
+                ]
+            case 3:
+                clap = .ppph
+                calls = [call("c_3a", in: text, 3..<5, "(Oi!)", .performerRequest)]
+            default:
+                clap = .noCall
+            }
+            add(.lyric, text, section: "A", clap: clap, calls: calls)
+        }
         add(.blank, "")
         add(.marker, "サビ", section: "chorus")
-        for i in 1...3 { add(.lyric, "ここはサビのダミー行 \(i)、折り返しの見え方を確認するために少しだけ長めの文字列にしてあります", section: "chorus") }
+        for i in 1...3 {
+            let text = "ここはサビのダミー行 \(i)、折り返しの見え方を確認するために少しだけ長めの文字列にしてあります"
+            var calls: [LyricCall] = []
+            if i == 1 {
+                calls = [
+                    call("c_4a", in: text, 0..<6, "(Fuwa × 4)"),
+                    call("c_4b", in: text, 24..<30, "(Woooo,Yeah!!)", .performerRequest),
+                ]
+            }
+            if i == 2 {
+                // 「歌詞が編集されてアンカーがズレた」印の確認用。
+                calls = [call("c_5a", in: text, 0..<4, "(Hey!!)", .optional, stale: true)]
+            }
+            add(.lyric, text, section: "chorus", clap: i == 3 ? .backBeat : nil, calls: calls)
+        }
         add(.blank, "")
         add(.marker, "アウトロ")
         return Lyrics(songId: songId, source: "ダミーデータ (表示確認用)",
