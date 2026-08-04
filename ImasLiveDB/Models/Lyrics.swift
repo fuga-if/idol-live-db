@@ -100,6 +100,44 @@ extension CallEmphasis: Decodable {
     }
 }
 
+/// コールを出すタイミング。
+///
+/// アンカー範囲は「**どのフレーズに対する**コールか」しか表さない。被せるのか後に返すのかは
+/// 別の軸なので分けて持つ (「Fire Flower！」のように歌に重ねるコールもあれば、
+/// 同じフレーズを聞いてから返す追っかけもある)。
+///
+/// アイマスでは追っかけが主なので既定は `after`。幅ゼロのアンカー (行末追加) は
+/// 被せる相手が無いので**サーバが常に `after` に倒す**。
+enum CallTiming: String, Sendable, Hashable, CaseIterable {
+    /// 同時。歌に被せて叫ぶ。
+    case over
+    /// 追っかけ。歌い終わってから返す。
+    case after
+
+    var label: String {
+        switch self {
+        case .over:  return "同時"
+        case .after: return "追っかけ"
+        }
+    }
+
+    /// 編集シートの説明文。どちらを選ぶべきかの判断材料。
+    var hint: String {
+        switch self {
+        case .over:  return "歌に被せて叫ぶ。歌詞と同じタイミング。"
+        case .after: return "フレーズを聞いてから返す。アイマスではこちらが主。"
+        }
+    }
+}
+
+extension CallTiming: Decodable {
+    /// 未知の値・欠けは `after` に倒す (旧サーバは `timing` を返さない)。
+    init(from decoder: any Decoder) throws {
+        let raw = try decoder.singleValueContainer().decode(String.self)
+        self = CallTiming(rawValue: raw) ?? .after
+    }
+}
+
 /// 歌詞行の一部 (アンカー) に紐づくコール 1 件。
 ///
 /// ⚠️ `anchorText` は歌詞の一部を含む。`Lyrics` / `LyricLine` と同じく
@@ -117,19 +155,37 @@ struct LyricCall: Decodable, Identifiable, Sendable, Hashable {
     /// コール文言。自由テキスト (繰り返し `× 26` 等も文言に含む)。
     var text: String
     var emphasis: CallEmphasis
+    /// 被せる (`over`) か追っかけ (`after`) か。既定は `after`。
+    /// 幅ゼロのアンカーはサーバが常に `after` に倒すので、こちらから `over` は送らない。
+    var timing: CallTiming = .after
     /// 歌詞が編集されてアンカーがズレた印。編集画面で目立たせる。
     var stale: Bool?
 
-    var isStale: Bool { stale == true }
+    /// ズレの印。**幅ゼロのアンカーは対象外**にする。
+    ///
+    /// 幅ゼロ (行末の追っかけコール / marker 行にぶら下がるコール) は `anchorText` が
+    /// 常に空文字なので、本文がどう書き換わっても「掛かっていた語が変わった」は起こらない
+    /// = ズレようがない。万一サーバが印を付けて返しても、選び直しを迫らない
+    /// (選び直す範囲が無いので、迫っても行き止まりになる)。
+    /// 行そのものが消えた場合にコールごと落ちるのは範囲付きと同じ。
+    var isStale: Bool { stale == true && hasAnchor }
 
-    /// アンカーを持たない (歌詞のない) コールか。`kind == .marker` の行に付くコールは
-    /// start/end が 0 で来る。
+    /// 歌詞の一部に掛かる (範囲を持つ) コールか。
+    ///
+    /// false = 幅ゼロ。`start == end == 行の文字数` なら**行末の追っかけコール**
+    /// (フレーズの後で客が返すもの。アイマスのコールはこちらが多数派)。
+    /// `kind == .marker` の行にぶら下がるコールも幅ゼロで来る。
+    /// 幅ゼロは敷く範囲が無いので、行内のハイライトは出さずコールだけを行の直下に並べる。
     var hasAnchor: Bool { end > start }
+
+    /// 歌に被せるコールか。幅ゼロは被せる相手が無いので常に false
+    /// (サーバも `start == end` を `after` に倒すが、古い保存値に備えてこちらでも潰す)。
+    var isOverlapping: Bool { timing == .over && hasAnchor }
 }
 
 extension LyricCall {
     private enum CodingKeys: String, CodingKey {
-        case id, start, end, anchorText, text, emphasis, stale
+        case id, start, end, anchorText, text, emphasis, timing, stale
     }
 
     /// 欠けたフィールドに耐える。Worker とアプリの配信タイミングがズレても、
@@ -145,6 +201,7 @@ extension LyricCall {
             anchorText: try c.decodeIfPresent(String.self, forKey: .anchorText) ?? "",
             text: try c.decodeIfPresent(String.self, forKey: .text) ?? "",
             emphasis: try c.decodeIfPresent(CallEmphasis.self, forKey: .emphasis) ?? .normal,
+            timing: try c.decodeIfPresent(CallTiming.self, forKey: .timing) ?? .after,
             stale: try c.decodeIfPresent(Bool.self, forKey: .stale)
         )
     }
@@ -225,6 +282,12 @@ struct Lyrics: Decodable, Sendable, Hashable {
         let used = Set(lines.flatMap(\.calls).map(\.emphasis))
         return CallEmphasis.allCases.filter { $0 != .normal && used.contains($0) }
     }
+
+    /// この曲に「同時（被せ）」のコールがあるか。
+    ///
+    /// 追っかけ (`after`) は既定なので凡例に出さない — 出しても情報が増えない。
+    /// 例外的な「同時」だけを凡例に出す (強調度で `normal` を出さないのと同じ判断)。
+    var usesOverTiming: Bool { lines.contains { $0.calls.contains(where: \.isOverlapping) } }
 
     /// この曲で実際に使われている手拍子指示。凡例用。
     var usedClaps: [LyricClap] {

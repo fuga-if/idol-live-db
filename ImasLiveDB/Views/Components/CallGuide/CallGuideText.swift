@@ -90,6 +90,37 @@ enum CallGuideText {
         let circled = ["①", "②", "③", "④", "⑤", "⑥", "⑦", "⑧", "⑨", "⑩"]
         return index < circled.count ? circled[index] : "(\(index + 1))"
     }
+
+    // MARK: - 指の位置 → 文字
+
+    /// 指の位置に対応する書記素セルの添字。なぞって範囲を選ぶときの当たり判定。
+    ///
+    /// 素直に「矩形の中に入っているセル」を探すだけでは足りない。歌詞行は折り返すので
+    ///   * 行間の隙間 (セルの縦の余白の外)
+    ///   * 行末の余白 (最後の文字より右)
+    /// に指がいる時間がそれなりにあり、そこで nil を返すと選択がガタつく。そこで
+    /// **縦の帯 (どの折り返し行にいるか) を先に決めてから**、その行の中で最も近いセルに寄せる。
+    /// 帯にも入っていなければ (行の上下にはみ出したら) 全セルから最短距離で選ぶ。
+    ///
+    /// `frames` は行内の同じ座標系で測ったセルの矩形 (セル添字 → 矩形)。
+    static func cellIndex(at point: CGPoint, in frames: [Int: CGRect]) -> Int? {
+        if let hit = frames.first(where: { $0.value.contains(point) })?.key { return hit }
+        let sameRow = frames.filter { point.y >= $0.value.minY && point.y <= $0.value.maxY }
+        let pool = sameRow.isEmpty ? frames : sameRow
+        // 距離が並んだときに添字の小さい方を選ぶ (どのセルに寄るかを決定的にする)。
+        return pool
+            .min { lhs, rhs in
+                let a = distance(point, lhs.value), b = distance(point, rhs.value)
+                return a == b ? lhs.key < rhs.key : a < b
+            }?.key
+    }
+
+    /// 点と矩形の距離。比較にしか使わないので平方根は取らない (矩形の中なら 0)。
+    private static func distance(_ point: CGPoint, _ rect: CGRect) -> CGFloat {
+        let dx = max(rect.minX - point.x, 0, point.x - rect.maxX)
+        let dy = max(rect.minY - point.y, 0, point.y - rect.maxY)
+        return dx * dx + dy * dy
+    }
 }
 
 // MARK: - 折り返しレイアウト

@@ -126,17 +126,26 @@ struct FakeLyricsReading: LyricsReading {
         /// スカラー範囲からアンカー文字列を切り出してコールを 1 件作る。
         /// `start`/`end` は Unicode スカラー単位 (本番と同じ規約)。
         func call(_ id: String, in text: String, _ range: Range<Int>, _ callText: String,
-                  _ emphasis: CallEmphasis = .normal, stale: Bool? = nil) -> LyricCall {
+                  _ emphasis: CallEmphasis = .normal, timing: CallTiming = .after,
+                  stale: Bool? = nil) -> LyricCall {
             let scalars = Array(text.unicodeScalars)
             let clamped = min(range.lowerBound, scalars.count)..<min(range.upperBound, scalars.count)
             return LyricCall(id: id, start: clamped.lowerBound, end: clamped.upperBound,
                              anchorText: String(String.UnicodeScalarView(scalars[clamped])),
-                             text: callText, emphasis: emphasis, stale: stale)
+                             text: callText, emphasis: emphasis, timing: timing, stale: stale)
+        }
+        /// 幅ゼロ (行末に返す追っかけ) のコール。サーバ側と同じく timing は常に after。
+        func trailing(_ id: String, in text: String, _ callText: String,
+                      _ emphasis: CallEmphasis = .normal) -> LyricCall {
+            let end = text.unicodeScalars.count
+            return LyricCall(id: id, start: end, end: end, anchorText: "",
+                             text: callText, emphasis: emphasis, timing: .after, stale: nil)
         }
 
         add(.marker, "イントロ", calls: [
             LyricCall(id: "c_intro", start: 0, end: 0, anchorText: "",
-                      text: "（いち・にの・さん・レッツ・ゴー！）", emphasis: .normal, stale: nil),
+                      text: "（いち・にの・さん・レッツ・ゴー！）", emphasis: .normal,
+                      timing: .after, stale: nil),
         ])
         add(.blank, "")
         add(.marker, "1番", section: "A")
@@ -149,17 +158,22 @@ struct FakeLyricsReading: LyricsReading {
                 clap = .backBeat
                 calls = [call("c_1a", in: text, 0..<3, "(Hi!)")]
             case 2:
+                // 範囲付き (追っかけ / 同時) と幅ゼロ (行末) が同じ行に混ざった状態。
+                // ①②③ と » の出し分け、「同時」「行末」の札の見え方の確認用。
                 clap = .fourOnFloor
                 calls = [
                     call("c_2a", in: text, 0..<3, "(Fuu--!)"),
                     call("c_2b", in: text, 0..<3, "(Hi! Hi!)", .optional),
-                    call("c_2c", in: text, 7..<13, "（サンプル行です）"),
+                    call("c_2c", in: text, 7..<13, "（サンプル行です）", .normal, timing: .over),
+                    trailing("c_2d", in: text, "(Hi!) × 4"),
                 ]
             case 3:
                 clap = .ppph
                 calls = [call("c_3a", in: text, 3..<5, "(Oi!)", .performerRequest)]
             default:
+                // 追っかけだけの行 (実際の多数派)。札は出ず » だけで示される。
                 clap = .noCall
+                calls = [trailing("c_4t", in: text, "(Fuu--!)")]
             }
             add(.lyric, text, section: "A", clap: clap, calls: calls)
         }
@@ -177,6 +191,9 @@ struct FakeLyricsReading: LyricsReading {
             if i == 2 {
                 // 「歌詞が編集されてアンカーがズレた」印の確認用。
                 calls = [call("c_5a", in: text, 0..<4, "(Hey!!)", .optional, stale: true)]
+            }
+            if i == 3 {
+                calls = [trailing("c_6t", in: text, "（せーの！）")]
             }
             add(.lyric, text, section: "chorus", clap: i == 3 ? .backBeat : nil, calls: calls)
         }

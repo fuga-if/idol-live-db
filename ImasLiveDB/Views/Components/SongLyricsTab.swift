@@ -61,7 +61,9 @@ struct SongLyricsTab: View {
             CallEditorSheet(
                 request: request,
                 seed: seed,
-                onSubmit: { text, emphasis in apply(request, text: text, emphasis: emphasis) },
+                onSubmit: { text, emphasis, timing in
+                    apply(request, text: text, emphasis: emphasis, timing: timing)
+                },
                 onDelete: request.existing.map { call in
                     { editor?.deleteCall(lineId: request.lineId, callId: call.id) }
                 }
@@ -175,17 +177,21 @@ struct SongLyricsTab: View {
 
     @ViewBuilder
     private func viewingBody(_ lyrics: Lyrics) -> some View {
-        legend(emphases: lyrics.usedEmphases, claps: lyrics.usedClaps)
+        legend(lyrics)
         ForEach(lyrics.lines) { line in
             viewingRow(line)
         }
     }
 
     /// 凡例は**その曲で実際に使われているものだけ**を出す (曲ごとに凡例が違う)。
+    /// 出すものが 1 つも無ければ余白ごと畳む。
     @ViewBuilder
-    private func legend(emphases: [CallEmphasis], claps: [LyricClap]) -> some View {
-        if !emphases.isEmpty || !claps.isEmpty {
-            CallGuideLegend(emphases: emphases, claps: claps)
+    private func legend(_ lyrics: Lyrics) -> some View {
+        let emphases = lyrics.usedEmphases
+        let claps = lyrics.usedClaps
+        let showsOverTiming = lyrics.usesOverTiming
+        if !emphases.isEmpty || !claps.isEmpty || showsOverTiming {
+            CallGuideLegend(emphases: emphases, claps: claps, showsOverTiming: showsOverTiming)
                 .padding(.bottom, DS.sp4)
         }
     }
@@ -330,7 +336,7 @@ struct SongLyricsTab: View {
         if let target = reanchorTarget {
             HStack(spacing: DS.sp3) {
                 Image(systemName: "scope").font(.imasCaption)
-                Text("「\(target.text)」の掛かる範囲を選び直しています。文字を 2 回タップして範囲を指定。")
+                Text("「\(target.text)」の掛かる範囲を選び直しています。長押しからなぞる、または文字を 2 回タップ。")
                     .font(.imasCaption)
                     .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 0)
@@ -342,7 +348,8 @@ struct SongLyricsTab: View {
             .background(DS.warning.opacity(0.12),
                         in: RoundedRectangle(cornerRadius: DS.rSM, style: .continuous))
         } else {
-            Label("文字を 2 回タップ（開始→終了）してコールを付けます。行頭の記号で手拍子を指定。",
+            // 多数派 (追っかけ) の導線を先に書く。被せるコールの範囲選択はその次。
+            Label("行末の ＋ で追っかけのコールを追加。歌詞に被せるときは長押しからなぞって範囲を選ぶ（文字を 2 回タップでも可）。行頭の記号で手拍子を指定。",
                   systemImage: "hand.tap")
                 .font(.imasCaption)
                 .foregroundStyle(DS.ink2)
@@ -409,6 +416,8 @@ struct SongLyricsTab: View {
                         onSelect: { start, end, selected in
                             handleSelection(line: line, start: start, end: end, text: selected)
                         },
+                        // 選び直し中は範囲を選ばせたいので行末の ＋ は出さない。
+                        onAppendCall: reanchorTarget == nil ? { appendTrailingCall(line) } : nil,
                         resetToken: selectionResetToken
                     )
                     if !line.calls.isEmpty {
@@ -424,15 +433,9 @@ struct SongLyricsTab: View {
                 HStack(spacing: DS.sp3) {
                     clapMenu(editor, line)
                     marker(line.text)
-                    // marker 行には歌詞が無いので、範囲選択ではなく直接ぶら下げる
-                    // (アンカーは start == end == 0)。
-                    Button {
-                        callRequest = CallEditorSheet.Request(lineId: line.id, start: 0, end: 0,
-                                                              anchorText: "", existing: nil)
-                    } label: {
-                        Image(systemName: "plus.circle").font(.imasCaption)
-                    }
-                    .accessibilityLabel("この行にコールを追加")
+                    // marker 行 (イントロ / 間奏) にも歌詞行と同じ導線を出す。
+                    // 「（間奏）(Hi!) × 26」のような歌詞のないコールが実際に多い。
+                    CallGuideAppendCallButton { appendTrailingCall(line) }
                 }
                 if !line.calls.isEmpty {
                     CallGuideCallRows(calls: line.calls, anchorIndexes: nil,
@@ -472,19 +475,36 @@ struct SongLyricsTab: View {
                                               anchorText: text, existing: nil)
     }
 
+    /// 行末 (追っかけ) にコールを足す。範囲を選ばせず 1 タップでシートまで飛ばす。
+    ///
+    /// アイマスのコールは**フレーズの後で客が返す**追っかけが多数派で、歌詞に被せるものは
+    /// 少数派。多数派を範囲選択 (2 タップ) の後ろに置くのは手数が合わない。
+    /// アンカーは `start == end == 行の文字数` の幅ゼロ。サーバは `start <= end` を許し、
+    /// `anchorText` は本文から切り出した空文字になる。
+    private func appendTrailingCall(_ line: LyricLine) {
+        AppAnalytics.tap("call_guide.add_trailing")
+        let end = CallGuideText.scalarCount(of: line.text)
+        callRequest = CallEditorSheet.Request(lineId: line.id, start: end, end: end,
+                                              anchorText: "", existing: nil)
+        // 範囲選択の途中 (開始だけタップ済み) なら取り消す。
+        selectionResetToken += 1
+    }
+
     private func editCall(line: LyricLine, call: LyricCall) {
         callRequest = CallEditorSheet.Request(lineId: line.id, start: call.start, end: call.end,
                                               anchorText: call.anchorText, existing: call)
     }
 
-    private func apply(_ request: CallEditorSheet.Request, text: String, emphasis: CallEmphasis) {
+    private func apply(_ request: CallEditorSheet.Request, text: String,
+                       emphasis: CallEmphasis, timing: CallTiming) {
         guard let editor else { return }
         if let existing = request.existing {
             editor.updateCall(lineId: request.lineId, callId: existing.id,
-                              text: text, emphasis: emphasis)
+                              text: text, emphasis: emphasis, timing: timing)
         } else {
             editor.addCall(lineId: request.lineId, start: request.start, end: request.end,
-                           anchorText: request.anchorText, text: text, emphasis: emphasis)
+                           anchorText: request.anchorText, text: text,
+                           emphasis: emphasis, timing: timing)
         }
         selectionResetToken += 1
     }

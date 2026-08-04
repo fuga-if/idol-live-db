@@ -48,6 +48,8 @@ struct CallGuidePayload: Encodable, Sendable {
         let anchorText: String
         let text: String
         let emphasis: String
+        /// "over" (同時) / "after" (追っかけ)。幅ゼロのアンカーはサーバが "after" に倒す。
+        let timing: String
     }
 }
 
@@ -60,7 +62,10 @@ extension CallGuidePayload.Call {
             end: call.end,
             anchorText: call.anchorText,
             text: call.text,
-            emphasis: call.emphasis.rawValue
+            emphasis: call.emphasis.rawValue,
+            // 幅ゼロに "over" を送ってもサーバ側で "after" に倒されるが、
+            // 送信値と保存値が食い違うのは気持ちが悪いのでこちらでも揃えておく。
+            timing: call.isOverlapping ? CallTiming.over.rawValue : CallTiming.after.rawValue
         )
     }
 }

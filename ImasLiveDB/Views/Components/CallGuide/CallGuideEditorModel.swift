@@ -57,20 +57,27 @@ final class CallGuideEditorModel {
 
     /// 選択範囲に新しいコールを足す。同一アンカーに複数並ぶことがあるので、既存は消さない。
     /// 配列順が表示順なので**末尾に足す**。
+    ///
+    /// 幅ゼロのアンカー (`start == end`、行末の追っかけ) は被せる相手が無いので
+    /// `timing` は `after` に倒す (サーバも同じ規則で正規化する)。
     func addCall(lineId: String, start: Int, end: Int, anchorText: String,
-                 text: String, emphasis: CallEmphasis) {
+                 text: String, emphasis: CallEmphasis, timing: CallTiming) {
         mutate(lineId) {
             $0.calls.append(LyricCall(id: Self.newCallId(), start: start, end: end,
                                       anchorText: anchorText, text: text,
-                                      emphasis: emphasis, stale: nil))
+                                      emphasis: emphasis,
+                                      timing: end > start ? timing : .after,
+                                      stale: nil))
         }
     }
 
-    func updateCall(lineId: String, callId: String, text: String, emphasis: CallEmphasis) {
+    func updateCall(lineId: String, callId: String, text: String,
+                    emphasis: CallEmphasis, timing: CallTiming) {
         mutate(lineId) { line in
             guard let index = line.calls.firstIndex(where: { $0.id == callId }) else { return }
             line.calls[index].text = text
             line.calls[index].emphasis = emphasis
+            line.calls[index].timing = line.calls[index].hasAnchor ? timing : .after
         }
     }
 

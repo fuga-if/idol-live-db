@@ -46,7 +46,7 @@ struct CallGuidePreviewHarness: View {
                     request: .init(lineId: "ll_5", start: 0, end: 3,
                                    anchorText: "ダミー", existing: nil),
                     seed: nil,
-                    onSubmit: { _, _ in },
+                    onSubmit: { _, _, _ in },
                     onDelete: nil
                 )
             }

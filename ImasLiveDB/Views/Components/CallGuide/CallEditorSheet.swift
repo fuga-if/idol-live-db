@@ -1,6 +1,7 @@
 import SwiftUI
 
-/// コール 1 件の入力/編集。歌詞タブで範囲を選んだ直後、または既存コールをタップしたときに出る。
+/// コール 1 件の入力/編集。歌詞タブで範囲を選んだ直後、行末の ＋ を押したとき、
+/// または既存コールをタップしたときに出る。
 ///
 /// パレットは**近道**でしかないので、自由入力を常に受ける (実際のコールは曲ごと・現場ごとに
 /// 違い、固定リストで賄えない)。パレットのタップは置き換えではなく**末尾に足す** —
@@ -10,18 +11,22 @@ struct CallEditorSheet: View {
     struct Request: Identifiable {
         let id = UUID()
         let lineId: String
-        /// アンカー開始 (スカラー単位)。アンカー無し (marker 行) は start == end == 0。
+        /// アンカー開始 (スカラー単位)。幅ゼロ (`start == end`) は行末の追っかけ、
+        /// または marker 行に直接ぶら下がるコール。
         let start: Int
         let end: Int
         let anchorText: String
         /// 既存コールの編集なら中身。新規なら nil。
         let existing: LyricCall?
+
+        /// 歌詞の一部に掛かる (= 被せるか追っかけるかを選べる) アンカーか。
+        var hasAnchor: Bool { end > start }
     }
 
     let request: Request
     var seed: String?
     /// 保存 (新規なら追加、既存なら更新)。
-    let onSubmit: (String, CallEmphasis) -> Void
+    let onSubmit: (String, CallEmphasis, CallTiming) -> Void
     /// 既存コールの削除。新規のときは呼ばれない。
     let onDelete: (() -> Void)?
 
@@ -29,6 +34,7 @@ struct CallEditorSheet: View {
     @Environment(\.colorScheme) private var scheme
     @State private var text: String = ""
     @State private var emphasis: CallEmphasis = .normal
+    @State private var timing: CallTiming = .after
     @FocusState private var focused: Bool
 
     var body: some View {
@@ -37,6 +43,7 @@ struct CallEditorSheet: View {
                 VStack(alignment: .leading, spacing: DS.sp5) {
                     anchorSection
                     inputSection
+                    timingSection
                     emphasisSection
                     paletteSection
                     if onDelete != nil { deleteButton }
@@ -52,7 +59,8 @@ struct CallEditorSheet: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("完了") {
-                        onSubmit(text.trimmingCharacters(in: .whitespacesAndNewlines), emphasis)
+                        onSubmit(text.trimmingCharacters(in: .whitespacesAndNewlines),
+                                 emphasis, request.hasAnchor ? timing : .after)
                         dismiss()
                     }
                     .fontWeight(.semibold)
@@ -64,6 +72,8 @@ struct CallEditorSheet: View {
         .onAppear {
             text = request.existing?.text ?? ""
             emphasis = request.existing?.emphasis ?? .normal
+            // 既定は追っかけ (アイマスではこちらが主)。
+            timing = request.existing?.timing ?? .after
             focused = true
         }
     }
@@ -75,9 +85,11 @@ struct CallEditorSheet: View {
         VStack(alignment: .leading, spacing: DS.sp2) {
             Text("アンカー").font(.imasCaption).foregroundStyle(DS.ink2)
             if request.anchorText.isEmpty {
-                Text("歌詞なし（この行に直接ぶら下がるコール）")
+                Label("行末（追っかけ）— 歌詞に被せず、この行の後で返すコール",
+                      systemImage: "arrow.turn.down.right")
                     .font(.imasSubhead)
                     .foregroundStyle(DS.ink2)
+                    .fixedSize(horizontal: false, vertical: true)
             } else {
                 Text(request.anchorText)
                     .font(.imasBody.weight(.semibold))
@@ -88,6 +100,24 @@ struct CallEditorSheet: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(DS.sp4)
         .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
+    }
+
+    // MARK: - タイミング
+
+    /// 被せる / 追っかける の選択。
+    ///
+    /// アンカー範囲は「どのフレーズに対するコールか」しか表さないので、タイミングは別に選ばせる。
+    /// **幅ゼロのアンカー (行末追加) では出さない** — 被せる相手が無く、選択肢を出しても
+    /// 常に追っかけにしかならないから (サーバも `start == end` を `after` に倒す)。
+    @ViewBuilder
+    private var timingSection: some View {
+        if request.hasAnchor {
+            VStack(alignment: .leading, spacing: DS.sp2) {
+                Text("タイミング").font(.imasCaption).foregroundStyle(DS.ink2)
+                ImasSegmented(options: CallTiming.allCases, selection: $timing, seed: seed) { $0.label }
+                Text(timing.hint).font(.imasCaption2).foregroundStyle(DS.ink3)
+            }
+        }
     }
 
     // MARK: - 入力
