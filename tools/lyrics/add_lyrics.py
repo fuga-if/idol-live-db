@@ -2,7 +2,10 @@
 """add_lyrics.py — 歌詞テキストを貼るだけで登録する。
 
 Usage:
-    # クリップボードから (いちばん手軽)
+    # 引数でそのまま渡す (いちばん手軽)
+    python3 tools/lyrics/add_lyrics.py "お願い！シンデレラ" "一行目<br>二行目<br>三行目"
+
+    # クリップボードから
     python3 tools/lyrics/add_lyrics.py "お願い！シンデレラ" --clipboard
 
     # 標準入力から。貼り付けて Ctrl-D
@@ -21,6 +24,10 @@ Usage:
 
 改行の形式は問わない:
     通常の改行 / <br> / <br/> / <br /> / <BR> のいずれでも受け付ける。
+    引数で渡すときは <br> 区切りにすると1行に収まって扱いやすい。
+
+注意: 引数で渡した歌詞はシェルの履歴 (~/.zsh_history 等) に残る。
+      気になる場合は標準入力かクリップボードを使うこと。
 
 出力は lyrics_local/lyrics/<song_id>.json (gitignore 済み)。
 **data/fixes/ には置かない** — 公開 git リポジトリなので、歌詞を置くと
@@ -100,6 +107,8 @@ def resolve_song(db_path, title=None, song_id=None):
 
 
 def read_text(args):
+    if args.inline_text:
+        return args.inline_text
     if args.clipboard:
         try:
             return subprocess.run(["pbpaste"], capture_output=True, check=True,
@@ -116,8 +125,10 @@ def read_text(args):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("title", nargs="?", help="曲名 (部分一致可)")
+    ap.add_argument("words", nargs="*",
+                    help="曲名 [歌詞]。--id 指定時は歌詞だけ")
     ap.add_argument("--id", dest="song_id", help="song_id を直接指定")
+    ap.add_argument("--text", help="歌詞をここに渡してもよい")
     ap.add_argument("--db", default=DEFAULT_DB)
     ap.add_argument("--clipboard", action="store_true", help="クリップボードから読む")
     ap.add_argument("--file", help="ファイルから読む")
@@ -129,6 +140,16 @@ def main():
     ap.add_argument("--push", action="store_true", help="登録後に D1 へ投入する")
     ap.add_argument("--base-url", help="--push の送信先 (省略時は本番)")
     args = ap.parse_args()
+
+    # 位置引数の解釈。--id があれば全部が歌詞、無ければ先頭が曲名で残りが歌詞。
+    words = list(args.words)
+    if args.song_id:
+        args.title = None
+        inline = " ".join(words)
+    else:
+        args.title = words.pop(0) if words else None
+        inline = " ".join(words)
+    args.inline_text = args.text or inline or ""
 
     if not args.title and not args.song_id:
         ap.error("曲名または --id が要る")
