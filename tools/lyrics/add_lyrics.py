@@ -2,11 +2,11 @@
 """add_lyrics.py — 歌詞テキストを貼るだけで登録する。
 
 Usage:
-    # 引数でそのまま渡す (いちばん手軽)
-    python3 tools/lyrics/add_lyrics.py "お願い！シンデレラ" "一行目<br>二行目<br>三行目"
-
-    # クリップボードから
+    # クリップボードから (いちばん安全。シェルが一切解釈しない)
     python3 tools/lyrics/add_lyrics.py "お願い！シンデレラ" --clipboard
+
+    # 引数で渡す。**必ず全体をクォートすること**
+    python3 tools/lyrics/add_lyrics.py "お願い！シンデレラ" "一行目<br>二行目<br>三行目"
 
     # 標準入力から。貼り付けて Ctrl-D
     python3 tools/lyrics/add_lyrics.py "お願い！シンデレラ"
@@ -25,6 +25,12 @@ Usage:
 改行の形式は問わない:
     通常の改行 / <br> / <br/> / <br /> / <BR> のいずれでも受け付ける。
     引数で渡すときは <br> 区切りにすると1行に収まって扱いやすい。
+
+⚠ 引数で渡すときは必ずクォートすること。
+   < と > はシェルのリダイレクト記号なので、クォートしないと
+   `<br>夢は…` が「br を読んで 夢は… に書く」と解釈され、
+   **意図しないファイルが作られる/上書きされる**。
+   クォートを忘れやすいので、迷ったら --clipboard を使うこと。
 
 注意: 引数で渡した歌詞はシェルの履歴 (~/.zsh_history 等) に残る。
       気になる場合は標準入力かクリップボードを使うこと。
@@ -164,6 +170,17 @@ def main():
     path = LJ.json_path(song_id)
     if os.path.exists(path) and not args.force:
         sys.exit("既に歌詞がある: %s\n  上書きするなら --force" % path)
+
+    # シェルにリダイレクトとして食われた形跡を検出する。
+    # クォートし忘れると `<br` 以降が切り落とされ、短い断片だけが届く。
+    if args.inline_text:
+        stray = [c for c in "<>" if c in LJ.BR_RE.sub("", text)]
+        if stray:
+            print("⚠ 引数に %s が残っている。クォートし忘れの可能性がある。"
+                  % "/".join(stray), file=sys.stderr)
+        if "<br" not in text.lower() and "\n" not in text and len(text) < 200:
+            print("⚠ 改行も <br> も無い短いテキスト。シェルに切られていないか確認すること。"
+                  "\n   安全な方法: --clipboard", file=sys.stderr)
 
     lines = LJ.text_to_lines(text, auto_marker=not args.no_auto_marker)
     doc = LJ.build_doc(song_id, lines, args.source or LJ.default_source(), args.note)
