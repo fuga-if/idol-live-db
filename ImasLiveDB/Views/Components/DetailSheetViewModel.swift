@@ -35,21 +35,38 @@ final class DetailSheetViewModel {
     /// similarTagSongs の song.id → 共有タグ数。
     private(set) var similarSharedTags: [String: Int] = [:]
 
+    // MARK: - 歌詞 (メモリのみ。束ね取得に同梱される)
+    /// ⚠️ JASRAC 許諾の条件により、ここに載った歌詞をディスクへ書き出す経路を作らないこと
+    /// (バックアップ・共有画像・ウィジェットブリッジ含む)。`Models/Lyrics.swift` の注記を参照。
+    private(set) var lyrics: Lyrics?
+
+    /// サーバ側データ (タグ / 類似曲 / ペンライト / 歌詞) の取得状態。
+    /// 束ね 1 本で取るので状態も 1 つ。歌詞タブがローディング / 失敗の出し分けに使う。
+    enum ServerDataState: Equatable {
+        case loading
+        case loaded
+        case failed(String)
+    }
+    private(set) var serverDataState: ServerDataState = .loading
+
     private let songReading: any SongReading
     private let brandReading: any BrandReading
     private let unitReading: any UnitReading
     private let showReading: any ShowReading
+    private let songDetailReading: any SongDetailReading
 
     nonisolated init(
         songReading: any SongReading = AppContainer.shared.songReading,
         brandReading: any BrandReading = AppContainer.shared.brandReading,
         unitReading: any UnitReading = AppContainer.shared.unitReading,
-        showReading: any ShowReading = AppContainer.shared.showReading
+        showReading: any ShowReading = AppContainer.shared.showReading,
+        songDetailReading: any SongDetailReading = AppContainer.shared.songDetailReading
     ) {
         self.songReading = songReading
         self.brandReading = brandReading
         self.unitReading = unitReading
         self.showReading = showReading
+        self.songDetailReading = songDetailReading
     }
 
     // MARK: - Loads (5系統)
@@ -73,9 +90,37 @@ final class DetailSheetViewModel {
             Logger.database.error("load_failed song_details: \(error.localizedDescription)")
         }
         artworkInfo = await MusicKitService.shared.fetchSongInfo(title: song.title, appleMusicId: song.appleMusicId)
-        await loadPenlightVotes(song: song)
-        await loadSongTags(song: song)
-        await loadSimilarSongs(song: song)
+        await loadServerData(song: song)
+    }
+
+    /// 曲詳細で要るサーバ側データを **1 リクエスト**で取る (`GET /songs/{id}/detail`)。
+    ///
+    /// 以前はタグ / 類似曲 / ペンライトで 3 本叩いていた。曲詳細は最も開かれる画面なので、
+    /// Worker 無料枠 (10万リクエスト/日) をここだけで食い潰さないよう束ねに置き換えた。
+    /// 歌詞も同梱されるため、歌詞タブを常時読み込みにしてもリクエストは増えない。
+    ///
+    /// 個々の要素の nil は**エラーではなく「今は無い」**。空状態を出せばよい。
+    /// `.failed` は通信そのものが失敗した時だけ。
+    ///
+    /// 束ねの結果は TTL キャッシュしない (曲を開くたびに 1 リクエスト)。束ねには
+    /// my_vote / my_tag_ids といった自分の状態が入っており、投票やタグ付けのたびに
+    /// 曲単位で無効化しないと開き直した時に古い自分の票が出る。1 オープン 1
+    /// リクエストという単純な上限のほうが、無効化漏れで嘘を表示するより安全。
+    func loadServerData(song: Song) async {
+        serverDataState = .loading
+        do {
+            let bundle = try await songDetailReading.songDetail(songId: song.id)
+            songTagData = bundle.tags
+            penlightVotes = bundle.penlight
+            lyrics = bundle.lyrics
+            await applySimilarSongs(bundle.similar)
+            serverDataState = .loaded
+        } catch {
+            Logger.database.error("load_failed song_detail_bundle: \(error.localizedDescription)")
+            serverDataState = .failed(
+                (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            )
+        }
     }
 
     /// コーレス / 参考動画をローカル DB から再読込する (投稿/編集成功後の反映)。
@@ -88,13 +133,13 @@ final class DetailSheetViewModel {
         }
     }
 
-    /// タグ類似のおすすめ楽曲をサーバから取得し、ローカル DB で Song に解決する。
+    /// 束ねに入っていたタグ類似のおすすめ楽曲を、ローカル DB で Song に解決する。
     ///
     /// サーバは候補を近い順に多め (30 件) 返すので、そこから表示分を**毎回抽選**する。
     /// 近さを重みにした重み付き抽選なので、似ている曲が中心に出つつ、
     /// 少しだけタグが被っている曲もときどき混ざる。曲を開き直すと顔ぶれが変わる。
-    func loadSimilarSongs(song: Song) async {
-        guard let response = try? await CommunityAPI.shared.similarSongsByTags(songId: song.id) else { return }
+    private func applySimilarSongs(_ response: SimilarSongsResponse?) async {
+        guard let response else { return }
         let picked = WeightedSampling.pick(
             response.songs, count: Self.similarSongsDisplayCount, weight: \.pickWeight)
         let ids = picked.map(\.songId)
@@ -109,10 +154,23 @@ final class DetailSheetViewModel {
     /// おすすめとして画面に出す件数。候補はサーバから多めに取り、ここまで絞る。
     private static let similarSongsDisplayCount = 6
 
+    // MARK: - 変更後の再取得 (あえて個別エンドポイントを使う)
+    //
+    // 投票 / タグ付けの直後に更新が要るのは**その 1 系統だけ**。ここで束ね
+    // (`/songs/{id}/detail`) を叩き直すと、変わっていない類似曲や歌詞まで丸ごと取り直す
+    // ことになり、束ねでリクエストを減らした意味が薄れる (しかも歌詞は重い)。
+    // 初回ロードは束ね 1 本、以後の部分更新は個別 1 本、が最小になる。
+    // サーバ側の個別エンドポイントは残るので、この経路は今後も有効。
+
+    /// ペンライト投票の集計を取り直す (投票 / 取消の直後)。
     func loadPenlightVotes(song: Song) async {
         penlightVotes = try? await CommunityAPI.shared.penlightVotes(songId: song.id)
     }
 
+    /// 曲タグ一覧を取り直す (タグ付け / 取り外しの直後)。
+    ///
+    /// 類似曲もタグ分布に依存するが、1 人のタグ付けで並びが変わるほどではないので
+    /// ここでは取り直さない (次に曲を開いた時の束ねで反映される)。
     func loadSongTags(song: Song) async {
         songTagData = try? await CommunityAPI.shared.songTags(songId: song.id)
     }

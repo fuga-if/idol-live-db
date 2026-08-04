@@ -18,11 +18,15 @@ private final class LyricsBox {
 ///
 /// 1. `URLSession.shared` を使わない。共有セッションはディスク上の `URLCache` を持つので、
 ///    レスポンス本文 (= 歌詞) が Caches ディレクトリに書かれてしまう。
-///    ここでは `.ephemeral` + `urlCache = nil` + `reloadIgnoringLocalAndRemoteCacheData` の
-///    専用セッションを使い、ディスクにもメモリキャッシュにも一切残さない。
-/// 2. 保持は `NSCache` (countLimit 8) のみ。ここに載るのは `Lyrics` の値であって永続化経路は無い。
-/// 3. バックグラウンド遷移 (`ImasLiveDBApp` の scenePhase == .background) と
-///    メモリ警告で `purge()` して即座に捨てる。
+///    `APIClient.noDiskCache` (`.ephemeral` + `urlCache = nil` +
+///    `reloadIgnoringLocalAndRemoteCacheData`) を使い、ディスクにもメモリキャッシュにも
+///    一切残さない。歌詞を同梱する束ね取得 (`SongDetailAPI`) も同じクライアントを共有する。
+/// 2. 保持は `NSCache` のみ。ここに載るのは `Lyrics` の値であって永続化経路は無い。
+///    件数ではなくバイト数で上限を持たせている (`totalCostLimit`)。歌詞は 1 曲
+///    数 KB なので件数で絞る意味が薄く、絞ると読み返すたびに再取得が走る。
+/// 3. メモリ逼迫時は `NSCache` が自動で evict する。加えてメモリ警告でも捨てる。
+///    バックグラウンド遷移では捨てない — 制約は「ディスクに書かない」ことであって
+///    RAM の保持時間ではなく、捨てると復帰のたびに再取得が走るだけだから。
 ///
 /// 認証・401 自動リフレッシュ・エラー分類は `APIClient` に委ねる (セッションだけ差し替える)。
 actor LyricsAPI {
@@ -33,21 +37,18 @@ actor LyricsAPI {
         return api
     }()
 
-    /// 歌詞専用の APIClient。ディスクキャッシュを持たないセッションで組み立てる。
-    private let client: APIClient
+    /// 歌詞を含むレスポンス専用の APIClient (ディスクキャッシュ無しセッション)。
+    private let client = APIClient.noDiskCache
 
-    /// メモリのみの LRU。歌詞は 1 曲ぶんが大きくないので 8 曲で十分。
+    /// メモリのみのキャッシュ。上限はバイト数で持つ (§2)。
+    /// 16MB は全 2,685 曲を載せてもなお余る見積り (1 曲あたり数 KB)。
+    /// 実際には見た曲しか載らないので、この上限に当たることはまず無い。
+    private static let cacheCostLimit = 16 * 1024 * 1024
     private let cache = NSCache<NSString, LyricsBox>()
 
     private init() {
-        let config = URLSessionConfiguration.ephemeral
-        // ephemeral は既にディスクを使わないが、意図を型で残すため明示的に潰す。
-        config.urlCache = nil
-        config.requestCachePolicy = .reloadIgnoringLocalAndRemoteCacheData
-        config.httpCookieStorage = nil
-        config.urlCredentialStorage = nil
-        self.client = APIClient(session: URLSession(configuration: config))
-        cache.countLimit = 8
+        cache.countLimit = 0                       // 件数では絞らない
+        cache.totalCostLimit = Self.cacheCostLimit
     }
 
     /// メモリ警告で歌詞を捨てる。`NSCache` 自体もメモリ逼迫で evict するが、
@@ -78,7 +79,7 @@ actor LyricsAPI {
                 path: "/songs/\(songId)/lyrics",
                 authorized: true
             )
-            cache.setObject(LyricsBox(lyrics), forKey: key)
+            cache.setObject(LyricsBox(lyrics), forKey: key, cost: Self.cost(of: lyrics))
             return lyrics
         } catch APIClientError.notFound {
             // 歌詞が用意されていない曲。エラーではなく「無い」。
@@ -87,6 +88,12 @@ actor LyricsAPI {
             logger.warning("lyrics_fetch_failed: \(error.localizedDescription)")
             throw error
         }
+    }
+
+    /// キャッシュ上の重み。UTF-8 バイト数に Swift の String/配列オーバーヘッド分を
+    /// ざっくり上乗せする。正確である必要はなく、暴走しない目安があればよい。
+    private static func cost(of lyrics: Lyrics) -> Int {
+        lyrics.lines.reduce(0) { $0 + $1.text.utf8.count + 64 }
     }
 
     /// メモリ上の歌詞を全て破棄する。

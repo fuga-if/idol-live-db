@@ -630,6 +630,11 @@ struct ImasSegmented<Selection: Hashable>: View {
                     Text(label(option))
                         .font(.imasScaled( 13.5, weight: .semibold))
                         .foregroundStyle(on ? DS.ink : DS.ink2)
+                        // 4 タブ (楽曲詳細) や大きめの Dynamic Type でも「コミュニティ」等が
+                        // 途中で切れないよう、1 行のまま少しだけ縮める。
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                        .padding(.horizontal, 2)   // 4 タブ時に端の文字が枠に貼り付かないように
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 6)
                         .background(on ? AnyShapeStyle(DS.surface) : AnyShapeStyle(.clear),

@@ -62,3 +62,30 @@ struct Lyrics: Decodable, Sendable, Hashable {
     /// 表示すべき本文行が 1 行でもあるか (マーカー/空行しか無い場合は「歌詞なし」扱い)。
     var hasContent: Bool { lines.contains { $0.kind == .lyric && !$0.text.isEmpty } }
 }
+
+extension Lyrics {
+    private enum CodingKeys: String, CodingKey {
+        case songId, source, updatedAt, lines
+    }
+
+    /// 単体取得 (`/songs/{id}/lyrics`) は `songId` を含むが、束ね取得
+    /// (`/songs/{id}/detail`) の入れ子は含まない形もありうる。欠けていても落とさず
+    /// 空文字で受け、束ね側が `resolvingSongId(_:)` で補う。
+    ///
+    /// ⚠️ `init(from:)` は**必ず extension 側に置く**こと。型本体に書くとメンバーワイズ
+    /// イニシャライザが消え、`resolvingSongId` / フェイク実装が組み立てられなくなる。
+    init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(
+            songId: try c.decodeIfPresent(String.self, forKey: .songId) ?? "",
+            source: try c.decodeIfPresent(String.self, forKey: .source),
+            updatedAt: try c.decodeIfPresent(Int.self, forKey: .updatedAt),
+            lines: try c.decodeIfPresent([LyricLine].self, forKey: .lines) ?? []
+        )
+    }
+
+    /// `songId` が空 (束ねの入れ子で省略された) なら曲 ID を補った複製を返す。
+    func resolvingSongId(_ id: String) -> Lyrics {
+        songId.isEmpty ? Lyrics(songId: id, source: source, updatedAt: updatedAt, lines: lines) : self
+    }
+}

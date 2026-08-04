@@ -21,6 +21,7 @@ import { getAuthUser } from "../auth";
 import { checkRateLimit, dryCheckIpRateLimit, commitIpRateLimit } from "../rate_limit";
 import { checkIsAdmin } from "../users";
 import type { RouteContext } from "./context";
+import type { Env } from "../env";
 
 // tools/lyrics/lyrics_json.py の MAX_LINES / MAX_LINE_CHARS と同値にしてある。
 // 手元の検証を通ったものがサーバで弾かれる (またはその逆) 状態を作らないため。
@@ -153,6 +154,29 @@ function validateLyricsBody(body: unknown): string | null {
   return null;
 }
 
+/** 長さに依存しない比較。トークンの推測を時間差から助けない。 */
+function timingSafeEqual(a: string, b: string): boolean {
+  const ea = new TextEncoder().encode(a);
+  const eb = new TextEncoder().encode(b);
+  if (ea.length !== eb.length) return false;
+  let diff = 0;
+  for (let i = 0; i < ea.length; i++) diff |= ea[i] ^ eb[i];
+  return diff === 0;
+}
+
+/** 歌詞の書き込み権限。運用者トークン、または admin のセッション JWT。
+ *  レート制限の主体に使う文字列を返す (拒否なら null)。 */
+async function authorizeLyricsWrite(request: Request, env: Env): Promise<string | null> {
+  const pushToken = request.headers.get("X-Push-Token");
+  if (pushToken && env.LYRICS_PUSH_TOKEN && timingSafeEqual(pushToken, env.LYRICS_PUSH_TOKEN)) {
+    // 運用者は1人なので固定の主体でよい。uid 空間と衝突しない名前にする。
+    return "__lyrics_push__";
+  }
+  const user = await getAuthUser(request, env);
+  if (!user) return null;
+  return (await checkIsAdmin(env, user.uid)) ? user.uid : null;
+}
+
 export async function handleLyrics(ctx: RouteContext): Promise<Response | null> {
   const { request, env, path, json, error, rateLimitResponse, rateLimitSimple } = ctx;
 
@@ -201,9 +225,13 @@ export async function handleLyrics(ctx: RouteContext): Promise<Response | null> 
   // ----------------------------------------------------------------
   const putMatch = path.match(/^\/admin\/lyrics\/([^/]+)$/);
   if (putMatch && request.method === "PUT") {
-    const user = await getAuthUser(request, env);
-    if (!user) return error("Unauthorized", 401);
-    if (!(await checkIsAdmin(env, user.uid))) return error("Forbidden", 403);
+    // 認証は2経路。どちらかを満たせばよい。
+    //   1. 運用者トークン (X-Push-Token) — 歌詞投入 CLI 用。env.LYRICS_PUSH_TOKEN。
+    //   2. admin のセッション JWT — 将来アプリ側に投入 UI を作った場合用。
+    // 1 を用意しているのは、投入が運用者のコマンド操作であって、そのために
+    // ユーザーのセッション JWT を端末から持ち出すのが筋悪だから。
+    const subject = await authorizeLyricsWrite(request, env);
+    if (!subject) return error("Unauthorized", 401);
 
     let songId: string;
     try {
@@ -218,7 +246,7 @@ export async function handleLyrics(ctx: RouteContext): Promise<Response | null> 
     const invalid = validateLyricsBody(body);
     if (invalid) return error(invalid, 400);
 
-    const rl = await checkRateLimit(env.DB, user.uid, "lyrics_admin");
+    const rl = await checkRateLimit(env.DB, subject, "lyrics_admin");
     if (!rl.allowed) return rateLimitResponse(rl.used, rl.limit, rl.reset_at);
 
     const { source, status, lines } = body as {

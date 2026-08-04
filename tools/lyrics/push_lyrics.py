@@ -26,7 +26,9 @@ CloudKit のいずれにも入れない。JASRAC 許諾の条件が「ユーザ�
 --all でも1曲ずつ PUT を投げる。
 
 トークン:
-    ~/.config/imas/admin_token に管理者のセッション JWT を1行で置く。
+    ~/.config/imas/lyrics_push_token に運用者トークンを1行で置く。
+    Worker 側は `npx wrangler secret put LYRICS_PUSH_TOKEN` で同じ値を設定する。
+    (admin のセッション JWT を ~/.config/imas/admin_token に置く旧方式も使える)
     コマンドライン引数や環境変数で歌詞・トークンを渡す経路は作らない
     (ps / シェル履歴に残るため)。
 """
@@ -44,7 +46,12 @@ import urllib.request
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
 JSON_DIR = os.path.join(REPO, "lyrics_local", "lyrics")
-TOKEN_PATH = os.path.expanduser("~/.config/imas/admin_token")
+# 運用者トークン。Worker の LYRICS_PUSH_TOKEN と同じ値を置く。
+# アプリからは歌詞を直接投入できない (提案のみ) ので、ユーザーのセッション JWT を
+# 端末から持ち出す必要がないようにこちらを既定にしている。
+TOKEN_PATH = os.path.expanduser("~/.config/imas/lyrics_push_token")
+# 後方互換: admin のセッション JWT でも投入できる。
+LEGACY_TOKEN_PATH = os.path.expanduser("~/.config/imas/admin_token")
 # ImasLiveDB/Services/APIEndpoints.swift の baseURL と同じ本番 Worker。
 DEFAULT_BASE_URL = "https://imas-live-api.tokata3011.workers.dev"
 
@@ -70,12 +77,17 @@ def ensure_gitignored():
 
 
 def read_token(path):
+    if not os.path.exists(path) and path == TOKEN_PATH and os.path.exists(LEGACY_TOKEN_PATH):
+        path = LEGACY_TOKEN_PATH          # admin JWT の旧方式にも対応する
     if not os.path.exists(path):
         sys.exit(
-            "✗ 管理者トークンが無い: %s\n"
-            "  アプリでログインして得たセッション JWT を1行で置くこと:\n"
+            "✗ 投入トークンが無い: %s\n\n"
+            "  運用者トークンを作って両側に設定する:\n"
+            "    TOKEN=$(python3 -c \"import secrets;print(secrets.token_urlsafe(32))\")\n"
             "    mkdir -p ~/.config/imas && chmod 700 ~/.config/imas\n"
-            "    printf '%%s' '<JWT>' > %s && chmod 600 %s" % (path, path, path)
+            "    printf '%%s' \"$TOKEN\" > %s && chmod 600 %s\n"
+            "    cd imas-live-api && printf '%%s' \"$TOKEN\" | npx wrangler secret put LYRICS_PUSH_TOKEN\n"
+            % (path, path, path)
         )
     with open(path, encoding="utf-8") as f:
         token = f.read().strip()
@@ -129,8 +141,14 @@ def put_lyrics(base_url, token, song_id, payload):
         data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
         method="PUT",
         headers={
+            # Cloudflare のボット保護が既定の "Python-urllib/x.y" を
+            # 403 (error code 1010) で弾くので、素性の分かる UA を明示する。
+            "User-Agent": "imas-lyrics-push/1.0",
             "Content-Type": "application/json; charset=utf-8",
-            "Authorization": "Bearer " + token,
+            # 運用者トークンは X-Push-Token、セッション JWT は Authorization で送る。
+            # JWT は "eyJ" (base64 の '{"') で始まるので、それで見分ける。
+            **({"Authorization": "Bearer " + token} if token.startswith("eyJ")
+               else {"X-Push-Token": token}),
         },
     )
     try:
