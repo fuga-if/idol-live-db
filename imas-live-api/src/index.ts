@@ -10,6 +10,7 @@ import { handleDeviceAggregates } from "./routes/device_aggregates";
 import { handlePolls } from "./routes/polls";
 import { handleTags } from "./routes/tags";
 import { handleLyrics } from "./routes/lyrics";
+import { handleLyricsCalls } from "./routes/calls";
 import { handleSongDetail } from "./routes/song_detail";
 import { handleSetlistPredictions } from "./routes/setlist_predictions";
 import { fetchBadges, calcTier } from "./badges";
@@ -516,6 +517,7 @@ export default {
             // 歌詞は 1 リクエスト 1 曲・認証必須 (JASRAC 許諾の「一括ダウンロード不可」)。
             "GET /songs/:song_id/lyrics",
             "PUT /admin/lyrics/:song_id",
+            "PUT /songs/:song_id/calls",
           ],
         });
       }
@@ -1169,6 +1171,16 @@ export default {
         request, env, url, path, json, error, rateLimitResponse, rateLimitSimple,
       });
       if (lyricsResponse) return lyricsResponse;
+
+      // ----------------------------------------------------------------
+      // コールガイド保存 (PUT /songs/:id/calls) は routes/calls.ts へ。
+      // 読み出しは専用エンドポイントを作らず、歌詞応答 (上の GET と /detail) に
+      // clap / calls が含まれる形にしてある。
+      // ----------------------------------------------------------------
+      const callsResponse = await handleLyricsCalls({
+        request, env, url, path, json, error, rateLimitResponse, rateLimitSimple,
+      });
+      if (callsResponse) return callsResponse;
 
       // ----------------------------------------------------------------
       // GET /songs/:song_id/detail — 曲詳細の集計を 1 リクエストに束ねる

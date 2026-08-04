@@ -59,6 +59,9 @@ const LIMITS: Record<string, number> = {
   // lyrics_admin: PUT /admin/lyrics/:id。投入ツールが1曲1リクエストで流すため、
   // 一括投入が枠で止まらないよう十分広く取る (admin しか叩けない)。
   lyrics_admin: 5000,
+  // lyrics_calls: PUT /songs/:id/calls。コール編集は 1 曲を何度も保存し直す作業なので
+  // 歌詞投入より試行回数が多い。admin しか叩けないため広く取る。
+  lyrics_calls: 5000,
 };
 
 /**

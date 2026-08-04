@@ -20,6 +20,8 @@
 import { getAuthUser } from "../auth";
 import { checkRateLimit, dryCheckIpRateLimit, commitIpRateLimit } from "../rate_limit";
 import { checkIsAdmin } from "../users";
+import { carryOverAnnotation } from "../lyrics_calls";
+import type { ClapKind, LyricCall } from "../lyrics_calls";
 import type { RouteContext } from "./context";
 import type { Env } from "../env";
 
@@ -36,13 +38,20 @@ const LYRIC_STATUSES = new Set(["draft", "published"]);
 /** 歌詞応答は端末にもエッジにも残さない (許諾条件の「一括ダウンロード不可」の実効性)。 */
 export const NO_STORE: Record<string, string> = { "Cache-Control": "no-store" };
 
-interface LyricLineRow {
+export interface LyricLineRow {
   id: string;
   ord: number;
   kind: string;
   text: string;
   section: string | null;
   start_ms: number | null;
+  /** migration 0027 が書いた行だけキーが startMs になっている (下の buildLyricsPayload 参照)。 */
+  startMs?: number | null;
+  // ---- コールガイド (src/lyrics_calls.ts が唯一の実装) ----
+  // コールは歌詞行と同じ JSON に埋める。別テーブルにすると、歌詞 1 曲の取得を
+  // D1 の行読み取り 1 回に収めるという lines_json の存在理由が壊れる。
+  clap?: ClapKind | null;
+  calls?: LyricCall[];
 }
 
 /**
@@ -73,7 +82,13 @@ export function buildLyricsPayload(
       text: l.text,
       section: l.section,
       // start_ms は将来の再生連動用。書き込み経路が無いので現状は常に null。
-      startMs: l.start_ms,
+      // migration 0027 が JSON 化した行だけキーが startMs なので両方を見る。
+      startMs: l.start_ms ?? l.startMs ?? null,
+      // ---- コールガイド ----
+      // 保存済みの値をそのまま通す (検証は書き込み時に済ませてある)。コール未設定の曲・
+      // 0027 以前から在る行では clap: null / calls: [] になる。
+      clap: l.clap ?? null,
+      calls: l.calls ?? [],
     })),
   };
 }
@@ -144,7 +159,12 @@ function validateLyricsBody(body: unknown): string | null {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     if (!line || typeof line !== "object") return `lines[${i}] must be an object`;
-    const { kind, text, section } = line as Record<string, unknown>;
+    const { kind, text, section, clap, calls } = line as Record<string, unknown>;
+    // コールはこの経路では受け取らない。歌詞の差し替えでは既存行から自動で引き継ぐので、
+    // ここで受けると「送ったのに反映されない」か「引き継ぎと二重管理」のどちらかになる。
+    if (clap !== undefined || calls !== undefined) {
+      return `lines[${i}]: clap/calls must be sent to PUT /songs/:song_id/calls`;
+    }
     if (kind !== undefined && (typeof kind !== "string" || !LINE_KINDS.has(kind))) {
       return `lines[${i}].kind must be one of lyric/marker/blank`;
     }
@@ -175,8 +195,9 @@ function timingSafeEqual(a: string, b: string): boolean {
 }
 
 /** 歌詞の書き込み権限。運用者トークン、または admin のセッション JWT。
- *  レート制限の主体に使う文字列を返す (拒否なら null)。 */
-async function authorizeLyricsWrite(request: Request, env: Env): Promise<string | null> {
+ *  レート制限の主体に使う文字列を返す (拒否なら null)。
+ *  コール保存 (routes/calls.ts) も同じ権限で通す。判定を 2 か所に増やさないこと。 */
+export async function authorizeLyricsWrite(request: Request, env: Env): Promise<string | null> {
   const pushToken = request.headers.get("X-Push-Token");
   if (pushToken && env.LYRICS_PUSH_TOKEN && timingSafeEqual(pushToken, env.LYRICS_PUSH_TOKEN)) {
     // 運用者は1人なので固定の主体でよい。uid 空間と衝突しない名前にする。
@@ -301,15 +322,23 @@ export async function handleLyrics(ctx: RouteContext): Promise<Response | null> 
       ).bind(songId, source ?? null, status, status),
     ];
 
-    const nextLines: LyricLineRow[] = lines.map((line, i) => ({
-      id: existing[i]?.id ?? "ll_" + crypto.randomUUID(),
-      ord: i,
-      kind: line.kind ?? "lyric",
-      text: line.text ?? "",
-      section: line.section ?? null,
-      // 同じ位置に既存行があればタイミングを引き継ぐ。本文だけ直したときに消えない。
-      start_ms: existing[i]?.start_ms ?? null,
-    }));
+    const nextLines: LyricLineRow[] = lines.map((line, i) => {
+      const text = line.text ?? "";
+      // 行 ID と同じ規則 (ord 順で同じ位置の旧行) で clap/calls も引き継ぐ。
+      // 本文が変わってアンカーがズレたコールには stale が立つ (消さない)。
+      const annotation = carryOverAnnotation(existing[i], text);
+      return {
+        id: existing[i]?.id ?? "ll_" + crypto.randomUUID(),
+        ord: i,
+        kind: line.kind ?? "lyric",
+        text,
+        section: line.section ?? null,
+        // 同じ位置に既存行があればタイミングを引き継ぐ。本文だけ直したときに消えない。
+        start_ms: existing[i]?.start_ms ?? existing[i]?.startMs ?? null,
+        clap: annotation.clap,
+        calls: annotation.calls,
+      };
+    });
 
     statements.push(
       env.DB.prepare("UPDATE song_lyrics SET lines_json = ? WHERE song_id = ?")
