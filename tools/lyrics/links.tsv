@@ -1,54 +1,54 @@
 song_id	title	artist	setlist_count	lyrics_url	candidate_url	candidate_title	confidence	note
-cg_お願いシンデレラ	お願い！シンデレラ	CINDERELLA PROJECT	169		https://www.uta-net.com/song/311179/	島村卯月(大橋彩香)、小日向美穂(津田美波)、三村かな子(大坪由佳)、渋谷凛(福原綾香)、多田李衣菜(青木瑠璃子)、神崎蘭子(内田真礼)、本田未央(原紗友里)、城ヶ崎美嘉(佳村はるか)、城ヶ崎莉嘉(山本希望) お願い！シンデレラ(M@STER VERSION) 歌詞 - 歌ネット	ambiguous	同名曲のキャスト違いが多数(9人版/11人版/3人版/しんげきRemix)。tsvのartistは版名なしの単なる"CINDERELLA PROJECT"で、それに一致するプレーンなクレジットのページが見当たらない。Star!!/GOIN!!!/Shine!!は"CINDERELLA PROJECT"単独クレジットのページが存在するが、この曲だけは無い。9人版M@STER VERSIONを暫定候補とした
-sidem_drive_a_live	DRIVE A LIVE	315 ALLSTARS	136		https://www.uta-net.com/song/279041/	315 ALLSTARS DRIVE A LIVE 歌詞 - 歌ネット	high	タイトル・アーティストとも完全一致。しんげきの315STARS版(243330)等の紛らわしい別バージョンもあるが、tsvのartist表記(315 ALLSTARS)と厳密一致するのはこちら
-ml_thank_you	Thank You!	765 MILLIONSTARS 天海春香、春日未来、如月千早、木下ひなた、四条貴音、ジュリア、高山紗代子、田中琴葉、天空橋朋花、箱崎星梨花、松田亜利沙、三浦あずさ、水瀬伊織、最上静香、望月杏奈、矢吹可奈、エミリー スチュアート、大神環、我那覇響、菊地真、北上麗花、高坂海美、佐竹美奈子、島原エレナ、高槻やよい、永吉昴、野々原茜、馬場このみ、福田のり子、舞浜歩、真壁瑞希、百瀬莉緒、横山奈緒、秋月律子、伊吹翼、北沢志保、篠宮可憐、周防桃子、徳川まつり、所恵美、豊川風花、中谷育、七尾百合子、二階堂千鶴、萩原雪歩、伴田路子、双海亜美、双海真美、星井美希、宮尾美也	111		https://www.uta-net.com/song/145311/	765 MILLIONSTARS Thank You! 歌詞 - 歌ネット	high	tsvのartist冒頭が"765 MILLIONSTARS"でグループ名一致。同曲には765PRO ver./765 MILLION ALLSTARS ver.等の別バージョンもあるが、グループ名が完全一致するのはこちら
-765as_ready	READY!!	765PRO ALLSTARS	91		https://www.uta-net.com/song/117549/	765PRO ALLSTARS READY!!(M＠STER VERSION) 歌詞 - 歌ネット	high	タイトル・アーティスト一致。候補には(M@STER VERSION)表記が付くがアニメOPとして唯一の該当ページ
-765as_the_idolmster	THE IDOLM@STER	天海春香、菊地真、双海亜美、双海真美、星井美希	90		(候補なし)	天海春香(中村繪里子)、如月千早(今井麻美)、高槻やよい(仁後真耶子)、萩原雪歩(浅倉杏美)、菊地真(平田宏美)、双海亜美/真美(下田麻美)、水瀬伊織(釘宮理恵)、三浦あずさ(たかはし智秋)、秋月律子(若林直美) THE IDOLM@STER(M@STER VERSION -REMIX-) 歌詞 - 歌ネット	ambiguous	tsvのartistは5人(天海春香、菊地真、双海亜美、双海真美、星井美希)だが、検索で見つかるのは9人編成のREMIX版(275781)や2人のたろすけバスターNW MIX(334944)のみで、5人ちょうどの組み合わせのページが見当たらない
-sidem_beyond_the_dream	Beyond The Dream	天ヶ瀬冬馬、御手洗翔太、伊集院北斗、天道輝、桜庭薫、柏木翼、鷹城恭二、ピエール、渡辺みのり、伊瀬谷四季、秋山隼人、若里春名、冬美旬、榊夏来、蒼井享介、蒼井悠介、硲道夫、舞田類、山下次郎、華村翔真、猫柳キリオ、清澄九郎、握野英雄、木村龍、信玄誠司、紅井朱雀、黒野玄武、神谷幸広、東雲荘一郎、アスラン＝ベルゼビュートⅡ世、卯月巻緒、水嶋咲、都築圭、神楽麗、大河タケル、牙崎漣、円城寺道流、岡村直央、橘志狼、姫野かのん、秋月涼、九十九一希、兜大吾、葛之葉雨彦、北村想楽、古論クリス	77		https://www.uta-net.com/song/279040/	315 ALLSTARS Beyond The Dream 歌詞 - 歌ネット	high	tsvのartistはSideM全員(47名)の列挙で315 ALLSTARS(SideM全体ユニット名)と一致。DRAMATIC STARS & S.E.M Ver.等の部分ユニット版とは別物として区別
-ml_brand_new_theater	Brand New Theater!	765 MILLION ALLSTARS 天海春香、春日未来、如月千早、木下ひなた、四条貴音、ジュリア、高山紗代子、天空橋朋花、箱崎星梨花、松田亜利沙、三浦あずさ、水瀬伊織、最上静香、望月杏奈、矢吹可奈、エミリー スチュアート、大神環、我那覇響、菊地真、北上麗花、高坂海美、佐竹美奈子、島原エレナ、高槻やよい、永吉昴、野々原茜、馬場このみ、福田のり子、舞浜歩、真壁瑞希、百瀬莉緒、横山奈緒、秋月律子、伊吹翼、北沢志保、篠宮可憐、周防桃子、徳川まつり、所恵美、豊川風花、中谷育、七尾百合子、二階堂千鶴、萩原雪歩、ロコ、双海亜美、双海真美、星井美希、宮尾美也、白石紬、桜守歌織	65		https://www.uta-net.com/song/233282/	765 MILLION ALLSTARS Brand New Theater! 歌詞 - 歌ネット	high	tsvのartist冒頭"765 MILLION ALLSTARS"と一致。765PRO ALLSTARS版(269924)という紛らわしい別グループ名の同名曲があるので取り違え注意
-gakuen_初	初	花海咲季、月村手毬、藤田ことね、姫崎莉波、紫雲清夏、篠澤広、葛城リーリヤ、倉本千奈、有村麻央	64		https://www.uta-net.com/song/355031/	初星学園 初 歌詞 - 歌ネット	high	tsvのartistは初星学園所属9人の列挙で、初星学園(グループ名)クレジットのページと一致
-765as_go_my_way	GO MY WAY!!	天海春香、菊地真、星井美希、双海亜美、双海真美、水瀬伊織	56		https://www.uta-net.com/song/275780/	天海春香(中村繪里子)、高槻やよい(仁後真耶子)、水瀬伊織(釘宮理恵) GO MY WAY!! (M@STER VERSION) 歌詞 - 歌ネット	low	tsvのartistは6人(天海春香、菊地真、星井美希、双海亜美、双海真美、水瀬伊織)だが、見つかった候補は3人(天海春香、高槻やよい、水瀬伊織)で構成員が食い違う。ファミソン8BIT MIX(334942、高槻やよい・双海亜美/真美)も一致せず、6人版のページ自体が検索に出てこない
-765as_キラメキラリ	キラメキラリ	高槻やよい	54		https://www.uta-net.com/song/276475/	高槻やよい(仁後真耶子) キラメキラリ 歌詞 - 歌ネット	high	タイトル・アーティスト完全一致、他に紛らわしい候補なし
-sc_spread_the_wings	Spread the Wings!!	シャイニーカラーズ（櫻木真乃、風野灯織、八宮めぐる、月岡恋鐘、田中摩美々、白瀬咲耶、三峰結華、幽谷霧子、小宮果穂、園田智代子、西城樹里、杜野凛世、有栖川夏葉、大崎甘奈、大崎甜花、桑山千雪）	50		https://www.uta-net.com/song/250040/	シャイニーカラーズ Spread the Wings!! 歌詞 - 歌ネット	high	tsvのartist冒頭"シャイニーカラーズ"（16人列挙）とグループ名一致。放課後クライマックスガールズ版/illumination STARS版等のユニット別バージョンとは別物として区別
-765as_乙女よ大志を抱け	乙女よ大志を抱け！！	天海春香	45		https://www.uta-net.com/song/276469/	天海春香(中村繪里子) 乙女よ大志を抱け！！ 歌詞 - 歌ネット	high	タイトル・アーティスト完全一致
-ml_dreaming	Dreaming!	春日未来、最上静香、伊吹翼	44		https://www.uta-net.com/song/194742/	春日未来(山崎はるか)、最上静香(田所あずさ)、伊吹翼(Machico) Dreaming! 歌詞 - 歌ネット	high	3人の組み合わせが完全一致。MR remix版(212612、箱崎星梨花入り)とは別物として区別
-ml_素敵なキセキ	素敵なキセキ	春日未来	44		https://www.uta-net.com/song/148530/	春日未来(山崎はるか) 素敵なキセキ 歌詞 - 歌ネット	high	タイトル・アーティスト完全一致
-gakuen_campus_mode	Campus mode!!	花海咲季、月村手毬、藤田ことね、姫崎莉波、紫雲清夏、篠澤広、葛城リーリヤ、倉本千奈、有村麻央	43		https://www.uta-net.com/song/355775/	初星学園 Campus mode!! 歌詞 - 歌ネット	high	初星学園(グループ名)クレジットで一致
-cg_star	Star!!	CINDERELLA PROJECT [島村卯月、渋谷凛、本田未央、双葉杏、三村かな子、城ヶ崎莉嘉、神崎蘭子、前川みく、諸星きらり、多田李衣菜、赤城みりあ、新田美波、緒方智絵里、アナスタシア	39		https://www.uta-net.com/song/181076/	CINDERELLA PROJECT Star!! 歌詞 - 歌ネット	high	CINDERELLA PROJECT単独クレジットで一致。tsvのartist欄には14人の名前が付記されているが、これはうたネット側の版とは別に本アプリ側が付与した内部データと判断
-ml_precious_grain	Precious Grain	最上静香	38		https://www.uta-net.com/song/146949/	最上静香(田所あずさ) Precious Grain 歌詞 - 歌ネット	high	タイトル・アーティスト完全一致
-ml_welcome	Welcome!!	765 MILLION ALLSTARS 天海春香、春日未来、如月千早、木下ひなた、四条貴音、ジュリア、高山紗代子、田中琴葉、天空橋朋花、箱崎星梨花、松田亜利沙、三浦あずさ、水瀬伊織、最上静香、望月杏奈、矢吹可奈、エミリー スチュアート、大神環、我那覇響、菊地真、北上麗花、高坂海美、佐竹美奈子、島原エレナ、高槻やよい、永吉昴、野々原茜、馬場このみ、福田のり子、舞浜歩、真壁瑞希、百瀬莉緒、横山奈緒、秋月律子、伊吹翼、北沢志保、篠宮可憐、周防桃子、徳川まつり、所恵美、豊川風花、中谷育、七尾百合子、二階堂千鶴、萩原雪歩、ロコ、双海亜美、双海真美、星井美希、宮尾美也	38		https://www.uta-net.com/song/254657/	765 MILLION ALLSTARS Welcome!! 歌詞 - 歌ネット	high	tsvのartist冒頭"765 MILLION ALLSTARS"と一致
-765as_msterpiece	M@STERPIECE	765PRO ALLSTARS	36		https://www.uta-net.com/song/158899/	765PRO ALLSTARS M@STERPIECE 歌詞 - 歌ネット	high	タイトル・アーティスト完全一致。SHORT VERSION(161820)という別版もあるが、フルバージョンはこちら
-cg_goin	GOIN'!!!	CINDERELLA PROJECT [島村卯月、渋谷凛、本田未央、双葉杏、三村かな子、城ヶ崎莉嘉、神崎蘭子、前川みく、諸星きらり、多田李衣菜、赤城みりあ、新田美波、緒方智絵里、アナスタシア	36		https://www.uta-net.com/song/190993/	CINDERELLA PROJECT GOIN'!!! 歌詞 - 歌ネット	high	CINDERELLA PROJECT単独クレジットで一致
-765as_いっぱいいっぱい	いっぱいいっぱい	秋月律子	35		https://www.uta-net.com/song/260174/	秋月律子(若林直美) いっぱいいっぱい 歌詞 - 歌ネット	high	タイトル・アーティスト完全一致
-ml_diamond_days	DIAMOND DAYS	七尾百合子、天空橋朋花、箱崎星梨花、松田亜利沙、ロコ	35		https://www.uta-net.com/song/214189/	七尾百合子(伊藤美来)、天空橋朋花(小岩井ことり)、箱崎星梨花(麻倉もも)、松田亜利沙(村川梨衣)、ロコ(中村温姫) DIAMOND DAYS 歌詞 - 歌ネット	high	5人の組み合わせが完全一致。同名曲はMILLION C@STING版など多数あるが、tsvの5人と一致するのはこの版のみ
-ml_トキメキの音符になって	トキメキの音符になって	箱崎星梨花	35		https://www.uta-net.com/song/146951/	箱崎星梨花(麻倉もも) トキメキの音符になって 歌詞 - 歌ネット	high	タイトル・アーティスト完全一致
-765as_自分restrt	自分REST@RT	天海春香、星井美希、如月千早、高槻やよい、萩原雪歩、菊地真、双海真美、四条貴音、我那覇響	34		https://www.uta-net.com/song/275771/	天海春香(中村繪里子)、星井美希(長谷川明子)、如月千早(今井麻美)、高槻やよい(仁後真耶子)、萩原雪歩(長谷優里奈)、菊地真(平田宏美)、双海真美(下田麻美)、四条貴音(原由実)、我那覇響(沼倉愛美) 自分REST@RT (M@STER VERSION) 歌詞 - 歌ネット	high	9人の並び順まで含めてtsvのartist欄と完全一致
-765as_風花	風花	四条貴音	34		https://www.uta-net.com/song/275887/	四条貴音(原由実) 風花 歌詞 - 歌ネット	high	タイトル・アーティスト完全一致
-cg_never_say_never	Never say never	渋谷凛	34		https://www.uta-net.com/song/129033/	渋谷凛(福原綾香) Never say never 歌詞 - 歌ネット	high	タイトル・アーティスト完全一致
-cg_tulip	Tulip	LiPPS（速水奏、塩見周子、城ヶ崎美嘉、宮本フレデリカ、一ノ瀬志希）	33		https://www.uta-net.com/song/208264/	速水奏(飯田友子)、塩見周子(ルゥティン)、城ヶ崎美嘉(佳村はるか)、宮本フレデリカ(高野麻美)、一ノ瀬志希(藍原ことみ) Tulip(M@STER VERSION) 歌詞 - 歌ネット	high	LiPPSの5人構成員が完全一致。(M@STER VERSION)表記だが該当版はこれのみ
-cg_orange_sapphire	Orange Sapphire	城ヶ崎莉嘉、諸星きらり、城ヶ崎美嘉、本田未央、赤城みりあ	32		(候補なし)	-	not_found	「Orange Sapphire」単体でのヒットなし。BEYOND THE STARLIGHTやTreasure☆等の関連ワード検索でも歌ネットのページが出てこず、収録なしの可能性
-cg_smileing	S(mile)ING！	島村卯月	31		https://www.uta-net.com/song/290389/	島村卯月(大橋彩香) S(mile)ING！ 歌詞 - 歌ネット	high	タイトル・アーティスト完全一致
-765as_the_world_is_all_one_	The world is all one !!	765PRO ALLSTARS	30		https://www.uta-net.com/song/275772/	765PRO ALLSTARS The world is all one!! (M@STER VERSION) 歌詞 - 歌ネット	high	tsvは"The world is all one !!"(!!の前にスペース)だが表記ゆれのみで同一曲と判断
-sc_いつだって僕らは	いつだって僕らは	ノクチル（浅倉透、樋口円香、福丸小糸、市川雛菜）	30		https://www.uta-net.com/song/291085/	ノクチル いつだって僕らは 歌詞 - 歌ネット	high	タイトル・アーティスト（ノクチル=浅倉透・樋口円香・福丸小糸・市川雛菜のユニット名）一致
-765as_arcadia	arcadia	如月千早	29		https://www.uta-net.com/song/275894/	如月千早(今井麻美) arcadia 歌詞 - 歌ネット	high	タイトル・アーティスト完全一致
-765as_relations	relations	星井美希、如月千早	29		https://www.uta-net.com/song/275903/	星井美希(長谷川明子)、如月千早(今井麻美) relations (M@STER VERSION) 歌詞 - 歌ネット	high	2人の組み合わせが完全一致。如月千早ソロ版(273978)という紛らわしい別バージョンもあるが、tsvは2人指定なのでこちら
-sc_oh_my_god	OH MY GOD	シーズ（七草にちか、緋田美琴）	29		https://www.uta-net.com/song/310405/	シーズ OH MY GOD 歌詞 - 歌ネット	high	tsvのartist"シーズ（七草にちか、緋田美琴）"とグループ名一致
-sidem_バーニンクールで輝いて	バーニン・クールで輝いて	神速一魂（紅井朱雀、黒野玄武）	29		https://www.uta-net.com/song/206732/	神速一魂 バーニン・クールで輝いて 歌詞 - 歌ネット	high	tsvのartist"神速一魂（紅井朱雀、黒野玄武）"とグループ名一致
-765as_エージェント夜を往く	エージェント夜を往く	菊地真	28		https://www.uta-net.com/song/275905/	菊地真(平田宏美)、双海亜美/真美(下田麻美)、秋月律子(若林直美) エージェント夜を往く (M@STER VERSION) 歌詞 - 歌ネット	low	tsvのartistは菊地真のみ(ソロ表記)だが、見つかったページは3人編成(菊地真・双海亜美/真美・秋月律子)。他に該当曲が見当たらずこれが唯一の候補だが、tsv側の表記と構成人数が食い違う
-765as_オーバーマスター	オーバーマスター	星井美希、我那覇響、四条貴音	28		https://www.uta-net.com/song/275899/	星井美希(長谷川明子)、我那覇響(沼倉愛美)、四条貴音(原由実) オーバーマスター (M@STER VERSION) 歌詞 - 歌ネット	high	3人の組み合わせが完全一致。6人版(317277、玲音・詩花・亜夜を含むクロスオーバー版)という紛らわしい別バージョンもあるが、tsvの3人と一致するのはこちら
-765as_自転車	自転車	菊地真	28		https://www.uta-net.com/song/260166/	菊地真(平田宏美) 自転車 歌詞 - 歌ネット	high	タイトル・アーティスト完全一致
-cg_shine	Shine!!	CINDERELLA PROJECT [島村卯月、渋谷凛、本田未央、双葉杏、三村かな子、城ヶ崎莉嘉、神崎蘭子、前川みく、諸星きらり、多田李衣菜、赤城みりあ、新田美波、緒方智絵里、アナスタシア	28		https://www.uta-net.com/song/191750/	CINDERELLA PROJECT Shine!! 歌詞 - 歌ネット	high	CINDERELLA PROJECT単独クレジットで一致
-sc_wandering_dream_chaser	Wandering Dream Chaser	ストレイライト（芹沢あさひ、黛冬優子、和泉愛依）	28		https://www.uta-net.com/song/273887/	ストレイライト Wandering Dream Chaser 歌詞 - 歌ネット	high	tsvのartist"ストレイライト（芹沢あさひ、黛冬優子、和泉愛依）"とグループ名一致
-765as_the_idolmster_2nd-mix	THE IDOLM@STER 2nd-mix	天海春香、星井美希、萩原雪歩、我那覇響、四条貴音	27		(候補なし)	-	not_found	「THE IDOLM@STER」関連曲・リミックスのページは多数あるが、"2nd-mix"というバージョン名に一致するページが歌ネットに見当たらない
-cg_nation_blue	Nation Blue	渋谷凛、高垣楓、神崎蘭子、多田李衣菜、新田美波	27		(候補なし)	-	not_found	「Nation Blue」というタイトルで歌ネットに一致するページが見当たらない（関連ワードで再検索しても不一致）
-cg_yes_party_time	Yes! Party Time!!	島村卯月、渋谷凛、本田未央、赤城みりあ、安部菜々	27		https://www.uta-net.com/song/222743/	島村卯月(大橋彩香)、渋谷凛(福原綾香)、本田未央(原紗友里)、赤城みりあ(黒沢ともよ)、安部菜々(三宅麻理恵) Yes! Party Time!! (M@STER VERSION) 歌詞 - 歌ネット	high	5人の組み合わせが完全一致
-ml_flyers	Flyers!!!	765 MILLION ALLSTARS 天海春香、春日未来、如月千早、木下ひなた、四条貴音、ジュリア、高山紗代子、田中琴葉、天空橋朋花、箱崎星梨花、松田亜利沙、三浦あずさ、水瀬伊織、最上静香、望月杏奈、矢吹可奈、エミリー スチュアート、大神環、我那覇響、菊地真、北上麗花、高坂海美、佐竹美奈子、島原エレナ、高槻やよい、永吉昴、野々原茜、馬場このみ、福田のり子、舞浜歩、真壁瑞希、百瀬莉緒、横山奈緒、秋月律子、伊吹翼、北沢志保、篠宮可憐、周防桃子、徳川まつり、所恵美、豊川風花、中谷育、七尾百合子、二階堂千鶴、萩原雪歩、ロコ、双海亜美、双海真美、星井美希、宮尾美也、白石紬、桜守歌織	27		https://www.uta-net.com/song/271307/	765 MILLION ALLSTARS Flyers!!! 歌詞 - 歌ネット	high	tsvのartist冒頭"765 MILLION ALLSTARS"と一致
-sc_ambitious_eve	Ambitious Eve	シャイニーカラーズ（櫻木真乃、風野灯織、八宮めぐる、月岡恋鐘、田中摩美々、白瀬咲耶、三峰結華、幽谷霧子、小宮果穂、園田智代子、西城樹里、杜野凛世、有栖川夏葉、大崎甘奈、大崎甜花、桑山千雪）	27		https://www.uta-net.com/song/266132/	シャイニーカラーズ Ambitious Eve 歌詞 - 歌ネット	high	tsvのartist冒頭"シャイニーカラーズ"とグループ名一致。イルミネーションスターズ版/アンティーカ版/ストレイライト版等のユニット別バージョンとは別物として区別
-765as_空	空	音無小鳥	26		https://www.uta-net.com/song/275778/	音無小鳥(滝田樹里) 空 歌詞 - 歌ネット	high	タイトル・アーティスト完全一致
-cg_beyond_the_starlight	BEYOND THE STARLIGHT	城ヶ崎莉嘉、緒方智絵里、北条加蓮、川島瑞樹、大槻唯	26		https://www.uta-net.com/song/223207/	城ヶ崎莉嘉(山本希望)、緒方智絵里(大空直美)、北条加蓮(渕上舞)、川島瑞樹(東山奈央)、大槻唯(山下七海) BEYOND THE STARLIGHT 歌詞 - 歌ネット	high	5人の組み合わせが完全一致
-sc_dye_the_sky	Dye the sky.	シャイニーカラーズ（櫻木真乃、風野灯織、八宮めぐる、月岡恋鐘、田中摩美々、白瀬咲耶、三峰結華、幽谷霧子、小宮果穂、園田智代子、西城樹里、杜野凛世、有栖川夏葉、大崎甘奈、大崎甜花、桑山千雪、芹沢あさひ、黛冬優子、和泉愛依、浅倉透、樋口円香、福丸小糸、市川雛菜）	26		https://www.uta-net.com/song/284111/	シャイニーカラーズ Dye the sky. 歌詞 - 歌ネット	high	tsvのartist冒頭"シャイニーカラーズ"(23人列挙、ノクチル/ストレイライト含む全体曲)とグループ名一致
-sidem_moon_nightのせいにして	MOON NIGHTのせいにして	DRAMATIC STARS（天道輝、桜庭薫、柏木翼）	26		https://www.uta-net.com/song/211076/	DRAMATIC STARS MOON NIGHTのせいにして 歌詞 - 歌ネット	high	tsvのartist"DRAMATIC STARS（天道輝、桜庭薫、柏木翼）"とグループ名一致
-765as_alright	ALRIGHT*	萩原雪歩	25		https://www.uta-net.com/song/260167/	萩原雪歩(浅倉杏美) ALRIGHT* 歌詞 - 歌ネット	high	タイトル・アーティスト完全一致
+cg_お願いシンデレラ	お願い！シンデレラ	CINDERELLA PROJECT	169		https://www.uta-net.com/song/311179/	島村卯月(大橋彩香)、小日向美穂(津田美波)、三村かな子(大坪由佳)、渋谷凛(福原綾香)、多田李衣菜(青木瑠璃子)、神崎蘭子(内田真礼)、本田未央(原紗友里)、城ヶ崎美嘉(佳村はるか)、城ヶ崎莉嘉(山本希望) お願い！シンデレラ(M@STER VERSION) 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 18件
+sidem_drive_a_live	DRIVE A LIVE	315 ALLSTARS	136		https://www.uta-net.com/song/279041/	315 ALLSTARS DRIVE A LIVE 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+ml_thank_you	Thank You!	765 MILLIONSTARS 天海春香、春日未来、如月千早、木下ひなた、四条貴音、ジュリア、高山紗代子、田中琴葉、天空橋朋花、箱崎星梨花、松田亜利沙、三浦あずさ、水瀬伊織、最上静香、望月杏奈、矢吹可奈、エミリー スチュアート、大神環、我那覇響、菊地真、北上麗花、高坂海美、佐竹美奈子、島原エレナ、高槻やよい、永吉昴、野々原茜、馬場このみ、福田のり子、舞浜歩、真壁瑞希、百瀬莉緒、横山奈緒、秋月律子、伊吹翼、北沢志保、篠宮可憐、周防桃子、徳川まつり、所恵美、豊川風花、中谷育、七尾百合子、二階堂千鶴、萩原雪歩、伴田路子、双海亜美、双海真美、星井美希、宮尾美也	111		https://www.uta-net.com/song/145311/	765 MILLIONSTARS Thank You! 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 2件
+765as_ready	READY!!	765PRO ALLSTARS	91		https://www.uta-net.com/song/117549/	765PRO ALLSTARS READY!!(M＠STER VERSION) 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+765as_the_idolmster	THE IDOLM@STER	天海春香、菊地真、双海亜美、双海真美、星井美希	90		(候補なし)	天海春香(中村繪里子)、如月千早(今井麻美)、高槻やよい(仁後真耶子)、萩原雪歩(浅倉杏美)、菊地真(平田宏美)、双海亜美/真美(下田麻美)、水瀬伊織(釘宮理恵)、三浦あずさ(たかはし智秋)、秋月律子(若林直美) THE IDOLM@STER(M@STER VERSION -REMIX-) 歌詞 - 歌ネット	not_found	候補なし
+sidem_beyond_the_dream	Beyond The Dream	天ヶ瀬冬馬、御手洗翔太、伊集院北斗、天道輝、桜庭薫、柏木翼、鷹城恭二、ピエール、渡辺みのり、伊瀬谷四季、秋山隼人、若里春名、冬美旬、榊夏来、蒼井享介、蒼井悠介、硲道夫、舞田類、山下次郎、華村翔真、猫柳キリオ、清澄九郎、握野英雄、木村龍、信玄誠司、紅井朱雀、黒野玄武、神谷幸広、東雲荘一郎、アスラン＝ベルゼビュートⅡ世、卯月巻緒、水嶋咲、都築圭、神楽麗、大河タケル、牙崎漣、円城寺道流、岡村直央、橘志狼、姫野かのん、秋月涼、九十九一希、兜大吾、葛之葉雨彦、北村想楽、古論クリス	77		https://www.uta-net.com/song/279040/	315 ALLSTARS Beyond The Dream 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+ml_brand_new_theater	Brand New Theater!	765 MILLION ALLSTARS 天海春香、春日未来、如月千早、木下ひなた、四条貴音、ジュリア、高山紗代子、天空橋朋花、箱崎星梨花、松田亜利沙、三浦あずさ、水瀬伊織、最上静香、望月杏奈、矢吹可奈、エミリー スチュアート、大神環、我那覇響、菊地真、北上麗花、高坂海美、佐竹美奈子、島原エレナ、高槻やよい、永吉昴、野々原茜、馬場このみ、福田のり子、舞浜歩、真壁瑞希、百瀬莉緒、横山奈緒、秋月律子、伊吹翼、北沢志保、篠宮可憐、周防桃子、徳川まつり、所恵美、豊川風花、中谷育、七尾百合子、二階堂千鶴、萩原雪歩、ロコ、双海亜美、双海真美、星井美希、宮尾美也、白石紬、桜守歌織	65		https://www.uta-net.com/song/233282/	765 MILLION ALLSTARS Brand New Theater! 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+gakuen_初	初	花海咲季、月村手毬、藤田ことね、姫崎莉波、紫雲清夏、篠澤広、葛城リーリヤ、倉本千奈、有村麻央	64		https://www.uta-net.com/song/355031/	初星学園 初 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+765as_go_my_way	GO MY WAY!!	天海春香、菊地真、星井美希、双海亜美、双海真美、水瀬伊織	56		https://www.uta-net.com/song/275780/	天海春香(中村繪里子)、高槻やよい(仁後真耶子)、水瀬伊織(釘宮理恵) GO MY WAY!! (M@STER VERSION) 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 6件
+765as_キラメキラリ	キラメキラリ	高槻やよい	54		https://www.uta-net.com/song/276475/	高槻やよい(仁後真耶子) キラメキラリ 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 2件
+sc_spread_the_wings	Spread the Wings!!	シャイニーカラーズ（櫻木真乃、風野灯織、八宮めぐる、月岡恋鐘、田中摩美々、白瀬咲耶、三峰結華、幽谷霧子、小宮果穂、園田智代子、西城樹里、杜野凛世、有栖川夏葉、大崎甘奈、大崎甜花、桑山千雪）	50		https://www.uta-net.com/song/250040/	シャイニーカラーズ Spread the Wings!! 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+765as_乙女よ大志を抱け	乙女よ大志を抱け！！	天海春香	45		https://www.uta-net.com/song/276469/	天海春香(中村繪里子) 乙女よ大志を抱け！！ 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 2件
+ml_dreaming	Dreaming!	春日未来、最上静香、伊吹翼	44		https://www.uta-net.com/song/194742/	春日未来(山崎はるか)、最上静香(田所あずさ)、伊吹翼(Machico) Dreaming! 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 6件
+ml_素敵なキセキ	素敵なキセキ	春日未来	44		https://www.uta-net.com/song/148530/	春日未来(山崎はるか) 素敵なキセキ 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 2件
+gakuen_campus_mode	Campus mode!!	花海咲季、月村手毬、藤田ことね、姫崎莉波、紫雲清夏、篠澤広、葛城リーリヤ、倉本千奈、有村麻央	43		https://www.uta-net.com/song/355775/	初星学園 Campus mode!! 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+cg_star	Star!!	CINDERELLA PROJECT [島村卯月、渋谷凛、本田未央、双葉杏、三村かな子、城ヶ崎莉嘉、神崎蘭子、前川みく、諸星きらり、多田李衣菜、赤城みりあ、新田美波、緒方智絵里、アナスタシア	39		https://www.uta-net.com/song/181076/	CINDERELLA PROJECT Star!! 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+ml_precious_grain	Precious Grain	最上静香	38		https://www.uta-net.com/song/146949/	最上静香(田所あずさ) Precious Grain 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 2件
+ml_welcome	Welcome!!	765 MILLION ALLSTARS 天海春香、春日未来、如月千早、木下ひなた、四条貴音、ジュリア、高山紗代子、田中琴葉、天空橋朋花、箱崎星梨花、松田亜利沙、三浦あずさ、水瀬伊織、最上静香、望月杏奈、矢吹可奈、エミリー スチュアート、大神環、我那覇響、菊地真、北上麗花、高坂海美、佐竹美奈子、島原エレナ、高槻やよい、永吉昴、野々原茜、馬場このみ、福田のり子、舞浜歩、真壁瑞希、百瀬莉緒、横山奈緒、秋月律子、伊吹翼、北沢志保、篠宮可憐、周防桃子、徳川まつり、所恵美、豊川風花、中谷育、七尾百合子、二階堂千鶴、萩原雪歩、ロコ、双海亜美、双海真美、星井美希、宮尾美也	38		https://www.uta-net.com/song/254657/	765 MILLION ALLSTARS Welcome!! 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+765as_msterpiece	M@STERPIECE	765PRO ALLSTARS	36		https://www.uta-net.com/song/158899/	765PRO ALLSTARS M@STERPIECE 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+cg_goin	GOIN'!!!	CINDERELLA PROJECT [島村卯月、渋谷凛、本田未央、双葉杏、三村かな子、城ヶ崎莉嘉、神崎蘭子、前川みく、諸星きらり、多田李衣菜、赤城みりあ、新田美波、緒方智絵里、アナスタシア	36		https://www.uta-net.com/song/190993/	CINDERELLA PROJECT GOIN'!!! 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+765as_いっぱいいっぱい	いっぱいいっぱい	秋月律子	35		https://www.uta-net.com/song/260174/	秋月律子(若林直美) いっぱいいっぱい 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 2件
+ml_diamond_days	DIAMOND DAYS	七尾百合子、天空橋朋花、箱崎星梨花、松田亜利沙、ロコ	35		https://www.uta-net.com/song/214189/	七尾百合子(伊藤美来)、天空橋朋花(小岩井ことり)、箱崎星梨花(麻倉もも)、松田亜利沙(村川梨衣)、ロコ(中村温姫) DIAMOND DAYS 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 9件
+ml_トキメキの音符になって	トキメキの音符になって	箱崎星梨花	35		https://www.uta-net.com/song/146951/	箱崎星梨花(麻倉もも) トキメキの音符になって 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 2件
+765as_自分restrt	自分REST@RT	天海春香、星井美希、如月千早、高槻やよい、萩原雪歩、菊地真、双海真美、四条貴音、我那覇響	34		https://www.uta-net.com/song/275771/	天海春香(中村繪里子)、星井美希(長谷川明子)、如月千早(今井麻美)、高槻やよい(仁後真耶子)、萩原雪歩(長谷優里奈)、菊地真(平田宏美)、双海真美(下田麻美)、四条貴音(原由実)、我那覇響(沼倉愛美) 自分REST@RT (M@STER VERSION) 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 17件
+765as_風花	風花	四条貴音	34		https://www.uta-net.com/song/275887/	四条貴音(原由実) 風花 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 2件
+cg_never_say_never	Never say never	渋谷凛	34		https://www.uta-net.com/song/129033/	渋谷凛(福原綾香) Never say never 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 2件
+cg_tulip	Tulip	LiPPS（速水奏、塩見周子、城ヶ崎美嘉、宮本フレデリカ、一ノ瀬志希）	33		https://www.uta-net.com/song/208264/	速水奏(飯田友子)、塩見周子(ルゥティン)、城ヶ崎美嘉(佳村はるか)、宮本フレデリカ(高野麻美)、一ノ瀬志希(藍原ことみ) Tulip(M@STER VERSION) 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 9件
+cg_orange_sapphire	Orange Sapphire	城ヶ崎莉嘉、諸星きらり、城ヶ崎美嘉、本田未央、赤城みりあ	32		(候補なし)	-	not_found	候補なし
+cg_smileing	S(mile)ING！	島村卯月	31		https://www.uta-net.com/song/290389/	島村卯月(大橋彩香) S(mile)ING！ 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 2件
+765as_the_world_is_all_one_	The world is all one !!	765PRO ALLSTARS	30		https://www.uta-net.com/song/275772/	765PRO ALLSTARS The world is all one!! (M@STER VERSION) 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+sc_いつだって僕らは	いつだって僕らは	ノクチル（浅倉透、樋口円香、福丸小糸、市川雛菜）	30		https://www.uta-net.com/song/291085/	ノクチル いつだって僕らは 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+765as_arcadia	arcadia	如月千早	29		https://www.uta-net.com/song/275894/	如月千早(今井麻美) arcadia 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 2件
+765as_relations	relations	星井美希、如月千早	29		https://www.uta-net.com/song/275903/	星井美希(長谷川明子)、如月千早(今井麻美) relations (M@STER VERSION) 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 4件
+sc_oh_my_god	OH MY GOD	シーズ（七草にちか、緋田美琴）	29		https://www.uta-net.com/song/310405/	シーズ OH MY GOD 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+sidem_バーニンクールで輝いて	バーニン・クールで輝いて	神速一魂（紅井朱雀、黒野玄武）	29		https://www.uta-net.com/song/206732/	神速一魂 バーニン・クールで輝いて 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+765as_エージェント夜を往く	エージェント夜を往く	菊地真	28		https://www.uta-net.com/song/275905/	菊地真(平田宏美)、双海亜美/真美(下田麻美)、秋月律子(若林直美) エージェント夜を往く (M@STER VERSION) 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 6件
+765as_オーバーマスター	オーバーマスター	星井美希、我那覇響、四条貴音	28		https://www.uta-net.com/song/275899/	星井美希(長谷川明子)、我那覇響(沼倉愛美)、四条貴音(原由実) オーバーマスター (M@STER VERSION) 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 6件
+765as_自転車	自転車	菊地真	28		https://www.uta-net.com/song/260166/	菊地真(平田宏美) 自転車 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 2件
+cg_shine	Shine!!	CINDERELLA PROJECT [島村卯月、渋谷凛、本田未央、双葉杏、三村かな子、城ヶ崎莉嘉、神崎蘭子、前川みく、諸星きらり、多田李衣菜、赤城みりあ、新田美波、緒方智絵里、アナスタシア	28		https://www.uta-net.com/song/191750/	CINDERELLA PROJECT Shine!! 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+sc_wandering_dream_chaser	Wandering Dream Chaser	ストレイライト（芹沢あさひ、黛冬優子、和泉愛依）	28		https://www.uta-net.com/song/273887/	ストレイライト Wandering Dream Chaser 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+765as_the_idolmster_2nd-mix	THE IDOLM@STER 2nd-mix	天海春香、星井美希、萩原雪歩、我那覇響、四条貴音	27		(候補なし)	-	not_found	候補なし
+cg_nation_blue	Nation Blue	渋谷凛、高垣楓、神崎蘭子、多田李衣菜、新田美波	27		(候補なし)	-	not_found	候補なし
+cg_yes_party_time	Yes! Party Time!!	島村卯月、渋谷凛、本田未央、赤城みりあ、安部菜々	27		https://www.uta-net.com/song/222743/	島村卯月(大橋彩香)、渋谷凛(福原綾香)、本田未央(原紗友里)、赤城みりあ(黒沢ともよ)、安部菜々(三宅麻理恵) Yes! Party Time!! (M@STER VERSION) 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 10件
+ml_flyers	Flyers!!!	765 MILLION ALLSTARS 天海春香、春日未来、如月千早、木下ひなた、四条貴音、ジュリア、高山紗代子、田中琴葉、天空橋朋花、箱崎星梨花、松田亜利沙、三浦あずさ、水瀬伊織、最上静香、望月杏奈、矢吹可奈、エミリー スチュアート、大神環、我那覇響、菊地真、北上麗花、高坂海美、佐竹美奈子、島原エレナ、高槻やよい、永吉昴、野々原茜、馬場このみ、福田のり子、舞浜歩、真壁瑞希、百瀬莉緒、横山奈緒、秋月律子、伊吹翼、北沢志保、篠宮可憐、周防桃子、徳川まつり、所恵美、豊川風花、中谷育、七尾百合子、二階堂千鶴、萩原雪歩、ロコ、双海亜美、双海真美、星井美希、宮尾美也、白石紬、桜守歌織	27		https://www.uta-net.com/song/271307/	765 MILLION ALLSTARS Flyers!!! 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+sc_ambitious_eve	Ambitious Eve	シャイニーカラーズ（櫻木真乃、風野灯織、八宮めぐる、月岡恋鐘、田中摩美々、白瀬咲耶、三峰結華、幽谷霧子、小宮果穂、園田智代子、西城樹里、杜野凛世、有栖川夏葉、大崎甘奈、大崎甜花、桑山千雪）	27		https://www.uta-net.com/song/266132/	シャイニーカラーズ Ambitious Eve 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+765as_空	空	音無小鳥	26		https://www.uta-net.com/song/275778/	音無小鳥(滝田樹里) 空 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 2件
+cg_beyond_the_starlight	BEYOND THE STARLIGHT	城ヶ崎莉嘉、緒方智絵里、北条加蓮、川島瑞樹、大槻唯	26		https://www.uta-net.com/song/223207/	城ヶ崎莉嘉(山本希望)、緒方智絵里(大空直美)、北条加蓮(渕上舞)、川島瑞樹(東山奈央)、大槻唯(山下七海) BEYOND THE STARLIGHT 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 10件
+sc_dye_the_sky	Dye the sky.	シャイニーカラーズ（櫻木真乃、風野灯織、八宮めぐる、月岡恋鐘、田中摩美々、白瀬咲耶、三峰結華、幽谷霧子、小宮果穂、園田智代子、西城樹里、杜野凛世、有栖川夏葉、大崎甘奈、大崎甜花、桑山千雪、芹沢あさひ、黛冬優子、和泉愛依、浅倉透、樋口円香、福丸小糸、市川雛菜）	26		https://www.uta-net.com/song/284111/	シャイニーカラーズ Dye the sky. 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+sidem_moon_nightのせいにして	MOON NIGHTのせいにして	DRAMATIC STARS（天道輝、桜庭薫、柏木翼）	26		https://www.uta-net.com/song/211076/	DRAMATIC STARS MOON NIGHTのせいにして 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+765as_alright	ALRIGHT*	萩原雪歩	25		https://www.uta-net.com/song/260167/	萩原雪歩(浅倉杏美) ALRIGHT* 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 2件
 765as_眠り姫	眠り姫	如月千早	25					
 cg_tokimekiエスカレート	TOKIMEKIエスカレート	城ヶ崎美嘉	25					
 gakuen_fighting_my_way	Fighting My Way	花海咲季	25					
