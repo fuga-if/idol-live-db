@@ -15,6 +15,9 @@ Usage:
     # 検証
     python3 tools/lyrics/lyrics_json.py validate
 
+    # 出典の既定値を一度だけ設定しておく (毎回 --source を打たなくてよくなる)
+    python3 tools/lyrics/lyrics_json.py set-source "CD歌詞カード"
+
     # 進捗
     python3 tools/lyrics/lyrics_json.py stats
 
@@ -53,6 +56,7 @@ REPO = os.path.dirname(os.path.dirname(HERE))
 STAGE_DIR = os.path.join(REPO, "lyrics_local")
 BODY_DIR = os.path.join(STAGE_DIR, "body")
 JSON_DIR = os.path.join(STAGE_DIR, "lyrics")
+CONFIG_PATH = os.path.join(STAGE_DIR, "config.json")
 DEFAULT_DB = os.path.join(REPO, "ImasLiveDB", "Resources", "master.sqlite")
 
 KINDS = {"lyric", "marker", "blank"}
@@ -63,6 +67,17 @@ MAX_LINES = 400
 
 # 空行が2つ以上続いたら間奏とみなす閾値
 INTERLUDE_BLANKS = 2
+
+
+def default_source():
+    """lyrics_local/config.json の default_source。毎回 --source を打たずに済む。"""
+    if not os.path.exists(CONFIG_PATH):
+        return ""
+    try:
+        with open(CONFIG_PATH, encoding="utf-8") as f:
+            return (json.load(f).get("default_source") or "").strip()
+    except Exception:
+        return ""
 
 
 def ensure_gitignored():
@@ -146,7 +161,10 @@ def validate_doc(doc, path):
     if not doc.get("song_id"):
         errors.append("song_id が空")
     if not (doc.get("source") or "").strip():
-        errors.append("source (出典) が空。出典なしの歌詞は投入しない")
+        # 表示には使わないが、権利者からの申し入れやコミュニティ投稿の承認時に
+        # 「そのテキストがどこから来たか」を示す唯一の記録になる。
+        # 自分で転記する分には省略してよいので警告に留める。
+        warnings.append("source (出典) が空")
 
     lines = doc.get("lines")
     if not isinstance(lines, list) or not lines:
@@ -199,7 +217,7 @@ def cmd_init(args):
         write_doc(song_id, build_doc(song_id, [
             {"kind": "marker", "text": "イントロ"},
             {"kind": "lyric", "text": "", "section": "verse"},
-        ], args.source or ""))
+        ], args.source or default_source()))
         print("wrote %s" % json_path(song_id))
 
 
@@ -228,7 +246,8 @@ def cmd_from_text(args):
             continue
 
         lines = text_to_lines(text, auto_marker=not args.no_auto_marker)
-        doc = build_doc(song_id, lines, args.source or "", args.note or "")
+        doc = build_doc(song_id, lines,
+                        args.source or default_source(), args.note or "")
         errors, warnings = validate_doc(doc, json_path(song_id))
         if errors:
             print("✗ %s" % song_id)
@@ -244,6 +263,22 @@ def cmd_from_text(args):
             print("    警告: %s" % w)
 
     print("\n変換 %d件 / スキップ %d件" % (made, skipped))
+
+
+def cmd_set_source(args):
+    os.makedirs(STAGE_DIR, exist_ok=True)
+    cfg = {}
+    if os.path.exists(CONFIG_PATH):
+        try:
+            with open(CONFIG_PATH, encoding="utf-8") as f:
+                cfg = json.load(f)
+        except Exception:
+            pass
+    cfg["default_source"] = args.source
+    with open(CONFIG_PATH, "w", encoding="utf-8", newline="\n") as f:
+        json.dump(cfg, f, ensure_ascii=False, indent=2)
+        f.write("\n")
+    print("既定の出典を設定した: %r" % args.source)
 
 
 def cmd_validate(args):
@@ -312,6 +347,10 @@ def main():
                    help="イントロ/間奏/アウトロのマーカーを自動挿入しない")
     p.add_argument("--force", action="store_true", help="既存の JSON を上書き")
     p.set_defaults(func=cmd_from_text)
+
+    p = sub.add_parser("set-source", help="出典の既定値を設定する")
+    p.add_argument("source")
+    p.set_defaults(func=cmd_set_source)
 
     p = sub.add_parser("validate", help="JSON を検証する")
     p.set_defaults(func=cmd_validate)
