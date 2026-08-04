@@ -178,7 +178,11 @@ enum CKRecordMapper {
             parentSongId: record["parentSongId"] as? String,
             singerLabel: record["singerLabel"] as? String,
             unitName: record["unitName"] as? String,
-            unitId: record["unitId"] as? String
+            unitId: record["unitId"] as? String,
+            // ここを読み落とすと、GRDB の upsert が Song のエンコード列を全部書くため
+            // 同期のたび series_group が NULL 上書きされ、シリーズ絞り込みが壊れる。
+            // Song に列を足したら必ずこの初期化子にも足すこと。
+            seriesGroup: record["seriesGroup"] as? String
         )
     }
 
