@@ -25,6 +25,9 @@ export const CLAP_KINDS: ReadonlySet<string> = new Set([
   "none",
 ]);
 
+export const CALL_TIMINGS: ReadonlySet<string> = new Set(["over", "after"]);
+export type CallTiming = "over" | "after";
+
 export const CALL_EMPHASES: ReadonlySet<string> = new Set([
   "normal",
   "optional",
@@ -47,6 +50,15 @@ export interface LyricCall {
   /** 叫ぶ文言。自由テキスト。繰り返しも文言に含める ("(Hi!) × 26" / "(Fuwa × 4)")。 */
   text: string;
   emphasis: CallEmphasis;
+  /**
+   * コールを出すタイミング。アンカー範囲は「どのフレーズに対するものか」しか
+   * 表さないので、被せるのか後に返すのかは別に持つ必要がある。
+   *   "over"  = 同時 (歌に被せる。例: 「Fire Flower！」に重ねて叫ぶ)
+   *   "after" = 追っかけ (歌い終わってから返す)
+   * アイマスでは追っかけが主なので既定は "after"。
+   * 幅ゼロのアンカー (start === end) は被せる相手が無いので常に "after"。
+   */
+  timing: CallTiming;
   /** 歌詞編集でアンカーがズレた印。編集画面で「要再設定」を出すため。false のときは省略する。 */
   stale?: boolean;
 }
@@ -187,7 +199,7 @@ export function validateCallsBody(
       const call = rawCalls[j];
       if (!isPlainObject(call)) return { ok: false, error: `${at} must be an object` };
 
-      const { id: callId, start, end, text, emphasis } = call;
+      const { id: callId, start, end, text, emphasis, timing } = call;
       // iOS の APIClient は keyEncodingStrategy = .convertToSnakeCase なので、
       // anchorText は実際には anchor_text で飛んでくる。ここで両方を受ける。
       // (保存値・応答は camelCase の anchorText 一本。iOS 側のデコーダは
@@ -248,6 +260,17 @@ export function validateCallsBody(
         };
       }
 
+      if (
+        timing !== undefined &&
+        timing !== null &&
+        (typeof timing !== "string" || !CALL_TIMINGS.has(timing))
+      ) {
+        return { ok: false, error: `${at}.timing must be one of over/after` };
+      }
+      // 幅ゼロは被せる相手が無いので after に倒す。
+      const resolvedTiming: CallTiming =
+        start === end ? "after" : ((timing as CallTiming) ?? "after");
+
       normalized.push({
         id: typeof callId === "string" && callId ? callId : "cl_" + crypto.randomUUID(),
         start,
@@ -255,6 +278,7 @@ export function validateCallsBody(
         anchorText: sliced,
         text,
         emphasis: (emphasis as CallEmphasis) ?? "normal",
+        timing: resolvedTiming,
         // 今まさに本文と突き合わせた直後なのでズレは無い。stale は立てない。
       });
       // 同一アンカーに複数のコールを許す (重複チェックはしない)。配列順が表示順。
@@ -316,6 +340,12 @@ export function carryOverAnnotation(
         typeof raw.emphasis === "string" && CALL_EMPHASES.has(raw.emphasis)
           ? (raw.emphasis as CallEmphasis)
           : "normal",
+      timing:
+        start === end
+          ? "after"
+          : typeof raw.timing === "string" && CALL_TIMINGS.has(raw.timing)
+            ? (raw.timing as CallTiming)
+            : "after",
       // stale は false のとき省略する (歌詞を直して元に戻したら印も消える)。
       ...(stale ? { stale: true } : {}),
     });
