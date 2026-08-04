@@ -33,7 +33,7 @@ const LINE_KINDS = new Set(["lyric", "marker", "blank"]);
 const LYRIC_STATUSES = new Set(["draft", "published"]);
 
 /** 歌詞応答は端末にもエッジにも残さない (許諾条件の「一括ダウンロード不可」の実効性)。 */
-const NO_STORE: Record<string, string> = { "Cache-Control": "no-store" };
+export const NO_STORE: Record<string, string> = { "Cache-Control": "no-store" };
 
 interface LyricLineRow {
   id: string;
@@ -56,7 +56,7 @@ function sqliteTimestampToEpochSeconds(ts: string | null | undefined): number {
 }
 
 /** iOS と合意済みの応答形状。キーは camelCase、updatedAt は秒 epoch。 */
-function buildLyricsPayload(
+export function buildLyricsPayload(
   songId: string,
   header: { source: string | null; updated_at: string | null },
   lines: LyricLineRow[]
@@ -77,7 +77,7 @@ function buildLyricsPayload(
   };
 }
 
-async function fetchLines(db: D1Database, songId: string): Promise<LyricLineRow[]> {
+export async function fetchLines(db: D1Database, songId: string): Promise<LyricLineRow[]> {
   // ord の同値はありえない想定だが、順序を決定的にするため id を第二キーに置く。
   const { results } = await db
     .prepare(
@@ -87,6 +87,32 @@ async function fetchLines(db: D1Database, songId: string): Promise<LyricLineRow[
     .bind(songId)
     .all<LyricLineRow>();
   return results ?? [];
+}
+
+/**
+ * 公開済み (status='published') の歌詞を 1 曲ぶん取得する。無ければ null。
+ *
+ * 曲詳細バンドル (routes/song_detail.ts) 用。GET /songs/:id/lyrics は 404 を
+ * レート制限より前に返す必要があるため header 取得と行取得を分けたままにしてあり、
+ * この関数は使わない (どちらも fetchLines / buildLyricsPayload を共有する)。
+ *
+ * ⚠️ 呼び出し側は「認証済みであること」と「応答に Cache-Control: no-store を付けること」を
+ *    必ず守ること。歌詞は JASRAC 許諾の条件上、共有キャッシュに置いてはならない。
+ */
+export async function fetchPublishedLyrics(
+  db: D1Database,
+  songId: string
+): Promise<ReturnType<typeof buildLyricsPayload> | null> {
+  const header = await db
+    .prepare(
+      `SELECT source, updated_at FROM song_lyrics
+        WHERE song_id = ? AND status = 'published'`
+    )
+    .bind(songId)
+    .first<{ source: string | null; updated_at: string }>();
+  if (!header) return null;
+  const lines = await fetchLines(db, songId);
+  return buildLyricsPayload(songId, header, lines);
 }
 
 /** PUT のボディ検証。問題があればエラーメッセージ、無ければ null。 */

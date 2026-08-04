@@ -115,6 +115,91 @@ async function resolveSlugFromTable(
  */
 const SIMILARITY_DAMPING = 5;
 
+// ---------------------------------------------------------------------------
+// 曲詳細バンドル (GET /songs/:id/detail) と共有する取得ロジック
+//
+// ⚠️ ここから下の 2 関数が「曲のタグ一覧」「タグ類似曲」の唯一の実装。
+//    GET /songs/:id/tags / GET /songs/:id/similar と routes/song_detail.ts の
+//    両方がこれを呼ぶ。片方だけ直して形が食い違う事故を防ぐため、SQL も
+//    レスポンスのキーもここ以外に書かないこと。
+// ---------------------------------------------------------------------------
+
+/** GET /songs/:song_id/tags の本体。deviceId が無ければ my_tag_ids は空配列。 */
+export async function fetchSongTagList(
+  db: D1Database,
+  songId: string,
+  deviceId: string | null
+): Promise<{ tags: unknown[]; my_tag_ids: string[] }> {
+  const { results: tags } = await db
+    .prepare(
+      `SELECT t.id, t.name, t.color, t.category, st.vote_count
+         FROM song_tags st
+         JOIN tags t ON t.id = st.tag_id
+        WHERE st.song_id = ? AND t.status != 'removed'
+        ORDER BY st.vote_count DESC`
+    )
+    .bind(songId)
+    .all();
+
+  let myTagIds: string[] = [];
+  if (deviceId) {
+    const { results: myRows } = await db
+      .prepare("SELECT tag_id FROM device_song_tag WHERE device_id = ? AND song_id = ?")
+      .bind(deviceId, songId)
+      .all<{ tag_id: string }>();
+    myTagIds = myRows.map((r) => r.tag_id);
+  }
+
+  return { tags, my_tag_ids: myTagIds };
+}
+
+/** GET /songs/:song_id/similar の本体 (完全にユーザー非依存)。limit は呼び出し側でクランプ済み。 */
+export async function fetchSimilarSongs(
+  db: D1Database,
+  songId: string,
+  limit: number
+): Promise<{ song_id: string; songs: unknown[] }> {
+  const { results: songs } = await db
+    .prepare(
+      `WITH a_tags AS (
+           SELECT st.tag_id
+           FROM song_tags st
+           JOIN tags t ON t.id = st.tag_id AND t.status != 'removed'
+           WHERE st.song_id = ?
+         )
+         SELECT st2.song_id AS song_id,
+                COUNT(*) AS shared_tags,
+                SUM(st2.vote_count) AS vote_score,
+                CAST(COUNT(*) AS REAL) / (
+                  (SELECT COUNT(*) FROM a_tags)
+                  + (SELECT COUNT(*) FROM song_tags s
+                     JOIN tags t2 ON t2.id = s.tag_id AND t2.status != 'removed'
+                     WHERE s.song_id = st2.song_id)
+                  - COUNT(*) + ?
+                ) AS score
+         FROM song_tags st2
+         JOIN a_tags ON a_tags.tag_id = st2.tag_id
+         WHERE st2.song_id != ?
+         GROUP BY st2.song_id
+         ORDER BY score DESC, shared_tags DESC
+         LIMIT ?`
+    )
+    .bind(songId, SIMILARITY_DAMPING, songId, limit)
+    .all();
+  return { song_id: songId, songs };
+}
+
+/** GET /songs/:id/similar の limit のクランプ (既定 10 / 最大 50)。detail 側と揃えるため関数化。 */
+export function clampSimilarLimit(raw: string | null, fallback = 10): number {
+  const parsed = parseInt(raw ?? String(fallback), 10);
+  return Math.min(Math.max(Number.isFinite(parsed) ? parsed : fallback, 1), 50);
+}
+
+/** タグ類似の応答ヘッダ。ユーザー非依存なのでエッジで全ユーザ共有キャッシュできる。 */
+export const SIMILAR_CACHE_HEADERS: Record<string, string> = {
+  "Cache-Control": "public, max-age=600, stale-while-revalidate=3600",
+};
+
 /**
  * /tags, /idol-tags, /unit-tags, /{songs,idols,units}/:id/tags,
  * および /{songs,idols,units}/:id/similar を処理する。
@@ -910,24 +995,7 @@ export async function handleTags(ctx: RouteContext): Promise<Response | null> {
     if (songTagsGetMatch && request.method === "GET") {
       const songId = decodeURIComponent(songTagsGetMatch[1]);
       const deviceId = request.headers.get("X-Device-Id");
-
-      const { results: tags } = await env.DB.prepare(
-        `SELECT t.id, t.name, t.color, t.category, st.vote_count
-         FROM song_tags st
-         JOIN tags t ON t.id = st.tag_id
-         WHERE st.song_id = ? AND t.status != 'removed'
-         ORDER BY st.vote_count DESC`
-      ).bind(songId).all();
-
-      let myTagIds: string[] = [];
-      if (deviceId) {
-        const { results: myRows } = await env.DB.prepare(
-          "SELECT tag_id FROM device_song_tag WHERE device_id = ? AND song_id = ?"
-        ).bind(deviceId, songId).all<{ tag_id: string }>();
-        myTagIds = myRows.map((r) => r.tag_id);
-      }
-
-      return json({ tags, my_tag_ids: myTagIds });
+      return json(await fetchSongTagList(env.DB, songId, deviceId));
     }
 
     // ----------------------------------------------------------------
@@ -1487,41 +1555,14 @@ export async function handleTags(ctx: RouteContext): Promise<Response | null> {
     const songSimilarMatch = path.match(/^\/songs\/([^/]+)\/similar$/);
     if (songSimilarMatch && request.method === "GET") {
       const songId = decodeURIComponent(songSimilarMatch[1]);
-      const limitParam = parseInt(url.searchParams.get("limit") ?? "10", 10);
-      const limit = Math.min(Math.max(Number.isFinite(limitParam) ? limitParam : 10, 1), 50);
-
-      const { results: songs } = await env.DB.prepare(
-        `WITH a_tags AS (
-           SELECT st.tag_id
-           FROM song_tags st
-           JOIN tags t ON t.id = st.tag_id AND t.status != 'removed'
-           WHERE st.song_id = ?
-         )
-         SELECT st2.song_id AS song_id,
-                COUNT(*) AS shared_tags,
-                SUM(st2.vote_count) AS vote_score,
-                CAST(COUNT(*) AS REAL) / (
-                  (SELECT COUNT(*) FROM a_tags)
-                  + (SELECT COUNT(*) FROM song_tags s
-                     JOIN tags t2 ON t2.id = s.tag_id AND t2.status != 'removed'
-                     WHERE s.song_id = st2.song_id)
-                  - COUNT(*) + ?
-                ) AS score
-         FROM song_tags st2
-         JOIN a_tags ON a_tags.tag_id = st2.tag_id
-         WHERE st2.song_id != ?
-         GROUP BY st2.song_id
-         ORDER BY score DESC, shared_tags DESC
-         LIMIT ?`
-      ).bind(songId, SIMILARITY_DAMPING, songId, limit).all();
+      const limit = clampSimilarLimit(url.searchParams.get("limit"));
+      const payload = await fetchSimilarSongs(env.DB, songId, limit);
 
       // タグ類似は完全にユーザー非依存 (my_* フラグを一切含まない集計のみ)。
       // タグ付けの分布で決まり変化が非常に緩やかなので、エッジ (Cloudflare) で
       // 全ユーザ共有キャッシュして D1 負荷を削減。曲詳細を開くたびに叩かれるため
       // 効果が大きい。鮮度は粗くてよい (max-age 10分 + SWR 1時間)。
-      return json({ song_id: songId, songs }, 200, {
-        "Cache-Control": "public, max-age=600, stale-while-revalidate=3600",
-      });
+      return json(payload, 200, SIMILAR_CACHE_HEADERS);
     }
 
     // ----------------------------------------------------------------

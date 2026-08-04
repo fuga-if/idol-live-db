@@ -15,4 +15,9 @@ export interface RouteContext {
   error: (message: string, status?: number) => Response;
   rateLimitResponse: (used: number, limit: number, resetAt: string) => Response;
   rateLimitSimple: (retryAfter?: number) => Response;
+  /**
+   * ExecutionContext.waitUntil (bind 済み)。応答を返した後に走らせてよい副作用
+   * (エッジキャッシュへの書き込み等) 用。渡されていないルートは await すればよいので任意。
+   */
+  waitUntil?: (promise: Promise<unknown>) => void;
 }
