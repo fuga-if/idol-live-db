@@ -18482,6 +18482,204 @@
     },
     {
       "table": "songs",
+      "id": "ml_ホップステップレインボウ4sk_remix",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/155671/"
+      },
+      "source": "https://www.uta-net.com/song/155671/",
+      "note": "歌詞サイトの該当ページ。大神環(稲川英里) ホップ♪ステップ♪レインボウ♪ 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_ホントウノワタシy0c1e_remix",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/174902/"
+      },
+      "source": "https://www.uta-net.com/song/174902/",
+      "note": "歌詞サイトの該当ページ。田中琴葉(種田梨沙) ホントウノワタシ 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_マイペースマイウェイdé_dé_mouse_remix",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/154245/"
+      },
+      "source": "https://www.uta-net.com/song/154245/",
+      "note": "歌詞サイトの該当ページ。福田のり子(浜崎奈々) マイペース☆マイウェイ 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_ミスティックセレモニーへの招待状",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/329863/"
+      },
+      "source": "https://www.uta-net.com/song/329863/",
+      "note": "歌詞サイトの該当ページ。矢吹可奈(木戸衣吹)、伊吹翼(Machico)、北上麗花(平山笑美)、天空橋朋花(小岩井ことり)、双海真美(下田麻美) ミスティック・セレモニーへの招待状 歌詞 / 判定=high (曲名一致 + 関連名詞 10件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_ミステイクマーダー",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/352268/"
+      },
+      "source": "https://www.uta-net.com/song/352268/",
+      "note": "歌詞サイトの該当ページ。田中琴葉(種田梨沙)、豊川風花(末柄里恵)、春日未来(山崎はるか)、北沢志保(雨宮天)、七尾百合子(伊藤美来) ミステイク・マーダー！ 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 10件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_ユニゾンビート_picco_remix",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/178919/"
+      },
+      "source": "https://www.uta-net.com/song/178919/",
+      "note": "歌詞サイトの該当ページ。舞浜歩(戸田めぐみ) ユニゾン☆ビート 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_ユニークスタープレイヤー",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/318075/"
+      },
+      "source": "https://www.uta-net.com/song/318075/",
+      "note": "歌詞サイトの該当ページ。双海真美(下田麻美) ユニーク・スター・プレイヤー！ 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_ライアールージュgetty_remix",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/150156/"
+      },
+      "source": "https://www.uta-net.com/song/150156/",
+      "note": "歌詞サイトの該当ページ。北沢志保(雨宮天) ライアー・ルージュ 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_不思議発見ラボ",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/387142/"
+      },
+      "source": "https://www.uta-net.com/song/387142/",
+      "note": "歌詞サイトの該当ページ。木下ひなた(田村奈央)、矢吹可奈(木戸衣吹)、白石紬(南早紀) 不思議発見ラボ！ 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 6件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_交わる季節",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/318073/"
+      },
+      "source": "https://www.uta-net.com/song/318073/",
+      "note": "歌詞サイトの該当ページ。四条貴音(原由実) 交わる季節 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_初恋バタフライnarumi_helvetica_remix",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/174904/"
+      },
+      "source": "https://www.uta-net.com/song/174904/",
+      "note": "歌詞サイトの該当ページ。宮尾美也(桐谷蝶々) 初恋バタフライ 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_合言葉はスタートアップ_teddyloid_remix",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/167597/"
+      },
+      "source": "https://www.uta-net.com/song/167597/",
+      "note": "歌詞サイトの該当ページ。レジェンドデイズ 合言葉はスタートアップ！ 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 1件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_君だけの欠片_dummy_dog_remix",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/170689/"
+      },
+      "source": "https://www.uta-net.com/song/170689/",
+      "note": "歌詞サイトの該当ページ。エミリー スチュアート(郁原ゆう) 君だけの欠片 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_君想いbirthdayチバニャン_remix",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/154244/"
+      },
+      "source": "https://www.uta-net.com/song/154244/",
+      "note": "歌詞サイトの該当ページ。高山紗代子(駒形友梨) 君想いBirthday 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 3件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_唸れミリオンアーマー",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/369282/"
+      },
+      "source": "https://www.uta-net.com/song/369282/",
+      "note": "歌詞サイトの該当ページ。桜守歌織(香里有佐)、篠宮可憐(近藤唯) 唸れ！ミリオンアーマー！ 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 4件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_嘆きのfractionnor_remix",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/154242/"
+      },
+      "source": "https://www.uta-net.com/song/154242/",
+      "note": "歌詞サイトの該当ページ。三浦あずさ(たかはし智秋) 嘆きのFRACTION 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 3件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_地球ミラーボウル",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/167596/"
+      },
+      "source": "https://www.uta-net.com/song/167596/",
+      "note": "歌詞サイトの該当ページ。水瀬伊織(釘宮理恵) 地球ミラーボウル 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_地球ミラーボウル_teddyloid_remix",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/167596/"
+      },
+      "source": "https://www.uta-net.com/song/167596/",
+      "note": "歌詞サイトの該当ページ。水瀬伊織(釘宮理恵) 地球ミラーボウル 歌詞 - 歌ネット (Remix版なし→原曲) / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_夕風のメロディー_kotonohouse_remix",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/182558/"
+      },
+      "source": "https://www.uta-net.com/song/182558/",
+      "note": "歌詞サイトの該当ページ。篠宮可憐(近藤唯) 夕風のメロディー 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_夢にかけるrainbow北上麗花ver",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/322280/"
+      },
+      "source": "https://www.uta-net.com/song/322280/",
+      "note": "歌詞サイトの該当ページ。765 MILLION ALLSTARS 夢にかけるRainbow 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 1件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_夢にかけるrainbow如月千早ver",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/322280/"
+      },
+      "source": "https://www.uta-net.com/song/322280/",
+      "note": "歌詞サイトの該当ページ。765 MILLION ALLSTARS 夢にかけるRainbow 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 1件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_夢にかけるrainbow桜守歌織ver",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/322280/"
+      },
+      "source": "https://www.uta-net.com/song/322280/",
+      "note": "歌詞サイトの該当ページ。765 MILLION ALLSTARS 夢にかけるRainbow 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 1件)"
+    },
+    {
+      "table": "songs",
       "id": "ml_夢にかけるrainbow真壁瑞希ver",
       "fields": {
         "lyrics_url": "https://www.uta-net.com/song/322280/"
@@ -19154,6 +19352,60 @@
       },
       "source": "https://www.uta-net.com/song/390695/",
       "note": "歌詞サイトの該当ページ。ピエール(堀江瞬), 伊瀬谷四季(野上翔), 紅井朱雀(益山武明), 北村想楽(汐谷文康) てのうえで踊るメヌエット 歌詞 / 判定=high (曲名一致 + 関連名詞 8件)"
+    },
+    {
+      "table": "songs",
+      "id": "sidem_わんだふる哉人生",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/344144/"
+      },
+      "source": "https://www.uta-net.com/song/344144/",
+      "note": "歌詞サイトの該当ページ。猫柳キリオ(山下大輝) わんだふる哉、人生！ 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "sidem_ディソナンスエデン",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/390227/"
+      },
+      "source": "https://www.uta-net.com/song/390227/",
+      "note": "歌詞サイトの該当ページ。Altessimo ディソナンス・エデン 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 1件)"
+    },
+    {
+      "table": "songs",
+      "id": "sidem_トロンプルイユダンスホール",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/363738/"
+      },
+      "source": "https://www.uta-net.com/song/363738/",
+      "note": "歌詞サイトの該当ページ。Jupiter トロンプルイユ・ダンスホール 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 1件)"
+    },
+    {
+      "table": "songs",
+      "id": "sidem_千夜一夜に瞬く星よ",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/350895/"
+      },
+      "source": "https://www.uta-net.com/song/350895/",
+      "note": "歌詞サイトの該当ページ。Beit 千夜一夜に瞬く星よ 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 1件)"
+    },
+    {
+      "table": "songs",
+      "id": "sidem_奇想天外狂詩曲-fantastic_rhapsody-",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/392812/"
+      },
+      "source": "https://www.uta-net.com/song/392812/",
+      "note": "歌詞サイトの該当ページ。柏木翼(八代拓)、都築圭(土岐隼一)、神谷幸広(狩野翔)、兜大吾(浦尾岳大) 奇想天外狂詩曲-FANTASTIC RHAPSODY- 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 8件)"
+    },
+    {
+      "table": "songs",
+      "id": "sidem_眠らぬ夜にスパシーバ",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/271772/"
+      },
+      "source": "https://www.uta-net.com/song/271772/",
+      "note": "歌詞サイトの該当ページ。神谷幸広(狩野翔)、山下次郎(中島ヨシキ)、古論クリス(駒田航) 眠らぬ夜にスパシーバ！ 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 6件)"
     }
   ]
 }
