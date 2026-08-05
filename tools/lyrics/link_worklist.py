@@ -115,6 +115,39 @@ def write_tsv(path, rows):
             f.write("\t".join(re.sub(r"[\t\r\n]+", " ", r[c]) for c in COLUMNS) + "\n")
 
 
+def write_slices(rows, size, out_dir):
+    """未調査の曲を N 曲ずつのファイルに切り出す。
+
+    WebSearch はセッション全体で 200 回が上限で、エージェント間で共有される。
+    1 セッションでは全曲を引けないので、セッションを跨いで再開できるようにする。
+    候補が入った曲は links.tsv 側に残るため、再実行すると自動的に対象から外れる。
+    """
+    todo = [r for r in rows if not r["candidate_url"].strip()]
+    if not todo:
+        print("未調査の曲は無い。収集は完了している。")
+        return
+
+    # 既存のスライスは消す (前回の残りが混ざると二重に引くことになる)
+    if os.path.isdir(out_dir):
+        for name in os.listdir(out_dir):
+            if name.startswith("slice_") and name.endswith(".tsv"):
+                os.remove(os.path.join(out_dir, name))
+    os.makedirs(out_dir, exist_ok=True)
+
+    cols = ["song_id", "title", "artist", "setlist_count"]
+    chunks = [todo[i:i + size] for i in range(0, len(todo), size)]
+    for n, chunk in enumerate(chunks, 1):
+        path = os.path.join(out_dir, "slice_%02d.tsv" % n)
+        with open(path, "w", encoding="utf-8", newline="\n") as f:
+            f.write("\t".join(cols) + "\n")
+            for r in chunk:
+                f.write("\t".join([r["song_id"], r["title"],
+                                    r["artist"][:60], r["setlist_count"]]) + "\n")
+    print("未調査 %d曲 → %dスライス (1件あたり最大 %d曲) を %s に書いた"
+          % (len(todo), len(chunks), size, out_dir))
+    print("セトリ登場回数の多い順なので、slice_01 から埋めるのが効率的。")
+
+
 def promote(rows, dry_run):
     """confidence=high の candidate_url を lyrics_url に昇格させる。
 
@@ -149,12 +182,20 @@ def main():
     ap.add_argument("--limit", type=int, help="上位 N 曲だけ")
     ap.add_argument("--unresolved-only", action="store_true",
                     help="URL 未確定のものだけ表示")
+    ap.add_argument("--slices", type=int, metavar="N",
+                    help="未調査の曲を N 曲ずつのスライスに切り出す (収集作業の再開用)")
+    ap.add_argument("--slice-dir", default=os.path.join(HERE, "slices"),
+                    help="スライスの出力先")
     args = ap.parse_args()
 
     if not os.path.exists(args.db):
         sys.exit("DB が見つからない: %s" % args.db)
 
     rows = build_rows(fetch_songs(args.db), read_links(args.out))
+
+    if args.slices:
+        write_slices(rows, args.slices, args.slice_dir)
+        return
 
     if args.promote or args.promote_apply:
         n = promote(rows, dry_run=not args.promote_apply)
