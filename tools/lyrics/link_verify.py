@@ -95,7 +95,12 @@ def load_vocab(db_path):
 
     normed = {norm(v) for v in vocab if len(v.strip()) >= MIN_VOCAB_LEN}
     normed.discard("")
-    return normed
+    # 短い固有名詞 (彩 / W / ＊(Asterisk) / vα-liv 等) は本文中に紛れると誤爆するが、
+    # 歌ネットのページタイトルは「アーティスト名 曲名 歌詞 - 歌ネット」の形なので、
+    # **先頭との照合に限れば**安全に使える。別集合として返す。
+    leading = {norm(v) for v in vocab if v.strip()}
+    leading.discard("")
+    return normed, leading
 
 
 def base_title(title):
@@ -111,7 +116,7 @@ def base_title(title):
     return t.strip()
 
 
-def judge(row, vocab):
+def judge(row, vocab, leading_vocab):
     """(confidence, 理由) を返す。"""
     cand = row.get("candidate_title", "")
     url = row.get("candidate_url", "")
@@ -127,10 +132,15 @@ def judge(row, vocab):
         return "low", "候補タイトルに曲名が含まれない"
 
     matched = [v for v in vocab if v and v in cand_n]
-    if not matched:
-        return "low", "アイマス関連の固有名詞がタイトルに無い (同名別曲の疑い)"
+    if matched:
+        return "high", "曲名一致 + 関連名詞 %d件" % len(matched)
 
-    return "high", "曲名一致 + 関連名詞 %d件" % len(matched)
+    # 短い固有名詞はタイトル先頭 (= アーティスト表記) との照合だけ許す。
+    lead = [v for v in leading_vocab if v and cand_n.startswith(v)]
+    if lead:
+        return "high", "曲名一致 + 先頭の関連名詞 (%s)" % max(lead, key=len)[:20]
+
+    return "low", "アイマス関連の固有名詞がタイトルに無い (同名別曲の疑い)"
 
 
 def read_tsv(path):
@@ -160,8 +170,9 @@ def main():
     ap.add_argument("--apply", action="store_true", help="confidence を書き換える")
     args = ap.parse_args()
 
-    vocab = load_vocab(args.db)
-    print("判定語彙: %d件 (%d文字以上)" % (len(vocab), MIN_VOCAB_LEN))
+    vocab, leading_vocab = load_vocab(args.db)
+    print("判定語彙: %d件 (%d文字以上) + 先頭照合用 %d件"
+          % (len(vocab), MIN_VOCAB_LEN, len(leading_vocab)))
 
     header, rows = read_tsv(args.links)
     changed = 0
@@ -172,7 +183,7 @@ def main():
         # 再検索されて予算を無駄にする。
         if not r.get("candidate_url"):
             continue
-        conf, why = judge(r, vocab)
+        conf, why = judge(r, vocab, leading_vocab)
         counts[conf] = counts.get(conf, 0) + 1
         if r.get("confidence") != conf:
             changed += 1
