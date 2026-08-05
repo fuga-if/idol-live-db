@@ -5,24 +5,31 @@
     nixpkgs.url = "github:nixos/nixpkgs?ref=nixpkgs-unstable";
     flake-parts.url = "github:hercules-ci/flake-parts";
     systems.url = "github:nix-systems/default";
+    swift-overlay.url = "github:Comamoca/swift-overlay";
   };
 
   outputs =
     { self, ... }@inputs:
     inputs.flake-parts.lib.mkFlake { inherit inputs; } {
-      systems = import inputs.systems;
+      # swift-overlay の対応システムに合わせる (x86_64-darwin は overlay が廃止)
+      systems = [
+        "aarch64-darwin"
+        "aarch64-linux"
+        "x86_64-linux"
+      ];
 
       perSystem =
-        { pkgs, ... }:
+        { pkgs, system, ... }:
         let
           # Cross-platform Swift ツール (Linux / macOS 両方で使える)
-          swiftPkgs = with pkgs; [
-            swift           # コンパイラ (nixpkgs は 5.10.1)
-            swiftpm         # Swift Package Manager
-            sourcekit-lsp   # LSP (コード補完・診断)
-            swift-format    # フォーマッター
-            swiftlint       # 静的解析
-          ];
+          # swift.bin.latest は swift-overlay が提供 (Swift 6.3.3)
+          # swiftpm / sourcekit-lsp / swift-format は Swift 6.3.3 配布物に同梱されているため、
+          # nixpkgs 版を入れると Swift 5.x のビルドがトリガーされるので使わない。
+          swiftPkgs = [
+            inputs.swift-overlay.packages.${system}.default   # Swift 6.3.3 (swift, swift-format, sourcekit-lsp, swift-package 等同梱)
+          ] ++ (with pkgs; [
+            swiftlint                                         # 静的解析 (pre-built binary, Swift 5 をビルドしない)
+          ]);
 
           # macOS 専用ツール (Xcode 依存)
           macOnlyPkgs = with pkgs; [
