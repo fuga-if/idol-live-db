@@ -122,7 +122,10 @@ def write_slices(rows, size, out_dir):
     1 セッションでは全曲を引けないので、セッションを跨いで再開できるようにする。
     候補が入った曲は links.tsv 側に残るため、再実行すると自動的に対象から外れる。
     """
-    todo = [r for r in rows if not r["candidate_url"].strip()]
+    # 候補が無く、かつ「検索したが見つからなかった」印も付いていない曲だけ。
+    # not_found を除かないと、同じクエリを投げ直して予算を溶かす。
+    todo = [r for r in rows
+            if not r["candidate_url"].strip() and r["confidence"] != "not_found"]
     if not todo:
         print("未調査の曲は無い。収集は完了している。")
         return

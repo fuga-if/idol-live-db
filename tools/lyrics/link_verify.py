@@ -44,9 +44,26 @@ MIN_VOCAB_LEN = 3
 
 
 def norm(s):
-    """比較用の正規化。NFKC + 小文字化 + 空白と記号の一部を除去。"""
+    """比較用の正規化。**文字と数字だけを残す。**
+
+    記号を個別に列挙して消す方式だと必ず取りこぼす。実際に取りこぼしていた例:
+      Café Parade!  ↔ Cafe Parade!   (アクセント記号)
+      ♡Cupids!      ↔ ▽Cupids!       (記号の文字化け)
+      SUN♡FLOWER    ↔ SUN FLOWER     (ハート)
+      花ざかりWeekend✿ ↔ 花ざかりWeekend
+      JOKER↗オールマイティ ↔ JOKER/オールマイティ
+    いずれも同名別曲ではなく正しい候補なのに弾かれていた。
+
+    そこで方針を反転し、**残すものを決める**: 文字 (L*) と数字 (N*) のみ。
+    アクセントは NFKD で分解して結合記号を捨てる (é → e)。
+    """
     s = unicodedata.normalize("NFKC", s or "").lower()
-    return re.sub(r"[\s　・･,，、。!！?？'\"“”’‘\-‐−–—~～()（）\[\]【】]", "", s)
+    # アクセント等を分解して結合文字 (Mn) を落とす
+    s = unicodedata.normalize("NFKD", s)
+    return "".join(
+        c for c in s
+        if unicodedata.category(c)[0] in ("L", "N")
+    )
 
 
 def load_vocab(db_path):
@@ -150,6 +167,9 @@ def main():
     changed = 0
     counts = {}
     for r in rows:
+        # 候補 URL が無い行は触らない。検索したが見つからなかった曲には
+        # マージ時に not_found を立ててあり、それを消すと次のスライスで
+        # 再検索されて予算を無駄にする。
         if not r.get("candidate_url"):
             continue
         conf, why = judge(r, vocab)
