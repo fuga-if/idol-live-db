@@ -8033,6 +8033,816 @@
     },
     {
       "table": "songs",
+      "id": "765as_シャララ",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/260168/"
+      },
+      "source": "https://www.uta-net.com/song/260168/",
+      "note": "歌詞サイトの該当ページ。三浦あずさ(たかはし智秋)、秋月律子(若林直美) シャララ / 判定=high (曲名一致 + 関連名詞 4件)"
+    },
+    {
+      "table": "songs",
+      "id": "765as_ターンオンタイム",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/212613/"
+      },
+      "source": "https://www.uta-net.com/song/212613/",
+      "note": "歌詞サイトの該当ページ。春日未来(山崎はるか)、最上静香(田所あずさ)、箱崎星梨花(麻倉もも) ターンオンタイム！ / 判定=high (曲名一致 + 関連名詞 6件)"
+    },
+    {
+      "table": "songs",
+      "id": "765as_マジで",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/303419/"
+      },
+      "source": "https://www.uta-net.com/song/303419/",
+      "note": "歌詞サイトの該当ページ。双海真美(下田麻美) マジで…！？ / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "765as_君が選ぶ道",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/158898/"
+      },
+      "source": "https://www.uta-net.com/song/158898/",
+      "note": "歌詞サイトの該当ページ。音無小鳥(滝田樹里) 君が選ぶ道 / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "765as_星彩ステッパー",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/245797/"
+      },
+      "source": "https://www.uta-net.com/song/245797/",
+      "note": "歌詞サイトの該当ページ。水瀬伊織(釘宮理恵)、双海亜美(下田麻美)、双海真美(下田麻美)、星井美希(長谷川明子) 星彩ステッパー(M@STER VERSION) / 判定=high (曲名一致 + 関連名詞 7件)"
+    },
+    {
+      "table": "songs",
+      "id": "876_berry_berry_lady",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/376077/"
+      },
+      "source": "https://www.uta-net.com/song/376077/",
+      "note": "歌詞サイトの該当ページ。灯里愛夏 Berry Berry Lady / 判定=high (曲名一致 + 関連名詞 1件)"
+    },
+    {
+      "table": "songs",
+      "id": "876_reloading",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/movie/371743/"
+      },
+      "source": "https://www.uta-net.com/movie/371743/",
+      "note": "歌詞サイトの該当ページ。vα-liv RELOADING / 判定=high (曲名一致 + 関連名詞 1件)"
+    },
+    {
+      "table": "songs",
+      "id": "876_zerogravity",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/380225/"
+      },
+      "source": "https://www.uta-net.com/song/380225/",
+      "note": "歌詞サイトの該当ページ。上水流宇宙 ZeroGravity / 判定=high (曲名一致 + 関連名詞 1件)"
+    },
+    {
+      "table": "songs",
+      "id": "cg_dreamy_anniversary",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/movie/345291/"
+      },
+      "source": "https://www.uta-net.com/movie/345291/",
+      "note": "歌詞サイトの該当ページ。久川凪(立花日菜)、大槻唯(山下七海)、高垣楓(早見沙織)、望月聖(原涼子)、新田美波(洲崎綾) Dreamy Anniversary / 判定=high (曲名一致 + 関連名詞 10件)"
+    },
+    {
+      "table": "songs",
+      "id": "cg_halloweencode",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/238054/"
+      },
+      "source": "https://www.uta-net.com/song/238054/",
+      "note": "歌詞サイトの該当ページ。安部菜々(三宅麻理恵)・乙倉悠貴(中島由貴)・前川みく(高森奈津美) Halloween Code / 判定=high (曲名一致 + 関連名詞 6件)"
+    },
+    {
+      "table": "songs",
+      "id": "cg_isosceles",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/342401/"
+      },
+      "source": "https://www.uta-net.com/song/342401/",
+      "note": "歌詞サイトの該当ページ。小日向美穂(津田美波)、藤原肇(鈴木みのり) Isosceles(M@STER VERSION) / 判定=high (曲名一致 + 関連名詞 4件)"
+    },
+    {
+      "table": "songs",
+      "id": "cg_just_us_justice",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/movie/305578/"
+      },
+      "source": "https://www.uta-net.com/movie/305578/",
+      "note": "歌詞サイトの該当ページ。南条光(神谷早矢佳)、脇山珠美(嘉山未紗)、結城晴(小市眞琴)、上条春菜(長島光那)、片桐早苗(和氣あず未) Just Us Justice (M@STER V / 判定=high (曲名一致 + 関連名詞 10件)"
+    },
+    {
+      "table": "songs",
+      "id": "cg_lilac_time",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/265918/"
+      },
+      "source": "https://www.uta-net.com/song/265918/",
+      "note": "歌詞サイトの該当ページ。相葉夕美(木村珠莉) lilac time / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "cg_morgana",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/380086/"
+      },
+      "source": "https://www.uta-net.com/song/380086/",
+      "note": "歌詞サイトの該当ページ。大石泉(大木咲絵子)、八神マキノ(二ノ宮ゆい)、浅利七海(井上ほの花) Morgana(M@STER VERSION) / 判定=high (曲名一致 + 関連名詞 6件)"
+    },
+    {
+      "table": "songs",
+      "id": "cg_numberless",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/372990/"
+      },
+      "source": "https://www.uta-net.com/song/372990/",
+      "note": "歌詞サイトの該当ページ。大石泉(大木咲絵子) Numberless / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "cg_pandemic_alone",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/217607/"
+      },
+      "source": "https://www.uta-net.com/song/217607/",
+      "note": "歌詞サイトの該当ページ。星輝子(松田颯水) PANDEMIC ALONE / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "cg_pretty_liar",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/273303/"
+      },
+      "source": "https://www.uta-net.com/song/273303/",
+      "note": "歌詞サイトの該当ページ。高垣楓(早見沙織)、速水奏(飯田友子) Pretty Liar(M@STER VERSION) / 判定=high (曲名一致 + 関連名詞 4件)"
+    },
+    {
+      "table": "songs",
+      "id": "cg_starry_night",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/333436/"
+      },
+      "source": "https://www.uta-net.com/song/333436/",
+      "note": "歌詞サイトの該当ページ。松永涼(千菅春香)、三船美優(原田彩楓)、森久保乃々(高橋花林)、藤原肇(鈴木みのり)、砂塚あきら(富田美憂) Starry Night / 判定=high (曲名一致 + 関連名詞 10件)"
+    },
+    {
+      "table": "songs",
+      "id": "cg_unlock_starbeat",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/287411/"
+      },
+      "source": "https://www.uta-net.com/song/287411/",
+      "note": "歌詞サイトの該当ページ。星輝子(松田颯水)、白雪千夜(関口理咲)、神崎蘭子(内田真礼)、五十嵐響子(種崎敦美)、多田李衣菜(青木瑠璃子) Unlock Starbeat(M@STER  / 判定=high (曲名一致 + 関連名詞 9件)"
+    },
+    {
+      "table": "songs",
+      "id": "cg_世界滅亡_or_kiss",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/289531/"
+      },
+      "source": "https://www.uta-net.com/song/289531/",
+      "note": "歌詞サイトの該当ページ。喜多日菜子(深川芹亜) 世界滅亡 or KISS 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "cg_冬空プレシャス",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/241297/"
+      },
+      "source": "https://www.uta-net.com/song/241297/",
+      "note": "歌詞サイトの該当ページ。片桐早苗(和氣あず未)・難波笑美(伊達朱里紗)・姫川友紀(杜野まこ) 冬空プレシャス 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 6件)"
+    },
+    {
+      "table": "songs",
+      "id": "cg_夏恋_-natsu_koi-",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/234470/"
+      },
+      "source": "https://www.uta-net.com/song/234470/",
+      "note": "歌詞サイトの該当ページ。塩見周子(ルゥティン)、橘ありす(佐藤亜美菜)、松永涼(千菅春香) 夏恋 -NATSU KOI- 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 6件)"
+    },
+    {
+      "table": "songs",
+      "id": "cg_幸せの法則ルール",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/284313/"
+      },
+      "source": "https://www.uta-net.com/song/284313/",
+      "note": "歌詞サイトの該当ページ。白菊ほたる(天野聡美)、鷹富士茄子(森下来奈) 幸せの法則～ルール～ (M@STER VERSION) 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 4件)"
+    },
+    {
+      "table": "songs",
+      "id": "cg_弾丸サバイバー",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/293502/"
+      },
+      "source": "https://www.uta-net.com/song/293502/",
+      "note": "歌詞サイトの該当ページ。大和亜季(村中知) 弾丸サバイバー 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "cg_空想探査計画",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/238052/"
+      },
+      "source": "https://www.uta-net.com/song/238052/",
+      "note": "歌詞サイトの該当ページ。木村夏樹(安野希世乃)・浜口あやめ(田澤茉純)・日野茜(赤崎千夏) 空想探査計画 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 5件)"
+    },
+    {
+      "table": "songs",
+      "id": "cg_谷の底で咲く花は",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/267842/"
+      },
+      "source": "https://www.uta-net.com/song/267842/",
+      "note": "歌詞サイトの該当ページ。白菊ほたる(天野聡美) 谷の底で咲く花は 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "cg_躍るflagship",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/281813/"
+      },
+      "source": "https://www.uta-net.com/song/281813/",
+      "note": "歌詞サイトの該当ページ。小日向美穂(津田美波)、佐藤心(花守ゆみり)、北条加蓮(渕上舞) 躍るFLAGSHIP 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 7件)"
+    },
+    {
+      "table": "songs",
+      "id": "cg_青春のwanna",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/355998/"
+      },
+      "source": "https://www.uta-net.com/song/355998/",
+      "note": "歌詞サイトの該当ページ。小関麗奈(長野佑紀) 青春のWanna! 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "gakuen_ときめきエモーション",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/390769/"
+      },
+      "source": "https://www.uta-net.com/song/390769/",
+      "note": "歌詞サイトの該当ページ。葛城リーリヤ(花岩香奈)、紫雲清夏(湊みや) ときめきエモーション 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 4件)"
+    },
+    {
+      "table": "songs",
+      "id": "gakuen_ふわふわ",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/369823/"
+      },
+      "source": "https://www.uta-net.com/song/369823/",
+      "note": "歌詞サイトの該当ページ。藤田ことね(飯田ヒカル) ふわふわ 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "gakuen_ガラクタロード",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/393213/"
+      },
+      "source": "https://www.uta-net.com/song/393213/",
+      "note": "歌詞サイトの該当ページ。初星学園 ガラクタロード 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 1件)"
+    },
+    {
+      "table": "songs",
+      "id": "gakuen_メクルメ",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/366006/"
+      },
+      "source": "https://www.uta-net.com/song/366006/",
+      "note": "歌詞サイトの該当ページ。篠澤広(川村玲奈) メクルメ 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "gakuen_自己肯定感爆上げしゅきしゅきソング",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/378548/"
+      },
+      "source": "https://www.uta-net.com/song/378548/",
+      "note": "歌詞サイトの該当ページ。藤田ことね(飯田ヒカル) 自己肯定感爆上げ↑↑しゅきしゅきソング 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "gakuen_金の斧銀の斧エメラルドの斧",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/388647/"
+      },
+      "source": "https://www.uta-net.com/song/388647/",
+      "note": "歌詞サイトの該当ページ。花海佑芽(松田彩音) 金の斧、銀の斧、エメラルドの斧 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_be_proud",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/303686/"
+      },
+      "source": "https://www.uta-net.com/song/303686/",
+      "note": "歌詞サイトの該当ページ。ストロベリーポップムーン Be proud 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 1件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_birth_of_color",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/178921/"
+      },
+      "source": "https://www.uta-net.com/song/178921/",
+      "note": "歌詞サイトの該当ページ。BIRTH Birth of Color 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 1件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_blackparty",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/movie/298363/"
+      },
+      "source": "https://www.uta-net.com/movie/298363/",
+      "note": "歌詞サイトの該当ページ。TRICK&TREAT Black★Party 歌詞&動画視聴 - 歌ネット / 判定=high (曲名一致 + 関連名詞 1件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_catch_my_feeling",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/343897/"
+      },
+      "source": "https://www.uta-net.com/song/343897/",
+      "note": "歌詞サイトの該当ページ。MILLIONSTARS Team4th catch my feeling 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_criminally_dinner_正餐とイーヴルナイフ",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/327179/"
+      },
+      "source": "https://www.uta-net.com/song/327179/",
+      "note": "歌詞サイトの該当ページ。星井美希(長谷川明子)、舞浜歩(戸田めぐみ)、最上静香(田所あずさ)、篠宮可憐(近藤唯)、中谷育(原嶋あかり) Criminally Dinner ～正餐とイー / 判定=high (曲名一致 + 関連名詞 10件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_day_after_yesterday",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/182716/"
+      },
+      "source": "https://www.uta-net.com/song/182716/",
+      "note": "歌詞サイトの該当ページ。永吉昴(斉藤佑圭) Day After“Yesterday” 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_dreamscape",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/204938/"
+      },
+      "source": "https://www.uta-net.com/song/204938/",
+      "note": "歌詞サイトの該当ページ。永吉昴(斉藤佑圭)×福田のり子(浜崎奈々) Dreamscape 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 4件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_emergence_vibe",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/204939/"
+      },
+      "source": "https://www.uta-net.com/song/204939/",
+      "note": "歌詞サイトの該当ページ。島原エレナ(角元明日香)×星井美希(長谷川明子) Emergence Vibe 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 4件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_everlasting",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/244714/"
+      },
+      "source": "https://www.uta-net.com/song/244714/",
+      "note": "歌詞サイトの該当ページ。夜想令嬢 -GRAC&E NOCTURNE- Everlasting 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 1件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_fermata_in_rapsodia",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/280702/"
+      },
+      "source": "https://www.uta-net.com/song/280702/",
+      "note": "歌詞サイトの該当ページ。ARCANA Fermata in Rapsodia 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 1件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_gf",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/199607/"
+      },
+      "source": "https://www.uta-net.com/song/199607/",
+      "note": "歌詞サイトの該当ページ。秋月律子(若林直美)×篠宮可憐(近藤唯) GF 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 4件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_good-sleep_baby",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/155667/"
+      },
+      "source": "https://www.uta-net.com/song/155667/",
+      "note": "歌詞サイトの該当ページ。高槻やよい(仁後真耶子)・大神環(稲川英里)・中谷育(原嶋あかり)・矢吹可奈(木戸衣吹) Good-Sleep, Baby 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 8件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_hello_your_angel",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/199608/"
+      },
+      "source": "https://www.uta-net.com/song/199608/",
+      "note": "歌詞サイトの該当ページ。天空橋朋花(小岩井ことり)×中谷育(原嶋あかり) HELLO, YOUR ANGEL♪ 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 4件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_hypernova",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/360850/"
+      },
+      "source": "https://www.uta-net.com/song/360850/",
+      "note": "歌詞サイトの該当ページ。永吉昴(斉藤佑圭)、高山紗代子(駒形友梨)、篠宮可憐(近藤唯)、二階堂千鶴(野村香菜子)、松田亜利沙(村川梨衣) Hypernova 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 10件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_justice_or_voice",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/271306/"
+      },
+      "source": "https://www.uta-net.com/song/271306/",
+      "note": "歌詞サイトの該当ページ。ジェネシス×ネメシス Justice OR Voice 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 1件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_persona_voice",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/198584/"
+      },
+      "source": "https://www.uta-net.com/song/198584/",
+      "note": "歌詞サイトの該当ページ。二階堂千鶴(野村香菜子)×萩原雪歩(浅倉杏美) Persona Voice 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 4件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_reach_the_sky",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/329034/"
+      },
+      "source": "https://www.uta-net.com/song/329034/",
+      "note": "歌詞サイトの該当ページ。高山紗代子(駒形友梨) REACH THE SKY 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_sister",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/246843/"
+      },
+      "source": "https://www.uta-net.com/song/246843/",
+      "note": "歌詞サイトの該当ページ。天空橋朋花(小岩井ことり) Sister 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_sky_survive",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/366317/"
+      },
+      "source": "https://www.uta-net.com/song/366317/",
+      "note": "歌詞サイトの該当ページ。白石紬(南早紀)、福田のり子(浜崎奈々)、伊吹翼(Machico)、木下ひなた(田村奈央) Sky Survive 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 8件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_upper_dog",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/359406/"
+      },
+      "source": "https://www.uta-net.com/song/359406/",
+      "note": "歌詞サイトの該当ページ。箱崎星梨花(麻倉もも)、天空橋朋花(小岩井ことり)、野々原茜(小笠原早紀)、馬場このみ(高橋ミナミ) Upper Dog 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 7件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_vivid_color",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/182714/"
+      },
+      "source": "https://www.uta-net.com/song/182714/",
+      "note": "歌詞サイトの該当ページ。高山紗代子(駒形友梨) vivid color 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_white_vows",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/271305/"
+      },
+      "source": "https://www.uta-net.com/song/271305/",
+      "note": "歌詞サイトの該当ページ。豊川風花(末柄里恵)、馬場このみ(高橋未奈美)、百瀬莉緒(山口立花子)、桜守歌織(香里有佐)、二階堂千鶴(野村香菜子) White Vows 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 10件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_あのね聞いてほしいことがあるんだ",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/157305/"
+      },
+      "source": "https://www.uta-net.com/song/157305/",
+      "note": "歌詞サイトの該当ページ。木下ひなた(田村奈央) あのね、聞いてほしいことがあるんだ 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_あめにうたおう",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/240827/"
+      },
+      "source": "https://www.uta-net.com/song/240827/",
+      "note": "歌詞サイトの該当ページ。矢吹可奈(木戸衣吹) あめにうたおう♪ 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_たしかな足跡",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/201309/"
+      },
+      "source": "https://www.uta-net.com/song/201309/",
+      "note": "歌詞サイトの該当ページ。三浦あずさ(たかはし智秋)×百瀬莉緒(山口立花子) たしかな足跡 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 4件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_ちいさな恋の足音",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/154243/"
+      },
+      "source": "https://www.uta-net.com/song/154243/",
+      "note": "歌詞サイトの該当ページ。篠宮可憐(近藤唯) ちいさな恋の足音 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_ときどきシーソー",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/245083/"
+      },
+      "source": "https://www.uta-net.com/song/245083/",
+      "note": "歌詞サイトの該当ページ。中谷育(原嶋あかり) ときどきシーソー 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_はなしらべ",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/242567/"
+      },
+      "source": "https://www.uta-net.com/song/242567/",
+      "note": "歌詞サイトの該当ページ。エミリー スチュアート(郁原ゆう) はなしらべ 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_ふわりずむ",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/242570/"
+      },
+      "source": "https://www.uta-net.com/song/242570/",
+      "note": "歌詞サイトの該当ページ。宮尾美也(桐谷蝶々) ふわりずむ 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_りんごのマーチ",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/178925/"
+      },
+      "source": "https://www.uta-net.com/song/178925/",
+      "note": "歌詞サイトの該当ページ。木下ひなた(田村奈央) りんごのマーチ 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_オレンジの空の下",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/148527/"
+      },
+      "source": "https://www.uta-net.com/song/148527/",
+      "note": "歌詞サイトの該当ページ。豊川風花(末柄里恵) オレンジの空の下 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_カンパリーナ",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/344140/"
+      },
+      "source": "https://www.uta-net.com/song/344140/",
+      "note": "歌詞サイトの該当ページ。三浦あずさ(たかはし智秋)、二階堂千鶴(野村香菜子)、四条貴音(原由実)、北上麗花(平山笑美)、豊川風花(末柄里恵) カンパリーナ 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 10件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_クルリウタ",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/288542/"
+      },
+      "source": "https://www.uta-net.com/song/288542/",
+      "note": "歌詞サイトの該当ページ。野々原茜(小笠原早紀)、島原エレナ(角元明日香)、桜守歌織(香里有佐)、二階堂千鶴(野村香菜子)、北沢志保(雨宮天) クルリウタ 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 10件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_スタートリップ",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/243741/"
+      },
+      "source": "https://www.uta-net.com/song/243741/",
+      "note": "歌詞サイトの該当ページ。ジュリア(愛美) スタートリップ 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 1件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_スポーツスポーツスポーツ",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/240830/"
+      },
+      "source": "https://www.uta-net.com/song/240830/",
+      "note": "歌詞サイトの該当ページ。高坂海美(上田麗奈) スポーツ!スポーツ!スポーツ! 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_ダイヤモンドクラリティ",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/309862/"
+      },
+      "source": "https://www.uta-net.com/song/309862/",
+      "note": "歌詞サイトの該当ページ。BRIGHT DIAMOND ダイヤモンド・クラリティ 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 1件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_デコレーションドリミンッ",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/161578/"
+      },
+      "source": "https://www.uta-net.com/song/161578/",
+      "note": "歌詞サイトの該当ページ。周防桃子(渡部恵子) デコレーション・ドリ～ミンッ♪ 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_パンとフィルム",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/301292/"
+      },
+      "source": "https://www.uta-net.com/song/301292/",
+      "note": "歌詞サイトの該当ページ。君彩 パンとフィルム 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 1件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_ホントウノワタシ",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/174902/"
+      },
+      "source": "https://www.uta-net.com/song/174902/",
+      "note": "歌詞サイトの該当ページ。田中琴葉(種田梨沙) ホントウノワタシ 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_ユニゾンビート",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/178919/"
+      },
+      "source": "https://www.uta-net.com/song/178919/",
+      "note": "歌詞サイトの該当ページ。舞浜歩(戸田めぐみ) ユニゾン☆ビート 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_ライラックにつつまれて",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/297089/"
+      },
+      "source": "https://www.uta-net.com/song/297089/",
+      "note": "歌詞サイトの該当ページ。TIntMe! ライラックにつつまれて 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_ラビットファー",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/274584/"
+      },
+      "source": "https://www.uta-net.com/song/274584/",
+      "note": "歌詞サイトの該当ページ。Xs ラビットファー 歌詞 - 歌ネット / 判定=high (曲名一致 + 先頭の関連名詞 (xs))"
+    },
+    {
+      "table": "songs",
+      "id": "ml_嘆きのfraction",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/154242/"
+      },
+      "source": "https://www.uta-net.com/song/154242/",
+      "note": "歌詞サイトの該当ページ。三浦あずさ(たかはし智秋) 嘆きのFRACTION 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_囚われのteatime",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/272973/"
+      },
+      "source": "https://www.uta-net.com/song/272973/",
+      "note": "歌詞サイトの該当ページ。Chrono-Lexica 囚われのTeaTime 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 1件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_微笑んだから気づいたんだ",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/163072/"
+      },
+      "source": "https://www.uta-net.com/song/163072/",
+      "note": "歌詞サイトの該当ページ。双海亜美(下田麻美) 微笑んだから、気づいたんだ。 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_想いはcarnaval",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/159938/"
+      },
+      "source": "https://www.uta-net.com/song/159938/",
+      "note": "歌詞サイトの該当ページ。島原エレナ(角元明日香) 想いはCarnaval 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_想い出はクリアスカイ",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/246444/"
+      },
+      "source": "https://www.uta-net.com/song/246444/",
+      "note": "歌詞サイトの該当ページ。Cleasky 想い出はクリアスカイ 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 1件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_推しってほんと",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/362814/"
+      },
+      "source": "https://www.uta-net.com/song/362814/",
+      "note": "歌詞サイトの該当ページ。所恵美(藤井ゆきよ)、島原エレナ(角元明日香)、佐竹美奈子(大関英里)、田中琴葉(種田梨沙)、矢吹可奈(木戸衣吹) 推しってほんと 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 10件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_旅立ちのコンパス",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/295665/"
+      },
+      "source": "https://www.uta-net.com/song/295665/",
+      "note": "歌詞サイトの該当ページ。Fleuranges 旅立ちのコンパス 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 1件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_永遠の花",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/224167/"
+      },
+      "source": "https://www.uta-net.com/song/224167/",
+      "note": "歌詞サイトの該当ページ。ジェミニ 永遠の花 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 1件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_深紅のパシオン",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/312052/"
+      },
+      "source": "https://www.uta-net.com/song/312052/",
+      "note": "歌詞サイトの該当ページ。chicAAmor 深紅のパシオン 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 1件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_矛盾の月",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/282044/"
+      },
+      "source": "https://www.uta-net.com/song/282044/",
+      "note": "歌詞サイトの該当ページ。花咲夜 矛盾の月 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 1件)"
+    },
+    {
+      "table": "songs",
+      "id": "ml_祈りの羽根",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/234796/"
+      },
+      "source": "https://www.uta-net.com/song/234796/",
+      "note": "歌詞サイトの該当ページ。豊川風花(末柄里恵) 祈りの羽根 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "sc_after_run",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/360862/"
+      },
+      "source": "https://www.uta-net.com/song/360862/",
+      "note": "歌詞サイトの該当ページ。シーズ After Run 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 1件)"
+    },
+    {
+      "table": "songs",
+      "id": "sc_forward_march",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/335742/"
+      },
+      "source": "https://www.uta-net.com/song/335742/",
+      "note": "歌詞サイトの該当ページ。イルミネーションスターズ Forward March！！！ 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 1件)"
+    },
+    {
+      "table": "songs",
+      "id": "sc_gotcha",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/353355/"
+      },
+      "source": "https://www.uta-net.com/song/353355/",
+      "note": "歌詞サイトの該当ページ。芹沢あさひ(田中有紀)、八宮めぐる(峯田茉優)、西城樹里(永井真里子) GOTCHA 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 6件)"
+    },
+    {
+      "table": "songs",
       "id": "sc_pioneer_impact",
       "fields": {
         "lyrics_url": "https://www.uta-net.com/song/374182/"
@@ -8390,6 +9200,384 @@
       },
       "source": "https://www.uta-net.com/song/240834/",
       "note": "歌詞サイトの該当ページ。蒼井悠介(菊池勇成) “W”orldwide Ambitions! 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "sidem_yell_of_delight",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/297540/"
+      },
+      "source": "https://www.uta-net.com/song/297540/",
+      "note": "歌詞サイトの該当ページ。W YELL OF DELIGHT 歌詞 - 歌ネット / 判定=high (曲名一致 + 先頭の関連名詞 (w))"
+    },
+    {
+      "table": "songs",
+      "id": "sidem_いつかのトライアングル",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/288929/"
+      },
+      "source": "https://www.uta-net.com/song/288929/",
+      "note": "歌詞サイトの該当ページ。Jupiter＆Beit＆THE 虎牙道 いつかのトライアングル 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 3件)"
+    },
+    {
+      "table": "songs",
+      "id": "sidem_そだてったいむかぷせる",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/318504/"
+      },
+      "source": "https://www.uta-net.com/song/318504/",
+      "note": "歌詞サイトの該当ページ。もふもふえん そだてっ！たいむかぷせる 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 1件)"
+    },
+    {
+      "table": "songs",
+      "id": "sidem_だいぶいんとぅにゅわあるど",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/218613/"
+      },
+      "source": "https://www.uta-net.com/song/218613/",
+      "note": "歌詞サイトの該当ページ。猫柳キリオ(山下大輝) だいぶ・いんとぅ・にゅ～・わあるど！ 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "sidem_もふデビうぉんてっど",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/349308/"
+      },
+      "source": "https://www.uta-net.com/song/349308/",
+      "note": "歌詞サイトの該当ページ。もふもふえん もふデビ★うぉんてっど 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 1件)"
+    },
+    {
+      "table": "songs",
+      "id": "sidem_トレジャーパーティー",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/250415/"
+      },
+      "source": "https://www.uta-net.com/song/250415/",
+      "note": "歌詞サイトの該当ページ。木村龍(濱健人),若里春名(白井悠介),蒼井悠介(菊池勇成) トレジャー・パーティー！ 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 6件)"
+    },
+    {
+      "table": "songs",
+      "id": "sidem_フェイバリットに踊らせて",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/228240/"
+      },
+      "source": "https://www.uta-net.com/song/228240/",
+      "note": "歌詞サイトの該当ページ。水嶋咲(小林大紀) フェイバリットに踊らせて 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "sidem_リトルマイシューズ",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/341345/"
+      },
+      "source": "https://www.uta-net.com/song/341345/",
+      "note": "歌詞サイトの該当ページ。橘志狼(古畑恵介) リトルマイシューズ 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "sidem_リフレインアトリウム",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/358076/"
+      },
+      "source": "https://www.uta-net.com/song/358076/",
+      "note": "歌詞サイトの該当ページ。Legenders リフレインアトリウム 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 1件)"
+    },
+    {
+      "table": "songs",
+      "id": "sidem_永遠なる四銃士",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/248644/"
+      },
+      "source": "https://www.uta-net.com/song/248644/",
+      "note": "歌詞サイトの該当ページ。天道輝(仲村宗悟),葛之葉雨彦(笠間淳),握野英雄(熊谷健太郎),紅井朱雀(益山武明) 永遠なる四銃士 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 8件)"
+    },
+    {
+      "table": "songs",
+      "id": "sidem_漢一貫ロックンロール",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/234021/"
+      },
+      "source": "https://www.uta-net.com/song/234021/",
+      "note": "歌詞サイトの該当ページ。紅井朱雀(益山武明) 漢一貫ロックン・ロール 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "sidem_素敵にcon_grazia",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/328509/"
+      },
+      "source": "https://www.uta-net.com/song/328509/",
+      "note": "歌詞サイトの該当ページ。伊集院北斗(神原大地) 素敵にCon grazia！ 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "sidem_組曲_-to_all_ages_concerto-",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/351240/"
+      },
+      "source": "https://www.uta-net.com/song/351240/",
+      "note": "歌詞サイトの該当ページ。Altessimo & 彩 組曲 -to All Ages Concerto- 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 1件)"
+    },
+    {
+      "table": "songs",
+      "id": "765as_coming_smile",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/303391/"
+      },
+      "source": "https://www.uta-net.com/song/303391/",
+      "note": "歌詞サイトの該当ページ。如月千早(今井麻美) Coming Smile 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "765as_crimson_lovers",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/234764/"
+      },
+      "source": "https://www.uta-net.com/song/234764/",
+      "note": "歌詞サイトの該当ページ。天海春香(中村繪里子)、如月千早(今井麻美) CRIMSON LOVERS 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 4件)"
+    },
+    {
+      "table": "songs",
+      "id": "765as_ever_rising",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/311591/"
+      },
+      "source": "https://www.uta-net.com/song/311591/",
+      "note": "歌詞サイトの該当ページ。奥空心白(田中あいみ)、亜夜(日高里菜) EVER RISING 歌詞 - 歌ネット / 判定=high (曲名一致 + 関連名詞 3件)"
+    },
+    {
+      "table": "songs",
+      "id": "765as_session",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/311592/"
+      },
+      "source": "https://www.uta-net.com/song/311592/",
+      "note": "歌詞サイトの該当ページ。天海春香(中村繪里子)、水瀬伊織(釘宮理恵)、菊地真(平田宏美)、我那覇響(沼倉愛美)、安部菜々(三宅麻理恵)、双葉杏(五十嵐裕美)、春日未来(山崎はるか)、大 / 判定=high (曲名一致 + 関連名詞 20件)"
+    },
+    {
+      "table": "songs",
+      "id": "765as_vertex_meister",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/243943/"
+      },
+      "source": "https://www.uta-net.com/song/243943/",
+      "note": "歌詞サイトの該当ページ。如月千早(今井麻美)、秋月律子(若林直美)、菊地真(平田宏美)、四条貴音(原由実)、我那覇響(沼倉愛美) Vertex Meister(M@STER VERSI / 判定=high (曲名一致 + 関連名詞 10件)"
+    },
+    {
+      "table": "songs",
+      "id": "765as_we_just_started",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/121759/"
+      },
+      "source": "https://www.uta-net.com/song/121759/",
+      "note": "歌詞サイトの該当ページ。星井美希(長谷川明子)・四条貴音(原由実)・秋月律子(若林直美) We just started 歌詞 / 判定=high (曲名一致 + 関連名詞 6件)"
+    },
+    {
+      "table": "songs",
+      "id": "765as_いっしょ",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/260172/"
+      },
+      "source": "https://www.uta-net.com/song/260172/",
+      "note": "歌詞サイトの該当ページ。天海春香(中村繪里子)、星井美希(長谷川明子)、高槻やよい(仁後真耶子)、双海亜美/真美(下田麻美)、三浦あずさ(たかはし智秋) いっしょ 歌詞 / 判定=high (曲名一致 + 関連名詞 10件)"
+    },
+    {
+      "table": "songs",
+      "id": "765as_さよならをありがとう",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/125295/"
+      },
+      "source": "https://www.uta-net.com/song/125295/",
+      "note": "歌詞サイトの該当ページ。天海春香(中村繪里子) さよならをありがとう 歌詞 / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "765as_ぜんぜんあいたい",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/262743/"
+      },
+      "source": "https://www.uta-net.com/song/262743/",
+      "note": "歌詞サイトの該当ページ。沼倉愛美、原由実、浅倉杏美 ぜんぜんあいたい 歌詞 / 判定=high (曲名一致 + 関連名詞 3件)"
+    },
+    {
+      "table": "songs",
+      "id": "765as_オハヨサンシャイン",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/164657/"
+      },
+      "source": "https://www.uta-net.com/song/164657/",
+      "note": "歌詞サイトの該当ページ。高槻やよい(仁後真耶子)・水瀬伊織(釘宮理恵)・我那覇響(沼倉愛美)・双海亜美・真美(下田麻美) オハヨ○サンシャイン 歌詞 / 判定=high (曲名一致 + 関連名詞 8件)"
+    },
+    {
+      "table": "songs",
+      "id": "765as_チェリー",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/260164/"
+      },
+      "source": "https://www.uta-net.com/song/260164/",
+      "note": "歌詞サイトの該当ページ。天海春香(中村繪里子)、萩原雪歩(長谷優里奈)、菊地真(平田宏美)、水瀬伊織(釘宮理恵)、我那覇響(沼倉愛美)、秋月律子(若林直美) チェリー 歌詞 / 判定=high (曲名一致 + 関連名詞 11件)"
+    },
+    {
+      "table": "songs",
+      "id": "765as_僕たちのresistance",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/movie/215263/"
+      },
+      "source": "https://www.uta-net.com/movie/215263/",
+      "note": "歌詞サイトの該当ページ。星井美希(長谷川明子)、如月千早(今井麻美)、高槻やよい(仁後真耶子)、我那覇響(沼倉愛美) 僕たちのResistance(M@STER VERSION) 歌詞 / 判定=high (曲名一致 + 関連名詞 8件)"
+    },
+    {
+      "table": "songs",
+      "id": "765as_初恋_一章_片想いの桜",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/260153/"
+      },
+      "source": "https://www.uta-net.com/song/260153/",
+      "note": "歌詞サイトの該当ページ。星井美希(長谷川明子)、我那覇響(沼倉愛美)、四条貴音(原由実) 初恋 ～一章 片想いの桜～ 歌詞 / 判定=high (曲名一致 + 関連名詞 6件)"
+    },
+    {
+      "table": "songs",
+      "id": "765as_幸",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/260152/"
+      },
+      "source": "https://www.uta-net.com/song/260152/",
+      "note": "歌詞サイトの該当ページ。音無小鳥(滝田樹里) 幸 歌詞 / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "765as_聖炎の女神",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/234763/"
+      },
+      "source": "https://www.uta-net.com/song/234763/",
+      "note": "歌詞サイトの該当ページ。四条貴音(原由実)、秋月律子(若林直美) 聖炎の女神 歌詞 / 判定=high (曲名一致 + 関連名詞 4件)"
+    },
+    {
+      "table": "songs",
+      "id": "765as_蒼い鳥mster_version_tv_arrange",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/273980/"
+      },
+      "source": "https://www.uta-net.com/song/273980/",
+      "note": "歌詞サイトの該当ページ。如月千早(今井麻美) 蒼い鳥(M＠STER VERSION) 歌詞 / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "876_field_on_me",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/371746/"
+      },
+      "source": "https://www.uta-net.com/song/371746/",
+      "note": "歌詞サイトの該当ページ。vα-liv FIELD ON ME 歌詞 / 判定=high (曲名一致 + 関連名詞 1件)"
+    },
+    {
+      "table": "songs",
+      "id": "876_no8",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/382852/"
+      },
+      "source": "https://www.uta-net.com/song/382852/",
+      "note": "歌詞サイトの該当ページ。上水流宇宙 No.8 歌詞 / 判定=high (曲名一致 + 関連名詞 1件)"
+    },
+    {
+      "table": "songs",
+      "id": "876_エンジェルドリーム",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/226341/"
+      },
+      "source": "https://www.uta-net.com/song/226341/",
+      "note": "歌詞サイトの該当ページ。緒方智絵里(大空直美)、城ヶ崎莉嘉(山本希望)、多田李衣菜(青木瑠璃子) エンジェル ドリーム ～CINDERELLA GIRLS COLLABORATION  / 判定=high (曲名一致 + 関連名詞 6件)"
+    },
+    {
+      "table": "songs",
+      "id": "876_クリスタライン",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/370600/"
+      },
+      "source": "https://www.uta-net.com/song/370600/",
+      "note": "歌詞サイトの該当ページ。vα-liv クリスタライン 歌詞 / 判定=high (曲名一致 + 関連名詞 1件)"
+    },
+    {
+      "table": "songs",
+      "id": "961_アクセルレーション",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/250806/"
+      },
+      "source": "https://www.uta-net.com/song/250806/",
+      "note": "歌詞サイトの該当ページ。詩花(高橋李依) アクセルレーション (M@STER VERSION) 歌詞 / 判定=high (曲名一致 + 関連名詞 1件)"
+    },
+    {
+      "table": "songs",
+      "id": "961_アライアンススターダスト",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/294655/"
+      },
+      "source": "https://www.uta-net.com/song/294655/",
+      "note": "歌詞サイトの該当ページ。ZWEIGLANZ アライアンス・スターダスト 歌詞 / 判定=high (曲名一致 + 関連名詞 1件)"
+    },
+    {
+      "table": "songs",
+      "id": "cg_ace",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/339155/"
+      },
+      "source": "https://www.uta-net.com/song/339155/",
+      "note": "歌詞サイトの該当ページ。結城晴(小市眞琴) ACE 歌詞 / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "cg_clock_hands",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/358972/"
+      },
+      "source": "https://www.uta-net.com/song/358972/",
+      "note": "歌詞サイトの該当ページ。白雪千夜(関口理咲) Clock Hands 歌詞 / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "cg_comic_cosmic",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/277519/"
+      },
+      "source": "https://www.uta-net.com/song/277519/",
+      "note": "歌詞サイトの該当ページ。佐久間まゆ(牧野由依)、久川颯(長江里加)、中野有香(下地紫野)、佐々木千枝(今井麻夏)、堀裕子(鈴木絵理) comic cosmic(M@STER VERSI / 判定=high (曲名一致 + 関連名詞 10件)"
+    },
+    {
+      "table": "songs",
+      "id": "cg_d-ark_l-ilys_grin",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/352028/"
+      },
+      "source": "https://www.uta-net.com/song/352028/",
+      "note": "歌詞サイトの該当ページ。北条加蓮(渕上舞)、速水奏(飯田友子) D-ark L-ily's Grin(M@STER VERSION) 歌詞 / 判定=high (曲名一致 + 関連名詞 4件)"
+    },
+    {
+      "table": "songs",
+      "id": "cg_dreaming_star",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/257431/"
+      },
+      "source": "https://www.uta-net.com/song/257431/",
+      "note": "歌詞サイトの該当ページ。相葉夕美(木村珠莉) Dreaming Star 歌詞 / 判定=high (曲名一致 + 関連名詞 2件)"
+    },
+    {
+      "table": "songs",
+      "id": "cg_enishi",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/movie/360054/"
+      },
+      "source": "https://www.uta-net.com/movie/360054/",
+      "note": "歌詞サイトの該当ページ。小早川紗枝(立花理香)、塩見周子(ルゥティン) Enishi 歌詞&動画視聴 / 判定=high (曲名一致 + 関連名詞 4件)"
+    },
+    {
+      "table": "songs",
+      "id": "cg_great_journey",
+      "fields": {
+        "lyrics_url": "https://www.uta-net.com/song/300090/"
+      },
+      "source": "https://www.uta-net.com/song/300090/",
+      "note": "歌詞サイトの該当ページ。島村卯月(大橋彩香)、渋谷凛(福原綾香)、本田未央(原紗友里) Great Journey (M@STER VERSION) 歌詞 / 判定=high (曲名一致 + 関連名詞 6件)"
     }
   ]
 }

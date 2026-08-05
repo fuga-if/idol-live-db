@@ -24,6 +24,10 @@ python3 tools/lyrics/link_worklist.py --slices 150
 #    出力は tools/lyrics/slices/out_NN.tsv に
 #      song_id / candidate_url / candidate_title / note
 #    見つからない曲は URL を**空欄**にすること。文言を書かない。
+#
+#    ⚠️ **「検索したが見つからなかった」と「予算切れで未着手」を必ず区別させること。**
+#       未着手の行は note に「未着手」と書かせる。書かせないと、マージ時に
+#       not_found を立ててしまい、次回のスライスから漏れて永久に調査されない。
 
 # 3. 回収した候補を links.tsv にマージし、機械判定を回す
 python3 tools/lyrics/link_verify.py --apply
