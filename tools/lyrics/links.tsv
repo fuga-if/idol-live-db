@@ -1004,26 +1004,26 @@ cg_pretty_liar	Pretty Liar	ミステリアスアイズ（高垣楓、速水奏�
 cg_starry_night	Starry Night	松永涼、三船美優、森久保乃々、藤原肇、砂塚あきら	4		https://www.uta-net.com/song/333436/	松永涼(千菅春香)、三船美優(原田彩楓)、森久保乃々(高橋花林)、藤原肇(鈴木みのり)、砂塚あきら(富田美憂) Starry Night	high	曲名一致 + 関連名詞 10件
 cg_to_my_darling	To my darling...	輿水幸子	4				not_found	検索したが歌ネットに該当ページが見つからない
 cg_unlock_starbeat	Unlock Starbeat	神崎蘭子、白雪千夜、多田李衣菜、五十嵐響子、星輝子	4		https://www.uta-net.com/song/287411/	星輝子(松田颯水)、白雪千夜(関口理咲)、神崎蘭子(内田真礼)、五十嵐響子(種崎敦美)、多田李衣菜(青木瑠璃子) Unlock Starbeat(M@STER VERSION)	high	曲名一致 + 関連名詞 9件
-cg_winter_and_window	WINTER and WINDOW	イヴ・サンタクロース、一ノ瀬志希、高森藍子、高垣楓、久川颯	4					
-cg_wish_you_happiness	Wish you Happiness!!	安部菜々、新田美波、小早川紗枝、塩見周子、浜口あやめ、ナターリア、辻野あかり	4					
-cg_おめざめめーめー	おめざめめーめー	遊佐こずえ	4					
-cg_きらりんロボのテーマ	きらりんロボのテーマ	諸星きらり	4					
-cg_さよならアロハ	さよならアロハ	木村夏樹、十時愛梨、中野有香、藤本里奈、宮本フレデリカ	4					
-cg_しゅがーはぁとレボリューション	しゅがーはぁと☆レボリューション	佐藤心	4					
-cg_みんなのきもち	みんなのきもち	市原仁奈	4					
-cg_アイムアリトルプリンセス_お星さまにお願い	アイム・ア・リトル・プリンセス 〜お星さまにお願い〜	古賀小春	4					
-cg_アタシガルール	アタシガルール	桐生つかさ	4					
-cg_オタク_is_love	オタク is LOVE!	虹色ドリーマー（荒木比奈、神谷奈緒、安部菜々）	4					
-cg_ギュっとmilky_way	ギュっとMilky Way	ドリームアウェイ（佐久間まゆ、喜多日菜子）	4					
-cg_サニードロップ	サニードロップ	大槻唯	4					
-cg_ジュビリー	ジュビリー	星街すいせい、高垣楓	4					
-cg_ステップスキップ	ステップ＆スキップ	ワンステップス（関裕美、白菊ほたる、森久保乃々）	4					
-cg_ノートの中のテラリウム	ノートの中のテラリウム	なの・くらうん（久川凪、森久保乃々）	4					
-cg_プライスレス_ドーナッcyu	プライスレス ドーナッCyu♡	椎名法子	4					
-cg_マイスイートハネムーン	マイ・スイート・ハネムーン	佐久間まゆ	4					
-cg_ミステリーハート	ミステリーハート	FrenchKisS（宮本フレデリカ、速水奏）	4					
-cg_ミライコンパス	ミライコンパス	エフェメラ（望月聖、佐久間まゆ、緒方智絵里、依田芳乃、高森藍子）	4					
-cg_モラトリアム	モラトリアム	リアンコリック（夢見りあむ、双葉杏）	4					
+cg_winter_and_window	WINTER and WINDOW	イヴ・サンタクロース、一ノ瀬志希、高森藍子、高垣楓、久川颯	4		https://www.uta-net.com/song/354991/	THE IDOLMASTER CINDERELLA GIRLS Stage for Cinderella BEST5! WINTER and WINDOW 歌詞	low	アイマス関連の固有名詞がタイトルに無い (同名別曲の疑い)
+cg_wish_you_happiness	Wish you Happiness!!	安部菜々、新田美波、小早川紗枝、塩見周子、浜口あやめ、ナターリア、辻野あかり	4		https://www.uta-net.com/song/300561/	辻野あかり(梅澤めぐ)、小早川紗枝(立花理香)、安部菜々(三宅麻理恵)、新田美波(洲崎綾)、ナターリア(生田輝)、塩見周子(ルゥティン)、浜口あやめ(田澤茉純) Wish you Happiness!! (M@STER VERSION) 歌詞	high	曲名一致 + 関連名詞 14件
+cg_おめざめめーめー	おめざめめーめー	遊佐こずえ	4				not_found	検索したが歌ネットに該当ページが見つからない
+cg_きらりんロボのテーマ	きらりんロボのテーマ	諸星きらり	4		https://www.uta-net.com/song/231705/	諸星きらり(松嵜麗) きらりんロボのテーマ 歌詞	high	曲名一致 + 関連名詞 2件
+cg_さよならアロハ	さよならアロハ	木村夏樹、十時愛梨、中野有香、藤本里奈、宮本フレデリカ	4		https://www.uta-net.com/song/257432/	木村夏樹(安野希世乃)、十時愛梨(原田ひとみ)、中野有香(下地紫野)、藤本里奈(金子真由美)、宮本フレデリカ(高野麻美) さよならアロハ 歌詞	high	曲名一致 + 関連名詞 9件
+cg_しゅがーはぁとレボリューション	しゅがーはぁと☆レボリューション	佐藤心	4		https://www.uta-net.com/song/267840/	佐藤心(花守ゆみり) しゅがーはぁと☆レボリューション 歌詞	high	曲名一致 + 関連名詞 2件
+cg_みんなのきもち	みんなのきもち	市原仁奈	4		https://www.uta-net.com/song/337365/	市原仁奈(久野美咲) みんなのきもち 歌詞	high	曲名一致 + 関連名詞 2件
+cg_アイムアリトルプリンセス_お星さまにお願い	アイム・ア・リトル・プリンセス 〜お星さまにお願い〜	古賀小春	4		https://www.uta-net.com/song/339154/	古賀小春(小森結梨) アイム・ア・リトル・プリンセス～お星さまにお願い～ 歌詞	high	曲名一致 + 関連名詞 2件
+cg_アタシガルール	アタシガルール	桐生つかさ	4		https://www.uta-net.com/song/339696/	桐生つかさ(河瀬茉希) アタシガルール 歌詞	high	曲名一致 + 関連名詞 2件
+cg_オタク_is_love	オタク is LOVE!	虹色ドリーマー（荒木比奈、神谷奈緒、安部菜々）	4		https://www.uta-net.com/song/288866/	荒木比奈(田辺留依)、神谷奈緒(松井恵理子)、安部菜々(三宅麻理恵) オタク is LOVE! (M@STER VERSION) 歌詞	high	曲名一致 + 関連名詞 6件
+cg_ギュっとmilky_way	ギュっとMilky Way	ドリームアウェイ（佐久間まゆ、喜多日菜子）	4		https://www.uta-net.com/song/281623/	佐久間まゆ(牧野由依)、喜多日菜子(深川芹亜) ギュっとMilky Way (M@STER VERSION) 歌詞	high	曲名一致 + 関連名詞 4件
+cg_サニードロップ	サニードロップ	大槻唯	4		https://www.uta-net.com/song/274275/	大槻唯(山下七海) サニードロップ 歌詞	high	曲名一致 + 関連名詞 2件
+cg_ジュビリー	ジュビリー	星街すいせい、高垣楓	4		https://www.uta-net.com/song/354262/	星街すいせい、高垣楓(早見沙織) ジュビリー(Game Version) 歌詞	high	曲名一致 + 関連名詞 2件
+cg_ステップスキップ	ステップ＆スキップ	ワンステップス（関裕美、白菊ほたる、森久保乃々）	4		https://www.uta-net.com/song/277552/	関裕美(会沢紗弥)、白菊ほたる(天野聡美)、森久保乃々(高橋花林) ステップ＆スキップ 歌詞	high	曲名一致 + 関連名詞 6件
+cg_ノートの中のテラリウム	ノートの中のテラリウム	なの・くらうん（久川凪、森久保乃々）	4		https://www.uta-net.com/song/347527/	久川凪(立花日菜)、森久保乃々(高橋花林) ノートの中のテラリウム(M@STER VERSION) 歌詞	high	曲名一致 + 関連名詞 4件
+cg_プライスレス_ドーナッcyu	プライスレス ドーナッCyu♡	椎名法子	4		https://www.uta-net.com/song/297677/	椎名法子(都丸ちよ) プライスレス ドーナッCyu 歌詞	high	曲名一致 + 関連名詞 2件
+cg_マイスイートハネムーン	マイ・スイート・ハネムーン	佐久間まゆ	4		https://www.uta-net.com/song/234455/	佐久間まゆ(牧野由依) マイ・スイート・ハネムーン 歌詞	high	曲名一致 + 関連名詞 2件
+cg_ミステリーハート	ミステリーハート	FrenchKisS（宮本フレデリカ、速水奏）	4		https://www.uta-net.com/song/350453/	宮本フレデリカ(高野麻美)、速水奏(飯田友子) ミステリーハート 歌詞	high	曲名一致 + 関連名詞 3件
+cg_ミライコンパス	ミライコンパス	エフェメラ（望月聖、佐久間まゆ、緒方智絵里、依田芳乃、高森藍子）	4		https://www.uta-net.com/song/343307/	望月聖(原涼子)、佐久間まゆ(牧野由依)、緒方智絵里(大空直美)、依田芳乃(高田憂希)、高森藍子(金子有希) ミライコンパス(M@STER VERSION) 歌詞	high	曲名一致 + 関連名詞 10件
+cg_モラトリアム	モラトリアム	リアンコリック（夢見りあむ、双葉杏）	4		https://www.uta-net.com/song/365084/	夢見りあむ(星希成奏)、双葉杏(五十嵐裕美) モラトリアム(M@STER VERSION) 歌詞	high	曲名一致 + 関連名詞 4件
 cg_世界滅亡_or_kiss	世界滅亡 or KISS	喜多日菜子	4		https://www.uta-net.com/song/289531/	喜多日菜子(深川芹亜) 世界滅亡 or KISS 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 2件
 cg_冬空プレシャス	冬空プレシャス	片桐早苗、難波笑美、姫川友紀	4		https://www.uta-net.com/song/241297/	片桐早苗(和氣あず未)・難波笑美(伊達朱里紗)・姫川友紀(杜野まこ) 冬空プレシャス 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 6件
 cg_夏恋_-natsu_koi-	夏恋 -NATSU KOI-	塩見周子、橘ありす、松永涼	4		https://www.uta-net.com/song/234470/	塩見周子(ルゥティン)、橘ありす(佐藤亜美菜)、松永涼(千菅春香) 夏恋 -NATSU KOI- 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 6件
@@ -1158,12 +1158,12 @@ sidem_組曲_-to_all_ages_concerto-	組曲 -to All Ages Concerto-	Altessimo（�
 765as_crimson_lovers	CRIMSON LOVERS	天海春香、如月千早	3		https://www.uta-net.com/song/234764/	天海春香(中村繪里子)、如月千早(今井麻美) CRIMSON LOVERS 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 4件
 765as_ever_rising	EVER RISING	奥空心白、亜夜	3		https://www.uta-net.com/song/311591/	奥空心白(田中あいみ)、亜夜(日高里菜) EVER RISING 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 3件
 765as_flower_knows	Flower Knows	高槻やよい、水瀬伊織	3				not_found	検索したが歌ネットに該当ページが見つからない
-765as_funny_logic	Funny Logic	高槻やよい、双海亜美/真美	3					
-765as_heart_and_soul	HEART AND SOUL	沼倉愛美、原由実、浅倉杏美	3					
-765as_im_yours	I'm yours	天海春香	3					
-765as_its_show	It's Show	如月千早、水瀬伊織、秋月律子、菊地真、萩原雪歩、音無小鳥	3					
-765as_lemonade	LEMONADE	萩原雪歩、三浦あずさ	3					
-765as_okey-dokey	Okey-dokey	今井麻美、たかはし智秋	3					
+765as_funny_logic	Funny Logic	高槻やよい、双海亜美/真美	3		https://www.uta-net.com/song/238060/	高槻やよい(仁後真耶子)、双海亜美/真美(下田麻美) Funny Logic 歌詞	high	曲名一致 + 関連名詞 4件
+765as_heart_and_soul	HEART AND SOUL	沼倉愛美、原由実、浅倉杏美	3		https://www.uta-net.com/song/262747/	沼倉愛美、原由実、浅倉杏美 HEART AND SOUL 歌詞	high	曲名一致 + 関連名詞 3件
+765as_im_yours	I'm yours	天海春香	3		https://www.uta-net.com/song/289557/	天海春香(中村繪里子) I'm yours 歌詞	high	曲名一致 + 関連名詞 2件
+765as_its_show	It's Show	如月千早、水瀬伊織、秋月律子、菊地真、萩原雪歩、音無小鳥	3				not_found	検索したが歌ネットに該当ページが見つからない
+765as_lemonade	LEMONADE	萩原雪歩、三浦あずさ	3		https://www.uta-net.com/song/241860/	萩原雪歩(浅倉杏美)、三浦あずさ(たかはし智秋) LEMONADE 歌詞	high	曲名一致 + 関連名詞 4件
+765as_okey-dokey	Okey-dokey	今井麻美、たかはし智秋	3				not_found	検索したが歌ネットに該当ページが見つからない
 765as_session	SESSION!	Project LUMINOUS（天海春香、水瀬伊織、菊地真、我那覇響、安部菜々、双葉杏、春日未来、大崎甘奈、大崎甜花、奥空心白）	3		https://www.uta-net.com/song/311592/	天海春香(中村繪里子)、水瀬伊織(釘宮理恵)、菊地真(平田宏美)、我那覇響(沼倉愛美)、安部菜々(三宅麻理恵)、双葉杏(五十嵐裕美)、春日未来(山崎はるか)、大崎甘奈(黒木ほの香)、大崎甜花(前川涼子)、奥空心白(田中あいみ) SESSION! 歌詞	high	曲名一致 + 関連名詞 20件
 765as_shadowless	SHADOWLESS	今井麻美	3				not_found	検索したが歌ネットに該当ページが見つからない
 765as_slapp_happy	Slapp Happy!!!	如月千早、高槻やよい、水瀬伊織	3				not_found	検索したが歌ネットに該当ページが見つからない
@@ -1214,180 +1214,180 @@ cg_dreaming_star	Dreaming Star	相葉夕美	3		https://www.uta-net.com/song/2574
 cg_enishi	Enishi	羽衣小町（小早川紗枝、塩見周子）	3		https://www.uta-net.com/movie/360054/	小早川紗枝(立花理香)、塩見周子(ルゥティン) Enishi 歌詞&動画視聴	high	曲名一致 + 関連名詞 4件
 cg_great_journey	Great Journey	new generations（島村卯月、渋谷凛、本田未央）	3		https://www.uta-net.com/song/300090/	島村卯月(大橋彩香)、渋谷凛(福原綾香)、本田未央(原紗友里) Great Journey (M@STER VERSION) 歌詞	high	曲名一致 + 関連名詞 6件
 cg_loveハズカム	LOVE☆ハズカム	藤本里奈	3				not_found	検索したが歌ネットに該当ページが見つからない
-cg_majoram_therapie	Majoram Therapie	夢見りあむ、西園寺琴歌、大槻唯、北条加蓮	3					
-cg_max_beat	Max Beat	高垣楓、鷹富士茄子、二宮飛鳥、松永涼、大和亜季	3					
-cg_nebula_sky	Nebula Sky	アナスタシア	3					
-cg_neon_sphere	Neon Sphere	LiPPS（速水奏、塩見周子、城ヶ崎美嘉、宮本フレデリカ、一ノ瀬志希）	3					
-cg_next_chapter	Next Chapter	佐藤心、一ノ瀬志希、ライラ、鷹富士茄子、鷺沢文香	3					
-cg_no_one_knows	No One Knows	∫nTegrαl（八神マキノ、速水奏、荒木比奈、北条加蓮）	3					
-cg_private_sign	Private Sign	塩見周子	3					
-cg_proust_effect	PROUST EFFECT	一ノ瀬志希	3					
-cg_spring_screaming	Spring Screaming	喜多見柚、本田未央、龍崎薫	3					
-cg_takamariclimaxxx	TAKAMARI☆CLIMAXXX!!!!!	喜多日菜子、喜多見柚、南条光、日野茜、姫川友紀	3					
-cg_voyage	Voyage	新田美波	3					
-cg_white_again	White again	小早川紗枝、櫻井桃華、島村卯月	3					
-cg_øωøver_-heart_beat_version-	ØωØver!! -Heart Beat Version-	デレパジ	3					
-cg_あこがれステッチ	あこがれステッチ	佐々木千枝	3					
-cg_ほほえみdiary	ほほえみDiary	インディゴ・ベル（高森藍子、道明寺歌鈴）	3					
-cg_まほうのまくら	まほうのまくら	ららりる（遊佐こずえ、双葉杏）	3					
-cg_もしもカワイイが世界からなくなっても	もしも「カワイイ」が世界からなくなっても	カワスウィーティーなボクはぁと(仮)（輿水幸子、佐藤心）	3					
-cg_よりみちリトルスター	よりみちリトルスター	U149（橘ありす、櫻井桃華、赤城みりあ、的場梨沙、結城晴、佐々木千枝、龍崎薫、市原仁奈、古賀小春）	3					
-cg_アッパレmaharajapaaan	アッパレ♪Mahara★Japaaan!	セクシーギルティ（堀裕子、片桐早苗、及川雫）	3					
-cg_グッデイグッナイ	グッデイ・グッナイ	U149（橘ありす、櫻井桃華、赤城みりあ、的場梨沙、結城晴、佐々木千枝、龍崎薫、市原仁奈、古賀小春）	3					
-cg_ソウソウ	ソウソウ	ナターリア	3					
-cg_チカライズぱわー	チカラ！イズ！ぱわー！！	サイキックヒーツ（日野茜、堀裕子）	3					
-cg_チョコレートレモネードどっち	チョコレート？レモネード？どっち？？	乙倉悠貴、関裕美、白菊ほたる、早坂美玲、黒埼ちとせ	3					
-cg_ハートボイルドウォーズ	ハートボイルドウォーズ	ガンズパーティー（大和亜季、村上巴、片桐早苗）	3					
-cg_ヒカリシンコキュウミライ	ヒカリ→シンコキュウ→ミライ	中野有香	3					
-cg_メッセージ_-future_picopico_remix-	メッセージ -Future PicoPico Remix-	CINDERELLA PROJECT	3					
-cg_ラヴィアンローズ	ラヴィアンローズ	櫻井桃華	3					
-cg_全開ミラクルアドベンチャー	全開！ミラクルアドベンチャー！	はぴのす（浅利七海、安部菜々、前川みく）	3					
-cg_君への詩	君への詩	安部菜々、本田未央、北条加蓮、鷹富士茄子、鷺沢文香	3					
-cg_堕ちる果実	堕ちる果実	Fortuna Regina（神崎蘭子、黒埼ちとせ）	3					
-cg_夏祭り	夏祭り		3					
-cg_太陽の絵の具箱	太陽の絵の具箱	Sonoritia（緒方智絵里、依田芳乃、遊佐こずえ、佐城雪美）	3					
-cg_日々あどべんちゃーなのでしてー	日々あどべんちゃーなのでしてー	依田芳乃	3					
-cg_書きかけのラブレター	書きかけのラブレター	ワンステップス（関裕美、白菊ほたる、森久保乃々）	3					
-cg_流星浪漫	流星浪漫	星纏天女（鷺沢文香、鷹富士茄子）	3					
-cg_無限lpだlove	無限L∞PだLOVE♡	辻野あかり、佐久間まゆ、多田李衣菜、神崎蘭子、木村夏樹、二宮飛鳥、ナターリア、黒埼ちとせ	3					
-cg_碧空ノ一路	碧空ノ一路	脇山珠美	3					
-cg_輝く世界の魔法_-magical_step_forward_remix-	輝く世界の魔法　-Magical Step Forward Remix-	THE IDOLM@STER CINDERELLA GIRLS!、アナスタシア、高垣楓、輿水幸子、渋谷凛	3					
-gakuen_36c_ubu	36℃ U･B･U	姫崎莉波	3					
-gakuen_love_joy	Love & Joy	紫雲清夏	3					
-gakuen_sugar_flavor	SUGAR FLAVOR	有村麻央、姫崎莉波	3					
-gakuen_sweet_magic	Sweet Magic	有村麻央	3					
-gakuen_かちドキ	かちドキ	藤田ことね	3					
-gakuen_つよつよ最強エクササイズ	つよつよ最強エクササイズ	花海佑芽	3					
-gakuen_三分半の創世	三分半の創世	雨夜燕	3					
-gakuen_憧れをいっぱい	憧れをいっぱい	倉本千奈	3					
-gakuen_桜フォトグラフ	桜フォトグラフ	葛城リーリヤ、紫雲清夏、花海咲季	3					
-gakuen_見て	見て	有村麻央	3					
-ml_beat_the_world	Beat the World!!!	菊地真×舞浜歩	3					
-ml_bigバルーン	Bigバルーン◎	双海亜美、永吉昴、野々原茜、馬場このみ	3					
-ml_bonnes_bonnes_vacances	Bonnes! Bonnes!! Vacances!!!	リブラ（伊吹翼、佐竹美奈子、福田のり子）	3					
-ml_border_line	Border LINE→→→♡	百瀬莉緒	3					
-ml_cheer_up_hearts_up	CHEER UP! HEARTS UP!	望月杏奈、矢吹可奈、天海春香、ジュリア	3					
-ml_deep_deep_blue	Deep, Deep Blue	ダイヤモンドダイバー◇（高槻やよい、天海春香、我那覇響）	3					
-ml_eternal_spiral	Eternal Spiral	高槻やよい×矢吹可奈	3					
-ml_flooding	Flooding	クレシェンドブルー（最上静香、北上麗花、北沢志保、野々原茜、箱崎星梨花）	3					
-ml_hang_in_there	Hang In There!	Jus-2-Mint（佐竹美奈子、横山奈緒）	3					
-ml_home_is_a_coming_now	Home is a coming now!	横山奈緒	3					
-ml_home_run_song	HOME RUN SONG♪	永吉昴	3					
-ml_impressionlocomotion	IMPRESSION→LOCOMOTION！	ロコ	3					
-ml_just_be_myself	Just be myself!!	如月千早	3					
-ml_no_curry_no_life	NO CURRY NO LIFE	カプリコーン（望月杏奈、百瀬莉緒、矢吹可奈）	3					
-ml_paradox_of_love	Paradox of LOVE	chicAAmor（高山紗代子、豊川風花、ジュリア、二階堂千鶴）	3					
-ml_ps_i_love_you	P.S I Love You	ピスケス（篠宮可憐、天空橋朋花、二階堂千鶴）	3					
-ml_refrain_reltion	REFRAIN REL@TION	MILLIONSTARS Team8th（春日未来、最上静香、伊吹翼、桜守歌織、白石紬）	3					
-ml_silent_joker	Silent Joker	真壁瑞希	3					
-ml_special_wonderful_smile	Special Wonderful Smile	Fleuranges（篠宮可憐、箱崎星梨花、木下ひなた、宮尾美也）	3					
-ml_take3_2_1_space	Take！3. 2. 1. → S・P・A・C・E↑↑	松田亜利沙	3					
-ml_thank_you_-mr_remix-	Thank You! -MR remix-	春日未来、最上静香、箱崎星梨花	3					
-ml_world_changer	World Changer	如月千早、星井美希、菊地真、エミリー スチュアート、天海春香	3					
-ml_world_wide_dance	WORLD WIDE DANCE!!!	菊地真	3					
-ml_wow_i_need_シンギングモンキー_歌唱拳	WOW! I NEED!! 〜シンギングモンキー 歌唱拳〜	双海真美	3					
-ml_ふたり繋ぐ星座	ふたり繋ぐ星座	北上麗花	3					
-ml_アイドルステアウェイ	アイドルステアウェイ	周防桃子、高坂海美、徳川まつり、豊川風花	3					
-ml_シャクネツのパレード	シャクネツのパレード	島原エレナ	3					
-ml_シルエット	シルエット	田中琴葉	3					
-ml_シークレットジュエル_魅惑の金剛石	シークレットジュエル 〜魅惑の金剛石〜	水瀬伊織、宮尾美也、春日未来、桜守歌織、周防桃子	3					
-ml_トワラー	トワラー	MILLIONSTARS Team7th（ジュリア、北上麗花、舞浜歩、矢吹可奈）	3					
-ml_フシギトラベラー	フシギトラベラー	TRICK&TREAT（北上麗花、野々原茜）	3					
-ml_フリースタイルトップアイドル	フリースタイル・トップアイドル！	ARMooo（双海真美、秋月律子、双海亜美）	3					
-ml_プリティッニャンニャンッ	プリティ〜〜〜ッ→ニャンニャンッ！	野々原茜	3					
-ml_マイペースマイウェイ	マイペース☆マイウェイ	福田のり子	3					
-ml_君との明日を願うから	君との明日を願うから	春日未来、最上静香、伊吹翼	3					
-ml_地球儀にない国	地球儀にない国	七尾百合子	3					
-ml_夜と明かりと	夜と、明かりと。	Sherry’n Cherry（馬場このみ、百瀬莉緒）	3					
-ml_恋のwawon	恋のWa・Wo・N	七尾百合子	3					
-ml_教えてlast_note	教えてlast note…	篠宮可憐	3					
-ml_星宙のvoyage	星宙のVoyage	オペラセリア・煌輝座（北沢志保、桜守歌織、田中琴葉、徳川まつり）	3					
-ml_春風満帆スターティング	春風満帆スターティング	萩原雪歩、福田のり子、菊地真、永吉昴、最上静香	3					
-ml_求ム_vs_マイフューチャー	求ム VS マイ・フューチャー	福田のり子	3					
-ml_海風とカスタネット	海風とカスタネット	MILLIONSTARS Team2nd（高坂海美、篠宮可憐、福田のり子、真壁瑞希、百瀬莉緒）	3					
-ml_涙を知ること	涙を知ること	桜守歌織、大神環、ジュリア、中谷育	3					
-sc_365日のストーリー	365日のストーリー	ノクチル（浅倉透、樋口円香、福丸小糸、市川雛菜）	3					
-sc_cmon_join_us	C'mon! Join Us	シャイニーカラーズ（櫻木真乃、風野灯織、八宮めぐる、月岡恋鐘、田中摩美々、白瀬咲耶、三峰結華、幽谷霧子、小宮果穂、園田智代子、西城樹里、杜野凛世、有栖川夏葉、大崎甘奈、大崎甜花、桑山千雪、芹沢あさひ、黛冬優子、和泉愛依、浅倉透、樋口円香、福丸小糸、市川雛菜、七草にちか、緋田美琴、斑鳩ルカ、鈴木羽那、郁田はるき）	3					
-sc_daydream_love	DAYDREAM LOVE	アルストロメリア（大崎甘奈、大崎甜花、桑山千雪）	3					
-sc_koikyun	KoiKyun！	イルミネーションスターズ（櫻木真乃、風野灯織、八宮めぐる）	3					
-sc_migratory_echoes	Migratory Echoes	シャイニーカラーズ	3					
-sc_one_live_one_love	One Live One Love	ストレイライト	3					
-sc_swing_it	Swing it!	ノクチル（浅倉透、樋口円香、福丸小糸、市川雛菜）	3					
-sc_アイノウ	アイノウ	コメティック（斑鳩ルカ、鈴木羽那、郁田はるき）	3					
-sc_ブレイクアウトセレンディピティ	ブレイク・アウト・セレンディピティ	アンティーカ（月岡恋鐘、田中摩美々、白瀬咲耶、三峰結華、幽谷霧子）	3					
-sc_愛しき日々	愛しき日々	ノクチル（浅倉透、樋口円香、福丸小糸、市川雛菜）	3					
-sc_月影のアンシェネ	月影のアンシェネ	田中摩美々	3					
-sc_秋の終わり僕の記憶	秋の終わり、僕の記憶	アンティーカ（月岡恋鐘、田中摩美々、白瀬咲耶、三峰結華、幽谷霧子）	3					
-sc_絶対正義_every_day	絶対正義 EVERY DAY	小宮果穂	3					
-sc_進路は超銀河	進路は超銀河	放課後クライマックスガールズ（小宮果穂、園田智代子、西城樹里、杜野凛世、有栖川夏葉）	3					
-sc_運命前夜	運命前夜	アンティーカ（月岡恋鐘、田中摩美々、白瀬咲耶、三峰結華、幽谷霧子）	3					
-sc_銀翼のアヴニール_-become_the_brave-	銀翼のアヴニール -become the brave-	アンティーカ（月岡恋鐘、田中摩美々、白瀬咲耶、三峰結華、幽谷霧子）	3					
-sidem_a_cup_of_happiness	A CUP OF HAPPINESS	神谷幸広	3					
-sidem_after_the_rain	AFTER THE RAIN	Ｗ（蒼井享介、蒼井悠介）	3					
-sidem_amber_color_oasis	Amber Color Oasis	FRAME（握野英雄、木村龍、信玄誠司）	3					
-sidem_asterisk	ASTERISK	DRAMATIC STARS（天道輝、桜庭薫、柏木翼）	3					
-sidem_beginning_tomorrow	Beginning Tomorrow	天道輝	3					
-sidem_bet_your_intuition	Bet your intuition!	FRAME&S.E.M&Legenders（握野英雄、木村龍、信玄誠司、硲道夫、舞田類、山下次郎、葛之葉雨彦、北村想楽、古論クリス）	3					
-sidem_casually	Casually!	F-LAGS（秋月涼、兜大吾、九十九一希）	3					
-sidem_change_to_chance	Change to Chance	DRAMATIC STARS（天道輝、桜庭薫、柏木翼）	3					
-sidem_dance_in_the_school	Dance in the school！	S.E.M（硲道夫、舞田類、山下次郎）	3					
-sidem_delicious_delivery	Delicious Delivery	Café Parade（神谷幸広、東雲荘一郎、アスラン＝ベルゼビュートⅡ世、卯月巻緒、水嶋咲）	3					
-sidem_dramatic_anthem	Dramatic Anthem	DRAMATIC STARS ＆ S.E.M（天道輝、桜庭薫、柏木翼、硲道夫、舞田類、山下次郎）	3					
-sidem_fine_day_find_way	Fine Day！ Find Way！	DRAMATIC STARS & 神速一魂 & F-LAGS（天道輝、桜庭薫、柏木翼、紅井朱雀、黒野玄武、秋月涼、九十九一希、兜大吾）	3					
-sidem_flowing_freedom	Flowing Freedom	北村想楽	3					
-sidem_give_me_fusion	GIVE ME × FUSION	卯月巻緒	3					
-sidem_go_next	GO NEXT	天峰秀	3					
-sidem_godspeed_ignition	Godspeed IGNITION!!	神速一魂（紅井朱雀、黒野玄武）	3					
-sidem_great_sympathy	Great Sympathy	W（蒼井享介、蒼井悠介）	3					
-sidem_hundreds_color	Hundreds Color	花園百々人	3					
-sidem_hungry	Hungry?	THE 虎牙道（大河タケル、牙崎漣、円城寺道流）	3					
-sidem_inner_dignity	Inner Dignity	Jupiter（天ヶ瀬冬馬、御手洗翔太、伊集院北斗）	3					
-sidem_journey_joy_blend	Journey JOY Blend	神谷幸広	3					
-sidem_karma	KARMA	眉見鋭心	3					
-sidem_learning_message	Learning Message	硲道夫	3					
-sidem_made_in_	Made in「 ♪ 」	F-LAGS（秋月涼、兜大吾、九十九一希）	3					
-sidem_make_up_magic	Make up↑ Magic	水嶋咲	3					
-sidem_one_to_dream	ONE to DREAM！	FRAME（握野英雄、木村龍、信玄誠司）	3					
-sidem_planet_scape	Planet scape	Jupiter（天ヶ瀬冬馬、御手洗翔太、伊集院北斗）	3					
-sidem_precious_tone	PRECIOUS TONE	秋山隼人	3					
-sidem_purelykindly	Purely&Kindly	ピエール、榊夏来、蒼井享介、清澄九郎	3					
-sidem_radiant_letter	Radiant Letter	Jupiter（天ヶ瀬冬馬、伊集院北斗、御手洗翔太）	3					
-sidem_road_to_the_future	ROAD TO THE FUTURE	円城寺道流	3					
-sidem_rule_牙ヲ穿テヨ	RULE 〜牙ヲ穿テヨ〜	牙崎漣	3					
-sidem_sash_of_smile	SASH OF SMILE	兜大吾	3					
-sidem_sparkle_sign	SPARKLE SIGN	木村龍	3					
-sidem_sugaring_off_party	Sugaring Off Party!	秋山隼人、卯月巻緒、神楽麗、岡村直央	3					
-sidem_this_is_it	THIS IS IT!	舞田類	3					
-sidem_tick_tack_voice	Tick Tack Voice	信玄誠司	3					
-sidem_tricolor_rendezvous	Tricolor Rendezvous	F-LAGS（秋月涼、兜大吾、九十九一希）	3					
-sidem_true_horizon	True Horizon	天ヶ瀬冬馬、天道輝、天峰秀	3					
-sidem_wonderful_tactics	“W”onderful Tactics!	蒼井享介	3					
-sidem_yell_song	Yell Song	秋月涼	3					
-sidem_その場所へ行くために-keep_on_fighting-	その場所へ行くために-KEEP ON FIGHTING-	大河タケル	3					
-sidem_はるかぜバトン	はるかぜバトン	もふもふえん（岡村直央、橘志狼、姫野かのん）	3					
-sidem_はんどめいどきみはーと	はんどめいど・きみはーと！	もふもふえん（岡村直央、橘志狼、姫野かのん）	3					
-sidem_わんだーまーちんぐ	わんだー×まーちんぐ！	もふもふえん（岡村直央、橘志狼、姫野かのん）	3					
-sidem_アトモスフィア	アトモスフィア	握野英雄	3					
-sidem_エウレカダイアリー	エウレカダイアリー	Beit（鷹城恭二、ピエール、渡辺みのり、舞田類、山下次郎）	3					
-sidem_オモイノウタ	オモイノウタ	神速一魂（紅井朱雀、黒野玄武）	3					
-sidem_カレイド_tourhythm	カレイド TOURHYTHM	Jupiter（天ヶ瀬冬馬、御手洗翔太、伊集院北斗、蒼井悠介）	3					
-sidem_スカイスケープノート	スカイスケープノート	柏木翼	3					
-sidem_トキメキぷろろーぐ	トキメキ・ぷろろーぐ!	岡村直央	3					
-sidem_ナツゾラrecords	ナツゾラRecords	榊夏来	3					
-sidem_ミュージアムジカ	ミュージアムジカ	W＆Café Parade＆もふもふえん（蒼井享介、蒼井悠介、神谷幸広、東雲荘一郎、アスラン＝ベルゼビュートⅡ世、卯月巻緒、水嶋咲、岡村直央、橘志狼、姫野かのん）	3					
-sidem_伝えたいのはこんなきもち	伝えたいのはこんなきもち	もふもふえん（岡村直央、橘志狼、姫野かのん）	3					
-sidem_冬の日のエトランゼ	冬の日のエトランゼ	DRAMATIC STARS（天道輝、桜庭薫、柏木翼、Beit[鷹城恭二、ピエール、渡辺みのり）	3					
-sidem_劇星戦隊ドラスターズ	劇星☆戦隊ドラスターズ	DRAMATIC STARS（天道輝、桜庭薫、柏木翼）	3					
-sidem_千客万来ニーハオサァカス	千客万来ニーハオサァカス！	御手洗翔太、渡辺みのり、大河タケル、兜大吾	3					
-sidem_威風堂々と	威風堂々と	黒野玄武	3					
-sidem_筆跡の彼方	筆跡の彼方	九十九一希	3					
-sidem_縁会entertainments	縁会！〜ENTERTAINMENTS！〜	彩（猫柳キリオ、華村翔真、清澄九郎）	3					
-sidem_魔法のステアー	魔法のステアー	ピエール	3					
-765as_advance	Advance	原紗友里＆青木瑠璃子 from CINDERELLA PARTY!	2					
-765as_continue	continue	原由実	2					
-765as_crescent_maze	Crescent Maze	原由実	2					
-765as_endless_tour	ENDLESS TOUR	春日未来、最上静香、箱崎星梨花	2					
-765as_fly_high	Fly High!	如月千早	2					
+cg_majoram_therapie	Majoram Therapie	夢見りあむ、西園寺琴歌、大槻唯、北条加蓮	3		https://www.uta-net.com/song/341167/	夢見りあむ(星希成奏)、西園寺琴歌(安齋由香里)、大槻唯(山下七海)、北条加蓮(渕上舞) Majoram Therapie 歌詞	high	曲名一致 + 関連名詞 8件
+cg_max_beat	Max Beat	高垣楓、鷹富士茄子、二宮飛鳥、松永涼、大和亜季	3		https://www.uta-net.com/song/267947/	高垣楓(早見沙織)、鷹富士茄子(森下来奈)、二宮飛鳥(青木志貴)、松永涼(千菅春香)、大和亜季(村中知) Max Beat 歌詞	high	曲名一致 + 関連名詞 10件
+cg_nebula_sky	Nebula Sky	アナスタシア	3				not_found	検索したが歌ネットに該当ページが見つからない
+cg_neon_sphere	Neon Sphere	LiPPS（速水奏、塩見周子、城ヶ崎美嘉、宮本フレデリカ、一ノ瀬志希）	3				not_found	検索したが歌ネットに該当ページが見つからない
+cg_next_chapter	Next Chapter	佐藤心、一ノ瀬志希、ライラ、鷹富士茄子、鷺沢文香	3		https://www.uta-net.com/song/345290/	佐藤心(花守ゆみり)、一ノ瀬志希(藍原ことみ)、ライラ(市ノ瀬加那)、鷹富士茄子(森下来奈)、鷺沢文香(M・A・O) Next Chapter 歌詞	high	曲名一致 + 関連名詞 10件
+cg_no_one_knows	No One Knows	∫nTegrαl（八神マキノ、速水奏、荒木比奈、北条加蓮）	3		https://www.uta-net.com/movie/330891/	八神マキノ(二ノ宮ゆい)、速水奏(飯田友子)、荒木比奈(田辺留依)、北条加蓮(渕上舞) No One Knows (M@STER VERSION) 歌詞&動画視聴	high	曲名一致 + 関連名詞 8件
+cg_private_sign	Private Sign	塩見周子	3		https://www.uta-net.com/song/254310/	塩見周子(ルゥティン) Private Sign 歌詞	high	曲名一致 + 関連名詞 2件
+cg_proust_effect	PROUST EFFECT	一ノ瀬志希	3		https://www.uta-net.com/song/249552/	一ノ瀬志希(藍原ことみ) PROUST EFFECT 歌詞	high	曲名一致 + 関連名詞 2件
+cg_spring_screaming	Spring Screaming	喜多見柚、本田未央、龍崎薫	3		https://www.uta-net.com/song/247425/	喜多見柚(武田羅梨沙多胡)、本田未央(原紗友里)、龍崎薫(春瀬なつみ) Spring Screaming 歌詞	high	曲名一致 + 関連名詞 6件
+cg_takamariclimaxxx	TAKAMARI☆CLIMAXXX!!!!!	喜多日菜子、喜多見柚、南条光、日野茜、姫川友紀	3		https://www.uta-net.com/movie/269324/	喜多日菜子(深川芹亜)、喜多見柚(武田羅梨沙多胡)、南条光(神谷早矢佳)、日野茜(赤崎千夏)、姫川友紀(杜野まこ) TAKAMARI☆CLIMAXXX!!!!! 歌詞&動画視聴	high	曲名一致 + 関連名詞 9件
+cg_voyage	Voyage	新田美波	3		https://www.uta-net.com/song/247704/	新田美波(洲崎綾) Voyage 歌詞	high	曲名一致 + 関連名詞 2件
+cg_white_again	White again	小早川紗枝、櫻井桃華、島村卯月	3		https://www.uta-net.com/song/241299/	小早川紗枝(立花理香)・櫻井桃華(照井春佳)・島村卯月(大橋彩香) White again 歌詞	high	曲名一致 + 関連名詞 6件
+cg_øωøver_-heart_beat_version-	ØωØver!! -Heart Beat Version-	デレパジ	3		https://www.uta-net.com/song/196021/	＊(Asterisk) OωOver! !-Heart Beat Version- 歌詞	low	候補タイトルに曲名が含まれない
+cg_あこがれステッチ	あこがれステッチ	佐々木千枝	3		https://www.uta-net.com/song/339692/	佐々木千枝(今井麻夏) あこがれステッチ 歌詞	high	曲名一致 + 関連名詞 2件
+cg_ほほえみdiary	ほほえみDiary	インディゴ・ベル（高森藍子、道明寺歌鈴）	3		https://www.uta-net.com/song/289552/	高森藍子(金子有希)、道明寺歌鈴(新田ひより) ほほえみDiary(M@STER VERSION) 歌詞	high	曲名一致 + 関連名詞 4件
+cg_まほうのまくら	まほうのまくら	ららりる（遊佐こずえ、双葉杏）	3		https://www.uta-net.com/song/327870/	遊佐こずえ(花谷麻妃)、双葉杏(五十嵐裕美) まほうのまくら (M@STER VERSION) 歌詞	high	曲名一致 + 関連名詞 4件
+cg_もしもカワイイが世界からなくなっても	もしも「カワイイ」が世界からなくなっても	カワスウィーティーなボクはぁと(仮)（輿水幸子、佐藤心）	3				not_found	検索したが歌ネットに該当ページが見つからない
+cg_よりみちリトルスター	よりみちリトルスター	U149（橘ありす、櫻井桃華、赤城みりあ、的場梨沙、結城晴、佐々木千枝、龍崎薫、市原仁奈、古賀小春）	3		https://www.uta-net.com/song/337369/	U149 よりみちリトルスター 歌詞	high	曲名一致 + 関連名詞 1件
+cg_アッパレmaharajapaaan	アッパレ♪Mahara★Japaaan!	セクシーギルティ（堀裕子、片桐早苗、及川雫）	3		https://www.uta-net.com/song/357317/	堀裕子(鈴木絵理)、片桐早苗(和氣あず未)、及川雫(のぐちゆり) アッパレ♪Mahara★Japaaan! 歌詞	high	曲名一致 + 関連名詞 6件
+cg_グッデイグッナイ	グッデイ・グッナイ	U149（橘ありす、櫻井桃華、赤城みりあ、的場梨沙、結城晴、佐々木千枝、龍崎薫、市原仁奈、古賀小春）	3		https://www.uta-net.com/song/339697/	U149 グッデイ・グッナイ 歌詞	high	曲名一致 + 関連名詞 1件
+cg_ソウソウ	ソウソウ	ナターリア	3		https://www.uta-net.com/song/317654/	ナターリア(生田輝) ソウソウ 歌詞	high	曲名一致 + 関連名詞 2件
+cg_チカライズぱわー	チカラ！イズ！ぱわー！！	サイキックヒーツ（日野茜、堀裕子）	3		https://www.uta-net.com/song/333415/	日野茜(赤崎千夏)、堀裕子(鈴木絵理) チカラ!イズ!ぱわー!!(M@STER VERSION) 歌詞	high	曲名一致 + 関連名詞 3件
+cg_チョコレートレモネードどっち	チョコレート？レモネード？どっち？？	乙倉悠貴、関裕美、白菊ほたる、早坂美玲、黒埼ちとせ	3		https://www.uta-net.com/song/326246/	乙倉悠貴(中島由貴)、関裕美(会沢紗弥)、白菊ほたる(天野聡美)、早坂美玲(朝井彩加)、黒埼ちとせ(佐倉薫) チョコレート？レモネード？どっち？？ 歌詞	high	曲名一致 + 関連名詞 10件
+cg_ハートボイルドウォーズ	ハートボイルドウォーズ	ガンズパーティー（大和亜季、村上巴、片桐早苗）	3		https://www.uta-net.com/movie/341520/	大和亜季(村中知)、村上巴(花井美春)、片桐早苗(和氣あず未) ハートボイルドウォーズ(M@STER VERSION) 歌詞&動画視聴	high	曲名一致 + 関連名詞 6件
+cg_ヒカリシンコキュウミライ	ヒカリ→シンコキュウ→ミライ	中野有香	3		https://www.uta-net.com/song/273302/	中野有香(下地紫野) ヒカリ→シンコキュウ→ミライ 歌詞	high	曲名一致 + 関連名詞 2件
+cg_メッセージ_-future_picopico_remix-	メッセージ -Future PicoPico Remix-	CINDERELLA PROJECT	3		https://www.uta-net.com/song/311177/	THE IDOLM@STER CINDERELLA GIRLS for BEST5! メッセージ 歌詞	high	曲名一致 + 関連名詞 3件
+cg_ラヴィアンローズ	ラヴィアンローズ	櫻井桃華	3				not_found	検索したが歌ネットに該当ページが見つからない
+cg_全開ミラクルアドベンチャー	全開！ミラクルアドベンチャー！	はぴのす（浅利七海、安部菜々、前川みく）	3		https://www.uta-net.com/song/344333/	浅利七海(井上ほの花)、安部菜々(三宅麻理恵)、前川みく(高森奈津美) 全開！ミラクルアドベンチャー！(M@STER VERSION) 歌詞	high	曲名一致 + 関連名詞 6件
+cg_君への詩	君への詩	安部菜々、本田未央、北条加蓮、鷹富士茄子、鷺沢文香	3		https://www.uta-net.com/song/258070/	THE IDOLM@STER CINDERELLA GIRLS for BEST5! 君への詩 歌詞	high	曲名一致 + 関連名詞 3件
+cg_堕ちる果実	堕ちる果実	Fortuna Regina（神崎蘭子、黒埼ちとせ）	3		https://www.uta-net.com/song/317653/	神崎蘭子(内田真礼)、黒埼ちとせ(佐倉薫) 堕ちる果実(M@STER VERSION) 歌詞	high	曲名一致 + 関連名詞 4件
+cg_夏祭り	夏祭り		3				not_found	検索したが歌ネットに該当ページが見つからない
+cg_太陽の絵の具箱	太陽の絵の具箱	Sonoritia（緒方智絵里、依田芳乃、遊佐こずえ、佐城雪美）	3		https://www.uta-net.com/song/292486/	緒方智絵里(大空直美)、依田芳乃(高田憂希)、遊佐こずえ(花谷麻妃)、佐城雪美(中澤ミナ) 太陽の絵の具箱 歌詞	high	曲名一致 + 関連名詞 8件
+cg_日々あどべんちゃーなのでしてー	日々あどべんちゃーなのでしてー	依田芳乃	3		https://www.uta-net.com/song/310697/	依田芳乃(高田憂希) 日々あどべんちゃーなのでしてー 歌詞	high	曲名一致 + 関連名詞 2件
+cg_書きかけのラブレター	書きかけのラブレター	ワンステップス（関裕美、白菊ほたる、森久保乃々）	3		https://www.uta-net.com/song/352027/	関裕美(会沢紗弥)、白菊ほたる(天野聡美)、森久保乃々(高橋花林) 書きかけのラブレター 歌詞	high	曲名一致 + 関連名詞 6件
+cg_流星浪漫	流星浪漫	星纏天女（鷺沢文香、鷹富士茄子）	3		https://www.uta-net.com/song/362603/	鷹富士茄子(森下来奈) 流星浪漫 (M@STER VERSION) 歌詞	high	曲名一致 + 関連名詞 2件
+cg_無限lpだlove	無限L∞PだLOVE♡	辻野あかり、佐久間まゆ、多田李衣菜、神崎蘭子、木村夏樹、二宮飛鳥、ナターリア、黒埼ちとせ	3		https://www.uta-net.com/song/346693/	辻野あかり、佐久間まゆ、神崎蘭子、多田李衣菜、二宮飛鳥、木村夏樹、黒埼ちとせ、ナターリア 無限L∞PだLOVE(M@STER VERSION) 歌詞	high	曲名一致 + 関連名詞 8件
+cg_碧空ノ一路	碧空ノ一路	脇山珠美	3		https://www.uta-net.com/song/348753/	脇山珠美(嘉山未紗) 碧空ノ一路 歌詞	high	曲名一致 + 関連名詞 2件
+cg_輝く世界の魔法_-magical_step_forward_remix-	輝く世界の魔法　-Magical Step Forward Remix-	THE IDOLM@STER CINDERELLA GIRLS!、アナスタシア、高垣楓、輿水幸子、渋谷凛	3		https://www.uta-net.com/song/393179/	神崎蘭子、アナスタシア、高垣楓、輿水幸子、渋谷凛 輝く世界の魔法(M@STER VERSION) 歌詞	high	曲名一致 + 関連名詞 5件
+gakuen_36c_ubu	36℃ U･B･U	姫崎莉波	3		https://www.uta-net.com/song/380346/	姫崎莉波(薄井友里) 36℃ U・B・U 歌詞	high	曲名一致 + 関連名詞 2件
+gakuen_love_joy	Love & Joy	紫雲清夏	3		https://www.uta-net.com/song/375342/	紫雲清夏(湊みや) Love & Joy 歌詞	high	曲名一致 + 関連名詞 2件
+gakuen_sugar_flavor	SUGAR FLAVOR	有村麻央、姫崎莉波	3		https://www.uta-net.com/song/394728/	有村麻央(七瀬つむぎ)、姫崎莉波(薄井友里) SUGAR FLAVOR 歌詞	high	曲名一致 + 関連名詞 4件
+gakuen_sweet_magic	Sweet Magic	有村麻央	3		https://www.uta-net.com/song/367072/	有村麻央(七瀬つむぎ) Sweet Magic 歌詞	high	曲名一致 + 関連名詞 2件
+gakuen_かちドキ	かちドキ	藤田ことね	3		https://www.uta-net.com/song/389345/	藤田ことね(飯田ヒカル) かちドキ 歌詞	high	曲名一致 + 関連名詞 2件
+gakuen_つよつよ最強エクササイズ	つよつよ最強エクササイズ	花海佑芽	3		https://www.uta-net.com/song/371023/	花海佑芽(松田彩音) つよつよ最強エクササイズ 歌詞	high	曲名一致 + 関連名詞 2件
+gakuen_三分半の創世	三分半の創世	雨夜燕	3		https://www.uta-net.com/song/393214/	雨夜燕(天音ゆかり) 三分半の創世 歌詞	high	曲名一致 + 関連名詞 2件
+gakuen_憧れをいっぱい	憧れをいっぱい	倉本千奈	3		https://www.uta-net.com/song/358167/	倉本千奈(伊藤舞音) 憧れをいっぱい 歌詞	high	曲名一致 + 関連名詞 2件
+gakuen_桜フォトグラフ	桜フォトグラフ	葛城リーリヤ、紫雲清夏、花海咲季	3		https://www.uta-net.com/song/371097/	初星学園 桜フォトグラフ 歌詞	high	曲名一致 + 関連名詞 1件
+gakuen_見て	見て	有村麻央	3		https://www.uta-net.com/song/382723/	有村麻央(七瀬つむぎ) 見て 歌詞	high	曲名一致 + 関連名詞 2件
+ml_beat_the_world	Beat the World!!!	菊地真×舞浜歩	3		https://www.uta-net.com/song/204940/	菊地真(平田宏美)×舞浜歩(戸田めぐみ) Beat the World!!! 歌詞	high	曲名一致 + 関連名詞 4件
+ml_bigバルーン	Bigバルーン◎	双海亜美、永吉昴、野々原茜、馬場このみ	3		https://www.uta-net.com/song/163069/	双海亜美(下田麻美)・永吉昴(斉藤佑圭)・野々原茜(小笠原早紀)・馬場このみ(高橋未奈美) Bigバルーン◎ 歌詞	high	曲名一致 + 関連名詞 8件
+ml_bonnes_bonnes_vacances	Bonnes! Bonnes!! Vacances!!!	リブラ（伊吹翼、佐竹美奈子、福田のり子）	3		https://www.uta-net.com/song/220215/	リブラ Bonnes! Bonnes!! Vacances!!! 歌詞	high	曲名一致 + 関連名詞 1件
+ml_border_line	Border LINE→→→♡	百瀬莉緒	3		https://www.uta-net.com/song/242571/	百瀬莉緒(山口立花子) Border LINE→→→▽ 歌詞	high	曲名一致 + 関連名詞 2件
+ml_cheer_up_hearts_up	CHEER UP! HEARTS UP!	望月杏奈、矢吹可奈、天海春香、ジュリア	3		https://www.uta-net.com/song/320883/	望月杏奈(夏川椎菜)、矢吹可奈(木戸衣吹)、天海春香(中村繪里子)、ジュリア(愛美) CHEER UP! HEARTS UP! 歌詞	high	曲名一致 + 関連名詞 7件
+ml_deep_deep_blue	Deep, Deep Blue	ダイヤモンドダイバー◇（高槻やよい、天海春香、我那覇響）	3		https://www.uta-net.com/song/292865/	ダイヤモンドダイバー◇ Deep, Deep Blue 歌詞	high	曲名一致 + 関連名詞 1件
+ml_eternal_spiral	Eternal Spiral	高槻やよい×矢吹可奈	3		https://www.uta-net.com/song/196430/	高槻やよい(仁後真耶子)×矢吹可奈(木戸衣吹) Eternal Spiral 歌詞	high	曲名一致 + 関連名詞 4件
+ml_flooding	Flooding	クレシェンドブルー（最上静香、北上麗花、北沢志保、野々原茜、箱崎星梨花）	3				not_found	検索したが歌ネットに該当ページが見つからない
+ml_hang_in_there	Hang In There!	Jus-2-Mint（佐竹美奈子、横山奈緒）	3		https://www.uta-net.com/song/283393/	Jus-2-Mint Hang In There! 歌詞	high	曲名一致 + 関連名詞 1件
+ml_home_is_a_coming_now	Home is a coming now!	横山奈緒	3		https://www.uta-net.com/song/243744/	横山奈緒(渡部優衣) Home is a coming now! 歌詞	high	曲名一致 + 関連名詞 2件
+ml_home_run_song	HOME RUN SONG♪	永吉昴	3		https://www.uta-net.com/song/236257/	永吉昴(斉藤佑圭) HOME RUN SONG♪ 歌詞	high	曲名一致 + 関連名詞 2件
+ml_impressionlocomotion	IMPRESSION→LOCOMOTION！	ロコ	3		https://www.uta-net.com/song/161581/	ロコ(中村温姫) IMPRESSION→LOCOMOTION! 歌詞	high	曲名一致 + 関連名詞 1件
+ml_just_be_myself	Just be myself!!	如月千早	3		https://www.uta-net.com/song/170688/	如月千早(今井麻美) Just be myself!! 歌詞	high	曲名一致 + 関連名詞 2件
+ml_no_curry_no_life	NO CURRY NO LIFE	カプリコーン（望月杏奈、百瀬莉緒、矢吹可奈）	3		https://www.uta-net.com/song/220214/	カプリコーン NO CURRY NO LIFE 歌詞	high	曲名一致 + 関連名詞 1件
+ml_paradox_of_love	Paradox of LOVE	chicAAmor（高山紗代子、豊川風花、ジュリア、二階堂千鶴）	3		https://www.uta-net.com/song/312051/	chicAAmor Paradox of LOVE 歌詞	high	曲名一致 + 関連名詞 1件
+ml_ps_i_love_you	P.S I Love You	ピスケス（篠宮可憐、天空橋朋花、二階堂千鶴）	3		https://www.uta-net.com/song/221927/	ピスケス P.S I Love You 歌詞	high	曲名一致 + 関連名詞 1件
+ml_refrain_reltion	REFRAIN REL@TION	MILLIONSTARS Team8th（春日未来、最上静香、伊吹翼、桜守歌織、白石紬）	3		https://www.uta-net.com/song/346010/	MILLIONSTARS Team8th REFRAIN REL@TION 歌詞	high	曲名一致 + 関連名詞 2件
+ml_silent_joker	Silent Joker	真壁瑞希	3		https://www.uta-net.com/song/242568/	真壁瑞希(阿部里果) Silent Joker 歌詞	high	曲名一致 + 関連名詞 2件
+ml_special_wonderful_smile	Special Wonderful Smile	Fleuranges（篠宮可憐、箱崎星梨花、木下ひなた、宮尾美也）	3		https://www.uta-net.com/song/295666/	Fleuranges Special Wonderful Smile 歌詞	high	曲名一致 + 関連名詞 1件
+ml_take3_2_1_space	Take！3. 2. 1. → S・P・A・C・E↑↑	松田亜利沙	3		https://www.uta-net.com/song/245084/	松田亜利沙(村川梨衣) Take！3. 2. 1. → S・P・A・C・E↑↑ 歌詞	high	曲名一致 + 関連名詞 2件
+ml_thank_you_-mr_remix-	Thank You! -MR remix-	春日未来、最上静香、箱崎星梨花	3		https://www.uta-net.com/song/164782/	春日未来(山崎はるか)、最上静香(田所あずさ)、箱崎星梨花(麻倉もも) Thank You!-MR remix- 歌詞	high	曲名一致 + 関連名詞 6件
+ml_world_changer	World Changer	如月千早、星井美希、菊地真、エミリー スチュアート、天海春香	3		https://www.uta-net.com/song/278112/	如月千早(今井麻美)・星井美希(長谷川明子)・エミリースチュアート(郁原ゆう)・菊地真(平田宏美)・天海春香(中村繪里子) World Changer 歌詞	high	曲名一致 + 関連名詞 10件
+ml_world_wide_dance	WORLD WIDE DANCE!!!	菊地真	3		https://www.uta-net.com/song/178920/	菊地真(平田宏美) WORLD WIDE DANCE!!! 歌詞	high	曲名一致 + 関連名詞 2件
+ml_wow_i_need_シンギングモンキー_歌唱拳	WOW! I NEED!! 〜シンギングモンキー 歌唱拳〜	双海真美	3		https://www.uta-net.com/song/178924/	双海真美(下田麻美) WOW! I NEED!! ～シンギングモンキー 歌唱拳～ 歌詞	high	曲名一致 + 関連名詞 2件
+ml_ふたり繋ぐ星座	ふたり繋ぐ星座	北上麗花	3		https://www.uta-net.com/song/325575/	北上麗花(平山笑美) ふたり繋ぐ星座 歌詞	high	曲名一致 + 関連名詞 2件
+ml_アイドルステアウェイ	アイドルステアウェイ	周防桃子、高坂海美、徳川まつり、豊川風花	3		https://www.uta-net.com/song/356741/	周防桃子(渡部恵子)、高坂海美(上田麗奈)、徳川まつり(諏訪彩花)、豊川風花(末柄里恵) アイドルステアウェイ 歌詞	high	曲名一致 + 関連名詞 8件
+ml_シャクネツのパレード	シャクネツのパレード	島原エレナ	3		https://www.uta-net.com/song/246845/	島原エレナ(角元明日香) シャクネツのパレード 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 2件
+ml_シルエット	シルエット	田中琴葉	3		https://www.uta-net.com/song/246842/	田中琴葉(種田梨沙) シルエット 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 2件
+ml_シークレットジュエル_魅惑の金剛石	シークレットジュエル 〜魅惑の金剛石〜	水瀬伊織、宮尾美也、春日未来、桜守歌織、周防桃子	3		https://www.uta-net.com/song/309859/	水瀬伊織(釘宮理恵)、宮尾美也(桐谷蝶々)、春日未来(山崎はるか)、桜守歌織(香里有佐)、周防桃子(渡部恵子) シークレットジュエル ～魅惑の金剛石～ 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 10件
+ml_トワラー	トワラー	MILLIONSTARS Team7th（ジュリア、北上麗花、舞浜歩、矢吹可奈）	3		https://www.uta-net.com/song/346011/	MILLIONSTARS Team7th トワラー 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 2件
+ml_フシギトラベラー	フシギトラベラー	TRICK&TREAT（北上麗花、野々原茜）	3		https://www.uta-net.com/song/298362/	TRICK&TREAT フシギトラベラー 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+ml_フリースタイルトップアイドル	フリースタイル・トップアイドル！	ARMooo（双海真美、秋月律子、双海亜美）	3		https://www.uta-net.com/song/302590/	ARMooo フリースタイル・トップアイドル！ 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+ml_プリティッニャンニャンッ	プリティ〜〜〜ッ→ニャンニャンッ！	野々原茜	3		https://www.uta-net.com/song/170683/	野々原茜(小笠原早紀) プリティ～～～ッ→ニャンニャンッ！ 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 2件
+ml_マイペースマイウェイ	マイペース☆マイウェイ	福田のり子	3		https://www.uta-net.com/song/154245/	福田のり子(浜崎奈々) マイペース☆マイウェイ 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 2件
+ml_君との明日を願うから	君との明日を願うから	春日未来、最上静香、伊吹翼	3				not_found	検索したが歌ネットに該当ページが見つからない
+ml_地球儀にない国	地球儀にない国	七尾百合子	3		https://www.uta-net.com/song/234797/	七尾百合子(伊藤美来) 地球儀にない国 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 2件
+ml_夜と明かりと	夜と、明かりと。	Sherry’n Cherry（馬場このみ、百瀬莉緒）	3		https://www.uta-net.com/song/279432/	Sherry 'n Cherry 夜と、明かりと。 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+ml_恋のwawon	恋のWa・Wo・N	七尾百合子	3		https://www.uta-net.com/song/312482/	七尾百合子(伊藤美来) 恋のWa・Wo・N 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 2件
+ml_教えてlast_note	教えてlast note…	篠宮可憐	3		https://www.uta-net.com/song/245081/	篠宮可憐(近藤唯) 教えてlast note… 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 2件
+ml_星宙のvoyage	星宙のVoyage	オペラセリア・煌輝座（北沢志保、桜守歌織、田中琴葉、徳川まつり）	3		https://www.uta-net.com/song/291167/	オペラセリア・煌輝座 星宙のVoyage 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+ml_春風満帆スターティング	春風満帆スターティング	萩原雪歩、福田のり子、菊地真、永吉昴、最上静香	3		https://www.uta-net.com/song/338299/	萩原雪歩(浅倉杏美)、福田のり子(浜崎奈々)、菊地真(平田宏美)、最上静香(田所あずさ)、永吉昴(斉藤佑圭) 春風満帆スターティング 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 10件
+ml_求ム_vs_マイフューチャー	求ム VS マイ・フューチャー	福田のり子	3		https://www.uta-net.com/song/174897/	福田のり子(浜崎奈々) 求ム VS マイ・フューチャー 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 2件
+ml_海風とカスタネット	海風とカスタネット	MILLIONSTARS Team2nd（高坂海美、篠宮可憐、福田のり子、真壁瑞希、百瀬莉緒）	3		https://www.uta-net.com/song/343896/	MILLIONSTARS Team2nd 海風とカスタネット 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 2件
+ml_涙を知ること	涙を知ること	桜守歌織、大神環、ジュリア、中谷育	3		https://www.uta-net.com/song/370859/	桜守歌織(香里有佐)、大神環(稲川英里)、ジュリア(愛美)、中谷育(原嶋あかり) 涙を知ること 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 7件
+sc_365日のストーリー	365日のストーリー	ノクチル（浅倉透、樋口円香、福丸小糸、市川雛菜）	3		https://www.uta-net.com/song/361835/	ノクチル 365日のストーリー 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+sc_cmon_join_us	C'mon! Join Us	シャイニーカラーズ（櫻木真乃、風野灯織、八宮めぐる、月岡恋鐘、田中摩美々、白瀬咲耶、三峰結華、幽谷霧子、小宮果穂、園田智代子、西城樹里、杜野凛世、有栖川夏葉、大崎甘奈、大崎甜花、桑山千雪、芹沢あさひ、黛冬優子、和泉愛依、浅倉透、樋口円香、福丸小糸、市川雛菜、七草にちか、緋田美琴、斑鳩ルカ、鈴木羽那、郁田はるき）	3		https://www.uta-net.com/song/364124/	シャイニーカラーズ C'mon! Join Us 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+sc_daydream_love	DAYDREAM LOVE	アルストロメリア（大崎甘奈、大崎甜花、桑山千雪）	3		https://www.uta-net.com/song/358409/	アルストロメリア DAYDREAM LOVE 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+sc_koikyun	KoiKyun！	イルミネーションスターズ（櫻木真乃、風野灯織、八宮めぐる）	3		https://www.uta-net.com/song/379469/	イルミネーションスターズ KoiKyun！ 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+sc_migratory_echoes	Migratory Echoes	シャイニーカラーズ	3		https://www.uta-net.com/song/367114/	シャイニーカラーズ Migratory Echoes 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+sc_one_live_one_love	One Live One Love	ストレイライト	3		https://www.uta-net.com/song/391701/	ストレイライト One Live One Love 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+sc_swing_it	Swing it!	ノクチル（浅倉透、樋口円香、福丸小糸、市川雛菜）	3		https://www.uta-net.com/song/379822/	ノクチル Swing it! 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+sc_アイノウ	アイノウ	コメティック（斑鳩ルカ、鈴木羽那、郁田はるき）	3		https://www.uta-net.com/song/385383/	コメティック アイノウ 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+sc_ブレイクアウトセレンディピティ	ブレイク・アウト・セレンディピティ	アンティーカ（月岡恋鐘、田中摩美々、白瀬咲耶、三峰結華、幽谷霧子）	3		https://www.uta-net.com/song/374181/	アンティーカ ブレイク・アウト・セレンディピティ 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+sc_愛しき日々	愛しき日々	ノクチル（浅倉透、樋口円香、福丸小糸、市川雛菜）	3		https://www.uta-net.com/song/379472/	ノクチル 愛しき日々 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+sc_月影のアンシェネ	月影のアンシェネ	田中摩美々	3		https://www.uta-net.com/song/389538/	田中摩美々(菅沼千紗) 月影のアンシェネ 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 2件
+sc_秋の終わり僕の記憶	秋の終わり、僕の記憶	アンティーカ（月岡恋鐘、田中摩美々、白瀬咲耶、三峰結華、幽谷霧子）	3		https://www.uta-net.com/song/355730/	アンティーカ 秋の終わり、僕の記憶 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+sc_絶対正義_every_day	絶対正義 EVERY DAY	小宮果穂	3				not_found	検索したが歌ネットに該当ページが見つからない
+sc_進路は超銀河	進路は超銀河	放課後クライマックスガールズ（小宮果穂、園田智代子、西城樹里、杜野凛世、有栖川夏葉）	3		https://www.uta-net.com/song/376044/	放課後クライマックスガールズ 進路は超銀河 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+sc_運命前夜	運命前夜	アンティーカ（月岡恋鐘、田中摩美々、白瀬咲耶、三峰結華、幽谷霧子）	3				not_found	検索したが歌ネットに該当ページが見つからない
+sc_銀翼のアヴニール_-become_the_brave-	銀翼のアヴニール -become the brave-	アンティーカ（月岡恋鐘、田中摩美々、白瀬咲耶、三峰結華、幽谷霧子）	3		https://www.uta-net.com/song/389536/	アンティーカ 銀翼のアヴニール -become the brave- 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+sidem_a_cup_of_happiness	A CUP OF HAPPINESS	神谷幸広	3		https://www.uta-net.com/song/235700/	神谷幸広(狩野翔) A CUP OF HAPPINESS 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 2件
+sidem_after_the_rain	AFTER THE RAIN	Ｗ（蒼井享介、蒼井悠介）	3				not_found	検索したが歌ネットに該当ページが見つからない
+sidem_amber_color_oasis	Amber Color Oasis	FRAME（握野英雄、木村龍、信玄誠司）	3		https://www.uta-net.com/song/348069/	FRAME Amber Color Oasis 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+sidem_asterisk	ASTERISK	DRAMATIC STARS（天道輝、桜庭薫、柏木翼）	3		https://www.uta-net.com/song/280472/	DRAMATIC STARS ASTERISK 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+sidem_beginning_tomorrow	Beginning Tomorrow	天道輝	3		https://www.uta-net.com/song/344149/	天道輝(仲村宗悟) Beginning Tomorrow 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 2件
+sidem_bet_your_intuition	Bet your intuition!	FRAME&S.E.M&Legenders（握野英雄、木村龍、信玄誠司、硲道夫、舞田類、山下次郎、葛之葉雨彦、北村想楽、古論クリス）	3		https://www.uta-net.com/song/283104/	FRAME & S.E.M & Legenders Bet your intuition! 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 3件
+sidem_casually	Casually!	F-LAGS（秋月涼、兜大吾、九十九一希）	3		https://www.uta-net.com/song/322601/	F-LAGS Casually! 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+sidem_change_to_chance	Change to Chance	DRAMATIC STARS（天道輝、桜庭薫、柏木翼）	3		https://www.uta-net.com/song/329299/	DRAMATIC STARS Change to Chance 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+sidem_dance_in_the_school	Dance in the school！	S.E.M（硲道夫、舞田類、山下次郎）	3		https://www.uta-net.com/song/327598/	S.E.M Dance in the school! 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+sidem_delicious_delivery	Delicious Delivery	Café Parade（神谷幸広、東雲荘一郎、アスラン＝ベルゼビュートⅡ世、卯月巻緒、水嶋咲）	3		https://www.uta-net.com/song/293187/	Cafe Parade Delicious Delivery 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+sidem_dramatic_anthem	Dramatic Anthem	DRAMATIC STARS ＆ S.E.M（天道輝、桜庭薫、柏木翼、硲道夫、舞田類、山下次郎）	3		https://www.uta-net.com/song/344336/	DRAMATIC STARS & S.E.M Dramatic Anthem 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 2件
+sidem_fine_day_find_way	Fine Day！ Find Way！	DRAMATIC STARS & 神速一魂 & F-LAGS（天道輝、桜庭薫、柏木翼、紅井朱雀、黒野玄武、秋月涼、九十九一希、兜大吾）	3		https://www.uta-net.com/song/280469/	DRAMATIC STARS & 神速一魂 & F-LAGS Fine Day！ Find Way！ 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 3件
+sidem_flowing_freedom	Flowing Freedom	北村想楽	3		https://www.uta-net.com/song/234019/	北村想楽(汐谷文康) Flowing Freedom 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 2件
+sidem_give_me_fusion	GIVE ME × FUSION	卯月巻緒	3		https://www.uta-net.com/song/331578/	卯月巻緒(児玉卓也) GIVE ME × FUSION 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 2件
+sidem_go_next	GO NEXT	天峰秀	3		https://www.uta-net.com/song/321882/	天峰秀(伊瀬結陸) GO NEXT 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 2件
+sidem_godspeed_ignition	Godspeed IGNITION!!	神速一魂（紅井朱雀、黒野玄武）	3		https://www.uta-net.com/song/353617/	神速一魂 Godspeed IGNITION!! 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+sidem_great_sympathy	Great Sympathy	W（蒼井享介、蒼井悠介）	3				not_found	検索したが歌ネットに該当ページが見つからない
+sidem_hundreds_color	Hundreds Color	花園百々人	3		https://www.uta-net.com/song/321881/	花園百々人(宮埼雅也) Hundreds Color 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+sidem_hungry	Hungry?	THE 虎牙道（大河タケル、牙崎漣、円城寺道流）	3		https://www.uta-net.com/song/292006/	THE 虎牙道 Hungry? 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+sidem_inner_dignity	Inner Dignity	Jupiter（天ヶ瀬冬馬、御手洗翔太、伊集院北斗）	3		https://www.uta-net.com/song/325882/	Jupiter Inner Dignity 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+sidem_journey_joy_blend	Journey JOY Blend	神谷幸広	3		https://www.uta-net.com/song/331581/	神谷幸広(狩野翔) Journey JOY Blend 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 2件
+sidem_karma	KARMA	眉見鋭心	3		https://www.uta-net.com/song/321880/	眉見鋭心(大塚剛央) KARMA 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 2件
+sidem_learning_message	Learning Message	硲道夫	3		https://www.uta-net.com/movie/237899/	硲道夫(伊東健人) Learning Message 歌詞&動画視聴 - 歌ネット	high	曲名一致 + 関連名詞 2件
+sidem_made_in_	Made in「 ♪ 」	F-LAGS（秋月涼、兜大吾、九十九一希）	3		https://www.uta-net.com/song/322602/	F-LAGS Made in「 ♪ 」 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+sidem_make_up_magic	Make up↑ Magic	水嶋咲	3		https://www.uta-net.com/song/331577/	水嶋咲(小林大紀) Make up↑ Magic 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 2件
+sidem_one_to_dream	ONE to DREAM！	FRAME（握野英雄、木村龍、信玄誠司）	3		https://www.uta-net.com/song/335107/	FRAME ONE to DREAM！ 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+sidem_planet_scape	Planet scape	Jupiter（天ヶ瀬冬馬、御手洗翔太、伊集院北斗）	3		https://www.uta-net.com/song/183999/	Jupiter Planet scape 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+sidem_precious_tone	PRECIOUS TONE	秋山隼人	3		https://www.uta-net.com/song/240835/	秋山隼人(千葉翔也) PRECIOUS TONE 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 2件
+sidem_purelykindly	Purely&Kindly	ピエール、榊夏来、蒼井享介、清澄九郎	3		https://www.uta-net.com/song/265630/	ピエール(堀江瞬),蒼井享介(山谷祥生),清澄九郎(中田祐矢),榊夏来(渡辺紘) Purely&Kindly 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 9件
+sidem_radiant_letter	Radiant Letter	Jupiter（天ヶ瀬冬馬、伊集院北斗、御手洗翔太）	3		https://www.uta-net.com/song/293185/	Jupiter Radiant Letter 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+sidem_road_to_the_future	ROAD TO THE FUTURE	円城寺道流	3		https://www.uta-net.com/song/234020/	円城寺道流(濱野大輝) ROAD TO THE FUTURE 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 2件
+sidem_rule_牙ヲ穿テヨ	RULE 〜牙ヲ穿テヨ〜	牙崎漣	3		https://www.uta-net.com/song/231685/	牙崎漣(小松昌平) RULE ～牙ヲ穿テヨ～ 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 2件
+sidem_sash_of_smile	SASH OF SMILE	兜大吾	3		https://www.uta-net.com/movie/335121/	兜大吾(浦尾岳大) SASH OF SMILE 歌詞&動画視聴 - 歌ネット	high	曲名一致 + 関連名詞 2件
+sidem_sparkle_sign	SPARKLE SIGN	木村龍	3		https://www.uta-net.com/song/335105/	木村龍(濱健人) SPARKLE SIGN 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 2件
+sidem_sugaring_off_party	Sugaring Off Party!	秋山隼人、卯月巻緒、神楽麗、岡村直央	3		https://www.uta-net.com/song/268544/	神楽麗(永野由祐),秋山隼人(千葉翔也),卯月巻緒(児玉卓也),岡村直央(矢野奨吾) Sugaring Off Party! 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 8件
+sidem_this_is_it	THIS IS IT!	舞田類	3		https://www.uta-net.com/song/240833/	舞田類(榎木淳弥) THIS IS IT! 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 2件
+sidem_tick_tack_voice	Tick Tack Voice	信玄誠司	3		https://www.uta-net.com/song/335104/	信玄誠司(増元拓也) Tick Tack Voice 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 2件
+sidem_tricolor_rendezvous	Tricolor Rendezvous	F-LAGS（秋月涼、兜大吾、九十九一希）	3		https://www.uta-net.com/song/335123/	F-LAGS Tricolor Rendezvous 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+sidem_true_horizon	True Horizon	天ヶ瀬冬馬、天道輝、天峰秀	3		https://www.uta-net.com/song/330264/	天ヶ瀬冬馬、天道輝、天峰秀(315 STARS) True Horizon 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 4件
+sidem_wonderful_tactics	“W”onderful Tactics!	蒼井享介	3		https://www.uta-net.com/song/231687/	蒼井享介(山谷祥生) “W”onderful Tactics! 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 2件
+sidem_yell_song	Yell Song	秋月涼	3		https://www.uta-net.com/song/335122/	秋月涼(三瓶由布子) Yell Song 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 2件
+sidem_その場所へ行くために-keep_on_fighting-	その場所へ行くために-KEEP ON FIGHTING-	大河タケル	3		https://www.uta-net.com/song/235699/	大河タケル(寺島惇太) その場所へ行くために-KEEP ON FIGHTING- 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 2件
+sidem_はるかぜバトン	はるかぜバトン	もふもふえん（岡村直央、橘志狼、姫野かのん）	3		https://www.uta-net.com/song/318505/	もふもふえん はるかぜバトン 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+sidem_はんどめいどきみはーと	はんどめいど・きみはーと！	もふもふえん（岡村直央、橘志狼、姫野かのん）	3		https://www.uta-net.com/song/281752/	もふもふえん はんどめいど・きみはーと！ 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+sidem_わんだーまーちんぐ	わんだー×まーちんぐ！	もふもふえん（岡村直央、橘志狼、姫野かのん）	3		https://www.uta-net.com/song/291919/	もふもふえん わんだー×まーちんぐ！ 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+sidem_アトモスフィア	アトモスフィア	握野英雄	3		https://www.uta-net.com/song/335106/	握野英雄(熊谷健太郎) アトモスフィア 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 2件
+sidem_エウレカダイアリー	エウレカダイアリー	Beit（鷹城恭二、ピエール、渡辺みのり、舞田類、山下次郎）	3		https://www.uta-net.com/song/213656/	Beit & S.E.M エウレカダイアリー 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 2件
+sidem_オモイノウタ	オモイノウタ	神速一魂（紅井朱雀、黒野玄武）	3		https://www.uta-net.com/song/280471/	神速一魂 オモイノウタ 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+sidem_カレイド_tourhythm	カレイド TOURHYTHM	Jupiter（天ヶ瀬冬馬、御手洗翔太、伊集院北斗、蒼井悠介）	3		https://www.uta-net.com/song/216267/	Jupiter & W カレイド TOURHYTHM 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+sidem_スカイスケープノート	スカイスケープノート	柏木翼	3		https://www.uta-net.com/song/344147/	柏木翼(八代拓) スカイスケープノート 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 2件
+sidem_トキメキぷろろーぐ	トキメキ・ぷろろーぐ!	岡村直央	3		https://www.uta-net.com/song/341346/	岡村直央(矢野奨吾) トキメキ・ぷろろーぐ! 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 2件
+sidem_ナツゾラrecords	ナツゾラRecords	榊夏来	3		https://www.uta-net.com/song/235701/	榊夏来(渡辺紘) ナツゾラRecords 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 2件
+sidem_ミュージアムジカ	ミュージアムジカ	W＆Café Parade＆もふもふえん（蒼井享介、蒼井悠介、神谷幸広、東雲荘一郎、アスラン＝ベルゼビュートⅡ世、卯月巻緒、水嶋咲、岡村直央、橘志狼、姫野かのん）	3		https://www.uta-net.com/movie/281751/	W & Cafe Parade & もふもふえん ミュージアムジカ 歌詞&動画視聴 - 歌ネット	high	曲名一致 + 関連名詞 2件
+sidem_伝えたいのはこんなきもち	伝えたいのはこんなきもち	もふもふえん（岡村直央、橘志狼、姫野かのん）	3		https://www.uta-net.com/song/244141/	もふもふえん 伝えたいのはこんなきもち 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+sidem_冬の日のエトランゼ	冬の日のエトランゼ	DRAMATIC STARS（天道輝、桜庭薫、柏木翼、Beit[鷹城恭二、ピエール、渡辺みのり）	3				not_found	検索したが歌ネットに該当ページが見つからない
+sidem_劇星戦隊ドラスターズ	劇星☆戦隊ドラスターズ	DRAMATIC STARS（天道輝、桜庭薫、柏木翼）	3		https://www.uta-net.com/song/356737/	DRAMATIC STARS 劇星☆戦隊ドラスターズ 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+sidem_千客万来ニーハオサァカス	千客万来ニーハオサァカス！	御手洗翔太、渡辺みのり、大河タケル、兜大吾	3		https://www.uta-net.com/song/256340/	御手洗翔太(松岡禎丞), 渡辺みのり(高塚智人), 大河タケル(寺島惇太), 兜大吾(浦尾岳大) 千客万来ニーハオサァカス！ 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 8件
+sidem_威風堂々と	威風堂々と	黒野玄武	3		https://www.uta-net.com/song/231686/	黒野玄武(深町寿成) 威風堂々と 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 2件
+sidem_筆跡の彼方	筆跡の彼方	九十九一希	3		https://www.uta-net.com/song/335120/	九十九一希(比留間俊哉) 筆跡の彼方 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 2件
+sidem_縁会entertainments	縁会！〜ENTERTAINMENTS！〜	彩（猫柳キリオ、華村翔真、清澄九郎）	3		https://www.uta-net.com/song/367101/	彩 縁会！～ENTERTAINMENTS！～ 歌詞 - 歌ネット	high	曲名一致 + 先頭の関連名詞 (彩)
+sidem_魔法のステアー	魔法のステアー	ピエール	3		https://www.uta-net.com/song/240836/	ピエール(堀江瞬) 魔法のステアー 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 2件
+765as_advance	Advance	原紗友里＆青木瑠璃子 from CINDERELLA PARTY!	2				not_found	検索したが歌ネットに該当ページが見つからない
+765as_continue	continue	原由実	2		https://www.uta-net.com/song/262746/	原由実 continue 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+765as_crescent_maze	Crescent Maze	原由実	2		https://www.uta-net.com/song/262749/	原由実 Crescent Maze 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 1件
+765as_endless_tour	ENDLESS TOUR	春日未来、最上静香、箱崎星梨花	2		https://www.uta-net.com/song/284980/	春日未来(山崎はるか)、最上静香(田所あずさ)、箱崎星梨花(麻倉もも) ENDLESS TOUR 歌詞 - 歌ネット	high	曲名一致 + 関連名詞 6件
+765as_fly_high	Fly High!	如月千早	2		https://www.uta-net.com/movie/335027/	如月千早(今井麻美) Fly High! 歌詞&動画視聴 - 歌ネット	high	曲名一致 + 関連名詞 2件
 765as_good-byes	Good-Byes	高槻やよい	2					
 765as_happy_christmas	Happy Christmas	天海春香、如月千早、双海亜美／真美、三浦あずさ、四条貴音、我那覇響	2					
 765as_its_alright	It's ALRIGHT!	沼倉愛美	2					
