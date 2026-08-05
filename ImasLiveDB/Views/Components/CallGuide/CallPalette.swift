@@ -56,10 +56,14 @@ enum CallPalette {
 
 extension CallEmphasis {
     /// 強調度の色。凡例・コール文言・アンカーのハイライトで同じ色を使う。
-    /// `normal` は本文と同じ扱いにせず、少しだけ落とした ink2 で「コール行」だと分かるようにする。
-    var color: Color {
+    ///
+    /// `normal` に本文と同じ `DS.ink` を使うと、太字なだけで歌詞と同化して
+    /// 「どれがコールか」が一目で分からない (実機で確認)。曲の配色 (担当色 /
+    /// ブランド色) を渡して、本文とは別の色にする。
+    /// accent が無い文脈 (凡例のプレビュー等) だけ ink にフォールバックする。
+    func color(accent: Color? = nil) -> Color {
         switch self {
-        case .normal:           return DS.ink
+        case .normal:           return accent ?? DS.ink
         case .optional:         return DS.success
         case .performerRequest: return DS.danger
         }

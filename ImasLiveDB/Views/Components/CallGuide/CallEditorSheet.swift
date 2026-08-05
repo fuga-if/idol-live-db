@@ -144,7 +144,9 @@ struct CallEditorSheet: View {
             Text("強調").font(.imasCaption).foregroundStyle(DS.ink2)
             ImasSegmented(options: CallEmphasis.allCases, selection: $emphasis, seed: seed) { $0.label }
             HStack(spacing: DS.sp2) {
-                Circle().fill(emphasis.color).frame(width: 8, height: 8)
+                Circle()
+                    .fill(emphasis.color(accent: ImasTheme.derive(seed: seed, scheme: scheme).accent))
+                    .frame(width: 8, height: 8)
                 Text(emphasisHint).font(.imasCaption2).foregroundStyle(DS.ink3)
             }
         }

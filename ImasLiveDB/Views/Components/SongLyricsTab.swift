@@ -363,6 +363,7 @@ struct SongLyricsTab: View {
     @ViewBuilder
     private func staleSection(_ editor: CallGuideEditorModel) -> some View {
         let stale = editor.staleCalls
+        let theme = ImasTheme.derive(seed: seed, scheme: scheme)
         if !stale.isEmpty {
             VStack(alignment: .leading, spacing: DS.sp3) {
                 Label("アンカーがズレたコール（\(stale.count) 件）", systemImage: "exclamationmark.triangle.fill")
@@ -373,7 +374,7 @@ struct SongLyricsTab: View {
                         VStack(alignment: .leading, spacing: 1) {
                             Text(entry.call.text)
                                 .font(.imasFootnote.weight(.semibold))
-                                .foregroundStyle(entry.call.emphasis.color)
+                                .foregroundStyle(entry.call.emphasis.color(accent: theme.accent))
                             Text("元のアンカー: \(entry.call.anchorText.isEmpty ? "（なし）" : entry.call.anchorText)")
                                 .font(.imasCaption2)
                                 .foregroundStyle(DS.ink3)
@@ -537,7 +538,8 @@ struct SongLyricsTab: View {
     private func anchorColor(_ emphasis: CallEmphasis, theme: ImasTheme) -> Color {
         // 通常のコールは本文色で敷くと「文字が濃くなっただけ」に見えるので、
         // 曲の配色 (担当色 / ブランド色) を使って「範囲」だと分かるようにする。
-        emphasis == .normal ? theme.accent : emphasis.color
+        // コール文言側も同じ色を使う (CallEmphasis.color(accent:))。
+        emphasis.color(accent: theme.accent)
     }
 
     private func rank(_ emphasis: CallEmphasis) -> Int {

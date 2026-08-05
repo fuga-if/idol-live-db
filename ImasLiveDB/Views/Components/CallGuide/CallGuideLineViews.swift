@@ -70,6 +70,7 @@ struct CallGuideClapGlyph: View {
 ///      * `行末` … 幅ゼロ。**同じ行に範囲付きが混ざっているときだけ**出す
 ///        (混ざっていなければ札は情報を増やさない。①②③ を 1 つしか無い行に振らないのと同じ)。
 struct CallGuideCallRows: View {
+    @Environment(\.colorScheme) private var scheme
     let calls: [LyricCall]
     /// アンカーの通し番号 (call.id → 0 始まり)。1 つしか無い行では nil を渡す。
     let anchorIndexes: [String: Int]?
@@ -97,14 +98,15 @@ struct CallGuideCallRows: View {
     }
 
     private func row(_ call: LyricCall) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 5) {
+        let theme = ImasTheme.derive(seed: nil, scheme: scheme)
+        return HStack(alignment: .firstTextBaseline, spacing: 5) {
             Text(marker(for: call))
                 .font(.imasCaption2)
                 .foregroundStyle(DS.ink3)
                 .frame(width: 16, alignment: .trailing)
             Text(call.text)
                 .font(.imasFootnote.weight(.semibold))
-                .foregroundStyle(call.emphasis.color)
+                .foregroundStyle(call.emphasis.color(accent: theme.accent))
                 .fixedSize(horizontal: false, vertical: true)
                 .multilineTextAlignment(.leading)
             if call.isOverlapping {
@@ -184,6 +186,7 @@ struct CallGuideAppendCallButton: View {
 /// **その曲で実際に使われているものだけ**を出す (実物と同じ振る舞い。曲ごとに凡例が違う)。
 /// 使っていない強調度や手拍子を並べても、読み手には雑音にしかならない。
 struct CallGuideLegend: View {
+    @Environment(\.colorScheme) private var scheme
     let emphases: [CallEmphasis]
     let claps: [LyricClap]
     /// 「同時」のコールがこの曲にあるか。追っかけ (既定) は凡例に出さない。
@@ -192,10 +195,11 @@ struct CallGuideLegend: View {
     private var isEmpty: Bool { emphases.isEmpty && claps.isEmpty && !showsOverTiming }
 
     var body: some View {
+        let theme = ImasTheme.derive(seed: nil, scheme: scheme)
         if !isEmpty {
             CallGuideFlowLayout(itemSpacing: DS.sp2, lineSpacing: DS.sp2) {
                 ForEach(emphases, id: \.self) { emphasis in
-                    legendItem(dot: emphasis.color, text: emphasis.label)
+                    legendItem(dot: emphasis.color(accent: theme.accent), text: emphasis.label)
                 }
                 ForEach(claps, id: \.self) { clap in
                     legendItem(symbol: clap.symbol, text: clap.label)
@@ -326,9 +330,10 @@ struct CallGuideSelectableLine: View {
     private func background(for cell: CallGuideText.Cell) -> some View {
         let theme = ImasTheme.derive(seed: nil, scheme: scheme)
         if dragRange?.contains(cell.id) == true || pendingStart == cell.id {
-            Rectangle().fill(theme.accent.opacity(0.35))
+            Rectangle().fill(theme.accent.opacity(0.45))
         } else if let color = highlightColor(for: cell) {
-            Rectangle().fill(color.opacity(0.18))
+            // 0.18 では暗所でほぼ見えなかった (実機確認)。
+            Rectangle().fill(color.opacity(0.30))
         } else {
             Rectangle().fill(Color.clear)
         }
