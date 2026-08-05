@@ -66,6 +66,14 @@ def norm(s):
     )
 
 
+def load_song_types(db_path):
+    """song_id -> song_type。カバー曲の判定に使う。"""
+    conn = sqlite3.connect("file:%s?mode=ro" % db_path, uri=True)
+    types = {r[0]: (r[1] or "") for r in conn.execute("SELECT id, song_type FROM songs")}
+    conn.close()
+    return types
+
+
 def load_vocab(db_path):
     """アイマス関連と判定できる固有名詞を DB から集める。"""
     conn = sqlite3.connect("file:%s?mode=ro" % db_path, uri=True)
@@ -130,7 +138,7 @@ def base_title(title):
     return t.strip()
 
 
-def judge(row, vocab, leading_vocab):
+def judge(row, vocab, leading_vocab, song_type=""):
     """(confidence, 理由) を返す。"""
     cand = row.get("candidate_title", "")
     url = row.get("candidate_url", "")
@@ -153,6 +161,13 @@ def judge(row, vocab, leading_vocab):
     lead = [v for v in leading_vocab if v and cand_n.startswith(v)]
     if lead:
         return "high", "曲名一致 + 先頭の関連名詞 (%s)" % max(lead, key=len)[:20]
+
+    # カバー曲は原曲アーティストのページが正解なので、アイマス語彙に当たらないのが
+    # 当たり前。同名別曲の疑いとは別の状態なので区別する。
+    # ただし公有曲 (ジングルベル等) は同名の別アレンジが大量にあるため、
+    # 自動では lyrics_url に昇格させない (export は high のみを出す)。
+    if song_type == "cover":
+        return "cover", "カバー曲。原曲アーティストのページと思われる (要確認)"
 
     return "low", "アイマス関連の固有名詞がタイトルに無い (同名別曲の疑い)"
 
@@ -185,6 +200,7 @@ def main():
     args = ap.parse_args()
 
     vocab, leading_vocab = load_vocab(args.db)
+    song_types = load_song_types(args.db)
     print("判定語彙: %d件 (%d文字以上) + 先頭照合用 %d件"
           % (len(vocab), MIN_VOCAB_LEN, len(leading_vocab)))
 
@@ -197,7 +213,7 @@ def main():
         # 再検索されて予算を無駄にする。
         if not r.get("candidate_url"):
             continue
-        conf, why = judge(r, vocab, leading_vocab)
+        conf, why = judge(r, vocab, leading_vocab, song_types.get(r["song_id"], ""))
         counts[conf] = counts.get(conf, 0) + 1
         if r.get("confidence") != conf:
             changed += 1

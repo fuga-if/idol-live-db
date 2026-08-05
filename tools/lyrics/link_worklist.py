@@ -45,7 +45,7 @@ COLUMNS = [
 
 MANUAL_COLS = ["lyrics_url", "candidate_url", "candidate_title", "confidence", "note"]
 
-CONFIDENCES = {"", "high", "low", "ambiguous", "not_found"}
+CONFIDENCES = {"", "high", "low", "cover", "ambiguous", "not_found"}
 
 
 def fetch_songs(db_path):

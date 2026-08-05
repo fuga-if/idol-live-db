@@ -46,7 +46,10 @@ def read_tsv(path):
 
 
 def build(rows, min_confidence):
-    order = {"high": 3, "low": 2, "ambiguous": 1, "not_found": 0, "": 0}
+    # cover はカバー曲で「原曲アーティストのページと思われる」もの。
+    # 候補としては妥当だが、公有曲 (ジングルベル等) は同名の別アレンジが
+    # 大量にあるため自動では出さない。--min-confidence cover で明示的に含められる。
+    order = {"high": 3, "cover": 2, "low": 2, "ambiguous": 1, "not_found": 0, "": 0}
     threshold = order.get(min_confidence, 3)
 
     fixes = []
@@ -76,7 +79,7 @@ def main():
     ap.add_argument("--links", default=LINKS_TSV)
     ap.add_argument("--apply", action="store_true", help="data/fixes/ に書き出す")
     ap.add_argument("--min-confidence", default="high",
-                    choices=["high", "low", "ambiguous"],
+                    choices=["high", "cover", "low", "ambiguous"],
                     help="この確度以上だけ出す (既定: high)")
     ap.add_argument("--out-name", default="lyrics_url_links.json")
     args = ap.parse_args()
