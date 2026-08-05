@@ -82,6 +82,17 @@ def load_vocab(db_path):
         vocab.add(name)
     for (name,) in conn.execute("SELECT name FROM brands WHERE name <> ''"):
         vocab.add(name)
+    # songs 側のアーティスト表記も語彙にする。units に無いグループ名 (μ's / Aqours /
+    # Liella! 等のラブライブ系や、コラボ相手) はここからしか拾えない。
+    # 「DB が持っているアーティスト名はすべて有効な手がかり」という一般則にする。
+    for (label,) in conn.execute(
+            "SELECT DISTINCT singer_label FROM songs WHERE singer_label IS NOT NULL AND singer_label <> ''"):
+        for part in re.split(r"[、,／/（）()]", label):
+            vocab.add(part.strip())
+    for (label,) in conn.execute(
+            "SELECT DISTINCT unit_name FROM songs WHERE unit_name IS NOT NULL AND unit_name <> ''"):
+        for part in re.split(r"[、,／/（）()]", label):
+            vocab.add(part.strip())
     conn.close()
 
     # ブランドの通称・レーベル名。DB に無いが歌ネットのクレジットに出る。
@@ -91,6 +102,9 @@ def load_vocab(db_path):
         "315 ALLSTARS", "CINDERELLA PROJECT", "シンデレラガールズ",
         "ミリオンライブ", "シャイニーカラーズ", "SideM", "学園アイドルマスター",
         "初星学園", "ハツボシ", "ASTERISM",
+        # ローマ字表記。歌ネットのクレジットは @ を使わないことがある。
+        "THE IDOLMASTER", "IDOLMASTER", "CINDERELLA GIRLS", "MILLION LIVE",
+        "SHINY COLORS", "GAKUEN IDOLMASTER",
     }
 
     normed = {norm(v) for v in vocab if len(v.strip()) >= MIN_VOCAB_LEN}

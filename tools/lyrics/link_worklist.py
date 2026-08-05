@@ -54,7 +54,15 @@ def fetch_songs(db_path):
     rows = conn.execute(
         """
         SELECT s.id, s.title, s.lyrics_url,
-               COALESCE(NULLIF(s.singer_label,''), NULLIF(s.unit_name,''), '') AS artist,
+               -- singer_label / unit_name が空の曲 (876 の一部など) は
+               -- song_artists の出演者名で補う。空のまま「曲名 + アイドルマスター」で
+               -- 検索すると弱すぎて見つからない (876 は 9/9 が落ちた)。
+               COALESCE(
+                 NULLIF(s.singer_label,''), NULLIF(s.unit_name,''),
+                 (SELECT group_concat(i.name, '、')
+                    FROM song_artists sa JOIN idols i ON i.id = sa.idol_id
+                   WHERE sa.song_id = s.id AND sa.role = 'original'),
+                 '') AS artist,
                (SELECT COUNT(*) FROM setlist_items si WHERE si.song_id = s.id)
                    AS setlist_count
           FROM songs s
