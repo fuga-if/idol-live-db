@@ -132,10 +132,19 @@ def base_title(title):
     こちらの曲名が相手に含まれるかを見る形にする。
     """
     t = unicodedata.normalize("NFKC", title or "")
-    t = re.sub(r"\s*[（(][^（()）]*[）)]\s*$", "", t)
-    t = re.sub(r"\s+[-‐−–—].+[-‐−–—]\s*$", "", t)
-    t = re.sub(r"\s*[~～].+[~～]\s*$", "", t)
-    return t.strip()
+    # 波ダッシュは U+301C 〜 と U+FF5E ～ の2種類がある。片方だけだと
+    # 「Flip Flop 〜For SS3A rearrange〜」のような版名を剥がせない。
+    # 長音符 ー (U+30FC) をダッシュ代わりに使う表記もある (こいかぜ ー花葉ー)。
+    # サフィックスは入れ子になりうるので、変化しなくなるまで繰り返し剥がす。
+    for _ in range(4):
+        before = t
+        t = re.sub(r"\s*[（(][^（()）]*[）)]\s*$", "", t)
+        t = re.sub(r"\s+[-‐−–—ー].+[-‐−–—ー]\s*$", "", t)
+        t = re.sub(r"\s*[~～〜].+[~～〜]\s*$", "", t)
+        t = t.strip()
+        if t == before:
+            break
+    return t
 
 
 def judge(row, vocab, leading_vocab, song_type=""):
