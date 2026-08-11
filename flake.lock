@@ -95,11 +95,11 @@
         "nixpkgs-python39": "nixpkgs-python39"
       },
       "locked": {
-        "lastModified": 1785670258,
-        "narHash": "sha256-SbsXCb0BxvewaBhaseRRWMJQpn6T+0MBe1tCC2ro/Os=",
+        "lastModified": 1786400021,
+        "narHash": "sha256-h8YCsFRfNf7Z4IkS4Zdcvp8Xxf4EWfsgU2vIJuZSHFs=",
         "owner": "Comamoca",
         "repo": "swift-overlay",
-        "rev": "5908f438683a63a539c5747119dff7dcbcf92505",
+        "rev": "88226470748e36e6137491c76512345881c58ea7",
         "type": "github"
       },
       "original": {
