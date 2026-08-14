@@ -1,0 +1,96 @@
+{
+  "title": "2026年8月ライブ会場オリジナルCD等の新曲追加",
+  "_help": "dual twin live tour / Pop'n ToyBox!! の会場オリジナルCD新曲と、夜公演で使用されたリミックス",
+  "source": "https://columbia.jp/idolmaster/imasnews/260807.html",
+  "songs": [
+    {
+      "id": "765as_北極星をズラしちゃえ",
+      "title": "北極星をズラしちゃえ！",
+      "brand_id": "765as",
+      "song_type": "unit",
+      "release_date": "2026-08-06",
+      "lyricist": "星部ショウ",
+      "composer": "星部ショウ",
+      "arranger": "明石裕太",
+      "cd_series": "765PRO_ALLSTARSライブ会場限定CD_2#dual_twin_live_futagoboshi",
+      "cd_title": "THE IDOLM@STER dual twin live tour 双海 亜美・双海 真美 twin live “ ふたごぼしのつばさ ”（会場オリジナルCD）",
+      "original_singers": [
+        "765as_双海亜美",
+        "765as_双海真美"
+      ],
+      "source": "https://columbia.jp/idolmaster/imasnews/260807.html",
+      "note": "会場オリジナルCD SACX-1140 表題曲。2026-08-06 ワクワクフタリボシ公演 (Zepp Namba) で初披露"
+    },
+    {
+      "id": "765as_binary_star",
+      "title": "Binary Star",
+      "brand_id": "765as",
+      "song_type": "unit",
+      "release_date": "2026-08-06",
+      "lyricist": "パソコン音楽クラブ",
+      "composer": "パソコン音楽クラブ",
+      "arranger": "パソコン音楽クラブ",
+      "cd_series": "765PRO_ALLSTARSライブ会場限定CD_2#dual_twin_live_tsumimatsu",
+      "cd_title": "THE IDOLM@STER dual twin live tour 三浦 あずさ・秋月 律子 twin live “ つみまつよるまち ”（会場オリジナルCD）",
+      "original_singers": [
+        "765as_三浦あずさ",
+        "765as_秋月律子"
+      ],
+      "source": "https://columbia.jp/idolmaster/imasnews/260807.html",
+      "note": "会場オリジナルCD SACX-1139 表題曲。2026-08-07 OSAKA SILENTCITY LOVE 公演 (Zepp Namba) で初披露"
+    },
+    {
+      "id": "cg_poppin_para_pong",
+      "title": "Poppin' para Pong!",
+      "brand_id": "cg",
+      "song_type": "unit",
+      "release_date": "2026-08-13",
+      "lyricist": "烏屋茶房",
+      "composer": "橘亮祐",
+      "arranger": "橘亮祐",
+      "cd_series": "CINDERELLA_GIRLSのライブ会場限定CD#popn_toybox",
+      "cd_title": "THE IDOLM@STER CINDERELLA GIRLS CONCEPT xR LIVE Pop'n ToyBox!! Poppin' para Pong!",
+      "original_singers": [
+        "cg_赤城みりあ",
+        "cg_市原仁奈",
+        "cg_椎名法子"
+      ],
+      "source": "https://columbia.jp/idolmaster/imasnews/260717.html",
+      "note": "会場オリジナルCD SACX-1144 表題曲。2026-08-13 夕方公演 (Shibuya LOVEZ) で初披露"
+    },
+    {
+      "id": "cg_cookie_dough",
+      "title": "Cookie Dough",
+      "brand_id": "cg",
+      "song_type": "unit",
+      "release_date": "2026-08-13",
+      "lyricist": "八城雄太",
+      "composer": "設楽哲也",
+      "arranger": "設楽哲也",
+      "cd_series": "CINDERELLA_GIRLSのライブ会場限定CD#popn_toybox",
+      "cd_title": "THE IDOLM@STER CINDERELLA GIRLS CONCEPT xR LIVE Pop'n ToyBox!! Cookie Dough",
+      "original_singers": [
+        "cg_高垣楓",
+        "cg_三船美優",
+        "cg_大和亜季"
+      ],
+      "source": "https://columbia.jp/idolmaster/imasnews/260717.html",
+      "note": "会場オリジナルCD SACX-1145 表題曲。2026-08-13 夕方公演 (Shibuya LOVEZ) で初披露"
+    },
+    {
+      "id": "cg_ダンスダンスダンス_-ミフメイ_remix-",
+      "title": "ダンス・ダンス・ダンス -ミフメイ Remix-",
+      "brand_id": "cg",
+      "song_type": "all",
+      "release_date": "2025-11-29",
+      "lyricist": "MC TC",
+      "composer": "TAKU INOUE",
+      "arranger": "ミフメイ",
+      "parent_song_id": "765as_ダンスダンスダンス",
+      "cd_series": "CINDERELLA_GIRLSのライブ会場限定CD#to_dnce_to_fes",
+      "cd_title": "THE IDOLM@STER CINDERELLA GIRLS TO D@NCE TO FES!",
+      "source": "https://columbia.jp/idolmaster/imasnews/251219.html",
+      "note": "SACX-1127〜8 DISC1 Tr.01 (CINDERELLA GIRLS fes. Once Upon a St@rs 会場オリジナルCD)。歌唱アイドルはCD・公式に記載が無いため original_singers は未設定 (原曲は parent_song_id で参照)"
+    }
+  ]
+}

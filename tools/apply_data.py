@@ -77,14 +77,23 @@ def load(kind):
     return out
 
 
-def resolve_song(conn, brand_id, song_id, title):
-    """song_id 優先。無ければ brand 内でタイトル完全一致を試みる。"""
+def resolve_song(conn, brand_id, song_id, title, pending=()):
+    """song_id 優先。無ければ brand 内でタイトル完全一致を試みる。
+
+    pending は同じバッチで data/songs/ に追加される新曲。新曲を登録して同じ PR で
+    その初披露のセトリも入れる、という普通の流れを --check で弾かないために見る
+    (apply_all は songs → setlists の順に入れるので、反映時点では実在する)。
+    """
     if song_id:
+        if any(p.get("id") == song_id for p in pending):
+            return song_id
         return song_id if exists(conn, "songs", song_id) else None
-    rows = conn.execute(
+    hits = {p["id"] for p in pending
+            if p.get("id") and p.get("brand_id") == brand_id and p.get("title") == title}
+    hits |= {r[0] for r in conn.execute(
         "SELECT id FROM songs WHERE brand_id = ? AND title = ?", (brand_id, title)
-    ).fetchall()
-    return rows[0][0] if len(rows) == 1 else None
+    )}
+    return next(iter(hits)) if len(hits) == 1 else None
 
 
 # ---- 検証 -----------------------------------------------------------------
@@ -116,6 +125,9 @@ def validate(conn):
             if s.get("unit_id") and not exists(conn, "units", s["unit_id"]):
                 problems.append(f"{tag}: unit_id '{s['unit_id']}' が存在しない")
 
+    # 同じバッチで追加される新曲。セトリ側はこれも「存在する」として解決する。
+    new_songs = [s for _, d in load("songs") for s in d.get("songs", [])]
+
     for path, data in load("setlists"):
         need_source(path, data)
         show_id = data.get("show_id")
@@ -129,7 +141,7 @@ def validate(conn):
         brand_id = brand[0] if brand else None
         for i, sg in enumerate(data.get("songs", [])):
             tag = f"setlists/{path.name}[pos {sg.get('position')}]"
-            sid = resolve_song(conn, brand_id, sg.get("song_id"), sg.get("title"))
+            sid = resolve_song(conn, brand_id, sg.get("song_id"), sg.get("title"), new_songs)
             if not sid:
                 problems.append(f"{tag}: 曲を特定できない (song_id か brand内一意なtitleが必要): {sg.get('title')}")
             perf = sg.get("performers")
