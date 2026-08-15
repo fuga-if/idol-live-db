@@ -11,7 +11,12 @@ seed_cloudkit.py の逆向き。CloudKit の全マスタレコードを query �
         --key-file tools/eckey.pem
 
 スキーマと非同期テーブル(meta / song_units 等)は既存の db/master.sql から引き継ぎ、
-CloudKit に存在するテーブルだけ中身を入れ替える。
+CloudKit に存在するテーブルだけ中身を入れ替える (PRESERVED_TABLES 参照)。
+
+マスタに実差分があった回だけ meta.data_version を +1 する。ここが上がらないと
+アプリ側の reseed (bundle > 端末) が発火せず、CloudKit に入ったデータが既存
+ユーザーに届かない。差分判定は data_version 行を除いて比較する (バンプ自体が
+差分になる循環を避けるため)。
 """
 from __future__ import annotations
 
@@ -27,6 +32,13 @@ import seed_cloudkit as sk  # 同ディレクトリ。署名・query・テーブ
 ROOT = Path(__file__).resolve().parent.parent
 DUMP_PATH = ROOT / "db" / "master.sql"
 DB_PATH = ROOT / "ImasLiveDB" / "Resources" / "master.sqlite"
+
+# CloudKit に RecordType はあるが、master としては既存 dump 側が正のテーブル。
+# meta は RECORD_TYPE_MAP に載っているので、外さないと refresh_table の
+# DELETE FROM meta で消える。CloudKit 側に MetaData レコードは無いため
+# 空のまま dump され、bundle 側 data_version が 0 になって
+# AppDatabase.reseedMasterTablesIfNeeded が二度と走らなくなる。
+PRESERVED_TABLES = {"meta"}
 
 
 def camel_to_snake(name: str) -> str:
@@ -132,11 +144,56 @@ def build_conn_from_dump() -> sqlite3.Connection:
     return conn
 
 
-def write_dump(conn):
-    DUMP_PATH.parent.mkdir(parents=True, exist_ok=True)
-    with open(DUMP_PATH, "w", encoding="utf-8") as f:
-        for line in conn.iterdump():
-            f.write(line + "\n")
+def dump_text(conn) -> str:
+    return "".join(line + "\n" for line in conn.iterdump())
+
+
+_DATA_VERSION_RE = re.compile(
+    r"""^INSERT INTO ["']?meta["']?\s+VALUES\('data_version'.*$\n?""", re.M
+)
+
+
+def data_only(dump: str) -> str:
+    """data_version 行を除いた dump。バンプ自体が差分を生む循環を避けて比較するため。"""
+    return _DATA_VERSION_RE.sub("", dump)
+
+
+def comparable(sql_text: str) -> str:
+    """dump テキストを比較可能な正規形にする。
+
+    db/master.sql には 2 系統の形式が混在する。オーナーが手で作り直した回は
+    sqlite3 CLI の .dump (テーブル名クォート無し・sqlite_master 順)、cron の回は
+    iterdump (クォート有り・別順) で、生テキスト比較だと常に「差分あり」になる。
+    一度 DB に読み込んで同じ iterdump に通し、書式と行順を揃えてから比べる。
+    """
+    conn = sqlite3.connect(":memory:")
+    try:
+        conn.executescript(sql_text)
+        return data_only(dump_text(conn))
+    finally:
+        conn.close()
+
+
+def read_data_version(conn) -> int:
+    row = conn.execute("SELECT value FROM meta WHERE key = 'data_version'").fetchone()
+    return int(row[0]) if row and str(row[0]).isdigit() else 0
+
+
+def bump_data_version(conn) -> int:
+    """data_version を +1 する。
+
+    アプリの reseed は bundle 側 data_version > 端末側 のときだけ走る
+    (AppDatabase.reseedMasterTablesIfNeeded)。ここを上げないと、CloudKit に入って
+    db/master.sql まで来たデータが既存ユーザーに永久に届かない。
+    """
+    new = read_data_version(conn) + 1
+    conn.execute(
+        "INSERT INTO meta (key, value) VALUES ('data_version', ?) "
+        "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+        (str(new),),
+    )
+    conn.commit()
+    return new
 
 
 def main():
@@ -154,17 +211,38 @@ def main():
         sys.exit(1)
     sk.init_session(args.key_id, Path(args.key_file))
 
+    before = DUMP_PATH.read_text(encoding="utf-8") if DUMP_PATH.exists() else ""
+
     conn = build_conn_from_dump()
     conn.execute("PRAGMA foreign_keys = OFF")
     print(f"CloudKit ({env}) から master を取得:")
     total = 0
     for table in sk.TABLE_ORDER:
+        if table in PRESERVED_TABLES:
+            continue
         if table in sk.RECORD_TYPE_MAP and sk.get_column_info(conn, table):
             total += refresh_table(conn, table)
     conn.commit()
-    write_dump(conn)
+
+    after = dump_text(conn)
+    if data_only(after) != comparable(before):
+        new_version = bump_data_version(conn)
+        after = dump_text(conn)
+        print(f"\nマスタに差分あり → data_version {new_version - 1} → {new_version}")
+    else:
+        print(f"\nマスタに差分なし → data_version {read_data_version(conn)} 据え置き")
+
+    # data_version が落ちた dump を出すと、既存ユーザーの reseed が bundle=0 で
+    # 止まり無言で旧データのまま固定される。書き出す前にここで落とす。
+    if read_data_version(conn) <= 0:
+        print("✗ meta.data_version が無い/不正。db/master.sql を書き換えず中止。", file=sys.stderr)
+        conn.close()
+        sys.exit(1)
+
+    DUMP_PATH.parent.mkdir(parents=True, exist_ok=True)
+    DUMP_PATH.write_text(after, encoding="utf-8")
     conn.close()
-    print(f"\n✓ {total} 行を db/master.sql に書き出し")
+    print(f"✓ {total} 行を db/master.sql に書き出し")
 
 
 if __name__ == "__main__":
