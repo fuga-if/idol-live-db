@@ -42,6 +42,25 @@ npx wrangler deploy --dry-run
 npx wrangler dev
 ```
 
+## テスト
+
+```bash
+npm test          # 1 回実行
+npm run test:watch
+npm run typecheck # src と test の両方
+```
+
+[@cloudflare/vitest-pool-workers](https://github.com/cloudflare/workers-sdk/tree/main/packages/vitest-pool-workers)
+で **Workers ランタイム上**で実行する。`Request` / `Response` / `crypto` が本番と同じ実装になるので、
+Node の polyfill と挙動が割れる事故 (署名検証・ヘッダの大小文字・`Response.json` 等) を踏まない。
+
+`vitest.config.ts` は `wrangler.jsonc` をそのまま読む。`nodejs_compat` は pool の要件なので
+テスト実行時だけ `miniflare.compatibilityFlags` で足しており、本番 Worker のフラグは変えていない。
+
+D1 を叩くハンドラは、いまのところ `prepare().bind().first()` だけのスタブを渡してテストしている
+(`test/edit_requests.test.ts` の `stubDb`)。実 D1 が要るテストを書くときは
+`poolOptions.workers.miniflare.d1Databases` と `migrations/` の適用を足す。
+
 ## Cron 確認
 
 ```bash
