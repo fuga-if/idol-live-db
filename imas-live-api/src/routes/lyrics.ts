@@ -21,6 +21,7 @@ import { getAuthUser } from "../auth";
 import { checkRateLimit, dryCheckIpRateLimit, commitIpRateLimit } from "../rate_limit";
 import { checkIsAdmin } from "../users";
 import { carryOverAnnotation } from "../lyrics_calls";
+import { updateGramIndex } from "../lyrics_index";
 import type { ClapKind, LyricCall } from "../lyrics_calls";
 import type { RouteContext } from "./context";
 import type { Env } from "../env";
@@ -603,6 +604,22 @@ export async function handleLyrics(ctx: RouteContext): Promise<Response | null> 
     );
 
     await env.DB.batch(statements);
+
+    // 検索の転置インデックスを差分で追従させる。本文が変わっていなければ
+    // 1 クエリも投げない (同じ歌詞の入れ直しは索引の書き込みゼロ)。
+    //
+    // 失敗しても PUT は成功として返す。索引がズレても検索側は候補を body LIKE で
+    // 検証するので誤ヒットは出ず、「出るはずの曲が出ない」側にしか倒れない。
+    // 歌詞そのものは既に保存済みなので、索引の都合で投入を失敗扱いにする方が害が大きい。
+    const previousBody = existing
+      .filter((line) => line.kind === "lyric")
+      .map((line) => line.text)
+      .join("\n");
+    try {
+      await updateGramIndex(env, songId, previousBody, searchBody);
+    } catch (err) {
+      console.error("lyrics_gram_index_update_failed", songId, err);
+    }
 
     const header = await env.DB.prepare(
       "SELECT source, status, updated_at, lines_json FROM song_lyrics WHERE song_id = ?"
