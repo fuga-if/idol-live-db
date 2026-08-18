@@ -6962,15 +6962,6 @@
     },
     {
       "table": "songs",
-      "id": "cg_sun_high_gold",
-      "fields": {
-        "lyrics_url": "https://www.uta-net.com/song/280408/"
-      },
-      "source": "https://www.uta-net.com/song/280408/",
-      "note": "歌詞サイトの該当ページ。THE IDOLM@STER CINDERELLA GIRLS for BEST5! Sun！High！Gold！ 歌詞 / 判定=high (曲名一致 + 関連名詞 4件)"
-    },
-    {
-      "table": "songs",
       "id": "cg_superlove",
       "fields": {
         "lyrics_url": "https://www.uta-net.com/song/210060/"
@@ -8105,12 +8096,12 @@
     },
     {
       "table": "songs",
-      "id": "876_reloading",
+      "id": "876_リローディング",
       "fields": {
-        "lyrics_url": "https://www.uta-net.com/movie/371743/"
+        "lyrics_url": "https://www.uta-net.com/song/371743/"
       },
       "source": "https://www.uta-net.com/movie/371743/",
-      "note": "歌詞サイトの該当ページ。vα-liv RELOADING / 判定=high (曲名一致 + 関連名詞 1件)"
+      "note": "歌詞サイトの該当ページ。vα-liv RELOADING / 判定=high (曲名一致 + 関連名詞 1件) / 二重登録の統合で 876_reloading から付け替え。"
     },
     {
       "table": "songs",

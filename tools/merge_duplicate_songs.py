@@ -87,6 +87,14 @@ def main() -> None:
               f" song_units {before['song_units']} 件")
         print(f"  削除: song_artists {before['song_artists']} 件 + songs 1 件")
 
+        # ⚠️ CloudKit 側の一覧は**削除する前に**作ること。DELETE 後に SELECT すると
+        #    0 件になり、SongArtist が CloudKit に孤児として残る (端末で起動クラッシュ)。
+        for idol_id, role in db.execute(
+            "SELECT idol_id, role FROM song_artists WHERE song_id=?", (dup,)
+        ).fetchall():
+            deletions.append(("SongArtist", f"song_artists-{dup}-{idol_id}-{role}"))
+        deletions.append(("Song", dup))
+
         if args.apply:
             db.execute("UPDATE setlist_items SET song_id=? WHERE song_id=?", (keep, dup))
             db.execute("UPDATE song_units SET song_id=? WHERE song_id=?", (keep, dup))
@@ -95,13 +103,6 @@ def main() -> None:
             # 派生曲がこの曲を親にしていたら、残す側へ付け替える。
             db.execute("UPDATE songs SET parent_song_id=? WHERE parent_song_id=?", (keep, dup))
             db.execute("DELETE FROM songs WHERE id=?", (dup,))
-
-        # CloudKit 側。子 (SongArtist) を先に並べる。
-        for idol_id, role in db.execute(
-            "SELECT idol_id, role FROM song_artists WHERE song_id=?", (dup,)
-        ).fetchall():
-            deletions.append(("SongArtist", f"song_artists-{dup}-{idol_id}-{role}"))
-        deletions.append(("Song", dup))
 
     if not args.apply:
         print("\n(--apply で master.sqlite に反映する)")
