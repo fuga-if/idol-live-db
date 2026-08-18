@@ -96,7 +96,6 @@ actor LyricsAPI {
     /// 曲を跨いだ断片をメモリに溜めるのは「歌詞は残さない」の趣旨から遠い。
     func searchLyrics(query: String) async throws -> [LyricsSearchHit] {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        // サーバも 400 で弾くが、1文字での無駄なリクエストを飛ばさない。
         guard trimmed.count >= Self.minSearchLength else { return [] }
         do {
             let response: LyricsSearchResponse = try await client.request(
@@ -113,7 +112,8 @@ actor LyricsAPI {
     }
 
     /// routes/lyrics.ts の SEARCH_MIN_CHARS と同値。
-    static let minSearchLength = 2
+    /// 1文字を許すのは、日本語だと「桜」「夢」のような1文字の検索に意味があるため。
+    static let minSearchLength = 1
 
     /// キャッシュ上の重み。UTF-8 バイト数に Swift の String/配列オーバーヘッド分を
     /// ざっくり上乗せする。正確である必要はなく、暴走しない目安があればよい。

@@ -43,16 +43,28 @@ export const NO_STORE: Record<string, string> = { "Cache-Control": "no-store" };
 // ⚠️ 検索は「まとめ取り」に一番近い機能なので、返すものを構造で絞る:
 //   - 1曲につきスニペット1本だけ。行を全部返さない。
 //   - スニペットは一致箇所の前後 SNIPPET_CONTEXT 文字だけを切った窓。行全体でもない。
-//   - ヒットは SEARCH_LIMIT 曲まで。
+//   - 件数の上限は置かないが、1曲あたりに返るのは窓 1 本 (数十文字) だけ。
 //   - 認証必須 + IP バースト制限 (GET /songs/:id/lyrics と同じ枠)。
 // これで「1リクエストで多数の曲の本文が手に入る」形にはならない。なお同じ利用者は
 // GET /songs/:id/lyrics で1曲ずつ全文を読めるので、検索が新しい取得能力を足すわけではない
 // (守っているのは一括ダンプの不在であって、本文への到達不能ではない)。
-const SEARCH_LIMIT = 30;
-const SEARCH_MIN_CHARS = 2;
+// 件数の上限は置かない。一致した曲は全部返す。
+//
+// そのために**切り出しを SQL 側でやる**。D1 から body (歌詞全文) を取り出して JS で
+// 走査する形だと、1文字検索で全曲ヒットしたとき 3〜4MB のテキストを毎回 JS で
+// なめることになり、Workers 無料枠の CPU 上限 (1リクエスト 10ms) を超える。
+// SQL で instr/substr まで済ませれば、JS が触るのは 1 曲あたり 100 文字程度の窓だけ。
+// D1 の行読み取りは LIMIT の有無に関係なく全走査 (2,300行) なので課金は変わらない。
+//
+// 1文字も許す。日本語だと「桜」「夢」「星」のような1文字の検索に意味がある。
+const SEARCH_MIN_CHARS = 1;
 const SEARCH_MAX_CHARS = 50;
 const SNIPPET_CONTEXT = 12;
 const SNIPPET_MAX = 48;
+/// SQL 側で切り出す窓。表示窓 (SNIPPET_MAX) より広く取っておき、JS で行に丸めてから
+/// 表示窓まで詰める。広めなのは「行の切れ目がこの中に入っている」確率を上げるため。
+const SQL_WINDOW = 120;
+const SQL_WINDOW_BEFORE = 40;
 
 /** LIKE のワイルドカードを無効化する (検索語の % や _ をそのままの文字として扱う)。 */
 function likePattern(query: string): string {
@@ -60,39 +72,56 @@ function likePattern(query: string): string {
 }
 
 /**
- * 一致した最初の行から、その前後だけを切り出した窓を作る。
+ * SQL が切り出した窓 (`window`) を、一致を含む 1 行ぶんに丸めて表示用に詰める。
+ *
+ * SQL の窓は行をまたぐ (body は歌詞行を改行で連結したもの) ので、まず改行で切って
+ * 一致のある行だけを残す。読み手にとって隣の行の断片は雑音でしかない。
+ *
+ * `offset` は窓の先頭からの一致位置 (0 始まり)。`truncated` は SQL の窓自体が
+ * 前/後ろで切れているか — 省略記号を出すかの判断に要る。
  *
  * オフセットは **Unicode スカラー単位** (JS の Array.from / Swift の unicodeScalars)。
  * コールのアンカーと同じ規約に揃えてあるので、iOS 側は同じ数え方で強調表示できる。
  * UTF-16 コードユニットで数えると絵文字や結合文字を含む行でズレる。
  */
 export function buildSnippet(
-  body: string,
-  query: string
+  window: string,
+  offset: number,
+  queryLength: number,
+  truncated: { head: boolean; tail: boolean }
 ): { snippet: string; matchStart: number; matchLength: number } | null {
-  const needle = query.toLowerCase();
-  for (const line of body.split("\n")) {
-    const at = line.toLowerCase().indexOf(needle);
-    if (at < 0) continue;
+  const chars = Array.from(window);
+  if (offset < 0 || offset >= chars.length) return null;
 
-    const chars = Array.from(line);
-    const before = Array.from(line.slice(0, at)).length;
-    const length = Array.from(query).length;
-
-    const to = Math.min(chars.length, Math.max(0, before - SNIPPET_CONTEXT) + SNIPPET_MAX);
-    // 行末で一致した時に窓が後ろへはみ出さないよう、足りない分を前に回す。
-    const from = Math.max(0, Math.min(before - SNIPPET_CONTEXT, to - SNIPPET_MAX));
-
-    const head = from > 0 ? "…" : "";
-    const tail = to < chars.length ? "…" : "";
-    return {
-      snippet: head + chars.slice(from, to).join("") + tail,
-      matchStart: head.length + (before - from),
-      // 窓からはみ出す長さは返さない (iOS 側の範囲指定が壊れる)。
-      matchLength: Math.max(0, Math.min(length, to - before)),
-    };
+  // 一致を含む行に丸める。行が見つからなければ窓の端がそのまま境界。
+  let lineStart = 0;
+  for (let i = offset - 1; i >= 0; i--) {
+    if (chars[i] === "\n") { lineStart = i + 1; break; }
   }
-  return null;
+  let lineEnd = chars.length;
+  for (let i = offset + queryLength; i < chars.length; i++) {
+    if (chars[i] === "\n") { lineEnd = i; break; }
+  }
+  // 行頭/行末で切れたなら、そこは行の境界なので省略記号は要らない。
+  // 窓の端で切れた場合だけ、元の truncated を引き継ぐ。
+  const cutHead = lineStart === 0 ? truncated.head : false;
+  const cutTail = lineEnd === chars.length ? truncated.tail : false;
+
+  const line = chars.slice(lineStart, lineEnd);
+  const at = offset - lineStart;
+
+  const to = Math.min(line.length, Math.max(0, at - SNIPPET_CONTEXT) + SNIPPET_MAX);
+  // 行末で一致した時に窓が後ろへはみ出さないよう、足りない分を前に回す。
+  const from = Math.max(0, Math.min(at - SNIPPET_CONTEXT, to - SNIPPET_MAX));
+
+  const head = from > 0 || cutHead ? "…" : "";
+  const tail = to < line.length || cutTail ? "…" : "";
+  return {
+    snippet: head + line.slice(from, to).join("") + tail,
+    matchStart: head.length + (at - from),
+    // 窓からはみ出す長さは返さない (iOS 側の範囲指定が壊れる)。
+    matchLength: Math.max(0, Math.min(queryLength, to - at)),
+  };
 }
 
 export interface LyricLineRow {
@@ -294,24 +323,43 @@ export async function handleLyrics(ctx: RouteContext): Promise<Response | null> 
     // 検索だけ緩めると、本文は読めないのにスニペットからは読める状態になる。
     const isAdmin = await checkIsAdmin(env, user.uid);
     const statusClause = isAdmin ? "" : "AND status = 'published'";
+    // ⚠️ body そのものは返させない。窓 (SQL_WINDOW 文字) だけを切って受け取る。
+    //    全文を JS に渡すと 1 文字検索で全曲ヒットしたとき CPU 上限を超える。
+    //    instr / substr は TEXT に対して**文字単位**で動くので、iOS と合意している
+    //    Unicode スカラー単位のオフセットとそのまま噛み合う。
+    //    lower() は ASCII しか畳まないため文字数が変わらず、位置がズレない。
     const rows = await env.DB.prepare(
-      `SELECT song_id, body FROM song_lyrics
-        WHERE body LIKE ? ESCAPE '\\' ${statusClause}
-        ORDER BY song_id
-        LIMIT ?`
+      `WITH matched AS (
+         SELECT song_id, body, instr(lower(body), lower(?1)) AS at
+           FROM song_lyrics
+          WHERE body LIKE ?2 ESCAPE '\\' ${statusClause}
+       )
+       SELECT song_id,
+              substr(body, max(1, at - ?3), ?4) AS window,
+              at - max(1, at - ?3) AS offset,
+              max(1, at - ?3) > 1 AS cut_head,
+              length(body) > max(1, at - ?3) + ?4 - 1 AS cut_tail
+         FROM matched
+        WHERE at > 0
+        ORDER BY song_id`
     )
-      .bind(likePattern(query), SEARCH_LIMIT)
-      .all<{ song_id: string; body: string }>();
+      .bind(query, likePattern(query), SQL_WINDOW_BEFORE, SQL_WINDOW)
+      .all<{ song_id: string; window: string; offset: number;
+             cut_head: number; cut_tail: number }>();
 
+    const queryLength = Array.from(query).length;
     const hits = (rows.results ?? []).flatMap((row) => {
-      const found = buildSnippet(row.body ?? "", query);
-      // LIKE が拾ったのに窓を作れないのは、一致が marker 行にしか無い等の端のケース。
-      // song_id だけ返しても画面に出せるものが無いので落とす。
-      return found ? [{ songId: row.song_id, ...found }] : [];
+      const snippet = buildSnippet(row.window ?? "", row.offset, queryLength, {
+        head: row.cut_head === 1,
+        tail: row.cut_tail === 1,
+      });
+      // 窓を作れないのは一致位置が窓から外れた等の端のケース。song_id だけ返しても
+      // 画面に出せるものが無いので落とす。
+      return snippet ? [{ songId: row.song_id, ...snippet }] : [];
     });
 
     await commitIpRateLimit(env.DB, ip, ipRl.bucket);
-    return json({ query, hits, limit: SEARCH_LIMIT }, 200, NO_STORE);
+    return json({ query, hits }, 200, NO_STORE);
   }
 
   // ----------------------------------------------------------------

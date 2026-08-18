@@ -13,9 +13,8 @@ import Foundation
 ///
 /// ⚠️ Domain 規約: このファイルは `SwiftUI` / `GRDB` / `CloudKit` を import しない。
 protocol LyricsSearchReading: Sendable {
-    /// 歌詞本文にクエリを含む曲を探す。
+    /// 歌詞本文にクエリを含む曲を**全件**返す。件数の上限は無い。
     ///
-    /// 2 文字未満は検索しない (サーバが 400 を返す前にクライアントで弾く)。
     /// 未認証 (401) は `APIClientError.notAuthorized` を投げる。
     func searchLyrics(query: String) async throws -> [LyricsSearchHit]
 }
@@ -47,6 +46,4 @@ struct LyricsSearchHit: Decodable, Identifiable, Sendable, Equatable {
 struct LyricsSearchResponse: Decodable, Sendable {
     let query: String
     let hits: [LyricsSearchHit]
-    /// サーバ側の上限。ヒットがこれに達していたら「まだあるかも」を画面に出すために使う。
-    let limit: Int
 }
