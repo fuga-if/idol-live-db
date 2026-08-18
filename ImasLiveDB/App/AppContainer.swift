@@ -41,6 +41,9 @@ final class AppContainer: Sendable {
     /// 統計 (ランキング/集計) 読み取りの実装 (GRDB / 共有 AppDatabase)。
     let statsReading: any StatsReading = GRDBStatsRepository(database: .shared)
 
+    /// 年表 (ブランド史) 読み取りの実装 (GRDB / 共有 AppDatabase)。
+    let timelineReading: any TimelineReading = GRDBTimelineRepository(database: .shared)
+
     /// 編集フィードのレコード解決の実装 (GRDB / 共有 AppDatabase)。
     let editFeedReading: any EditFeedReading = GRDBEditFeedRepository(database: .shared)
 
@@ -68,6 +71,22 @@ final class AppContainer: Sendable {
         }
         #endif
         return SongDetailAPI.shared
+    }()
+
+    /// 歌詞本文の横断検索の実装。
+    /// ⚠️ 曲を跨ぐ唯一の歌詞経路なので、こちらもディスクキャッシュ無しの経路 (LyricsAPI) を通す。
+    let lyricsSearchReading: any LyricsSearchReading = LyricsAPI.shared
+
+    /// コールガイド (歌詞行に紐づくコール / 手拍子指示) の書き込み実装。
+    /// ⚠️ 歌詞の断片が乗るので、こちらもディスクキャッシュ無しの経路を通す。
+    /// DEBUG かつ `FAKE_LYRICS=1` のときは、サーバ未実装でも編集動線を確認できるフェイク。
+    let callGuideWriting: any CallGuideWriting = {
+        #if DEBUG
+        if ProcessInfo.processInfo.environment["FAKE_LYRICS"] == "1" {
+            return FakeCallGuideWriting()
+        }
+        #endif
+        return CallGuideAPI.shared
     }()
 
     // MARK: - 書き込み (編集/インポート系のローカル DB upsert)

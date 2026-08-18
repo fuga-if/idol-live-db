@@ -23,11 +23,17 @@ struct UnifiedSearchView: View {
 
     init(initialScope: UnifiedSearchScope = .all, initialQuery: String = "") {
         self.initialQuery = initialQuery
-        _scope = State(initialValue: initialScope)
+        _scope = State(initialValue: initialScope.resolved)
         _searchText = State(initialValue: initialQuery)
     }
 
     @State private var results = SearchResults(songs: [], idols: [], events: [])
+    /// 歌詞検索のヒット (サーバ) と、その song_id を同梱 SQLite で引き直した曲。
+    /// サーバはマスタを持っていないので、曲名・アーティストはこちらで解決する。
+    @State private var lyricsHits: [LyricsSearchHit] = []
+    @State private var lyricsSongs: [String: Song] = [:]
+    /// 歌詞検索が未ログインで弾かれた状態。空振りと区別して案内を出す。
+    @State private var lyricsNeedsLogin = false
     /// event_id → 検索語に一致した会場名。「武道館」で検索した時に、ライブ名だけ並んで
     /// なぜヒットしたか分からない状態を避けるため、一致理由として行に出す。
     @State private var matchedVenues: [String: String] = [:]
@@ -101,7 +107,7 @@ struct UnifiedSearchView: View {
     }
 
     private var scopeBar: some View {
-        ImasSegmented(options: UnifiedSearchScope.allCases, selection: $scope) { $0.label }
+        ImasSegmented(options: UnifiedSearchScope.available, selection: $scope) { $0.label }
             .padding(.horizontal, DS.sp5)
             .padding(.bottom, DS.sp4)
             // スコープを変えたら、そのスコープの検索結果を取り直す
@@ -124,9 +130,11 @@ struct UnifiedSearchView: View {
                 .background(DS.bg)
         } else if visibleResultCount == 0 {
             ImasEmptyState(
-                systemImage: "magnifyingglass",
-                title: "見つかりません",
-                message: "「\(searchText)」に一致する\(scope.emptyNoun)がありません"
+                systemImage: lyricsNeedsLogin ? "person.crop.circle.badge.questionmark" : "magnifyingglass",
+                title: lyricsNeedsLogin ? "歌詞の検索にはログインが必要です" : "見つかりません",
+                message: lyricsNeedsLogin
+                    ? "ログインすると、登録済みの曲の歌詞を検索できます。"
+                    : "「\(searchText)」に一致する\(scope.emptyNoun)がありません"
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .padding(.top, DS.sp8)
@@ -162,6 +170,21 @@ struct UnifiedSearchView: View {
                     }
                 } header: {
                     resultSectionHeader("楽曲", count: results.songs.count)
+                }
+            }
+            if scope.includes(.lyrics), !lyricsHits.isEmpty {
+                Section {
+                    ForEach(lyricsHits) { hit in
+                        if let song = lyricsSongs[hit.songId] {
+                            NavigationLink(value: DetailDestination.songLyrics(song)) {
+                                LyricsSearchRow(song: song, hit: hit, seed: nil)
+                            }
+                            .listRowBackground(DS.surface)
+                            .listRowSeparatorTint(DS.sep)
+                        }
+                    }
+                } header: {
+                    resultSectionHeader("歌詞", count: lyricsHits.count)
                 }
             }
             if scope.includes(.events), !results.events.isEmpty {
@@ -301,12 +324,16 @@ struct UnifiedSearchView: View {
         if scope.includes(.idols) { count += results.idols.count }
         if scope.includes(.songs) { count += results.songs.count }
         if scope.includes(.events) { count += results.events.count }
+        if scope.includes(.lyrics) { count += lyricsHits.count }
         return count
     }
 
     private func clearResults() {
         results = SearchResults(songs: [], idols: [], events: [])
         matchedVenues = [:]
+        lyricsHits = []
+        lyricsSongs = [:]
+        lyricsNeedsLogin = false
         isSearching = false
         searchTask?.cancel()
     }
@@ -324,14 +351,19 @@ struct UnifiedSearchView: View {
         let currentScope = scope
         searchTask = Task {
             if debounce {
-                try? await Task.sleep(for: .milliseconds(200))
+                // 歌詞はサーバを叩くので長めに待つ。1文字ごとに Worker を呼ばない。
+                try? await Task.sleep(for: .milliseconds(currentScope.isServerBacked ? 450 : 200))
                 guard !Task.isCancelled else { return }
             }
             do {
-                let r = try await fetchResults(query: trimmed, scope: currentScope)
-                try Task.checkCancellation()
-                results = r
-                matchedVenues = await resolveMatchedVenues(query: trimmed, events: r.events)
+                if currentScope == .lyrics {
+                    try await searchLyrics(query: trimmed)
+                } else {
+                    let r = try await fetchResults(query: trimmed, scope: currentScope)
+                    try Task.checkCancellation()
+                    results = r
+                    matchedVenues = await resolveMatchedVenues(query: trimmed, events: r.events)
+                }
                 isSearching = false
             } catch is CancellationError {
                 // キャンセル済み。結果は捨てる (isSearching は後続タスクが引き継ぐ)。
@@ -339,6 +371,32 @@ struct UnifiedSearchView: View {
                 Logger.database.error("search_failed: \(error.localizedDescription)")
                 isSearching = false
             }
+        }
+    }
+
+    /// 歌詞検索。サーバは song_id とスニペットしか返さないので、曲そのものは
+    /// 同梱 SQLite から引き直す (サーバはマスタを持っていない)。
+    private func searchLyrics(query: String) async throws {
+        lyricsNeedsLogin = false
+        guard query.count >= LyricsAPI.minSearchLength else {
+            lyricsHits = []
+            lyricsSongs = [:]
+            return
+        }
+        do {
+            let hits = try await AppContainer.shared.lyricsSearchReading.searchLyrics(query: query)
+            try Task.checkCancellation()
+            // 曲が引けなかったヒットは表示できないので落とす (端末の DB が古い場合など)。
+            let songs = try await AppContainer.shared.songReading.songs(ids: hits.map(\.songId))
+            try Task.checkCancellation()
+            let byId = Dictionary(uniqueKeysWithValues: songs.map { ($0.id, $0) })
+            lyricsSongs = byId
+            lyricsHits = hits.filter { byId[$0.songId] != nil }
+        } catch APIClientError.notAuthorized {
+            // 歌詞はログイン必須。空振りと区別して案内を出す。
+            lyricsNeedsLogin = true
+            lyricsHits = []
+            lyricsSongs = [:]
         }
     }
 
@@ -358,6 +416,9 @@ struct UnifiedSearchView: View {
         case .events:
             let events = try await container.eventReading.searchEventsByNameOrVenue(query: query, limit: 200)
             return SearchResults(songs: [], idols: [], events: events)
+        case .lyrics:
+            // 歌詞はローカル DB に無いので別経路 (searchLyrics)。ここには来ない。
+            return SearchResults(songs: [], idols: [], events: [])
         }
     }
 
@@ -400,7 +461,16 @@ struct UnifiedSearchView: View {
 
 /// 検索スコープ。`SearchScope` (履歴保存キー) とは別物で、こちらは UI 上の絞り込み単位。
 enum UnifiedSearchScope: String, CaseIterable, Hashable {
-    case all, events, songs, idols
+    case all, events, songs, idols, lyrics
+
+    /// 画面に出すスコープ。歌詞は JASRAC の許諾が下りるまで Release ビルドに載せない
+    /// (`LyricsFeature`)。`SongDetailTab.available` と同じ流儀。
+    static var available: [UnifiedSearchScope] {
+        allCases.filter { $0 != .lyrics || LyricsFeature.isAvailable }
+    }
+
+    /// 出せないスコープを指定されたときの落とし所。
+    var resolved: UnifiedSearchScope { Self.available.contains(self) ? self : .all }
 
     var label: String {
         switch self {
@@ -408,6 +478,7 @@ enum UnifiedSearchScope: String, CaseIterable, Hashable {
         case .events: "ライブ"
         case .songs:  "楽曲"
         case .idols:  "アイドル"
+        case .lyrics: "歌詞"
         }
     }
 
@@ -417,6 +488,7 @@ enum UnifiedSearchScope: String, CaseIterable, Hashable {
         case .events: "ライブ名 / 会場で検索"
         case .songs:  "曲名で検索"
         case .idols:  "アイドル名 / CV名で検索"
+        case .lyrics: "歌詞の一節で検索"
         }
     }
 
@@ -426,18 +498,33 @@ enum UnifiedSearchScope: String, CaseIterable, Hashable {
         case .events: "ライブ"
         case .songs:  "楽曲"
         case .idols:  "アイドル"
+        case .lyrics: "歌詞"
         }
     }
 
+    /// サーバ (D1) に問い合わせるスコープか。ローカル DB で完結しないので、
+    /// debounce やログイン要求の扱いが他と違う。
+    var isServerBacked: Bool { self == .lyrics }
+
     /// このスコープで結果セクションを表示するか。
-    func includes(_ other: UnifiedSearchScope) -> Bool { self == .all || self == other }
+    ///
+    /// 歌詞は `.all` に混ぜない。`.all` は同梱 SQLite で完結する即応検索なのに対し、
+    /// 歌詞はネットワーク + 認証が要る。混ぜると 1 文字打つたびに Worker を叩くことになり、
+    /// 無料枠 (10万req/日) を検索で焼く。探しに来た人だけがスコープを選んで叩く形にする。
+    func includes(_ other: UnifiedSearchScope) -> Bool {
+        if other == .lyrics { return self == .lyrics }
+        return self == .all || self == other
+    }
 
     /// 履歴の読み書き対象。`.all` は 3 スコープ全部。
+    ///
+    /// 歌詞検索は専用キーを作らず楽曲の履歴に載せる。探しているものは結局曲であって、
+    /// 「歌詞で探したか曲名で探したか」で履歴を分けても使う側の得にならない。
     var historyScopes: [SearchScope] {
         switch self {
         case .all:    [.events, .songs, .idols]
         case .events: [.events]
-        case .songs:  [.songs]
+        case .songs, .lyrics: [.songs]
         case .idols:  [.idols]
         }
     }

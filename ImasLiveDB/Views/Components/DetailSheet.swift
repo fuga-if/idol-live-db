@@ -7,6 +7,9 @@ enum DetailDestination: Identifiable, Hashable {
     case song(Song)
     /// 楽曲詳細を「披露履歴」タブで開く (一覧の披露/回収バッジから直接ジャンプ)。
     case songHistory(Song)
+    /// 楽曲詳細を「歌詞」タブで開く (歌詞検索の結果から直接ジャンプ)。
+    /// 歌詞タブが載っていないビルドでは `SongDetailTab.resolved` が情報タブに倒す。
+    case songLyrics(Song)
     case idol(Idol)
     case event(Event)
     case show(Show)
@@ -28,6 +31,7 @@ enum DetailDestination: Identifiable, Hashable {
         switch self {
         case .song(let s): return "song_\(s.id)"
         case .songHistory(let s): return "songHistory_\(s.id)"
+        case .songLyrics(let s): return "songLyrics_\(s.id)"
         case .idol(let i): return "idol_\(i.id)"
         case .event(let e): return "event_\(e.id)"
         case .show(let s): return "show_\(s.id)"
@@ -106,6 +110,9 @@ struct DetailContentView: View {
                 .onAppear { RecentsService.shared.record(kind: .song, id: song.id, name: song.title) }
         case .songHistory(let song):
             SongSheetContent(song: song, initialTab: .history, navigate: { navigate($0) })
+                .onAppear { RecentsService.shared.record(kind: .song, id: song.id, name: song.title) }
+        case .songLyrics(let song):
+            SongSheetContent(song: song, initialTab: .lyrics, navigate: { navigate($0) })
                 .onAppear { RecentsService.shared.record(kind: .song, id: song.id, name: song.title) }
         case .idol(let idol):
             // 共通のアイドル詳細 (一覧と同一コンポーネント)。子遷移は共有 path に push。

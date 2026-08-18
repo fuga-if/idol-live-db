@@ -516,6 +516,8 @@ export default {
             "GET /songs/:song_id/detail",
             // 歌詞は 1 リクエスト 1 曲・認証必須 (JASRAC 許諾の「一括ダウンロード不可」)。
             "GET /songs/:song_id/lyrics",
+            // 歌詞検索。返すのは song_id と一致箇所まわりのスニペットだけ。
+            "GET /lyrics/search",
             "PUT /admin/lyrics/:song_id",
             "PUT /songs/:song_id/calls",
           ],

@@ -90,6 +90,31 @@ actor LyricsAPI {
         }
     }
 
+    /// 歌詞本文の横断検索。返るのは 1 曲につきスニペット 1 本だけ。
+    ///
+    /// ⚠️ 結果はキャッシュしない。1曲ぶんの歌詞と違って同じクエリを読み返す使い方をしないし、
+    /// 曲を跨いだ断片をメモリに溜めるのは「歌詞は残さない」の趣旨から遠い。
+    func searchLyrics(query: String) async throws -> [LyricsSearchHit] {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        // サーバも 400 で弾くが、1文字での無駄なリクエストを飛ばさない。
+        guard trimmed.count >= Self.minSearchLength else { return [] }
+        do {
+            let response: LyricsSearchResponse = try await client.request(
+                "GET",
+                path: "/lyrics/search",
+                query: ["q": trimmed],
+                authorized: true
+            )
+            return response.hits
+        } catch {
+            logger.warning("lyrics_search_failed: \(error.localizedDescription)")
+            throw error
+        }
+    }
+
+    /// routes/lyrics.ts の SEARCH_MIN_CHARS と同値。
+    static let minSearchLength = 2
+
     /// キャッシュ上の重み。UTF-8 バイト数に Swift の String/配列オーバーヘッド分を
     /// ざっくり上乗せする。正確である必要はなく、暴走しない目安があればよい。
     private static func cost(of lyrics: Lyrics) -> Int {
@@ -103,6 +128,7 @@ actor LyricsAPI {
 }
 
 extension LyricsAPI: LyricsReading {}
+extension LyricsAPI: LyricsSearchReading {}
 
 #if DEBUG
 /// サーバ未完成時に見た目を確認するためのフェイク実装。

@@ -38,6 +38,63 @@ const LYRIC_STATUSES = new Set(["draft", "published"]);
 /** 歌詞応答は端末にもエッジにも残さない (許諾条件の「一括ダウンロード不可」の実効性)。 */
 export const NO_STORE: Record<string, string> = { "Cache-Control": "no-store" };
 
+// ---- 歌詞検索 (GET /lyrics/search) の上限 ----
+//
+// ⚠️ 検索は「まとめ取り」に一番近い機能なので、返すものを構造で絞る:
+//   - 1曲につきスニペット1本だけ。行を全部返さない。
+//   - スニペットは一致箇所の前後 SNIPPET_CONTEXT 文字だけを切った窓。行全体でもない。
+//   - ヒットは SEARCH_LIMIT 曲まで。
+//   - 認証必須 + IP バースト制限 (GET /songs/:id/lyrics と同じ枠)。
+// これで「1リクエストで多数の曲の本文が手に入る」形にはならない。なお同じ利用者は
+// GET /songs/:id/lyrics で1曲ずつ全文を読めるので、検索が新しい取得能力を足すわけではない
+// (守っているのは一括ダンプの不在であって、本文への到達不能ではない)。
+const SEARCH_LIMIT = 30;
+const SEARCH_MIN_CHARS = 2;
+const SEARCH_MAX_CHARS = 50;
+const SNIPPET_CONTEXT = 12;
+const SNIPPET_MAX = 48;
+
+/** LIKE のワイルドカードを無効化する (検索語の % や _ をそのままの文字として扱う)。 */
+function likePattern(query: string): string {
+  return "%" + query.replace(/[\\%_]/g, (c) => "\\" + c) + "%";
+}
+
+/**
+ * 一致した最初の行から、その前後だけを切り出した窓を作る。
+ *
+ * オフセットは **Unicode スカラー単位** (JS の Array.from / Swift の unicodeScalars)。
+ * コールのアンカーと同じ規約に揃えてあるので、iOS 側は同じ数え方で強調表示できる。
+ * UTF-16 コードユニットで数えると絵文字や結合文字を含む行でズレる。
+ */
+export function buildSnippet(
+  body: string,
+  query: string
+): { snippet: string; matchStart: number; matchLength: number } | null {
+  const needle = query.toLowerCase();
+  for (const line of body.split("\n")) {
+    const at = line.toLowerCase().indexOf(needle);
+    if (at < 0) continue;
+
+    const chars = Array.from(line);
+    const before = Array.from(line.slice(0, at)).length;
+    const length = Array.from(query).length;
+
+    const to = Math.min(chars.length, Math.max(0, before - SNIPPET_CONTEXT) + SNIPPET_MAX);
+    // 行末で一致した時に窓が後ろへはみ出さないよう、足りない分を前に回す。
+    const from = Math.max(0, Math.min(before - SNIPPET_CONTEXT, to - SNIPPET_MAX));
+
+    const head = from > 0 ? "…" : "";
+    const tail = to < chars.length ? "…" : "";
+    return {
+      snippet: head + chars.slice(from, to).join("") + tail,
+      matchStart: head.length + (before - from),
+      // 窓からはみ出す長さは返さない (iOS 側の範囲指定が壊れる)。
+      matchLength: Math.max(0, Math.min(length, to - before)),
+    };
+  }
+  return null;
+}
+
 export interface LyricLineRow {
   id: string;
   ord: number;
@@ -209,7 +266,53 @@ export async function authorizeLyricsWrite(request: Request, env: Env): Promise<
 }
 
 export async function handleLyrics(ctx: RouteContext): Promise<Response | null> {
-  const { request, env, path, json, error, rateLimitResponse, rateLimitSimple } = ctx;
+  const { request, env, url, path, json, error, rateLimitResponse, rateLimitSimple } = ctx;
+
+  // ----------------------------------------------------------------
+  // GET /lyrics/search?q=... — 歌詞本文の横断検索 (セッション JWT 必須)
+  //   返すのは song_id と一致箇所まわりのスニペットだけ。曲名やアーティストは
+  //   返さない (端末が同梱 SQLite から引ける。サーバはマスタを持っていない)。
+  // ----------------------------------------------------------------
+  if (path === "/lyrics/search" && request.method === "GET") {
+    const user = await getAuthUser(request, env);
+    // GET /songs/:id/lyrics と同じ理由で認証必須。未認証を通すと
+    // edgeCacheEligible の対象になり、歌詞の断片がエッジに載りうる。
+    if (!user) return error("Unauthorized", 401);
+
+    const query = (url.searchParams.get("q") ?? "").trim();
+    // 1文字だと事実上の全件走査になる (どの曲にも「あ」はある)。
+    if (query.length < SEARCH_MIN_CHARS) {
+      return error(`q must be at least ${SEARCH_MIN_CHARS} characters`, 400);
+    }
+    if (query.length > SEARCH_MAX_CHARS) return error("q too long", 400);
+
+    const ip = request.headers.get("CF-Connecting-IP") || "unknown";
+    const ipRl = await dryCheckIpRateLimit(env.DB, ip);
+    if (!ipRl.allowed) return rateLimitSimple();
+
+    // draft は admin にしか見せない (GET /songs/:id/lyrics と同じ規則)。
+    // 検索だけ緩めると、本文は読めないのにスニペットからは読める状態になる。
+    const isAdmin = await checkIsAdmin(env, user.uid);
+    const statusClause = isAdmin ? "" : "AND status = 'published'";
+    const rows = await env.DB.prepare(
+      `SELECT song_id, body FROM song_lyrics
+        WHERE body LIKE ? ESCAPE '\\' ${statusClause}
+        ORDER BY song_id
+        LIMIT ?`
+    )
+      .bind(likePattern(query), SEARCH_LIMIT)
+      .all<{ song_id: string; body: string }>();
+
+    const hits = (rows.results ?? []).flatMap((row) => {
+      const found = buildSnippet(row.body ?? "", query);
+      // LIKE が拾ったのに窓を作れないのは、一致が marker 行にしか無い等の端のケース。
+      // song_id だけ返しても画面に出せるものが無いので落とす。
+      return found ? [{ songId: row.song_id, ...found }] : [];
+    });
+
+    await commitIpRateLimit(env.DB, ip, ipRl.bucket);
+    return json({ query, hits, limit: SEARCH_LIMIT }, 200, NO_STORE);
+  }
 
   // ----------------------------------------------------------------
   // GET /songs/:song_id/lyrics — 1曲ぶんの歌詞 (セッション JWT 必須)
@@ -340,9 +443,17 @@ export async function handleLyrics(ctx: RouteContext): Promise<Response | null> 
       };
     });
 
+    // body は検索専用の平文コピー (migrations/0028)。lines_json と必ず同時に書く。
+    // 歌詞行だけを連結する: marker (イントロ/間奏) や blank は本文ではないので、
+    // 「間奏」で検索して全曲ヒットするような結果にしない。
+    const searchBody = nextLines
+      .filter((line) => line.kind === "lyric")
+      .map((line) => line.text)
+      .join("\n");
+
     statements.push(
-      env.DB.prepare("UPDATE song_lyrics SET lines_json = ? WHERE song_id = ?")
-        .bind(JSON.stringify(nextLines), songId)
+      env.DB.prepare("UPDATE song_lyrics SET lines_json = ?, body = ? WHERE song_id = ?")
+        .bind(JSON.stringify(nextLines), searchBody, songId)
     );
 
     await env.DB.batch(statements);
