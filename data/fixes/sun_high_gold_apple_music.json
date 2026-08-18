@@ -1,0 +1,19 @@
+{
+  "title": "Sun！High！Gold！ の配信IDを正す",
+  "author": "",
+  "source": "https://music.apple.com/jp/album/sun-high-gold/1495620263?i=1495620265&uo=4",
+  "_note": "二重登録の統合で残した cg_sunhighgold の apple_music_id が GAME VERSION (1676893334) を指していた。CINDERELLA MASTER 夢をのぞいたら 収録の本来の音源に直す。",
+  "fixes": [
+    {
+      "table": "songs",
+      "id": "cg_sunhighgold",
+      "fields": {
+        "apple_music_id": "1495620265",
+        "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music113/v4/11/7e/b6/117eb6b1-97c0-00b8-7f15-752358f31e77/COCC-17729.jpg/600x600bb.jpg",
+        "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview113/v4/00/25/cd/0025cd53-5336-96d4-841e-76b98e9ae031/mzaf_9474055769970173563.plus.aac.p.m4a"
+      },
+      "source": "https://music.apple.com/jp/album/sun-high-gold/1495620263?i=1495620265&uo=4",
+      "note": "GAME VERSION の ID が入っていた。CD「夢をのぞいたら」(2020-01-22) 収録の音源に差し替え。"
+    }
+  ]
+}
