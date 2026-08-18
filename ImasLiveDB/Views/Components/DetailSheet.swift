@@ -171,6 +171,16 @@ enum SongDetailTab: Int, CaseIterable, Hashable {
         case .community: return "community"
         }
     }
+
+    /// 実際に画面へ出すタブ。歌詞は JASRAC の許諾が下りるまで Release ビルドに載せない
+    /// (`LyricsFeature`)。セグメントバーも初期タブもここを唯一の根拠にする。
+    static var available: [SongDetailTab] {
+        allCases.filter { $0 != .lyrics || LyricsFeature.isAvailable }
+    }
+
+    /// 出せないタブを指定されたときの落とし所。ディープリンクや保存された初期タブが
+    /// 歌詞を指していても、載っていないビルドでは情報タブに倒す。
+    var resolved: SongDetailTab { Self.available.contains(self) ? self : .info }
 }
 
 struct SongSheetContent: View {
@@ -184,7 +194,7 @@ struct SongSheetContent: View {
     init(song: Song, initialTab: SongDetailTab = .info, navigate: @escaping (DetailDestination) -> Void) {
         self.song = song
         self.navigate = navigate
-        _tab = State(initialValue: initialTab)
+        _tab = State(initialValue: initialTab.resolved)
     }
 
     /// データ取得・整形担当。5系統のロード + 楽曲情報行/クレジットの整形を保持する。
@@ -225,7 +235,7 @@ struct SongSheetContent: View {
                     .padding(.top, DS.sp4)
                     .padding(.bottom, DS.sp1)
 
-                switch tab {
+                switch tab.resolved {
                 case .info: infoTab
                 case .lyrics: lyricsTab
                 case .history: historyTab
@@ -430,7 +440,7 @@ struct SongSheetContent: View {
     // MARK: - Segmented
 
     private var segmentBar: some View {
-        ImasSegmented(options: SongDetailTab.allCases, selection: $tab, seed: songSeed) { $0.label }
+        ImasSegmented(options: SongDetailTab.available, selection: $tab, seed: songSeed) { $0.label }
     }
 
     // MARK: - Tab: 情報・歌唱
