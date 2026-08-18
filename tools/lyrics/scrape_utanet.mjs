@@ -169,10 +169,13 @@ async function scrapeOne(browser, target) {
     const lines = htmlToLines(data.html);
     if (lines.length === 0) throw new Error("歌詞が空だった");
 
+    // source (出典) は入れない。歌ネットの規約上、出典として名前を出す方が問題になる。
+    // 取得元 URL は links.tsv が song_id ごとに持っているので、ここに持たせなくても
+    // 追跡できる (D1 に送るのはこの JSON なので、載せた時点で配信対象になる)。
     return {
       song_id: target.song_id,
       title: target.title,
-      source: target.url,
+      source: "",
       note: "",
       confidence: target.confidence,
       scraped: {
