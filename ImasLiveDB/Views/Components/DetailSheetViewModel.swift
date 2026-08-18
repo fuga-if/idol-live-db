@@ -24,6 +24,9 @@ final class DetailSheetViewModel {
     private(set) var collectedShows: [ShowWithEventName] = []
     /// 関連楽曲 (同シリーズ/同ユニット/歌唱共有, ローカル算出)。
     private(set) var relatedSongs: [Song] = []
+    /// 同じ曲の別バージョン (ソロ Ver. / Remix 等)。一覧からは隠れているので、
+    /// ここが唯一の到達手段になる。
+    private(set) var variantSongs: [Song] = []
 
     // MARK: - コミュニティ (CommunityAPI + SongReading ミラー)
     private(set) var songCalls: [SongCall] = []
@@ -86,6 +89,7 @@ final class DetailSheetViewModel {
             songVideos = try await songReading.songVideos(songId: song.id)
             collectedShows = try await songReading.collectedShows(for: song.id)
             relatedSongs = try await songReading.relatedSongs(to: song, limit: 8)
+            variantSongs = try await songReading.variantSongs(of: song)
         } catch {
             Logger.database.error("load_failed song_details: \(error.localizedDescription)")
         }

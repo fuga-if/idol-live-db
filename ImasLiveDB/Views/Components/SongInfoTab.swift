@@ -24,6 +24,7 @@ struct SongInfoTab: View {
             if !vm.performerArtists.isEmpty {
                 IdolGridSection(title: "ライブ歌唱歴", idols: vm.performerArtists, navigate: navigate)
             }
+            if !vm.variantSongs.isEmpty { variantSongsSection }
             if !vm.relatedSongs.isEmpty { relatedSongsSection }
         }
         .padding(.top, DS.sp4)
@@ -144,6 +145,25 @@ struct SongInfoTab: View {
         }
         .padding(.horizontal, DS.sp5).padding(.vertical, 11)
         .background(DS.surface)
+    }
+
+    // MARK: - 別バージョン
+
+    /// 同じ曲のソロ Ver. / Remix 等。
+    ///
+    /// 一覧・カレンダー・統計は `parent_song_id IS NULL` で派生曲を隠しているので、
+    /// ここが**唯一の到達手段**になる。関連楽曲 (別の曲) とは意味が違うので節を分ける。
+    private var variantSongsSection: some View {
+        VStack(alignment: .leading, spacing: DS.sp3) {
+            ImasSectionHeader(title: "別バージョン", count: "\(vm.variantSongs.count)")
+            ImasListContainer {
+                ForEach(Array(vm.variantSongs.enumerated()), id: \.element.id) { idx, s in
+                    if idx > 0 { ImasRowDivider(inset: DS.sp5 + 44) }
+                    Button { navigate(.song(s)) } label: { RelatedSongRow(song: s, seed: seed) }
+                        .buttonStyle(.plain)
+                }
+            }
+        }
     }
 
     // MARK: - 関連楽曲

@@ -5,6 +5,16 @@ enum SongListMode: String, CaseIterable {
     case songs
     case albums
     case series
+
+    /// 名前絞り込みの入力欄に出す文言。絞る対象は表示形式で変わる。
+    /// 一覧 (`.searchable`) とフィルタシートの双方から使うのでここに置く。
+    var nameFilterPrompt: String {
+        switch self {
+        case .songs:  "曲名で絞り込み"
+        case .albums: "アルバム名で絞り込み"
+        case .series: "シリーズ名で絞り込み"
+        }
+    }
 }
 
 struct SongListView: View {
@@ -92,6 +102,14 @@ struct SongListView: View {
             }
             .background(DS.bg)
             .onChange(of: searchText) { _, _ in vm.recomputeDisplayed(searchText: searchText) }
+                // 一覧を名前で絞る入口は一覧そのものに置く。
+                //
+                // 以前はフィルタシートの1行目にしか無く、「曲名で絞りたいだけ」なのに
+                // シートを開く必要があった。ツールバーの虫眼鏡は横断検索
+                // (UnifiedSearchView / 探して詳細へ飛ぶ) なので役割が違い、代わりにならない。
+                // ユニット一覧・タグ一覧は元から一覧側に絞り込み欄を出していて、楽曲だけが
+                // シートに埋まっていた。
+                .searchable(text: $searchText, prompt: listMode.nameFilterPrompt)
                 .navigationTitle("楽曲")
                 // selectionMode (設定から push) では inline。.large だと push 先で大タイトル
                 // 領域 (≈100px) が確保され、フィルタチップの下に空白として見える + 2階層

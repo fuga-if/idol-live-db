@@ -526,6 +526,27 @@ extension AppDatabase {
         }
     }
 
+    // MARK: - 別バージョン
+
+    /// 同じ曲の別バージョン (`parent_song_id` で束ねた一族) を、自分を除いて返す。
+    ///
+    /// 一覧・カレンダー・統計・クイズは `parent_song_id IS NULL` で派生曲を隠している。
+    /// 隠しっぱなしだと「Crossing! のソロ 15 種」に**どこからも辿り着けない**ので、
+    /// 詳細画面からここを通して見せる。
+    ///
+    /// 自分が派生側でも親側でも同じ一族が返るよう、まず根 (parent_song_id ?? id) を
+    /// 求めてから、根と根を親に持つ曲を集める。
+    func fetchVariantSongsAsync(of song: Song) async throws -> [Song] {
+        try await dbQueue.read { db in
+            let root = song.parentSongId ?? song.id
+            return try Song.fetchAll(db, sql: """
+                SELECT * FROM songs
+                 WHERE (id = ? OR parent_song_id = ?) AND id != ?
+                 ORDER BY CASE WHEN parent_song_id IS NULL THEN 0 ELSE 1 END,
+                          title_kana, title
+                """, arguments: [root, root, song.id])
+        }
+    }
 }
 
 private struct SongPerfCount: FetchableRecord, Sendable {
