@@ -92,3 +92,4 @@ tools/jasrac/out/
 # 歌詞の作業場。JASRAC 許諾は「一括ダウンロードできない形での配信」が条件なので
 # 歌詞本文は公開リポジトリに絶対に入れない。
 /lyrics_local/
+tools/lyrics/node_modules
