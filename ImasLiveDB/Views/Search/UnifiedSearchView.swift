@@ -34,6 +34,8 @@ struct UnifiedSearchView: View {
     @State private var lyricsSongs: [String: Song] = [:]
     /// 歌詞検索が未ログインで弾かれた状態。空振りと区別して案内を出す。
     @State private var lyricsNeedsLogin = false
+    /// 検索そのものが失敗した (通信/サーバエラー)。これも空振りと区別する。
+    @State private var searchFailed = false
     /// event_id → 検索語に一致した会場名。「武道館」で検索した時に、ライブ名だけ並んで
     /// なぜヒットしたか分からない状態を避けるため、一致理由として行に出す。
     @State private var matchedVenues: [String: String] = [:]
@@ -129,18 +131,38 @@ struct UnifiedSearchView: View {
             ImasLoadingState()
                 .background(DS.bg)
         } else if visibleResultCount == 0 {
-            ImasEmptyState(
-                systemImage: lyricsNeedsLogin ? "person.crop.circle.badge.questionmark" : "magnifyingglass",
-                title: lyricsNeedsLogin ? "歌詞の検索にはログインが必要です" : "見つかりません",
-                message: lyricsNeedsLogin
-                    ? "ログインすると、登録済みの曲の歌詞を検索できます。"
-                    : "「\(searchText)」に一致する\(scope.emptyNoun)がありません"
-            )
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .padding(.top, DS.sp8)
-            .background(DS.bg)
+            emptyState
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .padding(.top, DS.sp8)
+                .background(DS.bg)
         } else {
             resultsList
+        }
+    }
+
+    /// 結果ゼロの見せ方。「失敗」「ログインが要る」「本当に無い」を混ぜない。
+    @ViewBuilder
+    private var emptyState: some View {
+        if searchFailed {
+            ImasEmptyState(
+                systemImage: "exclamationmark.triangle",
+                title: "検索できませんでした",
+                message: "通信環境を確認して、もう一度お試しください。",
+                actionTitle: "再試行",
+                action: { scheduleSearch(searchText, debounce: false) }
+            )
+        } else if lyricsNeedsLogin {
+            ImasEmptyState(
+                systemImage: "person.crop.circle.badge.questionmark",
+                title: "歌詞の検索にはログインが必要です",
+                message: "ログインすると、登録済みの曲の歌詞を検索できます。"
+            )
+        } else {
+            ImasEmptyState(
+                systemImage: "magnifyingglass",
+                title: "見つかりません",
+                message: "「\(searchText)」に一致する\(scope.emptyNoun)がありません"
+            )
         }
     }
 
@@ -337,6 +359,7 @@ struct UnifiedSearchView: View {
         lyricsHits = []
         lyricsSongs = [:]
         lyricsNeedsLogin = false
+        searchFailed = false
         isSearching = false
         searchTask?.cancel()
     }
@@ -351,6 +374,7 @@ struct UnifiedSearchView: View {
         }
 
         isSearching = true
+        searchFailed = false
         let currentScope = scope
         searchTask = Task {
             if debounce {
@@ -371,7 +395,10 @@ struct UnifiedSearchView: View {
             } catch is CancellationError {
                 // キャンセル済み。結果は捨てる (isSearching は後続タスクが引き継ぐ)。
             } catch {
+                // 失敗を空振りと同じ「見つかりません」で出さない。区別が付かないと、
+                // サーバ側の不具合が「その語は無いんだな」に見えて発覚が遅れる。
                 Logger.database.error("search_failed: \(error.localizedDescription)")
+                searchFailed = true
                 isSearching = false
             }
         }

@@ -431,8 +431,11 @@ export async function handleLyrics(ctx: RouteContext): Promise<Response | null> 
       const perChunk = MAX_BOUND_PARAMS - 4;
       for (let i = 0; i < candidates.length; i += perChunk) {
         const chunk = candidates.slice(i, i + perChunk);
+        // ⚠️ 番号なしの ? を混ぜないこと。SQLite の ? は「それまでの最大番号 + 1」を
+        //    取るので、?1〜?4 を使っているこの文では IN 句の最初の ? が ?3 になり、
+        //    SQL_WINDOW_BEFORE と衝突する (候補経路だけが黙って 0 件になる)。
         const rows = await env.DB.prepare(
-          windowSelect(`AND song_id IN (${chunk.map(() => "?").join(",")})`)
+          windowSelect(`AND song_id IN (${chunk.map((_, n) => `?${n + 5}`).join(",")})`)
         )
           .bind(query, likePattern(query), SQL_WINDOW_BEFORE, SQL_WINDOW, ...chunk)
           .all<WindowRow>();
