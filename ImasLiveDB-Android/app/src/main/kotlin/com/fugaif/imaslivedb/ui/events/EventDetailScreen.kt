@@ -116,11 +116,22 @@ fun EventDetailScreen(
     val marks = remember { AppModule.from(context).userMarkRepository }
     val scope = rememberCoroutineScope()
     var favOn by remember(eventId) { mutableStateOf(false) }
-    var attendOn by remember(eventId) { mutableStateOf(false) }
+    // 参加は公演単位で持つ (行っていない公演まで回収率に数えないため)。
+    // イベント単位の attended は旧データの互換としてだけ見る。
+    var attendedShowIds by remember(eventId) { mutableStateOf<Set<String>>(emptySet()) }
+    var legacyEventAttended by remember(eventId) { mutableStateOf(false) }
+    var showAttendanceSheet by remember(eventId) { mutableStateOf(false) }
+    val attendOn = attendedShowIds.isNotEmpty() || legacyEventAttended
+
+    suspend fun reloadAttendance() {
+        attendedShowIds = marks.attendedShowIds(uiState.shows.map { it.id })
+    }
+
     LaunchedEffect(eventId) {
         favOn = marks.isOn(UserMark.EVENT, eventId, UserMark.FAVORITE)
-        attendOn = marks.isOn(UserMark.EVENT, eventId, UserMark.ATTENDED)
+        legacyEventAttended = marks.isOn(UserMark.EVENT, eventId, UserMark.ATTENDED)
     }
+    LaunchedEffect(uiState.shows) { reloadAttendance() }
 
     Scaffold(
         topBar = {
@@ -163,8 +174,9 @@ fun EventDetailScreen(
             Column(Modifier.fillMaxSize().padding(innerPadding)) {
                 Hero(
                     state = uiState, t = t, favOn = favOn, attendOn = attendOn,
+                    attendedShowIds = attendedShowIds,
                     onFavToggle = { scope.launch { favOn = marks.toggle(UserMark.EVENT, eventId, UserMark.FAVORITE) } },
-                    onAttendToggle = { scope.launch { attendOn = marks.toggle(UserMark.EVENT, eventId, UserMark.ATTENDED) } }
+                    onAttendToggle = { showAttendanceSheet = true }
                 )
                 ImasSegmented(
                     labels = listOf("公演・セトリ", "出演", "情報"),
@@ -182,17 +194,37 @@ fun EventDetailScreen(
             }
         }
     }
+
+    if (showAttendanceSheet) {
+        EventAttendanceSheet(
+            shows = uiState.shows,
+            seed = seed,
+            brand = brand,
+            onDismiss = { showAttendanceSheet = false },
+            onChange = { scope.launch { reloadAttendance() } }
+        )
+    }
 }
 
 // MARK: - Hero
 
 private data class AttendanceStatusUi(val label: String, val planned: Boolean)
 
-/** 参加マーク(イベント単位)と公演日から「参加予定 (あとN日) / 参加済み」を導く。 */
-private fun attendanceStatus(state: EventDetailUiState, marked: Boolean): AttendanceStatusUi? {
+/**
+ * 参加マークの付いた公演の日付から「参加予定 (あとN日) / 参加済み」を導く。
+ * iOS `AttendanceStatus.derive(attendedShowDates:)` と同じ判定。
+ * 公演単位のマークが無く旧いイベント単位のマークだけある場合は、全公演を対象にする。
+ */
+private fun attendanceStatus(
+    state: EventDetailUiState,
+    marked: Boolean,
+    attendedShowIds: Set<String>
+): AttendanceStatusUi? {
     if (!marked) return null
     val today = JstDay.date()
-    val futureDates = state.shows.map { it.date }
+    val targets = if (attendedShowIds.isEmpty()) state.shows
+    else state.shows.filter { it.id in attendedShowIds }
+    val futureDates = targets.map { it.date }
         .filter { it.isNotEmpty() }
         .mapNotNull { runCatching { LocalDate.parse(it) }.getOrNull() }
         .filter { !it.isBefore(today) }
@@ -211,6 +243,7 @@ private fun Hero(
     t: ImasTheme,
     favOn: Boolean,
     attendOn: Boolean,
+    attendedShowIds: Set<String>,
     onFavToggle: () -> Unit,
     onAttendToggle: () -> Unit
 ) {
@@ -248,7 +281,7 @@ private fun Hero(
             HeroToggle("お気に入り", favOn, DS.favorite, onFavToggle)
             HeroToggle("参加", attendOn, t.accent, onAttendToggle)
         }
-        attendanceStatus(state, attendOn)?.let { status ->
+        attendanceStatus(state, attendOn, attendedShowIds)?.let { status ->
             Spacer(Modifier.height(10.dp))
             Row(
                 modifier = Modifier.clip(RoundedCornerShape(50.dp))
