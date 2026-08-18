@@ -71,6 +71,75 @@ function likePattern(query: string): string {
   return "%" + query.replace(/[\\%_]/g, (c) => "\\" + c) + "%";
 }
 
+// ---- 転置インデックス (lyrics_gram_index / migrations 0029) ----
+//
+// body LIKE '%q%' は先頭ワイルドカードで索引が効かず、1検索で全走査 (2,291行) になる。
+// gram で候補を先に絞れば、よくある検索は十数行で済む。
+//
+// インデックスは**近似**。2-gram の AND には偽陽性があり (「ABCD」の各 gram が
+// 別々の場所にある曲)、再構築までの間は古い。だから候補は必ず body LIKE で検証する。
+// ズレは「出るはずの曲が出ない」側にしか倒れない。
+
+/** D1 の1文あたりバインド変数上限。これを超えないよう IN 句を分割する。 */
+const MAX_BOUND_PARAMS = 90;
+/**
+ * 候補がこれを超えたら索引を捨てて全走査に倒す。
+ * 「の」のような1文字は 2,282 曲に当たるので、90件ずつ IN で引くと 26 往復になり、
+ * 1回の全走査より遅くて高い。候補が多い = 絞れていない、なので索引の出番ではない。
+ */
+const CANDIDATE_LIMIT = 300;
+
+/** クエリを索引の gram に割る。1文字はそのまま、2文字以上は 2-gram に。 */
+function queryGrams(query: string): string[] {
+  const chars = Array.from(query);
+  if (chars.length <= 1) return chars;
+  const grams: string[] = [];
+  for (let i = 0; i < chars.length - 1; i++) grams.push(chars[i] + chars[i + 1]);
+  // 同じ gram が何度出ても posting は同じなので、引くのは1回でよい。
+  return [...new Set(grams)].slice(0, MAX_BOUND_PARAMS);
+}
+
+/**
+ * 索引から候補の song_id を引く。
+ * 索引を使わない/使えない場合は null (呼び出し側は全走査に倒す)。
+ */
+async function candidateSongIds(env: Env, query: string): Promise<string[] | null> {
+  const grams = queryGrams(query);
+  if (grams.length === 0) return null;
+
+  const placeholders = grams.map(() => "?").join(",");
+  const rows = await env.DB.prepare(
+    `SELECT gram, song_ids FROM lyrics_gram_index WHERE gram IN (${placeholders})`
+  )
+    .bind(...grams)
+    .all<{ gram: string; song_ids: string }>();
+
+  // posting は長いと part に分割されて複数行で返る (migrations 0030)。gram ごとに束ねる。
+  const byGram = new Map<string, string[]>();
+  for (const row of rows.results ?? []) {
+    const list = byGram.get(row.gram) ?? [];
+    list.push(...row.song_ids.split("\n"));
+    byGram.set(row.gram, list);
+  }
+
+  // gram が1つでも索引に無い = その並びを含む曲は無い、と言い切れる…が、索引が
+  // 未構築 (0件) のときも同じ形になる。区別できないので、全部欠けていたら
+  // 索引を信用せず全走査に倒す。
+  if (byGram.size === 0) return null;
+  if (byGram.size < grams.length) return [];
+
+  // 全 gram を含む曲だけが候補 (AND)。一番小さい posting から積むと交差が速い。
+  const lists = [...byGram.values()].sort((a, b) => a.length - b.length);
+  let candidates = new Set(lists[0]);
+  for (const list of lists.slice(1)) {
+    const next = new Set<string>();
+    for (const id of list) if (candidates.has(id)) next.add(id);
+    candidates = next;
+    if (candidates.size === 0) break;
+  }
+  return candidates.size > CANDIDATE_LIMIT ? null : [...candidates];
+}
+
 /**
  * SQL が切り出した窓 (`window`) を、一致を含む 1 行ぶんに丸めて表示用に詰める。
  *
@@ -323,16 +392,24 @@ export async function handleLyrics(ctx: RouteContext): Promise<Response | null> 
     // 検索だけ緩めると、本文は読めないのにスニペットからは読める状態になる。
     const isAdmin = await checkIsAdmin(env, user.uid);
     const statusClause = isAdmin ? "" : "AND status = 'published'";
+    // まず索引で候補を絞る。絞れない (索引未構築 / 候補が多すぎる) 場合は null が返り、
+    // 従来どおり全走査する。候補が空配列なら「該当なし」が確定しているので走査すらしない。
+    const candidates = await candidateSongIds(env, query);
+    if (candidates?.length === 0) {
+      await commitIpRateLimit(env.DB, ip, ipRl.bucket);
+      return json({ query, hits: [] }, 200, NO_STORE);
+    }
+
     // ⚠️ body そのものは返させない。窓 (SQL_WINDOW 文字) だけを切って受け取る。
     //    全文を JS に渡すと 1 文字検索で全曲ヒットしたとき CPU 上限を超える。
     //    instr / substr は TEXT に対して**文字単位**で動くので、iOS と合意している
     //    Unicode スカラー単位のオフセットとそのまま噛み合う。
     //    lower() は ASCII しか畳まないため文字数が変わらず、位置がズレない。
-    const rows = await env.DB.prepare(
+    const windowSelect = (extraWhere: string) =>
       `WITH matched AS (
          SELECT song_id, body, instr(lower(body), lower(?1)) AS at
            FROM song_lyrics
-          WHERE body LIKE ?2 ESCAPE '\\' ${statusClause}
+          WHERE body LIKE ?2 ESCAPE '\\' ${statusClause} ${extraWhere}
        )
        SELECT song_id,
               substr(body, max(1, at - ?3), ?4) AS window,
@@ -341,14 +418,35 @@ export async function handleLyrics(ctx: RouteContext): Promise<Response | null> 
               length(body) > max(1, at - ?3) + ?4 - 1 AS cut_tail
          FROM matched
         WHERE at > 0
-        ORDER BY song_id`
-    )
-      .bind(query, likePattern(query), SQL_WINDOW_BEFORE, SQL_WINDOW)
-      .all<{ song_id: string; window: string; offset: number;
-             cut_head: number; cut_tail: number }>();
+        ORDER BY song_id`;
+
+    type WindowRow = { song_id: string; window: string; offset: number;
+                       cut_head: number; cut_tail: number };
+    const found: WindowRow[] = [];
+
+    if (candidates) {
+      // 候補ありの経路。D1 のバインド変数上限があるので IN 句を分割して引く。
+      // 4 個は固定 (query / like / before / window) なので残りを id に使う。
+      const perChunk = MAX_BOUND_PARAMS - 4;
+      for (let i = 0; i < candidates.length; i += perChunk) {
+        const chunk = candidates.slice(i, i + perChunk);
+        const rows = await env.DB.prepare(
+          windowSelect(`AND song_id IN (${chunk.map(() => "?").join(",")})`)
+        )
+          .bind(query, likePattern(query), SQL_WINDOW_BEFORE, SQL_WINDOW, ...chunk)
+          .all<WindowRow>();
+        found.push(...(rows.results ?? []));
+      }
+      found.sort((a, b) => (a.song_id < b.song_id ? -1 : a.song_id > b.song_id ? 1 : 0));
+    } else {
+      const rows = await env.DB.prepare(windowSelect(""))
+        .bind(query, likePattern(query), SQL_WINDOW_BEFORE, SQL_WINDOW)
+        .all<WindowRow>();
+      found.push(...(rows.results ?? []));
+    }
 
     const queryLength = Array.from(query).length;
-    const hits = (rows.results ?? []).flatMap((row) => {
+    const hits = found.flatMap((row) => {
       const snippet = buildSnippet(row.window ?? "", row.offset, queryLength, {
         head: row.cut_head === 1,
         tail: row.cut_tail === 1,
