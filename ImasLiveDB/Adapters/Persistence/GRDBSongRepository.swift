@@ -48,6 +48,10 @@ struct GRDBSongRepository: SongReading {
         try await database.fetchRelatedSongsAsync(to: song, limit: limit)
     }
 
+    func listableSongs(ids: [String]) async throws -> [Song] {
+        try await database.fetchListableSongsAsync(ids: ids)
+    }
+
     func variantSongs(of song: Song) async throws -> [Song] {
         try await database.fetchVariantSongsAsync(of: song)
     }

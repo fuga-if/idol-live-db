@@ -417,7 +417,10 @@ struct UnifiedSearchView: View {
             let hits = try await AppContainer.shared.lyricsSearchReading.searchLyrics(query: query)
             try Task.checkCancellation()
             // 曲が引けなかったヒットは表示できないので落とす (端末の DB が古い場合など)。
-            let songs = try await AppContainer.shared.songReading.songs(ids: hits.map(\.songId))
+            // 併せて一覧と同じ規則で派生曲 (ソロ Ver. / Remix) とその他ブランドを外す。
+            // 派生曲は歌詞が親と同一なので、残すと同じ歌詞が何件も並んで読めなくなる。
+            let songs = try await AppContainer.shared.songReading
+                .listableSongs(ids: hits.map(\.songId))
             try Task.checkCancellation()
             let byId = Dictionary(uniqueKeysWithValues: songs.map { ($0.id, $0) })
             lyricsSongs = byId

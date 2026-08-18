@@ -30,6 +30,9 @@ protocol SongReading: Sendable {
     func songArtists(songId: String, role: String?) async throws -> [Idol]
     /// 関連曲 (同シリーズ/同ユニット等)。
     func relatedSongs(to song: Song, limit: Int) async throws -> [Song]
+    /// 一覧に出す資格のある曲だけを id で引く (派生曲・その他ブランドを落とす)。
+    /// 歌詞検索のようにサーバから id だけ返る経路で、一覧と同じ見え方に揃えるために使う。
+    func listableSongs(ids: [String]) async throws -> [Song]
     /// 同じ曲の別バージョン (ソロ Ver. / Remix 等) を、自分を除いて返す。
     /// 一覧は派生曲を隠すので、ここが唯一の到達手段になる。
     func variantSongs(of song: Song) async throws -> [Song]

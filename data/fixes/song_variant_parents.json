@@ -1,0 +1,782 @@
+{
+  "title": "別バージョン曲の親曲紐付け",
+  "author": "",
+  "source": "https://music.apple.com/jp/",
+  "_note": "一覧・カレンダー・統計は parent_song_id IS NULL で派生曲を除外する。ここを埋めることで「Crossing!」のソロ15種などが親1件にまとまる。",
+  "fixes": [
+    {
+      "table": "songs",
+      "id": "765as_go_my_waydream_match_mix",
+      "fields": {
+        "parent_song_id": "765as_go_my_way"
+      },
+      "source": "https://music.apple.com/jp/song/1677719883",
+      "note": "「GO MY WAY!!(Dream Match MIX)」は「GO MY WAY!!」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "cg_øωøver_-heart_beat_version-",
+      "fields": {
+        "parent_song_id": "cg_øωøver"
+      },
+      "source": "https://music.apple.com/jp/",
+      "note": "「ØωØver!! -Heart Beat Version-」は「ØωØver!!」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "765as_relationsdigno-pop_mix",
+      "fields": {
+        "parent_song_id": "765as_relations"
+      },
+      "source": "https://music.apple.com/jp/song/1677720593",
+      "note": "「relations(digno-pop MIX)」は「relations」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "sc_spread_the_wings_-19_colors-",
+      "fields": {
+        "parent_song_id": "sc_spread_the_wings"
+      },
+      "source": "https://music.apple.com/jp/song/1718493857",
+      "note": "「Spread the Wings!! -19 colors-」は「Spread the Wings!!」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "765as_the_idolmsterたろすけバスターnw_mix",
+      "fields": {
+        "parent_song_id": "765as_the_idolmster"
+      },
+      "source": "https://music.apple.com/jp/song/1677720015",
+      "note": "「THE IDOLM@STER(たろすけバスターNW　MIX)」は「THE IDOLM@STER」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "765as_エージェント夜を往くhoover_acid_mix",
+      "fields": {
+        "parent_song_id": "765as_エージェント夜を往く"
+      },
+      "source": "https://music.apple.com/jp/song/1677714180",
+      "note": "「エージェント夜を往く(Hoover ＆ Acid MIX)」は「エージェント夜を往く」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "765as_ポジティブスカイキッドmix",
+      "fields": {
+        "parent_song_id": "765as_ポジティブ"
+      },
+      "source": "https://music.apple.com/jp/song/1677725237",
+      "note": "「ポジティブ！(『スカイキッド』MIX)」は「ポジティブ！」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "cg_華蕾夢ミル狂詩曲_魂ノ導_-for_anzu_rearrange_mix-",
+      "fields": {
+        "parent_song_id": "cg_華蕾夢ミル狂詩曲魂ノ導"
+      },
+      "source": "https://music.apple.com/jp/song/1874474322",
+      "note": "「華蕾夢ミル狂詩曲 〜魂ノ導〜 -For Anzu rearrange MIX-」は「華蕾夢ミル狂詩曲 〜魂ノ導〜」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "cg_輝く世界の魔法_しんげきremix-",
+      "fields": {
+        "parent_song_id": "cg_輝く世界の魔法"
+      },
+      "source": "https://music.apple.com/jp/song/1676897796",
+      "note": "「輝く世界の魔法 – しんげきRemix-」は「輝く世界の魔法」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "sc_one_live_one_love_mortal_remix",
+      "fields": {
+        "parent_song_id": "sc_one_live_one_love"
+      },
+      "source": "https://music.apple.com/jp/song/1892311078",
+      "note": "「One Live One Love (Mortal Remix)」は「One Live One Love」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "sc_another_rampage_sngular1ty_ver",
+      "fields": {
+        "parent_song_id": "sc_another_rampage"
+      },
+      "source": "https://music.apple.com/jp/song/1734552360",
+      "note": "「Another Rampage (283 Production XXXX Performance XXX= S/N-GUL4R1TY Ver.)」は「Another Rampage」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_brandnewtheater高山紗代子ver",
+      "fields": {
+        "parent_song_id": "ml_brand_new_theater"
+      },
+      "source": "https://music.apple.com/jp/song/6776935362",
+      "note": "「Brand New Theater! (高山紗代子 Ver.)」は「Brand New Theater!」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_crossing馬場このみver",
+      "fields": {
+        "parent_song_id": "ml_crossing"
+      },
+      "source": "https://music.apple.com/jp/song/6779552755",
+      "note": "「Crossing! (馬場このみ Ver.)」は「Crossing!」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_crossing北上麗花ver",
+      "fields": {
+        "parent_song_id": "ml_crossing"
+      },
+      "source": "https://music.apple.com/jp/song/6779551728",
+      "note": "「Crossing! (北上麗花 Ver.)」は「Crossing!」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_union北上麗花ver",
+      "fields": {
+        "parent_song_id": "ml_union"
+      },
+      "source": "https://music.apple.com/jp/song/6779551720",
+      "note": "「UNION!! (北上麗花 Ver.)」は「UNION!!」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_crossing真壁瑞希ver",
+      "fields": {
+        "parent_song_id": "ml_crossing"
+      },
+      "source": "https://music.apple.com/jp/song/6777888211",
+      "note": "「Crossing! (真壁瑞希 Ver.)」は「Crossing!」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_crossing如月千早ver",
+      "fields": {
+        "parent_song_id": "ml_crossing"
+      },
+      "source": "https://music.apple.com/jp/song/6777894347",
+      "note": "「Crossing! (如月千早 Ver.)」は「Crossing!」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_flyers北上麗花ver",
+      "fields": {
+        "parent_song_id": "ml_flyers"
+      },
+      "source": "https://music.apple.com/jp/song/6779551721",
+      "note": "「Flyers!!! (北上麗花 Ver.)」は「Flyers!!!」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_glowmap北上麗花ver",
+      "fields": {
+        "parent_song_id": "ml_glow_map"
+      },
+      "source": "https://music.apple.com/jp/song/6779551722",
+      "note": "「Glow Map (北上麗花 Ver.)」は「Glow Map」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_crossing桜守歌織ver",
+      "fields": {
+        "parent_song_id": "ml_crossing"
+      },
+      "source": "https://music.apple.com/jp/song/6777896792",
+      "note": "「Crossing! (桜守歌織 Ver.)」は「Crossing!」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_crossing松田亜利沙ver",
+      "fields": {
+        "parent_song_id": "ml_crossing"
+      },
+      "source": "https://music.apple.com/jp/song/6779552671",
+      "note": "「Crossing! (松田亜利沙 Ver.)」は「Crossing!」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_union馬場このみver",
+      "fields": {
+        "parent_song_id": "ml_union"
+      },
+      "source": "https://music.apple.com/jp/song/6779552750",
+      "note": "「UNION!! (馬場このみ Ver.)」は「UNION!!」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_harmony4you北上麗花ver",
+      "fields": {
+        "parent_song_id": "ml_harmony_4_you"
+      },
+      "source": "https://music.apple.com/jp/song/6779551724",
+      "note": "「Harmony 4 You (北上麗花 Ver.)」は「Harmony 4 You」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_夢にかけるrainbow北上麗花ver",
+      "fields": {
+        "parent_song_id": "ml_夢にかけるrainbow"
+      },
+      "source": "https://music.apple.com/jp/song/6779551725",
+      "note": "「夢にかけるRainbow (北上麗花 Ver.)」は「夢にかけるRainbow」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_glowmap真壁瑞希ver",
+      "fields": {
+        "parent_song_id": "ml_glow_map"
+      },
+      "source": "https://music.apple.com/jp/song/6777888208",
+      "note": "「Glow Map (真壁瑞希 Ver.)」は「Glow Map」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_glowmap馬場このみver",
+      "fields": {
+        "parent_song_id": "ml_glow_map"
+      },
+      "source": "https://music.apple.com/jp/song/6779552752",
+      "note": "「Glow Map (馬場このみ Ver.)」は「Glow Map」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_brandnewtheater馬場このみver",
+      "fields": {
+        "parent_song_id": "ml_brand_new_theater"
+      },
+      "source": "https://music.apple.com/jp/song/6779552749",
+      "note": "「Brand New Theater! (馬場このみ Ver.)」は「Brand New Theater!」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_harmony4you馬場このみver",
+      "fields": {
+        "parent_song_id": "ml_harmony_4_you"
+      },
+      "source": "https://music.apple.com/jp/song/6779552753",
+      "note": "「Harmony 4 You (馬場このみ Ver.)」は「Harmony 4 You」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_union如月千早ver",
+      "fields": {
+        "parent_song_id": "ml_union"
+      },
+      "source": "https://music.apple.com/jp/song/6777894342",
+      "note": "「UNION!! (如月千早 Ver.)」は「UNION!!」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_union真壁瑞希ver",
+      "fields": {
+        "parent_song_id": "ml_union"
+      },
+      "source": "https://music.apple.com/jp/song/6777888206",
+      "note": "「UNION!! (真壁瑞希 Ver.)」は「UNION!!」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_brandnewtheater北上麗花ver",
+      "fields": {
+        "parent_song_id": "ml_brand_new_theater"
+      },
+      "source": "https://music.apple.com/jp/song/6779551539",
+      "note": "「Brand New Theater! (北上麗花 Ver.)」は「Brand New Theater!」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_flyers馬場このみver",
+      "fields": {
+        "parent_song_id": "ml_flyers"
+      },
+      "source": "https://music.apple.com/jp/song/6779552751",
+      "note": "「Flyers!!! (馬場このみ Ver.)」は「Flyers!!!」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_flyers真壁瑞希ver",
+      "fields": {
+        "parent_song_id": "ml_flyers"
+      },
+      "source": "https://music.apple.com/jp/song/6777888207",
+      "note": "「Flyers!!! (真壁瑞希 Ver.)」は「Flyers!!!」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_crossing望月杏奈ver",
+      "fields": {
+        "parent_song_id": "ml_crossing"
+      },
+      "source": "https://music.apple.com/jp/song/6779552198",
+      "note": "「Crossing! (望月杏奈 Ver.)」は「Crossing!」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_グッドサイン北上麗花ver",
+      "fields": {
+        "parent_song_id": "ml_グッドサイン"
+      },
+      "source": "https://music.apple.com/jp/song/6779551729",
+      "note": "「グッドサイン (北上麗花 Ver.)」は「グッドサイン」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_crossing水瀬伊織ver",
+      "fields": {
+        "parent_song_id": "ml_crossing"
+      },
+      "source": "https://music.apple.com/jp/song/6779550277",
+      "note": "「Crossing! (水瀬伊織 Ver.)」は「Crossing!」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_7daysaweek北上麗花ver",
+      "fields": {
+        "parent_song_id": "ml_7days_a_week"
+      },
+      "source": "https://music.apple.com/jp/song/6779551730",
+      "note": "「7Days A Week!! (北上麗花 Ver.)」は「7Days A Week!!」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_flyers如月千早ver",
+      "fields": {
+        "parent_song_id": "ml_flyers"
+      },
+      "source": "https://music.apple.com/jp/song/6777894343",
+      "note": "「Flyers!!! (如月千早 Ver.)」は「Flyers!!!」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_crossing白石紬ver",
+      "fields": {
+        "parent_song_id": "ml_crossing"
+      },
+      "source": "https://music.apple.com/jp/song/6779552168",
+      "note": "「Crossing! (白石 紬 Ver.)」は「Crossing!」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_夢にかけるrainbow馬場このみver",
+      "fields": {
+        "parent_song_id": "ml_夢にかけるrainbow"
+      },
+      "source": "https://music.apple.com/jp/song/6779552754",
+      "note": "「夢にかけるRainbow (馬場このみ Ver.)」は「夢にかけるRainbow」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_crossing北沢志保ver",
+      "fields": {
+        "parent_song_id": "ml_crossing"
+      },
+      "source": "https://music.apple.com/jp/song/6777887610",
+      "note": "「Crossing! (北沢志保 Ver.)」は「Crossing!」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_brandnewtheater如月千早ver",
+      "fields": {
+        "parent_song_id": "ml_brand_new_theater"
+      },
+      "source": "https://music.apple.com/jp/song/6777894083",
+      "note": "「Brand New Theater! (如月千早 Ver.)」は「Brand New Theater!」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_harmony4you桜守歌織ver",
+      "fields": {
+        "parent_song_id": "ml_harmony_4_you"
+      },
+      "source": "https://music.apple.com/jp/song/6777896790",
+      "note": "「Harmony 4 You (桜守歌織 Ver.)」は「Harmony 4 You」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_7daysaweek松田亜利沙ver",
+      "fields": {
+        "parent_song_id": "ml_7days_a_week"
+      },
+      "source": "https://music.apple.com/jp/song/6779552673",
+      "note": "「7Days A Week!! (松田亜利沙 Ver.)」は「7Days A Week!!」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_夢にかけるrainbow如月千早ver",
+      "fields": {
+        "parent_song_id": "ml_夢にかけるrainbow"
+      },
+      "source": "https://music.apple.com/jp/song/6777894346",
+      "note": "「夢にかけるRainbow (如月千早 Ver.)」は「夢にかけるRainbow」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_crossing天海春香ver",
+      "fields": {
+        "parent_song_id": "ml_crossing"
+      },
+      "source": "https://music.apple.com/jp/song/6779547539",
+      "note": "「Crossing! (天海春香 Ver.)」は「Crossing!」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_7daysaweek馬場このみver",
+      "fields": {
+        "parent_song_id": "ml_7days_a_week"
+      },
+      "source": "https://music.apple.com/jp/song/6779552757",
+      "note": "「7Days A Week!! (馬場このみ Ver.)」は「7Days A Week!!」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_crossing高山紗代子ver",
+      "fields": {
+        "parent_song_id": "ml_crossing"
+      },
+      "source": "https://music.apple.com/jp/song/6776935370",
+      "note": "「Crossing! (高山紗代子 Ver.)」は「Crossing!」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_glowmap如月千早ver",
+      "fields": {
+        "parent_song_id": "ml_glow_map"
+      },
+      "source": "https://music.apple.com/jp/song/6777894344",
+      "note": "「Glow Map (如月千早 Ver.)」は「Glow Map」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_crossing宮尾美也ver",
+      "fields": {
+        "parent_song_id": "ml_crossing"
+      },
+      "source": "https://music.apple.com/jp/song/6779549105",
+      "note": "「Crossing! (宮尾美也 Ver.)」は「Crossing!」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_harmony4you真壁瑞希ver",
+      "fields": {
+        "parent_song_id": "ml_harmony_4_you"
+      },
+      "source": "https://music.apple.com/jp/song/6777888209",
+      "note": "「Harmony 4 You (真壁瑞希 Ver.)」は「Harmony 4 You」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_union桜守歌織ver",
+      "fields": {
+        "parent_song_id": "ml_union"
+      },
+      "source": "https://music.apple.com/jp/song/6777896787",
+      "note": "「UNION!! (桜守歌織 Ver.)」は「UNION!!」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_グッドサイン馬場このみver",
+      "fields": {
+        "parent_song_id": "ml_グッドサイン"
+      },
+      "source": "https://music.apple.com/jp/song/6779552756",
+      "note": "「グッドサイン (馬場このみ Ver.)」は「グッドサイン」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_glowmap桜守歌織ver",
+      "fields": {
+        "parent_song_id": "ml_glow_map"
+      },
+      "source": "https://music.apple.com/jp/song/6777896789",
+      "note": "「Glow Map (桜守歌織 Ver.)」は「Glow Map」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_harmony4you如月千早ver",
+      "fields": {
+        "parent_song_id": "ml_harmony_4_you"
+      },
+      "source": "https://music.apple.com/jp/song/6777894345",
+      "note": "「Harmony 4 You (如月千早 Ver.)」は「Harmony 4 You」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_グッドサイン望月杏奈ver",
+      "fields": {
+        "parent_song_id": "ml_グッドサイン"
+      },
+      "source": "https://music.apple.com/jp/song/6779552199",
+      "note": "「グッドサイン (望月杏奈 Ver.)」は「グッドサイン」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_グッドサイン真壁瑞希ver",
+      "fields": {
+        "parent_song_id": "ml_グッドサイン"
+      },
+      "source": "https://music.apple.com/jp/song/6777888212",
+      "note": "「グッドサイン (真壁瑞希 Ver.)」は「グッドサイン」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_夢にかけるrainbow真壁瑞希ver",
+      "fields": {
+        "parent_song_id": "ml_夢にかけるrainbow"
+      },
+      "source": "https://music.apple.com/jp/song/6777888210",
+      "note": "「夢にかけるRainbow (真壁瑞希 Ver.)」は「夢にかけるRainbow」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_flyers桜守歌織ver",
+      "fields": {
+        "parent_song_id": "ml_flyers"
+      },
+      "source": "https://music.apple.com/jp/song/6777896788",
+      "note": "「Flyers!!! (桜守歌織 Ver.)」は「Flyers!!!」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_union望月杏奈ver",
+      "fields": {
+        "parent_song_id": "ml_union"
+      },
+      "source": "https://music.apple.com/jp/song/6779552193",
+      "note": "「UNION!! (望月杏奈 Ver.)」は「UNION!!」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_7daysaweek真壁瑞希ver",
+      "fields": {
+        "parent_song_id": "ml_7days_a_week"
+      },
+      "source": "https://music.apple.com/jp/song/6777888213",
+      "note": "「7Days A Week!! (真壁瑞希 Ver.)」は「7Days A Week!!」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_union天海春香ver",
+      "fields": {
+        "parent_song_id": "ml_union"
+      },
+      "source": "https://music.apple.com/jp/song/6779547534",
+      "note": "「UNION!! (天海春香 Ver.)」は「UNION!!」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_brandnewtheater真壁瑞希ver",
+      "fields": {
+        "parent_song_id": "ml_brand_new_theater"
+      },
+      "source": "https://music.apple.com/jp/song/6777888205",
+      "note": "「Brand New Theater! (真壁瑞希 Ver.)」は「Brand New Theater!」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_夢にかけるrainbow桜守歌織ver",
+      "fields": {
+        "parent_song_id": "ml_夢にかけるrainbow"
+      },
+      "source": "https://music.apple.com/jp/song/6777896791",
+      "note": "「夢にかけるRainbow (桜守歌織 Ver.)」は「夢にかけるRainbow」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_union白石紬ver",
+      "fields": {
+        "parent_song_id": "ml_union"
+      },
+      "source": "https://music.apple.com/jp/song/6779552163",
+      "note": "「UNION!! (白石 紬 Ver.)」は「UNION!!」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_glowmap望月杏奈ver",
+      "fields": {
+        "parent_song_id": "ml_glow_map"
+      },
+      "source": "https://music.apple.com/jp/song/6779552195",
+      "note": "「Glow Map (望月杏奈 Ver.)」は「Glow Map」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_crossing所恵美ver",
+      "fields": {
+        "parent_song_id": "ml_crossing"
+      },
+      "source": "https://music.apple.com/jp/song/6779548746",
+      "note": "「Crossing! (所 恵美 Ver.)」は「Crossing!」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_flyers望月杏奈ver",
+      "fields": {
+        "parent_song_id": "ml_flyers"
+      },
+      "source": "https://music.apple.com/jp/song/6779552194",
+      "note": "「Flyers!!! (望月杏奈 Ver.)」は「Flyers!!!」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_グッドサイン如月千早ver",
+      "fields": {
+        "parent_song_id": "ml_グッドサイン"
+      },
+      "source": "https://music.apple.com/jp/song/6777894348",
+      "note": "「グッドサイン (如月千早 Ver.)」は「グッドサイン」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_crossing七尾百合子ver",
+      "fields": {
+        "parent_song_id": "ml_crossing"
+      },
+      "source": "https://music.apple.com/jp/song/6777894670",
+      "note": "「Crossing! (七尾百合子 Ver.)」は「Crossing!」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_flyers高山紗代子ver",
+      "fields": {
+        "parent_song_id": "ml_flyers"
+      },
+      "source": "https://music.apple.com/jp/song/6776935365",
+      "note": "「Flyers!!! (高山紗代子 Ver.)」は「Flyers!!!」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_glowmap高山紗代子ver",
+      "fields": {
+        "parent_song_id": "ml_glow_map"
+      },
+      "source": "https://music.apple.com/jp/song/6776935366",
+      "note": "「Glow Map (高山紗代子 Ver.)」は「Glow Map」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_union高山紗代子ver",
+      "fields": {
+        "parent_song_id": "ml_union"
+      },
+      "source": "https://music.apple.com/jp/song/6776935364",
+      "note": "「UNION!! (高山紗代子 Ver.)」は「UNION!!」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_harmony4you高山紗代子ver",
+      "fields": {
+        "parent_song_id": "ml_harmony_4_you"
+      },
+      "source": "https://music.apple.com/jp/song/6776935367",
+      "note": "「Harmony 4 You (高山紗代子 Ver.)」は「Harmony 4 You」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_夢にかけるrainbow高山紗代子ver",
+      "fields": {
+        "parent_song_id": "ml_夢にかけるrainbow"
+      },
+      "source": "https://music.apple.com/jp/song/6776935368",
+      "note": "「夢にかけるRainbow (高山紗代子 Ver.)」は「夢にかけるRainbow」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_7daysaweek高山紗代子ver",
+      "fields": {
+        "parent_song_id": "ml_7days_a_week"
+      },
+      "source": "https://music.apple.com/jp/song/6776935463",
+      "note": "「7Days A Week!! (高山紗代子 Ver.)」は「7Days A Week!!」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_グッドサイン高山紗代子ver",
+      "fields": {
+        "parent_song_id": "ml_グッドサイン"
+      },
+      "source": "https://music.apple.com/jp/song/6776935461",
+      "note": "「グッドサイン (高山紗代子 Ver.)」は「グッドサイン」の別バージョン (曲名の派生規則)。一覧では親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "765as_蒼い鳥mster_version_tv_arrange",
+      "fields": {
+        "parent_song_id": "765as_蒼い鳥"
+      },
+      "source": "https://music.apple.com/jp/song/1659369317",
+      "note": "「蒼い鳥(M@STER VERSION) ～TV ARRANGE～」は「蒼い鳥」と歌詞が完全に同じ。別バージョンとして親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "765as_fly_high",
+      "fields": {
+        "parent_song_id": "765as_flyhigh"
+      },
+      "source": "https://music.apple.com/jp/song/1677719870",
+      "note": "「Fly High!」は「Fly High」と歌詞が完全に同じ。別バージョンとして親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "sc_bloomy",
+      "fields": {
+        "parent_song_id": "other_bloomy"
+      },
+      "source": "https://music.apple.com/jp/song/1734551176",
+      "note": "「Bloomy!」は「Bloomy」と歌詞が完全に同じ。別バージョンとして親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "sidem_pleasureforever",
+      "fields": {
+        "parent_song_id": "sidem_pleasure_forever"
+      },
+      "source": "https://music.apple.com/jp/song/1731760783",
+      "note": "「Pleasure Forever...」は「Pleasure Forever」と歌詞が完全に同じ。別バージョンとして親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "765as_ありがとyesterdays_petit_specialver",
+      "fields": {
+        "parent_song_id": "765as_ありがとyesterdays"
+      },
+      "source": "https://music.apple.com/jp/song/1844778871",
+      "note": "「あ・り・が・と・YESTERDAYS Petit Special.ver」は「あ・り・が・と・YESTERDAYS」と歌詞が完全に同じ。別バージョンとして親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "765as_today_with_me_petit_specialver",
+      "fields": {
+        "parent_song_id": "765as_today_with_me"
+      },
+      "source": "https://music.apple.com/jp/song/1844765308",
+      "note": "「TODAY with ME Petit Special.ver」は「TODAY with ME」と歌詞が完全に同じ。別バージョンとして親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "765as_my_best_friendremster-b",
+      "fields": {
+        "parent_song_id": "765as_my_best_friend"
+      },
+      "source": "https://music.apple.com/jp/song/1659368282",
+      "note": "「My Best Friend(REM@STER-B」は「My Best Friend」と歌詞が完全に同じ。別バージョンとして親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_ターンオンタイム-mr_remix-",
+      "fields": {
+        "parent_song_id": "765as_ターンオンタイム"
+      },
+      "source": "https://music.apple.com/jp/song/1718676504",
+      "note": "「ターンオンタイム！-MR remix-」は「ターンオンタイム！」と歌詞が完全に同じ。別バージョンとして親にまとめる。"
+    },
+    {
+      "table": "songs",
+      "id": "sidem_その場所へ行くためにkeeponfightingrule〜牙ヲ穿テヨ〜battlemix",
+      "fields": {
+        "parent_song_id": "sidem_その場所へ行くために-keep_on_fighting-"
+      },
+      "source": "https://music.apple.com/jp/song/1731792963",
+      "note": "「その場所へ行くために-KEEP ON FIGHTING- × RULE 〜牙ヲ穿テヨ〜 BATTLE MIX」は「その場所へ行くために-KEEP ON FIGHTING-」と歌詞が完全に同じ。別バージョンとして親にまとめる。"
+    }
+  ]
+}

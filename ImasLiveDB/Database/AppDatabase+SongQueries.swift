@@ -254,6 +254,28 @@ extension AppDatabase {
                                 arguments: StatementArguments(ids))
     }
 
+    /// 一覧に出す資格のある曲だけを id で引く。
+    ///
+    /// 一覧が既定で隠しているもの (`SongSearchFilter` と同じ規則) をここでも落とす:
+    /// - 派生曲 (`parent_song_id` あり)。ソロ Ver. や Remix は親に代表させる。
+    /// - その他ブランド (`brand_id = 'other'`、歌枠カバー等)。
+    ///
+    /// 歌詞検索はサーバ (D1) 側でヒットを出すが、D1 はマスタを持っていないので
+    /// ブランドも派生関係も判定できない。絞り込みはここでやる。
+    /// 判断をビューに書くと一覧の規則と二重管理になるため、SQL 側に置く。
+    func fetchListableSongsAsync(ids: [String]) async throws -> [Song] {
+        guard !ids.isEmpty else { return [] }
+        return try await dbQueue.read { db in
+            let placeholders = ids.map { _ in "?" }.joined(separator: ",")
+            return try Song.fetchAll(db, sql: """
+                SELECT * FROM songs
+                 WHERE id IN (\(placeholders))
+                   AND parent_song_id IS NULL
+                   AND brand_id IS NOT 'other'
+                """, arguments: StatementArguments(ids))
+        }
+    }
+
     /// 指定ブランドの非カバー楽曲IDを id 昇順で返す (今日の1曲の決定論的ピック用・軽量)。
     func fetchSongIds(brandId: String, includeCovers: Bool = false, excludeRemixes: Bool = false) throws -> [String] {
         try dbQueue.read { db in try Self.fetchSongIdsQuery(db, brandId: brandId, includeCovers: includeCovers, excludeRemixes: excludeRemixes) }
