@@ -163,7 +163,9 @@ struct UnifiedSearchView: View {
                 Section {
                     ForEach(results.songs) { song in
                         NavigationLink(value: DetailDestination.song(song)) {
-                            SongTitleRow(song: song)
+                            // NavigationLink が自前で > を出すので、行側の > は消す
+                            // (アイドル行と同じ扱い)。
+                            SongTitleRow(song: song, showsChevron: false)
                         }
                         .listRowBackground(DS.surface)
                         .listRowSeparatorTint(DS.sep)
@@ -177,7 +179,7 @@ struct UnifiedSearchView: View {
                     ForEach(lyricsHits) { hit in
                         if let song = lyricsSongs[hit.songId] {
                             NavigationLink(value: DetailDestination.songLyrics(song)) {
-                                LyricsSearchRow(song: song, hit: hit, seed: nil)
+                                LyricsSearchRow(song: song, hit: hit)
                             }
                             .listRowBackground(DS.surface)
                             .listRowSeparatorTint(DS.sep)
@@ -191,7 +193,8 @@ struct UnifiedSearchView: View {
                 Section {
                     ForEach(results.events) { event in
                         NavigationLink(value: DetailDestination.event(event)) {
-                            EventNameRow(event: event, subtitle: matchedVenues[event.id])
+                            EventNameRow(event: event, subtitle: matchedVenues[event.id],
+                                         showsChevron: false)
                         }
                         .listRowBackground(DS.surface)
                         .listRowSeparatorTint(DS.sep)
