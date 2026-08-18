@@ -49,6 +49,26 @@ SUFFIX = re.compile(
 )
 
 
+# 機械判定では拾えず、1件ずつ調べて確定させた紐付け。
+#
+# いずれも歌詞本文が親と完全一致し、歌ネットの同じページを指していることを確認済み。
+# 曲名規則が外したのは表記のゆれが原因で、内訳はコメントのとおり。
+MANUAL_LINKS = {
+    # 矢印が ⬆ と ↑ で違う
+    "ml_チョー元気showアイドルchng_giga_remix": "ml_チョー元気showアイドルchng",
+    # 括弧が全角と半角で違う
+    "ml_プライヴェイトロードショウplayback_weekdayy0c1e_remix":
+        "ml_プライヴェイトロードショウ_playback_weekday",
+    # 三点リーダが … と ・・・ で違う
+    "765as_隣に_-jazz_rearrange_mix-": "765as_隣に",
+    # 親の曲名だけ末尾に 。が付く
+    "ml_微笑んだから気づいたんだkan_takahiko_remix": "ml_微笑んだから気づいたんだ",
+    # 親は「ポジティブ！」。REM@STER-A は ！! と重なり、B は ！ が抜けている
+    "765as_ポジティブremster-a": "765as_ポジティブ",
+    "765as_ポジティブremster-b": "765as_ポジティブ",
+}
+
+
 def normalize(title: str) -> str:
     """比較用。空白と大小文字の揺れだけ吸収する (それ以上は同一視しない)。"""
     return re.sub(r"\s+", "", title).lower()
@@ -146,10 +166,26 @@ def main() -> None:
             "note": f"「{title}」は「{base}」の別バージョン (曲名の派生規則)。一覧では親にまとめる。",
         })
 
+    # --- (0) 手で確定させた分 ------------------------------------------
+    titles_by_id = {r[0]: r[1] for r in rows}
+    existing_parent = {r[0]: r[4] for r in rows}
+    for child, parent in MANUAL_LINKS.items():
+        if child not in titles_by_id or parent not in titles_by_id:
+            raise SystemExit(f"MANUAL_LINKS の id が songs に無い: {child} / {parent}")
+        if existing_parent.get(child):
+            continue
+        proposals.append({
+            "table": "songs",
+            "id": child,
+            "fields": {"parent_song_id": parent},
+            "source": source_url(child, parent),
+            "note": f"「{titles_by_id[child]}」は「{titles_by_id[parent]}」の別バージョン。"
+                    "曲名の表記ゆれで機械判定から漏れたため、歌詞一致を確認して手で紐付けた。",
+        })
+
     # --- (2) 歌詞一致 --------------------------------------------------
     linked = {p["id"] for p in proposals}
     lyric_hits, ambiguous = lyrics_based_pairs(rows, linked)
-    titles_by_id = {r[0]: r[1] for r in rows}
     for child, parent in lyric_hits:
         proposals.append({
             "table": "songs",

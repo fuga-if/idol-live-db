@@ -36,6 +36,8 @@ struct UnifiedSearchView: View {
     @State private var lyricsNeedsLogin = false
     /// 検索そのものが失敗した (通信/サーバエラー)。これも空振りと区別する。
     @State private var searchFailed = false
+    /// 歌詞スコープで入力はあるがまだ確定 (Enter) していない。空振りと区別して案内を出す。
+    @State private var lyricsAwaitingSubmit = false
     /// event_id → 検索語に一致した会場名。「武道館」で検索した時に、ライブ名だけ並んで
     /// なぜヒットしたか分からない状態を避けるため、一致理由として行に出す。
     @State private var matchedVenues: [String: String] = [:]
@@ -150,6 +152,15 @@ struct UnifiedSearchView: View {
                 message: "通信環境を確認して、もう一度お試しください。",
                 actionTitle: "再試行",
                 action: { scheduleSearch(searchText, debounce: false) }
+            )
+        } else if lyricsAwaitingSubmit {
+            // 打鍵ごとに投げない仕様なので、待っているのだと分かるようにする。
+            ImasEmptyState(
+                systemImage: "return",
+                title: "歌詞を検索",
+                message: "「\(searchText)」を含む歌詞を探します。",
+                actionTitle: "検索する",
+                action: { commitSearch() }
             )
         } else if lyricsNeedsLogin {
             ImasEmptyState(
@@ -360,6 +371,7 @@ struct UnifiedSearchView: View {
         lyricsSongs = [:]
         lyricsNeedsLogin = false
         searchFailed = false
+        lyricsAwaitingSubmit = false
         isSearching = false
         searchTask?.cancel()
     }
@@ -373,13 +385,30 @@ struct UnifiedSearchView: View {
             return
         }
 
+        let currentScope = scope
+
+        // サーバを叩くスコープ (歌詞) は入力中に検索しない。確定 (Enter) で初めて投げる。
+        //
+        // debounce を挟んでも、打ち直すたびに Worker と D1 を叩くことになる。
+        // 歌詞検索は1回で D1 の全走査に近い読み取りが走る (索引で候補は絞れるが、
+        // 候補の検証で本文を読む) ので、無料枠を打鍵回数で消費する形にしたくない。
+        // ローカル DB で完結する他スコープは従来どおり打ちながら絞る。
+        if currentScope.isServerBacked && debounce {
+            lyricsHits = []
+            lyricsSongs = [:]
+            lyricsNeedsLogin = false
+            searchFailed = false
+            isSearching = false
+            lyricsAwaitingSubmit = true
+            return
+        }
+        lyricsAwaitingSubmit = false
+
         isSearching = true
         searchFailed = false
-        let currentScope = scope
         searchTask = Task {
             if debounce {
-                // 歌詞はサーバを叩くので長めに待つ。1文字ごとに Worker を呼ばない。
-                try? await Task.sleep(for: .milliseconds(currentScope.isServerBacked ? 450 : 200))
+                try? await Task.sleep(for: .milliseconds(200))
                 guard !Task.isCancelled else { return }
             }
             do {

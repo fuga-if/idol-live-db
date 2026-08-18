@@ -699,6 +699,60 @@
     },
     {
       "table": "songs",
+      "id": "ml_チョー元気showアイドルchng_giga_remix",
+      "fields": {
+        "parent_song_id": "ml_チョー元気showアイドルchng"
+      },
+      "source": "https://music.apple.com/jp/song/1718726186",
+      "note": "「チョー⬆元気Show☆アイドルch@ng! (Giga Remix)」は「チョー↑元気Show☆アイドルch@ng!」の別バージョン。曲名の表記ゆれで機械判定から漏れたため、歌詞一致を確認して手で紐付けた。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_プライヴェイトロードショウplayback_weekdayy0c1e_remix",
+      "fields": {
+        "parent_song_id": "ml_プライヴェイトロードショウ_playback_weekday"
+      },
+      "source": "https://music.apple.com/jp/song/1718726146",
+      "note": "「プライヴェイト・ロードショウ(playback, Weekday)（y0c1e Remix）」は「プライヴェイト・ロードショウ (playback, Weekday)」の別バージョン。曲名の表記ゆれで機械判定から漏れたため、歌詞一致を確認して手で紐付けた。"
+    },
+    {
+      "table": "songs",
+      "id": "765as_隣に_-jazz_rearrange_mix-",
+      "fields": {
+        "parent_song_id": "765as_隣に"
+      },
+      "source": "https://music.apple.com/jp/song/1659371788",
+      "note": "「隣に・・・ -JAZZ Rearrange Mix-」は「隣に…」の別バージョン。曲名の表記ゆれで機械判定から漏れたため、歌詞一致を確認して手で紐付けた。"
+    },
+    {
+      "table": "songs",
+      "id": "ml_微笑んだから気づいたんだkan_takahiko_remix",
+      "fields": {
+        "parent_song_id": "ml_微笑んだから気づいたんだ"
+      },
+      "source": "https://music.apple.com/jp/song/1718494016",
+      "note": "「微笑んだから、気づいたんだ（KAN TAKAHIKO Remix）」は「微笑んだから、気づいたんだ。」の別バージョン。曲名の表記ゆれで機械判定から漏れたため、歌詞一致を確認して手で紐付けた。"
+    },
+    {
+      "table": "songs",
+      "id": "765as_ポジティブremster-a",
+      "fields": {
+        "parent_song_id": "765as_ポジティブ"
+      },
+      "source": "https://music.apple.com/jp/song/1677714167",
+      "note": "「ポジティブ！!(REM@STER-A)」は「ポジティブ！」の別バージョン。曲名の表記ゆれで機械判定から漏れたため、歌詞一致を確認して手で紐付けた。"
+    },
+    {
+      "table": "songs",
+      "id": "765as_ポジティブremster-b",
+      "fields": {
+        "parent_song_id": "765as_ポジティブ"
+      },
+      "source": "https://music.apple.com/jp/song/1677714167",
+      "note": "「ポジティブ(REM@STER-B)」は「ポジティブ！」の別バージョン。曲名の表記ゆれで機械判定から漏れたため、歌詞一致を確認して手で紐付けた。"
+    },
+    {
+      "table": "songs",
       "id": "765as_蒼い鳥mster_version_tv_arrange",
       "fields": {
         "parent_song_id": "765as_蒼い鳥"
