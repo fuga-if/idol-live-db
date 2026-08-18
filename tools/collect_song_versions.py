@@ -134,6 +134,60 @@ def main() -> None:
                 "source": r.get("trackViewUrl") or "https://music.apple.com/jp/",
                 "note": f"「{base_title}」のソロ Ver.。Apple Music の配信情報より。",
             })
+        # ---- 2周目: 取りこぼしを原唱者リストから拾い直す ----
+        #
+        # 曲名1語の検索は関連度順で、limit 200 でも全部返るとは限らない。実際
+        # 「Crossing!」は 52人中 50人ぶんしか返らず、中谷育・野々原茜が欠けていた
+        # (どちらも配信は存在した)。親曲の原唱者を正として、Ver. が見つからなかった
+        # 人だけ名指しで引き直す。
+        singers = db.execute(
+            "SELECT i.name FROM song_artists sa JOIN idols i ON i.id = sa.idol_id"
+            " WHERE sa.song_id = ? AND sa.role = 'original'", (parent_id,)
+        ).fetchall()
+        covered = {squash(m.group("who"))
+                   for r in results
+                   if (m := VERSION_RE.match((r.get("trackName") or "").strip()))
+                   and squash(m.group("base")) == squash(base_title)}
+        for (name,) in singers:
+            if squash(name) in covered:
+                continue
+            try:
+                extra = itunes_search(f"{base_title} {name}")
+            except Exception:
+                continue
+            time.sleep(0.5)
+            for r in extra:
+                track = (r.get("trackName") or "").strip()
+                m = VERSION_RE.match(track)
+                if not m or squash(m.group("base")) != squash(base_title):
+                    continue
+                if squash(m.group("who")) != squash(name):
+                    continue
+                if str(r.get("trackId")) in known_music_ids:
+                    continue
+                if (brand, squash(track)) in known_titles:
+                    continue
+                candidates = [i for i, b in idol_by_name.get(squash(name), [])]
+                if not candidates:
+                    continue
+                found += 1
+                proposals.append({
+                    "id": f"{parent_id}{squash(name)}ver",
+                    "title": track,
+                    "brand_id": brand,
+                    "song_type": "solo",
+                    "release_date": (r.get("releaseDate") or "")[:10],
+                    "apple_music_id": str(r.get("trackId") or ""),
+                    "artwork_url": artwork_url(r),
+                    "preview_url": r.get("previewUrl") or "",
+                    "parent_song_id": parent_id,
+                    "original_singers": [candidates[0]],
+                    "source": r.get("trackViewUrl") or "https://music.apple.com/jp/",
+                    "note": f"「{base_title}」のソロ Ver.。曲名検索から漏れたため"
+                            f"原唱者名で引き直した。Apple Music の配信情報より。",
+                })
+                break
+
         print(f"  {base_title}: iTunes {found} 件 / 新規 "
               f"{sum(1 for p in proposals if p['parent_song_id'] == parent_id)} 件", file=sys.stderr)
 
