@@ -109,7 +109,11 @@ struct SongListView: View {
                 // (UnifiedSearchView / 探して詳細へ飛ぶ) なので役割が違い、代わりにならない。
                 // ユニット一覧・タグ一覧は元から一覧側に絞り込み欄を出していて、楽曲だけが
                 // シートに埋まっていた。
-                .searchable(text: $searchText, prompt: listMode.nameFilterPrompt)
+                // displayMode: .always。既定 (.automatic) だと一番上までスクロールしないと
+                // 現れず、絞り込みたいときに一覧を戻す手間が要って結局見つけられない。
+                .searchable(text: $searchText,
+                            placement: .navigationBarDrawer(displayMode: .always),
+                            prompt: listMode.nameFilterPrompt)
                 .navigationTitle("楽曲")
                 // selectionMode (設定から push) では inline。.large だと push 先で大タイトル
                 // 領域 (≈100px) が確保され、フィルタチップの下に空白として見える + 2階層
