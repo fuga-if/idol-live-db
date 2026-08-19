@@ -66,6 +66,8 @@ const SNIPPET_MAX = 48;
 /// 表示窓まで詰める。広めなのは「行の切れ目がこの中に入っている」確率を上げるため。
 const SQL_WINDOW = 120;
 const SQL_WINDOW_BEFORE = 40;
+/// 1曲あたりに出すスニペットの本数 (= 語の数)。多すぎても読めないのでここで頭打ち。
+const SNIPPET_TERMS = 3;
 
 /** LIKE のワイルドカードを無効化する (検索語の % や _ をそのままの文字として扱う)。 */
 function likePattern(query: string): string {
@@ -546,8 +548,8 @@ export async function handleLyrics(ctx: RouteContext): Promise<Response | null> 
     // 「夢 翼|つばさ」のような式を木に落とす。空白=AND / |=OR / ()=grouping。
     const expr = parseQuery(query);
     if (!expr) return error("q has no searchable term", 400);
-    // スニペットは最初に書かれた語の位置に出す。打った順と対応する方が予測しやすい。
-    const primary = collectTerms(expr)[0];
+    // 位置は「その曲で実際に一致した語」で決める。OR だと曲ごとに違う語で当たる。
+    const terms = collectTerms(expr);
 
     const ip = request.headers.get("CF-Connecting-IP") || "unknown";
     const ipRl = await dryCheckIpRateLimit(env.DB, ip);
@@ -574,59 +576,74 @@ export async function handleLyrics(ctx: RouteContext): Promise<Response | null> 
     //
     // ⚠️ 番号なしの ? を混ぜないこと。SQLite の ? は「それまでの最大番号 + 1」を取るので、
     //    番号付きと混ぜると黙って衝突する (前に候補経路だけ 0 件になる不具合を出した)。
-    type WindowRow = { song_id: string; window: string; offset: number;
-                       cut_head: number; cut_tail: number };
-    const found: WindowRow[] = [];
+    const found: Record<string, unknown>[] = [];
+
+    // 1曲につき語ごとに1本ずつ窓を出す。AND だと全語が当たるので、なぜ引っかかったのかが
+    // 1本では分からない (「夢 翼」で夢の周辺しか見えない)。OR は曲ごとに1語しか
+    // 当たらないので自然に1本になる。
+    // 上限は打った語数で決まるが、多すぎても読めないので SNIPPET_TERMS 本で頭打ち。
+    const shown = terms.slice(0, SNIPPET_TERMS);
 
     const runQuery = async (extraWhere: string, extraParams: string[]) => {
       const exprParams: string[] = [];
       const exprSql = nodeToSql(expr, exprParams);
-      // ?1=primary(位置用) ?2=before ?3=window、以降が式の LIKE と追加条件。
-      let n = 3;
+      // ?1=before ?2=window、?3 以降が語 (位置用) → 式の LIKE → 追加条件。
+      let n = 2;
+      const posParams = shown.map(() => `?${++n}`);
+      const cols = posParams.flatMap((p, i) => {
+        const at = `instr(body_norm, ${p})`;
+        return [
+          `${at} AS at${i}`,
+          `length(${p}) AS len${i}`,
+          `substr(body, max(1, ${at} - ?1), ?2) AS win${i}`,
+          `${at} - max(1, ${at} - ?1) AS off${i}`,
+          `max(1, ${at} - ?1) > 1 AS head${i}`,
+          `length(body) > max(1, ${at} - ?1) + ?2 - 1 AS tail${i}`,
+        ];
+      });
+
       const numbered = exprSql.replace(/\?/g, () => `?${++n}`);
       const where = extraWhere.replace(/\?/g, () => `?${++n}`);
       const rows = await env.DB.prepare(
-        `WITH matched AS (
-           SELECT song_id, body, instr(body_norm, ?1) AS at
-             FROM song_lyrics
-            WHERE ${numbered} ${statusClause} ${where}
-         )
-         SELECT song_id,
-                substr(body, max(1, at - ?2), ?3) AS window,
-                at - max(1, at - ?2) AS offset,
-                max(1, at - ?2) > 1 AS cut_head,
-                length(body) > max(1, at - ?2) + ?3 - 1 AS cut_tail
-           FROM matched
-          WHERE at > 0
+        `SELECT song_id, ${cols.join(", ")}
+           FROM song_lyrics
+          WHERE ${numbered} ${statusClause} ${where}
           ORDER BY song_id`
       )
-        .bind(primary, SQL_WINDOW_BEFORE, SQL_WINDOW, ...exprParams, ...extraParams)
-        .all<WindowRow>();
+        .bind(SQL_WINDOW_BEFORE, SQL_WINDOW, ...shown, ...exprParams, ...extraParams)
+        .all<Record<string, unknown>>();
       found.push(...(rows.results ?? []));
     };
 
     if (candidates) {
       // D1 のバインド変数上限があるので IN 句を分割して引く。
-      const fixed = 3 + collectTerms(expr).length;
+      const fixed = 2 + shown.length + terms.length;
       const perChunk = Math.max(10, MAX_BOUND_PARAMS - fixed);
       for (let i = 0; i < candidates.length; i += perChunk) {
         const chunk = candidates.slice(i, i + perChunk);
         await runQuery(`AND song_id IN (${chunk.map(() => "?").join(",")})`, chunk);
       }
-      found.sort((a, b) => (a.song_id < b.song_id ? -1 : a.song_id > b.song_id ? 1 : 0));
+      found.sort((a, b) => {
+        const x = a.song_id as string, y = b.song_id as string;
+        return x < y ? -1 : x > y ? 1 : 0;
+      });
     } else {
       await runQuery("", []);
     }
 
-    const primaryLength = Array.from(primary).length;
     const hits = found.flatMap((row) => {
-      const snippet = buildSnippet(row.window ?? "", row.offset, primaryLength, {
-        head: row.cut_head === 1,
-        tail: row.cut_tail === 1,
+      const snippets = shown.flatMap((_, i) => {
+        if ((row[`at${i}`] as number) <= 0) return [];   // この語は当たっていない
+        const snippet = buildSnippet(
+          (row[`win${i}`] as string) ?? "",
+          row[`off${i}`] as number,
+          row[`len${i}`] as number,
+          { head: row[`head${i}`] === 1, tail: row[`tail${i}`] === 1 }
+        );
+        return snippet ? [snippet] : [];
       });
-      // 窓を作れないのは一致位置が窓から外れた等の端のケース。song_id だけ返しても
-      // 画面に出せるものが無いので落とす。
-      return snippet ? [{ songId: row.song_id, ...snippet }] : [];
+      // 1本も窓が作れない曲は画面に出せるものが無いので落とす。
+      return snippets.length > 0 ? [{ songId: row.song_id as string, snippets }] : [];
     });
 
     await commitIpRateLimit(env.DB, ip, ipRl.bucket);

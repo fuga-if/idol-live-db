@@ -21,17 +21,28 @@ protocol LyricsSearchReading: Sendable {
 
 /// 歌詞検索の 1 件。
 ///
+/// スニペットは**語ごとに1本**。AND だと全語が当たるので、1本では
+/// なぜ引っかかったのか分からない (「夢 翼」で夢の周辺しか見えない)。
+/// OR は曲ごとに1語しか当たらないので自然に1本になる。
+struct LyricsSearchHit: Decodable, Identifiable, Sendable, Equatable {
+    let songId: String
+    let snippets: [LyricsSnippet]
+
+    var id: String { songId }
+}
+
+/// 一致箇所まわりの窓1本。
+///
 /// `matchStart` / `matchLength` は **`snippet` 内の Unicode スカラー単位**のオフセット。
 /// コールのアンカー (`LyricCall.start` / `.end`) と同じ規約に揃えてある。
 /// UTF-16 コードユニットで数えると絵文字や結合文字を含む行でズレる。
-struct LyricsSearchHit: Decodable, Identifiable, Sendable, Equatable {
-    let songId: String
+struct LyricsSnippet: Decodable, Sendable, Equatable, Identifiable {
     /// 一致箇所の前後だけを切り出した窓。前後が続く場合は "…" が付く。
     let snippet: String
     let matchStart: Int
     let matchLength: Int
 
-    var id: String { songId }
+    var id: String { "\(matchStart)-\(matchLength)-\(snippet)" }
 
     /// `snippet` 内の一致範囲。サーバが壊れた値を返しても落ちないよう丸める。
     var matchRange: Range<Int> {
