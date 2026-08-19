@@ -2,7 +2,6 @@ import SwiftUI
 import StoreKit
 
 struct AboutView: View {
-    @Environment(\.requestReview) private var requestReview
 
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
@@ -89,11 +88,17 @@ struct AboutView: View {
                 NavigationLink("サポート") {
                     SupportView()
                 }
-                Button {
-                    AppAnalytics.tap("about.rate_app")
-                    requestReview()
-                } label: {
-                    Label("アプリを評価する", systemImage: "star.fill")
+                // ⚠️ ここで requestReview() を呼ばないこと。OS の都合 (年3回の上限等) で
+                //    無視されることがあり、押しても何も起きないボタンになる。
+                //    自分から評価しに来た人には App Store の投稿画面を直接開く。
+                //    requestReview() は「こちらから声を掛ける」側 (ContentView) の担当。
+                if let url = ReviewPrompt.writeReviewURL {
+                    Link(destination: url) {
+                        Label("アプリを評価する", systemImage: "star.fill")
+                    }
+                    .simultaneousGesture(TapGesture().onEnded {
+                        AppAnalytics.tap("about.rate_app")
+                    })
                 }
             }
 

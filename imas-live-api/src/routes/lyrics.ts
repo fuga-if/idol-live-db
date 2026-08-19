@@ -72,6 +72,126 @@ function likePattern(query: string): string {
   return "%" + query.replace(/[\\%_]/g, (c) => "\\" + c) + "%";
 }
 
+// ---- 表記ゆれの吸収 ----
+//
+// ⚠️ ここに入れてよいのは **1文字 → 1文字** の変換だけ。
+//    検索は body_norm 上で一致位置を求め、その位置で body から窓を切る。長さの変わる
+//    変換 (半角濁点カナ ﾂﾞ → ヅ 等) を足すと位置がズレてスニペットが壊れる。
+//    漢字は読みが要るのでここでは扱えない (翼 と つばさ)。それは検索側の OR で。
+
+/** ひらがな→カタカナ・英字小文字・全角英数→半角。長さは変わらない。 */
+export function normalizeForSearch(text: string): string {
+  let out = "";
+  for (const ch of text) {
+    const code = ch.codePointAt(0)!;
+    if (code >= 0x3041 && code <= 0x3096) {
+      out += String.fromCodePoint(code + 0x60);       // ひらがな → カタカナ
+    } else if (code >= 0xff01 && code <= 0xff5e) {
+      out += String.fromCodePoint(code - 0xfee0).toLowerCase(); // 全角英数記号 → 半角
+    } else {
+      out += ch.toLowerCase();
+    }
+  }
+  return out;
+}
+
+/** 検索式の木。葉が検索語で、節が AND / OR。 */
+export type QueryNode =
+  | { kind: "term"; text: string }
+  | { kind: "and"; children: QueryNode[] }
+  | { kind: "or"; children: QueryNode[] };
+
+/**
+ * 検索文字列を式の木に落とす。
+ *
+ *   空白 = AND … 「夢 翼」で両方を含む曲。単語1つだと「夢」で1,273曲あり
+ *                絞る手段が無いので、既定を AND にしている。
+ *   `|`  = OR  … 「翼|つばさ」。かなの正規化では届かない漢字の揺れ用。
+ *   `()` = grouping
+ *
+ * `|` は空白より強く結ぶ。空白を空けずに書くので見た目どおりで、
+ * 「夢 翼|つばさ」が 夢 AND (翼 OR つばさ) になる。
+ * 逆向き (翼 OR (夢 AND 星)) が要るときは括弧で書く。UI 側は木を組み立てて
+ * 括弧つきの文字列にして送るので、手打ちと同じ記法で表現できる。
+ *
+ * 文法:
+ *   expr := and
+ *   and  := or (WS or)*
+ *   or   := atom ('|' atom)*
+ *   atom := '(' expr ')' | TERM
+ */
+export function parseQuery(raw: string): QueryNode | null {
+  // 記号を1文字トークンに、それ以外の連続を語に切る。
+  const tokens = raw.match(/[()|｜]|[^()|｜\s　]+/g) ?? [];
+  let pos = 0;
+
+  const flatten = (kind: "and" | "or", parts: QueryNode[]): QueryNode | null => {
+    const kept = parts.filter((p): p is QueryNode => p !== null);
+    if (kept.length === 0) return null;
+    return kept.length === 1 ? kept[0] : { kind, children: kept };
+  };
+
+  function parseAtom(): QueryNode | null {
+    const token = tokens[pos];
+    if (token === undefined) return null;
+    if (token === "(") {
+      pos++;
+      const inner = parseAnd();
+      if (tokens[pos] === ")") pos++;   // 閉じ忘れは黙って許す (打ちかけを弾かない)
+      return inner;
+    }
+    if (token === ")" || token === "|" || token === "｜") return null;
+    pos++;
+    const text = normalizeForSearch(token);
+    return text.length > 0 ? { kind: "term", text } : null;
+  }
+
+  function parseOr(): QueryNode | null {
+    const parts: QueryNode[] = [];
+    const first = parseAtom();
+    if (first) parts.push(first);
+    while (tokens[pos] === "|" || tokens[pos] === "｜") {
+      pos++;
+      const next = parseAtom();
+      if (next) parts.push(next);
+    }
+    return flatten("or", parts);
+  }
+
+  function parseAnd(): QueryNode | null {
+    const parts: QueryNode[] = [];
+    while (pos < tokens.length && tokens[pos] !== ")") {
+      const before = pos;
+      const node = parseOr();
+      if (node) parts.push(node);
+      if (pos === before) pos++;        // 進まなかった = 余分な記号。捨てて進む
+    }
+    return flatten("and", parts);
+  }
+
+  return parseAnd();
+}
+
+/** 式に出てくる検索語を、書かれた順で重複なく集める。 */
+export function collectTerms(node: QueryNode, out: string[] = []): string[] {
+  if (node.kind === "term") {
+    if (!out.includes(node.text)) out.push(node.text);
+  } else {
+    for (const child of node.children) collectTerms(child, out);
+  }
+  return out;
+}
+
+/** 式を SQL の条件に落とす。`?` の順に検索語 (LIKE パターン) を bind する。 */
+export function nodeToSql(node: QueryNode, params: string[]): string {
+  if (node.kind === "term") {
+    params.push(likePattern(node.text));
+    return `body_norm LIKE ? ESCAPE '\\'`;
+  }
+  const op = node.kind === "and" ? " AND " : " OR ";
+  return "(" + node.children.map((c) => nodeToSql(c, params)).join(op) + ")";
+}
+
 // ---- 転置インデックス (lyrics_gram_index / migrations 0029) ----
 //
 // body LIKE '%q%' は先頭ワイルドカードで索引が効かず、1検索で全走査 (2,291行) になる。
@@ -139,6 +259,39 @@ async function candidateSongIds(env: Env, query: string): Promise<string[] | nul
     if (candidates.size === 0) break;
   }
   return candidates.size > CANDIDATE_LIMIT ? null : [...candidates];
+}
+
+/**
+ * 式全体の候補を索引から求める。null なら索引で絞れないので全走査に倒す。
+ *
+ * AND は積集合、OR は和集合。ただし OR の枝が1つでも「索引で絞れない (null)」なら、
+ * 和集合も絞れない — 絞れない枝が何を含むか分からない以上、他の枝だけで答えを
+ * 出すと取りこぼす。AND は逆で、絞れる枝が1つでもあればそれで足りる
+ * (積集合はどの枝より大きくならない)。
+ */
+async function candidatesForNode(env: Env, node: QueryNode): Promise<string[] | null> {
+  if (node.kind === "term") return candidateSongIds(env, node.text);
+
+  const parts = await Promise.all(node.children.map((c) => candidatesForNode(env, c)));
+
+  if (node.kind === "or") {
+    if (parts.some((p) => p === null)) return null;
+    const union = new Set<string>();
+    for (const p of parts) for (const id of p!) union.add(id);
+    return union.size > CANDIDATE_LIMIT ? null : [...union];
+  }
+
+  const usable = parts.filter((p): p is string[] => p !== null);
+  if (usable.length === 0) return null;
+  usable.sort((a, b) => a.length - b.length);
+  let acc = new Set(usable[0]);
+  for (const list of usable.slice(1)) {
+    const next = new Set<string>();
+    for (const id of list) if (acc.has(id)) next.add(id);
+    acc = next;
+    if (acc.size === 0) break;
+  }
+  return [...acc];
 }
 
 /**
@@ -379,11 +532,16 @@ export async function handleLyrics(ctx: RouteContext): Promise<Response | null> 
     if (!user) return error("Unauthorized", 401);
 
     const query = (url.searchParams.get("q") ?? "").trim();
-    // 1文字だと事実上の全件走査になる (どの曲にも「あ」はある)。
     if (query.length < SEARCH_MIN_CHARS) {
       return error(`q must be at least ${SEARCH_MIN_CHARS} characters`, 400);
     }
     if (query.length > SEARCH_MAX_CHARS) return error("q too long", 400);
+
+    // 「夢 翼|つばさ」のような式を木に落とす。空白=AND / |=OR / ()=grouping。
+    const expr = parseQuery(query);
+    if (!expr) return error("q has no searchable term", 400);
+    // スニペットは最初に書かれた語の位置に出す。打った順と対応する方が予測しやすい。
+    const primary = collectTerms(expr)[0];
 
     const ip = request.headers.get("CF-Connecting-IP") || "unknown";
     const ipRl = await dryCheckIpRateLimit(env.DB, ip);
@@ -393,9 +551,10 @@ export async function handleLyrics(ctx: RouteContext): Promise<Response | null> 
     // 検索だけ緩めると、本文は読めないのにスニペットからは読める状態になる。
     const isAdmin = await checkIsAdmin(env, user.uid);
     const statusClause = isAdmin ? "" : "AND status = 'published'";
+
     // まず索引で候補を絞る。絞れない (索引未構築 / 候補が多すぎる) 場合は null が返り、
     // 従来どおり全走査する。候補が空配列なら「該当なし」が確定しているので走査すらしない。
-    const candidates = await candidateSongIds(env, query);
+    const candidates = await candidatesForNode(env, expr);
     if (candidates?.length === 0) {
       await commitIpRateLimit(env.DB, ip, ipRl.bucket);
       return json({ query, hits: [] }, 200, NO_STORE);
@@ -403,55 +562,59 @@ export async function handleLyrics(ctx: RouteContext): Promise<Response | null> 
 
     // ⚠️ body そのものは返させない。窓 (SQL_WINDOW 文字) だけを切って受け取る。
     //    全文を JS に渡すと 1 文字検索で全曲ヒットしたとき CPU 上限を超える。
-    //    instr / substr は TEXT に対して**文字単位**で動くので、iOS と合意している
-    //    Unicode スカラー単位のオフセットとそのまま噛み合う。
-    //    lower() は ASCII しか畳まないため文字数が変わらず、位置がズレない。
-    const windowSelect = (extraWhere: string) =>
-      `WITH matched AS (
-         SELECT song_id, body, instr(lower(body), lower(?1)) AS at
-           FROM song_lyrics
-          WHERE body LIKE ?2 ESCAPE '\\' ${statusClause} ${extraWhere}
-       )
-       SELECT song_id,
-              substr(body, max(1, at - ?3), ?4) AS window,
-              at - max(1, at - ?3) AS offset,
-              max(1, at - ?3) > 1 AS cut_head,
-              length(body) > max(1, at - ?3) + ?4 - 1 AS cut_tail
-         FROM matched
-        WHERE at > 0
-        ORDER BY song_id`;
-
+    //
+    // 一致位置は body_norm 上で求め、窓は **body** から切る。正規化は
+    // 1文字→1文字の変換だけなので位置がそのまま使える (normalizeForSearch 参照)。
+    //
+    // ⚠️ 番号なしの ? を混ぜないこと。SQLite の ? は「それまでの最大番号 + 1」を取るので、
+    //    番号付きと混ぜると黙って衝突する (前に候補経路だけ 0 件になる不具合を出した)。
     type WindowRow = { song_id: string; window: string; offset: number;
                        cut_head: number; cut_tail: number };
     const found: WindowRow[] = [];
 
+    const runQuery = async (extraWhere: string, extraParams: string[]) => {
+      const exprParams: string[] = [];
+      const exprSql = nodeToSql(expr, exprParams);
+      // ?1=primary(位置用) ?2=before ?3=window、以降が式の LIKE と追加条件。
+      let n = 3;
+      const numbered = exprSql.replace(/\?/g, () => `?${++n}`);
+      const where = extraWhere.replace(/\?/g, () => `?${++n}`);
+      const rows = await env.DB.prepare(
+        `WITH matched AS (
+           SELECT song_id, body, instr(body_norm, ?1) AS at
+             FROM song_lyrics
+            WHERE ${numbered} ${statusClause} ${where}
+         )
+         SELECT song_id,
+                substr(body, max(1, at - ?2), ?3) AS window,
+                at - max(1, at - ?2) AS offset,
+                max(1, at - ?2) > 1 AS cut_head,
+                length(body) > max(1, at - ?2) + ?3 - 1 AS cut_tail
+           FROM matched
+          WHERE at > 0
+          ORDER BY song_id`
+      )
+        .bind(primary, SQL_WINDOW_BEFORE, SQL_WINDOW, ...exprParams, ...extraParams)
+        .all<WindowRow>();
+      found.push(...(rows.results ?? []));
+    };
+
     if (candidates) {
-      // 候補ありの経路。D1 のバインド変数上限があるので IN 句を分割して引く。
-      // 4 個は固定 (query / like / before / window) なので残りを id に使う。
-      const perChunk = MAX_BOUND_PARAMS - 4;
+      // D1 のバインド変数上限があるので IN 句を分割して引く。
+      const fixed = 3 + collectTerms(expr).length;
+      const perChunk = Math.max(10, MAX_BOUND_PARAMS - fixed);
       for (let i = 0; i < candidates.length; i += perChunk) {
         const chunk = candidates.slice(i, i + perChunk);
-        // ⚠️ 番号なしの ? を混ぜないこと。SQLite の ? は「それまでの最大番号 + 1」を
-        //    取るので、?1〜?4 を使っているこの文では IN 句の最初の ? が ?3 になり、
-        //    SQL_WINDOW_BEFORE と衝突する (候補経路だけが黙って 0 件になる)。
-        const rows = await env.DB.prepare(
-          windowSelect(`AND song_id IN (${chunk.map((_, n) => `?${n + 5}`).join(",")})`)
-        )
-          .bind(query, likePattern(query), SQL_WINDOW_BEFORE, SQL_WINDOW, ...chunk)
-          .all<WindowRow>();
-        found.push(...(rows.results ?? []));
+        await runQuery(`AND song_id IN (${chunk.map(() => "?").join(",")})`, chunk);
       }
       found.sort((a, b) => (a.song_id < b.song_id ? -1 : a.song_id > b.song_id ? 1 : 0));
     } else {
-      const rows = await env.DB.prepare(windowSelect(""))
-        .bind(query, likePattern(query), SQL_WINDOW_BEFORE, SQL_WINDOW)
-        .all<WindowRow>();
-      found.push(...(rows.results ?? []));
+      await runQuery("", []);
     }
 
-    const queryLength = Array.from(query).length;
+    const primaryLength = Array.from(primary).length;
     const hits = found.flatMap((row) => {
-      const snippet = buildSnippet(row.window ?? "", row.offset, queryLength, {
+      const snippet = buildSnippet(row.window ?? "", row.offset, primaryLength, {
         head: row.cut_head === 1,
         tail: row.cut_tail === 1,
       });
@@ -601,9 +764,11 @@ export async function handleLyrics(ctx: RouteContext): Promise<Response | null> 
       .map((line) => line.text)
       .join("\n");
 
+    // body_norm は表記ゆれを吸収した検索用のコピー (migrations 0031)。body と必ず同時に書く。
     statements.push(
-      env.DB.prepare("UPDATE song_lyrics SET lines_json = ?, body = ? WHERE song_id = ?")
-        .bind(JSON.stringify(nextLines), searchBody, songId)
+      env.DB.prepare(
+        "UPDATE song_lyrics SET lines_json = ?, body = ?, body_norm = ? WHERE song_id = ?"
+      ).bind(JSON.stringify(nextLines), searchBody, normalizeForSearch(searchBody), songId)
     );
 
     await env.DB.batch(statements);

@@ -357,7 +357,7 @@ extension AppDatabase {
     func fetchPerformers(setlistItemId: String) throws -> [PerformerRow] {
         try dbQueue.read { db in
             let sql = """
-                SELECT i.id, COALESCE(i.voice_actors, i.name) AS name,
+                SELECT i.id, COALESCE((SELECT v.name FROM idol_voice_actors v WHERE v.idol_id = i.id AND v.valid_to IS NULL ORDER BY IFNULL(v.valid_from,'') DESC LIMIT 1), i.name) AS name,
                        i.color AS idol_color, i.name AS idol_name, i.id AS idol_id
                 FROM setlist_performers sp
                 JOIN idols i ON i.id = sp.idol_id
@@ -376,7 +376,7 @@ extension AppDatabase {
         let sql = """
             SELECT sp.setlist_item_id,
                    i.id AS performer_id,
-                   COALESCE(i.voice_actors, i.name) AS cast_name,
+                   COALESCE((SELECT v.name FROM idol_voice_actors v WHERE v.idol_id = i.id AND v.valid_to IS NULL ORDER BY IFNULL(v.valid_from,'') DESC LIMIT 1), i.name) AS cast_name,
                    i.color AS idol_color, i.name AS idol_name, i.id AS idol_id
             FROM setlist_items si
             JOIN setlist_performers sp ON si.id = sp.setlist_item_id
@@ -387,9 +387,8 @@ extension AppDatabase {
         var result: [String: [PerformerRow]] = [:]
         for row in rows {
             let itemId: String = row["setlist_item_id"]
-            // voice_actors は "中村繪里子,過去CV" のカンマ区切り。 先頭 (現役) のみ表示。
-            let rawName: String = row["cast_name"]
-            let displayName = rawName.split(separator: ",").first.map(String.init) ?? rawName
+            // idol_voice_actors から現任1名を引いている (交代待ちで不在ならアイドル名)。
+            let displayName: String = row["cast_name"]
             let performer = PerformerRow(
                 id: row["performer_id"],
                 name: displayName,

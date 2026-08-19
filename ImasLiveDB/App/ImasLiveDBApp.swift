@@ -150,6 +150,12 @@ struct ImasLiveDBApp: App {
                 } message: {
                     Text(appDatabase.reseedFailureMessage ?? "")
                 }
+                // コールガイドの見た目確認用 (DEBUG のみ)。CALL_GUIDE_PREVIEW 未指定なら何も出ない。
+                #if DEBUG
+                .fullScreenCover(isPresented: .constant(CallGuidePreviewHarness.envMode != nil)) {
+                    CallGuidePreviewHarness(mode: CallGuidePreviewHarness.envMode ?? .view)
+                }
+                #endif
         }
     }
 }

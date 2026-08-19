@@ -80,7 +80,7 @@ struct FavoritesListView: View {
                                     IdolAvatarView(idol: idol, size: 36)
                                     VStack(alignment: .leading, spacing: 1) {
                                         Text(idol.name).font(.imasSubhead.weight(.semibold)).foregroundStyle(DS.ink)
-                                        if let cv = idol.currentVoiceActor, !cv.isEmpty {
+                                        if let cv = VoiceActorDirectory.shared.current(for: idol.id), !cv.isEmpty {
                                             Text("CV: \(cv)").font(.imasCaption).foregroundStyle(DS.ink3)
                                         }
                                     }

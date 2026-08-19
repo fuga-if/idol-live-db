@@ -276,8 +276,8 @@ struct UnitDetailView: View {
                         .font(.imasBody.weight(.semibold))
                         .foregroundStyle(DS.ink)
                         .lineLimit(1)
-                    if !member.voiceActorList.isEmpty {
-                        Text("CV \(member.voiceActorList.joined(separator: " / "))")
+                    if let cv = VoiceActorDirectory.shared.current(for: member.id) {
+                        Text("CV \(cv)")
                             .font(.imasFootnote)
                             .foregroundStyle(DS.ink3)
                             .lineLimit(1)

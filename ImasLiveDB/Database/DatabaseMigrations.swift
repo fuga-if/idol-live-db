@@ -852,6 +852,49 @@ enum DatabaseMigrations {
                           columns: ["venue_id"], ifNotExists: true)
         }
 
+        // v28: 声優を期間つきの履歴テーブルへ移す。
+        //
+        // 旧 idols.voice_actors は "現役,過去CV" のカンマ区切りで期間を持てず、交代すると
+        // 前任者が消えていた (九十九一希の初代 徳武竜也が実際に消えていた)。
+        // さらに「同時に複数」「改名」「表記ゆれ」「舞台版キャスト」が同居していた。
+        //
+        // ⚠️ 旧列はここでは**消さない**。消すと、まだ新しい bundle を受け取っていない
+        //    端末で backfill の材料が無くなる。列は空のまま放置され、次の reseed で
+        //    テーブルごと入れ替わる。
+        migrator.registerMigration("v28_idol_voice_actors") { db in
+            try db.create(table: "idol_voice_actors", ifNotExists: true) { t in
+                t.primaryKey("id", .text)
+                t.column("idol_id", .text).notNull().references("idols", onDelete: .cascade)
+                t.column("name", .text).notNull()
+                /// 担当開始日。初代はキャラの実装日 (idols.debut_date)。
+                t.column("valid_from", .text)
+                /// 担当終了日。NULL なら現任。
+                t.column("valid_to", .text)
+            }
+            try db.create(index: "idx_idol_voice_actors_idol", on: "idol_voice_actors",
+                          columns: ["idol_id"], ifNotExists: true)
+
+            // 既存端末を空にしないための繋ぎ。旧列の先頭 (= 現役) だけを現任として写す。
+            // 正確な履歴は bundle の reseed で上書きされる。
+            let idolCols = try db.columns(in: "idols").map(\.name)
+            guard idolCols.contains("voice_actors") else { return }
+            let rows = try Row.fetchAll(db, sql: """
+                SELECT id, voice_actors, debut_date FROM idols
+                 WHERE IFNULL(voice_actors,'') != ''
+                """)
+            for row in rows {
+                let idolId: String = row["id"]
+                let raw: String = row["voice_actors"]
+                guard let first = raw.split(separator: ",").first else { continue }
+                let name = first.trimmingCharacters(in: .whitespaces)
+                guard !name.isEmpty else { continue }
+                try db.execute(sql: """
+                    INSERT OR IGNORE INTO idol_voice_actors (id, idol_id, name, valid_from, valid_to)
+                    VALUES (?, ?, ?, ?, NULL)
+                    """, arguments: ["\(idolId)__\(name)", idolId, name, row["debut_date"] as String?])
+            }
+        }
+
         return migrator
     }
 }

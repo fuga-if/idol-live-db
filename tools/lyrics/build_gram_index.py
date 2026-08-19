@@ -11,8 +11,10 @@ Usage:
     # 手元の lyrics_local から作る (D1 を読まない。push 前の確認用)
     python3 tools/lyrics/build_gram_index.py --from-local --out /tmp/gram.sql
 
-入力は既定で **D1 の song_lyrics.body**。lyrics_local ではなく D1 を正とするのは、
-アプリからの編集などローカルに無い更新が入りうるため。
+入力は既定で **D1 の song_lyrics.body_norm** (表記ゆれを吸収した検索用のコピー)。
+検索側も正規化した語で引くので、索引も正規化後の本文から作らないと候補が合わない。
+lyrics_local ではなく D1 を正とするのは、アプリからの編集などローカルに無い更新が
+入りうるため。
 
 ⚠️ 全消し全入れで作り直す。差分更新にしないのは、歌詞1曲で 2-gram が 900 種類
    ほどあり、投入のたびに 900 行の read-modify-write が走って D1 無料枠の
@@ -56,7 +58,7 @@ def read_from_d1() -> list[tuple[str, str]]:
     print("[read] D1 から歌詞を取得中...", file=sys.stderr)
     proc = subprocess.run(
         ["npx", "wrangler", "d1", "execute", D1_NAME, "--remote", "--json",
-         "--command", "SELECT song_id, body FROM song_lyrics WHERE body != ''"],
+         "--command", "SELECT song_id, body_norm AS body FROM song_lyrics WHERE body_norm != ''"],
         cwd=API_DIR, capture_output=True, text=True,
     )
     if proc.returncode != 0:
