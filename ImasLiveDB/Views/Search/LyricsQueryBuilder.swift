@@ -75,6 +75,42 @@ final class LyricsQueryNode: Identifiable {
     /// 検索できる状態か (語が1つ以上ある)。
     var hasAnyTerm: Bool { !serialized().isEmpty }
 
+    // MARK: - 簡易検索との行き来
+
+    /// 簡易検索の入力 (空白区切り) を式にする。**空白は AND**。
+    ///
+    /// OR ではなく AND にしたのは、OR だと 2語打つと 1語より結果が増えるため。
+    /// 絞ろうとして増えるのは直感に反する (夢=1,273曲 / 夢+翼 は AND 98曲・OR 1,308曲)。
+    /// 表記ゆれは かなの正規化が ツバサ/つばさ を吸収するので、残る漢字絡み
+    /// (翼 と つばさ) だけが詳細検索の担当になる。
+    static func simpleQuery(_ raw: String) -> String {
+        let terms = raw
+            .split(whereSeparator: { $0.isWhitespace })
+            .map { $0.replacingOccurrences(of: "\"", with: "") }
+            .filter { !$0.isEmpty }
+        guard !terms.isEmpty else { return "" }
+        return terms.map { "\"\($0)\"" }.joined(separator: " ")
+    }
+
+    /// 簡易の入力を詳細の木に移す。切り替えで打ち直しにならないように。
+    static func fromSimple(_ raw: String) -> LyricsQueryNode {
+        let terms = raw.split(whereSeparator: { $0.isWhitespace }).map(String.init)
+        guard !terms.isEmpty else { return .initialRoot() }
+        // 簡易は空白 = AND なので、移した先も「かつ」で始める。
+        return LyricsQueryNode(op: .and, children: terms.map { LyricsQueryNode(text: $0) })
+    }
+
+    /// 詳細の木を簡易の入力に戻す (語だけ拾って空白区切り)。
+    /// 構造は落ちるので、戻すときは値が変わりうることを画面側で伝えること。
+    func flattenedTerms() -> String {
+        if !isGroup {
+            return text.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        return children.map { $0.flattenedTerms() }
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+    }
+
     /// 画面に出す見出し。
     var opLabel: String { op == .and ? "すべて含む" : "いずれか含む" }
 }
