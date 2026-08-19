@@ -31,7 +31,7 @@ private struct LyricsQueryGroupView: View {
     let onSubmit: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DS.sp2) {
+        VStack(alignment: .leading, spacing: DS.sp1) {
             ForEach(Array(node.children.enumerated()), id: \.element.id) { index, child in
                 HStack(alignment: .top, spacing: DS.sp2) {
                     // 演算子は**1グループに1つ**。行ごとに別々に持てると
@@ -44,13 +44,13 @@ private struct LyricsQueryGroupView: View {
                     Group {
                         if index > 0 { junctionChip(for: child) } else { Color.clear }
                     }
-                    .frame(width: 56, height: 30)
+                    .frame(width: 46, height: 28)
 
                     if child.isGroup {
                         LyricsQueryGroupView(node: child, depth: depth + 1,
                                              onRemove: { node.remove(child) },
                                              onSubmit: onSubmit)
-                            .padding(.leading, DS.sp3)
+                            .padding(.leading, DS.sp2)
                             .overlay(alignment: .leading) { nestingRule }
                     } else {
                         termRow(child,
@@ -60,7 +60,7 @@ private struct LyricsQueryGroupView: View {
             }
 
             HStack(spacing: DS.sp4) {
-                Color.clear.frame(width: 56, height: 1)
+                Color.clear.frame(width: 46, height: 1)
                 Button {
                     node.addTerm()
                     AppAnalytics.tap("lyrics_query.add_term")
@@ -171,8 +171,8 @@ private struct LyricsQueryGroupView: View {
                 .accessibilityLabel("この条件を削除")
             }
         }
-        .padding(.horizontal, DS.sp4)
-        .padding(.vertical, 8)
+        .padding(.horizontal, DS.sp3)
+        .padding(.vertical, 6)
         .background(DS.fill, in: Capsule())
     }
 }

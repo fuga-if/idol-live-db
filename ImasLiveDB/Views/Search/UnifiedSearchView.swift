@@ -126,7 +126,14 @@ struct UnifiedSearchView: View {
     private var lyricsInput: some View {
         VStack(alignment: .leading, spacing: DS.sp2) {
             if lyricsAdvanced {
-                LyricsQueryBuilderView(root: lyricsQuery) { commitSearch() }
+                // 条件が増えると縦に伸びてナビバーへ潜り込むので、高さを切ってスクロールさせる。
+                // 上限は画面の3割強。これを超えると結果が1件も見えなくなり、
+                // 何を検索しているのか分からなくなる。
+                ScrollView {
+                    LyricsQueryBuilderView(root: lyricsQuery) { commitSearch() }
+                }
+                .frame(maxHeight: 240)
+                .scrollBounceBehavior(.basedOnSize)
             } else {
                 HStack(spacing: DS.sp3) {
                     Image(systemName: "magnifyingglass")
