@@ -2,9 +2,12 @@ import SwiftUI
 
 /// 歌詞検索の検索式をアウトライン形式で組み立てる。
 ///
-/// 括弧を打たせる代わりに**インデントで入れ子を見せる**。グループごとに
-/// 「すべて含む / いずれか含む」を持つので、`(翼 or つばさ) and 夢` と
-/// `翼 or (夢 and 星)` のどちらも書ける。固定の優先順位だと片方しか表現できない。
+/// 演算子は**各行の頭**に「かつ / または」として出す。グループの見出しに
+/// 「すべて含む」と書く形も試したが、式の言い方であって操作対象に見えなかった。
+/// 行間に置けば「この行を前の行とどうつなぐか」がそのまま読める。
+///
+/// 入れ子はインデントと縦罫で見せる。括弧を打たせずに
+/// `(翼 or つばさ) and 夢` と `翼 or (夢 and 星)` の両方を書けるようにするため。
 struct LyricsQueryBuilderView: View {
     @Bindable var root: LyricsQueryNode
     /// 確定 (検索実行)。キーボードの検索キーからも呼ぶ。
@@ -29,50 +32,35 @@ private struct LyricsQueryGroupView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DS.sp2) {
-            // 子が2つ以上ないと「すべて/いずれか」に意味が無いので、1つのときは出さない。
-            if node.children.count > 1 || depth > 0 {
-                HStack(spacing: DS.sp3) {
-                    Button {
-                        node.op = (node.op == .and) ? .or : .and
-                        AppAnalytics.tap("lyrics_query.toggle_op")
-                    } label: {
-                        Label(node.opLabel,
-                              systemImage: node.op == .and ? "square.stack.3d.up" : "arrow.triangle.branch")
-                            .font(.imasCaption.weight(.semibold))
-                            .foregroundStyle(DS.ink2)
+            ForEach(Array(node.children.enumerated()), id: \.element.id) { index, child in
+                HStack(alignment: .top, spacing: DS.sp2) {
+                    // 2行目以降だけ演算子を出す。1行目には繋ぐ相手が無い。
+                    // 幅を揃えて、無い行も同じだけ空ける (行頭が凸凹しないように)。
+                    Group {
+                        if index > 0 { operatorChip } else { Color.clear }
                     }
-                    .buttonStyle(.plain)
-                    Spacer(minLength: 0)
-                    if let onRemove {
-                        Button(role: .destructive, action: onRemove) {
-                            Image(systemName: "xmark.circle.fill")
-                                .font(.imasCaption)
-                                .foregroundStyle(DS.ink3)
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("このグループを削除")
-                    }
-                }
-            }
+                    .frame(width: 52, height: 30)
 
-            ForEach(node.children) { child in
-                if child.isGroup {
-                    LyricsQueryGroupView(node: child, depth: depth + 1,
-                                         onRemove: { node.remove(child) }, onSubmit: onSubmit)
-                        .padding(.leading, DS.sp4)
-                        .overlay(alignment: .leading) { nestingRule }
-                } else {
-                    termRow(child, onRemove: node.children.count > 1
-                            ? { node.remove(child) } : nil)
+                    if child.isGroup {
+                        LyricsQueryGroupView(node: child, depth: depth + 1,
+                                             onRemove: { node.remove(child) },
+                                             onSubmit: onSubmit)
+                            .padding(.leading, DS.sp3)
+                            .overlay(alignment: .leading) { nestingRule }
+                    } else {
+                        termRow(child,
+                                onRemove: node.children.count > 1 ? { node.remove(child) } : nil)
+                    }
                 }
             }
 
             HStack(spacing: DS.sp4) {
+                Color.clear.frame(width: 52, height: 1)
                 Button {
                     node.addTerm()
                     AppAnalytics.tap("lyrics_query.add_term")
                 } label: {
-                    Label("条件", systemImage: "plus.circle")
+                    Label("条件を追加", systemImage: "plus.circle")
                         .font(.imasCaption)
                 }
                 .buttonStyle(.plain)
@@ -82,15 +70,44 @@ private struct LyricsQueryGroupView: View {
                         node.addGroup()
                         AppAnalytics.tap("lyrics_query.add_group")
                     } label: {
-                        Label("グループ", systemImage: "plus.rectangle.on.rectangle")
+                        Label("まとまり", systemImage: "plus.rectangle.on.rectangle")
                             .font(.imasCaption)
                     }
                     .buttonStyle(.plain)
                 }
                 Spacer(minLength: 0)
+                if let onRemove {
+                    Button(action: onRemove) {
+                        Image(systemName: "trash")
+                            .font(.imasCaption)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("このまとまりを削除")
+                }
             }
             .foregroundStyle(DS.ink2)
         }
+    }
+
+    /// 「かつ / または」。グループ内は1つの演算子で揃うので、どれを押しても全体が変わる。
+    private var operatorChip: some View {
+        Button {
+            node.op = (node.op == .and) ? .or : .and
+            AppAnalytics.tap("lyrics_query.toggle_op")
+        } label: {
+            HStack(spacing: 2) {
+                Text(node.op == .and ? "かつ" : "または")
+                    .font(.imasCaption.weight(.semibold))
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.imasScaled(9))
+            }
+            .foregroundStyle(DS.ink2)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 6)
+            .background(DS.fill, in: RoundedRectangle(cornerRadius: DS.rSM, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(node.op == .and ? "かつ。タップでまたはに変更" : "または。タップでかつに変更")
     }
 
     /// 入れ子であることを示す縦罫。インデントだけだと段が読み取りにくい。
@@ -100,8 +117,6 @@ private struct LyricsQueryGroupView: View {
             .frame(width: 1)
             .padding(.vertical, 2)
     }
-
-    // MARK: - 検索語
 
     private func termRow(_ node: LyricsQueryNode, onRemove: (() -> Void)?) -> some View {
         HStack(spacing: DS.sp3) {
