@@ -1,6 +1,18 @@
 import os
 import SwiftUI
 
+/// 一覧の検索対象。歌詞はサーバ (D1) に問い合わせる。
+enum SongSearchMode: String, CaseIterable, Hashable {
+    case title, lyrics
+
+    var label: String {
+        switch self {
+        case .title:  "曲名"
+        case .lyrics: "歌詞"
+        }
+    }
+}
+
 enum SongListMode: String, CaseIterable {
     case songs
     case albums
@@ -28,6 +40,11 @@ struct SongListView: View {
     @State private var showFilter = false
     @State private var sheetDestination: DetailDestination?
     @State private var searchText = ""
+    /// 曲名で絞るか、歌詞で絞るか。歌詞はサーバに問い合わせる。
+    @State private var searchMode: SongSearchMode = .title
+    /// 歌詞検索の結果 (song_id)。nil = まだ検索していない。
+    @State private var lyricsMatchIds: Set<String>?
+    @State private var lyricsSearching = false
     /// 新規曲作成 sheet。
     @State private var showSongCreate = false
     /// 未ログイン時のログイン誘導 sheet。
@@ -88,6 +105,27 @@ struct SongListView: View {
         }
     }
 
+    /// 歌詞検索を投げて、結果 (song_id) で一覧を絞る。
+    private func runLyricsSearchIfNeeded() {
+        guard searchMode == .lyrics else { return }
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return }
+        lyricsSearching = true
+        Task {
+            defer { lyricsSearching = false }
+            do {
+                let hits = try await AppContainer.shared.lyricsSearchReading
+                    .searchLyrics(query: LyricsQueryNode.simpleQuery(query))
+                lyricsMatchIds = Set(hits.map(\.songId))
+                vm.recomputeDisplayed(searchText: "", lyricsMatchIds: lyricsMatchIds)
+            } catch {
+                Logger.database.error("lyrics_list_search_failed: \(error.localizedDescription)")
+                lyricsMatchIds = []
+                vm.recomputeDisplayed(searchText: "", lyricsMatchIds: [])
+            }
+        }
+    }
+
     @ViewBuilder
     private var content: some View {
             VStack(spacing: 0) {
@@ -101,7 +139,16 @@ struct SongListView: View {
                     }
             }
             .background(DS.bg)
-            .onChange(of: searchText) { _, _ in vm.recomputeDisplayed(searchText: searchText) }
+            .onChange(of: searchText) { _, _ in
+                // 歌詞は打鍵ごとに投げない (D1 の読み取りを打鍵数で消費しないため)。
+                // 確定するまでは前回の結果を消して、古い結果が残らないようにする。
+                if searchMode == .lyrics {
+                    lyricsMatchIds = nil
+                    vm.recomputeDisplayed(searchText: "")
+                } else {
+                    vm.recomputeDisplayed(searchText: searchText)
+                }
+            }
                 // 一覧を名前で絞る入口は一覧そのものに置く。
                 //
                 // 以前はフィルタシートの1行目にしか無く、「曲名で絞りたいだけ」なのに
@@ -113,7 +160,17 @@ struct SongListView: View {
                 // 現れず、絞り込みたいときに一覧を戻す手間が要って結局見つけられない。
                 .searchable(text: $searchText,
                             placement: .navigationBarDrawer(displayMode: .always),
-                            prompt: listMode.nameFilterPrompt)
+                            prompt: searchMode == .lyrics ? "歌詞の一節" : listMode.nameFilterPrompt)
+                // 曲名 / 歌詞 の切り替え。歌詞で絞った結果にもブランド絞り込みや
+                // 並び順がそのまま効くよう、一覧の絞り込みとして持つ。
+                .searchScopes($searchMode) {
+                    ForEach(SongSearchMode.allCases, id: \.self) { Text($0.label).tag($0) }
+                }
+                .onSubmit(of: .search) { runLyricsSearchIfNeeded() }
+                .onChange(of: searchMode) { _, _ in
+                    lyricsMatchIds = nil
+                    vm.recomputeDisplayed(searchText: searchMode == .lyrics ? "" : searchText)
+                }
                 .navigationTitle("楽曲")
                 // selectionMode (設定から push) では inline。.large だと push 先で大タイトル
                 // 領域 (≈100px) が確保され、フィルタチップの下に空白として見える + 2階層

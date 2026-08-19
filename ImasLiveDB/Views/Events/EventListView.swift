@@ -154,6 +154,11 @@ struct EventListView: View {
                 await vm.loadData(includeEmpty: showEmptyEvents, query: listQuery)
             }
             }
+            // 検索は一覧そのものを絞る (虫眼鏡のシートだと結果がそこで完結してしまい、
+            // ブランド絞り込みや期間フィルタと合わせられなかった)。
+            .searchable(text: $searchText,
+                        placement: .navigationBarDrawer(displayMode: .always),
+                        prompt: "ライブ名 / 会場で絞り込み")
             .navigationTitle("ライブ")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {

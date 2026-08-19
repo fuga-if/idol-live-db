@@ -199,7 +199,12 @@ struct IdolListView: View {
             }
         }
         .background(DS.bg.ignoresSafeArea())
-        .navigationTitle("アイドル")
+        // 検索は一覧そのものを絞る。虫眼鏡のシートは結果がそこで完結してしまい、
+                // ブランド絞り込みや並び順と合わせられなかった。
+                .searchable(text: $searchText,
+                            placement: .navigationBarDrawer(displayMode: .always),
+                            prompt: "アイドル名 / CV名で絞り込み")
+                .navigationTitle("アイドル")
         .navigationBarTitleDisplayMode(.large)
         .onChange(of: searchText) { _, _ in
             vm.rebuild(filter: filterContext, sortOrder: sortOrder, ascending: sortAscending)
