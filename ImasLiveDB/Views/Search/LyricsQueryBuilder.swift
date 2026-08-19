@@ -40,17 +40,65 @@ final class LyricsQueryNode: Identifiable {
 
     // MARK: - 編集
 
-    func addTerm() { children.append(LyricsQueryNode()) }
+    /// 検索欄を1つ足す。既に空の欄があるならそれを使う (空行を積まない)。
+    func addTerm() {
+        guard !children.contains(where: {
+            !$0.isGroup && $0.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }) else { return }
+        children.append(LyricsQueryNode())
+    }
 
     /// 入れ子グループを足す。親と逆の演算子で始めると、そのまま意味のある式になる
     /// (AND の中に OR を作る = 表記ゆれの束ね、が一番多い使い方)。
+    ///
+    /// 空の入力欄があればそれを置き換える。追加のたびに使わない空行が
+    /// 積み上がると、消す手間が増えるだけで意味が無い。
     func addGroup() {
         let inner: Op = (op == .and) ? .or : .and
-        children.append(LyricsQueryNode(op: inner, children: [LyricsQueryNode()]))
+        let group = LyricsQueryNode(op: inner,
+                                    children: [LyricsQueryNode(), LyricsQueryNode()])
+        if let slot = children.firstIndex(where: {
+            !$0.isGroup && $0.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }) {
+            children[slot] = group
+        } else {
+            children.append(group)
+        }
     }
 
     func remove(_ child: LyricsQueryNode) {
         children.removeAll { $0.id == child.id }
+        // まとまりが1つだけになったら、その中身を親へ引き上げて段を減らす。
+        // 中身1つのまとまりは式として意味が無く、インデントが無駄に深くなるだけ。
+        if isGroup, children.count == 1, let only = children.first, only.isGroup {
+            op = only.op
+            children = only.children
+        }
+    }
+
+    /// この子を1つ上の兄弟とまとめる。既に上がまとまりならそこへ入れる。
+    ///
+    /// 「空のまとまりを作って埋める」より手順が短い。打ってから
+    /// 「こことここをまとめる」と言える方が、作りたい形から素直に辿れる。
+    func groupWithPrevious(_ child: LyricsQueryNode) {
+        guard let index = children.firstIndex(where: { $0.id == child.id }), index > 0 else { return }
+        let previous = children[index - 1]
+        if previous.isGroup {
+            previous.children.append(child)
+            children.remove(at: index)
+            return
+        }
+        // 親と逆の演算子で始める (AND の中に OR = 表記ゆれの束ね、が一番多い使い方)。
+        let inner: Op = (op == .and) ? .or : .and
+        children[index - 1] = LyricsQueryNode(op: inner, children: [previous, child])
+        children.remove(at: index)
+    }
+
+    /// まとまりを解いて中身を親の位置へ戻す。
+    func ungroup(_ child: LyricsQueryNode) {
+        guard child.isGroup,
+              let index = children.firstIndex(where: { $0.id == child.id }) else { return }
+        children.replaceSubrange(index...index, with: child.children)
     }
 
     // MARK: - 文字列化

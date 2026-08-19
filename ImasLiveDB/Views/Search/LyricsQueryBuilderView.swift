@@ -42,18 +42,9 @@ private struct LyricsQueryGroupView: View {
                     // 全部を押せるボタンにすると行ごとに変えられると誤解される
                     // (実際そう見えるという指摘を受けた)。
                     Group {
-                        if index == 1 {
-                            operatorChip
-                        } else if index > 1 {
-                            Text(node.op == .and ? "かつ" : "または")
-                                .font(.imasCaption)
-                                .foregroundStyle(DS.ink3)
-                                .frame(maxWidth: .infinity)
-                        } else {
-                            Color.clear
-                        }
+                        if index > 0 { junctionChip(for: child) } else { Color.clear }
                     }
-                    .frame(width: 52, height: 30)
+                    .frame(width: 56, height: 30)
 
                     if child.isGroup {
                         LyricsQueryGroupView(node: child, depth: depth + 1,
@@ -69,7 +60,7 @@ private struct LyricsQueryGroupView: View {
             }
 
             HStack(spacing: DS.sp4) {
-                Color.clear.frame(width: 52, height: 1)
+                Color.clear.frame(width: 56, height: 1)
                 Button {
                     node.addTerm()
                     AppAnalytics.tap("lyrics_query.add_term")
@@ -103,26 +94,52 @@ private struct LyricsQueryGroupView: View {
         }
     }
 
-    /// 「かつ / または」。まとまり内は1つの演算子で揃う。押せるのは2行目のここだけで、
-    /// 3行目以降は同じ値を静かに表示する (どれも押せると行ごとに変わると誤解されるため)。
-    private var operatorChip: some View {
-        Button {
-            node.op = (node.op == .and) ? .or : .and
-            AppAnalytics.tap("lyrics_query.toggle_op")
+    /// 行と行のつなぎ目。ここを押すと「つなぎ方の変更」と「まとめる」が出る。
+    ///
+    /// つなぎ方はまとまり全体に効く (行ごとに別々だと「A または B かつ C」の
+    /// 優先順位が決まらない)。メニューの文言で「すべて」と明示して、
+    /// 1つ変えたら全部変わることが押す前に分かるようにしている。
+    private func junctionChip(for child: LyricsQueryNode) -> some View {
+        Menu {
+            Section("つなぎ方") {
+                Button { setOp(.and) } label: {
+                    Label("すべて「かつ」", systemImage: node.op == .and ? "checkmark" : "")
+                }
+                Button { setOp(.or) } label: {
+                    Label("すべて「または」", systemImage: node.op == .or ? "checkmark" : "")
+                }
+            }
+            Button {
+                node.groupWithPrevious(child)
+                AppAnalytics.tap("lyrics_query.group_with_previous")
+            } label: {
+                Label("上の行とまとめる", systemImage: "rectangle.3.group")
+            }
+            if child.isGroup {
+                Button {
+                    node.ungroup(child)
+                    AppAnalytics.tap("lyrics_query.ungroup")
+                } label: {
+                    Label("まとまりを解除", systemImage: "rectangle.split.3x1")
+                }
+            }
         } label: {
             HStack(spacing: 2) {
                 Text(node.op == .and ? "かつ" : "または")
                     .font(.imasCaption.weight(.semibold))
-                Image(systemName: "chevron.up.chevron.down")
-                    .font(.imasScaled(9))
+                Image(systemName: "chevron.down")
+                    .font(.imasScaled(8))
             }
             .foregroundStyle(DS.ink2)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 6)
             .background(DS.fill, in: RoundedRectangle(cornerRadius: DS.rSM, style: .continuous))
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel(node.op == .and ? "かつ。タップでまたはに変更" : "または。タップでかつに変更")
+    }
+
+    private func setOp(_ op: LyricsQueryNode.Op) {
+        node.op = op
+        AppAnalytics.tap("lyrics_query.toggle_op")
     }
 
     /// 入れ子であることを示す縦罫。インデントだけだと段が読み取りにくい。
