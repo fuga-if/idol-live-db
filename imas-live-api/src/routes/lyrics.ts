@@ -121,8 +121,12 @@ export type QueryNode =
  *   atom := '(' expr ')' | TERM
  */
 export function parseQuery(raw: string): QueryNode | null {
-  // 記号を1文字トークンに、それ以外の連続を語に切る。
-  const tokens = raw.match(/[()|｜]|[^()|｜\s　]+/g) ?? [];
+  // 記号を1文字トークンに、"…" は中身ごと1トークンに、それ以外の連続を語に切る。
+  //
+  // 引用符が要るのは、歌詞が全角スペースで区切られているため
+  // (「空を描いて行くよ　ここで光るよ」)。空白 = AND なので、囲まないと
+  // フレーズとして探せない。UI 側は各入力欄の中身を必ず囲って送る。
+  const tokens = raw.match(/"[^"]*"|[()|｜]|[^()|｜\s　]+/g) ?? [];
   let pos = 0;
 
   const flatten = (kind: "and" | "or", parts: QueryNode[]): QueryNode | null => {
@@ -142,7 +146,9 @@ export function parseQuery(raw: string): QueryNode | null {
     }
     if (token === ")" || token === "|" || token === "｜") return null;
     pos++;
-    const text = normalizeForSearch(token);
+    // 引用符つきは中身をそのまま1語にする (空白を含むフレーズ)。
+    const raw = token.startsWith('"') ? token.slice(1, -1) : token;
+    const text = normalizeForSearch(raw.trim());
     return text.length > 0 ? { kind: "term", text } : null;
   }
 

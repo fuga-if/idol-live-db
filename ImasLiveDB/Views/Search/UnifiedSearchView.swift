@@ -38,6 +38,8 @@ struct UnifiedSearchView: View {
     @State private var searchFailed = false
     /// 歌詞スコープで入力はあるがまだ確定 (Enter) していない。空振りと区別して案内を出す。
     @State private var lyricsAwaitingSubmit = false
+    /// 歌詞検索の検索式。括弧を打たせず、インデントで入れ子を見せる。
+    @State private var lyricsQuery = LyricsQueryNode.initialRoot()
     /// event_id → 検索語に一致した会場名。「武道館」で検索した時に、ライブ名だけ並んで
     /// なぜヒットしたか分からない状態を避けるため、一致理由として行に出す。
     @State private var matchedVenues: [String: String] = [:]
@@ -50,7 +52,13 @@ struct UnifiedSearchView: View {
     var body: some View {
         NavigationStack(path: $path) {
             VStack(spacing: 0) {
-                searchField
+                if scope == .lyrics {
+                    // 歌詞は AND/OR を組めるようにする。単語1つだと「夢」で1,273曲あり
+                    // 絞る手段が無いため。
+                    LyricsQueryBuilderView(root: lyricsQuery) { commitSearch() }
+                } else {
+                    searchField
+                }
                 scopeBar
                 ImasRowDivider()
                 content
@@ -116,8 +124,19 @@ struct UnifiedSearchView: View {
             .padding(.bottom, DS.sp4)
             // スコープを変えたら、そのスコープの検索結果を取り直す
             // (「すべて」は 各20件上限、スコープ指定時はより深く引く)。
-            .onChange(of: scope) { _, _ in
+            .onChange(of: scope) { _, newScope in
                 AppAnalytics.tap("search.scope_change")
+                if newScope == .lyrics {
+                    // 他スコープの入力語をビルダーの1つ目に引き継ぐ。スコープを
+                    // 変えただけで打ち直しになるのは手間なので。
+                    let carried = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !carried.isEmpty, !lyricsQuery.hasAnyTerm,
+                       let first = lyricsQuery.children.first, !first.isGroup {
+                        first.text = carried
+                    }
+                    clearResults()
+                    return
+                }
                 guard !searchText.isEmpty else { return }
                 scheduleSearch(searchText, debounce: false)
             }
@@ -127,7 +146,20 @@ struct UnifiedSearchView: View {
 
     @ViewBuilder
     private var content: some View {
-        if searchText.isEmpty {
+        if scope == .lyrics && searchText.isEmpty {
+            // 歌詞は打鍵ごとに投げない (D1 の読み取りを打鍵数で消費しないため)。
+            // 履歴ではなく「検索する」を出して、確定待ちだと分かるようにする。
+            ImasEmptyState(
+                systemImage: "text.magnifyingglass",
+                title: "歌詞を検索",
+                message: "条件を入れて検索してください。複数の条件は「すべて含む / いずれか含む」で組み合わせられます。",
+                actionTitle: lyricsQuery.hasAnyTerm ? "検索する" : nil,
+                action: lyricsQuery.hasAnyTerm ? { commitSearch() } : nil
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .padding(.top, DS.sp6)
+            .background(DS.bg)
+        } else if searchText.isEmpty {
             historyView
         } else if isSearching {
             ImasLoadingState()
@@ -498,6 +530,8 @@ struct UnifiedSearchView: View {
     }
 
     private func commitSearch() {
+        // 歌詞スコープの入力はビルダー側にある。確定のたびに式へ組み立て直す。
+        if scope == .lyrics { searchText = lyricsQuery.serialized() }
         let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
         // 「すべて」スコープでは、実際にヒットしたスコープにだけ記録する。常に固定スコープへ
