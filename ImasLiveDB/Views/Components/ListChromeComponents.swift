@@ -37,6 +37,12 @@ struct NameFilterField: View {
     }
 }
 
+/// 同じバーに並ぶツールバーボタン (設定・フィルタ・その他) の背景の高さ。
+///
+/// iOS が描くボタン背景をスクリーンショットから実測した値 (44pt)。入力欄の高さを
+/// 中身任せにすると 31pt にしかならず、隣のボタンより一回り低くなって収まりが悪い。
+private let listSearchFieldHeight: CGFloat = 44
+
 /// ナビゲーションバーの中に収める、1 行ぶんの絞り込みフィールド。
 ///
 /// `.searchable` のドロワーは常時 52pt の行を占め、大タイトル (52pt) と合わせると
@@ -50,6 +56,8 @@ struct NameFilterField: View {
 ///
 /// 文字サイズは `.accessibility1` で頭打ちにする。ナビバーの高さは中身では伸びないので、
 /// 際限なく拡大すると入力欄が切れて操作できなくなる。
+///
+/// 高さは隣のツールバーボタンに合わせる (`listSearchFieldHeight`)。
 struct ListSearchField<Leading: View>: View {
     let prompt: String
     @Binding var text: String
@@ -81,12 +89,17 @@ struct ListSearchField<Leading: View>: View {
                 .accessibilityLabel("絞り込みを解除")
             }
         }
-        .padding(.horizontal, DS.sp3)
-        .padding(.vertical, 5)
+        .padding(.horizontal, DS.sp4)
+        // ⚠️ `frame` は **`background` より先**に置くこと。
+        // 後ろに置くと、カプセルは中身の幅のまま描かれて透明な枠だけが広がる
+        // (見た目は「中央に寄った小さい入力欄」になり、余白の理由が分からなくなる)。
+        //
+        // `maxWidth: .infinity` だけでは広がらない。ナビバーの中央 (`.principal`) は
+        // UIKit の titleView で、中身の**理想サイズ**を訊いて幅を決めるため。
+        // 巨大な `idealWidth` を返して、左右のツールバー項目に挟まれた残り幅まで
+        // 押し広げてもらう。
+        .frame(idealWidth: 10_000, maxWidth: .infinity, minHeight: listSearchFieldHeight)
         .background(DS.fill, in: Capsule())
-        // 左右のツールバー項目に挟まれた残り幅いっぱいまで広げる。
-        // 付けないと入力中の文字数ぶんしか幅を持たず、伸び縮みして落ち着かない。
-        .frame(maxWidth: .infinity)
         .dynamicTypeSize(...DynamicTypeSize.accessibility1)
     }
 }
