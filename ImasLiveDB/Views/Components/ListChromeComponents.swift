@@ -37,6 +37,66 @@ struct NameFilterField: View {
     }
 }
 
+/// ナビゲーションバーの中に収める、1 行ぶんの絞り込みフィールド。
+///
+/// `.searchable` のドロワーは常時 52pt の行を占め、大タイトル (52pt) と合わせると
+/// ステータスバー・フィルタチップ込みで画面の 3 割近くが中身の前に消えていた。
+/// ここではバー (44pt) そのものに入れて、ヘッダーを 1 行に畳む。
+///
+/// `.searchable` を捨てた代償は自前で埋める:
+/// - 消去は末尾の ⊗ (テキストがあるときだけ出す)
+/// - `.searchScopes` の代わりが `leading` (楽曲一覧の 曲名/歌詞 切り替え)
+/// - キーボードを閉じる導線は一覧側の `.scrollDismissesKeyboard` に任せる
+///
+/// 文字サイズは `.accessibility1` で頭打ちにする。ナビバーの高さは中身では伸びないので、
+/// 際限なく拡大すると入力欄が切れて操作できなくなる。
+struct ListSearchField<Leading: View>: View {
+    let prompt: String
+    @Binding var text: String
+    /// 確定 (キーボードの検索キー)。歌詞のようにサーバへ投げるものだけが使う。
+    var onSubmit: () -> Void = {}
+    /// 入力欄の頭に差す小物。検索対象の切り替えなど。
+    @ViewBuilder var leading: Leading
+
+    var body: some View {
+        HStack(spacing: DS.sp2) {
+            Image(systemName: "magnifyingglass")
+                .font(.imasScaled(13, weight: .semibold))
+                .foregroundStyle(DS.ink3)
+            leading
+            TextField(prompt, text: $text)
+                .font(.imasSubhead)
+                .foregroundStyle(DS.ink)
+                .textFieldStyle(.plain)
+                .submitLabel(.search)
+                .autocorrectionDisabled()
+                .onSubmit(onSubmit)
+            if !text.isEmpty {
+                Button { text = "" } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.imasScaled(14))
+                        .foregroundStyle(DS.ink3)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("絞り込みを解除")
+            }
+        }
+        .padding(.horizontal, DS.sp3)
+        .padding(.vertical, 5)
+        .background(DS.fill, in: Capsule())
+        // 左右のツールバー項目に挟まれた残り幅いっぱいまで広げる。
+        // 付けないと入力中の文字数ぶんしか幅を持たず、伸び縮みして落ち着かない。
+        .frame(maxWidth: .infinity)
+        .dynamicTypeSize(...DynamicTypeSize.accessibility1)
+    }
+}
+
+extension ListSearchField where Leading == EmptyView {
+    init(prompt: String, text: Binding<String>, onSubmit: @escaping () -> Void = {}) {
+        self.init(prompt: prompt, text: text, onSubmit: onSubmit) { EmptyView() }
+    }
+}
+
 /// 「その他メニュー」に入れる副次アクション 1 つ分。
 struct ListToolbarAction: Identifiable {
     let id: String
@@ -58,11 +118,16 @@ struct ListToolbarAction: Identifiable {
 /// ライブ / アイドル / 楽曲 共通のツールバー構成。
 ///
 /// - 左: 設定
-/// - 右: 検索(虫眼鏡・1 つだけ) → フィルタ(バッジ) → 副次アクション
+/// - 中央: 絞り込みフィールド (`ListSearchField`)
+/// - 右: フィルタ(バッジ) → 副次アクション
 ///
-/// 虫眼鏡は **アプリ全体で 1 つ**。以前は左に「全体検索」右に「タブ内検索」の 2 つが並んでいて
-/// 区別が付かなかった。今は虫眼鏡 = `UnifiedSearchView` (呼び出し元タブのスコープで開く) に一本化し、
-/// 一覧の絞り込みはフィルタ側 (`NameFilterField`) に寄せている。
+/// 検索欄はバーの中に置き、大タイトルは出さない。以前は大タイトル + 検索ドロワーで
+/// ヘッダーが 2 行あり、中身が見え始めるまでが遠かった。タブ名はタブバーに出ているので
+/// 見出しが消えても現在地は分かる。
+///
+/// 虫眼鏡 (`UnifiedSearchView` への入口) はここには置かない。一覧の絞り込みが
+/// 一覧側に来たことで役割が重なり、同じバーに検索欄と虫眼鏡が並ぶと
+/// 「探す」と「絞る」の区別が付かないため。横断検索はカレンダータブに残してある。
 ///
 /// 副次操作 (追加・表示切替・タグ・フィルタ解除など) は 1 つの `ToolbarItem` に HStack で
 /// 詰めない。HStack 詰めだと幅不足時に iOS の「…」が機能せず (押しても何も出ない) 操作
@@ -72,14 +137,14 @@ struct ListToolbarAction: Identifiable {
 ///   - 2 件以上 → ellipsis メニューに畳む
 /// これで 3 タブのツールバーが見た目・挙動とも揃う。
 @MainActor @ToolbarContentBuilder
-func standardListToolbar(
-    searchScope: UnifiedSearchScope,
+func standardListToolbar<SearchField: View>(
     filterBadge: Int,
     onFilter: @escaping @MainActor () -> Void,
-    menuActions: [ListToolbarAction]
+    menuActions: [ListToolbarAction],
+    @ViewBuilder searchField: () -> SearchField
 ) -> some ToolbarContent {
     ToolbarItem(placement: .topBarLeading) { SettingsToolbarButton() }
-    ToolbarItem(placement: .topBarTrailing) { SearchToolbarButton(scope: searchScope) }
+    ToolbarItem(placement: .principal) { searchField() }
     ToolbarItem(placement: .topBarTrailing) {
         FilterBarButton(activeCount: filterBadge, action: onFilter)
     }

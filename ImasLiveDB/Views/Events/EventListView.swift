@@ -154,23 +154,25 @@ struct EventListView: View {
                 await vm.loadData(includeEmpty: showEmptyEvents, query: listQuery)
             }
             }
-            // 検索は一覧そのものを絞る (虫眼鏡のシートだと結果がそこで完結してしまい、
-            // ブランド絞り込みや期間フィルタと合わせられなかった)。
-            .searchable(text: $searchText,
-                        placement: .navigationBarDrawer(displayMode: .always),
-                        prompt: "ライブ名 / 会場で絞り込み")
             .navigationTitle("ライブ")
-            .navigationBarTitleDisplayMode(.large)
+            // 絞り込みフィールドはナビバーの中 (standardListToolbar の principal)。
+            // 大タイトルを出すと 2 行になってしまうので inline 固定。
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                // 検索は一覧そのものを絞る (虫眼鏡のシートだと結果がそこで完結してしまい、
+                // ブランド絞り込みや期間フィルタと合わせられなかった)。
                 standardListToolbar(
-                    searchScope: .events,
                     filterBadge: activeFilterCount,
                     onFilter: {
                         AppAnalytics.tap("event_list.filter")
                         showFilterSheet = true
                     },
                     menuActions: eventMenuActions
-                )
+                ) {
+                    // 虫眼鏡アイコンが用途を示すので、文言は対象だけ。
+                    // 「〜で絞り込み」まで書くと狭い欄で末尾が切れる。
+                    ListSearchField(prompt: "ライブ名・会場", text: $searchText)
+                }
             }
             .navigationDestination(for: Event.self) { event in
                 EventDetailView(event: event)
