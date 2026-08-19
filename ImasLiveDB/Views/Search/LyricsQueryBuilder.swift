@@ -161,4 +161,17 @@ final class LyricsQueryNode: Identifiable {
 
     /// 画面に出す見出し。
     var opLabel: String { op == .and ? "すべて含む" : "いずれか含む" }
+
+    /// 人が読める式。詳細検索を畳んだときに「今どんな条件か」を1行で見せる。
+    /// 記号 (| や括弧) ではなく日本語で出す。式の記法を覚えている前提にしない。
+    func readable() -> String {
+        if !isGroup {
+            return text.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        let parts = children.map { $0.readable() }.filter { !$0.isEmpty }
+        guard !parts.isEmpty else { return "" }
+        guard parts.count > 1 else { return parts[0] }
+        let joined = parts.joined(separator: op == .and ? " かつ " : " または ")
+        return "(\(joined))"
+    }
 }

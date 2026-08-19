@@ -42,9 +42,9 @@ struct UnifiedSearchView: View {
     @State private var lyricsQuery = LyricsQueryNode.initialRoot()
     /// 簡易検索の入力 (空白区切り = OR)。
     @State private var lyricsSimpleText = ""
-    /// 詳細検索 (AND/OR の組み立て) を使うか。既定は簡易。
-    /// まとまりを作る操作は難しいので、必要な人だけが開く形にする。
-    @AppStorage("lyrics_search_advanced") private var lyricsAdvanced = false
+    /// 詳細条件を使用中か。組み立ては別シート (showLyricsBuilder) で行う。
+    @State private var lyricsAdvanced = false
+    @State private var showLyricsBuilder = false
     /// event_id → 検索語に一致した会場名。「武道館」で検索した時に、ライブ名だけ並んで
     /// なぜヒットしたか分からない状態を避けるため、一致理由として行に出す。
     @State private var matchedVenues: [String: String] = [:]
@@ -76,6 +76,13 @@ struct UnifiedSearchView: View {
             }
             .navigationDestination(for: DetailDestination.self) { dest in
                 DetailContentView(destination: dest) { path.append($0) }
+            }
+        }
+        .sheet(isPresented: $showLyricsBuilder) {
+            LyricsQueryBuilderSheet(root: lyricsQuery) {
+                lyricsAdvanced = lyricsQuery.hasAnyTerm
+                showLyricsBuilder = false
+                if lyricsAdvanced { commitSearch() }
             }
         }
         .onAppear {
@@ -121,19 +128,43 @@ struct UnifiedSearchView: View {
         .padding(.bottom, DS.sp4)
     }
 
-    /// 歌詞検索の入力。既定は簡易 (1つの欄・空白で OR)、必要なら詳細に開く。
+    /// 歌詞検索の入力。欄は1つだけにして、込み入った条件は別シートで組む。
+    ///
+    /// 詳細をこの画面に置くと、条件を増やすほど縦に伸びて結果が見えなくなる
+    /// (実際ナビバーに潜り込んだ)。「組む」と「見る」を画面ごと分ける。
     @ViewBuilder
     private var lyricsInput: some View {
         VStack(alignment: .leading, spacing: DS.sp2) {
             if lyricsAdvanced {
-                // 条件が増えると縦に伸びてナビバーへ潜り込むので、高さを切ってスクロールさせる。
-                // 上限は画面の3割強。これを超えると結果が1件も見えなくなり、
-                // 何を検索しているのか分からなくなる。
-                ScrollView {
-                    LyricsQueryBuilderView(root: lyricsQuery) { commitSearch() }
+                // 詳細条件を使用中。今どんな条件かを日本語で1行に出す。
+                HStack(spacing: DS.sp3) {
+                    Image(systemName: "slider.horizontal.3")
+                        .font(.imasCaption)
+                        .foregroundStyle(DS.ink3)
+                    Text(lyricsQuery.readable().isEmpty ? "条件なし" : lyricsQuery.readable())
+                        .font(.imasSubhead)
+                        .foregroundStyle(DS.ink)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 0)
+                    Button("編集") { showLyricsBuilder = true }
+                        .font(.imasCaption.weight(.semibold))
+                    Button {
+                        lyricsAdvanced = false
+                        lyricsQuery = .initialRoot()
+                        clearResults()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.imasSubhead)
+                            .foregroundStyle(DS.ink3)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("詳細条件をやめる")
                 }
-                .frame(maxHeight: 240)
-                .scrollBounceBehavior(.basedOnSize)
+                .padding(.horizontal, DS.sp4)
+                .padding(.vertical, 9)
+                .background(DS.fill, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
+                .padding(.horizontal, DS.sp5)
             } else {
                 HStack(spacing: DS.sp3) {
                     Image(systemName: "magnifyingglass")
@@ -157,30 +188,24 @@ struct UnifiedSearchView: View {
                         .buttonStyle(.plain)
                         .accessibilityLabel("入力をクリア")
                     }
+                    Button {
+                        // 打ってある語を持ち越して開く。切り替えで打ち直しにならないように。
+                        lyricsQuery = LyricsQueryNode.fromSimple(lyricsSimpleText)
+                        showLyricsBuilder = true
+                        AppAnalytics.tap("lyrics_search.open_builder")
+                    } label: {
+                        Image(systemName: "slider.horizontal.3")
+                            .font(.imasSubhead)
+                            .foregroundStyle(DS.ink2)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("詳細検索")
                 }
                 .padding(.horizontal, DS.sp4)
                 .padding(.vertical, 9)
                 .background(DS.fill, in: Capsule())
                 .padding(.horizontal, DS.sp5)
             }
-
-            Button {
-                // 打った内容を持ち越す。切り替えただけで打ち直しになると使われない。
-                if lyricsAdvanced {
-                    lyricsSimpleText = lyricsQuery.flattenedTerms()
-                } else {
-                    lyricsQuery = LyricsQueryNode.fromSimple(lyricsSimpleText)
-                }
-                lyricsAdvanced.toggle()
-                AppAnalytics.tap("lyrics_search.toggle_advanced")
-            } label: {
-                Label(lyricsAdvanced ? "簡易検索に戻す" : "詳細検索",
-                      systemImage: lyricsAdvanced ? "chevron.up" : "slider.horizontal.3")
-                    .font(.imasCaption)
-                    .foregroundStyle(DS.ink2)
-            }
-            .buttonStyle(.plain)
-            .padding(.horizontal, DS.sp5)
         }
         .padding(.top, DS.sp3)
         .padding(.bottom, DS.sp3)

@@ -176,3 +176,58 @@ private struct LyricsQueryGroupView: View {
         .background(DS.fill, in: Capsule())
     }
 }
+
+/// 詳細検索を組むシート。
+///
+/// 検索画面に置くと、条件を増やすほど縦に伸びて結果が見えなくなる
+/// (実際ナビバーに潜り込んだ)。「組む」と「見る」を画面ごと分ける。
+struct LyricsQueryBuilderSheet: View {
+    @Bindable var root: LyricsQueryNode
+    /// 「検索」で閉じるときに呼ぶ。
+    let onApply: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: DS.sp4) {
+                    LyricsQueryBuilderView(root: root, onSubmit: onApply)
+
+                    if !root.readable().isEmpty {
+                        // 組み上がった式を日本語で見せる。入れ子は行の見た目でも
+                        // 分かるが、確定前に一息で読めるものがある方が安心できる。
+                        VStack(alignment: .leading, spacing: DS.sp1) {
+                            Text("この条件で探します")
+                                .font(.imasCaption)
+                                .foregroundStyle(DS.ink3)
+                            Text(root.readable())
+                                .font(.imasSubhead)
+                                .foregroundStyle(DS.ink)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(DS.sp4)
+                        .background(DS.surface,
+                                    in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
+                        .padding(.horizontal, DS.sp5)
+                    }
+                }
+                .padding(.vertical, DS.sp4)
+            }
+            .background(DS.bg)
+            .navigationTitle("詳細検索")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("閉じる") { dismiss() }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("検索", action: onApply)
+                        .font(.imasSubhead.weight(.semibold))
+                        .disabled(!root.hasAnyTerm)
+                }
+            }
+        }
+    }
+}
