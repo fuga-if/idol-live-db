@@ -34,10 +34,24 @@ private struct LyricsQueryGroupView: View {
         VStack(alignment: .leading, spacing: DS.sp2) {
             ForEach(Array(node.children.enumerated()), id: \.element.id) { index, child in
                 HStack(alignment: .top, spacing: DS.sp2) {
-                    // 2行目以降だけ演算子を出す。1行目には繋ぐ相手が無い。
-                    // 幅を揃えて、無い行も同じだけ空ける (行頭が凸凹しないように)。
+                    // 演算子は**1グループに1つ**。行ごとに別々に持てると
+                    // 「A または B かつ C」の優先順位が決まらないため。分けたいときは
+                    // まとまりを作る。
+                    //
+                    // なので押せるのは2行目だけにして、3行目以降は同じ値を静かに出す。
+                    // 全部を押せるボタンにすると行ごとに変えられると誤解される
+                    // (実際そう見えるという指摘を受けた)。
                     Group {
-                        if index > 0 { operatorChip } else { Color.clear }
+                        if index == 1 {
+                            operatorChip
+                        } else if index > 1 {
+                            Text(node.op == .and ? "かつ" : "または")
+                                .font(.imasCaption)
+                                .foregroundStyle(DS.ink3)
+                                .frame(maxWidth: .infinity)
+                        } else {
+                            Color.clear
+                        }
                     }
                     .frame(width: 52, height: 30)
 
@@ -89,7 +103,8 @@ private struct LyricsQueryGroupView: View {
         }
     }
 
-    /// 「かつ / または」。グループ内は1つの演算子で揃うので、どれを押しても全体が変わる。
+    /// 「かつ / または」。まとまり内は1つの演算子で揃う。押せるのは2行目のここだけで、
+    /// 3行目以降は同じ値を静かに表示する (どれも押せると行ごとに変わると誤解されるため)。
     private var operatorChip: some View {
         Button {
             node.op = (node.op == .and) ? .or : .and
