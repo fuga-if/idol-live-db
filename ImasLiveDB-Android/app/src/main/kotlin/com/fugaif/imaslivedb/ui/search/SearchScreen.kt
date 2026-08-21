@@ -280,7 +280,7 @@ private fun SongSearchRow(song: Song, onClick: () -> Unit) {
 @Composable
 private fun EventSearchRow(event: Event, onClick: () -> Unit) {
     SearchRow(onClick = onClick, lead = {
-        ImasLeadBar(brand = event.brandId, height = 32.dp)
+        ImasLeadBar(brandId = event.brandId, height = 32.dp)
     }, title = event.name, subtitle = null)
 }
 

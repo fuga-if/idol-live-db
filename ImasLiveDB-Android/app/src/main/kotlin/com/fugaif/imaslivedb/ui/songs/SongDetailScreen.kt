@@ -728,7 +728,7 @@ private fun HistoryTab(history: List<PerformanceHistoryRow>, seed: String?, bran
                     .padding(horizontal = 16.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                ImasLeadBar(seed = seed, brand = brand, height = 34.dp)
+                ImasLeadBar(seedHex = seed, brandId = brand, height = 34.dp)
                 Column(Modifier.weight(1f).padding(start = 12.dp)) {
                     Text(row.eventName, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink,
                         maxLines = 1, overflow = TextOverflow.Ellipsis)

@@ -59,7 +59,7 @@ fun SongRow(
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
     ) {
-        ImasLeadBar(brand = brandId, height = 44.dp)
+        ImasLeadBar(brandId = brandId, height = 44.dp)
         ArtworkImage(url = artworkUrl, size = 44.dp, previewUrl = previewUrl, songTitle = title)
         Column(modifier = Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {

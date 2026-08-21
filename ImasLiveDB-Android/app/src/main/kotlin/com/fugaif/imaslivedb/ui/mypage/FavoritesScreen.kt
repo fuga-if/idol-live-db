@@ -198,7 +198,7 @@ private fun EventsTab(events: List<EventWithDateRange>) {
                 horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp),
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp)
             ) {
-                ImasLeadBar(brand = ew.event.brandId, height = 38.dp, rainbow = ew.event.jointBrandIdList.isNotEmpty())
+                ImasLeadBar(brandId = ew.event.brandId, height = 38.dp, rainbow = ew.event.jointBrandIdList.isNotEmpty())
                 Column(Modifier.weight(1f)) {
                     Text(
                         text = ew.event.name,
