@@ -182,6 +182,10 @@ struct SongListView: View {
                 .onChange(of: searchMode) { _, _ in
                     lyricsHits = nil
                     vm.applyLyricsMatches(nil, searchText: searchMode == .lyrics ? "" : searchText)
+                    // 対象を切り替えたのは明示的な操作なので、入力が残っているならその場で引き直す。
+                    // 打鍵のたびに投げるわけではないので D1 の読み取りは無駄にならない。
+                    // (曲名側は上の `applyLyricsMatches` がその場で絞り直している)
+                    runLyricsSearchIfNeeded()
                 }
                 .navigationTitle("楽曲")
                 // 絞り込みフィールドをナビバー内に置くので、タイトルは常に inline。
@@ -595,7 +599,9 @@ struct SongListView: View {
 
     private var songsListContent: some View {
         Group {
-            if vm.isLoading {
+            // 歌詞検索中もスケルトンにする。前の結果を消した直後は絞り込み無しの状態
+            // (= 全曲) なので、そのまま出すと 1,991 件が一瞬めくれてから絞られる。
+            if vm.isLoading || lyricsSearching {
                 ScrollView {
                     ImasListSkeleton(rows: 12, thumb: .square)
                         .padding(.top, DS.sp3)
