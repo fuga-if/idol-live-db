@@ -22,6 +22,11 @@ final class SongListViewModel {
 
     // 行アイコン用のマーク集合・回収数 (song_id ベース)。
     private(set) var collectedCounts: [String: Int] = [:]
+    /// song_id → 全公演での披露回数。
+    ///
+    /// 「披露回数順 / 回収率順」で並べている時だけ読む。それ以外の並びでは行に出さないので、
+    /// 取っても捨てるだけ (タブを開くたびに setlist_items 全体を数える必要はない)。
+    private(set) var performanceCounts: [String: Int] = [:]
     private(set) var favoriteSongIds: Set<String> = []
     private(set) var myPickSongIds: Set<String> = []
     private(set) var notedSongIds: Set<String> = []
@@ -86,6 +91,10 @@ final class SongListViewModel {
             guard currentTaskId == taskId else { return }
             songs = results
             recomputeDisplayed(searchText: request.searchText)
+            // 行に「その順で並んでいる根拠」を出す並びのときだけ数える。
+            performanceCounts = request.sortOrder.showsPerformanceCount
+                ? ((try? await songReading.songPerformanceCounts()) ?? [:])
+                : [:]
             await refreshMarkDisplays()
         } catch is CancellationError {
             // キャンセル済み
@@ -120,15 +129,27 @@ final class SongListViewModel {
         return ctx
     }
 
+    /// 歌詞検索で当たった song_id。非 nil の間は曲名ではなくこれで一覧を絞る。
+    ///
+    /// ⚠️ View ではなく **VM 側**に持つこと。View だけが持っていた頃は、ブランド絞り込みを
+    /// 変えるたびに `load` が `recomputeDisplayed(searchText:)` を曲名モードで呼び直し、
+    /// 歌詞の結果が黙って捨てられて「絞り込み結果がありません」になっていた。
+    /// 歌詞検索を他の条件と合成できることが、検索を一覧側に移した理由そのものなので、
+    /// 再ロードを跨いで生き残る場所に置く。
+    private(set) var lyricsMatchIds: Set<String>?
+
+    /// 歌詞検索の結果で一覧を絞る (nil で解除)。
+    func applyLyricsMatches(_ ids: Set<String>?, searchText: String) {
+        lyricsMatchIds = ids
+        recomputeDisplayed(searchText: searchText)
+    }
+
     /// `searchText` で songs をクライアント側フィルタし `displayedSongs` を更新する。
     /// songs 読み込み完了時と searchText 変化時にのみ呼ぶ。
-    /// 一覧の絞り込みを掛け直す。
     ///
-    /// `lyricsMatchIds` が非 nil なら**歌詞検索の結果で絞る** (曲名は見ない)。
-    /// サーバから返るのは song_id だけなので、ブランド絞り込みや並び順は一覧側の
-    /// 既存の仕組みがそのまま効く。検索結果が一覧に返ってくる形にしたかったのが
-    /// この引数の理由 (シートで完結すると他の条件と合わせられない)。
-    func recomputeDisplayed(searchText: String, lyricsMatchIds: Set<String>? = nil) {
+    /// 歌詞検索中 (`lyricsMatchIds` が非 nil) はそちらで絞る。サーバから返るのは
+    /// song_id だけなので、ブランド絞り込みや並び順は一覧側の既存の仕組みがそのまま効く。
+    func recomputeDisplayed(searchText: String) {
         if let lyricsMatchIds {
             displayedSongs = songs.filter { lyricsMatchIds.contains($0.song.id) }
             return

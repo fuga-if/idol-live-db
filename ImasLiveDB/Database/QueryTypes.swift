@@ -645,6 +645,15 @@ enum SongSortOrder: String, CaseIterable, Sendable {
         case .releaseDate, .performanceCount, .collectedCount, .collectedRate: return false
         }
     }
+
+    /// 一覧行に披露回数を出すか。
+    ///
+    /// 披露回数そのもので並べている時と、その比 (回収率) で並べている時。
+    /// 数値を出さないと「なぜこの順なのか」が行から読み取れない。
+    /// 現地回収回数順は行の ✓N バッジが既に根拠になっているので要らない。
+    var showsPerformanceCount: Bool {
+        self == .performanceCount || self == .collectedRate
+    }
 }
 
 /// 楽曲一覧のソート方向。 SongSortOrder と直交させて、 UI から昇降を反転できるようにする。

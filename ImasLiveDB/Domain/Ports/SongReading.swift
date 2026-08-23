@@ -19,6 +19,12 @@ protocol SongReading: Sendable {
     func songPerformerIdolsMap(songIds: [String]) async throws -> [String: [Idol]]
     /// song_id → 回収数。
     func songCollectedCounts() async throws -> [String: Int]
+    /// song_id → 全公演での披露回数。
+    ///
+    /// 「披露回数順 / 回収率順」で並べたときに、その順の**根拠**を行にも出すために使う。
+    /// 並べ替え自体は `songs(filter:sortOrder:ascending:)` の中で完結しているが、
+    /// 数値を捨てているので順番だけ見せられて理由が見えない状態だった。
+    func songPerformanceCounts() async throws -> [String: Int]
     /// ライブ名/曲名検索。
     func searchSongs(query: String, limit: Int) async throws -> [Song]
 

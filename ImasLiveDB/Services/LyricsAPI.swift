@@ -232,3 +232,49 @@ struct FakeLyricsReading: LyricsReading {
     func purge() async {}
 }
 #endif
+
+#if DEBUG
+/// 歌詞検索のフェイク。サーバ・ログインなしで一覧の見た目を確認するためのもの。
+/// 著作物は一切使わず、ダミー文言のみを返す。
+///
+/// 起動時に環境変数 `FAKE_LYRICS=1` を渡すと `AppContainer` がこちらを注入する:
+/// `SIMCTL_CHILD_FAKE_LYRICS=1 xcrun simctl launch <udid> com.fugaif.ImasLiveDB`
+///
+/// 曲 id を持たないので、当たる曲は `songReading` から先頭 N 件を借りる
+/// (どの曲が当たるかは見た目の確認に関係なく、行にスニペットが出るかだけが問題)。
+struct FakeLyricsSearchReading: LyricsSearchReading {
+    /// 何曲ヒットさせるか。
+    var hitCount = 24
+
+    func searchLyrics(query: String) async throws -> [LyricsSearchHit] {
+        // 呼び出し側は `"語"` 形式の検索式を渡してくる (本物のサーバが構文解析する)。
+        // フェイクは構文を解さないので、記号を落として素の語に戻してから使う。
+        let trimmed = query
+            .replacingOccurrences(of: "\"", with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return [] }
+        // ⚠️ `AppContainer.shared` はここで解決すること。プロパティの既定値にすると
+        // `AppContainer.shared` の初期化中に自分自身を読みに行って落ちる。
+        let songs = try await AppContainer.shared.songReading.songs(
+            filter: SongSearchFilter(), sortOrder: .titleKana, ascending: nil)
+        return songs.prefix(hitCount).enumerated().map { index, item in
+            LyricsSearchHit(songId: item.song.id, snippets: snippets(for: trimmed, index: index))
+        }
+    }
+
+    /// 2 語目以降が当たったときのように、行によって本数を変える
+    /// (1 本しか出ない前提で組んでいないかを確認するため)。
+    private func snippets(for query: String, index: Int) -> [LyricsSnippet] {
+        let prefixes = ["…ダミーの歌詞がここに ", "…表示確認用のテキスト "]
+        let suffix = " と続くダミー行…"
+        return (0 ... (index % 2)).map { i in
+            let head = prefixes[i % prefixes.count]
+            return LyricsSnippet(
+                snippet: head + query + suffix,
+                matchStart: head.unicodeScalars.count,
+                matchLength: query.unicodeScalars.count
+            )
+        }
+    }
+}
+#endif

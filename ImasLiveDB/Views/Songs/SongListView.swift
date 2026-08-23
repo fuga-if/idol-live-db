@@ -60,8 +60,11 @@ struct SongListView: View {
     @State private var searchText = ""
     /// 曲名で絞るか、歌詞で絞るか。歌詞はサーバに問い合わせる。
     @State private var searchMode: SongSearchMode = .title
-    /// 歌詞検索の結果 (song_id)。nil = まだ検索していない。
-    @State private var lyricsMatchIds: Set<String>?
+    /// 歌詞検索の結果 (song_id → 一致箇所のスニペット)。nil = まだ検索していない。
+    ///
+    /// id だけでなくスニペットも持つ。行に「どこで引っかかったか」を出さないと、
+    /// 曲名だけが並んで理由の分からない絞り込みに見える。
+    @State private var lyricsHits: [String: [LyricsSnippet]]?
     @State private var lyricsSearching = false
     /// 新規曲作成 sheet。
     @State private var showSongCreate = false
@@ -101,7 +104,9 @@ struct SongListView: View {
             collectFilter: collectFilter,
             myMarkFilter: myMarkFilter,
             selectedTagCount: selectedTags.count,
-            searchText: searchText)
+            // 歌詞モードの入力は曲名の絞り込み語ではない。そのまま渡すと再ロードのたびに
+            // 曲名で絞り直され、歌詞で当たった曲まで落ちる。
+            searchText: searchMode == .lyrics ? "" : searchText)
     }
 
     /// 現在の UI 状態で曲リストを即時再ロードする（チップ解除などフィルタ変更の共通導線）。
@@ -123,7 +128,7 @@ struct SongListView: View {
         }
     }
 
-    /// 歌詞検索を投げて、結果 (song_id) で一覧を絞る。
+    /// 歌詞検索を投げて、結果で一覧を絞る。一致箇所のスニペットは行に出すため保持する。
     private func runLyricsSearchIfNeeded() {
         guard searchMode == .lyrics else { return }
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -134,14 +139,18 @@ struct SongListView: View {
             do {
                 let hits = try await AppContainer.shared.lyricsSearchReading
                     .searchLyrics(query: LyricsQueryNode.simpleQuery(query))
-                lyricsMatchIds = Set(hits.map(\.songId))
-                vm.recomputeDisplayed(searchText: "", lyricsMatchIds: lyricsMatchIds)
+                applyLyricsHits(Dictionary(hits.map { ($0.songId, $0.snippets) },
+                                           uniquingKeysWith: { a, _ in a }))
             } catch {
                 Logger.database.error("lyrics_list_search_failed: \(error.localizedDescription)")
-                lyricsMatchIds = []
-                vm.recomputeDisplayed(searchText: "", lyricsMatchIds: [])
+                applyLyricsHits([:])
             }
         }
+    }
+
+    private func applyLyricsHits(_ hits: [String: [LyricsSnippet]]) {
+        lyricsHits = hits
+        vm.applyLyricsMatches(Set(hits.keys), searchText: "")
     }
 
     @ViewBuilder
@@ -164,15 +173,15 @@ struct SongListView: View {
                 // 歌詞は打鍵ごとに投げない (D1 の読み取りを打鍵数で消費しないため)。
                 // 確定するまでは前回の結果を消して、古い結果が残らないようにする。
                 if searchMode == .lyrics {
-                    lyricsMatchIds = nil
-                    vm.recomputeDisplayed(searchText: "")
+                    lyricsHits = nil
+                    vm.applyLyricsMatches(nil, searchText: "")
                 } else {
                     vm.recomputeDisplayed(searchText: searchText)
                 }
             }
                 .onChange(of: searchMode) { _, _ in
-                    lyricsMatchIds = nil
-                    vm.recomputeDisplayed(searchText: searchMode == .lyrics ? "" : searchText)
+                    lyricsHits = nil
+                    vm.applyLyricsMatches(nil, searchText: searchMode == .lyrics ? "" : searchText)
                 }
                 .navigationTitle("楽曲")
                 // 絞り込みフィールドをナビバー内に置くので、タイトルは常に inline。
@@ -648,6 +657,21 @@ struct SongListView: View {
         .padding(.bottom, DS.sp2)
     }
 
+    /// 並び順の根拠として行に出す指標。その順で並べていない時は出さない。
+    ///
+    /// 出しっぱなしにすると、どの並びでも同じ情報が載って「今は何で並んでいるか」の
+    /// 手掛かりにならない。並びを変えた時だけ増える方が、変えた結果として読める。
+    private func rowMetric(for songId: String) -> SongRowMetric? {
+        guard sortOrder.showsPerformanceCount else { return nil }
+        let total = vm.performanceCounts[songId] ?? 0
+        switch sortOrder {
+        case .collectedRate:
+            return .collectRate(collected: vm.collectedCounts[songId] ?? 0, total: total)
+        default:
+            return .performances(total)
+        }
+    }
+
     private func songsList(_ display: [SongWithArtists]) -> some View {
         List {
             ForEach(display) { item in
@@ -661,7 +685,10 @@ struct SongListView: View {
                     isMyPick: vm.myPickSongIds.contains(item.song.id),
                     hasNote: vm.notedSongIds.contains(item.song.id),
                     onCollectedTap: { sheetDestination = .songHistory(item.song) },
-                    tagVoteCount: selectedTags.count == 1 ? vm.tagVoteCounts[item.song.id] : nil
+                    tagVoteCount: selectedTags.count == 1 ? vm.tagVoteCounts[item.song.id] : nil,
+                    lyricsSnippets: lyricsHits?[item.song.id] ?? [],
+                    titleMatch: searchMode == .title ? searchText : nil,
+                    metric: rowMetric(for: item.song.id)
                 )
                 .contentShape(Rectangle())
                 .onTapGesture {

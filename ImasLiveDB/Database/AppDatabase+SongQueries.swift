@@ -194,8 +194,13 @@ extension AppDatabase {
         return results
     }
 
+    /// song_id → 全公演での披露回数。並び替えだけでなく、一覧行に数値を出すのにも使う。
+    func fetchSongPerformanceCountsAsync() async throws -> [String: Int] {
+        try await dbQueue.read { db in try Self.totalSongPerformanceCountMap(db) }
+    }
+
     /// song_id → 全公演での披露回数。
-    private static func totalSongPerformanceCountMap(_ db: Database) throws -> [String: Int] {
+    static func totalSongPerformanceCountMap(_ db: Database) throws -> [String: Int] {
         let rows = try SongPerfCount.fetchAll(
             db, sql: "SELECT song_id, COUNT(*) as cnt FROM setlist_items GROUP BY song_id"
         )

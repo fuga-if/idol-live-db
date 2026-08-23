@@ -1,5 +1,16 @@
 import SwiftUI
 
+/// 並び順の根拠として一覧行に出す指標。
+///
+/// 「披露回数順」で並べても回数が行に出ていないと、順番だけ見せられて理由が読めない。
+/// 並びを変えたときに何が効いているかを行そのものに書く。
+enum SongRowMetric: Equatable {
+    /// 全公演での披露回数。
+    case performances(Int)
+    /// 回収率 (回収数 / 披露回数)。
+    case collectRate(collected: Int, total: Int)
+}
+
 /// 楽曲一覧の 1 行 (新デザインシステム移植版)。
 ///
 /// 構成: ImasLeadBar(ブランド) + ArtworkImageView(実ジャケ×ソリッドフォールバック, プレビュー対応)
@@ -22,6 +33,14 @@ struct SongRowView: View {
     var onCollectedTap: (() -> Void)? = nil
     /// タグ絞り込み中、その曲に付いたタグ票数。nil で非表示。
     var tagVoteCount: Int? = nil
+    /// 歌詞検索で当たった一節。空なら出さない。
+    ///
+    /// 曲名だけ並べると「なぜこの曲が出てきたのか」が分からず、理由のない絞り込みに見える。
+    var lyricsSnippets: [LyricsSnippet] = []
+    /// 曲名で絞り込んでいるときの入力語。曲名の一致部分に色を敷く。
+    var titleMatch: String? = nil
+    /// 並び順の根拠として出す指標。nil なら出さない。
+    var metric: SongRowMetric? = nil
 
     @Environment(\.colorScheme) private var scheme
 
@@ -81,7 +100,7 @@ struct SongRowView: View {
 
             VStack(alignment: .leading, spacing: 5) {
                 HStack(spacing: 6) {
-                    Text(song.title)
+                    Text(highlightedTitle)
                         .font(.imasHeadline.weight(.semibold))
                         .foregroundStyle(DS.ink)
                         .lineLimit(1)
@@ -99,6 +118,12 @@ struct SongRowView: View {
                 performerLine
 
                 markRow
+
+                // 歌詞検索で当たった一節。語ごとに 1 本ずつ返るが、一覧の行に
+                // 3 本も積むと 1 曲で画面が埋まるので 2 本まで。
+                ForEach(lyricsSnippets.prefix(2)) { s in
+                    LyricsSnippetText(snippet: s, lineLimit: 1)
+                }
             }
             .padding(.top, 1)
 
@@ -157,6 +182,9 @@ struct SongRowView: View {
                         .font(.imasScaled( 11, weight: .semibold))
                         .foregroundStyle(DS.warning)
                 }
+                if let metric {
+                    metricBadge(metric)
+                }
                 if let count = collectedCount, count > 0 {
                     let badge = HStack(spacing: DS.sp1) {
                         Image(systemName: "checkmark")
@@ -177,6 +205,51 @@ struct SongRowView: View {
 
     private var hasAnyMark: Bool {
         song.releaseDate != nil || isMyPick || hasNote || (collectedCount ?? 0) > 0
+            || metric != nil
+    }
+
+    /// 並び順の根拠 (披露回数 / 回収率)。
+    ///
+    /// 回収率は分子 (回収数) が隣の ✓ バッジに出ているので、ここでは率と母数を出す。
+    /// 率だけだと「1回のうち1回」も「12回のうち12回」も 100% で並んでしまい、
+    /// どちらが重いのか読めない。
+    private func metricBadge(_ metric: SongRowMetric) -> some View {
+        let text: String
+        switch metric {
+        case .performances(let count):
+            text = "\(count)回"
+        case .collectRate(_, 0):
+            // 一度も披露されていない曲の「0%」は率ではなく分母が無いだけ。
+            // 率として出すと 0% で回収し損ねたように読める。
+            text = "0回"
+        case .collectRate(let collected, let total):
+            let rate = Int((Double(collected) / Double(total) * 100).rounded())
+            text = "\(rate)% / \(total)回"
+        }
+        return Label(text, systemImage: "music.mic")
+            .labelStyle(.titleAndIcon)
+            .font(.imasScaled(11, weight: .semibold))
+            .foregroundStyle(DS.ink2)
+    }
+
+    // MARK: - 曲名の一致部分
+
+    /// 絞り込み語に当たった部分に色を敷いた曲名。
+    ///
+    /// 歌詞検索のスニペットと同じ見せ方に揃える。「何で引っかかったか」の示し方が
+    /// 検索対象ごとに違うと、同じ一覧なのに読み方を切り替えることになる。
+    /// かな一致 (`title_kana`) で引っかかった場合は漢字表記に範囲が無いので敷かない。
+    private var highlightedTitle: AttributedString {
+        var text = AttributedString(song.title)
+        guard let match = titleMatch?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !match.isEmpty,
+              let range = song.title.range(of: match, options: [.caseInsensitive, .diacriticInsensitive]),
+              let from = AttributedString.Index(range.lowerBound, within: text),
+              let to = AttributedString.Index(range.upperBound, within: text)
+        else { return text }
+        let accent = ImasTheme.derive(seed: nil, scheme: scheme).accent
+        text[from ..< to].backgroundColor = accent.opacity(0.28)
+        return text
     }
 
     // MARK: - Brand color

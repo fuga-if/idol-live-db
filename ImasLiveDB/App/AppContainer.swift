@@ -75,7 +75,15 @@ final class AppContainer: Sendable {
 
     /// 歌詞本文の横断検索の実装。
     /// ⚠️ 曲を跨ぐ唯一の歌詞経路なので、こちらもディスクキャッシュ無しの経路 (LyricsAPI) を通す。
-    let lyricsSearchReading: any LyricsSearchReading = LyricsAPI.shared
+    /// DEBUG かつ `FAKE_LYRICS=1` のときは、ログイン無しで一覧の見た目を確認できるフェイク。
+    let lyricsSearchReading: any LyricsSearchReading = {
+        #if DEBUG
+        if ProcessInfo.processInfo.environment["FAKE_LYRICS"] == "1" {
+            return FakeLyricsSearchReading()
+        }
+        #endif
+        return LyricsAPI.shared
+    }()
 
     /// コールガイド (歌詞行に紐づくコール / 手拍子指示) の書き込み実装。
     /// ⚠️ 歌詞の断片が乗るので、こちらもディスクキャッシュ無しの経路を通す。
