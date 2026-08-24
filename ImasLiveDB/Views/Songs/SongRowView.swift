@@ -1,5 +1,14 @@
 import SwiftUI
 
+/// 行がなぜ結果に入っているか。絞り込みの対象と入力語。
+///
+/// 検索対象ごとに示し方を変えると、同じ一覧なのに読み方を切り替えることになる。
+/// どのスコープでも「当たった箇所に同じ色を敷く」に揃える。
+struct SongRowMatch: Equatable {
+    let text: String
+    let scope: SongSearchMode
+}
+
 /// 並び順の根拠として一覧行に出す指標。
 ///
 /// 「披露回数順」で並べても回数が行に出ていないと、順番だけ見せられて理由が読めない。
@@ -37,8 +46,8 @@ struct SongRowView: View {
     ///
     /// 曲名だけ並べると「なぜこの曲が出てきたのか」が分からず、理由のない絞り込みに見える。
     var lyricsSnippets: [LyricsSnippet] = []
-    /// 曲名で絞り込んでいるときの入力語。曲名の一致部分に色を敷く。
-    var titleMatch: String? = nil
+    /// いま何で絞り込んでいるかと、その語。当たった行に色を敷いて理由を見せる。
+    var searchMatch: SongRowMatch? = nil
     /// 並び順の根拠として出す指標。nil なら出さない。
     var metric: SongRowMetric? = nil
 
@@ -117,6 +126,8 @@ struct SongRowView: View {
 
                 performerLine
 
+                creatorLine
+
                 markRow
 
                 // 歌詞検索で当たった一節。語ごとに 1 本ずつ返るが、一覧の行に
@@ -147,17 +158,83 @@ struct SongRowView: View {
         if !item.performerIdols.isEmpty {
             HStack(spacing: 7) {
                 StackedAvatars(idols: item.performerIdols, maxVisible: 4, size: 22)
-                Text(displayLabel)
+                Text(highlighted(performerText, in: .performer))
                     .font(.imasCaption)
                     .foregroundStyle(DS.ink2)
                     .lineLimit(1)
             }
         } else if !item.artistNames.isEmpty {
-            Text(item.artistNames)
+            Text(highlighted(item.artistNames, in: .performer))
                 .font(.imasCaption)
                 .foregroundStyle(DS.ink2)
                 .lineLimit(1)
         }
+    }
+
+    /// アイドルで絞っているときは、**当たった名前を先頭に**出す。
+    ///
+    /// 普段の表示はユニット名 (`displayLabel`) だが、「田中」で引いた曲が
+    /// 「765 MILLION ALLSTARS」としか出ないと、当たった理由が行から消える。
+    /// 連名をそのまま出しても 1 行に収まらず、当たった箇所が右端で切れて同じことになる。
+    private var performerText: String {
+        guard searchMatch?.scope == .performer, let needle = trimmedMatch else {
+            return displayLabel
+        }
+        if let matched = item.performerIdols.first(where: { contains($0.name, needle) }) {
+            return withOtherCount(matched.name)
+        }
+        // 出演アイドルに無く歌唱者表記で当たった場合 (song_artists 未整備の曲など)。
+        for label in [song.unitName, song.singerLabel, item.artistNames].compactMap({ $0 }) {
+            if let segment = matchedSegment(in: label, needle) { return withOtherCount(segment) }
+        }
+        // よみだけで当たった場合。表記側に範囲が無いので敷けないが、誰なのかは出す。
+        return displayLabel
+    }
+
+    /// 「田中琴葉 ほか51人」。当たった 1 人だけだと規模が分からないので人数を添える。
+    private func withOtherCount(_ name: String) -> String {
+        let others = max(0, item.performerIdols.count - 1)
+        return others > 0 ? "\(name) ほか\(others)人" : name
+    }
+
+    /// 連名表記 (「天海春香、春日未来、…」) から、当たった 1 人ぶんだけ抜き出す。
+    private func matchedSegment(in label: String, _ needle: String) -> String? {
+        label.split(whereSeparator: { "、,・/／".contains($0) })
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .first { contains($0, needle) }
+    }
+
+    /// 作詞・作曲・編曲で絞っているときだけ出す行。普段の一覧には要らない情報なので、
+    /// 当たった理由を見せる必要がある時にだけ増やす。
+    @ViewBuilder
+    private var creatorLine: some View {
+        if searchMatch?.scope == .creator, let text = matchedCreatorText {
+            Text(highlighted(text, in: .creator))
+                .font(.imasCaption2)
+                .foregroundStyle(DS.ink3)
+                .lineLimit(1)
+        }
+    }
+
+    /// 一致したクリエイターの役割と名前。複数の役割で当たったらまとめて出す。
+    private var matchedCreatorText: String? {
+        guard let needle = trimmedMatch else { return nil }
+        let parts = [("作詞", song.lyricist), ("作曲", song.composer), ("編曲", song.arranger)]
+            .compactMap { role, name -> String? in
+                guard let name, contains(name, needle) else { return nil }
+                return "\(role) \(name)"
+            }
+        return parts.isEmpty ? nil : parts.joined(separator: " / ")
+    }
+
+    /// 空白を落とした絞り込み語。空なら nil。
+    private var trimmedMatch: String? {
+        let text = searchMatch?.text.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return text.isEmpty ? nil : text
+    }
+
+    private func contains(_ haystack: String, _ needle: String) -> Bool {
+        haystack.range(of: needle, options: [.caseInsensitive, .diacriticInsensitive]) != nil
     }
 
     // MARK: - マイマーク (リリース日 / 担当♥ / メモ / 現地回収✓)
@@ -232,23 +309,30 @@ struct SongRowView: View {
             .foregroundStyle(DS.ink2)
     }
 
-    // MARK: - 曲名の一致部分
+    // MARK: - 一致部分のハイライト
 
-    /// 絞り込み語に当たった部分に色を敷いた曲名。
+    private var highlightedTitle: AttributedString { highlighted(song.title, in: .title) }
+
+    /// 絞り込み語に当たった部分に色を敷く。
     ///
     /// 歌詞検索のスニペットと同じ見せ方に揃える。「何で引っかかったか」の示し方が
     /// 検索対象ごとに違うと、同じ一覧なのに読み方を切り替えることになる。
-    /// かな一致 (`title_kana`) で引っかかった場合は漢字表記に範囲が無いので敷かない。
-    private var highlightedTitle: AttributedString {
-        var text = AttributedString(song.title)
-        guard let match = titleMatch?.trimmingCharacters(in: .whitespacesAndNewlines),
-              !match.isEmpty,
-              let range = song.title.range(of: match, options: [.caseInsensitive, .diacriticInsensitive]),
+    ///
+    /// 別のスコープで絞っているときは敷かない (曲名で絞ったのにアイドル名が光ると、
+    /// どちらで当たったのか読めなくなる)。よみで引っかかった場合は表記側に範囲が
+    /// 無いので、そのときも敷かない。
+    private func highlighted(_ source: String, in scope: SongSearchMode) -> AttributedString {
+        var text = AttributedString(source)
+        guard let match = searchMatch, match.scope == scope else { return text }
+        let needle = match.text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !needle.isEmpty,
+              let range = source.range(of: needle,
+                                       options: [.caseInsensitive, .diacriticInsensitive]),
               let from = AttributedString.Index(range.lowerBound, within: text),
               let to = AttributedString.Index(range.upperBound, within: text)
         else { return text }
-        let accent = ImasTheme.derive(seed: nil, scheme: scheme).accent
-        text[from ..< to].backgroundColor = accent.opacity(0.28)
+        text[from ..< to].backgroundColor =
+            ImasTheme.derive(seed: nil, scheme: scheme).accent.opacity(0.28)
         return text
     }
 

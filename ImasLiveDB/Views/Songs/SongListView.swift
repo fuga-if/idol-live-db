@@ -1,9 +1,15 @@
 import os
 import SwiftUI
 
-/// 一覧の検索対象。歌詞はサーバ (D1) に問い合わせる。
+/// 一覧の検索対象。歌詞以外はすべて手元 (`TextSearchIndex`) で判定する。
+///
+/// スコープを混ぜて「すべて」で探す案は捨てた。短い語ほど壊れるからで、
+/// 「愛」で曲名を探したいのにアイドル名にも作曲者名にも「愛」は入っている。
+/// 結果は常に 1 スコープぶんにして、**他のスコープに何件あるかだけ知らせる**
+/// (`SongListView.scopeSuggestionBar`)。混ざらないので「どれで引っかかったか」も
+/// 起きず、見落としもしない。
 enum SongSearchMode: String, CaseIterable, Hashable {
-    case title, lyrics
+    case title, performer, creator, lyrics
 
     /// 画面に出してよい検索対象。
     ///
@@ -15,6 +21,13 @@ enum SongSearchMode: String, CaseIterable, Hashable {
         allCases.filter { $0 != .lyrics || LyricsFeature.isAvailable }
     }
 
+    /// 手元のデータだけで判定できるか。
+    ///
+    /// 歌詞だけが D1 への問い合わせなので、打鍵ごとに動かせず件数も出せない
+    /// (数えるだけでクエリを 1 本消費する)。それ以外は既に読み込み済みの
+    /// `songs` から作った索引を舐めるだけで、2,000 曲でも 1 打鍵 0.1ms で終わる。
+    var isLocal: Bool { self != .lyrics }
+
     /// 切り替えチップとメニューに出す文言。
     ///
     /// `.title` は表示形式で実際に絞る対象が変わる (曲 / アルバム / シリーズ) ので、
@@ -22,8 +35,10 @@ enum SongSearchMode: String, CaseIterable, Hashable {
     /// 何を打てばいいのか分からなくなる。
     func label(in listMode: SongListMode) -> String {
         switch self {
-        case .title:  listMode.nameFilterLabel
-        case .lyrics: "歌詞"
+        case .title:     listMode.nameFilterLabel
+        case .performer: "アイドル"
+        case .creator:   "作詞作曲"
+        case .lyrics:    "歌詞"
         }
     }
 }
@@ -104,9 +119,10 @@ struct SongListView: View {
             collectFilter: collectFilter,
             myMarkFilter: myMarkFilter,
             selectedTagCount: selectedTags.count,
-            // 歌詞モードの入力は曲名の絞り込み語ではない。そのまま渡すと再ロードのたびに
+            // 歌詞モードの入力は手元で絞れる語ではない。そのまま渡すと再ロードのたびに
             // 曲名で絞り直され、歌詞で当たった曲まで落ちる。
-            searchText: searchMode == .lyrics ? "" : searchText)
+            searchText: searchMode.isLocal ? searchText : "",
+            searchScope: searchMode)
     }
 
     /// 現在の UI 状態で曲リストを即時再ロードする（チップ解除などフィルタ変更の共通導線）。
@@ -156,6 +172,7 @@ struct SongListView: View {
     @ViewBuilder
     private var content: some View {
             VStack(spacing: 0) {
+                scopeSuggestionBar
                 removableFilterBar
                 tagFilterErrorBanner
                 introDonLaunchBar
@@ -172,19 +189,22 @@ struct SongListView: View {
             .onChange(of: searchText) { _, _ in
                 // 歌詞は打鍵ごとに投げない (D1 の読み取りを打鍵数で消費しないため)。
                 // 確定するまでは前回の結果を消して、古い結果が残らないようにする。
-                if searchMode == .lyrics {
+                if searchMode.isLocal {
+                    vm.recomputeDisplayed(searchText: searchText, scope: searchMode)
+                } else {
                     lyricsHits = nil
                     vm.applyLyricsMatches(nil, searchText: "")
-                } else {
-                    vm.recomputeDisplayed(searchText: searchText)
                 }
             }
                 .onChange(of: searchMode) { _, _ in
                     lyricsHits = nil
-                    vm.applyLyricsMatches(nil, searchText: searchMode == .lyrics ? "" : searchText)
+                    vm.applyLyricsMatches(nil,
+                                          searchText: searchMode.isLocal ? searchText : "")
+                    if searchMode.isLocal {
+                        vm.recomputeDisplayed(searchText: searchText, scope: searchMode)
+                    }
                     // 対象を切り替えたのは明示的な操作なので、入力が残っているならその場で引き直す。
                     // 打鍵のたびに投げるわけではないので D1 の読み取りは無駄にならない。
-                    // (曲名側は上の `applyLyricsMatches` がその場で絞り直している)
                     runLyricsSearchIfNeeded()
                 }
                 .navigationTitle("楽曲")
@@ -253,6 +273,66 @@ struct SongListView: View {
         } else {
             showLoginPrompt = true
         }
+    }
+
+    /// 「ほかのスコープにも当たりがある」ことを知らせる行。
+    ///
+    /// スコープを混ぜないので結果は常に 1 種類ぶんで、「曲名だけで絞りたかったのに」も
+    /// 「どれで引っかかったか分からない」も起きない。代わりに見落とす恐れがあるので、
+    /// 件数だけ出して 1 タップで移れるようにする。
+    ///
+    /// 歌詞に件数が付かないのは、数えるだけで D1 のクエリを 1 本消費するから。
+    /// 誘い文句だけ置いて、押したときに初めて投げる。
+    @ViewBuilder
+    private var scopeSuggestionBar: some View {
+        let suggestions = scopeSuggestions
+        if !suggestions.isEmpty || showsLyricsSuggestion {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: DS.sp3) {
+                    Text("ほかに")
+                        .font(.imasCaption)
+                        .foregroundStyle(DS.ink3)
+                    ForEach(suggestions, id: \.scope) { item in
+                        scopeChip(label: "\(item.scope.label(in: listMode)) \(item.count)件",
+                                  scope: item.scope)
+                    }
+                    if showsLyricsSuggestion {
+                        scopeChip(label: "歌詞で探す", scope: .lyrics)
+                    }
+                }
+                .padding(.horizontal, DS.sp5)
+                .padding(.vertical, DS.sp2)
+            }
+        }
+    }
+
+    /// 表示中でないスコープのうち、1 件以上当たるもの。
+    private var scopeSuggestions: [(scope: SongSearchMode, count: Int)] {
+        guard searchMode.isLocal, !searchText.isEmpty else { return [] }
+        let counts = vm.localScopeCounts(searchText: searchText)
+        return SongSearchMode.available
+            .filter { $0 != searchMode && $0.isLocal && (counts[$0] ?? 0) > 0 }
+            .map { ($0, counts[$0] ?? 0) }
+    }
+
+    /// 歌詞の誘いは、入力があって歌詞を見ていないときだけ。件数は出さない。
+    private var showsLyricsSuggestion: Bool {
+        LyricsFeature.isAvailable && searchMode != .lyrics && !searchText.isEmpty
+    }
+
+    private func scopeChip(label: String, scope: SongSearchMode) -> some View {
+        Button {
+            AppAnalytics.tap("song_list.scope_suggestion")
+            searchMode = scope
+        } label: {
+            Text(label)
+                .font(.imasCaption.weight(.semibold))
+                .foregroundStyle(DS.ink2)
+                .padding(.horizontal, DS.sp4)
+                .padding(.vertical, 6)
+                .background(DS.fill, in: Capsule())
+        }
+        .buttonStyle(.plain)
     }
 
     /// 適用中フィルタの removable チップ列 (デザインの filters セクション)。
@@ -630,6 +710,9 @@ struct SongListView: View {
                 }
             }
         }
+        // 空状態は自分では縦に伸びないので、そのままだと上下に白帯を残して
+        // 画面の真ん中に浮く (スコープの件数チップまで一緒に下がる)。
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     /// 件数 + ソートコントロール (デザインの csort 行)。ソートボタンはフィルタシートを開く。
@@ -693,7 +776,8 @@ struct SongListView: View {
                     onCollectedTap: { sheetDestination = .songHistory(item.song) },
                     tagVoteCount: selectedTags.count == 1 ? vm.tagVoteCounts[item.song.id] : nil,
                     lyricsSnippets: lyricsHits?[item.song.id] ?? [],
-                    titleMatch: searchMode == .title ? searchText : nil,
+                    searchMatch: searchText.isEmpty
+                        ? nil : SongRowMatch(text: searchText, scope: searchMode),
                     metric: rowMetric(for: item.song.id)
                 )
                 .contentShape(Rectangle())

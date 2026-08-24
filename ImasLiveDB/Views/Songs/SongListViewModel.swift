@@ -22,16 +22,63 @@ final class SongListViewModel {
     private(set) var displayedSongs: [SongWithArtists] = []
     private(set) var isLoading = false
 
-    /// `songs` と同じ並びの検索用インデックス。曲名・よみを前処理して持つ。
+    /// `songs` と同じ並びの検索用インデックス。スコープごとに 1 本ずつ前処理して持つ。
     ///
     /// 打鍵ごとに `title.lowercased().contains(...)` を全曲ぶん回すと、2,000 曲で
     /// 1 打鍵 1.4ms 掛かっていた (`String` は書記素クラスタ単位で走るため日本語で遅い)。
-    /// 読み込み時に小文字化した UTF-8 バイト列を作っておけば 0.1ms で済む。
-    /// 詳しい実測は `TextSearchIndex` のコメント。
-    private var searchIndex: [TextSearchIndex] = []
+    /// 読み込み時に小文字化した UTF-8 バイト列を作っておけば、3 スコープぶん数えても
+    /// 0.1ms で済む。詳しい実測は `TextSearchIndex` のコメント。
+    private var searchIndex: [SongScopeIndex] = []
+
+    /// 1 曲ぶんの、手元で判定できるスコープの索引。
+    private struct SongScopeIndex {
+        let title: TextSearchIndex
+        let performer: TextSearchIndex
+        let creator: TextSearchIndex
+
+        func index(for scope: SongSearchMode) -> TextSearchIndex? {
+            switch scope {
+            case .title:     title
+            case .performer: performer
+            case .creator:   creator
+            case .lyrics:    nil   // サーバ側。手元では判定できない
+            }
+        }
+    }
 
     private func rebuildSearchIndex() {
-        searchIndex = songs.map { TextSearchIndex([$0.song.title, $0.song.titleKana]) }
+        searchIndex = songs.map { item in
+            let song = item.song
+            return SongScopeIndex(
+                title: TextSearchIndex([song.title, song.titleKana]),
+                // ユニット名・歌唱者表記・出演アイドル (よみ含む) を横並びに見る。
+                // 「ミリオンスターズ」でも「春日未来」でも当たってほしいので、
+                // どれか 1 つに寄せられない。
+                performer: TextSearchIndex(
+                    [song.unitName, song.singerLabel, item.artistNames]
+                        + item.performerIdols.flatMap { [$0.name, $0.nameKana] }),
+                creator: TextSearchIndex([song.lyricist, song.composer, song.arranger]))
+        }
+    }
+
+    /// いま効いている絞り込みの中で、手元判定のスコープごとに何件当たるか。
+    ///
+    /// 数えるのは**表示中のスコープ以外**を知らせるため。結果は 1 スコープぶんに保ったまま
+    /// 「アイドル名でも 8 件ある」と伝えられる。`songs` は既にブランド絞り込み等を通った
+    /// 後なので、ここの数字はそのまま切り替えた後の件数と一致する。
+    ///
+    /// 歌詞は含まない (D1 を叩かないと分からず、数えるだけでクエリを消費する)。
+    func localScopeCounts(searchText: String) -> [SongSearchMode: Int] {
+        let needle = TextSearchIndex.Needle(searchText)
+        guard !needle.isEmpty, searchIndex.count == songs.count else { return [:] }
+        var counts: [SongSearchMode: Int] = [:]
+        // 1 回の走査で全スコープ数える。スコープごとに回すと走査が 3 倍になる。
+        for entry in searchIndex {
+            if entry.title.matches(needle) { counts[.title, default: 0] += 1 }
+            if entry.performer.matches(needle) { counts[.performer, default: 0] += 1 }
+            if entry.creator.matches(needle) { counts[.creator, default: 0] += 1 }
+        }
+        return counts
     }
 
     // 行アイコン用のマーク集合・回収数 (song_id ベース)。
@@ -104,7 +151,7 @@ final class SongListViewModel {
             // 世代ガード: await の間により新しい load が始まっていたら、この結果は stale なので捨てる。
             guard currentTaskId == taskId else { return }
             songs = results
-            recomputeDisplayed(searchText: request.searchText)
+            recomputeDisplayed(searchText: request.searchText, scope: request.searchScope)
             // 行に「その順で並んでいる根拠」を出す並びのときだけ数える。
             performanceCounts = request.sortOrder.showsPerformanceCount
                 ? ((try? await songReading.songPerformanceCounts()) ?? [:])
@@ -163,24 +210,20 @@ final class SongListViewModel {
     ///
     /// 歌詞検索中 (`lyricsMatchIds` が非 nil) はそちらで絞る。サーバから返るのは
     /// song_id だけなので、ブランド絞り込みや並び順は一覧側の既存の仕組みがそのまま効く。
-    func recomputeDisplayed(searchText: String) {
+    func recomputeDisplayed(searchText: String, scope: SongSearchMode = .title) {
         if let lyricsMatchIds {
             displayedSongs = songs.filter { lyricsMatchIds.contains($0.song.id) }
-            return
-        }
-        guard !searchText.isEmpty else {
-            displayedSongs = songs
             return
         }
         let needle = TextSearchIndex.Needle(searchText)
         // インデックスは `songs` と同じ並び。`didSet` で必ず張り直しているが、
         // 万一ずれても落ちないよう件数を見てから添字を使う。
-        guard searchIndex.count == songs.count else {
+        guard !needle.isEmpty, searchIndex.count == songs.count else {
             displayedSongs = songs
             return
         }
         displayedSongs = songs.indices.compactMap { i in
-            searchIndex[i].matches(needle) ? songs[i] : nil
+            searchIndex[i].index(for: scope)?.matches(needle) == true ? songs[i] : nil
         }
     }
 
@@ -248,4 +291,6 @@ struct SongListRequest {
     var myMarkFilter: SongMyMarkFilter
     var selectedTagCount: Int
     var searchText: String
+    /// `searchText` を何に当てるか。歌詞のときは手元で絞れないので空文字が来る。
+    var searchScope: SongSearchMode = .title
 }
