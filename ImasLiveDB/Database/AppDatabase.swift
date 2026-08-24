@@ -337,12 +337,17 @@ final class AppDatabase: @unchecked Sendable {
                 try db.execute(sql: "INSERT OR IGNORE INTO grdb_migrations(identifier) VALUES ('v18_event_joint_brands')")
             }
 
-            // v19: idols.voice_actors カラム存在 + cast テーブル不在で判定。
-            // Bundle DB は cast/idol_cast 廃止済 + voice_actors 追加済なので、 ここで pre-populate
-            // しないと新規インストール時に v19 migration が「cast テーブル無し」で SQL エラー →
+            // v19: cast テーブルの不在**だけ**で判定する。
+            // Bundle DB は cast/idol_cast 廃止済なので、ここで pre-populate しないと
+            // 新規インストール時に v19 migration が「cast テーブル無し」で SQL エラー →
             // アプリ起動クラッシュ (Apple 審査 reject の原因)。
+            //
+            // ⚠️ 判定に**列の有無**を混ぜないこと。以前は `idols.voice_actors` の存在も
+            // 見ていたが、声優履歴 (`idol_voice_actors`) への移行でその列を落とした瞬間に
+            // 条件が成立しなくなり、新規インストールが全部起動クラッシュする状態になった。
+            // ここで見るべきは「その migration が対象とするテーブルが既に無いか」だけ。
             let hasCastTable = try Row.fetchOne(db, sql: "SELECT name FROM sqlite_master WHERE type='table' AND name='cast'") != nil
-            if idolsColumns.contains("voice_actors") && !hasCastTable {
+            if !hasCastTable {
                 try db.execute(sql: "INSERT OR IGNORE INTO grdb_migrations(identifier) VALUES ('v19_drop_cast')")
                 // 同時に過去の v16 (legacy infinity event 掃除) も Bundle DB では関係ないので skip
                 try db.execute(sql: "INSERT OR IGNORE INTO grdb_migrations(identifier) VALUES ('v16_remove_legacy_infinity_event')")
