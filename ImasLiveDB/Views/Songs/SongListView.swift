@@ -28,6 +28,9 @@ enum SongSearchMode: String, CaseIterable, Hashable {
     /// `songs` から作った索引を舐めるだけで、2,000 曲でも 1 打鍵 0.1ms で終わる。
     var isLocal: Bool { self != .lyrics }
 
+    /// 手元で判定できる対象。件数を出せるのはこれだけ。
+    static let localScopes: [SongSearchMode] = allCases.filter(\.isLocal)
+
     /// 切り替えチップとメニューに出す文言。
     ///
     /// `.title` は表示形式で実際に絞る対象が変わる (曲 / アルバム / シリーズ) ので、
@@ -48,7 +51,7 @@ enum SongListMode: String, CaseIterable {
     case albums
     case series
 
-    /// 名前絞り込みが絞る対象。
+    /// 名前絞り込みが絞る対象。検索欄の頭のチップに出す。
     var nameFilterLabel: String {
         switch self {
         case .songs:  "曲名"
@@ -56,10 +59,6 @@ enum SongListMode: String, CaseIterable {
         case .series: "シリーズ名"
         }
     }
-
-    /// フィルタシートの入力欄に出す文言。
-    /// 一覧側はチップが対象を示すので、こちらの長い文言は使わない。
-    var nameFilterPrompt: String { "\(nameFilterLabel)で絞り込み" }
 }
 
 struct SongListView: View {
@@ -75,11 +74,6 @@ struct SongListView: View {
     @State private var searchText = ""
     /// 曲名で絞るか、歌詞で絞るか。歌詞はサーバに問い合わせる。
     @State private var searchMode: SongSearchMode = .title
-    /// 歌詞検索の結果 (song_id → 一致箇所のスニペット)。nil = まだ検索していない。
-    ///
-    /// id だけでなくスニペットも持つ。行に「どこで引っかかったか」を出さないと、
-    /// 曲名だけが並んで理由の分からない絞り込みに見える。
-    @State private var lyricsHits: [String: [LyricsSnippet]]?
     @State private var lyricsSearching = false
     /// 新規曲作成 sheet。
     @State private var showSongCreate = false
@@ -155,18 +149,24 @@ struct SongListView: View {
             do {
                 let hits = try await AppContainer.shared.lyricsSearchReading
                     .searchLyrics(query: LyricsQueryNode.simpleQuery(query))
-                applyLyricsHits(Dictionary(hits.map { ($0.songId, $0.snippets) },
-                                           uniquingKeysWith: { a, _ in a }))
+                vm.applyFilter(searchText: "", scope: .lyrics,
+                               lyricsHits: Dictionary(hits.map { ($0.songId, $0.snippets) },
+                                                      uniquingKeysWith: { a, _ in a }))
             } catch {
                 Logger.database.error("lyrics_list_search_failed: \(error.localizedDescription)")
-                applyLyricsHits([:])
+                vm.applyFilter(searchText: "", scope: .lyrics, lyricsHits: [:])
             }
         }
     }
 
-    private func applyLyricsHits(_ hits: [String: [LyricsSnippet]]) {
-        lyricsHits = hits
-        vm.applyLyricsMatches(Set(hits.keys), searchText: "")
+    /// 入力か対象が変わったときの絞り込み直し。
+    ///
+    /// 歌詞は打鍵ごとに投げない (D1 の読み取りを打鍵数で消費しないため)。確定するまでは
+    /// 前回の結果を捨てて、古い結果が残らないようにする。
+    private func searchInputChanged() {
+        vm.applyFilter(searchText: searchMode.isLocal ? searchText : "",
+                       scope: searchMode,
+                       lyricsHits: .some(nil))
     }
 
     @ViewBuilder
@@ -186,23 +186,9 @@ struct SongListView: View {
             // 絞り込み欄がナビバーの中にあるので `.searchable` のキャンセルボタンが無い。
             // スクロールでキーボードを閉じられないと、打った後に一覧が半分隠れたままになる。
             .scrollDismissesKeyboard(.immediately)
-            .onChange(of: searchText) { _, _ in
-                // 歌詞は打鍵ごとに投げない (D1 の読み取りを打鍵数で消費しないため)。
-                // 確定するまでは前回の結果を消して、古い結果が残らないようにする。
-                if searchMode.isLocal {
-                    vm.recomputeDisplayed(searchText: searchText, scope: searchMode)
-                } else {
-                    lyricsHits = nil
-                    vm.applyLyricsMatches(nil, searchText: "")
-                }
-            }
+            .onChange(of: searchText) { _, _ in searchInputChanged() }
                 .onChange(of: searchMode) { _, _ in
-                    lyricsHits = nil
-                    vm.applyLyricsMatches(nil,
-                                          searchText: searchMode.isLocal ? searchText : "")
-                    if searchMode.isLocal {
-                        vm.recomputeDisplayed(searchText: searchText, scope: searchMode)
-                    }
+                    searchInputChanged()
                     // 対象を切り替えたのは明示的な操作なので、入力が残っているならその場で引き直す。
                     // 打鍵のたびに投げるわけではないので D1 の読み取りは無駄にならない。
                     runLyricsSearchIfNeeded()
@@ -307,12 +293,14 @@ struct SongListView: View {
     }
 
     /// 表示中でないスコープのうち、1 件以上当たるもの。
+    ///
+    /// 件数は VM が絞り込みと同じ走査で出したものを読むだけ。ここで数えると
+    /// `body` 評価のたびに 2,000 曲を走査することになる。
     private var scopeSuggestions: [(scope: SongSearchMode, count: Int)] {
-        guard searchMode.isLocal, !searchText.isEmpty else { return [] }
-        let counts = vm.localScopeCounts(searchText: searchText)
-        return SongSearchMode.available
-            .filter { $0 != searchMode && $0.isLocal && (counts[$0] ?? 0) > 0 }
-            .map { ($0, counts[$0] ?? 0) }
+        SongSearchMode.localScopes.compactMap { scope in
+            guard let count = vm.otherScopeCounts[scope], count > 0 else { return nil }
+            return (scope, count)
+        }
     }
 
     /// 歌詞の誘いは、入力があって歌詞を見ていないときだけ。件数は出さない。
@@ -321,18 +309,12 @@ struct SongListView: View {
     }
 
     private func scopeChip(label: String, scope: SongSearchMode) -> some View {
-        Button {
+        // 見た目は下のフィルタチップ列 (`removableFilterBar`) と揃える。
+        // 自前で組むと同じ VStack に並ぶチップだけ字送りと余白がずれる。
+        ImasFilterChip(text: label, isSelected: false) {
             AppAnalytics.tap("song_list.scope_suggestion")
             searchMode = scope
-        } label: {
-            Text(label)
-                .font(.imasCaption.weight(.semibold))
-                .foregroundStyle(DS.ink2)
-                .padding(.horizontal, DS.sp4)
-                .padding(.vertical, 6)
-                .background(DS.fill, in: Capsule())
         }
-        .buttonStyle(.plain)
     }
 
     /// 適用中フィルタの removable チップ列 (デザインの filters セクション)。
@@ -559,8 +541,10 @@ struct SongListView: View {
             },
             menuActions: songMenuActions
         ) {
+            // 何を絞るかはチップが示すので、プレースホルダは動詞だけでいい。
+            // 「曲名⌄ 曲名で絞り込み」と二重に書くと、狭い欄が更に読みにくくなる。
             ListSearchField(
-                prompt: searchPrompt,
+                prompt: searchMode == .lyrics ? "一節を入力" : "絞り込み",
                 text: $searchText,
                 onSubmit: runLyricsSearchIfNeeded
             ) {
@@ -569,49 +553,33 @@ struct SongListView: View {
         }
     }
 
-    /// 入力欄のプレースホルダ。
-    ///
-    /// チップが対象を示しているなら動詞だけでいい。「曲名⌄ 曲名で絞り込み」と二重に書くと
-    /// 狭い欄が更に読みにくくなる。チップを出していないとき (歌詞が未許諾で 1 択のとき) は
-    /// 対象がどこにも書かれないので、こちらで明示する。
-    private var searchPrompt: String {
-        guard SongSearchMode.available.count > 1 else { return listMode.nameFilterPrompt }
-        return searchMode == .lyrics ? "一節を入力" : "絞り込み"
-    }
-
     /// 入力欄の頭に差す 曲名 / 歌詞 の切り替え。
     ///
     /// `.searchScopes` の全幅セグメントだと行を 1 本余分に食い、畳んだヘッダーが元に戻る。
     /// 入力欄の中のチップなら、何を探しているかを見せたまま 1 行に収まる。
     ///
-    /// 選べる対象が 1 つしかない (歌詞が未許諾で落ちている) ときは丸ごと出さない。
-    /// 押しても 1 択しか出ないメニューは、狭い欄の幅を食うだけで何の役にも立たない。
-    @ViewBuilder
     private var searchModeChip: some View {
-        let modes = SongSearchMode.available
-        if modes.count > 1 {
-            Menu {
-                Picker("検索対象", selection: $searchMode) {
-                    ForEach(modes, id: \.self) {
-                        Text($0.label(in: listMode)).tag($0)
-                    }
+        Menu {
+            Picker("検索対象", selection: $searchMode) {
+                ForEach(SongSearchMode.available, id: \.self) {
+                    Text($0.label(in: listMode)).tag($0)
                 }
-            } label: {
-                HStack(spacing: 1) {
-                    Text(searchMode.label(in: listMode))
-                        .font(.imasCaption.weight(.semibold))
-                    Image(systemName: "chevron.down")
-                        .font(.imasScaled(8, weight: .semibold))
-                }
-                .foregroundStyle(DS.ink2)
-                .padding(.horizontal, DS.sp2)
-                .padding(.vertical, 2)
-                .background(DS.surface, in: Capsule())
-                .lineLimit(1)
-                .fixedSize()
             }
-            .accessibilityLabel("検索対象: \(searchMode.label(in: listMode))")
+        } label: {
+            HStack(spacing: 1) {
+                Text(searchMode.label(in: listMode))
+                    .font(.imasCaption.weight(.semibold))
+                Image(systemName: "chevron.down")
+                    .font(.imasScaled(8, weight: .semibold))
+            }
+            .foregroundStyle(DS.ink2)
+            .padding(.horizontal, DS.sp2)
+            .padding(.vertical, 2)
+            .background(DS.surface, in: Capsule())
+            .lineLimit(1)
+            .fixedSize()
         }
+        .accessibilityLabel("検索対象: \(searchMode.label(in: listMode))")
     }
 
     private var songMenuActions: [ListToolbarAction] {
@@ -751,13 +719,15 @@ struct SongListView: View {
     /// 出しっぱなしにすると、どの並びでも同じ情報が載って「今は何で並んでいるか」の
     /// 手掛かりにならない。並びを変えた時だけ増える方が、変えた結果として読める。
     private func rowMetric(for songId: String) -> SongRowMetric? {
-        guard sortOrder.showsPerformanceCount else { return nil }
         let total = vm.performanceCounts[songId] ?? 0
         switch sortOrder {
+        case .performanceCount:
+            return .performances(total)
         case .collectedRate:
             return .collectRate(collected: vm.collectedCounts[songId] ?? 0, total: total)
-        default:
-            return .performances(total)
+        case .titleKana, .releaseDate, .collectedCount:
+            // 現地回収回数順は行の ✓N バッジが既に根拠になっている。
+            return nil
         }
     }
 
@@ -775,7 +745,7 @@ struct SongListView: View {
                     hasNote: vm.notedSongIds.contains(item.song.id),
                     onCollectedTap: { sheetDestination = .songHistory(item.song) },
                     tagVoteCount: selectedTags.count == 1 ? vm.tagVoteCounts[item.song.id] : nil,
-                    lyricsSnippets: lyricsHits?[item.song.id] ?? [],
+                    lyricsSnippets: vm.lyricsHits?[item.song.id] ?? [],
                     searchMatch: searchText.isEmpty
                         ? nil : SongRowMatch(text: searchText, scope: searchMode),
                     metric: rowMetric(for: item.song.id)

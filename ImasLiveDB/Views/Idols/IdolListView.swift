@@ -132,23 +132,14 @@ struct IdolListView: View {
                     if listTab == 0 {
                         idolBody
                     } else {
-                        // 絞り込み欄はナビバー側 (`listSearchField`) が兼ねる。
-                        UnitListContent(vm: unitVM, showsFilterField: false)
+                        // ユニット側は自前でナビバーの絞り込み欄とツールバーを持つ
+                        // (こちらの `standardListToolbar` は `idolBody` に付いていて、
+                        // アイドルタブが表示されている間しか木に居ないため)。
+                        UnitListContent(vm: unitVM)
                     }
                 }
             }
         }
-    }
-
-    /// ナビバーの中の絞り込み欄。アイドル/ユニットのどちらを見ているかで宛先を変える。
-    ///
-    /// タブごとに別の欄を置くと、切り替えるたびに絞り込みが片方だけ残って
-    /// 「絞ったはずなのに全部出る」ように見える。欄は 1 つにして、中身の宛先だけ替える。
-    private var listSearchField: some View {
-        ListSearchField(
-            prompt: listTab == 0 ? "アイドル名・CV名" : "ユニット名",
-            text: listTab == 0 ? $searchText : $unitVM.searchText
-        )
     }
 
     /// 一覧タブ (アイドル/ユニット)。ナビゲーションタイトル下・検索バー上に固定表示する。
@@ -232,7 +223,7 @@ struct IdolListView: View {
                 },
                 menuActions: idolMenuActions
             ) {
-                listSearchField
+                ListSearchField(prompt: "アイドル名・CV名", text: $searchText)
             }
         }
         .navigationDestination(for: Idol.self) { idol in

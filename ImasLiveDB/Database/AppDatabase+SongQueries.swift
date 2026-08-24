@@ -200,7 +200,7 @@ extension AppDatabase {
     }
 
     /// song_id → 全公演での披露回数。
-    static func totalSongPerformanceCountMap(_ db: Database) throws -> [String: Int] {
+    private static func totalSongPerformanceCountMap(_ db: Database) throws -> [String: Int] {
         let rows = try SongPerfCount.fetchAll(
             db, sql: "SELECT song_id, COUNT(*) as cnt FROM setlist_items GROUP BY song_id"
         )
