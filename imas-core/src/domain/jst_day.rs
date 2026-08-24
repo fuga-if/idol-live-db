@@ -15,7 +15,6 @@ use chrono::{DateTime, FixedOffset};
 const JST_OFFSET_SECONDS: i32 = 9 * 3600;
 
 /// JST での「今日」を公演日と同じ `"yyyy-MM-dd"` 表記で返す。
-#[uniffi::export]
 pub fn jst_today(now_epoch_seconds: i64) -> String {
     let jst = FixedOffset::east_opt(JST_OFFSET_SECONDS).expect("JST offset は常に有効");
     // 表現不能な epoch (紀元前後数億年) のみ None。公演日データでは到達しない。
@@ -26,7 +25,6 @@ pub fn jst_today(now_epoch_seconds: i64) -> String {
 /// 公演日が「今日以降」か。当日は未来として扱う (開催日当日はまだ終わっていない)。
 ///
 /// `date` は `"yyyy-MM-dd"` の公演日。空文字は未来ではない。
-#[uniffi::export]
 pub fn jst_is_today_or_later(date: String, now_epoch_seconds: i64) -> bool {
     !date.is_empty() && date.as_str() >= jst_today(now_epoch_seconds).as_str()
 }
