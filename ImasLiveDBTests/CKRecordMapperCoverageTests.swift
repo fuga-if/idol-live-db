@@ -113,6 +113,9 @@ final class CKRecordMapperCoverageTests: XCTestCase {
             "attribute": "クール" as NSString,
             "isExternal": 0 as NSNumber,
             "aliases": "千早" as NSString,
+            // `Idol` からは消した列だが、レコードには今も載っている
+            // (声優履歴 `idol_voice_actors` から導出して、旧バージョンのアプリに配り続けている)。
+            // マッパーが読まない余分なキーがあっても壊れないことの確認も兼ねる。
             "voiceActors": "今井麻美" as NSString,
         ])
 

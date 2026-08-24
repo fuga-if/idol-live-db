@@ -12,7 +12,7 @@ final class MyPageRulesTests: XCTestCase {
             sortOrder: 0, birthday: nil, bloodType: nil, height: nil, weight: nil,
             birthPlace: nil, age: nil, bust: nil, waist: nil, hip: nil, constellation: nil,
             hobbies: nil, talents: nil, description: nil, gender: nil, handedness: nil,
-            debutDate: nil, attribute: nil, aliases: nil, voiceActors: nil)
+            debutDate: nil, attribute: nil, aliases: nil)
     }
 
     // MARK: - resolveOshiTheme

@@ -15,10 +15,24 @@ import os
 @MainActor
 @Observable
 final class SongListViewModel {
-    private(set) var songs: [SongWithArtists] = []
+    private(set) var songs: [SongWithArtists] = [] {
+        didSet { rebuildSearchIndex() }
+    }
     /// `searchText` で絞り込んだ表示用キャッシュ (毎 body 評価で全曲走査しないため)。
     private(set) var displayedSongs: [SongWithArtists] = []
     private(set) var isLoading = false
+
+    /// `songs` と同じ並びの検索用インデックス。曲名・よみを前処理して持つ。
+    ///
+    /// 打鍵ごとに `title.lowercased().contains(...)` を全曲ぶん回すと、2,000 曲で
+    /// 1 打鍵 1.4ms 掛かっていた (`String` は書記素クラスタ単位で走るため日本語で遅い)。
+    /// 読み込み時に小文字化した UTF-8 バイト列を作っておけば 0.1ms で済む。
+    /// 詳しい実測は `TextSearchIndex` のコメント。
+    private var searchIndex: [TextSearchIndex] = []
+
+    private func rebuildSearchIndex() {
+        searchIndex = songs.map { TextSearchIndex([$0.song.title, $0.song.titleKana]) }
+    }
 
     // 行アイコン用のマーク集合・回収数 (song_id ベース)。
     private(set) var collectedCounts: [String: Int] = [:]
@@ -158,10 +172,15 @@ final class SongListViewModel {
             displayedSongs = songs
             return
         }
-        let lower = searchText.lowercased()
-        displayedSongs = songs.filter { sa in
-            sa.song.title.lowercased().contains(lower) ||
-            sa.song.titleKana?.lowercased().contains(lower) == true
+        let needle = TextSearchIndex.Needle(searchText)
+        // インデックスは `songs` と同じ並び。`didSet` で必ず張り直しているが、
+        // 万一ずれても落ちないよう件数を見てから添字を使う。
+        guard searchIndex.count == songs.count else {
+            displayedSongs = songs
+            return
+        }
+        displayedSongs = songs.indices.compactMap { i in
+            searchIndex[i].matches(needle) ? songs[i] : nil
         }
     }
 
