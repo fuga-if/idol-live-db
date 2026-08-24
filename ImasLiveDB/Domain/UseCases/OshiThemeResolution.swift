@@ -1,44 +1,25 @@
 import Foundation
 
-/// 担当(推し)カラーをアプリ全体テーマに使うときの、保存すべき値の解決結果。
-struct OshiThemeResolution: Equatable {
-    /// 保存し直す担当アイドル ID。
-    /// `nil` は「現在の選択を変更しない」の意味 (テーマ機能が OFF のとき)。
-    var idolId: String?
-    /// `ContentView` が参照する解決済みテーマ色 hex。無効・該当なしは空文字。
-    var colorHex: String
-}
-
-/// 担当テーマ色を、現在の選択と担当一覧から解決する。
+/// 担当(推し)カラーをアプリ全体テーマに使うときの、保存すべき値の解決。
 ///
-/// 非自明なのは次の 2 点なので純粋関数に切り出してある:
+/// 解決規則の本体は imas-core (Rust) の `domain/oshi_theme_resolution.rs` にある。
+/// 「OFF のときは色だけ消して選択 ID は残す」「選択中の担当が外れていたら先頭へ
+/// 黙って寄せる」という 2 つの非自明な判断とその理由もそちらに記載。
+/// 結果型 `OshiThemeResolution` (idolId が nil = 現在の選択を変更しない) と
+/// 射影型 `OshiThemePickIdol` は uniffi 生成バインディングが提供する。
 ///
-/// 1. **OFF のときは色だけ消し、選択した担当 ID は残す。**
-///    消してしまうと、ユーザーが後で ON に戻したときに選び直しになる。
-/// 2. **選択中の担当が担当から外れていたら、先頭の担当へ黙って寄せる。**
-///    担当を解除したのにテーマ色だけ残り続ける状態を防ぐ。担当が 0 人なら空にする。
-///
-/// - Parameters:
-///   - isEnabled: 担当カラーをテーマに使う設定 (`theme_use_oshi_color`)。
-///   - currentIdolId: 現在保存されている担当 ID (`theme_oshi_idol_id`)。
-///   - pickIdols: 「担当」としてマークされているアイドル。
+/// ここは `Idol` を判定に要る 2 フィールド (id / color) の射影へ落として
+/// 1 回の FFI 呼び出しへ委譲するだけの薄いラッパ。
+/// 引数ラベルを `picks` にしているのは、生成バインディングの同名関数 (`pickIdols:`) と
+/// ラベルまで同じにすると空配列リテラルで型推論が曖昧になるため。
 func resolveOshiTheme(
     isEnabled: Bool,
     currentIdolId: String,
-    pickIdols: [Idol]
+    picks: [Idol]
 ) -> OshiThemeResolution {
-    guard isEnabled else {
-        return OshiThemeResolution(idolId: nil, colorHex: "")
-    }
-
-    // 選択が空、または担当から外れていたら先頭の担当に寄せる。
-    let resolvedId: String
-    if currentIdolId.isEmpty || !pickIdols.contains(where: { $0.id == currentIdolId }) {
-        resolvedId = pickIdols.first?.id ?? ""
-    } else {
-        resolvedId = currentIdolId
-    }
-
-    let hex = pickIdols.first { $0.id == resolvedId }?.color ?? ""
-    return OshiThemeResolution(idolId: resolvedId, colorHex: hex)
+    resolveOshiTheme(
+        isEnabled: isEnabled,
+        currentIdolId: currentIdolId,
+        pickIdols: picks.map { OshiThemePickIdol(id: $0.id, color: $0.color) }
+    )
 }

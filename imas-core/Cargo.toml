@@ -18,6 +18,8 @@ uniffi = { version = "0.32.0", features = ["cli"] }
 chrono = { version = "0.4.45", default-features = false, features = ["std", "clock"] }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
+# タイトル/ID 比較を Swift の String == (Unicode 正準等価) に合わせるための NFC 正規化
+unicode-normalization = "0.1.25"
 
 [profile.release]
 # FFI 境界を跨ぐ薄い層なので LTO でバイナリを絞る

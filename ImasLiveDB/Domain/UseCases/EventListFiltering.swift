@@ -24,41 +24,33 @@ struct EventFilterContext {
     var venueEventIds: Set<String> = []
 }
 
-/// イベント一覧へブランド/kind/検索/参加状態/お気に入り/メモ絞り込みを適用する純粋ロジック。
-/// 時系列分割・年度グルーピングは行わない (それは `groupEventsByYear`)。
-/// DB にも UI にも依存しない (集合は解決済みで受け取る) ので単体テスト可能。
+/// イベント一覧へブランド/kind/検索/参加状態/お気に入り/メモ/会場絞り込みを適用する。
+///
+/// 本体は imas-core の domain/event_list_filtering.rs (合同ブランド判定・未知 kind の
+/// live フォールバック・venue の on/off 判定もそちら参照)。ここはエンティティ全体を
+/// FFI へ渡さないための薄いラッパ: `EventWithDate` を判定に要る 5 フィールドの射影
+/// (`EventFilterItem`) へ落とし、返ってきた index 列で自国の配列を引き直すだけ。
+/// `excludedKinds` は Rust 側が生文字列比較なので rawValue へ落として渡す。
 func filterEvents(_ events: [EventWithDate], _ ctx: EventFilterContext) -> [EventWithDate] {
-    var result = events
-
-    if !ctx.selectedBrandIds.isEmpty {
-        result = result.filter { $0.event.matchesBrandFilter(ctx.selectedBrandIds) }
+    let items = events.map {
+        EventFilterItem(
+            id: $0.event.id,
+            brandId: $0.event.brandId,
+            jointBrandIds: $0.event.jointBrandIds,
+            name: $0.event.name,
+            kind: $0.event.kind)
     }
-    if !ctx.excludedKinds.isEmpty {
-        result = result.filter { !ctx.excludedKinds.contains($0.event.eventKind) }
-    }
-    if !ctx.searchText.isEmpty {
-        let lower = ctx.searchText.lowercased()
-        result = result.filter { $0.event.name.lowercased().contains(lower) }
-    }
-
-    switch ctx.attendanceFilter {
-    case "attended":
-        result = result.filter { ctx.attendedEventIds.contains($0.event.id) }
-    case "not_attended":
-        result = result.filter { !ctx.attendedEventIds.contains($0.event.id) }
-    default:
-        break
-    }
-
-    if ctx.requireFavorite {
-        result = result.filter { ctx.favoriteIds.contains($0.event.id) }
-    }
-    if ctx.requireNote {
-        result = result.filter { ctx.noteIds.contains($0.event.id) }
-    }
-    if !ctx.venue.isEmpty {
-        result = result.filter { ctx.venueEventIds.contains($0.event.id) }
-    }
-
-    return result
+    let criteria = EventFilterCriteria(
+        selectedBrandIds: Array(ctx.selectedBrandIds),
+        excludedKinds: ctx.excludedKinds.map(\.rawValue),
+        searchText: ctx.searchText,
+        attendanceFilter: ctx.attendanceFilter,
+        attendedEventIds: Array(ctx.attendedEventIds),
+        requireFavorite: ctx.requireFavorite,
+        favoriteIds: Array(ctx.favoriteIds),
+        requireNote: ctx.requireNote,
+        noteIds: Array(ctx.noteIds),
+        venue: ctx.venue,
+        venueEventIds: Array(ctx.venueEventIds))
+    return filterEventIndices(items: items, criteria: criteria).map { events[Int($0)] }
 }

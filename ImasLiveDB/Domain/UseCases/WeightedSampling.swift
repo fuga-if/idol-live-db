@@ -2,40 +2,34 @@ import Foundation
 
 /// 重み付きのランダム抽出 (非復元)。
 ///
-/// 「タグが似ている曲」のおすすめで使う。サーバは候補を近い順に返すだけで、
-/// そこから実際に何を見せるかは毎回ここで引き直す。上位固定にしないのは、
-/// - 同じ曲を開くたびに同じ並びだと発見がない
-/// - 少しだけ被っている曲もたまには顔を出してほしい
-/// という理由。重みが大きいほど選ばれやすいので、近い曲が中心に出つつ
-/// 遠い曲もときどき混ざる。
+/// 抽選本体は imas-core (Rust) の `domain/weighted_sampling.rs` にあり、Android の
+/// `WeightedSampling` と同じ実装 (Efraimidis–Spirakis 法) を共有する。
+/// なぜ上位固定にしないか・重み 0 の扱いなどの設計意図もそちらに記載。
+///
+/// ここが担うのは「シードの調達」と「index 列 → Swift 配列の解決」だけ。
+/// - 実行時はシステム乱数からシードを引く (毎回顔ぶれが変わる)。
+/// - テストは固定シードの generator を差して決定論にする。
+/// 重みの射影と index 列だけを FFI に通すので、候補件数によらず 1 呼び出しで済む。
 enum WeightedSampling {
     /// 重みに比例した確率で `count` 件を非復元抽出する。
     ///
-    /// Efraimidis–Spirakis 法: 各要素に `U^(1/w)` の鍵を振り、大きい順に取る。
-    /// 1 パスで「重み付き非復元抽出」になり、結果の並びもそのまま重み付きの
-    /// ランダム順になる (先頭ほど重い要素が来やすい)。
-    ///
-    /// - 重みが 0 以下の要素は、候補が足りないときの穴埋めとしてのみ使う。
-    /// - `count` が候補数以上なら全件を (ランダム順で) 返す。
-    /// - Parameter generator: テストから固定乱数を差せるようにするための乱数源。
+    /// - Parameter generator: シード調達源。テストから固定乱数を差せるようにするため。
     static func pick<T, G: RandomNumberGenerator>(
         _ items: [T],
         count: Int,
         weight: (T) -> Double,
         using generator: inout G
     ) -> [T] {
-        guard count > 0 else { return [] }
-        let keyed = items.map { item -> (item: T, key: Double) in
-            let w = weight(item)
-            guard w > 0 else { return (item, 0) }
-            // u は (0, 1]。0 を避けるのは log(0) = -inf を踏まないため。
-            let u = Double.random(in: 0.0..<1.0, using: &generator).nextUp
-            return (item, pow(u, 1.0 / w))
-        }
-        return keyed.sorted { $0.key > $1.key }.prefix(count).map(\.item)
+        let indices = weightedSampleIndices(
+            weights: items.map(weight),
+            // 負の count は 0 (空) に丸める。境界の型合わせのみで判定はしない。
+            count: UInt32(clamping: count),
+            seed: generator.next()
+        )
+        return indices.map { items[Int($0)] }
     }
 
-    /// 実行時用 (システム乱数)。
+    /// 実行時用 (システム乱数でシードを調達)。
     static func pick<T>(_ items: [T], count: Int, weight: (T) -> Double) -> [T] {
         var generator = SystemRandomNumberGenerator()
         return pick(items, count: count, weight: weight, using: &generator)

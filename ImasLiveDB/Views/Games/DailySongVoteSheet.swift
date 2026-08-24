@@ -102,13 +102,19 @@ struct DailySongVoteSheet: View {
         let brands = ((try? await AppContainer.shared.brandReading.brands()) ?? [])
             .filter { $0.id != "other" }
             .sorted { $0.sortOrder < $1.sortOrder }
-        var chosen: [(brand: Brand, id: String)] = []
+        var candidates: [(brand: Brand, ids: [String])] = []
         for brand in brands {
             // リミックス変種を除外 (同名曲の紛らわしい連日重複を防ぐ)。
             let ids = (try? await AppContainer.shared.songReading.songIds(brandId: brand.id, includeCovers: false, excludeRemixes: true)) ?? []
             guard !ids.isEmpty else { continue }
-            let idx = DailyPick.songIndex(dayKey: key, brandId: brand.id, count: ids.count)
-            chosen.append((brand, ids[idx]))
+            candidates.append((brand, ids))
+        }
+        // 全ブランド分を 1 回の FFI 呼び出しで解決する (ブランドごとに songIndex を呼ばない)。
+        let indices = DailyPick.songIndices(
+            dayKey: key,
+            brands: candidates.map { (brandId: $0.brand.id, count: $0.ids.count) })
+        let chosen: [(brand: Brand, id: String)] = zip(candidates, indices).map { c, idx in
+            (brand: c.brand, id: c.ids[idx])
         }
         let songs = (try? await AppContainer.shared.songReading.songs(ids: chosen.map(\.id))) ?? []
         let byId = Dictionary(uniqueKeysWithValues: songs.map { ($0.id, $0) })

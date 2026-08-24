@@ -156,16 +156,16 @@ final class TimelineLayoutTests: XCTestCase {
             bar("a", "2013-05-29", "2014-04-30"),
             bar("b", "2026-08-01", "2027-07-25"),
         ]
-        XCTAssertEqual(TimelineLayout.yearRange(of: bars, calendar: calendar), 2013...2027)
+        XCTAssertEqual(TimelineLayout.yearRange(of: bars), 2013...2027)
     }
 
     func testYearRangeIsNilForEmptyBars() {
-        XCTAssertNil(TimelineLayout.yearRange(of: [], calendar: calendar))
+        XCTAssertNil(TimelineLayout.yearRange(of: []))
     }
 
     /// 目盛りは「年数 + 1」本。最後の年にも右端の罫線が要る。
     func testYearBoundariesIncludeTheClosingEdge() {
-        let boundaries = TimelineLayout.yearBoundaries(2024...2026, calendar: calendar)
+        let boundaries = TimelineLayout.yearBoundaries(2024...2026)
         XCTAssertEqual(boundaries.map(\.year), [2024, 2025, 2026, 2027])
         XCTAssertEqual(boundaries.first?.date, date("2024-01-01"))
         XCTAssertEqual(boundaries.last?.date, date("2027-01-01"))

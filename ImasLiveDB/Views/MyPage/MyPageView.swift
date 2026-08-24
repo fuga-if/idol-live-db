@@ -1021,7 +1021,7 @@ struct MyPageView: View {
         let resolved = resolveOshiTheme(
             isEnabled: useOshiColor,
             currentIdolId: themeOshiIdolId,
-            pickIdols: vm.pickIdols
+            picks: vm.pickIdols
         )
         if let idolId = resolved.idolId {
             themeOshiIdolId = idolId

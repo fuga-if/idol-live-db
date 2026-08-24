@@ -16,6 +16,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import uniffi.imas_core.SongCollectMode
+import uniffi.imas_core.SongListFilterCriteria
+import uniffi.imas_core.SongListFilterEntry
+import uniffi.imas_core.filterSongList
 
 data class SongListUiState(
     val isLoading: Boolean = true,
@@ -183,18 +187,31 @@ class SongListViewModel : ViewModel() {
             val myPickIds = module.songRepository.fetchSongIdsWithAnyArtist(pickIdolIds)
             val collectedCounts = module.songRepository.fetchSongCollectedCounts()
 
-            // マイマーク / 回収 絞り込み (取得後にメモリ上で適用。iOS applySongMarkFilters 相当)。
-            if (state.myMarkFilter.requireFavorite) {
-                songs = songs.filter { favoriteIds.contains(it.song.id) }
+            // マイマーク / 回収 絞り込み (iOS と同じ imas-core song_list_filtering に委譲)。
+            // 射影 + 採用 index 方式なので FFI 呼び出しは 1 回。メモ絞り込み・タグ集合絞り込み・
+            // タグ票数ランキングはデータ供給側が未実装のため未配線 (requireNote=false / tagSongIds=null)。
+            val entries = songs.map {
+                SongListFilterEntry(songId = it.song.id, title = it.song.title, titleKana = it.song.titleKana)
             }
-            if (state.myMarkFilter.requireMyPick) {
-                songs = songs.filter { myPickIds.contains(it.song.id) }
-            }
-            when (state.collectFilter) {
-                SongCollectFilter.COLLECTED -> songs = songs.filter { (collectedCounts[it.song.id] ?: 0) > 0 }
-                SongCollectFilter.UNCOLLECTED -> songs = songs.filter { (collectedCounts[it.song.id] ?: 0) == 0 }
-                SongCollectFilter.ALL -> {}
-            }
+            val criteria = SongListFilterCriteria(
+                collectMode = when (state.collectFilter) {
+                    SongCollectFilter.ALL -> SongCollectMode.ALL
+                    SongCollectFilter.COLLECTED -> SongCollectMode.COLLECTED
+                    SongCollectFilter.UNCOLLECTED -> SongCollectMode.UNCOLLECTED
+                },
+                // Android の回収状態は song_id → 回数の map なので、回収済み (回数 > 0) の集合へ落とす。
+                collectedIds = collectedCounts.filterValues { it > 0 }.keys.toList(),
+                requireFavorite = state.myMarkFilter.requireFavorite,
+                favoriteIds = favoriteIds.toList(),
+                requireNote = false,
+                noteIds = emptyList(),
+                requireMyPick = state.myMarkFilter.requireMyPick,
+                myPickSongIds = myPickIds.toList(),
+                tagSongIds = null,
+                rankByTagVotes = false,
+                tagVoteCounts = emptyMap()
+            )
+            songs = filterSongList(entries, criteria).map { songs[it.toInt()] }
 
             _uiState.value = _uiState.value.copy(
                 isLoading = false,

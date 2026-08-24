@@ -2,16 +2,11 @@ import Foundation
 
 /// バックアップ復元 (引き継ぎコード / ファイル) の結果をユーザー向け文面にする。
 ///
-/// 復元は「担当・お気に入り・マイタグ・投票履歴」という**クラウドに無い端末ローカル唯一
-/// データ**を戻す操作で、何がどれだけ入ったかを黙っていると成功したのか分からない。
-/// 一方で 0 件の項目まで並べるとノイズになるので、**入ったものだけ**を足していく。
-///
-/// - Parameters:
-///   - addedMarks: 追加された担当/お気に入り/メモ/参加済みの件数。
-///   - addedVotes: 追加された投票履歴の件数。
-///   - addedPersonalTags: 追加されたマイタグの件数 (0 なら文面に出さない)。
-///   - skippedMarks: 形式不正で取り込めなかった件数 (0 なら出さない)。
-///   - deviceIdRestored: 端末 ID まで復元したか。
+/// 文面の組み立て本体は imas-core (Rust) の `domain/backup_import_summary.rs` にある。
+/// 「主目的の担当/投票は 0 件でも出す」「マイタグ/スキップは入ったときだけ出す」
+/// という判断と行順の安定性はそちらでテスト済み。
+/// ここは Swift の `Int` を FFI の `Int64` へ橋渡しするだけの薄いラッパ
+/// (生成バインディングの同名関数とは引数型で区別されるオーバーロード)。
 func backupImportSummary(
     addedMarks: Int,
     addedVotes: Int,
@@ -19,15 +14,11 @@ func backupImportSummary(
     skippedMarks: Int,
     deviceIdRestored: Bool
 ) -> String {
-    var message = "担当/お気に入り等を \(addedMarks) 件、投票履歴を \(addedVotes) 件 追加しました。"
-    if addedPersonalTags > 0 {
-        message += "\nマイタグを \(addedPersonalTags) 件 追加しました。"
-    }
-    if skippedMarks > 0 {
-        message += "\n(\(skippedMarks) 件は形式不正のためスキップされました)"
-    }
-    if deviceIdRestored {
-        message += "\n端末IDも復元しました。"
-    }
-    return message
+    backupImportSummary(
+        addedMarks: Int64(addedMarks),
+        addedVotes: Int64(addedVotes),
+        addedPersonalTags: Int64(addedPersonalTags),
+        skippedMarks: Int64(skippedMarks),
+        deviceIdRestored: deviceIdRestored
+    )
 }

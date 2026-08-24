@@ -22,43 +22,32 @@ final class SongListViewModel {
     private(set) var displayedSongs: [SongWithArtists] = []
     private(set) var isLoading = false
 
-    /// `songs` と同じ並びの検索用インデックス。スコープごとに 1 本ずつ前処理して持つ。
+    /// `songs` と同じ並びの検索カタログ。スコープごとに 1 本ずつ前処理して持つ。
     ///
     /// 打鍵ごとに `title.lowercased().contains(...)` を全曲ぶん回すと、2,000 曲で
     /// 1 打鍵 1.4ms 掛かっていた (`String` は書記素クラスタ単位で走るため日本語で遅い)。
-    /// 読み込み時に小文字化した UTF-8 バイト列を作っておけば、3 スコープぶん数えても
-    /// 0.1ms で済む。詳しい実測は `TextSearchIndex` のコメント。
-    private var searchIndex: [SongScopeIndex] = []
-
-    /// 1 曲ぶんの、手元で判定できるスコープの索引。
-    private struct SongScopeIndex {
-        let title: TextSearchIndex
-        let performer: TextSearchIndex
-        let creator: TextSearchIndex
-
-        func index(for scope: SongSearchMode) -> TextSearchIndex? {
-            switch scope {
-            case .title:     title
-            case .performer: performer
-            case .creator:   creator
-            case .lyrics:    nil   // サーバ側。手元では判定できない
-            }
-        }
-    }
+    /// 前処理と照合の本体は imas-core (Rust) の `domain/text_search_index.rs`。
+    /// Rust 化後も「読み込み時に前処理、1 打鍵 = スコープごとに 1 呼び出しの
+    /// O(総バイト数)」は不変 (index 列が 1 回の FFI で返る)。
+    private var searchCatalogs: [SongSearchMode: TextSearchCatalog] = [:]
 
     private func rebuildSearchIndex() {
-        searchIndex = songs.map { item in
-            let song = item.song
-            return SongScopeIndex(
-                title: TextSearchIndex([song.title, song.titleKana]),
-                // ユニット名・歌唱者表記・出演アイドル (よみ含む) を横並びに見る。
-                // 「ミリオンスターズ」でも「春日未来」でも当たってほしいので、
-                // どれか 1 つに寄せられない。
-                performer: TextSearchIndex(
-                    [song.unitName, song.singerLabel, item.artistNames]
-                        + item.performerIdols.flatMap { [$0.name, $0.nameKana] }),
-                creator: TextSearchIndex([song.lyricist, song.composer, song.arranger]))
-        }
+        searchCatalogs = [
+            .title: TextSearchCatalog(fieldsPerItem: songs.map {
+                [$0.song.title, $0.song.titleKana]
+            }),
+            // ユニット名・歌唱者表記・出演アイドル (よみ含む) を横並びに見る。
+            // 「ミリオンスターズ」でも「春日未来」でも当たってほしいので、
+            // どれか 1 つに寄せられない。
+            .performer: TextSearchCatalog(fieldsPerItem: songs.map { item in
+                [item.song.unitName, item.song.singerLabel, item.artistNames]
+                    + item.performerIdols.flatMap { [$0.name, $0.nameKana] }
+            }),
+            .creator: TextSearchCatalog(fieldsPerItem: songs.map {
+                [$0.song.lyricist, $0.song.composer, $0.song.arranger]
+            }),
+            // .lyrics はサーバ側。手元のカタログでは判定できない
+        ]
     }
 
     /// いま効いている絞り込みの中で、**表示中でない**スコープに何件当たるか。
@@ -213,28 +202,24 @@ final class SongListViewModel {
             otherScopeCounts = [:]
             return
         }
-        let needle = TextSearchIndex.Needle(searchText)
-        // インデックスは `songs` と同じ並び。`didSet` で必ず張り直しているが、
-        // 万一ずれても落ちないよう件数を見てから添字を使う。
-        guard !needle.isEmpty, searchIndex.count == songs.count else {
+        guard !searchText.isEmpty else {
             displayedSongs = songs
             otherScopeCounts = [:]
             return
         }
-        // 絞り込みと「ほかのスコープの件数」を **1 回の走査**でまとめて出す。
-        // 表示中のスコープは数えない (件数は `displayedSongs.count` に出る)。
-        var matched: [SongWithArtists] = []
-        var counts: [SongSearchMode: Int] = [:]
-        for i in songs.indices {
-            let entry = searchIndex[i]
-            if entry.index(for: scope)?.matches(needle) == true { matched.append(songs[i]) }
-            for other in SongSearchMode.localScopes where other != scope {
-                if entry.index(for: other)?.matches(needle) == true {
-                    counts[other, default: 0] += 1
-                }
-            }
+        // 絞り込みは「index 列を 1 回の FFI で受け取り、`songs` を添字で引く」形。
+        // カタログは `songs` と同じ並びで `didSet` が必ず張り直しているが、
+        // 万一ずれても落ちないよう範囲外の index は捨てる。
+        let matchedIndices = searchCatalogs[scope]?.matchingIndices(needle: searchText) ?? []
+        displayedSongs = matchedIndices.compactMap { i in
+            songs.indices.contains(Int(i)) ? songs[Int(i)] : nil
         }
-        displayedSongs = matched
+        // 「ほかのスコープの件数」もスコープごとに 1 呼び出し (打鍵あたり計 3 回の FFI)。
+        // 表示中のスコープは数えない (件数は `displayedSongs.count` に出る)。
+        var counts: [SongSearchMode: Int] = [:]
+        for other in SongSearchMode.localScopes where other != scope {
+            counts[other] = searchCatalogs[other]?.matchingIndices(needle: searchText).count ?? 0
+        }
         otherScopeCounts = counts
     }
 

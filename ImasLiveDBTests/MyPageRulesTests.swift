@@ -20,7 +20,7 @@ final class MyPageRulesTests: XCTestCase {
     /// OFF のときは色だけ消し、選んだ担当は残す (ON に戻したとき選び直しにならないように)。
     func testDisabledClearsColorButKeepsSelection() {
         let result = resolveOshiTheme(
-            isEnabled: false, currentIdolId: "a", pickIdols: [makeIdol("a", color: "#FF0000")])
+            isEnabled: false, currentIdolId: "a", picks: [makeIdol("a", color: "#FF0000")])
         XCTAssertNil(result.idolId, "OFF では担当 ID を書き換えない")
         XCTAssertEqual(result.colorHex, "")
     }
@@ -28,7 +28,7 @@ final class MyPageRulesTests: XCTestCase {
     func testEnabledUsesSelectedIdolColor() {
         let result = resolveOshiTheme(
             isEnabled: true, currentIdolId: "b",
-            pickIdols: [makeIdol("a", color: "#FF0000"), makeIdol("b", color: "#00FF00")])
+            picks: [makeIdol("a", color: "#FF0000"), makeIdol("b", color: "#00FF00")])
         XCTAssertEqual(result.idolId, "b")
         XCTAssertEqual(result.colorHex, "#00FF00")
     }
@@ -37,7 +37,7 @@ final class MyPageRulesTests: XCTestCase {
     func testEmptySelectionFallsBackToFirstPick() {
         let result = resolveOshiTheme(
             isEnabled: true, currentIdolId: "",
-            pickIdols: [makeIdol("a", color: "#FF0000"), makeIdol("b", color: "#00FF00")])
+            picks: [makeIdol("a", color: "#FF0000"), makeIdol("b", color: "#00FF00")])
         XCTAssertEqual(result.idolId, "a")
         XCTAssertEqual(result.colorHex, "#FF0000")
     }
@@ -46,14 +46,14 @@ final class MyPageRulesTests: XCTestCase {
     func testSelectionNoLongerPickedFallsBackToFirst() {
         let result = resolveOshiTheme(
             isEnabled: true, currentIdolId: "removed",
-            pickIdols: [makeIdol("a", color: "#FF0000")])
+            picks: [makeIdol("a", color: "#FF0000")])
         XCTAssertEqual(result.idolId, "a")
         XCTAssertEqual(result.colorHex, "#FF0000")
     }
 
     /// 担当が 0 人なら空にする (クラッシュも既定値の捏造もしない)。
     func testNoPicksResultsInEmpty() {
-        let result = resolveOshiTheme(isEnabled: true, currentIdolId: "a", pickIdols: [])
+        let result = resolveOshiTheme(isEnabled: true, currentIdolId: "a", picks: [])
         XCTAssertEqual(result.idolId, "")
         XCTAssertEqual(result.colorHex, "")
     }
@@ -61,7 +61,7 @@ final class MyPageRulesTests: XCTestCase {
     /// 色が未設定の担当を選んでいる場合は空 (nil を "nil" 等に文字列化しない)。
     func testPickWithoutColorResultsInEmptyHex() {
         let result = resolveOshiTheme(
-            isEnabled: true, currentIdolId: "a", pickIdols: [makeIdol("a", color: nil)])
+            isEnabled: true, currentIdolId: "a", picks: [makeIdol("a", color: nil)])
         XCTAssertEqual(result.idolId, "a")
         XCTAssertEqual(result.colorHex, "")
     }

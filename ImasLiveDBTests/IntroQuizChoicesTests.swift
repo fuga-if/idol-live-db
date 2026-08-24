@@ -1,14 +1,16 @@
 import XCTest
 @testable import ImasLiveDB
 
-/// `IntroQuizChoices` の単体テスト。
+/// `IntroQuizChoices` (imas-core 委譲) の単体テスト。
 ///
-/// 1 人用と対戦で同じ選択肢生成を使うための共通規則。核心は
+/// 規則そのもの (タイトルでのユニーク化・不正解候補が pool 順を保つこと等) は
+/// imas-core の `domain/intro_quiz_choices.rs` の Rust テストが担う。ここでは
+/// Swift ラッパ (射影とシード調達) を通しても核心が成り立つことを見る。核心は
 /// 「同名異曲が pool にあっても、正解と同じタイトルが不正解として並ばない」こと
 /// (並ぶと正しい答えを選んでも不正解になる)。
 final class IntroQuizChoicesTests: XCTestCase {
 
-    /// 固定乱数 (SplitMix64)。シャッフルを含む経路を決定論的に検証するため。
+    /// 固定乱数 (SplitMix64)。シード調達を決定論にするため。
     private struct SeededGenerator: RandomNumberGenerator {
         var state: UInt64
         mutating func next() -> UInt64 {
@@ -29,55 +31,50 @@ final class IntroQuizChoicesTests: XCTestCase {
             singerLabel: nil, unitName: nil, unitId: nil)
     }
 
-    // MARK: - wrongCandidates (規則そのもの)
+    /// 1 問だけのバッチで選択肢を引く (規則検証の便宜用)。
+    private func makeChoices(for answer: Song, pool: [Song], seed: UInt64 = 42) -> [String] {
+        var gen = SeededGenerator(state: seed)
+        return IntroQuizChoices.makeAll(for: [answer], pool: pool, using: &gen).first ?? []
+    }
+
+    // MARK: - タイトルユニーク化の規則
 
     /// 正解と同じタイトルの別バージョンは不正解候補にしない。
     /// ここが壊れると「正解を選んだのに不正解」になる。
     func testExcludesSameTitleDifferentSong() {
         let answer = makeSong("s1", "READY!!")
         let pool = [answer, makeSong("s2", "READY!! (M@STER VERSION)"), makeSong("s3", "READY!!")]
-        let titles = IntroQuizChoices.wrongCandidates(for: answer, pool: pool).map(\.title)
-        XCTAssertFalse(titles.contains("READY!!"))
-        XCTAssertEqual(titles, ["READY!! (M@STER VERSION)"])
+        for seed in 0..<40 {
+            let choices = makeChoices(for: answer, pool: pool, seed: UInt64(seed))
+            XCTAssertEqual(Set(choices), ["READY!!", "READY!! (M@STER VERSION)"])
+            XCTAssertEqual(choices.count, 2, "正解と同じタイトルが重複して並んだ: \(choices)")
+        }
     }
 
-    /// 正解そのもの (同じ id) は候補から外す。
+    /// 正解そのもの (同じ id) は不正解候補から外れる。
     func testExcludesAnswerItself() {
         let answer = makeSong("s1", "GO MY WAY!!")
-        let ids = IntroQuizChoices.wrongCandidates(for: answer, pool: [answer, makeSong("s2", "蒼い鳥")])
-            .map(\.id)
-        XCTAssertEqual(ids, ["s2"])
+        let choices = makeChoices(for: answer, pool: [answer, makeSong("s2", "蒼い鳥")])
+        XCTAssertEqual(Set(choices), ["GO MY WAY!!", "蒼い鳥"])
+        XCTAssertEqual(choices.count, 2)
     }
 
     /// 不正解どうしのタイトル重複も落とす (同じ選択肢が 2 つ並ばない)。
     func testDeduplicatesAmongWrongCandidates() {
         let answer = makeSong("s1", "自転車")
         let pool = [makeSong("s2", "隣に…"), makeSong("s3", "隣に…"), makeSong("s4", "オーバーマスター")]
-        let titles = IntroQuizChoices.wrongCandidates(for: answer, pool: pool).map(\.title)
-        XCTAssertEqual(titles, ["隣に…", "オーバーマスター"])
+        let choices = makeChoices(for: answer, pool: pool)
+        XCTAssertEqual(Set(choices), ["自転車", "隣に…", "オーバーマスター"])
+        XCTAssertEqual(choices.count, 3, "不正解どうしの重複が残った: \(choices)")
     }
 
-    /// 順序は pool のまま (シャッフルは make 側の責務)。
-    func testWrongCandidatesKeepPoolOrder() {
-        let answer = makeSong("s0", "答え")
-        let pool = (1...5).map { makeSong("s\($0)", "曲\($0)") }
-        XCTAssertEqual(
-            IntroQuizChoices.wrongCandidates(for: answer, pool: pool).map(\.id),
-            ["s1", "s2", "s3", "s4", "s5"])
-    }
-
-    func testEmptyPoolYieldsNoCandidates() {
-        XCTAssertTrue(IntroQuizChoices.wrongCandidates(for: makeSong("s1", "答え"), pool: []).isEmpty)
-    }
-
-    // MARK: - make (出題される 4 択)
+    // MARK: - 出題される 4 択
 
     func testMakeReturnsFourUniqueChoicesIncludingAnswer() {
-        var gen = SeededGenerator(state: 42)
         let answer = makeSong("s0", "答え")
         let pool = (1...10).map { makeSong("s\($0)", "曲\($0)") }
 
-        let choices = IntroQuizChoices.make(for: answer, pool: pool, using: &gen)
+        let choices = makeChoices(for: answer, pool: pool)
 
         XCTAssertEqual(choices.count, 4)
         XCTAssertEqual(Set(choices).count, 4, "同じ選択肢が 2 つ並んではいけない")
@@ -86,16 +83,13 @@ final class IntroQuizChoicesTests: XCTestCase {
 
     /// 候補が足りなくても落ちず、正解は必ず残る (ブランド曲数が少ない設定への備え)。
     func testMakeWithTooFewCandidates() {
-        var gen = SeededGenerator(state: 7)
-        let answer = makeSong("s0", "答え")
-        let choices = IntroQuizChoices.make(for: answer, pool: [makeSong("s1", "曲1")], using: &gen)
+        let choices = makeChoices(for: makeSong("s0", "答え"), pool: [makeSong("s1", "曲1")], seed: 7)
         XCTAssertEqual(choices.sorted(), ["曲1", "答え"].sorted())
     }
 
     /// pool が空でも正解 1 つは返る。
     func testMakeWithEmptyPool() {
-        var gen = SeededGenerator(state: 7)
-        XCTAssertEqual(IntroQuizChoices.make(for: makeSong("s0", "答え"), pool: [], using: &gen), ["答え"])
+        XCTAssertEqual(makeChoices(for: makeSong("s0", "答え"), pool: [], seed: 7), ["答え"])
     }
 
     /// 正解の位置が固定されない (常に末尾なら位置で当てられてしまう)。
@@ -104,8 +98,7 @@ final class IntroQuizChoicesTests: XCTestCase {
         let pool = (1...10).map { makeSong("s\($0)", "曲\($0)") }
         var positions: Set<Int> = []
         for seed in 0..<40 {
-            var gen = SeededGenerator(state: UInt64(seed))
-            let choices = IntroQuizChoices.make(for: answer, pool: pool, using: &gen)
+            let choices = makeChoices(for: answer, pool: pool, seed: UInt64(seed))
             positions.insert(choices.firstIndex(of: "答え")!)
         }
         XCTAssertTrue(positions.count > 1, "正解の位置が固定されている: \(positions)")
@@ -120,10 +113,27 @@ final class IntroQuizChoicesTests: XCTestCase {
             makeSong("s5", "M@STERPIECE"),
         ]
         for seed in 0..<40 {
-            var gen = SeededGenerator(state: UInt64(seed))
-            let choices = IntroQuizChoices.make(for: answer, pool: pool, using: &gen)
+            let choices = makeChoices(for: answer, pool: pool, seed: UInt64(seed))
             XCTAssertEqual(Set(choices).count, choices.count, "重複した選択肢: \(choices)")
             XCTAssertTrue(choices.contains("READY!!"))
+        }
+    }
+
+    // MARK: - バッチ (1 ゲーム = 1 呼び出し)
+
+    /// 出題と同順・同数で返り、各問に自分の正解が入る。
+    func testMakeAllReturnsChoicesPerAnswerInOrder() {
+        var gen = SeededGenerator(state: 42)
+        let pool = (1...10).map { makeSong("s\($0)", "曲\($0)") }
+        let answers = [pool[0], pool[4], pool[9]]
+
+        let all = IntroQuizChoices.makeAll(for: answers, pool: pool, using: &gen)
+
+        XCTAssertEqual(all.count, answers.count)
+        for (answer, choices) in zip(answers, all) {
+            XCTAssertEqual(choices.count, 4)
+            XCTAssertTrue(choices.contains(answer.title), "\(answer.title) が自分の設問の選択肢にない")
+            XCTAssertEqual(Set(choices).count, choices.count, "重複した選択肢: \(choices)")
         }
     }
 }

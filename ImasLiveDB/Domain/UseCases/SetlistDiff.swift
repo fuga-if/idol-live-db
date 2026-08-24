@@ -18,25 +18,10 @@ struct SetlistItemSnapshot: Equatable {
 
 /// セトリ編集で「実際に送る必要があるもの」だけを選ぶ。
 ///
-/// ## なぜ差分にするか
-///
-/// 以前は 1 曲直すだけでも全曲・全出演者を送っていた。本番マスタ実測でセトリ登録済み
-/// 1252 公演のうち 403 件 (32.2%) が 50 ops 超、最大 606 ops。これが
-/// - 一般ユーザーの修正リクエストが op 上限で送れない
-/// - admin の直接編集も上限 1000 に迫る
-/// - GitHub issue が肥大してコメント分割が必要になる
-/// の共通原因だった。
-///
-/// ## 送らないもの
-///
-/// - **値が変わっていない item**: 同じ値で update しても結果は変わらない。
-/// - **既存の出演者すべて**: `SetlistPerformer` は `(setlistItemId, idolId)` の 2 つしか
-///   持たず、recordName がその 2 つから決まる。つまり既存出演者の update は
-///   「recordName に入っている値を同じ値で書く」だけで、変化しようがない。
-///   出演者は新規追加 (create) と削除 (delete) しか意味を持たない。
-///
-/// - Note: 送らないぶん、ローカルとサーバがずれていても「全部送り直して直す」効果は
-///   失われる。ずれの修復は CloudKit 同期の役目で、編集リクエストの役目ではない。
+/// 差分規則の本体は imas-core (Rust) の `domain/setlist_diff.rs` にあり、
+/// なぜ差分にするか (実測 606 ops → 1 op)・何を送らないかの設計意図もそちらに記載。
+/// ここはエンティティ → 射影 Record (`SetlistItemDiffRow`) への詰め替えと、
+/// 返ってきた index で自国の配列を引くことだけを担う薄いラッパ (1 操作 1 FFI 呼び出し)。
 enum SetlistDiff {
 
     /// 送る必要のある item だけ返す (新規 + 値が変わったもの)。順序は入力のまま。
@@ -48,15 +33,22 @@ enum SetlistDiff {
         items: [SetlistItem],
         original: [String: SetlistItemSnapshot]
     ) -> [SetlistItem] {
-        items.filter { item in
-            guard let before = original[item.id] else { return true }  // 新規
-            return SetlistItemSnapshot(
-                songId: item.songId, position: item.position, section: item.section
-            ) != before
+        let rows = items.map {
+            SetlistItemDiffRow(id: $0.id, songId: $0.songId,
+                               position: Int64($0.position), section: $0.section)
         }
+        let originalRows = original.map { id, snapshot in
+            SetlistItemDiffRow(id: id, songId: snapshot.songId,
+                               position: Int64(snapshot.position), section: snapshot.section)
+        }
+        return setlistItemIndexesNeedingSync(items: rows, original: originalRows)
+            .map { items[Int($0)] }
     }
 
     /// 送る必要のある出演者だけ返す (新規追加のみ)。順序は入力のまま。
+    ///
+    /// recordName の生成規則は呼び出し側の所有物なので、規則をここで適用して
+    /// 文字列列にしてから 1 回の FFI 呼び出しで判定する。
     ///
     /// - Parameters:
     ///   - performers: 編集後の全出演者。
@@ -67,6 +59,9 @@ enum SetlistDiff {
         initialRecordNames: Set<String>,
         recordName: (SetlistPerformer) -> String
     ) -> [SetlistPerformer] {
-        performers.filter { !initialRecordNames.contains(recordName($0)) }
+        setlistPerformerIndexesNeedingSync(
+            recordNames: performers.map(recordName),
+            initialRecordNames: Array(initialRecordNames)
+        ).map { performers[Int($0)] }
     }
 }

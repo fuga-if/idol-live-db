@@ -20,44 +20,34 @@ struct SongMarkFilterContext {
     var tagVoteCounts: [String: Int] = [:]
 }
 
-/// 楽曲一覧へマイマーク/タグ絞り込みと、タグ票数ランキング並べ替えを適用する純粋ロジック。
+/// 楽曲一覧へマイマーク/タグ絞り込みと、タグ票数ランキング並べ替えを適用する。
 ///
-/// DB にも UI にも依存しない (集合は解決済みで受け取る) ので単体テスト可能。
-/// 適用順: 回収 → お気に入り → メモ → 担当 → タグ集合 → (任意で) タグ票数降順。
+/// 本体は imas-core の domain/song_list_filtering.rs (適用順・同票時の 50 音安定化もそちら参照)。
+/// ここはエンティティ全体を FFI へ渡さないための薄いラッパ: `SongWithArtists` を判定に要る
+/// 3 フィールドの射影 (`SongListFilterEntry`) へ落とし、返ってきた index 列で自国の配列を
+/// 引き直すだけ。生成側の型名が `SongCollectMode` / `SongListFilterCriteria` なのは、
+/// 既存 Swift 型 (`SongCollectFilter` / この struct) と同一モジュール内で衝突するため。
 func applySongMarkFilters(_ songs: [SongWithArtists], _ ctx: SongMarkFilterContext) -> [SongWithArtists] {
-    var results = songs
-
+    let entries = songs.map {
+        SongListFilterEntry(songId: $0.song.id, title: $0.song.title, titleKana: $0.song.titleKana)
+    }
+    let collectMode: SongCollectMode
     switch ctx.collectFilter {
-    case .all:
-        break
-    case .collected:
-        results = results.filter { ctx.collectedIds.contains($0.song.id) }
-    case .uncollected:
-        results = results.filter { !ctx.collectedIds.contains($0.song.id) }
+    case .all: collectMode = .all
+    case .collected: collectMode = .collected
+    case .uncollected: collectMode = .uncollected
     }
-
-    if ctx.requireFavorite {
-        results = results.filter { ctx.favoriteIds.contains($0.song.id) }
-    }
-    if ctx.requireNote {
-        results = results.filter { ctx.noteIds.contains($0.song.id) }
-    }
-    if ctx.requireMyPick {
-        results = results.filter { ctx.myPickSongIds.contains($0.song.id) }
-    }
-
-    if let tagSongIds = ctx.tagSongIds {
-        results = results.filter { tagSongIds.contains($0.song.id) }
-        // 同票は 50 音 (titleKana → title) で安定化。
-        if ctx.rankByTagVotes {
-            results.sort { lhs, rhs in
-                let lv = ctx.tagVoteCounts[lhs.song.id] ?? 0
-                let rv = ctx.tagVoteCounts[rhs.song.id] ?? 0
-                if lv != rv { return lv > rv }
-                return (lhs.song.titleKana ?? lhs.song.title) < (rhs.song.titleKana ?? rhs.song.title)
-            }
-        }
-    }
-
-    return results
+    let criteria = SongListFilterCriteria(
+        collectMode: collectMode,
+        collectedIds: Array(ctx.collectedIds),
+        requireFavorite: ctx.requireFavorite,
+        favoriteIds: Array(ctx.favoriteIds),
+        requireNote: ctx.requireNote,
+        noteIds: Array(ctx.noteIds),
+        requireMyPick: ctx.requireMyPick,
+        myPickSongIds: Array(ctx.myPickSongIds),
+        tagSongIds: ctx.tagSongIds.map(Array.init),
+        rankByTagVotes: ctx.rankByTagVotes,
+        tagVoteCounts: ctx.tagVoteCounts.mapValues(Int64.init))
+    return filterSongList(entries: entries, criteria: criteria).map { songs[Int($0)] }
 }

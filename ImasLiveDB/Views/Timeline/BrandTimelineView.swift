@@ -493,20 +493,23 @@ struct BrandTimelineView: View {
 
     /// 帯 → 配置済みキャンバスへの変換。倍率が変わるたびに作り直す。
     private func layout(pointsPerDay: Double) -> TimelinePlan? {
-        let calendar = TimelineDateParser.calendar
-        guard let range = TimelineLayout.yearRange(of: viewModel.bars, calendar: calendar) else { return nil }
-        let boundaries = TimelineLayout.yearBoundaries(range, calendar: calendar)
+        guard let range = TimelineLayout.yearRange(of: viewModel.bars) else { return nil }
+        let boundaries = TimelineLayout.yearBoundaries(range)
         guard let origin = boundaries.first?.date, let last = boundaries.last?.date else { return nil }
 
         let totalDays = last.timeIntervalSince(origin) / 86_400
         let canvasWidth = totalDays * pointsPerDay
 
         // 年カラムの位置と幅は「実日数 × 倍率」。うるう年でずれない。
+        // 境界の x は一括変換で 1 回の FFI 呼び出しにまとめる (要素ごとに呼ばない)。
+        let boundaryXs = TimelineLayout.xs(for: boundaries.map(\.date), origin: origin, pointsPerDay: pointsPerDay)
         var years: [TimelinePlan.YearTick] = []
         for index in 0..<(boundaries.count - 1) {
-            let x = TimelineLayout.x(for: boundaries[index].date, origin: origin, pointsPerDay: pointsPerDay)
-            let next = TimelineLayout.x(for: boundaries[index + 1].date, origin: origin, pointsPerDay: pointsPerDay)
-            years.append(.init(year: boundaries[index].year, x: x, width: next - x))
+            years.append(.init(
+                year: boundaries[index].year,
+                x: boundaryXs[index],
+                width: boundaryXs[index + 1] - boundaryXs[index]
+            ))
         }
 
         let showsLabels = pointsPerDay * 365.25 >= Metrics.labelVisiblePointsPerYear
@@ -521,14 +524,16 @@ struct BrandTimelineView: View {
             let laneBars = viewModel.bars.filter { $0.lane == lane }
             guard !laneBars.isEmpty else { continue }
 
-            let geometry = laneBars.map { bar -> (x: Double, barWidth: Double, labelWidth: Double) in
-                let x = TimelineLayout.x(for: bar.start, origin: origin, pointsPerDay: pointsPerDay)
-                let raw = TimelineLayout.x(for: bar.end, origin: origin, pointsPerDay: pointsPerDay) - x
+            // 帯の始点/終点の x も一括変換。ラベル幅の見積もりだけが UI 側の仕事。
+            let startXs = TimelineLayout.xs(for: laneBars.map(\.start), origin: origin, pointsPerDay: pointsPerDay)
+            let endXs = TimelineLayout.xs(for: laneBars.map(\.end), origin: origin, pointsPerDay: pointsPerDay)
+            let geometry = laneBars.indices.map { index -> (x: Double, barWidth: Double, labelWidth: Double) in
+                let raw = endXs[index] - startXs[index]
                 let labelWidth = showsLabels
-                    ? min(Self.estimatedWidth(of: Self.label(for: bar), fontSize: Metrics.labelFontSize),
+                    ? min(Self.estimatedWidth(of: Self.label(for: laneBars[index]), fontSize: Metrics.labelFontSize),
                           Metrics.maxLabelWidth)
                     : 0
-                return (x, max(raw, minBarWidth), labelWidth)
+                return (startXs[index], max(raw, minBarWidth), labelWidth)
             }
 
             // 行詰めは **帯の幅だけ** で行う。ラベル幅まで占有させると、密な年 (765AS の

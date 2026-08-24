@@ -115,4 +115,13 @@ final class DailyPickTests: XCTestCase {
     func testSongIndexWithNoCandidates() {
         XCTAssertEqual(DailyPick.songIndex(dayKey: "2026-07-26", brandId: "cg", count: 0), 0)
     }
+
+    /// 一括版 (アプリの日替わり投票が使う) はスカラー版 (ウィジェットが使う) と
+    /// 必ず同じ答えを出す。順序も入力と同じ。ここが割れると再び別々の曲を出す。
+    func testSongIndicesMatchScalarSongIndex() {
+        let brands: [(brandId: String, count: Int)] = [("cg", 500), ("ml", 321), ("sc", 1), ("empty", 0)]
+        XCTAssertEqual(
+            DailyPick.songIndices(dayKey: "2026-07-26", brands: brands),
+            brands.map { DailyPick.songIndex(dayKey: "2026-07-26", brandId: $0.brandId, count: $0.count) })
+    }
 }

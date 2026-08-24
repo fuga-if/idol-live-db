@@ -235,7 +235,8 @@ struct SongRowView: View {
 
     /// 行がなぜ出ているかを説明するときの一致判定。
     ///
-    /// ⚠️ 一覧に載せるかを決めた `TextSearchIndex` と**同じ規則**にすること
+    /// ⚠️ 一覧に載せるかを決めた `TextSearchCatalog` (imas-core の
+    /// `domain/text_search_index.rs`) と**同じ規則**にすること
     /// (大文字小文字だけ畳み、濁点やかなは畳まない)。ここだけ緩めると、
     /// 索引が拾わなかった箇所に色が付いたり、逆に一致しているのに説明が出なかったりする。
     private func matchRange(of needle: String, in haystack: String) -> Range<String.Index>? {
