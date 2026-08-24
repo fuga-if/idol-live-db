@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 
 /// 合成ルート (Composition Root)。
 ///
@@ -9,7 +10,49 @@ import Foundation
 /// 不変の Sendable 依存のみ保持するため、どのスレッド/アクターからでも参照できる。
 final class AppContainer: Sendable {
     static let shared = AppContainer()
-    private init() {}
+
+    /// 共有コア (imas-core) のインメモリスナップショット供給。
+    /// 起動時ロード / sync 完了後の再ロード / メモリ警告での破棄の配線は合成ルートの責務
+    /// としてここ (init) で束ねる。
+    let coreSnapshot: CoreSnapshotManager
+
+    /// 楽曲マスタ読み取りの実装。
+    /// スナップショットがロード済みなら共有コア (imas-core)、未ロード/ロード失敗時は
+    /// 従来の GRDB 経路へ呼び出し単位でフォールバックする (曲スライス並走の原則)。
+    let songReading: any SongReading
+
+    private init() {
+        let snapshot = CoreSnapshotManager()
+        coreSnapshot = snapshot
+        songReading = CoreSongRepository(snapshot: snapshot, fallback: GRDBSongRepository(database: .shared))
+
+        // ローカル編集 (モデレーターの .applied 経路やセトリ取込) は CloudKit sync を通らず
+        // GRDB へ直接 upsert されるため、.masterDataDidSync だけではスナップショットが
+        // 再ロードされない。書き込み成功後に再ロードを促すデコレータで包んで配線する
+        // (これが無いと自分の編集が次の sync かアプリ再起動まで core 経路の曲一覧/曲詳細に映らない)。
+        let invalidate: @Sendable () -> Void = { snapshot.requestLoad() }
+        eventWriting = SnapshotInvalidatingEventWriting(base: GRDBEventWriting(database: .shared), invalidate: invalidate)
+        showWriting = SnapshotInvalidatingShowWriting(base: GRDBShowWriting(database: .shared), invalidate: invalidate)
+        idolWriting = SnapshotInvalidatingIdolWriting(base: GRDBIdolWriting(database: .shared), invalidate: invalidate)
+        songWriting = SnapshotInvalidatingSongWriting(base: GRDBSongWriting(database: .shared), invalidate: invalidate)
+
+        // 起動時ロード。上のインライン初期化子群が AppDatabase.shared を先に初期化しており
+        // (Bundle DB → Documents コピー含む)、この時点で master.sqlite は存在する。
+        // 失敗しても未ロードのまま GRDB が答え続けるので起動は塞がない。
+        snapshot.requestLoad()
+
+        // CloudKit sync がローカルのマスタを書き換えたら読み直す (新スナップショットへ原子的に差し替え)。
+        NotificationCenter.default.addObserver(forName: .masterDataDidSync, object: nil, queue: nil) { _ in
+            snapshot.requestLoad()
+        }
+        // メモリ警告でスナップショットを手放す (以後は GRDB へフォールバック。
+        // 次の sync 完了 or アプリ再起動の requestLoad で復帰する)。
+        NotificationCenter.default.addObserver(
+            forName: UIApplication.didReceiveMemoryWarningNotification, object: nil, queue: nil
+        ) { _ in
+            snapshot.unload()
+        }
+    }
 
     /// 「みんなの投票」のユースケース実装 (Worker D1 集計 API)。
     let communityVoting: any CommunityVoting = CommunityAPI.shared
@@ -22,9 +65,6 @@ final class AppContainer: Sendable {
 
     /// イベント (ライブ/公演) マスタ読み取りの実装 (GRDB / 共有 AppDatabase)。
     let eventReading: any EventReading = GRDBEventRepository(database: .shared)
-
-    /// 楽曲マスタ読み取りの実装 (GRDB / 共有 AppDatabase)。
-    let songReading: any SongReading = GRDBSongRepository(database: .shared)
 
     /// アイドル(キャスト)マスタ読み取りの実装 (GRDB / 共有 AppDatabase)。
     let idolReading: any IdolReading = GRDBIdolRepository(database: .shared)
@@ -98,9 +138,11 @@ final class AppContainer: Sendable {
     }()
 
     // MARK: - 書き込み (編集/インポート系のローカル DB upsert)
+    // スナップショットが読むマスタ表に触るため、init で SnapshotInvalidating* デコレータに
+    // 包んで組み立てる (書き込み成功後に共有コアの再ロードを促す。配線は init 参照)。
 
-    let eventWriting: any EventWriting = GRDBEventWriting(database: .shared)
-    let showWriting: any ShowWriting = GRDBShowWriting(database: .shared)
-    let idolWriting: any IdolWriting = GRDBIdolWriting(database: .shared)
-    let songWriting: any SongWriting = GRDBSongWriting(database: .shared)
+    let eventWriting: any EventWriting
+    let showWriting: any ShowWriting
+    let idolWriting: any IdolWriting
+    let songWriting: any SongWriting
 }

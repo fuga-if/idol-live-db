@@ -1,1 +1,1058 @@
-//! Phase 2 で移送予定 (AppDatabase+SongQueries 参照)。
+//! 曲詳細まわりのスナップショットクエリ (純粋ロジック)。
+//!
+//! SQL 時代の対応 (iOS AppDatabase+SongQueries.swift):
+//! - [`song_records_by_ids`]          ← fetchSongs(ids:) / fetchSong(id:)
+//! - [`listable_song_records_by_ids`] ← fetchListableSongsAsync(ids:)
+//! - [`performer_idol_ids_map`]       ← fetchSongPerformerIdolsMap(songIds:)
+//! - [`performance_history`]          ← fetchSongPerformanceHistoryAsync(songId:)
+//! - [`album_summaries`]              ← fetchAlbumsAsync(brandIds:query:)
+//! - [`series_summaries`]             ← fetchSeriesAsync(brandIds:query:)
+//! - [`series_group_names`]           ← fetchSeriesGroupsAsync(brandIds:)
+//! - [`variant_song_records`]         ← fetchVariantSongsAsync(of:)
+//!
+//! SQL の暗黙挙動はここで明示コードに固定する (等価性はテストの照合で保証):
+//! - `IN (...)` の結果順は SQL では未規定 → 入力 id 順・重複 id は 1 回、で決定化。
+//! - `ORDER BY ... DESC` の NULL は SQLite では末尾 / `ASC` は先頭 → Option の
+//!   Ord (None < Some) と Reverse で同じ位置に置く。
+//! - 集計 (MIN/MAX/COUNT DISTINCT) は NULL を無視するが空文字 '' は値として扱う。
+//! - `LIKE '%q%'` は ASCII のみ大文字小文字を無視 (SQLite の既定) → ASCII だけ
+//!   小文字化してから部分一致。
+//! - SQL が未規定だった同順位の並びは添字や名前で決定化する (プラットフォーム間で
+//!   同一結果を返すのが共有コアの目的なので、非決定性は残さない)。
+
+use crate::domain::snapshot::{Snapshot, Song};
+use std::cmp::Reverse;
+use std::collections::{HashMap, HashSet};
+
+// =============================================================================
+// FFI 射影 Record (uniffi は型 derive のみ / ロジックはこのファイルの関数側)
+// =============================================================================
+
+/// songs 1 行の射影。詳細画面・派生曲一覧は行の全カラムを使うため全域射影になる
+/// (GRDB `Song` / Room Entity と同じ「Record = Entity 兼用」の現実的判断)。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct SongDetailRecord {
+    pub id: String,
+    pub title: String,
+    pub title_kana: Option<String>,
+    pub brand_id: Option<String>,
+    pub song_type: Option<String>,
+    pub release_date: Option<String>,
+    pub duration_sec: Option<i64>,
+    pub composer: Option<String>,
+    pub lyricist: Option<String>,
+    pub arranger: Option<String>,
+    pub cd_series: Option<String>,
+    pub cd_title: Option<String>,
+    pub artwork_url: Option<String>,
+    pub preview_url: Option<String>,
+    pub apple_music_id: Option<String>,
+    pub apple_music_album_id: Option<String>,
+    pub isrc: Option<String>,
+    pub lyrics_url: Option<String>,
+    pub parent_song_id: Option<String>,
+    pub singer_label: Option<String>,
+    pub unit_name: Option<String>,
+    pub unit_id: Option<String>,
+    pub series_group: Option<String>,
+    pub jasrac_code: Option<String>,
+}
+
+impl From<&Song> for SongDetailRecord {
+    fn from(s: &Song) -> Self {
+        Self {
+            id: s.id.clone(),
+            title: s.title.clone(),
+            title_kana: s.title_kana.clone(),
+            brand_id: s.brand_id.clone(),
+            song_type: s.song_type.clone(),
+            release_date: s.release_date.clone(),
+            duration_sec: s.duration_sec,
+            composer: s.composer.clone(),
+            lyricist: s.lyricist.clone(),
+            arranger: s.arranger.clone(),
+            cd_series: s.cd_series.clone(),
+            cd_title: s.cd_title.clone(),
+            artwork_url: s.artwork_url.clone(),
+            preview_url: s.preview_url.clone(),
+            apple_music_id: s.apple_music_id.clone(),
+            apple_music_album_id: s.apple_music_album_id.clone(),
+            isrc: s.isrc.clone(),
+            lyrics_url: s.lyrics_url.clone(),
+            parent_song_id: s.parent_song_id.clone(),
+            singer_label: s.singer_label.clone(),
+            unit_name: s.unit_name.clone(),
+            unit_id: s.unit_id.clone(),
+            series_group: s.series_group.clone(),
+            jasrac_code: s.jasrac_code.clone(),
+        }
+    }
+}
+
+/// 披露履歴 1 行 (iOS `PerformanceHistoryRow` / setlist_items × shows × events)。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct PerformanceHistoryEntry {
+    pub show_id: String,
+    pub event_id: String,
+    pub event_name: String,
+    pub show_name: String,
+    /// YYYY-MM-DD (shows.date)。
+    pub date: String,
+    pub venue: Option<String>,
+    pub position: i64,
+    pub section: Option<String>,
+}
+
+/// CD シリーズ別アルバム集計 1 行 (iOS `AlbumSummary`)。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct AlbumSummaryRecord {
+    pub cd_series: String,
+    /// 代表ジャケット。SQL の MIN(artwork_url) = URL 文字列のバイト列最小 (NULL は無視)。
+    pub artwork_url: Option<String>,
+    pub song_count: u32,
+    pub earliest_date: Option<String>,
+    pub latest_date: Option<String>,
+    /// 含まれる曲のブランド id (重複なし・出現順)。SQL の GROUP_CONCAT(DISTINCT) を
+    /// Swift 側で split → 空要素除去していた最終形に合わせ、NULL と '' は含めない。
+    pub brand_ids: Vec<String>,
+}
+
+/// CD シリーズグループ (series_group) 集計 1 行 (iOS `SeriesSummary`)。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct SeriesSummaryRecord {
+    pub name: String,
+    pub song_count: u32,
+    /// グループ内の cd_series 異なり数 (COUNT(DISTINCT)。NULL は数えず '' は数える)。
+    pub cd_count: u32,
+    pub earliest_date: Option<String>,
+    pub latest_date: Option<String>,
+    /// 代表ジャケット (最古リリース曲のもの)。元 SQL の相関サブクエリはブランド絞り込みの
+    /// 影響を受けない仕様だったので、ここも全曲から選ぶ。
+    pub artwork_url: Option<String>,
+    pub brand_ids: Vec<String>,
+}
+
+// =============================================================================
+// クエリ関数 (Snapshot を引数に取る純粋関数)
+// =============================================================================
+
+/// 曲 id 群の一括取得 (fetchSongs(ids:) / N+1 防止用)。
+///
+/// SQL の `IN` は結果順未規定・重複 id も 1 行だったので、「入力 id 順・初出のみ・
+/// 未知 id は読み飛ばし」で決定化する (呼び出し側は id で引き直す用途なので順序に
+/// 意味はないが、非決定性を残さない)。
+pub fn song_records_by_ids(snap: &Snapshot, song_ids: &[String]) -> Vec<SongDetailRecord> {
+    let mut seen: HashSet<u32> = HashSet::new();
+    song_ids
+        .iter()
+        .filter_map(|id| snap.song_index_by_id.get(id).copied())
+        .filter(|&i| seen.insert(i))
+        .map(|i| SongDetailRecord::from(&snap.songs[i as usize]))
+        .collect()
+}
+
+/// 一覧に出す資格のある曲だけを id で引く (fetchListableSongsAsync(ids:))。
+///
+/// 歌詞検索など「マスタを持たないサーバ側が返した id」を一覧規則に通すための入口。
+/// 一覧が既定で隠すものをここでも落とす (判断をビューに書くと二重管理になるため、
+/// SQL 時代からクエリ側の責務):
+/// - 派生曲 (`parent_song_id` あり)。ソロ Ver. や Remix は親に代表させる。
+/// - その他ブランド (`brand_id = 'other'`、歌枠カバー等)。
+///   `IS NOT 'other'` だったので brand_id が NULL の曲は通る。
+pub fn listable_song_records_by_ids(snap: &Snapshot, song_ids: &[String]) -> Vec<SongDetailRecord> {
+    let mut seen: HashSet<u32> = HashSet::new();
+    song_ids
+        .iter()
+        .filter_map(|id| snap.song_index_by_id.get(id).copied())
+        .filter(|&i| seen.insert(i))
+        .filter(|&i| {
+            let s = &snap.songs[i as usize];
+            s.parent_song_id.is_none() && s.brand_id.as_deref() != Some("other")
+        })
+        .map(|i| SongDetailRecord::from(&snap.songs[i as usize]))
+        .collect()
+}
+
+/// song_id → 歌唱者 (role='original') の idol id 列 (fetchSongPerformerIdolsMap)。
+///
+/// 一覧表示でアイドルアイコンを並べるための一括取得。並びは SQL 時代の
+/// `ORDER BY i.sort_order` (スナップショット構築時に前計算済み)。
+/// Swift 実装と同じく、original 歌唱者が 1 人もいない曲はキー自体を作らない。
+/// 同一 idol の重複行にも Swift と同じく初出だけ採用で防御する。
+pub fn performer_idol_ids_map(
+    snap: &Snapshot,
+    song_ids: &[String],
+) -> HashMap<String, Vec<String>> {
+    let mut result: HashMap<String, Vec<String>> = HashMap::new();
+    for id in song_ids {
+        let Some(&si) = snap.song_index_by_id.get(id) else { continue };
+        if result.contains_key(id) {
+            continue; // 入力 id の重複は 1 回だけ (SQL の IN と同じ)
+        }
+        let mut seen: HashSet<u32> = HashSet::new();
+        let idol_ids: Vec<String> = snap.artists_by_song[si as usize]
+            .iter()
+            .filter(|l| l.role == "original")
+            .filter(|l| seen.insert(l.idol))
+            .map(|l| snap.idols[l.idol as usize].id.clone())
+            .collect();
+        if !idol_ids.is_empty() {
+            result.insert(id.clone(), idol_ids);
+        }
+    }
+    result
+}
+
+/// 曲の披露履歴 (fetchSongPerformanceHistory)。show.date 降順。
+///
+/// SQL は `ORDER BY sh.date DESC` だけで同日内が未規定だった。スナップショットの
+/// 前計算 (setlist_items_by_song) は同日を (show.sort_order ASC, position ASC, 添字)
+/// で決定化してあるので、その並びをそのまま流す。
+pub fn performance_history(snap: &Snapshot, song_id: &str) -> Vec<PerformanceHistoryEntry> {
+    let Some(&si) = snap.song_index_by_id.get(song_id) else { return Vec::new() };
+    snap.setlist_items_by_song[si as usize]
+        .iter()
+        .map(|&ii| {
+            let item = &snap.setlist_items[ii as usize];
+            let show = &snap.shows[item.show as usize];
+            let event = &snap.events[show.event as usize];
+            PerformanceHistoryEntry {
+                show_id: show.id.clone(),
+                event_id: event.id.clone(),
+                event_name: event.name.clone(),
+                show_name: show.name.clone(),
+                date: show.date.clone(),
+                venue: show.venue.clone(),
+                position: item.position,
+                section: item.section.clone(),
+            }
+        })
+        .collect()
+}
+
+/// CD シリーズ別アルバム一覧 (fetchAlbumsAsync)。MIN(release_date) 降順。
+///
+/// - 対象: cd_series が NULL でも '' でもない曲。brand_ids 指定時はそのブランドのみ
+///   (brand_id が NULL の曲は IN に一致しないので落ちる)。
+/// - query は cd_series への部分一致 (SQLite LIKE と同じく ASCII のみ大小無視)。
+/// - 並び: MIN(release_date) 降順・全曲 NULL のグループは末尾 (SQLite DESC の NULL 位置)。
+///   同日は SQL 未規定だったので cd_series 昇順 (バイト列) で決定化。
+pub fn album_summaries(
+    snap: &Snapshot,
+    brand_ids: &[String],
+    query: Option<&str>,
+) -> Vec<AlbumSummaryRecord> {
+    let brand_set = to_brand_set(brand_ids);
+    let needle = normalized_needle(query);
+
+    // グループは出現順 (テーブルスキャン順) に積む。GROUP_CONCAT(DISTINCT) の並びを
+    // 初出順で決定化するのと同じ理由で、グループ自体も走査順に一度だけ作る。
+    let mut order: Vec<String> = Vec::new();
+    let mut groups: HashMap<String, AlbumSummaryRecord> = HashMap::new();
+
+    for song in &snap.songs {
+        let Some(series) = non_empty(&song.cd_series) else { continue };
+        if !brand_matches(&brand_set, &song.brand_id) {
+            continue;
+        }
+        if let Some(n) = &needle {
+            if !ascii_ci_contains(series, n) {
+                continue;
+            }
+        }
+        let entry = groups.entry(series.to_owned()).or_insert_with(|| {
+            order.push(series.to_owned());
+            AlbumSummaryRecord {
+                cd_series: series.to_owned(),
+                artwork_url: None,
+                song_count: 0,
+                earliest_date: None,
+                latest_date: None,
+                brand_ids: Vec::new(),
+            }
+        });
+        entry.song_count += 1;
+        // MIN/MAX は NULL を無視し '' は値として扱う (SQL 集計と同じ)。
+        merge_min(&mut entry.artwork_url, &song.artwork_url);
+        merge_min(&mut entry.earliest_date, &song.release_date);
+        merge_max(&mut entry.latest_date, &song.release_date);
+        if let Some(b) = non_empty(&song.brand_id) {
+            if !entry.brand_ids.iter().any(|x| x == b) {
+                entry.brand_ids.push(b.to_owned());
+            }
+        }
+    }
+
+    let mut result: Vec<AlbumSummaryRecord> =
+        order.into_iter().map(|k| groups.remove(&k).expect("group は必ず存在する")).collect();
+    result.sort_by(|a, b| {
+        (Reverse(&a.earliest_date), &a.cd_series).cmp(&(Reverse(&b.earliest_date), &b.cd_series))
+    });
+    result
+}
+
+/// CD シリーズグループ別一覧 (fetchSeriesAsync)。MIN(release_date) 降順。
+///
+/// 代表ジャケットの相関サブクエリは brand / query の絞り込みを受けずに全曲から
+/// 「artwork を持つ最古リリース曲」を選んでいた (release_date ASC = NULL 先頭、
+/// 同日は SQL 未規定 → テーブルスキャン順の初出で決定化)。ここも同じにする。
+pub fn series_summaries(
+    snap: &Snapshot,
+    brand_ids: &[String],
+    query: Option<&str>,
+) -> Vec<SeriesSummaryRecord> {
+    let brand_set = to_brand_set(brand_ids);
+    let needle = normalized_needle(query);
+
+    // パス1: series_group → 代表ジャケット (絞り込み前の全曲が母集団)。
+    // キーは (release_date ASC・NULL 先頭, 走査順)。Option の Ord は None < Some なので
+    // 素の比較が SQLite ASC の NULL 先頭に一致する。
+    let mut artwork_rep: HashMap<&str, (&Option<String>, &str)> = HashMap::new();
+    for song in &snap.songs {
+        let Some(group) = non_empty(&song.series_group) else { continue };
+        let Some(art) = non_empty(&song.artwork_url) else { continue };
+        match artwork_rep.entry(group) {
+            std::collections::hash_map::Entry::Vacant(e) => {
+                e.insert((&song.release_date, art));
+            }
+            std::collections::hash_map::Entry::Occupied(mut e) => {
+                // 走査順に見ているので、更新条件を「より古い日付のみ」(同値は据え置き)
+                // にすれば初出優先の決定化になる。
+                if song.release_date < *e.get().0 {
+                    e.insert((&song.release_date, art));
+                }
+            }
+        }
+    }
+
+    // パス2: 絞り込み後の曲で集計。cd_series の異なり数は NULL を数えず '' は数える
+    // (COUNT(DISTINCT) の挙動)。
+    let mut order: Vec<String> = Vec::new();
+    let mut groups: HashMap<String, SeriesSummaryRecord> = HashMap::new();
+    let mut cd_sets: HashMap<String, HashSet<&str>> = HashMap::new();
+
+    for song in &snap.songs {
+        let Some(group) = non_empty(&song.series_group) else { continue };
+        if !brand_matches(&brand_set, &song.brand_id) {
+            continue;
+        }
+        if let Some(n) = &needle {
+            if !ascii_ci_contains(group, n) {
+                continue;
+            }
+        }
+        let entry = groups.entry(group.to_owned()).or_insert_with(|| {
+            order.push(group.to_owned());
+            SeriesSummaryRecord {
+                name: group.to_owned(),
+                song_count: 0,
+                cd_count: 0,
+                earliest_date: None,
+                latest_date: None,
+                artwork_url: artwork_rep.get(group).map(|(_, art)| (*art).to_owned()),
+                brand_ids: Vec::new(),
+            }
+        });
+        entry.song_count += 1;
+        merge_min(&mut entry.earliest_date, &song.release_date);
+        merge_max(&mut entry.latest_date, &song.release_date);
+        if let Some(cd) = song.cd_series.as_deref() {
+            cd_sets.entry(group.to_owned()).or_default().insert(cd);
+        }
+        if let Some(b) = non_empty(&song.brand_id) {
+            if !entry.brand_ids.iter().any(|x| x == b) {
+                entry.brand_ids.push(b.to_owned());
+            }
+        }
+    }
+
+    let mut result: Vec<SeriesSummaryRecord> = order
+        .into_iter()
+        .map(|k| {
+            let mut rec = groups.remove(&k).expect("group は必ず存在する");
+            rec.cd_count = cd_sets.get(&k).map_or(0, |s| s.len() as u32);
+            rec
+        })
+        .collect();
+    result.sort_by(|a, b| {
+        (Reverse(&a.earliest_date), &a.name).cmp(&(Reverse(&b.earliest_date), &b.name))
+    });
+    result
+}
+
+/// 楽曲シリーズ (series_group) 名の一覧 (fetchSeriesGroupsAsync)。曲数降順。
+///
+/// フィルタピッカーの選択肢用。brand_ids 指定時はそのブランドの曲だけ数える。
+/// 同数のときの並びは SQL 未規定だったので名前昇順 (バイト列) で決定化。
+pub fn series_group_names(snap: &Snapshot, brand_ids: &[String]) -> Vec<String> {
+    let brand_set = to_brand_set(brand_ids);
+    let mut counts: HashMap<&str, u32> = HashMap::new();
+    for song in &snap.songs {
+        let Some(group) = non_empty(&song.series_group) else { continue };
+        if !brand_matches(&brand_set, &song.brand_id) {
+            continue;
+        }
+        *counts.entry(group).or_insert(0) += 1;
+    }
+    let mut pairs: Vec<(&str, u32)> = counts.into_iter().collect();
+    pairs.sort_by(|a, b| (Reverse(a.1), a.0).cmp(&(Reverse(b.1), b.0)));
+    pairs.into_iter().map(|(name, _)| name.to_owned()).collect()
+}
+
+/// 同じ曲の別バージョン一族 (fetchVariantSongsAsync)。自分は除く。
+///
+/// 一覧・統計・クイズは派生曲 (`parent_song_id` あり) を隠しているので、詳細画面が
+/// ここを通して「Crossing! のソロ 15 種」等に辿り着けるようにする。
+/// 自分が派生側でも親側でも同じ一族が返るよう、根 (parent_song_id ?? 自分) を求めて
+/// から根+根の子を集める (SQL と同じ 1 段のみの遡り)。
+///
+/// 並びは SQL の `ORDER BY (親なしが先), title_kana, title` を踏襲し、
+/// title_kana の NULL は先頭 (SQLite ASC)、完全同値は添字で決定化。
+pub fn variant_song_records(snap: &Snapshot, song_id: &str) -> Vec<SongDetailRecord> {
+    let Some(&si) = snap.song_index_by_id.get(song_id) else { return Vec::new() };
+    let root = snap.variant_root(si);
+    let mut family: Vec<u32> = Vec::new();
+    if root != si {
+        family.push(root);
+    }
+    family.extend(snap.variants_by_song[root as usize].iter().copied().filter(|&c| c != si));
+    family.sort_by(|&a, &b| variant_order_key(snap, a).cmp(&variant_order_key(snap, b)));
+    family
+        .into_iter()
+        .map(|i| SongDetailRecord::from(&snap.songs[i as usize]))
+        .collect()
+}
+
+/// fetchVariantSongs の ORDER BY 相当キー:
+/// (親なし=0 / 派生=1, title_kana (NULL 先頭), title, 添字)。
+fn variant_order_key(snap: &Snapshot, i: u32) -> (u8, &Option<String>, &String, u32) {
+    let s = &snap.songs[i as usize];
+    (u8::from(s.parent_song_id.is_some()), &s.title_kana, &s.title, i)
+}
+
+// =============================================================================
+// SQL の暗黙挙動を明示するヘルパ
+// =============================================================================
+
+/// `IS NOT NULL AND <> ''` の射影。NULL と空文字を「値なし」に畳む。
+fn non_empty(v: &Option<String>) -> Option<&str> {
+    v.as_deref().filter(|s| !s.is_empty())
+}
+
+/// brand フィルタの集合化。空 Vec は「絞り込みなし」(SQL で IN 句自体を組まない状態)。
+fn to_brand_set(brand_ids: &[String]) -> Option<HashSet<&str>> {
+    if brand_ids.is_empty() {
+        None
+    } else {
+        Some(brand_ids.iter().map(String::as_str).collect())
+    }
+}
+
+/// `brand_id IN (...)` の判定。NULL はどの IN にも一致しない (SQL と同じ)。
+fn brand_matches(set: &Option<HashSet<&str>>, brand_id: &Option<String>) -> bool {
+    match set {
+        None => true,
+        Some(s) => brand_id.as_deref().is_some_and(|b| s.contains(b)),
+    }
+}
+
+/// 検索語の正規化。空文字は「絞り込みなし」(Swift 側の `!query.isEmpty` ガードと同じ)。
+/// LIKE の ASCII 大小無視に合わせて先に ASCII 小文字化しておく。
+fn normalized_needle(query: Option<&str>) -> Option<String> {
+    query.filter(|q| !q.is_empty()).map(|q| q.to_ascii_lowercase())
+}
+
+/// SQLite `LIKE '%q%'` の部分一致。ASCII のみ大小無視・非 ASCII は区別 (SQLite の既定)。
+/// needle は [`normalized_needle`] で小文字化済みであること。
+fn ascii_ci_contains(haystack: &str, needle_lower: &str) -> bool {
+    haystack.to_ascii_lowercase().contains(needle_lower)
+}
+
+/// MIN 集計 (NULL 無視・バイト列比較 = SQLite BINARY 照合)。
+fn merge_min(acc: &mut Option<String>, v: &Option<String>) {
+    if let Some(v) = v {
+        match acc {
+            Some(cur) if v >= cur => {}
+            _ => *acc = Some(v.clone()),
+        }
+    }
+}
+
+/// MAX 集計 (NULL 無視・バイト列比較)。
+fn merge_max(acc: &mut Option<String>, v: &Option<String>) {
+    if let Some(v) = v {
+        match acc {
+            Some(cur) if v <= cur => {}
+            _ => *acc = Some(v.clone()),
+        }
+    }
+}
+
+// =============================================================================
+// テスト: 実 Bundle DB で「元 SQL の結果 = スナップショット関数の結果」を照合する。
+// これが SQL 全廃 (Phase 2) の等価性保証。rusqlite はテスト内でのみ使用する。
+// =============================================================================
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rusqlite::{Connection, OpenFlags};
+
+    fn db_path() -> String {
+        format!("{}/../ImasLiveDB/Resources/master.sqlite", env!("CARGO_MANIFEST_DIR"))
+    }
+
+    fn snapshot() -> Snapshot {
+        crate::outbound::sqlite_loader::load_snapshot(&db_path()).expect("bundle DB はロードできる")
+    }
+
+    fn conn() -> Connection {
+        Connection::open_with_flags(
+            db_path(),
+            OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+        )
+        .expect("bundle DB は開ける")
+    }
+
+    /// `SELECT * FROM songs` 系の行を Record に写す (カラム名で引くので列順に依存しない)。
+    fn record_from_row(row: &rusqlite::Row<'_>) -> SongDetailRecord {
+        SongDetailRecord {
+            id: row.get_unwrap("id"),
+            title: row.get_unwrap("title"),
+            title_kana: row.get_unwrap("title_kana"),
+            brand_id: row.get_unwrap("brand_id"),
+            song_type: row.get_unwrap("song_type"),
+            release_date: row.get_unwrap("release_date"),
+            duration_sec: row.get_unwrap("duration_sec"),
+            composer: row.get_unwrap("composer"),
+            lyricist: row.get_unwrap("lyricist"),
+            arranger: row.get_unwrap("arranger"),
+            cd_series: row.get_unwrap("cd_series"),
+            cd_title: row.get_unwrap("cd_title"),
+            artwork_url: row.get_unwrap("artwork_url"),
+            preview_url: row.get_unwrap("preview_url"),
+            apple_music_id: row.get_unwrap("apple_music_id"),
+            apple_music_album_id: row.get_unwrap("apple_music_album_id"),
+            isrc: row.get_unwrap("isrc"),
+            lyrics_url: row.get_unwrap("lyrics_url"),
+            parent_song_id: row.get_unwrap("parent_song_id"),
+            singer_label: row.get_unwrap("singer_label"),
+            unit_name: row.get_unwrap("unit_name"),
+            unit_id: row.get_unwrap("unit_id"),
+            series_group: row.get_unwrap("series_group"),
+            jasrac_code: row.get_unwrap("jasrac_code"),
+        }
+    }
+
+    fn placeholders(n: usize) -> String {
+        vec!["?"; n].join(",")
+    }
+
+    /// 照合 1: fetchSongs(ids:)。IN の結果順は SQL 未規定なので id 順に正規化して
+    /// 全カラムを比較する。未知 id ・重複 id の挙動 (読み飛ばし / 1 回) も含めて確認。
+    #[test]
+    fn songs_by_ids_matches_sql() {
+        let snap = snapshot();
+        let db = conn();
+        // 実在 id (走査順の先頭 50 + 末尾 50) + 未知 id + 重複 id を混ぜる
+        let mut ids: Vec<String> = snap.songs.iter().take(50).map(|s| s.id.clone()).collect();
+        ids.extend(snap.songs.iter().rev().take(50).map(|s| s.id.clone()));
+        ids.push("存在しないid".into());
+        ids.push(snap.songs[0].id.clone()); // 重複
+
+        let sql = format!("SELECT * FROM songs WHERE id IN ({})", placeholders(ids.len()));
+        let mut stmt = db.prepare(&sql).unwrap();
+        let mut expected: Vec<SongDetailRecord> = stmt
+            .query_map(rusqlite::params_from_iter(ids.iter()), |r| Ok(record_from_row(r)))
+            .unwrap()
+            .map(Result::unwrap)
+            .collect();
+
+        let mut actual = song_records_by_ids(&snap, &ids);
+        assert_eq!(actual.len(), 100, "実在 100 件・未知は読み飛ばし・重複は 1 回");
+
+        expected.sort_by(|a, b| a.id.cmp(&b.id));
+        actual.sort_by(|a, b| a.id.cmp(&b.id));
+        assert_eq!(actual, expected);
+    }
+
+    /// 照合 2: fetchListableSongsAsync(ids:)。派生曲と brand='other' が落ち、
+    /// brand_id NULL は通る (`IS NOT 'other'`) ことを SQL と突き合わせる。
+    #[test]
+    fn listable_songs_matches_sql() {
+        let snap = snapshot();
+        let db = conn();
+        // 派生曲・other ブランド・通常曲を SQL 側から動的に混ぜる (データ変化に追従)
+        let mut ids: Vec<String> = Vec::new();
+        for q in [
+            "SELECT id FROM songs WHERE parent_song_id IS NOT NULL LIMIT 20",
+            "SELECT id FROM songs WHERE brand_id = 'other' LIMIT 20",
+            "SELECT id FROM songs WHERE parent_song_id IS NULL AND brand_id IS NOT 'other' LIMIT 60",
+            "SELECT id FROM songs WHERE brand_id IS NULL LIMIT 5",
+        ] {
+            let mut stmt = db.prepare(q).unwrap();
+            ids.extend(
+                stmt.query_map([], |r| r.get::<_, String>(0)).unwrap().map(Result::unwrap),
+            );
+        }
+        assert!(ids.len() >= 100, "照合対象が痩せていないこと");
+
+        let sql = format!(
+            "SELECT * FROM songs
+              WHERE id IN ({})
+                AND parent_song_id IS NULL
+                AND brand_id IS NOT 'other'",
+            placeholders(ids.len())
+        );
+        let mut stmt = db.prepare(&sql).unwrap();
+        let mut expected: Vec<SongDetailRecord> = stmt
+            .query_map(rusqlite::params_from_iter(ids.iter()), |r| Ok(record_from_row(r)))
+            .unwrap()
+            .map(Result::unwrap)
+            .collect();
+
+        let mut actual = listable_song_records_by_ids(&snap, &ids);
+        expected.sort_by(|a, b| a.id.cmp(&b.id));
+        actual.sort_by(|a, b| a.id.cmp(&b.id));
+        assert_eq!(actual, expected);
+        assert!(!actual.is_empty());
+    }
+
+    /// 照合 3: fetchSongPerformerIdolsMap(songIds:)。全曲を対象に、曲ごとの
+    /// original 歌唱者 id 列 (sort_order 順・重複除去・0 人はキーなし) を突き合わせる。
+    #[test]
+    fn performer_idol_ids_map_matches_sql() {
+        let snap = snapshot();
+        let db = conn();
+        let all_ids: Vec<String> = snap.songs.iter().map(|s| s.id.clone()).collect();
+
+        // 元 SQL: ORDER BY sa.song_id, i.sort_order + Swift 側の初出 dedup。
+        // sort_order の同値タイは SQL 未規定なので (sort_order, idol id) で読んで
+        // Swift と同じ初出 dedup を通す (実データにタイは無いことを probe 済みだが、
+        // データが変わっても照合が壊れないよう並びを固定しておく)。
+        let sql = format!(
+            "SELECT sa.song_id, i.id
+               FROM song_artists sa JOIN idols i ON i.id = sa.idol_id
+              WHERE sa.song_id IN ({}) AND sa.role = 'original'
+              ORDER BY sa.song_id, i.sort_order, i.id",
+            placeholders(all_ids.len())
+        );
+        let mut stmt = db.prepare(&sql).unwrap();
+        let mut expected: HashMap<String, Vec<String>> = HashMap::new();
+        for row in stmt
+            .query_map(rusqlite::params_from_iter(all_ids.iter()), |r| {
+                Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?))
+            })
+            .unwrap()
+            .map(Result::unwrap)
+        {
+            let (sid, iid) = row;
+            let list = expected.entry(sid).or_default();
+            if !list.contains(&iid) {
+                list.push(iid);
+            }
+        }
+
+        let actual = performer_idol_ids_map(&snap, &all_ids);
+        assert_eq!(actual.len(), expected.len(), "original 歌唱者を持つ曲数が一致");
+        for (sid, ids) in &expected {
+            assert_eq!(actual.get(sid), Some(ids), "song={sid} の歌唱者列が一致");
+        }
+    }
+
+    /// 照合 4: fetchSongPerformanceHistory。SQL は date DESC のみ規定なので、
+    /// 両者を同一の決定キーに正規化して全カラム比較 + 自前出力の date 降順を検証。
+    #[test]
+    fn performance_history_matches_sql() {
+        let snap = snapshot();
+        let db = conn();
+        // 披露回数の多い曲 + 同日複数披露の曲 + 披露ゼロの曲を対象にする
+        let mut targets: Vec<String> = {
+            let mut stmt = db
+                .prepare(
+                    "SELECT song_id FROM setlist_items GROUP BY song_id
+                      ORDER BY COUNT(*) DESC LIMIT 5",
+                )
+                .unwrap();
+            stmt.query_map([], |r| r.get(0)).unwrap().map(Result::unwrap).collect()
+        };
+        targets.push("765as_902pm".into()); // 同日 2 披露の実例 (probe 済み)
+        targets.push("存在しないid".into());
+
+        for song_id in &targets {
+            let mut stmt = db
+                .prepare(
+                    "SELECT sh.id AS show_id, e.id AS event_id,
+                            e.name AS event_name, sh.name AS show_name, sh.date, sh.venue,
+                            si.position, si.section
+                       FROM setlist_items si
+                       JOIN shows sh ON si.show_id = sh.id
+                       JOIN events e ON sh.event_id = e.id
+                      WHERE si.song_id = ?
+                      ORDER BY sh.date DESC",
+                )
+                .unwrap();
+            let mut expected: Vec<PerformanceHistoryEntry> = stmt
+                .query_map([song_id], |r| {
+                    Ok(PerformanceHistoryEntry {
+                        show_id: r.get_unwrap("show_id"),
+                        event_id: r.get_unwrap("event_id"),
+                        event_name: r.get_unwrap("event_name"),
+                        show_name: r.get_unwrap("show_name"),
+                        date: r.get_unwrap("date"),
+                        venue: r.get_unwrap("venue"),
+                        position: r.get_unwrap("position"),
+                        section: r.get_unwrap("section"),
+                    })
+                })
+                .unwrap()
+                .map(Result::unwrap)
+                .collect();
+
+            let actual = performance_history(&snap, song_id);
+
+            // 可視の契約 (date 降順) をスナップショット出力側で検証
+            assert!(
+                actual.windows(2).all(|w| w[0].date >= w[1].date),
+                "song={song_id} の履歴が date 降順"
+            );
+
+            // 同日内の並びは SQL 未規定なので、決定キーに正規化して全カラム照合
+            let canon = |v: &mut Vec<PerformanceHistoryEntry>| {
+                v.sort_by(|a, b| {
+                    (Reverse(&a.date), &a.show_id, a.position, &a.section)
+                        .cmp(&(Reverse(&b.date), &b.show_id, b.position, &b.section))
+                });
+            };
+            let mut actual = actual;
+            canon(&mut expected);
+            canon(&mut actual);
+            assert_eq!(actual, expected, "song={song_id} の披露履歴が一致");
+        }
+    }
+
+    /// 照合 5: fetchAlbumsAsync。絞り込みなし / ブランド絞り / query (ASCII 大小無視の
+    /// LIKE) の 3 パターンで、集計値と並びの契約 (MIN(release_date) 降順) を突き合わせる。
+    #[test]
+    fn album_summaries_matches_sql() {
+        let snap = snapshot();
+        let db = conn();
+        let cases: [(&[&str], Option<&str>); 4] = [
+            (&[], None),
+            (&["ml", "cg"], None),
+            (&[], Some("MASTER")), // 大文字で与え LIKE の ASCII 大小無視を照合する
+            (&["sidem"], Some("st@rting")),
+        ];
+        for (brands, query) in cases {
+            let brand_vec: Vec<String> = brands.iter().map(|s| s.to_string()).collect();
+            let mut sql = String::from(
+                "SELECT cd_series,
+                        MIN(artwork_url) AS artwork_url,
+                        COUNT(*) AS song_count,
+                        MIN(release_date) AS earliest_date,
+                        MAX(release_date) AS latest_date,
+                        GROUP_CONCAT(DISTINCT brand_id) AS brand_ids
+                   FROM songs
+                  WHERE cd_series IS NOT NULL AND cd_series != ''",
+            );
+            let mut args: Vec<String> = Vec::new();
+            if !brands.is_empty() {
+                sql.push_str(&format!(" AND brand_id IN ({})", placeholders(brands.len())));
+                args.extend(brand_vec.iter().cloned());
+            }
+            if let Some(q) = query {
+                sql.push_str(" AND cd_series LIKE ? ESCAPE '\\'");
+                args.push(format!("%{q}%"));
+            }
+            sql.push_str(" GROUP BY cd_series ORDER BY MIN(release_date) DESC");
+
+            let mut stmt = db.prepare(&sql).unwrap();
+            let mut expected: Vec<AlbumSummaryRecord> = stmt
+                .query_map(rusqlite::params_from_iter(args.iter()), |r| {
+                    Ok(AlbumSummaryRecord {
+                        cd_series: r.get_unwrap("cd_series"),
+                        artwork_url: r.get_unwrap("artwork_url"),
+                        song_count: r.get_unwrap::<_, i64>("song_count") as u32,
+                        earliest_date: r.get_unwrap("earliest_date"),
+                        latest_date: r.get_unwrap("latest_date"),
+                        // Swift の split(",") + 空要素除去と同じ写像
+                        brand_ids: r
+                            .get_unwrap::<_, Option<String>>("brand_ids")
+                            .map(|s| {
+                                s.split(',')
+                                    .filter(|x| !x.is_empty())
+                                    .map(str::to_owned)
+                                    .collect()
+                            })
+                            .unwrap_or_default(),
+                    })
+                })
+                .unwrap()
+                .map(Result::unwrap)
+                .collect();
+
+            let mut actual = album_summaries(&snap, &brand_vec, query);
+            assert_eq!(actual.len(), expected.len(), "brands={brands:?} q={query:?} の件数");
+
+            // 可視の契約: MIN(release_date) 降順 (NULL 末尾) をスナップショット出力側で検証
+            assert!(
+                actual.windows(2).all(|w| {
+                    (Reverse(&w[0].earliest_date)) <= (Reverse(&w[1].earliest_date))
+                }),
+                "brands={brands:?} q={query:?} が MIN(release_date) 降順"
+            );
+
+            // GROUP_CONCAT(DISTINCT) の並びと同日タイの並びは SQL 未規定なので正規化して照合
+            let canon = |v: &mut Vec<AlbumSummaryRecord>| {
+                for r in v.iter_mut() {
+                    r.brand_ids.sort();
+                }
+                v.sort_by(|a, b| a.cd_series.cmp(&b.cd_series));
+            };
+            canon(&mut expected);
+            canon(&mut actual);
+            assert_eq!(actual, expected, "brands={brands:?} q={query:?} の集計が一致");
+        }
+    }
+
+    /// 照合 6: fetchSeriesAsync。代表ジャケット相関サブクエリ (ブランド絞り込みの影響を
+    /// 受けない) を含めて突き合わせる。
+    #[test]
+    fn series_summaries_matches_sql() {
+        let snap = snapshot();
+        let db = conn();
+        let cases: [(&[&str], Option<&str>); 3] =
+            [(&[], None), (&["ml"], None), (&[], Some("the@ter"))];
+        for (brands, query) in cases {
+            let brand_vec: Vec<String> = brands.iter().map(|s| s.to_string()).collect();
+            let mut sql = String::from(
+                "SELECT series_group AS name,
+                        COUNT(*) AS song_count,
+                        COUNT(DISTINCT cd_series) AS cd_count,
+                        MIN(release_date) AS earliest_date,
+                        MAX(release_date) AS latest_date,
+                        GROUP_CONCAT(DISTINCT brand_id) AS brand_ids,
+                        (SELECT s2.artwork_url FROM songs s2
+                          WHERE s2.series_group = songs.series_group
+                            AND s2.artwork_url IS NOT NULL AND s2.artwork_url != ''
+                          ORDER BY s2.release_date LIMIT 1) AS artwork_url
+                   FROM songs
+                  WHERE series_group IS NOT NULL AND series_group != ''",
+            );
+            let mut args: Vec<String> = Vec::new();
+            if !brands.is_empty() {
+                sql.push_str(&format!(" AND brand_id IN ({})", placeholders(brands.len())));
+                args.extend(brand_vec.iter().cloned());
+            }
+            if let Some(q) = query {
+                sql.push_str(" AND series_group LIKE ? ESCAPE '\\'");
+                args.push(format!("%{q}%"));
+            }
+            sql.push_str(" GROUP BY series_group ORDER BY MIN(release_date) DESC");
+
+            let mut stmt = db.prepare(&sql).unwrap();
+            let mut expected: Vec<SeriesSummaryRecord> = stmt
+                .query_map(rusqlite::params_from_iter(args.iter()), |r| {
+                    Ok(SeriesSummaryRecord {
+                        name: r.get_unwrap("name"),
+                        song_count: r.get_unwrap::<_, i64>("song_count") as u32,
+                        cd_count: r.get_unwrap::<_, i64>("cd_count") as u32,
+                        earliest_date: r.get_unwrap("earliest_date"),
+                        latest_date: r.get_unwrap("latest_date"),
+                        artwork_url: r.get_unwrap("artwork_url"),
+                        brand_ids: r
+                            .get_unwrap::<_, Option<String>>("brand_ids")
+                            .map(|s| {
+                                s.split(',')
+                                    .filter(|x| !x.is_empty())
+                                    .map(str::to_owned)
+                                    .collect()
+                            })
+                            .unwrap_or_default(),
+                    })
+                })
+                .unwrap()
+                .map(Result::unwrap)
+                .collect();
+
+            let mut actual = series_summaries(&snap, &brand_vec, query);
+            assert_eq!(actual.len(), expected.len(), "brands={brands:?} q={query:?} の件数");
+            assert!(
+                actual.windows(2).all(|w| {
+                    (Reverse(&w[0].earliest_date)) <= (Reverse(&w[1].earliest_date))
+                }),
+                "brands={brands:?} q={query:?} が MIN(release_date) 降順"
+            );
+
+            // 代表ジャケットの「同日タイ」は SQL 未規定なので、タイの場合だけ
+            // 候補集合の一員であることまでを検証し、それ以外は完全一致を要求する。
+            let canon = |v: &mut Vec<SeriesSummaryRecord>| {
+                for r in v.iter_mut() {
+                    r.brand_ids.sort();
+                }
+                v.sort_by(|a, b| a.name.cmp(&b.name));
+            };
+            canon(&mut expected);
+            canon(&mut actual);
+            for (a, e) in actual.iter().zip(expected.iter()) {
+                let mut a2 = a.clone();
+                let mut e2 = e.clone();
+                a2.artwork_url = None;
+                e2.artwork_url = None;
+                assert_eq!(a2, e2, "brands={brands:?} q={query:?} name={} の集計が一致", a.name);
+                if a.artwork_url != e.artwork_url {
+                    // 最古リリース日が同日の複数候補がある場合のみ許容される差
+                    let candidates = representative_artwork_candidates(&db, &a.name);
+                    assert!(
+                        a.artwork_url.as_deref().is_some_and(|u| candidates.contains(u)),
+                        "name={} の代表ジャケットが最古日候補のいずれか (actual={:?} sql={:?})",
+                        a.name,
+                        a.artwork_url,
+                        e.artwork_url
+                    );
+                }
+            }
+        }
+    }
+
+    /// 代表ジャケットの正当な候補 = artwork を持つ曲のうち release_date が最小
+    /// (NULL 先頭 = SQLite ASC) の曲の artwork_url 集合。
+    fn representative_artwork_candidates(db: &Connection, group: &str) -> HashSet<String> {
+        let mut stmt = db
+            .prepare(
+                "SELECT artwork_url FROM songs
+                  WHERE series_group = ?1 AND artwork_url IS NOT NULL AND artwork_url != ''
+                    AND (release_date IS (SELECT release_date FROM songs
+                          WHERE series_group = ?1 AND artwork_url IS NOT NULL AND artwork_url != ''
+                          ORDER BY release_date LIMIT 1))",
+            )
+            .unwrap();
+        stmt.query_map([group], |r| r.get(0)).unwrap().map(Result::unwrap).collect()
+    }
+
+    /// 照合 7: fetchSeriesGroupsAsync。曲数降順 (同数タイは SQL 未規定 → 名前昇順に
+    /// 正規化して照合) を全件 / ブランド絞りで突き合わせる。
+    #[test]
+    fn series_group_names_matches_sql() {
+        let snap = snapshot();
+        let db = conn();
+        for brands in [vec![], vec!["ml".to_string(), "sc".to_string()]] {
+            let mut sql = String::from(
+                "SELECT series_group, COUNT(*) AS cnt FROM songs
+                  WHERE series_group IS NOT NULL AND series_group <> ''",
+            );
+            if !brands.is_empty() {
+                sql.push_str(&format!(" AND brand_id IN ({})", placeholders(brands.len())));
+            }
+            sql.push_str(" GROUP BY series_group ORDER BY cnt DESC, series_group");
+
+            let mut stmt = db.prepare(&sql).unwrap();
+            let expected: Vec<String> = stmt
+                .query_map(rusqlite::params_from_iter(brands.iter()), |r| r.get(0))
+                .unwrap()
+                .map(Result::unwrap)
+                .collect();
+
+            let actual = series_group_names(&snap, &brands);
+            assert_eq!(actual, expected, "brands={brands:?} のシリーズ名一覧が一致");
+        }
+    }
+
+    /// 照合 8: fetchVariantSongsAsync。親から見ても子から見ても同じ一族が返り、
+    /// ORDER BY (親なし先頭, title_kana, title) が一致することを確認する。
+    #[test]
+    fn variant_songs_matches_sql() {
+        let snap = snapshot();
+        let db = conn();
+        // 派生の多い親と、その子の 1 つ + 派生を持たない曲を対象にする
+        let parent: String = db
+            .query_row(
+                "SELECT parent_song_id FROM songs WHERE parent_song_id IS NOT NULL
+                  GROUP BY parent_song_id ORDER BY COUNT(*) DESC LIMIT 1",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        let child: String = db
+            .query_row(
+                "SELECT id FROM songs WHERE parent_song_id = ? ORDER BY id LIMIT 1",
+                [&parent],
+                |r| r.get(0),
+            )
+            .unwrap();
+        let loner: String = db
+            .query_row(
+                "SELECT id FROM songs s WHERE s.parent_song_id IS NULL
+                  AND NOT EXISTS (SELECT 1 FROM songs c WHERE c.parent_song_id = s.id)
+                  ORDER BY id LIMIT 1",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+
+        for song_id in [&parent, &child, &loner] {
+            // 元 Swift と同じく、まず root (parent_song_id ?? id) を求める
+            let root: String = db
+                .query_row(
+                    "SELECT COALESCE(parent_song_id, id) FROM songs WHERE id = ?",
+                    [song_id],
+                    |r| r.get(0),
+                )
+                .unwrap();
+            let mut stmt = db
+                .prepare(
+                    "SELECT * FROM songs
+                      WHERE (id = ?1 OR parent_song_id = ?1) AND id != ?2
+                      ORDER BY CASE WHEN parent_song_id IS NULL THEN 0 ELSE 1 END,
+                               title_kana, title",
+                )
+                .unwrap();
+            let mut expected: Vec<SongDetailRecord> = stmt
+                .query_map([&root, song_id], |r| Ok(record_from_row(r)))
+                .unwrap()
+                .map(Result::unwrap)
+                .collect();
+
+            let mut actual = variant_song_records(&snap, song_id);
+
+            // (kana, title) 完全同値のタイは SQL 未規定なので id で正規化して照合。
+            // 可視の契約 (バケツ → kana → title の非減少) は actual 側で別途検証する。
+            assert!(
+                actual.windows(2).all(|w| {
+                    let key = |r: &SongDetailRecord| {
+                        (
+                            u8::from(r.parent_song_id.is_some()),
+                            r.title_kana.clone(),
+                            r.title.clone(),
+                        )
+                    };
+                    key(&w[0]) <= key(&w[1])
+                }),
+                "song={song_id} の並びが ORDER BY 契約に従う"
+            );
+            let canon = |v: &mut Vec<SongDetailRecord>| {
+                v.sort_by(|a, b| {
+                    (
+                        u8::from(a.parent_song_id.is_some()),
+                        &a.title_kana,
+                        &a.title,
+                        &a.id,
+                    )
+                        .cmp(&(
+                            u8::from(b.parent_song_id.is_some()),
+                            &b.title_kana,
+                            &b.title,
+                            &b.id,
+                        ))
+                });
+            };
+            canon(&mut expected);
+            canon(&mut actual);
+            assert_eq!(actual, expected, "song={song_id} の別バージョン一族が一致");
+        }
+        // 親起点は自分抜きの子全員、子起点は根+兄弟、独身曲は空になることの粗い確認
+        assert!(!variant_song_records(&snap, &parent).is_empty());
+        assert!(variant_song_records(&snap, &child).len() >= variant_song_records(&snap, &parent).len());
+        assert!(variant_song_records(&snap, &loner).is_empty());
+    }
+}

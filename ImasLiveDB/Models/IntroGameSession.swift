@@ -133,7 +133,9 @@ final class IntroGameSession {
 
         // Rush / 全曲チャレンジ は選択ブランドの全曲をプール。Normal は questionCount 問。
         let count = (settings.mode == .rush || settings.mode == .allSongs) ? pool.count : settings.questionCount
-        questions = Array(pool.shuffled().prefix(count)).map { song in
+        let picked = Array(pool.shuffled().prefix(count))
+        // 選択肢は 1 ゲームぶんまとめて 1 回の FFI 呼び出しで生成する (出題ごとのループ呼び出しにしない)。
+        questions = zip(picked, IntroQuizChoices.makeAll(for: picked, pool: pool)).map { song, choices in
             IntroGameQuestion(
                 id: song.id,
                 title: song.title,
@@ -141,7 +143,7 @@ final class IntroGameSession {
                 appleMusicId: song.appleMusicId ?? "",
                 previewUrl: song.previewUrl,
                 artworkUrl: song.artworkUrl,
-                choices: IntroQuizChoices.make(for: song, pool: pool)
+                choices: choices
             )
         }
 

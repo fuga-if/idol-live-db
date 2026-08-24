@@ -118,9 +118,12 @@ targets:
         product: NukeUI
       - package: Firebase
         product: FirebaseAnalytics
-      # imas-core (Rust): imas-core/build.sh で生成
+      # imas-core (Rust): imas-core/build.sh で生成。
+      # Apple では rusqlite が system SQLite とリンクするため libsqlite3 を明示
+      # (bundled を静的リンクすると GRDB まで同梱 SQLite に乗っ取られる — Cargo.toml 参照)
       - framework: build/imas-core/ImasCore.xcframework
         embed: false
+      - sdk: libsqlite3.tbd
       - target: ImasLiveDBWidget
     scheme:
       testTargets:

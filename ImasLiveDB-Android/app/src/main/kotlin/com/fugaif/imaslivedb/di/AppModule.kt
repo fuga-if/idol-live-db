@@ -3,6 +3,7 @@ package com.fugaif.imaslivedb.di
 import android.content.Context
 import com.fugaif.imaslivedb.data.auth.AuthService
 import com.fugaif.imaslivedb.data.backup.BackupTransferApi
+import com.fugaif.imaslivedb.data.core.SnapshotStoreProvider
 import com.fugaif.imaslivedb.data.db.AppDatabase
 import com.fugaif.imaslivedb.data.edit.EditApi
 import com.fugaif.imaslivedb.data.repository.EditFeedRepository
@@ -29,8 +30,16 @@ class AppModule private constructor(context: Context) {
     private val appContext: Context = context.applicationContext
     val database: AppDatabase = AppDatabase.getInstance(context)
 
+    /**
+     * 共有コア (imas-core) のインメモリスナップショット。読み取り系リポジトリの第一経路。
+     * Application.onCreate の start() で起動時 load + sync 完了ごとの reload が始まる。
+     */
+    val snapshotStoreProvider: SnapshotStoreProvider by lazy {
+        SnapshotStoreProvider(appContext, syncEngine)
+    }
+
     val eventRepository: EventRepository by lazy { EventRepository(database) }
-    val songRepository: SongRepository by lazy { SongRepository(database) }
+    val songRepository: SongRepository by lazy { SongRepository(database, snapshotStoreProvider) }
     val idolRepository: IdolRepository by lazy { IdolRepository(database) }
     val unitRepository: UnitRepository by lazy { UnitRepository(database) }
     val statsRepository: StatsRepository by lazy { StatsRepository(database, communityApi) }

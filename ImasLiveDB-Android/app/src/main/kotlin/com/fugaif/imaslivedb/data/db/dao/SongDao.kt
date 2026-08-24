@@ -20,6 +20,26 @@ interface SongDao {
     @Query("SELECT * FROM songs WHERE id IN (:ids)")
     suspend fun fetchSongsByIds(ids: List<String>): List<Song>
 
+    /**
+     * スナップショット (共有コア) が返した idol id 列を Idol 実体へ引き直すための一括取得。
+     * 並びはコアが返した id 列が正なので、呼び出し側 (SongRepository) で並べ直す。
+     */
+    @Query("SELECT * FROM idols WHERE id IN (:ids)")
+    suspend fun fetchIdolsByIds(ids: List<String>): List<Idol>
+
+    /**
+     * 現地参加 (text_value NULL または 'live') でマークした show の id 集合。
+     * user_marks はスナップショットに載せない規約のため、回収バッジ系のスナップショット
+     * クエリ (songCollectedCountMap) へ渡す入力をプラットフォーム側で解決する。
+     * 曲スライスの都合で使う解決クエリなので UserMarkDao ではなくここに置く。
+     */
+    @Query("""
+        SELECT entity_id FROM user_marks
+        WHERE entity_type = 'show' AND kind = 'attended' AND bool_value = 1
+          AND (text_value IS NULL OR text_value = 'live')
+    """)
+    suspend fun fetchAttendedLiveShowIds(): List<String>
+
     @RawQuery
     suspend fun fetchSongsRaw(query: SupportSQLiteQuery): List<Song>
 
@@ -135,6 +155,32 @@ interface SongDao {
         """
     )
     suspend fun fetchSongCollectedCounts(): List<SongPerfCount>
+
+    /**
+     * song_id → 参加公演での披露回数。楽曲一覧の「回収数順 / 回収率順」ソート専用。
+     * iOS AppDatabase.attendedSongCountMap と同一クエリ。バッジ用 fetchSongCollectedCounts と
+     * 違い、参加種別 (text_value) もイベント kind も**絞らない** — 配信参加マークや
+     * リアルライブ以外のイベントの参加分も数える。スナップショット経路は songList へ
+     * 全 attended id を渡す (= 無制限) ので、ここを絞るとフォールバック時だけ並び順が
+     * 食い違う。バッジの母集合とソートの母集合は別物、が iOS 確定仕様。
+     */
+    @Query(
+        """
+        SELECT si.song_id AS song_id, COUNT(DISTINCT si.show_id) AS cnt
+        FROM setlist_items si
+        WHERE si.show_id IN (
+            SELECT entity_id FROM user_marks
+            WHERE entity_type = 'show' AND kind = 'attended' AND bool_value = 1
+        ) OR si.show_id IN (
+            SELECT id FROM shows WHERE event_id IN (
+                SELECT entity_id FROM user_marks
+                WHERE entity_type = 'event' AND kind = 'attended' AND bool_value = 1
+            )
+        )
+        GROUP BY si.song_id
+        """
+    )
+    suspend fun fetchAttendedSongCounts(): List<SongPerfCount>
 
     /**
      * 指定アイドルのいずれかが**歌唱者 (role='original')** の song_id 集合 (担当マーク由来の「担当」表示用)。

@@ -6,6 +6,15 @@ import UIKit
 
 private let logger = Logger(subsystem: "com.fugaif.ImasLiveDB", category: "CloudKitSync")
 
+extension Notification.Name {
+    /// CloudKit の差分取り込みが完了し、ローカルのマスタ DB (master.sqlite) が実際に変わった。
+    /// 共有コア (imas-core) のスナップショット再ロードなど「ローカルマスタ由来のキャッシュ」の
+    /// 無効化フックとして使う。発行はこのエンジンのみ (0 件同期では発行しない)。
+    /// なお sync を通らないローカル編集 (モデレーター .applied 経路等) の無効化は、この通知では
+    /// なく `SnapshotInvalidating*Writing` デコレータ (CoreSnapshotManager.swift) が担う。
+    static let masterDataDidSync = Notification.Name("masterDataDidSync")
+}
+
 /// CloudKitとローカルGRDB間の同期を管理
 @Observable
 final class CloudKitSyncEngine: @unchecked Sendable {
@@ -420,6 +429,13 @@ final class CloudKitSyncEngine: @unchecked Sendable {
         await MainActor.run {
             lastSyncSummary = summary
             state = .completed(syncStartDate)
+        }
+
+        // マスタが実際に変わった時だけ、共有コア (imas-core) のスナップショット再ロード等を促す。
+        // 0 件の差分 sync (フォアグラウンド復帰のたびに走る) で毎回 DB 全読みが走るのを避ける。
+        // エラー中断時は発行しない: 取り込み済みの断片はあり得るが、次に成功した sync が拾い直す。
+        if totalFetched > 0 {
+            NotificationCenter.default.post(name: .masterDataDidSync, object: nil)
         }
     }
 

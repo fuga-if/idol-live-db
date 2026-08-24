@@ -14,6 +14,9 @@ class ImasLiveDBApplication : Application() {
         super.onCreate()
         // Initialise DI container (warms up database singleton and repositories)
         appModule = AppModule.from(this)
+        // 共有コアのスナップショットを起動時に load し、CloudKit sync 完了ごとに reload する。
+        // 失敗・未ロード時は各リポジトリが Room/SQL 経路へフォールバックするので起動は阻害しない。
+        appModule.snapshotStoreProvider.start()
         // Initialise audio preview player
         AudioPreviewManager.init(this)
     }

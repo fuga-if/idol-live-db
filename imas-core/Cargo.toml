@@ -20,8 +20,18 @@ serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
 # タイトル/ID 比較を Swift の String == (Unicode 正準等価) に合わせるための NFC 正規化
 unicode-normalization = "0.1.25"
-rusqlite = { version = "0.40.2", features = ["bundled"] }
 thiserror = "2.0.20"
+
+# SQLite の実体は 1 プロセス 1 つに保つ:
+# - Apple (iOS/macOS): system libsqlite3 とリンク。bundled を静的リンクすると
+#   sqlite3_* シンボルが system より先に解決され、GRDB の呼び出しまで同梱 3.51 に
+#   乗っ取られる (実測: FK pragma の挙動差で MasterReseedTests が落ちた)。
+# - それ以外 (Android): NDK は libsqlite3 を公開しないので bundled が正。
+[target.'cfg(target_vendor = "apple")'.dependencies]
+rusqlite = { version = "0.40.2" }
+
+[target.'cfg(not(target_vendor = "apple"))'.dependencies]
+rusqlite = { version = "0.40.2", features = ["bundled"] }
 
 [profile.release]
 # FFI 境界を跨ぐ薄い層なので LTO でバイナリを絞る
