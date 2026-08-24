@@ -1,0 +1,23 @@
+[package]
+name = "imas-core"
+version = "0.1.0"
+edition = "2021"
+description = "ImasLiveDB の共有ドメインコア (iOS / Android 共通ロジック)"
+
+[lib]
+name = "imas_core"
+# staticlib: iOS xcframework 用 / cdylib: Android .so + バインディング生成用
+crate-type = ["lib", "staticlib", "cdylib"]
+
+[[bin]]
+name = "uniffi-bindgen"
+path = "src/bin/uniffi-bindgen.rs"
+
+[dependencies]
+uniffi = { version = "0.32.0", features = ["cli"] }
+chrono = { version = "0.4.45", default-features = false, features = ["std", "clock"] }
+
+[profile.release]
+# FFI 境界を跨ぐ薄い層なので LTO でバイナリを絞る
+lto = true
+codegen-units = 1

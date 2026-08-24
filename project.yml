@@ -45,6 +45,9 @@ targets:
         buildPhase: resources
       - path: ImasLiveDB/PrivacyInfo.xcprivacy
         buildPhase: resources
+      # imas-core (Rust) の UniFFI 生成バインディング。imas-core/build.sh が再生成する
+      - path: build/imas-core/swift/imas_core.swift
+        group: ImasCore
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
@@ -115,6 +118,9 @@ targets:
         product: NukeUI
       - package: Firebase
         product: FirebaseAnalytics
+      # imas-core (Rust): imas-core/build.sh で生成
+      - framework: build/imas-core/ImasCore.xcframework
+        embed: false
       - target: ImasLiveDBWidget
     scheme:
       testTargets:

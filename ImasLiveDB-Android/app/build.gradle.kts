@@ -91,6 +91,17 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+
+    testOptions {
+        unitTests.all {
+            // imas-core (Rust) を JVM ユニットテストから叩くため、ホスト向け dylib の場所を JNA に教える。
+            // imas-core/build.sh の host ビルドが生成する (未生成ならテスト前に実行)。
+            it.systemProperty(
+                "jna.library.path",
+                rootProject.file("../imas-core/target/release").absolutePath,
+            )
+        }
+    }
 }
 
 // db/master.sql (monorepo の唯一の真実の源・text・diff可) から Android 同梱用の seed sqlite を
@@ -114,6 +125,12 @@ val generateSeedDb by tasks.registering(Exec::class) {
 tasks.named("preBuild") { dependsOn(generateSeedDb) }
 
 dependencies {
+    // imas-core (Rust) の UniFFI バインディング用 JNA。
+    // @aar は実機/エミュ (jniLibs の libimas_core.so をロード)、
+    // 素の jar は JVM ユニットテスト (jna.library.path のホスト dylib をロード)。
+    implementation(variantOf(libs.jna) { artifactType("aar") })
+    testImplementation(libs.jna)
+
     // AndroidX Core
     implementation(libs.androidx.core.ktx)
 

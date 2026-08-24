@@ -34,7 +34,12 @@ credentials = "1.3.0"
 googleid = "1.1.1"
 securityCrypto = "1.1.0-alpha06"
 
+# imas-core (Rust) の UniFFI バインディングが要求する JNA
+jna = "5.17.0"
+
 [libraries]
+# JNA: @aar は実機/エミュ用、素の jar は JVM ユニットテスト用
+jna = { group = "net.java.dev.jna", name = "jna", version.ref = "jna" }
 # AndroidX Core
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 

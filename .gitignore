@@ -93,3 +93,6 @@ tools/jasrac/out/
 # 歌詞本文は公開リポジトリに絶対に入れない。
 /lyrics_local/
 tools/lyrics/node_modules
+
+# imas-core (Rust) のビルド生成物。imas-core/build.sh が再生成する
+imas-core/target/
