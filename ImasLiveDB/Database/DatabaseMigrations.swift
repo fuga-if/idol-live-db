@@ -489,7 +489,19 @@ enum DatabaseMigrations {
         // - cast / idol_cast テーブルを DROP
         // Bundle DB は seed 時に reseed されるのでこの migration は既存ユーザの Documents DB のみ対象。
         migrator.registerMigration("v19_drop_cast") { db in
-            try db.execute(sql: "ALTER TABLE idols ADD COLUMN voice_actors TEXT")
+            // ⚠️ ここで「テーブルがある」前提を置かないこと。
+            // Bundle DB は cast/idol_cast を持たないので、`AppDatabase` 側の pre-populate が
+            // この migration を「適用済み」に印を付けて飛ばしている。その判定が一度壊れて
+            // (idols.voice_actors 列の有無を見ていたが、声優履歴テーブルへの移行でその列を
+            // 落としたため成立しなくなった)、新規インストールが全部
+            // 「no such table: idol_cast」で起動クラッシュした。
+            // 起動クラッシュは審査 reject に直結するので、印の付け忘れだけを頼りにしない。
+            let hasLegacyCast = try db.tableExists("idol_cast") && db.tableExists("cast")
+            guard hasLegacyCast else { return }
+
+            if try !db.columns(in: "idols").contains(where: { $0.name == "voice_actors" }) {
+                try db.execute(sql: "ALTER TABLE idols ADD COLUMN voice_actors TEXT")
+            }
 
             // idol_cast / cast から voice_actors を集計 (現役を先頭、過去はその後)
             let rows = try Row.fetchAll(db, sql: """
