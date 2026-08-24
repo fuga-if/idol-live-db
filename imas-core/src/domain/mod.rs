@@ -2,6 +2,10 @@
 
 pub mod jst_day;
 pub mod prng;
+pub mod snapshot;
+pub mod song_list_queries;
+pub mod song_detail_queries;
+pub mod idol_song_queries;
 pub mod backup_import_summary;
 pub mod daily_pick;
 pub mod edit_permission_rules;

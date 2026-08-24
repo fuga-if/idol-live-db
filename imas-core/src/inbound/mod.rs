@@ -1,6 +1,11 @@
 //! FFI 面: #[uniffi::export] はこの層にだけ置く (domain への薄い委譲)。
 
 pub mod jst_day;
+pub mod snapshot_store;
+pub mod song_queries;
+pub mod song_list_queries;
+pub mod song_detail_queries;
+pub mod idol_song_queries;
 pub mod backup_import_summary;
 pub mod daily_pick;
 pub mod edit_permission_rules;
