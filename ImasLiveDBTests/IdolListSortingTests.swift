@@ -26,7 +26,7 @@ final class IdolListSortingTests: XCTestCase {
             sortOrder: sortOrder, birthday: birthday, bloodType: nil, height: height, weight: weight,
             birthPlace: nil, age: age, bust: nil, waist: nil, hip: nil, constellation: nil,
             hobbies: nil, talents: nil, description: nil, gender: nil, handedness: nil,
-            debutDate: debutDate, attribute: nil, aliases: nil, voiceActors: nil)
+            debutDate: debutDate, attribute: nil, aliases: nil)
     }
 
     // MARK: - 年齢

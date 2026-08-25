@@ -1,0 +1,10 @@
+# 葛城リーリヤのページに出ていた謎曲「リーリヤ」の物理削除。
+#
+# song_6122dd49-... は id が song_<uuid> 形式で、db/master.sql には存在しない。
+# アプリのオープン編集 (楽曲の新規作成) から入って CloudKit にだけ残ったもの。
+# タイトル以外の列は全部空で、セットリストにも1件も紐づいていない。
+#
+# ⚠️ Song だけ消すと song_artists が FK 孤児になり、新規インストール時に
+#    起動クラッシュする ([[feedback_release_fresh_install_test]])。子から先に消す。
+SongArtist	song_artists-song_6122dd49-dfcf-4028-affb-c0444c81510b-gakuen_葛城リーリヤ-original
+Song	song_6122dd49-dfcf-4028-affb-c0444c81510b

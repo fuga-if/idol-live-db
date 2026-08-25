@@ -7,6 +7,9 @@ enum DetailDestination: Identifiable, Hashable {
     case song(Song)
     /// 楽曲詳細を「披露履歴」タブで開く (一覧の披露/回収バッジから直接ジャンプ)。
     case songHistory(Song)
+    /// 楽曲詳細を「歌詞」タブで開く (歌詞検索の結果から直接ジャンプ)。
+    /// 歌詞タブが載っていないビルドでは `SongDetailTab.resolved` が情報タブに倒す。
+    case songLyrics(Song)
     case idol(Idol)
     case event(Event)
     case show(Show)
@@ -28,6 +31,7 @@ enum DetailDestination: Identifiable, Hashable {
         switch self {
         case .song(let s): return "song_\(s.id)"
         case .songHistory(let s): return "songHistory_\(s.id)"
+        case .songLyrics(let s): return "songLyrics_\(s.id)"
         case .idol(let i): return "idol_\(i.id)"
         case .event(let e): return "event_\(e.id)"
         case .show(let s): return "show_\(s.id)"
@@ -105,7 +109,10 @@ struct DetailContentView: View {
             SongSheetContent(song: song, navigate: { navigate($0) })
                 .onAppear { RecentsService.shared.record(kind: .song, id: song.id, name: song.title) }
         case .songHistory(let song):
-            SongSheetContent(song: song, initialSegment: 1, navigate: { navigate($0) })
+            SongSheetContent(song: song, initialTab: .history, navigate: { navigate($0) })
+                .onAppear { RecentsService.shared.record(kind: .song, id: song.id, name: song.title) }
+        case .songLyrics(let song):
+            SongSheetContent(song: song, initialTab: .lyrics, navigate: { navigate($0) })
                 .onAppear { RecentsService.shared.record(kind: .song, id: song.id, name: song.title) }
         case .idol(let idol):
             // 共通のアイドル詳細 (一覧と同一コンポーネント)。子遷移は共有 path に push。
@@ -143,6 +150,46 @@ struct DetailContentView: View {
 
 // MARK: - Song Sheet Content
 
+/// 楽曲詳細のタブ。
+///
+/// 表示順は「曲そのものの情報 → 歌詞 → 現場 (履歴) → みんな (コミュニティ)」。
+/// 数値インデックスで持つと差し込みのたびに呼び出し側がズレるので列挙で持つ。
+enum SongDetailTab: Int, CaseIterable, Hashable {
+    case info
+    case lyrics
+    case history
+    case community
+
+    var label: String {
+        switch self {
+        case .info: return "情報・歌唱"
+        case .lyrics: return "歌詞"
+        case .history: return "披露履歴"
+        case .community: return "コミュニティ"
+        }
+    }
+
+    /// 分析イベント名の末尾に使う識別子 (日本語ラベルはそのまま送らない)。
+    var analyticsKey: String {
+        switch self {
+        case .info: return "info"
+        case .lyrics: return "lyrics"
+        case .history: return "history"
+        case .community: return "community"
+        }
+    }
+
+    /// 実際に画面へ出すタブ。歌詞は JASRAC の許諾が下りるまで Release ビルドに載せない
+    /// (`LyricsFeature`)。セグメントバーも初期タブもここを唯一の根拠にする。
+    static var available: [SongDetailTab] {
+        allCases.filter { $0 != .lyrics || LyricsFeature.isAvailable }
+    }
+
+    /// 出せないタブを指定されたときの落とし所。ディープリンクや保存された初期タブが
+    /// 歌詞を指していても、載っていないビルドでは情報タブに倒す。
+    var resolved: SongDetailTab { Self.available.contains(self) ? self : .info }
+}
+
 struct SongSheetContent: View {
     @Environment(AppDatabase.self) private var database
     @Environment(\.openURL) private var openURL
@@ -150,11 +197,11 @@ struct SongSheetContent: View {
     let song: Song
     let navigate: (DetailDestination) -> Void
 
-    /// 開く時の初期セグメント (0=情報・歌唱 / 1=披露履歴 / 2=コミュニティ)。
-    init(song: Song, initialSegment: Int = 0, navigate: @escaping (DetailDestination) -> Void) {
+    /// 開く時の初期タブ。
+    init(song: Song, initialTab: SongDetailTab = .info, navigate: @escaping (DetailDestination) -> Void) {
         self.song = song
         self.navigate = navigate
-        _segment = State(initialValue: initialSegment)
+        _tab = State(initialValue: initialTab.resolved)
     }
 
     /// データ取得・整形担当。5系統のロード + 楽曲情報行/クレジットの整形を保持する。
@@ -171,7 +218,7 @@ struct SongSheetContent: View {
     /// 未ログインで投稿導線を押した時のログイン誘導。
     @State private var showCommunityLoginPrompt = false
 
-    @State private var segment = 0
+    @State private var tab: SongDetailTab
     /// お気に入りトグル後に依存ビューを再評価させるためのバージョン。
     @State private var markVersion = 0
 
@@ -195,10 +242,11 @@ struct SongSheetContent: View {
                     .padding(.top, DS.sp4)
                     .padding(.bottom, DS.sp1)
 
-                switch segment {
-                case 0: infoTab
-                case 1: historyTab
-                default: communityTab
+                switch tab.resolved {
+                case .info: infoTab
+                case .lyrics: lyricsTab
+                case .history: historyTab
+                case .community: communityTab
                 }
 
                 Color.clear.frame(height: DS.sp9)
@@ -227,8 +275,10 @@ struct SongSheetContent: View {
                         Label("編集履歴", systemImage: "clock.arrow.circlepath")
                     }
                     Divider()
+                    // アプリ内の歌詞は「歌詞」タブへ移した (束ね取得に同梱されるので常時表示できる)。
+                    // ここに残すのは外部の歌詞サイト検索だけ。
                     Button { openURL(lyricsURL) } label: {
-                        Label("歌詞を見る", systemImage: "text.quote")
+                        Label("歌詞サイトで探す", systemImage: "safari")
                     }
                     if let appleMusicURL = vm.artworkInfo?.appleMusicURL {
                         Button { openURL(appleMusicURL) } label: {
@@ -266,6 +316,11 @@ struct SongSheetContent: View {
             LoginToEditSheet()
         }
         .task { await vm.loadData(song: song) }
+        .onChange(of: tab) { _, newTab in
+            // 旧「歌詞を見る」は別画面だったので screen として計測できていた。
+            // タブ化に伴い、どのタブが見られているかはここで拾う。
+            AppAnalytics.tap("song_detail.tab.\(newTab.analyticsKey)")
+        }
         .trackScreen("song_detail")
     }
 
@@ -392,29 +447,35 @@ struct SongSheetContent: View {
     // MARK: - Segmented
 
     private var segmentBar: some View {
-        ImasSegmented(
-            labels: ["情報・歌唱", "披露履歴", "コミュニティ"],
-            selection: $segment,
-            seed: songSeed
-        )
+        ImasSegmented(options: SongDetailTab.available, selection: $tab, seed: songSeed) { $0.label }
     }
 
-    // MARK: - Tab 0: 情報・歌唱
+    // MARK: - Tab: 情報・歌唱
 
     private var infoTab: some View {
         SongInfoTab(song: song, seed: songSeed, vm: vm, navigate: navigate) {
             // 参加ライブ登録は履歴タブで個別公演を選んでもらう導線。
-            segment = 1
+            tab = .history
         }
     }
 
-    // MARK: - Tab 1: 披露履歴
+    // MARK: - Tab: 歌詞
+
+    /// 歌詞は束ね取得 (`/songs/{id}/detail`) に同梱されるので、常時読み込みでも
+    /// リクエストは増えない。中身は `SongLyricsTab` (VM を読むだけ)。
+    private var lyricsTab: some View {
+        SongLyricsTab(song: song, seed: songSeed, vm: vm) {
+            Task { await vm.loadServerData(song: song) }
+        }
+    }
+
+    // MARK: - Tab: 披露履歴
 
     private var historyTab: some View {
         SongHistoryTab(seed: songSeed, vm: vm, navigate: navigate)
     }
 
-    // MARK: - Tab 2: コミュニティ
+    // MARK: - Tab: コミュニティ
 
     /// 中身は `SongCommunityTab`。ここではシート表示を伴う操作だけ引き受ける。
     private var communityTab: some View {

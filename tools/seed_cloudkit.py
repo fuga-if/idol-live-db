@@ -107,6 +107,12 @@ RECORD_TYPE_MAP = {
 # Schema introspection helpers
 # ---------------------------------------------------------------------------
 
+def has_table(conn: sqlite3.Connection, table: str) -> bool:
+    return conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (table,)
+    ).fetchone() is not None
+
+
 def get_column_info(conn: sqlite3.Connection, table: str) -> list[dict]:
     """Return list of {name, type} for each column in table."""
     cur = conn.execute(f"PRAGMA table_info({table})")
@@ -371,7 +377,20 @@ def seed_table(
         if id_col:
             where = f" WHERE {id_col} IN ({','.join('?' for _ in song_ids)})"
             params = song_ids
-    cur = conn.execute(f"SELECT * FROM {table}{where}", params)
+    # idols.voice_actors は idol_voice_actors (期間つき履歴) へ移して列を消したが、
+    # CloudKit にはしばらく送り続ける。旧アプリの CKRecordMapper は voiceActors を
+    # 読んでモデルを組み立てており、フィールドが消えると nil になって upsert のたびに
+    # ローカル列が NULL 上書きされる = 更新していない人の CV 表示が全部消える。
+    # 全ユーザーが新版に移ったらこの導出ごと外す。
+    select = "*"
+    if table == "idols" and has_table(conn, "idol_voice_actors"):
+        select = ("*, (SELECT group_concat(name, ',') FROM idol_voice_actors v"
+                  " WHERE v.idol_id = idols.id AND v.valid_to IS NULL) AS voice_actors")
+        # get_column_info と同じ形 ({name, type}) にすること。type が無いと
+        # rows_to_operations が KeyError で落ちる。
+        col_info = col_info + [{"name": "voice_actors", "type": "TEXT"}]
+
+    cur = conn.execute(f"SELECT {select} FROM {table}{where}", params)
     cur.row_factory = None
     cols = [d[0] for d in cur.description]
     rows = [dict(zip(cols, row)) for row in cur.fetchall()]

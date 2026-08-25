@@ -15,6 +15,60 @@ import type { RouteContext } from "./context";
 
 
 /**
+ * GET /penlight/votes/:song_id の本体。
+ *
+ * ⚠️ 曲詳細バンドル (routes/song_detail.ts) と共有する唯一の実装。
+ *    SQL もレスポンスのキーもここ以外に書かないこと。
+ *    deviceId が無ければ my_vote は null (= 端末非依存の集計だけになる)。
+ */
+export async function fetchPenlightVotes(
+  db: D1Database,
+  songId: string,
+  deviceId: string | null
+): Promise<{
+  top_sets: Array<{ key: string; colors: string[]; count: number }>;
+  total_votes: number;
+  my_vote: { color_set_key: string; colors: string[] } | null;
+}> {
+  const { results: topSets } = await db
+    .prepare(
+      `SELECT color_set_key, count FROM penlight_color_set_votes
+         WHERE song_id = ? ORDER BY count DESC LIMIT 5`
+    )
+    .bind(songId)
+    .all<{ color_set_key: string; count: number }>();
+
+  const totalRow = await db
+    .prepare(`SELECT SUM(count) as total FROM penlight_color_set_votes WHERE song_id = ?`)
+    .bind(songId)
+    .first<{ total: number }>();
+
+  let myVote: { color_set_key: string; colors: string[] } | null = null;
+  if (deviceId) {
+    const myRow = await db
+      .prepare("SELECT color_set_key FROM device_song_penlight WHERE device_id = ? AND song_id = ?")
+      .bind(deviceId, songId)
+      .first<{ color_set_key: string }>();
+    if (myRow) {
+      myVote = {
+        color_set_key: myRow.color_set_key,
+        colors: myRow.color_set_key.split("-"),
+      };
+    }
+  }
+
+  return {
+    top_sets: topSets.map((row) => ({
+      key: row.color_set_key,
+      colors: row.color_set_key.split("-"),
+      count: row.count,
+    })),
+    total_votes: totalRow?.total ?? 0,
+    my_vote: myVote,
+  };
+}
+
+/**
  * 書き込み系の共通ガード: X-Device-Id 必須 → IP レート制限の dry check。
  *
  * 元は各ルートに同じ 8 行がコピーされており、1 箇所で書き忘れるとそのルートだけ
@@ -247,46 +301,7 @@ export async function handleDeviceAggregates(ctx: RouteContext): Promise<Respons
     if (penlightVotesMatch && request.method === "GET") {
       const songId = decodeURIComponent(penlightVotesMatch[1]);
       const deviceId = request.headers.get("X-Device-Id");
-
-      const { results: topSets } = await env.DB.prepare(
-        `SELECT color_set_key, count FROM penlight_color_set_votes
-         WHERE song_id = ? ORDER BY count DESC LIMIT 5`
-      )
-        .bind(songId)
-        .all<{ color_set_key: string; count: number }>();
-
-      const totalRow = await env.DB.prepare(
-        `SELECT SUM(count) as total FROM penlight_color_set_votes WHERE song_id = ?`
-      )
-        .bind(songId)
-        .first<{ total: number }>();
-
-      let myVote: { color_set_key: string; colors: string[] } | null = null;
-      if (deviceId) {
-        const myRow = await env.DB.prepare(
-          "SELECT color_set_key FROM device_song_penlight WHERE device_id = ? AND song_id = ?"
-        )
-          .bind(deviceId, songId)
-          .first<{ color_set_key: string }>();
-        if (myRow) {
-          myVote = {
-            color_set_key: myRow.color_set_key,
-            colors: myRow.color_set_key.split("-"),
-          };
-        }
-      }
-
-      const top_sets = topSets.map((row) => ({
-        key: row.color_set_key,
-        colors: row.color_set_key.split("-"),
-        count: row.count,
-      }));
-
-      return json({
-        top_sets,
-        total_votes: totalRow?.total ?? 0,
-        my_vote: myVote,
-      });
+      return json(await fetchPenlightVotes(env.DB, songId, deviceId));
     }
 
   return null;

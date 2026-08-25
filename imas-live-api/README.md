@@ -42,6 +42,25 @@ npx wrangler deploy --dry-run
 npx wrangler dev
 ```
 
+## テスト
+
+```bash
+npm test          # 1 回実行
+npm run test:watch
+npm run typecheck # src と test の両方
+```
+
+[@cloudflare/vitest-pool-workers](https://github.com/cloudflare/workers-sdk/tree/main/packages/vitest-pool-workers)
+で **Workers ランタイム上**で実行する。`Request` / `Response` / `crypto` が本番と同じ実装になるので、
+Node の polyfill と挙動が割れる事故 (署名検証・ヘッダの大小文字・`Response.json` 等) を踏まない。
+
+`vitest.config.ts` は `wrangler.jsonc` をそのまま読む。`nodejs_compat` は pool の要件なので
+テスト実行時だけ `miniflare.compatibilityFlags` で足しており、本番 Worker のフラグは変えていない。
+
+D1 を叩くハンドラは、いまのところ `prepare().bind().first()` だけのスタブを渡してテストしている
+(`test/edit_requests.test.ts` の `stubDb`)。実 D1 が要るテストを書くときは
+`poolOptions.workers.miniflare.d1Databases` と `migrations/` の適用を足す。
+
 ## Cron 確認
 
 ```bash
@@ -163,6 +182,25 @@ Cron (scheduled) は `rate_limits` テーブルの日次掃除 (7 日より古�
 | POST | /units/:id/tags | X-Device-Id | ユニットにタグ付与 |
 | DELETE | /units/:id/tags/:tid | X-Device-Id | ユニットのタグ削除 |
 | GET | /units/:id/similar | - | 似てるユニット (タグ共起ベース) |
+
+### 曲詳細バンドル
+
+| Method | Path | 認証 | 概要 |
+|--------|------|------|------|
+| GET | /songs/:id/detail | 任意 (Bearer で歌詞同梱) | tags + similar + penlight を 1 リクエストで返す |
+
+曲詳細を 1 回開くたびに 3 リクエスト (`/penlight/votes/:id` + `/songs/:id/tags` +
+`/songs/:id/similar`) 飛んでいたのを 1 本に束ねたもの。Worker 無料枠 (10万リクエスト/日) で
+捌ける同時利用者が 3 倍になる。既存 3 エンドポイントは段階移行のため残してある。
+
+- 応答は `{ songId, tags, similar, penlight, lyrics }`。`tags` / `similar` / `penlight` は
+  **既存エンドポイントの応答そのまま**を入れ子にしている (iOS が既存モデルでデコードできる契約)。
+- `lyrics` は Bearer 付きのときだけ入る。未認証・歌詞未投入・`status != 'published'` はすべて `null`。
+- 個々の取得が失敗しても全体は落とさず、失敗した部分だけ `null` にして 200 を返す。
+- `similar_limit` (既定 50 / 最大 50) で類似曲の候補件数を指定できる。
+- キャッシュ: 未認証かつ `X-Device-Id` なし → `public` (エッジ共有)。`X-Device-Id` あり →
+  `private, no-store` (`my_tag_ids` / `my_vote` が他人に配られないよう、index.ts 側で
+  共有キャッシュから読み書きとも除外)。Bearer あり → `no-store` (歌詞)。
 
 ### 管理 (admin)
 

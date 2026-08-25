@@ -56,8 +56,10 @@ enum CKRecordMapper {
             debutDate: record["debutDate"] as? String,
             attribute: record["attribute"] as? String,
             isExternal: (record["isExternal"] as? Int64 ?? 0) != 0,
-            aliases: record["aliases"] as? String,
-            voiceActors: record["voiceActors"] as? String
+            aliases: record["aliases"] as? String
+            // voiceActors は読まない。声優は idol_voice_actors (期間つき履歴) が正で、
+            // Idol からは外した。CloudKit 側のフィールドは旧アプリ向けにまだ送っているが、
+            // こちらで読むと廃止した列に書き戻そうとして落ちる。
         )
     }
 
@@ -178,7 +180,11 @@ enum CKRecordMapper {
             parentSongId: record["parentSongId"] as? String,
             singerLabel: record["singerLabel"] as? String,
             unitName: record["unitName"] as? String,
-            unitId: record["unitId"] as? String
+            unitId: record["unitId"] as? String,
+            // ここを読み落とすと、GRDB の upsert が Song のエンコード列を全部書くため
+            // 同期のたび series_group が NULL 上書きされ、シリーズ絞り込みが壊れる。
+            // Song に列を足したら必ずこの初期化子にも足すこと。
+            seriesGroup: record["seriesGroup"] as? String
         )
     }
 

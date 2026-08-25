@@ -67,7 +67,7 @@ struct IdolPickerView: View {
             result = result.filter {
                 $0.name.lowercased().contains(lower)
                     || ($0.nameKana?.lowercased().contains(lower) == true)
-                    || ($0.voiceActors?.lowercased().contains(lower) == true)
+                    || (VoiceActorDirectory.shared.current(for: $0.id)?.lowercased().contains(lower) == true)
                     || ($0.aliases?.lowercased().contains(lower) == true)
             }
         }
@@ -237,7 +237,7 @@ struct IdolPickerView: View {
                     Text(idol.name)
                         .font(.imasSubhead)
                         .foregroundStyle(DS.ink)
-                    if let cv = idol.currentVoiceActor {
+                    if let cv = VoiceActorDirectory.shared.current(for: idol.id) {
                         Text(cv)
                             .font(.imasCaption)
                             .foregroundStyle(DS.ink3)

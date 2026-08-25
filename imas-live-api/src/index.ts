@@ -9,6 +9,9 @@ import { upsertUser, checkIsAdmin } from "./users";
 import { handleDeviceAggregates } from "./routes/device_aggregates";
 import { handlePolls } from "./routes/polls";
 import { handleTags } from "./routes/tags";
+import { handleLyrics } from "./routes/lyrics";
+import { handleLyricsCalls } from "./routes/calls";
+import { handleSongDetail } from "./routes/song_detail";
 import { handleSetlistPredictions } from "./routes/setlist_predictions";
 import { fetchBadges, calcTier } from "./badges";
 import { handleScheduled } from "./apply";
@@ -126,7 +129,7 @@ function isCommunityRead(path: string, method: string): boolean {
   if (method !== "GET") return false;
   // D1 固定無料枠に乗る集計 read を網羅する (CLAUDE.md 名指しの予想/いいね/ランキング含む)
   if (/^\/(polls|favorites|penlight|tags|master|leaderboard)(\/|$)/.test(path)) return true;
-  if (/^\/songs\/[^/]+\/(tags|similar)$/.test(path)) return true;
+  if (/^\/songs\/[^/]+\/(tags|similar|detail)$/.test(path)) return true;
   if (/^\/idols\/[^/]+\/similar$/.test(path)) return true;
   if (/^\/units\/[^/]+\/similar$/.test(path)) return true;
   if (/^\/shows\/[^/]+\/(predictions|likes)$/.test(path)) return true;
@@ -370,7 +373,17 @@ export default {
     //   意図的に Cache-Control を付けていないので自動的に対象外になる。
     // - 認証付きリクエストは絶対にキャッシュしない (個人データ漏洩防止)。
     // - キャッシュキーは URL のみ (device/app-token ヘッダに依存させない) で正規化する。
-    const edgeCacheEligible = request.method === "GET" && !request.headers.get("Authorization");
+    // - 応答が X-Device-Id で変わるエンドポイント (GET /songs/:id/detail の
+    //   my_tag_ids / my_vote) は、端末ヘッダ付きリクエストを共有キャッシュから
+    //   完全に外す (読みも書きもしない)。キャッシュキーが URL のみなので、外さないと
+    //   他人の my_* が配られる / 自分の my_* が消えた応答を掴む。
+    //   ※ 他の公開 GET (favorites/ranking, songs/:id/similar 等) は端末非依存なので
+    //     従来どおり X-Device-Id 付きでもエッジで賄う。
+    const varyByDeviceId = /^\/songs\/[^/]+\/detail$/.test(path);
+    const edgeCacheEligible =
+      request.method === "GET" &&
+      !request.headers.get("Authorization") &&
+      !(varyByDeviceId && request.headers.get("X-Device-Id"));
     const cacheKey = new Request(url.toString(), { method: "GET" });
     if (edgeCacheEligible) {
       const cached = await caches.default.match(cacheKey);
@@ -499,6 +512,14 @@ export default {
             "POST /polls/:id/votes",
             "DELETE /polls/:id/votes/:entityId",
             "DELETE /polls/:id",
+            // 曲詳細の集計束ね (tags + similar + penlight、認証時のみ lyrics も同梱)。
+            "GET /songs/:song_id/detail",
+            // 歌詞は 1 リクエスト 1 曲・認証必須 (JASRAC 許諾の「一括ダウンロード不可」)。
+            "GET /songs/:song_id/lyrics",
+            // 歌詞検索。返すのは song_id と一致箇所まわりのスニペットだけ。
+            "GET /lyrics/search",
+            "PUT /admin/lyrics/:song_id",
+            "PUT /songs/:song_id/calls",
           ],
         });
       }
@@ -1138,6 +1159,45 @@ export default {
         request, env, url, path, json, error, rateLimitResponse, rateLimitSimple,
       });
       if (tagsResponse) return tagsResponse;
+
+      // ----------------------------------------------------------------
+      // 歌詞 API (GET /songs/:id/lyrics, PUT /admin/lyrics/:id) は
+      // routes/lyrics.ts へ切り出し済み。一致しなければ null が返る。
+      //
+      // ⚠️ isCommunityRead には足さないこと。GET が Authorization を必須にしている
+      //    ことで上の edgeCacheEligible が false になり、歌詞がエッジキャッシュに
+      //    載らない。歌詞は JASRAC 許諾の条件上「一括ダウンロードできない形式」で
+      //    配信する必要があり、共有キャッシュに置くのはその条件に反する。
+      // ----------------------------------------------------------------
+      const lyricsResponse = await handleLyrics({
+        request, env, url, path, json, error, rateLimitResponse, rateLimitSimple,
+      });
+      if (lyricsResponse) return lyricsResponse;
+
+      // ----------------------------------------------------------------
+      // コールガイド保存 (PUT /songs/:id/calls) は routes/calls.ts へ。
+      // 読み出しは専用エンドポイントを作らず、歌詞応答 (上の GET と /detail) に
+      // clap / calls が含まれる形にしてある。
+      // ----------------------------------------------------------------
+      const callsResponse = await handleLyricsCalls({
+        request, env, url, path, json, error, rateLimitResponse, rateLimitSimple,
+      });
+      if (callsResponse) return callsResponse;
+
+      // ----------------------------------------------------------------
+      // GET /songs/:song_id/detail — 曲詳細の集計を 1 リクエストに束ねる
+      //   (penlight votes + tags + similar、認証時は歌詞も同梱)。
+      //   既存 3 エンドポイントは残してあるので段階移行できる。
+      //
+      // ⚠️ 認証ありの応答は歌詞を含む。上の edgeCacheEligible が Authorization の
+      //    有無で false になることに依存して、歌詞がエッジキャッシュに載らないことを
+      //    構造的に担保している (routes/song_detail.ts 冒頭のコメント参照)。
+      // ----------------------------------------------------------------
+      const songDetailResponse = await handleSongDetail({
+        request, env, url, path, json, error, rateLimitResponse, rateLimitSimple,
+        waitUntil: ctx.waitUntil.bind(ctx),
+      });
+      if (songDetailResponse) return songDetailResponse;
 
       // ----------------------------------------------------------------
       // POST /edits — マスタ create/update/delete (オープン編集, 1 リクエスト = 1 edit_batch)

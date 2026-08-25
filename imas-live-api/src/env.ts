@@ -11,6 +11,12 @@ export interface Env {
   ADMIN_USER_IDS?: string;
   ALLOWED_ORIGINS?: string;
   SESSION_JWT_SECRET?: string;
+  // 歌詞投入 CLI (tools/lyrics/push_lyrics.py) 専用の運用者トークン。
+  // モデレーター権限 (checkIsAdmin) とは別系統。アプリから歌詞を直接投入する導線は
+  // 無く (アプリ側は提案のみ)、投入は運用者のコマンド操作なので、
+  // ユーザーのセッション JWT を持ち出す必要がないようにする。
+  // 未設定ならこの経路は完全に無効 (admin JWT のみ受け付ける)。
+  LYRICS_PUSH_TOKEN?: string;
   // クローンただ乗り対策 (App Attest / Play Integrity)
   APP_ATTEST_MODE?: string;        // "off" | "monitor" | "enforce" (既定 monitor)
   APP_ATTEST_ALLOW_DEV?: string;   // "true" のときだけ dev attestation (appattestdevelop) を許可

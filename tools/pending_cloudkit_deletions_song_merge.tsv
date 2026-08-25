@@ -1,0 +1,8 @@
+# 二重登録の統合で不要になったレコード。子 (SongArtist) を先に消す。
+Song	876_reloading
+SongArtist	song_artists-cg_sun_high_gold-cg_佐城雪美-original
+SongArtist	song_artists-cg_sun_high_gold-cg_北条加蓮-original
+SongArtist	song_artists-cg_sun_high_gold-cg_夢見りあむ-original
+SongArtist	song_artists-cg_sun_high_gold-cg_本田未央-original
+SongArtist	song_artists-cg_sun_high_gold-cg_遊佐こずえ-original
+Song	cg_sun_high_gold

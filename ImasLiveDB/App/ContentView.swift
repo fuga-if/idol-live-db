@@ -53,6 +53,8 @@ struct ContentView: View {
 
     @Environment(AppDatabase.self) private var database
     @Environment(CloudKitSyncEngine.self) private var syncEngine
+    /// レビュー依頼。OS が出すかどうかを決めるので、呼んでも出ないことがある。
+    @Environment(\.requestReview) private var requestReview
 
     /// アプリ全体のアクセント tint。担当テーマ有効時のみ色を返し、無効時は nil
     /// (= 既定の AccentColor アセットにフォールバック)。
@@ -94,7 +96,20 @@ struct ContentView: View {
                 .tag(4)
         }
         .tint(themeTint)
-        .task { AppAnalytics.screen(Self.tabName(selectedTab)) }
+        .task {
+            AppAnalytics.screen(Self.tabName(selectedTab))
+            // 一覧やピッカーは Idol の配列しか持たないので、CV 名は辞書から引く。
+            // 行ごとに DB を叩くと N+1 になる (300件程度なのでまとめて持つ)。
+            await VoiceActorDirectory.shared.load()
+            ReviewPrompt.registerLaunch()
+            // 聞くのは「参加ライブを登録した次に立ち上げたとき」になる。作業の途中や
+            // 登録直後に被せず、落ち着いてタブ画面を見ている場面で1度だけ出す。
+            // 条件を満たしていなければ ReviewPrompt 側が false を返して何も起きない。
+            if ReviewPrompt.shouldAsk() {
+                AppAnalytics.tap("review_prompt.shown")
+                requestReview()
+            }
+        }
         .onChange(of: selectedTab) { _, tab in AppAnalytics.screen(Self.tabName(tab)) }
         .environment(\.imasTextScale, textScale)
         // アプリ既定フォントを imas (スケール対応) にする。これで明示フォント未指定の Text や

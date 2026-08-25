@@ -287,18 +287,24 @@ extension AppDatabase {
 
     private static func searchIdolsQuery(_ db: Database, query: String, limit: Int) throws -> [Idol] {
         let pattern = "%\(query.likeEscaped)%"
-        // CV 名 (voice_actors) と別名 (aliases) も対象にする。声優名でアイドルを引くのは
+        // CV 名と別名 (aliases) も対象にする。声優名でアイドルを引くのは
         // このアプリでは主要な探し方なので、名前系カラムだけだと取りこぼす。
-        return try Idol.filter(
-            Column("name").like(pattern, escape: "\\") ||
-            Column("name_kana").like(pattern, escape: "\\") ||
-            Column("name_romaji").like(pattern, escape: "\\") ||
-            Column("voice_actors").like(pattern, escape: "\\") ||
-            Column("aliases").like(pattern, escape: "\\")
-        )
-        .order(Column("sort_order"))
-        .limit(limit)
-        .fetchAll(db)
+        //
+        // CV は idol_voice_actors (期間つき履歴) にあり、**歴代すべて**を対象にする。
+        // 前任者の名前で引いても担当アイドルに辿り着けた方が、「この人が昔やっていた役」
+        // を探す用途に合う。
+        // 相関サブクエリは GRDB の式ビルダーでは組めないので素の SQL で書く。
+        return try Idol.fetchAll(db, sql: """
+            SELECT * FROM idols
+             WHERE name        LIKE :p ESCAPE '\\'
+                OR name_kana   LIKE :p ESCAPE '\\'
+                OR name_romaji LIKE :p ESCAPE '\\'
+                OR aliases     LIKE :p ESCAPE '\\'
+                OR EXISTS (SELECT 1 FROM idol_voice_actors v
+                            WHERE v.idol_id = idols.id AND v.name LIKE :p ESCAPE '\\')
+             ORDER BY sort_order
+             LIMIT :limit
+            """, arguments: ["p": pattern, "limit": limit])
     }
 
     /// metaテーブルから値取得

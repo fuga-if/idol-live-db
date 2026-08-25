@@ -13,7 +13,7 @@ final class IdolListFilteringTests: XCTestCase {
             sortOrder: 0, birthday: nil, bloodType: nil, height: nil, weight: nil,
             birthPlace: nil, age: nil, bust: nil, waist: nil, hip: nil, constellation: nil,
             hobbies: nil, talents: nil, description: nil, gender: nil, handedness: nil,
-            debutDate: nil, attribute: attribute, aliases: aliases, voiceActors: nil)
+            debutDate: nil, attribute: attribute, aliases: aliases)
     }
 
     func testBrandFilter() {

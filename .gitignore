@@ -86,6 +86,14 @@ CLAUDE.md
 # xcodegen/実行時に生成される空の作業用 DB (正は db/master.sql)
 db/master.sqlite
 
+# JASRAC 提出物の生成物 (許諾番号を含むので追跡しない)
+tools/jasrac/out/
+
+# 歌詞の作業場。JASRAC 許諾は「一括ダウンロードできない形での配信」が条件なので
+# 歌詞本文は公開リポジトリに絶対に入れない。
+/lyrics_local/
+tools/lyrics/node_modules
+
 # tools/ の Python スクリプトを import/実行したときに出るバイトコード
 __pycache__/
 *.pyc

@@ -34,16 +34,38 @@ extension AppDatabase {
             .fetchAll(db)
     }
 
-    /// アイドル詳細のCV取得 (Cast 廃止後は idol.voice_actors から現役を返す)。
+    /// アイドル詳細のCV取得。現任 (`valid_to IS NULL`) を返す。
+    ///
+    /// 声優は `idol_voice_actors` に期間つきで持つ (旧 `idols.voice_actors` は廃止)。
+    /// 交代しても前任者が残るので、過去の楽曲やライブが誰の声だったか辿れる。
+    /// 交代が発表されて後任が未定の間は現任が居ないので nil になる。
     func fetchCurrentVoiceActor(idolId: String) throws -> String? {
         try dbQueue.read { db in
-            let row = try Row.fetchOne(
+            try String.fetchOne(
                 db,
-                sql: "SELECT voice_actors FROM idols WHERE id = ?",
+                sql: """
+                    SELECT name FROM idol_voice_actors
+                     WHERE idol_id = ? AND valid_to IS NULL
+                     ORDER BY IFNULL(valid_from, '') DESC
+                     LIMIT 1
+                    """,
                 arguments: [idolId]
             )
-            guard let raw: String = row?["voice_actors"], !raw.isEmpty else { return nil }
-            return raw.split(separator: ",").first.map(String.init)?.trimmingCharacters(in: .whitespaces)
+        }
+    }
+
+    /// アイドルの歴代声優 (新しい順)。交代の履歴を出す画面用。
+    func fetchVoiceActorHistory(idolId: String) throws -> [IdolVoiceActor] {
+        try dbQueue.read { db in
+            try IdolVoiceActor.fetchAll(
+                db,
+                sql: """
+                    SELECT * FROM idol_voice_actors
+                     WHERE idol_id = ?
+                     ORDER BY IFNULL(valid_from, '') DESC
+                    """,
+                arguments: [idolId]
+            )
         }
     }
 
@@ -198,16 +220,15 @@ extension AppDatabase {
     }
 
     private static func fetchIdolsByVoiceActorQuery(_ db: Database, name: String) throws -> [Idol] {
-        // voice_actors が "中村繪里子" 単独、もしくは "中村繪里子,旧CV" のような形式に対応。
+        // 歴代すべてを対象にする。前任者の名前で引いても担当アイドルに辿り着けた方が、
+        // 「この人が昔やっていた役」を探す用途に合う。
         let sql = """
-            SELECT * FROM idols
-            WHERE voice_actors = ?
-               OR voice_actors LIKE ? || ',%'
-               OR voice_actors LIKE '%,' || ?
-               OR voice_actors LIKE '%,' || ? || ',%'
-            ORDER BY sort_order
+            SELECT DISTINCT i.* FROM idols i
+              JOIN idol_voice_actors v ON v.idol_id = i.id
+             WHERE v.name = ?
+             ORDER BY i.sort_order
             """
-        return try Idol.fetchAll(db, sql: sql, arguments: [name, name, name, name])
+        return try Idol.fetchAll(db, sql: sql, arguments: [name])
     }
 
     /// アイドル全員のCV名マップ (idol_id → 現役 voice_actor)。
@@ -218,15 +239,17 @@ extension AppDatabase {
     private static func fetchIdolCastNamesQuery(_ db: Database) throws -> [String: String] {
         let rows = try Row.fetchAll(
             db,
-            sql: "SELECT id, voice_actors FROM idols WHERE voice_actors IS NOT NULL"
+            sql: """
+                SELECT idol_id, name FROM idol_voice_actors
+                 WHERE valid_to IS NULL
+                 ORDER BY IFNULL(valid_from, '')
+                """
         )
+        // 同じアイドルに現任が複数居る場合 (同時に複数人が担当) は後勝ちで1人にする。
+        // 表示は1名ぶんの想定なので、より新しい方を採る。
         var result: [String: String] = [:]
         for row in rows {
-            let id: String = row["id"]
-            let raw: String = row["voice_actors"]
-            if let first = raw.split(separator: ",").first {
-                result[id] = first.trimmingCharacters(in: .whitespaces)
-            }
+            result[row["idol_id"] as String] = row["name"] as String
         }
         return result
     }
