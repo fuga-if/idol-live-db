@@ -110,9 +110,9 @@ struct IntroGameView: View {
             // session.phase を直接 isPresented の get/set に使うと setter が no-op になり、
             // Result側の dismiss() が効かず空白画面になるバグの原因だったため、
             // ここで一度 @State に写して正しく双方向にpopできるようにする。
-            if newPhase == .finished {
-                showResult = true
-            }
+            // finished 以外へ移ったら必ず倒す。true のまま残すと、次に この画面へ戻った
+            // ときに結果画面がもう一度積まれてしまう (「結果画面が二重に出る」の原因)。
+            showResult = (newPhase == .finished)
         }
         // Result の「ホームに戻る」: Setupと同じシグナルを見て、自分(Game)も実体のある
         // dismiss() (Setupが持つ本物の navigateToGame Binding) を呼び1階層閉じる。

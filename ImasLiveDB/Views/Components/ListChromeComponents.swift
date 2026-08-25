@@ -21,15 +21,22 @@ struct NameFilterField: View {
                 .textFieldStyle(.plain)
                 .submitLabel(.done)
                 .autocorrectionDisabled()
-            if !text.isEmpty {
-                Button { text = "" } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.imasScaled(14))
-                        .foregroundStyle(DS.ink3)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("絞り込みを解除")
+            // ⚠️ `if !text.isEmpty { ... }` で出し入れしてはいけない。
+            // 1 文字目を打った瞬間だけ「空 → 非空」で入力欄の兄弟構成が変わり、
+            // その組み直しで日本語 IME の未確定文字が確定されてしまう
+            // (「1 文字目だけ変換できない」の原因。2 文字目以降は非空のままなので起きない)。
+            // 常に置いたまま見た目だけ消す。空のときに幅を確保しておくと、
+            // 入力開始時に文字が横にずれる跳ねも同時に無くなる。
+            Button { text = "" } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.imasScaled(14))
+                    .foregroundStyle(DS.ink3)
             }
+            .buttonStyle(.plain)
+            .accessibilityLabel("絞り込みを解除")
+            .opacity(text.isEmpty ? 0 : 1)
+            .disabled(text.isEmpty)
+            .accessibilityHidden(text.isEmpty)
         }
         .padding(.horizontal, DS.sp4)
         .padding(.vertical, DS.sp3)
@@ -79,15 +86,22 @@ struct ListSearchField<Leading: View>: View {
                 .submitLabel(.search)
                 .autocorrectionDisabled()
                 .onSubmit(onSubmit)
-            if !text.isEmpty {
-                Button { text = "" } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.imasScaled(14))
-                        .foregroundStyle(DS.ink3)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("絞り込みを解除")
+            // ⚠️ `if !text.isEmpty { ... }` で出し入れしてはいけない。
+            // 1 文字目を打った瞬間だけ「空 → 非空」で入力欄の兄弟構成が変わり、
+            // その組み直しで日本語 IME の未確定文字が確定されてしまう
+            // (「1 文字目だけ変換できない」の原因。2 文字目以降は非空のままなので起きない)。
+            // 常に置いたまま見た目だけ消す。空のときに幅を確保しておくと、
+            // 入力開始時に文字が横にずれる跳ねも同時に無くなる。
+            Button { text = "" } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.imasScaled(14))
+                    .foregroundStyle(DS.ink3)
             }
+            .buttonStyle(.plain)
+            .accessibilityLabel("絞り込みを解除")
+            .opacity(text.isEmpty ? 0 : 1)
+            .disabled(text.isEmpty)
+            .accessibilityHidden(text.isEmpty)
         }
         .padding(.horizontal, DS.sp4)
         // ⚠️ `frame` は **`background` より先**に置くこと。

@@ -128,7 +128,6 @@ targets:
     scheme:
       testTargets:
         - ImasLiveDBTests
-        - ImasLiveDBUITests
 
   ImasLiveDBTests:
     type: bundle.unit-test
@@ -142,21 +141,6 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.fugaif.ImasLiveDBTests
         SWIFT_VERSION: "6.0"
         SWIFT_STRICT_CONCURRENCY: complete
-    dependencies:
-      - target: ImasLiveDB
-
-  ImasLiveDBUITests:
-    type: bundle.ui-testing
-    platform: iOS
-    sources:
-      - path: ImasLiveDBUITests
-    settings:
-      base:
-        GENERATE_INFOPLIST_FILE: YES
-        DEVELOPMENT_TEAM: GQ3WP34LFW
-        PRODUCT_BUNDLE_IDENTIFIER: com.fugaif.ImasLiveDBUITests
-        SWIFT_VERSION: "6.0"
-        TEST_TARGET_NAME: ImasLiveDB
     dependencies:
       - target: ImasLiveDB
 

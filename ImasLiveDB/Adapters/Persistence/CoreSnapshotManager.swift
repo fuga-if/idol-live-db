@@ -29,11 +29,7 @@ final class CoreSnapshotManager: Sendable {
     /// ロード済みならストアを返す。未ロード (起動直後 / ロード失敗 / メモリ警告後) は nil。
     /// 呼び出し側はこの nil を「GRDB へフォールバック」の合図として使う (スライス並走の原則)。
     var storeIfLoaded: SnapshotStore? {
-        // 診断スイッチ: UserDefaults の "snapshot_disabled" が true の間はスナップショットを
-        // 使わず必ず GRDB 経路へ落とす。実機でしか出ない不具合の切り分け用
-        // (移行が原因か既存問題かを、同じビルドのまま比較できるようにする)。
-        if UserDefaults.standard.bool(forKey: "snapshot_disabled") { return nil }
-        return store.isLoaded() ? store : nil
+        store.isLoaded() ? store : nil
     }
 
     /// バックグラウンドでのロード/再ロードを要求する (何度呼んでも安全)。

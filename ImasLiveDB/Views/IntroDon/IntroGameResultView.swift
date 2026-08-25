@@ -270,7 +270,10 @@ struct IntroGameResultView: View {
 
             Button {
                 AppAnalytics.tap("intro_game_result.replay")
-                session.reset()
+                // ⚠️ ここで session.reset() を呼んではいけない。
+                // この結果画面はまだ画面上にあるので、記録が消えた瞬間に 0/0・履歴なしへ
+                // 描き変わってしまう (「空の結果画面が後から出てくる」の原因)。
+                // 次の対局の初期化は IntroGameSession.generateQuestions が全部やる。
                 // Setup画面(積み上げ済み)まで戻すだけ。IntroGameSetupView() を新規pushしていた
                 // 従来実装は Home→Setup→Game→Result→Setup→Game→Result… とスタックが際限なく
                 // 伸びるバグの原因だったため、既存のSetupを再利用する形に変更。
@@ -293,7 +296,7 @@ struct IntroGameResultView: View {
 
             Button {
                 AppAnalytics.tap("intro_game_result.go_home")
-                session.reset()
+                // replay と同じ理由でここでも reset しない (下の画面が空表示に化ける)。
                 exitSignal.requestExitToHome()
             } label: {
                 Text("ホームに戻る")

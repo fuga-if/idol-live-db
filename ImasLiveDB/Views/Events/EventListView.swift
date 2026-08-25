@@ -24,6 +24,13 @@ struct EventListView: View {
     @State private var selectedBrandIds: Set<String> = []
     @State private var showFilterSheet = false
     @State private var searchText = ""
+    /// 絞り込みに実際に使う検索語 (searchText を落ち着いてから反映する)。
+    ///
+    /// 日本語 IME の変換中は 1 打鍵ごとに未確定文字が差し替わり、そのたびに
+    /// 一覧が「全件 ⇄ 0 件 ⇄ 数件」と作り直される。年グループ (見出し + カード) を
+    /// 伴うこの一覧はその振動で描画が破綻し、スクロールすると主スレッドが戻らなくなる。
+    /// 変換が落ち着くまで作り直しを待たせてこの振動自体を消す。
+    @State private var appliedSearchText = ""
     /// 新規イベント作成 sheet。
     @State private var showEventCreate = false
     /// 未ログイン時のログイン誘導 sheet。ログイン後に新規作成を再開する。
@@ -51,13 +58,47 @@ struct EventListView: View {
     /// 再計算のトリガーキー。絞り込み条件を足したらここにも必ず含める
     /// (含め忘れると、シートで条件を変えても一覧が旧い結果のまま残る)。
     private var filterKey: String {
-        "\(brandsKey)_\(excludedKindsRaw)_\(showEmptyEvents)_\(searchText)_\(attendanceFilter)_\(requireFavorite)_\(requireNote)_\(timeFilter)_\(venueFilter)"
+        "\(brandsKey)_\(excludedKindsRaw)_\(showEmptyEvents)_\(appliedSearchText)_\(attendanceFilter)_\(requireFavorite)_\(requireNote)_\(timeFilter)_\(venueFilter)"
     }
 
     /// 端末ローカルの今日 (YYYY-MM-DD)。今後/開催済みの境界。
     /// 「今日」は JST 固定 (`JSTDay`)。公演日は日本のライブの開催日なので、
     /// 端末ローカル TZ で判定すると海外にいるユーザーだけ 1 日ずれる。
     private var todayKey: String { JSTDay.today() }
+
+    /// 一覧の 1 行ぶんの表示単位。
+    ///
+    /// 以前は `ForEach(年グループ) { VStack { 見出し; ImasListContainer { ForEach(行) } } }` と
+    /// 入れ子にしていたが、この構造だと実機で一覧をスクロールした瞬間に主スレッドが
+    /// 戻らなくなった (`LazyVStack` の中で、角丸クリップ付きコンテナに包まれた入れ子 `ForEach` の
+    /// 高さ計算が破綻する)。楽曲・アイドル一覧が平坦な `ForEach` で無事だったこと、
+    /// 見出しを外すと再現しなくなることの両方から特定した。
+    ///
+    /// そこで年見出しも行も同じ 1 本の `ForEach` に並べ、カードの角丸は行ごとに
+    /// 「グループの先頭/末尾か」で描き分ける (見た目は従来と同じ)。
+    private enum EventListItem: Identifiable {
+        case yearHeader(String, isFirst: Bool)
+        case row(EventWithDate, isFirst: Bool, isLast: Bool)
+
+        var id: String {
+            switch self {
+            case .yearHeader(let year, _): "header_\(year)"
+            case .row(let ew, _, _): ew.id
+            }
+        }
+    }
+
+    /// 年グループを 1 本の並びへ畳む (グループの順序と行の順序はそのまま)。
+    private var listItems: [EventListItem] {
+        var items: [EventListItem] = []
+        for (gi, group) in vm.groupedByYear.enumerated() {
+            items.append(.yearHeader(group.year, isFirst: gi == 0))
+            for (i, ew) in group.events.enumerated() {
+                items.append(.row(ew, isFirst: i == 0, isLast: i == group.events.count - 1))
+            }
+        }
+        return items
+    }
 
     /// brand_id → ブランドカラー hex / 表示名の引き当て表。
     ///
@@ -88,7 +129,7 @@ struct EventListView: View {
         var ctx = EventFilterContext(
             selectedBrandIds: selectedBrandIds,
             excludedKinds: excludedKinds,
-            searchText: searchText,
+            searchText: appliedSearchText,
             attendanceFilter: attendanceFilter)
         // attendedEventIds は VM.rebuild が show→event 逆引きで非同期解決するため、ここでは設定しない。
         if requireFavorite {
@@ -125,29 +166,43 @@ struct EventListView: View {
                             .padding(.top, DS.sp3)
                     }
 
-                    ForEach(Array(vm.groupedByYear.enumerated()), id: \.element.id) { index, group in
-                        VStack(alignment: .leading, spacing: DS.sp3) {
-                            ImasSectionHeader(title: group.year, tight: true)
+                    ForEach(listItems) { item in
+                        switch item {
+                        case .yearHeader(let year, let isFirstGroup):
+                            ImasSectionHeader(title: year, tight: true)
                                 .padding(.horizontal, DS.sp5)
+                                // 従来の「グループ VStack に付けていた上余白」と同じ値
+                                .padding(.top, isFirstGroup && !hasActiveFilterChips ? 6 : 18)
+                                .padding(.bottom, DS.sp3)
 
-                            ImasListContainer {
-                                ForEach(Array(group.events.enumerated()), id: \.element.id) { rowIndex, ew in
-                                    if rowIndex > 0 {
-                                        ImasRowDivider(inset: 16)
-                                    }
-                                    NavigationLink(value: ew.event) {
-                                        EventRowView(
-                                            event: ew.event,
-                                            dateText: ew.dateRange,
-                                            seedHex: brandColorMap[ew.event.brandId ?? ""]
-                                        )
-                                    }
-                                    .buttonStyle(.plain)
+                        case .row(let ew, let isFirst, let isLast):
+                            VStack(spacing: 0) {
+                                if !isFirst {
+                                    ImasRowDivider(inset: 16)
                                 }
+                                NavigationLink(value: ew.event) {
+                                    EventRowView(
+                                        event: ew.event,
+                                        dateText: ew.dateRange,
+                                        seedHex: brandColorMap[ew.event.brandId ?? ""]
+                                    )
+                                }
+                                .buttonStyle(.plain)
                             }
+                            // カードの角丸はグループの先頭/末尾の行だけ丸める
+                            // (従来 ImasListContainer がグループ全体に掛けていた見た目を、
+                            //  入れ子にせず行単位で再現する)。
+                            .background(DS.surface)
+                            .clipShape(
+                                .rect(
+                                    topLeadingRadius: isFirst ? DS.rMD : 0,
+                                    bottomLeadingRadius: isLast ? DS.rMD : 0,
+                                    bottomTrailingRadius: isLast ? DS.rMD : 0,
+                                    topTrailingRadius: isFirst ? DS.rMD : 0
+                                )
+                            )
                             .padding(.horizontal, DS.sp5)
                         }
-                        .padding(.top, index == 0 && !hasActiveFilterChips ? 6 : 18)
                     }
 
                     if vm.groupedByYear.isEmpty && !vm.isLoading {
@@ -211,6 +266,16 @@ struct EventListView: View {
             .task {
                 await vm.loadData(includeEmpty: showEmptyEvents, query: listQuery)
                 rebuildBrandLookup()
+            }
+            // 変換中の未確定文字で一覧を作り直さない。打鍵が止まってから反映する。
+            .task(id: searchText) {
+                if searchText.isEmpty {
+                    appliedSearchText = ""   // 消したときは即座に全件へ戻す
+                    return
+                }
+                try? await Task.sleep(for: .milliseconds(280))
+                guard !Task.isCancelled else { return }
+                appliedSearchText = searchText
             }
             // フィルタ変化時のみ再計算
             .task(id: filterKey) {
@@ -320,13 +385,13 @@ struct EventListView: View {
     // MARK: - Empty state
 
     @ViewBuilder private var emptyState: some View {
-        if !searchText.isEmpty {
+        if !appliedSearchText.isEmpty {
             ImasEmptyState(
                 systemImage: "line.3.horizontal.decrease",
                 title: "絞り込み結果がありません",
-                message: "「\(searchText)」に一致するライブがありません",
+                message: "「\(appliedSearchText)」に一致するライブがありません",
                 actionTitle: "絞り込みを解除",
-                action: { searchText = "" }
+                action: { searchText = ""; appliedSearchText = "" }
             )
             .padding(.top, 40)
         } else {
