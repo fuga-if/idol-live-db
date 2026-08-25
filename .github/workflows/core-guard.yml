@@ -1,0 +1,44 @@
+name: core-guard
+
+# 共有コア (imas-core) のテスト。
+# ここには「同梱 DB のスキーマが台帳どおりか」の突き合わせも入っている
+# (schema_registry)。iOS/Android のどちらか片方にだけスキーマ変更を入れた事故を
+# ここで捕まえるのが狙い。
+on:
+  pull_request:
+    paths:
+      - "imas-core/**"
+      - "db/master.sql"
+      - ".github/workflows/core-guard.yml"
+  push:
+    branches: [develop, main]
+    paths:
+      - "imas-core/**"
+      - "db/master.sql"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        run: rustup toolchain install stable --profile minimal
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            imas-core/target
+          key: cargo-${{ runner.os }}-${{ hashFiles('imas-core/Cargo.lock') }}
+
+      # テストは同梱 master.sqlite を読む (スキーマ突き合わせ・実データ照合)。
+      # gitignore 対象なので db/master.sql から作る。
+      - name: Build master.sqlite from db/master.sql
+        run: bash tools/build_db.sh
+
+      - name: Test
+        working-directory: imas-core
+        run: cargo test --locked

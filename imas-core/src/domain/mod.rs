@@ -35,5 +35,6 @@ pub mod song_list_filtering;
 pub mod text_search_index;
 pub mod fuzzy_search;
 pub mod performance_stats;
+pub mod schema_registry;
 pub mod timeline_layout;
 pub mod weighted_sampling;
