@@ -69,6 +69,18 @@ final class UserMarkService {
         "\(entity.rawValue)|\(kind.rawValue)|\(id)"
     }
 
+    /// このサービスを経由せず DB へ直接書いた後に、メモリ側を実体へ合わせ直す。
+    ///
+    /// バックアップ取り込みは `AppDatabase.restoreUserMarksIfAbsent` で DB を直接更新するため、
+    /// ここを呼ばないと担当/参加がメモリ集合に載らず「復元したのに戻ってこない」ように見える
+    /// (実データは入っており、アプリを再起動すると現れる)。投票だけ戻って見えたのは、
+    /// あちらが自前のメモリ状態を更新していたため。
+    func reloadAfterExternalWrite() {
+        reloadBoolMarks()
+        refreshAutoCollected()
+        version &+= 1
+    }
+
     /// 全 bool 系マークを DB から読み直してメモリ集合を再構築する (起動時に1回)。
     private func reloadBoolMarks() {
         var marks: Set<String> = []

@@ -69,7 +69,6 @@ targets:
         INFOPLIST_KEY_NSCalendarsWriteOnlyAccessUsageDescription: "ライブの予定をカレンダーに追加するために使用します"
         INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription: "お手持ちのカレンダーの予定をアプリ内のスケジュールに重ねて表示するために使用します"
         INFOPLIST_KEY_NSSpeechRecognitionUsageDescription: "発声した曲名をテキスト化してクイズに回答するために使用します"
-        INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
         INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
@@ -88,6 +87,13 @@ targets:
     info:
       path: ImasLiveDB/Info.plist
       properties:
+        # 起動画面。無地の自動生成 (UILaunchScreen_Generation) だとダークモードで
+        # 真っ黒になり、初回起動の DB 準備中に「壊れた?」と不安にさせるため、
+        # アプリアイコンを中央に置いた画面にする。背景はアプリ本体と同じ色。
+        UILaunchScreen:
+          UIImageName: LaunchLogo
+          UIImageRespectsSafeAreaInsets: true
+          UIColorName: LaunchBackground
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         CFBundleURLTypes:

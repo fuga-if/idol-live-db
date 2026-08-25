@@ -211,6 +211,10 @@ enum BackupExportImportService {
             DeviceIdentity.restore(plan.info.deviceId)
         }
 
+        // DB を直接更新したので、UserMarkService のメモリ集合を実体へ合わせ直す。
+        // これを忘れると担当/お気に入り/参加が画面に出ず「復元できていない」ように見える。
+        Task { @MainActor in UserMarkService.shared.reloadAfterExternalWrite() }
+
         return BackupImportResult(
             addedMarks: addedMarks,
             addedVotes: addedVotes,
