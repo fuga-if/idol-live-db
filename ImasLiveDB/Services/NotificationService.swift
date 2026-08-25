@@ -24,7 +24,14 @@ final class NotificationService {
     }
 
     func authorizationStatus() async -> UNAuthorizationStatus {
-        await center.notificationSettings().authorizationStatus
+        // UNNotificationSettings は非 Sendable なので、await でそのまま持ち帰ると
+        // 隔離境界を越える形になり Swift 6 の厳格チェックで落ちる。
+        // コールバックの中で Sendable な列挙値だけを取り出して返す。
+        await withCheckedContinuation { continuation in
+            center.getNotificationSettings { settings in
+                continuation.resume(returning: settings.authorizationStatus)
+            }
+        }
     }
 
     // MARK: - Reschedule All
