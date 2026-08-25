@@ -15,7 +15,16 @@ final class NotificationService {
 
     func requestAuthorization() async -> Bool {
         do {
-            let granted = try await center.requestAuthorization(options: [.alert, .sound, .badge])
+            // UNUserNotificationCenter は非 Sendable なので、async 版をそのまま await すると
+            // 隔離境界を越える形になり Swift 6 の厳格チェックで落ちる (CI の Xcode で顕在化)。
+            // コールバック版で Sendable な Bool だけを持ち帰る。
+            let center = self.center
+            let granted = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Bool, Error>) in
+                center.requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+                    if let error { continuation.resume(throwing: error) }
+                    else { continuation.resume(returning: granted) }
+                }
+            }
             return granted
         } catch {
             Logger.notification.error("notif_auth_failed: \(error.localizedDescription, privacy: .public)")
@@ -63,7 +72,14 @@ final class NotificationService {
 
         for request in capped {
             do {
-                try await center.add(request)
+                // 同上。center も request も非 Sendable なのでコールバック版を使う。
+                let center = self.center
+                try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+                    center.add(request) { error in
+                        if let error { continuation.resume(throwing: error) }
+                        else { continuation.resume() }
+                    }
+                }
             } catch {
                 Logger.notification.error("notif_add_failed \(request.identifier, privacy: .public): \(error.localizedDescription, privacy: .public)")
             }
