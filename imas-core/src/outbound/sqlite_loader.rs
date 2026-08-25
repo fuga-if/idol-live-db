@@ -6,18 +6,23 @@
 //! (または SQL 経路) を維持する。
 //!
 //! カラムは Bundle スキーマ基準で明示列挙する (SELECT * を使わない)。アプリ側
-//! マイグレーションが Documents DB にだけ足す列 (has_streaming 等) はここでは
-//! 読まないので、Bundle DB と移行済み Documents DB のどちらを渡されても同じ SQL が通る。
+//! マイグレーションが Documents DB にだけ足す列 (events/shows の has_streaming ・
+//! has_live_viewing、brands.icon_url) と表 (event_releases) は、PRAGMA table_info /
+//! sqlite_master で有無を動的検出して「あれば読む・無ければ既定値 (None / 空)」にする。
+//! これで Bundle DB と移行済み Documents DB のどちらを渡されても同じコードが通る。
+//!
+//! song_calls / song_videos は意図して読まない (理由は domain/snapshot.rs 冒頭)。
 //!
 //! FK 孤児 (参照整合が壊れた行) は黙って捨てて継続する。起動を壊すより読み飛ばす方が
 //! 被害が小さい (過去に FK 孤児で起動クラッシュ→審査 reject の事故があった系譜のデータ)。
 
 use crate::domain::snapshot::{
-    Event, Idol, IdolSongLink, SetlistItem, Show, ShowCastLink, Snapshot, Song, SongArtistLink,
-    Unit,
+    Anniversary, Brand, BrandMemberLink, Event, EventRelease, Idol, IdolBrandLink, IdolSongLink,
+    IdolVoiceActor, SetlistItem, Show, ShowCastLink, Snapshot, Song, SongArtistLink, Staff, Unit,
+    Venue, VenueHall, VenueName,
 };
 use rusqlite::{Connection, OpenFlags};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 pub fn load_snapshot(db_path: &str) -> Result<Snapshot, String> {
     let conn = Connection::open_with_flags(
@@ -30,6 +35,11 @@ pub fn load_snapshot(db_path: &str) -> Result<Snapshot, String> {
     let idols = load_idols(&conn)?;
     let events = load_events(&conn)?;
     let units = load_units(&conn)?;
+    let brands = load_brands(&conn)?;
+    let venues = load_venues(&conn)?;
+    let staff = load_staff(&conn)?;
+    let anniversaries = load_anniversaries(&conn)?;
+    let meta = load_meta(&conn)?;
 
     let song_index_by_id: HashMap<String, u32> =
         songs.iter().enumerate().map(|(i, s)| (s.id.clone(), i as u32)).collect();
@@ -39,6 +49,10 @@ pub fn load_snapshot(db_path: &str) -> Result<Snapshot, String> {
         events.iter().enumerate().map(|(i, e)| (e.id.clone(), i as u32)).collect();
     let unit_index_by_id: HashMap<String, u32> =
         units.iter().enumerate().map(|(i, u)| (u.id.clone(), i as u32)).collect();
+    let brand_index_by_id: HashMap<String, u32> =
+        brands.iter().enumerate().map(|(i, b)| (b.id.clone(), i as u32)).collect();
+    let venue_index_by_id: HashMap<String, u32> =
+        venues.iter().enumerate().map(|(i, v)| (v.id.clone(), i as u32)).collect();
 
     // shows は event 添字リンクを張るため events の索引を先に作ってからロードする。
     let shows = load_shows(&conn, &event_index_by_id)?;
@@ -47,6 +61,12 @@ pub fn load_snapshot(db_path: &str) -> Result<Snapshot, String> {
 
     // setlist_items は show / song 両方の添字リンクを張る。
     let setlist_items = load_setlist_items(&conn, &show_index_by_id, &song_index_by_id)?;
+
+    // 添字リンクつきの従属テーブル群 (親の索引ができてからロードする)。
+    let venue_names = load_venue_names(&conn, &venue_index_by_id)?;
+    let venue_halls = load_venue_halls(&conn, &venue_index_by_id)?;
+    let idol_voice_actors = load_voice_actors(&conn, &idol_index_by_id)?;
+    let event_releases = load_event_releases(&conn, &event_index_by_id, &show_index_by_id)?;
 
     // 以降は逆引き索引の構築。並び順の規約 (どの SQL の ORDER BY を前計算したものか) は
     // domain/snapshot.rs の各フィールド doc が正。ここでは同じ順序でソートを払う。
@@ -249,6 +269,130 @@ pub fn load_snapshot(db_path: &str) -> Result<Snapshot, String> {
         });
     }
 
+    // idol_brands → 双方向リンク (is_primary つき)。is_external の除外はクエリ層。
+    let mut idols_by_brand: Vec<Vec<BrandMemberLink>> = vec![Vec::new(); brands.len()];
+    let mut brands_by_idol: Vec<Vec<IdolBrandLink>> = vec![Vec::new(); idols.len()];
+    {
+        let mut stmt = conn
+            .prepare("SELECT idol_id, brand_id, is_primary FROM idol_brands")
+            .map_err(|e| e.to_string())?;
+        let rows = stmt
+            .query_map([], |r| {
+                Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?, r.get::<_, Option<i64>>(2)?))
+            })
+            .map_err(|e| e.to_string())?;
+        for row in rows {
+            let (idol_id, brand_id, is_primary) = row.map_err(|e| e.to_string())?;
+            let (Some(&ii), Some(&bi)) =
+                (idol_index_by_id.get(&idol_id), brand_index_by_id.get(&brand_id))
+            else {
+                continue;
+            };
+            let is_primary = is_primary.unwrap_or(0) != 0;
+            idols_by_brand[bi as usize].push(BrandMemberLink { idol: ii, is_primary });
+            brands_by_idol[ii as usize].push(IdolBrandLink { brand: bi, is_primary });
+        }
+    }
+    for links in &mut idols_by_brand {
+        links.sort_by_key(|l| idol_sort_key(&idols, l.idol));
+    }
+    for links in &mut brands_by_idol {
+        links.sort_by_key(|l| (brands[l.brand as usize].sort_order, l.brand));
+    }
+
+    // idol_voice_actors → 履歴索引 + CV 名逆引き。
+    let mut voice_actors_by_idol: Vec<Vec<u32>> = vec![Vec::new(); idols.len()];
+    for (i, va) in idol_voice_actors.iter().enumerate() {
+        voice_actors_by_idol[va.idol as usize].push(i as u32);
+    }
+    for list in &mut voice_actors_by_idol {
+        // IFNULL(valid_from,'') DESC (NULL='' は DESC で末尾)。同値は添字で決定的に。
+        list.sort_by_key(|&i| {
+            let va = &idol_voice_actors[i as usize];
+            (std::cmp::Reverse(va.valid_from.clone().unwrap_or_default()), i)
+        });
+    }
+    let mut idols_by_voice_actor_name: HashMap<String, Vec<u32>> = HashMap::new();
+    for va in &idol_voice_actors {
+        idols_by_voice_actor_name.entry(va.name.clone()).or_default().push(va.idol);
+    }
+    for list in idols_by_voice_actor_name.values_mut() {
+        // DISTINCT + ORDER BY sort_order。キーに添字が入るので同一 idol は隣接し dedup で消える。
+        list.sort_by_key(|&i| idol_sort_key(&idols, i));
+        list.dedup();
+    }
+
+    // venue_names / venue_halls → venue 添字で束ねる (並びはテーブル出現順のまま)。
+    let mut names_by_venue: Vec<Vec<u32>> = vec![Vec::new(); venues.len()];
+    for (i, vn) in venue_names.iter().enumerate() {
+        names_by_venue[vn.venue as usize].push(i as u32);
+    }
+    let mut halls_by_venue: Vec<Vec<u32>> = vec![Vec::new(); venues.len()];
+    for (i, vh) in venue_halls.iter().enumerate() {
+        halls_by_venue[vh.venue as usize].push(i as u32);
+    }
+
+    // 会場 → 公演 (date DESC)。venue_id と生文字列の両方を持つのは、
+    // ID 未付与の過去公演を「ID 一致 or 生文字列一致」の OR で拾う後方互換のため。
+    let show_date_desc_key = |i: u32| {
+        let s = &shows[i as usize];
+        (std::cmp::Reverse(s.date.clone()), s.sort_order, i)
+    };
+    let mut shows_by_venue_id: HashMap<String, Vec<u32>> = HashMap::new();
+    let mut shows_by_venue_label: HashMap<String, Vec<u32>> = HashMap::new();
+    for (i, show) in shows.iter().enumerate() {
+        if let Some(vid) = &show.venue_id {
+            shows_by_venue_id.entry(vid.clone()).or_default().push(i as u32);
+        }
+        if let Some(label) = &show.venue {
+            shows_by_venue_label.entry(label.clone()).or_default().push(i as u32);
+        }
+    }
+    for list in shows_by_venue_id.values_mut() {
+        list.sort_by_key(|&i| show_date_desc_key(i));
+    }
+    for list in shows_by_venue_label.values_mut() {
+        list.sort_by_key(|&i| show_date_desc_key(i));
+    }
+
+    // event_releases → (release_date ASC NULL 先頭, sort_order ASC)。
+    let mut releases_by_event: Vec<Vec<u32>> = vec![Vec::new(); events.len()];
+    for (i, er) in event_releases.iter().enumerate() {
+        releases_by_event[er.event as usize].push(i as u32);
+    }
+    for list in &mut releases_by_event {
+        list.sort_by(|&a, &b| {
+            let (ra, rb) = (&event_releases[a as usize], &event_releases[b as usize]);
+            (&ra.release_date, ra.sort_order, a).cmp(&(&rb.release_date, rb.sort_order, b))
+        });
+    }
+
+    // 全体並びの前計算 (SQL 時代に毎回払っていた ORDER BY)。
+    let mut brand_order: Vec<u32> = (0..brands.len() as u32).collect();
+    brand_order.sort_by_key(|&i| (brands[i as usize].sort_order, i));
+    let mut idol_order: Vec<u32> = (0..idols.len() as u32).collect();
+    idol_order.sort_by_key(|&i| idol_sort_key(&idols, i));
+    let mut unit_order: Vec<u32> = (0..units.len() as u32).collect();
+    unit_order.sort_by(|&a, &b| {
+        let (ua, ub) = (&units[a as usize], &units[b as usize]);
+        (&ua.brand_id, &ua.name, a).cmp(&(&ub.brand_id, &ub.name, b))
+    });
+    let mut venue_order: Vec<u32> = (0..venues.len() as u32).collect();
+    venue_order.sort_by_key(|&i| (venues[i as usize].sort_order, i));
+    let mut anniversary_order: Vec<u32> = (0..anniversaries.len() as u32).collect();
+    anniversary_order.sort_by(|&a, &b| {
+        (&anniversaries[a as usize].date, a).cmp(&(&anniversaries[b as usize].date, b))
+    });
+    let mut shows_in_date_order: Vec<u32> = (0..shows.len() as u32).collect();
+    shows_in_date_order.sort_by(|&a, &b| {
+        let (sa, sb) = (&shows[a as usize], &shows[b as usize]);
+        (&sa.date, sa.sort_order, a).cmp(&(&sb.date, sb.sort_order, b))
+    });
+    let mut events_by_name_order: Vec<u32> = (0..events.len() as u32).collect();
+    events_by_name_order.sort_by(|&a, &b| {
+        (&events[a as usize].name, a).cmp(&(&events[b as usize].name, b))
+    });
+
     Ok(Snapshot {
         songs,
         idols,
@@ -256,6 +400,15 @@ pub fn load_snapshot(db_path: &str) -> Result<Snapshot, String> {
         shows,
         setlist_items,
         units,
+        brands,
+        venues,
+        venue_names,
+        venue_halls,
+        staff,
+        anniversaries,
+        idol_voice_actors,
+        event_releases,
+        meta,
         artists_by_song,
         songs_by_idol,
         performance_counts,
@@ -270,11 +423,29 @@ pub fn load_snapshot(db_path: &str) -> Result<Snapshot, String> {
         units_by_idol,
         songs_by_unit,
         variants_by_song,
+        idols_by_brand,
+        brands_by_idol,
+        voice_actors_by_idol,
+        idols_by_voice_actor_name,
+        names_by_venue,
+        halls_by_venue,
+        shows_by_venue_id,
+        shows_by_venue_label,
+        releases_by_event,
+        brand_order,
+        idol_order,
+        unit_order,
+        venue_order,
+        anniversary_order,
+        shows_in_date_order,
+        events_by_name_order,
         song_index_by_id,
         idol_index_by_id,
         event_index_by_id,
         show_index_by_id,
         unit_index_by_id,
+        brand_index_by_id,
+        venue_index_by_id,
     })
 }
 
@@ -287,6 +458,38 @@ fn idol_sort_key(idols: &[Idol], idol: u32) -> (i64, u32) {
 fn release_desc_key(songs: &[Song], song: u32) -> std::cmp::Reverse<Option<String>> {
     // Option の Ord は None < Some なので、Reverse すると None (=NULL) が末尾に落ちる。
     std::cmp::Reverse(songs[song as usize].release_date.clone())
+}
+
+/// PRAGMA table_info の列名集合。Documents 専用列の有無検出に使う。
+fn table_columns(conn: &Connection, table: &str) -> Result<HashSet<String>, String> {
+    let mut stmt = conn
+        .prepare(&format!("PRAGMA table_info({table})"))
+        .map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map([], |r| r.get::<_, String>(1))
+        .map_err(|e| e.to_string())?;
+    rows.collect::<Result<_, _>>().map_err(|e| e.to_string())
+}
+
+/// 表の有無 (Documents 専用表の検出)。
+fn table_exists(conn: &Connection, table: &str) -> Result<bool, String> {
+    conn.query_row(
+        "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = ?",
+        [table],
+        |r| r.get::<_, i64>(0),
+    )
+    .map(|n| n > 0)
+    .map_err(|e| e.to_string())
+}
+
+/// Documents 専用列の SELECT 断片: あれば列名・無ければ `NULL AS 列名`。
+/// 列が無い DB でも同じ列数・同じ添字で読めるようにするための細工。
+fn optional_col(cols: &HashSet<String>, name: &str) -> String {
+    if cols.contains(name) {
+        name.to_string()
+    } else {
+        format!("NULL AS {name}")
+    }
 }
 
 fn load_songs(conn: &Connection) -> Result<Vec<Song>, String> {
@@ -335,8 +538,11 @@ fn load_songs(conn: &Connection) -> Result<Vec<Song>, String> {
 fn load_idols(conn: &Connection) -> Result<Vec<Idol>, String> {
     let mut stmt = conn
         .prepare(
-            "SELECT id, brand_id, name, name_kana, color, sort_order, nickname, aliases,
-                    attribute, is_external, birthday, debut_date
+            "SELECT id, brand_id, name, name_kana, name_romaji, color, sort_order, birthday,
+                    blood_type, height, weight, birth_place, age, bust, waist, hip,
+                    constellation, hobbies, talents, description, gender, handedness,
+                    family_name, given_name, nickname, debut_date, attribute, is_external,
+                    aliases
              FROM idols",
         )
         .map_err(|e| e.to_string())?;
@@ -347,14 +553,31 @@ fn load_idols(conn: &Connection) -> Result<Vec<Idol>, String> {
                 brand_id: r.get(1)?,
                 name: r.get(2)?,
                 name_kana: r.get(3)?,
-                color: r.get(4)?,
-                sort_order: r.get(5)?,
-                nickname: r.get(6)?,
-                aliases: r.get(7)?,
-                attribute: r.get(8)?,
-                is_external: r.get::<_, Option<i64>>(9)?.unwrap_or(0) != 0,
-                birthday: r.get(10)?,
-                debut_date: r.get(11)?,
+                name_romaji: r.get(4)?,
+                color: r.get(5)?,
+                sort_order: r.get(6)?,
+                birthday: r.get(7)?,
+                blood_type: r.get(8)?,
+                height: r.get(9)?,
+                weight: r.get(10)?,
+                birth_place: r.get(11)?,
+                age: r.get(12)?,
+                bust: r.get(13)?,
+                waist: r.get(14)?,
+                hip: r.get(15)?,
+                constellation: r.get(16)?,
+                hobbies: r.get(17)?,
+                talents: r.get(18)?,
+                description: r.get(19)?,
+                gender: r.get(20)?,
+                handedness: r.get(21)?,
+                family_name: r.get(22)?,
+                given_name: r.get(23)?,
+                nickname: r.get(24)?,
+                debut_date: r.get(25)?,
+                attribute: r.get(26)?,
+                is_external: r.get::<_, Option<i64>>(27)?.unwrap_or(0) != 0,
+                aliases: r.get(28)?,
             })
         })
         .map_err(|e| e.to_string())?;
@@ -362,14 +585,16 @@ fn load_idols(conn: &Connection) -> Result<Vec<Idol>, String> {
 }
 
 fn load_events(conn: &Connection) -> Result<Vec<Event>, String> {
-    let mut stmt = conn
-        .prepare(
-            "SELECT id, brand_id, name, event_type, is_streaming, is_solo, kind,
-                    ticket_open_date, ticket_deadline, ticket_lottery_date, ticket_url,
-                    joint_brand_ids
-             FROM events",
-        )
-        .map_err(|e| e.to_string())?;
+    let cols = table_columns(conn, "events")?;
+    let sql = format!(
+        "SELECT id, brand_id, name, event_type, is_streaming, is_solo, kind,
+                ticket_open_date, ticket_deadline, ticket_lottery_date, ticket_url,
+                joint_brand_ids, {has_streaming}, {has_live_viewing}
+         FROM events",
+        has_streaming = optional_col(&cols, "has_streaming"),
+        has_live_viewing = optional_col(&cols, "has_live_viewing"),
+    );
+    let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
     let rows = stmt
         .query_map([], |r| {
             Ok(Event {
@@ -386,6 +611,9 @@ fn load_events(conn: &Connection) -> Result<Vec<Event>, String> {
                 ticket_lottery_date: r.get(9)?,
                 ticket_url: r.get(10)?,
                 joint_brand_ids: r.get(11)?,
+                // Documents 専用列。列が無い DB では NULL 定数列 → None。
+                has_streaming: r.get::<_, Option<i64>>(12)?.map(|v| v != 0),
+                has_live_viewing: r.get::<_, Option<i64>>(13)?.map(|v| v != 0),
             })
         })
         .map_err(|e| e.to_string())?;
@@ -398,13 +626,16 @@ fn load_shows(
     conn: &Connection,
     event_index_by_id: &HashMap<String, u32>,
 ) -> Result<Vec<Show>, String> {
-    let mut stmt = conn
-        .prepare(
-            "SELECT id, event_id, name, date, venue, venue_city, start_time, sort_order,
-                    performer_type, venue_id, hall, stream_platform
-             FROM shows",
-        )
-        .map_err(|e| e.to_string())?;
+    let cols = table_columns(conn, "shows")?;
+    let sql = format!(
+        "SELECT id, event_id, name, date, venue, venue_city, start_time, sort_order,
+                performer_type, venue_id, hall, stream_platform,
+                {has_streaming}, {has_live_viewing}
+         FROM shows",
+        has_streaming = optional_col(&cols, "has_streaming"),
+        has_live_viewing = optional_col(&cols, "has_live_viewing"),
+    );
+    let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
     let rows = stmt
         .query_map([], |r| {
             Ok((
@@ -420,12 +651,14 @@ fn load_shows(
                 r.get::<_, Option<String>>(9)?,
                 r.get::<_, Option<String>>(10)?,
                 r.get::<_, Option<String>>(11)?,
+                r.get::<_, Option<i64>>(12)?,
+                r.get::<_, Option<i64>>(13)?,
             ))
         })
         .map_err(|e| e.to_string())?;
     let mut shows = Vec::new();
     for row in rows {
-        let (id, event_id, name, date, venue, venue_city, start_time, sort_order, performer_type, venue_id, hall, stream_platform) =
+        let (id, event_id, name, date, venue, venue_city, start_time, sort_order, performer_type, venue_id, hall, stream_platform, has_streaming, has_live_viewing) =
             row.map_err(|e| e.to_string())?;
         let Some(&event) = event_index_by_id.get(&event_id) else { continue };
         shows.push(Show {
@@ -441,6 +674,8 @@ fn load_shows(
             venue_id,
             hall,
             stream_platform,
+            has_streaming: has_streaming.map(|v| v != 0),
+            has_live_viewing: has_live_viewing.map(|v| v != 0),
         });
     }
     Ok(shows)
@@ -511,6 +746,250 @@ fn load_units(conn: &Connection) -> Result<Vec<Unit>, String> {
     rows.collect::<Result<_, _>>().map_err(|e| e.to_string())
 }
 
+fn load_brands(conn: &Connection) -> Result<Vec<Brand>, String> {
+    let cols = table_columns(conn, "brands")?;
+    let sql = format!(
+        "SELECT id, name, short_name, color, sort_order, {icon_url} FROM brands",
+        icon_url = optional_col(&cols, "icon_url"),
+    );
+    let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map([], |r| {
+            Ok(Brand {
+                id: r.get(0)?,
+                name: r.get(1)?,
+                short_name: r.get(2)?,
+                color: r.get(3)?,
+                sort_order: r.get::<_, Option<i64>>(4)?.unwrap_or(0),
+                icon_url: r.get(5)?,
+            })
+        })
+        .map_err(|e| e.to_string())?;
+    rows.collect::<Result<_, _>>().map_err(|e| e.to_string())
+}
+
+fn load_venues(conn: &Connection) -> Result<Vec<Venue>, String> {
+    let mut stmt = conn
+        .prepare(
+            "SELECT id, name, name_kana, prefecture, city, aliases, capacity, sort_order
+             FROM venues",
+        )
+        .map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map([], |r| {
+            Ok(Venue {
+                id: r.get(0)?,
+                name: r.get(1)?,
+                name_kana: r.get(2)?,
+                prefecture: r.get(3)?,
+                city: r.get(4)?,
+                aliases: r.get(5)?,
+                capacity: r.get(6)?,
+                sort_order: r.get::<_, Option<i64>>(7)?.unwrap_or(0),
+            })
+        })
+        .map_err(|e| e.to_string())?;
+    rows.collect::<Result<_, _>>().map_err(|e| e.to_string())
+}
+
+/// venue_names をロードする。親 venue が存在しない FK 孤児は読み飛ばす。
+fn load_venue_names(
+    conn: &Connection,
+    venue_index_by_id: &HashMap<String, u32>,
+) -> Result<Vec<VenueName>, String> {
+    let mut stmt = conn
+        .prepare("SELECT id, venue_id, name, valid_from, valid_to FROM venue_names")
+        .map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map([], |r| {
+            Ok((
+                r.get::<_, String>(0)?,
+                r.get::<_, String>(1)?,
+                r.get::<_, String>(2)?,
+                r.get::<_, Option<String>>(3)?,
+                r.get::<_, Option<String>>(4)?,
+            ))
+        })
+        .map_err(|e| e.to_string())?;
+    let mut names = Vec::new();
+    for row in rows {
+        let (id, venue_id, name, valid_from, valid_to) = row.map_err(|e| e.to_string())?;
+        let Some(&venue) = venue_index_by_id.get(&venue_id) else { continue };
+        names.push(VenueName { id, venue, name, valid_from, valid_to });
+    }
+    Ok(names)
+}
+
+/// venue_halls をロードする。親 venue が存在しない FK 孤児は読み飛ばす。
+fn load_venue_halls(
+    conn: &Connection,
+    venue_index_by_id: &HashMap<String, u32>,
+) -> Result<Vec<VenueHall>, String> {
+    let mut stmt = conn
+        .prepare("SELECT id, venue_id, name, capacity FROM venue_halls")
+        .map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map([], |r| {
+            Ok((
+                r.get::<_, String>(0)?,
+                r.get::<_, String>(1)?,
+                r.get::<_, String>(2)?,
+                r.get::<_, Option<i64>>(3)?,
+            ))
+        })
+        .map_err(|e| e.to_string())?;
+    let mut halls = Vec::new();
+    for row in rows {
+        let (id, venue_id, name, capacity) = row.map_err(|e| e.to_string())?;
+        let Some(&venue) = venue_index_by_id.get(&venue_id) else { continue };
+        halls.push(VenueHall { id, venue, name, capacity });
+    }
+    Ok(halls)
+}
+
+fn load_staff(conn: &Connection) -> Result<Vec<Staff>, String> {
+    let mut stmt = conn
+        .prepare(
+            "SELECT id, brand_id, name, name_kana, name_romaji, role, birthday, sort_order
+             FROM staff",
+        )
+        .map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map([], |r| {
+            Ok(Staff {
+                id: r.get(0)?,
+                brand_id: r.get(1)?,
+                name: r.get(2)?,
+                name_kana: r.get(3)?,
+                name_romaji: r.get(4)?,
+                role: r.get(5)?,
+                birthday: r.get(6)?,
+                sort_order: r.get::<_, Option<i64>>(7)?.unwrap_or(0),
+            })
+        })
+        .map_err(|e| e.to_string())?;
+    rows.collect::<Result<_, _>>().map_err(|e| e.to_string())
+}
+
+fn load_anniversaries(conn: &Connection) -> Result<Vec<Anniversary>, String> {
+    let mut stmt = conn
+        .prepare("SELECT id, brand_id, label, date, kind, sort_order FROM anniversaries")
+        .map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map([], |r| {
+            Ok(Anniversary {
+                id: r.get(0)?,
+                brand_id: r.get(1)?,
+                label: r.get(2)?,
+                date: r.get(3)?,
+                kind: r.get(4)?,
+                sort_order: r.get::<_, Option<i64>>(5)?.unwrap_or(0),
+            })
+        })
+        .map_err(|e| e.to_string())?;
+    rows.collect::<Result<_, _>>().map_err(|e| e.to_string())
+}
+
+/// idol_voice_actors をロードする。親 idol が存在しない FK 孤児は読み飛ばす。
+fn load_voice_actors(
+    conn: &Connection,
+    idol_index_by_id: &HashMap<String, u32>,
+) -> Result<Vec<IdolVoiceActor>, String> {
+    let mut stmt = conn
+        .prepare("SELECT id, idol_id, name, valid_from, valid_to FROM idol_voice_actors")
+        .map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map([], |r| {
+            Ok((
+                r.get::<_, String>(0)?,
+                r.get::<_, String>(1)?,
+                r.get::<_, String>(2)?,
+                r.get::<_, Option<String>>(3)?,
+                r.get::<_, Option<String>>(4)?,
+            ))
+        })
+        .map_err(|e| e.to_string())?;
+    let mut actors = Vec::new();
+    for row in rows {
+        let (id, idol_id, name, valid_from, valid_to) = row.map_err(|e| e.to_string())?;
+        let Some(&idol) = idol_index_by_id.get(&idol_id) else { continue };
+        actors.push(IdolVoiceActor { id, idol, name, valid_from, valid_to });
+    }
+    Ok(actors)
+}
+
+/// event_releases をロードする。Documents 専用表なので、表が無い DB (Bundle) では空を返す。
+/// 親 event が孤児の行は読み飛ばす。show_id は孤児でも行自体は残す (イベント全体 BOX と
+/// 同じ「公演不明」扱いに落とす方が、円盤ごと消すより被害が小さい)。
+fn load_event_releases(
+    conn: &Connection,
+    event_index_by_id: &HashMap<String, u32>,
+    show_index_by_id: &HashMap<String, u32>,
+) -> Result<Vec<EventRelease>, String> {
+    if !table_exists(conn, "event_releases")? {
+        return Ok(Vec::new());
+    }
+    let mut stmt = conn
+        .prepare(
+            "SELECT id, event_id, show_id, product_type, title, catalog_number, release_date,
+                    jacket_url, purchase_url, sort_order
+             FROM event_releases",
+        )
+        .map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map([], |r| {
+            Ok((
+                r.get::<_, String>(0)?,
+                r.get::<_, String>(1)?,
+                r.get::<_, Option<String>>(2)?,
+                r.get::<_, String>(3)?,
+                r.get::<_, String>(4)?,
+                r.get::<_, Option<String>>(5)?,
+                r.get::<_, Option<String>>(6)?,
+                r.get::<_, Option<String>>(7)?,
+                r.get::<_, Option<String>>(8)?,
+                r.get::<_, Option<i64>>(9)?,
+            ))
+        })
+        .map_err(|e| e.to_string())?;
+    let mut releases = Vec::new();
+    for row in rows {
+        let (id, event_id, show_id, product_type, title, catalog_number, release_date, jacket_url, purchase_url, sort_order) =
+            row.map_err(|e| e.to_string())?;
+        let Some(&event) = event_index_by_id.get(&event_id) else { continue };
+        let show = show_id.as_ref().and_then(|sid| show_index_by_id.get(sid)).copied();
+        releases.push(EventRelease {
+            id,
+            event,
+            show,
+            product_type,
+            title,
+            catalog_number,
+            release_date,
+            jacket_url,
+            purchase_url,
+            sort_order: sort_order.unwrap_or(0),
+        });
+    }
+    Ok(releases)
+}
+
+/// meta 表 (key → value)。value NULL の行は載せない (getValue の観測結果は行なしと同じ)。
+fn load_meta(conn: &Connection) -> Result<HashMap<String, String>, String> {
+    let mut stmt = conn.prepare("SELECT key, value FROM meta").map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, Option<String>>(1)?)))
+        .map_err(|e| e.to_string())?;
+    let mut meta = HashMap::new();
+    for row in rows {
+        let (key, value) = row.map_err(|e| e.to_string())?;
+        if let Some(value) = value {
+            meta.insert(key, value);
+        }
+    }
+    Ok(meta)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -540,6 +1019,8 @@ mod tests {
         assert!(s.shows.len() >= 1000, "shows={}", s.shows.len());
         assert!(s.setlist_items.len() >= 10000, "items={}", s.setlist_items.len());
         assert!(s.units.len() >= 1000, "units={}", s.units.len());
+        assert!(s.brands.len() >= 5, "brands={}", s.brands.len());
+        assert!(s.venues.len() >= 100, "venues={}", s.venues.len());
         // 「◯◯_by_△△」は△△側と同じ長さ (添字リンクの前提)。
         assert_eq!(s.songs.len(), s.artists_by_song.len());
         assert_eq!(s.songs.len(), s.performance_counts.len());
@@ -549,12 +1030,26 @@ mod tests {
         assert_eq!(s.idols.len(), s.performed_items_by_idol.len());
         assert_eq!(s.idols.len(), s.cast_shows_by_idol.len());
         assert_eq!(s.idols.len(), s.units_by_idol.len());
+        assert_eq!(s.idols.len(), s.brands_by_idol.len());
+        assert_eq!(s.idols.len(), s.voice_actors_by_idol.len());
         assert_eq!(s.events.len(), s.shows_by_event.len());
+        assert_eq!(s.events.len(), s.releases_by_event.len());
         assert_eq!(s.shows.len(), s.setlist_items_by_show.len());
         assert_eq!(s.shows.len(), s.cast_by_show.len());
         assert_eq!(s.setlist_items.len(), s.performers_by_item.len());
         assert_eq!(s.units.len(), s.members_by_unit.len());
         assert_eq!(s.units.len(), s.songs_by_unit.len());
+        assert_eq!(s.brands.len(), s.idols_by_brand.len());
+        assert_eq!(s.venues.len(), s.names_by_venue.len());
+        assert_eq!(s.venues.len(), s.halls_by_venue.len());
+        // 全体並びは全件をちょうど 1 回ずつ含む
+        assert_eq!(s.brand_order.len(), s.brands.len());
+        assert_eq!(s.idol_order.len(), s.idols.len());
+        assert_eq!(s.unit_order.len(), s.units.len());
+        assert_eq!(s.venue_order.len(), s.venues.len());
+        assert_eq!(s.anniversary_order.len(), s.anniversaries.len());
+        assert_eq!(s.shows_in_date_order.len(), s.shows.len());
+        assert_eq!(s.events_by_name_order.len(), s.events.len());
         // 索引の往復整合
         for (i, song) in s.songs.iter().enumerate().step_by(97) {
             assert_eq!(s.song_index_by_id[&song.id] as usize, i);
@@ -567,6 +1062,12 @@ mod tests {
         }
         for (i, unit) in s.units.iter().enumerate().step_by(41) {
             assert_eq!(s.unit_index_by_id[&unit.id] as usize, i);
+        }
+        for (i, brand) in s.brands.iter().enumerate() {
+            assert_eq!(s.brand_index_by_id[&brand.id] as usize, i);
+        }
+        for (i, venue) in s.venues.iter().enumerate().step_by(13) {
+            assert_eq!(s.venue_index_by_id[&venue.id] as usize, i);
         }
     }
 
@@ -583,12 +1084,27 @@ mod tests {
         assert_eq!(s.shows.len(), count("SELECT COUNT(*) FROM shows"));
         assert_eq!(s.setlist_items.len(), count("SELECT COUNT(*) FROM setlist_items"));
         assert_eq!(s.units.len(), count("SELECT COUNT(*) FROM units"));
+        assert_eq!(s.brands.len(), count("SELECT COUNT(*) FROM brands"));
+        assert_eq!(s.venues.len(), count("SELECT COUNT(*) FROM venues"));
+        assert_eq!(s.venue_names.len(), count("SELECT COUNT(*) FROM venue_names"));
+        assert_eq!(s.venue_halls.len(), count("SELECT COUNT(*) FROM venue_halls"));
+        assert_eq!(s.staff.len(), count("SELECT COUNT(*) FROM staff"));
+        assert_eq!(s.anniversaries.len(), count("SELECT COUNT(*) FROM anniversaries"));
+        assert_eq!(s.idol_voice_actors.len(), count("SELECT COUNT(*) FROM idol_voice_actors"));
+        assert_eq!(s.meta.len(), count("SELECT COUNT(*) FROM meta WHERE value IS NOT NULL"));
         let performer_links: usize = s.performers_by_item.iter().map(Vec::len).sum();
         assert_eq!(performer_links, count("SELECT COUNT(*) FROM setlist_performers"));
         let cast_links: usize = s.cast_by_show.iter().map(Vec::len).sum();
         assert_eq!(cast_links, count("SELECT COUNT(*) FROM show_cast"));
         let member_links: usize = s.members_by_unit.iter().map(Vec::len).sum();
         assert_eq!(member_links, count("SELECT COUNT(*) FROM unit_members"));
+        let brand_links: usize = s.idols_by_brand.iter().map(Vec::len).sum();
+        assert_eq!(brand_links, count("SELECT COUNT(*) FROM idol_brands"));
+        let brand_links_rev: usize = s.brands_by_idol.iter().map(Vec::len).sum();
+        assert_eq!(brand_links, brand_links_rev);
+        // event_releases は Documents 専用表 → Bundle には無く空でロードされる
+        assert!(s.event_releases.is_empty());
+        assert!(s.releases_by_event.iter().all(Vec::is_empty));
     }
 
     #[test]
@@ -837,6 +1353,407 @@ mod tests {
             let expected = sql_counts.get(&s.songs[si].id).copied().unwrap_or(0);
             assert_eq!(show_set.len() as i64, expected, "song={}", s.songs[si].id);
         }
+    }
+
+    #[test]
+    fn brand_order_matches_sql() {
+        // Bundle の brands は sort_order がユニークなので SQL と逐語比較できる。
+        let s = snapshot();
+        let c = conn();
+        let mut stmt = c.prepare("SELECT id FROM brands ORDER BY sort_order").unwrap();
+        let sql_ids: Vec<String> =
+            stmt.query_map([], |r| r.get(0)).unwrap().collect::<Result<_, _>>().unwrap();
+        let snap_ids: Vec<&str> =
+            s.brand_order.iter().map(|&i| s.brands[i as usize].id.as_str()).collect();
+        assert_eq!(sql_ids, snap_ids);
+        // brand() の O(1) 引きも往復すること
+        for brand in &s.brands {
+            assert_eq!(s.brand(&brand.id).map(|b| b.sort_order), Some(brand.sort_order));
+        }
+    }
+
+    #[test]
+    fn idols_by_brand_match_sql_membership_query() {
+        // fetchIdols(brandId:) 相当:
+        //   SELECT DISTINCT i.* FROM idols i JOIN idol_brands ib ON i.id = ib.idol_id
+        //   WHERE ib.brand_id = ? AND i.is_external = 0 ORDER BY i.sort_order
+        // を全ブランドで突き合わせる (Bundle は idols.sort_order がユニークなので逐語一致)。
+        let s = snapshot();
+        let c = conn();
+        for (bi, brand) in s.brands.iter().enumerate() {
+            let mut stmt = c
+                .prepare(
+                    "SELECT DISTINCT i.id FROM idols i
+                     JOIN idol_brands ib ON i.id = ib.idol_id
+                     WHERE ib.brand_id = ? AND i.is_external = 0
+                     ORDER BY i.sort_order",
+                )
+                .unwrap();
+            let sql_ids: Vec<String> = stmt
+                .query_map([&brand.id], |r| r.get(0))
+                .unwrap()
+                .collect::<Result<_, _>>()
+                .unwrap();
+            let snap_ids: Vec<&str> = s.idols_by_brand[bi]
+                .iter()
+                .filter(|l| !s.idols[l.idol as usize].is_external)
+                .map(|l| s.idols[l.idol as usize].id.as_str())
+                .collect();
+            assert_eq!(sql_ids, snap_ids, "brand={}", brand.id);
+        }
+        // 逆引きの往復: brands_by_idol に載る brand の idols_by_brand に自分がいる
+        for (ii, links) in s.brands_by_idol.iter().enumerate().step_by(7) {
+            for l in links {
+                assert!(s.idols_by_brand[l.brand as usize]
+                    .iter()
+                    .any(|m| m.idol as usize == ii && m.is_primary == l.is_primary));
+            }
+        }
+    }
+
+    #[test]
+    fn voice_actor_resolution_matches_sql() {
+        // fetchCurrentVoiceActor / fetchVoiceActorHistory / fetchIdolsByVoiceActor の3クエリを
+        // 全アイドル・全 CV 名で SQL と突き合わせる。
+        let s = snapshot();
+        let c = conn();
+        for (ii, idol) in s.idols.iter().enumerate() {
+            // 現任: WHERE valid_to IS NULL ORDER BY IFNULL(valid_from,'') DESC LIMIT 1
+            let sql_current: Option<String> = c
+                .query_row(
+                    "SELECT name FROM idol_voice_actors
+                     WHERE idol_id = ? AND valid_to IS NULL
+                     ORDER BY IFNULL(valid_from, '') DESC
+                     LIMIT 1",
+                    [&idol.id],
+                    |r| r.get(0),
+                )
+                .ok();
+            assert_eq!(
+                s.current_voice_actor(ii as u32).map(|va| va.name.clone()),
+                sql_current,
+                "idol={}",
+                idol.id
+            );
+            // 履歴: ORDER BY IFNULL(valid_from,'') DESC (同値は未規定 → 集合一致 + 単調性)
+            let mut stmt = c
+                .prepare(
+                    "SELECT id FROM idol_voice_actors WHERE idol_id = ?
+                     ORDER BY IFNULL(valid_from, '') DESC",
+                )
+                .unwrap();
+            let sql_ids: Vec<String> = stmt
+                .query_map([&idol.id], |r| r.get(0))
+                .unwrap()
+                .collect::<Result<_, _>>()
+                .unwrap();
+            let snap: Vec<&IdolVoiceActor> = s.voice_actors_by_idol[ii]
+                .iter()
+                .map(|&i| &s.idol_voice_actors[i as usize])
+                .collect();
+            let snap_ids: std::collections::HashSet<&str> =
+                snap.iter().map(|va| va.id.as_str()).collect();
+            assert_eq!(sql_ids.len(), snap_ids.len());
+            assert!(sql_ids.iter().all(|id| snap_ids.contains(id.as_str())));
+            let keys: Vec<String> =
+                snap.iter().map(|va| va.valid_from.clone().unwrap_or_default()).collect();
+            assert!(keys.windows(2).all(|w| w[0] >= w[1]), "valid_from DESC が崩れている");
+        }
+        // CV 名逆引き (歴代すべて対象・DISTINCT・sort_order 順)
+        for (name, idol_indexes) in &s.idols_by_voice_actor_name {
+            let mut stmt = c
+                .prepare(
+                    "SELECT DISTINCT i.id FROM idols i
+                     JOIN idol_voice_actors v ON v.idol_id = i.id
+                     WHERE v.name = ?
+                     ORDER BY i.sort_order",
+                )
+                .unwrap();
+            let sql_ids: Vec<String> = stmt
+                .query_map([name], |r| r.get(0))
+                .unwrap()
+                .collect::<Result<_, _>>()
+                .unwrap();
+            let snap_ids: Vec<&str> =
+                idol_indexes.iter().map(|&i| s.idols[i as usize].id.as_str()).collect();
+            assert_eq!(sql_ids, snap_ids, "va={name}");
+        }
+    }
+
+    #[test]
+    fn venue_directory_matches_sql() {
+        let s = snapshot();
+        let c = conn();
+        // venue_order: Bundle は sort_order ユニークなので逐語一致
+        let mut stmt = c.prepare("SELECT id FROM venues ORDER BY sort_order").unwrap();
+        let sql_ids: Vec<String> =
+            stmt.query_map([], |r| r.get(0)).unwrap().collect::<Result<_, _>>().unwrap();
+        let snap_ids: Vec<&str> =
+            s.venue_order.iter().map(|&i| s.venues[i as usize].id.as_str()).collect();
+        assert_eq!(sql_ids, snap_ids);
+        // names / halls の親リンクが正しく束なっていること
+        for (vi, names) in s.names_by_venue.iter().enumerate() {
+            for &ni in names {
+                assert_eq!(s.venue_names[ni as usize].venue as usize, vi);
+            }
+        }
+        for (vi, halls) in s.halls_by_venue.iter().enumerate() {
+            for &hi in halls {
+                assert_eq!(s.venue_halls[hi as usize].venue as usize, vi);
+            }
+        }
+        let name_links: usize = s.names_by_venue.iter().map(Vec::len).sum();
+        assert_eq!(name_links, s.venue_names.len());
+        let hall_links: usize = s.halls_by_venue.iter().map(Vec::len).sum();
+        assert_eq!(hall_links, s.venue_halls.len());
+    }
+
+    #[test]
+    fn shows_by_venue_match_sql() {
+        // showsByVenue 相当 (venue_id = ? OR venue = ? / ORDER BY date DESC) を
+        // 公演数の多い venue_id で突き合わせる。同日内は SQL 未規定 → 集合一致 + 単調性。
+        let s = snapshot();
+        let c = conn();
+        let (vid, list) = s
+            .shows_by_venue_id
+            .iter()
+            .max_by_key(|(_, v)| v.len())
+            .expect("venue_id つき公演がある");
+        assert!(list.len() >= 5, "最多会場の公演数={}", list.len());
+        let mut stmt = c
+            .prepare("SELECT id FROM shows WHERE venue_id = ? ORDER BY date DESC")
+            .unwrap();
+        let sql_ids: Vec<String> =
+            stmt.query_map([vid], |r| r.get(0)).unwrap().collect::<Result<_, _>>().unwrap();
+        let snap_ids: std::collections::HashSet<&str> =
+            list.iter().map(|&i| s.shows[i as usize].id.as_str()).collect();
+        assert_eq!(sql_ids.len(), snap_ids.len());
+        assert!(sql_ids.iter().all(|id| snap_ids.contains(id.as_str())));
+        let dates: Vec<&String> = list.iter().map(|&i| &s.shows[i as usize].date).collect();
+        assert!(dates.windows(2).all(|w| w[0] >= w[1]), "date DESC が崩れている");
+        // 生文字列マップ: shows.venue を持つ全行が自分のラベルの下に入っている
+        for (i, show) in s.shows.iter().enumerate() {
+            if let Some(label) = &show.venue {
+                assert!(s.shows_by_venue_label[label].contains(&(i as u32)));
+            }
+        }
+    }
+
+    #[test]
+    fn shows_in_date_order_supports_calendar_range() {
+        // カレンダーの範囲抽出 (WHERE date BETWEEN ? AND ? ORDER BY date, sort_order) が
+        // 二分探索 + 部分列で SQL と一致すること。同 (date, sort_order) は未規定 → 集合一致。
+        let s = snapshot();
+        let c = conn();
+        let (start, end) = ("2023-01-01", "2023-12-31");
+        let lo = s
+            .shows_in_date_order
+            .partition_point(|&i| s.shows[i as usize].date.as_str() < start);
+        let hi = s
+            .shows_in_date_order
+            .partition_point(|&i| s.shows[i as usize].date.as_str() <= end);
+        let range = &s.shows_in_date_order[lo..hi];
+        let mut stmt = c
+            .prepare("SELECT id FROM shows WHERE date >= ? AND date <= ? ORDER BY date, sort_order")
+            .unwrap();
+        let sql_ids: Vec<String> = stmt
+            .query_map([start, end], |r| r.get(0))
+            .unwrap()
+            .collect::<Result<_, _>>()
+            .unwrap();
+        assert!(!sql_ids.is_empty(), "2023 年に公演がない Bundle はおかしい");
+        let snap_ids: std::collections::HashSet<&str> =
+            range.iter().map(|&i| s.shows[i as usize].id.as_str()).collect();
+        assert_eq!(sql_ids.len(), snap_ids.len());
+        assert!(sql_ids.iter().all(|id| snap_ids.contains(id.as_str())));
+        let keys: Vec<(&String, i64)> = range
+            .iter()
+            .map(|&i| (&s.shows[i as usize].date, s.shows[i as usize].sort_order))
+            .collect();
+        assert!(keys.windows(2).all(|w| w[0] <= w[1]));
+        // 末尾 = 最新公演 (fetchLatestShow の ORDER BY date DESC LIMIT 1 と同じ date)
+        let sql_latest: String = c
+            .query_row("SELECT MAX(date) FROM shows", [], |r| r.get(0))
+            .unwrap();
+        let last = *s.shows_in_date_order.last().unwrap();
+        assert_eq!(s.shows[last as usize].date, sql_latest);
+    }
+
+    #[test]
+    fn anniversaries_and_staff_match_sql() {
+        let s = snapshot();
+        let c = conn();
+        // Timeline milestoneBars の ORDER BY date (同日は未規定 → 単調性 + 集合一致)
+        let mut stmt = c.prepare("SELECT id FROM anniversaries ORDER BY date").unwrap();
+        let sql_ids: Vec<String> =
+            stmt.query_map([], |r| r.get(0)).unwrap().collect::<Result<_, _>>().unwrap();
+        let snap_ids: std::collections::HashSet<&str> = s
+            .anniversary_order
+            .iter()
+            .map(|&i| s.anniversaries[i as usize].id.as_str())
+            .collect();
+        assert_eq!(sql_ids.len(), snap_ids.len());
+        assert!(sql_ids.iter().all(|id| snap_ids.contains(id.as_str())));
+        let dates: Vec<&String> =
+            s.anniversary_order.iter().map(|&i| &s.anniversaries[i as usize].date).collect();
+        assert!(dates.windows(2).all(|w| w[0] <= w[1]));
+        // staff: カレンダーが使う birthday つきの行が SQL と同数
+        let sql_staff_bd: usize = c
+            .query_row("SELECT COUNT(*) FROM staff WHERE birthday IS NOT NULL", [], |r| {
+                r.get::<_, i64>(0)
+            })
+            .unwrap() as usize;
+        let snap_staff_bd = s.staff.iter().filter(|st| st.birthday.is_some()).count();
+        assert_eq!(snap_staff_bd, sql_staff_bd);
+    }
+
+    #[test]
+    fn meta_values_match_sql() {
+        let s = snapshot();
+        let c = conn();
+        let mut stmt = c.prepare("SELECT key, value FROM meta").unwrap();
+        let rows: Vec<(String, Option<String>)> = stmt
+            .query_map([], |r| Ok((r.get(0)?, r.get(1)?)))
+            .unwrap()
+            .collect::<Result<_, _>>()
+            .unwrap();
+        assert!(!rows.is_empty());
+        for (key, value) in rows {
+            assert_eq!(s.meta_value(&key), value.as_deref(), "key={key}");
+        }
+        assert_eq!(s.meta_value("存在しないキー"), None);
+    }
+
+    #[test]
+    fn documents_only_fields_default_to_none_on_bundle() {
+        // Bundle DB には Documents 専用列が無い → 全行 None で読める (動的検出の既定値側)。
+        let s = snapshot();
+        assert!(s.events.iter().all(|e| e.has_streaming.is_none() && e.has_live_viewing.is_none()));
+        assert!(s.shows.iter().all(|sh| sh.has_streaming.is_none() && sh.has_live_viewing.is_none()));
+        assert!(s.brands.iter().all(|b| b.icon_url.is_none()));
+    }
+
+    #[test]
+    fn documents_only_columns_and_tables_load_when_present() {
+        // 移行済み Documents DB を模したミニ DB で動的検出の「あれば読む」側を検証する。
+        // has_streaming / has_live_viewing / brands.icon_url / event_releases が実値で返ること。
+        let dir = std::env::temp_dir();
+        let path = dir.join(format!("imas_core_docs_schema_{}.sqlite", std::process::id()));
+        let path_str = path.to_str().unwrap().to_string();
+        let _ = std::fs::remove_file(&path);
+        {
+            let c = Connection::open(&path).unwrap();
+            c.execute_batch(
+                "CREATE TABLE songs (id TEXT PRIMARY KEY, title TEXT NOT NULL, title_kana TEXT,
+                     brand_id TEXT, song_type TEXT, release_date TEXT, duration_sec INTEGER,
+                     composer TEXT, lyricist TEXT, arranger TEXT, cd_series TEXT, cd_title TEXT,
+                     artwork_url TEXT, preview_url TEXT, apple_music_id TEXT,
+                     apple_music_album_id TEXT, isrc TEXT, lyrics_url TEXT, parent_song_id TEXT,
+                     singer_label TEXT, unit_name TEXT, unit_id TEXT, series_group TEXT,
+                     jasrac_code TEXT);
+                 CREATE TABLE idols (id TEXT PRIMARY KEY, brand_id TEXT, name TEXT NOT NULL,
+                     name_kana TEXT, name_romaji TEXT, color TEXT, sort_order INTEGER,
+                     birthday TEXT, blood_type TEXT, height REAL, weight REAL, birth_place TEXT,
+                     age INTEGER, bust REAL, waist REAL, hip REAL, constellation TEXT,
+                     hobbies TEXT, talents TEXT, description TEXT, gender TEXT, handedness TEXT,
+                     family_name TEXT, given_name TEXT, nickname TEXT, debut_date TEXT,
+                     attribute TEXT, is_external INTEGER NOT NULL DEFAULT 0, aliases TEXT);
+                 CREATE TABLE events (id TEXT PRIMARY KEY, brand_id TEXT, name TEXT NOT NULL,
+                     event_type TEXT NOT NULL, is_streaming INTEGER NOT NULL DEFAULT 0,
+                     is_solo INTEGER NOT NULL DEFAULT 1, kind TEXT NOT NULL DEFAULT 'live',
+                     ticket_deadline TEXT, ticket_lottery_date TEXT, ticket_url TEXT,
+                     joint_brand_ids TEXT, ticket_open_date TEXT,
+                     has_streaming INTEGER, has_live_viewing INTEGER);
+                 CREATE TABLE shows (id TEXT PRIMARY KEY, event_id TEXT NOT NULL,
+                     name TEXT NOT NULL, date TEXT NOT NULL, venue TEXT, venue_city TEXT,
+                     start_time TEXT, sort_order INTEGER NOT NULL DEFAULT 0, performer_type TEXT,
+                     venue_id TEXT, hall TEXT, stream_platform TEXT,
+                     has_streaming INTEGER, has_live_viewing INTEGER);
+                 CREATE TABLE setlist_items (id TEXT PRIMARY KEY, show_id TEXT NOT NULL,
+                     song_id TEXT NOT NULL, position INTEGER, section TEXT, notes TEXT,
+                     unit_name TEXT);
+                 CREATE TABLE setlist_performers (setlist_item_id TEXT NOT NULL,
+                     idol_id TEXT NOT NULL);
+                 CREATE TABLE show_cast (show_id TEXT NOT NULL, idol_id TEXT NOT NULL,
+                     cast_role TEXT NOT NULL DEFAULT 'member');
+                 CREATE TABLE units (id TEXT PRIMARY KEY, brand_id TEXT NOT NULL,
+                     name TEXT NOT NULL, is_permanent INTEGER NOT NULL DEFAULT 1, name_alt TEXT);
+                 CREATE TABLE unit_members (unit_id TEXT NOT NULL, idol_id TEXT NOT NULL);
+                 CREATE TABLE song_artists (song_id TEXT NOT NULL, idol_id TEXT NOT NULL,
+                     role TEXT);
+                 CREATE TABLE brands (id TEXT PRIMARY KEY, name TEXT NOT NULL,
+                     short_name TEXT NOT NULL, color TEXT, sort_order INTEGER NOT NULL,
+                     icon_url TEXT);
+                 CREATE TABLE idol_brands (idol_id TEXT NOT NULL, brand_id TEXT NOT NULL,
+                     is_primary INTEGER NOT NULL DEFAULT 0);
+                 CREATE TABLE venues (id TEXT PRIMARY KEY, name TEXT NOT NULL, name_kana TEXT,
+                     prefecture TEXT, city TEXT, aliases TEXT, capacity INTEGER,
+                     sort_order INTEGER NOT NULL DEFAULT 0);
+                 CREATE TABLE venue_names (id TEXT PRIMARY KEY, venue_id TEXT NOT NULL,
+                     name TEXT NOT NULL, valid_from TEXT, valid_to TEXT);
+                 CREATE TABLE venue_halls (id TEXT PRIMARY KEY, venue_id TEXT NOT NULL,
+                     name TEXT NOT NULL, capacity INTEGER);
+                 CREATE TABLE staff (id TEXT PRIMARY KEY, brand_id TEXT NOT NULL,
+                     name TEXT NOT NULL, name_kana TEXT, name_romaji TEXT, role TEXT,
+                     birthday TEXT, sort_order INTEGER NOT NULL DEFAULT 0);
+                 CREATE TABLE anniversaries (id TEXT PRIMARY KEY, brand_id TEXT NOT NULL,
+                     label TEXT NOT NULL, date TEXT NOT NULL, kind TEXT NOT NULL,
+                     sort_order INTEGER NOT NULL DEFAULT 0);
+                 CREATE TABLE idol_voice_actors (id TEXT PRIMARY KEY, idol_id TEXT NOT NULL,
+                     name TEXT NOT NULL, valid_from TEXT, valid_to TEXT);
+                 CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT);
+                 CREATE TABLE event_releases (id TEXT PRIMARY KEY, event_id TEXT NOT NULL,
+                     show_id TEXT, product_type TEXT NOT NULL, title TEXT NOT NULL,
+                     catalog_number TEXT, release_date TEXT, jacket_url TEXT, purchase_url TEXT,
+                     sort_order INTEGER NOT NULL DEFAULT 0);
+                 INSERT INTO events (id, name, event_type, has_streaming, has_live_viewing)
+                     VALUES ('ev1', 'テストライブ', 'live', 1, 0);
+                 INSERT INTO shows (id, event_id, name, date, has_streaming, has_live_viewing)
+                     VALUES ('sh1', 'ev1', 'DAY1', '2026-01-01', 0, 1),
+                            ('sh2', 'ev1', 'DAY2', '2026-01-02', NULL, NULL);
+                 INSERT INTO brands (id, name, short_name, sort_order, icon_url)
+                     VALUES ('b1', 'テストブランド', 'TB', 1, 'https://example.com/icon.png');
+                 INSERT INTO event_releases (id, event_id, show_id, product_type, title,
+                                             release_date, sort_order)
+                     VALUES ('er2', 'ev1', NULL, 'dvd_box', 'BOX', NULL, 5),
+                            ('er1', 'ev1', 'sh1', 'blu_ray', 'DAY1 BD', '2026-06-01', 1),
+                            ('er3', 'ev1', 'ghost_show', 'dvd', '孤児show', '2026-06-01', 0),
+                            ('er4', 'ghost_event', 'sh1', 'dvd', '孤児event', NULL, 0);
+                 INSERT INTO meta (key, value) VALUES ('data_version', '42'), ('nil_key', NULL);",
+            )
+            .unwrap();
+        }
+        let s = load_snapshot(&path_str).expect("Documents 相当のミニ DB もロードできる");
+        let _ = std::fs::remove_file(&path);
+
+        let ev = s.event("ev1").unwrap();
+        assert_eq!(ev.has_streaming, Some(true));
+        assert_eq!(ev.has_live_viewing, Some(false));
+        let sh1 = s.show("sh1").unwrap();
+        assert_eq!(sh1.has_streaming, Some(false));
+        assert_eq!(sh1.has_live_viewing, Some(true));
+        let sh2 = s.show("sh2").unwrap();
+        assert_eq!(sh2.has_streaming, None);
+        assert_eq!(sh2.has_live_viewing, None);
+        assert_eq!(s.brand("b1").unwrap().icon_url.as_deref(), Some("https://example.com/icon.png"));
+
+        // event_releases: 親 event 孤児 (er4) だけ落ち、show 孤児 (er3) は show=None で残る。
+        assert_eq!(s.event_releases.len(), 3);
+        let ei = s.event_index_by_id["ev1"] as usize;
+        let titles: Vec<&str> = s.releases_by_event[ei]
+            .iter()
+            .map(|&i| s.event_releases[i as usize].title.as_str())
+            .collect();
+        // (release_date ASC NULL 先頭, sort_order ASC): BOX(NULL,5) → 孤児show(6/1,0) → DAY1 BD(6/1,1)
+        assert_eq!(titles, vec!["BOX", "孤児show", "DAY1 BD"]);
+        let orphan = s.event_releases.iter().find(|er| er.title == "孤児show").unwrap();
+        assert!(orphan.show.is_none());
+        let day1 = s.event_releases.iter().find(|er| er.title == "DAY1 BD").unwrap();
+        assert_eq!(day1.show.map(|i| s.shows[i as usize].id.clone()).as_deref(), Some("sh1"));
+
+        // meta: NULL 値の行は「行なし」と同じ観測になる
+        assert_eq!(s.meta_value("data_version"), Some("42"));
+        assert_eq!(s.meta_value("nil_key"), None);
     }
 
     #[test]

@@ -8,11 +8,21 @@
 //! - **user_marks (担当/お気に入り/メモ/回収) は載せない**。ユーザーデータは書き込みが
 //!   頻繁でプラットフォーム側が正。必要な判定は解決済み id 集合を引数で受け取る
 //!   (SongListFiltering と同じ流儀)。
+//! - **song_calls / song_videos も載せない**。コミュニティ投稿はローカル編集経路が
+//!   スナップショット再ロードを促さない契約 (iOS CoreSnapshotManager の
+//!   SnapshotInvalidatingSongWriting) で確定済みで、載せると「投稿直後に自分の投稿が
+//!   見えない」回帰になる。読み取りは SQL 経路 (fallback) に残す。
 //!
 //! 索引は「クエリ関数が O(1)/O(log n) で入れる形」をロード時に前計算する。
 //! 行の参照は Vec の添字 (u32) で持つ (String id の再引きを避ける)。
 //! SQL 時代に毎回払っていた ORDER BY (sort_order 順・日付順・position 順) も
 //! 構築時に一度だけ払い、クエリ側は前計算済みの並びをそのまま流す。
+//!
+//! ## Documents 専用の列・表 (Phase 3-5 引き継ぎ)
+//! アプリ側マイグレーションが Documents DB にだけ足すもの。Bundle の master.sqlite には
+//! 無いので、ローダが PRAGMA/sqlite_master で有無を動的検出し「あれば読む・無ければ既定値」:
+//! - 列: events/shows の has_streaming・has_live_viewing、brands.icon_url → 無い DB では None。
+//! - 表: event_releases → 無い DB では空 Vec。
 
 use std::collections::HashMap;
 
@@ -45,28 +55,45 @@ pub struct Song {
     pub jasrac_code: Option<String>,
 }
 
-/// idols の主要カラム (一覧・歌唱者表示・検索に要るもの)。
+/// idols 全カラム (Bundle スキーマ基準)。
+///
+/// Phase 2 では一覧・検索に要る主要カラムだけだったが、Phase 3 で idol 詳細
+/// (fetchIdol) とフィルタ (星座・出身地・血液型) が乗るため全カラムに拡張した。
+/// height/weight/bust/waist/hip は REAL 列なので f64 で持つ。
 #[derive(Debug, Clone)]
 pub struct Idol {
     pub id: String,
     pub brand_id: Option<String>,
     pub name: String,
     pub name_kana: Option<String>,
+    pub name_romaji: Option<String>,
     pub color: Option<String>,
     pub sort_order: Option<i64>,
+    pub birthday: Option<String>,
+    pub blood_type: Option<String>,
+    pub height: Option<f64>,
+    pub weight: Option<f64>,
+    pub birth_place: Option<String>,
+    pub age: Option<i64>,
+    pub bust: Option<f64>,
+    pub waist: Option<f64>,
+    pub hip: Option<f64>,
+    pub constellation: Option<String>,
+    pub hobbies: Option<String>,
+    pub talents: Option<String>,
+    pub description: Option<String>,
+    pub gender: Option<String>,
+    pub handedness: Option<String>,
+    pub family_name: Option<String>,
+    pub given_name: Option<String>,
     pub nickname: Option<String>,
-    pub aliases: Option<String>,
+    pub debut_date: Option<String>,
     pub attribute: Option<String>,
     pub is_external: bool,
-    pub birthday: Option<String>,
-    pub debut_date: Option<String>,
+    pub aliases: Option<String>,
 }
 
-/// events 全カラム (Bundle スキーマ基準)。
-///
-/// has_streaming / has_live_viewing はアプリ側マイグレーションが Documents DB にだけ
-/// 足す列で、Bundle の master.sqlite には無い。曲スライスのクエリはどれも参照しない
-/// ので載せない (イベントスライス移送時に列の有無を動的検出して拡張する)。
+/// events 全カラム。
 #[derive(Debug, Clone)]
 pub struct Event {
     pub id: String,
@@ -86,10 +113,13 @@ pub struct Event {
     pub ticket_url: Option<String>,
     /// 合同ライブの追加ブランド ID (カンマ区切り)。nil なら単一ブランド。
     pub joint_brand_ids: Option<String>,
+    /// Documents 専用列 (配信あり)。Bundle DB では常に None (列自体が無い)。
+    pub has_streaming: Option<bool>,
+    /// Documents 専用列 (ライブビューイングあり)。Bundle DB では常に None。
+    pub has_live_viewing: Option<bool>,
 }
 
-/// shows 全カラム (Bundle スキーマ基準)。event は events Vec の添字。
-/// has_streaming / has_live_viewing は Event と同じ理由で未ロード。
+/// shows 全カラム。event は events Vec の添字。
 #[derive(Debug, Clone)]
 pub struct Show {
     pub id: String,
@@ -106,6 +136,10 @@ pub struct Show {
     pub venue_id: Option<String>,
     pub hall: Option<String>,
     pub stream_platform: Option<String>,
+    /// Documents 専用列 (公演単位の配信有無)。Bundle DB では常に None。
+    pub has_streaming: Option<bool>,
+    /// Documents 専用列 (公演単位の LV 有無)。Bundle DB では常に None。
+    pub has_live_viewing: Option<bool>,
 }
 
 /// setlist_items の行。show / song は各 Vec の添字。
@@ -131,6 +165,105 @@ pub struct Unit {
     pub name_alt: Option<String>,
 }
 
+/// brands 全カラム。
+#[derive(Debug, Clone)]
+pub struct Brand {
+    pub id: String,
+    pub name: String,
+    pub short_name: String,
+    pub color: Option<String>,
+    pub sort_order: i64,
+    /// Documents 専用列。Bundle DB では常に None。
+    pub icon_url: Option<String>,
+}
+
+/// venues 全カラム (会場マスタ)。VenueDirectory 相当の解決はクエリ層がメモリ上で行う。
+#[derive(Debug, Clone)]
+pub struct Venue {
+    pub id: String,
+    /// 現行名。過去公演の表示当時名は venue_names 側。
+    pub name: String,
+    pub name_kana: Option<String>,
+    pub prefecture: Option<String>,
+    pub city: Option<String>,
+    /// 検索用の別名 (改行区切り)。
+    pub aliases: Option<String>,
+    pub capacity: Option<i64>,
+    pub sort_order: i64,
+}
+
+/// venue_names (会場の期間つき名称履歴)。venue は venues Vec の添字。
+#[derive(Debug, Clone)]
+pub struct VenueName {
+    pub id: String,
+    pub venue: u32,
+    pub name: String,
+    pub valid_from: Option<String>,
+    pub valid_to: Option<String>,
+}
+
+/// venue_halls (会場のホール/構成)。venue は venues Vec の添字。
+#[derive(Debug, Clone)]
+pub struct VenueHall {
+    pub id: String,
+    pub venue: u32,
+    pub name: String,
+    pub capacity: Option<i64>,
+}
+
+/// staff 全カラム (アイドル本人ではない関係者。カレンダー誕生日用)。
+/// brand_id は brands に無い id でも保持する (表示に FK 整合は不要なため)。
+#[derive(Debug, Clone)]
+pub struct Staff {
+    pub id: String,
+    pub brand_id: String,
+    pub name: String,
+    pub name_kana: Option<String>,
+    pub name_romaji: Option<String>,
+    pub role: Option<String>,
+    /// '--MM-DD' (年なし)。Idol.birthday と同じ形式。
+    pub birthday: Option<String>,
+    pub sort_order: i64,
+}
+
+/// anniversaries 全カラム (ブランド/アプリの記念日)。date は YYYY-MM-DD (年あり)。
+#[derive(Debug, Clone)]
+pub struct Anniversary {
+    pub id: String,
+    pub brand_id: String,
+    pub label: String,
+    pub date: String,
+    pub kind: String,
+    pub sort_order: i64,
+}
+
+/// idol_voice_actors (期間つき CV 履歴)。idol は idols Vec の添字。
+/// 現任は valid_to IS NULL。交代発表後・後任未定の間は現任が居ないこともある。
+#[derive(Debug, Clone)]
+pub struct IdolVoiceActor {
+    pub id: String,
+    pub idol: u32,
+    pub name: String,
+    pub valid_from: Option<String>,
+    pub valid_to: Option<String>,
+}
+
+/// event_releases (ライブ円盤。Documents 専用表)。event は events Vec の添字。
+/// 公演単位の円盤なら show を持つ (イベント全体 BOX は None)。
+#[derive(Debug, Clone)]
+pub struct EventRelease {
+    pub id: String,
+    pub event: u32,
+    pub show: Option<u32>,
+    pub product_type: String,
+    pub title: String,
+    pub catalog_number: Option<String>,
+    pub release_date: Option<String>,
+    pub jacket_url: Option<String>,
+    pub purchase_url: Option<String>,
+    pub sort_order: i64,
+}
+
 /// 曲→歌唱者リンク。`idol` は idols Vec の添字。
 #[derive(Debug, Clone)]
 pub struct SongArtistLink {
@@ -154,6 +287,21 @@ pub struct ShowCastLink {
     pub cast_role: String,
 }
 
+/// ブランド→所属アイドルリンク (idol_brands)。`idol` は idols Vec の添字。
+/// is_external の除外や DISTINCT はクエリ層の責務 (リンクは表の生データを保つ)。
+#[derive(Debug, Clone)]
+pub struct BrandMemberLink {
+    pub idol: u32,
+    pub is_primary: bool,
+}
+
+/// アイドル→所属ブランドリンク (idol_brands の逆引き)。`brand` は brands Vec の添字。
+#[derive(Debug, Clone)]
+pub struct IdolBrandLink {
+    pub brand: u32,
+    pub is_primary: bool,
+}
+
 /// 不変スナップショット本体。構築は outbound::sqlite_loader のみが行う。
 ///
 /// 「◯◯_by_△△」の Vec は △△ 側と同じ添字で並ぶ逆引き索引。各索引の並び順は
@@ -168,6 +316,22 @@ pub struct Snapshot {
     pub shows: Vec<Show>,
     pub setlist_items: Vec<SetlistItem>,
     pub units: Vec<Unit>,
+    pub brands: Vec<Brand>,
+    pub venues: Vec<Venue>,
+    /// 並びはテーブル出現順 (SQL 時代の fetchAll も ORDER BY なし)。
+    pub venue_names: Vec<VenueName>,
+    /// 並びはテーブル出現順。
+    pub venue_halls: Vec<VenueHall>,
+    /// 並びはテーブル出現順。カレンダーの誕生日抽出はクエリ層が
+    /// birthday 有無で絞る (SQL 時代も ORDER BY なし + Swift 側ソート)。
+    pub staff: Vec<Staff>,
+    pub anniversaries: Vec<Anniversary>,
+    pub idol_voice_actors: Vec<IdolVoiceActor>,
+    /// Documents 専用表。表が無い DB (Bundle) では空。
+    pub event_releases: Vec<EventRelease>,
+    /// meta 表 (key → value)。value が NULL の行は載せない
+    /// (SQL 時代の getValue も NULL と行なしを区別せず nil を返していた)。
+    pub meta: HashMap<String, String>,
 
     /// songs と同じ添字。リンクは idol の sort_order 順に格納済み
     /// (SQL 時代の `ORDER BY i.sort_order` を構築時に前計算)。
@@ -216,11 +380,61 @@ pub struct Snapshot {
     /// (根が先頭・続いて子が 50 音順) の「子」の部分を前計算したもの。
     pub variants_by_song: Vec<Vec<u32>>,
 
+    /// brands と同じ添字。所属アイドルリンク (idol_brands)。idol の sort_order 順。
+    /// is_external の除外・DISTINCT はクエリ層 (fetchIdols(brandId:) 相当) で行う。
+    pub idols_by_brand: Vec<Vec<BrandMemberLink>>,
+    /// idols と同じ添字。idol_brands の逆引き。brand の sort_order 順。
+    pub brands_by_idol: Vec<Vec<IdolBrandLink>>,
+
+    /// idols と同じ添字。CV 履歴 (idol_voice_actors 添字群) を
+    /// `IFNULL(valid_from,'') DESC` 順で格納 (fetchVoiceActorHistory の表示順)。
+    /// 現任解決 (fetchCurrentVoiceActor) は `current_voice_actor()` で先頭一致を取る。
+    pub voice_actors_by_idol: Vec<Vec<u32>>,
+    /// CV 名 (完全一致) → 担当アイドル添字群。歴代すべて対象・重複排除済み・
+    /// idol の sort_order 順 (fetchIdolsByVoiceActor の `DISTINCT ... ORDER BY sort_order`)。
+    pub idols_by_voice_actor_name: HashMap<String, Vec<u32>>,
+
+    /// venues と同じ添字。名称履歴 (venue_names 添字群)。テーブル出現順。
+    pub names_by_venue: Vec<Vec<u32>>,
+    /// venues と同じ添字。ホール (venue_halls 添字群)。テーブル出現順。
+    pub halls_by_venue: Vec<Vec<u32>>,
+    /// shows.venue_id → show 添字群。date DESC (showsByVenue の `ORDER BY date DESC`)。
+    /// 同日は (sort_order ASC, 添字) で決定的に。
+    pub shows_by_venue_id: HashMap<String, Vec<u32>>,
+    /// shows.venue (生の会場文字列) → show 添字群。並びは shows_by_venue_id と同じ。
+    /// venue_id を持たない過去公演の後方互換 (「ID 一致 または 生文字列一致」の OR) 用。
+    pub shows_by_venue_label: HashMap<String, Vec<u32>>,
+
+    /// events と同じ添字。円盤 (event_releases 添字群) を
+    /// (release_date ASC, sort_order ASC) で格納 (fetchEventReleases の表示順。
+    /// release_date NULL は先頭 = SQLite ASC と同じ)。
+    pub releases_by_event: Vec<Vec<u32>>,
+
+    /// 全ブランドを (sort_order ASC, 添字) で並べた添字列 (fetchBrands の表示順)。
+    pub brand_order: Vec<u32>,
+    /// 全アイドルを (sort_order ASC, 添字) で並べた添字列
+    /// (`ORDER BY sort_order` 系クエリ共通の土台。is_external 除外はクエリ層)。
+    pub idol_order: Vec<u32>,
+    /// 全ユニットを (brand_id ASC, name ASC, 添字) で並べた添字列 (fetchAllUnits の表示順)。
+    pub unit_order: Vec<u32>,
+    /// 全会場を (sort_order ASC, 添字) で並べた添字列 (fetchVenueDirectory の表示順)。
+    pub venue_order: Vec<u32>,
+    /// 全記念日を (date ASC, 添字) で並べた添字列 (Timeline milestoneBars の `ORDER BY date`)。
+    pub anniversary_order: Vec<u32>,
+    /// 全公演を (date ASC, sort_order ASC, 添字) で並べた添字列。
+    /// カレンダーの日付範囲抽出 (`WHERE date >= ? AND date <= ? ORDER BY date, sort_order`)
+    /// が二分探索で入れる。末尾要素 = 最新公演 (fetchLatestShow 相当)。
+    pub shows_in_date_order: Vec<u32>,
+    /// 全イベントを (name ASC, 添字) で並べた添字列 (fetchEventNames の `ORDER BY name`)。
+    pub events_by_name_order: Vec<u32>,
+
     pub song_index_by_id: HashMap<String, u32>,
     pub idol_index_by_id: HashMap<String, u32>,
     pub event_index_by_id: HashMap<String, u32>,
     pub show_index_by_id: HashMap<String, u32>,
     pub unit_index_by_id: HashMap<String, u32>,
+    pub brand_index_by_id: HashMap<String, u32>,
+    pub venue_index_by_id: HashMap<String, u32>,
 }
 
 impl Snapshot {
@@ -242,6 +456,19 @@ impl Snapshot {
 
     pub fn unit(&self, id: &str) -> Option<&Unit> {
         self.unit_index_by_id.get(id).map(|&i| &self.units[i as usize])
+    }
+
+    pub fn brand(&self, id: &str) -> Option<&Brand> {
+        self.brand_index_by_id.get(id).map(|&i| &self.brands[i as usize])
+    }
+
+    pub fn venue(&self, id: &str) -> Option<&Venue> {
+        self.venue_index_by_id.get(id).map(|&i| &self.venues[i as usize])
+    }
+
+    /// meta の値。行が無い場合と value NULL は区別しない (SQL 時代の getValue と同じ)。
+    pub fn meta_value(&self, key: &str) -> Option<&str> {
+        self.meta.get(key).map(String::as_str)
     }
 
     /// 歌唱者 (role 指定時はその role のみ) を sort_order 順で返す。
@@ -273,5 +500,17 @@ impl Snapshot {
             .iter()
             .find(|l| l.idol == idol)
             .map(|l| l.cast_role.as_str())
+    }
+
+    /// 現任 CV (valid_to IS NULL)。交代待ちで後任未定なら None。
+    ///
+    /// voice_actors_by_idol は `IFNULL(valid_from,'') DESC` で並んでいるので、
+    /// 先頭から最初に見つかる現任行が SQL の
+    /// `WHERE valid_to IS NULL ORDER BY IFNULL(valid_from,'') DESC LIMIT 1` と一致する。
+    pub fn current_voice_actor(&self, idol: u32) -> Option<&IdolVoiceActor> {
+        self.voice_actors_by_idol[idol as usize]
+            .iter()
+            .map(|&i| &self.idol_voice_actors[i as usize])
+            .find(|va| va.valid_to.is_none())
     }
 }
