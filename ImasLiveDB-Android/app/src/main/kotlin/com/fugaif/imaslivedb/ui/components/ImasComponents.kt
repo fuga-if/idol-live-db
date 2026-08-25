@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.SubcomposeAsyncImage
 import com.fugaif.imaslivedb.data.model.Idol
+import com.fugaif.imaslivedb.ui.theme.BrandPalette
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasTheme
 
@@ -141,9 +142,19 @@ private fun ArtworkFallback(title: String, t: ImasTheme, size: Dp) {
     }
 }
 
-/** 一覧の控えめなエンティティ色マーカー (行頭の細い縦バー)。 */
+/**
+ * 一覧の控えめなエンティティ色マーカー (行頭の細い縦バー)。
+ *
+ * [seedHex] はエンティティ固有色。[brandId] は [BrandPalette] のブランド色へ解決し、
+ * seedが無い場合のフォールバックとして使う。
+ */
 @Composable
-fun ImasLeadBar(seed: String? = null, brand: String? = null, height: Dp = 40.dp, rainbow: Boolean = false) {
+fun ImasLeadBar(
+    seedHex: String? = null,
+    brandId: String? = null,
+    height: Dp = 40.dp,
+    rainbow: Boolean = false
+) {
     val background = if (rainbow) {
         androidx.compose.ui.graphics.Brush.verticalGradient(
             listOf(
@@ -152,7 +163,7 @@ fun ImasLeadBar(seed: String? = null, brand: String? = null, height: Dp = 40.dp,
             )
         )
     } else {
-        val t = ImasTheme.derive(seed, brand, dark = true)
+        val t = ImasTheme.derive(seedHex, BrandPalette.hex(brandId), dark = true)
         androidx.compose.ui.graphics.SolidColor(t.bar)
     }
     Box(

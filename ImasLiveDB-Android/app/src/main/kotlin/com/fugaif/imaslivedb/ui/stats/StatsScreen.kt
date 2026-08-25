@@ -282,7 +282,7 @@ private fun CatchChanceCard(chance: UpcomingCatchChance, onClick: () -> Unit) {
             .padding(20.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        ImasLeadBar(brand = chance.brandId, height = 56.dp)
+        ImasLeadBar(brandId = chance.brandId, height = 56.dp)
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text("${displayDate(chance.show.date)} ・ ${chance.eventName}", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = DS.ink3, maxLines = 1)
             Text(chance.show.name, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = DS.ink, maxLines = 2)
@@ -399,7 +399,7 @@ private fun LatestShowCard(show: com.fugaif.imaslivedb.data.model.Show, songCoun
             .padding(20.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        ImasLeadBar(seed = brandColor, height = 64.dp)
+        ImasLeadBar(seedHex = brandColor, height = 64.dp)
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text("最新公演 ・ ${displayDate(show.date)}", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = DS.ink3)
             Text(show.name, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = DS.ink, maxLines = 2)

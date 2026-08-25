@@ -1,0 +1,189 @@
+{
+  "title": "CINDERELLA GIRLS CONCEPT xR LIVE Pop'n ToyBox!! 昼公演 (2026-08-14 Shibuya LOVEZ) セットリスト",
+  "show_id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_2",
+  "source": "https://aimasupay.hatenablog.com/entry/2026/08/14/162302",
+  "_sources": [
+    "https://aimasupay.hatenablog.com/entry/2026/08/14/162302",
+    "https://idolmaster-official.jp/live_event/cg_ptb/",
+    "https://columbia.jp/idolmaster/imasnews/260717.html"
+  ],
+  "_note": "本編前に「ラジオ体操第一」を実施 (アイマス楽曲ではないため楽曲としては登録せず position 1 の notes に記録)",
+  "songs": [
+    {
+      "position": 1,
+      "song_id": "cg_みんなのきもち",
+      "performers": [
+        "cg_市原仁奈"
+      ],
+      "notes": "開幕に「ラジオ体操第一」(号令: 日野茜・声のみ) を実施"
+    },
+    {
+      "position": 2,
+      "song_id": "cg_ギョーてんしーわーるど",
+      "performers": [
+        "cg_市原仁奈",
+        "cg_浅利七海",
+        "cg_龍崎薫"
+      ],
+      "notes": "ダンス参加: 池袋晶葉"
+    },
+    {
+      "position": 3,
+      "song_id": "cg_プライスレス_ドーナッcyu",
+      "performers": [
+        "cg_椎名法子"
+      ]
+    },
+    {
+      "position": 4,
+      "song_id": "cg_にんぎょひめ練習中",
+      "performers": [
+        "cg_浅利七海"
+      ]
+    },
+    {
+      "position": 5,
+      "song_id": "cg_motto",
+      "performers": [
+        "cg_椎名法子",
+        "cg_浅利七海"
+      ]
+    },
+    {
+      "position": 6,
+      "song_id": "cg_romantic_now",
+      "performers": [
+        "cg_赤城みりあ"
+      ]
+    },
+    {
+      "position": 7,
+      "song_id": "cg_kawaii_make_my_day",
+      "performers": [
+        "cg_椎名法子"
+      ]
+    },
+    {
+      "position": 8,
+      "song_id": "cg_おねえちゃんデスコ",
+      "performers": [
+        "cg_市原仁奈"
+      ],
+      "notes": "ライブ初披露"
+    },
+    {
+      "position": 9,
+      "song_id": "cg_私色ギフト",
+      "performers": [
+        "cg_赤城みりあ"
+      ],
+      "notes": "ダンス参加: 高橋礼子・佐藤心・東郷あい"
+    },
+    {
+      "position": 10,
+      "song_id": "cg_がおちゅーさふぁりぱーく",
+      "performers": [
+        "cg_三船美優",
+        "cg_市原仁奈"
+      ],
+      "notes": "ダンス参加: 高橋礼子・赤城みりあ"
+    },
+    {
+      "position": 11,
+      "song_id": "cg_ささのはにうたかたに",
+      "performers": [
+        "cg_鷹富士茄子",
+        "cg_佐城雪美"
+      ]
+    },
+    {
+      "position": 12,
+      "song_id": "cg_恋のhamburg",
+      "performers": [
+        "cg_龍崎薫"
+      ],
+      "notes": "ダンス参加: 東郷あい"
+    },
+    {
+      "position": 13,
+      "song_id": "cg_ひまわりマークをさがせ",
+      "performers": [
+        "cg_龍崎薫"
+      ]
+    },
+    {
+      "position": 14,
+      "song_id": "cg_lovedestiny",
+      "performers": [
+        "cg_佐城雪美"
+      ],
+      "notes": "ダンス参加: 黒川千秋"
+    },
+    {
+      "position": 15,
+      "song_id": "cg_君のステージ衣装本当は",
+      "performers": [
+        "cg_佐城雪美"
+      ]
+    },
+    {
+      "position": 16,
+      "song_id": "cg_morgana",
+      "performers": [
+        "cg_浅利七海"
+      ],
+      "notes": "ダンス参加: 柊志乃"
+    },
+    {
+      "position": 17,
+      "song_id": "cg_廻談詣り",
+      "performers": [
+        "cg_浅利七海",
+        "cg_佐城雪美"
+      ],
+      "notes": "ダンス参加: 高橋礼子・柊志乃・東郷あい・財前時子・黒川千秋・篠原礼"
+    },
+    {
+      "position": 18,
+      "song_id": "cg_悠久星涼",
+      "performers": [
+        "cg_龍崎薫",
+        "cg_椎名法子",
+        "cg_佐城雪美"
+      ]
+    },
+    {
+      "position": 19,
+      "song_id": "cg_とくとく_とく",
+      "performers": [
+        "cg_佐城雪美"
+      ]
+    },
+    {
+      "position": 20,
+      "song_id": "cg_わたぐも",
+      "performers": [
+        "cg_赤城みりあ"
+      ]
+    },
+    {
+      "position": 21,
+      "song_id": "cg_よりみちリトルスター",
+      "performers": [
+        "cg_赤城みりあ",
+        "cg_龍崎薫",
+        "cg_市原仁奈",
+        "cg_佐城雪美"
+      ]
+    },
+    {
+      "position": 22,
+      "song_id": "cg_poppin_para_pong",
+      "performers": [
+        "cg_赤城みりあ",
+        "cg_市原仁奈",
+        "cg_椎名法子"
+      ]
+    }
+  ]
+}

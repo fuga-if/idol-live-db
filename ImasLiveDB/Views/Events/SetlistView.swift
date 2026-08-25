@@ -3,6 +3,17 @@ import os
 import SwiftUI
 
 struct SetlistView: View {
+
+    /// カタログから 1 曲を引く。
+    ///
+    /// `MusicCatalogResourceRequest` は非 Sendable なので、@MainActor の View 側で作って
+    /// await すると隔離境界を越えて Swift 6 の厳格チェックに引っかかる。
+    /// nonisolated なここでリクエストを作り、Sendable な結果だけを返す。
+    nonisolated static func fetchCatalogSong(id: MusicItemID) async throws -> MusicKit.Song? {
+        let request = MusicCatalogResourceRequest<MusicKit.Song>(matching: \.id, equalTo: id)
+        return try await request.response().items.first
+    }
+
     @Environment(AppDatabase.self) private var database
     let show: Show
     /// DetailSheetView の NavigationStack 内に置かれた時に渡される push クロージャ。
@@ -599,8 +610,9 @@ struct SetlistView: View {
             // 楽曲を取得 (進捗反映)
             var songs: [MusicKit.Song] = []
             for (index, id) in songIds.enumerated() {
-                let request = MusicCatalogResourceRequest<MusicKit.Song>(matching: \.id, equalTo: id)
-                if let song = try await request.response().items.first {
+                // MusicCatalogResourceRequest は非 Sendable。@MainActor の文脈で作って
+                // await すると隔離境界を越えるので、nonisolated な口の中で作って返す。
+                if let song = try await Self.fetchCatalogSong(id: id) {
                     songs.append(song)
                 }
                 playlistProgress = (index + 1, songIds.count)

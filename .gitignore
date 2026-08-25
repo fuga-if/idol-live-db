@@ -96,3 +96,6 @@ tools/lyrics/node_modules
 
 # imas-core (Rust) のビルド生成物。imas-core/build.sh が再生成する
 imas-core/target/
+# tools/ の Python スクリプトを import/実行したときに出るバイトコード
+__pycache__/
+*.pyc

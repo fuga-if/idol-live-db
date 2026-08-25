@@ -58,7 +58,16 @@ final class CalendarImportService {
             return true
         case .notDetermined, .writeOnly:
             // write-only → full への昇格リクエストもここで行う
-            return try await store.requestFullAccessToEvents()
+            // EKEventStore は非 Sendable なので、async 版をそのまま await すると
+            // 隔離境界を越える形になり Swift 6 の厳格チェックで落ちる (CI の Xcode で顕在化)。
+            // コールバック版を使い、Sendable な Bool だけを持ち帰る。
+            let store = self.store
+            return try await withCheckedThrowingContinuation { continuation in
+                store.requestFullAccessToEvents { granted, error in
+                    if let error { continuation.resume(throwing: error) }
+                    else { continuation.resume(returning: granted) }
+                }
+            }
         case .denied, .restricted, .authorized:
             return false
         @unknown default:
