@@ -9,12 +9,14 @@ on:
     paths:
       - "imas-core/**"
       - "db/master.sql"
+      - "ImasLiveDB-Android/app/schemas/**"
       - ".github/workflows/core-guard.yml"
   push:
     branches: [develop, main]
     paths:
       - "imas-core/**"
       - "db/master.sql"
+      - "ImasLiveDB-Android/app/schemas/**"
 
 jobs:
   test:

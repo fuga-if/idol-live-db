@@ -70,7 +70,9 @@ import com.fugaif.imaslivedb.data.model.UserMark
         VenueHall::class
     ],
     version = 9,
-    exportSchema = false
+    // 確定スキーマを app/schemas へ JSON で吐く。共有コア (imas-core) が持つ
+    // マスタ DDL と突き合わせて、片方だけスキーマを変えた事故を CI で捕まえるため。
+    exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
 

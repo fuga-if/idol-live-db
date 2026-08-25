@@ -22,6 +22,14 @@ val cloudKitApiToken: String =
 val releaseStoreFile = localProps.getProperty("RELEASE_STORE_FILE")
 val hasReleaseSigning = releaseStoreFile != null && rootProject.file("app/$releaseStoreFile").exists()
 
+// Room に確定スキーマを JSON で吐かせる (トップレベルでないと効かない)。
+// 共有コア (imas-core) が持つマスタ DDL とここが食い違うと、片方だけスキーマを
+// 変えた事故になる (idol_voice_actors が iOS にだけ在って Android の CV 名検索が
+// 常に 0 件だった、が実例)。吐いた JSON はコア側のテストで突き合わせる。
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+}
+
 android {
     namespace = "com.fugaif.imaslivedb"
     compileSdk = libs.versions.compileSdk.get().toInt()

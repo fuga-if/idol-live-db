@@ -149,3 +149,138 @@ mod tests {
         assert!(missing.is_empty(), "台帳にあって DDL に無いマスタ表: {missing:?}");
     }
 }
+
+/// Room (Android) が吐いた確定スキーマとの突き合わせ。
+///
+/// Room は `exportSchema = true` で `app/schemas/<db>/<version>.json` を吐く。
+/// そこに載る表・列と、コアが持つマスタ DDL を比べれば、
+/// **片方だけスキーマを変えた事故**が機械的に captured できる。
+///
+/// 完全一致は求めない。意図的に片方にしか無いものがあるため
+/// (端末ローカル専用表・コミュニティ投稿表・未追随と分かっている列)。
+/// **「知らないズレが増えていないか」**を見るのが目的。
+#[cfg(test)]
+mod room_parity {
+    use super::*;
+    use rusqlite::Connection;
+    use std::collections::{BTreeMap, BTreeSet};
+
+    /// 現時点で分かっているズレ。**増えたらテストが落ちる**。
+    /// 直したらここから消すこと。
+    const KNOWN_GAPS: &[(&str, &str, &str)] = &[
+        ("idols", "voice_actors", "廃止列。iOS は書き戻すと落ちるので読まない。Android だけが今も持っている"),
+        ("songs", "jasrac_code", "JASRAC 許諾が認可待ちのため Android 未追加"),
+        ("idol_voice_actors", "*", "Android は entity を持たず、SeedImporter が『両方にある表』しか移さないため実機に無い。CV 名検索が Android で効かない原因"),
+        ("song_units", "*", "非同期テーブル。Android は持たない"),
+    ];
+
+    fn core_schema() -> BTreeMap<String, BTreeSet<String>> {
+        let c = Connection::open_in_memory().unwrap();
+        c.execute_batch(MASTER_SCHEMA_SQL).unwrap();
+        let names: Vec<String> = {
+            let mut s = c.prepare("SELECT name FROM sqlite_master WHERE type='table'").unwrap();
+            let r = s.query_map([], |r| r.get::<_, String>(0)).unwrap();
+            r.filter_map(Result::ok).collect()
+        };
+        let mut out = BTreeMap::new();
+        for t in names {
+            let mut s = c.prepare(&format!("PRAGMA table_info({t})")).unwrap();
+            let cols = s.query_map([], |r| r.get::<_, String>(1)).unwrap();
+            out.insert(t, cols.filter_map(Result::ok).collect());
+        }
+        out
+    }
+
+    /// Room の schema JSON を読む。無ければ `None` (Android 側を触らない環境でも落とさない)。
+    fn room_schema() -> Option<BTreeMap<String, BTreeSet<String>>> {
+        let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../ImasLiveDB-Android/app/schemas");
+        let entry = std::fs::read_dir(dir).ok()?.filter_map(Result::ok).next()?;
+        // 版番号が一番大きい JSON を採る
+        let mut files: Vec<_> = std::fs::read_dir(entry.path()).ok()?
+            .filter_map(Result::ok)
+            .map(|e| e.path())
+            .filter(|p| p.extension().is_some_and(|x| x == "json"))
+            .collect();
+        files.sort();
+        let text = std::fs::read_to_string(files.last()?).ok()?;
+        // serde_json は依存に入っている
+        let v: serde_json::Value = serde_json::from_str(&text).ok()?;
+        let mut out = BTreeMap::new();
+        for e in v["database"]["entities"].as_array()? {
+            let name = e["tableName"].as_str()?.to_string();
+            let cols = e["fields"].as_array()?
+                .iter()
+                .filter_map(|f| f["columnName"].as_str().map(str::to_string))
+                .collect();
+            out.insert(name, cols);
+        }
+        Some(out)
+    }
+
+    /// **知らないズレが増えていないこと。**
+    ///
+    /// 落ちたら、iOS/コア側だけスキーマを変えて Android に対で書いていない可能性が高い。
+    /// 意図的な差なら KNOWN_GAPS に理由つきで足すこと。
+    #[test]
+    fn no_unknown_schema_gaps_against_room() {
+        let Some(room) = room_schema() else {
+            eprintln!("Room の schema JSON が無いので検査を飛ばす (Android を触らない環境)");
+            return;
+        };
+        let core = core_schema();
+        let known_table: BTreeSet<&str> =
+            KNOWN_GAPS.iter().filter(|(_, c, _)| *c == "*").map(|(t, _, _)| *t).collect();
+        let known_col: BTreeSet<(&str, &str)> =
+            KNOWN_GAPS.iter().filter(|(_, c, _)| *c != "*").map(|(t, c, _)| (*t, *c)).collect();
+
+        let mut unknown = Vec::new();
+        for (table, core_cols) in &core {
+            let Some(room_cols) = room.get(table) else {
+                if !known_table.contains(table.as_str()) {
+                    unknown.push(format!("表 `{table}` が Room に無い"));
+                }
+                continue;
+            };
+            for c in core_cols.difference(room_cols) {
+                if !known_col.contains(&(table.as_str(), c.as_str())) {
+                    unknown.push(format!("`{table}.{c}` がコアにあって Room に無い"));
+                }
+            }
+            for c in room_cols.difference(core_cols) {
+                if !known_col.contains(&(table.as_str(), c.as_str())) {
+                    unknown.push(format!("`{table}.{c}` が Room にあってコアに無い"));
+                }
+            }
+        }
+        assert!(
+            unknown.is_empty(),
+            "iOS/コアと Android のスキーマに知らないズレがある:\n{}\n\
+             意図した差なら KNOWN_GAPS に理由つきで足すこと。",
+            unknown.join("\n")
+        );
+    }
+
+    /// KNOWN_GAPS が実態と合っていること (直したのに消し忘れた項目を捕まえる)。
+    #[test]
+    fn known_gaps_are_still_real() {
+        let Some(room) = room_schema() else { return };
+        let core = core_schema();
+        let mut stale = Vec::new();
+        for (table, col, _) in KNOWN_GAPS {
+            let in_core = core.get(*table);
+            let in_room = room.get(*table);
+            let still_differs = if *col == "*" {
+                in_core.is_some() != in_room.is_some()
+            } else {
+                let c = in_core.is_some_and(|s| s.contains(*col));
+                let r = in_room.is_some_and(|s| s.contains(*col));
+                c != r
+            };
+            if !still_differs {
+                stale.push(format!("`{table}.{col}` はもうズレていない"));
+            }
+        }
+        assert!(stale.is_empty(), "KNOWN_GAPS から消すこと:\n{}", stale.join("\n"));
+    }
+}
