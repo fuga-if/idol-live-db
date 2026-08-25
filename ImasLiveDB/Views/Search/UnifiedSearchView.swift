@@ -36,6 +36,15 @@ struct UnifiedSearchView: View {
     @State private var lyricsNeedsLogin = false
     /// 検索そのものが失敗した (通信/サーバエラー)。これも空振りと区別する。
     @State private var searchFailed = false
+    /// 歌詞スコープで入力はあるがまだ確定 (Enter) していない。空振りと区別して案内を出す。
+    @State private var lyricsAwaitingSubmit = false
+    /// 歌詞検索の検索式。括弧を打たせず、インデントで入れ子を見せる。
+    @State private var lyricsQuery = LyricsQueryNode.initialRoot()
+    /// 簡易検索の入力 (空白区切り = OR)。
+    @State private var lyricsSimpleText = ""
+    /// 詳細条件を使用中か。組み立ては別シート (showLyricsBuilder) で行う。
+    @State private var lyricsAdvanced = false
+    @State private var showLyricsBuilder = false
     /// event_id → 検索語に一致した会場名。「武道館」で検索した時に、ライブ名だけ並んで
     /// なぜヒットしたか分からない状態を避けるため、一致理由として行に出す。
     @State private var matchedVenues: [String: String] = [:]
@@ -48,7 +57,11 @@ struct UnifiedSearchView: View {
     var body: some View {
         NavigationStack(path: $path) {
             VStack(spacing: 0) {
-                searchField
+                if scope == .lyrics {
+                    lyricsInput
+                } else {
+                    searchField
+                }
                 scopeBar
                 ImasRowDivider()
                 content
@@ -63,6 +76,13 @@ struct UnifiedSearchView: View {
             }
             .navigationDestination(for: DetailDestination.self) { dest in
                 DetailContentView(destination: dest) { path.append($0) }
+            }
+        }
+        .sheet(isPresented: $showLyricsBuilder) {
+            LyricsQueryBuilderSheet(root: lyricsQuery) {
+                lyricsAdvanced = lyricsQuery.hasAnyTerm
+                showLyricsBuilder = false
+                if lyricsAdvanced { commitSearch() }
             }
         }
         .onAppear {
@@ -108,14 +128,107 @@ struct UnifiedSearchView: View {
         .padding(.bottom, DS.sp4)
     }
 
+    /// 歌詞検索の入力。欄は1つだけにして、込み入った条件は別シートで組む。
+    ///
+    /// 詳細をこの画面に置くと、条件を増やすほど縦に伸びて結果が見えなくなる
+    /// (実際ナビバーに潜り込んだ)。「組む」と「見る」を画面ごと分ける。
+    @ViewBuilder
+    private var lyricsInput: some View {
+        VStack(alignment: .leading, spacing: DS.sp2) {
+            if lyricsAdvanced {
+                // 詳細条件を使用中。今どんな条件かを日本語で1行に出す。
+                HStack(spacing: DS.sp3) {
+                    Image(systemName: "slider.horizontal.3")
+                        .font(.imasCaption)
+                        .foregroundStyle(DS.ink3)
+                    Text(lyricsQuery.readable().isEmpty ? "条件なし" : lyricsQuery.readable())
+                        .font(.imasSubhead)
+                        .foregroundStyle(DS.ink)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 0)
+                    Button("編集") { showLyricsBuilder = true }
+                        .font(.imasCaption.weight(.semibold))
+                    Button {
+                        lyricsAdvanced = false
+                        lyricsQuery = .initialRoot()
+                        clearResults()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.imasSubhead)
+                            .foregroundStyle(DS.ink3)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("詳細条件をやめる")
+                }
+                .padding(.horizontal, DS.sp4)
+                .padding(.vertical, 9)
+                .background(DS.fill, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
+                .padding(.horizontal, DS.sp5)
+            } else {
+                HStack(spacing: DS.sp3) {
+                    Image(systemName: "magnifyingglass")
+                        .font(.imasScaled(15, weight: .semibold))
+                        .foregroundStyle(DS.ink3)
+                    TextField("歌詞の一節 (空白で区切ると すべて含む)", text: $lyricsSimpleText)
+                        .font(.imasBody)
+                        .foregroundStyle(DS.ink)
+                        .submitLabel(.search)
+                        .autocorrectionDisabled()
+                        .onSubmit { commitSearch() }
+                    if !lyricsSimpleText.isEmpty {
+                        Button {
+                            lyricsSimpleText = ""
+                            clearResults()
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.imasSubhead)
+                                .foregroundStyle(DS.ink3)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("入力をクリア")
+                    }
+                    Button {
+                        // 打ってある語を持ち越して開く。切り替えで打ち直しにならないように。
+                        lyricsQuery = LyricsQueryNode.fromSimple(lyricsSimpleText)
+                        showLyricsBuilder = true
+                        AppAnalytics.tap("lyrics_search.open_builder")
+                    } label: {
+                        Image(systemName: "slider.horizontal.3")
+                            .font(.imasSubhead)
+                            .foregroundStyle(DS.ink2)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("詳細検索")
+                }
+                .padding(.horizontal, DS.sp4)
+                .padding(.vertical, 9)
+                .background(DS.fill, in: Capsule())
+                .padding(.horizontal, DS.sp5)
+            }
+        }
+        .padding(.top, DS.sp3)
+        .padding(.bottom, DS.sp3)
+    }
+
     private var scopeBar: some View {
         ImasSegmented(options: UnifiedSearchScope.available, selection: $scope) { $0.label }
             .padding(.horizontal, DS.sp5)
             .padding(.bottom, DS.sp4)
             // スコープを変えたら、そのスコープの検索結果を取り直す
             // (「すべて」は 各20件上限、スコープ指定時はより深く引く)。
-            .onChange(of: scope) { _, _ in
+            .onChange(of: scope) { _, newScope in
                 AppAnalytics.tap("search.scope_change")
+                if newScope == .lyrics {
+                    // 他スコープの入力語をビルダーの1つ目に引き継ぐ。スコープを
+                    // 変えただけで打ち直しになるのは手間なので。
+                    let carried = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !carried.isEmpty, lyricsSimpleText.isEmpty, !lyricsQuery.hasAnyTerm {
+                        lyricsSimpleText = carried
+                    }
+                    clearResults()
+                    return
+                }
                 guard !searchText.isEmpty else { return }
                 scheduleSearch(searchText, debounce: false)
             }
@@ -125,7 +238,22 @@ struct UnifiedSearchView: View {
 
     @ViewBuilder
     private var content: some View {
-        if searchText.isEmpty {
+        if scope == .lyrics && searchText.isEmpty {
+            // 歌詞は打鍵ごとに投げない (D1 の読み取りを打鍵数で消費しないため)。
+            // 履歴ではなく「検索する」を出して、確定待ちだと分かるようにする。
+            ImasEmptyState(
+                systemImage: "text.magnifyingglass",
+                title: "歌詞を検索",
+                message: lyricsAdvanced
+                    ? "条件を入れて検索してください。行頭の「かつ / または」でつなぎ方を変えられます。"
+                    : "歌詞の一節を入れて検索してください。空白で区切ると、すべてを含む曲に絞れます。",
+                actionTitle: lyricsHasInput ? "検索する" : nil,
+                action: lyricsHasInput ? { commitSearch() } : nil
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .padding(.top, DS.sp6)
+            .background(DS.bg)
+        } else if searchText.isEmpty {
             historyView
         } else if isSearching {
             ImasLoadingState()
@@ -150,6 +278,15 @@ struct UnifiedSearchView: View {
                 message: "通信環境を確認して、もう一度お試しください。",
                 actionTitle: "再試行",
                 action: { scheduleSearch(searchText, debounce: false) }
+            )
+        } else if lyricsAwaitingSubmit {
+            // 打鍵ごとに投げない仕様なので、待っているのだと分かるようにする。
+            ImasEmptyState(
+                systemImage: "return",
+                title: "歌詞を検索",
+                message: "「\(searchText)」を含む歌詞を探します。",
+                actionTitle: "検索する",
+                action: { commitSearch() }
             )
         } else if lyricsNeedsLogin {
             ImasEmptyState(
@@ -353,6 +490,13 @@ struct UnifiedSearchView: View {
         return count
     }
 
+    /// 歌詞検索に入力があるか (簡易/詳細のどちらでも)。
+    private var lyricsHasInput: Bool {
+        lyricsAdvanced
+            ? lyricsQuery.hasAnyTerm
+            : !lyricsSimpleText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
     private func clearResults() {
         results = SearchResults(songs: [], idols: [], events: [])
         matchedVenues = [:]
@@ -360,6 +504,7 @@ struct UnifiedSearchView: View {
         lyricsSongs = [:]
         lyricsNeedsLogin = false
         searchFailed = false
+        lyricsAwaitingSubmit = false
         isSearching = false
         searchTask?.cancel()
     }
@@ -373,13 +518,30 @@ struct UnifiedSearchView: View {
             return
         }
 
+        let currentScope = scope
+
+        // サーバを叩くスコープ (歌詞) は入力中に検索しない。確定 (Enter) で初めて投げる。
+        //
+        // debounce を挟んでも、打ち直すたびに Worker と D1 を叩くことになる。
+        // 歌詞検索は1回で D1 の全走査に近い読み取りが走る (索引で候補は絞れるが、
+        // 候補の検証で本文を読む) ので、無料枠を打鍵回数で消費する形にしたくない。
+        // ローカル DB で完結する他スコープは従来どおり打ちながら絞る。
+        if currentScope.isServerBacked && debounce {
+            lyricsHits = []
+            lyricsSongs = [:]
+            lyricsNeedsLogin = false
+            searchFailed = false
+            isSearching = false
+            lyricsAwaitingSubmit = true
+            return
+        }
+        lyricsAwaitingSubmit = false
+
         isSearching = true
         searchFailed = false
-        let currentScope = scope
         searchTask = Task {
             if debounce {
-                // 歌詞はサーバを叩くので長めに待つ。1文字ごとに Worker を呼ばない。
-                try? await Task.sleep(for: .milliseconds(currentScope.isServerBacked ? 450 : 200))
+                try? await Task.sleep(for: .milliseconds(200))
                 guard !Task.isCancelled else { return }
             }
             do {
@@ -417,7 +579,10 @@ struct UnifiedSearchView: View {
             let hits = try await AppContainer.shared.lyricsSearchReading.searchLyrics(query: query)
             try Task.checkCancellation()
             // 曲が引けなかったヒットは表示できないので落とす (端末の DB が古い場合など)。
-            let songs = try await AppContainer.shared.songReading.songs(ids: hits.map(\.songId))
+            // 併せて一覧と同じ規則で派生曲 (ソロ Ver. / Remix) とその他ブランドを外す。
+            // 派生曲は歌詞が親と同一なので、残すと同じ歌詞が何件も並んで読めなくなる。
+            let songs = try await AppContainer.shared.songReading
+                .listableSongs(ids: hits.map(\.songId))
             try Task.checkCancellation()
             let byId = Dictionary(uniqueKeysWithValues: songs.map { ($0.id, $0) })
             lyricsSongs = byId
@@ -466,6 +631,12 @@ struct UnifiedSearchView: View {
     }
 
     private func commitSearch() {
+        // 歌詞スコープの入力は専用の口にある。確定のたびに式へ組み立て直す。
+        if scope == .lyrics {
+            searchText = lyricsAdvanced
+                ? lyricsQuery.serialized()
+                : LyricsQueryNode.simpleQuery(lyricsSimpleText)
+        }
         let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
         // 「すべて」スコープでは、実際にヒットしたスコープにだけ記録する。常に固定スコープへ

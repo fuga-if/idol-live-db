@@ -174,7 +174,7 @@ struct IdolDetailView: View {
                         .imasCopyable([
                             CopyItem("アイドル名をコピー", idol.name, key: "idol_name"),
                             CopyItem("よみをコピー", idol.nameKana, key: "kana"),
-                            CopyItem("CV名をコピー", idol.currentVoiceActor, key: "voice_actor"),
+                            CopyItem("CV名をコピー", VoiceActorDirectory.shared.current(for: idol.id), key: "voice_actor"),
                         ])
                     if let brand = vm.brand {
                         Button {
@@ -186,8 +186,8 @@ struct IdolDetailView: View {
                         }
                         .buttonStyle(.plain)
                     }
-                    if !idol.voiceActorList.isEmpty {
-                        Text("CV \(idol.voiceActorList.joined(separator: " / "))")
+                    if let cv = VoiceActorDirectory.shared.current(for: idol.id) {
+                        Text("CV \(cv)")
                             .font(.imasFootnote)
                             .foregroundStyle(DS.ink3)
                             .lineLimit(1)

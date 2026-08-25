@@ -122,7 +122,17 @@ final class SongListViewModel {
 
     /// `searchText` で songs をクライアント側フィルタし `displayedSongs` を更新する。
     /// songs 読み込み完了時と searchText 変化時にのみ呼ぶ。
-    func recomputeDisplayed(searchText: String) {
+    /// 一覧の絞り込みを掛け直す。
+    ///
+    /// `lyricsMatchIds` が非 nil なら**歌詞検索の結果で絞る** (曲名は見ない)。
+    /// サーバから返るのは song_id だけなので、ブランド絞り込みや並び順は一覧側の
+    /// 既存の仕組みがそのまま効く。検索結果が一覧に返ってくる形にしたかったのが
+    /// この引数の理由 (シートで完結すると他の条件と合わせられない)。
+    func recomputeDisplayed(searchText: String, lyricsMatchIds: Set<String>? = nil) {
+        if let lyricsMatchIds {
+            displayedSongs = songs.filter { lyricsMatchIds.contains($0.song.id) }
+            return
+        }
         guard !searchText.isEmpty else {
             displayedSongs = songs
             return

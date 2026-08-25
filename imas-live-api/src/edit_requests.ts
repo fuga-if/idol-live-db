@@ -6,6 +6,8 @@
 //
 // コミュニティ投稿 (コーレス/参考動画) は従来どおり /edits で全員オープン。ここはマスタ専用。
 
+import { validateMasterEdit, type EditOp } from "./master_validators";
+
 export interface EditRequestEnv {
   DB: D1Database;
   GITHUB_TOKEN?: string;
@@ -191,6 +193,23 @@ export async function handlePostEditRequests<E extends EditRequestEnv>(
   }
   const ops = body?.ops ?? [];
   if (!Array.isArray(ops) || ops.length === 0) return error("ops is required (non-empty array)");
+
+  // issue 化する前に /edits と同じ検証を通す。ここを素通ししていたため、moderator 経路なら
+  // 400 になる値 (例: color の "#" 抜け) がそのまま issue になり、取り込み時に人手で
+  // 気付くしかなかった。投稿者にその場で返した方が直してもらえる。
+  for (let i = 0; i < ops.length; i++) {
+    const o = ops[i];
+    const err = validateMasterEdit(
+      {
+        recordType: String(o?.recordType ?? ""),
+        op: (o?.op ?? "update") as EditOp,
+        recordName: o?.recordName,
+        fields: o?.fields,
+      },
+      false
+    );
+    if (err) return error(`ops[${i}]: ${err}`);
+  }
 
   const [dbUser, rl] = await Promise.all([
     env.DB.prepare("SELECT is_banned FROM users WHERE id = ?")

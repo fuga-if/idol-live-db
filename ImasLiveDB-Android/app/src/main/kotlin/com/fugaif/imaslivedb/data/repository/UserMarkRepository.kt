@@ -1,6 +1,7 @@
 package com.fugaif.imaslivedb.data.repository
 
 import com.fugaif.imaslivedb.data.db.AppDatabase
+import com.fugaif.imaslivedb.data.model.AttendanceType
 import com.fugaif.imaslivedb.data.model.EventWithDateRange
 import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.data.model.Song
@@ -24,6 +25,29 @@ class UserMarkRepository(private val db: AppDatabase) {
         }
         return now
     }
+
+    /**
+     * 参加形態を返す (未参加は null)。種別が入っていない旧データは現地扱い。
+     * 参加は公演 (show) 単位で持つのが正で、イベント単位のマークは旧データの互換のみ。
+     */
+    suspend fun attendance(type: String, id: String): AttendanceType? {
+        if (!dao.isOn(type, id, UserMark.ATTENDED)) return null
+        return AttendanceType.from(dao.textValue(type, id, UserMark.ATTENDED)) ?: AttendanceType.LIVE
+    }
+
+    /** 参加形態を設定する。null で不参加に戻す。 */
+    suspend fun setAttendance(type: String, id: String, value: AttendanceType?) {
+        if (value == null) {
+            dao.delete(type, id, UserMark.ATTENDED)
+        } else {
+            dao.upsert(UserMark(type, id, UserMark.ATTENDED, true, value.raw, Instant.now().toString()))
+        }
+    }
+
+    /** 与えた公演のうち参加マークが付いているものの id。 */
+    suspend fun attendedShowIds(showIds: List<String>): Set<String> =
+        if (showIds.isEmpty()) emptySet()
+        else dao.onIdsIn(UserMark.SHOW, UserMark.ATTENDED, showIds).toSet()
 
     /** 担当アイドル一覧。 */
     suspend fun pickedIdols(): List<Idol> =

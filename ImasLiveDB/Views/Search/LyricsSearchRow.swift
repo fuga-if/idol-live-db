@@ -29,13 +29,16 @@ struct LyricsSearchRow: View {
                         .foregroundStyle(DS.ink2)
                         .lineLimit(1)
                 }
+                // 語ごとに1本ずつ。AND だと複数出て「なぜ引っかかったか」が分かる。
                 // ⚠️ .textSelection / .imasCopyable を付けないこと。
-                Text(snippet)
-                    .font(.imasFootnote)
-                    .foregroundStyle(DS.ink2)
-                    .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.top, 1)
+                ForEach(hit.snippets) { s in
+                    Text(attributed(s))
+                        .font(.imasFootnote)
+                        .foregroundStyle(DS.ink2)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.top, 1)
+                }
             }
         }
         .padding(.vertical, DS.sp1)
@@ -59,7 +62,7 @@ struct LyricsSearchRow: View {
     /// オフセットは Unicode スカラー単位 (サーバと合意済みの規約)。`AttributedString` の
     /// インデックスは文字単位なので、スカラー位置から `String.Index` を作って変換する。
     /// UTF-16 で数え直すと絵文字を含む行でズレる。
-    private var snippet: AttributedString {
+    private func attributed(_ hit: LyricsSnippet) -> AttributedString {
         var text = AttributedString(hit.snippet)
         let range = hit.matchRange
         guard range.lowerBound < range.upperBound else { return text }

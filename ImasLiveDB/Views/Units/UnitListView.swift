@@ -27,6 +27,11 @@ struct UnitListContent: View {
     /// `@Bindable` で vm のプロパティに `$vm.xxx` バインディングを張る。UI 状態 (検索語/検索中/
     /// ブランド折り畳み/シート対象) は全て vm 側に持たせているため、View 自体が再生成されても消えない。
     @Bindable var vm: UnitListViewModel
+    /// 絞り込み欄を自前で出すか。
+    ///
+    /// `IdolListView` の「ユニット」タブはナビバーの中に絞り込み欄を持っているので `false`。
+    /// 自前でも出すと 1 画面に絞り込み欄が 2 つ並び、どちらが効くのか分からなくなる。
+    var showsFilterField = true
 
     private var listMode: IdolListMode {
         IdolListMode(rawValue: listModeRaw) ?? .list
@@ -34,9 +39,11 @@ struct UnitListContent: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            NameFilterField(prompt: "ユニット名で絞り込み", text: $vm.searchText)
-                .padding(.horizontal, DS.sp5)
-                .padding(.bottom, DS.sp3)
+            if showsFilterField {
+                NameFilterField(prompt: "ユニット名で絞り込み", text: $vm.searchText)
+                    .padding(.horizontal, DS.sp5)
+                    .padding(.bottom, DS.sp3)
+            }
 
             if vm.isLoading {
                 ScrollView {

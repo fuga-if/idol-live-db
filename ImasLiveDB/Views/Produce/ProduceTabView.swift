@@ -337,6 +337,18 @@ struct ProduceTabView: View {
             .buttonStyle(.plain)
 
             NavigationLink {
+                BrandTimelineView(initialBrandId: pickIdols.first?.brandId)
+            } label: {
+                ImasEntryCard(
+                    systemImage: "chart.bar.xaxis",
+                    title: "年表",
+                    preview: "ライブ・楽曲シリーズ・節目を1枚で俯瞰する",
+                    brand: pickBrandSeed
+                )
+            }
+            .buttonStyle(.plain)
+
+            NavigationLink {
                 RecentEditsView()
             } label: {
                 ImasEntryCard(
@@ -571,7 +583,7 @@ private struct HeroIdolCard: View {
     private var metaLine: String {
         var parts: [String] = []
         if !brandName.isEmpty { parts.append(brandName) }
-        if let cv = idol.currentVoiceActor, !cv.isEmpty { parts.append("CV \(cv)") }
+        if let cv = VoiceActorDirectory.shared.current(for: idol.id), !cv.isEmpty { parts.append("CV \(cv)") }
         return parts.joined(separator: " ・ ")
     }
 }

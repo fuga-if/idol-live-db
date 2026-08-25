@@ -48,11 +48,6 @@ struct Idol: Codable, FetchableRecord, PersistableRecord, Identifiable, Hashable
     /// 検索や画像インポートのキーマッチでも matched キーとして使う。
     var aliases: String?
 
-    /// 担当声優のカンマ区切り。 先頭が現役、 以降は過去 CV (古い順)。
-    /// 例: "中村繪里子" / "下田麻美" / "M・A・O,伊藤美来" (旧→現)。
-    /// Cast テーブル廃止により idol 単体で声優情報を保持する設計に移行済み。
-    var voiceActors: String?
-
     enum CodingKeys: String, CodingKey {
         case id, name, color, birthday, height, weight, age, bust, waist, hip
         case constellation, hobbies, talents, description, gender, handedness, nickname
@@ -68,7 +63,6 @@ struct Idol: Codable, FetchableRecord, PersistableRecord, Identifiable, Hashable
         case attribute
         case isExternal = "is_external"
         case aliases
-        case voiceActors = "voice_actors"
     }
 
     /// `aliases` カラムをカンマ区切りで分割した配列。空白 trim 済み。
@@ -76,15 +70,6 @@ struct Idol: Codable, FetchableRecord, PersistableRecord, Identifiable, Hashable
         guard let aliases, !aliases.isEmpty else { return [] }
         return aliases.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
     }
-
-    /// 担当声優一覧 (先頭が現役、 以降は過去 CV 古い順)。
-    var voiceActorList: [String] {
-        guard let voiceActors, !voiceActors.isEmpty else { return [] }
-        return voiceActors.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
-    }
-
-    /// 現役声優名 (リストの先頭)。
-    var currentVoiceActor: String? { voiceActorList.first }
 
     // MARK: - Computed
 

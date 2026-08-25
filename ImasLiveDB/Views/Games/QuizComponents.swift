@@ -238,6 +238,8 @@ struct IdolQuizFact {
 /// IdolQuizView.load() の実絞り込みと IdolQuizSetupView.estimatePool() の見積りが
 /// 別々にこの判定を持つと、見積りでは開始可能でも実際は候補不足で
 /// 「出題できる候補が不足しています」に落ちるズレが起きるため、必ずこれを共有する。
+/// CV は VoiceActorDirectory (MainActor) から引くので、この関数も MainActor に置く。
+@MainActor
 func idolQuizFacts(for idol: Idol) -> [IdolQuizFact] {
     var f: [IdolQuizFact] = []
     // 曖昧グループ (該当者が多い)
@@ -254,13 +256,15 @@ func idolQuizFacts(for idol: Idol) -> [IdolQuizFact] {
     if let color = idol.color, !color.isEmpty { f.append(IdolQuizFact(label: "メンバーカラー", value: color, cost: 2)) }
     // CV は常にスロットを出す。声優未発表キャラは開封で「未発表」と分かる
     // (枠の有無で声優の有無が無料でバレるのを防ぐ)。
-    let cvValue = (idol.currentVoiceActor?.isEmpty == false) ? idol.currentVoiceActor! : "声優未発表"
+    let cv = VoiceActorDirectory.shared.current(for: idol.id)
+    let cvValue = (cv?.isEmpty == false) ? cv! : "声優未発表"
     f.append(IdolQuizFact(label: "CV", value: cvValue, cost: 2))
     return f
 }
 
 /// アイドル当てクイズの出題対象として使えるか。外部人物除外・メンバーカラー必須に加えて
 /// facts が最低3件 (ヒントとして機能する数) 無いと出題に使えない。
+@MainActor
 func isIdolQuizEligible(_ idol: Idol, selectedBrandIds: Set<String>) -> Bool {
     let brandMatch = selectedBrandIds.isEmpty || selectedBrandIds.contains(idol.brandId)
     return !idol.isExternal && (idol.color?.isEmpty == false)

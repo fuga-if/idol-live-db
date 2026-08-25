@@ -132,11 +132,23 @@ struct IdolListView: View {
                     if listTab == 0 {
                         idolBody
                     } else {
-                        UnitListContent(vm: unitVM)
+                        // 絞り込み欄はナビバー側 (`listSearchField`) が兼ねる。
+                        UnitListContent(vm: unitVM, showsFilterField: false)
                     }
                 }
             }
         }
+    }
+
+    /// ナビバーの中の絞り込み欄。アイドル/ユニットのどちらを見ているかで宛先を変える。
+    ///
+    /// タブごとに別の欄を置くと、切り替えるたびに絞り込みが片方だけ残って
+    /// 「絞ったはずなのに全部出る」ように見える。欄は 1 つにして、中身の宛先だけ替える。
+    private var listSearchField: some View {
+        ListSearchField(
+            prompt: listTab == 0 ? "アイドル名・CV名" : "ユニット名",
+            text: listTab == 0 ? $searchText : $unitVM.searchText
+        )
     }
 
     /// 一覧タブ (アイドル/ユニット)。ナビゲーションタイトル下・検索バー上に固定表示する。
@@ -199,21 +211,29 @@ struct IdolListView: View {
             }
         }
         .background(DS.bg.ignoresSafeArea())
+        // 絞り込み欄がナビバーの中にあるので `.searchable` のキャンセルボタンが無い。
+        // スクロールでキーボードを閉じられないと、打った後に一覧が半分隠れたままになる。
+        .scrollDismissesKeyboard(.immediately)
         .navigationTitle("アイドル")
-        .navigationBarTitleDisplayMode(.large)
+        // 絞り込みフィールドはナビバーの中 (standardListToolbar の principal)。
+        // 大タイトルを出すと 2 行になってしまうので inline 固定。
+        .navigationBarTitleDisplayMode(.inline)
         .onChange(of: searchText) { _, _ in
             vm.rebuild(filter: filterContext, sortOrder: sortOrder, ascending: sortAscending)
         }
         .toolbar {
+            // 検索は一覧そのものを絞る。虫眼鏡のシートは結果がそこで完結してしまい、
+            // ブランド絞り込みや並び順と合わせられなかった。
             standardListToolbar(
-                searchScope: .idols,
                 filterBadge: filterBadgeCount,
                 onFilter: {
                     AppAnalytics.tap("idol_list.filter")
                     showFilterSheet = true
                 },
                 menuActions: idolMenuActions
-            )
+            ) {
+                listSearchField
+            }
         }
         .navigationDestination(for: Idol.self) { idol in
             IdolDetailView(idol: idol)

@@ -1,10 +1,50 @@
 import os
 import SwiftUI
 
+/// 一覧の検索対象。歌詞はサーバ (D1) に問い合わせる。
+enum SongSearchMode: String, CaseIterable, Hashable {
+    case title, lyrics
+
+    /// 画面に出してよい検索対象。
+    ///
+    /// 歌詞は JASRAC の許諾が下りるまで載せない (`LyricsFeature`)。サーバ側も
+    /// `status=draft` で一般ユーザーには返さないが、それは「配信されない」保証であって
+    /// 「アプリに導線が無い」保証ではない。`SongDetailTab.available` /
+    /// `UnifiedSearchScope.available` と同じ流儀で、ここでも導線ごと消す。
+    static var available: [SongSearchMode] {
+        allCases.filter { $0 != .lyrics || LyricsFeature.isAvailable }
+    }
+
+    /// 切り替えチップとメニューに出す文言。
+    ///
+    /// `.title` は表示形式で実際に絞る対象が変わる (曲 / アルバム / シリーズ) ので、
+    /// 固定で「曲名」とは書けない。アルバム表示なのにチップが「曲名」だと、
+    /// 何を打てばいいのか分からなくなる。
+    func label(in listMode: SongListMode) -> String {
+        switch self {
+        case .title:  listMode.nameFilterLabel
+        case .lyrics: "歌詞"
+        }
+    }
+}
+
 enum SongListMode: String, CaseIterable {
     case songs
     case albums
     case series
+
+    /// 名前絞り込みが絞る対象。
+    var nameFilterLabel: String {
+        switch self {
+        case .songs:  "曲名"
+        case .albums: "アルバム名"
+        case .series: "シリーズ名"
+        }
+    }
+
+    /// フィルタシートの入力欄に出す文言。
+    /// 一覧側はチップが対象を示すので、こちらの長い文言は使わない。
+    var nameFilterPrompt: String { "\(nameFilterLabel)で絞り込み" }
 }
 
 struct SongListView: View {
@@ -18,6 +58,11 @@ struct SongListView: View {
     @State private var showFilter = false
     @State private var sheetDestination: DetailDestination?
     @State private var searchText = ""
+    /// 曲名で絞るか、歌詞で絞るか。歌詞はサーバに問い合わせる。
+    @State private var searchMode: SongSearchMode = .title
+    /// 歌詞検索の結果 (song_id)。nil = まだ検索していない。
+    @State private var lyricsMatchIds: Set<String>?
+    @State private var lyricsSearching = false
     /// 新規曲作成 sheet。
     @State private var showSongCreate = false
     /// 未ログイン時のログイン誘導 sheet。
@@ -78,6 +123,27 @@ struct SongListView: View {
         }
     }
 
+    /// 歌詞検索を投げて、結果 (song_id) で一覧を絞る。
+    private func runLyricsSearchIfNeeded() {
+        guard searchMode == .lyrics else { return }
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return }
+        lyricsSearching = true
+        Task {
+            defer { lyricsSearching = false }
+            do {
+                let hits = try await AppContainer.shared.lyricsSearchReading
+                    .searchLyrics(query: LyricsQueryNode.simpleQuery(query))
+                lyricsMatchIds = Set(hits.map(\.songId))
+                vm.recomputeDisplayed(searchText: "", lyricsMatchIds: lyricsMatchIds)
+            } catch {
+                Logger.database.error("lyrics_list_search_failed: \(error.localizedDescription)")
+                lyricsMatchIds = []
+                vm.recomputeDisplayed(searchText: "", lyricsMatchIds: [])
+            }
+        }
+    }
+
     @ViewBuilder
     private var content: some View {
             VStack(spacing: 0) {
@@ -91,12 +157,27 @@ struct SongListView: View {
                     }
             }
             .background(DS.bg)
-            .onChange(of: searchText) { _, _ in vm.recomputeDisplayed(searchText: searchText) }
+            // 絞り込み欄がナビバーの中にあるので `.searchable` のキャンセルボタンが無い。
+            // スクロールでキーボードを閉じられないと、打った後に一覧が半分隠れたままになる。
+            .scrollDismissesKeyboard(.immediately)
+            .onChange(of: searchText) { _, _ in
+                // 歌詞は打鍵ごとに投げない (D1 の読み取りを打鍵数で消費しないため)。
+                // 確定するまでは前回の結果を消して、古い結果が残らないようにする。
+                if searchMode == .lyrics {
+                    lyricsMatchIds = nil
+                    vm.recomputeDisplayed(searchText: "")
+                } else {
+                    vm.recomputeDisplayed(searchText: searchText)
+                }
+            }
+                .onChange(of: searchMode) { _, _ in
+                    lyricsMatchIds = nil
+                    vm.recomputeDisplayed(searchText: searchMode == .lyrics ? "" : searchText)
+                }
                 .navigationTitle("楽曲")
-                // selectionMode (設定から push) では inline。.large だと push 先で大タイトル
-                // 領域 (≈100px) が確保され、フィルタチップの下に空白として見える + 2階層
-                // ナビバー扱いで戻る挙動が崩れることがある。タブ root のときだけ .large。
-                .navigationBarTitleDisplayMode(selectionMode ? .inline : .large)
+                // 絞り込みフィールドをナビバー内に置くので、タイトルは常に inline。
+                // (.large だと大タイトル 52pt + バーの 2 行になり、畳んだ意味が無くなる)
+                .navigationBarTitleDisplayMode(.inline)
                 .toolbar { toolbarContent }
                 .sheet(isPresented: $showFilter) {
                     SongFilterView(
@@ -378,14 +459,66 @@ struct SongListView: View {
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         standardListToolbar(
-            searchScope: .songs,
             filterBadge: filterBadgeCount,
             onFilter: {
                 AppAnalytics.tap("song_list.filter")
                 showFilter = true
             },
             menuActions: songMenuActions
-        )
+        ) {
+            ListSearchField(
+                prompt: searchPrompt,
+                text: $searchText,
+                onSubmit: runLyricsSearchIfNeeded
+            ) {
+                searchModeChip
+            }
+        }
+    }
+
+    /// 入力欄のプレースホルダ。
+    ///
+    /// チップが対象を示しているなら動詞だけでいい。「曲名⌄ 曲名で絞り込み」と二重に書くと
+    /// 狭い欄が更に読みにくくなる。チップを出していないとき (歌詞が未許諾で 1 択のとき) は
+    /// 対象がどこにも書かれないので、こちらで明示する。
+    private var searchPrompt: String {
+        guard SongSearchMode.available.count > 1 else { return listMode.nameFilterPrompt }
+        return searchMode == .lyrics ? "一節を入力" : "絞り込み"
+    }
+
+    /// 入力欄の頭に差す 曲名 / 歌詞 の切り替え。
+    ///
+    /// `.searchScopes` の全幅セグメントだと行を 1 本余分に食い、畳んだヘッダーが元に戻る。
+    /// 入力欄の中のチップなら、何を探しているかを見せたまま 1 行に収まる。
+    ///
+    /// 選べる対象が 1 つしかない (歌詞が未許諾で落ちている) ときは丸ごと出さない。
+    /// 押しても 1 択しか出ないメニューは、狭い欄の幅を食うだけで何の役にも立たない。
+    @ViewBuilder
+    private var searchModeChip: some View {
+        let modes = SongSearchMode.available
+        if modes.count > 1 {
+            Menu {
+                Picker("検索対象", selection: $searchMode) {
+                    ForEach(modes, id: \.self) {
+                        Text($0.label(in: listMode)).tag($0)
+                    }
+                }
+            } label: {
+                HStack(spacing: 1) {
+                    Text(searchMode.label(in: listMode))
+                        .font(.imasCaption.weight(.semibold))
+                    Image(systemName: "chevron.down")
+                        .font(.imasScaled(8, weight: .semibold))
+                }
+                .foregroundStyle(DS.ink2)
+                .padding(.horizontal, DS.sp2)
+                .padding(.vertical, 2)
+                .background(DS.surface, in: Capsule())
+                .lineLimit(1)
+                .fixedSize()
+            }
+            .accessibilityLabel("検索対象: \(searchMode.label(in: listMode))")
+        }
     }
 
     private var songMenuActions: [ListToolbarAction] {

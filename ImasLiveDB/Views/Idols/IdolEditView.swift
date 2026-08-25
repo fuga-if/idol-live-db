@@ -108,6 +108,13 @@ struct IdolEditView: View {
         }
     }
 
+    /// マスタの色は `#RRGGBB` 表記で統一されており、サーバの検証もそれを正とする。
+    /// `#` を省いて打っても弾かれないよう、送る前にこちらで補う。
+    private var canonicalColor: String {
+        guard !color.isEmpty, let hex = ColorMath.normalizedHex(color) else { return color }
+        return "#" + hex.uppercased()
+    }
+
     private func save() async {
         isSaving = true
         defer { isSaving = false }
@@ -117,7 +124,7 @@ struct IdolEditView: View {
         updated.nameKana = nameKana.isEmpty ? nil : nameKana
         updated.nameRomaji = nameRomaji.isEmpty ? nil : nameRomaji
         updated.brandId = brandId
-        updated.color = color.isEmpty ? nil : color
+        updated.color = color.isEmpty ? nil : canonicalColor
         updated.birthday = birthday.isEmpty ? nil : birthday
         updated.bloodType = bloodType.isEmpty ? nil : bloodType
         updated.birthPlace = birthPlace.isEmpty ? nil : birthPlace
@@ -134,7 +141,7 @@ struct IdolEditView: View {
         // update はサーバ側マージ (未送信 = 現状維持)。空にした場合は null 明示送信でクリア。
         fields["nameKana"] = AnyEncodable.clearable(nameKana, original: original.nameKana)
         fields["nameRomaji"] = AnyEncodable.clearable(nameRomaji, original: original.nameRomaji)
-        fields["color"] = AnyEncodable.clearable(color, original: original.color)
+        fields["color"] = AnyEncodable.clearable(canonicalColor, original: original.color)
         fields["birthday"] = AnyEncodable.clearable(birthday, original: original.birthday)
         fields["bloodType"] = AnyEncodable.clearable(bloodType, original: original.bloodType)
         fields["birthPlace"] = AnyEncodable.clearable(birthPlace, original: original.birthPlace)
