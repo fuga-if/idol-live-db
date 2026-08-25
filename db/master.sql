@@ -19194,7 +19194,7 @@ INSERT INTO idols VALUES('lovelive_乙宗梢','other','乙宗梢','おとむね�
 INSERT INTO idols VALUES('lovelive_夕霧綴理','other','夕霧綴理','ゆうぎりつづり',NULL,'#D0303C',7304,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'蓮ノ空女学院の生徒、寡黙でクールなダンス担当。DOLLCHESTRA所属で内に秘めた熱さを持つ。CV: 佐々木琴子。',NULL,NULL,NULL,NULL,'つづり',NULL,NULL,0,NULL);
 INSERT INTO idols VALUES('lovelive_大沢瑠璃乃','other','大沢瑠璃乃','おおさわるりの',NULL,'#F098B8',7305,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'蓮ノ空女学院の生徒、運動神経抜群の元気いっぱいなムードメーカー。みらくらぱーく！所属。CV: 菅叶和。',NULL,NULL,NULL,NULL,'るりの',NULL,NULL,0,NULL);
 INSERT INTO idols VALUES('lovelive_藤島慈','other','藤島慈','ふじしまめぐみ',NULL,'#FFFFFF',7306,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'蓮ノ空女学院の生徒、おっとりとした天然系のおもしろお姉さん。みらくらぱーく！所属。CV: 月音こな。',NULL,NULL,NULL,NULL,'めぐみ',NULL,NULL,0,NULL);
-INSERT INTO idols VALUES('961_奥空心白','961','奥空心白','おくぞらこはく',NULL,'F0E68C',9999,'07-26','AB',157.0,45.0,'東京',15,88.0,56.0,82.0,'獅子座','マイブーム探し',NULL,'元961プロ → 765プロ Project Luminous。ダンスのコピーが得意。CV: 田中あいみ',NULL,NULL,NULL,NULL,NULL,'2021-10-14','1年',0,NULL);
+INSERT INTO idols VALUES('961_奥空心白','961','奥空心白','おくぞらこはく',NULL,'F0E68C',9999,'--07-26','AB',157.0,45.0,'東京',15,88.0,56.0,82.0,'獅子座','マイブーム探し',NULL,'元961プロ → 765プロ Project Luminous。ダンスのコピーが得意。CV: 田中あいみ',NULL,NULL,NULL,NULL,NULL,'2021-10-14','1年',0,NULL);
 INSERT INTO idols VALUES('lovelive_高坂穂乃果','other','高坂穂乃果','こうさかほのか',NULL,'#FF6F61',6901,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'音ノ木坂学院2年生、μ''sのリーダー。明るく元気でみんなを引っ張る存在。CV: 新田恵海。',NULL,NULL,NULL,NULL,'ほのか',NULL,NULL,0,NULL);
 INSERT INTO idols VALUES('lovelive_絢瀬絵里','other','絢瀬絵里','あやせえり',NULL,'#33A8FF',6902,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'音ノ木坂学院3年生、生徒会長。μ''sのサブリーダー。CV: 南條愛乃。',NULL,NULL,NULL,NULL,'えりち',NULL,NULL,0,NULL);
 INSERT INTO idols VALUES('lovelive_南ことり','other','南ことり','みなみことり',NULL,'#C9C9C9',6903,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'音ノ木坂学院2年生。穏やかで優しいμ''sのメンバー。CV: 内田彩。',NULL,NULL,NULL,NULL,'ことり',NULL,NULL,0,NULL);
@@ -47983,7 +47983,7 @@ INSERT INTO song_artists VALUES('sidem_supreme_stars__メンタルver','sidem_�
 INSERT INTO song_artists VALUES('sidem_supreme_stars__メンタルver','sidem_都築圭','original');
 CREATE TABLE meta (key TEXT PRIMARY KEY NOT NULL, value TEXT);
 INSERT INTO meta VALUES('schema_version','1');
-INSERT INTO meta VALUES('data_version','66');
+INSERT INTO meta VALUES('data_version','69');
 INSERT INTO meta VALUES('migration_v14_idol_is_external','applied');
 CREATE TABLE song_units (
   song_id TEXT NOT NULL,
