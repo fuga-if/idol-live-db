@@ -16,15 +16,54 @@ final class AppContainer: Sendable {
     /// としてここ (init) で束ねる。
     let coreSnapshot: CoreSnapshotManager
 
+    // マスタ読み取りの実装群。
+    // いずれもスナップショットがロード済みなら共有コア (imas-core)、未ロード/ロード失敗/
+    // メモリ警告での破棄後は従来の GRDB 経路へ呼び出し単位でフォールバックする (スライス並走の原則)。
+    // CoreSnapshotManager を注入する必要があるので、これらだけ init で組み立てる。
+
     /// 楽曲マスタ読み取りの実装。
-    /// スナップショットがロード済みなら共有コア (imas-core)、未ロード/ロード失敗時は
-    /// 従来の GRDB 経路へ呼び出し単位でフォールバックする (曲スライス並走の原則)。
     let songReading: any SongReading
+
+    /// アイドル(キャスト)マスタ読み取りの実装。
+    let idolReading: any IdolReading
+
+    /// ブランドマスタ読み取りの実装。
+    let brandReading: any BrandReading
+
+    /// ユニットマスタ読み取りの実装。
+    let unitReading: any UnitReading
+
+    /// イベント (ライブ/公演) マスタ読み取りの実装。
+    let eventReading: any EventReading
+
+    /// 公演 (Show) / セットリスト読み取りの実装。
+    let showReading: any ShowReading
+
+    /// カレンダーエントリ読み取りの実装。
+    let calendarReading: any CalendarReading
+
+    /// 統計 (ランキング/集計) 読み取りの実装。
+    let statsReading: any StatsReading
+
+    /// 年表 (ブランド史) 読み取りの実装。
+    let timelineReading: any TimelineReading
+
+    /// 横断検索の実装。
+    let globalSearchReading: any GlobalSearchReading
 
     private init() {
         let snapshot = CoreSnapshotManager()
         coreSnapshot = snapshot
         songReading = CoreSongRepository(snapshot: snapshot, fallback: GRDBSongRepository(database: .shared))
+        idolReading = CoreIdolRepository(snapshot: snapshot, fallback: GRDBIdolRepository(database: .shared))
+        brandReading = CoreBrandRepository(snapshot: snapshot, fallback: GRDBBrandRepository(database: .shared))
+        unitReading = CoreUnitRepository(snapshot: snapshot, fallback: GRDBUnitRepository(database: .shared))
+        eventReading = CoreEventRepository(snapshot: snapshot, fallback: GRDBEventRepository(database: .shared))
+        showReading = CoreShowRepository(snapshot: snapshot, fallback: GRDBShowRepository(database: .shared))
+        calendarReading = CoreCalendarRepository(snapshot: snapshot, fallback: GRDBCalendarRepository(database: .shared))
+        statsReading = CoreStatsRepository(snapshot: snapshot, fallback: GRDBStatsRepository(database: .shared))
+        timelineReading = CoreTimelineRepository(snapshot: snapshot, fallback: GRDBTimelineRepository(database: .shared))
+        globalSearchReading = CoreGlobalSearchRepository(snapshot: snapshot, fallback: GRDBGlobalSearchRepository(database: .shared))
 
         // ローカル編集 (モデレーターの .applied 経路やセトリ取込) は CloudKit sync を通らず
         // GRDB へ直接 upsert されるため、.masterDataDidSync だけではスナップショットが
@@ -36,8 +75,8 @@ final class AppContainer: Sendable {
         idolWriting = SnapshotInvalidatingIdolWriting(base: GRDBIdolWriting(database: .shared), invalidate: invalidate)
         songWriting = SnapshotInvalidatingSongWriting(base: GRDBSongWriting(database: .shared), invalidate: invalidate)
 
-        // 起動時ロード。上のインライン初期化子群が AppDatabase.shared を先に初期化しており
-        // (Bundle DB → Documents コピー含む)、この時点で master.sqlite は存在する。
+        // 起動時ロード。上の GRDB フォールバック生成 (`.shared` 参照) が AppDatabase.shared を
+        // 先に初期化しており (Bundle DB → Documents コピー含む)、この時点で master.sqlite は存在する。
         // 失敗しても未ロードのまま GRDB が答え続けるので起動は塞がない。
         snapshot.requestLoad()
 
@@ -63,27 +102,6 @@ final class AppContainer: Sendable {
     /// コミュニティタグ (曲/アイドル/ユニット) の書き込み実装 (Worker D1 集計 API)。
     let communityTagWriting: any CommunityTagWriting = CommunityAPI.shared
 
-    /// イベント (ライブ/公演) マスタ読み取りの実装 (GRDB / 共有 AppDatabase)。
-    let eventReading: any EventReading = GRDBEventRepository(database: .shared)
-
-    /// アイドル(キャスト)マスタ読み取りの実装 (GRDB / 共有 AppDatabase)。
-    let idolReading: any IdolReading = GRDBIdolRepository(database: .shared)
-
-    /// ブランドマスタ読み取りの実装 (GRDB / 共有 AppDatabase)。
-    let brandReading: any BrandReading = GRDBBrandRepository(database: .shared)
-
-    /// 公演 (Show) / セットリスト読み取りの実装 (GRDB / 共有 AppDatabase)。
-    let showReading: any ShowReading = GRDBShowRepository(database: .shared)
-
-    /// ユニットマスタ読み取りの実装 (GRDB / 共有 AppDatabase)。
-    let unitReading: any UnitReading = GRDBUnitRepository(database: .shared)
-
-    /// 統計 (ランキング/集計) 読み取りの実装 (GRDB / 共有 AppDatabase)。
-    let statsReading: any StatsReading = GRDBStatsRepository(database: .shared)
-
-    /// 年表 (ブランド史) 読み取りの実装 (GRDB / 共有 AppDatabase)。
-    let timelineReading: any TimelineReading = GRDBTimelineRepository(database: .shared)
-
     /// 編集フィードのレコード解決の実装 (GRDB / 共有 AppDatabase)。
     let editFeedReading: any EditFeedReading = GRDBEditFeedRepository(database: .shared)
 
@@ -92,12 +110,6 @@ final class AppContainer: Sendable {
 
     /// マーク集合読み取りの実装 (GRDB / 共有 AppDatabase)。
     let markReading: any MarkReading = GRDBMarkRepository(database: .shared)
-
-    /// カレンダーエントリ読み取りの実装 (GRDB / 共有 AppDatabase)。
-    let calendarReading: any CalendarReading = GRDBCalendarRepository(database: .shared)
-
-    /// 横断検索の実装 (GRDB / 共有 AppDatabase)。
-    let globalSearchReading: any GlobalSearchReading = GRDBGlobalSearchRepository(database: .shared)
 
     /// 曲詳細のサーバ側データ (タグ / 類似曲 / ペンライト / 歌詞) 読み取りの実装。
     /// 束ねエンドポイント 1 本で取り、未配信 Worker では旧個別エンドポイントに落ちる。

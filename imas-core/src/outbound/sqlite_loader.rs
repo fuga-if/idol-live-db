@@ -493,13 +493,20 @@ fn optional_col(cols: &HashSet<String>, name: &str) -> String {
 }
 
 fn load_songs(conn: &Connection) -> Result<Vec<Song>, String> {
+    // jasrac_code は iOS 側にしか無い列 (JASRAC 許諾は認可待ちで Android スキーマ未追加)。
+    // 無ければ NULL を選ぶ: 列の有無でスナップショット全体を落とさないため。
+    let jasrac = if table_columns(conn, "songs")?.contains("jasrac_code") {
+        "jasrac_code"
+    } else {
+        "NULL AS jasrac_code"
+    };
     let mut stmt = conn
         .prepare(
-            "SELECT id, title, title_kana, brand_id, song_type, release_date, duration_sec,
+            &format!("SELECT id, title, title_kana, brand_id, song_type, release_date, duration_sec,
                     composer, lyricist, arranger, cd_series, cd_title, artwork_url, preview_url,
                     apple_music_id, apple_music_album_id, isrc, lyrics_url, parent_song_id,
-                    singer_label, unit_name, unit_id, series_group, jasrac_code
-             FROM songs",
+                    singer_label, unit_name, unit_id, series_group, {jasrac}
+             FROM songs"),
         )
         .map_err(|e| e.to_string())?;
     let rows = stmt
@@ -891,10 +898,18 @@ fn load_anniversaries(conn: &Connection) -> Result<Vec<Anniversary>, String> {
 }
 
 /// idol_voice_actors をロードする。親 idol が存在しない FK 孤児は読み飛ばす。
+///
+/// ⚠️ このテーブルは iOS (GRDB) にしか無い。Android の Room はエンティティを持たず、
+/// SeedImporter が「Room と seed の両方にあるテーブル」しか取り込まないため実機に存在しない。
+/// 無ければ空で継続する (ここで失敗させるとスナップショット全体がロード不能になる)。
+/// Android に載せれば CV 名検索もコアへ寄せられる。
 fn load_voice_actors(
     conn: &Connection,
     idol_index_by_id: &HashMap<String, u32>,
 ) -> Result<Vec<IdolVoiceActor>, String> {
+    if !table_exists(conn, "idol_voice_actors")? {
+        return Ok(Vec::new());
+    }
     let mut stmt = conn
         .prepare("SELECT id, idol_id, name, valid_from, valid_to FROM idol_voice_actors")
         .map_err(|e| e.to_string())?;
@@ -1759,5 +1774,53 @@ mod tests {
     #[test]
     fn missing_file_is_an_error_not_a_panic() {
         assert!(load_snapshot("/nonexistent/never.sqlite").is_err());
+    }
+    /// Android (Room) は idol_voice_actors エンティティを持たず、SeedImporter が
+    /// 「Room と seed の両方にあるテーブル」しか取り込まないため実機 DB に存在しない。
+    /// songs.jasrac_code も iOS 専用列。どちらも欠けた DB でロードが通ることを固定する
+    /// (以前はここで load 全体が失敗し、Android のスナップショットが常に未ロードだった)。
+    #[test]
+    fn loads_when_ios_only_table_and_column_are_absent() {
+        let dir = std::env::temp_dir().join(format!("imas_core_android_shape_{}", std::process::id()));
+        let _ = std::fs::create_dir_all(&dir);
+        let path = dir.join("android_like.sqlite");
+        let _ = std::fs::remove_file(&path);
+        {
+            let src = Connection::open_with_flags(bundle_db(), OpenFlags::SQLITE_OPEN_READ_ONLY).unwrap();
+            let names: Vec<String> = {
+                let mut stmt = src
+                    .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name <> 'idol_voice_actors'")
+                    .unwrap();
+                let rows = stmt.query_map([], |r| r.get::<_, String>(0)).unwrap();
+                rows.filter_map(Result::ok).collect()
+            };
+            let dst = Connection::open(&path).unwrap();
+            dst.execute("ATTACH DATABASE ? AS src", [bundle_db()]).unwrap();
+            for t in &names {
+                let sql: Option<String> = src
+                    .query_row("SELECT sql FROM sqlite_master WHERE type='table' AND name=?", [t], |r| r.get(0))
+                    .unwrap_or(None);
+                let Some(mut sql) = sql else { continue };
+                if t == "songs" {
+                    // iOS 専用列を落とした songs を作る
+                    sql = sql.replace(", jasrac_code TEXT", "").replace("jasrac_code TEXT,", "");
+                }
+                if dst.execute_batch(&sql).is_err() { continue }
+                let cols: Vec<String> = {
+                    let mut stmt = dst.prepare(&format!("PRAGMA table_info({t})")).unwrap();
+                    let rows = stmt.query_map([], |r| r.get::<_, String>(1)).unwrap();
+                    rows.filter_map(Result::ok).collect()
+                };
+                let list = cols.join(",");
+                let _ = dst.execute_batch(&format!("INSERT INTO {t} ({list}) SELECT {list} FROM src.{t}"));
+            }
+            dst.execute_batch("DETACH DATABASE src").unwrap();
+        }
+
+        let snap = load_snapshot(path.to_str().unwrap())
+            .expect("iOS 専用の表・列が無くてもロードできる");
+        assert!(snap.songs.len() >= 3000, "songs={}", snap.songs.len());
+        assert!(snap.songs.iter().all(|s| s.jasrac_code.is_none()));
+        let _ = std::fs::remove_file(&path);
     }
 }

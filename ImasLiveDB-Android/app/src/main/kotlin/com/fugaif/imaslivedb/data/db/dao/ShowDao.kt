@@ -17,6 +17,13 @@ interface ShowDao {
     @Query("SELECT * FROM shows WHERE id = :id LIMIT 1")
     suspend fun fetchShow(id: String): Show?
 
+    /**
+     * 公演実体の一括取得。スナップショット経路が返す「表示順の show_id 列」を
+     * Room の [Show] へ引き直す (hydration) ために使う。並びは呼び出し側が id 列で戻す。
+     */
+    @Query("SELECT * FROM shows WHERE id IN (:ids)")
+    suspend fun fetchShowsByIds(ids: List<String>): List<Show>
+
     @Query("SELECT * FROM shows ORDER BY date DESC LIMIT 1")
     suspend fun fetchLatestShow(): Show?
 

@@ -38,18 +38,18 @@ class AppModule private constructor(context: Context) {
         SnapshotStoreProvider(appContext, syncEngine)
     }
 
-    val eventRepository: EventRepository by lazy { EventRepository(database) }
+    val eventRepository: EventRepository by lazy { EventRepository(database, snapshotStoreProvider) }
     val songRepository: SongRepository by lazy { SongRepository(database, snapshotStoreProvider) }
-    val idolRepository: IdolRepository by lazy { IdolRepository(database) }
-    val unitRepository: UnitRepository by lazy { UnitRepository(database) }
-    val statsRepository: StatsRepository by lazy { StatsRepository(database, communityApi) }
-    val searchRepository: SearchRepository by lazy { SearchRepository(database) }
+    val idolRepository: IdolRepository by lazy { IdolRepository(database, snapshotStoreProvider) }
+    val unitRepository: UnitRepository by lazy { UnitRepository(database, snapshotStoreProvider) }
+    val statsRepository: StatsRepository by lazy { StatsRepository(database, communityApi, snapshotStoreProvider) }
+    val searchRepository: SearchRepository by lazy { SearchRepository(database, snapshotStoreProvider) }
     val userMarkRepository: UserMarkRepository by lazy { UserMarkRepository(database) }
     val personalTagRepository: PersonalTagRepository by lazy { PersonalTagRepository(database) }
     val authService: AuthService by lazy { AuthService(appContext) }
     val communityApi: CommunityApi by lazy { CommunityApi(appContext, authService) }
     val editApi: EditApi by lazy { EditApi(appContext, authService) }
-    val editFeedRepository: EditFeedRepository by lazy { EditFeedRepository(database) }
+    val editFeedRepository: EditFeedRepository by lazy { EditFeedRepository(database, snapshotStoreProvider) }
     val syncEngine: CloudKitSyncEngine by lazy { CloudKitSyncEngine(appContext, database) }
     val localContributionLog: LocalContributionLog by lazy { LocalContributionLog(appContext) }
     val localPollVoteLog: LocalPollVoteLog by lazy { LocalPollVoteLog(appContext) }

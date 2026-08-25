@@ -24,19 +24,13 @@ struct CoreSongRepository: SongReading {
 
     // MARK: - 切り替えヘルパ
 
-    /// スナップショットがあれば core 経路、無ければ GRDB 経路。
-    /// core 実行中の `SnapshotError` (メモリ警告 unload との競合等) も GRDB に落とす。
-    /// それ以外のエラー (GRDB 側の失敗など) は従来どおり呼び出し元へ伝える。
+    /// 切り替え規則の実体は `CoreSnapshotManager.withStore` (全 Core*Repository 共通)。
+    /// 呼び出し側の記述を短く保つためここで薄く包む。
     private func withStore<T: Sendable>(
         fallbackTo grdb: () async throws -> T,
         _ body: (SnapshotStore) async throws -> T
     ) async throws -> T {
-        guard let store = snapshot.storeIfLoaded else { return try await grdb() }
-        do {
-            return try await body(store)
-        } catch is SnapshotError {
-            return try await grdb()
-        }
+        try await snapshot.withStore(fallbackTo: grdb, body)
     }
 
     // MARK: - 一覧
@@ -319,33 +313,9 @@ struct CoreSongRepository: SongReading {
         }
     }
 
+    /// 変換規則は `CoreRecordMapping` が正 (他スライスのアダプタと共有する)。
     private static func song(from record: SongDetailRecord) -> Song {
-        Song(
-            id: record.id,
-            title: record.title,
-            titleKana: record.titleKana,
-            brandId: record.brandId,
-            // DB では NULL 可だが GRDB Record は非 Optional。"unknown" は songTypeLabel が「不明」に落とす。
-            songType: record.songType ?? "unknown",
-            releaseDate: record.releaseDate,
-            durationSec: record.durationSec.map(Int.init),
-            composer: record.composer,
-            lyricist: record.lyricist,
-            arranger: record.arranger,
-            cdSeries: record.cdSeries,
-            cdTitle: record.cdTitle,
-            artworkUrl: record.artworkUrl,
-            previewUrl: record.previewUrl,
-            appleMusicId: record.appleMusicId,
-            appleMusicAlbumId: record.appleMusicAlbumId,
-            isrc: record.isrc,
-            lyricsUrl: record.lyricsUrl,
-            parentSongId: record.parentSongId,
-            singerLabel: record.singerLabel,
-            unitName: record.unitName,
-            unitId: record.unitId,
-            seriesGroup: record.seriesGroup
-        )
+        CoreRecordMapping.song(from: record)
     }
 
     private static func coreFilter(from filter: SongSearchFilter) -> SongListFilter {
