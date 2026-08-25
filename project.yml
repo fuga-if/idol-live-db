@@ -42,6 +42,9 @@ targets:
       - path: ImasLiveDB/Resources/v7_event_kind_data.sql
         buildPhase: resources
       - path: ImasLiveDB/Resources/GoogleService-Info.plist
+        # gitignore 対象 (Firebase の秘匿ファイル) なので CI や新規 clone には無い。
+        # master.sqlite と同じく optional にしておかないと xcodegen が spec 検証で落ちる。
+        optional: true
         buildPhase: resources
       - path: ImasLiveDB/PrivacyInfo.xcprivacy
         buildPhase: resources
