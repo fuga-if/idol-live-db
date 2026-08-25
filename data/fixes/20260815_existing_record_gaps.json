@@ -1,0 +1,36 @@
+{
+  "title": "CloudKit に既存だったレコードの欠落列を補完する",
+  "_help": "いずれも master に既にあるが、公式で確認できる列が空だったもの",
+  "fixes": [
+    {
+      "table": "songs",
+      "id": "765as_北極星をズラしちゃえ",
+      "fields": {
+        "lyricist": "星部ショウ",
+        "composer": "星部ショウ",
+        "arranger": "明石裕太"
+      },
+      "source": "https://columbia.jp/idolmaster/imasnews/260807.html",
+      "note": "会場オリジナルCD SACX-1140 表題曲。作詞・作曲/編曲が空だったので日本コロムビアのクレジットで補完"
+    },
+    {
+      "table": "events",
+      "id": "ev_miki_hoshii_solo_showcase_the_future_spotlight_in_korea",
+      "fields": {
+        "ticket_url": "https://www.ticketlink.co.kr/global/ja/product/64625"
+      },
+      "source": "https://idolmaster-official.jp/news/01_19478",
+      "note": "公式告知に記載のチケット販売URL"
+    },
+    {
+      "table": "shows",
+      "id": "sh_miki_hoshii_solo_showcase_the_future_spotlight_in_korea_1",
+      "fields": {
+        "venue_city": "ソウル",
+        "start_time": "17:30"
+      },
+      "source": "https://idolmaster-official.jp/news/01_19478",
+      "note": "公式告知: 2026.08.09(Sun) OPEN 17:00 / START 17:30、韓国・Seoul, Gabin Art Hall"
+    }
+  ]
+}
