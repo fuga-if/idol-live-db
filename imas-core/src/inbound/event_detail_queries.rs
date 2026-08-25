@@ -216,3 +216,80 @@ mod tests {
         assert!(store.venues_matching("".into(), vec![]).unwrap().is_empty());
     }
 }
+
+#[uniffi::export]
+impl SnapshotStore {
+    /// 参加済み show id 群 → 所属 event id 集合を 1 呼び出しで解決する。
+    ///
+    /// 以前は呼び出し側 (EventListViewModel) が show ごとに `show_record` を並行 fetch していた。
+    /// FFI 境界を要素数ぶん跨ぐ設計は「1 ユーザー操作 = 1 呼び出し」規約違反で、
+    /// 参加記録が多いユーザーほど一覧の絞り込みが重くなる。
+    /// 未知の show id は黙って捨てる (マークだけ残ってマスタから消えた公演)。
+    pub fn event_ids_for_shows(&self, show_ids: Vec<String>) -> Result<Vec<String>, SnapshotError> {
+        let snap = self.current()?;
+        let mut seen = std::collections::HashSet::new();
+        let mut out = Vec::new();
+        for id in &show_ids {
+            let Some(&si) = snap.show_index_by_id.get(id) else { continue };
+            let event = &snap.events[snap.shows[si as usize].event as usize];
+            if seen.insert(event.id.as_str()) {
+                out.push(event.id.clone());
+            }
+        }
+        Ok(out)
+    }
+}
+
+#[cfg(test)]
+mod event_ids_for_shows_tests {
+    use super::*;
+
+    fn loaded() -> std::sync::Arc<SnapshotStore> {
+        let store = SnapshotStore::new();
+        let db = format!("{}/../ImasLiveDB/Resources/master.sqlite", env!("CARGO_MANIFEST_DIR"));
+        store.load(db).expect("bundle DB");
+        store
+    }
+
+    #[test]
+    fn resolves_and_dedupes_in_one_call() {
+        let store = loaded();
+        let snap = store.current().unwrap();
+        // 同一イベントの複数公演を渡しても event id は 1 つに畳まれる
+        let event = &snap.events[0];
+        let show_ids: Vec<String> = snap.shows_by_event[0]
+            .iter()
+            .map(|&i| snap.shows[i as usize].id.clone())
+            .collect();
+        if show_ids.len() < 2 {
+            return; // 単独公演のイベントなら検証対象外
+        }
+        let got = store.event_ids_for_shows(show_ids).unwrap();
+        assert_eq!(got, vec![event.id.clone()]);
+    }
+
+    #[test]
+    fn unknown_show_ids_are_dropped_not_errors() {
+        let store = loaded();
+        assert_eq!(store.event_ids_for_shows(vec!["存在しない".into()]).unwrap(), Vec::<String>::new());
+    }
+
+    #[test]
+    fn matches_per_show_lookup() {
+        let store = loaded();
+        let snap = store.current().unwrap();
+        let show_ids: Vec<String> = snap.shows.iter().take(200).map(|s| s.id.clone()).collect();
+        let batch = store.event_ids_for_shows(show_ids.clone()).unwrap();
+        // 従来の 1 件ずつ解決と同じ集合になること
+        let mut one_by_one: Vec<String> = Vec::new();
+        let mut seen = std::collections::HashSet::new();
+        for id in &show_ids {
+            if let Some(rec) = store.show_record(id.clone()).unwrap() {
+                if seen.insert(rec.event_id.clone()) {
+                    one_by_one.push(rec.event_id);
+                }
+            }
+        }
+        assert_eq!(batch, one_by_one);
+    }
+}

@@ -71,24 +71,14 @@ final class EventListViewModel {
     }
 
     /// 参加済み (show 単位) マークから、該当する event_id の集合を解決する。
-    /// show→event の一括逆引き API が存在しないため、既存の単発 `show(id:)` を
-    /// 参加済み show id ごとに並行 fetch して event_id を集約する。
+    ///
+    /// 以前は show ごとに `show(id:)` を並行 fetch していたが、参加記録が多いほど
+    /// 往復が増えて絞り込みのたびに詰まる (FFI/DB とも「1 操作 = 1 呼び出し」が規約)。
+    /// 一括版 `eventIds(forShows:)` に置き換えて 1 回で解決する。
     private func resolveAttendedEventIds() async -> Set<String> {
         let attendedShowIds = UserMarkService.shared.allMarked(kind: .attended, entity: .show)
         guard !attendedShowIds.isEmpty else { return [] }
-        let showReading = self.showReading
-        return await withTaskGroup(of: String?.self) { group in
-            for showId in attendedShowIds {
-                group.addTask {
-                    (try? await showReading.show(id: showId))?.eventId
-                }
-            }
-            var result: Set<String> = []
-            for await eventId in group {
-                if let eventId { result.insert(eventId) }
-            }
-            return result
-        }
+        return (try? await showReading.eventIds(forShows: Array(attendedShowIds))) ?? []
     }
 }
 

@@ -112,6 +112,13 @@ struct CoreShowRepository: ShowReading {
         }
     }
 
+    func eventIds(forShows showIds: [String]) async throws -> Set<String> {
+        guard !showIds.isEmpty else { return [] }
+        return try await snapshot.withStore(fallbackTo: { try await fallback.eventIds(forShows: showIds) }) { store in
+            Set(try store.eventIdsForShows(showIds: showIds))
+        }
+    }
+
     func venuesMatching(query: String, eventIds: [String]) async throws -> [String: String] {
         try await snapshot.withStore(fallbackTo: { try await fallback.venuesMatching(query: query, eventIds: eventIds) }) { store in
             try store.venuesMatching(query: query, eventIds: eventIds)

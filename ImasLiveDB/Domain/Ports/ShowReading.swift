@@ -33,6 +33,10 @@ protocol ShowReading: Sendable {
     func venueDirectory() async throws -> VenueDirectory
     /// 指定会場 (venue_id) で公演があったイベントの id 集合 (ライブ一覧の会場絞り込み用)。
     func eventIdsAtVenue(_ venueId: String) async throws -> Set<String>
+    /// 公演 id 群 → 所属イベント id 集合。参加記録 (show 単位) から
+    /// event 単位の絞り込みを作るために使う。1 件ずつ引くと参加数ぶん
+    /// 往復が増えるので、必ずこの一括版を使うこと。
+    func eventIds(forShows showIds: [String]) async throws -> Set<String>
     /// 検索語に一致した会場を event_id ごとに 1 件返す (検索結果に一致理由を出すため)。
     func venuesMatching(query: String, eventIds: [String]) async throws -> [String: String]
 }

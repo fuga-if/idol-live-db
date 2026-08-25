@@ -23,6 +23,9 @@ struct MyPageView: View {
     }
     /// イベント名の作品名プレフィックスを省略表示するか (既定 ON)。OFF でフル表示。
     @AppStorage("event_name_abbreviate") private var abbreviateEventNames: Bool = true
+    /// 不具合切り分け用。ON にすると共有コア (imas-core) のスナップショットを使わず、
+    /// 従来の SQL 経路だけで動かす。挙動は同じはずなので、これで直る症状は移行由来と分かる。
+    @AppStorage("snapshot_disabled") private var snapshotDisabled: Bool = false
     /// 曲一覧の「この絞り込みでイントロドン」導線を隠すか (曲一覧側の×と同じキー)。
     @AppStorage("songlist_introdon_bar_hidden") private var introDonBarHidden: Bool = false
     /// 回収に配信参加も含めるか (既定=現地のみ)。地方勢など配信中心の人向け。
@@ -439,6 +442,11 @@ struct MyPageView: View {
                     .foregroundStyle(DS.ink2)
             }
             .padding(.vertical, DS.sp1)
+
+            Toggle("【調査用】高速化をオフにする", isOn: $snapshotDisabled)
+            Text("オンにすると共有コアを使わず従来の方法で動きます。表示は変わりません。不具合の切り分け用なので普段はオフのままで大丈夫です。")
+                .font(.imasCaption)
+                .foregroundStyle(DS.ink2)
 
             Toggle("ライブ名を省略表示", isOn: $abbreviateEventNames)
             // 設定値で見え方が変わるサンプル。ON なら作品名プレフィックスを省く。

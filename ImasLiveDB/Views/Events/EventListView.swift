@@ -59,16 +59,26 @@ struct EventListView: View {
     /// 端末ローカル TZ で判定すると海外にいるユーザーだけ 1 日ずれる。
     private var todayKey: String { JSTDay.today() }
 
-    /// brand_id → ブランドカラー hex の引き当て表 (リードバーの seed 用)。
-    private var brandColorMap: [String: String] {
-        Dictionary(uniqueKeysWithValues: vm.brands.compactMap { brand in
-            brand.color.map { (brand.id, $0) }
-        })
+    /// brand_id → ブランドカラー hex / 表示名の引き当て表。
+    ///
+    /// ⚠️ 計算プロパティのままだと `ForEach` の中から引くたびに全ブランドから辞書を
+    /// 作り直す (= 行数ぶん再構築されてスクロールが重くなる)。`vm.brands` が変わった
+    /// ときだけ作り直すよう 1 つにまとめてキャッシュする。
+    private struct BrandLookup {
+        var color: [String: String] = [:]
+        var name: [String: String] = [:]
     }
+    @State private var brandLookup = BrandLookup()
 
-    /// brand_id → ブランド表示名 (フィルタチップのラベル用)。
-    private var brandNameMap: [String: String] {
-        Dictionary(uniqueKeysWithValues: vm.brands.map { ($0.id, $0.shortName) })
+    private var brandColorMap: [String: String] { brandLookup.color }
+    private var brandNameMap: [String: String] { brandLookup.name }
+
+    private func rebuildBrandLookup() {
+        brandLookup = BrandLookup(
+            color: Dictionary(uniqueKeysWithValues: vm.brands.compactMap { b in
+                b.color.map { (b.id, $0) }
+            }),
+            name: Dictionary(uniqueKeysWithValues: vm.brands.map { ($0.id, $0.shortName) }))
     }
 
     /// View 側の選択状態 + マーク集合 (UserMarkService 参照は @Observable 観測のため View 文脈) を
@@ -198,7 +208,10 @@ struct EventListView: View {
             .sheet(isPresented: $showLoginPrompt) {
                 LoginToEditSheet(onSignedIn: { if EditPermission.canEdit { showEventCreate = true } })
             }
-            .task { await vm.loadData(includeEmpty: showEmptyEvents, query: listQuery) }
+            .task {
+                await vm.loadData(includeEmpty: showEmptyEvents, query: listQuery)
+                rebuildBrandLookup()
+            }
             // フィルタ変化時のみ再計算
             .task(id: filterKey) {
                 await vm.rebuild(query: listQuery)

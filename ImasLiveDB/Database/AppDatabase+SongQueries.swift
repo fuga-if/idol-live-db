@@ -353,6 +353,21 @@ extension AppDatabase {
         try Show.fetchOne(db, key: id)
     }
 
+    /// 公演 id 群 → 所属イベント id 集合を 1 クエリで解決する。
+    /// 参加記録 (show 単位) から event 単位の絞り込みを作るのに使う。
+    /// 1 件ずつ引くと参加数ぶん往復するので、必ずこの一括版を通すこと。
+    func fetchEventIdsForShowsAsync(showIds: [String]) async throws -> Set<String> {
+        guard !showIds.isEmpty else { return [] }
+        return try await dbQueue.read { db in
+            let placeholders = showIds.map { _ in "?" }.joined(separator: ", ")
+            let ids = try String.fetchAll(
+                db,
+                sql: "SELECT DISTINCT event_id FROM shows WHERE id IN (\(placeholders))",
+                arguments: StatementArguments(showIds))
+            return Set(ids)
+        }
+    }
+
     /// イベント取得（ID指定）
     func fetchEvent(id: String) throws -> Event? {
         try dbQueue.read { db in try Self.fetchEventQuery(db, id: id) }

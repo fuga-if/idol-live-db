@@ -55,6 +55,11 @@ struct GRDBShowRepository: ShowReading {
         try await database.fetchVenueDirectoryAsync()
     }
 
+    /// 公演 id 群 → 所属イベント id 集合。AppDatabase の一括クエリへ委譲する。
+    func eventIds(forShows showIds: [String]) async throws -> Set<String> {
+        try await database.fetchEventIdsForShowsAsync(showIds: showIds)
+    }
+
     func eventIdsAtVenue(_ venueId: String) async throws -> Set<String> {
         try await database.fetchEventIdsAtVenueAsync(venueId)
     }
