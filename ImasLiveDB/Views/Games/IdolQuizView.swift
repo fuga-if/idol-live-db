@@ -5,6 +5,11 @@ import SwiftUI
 /// 素点は 10pt で、ヒントを 1 つ開くごとに獲得点が下がる (CV/メンバーカラーは -2pt)。
 /// CV枠は常設し、声優未発表キャラは開封して初めて「声優未発表」と分かる
 /// (CV枠の有無で不在が無料でバレないようにする)。全 sessionLength 問のセッション制。
+///
+/// 出題の生成・選択肢の作り方・採点・母集団の条件は imas-core の
+/// `domain/quiz_generation.rs` にあり、Android と同じ実装を共有する。素点 10pt や
+/// 出題数といった規則の定数もコア側にあり、ここからは指定しない。
+/// この画面が担うのは描画と、シード調達 (`SystemRandomNumberGenerator`) だけ。
 struct IdolQuizView: View {
     @Environment(AppDatabase.self) private var database
 
@@ -15,35 +20,28 @@ struct IdolQuizView: View {
         self.selectedBrandIds = selectedBrandIds
     }
 
-    private let sessionLength = 10
-    /// ノーヒント正解の素点。
-    private let basePoints = 10
+    /// 1 セッションの出題数 (規則本体はコア。UI は総問数の表示にだけ使う)。
+    private var sessionLength: Int { Int(quizSessionLength()) }
 
-    @State private var pool: [Idol] = []
-    @State private var question: Question?
+    /// 出題の index 参照元。コアが返す `answer` / `choices` はこの配列の位置を指す。
+    @State private var idols: [Idol] = []
+    /// 1 ゲーム分の出題 (コアが 1 回でまとめて生成)。
+    @State private var questions: [IdolQuizQuestion] = []
+    @State private var index = 0
     @State private var selectedId: String?
-    @State private var opened: Set<Int> = []   // 開いたヒントの facts インデックス (1...)
-    @State private var points = 0              // 累計獲得ポイント (加点式・上昇のみ)
-    @State private var correct = 0             // 正解数
-    @State private var asked = 0               // 解答済み問題数
-    @State private var seenIds: Set<String> = []   // セッション中に出題済みアイドル (重複出題防止)
+    @State private var opened: [UInt32] = []   // 開いたヒントの facts インデックス (1...)
+    /// 開示範囲と残りヒント (コアが算出)。
+    @State private var hint = IdolQuizHintState(currentValue: 0, shownFactIndices: [], hints: [])
+    /// 解答済み問題数・正解数・累計ポイント (コアが積み上げる)。
+    @State private var tally = QuizTally(asked: 0, correct: 0, points: 0)
+    @State private var isLastQuestion = false
     @State private var history: [QuizHistoryItem] = []  // 各問の振り返り (リザルトに渡す)
-    @State private var sessionDone = false
+    @State private var result: QuizSessionResult?
     @State private var isNewBest = false
     @State private var isLoading = true
 
-    private struct Question {
-        let answer: Idol
-        let choices: [Idol]
-        /// 出題に使う事実。先頭 (facts[0]) が無料公開、以降がヒントとして任意順で開ける。
-        /// (IdolQuizSetupView の見積りとも共有する `idolQuizFacts(for:)` が返す型)
-        let facts: [IdolQuizFact]
-    }
-
-    /// 現在この問題に正解した場合の獲得点 (素点 − 開いたヒントのコスト合計、最低 1pt)。
-    private func currentValue(_ q: Question) -> Int {
-        let cost = opened.reduce(0) { $0 + (q.facts.indices.contains($1) ? q.facts[$1].cost : 0) }
-        return max(1, basePoints - cost)
+    private var question: IdolQuizQuestion? {
+        questions.indices.contains(index) ? questions[index] : nil
     }
 
     var body: some View {
@@ -51,20 +49,20 @@ struct IdolQuizView: View {
             VStack(alignment: .leading, spacing: DS.sp5) {
                 if isLoading {
                     ImasInlineLoading(tint: DS.sys)
-                } else if sessionDone {
-                    QuizResultView(points: points, maxPoints: sessionLength * basePoints,
-                                   correct: correct, questions: asked,
+                } else if let result {
+                    QuizResultView(result: result,
                                    kind: .idolQuiz, isNewBest: isNewBest,
                                    history: history,
                                    onReplay: { restart() })
                 } else if let q = question {
-                    QuizProgressHeader(current: min(asked + (selectedId != nil ? 0 : 1), sessionLength),
-                                       total: sessionLength, points: points)
+                    QuizProgressHeader(current: min(Int(tally.asked) + (selectedId != nil ? 0 : 1), sessionLength),
+                                       total: sessionLength, points: Int(tally.points))
                     promptCard(q)
-                    if selectedId == nil { hintList(q) }
-                    IdolChoiceGrid(choices: q.choices, answer: q.answer, selectedId: selectedId, onPick: pick)
+                    if selectedId == nil { hintList() }
+                    IdolChoiceGrid(choices: choices(q), answer: idols[Int(q.answer)],
+                                   selectedId: selectedId, onPick: pick)
                     if selectedId != nil {
-                        QuizNextButton(isLastQuestion: asked >= sessionLength, onNext: nextQuestion, onFinish: finish)
+                        QuizNextButton(isLastQuestion: isLastQuestion, onNext: nextQuestion, onFinish: finish)
                     }
                 } else {
                     ImasEmptyState(systemImage: "person.fill.questionmark", title: "出題できる候補が不足しています")
@@ -82,31 +80,32 @@ struct IdolQuizView: View {
 
     // MARK: - 出題カード (シルエット + 公開済みプロフィール)
 
-    private func promptCard(_ q: Question) -> some View {
+    private func promptCard(_ q: IdolQuizQuestion) -> some View {
         let answered = selectedId != nil
-        // 公開する事実 = 無料 facts[0] + 開いたヒント。解答後は全部見せる。
-        let shownIndices: [Int] = answered ? Array(q.facts.indices) : ([0] + opened.sorted())
+        let answer = idols[Int(q.answer)]
         return VStack(alignment: .leading, spacing: DS.sp4) {
             HStack(spacing: DS.sp4) {
-                silhouette(q.answer, revealed: answered)
+                silhouette(answer, revealed: answered)
                 VStack(alignment: .leading, spacing: DS.sp2) {
                     Text("このプロフィールは誰？").font(.imasHeadline.weight(.bold)).foregroundStyle(DS.ink)
                     if answered {
-                        Text(q.answer.name).font(.imasTitle3.weight(.bold)).foregroundStyle(DS.ink)
+                        Text(answer.name).font(.imasTitle3.weight(.bold)).foregroundStyle(DS.ink)
                     } else {
-                        valueBadge(q)
+                        // 公開する事実 (無料 facts[0] + 開いたヒント) と獲得点はコアの開示状態から。
+                        QuizValueBadge(value: Int(hint.currentValue))
                     }
                 }
                 Spacer(minLength: 0)
             }
             ImasListContainer {
-                ForEach(Array(shownIndices.enumerated()), id: \.element) { pos, idx in
+                ForEach(Array(hint.shownFactIndices.enumerated()), id: \.element) { pos, idx in
                     if pos > 0 { ImasRowDivider(inset: DS.sp5) }
-                    let f = q.facts[idx]
+                    let f = q.facts[Int(idx)]
                     HStack {
                         Text(f.label).font(.imasSubhead).foregroundStyle(DS.ink2)
                         Spacer(minLength: 12)
-                        if f.label == "メンバーカラー" {
+                        // 色そのものが答えになる項目だけ色チップで見せる (文言ではなく種別で分岐)。
+                        if f.kind == .memberColor {
                             colorSwatch(f.value)
                         } else {
                             Text(f.value).font(.imasSubhead.weight(.medium)).foregroundStyle(DS.ink)
@@ -120,18 +119,6 @@ struct IdolQuizView: View {
         }
         .padding(DS.sp5)
         .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rLG, style: .continuous))
-    }
-
-    /// 正解で獲得できるポイントを示すバッジ (加点表現で統一)。
-    private func valueBadge(_ q: Question) -> some View {
-        let pts = currentValue(q)
-        return HStack(spacing: 5) {
-            Image(systemName: "plus.circle.fill").font(.imasScaled( 11, weight: .bold))
-            Text("正解で +\(pts)pt").font(.imasCaption.weight(.bold))
-        }
-        .foregroundStyle(DS.success)
-        .padding(.horizontal, 11).padding(.vertical, 6)
-        .background(DS.success.opacity(0.14), in: Capsule())
     }
 
     /// メンバーカラーのヒントは色そのものが答えなので、HEX 文字列ではなく色チップで見せる。
@@ -166,17 +153,18 @@ struct IdolQuizView: View {
     // MARK: - ヒント
 
     /// 未公開の事実を一覧で並べ、どのヒントを開くかユーザが選べるようにする (戦略性)。
-    /// CV枠は常設 (facts() 側で「声優未発表」も含めてスロット化済) なので、CV ラベルの
+    /// 並ぶ候補と開封後の獲得点はコアの開示状態がそのまま持っている。CV枠は常設
+    /// (コアの facts が「声優未発表」も含めてスロット化済) なので、CV ラベルの
     /// 有無で声優未発表キャラの正体がバレることはない。
-    private func hintList(_ q: Question) -> some View {
-        let remaining = (1..<q.facts.count).filter { !opened.contains($0) }
-        return VStack(spacing: DS.sp3) {
-            ForEach(remaining, id: \.self) { idx in
-                let f = q.facts[idx]
-                let nextValue = max(1, currentValue(q) - f.cost)
-                IdolHintRow(label: f.label, nextValue: nextValue) {
+    private func hintList() -> some View {
+        VStack(spacing: DS.sp3) {
+            ForEach(hint.hints, id: \.factIndex) { option in
+                IdolHintRow(label: option.label, nextValue: Int(option.nextValue)) {
                     AppAnalytics.tap("idol_quiz.hint")
-                    withAnimation(.easeInOut(duration: 0.2)) { _ = opened.insert(idx) }
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        opened.append(option.factIndex)
+                        refreshHint()
+                    }
                 }
             }
         }
@@ -184,52 +172,54 @@ struct IdolQuizView: View {
 
     // MARK: - 進行
 
-    private func pick(_ idol: Idol, isCorrect: Bool) {
+    /// 選択肢に並べるアイドル (コアが返す index を引き当てる)。
+    private func choices(_ q: IdolQuizQuestion) -> [Idol] {
+        q.choices.compactMap { idols.indices.contains(Int($0)) ? idols[Int($0)] : nil }
+    }
+
+    private func pick(_ idol: Idol) {
         guard selectedId == nil, let q = question else { return }
         AppAnalytics.tap("idol_quiz.answer")
         selectedId = idol.id
-        asked += 1
-        let earned = isCorrect ? currentValue(q) : 0
-        if isCorrect {
-            correct += 1
-            points += earned
-        }
+        let answer = idols[Int(q.answer)]
+        // 正誤判定・獲得点・積み上げはコアがまとめて返す (加点式なので不正解でも減点しない)。
+        let outcome = idolQuizAnswer(facts: q.facts, openedFactIndices: opened,
+                                     pickedIdolId: idol.id, answerIdolId: answer.id, before: tally)
+        tally = outcome.tally
+        isLastQuestion = outcome.isLastQuestion
+        refreshHint()
         // 振り返り用に1問の記録を残す。題材はアバター無しの抽象 (シルエット出題なので)、
-        // 補助情報として「ブランド」を出すと一覧が読みやすい。
+        // 補助情報として無料公開ぶんの事実を出すと一覧が読みやすい。
         history.append(QuizHistoryItem(
-            id: "\(asked)-\(q.answer.id)",
-            index: asked,
+            id: "\(tally.asked)-\(answer.id)",
+            index: Int(tally.asked),
             subjectTitle: "プロフィール問題",
             subjectSubtitle: q.facts.first.map { "\($0.label): \($0.value)" },
-            answer: q.answer,
+            answer: answer,
             picked: idol,
-            earnedPoints: earned,
-            revealedHints: opened.count
+            earnedPoints: Int(outcome.earnedPoints),
+            revealedHints: Int(outcome.revealedHints)
         ))
     }
 
     private func nextQuestion() {
         selectedId = nil
         opened = []
-        question = makeQuestion()
+        index += 1
+        refreshHint()
     }
 
     private func restart() {
-        points = 0; correct = 0; asked = 0
-        sessionDone = false; selectedId = nil; opened = []; isNewBest = false
-        seenIds = []; history = []
-        question = makeQuestion()
+        startSession()
     }
 
     private func finish() {
-        let outOf = asked * basePoints
-        // recordResult が best を上書きする前に「更新したか」を判定する。
-        let before = GameProgressStore.shared.record(for: .idolQuiz)
-        let beforeRate = before.bestOutOf > 0 ? Double(before.bestScore) / Double(before.bestOutOf) : -1
-        let newRate = outOf > 0 ? Double(points) / Double(outOf) : 0
-        isNewBest = before.hasPlayed && newRate > beforeRate
-        sessionDone = true
-        GameProgressStore.shared.recordResult(.idolQuiz, score: points, outOf: outOf)
+        let sessionResult = idolQuizSessionResult(tally: tally)
+        // 保存と「自己ベスト更新！」の判定は進捗ストア (コアの game_progress) が 1 回で返す。
+        let update = GameProgressStore.shared.recordResult(
+            .idolQuiz, score: Int(sessionResult.points), outOf: Int(sessionResult.outOf))
+        isNewBest = update.isNewBest
+        result = sessionResult
     }
 
     // MARK: - Data
@@ -237,36 +227,39 @@ struct IdolQuizView: View {
     private func load() async {
         isLoading = true
         defer { isLoading = false }
-        let all = (try? await AppContainer.shared.idolReading.idols(brandId: nil)) ?? []
-        // IdolQuizSetupView.estimatePool() と同じ isIdolQuizEligible(_:selectedBrandIds:) を共有。
-        // ここだけ別条件になると、見積りでは開始可能なのに実際は候補不足という
-        // ズレが起きる (以前の facts>=3 チェック漏れがまさにそれだった)。
-        pool = all.filter { isIdolQuizEligible($0, selectedBrandIds: selectedBrandIds) }
-        question = makeQuestion()
+        idols = (try? await AppContainer.shared.idolReading.idols(brandId: nil)) ?? []
+        startSession()
     }
 
-    /// プロフィール事実。IdolQuizSetupView とも共有する `idolQuizFacts(for:)` (QuizComponents.swift) に委譲。
-    private func facts(for idol: Idol) -> [IdolQuizFact] {
-        idolQuizFacts(for: idol)
+    /// 1 ゲーム分の出題をコアに一括生成させる (問題ごとに FFI を呼ばない)。
+    /// 母集団の条件は IdolQuizSetupView の見積りと同じ関数が持つので、
+    /// 「開始できるのに候補不足」というズレが起きない。
+    private func startSession() {
+        var generator = SystemRandomNumberGenerator()
+        questions = idolQuizSession(idols: idolQuizRefs(idols),
+                                    selectedBrandIds: Array(selectedBrandIds),
+                                    seed: generator.next())
+        index = 0
+        selectedId = nil
+        opened = []
+        tally = QuizTally(asked: 0, correct: 0, points: 0)
+        isLastQuestion = false
+        history = []
+        result = nil
+        isNewBest = false
+        refreshHint()
     }
 
-    private func makeQuestion() -> Question? {
-        guard pool.count >= 4 else { return nil }
-        // 既出を除外。母数が尽きたら一巡してリセット (短いセッション中の重複は防げる)。
-        var candidates = pool.filter { !seenIds.contains($0.id) }
-        if candidates.count < 1 {
-            seenIds = []
-            candidates = pool
-        }
-        guard let answer = candidates.randomElement() else { return nil }
-        seenIds.insert(answer.id)
-        let choices = (quizDistractors(from: pool, answer: answer) + [answer]).shuffled()
-        return Question(answer: answer, choices: choices, facts: facts(for: answer))
+    /// 開示範囲と残りヒントを引き直す (出題が変わった / ヒントを開いた / 解答した とき)。
+    private func refreshHint() {
+        hint = idolQuizHintState(facts: question?.facts ?? [],
+                                 openedFactIndices: opened,
+                                 answered: selectedId != nil)
     }
 }
 
 /// アイドル当てクイズ専用のヒント行。属性ラベルを見せ、どれを開くかユーザが選べる戦略性を残す。
-/// CV枠は facts() で常設しているため、CV ラベルが並んでも声優未発表キャラの正体は漏れない。
+/// CV枠はコアの facts で常設しているため、CV ラベルが並んでも声優未発表キャラの正体は漏れない。
 private struct IdolHintRow: View {
     let label: String
     let nextValue: Int

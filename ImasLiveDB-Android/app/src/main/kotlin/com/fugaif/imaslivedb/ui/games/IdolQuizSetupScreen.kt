@@ -45,31 +45,44 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import uniffi.imas_core.idolQuizPoolEstimate
+import uniffi.imas_core.quizBrandIdsDecode
+import uniffi.imas_core.quizBrandIdsEncode
 
 data class IdolQuizSetupUiState(
     val brands: List<Brand> = emptyList(),
     val selectedBrandIds: Set<String> = emptySet(),
     val estimatedCount: Int = 0,
+    /** 4 択を組めるか。判定はコアが持つ (ゲーム本体と同じ母集団条件)。 */
+    val isSufficient: Boolean = false,
     val isEstimating: Boolean = true
 ) {
     /** 推計中は暫定的に許可して二重ロードを防ぐ。 */
-    val canStart: Boolean get() = isEstimating || estimatedCount >= 4
+    val canStart: Boolean get() = isEstimating || isSufficient
 }
 
 class IdolQuizSetupViewModel(app: Application) : AndroidViewModel(app) {
     private val idolRepository = AppModule.from(app).idolRepository
     private val brandDao = AppModule.from(app).database.brandDao()
+    private val snapshots = AppModule.from(app).snapshotStoreProvider
     private val prefs = app.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     private val _uiState = MutableStateFlow(
-        IdolQuizSetupUiState(selectedBrandIds = decodeBrandIds(prefs.getString(KEY_BRAND_IDS, "") ?: ""))
+        IdolQuizSetupUiState(selectedBrandIds = quizBrandIdsDecode(prefs.getString(KEY_BRAND_IDS, "") ?: "").toSet())
     )
     val uiState: StateFlow<IdolQuizSetupUiState> = _uiState.asStateFlow()
+
+    /**
+     * 現任 CV 名。ブランドを切り替えるたびに引き直さないよう 1 度だけ読む
+     * (母集団の条件に CV は効かないが、射影はゲーム本体と同じ 1 か所に通す)。
+     */
+    private var castNames: Map<String, String> = emptyMap()
 
     init {
         viewModelScope.launch {
             val brands = brandDao.fetchBrands()
             _uiState.value = _uiState.value.copy(brands = brands)
+            castNames = fetchIdolCastNames(snapshots)
             estimatePool()
         }
     }
@@ -78,7 +91,7 @@ class IdolQuizSetupViewModel(app: Application) : AndroidViewModel(app) {
         val current = _uiState.value.selectedBrandIds
         val updated = if (current.contains(id)) current - id else current + id
         _uiState.value = _uiState.value.copy(selectedBrandIds = updated)
-        prefs.edit().putString(KEY_BRAND_IDS, updated.sorted().joinToString(",")).apply()
+        prefs.edit().putString(KEY_BRAND_IDS, quizBrandIdsEncode(updated.toList())).apply()
         viewModelScope.launch { estimatePool() }
     }
 
@@ -88,18 +101,23 @@ class IdolQuizSetupViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { estimatePool() }
     }
 
+    /**
+     * 出題候補の見積り。母集団の条件 (外部ゲスト除外・メンバーカラー必須・
+     * プロフィール事実 3 件以上・ブランド絞り込み) はコアが持ち、ゲーム本体の
+     * [uniffi.imas_core.idolQuizSession] と同じ 1 関数を共有する。
+     * 別条件にすると「開始できるのに候補不足で始まる」ズレが出る。
+     */
     private suspend fun estimatePool() {
         _uiState.value = _uiState.value.copy(isEstimating = true)
         val selected = _uiState.value.selectedBrandIds
         val all = idolRepository.fetchIdols()
-        val count = all.count { idol ->
-            val brandMatch = selected.isEmpty() || selected.contains(idol.brandId)
-            idol.brandId != "other" && !idol.color.isNullOrEmpty() && brandMatch
-        }
-        _uiState.value = _uiState.value.copy(estimatedCount = count, isEstimating = false)
+        val estimate = idolQuizPoolEstimate(idolQuizRefs(all, castNames), selected.toList())
+        _uiState.value = _uiState.value.copy(
+            estimatedCount = estimate.count.toInt(),
+            isSufficient = estimate.isSufficient,
+            isEstimating = false
+        )
     }
-
-    private fun decodeBrandIds(raw: String): Set<String> = raw.split(",").filter { it.isNotEmpty() }.toSet()
 
     companion object {
         private const val PREFS_NAME = "quiz_setup_prefs"
@@ -139,7 +157,7 @@ fun IdolQuizSetupScreen(
             QuizSetupCountRow(isEstimating = state.isEstimating) {
                 Text("出題候補: ${state.estimatedCount} 名", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink)
             }
-            if (!state.isEstimating && state.estimatedCount < 4) {
+            if (!state.isEstimating && !state.isSufficient) {
                 QuizSetupInsufficientBanner("4 択を出すにはアイドルが最低 4 名必要です。ブランドの選択を増やしてください。")
             }
             QuizPrimaryButton(title = "スタート") { if (state.canStart) onStart(state.selectedBrandIds) }

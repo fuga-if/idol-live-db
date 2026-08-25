@@ -4,29 +4,59 @@ import SwiftUI
 // 4 択クイズ系 (アイドル当て / ソロ曲) の共通 UI 部品。
 // ヒント式の段階採点を中核に据える: 最初は最小の情報だけで出題し、ヒントを開くほど
 // 分かりやすくなる代わりに獲得点が下がる。進捗ヘッダ・選択肢・ヒント・結果を集約。
+//
+// 出題の生成・選択肢の作り方・採点・グレード判定・母集団の条件は imas-core の
+// `domain/quiz_generation.rs` が単独で持つ (iOS/Android で同じ規則を 2 度書かないため)。
+// ここに残すのは描画と、コアが返した値の見せ方だけ。
 // =============================================================================
 
-/// ヒント式採点の規則。1 問の満点は maxPoints、ヒントを 1 つ開くごとに 1 点ずつ上限が下がる。
-enum QuizScoring {
-    /// ノーヒント正解の満点。
-    static let maxPoints = 3
-    /// ヒントの最大数 (満点を 1 点まで下げられる本数)。
-    static var maxHints: Int { maxPoints - 1 }
-
-    /// revealed 個のヒントを開いた状態で正解したときの得点 (最低 1 点)。
-    static func points(revealed: Int) -> Int { max(1, maxPoints - revealed) }
-    /// 1 セッションの満点。
-    static func sessionMax(questions: Int) -> Int { questions * maxPoints }
+/// `Idol` → アイドル当てクイズの射影。出題設定画面の見積り (`idolQuizPoolEstimate`) と
+/// ゲーム本体 (`idolQuizSession`) が同じ母集団を見るよう、変換もこの 1 か所に置く。
+/// CV は `VoiceActorDirectory` (MainActor) から引くのでこの関数も MainActor。
+/// 誕生日は生の `--MM-DD` のまま渡す (「4月3日」への整形はコア側の規則)。
+@MainActor
+func idolQuizRefs(_ idols: [Idol]) -> [IdolQuizIdolRef] {
+    idols.map { idol in
+        IdolQuizIdolRef(
+            id: idol.id,
+            brandId: idol.brandId,
+            isExternal: idol.isExternal,
+            color: idol.color,
+            bloodType: idol.bloodType,
+            constellation: idol.constellation,
+            birthPlace: idol.birthPlace,
+            height: idol.height,
+            age: idol.age.map { Int32(clamping: $0) },
+            hobbies: idol.hobbies,
+            talents: idol.talents,
+            birthday: idol.birthday,
+            voiceActor: VoiceActorDirectory.shared.current(for: idol.id)
+        )
+    }
 }
 
-/// 4 択のディストラクタ (誤答候補) を 3 名選ぶ。同ブランドを優先し、足りなければ他ブランドで補う。
-/// アイドル当て / ソロ曲クイズで共通。
-func quizDistractors(from pool: [Idol], answer: Idol) -> [Idol] {
-    var distractors = pool.filter { $0.id != answer.id && $0.brandId == answer.brandId }.shuffled()
-    if distractors.count < 3 {
-        distractors += pool.filter { $0.id != answer.id && $0.brandId != answer.brandId }.shuffled()
+/// ソロ曲クイズに渡す `song_artists(role='original')` の行。ゲーム本体
+/// (`songSingerQuizSession`) と出題設定画面の見積り (`songSingerQuizPoolEstimate`) が
+/// 同じ母集団を見るよう、行の並べ方もここに置く。
+///
+/// 曲名かな順の `solos` の順に並べる (コアはこの並びをそのまま母集団の並びにする)。
+/// 1 曲に複数行あるまま渡すのが肝で、「原唱が単独の曲だけ出題する」判定はコアが行数で行う
+/// (ここで間引くと合唱曲が 1 人の曲に化ける)。同じ曲の中の並びは辞書順に固定する
+/// (`Set` の反復順は実行ごとに変わるが、どの行も落とされるので出題には影響しない)。
+func songQuizOriginalArtistRows(
+    solos: [SongWithArtists],
+    originalArtistIds: [String: Set<String>]
+) -> [SongQuizOriginalArtistRow] {
+    solos.flatMap { sw in
+        (originalArtistIds[sw.song.id] ?? []).sorted().map {
+            SongQuizOriginalArtistRow(songId: sw.song.id, idolId: $0)
+        }
     }
-    return Array(distractors.prefix(3))
+}
+
+/// `Idol` → ソロ曲クイズの選択肢に使う射影 (歌手当てなのでプロフィールは要らない)。
+func songQuizSingerRefs(_ idols: [Idol]) -> [SongQuizSingerRef] {
+    idols.map { SongQuizSingerRef(id: $0.id, brandId: $0.brandId, isExternal: $0.isExternal) }
 }
 
 /// 進捗バー + 累計ポイント。第 current/total 問と現在の獲得ポイントを表示。
@@ -64,13 +94,13 @@ struct QuizProgressHeader: View {
 }
 
 /// 正解で獲得できるポイントを示すバッジ。加点表現に統一 (減点語は使わない)。
+/// 点そのものはコアのヒント状態 (`currentValue`) が返した値を受け取る。
 struct QuizValueBadge: View {
-    let revealed: Int
+    let value: Int
     var body: some View {
-        let pts = QuizScoring.points(revealed: revealed)
         HStack(spacing: 5) {
             Image(systemName: "plus.circle.fill").font(.imasScaled( 11, weight: .bold))
-            Text("正解で +\(pts)pt").font(.imasCaption.weight(.bold))
+            Text("正解で +\(value)pt").font(.imasCaption.weight(.bold))
         }
         .foregroundStyle(DS.success)
         .padding(.horizontal, 11).padding(.vertical, 6)
@@ -171,6 +201,7 @@ struct QuizPrimaryButton: View {
 
 /// 解答後に出す「次の問題 / 結果を見る」ボタン。最終問なら結果へ、それ以外は次問へ進む。
 /// アイドル当て / ソロ曲クイズで共通 (どちらも同じ進行ロジック)。
+/// `isLastQuestion` はコアの解答結果 (`QuizAnswerOutcome`) が返した値をそのまま渡す。
 struct QuizNextButton: View {
     let isLastQuestion: Bool
     let onNext: () -> Void
@@ -189,8 +220,8 @@ struct IdolChoiceGrid: View {
     let choices: [Idol]
     let answer: Idol
     let selectedId: String?
-    /// 選択肢が押されたとき (正解なら isCorrect=true)。確定済みなら呼ばれない。
-    let onPick: (_ idol: Idol, _ isCorrect: Bool) -> Void
+    /// 選択肢が押されたとき。確定済みなら呼ばれない。
+    let onPick: (_ idol: Idol) -> Void
 
     var body: some View {
         LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: DS.sp3), count: 2), spacing: DS.sp3) {
@@ -202,7 +233,7 @@ struct IdolChoiceGrid: View {
                     avatar: { answered ? AnyView(IdolAvatarView(idol: idol, size: 34)) : nil }
                 ) {
                     guard selectedId == nil else { return }
-                    onPick(idol, isAnswer)
+                    onPick(idol)
                 }
             }
         }
@@ -224,64 +255,17 @@ struct QuizHistoryItem: Identifiable, Hashable {
     var isCorrect: Bool { picked?.id == answer.id }
 }
 
-/// アイドル当てクイズの「未公開プロフィール事実」1件。IdolQuizView (実際の出題・ヒント表示) と
-/// IdolQuizSetupView (出題候補数の見積り) の両方から参照する共通の型。
-struct IdolQuizFact {
-    let label: String
-    let value: String
-    let cost: Int
-}
-
-/// プロフィール事実を「曖昧 (絞り込みにくい) → 特定 (バレやすい)」の順で返す。
-/// 先頭が無料公開、後ろほど答えに近づく。CV は一気にバレるのでコストを重く (-2pt)。
-///
-/// IdolQuizView.load() の実絞り込みと IdolQuizSetupView.estimatePool() の見積りが
-/// 別々にこの判定を持つと、見積りでは開始可能でも実際は候補不足で
-/// 「出題できる候補が不足しています」に落ちるズレが起きるため、必ずこれを共有する。
-/// CV は VoiceActorDirectory (MainActor) から引くので、この関数も MainActor に置く。
-@MainActor
-func idolQuizFacts(for idol: Idol) -> [IdolQuizFact] {
-    var f: [IdolQuizFact] = []
-    // 曖昧グループ (該当者が多い)
-    if let bt = idol.bloodType, !bt.isEmpty { f.append(IdolQuizFact(label: "血液型", value: bt, cost: 1)) }
-    if let c = idol.constellation, !c.isEmpty { f.append(IdolQuizFact(label: "星座", value: c, cost: 1)) }
-    if let p = idol.birthPlace, !p.isEmpty { f.append(IdolQuizFact(label: "出身", value: p, cost: 1)) }
-    if let h = idol.heightDisplay { f.append(IdolQuizFact(label: "身長", value: h, cost: 1)) }
-    if let age = idol.age { f.append(IdolQuizFact(label: "年齢", value: "\(age)歳", cost: 1)) }
-    // 特定グループ (一気に絞れる)
-    if let h = idol.hobbies, !h.isEmpty { f.append(IdolQuizFact(label: "趣味", value: h, cost: 1)) }
-    if let t = idol.talents, !t.isEmpty { f.append(IdolQuizFact(label: "特技", value: t, cost: 1)) }
-    if let b = idol.birthdayDisplay, !b.isEmpty { f.append(IdolQuizFact(label: "誕生日", value: b, cost: 1)) }
-    // メンバーカラー・CV は一気にバレるのでコストを重く (-2pt)。
-    if let color = idol.color, !color.isEmpty { f.append(IdolQuizFact(label: "メンバーカラー", value: color, cost: 2)) }
-    // CV は常にスロットを出す。声優未発表キャラは開封で「未発表」と分かる
-    // (枠の有無で声優の有無が無料でバレるのを防ぐ)。
-    let cv = VoiceActorDirectory.shared.current(for: idol.id)
-    let cvValue = (cv?.isEmpty == false) ? cv! : "声優未発表"
-    f.append(IdolQuizFact(label: "CV", value: cvValue, cost: 2))
-    return f
-}
-
-/// アイドル当てクイズの出題対象として使えるか。外部人物除外・メンバーカラー必須に加えて
-/// facts が最低3件 (ヒントとして機能する数) 無いと出題に使えない。
-@MainActor
-func isIdolQuizEligible(_ idol: Idol, selectedBrandIds: Set<String>) -> Bool {
-    let brandMatch = selectedBrandIds.isEmpty || selectedBrandIds.contains(idol.brandId)
-    return !idol.isExternal && (idol.color?.isEmpty == false)
-        && idolQuizFacts(for: idol).count >= 3 && brandMatch
-}
-
 /// クイズのグレード (正答率ベース)。リザルトの主役。
-enum QuizGrade: String {
-    case s = "S", a = "A", b = "B", c = "C", d = "D"
-
-    static func from(rate: Int) -> QuizGrade {
-        switch rate {
-        case 95...: return .s
-        case 80...: return .a
-        case 60...: return .b
-        case 40...: return .c
-        default:    return .d
+/// 何 % で何グレードかの判定はコア (`QuizGrade::from_rate`) が持ち、ここは見せ方だけ。
+extension QuizGrade {
+    /// リング内とシェア文言に出す 1 文字。
+    var label: String {
+        switch self {
+        case .s: return "S"
+        case .a: return "A"
+        case .b: return "B"
+        case .c: return "C"
+        case .d: return "D"
         }
     }
 
@@ -298,13 +282,11 @@ enum QuizGrade: String {
 
 /// セッション終了時の結果画面。グレード・自己ベスト・新記録・出題履歴・シェアまで載せる。
 struct QuizResultView: View {
-    let points: Int
-    let maxPoints: Int
-    let correct: Int
-    let questions: Int
+    /// 今回のセッション結果 (点・満点・正解数・正答率・グレード)。コアが算出した値。
+    let result: QuizSessionResult
     /// どのゲームの結果か (自己ベスト参照・シェア文言用)。
     var kind: GameKind = .idolQuiz
-    /// 今回が自己ベスト更新だったか。
+    /// 今回が自己ベスト更新だったか (進捗ストアの記録時にコアが返した判定)。
     var isNewBest: Bool = false
     /// 各問の振り返り (空なら履歴セクション非表示)。
     var history: [QuizHistoryItem] = []
@@ -312,14 +294,15 @@ struct QuizResultView: View {
 
     @State private var appeared = false
 
-    private var rate: Int { maxPoints > 0 ? Int((Double(points) / Double(maxPoints) * 100).rounded()) : 0 }
-    private var grade: QuizGrade { .from(rate: rate) }
+    private var points: Int { Int(result.points) }
+    private var maxPoints: Int { Int(result.maxPoints) }
+    private var correct: Int { Int(result.correct) }
+    private var questions: Int { Int(result.questions) }
+    private var rate: Int { Int(result.ratePercent) }
+    private var grade: QuizGrade { result.grade }
 
-    private var bestRate: Int {
-        let rec = GameProgressStore.shared.record(for: kind)
-        guard rec.bestOutOf > 0 else { return rate }
-        return Int((Double(rec.bestScore) / Double(rec.bestOutOf) * 100).rounded())
-    }
+    /// 自己ベストは記録**後**の保存値から引く (記録が無い初回は今回の率で代用)。
+    private var bestRate: Int { GameProgressStore.shared.bestRatePercent(for: kind) ?? rate }
 
     private var comment: String {
         switch rate {
@@ -331,7 +314,7 @@ struct QuizResultView: View {
     }
 
     private var shareText: String {
-        "\(kind.displayName)で \(points)/\(maxPoints)pt・グレード\(grade.rawValue)（正解 \(correct)/\(questions)）でした！ #アイドルライブDB"
+        "\(kind.displayName)で \(points)/\(maxPoints)pt・グレード\(grade.label)（正解 \(correct)/\(questions)）でした！ #アイドルライブDB"
     }
 
     var body: some View {
@@ -342,7 +325,7 @@ struct QuizResultView: View {
             ZStack {
                 Circle().fill(grade.color.opacity(0.14)).frame(width: 116, height: 116)
                 Circle().strokeBorder(grade.color, lineWidth: 4).frame(width: 116, height: 116)
-                Text(grade.rawValue)
+                Text(grade.label)
                     .font(.imasDisplay(56, weight: .bold))
                     .foregroundStyle(grade.color)
             }

@@ -2,6 +2,10 @@ import SwiftUI
 
 /// ソロ曲クイズの出題設定画面。
 /// ブランドを絞り込んでからクイズを開始する。設定は AppStorage で次回起動まで保持する。
+///
+/// 候補数の見積りと「4 択を組めるか」の判定は imas-core の `domain/quiz_generation.rs` が
+/// ゲーム本体と共有する (曲数と歌手数の両方を見る条件が 1 か所にあるので、
+/// 「不足表示なのにゲームだけ始まって全問 2 択」というズレが起きない)。
 struct SongSingerQuizSetupView: View {
 
     /// 永続化: カンマ区切りブランドID文字列（空文字列 = 全ブランド）。
@@ -9,17 +13,16 @@ struct SongSingerQuizSetupView: View {
 
     @State private var brands: [Brand] = []
     @State private var selectedBrandIds: Set<String> = []
-    /// 推計: 対象範囲に含まれる (曲, 原唱アイドル) ペア数。
-    @State private var estimatedSongs: Int = 0
-    /// 推計: 対象範囲に含まれるユニーク歌手数（4 択を組める人数）。
-    @State private var estimatedSingers: Int = 0
+    /// 推計: 対象範囲の (曲, 原唱アイドル) ペア数とユニーク歌手数、4 択を組めるか
+    /// (コアがゲーム本体と同じ母集団条件で数えた結果)。
+    @State private var estimate = SongSingerQuizPoolEstimate(songCount: 0, singerCount: 0, isSufficient: false)
     @State private var isEstimating = false
     @State private var navigateToGame = false
 
-    /// 4 択を成立させるために必要な最低候補数。
-    private let minimumPool = 4
+    private var estimatedSongs: Int { Int(estimate.songCount) }
+    private var estimatedSingers: Int { Int(estimate.singerCount) }
 
-    private var canStart: Bool { isEstimating || (estimatedSongs >= minimumPool && estimatedSingers >= minimumPool) }
+    private var canStart: Bool { isEstimating || estimate.isSufficient }
 
     var body: some View {
         ScrollView {
@@ -193,7 +196,8 @@ struct SongSingerQuizSetupView: View {
     // MARK: - Data
 
     /// 選択ブランドで絞り込んだときの (曲, 原唱歌手) ペア数とユニーク歌手数を計算する。
-    /// SongSingerQuizView.load() と同じクエリを実行する。
+    /// SongSingerQuizView.load() と同じクエリを実行し、絞り込み (単一原唱・外部演者除外・
+    /// ブランド一致) はコアの母集団条件に任せる。
     private func estimatePool() async {
         isEstimating = true
         defer { isEstimating = false }
@@ -208,27 +212,20 @@ struct SongSingerQuizSetupView: View {
         )) ?? [:]
         let allIdolIds = Set(origMap.values.flatMap { $0 })
         let idols = (try? await AppContainer.shared.idolReading.idols(ids: Array(allIdolIds))) ?? []
-        let idolById = Dictionary(uniqueKeysWithValues: idols.map { ($0.id, $0) })
 
-        // 単一原唱・外部でない・ブランドマッチのみ残す
-        let pairs: [(song: Song, singer: Idol)] = solos.compactMap { sw in
-            guard let ids = origMap[sw.song.id], ids.count == 1,
-                  let singer = idolById[ids.first!], !singer.isExternal else { return nil }
-            guard selectedBrandIds.isEmpty || selectedBrandIds.contains(singer.brandId) else { return nil }
-            return (sw.song, singer)
-        }
-
-        estimatedSongs = pairs.count
-        estimatedSingers = Set(pairs.map(\.singer.id)).count
+        estimate = songSingerQuizPoolEstimate(
+            rows: songQuizOriginalArtistRows(solos: solos, originalArtistIds: origMap),
+            singers: songQuizSingerRefs(idols),
+            selectedBrandIds: Array(selectedBrandIds))
     }
 
     // MARK: - Helpers
 
     private func decodeBrandIds(_ raw: String) -> Set<String> {
-        Set(raw.split(separator: ",").map(String.init).filter { !$0.isEmpty })
+        Set(quizBrandIdsDecode(raw: raw))
     }
 
     private func encodeBrandIds(_ ids: Set<String>) -> String {
-        ids.sorted().joined(separator: ",")
+        quizBrandIdsEncode(brandIds: Array(ids))
     }
 }

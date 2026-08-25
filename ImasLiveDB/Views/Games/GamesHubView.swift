@@ -94,12 +94,14 @@ struct GamesHubView: View {
     }
 
     /// 最高記録の表示文字列。色合わせは正答率%、クイズ系は獲得ポイント。
+    /// 正答率は保存値から引く計算なのでコア (game_progress) に委譲する
+    /// (記録が無ければ nil が返るので「—」を出す)。
     private func bestLabel(_ kind: GameKind, _ rec: GameRecord) -> String {
-        guard rec.bestOutOf > 0 else { return "—" }
         if kind.scoreIsPercent {
-            let pct = Int((Double(rec.bestScore) / Double(rec.bestOutOf) * 100).rounded())
+            guard let pct = progress.bestRatePercent(for: kind) else { return "—" }
             return "最高 \(pct)%"
         }
+        guard rec.bestOutOf > 0 else { return "—" }
         return "最高 \(rec.bestScore)pt"
     }
 

@@ -2,6 +2,10 @@ import SwiftUI
 
 /// アイドル当てクイズの出題設定画面。
 /// ブランドを絞り込んでからクイズを開始する。設定は AppStorage で次回起動まで保持する。
+///
+/// 候補数の見積りと「4 択を組めるか」の判定は imas-core の `domain/quiz_generation.rs` が
+/// ゲーム本体と共有する (別条件にすると「開始できるのに候補不足」というズレが起きる)。
+/// 保存文字列とブランド id 列の変換規則もコア側。
 struct IdolQuizSetupView: View {
 
     /// 永続化: カンマ区切りブランドID文字列（空文字列 = 全ブランド）。
@@ -9,15 +13,15 @@ struct IdolQuizSetupView: View {
 
     @State private var brands: [Brand] = []
     @State private var selectedBrandIds: Set<String> = []
-    @State private var estimatedCount: Int = 0
+    /// 出題候補数と「4 択を組めるか」(コアが同じ母集団条件で数えた結果)。
+    @State private var estimate = IdolQuizPoolEstimate(count: 0, isSufficient: false)
     @State private var isEstimating = false
     @State private var navigateToGame = false
 
-    /// 4 択を成立させるために必要な最低アイドル数。
-    private let minimumPool = 4
+    private var estimatedCount: Int { Int(estimate.count) }
 
     /// スタート可能かどうか（推計中は暫定的に許可して二重ロードを防ぐ）。
-    private var canStart: Bool { isEstimating || estimatedCount >= minimumPool }
+    private var canStart: Bool { isEstimating || estimate.isSufficient }
 
     var body: some View {
         ScrollView {
@@ -25,7 +29,7 @@ struct IdolQuizSetupView: View {
                 headerCard
                 brandSection
                 countRow
-                if !isEstimating && estimatedCount < minimumPool {
+                if !isEstimating && !estimate.isSufficient {
                     insufficientBanner
                 }
                 Spacer().frame(height: DS.sp3)
@@ -190,24 +194,24 @@ struct IdolQuizSetupView: View {
     // MARK: - Data
 
     /// 選択ブランドで絞り込んだときの出題候補アイドル数を計算する。
-    /// IdolQuizView.load() と同じ isIdolQuizEligible(_:selectedBrandIds:) (QuizComponents.swift) を
-    /// 使うことで、ここでの見積りと実際の出題プールを完全一致させる。
+    /// IdolQuizView の出題生成 (`idolQuizSession`) と同じ母集団条件をコアが持つので、
+    /// ここでの見積りと実際の出題プールは必ず一致する
     /// (以前は facts (プロフィール事実3件以上) チェックを省いた近似値だったため、
-    /// 見積り上は開始可能でも実際は候補不足で始まってしまうことがあった)
+    /// 見積り上は開始可能でも実際は候補不足で始まってしまうことがあった)。
     private func estimatePool() async {
         isEstimating = true
         defer { isEstimating = false }
         let all = (try? await AppContainer.shared.idolReading.idols(brandId: nil)) ?? []
-        estimatedCount = all.filter { isIdolQuizEligible($0, selectedBrandIds: selectedBrandIds) }.count
+        estimate = idolQuizPoolEstimate(idols: idolQuizRefs(all), selectedBrandIds: Array(selectedBrandIds))
     }
 
     // MARK: - Helpers
 
     private func decodeBrandIds(_ raw: String) -> Set<String> {
-        Set(raw.split(separator: ",").map(String.init).filter { !$0.isEmpty })
+        Set(quizBrandIdsDecode(raw: raw))
     }
 
     private func encodeBrandIds(_ ids: Set<String>) -> String {
-        ids.sorted().joined(separator: ",")
+        quizBrandIdsEncode(brandIds: Array(ids))
     }
 }

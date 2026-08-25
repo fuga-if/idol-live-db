@@ -7,6 +7,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import org.json.JSONObject
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import uniffi.imas_core.GameProgressUpdate
+import uniffi.imas_core.GameRecord
+import uniffi.imas_core.GameStreakState
+import uniffi.imas_core.gameProgressApplyResult
+import uniffi.imas_core.gameProgressDisplayStreak
 
 /** ハブが束ねるゲームの識別子。name は永続キー兼用なので変更しない。iOS GameKind の移植。 */
 enum class GameKind(val displayName: String, val scoreIsPercent: Boolean) {
@@ -16,27 +21,33 @@ enum class GameKind(val displayName: String, val scoreIsPercent: Boolean) {
     colorMatch("カラーマッチ", true)
 }
 
-/** 1 ゲーム分の記録。 */
-data class GameRecord(
-    val lastScore: Int = 0,
-    val lastOutOf: Int = 0,
-    val bestScore: Int = 0,
-    val bestOutOf: Int = 0,
-    val playCount: Int = 0
-) {
-    val hasPlayed: Boolean get() = playCount > 0
-}
+/**
+ * 未プレイの初期値。保存値の型は imas-core の [GameRecord] そのもの
+ * (uniffi 生成なので Kotlin の既定引数を持てず、初期値をここで名付ける)。
+ */
+fun emptyGameRecord(): GameRecord =
+    GameRecord(lastScore = 0, lastOutOf = 0, bestScore = 0, bestOutOf = 0, playCount = 0)
 
-/** 連続デイリー達成日数の状態。 */
-data class StreakState(
-    val streak: Int = 0,
-    val totalDays: Int = 0,
-    val lastClearedDay: String? = null
-)
+/** 未達成の初期値。理由は [emptyGameRecord] と同じ。 */
+private fun emptyStreakState(): GameStreakState =
+    GameStreakState(streak = 0, totalDays = 0, lastClearedDay = null)
+
+/**
+ * 1 度でも遊んだか。コアの `GameRecord::has_played` と同じ規則だが、
+ * 述語 1 行のために FFI 面を増やさず Kotlin 側の拡張として持つ。
+ */
+val GameRecord.hasPlayed: Boolean get() = playCount > 0
 
 /**
  * ゲーム横断のローカル進捗ストア (SharedPreferences)。iOS GameProgressStore の移植。
- * 各ゲームの直近/最高スコア・プレイ回数、デイリーチャレンジのストリークを記録する。
+ *
+ * 保存の実体 (キー `game_records_v1` / `game_streak_v1` の JSON) だけがここの責務で、
+ * **更新規則は imas-core の `domain::game_progress`** が持つ。ストアは
+ * 「読む → コアに渡す → 返ってきた値を書く」に痩せている。
+ *
+ * 日付は端末ローカル日 (`yyyy-MM-dd`) の文字列でコアへ渡す。連続達成の単位は
+ * 「そのユーザーの 1 日」なので、公演日の比較に使う JST 固定の
+ * [com.fugaif.imaslivedb.data.model.JstDay] とは意味が違い、統合してはいけない。
  */
 class GameProgressStore(context: Context) {
 
@@ -46,45 +57,37 @@ class GameProgressStore(context: Context) {
     val records: StateFlow<Map<GameKind, GameRecord>> = _records.asStateFlow()
 
     private val _streak = MutableStateFlow(loadStreak())
-    val streak: StateFlow<StreakState> = _streak.asStateFlow()
+    val streak: StateFlow<GameStreakState> = _streak.asStateFlow()
 
-    fun record(kind: GameKind): GameRecord = _records.value[kind] ?: GameRecord()
+    fun record(kind: GameKind): GameRecord = _records.value[kind] ?: emptyGameRecord()
 
     /** ストリークが「今日途切れていないか」。表示用 (今日/昨日までクリアなら継続扱い)。 */
     val displayStreak: Int
-        get() {
-            val s = _streak.value
-            val last = s.lastClearedDay ?: return 0
-            return if (last == today() || last == yesterday()) s.streak else 0
-        }
+        get() = gameProgressDisplayStreak(_streak.value, today(), yesterday())
 
-    /** ゲーム結果を記録する。score/outOf は「獲得点 / 満点」。デイリー達成とストリークも同時更新。 */
-    fun recordResult(kind: GameKind, score: Int, outOf: Int) {
-        if (outOf <= 0) return
-        val current = record(kind)
-        val newRate = score.toDouble() / outOf
-        val bestRate = if (current.bestOutOf > 0) current.bestScore.toDouble() / current.bestOutOf else -1.0
-        val isNewBest = newRate > bestRate
-        val updated = current.copy(
-            lastScore = score,
-            lastOutOf = outOf,
-            playCount = current.playCount + 1,
-            bestScore = if (isNewBest) score else current.bestScore,
-            bestOutOf = if (isNewBest) outOf else current.bestOutOf
+    /**
+     * ゲーム結果を記録する。score/outOf は「獲得点 / 満点」。
+     *
+     * 「自己ベストを更新したか」は best を上書きする**前**に判定する必要があり、その順序ごと
+     * コアの 1 呼び出しに畳んである。結果画面のバッジは戻り値の `isNewBest` を使うこと
+     * (画面側で判定し直すと順序を崩した瞬間に恒久的に出なくなる)。
+     */
+    fun recordResult(kind: GameKind, score: Int, outOf: Int): GameProgressUpdate {
+        val update = gameProgressApplyResult(
+            record = record(kind),
+            streak = _streak.value,
+            score = score,
+            outOf = outOf,
+            todayKey = today(),
+            yesterdayKey = yesterday()
         )
-        _records.value = _records.value + (kind to updated)
+        // 記録として成立しない回 (出題 0 問) は record/streak が入力と同値なので保存を省く。
+        if (!update.didRecord) return update
+        _records.value = _records.value + (kind to update.record)
         saveRecords(_records.value)
-        registerDailyClear()
-    }
-
-    private fun registerDailyClear() {
-        val s = _streak.value
-        val t = today()
-        if (s.lastClearedDay == t) return // 1 日 1 回だけカウント
-        val newStreak = if (s.lastClearedDay == yesterday()) s.streak + 1 else 1
-        val updated = StreakState(streak = newStreak, totalDays = s.totalDays + 1, lastClearedDay = t)
-        _streak.value = updated
-        saveStreak(updated)
+        _streak.value = update.streak
+        saveStreak(update.streak)
+        return update
     }
 
     // MARK: - 永続化
@@ -123,21 +126,21 @@ class GameProgressStore(context: Context) {
         prefs.edit().putString(KEY_RECORDS, json.toString()).apply()
     }
 
-    private fun loadStreak(): StreakState {
-        val raw = prefs.getString(KEY_STREAK, null) ?: return StreakState()
+    private fun loadStreak(): GameStreakState {
+        val raw = prefs.getString(KEY_STREAK, null) ?: return emptyStreakState()
         return try {
             val o = JSONObject(raw)
-            StreakState(
+            GameStreakState(
                 streak = o.optInt("streak"),
                 totalDays = o.optInt("totalDays"),
                 lastClearedDay = o.optString("lastClearedDay").ifEmpty { null }
             )
         } catch (e: Exception) {
-            StreakState()
+            emptyStreakState()
         }
     }
 
-    private fun saveStreak(s: StreakState) {
+    private fun saveStreak(s: GameStreakState) {
         val json = JSONObject().apply {
             put("streak", s.streak)
             put("totalDays", s.totalDays)

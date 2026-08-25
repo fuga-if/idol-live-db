@@ -49,13 +49,14 @@ struct ImasLiveDBApp: App {
             // アプデ後の初回起動で未読のお知らせがあれば、新機能としてお知らせを開く。
             _launchSheet = State(initialValue: .announcements)
         } else {
-            let today = DailyPick.dayKey()
-            if UserDefaults.standard.string(forKey: Self.dailyVoteKey) != today {
-                UserDefaults.standard.set(today, forKey: Self.dailyVoteKey)
-                _launchSheet = State(initialValue: .dailyVote)
-            } else {
-                _launchSheet = State(initialValue: nil)
-            }
+            // 「今日はもう出したか」の判定はコア (game_progress) が持つ。リセットの単位は
+            // 連続達成日数と同じ端末ローカル日なので、日付キーも `DailyPick` から渡す。
+            let gate = gameProgressDailySheetGate(
+                lastShownDay: UserDefaults.standard.string(forKey: Self.dailyVoteKey),
+                todayKey: DailyPick.dayKey())
+            // 出す/出さないに関わらず今日を書き戻す (書き忘れで同じ日に何度も出るのを防ぐ)。
+            UserDefaults.standard.set(gate.lastShownDay, forKey: Self.dailyVoteKey)
+            _launchSheet = State(initialValue: gate.shouldShow ? .dailyVote : nil)
         }
     }
 

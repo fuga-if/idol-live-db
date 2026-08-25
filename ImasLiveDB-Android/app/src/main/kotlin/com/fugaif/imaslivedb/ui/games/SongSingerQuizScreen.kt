@@ -44,67 +44,69 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fugaif.imaslivedb.data.games.GameKind
 import com.fugaif.imaslivedb.data.model.Idol
+import com.fugaif.imaslivedb.data.model.SoloOriginalSingerRow
 import com.fugaif.imaslivedb.data.model.Song
-import com.fugaif.imaslivedb.data.repository.IdolRepository
-import com.fugaif.imaslivedb.data.repository.SongRepository
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.player.AudioPreviewManager
 import com.fugaif.imaslivedb.ui.components.ArtworkImage
 import com.fugaif.imaslivedb.ui.components.ImasAvatar
 import com.fugaif.imaslivedb.ui.components.ImasEmptyState
 import com.fugaif.imaslivedb.ui.theme.DS
+import kotlin.random.Random
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import uniffi.imas_core.QuizSessionResult
+import uniffi.imas_core.QuizTally
+import uniffi.imas_core.SongQuizHintKind
+import uniffi.imas_core.SongQuizOriginalArtistRow
+import uniffi.imas_core.SongQuizSingerRef
+import uniffi.imas_core.SongSingerQuizHintState
+import uniffi.imas_core.gameProgressBestRatePercent
+import uniffi.imas_core.songSingerQuizAnswer
+import uniffi.imas_core.songSingerQuizHintState
+import uniffi.imas_core.songSingerQuizSession
+import uniffi.imas_core.songSingerQuizSessionResult
 
 // =============================================================================
 // ソロ曲クイズ (ヒント式段階採点)。iOS SongSingerQuizView の移植。
-// 最初は「曲名だけ」で出題し、ヒントを開くほど手がかりが増える代わりに獲得点が下がる:
-// 曲名だけで正解=3pt / ジャケットを見る=2pt / プレビュー再生=1pt。
+// 最初は「曲名だけ」で出題し、ヒントを開くほど手がかりが増える代わりに獲得点が下がる。
+//
+// 母集団 (原唱が単独のソロ曲・外部ゲストや対象外ブランドの除外)、出題抽選、
+// 開示段階ごとの点数はすべて imas-core の `domain::quiz_generation` が持つ。
+// ここに残すのは Compose の描画・音声再生・シード調達・index → 実体の解決だけ。
 // =============================================================================
 
-private const val SESSION_LENGTH = 10
-
+/** コアが返した 1 問を、画面が描ける形 (Song / Idol 実体) に解決したもの。 */
 data class SongQuestion(val song: Song, val answer: Idol, val choices: List<Idol>)
 
-/** ソロ曲 (song_type='solo') と原唱歌手の対応 (原唱が単独の曲のみ、外部/対象外ブランドを除く)。 */
-suspend fun resolveSoloSingerPairs(
-    idolRepository: IdolRepository,
-    songRepository: SongRepository,
-    selectedBrandIds: Set<String>
-): List<Pair<Song, Idol>> {
-    val rows = songRepository.fetchSoloOriginalSingers()
-    val singleSingerBySong = rows.groupBy { it.songId }.filterValues { it.size == 1 }.mapValues { it.value.first().idolId }
-    if (singleSingerBySong.isEmpty()) return emptyList()
+/** 4 択に使うアイドルの射影 (歌手当てなのでプロフィールは要らない)。 */
+internal fun Idol.toSongQuizSingerRef(): SongQuizSingerRef =
+    SongQuizSingerRef(id = id, brandId = brandId, isExternal = isExternal)
 
-    val idolById = idolRepository.fetchIdols().associateBy { it.id }
-    val songIds = singleSingerBySong.keys.toList()
-    val songById = songRepository.fetchSongsByIds(songIds).associateBy { it.id }
-
-    return singleSingerBySong.mapNotNull { (songId, idolId) ->
-        val song = songById[songId] ?: return@mapNotNull null
-        val singer = idolById[idolId] ?: return@mapNotNull null
-        if (singer.brandId == "other") return@mapNotNull null
-        if (selectedBrandIds.isNotEmpty() && !selectedBrandIds.contains(singer.brandId)) return@mapNotNull null
-        song to singer
-    }
-}
+/** `song_artists(role='original')` のソロ曲ぶん 1 行。 */
+internal fun SoloOriginalSingerRow.toSongQuizRow(): SongQuizOriginalArtistRow =
+    SongQuizOriginalArtistRow(songId = songId, idolId = idolId)
 
 data class SongSingerQuizUiState(
     val isLoading: Boolean = true,
-    val pool: List<Pair<Song, Idol>> = emptyList(),
-    val idolPool: List<Idol> = emptyList(),
-    val question: SongQuestion? = null,
+    val questions: List<SongQuestion> = emptyList(),
+    val index: Int = 0,
     val selectedId: String? = null,
+    /** 0=曲名のみ / 1=ジャケット / 2=プレビュー。 */
     val revealed: Int = 0,
-    val points: Int = 0,
-    val correct: Int = 0,
-    val asked: Int = 0,
+    /** 開示範囲・次のヒント・いまの獲得点。コアが返す。 */
+    val hintState: SongSingerQuizHintState? = null,
+    val tally: QuizTally = QuizTally(asked = 0u, correct = 0u, points = 0u),
+    val isLastQuestion: Boolean = false,
     val history: List<QuizHistoryItem> = emptyList(),
-    val sessionDone: Boolean = false,
-    val isNewBest: Boolean = false
-)
+    val result: QuizSessionResult? = null,
+    val isNewBest: Boolean = false,
+    val bestRatePercent: Int = 0
+) {
+    val question: SongQuestion? get() = questions.getOrNull(index)
+}
 
 class SongSingerQuizViewModel(app: Application, private val selectedBrandIds: Set<String>) : AndroidViewModel(app) {
     private val idolRepository = AppModule.from(app).idolRepository
@@ -114,38 +116,64 @@ class SongSingerQuizViewModel(app: Application, private val selectedBrandIds: Se
     private val _uiState = MutableStateFlow(SongSingerQuizUiState())
     val uiState: StateFlow<SongSingerQuizUiState> = _uiState.asStateFlow()
 
-    private var seenSongIds: Set<String> = emptySet()
+    /** 出題生成に渡した並び。コアが返す index はこの配列を指す。 */
+    private var singers: List<Idol> = emptyList()
+    private var rows: List<SoloOriginalSingerRow> = emptyList()
 
     init {
         viewModelScope.launch {
-            val pool = resolveSoloSingerPairs(idolRepository, songRepository, selectedBrandIds)
-            val idolPool = pool.map { it.second }.distinctBy { it.id }
-            _uiState.value = _uiState.value.copy(
-                isLoading = false, pool = pool, idolPool = idolPool, question = makeQuestion(pool, idolPool)
+            singers = idolRepository.fetchIdols()
+            rows = songRepository.fetchSoloOriginalSingers()
+            _uiState.value = withHintState(
+                SongSingerQuizUiState(isLoading = false, questions = makeSession())
             )
         }
     }
 
-    private fun makeQuestion(pool: List<Pair<Song, Idol>>, idolPool: List<Idol>): SongQuestion? {
-        if (pool.size < 4) return null
-        var candidates = pool.filter { !seenSongIds.contains(it.first.id) }
-        if (candidates.isEmpty()) {
-            seenSongIds = emptySet()
-            candidates = pool
+    /** 1 ゲーム分 (全 [QUIZ_SESSION_LENGTH] 問) をまとめて生成する。候補不足なら空。 */
+    private suspend fun makeSession(): List<SongQuestion> {
+        val questions = songSingerQuizSession(
+            rows = rows.map { it.toSongQuizRow() },
+            singers = singers.map { it.toSongQuizSingerRef() },
+            selectedBrandIds = selectedBrandIds.toList(),
+            // シードの調達だけがラッパの責務 (抽選そのものはコアの SplitMix64)。
+            seed = Random.Default.nextLong().toULong()
+        )
+        if (questions.isEmpty()) return emptyList()
+        // 曲の実体は出題が決まってから 1 回でまとめて引く (問題ごとに DB を叩かない)。
+        val songById = songRepository.fetchSongsByIds(questions.map { it.songId }.distinct()).associateBy { it.id }
+        return questions.mapNotNull { q ->
+            val song = songById[q.songId] ?: return@mapNotNull null
+            SongQuestion(
+                song = song,
+                answer = singers[q.answer.toInt()],
+                choices = q.choices.map { singers[it.toInt()] }
+            )
         }
-        val entry = candidates.randomOrNull() ?: return null
-        seenSongIds = seenSongIds + entry.first.id
-        val answer = entry.second
-        val choices = (quizDistractors(idolPool, answer) + answer).shuffled()
-        return SongQuestion(entry.first, answer, choices)
     }
 
-    fun revealArtwork() { _uiState.value = _uiState.value.copy(revealed = 1) }
+    /** 開示状態を引き直す。ヒント開封・解答・次問のたびに 1 回だけ呼ぶ。 */
+    private fun withHintState(state: SongSingerQuizUiState): SongSingerQuizUiState {
+        val q = state.question ?: return state.copy(hintState = null)
+        return state.copy(
+            hintState = songSingerQuizHintState(
+                revealed = state.revealed.toUInt(),
+                hasPreview = !q.song.previewUrl.isNullOrEmpty(),
+                answered = state.selectedId != null
+            )
+        )
+    }
+
+    fun revealArtwork() {
+        _uiState.value = withHintState(_uiState.value.copy(revealed = 1))
+    }
+
     fun revealPreview() {
         val s = _uiState.value
-        _uiState.value = s.copy(revealed = 2)
-        s.question?.song?.previewUrl?.takeIf { it.isNotEmpty() }?.let {
-            AudioPreviewManager.togglePreview(it, s.question.song.title)
+        val song = s.question?.song ?: return
+        _uiState.value = withHintState(s.copy(revealed = 2))
+        song.previewUrl?.takeIf { it.isNotEmpty() }?.let {
+            AudioPreviewManager.togglePreview(it, song.title)
         }
     }
 
@@ -154,44 +182,58 @@ class SongSingerQuizViewModel(app: Application, private val selectedBrandIds: Se
         val q = s.question ?: return
         if (s.selectedId != null) return
         AudioPreviewManager.stop()
-        val isCorrect = idol.id == q.answer.id
-        val earned = if (isCorrect) QuizScoring.points(s.revealed) else 0
-        val history = s.history + QuizHistoryItem(
-            id = "${s.asked + 1}-${q.song.id}", index = s.asked + 1,
-            subjectTitle = q.song.title, subjectSubtitle = q.song.cdTitle,
-            answer = q.answer, picked = idol, earnedPoints = earned, revealedHints = s.revealed
+        val outcome = songSingerQuizAnswer(
+            revealed = s.revealed.toUInt(),
+            pickedIdolId = idol.id,
+            answerIdolId = q.answer.id,
+            before = s.tally
         )
-        _uiState.value = s.copy(
-            selectedId = idol.id, asked = s.asked + 1,
-            correct = s.correct + if (isCorrect) 1 else 0,
-            points = s.points + earned, history = history
+        val history = s.history + QuizHistoryItem(
+            id = "${outcome.tally.asked}-${q.song.id}",
+            index = outcome.tally.asked.toInt(),
+            subjectTitle = q.song.title, subjectSubtitle = q.song.cdTitle,
+            answer = q.answer, picked = idol,
+            earnedPoints = outcome.earnedPoints.toInt(),
+            revealedHints = outcome.revealedHints.toInt()
+        )
+        _uiState.value = withHintState(
+            s.copy(
+                selectedId = idol.id,
+                tally = outcome.tally,
+                isLastQuestion = outcome.isLastQuestion,
+                history = history
+            )
         )
     }
 
     fun nextQuestion() {
         AudioPreviewManager.stop()
         val s = _uiState.value
-        _uiState.value = s.copy(selectedId = null, revealed = 0, question = makeQuestion(s.pool, s.idolPool))
+        _uiState.value = withHintState(s.copy(index = s.index + 1, selectedId = null, revealed = 0))
     }
 
     fun finish() {
         val s = _uiState.value
-        val outOf = QuizScoring.sessionMax(s.asked)
-        val before = progressStore.record(GameKind.songSingerQuiz)
-        val beforeRate = if (before.bestOutOf > 0) before.bestScore.toDouble() / before.bestOutOf else -1.0
-        val newRate = if (outOf > 0) s.points.toDouble() / outOf else 0.0
-        val isNewBest = before.hasPlayed && newRate > beforeRate
-        _uiState.value = s.copy(sessionDone = true, isNewBest = isNewBest)
-        progressStore.recordResult(GameKind.songSingerQuiz, score = s.points, outOf = outOf)
+        val result = songSingerQuizSessionResult(s.tally)
+        // 保存 → 保存後の記録から自己ベスト率を読む、の順で組む (更新判定は保存側の担当)。
+        val update = progressStore.recordResult(
+            GameKind.songSingerQuiz, score = result.points.toInt(), outOf = result.outOf.toInt()
+        )
+        _uiState.value = s.copy(
+            result = result,
+            isNewBest = update.isNewBest,
+            // まだ記録が無ければ今回の率で代用する。
+            bestRatePercent = gameProgressBestRatePercent(update.record) ?: result.ratePercent.toInt()
+        )
     }
 
     fun restart() {
         AudioPreviewManager.stop()
-        val s = _uiState.value
-        seenSongIds = emptySet()
-        _uiState.value = SongSingerQuizUiState(
-            isLoading = false, pool = s.pool, idolPool = s.idolPool, question = makeQuestion(s.pool, s.idolPool)
-        )
+        viewModelScope.launch {
+            _uiState.value = withHintState(
+                SongSingerQuizUiState(isLoading = false, questions = makeSession())
+            )
+        }
     }
 
     class Factory(private val app: Application, private val selectedBrandIds: Set<String>) : ViewModelProvider.Factory {
@@ -214,6 +256,9 @@ fun SongSingerQuizScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     DisposableEffect(Unit) { onDispose { AudioPreviewManager.stop() } }
+    val question = state.question
+    val hintState = state.hintState
+    val result = state.result
 
     Scaffold(
         topBar = {
@@ -229,24 +274,23 @@ fun SongSingerQuizScreen(
         ) {
             when {
                 state.isLoading -> Box(Modifier.fillMaxWidth().padding(top = 60.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
-                state.sessionDone -> QuizResultView(
-                    points = state.points, maxPoints = QuizScoring.sessionMax(state.asked),
-                    correct = state.correct, questions = state.asked, kind = GameKind.songSingerQuiz,
-                    isNewBest = state.isNewBest, history = state.history, onReplay = { viewModel.restart() }
+                result != null -> QuizResultView(
+                    result = result, kind = GameKind.songSingerQuiz,
+                    isNewBest = state.isNewBest, bestRate = state.bestRatePercent,
+                    history = state.history, onReplay = { viewModel.restart() }
                 )
-                state.question != null -> {
-                    val q = state.question!!
+                question != null && hintState != null -> {
                     QuizProgressHeader(
-                        current = minOf(state.asked + if (state.selectedId != null) 0 else 1, SESSION_LENGTH),
-                        total = SESSION_LENGTH, points = state.points
+                        current = minOf(state.tally.asked.toInt() + if (state.selectedId != null) 0 else 1, QUIZ_SESSION_LENGTH),
+                        total = QUIZ_SESSION_LENGTH, points = state.tally.points.toInt()
                     )
-                    SongCard(q, state)
-                    if (state.selectedId == null) SongHintArea(q, state, viewModel)
-                    IdolChoiceGrid(choices = q.choices, answer = q.answer, selectedId = state.selectedId) { idol, _ ->
+                    SongCard(question, hintState, answered = state.selectedId != null)
+                    if (state.selectedId == null) SongHintArea(hintState, viewModel)
+                    IdolChoiceGrid(choices = question.choices, answer = question.answer, selectedId = state.selectedId) { idol, _ ->
                         viewModel.pick(idol)
                     }
                     if (state.selectedId != null) {
-                        QuizNextButton(isLastQuestion = state.asked >= SESSION_LENGTH, onNext = { viewModel.nextQuestion() }, onFinish = { viewModel.finish() })
+                        QuizNextButton(isLastQuestion = state.isLastQuestion, onNext = { viewModel.nextQuestion() }, onFinish = { viewModel.finish() })
                     }
                 }
                 else -> ImasEmptyState(icon = Icons.Filled.MusicNote, title = "出題できるソロ曲が不足しています")
@@ -256,19 +300,17 @@ fun SongSingerQuizScreen(
 }
 
 @Composable
-private fun SongCard(q: SongQuestion, state: SongSingerQuizUiState) {
-    val answered = state.selectedId != null
-    val showArtwork = answered || state.revealed >= 1
+private fun SongCard(q: SongQuestion, hintState: SongSingerQuizHintState, answered: Boolean) {
     Column(
         modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(DS.surface).padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        if (!answered) QuizValueBadge(revealed = state.revealed)
-        if (showArtwork) {
+        if (!answered) QuizValueBadge(points = hintState.currentValue.toInt())
+        if (hintState.showArtwork) {
             ArtworkImage(
                 url = q.song.artworkUrl, size = 132.dp,
-                previewUrl = if (answered || state.revealed >= 2) q.song.previewUrl else null,
+                previewUrl = if (hintState.canPreview) q.song.previewUrl else null,
                 songTitle = q.song.title
             )
         } else {
@@ -289,14 +331,15 @@ private fun SongCard(q: SongQuestion, state: SongSingerQuizUiState) {
 }
 
 @Composable
-private fun SongHintArea(q: SongQuestion, state: SongSingerQuizUiState, viewModel: SongSingerQuizViewModel) {
-    val hasPreview = !q.song.previewUrl.isNullOrEmpty()
-    when {
-        state.revealed == 0 -> QuizHintButton(
-            icon = Icons.Filled.Photo, title = "ヒント: ジャケットを見る", nextValue = QuizScoring.points(1)
+private fun SongHintArea(hintState: SongSingerQuizHintState, viewModel: SongSingerQuizViewModel) {
+    // 次に開けるヒント (段階と、開いた後の獲得点) はコアが決める。
+    val hint = hintState.nextHint ?: return
+    when (hint.kind) {
+        SongQuizHintKind.ARTWORK -> QuizHintButton(
+            icon = Icons.Filled.Photo, title = "ヒント: ジャケットを見る", nextValue = hint.nextValue.toInt()
         ) { viewModel.revealArtwork() }
-        state.revealed == 1 && hasPreview -> QuizHintButton(
-            icon = Icons.Filled.PlayCircle, title = "ヒント: プレビューを再生する", nextValue = QuizScoring.points(2)
+        SongQuizHintKind.PREVIEW -> QuizHintButton(
+            icon = Icons.Filled.PlayCircle, title = "ヒント: プレビューを再生する", nextValue = hint.nextValue.toInt()
         ) { viewModel.revealPreview() }
     }
 }

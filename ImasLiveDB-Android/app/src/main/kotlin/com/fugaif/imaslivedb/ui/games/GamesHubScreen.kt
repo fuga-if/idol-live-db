@@ -42,9 +42,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.fugaif.imaslivedb.data.games.GameKind
-import com.fugaif.imaslivedb.data.games.GameRecord
+import com.fugaif.imaslivedb.data.games.emptyGameRecord
+import com.fugaif.imaslivedb.data.games.hasPlayed
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.theme.DS
+import uniffi.imas_core.GameRecord
+import uniffi.imas_core.gameProgressBestRatePercent
 
 /**
  * クイズ・ゲームのハブ。プロデュース → 「ゲーム」から遷移。
@@ -106,7 +109,7 @@ fun GamesHubScreen(
                 items(entries, key = { it.kind.name }) { entry ->
                     GameCard(
                         entry = entry,
-                        record = records[entry.kind] ?: GameRecord()
+                        record = records[entry.kind] ?: emptyGameRecord()
                     ) {
                         when (entry.kind) {
                             GameKind.introDon -> onNavigateToIntroDon()
@@ -164,12 +167,11 @@ private fun ScoreLine(kind: GameKind, rec: GameRecord) {
     }
 }
 
-/** 最高記録の表示文字列。色合わせは正答率%、クイズ系は獲得ポイント。 */
+/**
+ * 最高記録の表示文字列。色合わせは正答率%、クイズ系は獲得ポイント。
+ * 正答率の算出 (と「まだ記録が無い」の判定) はコアが持つので、ここでは文言に落とすだけ。
+ */
 private fun bestLabel(kind: GameKind, rec: GameRecord): String {
-    if (rec.bestOutOf <= 0) return "—"
-    if (kind.scoreIsPercent) {
-        val pct = Math.round((rec.bestScore.toDouble() / rec.bestOutOf) * 100)
-        return "最高 ${pct}%"
-    }
-    return "最高 ${rec.bestScore}pt"
+    val bestRate = gameProgressBestRatePercent(rec) ?: return "—"
+    return if (kind.scoreIsPercent) "最高 ${bestRate}%" else "最高 ${rec.bestScore}pt"
 }

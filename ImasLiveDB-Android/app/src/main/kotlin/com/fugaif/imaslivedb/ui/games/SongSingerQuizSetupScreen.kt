@@ -37,15 +37,20 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import uniffi.imas_core.quizBrandIdsDecode
+import uniffi.imas_core.quizBrandIdsEncode
+import uniffi.imas_core.songSingerQuizPoolEstimate
 
 data class SongSingerQuizSetupUiState(
     val brands: List<Brand> = emptyList(),
     val selectedBrandIds: Set<String> = emptySet(),
     val estimatedSongs: Int = 0,
     val estimatedSingers: Int = 0,
+    /** 4 択を組めるか (曲数と歌手数の両方が必要)。判定はコアが持つ。 */
+    val isSufficient: Boolean = false,
     val isEstimating: Boolean = true
 ) {
-    val canStart: Boolean get() = isEstimating || (estimatedSongs >= 4 && estimatedSingers >= 4)
+    val canStart: Boolean get() = isEstimating || isSufficient
 }
 
 class SongSingerQuizSetupViewModel(app: Application) : AndroidViewModel(app) {
@@ -55,7 +60,9 @@ class SongSingerQuizSetupViewModel(app: Application) : AndroidViewModel(app) {
     private val prefs = app.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     private val _uiState = MutableStateFlow(
-        SongSingerQuizSetupUiState(selectedBrandIds = decodeBrandIds(prefs.getString(KEY_BRAND_IDS, "") ?: ""))
+        SongSingerQuizSetupUiState(
+            selectedBrandIds = quizBrandIdsDecode(prefs.getString(KEY_BRAND_IDS, "") ?: "").toSet()
+        )
     )
     val uiState: StateFlow<SongSingerQuizSetupUiState> = _uiState.asStateFlow()
 
@@ -71,7 +78,7 @@ class SongSingerQuizSetupViewModel(app: Application) : AndroidViewModel(app) {
         val current = _uiState.value.selectedBrandIds
         val updated = if (current.contains(id)) current - id else current + id
         _uiState.value = _uiState.value.copy(selectedBrandIds = updated)
-        prefs.edit().putString(KEY_BRAND_IDS, updated.sorted().joinToString(",")).apply()
+        prefs.edit().putString(KEY_BRAND_IDS, quizBrandIdsEncode(updated.toList())).apply()
         viewModelScope.launch { estimatePool() }
     }
 
@@ -81,17 +88,27 @@ class SongSingerQuizSetupViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { estimatePool() }
     }
 
+    /**
+     * 出題候補の見積り。母集団の条件 (原唱が単独のソロ曲だけ・外部ゲストと対象外ブランドの
+     * 除外) はコアが持ち、ゲーム本体の [uniffi.imas_core.songSingerQuizSession] と同じ
+     * 判定を共有する。別条件にすると「不足表示なのに始まって全問 2 択」が起きる。
+     */
     private suspend fun estimatePool() {
         _uiState.value = _uiState.value.copy(isEstimating = true)
-        val pairs = resolveSoloSingerPairs(idolRepository, songRepository, _uiState.value.selectedBrandIds)
+        val rows = songRepository.fetchSoloOriginalSingers()
+        val singers = idolRepository.fetchIdols()
+        val estimate = songSingerQuizPoolEstimate(
+            rows = rows.map { it.toSongQuizRow() },
+            singers = singers.map { it.toSongQuizSingerRef() },
+            selectedBrandIds = _uiState.value.selectedBrandIds.toList()
+        )
         _uiState.value = _uiState.value.copy(
-            estimatedSongs = pairs.size,
-            estimatedSingers = pairs.map { it.second.id }.toSet().size,
+            estimatedSongs = estimate.songCount.toInt(),
+            estimatedSingers = estimate.singerCount.toInt(),
+            isSufficient = estimate.isSufficient,
             isEstimating = false
         )
     }
-
-    private fun decodeBrandIds(raw: String): Set<String> = raw.split(",").filter { it.isNotEmpty() }.toSet()
 
     companion object {
         private const val PREFS_NAME = "quiz_setup_prefs"

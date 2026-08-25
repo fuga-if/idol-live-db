@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -36,8 +35,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -55,31 +52,61 @@ import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.components.ImasAvatar
 import com.fugaif.imaslivedb.ui.components.ImasSegmented
-import com.fugaif.imaslivedb.ui.theme.ColorMath
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.hexToColor
+import kotlin.random.Random
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlin.random.Random
+import uniffi.imas_core.ColorMatchAssignment
+import uniffi.imas_core.ColorMatchBrandRef
+import uniffi.imas_core.ColorMatchDifficulty
+import uniffi.imas_core.ColorMatchIdol
+import uniffi.imas_core.ColorMatchIdolSource
+import uniffi.imas_core.ColorMatchJudgement
+import uniffi.imas_core.ColorMatchPools
+import uniffi.imas_core.ColorMatchRound
+import uniffi.imas_core.colorMatchAccuracyPercent
+import uniffi.imas_core.colorMatchBuildPools
+import uniffi.imas_core.colorMatchEffectivePool
+import uniffi.imas_core.colorMatchJudgeRound
+import uniffi.imas_core.colorMatchStartGame
 
 // =============================================================================
 // メンバーカラー合わせ。iOS ColorMatchGameView の移植。
 // ドラッグ&ドロップの代わりに「色チップをタップで選択 → メンバー行をタップで割当」方式のみ提供
 // (iOS 側もタップ割当を併存させているため、機能的な等価性は保たれる)。
+//
+// 母集団の決定 (外部ゲスト・対象外ブランド・色の重複の除外)、難易度ごとの出題、
+// 色の一致判定・正答率は imas-core の `domain::color_match` が持つ。
+// ここに残すのは Compose の描画とシードの調達、id → Idol の解決だけ。
 // =============================================================================
 
 private val LEVEL_LABELS = listOf("やさしい", "ふつう", "むずい")
-private val LEVEL_COUNTS = listOf(4, 5, 6)
 private val QUESTION_COUNT_OPTIONS = listOf(5, 10)
+
+/**
+ * 「はじめる」を許す最小の母集団人数。コア `domain::color_match::MIN_POOL_SIZE` と同値だが、
+ * 定数 1 個のために FFI 面を増やさないのでここに写している (増減はコアに追従させる)。
+ */
+private const val MIN_POOL_SIZE = 2
+
+/** UI の難易度セグメント (0/1/2) → コアの難易度。並び順で対応する。 */
+private fun difficultyOf(segment: Int): ColorMatchDifficulty =
+    ColorMatchDifficulty.entries.getOrElse(segment) { ColorMatchDifficulty.NORMAL }
 
 data class ColorMatchUiState(
     val isLoading: Boolean = true,
+    /** 出題ブランドとして選べるブランド (コアの selectable_brand_ids 順)。 */
     val brands: List<Brand> = emptyList(),
-    val brandPools: List<Pair<Brand, List<Idol>>> = emptyList(),
-    val allColored: List<Idol> = emptyList(),
+    /** 出題可能ブランド (4 人以上) の短縮名。ブランド跨ぎの行に添える。 */
+    val brandShortNames: Map<String, String> = emptyMap(),
+    /** 出題メンバー (id と色だけ) から名前などを引くための索引。 */
+    val idolsById: Map<String, Idol> = emptyMap(),
     val selectedBrandIds: Set<String> = emptySet(),
+    /** 現在の出題母集団の人数 (「はじめる」の可否判定に使う)。 */
+    val poolSize: Int = 0,
     val difficulty: Int = 1,
     val questionCount: Int = 5,
     val inGame: Boolean = false,
@@ -87,42 +114,19 @@ data class ColorMatchUiState(
     val roundIndex: Int = 0,
     val totalCorrect: Int = 0,
     val totalAnswered: Int = 0,
-    val members: List<Idol> = emptyList(),
-    val palette: List<String> = emptyList(),
+    /** 1 ゲーム分の出題。開始操作 1 回でまとめて生成する。 */
+    val rounds: List<ColorMatchRound> = emptyList(),
     val assignments: Map<String, String> = emptyMap(),
     val selectedHex: String? = null,
-    val judged: Boolean = false
+    /** 答え合わせ結果 (未判定は null)。行の正誤も正解色の表示文字列もここに入っている。 */
+    val judgement: ColorMatchJudgement? = null
 ) {
-    val effectivePool: List<Idol>
-        get() = if (selectedBrandIds.isEmpty()) {
-            allColored
-        } else {
-            uniqueByColor(brandPools.filter { selectedBrandIds.contains(it.first.id) }.flatMap { it.second })
-        }
+    val round: ColorMatchRound? get() = rounds.getOrNull(roundIndex)
+    val members: List<ColorMatchIdol> get() = round?.members ?: emptyList()
+    val palette: List<String> get() = round?.palette ?: emptyList()
+    val judged: Boolean get() = judgement != null
+    val canStart: Boolean get() = poolSize >= MIN_POOL_SIZE
     val isCrossBrand: Boolean get() = selectedBrandIds.size != 1
-}
-
-private fun uniqueByColor(idols: List<Idol>): List<Idol> {
-    val seen = HashSet<String>()
-    val result = mutableListOf<Idol>()
-    for (idol in idols) {
-        val hex = ColorMath.normalizedHex(idol.color ?: "") ?: continue
-        if (!seen.add(hex)) continue
-        result.add(idol)
-    }
-    return result
-}
-
-private fun colorDistance(a: String?, b: String?): Double {
-    if (a == null || b == null) return Double.MAX_VALUE
-    if (ColorMath.normalizedHex(a) == null || ColorMath.normalizedHex(b) == null) return Double.MAX_VALUE
-    val x = ColorMath.hexToRgb(a)
-    val y = ColorMath.hexToRgb(b)
-    val rmean = (x.r + y.r) / 2
-    val dr = x.r - y.r
-    val dg = x.g - y.g
-    val db = x.b - y.b
-    return ((2 + rmean / 256) * dr * dr) + (4 * dg * dg) + ((2 + (255 - rmean) / 256) * db * db)
 }
 
 class ColorMatchViewModel(app: Application) : AndroidViewModel(app) {
@@ -133,26 +137,45 @@ class ColorMatchViewModel(app: Application) : AndroidViewModel(app) {
     private val _uiState = MutableStateFlow(ColorMatchUiState())
     val uiState: StateFlow<ColorMatchUiState> = _uiState.asStateFlow()
 
+    /** 画面ロード時に 1 回だけ組む母集団一式 (ブランド切替のたびに引き直す元)。 */
+    private var pools: ColorMatchPools? = null
+    private var pool: List<ColorMatchIdol> = emptyList()
+
     init { load() }
 
     private fun load() {
         viewModelScope.launch {
             val all = idolRepository.fetchIdols()
             val allBrands = brandDao.fetchBrands()
-            val brandById = allBrands.associateBy { it.id }
-            val brands = allBrands.filter { it.id != "other" }
-            val colored = all.filter { it.brandId != "other" && !it.color.isNullOrEmpty() }
-            val allColored = uniqueByColor(colored)
-            val byBrand = colored.groupBy { it.brandId }
-            val brandPools = byBrand.mapNotNull { (brandId, list) ->
-                val brand = brandById[brandId] ?: return@mapNotNull null
-                val uniq = uniqueByColor(list.sortedBy { it.sortOrder })
-                if (uniq.size >= 4) brand to uniq else null
-            }.sortedBy { it.first.sortOrder }
-            _uiState.value = _uiState.value.copy(
-                isLoading = false, brands = brands, brandPools = brandPools, allColored = allColored
+            val built = colorMatchBuildPools(
+                idols = all.map {
+                    ColorMatchIdolSource(
+                        id = it.id, brandId = it.brandId, color = it.color,
+                        isExternal = it.isExternal, sortOrder = it.sortOrder
+                    )
+                },
+                brands = allBrands.map { ColorMatchBrandRef(id = it.id, sortOrder = it.sortOrder) }
             )
+            pools = built
+            val brandById = allBrands.associateBy { it.id }
+            _uiState.value = _uiState.value.copy(
+                isLoading = false,
+                brands = built.selectableBrandIds.mapNotNull { brandById[it] },
+                // 短縮名を引けるのは「出題可能ブランド」だけ (原本と同じ範囲)。
+                brandShortNames = built.brandPools.mapNotNull { p ->
+                    brandById[p.brandId]?.let { p.brandId to it.shortName }
+                }.toMap(),
+                idolsById = all.associateBy { it.id }
+            )
+            refreshPool()
         }
+    }
+
+    /** 出題母集団を引き直す。ブランド選択が変わったときだけ呼ぶ (描画ごとに呼ばない)。 */
+    private fun refreshPool() {
+        val built = pools ?: return
+        pool = colorMatchEffectivePool(built, _uiState.value.selectedBrandIds.toList())
+        _uiState.value = _uiState.value.copy(poolSize = pool.size)
     }
 
     fun toggleBrand(id: String) {
@@ -160,51 +183,36 @@ class ColorMatchViewModel(app: Application) : AndroidViewModel(app) {
         _uiState.value = _uiState.value.copy(
             selectedBrandIds = if (current.contains(id)) current - id else current + id
         )
+        refreshPool()
     }
 
-    fun clearBrands() { _uiState.value = _uiState.value.copy(selectedBrandIds = emptySet()) }
+    fun clearBrands() {
+        _uiState.value = _uiState.value.copy(selectedBrandIds = emptySet())
+        refreshPool()
+    }
+
     fun setDifficulty(d: Int) { _uiState.value = _uiState.value.copy(difficulty = d) }
     fun setQuestionCount(n: Int) { _uiState.value = _uiState.value.copy(questionCount = n) }
 
     fun startSession() {
-        val pool = _uiState.value.effectivePool
-        if (pool.size < 2) return
-        _uiState.value = _uiState.value.copy(
-            roundIndex = 0, totalCorrect = 0, totalAnswered = 0, sessionDone = false, inGame = true
+        val s = _uiState.value
+        if (pool.size < MIN_POOL_SIZE) return
+        // 全問まとめて生成する (問題ごとに FFI を呼ばない)。シードの調達だけがここの責務。
+        val rounds = colorMatchStartGame(
+            pool = pool,
+            difficulty = difficultyOf(s.difficulty),
+            questionCount = s.questionCount.toUInt(),
+            seed = Random.Default.nextLong().toULong()
         )
-        startRound(pool)
+        _uiState.value = s.copy(
+            rounds = rounds, roundIndex = 0, totalCorrect = 0, totalAnswered = 0,
+            sessionDone = false, inGame = true,
+            assignments = emptyMap(), selectedHex = null, judgement = null
+        )
     }
 
     fun resetToSetup() {
         _uiState.value = _uiState.value.copy(inGame = false, sessionDone = false)
-    }
-
-    private fun startRound(scopePool: List<Idol>) {
-        val s = _uiState.value
-        val n = minOf(LEVEL_COUNTS[s.difficulty], scopePool.size)
-        if (n < 2 || scopePool.isEmpty()) {
-            _uiState.value = s.copy(members = emptyList(), palette = emptyList(), judged = false, assignments = emptyMap(), selectedHex = null)
-            return
-        }
-        val anchor = scopePool[Random.nextInt(scopePool.size)]
-        val rest = scopePool.filter { it.id != anchor.id }
-        val chosen: List<Idol> = when (s.difficulty) {
-            2 -> listOf(anchor) + rest.sortedBy { colorDistance(anchor.color, it.color) }.take(n - 1)
-            0 -> {
-                val result = mutableListOf(anchor)
-                var left = rest
-                while (result.size < n && left.isNotEmpty()) {
-                    val best = left.maxByOrNull { candidate -> result.minOf { colorDistance(candidate.color, it.color) } }!!
-                    result.add(best)
-                    left = left.filter { it.id != best.id }
-                }
-                result
-            }
-            else -> listOf(anchor) + rest.shuffled().take(n - 1)
-        }
-        val members = chosen.shuffled()
-        val palette = members.map { it.color ?: "" }.shuffled()
-        _uiState.value = s.copy(members = members, palette = palette, assignments = emptyMap(), selectedHex = null, judged = false)
     }
 
     fun selectHex(hex: String) {
@@ -227,34 +235,29 @@ class ColorMatchViewModel(app: Application) : AndroidViewModel(app) {
 
     fun judge() {
         val s = _uiState.value
-        val correctCount = scoreCount(s)
-        _uiState.value = s.copy(
-            judged = true,
-            totalCorrect = s.totalCorrect + correctCount,
-            totalAnswered = s.totalAnswered + s.members.size
+        val judgement = colorMatchJudgeRound(
+            members = s.members,
+            assignments = s.assignments.map { (idolId, hex) -> ColorMatchAssignment(idolId = idolId, hex = hex) }
         )
-    }
-
-    private fun scoreCount(s: ColorMatchUiState): Int =
-        s.members.count { idol -> s.assignments[idol.id]?.let { sameColor(it, idol.color) } == true }
-
-    private fun sameColor(a: String, b: String?): Boolean {
-        if (b == null) return false
-        return ColorMath.normalizedHex(a) == ColorMath.normalizedHex(b)
+        _uiState.value = s.copy(
+            judgement = judgement,
+            totalCorrect = s.totalCorrect + judgement.score.toInt(),
+            totalAnswered = s.totalAnswered + judgement.outOf.toInt()
+        )
     }
 
     fun advance() {
         val s = _uiState.value
         if (s.roundIndex + 1 < s.questionCount) {
-            _uiState.value = s.copy(roundIndex = s.roundIndex + 1)
-            startRound(s.effectivePool)
+            _uiState.value = s.copy(
+                roundIndex = s.roundIndex + 1,
+                assignments = emptyMap(), selectedHex = null, judgement = null
+            )
         } else {
             _uiState.value = s.copy(sessionDone = true)
             progressStore.recordResult(GameKind.colorMatch, score = s.totalCorrect, outOf = s.totalAnswered)
         }
     }
-
-    fun scoreCountPublic(): Int = scoreCount(_uiState.value)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -314,8 +317,7 @@ private fun ColorMatchSetup(state: ColorMatchUiState, viewModel: ColorMatchViewM
             onToggle = { viewModel.toggleBrand(it) }, onClearAll = { viewModel.clearBrands() }
         )
     }
-    val canStart = state.effectivePool.size >= 2
-    QuizPrimaryButton(title = "はじめる（全${state.questionCount}問）") { if (canStart) viewModel.startSession() }
+    QuizPrimaryButton(title = "はじめる（全${state.questionCount}問）") { if (state.canStart) viewModel.startSession() }
 }
 
 @Composable
@@ -342,9 +344,10 @@ private fun ColorMatchPlay(state: ColorMatchUiState, viewModel: ColorMatchViewMo
     ColorMatchPaletteRow(state, viewModel)
     ColorMatchMemberList(state, viewModel)
 
-    if (state.judged) {
+    val judgement = state.judgement
+    if (judgement != null) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-            Text("${viewModel.scoreCountPublic()} / ${state.members.size} 正解", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = DS.ink)
+            Text("${judgement.score} / ${judgement.outOf} 正解", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = DS.ink)
             QuizPrimaryButton(
                 title = if (state.roundIndex + 1 < state.questionCount) "次へ（第${state.roundIndex + 2}問）" else "結果を見る"
             ) { viewModel.advance() }
@@ -394,17 +397,20 @@ private fun ColorMatchMemberList(state: ColorMatchUiState, viewModel: ColorMatch
         modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(DS.surface),
         verticalArrangement = Arrangement.spacedBy(0.dp)
     ) {
-        state.members.forEachIndexed { idx, idol ->
+        state.members.forEachIndexed { idx, member ->
             if (idx > 0) Box(Modifier.fillMaxWidth().height(1.dp).background(DS.sep).padding(start = 16.dp))
-            ColorMatchMemberRow(idol, state, viewModel)
+            ColorMatchMemberRow(member, idx, state, viewModel)
         }
     }
 }
 
 @Composable
-private fun ColorMatchMemberRow(idol: Idol, state: ColorMatchUiState, viewModel: ColorMatchViewModel) {
-    val assigned = state.assignments[idol.id]
-    val correct = state.judged && assigned != null && ColorMath.normalizedHex(assigned) == ColorMath.normalizedHex(idol.color ?: "")
+private fun ColorMatchMemberRow(member: ColorMatchIdol, position: Int, state: ColorMatchUiState, viewModel: ColorMatchViewModel) {
+    val idol = state.idolsById[member.id]
+    val assigned = state.assignments[member.id]
+    // 行の正誤も正解色の表示文字列も判定結果に同梱されている (行ごとに FFI を呼ばない)。
+    val correct = state.judgement?.correct?.getOrNull(position) == true
+    val correctHexLabel = state.judgement?.correctHexLabels?.getOrNull(position)
     val ring = when {
         state.judged -> if (correct) DS.success else DS.danger
         else -> Color.White.copy(alpha = 0.4f)
@@ -412,24 +418,25 @@ private fun ColorMatchMemberRow(idol: Idol, state: ColorMatchUiState, viewModel:
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { viewModel.onMemberTap(idol.id) }
+            .clickable { viewModel.onMemberTap(member.id) }
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        ImasAvatar(label = idol.name, seed = null, size = 44.dp)
+        val name = idol?.name ?: member.id
+        ImasAvatar(label = name, seed = null, size = 44.dp)
         Column(Modifier.weight(1f)) {
-            Text(idol.name, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink)
+            Text(name, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink)
             if (state.isCrossBrand) {
-                state.brandPools.firstOrNull { it.first.id == idol.brandId }?.let {
-                    Text(it.first.shortName, fontSize = 12.sp, color = DS.ink3)
+                idol?.brandId?.let { state.brandShortNames[it] }?.let {
+                    Text(it, fontSize = 12.sp, color = DS.ink3)
                 }
             }
-            if (state.judged) {
+            if (correctHexLabel != null) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                     Text(if (correct) "メンバーカラー" else "正解", fontSize = 12.sp, color = DS.ink3)
-                    Box(Modifier.size(12.dp).clip(CircleShape).background(hexToColor(idol.color ?: "")).border(0.5.dp, DS.sep, CircleShape))
-                    Text("#${ColorMath.normalizedHex(idol.color ?: "")?.uppercase() ?: "??????"}", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = DS.ink2)
+                    Box(Modifier.size(12.dp).clip(CircleShape).background(hexToColor(member.color ?: "")).border(0.5.dp, DS.sep, CircleShape))
+                    Text(correctHexLabel, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = DS.ink2)
                 }
             }
         }
@@ -451,7 +458,7 @@ private fun ColorMatchMemberRow(idol: Idol, state: ColorMatchUiState, viewModel:
 
 @Composable
 private fun ColorMatchResult(state: ColorMatchUiState, onReplay: () -> Unit, onChangeSetup: () -> Unit) {
-    val rate = if (state.totalAnswered > 0) Math.round((state.totalCorrect.toDouble() / state.totalAnswered) * 100).toInt() else 0
+    val rate = colorMatchAccuracyPercent(state.totalCorrect.toUInt(), state.totalAnswered.toUInt()).toInt()
     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth().padding(top = 30.dp)) {
         Icon(
             if (rate >= 80) Icons.Filled.EmojiEvents else Icons.Filled.Verified,
