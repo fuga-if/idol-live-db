@@ -179,50 +179,15 @@ extension AppDatabase {
 
     // MARK: - CloudKit Sync Delete Methods
 
-    /// recordType ごとの (table 名, PK カラム) マップ。
-    /// 複合 PK の場合 recordName は "{table}-{pk1}-{pk2}" 形式 (seed_cloudkit.py の make_record_name と一致)。
-    private static func tableInfo(for recordType: String) -> (table: String, pkColumns: [String])? {
-        switch recordType {
-        case "Brand":            return ("brands", ["id"])
-        case "Idol":             return ("idols", ["id"])
-        case "Event":            return ("events", ["id"])
-        case "ImasUnit":         return ("units", ["id"])
-        case "Show":             return ("shows", ["id"])
-        case "Venue":            return ("venues", ["id"])
-        case "VenueName":        return ("venue_names", ["id"])
-        case "VenueHall":        return ("venue_halls", ["id"])
-        case "Song":             return ("songs", ["id"])
-        case "SongCall":         return ("song_calls", ["id"])
-        case "SongVideo":        return ("song_videos", ["id"])
-        case "SetlistItem":      return ("setlist_items", ["id"])
-        case "IdolBrand":        return ("idol_brands", ["idol_id", "brand_id"])
-        case "UnitMember":       return ("unit_members", ["unit_id", "idol_id"])
-        case "SongArtist":       return ("song_artists", ["song_id", "idol_id", "role"])
-        case "ShowCast":         return ("show_cast", ["show_id", "idol_id"])
-        case "SetlistPerformer": return ("setlist_performers", ["setlist_item_id", "idol_id"])
-        // CastMember / IdolCast は廃止 (idol.voiceActors に統合)。 sync 対象外。
-        default:                 return nil
-        }
-    }
-
-    /// composite PK テーブルの recordName "{table}-{v1}-{v2}" をパースして PK 値配列を返す。
-    /// table 名や PK 値に "-" が含まれてもよいよう、prefix と pk count から逆算する。
-    private static func parseCompositeRecordName(_ recordName: String, table: String, pkCount: Int) -> [String]? {
-        let prefix = "\(table)-"
-        guard recordName.hasPrefix(prefix) else { return nil }
-        let body = String(recordName.dropFirst(prefix.count))
-        // pkCount-1 個の "-" で分割。table 名以降に最大 pkCount 個の値があるが、値内 "-" 許容のため
-        // 「最初の n-1 個の '-' で前から split + 残りは最後の値」でなく、
-        // 「最後の n-1 個の '-' で後ろから split」する方が安全。idol/cast id 末尾に "-" は通常ないが念のため。
-        let parts = body.split(separator: "-", maxSplits: pkCount - 1, omittingEmptySubsequences: false).map(String.init)
-        guard parts.count == pkCount else { return nil }
-        return parts
-    }
-
     /// soft delete: CloudKit の deletedAt 付きレコードをローカルDBから物理削除する。
     /// 単一 PK は ids = [recordName] 直接、複合 PK は recordName を split して WHERE col1=? AND col2=? で削除。
+    ///
+    /// recordType → (table 名, PK カラム) の対応と、複合 PK の recordName
+    /// "{table}-{pk1}-{pk2}" (seed_cloudkit.py の make_record_name と一致) の分解規則は
+    /// imas-core (Rust) の `domain/sync_planning.rs`。DELETE 文の組み立てだけ Swift に残す
+    /// (SQL 方言と GRDB の引数バインドは OS 側の責務)。
     func deleteRecords(recordType: String, ids: [String]) throws {
-        guard !ids.isEmpty, let info = Self.tableInfo(for: recordType) else { return }
+        guard !ids.isEmpty, let info = syncTableInfo(recordType: recordType) else { return }
         try dbQueue.write { db in
             if info.pkColumns.count == 1 {
                 let placeholders = ids.map { _ in "?" }.joined(separator: ", ")
@@ -234,7 +199,11 @@ extension AppDatabase {
                 // 複合 PK: recordName を分解
                 let whereClause = info.pkColumns.map { "\($0) = ?" }.joined(separator: " AND ")
                 for recordName in ids {
-                    guard let parts = Self.parseCompositeRecordName(recordName, table: info.table, pkCount: info.pkColumns.count) else { continue }
+                    guard let parts = syncParseCompositeRecordName(
+                        recordName: recordName,
+                        table: info.table,
+                        pkCount: UInt32(info.pkColumns.count)
+                    ) else { continue }
                     try db.execute(
                         sql: "DELETE FROM \(info.table) WHERE \(whereClause)",
                         arguments: StatementArguments(parts)
@@ -246,16 +215,20 @@ extension AppDatabase {
 
     /// orphan 削除: fullSync 時に CloudKit に存在しない ID をローカルDBから削除する (safety net)
     /// validIds が空の場合は何もしない（全件削除を防ぐため）
+    ///
+    /// 「掃除してよい recordType か」「どの ID が孤児か」の判定は共有コア
+    /// (`domain/sync_planning.rs`)。取得 0 件でローカルを全消去しない安全弁もそちら側。
     func deleteOrphans(recordType: String, validIds: Set<String>) throws {
-        guard !validIds.isEmpty, let info = Self.tableInfo(for: recordType) else { return }
+        guard !validIds.isEmpty, let info = syncTableInfo(recordType: recordType) else { return }
         // 複合 PK テーブル (song_artists 等) には単一の "id" 列が無く `SELECT id FROM ...` が
         // 例外を投げるため、単一 PK テーブルのみ対象にするガード。
-        guard info.pkColumns == ["id"] else { return }
+        guard syncSupportsOrphanCleanup(recordType: recordType) else { return }
         let table = info.table
+        let valid = Array(validIds)
         try dbQueue.write { db in
             // ローカルの全 ID を取得して差分を計算
             let localIds = try String.fetchAll(db, sql: "SELECT id FROM \(table)")
-            let orphanIds = localIds.filter { !validIds.contains($0) }
+            let orphanIds = syncOrphanIds(localIds: localIds, validIds: valid)
             guard !orphanIds.isEmpty else { return }
             let placeholders = orphanIds.map { _ in "?" }.joined(separator: ", ")
             try db.execute(

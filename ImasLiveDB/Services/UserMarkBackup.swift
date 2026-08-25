@@ -10,6 +10,15 @@ import OSLog
 ///   消したり上書きしたりは一切しない。よって「アプリをバックグラウンド↔復帰」しても
 ///   ローカルのマークが消えることはない。
 /// - KVS は端末間で自動同期し、アプリ削除後も iCloud 上に残る (= 機種変でも復元可)。
+///
+/// **共有コアに委譲していない理由** (docs/SHARED_CORE_STUDY.md §4-B1 の線引き):
+/// このクラスに残っているのは iCloud KVS という **iOS 専用 transport の入出力だけ**で、
+/// 判定も集計も持っていない。ミラーの中身は `[UserMark]` をそのまま `JSONEncoder` に
+/// 通した端末内部形式で、`BackupExportImportService` の envelope (iOS/Android 共通契約・
+/// checksum つき) とは別物。共有コア (`domain/backup_summary.rs`) が扱うのは後者だけなので、
+/// ここを載せ替えると KVS に既に載っている過去のバックアップが読めなくなる。
+/// 「ローカルに無い行だけ足す」非破壊マージの本体は `AppDatabase.restoreUserMarksIfAbsent`
+/// (SQLite の存在確認) で、これも OS 側に残す判断。
 @MainActor
 final class UserMarkBackup {
     static let shared = UserMarkBackup()

@@ -1,62 +1,68 @@
-import Foundation
 import CloudKit
+import Foundation
 
+/// CloudKit のレコードをローカル DB のモデルに変換する。
+///
+/// 変換規則の本体は imas-core (Rust) の `domain/ck_record_mapping.rs`。
+/// 「必須キーが欠けた 1 件だけ捨てる」「任意項目は型違いなら既定値へ倒す」
+/// 「`songs` に列を足したら読み落とすと同期のたび NULL 上書きされる」といった判断と、
+/// その境界 (空文字 id・小数の Int64・未知の castRole 等) はそちらでテスト済み。
+///
+/// **通信はここにも共有コアにも無い。** CKQuery・カーソル・リトライ・チェックポイントは
+/// `CloudKitSyncEngine` に残す (docs/SHARED_CORE_STUDY.md §4-B1: CloudKit の transport は
+/// iOS が CloudKit.framework、Android が Web Services で非対称なので共有しない)。
+/// ここが担うのは 2 つの橋渡しだけ:
+/// 1. `CKRecord` → 射影 (`CkRecordInput` = キーと 5 種の値) — CloudKit のネイティブ型を
+///    共有コアが読める形に潰す。Android は同じ 5 種を JSON の `type` から作る。
+/// 2. 返ってきた行 (`CkRow`) → GRDB のモデル。
 enum CKRecordMapper {
 
     // MARK: - Core Entities
 
     static func brand(from record: CKRecord) -> Brand? {
-        let id = record["id"] as? String ?? record.recordID.recordName
-        guard !id.isEmpty else { return nil }
-        let name = record["name"] as? String ?? ""
-        guard !name.isEmpty else { return nil }
-        let color = validatedHex(record["color"] as? String)
+        guard case .brand(let row)? = mapped(record, as: "Brand") else { return nil }
         return Brand(
-            id: id,
-            name: name,
-            shortName: record["shortName"] as? String ?? "",
-            color: color,
-            sortOrder: intValue(record["sortOrder"]),
-            iconUrl: record["iconUrl"] as? String
+            id: row.id,
+            name: row.name,
+            shortName: row.shortName,
+            color: row.color,
+            sortOrder: Int(row.sortOrder),
+            iconUrl: row.iconUrl
         )
     }
 
     static func idol(from record: CKRecord) -> Idol? {
-        let id = record["id"] as? String ?? record.recordID.recordName
-        guard !id.isEmpty else { return nil }
-        let name = record["name"] as? String ?? ""
-        guard !name.isEmpty else { return nil }
-        let color = validatedHex(record["color"] as? String)
+        guard case .idol(let row)? = mapped(record, as: "Idol") else { return nil }
         return Idol(
-            id: id,
-            brandId: record["brandId"] as? String ?? "",
-            name: name,
-            nameKana: record["nameKana"] as? String,
-            nameRomaji: record["nameRomaji"] as? String,
-            familyName: record["familyName"] as? String,
-            givenName: record["givenName"] as? String,
-            nickname: record["nickname"] as? String,
-            color: color,
-            sortOrder: intValue(record["sortOrder"]),
-            birthday: record["birthday"] as? String,
-            bloodType: record["bloodType"] as? String,
-            height: record["height"] as? Double,
-            weight: record["weight"] as? Double,
-            birthPlace: record["birthPlace"] as? String,
-            age: optionalIntValue(record["age"]),
-            bust: record["bust"] as? Double,
-            waist: record["waist"] as? Double,
-            hip: record["hip"] as? Double,
-            constellation: record["constellation"] as? String,
-            hobbies: record["hobbies"] as? String,
-            talents: record["talents"] as? String,
-            description: record["description"] as? String,
-            gender: record["gender"] as? String,
-            handedness: record["handedness"] as? String,
-            debutDate: record["debutDate"] as? String,
-            attribute: record["attribute"] as? String,
-            isExternal: (record["isExternal"] as? Int64 ?? 0) != 0,
-            aliases: record["aliases"] as? String
+            id: row.id,
+            brandId: row.brandId,
+            name: row.name,
+            nameKana: row.nameKana,
+            nameRomaji: row.nameRomaji,
+            familyName: row.familyName,
+            givenName: row.givenName,
+            nickname: row.nickname,
+            color: row.color,
+            sortOrder: Int(row.sortOrder),
+            birthday: row.birthday,
+            bloodType: row.bloodType,
+            height: row.height,
+            weight: row.weight,
+            birthPlace: row.birthPlace,
+            age: row.age.map(Int.init),
+            bust: row.bust,
+            waist: row.waist,
+            hip: row.hip,
+            constellation: row.constellation,
+            hobbies: row.hobbies,
+            talents: row.talents,
+            description: row.description,
+            gender: row.gender,
+            handedness: row.handedness,
+            debutDate: row.debutDate,
+            attribute: row.attribute,
+            isExternal: row.isExternal,
+            aliases: row.aliases
             // voiceActors は読まない。声優は idol_voice_actors (期間つき履歴) が正で、
             // Idol からは外した。CloudKit 側のフィールドは旧アプリ向けにまだ送っているが、
             // こちらで読むと廃止した列に書き戻そうとして落ちる。
@@ -67,138 +73,112 @@ enum CKRecordMapper {
     // CastMember レコードは CloudKitSyncEngine 側で無視する。
 
     static func event(from record: CKRecord) -> Event? {
-        let id = record["id"] as? String ?? record.recordID.recordName
-        guard !id.isEmpty else { return nil }
-        let name = record["name"] as? String ?? ""
-        guard !name.isEmpty else { return nil }
-        let kind = record["kind"] as? String ?? EventKind.live.rawValue
+        guard case .event(let row)? = mapped(record, as: "Event") else { return nil }
         return Event(
-            id: id,
-            brandId: record["brandId"] as? String,
-            name: name,
-            eventType: record["eventType"] as? String ?? "live",
-            isStreaming: boolValue(record["isStreaming"]),
-            isSolo: boolValue(record["isSolo"], default: true),
-            kind: kind,
-            ticketOpenDate: record["ticketOpenDate"] as? String,
-            ticketDeadline: record["ticketDeadline"] as? String,
-            ticketLotteryDate: record["ticketLotteryDate"] as? String,
-            ticketUrl: record["ticketUrl"] as? String,
-            jointBrandIds: record["jointBrandIds"] as? String
+            id: row.id,
+            brandId: row.brandId,
+            name: row.name,
+            eventType: row.eventType,
+            isStreaming: row.isStreaming,
+            isSolo: row.isSolo,
+            kind: row.kind,
+            ticketOpenDate: row.ticketOpenDate,
+            ticketDeadline: row.ticketDeadline,
+            ticketLotteryDate: row.ticketLotteryDate,
+            ticketUrl: row.ticketUrl,
+            jointBrandIds: row.jointBrandIds
         )
     }
 
     static func show(from record: CKRecord) -> Show? {
-        let id = record["id"] as? String ?? record.recordID.recordName
-        guard !id.isEmpty else { return nil }
-        let eventId = record["eventId"] as? String ?? ""
-        guard !eventId.isEmpty else { return nil }
-        let date = record["date"] as? String ?? ""
-        guard !date.isEmpty else { return nil }
+        guard case .show(let row)? = mapped(record, as: "Show") else { return nil }
         return Show(
-            id: id,
-            eventId: eventId,
-            name: record["name"] as? String ?? "",
-            date: date,
-            venue: record["venue"] as? String,
-            venueId: record["venueId"] as? String,
-            hall: record["hall"] as? String,
-            streamPlatform: record["streamPlatform"] as? String,
-            venueCity: record["venueCity"] as? String,
-            startTime: record["startTime"] as? String,
-            sortOrder: intValue(record["sortOrder"]),
-            performerType: record["performerType"] as? String
+            id: row.id,
+            eventId: row.eventId,
+            name: row.name,
+            date: row.date,
+            venue: row.venue,
+            venueId: row.venueId,
+            hall: row.hall,
+            streamPlatform: row.streamPlatform,
+            venueCity: row.venueCity,
+            startTime: row.startTime,
+            sortOrder: Int(row.sortOrder),
+            performerType: row.performerType
         )
     }
 
     /// 会場 (施設)。会場は ID で管理するので、名前が変わっても履歴が分断されない。
     static func venue(from record: CKRecord) -> Venue? {
-        let id = record["id"] as? String ?? record.recordID.recordName
-        guard !id.isEmpty else { return nil }
-        let name = record["name"] as? String ?? ""
-        guard !name.isEmpty else { return nil }
+        guard case .venue(let row)? = mapped(record, as: "Venue") else { return nil }
         return Venue(
-            id: id,
-            name: name,
-            nameKana: record["nameKana"] as? String,
-            prefecture: record["prefecture"] as? String,
-            city: record["city"] as? String,
-            aliases: record["aliases"] as? String,
-            capacity: record["capacity"] as? Int,
-            sortOrder: intValue(record["sortOrder"])
+            id: row.id,
+            name: row.name,
+            nameKana: row.nameKana,
+            prefecture: row.prefecture,
+            city: row.city,
+            aliases: row.aliases,
+            capacity: row.capacity.map(Int.init),
+            sortOrder: Int(row.sortOrder)
         )
     }
 
     /// 会場名と有効期間。表示を「公演日時点の名前」にするために使う。
     static func venueName(from record: CKRecord) -> VenueName? {
-        let id = record["id"] as? String ?? record.recordID.recordName
-        guard !id.isEmpty else { return nil }
-        let venueId = record["venueId"] as? String ?? ""
-        let name = record["name"] as? String ?? ""
-        guard !venueId.isEmpty, !name.isEmpty else { return nil }
+        guard case .venueName(let row)? = mapped(record, as: "VenueName") else { return nil }
         return VenueName(
-            id: id, venueId: venueId, name: name,
-            validFrom: record["validFrom"] as? String,
-            validTo: record["validTo"] as? String
+            id: row.id, venueId: row.venueId, name: row.name,
+            validFrom: row.validFrom,
+            validTo: row.validTo
         )
     }
 
     /// 会場のホール/構成。キャパは構成で変わるので施設と分けて持つ。
     static func venueHall(from record: CKRecord) -> VenueHall? {
-        let id = record["id"] as? String ?? record.recordID.recordName
-        guard !id.isEmpty else { return nil }
-        let venueId = record["venueId"] as? String ?? ""
-        let name = record["name"] as? String ?? ""
-        guard !venueId.isEmpty, !name.isEmpty else { return nil }
-        return VenueHall(id: id, venueId: venueId, name: name, capacity: record["capacity"] as? Int)
+        guard case .venueHall(let row)? = mapped(record, as: "VenueHall") else { return nil }
+        return VenueHall(id: row.id, venueId: row.venueId, name: row.name, capacity: row.capacity.map(Int.init))
     }
 
     static func song(from record: CKRecord) -> Song? {
-        let id = record["id"] as? String ?? record.recordID.recordName
-        guard !id.isEmpty else { return nil }
-        let title = record["title"] as? String ?? ""
-        guard !title.isEmpty else { return nil }
+        guard case .song(let row)? = mapped(record, as: "Song") else { return nil }
         return Song(
-            id: id,
-            title: title,
-            titleKana: record["titleKana"] as? String,
-            brandId: record["brandId"] as? String,
-            songType: record["songType"] as? String ?? "solo",
-            releaseDate: record["releaseDate"] as? String,
-            durationSec: optionalIntValue(record["durationSec"]),
-            composer: record["composer"] as? String,
-            lyricist: record["lyricist"] as? String,
-            arranger: record["arranger"] as? String,
-            cdSeries: record["cdSeries"] as? String,
-            cdTitle: record["cdTitle"] as? String,
-            artworkUrl: record["artworkUrl"] as? String,
-            previewUrl: record["previewUrl"] as? String,
-            appleMusicId: record["appleMusicId"] as? String,
-            appleMusicAlbumId: record["appleMusicAlbumId"] as? String,
-            isrc: record["isrc"] as? String,
-            lyricsUrl: record["lyricsUrl"] as? String,
-            parentSongId: record["parentSongId"] as? String,
-            singerLabel: record["singerLabel"] as? String,
-            unitName: record["unitName"] as? String,
-            unitId: record["unitId"] as? String,
+            id: row.id,
+            title: row.title,
+            titleKana: row.titleKana,
+            brandId: row.brandId,
+            songType: row.songType,
+            releaseDate: row.releaseDate,
+            durationSec: row.durationSec.map(Int.init),
+            composer: row.composer,
+            lyricist: row.lyricist,
+            arranger: row.arranger,
+            cdSeries: row.cdSeries,
+            cdTitle: row.cdTitle,
+            artworkUrl: row.artworkUrl,
+            previewUrl: row.previewUrl,
+            appleMusicId: row.appleMusicId,
+            appleMusicAlbumId: row.appleMusicAlbumId,
+            isrc: row.isrc,
+            lyricsUrl: row.lyricsUrl,
+            parentSongId: row.parentSongId,
+            singerLabel: row.singerLabel,
+            unitName: row.unitName,
+            unitId: row.unitId,
             // ここを読み落とすと、GRDB の upsert が Song のエンコード列を全部書くため
             // 同期のたび series_group が NULL 上書きされ、シリーズ絞り込みが壊れる。
-            // Song に列を足したら必ずこの初期化子にも足すこと。
-            seriesGroup: record["seriesGroup"] as? String
+            // Song に列を足したら共有コアの CkSongRow にも必ず足すこと。
+            seriesGroup: row.seriesGroup
         )
     }
 
     static func unit(from record: CKRecord) -> Unit? {
-        let id = record["id"] as? String ?? record.recordID.recordName
-        guard !id.isEmpty else { return nil }
-        let name = record["name"] as? String ?? ""
-        guard !name.isEmpty else { return nil }
+        guard case .unit(let row)? = mapped(record, as: "ImasUnit") else { return nil }
         return Unit(
-            id: id,
-            brandId: record["brandId"] as? String ?? "",
-            name: name,
-            isPermanent: boolValue(record["isPermanent"], default: true),
-            nameAlt: record["nameAlt"] as? String
+            id: row.id,
+            brandId: row.brandId,
+            name: row.name,
+            isPermanent: row.isPermanent,
+            nameAlt: row.nameAlt
         )
     }
 
@@ -207,148 +187,161 @@ enum CKRecordMapper {
     // IdolCast 廃止: idol.voiceActors に統合済み、 旧 CK レコードは無視する。
 
     static func idolBrand(from record: CKRecord) -> IdolBrand? {
-        let idolId = record["idolId"] as? String ?? ""
-        let brandId = record["brandId"] as? String ?? ""
-        guard !idolId.isEmpty, !brandId.isEmpty else { return nil }
+        guard case .idolBrand(let row)? = mapped(record, as: "IdolBrand") else { return nil }
         return IdolBrand(
-            idolId: idolId,
-            brandId: brandId,
-            isPrimary: boolValue(record["isPrimary"])
+            idolId: row.idolId,
+            brandId: row.brandId,
+            isPrimary: row.isPrimary
         )
     }
 
     static func songArtist(from record: CKRecord) -> SongArtist? {
-        let songId = record["songId"] as? String ?? ""
-        let idolId = record["idolId"] as? String ?? ""
-        guard !songId.isEmpty, !idolId.isEmpty else { return nil }
+        guard case .songArtist(let row)? = mapped(record, as: "SongArtist") else { return nil }
         return SongArtist(
-            songId: songId,
-            idolId: idolId,
-            role: record["role"] as? String ?? "original"
+            songId: row.songId,
+            idolId: row.idolId,
+            role: row.role
         )
     }
 
     static func unitMember(from record: CKRecord) -> UnitMember? {
-        let unitId = record["unitId"] as? String ?? ""
-        let idolId = record["idolId"] as? String ?? ""
-        guard !unitId.isEmpty, !idolId.isEmpty else { return nil }
+        guard case .unitMember(let row)? = mapped(record, as: "UnitMember") else { return nil }
         return UnitMember(
-            unitId: unitId,
-            idolId: idolId
+            unitId: row.unitId,
+            idolId: row.idolId
         )
     }
 
     static func showCast(from record: CKRecord) -> ShowCast? {
-        let showId = record["showId"] as? String ?? ""
-        // 新スキーマは idolId フィールド。 旧 CK レコードの castId は廃止 (取り込まない)。
-        guard let idolId = record["idolId"] as? String, !showId.isEmpty, !idolId.isEmpty else {
-            return nil
-        }
+        guard case .showCast(let row)? = mapped(record, as: "ShowCast") else { return nil }
+        // 共有コアが member/lead/guest に正規化済み。未知の役割は member に倒っている。
         return ShowCast(
-            showId: showId,
-            idolId: idolId,
-            castRole: CastRole(rawValue: record["castRole"] as? String ?? "member") ?? .member
+            showId: row.showId,
+            idolId: row.idolId,
+            castRole: CastRole(rawValue: row.castRole) ?? .member
         )
     }
 
     static func setlistItem(from record: CKRecord) -> SetlistItem? {
-        let id = record["id"] as? String ?? record.recordID.recordName
-        guard !id.isEmpty else { return nil }
-        let showId = record["showId"] as? String ?? ""
-        let songId = record["songId"] as? String ?? ""
-        guard !showId.isEmpty, !songId.isEmpty else { return nil }
+        guard case .setlistItem(let row)? = mapped(record, as: "SetlistItem") else { return nil }
         return SetlistItem(
-            id: id,
-            showId: showId,
-            songId: songId,
-            position: intValue(record["position"]),
-            section: record["section"] as? String,
-            notes: record["notes"] as? String,
-            unitName: record["unitName"] as? String
+            id: row.id,
+            showId: row.showId,
+            songId: row.songId,
+            position: Int(row.position),
+            section: row.section,
+            notes: row.notes,
+            unitName: row.unitName
         )
     }
 
     static func setlistPerformer(from record: CKRecord) -> SetlistPerformer? {
-        let setlistItemId = record["setlistItemId"] as? String ?? ""
-        guard let idolId = record["idolId"] as? String, !setlistItemId.isEmpty, !idolId.isEmpty else {
-            return nil
-        }
-        return SetlistPerformer(setlistItemId: setlistItemId, idolId: idolId)
+        guard case .setlistPerformer(let row)? = mapped(record, as: "SetlistPerformer") else { return nil }
+        return SetlistPerformer(setlistItemId: row.setlistItemId, idolId: row.idolId)
     }
 
     // MARK: - Community Content
 
     static func songCall(from record: CKRecord) -> SongCall? {
-        let songId = record["songId"] as? String ?? ""
-        let callText = record["callText"] as? String ?? ""
-        guard !songId.isEmpty, !callText.isEmpty else { return nil }
+        guard case .songCall(let row)? = mapped(record, as: "SongCall") else { return nil }
         return SongCall(
-            id: record.recordID.recordName,
-            songId: songId,
-            callText: callText,
-            sourceUrl: record["sourceUrl"] as? String,
-            createdAt: createdAtString(from: record),
-            authorDisplayName: record["authorDisplayName"] as? String
+            id: row.id,
+            songId: row.songId,
+            callText: row.callText,
+            sourceUrl: row.sourceUrl,
+            createdAt: row.createdAt,
+            authorDisplayName: row.authorDisplayName
         )
     }
 
     static func songVideo(from record: CKRecord) -> SongVideo? {
-        let songId = record["songId"] as? String ?? ""
-        let youtubeUrl = record["youtubeUrl"] as? String ?? ""
-        guard !songId.isEmpty, !youtubeUrl.isEmpty else { return nil }
+        guard case .songVideo(let row)? = mapped(record, as: "SongVideo") else { return nil }
         return SongVideo(
-            id: record.recordID.recordName,
-            songId: songId,
-            youtubeUrl: youtubeUrl,
-            videoTitle: record["videoTitle"] as? String,
-            note: record["note"] as? String,
-            createdAt: createdAtString(from: record),
-            authorDisplayName: record["authorDisplayName"] as? String
+            id: row.id,
+            songId: row.songId,
+            youtubeUrl: row.youtubeUrl,
+            videoTitle: row.videoTitle,
+            note: row.note,
+            createdAt: row.createdAt,
+            authorDisplayName: row.authorDisplayName
         )
     }
 
     // MARK: - Soft Delete
 
+    /// soft delete マーカー。削除伝搬はこの経路のみ (CloudKit の物理削除は追わない)。
     static func deletedAt(from record: CKRecord) -> Date? {
-        record["deletedAt"] as? Date
+        // 共有コアが見るのは deletedAt キーだけなので、全フィールドを潰さずここだけ射影する
+        // (同期 1 件につき生存判定が 2 回走るため、無駄な射影が効いてくる)。
+        let projected = CkRecordInput(
+            recordName: record.recordID.recordName,
+            fields: field(named: "deletedAt", of: record).map { [$0] } ?? []
+        )
+        guard let millis = ckRecordDeletedAtMillis(record: projected) else { return nil }
+        return Date(timeIntervalSince1970: Double(millis) / 1000)
     }
 
-    // MARK: - Helpers
+    // MARK: - 射影 (CKRecord → 共有コアの入力)
 
-    private static func createdAtString(from record: CKRecord) -> String {
-        let date = record["createdAt"] as? Date ?? Date()
-        return ISO8601DateFormatter.shared.string(from: date)
+    /// レコード 1 件を共有コアへ渡し、対応する行を得る。
+    /// 必須キー欠損・取り込み対象外の recordType では nil (呼び出し側が warning ログを出す)。
+    private static func mapped(_ record: CKRecord, as recordType: String) -> CkRow? {
+        ckMapRecord(recordType: recordType, record: projection(of: record), nowMillis: nowMillis())
     }
 
-    /// HEXカラー文字列のバリデーション。HexColor.init(rawValue:) 経由で 6/8 桁に統一。
-    private static func validatedHex(_ value: String?) -> String? {
-        guard let value else { return nil }
-        return HexColor(rawValue: value)?.rawValue
+    /// `CKRecord` のキーと値を共有コアの 5 値 (Text/Int/Real/Bool/Timestamp) に潰す。
+    /// 5 値のどれにもならない値 (CKAsset・参照・リスト等) はキーごと落とす。
+    /// 落とした結果は「そのキーが無い」= 元実装の `as? String` 等が失敗するのと同じ扱いになる。
+    private static func projection(of record: CKRecord) -> CkRecordInput {
+        let keys = record.allKeys()
+        var fields: [CkField] = []
+        fields.reserveCapacity(keys.count)
+        for key in keys {
+            guard let value = ckValue(record[key]) else { continue }
+            fields.append(CkField(key: key, value: value))
+        }
+        return CkRecordInput(recordName: record.recordID.recordName, fields: fields)
     }
 
-    /// CKRecordのInt64値をIntに変換
-    private static func intValue(_ value: Any?) -> Int {
-        if let int64 = value as? Int64 { return Int(int64) }
-        if let int = value as? Int { return int }
-        if let number = value as? NSNumber { return number.intValue }
-        return 0
+    private static func field(named key: String, of record: CKRecord) -> CkField? {
+        guard let value = ckValue(record[key]) else { return nil }
+        return CkField(key: key, value: value)
     }
 
-    /// CKRecordのOptional Int64値をOptional Intに変換
-    private static func optionalIntValue(_ value: Any?) -> Int? {
-        guard let value else { return nil }
-        if let int64 = value as? Int64 { return Int(int64) }
-        if let int = value as? Int { return int }
-        if let number = value as? NSNumber { return number.intValue }
-        return nil
+    private static func ckValue(_ raw: Any?) -> CkValue? {
+        guard let raw else { return nil }
+        switch raw {
+        case let text as String:
+            return .text(value: text)
+        case let date as Date:
+            // 秒未満は切り捨て側に寄せる。ISO8601DateFormatter が秒で切るので、
+            // 四捨五入すると .9995 秒台のレコードだけ createdAt が 1 秒進む。
+            return .timestamp(millis: Int64((date.timeIntervalSince1970 * 1000).rounded(.down)))
+        case let number as NSNumber:
+            return ckNumberValue(number)
+        default:
+            return nil
+        }
     }
 
-    /// CKRecordのBool値を変換
-    private static func boolValue(_ value: Any?, default defaultValue: Bool = false) -> Bool {
-        if let bool = value as? Bool { return bool }
-        if let int64 = value as? Int64 { return int64 != 0 }
-        if let int = value as? Int { return int != 0 }
-        if let number = value as? NSNumber { return number.boolValue }
-        return defaultValue
+    /// `NSNumber` を Bool / Int64 / Double のどれとして渡すか決める。
+    /// Swift の `as?` は NSNumber の中身で成否が変わる (Bool の NSNumber だけ `as? Bool` が通る)
+    /// ので、同じ区別を実型から復元して共有コアに伝える。
+    private static func ckNumberValue(_ number: NSNumber) -> CkValue {
+        if CFGetTypeID(number) == CFBooleanGetTypeID() {
+            return .bool(value: number.boolValue)
+        }
+        switch CFNumberGetType(number as CFNumber) {
+        case .float32Type, .float64Type, .floatType, .doubleType, .cgFloatType:
+            return .real(value: number.doubleValue)
+        default:
+            return .int(value: number.int64Value)
+        }
+    }
+
+    /// 投稿系 (SongCall / SongVideo) の createdAt 欠損時に使う既定値。
+    /// 共有コアは OS 時刻を取らない規約なので、ここで渡す。
+    private static func nowMillis() -> Int64 {
+        Int64((Date().timeIntervalSince1970 * 1000).rounded(.down))
     }
 }

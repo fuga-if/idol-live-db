@@ -11,6 +11,12 @@ import java.net.URL
 /**
  * CloudKit Web Services の public DB を read-only で叩く最小クライアント。
  * records/query を modifiedAt > since で投げ、continuationMarker でページングする。
+ *
+ * 返すのは **レコードの生 JSON 文字列**。値を Kotlin の型に落とすのは共有コアの仕事で、
+ * ここで `{"value": X, "type": "TIMESTAMP"}` を value だけに平坦化すると
+ * TIMESTAMP / INT64 / DOUBLE が区別できなくなり、soft delete (deletedAt) が伝搬せず
+ * 投稿の createdAt も同期のたび現在時刻に化ける。
+ * transport (HTTP・ページング・serverErrorCode の除去) だけがこのクラスの責務。
  */
 class CloudKitClient {
 
@@ -18,20 +24,20 @@ class CloudKitClient {
         get() = "${CloudKitConfig.BASE}/database/1/${CloudKitConfig.CONTAINER}/" +
             "${CloudKitConfig.ENV}/public/records/query?ckAPIToken=${CloudKitConfig.API_TOKEN}"
 
-    /** 指定 recordType を modifiedSinceMs より後の変更だけ全ページ取得する。 */
-    suspend fun query(recordType: String, modifiedSinceMs: Long): List<CkRecord> =
+    /** 指定 recordType を modifiedSinceMs より後の変更だけ全ページ取得する (生 JSON のまま)。 */
+    suspend fun query(recordType: String, modifiedSinceMs: Long): List<String> =
         withContext(Dispatchers.IO) {
-            val out = ArrayList<CkRecord>()
+            val out = ArrayList<String>()
             var cursor: String? = null
             do {
                 val page = queryPage(recordType, modifiedSinceMs, cursor)
-                out.addAll(page.records)
+                out.addAll(page.recordJsons)
                 cursor = page.continuationMarker
             } while (cursor != null)
             out
         }
 
-    private data class Page(val records: List<CkRecord>, val continuationMarker: String?)
+    private data class Page(val recordJsons: List<String>, val continuationMarker: String?)
 
     private fun queryPage(recordType: String, sinceMs: Long, cursor: String?): Page {
         val body = JSONObject().apply {
@@ -73,22 +79,14 @@ class CloudKitClient {
 
         val json = JSONObject(text)
         val recordsJson = json.optJSONArray("records") ?: JSONArray()
-        val records = ArrayList<CkRecord>(recordsJson.length())
+        val records = ArrayList<String>(recordsJson.length())
         for (i in 0 until recordsJson.length()) {
             val rec = recordsJson.getJSONObject(i)
             if (rec.has("serverErrorCode")) {
                 Log.w(TAG, "record error: ${rec.optString("serverErrorCode")}")
                 continue
             }
-            val name = rec.optString("recordName")
-            val fieldsJson = rec.optJSONObject("fields") ?: JSONObject()
-            val fields = HashMap<String, Any?>(fieldsJson.length())
-            val keys = fieldsJson.keys()
-            while (keys.hasNext()) {
-                val k = keys.next()
-                fields[k] = fieldsJson.getJSONObject(k).opt("value")
-            }
-            records.add(CkRecord(name, fields))
+            records.add(rec.toString())
         }
         return Page(records, json.optString("continuationMarker").takeIf { it.isNotEmpty() })
     }

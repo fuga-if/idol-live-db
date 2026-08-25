@@ -6,6 +6,8 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.fugaif.imaslivedb.data.db.AppDatabase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import uniffi.imas_core.seedCommonColumns
+import uniffi.imas_core.seedCommonTables
 import java.io.File
 
 /**
@@ -23,12 +25,16 @@ import java.io.File
  *  - song_units 等 (seed 側のみ / Room エンティティ無し) → スキップ
  *  - user_marks / song_calls / song_videos (Room 側のみ / seed に無い) → 空のまま
  *    (ローカル投稿・CloudKit 同期で埋まる)
+ *
+ * **どのテーブル・どの列を移すか**の規則は共有コア (`domain::sync_planning`) が持つ
+ * ([seedCommonTables] / [seedCommonColumns])。ここは sqlite_master / PRAGMA を引いて
+ * 名前の配列を渡し、返ってきた対象に対して SQL を撃つだけ。列順は main 側の順序で返るので
+ * `INSERT (cols) SELECT (cols)` の左右が必ず揃う。
  */
 object SeedImporter {
 
     private const val ASSET = "master_seed.sqlite"
     private const val TAG = "SeedImporter"
-    private val SKIP_TABLES = setOf("room_master_table", "android_metadata", "sqlite_sequence")
 
     /**
      * 直近の import 失敗のユーザー可視メッセージ (成功時/未実行時は null)。
@@ -63,11 +69,11 @@ object SeedImporter {
             // ATTACH/DETACH はトランザクション外で実行する必要がある。
             sdb.execSQL("ATTACH DATABASE ? AS seed", arrayOf(tmp.absolutePath))
             try {
-                val tables = commonTables(sdb)
+                val tables = seedCommonTables(tableNames(sdb, null), tableNames(sdb, "seed"))
                 sdb.beginTransaction()
                 try {
                     for (t in tables) {
-                        val cols = commonColumns(sdb, t)
+                        val cols = seedCommonColumns(columnNames(sdb, null, t), columnNames(sdb, "seed", t))
                         if (cols.isEmpty()) continue
                         val colList = cols.joinToString(",") { "\"$it\"" }
                         sdb.execSQL(
@@ -100,26 +106,14 @@ object SeedImporter {
             false
         }
 
-    /** main と seed の両方に存在するテーブル名 (Room 内部テーブルは除外)。 */
-    private fun commonTables(db: SupportSQLiteDatabase): List<String> {
-        val main = tableNames(db, null)
-        val seed = tableNames(db, "seed")
-        return main.intersect(seed).filterNot { it in SKIP_TABLES }.toList()
-    }
-
-    private fun tableNames(db: SupportSQLiteDatabase, schema: String?): Set<String> {
+    /** sqlite_master に並んでいる順のテーブル名 (絞り込みはコアの seedCommonTables が行う)。 */
+    private fun tableNames(db: SupportSQLiteDatabase, schema: String?): List<String> {
         val prefix = schema?.let { "$it." } ?: ""
-        val out = mutableSetOf<String>()
+        val out = mutableListOf<String>()
         db.query("SELECT name FROM ${prefix}sqlite_master WHERE type='table'").use { c ->
             while (c.moveToNext()) out.add(c.getString(0))
         }
         return out
-    }
-
-    /** main の列順を保ったまま、seed にも存在する列だけ返す。 */
-    private fun commonColumns(db: SupportSQLiteDatabase, table: String): List<String> {
-        val seed = columnNames(db, "seed", table)
-        return columnNames(db, null, table).filter { it in seed }
     }
 
     private fun columnNames(db: SupportSQLiteDatabase, schema: String?, table: String): List<String> {

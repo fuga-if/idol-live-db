@@ -14,176 +14,262 @@ import com.fugaif.imaslivedb.data.model.SongArtist
 import com.fugaif.imaslivedb.data.model.SongCall
 import com.fugaif.imaslivedb.data.model.SongVideo
 import com.fugaif.imaslivedb.data.model.UnitMember
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import uniffi.imas_core.CkField
+import uniffi.imas_core.CkIngestBatch
+import uniffi.imas_core.CkRow
+import uniffi.imas_core.CkValue
+import uniffi.imas_core.ckIngestWebServicesBatch
+import uniffi.imas_core.ckRecordFromWebServicesJson
 
 /**
- * CkRecord → Room エンティティ変換。iOS の CKRecordMapper と同じフィールド名・規約。
- * 必須キーが欠ける不正レコードは null を返してスキップする。
+ * CloudKit のレコード → Room エンティティ変換。
+ *
+ * 変換規則そのものは共有コア (`domain::ck_record_mapping`) が持ち、ここは
+ * 「CKWS の生レコード JSON を渡して、返ってきた行を Room の data class に詰め替える」
+ * 配線だけを担う。iOS の `CKRecordMapper` と同じ規則がコア 1 か所で効くので、
+ * 「Android だけ seriesGroup を読み落として NULL 上書きする」類の乖離が起きない。
+ *
+ * **レコードの `fields` を `value` だけに平坦化してはいけない。** CKWS は
+ * TIMESTAMP / INT64 / DOUBLE をどれも JSON の数値で送るため、型を落とすと
+ * `deletedAt` が日付と認識されず soft delete が伝搬しなくなり、投稿の `createdAt` も
+ * 同期のたび現在時刻に書き換わる。だから [CloudKitClient] は生 JSON のまま返し、
+ * 型の振り分けはコア側 (`ck_record_from_web_services_json`) に任せている。
  */
 object SyncMappers {
 
-    private fun id(r: CkRecord): String? = (r.str("id") ?: r.recordName).takeIf { it.isNotEmpty() }
+    /**
+     * 1 recordType 分のページを「upsert する行 / 削除する recordName / 捨てた recordName」に
+     * 仕分ける。取り込み対象外の recordType では空のバッチが返る。
+     *
+     * FFI 呼び出しは呼び元スレッドをブロックし、1 ステップで数千件の JSON を読むので
+     * Default へ逃がす (sync() は UI スコープから呼ばれる)。
+     *
+     * @param nowMillis SongCall / SongVideo の createdAt 欠損時の既定値。
+     *   コアは OS 時刻を取らないので呼び出し側が渡す。
+     */
+    suspend fun ingest(recordType: String, recordJsons: List<String>, nowMillis: Long): CkIngestBatch =
+        withContext(Dispatchers.Default) { ckIngestWebServicesBatch(recordType, recordJsons, nowMillis) }
 
-    fun brand(r: CkRecord): Brand? {
-        val id = id(r) ?: return null
-        val name = r.str("name") ?: return null
-        return Brand(id, name, r.str("shortName") ?: "", r.str("color"), r.int("sortOrder"))
+    /** 単一 PK テーブルの行 ID (孤児掃除の valid_ids 用)。複合 PK の行は ID を持たないので落ちる。 */
+    fun rowIds(rows: List<CkRow>): List<String> = rows.mapNotNull { row ->
+        when (row) {
+            is CkRow.Brand -> row.row.id
+            is CkRow.Idol -> row.row.id
+            is CkRow.Event -> row.row.id
+            is CkRow.Show -> row.row.id
+            is CkRow.Song -> row.row.id
+            is CkRow.Unit -> row.row.id
+            is CkRow.SetlistItem -> row.row.id
+            is CkRow.SongCall -> row.row.id
+            is CkRow.SongVideo -> row.row.id
+            is CkRow.Venue -> row.row.id
+            is CkRow.VenueName -> row.row.id
+            is CkRow.VenueHall -> row.row.id
+            else -> null
+        }
     }
 
-    fun idol(r: CkRecord): Idol? {
-        val id = id(r) ?: return null
-        val name = r.str("name") ?: return null
-        return Idol(
-            id = id,
-            brandId = r.str("brandId") ?: "",
-            name = name,
-            nameKana = r.str("nameKana"),
-            nameRomaji = r.str("nameRomaji"),
-            familyName = r.str("familyName"),
-            givenName = r.str("givenName"),
-            nickname = r.str("nickname"),
-            color = r.str("color"),
-            sortOrder = r.int("sortOrder"),
-            birthday = r.str("birthday"),
-            bloodType = r.str("bloodType"),
-            height = r.double("height"),
-            weight = r.double("weight"),
-            birthPlace = r.str("birthPlace"),
-            age = r.intOrNull("age"),
-            bust = r.double("bust"),
-            waist = r.double("waist"),
-            hip = r.double("hip"),
-            constellation = r.str("constellation"),
-            hobbies = r.str("hobbies"),
-            talents = r.str("talents"),
-            description = r.str("description"),
-            gender = r.str("gender"),
-            handedness = r.str("handedness"),
-            debutDate = r.str("debutDate"),
-            attribute = r.str("attribute"),
-            isExternal = r.bool("isExternal"),
-            aliases = r.str("aliases"),
-            voiceActors = r.str("voiceActors")
-        )
-    }
+    fun brands(rows: List<CkRow>): List<Brand> =
+        rows.filterIsInstance<CkRow.Brand>().map { (row) ->
+            // Brand は iconUrl 列を持たないのでコアの iconUrl は捨てる。
+            Brand(row.id, row.name, row.shortName, row.color.emptyToNull(), row.sortOrder.toInt())
+        }
 
-    fun event(r: CkRecord): Event? {
-        val id = id(r) ?: return null
-        val name = r.str("name") ?: return null
-        return Event(
-            id = id,
-            brandId = r.str("brandId"),
-            name = name,
-            eventType = r.str("eventType") ?: "live",
-            isStreaming = r.bool("isStreaming"),
-            isSolo = r.bool("isSolo", default = true),
-            kind = r.str("kind") ?: "live",
-            ticketOpenDate = r.str("ticketOpenDate"),
-            ticketDeadline = r.str("ticketDeadline"),
-            ticketLotteryDate = r.str("ticketLotteryDate"),
-            ticketUrl = r.str("ticketUrl"),
-            jointBrandIds = r.str("jointBrandIds")
-        )
-    }
+    /**
+     * @param voiceActorsById [voiceActorsById] が返す「行に載らない CV 列」。
+     *   コアの CkIdolRow は `voiceActors` を意図的に読まない (声優は期間つき履歴が正) が、
+     *   Android の upsert は行を丸ごと REPLACE するので、ここで補わないと同期のたび
+     *   `idols.voice_actors` が NULL になり CV 表示が消える。
+     */
+    fun idols(rows: List<CkRow>, voiceActorsById: Map<String, String>): List<Idol> =
+        rows.filterIsInstance<CkRow.Idol>().map { (row) ->
+            Idol(
+                id = row.id,
+                brandId = row.brandId,
+                name = row.name,
+                nameKana = row.nameKana.emptyToNull(),
+                nameRomaji = row.nameRomaji.emptyToNull(),
+                familyName = row.familyName.emptyToNull(),
+                givenName = row.givenName.emptyToNull(),
+                nickname = row.nickname.emptyToNull(),
+                color = row.color.emptyToNull(),
+                sortOrder = row.sortOrder.toInt(),
+                birthday = row.birthday.emptyToNull(),
+                bloodType = row.bloodType.emptyToNull(),
+                height = row.height,
+                weight = row.weight,
+                birthPlace = row.birthPlace.emptyToNull(),
+                age = row.age?.toInt(),
+                bust = row.bust,
+                waist = row.waist,
+                hip = row.hip,
+                constellation = row.constellation.emptyToNull(),
+                hobbies = row.hobbies.emptyToNull(),
+                talents = row.talents.emptyToNull(),
+                description = row.description.emptyToNull(),
+                gender = row.gender.emptyToNull(),
+                handedness = row.handedness.emptyToNull(),
+                debutDate = row.debutDate.emptyToNull(),
+                attribute = row.attribute.emptyToNull(),
+                isExternal = row.isExternal,
+                aliases = row.aliases.emptyToNull(),
+                voiceActors = voiceActorsById[row.id]
+            )
+        }
 
-    fun show(r: CkRecord): Show? {
-        val id = id(r) ?: return null
-        val eventId = r.str("eventId") ?: return null
-        val date = r.str("date") ?: return null
-        return Show(
-            id = id,
-            eventId = eventId,
-            name = r.str("name") ?: "",
-            date = date,
-            venue = r.str("venue"),
-            venueCity = r.str("venueCity"),
-            startTime = r.str("startTime"),
-            sortOrder = r.int("sortOrder"),
-            performerType = r.str("performerType")
-        )
-    }
+    /**
+     * Idol レコードの `voiceActors` を「コアが id を決めるのと同じ規則」で引き当てる。
+     *
+     * 生 JSON から自前で拾わずコアの射影 ([ckRecordFromWebServicesJson]) を通すのは、
+     * CKWS の `type` 振り分けを Kotlin で書き直さないため。id の解決 (STRING の `id`
+     * フィールドがあればそれ、無ければ recordName) もコアと同じにしてある。
+     */
+    suspend fun voiceActorsById(recordJsons: List<String>): Map<String, String> =
+        withContext(Dispatchers.Default) {
+            val out = HashMap<String, String>(recordJsons.size)
+            for (json in recordJsons) {
+                val record = ckRecordFromWebServicesJson(json)
+                // キー重複は後勝ち (コアの Fields と同じ)。
+                val id = record.fields.lastOrNull { it.key == "id" }.textValue() ?: record.recordName
+                val voiceActors = record.fields.lastOrNull { it.key == "voiceActors" }.textValue()
+                if (!voiceActors.isNullOrEmpty()) out[id] = voiceActors
+            }
+            out
+        }
 
-    fun song(r: CkRecord): Song? {
-        val id = id(r) ?: return null
-        val title = r.str("title") ?: return null
-        return Song(
-            id = id,
-            title = title,
-            titleKana = r.str("titleKana"),
-            brandId = r.str("brandId"),
-            songType = r.str("songType") ?: "solo",
-            releaseDate = r.str("releaseDate"),
-            durationSec = r.intOrNull("durationSec"),
-            composer = r.str("composer"),
-            lyricist = r.str("lyricist"),
-            arranger = r.str("arranger"),
-            cdSeries = r.str("cdSeries"),
-            cdTitle = r.str("cdTitle"),
-            artworkUrl = r.str("artworkUrl"),
-            previewUrl = r.str("previewUrl"),
-            appleMusicId = r.str("appleMusicId"),
-            appleMusicAlbumId = r.str("appleMusicAlbumId"),
-            isrc = r.str("isrc"),
-            lyricsUrl = r.str("lyricsUrl"),
-            parentSongId = r.str("parentSongId"),
-            singerLabel = r.str("singerLabel"),
-            unitName = r.str("unitName"),
-            unitId = r.str("unitId"),
-            seriesGroup = r.str("seriesGroup")
-        )
-    }
+    private fun CkField?.textValue(): String? =
+        (this?.value as? CkValue.Text)?.value
 
-    fun unit(r: CkRecord): ImasUnit? {
-        val id = id(r) ?: return null
-        val name = r.str("name") ?: return null
-        return ImasUnit(id, r.str("brandId") ?: "", name, r.bool("isPermanent", default = true), r.str("nameAlt"))
-    }
+    /**
+     * 空文字を null に潰す。**任意 (nullable) 列にだけ掛ける。**
+     *
+     * コアの `str` は iOS の `as? String` に合わせて空文字を保持する (iOS が正) が、
+     * Android の旧 `CkRecord.str()` は "" を null にしていた。Room の任意列に "" が入ると
+     * 「値がある」と読む消費側が壊れる: [com.fugaif.imaslivedb.ui.components.ArtworkImage] は
+     * `previewUrl != null` で再生ボタンを出すので、実データにある songs.preview_url='' の
+     * 37 件で「押しても鳴らないボタン」が出る (artwork_url='' は空 URL で読み込み失敗)。
+     * seed_cloudkit は NULL しか落とさないため空文字はそのまま CKWS に載ってくる。
+     *
+     * 変換規則そのものはコア (iOS 準拠) のまま動かさず、Android の列表現だけここで戻す。
+     */
+    private fun String?.emptyToNull(): String? = this?.takeIf { it.isNotEmpty() }
 
-    fun idolBrand(r: CkRecord): IdolBrand? {
-        val idolId = r.str("idolId") ?: return null
-        val brandId = r.str("brandId") ?: return null
-        return IdolBrand(idolId, brandId, r.bool("isPrimary"))
-    }
+    fun events(rows: List<CkRow>): List<Event> =
+        rows.filterIsInstance<CkRow.Event>().map { (row) ->
+            Event(
+                id = row.id,
+                brandId = row.brandId.emptyToNull(),
+                name = row.name,
+                eventType = row.eventType,
+                isStreaming = row.isStreaming,
+                isSolo = row.isSolo,
+                kind = row.kind,
+                ticketOpenDate = row.ticketOpenDate.emptyToNull(),
+                ticketDeadline = row.ticketDeadline.emptyToNull(),
+                ticketLotteryDate = row.ticketLotteryDate.emptyToNull(),
+                ticketUrl = row.ticketUrl.emptyToNull(),
+                jointBrandIds = row.jointBrandIds.emptyToNull()
+            )
+        }
 
-    fun unitMember(r: CkRecord): UnitMember? {
-        val unitId = r.str("unitId") ?: return null
-        val idolId = r.str("idolId") ?: return null
-        return UnitMember(unitId, idolId)
-    }
+    fun shows(rows: List<CkRow>): List<Show> =
+        rows.filterIsInstance<CkRow.Show>().map { (row) ->
+            Show(
+                id = row.id,
+                eventId = row.eventId,
+                name = row.name,
+                date = row.date,
+                venue = row.venue.emptyToNull(),
+                venueId = row.venueId.emptyToNull(),
+                hall = row.hall.emptyToNull(),
+                streamPlatform = row.streamPlatform.emptyToNull(),
+                venueCity = row.venueCity.emptyToNull(),
+                startTime = row.startTime.emptyToNull(),
+                sortOrder = row.sortOrder.toInt(),
+                performerType = row.performerType.emptyToNull()
+            )
+        }
 
-    fun songArtist(r: CkRecord): SongArtist? {
-        val songId = r.str("songId") ?: return null
-        val idolId = r.str("idolId") ?: return null
-        return SongArtist(songId, idolId, r.str("role") ?: "original")
-    }
+    fun songs(rows: List<CkRow>): List<Song> =
+        rows.filterIsInstance<CkRow.Song>().map { (row) ->
+            Song(
+                id = row.id,
+                title = row.title,
+                titleKana = row.titleKana.emptyToNull(),
+                brandId = row.brandId.emptyToNull(),
+                songType = row.songType,
+                releaseDate = row.releaseDate.emptyToNull(),
+                durationSec = row.durationSec?.toInt(),
+                composer = row.composer.emptyToNull(),
+                lyricist = row.lyricist.emptyToNull(),
+                arranger = row.arranger.emptyToNull(),
+                cdSeries = row.cdSeries.emptyToNull(),
+                cdTitle = row.cdTitle.emptyToNull(),
+                artworkUrl = row.artworkUrl.emptyToNull(),
+                previewUrl = row.previewUrl.emptyToNull(),
+                appleMusicId = row.appleMusicId.emptyToNull(),
+                appleMusicAlbumId = row.appleMusicAlbumId.emptyToNull(),
+                isrc = row.isrc.emptyToNull(),
+                lyricsUrl = row.lyricsUrl.emptyToNull(),
+                parentSongId = row.parentSongId.emptyToNull(),
+                singerLabel = row.singerLabel.emptyToNull(),
+                unitName = row.unitName.emptyToNull(),
+                unitId = row.unitId.emptyToNull(),
+                seriesGroup = row.seriesGroup.emptyToNull()
+            )
+        }
 
-    fun showCast(r: CkRecord): ShowCast? {
-        val showId = r.str("showId") ?: return null
-        val idolId = r.str("idolId") ?: return null
-        return ShowCast(showId, idolId, r.str("castRole"))
-    }
+    fun units(rows: List<CkRow>): List<ImasUnit> =
+        rows.filterIsInstance<CkRow.Unit>().map { (row) ->
+            ImasUnit(row.id, row.brandId, row.name, row.isPermanent, row.nameAlt.emptyToNull())
+        }
 
-    fun setlistItem(r: CkRecord): SetlistItem? {
-        val id = id(r) ?: return null
-        val showId = r.str("showId") ?: return null
-        val songId = r.str("songId") ?: return null
-        return SetlistItem(id, showId, songId, r.int("position"), r.str("section"), r.str("notes"), r.str("unitName"))
-    }
+    fun idolBrands(rows: List<CkRow>): List<IdolBrand> =
+        rows.filterIsInstance<CkRow.IdolBrand>().map { (row) ->
+            IdolBrand(row.idolId, row.brandId, row.isPrimary)
+        }
 
-    fun setlistPerformer(r: CkRecord): SetlistPerformer? {
-        val setlistItemId = r.str("setlistItemId") ?: return null
-        val idolId = r.str("idolId") ?: return null
-        return SetlistPerformer(setlistItemId, idolId)
-    }
+    fun unitMembers(rows: List<CkRow>): List<UnitMember> =
+        rows.filterIsInstance<CkRow.UnitMember>().map { (row) -> UnitMember(row.unitId, row.idolId) }
 
-    fun songCall(r: CkRecord): SongCall? {
-        val songId = r.str("songId") ?: return null
-        val callText = r.str("callText") ?: return null
-        return SongCall(r.recordName, songId, callText, r.str("sourceUrl"), r.str("createdAt"), r.str("authorDisplayName"))
-    }
+    fun songArtists(rows: List<CkRow>): List<SongArtist> =
+        rows.filterIsInstance<CkRow.SongArtist>().map { (row) ->
+            SongArtist(row.songId, row.idolId, row.role)
+        }
 
-    fun songVideo(r: CkRecord): SongVideo? {
-        val songId = r.str("songId") ?: return null
-        val youtubeUrl = r.str("youtubeUrl") ?: return null
-        return SongVideo(r.recordName, songId, youtubeUrl, r.str("videoTitle"), r.str("note"), r.str("createdAt"), r.str("authorDisplayName"))
-    }
+    fun showCasts(rows: List<CkRow>): List<ShowCast> =
+        rows.filterIsInstance<CkRow.ShowCast>().map { (row) ->
+            ShowCast(row.showId, row.idolId, row.castRole)
+        }
+
+    fun setlistItems(rows: List<CkRow>): List<SetlistItem> =
+        rows.filterIsInstance<CkRow.SetlistItem>().map { (row) ->
+            SetlistItem(
+                row.id, row.showId, row.songId, row.position.toInt(),
+                row.section.emptyToNull(), row.notes.emptyToNull(), row.unitName.emptyToNull()
+            )
+        }
+
+    fun setlistPerformers(rows: List<CkRow>): List<SetlistPerformer> =
+        rows.filterIsInstance<CkRow.SetlistPerformer>().map { (row) ->
+            SetlistPerformer(row.setlistItemId, row.idolId)
+        }
+
+    fun songCalls(rows: List<CkRow>): List<SongCall> =
+        rows.filterIsInstance<CkRow.SongCall>().map { (row) ->
+            SongCall(
+                row.id, row.songId, row.callText, row.sourceUrl.emptyToNull(),
+                row.createdAt, row.authorDisplayName.emptyToNull()
+            )
+        }
+
+    fun songVideos(rows: List<CkRow>): List<SongVideo> =
+        rows.filterIsInstance<CkRow.SongVideo>().map { (row) ->
+            SongVideo(
+                row.id, row.songId, row.youtubeUrl, row.videoTitle.emptyToNull(), row.note.emptyToNull(),
+                row.createdAt, row.authorDisplayName.emptyToNull()
+            )
+        }
 }
