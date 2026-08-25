@@ -9,6 +9,7 @@ import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.ui.draw.alpha
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
@@ -40,10 +41,16 @@ fun NameFilterField(
         placeholder = { Text(prompt, color = DS.ink3) },
         leadingIcon = { Icon(Icons.Filled.FilterList, contentDescription = null, tint = DS.ink3) },
         trailingIcon = {
-            if (value.isNotEmpty()) {
-                IconButton(onClick = { onValueChange("") }) {
-                    Icon(Icons.Filled.Clear, contentDescription = "絞り込みを解除", tint = DS.ink3)
-                }
+            // 出し入れせず常に置いて、見た目だけ消す。入力の 1 文字目で
+            // 「空 → 非空」に変わった瞬間に入力欄の幅が変わり、文字が横にずれるのを防ぐ
+            // (iOS 側は同じ作りで日本語 IME の 1 文字目が変換できなくなっていた)。
+            val hasText = value.isNotEmpty()
+            IconButton(
+                onClick = { onValueChange("") },
+                enabled = hasText,
+                modifier = Modifier.alpha(if (hasText) 1f else 0f)
+            ) {
+                Icon(Icons.Filled.Clear, contentDescription = "絞り込みを解除", tint = DS.ink3)
             }
         },
         singleLine = true,

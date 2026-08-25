@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ダークモードの起動テーマ。Light 固定のままだと起動のたびに白く光ってから暗転する。 -->
+    <style name="Theme.ImasLiveDB" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/window_background</item>
+    </style>
+</resources>
