@@ -60,6 +60,7 @@ declare_and_call_checksums! {
     uniffi_imas_core_checksum_func_edit_permission_outcome_on_edit_tap,
     uniffi_imas_core_checksum_func_edit_permission_should_prompt_login,
     uniffi_imas_core_checksum_func_edit_permission_show_edit_affordance,
+    uniffi_imas_core_checksum_func_ensure_master_schema,
     uniffi_imas_core_checksum_func_filter_event_indices,
     uniffi_imas_core_checksum_func_filter_idol_list,
     uniffi_imas_core_checksum_func_filter_song_list,
