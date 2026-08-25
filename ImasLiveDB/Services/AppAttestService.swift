@@ -16,7 +16,11 @@ private let logger = Logger(subsystem: "com.fugaif.ImasLiveDB", category: "app_a
 actor AppAttestService {
     static let shared = AppAttestService()
 
-    private let service = DCAppAttestService.shared
+    /// App Attest はシステム側のシングルトン。actor の格納プロパティとして持つと
+    /// 非 Sendable な値を actor の外へ渡す形になり、Swift 6 の厳格チェックで
+    /// 「Sending 'self.service' risks causing data races」で落ちる (CI の Xcode で顕在化)。
+    /// アクターの状態ではないので、参照するたびに取り直す nonisolated な口にする。
+    private nonisolated var service: DCAppAttestService { DCAppAttestService.shared }
     private let keyIdDefaultsKey = "appAttestKeyId"
     private var cachedToken: String?
     private var cachedExpiry: Date = .distantPast
