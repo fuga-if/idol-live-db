@@ -442,6 +442,7 @@ private fun NavGraphBuilder.scheduleNavGraph(navController: NavHostController) {
             onNavigateToShow = { navController.navigate(NavRoutes.Setlist.createRoute(it)) },
             onNavigateToSong = { navController.navigate(NavRoutes.SongDetail.createRoute(it)) },
             onNavigateToIdol = { navController.navigate(NavRoutes.IdolDetail.createRoute(it)) },
+            onNavigateToEvent = { navController.navigate(NavRoutes.EventDetail.createRoute(it)) },
             onNavigateToSearch = { navController.navigate(NavRoutes.Search.createRoute()) },
             onNavigateToSettings = { navController.navigate(NavRoutes.Settings.route) }
         )

@@ -299,7 +299,12 @@ class EditApi(private val appContext: Context, private val authService: AuthServ
                 Log.w(TAG, "$method $path -> HTTP $code body=$text")
                 throw when (code) {
                     401 -> ApiException.NotAuthorized
-                    403 -> ApiException.Banned
+                    403 -> {
+                        // 編集 API の 403 は BAN。次回起動の /auth/me を待たず認証状態へ反映して
+                        // 編集導線をその場で畳む (iOS EditService の markBannedFromServer と同じ)。
+                        authService.markBannedFromServer()
+                        ApiException.Banned
+                    }
                     429 -> ApiException.RateLimited()
                     else -> ApiException.Server(code, text ?: "")
                 }

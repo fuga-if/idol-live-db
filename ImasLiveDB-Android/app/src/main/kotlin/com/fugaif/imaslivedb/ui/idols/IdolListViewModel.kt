@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import uniffi.imas_core.IdolListFilterCriteria
 
 enum class IdolDisplayMode { IDOL_NAME, CV_NAME }
 enum class IdolListMode { LIST, GRID }
@@ -19,6 +20,7 @@ enum class IdolListMode { LIST, GRID }
 /**
  * ブランド内サブカテゴリ属性 (idols.attribute) の定義。(内部値, 表示ラベル)。
  * iOS `FilterSheet.swift` の `brandAttributes` と同一。
+ * 表示ラベルの対応表は imas-core に無く、iOS も Swift 定数として持っているのでここに残す。
  */
 val IDOL_BRAND_ATTRIBUTES: Map<String, List<Pair<String, String>>> = mapOf(
     "cg" to listOf("cute" to "キュート", "cool" to "クール", "passion" to "パッション"),
@@ -50,6 +52,12 @@ data class IdolListUiState(
     val pickIds: Set<String> = emptySet(),
     val favoriteIds: Set<String> = emptySet(),
     val noteIds: Set<String> = emptySet(),
+    /** 絞り込み + 並べ替え済みの表示対象 ([rebuilt] が再計算して持つ)。 */
+    val filteredIdols: List<Idol> = emptyList(),
+    /** ブランド別セクション。公式順以外 (通し並び) では空。 */
+    val groupedByBrand: Map<String, List<Idol>> = emptyMap(),
+    /** 1 人以上残っているブランドだけを公式の並び順で。 */
+    val visibleBrands: List<Brand> = emptyList(),
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false
 ) {
@@ -67,10 +75,46 @@ data class IdolListUiState(
 }
 
 /**
+ * 絞り込み + 並び替え + ブランド別グループ化を再計算した state を返す
+ * (iOS `IdolListViewModel.rebuild` 相当)。
+ *
+ * 判定本体は imas-core の domain/idol_list_filtering.rs で、ここは射影 → FFI →
+ * index 引き直しだけ。Composable 本体で算出すると再コンポーズのたびに全件射影が
+ * 走るため、状態が変わった時だけここで計算して state に持たせる。
+ */
+private fun IdolListUiState.rebuilt(): IdolListUiState {
+    val criteria = IdolListFilterCriteria(
+        selectedBrandIds = selectedBrandIds.toList(),
+        selectedAttribute = selectedAttribute,
+        requireMyPick = requireMyPick,
+        myPickIds = pickIds.toList(),
+        requireFavorite = requireFavorite,
+        favoriteIds = favoriteIds.toList(),
+        requireNote = requireNote,
+        noteIds = noteIds.toList(),
+        searchText = searchText,
+        // CV 名は Android 側で解決して渡す。コアの store.idolCastNames() は
+        // idol_voice_actors テーブル由来だが Android はそれを同期しておらず常に空になり、
+        // 委譲すると CV 名検索・CV 名表示が両方死ぬ (供給元は idols.voice_actors の先頭)。
+        castNames = castNames
+    )
+    val filtered = sortIdols(filterIdols(idols, criteria), sortOrder, sortAscending)
+    // 公式順以外はブランドの区切りを外した通し並びにする
+    // (身長順・年齢順はブランドを跨いで初めて意味を持つ指標のため)。
+    val grouped = if (sortOrder.keepsBrandGrouping) filtered.groupBy { it.brandId } else emptyMap()
+    return copy(
+        filteredIdols = filtered,
+        groupedByBrand = grouped,
+        // grouped に載るのは必ず 1 件以上なので、キー有無で表示ブランドを判定できる。
+        visibleBrands = brands.filter { grouped.containsKey(it.id) }
+    )
+}
+
+/**
  * アイドル一覧の ViewModel。iOS `IdolListViewModel` + `IdolListView` の @AppStorage 相当。
- * フィルタ/グルーピングは Composable 側が収集した state から純粋に算出する
- * (ViewModel が `_uiState.value` を直読みする関数を持つと Compose の依存追跡が壊れ空表示になるため、
- * そういった導出関数はここには置かない)。
+ * 絞り込み・並べ替え・グルーピングは状態が変わるたびに [rebuilt] で算出して state に載せる
+ * (Composable 側は結果を読むだけ。ViewModel が `_uiState.value` を直読みする導出関数を
+ * 持つと Compose の依存追跡が壊れ空表示になるため、そういった関数は置かない)。
  */
 class IdolListViewModel(app: Application) : AndroidViewModel(app) {
 
@@ -121,7 +165,7 @@ class IdolListViewModel(app: Application) : AndroidViewModel(app) {
                 idols = idols,
                 castNames = castNames,
                 isLoading = false
-            )
+            ).rebuilt()
         }
     }
 
@@ -131,7 +175,7 @@ class IdolListViewModel(app: Application) : AndroidViewModel(app) {
                 pickIds = marksRepo.pickedIdolIds(),
                 favoriteIds = marksRepo.favoriteIdolIds(),
                 noteIds = marksRepo.notedIdolIds()
-            )
+            ).rebuilt()
         }
     }
 
@@ -146,12 +190,14 @@ class IdolListViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    // マーク切り替えは「担当のみ」「お気に入りのみ」絞り込み中の表示対象そのものを変えるので
+    // 集合の更新と同時に再計算する。
     fun toggleMyPick(idolId: String) {
         viewModelScope.launch {
             val now = marksRepo.toggle(UserMark.IDOL, idolId, UserMark.PICK)
             val current = _uiState.value.pickIds.toMutableSet()
             if (now) current.add(idolId) else current.remove(idolId)
-            _uiState.value = _uiState.value.copy(pickIds = current)
+            _uiState.value = _uiState.value.copy(pickIds = current).rebuilt()
         }
     }
 
@@ -160,12 +206,12 @@ class IdolListViewModel(app: Application) : AndroidViewModel(app) {
             val now = marksRepo.toggle(UserMark.IDOL, idolId, UserMark.FAVORITE)
             val current = _uiState.value.favoriteIds.toMutableSet()
             if (now) current.add(idolId) else current.remove(idolId)
-            _uiState.value = _uiState.value.copy(favoriteIds = current)
+            _uiState.value = _uiState.value.copy(favoriteIds = current).rebuilt()
         }
     }
 
     fun setSearchText(text: String) {
-        _uiState.value = _uiState.value.copy(searchText = text)
+        _uiState.value = _uiState.value.copy(searchText = text).rebuilt()
     }
 
     fun toggleBrandCollapse(brandId: String) {
@@ -186,7 +232,7 @@ class IdolListViewModel(app: Application) : AndroidViewModel(app) {
             selectedBrandIds = emptySet(),
             selectedAttribute = null,
             displayMode = IdolDisplayMode.IDOL_NAME
-        )
+        ).rebuilt()
     }
 
     /** フィルタシートの「適用」。 */
@@ -217,7 +263,7 @@ class IdolListViewModel(app: Application) : AndroidViewModel(app) {
             requireNote = requireNote,
             sortOrder = sortOrder,
             sortAscending = sortAscending
-        )
+        ).rebuilt()
     }
 
     companion object {

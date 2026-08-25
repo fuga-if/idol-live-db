@@ -108,7 +108,18 @@ data class Idol(
             ?: givenName?.takeIf { it.isNotEmpty() }
             ?: name
 
-    /** 現役 CV 名 (voiceActors 先頭)。 */
+    /**
+     * 現役 CV 名 (voiceActors 先頭)。
+     *
+     * 共有コアには `idolCurrentVoiceActor` / `idolVoiceActorHistory` があるが、どちらも
+     * スナップショットの `idol_voice_actors` 索引を読む。Android には
+     *  - Room に該当エンティティが無い (コアのローダは欠損テーブルを空として読む)
+     *  - CloudKit に `IdolVoiceActor` record type が無く、同期ステップを足しようがない
+     * ため、乗り換えると常に null になる。Android の CV は `idols.voice_actors`
+     * (seed_cloudkit.py が現任 CV を group_concat して Idol レコードに合成した派生列) が
+     * 唯一の供給源なので、ここは Kotlin のまま据え置く。
+     * その代わり過去 CV (valid_to あり) は Android には届かない (履歴 UI も無いので実害なし)。
+     */
     val currentVoiceActor: String?
         get() = voiceActors?.split(",")?.firstOrNull()?.trim()?.takeIf { it.isNotEmpty() }
 }

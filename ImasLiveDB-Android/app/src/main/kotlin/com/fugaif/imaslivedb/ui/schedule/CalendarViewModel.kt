@@ -3,12 +3,8 @@ package com.fugaif.imaslivedb.ui.schedule
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.fugaif.imaslivedb.data.model.CalAnniversaryRow
-import com.fugaif.imaslivedb.data.model.CalBirthdayRow
-import com.fugaif.imaslivedb.data.model.CalReleaseRow
-import com.fugaif.imaslivedb.data.model.CalShowRow
-import com.fugaif.imaslivedb.data.model.CalStaffBirthdayRow
-import com.fugaif.imaslivedb.data.model.Anniversary
+import com.fugaif.imaslivedb.data.model.CalendarEntry
+import com.fugaif.imaslivedb.data.model.JstDay
 import com.fugaif.imaslivedb.di.AppModule
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -17,33 +13,65 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.YearMonth
 
-/** カレンダーの1エントリ (公演/リリース/誕生日/事務員誕生日/記念日)。day はその月の日。 */
-sealed class CalEntry {
-    abstract val day: Int
-    data class Show(val row: CalShowRow, override val day: Int) : CalEntry()
-    data class Release(val rows: List<CalReleaseRow>, override val day: Int) : CalEntry()
-    data class Birthday(val row: CalBirthdayRow, override val day: Int) : CalEntry()
-    data class StaffBirthday(val row: CalStaffBirthdayRow, override val day: Int) : CalEntry()
-    data class AnniversaryEntry(val row: CalAnniversaryRow, val years: Int, override val day: Int) : CalEntry()
+/** グリッドのドット・フィルタチップの種別。序数がドットの並び順になる。 */
+enum class CalendarCategory {
+    SHOW,
+    RELEASE,
+    BIRTHDAY,
+    STAFF_BIRTHDAY,
+    ANNIVERSARY,
+    TICKET
 }
 
 data class CalendarUiState(
-    val yearMonth: YearMonth = YearMonth.now(),
-    val byDay: Map<Int, List<CalEntry>> = emptyMap(),
+    /**
+     * グリッドの「今日」。JST 固定 (公演日は日本の開催日なので端末ローカルだと海外で 1 日ずれる)。
+     * 判定は FFI なので描画のたびに引かず、読込のたびに 1 回だけ確定させて state に載せる。
+     */
+    val today: LocalDate = JstDay.date(),
+    val yearMonth: YearMonth = YearMonth.from(today),
+    val byDay: Map<Int, List<CalendarEntry>> = emptyMap(),
     val selectedDay: Int? = null,
     val showShows: Boolean = true,
     val showReleases: Boolean = true,
     val showBirthdays: Boolean = false,
     val showStaffBirthdays: Boolean = false,
     val showAnniversaries: Boolean = true,
+    val showTickets: Boolean = true,
     /** false=月表示 / true=週表示 (選択日を含む1週間)。 */
     val weekMode: Boolean = false,
     val isLoading: Boolean = true
-)
+) {
+    /** [category] が現在表示対象か。 */
+    fun isVisible(category: CalendarCategory): Boolean = when (category) {
+        CalendarCategory.SHOW -> showShows
+        CalendarCategory.RELEASE -> showReleases
+        CalendarCategory.BIRTHDAY -> showBirthdays
+        CalendarCategory.STAFF_BIRTHDAY -> showStaffBirthdays
+        CalendarCategory.ANNIVERSARY -> showAnniversaries
+        CalendarCategory.TICKET -> showTickets
+    }
+}
+
+/**
+ * エントリの種別 (フィルタ・日詳細リストの色分けに使う)。チケットは単日点と受付期間で同色。
+ *
+ * 受付期間もこの写像で TICKET になるのでフィルタチップ 1 つで両方が切れる。ただしグリッドの
+ * 点は [CalendarViewModel.dotsFor] が受付期間を落とすので、点に出るのは単日側だけ。
+ */
+val CalendarEntry.category: CalendarCategory
+    get() = when (this) {
+        is CalendarEntry.Show -> CalendarCategory.SHOW
+        is CalendarEntry.Release -> CalendarCategory.RELEASE
+        is CalendarEntry.Birthday -> CalendarCategory.BIRTHDAY
+        is CalendarEntry.StaffBirthday -> CalendarCategory.STAFF_BIRTHDAY
+        is CalendarEntry.Anniversary -> CalendarCategory.ANNIVERSARY
+        is CalendarEntry.Ticket, is CalendarEntry.TicketPeriod -> CalendarCategory.TICKET
+    }
 
 class CalendarViewModel(app: Application) : AndroidViewModel(app) {
 
-    private val cal = AppModule.from(app).database.calendarDao()
+    private val calendar = AppModule.from(app).calendarRepository
 
     private val _uiState = MutableStateFlow(CalendarUiState())
     val uiState: StateFlow<CalendarUiState> = _uiState.asStateFlow()
@@ -54,59 +82,60 @@ class CalendarViewModel(app: Application) : AndroidViewModel(app) {
     fun reload() = load()
 
     private fun load() {
-        val ym = _uiState.value.yearMonth
-        val ymStr = "%04d-%02d".format(ym.year, ym.monthValue)
-        val mm = "%02d".format(ym.monthValue)
-        val currentYear = ym.year
+        val month = _uiState.value.yearMonth
         viewModelScope.launch {
-            val shows = cal.showsInMonth(ymStr)
-            val releases = cal.releasesInMonth(ymStr)
-            val birthdays = cal.birthdaysInMonth(mm)
-            val staffBirthdays = cal.staffBirthdaysInMonth(mm)
-            val anniversaries = cal.anniversariesInMonth(mm)
+            val entries = calendar.fetchEntries(month)
             _uiState.value = _uiState.value.copy(
-                byDay = buildByDay(shows, releases, birthdays, staffBirthdays, anniversaries, currentYear),
+                today = JstDay.date(),
+                byDay = buildByDay(entries, month),
                 isLoading = false
             )
         }
     }
 
-    private fun dayOf(date: String): Int? = date.substringAfterLast('-').toIntOrNull()
-    private fun birthdayDay(b: String): Int? = b.removePrefix("--").substringAfter('-').toIntOrNull()
-
-    private fun buildByDay(
-        shows: List<CalShowRow>,
-        releases: List<CalReleaseRow>,
-        birthdays: List<CalBirthdayRow>,
-        staffBirthdays: List<CalStaffBirthdayRow>,
-        anniversaries: List<CalAnniversaryRow>,
-        currentYear: Int
-    ): Map<Int, List<CalEntry>> {
-        val map = HashMap<Int, MutableList<CalEntry>>()
-        fun add(day: Int, e: CalEntry) = map.getOrPut(day) { mutableListOf() }.add(e)
-
-        shows.forEach { s -> dayOf(s.date)?.let { add(it, CalEntry.Show(s, it)) } }
-
-        // リリースは同日多数なので日ごとに集約して1エントリ
-        releases.groupBy { dayOf(it.releaseDate) }.forEach { (day, rows) ->
-            if (day != null) add(day, CalEntry.Release(rows, day))
+    /**
+     * 表示順の確定したエントリ列を日ごとに振り分ける。
+     *
+     * 絞り込み・年展開・並び替えはすべて共有コアが済ませているので、ここは「どの日のセルに
+     * 載せるか」だけを決める (iOS `CalendarView.groupByDate` と同じ責務)。
+     * 受付期間の帯だけは被覆する各日に複製して入れる。
+     */
+    private fun buildByDay(entries: List<CalendarEntry>, month: YearMonth): Map<Int, List<CalendarEntry>> {
+        val map = HashMap<Int, MutableList<CalendarEntry>>()
+        fun add(day: Int, entry: CalendarEntry) {
+            if (day in 1..month.lengthOfMonth()) map.getOrPut(day) { mutableListOf() }.add(entry)
         }
-
-        birthdays.forEach { b -> birthdayDay(b.birthday)?.let { add(it, CalEntry.Birthday(b, it)) } }
-
-        staffBirthdays.forEach { s -> birthdayDay(s.birthday)?.let { add(it, CalEntry.StaffBirthday(s, it)) } }
-
-        // 記念日: 起点年 <= currentYear のもののみ採用 (anniversaryYears が null でないもの)
-        anniversaries.forEach { a ->
-            val ann = Anniversary(
-                id = a.id, brandId = a.brandId, label = a.label,
-                date = a.date, kind = a.kind
-            )
-            val years = ann.anniversaryYears(currentYear) ?: return@forEach
-            dayOf(a.date)?.let { add(it, CalEntry.AnniversaryEntry(a, years, it)) }
+        for (entry in entries) {
+            if (entry is CalendarEntry.TicketPeriod) {
+                for (day in coveredDays(entry.row.start, entry.row.end, month)) add(day, entry)
+                continue
+            }
+            dayOf(entry.date, month)?.let { add(it, entry) }
         }
-
         return map
+    }
+
+    /** その月に属する "yyyy-MM-dd" なら日番号。他の月の日付 (受付期間の端など) は null。 */
+    private fun dayOf(date: String, month: YearMonth): Int? {
+        if (date.take(7) != "%04d-%02d".format(month.year, month.monthValue)) return null
+        return date.substringAfterLast('-').toIntOrNull()
+    }
+
+    /** [start]〜[end] (両端含む) を [month] 内へクリップした日番号の列。 */
+    private fun coveredDays(start: String, end: String, month: YearMonth): List<Int> {
+        val first = runCatching { LocalDate.parse(start) }.getOrNull() ?: return emptyList()
+        val last = runCatching { LocalDate.parse(end) }.getOrNull() ?: return emptyList()
+        if (last < first) return emptyList()
+        val monthStart = month.atDay(1)
+        val monthEnd = month.atEndOfMonth()
+        var day = maxOf(first, monthStart)
+        val stop = minOf(last, monthEnd)
+        val days = mutableListOf<Int>()
+        while (!day.isAfter(stop)) {
+            days += day.dayOfMonth
+            day = day.plusDays(1)
+        }
+        return days
     }
 
     fun goToMonth(delta: Long) {
@@ -128,36 +157,28 @@ class CalendarViewModel(app: Application) : AndroidViewModel(app) {
     fun toggleBirthdays() { _uiState.value = _uiState.value.copy(showBirthdays = !_uiState.value.showBirthdays) }
     fun toggleStaffBirthdays() { _uiState.value = _uiState.value.copy(showStaffBirthdays = !_uiState.value.showStaffBirthdays) }
     fun toggleAnniversaries() { _uiState.value = _uiState.value.copy(showAnniversaries = !_uiState.value.showAnniversaries) }
+    fun toggleTickets() { _uiState.value = _uiState.value.copy(showTickets = !_uiState.value.showTickets) }
 
     /** フィルタ適用後の、指定日のエントリ。 */
-    fun entriesFor(day: Int): List<CalEntry> {
-        val s = _uiState.value
-        return (s.byDay[day] ?: emptyList()).filter {
-            when (it) {
-                is CalEntry.Show -> s.showShows
-                is CalEntry.Release -> s.showReleases
-                is CalEntry.Birthday -> s.showBirthdays
-                is CalEntry.StaffBirthday -> s.showStaffBirthdays
-                is CalEntry.AnniversaryEntry -> s.showAnniversaries
-            }
-        }
+    fun entriesFor(day: Int): List<CalendarEntry> {
+        val state = _uiState.value
+        return (state.byDay[day] ?: emptyList()).filter { state.isVisible(it.category) }
     }
 
-    /** その月にエントリ(フィルタ適用後)を持つ日→種別フラグ。グリッドのドット表示用。 */
-    fun dotsFor(day: Int): Set<Int> {
-        val s = _uiState.value
-        val kinds = sortedSetOf<Int>()
-        (s.byDay[day] ?: emptyList()).forEach {
-            when (it) {
-                is CalEntry.Show -> if (s.showShows) kinds.add(0)
-                is CalEntry.Release -> if (s.showReleases) kinds.add(1)
-                is CalEntry.Birthday -> if (s.showBirthdays) kinds.add(2)
-                is CalEntry.StaffBirthday -> if (s.showStaffBirthdays) kinds.add(3)
-                is CalEntry.AnniversaryEntry -> if (s.showAnniversaries) kinds.add(4)
-            }
-        }
-        return kinds
+    /**
+     * その日に出ている種別 (フィルタ適用後)。グリッドのドット表示用。
+     *
+     * 受付期間 ([CalendarEntry.TicketPeriod]) は数えない。iOS の日セルは単日エントリだけを
+     * 並べ、受付期間は週レーンの帯 (CalendarPeriodBand) として別に描くため点にはならない
+     * (`MonthCalendarView.barEntries` が .ticketPeriod を除外している)。ここで数えると
+     * 受付期間の全日にチケット点が連なり、iOS に無い表示になる。
+     * 単日の申込締切・当落発表 ([CalendarEntry.Ticket]) は iOS と同じく対象のまま。
+     */
+    fun dotsFor(day: Int): Set<CalendarCategory> {
+        val state = _uiState.value
+        return (state.byDay[day] ?: emptyList())
+            .filterNot { it is CalendarEntry.TicketPeriod }
+            .map { it.category }
+            .filterTo(sortedSetOf<CalendarCategory>()) { state.isVisible(it) }
     }
-
-    fun today(): LocalDate = LocalDate.now()
 }

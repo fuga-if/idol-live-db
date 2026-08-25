@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.fugaif.imaslivedb.data.auth.AuthService
+import com.fugaif.imaslivedb.data.auth.shouldPromptLogin
 import com.fugaif.imaslivedb.data.edit.EditApi
 import com.fugaif.imaslivedb.data.edit.friendlyMessage
 import com.fugaif.imaslivedb.di.AppModule
@@ -106,7 +107,9 @@ class RecentEditsViewModel(app: Application) : AndroidViewModel(app) {
         _uiState.value.goodOverrides[entry.batchId] ?: (entry.hasUserGood to entry.goodCount)
 
     fun toggleGood(entry: EditApi.EditFeedEntry) {
-        if (!authService.state.value.isSignedIn) {
+        // Good は編集ではないので BAN を見ない (iOS `RecentEditsView.toggleGood` と同じ)。
+        // 未ログイン誘導を出すかの判定だけコアに委ねる。
+        if (authService.state.value.shouldPromptLogin) {
             _uiState.value = _uiState.value.copy(showLoginPrompt = true)
             return
         }

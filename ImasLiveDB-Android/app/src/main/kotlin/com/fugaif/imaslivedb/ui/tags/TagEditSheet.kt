@@ -28,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.fugaif.imaslivedb.data.auth.startCommunityEdit
 import com.fugaif.imaslivedb.data.community.CommunityApi
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.theme.DS
@@ -96,24 +97,30 @@ fun TagEditSheet(
                     onClick = {
                         errorMessage = null
                         val module = AppModule.from(context)
-                        if (!module.authService.state.value.isSignedIn) {
-                            errorMessage = "タグの編集にはサインインが必要です(設定画面からサインインしてください)"
-                            return@Button
-                        }
-                        isSaving = true
-                        scope.launch {
-                            val api = module.communityApi
-                            val updated = when (domain) {
-                                TagDomain.SONG -> api.updateTag(id = tag.id, description = description, category = category, color = color)
-                                TagDomain.IDOL -> api.updateIdolTagOption(id = tag.id, description = description, category = category, color = color)
-                                TagDomain.UNIT -> api.updateUnitTagOption(id = tag.id, description = description, category = category, color = color)
-                            }
-                            isSaving = false
-                            if (updated != null) {
-                                onSaved(updated)
-                                onDismiss()
-                            } else {
-                                errorMessage = "保存に失敗しました"
+                        // 権限判定はコア (edit_permission_rules) に集約。未ログインは誘導、
+                        // BAN 済みは理由を出す — このシートはタグ一覧/詳細からも開けて
+                        // 導線を隠しきれないので、無反応にすると原因が分からない。
+                        module.authService.state.value.startCommunityEdit(
+                            promptLogin = {
+                                errorMessage = "タグの編集にはサインインが必要です(設定画面からサインインしてください)"
+                            },
+                            onBanned = { errorMessage = "この操作は制限されています。" }
+                        ) {
+                            isSaving = true
+                            scope.launch {
+                                val api = module.communityApi
+                                val updated = when (domain) {
+                                    TagDomain.SONG -> api.updateTag(id = tag.id, description = description, category = category, color = color)
+                                    TagDomain.IDOL -> api.updateIdolTagOption(id = tag.id, description = description, category = category, color = color)
+                                    TagDomain.UNIT -> api.updateUnitTagOption(id = tag.id, description = description, category = category, color = color)
+                                }
+                                isSaving = false
+                                if (updated != null) {
+                                    onSaved(updated)
+                                    onDismiss()
+                                } else {
+                                    errorMessage = "保存に失敗しました"
+                                }
                             }
                         }
                     },

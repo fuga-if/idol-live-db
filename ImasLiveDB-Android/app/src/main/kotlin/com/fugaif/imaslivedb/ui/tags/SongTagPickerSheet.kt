@@ -40,6 +40,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.fugaif.imaslivedb.data.auth.startCommunityEdit
 import com.fugaif.imaslivedb.data.community.CommunityApi
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.theme.DS
@@ -137,20 +138,24 @@ fun SongTagPickerSheet(
                     onClick = {
                         errorMessage = null
                         val module = AppModule.from(context)
-                        if (!module.authService.state.value.isSignedIn) {
-                            errorMessage = "タグの追加にはサインインが必要です(設定画面からサインインしてください)"
-                            return@Button
-                        }
-                        isApplying = true
-                        scope.launch {
-                            val api = module.communityApi
-                            val ok = runCatching { api.applySongTags(songId, selected.toList()) }.getOrNull()
-                            isApplying = false
-                            if (ok != null) {
-                                onApplied()
-                                onDismiss()
-                            } else {
-                                errorMessage = "タグの追加に失敗しました"
+                        // 権限判定はコア (edit_permission_rules) に集約。未ログインは誘導、
+                        // BAN 済みは何も起きない (押せる導線自体が出ていない)。
+                        module.authService.state.value.startCommunityEdit(
+                            promptLogin = {
+                                errorMessage = "タグの追加にはサインインが必要です(設定画面からサインインしてください)"
+                            }
+                        ) {
+                            isApplying = true
+                            scope.launch {
+                                val api = module.communityApi
+                                val ok = runCatching { api.applySongTags(songId, selected.toList()) }.getOrNull()
+                                isApplying = false
+                                if (ok != null) {
+                                    onApplied()
+                                    onDismiss()
+                                } else {
+                                    errorMessage = "タグの追加に失敗しました"
+                                }
                             }
                         }
                     },

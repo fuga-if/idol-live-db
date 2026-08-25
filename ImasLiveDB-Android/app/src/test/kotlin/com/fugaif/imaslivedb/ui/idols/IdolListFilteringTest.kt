@@ -6,17 +6,27 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import uniffi.imas_core.IdolListFilterCriteria
 
 /**
- * `sortIdols` の単体テスト。iOS `IdolListSortingTests` と同じ不変条件を固定する
- * (両 OS で並びが食い違わないようにするため)。
+ * `sortIdols` / `filterIdols` の単体テスト。iOS `IdolListSortingTests` と同じ不変条件を固定する
+ * (両 OS で並び・ヒット範囲が食い違わないようにするため)。
+ *
+ * 判定本体は imas-core なので、ここが見ているのは「Kotlin の射影と index 引き直しが
+ * 正しく繋がっているか」と「Android から見た契約」。JVM から imas-core の
+ * ホスト dylib を叩く (パスは app/build.gradle.kts の jna.library.path)。
  */
-class IdolSortOrderTest {
+class IdolListFilteringTest {
 
     private fun idol(
         id: String,
+        brandId: String = "cg",
+        name: String = id,
         sortOrder: Int = 0,
         nameKana: String? = null,
+        nickname: String? = null,
+        aliases: String? = null,
+        attribute: String? = null,
         age: Int? = null,
         height: Double? = null,
         weight: Double? = null,
@@ -24,8 +34,8 @@ class IdolSortOrderTest {
         debutDate: String? = null
     ) = Idol(
         id = id,
-        brandId = "cg",
-        name = id,
+        brandId = brandId,
+        name = name,
         nameKana = nameKana,
         nameRomaji = null,
         color = null,
@@ -47,12 +57,36 @@ class IdolSortOrderTest {
         handedness = null,
         familyName = null,
         givenName = null,
-        nickname = null,
+        nickname = nickname,
         debutDate = debutDate,
-        attribute = null,
+        attribute = attribute,
         isExternal = false,
-        aliases = null,
+        aliases = aliases,
         voiceActors = null
+    )
+
+    private fun criteria(
+        selectedBrandIds: List<String> = emptyList(),
+        selectedAttribute: String? = null,
+        requireMyPick: Boolean = false,
+        myPickIds: List<String> = emptyList(),
+        requireFavorite: Boolean = false,
+        favoriteIds: List<String> = emptyList(),
+        requireNote: Boolean = false,
+        noteIds: List<String> = emptyList(),
+        searchText: String = "",
+        castNames: Map<String, String> = emptyMap()
+    ) = IdolListFilterCriteria(
+        selectedBrandIds = selectedBrandIds,
+        selectedAttribute = selectedAttribute,
+        requireMyPick = requireMyPick,
+        myPickIds = myPickIds,
+        requireFavorite = requireFavorite,
+        favoriteIds = favoriteIds,
+        requireNote = requireNote,
+        noteIds = noteIds,
+        searchText = searchText,
+        castNames = castNames
     )
 
     @Test
@@ -157,5 +191,62 @@ class IdolSortOrderTest {
         val i = idol("x")
         assertNull(IdolSortOrder.AGE.metricLabel(i))
         assertNull(IdolSortOrder.HEIGHT.metricLabel(i))
+    }
+
+    @Test
+    fun `検索は愛称にも当たる`() {
+        // 「にこにー」は name にも nameKana にも含まれない。愛称を見ないとヒットしない。
+        val idols = listOf(idol("niko", name = "矢澤にこ", nameKana = "やざわにこ", nickname = "にこにー"), idol("other", name = "他"))
+        assertEquals(listOf("niko"), filterIdols(idols, criteria(searchText = "にこにー")).map { it.id })
+    }
+
+    @Test
+    fun `検索は別名のフルネームにも当たる`() {
+        // 表示名を短くしたアイドルをフルネームで引けること (aliases のカンマ分割はコア側)。
+        val idols = listOf(
+            idol("roko", name = "ロコ", nameKana = "ろこ", aliases = "伴田路子,はんだろこ"),
+            idol("other", name = "他")
+        )
+        assertEquals(listOf("roko"), filterIdols(idols, criteria(searchText = "伴田")).map { it.id })
+    }
+
+    @Test
+    fun `検索はCV名にも当たる`() {
+        val idols = listOf(idol("uzuki", name = "島村卯月"), idol("rin", name = "渋谷凛"))
+        val hit = filterIdols(idols, criteria(searchText = "大橋", castNames = mapOf("uzuki" to "大橋彩香")))
+        assertEquals(listOf("uzuki"), hit.map { it.id })
+    }
+
+    @Test
+    fun `検索語は trim しない`() {
+        // iOS も imas-core も前後空白を落とさない。名前に空白が無い以上ヒット 0 件が正。
+        val idols = listOf(idol("uzuki", name = "島村卯月"))
+        assertTrue(filterIdols(idols, criteria(searchText = "島村 ")).isEmpty())
+        assertEquals(listOf("uzuki"), filterIdols(idols, criteria(searchText = "島村")).map { it.id })
+    }
+
+    @Test
+    fun `ブランド・属性・マイマークは AND で効く`() {
+        val idols = listOf(
+            idol("a", brandId = "cg", attribute = "cute"),
+            idol("b", brandId = "cg", attribute = "cool"),
+            idol("c", brandId = "ml", attribute = "cute")
+        )
+        val kept = filterIdols(
+            idols,
+            criteria(
+                selectedBrandIds = listOf("cg"),
+                selectedAttribute = "cute",
+                requireMyPick = true,
+                myPickIds = listOf("a", "c")
+            )
+        )
+        assertEquals(listOf("a"), kept.map { it.id })
+    }
+
+    @Test
+    fun `絞り込みは入力順を保つ`() {
+        val idols = listOf(idol("c", sortOrder = 3), idol("a", sortOrder = 1), idol("b", sortOrder = 2))
+        assertEquals(listOf("c", "a", "b"), filterIdols(idols, criteria()).map { it.id })
     }
 }

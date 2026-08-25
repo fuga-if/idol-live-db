@@ -13,9 +13,6 @@ interface UnitDao {
     @Query("SELECT * FROM units WHERE brand_id = :brandId ORDER BY name")
     suspend fun fetchUnitsByBrand(brandId: String): List<ImasUnit>
 
-    @Query("SELECT * FROM units ORDER BY name")
-    suspend fun fetchAllUnits(): List<ImasUnit>
-
     /** タグが似ているユニット表示用。N+1を避けてIN句で一括取得する (IdolDao.fetchIdolsByIds と同型)。 */
     @Query("SELECT * FROM units WHERE id IN (:ids)")
     suspend fun fetchUnitsByIds(ids: List<String>): List<ImasUnit>

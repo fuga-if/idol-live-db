@@ -47,9 +47,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.fugaif.imaslivedb.data.auth.AuthState
+import com.fugaif.imaslivedb.data.auth.shouldPromptLogin
+import com.fugaif.imaslivedb.data.auth.showEditAffordance
+import com.fugaif.imaslivedb.data.auth.startCommunityEdit
 import com.fugaif.imaslivedb.data.community.CommunityApi
 import com.fugaif.imaslivedb.data.model.ImasUnit
 import com.fugaif.imaslivedb.di.AppModule
+import com.fugaif.imaslivedb.ui.components.CommunityLoginPromptDialog
 import com.fugaif.imaslivedb.ui.components.ImasAvatar
 import com.fugaif.imaslivedb.ui.components.ImasEmptyState
 import com.fugaif.imaslivedb.ui.components.ImasSectionHeader
@@ -87,7 +92,14 @@ fun UnitDetailScreen(
     val t = ImasTheme.derive(null, unit?.brandId, dark = true)
     var segment by rememberSaveable(unitId) { mutableIntStateOf(0) }
     var showTagPicker by rememberSaveable { mutableStateOf(false) }
+    var showLoginPrompt by rememberSaveable { mutableStateOf(false) }
     val authState by AppModule.from(context).authService.state.collectAsState()
+
+    // 投稿/編集導線の共通ゲート (iOS UnitDetailView.startCommunityEdit と同じ)。優先順はコアが持つので
+    // if で並べ直さない。BAN 済みは iOS の .ignore と同じく無反応 (onBanned 既定) —
+    // この画面の編集導線は showEditAffordance で隠れており、押せるのはタグチップだけ。
+    fun startCommunityEdit(present: () -> Unit) =
+        authState.startCommunityEdit(promptLogin = { showLoginPrompt = true }, present = present)
 
     Scaffold(
         topBar = {
@@ -130,11 +142,16 @@ fun UnitDetailScreen(
                         CommunityBody(
                             unitId = unit.id,
                             tags = state.tags,
-                            isSignedIn = authState.isSignedIn,
+                            authState = authState,
                             similarUnits = state.similarUnits,
                             similarSharedTags = state.similarSharedTags,
-                            onToggleTag = viewModel::toggleTag,
-                            onOpenTagPicker = { showTagPicker = true },
+                            // 外す方向はゲートしない (iOS も自分が付けたタグの取り消しは素通し)。
+                            // 付ける方向はタグ投票の書き込みなので共通ゲートを通す。
+                            onToggleTag = { tag ->
+                                if (tag.mine) viewModel.toggleTag(tag)
+                                else startCommunityEdit { viewModel.toggleTag(tag) }
+                            },
+                            onOpenTagPicker = { startCommunityEdit { showTagPicker = true } },
                             onPollClick = onPollClick,
                             onUnitClick = onNavigateToUnitDetail
                         )
@@ -156,6 +173,13 @@ fun UnitDetailScreen(
             alreadyAppliedTagIds = state.tags.filter { it.mine }.map { it.id }.toSet(),
             onDismiss = { showTagPicker = false },
             onApplied = { viewModel.onTagsApplied() }
+        )
+    }
+
+    if (showLoginPrompt) {
+        CommunityLoginPromptDialog(
+            message = "タグ付け・投票にはログインが必要です。",
+            onDismiss = { showLoginPrompt = false }
         )
     }
 }
@@ -230,7 +254,7 @@ private fun MembersBody(state: UnitDetailUiState, onIdolClick: (String) -> Unit)
 private fun CommunityBody(
     unitId: String,
     tags: List<CommunityApi.UnitTag>,
-    isSignedIn: Boolean,
+    authState: AuthState,
     similarUnits: List<ImasUnit>,
     similarSharedTags: Map<String, Int>,
     onToggleTag: (CommunityApi.UnitTag) -> Unit,
@@ -238,9 +262,13 @@ private fun CommunityBody(
     onPollClick: (String) -> Unit,
     onUnitClick: (String) -> Unit
 ) {
+    // 権限フラグは認証状態が変わった時だけコアへ問い合わせる (再コンポーズごとに
+    // EditPermissionRules を RustBuffer へ詰め直して JNA を跨がないため)。
+    val canEditHere = remember(authState) { authState.showEditAffordance }
+    val needsLogin = remember(authState) { authState.shouldPromptLogin }
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         PollAchievementBadges(entityId = unitId, onOpenPoll = onPollClick)
-        if (!isSignedIn) {
+        if (needsLogin) {
             Box(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
                     .clip(RoundedCornerShape(12.dp)).background(DS.fill).padding(12.dp)
@@ -251,8 +279,10 @@ private fun CommunityBody(
         Column {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 ImasSectionHeader("タグ", count = "${tags.size}", modifier = Modifier.weight(1f))
-                IconButton(onClick = onOpenTagPicker, modifier = Modifier.padding(end = 8.dp)) {
-                    Icon(Icons.Filled.Add, contentDescription = "タグを追加", tint = DS.ink2)
+                if (canEditHere) {
+                    IconButton(onClick = onOpenTagPicker, modifier = Modifier.padding(end = 8.dp)) {
+                        Icon(Icons.Filled.Add, contentDescription = "タグを追加", tint = DS.ink2)
+                    }
                 }
             }
             if (tags.isEmpty()) {

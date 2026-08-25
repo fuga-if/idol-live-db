@@ -64,6 +64,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.fugaif.imaslivedb.data.auth.AuthState
+import com.fugaif.imaslivedb.data.auth.shouldPromptLogin
+import com.fugaif.imaslivedb.data.auth.showEditAffordance
+import com.fugaif.imaslivedb.data.auth.startCommunityEdit
 import com.fugaif.imaslivedb.data.community.CommunityApi
 import com.fugaif.imaslivedb.data.model.CastShowRow
 import com.fugaif.imaslivedb.data.model.Idol
@@ -72,6 +76,7 @@ import com.fugaif.imaslivedb.data.model.ImasUnit
 import com.fugaif.imaslivedb.data.model.Song
 import com.fugaif.imaslivedb.data.model.UserMark
 import com.fugaif.imaslivedb.di.AppModule
+import com.fugaif.imaslivedb.ui.components.CommunityLoginPromptDialog
 import com.fugaif.imaslivedb.ui.components.ImasArtwork
 import com.fugaif.imaslivedb.ui.components.ImasAvatar
 import com.fugaif.imaslivedb.ui.components.IdolGridSection
@@ -120,7 +125,14 @@ fun IdolDetailScreen(
     val t = ImasTheme.derive(idol?.color, idol?.brandId, dark = true)
     var segment by rememberSaveable(idolId) { mutableIntStateOf(0) }
     var showTagPicker by rememberSaveable { mutableStateOf(false) }
+    var showLoginPrompt by rememberSaveable { mutableStateOf(false) }
     val authState by AppModule.from(context).authService.state.collectAsState()
+
+    // 投稿/編集導線の共通ゲート (iOS IdolDetailView.startCommunityEdit と同じ)。優先順はコアが持つので
+    // if で並べ直さない。BAN 済みは iOS の .ignore と同じく無反応 (onBanned 既定) —
+    // この画面の編集導線は showEditAffordance で隠れており、押せるのはタグチップだけ。
+    fun startCommunityEdit(present: () -> Unit) =
+        authState.startCommunityEdit(promptLogin = { showLoginPrompt = true }, present = present)
 
     Scaffold(
         topBar = {
@@ -154,11 +166,16 @@ fun IdolDetailScreen(
                         CommunityBody(
                             idolId = idol.id,
                             tags = state.tags,
-                            isSignedIn = authState.isSignedIn,
+                            authState = authState,
                             similarTagIdols = state.similarTagIdols,
                             similarSharedTags = state.similarSharedTags,
-                            onToggleTag = viewModel::toggleTag,
-                            onOpenTagPicker = { showTagPicker = true },
+                            // 外す方向はゲートしない (iOS も自分が付けたタグの取り消しは素通し)。
+                            // 付ける方向はタグ投票の書き込みなので共通ゲートを通す。
+                            onToggleTag = { tag ->
+                                if (tag.mine) viewModel.toggleTag(tag)
+                                else startCommunityEdit { viewModel.toggleTag(tag) }
+                            },
+                            onOpenTagPicker = { startCommunityEdit { showTagPicker = true } },
                             onPollClick = onPollClick,
                             onTagDetailClick = onIdolTagClick,
                             onIdolClick = onNavigateToIdolDetail
@@ -183,6 +200,13 @@ fun IdolDetailScreen(
             onApplied = { viewModel.onTagsApplied() }
         )
     }
+
+    if (showLoginPrompt) {
+        CommunityLoginPromptDialog(
+            message = "タグ付け・投票にはログインが必要です。",
+            onDismiss = { showLoginPrompt = false }
+        )
+    }
 }
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
@@ -190,7 +214,7 @@ fun IdolDetailScreen(
 private fun CommunityBody(
     idolId: String,
     tags: List<CommunityApi.IdolTag>,
-    isSignedIn: Boolean,
+    authState: AuthState,
     similarTagIdols: List<Idol>,
     similarSharedTags: Map<String, Int>,
     onToggleTag: (CommunityApi.IdolTag) -> Unit,
@@ -199,9 +223,13 @@ private fun CommunityBody(
     onTagDetailClick: (String) -> Unit,
     onIdolClick: (String) -> Unit
 ) {
+    // 権限フラグは認証状態が変わった時だけコアへ問い合わせる (再コンポーズごとに
+    // EditPermissionRules を RustBuffer へ詰め直して JNA を跨がないため)。
+    val canEditHere = remember(authState) { authState.showEditAffordance }
+    val needsLogin = remember(authState) { authState.shouldPromptLogin }
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         com.fugaif.imaslivedb.ui.polls.PollAchievementBadges(entityId = idolId, onOpenPoll = onPollClick)
-        if (!isSignedIn) {
+        if (needsLogin) {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
                     .clip(RoundedCornerShape(12.dp)).background(DS.fill).padding(12.dp),
@@ -213,8 +241,10 @@ private fun CommunityBody(
         Column {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 ImasSectionHeader("タグ", count = "${tags.size}", modifier = Modifier.weight(1f))
-                IconButton(onClick = onOpenTagPicker, modifier = Modifier.padding(end = 8.dp)) {
-                    Icon(Icons.Filled.Add, contentDescription = "タグを追加", tint = DS.ink2)
+                if (canEditHere) {
+                    IconButton(onClick = onOpenTagPicker, modifier = Modifier.padding(end = 8.dp)) {
+                        Icon(Icons.Filled.Add, contentDescription = "タグを追加", tint = DS.ink2)
+                    }
                 }
             }
             if (tags.isEmpty()) {

@@ -38,8 +38,7 @@ data class SongDetailUiState(
     val songVideos: List<SongVideo> = emptyList(),
     val tags: List<CommunityApi.SongTag> = emptyList(),
     val penlight: CommunityApi.PenlightResult? = null,
-    val isFavorite: Boolean = false,
-    val isSignedIn: Boolean = false
+    val isFavorite: Boolean = false
 )
 
 class SongDetailViewModel : ViewModel() {
@@ -86,8 +85,7 @@ class SongDetailViewModel : ViewModel() {
                 relatedSongs = relatedSongs,
                 songCalls = calls,
                 songVideos = videos,
-                isFavorite = isFavorite,
-                isSignedIn = module.authService.sessionToken != null
+                isFavorite = isFavorite
             )
             // 集計系コミュニティ (Worker D1) はネットワーク。失敗しても本体表示は維持。
             loadCommunity(songId)
@@ -127,7 +125,13 @@ class SongDetailViewModel : ViewModel() {
         }
     }
 
-    /** タグ投票のトグル (端末ベース)。完了後にタグを再取得。 */
+    /**
+     * タグ投票のトグル。完了後にタグを再取得。
+     *
+     * ここに権限判定は無い (書き込みの素の口)。付ける方向は必ず画面側の
+     * `startCommunityEdit` ゲートを通してから呼ぶこと — 直接呼ぶと未ログイン/BAN 済みでも
+     * 投票が飛ぶ。外す方向 (`tag.mine`) は iOS の contextMenu 同様ゲートしない。
+     */
     fun toggleTag(tag: CommunityApi.SongTag) {
         val songId = currentSongId ?: return
         val a = api ?: return

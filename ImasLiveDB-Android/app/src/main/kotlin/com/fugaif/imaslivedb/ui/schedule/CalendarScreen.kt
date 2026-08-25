@@ -2,6 +2,8 @@ package com.fugaif.imaslivedb.ui.schedule
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,6 +24,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.ConfirmationNumber
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.MailOutline
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
@@ -47,8 +52,13 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fugaif.imaslivedb.data.model.CalReleaseRow
+import com.fugaif.imaslivedb.data.model.CalendarEntry
+import com.fugaif.imaslivedb.data.model.TicketCalendarRow
+import com.fugaif.imaslivedb.data.model.TicketDateKind
+import com.fugaif.imaslivedb.data.model.TicketPeriodRow
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.brandColor
+import com.fugaif.imaslivedb.ui.theme.hexToColor
 import java.time.LocalDate
 import androidx.compose.foundation.layout.width
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -58,6 +68,18 @@ private val ReleaseColor = DS.warning
 private val BirthdayColor = DS.pick
 private val StaffColor = DS.pick
 private val AnniversaryColor = DS.sys
+/** チケット系 (受付期間・当落発表)。公演(青)・リリース(橙)・誕生日(桃) と被らない藍 (iOS と同じ色域)。 */
+private val TicketColor = Color(0xFF5856D6)
+
+/** ドット・チップの色。種別 1 つに 1 色 (申込締切だけ行側で緊急色に振る)。 */
+private fun categoryColor(category: CalendarCategory): Color = when (category) {
+    CalendarCategory.SHOW -> ShowColor
+    CalendarCategory.RELEASE -> ReleaseColor
+    CalendarCategory.BIRTHDAY -> BirthdayColor
+    CalendarCategory.STAFF_BIRTHDAY -> StaffColor
+    CalendarCategory.ANNIVERSARY -> AnniversaryColor
+    CalendarCategory.TICKET -> TicketColor
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -65,6 +87,7 @@ fun CalendarScreen(
     onNavigateToShow: (String) -> Unit,
     onNavigateToSong: (String) -> Unit,
     onNavigateToIdol: (String) -> Unit,
+    onNavigateToEvent: (String) -> Unit,
     onNavigateToSearch: () -> Unit,
     onNavigateToSettings: () -> Unit,
     viewModel: CalendarViewModel = viewModel()
@@ -79,7 +102,8 @@ fun CalendarScreen(
         }
     }
     val ym = state.yearMonth
-    val today = viewModel.today()
+    // 「今日」は VM が JST で確定させたもの (端末ローカルだと海外で丸の位置が 1 日ずれる)。
+    val today = state.today
     val isCurrentMonth = today.year == ym.year && today.monthValue == ym.monthValue
     val selectedDay = state.selectedDay ?: if (isCurrentMonth) today.dayOfMonth else null
 
@@ -101,7 +125,9 @@ fun CalendarScreen(
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
             // フィルタチップ
             Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
+                modifier = Modifier.fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = 12.dp, vertical = 4.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 CalFilterChip("公演", ShowColor, state.showShows) { viewModel.toggleShows() }
@@ -109,6 +135,7 @@ fun CalendarScreen(
                 CalFilterChip("誕生日", BirthdayColor, state.showBirthdays) { viewModel.toggleBirthdays() }
                 CalFilterChip("事務員", StaffColor, state.showStaffBirthdays) { viewModel.toggleStaffBirthdays() }
                 CalFilterChip("記念日", AnniversaryColor, state.showAnniversaries) { viewModel.toggleAnniversaries() }
+                CalFilterChip("チケット", TicketColor, state.showTickets) { viewModel.toggleTickets() }
             }
 
             // 月ナビ
@@ -173,19 +200,19 @@ fun CalendarScreen(
             LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 16.dp)) {
                 items(entries) { entry ->
                     when (entry) {
-                        is CalEntry.Show -> EntryRow(ShowColor, entry.row.eventName, entry.row.showName,
+                        is CalendarEntry.Show -> EntryRow(ShowColor, entry.row.eventName, entry.row.showName,
                             brandColor(entry.row.brandId)) { onNavigateToShow(entry.row.showId) }
-                        is CalEntry.Birthday -> EntryRow(BirthdayColor, "誕生日", entry.row.name,
+                        is CalendarEntry.Birthday -> EntryRow(BirthdayColor, "誕生日", entry.row.name,
                             brandColor(entry.row.brandId)) { onNavigateToIdol(entry.row.id) }
-                        is CalEntry.Release -> ReleaseRows(entry.rows, onNavigateToSong)
-                        is CalEntry.StaffBirthday -> IconEntryRow(
+                        is CalendarEntry.Release -> ReleaseRows(entry.songs, onNavigateToSong)
+                        is CalendarEntry.StaffBirthday -> IconEntryRow(
                             accent = StaffColor,
                             icon = Icons.Filled.Person,
                             label = "${entry.row.name} 誕生日",
                             sub = entry.row.role ?: "",
                             brand = brandColor(entry.row.brandId)
                         )
-                        is CalEntry.AnniversaryEntry -> {
+                        is CalendarEntry.Anniversary -> {
                             val title = if (entry.years == 0) "${entry.row.label} (初日)"
                                         else "${entry.years}周年 ・ ${entry.row.label}"
                             val startYear = entry.row.date.take(4)
@@ -196,6 +223,10 @@ fun CalendarScreen(
                                 sub = "${startYear} 起点",
                                 brand = brandColor(entry.row.brandId)
                             )
+                        }
+                        is CalendarEntry.Ticket -> TicketRow(entry.row) { onNavigateToEvent(entry.row.eventId) }
+                        is CalendarEntry.TicketPeriod -> TicketPeriodRowView(entry.row) {
+                            onNavigateToEvent(entry.row.eventId)
                         }
                     }
                 }
@@ -220,7 +251,7 @@ private fun MonthGrid(
     ym: java.time.YearMonth,
     today: LocalDate,
     selectedDay: Int?,
-    dotsProvider: (Int) -> Set<Int>,
+    dotsProvider: (Int) -> Set<CalendarCategory>,
     onSelect: (Int) -> Unit
 ) {
     val firstDow = LocalDate.of(ym.year, ym.monthValue, 1).dayOfWeek.value % 7 // 日=0
@@ -255,7 +286,7 @@ private fun WeekStrip(
     ym: java.time.YearMonth,
     today: LocalDate,
     selectedDay: Int,
-    dotsProvider: (Int) -> Set<Int>,
+    dotsProvider: (Int) -> Set<CalendarCategory>,
     onSelect: (Int) -> Unit
 ) {
     val firstDow = LocalDate.of(ym.year, ym.monthValue, 1).dayOfWeek.value % 7
@@ -281,7 +312,13 @@ private fun WeekStrip(
 }
 
 @Composable
-private fun DayCell(day: Int, isToday: Boolean, isSelected: Boolean, dots: Set<Int>, onClick: () -> Unit) {
+private fun DayCell(
+    day: Int,
+    isToday: Boolean,
+    isSelected: Boolean,
+    dots: Set<CalendarCategory>,
+    onClick: () -> Unit
+) {
     Column(
         modifier = Modifier
             .size(40.dp)
@@ -305,15 +342,8 @@ private fun DayCell(day: Int, isToday: Boolean, isSelected: Boolean, dots: Set<I
             )
         }
         Row(horizontalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.height(6.dp)) {
-            dots.forEach { kind ->
-                Box(
-                    modifier = Modifier.size(5.dp).clip(CircleShape).background(
-                        when (kind) {
-                            0 -> ShowColor; 1 -> ReleaseColor; 2 -> BirthdayColor
-                            3 -> StaffColor; else -> AnniversaryColor
-                        }
-                    )
-                )
+            dots.forEach { category ->
+                Box(modifier = Modifier.size(5.dp).clip(CircleShape).background(categoryColor(category)))
             }
         }
     }
@@ -331,11 +361,63 @@ private fun DaySectionHeader(ym: java.time.YearMonth, day: Int?) {
     )
 }
 
-/** アイコン付きエントリ行 (事務員誕生日・記念日など、詳細画面なしのエントリ用)。 */
+/** チケット日程行 (申込締切 / 当落発表)。タップで親イベント詳細へ。 */
 @Composable
-private fun IconEntryRow(accent: Color, icon: ImageVector, label: String, sub: String, brand: Color) {
+private fun TicketRow(row: TicketCalendarRow, onClick: () -> Unit) {
+    IconEntryRow(
+        // 申込締切は「その日までにやること」なので緊急色、当落発表はチケット系の藍 (iOS と同じ)。
+        accent = if (row.kind == TicketDateKind.DEADLINE) DS.danger else TicketColor,
+        icon = if (row.kind == TicketDateKind.DEADLINE) {
+            Icons.Filled.ConfirmationNumber
+        } else {
+            Icons.Filled.MailOutline
+        },
+        label = "${row.kind.label} ・ ${row.eventName}",
+        sub = if (row.kind == TicketDateKind.DEADLINE) "チケット申込の締切" else "チケット当落発表",
+        // コアが JOIN 済みの brand の color hex をそのまま使う (brand_id は返らない)。
+        brand = row.brandColor?.let(::hexToColor) ?: Color.Gray,
+        onClick = onClick
+    )
+}
+
+/** チケット受付期間行。被覆する日すべてに出る (受付中であることがその日に分かるように)。 */
+@Composable
+private fun TicketPeriodRowView(row: TicketPeriodRow, onClick: () -> Unit) {
+    val range = listOfNotNull(monthDay(row.start), monthDay(row.end)).joinToString(" 〜 ")
+    IconEntryRow(
+        accent = TicketColor,
+        icon = Icons.Filled.DateRange,
+        label = "受付期間 ・ ${row.eventName}",
+        sub = if (range.isEmpty()) "チケット受付期間" else "チケット受付  $range",
+        // コアが JOIN 済みの brand の color hex をそのまま使う (brand_id は返らない)。
+        brand = row.brandColor?.let(::hexToColor) ?: Color.Gray,
+        onClick = onClick
+    )
+}
+
+/** "2026-06-13" → "6/13"。解釈できない値は null。 */
+private fun monthDay(ymd: String): String? {
+    val parts = ymd.split("-")
+    if (parts.size != 3) return null
+    val m = parts[1].toIntOrNull() ?: return null
+    val d = parts[2].toIntOrNull() ?: return null
+    return "$m/$d"
+}
+
+/** アイコン付きエントリ行 (事務員誕生日・記念日・チケットなど、リード画像を持たないエントリ用)。 */
+@Composable
+private fun IconEntryRow(
+    accent: Color,
+    icon: ImageVector,
+    label: String,
+    sub: String,
+    brand: Color,
+    onClick: (() -> Unit)? = null
+) {
+    val base = Modifier.fillMaxWidth()
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+        modifier = (if (onClick != null) base.clickable(onClick = onClick) else base)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(modifier = Modifier.size(width = 4.dp, height = 36.dp).clip(RoundedCornerShape(2.dp)).background(brand))

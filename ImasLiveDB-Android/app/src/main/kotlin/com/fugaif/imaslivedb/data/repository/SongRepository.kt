@@ -1,7 +1,9 @@
 package com.fugaif.imaslivedb.data.repository
 
 import androidx.sqlite.db.SimpleSQLiteQuery
+import com.fugaif.imaslivedb.data.core.SQLITE_BINARY_ORDER
 import com.fugaif.imaslivedb.data.core.SnapshotStoreProvider
+import com.fugaif.imaslivedb.data.core.hydrateInOrder
 import com.fugaif.imaslivedb.data.db.AppDatabase
 import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.data.model.PerformanceHistoryRow
@@ -26,6 +28,22 @@ import uniffi.imas_core.SongListSort
  * Song 実体への引き直し (hydration) はこのリポジトリが Room で行う。
  * user_marks (参加マーク等) はスナップショットに無いため、必要な id 集合は
  * ここで解決してクエリ引数として渡す。
+ *
+ * ## 「スナップショット添字」で割られたタイの注意
+ * コアは並びのタイ (同数・同日) をスナップショット添字で割る。添字はコアが songs を
+ * ORDER BY 無しで読んだ順、すなわちローカル DB の rowid 順である。ここに 2 つ罠がある。
+ *
+ * 1. **iOS と同じ並びにはならない。** iOS は同梱 master.sqlite を読むが、Android の
+ *    master.sqlite は Room が空で生成し CloudKit 同期が埋める (AppDatabase.buildDatabase)。
+ *    Android の rowid は「同期で届いた順」で、iOS 同梱ファイルの rowid とは別データ。
+ * 2. **同じ端末でも動く。** 差分同期の upsert は INSERT OR REPLACE (SyncDao.upsertSongs) で、
+ *    songs は TEXT 主キーの rowid テーブル (Song) なので、更新された曲は行が消えて末尾に
+ *    入り直し rowid が変わる = 添字も変わる。
+ *
+ * よって添字で割られたタイの前後は端末ごと・同期ごとに入れ替わり得る。UI がタイの
+ * 前後関係に意味を持たせないこと。安定させたい並びが出てきたら、プラットフォーム側で
+ * 並べ直すのではなくコア側の最終キーを id 等の不変値にすること
+ * (打ち切り (limit) より後ろでは並べ直しても落ちた行を取り戻せないため)。
  */
 class SongRepository(
     private val db: AppDatabase,
@@ -299,22 +317,32 @@ class SongRepository(
         return db.songDao().fetchSongPerformanceHistory(songId)
     }
 
+    /**
+     * 披露回数ランキング (iOS CoreStatsRepository.songPlayCountRanking と同一経路)。
+     *
+     * 集計・並び・件数打ち切りはすべてコアの責務。射影 (SongPlayCountRecord) が
+     * title/brand_id を持つため Room への引き直しはしない。
+     *
+     * 同数タイの並びは iOS と一致しない — クラス KDoc の「スナップショット添字」の注意どおり、
+     * 両プラットフォームとも添字を最終キーにするが、その添字の元になる rowid が別データだから。
+     * 移送前の Kotlin 実装 (songPerformanceCountMap を取って `thenBy { song_id }` で整列) と
+     * SQL フォールバック (GROUP BY が主キー索引を走るため実測ではタイが song_id 昇順) は
+     * どちらもタイが安定していたので、そこは失っている。
+     * 順位の値そのものは変わらないので許容するが、同数が limit の境目にまたがると
+     * 20 位に載る曲自体が入れ替わる (実データでは 36 回タイの いっぱいいっぱい /
+     * M@STERPIECE / GOIN'!!! がちょうど limit=20 の境界にいる)。
+     */
     suspend fun fetchSongPlayCountRanking(limit: Int = 20): List<SongPlayCount> {
-        snapshots?.query { it.songPerformanceCountMap() }?.let { countMap ->
-            // SQL の `ORDER BY play_count DESC` は同数の並びが未規定だった。プラットフォーム間で
-            // 揺れないよう同数は song_id 昇順で決定化する (共有コア移行の目的に合わせた明確化)。
-            val top = countMap.entries
-                .sortedWith(
-                    compareByDescending<Map.Entry<String, UInt>> { it.value }.thenBy { it.key }
+        snapshots?.query { store ->
+            store.songPlayCountRanking(limit.coerceAtLeast(0).toUInt()).map {
+                SongPlayCount(
+                    id = it.id,
+                    title = it.title,
+                    playCount = it.playCount.toInt(),
+                    brandId = it.brandId
                 )
-                .take(limit)
-            val songsById = fetchSongsPreservingOrder(top.map { it.key }).associateBy { it.id }
-            return top.mapNotNull { (id, count) ->
-                songsById[id]?.let {
-                    SongPlayCount(id = id, title = it.title, playCount = count.toInt(), brandId = it.brandId)
-                }
             }
-        }
+        }?.let { return it }
         return db.songDao().fetchSongPlayCountRanking(limit)
     }
 
@@ -326,7 +354,7 @@ class SongRepository(
             // バイト列比較で SQL と厳密に一致させる。
             store.albumSummaries(emptyList(), null)
                 .map { it.cdSeries }
-                .sortedWith(UTF8_BYTE_ORDER)
+                .sortedWith(SQLITE_BINARY_ORDER)
         }?.let { return it }
         return db.songDao().fetchCdSeriesList()
     }
@@ -337,9 +365,16 @@ class SongRepository(
         return db.songDao().fetchEventNames()
     }
 
-    // ユニットの持ち曲一覧は対応するスナップショット API が未提供 (idolUnitSongIds は
-    // アイドル起点で別物)。API が生えたら移行する。
+    /**
+     * ユニットの持ち曲一覧 (iOS CoreUnitRepository.unitSongs と同一経路)。
+     *
+     * コアは release_date 昇順 (NULL 先頭 = SQLite ASC)、同日はスナップショット添字順の
+     * song_id 列を返す。同日タイの前後はクラス KDoc の注意どおり端末ごと・同期ごとに動き得る
+     * (SQL の `ORDER BY release_date` も同日は未規定だったので、どちらの経路でも未規定のまま)。
+     */
     suspend fun fetchUnitSongs(unitId: String): List<Song> {
+        snapshots?.query { it.unitSongIds(unitId) }
+            ?.let { return fetchSongsPreservingOrder(it) }
         return db.songDao().fetchUnitSongs(unitId)
     }
 
@@ -457,24 +492,12 @@ class SongRepository(
      * 並びと重複は id 列が正 (Room の IN 句は順序を保証しないため並べ直す)。
      * SQLite のバインド変数上限 (999) を跨がないよう分割して引く。
      */
-    private suspend fun fetchSongsPreservingOrder(ids: List<String>): List<Song> {
-        if (ids.isEmpty()) return emptyList()
-        val byId = HashMap<String, Song>(ids.size)
-        for (chunk in ids.distinct().chunked(SQLITE_IN_CHUNK)) {
-            db.songDao().fetchSongsByIds(chunk).associateByTo(byId) { it.id }
-        }
-        return ids.mapNotNull { byId[it] }
-    }
+    private suspend fun fetchSongsPreservingOrder(ids: List<String>): List<Song> =
+        hydrateInOrder(ids, Song::id) { db.songDao().fetchSongsByIds(it) }
 
     /** fetchSongsPreservingOrder の Idol 版 (歌唱者一覧の hydration)。 */
-    private suspend fun fetchIdolsPreservingOrder(ids: List<String>): List<Idol> {
-        if (ids.isEmpty()) return emptyList()
-        val byId = HashMap<String, Idol>(ids.size)
-        for (chunk in ids.distinct().chunked(SQLITE_IN_CHUNK)) {
-            db.songDao().fetchIdolsByIds(chunk).associateByTo(byId) { it.id }
-        }
-        return ids.mapNotNull { byId[it] }
-    }
+    private suspend fun fetchIdolsPreservingOrder(ids: List<String>): List<Idol> =
+        hydrateInOrder(ids, Idol::id) { db.songDao().fetchIdolsByIds(it) }
 
     private fun SongSearchFilter.toSnapshotFilter(): SongListFilter = snapshotSongFilter(
         // Android の UI はブランド単一選択。コア側は複数 OR (IN) なので 0/1 要素で渡す。
@@ -511,24 +534,6 @@ class SongRepository(
     )
 
     companion object {
-        /** SQLite の既定バインド変数上限 999 に対する安全マージン込みのチャンク幅。 */
-        private const val SQLITE_IN_CHUNK = 900
-
-        /**
-         * SQLite BINARY 照合 (UTF-8 バイト列の符号なし比較) と厳密に一致する並び。
-         * Kotlin の String.compareTo は UTF-16 コード単位比較でサロゲート域の順序が異なる。
-         */
-        private val UTF8_BYTE_ORDER = Comparator<String> { a, b ->
-            val x = a.toByteArray(Charsets.UTF_8)
-            val y = b.toByteArray(Charsets.UTF_8)
-            val n = minOf(x.size, y.size)
-            for (i in 0 until n) {
-                val d = (x[i].toInt() and 0xFF) - (y[i].toInt() and 0xFF)
-                if (d != 0) return@Comparator d
-            }
-            x.size - y.size
-        }
-
         /**
          * uniffi の Record にはデフォルト引数が生成されないため、Kotlin 側の既定値を
          * ここで一元化する (SQL 版の「条件なし」に対応する値)。

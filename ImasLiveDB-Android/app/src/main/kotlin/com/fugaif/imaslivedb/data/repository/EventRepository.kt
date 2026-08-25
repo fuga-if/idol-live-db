@@ -9,6 +9,7 @@ import com.fugaif.imaslivedb.data.model.Event
 import com.fugaif.imaslivedb.data.model.EventStats
 import com.fugaif.imaslivedb.data.model.EventWithDateRange
 import com.fugaif.imaslivedb.data.model.Idol
+import com.fugaif.imaslivedb.data.model.PerformerRow
 import com.fugaif.imaslivedb.data.model.SetlistItem
 import com.fugaif.imaslivedb.data.model.SetlistPerformer
 import com.fugaif.imaslivedb.data.model.SetlistRow
@@ -21,6 +22,7 @@ import com.fugaif.imaslivedb.data.model.ShowCast
 import com.fugaif.imaslivedb.data.model.ShowWithEventName
 import uniffi.imas_core.EventDetailRecord
 import uniffi.imas_core.EventListRecord
+import uniffi.imas_core.SetlistPerformerRecord
 import uniffi.imas_core.ShowRecord
 
 /**
@@ -188,14 +190,14 @@ class EventRepository(
     /**
      * セトリ編集画面が読む「いまローカルに保存されているセトリ」。**Room 経路のまま残す。**
      *
-     * スナップショットは同期完了 (SyncState.Completed) でしか作り直されないのに対し、
-     * [replaceSetlist] は Room だけを更新する。ここをスナップショット第一経路にすると
-     * 保存直後の再読込で編集前のセトリが返り、しかもその値が次回保存時の差分ベースライン
-     * (SetlistEditScreen の initialItemIds) になるため、削除済み項目への DELETE や
-     * 既存項目への CREATE を投げる壊れた差分を生む。書き込み結果を即座に読み返す口は
-     * 書き込み先 (Room) と同じ経路で読むのが正しい。
+     * [replaceSetlist] はスナップショットを作り直すが、その reload は失敗を握り潰して
+     * 旧スナップショットを維持する (load 失敗時も機能を落とさないための設計)。ここが
+     * 旧スナップショットを読むと、その値が次回保存時の差分ベースライン
+     * (SetlistEditScreen の initialItemIds / originalItems) になるため、削除済み項目への
+     * DELETE や既存項目への CREATE を投げる壊れた差分を生む。書き込み結果を差分の基準に
+     * する口だけは、失敗しようのない書き込み先 (Room) から読むのが正しい。
      *
-     * 表示側 (SetlistViewModel) は setlistDao を直接読んでおり、こことは別経路。
+     * 表示側 (SetlistViewModel) は [fetchPerformersByItem] を通るので、こことは別経路。
      */
     suspend fun fetchSetlist(showId: String): List<SetlistRow> {
         return db.setlistDao().fetchSetlist(showId)
@@ -207,10 +209,40 @@ class EventRepository(
     }
 
     /**
+     * セトリ**表示**の出演者 (setlist_item_id → 出演者)。編集画面が使う [fetchAllPerformers]
+     * とは用途が違うので経路も分ける (あちらは差分の基準なので Room が正)。
+     * 編集直後にここが古い値を返さないのは [replaceSetlist] が reload を撃つため。
+     *
+     * 曲ごとのグループ化と並びはコアが担う。Room の SQL には ORDER BY が無く並びが未規定
+     * だったので、iOS と同じ「アイドルの sort_order 順」に揃う。
+     *
+     * 表示名 (`PerformerRow.name`) はコアでは現任 CV 名で、不在ならアイドル名に落ちる。
+     * Android の Room には idol_voice_actors が無く、コアのローダは欠損テーブルを空として
+     * 読むため当面かならずアイドル名になる (= 現行の SQL 経路と同じ文字列)。将来
+     * idol_voice_actors を持たせると、この画面のチップだけ先に CV 名へ切り替わる。
+     */
+    suspend fun fetchPerformersByItem(showId: String): Map<String, List<PerformerRow>> {
+        snapshots?.query { store ->
+            store.showSetlistPerformers(showId).mapValues { (_, rows) -> rows.map { it.toPerformerRow() } }
+        }?.let { return it }
+        return db.setlistDao().fetchAllPerformers(showId)
+            .groupBy { it.setlistItemId }
+            .mapValues { (_, rows) -> rows.map { it.toPerformerRow() } }
+    }
+
+    /**
      * セトリ編集の保存後、サーバ確定値でローカル DB を全置換する (iOS `showWriting.replaceSetlist` と同じ)。
      * ローカル反映は admin が直接反映 (POST /edits) できた場合のみ呼ばれる想定。
      *
-     * 書き込みは Room が正 (スナップショットは読み取り専用で、次の同期完了時に作り直される)。
+     * 書き込み先は Room (スナップショットは読み取り専用)。書き込んだら**その場で**
+     * スナップショットを作り直す。これを省くと、スナップショット経由で読む口
+     * ([fetchPerformersByItem]) だけが次の同期完了まで編集前の値を返し、
+     * 「編集直後に自分の編集が見えない」回帰になる (iOS の
+     * `SnapshotInvalidatingShowWriting` と同じ役割)。
+     *
+     * reload は DB 全読みで数百 ms かかるが、await して完了させる。保存は「保存中…」を
+     * 出したままの操作で、戻った時点で全経路が新しい値を返すことのほうが重要。
+     * 失敗しても現行スナップショットが維持されるだけなので投げ直さない。
      */
     suspend fun replaceSetlist(
         deletedItemIds: List<String>,
@@ -222,6 +254,7 @@ class EventRepository(
         for ((itemId, idolId) in deletedPerformers) db.setlistDao().deletePerformer(itemId, idolId)
         if (items.isNotEmpty()) db.setlistDao().upsertItems(items)
         if (performers.isNotEmpty()) db.setlistDao().upsertPerformers(performers)
+        snapshots?.reload()
     }
 }
 
@@ -243,6 +276,15 @@ private fun ShowRecord.toShow(): Show = Show(
     id = id, eventId = eventId, name = name, date = date, venue = venue, venueId = venueId,
     hall = hall, streamPlatform = streamPlatform, venueCity = venueCity, startTime = startTime,
     sortOrder = sortOrder.toInt(), performerType = performerType
+)
+
+/** `PerformerRow.id` は SQL 時代も idol_id をそのまま返していた (iOS CoreRecordMapping と同じ)。 */
+private fun SetlistPerformerRecord.toPerformerRow(): PerformerRow = PerformerRow(
+    id = idolId, name = displayName, idolColor = idolColor, idolName = idolName, idolId = idolId
+)
+
+private fun AllPerformerRow.toPerformerRow(): PerformerRow = PerformerRow(
+    id = castId, name = name, idolColor = idolColor, idolName = idolName, idolId = idolId
 )
 
 private fun Show.toShowWithEventName(eventName: String): ShowWithEventName = ShowWithEventName(

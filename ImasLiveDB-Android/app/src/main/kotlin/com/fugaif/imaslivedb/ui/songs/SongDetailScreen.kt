@@ -65,6 +65,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.SubcomposeAsyncImage
+import com.fugaif.imaslivedb.data.auth.AuthState
+import com.fugaif.imaslivedb.data.auth.shouldPromptLogin
+import com.fugaif.imaslivedb.data.auth.showEditAffordance
+import com.fugaif.imaslivedb.data.auth.startCommunityEdit
 import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.data.model.PerformanceHistoryRow
 import com.fugaif.imaslivedb.data.model.Song
@@ -72,6 +76,7 @@ import com.fugaif.imaslivedb.data.model.SongCall
 import com.fugaif.imaslivedb.player.AudioPreviewManager
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.components.ArtworkImage
+import com.fugaif.imaslivedb.ui.components.CommunityLoginPromptDialog
 import com.fugaif.imaslivedb.ui.components.ImasArtwork
 import com.fugaif.imaslivedb.ui.components.ImasAvatar
 import com.fugaif.imaslivedb.ui.components.ImasEmptyState
@@ -86,6 +91,7 @@ import com.fugaif.imaslivedb.ui.tags.TagDetailScreen
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasTheme
 import com.fugaif.imaslivedb.ui.theme.hexToColor
+import uniffi.imas_core.shortYearMonth
 
 /**
  * 楽曲詳細。iOS の SongSheetContent (大ジャケ hero + ImasSegmented 3 タブ
@@ -117,7 +123,18 @@ fun SongDetailScreen(
     var currentSongId by rememberSaveable(songId) { mutableStateOf(songId) }
     var tagDetailId by rememberSaveable { mutableStateOf<String?>(null) }
     var showMenu by remember { mutableStateOf(false) }
+    var showLoginPrompt by rememberSaveable { mutableStateOf(false) }
     val authState by AppModule.from(context).authService.state.collectAsState()
+
+    // 投稿/編集導線の共通ゲート。iOS DetailSheet.handle(intent) と同じで、
+    // 「開く/書き込む」操作は全部ここを通す。
+    // シート側 (CallEditSheet / PenlightVoteSheet) に権限判定は無いので、
+    // ここで止めないとフォームに入力させた末に 401/403 で落ちる。
+    //
+    // BAN 済みは iOS の .ignore と同じく無反応 (onBanned 既定)。この画面の編集導線は
+    // showEditAffordance で全部隠れているので、押せるのはタグチップだけ。
+    fun startCommunityEdit(present: () -> Unit) =
+        authState.startCommunityEdit(promptLogin = { showLoginPrompt = true }, present = present)
 
     LaunchedEffect(currentSongId) { viewModel.load(context, currentSongId) }
 
@@ -176,16 +193,21 @@ fun SongDetailScreen(
             SongSheetContent(
                 state = uiState, song = song,
                 modifier = Modifier.fillMaxSize().padding(padding),
-                isSignedIn = authState.isSignedIn,
+                authState = authState,
                 onIdolClick = onIdolClick, onShowClick = onShowClick,
                 onSongClick = { id -> currentSongId = id },
                 onToggleFavorite = viewModel::toggleFavorite,
-                onToggleTag = viewModel::toggleTag,
-                onOpenTagPicker = { showTagPicker = true },
+                // 外す方向はゲートしない (iOS も自分が付けたタグの取り消しは contextMenu で素通し)。
+                // 付ける方向だけ共通ゲートを通す — チップのタップはタグ投票の書き込みなので、
+                // ボタンを隠すだけでは未ログイン/BAN 済みが投票し続けられてしまう。
+                onToggleTag = { tag ->
+                    if (tag.mine) viewModel.toggleTag(tag) else startCommunityEdit { viewModel.toggleTag(tag) }
+                },
+                onOpenTagPicker = { startCommunityEdit { showTagPicker = true } },
                 onTagDetailClick = { tagDetailId = it },
-                onCreateCall = { editingCall = null; showCallSheet = true },
-                onEditCall = { editingCall = it; showCallSheet = true },
-                onOpenPenlightVote = { showPenlightSheet = true },
+                onCreateCall = { startCommunityEdit { editingCall = null; showCallSheet = true } },
+                onEditCall = { call -> startCommunityEdit { editingCall = call; showCallSheet = true } },
+                onOpenPenlightVote = { startCommunityEdit { showPenlightSheet = true } },
                 onUnitClick = onUnitClick,
                 onPollClick = onPollClick
             )
@@ -217,6 +239,10 @@ fun SongDetailScreen(
             onVoted = { viewModel.onPenlightVoted() }
         )
     }
+
+    if (showLoginPrompt) {
+        CommunityLoginPromptDialog(onDismiss = { showLoginPrompt = false })
+    }
 }
 
 private fun lyricsUrl(song: Song?): String {
@@ -238,7 +264,7 @@ private fun SongSheetContent(
     state: SongDetailUiState,
     song: Song,
     modifier: Modifier,
-    isSignedIn: Boolean,
+    authState: AuthState,
     onIdolClick: (String) -> Unit,
     onShowClick: (String) -> Unit,
     onSongClick: (String) -> Unit,
@@ -268,7 +294,7 @@ private fun SongSheetContent(
             0 -> InfoTab(song, state, seed, onIdolClick, onUnitClick, onSongClick, onShowClick, onRegisterAttendance = { segment = 1 })
             1 -> HistoryTab(state.performanceHistory, seed, song.brandId, onShowClick)
             else -> CommunityTab(
-                state, seed, song.brandId, isSignedIn, onSongClick,
+                state, seed, song.brandId, authState, onSongClick,
                 onToggleTag, onOpenTagPicker, onTagDetailClick,
                 onCreateCall, onEditCall, onOpenPenlightVote, onPollClick
             )
@@ -368,6 +394,48 @@ private fun formatDuration(sec: Int?): String? {
     return "%d:%02d".format(sec / 60, sec % 60)
 }
 
+/**
+ * 除去対象の作品名プレフィックス。長いものを先に置く —
+ * 「THE IDOLM@STER 」が先に当たると「THE IDOLM@STER SideM 」を落とし切れないため、
+ * 前方一致は上から順に 1 つだけ適用する。
+ */
+private val eventNamePrefixes = listOf(
+    "THE IDOLM@STER CINDERELLA GIRLS ",
+    "THE IDOLM@STER MILLION LIVE! ",
+    "THE IDOLM@STER MILLION LIVE!",
+    "THE IDOLM@STER SideM ",
+    "THE IDOLM@STER SHINY COLORS ",
+    "THE IDOLM@STER ",
+    "アイドルマスター シンデレラガールズ ",
+    "アイドルマスター ミリオンライブ! ",
+    "アイドルマスター シャイニーカラーズ ",
+    "アイドルマスター SideM ",
+    "学園アイドルマスター ",
+    "アイドルマスター ",
+)
+
+/**
+ * ライブ名の先頭を埋める作品名プレフィックスを表示時だけ落とし、公演を識別しやすくする。
+ * ブランドはリードバーの色で示しているので、行頭の作品名は冗長なだけ。
+ * iOS `Extensions/EventDisplayName.swift` の移植で、iOS は同じ整形を披露履歴・
+ * 現地回収一覧の行ラベルに掛けている。
+ *
+ * core に持たせない理由: これは永続化された表示設定 (iOS `event_name_abbreviate`) に
+ * 依存する表示整形で、core は正式名称を返す責務に留める、と生成バインディングの
+ * `timelineBars` doc が明示している (「呼び出し側は表示用省略を適用すること」)。
+ * Android にはまだ省略 ON/OFF のトグルが無いので iOS の既定値 (ON = 省略) に固定する。
+ * トグルを足すときはここへ設定値を渡す。
+ *
+ * 除去後が短くなりすぎる場合は元の名前を返す — 「THE IDOLM@STER」のような
+ * プレフィックスだけのイベント名を空ラベルにしないため。
+ * 正式名称が要る箇所 (詳細タイトル・共有文・カレンダー保存名) では使わないこと。
+ */
+private fun eventDisplayName(name: String): String {
+    val prefix = eventNamePrefixes.firstOrNull { name.startsWith(it) } ?: return name
+    val stripped = name.removePrefix(prefix).trim()
+    return if (stripped.length >= 2) stripped else name
+}
+
 @Composable
 private fun InfoTab(
     song: Song,
@@ -416,7 +484,7 @@ private fun InfoTab(
                         ) {
                             Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = DS.success, modifier = Modifier.size(16.dp))
                             Column(Modifier.weight(1f).padding(start = 10.dp)) {
-                                Text(show.eventName, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink,
+                                Text(eventDisplayName(show.eventName), fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink,
                                     maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 Text(listOf(show.showName, show.date).filter { it.isNotEmpty() }.joinToString(" ・ "),
                                     fontSize = 12.sp, color = DS.ink2, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -510,7 +578,7 @@ private fun RelatedSongsSection(
 @OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @Composable
 private fun CommunityTab(
-    state: SongDetailUiState, seed: String?, brand: String?, isSignedIn: Boolean,
+    state: SongDetailUiState, seed: String?, brand: String?, authState: AuthState,
     onSongClick: (String) -> Unit,
     onToggleTag: (com.fugaif.imaslivedb.data.community.CommunityApi.SongTag) -> Unit,
     onOpenTagPicker: () -> Unit,
@@ -521,11 +589,16 @@ private fun CommunityTab(
     onPollClick: (String) -> Unit
 ) {
     val context = LocalContext.current
+    // 権限フラグは認証状態が変わった時だけコアへ問い合わせる。
+    // extension property は毎回 EditPermissionRules を RustBuffer に詰めて JNA を跨ぐので、
+    // コーレス 1 件ごと・再コンポーズごとに呼ぶと (要素数ぶんの FFI) スクロール中ずっと積み上がる。
+    val canEditHere = remember(authState) { authState.showEditAffordance }
+    val needsLogin = remember(authState) { authState.shouldPromptLogin }
     Column(modifier = Modifier.padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         state.song?.let { song ->
             com.fugaif.imaslivedb.ui.polls.PollAchievementBadges(entityId = song.id, onOpenPoll = onPollClick)
         }
-        if (!isSignedIn) {
+        if (needsLogin) {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
                     .clip(RoundedCornerShape(12.dp)).background(DS.fill).padding(12.dp),
@@ -538,8 +611,10 @@ private fun CommunityTab(
         Column {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 ImasSectionHeader("タグ", count = "${state.tags.size}", modifier = Modifier.weight(1f))
-                IconButton(onClick = onOpenTagPicker, modifier = Modifier.padding(end = 8.dp)) {
-                    Icon(Icons.Filled.Add, contentDescription = "タグを追加", tint = DS.ink2)
+                if (canEditHere) {
+                    IconButton(onClick = onOpenTagPicker, modifier = Modifier.padding(end = 8.dp)) {
+                        Icon(Icons.Filled.Add, contentDescription = "タグを追加", tint = DS.ink2)
+                    }
                 }
             }
             if (state.tags.isEmpty()) {
@@ -580,8 +655,10 @@ private fun CommunityTab(
         Column {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 ImasSectionHeader("ペンライト", count = state.penlight?.totalVotes?.let { "${it}票" }, modifier = Modifier.weight(1f))
-                IconButton(onClick = onOpenPenlightVote, modifier = Modifier.padding(end = 8.dp)) {
-                    Icon(Icons.Filled.Add, contentDescription = "投票する", tint = DS.ink2)
+                if (canEditHere) {
+                    IconButton(onClick = onOpenPenlightVote, modifier = Modifier.padding(end = 8.dp)) {
+                        Icon(Icons.Filled.Add, contentDescription = "投票する", tint = DS.ink2)
+                    }
                 }
             }
             val sets = state.penlight?.topSets ?: emptyList()
@@ -609,8 +686,10 @@ private fun CommunityTab(
         Column {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 ImasSectionHeader("コーレス", count = "${state.songCalls.size}", modifier = Modifier.weight(1f))
-                IconButton(onClick = onCreateCall, modifier = Modifier.padding(end = 8.dp)) {
-                    Icon(Icons.Filled.Add, contentDescription = "コーレスを投稿", tint = DS.ink2)
+                if (canEditHere) {
+                    IconButton(onClick = onCreateCall, modifier = Modifier.padding(end = 8.dp)) {
+                        Icon(Icons.Filled.Add, contentDescription = "コーレスを投稿", tint = DS.ink2)
+                    }
                 }
             }
             if (state.songCalls.isEmpty()) {
@@ -635,8 +714,10 @@ private fun CommunityTab(
                                 Text("投稿者: ${call.authorDisplayName}", fontSize = 12.sp, color = DS.ink3)
                             }
                             Box(Modifier.weight(1f))
-                            IconButton(onClick = { onEditCall(call) }, modifier = Modifier.size(28.dp)) {
-                                Icon(Icons.Filled.Edit, contentDescription = "コーレスを編集", tint = DS.ink2, modifier = Modifier.size(16.dp))
+                            if (canEditHere) {
+                                IconButton(onClick = { onEditCall(call) }, modifier = Modifier.size(28.dp)) {
+                                    Icon(Icons.Filled.Edit, contentDescription = "コーレスを編集", tint = DS.ink2, modifier = Modifier.size(16.dp))
+                                }
                             }
                         }
                     }
@@ -718,8 +799,8 @@ private fun HistoryTab(history: List<PerformanceHistoryRow>, seed: String?, bran
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             ImasStatTile(Icons.Filled.Mic, "${history.size}", "総披露", unit = "回", seed = seed, brand = brand, modifier = Modifier.weight(1f))
-            ImasStatTile(Icons.Filled.CalendarMonth, shortDate(sortedByDateAsc.first().date), "初披露", seed = seed, brand = brand, modifier = Modifier.weight(1f))
-            ImasStatTile(Icons.Filled.CalendarMonth, shortDate(sortedByDateAsc.last().date), "最終披露", seed = seed, brand = brand, modifier = Modifier.weight(1f))
+            ImasStatTile(Icons.Filled.CalendarMonth, shortYearMonth(date = sortedByDateAsc.first().date), "初披露", seed = seed, brand = brand, modifier = Modifier.weight(1f))
+            ImasStatTile(Icons.Filled.CalendarMonth, shortYearMonth(date = sortedByDateAsc.last().date), "最終披露", seed = seed, brand = brand, modifier = Modifier.weight(1f))
         }
         ImasSectionHeader("ライブ披露履歴", count = "${history.size}回", tight = true)
         history.forEach { row ->
@@ -730,7 +811,7 @@ private fun HistoryTab(history: List<PerformanceHistoryRow>, seed: String?, bran
             ) {
                 ImasLeadBar(seedHex = seed, brandId = brand, height = 34.dp)
                 Column(Modifier.weight(1f).padding(start = 12.dp)) {
-                    Text(row.eventName, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink,
+                    Text(eventDisplayName(row.eventName), fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink,
                         maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text(listOf(row.showName, row.date).filter { it.isNotEmpty() }.joinToString(" ・ "),
                         fontSize = 12.sp, color = DS.ink2, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -739,13 +820,4 @@ private fun HistoryTab(history: List<PerformanceHistoryRow>, seed: String?, bran
             HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 16.dp))
         }
     }
-}
-
-/** "2024-08-03" → "24.08" */
-private fun shortDate(date: String): String {
-    val comps = date.split("-")
-    if (comps.size >= 2) {
-        return "${comps[0].takeLast(2)}.${comps[1]}"
-    }
-    return date
 }

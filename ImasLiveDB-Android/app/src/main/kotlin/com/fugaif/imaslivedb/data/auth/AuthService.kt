@@ -22,7 +22,15 @@ import java.net.URL
 data class AuthState(
     val isSignedIn: Boolean = false,
     val displayName: String? = null,
-    val isAdmin: Boolean = false
+    val isAdmin: Boolean = false,
+    /**
+     * サーバ側で BAN 済みか。BAN 済みには編集/投稿導線を出さない (判定は [editPermissionRules] 経由でコアへ)。
+     *
+     * `/auth/login` のレスポンスにこの項目は無い契約なので、供給元は iOS と同じ 2 経路:
+     * 起動時の [AuthService.refreshMe] (`GET /auth/me`) と、編集 API が 403 を返した時の
+     * [AuthService.markBannedFromServer]。
+     */
+    val isBanned: Boolean = false
 )
 
 /**
@@ -56,7 +64,9 @@ class AuthService(private val appContext: Context) {
         AuthState(
             isSignedIn = sessionToken != null,
             displayName = prefs.getString(KEY_DISPLAY_NAME, null),
-            isAdmin = prefs.getBoolean(KEY_IS_ADMIN, false)
+            isAdmin = prefs.getBoolean(KEY_IS_ADMIN, false),
+            // 起動直後 (refreshMe が返る前) にも編集導線を畳めるよう、前回判明した BAN を復元する。
+            isBanned = prefs.getBoolean(KEY_IS_BANNED, false)
         )
     )
     val state: StateFlow<AuthState> = _state.asStateFlow()
@@ -90,6 +100,67 @@ class AuthService(private val appContext: Context) {
     fun signOut() {
         prefs.edit().clear().apply()
         _state.value = AuthState()
+    }
+
+    /**
+     * `GET /auth/me` で isAdmin / isBanned / displayName を最新化する。
+     * iOS `AuthService.refreshMe` と同じ契約 (レスポンスは素の camelCase)。
+     *
+     * BAN はサーバ側でしか立たず `/auth/login` は isBanned を返さないので、
+     * この再取得が無いと BAN 済みユーザーに編集導線が出続ける。
+     * 呼ぶのは起動時 ([com.fugaif.imaslivedb.ImasLiveDBApplication])。iOS も同じタイミング。
+     */
+    suspend fun refreshMe(): Unit = withContext(Dispatchers.IO) {
+        val token = sessionToken ?: return@withContext
+        val conn = (URL("$BASE/auth/me").openConnection() as HttpURLConnection).apply {
+            requestMethod = "GET"
+            connectTimeout = 15_000
+            readTimeout = 15_000
+            setRequestProperty("X-Device-Id", DeviceIdentity.get(appContext))
+            setRequestProperty("Authorization", "Bearer $token")
+        }
+        try {
+            val code = conn.responseCode
+            val text = (if (code in 200..299) conn.inputStream else conn.errorStream)
+                ?.bufferedReader()?.use { it.readText() }
+            if (code !in 200..299 || text.isNullOrEmpty()) {
+                // 401 でもサインアウトはしない。Android にはセッション再発行 (`/auth/refresh`) の
+                // 経路が無く、通信不調と失効を区別できないため、ここで導線を壊すと復帰できなくなる。
+                // 失効は編集 API 側の 401 がログイン誘導として拾う。
+                Log.w(TAG, "auth/me -> HTTP $code body=$text")
+                return@withContext
+            }
+            val json = JSONObject(text)
+            val isAdmin = json.optBoolean("isAdmin", false)
+            val isBanned = json.optBoolean("isBanned", false)
+            // JSON null は optString が "null" 文字列で返すので isNull で先に弾く。
+            val displayName =
+                if (json.isNull("displayName")) null else json.optString("displayName").ifEmpty { null }
+            val editor = prefs.edit()
+                .putBoolean(KEY_IS_ADMIN, isAdmin)
+                .putBoolean(KEY_IS_BANNED, isBanned)
+            if (displayName != null) editor.putString(KEY_DISPLAY_NAME, displayName)
+            editor.apply()
+            _state.value = _state.value.copy(
+                isAdmin = isAdmin,
+                isBanned = isBanned,
+                displayName = displayName ?: _state.value.displayName
+            )
+        } catch (e: Exception) {
+            Log.w(TAG, "refreshMe failed: ${e.message}")
+        } finally {
+            conn.disconnect()
+        }
+    }
+
+    /**
+     * 編集系 API が 403 を返した時に呼ぶ (= BAN の可能性が高い)。
+     * 次回起動の [refreshMe] を待たずローカルへ反映し、その場で編集導線を畳む。
+     * iOS `AuthService.markBannedFromServer` と同じ best-effort 反映。
+     */
+    fun markBannedFromServer() {
+        prefs.edit().putBoolean(KEY_IS_BANNED, true).apply()
+        _state.value = _state.value.copy(isBanned = true)
     }
 
     /** 表示名を変更する (`POST /users/me`)。iOS `AuthService.updateDisplayName` と同じ契約。 */
@@ -176,7 +247,14 @@ class AuthService(private val appContext: Context) {
                     .putString(KEY_DISPLAY_NAME, displayName)
                     .putBoolean(KEY_IS_ADMIN, isAdmin)
                     .apply()
-                _state.value = AuthState(isSignedIn = true, displayName = displayName, isAdmin = isAdmin)
+                _state.value = AuthState(
+                    isSignedIn = true,
+                    displayName = displayName,
+                    isAdmin = isAdmin,
+                    // `/auth/login` は isBanned を返さない契約なので直近の判明値を引き継ぐ (iOS と同じ)。
+                    // signOut で prefs ごと消えるため、別アカウントへ BAN が漏れることはない。
+                    isBanned = prefs.getBoolean(KEY_IS_BANNED, false)
+                )
                 Result.success(Unit)
             } catch (e: Exception) {
                 Log.w(TAG, "exchangeForSession failed: ${e.message}")
@@ -190,5 +268,6 @@ class AuthService(private val appContext: Context) {
         private const val KEY_SESSION_TOKEN = "session_token"
         private const val KEY_DISPLAY_NAME = "display_name"
         private const val KEY_IS_ADMIN = "is_admin"
+        private const val KEY_IS_BANNED = "is_banned"
     }
 }

@@ -1,16 +1,16 @@
 package com.fugaif.imaslivedb.data.games
 
 import android.content.Context
+import com.fugaif.imaslivedb.data.model.DailyPick
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import org.json.JSONObject
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 import uniffi.imas_core.GameProgressUpdate
 import uniffi.imas_core.GameRecord
 import uniffi.imas_core.GameStreakState
 import uniffi.imas_core.gameProgressApplyResult
+import uniffi.imas_core.gameProgressDidClearToday
 import uniffi.imas_core.gameProgressDisplayStreak
 
 /** ハブが束ねるゲームの識別子。name は永続キー兼用なので変更しない。iOS GameKind の移植。 */
@@ -45,7 +45,8 @@ val GameRecord.hasPlayed: Boolean get() = playCount > 0
  * **更新規則は imas-core の `domain::game_progress`** が持つ。ストアは
  * 「読む → コアに渡す → 返ってきた値を書く」に痩せている。
  *
- * 日付は端末ローカル日 (`yyyy-MM-dd`) の文字列でコアへ渡す。連続達成の単位は
+ * 日付キーの生成も [DailyPick] 経由でコアに委ねる (書式を自前で組むと iOS と
+ * 食い違い、保存済みの連続記録キーと突き合わなくなる)。連続達成の単位は
  * 「そのユーザーの 1 日」なので、公演日の比較に使う JST 固定の
  * [com.fugaif.imaslivedb.data.model.JstDay] とは意味が違い、統合してはいけない。
  */
@@ -63,7 +64,16 @@ class GameProgressStore(context: Context) {
 
     /** ストリークが「今日途切れていないか」。表示用 (今日/昨日までクリアなら継続扱い)。 */
     val displayStreak: Int
-        get() = gameProgressDisplayStreak(_streak.value, today(), yesterday())
+        get() = gameProgressDisplayStreak(_streak.value, DailyPick.dayKey(), DailyPick.previousDayKey())
+
+    /**
+     * 今日デイリーチャレンジを達成済みか。
+     *
+     * `lastClearedDay == 今日` の比較をストアの外で書くとコアと二重実装になるので、
+     * 判定はコアに置いたままこの述語で公開する (iOS `GameProgressStore.didClearToday` と対)。
+     */
+    val didClearToday: Boolean
+        get() = gameProgressDidClearToday(_streak.value, DailyPick.dayKey())
 
     /**
      * ゲーム結果を記録する。score/outOf は「獲得点 / 満点」。
@@ -78,8 +88,8 @@ class GameProgressStore(context: Context) {
             streak = _streak.value,
             score = score,
             outOf = outOf,
-            todayKey = today(),
-            yesterdayKey = yesterday()
+            todayKey = DailyPick.dayKey(),
+            yesterdayKey = DailyPick.previousDayKey()
         )
         // 記録として成立しない回 (出題 0 問) は record/streak が入力と同値なので保存を省く。
         if (!update.didRecord) return update
@@ -149,15 +159,9 @@ class GameProgressStore(context: Context) {
         prefs.edit().putString(KEY_STREAK, json.toString()).apply()
     }
 
-    // MARK: - 日付ヘルパ (端末ローカル YYYY-MM-DD)
-
-    private fun today(): String = LocalDate.now().format(DAY_FORMAT)
-    private fun yesterday(): String = LocalDate.now().minusDays(1).format(DAY_FORMAT)
-
     companion object {
         private const val PREFS_NAME = "game_progress_store"
         private const val KEY_RECORDS = "game_records_v1"
         private const val KEY_STREAK = "game_streak_v1"
-        private val DAY_FORMAT: DateTimeFormatter = DateTimeFormatter.ISO_LOCAL_DATE
     }
 }

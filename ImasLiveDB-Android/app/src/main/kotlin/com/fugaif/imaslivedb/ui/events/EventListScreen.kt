@@ -155,7 +155,7 @@ fun EventListScreen(
                 )
                 Spacer(modifier = Modifier.weight(1f))
                 Text(
-                    text = "${uiState.filteredEvents.size}件",
+                    text = "${uiState.filteredCount}件",
                     style = MaterialTheme.typography.bodySmall,
                     color = DS.ink2
                 )

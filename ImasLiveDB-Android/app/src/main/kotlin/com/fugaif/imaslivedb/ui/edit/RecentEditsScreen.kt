@@ -63,6 +63,9 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.fugaif.imaslivedb.data.auth.shouldPromptLogin
+import com.fugaif.imaslivedb.data.auth.showEditAffordance
+import com.fugaif.imaslivedb.data.auth.startCommunityEdit
 import com.fugaif.imaslivedb.data.edit.EditApi
 import com.fugaif.imaslivedb.data.model.ShowWithEventName
 import com.fugaif.imaslivedb.di.AppModule
@@ -90,6 +93,11 @@ fun RecentEditsScreen(onBack: () -> Unit, viewModel: RecentEditsViewModel = view
     val context = LocalContext.current
     val authService = remember { AppModule.from(context).authService }
     val authState by authService.state.collectAsState()
+    // 権限フラグは認証状態が変わった時だけコアへ問い合わせる。extension property は 1 回ごとに
+    // EditPermissionRules を RustBuffer へ詰め直して JNA を跨ぐので、FAB や本文の再コンポーズの
+    // たびに呼ぶと積み上がる (詳細は data/auth/EditPermission.kt のヘッダ)。
+    val canEditHere = remember(authState) { authState.showEditAffordance }
+    val needsLogin = remember(authState) { authState.shouldPromptLogin }
     val scope = rememberCoroutineScope()
     fun signIn() { scope.launch { authService.signIn(context) } }
 
@@ -120,20 +128,21 @@ fun RecentEditsScreen(onBack: () -> Unit, viewModel: RecentEditsViewModel = view
             }
         },
         floatingActionButton = {
-            ExtendedFloatingActionButton(onClick = {
-                if (!authState.isSignedIn) {
-                    viewModel.requestLogin()
-                } else {
-                    showProposeSheet = true
+            // BAN 済みには「編集を提案」自体を出さない (押しても 403 になるだけ)。判定はコア。
+            if (canEditHere) {
+                ExtendedFloatingActionButton(onClick = {
+                    authState.startCommunityEdit(promptLogin = viewModel::requestLogin) {
+                        showProposeSheet = true
+                    }
+                }) {
+                    Icon(Icons.Filled.Add, contentDescription = null)
+                    Text("編集を提案", modifier = Modifier.padding(start = 6.dp))
                 }
-            }) {
-                Icon(Icons.Filled.Add, contentDescription = null)
-                Text("編集を提案", modifier = Modifier.padding(start = 6.dp))
             }
         }
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
-            if (tab == 1 && !authState.isSignedIn) {
+            if (tab == 1 && needsLogin) {
                 Column(Modifier.fillMaxSize().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Spacer(Modifier.height(40.dp))
                     ImasEmptyState(Icons.Filled.Person, "ログインが必要です", "自分の編集履歴を見るにはログインしてください。")

@@ -122,6 +122,12 @@ object ColorMath {
     fun firstValidHex(vararg candidates: String?): String? =
         candidates.firstOrNull { it != null && normalizedHex(it) != null }
 
+    /**
+     * テーマのシード色を正規化する。コアの `ckValidatedHexColor` とは**別物**なので
+     * 差し替えない: あちらは CloudKit 取り込み用で 6/8 桁しか受けず大小文字も保持する
+     * (`ckIngestWebServicesBatch` の内側で既に効いている)。こちらは 3 桁シードを展開して
+     * 小文字化する UI 側の規約で、置き換えると 3 桁指定のテーマ色が壊れる。
+     */
     fun normalizedHex(hex: String): String? {
         var s = hex.trim()
         if (s.startsWith("#")) s = s.substring(1)

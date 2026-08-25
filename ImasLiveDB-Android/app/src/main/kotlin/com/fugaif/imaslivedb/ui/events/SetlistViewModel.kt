@@ -3,7 +3,6 @@ package com.fugaif.imaslivedb.ui.events
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.fugaif.imaslivedb.data.model.AllPerformerRow
 import com.fugaif.imaslivedb.data.model.PerformerRow
 import com.fugaif.imaslivedb.data.model.SetlistRow
 import com.fugaif.imaslivedb.data.model.Show
@@ -51,24 +50,12 @@ class SetlistViewModel : ViewModel() {
             val module = AppModule.from(context)
             val show = module.eventRepository.fetchShow(showId)
             val brandId = show?.eventId?.let { module.eventRepository.fetchEvent(it)?.brandId }
-            val setlist = module.database.setlistDao().fetchSetlist(showId)
-            val allPerformers: List<AllPerformerRow> =
-                module.database.setlistDao().fetchAllPerformers(showId)
-
-            // Group performers by setlist item id
-            val performersByItemId = allPerformers
-                .groupBy { it.setlistItemId }
-                .mapValues { (_, rows) ->
-                    rows.map { row ->
-                        PerformerRow(
-                            id = row.castId,
-                            name = row.name,
-                            idolColor = row.idolColor,
-                            idolName = row.idolName,
-                            idolId = row.idolId
-                        )
-                    }
-                }
+            // 画面の 2 つの半分 (曲と出演者) は同じ所有者から読む。DAO を直接叩くと
+            // どちらの経路がいつ更新されるかがリポジトリの外に散り、片方だけ古い値を
+            // 表示する事故に戻る。
+            val setlist = module.eventRepository.fetchSetlist(showId)
+            // 曲ごとのグループ化と並びは共有コア (showSetlistPerformers) が持つ。
+            val performersByItemId = module.eventRepository.fetchPerformersByItem(showId)
 
             _uiState.value = SetlistUiState(
                 isLoading = false,

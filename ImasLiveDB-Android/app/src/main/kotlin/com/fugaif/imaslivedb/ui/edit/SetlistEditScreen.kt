@@ -66,6 +66,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import uniffi.imas_core.SetlistItemDiffRow
+import uniffi.imas_core.setlistItemIndexesNeedingSync
+import uniffi.imas_core.setlistPerformerIndexesNeedingSync
 import java.util.UUID
 
 /** 編集中の 1 行 (iOS `EditableSetlistRow` の移植)。 */
@@ -87,7 +90,13 @@ sealed class SetlistSaveOutcome {
 data class SetlistEditUiState(
     val rows: List<EditableSetlistRow> = emptyList(),
     val initialItemIds: List<String> = emptyList(),
-    val originalSections: Map<String, String?> = emptyMap(),
+    /**
+     * 編集前のセトリ行 (item id → 行そのもの)。用途は 2 つあり、どちらも**全列**が要る:
+     *  - 「値が変わった行だけ送る」差分判定のベースライン (判定そのものは共有コアが行う)
+     *  - このフォームが編集しない列 (notes / unitName) の引き継ぎ元。射影に落として
+     *    捨てると [save] の楽観更新がその列を null で上書きする (iOS SetlistEditView と同じ理由)。
+     */
+    val originalItems: Map<String, SetlistRow> = emptyMap(),
     val initialPerformerKeys: Set<Pair<String, String>> = emptySet(),
     val idolById: Map<String, Idol> = emptyMap(),
     val isLoading: Boolean = true,
@@ -131,7 +140,7 @@ class SetlistEditViewModel(app: Application, private val show: Show) : AndroidVi
             _uiState.value = SetlistEditUiState(
                 rows = rows,
                 initialItemIds = setlist.map { it.id },
-                originalSections = setlist.associate { it.id to it.section },
+                originalItems = setlist.associateBy { it.id },
                 initialPerformerKeys = performerKeys,
                 idolById = idolById,
                 isLoading = false
@@ -203,61 +212,79 @@ class SetlistEditViewModel(app: Application, private val show: Show) : AndroidVi
                 val existingIds = state.initialItemIds.toSet()
 
                 // 新しい SetlistItem を構築。既存行は元 ID 維持 (位置非依存)、新規行は sli_<uuid>。
-                data class Built(val item: SetlistItem, val castIds: Set<String>, val isNew: Boolean)
+                // フォームに無い列 (notes / unitName) は元レコードから引き継ぐ。null で構築すると
+                // 下の replaceSetlist (upsertItems = REPLACE) がその列を消してしまい、しかも
+                // 差分送信のせいでサーバの modifiedAt が動かないため増分同期でも戻ってこない。
+                data class Built(val item: SetlistItem, val castIds: Set<String>)
                 val built = state.rows.mapIndexed { idx, row ->
-                    val itemId = row.existingItemId ?: "sli_${UUID.randomUUID()}"
+                    val original = row.existingItemId?.let { state.originalItems[it] }
                     Built(
                         item = SetlistItem(
-                            id = itemId,
+                            id = row.existingItemId ?: "sli_${UUID.randomUUID()}",
                             showId = show.id,
                             songId = row.songId,
                             position = idx + 1,
                             section = row.section,
-                            notes = null,
-                            unitName = null
+                            notes = original?.notes,
+                            unitName = original?.unitName
                         ),
-                        castIds = row.castIds,
-                        isNew = row.existingItemId == null
+                        castIds = row.castIds
                     )
                 }
 
                 val newItemIds = built.map { it.item.id }.toSet()
                 val deletedItemIds = state.initialItemIds.filter { it !in newItemIds }
 
-                val newPerformerKeys = built.flatMap { b -> b.castIds.map { b.item.id to it } }.toSet()
-                val deletedPerformerKeys = state.initialPerformerKeys - newPerformerKeys
+                // 出演者は index で引き直すのでリストのまま保持する (集合化は削除差分の計算だけ)。
+                val newPerformers = built.flatMap { b -> b.castIds.map { b.item.id to it } }
+                val deletedPerformerKeys = state.initialPerformerKeys - newPerformers.toSet()
+
+                // 変わっていない行は送らない。差分規則は共有コア (domain::setlist_diff)。
+                // 以前は 1 曲直すだけでも全曲・全出演者を送っていたため実測最大 606 ops に達し、
+                // 一般ユーザーの修正リクエストが op 上限で弾かれていた。
+                val changedItems = setlistItemIndexesNeedingSync(
+                    items = built.map { it.item.toDiffRow() },
+                    original = state.originalItems.values.map { it.toDiffRow() }
+                ).map { built[it.toInt()].item }
+
+                // 出演者は create と delete しか意味を持たない。SetlistPerformer は
+                // (setlistItemId, idolId) しか持たず recordName がその 2 つから決まるので、
+                // 既存出演者を update しても書く値が recordName と同じで変化しようがない。
+                val addedPerformers = setlistPerformerIndexesNeedingSync(
+                    recordNames = newPerformers.map { (itemId, idolId) -> performerRecordName(itemId, idolId) },
+                    initialRecordNames = state.initialPerformerKeys.map { (itemId, idolId) ->
+                        performerRecordName(itemId, idolId)
+                    }
+                ).map { newPerformers[it.toInt()] }
 
                 val ops = mutableListOf<EditApi.EditOperation>()
-                for (b in built) {
+                for (item in changedItems) {
                     val fields = mutableMapOf<String, Any?>(
-                        "showId" to b.item.showId,
-                        "songId" to b.item.songId,
-                        "position" to b.item.position
+                        "showId" to item.showId,
+                        "songId" to item.songId,
+                        "position" to item.position
                     )
-                    val originalSection = state.originalSections[b.item.id]
-                    if (b.item.section != null) {
-                        fields["section"] = b.item.section
-                    } else if (originalSection != null) {
+                    if (item.section != null) {
+                        fields["section"] = item.section
+                    } else if (state.originalItems[item.id]?.section != null) {
                         // 「本編」に戻した = section のクリア。null を明示送信してサーバのマージで削除させる。
                         fields["section"] = null
                     }
                     ops.add(
                         EditApi.EditOperation(
-                            op = if (existingIds.contains(b.item.id)) EditApi.EditOp.UPDATE else EditApi.EditOp.CREATE,
+                            op = if (existingIds.contains(item.id)) EditApi.EditOp.UPDATE else EditApi.EditOp.CREATE,
                             recordType = "SetlistItem",
-                            recordName = b.item.id,
+                            recordName = item.id,
                             fields = fields
                         )
                     )
                 }
-                for ((itemId, idolId) in newPerformerKeys) {
-                    val recordName = performerRecordName(itemId, idolId)
-                    val isExisting = state.initialPerformerKeys.contains(itemId to idolId)
+                for ((itemId, idolId) in addedPerformers) {
                     ops.add(
                         EditApi.EditOperation(
-                            op = if (isExisting) EditApi.EditOp.UPDATE else EditApi.EditOp.CREATE,
+                            op = EditApi.EditOp.CREATE,
                             recordType = "SetlistPerformer",
-                            recordName = recordName,
+                            recordName = performerRecordName(itemId, idolId),
                             fields = mapOf("setlistItemId" to itemId, "idolId" to idolId)
                         )
                     )
@@ -275,10 +302,18 @@ class SetlistEditViewModel(app: Application, private val show: Show) : AndroidVi
                     )
                 }
 
+                // 差分が空 = 何も変えずに保存した。送るものが無いので通信もローカル置換もせず、
+                // 「修正リクエストを送信しました」を出さずに閉じる (iOS SetlistEditView と同じ)。
+                if (ops.isEmpty()) {
+                    _uiState.value = _uiState.value.copy(isSaving = false, saveOutcome = SetlistSaveOutcome.Applied)
+                    return@launch
+                }
+
                 val outcome = editApi.submitMaster(ops, summary = "セトリ編集")
                 when (outcome) {
                     is EditApi.MasterEditOutcome.Applied -> {
-                        val performers = newPerformerKeys.map { (itemId, idolId) -> SetlistPerformer(itemId, idolId) }
+                        // ローカル置換は差分ではなく編集後の全量で行う (サーバ確定値との一致が目的)。
+                        val performers = newPerformers.map { (itemId, idolId) -> SetlistPerformer(itemId, idolId) }
                         eventRepo.replaceSetlist(
                             deletedItemIds = deletedItemIds,
                             deletedPerformers = deletedPerformerKeys.toList(),
@@ -304,6 +339,16 @@ class SetlistEditViewModel(app: Application, private val show: Show) : AndroidVi
 
     private fun performerRecordName(itemId: String, idolId: String) = "setlist_performers-$itemId-$idolId"
 }
+
+/** 差分判定に渡す射影。サーバに送る field だけを持つ (曲名やジャケ URL は編集対象外)。 */
+private fun SetlistItem.toDiffRow() = SetlistItemDiffRow(
+    id = id, songId = songId, position = position.toLong(), section = section
+)
+
+/** 編集前の行を同じ射影に落とす。比較の対象を送信 field だけに揃えるため。 */
+private fun SetlistRow.toDiffRow() = SetlistItemDiffRow(
+    id = id, songId = songId, position = position.toLong(), section = section
+)
 
 /**
  * セトリ編集画面。iOS `SetlistEditView` の移植。

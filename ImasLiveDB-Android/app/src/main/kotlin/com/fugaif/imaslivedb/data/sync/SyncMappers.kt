@@ -14,6 +14,9 @@ import com.fugaif.imaslivedb.data.model.SongArtist
 import com.fugaif.imaslivedb.data.model.SongCall
 import com.fugaif.imaslivedb.data.model.SongVideo
 import com.fugaif.imaslivedb.data.model.UnitMember
+import com.fugaif.imaslivedb.data.model.Venue
+import com.fugaif.imaslivedb.data.model.VenueHall
+import com.fugaif.imaslivedb.data.model.VenueName
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import uniffi.imas_core.CkField
@@ -73,7 +76,10 @@ object SyncMappers {
 
     fun brands(rows: List<CkRow>): List<Brand> =
         rows.filterIsInstance<CkRow.Brand>().map { (row) ->
-            // Brand は iconUrl 列を持たないのでコアの iconUrl は捨てる。
+            // コアの iconUrl は捨てる。Brand に列を足すには schema bump が要るのに、
+            // master.sqlite の brands にも icon_url は無く (iOS が migration で足して
+            // CloudKit からだけ埋める列)、Android にはブランドアイコンを出す画面も無い。
+            // 表示の当てが出来たときに Venue と同じ手順で足す。
             Brand(row.id, row.name, row.shortName, row.color.emptyToNull(), row.sortOrder.toInt())
         }
 
@@ -125,6 +131,10 @@ object SyncMappers {
      * 生 JSON から自前で拾わずコアの射影 ([ckRecordFromWebServicesJson]) を通すのは、
      * CKWS の `type` 振り分けを Kotlin で書き直さないため。id の解決 (STRING の `id`
      * フィールドがあればそれ、無ければ recordName) もコアと同じにしてある。
+     *
+     * ここだけはレコード 1 件ごとに FFI を跨ぐ (Idol ステップで約 400 回)。ページ全体を
+     * 一括射影して返すコア API がまだ無く、Kotlin 側で拾い直すと id 解決規則の二重実装に
+     * なるため、規則をコアに寄せる方を優先している。コアにバッチ射影が生えたら 1 回に畳める。
      */
     suspend fun voiceActorsById(recordJsons: List<String>): Map<String, String> =
         withContext(Dispatchers.Default) {
@@ -190,6 +200,41 @@ object SyncMappers {
                 sortOrder = row.sortOrder.toInt(),
                 performerType = row.performerType.emptyToNull()
             )
+        }
+
+    /**
+     * 会場マスタ。Show より前に取り込む (shows.venue_id が参照する)。
+     *
+     * 名前ではなく ID で同一性を持たせているので、改名した会場 (武蔵野の森総合スポーツプラザ
+     * → 京王アリーナTOKYO) でも履歴が分断されない。当時名は [venueNames] 側。
+     */
+    fun venues(rows: List<CkRow>): List<Venue> =
+        rows.filterIsInstance<CkRow.Venue>().map { (row) ->
+            Venue(
+                id = row.id,
+                name = row.name,
+                nameKana = row.nameKana.emptyToNull(),
+                prefecture = row.prefecture.emptyToNull(),
+                city = row.city.emptyToNull(),
+                aliases = row.aliases.emptyToNull(),
+                capacity = row.capacity?.toInt(),
+                sortOrder = row.sortOrder.toInt()
+            )
+        }
+
+    /**
+     * 改名履歴。有効期間は空文字ではなく null に潰す:
+     * [com.fugaif.imaslivedb.data.model.VenueName.isValidOn] は文字列比較で期間を判定するので、
+     * validTo="" だと `date >= ""` が常に真になり、その名前が一度も有効にならなくなる。
+     */
+    fun venueNames(rows: List<CkRow>): List<VenueName> =
+        rows.filterIsInstance<CkRow.VenueName>().map { (row) ->
+            VenueName(row.id, row.venueId, row.name, row.validFrom.emptyToNull(), row.validTo.emptyToNull())
+        }
+
+    fun venueHalls(rows: List<CkRow>): List<VenueHall> =
+        rows.filterIsInstance<CkRow.VenueHall>().map { (row) ->
+            VenueHall(row.id, row.venueId, row.name, row.capacity?.toInt())
         }
 
     fun songs(rows: List<CkRow>): List<Song> =

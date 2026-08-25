@@ -80,7 +80,7 @@ import com.fugaif.imaslivedb.ui.units.UnitListViewModel
 /**
  * アイドル一覧。iOS `IdolListView` の構成: ブランド別セクション (見出し + 行/グリッド)。
  * フィルタ/表示形式/表示モードはフィルタシートで設定する。
- * 絞り込みは収集した state から純粋に算出する (Compose の依存追跡を壊さないため)。
+ * 絞り込み結果は ViewModel が保持する state をそのまま読む (判定本体は imas-core)。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -96,29 +96,11 @@ fun IdolListScreen(
     var showFilterSheet by remember { mutableStateOf(false) }
     var tab by rememberSaveable { mutableIntStateOf(0) }
 
-    val q = state.searchText.trim().lowercase()
-
-    fun matchesSearch(idol: Idol): Boolean {
-        if (q.isEmpty()) return true
-        if (idol.name.lowercase().contains(q)) return true
-        if (idol.nameKana?.lowercase()?.contains(q) == true) return true
-        return state.castNames[idol.id]?.lowercase()?.contains(q) == true
-    }
-
-    fun matchesFilters(idol: Idol): Boolean {
-        if (state.selectedBrandIds.isNotEmpty() && idol.brandId !in state.selectedBrandIds) return false
-        if (state.selectedAttribute != null && idol.attribute != state.selectedAttribute) return false
-        if (state.requireMyPick && idol.id !in state.pickIds) return false
-        if (state.requireFavorite && idol.id !in state.favoriteIds) return false
-        if (state.requireNote && idol.id !in state.noteIds) return false
-        return matchesSearch(idol)
-    }
-
-    val filteredIdols = sortIdols(state.idols.filter { matchesFilters(it) }, state.sortOrder, state.sortAscending)
-    // 公式順以外はブランドの区切りを外した通し並びにする
-    // (身長順・年齢順はブランドを跨いで初めて意味を持つ指標のため)。
-    val groupedByBrand = if (state.sortOrder.keepsBrandGrouping) filteredIdols.groupBy { it.brandId } else emptyMap()
-    val visibleBrands = state.brands.filter { !groupedByBrand[it.id].isNullOrEmpty() }
+    // 絞り込み・並べ替え・ブランド別グループ化は ViewModel が imas-core へ委譲して算出済み。
+    // ここで組むと再コンポーズのたびに全件ぶんの射影 + FFI 往復が走る。
+    val filteredIdols = state.filteredIdols
+    val groupedByBrand = state.groupedByBrand
+    val visibleBrands = state.visibleBrands
     val flatHeader = if (state.sortOrder.keepsBrandGrouping) {
         null
     } else {
@@ -191,7 +173,7 @@ fun IdolListScreen(
                     if (state.listMode == IdolListMode.GRID) ImasGridSkeleton(columns = 4, count = 16)
                     else ImasListSkeleton(rows = 12, thumb = SkeletonThumb.Circle)
                 }
-                q.isNotEmpty() && filteredIdols.isEmpty() -> {
+                state.searchText.isNotEmpty() && filteredIdols.isEmpty() -> {
                     ImasEmptyState(icon = Icons.Filled.Person, title = "見つかりませんでした", message = "「${state.searchText}」に一致するアイドルはいません。")
                 }
                 filteredIdols.isEmpty() -> {

@@ -35,6 +35,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.fugaif.imaslivedb.data.auth.startCommunityEdit
 import com.fugaif.imaslivedb.data.community.CommunityApi
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.theme.DS
@@ -123,46 +124,52 @@ fun TagCreateSheet(
                     onClick = {
                         errorMessage = null
                         val module = AppModule.from(context)
-                        if (!module.authService.state.value.isSignedIn) {
-                            errorMessage = "タグの作成にはサインインが必要です(設定画面からサインインしてください)"
-                            return@Button
-                        }
-                        isSaving = true
-                        scope.launch {
-                            val api = module.communityApi
-                            val createResult = when (domain) {
-                                TagDomain.SONG -> api.createTag(
-                                    name = trimmedName,
-                                    description = description.ifBlank { null },
-                                    category = category.ifEmpty { null },
-                                    color = color.ifEmpty { null }
-                                )
-                                TagDomain.IDOL -> api.createIdolTagOption(
-                                    name = trimmedName,
-                                    description = description.ifBlank { null },
-                                    category = category.ifEmpty { null },
-                                    color = color.ifEmpty { null }
-                                )
-                                TagDomain.UNIT -> api.createUnitTagOption(
-                                    name = trimmedName,
-                                    description = description.ifBlank { null },
-                                    category = category.ifEmpty { null },
-                                    color = color.ifEmpty { null }
-                                )
-                            }
-                            when (val result = createResult) {
-                                is CommunityApi.TagCreateResult.Success -> {
-                                    isSaving = false
-                                    onCreated(result.tag)
-                                    onDismiss()
+                        // 権限判定はコア (edit_permission_rules) に集約。未ログインは誘導、
+                        // BAN 済みは理由を出す — このシートはタグ一覧/詳細からも開けて
+                        // 導線を隠しきれないので、無反応にすると原因が分からない。
+                        module.authService.state.value.startCommunityEdit(
+                            promptLogin = {
+                                errorMessage = "タグの作成にはサインインが必要です(設定画面からサインインしてください)"
+                            },
+                            onBanned = { errorMessage = "この操作は制限されています。" }
+                        ) {
+                            isSaving = true
+                            scope.launch {
+                                val api = module.communityApi
+                                val createResult = when (domain) {
+                                    TagDomain.SONG -> api.createTag(
+                                        name = trimmedName,
+                                        description = description.ifBlank { null },
+                                        category = category.ifEmpty { null },
+                                        color = color.ifEmpty { null }
+                                    )
+                                    TagDomain.IDOL -> api.createIdolTagOption(
+                                        name = trimmedName,
+                                        description = description.ifBlank { null },
+                                        category = category.ifEmpty { null },
+                                        color = color.ifEmpty { null }
+                                    )
+                                    TagDomain.UNIT -> api.createUnitTagOption(
+                                        name = trimmedName,
+                                        description = description.ifBlank { null },
+                                        category = category.ifEmpty { null },
+                                        color = color.ifEmpty { null }
+                                    )
                                 }
-                                is CommunityApi.TagCreateResult.RateLimited -> {
-                                    isSaving = false
-                                    errorMessage = "1日10件まで作成できます。明日試してください"
-                                }
-                                is CommunityApi.TagCreateResult.Error -> {
-                                    isSaving = false
-                                    errorMessage = result.message ?: "作成に失敗しました"
+                                when (val result = createResult) {
+                                    is CommunityApi.TagCreateResult.Success -> {
+                                        isSaving = false
+                                        onCreated(result.tag)
+                                        onDismiss()
+                                    }
+                                    is CommunityApi.TagCreateResult.RateLimited -> {
+                                        isSaving = false
+                                        errorMessage = "1日10件まで作成できます。明日試してください"
+                                    }
+                                    is CommunityApi.TagCreateResult.Error -> {
+                                        isSaving = false
+                                        errorMessage = result.message ?: "作成に失敗しました"
+                                    }
                                 }
                             }
                         }

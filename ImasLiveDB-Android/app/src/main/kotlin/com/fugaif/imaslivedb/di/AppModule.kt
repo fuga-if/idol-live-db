@@ -6,6 +6,7 @@ import com.fugaif.imaslivedb.data.backup.BackupTransferApi
 import com.fugaif.imaslivedb.data.core.SnapshotStoreProvider
 import com.fugaif.imaslivedb.data.db.AppDatabase
 import com.fugaif.imaslivedb.data.edit.EditApi
+import com.fugaif.imaslivedb.data.repository.CalendarRepository
 import com.fugaif.imaslivedb.data.repository.EditFeedRepository
 import com.fugaif.imaslivedb.data.repository.EventRepository
 import com.fugaif.imaslivedb.data.repository.IdolRepository
@@ -39,6 +40,7 @@ class AppModule private constructor(context: Context) {
     }
 
     val eventRepository: EventRepository by lazy { EventRepository(database, snapshotStoreProvider) }
+    val calendarRepository: CalendarRepository by lazy { CalendarRepository(database, snapshotStoreProvider) }
     val songRepository: SongRepository by lazy { SongRepository(database, snapshotStoreProvider) }
     val idolRepository: IdolRepository by lazy { IdolRepository(database, snapshotStoreProvider) }
     val unitRepository: UnitRepository by lazy { UnitRepository(database, snapshotStoreProvider) }

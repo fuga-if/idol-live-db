@@ -39,11 +39,8 @@ data class EventWithDateRange(
             return if (last != null) "$first〜$last" else first
         }
 
-    /** 最終公演日 (無ければ初回公演日) が today 以降なら今後の予定。日付未定のイベントは常に今後扱い。 */
-    fun isUpcoming(todayKey: String): Boolean {
-        val last = lastDate?.takeIf { it.isNotEmpty() } ?: firstDate?.takeIf { it.isNotEmpty() } ?: return true
-        return last >= todayKey
-    }
+    // 「今後 / 開催済み」の判定は共有コアの groupEventIndicesByYear が持つ (firstDate 基準)。
+    // ここに lastDate 基準の isUpcoming があると二重実装になるので置かない。
 }
 
 /** 参加マークの行 (event_id + 参加種別 text_value)。live/stream/live_viewing 分類用。 */

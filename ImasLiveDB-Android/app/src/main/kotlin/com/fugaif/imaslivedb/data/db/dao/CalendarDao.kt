@@ -2,14 +2,32 @@ package com.fugaif.imaslivedb.data.db.dao
 
 import androidx.room.Dao
 import androidx.room.Query
+import com.fugaif.imaslivedb.data.model.Anniversary
 import com.fugaif.imaslivedb.data.model.CalAnniversaryRow
 import com.fugaif.imaslivedb.data.model.CalBirthdayRow
 import com.fugaif.imaslivedb.data.model.CalReleaseRow
 import com.fugaif.imaslivedb.data.model.CalShowRow
 import com.fugaif.imaslivedb.data.model.CalStaffBirthdayRow
+import com.fugaif.imaslivedb.data.model.Staff
 
 @Dao
 interface CalendarDao {
+
+    // ---- 実体化 (スナップショット経路) ----
+    // 共有コアの calendarEntries は staff_id / anniversary_id しか返さず、スナップショットに
+    // この 2 つのレコード取得 API が無い。iOS CoreCalendarRepository と同じ判断で、実体は
+    // ローカル DB の全件読みで解決する (どちらも数十件のマスタなので分割の必要が無い)。
+
+    @Query("SELECT * FROM staff")
+    suspend fun fetchAllStaff(): List<Staff>
+
+    @Query("SELECT * FROM anniversaries")
+    suspend fun fetchAllAnniversaries(): List<Anniversary>
+
+    // ---- 旧 SQL 経路 (スナップショット未ロード時のフォールバックでのみ使う) ----
+    // 表示範囲の絞り込み・誕生日/記念日の年展開・並び替えの一次実装は共有コアの
+    // domain/calendar_queries.rs。ここの月単位クエリはネイティブ .so を持たないビルドや
+    // 初回同期前でもカレンダーが空にならないための受け皿で、仕様の正本ではない。
 
     /** ym = "YYYY-MM"。その月の公演をイベント名付きで。 */
     @Query("""
