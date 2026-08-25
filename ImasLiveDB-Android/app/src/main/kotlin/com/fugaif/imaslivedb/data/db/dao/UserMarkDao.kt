@@ -25,6 +25,20 @@ interface UserMarkDao {
     @Query("SELECT text_value FROM user_marks WHERE entity_type = :type AND entity_id = :id AND kind = 'memo' LIMIT 1")
     suspend fun memo(type: String, id: String): String?
 
+    /** ON になっているマークの text_value (参加形態 = live / stream / live_viewing 等)。 */
+    @Query("""
+        SELECT text_value FROM user_marks
+        WHERE entity_type = :type AND entity_id = :id AND kind = :kind AND bool_value = 1 LIMIT 1
+    """)
+    suspend fun textValue(type: String, id: String, kind: String): String?
+
+    /** 指定 ID 群のうち ON になっているものだけを返す (公演単位の参加判定用)。 */
+    @Query("""
+        SELECT entity_id FROM user_marks
+        WHERE entity_type = :type AND kind = :kind AND bool_value = 1 AND entity_id IN (:ids)
+    """)
+    suspend fun onIdsIn(type: String, kind: String, ids: List<String>): List<String>
+
     /** メモ本文が入っているエンティティID一覧 (「メモがあるアイドルのみ」等の絞り込み用)。 */
     @Query("SELECT entity_id FROM user_marks WHERE entity_type = :type AND kind = 'memo' AND text_value IS NOT NULL AND text_value != ''")
     suspend fun idsWithNote(type: String): List<String>

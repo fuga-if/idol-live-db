@@ -229,6 +229,21 @@ enum ColorMath {
         hexString(hslToRgb(hue, 0.55, 0.50))
     }
 
+    /// 基準色 (ブランドカラー等) の色味を保ったまま、キーごとに少しだけ振ったバリエーション。
+    ///
+    /// 「どのブランドか」は色相で伝えたいが、同じブランド内の複数系列は見分けたい、という
+    /// 場面のためのもの。`derive(categoryKey:)` は色相ごと変えてしまうのでブランドが
+    /// 混ざった一覧では所属が読めなくなる。ここでは **色相は ±16° まで**に抑え、
+    /// 主に明度で差を付けるので、隣り合っていても「同じブランドの別系列」に見える。
+    static func variantHex(of hex: String, key: String) -> String {
+        let (h, s, l) = rgbToHsl(hexToRgb(hex))
+        let seed = stableHue(for: key)
+        // 5 段階 × 5 段階 = 25 通り。同じキーなら常に同じ色。
+        let hueShift = (seed.truncatingRemainder(dividingBy: 5) - 2) * 8      // -16…16
+        let lightShift = ((seed / 5).rounded(.down).truncatingRemainder(dividingBy: 5) - 2) * 0.07
+        return hexString(hslToRgb(h + hueShift, clamp(s, 0.35, 0.95), clamp(l + lightShift, 0.30, 0.68)))
+    }
+
     // WCAG 相対輝度
     static func relLum(_ rgb: RGB) -> Double {
         func f(_ x: Double) -> Double {

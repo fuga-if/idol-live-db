@@ -175,6 +175,9 @@ final class UserMarkService {
             try db.upsertUserMarkText(entity: entity, id: id, kind: .attended, text: nil)
             updateBoolCache(entity, .attended, id, false)
         }
+        // 参加ライブの登録は「一区切りついた瞬間」なのでレビュー依頼の好機に数える。
+        // 取り消しは数えない (良い体験ではないので)。
+        if type != nil { ReviewPrompt.noteMilestone() }
         refreshAutoCollected()
         version &+= 1
         scheduleBackup()

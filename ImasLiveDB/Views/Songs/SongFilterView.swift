@@ -6,8 +6,8 @@ struct SongFilterView: View {
     @Environment(AppDatabase.self) private var database
     @Environment(\.dismiss) private var dismiss
 
-    /// 一覧を名前で絞り込むテキスト。検索 (詳細へ飛ぶ) ではなくフィルタなので、
-    /// ブランド絞り込み・並び順と合成される。
+    /// 一覧を名前で絞り込むテキスト。入力欄は一覧側 (`.searchable`) にあり、
+    /// ここでは「絞り込み中」の表示とクリアのためだけに持つ。
     @Binding var nameFilter: String
     @Binding var filter: SongSearchFilter
     @Binding var sortOrder: SongSortOrder
@@ -46,12 +46,6 @@ struct SongFilterView: View {
     var body: some View {
         NavigationStack {
             List {
-                Section {
-                    NameFilterField(prompt: namePrompt, text: $nameFilter)
-                        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-                }
-                .listRowBackground(Color.clear)
-
                 // 表示形式
                 Section("表示形式") {
                     Picker("表示", selection: $listMode) {
@@ -288,15 +282,6 @@ struct SongFilterView: View {
     }
 
     // MARK: - Helpers
-
-    /// 名前絞り込みの対象は表示形式で変わる。
-    private var namePrompt: String {
-        switch listMode {
-        case .songs:  "曲名で絞り込み"
-        case .albums: "アルバム名で絞り込み"
-        case .series: "シリーズ名で絞り込み"
-        }
-    }
 
     private var selectedIdolNames: [String] {
         idols.filter { selectedIdolIds.contains($0.id) }.map(\.name)
