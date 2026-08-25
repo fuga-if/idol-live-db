@@ -321,7 +321,7 @@ private fun ShowRow(show: Show, seed: String?, brand: String?, rainbow: Boolean,
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        ImasLeadBar(seed = seed, brand = brand, height = 36.dp, rainbow = rainbow)
+        ImasLeadBar(seedHex = seed ?: brand, height = 36.dp, rainbow = rainbow)
         Column(Modifier.weight(1f)) {
             Text(
                 show.name, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink,

@@ -1,0 +1,210 @@
+{
+  "title": "CINDERELLA GIRLS CONCEPT xR LIVE Pop'n ToyBox!! 夕方公演 (2026-08-13 Shibuya LOVEZ) セットリスト",
+  "show_id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_1",
+  "source": "https://aimasupay.hatenablog.com/entry/2026/08/13/182308",
+  "_sources": [
+    "https://aimasupay.hatenablog.com/entry/2026/08/13/182308",
+    "https://asobistage.asobistore.jp/event/cinderella_cg_ptb/information",
+    "https://idolmaster-official.jp/live_event/cg_ptb/",
+    "https://columbia.jp/idolmaster/imasnews/260717.html"
+  ],
+  "_note": "performers は歌唱アイドル。サポートメンバーは歌唱せずダンスのみ参加のため notes に記録",
+  "songs": [
+    {
+      "position": 1,
+      "song_id": "cg_poppin_para_pong",
+      "performers": [
+        "cg_赤城みりあ",
+        "cg_市原仁奈",
+        "cg_椎名法子"
+      ],
+      "notes": "新曲初披露 (会場オリジナルCD SACX-1144 表題曲)"
+    },
+    {
+      "position": 2,
+      "song_id": "cg_romantic_now",
+      "performers": [
+        "cg_赤城みりあ"
+      ]
+    },
+    {
+      "position": 3,
+      "song_id": "cg_ギョーてんしーわーるど",
+      "performers": [
+        "cg_市原仁奈",
+        "cg_浅利七海",
+        "cg_龍崎薫"
+      ],
+      "notes": "ダンス参加: 池袋晶葉"
+    },
+    {
+      "position": 4,
+      "song_id": "cg_にんぎょひめ練習中",
+      "performers": [
+        "cg_浅利七海"
+      ]
+    },
+    {
+      "position": 5,
+      "song_id": "cg_みんなのきもち",
+      "performers": [
+        "cg_市原仁奈"
+      ]
+    },
+    {
+      "position": 6,
+      "song_id": "cg_nocturne",
+      "performers": [
+        "cg_高垣楓",
+        "cg_川島瑞樹"
+      ]
+    },
+    {
+      "position": 7,
+      "song_id": "cg_弾丸サバイバー",
+      "performers": [
+        "cg_大和亜季"
+      ]
+    },
+    {
+      "position": 8,
+      "song_id": "cg_max_beat",
+      "performers": [
+        "cg_大和亜季",
+        "cg_高垣楓",
+        "cg_鷹富士茄子"
+      ],
+      "notes": "ダンス参加: 高橋礼子・財前時子"
+    },
+    {
+      "position": 9,
+      "song_id": "cg_熱情エナモラル",
+      "performers": [
+        "cg_佐藤心",
+        "cg_大和亜季"
+      ],
+      "notes": "ダンス参加: 東郷あい・篠原礼・黒川千秋"
+    },
+    {
+      "position": 10,
+      "song_id": "cg_レッドソール",
+      "performers": [
+        "cg_三船美優",
+        "cg_鷹富士茄子"
+      ],
+      "notes": "ダンス参加: 篠原礼・柊志乃"
+    },
+    {
+      "position": 11,
+      "song_id": "cg_lovedestiny",
+      "performers": [
+        "cg_佐城雪美"
+      ],
+      "notes": "ダンス参加: 黒川千秋"
+    },
+    {
+      "position": 12,
+      "song_id": "cg_とくとく_とく",
+      "performers": [
+        "cg_佐城雪美"
+      ]
+    },
+    {
+      "position": 13,
+      "song_id": "cg_morgana",
+      "performers": [
+        "cg_浅利七海"
+      ],
+      "notes": "ダンス参加: 柊志乃"
+    },
+    {
+      "position": 14,
+      "song_id": "cg_プライスレス_ドーナッcyu",
+      "performers": [
+        "cg_椎名法子"
+      ],
+      "notes": "ダンス参加: 財前時子"
+    },
+    {
+      "position": 15,
+      "song_id": "cg_恋のhamburg",
+      "performers": [
+        "cg_龍崎薫"
+      ],
+      "notes": "ダンス参加: 東郷あい"
+    },
+    {
+      "position": 16,
+      "song_id": "cg_ひまわりマークをさがせ",
+      "performers": [
+        "cg_龍崎薫"
+      ]
+    },
+    {
+      "position": 17,
+      "song_id": "cg_悠久星涼",
+      "performers": [
+        "cg_龍崎薫",
+        "cg_椎名法子",
+        "cg_佐城雪美"
+      ]
+    },
+    {
+      "position": 18,
+      "song_id": "cg_クレイジークレイジー",
+      "performers": [
+        "cg_佐藤心",
+        "cg_鷹富士茄子"
+      ]
+    },
+    {
+      "position": 19,
+      "song_id": "cg_初夢をあなたと",
+      "performers": [
+        "cg_鷹富士茄子"
+      ]
+    },
+    {
+      "position": 20,
+      "song_id": "cg_私色ギフト",
+      "performers": [
+        "cg_赤城みりあ"
+      ],
+      "notes": "ダンス参加: 高橋礼子・佐藤心・東郷あい"
+    },
+    {
+      "position": 21,
+      "song_id": "cg_dreaming_of_you",
+      "performers": [
+        "cg_川島瑞樹"
+      ]
+    },
+    {
+      "position": 22,
+      "song_id": "cg_がおちゅーさふぁりぱーく",
+      "performers": [
+        "cg_三船美優",
+        "cg_市原仁奈"
+      ],
+      "notes": "ダンス参加: 高橋礼子・赤城みりあ"
+    },
+    {
+      "position": 23,
+      "song_id": "cg_もしもカワイイが世界からなくなっても",
+      "performers": [
+        "cg_佐藤心"
+      ],
+      "notes": "ダンス参加: ほか出演アイドル多数"
+    },
+    {
+      "position": 24,
+      "song_id": "cg_cookie_dough",
+      "performers": [
+        "cg_三船美優",
+        "cg_高垣楓",
+        "cg_大和亜季"
+      ],
+      "notes": "新曲初披露 (会場オリジナルCD SACX-1145 表題曲)"
+    }
+  ]
+}

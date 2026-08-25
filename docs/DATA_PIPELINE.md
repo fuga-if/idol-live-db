@@ -47,6 +47,23 @@ CLOUDKIT_KEY_ID=$KID python3 tools/apply_data.py --apply --push --production  # 
 スキーマを変えた時 (列追加等) は、ローカル master.sqlite から `sqlite3 ... .dump > db/master.sql` で
 dump を作り直してコミットする (cron はデータのみ更新し、スキーマは db/master.sql 由来のため)。
 
+### `meta.data_version` (これが落ちるとユーザーに届かない)
+
+アプリの reseed は **bundle 側 `data_version` > 端末側** のときだけ走る
+(`AppDatabase.reseedMasterTablesIfNeeded`)。つまり:
+
+- **`meta` が消えた dump を配ると reseed が二度と発火しない。** bundle 側が `0` と読まれ、
+  既存ユーザーは無言で旧データのまま固定される。FK ゲートでは検知できない種類の事故。
+  `meta` は CloudKit 側に実体が無いので、`export_cloudkit.py` の `PRESERVED_TABLES` で
+  refresh 対象から外して既存 dump の値を引き継ぐ。
+- **データを入れても `data_version` を上げなければ既存ユーザーには届かない。**
+  cron は「マスタに実差分があった回だけ」+1 する (差分判定は `data_version` 行を除いて比較。
+  バンプ自体が差分になる循環を避けるため)。手で `--apply --push` した分も、翌日の cron が
+  差分を拾って上げるので通常は追加操作は不要。
+
+`tools/build_db.sh` は FK 整合性に加えて `data_version` の存在も検証し、欠けていれば
+master.sqlite の生成を失敗させる。
+
 ## コミュニティデータ (D1) のバックアップ / スナップショット
 
 マスタ (CloudKit) は日次 cron で `db/master.sql` に落ちるので失っても戻せる。

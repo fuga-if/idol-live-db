@@ -170,7 +170,7 @@ private fun UnitRow(unit: ImasUnit, onClick: () -> Unit) {
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 8.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        ImasLeadBar(seed = unit.id, brand = unit.brandId, height = 36.dp)
+        ImasLeadBar(brandId = unit.brandId, height = 36.dp)
         Box(Modifier.padding(start = 8.dp)) {
             ImasAvatar(label = unit.name, seed = unit.id, brand = unit.brandId, size = 40.dp)
         }
