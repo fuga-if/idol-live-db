@@ -62,6 +62,28 @@ pub fn fuzzy_key(text: &str) -> Vec<char> {
     out
 }
 
+/// 漢字か (CJK 統合漢字)。
+fn is_kanji(c: char) -> bool {
+    ('\u{4E00}'..='\u{9FFF}').contains(&c) || ('\u{3400}'..='\u{4DBF}').contains(&c)
+}
+
+/// 置換 1 回ぶんの重み。
+///
+/// **漢字が絡む置換は 2 と数える。** かな 1 文字の違い (「ぷりんせす」↔「ぷりんせつ」)
+/// は打ち間違いだが、漢字 1 文字の違いは別語になるため
+/// (「お願い」↔「おもい」、「月下祭」↔「月下菜」)。同じ重さで扱うと、
+/// 3 文字の語に許す距離 1 で「お」と「い」しか合っていない曲まで拾ってしまう
+/// (実機で「お願い」に「オモイノウタ」が出た)。
+fn substitution_cost(a: char, b: char) -> usize {
+    if a == b {
+        0
+    } else if is_kanji(a) || is_kanji(b) {
+        2
+    } else {
+        1
+    }
+}
+
 /// 編集距離 (Levenshtein)。`limit` を超えると打ち切って `limit + 1` を返す。
 ///
 /// 打ち切りを入れているのは、全曲との比較で「明らかに違う」ものに
@@ -76,7 +98,7 @@ fn edit_distance(a: &[char], b: &[char], limit: usize) -> usize {
         cur[0] = i;
         let mut row_min = cur[0];
         for j in 1..=b.len() {
-            let cost = usize::from(a[i - 1] != b[j - 1]);
+            let cost = substitution_cost(a[i - 1], b[j - 1]);
             cur[j] = (prev[j] + 1).min(cur[j - 1] + 1).min(prev[j - 1] + cost);
             row_min = row_min.min(cur[j]);
         }
@@ -372,5 +394,26 @@ mod tests {
         }
         println!("V2 生成読みで上位 10 に入る: {}/{}", top10, rows.len());
         for m in miss.iter().take(6) { println!("V2   外れ: {m}") }
+    }
+    #[test]
+    fn kanji_difference_is_not_a_typo() {
+        // 実機で「お願い」と打つと「オモイノウタ」「おもいでのはじまり」が
+        // 「もしかして」に出ていた。「お」と「い」しか合っていないのに、
+        // 願↔も を かな 1 文字の打ち間違いと同じ重さで数えていたため。
+        let items = vec![
+            vec!["お願い！シンデレラ".to_string(), "おねがいしんでれら".to_string()],
+            vec!["オモイノウタ".to_string()],
+            vec!["おもいでのはじまり".to_string()],
+            vec!["プリンセスの休息".to_string()],
+        ];
+        let got = fuzzy_matches_multi(&items, "お願い", 10);
+        let hit: Vec<u32> = got.iter().map(|h| h.index).collect();
+        assert!(hit.contains(&0), "本命が出ない: {hit:?}");
+        assert!(!hit.contains(&1), "オモイノウタ を拾ってはいけない");
+        assert!(!hit.contains(&2), "おもいでのはじまり を拾ってはいけない");
+
+        // かな同士の打ち間違いは今までどおり拾う
+        let got = fuzzy_matches_multi(&items, "ぷりんせつ", 10);
+        assert!(got.iter().any(|h| h.index == 3), "かなの打ち間違いが拾えない");
     }
 }
