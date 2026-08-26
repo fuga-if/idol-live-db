@@ -114,26 +114,31 @@ final class AppDatabase: @unchecked Sendable {
         } else if !fileManager.fileExists(atPath: dbURL.path) {
             let pool = try DatabasePool(path: dbURL.path, configuration: config)
             try DatabaseMigrations.migrator.migrate(pool)
-            // この経路だけコア適用を移行の**後ろ**に置く。空 DB から作るここでは
-            // v1_create_tables が ifNotExists 無しの CREATE TABLE を出すので、先にコアが
-            // 同じ表を作ると v1 が「already exists」で落ち、起動不能になる。
-            // 移行が作り切った後に、正本にあって移行が作らない分だけ足す。
+            // 空 DB からの生成は必ず移行に先に作らせる。コアが先に同じ表を作ると
+            // v1_create_tables の ifNotExists 無し CREATE TABLE が「already exists」で
+            // 落ち、起動不能になる。
             applyCoreMasterSchema(at: dbURL.path)
             return pool
         }
 
-        // GRDB の移行より**前**に、コアが持つマスタスキーマの正本を流す。
-        // 出すのは CREATE TABLE と ALTER TABLE ADD COLUMN だけで、DROP も作り直しも
-        // データ書き換えも無い。正本に user_marks / personal_tags を含めていないので、
-        // 端末にしか無いユーザーデータ (担当・お気に入り・メモ) には構造的に届かない。
-        // pool を開く前に済ませるのは、GRDB 接続が古い形のまま statement を掴むのを避けるため。
-        // ここで足した表・列は直後の seedMigrationHistoryIfNeeded が「適用済み」と見なすので、
-        // 対応する GRDB 移行は空振りする (= 二重適用にならない)。
-        applyCoreMasterSchema(at: dbURL.path)
-
         let pool = try DatabasePool(path: dbURL.path, configuration: config)
         try seedMigrationHistoryIfNeeded(pool)
         try DatabaseMigrations.migrator.migrate(pool)
+        // コアが持つマスタスキーマの正本は、GRDB の移行を流し**終えてから**当てる。
+        //
+        // 逆順にすると壊れる。seedMigrationHistoryIfNeeded は「列があるなら適用済み」と
+        // 印を付けるだけなので、コアが先に列を足すと、その列を足す移行が抱えている
+        // **データ側の仕事まで丸ごと飛ぶ**。v21 (show_cast.cast_role) で実際に起きる:
+        // コアが cast_role を足す → seed が v21 を適用済みと誤認 → 後から走る v19_drop_cast が
+        // show_cast を (show_id, idol_id) で作り直して cast_role ごと落とす → v21 は印済みなので
+        // 二度と走らず、列も主演 10 行も戻らない (以後 cast_role を読む詳細画面が全部 throw する)。
+        // GRDB の DatabaseMigrator は未適用の移行を登録順に流すだけで、後ろの印が前の移行を
+        // 止めることはない。だから「先に印を付ける」= 「その移行を永久に捨てる」になる。
+        //
+        // 後ろに置けば seed は誰も触っていない実物を見るので印が嘘にならず、移行が作り切った
+        // 形に対して正本の不足分だけを足す形になる。索引も同じで、列が揃った後なら
+        // idx_setlist_performers_idol (v19 前は setlist_performers に idol_id が無い) が失敗しない。
+        applyCoreMasterSchema(at: dbURL.path)
         // event.kind の再適用は CloudKit pull 直後に効けばよい定常処理。毎起動で同期 UPDATE を
         // 走らせるとメインスレッドを数十〜数百ms 塞ぐため、バックグラウンドに退避する。
         Task.detached(priority: .utility) { [pool] in
@@ -161,9 +166,18 @@ final class AppDatabase: @unchecked Sendable {
 
     /// 共有コア (imas-core) が持つマスタスキーマの正本を DB へ寄せる。追加しかしない。
     ///
-    /// **失敗しても投げない。** DB を開く前段でここが throw すると `init` の `fatalError` に
-    /// 直結して起動不能になる (マスタ削除で FK 孤児 → 起動クラッシュ → 審査 reject の実例がある)。
-    /// 一方で失敗しても従来どおり GRDB の移行が同じ形を作れるため、ログだけ残して進むのが常に正しい。
+    /// 出すのは `CREATE TABLE` と `ALTER TABLE ADD COLUMN` だけで、DROP も作り直しもデータ
+    /// 書き換えも無い。正本に `user_marks` / `personal_tags` を含めていないので、端末にしか
+    /// 無いユーザーデータ (担当・お気に入り・メモ) には構造的に届かない。
+    ///
+    /// **必ず GRDB の移行の後に呼ぶこと。** 理由は `openDatabase` 側の呼び出しコメントに書いた
+    /// (先に呼ぶと seedMigrationHistoryIfNeeded の印が嘘になり、移行が持つデータ投入が飛ぶ)。
+    ///
+    /// **失敗しても投げない。** ここが throw すると `openDatabase` 経由で `init` の `fatalError`
+    /// に直結して起動不能になる (マスタ削除で FK 孤児 → 起動クラッシュ → 審査 reject の実例がある)。
+    /// 移行の後に呼ぶ以上、表と列は既に揃っている。ここで落ちて欠けるのは「正本にしか無い分」
+    /// = `song_units` と、v20_ensure_indexes が持たない索引 (idx_song_units_song /
+    /// idx_song_units_unit / idx_songs_series_group) だけで、遅くなっても壊れはしない。
     private static func applyCoreMasterSchema(at path: String) {
         do {
             let result = try ensureMasterSchema(dbPath: path)
@@ -175,7 +189,11 @@ final class AppDatabase: @unchecked Sendable {
                 Logger.database.error("[core-schema] deferred: \(reason, privacy: .public)")
             }
         } catch {
-            Logger.database.error("[core-schema] failed: \(error.localizedDescription, privacy: .public)")
+            // コア側の適用はトランザクションを張らず、最初の失敗でそれ以降の手を捨てる。
+            // 「どこで止まったか」だけが手掛かりになるので、失敗した手の理由を含む本文をそのまま出す。
+            Logger.database.error(
+                "[core-schema] failed (以降の手は流れていない): \(String(describing: error), privacy: .public)"
+            )
         }
     }
 

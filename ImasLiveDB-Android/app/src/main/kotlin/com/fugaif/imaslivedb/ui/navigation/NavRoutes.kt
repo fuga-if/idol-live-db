@@ -37,6 +37,16 @@ sealed class NavRoutes(val route: String) {
             fun createRoute(idolId: String) = "idol_detail/$idolId"
         }
     }
+    /**
+     * 誕生月 (1..12) で絞ったアイドル一覧。アイドル詳細の誕生日行から開く
+     * (iOS の `DetailDestination.filteredIdols(.birthMonth)` に対応)。
+     */
+    data class IdolsByBirthMonth(val month: Int) : NavRoutes("idols_by_birth_month/{month}") {
+        companion object {
+            const val ROUTE = "idols_by_birth_month/{month}"
+            fun createRoute(month: Int) = "idols_by_birth_month/$month"
+        }
+    }
     data class UnitDetail(val unitId: String) : NavRoutes("unit_detail/{unitId}") {
         companion object {
             const val ROUTE = "unit_detail/{unitId}"

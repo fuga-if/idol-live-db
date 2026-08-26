@@ -112,6 +112,12 @@ struct CoreSongRepository: SongReading {
         try await fallback.searchSongs(query: query, limit: limit)
     }
 
+    /// 綴りだけを返す API はスナップショットに無い (照合はコア、母集団の供給は
+    /// プラットフォーム側という分担)。ローカル store から直接引く。
+    func songSpellings() async throws -> [SongSpelling] {
+        try await fallback.songSpellings()
+    }
+
     // MARK: - 楽曲詳細
 
     func songPerformanceHistory(songId: String) async throws -> [PerformanceHistoryRow] {

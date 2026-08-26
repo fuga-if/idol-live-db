@@ -46,14 +46,14 @@ class SearchRepository(
                     songs = hits,
                     idols = searchIdols(query, SHALLOW_LIMIT),
                     events = searchEvents(query, SHALLOW_LIMIT),
-                    fuzzySongs = fuzzySongs(query, hits)
+                    fuzzySongs = fuzzySongs(query, hits, SHALLOW_LIMIT)
                 )
             }
             SearchScope.SONGS -> {
                 val hits = searchSongs(query, DEEP_LIMIT, deep = true)
                 SearchResults(
                     songs = hits, idols = emptyList(), events = emptyList(),
-                    fuzzySongs = fuzzySongs(query, hits)
+                    fuzzySongs = fuzzySongs(query, hits, DEEP_LIMIT)
                 )
             }
             SearchScope.IDOLS -> SearchResults(
@@ -73,8 +73,10 @@ class SearchRepository(
      *
      * 呼び出し元 (SearchViewModel) が 200ms の debounce を通しているので、打鍵ごとには走らない。
      */
-    private suspend fun fuzzySongs(query: String, shown: List<Song>): List<Song> {
-        if (shown.size > FuzzySearch.SUGGEST_THRESHOLD) return emptyList()
+    private suspend fun fuzzySongs(query: String, shown: List<Song>, exactLimit: Int): List<Song> {
+        // 上限に張り付いた = まだ先があるということ。打った通りに出ているので候補は要らない。
+        // (「すべて」は各 20 件までなので、件数だけ見ても「本当に少ない」か判別できない)
+        if (shown.size >= exactLimit || shown.size > FuzzySearch.SUGGEST_THRESHOLD) return emptyList()
         val ids = songs.fuzzySongIds(query, shown.mapTo(HashSet()) { it.id })
         if (ids.isEmpty()) return emptyList()
         // 実体を引くのは当たった数十件だけ。並びはコアが返した順が正なので保って戻す。

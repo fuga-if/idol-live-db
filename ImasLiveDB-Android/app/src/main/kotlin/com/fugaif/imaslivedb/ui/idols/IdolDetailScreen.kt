@@ -118,6 +118,8 @@ fun IdolDetailScreen(
     onNavigateToIdolDetail: (String) -> Unit = {},
     onPollClick: (String) -> Unit = {},
     onIdolTagClick: (String) -> Unit = {},
+    /** 誕生日の行から「同じ誕生月のアイドル」一覧へ (1..12)。押せる行かどうかはコアが決める。 */
+    onNavigateToBirthMonth: (Int) -> Unit = {},
     viewModel: IdolDetailViewModel = viewModel(
         factory = IdolDetailViewModel.Factory(
             LocalContext.current.applicationContext as android.app.Application, idolId
@@ -166,7 +168,7 @@ fun IdolDetailScreen(
                 when (segment) {
                     0 -> LiveBody(state, idol, onNavigateToSongDetail, onNavigateToShowDetail)
                     1 -> SongsBody(state, idol, onNavigateToUnitDetail, onNavigateToSongDetail)
-                    2 -> ProfileBody(idol)
+                    2 -> ProfileBody(idol, onNavigateToBirthMonth)
                     else -> Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
                         CommunityBody(
                             idolId = idol.id,
@@ -461,7 +463,7 @@ private fun UnitChip(unit: ImasUnit, idol: Idol, onClick: () -> Unit) {
 }
 
 @Composable
-private fun ProfileBody(idol: Idol) {
+private fun ProfileBody(idol: Idol, onNavigateToBirthMonth: (Int) -> Unit) {
     val clipboard = LocalClipboardManager.current
     // 行の組み立て (どの行が・どの順で・押せるか) は共有コアが唯一の正。
     // iOS と同じ条件を二重に書くと必ずいつかズレるので、ここは整形済みの値を渡すだけにする。
@@ -485,14 +487,19 @@ private fun ProfileBody(idol: Idol) {
     Column {
         ImasSectionHeader("プロフィール", tight = true)
         rows.forEach { row ->
+            val action = row.action
             // コアが返すのは「何をしたいか」の種類だけ。実行はこちらの責務。
-            val onClick: (() -> Unit)? = when (row.action) {
+            // when は網羅にしてある — コアが操作を増やしたらここがコンパイルエラーで気付ける。
+            val onClick: (() -> Unit)? = when (action) {
+                // 誕生日は同じ誕生月のアイドル一覧へ (iOS の filteredIdols(.birthMonth) と同じ行先)。
+                is RowAction.FilterByBirthMonth -> {
+                    val month = action.month.toInt()
+                    ({ onNavigateToBirthMonth(month) })
+                }
                 // カラーは押すと写せる (配信や実況で色コードを使う人が居る)。
                 RowAction.CopyValue -> ({ clipboard.setText(AnnotatedString(row.value)) })
-                // 誕生月で絞ったアイドル一覧が Android にまだ無い。画面ができるまでは
-                // 押せない行のままにする (行先の無い矢印を出さない)。作ったらここを繋ぐだけ。
-                is RowAction.FilterByBirthMonth -> null
-                // 全文展開は ImasLabeledRow が未対応なので、行の onClick には載せない。
+                // 全文展開は ImasLabeledRow が未対応なので、行の onClick には載せない
+                // (値の全文は行の長押しコピーで取れる)。
                 RowAction.ToggleExpansion, RowAction.None -> null
             }
             ImasLabeledRow(
@@ -501,6 +508,10 @@ private fun ProfileBody(idol: Idol) {
                 showSwatch = row.style == RowStyle.COLOR_SWATCH,
                 // 色コードは桁を揃えたいので ColorSwatch も等幅で出す。
                 mono = row.style == RowStyle.MONOSPACED || row.style == RowStyle.COLOR_SWATCH,
+                // 押せる見た目 (accent 文字 + 矢印) を出すのは onClick ではなく tappable。
+                // 「別画面へ行く」行だけ立てる — 複写は押せるが行先が無いので矢印は嘘になる
+                // (iOS ImasLabeledRow の showChevron/tappable と同じ切り分け)。
+                tappable = action is RowAction.FilterByBirthMonth,
                 seed = idol.color, brand = idol.brandId, onClick = onClick
             )
             HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 16.dp))

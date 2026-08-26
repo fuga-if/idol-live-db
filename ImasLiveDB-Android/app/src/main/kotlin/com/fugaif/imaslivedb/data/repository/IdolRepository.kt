@@ -53,6 +53,20 @@ class IdolRepository(
         }
     }
 
+    /**
+     * 誕生月 (1..12) で絞ったアイドル。プロフィールの誕生日行から開く一覧の母集団。
+     *
+     * 母集団と並びはコアの `idolsByBirthMonth` が正 (元 SQL: `birthday LIKE '--MM-%'
+     * ORDER BY sort_order`)。一覧系と違い is_external を落とさないのもコアに合わせる。
+     * 範囲外の月は前方一致がどのみち空になるので、コア/SQL どちらの経路でも 0 件で揃う。
+     */
+    suspend fun fetchIdolsByBirthMonth(month: Int): List<Idol> {
+        snapshots?.query { store -> store.idolsByBirthMonth(month.toUInt()).map { it.id } }
+            ?.let { return hydrateIdols(it) }
+        // 0 埋めは padStart で作る (String.format はロケールによって数字が ASCII でなくなる)。
+        return db.idolDao().fetchIdolsByBirthdayPrefix("--${month.toString().padStart(2, '0')}-%")
+    }
+
     // アイドル実体の単発/一括取得はスナップショットの hydration 先そのものなので Room 直のまま。
     suspend fun fetchIdol(id: String): Idol? {
         return db.idolDao().fetchIdol(id)

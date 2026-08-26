@@ -333,6 +333,21 @@ struct UnifiedSearchView: View {
                     resultSectionHeader("楽曲", count: results.songs.count)
                 }
             }
+            // あいまい一致で拾った曲。打った通りではないので、確実な一致の下に見出しで区切る。
+            // 黙って混ぜると「なぜこの曲が出ているのか」が読めず、一致の精度を疑わせる。
+            if scope.includes(.songs), !results.fuzzySongs.isEmpty {
+                Section {
+                    ForEach(results.fuzzySongs) { song in
+                        NavigationLink(value: DetailDestination.song(song)) {
+                            SongTitleRow(song: song, showsChevron: false)
+                        }
+                        .listRowBackground(DS.surface)
+                        .listRowSeparatorTint(DS.sep)
+                    }
+                } header: {
+                    resultSectionHeader("もしかして", count: results.fuzzySongs.count)
+                }
+            }
             if scope.includes(.lyrics), !lyricsHits.isEmpty {
                 Section {
                     ForEach(lyricsHits) { hit in
@@ -481,10 +496,14 @@ struct UnifiedSearchView: View {
 
     // MARK: - 検索実行
 
+    /// 画面に出ている行数。
+    ///
+    /// あいまい候補も数に入れる。ここが 0 だと「見つかりません」を出すので、数えないと
+    /// 「もしかして」しか無いとき (打ち間違い・かな入力) に候補ごと隠れる。
     private var visibleResultCount: Int {
         var count = 0
         if scope.includes(.idols) { count += results.idols.count }
-        if scope.includes(.songs) { count += results.songs.count }
+        if scope.includes(.songs) { count += results.songs.count + results.fuzzySongs.count }
         if scope.includes(.events) { count += results.events.count }
         if scope.includes(.lyrics) { count += lyricsHits.count }
         return count
@@ -595,26 +614,72 @@ struct UnifiedSearchView: View {
         }
     }
 
+    /// 「すべて」の種別ごとの上限。コア (`globalSearch`) と GRDB 経路の両方でこの値。
+    private static let shallowLimit = 20
+    /// スコープを絞ったときの上限。1 種別しか出さないので深く引く。
+    private static let deepLimit = 200
+
     /// スコープに応じた取得。「すべて」は横断検索 (各20件上限) を 1 発、
     /// スコープ指定時は該当エンティティのポートを深い上限で引く。
     private func fetchResults(query: String, scope: UnifiedSearchScope) async throws -> SearchResults {
         let container = AppContainer.shared
         switch scope {
         case .all:
-            return try await container.globalSearchReading.search(query: query)
+            var results = try await container.globalSearchReading.search(query: query)
+            results.fuzzySongs = try await fuzzySongs(
+                query: query, shown: results.songs, exactLimit: Self.shallowLimit)
+            return results
         case .idols:
-            let idols = try await container.idolReading.searchIdols(query: query, limit: 200)
+            let idols = try await container.idolReading.searchIdols(query: query, limit: Self.deepLimit)
             return SearchResults(songs: [], idols: idols, events: [])
         case .songs:
-            let songs = try await container.songReading.searchSongs(query: query, limit: 200)
-            return SearchResults(songs: songs, idols: [], events: [])
+            let songs = try await container.songReading.searchSongs(query: query, limit: Self.deepLimit)
+            let fuzzy = try await fuzzySongs(query: query, shown: songs, exactLimit: Self.deepLimit)
+            return SearchResults(songs: songs, idols: [], events: [], fuzzySongs: fuzzy)
         case .events:
-            let events = try await container.eventReading.searchEventsByNameOrVenue(query: query, limit: 200)
+            let events = try await container.eventReading.searchEventsByNameOrVenue(
+                query: query, limit: Self.deepLimit)
             return SearchResults(songs: [], idols: [], events: events)
         case .lyrics:
             // 歌詞はローカル DB に無いので別経路 (searchLyrics)。ここには来ない。
             return SearchResults(songs: [], idols: [], events: [])
         }
+    }
+
+    /// 打った語では引けなかった曲を、あいまい一致で拾う (「もしかして」)。
+    ///
+    /// 曲名の部分一致は打ち間違い・かな入力・音引きの揺れで 0 件になる。そこをコア
+    /// (imas-core `domain/fuzzy_search.rs`) の編集距離で補う。曲名だけでなく
+    /// `songs.title_kana` の読みも綴りとして渡すので「おねがいしんでれら」で
+    /// 「お願い！シンデレラ」が当たる。
+    ///
+    /// 打った通りに十分見つかっているときは足さない。既に 30 件出ている画面の末尾に
+    /// 候補を積んでも読まれず、一致の精度を疑わせるだけになる。
+    ///
+    /// `scheduleSearch` の 200ms debounce の内側で呼ぶので、打鍵ごとには走らない。
+    private func fuzzySongs(query: String, shown: [Song], exactLimit: Int) async throws -> [Song] {
+        // 上限に張り付いた = まだ先があるということ。打った通りに出ているので候補は要らない。
+        // (「すべて」は各 20 件までなので、件数だけ見ても「本当に少ない」か判別できない)
+        guard shown.count < exactLimit,
+              shown.count <= FuzzySearchTuning.suggestThreshold else { return [] }
+        let songReading = AppContainer.shared.songReading
+        let spellings = try await songReading.songSpellings()
+        guard !spellings.isEmpty else { return [] }
+        let shownIds = Set(shown.map(\.id))
+        let catalog = FuzzySearchCatalog(spellingsPerItem: spellings.map { $0.spellings })
+        let shownIndices = Set(spellings.indices.filter { shownIds.contains(spellings[$0].id) })
+        // 全曲ぶんの編集距離は 3,000 曲で 20ms 前後。メインで回すとフレームを落とす。
+        let limit = FuzzySearchTuning.limit
+        let extras = await Task.detached(priority: .userInitiated) {
+            catalog.extraIndices(needle: query, excluding: shownIndices, limit: limit)
+        }.value
+        guard !extras.isEmpty else { return [] }
+        // 実体を引くのは当たった数十件だけ。並びはコアが返した順
+        // (部分一致 → 編集距離が小さい順) が正なので、id 列の順に並べ直して返す。
+        let ids = extras.map { spellings[$0].id }
+        let fetched = try await songReading.songs(ids: ids)
+        let byId = Dictionary(fetched.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+        return ids.compactMap { byId[$0] }
     }
 
     /// 会場一致で拾えたイベントの会場名を解決する。ライブ名自体が一致している行には出さない

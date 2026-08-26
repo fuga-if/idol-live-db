@@ -40,6 +40,10 @@ struct GRDBSongRepository: SongReading {
         try await database.searchSongsAsync(query: query, limit: limit)
     }
 
+    func songSpellings() async throws -> [SongSpelling] {
+        try await database.fetchSongSpellingsAsync()
+    }
+
     func songPerformanceHistory(songId: String) async throws -> [PerformanceHistoryRow] {
         try await database.fetchSongPerformanceHistoryAsync(songId: songId)
     }

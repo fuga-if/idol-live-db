@@ -27,6 +27,11 @@ protocol SongReading: Sendable {
     func songPerformanceCounts() async throws -> [String: Int]
     /// ライブ名/曲名検索。
     func searchSongs(query: String, limit: Int) async throws -> [Song]
+    /// あいまい検索 (「もしかして」) の母集団になる綴り表 (全曲の 曲名 + 読み)。
+    ///
+    /// 編集距離は全件と突き合わせないと出せないので上限を掛けられない。代わりに
+    /// 綴り 2 列だけの射影にして、`Song` 実体は当たった数十件だけ後から引く。
+    func songSpellings() async throws -> [SongSpelling]
 
     // MARK: - 楽曲詳細
 

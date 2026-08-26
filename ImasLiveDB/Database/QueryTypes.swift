@@ -299,8 +299,34 @@ struct SearchResults: Sendable {
     var songs: [Song]
     var idols: [Idol]
     var events: [Event]
+    /// 打った語には部分一致しないが、あいまい一致で拾えた曲 (「もしかして」)。
+    ///
+    /// `songs` と混ぜない。混ぜると「打った通りの曲」がどれか分からなくなるので、
+    /// 画面では確実な一致の**下**に、見出しを挟んで別枠で出す。
+    var fuzzySongs: [Song] = []
 
-    var isEmpty: Bool { songs.isEmpty && idols.isEmpty && events.isEmpty }
+    var isEmpty: Bool {
+        songs.isEmpty && idols.isEmpty && events.isEmpty && fuzzySongs.isEmpty
+    }
+}
+
+/// あいまい検索へ渡す綴り (曲名 + 読み) の軽い射影。
+///
+/// 候補を絞るのに要るのは綴りだけなので、Song 実体を全件読まない。
+/// 当たった曲だけを後から実体化する。
+struct SongSpelling: Sendable {
+    var id: String
+    var title: String
+    var titleKana: String?
+
+    /// コアへ渡す綴り列。読みが無い曲は曲名だけ。
+    var spellings: [String] {
+        let fields: [String?] = [title, titleKana]
+        return fields.compactMap { field in
+            let trimmed = field?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            return trimmed.isEmpty ? nil : trimmed
+        }
+    }
 }
 
 // MARK: - Song List Row

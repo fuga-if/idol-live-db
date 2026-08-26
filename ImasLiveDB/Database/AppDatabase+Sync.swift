@@ -83,6 +83,16 @@ extension AppDatabase {
         return rows.map { PickedSong(id: $0["id"], title: $0["title"]) }
     }
 
+    /// あいまい検索の母集団 (全曲の 曲名 + 読み)。
+    ///
+    /// 並びは問わない (コアが照合して並べ直す)。実体を読まないので全件でも安い。
+    func fetchSongSpellingsAsync() async throws -> [SongSpelling] {
+        try await dbQueue.read { db in
+            try Row.fetchAll(db, sql: "SELECT id, title, title_kana FROM songs")
+                .map { SongSpelling(id: $0["id"], title: $0["title"], titleKana: $0["title_kana"]) }
+        }
+    }
+
     /// 編集 UI 用: 出演者 picker に出す全アイドル (sort_order 順)。
     /// Cast 廃止により idol を直接返すようになった。
     func fetchAllIdolsForPickerAsync() async throws -> [Idol] {

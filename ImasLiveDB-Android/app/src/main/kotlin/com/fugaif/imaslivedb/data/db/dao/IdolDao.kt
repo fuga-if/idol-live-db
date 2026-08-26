@@ -45,6 +45,17 @@ interface IdolDao {
     @Query("SELECT * FROM idols WHERE id IN (:ids)")
     suspend fun fetchIdolsByIds(ids: List<String>): List<Idol>
 
+    /**
+     * 誕生月フィルタのフォールバック経路 (コア `idols_by_birth_month` と同一条件)。
+     *
+     * birthday は年なしの '--MM-DD' 形式なので、'--MM-%' の前方一致で月が取れる。
+     * パターンは呼び出し側 (IdolRepository) が組む — 月の 0 埋めをここでやると
+     * SQL 側の文字列連結になり、コアと条件が一致しているか読んで確かめられなくなる。
+     * 一覧系と違い is_external を絞らないのは、SQL 時代の条件をコアがそのまま写しているため。
+     */
+    @Query("SELECT * FROM idols WHERE birthday LIKE :birthdayPrefix ORDER BY sort_order")
+    suspend fun fetchIdolsByBirthdayPrefix(birthdayPrefix: String): List<Idol>
+
     @Query("""
         SELECT u.* FROM units u
         JOIN unit_members um ON u.id = um.unit_id

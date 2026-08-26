@@ -31,6 +31,7 @@ import com.fugaif.imaslivedb.ui.games.SongSingerQuizScreen
 import com.fugaif.imaslivedb.ui.games.SongSingerQuizSetupScreen
 import com.fugaif.imaslivedb.ui.idols.IdolDetailScreen
 import com.fugaif.imaslivedb.ui.idols.IdolListScreen
+import com.fugaif.imaslivedb.ui.idols.IdolsByBirthMonthScreen
 import com.fugaif.imaslivedb.ui.introdon.IntroDonHomeScreen
 import com.fugaif.imaslivedb.ui.introdon.IntroDonGameScreen
 import com.fugaif.imaslivedb.ui.introdon.IntroDonMode
@@ -195,6 +196,9 @@ private fun NavGraphBuilder.eventsNavGraph(navController: NavHostController) {
             },
             onIdolTagClick = { tagId ->
                 navController.navigate(NavRoutes.IdolTagDetail.createRoute(tagId))
+            },
+            onNavigateToBirthMonth = { month ->
+                navController.navigate(NavRoutes.IdolsByBirthMonth.createRoute(month))
             }
         )
     }
@@ -253,6 +257,7 @@ private fun NavGraphBuilder.eventsNavGraph(navController: NavHostController) {
             onNavigateToEventDetail = { navController.navigate(NavRoutes.EventDetail.createRoute(it)) }
         )
     }
+    idolsByBirthMonthRoute(navController)
 }
 
 private fun NavGraphBuilder.songsNavGraph(navController: NavHostController) {
@@ -307,6 +312,9 @@ private fun NavGraphBuilder.songsNavGraph(navController: NavHostController) {
             },
             onIdolTagClick = { tagId ->
                 navController.navigate(NavRoutes.IdolTagDetail.createRoute(tagId))
+            },
+            onNavigateToBirthMonth = { month ->
+                navController.navigate(NavRoutes.IdolsByBirthMonth.createRoute(month))
             }
         )
     }
@@ -342,6 +350,7 @@ private fun NavGraphBuilder.songsNavGraph(navController: NavHostController) {
             }
         )
     }
+    idolsByBirthMonthRoute(navController)
 }
 
 private fun NavGraphBuilder.idolsNavGraph(navController: NavHostController) {
@@ -380,6 +389,9 @@ private fun NavGraphBuilder.idolsNavGraph(navController: NavHostController) {
             },
             onIdolTagClick = { tagId ->
                 navController.navigate(NavRoutes.IdolTagDetail.createRoute(tagId))
+            },
+            onNavigateToBirthMonth = { month ->
+                navController.navigate(NavRoutes.IdolsByBirthMonth.createRoute(month))
             }
         )
     }
@@ -434,6 +446,7 @@ private fun NavGraphBuilder.idolsNavGraph(navController: NavHostController) {
             }
         )
     }
+    idolsByBirthMonthRoute(navController)
 }
 
 private fun NavGraphBuilder.scheduleNavGraph(navController: NavHostController) {
@@ -623,6 +636,24 @@ private fun NavGraphBuilder.produceNavGraph(navController: NavHostController) {
     detailRoutes(navController)
 }
 
+/**
+ * 誕生月で絞ったアイドル一覧への行き先。
+ *
+ * タブごとに NavHost が独立しているので、アイドル詳細を積める全グラフに同じ行き先を
+ * 登録する。登録が漏れたタブでは詳細のプロフィール行を押しても遷移できない
+ * (どの行が押せるかはコアが決めており、画面側で握りつぶすと OS 間で挙動がズレる)。
+ */
+private fun NavGraphBuilder.idolsByBirthMonthRoute(navController: NavHostController) {
+    composable(NavRoutes.IdolsByBirthMonth.ROUTE) { backStackEntry ->
+        val month = backStackEntry.arguments?.getString("month")?.toIntOrNull() ?: return@composable
+        IdolsByBirthMonthScreen(
+            month = month,
+            onBack = { navController.popBackStack() },
+            onIdolClick = { navController.navigate(NavRoutes.IdolDetail.createRoute(it)) }
+        )
+    }
+}
+
 /** 複数タブで共有する詳細・検索ルート群 (公演/曲/アイドル/ユニット/イベント/検索)。 */
 private fun NavGraphBuilder.detailRoutes(navController: NavHostController) {
     composable(NavRoutes.EventDetail.ROUTE) { backStackEntry ->
@@ -664,7 +695,8 @@ private fun NavGraphBuilder.detailRoutes(navController: NavHostController) {
             onNavigateToShowDetail = { navController.navigate(NavRoutes.Setlist.createRoute(it)) },
             onNavigateToIdolDetail = { navController.navigate(NavRoutes.IdolDetail.createRoute(it)) },
             onPollClick = { navController.navigate(NavRoutes.PollDetail.createRoute(it)) },
-            onIdolTagClick = { navController.navigate(NavRoutes.IdolTagDetail.createRoute(it)) }
+            onIdolTagClick = { navController.navigate(NavRoutes.IdolTagDetail.createRoute(it)) },
+            onNavigateToBirthMonth = { navController.navigate(NavRoutes.IdolsByBirthMonth.createRoute(it)) }
         )
     }
     composable(NavRoutes.UnitDetail.ROUTE) { backStackEntry ->
@@ -695,4 +727,5 @@ private fun NavGraphBuilder.detailRoutes(navController: NavHostController) {
             onNavigateToEventDetail = { navController.navigate(NavRoutes.EventDetail.createRoute(it)) }
         )
     }
+    idolsByBirthMonthRoute(navController)
 }
