@@ -48370,7 +48370,7 @@ INSERT INTO song_artists VALUES('gakuen_lespoir','gakuen_有村麻央','original
 INSERT INTO song_artists VALUES('gakuen_春と光','gakuen_花海佑芽','original');
 CREATE TABLE meta (key TEXT PRIMARY KEY NOT NULL, value TEXT);
 INSERT INTO meta VALUES('schema_version','1');
-INSERT INTO meta VALUES('data_version','69');
+INSERT INTO meta VALUES('data_version','70');
 INSERT INTO meta VALUES('migration_v14_idol_is_external','applied');
 CREATE TABLE song_units (
   song_id TEXT NOT NULL,
