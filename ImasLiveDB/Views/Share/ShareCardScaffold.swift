@@ -97,15 +97,24 @@ struct ShareCardPalette {
     let accentDeep: Color
 
     init(seed: String?) {
+        // 色の変換 (hex → HSL → sRGB) はコアが正本。ここが決めるのは「シェアカードとして
+        // どの帯域に寄せるか」だけで、ImasTheme のトークンとは別の配色規則を持つ。
         let hex = ColorMath.firstValidHex(seed) ?? ColorMath.neutralSeed
-        let (h, s, l) = ColorMath.rgbToHsl(ColorMath.hexToRgb(hex))
-        let neutral = s < 0.10
+        let hsl = themeHexToHsl(hex: hex)
+        let neutral = hsl.s < 0.10
         // 差し色: 暗背景でも視認できる明度に寄せた鮮やかめのメンバーカラー。
-        let aS = neutral ? ColorMath.clamp(s, 0, 0.12) : ColorMath.clamp(s, 0.45, 0.95)
-        let aL = ColorMath.clamp(l, 0.52, 0.66)
-        accent = ColorMath.color(h: h, s: aS, l: aL)
+        let aS = neutral ? ShareCardPalette.clamped(hsl.s, 0, 0.12) : ShareCardPalette.clamped(hsl.s, 0.45, 0.95)
+        let aL = ShareCardPalette.clamped(hsl.l, 0.52, 0.66)
+        accent = Color(themeColorFromHsl(h: hsl.h, s: aS, l: aL))
         // フォールバック地色: メンバーカラーを深く落とした単色 (near-black 寄り)。
-        accentDeep = ColorMath.color(h: h, s: neutral ? 0.06 : ColorMath.clamp(s * 0.5, 0.12, 0.30), l: 0.10)
+        let deepS = neutral ? 0.06 : ShareCardPalette.clamped(hsl.s * 0.5, 0.12, 0.30)
+        accentDeep = Color(themeColorFromHsl(h: hsl.h, s: deepS, l: 0.10))
+    }
+
+    /// このカードが欲しい彩度/明度の帯域へ挟む。コアは 0–1 への挟み込みしか持たないので、
+    /// 「どの帯域に寄せるか」という画面の意匠はここに残す (色の計算ではなく数の下限上限)。
+    private static func clamped(_ value: Double, _ lower: Double, _ upper: Double) -> Double {
+        min(upper, max(lower, value))
     }
 }
 

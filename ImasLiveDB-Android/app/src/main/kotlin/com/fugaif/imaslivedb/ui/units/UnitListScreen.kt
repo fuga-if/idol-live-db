@@ -33,6 +33,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
@@ -51,7 +52,9 @@ import com.fugaif.imaslivedb.ui.components.ImasLeadBar
 import com.fugaif.imaslivedb.ui.components.ImasListSkeleton
 import com.fugaif.imaslivedb.ui.components.SkeletonThumb
 import com.fugaif.imaslivedb.ui.components.NameFilterField
+import com.fugaif.imaslivedb.ui.theme.BrandPalette
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.theme.ImasTheme
 
 /**
  * ユニット一覧の本体 (曲ありユニットのみ)。`ui.idols.IdolListScreen` の「アイドル」タブと同じ骨格
@@ -80,6 +83,24 @@ fun UnitListBody(
     val filteredUnits = state.units.filter { matchesSearch(it) }
     val groupedByBrand = filteredUnits.groupBy { it.brandId }
     val visibleBrands = state.brands.filter { !groupedByBrand[it.id].isNullOrEmpty() }
+
+    // 行の色を行ごとに derive すると LazyColumn / LazyVerticalGrid の初回スクロール中に
+    // 1 行 1 回 FFI を跨ぐ。行が組まれる前に 1 往復で温めておき、行はメモに当てる。
+    // 温めは remember の中で行う。LaunchedEffect / SideEffect はコンポーズの後なので、
+    // 初回に組まれる行には間に合わない (埋めるのは純粋計算のメモだけなので再コンポーズも誘発しない)。
+    //
+    // 鍵に filteredUnits を使わないのは、これが再コンポーズのたびに組み直される新しい List で、
+    // 突き合わせに全件ぶんの equals が走るため。母集団が変わる条件そのもの (元データと検索語) を鍵にする。
+    //
+    // 1 行が引く組は 2 通り。ImasLeadBar は brandId をブランド色 hex に解決してから derive し、
+    // ImasAvatar は brandId をそのまま渡す。両方温めないと片方が行ごとに跨ぐ。
+    remember(state.units, q) {
+        ImasTheme.prewarm(
+            filteredUnits.flatMap {
+                listOf<Pair<String?, String?>>(null to BrandPalette.hex(it.brandId), it.id to it.brandId)
+            }
+        )
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         NameFilterField(

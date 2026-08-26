@@ -20,6 +20,15 @@ final class IdolListViewModel {
     /// 初回ロード中 (スケルトン表示用)。初回完了で false。
     private(set) var isLoading = true
 
+    /// ブランド ID → ブランドカラー hex。
+    /// 通しリストの行やテーマの下ごしらえは 1 件ずつブランド色を引くので、
+    /// `brands.first(where:)` の線形探索を件数ぶん繰り返さないようロード時に辞書へ畳む。
+    private(set) var brandColorById: [String: String] = [:]
+
+    /// 読み込んだ元データ (idols/brands) の版。**絞り込みでは動かず、再ロードでのみ増える。**
+    /// 全件から作る派生物 (テーマの下ごしらえ等) を作り直すべきかの判定に使う。
+    private(set) var dataVersion = 0
+
     // フィルタ済み派生結果
     private(set) var filteredIdols: [Idol] = []
     private(set) var groupedByBrand: [String: [Idol]] = [:]
@@ -46,10 +55,23 @@ final class IdolListViewModel {
             async let i = idolReading.idols(brandId: nil)
             async let c = idolReading.idolCastNames()
             (brands, idols, castNames) = try await (b, i, c)
+            // 先勝ち。`brands.first(where:)` が返していたのと同じブランドを引くため。
+            brandColorById = Dictionary(
+                brands.compactMap { brand -> (String, String)? in
+                    guard let color = brand.color else { return nil }
+                    return (brand.id, color)
+                },
+                uniquingKeysWith: { first, _ in first })
+            dataVersion += 1
             rebuild(filter: filter, sortOrder: sortOrder, ascending: ascending)
         } catch {
             Logger.database.error("load_failed idols: \(error.localizedDescription)")
         }
+    }
+
+    /// 通しリスト (ブランド別セクションが無い並び) の行が引くブランド色。
+    func brandColor(for idol: Idol) -> String? {
+        brandColorById[idol.brandId]
     }
 
     func refreshPickIds() {

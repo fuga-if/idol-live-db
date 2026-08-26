@@ -69,6 +69,10 @@ struct IdolGridView: View {
             .padding(.top, DS.sp4)
             .padding(.bottom, DS.sp7)
         }
+        // セルのアバターが引くテーマの温め (`imasThemePrewarm`) はここでは行わない。
+        // 受け取る `idols` は絞り込み済みなので、ここで温めると打鍵のたびに母集団が変わり、
+        // 温め済みを数え直すだけになる。所有者 (IdolListView) が全件ぶんを 1 回で温めており、
+        // ここに並ぶのは常にその部分集合。
         .background(DS.bg)
     }
 

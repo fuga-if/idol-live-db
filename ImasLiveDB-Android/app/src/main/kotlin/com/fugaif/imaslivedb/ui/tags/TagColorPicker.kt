@@ -18,8 +18,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
-import com.fugaif.imaslivedb.ui.theme.ColorMath
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.theme.ImasTheme
 import com.fugaif.imaslivedb.ui.theme.hexToColor
 
 /**
@@ -64,7 +64,7 @@ private fun Swatch(fill: androidx.compose.ui.graphics.Color?, selected: Boolean,
         if (fill == null) {
             Icon(Icons.Filled.Close, contentDescription = "色なし", tint = DS.ink3, modifier = Modifier.size(14.dp))
         } else if (selected) {
-            Icon(Icons.Filled.Check, contentDescription = null, tint = ColorMath.onColor(fill), modifier = Modifier.size(16.dp))
+            Icon(Icons.Filled.Check, contentDescription = null, tint = ImasTheme.onColor(fill), modifier = Modifier.size(16.dp))
         }
         if (selected) {
             Box(modifier = Modifier.size(34.dp).clip(CircleShape).border(2.5.dp, DS.ink, CircleShape))

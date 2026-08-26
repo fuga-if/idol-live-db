@@ -201,6 +201,10 @@ struct IdolListView: View {
                 listBody
             }
         }
+        // 行/セルが引くテーマは、一覧が組まれる前にここで 1 回の FFI にまとめて温める。
+        // リスト表示とグリッド表示のどちらに切り替わってもここを通るので、温めは所有者である
+        // この画面が持ち、下の `IdolGridView`/`listBody` 側では行わない。
+        .imasThemePrewarm(population: vm.dataVersion, seeds: rowThemeSeeds)
         .background(DS.bg.ignoresSafeArea())
         // 絞り込み欄がナビバーの中にあるので `.searchable` のキャンセルボタンが無い。
         // スクロールでキーボードを閉じられないと、打った後に一覧が半分隠れたままになる。
@@ -298,7 +302,8 @@ struct IdolListView: View {
                     NavigationLink(value: idol) {
                         IdolRowView(
                             idol: idol,
-                            brandColor: brandColorHex(for: idol),
+                            // 通しリストにはブランド別セクションが無いので、行ごとに引く。
+                            brandColor: vm.brandColor(for: idol),
                             isPick: vm.pickIds.contains(idol.id),
                             displayName: displayName(for: idol),
                             secondary: secondaryText(for: idol),
@@ -313,9 +318,17 @@ struct IdolListView: View {
         .padding(.horizontal, DS.sp5)
     }
 
-    /// 通しリストではブランド別セクションが無いので、行ごとにブランド色を引く。
-    private func brandColorHex(for idol: Idol) -> String? {
-        vm.brands.first(where: { $0.id == idol.brandId })?.color
+    /// 行が引くテーマのシード一式。リードバーは brand フォールバック付き、
+    /// アバターと指標バッジはアイドル色単独で導出するので、両方の組を挙げる。
+    /// 行に導出させると人数ぶん FFI 境界を跨ぐため、一覧を組む前に 1 回で温める。
+    ///
+    /// 絞り込み後ではなく **全件** を挙げるのは、絞り込み結果が常にその部分集合だから。
+    /// 絞り込み後を渡すと母集団が打鍵のたびに変わり、既に温め済みのものを毎回数え直すことになる。
+    private func rowThemeSeeds() -> [ThemeSeedRequest] {
+        vm.idols.flatMap { idol in
+            [ThemeSeedRequest(seed: idol.color, brand: vm.brandColor(for: idol)),
+             ThemeSeedRequest(seed: idol.color, brand: nil)]
+        }
     }
 
     // MARK: - List Body (ブランド別・inset grouped 風)

@@ -71,6 +71,7 @@ import com.fugaif.imaslivedb.ui.components.ImasLeadBar
 import com.fugaif.imaslivedb.ui.components.ImasListSkeleton
 import com.fugaif.imaslivedb.ui.components.ImasSegmented
 import com.fugaif.imaslivedb.ui.components.SkeletonThumb
+import com.fugaif.imaslivedb.ui.theme.BrandPalette
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasTheme
 import com.fugaif.imaslivedb.ui.units.UnitListBody
@@ -101,6 +102,22 @@ fun IdolListScreen(
     val filteredIdols = state.filteredIdols
     val groupedByBrand = state.groupedByBrand
     val visibleBrands = state.visibleBrands
+
+    // 行の色を行ごとに derive すると LazyColumn / LazyVerticalGrid の初回スクロール中に
+    // 1 行 1 回 FFI を跨ぐ。行が組まれる前に 1 往復で温めておき、行はメモに当てる。
+    // 温めは remember の中で行う。LaunchedEffect / SideEffect はコンポーズの後なので、
+    // 初回に組まれる行には間に合わない (埋めるのは純粋計算のメモだけなので再コンポーズも誘発しない)。
+    //
+    // 1 行が引く組は 2 通り。ImasLeadBar は brandId をブランド色 hex に解決してから derive し、
+    // ImasAvatar と件数テキストは brandId をそのまま渡す。両方温めないと片方が行ごとに跨ぐ。
+    remember(filteredIdols) {
+        ImasTheme.prewarm(
+            filteredIdols.flatMap {
+                listOf(it.color to BrandPalette.hex(it.brandId), it.color to it.brandId)
+            }
+        )
+    }
+
     val flatHeader = if (state.sortOrder.keepsBrandGrouping) {
         null
     } else {

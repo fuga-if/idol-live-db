@@ -104,6 +104,14 @@ struct IdolPickerView: View {
                     selectedBar
                 }
             }
+            // 行/セルのアバターと選択マークはアイドル色からテーマを引く。1 件ずつ導出させると
+            // 人数ぶん FFI 境界を跨ぐので、母集団ぶんを 1 回で温める (絞り込みは常にこの部分集合)。
+            //
+            // 母集団の識別子に件数を使えるのは、`sourceIdols` が「呼び出し元がくれた配列
+            // (このシートが開いている間は不変)」か「自力ロード分 (空 → 全件の 1 回だけ)」の
+            // どちらかで、入れ替わるときは必ず件数も変わるから。検索語では変わらないので、
+            // 打鍵のたびに人数ぶんの配列を組み直すことにならない。
+            .imasThemePrewarm(population: sourceIdols.count, colorSeeds: { sourceIdols.map(\.color) })
             .background(DS.bg)
             .navigationTitle(mode == .multi ? "\(title) (\(selection.count))" : title)
             .navigationBarTitleDisplayMode(.inline)

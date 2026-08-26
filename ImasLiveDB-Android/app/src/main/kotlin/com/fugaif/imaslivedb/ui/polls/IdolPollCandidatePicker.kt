@@ -62,6 +62,7 @@ import com.fugaif.imaslivedb.ui.components.BrandFilterChips
 import com.fugaif.imaslivedb.ui.components.BrandFilterItem
 import com.fugaif.imaslivedb.ui.components.ImasAvatar
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.theme.ImasTheme
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -111,6 +112,14 @@ fun IdolPollCandidatePicker(
     var query by remember { mutableStateOf("") }
     var selectedBrandId by remember { mutableStateOf<String?>(null) }
     var displayMode by remember { mutableStateOf(PickerDisplayMode.GRID) }
+
+    // 数百件を一気にスクロールするピッカー。行ごとに derive すると、その間ずっと 1 行 1 回
+    // FFI を跨ぐ。行が組まれる前に母集団ぶんを 1 往復で温め、行はメモに当てる。
+    // 鍵を filtered ではなく母集団にするのは、行が引く色が絞り込みで変わらないため
+    // (打鍵のたびに温め直しても新しい組は 1 件も無い)。
+    remember(state.idols) {
+        ImasTheme.prewarm(state.idols.map { it.color to it.brandId })
+    }
 
     val filtered = remember(state.idols, query, selectedBrandId) {
         val q = query.trim().lowercase()
