@@ -232,6 +232,12 @@ final class DetailSheetViewModel {
     func infoRows(for song: Song) -> [SongInfoRow] {
         var rows: [SongInfoRow] = []
 
+        // 「よみ」は検索で使う値。画面に出しておかないと、間違っていても
+        // 「この曲が出てこない」としか思われず直しようがない (機械生成ぶんが混ざっている)。
+        // 曲名のすぐ下に置いて、誤りに気づけるようにする。
+        if let kana = song.titleKana, !kana.isEmpty {
+            rows.append(SongInfoRow(key: "よみ", kind: .plain(value: kana, mono: false)))
+        }
         if let artistLine = artistLine(for: song) {
             rows.append(SongInfoRow(key: "アーティスト", kind: .plain(value: artistLine, mono: false)))
         }

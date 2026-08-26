@@ -504,6 +504,9 @@ private fun InfoTab(
         // 楽曲情報
         Column {
             ImasSectionHeader("楽曲情報", tight = true)
+            // 「よみ」は検索で使う値。画面に出しておかないと、間違っていても
+            // 「この曲が出てこない」としか思われず直しようがない (機械生成ぶんが混ざっている)。
+            InfoRow("よみ", song.titleKana)
             InfoRow("アーティスト", artistLine)
             InfoRow("ブランド", state.brand?.shortName)
             if (song.songType.isNotEmpty() && song.songType != "unknown") {
