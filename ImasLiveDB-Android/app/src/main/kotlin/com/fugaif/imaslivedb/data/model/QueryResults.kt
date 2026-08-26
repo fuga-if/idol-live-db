@@ -133,6 +133,25 @@ data class SongPerfCount(
     @ColumnInfo(name = "cnt") val cnt: Int
 )
 
+/**
+ * 共起曲 1 件の集計行 (披露実績)。**単位は公演**で、1 公演で 2 回演奏されても 1。
+ * 分母 (その曲自身の総披露公演数) は別クエリ ([SongPerfCount]) で引く。
+ */
+data class CoOccurrenceRow(
+    @ColumnInfo(name = "song_id") val songId: String,
+    @ColumnInfo(name = "together") val together: Int
+)
+
+/**
+ * 歌唱者 1 件の集計行 (披露実績)。**単位はセトリ行数**で、曲詳細の「総披露 N 回」と同じ
+ * 数え方 (共起行の公演数とは別物なので、画面に出すときは語を分ける)。
+ */
+data class SingerTallyRow(
+    @ColumnInfo(name = "idol_id") val idolId: String,
+    @ColumnInfo(name = "times") val times: Int,
+    @ColumnInfo(name = "total") val total: Int
+)
+
 /** ソロ曲 (song_type='solo') とその原唱アイドルの対応行。ソロ曲クイズの出題母集団構築に使う。 */
 data class SoloOriginalSingerRow(
     @ColumnInfo(name = "song_id") val songId: String,

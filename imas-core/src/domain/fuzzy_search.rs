@@ -330,4 +330,27 @@ mod tests {
             assert!(ok, "「{typed}」で {expect} が出ない");
         }
     }
+    #[test]
+    fn generated_readings_still_reach_the_song() {
+        // 「正しい読み」で打ったとき、AI 生成の読みが入っていても曲に当たるか。
+        // 生成読みが多少ずれていても、編集距離で吸収できれば検索の実用上は問題ない。
+        let cases = [
+            // (曲名, 生成された読み, ユーザーが打つであろう正しい読み)
+            ("Brand New Theater!", "ぶらんどにゅーしあたー", "ぶらんにゅーしあたー"),
+            ("Nation Blue", "ねーしょんぶるー", "ねいしょんぶるー"),
+            ("求ム VS マイ・フューチャー", "もとむぶいえすまいふゅーちゃー", "もとむばーさすまいふゅーちゃー"),
+            ("夕風のメロディー", "ゆうかぜのめろでぃー", "ゆうかぜのめろでぃー"),
+        ];
+        let items: Vec<Vec<String>> = cases.iter()
+            .map(|(t, gen, _)| vec![t.to_string(), gen.to_string()])
+            .collect();
+        let mut hit = 0;
+        for (i, (title, _, typed)) in cases.iter().enumerate() {
+            let got = fuzzy_matches_multi(&items, typed, 10);
+            let found = got.iter().any(|h| h.index as usize == i);
+            println!("EFF 「{typed}」→ {title}: {}", if found { "当たる" } else { "外れる" });
+            if found { hit += 1 }
+        }
+        println!("EFF 生成読みでも引ける: {}/{}", hit, cases.len());
+    }
 }

@@ -1,13 +1,17 @@
 package com.fugaif.imaslivedb.ui.search
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.fugaif.imaslivedb.data.model.SearchResults
+import com.fugaif.imaslivedb.data.model.Song
 import com.fugaif.imaslivedb.data.repository.SearchScope
 import com.fugaif.imaslivedb.di.AppModule
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -116,11 +120,35 @@ class SearchViewModel(app: Application) : AndroidViewModel(app) {
             if (debounce) delay(DEBOUNCE_MS)
             _uiState.value = _uiState.value.copy(isSearching = true)
             val results = repo.search(query, scope)
-            _uiState.value = _uiState.value.copy(results = results, isSearching = false)
+
+            // 確実な一致は候補を待たせずに出す。あいまい一致は全曲の綴りを突き合わせるので、
+            // 同じ待ちに乗せると打った通りの結果まで丸ごと遅れて出ることになる。
+            //
+            // 例外は確実な一致が 0 件のとき。ここで出すと「見つかりません」が一瞬映った
+            // 直後に「もしかして」が生えて画面が入れ替わるので、そのときだけ候補を待つ。
+            val exact = _uiState.value.copy(results = results, isSearching = false)
+            if (exact.visibleResultCount > 0) _uiState.value = exact
+
+            val fuzzy: List<Song> = try {
+                repo.fuzzySongs(query, results.songs, scope)
+            } catch (e: CancellationException) {
+                // 打ち直しでの取り消し。握ると古い回が新しい検索の結果を踏む。
+                throw e
+            } catch (e: Exception) {
+                // 「もしかして」は補助機能。失敗しても確実な一致まで巻き添えにしない。
+                Log.w(TAG, "fuzzy_search_failed", e)
+                emptyList()
+            }
+            ensureActive()
+            _uiState.value = _uiState.value.copy(
+                results = results.copy(fuzzySongs = fuzzy),
+                isSearching = false
+            )
         }
     }
 
     private companion object {
         const val DEBOUNCE_MS = 200L
+        const val TAG = "SearchViewModel"
     }
 }

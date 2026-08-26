@@ -4,8 +4,10 @@ import androidx.room.Dao
 import androidx.room.Query
 import androidx.room.RawQuery
 import androidx.sqlite.db.SupportSQLiteQuery
+import com.fugaif.imaslivedb.data.model.CoOccurrenceRow
 import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.data.model.PerformanceHistoryRow
+import com.fugaif.imaslivedb.data.model.SingerTallyRow
 import com.fugaif.imaslivedb.data.model.Song
 import com.fugaif.imaslivedb.data.model.SoloOriginalSingerRow
 import com.fugaif.imaslivedb.data.model.SongPerfCount
@@ -126,6 +128,79 @@ interface SongDao {
 
     @Query("SELECT song_id, COUNT(*) as cnt FROM setlist_items GROUP BY song_id")
     suspend fun fetchSongPerfCounts(): List<SongPerfCount>
+
+    // MARK: - 披露実績の集計 (共起曲 / 歌唱者) — スナップショットが使えないときの SQL 経路
+    //
+    // ⚠️ 数え方はコア (imas-core/src/domain/performance_stats.rs) と 1:1 に揃えること。
+    // 経路によって根拠の数字が変わると、どちらが本当なのかを読み手が判断できなくなる。
+    // 揃えている点:
+    //  1. 共起は「公演数」(COUNT(DISTINCT show_id))。1 公演で 2 回演奏されても 1。
+    //  2. 歌唱者は「セトリ行数」(COUNT(*))。同じ公演での 2 回目も別の 1 回。
+    //  3. shows / songs / idols への JOIN は FK 孤児落とし。コアのローダも参照先が
+    //     無い行を読み飛ばすので、外すと孤児が残った DB でだけ数字がズレる。
+    //  4. 並びは「回数降順 → id 昇順」。SQLite の TEXT 既定照合 BINARY は Rust の
+    //     str 比較と同じバイト順なので、同数のときの順序も一致する。
+
+    /** この曲と同じ公演で歌われた曲を、一緒に来た**公演数**の多い順に。 */
+    @Query("""
+        WITH item AS (
+            SELECT si.id AS item_id, si.show_id AS show_id, si.song_id AS song_id
+              FROM setlist_items si
+              JOIN shows sh ON sh.id = si.show_id
+              JOIN songs so ON so.id = si.song_id
+        ),
+        target AS (SELECT DISTINCT show_id FROM item WHERE song_id = :songId)
+        SELECT i.song_id AS song_id, COUNT(DISTINCT i.show_id) AS together
+          FROM item i
+          JOIN target t ON t.show_id = i.show_id
+         WHERE i.song_id <> :songId
+         GROUP BY i.song_id
+         ORDER BY together DESC, i.song_id ASC
+         LIMIT :limit
+    """)
+    suspend fun fetchCoOccurringSongs(songId: String, limit: Int): List<CoOccurrenceRow>
+
+    /**
+     * 共起行の分母 — 指定曲それぞれの総披露公演数。
+     * 共起クエリの相関サブクエリにすると 13,777 行をグループごとに舐め直すことになるので、
+     * 上位数件が決まってから 1 回だけ引く。
+     */
+    @Query("""
+        WITH item AS (
+            SELECT si.id AS item_id, si.show_id AS show_id, si.song_id AS song_id
+              FROM setlist_items si
+              JOIN shows sh ON sh.id = si.show_id
+              JOIN songs so ON so.id = si.song_id
+        )
+        SELECT song_id, COUNT(DISTINCT show_id) AS cnt
+          FROM item
+         WHERE song_id IN (:songIds)
+         GROUP BY song_id
+    """)
+    suspend fun fetchSongShowCounts(songIds: List<String>): List<SongPerfCount>
+
+    /**
+     * この曲を歌ったアイドルを、歌った**セトリ行数**の多い順に。
+     * 分母 total は歌唱者が誰であれ同じ値で、出演者が 1 人も紐づいていない披露も数える。
+     */
+    @Query("""
+        WITH item AS (
+            SELECT si.id AS item_id, si.show_id AS show_id, si.song_id AS song_id
+              FROM setlist_items si
+              JOIN shows sh ON sh.id = si.show_id
+              JOIN songs so ON so.id = si.song_id
+        )
+        SELECT sp.idol_id AS idol_id, COUNT(*) AS times,
+               (SELECT COUNT(*) FROM item x WHERE x.song_id = :songId) AS total
+          FROM item i
+          JOIN setlist_performers sp ON sp.setlist_item_id = i.item_id
+          JOIN idols idl ON idl.id = sp.idol_id
+         WHERE i.song_id = :songId
+         GROUP BY sp.idol_id
+         ORDER BY times DESC, sp.idol_id ASC
+         LIMIT :limit
+    """)
+    suspend fun fetchSongSingerTallies(songId: String, limit: Int): List<SingerTallyRow>
 
     /**
      * song_id → 現地回収回数 (参加したリアルライブ(live/festival)で披露された distinct 公演数)。

@@ -25,8 +25,9 @@ struct SongHistoryTab: View {
                 )
             } else {
                 summaryTiles
-                // 披露実績が無い曲・スナップショット未ロードでは中身が空になり、
-                // 節ごと消える (空の見出しだけが残らないよう if は節の外側に置く)。
+                // 披露実績がまだ 1 度も無い曲でだけ中身が空になり、節ごと消える
+                // (空の見出しだけが残らないよう if は節の外側に置く)。共有コアの
+                // スナップショットが無い間も SQL 経路が同じ値を返すので、節は消えない。
                 singersSection
                 coOccurringSection
                 historySection
@@ -57,7 +58,9 @@ struct SongHistoryTab: View {
         if !rows.isEmpty {
             VStack(alignment: .leading, spacing: DS.sp3) {
                 ImasSectionHeader(title: "この曲を歌った人", tight: true)
-                evidenceNote("セトリに残っている歌唱の集計です。")
+                // 分母 (全 N 回) は上のサマリタイル「総披露」と同じ数え方。同じ画面に
+                // 単位の違う数字 (共起節は公演数) が並ぶので、どちらなのかを言っておく。
+                evidenceNote("セトリに残っている歌唱の集計です。分母は上の「総披露」と同じ回数です。")
                 ImasListContainer {
                     ForEach(Array(rows.enumerated()), id: \.element.id) { idx, row in
                         if idx > 0 { ImasRowDivider(inset: DS.sp5 + 36) }
@@ -79,14 +82,18 @@ struct SongHistoryTab: View {
 
     // MARK: - 共起曲 (披露実績の集計)
 
-    /// この曲と同じ公演で歌われた曲を、一緒に来た回数の多い順に。
+    /// この曲と同じ公演で歌われた曲を、一緒に来た**公演数**の多い順に。
     @ViewBuilder
     private var coOccurringSection: some View {
         let rows = vm.performanceEvidence.coOccurring
         if !rows.isEmpty {
             VStack(alignment: .leading, spacing: DS.sp3) {
                 ImasSectionHeader(title: "同じ公演で歌われた曲", tight: true)
-                evidenceNote("これまでに同じ公演で歌われた回数です。次のライブで一緒に来るとは限りません。")
+                // ⚠️ ここだけ単位が「公演」。1 公演で 2 回演奏されても 1 と数えるため、
+                // 相手の曲を開いた先の「総披露 N 回」(セトリ行数) より小さい数になる
+                // (同梱 master で 48 曲がこのズレを持つ。例: 初 = 39 公演 / 64 回)。
+                // 単位を書かないと「どちらが本当の回数か」が読み手に判断できない。
+                evidenceNote("同じ公演に両方あった公演数です (1 公演で 2 回歌っても 1 公演)。次のライブで一緒に来るとは限りません。")
                 ImasListContainer {
                     ForEach(Array(rows.enumerated()), id: \.element.id) { idx, row in
                         if idx > 0 { ImasRowDivider(inset: DS.sp5 + 44) }
@@ -114,9 +121,10 @@ struct SongHistoryTab: View {
                     .font(.imasSubhead.weight(.semibold))
                     .foregroundStyle(DS.ink)
                     .lineLimit(1)
-                // 分母まで出す。12/15 回 (ほぼ必ず一緒) と 12/300 回 (たまたま) は別物で、
-                // 回数だけだと読み手が区別できない。
-                Text("いっしょに\(row.together)回 ・ 通算\(row.performances)回の披露")
+                // 分母まで出す。12/15 (ほぼ必ず一緒) と 12/300 (たまたま) は別物で、
+                // 回数だけだと読み手が区別できない。単位は「回」ではなく「公演」
+                // (歌唱者行の「全 N 回」= セトリ行数とは別の数え方なので語を分ける)。
+                Text("いっしょに\(row.together)公演 ／ 全\(row.performances)公演")
                     .font(.imasCaption)
                     .foregroundStyle(DS.ink2)
                     .lineLimit(1)

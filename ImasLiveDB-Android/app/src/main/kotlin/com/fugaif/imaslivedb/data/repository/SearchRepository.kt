@@ -37,25 +37,22 @@ class SearchRepository(
 
     /**
      * スコープに応じた検索。「すべて」は3種を各20件、スコープ指定時は該当種別のみ深く引く。
+     *
+     * あいまい候補 (「もしかして」) はここでは取らない。全曲の綴りを突き合わせる処理なので、
+     * 同じ待ちに乗せると打った通りの結果まで候補の計算ぶんだけ遅れて出ることになる。
+     * 呼び出し側が確実な一致を出してから [fuzzySongs] で足す。
      */
     suspend fun search(query: String, scope: SearchScope = SearchScope.ALL): SearchResults {
         return when (scope) {
-            SearchScope.ALL -> {
-                val hits = searchSongs(query, SHALLOW_LIMIT, deep = false)
-                SearchResults(
-                    songs = hits,
-                    idols = searchIdols(query, SHALLOW_LIMIT),
-                    events = searchEvents(query, SHALLOW_LIMIT),
-                    fuzzySongs = fuzzySongs(query, hits, SHALLOW_LIMIT)
-                )
-            }
-            SearchScope.SONGS -> {
-                val hits = searchSongs(query, DEEP_LIMIT, deep = true)
-                SearchResults(
-                    songs = hits, idols = emptyList(), events = emptyList(),
-                    fuzzySongs = fuzzySongs(query, hits, DEEP_LIMIT)
-                )
-            }
+            SearchScope.ALL -> SearchResults(
+                songs = searchSongs(query, SHALLOW_LIMIT, deep = false),
+                idols = searchIdols(query, SHALLOW_LIMIT),
+                events = searchEvents(query, SHALLOW_LIMIT)
+            )
+            SearchScope.SONGS -> SearchResults(
+                songs = searchSongs(query, DEEP_LIMIT, deep = true),
+                idols = emptyList(), events = emptyList()
+            )
             SearchScope.IDOLS -> SearchResults(
                 songs = emptyList(), idols = searchIdols(query, DEEP_LIMIT), events = emptyList()
             )
@@ -68,14 +65,21 @@ class SearchRepository(
     /**
      * 打った語では引けなかった曲を、あいまい一致で拾う (「もしかして」)。
      *
+     * [search] の結果を画面へ出してから呼ぶこと。ここは補助機能なので、確実な一致を
+     * 待たせてはいけないし、失敗を巻き添えにさせてもいけない (呼び出し側で握る)。
+     *
      * 打った通りに十分見つかっているときは足さない。既に 30 件出ている画面の末尾に
      * 候補を積んでも読まれず、一致の精度を疑わせるだけになる。
      *
      * 呼び出し元 (SearchViewModel) が 200ms の debounce を通しているので、打鍵ごとには走らない。
+     *
+     * @param shown [search] が返した確実な一致。ここから重複を出さない。
      */
-    private suspend fun fuzzySongs(query: String, shown: List<Song>, exactLimit: Int): List<Song> {
+    suspend fun fuzzySongs(query: String, shown: List<Song>, scope: SearchScope): List<Song> {
+        if (!scope.includes(SearchScope.SONGS)) return emptyList()
         // 上限に張り付いた = まだ先があるということ。打った通りに出ているので候補は要らない。
         // (「すべて」は各 20 件までなので、件数だけ見ても「本当に少ない」か判別できない)
+        val exactLimit = if (scope == SearchScope.ALL) SHALLOW_LIMIT else DEEP_LIMIT
         if (shown.size >= exactLimit || shown.size > FuzzySearch.SUGGEST_THRESHOLD) return emptyList()
         val ids = songs.fuzzySongIds(query, shown.mapTo(HashSet()) { it.id })
         if (ids.isEmpty()) return emptyList()

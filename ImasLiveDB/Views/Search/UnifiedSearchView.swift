@@ -50,6 +50,15 @@ struct UnifiedSearchView: View {
     @State private var matchedVenues: [String: String] = [:]
     @State private var isSearching = false
     @State private var searchTask: Task<Void, Never>?
+    /// 「もしかして」は本線とは別のタスクで後追いする (`scheduleFuzzySongs`)。
+    @State private var fuzzyTask: Task<Void, Never>?
+    /// あいまい検索の世代。検索を投げ直すたびに更新し、遅れて戻ってきた候補を捨てる。
+    @State private var fuzzyGeneration = UUID()
+    /// あいまい候補を計算中。確実な一致が 0 件のときだけ効く
+    /// (「見つかりません」を出した直後に「もしかして」が生えるのを防ぐ)。
+    @State private var isFuzzySearching = false
+    /// 全曲の綴り表を抱える索引。View の生存中は作り直さない (打鍵ごとの再構築を避ける)。
+    @State private var fuzzyIndex = SongFuzzyIndex(songReading: AppContainer.shared.songReading)
     @State private var path: [DetailDestination] = []
     @State private var historyVersion = 0
     @FocusState private var isTextFieldFocused: Bool
@@ -256,6 +265,12 @@ struct UnifiedSearchView: View {
         } else if searchText.isEmpty {
             historyView
         } else if isSearching {
+            ImasLoadingState()
+                .background(DS.bg)
+        } else if visibleResultCount == 0 && isFuzzySearching {
+            // 確実な一致が 0 件のときだけ、候補が出揃うまで待つ。ここで待たないと
+            // 「見つかりません」が一瞬出た直後に「もしかして」が生えて画面が入れ替わる。
+            // (確実な一致が 1 件でもあれば、それは待たずに上の分岐で既に出ている)
             ImasLoadingState()
                 .background(DS.bg)
         } else if visibleResultCount == 0 {
@@ -526,10 +541,22 @@ struct UnifiedSearchView: View {
         lyricsAwaitingSubmit = false
         isSearching = false
         searchTask?.cancel()
+        cancelFuzzySongs()
+    }
+
+    /// 走っている「もしかして」を捨てる。世代も進めるので、既に走り終わって
+    /// 代入待ちの候補も落ちる (前の語の候補が新しい結果にぶら下がるのを防ぐ)。
+    private func cancelFuzzySongs() {
+        fuzzyTask?.cancel()
+        fuzzyGeneration = UUID()
+        isFuzzySearching = false
     }
 
     private func scheduleSearch(_ query: String, debounce: Bool = true) {
         searchTask?.cancel()
+        // 条件が変わった瞬間に候補を捨てる。前の語の「もしかして」が残ると、
+        // 打ち直した直後だけ関係ない曲が下にぶら下がって見える。
+        cancelFuzzySongs()
 
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
@@ -570,6 +597,9 @@ struct UnifiedSearchView: View {
                     let r = try await fetchResults(query: trimmed, scope: currentScope)
                     try Task.checkCancellation()
                     results = r
+                    // 確実な一致は取れた。あいまい候補は本線を待たせず後追いで足す
+                    // (全曲の綴りを突き合わせるので、待たせると打った通りの結果まで遅れる)。
+                    scheduleFuzzySongs(query: trimmed, scope: currentScope, shown: r.songs)
                     matchedVenues = await resolveMatchedVenues(query: trimmed, events: r.events)
                 }
                 isSearching = false
@@ -621,21 +651,20 @@ struct UnifiedSearchView: View {
 
     /// スコープに応じた取得。「すべて」は横断検索 (各20件上限) を 1 発、
     /// スコープ指定時は該当エンティティのポートを深い上限で引く。
+    ///
+    /// あいまい候補はここでは取らない (`scheduleFuzzySongs` が後から足す)。確実な一致と
+    /// 同じ待ちに乗せると、打った通りの結果が候補の計算ぶんだけ遅れて出ることになる。
     private func fetchResults(query: String, scope: UnifiedSearchScope) async throws -> SearchResults {
         let container = AppContainer.shared
         switch scope {
         case .all:
-            var results = try await container.globalSearchReading.search(query: query)
-            results.fuzzySongs = try await fuzzySongs(
-                query: query, shown: results.songs, exactLimit: Self.shallowLimit)
-            return results
+            return try await container.globalSearchReading.search(query: query)
         case .idols:
             let idols = try await container.idolReading.searchIdols(query: query, limit: Self.deepLimit)
             return SearchResults(songs: [], idols: idols, events: [])
         case .songs:
             let songs = try await container.songReading.searchSongs(query: query, limit: Self.deepLimit)
-            let fuzzy = try await fuzzySongs(query: query, shown: songs, exactLimit: Self.deepLimit)
-            return SearchResults(songs: songs, idols: [], events: [], fuzzySongs: fuzzy)
+            return SearchResults(songs: songs, idols: [], events: [])
         case .events:
             let events = try await container.eventReading.searchEventsByNameOrVenue(
                 query: query, limit: Self.deepLimit)
@@ -646,7 +675,7 @@ struct UnifiedSearchView: View {
         }
     }
 
-    /// 打った語では引けなかった曲を、あいまい一致で拾う (「もしかして」)。
+    /// 打った語では引けなかった曲を、あいまい一致で拾って **後から** 足す (「もしかして」)。
     ///
     /// 曲名の部分一致は打ち間違い・かな入力・音引きの揺れで 0 件になる。そこをコア
     /// (imas-core `domain/fuzzy_search.rs`) の編集距離で補う。曲名だけでなく
@@ -656,30 +685,38 @@ struct UnifiedSearchView: View {
     /// 打った通りに十分見つかっているときは足さない。既に 30 件出ている画面の末尾に
     /// 候補を積んでも読まれず、一致の精度を疑わせるだけになる。
     ///
-    /// `scheduleSearch` の 200ms debounce の内側で呼ぶので、打鍵ごとには走らない。
-    private func fuzzySongs(query: String, shown: [Song], exactLimit: Int) async throws -> [Song] {
+    /// 失敗は握って候補なしに落とす。ここは補助機能なので、確実な一致まで巻き添えにして
+    /// 「検索できませんでした」を出してはいけない (曲一覧の `scheduleFuzzySearch` と同じ扱い)。
+    private func scheduleFuzzySongs(query: String, scope: UnifiedSearchScope, shown: [Song]) {
+        // 前回の候補を先に捨てる。ここで返っても古い回が結果に着地しないように。
+        cancelFuzzySongs()
+        guard scope.includes(.songs) else { return }
         // 上限に張り付いた = まだ先があるということ。打った通りに出ているので候補は要らない。
         // (「すべて」は各 20 件までなので、件数だけ見ても「本当に少ない」か判別できない)
+        let exactLimit = scope == .all ? Self.shallowLimit : Self.deepLimit
         guard shown.count < exactLimit,
-              shown.count <= FuzzySearchTuning.suggestThreshold else { return [] }
-        let songReading = AppContainer.shared.songReading
-        let spellings = try await songReading.songSpellings()
-        guard !spellings.isEmpty else { return [] }
+              shown.count <= FuzzySearchTuning.suggestThreshold else { return }
+
+        let generation = UUID()
+        fuzzyGeneration = generation
+        isFuzzySearching = true
+        let index = fuzzyIndex
         let shownIds = Set(shown.map(\.id))
-        let catalog = FuzzySearchCatalog(spellingsPerItem: spellings.map { $0.spellings })
-        let shownIndices = Set(spellings.indices.filter { shownIds.contains(spellings[$0].id) })
-        // 全曲ぶんの編集距離は 3,000 曲で 20ms 前後。メインで回すとフレームを落とす。
-        let limit = FuzzySearchTuning.limit
-        let extras = await Task.detached(priority: .userInitiated) {
-            catalog.extraIndices(needle: query, excluding: shownIndices, limit: limit)
-        }.value
-        guard !extras.isEmpty else { return [] }
-        // 実体を引くのは当たった数十件だけ。並びはコアが返した順
-        // (部分一致 → 編集距離が小さい順) が正なので、id 列の順に並べ直して返す。
-        let ids = extras.map { spellings[$0].id }
-        let fetched = try await songReading.songs(ids: ids)
-        let byId = Dictionary(fetched.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
-        return ids.compactMap { byId[$0] }
+        fuzzyTask = Task {
+            // 実体を引くのは当たった数十件だけ。並びはコアが返した順
+            // (部分一致 → 編集距離が小さい順) が正なので、id 列の順に並べ直す。
+            let ids = (try? await index.extraSongIds(
+                needle: query, excludingIds: shownIds, limit: FuzzySearchTuning.limit)) ?? []
+            let fetched: [Song] = ids.isEmpty
+                ? []
+                : ((try? await AppContainer.shared.songReading.songs(ids: ids)) ?? [])
+            // 世代ガード。打ち直しで捨てられた回は、フラグも結果も触らせない
+            // (新しい検索が立てた「候補を計算中」を、古い回が倒してしまう)。
+            guard fuzzyGeneration == generation else { return }
+            let byId = Dictionary(fetched.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+            results.fuzzySongs = ids.compactMap { byId[$0] }
+            isFuzzySearching = false
+        }
     }
 
     /// 会場一致で拾えたイベントの会場名を解決する。ライブ名自体が一致している行には出さない

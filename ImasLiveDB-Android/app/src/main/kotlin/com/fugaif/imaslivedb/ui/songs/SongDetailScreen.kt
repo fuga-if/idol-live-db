@@ -824,7 +824,8 @@ private fun HistoryTab(
             ImasStatTile(Icons.Filled.CalendarMonth, shortYearMonth(date = sortedByDateAsc.first().date), "初披露", seed = seed, brand = brand, modifier = Modifier.weight(1f))
             ImasStatTile(Icons.Filled.CalendarMonth, shortYearMonth(date = sortedByDateAsc.last().date), "最終披露", seed = seed, brand = brand, modifier = Modifier.weight(1f))
         }
-        // 披露実績が無い曲・スナップショット未ロードでは中身が空になり、節ごと消える。
+        // 披露実績がまだ 1 度も無い曲でだけ中身が空になり、節ごと消える。共有コアの
+        // スナップショットが無い間も Room 経路が同じ値を返すので、節は消えない。
         SingersSection(evidence.singers, onIdolClick)
         CoOccurringSection(evidence.coOccurring, seed, brand, onSongClick)
         ImasSectionHeader("ライブ披露履歴", count = "${history.size}回", tight = true)
@@ -861,7 +862,9 @@ private fun SingersSection(
     if (rows.isEmpty()) return
     Column {
         ImasSectionHeader("この曲を歌った人", tight = true)
-        EvidenceNote("セトリに残っている歌唱の集計です。")
+        // 分母 (全 N 回) は上のサマリタイル「総披露」と同じ数え方。同じ画面に単位の違う
+        // 数字 (共起節は公演数) が並ぶので、どちらなのかを言っておく。
+        EvidenceNote("セトリに残っている歌唱の集計です。分母は上の「総披露」と同じ回数です。")
         Column(Modifier.padding(horizontal = 16.dp)) {
             rows.forEachIndexed { idx, row ->
                 if (idx > 0) HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 48.dp))
@@ -884,7 +887,7 @@ private fun SingersSection(
 }
 
 /**
- * 「同じ公演で歌われた曲」。一緒に来た回数の多い順。
+ * 「同じ公演で歌われた曲」。一緒に来た**公演数**の多い順。
  *
  * 行の形は [RelatedSongsSection] と同じだが、副題は歌唱表記ではなく**根拠の回数**。
  * この行が並んでいる理由そのものが回数なので、歌唱表記よりそちらを副題の位置に置く。
@@ -899,7 +902,11 @@ private fun CoOccurringSection(
     if (rows.isEmpty()) return
     Column {
         ImasSectionHeader("同じ公演で歌われた曲", tight = true)
-        EvidenceNote("これまでに同じ公演で歌われた回数です。次のライブで一緒に来るとは限りません。")
+        // ⚠️ ここだけ単位が「公演」。1 公演で 2 回演奏されても 1 と数えるため、相手の曲を
+        // 開いた先の「総披露 N 回」(セトリ行数) より小さい数になる (同梱 master で 48 曲が
+        // このズレを持つ。例: 初 = 39 公演 / 64 回)。単位を書かないと「どちらが本当の回数か」
+        // が読み手に判断できない。
+        EvidenceNote("同じ公演に両方あった公演数です (1 公演で 2 回歌っても 1 公演)。次のライブで一緒に来るとは限りません。")
         Column(Modifier.padding(horizontal = 16.dp)) {
             rows.forEachIndexed { idx, row ->
                 if (idx > 0) HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 56.dp))
@@ -913,9 +920,10 @@ private fun CoOccurringSection(
                     Column(Modifier.weight(1f).padding(start = 12.dp)) {
                         Text(row.song.title, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink,
                             maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        // 分母まで出す。12/15 回 (ほぼ必ず一緒) と 12/300 回 (たまたま) は
-                        // 別物で、回数だけだと読み手が区別できない。
-                        Text("いっしょに${row.together}回 ・ 通算${row.performances}回の披露",
+                        // 分母まで出す。12/15 (ほぼ必ず一緒) と 12/300 (たまたま) は別物で、
+                        // 回数だけだと読み手が区別できない。単位は「回」ではなく「公演」
+                        // (歌唱者行の「全 N 回」= セトリ行数とは別の数え方なので語を分ける)。
+                        Text("いっしょに${row.together}公演 ／ 全${row.performances}公演",
                             fontSize = 12.sp, color = DS.ink2,
                             maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }

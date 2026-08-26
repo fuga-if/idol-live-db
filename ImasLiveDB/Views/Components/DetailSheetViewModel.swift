@@ -27,8 +27,9 @@ final class DetailSheetViewModel {
     /// 同じ曲の別バージョン (ソロ Ver. / Remix 等)。一覧からは隠れているので、
     /// ここが唯一の到達手段になる。
     private(set) var variantSongs: [Song] = []
-    /// 披露実績から出した共起曲と歌唱者 (共有コアのスナップショット走査)。
-    /// 披露 0 回の曲・スナップショット未ロードでは `.empty`。画面はそのとき節を出さない。
+    /// 披露実績から出した共起曲と歌唱者 (共有コアのスナップショット走査。未ロード時は
+    /// 同じ数え方の SQL 経路)。`.empty` になるのは披露 0 回の曲だけで、そのとき画面は
+    /// 節を出さない。単位が 2 つある点は `SongPerformanceEvidence` の注記を参照。
     private(set) var performanceEvidence: SongPerformanceEvidence = .empty
 
     // MARK: - コミュニティ (CommunityAPI + SongReading ミラー)
@@ -106,6 +107,7 @@ final class DetailSheetViewModel {
         }
         // 上の do とは別に取る。ここが throw しても曲名・履歴・歌唱者まで巻き添えで消えては
         // 困る (実績の節が 1 つ出ないだけで済ませたい) ので、失敗は .empty に倒す。
+        // スナップショット未ロードは失敗ではない (アダプタが SQL 経路へ落ちる)。
         performanceEvidence = (try? await performanceEvidenceReading.songPerformanceEvidence(
             songId: song.id,
             coLimit: Self.coOccurringDisplayCount,

@@ -50,8 +50,8 @@ class AppModule private constructor(context: Context) {
     val searchRepository: SearchRepository by lazy {
         SearchRepository(database, snapshotStoreProvider, songRepository)
     }
-    // 曲詳細の披露実績 (共起曲 / 歌唱者)。全セトリ走査でしか出せない集計なので
-    // Room のフォールバックを持たない (未ロード時は空 = 節を出さない)。
+    // 曲詳細の披露実績 (共起曲 / 歌唱者)。スナップショットが無い間 (ネイティブ未同梱
+    // ビルド・初回同期前・load 失敗) は Room 経路が同じ数え方で同じ値を返す。
     val performanceEvidenceRepository: PerformanceEvidenceRepository by lazy {
         PerformanceEvidenceRepository(database, snapshotStoreProvider)
     }

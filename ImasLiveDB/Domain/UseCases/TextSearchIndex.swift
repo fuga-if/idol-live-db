@@ -52,6 +52,15 @@ struct FuzzySearchCatalog: Sendable {
         }
     }
 
+    /// 正規化済みの綴り列から構築する (`SongSpelling.spellings` のように、
+    /// 空白除去と空文字落としを呼び出し側で済ませてある場合)。
+    ///
+    /// 上の init に通すと同じ文字列をもう一度 trim することになる。全曲ぶん
+    /// (3,000 件 × 2 綴り) をなぞる処理なので、素が既に綺麗なら二度やらない。
+    init(normalizedSpellingsPerItem: [[String]]) {
+        spellings = normalizedSpellingsPerItem
+    }
+
     var isEmpty: Bool { spellings.isEmpty }
 
     /// あいまい候補の添字を、**既に出ている添字を除いて**返す。
@@ -97,4 +106,47 @@ enum FuzzySearchTuning {
     /// 全件ぶんの編集距離は 3,000 曲で 20ms 前後かかる。打鍵ごとに回すと入力が渋るので、
     /// 手が止まってから 1 回だけ引く。部分一致 (0.1ms) は待たせずその場で出す。
     static let debounce: Duration = .milliseconds(250)
+}
+
+/// 全曲を母集団にした「もしかして」の索引。綴り表とカタログを **1 回だけ** 作って使い回す。
+///
+/// 曲一覧 (`SongListViewModel`) は手元の `songs` からカタログを 1 回だけ組んでいるが、
+/// 横断検索の母集団は画面に無い (全曲が対象) ので自前で読んで抱える必要がある。
+/// 抱えないと打鍵 (debounce) ごとに全曲の綴り取得 + カタログ構築をやり直すことになる。
+///
+/// `actor` なのは、その O(全曲) の読み込みと照合をメインアクタの外で回すため。
+/// 呼び出し元は `@MainActor` の View で、そこでやると入力そのものが渋る。
+///
+/// キャッシュは意図的に破棄口を持たない。検索画面が開いている間に同期でマスタが増える
+/// ことはあるが、その差が効くのは「もしかして」の候補だけで、確実な一致は毎回 DB を引く。
+/// 画面を閉じれば作り直されるので、無効化の配線を足す価値がない。
+actor SongFuzzyIndex {
+    private let songReading: any SongReading
+    private var loaded: (spellings: [SongSpelling], catalog: FuzzySearchCatalog)?
+
+    init(songReading: any SongReading) {
+        self.songReading = songReading
+    }
+
+    /// 打った語では拾えなかった曲の id を、**既に出ている曲を除いて** 返す。
+    ///
+    /// 並びはコアが返した順 (部分一致 → 編集距離が小さい順) が正なので、呼び出し側で
+    /// 並べ直さないこと。実体 (`Song`) は当たった数十件だけを呼び出し側が引く。
+    func extraSongIds(needle: String, excludingIds shownIds: Set<String>,
+                      limit: Int) async throws -> [String] {
+        let (spellings, catalog) = try await load()
+        guard !catalog.isEmpty else { return [] }
+        let shownIndices = Set(spellings.indices.filter { shownIds.contains(spellings[$0].id) })
+        return catalog.extraIndices(needle: needle, excluding: shownIndices, limit: limit)
+            .map { spellings[$0].id }
+    }
+
+    private func load() async throws -> ([SongSpelling], FuzzySearchCatalog) {
+        if let loaded { return (loaded.spellings, loaded.catalog) }
+        let spellings = try await songReading.songSpellings()
+        // 綴りの正規化は `SongSpelling.spellings` が済ませている。二度 trim させない。
+        let catalog = FuzzySearchCatalog(normalizedSpellingsPerItem: spellings.map(\.spellings))
+        loaded = (spellings, catalog)
+        return (spellings, catalog)
+    }
 }

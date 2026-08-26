@@ -11,20 +11,26 @@ import Foundation
 /// 2 と 3 を行ごとに引かないこと。コア側は id しか返さないので名前の解決は必要だが、
 /// 集合で 1 回引けば足りる (`imas-core/src/inbound/performance_stats.rs` の注記と同じ約束)。
 ///
-/// 他の `Core*Repository` と違い GRDB のフォールバック実装を持たない。この集計は
-/// スナップショット全走査が前提で、SQL に等価物が無いため。未ロード時は `.empty` を
-/// 返して画面に節ごと出させない (旧経路が無い機能なので、これが「壊れていない」状態)。
+/// 他の `Core*Repository` と同じく、未ロード時は GRDB 経路へ落ちる。セトリと出演者は
+/// SQL でも同じ集計が書けるので (`AppDatabase+PerformanceEvidenceQueries`)、
+/// スナップショットの有無で節が出たり消えたりする理由が無い。とくに iOS は
+/// メモリ警告で `unload()` するため、フォールバックが無いと「さっきまで出ていた節が
+/// 説明なく消える」状態が実機で普通に起きる。
 struct CorePerformanceEvidenceRepository: PerformanceEvidenceReading {
     let snapshot: CoreSnapshotManager
+    let fallback: any PerformanceEvidenceReading
 
     func songPerformanceEvidence(
         songId: String,
         coLimit: Int,
         singerLimit: Int
     ) async throws -> SongPerformanceEvidence {
-        // withStore は未ロード時と SnapshotError 時に fallbackTo を呼ぶ。ここでの
-        // 「フォールバック」は旧経路ではなく空 (= 節を出さない)。
-        try await snapshot.withStore(fallbackTo: { SongPerformanceEvidence.empty }) { store in
+        // withStore は未ロード時と SnapshotError 時に fallbackTo を呼ぶ。
+        try await snapshot.withStore(fallbackTo: {
+            try await fallback.songPerformanceEvidence(
+                songId: songId, coLimit: coLimit, singerLimit: singerLimit
+            )
+        }) { store in
             let raw = try store.songPerformanceInsights(
                 songId: songId,
                 coLimit: UInt32(max(0, coLimit)),

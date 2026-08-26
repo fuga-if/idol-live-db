@@ -326,6 +326,7 @@ struct SongListView: View {
         // 出題範囲はあいまい候補 (`vm.fuzzySongs`) を含めない。「もしかして」は
         // 目で見て選んでもらうための提案なので、黙って出題母集団に混ぜると
         // 打った覚えのない曲が出る。範囲は打った通りに当たった曲だけ。
+        // (そのため選択モードでは一覧側にも候補を出さない → `songsListContent`)
         let playable = IntroGameSession.playable(vm.displayedSongs.map(\.song)).count
         if selectionMode {
             // イントロドン設定から「絞り込んで出題」で来た選択モード。
@@ -669,7 +670,11 @@ struct SongListView: View {
                 let display = vm.displayedSongs
                 // あいまい候補しか無い状態 (打ち間違い・かな入力) を「0 件」と言わない。
                 // それを拾うためのあいまい検索なので、空状態はどちらも空のときだけ。
-                let fuzzy = vm.fuzzySongs
+                //
+                // ただし選択モードでは候補を出さない。確定ボタンが呼び元へ渡す母集団は
+                // `vm.displayedSongs` (= 打った通りに当たった曲) だけなので、候補を並べると
+                // 見えている行と件数が出題範囲と食い違い、押した瞬間に黙って除外される。
+                let fuzzy: [SongWithArtists] = selectionMode ? [] : vm.fuzzySongs
                 if !searchText.isEmpty && display.isEmpty && fuzzy.isEmpty {
                     ImasEmptyState(
                         systemImage: "line.3.horizontal.decrease",

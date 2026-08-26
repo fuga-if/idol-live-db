@@ -2,14 +2,14 @@ import Foundation
 
 /// 披露実績の集計 (共起曲 / 歌唱者) の読み取りポート (driven port)。
 ///
-/// `SongReading` に相乗りさせず独立させている理由:
-/// - これは全セトリ・全出演者を走査して初めて出せる集計で、**SQL 経路に等価な実装が無い**。
-///   楽曲マスタの読み取り (`SongReading`) とは供給源も可用性も違う。
-/// - そのため「未ロードなら空を返す」という他ポートに無い契約を持つ。契約の違うものを
-///   同じポートに混ぜると、実装側が「どのメソッドはフォールバックできるのか」を
-///   メソッドごとに覚える羽目になる。
+/// `SongReading` に相乗りさせず独立させている理由は供給源ではなく**責務**:
+/// 楽曲マスタの読み取り (`SongReading`) が「1 曲の属性」を返すのに対し、こちらは
+/// 全セトリ・全出演者を横断した集計を返す。同じポートに混ぜると、楽曲 1 件を
+/// 引きたいだけの呼び出し側にも集計の都合 (件数上限・分母の単位) が漏れる。
 ///
-/// 実装は `Adapters/Persistence/CorePerformanceEvidenceRepository`。
+/// 実装は 2 つあり、どちらも同じ数え方をする:
+/// - `Adapters/Persistence/CorePerformanceEvidenceRepository` (共有コアのスナップショット)
+/// - `Adapters/Persistence/GRDBPerformanceEvidenceRepository` (SQL)
 ///
 /// ⚠️ Domain 規約: このファイルは `SwiftUI` / `GRDB` / `CloudKit` を import しない。
 protocol PerformanceEvidenceReading: Sendable {
@@ -18,8 +18,13 @@ protocol PerformanceEvidenceReading: Sendable {
     /// 曲詳細は最も開かれる画面なので、共起と歌唱者を別々に問い合わせない
     /// (共有コア側も `song_performance_insights` で束ねて返している)。
     ///
-    /// スナップショット未ロード時は `throw` せず `.empty` を返す。この機能に旧経路は
-    /// 無いので、出せない時は節ごと出さないのが正しい振る舞い (他の情報は従来どおり出る)。
+    /// 空が返るのは「披露実績がまだ 1 度も無い」ときだけ。スナップショットの
+    /// 有無で節が出たり消えたりしてはいけない (メモリ警告のあと同じ曲を開き直したら
+    /// 節が消えていた、では説明がつかない) ので、実装側は必ず SQL 経路へ落ちること。
+    ///
+    /// ⚠️ 数え方の単位が 2 つある。UI に出すときは取り違えないこと:
+    /// - 共起 (`CoOccurringSong`) は**公演数**。1 公演で 2 回演奏されても 1。
+    /// - 歌唱者 (`SongSingerTally`) は**セトリ行数** (= 曲詳細の「総披露 N 回」と同じ)。
     func songPerformanceEvidence(
         songId: String,
         coLimit: Int,
