@@ -688,8 +688,45 @@ pub fn parse_data_version(value: Option<&str>) -> i64 {
 }
 
 /// bundle 側が新しいときだけ reseed する。等しい/古いなら何もしない。
-pub fn reseed_needed(bundle_version: i64, local_version: i64) -> bool {
+///
+/// ⚠️ 版番号だけで判断すると取りこぼす。`reseed_needed` を使うこと。
+fn version_is_newer(bundle_version: i64, local_version: i64) -> bool {
     bundle_version > local_version
+}
+
+/// 同梱データを端末へ入れ直すべきか。
+///
+/// # なぜ版番号で判断しないか
+///
+/// 版番号は**内容とは別に人が管理する数字**なので、内容とズレる。実際にズレた:
+/// 読み仮名を入れる前のビルドが `data_version = 70` を積んで出てしまい、端末が 70 を
+/// 記録した。その後 70 のまま読み仮名入りを配っても `70 > 70` が偽になり、
+/// 読み仮名が**永久に届かなくなった**。更新時刻も同じ性質で、内容と独立に動く。
+///
+/// 指紋 (`content_hash`) は同梱データそのものから機械的に作るので、内容が変われば必ず
+/// 変わり、変わらなければ必ず同じになる。人が上げ忘れることも、上げ過ぎることもない。
+///
+/// 端末側が持つのは「最後に取り込んだ同梱データの指紋」であって、端末の現在の内容の
+/// 指紋ではない。取り込んだ後に同期でマスタが増えても指紋は動かないので、
+/// 起動のたびに入れ直したりはしない。
+///
+/// # 版番号を残してある理由
+///
+/// 指紋を持たない古い端末 (`local_hash` が `None`) と、指紋を書く前に作られた同梱データ
+/// (`bundle_hash` が `None`) がある。どちらも版番号での比較に落とす。
+/// 指紋を持たない端末は、同梱側に指紋があれば「違う」と判定されて一度だけ入れ直す
+/// (これで上のズレも直る)。
+pub fn reseed_needed(
+    bundle_version: i64,
+    local_version: i64,
+    bundle_hash: Option<&str>,
+    local_hash: Option<&str>,
+) -> bool {
+    match bundle_hash {
+        Some(bundle) => local_hash != Some(bundle),
+        // 同梱側に指紋が無い = 指紋を書く前のビルド。版番号で判断するしかない。
+        None => version_is_newer(bundle_version, local_version),
+    }
 }
 
 /// reseed 対象テーブルを **bundle 側の順序** で返す。
@@ -1539,11 +1576,50 @@ mod tests {
 
     #[test]
     fn reseed_runs_only_when_bundle_is_newer() {
-        assert!(reseed_needed(5, 4));
-        assert!(!reseed_needed(4, 4));
-        assert!(!reseed_needed(3, 4));
+        assert!(reseed_needed(5, 4, None, None));
+        assert!(!reseed_needed(4, 4, None, None));
+        assert!(!reseed_needed(3, 4, None, None));
         // 壊れた local (=0) は必ず reseed 側に倒れる。
-        assert!(reseed_needed(1, parse_data_version(Some("broken"))));
+        assert!(reseed_needed(1, parse_data_version(Some("broken")), None, None));
+    }
+
+    /// 回帰 (2026-08-27 読み仮名が届かない): 版番号は内容とズレる。
+    ///
+    /// 読み仮名を入れる前のビルドが 70 を積んで出てしまい、端末が 70 を記録した。
+    /// 以後 70 のまま読み仮名入りを配っても `70 > 70` が偽で、永久に届かなかった。
+    #[test]
+    fn same_version_with_different_content_still_reseeds() {
+        assert!(
+            reseed_needed(70, 70, Some("読み仮名あり"), Some("読み仮名なし")),
+            "版番号が同じでも内容が違えば入れ直す"
+        );
+    }
+
+    /// 指紋を持たない端末は、一度だけ入れ直して指紋を持つ状態にする。
+    ///
+    /// これが上のズレを自動で直す経路でもある (端末は版番号しか持っていない)。
+    #[test]
+    fn a_device_without_a_fingerprint_is_reseeded_once() {
+        assert!(reseed_needed(70, 70, Some("指紋"), None));
+        // 取り込んだ後は動かない。起動のたびに入れ直したりはしない。
+        assert!(!reseed_needed(70, 70, Some("指紋"), Some("指紋")));
+    }
+
+    /// 取り込んだ後に同期でマスタが増えても、入れ直しは起きない。
+    ///
+    /// 端末が持つのは「最後に取り込んだ同梱データの指紋」であって、
+    /// 端末の現在の内容の指紋ではない。混同すると同期のたびに巻き戻る。
+    #[test]
+    fn syncing_new_master_data_does_not_trigger_a_reseed() {
+        let bundled = Some("同梱データの指紋");
+        assert!(!reseed_needed(70, 70, bundled, bundled));
+    }
+
+    /// 同梱側に指紋が無い古いビルドでは、従来どおり版番号で判断する。
+    #[test]
+    fn without_a_bundled_fingerprint_it_falls_back_to_the_version() {
+        assert!(reseed_needed(71, 70, None, Some("端末の指紋")));
+        assert!(!reseed_needed(70, 70, None, Some("端末の指紋")));
     }
 
     #[test]

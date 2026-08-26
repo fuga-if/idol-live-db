@@ -63,7 +63,7 @@ final class MasterReseedTests: XCTestCase {
 
         let result = try AppDatabase.copyMasterTables(
             into: local, fromBundleAt: bundle,
-            preserving: ["meta", "user_marks"], newVersion: 2
+            preserving: ["meta", "user_marks"], newVersion: 2, newContentHash: "hash-v2"
         )
 
         XCTAssertEqual(result.ok, 1)       // idols のみコピー対象
@@ -84,6 +84,10 @@ final class MasterReseedTests: XCTestCase {
             // data_version は newVersion に更新。
             let version = try String.fetchOne(db, sql: "SELECT value FROM meta WHERE key='data_version'")
             XCTAssertEqual(version, "2")
+            // 「最後に取り込んだ同梱データ」の指紋を記録する。次回の判定はこれと突き合わせる。
+            // meta は保護テーブルで一括コピーの対象外なので、書き漏らすと毎起動 reseed になる。
+            let hash = try String.fetchOne(db, sql: "SELECT value FROM meta WHERE key='content_hash'")
+            XCTAssertEqual(hash, "hash-v2")
         }
     }
 
@@ -111,7 +115,7 @@ final class MasterReseedTests: XCTestCase {
         XCTAssertThrowsError(
             try AppDatabase.copyMasterTables(
                 into: local, fromBundleAt: bundle,
-                preserving: ["meta"], newVersion: 2
+                preserving: ["meta"], newVersion: 2, newContentHash: "hash-v2"
             )
         )
 

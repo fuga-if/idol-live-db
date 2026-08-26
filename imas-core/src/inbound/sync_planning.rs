@@ -177,10 +177,23 @@ pub fn reseed_parse_data_version(value: Option<String>) -> i64 {
     sync_planning::parse_data_version(value.as_deref())
 }
 
-/// bundle 側が新しいときだけ reseed する。
+/// 同梱データを端末へ入れ直すべきか。
+///
+/// 判断の主軸は同梱データの指紋 (`meta.content_hash`)。版番号は指紋を持たない
+/// 古い同梱データのための退避路。理由は `domain::sync_planning::reseed_needed` に書いた。
 #[uniffi::export]
-pub fn reseed_needed(bundle_version: i64, local_version: i64) -> bool {
-    sync_planning::reseed_needed(bundle_version, local_version)
+pub fn reseed_needed(
+    bundle_version: i64,
+    local_version: i64,
+    bundle_hash: Option<String>,
+    local_hash: Option<String>,
+) -> bool {
+    sync_planning::reseed_needed(
+        bundle_version,
+        local_version,
+        bundle_hash.as_deref(),
+        local_hash.as_deref(),
+    )
 }
 
 /// reseed で触ってはいけないテーブル一覧 (ユーザデータ / 履歴 / コミュニティ投稿系)。

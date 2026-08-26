@@ -33,4 +33,18 @@ if version <= 0:
     sys.exit(1)
 print(f"✅ meta.data_version: {version}")
 PY
+# 内容の指紋 (必須): reseed の判定はこの値の一致/不一致で行う。
+#
+# 版番号 (data_version) は内容とは別に人が管理する数字なので、内容とズレる。実際にズレた:
+# 読み仮名を入れる前のビルドが 70 を積んで出てしまい、端末が 70 を記録した結果、
+# 70 のまま読み仮名入りを配っても「70 > 70」が偽になり永久に届かなくなった
+# (imas-core domain/sync_planning.rs reseed_needed)。
+#
+# 指紋は正本 db/master.sql から機械的に作る。内容が変われば必ず変わり、変わらなければ
+# 必ず同じになるので、人が上げ忘れることも上げ過ぎることもない。
+CONTENT_HASH="$(shasum -a 256 "$DUMP" | cut -d' ' -f1)"
+sqlite3 "$DB" "INSERT INTO meta (key, value) VALUES ('content_hash', '$CONTENT_HASH')
+               ON CONFLICT(key) DO UPDATE SET value = excluded.value;"
+echo "✅ meta.content_hash: ${CONTENT_HASH:0:12}…"
+
 echo "✓ $DB を db/master.sql から再生成"

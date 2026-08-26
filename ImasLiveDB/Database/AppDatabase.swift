@@ -214,17 +214,19 @@ final class AppDatabase: @unchecked Sendable {
         defer { try? FileManager.default.removeItem(at: tmpURL) }
         try FileManager.default.copyItem(at: bundleURL, to: tmpURL)
 
-        // バージョン比較は ATTACH 前に軽量な read で済ませる。
+        // 判定は ATTACH 前に軽量な read で済ませる。
         var roConfig = Configuration()
         roConfig.readonly = true
-        let bundleVersion = try DatabaseQueue(path: tmpURL.path, configuration: roConfig).read { db -> Int in
-            Int(try String.fetchOne(db, sql: "SELECT value FROM meta WHERE key='data_version'") ?? "0") ?? 0
-        }
-        let localVersion = try dbQueue.read { db -> Int in
-            Int(try String.fetchOne(db, sql: "SELECT value FROM meta WHERE key='data_version'") ?? "0") ?? 0
-        }
-        Logger.database.info("[reseed] bundle=\(bundleVersion, privacy: .public) local=\(localVersion, privacy: .public)")
-        guard bundleVersion > localVersion else { return }
+        let bundleMeta = try DatabaseQueue(path: tmpURL.path, configuration: roConfig).read(Self.readReseedMeta)
+        let localMeta = try dbQueue.read(Self.readReseedMeta)
+        Logger.database.info("""
+            [reseed] bundle=v\(bundleMeta.version, privacy: .public)/\(bundleMeta.shortHash, privacy: .public) \
+            local=v\(localMeta.version, privacy: .public)/\(localMeta.shortHash, privacy: .public)
+            """)
+        guard reseedNeeded(bundleVersion: Int64(bundleMeta.version),
+                           localVersion: Int64(localMeta.version),
+                           bundleHash: bundleMeta.contentHash,
+                           localHash: localMeta.contentHash) else { return }
 
         // 触らないテーブル (= ユーザデータ + grdb_migrations)
         let preservedTables: Set<String> = [
@@ -242,14 +244,31 @@ final class AppDatabase: @unchecked Sendable {
             into: dbQueue,
             fromBundleAt: tmpURL.path,
             preserving: preservedTables,
-            newVersion: bundleVersion
+            newVersion: bundleMeta.version,
+            newContentHash: bundleMeta.contentHash
         )
-        let summary = "v\(localVersion)→v\(bundleVersion) ok=\(ok) skipped=\(skipped)"
+        let summary = "v\(localMeta.version)→v\(bundleMeta.version) ok=\(ok) skipped=\(skipped)"
         reseedState.withLock {
             $0.summary = summary
             $0.failureDetail = nil
         }
         Logger.database.info("[reseed] done \(summary, privacy: .public)")
+    }
+
+    /// reseed の判定に使う meta 一式。
+    private struct ReseedMeta {
+        let version: Int
+        /// 同梱データの指紋。判定の主軸。古い DB には無いので optional。
+        let contentHash: String?
+        /// ログ用の短縮形。指紋が無い DB では "-"。
+        var shortHash: String { contentHash.map { String($0.prefix(8)) } ?? "-" }
+    }
+
+    private static func readReseedMeta(_ db: Database) throws -> ReseedMeta {
+        ReseedMeta(
+            version: Int(try String.fetchOne(db, sql: "SELECT value FROM meta WHERE key='data_version'") ?? "0") ?? 0,
+            contentHash: try String.fetchOne(db, sql: "SELECT value FROM meta WHERE key='content_hash'")
+        )
     }
 
     /// Bundle DB (`bundlePath`) の内容で `writer` 側マスタテーブルを一括コピーする純処理。
@@ -266,7 +285,8 @@ final class AppDatabase: @unchecked Sendable {
         into writer: any DatabaseWriter,
         fromBundleAt bundlePath: String,
         preserving preservedTables: Set<String>,
-        newVersion: Int
+        newVersion: Int,
+        newContentHash: String?
     ) throws -> (ok: Int, skipped: Int) {
         var ok = 0
         var skipped = 0
@@ -304,6 +324,14 @@ final class AppDatabase: @unchecked Sendable {
                     ok += 1
                 }
                 try db.execute(sql: "UPDATE main.meta SET value = ? WHERE key = 'data_version'", arguments: [String(newVersion)])
+                // 「最後に取り込んだ同梱データ」を指紋で記録する。次回の判定はこれと突き合わせる。
+                // meta は preservedTables なので一括コピーの対象外。ここで自分で書く。
+                if let newContentHash {
+                    try db.execute(sql: """
+                        INSERT INTO main.meta (key, value) VALUES ('content_hash', ?)
+                        ON CONFLICT(key) DO UPDATE SET value = excluded.value
+                        """, arguments: [newContentHash])
+                }
                 return .commit
             }
         }
