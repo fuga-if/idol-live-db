@@ -62,14 +62,28 @@ const NEUTRAL_HEX: &str = "8e8e93";
 // hex ユーティリティ
 // ---------------------------------------------------------------------------
 
-/// Swift の `CharacterSet.whitespaces` (Unicode Zs + 水平タブ) と同じ集合。
+/// Swift の `CharacterSet.whitespaces` と**実測で**同じ集合 (19 文字)。
 ///
-/// Rust の `char::is_whitespace` は White_Space なので改行類まで含む。
-/// 原本は `.whitespacesAndNewlines` ではなく `.whitespaces` を使っているため、
-/// 改行類だけ集合から外して同じトリム結果にする。
+/// Apple のドキュメントは「Unicode Zs + 水平タブ」(= 18 文字) と書いているが、実装は
+/// **U+200B (ZERO WIDTH SPACE) も含む** (U+200B の General Category は Zs ではなく Cf)。
+/// macOS の Foundation を 0..=0x10FFFF まで走査して数えると 19 文字ある。
+/// ドキュメントではなく実装が原本の挙動なので、そちらに合わせる。
+///
+/// Rust の `char::is_whitespace` は Unicode の White_Space プロパティで、
+/// 改行類 7 文字を余分に含み、逆に U+200B を含まない (18 文字)。そこで
+/// 改行類を外し、U+200B を足して原本と同じ 19 文字にする。
+///
+/// 改行を落とさないのは原本が `.whitespacesAndNewlines` ではなく `.whitespaces` を
+/// 使っているため (`"#e22b30\n"` は無効のまま)。この 2 点の実測オラクルとの突き合わせは
+/// `color_engine::tests::hex_trim_matches_the_ios_whitespace_set_exactly`。
 fn is_swift_whitespace(c: char) -> bool {
-    c.is_whitespace()
-        && !matches!(c, '\n' | '\u{b}' | '\u{c}' | '\r' | '\u{85}' | '\u{2028}' | '\u{2029}')
+    // U+200B は White_Space プロパティを持たないので `is_whitespace` からは出てこない。
+    c == '\u{200b}'
+        || (c.is_whitespace()
+            && !matches!(
+                c,
+                '\n' | '\u{b}' | '\u{c}' | '\r' | '\u{85}' | '\u{2028}' | '\u{2029}'
+            ))
 }
 
 /// `#RGB` / `#RRGGBB` を 6 桁小文字 hex に正規化する。無効なら `None`。
