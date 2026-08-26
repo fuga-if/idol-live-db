@@ -1,0 +1,5991 @@
+{
+ "title": "楽曲の読み仮名を機械生成で補う (第2バッチ 665曲)",
+ "_help": "本体 264 曲を読み、Remix/ソロ版などの派生 401 曲へ継承させた。英語まじりの読み方の揺れはあいまい検索が編集距離で吸収する前提。誤りはユーザーからの修正依頼で直す。",
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "cg_風色メロディ_for_mio_rearrange_mix",
+   "fields": {
+    "title_kana": "かぜいろめろでぃ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_luv_石濱翔_remix",
+   "fields": {
+    "title_kana": "らぶ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_yellow_big_bang_cosmo_remix",
+   "fields": {
+    "title_kana": "いえろーびっぐばん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_がむしゃらに行こう",
+   "fields": {
+    "title_kana": "がむしゃらにいこう"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_つよつよ最強エクササイズ",
+   "fields": {
+    "title_kana": "つよつよさいきょうえくささいず"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_ねえ言っちゃうよ",
+   "fields": {
+    "title_kana": "ねえいっちゃうよ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_ミラクルナナウ_佐藤貴文_remix",
+   "fields": {
+    "title_kana": "みらくるななう"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_一体いつから",
+   "fields": {
+    "title_kana": "いったいいつから"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_三分半の創世",
+   "fields": {
+    "title_kana": "さんぷんはんのそうせい"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_世界一可愛い私",
+   "fields": {
+    "title_kana": "せかいいちかわいいわたし"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_仮装狂騒曲",
+   "fields": {
+    "title_kana": "かそうきょうそうきょく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_仮装狂騒曲_原口沙輔_remix",
+   "fields": {
+    "title_kana": "かそうきょうそうきょく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_修楽旅行_有村麻央葛城リーリヤ花海佑芽姫崎莉波ver",
+   "fields": {
+    "title_kana": "しゅうがくりょこう"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_光景",
+   "fields": {
+    "title_kana": "こうけい"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_冠菊",
+   "fields": {
+    "title_kana": "かんぎく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_初",
+   "fields": {
+    "title_kana": "はじめ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_初星体操第一",
+   "fields": {
+    "title_kana": "はつぼしたいそうだいいち"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_古今東西ちょちょいのちょい",
+   "fields": {
+    "title_kana": "ここんとうざいちょちょいのちょい"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_叶えたいことばかり",
+   "fields": {
+    "title_kana": "かなえたいことばかり"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_小さな野望",
+   "fields": {
+    "title_kana": "ちいさなやぼう"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_憧れをいっぱい",
+   "fields": {
+    "title_kana": "あこがれをいっぱい"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_憧れをいっぱい_tomggg_remix",
+   "fields": {
+    "title_kana": "あこがれをいっぱい"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_日々発見的ステップ",
+   "fields": {
+    "title_kana": "ひびはっけんてきすてっぷ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_春と光",
+   "fields": {
+    "title_kana": "はるとひかり"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_桜フォトグラフ",
+   "fields": {
+    "title_kana": "さくらふぉとぐらふ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_極光",
+   "fields": {
+    "title_kana": "きょっこう"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_標",
+   "fields": {
+    "title_kana": "しるべ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_歌声は君いろ",
+   "fields": {
+    "title_kana": "うたごえはきみいろ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_理論武装して",
+   "fields": {
+    "title_kana": "りろんぶそうして"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_白線",
+   "fields": {
+    "title_kana": "はくせん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_白線_やしきん_remix",
+   "fields": {
+    "title_kana": "はくせん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_真っ白いページと水彩の主人公",
+   "fields": {
+    "title_kana": "まっしろいぺーじとすいさいのしゅじんこう"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_空と約束",
+   "fields": {
+    "title_kana": "そらとやくそく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_自己肯定感爆上げしゅきしゅきソング",
+   "fields": {
+    "title_kana": "じここうていかんばくあげしゅきしゅきそんぐ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_見て",
+   "fields": {
+    "title_kana": "みて"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_赤裸々",
+   "fields": {
+    "title_kana": "せきらら"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_重なる夜空の痕跡に",
+   "fields": {
+    "title_kana": "かさなるよぞらのこんせきに"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_金の斧銀の斧エメラルドの斧",
+   "fields": {
+    "title_kana": "きんのおのぎんのおのえめらるどのおの"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_雨上がりのアイリス",
+   "fields": {
+    "title_kana": "あめあがりのあいりす"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_雪解けに",
+   "fields": {
+    "title_kana": "ゆきどけに"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week七尾百合子ver",
+   "fields": {
+    "title_kana": "せぶんでいずあうぃーく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week三浦あずさver",
+   "fields": {
+    "title_kana": "せぶんでいずあうぃーく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week中谷育ver",
+   "fields": {
+    "title_kana": "せぶんでいずあうぃーく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week二階堂千鶴ver",
+   "fields": {
+    "title_kana": "せぶんでいずあうぃーく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week伊吹翼ver",
+   "fields": {
+    "title_kana": "せぶんでいずあうぃーく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week佐竹美奈子ver",
+   "fields": {
+    "title_kana": "せぶんでいずあうぃーく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week北沢志保ver",
+   "fields": {
+    "title_kana": "せぶんでいずあうぃーく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week双海亜美ver",
+   "fields": {
+    "title_kana": "せぶんでいずあうぃーく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week双海真美ver",
+   "fields": {
+    "title_kana": "せぶんでいずあうぃーく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week周防桃子ver",
+   "fields": {
+    "title_kana": "せぶんでいずあうぃーく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week四条貴音ver",
+   "fields": {
+    "title_kana": "せぶんでいずあうぃーく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week大神環ver",
+   "fields": {
+    "title_kana": "せぶんでいずあうぃーく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week天海春香ver",
+   "fields": {
+    "title_kana": "せぶんでいずあうぃーく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week天空橋朋花ver",
+   "fields": {
+    "title_kana": "せぶんでいずあうぃーく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week如月千早ver",
+   "fields": {
+    "title_kana": "せぶんでいずあうぃーく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week宮尾美也ver",
+   "fields": {
+    "title_kana": "せぶんでいずあうぃーく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week島原エレナver",
+   "fields": {
+    "title_kana": "せぶんでいずあうぃーく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week徳川まつりver",
+   "fields": {
+    "title_kana": "せぶんでいずあうぃーく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week我那覇響ver",
+   "fields": {
+    "title_kana": "せぶんでいずあうぃーく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week所恵美ver",
+   "fields": {
+    "title_kana": "せぶんでいずあうぃーく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week星井美希ver",
+   "fields": {
+    "title_kana": "せぶんでいずあうぃーく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week春日未来ver",
+   "fields": {
+    "title_kana": "せぶんでいずあうぃーく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week最上静香ver",
+   "fields": {
+    "title_kana": "せぶんでいずあうぃーく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week望月杏奈ver",
+   "fields": {
+    "title_kana": "せぶんでいずあうぃーく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week木下ひなたver",
+   "fields": {
+    "title_kana": "せぶんでいずあうぃーく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week桜守歌織ver",
+   "fields": {
+    "title_kana": "せぶんでいずあうぃーく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week横山奈緒ver",
+   "fields": {
+    "title_kana": "せぶんでいずあうぃーく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week水瀬伊織ver",
+   "fields": {
+    "title_kana": "せぶんでいずあうぃーく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week永吉昴ver",
+   "fields": {
+    "title_kana": "せぶんでいずあうぃーく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week田中琴葉ver",
+   "fields": {
+    "title_kana": "せぶんでいずあうぃーく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week白石紬ver",
+   "fields": {
+    "title_kana": "せぶんでいずあうぃーく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week百瀬莉緒ver",
+   "fields": {
+    "title_kana": "せぶんでいずあうぃーく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week矢吹可奈ver",
+   "fields": {
+    "title_kana": "せぶんでいずあうぃーく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week福田のり子ver",
+   "fields": {
+    "title_kana": "せぶんでいずあうぃーく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week秋月律子ver",
+   "fields": {
+    "title_kana": "せぶんでいずあうぃーく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week箱崎星梨花ver",
+   "fields": {
+    "title_kana": "せぶんでいずあうぃーく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week篠宮可憐ver",
+   "fields": {
+    "title_kana": "せぶんでいずあうぃーく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week舞浜歩ver",
+   "fields": {
+    "title_kana": "せぶんでいずあうぃーく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week菊地真ver",
+   "fields": {
+    "title_kana": "せぶんでいずあうぃーく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week萩原雪歩ver",
+   "fields": {
+    "title_kana": "せぶんでいずあうぃーく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week豊川風花ver",
+   "fields": {
+    "title_kana": "せぶんでいずあうぃーく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week野々原茜ver",
+   "fields": {
+    "title_kana": "せぶんでいずあうぃーく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week高坂海美ver",
+   "fields": {
+    "title_kana": "せぶんでいずあうぃーく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week高槻やよいver",
+   "fields": {
+    "title_kana": "せぶんでいずあうぃーく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7daysaweek北上麗花ver",
+   "fields": {
+    "title_kana": "せぶんでいずあうぃーく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7daysaweek松田亜利沙ver",
+   "fields": {
+    "title_kana": "せぶんでいずあうぃーく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7daysaweek真壁瑞希ver",
+   "fields": {
+    "title_kana": "せぶんでいずあうぃーく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7daysaweek馬場このみver",
+   "fields": {
+    "title_kana": "せぶんでいずあうぃーく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7daysaweek高山紗代子ver",
+   "fields": {
+    "title_kana": "せぶんでいずあうぃーく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_arrive_you_それが運命でも",
+   "fields": {
+    "title_kana": "あらいぶゆーそれがうんめいでも"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_clovers_cry_神と神降ろしの少女",
+   "fields": {
+    "title_kana": "くろーばーずくらいかみとかみおろしのしょうじょ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_criminally_dinner_正餐とイーヴルナイフ",
+   "fields": {
+    "title_kana": "くりみなりーでぃなーせいさんといーゔるないふ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing七尾百合子ver",
+   "fields": {
+    "title_kana": "くろっしんぐ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing三浦あずさver",
+   "fields": {
+    "title_kana": "くろっしんぐ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing中谷育ver",
+   "fields": {
+    "title_kana": "くろっしんぐ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing二階堂千鶴ver",
+   "fields": {
+    "title_kana": "くろっしんぐ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing伊吹翼ver",
+   "fields": {
+    "title_kana": "くろっしんぐ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing佐竹美奈子ver",
+   "fields": {
+    "title_kana": "くろっしんぐ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing北上麗花ver",
+   "fields": {
+    "title_kana": "くろっしんぐ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing北沢志保ver",
+   "fields": {
+    "title_kana": "くろっしんぐ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing双海亜美ver",
+   "fields": {
+    "title_kana": "くろっしんぐ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing双海真美ver",
+   "fields": {
+    "title_kana": "くろっしんぐ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing周防桃子ver",
+   "fields": {
+    "title_kana": "くろっしんぐ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing四条貴音ver",
+   "fields": {
+    "title_kana": "くろっしんぐ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing大神環ver",
+   "fields": {
+    "title_kana": "くろっしんぐ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing天海春香ver",
+   "fields": {
+    "title_kana": "くろっしんぐ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing天空橋朋花ver",
+   "fields": {
+    "title_kana": "くろっしんぐ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing如月千早ver",
+   "fields": {
+    "title_kana": "くろっしんぐ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing宮尾美也ver",
+   "fields": {
+    "title_kana": "くろっしんぐ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing島原エレナver",
+   "fields": {
+    "title_kana": "くろっしんぐ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing徳川まつりver",
+   "fields": {
+    "title_kana": "くろっしんぐ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing我那覇響ver",
+   "fields": {
+    "title_kana": "くろっしんぐ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing所恵美ver",
+   "fields": {
+    "title_kana": "くろっしんぐ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing星井美希ver",
+   "fields": {
+    "title_kana": "くろっしんぐ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing春日未来ver",
+   "fields": {
+    "title_kana": "くろっしんぐ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing最上静香ver",
+   "fields": {
+    "title_kana": "くろっしんぐ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing望月杏奈ver",
+   "fields": {
+    "title_kana": "くろっしんぐ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing木下ひなたver",
+   "fields": {
+    "title_kana": "くろっしんぐ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing松田亜利沙ver",
+   "fields": {
+    "title_kana": "くろっしんぐ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing桜守歌織ver",
+   "fields": {
+    "title_kana": "くろっしんぐ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing横山奈緒ver",
+   "fields": {
+    "title_kana": "くろっしんぐ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing水瀬伊織ver",
+   "fields": {
+    "title_kana": "くろっしんぐ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing永吉昴ver",
+   "fields": {
+    "title_kana": "くろっしんぐ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing田中琴葉ver",
+   "fields": {
+    "title_kana": "くろっしんぐ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing白石紬ver",
+   "fields": {
+    "title_kana": "くろっしんぐ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing百瀬莉緒ver",
+   "fields": {
+    "title_kana": "くろっしんぐ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing真壁瑞希ver",
+   "fields": {
+    "title_kana": "くろっしんぐ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing矢吹可奈ver",
+   "fields": {
+    "title_kana": "くろっしんぐ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing福田のり子ver",
+   "fields": {
+    "title_kana": "くろっしんぐ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing秋月律子ver",
+   "fields": {
+    "title_kana": "くろっしんぐ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing箱崎星梨花ver",
+   "fields": {
+    "title_kana": "くろっしんぐ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing篠宮可憐ver",
+   "fields": {
+    "title_kana": "くろっしんぐ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing舞浜歩ver",
+   "fields": {
+    "title_kana": "くろっしんぐ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing菊地真ver",
+   "fields": {
+    "title_kana": "くろっしんぐ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing萩原雪歩ver",
+   "fields": {
+    "title_kana": "くろっしんぐ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing豊川風花ver",
+   "fields": {
+    "title_kana": "くろっしんぐ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing野々原茜ver",
+   "fields": {
+    "title_kana": "くろっしんぐ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing馬場このみver",
+   "fields": {
+    "title_kana": "くろっしんぐ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing高坂海美ver",
+   "fields": {
+    "title_kana": "くろっしんぐ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing高山紗代子ver",
+   "fields": {
+    "title_kana": "くろっしんぐ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing高槻やよいver",
+   "fields": {
+    "title_kana": "くろっしんぐ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_diamond_joker_世駆志威聖殉覇ver",
+   "fields": {
+    "title_kana": "だいやもんどじょーかー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_do_the_idol_断崖絶壁チュパカブラ",
+   "fields": {
+    "title_kana": "どぅーじあいどるだんがいぜっぺきちゅぱかぶら"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_do_the_idol_謹賀新年リミックス",
+   "fields": {
+    "title_kana": "どぅーじあいどるきんがしんねんりみっくす"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_fairy_daysは絶え間ない",
+   "fields": {
+    "title_kana": "ふぇありーでいずはたえまない"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers七尾百合子ver",
+   "fields": {
+    "title_kana": "ふらいやーず"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers三浦あずさver",
+   "fields": {
+    "title_kana": "ふらいやーず"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers中谷育ver",
+   "fields": {
+    "title_kana": "ふらいやーず"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers二階堂千鶴ver",
+   "fields": {
+    "title_kana": "ふらいやーず"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers伊吹翼ver",
+   "fields": {
+    "title_kana": "ふらいやーず"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers佐竹美奈子ver",
+   "fields": {
+    "title_kana": "ふらいやーず"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers北上麗花ver",
+   "fields": {
+    "title_kana": "ふらいやーず"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers北沢志保ver",
+   "fields": {
+    "title_kana": "ふらいやーず"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers双海亜美ver",
+   "fields": {
+    "title_kana": "ふらいやーず"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers双海真美ver",
+   "fields": {
+    "title_kana": "ふらいやーず"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers周防桃子ver",
+   "fields": {
+    "title_kana": "ふらいやーず"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers四条貴音ver",
+   "fields": {
+    "title_kana": "ふらいやーず"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers大神環ver",
+   "fields": {
+    "title_kana": "ふらいやーず"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers天海春香ver",
+   "fields": {
+    "title_kana": "ふらいやーず"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers天空橋朋花ver",
+   "fields": {
+    "title_kana": "ふらいやーず"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers如月千早ver",
+   "fields": {
+    "title_kana": "ふらいやーず"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers宮尾美也ver",
+   "fields": {
+    "title_kana": "ふらいやーず"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers島原エレナver",
+   "fields": {
+    "title_kana": "ふらいやーず"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers徳川まつりver",
+   "fields": {
+    "title_kana": "ふらいやーず"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers我那覇響ver",
+   "fields": {
+    "title_kana": "ふらいやーず"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers所恵美ver",
+   "fields": {
+    "title_kana": "ふらいやーず"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers星井美希ver",
+   "fields": {
+    "title_kana": "ふらいやーず"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers春日未来ver",
+   "fields": {
+    "title_kana": "ふらいやーず"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers最上静香ver",
+   "fields": {
+    "title_kana": "ふらいやーず"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers望月杏奈ver",
+   "fields": {
+    "title_kana": "ふらいやーず"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers木下ひなたver",
+   "fields": {
+    "title_kana": "ふらいやーず"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers松田亜利沙ver",
+   "fields": {
+    "title_kana": "ふらいやーず"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers桜守歌織ver",
+   "fields": {
+    "title_kana": "ふらいやーず"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers横山奈緒ver",
+   "fields": {
+    "title_kana": "ふらいやーず"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers水瀬伊織ver",
+   "fields": {
+    "title_kana": "ふらいやーず"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers永吉昴ver",
+   "fields": {
+    "title_kana": "ふらいやーず"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers田中琴葉ver",
+   "fields": {
+    "title_kana": "ふらいやーず"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers白石紬ver",
+   "fields": {
+    "title_kana": "ふらいやーず"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers百瀬莉緒ver",
+   "fields": {
+    "title_kana": "ふらいやーず"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers真壁瑞希ver",
+   "fields": {
+    "title_kana": "ふらいやーず"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers矢吹可奈ver",
+   "fields": {
+    "title_kana": "ふらいやーず"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers福田のり子ver",
+   "fields": {
+    "title_kana": "ふらいやーず"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers秋月律子ver",
+   "fields": {
+    "title_kana": "ふらいやーず"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers箱崎星梨花ver",
+   "fields": {
+    "title_kana": "ふらいやーず"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers篠宮可憐ver",
+   "fields": {
+    "title_kana": "ふらいやーず"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers舞浜歩ver",
+   "fields": {
+    "title_kana": "ふらいやーず"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers菊地真ver",
+   "fields": {
+    "title_kana": "ふらいやーず"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers萩原雪歩ver",
+   "fields": {
+    "title_kana": "ふらいやーず"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers豊川風花ver",
+   "fields": {
+    "title_kana": "ふらいやーず"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers野々原茜ver",
+   "fields": {
+    "title_kana": "ふらいやーず"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers馬場このみver",
+   "fields": {
+    "title_kana": "ふらいやーず"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers高坂海美ver",
+   "fields": {
+    "title_kana": "ふらいやーず"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers高山紗代子ver",
+   "fields": {
+    "title_kana": "ふらいやーず"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers高槻やよいver",
+   "fields": {
+    "title_kana": "ふらいやーず"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map七尾百合子ver",
+   "fields": {
+    "title_kana": "ぐろうまっぷ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map三浦あずさver",
+   "fields": {
+    "title_kana": "ぐろうまっぷ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map中谷育ver",
+   "fields": {
+    "title_kana": "ぐろうまっぷ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map二階堂千鶴ver",
+   "fields": {
+    "title_kana": "ぐろうまっぷ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map伊吹翼ver",
+   "fields": {
+    "title_kana": "ぐろうまっぷ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map佐竹美奈子ver",
+   "fields": {
+    "title_kana": "ぐろうまっぷ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map北沢志保ver",
+   "fields": {
+    "title_kana": "ぐろうまっぷ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map双海亜美ver",
+   "fields": {
+    "title_kana": "ぐろうまっぷ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map双海真美ver",
+   "fields": {
+    "title_kana": "ぐろうまっぷ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map周防桃子ver",
+   "fields": {
+    "title_kana": "ぐろうまっぷ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map四条貴音ver",
+   "fields": {
+    "title_kana": "ぐろうまっぷ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map大神環ver",
+   "fields": {
+    "title_kana": "ぐろうまっぷ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map天海春香ver",
+   "fields": {
+    "title_kana": "ぐろうまっぷ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map天空橋朋花ver",
+   "fields": {
+    "title_kana": "ぐろうまっぷ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map宮尾美也ver",
+   "fields": {
+    "title_kana": "ぐろうまっぷ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map島原エレナver",
+   "fields": {
+    "title_kana": "ぐろうまっぷ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map徳川まつりver",
+   "fields": {
+    "title_kana": "ぐろうまっぷ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map我那覇響ver",
+   "fields": {
+    "title_kana": "ぐろうまっぷ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map所恵美ver",
+   "fields": {
+    "title_kana": "ぐろうまっぷ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map星井美希ver",
+   "fields": {
+    "title_kana": "ぐろうまっぷ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map春日未来ver",
+   "fields": {
+    "title_kana": "ぐろうまっぷ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map最上静香ver",
+   "fields": {
+    "title_kana": "ぐろうまっぷ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map木下ひなたver",
+   "fields": {
+    "title_kana": "ぐろうまっぷ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map松田亜利沙ver",
+   "fields": {
+    "title_kana": "ぐろうまっぷ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map横山奈緒ver",
+   "fields": {
+    "title_kana": "ぐろうまっぷ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map水瀬伊織ver",
+   "fields": {
+    "title_kana": "ぐろうまっぷ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map永吉昴ver",
+   "fields": {
+    "title_kana": "ぐろうまっぷ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map田中琴葉ver",
+   "fields": {
+    "title_kana": "ぐろうまっぷ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map白石紬ver",
+   "fields": {
+    "title_kana": "ぐろうまっぷ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map百瀬莉緒ver",
+   "fields": {
+    "title_kana": "ぐろうまっぷ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map矢吹可奈ver",
+   "fields": {
+    "title_kana": "ぐろうまっぷ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map福田のり子ver",
+   "fields": {
+    "title_kana": "ぐろうまっぷ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map秋月律子ver",
+   "fields": {
+    "title_kana": "ぐろうまっぷ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map箱崎星梨花ver",
+   "fields": {
+    "title_kana": "ぐろうまっぷ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map篠宮可憐ver",
+   "fields": {
+    "title_kana": "ぐろうまっぷ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map舞浜歩ver",
+   "fields": {
+    "title_kana": "ぐろうまっぷ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map菊地真ver",
+   "fields": {
+    "title_kana": "ぐろうまっぷ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map萩原雪歩ver",
+   "fields": {
+    "title_kana": "ぐろうまっぷ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map豊川風花ver",
+   "fields": {
+    "title_kana": "ぐろうまっぷ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map野々原茜ver",
+   "fields": {
+    "title_kana": "ぐろうまっぷ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map高坂海美ver",
+   "fields": {
+    "title_kana": "ぐろうまっぷ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map高槻やよいver",
+   "fields": {
+    "title_kana": "ぐろうまっぷ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glowmap北上麗花ver",
+   "fields": {
+    "title_kana": "ぐろうまっぷ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glowmap如月千早ver",
+   "fields": {
+    "title_kana": "ぐろうまっぷ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glowmap望月杏奈ver",
+   "fields": {
+    "title_kana": "ぐろうまっぷ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glowmap桜守歌織ver",
+   "fields": {
+    "title_kana": "ぐろうまっぷ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glowmap真壁瑞希ver",
+   "fields": {
+    "title_kana": "ぐろうまっぷ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glowmap馬場このみver",
+   "fields": {
+    "title_kana": "ぐろうまっぷ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glowmap高山紗代子ver",
+   "fields": {
+    "title_kana": "ぐろうまっぷ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony4you北上麗花ver",
+   "fields": {
+    "title_kana": "はーもにーふぉーゆー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony4you如月千早ver",
+   "fields": {
+    "title_kana": "はーもにーふぉーゆー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony4you桜守歌織ver",
+   "fields": {
+    "title_kana": "はーもにーふぉーゆー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony4you真壁瑞希ver",
+   "fields": {
+    "title_kana": "はーもにーふぉーゆー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony4you馬場このみver",
+   "fields": {
+    "title_kana": "はーもにーふぉーゆー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony4you高山紗代子ver",
+   "fields": {
+    "title_kana": "はーもにーふぉーゆー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you七尾百合子ver",
+   "fields": {
+    "title_kana": "はーもにーふぉーゆー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you三浦あずさver",
+   "fields": {
+    "title_kana": "はーもにーふぉーゆー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you中谷育ver",
+   "fields": {
+    "title_kana": "はーもにーふぉーゆー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you二階堂千鶴ver",
+   "fields": {
+    "title_kana": "はーもにーふぉーゆー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you伊吹翼ver",
+   "fields": {
+    "title_kana": "はーもにーふぉーゆー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you佐竹美奈子ver",
+   "fields": {
+    "title_kana": "はーもにーふぉーゆー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you北沢志保ver",
+   "fields": {
+    "title_kana": "はーもにーふぉーゆー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you双海亜美ver",
+   "fields": {
+    "title_kana": "はーもにーふぉーゆー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you双海真美ver",
+   "fields": {
+    "title_kana": "はーもにーふぉーゆー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you周防桃子ver",
+   "fields": {
+    "title_kana": "はーもにーふぉーゆー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you四条貴音ver",
+   "fields": {
+    "title_kana": "はーもにーふぉーゆー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you大神環ver",
+   "fields": {
+    "title_kana": "はーもにーふぉーゆー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you天海春香ver",
+   "fields": {
+    "title_kana": "はーもにーふぉーゆー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you天空橋朋花ver",
+   "fields": {
+    "title_kana": "はーもにーふぉーゆー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you宮尾美也ver",
+   "fields": {
+    "title_kana": "はーもにーふぉーゆー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you島原エレナver",
+   "fields": {
+    "title_kana": "はーもにーふぉーゆー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you徳川まつりver",
+   "fields": {
+    "title_kana": "はーもにーふぉーゆー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you我那覇響ver",
+   "fields": {
+    "title_kana": "はーもにーふぉーゆー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you所恵美ver",
+   "fields": {
+    "title_kana": "はーもにーふぉーゆー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you星井美希ver",
+   "fields": {
+    "title_kana": "はーもにーふぉーゆー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you春日未来ver",
+   "fields": {
+    "title_kana": "はーもにーふぉーゆー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you最上静香ver",
+   "fields": {
+    "title_kana": "はーもにーふぉーゆー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you望月杏奈ver",
+   "fields": {
+    "title_kana": "はーもにーふぉーゆー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you木下ひなたver",
+   "fields": {
+    "title_kana": "はーもにーふぉーゆー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you松田亜利沙ver",
+   "fields": {
+    "title_kana": "はーもにーふぉーゆー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you横山奈緒ver",
+   "fields": {
+    "title_kana": "はーもにーふぉーゆー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you水瀬伊織ver",
+   "fields": {
+    "title_kana": "はーもにーふぉーゆー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you永吉昴ver",
+   "fields": {
+    "title_kana": "はーもにーふぉーゆー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you田中琴葉ver",
+   "fields": {
+    "title_kana": "はーもにーふぉーゆー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you白石紬ver",
+   "fields": {
+    "title_kana": "はーもにーふぉーゆー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you百瀬莉緒ver",
+   "fields": {
+    "title_kana": "はーもにーふぉーゆー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you矢吹可奈ver",
+   "fields": {
+    "title_kana": "はーもにーふぉーゆー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you福田のり子ver",
+   "fields": {
+    "title_kana": "はーもにーふぉーゆー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you秋月律子ver",
+   "fields": {
+    "title_kana": "はーもにーふぉーゆー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you箱崎星梨花ver",
+   "fields": {
+    "title_kana": "はーもにーふぉーゆー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you篠宮可憐ver",
+   "fields": {
+    "title_kana": "はーもにーふぉーゆー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you舞浜歩ver",
+   "fields": {
+    "title_kana": "はーもにーふぉーゆー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you菊地真ver",
+   "fields": {
+    "title_kana": "はーもにーふぉーゆー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you萩原雪歩ver",
+   "fields": {
+    "title_kana": "はーもにーふぉーゆー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you豊川風花ver",
+   "fields": {
+    "title_kana": "はーもにーふぉーゆー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you野々原茜ver",
+   "fields": {
+    "title_kana": "はーもにーふぉーゆー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you高坂海美ver",
+   "fields": {
+    "title_kana": "はーもにーふぉーゆー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you高槻やよいver",
+   "fields": {
+    "title_kana": "はーもにーふぉーゆー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union七尾百合子ver",
+   "fields": {
+    "title_kana": "ゆにおん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union三浦あずさver",
+   "fields": {
+    "title_kana": "ゆにおん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union中谷育ver",
+   "fields": {
+    "title_kana": "ゆにおん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union二階堂千鶴ver",
+   "fields": {
+    "title_kana": "ゆにおん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union伊吹翼ver",
+   "fields": {
+    "title_kana": "ゆにおん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union佐竹美奈子ver",
+   "fields": {
+    "title_kana": "ゆにおん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union北上麗花ver",
+   "fields": {
+    "title_kana": "ゆにおん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union北沢志保ver",
+   "fields": {
+    "title_kana": "ゆにおん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union双海亜美ver",
+   "fields": {
+    "title_kana": "ゆにおん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union双海真美ver",
+   "fields": {
+    "title_kana": "ゆにおん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union周防桃子ver",
+   "fields": {
+    "title_kana": "ゆにおん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union四条貴音ver",
+   "fields": {
+    "title_kana": "ゆにおん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union大神環ver",
+   "fields": {
+    "title_kana": "ゆにおん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union天海春香ver",
+   "fields": {
+    "title_kana": "ゆにおん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union天空橋朋花ver",
+   "fields": {
+    "title_kana": "ゆにおん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union如月千早ver",
+   "fields": {
+    "title_kana": "ゆにおん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union宮尾美也ver",
+   "fields": {
+    "title_kana": "ゆにおん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union島原エレナver",
+   "fields": {
+    "title_kana": "ゆにおん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union徳川まつりver",
+   "fields": {
+    "title_kana": "ゆにおん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union我那覇響ver",
+   "fields": {
+    "title_kana": "ゆにおん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union所恵美ver",
+   "fields": {
+    "title_kana": "ゆにおん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union星井美希ver",
+   "fields": {
+    "title_kana": "ゆにおん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union春日未来ver",
+   "fields": {
+    "title_kana": "ゆにおん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union最上静香ver",
+   "fields": {
+    "title_kana": "ゆにおん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union望月杏奈ver",
+   "fields": {
+    "title_kana": "ゆにおん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union木下ひなたver",
+   "fields": {
+    "title_kana": "ゆにおん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union松田亜利沙ver",
+   "fields": {
+    "title_kana": "ゆにおん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union桜守歌織ver",
+   "fields": {
+    "title_kana": "ゆにおん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union横山奈緒ver",
+   "fields": {
+    "title_kana": "ゆにおん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union水瀬伊織ver",
+   "fields": {
+    "title_kana": "ゆにおん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union永吉昴ver",
+   "fields": {
+    "title_kana": "ゆにおん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union田中琴葉ver",
+   "fields": {
+    "title_kana": "ゆにおん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union白石紬ver",
+   "fields": {
+    "title_kana": "ゆにおん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union百瀬莉緒ver",
+   "fields": {
+    "title_kana": "ゆにおん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union真壁瑞希ver",
+   "fields": {
+    "title_kana": "ゆにおん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union矢吹可奈ver",
+   "fields": {
+    "title_kana": "ゆにおん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union福田のり子ver",
+   "fields": {
+    "title_kana": "ゆにおん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union秋月律子ver",
+   "fields": {
+    "title_kana": "ゆにおん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union箱崎星梨花ver",
+   "fields": {
+    "title_kana": "ゆにおん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union篠宮可憐ver",
+   "fields": {
+    "title_kana": "ゆにおん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union舞浜歩ver",
+   "fields": {
+    "title_kana": "ゆにおん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union菊地真ver",
+   "fields": {
+    "title_kana": "ゆにおん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union萩原雪歩ver",
+   "fields": {
+    "title_kana": "ゆにおん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union豊川風花ver",
+   "fields": {
+    "title_kana": "ゆにおん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union野々原茜ver",
+   "fields": {
+    "title_kana": "ゆにおん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union馬場このみver",
+   "fields": {
+    "title_kana": "ゆにおん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union高坂海美ver",
+   "fields": {
+    "title_kana": "ゆにおん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union高山紗代子ver",
+   "fields": {
+    "title_kana": "ゆにおん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union高槻やよいver",
+   "fields": {
+    "title_kana": "ゆにおん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_unknown_boxの開き方",
+   "fields": {
+    "title_kana": "あんのうんぼっくすのひらきかた"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_きみがくれた言葉があるから",
+   "fields": {
+    "title_kana": "きみがくれたことばがあるから"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_さかしまの言葉",
+   "fields": {
+    "title_kana": "さかしまのことば"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_たんけんぼうけんハイホー隊",
+   "fields": {
+    "title_kana": "たんけんぼうけんはいほーたい"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_ふたり繋ぐ星座",
+   "fields": {
+    "title_kana": "ふたりつなぐせいざ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_わたしは花あなたは太陽",
+   "fields": {
+    "title_kana": "わたしははなあなたはたいよう"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_アイドルはかく語りき",
+   "fields": {
+    "title_kana": "あいどるはかくかたりき"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_アロー彗星",
+   "fields": {
+    "title_kana": "あろーすいせい"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_キミが真ん中にいた",
+   "fields": {
+    "title_kana": "きみがまんなかにいた"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン七尾百合子ver",
+   "fields": {
+    "title_kana": "ぐっどさいん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン三浦あずさver",
+   "fields": {
+    "title_kana": "ぐっどさいん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン中谷育ver",
+   "fields": {
+    "title_kana": "ぐっどさいん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン二階堂千鶴ver",
+   "fields": {
+    "title_kana": "ぐっどさいん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン伊吹翼ver",
+   "fields": {
+    "title_kana": "ぐっどさいん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン佐竹美奈子ver",
+   "fields": {
+    "title_kana": "ぐっどさいん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン北上麗花ver",
+   "fields": {
+    "title_kana": "ぐっどさいん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン北沢志保ver",
+   "fields": {
+    "title_kana": "ぐっどさいん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン双海亜美ver",
+   "fields": {
+    "title_kana": "ぐっどさいん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン双海真美ver",
+   "fields": {
+    "title_kana": "ぐっどさいん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン周防桃子ver",
+   "fields": {
+    "title_kana": "ぐっどさいん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン四条貴音ver",
+   "fields": {
+    "title_kana": "ぐっどさいん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン大神環ver",
+   "fields": {
+    "title_kana": "ぐっどさいん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン天海春香ver",
+   "fields": {
+    "title_kana": "ぐっどさいん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン天空橋朋花ver",
+   "fields": {
+    "title_kana": "ぐっどさいん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン如月千早ver",
+   "fields": {
+    "title_kana": "ぐっどさいん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン宮尾美也ver",
+   "fields": {
+    "title_kana": "ぐっどさいん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン島原エレナver",
+   "fields": {
+    "title_kana": "ぐっどさいん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン徳川まつりver",
+   "fields": {
+    "title_kana": "ぐっどさいん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン我那覇響ver",
+   "fields": {
+    "title_kana": "ぐっどさいん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン所恵美ver",
+   "fields": {
+    "title_kana": "ぐっどさいん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン星井美希ver",
+   "fields": {
+    "title_kana": "ぐっどさいん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン春日未来ver",
+   "fields": {
+    "title_kana": "ぐっどさいん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン最上静香ver",
+   "fields": {
+    "title_kana": "ぐっどさいん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン望月杏奈ver",
+   "fields": {
+    "title_kana": "ぐっどさいん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン木下ひなたver",
+   "fields": {
+    "title_kana": "ぐっどさいん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン松田亜利沙ver",
+   "fields": {
+    "title_kana": "ぐっどさいん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン桜守歌織ver",
+   "fields": {
+    "title_kana": "ぐっどさいん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン横山奈緒ver",
+   "fields": {
+    "title_kana": "ぐっどさいん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン水瀬伊織ver",
+   "fields": {
+    "title_kana": "ぐっどさいん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン永吉昴ver",
+   "fields": {
+    "title_kana": "ぐっどさいん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン田中琴葉ver",
+   "fields": {
+    "title_kana": "ぐっどさいん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン白石紬ver",
+   "fields": {
+    "title_kana": "ぐっどさいん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン百瀬莉緒ver",
+   "fields": {
+    "title_kana": "ぐっどさいん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン真壁瑞希ver",
+   "fields": {
+    "title_kana": "ぐっどさいん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン矢吹可奈ver",
+   "fields": {
+    "title_kana": "ぐっどさいん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン福田のり子ver",
+   "fields": {
+    "title_kana": "ぐっどさいん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン秋月律子ver",
+   "fields": {
+    "title_kana": "ぐっどさいん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン箱崎星梨花ver",
+   "fields": {
+    "title_kana": "ぐっどさいん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン篠宮可憐ver",
+   "fields": {
+    "title_kana": "ぐっどさいん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン舞浜歩ver",
+   "fields": {
+    "title_kana": "ぐっどさいん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン菊地真ver",
+   "fields": {
+    "title_kana": "ぐっどさいん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン萩原雪歩ver",
+   "fields": {
+    "title_kana": "ぐっどさいん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン豊川風花ver",
+   "fields": {
+    "title_kana": "ぐっどさいん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン野々原茜ver",
+   "fields": {
+    "title_kana": "ぐっどさいん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン馬場このみver",
+   "fields": {
+    "title_kana": "ぐっどさいん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン高坂海美ver",
+   "fields": {
+    "title_kana": "ぐっどさいん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン高山紗代子ver",
+   "fields": {
+    "title_kana": "ぐっどさいん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン高槻やよいver",
+   "fields": {
+    "title_kana": "ぐっどさいん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_シークレットジュエル_魅惑の金剛石",
+   "fields": {
+    "title_kana": "しーくれっとじゅえるみわくのこんごうせき"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_ドレスコード最上級",
+   "fields": {
+    "title_kana": "どれすこーどさいじょうきゅう"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_ハルマチ女子",
+   "fields": {
+    "title_kana": "はるまちじょし"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_プルメリアの花",
+   "fields": {
+    "title_kana": "ぷるめりあのはな"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_ミスティックセレモニーへの招待状",
+   "fields": {
+    "title_kana": "みすてぃっくせれもにーへのしょうたいじょう"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_ワールドアスレチックcook-king_勝者必食スポ食の秋",
+   "fields": {
+    "title_kana": "わーるどあすれちっくくっきんぐ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_不思議発見ラボ",
+   "fields": {
+    "title_kana": "ふしぎはっけんらぼ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_交わる季節",
+   "fields": {
+    "title_kana": "まじわるきせつ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_勇気のfragrance",
+   "fields": {
+    "title_kana": "ゆうきのふれぐらんす"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_君と同じ物語",
+   "fields": {
+    "title_kana": "きみとおなじものがたり"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_君に映るポートレイト",
+   "fields": {
+    "title_kana": "きみにうつるぽーとれいと"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_咲くは浮世の君花火",
+   "fields": {
+    "title_kana": "さくはうきよのきみはなび"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_唸れミリオンアーマー",
+   "fields": {
+    "title_kana": "うなれみりおんあーまー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_囚われのteatime",
+   "fields": {
+    "title_kana": "とらわれのてぃーたいむ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夜と明かりと",
+   "fields": {
+    "title_kana": "よるとあかりと"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow",
+   "fields": {
+    "title_kana": "ゆめにかけるれいんぼー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow_brandnewver",
+   "fields": {
+    "title_kana": "ゆめにかけるれいんぼー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow_エンジェルスターズver",
+   "fields": {
+    "title_kana": "ゆめにかけるれいんぼー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow_フェアリースターズver",
+   "fields": {
+    "title_kana": "ゆめにかけるれいんぼー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow_プリンセススターズver",
+   "fields": {
+    "title_kana": "ゆめにかけるれいんぼー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbowエミリースチュアートver",
+   "fields": {
+    "title_kana": "ゆめにかけるれいんぼー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbowジュリアver",
+   "fields": {
+    "title_kana": "ゆめにかけるれいんぼー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbowロコver",
+   "fields": {
+    "title_kana": "ゆめにかけるれいんぼー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow七尾百合子ver",
+   "fields": {
+    "title_kana": "ゆめにかけるれいんぼー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow三浦あずさver",
+   "fields": {
+    "title_kana": "ゆめにかけるれいんぼー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow中谷育ver",
+   "fields": {
+    "title_kana": "ゆめにかけるれいんぼー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow二階堂千鶴ver",
+   "fields": {
+    "title_kana": "ゆめにかけるれいんぼー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow伊吹翼ver",
+   "fields": {
+    "title_kana": "ゆめにかけるれいんぼー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow佐竹美奈子ver",
+   "fields": {
+    "title_kana": "ゆめにかけるれいんぼー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow北上麗花ver",
+   "fields": {
+    "title_kana": "ゆめにかけるれいんぼー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow北沢志保ver",
+   "fields": {
+    "title_kana": "ゆめにかけるれいんぼー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow双海亜美ver",
+   "fields": {
+    "title_kana": "ゆめにかけるれいんぼー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow双海真美ver",
+   "fields": {
+    "title_kana": "ゆめにかけるれいんぼー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow周防桃子ver",
+   "fields": {
+    "title_kana": "ゆめにかけるれいんぼー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow四条貴音ver",
+   "fields": {
+    "title_kana": "ゆめにかけるれいんぼー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow大神環ver",
+   "fields": {
+    "title_kana": "ゆめにかけるれいんぼー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow天海春香ver",
+   "fields": {
+    "title_kana": "ゆめにかけるれいんぼー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow天空橋朋花ver",
+   "fields": {
+    "title_kana": "ゆめにかけるれいんぼー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow如月千早ver",
+   "fields": {
+    "title_kana": "ゆめにかけるれいんぼー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow宮尾美也ver",
+   "fields": {
+    "title_kana": "ゆめにかけるれいんぼー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow島原エレナver",
+   "fields": {
+    "title_kana": "ゆめにかけるれいんぼー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow徳川まつりver",
+   "fields": {
+    "title_kana": "ゆめにかけるれいんぼー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow我那覇響ver",
+   "fields": {
+    "title_kana": "ゆめにかけるれいんぼー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow所恵美ver",
+   "fields": {
+    "title_kana": "ゆめにかけるれいんぼー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow星井美希ver",
+   "fields": {
+    "title_kana": "ゆめにかけるれいんぼー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow春日未来ver",
+   "fields": {
+    "title_kana": "ゆめにかけるれいんぼー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow最上静香ver",
+   "fields": {
+    "title_kana": "ゆめにかけるれいんぼー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow望月杏奈ver",
+   "fields": {
+    "title_kana": "ゆめにかけるれいんぼー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow木下ひなたver",
+   "fields": {
+    "title_kana": "ゆめにかけるれいんぼー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow松田亜利沙ver",
+   "fields": {
+    "title_kana": "ゆめにかけるれいんぼー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow桜守歌織ver",
+   "fields": {
+    "title_kana": "ゆめにかけるれいんぼー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow横山奈緒ver",
+   "fields": {
+    "title_kana": "ゆめにかけるれいんぼー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow水瀬伊織ver",
+   "fields": {
+    "title_kana": "ゆめにかけるれいんぼー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow永吉昴ver",
+   "fields": {
+    "title_kana": "ゆめにかけるれいんぼー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow田中琴葉ver",
+   "fields": {
+    "title_kana": "ゆめにかけるれいんぼー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow白石紬ver",
+   "fields": {
+    "title_kana": "ゆめにかけるれいんぼー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow百瀬莉緒ver",
+   "fields": {
+    "title_kana": "ゆめにかけるれいんぼー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow真壁瑞希ver",
+   "fields": {
+    "title_kana": "ゆめにかけるれいんぼー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow矢吹可奈ver",
+   "fields": {
+    "title_kana": "ゆめにかけるれいんぼー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow福田のり子ver",
+   "fields": {
+    "title_kana": "ゆめにかけるれいんぼー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow秋月律子ver",
+   "fields": {
+    "title_kana": "ゆめにかけるれいんぼー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow箱崎星梨花ver",
+   "fields": {
+    "title_kana": "ゆめにかけるれいんぼー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow篠宮可憐ver",
+   "fields": {
+    "title_kana": "ゆめにかけるれいんぼー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow舞浜歩ver",
+   "fields": {
+    "title_kana": "ゆめにかけるれいんぼー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow菊地真ver",
+   "fields": {
+    "title_kana": "ゆめにかけるれいんぼー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow萩原雪歩ver",
+   "fields": {
+    "title_kana": "ゆめにかけるれいんぼー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow豊川風花ver",
+   "fields": {
+    "title_kana": "ゆめにかけるれいんぼー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow野々原茜ver",
+   "fields": {
+    "title_kana": "ゆめにかけるれいんぼー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow馬場このみver",
+   "fields": {
+    "title_kana": "ゆめにかけるれいんぼー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow高坂海美ver",
+   "fields": {
+    "title_kana": "ゆめにかけるれいんぼー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow高山紗代子ver",
+   "fields": {
+    "title_kana": "ゆめにかけるれいんぼー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow高槻やよいver",
+   "fields": {
+    "title_kana": "ゆめにかけるれいんぼー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢みがちbride",
+   "fields": {
+    "title_kana": "ゆめみがちぶらいど"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_彼氏になってよ",
+   "fields": {
+    "title_kana": "かれしになってよ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_恋のwawon",
+   "fields": {
+    "title_kana": "こいのわをん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_想い出はクリアスカイ",
+   "fields": {
+    "title_kana": "おもいではくりあすかい"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_愛のmagic_once_again",
+   "fields": {
+    "title_kana": "あいのまじっくわんすあげいん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_愛の旋律",
+   "fields": {
+    "title_kana": "あいのせんりつ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_折紙物語",
+   "fields": {
+    "title_kana": "おりがみものがたり"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_推しってほんと",
+   "fields": {
+    "title_kana": "おしってほんと"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_教えてlast_note",
+   "fields": {
+    "title_kana": "おしえてらすとのーと"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_旅立ちのコンパス",
+   "fields": {
+    "title_kana": "たびだちのこんぱす"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_昏き星遠い月",
+   "fields": {
+    "title_kana": "くらきほしとおいつき"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_星宙のvoyage",
+   "fields": {
+    "title_kana": "せいちゅうのゔぉやーじゅ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_春風満帆スターティング",
+   "fields": {
+    "title_kana": "しゅんぷうまんぱんすたーてぃんぐ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_月曜日のクリームソーダ",
+   "fields": {
+    "title_kana": "げつようびのくりーむそーだ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_未完成のポラリス",
+   "fields": {
+    "title_kana": "みかんせいのぽらりす"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_泣き空のち",
+   "fields": {
+    "title_kana": "なきぞらのち"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_海風とカスタネット",
+   "fields": {
+    "title_kana": "うみかぜとかすたねっと"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_涙を知ること",
+   "fields": {
+    "title_kana": "なみだをしること"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_深紅のパシオン",
+   "fields": {
+    "title_kana": "しんくのぱしおん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_産声とクラブ",
+   "fields": {
+    "title_kana": "うぶごえとくらぶ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_百花は月下に散りぬるを",
+   "fields": {
+    "title_kana": "ひゃっかはげっかにちりぬるを"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_真夏のダイヤ",
+   "fields": {
+    "title_kana": "まなつのだいや"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_矛盾の月",
+   "fields": {
+    "title_kana": "むじゅんのつき"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_稲妻スピリット",
+   "fields": {
+    "title_kana": "いなずますぴりっと"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_空に手が触れる場所",
+   "fields": {
+    "title_kana": "そらにてがふれるばしょ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_空色_birthday_card",
+   "fields": {
+    "title_kana": "そらいろばーすでーかーど"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_紙心ペン心_-_shishinpenshin_-",
+   "fields": {
+    "title_kana": "かみこころぺんこころ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_絵羽模様",
+   "fields": {
+    "title_kana": "えばもよう"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_絶対的performer",
+   "fields": {
+    "title_kana": "ぜったいてきぱふぉーまー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_美美美ビルドup",
+   "fields": {
+    "title_kana": "びびびびるどあっぷ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_聖ミリオン女学園校歌",
+   "fields": {
+    "title_kana": "せいみりおんじょがくえんこうか"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_花ざかりweekend",
+   "fields": {
+    "title_kana": "はなざかりうぃーくえんど"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_花びらメモリーズ",
+   "fields": {
+    "title_kana": "はなびらめもりーず"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_虹色letters",
+   "fields": {
+    "title_kana": "にじいろれたーず"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_蝶々むすび",
+   "fields": {
+    "title_kana": "ちょうちょむすび"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_裏表深層心理",
+   "fields": {
+    "title_kana": "うらおもてしんそうしんり"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_解夏傀儡",
+   "fields": {
+    "title_kana": "げげくぐつ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_週末だけのハーレクイン",
+   "fields": {
+    "title_kana": "しゅうまつだけのはーれくいん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_鉄の羽のエクソダス",
+   "fields": {
+    "title_kana": "てつのはねのえくそだす"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_銀のテーブル木苺ジャム",
+   "fields": {
+    "title_kana": "ぎんのてーぶるきいちごじゃむ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_電波感傷",
+   "fields": {
+    "title_kana": "でんぱかんしょう"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_電波感傷_サイキックヒーローズmyver",
+   "fields": {
+    "title_kana": "でんぱかんしょう"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_頂上決戦ヴィクトリー",
+   "fields": {
+    "title_kana": "ちょうじょうけっせんゔぃくとりー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_飛べない僕は泳いだ",
+   "fields": {
+    "title_kana": "とべないぼくはおよいだ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "ml_餞の鳥",
+   "fields": {
+    "title_kana": "はなむけのとり"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_283体操",
+   "fields": {
+    "title_kana": "にーはちさんたいそう"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_365日のストーリー",
+   "fields": {
+    "title_kana": "さんびゃくろくじゅうごにちのすとーりー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_kawaiiめたもる交響曲",
+   "fields": {
+    "title_kana": "かわいいめたもるこうきょうきょく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_kawaiiめたもる交響曲_game_size",
+   "fields": {
+    "title_kana": "かわいいめたもるこうきょうきょく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_migratory_echoes_放課後クライマックスガールズver",
+   "fields": {
+    "title_kana": "まいぐらとりーえこーず"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_ring_ring_ringの魔法",
+   "fields": {
+    "title_kana": "りんりんりんのまほう"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_tokyo自由系ガール",
+   "fields": {
+    "title_kana": "とうきょうじゆうけいがーる"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_tokyo自由系ガール_game_size",
+   "fields": {
+    "title_kana": "とうきょうじゆうけいがーる"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_あの花のように",
+   "fields": {
+    "title_kana": "あのはなのように"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_ありったけの輝きで",
+   "fields": {
+    "title_kana": "ありったけのかがやきで"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_いつだって僕らは",
+   "fields": {
+    "title_kana": "いつだってぼくらは"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_さあ舞い上がれ",
+   "fields": {
+    "title_kana": "さあまいあがれ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_とある英雄たちの物語",
+   "fields": {
+    "title_kana": "とあるえいゆうたちのものがたり"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_また明日",
+   "fields": {
+    "title_kana": "またあした"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_わたしの主人公はわたしだから",
+   "fields": {
+    "title_kana": "わたしのしゅじんこうはわたしだから"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_アスファルトを鳴らして",
+   "fields": {
+    "title_kana": "あすふぁるとをならして"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_デビ太郎のうた",
+   "fields": {
+    "title_kana": "でびたろうのうた"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_一閃は君が導く",
+   "fields": {
+    "title_kana": "いっせんはきみがみちびく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_乱舞る",
+   "fields": {
+    "title_kana": "らんぶる"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_五ツ座流星群",
+   "fields": {
+    "title_kana": "いつつざりゅうせいぐん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_今しかない瞬間を",
+   "fields": {
+    "title_kana": "いましかないしゅんかんを"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_似セ者",
+   "fields": {
+    "title_kana": "にせもの"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_僕らだけの未来の空",
+   "fields": {
+    "title_kana": "ぼくらだけのみらいのそら"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_全力アンサー",
+   "fields": {
+    "title_kana": "ぜんりょくあんさー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_千夜アリア",
+   "fields": {
+    "title_kana": "せんやありあ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_夢が夢じゃなくなるその日まで",
+   "fields": {
+    "title_kana": "ゆめがゆめじゃなくなるそのひまで"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_夢咲きafter_school",
+   "fields": {
+    "title_kana": "ゆめさきあふたーすくーる"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_夢模様キャンバス",
+   "fields": {
+    "title_kana": "ゆめもようきゃんばす"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_夢見鳥",
+   "fields": {
+    "title_kana": "ゆめみどり"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_太陽キッス",
+   "fields": {
+    "title_kana": "たいようきっす"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_学祭革命夜明け前",
+   "fields": {
+    "title_kana": "がくさいかくめいよあけまえ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_常咲の庭",
+   "fields": {
+    "title_kana": "とこさきのにわ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_平行線の美学",
+   "fields": {
+    "title_kana": "へいこうせんのびがく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_幻惑silhouette",
+   "fields": {
+    "title_kana": "げんわくしるえっと"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_快盗vを見逃すな",
+   "fields": {
+    "title_kana": "かいとうぶいをみのがすな"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_想像のつばさ",
+   "fields": {
+    "title_kana": "そうぞうのつばさ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_愚者の独白",
+   "fields": {
+    "title_kana": "ぐしゃのどくはく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_愛しき日々",
+   "fields": {
+    "title_kana": "いとしきひび"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_愛なview",
+   "fields": {
+    "title_kana": "あいなびゅー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_感謝のコントレイル",
+   "fields": {
+    "title_kana": "かんしゃのこんとれいる"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_感謝のコントレイル_game_size",
+   "fields": {
+    "title_kana": "かんしゃのこんとれいる"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_拝啓タイムカプセル",
+   "fields": {
+    "title_kana": "はいけいたいむかぷせる"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_放っておかないファイヴァーズ",
+   "fields": {
+    "title_kana": "ほうっておかないふぁいゔぁーず"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_放課後マギア",
+   "fields": {
+    "title_kana": "ほうかごまぎあ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_散花-sanka-",
+   "fields": {
+    "title_kana": "さんか"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_散花-sanka-_game_size",
+   "fields": {
+    "title_kana": "さんか"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_文明開花輪舞_-シティハレルヤ-",
+   "fields": {
+    "title_kana": "ぶんめいかいかろんど"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_明日もbeautiful_day",
+   "fields": {
+    "title_kana": "あしたもびゅーてぃふるでい"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_星が流れて",
+   "fields": {
+    "title_kana": "ほしがながれて"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_星の声",
+   "fields": {
+    "title_kana": "ほしのこえ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_星の数だけ",
+   "fields": {
+    "title_kana": "ほしのかずだけ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_星をめざして",
+   "fields": {
+    "title_kana": "ほしをめざして"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_時限式狂騒ワンダーランド",
+   "fields": {
+    "title_kana": "じげんしききょうそうわんだーらんど"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_晴れのちバルーン",
+   "fields": {
+    "title_kana": "はれのちばるーん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_月影のアンシェネ",
+   "fields": {
+    "title_kana": "つきかげのあんしぇね"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_有彩色ユリイカ",
+   "fields": {
+    "title_kana": "ゆうさいしょくゆりいか"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_未来へのsign",
+   "fields": {
+    "title_kana": "みらいへのさいん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_枕木の歌",
+   "fields": {
+    "title_kana": "まくらぎのうた"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_橙より未来",
+   "fields": {
+    "title_kana": "だいだいよりみらい"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_永遠色アーチ",
+   "fields": {
+    "title_kana": "えいえんいろあーち"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_泥濘鳴鳴",
+   "fields": {
+    "title_kana": "ぬかるみめいめい"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_浮動性イノセンス",
+   "fields": {
+    "title_kana": "ふどうせいいのせんす"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_無垢",
+   "fields": {
+    "title_kana": "むく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_無自覚アプリオリ",
+   "fields": {
+    "title_kana": "むじかくあぷりおり"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_疾風ザブングル",
+   "fields": {
+    "title_kana": "しっぷうざぶんぐる"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_相合学舎",
+   "fields": {
+    "title_kana": "あいあいがくしゃ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_神様は死んだって",
+   "fields": {
+    "title_kana": "かみさまはしんだって"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_秋の終わり僕の記憶",
+   "fields": {
+    "title_kana": "あきのおわりぼくのきおく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_紅花-benibana-",
+   "fields": {
+    "title_kana": "べにばな"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_紅花-benibana-_game_size",
+   "fields": {
+    "title_kana": "べにばな"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_純白トロイメライ",
+   "fields": {
+    "title_kana": "じゅんぱくとろいめらい"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_絶対正義_every_day",
+   "fields": {
+    "title_kana": "ぜったいせいぎえぶりでい"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_虹になれ",
+   "fields": {
+    "title_kana": "にじになれ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_虹の行方",
+   "fields": {
+    "title_kana": "にじのゆくえ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_街角メランコリー",
+   "fields": {
+    "title_kana": "まちかどめらんこりー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_裸足じゃイラレナイ",
+   "fields": {
+    "title_kana": "はだしじゃいられない"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_誰ソ彼アイデンティティー",
+   "fields": {
+    "title_kana": "たそがれあいでんてぃてぃー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_輝きにかわる",
+   "fields": {
+    "title_kana": "かがやきにかわる"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_迅雷鉄火",
+   "fields": {
+    "title_kana": "じんらいてっか"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_進路は超銀河",
+   "fields": {
+    "title_kana": "しんろはちょうぎんが"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_運命前夜",
+   "fields": {
+    "title_kana": "うんめいぜんや"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_過純性ブリーチ",
+   "fields": {
+    "title_kana": "かじゅんせいぶりーち"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_銀翼のアレジアンス_-blade_of_truth-",
+   "fields": {
+    "title_kana": "ぎんよくのあれじあんす"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_銀翼のアヴニール_-become_the_brave-",
+   "fields": {
+    "title_kana": "ぎんよくのあゔにーる"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_雪月風花",
+   "fields": {
+    "title_kana": "ゆきつきかぜはな"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_青とオレンジ",
+   "fields": {
+    "title_kana": "あおとおれんじ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_青空",
+   "fields": {
+    "title_kana": "あおぞら"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sc_革命進化論",
+   "fields": {
+    "title_kana": "かくめいしんかろん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_cool_sensation絶対need",
+   "fields": {
+    "title_kana": "くーるせんせーしょんぜったいにーど"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_hot_inspiration世界のテッペンyeah",
+   "fields": {
+    "title_kana": "ほっといんすぴれーしょんせかいのてっぺんいぇー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_moon_shape明鏡止水",
+   "fields": {
+    "title_kana": "むーんしぇいぷめいきょうしすい"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_rule_牙ヲ穿テヨ",
+   "fields": {
+    "title_kana": "るーるきばをうがてよ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_いつかこの瞬間に名前をつけるなら",
+   "fields": {
+    "title_kana": "いつかこのしゅんかんになまえをつけるなら"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_いとをかし一彩合彩",
+   "fields": {
+    "title_kana": "いとをかしいっさいごうさい"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_お菓子なアドベンチャー",
+   "fields": {
+    "title_kana": "おかしなあどべんちゃー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_その場所へ行くために-keep_on_fighting-",
+   "fields": {
+    "title_kana": "そのばしょへいくために"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_その場所へ行くためにkeeponfightingrule〜牙ヲ穿テヨ〜battlemix",
+   "fields": {
+    "title_kana": "そのばしょへいくために"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_てのうえで踊るメヌエット",
+   "fields": {
+    "title_kana": "てのうえでおどるめぬえっと"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_ましゅまろ色のまほう使い",
+   "fields": {
+    "title_kana": "ましゅまろいろのまほうつかい"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_また明日の約束を",
+   "fields": {
+    "title_kana": "またあしたのやくそくを"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_ゆきゆきて華やかに",
+   "fields": {
+    "title_kana": "ゆきゆきてはなやかに"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_らんまん開花",
+   "fields": {
+    "title_kana": "らんまんかいか"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_わんだふる哉人生",
+   "fields": {
+    "title_kana": "わんだふるかなじんせい"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_キセキ的_starry-tune",
+   "fields": {
+    "title_kana": "きせきてきすたりーちゅーん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_スターチスを束にして",
+   "fields": {
+    "title_kana": "すたーちすをたばにして"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_ハナビラメールの空",
+   "fields": {
+    "title_kana": "はなびらめーるのそら"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_ヒカリ待つ明日へ",
+   "fields": {
+    "title_kana": "ひかりまつあしたへ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_今宵笑むように",
+   "fields": {
+    "title_kana": "こよいえむように"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_伝えたいのはこんなきもち",
+   "fields": {
+    "title_kana": "つたえたいのはこんなきもち"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_冬の日のエトランゼ",
+   "fields": {
+    "title_kana": "ふゆのひのえとらんぜ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_劇星戦隊ドラスターズ",
+   "fields": {
+    "title_kana": "げきせいせんたいどらすたーず"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_千夜一夜に瞬く星よ",
+   "fields": {
+    "title_kana": "せんやいちやにまたたくほしよ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_千客万来ニーハオサァカス",
+   "fields": {
+    "title_kana": "せんきゃくばんらいにーはおさぁかす"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_君と咲いた未来へ",
+   "fields": {
+    "title_kana": "きみとさいたみらいへ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_喜怒哀楽万国共通-burn_it_up-",
+   "fields": {
+    "title_kana": "きどあいらくばんこくきょうつう"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_嗚呼情熱に星は輝く315プロダクション社歌",
+   "fields": {
+    "title_kana": "ああじょうねつにほしはかがやく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_四心争乱_-天地一指-",
+   "fields": {
+    "title_kana": "ししんそうらん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_夏時間グラフィティ",
+   "fields": {
+    "title_kana": "なつじかんぐらふぃてぃ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_夢の不思議なラビリンス",
+   "fields": {
+    "title_kana": "ゆめのふしぎならびりんす"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_奇想天外狂詩曲-fantastic_rhapsody-",
+   "fields": {
+    "title_kana": "きそうてんがいきょうしきょく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_威風堂々と",
+   "fields": {
+    "title_kana": "いふうどうどうと"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_安寧のdystopia",
+   "fields": {
+    "title_kana": "あんねいのでぃすとぴあ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_宵闇のイリュージョン",
+   "fields": {
+    "title_kana": "よいやみのいりゅーじょん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_幸燦燦と",
+   "fields": {
+    "title_kana": "こうさんさんと"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_幻想のutopia",
+   "fields": {
+    "title_kana": "げんそうのゆーとぴあ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_彩リノ歌",
+   "fields": {
+    "title_kana": "いろどりのうた"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_惑星が瞬いた夜に",
+   "fields": {
+    "title_kana": "わくせいがまたたいたよるに"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_愛笑華",
+   "fields": {
+    "title_kana": "あいしょうか"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_掲げよう偽りなき自分を",
+   "fields": {
+    "title_kana": "かかげようおのれをいつわりなく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_暗黒への前奏曲",
+   "fields": {
+    "title_kana": "あんこくへのぜんそうきょく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_来来美食",
+   "fields": {
+    "title_kana": "らいらいびしょく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_桜彩",
+   "fields": {
+    "title_kana": "おうさい"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_永遠なる四銃士",
+   "fields": {
+    "title_kana": "えいえんなるよんじゅうし"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_流星parade",
+   "fields": {
+    "title_kana": "りゅうせいぱれーど"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_漢一貫ロックンロール",
+   "fields": {
+    "title_kana": "おとこいっかんろっくんろーる"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_熱情_burning_voltage",
+   "fields": {
+    "title_kana": "ねつじょうばーにんぐぼるてーじ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_眠らぬ夜にスパシーバ",
+   "fields": {
+    "title_kana": "ねむらぬよるにすぱしーば"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_祝彩",
+   "fields": {
+    "title_kana": "しゅくさい"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_究極fighting",
+   "fields": {
+    "title_kana": "きゅうきょくふぁいてぃんぐ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_竜宮逢幻記",
+   "fields": {
+    "title_kana": "りゅうぐうおうげんき"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_笑顔の祭りにゃ福来る",
+   "fields": {
+    "title_kana": "えがおのまつりにゃふくきたる"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_筆跡の彼方",
+   "fields": {
+    "title_kana": "ひっせきのかなた"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_素敵にcon_grazia",
+   "fields": {
+    "title_kana": "すてきにこんぐらーつぃあ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_組曲_-to_all_ages_concerto-",
+   "fields": {
+    "title_kana": "くみきょく"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_縁会entertainments",
+   "fields": {
+    "title_kana": "えんかいえんたーていんめんつ"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_装_-so_beautiful-",
+   "fields": {
+    "title_kana": "よそおい"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_運命光年",
+   "fields": {
+    "title_kana": "うんめいこうねん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_青春サティスファクション",
+   "fields": {
+    "title_kana": "せいしゅんさてぃすふぁくしょん"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_魔法のステアー",
+   "fields": {
+    "title_kana": "まほうのすてあー"
+   },
+   "source": "AI 生成 (機械読み)",
+   "note": "公開データに読みが無いため機械生成。要修正依頼"
+  }
+ ]
+}

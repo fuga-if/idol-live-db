@@ -353,4 +353,24 @@ mod tests {
         }
         println!("EFF 生成読みでも引ける: {}/{}", hit, cases.len());
     }
+    #[test]
+    fn batch2_is_searchable() {
+        let raw = std::fs::read_to_string("/tmp/batch2_out.json").expect("batch2");
+        let v: serde_json::Value = serde_json::from_str(&raw).unwrap();
+        let rows: Vec<(String, String)> = v.as_array().unwrap().iter()
+            .map(|x| (x["title"].as_str().unwrap().to_string(),
+                      x["title_kana"].as_str().unwrap().to_string()))
+            .collect();
+        let items: Vec<Vec<String>> = rows.iter().map(|(t,k)| vec![t.clone(), k.clone()]).collect();
+        // 派生は本体と読みが同じなので 1 位は本体になる。ここでは「上位に入るか」を見る。
+        let mut top10 = 0;
+        let mut miss = Vec::new();
+        for (i, (title, kana)) in rows.iter().enumerate() {
+            let got = fuzzy_matches_multi(&items, kana, 10);
+            if got.iter().any(|h| h.index as usize == i) { top10 += 1 }
+            else { miss.push(title.clone()) }
+        }
+        println!("V2 生成読みで上位 10 に入る: {}/{}", top10, rows.len());
+        for m in miss.iter().take(6) { println!("V2   外れ: {m}") }
+    }
 }
