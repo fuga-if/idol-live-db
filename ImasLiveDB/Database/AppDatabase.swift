@@ -324,9 +324,42 @@ final class AppDatabase: @unchecked Sendable {
     /// スキーマ実体（カラム・テーブル）を直接検査して「適用済み」識別子を pre-populate する。
     /// インデックス存在だけでは「カラムが追加されたがインデックスがない」ケースでALTER重複が起きるため、
     /// 各マイグレーションの特徴的なスキーマ変更を直接確認する。
+    ///
+    /// ⚠️ **この関数は「誰も触っていない実物の形」を見なければならない。** 判定材料は列と表の
+    /// 有無だけなので、この前に何かがスキーマを変えていると印がそのまま嘘になる。嘘の印は
+    /// 「列を足しつつデータも入れる」移行を丸ごと捨てる (列だけ他所で足され、データが永久に入らない)。
+    /// だから `applyCoreMasterSchema` はこの後、GRDB の移行のさらに後で呼ぶ。
     private static func seedMigrationHistoryIfNeeded(_ dbQueue: any DatabaseWriter) throws {
         try dbQueue.write { db in
             try db.execute(sql: "CREATE TABLE IF NOT EXISTS grdb_migrations (identifier TEXT NOT NULL PRIMARY KEY)")
+
+            /// 列の有無に合わせて「適用済み」の印を**付けもし剥がしもする**。
+            ///
+            /// 剥がす側を持つのは、印と実物がずれた DB を自分で治すため。実際に一度ずれた:
+            /// コア適用を移行より前に置いた版では、コアが足した `show_cast.cast_role` を根拠に
+            /// v21 の印が付き、その後 v19_drop_cast が show_cast を作り直して列ごと消した。
+            /// 印だけ残るので v21 は二度と走らず、列も主演データも戻らなかった。剥がせば移行が
+            /// もう一度走り、列とセットのデータ投入までやり直される。
+            ///
+            /// 使ってよいのは「その列を足すのが当の移行自身」かつ「何度走らせても同じ結果になる」
+            /// 移行だけ。v19 のように**列や表が無いこと**を根拠に印を付けるものに使ってはいけない
+            /// (剥がすと再実行で「no such table」に当たって起動不能になる)。
+            ///
+            /// `columns` が空 = その表自体が無い。根拠が取れないので何もしない (同じ理由)。
+            func alignMark(_ identifier: String, column: String, in columns: [String?]) throws {
+                guard !columns.isEmpty else { return }
+                if columns.contains(column) {
+                    try db.execute(
+                        sql: "INSERT OR IGNORE INTO grdb_migrations(identifier) VALUES (?)",
+                        arguments: [identifier]
+                    )
+                } else {
+                    try db.execute(
+                        sql: "DELETE FROM grdb_migrations WHERE identifier = ?",
+                        arguments: [identifier]
+                    )
+                }
+            }
 
             // v1: brands テーブルが存在すれば基本スキーマ作成済み
             let hasBrands = try Row.fetchOne(db, sql: "SELECT name FROM sqlite_master WHERE type='table' AND name='brands'") != nil
@@ -362,10 +395,9 @@ final class AppDatabase: @unchecked Sendable {
                 try db.execute(sql: "INSERT OR IGNORE INTO grdb_migrations(identifier) VALUES ('v6_sync_bundle_schema')")
             }
 
-            // v7: events.kind カラム存在で判定
-            if eventsColumns.contains("kind") {
-                try db.execute(sql: "INSERT OR IGNORE INTO grdb_migrations(identifier) VALUES ('v7_event_kind')")
-            }
+            // v7: events.kind カラム存在で判定。
+            // 列に加えて 463 件の分類 UPDATE を持つので、印がずれると分類が丸ごと入らない。
+            try alignMark("v7_event_kind", column: "kind", in: eventsColumns)
 
             // v14: idols.is_external カラム存在で判定 (Bundle DB 同梱済みなら skip)
             let idolsColumns = try Row.fetchAll(db, sql: "PRAGMA table_info(idols)").map { $0["name"] as String? }
@@ -406,15 +438,13 @@ final class AppDatabase: @unchecked Sendable {
             }
 
             // v21: show_cast.cast_role カラム存在で判定 (Bundle DB が役割データ込みで持つなら skip)。
+            // 列に加えて既知の主演 10 行を持つので、印がずれると主演/ゲスト表示が消える。
             let showCastColumns = try Row.fetchAll(db, sql: "PRAGMA table_info(show_cast)").map { $0["name"] as String? }
-            if showCastColumns.contains("cast_role") {
-                try db.execute(sql: "INSERT OR IGNORE INTO grdb_migrations(identifier) VALUES ('v21_show_cast_cast_role')")
-            }
+            try alignMark("v21_show_cast_cast_role", column: "cast_role", in: showCastColumns)
 
             // v22: events.ticket_open_date カラム存在で判定 (Bundle DB が既に持つなら skip)。
-            if eventsColumns.contains("ticket_open_date") {
-                try db.execute(sql: "INSERT OR IGNORE INTO grdb_migrations(identifier) VALUES ('v22_event_ticket_open_date')")
-            }
+            // 列に加えて既知の受付開始日を持つので、v7/v21 と同じく印を実物に合わせる。
+            try alignMark("v22_event_ticket_open_date", column: "ticket_open_date", in: eventsColumns)
         }
     }
 

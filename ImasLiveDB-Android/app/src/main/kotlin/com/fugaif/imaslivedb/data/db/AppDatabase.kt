@@ -108,7 +108,8 @@ abstract class AppDatabase : RoomDatabase() {
             // これにより createFromAsset のスキーマ検証クラッシュリスクを排除する。
             //
             // ⚠️ ここでコア (imas-core) の `ensureMasterSchema()` を流してはいけない。
-            // iOS の AppDatabase は GRDB の移行前に流しているが、Android では**必ず起動不能になる**。
+            // iOS の AppDatabase は GRDB の移行を流し終えた**後**に当てているが、Android は
+            // 順序をどう入れ替えても**必ず起動不能になる** (問題は順序ではなく Room の照合そのもの)。
             // Room 2.6.1 は自分が知る表について実 DB と @Entity 定義を厳密一致で照合する
             // (androidx.room.util.TableInfo.equals は columns を Map 等価・indices を Set 等価で比べ、
             //  索引の読み取りは origin='c' で絞るだけで名前による除外をしない)。
