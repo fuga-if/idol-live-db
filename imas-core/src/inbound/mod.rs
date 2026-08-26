@@ -42,3 +42,5 @@ pub mod auth_rules;
 pub mod share_text;
 pub mod sync_decisions;
 pub mod screen_composition;
+pub mod fuzzy_search;
+pub mod performance_stats;

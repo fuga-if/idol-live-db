@@ -75,6 +75,8 @@ declare_and_call_checksums! {
     uniffi_imas_core_checksum_func_filter_event_indices,
     uniffi_imas_core_checksum_func_filter_idol_list,
     uniffi_imas_core_checksum_func_filter_song_list,
+    uniffi_imas_core_checksum_func_fuzzy_matches,
+    uniffi_imas_core_checksum_func_fuzzy_matches_multi,
     uniffi_imas_core_checksum_func_game_progress_apply_result,
     uniffi_imas_core_checksum_func_game_progress_best_rate_percent,
     uniffi_imas_core_checksum_func_game_progress_daily_sheet_gate,
