@@ -62,28 +62,6 @@ pub fn fuzzy_key(text: &str) -> Vec<char> {
     out
 }
 
-/// 漢字か (CJK 統合漢字)。
-fn is_kanji(c: char) -> bool {
-    ('\u{4E00}'..='\u{9FFF}').contains(&c) || ('\u{3400}'..='\u{4DBF}').contains(&c)
-}
-
-/// 置換 1 回ぶんの重み。
-///
-/// **漢字が絡む置換は 2 と数える。** かな 1 文字の違い (「ぷりんせす」↔「ぷりんせつ」)
-/// は打ち間違いだが、漢字 1 文字の違いは別語になるため
-/// (「お願い」↔「おもい」、「月下祭」↔「月下菜」)。同じ重さで扱うと、
-/// 3 文字の語に許す距離 1 で「お」と「い」しか合っていない曲まで拾ってしまう
-/// (実機で「お願い」に「オモイノウタ」が出た)。
-fn substitution_cost(a: char, b: char) -> usize {
-    if a == b {
-        0
-    } else if is_kanji(a) || is_kanji(b) {
-        2
-    } else {
-        1
-    }
-}
-
 /// 編集距離 (Levenshtein)。`limit` を超えると打ち切って `limit + 1` を返す。
 ///
 /// 打ち切りを入れているのは、全曲との比較で「明らかに違う」ものに
@@ -98,7 +76,7 @@ fn edit_distance(a: &[char], b: &[char], limit: usize) -> usize {
         cur[0] = i;
         let mut row_min = cur[0];
         for j in 1..=b.len() {
-            let cost = substitution_cost(a[i - 1], b[j - 1]);
+            let cost = usize::from(a[i - 1] != b[j - 1]);
             cur[j] = (prev[j] + 1).min(cur[j - 1] + 1).min(prev[j - 1] + cost);
             row_min = row_min.min(cur[j]);
         }
@@ -112,14 +90,105 @@ fn edit_distance(a: &[char], b: &[char], limit: usize) -> usize {
 
 /// 許容する編集距離。短い語ほど厳しくする
 /// (2 文字の語で距離 2 を許すと何にでも当たってしまう)。
+///
+/// 2 文字で 1 文字違いまで許すのは、距離だけで採否を決めていないから。
+/// この先に一致率 (`Rarity::coverage`) の関門があり、「宮」だけ合っている
+/// 「龍宮」→「竜宮逢幻記」は通し、「き」だけ合っている「きみ」→「かみ」は落ちる。
+/// 距離が門番だった頃はここを 0 にするしかなかった。
 fn allowed_distance(needle_len: usize) -> usize {
     match needle_len {
-        0..=2 => 0,
-        3..=5 => 1,
+        0..=1 => 0,
+        2..=5 => 1,
         6..=9 => 2,
         _ => 3,
     }
 }
+
+/// 文字ごとの希少性 (IDF)。何件の候補にその文字が出るかから求める。
+///
+/// # なぜ距離だけでは足りないか
+///
+/// 編集距離は「何文字違うか」しか見ないので、**どの文字が一致したか**を無視する。
+/// 実機で「お願い」と打つと「オモイノウタ」が候補に出たのがこれで、
+/// 一致していたのは「お」と「い」だけだった。日本語で最も頻出する 2 文字なので、
+/// 一致しても手がかりにならない。
+///
+/// 逆に「龍宮」で「竜宮逢幻記」を出したい場面では、一致するのは「宮」1 文字だけだが
+/// こちらは希少なので強い手がかりになる。**一致率ではなく、一致した文字の
+/// 珍しさで測る**とこの 2 つが分かれる。異体字の対応表を持たずに済むのが利点で、
+/// 表を作る方式は列挙しきれず必ず漏れる (龍/竜・櫻/桜・恋/戀・﨑/崎…)。
+struct Rarity {
+    total: f64,
+    doc_freq: std::collections::HashMap<char, u32>,
+}
+
+impl Rarity {
+    fn build(keys: &[Vec<char>]) -> Self {
+        let mut doc_freq: std::collections::HashMap<char, u32> = std::collections::HashMap::new();
+        for key in keys {
+            let mut seen = std::collections::HashSet::new();
+            for &c in key {
+                if seen.insert(c) {
+                    *doc_freq.entry(c).or_insert(0) += 1;
+                }
+            }
+        }
+        Self { total: keys.len().max(1) as f64, doc_freq }
+    }
+
+    /// 珍しいほど大きい。全件に出る文字は 0 に近づく。
+    fn idf(&self, c: char) -> f64 {
+        let df = self.doc_freq.get(&c).copied().unwrap_or(0) as f64;
+        (self.total / (1.0 + df)).ln().max(0.0)
+    }
+
+    /// 打った語のうち、候補に含まれている文字が占める「珍しさの割合」。
+    ///
+    /// 1.0 に近いほど、打った語の情報が候補に残っている。
+    fn coverage(&self, needle: &[char], candidate: &[char]) -> f64 {
+        let present: std::collections::HashSet<char> = candidate.iter().copied().collect();
+        let mut total = 0.0;
+        let mut matched = 0.0;
+        for &c in needle {
+            // どの候補にも無い文字は数えない。
+            //
+            // 珍しさは「何件に出るか」で測るので、1 件も出ない文字は最も珍しい =
+            // 最も重い、と出てしまう。しかし絶対に一致しない文字なので、重く数えると
+            // 分母を占領して一致率を潰す (候補「プリンセスの休息」に「ぷりんせつ」と
+            // 打つと、打ち間違えた「つ」だけで分母の 2/3 を占めて落ちた)。
+            // どの候補にも無い文字は候補同士を区別できないので、判断材料にしない。
+            if !self.doc_freq.contains_key(&c) {
+                continue;
+            }
+            // 全件に出る文字も僅かに数える。ここが 0 だけになると 0 除算になる。
+            let w = self.idf(c) + 0.1;
+            total += w;
+            if present.contains(&c) {
+                matched += w;
+            }
+        }
+        if total <= 0.0 { 0.0 } else { matched / total }
+    }
+}
+
+/// あいまい候補として認める最小の一致率。
+///
+/// 実データで測った値: ノイズ (「お願い」→「オモイノウタ」= 合っているのは
+/// 最頻出の「お」「い」だけ) が 0.49、拾いたいものは 1.0。この間で切る。
+///
+/// # 異体字 (龍/竜・櫻/桜) について
+///
+/// 対応表は持たない。列挙しきれず必ず漏れるうえ、「なぜこの字だけ効かないのか」
+/// を生む。代わりに、**どの曲名にも出てこない文字は数えない** という
+/// `Rarity::coverage` の規則がそのまま効く。データに無い旧字を打った時点で
+/// その文字は候補同士を区別できないので、残りの文字で判断される
+/// (「龍宮」→「竜宮逢幻記」・「月ノ櫻」→「月ノ桜」はこれで当たる)。
+///
+/// 逆に、その字がデータ中の別の曲で使われている場合は区別材料として数えるので
+/// 当たらない。異体字を正面から解くには読みへの正規化か対応表が要るが、
+/// 読み仮名 (`songs.title_kana`) を綴りとして渡してあるので、
+/// 表記に迷うならかなで打てば引ける。
+const MIN_COVERAGE: f64 = 0.6;
 
 /// 候補群からあいまい一致を拾う (1 件 = 1 綴り)。
 ///
@@ -140,6 +209,12 @@ pub fn fuzzy_matches_multi(haystacks: &[Vec<String>], needle: &str, limit: u32) 
         return Vec::new();
     }
     let allowed = allowed_distance(needle_key.len());
+    // 希少性は候補群そのものから求める (辞書を持たない)。
+    let all_keys: Vec<Vec<char>> = haystacks
+        .iter()
+        .map(|sp| sp.iter().flat_map(|s| fuzzy_key(s)).collect())
+        .collect();
+    let rarity = Rarity::build(&all_keys);
     let mut hits: Vec<FuzzyHit> = Vec::new();
 
     for (i, spellings) in haystacks.iter().enumerate() {
@@ -157,9 +232,18 @@ pub fn fuzzy_matches_multi(haystacks: &[Vec<String>], needle: &str, limit: u32) 
         // ② 語全体の編集距離。
         let d = edit_distance(&needle_key, &key, allowed);
         if d <= allowed {
-            let denom = needle_key.len().max(key.len()) as f64;
-            let hit = FuzzyHit { index: i as u32, score: 1.0 - (d as f64 / denom), exact: false };
-            if best.as_ref().is_none_or(|b| hit.score > b.score) { best = Some(hit); }
+            // 距離が近いだけでは足りない。**打った語の情報がどれだけ残っているか**を見る。
+            let cov = rarity.coverage(&needle_key, &key);
+            if cov >= MIN_COVERAGE {
+                let denom = needle_key.len().max(key.len()) as f64;
+                // 珍しい文字が一致したものを上に出す。
+                let hit = FuzzyHit {
+                    index: i as u32,
+                    score: (1.0 - (d as f64 / denom)) * cov,
+                    exact: false,
+                };
+                if best.as_ref().is_none_or(|b| hit.score > b.score) { best = Some(hit); }
+            }
             continue;
         }
         // ③ 先頭 n 文字との距離 (「シャイニーカラーズ」で「シャイニー」を打った等)。
@@ -167,12 +251,15 @@ pub fn fuzzy_matches_multi(haystacks: &[Vec<String>], needle: &str, limit: u32) 
             let head = &key[..needle_key.len()];
             let d = edit_distance(&needle_key, head, allowed);
             if d <= allowed {
-                let hit = FuzzyHit {
-                    index: i as u32,
-                    score: 0.9 - (d as f64 / needle_key.len() as f64),
-                    exact: false,
-                };
-                if best.as_ref().is_none_or(|b| hit.score > b.score) { best = Some(hit); }
+                let cov = rarity.coverage(&needle_key, head);
+                if cov >= MIN_COVERAGE {
+                    let hit = FuzzyHit {
+                        index: i as u32,
+                        score: (0.9 - (d as f64 / needle_key.len() as f64)) * cov,
+                        exact: false,
+                    };
+                    if best.as_ref().is_none_or(|b| hit.score > b.score) { best = Some(hit); }
+                }
             }
         }
         }
@@ -415,5 +502,52 @@ mod tests {
         // かな同士の打ち間違いは今までどおり拾う
         let got = fuzzy_matches_multi(&items, "ぷりんせつ", 10);
         assert!(got.iter().any(|h| h.index == 3), "かなの打ち間違いが拾えない");
+    }
+    /// 候補が数件しかなくても希少性が機能する。
+    ///
+    /// 希少性は候補群そのものから測るので、候補が少ないと「どの文字も 1 件にしか
+    /// 出ない = 珍しさに差が無い」状態に潰れる。そこで一致率まで 0 になると、
+    /// 絞り込んだ一覧の中での検索が丸ごと効かなくなる。
+    #[test]
+    fn rarity_survives_a_tiny_candidate_set() {
+        let items = vec![
+            vec!["プリンセスの休息".to_string()],
+            vec!["Star!!".to_string()],
+        ];
+        let hit: Vec<u32> = fuzzy_matches_multi(&items, "ぷりんせつ", 10).iter().map(|h| h.index).collect();
+        assert!(hit.contains(&0), "かなの打ち間違いが拾えない: {hit:?}");
+    }
+
+    /// データに無い旧字で打っても、残りの文字で当たる。
+    ///
+    /// 異体字の対応表は持っていない。「龍」も「櫻」も曲名に一度も出てこないので
+    /// 候補同士を区別できず、一致率の計算から外れる。結果として「宮」「月ノ」だけで
+    /// 判断され、新字の曲に当たる。対応表を足したくなったらこの性質を思い出すこと。
+    #[test]
+    fn old_kanji_absent_from_the_data_does_not_block_the_match() {
+        let items = vec![
+            vec!["竜宮逢幻記".to_string()],
+            vec!["月ノ桜".to_string()],
+            vec!["お願い！シンデレラ".to_string()],
+            vec!["オモイノウタ".to_string()],
+        ];
+        let hit = |n: &str| -> Vec<u32> {
+            fuzzy_matches_multi(&items, n, 10).iter().map(|h| h.index).collect()
+        };
+        assert!(hit("龍宮").contains(&0), "龍宮 → 竜宮逢幻記 が当たらない");
+        assert!(hit("月ノ櫻").contains(&1), "月ノ櫻 → 月ノ桜 が当たらない");
+    }
+
+    /// 2 文字の語で 1 文字違いを許しても、共通の文字だけでは通さない。
+    ///
+    /// 距離を緩めた分は一致率で受け止める。ここが緩むと短い語が何にでも当たる。
+    #[test]
+    fn a_single_shared_character_is_not_enough_for_a_short_query() {
+        let items = vec![
+            vec!["紙ヒコーキ".to_string()],
+            vec!["キミはメロディ".to_string()],
+        ];
+        let hit: Vec<u32> = fuzzy_matches_multi(&items, "きみ", 10).iter().map(|h| h.index).collect();
+        assert!(!hit.contains(&0), "「き」しか合っていない 紙ヒコーキ を拾ってはいけない: {hit:?}");
     }
 }
