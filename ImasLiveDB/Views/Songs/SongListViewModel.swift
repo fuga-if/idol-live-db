@@ -20,6 +20,11 @@ final class SongListViewModel {
     }
     /// `searchText` で絞り込んだ表示用キャッシュ (毎 body 評価で全曲走査しないため)。
     private(set) var displayedSongs: [SongWithArtists] = []
+    /// 打った語には部分一致しないが、あいまい一致で拾えた候補 (「もしかして」)。
+    ///
+    /// `displayedSongs` と混ぜない。混ぜると「打った通りの曲」がどれか分からなくなるので、
+    /// 画面では確実な一致の**下**に、見出しを挟んで別枠で出す。
+    private(set) var fuzzySongs: [SongWithArtists] = []
     private(set) var isLoading = false
 
     /// `songs` と同じ並びの検索カタログ。スコープごとに 1 本ずつ前処理して持つ。
@@ -31,23 +36,30 @@ final class SongListViewModel {
     /// O(総バイト数)」は不変 (index 列が 1 回の FFI で返る)。
     private var searchCatalogs: [SongSearchMode: TextSearchCatalog] = [:]
 
+    /// `searchCatalogs` と同じ並び・同じ綴りで作るあいまい一致用のカタログ。
+    ///
+    /// 部分一致で 0 件になった打ち間違い・かな入力を拾う。**添字で `songs` を引く**ので
+    /// 部分一致側と綴りの出所を分けてはいけない (下の `rebuildSearchIndex` で
+    /// 綴り表を 1 本だけ作り、両方をそこから起こしている理由)。
+    private var fuzzyCatalogs: [SongSearchMode: FuzzySearchCatalog] = [:]
+
     private func rebuildSearchIndex() {
-        searchCatalogs = [
-            .title: TextSearchCatalog(fieldsPerItem: songs.map {
-                [$0.song.title, $0.song.titleKana]
-            }),
+        // 綴り表はスコープごとに 1 本。部分一致とあいまい一致で別々に書くと、
+        // 片方だけ直したときに添字がずれて別の曲が出る。
+        let spellings: [SongSearchMode: [[String?]]] = [
+            .title: songs.map { [$0.song.title, $0.song.titleKana] },
             // ユニット名・歌唱者表記・出演アイドル (よみ含む) を横並びに見る。
             // 「ミリオンスターズ」でも「春日未来」でも当たってほしいので、
             // どれか 1 つに寄せられない。
-            .performer: TextSearchCatalog(fieldsPerItem: songs.map { item in
+            .performer: songs.map { item in
                 [item.song.unitName, item.song.singerLabel, item.artistNames]
                     + item.performerIdols.flatMap { [$0.name, $0.nameKana] }
-            }),
-            .creator: TextSearchCatalog(fieldsPerItem: songs.map {
-                [$0.song.lyricist, $0.song.composer, $0.song.arranger]
-            }),
+            },
+            .creator: songs.map { [$0.song.lyricist, $0.song.composer, $0.song.arranger] },
             // .lyrics はサーバ側。手元のカタログでは判定できない
         ]
+        searchCatalogs = spellings.mapValues { TextSearchCatalog(fieldsPerItem: $0) }
+        fuzzyCatalogs = spellings.mapValues { FuzzySearchCatalog(spellingsPerItem: $0) }
     }
 
     /// いま効いている絞り込みの中で、**表示中でない**スコープに何件当たるか。
@@ -81,6 +93,10 @@ final class SongListViewModel {
 
     private var loadTask: Task<Void, Never>?
     private var currentTaskId: UUID = UUID()
+
+    private var fuzzyTask: Task<Void, Never>?
+    /// あいまい検索の世代。`applyFilter` のたびに更新し、遅れて戻ってきた結果を捨てる。
+    private var fuzzyGeneration: UUID = UUID()
 
     private let songReading: any SongReading
     private var markService: UserMarkService { UserMarkService.shared }
@@ -196,6 +212,11 @@ final class SongListViewModel {
     ///   - lyricsHits: 歌詞検索の結果。`.some` で置き換え、`.none` を渡すと据え置き。
     func applyFilter(searchText: String, scope: SongSearchMode,
                      lyricsHits newHits: [String: [LyricsSnippet]]??  = nil) {
+        // 条件が変わった瞬間に候補を捨てる。前の語の「もしかして」が残ると、
+        // 打ち直した直後だけ関係ない曲が下にぶら下がって見える。
+        fuzzyTask?.cancel()
+        fuzzyGeneration = UUID()
+        fuzzySongs = []
         if let newHits { lyricsHits = newHits }
         if let lyricsHits {
             displayedSongs = songs.filter { lyricsHits[$0.song.id] != nil }
@@ -221,6 +242,34 @@ final class SongListViewModel {
             counts[other] = searchCatalogs[other]?.matchingIndices(needle: searchText).count ?? 0
         }
         otherScopeCounts = counts
+        // 件数は「打った通りに当たった数」のまま (あいまい候補は数に混ぜない)。
+        // スコープ切替を勧める根拠が「たぶん当たる」では、切り替えた先で裏切られる。
+        scheduleFuzzySearch(needle: searchText, scope: scope,
+                            shown: Set(matchedIndices.map { Int($0) }))
+    }
+
+    /// 「もしかして」の候補を引き直す。
+    ///
+    /// 部分一致 (`applyFilter` 本体) は同期のままで、打った通りの結果は一切待たされない。
+    /// あいまい一致だけを後追いで足す。
+    private func scheduleFuzzySearch(needle: String, scope: SongSearchMode, shown: Set<Int>) {
+        guard shown.count <= FuzzySearchTuning.suggestThreshold,
+              let catalog = fuzzyCatalogs[scope], !catalog.isEmpty else { return }
+        let generation = fuzzyGeneration
+        let limit = FuzzySearchTuning.limit
+        fuzzyTask = Task { [weak self] in
+            try? await Task.sleep(for: FuzzySearchTuning.debounce)
+            guard !Task.isCancelled else { return }
+            // 全曲ぶんの編集距離は 3,000 曲で 20ms 前後。メインで回すとフレームを落とすので
+            // 境界の外へ出す (綴り表は値型なので写しても実体は共有されたまま)。
+            let indices = await Task.detached(priority: .userInitiated) {
+                catalog.extraIndices(needle: needle, excluding: shown, limit: limit)
+            }.value
+            guard let self, self.fuzzyGeneration == generation else { return }
+            self.fuzzySongs = indices.compactMap { i in
+                self.songs.indices.contains(i) ? self.songs[i] : nil
+            }
+        }
     }
 
     /// 一覧行アイコン用のマイマーク集合・回収数を bulk 取得する。

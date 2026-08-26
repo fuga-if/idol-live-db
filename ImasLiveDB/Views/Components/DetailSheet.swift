@@ -472,7 +472,7 @@ struct SongSheetContent: View {
     // MARK: - Tab: 披露履歴
 
     private var historyTab: some View {
-        SongHistoryTab(seed: songSeed, vm: vm, navigate: navigate)
+        SongHistoryTab(song: song, seed: songSeed, vm: vm, navigate: navigate)
     }
 
     // MARK: - Tab: コミュニティ

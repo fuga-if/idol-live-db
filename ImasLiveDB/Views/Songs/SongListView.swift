@@ -323,6 +323,9 @@ struct SongListView: View {
     /// 絞り込み/検索している時のみ・4曲以上・非表示でないとき表示。
     @ViewBuilder
     private var introDonLaunchBar: some View {
+        // 出題範囲はあいまい候補 (`vm.fuzzySongs`) を含めない。「もしかして」は
+        // 目で見て選んでもらうための提案なので、黙って出題母集団に混ぜると
+        // 打った覚えのない曲が出る。範囲は打った通りに当たった曲だけ。
         let playable = IntroGameSession.playable(vm.displayedSongs.map(\.song)).count
         if selectionMode {
             // イントロドン設定から「絞り込んで出題」で来た選択モード。
@@ -664,7 +667,10 @@ struct SongListView: View {
                 )
             } else {
                 let display = vm.displayedSongs
-                if !searchText.isEmpty && display.isEmpty {
+                // あいまい候補しか無い状態 (打ち間違い・かな入力) を「0 件」と言わない。
+                // それを拾うためのあいまい検索なので、空状態はどちらも空のときだけ。
+                let fuzzy = vm.fuzzySongs
+                if !searchText.isEmpty && display.isEmpty && fuzzy.isEmpty {
                     ImasEmptyState(
                         systemImage: "line.3.horizontal.decrease",
                         title: "絞り込み結果がありません",
@@ -672,8 +678,8 @@ struct SongListView: View {
                     )
                 } else {
                     VStack(spacing: 0) {
-                        countSortBar(count: display.count)
-                        songsList(display)
+                        countSortBar(count: display.count + fuzzy.count)
+                        songsList(display, fuzzy: fuzzy)
                     }
                 }
             }
@@ -731,37 +737,50 @@ struct SongListView: View {
         }
     }
 
-    private func songsList(_ display: [SongWithArtists]) -> some View {
+    private func songsList(_ display: [SongWithArtists], fuzzy: [SongWithArtists]) -> some View {
         List {
-            ForEach(display) { item in
-                // iOS 18 では Button label 内に Button (再生ボタン等) を
-                // 入れ子にすると tap が両方とも吸われて反応領域が狭くなる。
-                // 行全体は onTapGesture で受け、内側の再生ボタンは独立して機能させる。
-                SongRowView(
-                    item: item,
-                    collectedCount: vm.collectedCounts[item.song.id],
-                    isFavorite: vm.favoriteSongIds.contains(item.song.id),
-                    isMyPick: vm.myPickSongIds.contains(item.song.id),
-                    hasNote: vm.notedSongIds.contains(item.song.id),
-                    onCollectedTap: { sheetDestination = .songHistory(item.song) },
-                    tagVoteCount: selectedTags.count == 1 ? vm.tagVoteCounts[item.song.id] : nil,
-                    lyricsSnippets: vm.lyricsHits?[item.song.id] ?? [],
-                    searchMatch: searchText.isEmpty
-                        ? nil : SongRowMatch(text: searchText, scope: searchMode),
-                    metric: rowMetric(for: item.song.id)
-                )
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    sheetDestination = .song(item.song)
-                }
-                .listRowInsets(EdgeInsets(top: 0, leading: DS.sp5, bottom: 0, trailing: DS.sp5))
-                .listRowBackground(DS.surface)
-                .listRowSeparatorTint(DS.sep)
+            ForEach(display) { songRow($0) }
+            if !fuzzy.isEmpty {
+                // 打った通りではない候補なので、区切って理由を書く。黙って下に足すと
+                // 「なぜこの曲が出ているのか」が読めず、一致の精度を疑わせる。
+                ImasSectionHeader(title: "もしかして", tight: true)
+                    .padding(.top, DS.sp4)
+                    .padding(.bottom, DS.sp2)
+                    .listRowInsets(EdgeInsets(top: 0, leading: DS.sp5, bottom: 0, trailing: DS.sp5))
+                    .listRowBackground(DS.bg)
+                    .listRowSeparator(.hidden)
+                ForEach(fuzzy) { songRow($0) }
             }
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
         .background(DS.bg)
+    }
+
+    private func songRow(_ item: SongWithArtists) -> some View {
+        // iOS 18 では Button label 内に Button (再生ボタン等) を
+        // 入れ子にすると tap が両方とも吸われて反応領域が狭くなる。
+        // 行全体は onTapGesture で受け、内側の再生ボタンは独立して機能させる。
+        SongRowView(
+            item: item,
+            collectedCount: vm.collectedCounts[item.song.id],
+            isFavorite: vm.favoriteSongIds.contains(item.song.id),
+            isMyPick: vm.myPickSongIds.contains(item.song.id),
+            hasNote: vm.notedSongIds.contains(item.song.id),
+            onCollectedTap: { sheetDestination = .songHistory(item.song) },
+            tagVoteCount: selectedTags.count == 1 ? vm.tagVoteCounts[item.song.id] : nil,
+            lyricsSnippets: vm.lyricsHits?[item.song.id] ?? [],
+            searchMatch: searchText.isEmpty
+                ? nil : SongRowMatch(text: searchText, scope: searchMode),
+            metric: rowMetric(for: item.song.id)
+        )
+        .contentShape(Rectangle())
+        .onTapGesture {
+            sheetDestination = .song(item.song)
+        }
+        .listRowInsets(EdgeInsets(top: 0, leading: DS.sp5, bottom: 0, trailing: DS.sp5))
+        .listRowBackground(DS.surface)
+        .listRowSeparatorTint(DS.sep)
     }
 
     // MARK: - Data

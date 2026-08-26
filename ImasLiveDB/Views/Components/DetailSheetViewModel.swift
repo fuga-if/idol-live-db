@@ -27,6 +27,9 @@ final class DetailSheetViewModel {
     /// 同じ曲の別バージョン (ソロ Ver. / Remix 等)。一覧からは隠れているので、
     /// ここが唯一の到達手段になる。
     private(set) var variantSongs: [Song] = []
+    /// 披露実績から出した共起曲と歌唱者 (共有コアのスナップショット走査)。
+    /// 披露 0 回の曲・スナップショット未ロードでは `.empty`。画面はそのとき節を出さない。
+    private(set) var performanceEvidence: SongPerformanceEvidence = .empty
 
     // MARK: - コミュニティ (CommunityAPI + SongReading ミラー)
     private(set) var songCalls: [SongCall] = []
@@ -57,20 +60,28 @@ final class DetailSheetViewModel {
     private let unitReading: any UnitReading
     private let showReading: any ShowReading
     private let songDetailReading: any SongDetailReading
+    private let performanceEvidenceReading: any PerformanceEvidenceReading
 
     nonisolated init(
         songReading: any SongReading = AppContainer.shared.songReading,
         brandReading: any BrandReading = AppContainer.shared.brandReading,
         unitReading: any UnitReading = AppContainer.shared.unitReading,
         showReading: any ShowReading = AppContainer.shared.showReading,
-        songDetailReading: any SongDetailReading = AppContainer.shared.songDetailReading
+        songDetailReading: any SongDetailReading = AppContainer.shared.songDetailReading,
+        performanceEvidenceReading: any PerformanceEvidenceReading = AppContainer.shared.performanceEvidenceReading
     ) {
         self.songReading = songReading
         self.brandReading = brandReading
         self.unitReading = unitReading
         self.showReading = showReading
         self.songDetailReading = songDetailReading
+        self.performanceEvidenceReading = performanceEvidenceReading
     }
+
+    /// 披露実績から出す共起曲の表示件数。関連楽曲 (8 件) と同じ長さに揃える。
+    private static let coOccurringDisplayCount = 8
+    /// 歌唱者の表示件数。全体曲は 50 人以上が歌っているので、上位だけ出して節を膨らませない。
+    private static let singerDisplayCount = 10
 
     // MARK: - Loads (5系統)
 
@@ -93,6 +104,13 @@ final class DetailSheetViewModel {
         } catch {
             Logger.database.error("load_failed song_details: \(error.localizedDescription)")
         }
+        // 上の do とは別に取る。ここが throw しても曲名・履歴・歌唱者まで巻き添えで消えては
+        // 困る (実績の節が 1 つ出ないだけで済ませたい) ので、失敗は .empty に倒す。
+        performanceEvidence = (try? await performanceEvidenceReading.songPerformanceEvidence(
+            songId: song.id,
+            coLimit: Self.coOccurringDisplayCount,
+            singerLimit: Self.singerDisplayCount
+        )) ?? .empty
         artworkInfo = await MusicKitService.shared.fetchSongInfo(title: song.title, appleMusicId: song.appleMusicId)
         await loadServerData(song: song)
     }

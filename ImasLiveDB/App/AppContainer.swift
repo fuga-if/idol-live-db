@@ -51,6 +51,10 @@ final class AppContainer: Sendable {
     /// 横断検索の実装。
     let globalSearchReading: any GlobalSearchReading
 
+    /// 披露実績の集計 (共起曲 / 歌唱者) 読み取りの実装。
+    /// 全セトリ走査が前提で SQL に等価物が無いため、これだけ GRDB フォールバックを持たない。
+    let performanceEvidenceReading: any PerformanceEvidenceReading
+
     private init() {
         let snapshot = CoreSnapshotManager()
         coreSnapshot = snapshot
@@ -64,6 +68,9 @@ final class AppContainer: Sendable {
         statsReading = CoreStatsRepository(snapshot: snapshot, fallback: GRDBStatsRepository(database: .shared))
         timelineReading = CoreTimelineRepository(snapshot: snapshot, fallback: GRDBTimelineRepository(database: .shared))
         globalSearchReading = CoreGlobalSearchRepository(snapshot: snapshot, fallback: GRDBGlobalSearchRepository(database: .shared))
+        // fallback 引数が無いのは書き忘れではない。全セトリ走査でしか出せない集計なので
+        // 旧 SQL 経路が存在せず、未ロード時は空 (= 曲詳細に節を出さない) が正しい答え。
+        performanceEvidenceReading = CorePerformanceEvidenceRepository(snapshot: snapshot)
 
         // ローカル編集 (モデレーターの .applied 経路やセトリ取込) は CloudKit sync を通らず
         // GRDB へ直接 upsert されるため、.masterDataDidSync だけではスナップショットが
