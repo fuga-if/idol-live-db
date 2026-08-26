@@ -106,6 +106,26 @@ abstract class AppDatabase : RoomDatabase() {
             // バンドル同梱を廃止。Room がエンティティから空DBを生成し、
             // 初回起動で CloudKitSyncEngine がフル同期して投入する。
             // これにより createFromAsset のスキーマ検証クラッシュリスクを排除する。
+            //
+            // ⚠️ ここでコア (imas-core) の `ensureMasterSchema()` を流してはいけない。
+            // iOS の AppDatabase は GRDB の移行前に流しているが、Android では**必ず起動不能になる**。
+            // Room 2.6.1 は自分が知る表について実 DB と @Entity 定義を厳密一致で照合する
+            // (androidx.room.util.TableInfo.equals は columns を Map 等価・indices を Set 等価で比べ、
+            //  索引の読み取りは origin='c' で絞るだけで名前による除外をしない)。
+            // コアの正本 DDL は追加しかしないが、その追加分が Room から見て「余分」になる:
+            //   - songs.jasrac_code (コアにあり Song entity に無い) → columns 不一致
+            //   - idx_events_is_solo / idx_idols_attribute / idx_idols_is_external /
+            //     idx_show_cast_idol / idx_songs_series_group → indices 不一致
+            // 一度でも流すと差分が DB に残り、次に version を上げた瞬間 onUpgrade 後の
+            // validateMigration が IllegalStateException を投げて既存ユーザ全員が起動できなくなる。
+            // 新規インストールも同じで、Room の onCreate は「ファイルが空でない」と見た時点で
+            // 同じ照合を走らせるため、Room より先に流すと初回起動が落ちる。
+            //
+            // 流せるようにする条件は 2 つのどちらか:
+            //   a) Room 側が上記の列と索引を宣言して版を上げる (コアの KNOWN_GAPS からも消す)
+            //   b) コアが「呼び手が持たない表だけ作る」適用モードを持つ
+            // なお idol_voice_actors / song_units は Room が知らない表なので照合対象外であり、
+            // コア適用の実利はいまのところこの 2 表だけ (どちらも Android では空のまま)。
             return Room.databaseBuilder(
                 context.applicationContext,
                 AppDatabase::class.java,

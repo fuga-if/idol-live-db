@@ -823,63 +823,66 @@ struct IdolDetailView: View {
             }
     }
 
-    /// プロフィール行の宣言的モデル。divider は描画側でインデックスから判定する。
-    private struct ProfileRow: Identifiable {
-        let id = UUID()
-        let key: String
-        let value: String
-        var chevron = false
-        var mono = false
-        var swatch = false
-        var tappable = false
-        var action: (() -> Void)? = nil
+    /// プロフィール行の組み立ては共有コアが唯一の正 (`idolProfileRows`)。
+    /// 「どの行が・どの順で・押せるか」を Android と二重に書くと必ずいつかズレるので、
+    /// ここは**整形済みの値を渡すだけ**にする。整形 (「4月3日」「160cm」) は iOS の担当のまま。
+    ///
+    /// 1 画面 = 1 呼び出し。行ごとに FFI を跨がない。
+    private var profileRowModels: [ScreenRow] {
+        idolProfileRows(input: IdolProfileInput(
+            nameKana: idol.nameKana,
+            nameRomaji: idol.nameRomaji,
+            birthdayDisplay: idol.birthdayDisplay,
+            // 壊れた誕生日 (負値など) で落とさないよう exactly で弾く。コア側でも 1...12 に絞られる。
+            birthMonth: idol.birthMonth.flatMap { UInt32(exactly: $0) },
+            ageHeightWeight: ageHeightWeight,
+            threeSize: idol.threeSizeDisplay,
+            bloodConstellation: bloodConstellation,
+            birthplaceHandedness: birthplaceHand,
+            hobbyTalent: hobbyTalent,
+            color: idol.color
+        ))
     }
 
-    private var profileRowModels: [ProfileRow] {
-        var rows: [ProfileRow] = []
-        if let kana = idol.nameKana { rows.append(.init(key: "よみ", value: kana)) }
-        if let romaji = idol.nameRomaji { rows.append(.init(key: "ローマ字", value: romaji, mono: true)) }
-        if let bday = idol.birthdayDisplay {
-            if let month = idol.birthMonth {
-                rows.append(.init(key: "誕生日", value: bday, chevron: true, tappable: true) {
-                    go(.filteredIdols(.birthMonth(month)))
-                })
-            } else {
-                rows.append(.init(key: "誕生日", value: bday))
-            }
+    /// コアの `RowAction` を iOS の操作に落とす。**遷移/複写の実行はこちらの責務**。
+    ///
+    /// `navigates` は「押せる見た目」(accent 文字色 + chevron) を出すか。
+    /// 複写は押せるが行先が無いので、矢印を出すと嘘になる。
+    private func profileRowTap(_ row: ScreenRow) -> (navigates: Bool, run: (() -> Void)?) {
+        switch row.action {
+        case let .filterByBirthMonth(month):
+            return (true, { go(.filteredIdols(.birthMonth(Int(month)))) })
+        // カラーは押すと写せる (配信や実況で色コードを使う人が居る)。
+        case RowAction.copyValue:
+            return (false, { UIPasteboard.general.string = row.value })
+        // 展開は ImasLabeledRow が自前の状態で行うので、行の action としては持たせない。
+        case RowAction.toggleExpansion, RowAction.none:
+            return (false, nil)
         }
-        if let v = ageHeightWeight { rows.append(.init(key: "年齢 / 身長 / 体重", value: v)) }
-        if let v = idol.threeSizeDisplay { rows.append(.init(key: "スリーサイズ", value: v, mono: true)) }
-        if let v = bloodConstellation { rows.append(.init(key: "血液型 / 星座", value: v)) }
-        if let v = birthplaceHand { rows.append(.init(key: "出身 / 利き手", value: v)) }
-        if let v = hobbyTalent { rows.append(.init(key: "趣味 / 特技", value: v)) }
-        if let color = idol.color {
-            rows.append(.init(key: "カラー", value: color, mono: true, swatch: true) {
-                UIPasteboard.general.string = color
-            })
-        }
-        return rows
     }
 
     @ViewBuilder
     private var profileRows: some View {
         let models = profileRowModels
-        ForEach(Array(models.enumerated()), id: \.element.id) { idx, row in
+        // label はコアが返す固定の見出しで重複しないため、そのまま同一性に使える。
+        ForEach(Array(models.enumerated()), id: \.element.label) { idx, row in
             if idx > 0 { ImasRowDivider() }
+            let tap = profileRowTap(row)
             let content = ImasLabeledRow(
-                key: row.key,
+                key: row.label,
                 value: row.value,
-                showChevron: row.chevron,
-                showSwatch: row.swatch,
-                mono: row.mono,
-                tappable: row.tappable,
-                // action を持たない行 (よみ/趣味・特技 等) はタップで全文展開できるようにする。
-                expandable: row.action == nil,
+                showChevron: tap.navigates,
+                showSwatch: row.style == .colorSwatch,
+                // 色コードは桁を揃えたいので ColorSwatch も等幅で出す。
+                mono: row.style == .monospaced || row.style == .colorSwatch,
+                tappable: tap.navigates,
+                // 遷移/複写を持たない行 (よみ/趣味・特技 等) はタップで全文展開できるようにする。
+                expandable: tap.run == nil,
                 seed: seed,
                 brand: brandColor
             )
-            if let action = row.action {
-                Button(action: action) { content }.buttonStyle(.plain)
+            if let run = tap.run {
+                Button(action: run) { content }.buttonStyle(.plain)
             } else {
                 content
             }

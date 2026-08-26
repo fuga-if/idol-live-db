@@ -1,6 +1,7 @@
 package com.fugaif.imaslivedb.data.repository
 
 import androidx.sqlite.db.SimpleSQLiteQuery
+import com.fugaif.imaslivedb.data.core.FuzzySearch
 import com.fugaif.imaslivedb.data.core.SQLITE_BINARY_ORDER
 import com.fugaif.imaslivedb.data.core.SnapshotStoreProvider
 import com.fugaif.imaslivedb.data.core.hydrateInOrder
@@ -13,6 +14,8 @@ import com.fugaif.imaslivedb.data.model.SongPlayCount
 import com.fugaif.imaslivedb.data.model.SongSearchFilter
 import com.fugaif.imaslivedb.data.model.SongSortOrder
 import com.fugaif.imaslivedb.data.model.SongWithArtists
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import uniffi.imas_core.PerformanceHistoryEntry
 import uniffi.imas_core.SongListFilter
 import uniffi.imas_core.SongListSort
@@ -290,6 +293,39 @@ class SongRepository(
     // 実体化はローカル store で行う規約) なので、Room 直のまま残す。
     suspend fun fetchSong(id: String): Song? {
         return db.songDao().fetchSong(id)
+    }
+
+    /**
+     * あいまい一致で拾った song_id (「もしかして」の素)。並びはコアが返した順
+     * (部分一致 → 編集距離が小さい順) が正で、呼び出し側で並べ直さないこと。
+     *
+     * SQL の `LIKE '%語%'` は打ち間違い・かな入力・音引きの揺れで 0 件になる。そこを
+     * コア (imas-core `domain/fuzzy_search.rs`) の編集距離で補う。曲名だけでなく
+     * `songs.title_kana` の読みも綴りとして渡すので「おねがいしんでれら」で
+     * 「お願い！シンデレラ」が当たる。
+     *
+     * 実体ではなく id を返すのは、呼び出し側 (曲一覧 / 横断検索) が自分の絞り込みと
+     * 上限で引き直す必要があるため。あいまい一致は綴りしか見ないので、ブランドや
+     * 曲種の条件はここでは効かない。
+     *
+     * @param shownIds 既に画面に出ている曲。ここから重複を出さない。
+     */
+    suspend fun fuzzySongIds(
+        needle: String,
+        shownIds: Set<String>,
+        limit: Int = FuzzySearch.LIMIT
+    ): List<String> {
+        if (needle.isBlank() || limit <= 0) return emptyList()
+        // スナップショットには綴りだけを返す API が無いので Room 直で引く
+        // (全件読まずに済むよう 2 列だけの射影)。
+        val spellings = db.searchDao().fetchSongSpellings()
+        if (spellings.isEmpty()) return emptyList()
+        val shownIndices = spellings.indices.filterTo(HashSet()) { spellings[it].id in shownIds }
+        // 全曲ぶんの編集距離は 3,000 曲で 20ms 前後。呼び出し元が Main なのでここで外へ出す。
+        val extras = withContext(Dispatchers.Default) {
+            FuzzySearch.extraIndices(spellings.map { it.spellings }, needle, shownIndices, limit)
+        }
+        return extras.map { spellings[it].id }
     }
 
     /** タグ詳細画面の曲ランキング表示用。N+1を避けてIN句で一括取得する。 */

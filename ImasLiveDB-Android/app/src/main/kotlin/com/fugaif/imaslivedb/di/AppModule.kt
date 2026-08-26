@@ -10,6 +10,7 @@ import com.fugaif.imaslivedb.data.repository.CalendarRepository
 import com.fugaif.imaslivedb.data.repository.EditFeedRepository
 import com.fugaif.imaslivedb.data.repository.EventRepository
 import com.fugaif.imaslivedb.data.repository.IdolRepository
+import com.fugaif.imaslivedb.data.repository.PerformanceEvidenceRepository
 import com.fugaif.imaslivedb.data.repository.PersonalTagRepository
 import com.fugaif.imaslivedb.data.repository.SearchRepository
 import com.fugaif.imaslivedb.data.repository.SongRepository
@@ -45,7 +46,15 @@ class AppModule private constructor(context: Context) {
     val idolRepository: IdolRepository by lazy { IdolRepository(database, snapshotStoreProvider) }
     val unitRepository: UnitRepository by lazy { UnitRepository(database, snapshotStoreProvider) }
     val statsRepository: StatsRepository by lazy { StatsRepository(database, communityApi, snapshotStoreProvider) }
-    val searchRepository: SearchRepository by lazy { SearchRepository(database, snapshotStoreProvider) }
+    // 曲のあいまい一致は songRepository が持つ素を使う (曲一覧と横断検索で候補を揃えるため)。
+    val searchRepository: SearchRepository by lazy {
+        SearchRepository(database, snapshotStoreProvider, songRepository)
+    }
+    // 曲詳細の披露実績 (共起曲 / 歌唱者)。全セトリ走査でしか出せない集計なので
+    // Room のフォールバックを持たない (未ロード時は空 = 節を出さない)。
+    val performanceEvidenceRepository: PerformanceEvidenceRepository by lazy {
+        PerformanceEvidenceRepository(database, snapshotStoreProvider)
+    }
     val userMarkRepository: UserMarkRepository by lazy { UserMarkRepository(database) }
     val personalTagRepository: PersonalTagRepository by lazy { PersonalTagRepository(database) }
     val authService: AuthService by lazy { AuthService(appContext) }

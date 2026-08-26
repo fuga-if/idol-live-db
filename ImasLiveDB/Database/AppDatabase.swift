@@ -114,8 +114,22 @@ final class AppDatabase: @unchecked Sendable {
         } else if !fileManager.fileExists(atPath: dbURL.path) {
             let pool = try DatabasePool(path: dbURL.path, configuration: config)
             try DatabaseMigrations.migrator.migrate(pool)
+            // この経路だけコア適用を移行の**後ろ**に置く。空 DB から作るここでは
+            // v1_create_tables が ifNotExists 無しの CREATE TABLE を出すので、先にコアが
+            // 同じ表を作ると v1 が「already exists」で落ち、起動不能になる。
+            // 移行が作り切った後に、正本にあって移行が作らない分だけ足す。
+            applyCoreMasterSchema(at: dbURL.path)
             return pool
         }
+
+        // GRDB の移行より**前**に、コアが持つマスタスキーマの正本を流す。
+        // 出すのは CREATE TABLE と ALTER TABLE ADD COLUMN だけで、DROP も作り直しも
+        // データ書き換えも無い。正本に user_marks / personal_tags を含めていないので、
+        // 端末にしか無いユーザーデータ (担当・お気に入り・メモ) には構造的に届かない。
+        // pool を開く前に済ませるのは、GRDB 接続が古い形のまま statement を掴むのを避けるため。
+        // ここで足した表・列は直後の seedMigrationHistoryIfNeeded が「適用済み」と見なすので、
+        // 対応する GRDB 移行は空振りする (= 二重適用にならない)。
+        applyCoreMasterSchema(at: dbURL.path)
 
         let pool = try DatabasePool(path: dbURL.path, configuration: config)
         try seedMigrationHistoryIfNeeded(pool)
@@ -143,6 +157,26 @@ final class AppDatabase: @unchecked Sendable {
             Logger.database.error("reseedMasterTablesIfNeeded failed: \(detail, privacy: .public)")
         }
         return pool
+    }
+
+    /// 共有コア (imas-core) が持つマスタスキーマの正本を DB へ寄せる。追加しかしない。
+    ///
+    /// **失敗しても投げない。** DB を開く前段でここが throw すると `init` の `fatalError` に
+    /// 直結して起動不能になる (マスタ削除で FK 孤児 → 起動クラッシュ → 審査 reject の実例がある)。
+    /// 一方で失敗しても従来どおり GRDB の移行が同じ形を作れるため、ログだけ残して進むのが常に正しい。
+    private static func applyCoreMasterSchema(at path: String) {
+        do {
+            let result = try ensureMasterSchema(dbPath: path)
+            Logger.database.info(
+                "[core-schema] applied=\(result.applied, privacy: .public) untouched=\(result.untouchedTables.joined(separator: ","), privacy: .public)"
+            )
+            // deferred = 追加だけでは埋められず人の移行を待つ項目。黙って消すと気付けないので必ず出す。
+            for reason in result.deferred {
+                Logger.database.error("[core-schema] deferred: \(reason, privacy: .public)")
+            }
+        } catch {
+            Logger.database.error("[core-schema] failed: \(error.localizedDescription, privacy: .public)")
+        }
     }
 
     /// Bundle DB の data_version が Documents DB より新しいときに、 マスタテーブル一式を

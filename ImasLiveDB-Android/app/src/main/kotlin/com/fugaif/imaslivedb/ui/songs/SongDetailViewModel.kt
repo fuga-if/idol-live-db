@@ -10,6 +10,7 @@ import com.fugaif.imaslivedb.data.model.ImasUnit
 import com.fugaif.imaslivedb.data.model.PerformanceHistoryRow
 import com.fugaif.imaslivedb.data.model.Song
 import com.fugaif.imaslivedb.data.model.SongCall
+import com.fugaif.imaslivedb.data.model.SongPerformanceEvidence
 import com.fugaif.imaslivedb.data.model.SongVideo
 import com.fugaif.imaslivedb.data.model.UserMark
 import com.fugaif.imaslivedb.data.community.CommunityApi
@@ -31,6 +32,11 @@ data class SongDetailUiState(
     val collectedShows: List<PerformanceHistoryRow> = emptyList(),
     /** 関連楽曲 (同シリーズ/ユニット/原唱共有, ローカル算出)。 */
     val relatedSongs: List<Song> = emptyList(),
+    /**
+     * 披露実績から出した共起曲と歌唱者 (共有コアのスナップショット走査)。
+     * 披露 0 回の曲・スナップショット未ロードでは EMPTY。画面はそのとき節を出さない。
+     */
+    val performanceEvidence: SongPerformanceEvidence = SongPerformanceEvidence.EMPTY,
     /** タグが似ている楽曲 (この曲が好きな人にはこれも, サーバ算出)。 */
     val similarTagSongs: List<Song> = emptyList(),
     val similarSharedTags: Map<String, Int> = emptyMap(),
@@ -70,6 +76,8 @@ class SongDetailViewModel : ViewModel() {
             }
             val collectedShows = module.songRepository.fetchCollectedShows(songId)
             val relatedSongs = if (song != null) module.songRepository.fetchRelatedSongs(song, limit = 8) else emptyList()
+            // 曲詳細 1 オープンにつき FFI は 1 回だけ。共起と歌唱者はコア側で束ねてある。
+            val evidence = module.performanceEvidenceRepository.fetchSongPerformanceEvidence(songId)
             val calls = module.database.communityDao().callsForSong(songId)
             val videos = module.database.communityDao().videosForSong(songId)
             val isFavorite = module.userMarkRepository.isOn(UserMark.SONG, songId, UserMark.FAVORITE)
@@ -83,6 +91,7 @@ class SongDetailViewModel : ViewModel() {
                 brand = brand,
                 collectedShows = collectedShows,
                 relatedSongs = relatedSongs,
+                performanceEvidence = evidence,
                 songCalls = calls,
                 songVideos = videos,
                 isFavorite = isFavorite

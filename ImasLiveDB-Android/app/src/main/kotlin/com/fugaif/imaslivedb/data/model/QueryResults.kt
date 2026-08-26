@@ -288,9 +288,30 @@ data class FavoriteRankingEntry(
 data class SearchResults(
     val songs: List<Song>,
     val idols: List<Idol>,
-    val events: List<Event>
+    val events: List<Event>,
+    // 打った語には部分一致しないが、あいまい一致で拾えた曲 (「もしかして」)。
+    // songs と混ぜない。混ぜると「打った通りの曲」がどれか分からなくなるので、
+    // 画面では確実な一致の下に、見出しを挟んで別枠で出す。
+    val fuzzySongs: List<Song> = emptyList()
 ) {
-    val isEmpty: Boolean get() = songs.isEmpty() && idols.isEmpty() && events.isEmpty()
+    val isEmpty: Boolean
+        get() = songs.isEmpty() && idols.isEmpty() && events.isEmpty() && fuzzySongs.isEmpty()
+}
+
+/**
+ * あいまい検索へ渡す綴り (曲名 + 読み) の軽い射影。
+ *
+ * 候補を絞るのに要るのは綴りだけなので、Song 実体を全件読まない。
+ * 当たった曲だけを後から実体化する。
+ */
+data class SongSpelling(
+    val id: String,
+    val title: String,
+    @ColumnInfo(name = "title_kana") val titleKana: String?
+) {
+    /** コアへ渡す綴り列。読みが無い曲は曲名だけ。 */
+    val spellings: List<String>
+        get() = listOfNotNull(title.takeIf { it.isNotBlank() }, titleKana?.takeIf { it.isNotBlank() })
 }
 
 // MARK: - Song List Row

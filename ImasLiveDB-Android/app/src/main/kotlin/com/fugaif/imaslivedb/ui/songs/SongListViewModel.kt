@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.fugaif.imaslivedb.data.community.CommunityApi
+import com.fugaif.imaslivedb.data.core.FuzzySearch
 import com.fugaif.imaslivedb.data.model.SongCollectFilter
 import com.fugaif.imaslivedb.data.model.SongMyMarkFilter
 import com.fugaif.imaslivedb.data.model.SongSearchFilter
@@ -12,6 +13,7 @@ import com.fugaif.imaslivedb.data.model.SongWithArtists
 import com.fugaif.imaslivedb.data.model.UserMark
 import com.fugaif.imaslivedb.di.AppModule
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -40,7 +42,11 @@ data class SongListUiState(
     val myPickSongIds: Set<String> = emptySet(),
     val collectedCounts: Map<String, Int> = emptyMap(),
     // タグ絞り込み中(単一タグ選択時のみ)の song_id → 票数。
-    val tagVoteCounts: Map<String, Int> = emptyMap()
+    val tagVoteCounts: Map<String, Int> = emptyMap(),
+    // 打った語には部分一致しないが、あいまい一致で拾えた曲 (「もしかして」)。
+    // songs と混ぜない。混ぜると「打った通りの曲」がどれか分からなくなるので、
+    // 画面では確実な一致の下に、見出しを挟んで別枠で出す。
+    val fuzzySongs: List<SongWithArtists> = emptyList()
 ) {
     val activeFilterCount: Int get() = filter.activeFilterCount
     /** ツールバーのフィルタバッジ件数。表示形式以外の絞り込み状態も含める。 */
@@ -187,31 +193,8 @@ class SongListViewModel : ViewModel() {
             val myPickIds = module.songRepository.fetchSongIdsWithAnyArtist(pickIdolIds)
             val collectedCounts = module.songRepository.fetchSongCollectedCounts()
 
-            // マイマーク / 回収 絞り込み (iOS と同じ imas-core song_list_filtering に委譲)。
-            // 射影 + 採用 index 方式なので FFI 呼び出しは 1 回。メモ絞り込み・タグ集合絞り込み・
-            // タグ票数ランキングはデータ供給側が未実装のため未配線 (requireNote=false / tagSongIds=null)。
-            val entries = songs.map {
-                SongListFilterEntry(songId = it.song.id, title = it.song.title, titleKana = it.song.titleKana)
-            }
-            val criteria = SongListFilterCriteria(
-                collectMode = when (state.collectFilter) {
-                    SongCollectFilter.ALL -> SongCollectMode.ALL
-                    SongCollectFilter.COLLECTED -> SongCollectMode.COLLECTED
-                    SongCollectFilter.UNCOLLECTED -> SongCollectMode.UNCOLLECTED
-                },
-                // Android の回収状態は song_id → 回数の map なので、回収済み (回数 > 0) の集合へ落とす。
-                collectedIds = collectedCounts.filterValues { it > 0 }.keys.toList(),
-                requireFavorite = state.myMarkFilter.requireFavorite,
-                favoriteIds = favoriteIds.toList(),
-                requireNote = false,
-                noteIds = emptyList(),
-                requireMyPick = state.myMarkFilter.requireMyPick,
-                myPickSongIds = myPickIds.toList(),
-                tagSongIds = null,
-                rankByTagVotes = false,
-                tagVoteCounts = emptyMap()
-            )
-            songs = filterSongList(entries, criteria).map { songs[it.toInt()] }
+            val criteria = markFilterCriteria(state, favoriteIds, myPickIds, collectedCounts)
+            songs = applyMarkFilters(songs, criteria)
 
             _uiState.value = _uiState.value.copy(
                 isLoading = false,
@@ -219,8 +202,120 @@ class SongListViewModel : ViewModel() {
                 favoriteSongIds = favoriteIds,
                 myPickSongIds = myPickIds,
                 collectedCounts = collectedCounts,
-                tagVoteCounts = tagVoteCounts
+                tagVoteCounts = tagVoteCounts,
+                // 前の語の「もしかして」を残さない (打ち直した直後だけ関係ない曲が下にぶら下がる)。
+                fuzzySongs = emptyList()
             )
+
+            // ここから先は表示済みの一覧に後追いで足すだけなので isLoading は倒さない。
+            val fuzzy = fuzzyCandidates(module, state, effectiveFilter, criteria, tagFilterSongIds, songs)
+            if (fuzzy.isNotEmpty()) {
+                _uiState.value = _uiState.value.copy(fuzzySongs = fuzzy)
+            }
         }
+    }
+
+    /**
+     * マイマーク / 回収 絞り込みの条件 (iOS と同じ imas-core song_list_filtering に委譲)。
+     *
+     * メモ絞り込み・タグ集合絞り込み・タグ票数ランキングはデータ供給側が未実装のため
+     * 未配線 (requireNote=false / tagSongIds=null)。
+     */
+    private fun markFilterCriteria(
+        state: SongListUiState,
+        favoriteIds: Set<String>,
+        myPickIds: Set<String>,
+        collectedCounts: Map<String, Int>
+    ) = SongListFilterCriteria(
+        collectMode = when (state.collectFilter) {
+            SongCollectFilter.ALL -> SongCollectMode.ALL
+            SongCollectFilter.COLLECTED -> SongCollectMode.COLLECTED
+            SongCollectFilter.UNCOLLECTED -> SongCollectMode.UNCOLLECTED
+        },
+        // Android の回収状態は song_id → 回数の map なので、回収済み (回数 > 0) の集合へ落とす。
+        collectedIds = collectedCounts.filterValues { it > 0 }.keys.toList(),
+        requireFavorite = state.myMarkFilter.requireFavorite,
+        favoriteIds = favoriteIds.toList(),
+        requireNote = false,
+        noteIds = emptyList(),
+        requireMyPick = state.myMarkFilter.requireMyPick,
+        myPickSongIds = myPickIds.toList(),
+        tagSongIds = null,
+        rankByTagVotes = false,
+        tagVoteCounts = emptyMap()
+    )
+
+    /**
+     * 射影 + 採用 index 方式なので FFI 呼び出しはリスト 1 本につき 1 回。
+     *
+     * あいまい候補にも**同じ条件を通す**こと。通さないと「お気に入りのみ」表示の下に
+     * お気に入りでない曲が並ぶ。
+     */
+    private fun applyMarkFilters(
+        songs: List<SongWithArtists>,
+        criteria: SongListFilterCriteria
+    ): List<SongWithArtists> {
+        if (songs.isEmpty()) return songs
+        val entries = songs.map {
+            SongListFilterEntry(songId = it.song.id, title = it.song.title, titleKana = it.song.titleKana)
+        }
+        return filterSongList(entries, criteria).map { songs[it.toInt()] }
+    }
+
+    /**
+     * 「もしかして」候補。打った語には部分一致しないが、あいまい一致で拾えた曲。
+     *
+     * SQL の `LIKE '%語%'` は打ち間違い・かな入力・音引きの揺れで 0 件になる。そこを
+     * コア (imas-core `domain/fuzzy_search.rs`) の編集距離で補う。曲名だけでなく
+     * `songs.title_kana` の読みも綴りとして渡すので「おねがいしんでれら」で
+     * 「お願い！シンデレラ」が当たる。
+     *
+     * 打った通りに十分見つかっているときは足さない。既に 30 件出ている画面の末尾に
+     * 候補を積んでも読まれず、一致の精度を疑わせるだけになる。
+     *
+     * ## なぜ候補 id を tagFilterSongIds に載せて引き直すか
+     * あいまい一致は綴りしか見ないので、ブランド・リミックス・曲種などの絞り込みを
+     * 素通りしてしまう。`tagFilterSongIds` は「この id 集合に限る」通過フィルタなので、
+     * ここへ候補を渡せば**現在の絞り込みを全部通した上で**候補だけが返る。
+     */
+    private suspend fun fuzzyCandidates(
+        module: AppModule,
+        state: SongListUiState,
+        effectiveFilter: SongSearchFilter,
+        criteria: SongListFilterCriteria,
+        tagFilterSongIds: Set<String>?,
+        shown: List<SongWithArtists>
+    ): List<SongWithArtists> {
+        val needle = state.searchText
+        if (needle.isBlank() || shown.size > FuzzySearch.SUGGEST_THRESHOLD) return emptyList()
+        // 打鍵のたびに loadSongs が前のジョブを cancel するので、この待ちがそのまま
+        // 「入力が落ち着くまで引かない」debounce になる (全曲ぶんの編集距離は 20ms 前後)。
+        delay(FUZZY_DEBOUNCE_MS)
+
+        // 上限ちょうどだけ引くと、下の絞り込みを通した後に候補が空になる。多めに引いて後で切る。
+        val candidateIds = module.songRepository.fuzzySongIds(
+            needle = needle,
+            shownIds = shown.mapTo(HashSet()) { it.song.id },
+            limit = FuzzySearch.LIMIT * 3
+        )
+        if (candidateIds.isEmpty()) return emptyList()
+        val scoped = candidateIds.toSet().let { ids -> tagFilterSongIds?.intersect(ids) ?: ids }
+        if (scoped.isEmpty()) return emptyList()
+
+        val hydrated = module.songRepository.fetchSongs(
+            // 打った語で絞ると候補が全部落ちる (部分一致しないから候補になっている)。
+            filter = effectiveFilter.copy(title = null),
+            sortOrder = state.sortOrder,
+            ascending = state.sortAscending,
+            tagFilterSongIds = scoped
+        )
+        val allowed = applyMarkFilters(hydrated, criteria).associateBy { it.song.id }
+        // 並びはコアが返した順 (部分一致 → 編集距離が小さい順) が正。一覧のソート順に戻さない。
+        return candidateIds.mapNotNull { allowed[it] }.take(FuzzySearch.LIMIT)
+    }
+
+    private companion object {
+        /** 入力が落ち着いたと見なすまでの待ち (iOS FuzzySearchTuning.debounce と同値)。 */
+        const val FUZZY_DEBOUNCE_MS = 250L
     }
 }

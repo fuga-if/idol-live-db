@@ -20,10 +20,15 @@ data class SearchUiState(
     val history: List<String> = emptyList(),
     val isSearching: Boolean = false
 ) {
-    /** 現在スコープで表示される結果の件数。 */
+    /**
+     * 現在スコープで表示される結果の件数。
+     *
+     * あいまい候補も数に入れる。ここが 0 だと画面は「見つかりません」を出すので、
+     * 数えないと「もしかして」しか無いとき (打ち間違い・かな入力) に候補ごと隠れる。
+     */
     val visibleResultCount: Int
         get() = (if (scope.includes(SearchScope.IDOLS)) results.idols.size else 0) +
-            (if (scope.includes(SearchScope.SONGS)) results.songs.size else 0) +
+            (if (scope.includes(SearchScope.SONGS)) results.songs.size + results.fuzzySongs.size else 0) +
             (if (scope.includes(SearchScope.EVENTS)) results.events.size else 0)
 }
 

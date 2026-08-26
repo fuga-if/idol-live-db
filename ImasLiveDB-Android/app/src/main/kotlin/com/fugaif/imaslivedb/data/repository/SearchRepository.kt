@@ -1,5 +1,6 @@
 package com.fugaif.imaslivedb.data.repository
 
+import com.fugaif.imaslivedb.data.core.FuzzySearch
 import com.fugaif.imaslivedb.data.core.SnapshotStoreProvider
 import com.fugaif.imaslivedb.data.core.hydrateInOrder
 import com.fugaif.imaslivedb.data.db.AppDatabase
@@ -28,7 +29,10 @@ enum class SearchScope(val label: String, val prompt: String, val emptyNoun: Str
 class SearchRepository(
     private val db: AppDatabase,
     // null = スナップショット経路なし (テスト等)。その場合は常に SQL 経路。
-    private val snapshots: SnapshotStoreProvider? = null
+    private val snapshots: SnapshotStoreProvider? = null,
+    // 曲のあいまい一致 (「もしかして」) はここが持たず SongRepository に委ねる。
+    // 曲一覧と同じ素を使わないと、同じ入力で画面ごとに違う候補が出る。
+    private val songs: SongRepository = SongRepository(db, snapshots)
 ) {
 
     /**
@@ -36,14 +40,22 @@ class SearchRepository(
      */
     suspend fun search(query: String, scope: SearchScope = SearchScope.ALL): SearchResults {
         return when (scope) {
-            SearchScope.ALL -> SearchResults(
-                songs = searchSongs(query, SHALLOW_LIMIT, deep = false),
-                idols = searchIdols(query, SHALLOW_LIMIT),
-                events = searchEvents(query, SHALLOW_LIMIT)
-            )
-            SearchScope.SONGS -> SearchResults(
-                songs = searchSongs(query, DEEP_LIMIT, deep = true), idols = emptyList(), events = emptyList()
-            )
+            SearchScope.ALL -> {
+                val hits = searchSongs(query, SHALLOW_LIMIT, deep = false)
+                SearchResults(
+                    songs = hits,
+                    idols = searchIdols(query, SHALLOW_LIMIT),
+                    events = searchEvents(query, SHALLOW_LIMIT),
+                    fuzzySongs = fuzzySongs(query, hits)
+                )
+            }
+            SearchScope.SONGS -> {
+                val hits = searchSongs(query, DEEP_LIMIT, deep = true)
+                SearchResults(
+                    songs = hits, idols = emptyList(), events = emptyList(),
+                    fuzzySongs = fuzzySongs(query, hits)
+                )
+            }
             SearchScope.IDOLS -> SearchResults(
                 songs = emptyList(), idols = searchIdols(query, DEEP_LIMIT), events = emptyList()
             )
@@ -51,6 +63,22 @@ class SearchRepository(
                 songs = emptyList(), idols = emptyList(), events = searchEvents(query, DEEP_LIMIT)
             )
         }
+    }
+
+    /**
+     * 打った語では引けなかった曲を、あいまい一致で拾う (「もしかして」)。
+     *
+     * 打った通りに十分見つかっているときは足さない。既に 30 件出ている画面の末尾に
+     * 候補を積んでも読まれず、一致の精度を疑わせるだけになる。
+     *
+     * 呼び出し元 (SearchViewModel) が 200ms の debounce を通しているので、打鍵ごとには走らない。
+     */
+    private suspend fun fuzzySongs(query: String, shown: List<Song>): List<Song> {
+        if (shown.size > FuzzySearch.SUGGEST_THRESHOLD) return emptyList()
+        val ids = songs.fuzzySongIds(query, shown.mapTo(HashSet()) { it.id })
+        if (ids.isEmpty()) return emptyList()
+        // 実体を引くのは当たった数十件だけ。並びはコアが返した順が正なので保って戻す。
+        return hydrateInOrder(ids, Song::id) { db.songDao().fetchSongsByIds(it) }
     }
 
     /**

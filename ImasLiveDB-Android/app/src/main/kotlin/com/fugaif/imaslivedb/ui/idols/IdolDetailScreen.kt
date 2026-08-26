@@ -91,6 +91,10 @@ import com.fugaif.imaslivedb.ui.theme.BrandPalette
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasTheme
 import kotlinx.coroutines.launch
+import uniffi.imas_core.IdolProfileInput
+import uniffi.imas_core.RowAction
+import uniffi.imas_core.RowStyle
+import uniffi.imas_core.idolProfileRows
 
 /**
  * アイドル詳細。iOS IdolDetailView の構成を 1:1 で写す。
@@ -459,25 +463,45 @@ private fun UnitChip(unit: ImasUnit, idol: Idol, onClick: () -> Unit) {
 @Composable
 private fun ProfileBody(idol: Idol) {
     val clipboard = LocalClipboardManager.current
-    val rows = buildList {
-        idol.nameKana?.let { add(ProfileRow("よみ", it)) }
-        idol.nameRomaji?.let { add(ProfileRow("ローマ字", it, mono = true)) }
-        idol.birthday?.let { add(ProfileRow("誕生日", formatBirthday(it))) }
-        ageHeightWeight(idol)?.let { add(ProfileRow("年齢 / 身長 / 体重", it)) }
-        threeSize(idol)?.let { add(ProfileRow("スリーサイズ", it, mono = true)) }
-        bloodConstellation(idol)?.let { add(ProfileRow("血液型 / 星座", it)) }
-        birthplaceHand(idol)?.let { add(ProfileRow("出身 / 利き手", it)) }
-        hobbyTalent(idol)?.let { add(ProfileRow("趣味 / 特技", it)) }
-        idol.color?.let { color ->
-            add(ProfileRow("カラー", color, mono = true, swatch = true, onClick = { clipboard.setText(AnnotatedString(color)) }))
-        }
+    // 行の組み立て (どの行が・どの順で・押せるか) は共有コアが唯一の正。
+    // iOS と同じ条件を二重に書くと必ずいつかズレるので、ここは整形済みの値を渡すだけにする。
+    // 1 画面 = 1 呼び出し。idol が変わらない限り作り直さない。
+    val rows = remember(idol) {
+        idolProfileRows(
+            IdolProfileInput(
+                nameKana = idol.nameKana,
+                nameRomaji = idol.nameRomaji,
+                birthdayDisplay = idol.birthday?.let { formatBirthday(it) },
+                birthMonth = birthMonth(idol.birthday),
+                ageHeightWeight = ageHeightWeight(idol),
+                threeSize = threeSize(idol),
+                bloodConstellation = bloodConstellation(idol),
+                birthplaceHandedness = birthplaceHand(idol),
+                hobbyTalent = hobbyTalent(idol),
+                color = idol.color
+            )
+        )
     }
     Column {
         ImasSectionHeader("プロフィール", tight = true)
         rows.forEach { row ->
+            // コアが返すのは「何をしたいか」の種類だけ。実行はこちらの責務。
+            val onClick: (() -> Unit)? = when (row.action) {
+                // カラーは押すと写せる (配信や実況で色コードを使う人が居る)。
+                RowAction.CopyValue -> ({ clipboard.setText(AnnotatedString(row.value)) })
+                // 誕生月で絞ったアイドル一覧が Android にまだ無い。画面ができるまでは
+                // 押せない行のままにする (行先の無い矢印を出さない)。作ったらここを繋ぐだけ。
+                is RowAction.FilterByBirthMonth -> null
+                // 全文展開は ImasLabeledRow が未対応なので、行の onClick には載せない。
+                RowAction.ToggleExpansion, RowAction.None -> null
+            }
             ImasLabeledRow(
-                key = row.key, value = row.value, showSwatch = row.swatch, mono = row.mono,
-                seed = idol.color, brand = idol.brandId, onClick = row.onClick
+                key = row.label,
+                value = row.value,
+                showSwatch = row.style == RowStyle.COLOR_SWATCH,
+                // 色コードは桁を揃えたいので ColorSwatch も等幅で出す。
+                mono = row.style == RowStyle.MONOSPACED || row.style == RowStyle.COLOR_SWATCH,
+                seed = idol.color, brand = idol.brandId, onClick = onClick
             )
             HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 16.dp))
         }
@@ -486,14 +510,6 @@ private fun ProfileBody(idol: Idol) {
         }
     }
 }
-
-private data class ProfileRow(
-    val key: String,
-    val value: String,
-    val mono: Boolean = false,
-    val swatch: Boolean = false,
-    val onClick: (() -> Unit)? = null
-)
 
 @Composable
 private fun SongRow(song: Song, seed: String?, performCount: Int? = null, onClick: () -> Unit) {
@@ -556,6 +572,16 @@ private fun voiceActorLabel(voiceActors: String?): String? {
 
 private fun formatBirthday(b: String): String =
     b.removePrefix("--").split("-").let { if (it.size == 2) "${it[0]}月${it[1]}日" else b }
+
+/**
+ * "--MM-DD" から誕生月を取り出す (iOS `Idol.birthMonth` と同じ判定)。
+ *
+ * "--" で始まらない値は年入りの日付なので月を名乗らせない。範囲外の月はコア側で弾かれる。
+ */
+private fun birthMonth(birthday: String?): UInt? {
+    if (birthday == null || !birthday.startsWith("--")) return null
+    return birthday.removePrefix("--").split("-").firstOrNull()?.toUIntOrNull()
+}
 
 /** "2026-06-21" → "6/21" */
 private fun monthDay(date: String): String {

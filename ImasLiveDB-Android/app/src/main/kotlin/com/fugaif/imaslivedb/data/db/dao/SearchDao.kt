@@ -5,6 +5,7 @@ import androidx.room.Query
 import com.fugaif.imaslivedb.data.model.Event
 import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.data.model.Song
+import com.fugaif.imaslivedb.data.model.SongSpelling
 
 /**
  * 横断検索。
@@ -21,6 +22,15 @@ interface SearchDao {
         LIMIT :limit
     """)
     suspend fun searchSongs(pattern: String, limit: Int = 20): List<Song>
+
+    /**
+     * あいまい検索 (「もしかして」) の母集団。
+     *
+     * 編集距離は全件と突き合わせないと出せないので LIMIT を掛けられない。代わりに
+     * 綴り 2 列だけの射影にして、Song 実体は当たった数十件だけ後から引く。
+     */
+    @Query("SELECT id, title, title_kana FROM songs")
+    suspend fun fetchSongSpellings(): List<SongSpelling>
 
     // CV 名 (voice_actors) と別名 (aliases) も対象にする。声優名でアイドルを引くのは
     // このアプリでは主要な探し方なので、名前系カラムだけだと取りこぼす。

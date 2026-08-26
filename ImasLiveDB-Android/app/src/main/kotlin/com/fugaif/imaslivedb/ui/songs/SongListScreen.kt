@@ -42,8 +42,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fugaif.imaslivedb.data.model.SongCollectFilter
 import com.fugaif.imaslivedb.data.model.SongSortOrder
+import com.fugaif.imaslivedb.data.model.SongWithArtists
 import com.fugaif.imaslivedb.ui.components.ImasListSkeleton
 import com.fugaif.imaslivedb.ui.components.ImasRemovableChip
+import com.fugaif.imaslivedb.ui.components.ImasSectionHeader
 import com.fugaif.imaslivedb.ui.components.SkeletonThumb
 import com.fugaif.imaslivedb.ui.components.SongRow
 import com.fugaif.imaslivedb.ui.tags.TagFilterSheet
@@ -141,7 +143,8 @@ fun SongListScreen(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "${uiState.songs.size}件",
+                    // 画面に並んでいる行数。あいまい候補も見えている以上、数から外さない。
+                    text = "${uiState.songs.size + uiState.fuzzySongs.size}件",
                     style = MaterialTheme.typography.bodySmall,
                     color = DS.ink2
                 )
@@ -163,25 +166,19 @@ fun SongListScreen(
             } else {
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                     items(uiState.songs, key = { it.song.id }) { item ->
-                        SongRow(
-                            title = item.song.title,
-                            artistNames = item.artistNames,
-                            unitName = item.song.unitName,
-                            artworkUrl = item.song.artworkUrl,
-                            previewUrl = item.song.previewUrl,
-                            brandId = item.song.brandId,
-                            releaseDate = item.song.releaseDate,
-                            isFavorite = uiState.favoriteSongIds.contains(item.song.id),
-                            isMyPick = uiState.myPickSongIds.contains(item.song.id),
-                            collectedCount = uiState.collectedCounts[item.song.id],
-                            tagVoteCount = if (uiState.selectedTags.size == 1) uiState.tagVoteCounts[item.song.id] else null,
-                            onFavoriteToggle = { viewModel.toggleFavorite(item.song.id) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { onSongClick(item.song.id) }
-                                .padding(horizontal = 16.dp, vertical = 4.dp)
-                        )
-                        HorizontalDivider(modifier = Modifier.padding(start = 68.dp))
+                        SongListRow(item, uiState, viewModel, onSongClick)
+                    }
+                    if (uiState.fuzzySongs.isNotEmpty()) {
+                        item {
+                            // 打った通りではない候補なので、区切って理由を書く。黙って下に足すと
+                            // 「なぜこの曲が出ているのか」が読めず、一致の精度を疑わせる。
+                            ImasSectionHeader(title = "もしかして", tight = true)
+                        }
+                        // key を分けるのは、同じ曲が両方に出た時に LazyColumn が落ちないため
+                        // (VM 側で重複は除いているが、key の衝突は例外になるので保険をかける)。
+                        items(uiState.fuzzySongs, key = { "fuzzy_${it.song.id}" }) { item ->
+                            SongListRow(item, uiState, viewModel, onSongClick)
+                        }
                     }
                 }
             }
@@ -211,6 +208,38 @@ fun SongListScreen(
             onDone = { viewModel.applyTagFilter(it) }
         )
     }
+}
+
+/**
+ * 一覧の 1 行。確実な一致とあいまい候補 (「もしかして」) で同じ見た目を使う。
+ * 候補であることは行ではなく見出しで示すので、行の側は一切変えない。
+ */
+@Composable
+private fun SongListRow(
+    item: SongWithArtists,
+    uiState: SongListUiState,
+    viewModel: SongListViewModel,
+    onSongClick: (String) -> Unit
+) {
+    SongRow(
+        title = item.song.title,
+        artistNames = item.artistNames,
+        unitName = item.song.unitName,
+        artworkUrl = item.song.artworkUrl,
+        previewUrl = item.song.previewUrl,
+        brandId = item.song.brandId,
+        releaseDate = item.song.releaseDate,
+        isFavorite = uiState.favoriteSongIds.contains(item.song.id),
+        isMyPick = uiState.myPickSongIds.contains(item.song.id),
+        collectedCount = uiState.collectedCounts[item.song.id],
+        tagVoteCount = if (uiState.selectedTags.size == 1) uiState.tagVoteCounts[item.song.id] else null,
+        onFavoriteToggle = { viewModel.toggleFavorite(item.song.id) },
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onSongClick(item.song.id) }
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+    )
+    HorizontalDivider(modifier = Modifier.padding(start = 68.dp))
 }
 
 /**

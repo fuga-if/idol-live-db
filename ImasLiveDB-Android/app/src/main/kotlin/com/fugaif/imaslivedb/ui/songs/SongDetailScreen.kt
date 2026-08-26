@@ -69,10 +69,13 @@ import com.fugaif.imaslivedb.data.auth.AuthState
 import com.fugaif.imaslivedb.data.auth.shouldPromptLogin
 import com.fugaif.imaslivedb.data.auth.showEditAffordance
 import com.fugaif.imaslivedb.data.auth.startCommunityEdit
+import com.fugaif.imaslivedb.data.model.CoOccurringSong
 import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.data.model.PerformanceHistoryRow
 import com.fugaif.imaslivedb.data.model.Song
 import com.fugaif.imaslivedb.data.model.SongCall
+import com.fugaif.imaslivedb.data.model.SongPerformanceEvidence
+import com.fugaif.imaslivedb.data.model.SongSingerTally
 import com.fugaif.imaslivedb.player.AudioPreviewManager
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.components.ArtworkImage
@@ -293,7 +296,10 @@ private fun SongSheetContent(
         )
         when (segment) {
             0 -> InfoTab(song, state, seed, onIdolClick, onUnitClick, onSongClick, onShowClick, onRegisterAttendance = { segment = 1 })
-            1 -> HistoryTab(state.performanceHistory, seed, song.brandId, onShowClick)
+            1 -> HistoryTab(
+                state.performanceHistory, state.performanceEvidence, seed, song.brandId,
+                onShowClick, onSongClick, onIdolClick
+            )
             else -> CommunityTab(
                 state, seed, song.brandId, authState, onSongClick,
                 onToggleTag, onOpenTagPicker, onTagDetailClick,
@@ -786,8 +792,23 @@ private fun youTubeVideoId(urlString: String): String? {
     return id.takeIf { it.length == 11 }
 }
 
+/**
+ * 「披露履歴」タブ。総披露 / 初披露 / 最終披露、披露実績から出した歌唱者と共起曲、
+ * そして公演ごとの履歴一覧。
+ *
+ * 節の並びは「集計 → 集計 → 集計 → 生ログ」。人気曲の履歴は 100 行を超えるので、
+ * 要約を先に置かないと集計まで辿り着けない (iOS の SongHistoryTab と同じ並び)。
+ */
 @Composable
-private fun HistoryTab(history: List<PerformanceHistoryRow>, seed: String?, brand: String?, onShowClick: (String) -> Unit) {
+private fun HistoryTab(
+    history: List<PerformanceHistoryRow>,
+    evidence: SongPerformanceEvidence,
+    seed: String?,
+    brand: String?,
+    onShowClick: (String) -> Unit,
+    onSongClick: (String) -> Unit,
+    onIdolClick: (String) -> Unit
+) {
     if (history.isEmpty()) {
         ImasEmptyState(Icons.Filled.MusicNote, "披露履歴はまだありません",
             "この曲がライブで披露されると、ここに記録されます。", seed = seed, brand = brand)
@@ -803,6 +824,9 @@ private fun HistoryTab(history: List<PerformanceHistoryRow>, seed: String?, bran
             ImasStatTile(Icons.Filled.CalendarMonth, shortYearMonth(date = sortedByDateAsc.first().date), "初披露", seed = seed, brand = brand, modifier = Modifier.weight(1f))
             ImasStatTile(Icons.Filled.CalendarMonth, shortYearMonth(date = sortedByDateAsc.last().date), "最終披露", seed = seed, brand = brand, modifier = Modifier.weight(1f))
         }
+        // 披露実績が無い曲・スナップショット未ロードでは中身が空になり、節ごと消える。
+        SingersSection(evidence.singers, onIdolClick)
+        CoOccurringSection(evidence.coOccurring, seed, brand, onSongClick)
         ImasSectionHeader("ライブ披露履歴", count = "${history.size}回", tight = true)
         history.forEach { row ->
             Row(
@@ -821,4 +845,89 @@ private fun HistoryTab(history: List<PerformanceHistoryRow>, seed: String?, bran
             HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 16.dp))
         }
     }
+}
+
+/**
+ * 「この曲を歌った人」。歌った回数の多い順。
+ *
+ * 副題が根拠。「よく歌う人」ではなく「何回歌ったか」を出す
+ * (回数を隠して傾向だけ書くと、外れたときに嘘になる)。
+ */
+@Composable
+private fun SingersSection(
+    rows: List<SongSingerTally>,
+    onIdolClick: (String) -> Unit
+) {
+    if (rows.isEmpty()) return
+    Column {
+        ImasSectionHeader("この曲を歌った人", tight = true)
+        EvidenceNote("セトリに残っている歌唱の集計です。")
+        Column(Modifier.padding(horizontal = 16.dp)) {
+            rows.forEachIndexed { idx, row ->
+                if (idx > 0) HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 48.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth().clickable { onIdolClick(row.idol.id) }
+                        .padding(vertical = 9.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    ImasAvatar(label = row.idol.name, seed = row.idol.color, brand = row.idol.brandId, size = 36.dp)
+                    Column(Modifier.weight(1f).padding(start = 12.dp)) {
+                        Text(row.idol.name, fontSize = 15.sp, color = DS.ink,
+                            maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text("${row.times}回 ／ 全${row.total}回", fontSize = 12.sp, color = DS.ink2,
+                            maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * 「同じ公演で歌われた曲」。一緒に来た回数の多い順。
+ *
+ * 行の形は [RelatedSongsSection] と同じだが、副題は歌唱表記ではなく**根拠の回数**。
+ * この行が並んでいる理由そのものが回数なので、歌唱表記よりそちらを副題の位置に置く。
+ */
+@Composable
+private fun CoOccurringSection(
+    rows: List<CoOccurringSong>,
+    seed: String?,
+    brand: String?,
+    onSongClick: (String) -> Unit
+) {
+    if (rows.isEmpty()) return
+    Column {
+        ImasSectionHeader("同じ公演で歌われた曲", tight = true)
+        EvidenceNote("これまでに同じ公演で歌われた回数です。次のライブで一緒に来るとは限りません。")
+        Column(Modifier.padding(horizontal = 16.dp)) {
+            rows.forEachIndexed { idx, row ->
+                if (idx > 0) HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 56.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth().clickable { onSongClick(row.song.id) }
+                        .padding(vertical = 9.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    ImasArtwork(title = row.song.title, seed = seed, brand = brand, size = 44.dp,
+                        imageUrl = row.song.artworkUrl)
+                    Column(Modifier.weight(1f).padding(start = 12.dp)) {
+                        Text(row.song.title, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink,
+                            maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        // 分母まで出す。12/15 回 (ほぼ必ず一緒) と 12/300 回 (たまたま) は
+                        // 別物で、回数だけだと読み手が区別できない。
+                        Text("いっしょに${row.together}回 ・ 通算${row.performances}回の披露",
+                            fontSize = 12.sp, color = DS.ink2,
+                            maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** 集計の但し書き。回数だけ並べると「予想」と読まれうるので、過去の実績だと明示する。 */
+@Composable
+private fun EvidenceNote(text: String) {
+    Text(text, fontSize = 12.sp, color = DS.ink3,
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp))
 }

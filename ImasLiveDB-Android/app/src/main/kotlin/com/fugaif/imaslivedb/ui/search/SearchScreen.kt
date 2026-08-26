@@ -241,6 +241,15 @@ private fun ResultList(
                 HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 44.dp))
             }
         }
+        // あいまい一致で拾った曲。打った通りではないので、確実な一致の下に見出しで区切る。
+        // 黙って混ぜると「なぜこの曲が出ているのか」が読めず、一致の精度を疑わせる。
+        if (state.scope.includes(SearchScope.SONGS) && state.results.fuzzySongs.isNotEmpty()) {
+            item { ResultSectionHeader("もしかして", state.results.fuzzySongs.size) }
+            items(state.results.fuzzySongs) { song ->
+                SongSearchRow(song) { onNavigateToSongDetail(song.id) }
+                HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 44.dp))
+            }
+        }
         if (state.scope.includes(SearchScope.EVENTS) && state.results.events.isNotEmpty()) {
             item { ResultSectionHeader("ライブ", state.results.events.size) }
             items(state.results.events) { event ->

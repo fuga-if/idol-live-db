@@ -47,15 +47,17 @@ final class SongListViewModel {
         // 綴り表はスコープごとに 1 本。部分一致とあいまい一致で別々に書くと、
         // 片方だけ直したときに添字がずれて別の曲が出る。
         let spellings: [SongSearchMode: [[String?]]] = [
-            .title: songs.map { [$0.song.title, $0.song.titleKana] },
+            .title: songs.map { item -> [String?] in [item.song.title, item.song.titleKana] },
             // ユニット名・歌唱者表記・出演アイドル (よみ含む) を横並びに見る。
             // 「ミリオンスターズ」でも「春日未来」でも当たってほしいので、
             // どれか 1 つに寄せられない。
-            .performer: songs.map { item in
+            .performer: songs.map { item -> [String?] in
                 [item.song.unitName, item.song.singerLabel, item.artistNames]
                     + item.performerIdols.flatMap { [$0.name, $0.nameKana] }
             },
-            .creator: songs.map { [$0.song.lyricist, $0.song.composer, $0.song.arranger] },
+            .creator: songs.map { item -> [String?] in
+                [item.song.lyricist, item.song.composer, item.song.arranger]
+            },
             // .lyrics はサーバ側。手元のカタログでは判定できない
         ]
         searchCatalogs = spellings.mapValues { TextSearchCatalog(fieldsPerItem: $0) }
