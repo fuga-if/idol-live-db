@@ -70,6 +70,7 @@ declare_and_call_checksums! {
     uniffi_imas_core_checksum_func_game_progress_did_clear_today,
     uniffi_imas_core_checksum_func_game_progress_display_streak,
     uniffi_imas_core_checksum_func_group_event_indices_by_year,
+    uniffi_imas_core_checksum_func_idol_profile_rows,
     uniffi_imas_core_checksum_func_idol_quiz_answer,
     uniffi_imas_core_checksum_func_idol_quiz_hint_state,
     uniffi_imas_core_checksum_func_idol_quiz_pool_estimate,

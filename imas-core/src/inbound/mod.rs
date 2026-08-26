@@ -37,3 +37,8 @@ pub mod timeline_layout;
 pub mod weighted_sampling;
 
 pub mod schema_apply;
+pub mod color_engine;
+pub mod auth_rules;
+pub mod share_text;
+pub mod sync_decisions;
+pub mod screen_composition;
