@@ -299,4 +299,33 @@ mod tests {
             println!("FUZZY 「{typed}」→ {expected} ✓");
         }
     }
+    #[test]
+    fn kana_search_now_reaches_kanji_titles() {
+        use rusqlite::{Connection, OpenFlags};
+        let db = format!("{}/../ImasLiveDB/Resources/master.sqlite", env!("CARGO_MANIFEST_DIR"));
+        let conn = Connection::open_with_flags(&db, OpenFlags::SQLITE_OPEN_READ_ONLY).unwrap();
+        let mut stmt = conn.prepare("SELECT title, title_kana FROM songs").unwrap();
+        let rows: Vec<(String, Option<String>)> = stmt
+            .query_map([], |r| Ok((r.get(0)?, r.get(1)?)))
+            .unwrap().filter_map(Result::ok).collect();
+        // 1 曲につき「曲名」と「読み」の 2 綴りを渡す
+        let items: Vec<Vec<String>> = rows.iter()
+            .map(|(t, k)| match k { Some(k) if !k.is_empty() => vec![t.clone(), k.clone()], _ => vec![t.clone()] })
+            .collect();
+        let with_kana = rows.iter().filter(|(_, k)| k.as_deref().is_some_and(|s| !s.is_empty())).count();
+        println!("KANA 読みつき {}/{} 曲", with_kana, rows.len());
+
+        for (typed, expect) in [
+            ("おねがいしんでれら", "お願い！シンデレラ"),
+            ("あおいとり", "蒼い鳥"),
+            ("たいようのじぇらしー", "太陽のジェラシー"),
+        ] {
+            let t = std::time::Instant::now();
+            let hits = fuzzy_matches_multi(&items, typed, 20);
+            let names: Vec<&str> = hits.iter().map(|h| rows[h.index as usize].0.as_str()).collect();
+            let ok = names.iter().any(|n| *n == expect);
+            println!("KANA 「{typed}」 {:?} → {} ({:?})", t.elapsed(), if ok {"当たった"} else {"外れた"}, &names[..names.len().min(3)]);
+            assert!(ok, "「{typed}」で {expect} が出ない");
+        }
+    }
 }
