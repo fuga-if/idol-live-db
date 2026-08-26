@@ -63,6 +63,7 @@ import com.fugaif.imaslivedb.ui.components.PersonalTagsSection
 import com.fugaif.imaslivedb.ui.components.SongRow
 import com.fugaif.imaslivedb.ui.polls.PollAchievementBadges
 import com.fugaif.imaslivedb.ui.tags.UnitTagPickerSheet
+import com.fugaif.imaslivedb.ui.theme.BrandPalette
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasTheme
 
@@ -89,7 +90,7 @@ fun UnitDetailScreen(
     val context = LocalContext.current
     val state by viewModel.uiState.collectAsState()
     val unit = state.unit
-    val t = ImasTheme.derive(null, unit?.brandId, dark = true)
+    val t = ImasTheme.derive(null, BrandPalette.hex(unit?.brandId), dark = true)
     var segment by rememberSaveable(unitId) { mutableIntStateOf(0) }
     var showTagPicker by rememberSaveable { mutableStateOf(false) }
     var showLoginPrompt by rememberSaveable { mutableStateOf(false) }

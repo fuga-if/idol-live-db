@@ -359,7 +359,7 @@ private fun IdolRow(
                 metric,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
-                color = ImasTheme.derive(idol.color, idol.brandId).accent,
+                color = ImasTheme.derive(idol.color, BrandPalette.hex(idol.brandId)).accent,
                 modifier = Modifier.padding(end = 4.dp)
             )
         }

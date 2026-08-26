@@ -88,6 +88,7 @@ import com.fugaif.imaslivedb.ui.components.ImasSegmented
 import com.fugaif.imaslivedb.ui.components.ImasStatTile
 import com.fugaif.imaslivedb.ui.tags.SongTagPickerSheet
 import com.fugaif.imaslivedb.ui.tags.TagDetailScreen
+import com.fugaif.imaslivedb.ui.theme.BrandPalette
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasTheme
 import com.fugaif.imaslivedb.ui.theme.hexToColor
@@ -280,7 +281,7 @@ private fun SongSheetContent(
 ) {
     // 配色シード: ソロ (歌唱1人) はその個人カラー、それ以外はブランド色。
     val seed = if (state.originalArtists.size == 1) state.originalArtists.first().color else null
-    val t = ImasTheme.derive(seed, song.brandId, dark = true)
+    val t = ImasTheme.derive(seed, BrandPalette.hex(song.brandId), dark = true)
     var segment by rememberSaveable(song.id) { mutableIntStateOf(0) }
 
     Column(modifier = modifier.verticalScroll(rememberScrollState())) {
