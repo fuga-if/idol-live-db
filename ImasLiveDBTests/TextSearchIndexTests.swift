@@ -66,10 +66,15 @@ final class TextSearchIndexTests: XCTestCase {
         XCTAssertTrue(hit(c, "CrOsSiNg"))
     }
 
-    /// かなの畳み込みは**しない**。既存の絞り込みと同じ当たり方を保つための境界。
-    /// 緩めるなら Rust 側 (`domain/text_search_index.rs`) と検索側をまとめて変えること。
-    func testDoesNotFoldKana() {
-        XCTAssertFalse(hit(catalog("ツバサ"), "つばさ"))
+    /// ひらがなとカタカナは畳む。日本語の入力では表記の種類まで合わせて打たない。
+    func testFoldsHiraganaAndKatakana() {
+        XCTAssertTrue(hit(catalog("ツバサ"), "つばさ"))
+        XCTAssertTrue(hit(catalog("つばさ"), "ツバサ"))
+    }
+
+    /// 全角半角は畳まない。半角カナはこのデータに現れず、畳むと文字数が変わって
+    /// ハイライトの範囲計算まで巻き込む (`String.searchMatchRange(of:)`)。
+    func testDoesNotFoldWidth() {
         XCTAssertFalse(hit(catalog("ﾂﾊﾞｻ"), "ツバサ"))
     }
 

@@ -235,12 +235,10 @@ struct SongRowView: View {
 
     /// 行がなぜ出ているかを説明するときの一致判定。
     ///
-    /// ⚠️ 一覧に載せるかを決めた `TextSearchCatalog` (imas-core の
-    /// `domain/text_search_index.rs`) と**同じ規則**にすること
-    /// (大文字小文字だけ畳み、濁点やかなは畳まない)。ここだけ緩めると、
-    /// 索引が拾わなかった箇所に色が付いたり、逆に一致しているのに説明が出なかったりする。
+    /// 規則は `String.searchMatchRange(of:)` (= コアの照合そのもの) に任せる。
+    /// ここに条件を書き足すと、一覧に載せる判定と食い違う。
     private func matchRange(of needle: String, in haystack: String) -> Range<String.Index>? {
-        haystack.range(of: needle, options: [.caseInsensitive])
+        haystack.searchMatchRange(of: needle)
     }
 
     private func contains(_ haystack: String, _ needle: String) -> Bool {
@@ -329,8 +327,8 @@ struct SongRowView: View {
     /// 検索対象ごとに違うと、同じ一覧なのに読み方を切り替えることになる。
     ///
     /// 別のスコープで絞っているときは敷かない (曲名で絞ったのにアイドル名が光ると、
-    /// どちらで当たったのか読めなくなる)。よみで引っかかった場合は表記側に範囲が
-    /// 無いので、そのときも敷かない。
+    /// どちらで当たったのか読めなくなる)。漢字の曲名を読み仮名で引いた場合は
+    /// 表記側に範囲が無いので、そのときも敷かない。
     private func highlighted(_ source: String, in scope: SongSearchMode) -> AttributedString {
         // 絞り込んでいない行が大半なので、`AttributedString` を組む前に降りる。
         guard searchMatch?.scope == scope, let needle = trimmedMatch,

@@ -11,8 +11,15 @@
 //! 下ごしらえ (小文字化 + バイト列化) は読み込み時の 1 回だけ。読み込みは元々
 //! DB クエリと出演者マップの解決で数十 ms 掛かっているので誤差に収まる。
 //!
-//! ⚠️ 大文字小文字の畳み込み**以外**はしない (ひらがな↔カタカナ、濁点、全角半角)。
-//! 既存の絞り込みと同じ当たり方を保つため。緩めるなら検索側とまとめて変えること。
+//! 畳むのは**大文字小文字**と**ひらがな↔カタカナ**の 2 つだけ。濁点と全角半角は畳まない。
+//!
+//! かなを畳むのは、日本語の入力では表記の種類まで合わせて打たないから
+//! (「おね」と打った人は「オネガイ」も探している)。畳まなかった頃は、読み仮名
+//! 経由で一覧には出るのに表記側に一致範囲が無く、ハイライトだけ付かなかった。
+//!
+//! 緩めるときは `match_range` (ハイライトの範囲) も同じ規則で動くことを確かめること。
+//! 判定と表示で規則がズレると、索引が拾わなかった箇所に色が付いたり、
+//! 一致しているのに説明が出なかったりする。
 
 /// 1 項目 (曲など) ぶんの、小文字化済み UTF-8 バイト列の索引。
 /// 照合したい単位 (フィールド) ごとに 1 本持つ。
@@ -64,7 +71,58 @@ pub fn prepare_needle(text: &str) -> Vec<u8> {
 /// 不一致は全て U+03A3 絡みのこの規則差だった)。`char::to_lowercase` は
 /// 無条件の全小文字化写像 (U+0130 → "i\u{307}" の 1:N 展開含む) で Swift と一致する。
 fn fold_lowercase(text: &str) -> String {
-    text.chars().flat_map(char::to_lowercase).collect()
+    text.chars().flat_map(char::to_lowercase).map(fold_kana).collect()
+}
+
+/// カタカナをひらがなへ畳む (1 文字 → 1 文字、UTF-8 では 3 バイト → 3 バイト)。
+///
+/// 範囲は U+30A1..=U+30F6 だけ。`ー` (U+30FC) と `・` (U+30FB) は対応するひらがなが
+/// 無いうえ、`ー` は表記の一部として弁別に効くので触らない。
+/// `ヷヸヹヺ` (U+30F7..=U+30FA) も対応が無いのでそのまま。
+pub(crate) fn fold_kana(ch: char) -> char {
+    if ('\u{30A1}'..='\u{30F6}').contains(&ch) {
+        char::from_u32(ch as u32 - 0x60).unwrap_or(ch)
+    } else {
+        ch
+    }
+}
+
+/// 畳んだバイト列と、その各バイトが元の文字列のどこから来たかの対応表。
+///
+/// ハイライトは**元の文字列**の範囲を必要とするが、照合は畳んだ列で行う。
+/// 小文字化には 1 文字が 2 文字に開くもの (U+0130 → "i\u{307}") があるので、
+/// 畳んだ位置をそのまま元の位置として使うとずれる。畳みながら対応を記録しておく。
+fn fold_with_offsets(text: &str) -> (Vec<u8>, Vec<usize>, Vec<usize>) {
+    let mut bytes = Vec::with_capacity(text.len());
+    let mut starts = Vec::with_capacity(text.len());
+    let mut ends = Vec::with_capacity(text.len());
+    let mut buf = [0u8; 4];
+    for (offset, ch) in text.char_indices() {
+        let end = offset + ch.len_utf8();
+        for folded in ch.to_lowercase().map(fold_kana) {
+            for _ in folded.encode_utf8(&mut buf).bytes() {
+                starts.push(offset);
+                ends.push(end);
+            }
+            bytes.extend_from_slice(folded.encode_utf8(&mut buf).as_bytes());
+        }
+    }
+    (bytes, starts, ends)
+}
+
+/// 検索語が `haystack` のどこに当たったかを、**元の文字列のバイト範囲**で返す。
+///
+/// 一覧に載せるかを決める `matching_indices` と同じ畳み込みを通るので、
+/// 「一覧に出ているのに範囲が無い」も「載っていないのに範囲がある」も起きない。
+/// ハイライトを描く側がここを呼ぶ前提で、照合規則を二重に持たないこと。
+pub fn match_range(haystack: &str, needle: &str) -> Option<(u32, u32)> {
+    let needle = prepare_needle(needle);
+    if needle.is_empty() {
+        return None;
+    }
+    let (bytes, starts, ends) = fold_with_offsets(haystack);
+    let at = find(&bytes, &needle)?;
+    Some((starts[at] as u32, ends[at + needle.len() - 1] as u32))
 }
 
 /// カタログ (項目の索引列) を 1 パスで照合し、当たった項目の index を昇順で返す。
@@ -88,16 +146,19 @@ pub fn matching_indices(items: &[TextSearchIndex], needle_text: &str) -> Vec<u32
 /// そのまま文字列としての一致になる (途中のバイトから始まる偽の一致が起きない)。
 /// 検索語は数文字なので Boyer-Moore 等を持ち込む必要はない。
 pub fn contains(haystack: &[u8], needle: &[u8]) -> bool {
-    // 空の検索語はここでは false (「絞り込まない」の判定は matches 側の責務)。
-    let Some(&first) = needle.first() else {
-        return false;
-    };
+    find(haystack, needle).is_some()
+}
+
+/// `contains` の位置を返す版。ハイライトの範囲を出すのに要る。
+fn find(haystack: &[u8], needle: &[u8]) -> Option<usize> {
+    // 空の検索語はここでは None (「絞り込まない」の判定は matches 側の責務)。
+    let &first = needle.first()?;
     if haystack.len() < needle.len() {
-        return false;
+        return None;
     }
     let last = haystack.len() - needle.len();
     // 先頭バイトで足切りしてから残りを比べる (原本 Swift 実装と同じ形)。
-    (0..=last).any(|i| haystack[i] == first && &haystack[i..i + needle.len()] == needle)
+    (0..=last).find(|&i| haystack[i] == first && &haystack[i..i + needle.len()] == needle)
 }
 
 #[cfg(test)]
@@ -164,11 +225,10 @@ mod tests {
         assert!(hit(&i, "CrOsSiNg"));
     }
 
-    /// かなの畳み込みは**しない**。既存の絞り込みと同じ当たり方を保つための境界。
-    /// 緩めるならここを落として検索側とまとめて変えること。
+    /// 全角半角は畳まない。半角カナはこのデータに現れず、畳むと文字数が変わって
+    /// ハイライトの範囲計算まで巻き込むので、境界をここに引く。
     #[test]
-    fn does_not_fold_kana() {
-        assert!(!hit(&index(&["ツバサ"]), "つばさ"));
+    fn does_not_fold_width() {
         assert!(!hit(&index(&["ﾂﾊﾞｻ"]), "ツバサ"));
     }
 
@@ -319,5 +379,71 @@ mod tests {
     fn matching_indices_on_empty_catalog_is_empty() {
         assert_eq!(matching_indices(&[], "夢"), Vec::<u32>::new());
         assert_eq!(matching_indices(&[], ""), Vec::<u32>::new());
+    }
+
+    // --- ひらがな↔カタカナ ---
+
+    /// 打った表記の種類に関係なく当たる。
+    ///
+    /// 日本語の入力では表記まで合わせて打たない。畳まなかった頃は、読み仮名経由で
+    /// 一覧には出るのに表記側に一致範囲が無く、ハイライトだけ付かなかった。
+    #[test]
+    fn hiragana_and_katakana_match_each_other() {
+        assert!(hit(&index(&["オネガイ"]), "おね"));
+        assert!(hit(&index(&["おねがい"]), "オネ"));
+        assert!(hit(&index(&["ハーモニー"]), "はーもにー"));
+    }
+
+    /// 音引きと中黒は畳まない (対応するひらがなが無く、表記の弁別に効く)。
+    #[test]
+    fn prolonged_sound_mark_is_left_alone() {
+        assert!(hit(&index(&["ハーモニー"]), "ー"));
+        assert!(!hit(&index(&["ハモニー"]), "はーもにー"));
+    }
+
+    // --- ハイライトの範囲 ---
+
+    /// 表記の種類が違っても、元の文字列の当たった位置が返る。
+    #[test]
+    fn match_range_points_at_the_original_text() {
+        let title = "オネガイ！シンデレラ";
+        let (start, end) = match_range(title, "おねがい").expect("当たるはず");
+        assert_eq!(&title[start as usize..end as usize], "オネガイ");
+    }
+
+    /// 先頭以外でも、多バイト文字をまたいでも位置がずれない。
+    #[test]
+    fn match_range_handles_offsets_inside_the_text() {
+        let title = "夢色ハーモニー";
+        let (start, end) = match_range(title, "もにー").expect("当たるはず");
+        assert_eq!(&title[start as usize..end as usize], "モニー");
+    }
+
+    /// 当たらない語と空の語では範囲を返さない (色を敷かない)。
+    #[test]
+    fn match_range_is_none_without_a_hit() {
+        assert_eq!(match_range("夢色ハーモニー", "星空"), None);
+        assert_eq!(match_range("夢色ハーモニー", ""), None);
+    }
+
+    /// 一覧に載せる判定と範囲の有無が食い違わない。
+    ///
+    /// ここがズレると、索引が拾わなかった箇所に色が付いたり、
+    /// 一覧に出ているのに当たった理由が読めなくなったりする。
+    #[test]
+    fn the_range_agrees_with_the_list_filter() {
+        for (text, needle) in [
+            ("オネガイ！シンデレラ", "おね"),
+            ("READY!!", "ready"),
+            ("夢色ハーモニー", "ハーモ"),
+            ("夢色ハーモニー", "星"),
+            ("ハーモニー", "はーもにー"),
+        ] {
+            assert_eq!(
+                hit(&index(&[text]), needle),
+                match_range(text, needle).is_some(),
+                "「{needle}」→「{text}」で判定と範囲が食い違う"
+            );
+        }
     }
 }

@@ -46,13 +46,9 @@ pub fn fuzzy_key(text: &str) -> Vec<char> {
     let normalized = prepare_needle(text);
     let s = String::from_utf8_lossy(&normalized);
     let mut out = Vec::new();
+    // カタカナ → ひらがなの畳み込みは prepare_needle が済ませている
+    // (一覧の絞り込みと同じ規則を使うため)。ここは更に緩める分だけを持つ。
     for ch in s.chars() {
-        // カタカナ (30A1..30F6) → ひらがな (3041..3096)
-        let ch = if ('\u{30A1}'..='\u{30F6}').contains(&ch) {
-            char::from_u32(ch as u32 - 0x60).unwrap_or(ch)
-        } else {
-            ch
-        };
         // 音引き・促音は落とす。揺れの原因になりやすく、落としても弁別性はほぼ減らない。
         if ch == 'ー' || ch == 'っ' || ch == 'ゝ' {
             continue;

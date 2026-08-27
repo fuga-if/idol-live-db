@@ -30,3 +30,24 @@ impl TextSearchCatalog {
         text_search_index::matching_indices(&self.items, &needle)
     }
 }
+
+/// 検索語が当たった範囲を、**元の文字列のバイト位置**で返す (当たらなければ None)。
+///
+/// ハイライトを敷く側が使う。`matching_indices` と同じ畳み込みを通るので、
+/// 「一覧に出ているのに範囲が無い」も「載っていないのに範囲がある」も起きない。
+/// 呼び出し側で `contains` 等を書いて規則を二重に持たないこと。
+#[uniffi::export]
+pub fn text_search_match_range(haystack: String, needle: String) -> Option<TextMatchRange> {
+    text_search_index::match_range(&haystack, &needle)
+        .map(|(start, end)| TextMatchRange { start, end })
+}
+
+/// 元の文字列における一致範囲 (UTF-8 バイト位置)。
+///
+/// 文字数ではなくバイト位置なのは、呼び出し側 (Swift の `String.Index`) が
+/// UTF-8 位置から直接 String.Index を作れるため。文字数だと数え直しが要る。
+#[derive(uniffi::Record)]
+pub struct TextMatchRange {
+    pub start: u32,
+    pub end: u32,
+}

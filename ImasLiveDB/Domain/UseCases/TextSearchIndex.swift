@@ -5,7 +5,7 @@ import Foundation
 /// 本体は imas-core (Rust) の `domain/text_search_index.rs` にあり、
 /// `TextSearchCatalog` (生成バインディング) として公開される。
 /// バイト列前処理・部分列探索 (UTF-8 先頭バイトの性質) や
-/// 「大文字小文字以外は畳まない」境界の設計意図もそちらに記載。
+/// 「大文字小文字とかな以外は畳まない」境界の設計意図もそちらに記載。
 ///
 /// 旧 `TextSearchIndex` は曲ごとに索引を持ち打鍵ごとに全曲 `matches()` を呼ぶ設計
 /// だったが、FFI 越しにそれをやると打鍵ごとに 2,000+ 回の境界越えになる。
@@ -25,8 +25,8 @@ extension TextSearchCatalog {
 /// あいまい一致 (「もしかして」) の候補集合。
 ///
 /// 本体は imas-core (Rust) の `domain/fuzzy_search.rs`。`TextSearchCatalog` が
-/// 部分一致 (contains) しか見ないので、打ち間違い・カタカナ/ひらがな・音引きの揺れは
-/// そこで 0 件になる。編集距離で「だいたい合っている」候補を拾うのがこちら。
+/// 部分一致 (contains) しか見ないので、打ち間違いや音引きの揺れはそこで 0 件になる
+/// (カタカナ/ひらがなの違いはカタログ側が畳む)。編集距離で「だいたい合っている」候補を拾うのがこちら。
 ///
 /// ## なぜ綴りを 1 件につき複数渡すか
 /// 編集距離は漢字とかなを寄せられない (「願」と「ねが」を同一視する術がない)。
@@ -148,5 +148,29 @@ actor SongFuzzyIndex {
         let catalog = FuzzySearchCatalog(normalizedSpellingsPerItem: spellings.map(\.spellings))
         loaded = (spellings, catalog)
         return (spellings, catalog)
+    }
+}
+
+extension String {
+    /// 絞り込み語が当たった範囲。当たっていなければ nil。
+    ///
+    /// 一覧に載せるかを決める `TextSearchCatalog` と**同じ関数**に訊く
+    /// (imas-core の `domain/text_search_index.rs`)。`range(of:options:)` で
+    /// 書くと照合規則を二重に持つことになり、実際にズレた: コアがひらがなと
+    /// カタカナを畳むようになってもこちらは畳まないままで、「おね」で一覧に出た
+    /// 「マリオネットの心」に色が付かなかった。
+    ///
+    /// ハイライトを敷く側はここだけを使うこと。
+    func searchMatchRange(of needle: String) -> Range<String.Index>? {
+        // コアは元の文字列の UTF-8 バイト位置で返す。Swift には UTF-8 位置から
+        // String.Index を作る初期化子が無い (utf16Offset だけ) ので、ビュー経由で辿る。
+        guard let hit = textSearchMatchRange(haystack: self, needle: needle) else { return nil }
+        guard let from = utf8.index(utf8.startIndex, offsetBy: Int(hit.start), limitedBy: utf8.endIndex),
+              let to = utf8.index(utf8.startIndex, offsetBy: Int(hit.end), limitedBy: utf8.endIndex),
+              // コアは文字境界で返すが、境界でない位置は String.Index にできないので落とす。
+              let start = String.Index(from, within: self),
+              let end = String.Index(to, within: self)
+        else { return nil }
+        return start ..< end
     }
 }
