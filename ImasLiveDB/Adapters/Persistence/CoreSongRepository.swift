@@ -206,9 +206,11 @@ struct CoreSongRepository: SongReading {
             return try await withStore(fallbackTo: { try await fallback.songs(criterion: criterion) }) { store in
                 try Self.songsWithArtists(store: store, orderedIds: store.songsByReleaseYear(year: year))
             }
-        case .creator:
-            // 作家の担当ロール (作詞/作曲/編曲) ラベル解決が core 未移送のため GRDB 経路。
-            return try await fallback.songs(criterion: criterion)
+        case .creator(let name):
+            // SQL 時代と同じく songsByCreator に合流させ、ロールを落として一覧行にする。
+            return try await songsByCreator(name).map {
+                SongWithArtists(song: $0.song, artistNames: $0.song.singerLabel ?? "")
+            }
         case .songIds(let ids, _):
             guard !ids.isEmpty else { return [] }
             return try await withStore(fallbackTo: { try await fallback.songs(criterion: criterion) }) { store in
@@ -217,9 +219,17 @@ struct CoreSongRepository: SongReading {
         }
     }
 
-    /// 担当ロールつきの結果型 (`SongWithRoles`) を組む逆引きは core 未移送。
+    /// 作詞/作曲/編曲からの逆引き (担当ロールつき)。
+    ///
+    /// 「候補は部分一致・役割は区切りで割った断片との完全一致」という 2 段構えは
+    /// コアが持つ (`domain/song_detail_queries.rs`)。`artists` は SQL 時代から常に空
+    /// (表示は `song.singerLabel` を見る) なので FFI にも載せていない。
     func songsByCreator(_ name: String) async throws -> [SongWithRoles] {
-        try await fallback.songsByCreator(name)
+        try await snapshot.withStore(fallbackTo: { try await fallback.songsByCreator(name) }) { store in
+            try store.songsByCreator(name: name).map {
+                SongWithRoles(song: Self.song(from: $0.song), artists: [], roles: $0.roles)
+            }
+        }
     }
 
     /// ピッカー用の軽量全曲列挙は core 未移送。

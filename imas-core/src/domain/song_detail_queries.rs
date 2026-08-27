@@ -4,6 +4,7 @@
 //! - [`song_records_by_ids`]          ← fetchSongs(ids:) / fetchSong(id:)
 //! - [`search_songs`]                ← searchSongsAsync(query:limit:)
 //! - [`related_songs`]               ← fetchRelatedSongsAsync(to:limit:)
+//! - [`songs_by_creator`]            ← fetchSongsByCreatorAsync(_:)
 //! - [`listable_song_records_by_ids`] ← fetchListableSongsAsync(ids:)
 //! - [`performer_idol_ids_map`]       ← fetchSongPerformerIdolsMap(songIds:)
 //! - [`performance_history`]          ← fetchSongPerformanceHistoryAsync(songId:)
@@ -132,6 +133,18 @@ pub struct SeriesSummaryRecord {
     /// 影響を受けない仕様だったので、ここも全曲から選ぶ。
     pub artwork_url: Option<String>,
     pub brand_ids: Vec<String>,
+}
+
+/// クリエイター絞り込みの 1 行 (iOS `SongWithRoles`)。
+///
+/// iOS 版は `artists: [Idol]` も持つが常に空配列で埋められており、表示は
+/// `song.singerLabel` を見ている。運ぶ意味が無いので FFI には載せない
+/// (Android の移植版も持っていない)。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct SongWithRolesRecord {
+    pub song: SongDetailRecord,
+    /// その曲でその人が担った役割ラベル。並びは 作曲 → 作詞 → 編曲 で固定。
+    pub roles: Vec<String>,
 }
 
 // =============================================================================
@@ -317,6 +330,109 @@ fn songs_sharing_original_artists(snap: &Snapshot, self_i: u32) -> Vec<u32> {
 /// (空文字は最小なので降順では末尾)。
 fn release_key(snap: &Snapshot, i: u32) -> &str {
     snap.songs[i as usize].release_date.as_deref().unwrap_or("")
+}
+
+/// クリエイター名 (作詞/作曲/編曲 横断) で引いた曲と、その曲での役割。
+/// iOS `AppDatabase.fetchSongsByCreator` 相当。
+///
+/// 原本は **2 段構え**で、SQL と Swift で当たり方が違うのが要点:
+///
+/// ```sql
+/// -- ① 候補: 3 列のどれかに部分一致した曲を 50 音順で
+/// SELECT * FROM songs
+///  WHERE composer LIKE ? ESCAPE '\' OR lyricist LIKE ? ESCAPE '\' OR arranger LIKE ? ESCAPE '\'
+///  ORDER BY title_kana, title
+/// ```
+/// ```swift
+/// // ② 役割: 区切り文字で割った断片と「完全一致」した列だけをラベルにし、
+/// //    1 つも無い候補は落とす
+/// let separators = CharacterSet(charactersIn: "/／,、・")
+/// let parts = value.components(separatedBy: separators).map { $0.trimmingCharacters(in: .whitespaces) }
+/// return parts.contains(trimmedName) ? label : nil
+/// ```
+///
+/// 写すべき非自明な点:
+/// - ① が部分一致・② が完全一致なので、**候補に挙がっても落ちる曲がある**。
+///   例: 「TAKT」で引くと `TAKT (TRYTONELABO)` は LIKE には当たるが、区切り文字で
+///   割っても断片は `TAKT (TRYTONELABO)` のままなので役割が付かず落ちる。
+///   これは絞り込みの実効仕様 (「区切りで割った 1 人ぶんと丸ごと一致すること」) であって
+///   バグではない。①だけ・②だけに寄せると結果が変わる。
+/// - ② の区切りは `/／,、・` の 5 文字**だけ**。`domain::credit_names::split_credits`
+///   (曲詳細のクレジット行が使う賢い分割) とは別物で、括弧の中も全角スペースも見ない。
+///   揃えると「クレジット行に出る名前」と「絞り込みで当たる名前」の対応が変わるので、
+///   等価移送の範囲では触らない。
+/// - ② のトリムは `.whitespaces` (Zs + TAB) で、**改行を含まない**。外側の
+///   `normalizedCreatorName` が使う `.whitespacesAndNewlines` とは別の集合なので、
+///   `str::trim()` では代用できない。
+/// - `parts.contains(trimmedName)` の Swift `==` は Unicode 正準等価だが、①の LIKE が
+///   バイト比較である以上、②だけ正規化しても当たり方は揃わない。同梱データは全件 NFC で
+///   バイト比較と一致するので、ここもバイト比較で写す。
+/// - 役割ラベルの並びは 作曲 → 作詞 → 編曲 で固定 (フィールドの走査順そのもの)。
+/// - `ORDER BY title_kana, title` は SQLite の ASC なので title_kana の NULL が先頭。
+///   同着は SQL 未規定なので添字 (= rowid 読み込み順) を最終キーにして決定化する。
+/// - 空・空白だけの名前は即空 (原本の `normalizedCreatorName` が nil を返す枝)。
+pub fn songs_by_creator(snap: &Snapshot, name: &str) -> Vec<SongWithRolesRecord> {
+    let trimmed = name.trim();
+    if trimmed.is_empty() {
+        return Vec::new();
+    }
+    let needle = trimmed.to_ascii_lowercase();
+
+    let mut candidates: Vec<u32> = snap
+        .songs
+        .iter()
+        .enumerate()
+        .filter(|(_, s)| {
+            [&s.composer, &s.lyricist, &s.arranger]
+                .into_iter()
+                .any(|v| v.as_deref().is_some_and(|v| ascii_ci_contains(v, &needle)))
+        })
+        .map(|(i, _)| i as u32)
+        .collect();
+    candidates.sort_by(|&l, &r| {
+        let (a, b) = (&snap.songs[l as usize], &snap.songs[r as usize]);
+        a.title_kana.cmp(&b.title_kana).then_with(|| a.title.cmp(&b.title)).then(l.cmp(&r))
+    });
+
+    candidates
+        .into_iter()
+        .filter_map(|i| {
+            let s = &snap.songs[i as usize];
+            let roles: Vec<String> = [("作曲", &s.composer), ("作詞", &s.lyricist), ("編曲", &s.arranger)]
+                .into_iter()
+                .filter(|(_, field)| credit_field_names_exactly(field, trimmed))
+                .map(|(label, _)| label.to_string())
+                .collect();
+            (!roles.is_empty()).then(|| SongWithRolesRecord { song: SongDetailRecord::from(s), roles })
+        })
+        .collect()
+}
+
+/// クレジット欄を区切り文字で割った断片のどれかが `name` と丸ごと一致するか。
+/// 区切りとトリムの集合は原本の `songsWithCreatorRoles` そのまま (関数コメント参照)。
+fn credit_field_names_exactly(field: &Option<String>, name: &str) -> bool {
+    field.as_deref().is_some_and(|value| {
+        value
+            .split(CREDIT_ROLE_SEPARATORS)
+            .any(|part| trim_foundation_spaces(part) == name)
+    })
+}
+
+/// 役割判定で使う区切り文字。`domain::credit_names` の分割規則とは**別物**
+/// (あちらは括弧や全角スペースも見る)。ここは原本の 5 文字だけ。
+const CREDIT_ROLE_SEPARATORS: [char; 5] = ['/', '／', ',', '、', '・'];
+
+/// Swift `String.trimmingCharacters(in: .whitespaces)` の写し。
+///
+/// Foundation の `.whitespaces` は「Unicode General Category Zs + TAB」で、
+/// **改行 (U+000A–U+000D) と U+0085 を含まない**。Rust の `str::trim()`
+/// (Unicode White_Space) はそれらも落とすので、ここでは代用できない。
+fn trim_foundation_spaces(s: &str) -> &str {
+    s.trim_matches(|c: char| {
+        matches!(c,
+            '\u{0009}' | '\u{0020}' | '\u{00A0}' | '\u{1680}'
+            | '\u{2000}'..='\u{200A}' | '\u{202F}' | '\u{205F}' | '\u{3000}')
+    })
 }
 
 /// 一覧に出す資格のある曲だけを id で引く (fetchListableSongsAsync(ids:))。
@@ -714,6 +830,178 @@ mod tests {
 
     fn placeholders(n: usize) -> String {
         vec!["?"; n].join(",")
+    }
+
+    /// 原本 `fetchSongsByCreator` の写経 (SQL の候補抽出 + Swift の役割判定)。
+    /// 役割判定は Swift 側のコードなので、区切りとトリムの集合ごと書き写す。
+    fn run_original_creator_sql(name: &str) -> Vec<(SongDetailRecord, Vec<String>)> {
+        let trimmed = name.trim();
+        if trimmed.is_empty() {
+            return Vec::new();
+        }
+        let db = conn();
+        let pattern = format!("%{}%", like_escaped(trimmed));
+        let mut stmt = db
+            .prepare(
+                "SELECT * FROM songs
+                  WHERE composer LIKE ?1 ESCAPE '\\'
+                     OR lyricist LIKE ?1 ESCAPE '\\'
+                     OR arranger LIKE ?1 ESCAPE '\\'
+                  ORDER BY title_kana, title",
+            )
+            .unwrap();
+        let candidates: Vec<SongDetailRecord> = stmt
+            .query_map([&pattern], |r| Ok(record_from_row(r)))
+            .unwrap()
+            .map(Result::unwrap)
+            .collect();
+
+        // Swift `songsWithCreatorRoles` の写経。
+        let separators: [char; 5] = ['/', '／', ',', '、', '・'];
+        let foundation_spaces = |c: char| {
+            matches!(c,
+                '\u{0009}' | '\u{0020}' | '\u{00A0}' | '\u{1680}'
+                | '\u{2000}'..='\u{200A}' | '\u{202F}' | '\u{205F}' | '\u{3000}')
+        };
+        candidates
+            .into_iter()
+            .filter_map(|song| {
+                let roles: Vec<String> = [
+                    ("作曲", &song.composer),
+                    ("作詞", &song.lyricist),
+                    ("編曲", &song.arranger),
+                ]
+                .into_iter()
+                .filter_map(|(label, field)| {
+                    let value = field.as_deref()?;
+                    value
+                        .split(separators)
+                        .any(|p| p.trim_matches(foundation_spaces) == trimmed)
+                        .then(|| label.to_string())
+                })
+                .collect();
+                (!roles.is_empty()).then_some((song, roles))
+            })
+            .collect()
+    }
+
+    /// 実データのクレジット欄から、区切りで割った実在の名前を集める (テストの入力源)。
+    fn sample_creator_names(snap: &Snapshot, take: usize) -> Vec<String> {
+        let mut names: Vec<String> = Vec::new();
+        let mut seen: HashSet<String> = HashSet::new();
+        for s in &snap.songs {
+            for field in [&s.composer, &s.lyricist, &s.arranger] {
+                let Some(v) = field.as_deref() else { continue };
+                for part in v.split(['/', '／', ',', '、', '・']) {
+                    let p = part.trim();
+                    if !p.is_empty() && seen.insert(p.to_string()) {
+                        names.push(p.to_string());
+                    }
+                }
+            }
+            if names.len() >= take {
+                break;
+            }
+        }
+        names
+    }
+
+    /// 照合: songsByCreator。実在の作家名を広く舐めて、元 SQL + Swift の役割判定と
+    /// **順序込み・全カラム・役割ラベル込み**で一致する。
+    #[test]
+    fn songs_by_creator_matches_sql() {
+        let snap = snapshot();
+        let mut names = sample_creator_names(&snap, 60);
+        // 空・空白・部分一致だけの語・ワイルドカード・空振りも混ぜる。
+        names.extend(
+            ["", "  ", "\u{3000}", "%", "_", "存在しない作家", "BNSI"].map(str::to_string),
+        );
+
+        let mut with_hits = 0usize;
+        let mut multi_role = 0usize;
+        for name in &names {
+            let want = run_original_creator_sql(name);
+            let got = songs_by_creator(&snap, name);
+            assert_eq!(got.len(), want.len(), "name={name:?}");
+            for (g, (song, roles)) in got.iter().zip(want.iter()) {
+                assert_eq!(&g.song, song, "name={name:?}");
+                assert_eq!(&g.roles, roles, "name={name:?}");
+            }
+            with_hits += usize::from(!got.is_empty());
+            multi_role += got.iter().filter(|r| r.roles.len() >= 2).count();
+        }
+        assert!(with_hits > 30, "ヒットする作家名のサンプル数 ({with_hits})");
+        assert!(multi_role > 5, "複数役割 (作曲+編曲 等) のサンプル数 ({multi_role})");
+    }
+
+    /// 候補は部分一致・役割は完全一致なので「LIKE には当たるが落ちる曲」がある。
+    /// ①②のどちらか一方に寄せると結果が変わることを、実データで固定する。
+    #[test]
+    fn songs_by_creator_drops_substring_only_candidates() {
+        let snap = snapshot();
+        let db = conn();
+        // 区切りで割っても丸ごと一致しない、部分文字列としてだけ現れる名前を探す。
+        let name = sample_creator_names(&snap, 400)
+            .into_iter()
+            .find_map(|n| {
+                if n.len() < 3 {
+                    return None;
+                }
+                let head: String = n.chars().take(n.chars().count() - 1).collect();
+                (!head.is_empty()
+                    && !songs_by_creator(&snap, &head).is_empty()
+                    && count_like_candidates(&db, &head) > songs_by_creator(&snap, &head).len())
+                .then_some(head)
+            })
+            .expect("部分一致だけの候補が落ちる名前が実データにある前提");
+        let candidates = count_like_candidates(&db, &name);
+        let kept = songs_by_creator(&snap, &name).len();
+        assert!(kept < candidates, "name={name:?} candidates={candidates} kept={kept}");
+        assert_eq!(
+            songs_by_creator(&snap, &name).len(),
+            run_original_creator_sql(&name).len()
+        );
+    }
+
+    fn count_like_candidates(db: &Connection, name: &str) -> usize {
+        let pattern = format!("%{}%", like_escaped(name));
+        db.query_row(
+            "SELECT COUNT(*) FROM songs
+              WHERE composer LIKE ?1 ESCAPE '\\'
+                 OR lyricist LIKE ?1 ESCAPE '\\'
+                 OR arranger LIKE ?1 ESCAPE '\\'",
+            [&pattern],
+            |r| r.get::<_, i64>(0),
+        )
+        .unwrap() as usize
+    }
+
+    /// 役割ラベルの並びは 作曲 → 作詞 → 編曲 で固定 (フィールドの走査順)。
+    #[test]
+    fn songs_by_creator_role_labels_keep_their_order() {
+        let snap = snapshot();
+        let order = ["作曲", "作詞", "編曲"];
+        let mut checked = 0usize;
+        for name in sample_creator_names(&snap, 120) {
+            for row in songs_by_creator(&snap, &name) {
+                let positions: Vec<usize> =
+                    row.roles.iter().map(|r| order.iter().position(|o| o == r).unwrap()).collect();
+                assert!(positions.windows(2).all(|w| w[0] < w[1]), "roles={:?}", row.roles);
+                checked += usize::from(row.roles.len() >= 2);
+            }
+        }
+        assert!(checked > 5, "複数役割のサンプル数 ({checked})");
+    }
+
+    /// 役割判定のトリムは `.whitespaces` (改行を含まない)。`str::trim()` で代用すると
+    /// 改行入りのクレジット欄で当たり方が変わる。
+    #[test]
+    fn creator_role_trim_keeps_newlines() {
+        assert_eq!(trim_foundation_spaces("\u{3000} 古屋真\u{00A0}"), "古屋真");
+        assert_eq!(trim_foundation_spaces("\t 古屋真 "), "古屋真");
+        // 改行は落とさない (Foundation の .whitespaces に入っていない)。
+        assert_eq!(trim_foundation_spaces("\n古屋真\n"), "\n古屋真\n");
+        assert_eq!(trim_foundation_spaces("\r\n古屋真"), "\r\n古屋真");
     }
 
     /// 原本 `fetchRelatedSongsQuery` の写経。SQL 4 本は rusqlite で実行し、

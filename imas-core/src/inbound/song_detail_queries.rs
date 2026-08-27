@@ -6,6 +6,7 @@
 use super::snapshot_store::{SnapshotError, SnapshotStore};
 use crate::domain::song_detail_queries::{
     self, AlbumSummaryRecord, PerformanceHistoryEntry, SeriesSummaryRecord, SongDetailRecord,
+    SongWithRolesRecord,
 };
 use std::collections::HashMap;
 
@@ -44,6 +45,19 @@ impl SnapshotStore {
     ) -> Result<Vec<SongDetailRecord>, SnapshotError> {
         let snap = self.current()?;
         Ok(song_detail_queries::related_songs(&snap, &song_id, limit))
+    }
+
+    /// クリエイター名で引いた曲 + その曲での役割ラベル (50 音順)。
+    /// fetchSongsByCreator(_:) 相当。
+    ///
+    /// 候補抽出は部分一致・役割判定は区切り文字で割った断片との完全一致という
+    /// 2 段構えで、候補に挙がっても役割が付かない曲は落ちる (絞り込みの実効仕様)。
+    pub fn songs_by_creator(
+        &self,
+        name: String,
+    ) -> Result<Vec<SongWithRolesRecord>, SnapshotError> {
+        let snap = self.current()?;
+        Ok(song_detail_queries::songs_by_creator(&snap, &name))
     }
 
     /// 一覧に出す資格のある曲だけを id で引く (派生曲と brand='other' を隠す)。
