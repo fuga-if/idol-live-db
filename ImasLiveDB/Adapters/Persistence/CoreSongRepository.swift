@@ -158,9 +158,15 @@ struct CoreSongRepository: SongReading {
         }
     }
 
-    /// シリーズ/ユニット/歌唱者共有の重み付けスコアは core 未移送。
+    /// 関連楽曲 (同シリーズ 3 点 + 同ユニット 2 点 + 原唱者共有 1 点の加算順)。
+    ///
+    /// コアは曲 id だけを受け、シリーズもユニットもスナップショットの行から読む。
+    /// 元実装は `unit_id` だけ引数の `Song` から読んでいたが、呼び出し側は DB から
+    /// 読んだ行を渡しているので値は同じ。
     func relatedSongs(to song: Song, limit: Int) async throws -> [Song] {
-        try await fallback.relatedSongs(to: song, limit: limit)
+        try await snapshot.withStore(fallbackTo: { try await fallback.relatedSongs(to: song, limit: limit) }) { store in
+            try store.relatedSongs(songId: song.id, limit: UInt32(max(0, limit))).map(Self.song(from:))
+        }
     }
 
     func listableSongs(ids: [String]) async throws -> [Song] {

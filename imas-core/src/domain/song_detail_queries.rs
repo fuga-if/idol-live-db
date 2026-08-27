@@ -3,6 +3,7 @@
 //! SQL 時代の対応 (iOS AppDatabase+SongQueries.swift):
 //! - [`song_records_by_ids`]          ← fetchSongs(ids:) / fetchSong(id:)
 //! - [`search_songs`]                ← searchSongsAsync(query:limit:)
+//! - [`related_songs`]               ← fetchRelatedSongsAsync(to:limit:)
 //! - [`listable_song_records_by_ids`] ← fetchListableSongsAsync(ids:)
 //! - [`performer_idol_ids_map`]       ← fetchSongPerformerIdolsMap(songIds:)
 //! - [`performance_history`]          ← fetchSongPerformanceHistoryAsync(songId:)
@@ -211,6 +212,111 @@ pub fn search_songs(snap: &Snapshot, query: &str, limit: u32) -> Vec<SongDetailR
         .take(limit as usize)
         .map(SongDetailRecord::from)
         .collect()
+}
+
+/// 関連楽曲 (曲詳細の「関連楽曲」節)。iOS `AppDatabase.fetchRelatedSongsQuery` 相当。
+///
+/// 同シリーズ 3 点・同ユニット 2 点・原唱者共有 1 点を足し合わせ、点の高い順 →
+/// リリース日の新しい順に並べて先頭 `limit` 件。原本は SQL 4 本 + Swift の合算で、
+/// 合算部分の挙動が結果順を決めている。写すべき非自明な点:
+///
+/// - **点は加算**。同シリーズかつ同ユニットなら 5 点になる (どれか 1 つではない)。
+/// - 自分自身はどの枝でも除く。
+/// - 走査順が同点時の並びを決める。原本の Swift は初出順に `ordered` へ積み、
+///   最後に `sorted` で並べ替える。Swift の `sort` は仕様上は安定と明記されていないが
+///   実装は安定で、出荷済みの並びは初出順のまま。ここでも安定ソートで初出順を保つ
+///   (プラットフォーム間で同じ並びを返すため、タイの順序も契約として固定する)。
+/// - 各枝の初出順は元 SQL の結果順そのもの。実行計画まで込みで次のとおり:
+///   - `WHERE series_group = ?` … `idx_songs_series_group` の等値レンジ = rowid 昇順
+///   - `WHERE unit_id = ?` … 索引が無く SCAN = rowid 昇順
+///   - `WHERE id IN (...)` … PK 索引を使い **id 昇順** (rowid 順ではない)。
+///     ここだけ順序が違うので、原唱者共有の枝は id 昇順に並べてから積む。
+///   rowid 昇順はスナップショットの添字順に一致する (ORDER BY 無しで読み込むため)。
+/// - リリース日は `releaseDate ?? ""` の降順。空文字は最小なので NULL は末尾に来る。
+///   NULL と空文字は**同じ扱い** (原本の `?? ""` がそうなっている)。
+/// - シリーズ・ユニットは「NULL でも空文字でもない」ときだけ枝が動く
+///   (原本の `if let sg = ..., !sg.isEmpty`)。
+/// - 原唱者共有は `song_artists` を 2 段で辿る (自分の原唱者 → その人たちの原唱曲)。
+///   FK 孤児の行はスナップショットに載らないので、そこは載らない世界で数える
+///   (他のクエリと同じ規約。同梱 DB は song_artists の孤児ゼロ)。
+///
+/// 原本は `unit_id` だけ引数の `Song` から読み、`series_group` は id で引き直していた。
+/// ここは両方ともスナップショットの行から読む (呼び出し側は DB から読んだ `Song` を
+/// 渡しており、値は一致する)。
+pub fn related_songs(snap: &Snapshot, song_id: &str, limit: u32) -> Vec<SongDetailRecord> {
+    let Some(&self_i) = snap.song_index_by_id.get(song_id) else { return Vec::new() };
+    let song = &snap.songs[self_i as usize];
+
+    let mut ordered: Vec<u32> = Vec::new();
+    let mut scores: HashMap<u32, i32> = HashMap::new();
+    let mut add = |candidates: Vec<u32>, weight: i32| {
+        for i in candidates {
+            if i == self_i {
+                continue;
+            }
+            let entry = scores.entry(i).or_insert_with(|| {
+                ordered.push(i);
+                0
+            });
+            *entry += weight;
+        }
+    };
+
+    if let Some(sg) = non_empty(&song.series_group) {
+        add(indexes_where(snap, |s| s.series_group.as_deref() == Some(sg)), 3);
+    }
+    if let Some(unit) = non_empty(&song.unit_id) {
+        add(indexes_where(snap, |s| s.unit_id.as_deref() == Some(unit)), 2);
+    }
+    let shared = songs_sharing_original_artists(snap, self_i);
+    if !shared.is_empty() {
+        add(shared, 1);
+    }
+
+    // 安定ソートなので同点・同日は初出順のまま (原本 Swift の並びと一致)。
+    ordered.sort_by(|&a, &b| {
+        scores[&b].cmp(&scores[&a]).then_with(|| release_key(snap, b).cmp(release_key(snap, a)))
+    });
+    ordered.truncate(limit as usize);
+    ordered.into_iter().map(|i| SongDetailRecord::from(&snap.songs[i as usize])).collect()
+}
+
+/// 条件に合う曲の添字を**添字順** (= 元 SQL の rowid 昇順) で集める。
+fn indexes_where(snap: &Snapshot, pred: impl Fn(&Song) -> bool) -> Vec<u32> {
+    snap.songs
+        .iter()
+        .enumerate()
+        .filter(|(_, s)| pred(s))
+        .map(|(i, _)| i as u32)
+        .collect()
+}
+
+/// 自分の原唱者が原唱している曲の添字を **id 昇順**で返す。
+///
+/// 原本は `WHERE id IN (...)` で引いており、PK 索引経由なので結果は rowid 順ではなく
+/// id 昇順で戻る (実測済み)。同点時の並びはこの初出順で決まるので、ここを添字順に
+/// すると関連楽曲の並びが黙って変わる。
+fn songs_sharing_original_artists(snap: &Snapshot, self_i: u32) -> Vec<u32> {
+    let mut shared: HashSet<u32> = HashSet::new();
+    for link in &snap.artists_by_song[self_i as usize] {
+        if link.role != "original" {
+            continue;
+        }
+        for song_link in &snap.songs_by_idol[link.idol as usize] {
+            if song_link.role == "original" {
+                shared.insert(song_link.song);
+            }
+        }
+    }
+    let mut indexes: Vec<u32> = shared.into_iter().collect();
+    indexes.sort_unstable_by(|&a, &b| snap.songs[a as usize].id.cmp(&snap.songs[b as usize].id));
+    indexes
+}
+
+/// リリース日の比較キー。原本の `releaseDate ?? ""` と同じく NULL は空文字と同一視する
+/// (空文字は最小なので降順では末尾)。
+fn release_key(snap: &Snapshot, i: u32) -> &str {
+    snap.songs[i as usize].release_date.as_deref().unwrap_or("")
 }
 
 /// 一覧に出す資格のある曲だけを id で引く (fetchListableSongsAsync(ids:))。
@@ -608,6 +714,206 @@ mod tests {
 
     fn placeholders(n: usize) -> String {
         vec!["?"; n].join(",")
+    }
+
+    /// 原本 `fetchRelatedSongsQuery` の写経。SQL 4 本は rusqlite で実行し、
+    /// 合算・並べ替え・打ち切りの Swift 側グルーはここに書き写す
+    /// (原本は SQL と Swift の合わせ技なので、両方を写して初めて等価性の基準になる)。
+    fn run_original_related_sql(song_id: &str, limit: u32) -> Vec<SongDetailRecord> {
+        use rusqlite::OptionalExtension;
+        let db = conn();
+
+        let series_group: Option<String> = db
+            .query_row("SELECT series_group FROM songs WHERE id = ?", [song_id], |r| r.get(0))
+            .optional()
+            .unwrap()
+            .flatten();
+        // 原本は引数の Song から unit_id を読む。呼び出し側は DB から読んだ行を渡すので同値。
+        let unit_id: Option<String> = db
+            .query_row("SELECT unit_id FROM songs WHERE id = ?", [song_id], |r| r.get(0))
+            .optional()
+            .unwrap()
+            .flatten();
+        let artist_ids: Vec<String> = {
+            let mut stmt = db
+                .prepare("SELECT idol_id FROM song_artists WHERE song_id = ? AND role = 'original'")
+                .unwrap();
+            let v = stmt
+                .query_map([song_id], |r| r.get::<_, String>(0))
+                .unwrap()
+                .map(Result::unwrap)
+                .collect();
+            v
+        };
+
+        let fetch = |sql: &str, params: Vec<String>| -> Vec<SongDetailRecord> {
+            let mut stmt = db.prepare(sql).unwrap();
+            let v = stmt
+                .query_map(rusqlite::params_from_iter(params.iter()), |r| Ok(record_from_row(r)))
+                .unwrap()
+                .map(Result::unwrap)
+                .collect();
+            v
+        };
+
+        let mut ordered: Vec<String> = Vec::new();
+        let mut by_id: HashMap<String, (SongDetailRecord, i32)> = HashMap::new();
+        let mut add = |rows: Vec<SongDetailRecord>, weight: i32| {
+            for row in rows {
+                if row.id == song_id {
+                    continue;
+                }
+                let entry = by_id.entry(row.id.clone()).or_insert_with(|| {
+                    ordered.push(row.id.clone());
+                    (row, 0)
+                });
+                entry.1 += weight;
+            }
+        };
+
+        if let Some(sg) = series_group.as_deref().filter(|v| !v.is_empty()) {
+            add(fetch("SELECT * FROM songs WHERE series_group = ?", vec![sg.to_string()]), 3);
+        }
+        if let Some(unit) = unit_id.as_deref().filter(|v| !v.is_empty()) {
+            add(fetch("SELECT * FROM songs WHERE unit_id = ?", vec![unit.to_string()]), 2);
+        }
+        if !artist_ids.is_empty() {
+            let shared_ids: Vec<String> = {
+                let sql = format!(
+                    "SELECT DISTINCT song_id FROM song_artists
+                      WHERE role = 'original' AND idol_id IN ({})",
+                    placeholders(artist_ids.len())
+                );
+                let mut stmt = db.prepare(&sql).unwrap();
+                let v = stmt
+                    .query_map(rusqlite::params_from_iter(artist_ids.iter()), |r| {
+                        r.get::<_, String>(0)
+                    })
+                    .unwrap()
+                    .map(Result::unwrap)
+                    .collect();
+                v
+            };
+            if !shared_ids.is_empty() {
+                let sql = format!(
+                    "SELECT * FROM songs WHERE id IN ({})",
+                    placeholders(shared_ids.len())
+                );
+                add(fetch(&sql, shared_ids), 1);
+            }
+        }
+
+        // Swift の `.sorted { ... }` は実装が安定ソートなので同点・同日は初出順のまま。
+        ordered.sort_by(|a, b| {
+            let (ra, sa) = &by_id[a];
+            let (rb, sb) = &by_id[b];
+            sb.cmp(sa).then_with(|| {
+                rb.release_date
+                    .as_deref()
+                    .unwrap_or("")
+                    .cmp(ra.release_date.as_deref().unwrap_or(""))
+            })
+        });
+        ordered.truncate(limit as usize);
+        ordered.into_iter().map(|id| by_id[&id].0.clone()).collect()
+    }
+
+    /// 照合: relatedSongs。実データを広く舐めて、元 SQL + Swift グルーと
+    /// **順序込み・全カラム**で一致する。
+    #[test]
+    fn related_songs_match_sql() {
+        let snap = snapshot();
+        // 3 枝それぞれが動く曲を確実に含めるため、条件つきの実在曲を明示的に足す。
+        let mut targets: Vec<String> = snap.songs.iter().step_by(53).map(|s| s.id.clone()).collect();
+        for pick in [
+            snap.songs.iter().find(|s| non_empty(&s.series_group).is_some()),
+            snap.songs.iter().find(|s| non_empty(&s.unit_id).is_some()),
+            snap.songs.iter().find(|s| {
+                non_empty(&s.series_group).is_some() && non_empty(&s.unit_id).is_some()
+            }),
+            snap.songs.iter().find(|s| {
+                non_empty(&s.series_group).is_none()
+                    && non_empty(&s.unit_id).is_none()
+                    && !snap.artists_by_song[snap.song_index_by_id[&s.id] as usize].is_empty()
+            }),
+        ] {
+            if let Some(s) = pick {
+                targets.push(s.id.clone());
+            }
+        }
+        targets.push("存在しない曲".to_string());
+
+        let mut non_empty_results = 0usize;
+        let mut hit_limit = 0usize;
+        for id in &targets {
+            for limit in [8u32, 3, 200] {
+                let want = run_original_related_sql(id, limit);
+                assert_eq!(related_songs(&snap, id, limit), want, "song={id} limit={limit}");
+            }
+            let r = related_songs(&snap, id, 8);
+            non_empty_results += usize::from(!r.is_empty());
+            hit_limit += usize::from(r.len() == 8);
+        }
+        assert!(non_empty_results > 20, "関連曲が出る曲のサンプル数 ({non_empty_results})");
+        assert!(hit_limit > 10, "打ち切りが効くサンプル数 ({hit_limit})");
+        assert!(related_songs(&snap, "存在しない曲", 8).is_empty());
+    }
+
+    /// 点は**加算**される (同シリーズかつ同ユニットは 3+2=5 点で、同シリーズだけの曲より前)。
+    /// 「どれか 1 つの枝で決める」実装にすると並びが変わる。
+    #[test]
+    fn related_songs_scores_are_additive() {
+        let snap = snapshot();
+        // 同シリーズかつ同ユニットの相手がいる曲を実データから探す。
+        let found = snap.songs.iter().find(|s| {
+            let (Some(sg), Some(unit)) = (non_empty(&s.series_group), non_empty(&s.unit_id)) else {
+                return false;
+            };
+            let both = snap.songs.iter().filter(|o| {
+                o.id != s.id
+                    && o.series_group.as_deref() == Some(sg)
+                    && o.unit_id.as_deref() == Some(unit)
+            });
+            let series_only = snap.songs.iter().any(|o| {
+                o.id != s.id
+                    && o.series_group.as_deref() == Some(sg)
+                    && o.unit_id.as_deref() != Some(unit)
+            });
+            both.count() > 0 && series_only
+        });
+        let song = found.expect("同シリーズかつ同ユニットの相手がいる曲がある前提");
+        let sg = non_empty(&song.series_group).unwrap();
+        let unit = non_empty(&song.unit_id).unwrap();
+
+        let result = related_songs(&snap, &song.id, 200);
+        let rank = |id: &str| result.iter().position(|r| r.id == id);
+        let both = result
+            .iter()
+            .find(|r| r.series_group.as_deref() == Some(sg) && r.unit_id.as_deref() == Some(unit))
+            .expect("5 点の相手が結果に居る");
+        let series_only = result
+            .iter()
+            .find(|r| r.series_group.as_deref() == Some(sg) && r.unit_id.as_deref() != Some(unit))
+            .expect("3 点の相手が結果に居る");
+        assert!(
+            rank(&both.id) < rank(&series_only.id),
+            "5 点 ({}) が 3 点 ({}) より前に来る",
+            both.id,
+            series_only.id
+        );
+    }
+
+    /// 自分自身はどの枝からも除かれる。
+    #[test]
+    fn related_songs_never_include_the_song_itself() {
+        let snap = snapshot();
+        for s in snap.songs.iter().step_by(29) {
+            assert!(
+                related_songs(&snap, &s.id, 200).iter().all(|r| r.id != s.id),
+                "song={}",
+                s.id
+            );
+        }
     }
 
     /// Swift `String.likeEscaped` の写経 (元 SQL のバインド値を組むのに使う)。

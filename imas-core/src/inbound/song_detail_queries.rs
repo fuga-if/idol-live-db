@@ -34,6 +34,18 @@ impl SnapshotStore {
         Ok(song_detail_queries::search_songs(&snap, &query, limit))
     }
 
+    /// 関連楽曲 (同シリーズ 3 点 + 同ユニット 2 点 + 原唱者共有 1 点の加算順)。
+    /// fetchRelatedSongs(to:limit:) 相当。原本は SQL 4 本 + Swift の合算で、
+    /// 同点時の並び (初出順) まで含めて domain 側が写している。
+    pub fn related_songs(
+        &self,
+        song_id: String,
+        limit: u32,
+    ) -> Result<Vec<SongDetailRecord>, SnapshotError> {
+        let snap = self.current()?;
+        Ok(song_detail_queries::related_songs(&snap, &song_id, limit))
+    }
+
     /// 一覧に出す資格のある曲だけを id で引く (派生曲と brand='other' を隠す)。
     /// fetchListableSongs(ids:) 相当。
     pub fn listable_song_records_by_ids(
