@@ -1,0 +1,70 @@
+{
+ "title": "曲名の読み仮名を裏取りして訂正する (第4陣)",
+ "_help": "当て字 (旋律=メロディー / 惑星=ほし / 灯=あかし) と、英語の音写違い・長音や促音の脱落。",
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "ml_愛の旋律",
+   "fields": {
+    "title_kana": "あいのめろでぃー"
+   },
+   "note": "旋律=メロディー (当て字)。出典 https://music765plus.com/%E6%84%9B%E3%81%AE%E6%97%8B%E5%BE%8B"
+  },
+  {
+   "table": "songs",
+   "id": "765as_灯",
+   "fields": {
+    "title_kana": "あかし"
+   },
+   "note": "灯=あかし。「あかり」は誤り。出典 https://www.youtube.com/watch?v=JROMJARRPLY"
+  },
+  {
+   "table": "songs",
+   "id": "ml_紙心ペン心_-_shishinpenshin_-",
+   "fields": {
+    "title_kana": "ししんぺんしん"
+   },
+   "note": "副題のローマ字が読み (紙心=しし / ペン心=ぺんしん)。出典 https://www.joysound.com/web/search/song"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_惑星が瞬いた夜に",
+   "fields": {
+    "title_kana": "ほしがまばたいたよるに"
+   },
+   "note": "惑星=ほし / 瞬いた=まばたいた (当て字)。出典 https://utaten.com/lyric/mi24111227/"
+  },
+  {
+   "table": "songs",
+   "id": "sc_statice",
+   "fields": {
+    "title_kana": "すたーちす"
+   },
+   "note": "statice=スターチス。出典 https://dic.pixiv.net/a/statice"
+  },
+  {
+   "table": "songs",
+   "id": "sc_prisism",
+   "fields": {
+    "title_kana": "ぷりずいずむ"
+   },
+   "note": "PRISISM=プリズイズム (prism + ism)。出典 https://dic.nicovideo.jp/a/prisism"
+  },
+  {
+   "table": "songs",
+   "id": "cg_uniqu3_voices",
+   "fields": {
+    "title_kana": "ゆにーくぼいしーず"
+   },
+   "note": "voices の長音。出典 https://dic.pixiv.net/a/UNIQU3_VOICES%21%21%21"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_aloha_happy_creator",
+   "fields": {
+    "title_kana": "あろははっぴーくりえいたー"
+   },
+   "note": "happy の促音。出典 https://fujiwarahaji.me/"
+  }
+ ]
+}
