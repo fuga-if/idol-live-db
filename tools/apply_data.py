@@ -55,7 +55,9 @@ KIND_TABLES = {
     "creators": ["creators"],
 }
 # data/fixes/ で既存レコードを UPDATE 可能なテーブル (id 列を持つ事実情報のみ)
-ALLOWED_FIX_TABLES = {"idols", "songs", "events", "shows", "units", "brands", "venues", "creators"}
+ALLOWED_FIX_TABLES = {
+    "idols", "songs", "events", "shows", "units", "brands", "venues", "venue_names", "creators",
+}
 # 読みの表は fixes ではなく専用の投入口 (data/creators/) から入れる。
 
 

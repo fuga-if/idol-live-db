@@ -1,0 +1,78 @@
+{
+ "title": "会場名の読み仮名を裏取りして訂正する",
+ "_help": "公式サイト・Wikipedia・自治体サイトで全 234 件を確認し、9 件を直した。会場名は一般名詞に近く誤りは少なかったが、施設固有の読み (盛運輸=もりうんゆ / 下総=しもふさ / Niterra日本特殊陶業=にっぽん) は外していた。",
+ "fixes": [
+  {
+   "table": "venues",
+   "id": "venue_ソウル・coexshinhanartium(coex신한카드artium)",
+   "fields": {
+    "name_kana": "そうるこえっくすしんはんあーてぃうむ"
+   },
+   "note": "裏取りして訂正 (誤: そうるこエックスしんはんあーてぃうむ)"
+  },
+  {
+   "table": "venues",
+   "id": "venue_yogibometavalley",
+   "fields": {
+    "name_kana": "よぎぼめたばりぃ"
+   },
+   "note": "裏取りして訂正 (誤: よぎぼめたばれー)"
+  },
+  {
+   "table": "venues",
+   "id": "venue_namcotokyo",
+   "fields": {
+    "name_kana": "なむことーきょー"
+   },
+   "note": "裏取りして訂正 (誤: なむこーとうきょう)"
+  },
+  {
+   "table": "venues",
+   "id": "venue_白金高輪seleneb2",
+   "fields": {
+    "name_kana": "しろかねたかなわせれねびーつー"
+   },
+   "note": "裏取りして訂正 (誤: しろかねたかなわせれーね)"
+  },
+  {
+   "table": "venues",
+   "id": "venue_namco中野店",
+   "fields": {
+    "name_kana": "なむこなかのてん"
+   },
+   "note": "裏取りして訂正 (誤: なむこーなかのてん)"
+  },
+  {
+   "table": "venues",
+   "id": "venue_niterra日本特殊陶業市民会館フォレストホール",
+   "fields": {
+    "name_kana": "にてらにっぽんとくしゅとうぎょうしみんかいかんふぉれすとほーる"
+   },
+   "note": "裏取りして訂正 (誤: にてらにほんとくしゅとうぎょうしみんかいかんふぉれすとほーる)"
+  },
+  {
+   "table": "venues",
+   "id": "venue_新宿reny",
+   "fields": {
+    "name_kana": "しんじゅくれにー"
+   },
+   "note": "裏取りして訂正 (誤: しんじゅくれに)"
+  },
+  {
+   "table": "venues",
+   "id": "venue_盛運輸アリーナ",
+   "fields": {
+    "name_kana": "もりうんゆありーな"
+   },
+   "note": "裏取りして訂正 (誤: さかりうんゆありーな)"
+  },
+  {
+   "table": "venues",
+   "id": "venue_下総フレンドリーパーク",
+   "fields": {
+    "name_kana": "しもふさふれんどりーぱーく"
+   },
+   "note": "裏取りして訂正 (誤: しもうさふれんどりーぱーく)"
+  }
+ ]
+}

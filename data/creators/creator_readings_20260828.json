@@ -231,12 +231,6 @@
    "aliases": null
   },
   {
-   "id": "cr_2ff517f13bb5",
-   "name": "クレジットは作曲",
-   "name_kana": "くれじっとはさっきょく",
-   "aliases": null
-  },
-  {
    "id": "cr_8acda7e97520",
    "name": "グシミヤギヒデユキ",
    "name_kana": "ぐしみやぎひでゆき",
@@ -1387,12 +1381,6 @@
    "name": "夕野ヨシミ",
    "name_kana": "ゆうのよしみ",
    "aliases": "夕野ヨシミ (IOSYS)\n夕野ヨシミ(IOSYS)\n夕野ヨシミ（IOSYS）"
-  },
-  {
-   "id": "cr_ab56d0a0fb94",
-   "name": "夕野ヨシミ(IOSYS)狐夢想",
-   "name_kana": "ゆうのよしみこむそう",
-   "aliases": "夕野ヨシミ (IOSYS)　狐夢想 (COOL＆CREATE)"
   },
   {
    "id": "cr_c4dac738c247",
@@ -2922,13 +2910,7 @@
    "id": "cr_27a7191e7ed9",
    "name": "滝澤俊輔",
    "name_kana": "たきざわしゅんすけ",
-   "aliases": "滝澤俊輔(TRYTONELABO)\n滝澤俊輔(Try Tone Labo)\n滝澤俊輔[TRYTONELABO]\n滝澤俊輔（TRYTONELABO）\n滝澤俊輔［TRYTONELABO］"
-  },
-  {
-   "id": "cr_bf28ce298ab0",
-   "name": "滝澤俊輔(TRYTONELABO]",
-   "name_kana": "たきざわしゅんすけ",
-   "aliases": null
+   "aliases": "滝澤俊輔(TRYTONELABO)\n滝澤俊輔(TRYTONELABO]\n滝澤俊輔(Try Tone Labo)\n滝澤俊輔[TRYTONELABO]\n滝澤俊輔（TRYTONELABO）\n滝澤俊輔［TRYTONELABO］"
   },
   {
    "id": "cr_199b65a643e5",
@@ -3006,7 +2988,7 @@
    "id": "cr_399f11b5e785",
    "name": "狐夢想",
    "name_kana": "こむそう",
-   "aliases": "狐夢想(COOL＆CREATE)"
+   "aliases": "狐夢想 (COOL＆CREATE)\n狐夢想(COOL＆CREATE)"
   },
   {
    "id": "cr_ffa058a4870c",
@@ -3432,12 +3414,6 @@
    "id": "cr_dcfbad9d929d",
    "name": "網本ナオノブ",
    "name_kana": "あみもとなおのぶ",
-   "aliases": null
-  },
-  {
-   "id": "cr_0d9b094937e7",
-   "name": "編曲",
-   "name_kana": "へんきょく",
    "aliases": null
   },
   {

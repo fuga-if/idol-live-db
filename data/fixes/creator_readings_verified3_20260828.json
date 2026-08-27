@@ -1,0 +1,70 @@
+{
+ "title": "作家の読み仮名を裏取りして訂正する (第3次)",
+ "_help": "担当曲数の多い順に検証を継続。",
+ "fixes": [
+  {
+   "table": "creators",
+   "id": "cr_bc6cba7e5c34",
+   "fields": {
+    "name_kana": "かとうさえひと"
+   },
+   "note": "検索で裏取りして訂正 (誤: かとうさえと)"
+  },
+  {
+   "table": "creators",
+   "id": "cr_e5634d7a774e",
+   "fields": {
+    "name_kana": "たけだしろい"
+   },
+   "note": "検索で裏取りして訂正 (誤: たけだじょうい)"
+  },
+  {
+   "table": "creators",
+   "id": "cr_9d8c8e509132",
+   "fields": {
+    "name_kana": "えなみてつし"
+   },
+   "note": "検索で裏取りして訂正 (誤: えなみさとし)"
+  },
+  {
+   "table": "creators",
+   "id": "cr_b5750c0e2bbd",
+   "fields": {
+    "name_kana": "かわいえいじ"
+   },
+   "note": "検索で裏取りして訂正 (誤: かわいひでつぐ)"
+  },
+  {
+   "table": "creators",
+   "id": "cr_f021271c1b3e",
+   "fields": {
+    "name_kana": "すみかまともひろ"
+   },
+   "note": "検索で裏取りして訂正 (誤: すみがまともひろ)"
+  },
+  {
+   "table": "creators",
+   "id": "cr_280f09c791d7",
+   "fields": {
+    "name_kana": "すみかまともひろ"
+   },
+   "note": "検索で裏取りして訂正 (誤: すみがまともひろ)"
+  },
+  {
+   "table": "creators",
+   "id": "cr_ffa058a4870c",
+   "fields": {
+    "name_kana": "たまやにせんろくじゅっぱーせんと"
+   },
+   "note": "検索で裏取りして訂正 (誤: たまや)"
+  },
+  {
+   "table": "creators",
+   "id": "cr_99d4e94d14a3",
+   "fields": {
+    "name_kana": "いくたましん"
+   },
+   "note": "検索で裏取りして訂正 (誤: いくたまこと)"
+  }
+ ]
+}

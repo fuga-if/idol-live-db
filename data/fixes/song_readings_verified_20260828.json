@@ -1,0 +1,286 @@
+{
+ "title": "曲名の読み仮名を裏取りして訂正する (第1陣)",
+ "_help": "当方が起こした 1,333 曲ぶんの読みを 1 件ずつ裏取りしている途中経過。当て字 (独奏歌=アリア / 前奏曲=プレリュード)、熟語の読み違い (泥濘=でいねい / 傀儡=かいらい)、英語の音写違い (Vast=バスト / Take=テイク)、副題や「.exe」「4.0」の脱落が主な誤り。派生曲 (Remix / Game Size) は親に追随させている。",
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "ml_星宙のvoyage",
+   "fields": {
+    "title_kana": "ほしぞらのぼやーじゅ"
+   },
+   "note": "星宙=ほしぞら。「せいちゅう」は誤り。出典 https://dic.nicovideo.jp/a/%E6%98%9F%E5%AE%99%E3%81%AEvoyage"
+  },
+  {
+   "table": "songs",
+   "id": "cg_fine美しき終焉",
+   "fields": {
+    "title_kana": "ふぃーねうつくしきしゅうえん"
+   },
+   "note": "Fin[e]=フィーネ (楽語)。「ふぃん」は誤り。出典 https://dic.nicovideo.jp/a/fin%5Be%5D~%E7%BE%8E%E3%81%97%E3%81%8D%E7%B5%82%E7%84%89~"
+  },
+  {
+   "table": "songs",
+   "id": "cg_athanasia",
+   "fields": {
+    "title_kana": "あたなしあ"
+   },
+   "note": "Athanasia=アタナシア。「あさなしあ」は誤り。出典 https://dic.nicovideo.jp/a/athanasia"
+  },
+  {
+   "table": "songs",
+   "id": "ml_vacation_vs_summer_ナツとヤスミのアンビバレント",
+   "fields": {
+    "title_kana": "ばけーしょんばーさすさまーなつとやすみのあんびばれんと"
+   },
+   "note": "VS=バーサス。「ぶいえす」は誤り。副題も補った。出典 https://dic.pixiv.net/a/Vacation_VS_Summer"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_casually",
+   "fields": {
+    "title_kana": "かじゅありー"
+   },
+   "note": "Casually=カジュアリー。出典 https://dic.pixiv.net/a/Casually!"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_luv",
+   "fields": {
+    "title_kana": "えるゆーぶい"
+   },
+   "note": "L.U.V=エルユーブイ。「らぶ」は誤り。出典 https://dic.pixiv.net/a/L.U.V"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_luv_石濱翔_remix",
+   "fields": {
+    "title_kana": "えるゆーぶい"
+   },
+   "note": "派生曲。親 gakuen_luv に追随 (L.U.V=エルユーブイ。「らぶ」は誤り)。出典 https://dic.pixiv.net/a/L.U.V"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_装_-so_beautiful-",
+   "fields": {
+    "title_kana": "そう"
+   },
+   "note": "装=そう。「よそおい」は誤り。出典 https://www.clubdam.com/karaokesearch/songleaf.html?requestNo=4544-12"
+  },
+  {
+   "table": "songs",
+   "id": "sc_泥濘鳴鳴",
+   "fields": {
+    "title_kana": "でいねいめいめい"
+   },
+   "note": "泥濘=でいねい。「ぬかるみ」は誤り。出典 https://dic.nicovideo.jp/a/%E6%B3%A5%E6%BF%98%E9%B3%B4%E9%B3%B4"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_fluorite",
+   "fields": {
+    "title_kana": "ふろーらいと"
+   },
+   "note": "Fluorite=フローライト。「ふるおらいと」は誤り。出典 https://www.clubdam.com/karaokesearch/songleaf.html?requestNo=3399-90"
+  },
+  {
+   "table": "songs",
+   "id": "sc_キラピコexe",
+   "fields": {
+    "title_kana": "きらぴこえぐぜ"
+   },
+   "note": "「.exe」の読みが丸ごと抜けていた。出典 https://dic.nicovideo.jp/a/%E3%82%AD%E3%83%A9%E3%83%94%E3%82%B3.exe"
+  },
+  {
+   "table": "songs",
+   "id": "sc_キラピコexe_game_size",
+   "fields": {
+    "title_kana": "きらぴこえぐぜ"
+   },
+   "note": "派生曲。親 sc_キラピコexe に追随 (「.exe」の読みが丸ごと抜けていた)。出典 https://dic.nicovideo.jp/a/%E3%82%AD%E3%83%A9%E3%83%94%E3%82%B3.exe"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_桜彩",
+   "fields": {
+    "title_kana": "さくらいろ"
+   },
+   "note": "桜彩=さくらいろ。「おうさい」は誤り。出典 https://fujiwarahaji.me/music/sidem/8714"
+  },
+  {
+   "table": "songs",
+   "id": "ml_聖ミリオン女学園校歌",
+   "fields": {
+    "title_kana": "せんとみりおんじょがくえんこうか"
+   },
+   "note": "聖=セント。「せい」は誤り。出典 https://fujiwarahaji.me/music/ml/4385"
+  },
+  {
+   "table": "songs",
+   "id": "ml_解夏傀儡",
+   "fields": {
+    "title_kana": "げげかいらい"
+   },
+   "note": "傀儡=かいらい。「くぐつ」は誤り。出典 https://fujiwarahaji.me/music/ml/5892"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_ヒカリ待つ明日へ",
+   "fields": {
+    "title_kana": "ひかりまつあすへ"
+   },
+   "note": "明日=あす。「あした」は誤り。出典 https://fujiwarahaji.me/music/sidem/8517"
+  },
+  {
+   "table": "songs",
+   "id": "cg_vast_world",
+   "fields": {
+    "title_kana": "ばすとわーるど"
+   },
+   "note": "Vast=バスト。「ばーすと」だと Burst。出典 https://fujiwarahaji.me/music/cg/1029"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_素敵にcon_grazia",
+   "fields": {
+    "title_kana": "すてきにこんぐらつぃあ"
+   },
+   "note": "con grazia の長音位置。出典 https://fujiwarahaji.me/music/sidem/8596"
+  },
+  {
+   "table": "songs",
+   "id": "sc_futurity_smile",
+   "fields": {
+    "title_kana": "ふゅーちゃーりてぃーすまいる"
+   },
+   "note": "futurity の長音位置。出典 https://fujiwarahaji.me/music/sc/3458"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_いとをかし一彩合彩",
+   "fields": {
+    "title_kana": "いとをかしいっさいがっさい"
+   },
+   "note": "副題は一切合切のもじりで「がっさい」。「ごうさい」は誤り。出典 https://fujiwarahaji.me/music/sidem/8638"
+  },
+  {
+   "table": "songs",
+   "id": "cg_双翼の独奏歌",
+   "fields": {
+    "title_kana": "そうよくのありあ"
+   },
+   "note": "独奏歌=アリア (当て字)。出典 https://fujiwarahaji.me/music/cg/666"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_夏時間グラフィティ",
+   "fields": {
+    "title_kana": "さまーたいむぐらふぃてぃ"
+   },
+   "note": "夏時間=サマータイム (当て字)。出典 https://fujiwarahaji.me/music/sidem/8741"
+  },
+  {
+   "table": "songs",
+   "id": "cg_こいかぜ_ー花葉ー",
+   "fields": {
+    "title_kana": "こいかぜはなば"
+   },
+   "note": "花葉=はなば。「はなは」は誤り。出典 https://gamerch.com/imascg-slstage-wiki/518089"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_永遠なる四銃士",
+   "fields": {
+    "title_kana": "とわなるよんじゅうし"
+   },
+   "note": "永遠=とわ。「えいえん」は誤り。出典 https://fujiwarahaji.me/music/sidem/8710"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_嗚呼情熱に星は輝く315プロダクション社歌",
+   "fields": {
+    "title_kana": "ああじょうねつにほしはかがやくさいこーぷろだくしょんしゃか"
+   },
+   "note": "副題 (315=さいこー) が抜けていた。出典 https://fujiwarahaji.me/music/sidem/8712"
+  },
+  {
+   "table": "songs",
+   "id": "cg_shinobi_40_忍者のすゝめ",
+   "fields": {
+    "title_kana": "しのびよんてんぜろにんじゃのすすめ"
+   },
+   "note": "「4.0」の読みが抜けていた。出典 https://fujiwarahaji.me/music/cg/3897"
+  },
+  {
+   "table": "songs",
+   "id": "sc_雪月風花",
+   "fields": {
+    "title_kana": "せつげつふうか"
+   },
+   "note": "四字熟語。「ゆきつきかぜはな」は誤り。出典 https://fujiwarahaji.me/music/sc/3919"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_暗黒への前奏曲",
+   "fields": {
+    "title_kana": "あんこくへのぷれりゅーど"
+   },
+   "note": "前奏曲=プレリュード (当て字)。出典 https://fujiwarahaji.me/music/sidem/8582"
+  },
+  {
+   "table": "songs",
+   "id": "ml_銀のテーブル木苺ジャム",
+   "fields": {
+    "title_kana": "ぎんのてーぶるらずべりーじゃむ"
+   },
+   "note": "木苺=ラズベリー (当て字)。出典 https://fujiwarahaji.me/music/ml/6483"
+  },
+  {
+   "table": "songs",
+   "id": "cg_千夜一夜alf_layla_wa_layla",
+   "fields": {
+    "title_kana": "あるふらいらわらいら"
+   },
+   "note": "千夜一夜をアルフ・ライラ・ワ・ライラと読む。出典 https://fujiwarahaji.me/music/cg/11182"
+  },
+  {
+   "table": "songs",
+   "id": "sc_銀翼のアヴニール_-become_the_brave-",
+   "fields": {
+    "title_kana": "ぎんよくのあゔにーるびかむざぶれいぶ"
+   },
+   "note": "副題が抜けていた。出典 https://fujiwarahaji.me/music/sc/11592"
+  },
+  {
+   "table": "songs",
+   "id": "ml_take3_2_1_space",
+   "fields": {
+    "title_kana": "ていくすりーとぅーわんすぺーす"
+   },
+   "note": "Take=テイク。「ているす」は誤り。出典 https://fujiwarahaji.me/music/ml/2786"
+  },
+  {
+   "table": "songs",
+   "id": "cg_ココカラミライヘ",
+   "fields": {
+    "title_kana": "ここからみらいへ"
+   },
+   "note": "ココカラ=ここから。「こここら」は誤り。出典 https://fujiwarahaji.me/music/cg/4341"
+  },
+  {
+   "table": "songs",
+   "id": "ml_スペードのq",
+   "fields": {
+    "title_kana": "すぺーどのきゅー"
+   },
+   "note": "Q=キュー。「くいーん」は誤り。出典 https://fujiwarahaji.me/music/ml/5103"
+  },
+  {
+   "table": "songs",
+   "id": "ml_rat_a_tat",
+   "fields": {
+    "title_kana": "らったった"
+   },
+   "note": "Rat A Tat=らったった。出典 https://fujiwarahaji.me/music/ml/5699"
+  }
+ ]
+}
