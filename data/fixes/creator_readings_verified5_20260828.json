@@ -1,0 +1,214 @@
+{
+ "title": "作家の読み仮名を出典付きで再確認して訂正する (第5陣)",
+ "_help": "一度「訂正すべき」と出たが出典を記録していなかった 27 件を、出典を必須にして引き直したもの。26 件が確定、1 件 (東ノ獄彩) は出典が割れたため現状維持。平井克明は imas-db.jp の「ひらいかつあき」を、複数の一次資料 (BNSI のクレジット・Apple Music のリミックス表記) で覆した。",
+ "fixes": [
+  {
+   "table": "creators",
+   "id": "cr_7240557d33fc",
+   "fields": {
+    "name_kana": "ふるやしん"
+   },
+   "note": "裏取りして訂正 (誤: ふるやまこと)。出典 https://ja.wikipedia.org/wiki/古屋真"
+  },
+  {
+   "table": "creators",
+   "id": "cr_1d53aaef47cd",
+   "fields": {
+    "name_kana": "かいだゆりこ"
+   },
+   "note": "裏取りして訂正 (誤: かいたゆりこ)。出典 https://ja.wikipedia.org/wiki/貝田由里子"
+  },
+  {
+   "table": "creators",
+   "id": "cr_b652b71e4980",
+   "fields": {
+    "name_kana": "すやまじゅん"
+   },
+   "note": "裏取りして訂正 (誤: すやまはやと)。出典 https://ja.wikipedia.org/wiki/陶山隼"
+  },
+  {
+   "table": "creators",
+   "id": "cr_749d1b99ba20",
+   "fields": {
+    "name_kana": "ひらいよしのり"
+   },
+   "note": "裏取りして訂正 (誤: ひらいかつあき)。出典 https://musicgamefun.net/artist/a20566/"
+  },
+  {
+   "table": "creators",
+   "id": "cr_44f30fd26d18",
+   "fields": {
+    "name_kana": "よしだみのる"
+   },
+   "note": "裏取りして訂正 (誤: よしだじょう)。出典 http://imas-db.jp/song/creator/271.html"
+  },
+  {
+   "table": "creators",
+   "id": "cr_a8089965d64f",
+   "fields": {
+    "name_kana": "いわせけんめい"
+   },
+   "note": "裏取りして訂正 (誤: いわせまさあき)。出典 https://ja.wikipedia.org/wiki/とけた電球"
+  },
+  {
+   "table": "creators",
+   "id": "cr_4eb660361a73",
+   "fields": {
+    "name_kana": "もりやとしのり"
+   },
+   "note": "裏取りして訂正 (誤: もりやとしき)。出典 https://ja.wikipedia.org/wiki/森谷敏紀"
+  },
+  {
+   "table": "creators",
+   "id": "cr_d35b23b027b0",
+   "fields": {
+    "name_kana": "さえきゆうすけ"
+   },
+   "note": "裏取りして訂正 (誤: さえきゆーすけー)。出典 https://ja.wikipedia.org/wiki/佐伯ユウスケ"
+  },
+  {
+   "table": "creators",
+   "id": "cr_0fc667e67075",
+   "fields": {
+    "name_kana": "いづつひみ"
+   },
+   "note": "裏取りして訂正 (誤: いづつひとみ)。出典 https://ja.wikipedia.org/wiki/井筒日美"
+  },
+  {
+   "table": "creators",
+   "id": "cr_67f0b74af2e6",
+   "fields": {
+    "name_kana": "みやのげんと"
+   },
+   "note": "裏取りして訂正 (誤: みやのげんし)。出典 https://ja.wikipedia.org/wiki/宮野弦士"
+  },
+  {
+   "table": "creators",
+   "id": "cr_aa6d8d660c01",
+   "fields": {
+    "name_kana": "きしいまさる"
+   },
+   "note": "裏取りして訂正 (誤: きしいまさし)。出典 https://www.dimora.jp/talent-info/7/252205/"
+  },
+  {
+   "table": "creators",
+   "id": "cr_bcc630516da4",
+   "fields": {
+    "name_kana": "あおうみゆうき"
+   },
+   "note": "裏取りして訂正 (誤: あおみゆうき)。出典 https://rebrast.com/creators/aoumiyuuki/"
+  },
+  {
+   "table": "creators",
+   "id": "cr_9d7e4117c8d3",
+   "fields": {
+    "name_kana": "おおきかなや"
+   },
+   "note": "裏取りして訂正 (誤: おおきそうや)。出典 https://dondafulfestival-20th.taiko-ch.net/music/"
+  },
+  {
+   "table": "creators",
+   "id": "cr_38061e5135a2",
+   "fields": {
+    "name_kana": "いわみたかし"
+   },
+   "note": "裏取りして訂正 (誤: いわみりく)。出典 https://ja.wikipedia.org/wiki/ナナホシ管弦楽団"
+  },
+  {
+   "table": "creators",
+   "id": "cr_de99c161d98c",
+   "fields": {
+    "name_kana": "ひがしよしと"
+   },
+   "note": "裏取りして訂正 (誤: あずまよしと)。出典 https://www.bandainamcostudios.com/behind-the-game/281"
+  },
+  {
+   "table": "creators",
+   "id": "cr_a5a4c0189d07",
+   "fields": {
+    "name_kana": "ひゃっこくはじめ"
+   },
+   "note": "裏取りして訂正 (誤: ひゃくいしげん)。出典 https://ja.wikipedia.org/wiki/百石元"
+  },
+  {
+   "table": "creators",
+   "id": "cr_0485617c154a",
+   "fields": {
+    "name_kana": "さいとうきみひさ"
+   },
+   "note": "裏取りして訂正 (誤: さいとうよしひさ)。出典 https://love-annex.jp/creators/"
+  },
+  {
+   "table": "creators",
+   "id": "cr_9f0cd3ebce3e",
+   "fields": {
+    "name_kana": "あおやぎまこと"
+   },
+   "note": "裏取りして訂正 (誤: あおやぎりょう)。出典 https://x.com/makoto_aoyagi"
+  },
+  {
+   "table": "creators",
+   "id": "cr_5d61f1fb7a2a",
+   "fields": {
+    "name_kana": "もびきはじめ"
+   },
+   "note": "裏取りして訂正 (誤: ひゃくびきはじめ)。出典 http://imas-db.jp/song/creator/198.html"
+  },
+  {
+   "table": "creators",
+   "id": "cr_9d0365b33e8f",
+   "fields": {
+    "name_kana": "こんどうしゅうじ"
+   },
+   "note": "裏取りして訂正 (誤: こんどうひでつぐ)。出典 https://rebrast.com/creators/kondoshuji/"
+  },
+  {
+   "table": "creators",
+   "id": "cr_e3ae1faa2aa2",
+   "fields": {
+    "name_kana": "ばんどうゆま"
+   },
+   "note": "裏取りして訂正 (誤: ばんどうゆうま)。出典 https://lit.link/bandoyuma"
+  },
+  {
+   "table": "creators",
+   "id": "cr_d2718b1aeaa9",
+   "fields": {
+    "name_kana": "しゅとうよしかつ"
+   },
+   "note": "裏取りして訂正 (誤: しゅどうよしかつ)。出典 https://ja.wikipedia.org/wiki/首藤義勝"
+  },
+  {
+   "table": "creators",
+   "id": "cr_d18d692b7a22",
+   "fields": {
+    "name_kana": "ののはなりあら"
+   },
+   "note": "裏取りして訂正 (誤: ののかりあら)。出典 https://lit.link/nonohanareala"
+  },
+  {
+   "table": "creators",
+   "id": "cr_868573949b9b",
+   "fields": {
+    "name_kana": "わたなべとおるひびのひろふみ"
+   },
+   "note": "裏取りして訂正 (誤: わたなべとおるひびのひろし)。出典 https://ja.wikipedia.org/wiki/日比野裕史"
+  },
+  {
+   "table": "creators",
+   "id": "cr_750d8f5576da",
+   "fields": {
+    "name_kana": "すずきちぶんともふみ"
+   },
+   "note": "裏取りして訂正 (誤: すずきちぶんとしふみ)。出典 https://ja.wikipedia.org/wiki/鈴木智文"
+  },
+  {
+   "table": "creators",
+   "id": "cr_0b7095eb81ec",
+   "fields": {
+    "name_kana": "すずやみなと"
+   },
+   "note": "裏取りして訂正 (誤: すずたにかいと)。出典 https://utaitedb.net/Ar/39869"
+  }
+ ]
+}
