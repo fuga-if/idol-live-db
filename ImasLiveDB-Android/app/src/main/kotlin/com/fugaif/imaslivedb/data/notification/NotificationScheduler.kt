@@ -16,6 +16,8 @@ import androidx.core.content.ContextCompat
 import com.fugaif.imaslivedb.data.model.EventWithDateRange
 import com.fugaif.imaslivedb.di.AppModule
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.time.ZonedDateTime
 
@@ -69,10 +71,22 @@ object NotificationScheduler {
     const val EXTRA_CHANNEL_ID = "channel_id"
 
     /**
+     * 「全消去 → 全再スケジュール」を直列化する。
+     * 起動直後は MainActivity とアラーム発火の Receiver が同時に走りうる。
+     * 途中で別の実行が割り込むと、予約 id の台帳 (NotificationPrefs.scheduledIds) と
+     * 実際に積まれたアラームが食い違い、消し漏れた通知が残る。
+     */
+    private val rescheduleMutex = Mutex()
+
+    /**
      * 予約を全消去してから、設定が ON の通知を組み直して積む。
      * 通知が許可されていない場合は積まない (iOS の `guard status == .authorized` と同じ)。
      */
     suspend fun rescheduleAll(context: Context): Unit = withContext(Dispatchers.IO) {
+        rescheduleMutex.withLock { rescheduleAllLocked(context) }
+    }
+
+    private suspend fun rescheduleAllLocked(context: Context) {
         val app = context.applicationContext
         val prefs = NotificationPrefs(app)
 
@@ -80,7 +94,7 @@ object NotificationScheduler {
         // 発火し続けるのを防ぐ (通知自体はシステムが握り潰すが、予約は残るため)。
         if (!areNotificationsEnabled(app)) {
             cancelAllScheduled(app, prefs)
-            return@withContext
+            return
         }
 
         ensureChannels(app)
