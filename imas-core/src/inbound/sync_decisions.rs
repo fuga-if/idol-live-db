@@ -327,7 +327,7 @@ mod tests {
 
     #[test]
     fn progress_fraction_delegates() {
-        assert_eq!(sync_progress_fraction("ブランド".into(), vec![]), Some(1.0 / 18.0));
+        assert_eq!(sync_progress_fraction("ブランド".into(), vec![]), Some(1.0 / 19.0));
         assert_eq!(sync_progress_fraction("参考動画".into(), vec![]), Some(1.0));
         assert_eq!(sync_progress_fraction("存在しない".into(), vec![]), None);
         // available_record_types を渡すと分母がそちらに縮む。

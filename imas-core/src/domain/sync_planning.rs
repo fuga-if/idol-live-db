@@ -198,6 +198,8 @@ pub struct SyncStep {
 const STEPS_IN_FK_ORDER: &[(&str, &str)] = &[
     // Phase 1: 独立テーブル
     ("Brand", "ブランド"),
+    // クレジットの読みは何にも依存しない。
+    ("Creator", "作詞作曲の読み"),
     // Phase 2: brands のみ依存
     ("Idol", "アイドル"),
     ("Event", "イベント"),
@@ -462,6 +464,7 @@ pub fn table_info(record_type: &str) -> Option<SyncTableInfo> {
         "Venue" => ("venues", &["id"]),
         "VenueName" => ("venue_names", &["id"]),
         "UnitVersion" => ("unit_versions", &["id"]),
+        "Creator" => ("creators", &["id"]),
         "VenueHall" => ("venue_halls", &["id"]),
         "Song" => ("songs", &["id"]),
         "SongCall" => ("song_calls", &["id"]),
@@ -948,7 +951,7 @@ mod tests {
     #[test]
     fn all_steps_keeps_parents_before_children() {
         let steps = all_steps();
-        assert_eq!(steps.len(), 18);
+        assert_eq!(steps.len(), 19);
         let index = |record_type: &str| {
             steps
                 .iter()

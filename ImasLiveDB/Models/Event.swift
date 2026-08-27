@@ -46,6 +46,8 @@ struct Event: Codable, FetchableRecord, PersistableRecord, Identifiable, Hashabl
     var id: String
     var brandId: String?
     var name: String
+    /// ライブ名の読み。漢字のライブ名をかなで引けるようにする (曲・アイドルと同じ扱い)。
+    var nameKana: String?
     var eventType: String
     /// 互換のため残置。新コードからは参照しない。
     var isStreaming: Bool
@@ -97,6 +99,7 @@ struct Event: Codable, FetchableRecord, PersistableRecord, Identifiable, Hashabl
         id: String,
         brandId: String?,
         name: String,
+        nameKana: String? = nil,
         eventType: String,
         isStreaming: Bool,
         isSolo: Bool,
@@ -112,6 +115,7 @@ struct Event: Codable, FetchableRecord, PersistableRecord, Identifiable, Hashabl
         self.id = id
         self.brandId = brandId
         self.name = name
+        self.nameKana = nameKana
         self.eventType = eventType
         self.isStreaming = isStreaming
         self.isSolo = isSolo
@@ -140,6 +144,7 @@ struct Event: Codable, FetchableRecord, PersistableRecord, Identifiable, Hashabl
         case jointBrandIds = "joint_brand_ids"
         case hasStreaming = "has_streaming"
         case hasLiveViewing = "has_live_viewing"
+        case nameKana = "name_kana"
     }
 
     // MARK: - Associations

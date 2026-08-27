@@ -373,6 +373,7 @@ pub struct CkEventRow {
     pub ticket_lottery_date: Option<String>,
     pub ticket_url: Option<String>,
     pub joint_brand_ids: Option<String>,
+    pub name_kana: Option<String>,
 }
 
 /// shows
@@ -413,6 +414,15 @@ pub struct CkVenueNameRow {
     pub name: String,
     pub valid_from: Option<String>,
     pub valid_to: Option<String>,
+}
+
+/// creators
+#[derive(uniffi::Record, Clone, Debug, PartialEq)]
+pub struct CkCreatorRow {
+    pub id: String,
+    /// songs.composer 等に入っている表記そのもの (区切り文字では割らない)。
+    pub name: String,
+    pub name_kana: String,
 }
 
 /// unit_versions
@@ -568,6 +578,7 @@ pub enum CkRow {
     Venue { row: CkVenueRow },
     VenueName { row: CkVenueNameRow },
     UnitVersion { row: CkUnitVersionRow },
+    Creator { row: CkCreatorRow },
     VenueHall { row: CkVenueHallRow },
     Song { row: CkSongRow },
     Unit { row: CkUnitRow },
@@ -713,6 +724,7 @@ pub fn event(record: &CkRecordInput) -> Option<CkEventRow> {
         ticket_lottery_date: f.str("ticketLotteryDate"),
         ticket_url: f.str("ticketUrl"),
         joint_brand_ids: f.str("jointBrandIds"),
+        name_kana: f.str("nameKana"),
     })
 }
 
@@ -765,6 +777,15 @@ pub fn venue_name(record: &CkRecordInput) -> Option<CkVenueNameRow> {
         valid_from: f.str("validFrom"),
         valid_to: f.str("validTo"),
     })
+}
+
+/// 作詞・作曲・編曲の表記とその読み。
+pub fn credit_reading(record: &CkRecordInput) -> Option<CkCreatorRow> {
+    let f = Fields::new(record);
+    let id = f.entity_id()?;
+    let name = f.required("name")?;
+    let name_kana = f.required("nameKana")?;
+    Some(CkCreatorRow { id, name, name_kana })
 }
 
 /// ユニットの版 (Project“ReLight”AXE8 等)。
@@ -947,6 +968,7 @@ pub fn map_record(record_type: &str, record: &CkRecordInput, now_millis: i64) ->
         "Venue" => venue(record).map(|row| CkRow::Venue { row }),
         "VenueName" => venue_name(record).map(|row| CkRow::VenueName { row }),
         "UnitVersion" => unit_version(record).map(|row| CkRow::UnitVersion { row }),
+        "Creator" => credit_reading(record).map(|row| CkRow::Creator { row }),
         "VenueHall" => venue_hall(record).map(|row| CkRow::VenueHall { row }),
         "Song" => song(record).map(|row| CkRow::Song { row }),
         "ImasUnit" => unit(record).map(|row| CkRow::Unit { row }),
@@ -974,6 +996,7 @@ pub fn is_ingested_record_type(record_type: &str) -> bool {
             | "Venue"
             | "VenueName"
             | "UnitVersion"
+            | "Creator"
             | "VenueHall"
             | "Song"
             | "ImasUnit"

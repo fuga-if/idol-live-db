@@ -54,6 +54,7 @@ KIND_TABLES = {
 }
 # data/fixes/ で既存レコードを UPDATE 可能なテーブル (id 列を持つ事実情報のみ)
 ALLOWED_FIX_TABLES = {"idols", "songs", "events", "shows", "units", "brands", "venues"}
+# 読みの表は fixes ではなく専用の投入口 (data/credit_readings/) から入れる。
 
 
 def cols(conn, table):
@@ -200,6 +201,18 @@ def validate(conn):
                 if k not in icol and k not in ("brands",):
                     problems.append(f"{tag}: idols に未知の列 '{k}'")
 
+    for path, data in load("creators"):
+        ccol = cols(conn, "creators")
+        for i, c in enumerate(data.get("creators", [])):
+            tag = f"creators/{path.name}[{i}]"
+            if not c.get("id") or exists(conn, "creators", c.get("id", "")):
+                problems.append(f"{tag}: creator id が空 or 既存")
+            if not c.get("name") or not c.get("name_kana"):
+                problems.append(f"{tag}: name / name_kana は必須")
+            for k in c:
+                if k not in ccol and k != "note":
+                    problems.append(f"{tag}: creators に未知の列 '{k}'")
+
     for path, data in load("unit_versions"):
         vcol = cols(conn, "unit_versions")
         for i, v in enumerate(data.get("unit_versions", [])):
@@ -265,6 +278,14 @@ def insert_row(conn, table, row):
 def apply_all(conn):
     affected = set()
     scol = cols(conn, "songs")
+
+    ccol = cols(conn, "creators")
+    for path, data in load("creators"):
+        for c in data["creators"]:
+            c.pop("note", None)
+            insert_row(conn, "creators", {k: v for k, v in c.items() if k in ccol})
+            affected.add("creators")
+        print(f"  ✓ creators/{path.name}: {len(data['creators'])} 件")
 
     # 版は songs より先に入れる。songs.unit_version_id の参照先になるため。
     vcol = cols(conn, "unit_versions")

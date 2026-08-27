@@ -78,6 +78,7 @@ enum CKRecordMapper {
             id: row.id,
             brandId: row.brandId,
             name: row.name,
+            nameKana: row.nameKana,
             eventType: row.eventType,
             isStreaming: row.isStreaming,
             isSolo: row.isSolo,
@@ -121,6 +122,12 @@ enum CKRecordMapper {
             capacity: row.capacity.map(Int.init),
             sortOrder: Int(row.sortOrder)
         )
+    }
+
+    /// 作詞・作曲・編曲の表記とその読み。
+    static func creator(from record: CKRecord) -> Creator? {
+        guard case .creator(let row)? = mapped(record, as: "Creator") else { return nil }
+        return Creator(id: row.id, name: row.name, nameKana: row.nameKana)
     }
 
     /// ユニットの版 (Project“ReLight”AXE8 等)。

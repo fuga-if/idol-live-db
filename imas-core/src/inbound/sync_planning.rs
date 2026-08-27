@@ -235,3 +235,15 @@ pub fn reseed_summary_label(
 ) -> String {
     sync_planning::reseed_summary_label(local_version, bundle_version, ok, skipped)
 }
+
+// --- クレジット表記の分割 ---
+
+/// 作詞・作曲・編曲の欄を人ごとに割る。
+///
+/// 括弧の外では 5 種類の区切りで割り、括弧の中では `・` と `、` だけで割る
+/// (`,` `/` は社名の一部)。理由は `domain::credit_names` に書いた。
+/// **アプリ側で同じ規則を書き直さないこと** — ずれると同じ人が二通りに分かれる。
+#[uniffi::export]
+pub fn split_credit_names(text: String) -> Vec<String> {
+    crate::domain::credit_names::split_credits(&text)
+}

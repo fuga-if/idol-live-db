@@ -75,6 +75,10 @@ pub fn expected_tables() -> Vec<TableSpec> {
         spec("setlist_performers", Master, &["setlist_item_id", "idol_id"],
              "その披露の歌唱メンバー (複合 PK)"),
         spec("show_cast", Master, &["show_id", "idol_id"], "公演の出演者 (複合 PK)"),
+        spec("creators", Master, &["id", "name", "name_kana"],
+             "作詞・作曲・編曲の作家とその読み (人単位・所属つきの表記)。\n\
+              曲側に持たせない: 読みは人の属性で、同じ人が数十曲に出るため。\n\
+              連名の欄を人ごとに割る規則は domain/credit_names.rs"),
         spec("unit_versions", Master, &["id", "unit_id", "name"],
              "ユニットのバージョン (Project“ReLight”AXE8 等)。\n\
               ユニット自体は 1 行のまま。版で分けるのは曲側 (songs.unit_version_id)。\n\

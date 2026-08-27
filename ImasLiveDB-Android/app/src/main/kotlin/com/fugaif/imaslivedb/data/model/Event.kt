@@ -16,6 +16,10 @@ data class Event(
     @ColumnInfo(name = "name")
     val name: String,
 
+    /** ライブ名の読み。漢字のライブ名をかなで引けるようにする (曲・アイドルと同じ扱い)。 */
+    @ColumnInfo(name = "name_kana")
+    val nameKana: String? = null,
+
     @ColumnInfo(name = "event_type")
     val eventType: String,
 

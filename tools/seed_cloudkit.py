@@ -63,6 +63,8 @@ DEFAULT_KEY_FILE = Path(__file__).parent / "eckey.pem"
 
 TABLE_ORDER = [
     "brands",
+    # 読みの表は何も参照しないので先頭付近でよい。
+    "creators",
     "idols",
     "events",
     "units",
@@ -103,6 +105,7 @@ RECORD_TYPE_MAP = {
     "venues": "Venue",
     "venue_names": "VenueName",
     "unit_versions": "UnitVersion",
+    "creators": "Creator",
     "venue_halls": "VenueHall",
     "meta": "MetaData",
 }

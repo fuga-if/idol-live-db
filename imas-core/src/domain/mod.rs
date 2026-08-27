@@ -1,5 +1,6 @@
 //! ドメイン核: 純粋ロジックのみ。uniffi は型 derive を除き持ち込まない。
 
+pub mod credit_names;
 pub mod jst_day;
 pub mod prng;
 pub mod snapshot;

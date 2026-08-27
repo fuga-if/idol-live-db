@@ -16,6 +16,7 @@ import com.fugaif.imaslivedb.data.model.SongVideo
 import com.fugaif.imaslivedb.data.model.UnitMember
 import com.fugaif.imaslivedb.data.model.Venue
 import com.fugaif.imaslivedb.data.model.VenueHall
+import com.fugaif.imaslivedb.data.model.Creator
 import com.fugaif.imaslivedb.data.model.UnitVersion
 import com.fugaif.imaslivedb.data.model.VenueName
 import kotlinx.coroutines.Dispatchers
@@ -228,6 +229,12 @@ object SyncMappers {
      * [com.fugaif.imaslivedb.data.model.VenueName.isValidOn] は文字列比較で期間を判定するので、
      * validTo="" だと `date >= ""` が常に真になり、その名前が一度も有効にならなくなる。
      */
+    /** 作詞・作曲・編曲の表記とその読み。 */
+    fun creators(rows: List<CkRow>): List<Creator> =
+        rows.filterIsInstance<CkRow.Creator>().map { (row) ->
+            Creator(id = row.id, name = row.name, nameKana = row.nameKana)
+        }
+
     /**
      * ユニットの版 (Project“ReLight”AXE8 等)。
      *

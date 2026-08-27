@@ -284,11 +284,13 @@ final class DetailSheetViewModel {
     }
 
     /// クレジット文字列を区切り文字で複数名に分割する。
+    /// クレジット欄を人ごとに割る。
+    ///
+    /// 規則はコア (imas-core `domain/credit_names.rs`) が持つ。区切り文字で素朴に割ると
+    /// 括弧の内側で壊れる (「佐高陵平(Hifumi,Inc.)」が「佐高陵平(Hifumi」と「Inc.)」になる)。
+    /// ここに書き直すと `creators` の表記とずれ、同じ人が二通りに分かれる。
     func splitCredits(_ s: String) -> [String] {
-        let separators = CharacterSet(charactersIn: "/／,、・")
-        return s.components(separatedBy: separators)
-            .map { $0.trimmingCharacters(in: .whitespaces) }
-            .filter { !$0.isEmpty }
+        splitCreditNames(text: s)
     }
 
     private func durationValue(for song: Song) -> String? {

@@ -99,6 +99,8 @@ pub struct Event {
     pub id: String,
     pub brand_id: Option<String>,
     pub name: String,
+    /// ライブ名の読み。漢字のライブ名をかなで引けるようにする (曲・アイドルと同じ扱い)。
+    pub name_kana: Option<String>,
     pub event_type: String,
     /// 互換のため残置 (iOS Event と同じ注記)。新コードからは参照しない。
     pub is_streaming: bool,

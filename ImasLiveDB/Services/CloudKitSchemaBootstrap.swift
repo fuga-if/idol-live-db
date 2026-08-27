@@ -31,6 +31,7 @@ enum CloudKitSchemaBootstrap {
             ("SongVideo", ["songId": "x", "youtubeUrl": "x", "videoTitle": "x", "note": "x", "authorDisplayName": "x", "createdAt": Date()]),
             ("Venue", ["name": "x", "nameKana": "x", "prefecture": "x", "city": "x", "aliases": "x", "capacity": 0, "sortOrder": 0]),
             ("VenueName", ["venueId": "x", "name": "x", "validFrom": "x", "validTo": "x"]),
+            ("Creator", ["name": "x", "nameKana": "x"]),
             ("UnitVersion", ["unitId": "x", "code": "x", "name": "x", "catchphrase": "x",
                              "logoUrl": "x", "validFrom": "x", "validTo": "x", "sortOrder": 0]),
             ("VenueHall", ["venueId": "x", "name": "x", "capacity": 0]),

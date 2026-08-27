@@ -52,6 +52,7 @@ DEFINE SCHEMA
         kind              STRING QUERYABLE SEARCHABLE SORTABLE,
         modifiedAt        TIMESTAMP QUERYABLE SORTABLE,
         name              STRING QUERYABLE SEARCHABLE SORTABLE,
+        nameKana          STRING QUERYABLE SEARCHABLE SORTABLE,
         ticketDeadline    STRING QUERYABLE SEARCHABLE SORTABLE,
         ticketLotteryDate STRING QUERYABLE SEARCHABLE SORTABLE,
         ticketOpenDate    STRING QUERYABLE SEARCHABLE SORTABLE,
@@ -408,6 +409,22 @@ DEFINE SCHEMA
         modifiedAt      TIMESTAMP QUERYABLE SORTABLE,
         name            STRING QUERYABLE SEARCHABLE SORTABLE,
         venueId         STRING QUERYABLE SEARCHABLE SORTABLE,
+        GRANT WRITE TO "_creator",
+        GRANT CREATE TO "_icloud",
+        GRANT READ TO "_world"
+    );
+
+    RECORD TYPE Creator (
+        "___createTime" TIMESTAMP,
+        "___createdBy"  REFERENCE,
+        "___etag"       STRING,
+        "___modTime"    TIMESTAMP,
+        "___modifiedBy" REFERENCE,
+        "___recordID"   REFERENCE,
+        deletedAt       TIMESTAMP QUERYABLE SORTABLE,
+        modifiedAt      TIMESTAMP QUERYABLE SORTABLE,
+        name            STRING QUERYABLE SEARCHABLE SORTABLE,
+        nameKana        STRING QUERYABLE SEARCHABLE SORTABLE,
         GRANT WRITE TO "_creator",
         GRANT CREATE TO "_icloud",
         GRANT READ TO "_world"

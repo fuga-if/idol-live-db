@@ -7,7 +7,10 @@ CREATE TABLE anniversaries (
     sort_order INTEGER NOT NULL DEFAULT 0
 );
 CREATE TABLE brands (id TEXT PRIMARY KEY NOT NULL, name TEXT NOT NULL, short_name TEXT NOT NULL, color TEXT, sort_order INTEGER NOT NULL);
-CREATE TABLE events (id TEXT PRIMARY KEY NOT NULL, brand_id TEXT, name TEXT NOT NULL, event_type TEXT NOT NULL, is_streaming INTEGER NOT NULL DEFAULT 0, is_solo INTEGER NOT NULL DEFAULT 1, kind TEXT NOT NULL DEFAULT 'live', ticket_deadline TEXT, ticket_lottery_date TEXT, ticket_url TEXT, joint_brand_ids TEXT, ticket_open_date TEXT);
+CREATE TABLE creators (
+            id TEXT PRIMARY KEY NOT NULL, name TEXT NOT NULL, name_kana TEXT NOT NULL
+        );
+CREATE TABLE events (id TEXT PRIMARY KEY NOT NULL, brand_id TEXT, name TEXT NOT NULL, event_type TEXT NOT NULL, is_streaming INTEGER NOT NULL DEFAULT 0, is_solo INTEGER NOT NULL DEFAULT 1, kind TEXT NOT NULL DEFAULT 'live', ticket_deadline TEXT, ticket_lottery_date TEXT, ticket_url TEXT, joint_brand_ids TEXT, ticket_open_date TEXT, name_kana TEXT);
 CREATE TABLE idol_brands (idol_id TEXT NOT NULL, brand_id TEXT NOT NULL, is_primary INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (idol_id, brand_id));
 CREATE TABLE idol_voice_actors (
   id TEXT PRIMARY KEY NOT NULL,
@@ -74,6 +77,7 @@ CREATE TABLE venues (
         );
 CREATE INDEX idx_anniversaries_brand ON anniversaries(brand_id);
 CREATE INDEX idx_anniversaries_date ON anniversaries(date);
+CREATE INDEX idx_creators_name ON creators(name);
 CREATE INDEX idx_events_is_solo ON events(is_solo);
 CREATE INDEX idx_idol_voice_actors_idol ON idol_voice_actors(idol_id);
 CREATE INDEX idx_idols_attribute ON idols(attribute);

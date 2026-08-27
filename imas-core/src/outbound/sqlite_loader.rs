@@ -596,10 +596,12 @@ fn load_events(conn: &Connection) -> Result<Vec<Event>, String> {
     let sql = format!(
         "SELECT id, brand_id, name, event_type, is_streaming, is_solo, kind,
                 ticket_open_date, ticket_deadline, ticket_lottery_date, ticket_url,
-                joint_brand_ids, {has_streaming}, {has_live_viewing}
+                joint_brand_ids, {has_streaming}, {has_live_viewing}, {name_kana}
          FROM events",
         has_streaming = optional_col(&cols, "has_streaming"),
         has_live_viewing = optional_col(&cols, "has_live_viewing"),
+        // 後から足した列。移行前の DB (Android の Room 版が上がる前) には無いので守る。
+        name_kana = optional_col(&cols, "name_kana"),
     );
     let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
     let rows = stmt
@@ -621,6 +623,7 @@ fn load_events(conn: &Connection) -> Result<Vec<Event>, String> {
                 // Documents 専用列。列が無い DB では NULL 定数列 → None。
                 has_streaming: r.get::<_, Option<i64>>(12)?.map(|v| v != 0),
                 has_live_viewing: r.get::<_, Option<i64>>(13)?.map(|v| v != 0),
+                name_kana: r.get(14)?,
             })
         })
         .map_err(|e| e.to_string())?;

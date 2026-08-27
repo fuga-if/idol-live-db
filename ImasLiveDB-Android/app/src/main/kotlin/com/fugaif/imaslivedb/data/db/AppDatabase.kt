@@ -24,6 +24,7 @@ import com.fugaif.imaslivedb.data.db.dao.UserMarkDao
 import com.fugaif.imaslivedb.data.model.Anniversary
 import com.fugaif.imaslivedb.data.model.Venue
 import com.fugaif.imaslivedb.data.model.VenueHall
+import com.fugaif.imaslivedb.data.model.Creator
 import com.fugaif.imaslivedb.data.model.UnitVersion
 import com.fugaif.imaslivedb.data.model.VenueName
 import com.fugaif.imaslivedb.data.model.Brand
@@ -69,9 +70,10 @@ import com.fugaif.imaslivedb.data.model.UserMark
         Venue::class,
         VenueName::class,
         VenueHall::class,
-        UnitVersion::class
+        UnitVersion::class,
+        Creator::class
     ],
-    version = 10,
+    version = 11,
     // 確定スキーマを app/schemas へ JSON で吐く。共有コア (imas-core) が持つ
     // マスタ DDL と突き合わせて、片方だけスキーマを変えた事故を CI で捕まえるため。
     exportSchema = true
@@ -136,7 +138,7 @@ abstract class AppDatabase : RoomDatabase() {
             )
                 // スキーマ変更時は破壊的再構築せず Room Migration を書く (iOS の DatabaseMigrations と対)。
                 // UserMark 等のローカル唯一データを保全するため (.fallbackToDestructiveMigration は使わない)。
-                .addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
+                .addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11)
                 .addCallback(seedCallback)
                 .build()
         }
@@ -321,6 +323,24 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL("CREATE INDEX IF NOT EXISTS idx_unit_versions_unit ON unit_versions(unit_id)")
                 db.execSQL("ALTER TABLE songs ADD COLUMN unit_version_id TEXT")
                 db.execSQL("CREATE INDEX IF NOT EXISTS idx_songs_unit_version ON songs(unit_version_id)")
+            }
+        }
+
+        /**
+         * 読み仮名の置き場を足す (iOS / コアと対応)。
+         *
+         * ライブ名は events に列で持つ。作詞作曲は別表にする — 読みは人 (表記) の属性で、
+         * 同じ作家が数十曲に出るため曲側に持たせると複製になる。
+         */
+        val MIGRATION_10_11 = object : Migration(10, 11) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE events ADD COLUMN name_kana TEXT")
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS creators (" +
+                        "id TEXT NOT NULL, name TEXT NOT NULL, name_kana TEXT NOT NULL, " +
+                        "PRIMARY KEY(id))"
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS idx_creators_name ON creators(name)")
             }
         }
     }

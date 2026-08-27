@@ -1123,6 +1123,7 @@ mod tests {
                 id: "e1".into(),
                 brand_id: Some("cg".into()),
                 name: "空日付公演だけのイベント".into(),
+                name_kana: None,
                 event_type: "live".into(),
                 is_streaming: false,
                 is_solo: false,

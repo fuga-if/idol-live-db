@@ -120699,6 +120699,11 @@ INSERT INTO venues VALUES('venue_miraikenstudio','MIRAIKEN studio',NULL,'東京'
 INSERT INTO venues VALUES('venue_駒場公園テンペストステージ','駒場公園 テンペストステージ',NULL,'長野',NULL,NULL,NULL,231);
 INSERT INTO venues VALUES('venue_駒場公園ファントムステージ','駒場公園 ファントムステージ',NULL,'長野',NULL,NULL,598,232);
 INSERT INTO venues VALUES('venue_movix日吉津','ＭＯＶＩＸ日吉津',NULL,'鳥取',NULL,NULL,NULL,233);
+CREATE TABLE creators (
+            id TEXT PRIMARY KEY NOT NULL, name TEXT NOT NULL, name_kana TEXT NOT NULL
+        );
+-- events への列追加も ALTER で行う (INSERT が位置指定のため)。
+ALTER TABLE events ADD COLUMN name_kana TEXT;
 CREATE TABLE unit_versions (
             id TEXT PRIMARY KEY NOT NULL, unit_id TEXT NOT NULL, code TEXT,
             name TEXT NOT NULL, catchphrase TEXT, logo_url TEXT,
@@ -121276,6 +121281,7 @@ CREATE INDEX idx_anniversaries_date ON anniversaries(date);
 CREATE INDEX idx_venue_names_venue ON venue_names(venue_id);
 CREATE INDEX idx_songs_unit_version ON songs(unit_version_id);
 CREATE INDEX idx_unit_versions_unit ON unit_versions(unit_id);
+CREATE INDEX idx_creators_name ON creators(name);
 CREATE INDEX idx_venue_halls_venue ON venue_halls(venue_id);
 CREATE INDEX idx_shows_venue_id ON shows(venue_id);
 CREATE INDEX idx_idol_voice_actors_idol ON idol_voice_actors(idol_id);

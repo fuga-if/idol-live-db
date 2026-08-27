@@ -85,12 +85,14 @@ pub fn searched_idol_indexes(snap: &Snapshot, query: &str) -> Vec<u32> {
         .collect()
 }
 
-/// イベントの横断検索 (name のみ部分一致、先頭 20 件)。かな列はイベントに無い。
+/// イベントの横断検索 (name / name_kana の部分一致、先頭 20 件)。
+///
+/// 漢字のライブ名は読みが無いとかなで引けない。曲・アイドルと同じ扱いに揃える。
 pub fn searched_event_indexes(snap: &Snapshot, query: &str) -> Vec<u32> {
     snap.events
         .iter()
         .enumerate()
-        .filter(|(_, e)| like_contains(&e.name, query))
+        .filter(|(_, e)| like_contains(&e.name, query) || opt_like(&e.name_kana, query))
         .map(|(i, _)| i as u32)
         .take(GLOBAL_SEARCH_LIMIT)
         .collect()
