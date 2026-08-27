@@ -1,6 +1,7 @@
 package com.fugaif.imaslivedb.ui.events
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -31,11 +32,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import com.fugaif.imaslivedb.ui.components.GradientHeader
+import com.fugaif.imaslivedb.ui.share.SetlistCommentComposeSheet
+import com.fugaif.imaslivedb.ui.theme.BrandPalette
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.brandColor
 import androidx.compose.ui.unit.dp
@@ -126,6 +132,11 @@ fun SetlistScreen(
                                 displayNumber = index + 1,
                                 performers = performers,
                                 isCharacterLive = isCharacterLive,
+                                showName = uiState.show?.name,
+                                showDate = uiState.show?.date,
+                                // 感想カードの差し色。公演のブランドカラーを hex で渡す
+                                // (ブランド ID のままだと色エンジンがニュートラルへ落ちる)。
+                                seed = BrandPalette.hex(uiState.brandId),
                                 onSongClick = { onSongClick(item.songId) },
                                 onIdolClick = { idolId -> onIdolClick(idolId) }
                             )
@@ -138,19 +149,32 @@ fun SetlistScreen(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @Composable
 private fun SetlistItemRow(
     item: SetlistRow,
     displayNumber: Int,
     performers: List<PerformerRow>,
     isCharacterLive: Boolean,
+    showName: String?,
+    showDate: String?,
+    seed: String?,
     onSongClick: () -> Unit,
     onIdolClick: (String) -> Unit
 ) {
+    // 長押し → 感想カード (曲名 + コメントのシェア画像) を作る。
+    // 曲名タップは従来どおり曲詳細なので、行そのものの長押しに逃がしている。
+    var showCommentShare by remember { mutableStateOf(false) }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .combinedClickable(
+                // 空タップにリップルだけ出て何も起きないのを避けるため、
+                // 行のどこを押しても曲名タップと同じ挙動にしておく。
+                onClick = onSongClick,
+                onLongClick = { showCommentShare = true }
+            )
             .padding(horizontal = 12.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.Top
@@ -231,5 +255,16 @@ private fun SetlistItemRow(
                 )
             }
         }
+    }
+
+    if (showCommentShare) {
+        SetlistCommentComposeSheet(
+            songTitle = item.songTitle,
+            showName = showName,
+            showDate = showDate,
+            seed = seed,
+            artworkUrl = item.artworkUrl,
+            onDismiss = { showCommentShare = false }
+        )
     }
 }

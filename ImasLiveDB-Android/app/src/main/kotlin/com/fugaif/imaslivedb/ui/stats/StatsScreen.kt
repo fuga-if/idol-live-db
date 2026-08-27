@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -66,6 +67,7 @@ import com.fugaif.imaslivedb.ui.components.ImasSegmented
 import com.fugaif.imaslivedb.ui.components.ImasStatBar
 import com.fugaif.imaslivedb.ui.components.ImasStatTile
 import com.fugaif.imaslivedb.ui.events.SetlistScreen
+import com.fugaif.imaslivedb.ui.share.CollectionShareSheet
 import com.fugaif.imaslivedb.ui.songs.SongDetailScreen
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasTheme
@@ -232,6 +234,9 @@ fun StatsScreen(viewModel: StatsViewModel = viewModel()) {
 
 @Composable
 private fun CollectionSummarySection(collected: Int, total: Int) {
+    // 回収率カードのシェアシート (iOS StatsView の showCollectionShare と同じ導線)。
+    var showShareCard by rememberSaveable { mutableStateOf(false) }
+
     ImasSectionHeader("あなたの回収率", tight = true)
     Row(
         modifier = Modifier
@@ -252,7 +257,33 @@ private fun CollectionSummarySection(collected: Int, total: Int) {
             Text("現地ライブで聴けた曲", fontSize = 13.sp, color = DS.ink2)
         }
     }
+
+    Spacer(Modifier.height(8.dp))
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(DS.fill)
+            .clickable { showShareCard = true }
+            .padding(vertical = 12.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        androidx.compose.material3.Icon(Icons.Filled.Share, null, tint = DS.ink, modifier = Modifier.size(15.dp))
+        Text(
+            "カードでシェア",
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold,
+            color = DS.ink,
+            modifier = Modifier.padding(start = 8.dp)
+        )
+    }
     Spacer(Modifier.height(20.dp))
+
+    if (showShareCard) {
+        CollectionShareSheet(collected = collected, total = total, onDismiss = { showShareCard = false })
+    }
 }
 
 @Composable

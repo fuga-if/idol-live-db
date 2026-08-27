@@ -1,7 +1,6 @@
 package com.fugaif.imaslivedb.ui.introdon
 
 import android.app.Application
-import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -64,6 +63,8 @@ import coil3.compose.SubcomposeAsyncImage
 import com.fugaif.imaslivedb.data.games.GameKind
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.player.AudioPreviewManager
+import com.fugaif.imaslivedb.ui.share.IntroDonShareSheet
+import com.fugaif.imaslivedb.ui.share.IntroShareLine
 import com.fugaif.imaslivedb.ui.theme.DS
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -634,9 +635,10 @@ private fun IntroDonResultBody(
     onReplay: () -> Unit,
     onExit: () -> Unit
 ) {
-    val context = LocalContext.current
     val answered = state.records.size
     val percentage = if (answered > 0) state.score * 100 / answered else 0
+    // 結果カード (画像) のシェアシート。従来のテキストは画像に添える本文として残す。
+    var showShareCard by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
@@ -682,19 +684,12 @@ private fun IntroDonResultBody(
 
         IntroDonActionButton(title = "もう一度") { onReplay() }
 
-        val shareText = shareText(settings, state, percentage, answered)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(14.dp))
                 .background(DS.surface)
-                .clickable {
-                    val intent = Intent(Intent.ACTION_SEND).apply {
-                        type = "text/plain"
-                        putExtra(Intent.EXTRA_TEXT, shareText)
-                    }
-                    context.startActivity(Intent.createChooser(intent, null))
-                }
+                .clickable { showShareCard = true }
                 .padding(vertical = 14.dp),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
@@ -709,6 +704,24 @@ private fun IntroDonResultBody(
         ) {
             Text("ホームに戻る", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = DS.ink2)
         }
+    }
+
+    if (showShareCard) {
+        val isAllSongs = settings.mode == IntroDonMode.ALL_SONGS
+        val secs = (state.elapsedMs / 1000).toInt()
+        IntroDonShareSheet(
+            modeLabel = introDonModeLabel(settings),
+            score = state.score,
+            total = answered,
+            percentage = percentage,
+            // タイムを競うのは全曲チャレンジだけ。他モードは行ごと出さない。
+            timeText = if (isAllSongs) String.format("%d:%02d", secs / 60, secs % 60) else null,
+            bestCombo = state.bestCombo,
+            // 全曲チャレンジは曲数が多すぎて内訳が無意味なのでサマリのみ。
+            lines = if (isAllSongs) emptyList() else state.records.map { IntroShareLine(it.title, it.correct) },
+            shareText = shareText(settings, state, percentage, answered),
+            onDismiss = { showShareCard = false }
+        )
     }
 }
 
@@ -761,12 +774,15 @@ private fun RecordRow(index: Int, record: IntroDonAnswerRecord) {
     }
 }
 
+/** シェア文とシェアカードで同じモード表記を使うための 1 箇所。 */
+private fun introDonModeLabel(settings: IntroDonSettings): String = when (settings.mode) {
+    IntroDonMode.ALL_SONGS -> "全曲チャレンジ"
+    IntroDonMode.RUSH -> "ラッシュ ${settings.rushTimeLimitSec}秒"
+    else -> "ノーマル"
+}
+
 private fun shareText(settings: IntroDonSettings, state: IntroDonGameUiState, percentage: Int, answered: Int): String {
-    val modeLabel = when (settings.mode) {
-        IntroDonMode.ALL_SONGS -> "全曲チャレンジ"
-        IntroDonMode.RUSH -> "ラッシュ ${settings.rushTimeLimitSec}秒"
-        else -> "ノーマル"
-    }
+    val modeLabel = introDonModeLabel(settings)
     val base = if (settings.mode == IntroDonMode.ALL_SONGS) {
         val secs = (state.elapsedMs / 1000).toInt()
         "🎵イントロドン 全曲チャレンジ ${secs / 60}:${(secs % 60).toString().padStart(2, '0')}・正答率$percentage% (${state.score}/$answered)"

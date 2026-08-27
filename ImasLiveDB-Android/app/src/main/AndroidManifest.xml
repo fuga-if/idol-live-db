@@ -40,6 +40,23 @@
             </intent-filter>
         </activity>
 
+        <!--
+          シェアカード画像の受け渡し口。
+          cacheDir に書いた PNG はアプリ専用領域なので他アプリからは読めず、file:// で渡すと
+          Android 7 以降 FileUriExposedException で落ちる。FileProvider を挟んで content:// に
+          化かし、ACTION_SEND の受け手へ一時的な読み取り権限だけを渡す。
+          公開範囲は res/xml/provider_paths.xml の cache-path 1 つに限定 (exported は false)。
+        -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.shareprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/provider_paths" />
+        </provider>
+
         <!-- 予約時刻に叩かれて通知を 1 本出す。自アプリの AlarmManager からしか来ない。 -->
         <receiver
             android:name=".data.notification.NotificationAlarmReceiver"
