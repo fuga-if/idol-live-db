@@ -1,0 +1,78 @@
+{
+ "title": "統合で消えた曲を指したままのセトリ行を付け替える",
+ "_help": "tools/merge_duplicate_songs.py の MERGES が意図した付け替え先へ戻す。setlist_items に FK 制約が無いため PRAGMA foreign_key_check では捕まらず、ビルドの FK ゲートをすり抜けていた。スナップショット (コア) は孤児を落とすが SQL 経路は残すので、経路によってセトリの曲数が食い違う。",
+ "fixes": [
+  {
+   "table": "setlist_items",
+   "id": "sh_L1073_10951",
+   "fields": {
+    "song_id": "876_リローディング"
+   },
+   "note": "二重登録の統合 (876_reloading → 876_リローディング 「リローディング」) で残った参照。統合は songs 側だけ CloudKit に反映され、子の付け替えが届いていなかった。"
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L1237_13213",
+   "fields": {
+    "song_id": "876_リローディング"
+   },
+   "note": "二重登録の統合 (876_reloading → 876_リローディング 「リローディング」) で残った参照。統合は songs 側だけ CloudKit に反映され、子の付け替えが届いていなかった。"
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L1241_13257",
+   "fields": {
+    "song_id": "876_リローディング"
+   },
+   "note": "二重登録の統合 (876_reloading → 876_リローディング 「リローディング」) で残った参照。統合は songs 側だけ CloudKit に反映され、子の付け替えが届いていなかった。"
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L1209_12926_rb",
+   "fields": {
+    "song_id": "876_リローディング"
+   },
+   "note": "二重登録の統合 (876_reloading → 876_リローディング 「リローディング」) で残った参照。統合は songs 側だけ CloudKit に反映され、子の付け替えが届いていなかった。"
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0640_5680",
+   "fields": {
+    "song_id": "cg_sunhighgold"
+   },
+   "note": "二重登録の統合 (cg_sun_high_gold → cg_sunhighgold 「Sun！High！Gold！」) で残った参照。統合は songs 側だけ CloudKit に反映され、子の付け替えが届いていなかった。"
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0737_6629",
+   "fields": {
+    "song_id": "cg_sunhighgold"
+   },
+   "note": "二重登録の統合 (cg_sun_high_gold → cg_sunhighgold 「Sun！High！Gold！」) で残った参照。統合は songs 側だけ CloudKit に反映され、子の付け替えが届いていなかった。"
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0738_6636",
+   "fields": {
+    "song_id": "cg_sunhighgold"
+   },
+   "note": "二重登録の統合 (cg_sun_high_gold → cg_sunhighgold 「Sun！High！Gold！」) で残った参照。統合は songs 側だけ CloudKit に反映され、子の付け替えが届いていなかった。"
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L1052_10679",
+   "fields": {
+    "song_id": "cg_sunhighgold"
+   },
+   "note": "二重登録の統合 (cg_sun_high_gold → cg_sunhighgold 「Sun！High！Gold！」) で残った参照。統合は songs 側だけ CloudKit に反映され、子の付け替えが届いていなかった。"
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L1202_12866_rb",
+   "fields": {
+    "song_id": "cg_sunhighgold"
+   },
+   "note": "二重登録の統合 (cg_sun_high_gold → cg_sunhighgold 「Sun！High！Gold！」) で残った参照。統合は songs 側だけ CloudKit に反映され、子の付け替えが届いていなかった。"
+  }
+ ]
+}

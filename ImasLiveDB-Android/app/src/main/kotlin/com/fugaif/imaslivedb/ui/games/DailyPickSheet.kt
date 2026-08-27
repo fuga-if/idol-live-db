@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -118,7 +119,10 @@ fun DailyPickSheet(
     }
 
     Surface(modifier = Modifier.fillMaxSize(), color = DS.bg) {
-        Column(modifier = Modifier.fillMaxSize()) {
+        // enableEdgeToEdge() が効いているのでシステムバーの裏まで描かれる。
+        // インセットを入れないと見出しと「閉じる」がステータスバーに潜り込み、
+        // タップがシステム側に吸われてボタンが押せなくなる (実際に押せなかった)。
+        Column(modifier = Modifier.fillMaxSize().safeDrawingPadding()) {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(start = 20.dp, end = 8.dp, top = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
