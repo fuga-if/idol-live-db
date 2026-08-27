@@ -233,7 +233,9 @@ private fun IntroShareFooter(modifier: Modifier = Modifier) {
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Text("もっと遊ぶなら 本家アプリ", fontSize = 11.sp, fontWeight = FontWeight.Medium, color = DS.ink2)
-        Text("App Storeで「イントロクイズ」", fontSize = 17.sp, fontWeight = FontWeight.Black, color = DS.ink)
+        // ストア名は iOS の文言をそのまま使わない。Android の画面から出たカードが
+        // 「App Store で探せ」と言うと、その端末では辿り着けない案内になる。
+        Text("Google Playで「イントロクイズ」", fontSize = 17.sp, fontWeight = FontWeight.Black, color = DS.ink)
     }
 }
 
