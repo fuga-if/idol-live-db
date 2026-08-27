@@ -338,7 +338,7 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL(
                     "CREATE TABLE IF NOT EXISTS creators (" +
                         "id TEXT NOT NULL, name TEXT NOT NULL, name_kana TEXT NOT NULL, " +
-                        "PRIMARY KEY(id))"
+                        "aliases TEXT, PRIMARY KEY(id))"
                 )
                 db.execSQL("CREATE INDEX IF NOT EXISTS idx_creators_name ON creators(name)")
             }

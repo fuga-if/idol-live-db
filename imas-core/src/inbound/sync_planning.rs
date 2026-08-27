@@ -247,3 +247,12 @@ pub fn reseed_summary_label(
 pub fn split_credit_names(text: String) -> Vec<String> {
     crate::domain::credit_names::split_credits(&text)
 }
+
+/// 表記の揺れを落として、同じ作家を 1 つに寄せるための鍵。
+///
+/// 曲側の表記 (所属つき・括弧の全角半角ゆれ) から creators を引くときに使う。
+/// 規則は `domain::credit_names` に書いた。
+#[uniffi::export]
+pub fn canonical_credit_key(name: String) -> String {
+    crate::domain::credit_names::canonical_credit_key(&name)
+}

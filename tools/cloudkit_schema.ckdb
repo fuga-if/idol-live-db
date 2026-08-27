@@ -421,6 +421,7 @@ DEFINE SCHEMA
         "___modTime"    TIMESTAMP,
         "___modifiedBy" REFERENCE,
         "___recordID"   REFERENCE,
+        aliases         STRING QUERYABLE SEARCHABLE SORTABLE,
         deletedAt       TIMESTAMP QUERYABLE SORTABLE,
         modifiedAt      TIMESTAMP QUERYABLE SORTABLE,
         name            STRING QUERYABLE SEARCHABLE SORTABLE,

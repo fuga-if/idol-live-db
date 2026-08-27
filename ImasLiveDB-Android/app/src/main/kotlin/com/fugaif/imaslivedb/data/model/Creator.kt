@@ -30,5 +30,19 @@ data class Creator(
     val name: String,
 
     @ColumnInfo(name = "name_kana")
-    val nameKana: String
-)
+    val nameKana: String,
+
+    /**
+     * 曲側に現れる表記の揺れ (改行区切り)。
+     *
+     * 同じ人が社名の変遷と括弧の全角半角で最大 9 通りに割れていた
+     * (BNEI(佐藤貴文) / BNSI（佐藤貴文） / NBGI(佐藤貴文) / 佐藤貴文 …)。
+     * 曲から作家を引くときはここを見る。
+     */
+    @ColumnInfo(name = "aliases")
+    val aliases: String? = null
+) {
+    /** 検索・突き合わせ対象になる表記 (正規名 + 別表記)。 */
+    val allSpellings: List<String>
+        get() = listOf(name) + (aliases?.split("\n")?.filter { it.isNotBlank() } ?: emptyList())
+}

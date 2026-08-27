@@ -420,9 +420,11 @@ pub struct CkVenueNameRow {
 #[derive(uniffi::Record, Clone, Debug, PartialEq)]
 pub struct CkCreatorRow {
     pub id: String,
-    /// songs.composer 等に入っている表記そのもの (区切り文字では割らない)。
+    /// 正規化した表記 (所属や括弧の揺れを落としたもの)。
     pub name: String,
     pub name_kana: String,
+    /// 曲側に現れる表記の揺れ (改行区切り)。ここから曲 → 作家を引く。
+    pub aliases: Option<String>,
 }
 
 /// unit_versions
@@ -785,7 +787,7 @@ pub fn credit_reading(record: &CkRecordInput) -> Option<CkCreatorRow> {
     let id = f.entity_id()?;
     let name = f.required("name")?;
     let name_kana = f.required("nameKana")?;
-    Some(CkCreatorRow { id, name, name_kana })
+    Some(CkCreatorRow { id, name, name_kana, aliases: f.str("aliases") })
 }
 
 /// ユニットの版 (Project“ReLight”AXE8 等)。

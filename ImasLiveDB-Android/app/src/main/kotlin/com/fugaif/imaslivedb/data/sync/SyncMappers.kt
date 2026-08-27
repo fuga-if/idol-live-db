@@ -232,7 +232,8 @@ object SyncMappers {
     /** 作詞・作曲・編曲の表記とその読み。 */
     fun creators(rows: List<CkRow>): List<Creator> =
         rows.filterIsInstance<CkRow.Creator>().map { (row) ->
-            Creator(id = row.id, name = row.name, nameKana = row.nameKana)
+            Creator(id = row.id, name = row.name, nameKana = row.nameKana,
+                    aliases = row.aliases.emptyToNull())
         }
 
     /**

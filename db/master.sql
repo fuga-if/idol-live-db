@@ -120700,7 +120700,8 @@ INSERT INTO venues VALUES('venue_駒場公園テンペストステージ','駒�
 INSERT INTO venues VALUES('venue_駒場公園ファントムステージ','駒場公園 ファントムステージ',NULL,'長野',NULL,NULL,598,232);
 INSERT INTO venues VALUES('venue_movix日吉津','ＭＯＶＩＸ日吉津',NULL,'鳥取',NULL,NULL,NULL,233);
 CREATE TABLE creators (
-            id TEXT PRIMARY KEY NOT NULL, name TEXT NOT NULL, name_kana TEXT NOT NULL
+            id TEXT PRIMARY KEY NOT NULL, name TEXT NOT NULL, name_kana TEXT NOT NULL,
+            aliases TEXT
         );
 -- events への列追加も ALTER で行う (INSERT が位置指定のため)。
 ALTER TABLE events ADD COLUMN name_kana TEXT;

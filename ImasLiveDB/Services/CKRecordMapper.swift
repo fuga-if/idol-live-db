@@ -127,7 +127,7 @@ enum CKRecordMapper {
     /// 作詞・作曲・編曲の表記とその読み。
     static func creator(from record: CKRecord) -> Creator? {
         guard case .creator(let row)? = mapped(record, as: "Creator") else { return nil }
-        return Creator(id: row.id, name: row.name, nameKana: row.nameKana)
+        return Creator(id: row.id, name: row.name, nameKana: row.nameKana, aliases: row.aliases)
     }
 
     /// ユニットの版 (Project“ReLight”AXE8 等)。

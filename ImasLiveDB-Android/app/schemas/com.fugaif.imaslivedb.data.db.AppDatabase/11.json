@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 11,
-    "identityHash": "082cced99e1cfc9f77440c150cc179e1",
+    "identityHash": "90eace4ab6125e2e26349b0bf25652b2",
     "entities": [
       {
         "tableName": "brands",
@@ -1570,7 +1570,7 @@
       },
       {
         "tableName": "creators",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `name_kana` TEXT NOT NULL, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `name_kana` TEXT NOT NULL, `aliases` TEXT, PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",
@@ -1589,6 +1589,12 @@
             "columnName": "name_kana",
             "affinity": "TEXT",
             "notNull": true
+          },
+          {
+            "fieldPath": "aliases",
+            "columnName": "aliases",
+            "affinity": "TEXT",
+            "notNull": false
           }
         ],
         "primaryKey": {
@@ -1614,7 +1620,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '082cced99e1cfc9f77440c150cc179e1')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '90eace4ab6125e2e26349b0bf25652b2')"
     ]
   }
 }

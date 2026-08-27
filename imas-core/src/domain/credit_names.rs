@@ -178,3 +178,100 @@ mod tests {
     }
 }
 
+/// 所属を前に置く会社の略称。
+///
+/// `X(Y)` は「所属(人)」と「人(所属)」の両方に使われていて構造では区別できない。
+/// 前に置く側は実データではバンダイナムコの社名変遷だけで、それ以外
+/// (`ARM(IOSYS)` `TAKT(...)` 等) はすべて「人(所属)」だった。
+const COMPANY_PREFIXES: [&str; 5] = ["BNSI", "NBGI", "BNEI", "BNGI", "NBSI"];
+
+/// 括弧の中が社名であることを示す手がかり。
+const COMPANY_HINTS: [&str; 9] = [
+    "Inc.", "inc.", "Corp", "Group", "Production", "Records", "Studio", "PARTY", "from ",
+];
+
+/// 表記の揺れを落として、同じ人を 1 つに寄せるための鍵を作る。
+///
+/// 同じ作家が社名の変遷と括弧の全角半角で最大 9 通りに割れていた:
+/// `BNEI(佐藤貴文)` `BNSI (佐藤貴文)` `BNSI（佐藤貴文）` `NBGI(佐藤貴文)` `佐藤貴文`
+/// `佐藤貴文(Bandai Namco Studios Inc.)` …。曲詳細から作家で絞り込むと、
+/// 同じ人が別人として何通りにも分かれてしまう。
+///
+/// 所属を落として人名だけを取り出し、日本語名は空白も落とす
+/// (`グシミヤギ ヒデユキ` と `グシミヤギヒデユキ` が別人にならないように)。
+pub fn canonical_credit_key(name: &str) -> String {
+    let trimmed = name.trim().trim_end_matches('.').trim();
+    let person = strip_affiliation(trimmed);
+    if person.chars().any(is_japanese) {
+        person.chars().filter(|c| !matches!(c, ' ' | '\u{3000}')).collect()
+    } else {
+        person.to_string()
+    }
+}
+
+fn strip_affiliation(name: &str) -> &str {
+    let Some(open) = name.find(['(', '（']) else {
+        return name;
+    };
+    let Some(close) = name.rfind([')', '）']) else {
+        return name;
+    };
+    if close < open {
+        return name;
+    }
+    let open_len = name[open..].chars().next().map_or(1, char::len_utf8);
+    let outer = name[..open].trim();
+    let inner = name[open + open_len..close].trim();
+    // 所属が前に置かれている形 (会社の略称) は、括弧の中が人。
+    if COMPANY_PREFIXES.contains(&outer) {
+        return inner;
+    }
+    // 括弧の中が社名なら、前が人。
+    if COMPANY_HINTS.iter().any(|h| inner.contains(h)) && !outer.is_empty() {
+        return outer;
+    }
+    name
+}
+
+fn is_japanese(c: char) -> bool {
+    matches!(c, '\u{3040}'..='\u{309F}' | '\u{30A0}'..='\u{30FF}' | '\u{4E00}'..='\u{9FFF}')
+}
+
+#[cfg(test)]
+mod canonical_tests {
+    use super::*;
+
+    /// 社名の変遷と括弧の揺れを越えて同じ鍵になる。
+    #[test]
+    fn the_same_person_gets_one_key() {
+        for n in [
+            "BNEI(佐藤貴文)", "BNSI (佐藤貴文)", "BNSI(佐藤貴文）", "BNSI（佐藤貴文）",
+            "NBGI(佐藤貴文)", "佐藤貴文", "佐藤貴文(Bandai Namco Studios Inc.)",
+            "BNSI(佐藤貴文).",
+        ] {
+            assert_eq!(canonical_credit_key(n), "佐藤貴文", "{n}");
+        }
+    }
+
+    /// 日本語名の空白は落とす (所属の書き方で入ったり入らなかったりする)。
+    #[test]
+    fn spaces_in_japanese_names_are_dropped() {
+        assert_eq!(canonical_credit_key("グシミヤギ ヒデユキ"), "グシミヤギヒデユキ");
+        assert_eq!(canonical_credit_key("グシミヤギヒデユキ(Hifumi,inc.)"), "グシミヤギヒデユキ");
+    }
+
+    /// 英字名の空白は残す (落とすと別の名前になる)。
+    #[test]
+    fn spaces_in_latin_names_are_kept() {
+        assert_eq!(canonical_credit_key("BNSI (Taku Inoue)"), "Taku Inoue");
+        assert_eq!(canonical_credit_key("Taku Inoue"), "Taku Inoue");
+    }
+
+    /// 「人(所属)」を取り違えない。ARM は人で IOSYS が所属。
+    #[test]
+    fn a_person_with_an_affiliation_is_not_inverted() {
+        assert_eq!(canonical_credit_key("ARM(IOSYS)"), "ARM(IOSYS)");
+        assert_eq!(canonical_credit_key("Mitsu.J (Digz, Inc. Group)"), "Mitsu.J");
+    }
+}
+
