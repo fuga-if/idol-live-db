@@ -1,0 +1,438 @@
+{
+ "title": "派生曲の読み仮名を本体から継承する (3 巡目・英字タイトルの本体を埋めた分)",
+ "_help": "本体に読みが入ったことで継承できるようになった派生曲 (Remix / ○○ Ver. / Game Size)。",
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "ml_flyers_-mr_remix-",
+   "fields": {
+    "title_kana": "ふらいやーず"
+   },
+   "note": "派生曲の読みは本体と同じ"
+  },
+  {
+   "table": "songs",
+   "id": "cg_last_kiss_-esti_remix-",
+   "fields": {
+    "title_kana": "らすときす"
+   },
+   "note": "派生曲の読みは本体と同じ"
+  },
+  {
+   "table": "songs",
+   "id": "cg_o-ku-ri-mo-no_sunday_-ヒゲドライバー_remix-",
+   "fields": {
+    "title_kana": "おくりものさんでー"
+   },
+   "note": "派生曲の読みは本体と同じ"
+  },
+  {
+   "table": "songs",
+   "id": "cg_pretty_liar_-ミフメイ_remix-",
+   "fields": {
+    "title_kana": "ぷりてぃらいあー"
+   },
+   "note": "派生曲の読みは本体と同じ"
+  },
+  {
+   "table": "songs",
+   "id": "sc_spread_the_wings_-19_colors-",
+   "fields": {
+    "title_kana": "すぷれっどざうぃんぐす"
+   },
+   "note": "派生曲の読みは本体と同じ"
+  },
+  {
+   "table": "songs",
+   "id": "cg_stage_bye_stage_-emontes_remix-",
+   "fields": {
+    "title_kana": "すてーじばいすてーじ"
+   },
+   "note": "派生曲の読みは本体と同じ"
+  },
+  {
+   "table": "songs",
+   "id": "sc_migratory_echoes_アンティーカver",
+   "fields": {
+    "title_kana": "まいぐらとりーえこーず"
+   },
+   "note": "派生曲の読みは本体と同じ"
+  },
+  {
+   "table": "songs",
+   "id": "sc_migratory_echoes_アルストロメリアver",
+   "fields": {
+    "title_kana": "まいぐらとりーえこーず"
+   },
+   "note": "派生曲の読みは本体と同じ"
+  },
+  {
+   "table": "songs",
+   "id": "sc_migratory_echoes_ストレイライトver",
+   "fields": {
+    "title_kana": "まいぐらとりーえこーず"
+   },
+   "note": "派生曲の読みは本体と同じ"
+  },
+  {
+   "table": "songs",
+   "id": "sc_migratory_echoes_ノクチルver",
+   "fields": {
+    "title_kana": "まいぐらとりーえこーず"
+   },
+   "note": "派生曲の読みは本体と同じ"
+  },
+  {
+   "table": "songs",
+   "id": "sc_migratory_echoes_シーズver",
+   "fields": {
+    "title_kana": "まいぐらとりーえこーず"
+   },
+   "note": "派生曲の読みは本体と同じ"
+  },
+  {
+   "table": "songs",
+   "id": "sc_migratory_echoes_コメティックver",
+   "fields": {
+    "title_kana": "まいぐらとりーえこーず"
+   },
+   "note": "派生曲の読みは本体と同じ"
+  },
+  {
+   "table": "songs",
+   "id": "sc_migratory_echoes_イルミネーションスターズver",
+   "fields": {
+    "title_kana": "まいぐらとりーえこーず"
+   },
+   "note": "派生曲の読みは本体と同じ"
+  },
+  {
+   "table": "songs",
+   "id": "sc_one_live_one_love_mortal_remix",
+   "fields": {
+    "title_kana": "わんらいぶわんらぶ"
+   },
+   "note": "派生曲の読みは本体と同じ"
+  },
+  {
+   "table": "songs",
+   "id": "sc_another_rampage_sngular1ty_ver",
+   "fields": {
+    "title_kana": "あなざーらんぺーじ"
+   },
+   "note": "派生曲の読みは本体と同じ"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_supreme_stars_who_goes_first_ver",
+   "fields": {
+    "title_kana": "すぷりーむすたーず"
+   },
+   "note": "派生曲の読みは本体と同じ"
+  },
+  {
+   "table": "songs",
+   "id": "sc_one_live_one_love_game_size",
+   "fields": {
+    "title_kana": "わんらいぶわんらぶ"
+   },
+   "note": "派生曲の読みは本体と同じ"
+  },
+  {
+   "table": "songs",
+   "id": "sc_sleepless_nights_game_size",
+   "fields": {
+    "title_kana": "すりーぷれすないつ"
+   },
+   "note": "派生曲の読みは本体と同じ"
+  },
+  {
+   "table": "songs",
+   "id": "sc_queen_of_the_pirates_game_size",
+   "fields": {
+    "title_kana": "くいーんおぶざぱいれーつ"
+   },
+   "note": "派生曲の読みは本体と同じ"
+  },
+  {
+   "table": "songs",
+   "id": "sc_mytime_game_size",
+   "fields": {
+    "title_kana": "まいたいむ"
+   },
+   "note": "派生曲の読みは本体と同じ"
+  },
+  {
+   "table": "songs",
+   "id": "sc_naraku_game_size",
+   "fields": {
+    "title_kana": "ならく"
+   },
+   "note": "派生曲の読みは本体と同じ"
+  },
+  {
+   "table": "songs",
+   "id": "sc_karma_game_size",
+   "fields": {
+    "title_kana": "かるま"
+   },
+   "note": "派生曲の読みは本体と同じ"
+  },
+  {
+   "table": "songs",
+   "id": "sc_oh_yeah_game_size",
+   "fields": {
+    "title_kana": "おーいえー"
+   },
+   "note": "派生曲の読みは本体と同じ"
+  },
+  {
+   "table": "songs",
+   "id": "sc_super_duper_dreamer_game_size",
+   "fields": {
+    "title_kana": "すーぱーでゅーぱーどりーまー"
+   },
+   "note": "派生曲の読みは本体と同じ"
+  },
+  {
+   "table": "songs",
+   "id": "sc_beast_mode_game_size",
+   "fields": {
+    "title_kana": "びーすともーど"
+   },
+   "note": "派生曲の読みは本体と同じ"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_ego_nor_remix",
+   "fields": {
+    "title_kana": "えご"
+   },
+   "note": "派生曲の読みは本体と同じ"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_luna_say_maybe_gaburyu_remix",
+   "fields": {
+    "title_kana": "るなせいめいびー"
+   },
+   "note": "派生曲の読みは本体と同じ"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_feel_jewel_dream_james_landino_remix",
+   "fields": {
+    "title_kana": "ふぃーるじゅえるどりーむ"
+   },
+   "note": "派生曲の読みは本体と同じ"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_cosmetic_redalice_remix",
+   "fields": {
+    "title_kana": "こすめてぃっく"
+   },
+   "note": "派生曲の読みは本体と同じ"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_kira_kira_r-906_remix",
+   "fields": {
+    "title_kana": "きらきら"
+   },
+   "note": "派生曲の読みは本体と同じ"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_the_rolling_riceball_lindaai-cue_remix",
+   "fields": {
+    "title_kana": "ざろーりんぐらいすぼーる"
+   },
+   "note": "派生曲の読みは本体と同じ"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_weekエミリースチュアートver",
+   "fields": {
+    "title_kana": "せぶんでいずあうぃーく"
+   },
+   "note": "派生曲の読みは本体と同じ"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_weekジュリアver",
+   "fields": {
+    "title_kana": "せぶんでいずあうぃーく"
+   },
+   "note": "派生曲の読みは本体と同じ"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_weekロコver",
+   "fields": {
+    "title_kana": "せぶんでいずあうぃーく"
+   },
+   "note": "派生曲の読みは本体と同じ"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossingジュリアver",
+   "fields": {
+    "title_kana": "くろっしんぐ"
+   },
+   "note": "派生曲の読みは本体と同じ"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossingロコver",
+   "fields": {
+    "title_kana": "くろっしんぐ"
+   },
+   "note": "派生曲の読みは本体と同じ"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossingエミリースチュアートver",
+   "fields": {
+    "title_kana": "くろっしんぐ"
+   },
+   "note": "派生曲の読みは本体と同じ"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyersジュリアver",
+   "fields": {
+    "title_kana": "ふらいやーず"
+   },
+   "note": "派生曲の読みは本体と同じ"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyersロコver",
+   "fields": {
+    "title_kana": "ふらいやーず"
+   },
+   "note": "派生曲の読みは本体と同じ"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyersエミリースチュアートver",
+   "fields": {
+    "title_kana": "ふらいやーず"
+   },
+   "note": "派生曲の読みは本体と同じ"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_mapジュリアver",
+   "fields": {
+    "title_kana": "ぐろうまっぷ"
+   },
+   "note": "派生曲の読みは本体と同じ"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_mapロコver",
+   "fields": {
+    "title_kana": "ぐろうまっぷ"
+   },
+   "note": "派生曲の読みは本体と同じ"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_mapエミリースチュアートver",
+   "fields": {
+    "title_kana": "ぐろうまっぷ"
+   },
+   "note": "派生曲の読みは本体と同じ"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_youジュリアver",
+   "fields": {
+    "title_kana": "はーもにーふぉーゆー"
+   },
+   "note": "派生曲の読みは本体と同じ"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_youエミリースチュアートver",
+   "fields": {
+    "title_kana": "はーもにーふぉーゆー"
+   },
+   "note": "派生曲の読みは本体と同じ"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_youロコver",
+   "fields": {
+    "title_kana": "はーもにーふぉーゆー"
+   },
+   "note": "派生曲の読みは本体と同じ"
+  },
+  {
+   "table": "songs",
+   "id": "ml_unionジュリアver",
+   "fields": {
+    "title_kana": "ゆにおん"
+   },
+   "note": "派生曲の読みは本体と同じ"
+  },
+  {
+   "table": "songs",
+   "id": "ml_unionエミリースチュアートver",
+   "fields": {
+    "title_kana": "ゆにおん"
+   },
+   "note": "派生曲の読みは本体と同じ"
+  },
+  {
+   "table": "songs",
+   "id": "ml_unionロコver",
+   "fields": {
+    "title_kana": "ゆにおん"
+   },
+   "note": "派生曲の読みは本体と同じ"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_supreme_stars__フィジカルver",
+   "fields": {
+    "title_kana": "すぷりーむすたーず"
+   },
+   "note": "派生曲の読みは本体と同じ"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_supreme_stars__インテリver",
+   "fields": {
+    "title_kana": "すぷりーむすたーず"
+   },
+   "note": "派生曲の読みは本体と同じ"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_supreme_stars__メンタルver",
+   "fields": {
+    "title_kana": "すぷりーむすたーず"
+   },
+   "note": "派生曲の読みは本体と同じ"
+  },
+  {
+   "table": "songs",
+   "id": "ml_parade_damour_les_amis_denfance_ver",
+   "fields": {
+    "title_kana": "ぱれーどだむーる"
+   },
+   "note": "派生曲の読みは本体と同じ"
+  },
+  {
+   "table": "songs",
+   "id": "ml_shimmer_sector_zero_ver",
+   "fields": {
+    "title_kana": "しまー"
+   },
+   "note": "派生曲の読みは本体と同じ"
+  }
+ ]
+}
