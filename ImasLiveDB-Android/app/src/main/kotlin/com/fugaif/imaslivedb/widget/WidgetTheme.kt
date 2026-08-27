@@ -32,18 +32,15 @@ import com.fugaif.imaslivedb.ui.theme.ImasTheme
  *
  * ## ブランド色だけは DB 由来
  *
- * ブランドカラーは master DB の `brands.color` (hex) が正で、そこから
- * [ImasTheme] (共有コアの色エンジン) が前景色を WCAG で選ぶ。ウィジェットは
- * 壁紙の上に載って背景が読めないので、accent を塗ったら文字色は必ず
- * [BrandAccent.onAccent] を使う (黄色 (ml) の上に白文字、が起きないようにする)。
+ * ブランドカラーは master DB の `brands.color` (hex) が正。そこから実際に塗る色を
+ * 導くのは [ImasTheme] (共有コアの色エンジン) で、アプリ本体と同じ発色になる。
+ * ウィジェットは壁紙の上に載って背景が読めないぶんコントラストが効きにくいので、
+ * ブランド色は [BrandAccent] の組 (濃い色 + その面) でしか使わない。
  */
 object WidgetTheme {
 
     /** ウィジェットの下地。純黒 (DS.bg) だと壁紙から浮くので、アプリのカード面と同じ surface。 */
     val surface: Color = DS.surface
-
-    /** 面の中でさらに一段沈めたい領域 (アートワークのプレースホルダ等)。 */
-    val surface2: Color = DS.surface2
 
     val ink: Color = DS.ink
     val ink2: Color = DS.ink2
@@ -69,8 +66,8 @@ object WidgetTheme {
         val seed = hex?.takeIf { it.isNotBlank() }
         return runCatching {
             val theme = ImasTheme.derive(seed = seed, brand = null, dark = true)
-            BrandAccent(accent = theme.accent, onAccent = theme.onAccent, tint = theme.tint)
-        }.getOrElse { BrandAccent(accent = fallbackAccent, onAccent = DS.onSys, tint = DS.fill) }
+            BrandAccent(accent = theme.accent, tint = theme.tint)
+        }.getOrElse { BrandAccent(accent = fallbackAccent, tint = DS.fill) }
     }
 
     // MARK: - テキストスタイル (ウィジェットの中で sp を直書きしないための入口)
@@ -97,8 +94,12 @@ object WidgetTheme {
     )
 }
 
-/** ブランド色から導いた「塗り色 + その上の文字色」。片方だけ使うとコントラストが壊れる。 */
-data class BrandAccent(val accent: Color, val onAccent: Color, val tint: Color)
+/**
+ * ブランド色から導いた組。[accent] は文字や細帯に載せる濃い色、[tint] はその色の面
+ * (薄い下地)。**この 2 つは組で使うこと** — accent を tint 以外の面に置くと、
+ * ブランドによっては読めなくなる (黄色 (ml) を白面に置く、など)。
+ */
+data class BrandAccent(val accent: Color, val tint: Color)
 
 /**
  * 全ウィジェット共通の外枠。

@@ -77,7 +77,9 @@ object InfoWidgetData {
             val next = database.eventDao().fetchEventsWithFirstDate()
                 .asSequence()
                 .filter { kindById[it.id] in NEXT_SHOW_KINDS }
-                .filter { (it.firstDate ?: "") >= today && !it.firstDate.isNullOrEmpty() }
+                // 公演を 1 本も持たないイベントは first_date が null で、"" は
+                // どの "YYYY-MM-DD" より小さいのでこの比較で一緒に落ちる。
+                .filter { (it.firstDate ?: "") >= today }
                 .minByOrNull { it.firstDate.orEmpty() }
                 ?: return@runCatching null
 
