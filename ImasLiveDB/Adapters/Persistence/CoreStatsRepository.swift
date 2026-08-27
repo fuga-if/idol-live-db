@@ -6,7 +6,11 @@ import Foundation
 /// 4 メソッドすべてに対応する core API があるため、未ロード時以外は全て core 経路。
 struct CoreStatsRepository: StatsReading {
     let snapshot: CoreSnapshotManager
-    /// 未ロード時の受け皿 (Strangler の旧経路)。
+    /// スナップショット未ロード時の受け皿 (Strangler の旧経路)。
+    ///
+    /// 全メソッド移送済みなのでここへ落ちる理由は「未移送」ではなく
+    /// 「スナップショットが無い」だけ。ローダが表・列を 1 つ読み損ねると
+    /// 全クエリが同時に死ぬので、この経路は残す。
     let fallback: GRDBStatsRepository
 
     func brandSongCounts() async throws -> [BrandSongCount] {

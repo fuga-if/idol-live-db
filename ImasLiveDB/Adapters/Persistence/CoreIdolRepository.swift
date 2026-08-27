@@ -13,7 +13,14 @@ import Foundation
 /// - `idolRecordsByIds` は入力 id 順・初出のみを返すので、id 列の並びがそのまま表示順になる。
 struct CoreIdolRepository: IdolReading {
     let snapshot: CoreSnapshotManager
-    /// 未ロード時と未移送クエリの受け皿 (Strangler の旧経路)。
+    /// スナップショット未ロード時の受け皿 (Strangler の旧経路)。
+    ///
+    /// このポートは全メソッドが core に移送済みなので、ここへ落ちる理由は
+    /// 「クエリが未移送だから」ではなく「スナップショットが無いから」だけ。
+    /// それでも消さないのは、ローダが表・列を 1 つ読み損ねた瞬間に全クエリが
+    /// 同時に死ぬため。DB 形状の差でアイドル画面が丸ごと機能不全になるのを
+    /// 防ぐ最後の砦になっている (Android で iOS 専用の idol_voice_actors /
+    /// songs.jasrac_code が無く常時ロード失敗していた実績あり)。
     let fallback: GRDBIdolRepository
 
     // MARK: - 一覧
