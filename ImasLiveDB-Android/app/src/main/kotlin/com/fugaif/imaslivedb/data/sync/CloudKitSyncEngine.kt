@@ -258,6 +258,20 @@ class CloudKitSyncEngine(context: Context, private val db: AppDatabase) {
         return hasData
     }
 
+    /**
+     * 全データ同期。差分の起点を捨ててから [sync] に入る (コアの startup_plan は
+     * `lastSyncEpoch = None` を「フルで取り直す」と読む)。
+     *
+     * 設定画面から手で走らせるためのもの。増分は「サーバ側で消えたレコード」を
+     * 落とせない (孤児掃除はフルでしか走らない) ので、表示がおかしくなったときの
+     * 最後の手段としてユーザーが自分で叩ける口が要る。
+     * backfill 済みの印も一緒に捨てる。全件取り直すなら判定し直すのが正しい。
+     */
+    suspend fun syncFull() {
+        prefs.edit().remove(KEY_LAST_SYNC).remove(KEY_BACKFILLED).apply()
+        sync()
+    }
+
     /** 差分同期 (初回 lastSync 無し → 全件)。 */
     suspend fun sync() {
         if (!CloudKitConfig.isConfigured) {

@@ -14,6 +14,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -25,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Checkbox
@@ -54,6 +56,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -61,6 +64,7 @@ import com.fugaif.imaslivedb.data.backup.BackupFormatException
 import com.fugaif.imaslivedb.data.backup.BackupImportResult
 import com.fugaif.imaslivedb.data.backup.BackupTransferException
 import com.fugaif.imaslivedb.data.backup.TransferCodeResult
+import com.fugaif.imaslivedb.data.sync.CloudKitSyncEngine
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.theme.DS
 import kotlinx.coroutines.Dispatchers
@@ -125,6 +129,7 @@ fun SettingsScreen(
                 SettingsSectionTitle("データ")
                 SettingsInfoRow("スキーマバージョン", state.schemaVersion)
                 SettingsInfoRow("データバージョン", state.dataVersion)
+                DataSyncSection()
                 HorizontalDivider()
             }
 
@@ -283,6 +288,51 @@ private fun SettingsNavRow(label: String, onClick: () -> Unit) {
         )
     }
     HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+}
+
+/**
+ * データ同期の状態表示と手動実行 (iOS `MyPageView.dataSyncSection` と対)。
+ *
+ * 起動時の同期は増分で、増分では**サーバ側で消えたレコードを落とせない**
+ * (孤児掃除はフル実行でしか走らない)。表示がおかしくなったときにユーザー自身が
+ * 取り直せる口が要る。FAQ の「同期に失敗する」は以前からこの導線を案内していたが、
+ * Android には実物が無く行き止まりになっていた。
+ */
+@Composable
+private fun DataSyncSection() {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val engine = remember { AppModule.from(context).syncEngine }
+    val state by engine.state.collectAsState()
+    val syncing = state is CloudKitSyncEngine.SyncState.Syncing
+
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Text(
+            text = when (val s = state) {
+                is CloudKitSyncEngine.SyncState.Idle -> "待機中"
+                is CloudKitSyncEngine.SyncState.Syncing -> "同期中 (${s.step}/${s.total}) ${s.label}"
+                is CloudKitSyncEngine.SyncState.Completed -> "完了 (${s.fetched}件)"
+                is CloudKitSyncEngine.SyncState.Error -> "失敗: ${s.message}"
+            },
+            fontSize = 13.sp, color = DS.ink2, modifier = Modifier.weight(1f)
+        )
+        if (syncing) CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = DS.sys)
+    }
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        TextButton(onClick = { scope.launch { engine.sync() } }, enabled = !syncing) {
+            Text("差分更新")
+        }
+        TextButton(onClick = { scope.launch { engine.syncFull() } }, enabled = !syncing) {
+            Text("全データ同期")
+        }
+    }
 }
 
 @Composable
