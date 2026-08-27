@@ -111,9 +111,14 @@ struct CoreSongRepository: SongReading {
         }
     }
 
-    /// OCR マッチング向けの「完全一致優先 → 部分一致」検索は core 未移送。
+    /// 曲名検索 (検索画面のスコープ「曲」)。
+    ///
+    /// 「完全一致が 1 件でもあればそれだけ・無いときだけ部分一致を limit 件」という
+    /// 枝の切り替えはコアが持つ (完全一致の枝に上限は無い)。
     func searchSongs(query: String, limit: Int) async throws -> [Song] {
-        try await fallback.searchSongs(query: query, limit: limit)
+        try await snapshot.withStore(fallbackTo: { try await fallback.searchSongs(query: query, limit: limit) }) { store in
+            try store.searchSongs(query: query, limit: UInt32(max(0, limit))).map(Self.song(from:))
+        }
     }
 
     /// 綴りだけを返す API はスナップショットに無い (照合はコア、母集団の供給は

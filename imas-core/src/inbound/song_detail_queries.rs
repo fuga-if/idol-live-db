@@ -20,6 +20,20 @@ impl SnapshotStore {
         Ok(song_detail_queries::song_records_by_ids(&snap, &song_ids))
     }
 
+    /// 曲名検索 (検索画面のスコープ「曲」)。searchSongs(query:limit:) 相当。
+    ///
+    /// 「完全一致が 1 件でもあればそれだけを返し、無いときだけ部分一致を limit 件」
+    /// という**枝の切り替え**が仕様の中心 (完全一致の枝に上限は無い)。
+    /// 詳細と理由は domain::song_detail_queries::search_songs のコメント。
+    pub fn search_songs(
+        &self,
+        query: String,
+        limit: u32,
+    ) -> Result<Vec<SongDetailRecord>, SnapshotError> {
+        let snap = self.current()?;
+        Ok(song_detail_queries::search_songs(&snap, &query, limit))
+    }
+
     /// 一覧に出す資格のある曲だけを id で引く (派生曲と brand='other' を隠す)。
     /// fetchListableSongs(ids:) 相当。
     pub fn listable_song_records_by_ids(

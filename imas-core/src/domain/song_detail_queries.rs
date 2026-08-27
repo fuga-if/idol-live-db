@@ -2,6 +2,7 @@
 //!
 //! SQL 時代の対応 (iOS AppDatabase+SongQueries.swift):
 //! - [`song_records_by_ids`]          ← fetchSongs(ids:) / fetchSong(id:)
+//! - [`search_songs`]                ← searchSongsAsync(query:limit:)
 //! - [`listable_song_records_by_ids`] ← fetchListableSongsAsync(ids:)
 //! - [`performer_idol_ids_map`]       ← fetchSongPerformerIdolsMap(songIds:)
 //! - [`performance_history`]          ← fetchSongPerformanceHistoryAsync(songId:)
@@ -148,6 +149,67 @@ pub fn song_records_by_ids(snap: &Snapshot, song_ids: &[String]) -> Vec<SongDeta
         .filter_map(|id| snap.song_index_by_id.get(id).copied())
         .filter(|&i| seen.insert(i))
         .map(|i| SongDetailRecord::from(&snap.songs[i as usize]))
+        .collect()
+}
+
+/// 曲名検索 (検索画面のスコープ「曲」)。iOS `AppDatabase.searchSongsQuery` 相当。
+///
+/// 原本 Swift はこの 2 段:
+///
+/// ```swift
+/// let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+/// guard !trimmed.isEmpty else { return [] }
+/// let exact = try Song.filter(Column("title") == trimmed).fetchAll(db)
+/// if !exact.isEmpty { return exact }
+/// let pattern = "%\(trimmed.likeEscaped)%"
+/// return try Song
+///     .filter(Column("title").like(pattern, escape: "\\") || Column("title_kana").like(pattern, escape: "\\"))
+///     .limit(limit).fetchAll(db)
+/// ```
+///
+/// GRDB が生成する SQL は
+/// `SELECT * FROM songs WHERE title = ?` と
+/// `SELECT * FROM songs WHERE (title LIKE ? ESCAPE '\' OR title_kana LIKE ? ESCAPE '\') LIMIT ?`。
+///
+/// 元実装の非自明な挙動をそのまま写す (どれも「良くしない」対象):
+/// - **完全一致の枝に LIMIT が無い**。同題の別曲 (別ブランド・カバー) が何件あっても
+///   全部返る。上限が掛かるのは部分一致の枝だけ。
+/// - 「完全一致優先」はスコアではなく**枝の切り替え**。完全一致が 1 件でもあれば
+///   部分一致は評価されない (完全一致 1 件 + 部分一致 50 件 → 返るのは 1 件だけ)。
+/// - 完全一致の `=` は BINARY 比較 (バイト列一致) なので ASCII の大小も区別する。
+///   一方 LIKE は ASCII だけ大小を無視するので、両枝で当たり方が違う。
+/// - どちらの枝も ORDER BY 無し。`songs.title` に索引が無く実行計画は SCAN なので、
+///   結果順は rowid 昇順 = スナップショットの添字順になる。
+/// - `title_kana` が NULL の行への LIKE は NULL = 不一致。
+/// - トリムは Swift の `.whitespacesAndNewlines`。この集合 (Z* + U+000A–U+000D +
+///   U+0085 + TAB) は Unicode の White_Space プロパティと同一で、Rust の
+///   `char::is_whitespace` すなわち `str::trim()` がそのまま等価になる。
+///
+/// `limit` を u32 で受けるので負値は表現できない (SQL の `LIMIT -1` = 無制限に
+/// あたる呼び方は存在しない)。呼び出し側は画面ごとの正の定数を渡す。
+pub fn search_songs(snap: &Snapshot, query: &str, limit: u32) -> Vec<SongDetailRecord> {
+    let trimmed = query.trim();
+    if trimmed.is_empty() {
+        return Vec::new();
+    }
+    let exact: Vec<SongDetailRecord> = snap
+        .songs
+        .iter()
+        .filter(|s| s.title == trimmed)
+        .map(SongDetailRecord::from)
+        .collect();
+    if !exact.is_empty() {
+        return exact;
+    }
+    let needle = trimmed.to_ascii_lowercase();
+    snap.songs
+        .iter()
+        .filter(|s| {
+            ascii_ci_contains(&s.title, &needle)
+                || s.title_kana.as_deref().is_some_and(|k| ascii_ci_contains(k, &needle))
+        })
+        .take(limit as usize)
+        .map(SongDetailRecord::from)
         .collect()
 }
 
@@ -546,6 +608,144 @@ mod tests {
 
     fn placeholders(n: usize) -> String {
         vec!["?"; n].join(",")
+    }
+
+    /// Swift `String.likeEscaped` の写経 (元 SQL のバインド値を組むのに使う)。
+    fn like_escaped(s: &str) -> String {
+        s.replace('\\', "\\\\").replace('%', "\\%").replace('_', "\\_")
+    }
+
+    /// 原本 Swift `searchSongsQuery` の写経。**制御フローごと**写す
+    /// (完全一致が空のときだけ部分一致に落ちる、という枝の切り替えが仕様の中心)。
+    /// どちらの枝も ORDER BY 無しなので、結果は順序込みで比較する。
+    fn run_original_search_sql(query: &str, limit: u32) -> Vec<SongDetailRecord> {
+        let trimmed = query.trim();
+        if trimmed.is_empty() {
+            return Vec::new();
+        }
+        let db = conn();
+        let exact: Vec<SongDetailRecord> = db
+            .prepare("SELECT * FROM songs WHERE title = ?")
+            .unwrap()
+            .query_map([trimmed], |r| Ok(record_from_row(r)))
+            .unwrap()
+            .map(Result::unwrap)
+            .collect();
+        if !exact.is_empty() {
+            return exact;
+        }
+        let pattern = format!("%{}%", like_escaped(trimmed));
+        let mut stmt = db
+            .prepare(
+                "SELECT * FROM songs
+                  WHERE (title LIKE ? ESCAPE '\\' OR title_kana LIKE ? ESCAPE '\\')
+                  LIMIT ?",
+            )
+            .unwrap();
+        let rows: Vec<SongDetailRecord> = stmt
+            .query_map(rusqlite::params![&pattern, &pattern, limit], |r| Ok(record_from_row(r)))
+            .unwrap()
+            .map(Result::unwrap)
+            .collect();
+        rows
+    }
+
+    /// 照合: searchSongs。当たり方の違う検索語で、元 SQL と**順序込み・全カラム**で一致する。
+    #[test]
+    fn search_songs_matches_sql() {
+        let snap = snapshot();
+        // 完全一致する実在題・部分一致だけの語・かなでしか当たらない語・ASCII 大小混在・空振り
+        let exact_title = snap.songs[0].title.clone();
+        let queries = [
+            exact_title.as_str(),
+            "夢",
+            "ハーモ",
+            "ready",
+            "READY",
+            "M@STER",
+            "zzz存在しない検索語",
+        ];
+        let mut saw_exact = false;
+        let mut saw_partial = false;
+        for q in queries {
+            for limit in [3u32, 200] {
+                let want = run_original_search_sql(q, limit);
+                assert_eq!(search_songs(&snap, q, limit), want, "query={q:?} limit={limit}");
+            }
+            let hits = search_songs(&snap, q, 200);
+            saw_exact |= hits.iter().any(|r| r.title == q);
+            saw_partial |= !hits.is_empty() && hits.iter().all(|r| r.title != q);
+        }
+        assert!(saw_exact, "完全一致の枝を通る検索語が要る");
+        assert!(saw_partial, "部分一致の枝を通る検索語が要る");
+    }
+
+    /// 完全一致の枝には LIMIT が掛からない (同題の別曲は limit を超えても全部返る)。
+    /// ここを「両枝に limit」に直すと、同題が並ぶ曲で結果が黙って減る。
+    #[test]
+    fn search_songs_does_not_limit_the_exact_branch() {
+        let snap = snapshot();
+        let db = conn();
+        // 同じ title が 2 件以上ある題を実データから探す (無ければ検証を諦めずに落とす)。
+        let title: String = db
+            .query_row(
+                "SELECT title FROM songs GROUP BY title HAVING COUNT(*) >= 2 LIMIT 1",
+                [],
+                |r| r.get(0),
+            )
+            .expect("同題の曲が 2 件以上ある前提");
+        let hits = search_songs(&snap, &title, 1);
+        assert!(hits.len() >= 2, "limit=1 でも完全一致は全部返る: {}", hits.len());
+        assert!(hits.iter().all(|r| r.title == title));
+        assert_eq!(hits, run_original_search_sql(&title, 1));
+    }
+
+    /// 完全一致が 1 件でもあれば部分一致は評価されない (スコアではなく枝の切り替え)。
+    #[test]
+    fn search_songs_stops_at_the_exact_branch() {
+        let snap = snapshot();
+        // 「他の曲名の部分文字列でもある完全一致題」を探す。この語なら
+        // 「両枝を足す実装」との差が出る。
+        let Some(title) = snap
+            .songs
+            .iter()
+            .map(|s| s.title.as_str())
+            .find(|t| {
+                t.len() >= 3 && snap.songs.iter().filter(|s| s.title.contains(*t)).count() > 1
+            })
+            .map(str::to_string)
+        else {
+            panic!("部分一致が広がる完全一致題がある前提");
+        };
+        let hits = search_songs(&snap, &title, 200);
+        assert!(hits.iter().all(|r| r.title == title), "部分一致まで混ざっている: {title:?}");
+        assert_eq!(hits, run_original_search_sql(&title, 200));
+    }
+
+    /// 空・空白だけの検索語は即空 (Swift の guard と同じ)。トリムは Foundation の
+    /// `.whitespacesAndNewlines` = Unicode White_Space = Rust の `str::trim()`。
+    #[test]
+    fn search_songs_trims_like_foundation() {
+        let snap = snapshot();
+        for q in ["", " ", "\t\n", "\u{3000}", "\u{00A0}\u{2003}"] {
+            assert!(search_songs(&snap, q, 200).is_empty(), "query={q:?}");
+        }
+        // 前後の空白は落として同じ結果になる (全角スペース・NBSP も Foundation の集合に入る)。
+        let title = snap.songs[0].title.clone();
+        let padded = format!("\u{3000} {title}\u{00A0}\n");
+        assert_eq!(search_songs(&snap, &padded, 200), search_songs(&snap, &title, 200));
+        assert_eq!(search_songs(&snap, &padded, 200), run_original_search_sql(&padded, 200));
+    }
+
+    /// likeEscaped の再現: `%` `_` はワイルドカードではなくリテラルとして当たる。
+    #[test]
+    fn search_songs_escapes_wildcards() {
+        let snap = snapshot();
+        for q in ["%", "_", "\\"] {
+            assert_eq!(search_songs(&snap, q, 200), run_original_search_sql(q, 200), "query={q:?}");
+        }
+        // 素通しなら "%" は全曲 200 件になる。実データにリテラル % の題が無いので空。
+        assert!(search_songs(&snap, "%", 200).is_empty());
     }
 
     /// 照合 1: fetchSongs(ids:)。IN の結果順は SQL 未規定なので id 順に正規化して
