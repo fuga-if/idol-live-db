@@ -53,7 +53,7 @@ KIND_TABLES = {
     "units": ["units", "unit_members"],
 }
 # data/fixes/ で既存レコードを UPDATE 可能なテーブル (id 列を持つ事実情報のみ)
-ALLOWED_FIX_TABLES = {"idols", "songs", "events", "shows", "units", "brands"}
+ALLOWED_FIX_TABLES = {"idols", "songs", "events", "shows", "units", "brands", "venues"}
 
 
 def cols(conn, table):
