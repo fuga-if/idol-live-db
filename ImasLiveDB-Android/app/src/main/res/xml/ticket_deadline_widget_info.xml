@@ -3,12 +3,11 @@
   チケット締切。日付 + イベント名を 3 行なので、横幅が無いと名前が読めない。
   最小幅を広めに取り、縦だけリサイズ可にしてある (iOS も systemMedium のみ)。
 
-  ウィジェット一覧に出す説明文 (android:description) は入れていない。あの属性は
-  文字列リソース (@string/...) しか受け付けずリテラルを aapt2 が弾くため、
-  文字列リソースを足すときに合わせて入れる。名前は AndroidManifest の
-  receiver の android:label が持っている。
+  名前は AndroidManifest の receiver の android:label、一覧に出る説明文は
+  android:description が持つ (この属性は @string/… しか受け付けない)。
 -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/widget_desc_ticket_deadline"
     android:minWidth="250dp"
     android:minHeight="110dp"
     android:minResizeWidth="250dp"
