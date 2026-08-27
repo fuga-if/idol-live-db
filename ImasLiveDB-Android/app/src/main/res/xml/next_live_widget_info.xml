@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  次のライブ。中身の更新は AlarmManager で日付が変わるときに行う (WidgetUpdateScheduler)。
+  updatePeriodMillis を 0 にしてあるのは、システムの定期更新 (最短 30 分・起点は設置時刻) では
+  「0 時ちょうどに変える」が表現できず、1 日 48 回起こされるだけになるため。
+
+  ウィジェット一覧に出す説明文 (android:description) は入れていない。あの属性は
+  文字列リソース (@string/...) しか受け付けずリテラルを aapt2 が弾くため、
+  文字列リソースを足すときに合わせて入れる。名前は AndroidManifest の
+  receiver の android:label が持っている。
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="110dp"
+    android:minHeight="110dp"
+    android:minResizeWidth="110dp"
+    android:minResizeHeight="110dp"
+    android:targetCellWidth="2"
+    android:targetCellHeight="2"
+    android:resizeMode="horizontal|vertical"
+    android:widgetCategory="home_screen"
+    android:updatePeriodMillis="0"
+    android:initialLayout="@layout/glance_default_loading_layout" />

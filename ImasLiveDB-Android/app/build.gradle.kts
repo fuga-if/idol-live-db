@@ -166,6 +166,15 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
 
+    // ホーム画面ウィジェット (Glance)。
+    // バージョンをカタログ (libs.versions.toml) ではなくここに直書きしているのは、
+    // ウィジェット以外がこの依存を参照しないため。1.1.1 を選んでいるのは、要求する
+    // compose-runtime の下限が低く (1.1.1)、アプリ本体が使う Compose BOM の版が
+    // そのまま採用されるから (新しい Glance を入れると runtime だけ BOM から外れて
+    // 版が混ざる)。WorkManager は要求しないので、更新の予約は AlarmManager のまま
+    // (理由は WidgetUpdateScheduler の KDoc)。
+    implementation("androidx.glance:glance-appwidget:1.1.1")
+
     // Coil
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)

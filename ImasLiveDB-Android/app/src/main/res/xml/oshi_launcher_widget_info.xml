@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  担当の画像 (タップでアプリ)。
+  configure に設定画面を指定しつつ、widgetFeatures に configuration_optional を入れているのは、
+  設定を飛ばして置いても候補の先頭で描けるようにするため (Android 12 以降)。
+  reconfigurable は「長押し → 設定」で選び直せるようにする指定。
+  initialLayout は Glance が用意しているローディング用レイアウト (最初の描画までの下地)。
+
+  ウィジェット一覧に出す説明文 (android:description) は入れていない。あの属性は
+  文字列リソース (@string/...) しか受け付けずリテラルを aapt2 が弾くため、
+  文字列リソースを足すときに合わせて入れる。名前は AndroidManifest の
+  receiver の android:label が持っている。
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="110dp"
+    android:minHeight="110dp"
+    android:minResizeWidth="110dp"
+    android:minResizeHeight="110dp"
+    android:targetCellWidth="2"
+    android:targetCellHeight="2"
+    android:resizeMode="horizontal|vertical"
+    android:widgetCategory="home_screen"
+    android:updatePeriodMillis="0"
+    android:configure="com.fugaif.imaslivedb.widget.OshiWidgetConfigureActivity"
+    android:widgetFeatures="reconfigurable|configuration_optional"
+    android:initialLayout="@layout/glance_default_loading_layout" />

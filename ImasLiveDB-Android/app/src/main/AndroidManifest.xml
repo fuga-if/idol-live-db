@@ -78,6 +78,107 @@
             </intent-filter>
         </receiver>
 
+        <!--
+          ===== ホーム画面ウィジェット (Glance) =====
+
+          ウィジェットの provider は、システム/ランチャーがブロードキャストを送る相手なので
+          exported="true" が必須 (非 exported だと一覧に出ない)。受け取るのは
+          APPWIDGET_UPDATE だけで、中身は Glance が組み立てる。
+          ラベル・説明・サイズは res/xml/*_widget_info.xml 側。
+        -->
+
+        <!-- 担当の画像。タップで次の画像へ送る。 -->
+        <receiver
+            android:name=".widget.OshiImageWidgetReceiver"
+            android:exported="true"
+            android:label="担当の画像（タップで切替）">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/oshi_image_widget_info" />
+        </receiver>
+
+        <!-- 担当の画像。タップでアプリを開く。絵は上と同じで、タップの意味だけが違う。 -->
+        <receiver
+            android:name=".widget.OshiLauncherWidgetReceiver"
+            android:exported="true"
+            android:label="担当の画像（タップでアプリ）">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/oshi_launcher_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.NextLiveWidgetReceiver"
+            android:exported="true"
+            android:label="次のライブ">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/next_live_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.TodaySongWidgetReceiver"
+            android:exported="true"
+            android:label="今日の1曲">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/today_song_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.TicketDeadlineWidgetReceiver"
+            android:exported="true"
+            android:label="チケット締切">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/ticket_deadline_widget_info" />
+        </receiver>
+
+        <!--
+          担当画像ウィジェットの設定画面。ランチャーが APPWIDGET_CONFIGURE で起動するので
+          exported="true"。2 種類の担当画像ウィジェットで共用する (選ぶものが同じなので)。
+        -->
+        <activity
+            android:name=".widget.OshiWidgetConfigureActivity"
+            android:exported="true"
+            android:label="担当を選ぶ"
+            android:theme="@style/Theme.ImasLiveDB">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
+        <!--
+          日付が変わったらウィジェットを描き直すための予約の受け口 (WidgetUpdateScheduler)。
+          通知側と同じく、予約が消える/ずれる出来事のあとに積み直す。
+          自アプリの AlarmManager とシステムからしか来ないので exported="false"。
+        -->
+        <receiver
+            android:name=".widget.WidgetUpdateReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+            </intent-filter>
+        </receiver>
+
     </application>
 
 </manifest>
