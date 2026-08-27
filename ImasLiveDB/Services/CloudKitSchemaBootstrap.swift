@@ -17,7 +17,7 @@ enum CloudKitSchemaBootstrap {
             ("CastMember", ["name": "x", "nameKana": "x", "nameRomaji": "x"]),
             ("Event", ["brandId": "x", "name": "x", "eventType": "x", "isStreaming": 0, "isSolo": 1, "kind": "live", "ticketOpenDate": "x", "ticketDeadline": "x", "ticketLotteryDate": "x", "ticketUrl": "x"]),
             ("Show", ["eventId": "x", "name": "x", "date": "x", "venue": "x", "venueId": "x", "hall": "x", "streamPlatform": "x", "venueCity": "x", "startTime": "x", "sortOrder": 0, "performerType": "x"]),
-            ("Song", ["title": "x", "titleKana": "x", "brandId": "x", "songType": "x", "releaseDate": "x", "durationSec": 0, "composer": "x", "lyricist": "x", "arranger": "x", "cdSeries": "x", "cdTitle": "x", "artworkUrl": "x", "previewUrl": "x", "appleMusicId": "x", "appleMusicAlbumId": "x", "isrc": "x", "lyricsUrl": "x", "parentSongId": "x", "singerLabel": "x", "unitName": "x", "unitId": "x"]),
+            ("Song", ["title": "x", "titleKana": "x", "brandId": "x", "songType": "x", "releaseDate": "x", "durationSec": 0, "composer": "x", "lyricist": "x", "arranger": "x", "cdSeries": "x", "cdTitle": "x", "artworkUrl": "x", "previewUrl": "x", "appleMusicId": "x", "appleMusicAlbumId": "x", "isrc": "x", "lyricsUrl": "x", "parentSongId": "x", "singerLabel": "x", "unitName": "x", "unitId": "x", "unitVersionId": "x"]),
             ("ImasUnit", ["brandId": "x", "name": "x", "isPermanent": 0, "nameAlt": "x"]),
             ("SetlistItem", ["showId": "x", "songId": "x", "position": 0, "section": "x", "notes": "x", "unitName": "x"]),
                         ("SetlistPerformer", ["setlistItemId": "x", "idolId": "x"]),
@@ -31,6 +31,8 @@ enum CloudKitSchemaBootstrap {
             ("SongVideo", ["songId": "x", "youtubeUrl": "x", "videoTitle": "x", "note": "x", "authorDisplayName": "x", "createdAt": Date()]),
             ("Venue", ["name": "x", "nameKana": "x", "prefecture": "x", "city": "x", "aliases": "x", "capacity": 0, "sortOrder": 0]),
             ("VenueName", ["venueId": "x", "name": "x", "validFrom": "x", "validTo": "x"]),
+            ("UnitVersion", ["unitId": "x", "code": "x", "name": "x", "catchphrase": "x",
+                             "logoUrl": "x", "validFrom": "x", "validTo": "x", "sortOrder": 0]),
             ("VenueHall", ["venueId": "x", "name": "x", "capacity": 0]),
         ]
 
@@ -69,7 +71,7 @@ enum CloudKitSchemaBootstrap {
             "CastMember": ["name": "x", "nameKana": "x", "nameRomaji": "x"],
             "Event": ["brandId": "x", "name": "x", "eventType": "x", "isStreaming": 0, "isSolo": 1, "kind": "live", "ticketOpenDate": "x", "ticketDeadline": "x", "ticketLotteryDate": "x", "ticketUrl": "x"],
             "Show": ["eventId": "x", "name": "x", "date": "x", "venue": "x", "venueCity": "x", "startTime": "x", "sortOrder": 0, "performerType": "x"],
-            "Song": ["title": "x", "titleKana": "x", "brandId": "x", "songType": "x", "releaseDate": "x", "durationSec": 0, "composer": "x", "lyricist": "x", "arranger": "x", "cdSeries": "x", "cdTitle": "x", "artworkUrl": "x", "previewUrl": "x", "appleMusicId": "x", "appleMusicAlbumId": "x", "isrc": "x", "lyricsUrl": "x", "parentSongId": "x", "singerLabel": "x", "unitName": "x", "unitId": "x"],
+            "Song": ["title": "x", "titleKana": "x", "brandId": "x", "songType": "x", "releaseDate": "x", "durationSec": 0, "composer": "x", "lyricist": "x", "arranger": "x", "cdSeries": "x", "cdTitle": "x", "artworkUrl": "x", "previewUrl": "x", "appleMusicId": "x", "appleMusicAlbumId": "x", "isrc": "x", "lyricsUrl": "x", "parentSongId": "x", "singerLabel": "x", "unitName": "x", "unitId": "x", "unitVersionId": "x"],
             "ImasUnit": ["brandId": "x", "name": "x", "isPermanent": 0, "nameAlt": "x"],
             "SetlistItem": ["showId": "x", "songId": "x", "position": 0, "section": "x", "notes": "x", "unitName": "x"],
             "SetlistPerformer": ["setlistItemId": "x", "idolId": "x"],

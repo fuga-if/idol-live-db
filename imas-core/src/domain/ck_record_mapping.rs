@@ -415,6 +415,21 @@ pub struct CkVenueNameRow {
     pub valid_to: Option<String>,
 }
 
+/// unit_versions
+#[derive(uniffi::Record, Clone, Debug, PartialEq)]
+pub struct CkUnitVersionRow {
+    pub id: String,
+    pub unit_id: String,
+    /// 版の識別子 ('AXE8' 等)。判定はこれで行い、name の文字列一致には頼らない。
+    pub code: Option<String>,
+    pub name: String,
+    pub catchphrase: Option<String>,
+    pub logo_url: Option<String>,
+    pub valid_from: Option<String>,
+    pub valid_to: Option<String>,
+    pub sort_order: i64,
+}
+
 /// venue_halls
 #[derive(uniffi::Record, Clone, Debug, PartialEq)]
 pub struct CkVenueHallRow {
@@ -453,6 +468,8 @@ pub struct CkSongRow {
     pub unit_name: Option<String>,
     pub unit_id: Option<String>,
     pub series_group: Option<String>,
+    /// この曲がどのユニットの版のものか。None = 無印。
+    pub unit_version_id: Option<String>,
 }
 
 /// units
@@ -550,6 +567,7 @@ pub enum CkRow {
     Show { row: CkShowRow },
     Venue { row: CkVenueRow },
     VenueName { row: CkVenueNameRow },
+    UnitVersion { row: CkUnitVersionRow },
     VenueHall { row: CkVenueHallRow },
     Song { row: CkSongRow },
     Unit { row: CkUnitRow },
@@ -749,6 +767,27 @@ pub fn venue_name(record: &CkRecordInput) -> Option<CkVenueNameRow> {
     })
 }
 
+/// ユニットの版 (Project“ReLight”AXE8 等)。
+///
+/// ユニット自体は 1 行のまま。版で分かれるのは曲側 (`songs.unit_version_id`)。
+pub fn unit_version(record: &CkRecordInput) -> Option<CkUnitVersionRow> {
+    let f = Fields::new(record);
+    let id = f.entity_id()?;
+    let unit_id = f.required("unitId")?;
+    let name = f.required("name")?;
+    Some(CkUnitVersionRow {
+        id,
+        unit_id,
+        code: f.str("code"),
+        name,
+        catchphrase: f.str("catchphrase"),
+        logo_url: f.str("logoUrl"),
+        valid_from: f.str("validFrom"),
+        valid_to: f.str("validTo"),
+        sort_order: f.int_value("sortOrder"),
+    })
+}
+
 pub fn venue_hall(record: &CkRecordInput) -> Option<CkVenueHallRow> {
     let f = Fields::new(record);
     let id = f.entity_id()?;
@@ -785,6 +824,7 @@ pub fn song(record: &CkRecordInput) -> Option<CkSongRow> {
         unit_name: f.str("unitName"),
         unit_id: f.str("unitId"),
         series_group: f.str("seriesGroup"),
+        unit_version_id: f.str("unitVersionId"),
     })
 }
 
@@ -906,6 +946,7 @@ pub fn map_record(record_type: &str, record: &CkRecordInput, now_millis: i64) ->
         "Show" => show(record).map(|row| CkRow::Show { row }),
         "Venue" => venue(record).map(|row| CkRow::Venue { row }),
         "VenueName" => venue_name(record).map(|row| CkRow::VenueName { row }),
+        "UnitVersion" => unit_version(record).map(|row| CkRow::UnitVersion { row }),
         "VenueHall" => venue_hall(record).map(|row| CkRow::VenueHall { row }),
         "Song" => song(record).map(|row| CkRow::Song { row }),
         "ImasUnit" => unit(record).map(|row| CkRow::Unit { row }),
@@ -932,6 +973,7 @@ pub fn is_ingested_record_type(record_type: &str) -> bool {
             | "Show"
             | "Venue"
             | "VenueName"
+            | "UnitVersion"
             | "VenueHall"
             | "Song"
             | "ImasUnit"

@@ -96,6 +96,10 @@ class CloudKitSyncEngine(context: Context, private val db: AppDatabase) {
             { d, rows, _ -> d.upsertVenues(SyncMappers.venues(rows)) },
             { d, keys -> d.deleteVenues(singlePk(keys)) },
             { d -> d.venueIds() }),
+        "UnitVersion" to StepIo(
+            { d, rows, _ -> d.upsertUnitVersions(SyncMappers.unitVersions(rows)) },
+            { d, keys -> d.deleteUnitVersions(singlePk(keys)) },
+            { d -> d.unitVersionIds() }),
         "VenueName" to StepIo(
             { d, rows, _ -> d.upsertVenueNames(SyncMappers.venueNames(rows)) },
             { d, keys -> d.deleteVenueNames(singlePk(keys)) },

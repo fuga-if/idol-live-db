@@ -123,6 +123,19 @@ enum CKRecordMapper {
         )
     }
 
+    /// ユニットの版 (Project“ReLight”AXE8 等)。
+    ///
+    /// ユニット自体は 1 行のまま。版で分かれるのは曲側 (`Song.unitVersionId`)。
+    static func unitVersion(from record: CKRecord) -> UnitVersion? {
+        guard case .unitVersion(let row)? = mapped(record, as: "UnitVersion") else { return nil }
+        return UnitVersion(
+            id: row.id, unitId: row.unitId, code: row.code, name: row.name,
+            catchphrase: row.catchphrase, logoUrl: row.logoUrl,
+            validFrom: row.validFrom, validTo: row.validTo,
+            sortOrder: Int(row.sortOrder)
+        )
+    }
+
     /// 会場名と有効期間。表示を「公演日時点の名前」にするために使う。
     static func venueName(from record: CKRecord) -> VenueName? {
         guard case .venueName(let row)? = mapped(record, as: "VenueName") else { return nil }

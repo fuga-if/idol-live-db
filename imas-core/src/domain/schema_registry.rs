@@ -75,6 +75,10 @@ pub fn expected_tables() -> Vec<TableSpec> {
         spec("setlist_performers", Master, &["setlist_item_id", "idol_id"],
              "その披露の歌唱メンバー (複合 PK)"),
         spec("show_cast", Master, &["show_id", "idol_id"], "公演の出演者 (複合 PK)"),
+        spec("unit_versions", Master, &["id", "unit_id", "name"],
+             "ユニットのバージョン (Project“ReLight”AXE8 等)。\n\
+              ユニット自体は 1 行のまま。版で分けるのは曲側 (songs.unit_version_id)。\n\
+              版の判定は code で行う (name の文字列一致に頼らない)"),
         spec("venues", Master, &["id", "name"], "会場"),
         spec("venue_names", Master, &["venue_id", "name"], "会場の別名・改称"),
         spec("venue_halls", Master, &["venue_id", "name"], "会場内のホール"),

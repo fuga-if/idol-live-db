@@ -1,0 +1,18 @@
+{
+ "title": "ユニットのバージョンを追加する",
+ "_help": "リブート企画のように、ロゴ・キャッチコピー・曲調が変わってもユニット自体は同一という場合に使う。units は 1 行のまま。どの版の曲かは data/songs 側の unit_version_id が指す (未指定 = 無印)。版の判定は code で行うので、判定に使いたい版には必ず code を入れること。id は {unit_id}__{識別子}。",
+ "unit_versions": [
+  {
+   "id": "unit_ユニット名__axe8",
+   "unit_id": "unit_ユニット名",
+   "code": "AXE8",
+   "name": "版の表示名",
+   "catchphrase": "その版のキャッチコピー",
+   "logo_url": null,
+   "valid_from": "2026-08-25",
+   "valid_to": null,
+   "sort_order": 1,
+   "note": "自由記述。出典や推定の根拠を残す (DB には入らない)"
+  }
+ ]
+}

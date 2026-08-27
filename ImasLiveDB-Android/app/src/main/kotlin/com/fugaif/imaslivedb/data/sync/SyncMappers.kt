@@ -16,6 +16,7 @@ import com.fugaif.imaslivedb.data.model.SongVideo
 import com.fugaif.imaslivedb.data.model.UnitMember
 import com.fugaif.imaslivedb.data.model.Venue
 import com.fugaif.imaslivedb.data.model.VenueHall
+import com.fugaif.imaslivedb.data.model.UnitVersion
 import com.fugaif.imaslivedb.data.model.VenueName
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -227,6 +228,26 @@ object SyncMappers {
      * [com.fugaif.imaslivedb.data.model.VenueName.isValidOn] は文字列比較で期間を判定するので、
      * validTo="" だと `date >= ""` が常に真になり、その名前が一度も有効にならなくなる。
      */
+    /**
+     * ユニットの版 (Project“ReLight”AXE8 等)。
+     *
+     * ユニット自体は 1 行のまま。版で分かれるのは曲側 (songs.unit_version_id)。
+     */
+    fun unitVersions(rows: List<CkRow>): List<UnitVersion> =
+        rows.filterIsInstance<CkRow.UnitVersion>().map { (row) ->
+            UnitVersion(
+                id = row.id,
+                unitId = row.unitId,
+                code = row.code.emptyToNull(),
+                name = row.name,
+                catchphrase = row.catchphrase.emptyToNull(),
+                logoUrl = row.logoUrl.emptyToNull(),
+                validFrom = row.validFrom.emptyToNull(),
+                validTo = row.validTo.emptyToNull(),
+                sortOrder = row.sortOrder.toInt()
+            )
+        }
+
     fun venueNames(rows: List<CkRow>): List<VenueName> =
         rows.filterIsInstance<CkRow.VenueName>().map { (row) ->
             VenueName(row.id, row.venueId, row.name, row.validFrom.emptyToNull(), row.validTo.emptyToNull())

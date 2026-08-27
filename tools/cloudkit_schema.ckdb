@@ -284,6 +284,7 @@ DEFINE SCHEMA
         titleKana         STRING QUERYABLE SEARCHABLE SORTABLE,
         unitId            STRING QUERYABLE SEARCHABLE SORTABLE,
         unitName          STRING QUERYABLE SEARCHABLE SORTABLE,
+        unitVersionId     STRING QUERYABLE SEARCHABLE SORTABLE,
         GRANT WRITE TO "_creator",
         GRANT CREATE TO "_icloud",
         GRANT READ TO "_world"
@@ -407,6 +408,28 @@ DEFINE SCHEMA
         modifiedAt      TIMESTAMP QUERYABLE SORTABLE,
         name            STRING QUERYABLE SEARCHABLE SORTABLE,
         venueId         STRING QUERYABLE SEARCHABLE SORTABLE,
+        GRANT WRITE TO "_creator",
+        GRANT CREATE TO "_icloud",
+        GRANT READ TO "_world"
+    );
+
+    RECORD TYPE UnitVersion (
+        "___createTime" TIMESTAMP,
+        "___createdBy"  REFERENCE,
+        "___etag"       STRING,
+        "___modTime"    TIMESTAMP,
+        "___modifiedBy" REFERENCE,
+        "___recordID"   REFERENCE,
+        catchphrase     STRING QUERYABLE SEARCHABLE SORTABLE,
+        code            STRING QUERYABLE SEARCHABLE SORTABLE,
+        deletedAt       TIMESTAMP QUERYABLE SORTABLE,
+        logoUrl         STRING QUERYABLE SEARCHABLE SORTABLE,
+        modifiedAt      TIMESTAMP QUERYABLE SORTABLE,
+        name            STRING QUERYABLE SEARCHABLE SORTABLE,
+        sortOrder       INT64 QUERYABLE SEARCHABLE SORTABLE,
+        unitId          STRING QUERYABLE SEARCHABLE SORTABLE,
+        validFrom       STRING QUERYABLE SEARCHABLE SORTABLE,
+        validTo         STRING QUERYABLE SEARCHABLE SORTABLE,
         GRANT WRITE TO "_creator",
         GRANT CREATE TO "_icloud",
         GRANT READ TO "_world"

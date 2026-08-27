@@ -31,6 +31,7 @@ master.sqlite → CloudKit に一括反映します（直接 CloudKit に書く�
 | `data/events/` | ライブ/イベント + 公演 | `events[]`（`id` `brand_id` `name` `kind` + `shows[]`） |
 | `data/idols/` | アイドル | `id` `name` `brand_id` `brands[]` |
 | `data/units/` | ユニット | `id` `name` `brand_id` `members[]` |
+| `data/unit_versions/` | ユニットのバージョン | `id` `unit_id` `name` (+ `code` `catchphrase` `valid_from` `valid_to`) |
 
 ## 修正（data/fixes/）
 

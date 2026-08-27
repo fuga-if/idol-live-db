@@ -120699,6 +120699,16 @@ INSERT INTO venues VALUES('venue_miraikenstudio','MIRAIKEN studio',NULL,'東京'
 INSERT INTO venues VALUES('venue_駒場公園テンペストステージ','駒場公園 テンペストステージ',NULL,'長野',NULL,NULL,NULL,231);
 INSERT INTO venues VALUES('venue_駒場公園ファントムステージ','駒場公園 ファントムステージ',NULL,'長野',NULL,NULL,598,232);
 INSERT INTO venues VALUES('venue_movix日吉津','ＭＯＶＩＸ日吉津',NULL,'鳥取',NULL,NULL,NULL,233);
+CREATE TABLE unit_versions (
+            id TEXT PRIMARY KEY NOT NULL, unit_id TEXT NOT NULL, code TEXT,
+            name TEXT NOT NULL, catchphrase TEXT, logo_url TEXT,
+            valid_from TEXT, valid_to TEXT,
+            sort_order INTEGER NOT NULL DEFAULT 0
+        );
+-- songs への列追加は CREATE ではなく ALTER で行う。
+-- このダンプの INSERT INTO songs は列名を書かない位置指定なので、CREATE に列を足すと
+-- 既存 3,117 行が「24 columns but 23 values」で全滅する。
+ALTER TABLE songs ADD COLUMN unit_version_id TEXT;
 CREATE TABLE venue_names (
             id TEXT PRIMARY KEY NOT NULL, venue_id TEXT NOT NULL, name TEXT NOT NULL,
             valid_from TEXT, valid_to TEXT
@@ -121264,6 +121274,8 @@ CREATE INDEX idx_staff_birthday ON staff(birthday);
 CREATE INDEX idx_anniversaries_brand ON anniversaries(brand_id);
 CREATE INDEX idx_anniversaries_date ON anniversaries(date);
 CREATE INDEX idx_venue_names_venue ON venue_names(venue_id);
+CREATE INDEX idx_songs_unit_version ON songs(unit_version_id);
+CREATE INDEX idx_unit_versions_unit ON unit_versions(unit_id);
 CREATE INDEX idx_venue_halls_venue ON venue_halls(venue_id);
 CREATE INDEX idx_shows_venue_id ON shows(venue_id);
 CREATE INDEX idx_idol_voice_actors_idol ON idol_voice_actors(idol_id);

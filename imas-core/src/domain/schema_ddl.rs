@@ -196,14 +196,22 @@ mod room_parity {
         let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("../ImasLiveDB-Android/app/schemas");
         let entry = std::fs::read_dir(dir).ok()?.filter_map(Result::ok).next()?;
-        // 版番号が一番大きい JSON を採る
-        let mut files: Vec<_> = std::fs::read_dir(entry.path()).ok()?
+        // 版番号が一番大きい JSON を採る。
+        //
+        // ⚠️ ファイル名の**文字列順**で並べてはいけない。"10.json" < "9.json" になり、
+        // 版が二桁に入った瞬間に古い方を読む (実際、版 10 で Android を対応させたのに
+        // 「Room に無い」と落ち続けた)。番号として比べること。
+        let newest = std::fs::read_dir(entry.path()).ok()?
             .filter_map(Result::ok)
             .map(|e| e.path())
             .filter(|p| p.extension().is_some_and(|x| x == "json"))
-            .collect();
-        files.sort();
-        let text = std::fs::read_to_string(files.last()?).ok()?;
+            .filter_map(|p| {
+                let version: u32 = p.file_stem()?.to_str()?.parse().ok()?;
+                Some((version, p))
+            })
+            .max_by_key(|(version, _)| *version)?
+            .1;
+        let text = std::fs::read_to_string(newest).ok()?;
         // serde_json は依存に入っている
         let v: serde_json::Value = serde_json::from_str(&text).ok()?;
         let mut out = BTreeMap::new();

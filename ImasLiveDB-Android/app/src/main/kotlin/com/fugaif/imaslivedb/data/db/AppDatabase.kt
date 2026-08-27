@@ -24,6 +24,7 @@ import com.fugaif.imaslivedb.data.db.dao.UserMarkDao
 import com.fugaif.imaslivedb.data.model.Anniversary
 import com.fugaif.imaslivedb.data.model.Venue
 import com.fugaif.imaslivedb.data.model.VenueHall
+import com.fugaif.imaslivedb.data.model.UnitVersion
 import com.fugaif.imaslivedb.data.model.VenueName
 import com.fugaif.imaslivedb.data.model.Brand
 import com.fugaif.imaslivedb.data.model.Event
@@ -67,9 +68,10 @@ import com.fugaif.imaslivedb.data.model.UserMark
         PersonalTag::class,
         Venue::class,
         VenueName::class,
-        VenueHall::class
+        VenueHall::class,
+        UnitVersion::class
     ],
-    version = 9,
+    version = 10,
     // 確定スキーマを app/schemas へ JSON で吐く。共有コア (imas-core) が持つ
     // マスタ DDL と突き合わせて、片方だけスキーマを変えた事故を CI で捕まえるため。
     exportSchema = true
@@ -134,7 +136,7 @@ abstract class AppDatabase : RoomDatabase() {
             )
                 // スキーマ変更時は破壊的再構築せず Room Migration を書く (iOS の DatabaseMigrations と対)。
                 // UserMark 等のローカル唯一データを保全するため (.fallbackToDestructiveMigration は使わない)。
-                .addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
+                .addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
                 .addCallback(seedCallback)
                 .build()
         }
@@ -296,6 +298,29 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE shows ADD COLUMN hall TEXT")
                 db.execSQL("ALTER TABLE shows ADD COLUMN stream_platform TEXT")
                 db.execSQL("CREATE INDEX IF NOT EXISTS idx_shows_venue_id ON shows(venue_id)")
+            }
+        }
+
+        /**
+         * ユニットにバージョンを内包させる (iOS / コアの unit_versions と対応)。
+         *
+         * リブート企画 (Project“ReLight”AXE8) はロゴ・キャッチコピー・曲調が変わっても
+         * ユニット自体は同一。units を 2 行に割るとメンバーも過去曲も分断されるので、
+         * 会場の改名を venue_names に内包させたのと同じ形で版を内包させる。
+         * どの版の曲かは songs 側が指す (null = 無印)。
+         */
+        val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS unit_versions (" +
+                        "id TEXT NOT NULL, unit_id TEXT NOT NULL, code TEXT, " +
+                        "name TEXT NOT NULL, catchphrase TEXT, logo_url TEXT, " +
+                        "valid_from TEXT, valid_to TEXT, " +
+                        "sort_order INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(id))"
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS idx_unit_versions_unit ON unit_versions(unit_id)")
+                db.execSQL("ALTER TABLE songs ADD COLUMN unit_version_id TEXT")
+                db.execSQL("CREATE INDEX IF NOT EXISTS idx_songs_unit_version ON songs(unit_version_id)")
             }
         }
     }

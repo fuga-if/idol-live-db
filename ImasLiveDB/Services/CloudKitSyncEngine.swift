@@ -47,12 +47,6 @@ final class CloudKitSyncEngine: @unchecked Sendable {
         static let requiresFullResync = SyncState.error("全件再同期が必要です")
     }
 
-    /// CloudKitレコードタイプと同期順序の定義
-    private struct SyncStep: Sendable {
-        let recordType: String
-        let displayName: String
-    }
-
     // MARK: - Properties
 
     var state: SyncState = .idle
@@ -117,34 +111,13 @@ final class CloudKitSyncEngine: @unchecked Sendable {
         UserDefaults.standard.object(forKey: pendingFullStartKey) != nil
     }
 
-    /// 同期順序（外部キー依存関係を考慮）
-    private let syncSteps: [SyncStep] = [
-        // Phase 1: 独立テーブル
-        SyncStep(recordType: "Brand", displayName: "ブランド"),
-        // Phase 2: brandsのみ依存
-        SyncStep(recordType: "Idol", displayName: "アイドル"),
-        SyncStep(recordType: "Event", displayName: "イベント"),
-        SyncStep(recordType: "ImasUnit", displayName: "ユニット"),
-        // 会場は Show より前。Show が venue_id で参照するため。
-        SyncStep(recordType: "Venue", displayName: "会場"),
-        SyncStep(recordType: "VenueName", displayName: "会場名 (改名履歴)"),
-        SyncStep(recordType: "VenueHall", displayName: "会場ホール"),
-        // Phase 3: 上記に依存 (CastMember/IdolCast は廃止)
-        SyncStep(recordType: "IdolBrand", displayName: "アイドル×ブランド"),
-        SyncStep(recordType: "Show", displayName: "公演"),
-        SyncStep(recordType: "Song", displayName: "楽曲"),
-        SyncStep(recordType: "UnitMember", displayName: "ユニットメンバー"),
-        // Phase 4: さらに上に依存
-        SyncStep(recordType: "SongArtist", displayName: "楽曲アーティスト"),
-        SyncStep(recordType: "ShowCast", displayName: "公演キャスト"),
-        SyncStep(recordType: "SetlistItem", displayName: "セトリ"),
-        // Phase 5: setlist_itemsに依存
-        SyncStep(recordType: "SetlistPerformer", displayName: "セトリ出演者"),
-        // Phase 6: コミュニティコンテンツ（songsに依存）
-        SyncStep(recordType: "SongCall", displayName: "コーレス"),
-        SyncStep(recordType: "SongVideo", displayName: "参考動画"),
-    ]
-
+    /// 同期順序 (外部キー依存関係を考慮)。
+    ///
+    /// 並びはコア (imas-core `domain/sync_planning.rs` の `STEPS_IN_FK_ORDER`) が持つ。
+    /// ここに写しを置くと、片方だけステップを足したときに静かにずれる
+    /// (順序が崩れると、親未着の子行が FK 違反で 1 件ずつ捨てられ、次のフル同期まで
+    /// 復活しない)。空を渡すと全ステップが FK 依存順で返る。
+    private let syncSteps: [SyncStep] = syncStepsInOrder(availableRecordTypes: [])
     // MARK: - Public Methods
 
     /// フルSync — 全データをダウンロード（初回 or 強制リフレッシュ）
@@ -496,6 +469,8 @@ final class CloudKitSyncEngine: @unchecked Sendable {
             try database.upsertIdolBrands(mapped(CKRecordMapper.idolBrand))
         case "Venue":
             try database.upsertVenues(mapped(CKRecordMapper.venue))
+        case "UnitVersion":
+            try database.upsertUnitVersions(mapped(CKRecordMapper.unitVersion))
         case "VenueName":
             try database.upsertVenueNames(mapped(CKRecordMapper.venueName))
         case "VenueHall":

@@ -81,7 +81,16 @@ data class Song(
     val unitId: String?,
 
     @ColumnInfo(name = "series_group")
-    val seriesGroup: String? = null
+    val seriesGroup: String? = null,
+
+    /**
+     * この曲がどのユニットの版のものか ([UnitVersion.id])。null = 無印。
+     *
+     * ユニットは 1 行のままで、版の違いは曲側が指す。ユニット単位のフラグにすると
+     * リブート前後の曲を区別できない。判定は [UnitVersion.code] で行うこと。
+     */
+    @ColumnInfo(name = "unit_version_id")
+    val unitVersionId: String? = null
 ) {
     val isRemix: Boolean get() = parentSongId != null
 }

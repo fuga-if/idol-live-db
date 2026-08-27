@@ -66,6 +66,9 @@ TABLE_ORDER = [
     "idols",
     "events",
     "units",
+    # ユニットの版は songs より先。 songs.unit_version_id が版を指すので、
+    # 先に版を投入しないと参照先が無い状態の Song が一時的に生まれる。
+    "unit_versions",
     "songs",
     # 会場は shows より先。 shows.venue_id が会場を指すので、
     # 先に会場側を投入しないと参照先が無い状態の Show が一時的に生まれる。
@@ -99,6 +102,7 @@ RECORD_TYPE_MAP = {
     "show_cast": "ShowCast",
     "venues": "Venue",
     "venue_names": "VenueName",
+    "unit_versions": "UnitVersion",
     "venue_halls": "VenueHall",
     "meta": "MetaData",
 }

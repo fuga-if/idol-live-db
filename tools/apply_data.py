@@ -143,6 +143,17 @@ def validate(conn):
             (show_id,),
         ).fetchone()
         brand_id = brand[0] if brand else None
+        # 既にこの公演のセトリが入っているなら、投入すると position の UNIQUE で落ちる。
+        # --check が通ったのに --apply が落ちる状態を作らないため、ここで止める
+        # (実際、CloudKit へ push 済みのセトリ 6 本が data/ に残っていて --apply が全滅した)。
+        already = conn.execute(
+            "SELECT count(*) FROM setlist_items WHERE show_id = ?", (show_id,)
+        ).fetchone()[0]
+        if already:
+            problems.append(
+                f"setlists/{path.name}: この公演のセトリは既に {already} 曲入っている "
+                f"(push 済みなら data/ から消す。直すなら data/fixes/ で)")
+            continue
         for i, sg in enumerate(data.get("songs", [])):
             tag = f"setlists/{path.name}[pos {sg.get('position')}]"
             sid = resolve_song(conn, brand_id, sg.get("song_id"), sg.get("title"), new_songs)
@@ -188,6 +199,20 @@ def validate(conn):
             for k in idol:
                 if k not in icol and k not in ("brands",):
                     problems.append(f"{tag}: idols に未知の列 '{k}'")
+
+    for path, data in load("unit_versions"):
+        vcol = cols(conn, "unit_versions")
+        for i, v in enumerate(data.get("unit_versions", [])):
+            tag = f"unit_versions/{path.name}[{i}]"
+            if not v.get("id") or exists(conn, "unit_versions", v.get("id", "")):
+                problems.append(f"{tag}: unit_version id が空 or 既存")
+            if not exists(conn, "units", v.get("unit_id", "")):
+                problems.append(f"{tag}: unit_id '{v.get('unit_id')}' が存在しない")
+            if not v.get("name"):
+                problems.append(f"{tag}: name が空")
+            for k in v:
+                if k not in vcol and k != "note":
+                    problems.append(f"{tag}: unit_versions に未知の列 '{k}'")
 
     for path, data in load("units"):
         ucol = cols(conn, "units")
@@ -240,6 +265,15 @@ def insert_row(conn, table, row):
 def apply_all(conn):
     affected = set()
     scol = cols(conn, "songs")
+
+    # 版は songs より先に入れる。songs.unit_version_id の参照先になるため。
+    vcol = cols(conn, "unit_versions")
+    for path, data in load("unit_versions"):
+        for v in data["unit_versions"]:
+            v.pop("note", None)
+            insert_row(conn, "unit_versions", {k: val for k, val in v.items() if k in vcol})
+            affected.add("unit_versions")
+        print(f"  ✓ unit_versions/{path.name}: {len(data['unit_versions'])} 件")
 
     for path, data in load("songs"):
         for s in data["songs"]:

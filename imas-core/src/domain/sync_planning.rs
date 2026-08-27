@@ -209,6 +209,8 @@ const STEPS_IN_FK_ORDER: &[(&str, &str)] = &[
     // Phase 3: 上記に依存 (CastMember/IdolCast は廃止)
     ("IdolBrand", "アイドル×ブランド"),
     ("Show", "公演"),
+    // ユニットの版は Song より前。Song が unit_version_id で参照するため。
+    ("UnitVersion", "ユニットのバージョン"),
     ("Song", "楽曲"),
     ("UnitMember", "ユニットメンバー"),
     // Phase 4: さらに上に依存
@@ -459,6 +461,7 @@ pub fn table_info(record_type: &str) -> Option<SyncTableInfo> {
         "Show" => ("shows", &["id"]),
         "Venue" => ("venues", &["id"]),
         "VenueName" => ("venue_names", &["id"]),
+        "UnitVersion" => ("unit_versions", &["id"]),
         "VenueHall" => ("venue_halls", &["id"]),
         "Song" => ("songs", &["id"]),
         "SongCall" => ("song_calls", &["id"]),
@@ -945,7 +948,7 @@ mod tests {
     #[test]
     fn all_steps_keeps_parents_before_children() {
         let steps = all_steps();
-        assert_eq!(steps.len(), 17);
+        assert_eq!(steps.len(), 18);
         let index = |record_type: &str| {
             steps
                 .iter()
@@ -957,6 +960,9 @@ mod tests {
         assert!(index("Brand") < index("IdolBrand"));
         assert!(index("Venue") < index("Show"));
         assert!(index("VenueName") < index("Show"));
+        // ユニット → 版 → 曲。版が曲より後だと、曲の unit_version_id が指す先がまだ無い。
+        assert!(index("ImasUnit") < index("UnitVersion"));
+        assert!(index("UnitVersion") < index("Song"));
         assert!(index("VenueHall") < index("Show"));
         assert!(index("ImasUnit") < index("UnitMember"));
         assert!(index("Song") < index("SongArtist"));

@@ -57,6 +57,7 @@ extension AppDatabase {
     func upsertEvents(_ events: [Event]) throws { try upsertChunked(events) }
     func upsertEventsAsync(_ events: [Event]) async throws { try await upsertChunkedAsync(events) }
     func upsertVenues(_ venues: [Venue]) throws { try upsertChunked(venues) }
+    func upsertUnitVersions(_ versions: [UnitVersion]) throws { try upsertChunked(versions) }
     func upsertVenueNames(_ names: [VenueName]) throws { try upsertChunked(names) }
     func upsertVenueHalls(_ halls: [VenueHall]) throws { try upsertChunked(halls) }
     func upsertShows(_ shows: [Show]) throws { try upsertChunked(shows) }

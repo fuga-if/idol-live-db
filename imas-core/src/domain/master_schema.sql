@@ -40,7 +40,7 @@ CREATE TABLE song_units (
   unit_id TEXT NOT NULL,
   PRIMARY KEY (song_id, unit_id)
 );
-CREATE TABLE songs (id TEXT PRIMARY KEY NOT NULL, title TEXT NOT NULL, title_kana TEXT, brand_id TEXT, song_type TEXT NOT NULL, release_date TEXT, duration_sec INTEGER, composer TEXT, lyricist TEXT, arranger TEXT, cd_series TEXT, cd_title TEXT, artwork_url TEXT, preview_url TEXT, apple_music_id TEXT, apple_music_album_id TEXT, isrc TEXT, lyrics_url TEXT, parent_song_id TEXT, singer_label TEXT, unit_name TEXT, unit_id TEXT, series_group TEXT, jasrac_code TEXT);
+CREATE TABLE songs (id TEXT PRIMARY KEY NOT NULL, title TEXT NOT NULL, title_kana TEXT, brand_id TEXT, song_type TEXT NOT NULL, release_date TEXT, duration_sec INTEGER, composer TEXT, lyricist TEXT, arranger TEXT, cd_series TEXT, cd_title TEXT, artwork_url TEXT, preview_url TEXT, apple_music_id TEXT, apple_music_album_id TEXT, isrc TEXT, lyrics_url TEXT, parent_song_id TEXT, singer_label TEXT, unit_name TEXT, unit_id TEXT, series_group TEXT, jasrac_code TEXT, unit_version_id TEXT);
 CREATE TABLE staff (
     id TEXT PRIMARY KEY NOT NULL,
     brand_id TEXT NOT NULL REFERENCES brands(id),
@@ -52,6 +52,12 @@ CREATE TABLE staff (
     sort_order INTEGER NOT NULL DEFAULT 0
 );
 CREATE TABLE unit_members (unit_id TEXT NOT NULL, idol_id TEXT NOT NULL, PRIMARY KEY (unit_id, idol_id));
+CREATE TABLE unit_versions (
+            id TEXT PRIMARY KEY NOT NULL, unit_id TEXT NOT NULL, code TEXT,
+            name TEXT NOT NULL, catchphrase TEXT, logo_url TEXT,
+            valid_from TEXT, valid_to TEXT,
+            sort_order INTEGER NOT NULL DEFAULT 0
+        );
 CREATE TABLE units (id TEXT PRIMARY KEY NOT NULL, brand_id TEXT NOT NULL, name TEXT NOT NULL, is_permanent INTEGER NOT NULL DEFAULT 1, name_alt TEXT);
 CREATE TABLE venue_halls (
             id TEXT PRIMARY KEY NOT NULL, venue_id TEXT NOT NULL, name TEXT NOT NULL,
@@ -84,7 +90,9 @@ CREATE INDEX idx_song_units_unit ON song_units(unit_id);
 CREATE INDEX idx_songs_brand ON songs(brand_id);
 CREATE INDEX idx_songs_composer ON songs(composer);
 CREATE INDEX idx_songs_series_group ON songs(series_group);
+CREATE INDEX idx_songs_unit_version ON songs(unit_version_id);
 CREATE INDEX idx_staff_birthday ON staff(birthday);
 CREATE INDEX idx_staff_brand ON staff(brand_id);
+CREATE INDEX idx_unit_versions_unit ON unit_versions(unit_id);
 CREATE INDEX idx_venue_halls_venue ON venue_halls(venue_id);
 CREATE INDEX idx_venue_names_venue ON venue_names(venue_id);
