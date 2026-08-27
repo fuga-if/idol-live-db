@@ -67,6 +67,34 @@ class IdolRepository(
         return db.idolDao().fetchIdolsByBirthdayPrefix("--${month.toString().padStart(2, '0')}-%")
     }
 
+    // ---- 絞り込み一覧 (FilteredIdols) の母集団 ----
+    //
+    // 母集団と並びはコア (idolsByConstellation / idolsByBirthPlace / idolsByBloodType) が正。
+    // [fetchIdolsByBirthMonth] と同じく is_external を落とさない (プロフィールの属性から辿る
+    // 一覧なので、一覧画面の母集団ではなく「同じ属性の人を全員」が期待値)。
+    // ブランド絞り込みだけは一覧画面と同じ母集団が正しいので [fetchIdolsForList] を使う。
+
+    /** 星座で絞ったアイドル。 */
+    suspend fun fetchIdolsByConstellation(constellation: String): List<Idol> {
+        snapshots?.query { store -> store.idolsByConstellation(constellation).map { it.id } }
+            ?.let { return hydrateIdols(it) }
+        return db.idolDao().fetchIdolsByConstellation(constellation)
+    }
+
+    /** 出身地で絞ったアイドル。 */
+    suspend fun fetchIdolsByBirthPlace(birthPlace: String): List<Idol> {
+        snapshots?.query { store -> store.idolsByBirthPlace(birthPlace).map { it.id } }
+            ?.let { return hydrateIdols(it) }
+        return db.idolDao().fetchIdolsByBirthPlace(birthPlace)
+    }
+
+    /** 血液型で絞ったアイドル。 */
+    suspend fun fetchIdolsByBloodType(bloodType: String): List<Idol> {
+        snapshots?.query { store -> store.idolsByBloodType(bloodType).map { it.id } }
+            ?.let { return hydrateIdols(it) }
+        return db.idolDao().fetchIdolsByBloodType(bloodType)
+    }
+
     // アイドル実体の単発/一括取得はスナップショットの hydration 先そのものなので Room 直のまま。
     suspend fun fetchIdol(id: String): Idol? {
         return db.idolDao().fetchIdol(id)
@@ -83,6 +111,24 @@ class IdolRepository(
         snapshots?.query { store -> store.idolShows(idolId).map { it.toRow() } }
             ?.let { return it }
         return db.idolDao().fetchIdolShows(idolId)
+    }
+
+    /**
+     * このアイドルが「その曲」を披露した公演だけ (新しい順)。
+     *
+     * [fetchIdolShows] (出演した全公演) の部分集合ではない — あちらは show_cast も母集団に
+     * 入れるが、こちらは歌唱記録 (setlist_performers) がある公演に限る。
+     */
+    suspend fun fetchIdolSongHistory(idolId: String, songId: String): List<CastShowRow> {
+        snapshots?.query { store ->
+            store.idolSongHistoryRecords(idolId, songId).map {
+                CastShowRow(
+                    showId = it.showId, eventId = it.eventId, eventName = it.eventName,
+                    showName = it.showName, date = it.date, venue = it.venue, castRole = it.castRole
+                )
+            }
+        }?.let { return it }
+        return db.idolDao().fetchIdolSongHistory(idolId, songId)
     }
 
     /** 出演公演数ランキング (idol 単位)。 */

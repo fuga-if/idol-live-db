@@ -11,16 +11,20 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
-import androidx.compose.material.icons.filled.VideocamOff
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
@@ -45,13 +49,13 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fugaif.imaslivedb.data.model.EventWithDateRange
 import com.fugaif.imaslivedb.data.model.UserMark
-import com.fugaif.imaslivedb.ui.components.BrandFilterChips
-import com.fugaif.imaslivedb.ui.components.BrandFilterItem
 import com.fugaif.imaslivedb.ui.components.ImasEmptyState
 import com.fugaif.imaslivedb.ui.components.ImasLeadBar
 import com.fugaif.imaslivedb.ui.components.ImasListSkeleton
+import com.fugaif.imaslivedb.ui.components.ImasRemovableChip
 import com.fugaif.imaslivedb.ui.components.ImasSegmented
 import com.fugaif.imaslivedb.ui.components.MarkToggleAction
+import com.fugaif.imaslivedb.ui.components.NameFilterField
 import com.fugaif.imaslivedb.ui.components.SkeletonThumb
 import com.fugaif.imaslivedb.ui.theme.DS
 
@@ -66,6 +70,7 @@ fun EventListScreen(
     val uiState by viewModel.uiState.collectAsState()
 
     var showVenuePicker by remember { mutableStateOf(false) }
+    var showFilterSheet by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) { viewModel.load(context) }
 
@@ -78,6 +83,24 @@ fun EventListScreen(
         )
     }
 
+    if (showFilterSheet) {
+        EventFilterSheet(
+            brands = uiState.brands,
+            currentBrandIds = uiState.selectedBrandIds,
+            currentExcludedKinds = uiState.excludedKinds,
+            currentAttendanceFilter = uiState.attendanceFilter,
+            currentRequireFavorite = uiState.requireFavorite,
+            currentRequireNote = uiState.requireNote,
+            currentShowEmptyEvents = uiState.showEmptyEvents,
+            currentHideStreaming = uiState.hideStreaming,
+            onDismiss = { showFilterSheet = false },
+            onApply = { brandIds, kinds, attendance, favorite, note, showEmpty, hideStreaming ->
+                viewModel.applyFilterSheet(brandIds, kinds, attendance, favorite, note, showEmpty, hideStreaming)
+                showFilterSheet = false
+            }
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -85,6 +108,16 @@ fun EventListScreen(
                 actions = {
                     IconButton(onClick = onNavigateToSearch) {
                         Icon(Icons.Filled.Search, contentDescription = "検索")
+                    }
+                    BadgedBox(
+                        badge = {
+                            if (uiState.activeFilterCount > 0) Badge { Text("${uiState.activeFilterCount}") }
+                        },
+                        modifier = Modifier.padding(end = 8.dp)
+                    ) {
+                        IconButton(onClick = { showFilterSheet = true }) {
+                            Icon(Icons.Filled.FilterList, contentDescription = "フィルター")
+                        }
                     }
                 }
             )
@@ -98,34 +131,27 @@ fun EventListScreen(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp)
             )
 
-            // Brand filter chips
-            val brandItems = uiState.brands.map { BrandFilterItem(it.id, it.shortName) }
-            BrandFilterChips(
-                brands = brandItems,
-                selectedBrandId = uiState.selectedBrandId,
-                onBrandSelected = { viewModel.selectBrand(it) }
+            // 一覧そのものを絞る欄。虫眼鏡のシート (横断検索) だと結果がそこで完結してしまい、
+            // ブランド絞り込みや期間フィルタと合わせられない。
+            NameFilterField(
+                prompt = "ライブ名で絞り込み",
+                value = uiState.searchText,
+                onValueChange = { viewModel.setSearchText(it) }
             )
 
-            // "配信を除く" toggle + count
+            ActiveFilterChipRow(
+                uiState = uiState,
+                viewModel = viewModel,
+                onClearVenue = { viewModel.selectVenue(context, null) }
+            )
+
+            // 会場チップ + 件数。会場だけは専用ピッカーを開くのでフィルタシートに畳まず一覧に残す。
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                FilterChip(
-                    selected = uiState.hideStreaming,
-                    onClick = { viewModel.toggleHideStreaming() },
-                    label = { Text("配信を除く", style = MaterialTheme.typography.labelMedium) },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Filled.VideocamOff,
-                            contentDescription = null
-                        )
-                    }
-                )
-                Spacer(modifier = Modifier.padding(horizontal = 4.dp))
-                // 会場で絞り込む。選択中は会場名を出し、もう一度押すとピッカーを開き直せる。
                 FilterChip(
                     selected = uiState.venue != null,
                     onClick = { showVenuePicker = true },
@@ -191,6 +217,82 @@ fun EventListScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+/**
+ * 適用中フィルタの removable チップ列 (iOS EventListView.activeFilterChips 相当)。
+ * ブランド / 除外種別 / 参加状態 / お気に入り / メモ / 空イベント / 会場 / 検索語 を
+ * 横スクロールで一覧し、× で個別解除する。
+ */
+@Composable
+private fun ActiveFilterChipRow(
+    uiState: EventListUiState,
+    viewModel: EventListViewModel,
+    onClearVenue: () -> Unit
+) {
+    val hasChips = uiState.selectedBrandIds.isNotEmpty() ||
+        uiState.excludedKinds.isNotEmpty() ||
+        uiState.attendanceFilter != "all" ||
+        uiState.requireFavorite ||
+        uiState.requireNote ||
+        uiState.showEmptyEvents ||
+        uiState.hideStreaming ||
+        uiState.venue != null ||
+        uiState.appliedSearchText.isNotEmpty()
+    if (!hasChips) return
+
+    val brandNames = remember(uiState.brands) { uiState.brands.associate { it.id to it.shortName } }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        if (uiState.appliedSearchText.isNotEmpty()) {
+            ImasRemovableChip(
+                text = "「${uiState.appliedSearchText}」",
+                onRemove = viewModel::clearSearchText
+            )
+        }
+        // 並びは選択順でなくソート済みで固定する。押すたびにチップが入れ替わると押し損ねる。
+        uiState.selectedBrandIds.sorted().forEach { id ->
+            ImasRemovableChip(
+                text = brandNames[id] ?: id,
+                onRemove = { viewModel.toggleBrand(id) }
+            )
+        }
+        uiState.excludedKinds.sorted().forEach { kind ->
+            ImasRemovableChip(
+                text = "除外: ${eventKindLabel(kind)}",
+                onRemove = { viewModel.removeExcludedKind(kind) }
+            )
+        }
+        when (uiState.attendanceFilter) {
+            "attended" -> ImasRemovableChip(text = "参加済み", onRemove = viewModel::clearAttendanceFilter)
+            "not_attended" -> ImasRemovableChip(text = "未参加", onRemove = viewModel::clearAttendanceFilter)
+            else -> {}
+        }
+        if (uiState.requireFavorite) {
+            ImasRemovableChip(text = "お気に入り", onRemove = viewModel::clearFavoriteFilter)
+        }
+        if (uiState.requireNote) {
+            ImasRemovableChip(text = "メモあり", onRemove = viewModel::clearNoteFilter)
+        }
+        if (uiState.showEmptyEvents) {
+            ImasRemovableChip(text = "空イベントも表示", onRemove = viewModel::clearShowEmptyEvents)
+        }
+        if (uiState.hideStreaming) {
+            ImasRemovableChip(text = "配信を除く", onRemove = viewModel::toggleHideStreaming)
+        }
+        uiState.venue?.let { venueId ->
+            ImasRemovableChip(
+                text = uiState.venueDirectory.venue(venueId)?.name ?: venueId,
+                onRemove = onClearVenue
+            )
         }
     }
 }

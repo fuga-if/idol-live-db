@@ -343,12 +343,16 @@ data class SongWithArtists(
 // MARK: - Song Filter / Sort
 
 data class SongSearchFilter(
-    val brandId: String? = null,
+    // 空 = 全ブランド。複数選択は OR (コア/SQL とも IN 句) で、iOS SongSearchFilter.brandIds と同義。
+    // 単一選択だった頃の呼び出し口は setOfNotNull(brandId) で移せる。
+    val brandIds: Set<String> = emptySet(),
     val title: String? = null,
     val idolName: String? = null,
     val idolIds: List<String>? = null,
     val songwriter: String? = null,
     val cdSeries: String? = null,
+    // 上位シリーズ (series_group: LTF / BRILLI@NT WING 等) の完全一致。cd_series の部分一致とは別軸。
+    val seriesGroup: String? = null,
     val liveName: String? = null,
     val songType: String? = null,
     val includeRemixes: Boolean = false,
@@ -359,22 +363,26 @@ data class SongSearchFilter(
     val includeOtherBrand: Boolean = true
 ) {
     val isEmpty: Boolean
-        get() = brandId == null &&
+        get() = brandIds.isEmpty() &&
                 (title ?: "").isEmpty() &&
                 (idolName ?: "").isEmpty() &&
                 (idolIds ?: emptyList()).isEmpty() &&
                 (songwriter ?: "").isEmpty() &&
                 (cdSeries ?: "").isEmpty() &&
+                (seriesGroup ?: "").isEmpty() &&
                 (liveName ?: "").isEmpty() &&
                 songType == null
 
     val activeFilterCount: Int
         get() {
             var count = 0
-            if (brandId != null) count++
+            // ブランドは何個選ばれていても「ブランドで絞っている」1 条件として数える
+            // (バッジの数字は条件の本数であって選択肢の数ではない)。
+            if (brandIds.isNotEmpty()) count++
             if (!(idolName ?: "").isEmpty() || !(idolIds ?: emptyList()).isEmpty()) count++
             if (!(songwriter ?: "").isEmpty()) count++
             if (!(cdSeries ?: "").isEmpty()) count++
+            if (!(seriesGroup ?: "").isEmpty()) count++
             if (!(liveName ?: "").isEmpty()) count++
             if (songType != null) count++
             return count
@@ -398,19 +406,70 @@ enum class SongCollectFilter {
 }
 
 /**
- * 楽曲一覧の「マイマーク」軸での絞り込み。担当/お気に入りどれか/両方に該当する曲のみ表示する。
- * iOS の SongMyMarkFilter 相当 (メモは Android にメモ編集 UI が無いため対象外)。
+ * 楽曲一覧の「マイマーク」軸での絞り込み。ONにした条件すべてに該当する曲 (AND) のみ表示する。
+ * iOS の SongMyMarkFilter 相当。
+ *
+ * メモ絞り込みは Android にメモ**編集**の導線が無いままだが、user_marks の memo 行自体は
+ * iOS からの引き継ぎ (バックアップ復元) で入ってくるので、読む側だけ先に配線してある。
  */
 data class SongMyMarkFilter(
     val requireMyPick: Boolean = false,
-    val requireFavorite: Boolean = false
+    val requireFavorite: Boolean = false,
+    val requireNote: Boolean = false
 ) {
-    val isActive: Boolean get() = requireMyPick || requireFavorite
+    val isActive: Boolean get() = requireMyPick || requireFavorite || requireNote
     val activeCount: Int
         get() {
             var c = 0
             if (requireMyPick) c++
             if (requireFavorite) c++
+            if (requireNote) c++
             return c
+        }
+}
+
+// MARK: - Album / Series Summary
+
+/**
+ * CD シリーズ (cd_series) 単位の集計 1 件。曲一覧の「アルバム」表示のカード 1 枚ぶん。
+ * iOS `AlbumSummary` と同じ形 (集計本体はコアの albumSummaries)。
+ */
+data class AlbumSummary(
+    val cdSeries: String,
+    val artworkUrl: String?,
+    val songCount: Int,
+    val earliestDate: String?,
+    val latestDate: String?,
+    /** 含まれる曲のブランド id (重複なし)。1 枚に複数ブランドが混ざることがある。 */
+    val brandIds: List<String>
+) {
+    /** カードの副題に出す発売年。年跨ぎは "2019-2021"。 */
+    val displayYear: String?
+        get() {
+            val from = earliestDate?.take(4)?.takeIf { it.length == 4 } ?: return null
+            val to = latestDate?.take(4)?.takeIf { it.length == 4 }
+            return if (to != null && to != from) "$from-$to" else from
+        }
+}
+
+/**
+ * 上位シリーズ (series_group) 単位の集計 1 件。曲一覧の「シリーズ」表示のカード 1 枚ぶん。
+ * iOS `SeriesSummary` と同じ形 (集計本体はコアの seriesSummaries)。
+ */
+data class SeriesSummary(
+    val name: String,
+    val songCount: Int,
+    /** グループ内の cd_series 異なり数 (= 枚数)。 */
+    val cdCount: Int,
+    val earliestDate: String?,
+    val latestDate: String?,
+    val artworkUrl: String?,
+    val brandIds: List<String>
+) {
+    val yearRange: String?
+        get() {
+            val from = earliestDate?.take(4)?.takeIf { it.length == 4 } ?: return null
+            val to = latestDate?.take(4)?.takeIf { it.length == 4 }
+            return if (to != null && to != from) "$from-$to" else from
         }
 }

@@ -30,6 +30,43 @@ interface EventDao {
     """)
     suspend fun fetchEventsWithFirstDate(): List<EventWithDateRangeRow>
 
+    // ---- 絞り込み一覧 (FilteredEvents) のフォールバック経路 ----
+    //
+    // どちらも kind を live/festival に絞る。「ライブの一覧」から辿る導線なので、ラジオや
+    // 発売記念イベントは母集団に入れない (コアの eventsWithFirstDate 既定・iOS と同一条件)。
+    // 公演が 1 本も無いイベントも残す (LEFT JOIN のまま HAVING で落とさない)。
+
+    /** ブランドで絞ったライブ (最初の公演日の降順)。 */
+    @Query("""
+        SELECT e.id, e.brand_id, e.name, e.event_type, e.is_streaming, e.joint_brand_ids,
+               MIN(s.date) AS first_date, MAX(s.date) AS last_date
+        FROM events e
+        LEFT JOIN shows s ON s.event_id = e.id
+        WHERE e.kind IN ('live', 'festival') AND e.brand_id = :brandId
+        GROUP BY e.id
+        ORDER BY COALESCE(MIN(s.date), '') DESC
+    """)
+    suspend fun fetchLiveEventsWithDateByBrand(brandId: String): List<EventWithDateRangeRow>
+
+    /**
+     * 開催年 ("YYYY") で絞ったライブ。
+     *
+     * last_date を NULL 固定にしているのは意図的 — コアの年フィルタも last_date を返さない
+     * (SQL 時代の年クエリが SELECT していなかった) ので、行の日付表示を経路によって
+     * 変えないため。
+     */
+    @Query("""
+        SELECT e.id, e.brand_id, e.name, e.event_type, e.is_streaming, e.joint_brand_ids,
+               MIN(s.date) AS first_date, NULL AS last_date
+        FROM events e
+        LEFT JOIN shows s ON s.event_id = e.id
+        WHERE e.kind IN ('live', 'festival')
+        GROUP BY e.id
+        HAVING strftime('%Y', MIN(s.date)) = :year
+        ORDER BY COALESCE(MIN(s.date), '') DESC
+    """)
+    suspend fun fetchLiveEventsWithDateByYear(year: String): List<EventWithDateRangeRow>
+
     @Query("""
         WITH event_shows AS (SELECT id FROM shows WHERE event_id = :eventId)
         SELECT

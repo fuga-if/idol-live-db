@@ -5,6 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.fugaif.imaslivedb.data.community.CommunityApi
 import com.fugaif.imaslivedb.data.core.FuzzySearch
+import com.fugaif.imaslivedb.data.model.AlbumSummary
+import com.fugaif.imaslivedb.data.model.SeriesSummary
 import com.fugaif.imaslivedb.data.model.SongCollectFilter
 import com.fugaif.imaslivedb.data.model.SongMyMarkFilter
 import com.fugaif.imaslivedb.data.model.SongSearchFilter
@@ -23,10 +25,45 @@ import uniffi.imas_core.SongListFilterCriteria
 import uniffi.imas_core.SongListFilterEntry
 import uniffi.imas_core.filterSongList
 
+/** 曲一覧の表示形式。iOS `SongListMode` の移植。 */
+enum class SongListMode {
+    SONGS, ALBUMS, SERIES;
+
+    /** 名前絞り込みが実際に絞る対象。検索欄の頭のチップに出す。 */
+    val nameFilterLabel: String
+        get() = when (this) {
+            SONGS -> "曲名"
+            ALBUMS -> "アルバム名"
+            SERIES -> "シリーズ名"
+        }
+}
+
+/**
+ * 曲一覧の検索対象 (スコープ)。iOS `SongSearchMode` の移植 (歌詞は Worker API が要るので対象外)。
+ *
+ * スコープを混ぜて「すべて」で探す案は iOS と同じ理由で採らない。短い語ほど壊れるからで、
+ * 「愛」で曲名を探したいのにアイドル名にも作曲者名にも「愛」は入っている。結果は常に
+ * 1 スコープぶんにして、**他のスコープに何件あるかだけ知らせる** (scopeSuggestionBar)。
+ */
+enum class SongSearchMode {
+    TITLE, PERFORMER, CREATOR;
+
+    fun label(listMode: SongListMode): String = when (this) {
+        // 曲名スコープだけは表示形式で絞る対象が変わる (曲 / アルバム / シリーズ)。
+        TITLE -> listMode.nameFilterLabel
+        PERFORMER -> "アイドル"
+        CREATOR -> "作詞作曲"
+    }
+}
+
 data class SongListUiState(
     val isLoading: Boolean = true,
     val songs: List<SongWithArtists> = emptyList(),
     val searchText: String = "",
+    /** 検索語を何に当てるか。曲名 / アイドル / 作詞作曲。 */
+    val searchMode: SongSearchMode = SongSearchMode.TITLE,
+    /** 表示形式 (楽曲 / アルバム / シリーズ)。 */
+    val listMode: SongListMode = SongListMode.SONGS,
     val filter: SongSearchFilter = SongSearchFilter(),
     val sortOrder: SongSortOrder = SongSortOrder.TITLE_KANA,
     // nil = sortOrder のデフォルト方向 (iOS と同じ tri-state)。
@@ -43,6 +80,18 @@ data class SongListUiState(
     val collectedCounts: Map<String, Int> = emptyMap(),
     // タグ絞り込み中(単一タグ選択時のみ)の song_id → 票数。
     val tagVoteCounts: Map<String, Int> = emptyMap(),
+    /**
+     * 直近のタグ絞り込みの取得が (オフライン等で) 失敗したか。
+     *
+     * 失敗時に空集合で絞ると「タグに合致する曲が 0 件」と区別が付かない。絞り込み自体を
+     * 適用せず、このフラグで画面に警告を出す (iOS tagFilterError と同じ扱い)。
+     */
+    val tagFilterError: Boolean = false,
+    /** 表示中でないスコープに何件当たるか。検索語が空のときは空。 */
+    val otherScopeCounts: Map<SongSearchMode, Int> = emptyMap(),
+    /** 表示形式 = アルバム / シリーズ のときのカード。 */
+    val albums: List<AlbumSummary> = emptyList(),
+    val series: List<SeriesSummary> = emptyList(),
     // 打った語には部分一致しないが、あいまい一致で拾えた曲 (「もしかして」)。
     // songs と混ぜない。混ぜると「打った通りの曲」がどれか分からなくなるので、
     // 画面では確実な一致の下に、見出しを挟んで別枠で出す。
@@ -53,7 +102,9 @@ data class SongListUiState(
     val filterBadgeCount: Int
         get() {
             var count = activeFilterCount
+            if (listMode != SongListMode.SONGS) count++
             if (collectFilter != SongCollectFilter.ALL) count++
+            if (selectedTags.isNotEmpty()) count++
             count += myMarkFilter.activeCount
             return count
         }
@@ -77,13 +128,21 @@ class SongListViewModel : ViewModel() {
         loadSongs()
     }
 
+    /** 検索欄の頭のチップからスコープ (曲名 / アイドル / 作詞作曲) を切り替える。 */
+    fun setSearchMode(mode: SongSearchMode) {
+        if (_uiState.value.searchMode == mode) return
+        _uiState.value = _uiState.value.copy(searchMode = mode)
+        loadSongs()
+    }
+
     fun applyFilter(
         filter: SongSearchFilter,
         sortOrder: SongSortOrder,
         sortAscending: Boolean?,
         showOtherBrand: Boolean,
         collectFilter: SongCollectFilter,
-        myMarkFilter: SongMyMarkFilter
+        myMarkFilter: SongMyMarkFilter,
+        listMode: SongListMode
     ) {
         _uiState.value = _uiState.value.copy(
             filter = filter,
@@ -91,13 +150,41 @@ class SongListViewModel : ViewModel() {
             sortAscending = sortAscending,
             showOtherBrand = showOtherBrand,
             collectFilter = collectFilter,
-            myMarkFilter = myMarkFilter
+            myMarkFilter = myMarkFilter,
+            listMode = listMode
+        )
+        loadSongs()
+    }
+
+    /**
+     * アルバム/シリーズのカードを押したときの「その中身を見る」導線。
+     *
+     * iOS は絞り込み済みの曲一覧をシートで開くが、Android は同じ画面で表示形式を楽曲に
+     * 戻して該当フィルタを載せる (戻る操作がタブの戻ると衝突しない、チップで解除できる)。
+     */
+    fun drillIntoAlbum(album: AlbumSummary) {
+        _uiState.value = _uiState.value.copy(
+            listMode = SongListMode.SONGS,
+            filter = _uiState.value.filter.copy(cdSeries = album.cdSeries, seriesGroup = null)
+        )
+        loadSongs()
+    }
+
+    fun drillIntoSeries(series: SeriesSummary) {
+        _uiState.value = _uiState.value.copy(
+            listMode = SongListMode.SONGS,
+            filter = _uiState.value.filter.copy(seriesGroup = series.name, cdSeries = null)
         )
         loadSongs()
     }
 
     fun applyTagFilter(tags: List<CommunityApi.CommunityTag>) {
-        _uiState.value = _uiState.value.copy(selectedTags = tags)
+        _uiState.value = _uiState.value.copy(
+            selectedTags = tags,
+            // タグはアルバム/シリーズ集計には掛からない。付けたのに効かない表示形式のまま
+            // 残さず、曲一覧に戻してから絞る (iOS applyTagFilter と同じ)。
+            listMode = if (tags.isNotEmpty()) SongListMode.SONGS else _uiState.value.listMode
+        )
         loadSongs()
     }
 
@@ -113,9 +200,24 @@ class SongListViewModel : ViewModel() {
         loadSongs()
     }
 
+    /** 除去可能フィルタチップからの個別解除 (メモあり)。 */
+    fun clearNoteFilter() {
+        _uiState.value = _uiState.value.copy(myMarkFilter = _uiState.value.myMarkFilter.copy(requireNote = false))
+        loadSongs()
+    }
+
     /** 除去可能フィルタチップからの個別解除 (回収済み/未回収)。 */
     fun clearCollectFilter() {
         _uiState.value = _uiState.value.copy(collectFilter = SongCollectFilter.ALL)
+        loadSongs()
+    }
+
+    /**
+     * 除去可能フィルタチップからの個別解除 (フィルタシートで選んだ絞り込み)。
+     * どのフィールドを外すかは呼び出し側 (画面) がチップごとに指定する。
+     */
+    fun clearFilterField(transform: (SongSearchFilter) -> SongSearchFilter) {
+        _uiState.value = _uiState.value.copy(filter = transform(_uiState.value.filter))
         loadSongs()
     }
 
@@ -132,7 +234,8 @@ class SongListViewModel : ViewModel() {
             showOtherBrand = false,
             collectFilter = SongCollectFilter.ALL,
             myMarkFilter = SongMyMarkFilter(),
-            selectedTags = emptyList()
+            selectedTags = emptyList(),
+            listMode = SongListMode.SONGS
         )
         loadSongs()
     }
@@ -149,6 +252,28 @@ class SongListViewModel : ViewModel() {
         }
     }
 
+    /**
+     * 検索語を現在のスコープの絞り込み条件へ載せる。
+     *
+     * 一箇所に閉じておくのは、表示中スコープの取得と「ほかのスコープの件数」が
+     * 必ず同じ規則で組まれるようにするため (片方だけ直すと件数と実際の結果がずれる)。
+     *
+     * ## 同じ軸をフィルタシートでも指定していたときは「打った語」が勝つ
+     * アイドルスコープはシートの「アイドル選択」(idolIds) と、作詞作曲スコープはシートの
+     * 「作詞/作曲/編曲者」と同じ軸を指す。コアも SQL も `idol_ids` を先に見る else-if なので、
+     * 両方渡すと打った語が黙って無視される — 入力欄に文字が見えているのに効かない状態になる。
+     * そこで打った語で上書きし、チップ側 (SongListScreen) は上書きされている間その条件を
+     * 出さない (二重に見せない)。
+     */
+    private fun SongSearchFilter.withSearch(text: String, mode: SongSearchMode): SongSearchFilter {
+        if (text.isEmpty()) return this
+        return when (mode) {
+            SongSearchMode.TITLE -> copy(title = text)
+            SongSearchMode.PERFORMER -> copy(idolName = text, idolIds = null)
+            SongSearchMode.CREATOR -> copy(songwriter = text)
+        }
+    }
+
     private fun loadSongs() {
         val ctx = appContext ?: return
         loadJob?.cancel()
@@ -156,25 +281,33 @@ class SongListViewModel : ViewModel() {
             _uiState.value = _uiState.value.copy(isLoading = true)
             val state = _uiState.value
             val module = AppModule.from(ctx)
-            val effectiveFilter = (
-                if (state.searchText.isNotEmpty()) state.filter.copy(title = state.searchText) else state.filter
-                ).copy(includeOtherBrand = state.showOtherBrand)
+            val baseFilter = state.filter.copy(includeOtherBrand = state.showOtherBrand)
+            val effectiveFilter = baseFilter.withSearch(state.searchText, state.searchMode)
+
+            // アルバム / シリーズ表示は曲行を組まない (集計カードだけ)。
+            // 曲側の重い取得 (マーク集合・回収数・あいまい候補) も丸ごと不要。
+            if (state.listMode != SongListMode.SONGS) {
+                loadCollections(module, state)
+                return@launch
+            }
 
             // タグ絞り込み: Worker D1 (コミュニティタグ) は端末外データなので、選択中タグそれぞれの
             // 詳細 (付いた曲の song_id 一覧) を取得して AND (積集合) を取る。
-            val tagFilterSongIds = if (state.selectedTags.isNotEmpty()) {
-                val sets = state.selectedTags.map { tag ->
-                    runCatching { module.communityApi.tagDetail(tag.id) }
-                        .getOrNull()?.songs?.map { it.songId }?.toSet() ?: emptySet()
-                }
-                sets.reduce { acc, s -> acc intersect s }
-            } else {
+            val tagDetails = state.selectedTags.map { tag ->
+                runCatching { module.communityApi.tagDetail(tag.id) }.getOrNull()
+            }
+            // 1 つでも取れなければ絞り込みを **適用しない**。空集合で絞ると
+            // 「オフラインで引けなかった」が「そのタグの曲は 0 件」と区別が付かない。
+            val tagFilterError = state.selectedTags.isNotEmpty() && tagDetails.any { it == null }
+            val tagFilterSongIds = if (state.selectedTags.isEmpty() || tagFilterError) {
                 null
+            } else {
+                tagDetails.map { d -> d!!.songs.mapTo(mutableSetOf<String>()) { it.songId } as Set<String> }
+                    .reduce { acc, s -> acc intersect s }
             }
             // 単一タグ選択時のみ、行バッジ用の票数を保持する (iOS tagVoteCounts 相当)。
-            val tagVoteCounts = if (state.selectedTags.size == 1) {
-                runCatching { module.communityApi.tagDetail(state.selectedTags[0].id) }
-                    .getOrNull()?.songs?.associate { it.songId to it.voteCount } ?: emptyMap()
+            val tagVoteCounts = if (state.selectedTags.size == 1 && !tagFilterError) {
+                tagDetails[0]!!.songs.associate { it.songId to it.voteCount }
             } else {
                 emptyMap()
             }
@@ -189,11 +322,15 @@ class SongListViewModel : ViewModel() {
             // 行アイコン用のマーク集合・回収数 (マイマーク/回収フィルタにも使う)。
             val marks = module.userMarkRepository
             val favoriteIds = marks.favoriteSongIds()
+            // メモ付き song_id。UserMarkRepository には notedIdolIds しか無い (Android に曲メモの
+            // 編集導線が無かったため) ので DAO を直に引く。EventListViewModel が brandDao を
+            // 直に引いているのと同じ扱い。
+            val notedIds = module.database.userMarkDao().idsWithNote(UserMark.SONG).toSet()
             val pickIdolIds = marks.pickedIdolIds()
             val myPickIds = module.songRepository.fetchSongIdsWithAnyArtist(pickIdolIds)
             val collectedCounts = module.songRepository.fetchSongCollectedCounts()
 
-            val criteria = markFilterCriteria(state, favoriteIds, myPickIds, collectedCounts)
+            val criteria = markFilterCriteria(state, favoriteIds, notedIds, myPickIds, collectedCounts)
             songs = applyMarkFilters(songs, criteria)
 
             _uiState.value = _uiState.value.copy(
@@ -203,11 +340,18 @@ class SongListViewModel : ViewModel() {
                 myPickSongIds = myPickIds,
                 collectedCounts = collectedCounts,
                 tagVoteCounts = tagVoteCounts,
+                tagFilterError = tagFilterError,
                 // 前の語の「もしかして」を残さない (打ち直した直後だけ関係ない曲が下にぶら下がる)。
-                fuzzySongs = emptyList()
+                fuzzySongs = emptyList(),
+                // 件数は下で数え直す。古い数字を残すと「ほかに 8 件」が別の語のままになる。
+                otherScopeCounts = emptyMap()
             )
 
             // ここから先は表示済みの一覧に後追いで足すだけなので isLoading は倒さない。
+            val scopeCounts = otherScopeCounts(module, state, baseFilter, tagFilterSongIds)
+            if (scopeCounts.isNotEmpty()) {
+                _uiState.value = _uiState.value.copy(otherScopeCounts = scopeCounts)
+            }
             val fuzzy = fuzzyCandidates(module, state, effectiveFilter, criteria, tagFilterSongIds, songs)
             if (fuzzy.isNotEmpty()) {
                 _uiState.value = _uiState.value.copy(fuzzySongs = fuzzy)
@@ -216,14 +360,68 @@ class SongListViewModel : ViewModel() {
     }
 
     /**
+     * アルバム / シリーズ表示のカードを読む。
+     *
+     * 名前絞り込みは集計側 (コアの albumSummaries / seriesSummaries) が持つので、
+     * 曲一覧の検索スコープは使わず打った語をそのまま渡す。
+     */
+    private suspend fun loadCollections(module: AppModule, state: SongListUiState) {
+        val query = state.searchText.takeIf { it.isNotBlank() }
+        val brandIds = state.filter.brandIds
+        val albums = if (state.listMode == SongListMode.ALBUMS) {
+            module.songRepository.fetchAlbumSummaries(brandIds, query)
+        } else {
+            emptyList()
+        }
+        val series = if (state.listMode == SongListMode.SERIES) {
+            module.songRepository.fetchSeriesSummaries(brandIds, query)
+        } else {
+            emptyList()
+        }
+        _uiState.value = _uiState.value.copy(
+            isLoading = false,
+            albums = albums,
+            series = series,
+            // 曲行を出さない表示形式では、曲側の付帯情報 (もしかして / スコープ件数) は意味がない。
+            fuzzySongs = emptyList(),
+            otherScopeCounts = emptyMap()
+        )
+    }
+
+    /**
+     * 表示中でないスコープに何件当たるか (iOS `otherScopeCounts` 相当)。
+     *
+     * 結果は常に 1 スコープぶんに保ったまま「アイドル名でも 8 件ある」と伝えるためのもの。
+     * 数え方を表示中スコープと **同じ経路** (同じ filter → 同じコア) に通すのが要点で、
+     * 別実装で数えると「8 件」と出したのに切り替えたら 3 件、が起きる。
+     * 実体化はしない ([SongRepository.countSongs] 参照)。
+     */
+    private suspend fun otherScopeCounts(
+        module: AppModule,
+        state: SongListUiState,
+        baseFilter: SongSearchFilter,
+        tagFilterSongIds: Set<String>?
+    ): Map<SongSearchMode, Int> {
+        val needle = state.searchText
+        if (needle.isBlank()) return emptyMap()
+        return SongSearchMode.entries
+            .filter { it != state.searchMode }
+            .associateWith { scope ->
+                module.songRepository.countSongs(baseFilter.withSearch(needle, scope), tagFilterSongIds)
+            }
+            .filterValues { it > 0 }
+    }
+
+    /**
      * マイマーク / 回収 絞り込みの条件 (iOS と同じ imas-core song_list_filtering に委譲)。
      *
-     * メモ絞り込み・タグ集合絞り込み・タグ票数ランキングはデータ供給側が未実装のため
-     * 未配線 (requireNote=false / tagSongIds=null)。
+     * タグ集合絞り込み・タグ票数ランキングは fetchSongs 側の tagFilterSongIds が担うので
+     * ここでは未配線 (tagSongIds=null)。
      */
     private fun markFilterCriteria(
         state: SongListUiState,
         favoriteIds: Set<String>,
+        notedIds: Set<String>,
         myPickIds: Set<String>,
         collectedCounts: Map<String, Int>
     ) = SongListFilterCriteria(
@@ -236,8 +434,8 @@ class SongListViewModel : ViewModel() {
         collectedIds = collectedCounts.filterValues { it > 0 }.keys.toList(),
         requireFavorite = state.myMarkFilter.requireFavorite,
         favoriteIds = favoriteIds.toList(),
-        requireNote = false,
-        noteIds = emptyList(),
+        requireNote = state.myMarkFilter.requireNote,
+        noteIds = notedIds.toList(),
         requireMyPick = state.myMarkFilter.requireMyPick,
         myPickSongIds = myPickIds.toList(),
         tagSongIds = null,
@@ -288,6 +486,9 @@ class SongListViewModel : ViewModel() {
     ): List<SongWithArtists> {
         val needle = state.searchText
         if (needle.isBlank() || shown.size > FuzzySearch.SUGGEST_THRESHOLD) return emptyList()
+        // 曲名スコープ限定。コアへ渡す綴りは songs.title / title_kana なので、アイドル名や
+        // 作家名で打っている最中に混ぜると「打った語に似た曲名の曲」が無関係に並ぶ。
+        if (state.searchMode != SongSearchMode.TITLE) return emptyList()
         // 打鍵のたびに loadSongs が前のジョブを cancel するので、この待ちがそのまま
         // 「入力が落ち着くまで引かない」debounce になる (全曲ぶんの編集距離は 20ms 前後)。
         delay(FUZZY_DEBOUNCE_MS)

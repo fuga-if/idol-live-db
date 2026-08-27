@@ -56,6 +56,21 @@ interface IdolDao {
     @Query("SELECT * FROM idols WHERE birthday LIKE :birthdayPrefix ORDER BY sort_order")
     suspend fun fetchIdolsByBirthdayPrefix(birthdayPrefix: String): List<Idol>
 
+    // ---- 絞り込み一覧 (FilteredIdols) のフォールバック経路 ----
+    //
+    // コア (idolsByConstellation / idolsByBirthPlace / idolsByBloodType) と同一条件。
+    // 誕生月と同じく is_external を落とさない — プロフィール由来の絞り込みは
+    // 「同じ属性の人を全員出す」のが期待値で、一覧画面の母集団とは別物だから。
+
+    @Query("SELECT * FROM idols WHERE constellation = :constellation ORDER BY sort_order")
+    suspend fun fetchIdolsByConstellation(constellation: String): List<Idol>
+
+    @Query("SELECT * FROM idols WHERE birth_place = :birthPlace ORDER BY sort_order")
+    suspend fun fetchIdolsByBirthPlace(birthPlace: String): List<Idol>
+
+    @Query("SELECT * FROM idols WHERE blood_type = :bloodType ORDER BY sort_order")
+    suspend fun fetchIdolsByBloodType(bloodType: String): List<Idol>
+
     @Query("""
         SELECT u.* FROM units u
         JOIN unit_members um ON u.id = um.unit_id
@@ -128,6 +143,31 @@ interface IdolDao {
         ORDER BY perform_count DESC, s.title_kana
     """)
     suspend fun fetchIdolPerformedSongs(idolId: String): List<IdolPerformedSong>
+
+    /**
+     * このアイドルが「その曲」を披露した公演だけ (新しい順)。iOS fetchIdolSongHistoryQuery と同一条件。
+     *
+     * [fetchIdolShows] と違い show_cast は母集団に入れない — 出演しただけの公演ではなく
+     * **その曲を歌った記録 (setlist_performers) がある公演**が知りたい画面だから。
+     * cast_role は行が無いことがある (セトリにだけ名前がある公演) ので、
+     * [fetchIdolShows] と同じ COALESCE で 'member' に落として必ず列を返す。
+     * 同じ公演で同じ曲が 2 回歌われた場合に行が重複しないよう DISTINCT を付ける。
+     */
+    @Query("""
+        SELECT DISTINCT sh.id AS show_id, e.id AS event_id,
+               e.name AS event_name, sh.name AS show_name, sh.date, sh.venue,
+               COALESCE(
+                   (SELECT cast_role FROM show_cast WHERE show_id = sh.id AND idol_id = :idolId),
+                   'member'
+               ) AS cast_role
+        FROM setlist_items si
+        JOIN shows sh ON si.show_id = sh.id
+        JOIN events e ON sh.event_id = e.id
+        JOIN setlist_performers sp ON si.id = sp.setlist_item_id
+        WHERE si.song_id = :songId AND sp.idol_id = :idolId
+        ORDER BY sh.date DESC
+    """)
+    suspend fun fetchIdolSongHistory(idolId: String, songId: String): List<CastShowRow>
 
     /** このアイドルの所属ユニットのうち、楽曲が1曲以上紐づいているユニットの id 集合。 */
     @Query("""

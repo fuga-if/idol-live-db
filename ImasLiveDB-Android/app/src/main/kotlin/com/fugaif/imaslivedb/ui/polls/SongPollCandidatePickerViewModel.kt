@@ -63,7 +63,8 @@ class SongPollCandidatePickerViewModel(app: Application) : AndroidViewModel(app)
             }
 
             val filter = SongSearchFilter(
-                brandId = brandId,
+                // このピッカーのブランド選択は単一。フィルタ側が集合を取るので 0/1 要素で渡す。
+                brandIds = setOfNotNull(brandId),
                 title = title.ifEmpty { null },
                 songwriter = songwriter.ifEmpty { null },
                 songType = songType

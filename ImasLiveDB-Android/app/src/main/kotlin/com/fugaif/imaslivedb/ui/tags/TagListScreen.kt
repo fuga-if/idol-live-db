@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fugaif.imaslivedb.data.community.CommunityApi
+import com.fugaif.imaslivedb.ui.components.NameFilterField
 import com.fugaif.imaslivedb.ui.theme.DS
 
 private val SORT_OPTIONS = listOf("popular" to "人気", "recent" to "新着", "name" to "名前")
@@ -111,22 +112,36 @@ fun TagListScreen(
             )
         }
     ) { padding ->
-        Box(Modifier.fillMaxSize().padding(padding)) {
-            when {
-                uiState.isLoading -> CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                uiState.tags.isEmpty() -> Text(
-                    "タグはまだありません", color = DS.ink2,
-                    modifier = Modifier.align(Alignment.Center)
-                )
-                else -> LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    itemsIndexed(uiState.tags, key = { _, tag -> tag.id }) { idx, tag ->
-                        val rank = if (uiState.sort == "popular") idx + 1 else null
-                        TagListRow(
-                            tag = tag, rank = rank,
-                            modifier = Modifier.fillMaxWidth().clickable { onTagClick(tag.id) }
-                                .padding(horizontal = 16.dp, vertical = 10.dp)
-                        )
-                        HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 16.dp))
+        Column(Modifier.fillMaxSize().padding(padding)) {
+            NameFilterField(
+                prompt = "タグ名で絞り込み",
+                value = uiState.nameFilter,
+                onValueChange = { viewModel.setNameFilter(it) }
+            )
+            val tags = uiState.visibleTags
+            Box(Modifier.fillMaxSize()) {
+                when {
+                    uiState.isLoading -> CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                    tags.isEmpty() -> Text(
+                        // 「まだ 1 つも無い」と「絞り込んで 0 件」を言い分ける。
+                        if (uiState.nameFilter.isEmpty()) {
+                            "タグはまだありません"
+                        } else {
+                            "「${uiState.nameFilter}」に一致するタグがありません"
+                        },
+                        color = DS.ink2,
+                        modifier = Modifier.align(Alignment.Center)
+                    )
+                    else -> LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        itemsIndexed(tags, key = { _, tag -> tag.id }) { idx, tag ->
+                            val rank = if (uiState.sort == "popular") idx + 1 else null
+                            TagListRow(
+                                tag = tag, rank = rank,
+                                modifier = Modifier.fillMaxWidth().clickable { onTagClick(tag.id) }
+                                    .padding(horizontal = 16.dp, vertical = 10.dp)
+                            )
+                            HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 16.dp))
+                        }
                     }
                 }
             }

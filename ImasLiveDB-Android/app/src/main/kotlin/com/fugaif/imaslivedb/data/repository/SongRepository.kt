@@ -6,8 +6,10 @@ import com.fugaif.imaslivedb.data.core.SQLITE_BINARY_ORDER
 import com.fugaif.imaslivedb.data.core.SnapshotStoreProvider
 import com.fugaif.imaslivedb.data.core.hydrateInOrder
 import com.fugaif.imaslivedb.data.db.AppDatabase
+import com.fugaif.imaslivedb.data.model.AlbumSummary
 import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.data.model.PerformanceHistoryRow
+import com.fugaif.imaslivedb.data.model.SeriesSummary
 import com.fugaif.imaslivedb.data.model.Song
 import com.fugaif.imaslivedb.data.model.SoloOriginalSingerRow
 import com.fugaif.imaslivedb.data.model.SongPlayCount
@@ -19,6 +21,28 @@ import kotlinx.coroutines.withContext
 import uniffi.imas_core.PerformanceHistoryEntry
 import uniffi.imas_core.SongListFilter
 import uniffi.imas_core.SongListSort
+import uniffi.imas_core.splitCreditNames
+
+/**
+ * クリエイター絞り込みの 1 行 (曲 + その曲でその人が担った役割)。
+ *
+ * iOS `SongWithRoles` の移植。`artists` は iOS でも常に空で埋められていて、表示は
+ * `song.singerLabel` を見るので持たない。
+ */
+data class SongWithRoles(
+    val song: Song,
+    /** ["作曲", "編曲"] のような役割ラベル。並びは 作曲 → 作詞 → 編曲。 */
+    val roles: List<String>
+) {
+    val rolesLabel: String get() = roles.joinToString("・")
+}
+
+/**
+ * SQLite の LIKE パターン中の特殊文字を潰す。SQL 側で `ESCAPE '\'` を付けて使うこと。
+ * (iOS `String.likeEscaped` と対。エスケープ文字自体を最初に置き換える順序が要。)
+ */
+private fun String.likeEscaped(): String =
+    replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
 /**
  * 楽曲の読み取り口。
@@ -84,9 +108,9 @@ class SongRepository(
             conditions.add("s.parent_song_id IS NULL")
         }
 
-        if (filter.brandId != null) {
-            conditions.add("s.brand_id = ?")
-            args.add(filter.brandId)
+        if (filter.brandIds.isNotEmpty()) {
+            conditions.add("s.brand_id IN (${filter.brandIds.joinToString(",") { "?" }})")
+            args.addAll(filter.brandIds)
         } else if (!filter.includeOtherBrand) {
             // ブランド未選択(全件)のときは既定で other (歌枠カバー等) を隠す。
             conditions.add("s.brand_id IS NOT 'other'")
@@ -105,6 +129,12 @@ class SongRepository(
         if (!filter.cdSeries.isNullOrEmpty()) {
             conditions.add("s.cd_series LIKE ?")
             args.add("%${filter.cdSeries}%")
+        }
+        if (!filter.seriesGroup.isNullOrEmpty()) {
+            // シリーズはピッカーで既存値から選ぶので完全一致 (部分一致にすると
+            // "BRILLI@NT WING" が "BRILLI@NT WING SP" まで拾ってしまう)。コア側も同じ規約。
+            conditions.add("s.series_group = ?")
+            args.add(filter.seriesGroup)
         }
         if (filter.songType != null) {
             conditions.add("s.song_type = ?")
@@ -382,6 +412,57 @@ class SongRepository(
         return db.songDao().fetchSongPlayCountRanking(limit)
     }
 
+    // ---- 絞り込み一覧 (FilteredSongs) の母集団 ----
+    //
+    // iOS の `fetchSongs(criterion:)` を分解したもの。ブランド / 曲タイプは通常の一覧クエリ
+    // (fetchSongs(filter:)) に合流するので、ここには専用クエリを持つ 3 種 + クリエイターだけ置く。
+
+    /** CDシリーズ (完全一致) の楽曲。並びは release_date, title_kana。 */
+    suspend fun fetchSongsByCdSeries(series: String): List<SongWithArtists> {
+        snapshots?.query { it.songsByCdSeries(series) }
+            ?.let { return fetchSongsPreservingOrder(it).withArtists() }
+        return db.songDao().fetchSongsByCdSeries(series).withArtists()
+    }
+
+    /** シリーズ (series_group 完全一致) の楽曲。 */
+    suspend fun fetchSongsBySeriesGroup(name: String): List<SongWithArtists> {
+        snapshots?.query { it.songsBySeriesGroup(name) }
+            ?.let { return fetchSongsPreservingOrder(it).withArtists() }
+        return db.songDao().fetchSongsBySeriesGroupOrdered(name).withArtists()
+    }
+
+    /** リリース年 ("YYYY" 前方一致) の楽曲。 */
+    suspend fun fetchSongsByReleaseYear(year: String): List<SongWithArtists> {
+        snapshots?.query { it.songsByReleaseYear(year) }
+            ?.let { return fetchSongsPreservingOrder(it).withArtists() }
+        return db.songDao().fetchSongsByReleaseYear("${year.likeEscaped()}%").withArtists()
+    }
+
+    /**
+     * クリエイター名 (作詞・作曲・編曲 横断) で引いた楽曲と、その曲での役割。
+     *
+     * **コアに対応 API が無い唯一の絞り込み**なので、スナップショットの有無にかかわらず Room 経路。
+     *
+     * 2 段構えなのは 3 欄が「/」「、」等で複数名を詰めた自由文字列だから。SQL の部分一致だけだと
+     * 「山田」で「山田太郎」の曲まで当たるので、候補を絞ったあとに欄を人ごとへ割って
+     * **完全一致した欄だけ**を役割として採り、1 つも一致しない曲は落とす
+     * (iOS songsWithCreatorRoles と同じ)。欄の割り方はコア (splitCreditNames) が唯一の正 —
+     * ここで区切り文字を書き直すと、曲詳細のクレジット表示と同じ人が二通りに分かれる。
+     */
+    suspend fun fetchSongsByCreator(name: String): List<SongWithRoles> {
+        val trimmed = name.trim()
+        if (trimmed.isEmpty()) return emptyList()
+        val candidates = db.songDao().fetchSongsByCreator("%${trimmed.likeEscaped()}%")
+        return candidates.mapNotNull { song ->
+            // 並びは iOS の rolesLabel と同じ 作曲 → 作詞 → 編曲。
+            val roles = listOf("作曲" to song.composer, "作詞" to song.lyricist, "編曲" to song.arranger)
+                .mapNotNull { (label, field) ->
+                    label.takeIf { field != null && trimmed in splitCreditNames(field) }
+                }
+            if (roles.isEmpty()) null else SongWithRoles(song = song, roles = roles)
+        }
+    }
+
     suspend fun fetchCdSeriesList(): List<String> {
         snapshots?.query { store ->
             // albumSummaries は MIN(release_date) 降順で返るので、SQL 時代の
@@ -393,6 +474,88 @@ class SongRepository(
                 .sortedWith(SQLITE_BINARY_ORDER)
         }?.let { return it }
         return db.songDao().fetchCdSeriesList()
+    }
+
+    /**
+     * 上位シリーズ (series_group) の一覧。フィルタシートのピッカー候補。
+     *
+     * コアの seriesSummaries は MIN(release_date) 降順で返るので、cd_series 一覧と同じく
+     * SQL の `ORDER BY` (BINARY 照合 = UTF-8 バイト列昇順) に並べ直す。
+     */
+    suspend fun fetchSeriesGroupList(): List<String> {
+        snapshots?.query { store ->
+            store.seriesSummaries(emptyList(), null)
+                .map { it.name }
+                .sortedWith(SQLITE_BINARY_ORDER)
+        }?.let { return it }
+        // SongDao に series_group の DISTINCT 口が無いので、フォールバックでは
+        // 生クエリで曲を引いてから Kotlin 側で畳む (コアが使えない時だけ通る道)。
+        return db.songDao()
+            .fetchSongsRaw(
+                SimpleSQLiteQuery("SELECT * FROM songs WHERE series_group IS NOT NULL AND series_group <> ''")
+            )
+            .mapNotNull { it.seriesGroup }
+            .distinct()
+            .sortedWith(SQLITE_BINARY_ORDER)
+    }
+
+    /**
+     * CD シリーズ単位の集計 (曲一覧の「アルバム」表示)。
+     * 集計はコアの責務なので、スナップショットが無い時は空 (グリッド自体を出さない)。
+     */
+    suspend fun fetchAlbumSummaries(brandIds: Set<String>, query: String?): List<AlbumSummary> =
+        snapshots?.query { store ->
+            store.albumSummaries(brandIds.toList(), query?.takeIf { it.isNotBlank() }).map {
+                AlbumSummary(
+                    cdSeries = it.cdSeries,
+                    artworkUrl = it.artworkUrl,
+                    songCount = it.songCount.toInt(),
+                    earliestDate = it.earliestDate,
+                    latestDate = it.latestDate,
+                    brandIds = it.brandIds
+                )
+            }
+        } ?: emptyList()
+
+    /** 上位シリーズ (series_group) 単位の集計 (曲一覧の「シリーズ」表示)。 */
+    suspend fun fetchSeriesSummaries(brandIds: Set<String>, query: String?): List<SeriesSummary> =
+        snapshots?.query { store ->
+            store.seriesSummaries(brandIds.toList(), query?.takeIf { it.isNotBlank() }).map {
+                SeriesSummary(
+                    name = it.name,
+                    songCount = it.songCount.toInt(),
+                    cdCount = it.cdCount.toInt(),
+                    earliestDate = it.earliestDate,
+                    latestDate = it.latestDate,
+                    artworkUrl = it.artworkUrl,
+                    brandIds = it.brandIds
+                )
+            }
+        } ?: emptyList()
+
+    /**
+     * 同じ絞り込みで何件当たるかだけを返す (検索スコープ切替バーの件数)。
+     *
+     * 実体化 (hydration) を通さないのが要点。表示しない件数のために Room から Song を
+     * 引き直すと、打鍵のたびに表示中スコープと同じコストを 2 回余計に払うことになる。
+     * コアが返すのは表示順の id 列なので、その長さを数えれば済む。
+     */
+    suspend fun countSongs(
+        filter: SongSearchFilter = SongSearchFilter(),
+        tagFilterSongIds: Set<String>? = null
+    ): Int {
+        if (tagFilterSongIds != null && tagFilterSongIds.isEmpty()) return 0
+        val provider = snapshots
+        if (provider != null) {
+            val ids = provider.query { store ->
+                store.songList(filter.toSnapshotFilter(), SongListSort.TITLE_KANA, null, emptyList(), emptyList())
+            }
+            if (ids != null) {
+                return if (tagFilterSongIds != null) ids.count { it in tagFilterSongIds } else ids.size
+            }
+        }
+        // コアが使えない環境では素直に引いて数える (件数バーは出るが 1 回ぶん重い)。
+        return fetchSongs(filter, SongSortOrder.TITLE_KANA, null, tagFilterSongIds).size
     }
 
     // イベント名一覧はイベントスライス (Phase 2 対象外)。スナップショット API が
@@ -531,18 +694,25 @@ class SongRepository(
     private suspend fun fetchSongsPreservingOrder(ids: List<String>): List<Song> =
         hydrateInOrder(ids, Song::id) { db.songDao().fetchSongsByIds(it) }
 
+    /**
+     * 一覧行が要る歌唱者名を曲から埋める (iOS songsWithArtists と同じ)。
+     * song_artists は引かない — 一覧で N+1 になる上、行に出すのは `singerLabel` だけだから。
+     */
+    private fun List<Song>.withArtists(): List<SongWithArtists> =
+        map { SongWithArtists(song = it, artistNames = it.singerLabel ?: "") }
+
     /** fetchSongsPreservingOrder の Idol 版 (歌唱者一覧の hydration)。 */
     private suspend fun fetchIdolsPreservingOrder(ids: List<String>): List<Idol> =
         hydrateInOrder(ids, Idol::id) { db.songDao().fetchIdolsByIds(it) }
 
     private fun SongSearchFilter.toSnapshotFilter(): SongListFilter = snapshotSongFilter(
-        // Android の UI はブランド単一選択。コア側は複数 OR (IN) なので 0/1 要素で渡す。
-        brandIds = listOfNotNull(brandId),
+        brandIds = brandIds.toList(),
         title = title,
         idolName = idolName,
         idolIds = idolIds ?: emptyList(),
         songwriter = songwriter,
         cdSeries = cdSeries,
+        seriesGroup = seriesGroup,
         liveName = liveName,
         songType = songType,
         includeRemixes = includeRemixes,

@@ -22,6 +22,7 @@ import com.fugaif.imaslivedb.data.model.ShowCast
 import com.fugaif.imaslivedb.data.model.ShowWithEventName
 import uniffi.imas_core.EventDetailRecord
 import uniffi.imas_core.EventListRecord
+import uniffi.imas_core.EventWithDateRecord
 import uniffi.imas_core.SetlistPerformerRecord
 import uniffi.imas_core.ShowRecord
 
@@ -54,10 +55,66 @@ class EventRepository(
      *
      * コアの eventsWithFirstDate は kind をホワイトリストでしか受けられず、
      * 「絞らない」を表現できない。全 kind を列挙して渡すと、将来 kind が増えたときに
-     * その分だけ一覧から静かに消えるので、SQL 経路のまま残す。
+     * その分だけ一覧から静かに消えるので、母集合は SQL 経路のまま残す。
+     *
+     * ただし母集合の SQL (EventDao.fetchEventsWithFirstDate) は events.kind を SELECT して
+     * おらず、Event の既定値 "live" が入ってしまう。それだと一覧の「種別で除外」が
+     * 全イベントを live と誤認して機能しないので、kind だけコアの eventRecords
+     * (絞り込み無しの全件射影) から補う。コアが使えない環境では補えないため、
+     * 種別フィルタは効かず全件表示のままになる (絞り込みが空振りするだけで一覧は壊れない)。
      */
     suspend fun fetchEventsWithFirstDate(): List<EventWithDateRange> {
-        return db.eventDao().fetchEventsWithFirstDate().map { it.toEventWithDateRange() }
+        val rows = db.eventDao().fetchEventsWithFirstDate().map { it.toEventWithDateRange() }
+        val kinds = snapshots?.query { store ->
+            store.eventRecords(null).associate { it.id to it.kind }
+        } ?: return rows
+        return rows.map { ew ->
+            val kind = kinds[ew.event.id] ?: return@map ew
+            if (kind == ew.event.kind) ew else ew.copy(event = ew.event.copy(kind = kind))
+        }
+    }
+
+    // ---- 絞り込み一覧 (FilteredEvents / FilteredShows) の母集団 ----
+
+    /**
+     * ブランドで絞ったライブ一覧 (最初の公演日の降順)。
+     *
+     * kind はコアの既定 (live + festival) に任せる。「kind を一切絞らない」一覧である
+     * [fetchEventsWithFirstDate] とはここが違う — こちらは iOS の
+     * `EventFilterCriterion.brand` を写したもので、iOS もラジオや発売記念イベントを混ぜない。
+     * 公演が 1 本も無いイベントも出す (includeEmpty=true) のは iOS FilteredEventsView と同じ。
+     */
+    suspend fun fetchEventsWithDateByBrand(brandId: String): List<EventWithDateRange> {
+        snapshots?.query { store ->
+            store.eventsWithFirstDate(brandId, true, false, null).map { it.toEventWithDateRange() }
+        }?.let { return it }
+        return db.eventDao().fetchLiveEventsWithDateByBrand(brandId).map { it.toEventWithDateRange() }
+    }
+
+    /**
+     * 開催年で絞ったライブ一覧。
+     *
+     * last_date は返さない (SQL 時代の年フィルタが SELECT していなかった挙動をコアがそのまま
+     * 写している)。行の日付が「最初の公演日」だけでレンジ ("first〜last") にならないのは
+     * iOS と揃った現行挙動なので、SQL 経路でも last_date を NULL 固定にして揃える。
+     */
+    suspend fun fetchEventsWithDateByYear(year: Int): List<EventWithDateRange> {
+        snapshots?.query { store ->
+            store.eventsWithDateByYear(year, true).map { it.toEventWithDateRange() }
+        }?.let { return it }
+        return db.eventDao().fetchLiveEventsWithDateByYear(year.toString()).map { it.toEventWithDateRange() }
+    }
+
+    /** 会場での公演一覧 (新しい順)。`venue` は会場マスタの ID (`venue_...`)。 */
+    suspend fun fetchShowsAtVenue(venue: String): List<Show> {
+        snapshots?.query { store -> store.showsAtVenue(venue).map { it.toShow() } }?.let { return it }
+        return db.showDao().fetchShowsAtVenue(venue)
+    }
+
+    /** 指定日 (YYYY-MM-DD) の公演一覧。 */
+    suspend fun fetchShowsOnDate(date: String): List<Show> {
+        snapshots?.query { store -> store.showsOnDate(date).map { it.toShow() } }?.let { return it }
+        return db.showDao().fetchShowsOnDate(date)
     }
 
     suspend fun fetchEventStats(eventId: String): EventStats {
@@ -264,6 +321,16 @@ private fun EventListRecord.toEvent(): Event = Event(
     id = id, brandId = brandId, name = name, eventType = eventType, isStreaming = isStreaming,
     isSolo = isSolo, kind = kind, ticketOpenDate = ticketOpenDate, ticketDeadline = ticketDeadline,
     ticketLotteryDate = ticketLotteryDate, ticketUrl = ticketUrl, jointBrandIds = jointBrandIds
+)
+
+/**
+ * 日付つきイベント射影 → [EventWithDateRange]。
+ * `lastDate` は年フィルタ経路では常に null (コアが SQL 時代の挙動をそのまま写している)。
+ */
+private fun EventWithDateRecord.toEventWithDateRange(): EventWithDateRange = EventWithDateRange(
+    event = event.toEvent(),
+    firstDate = firstDate,
+    lastDate = lastDate
 )
 
 private fun EventDetailRecord.toEvent(): Event = Event(

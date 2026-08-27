@@ -8,16 +8,22 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Sell
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -26,6 +32,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SearchBar
 import androidx.compose.material3.SearchBarDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -43,6 +50,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fugaif.imaslivedb.data.model.SongCollectFilter
 import com.fugaif.imaslivedb.data.model.SongSortOrder
 import com.fugaif.imaslivedb.data.model.SongWithArtists
+import com.fugaif.imaslivedb.ui.components.ImasEmptyState
+import com.fugaif.imaslivedb.ui.components.ImasFilterChip
 import com.fugaif.imaslivedb.ui.components.ImasListSkeleton
 import com.fugaif.imaslivedb.ui.components.ImasRemovableChip
 import com.fugaif.imaslivedb.ui.components.ImasSectionHeader
@@ -121,7 +130,10 @@ fun SongListScreen(
                         onSearch = {},
                         expanded = false,
                         onExpandedChange = {},
-                        placeholder = { Text("曲名で検索") }
+                        // 何を絞るかは頭のチップが示すので、プレースホルダは動詞だけでいい。
+                        // 「曲名 曲名で検索」と二重に書くと狭い欄が余計に読みにくくなる。
+                        placeholder = { Text("絞り込み") },
+                        leadingIcon = { SearchModeChip(uiState = uiState, viewModel = viewModel) }
                     )
                 },
                 expanded = false,
@@ -131,7 +143,11 @@ fun SongListScreen(
                     .padding(horizontal = 16.dp, vertical = 4.dp)
             ) {}
 
+            ScopeSuggestionBar(uiState = uiState, viewModel = viewModel)
+
             RemovableFilterChipRow(uiState = uiState, viewModel = viewModel)
+
+            TagFilterErrorBanner(visible = uiState.tagFilterError)
 
             // Count + sort control (件数 / 並び替え。タップでフィルタシートを開く)
             Row(
@@ -144,7 +160,11 @@ fun SongListScreen(
             ) {
                 Text(
                     // 画面に並んでいる行数。あいまい候補も見えている以上、数から外さない。
-                    text = "${uiState.songs.size + uiState.fuzzySongs.size}件",
+                    text = when (uiState.listMode) {
+                        SongListMode.SONGS -> "${uiState.songs.size + uiState.fuzzySongs.size}件"
+                        SongListMode.ALBUMS -> "${uiState.albums.size}枚"
+                        SongListMode.SERIES -> "${uiState.series.size}シリーズ"
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = DS.ink2
                 )
@@ -163,6 +183,24 @@ fun SongListScreen(
 
             if (uiState.isLoading) {
                 ImasListSkeleton(rows = 12, thumb = SkeletonThumb.Square)
+            } else if (uiState.listMode == SongListMode.ALBUMS) {
+                AlbumGrid(albums = uiState.albums, onSelect = viewModel::drillIntoAlbum)
+            } else if (uiState.listMode == SongListMode.SERIES) {
+                SeriesGrid(series = uiState.series, onSelect = viewModel::drillIntoSeries)
+            } else if (uiState.songs.isEmpty() && uiState.fuzzySongs.isEmpty()) {
+                ImasEmptyState(
+                    icon = Icons.Filled.FilterList,
+                    title = if (uiState.searchText.isEmpty()) {
+                        "条件に一致する楽曲がありません"
+                    } else {
+                        "絞り込み結果がありません"
+                    },
+                    message = if (uiState.searchText.isEmpty()) {
+                        "フィルタ条件を変更するか、フィルタを解除してください。"
+                    } else {
+                        "「${uiState.searchText}」に一致する楽曲がありません"
+                    }
+                )
             } else {
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                     items(uiState.songs, key = { it.song.id }) { item ->
@@ -193,9 +231,10 @@ fun SongListScreen(
             currentShowOtherBrand = uiState.showOtherBrand,
             currentCollectFilter = uiState.collectFilter,
             currentMyMarkFilter = uiState.myMarkFilter,
+            currentListMode = uiState.listMode,
             onDismiss = { showFilter = false },
-            onApply = { filter, sort, ascending, showOtherBrand, collectFilter, myMarkFilter ->
-                viewModel.applyFilter(filter, sort, ascending, showOtherBrand, collectFilter, myMarkFilter)
+            onApply = { filter, sort, ascending, showOtherBrand, collectFilter, myMarkFilter, listMode ->
+                viewModel.applyFilter(filter, sort, ascending, showOtherBrand, collectFilter, myMarkFilter, listMode)
                 showFilter = false
             }
         )
@@ -243,15 +282,139 @@ private fun SongListRow(
 }
 
 /**
+ * 検索欄の頭に差す 曲名 / アイドル / 作詞作曲 の切り替えチップ (iOS `searchModeChip` 相当)。
+ *
+ * 全幅のセグメントにすると行を 1 本余分に食う。入力欄の中のチップなら、
+ * いま何を探しているかを見せたまま 1 行に収まる。
+ *
+ * アルバム/シリーズ表示では絞る対象が集計名で固定なので、押せないラベルとして出す
+ * (「アイドル」を選べてしまうと、選んでもアルバム名しか絞られず嘘になる)。
+ */
+@Composable
+private fun SearchModeChip(uiState: SongListUiState, viewModel: SongListViewModel) {
+    val switchable = uiState.listMode == SongListMode.SONGS
+    var expanded by remember { mutableStateOf(false) }
+
+    Surface(
+        shape = CircleShape,
+        color = DS.fill,
+        modifier = Modifier.padding(end = 4.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .clickable(enabled = switchable) { expanded = true }
+                .padding(start = 10.dp, end = if (switchable) 2.dp else 10.dp, top = 4.dp, bottom = 4.dp)
+        ) {
+            Text(
+                text = uiState.searchMode.label(uiState.listMode),
+                style = MaterialTheme.typography.labelMedium,
+                color = DS.ink2,
+                maxLines = 1
+            )
+            if (switchable) {
+                Icon(
+                    imageVector = Icons.Filled.ArrowDropDown,
+                    contentDescription = "検索対象を切り替え",
+                    tint = DS.ink2,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            SongSearchMode.entries.forEach { mode ->
+                DropdownMenuItem(
+                    text = { Text(mode.label(uiState.listMode)) },
+                    onClick = {
+                        viewModel.setSearchMode(mode)
+                        expanded = false
+                    }
+                )
+            }
+        }
+    }
+}
+
+/**
+ * 「ほかのスコープにも当たりがある」ことを知らせる行 (iOS `scopeSuggestionBar` 相当)。
+ *
+ * スコープを混ぜないので結果は常に 1 種類ぶんで、「曲名だけで絞りたかったのに」も
+ * 「どれで引っかかったか分からない」も起きない。代わりに見落とす恐れがあるので、
+ * 件数だけ出して 1 タップで移れるようにする。
+ */
+@Composable
+private fun ScopeSuggestionBar(uiState: SongListUiState, viewModel: SongListViewModel) {
+    if (uiState.otherScopeCounts.isEmpty()) return
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text("ほかに", style = MaterialTheme.typography.bodySmall, color = DS.ink3)
+        // 並びは enum の宣言順で固定する。件数順にすると打鍵のたびにチップが入れ替わって押し損ねる。
+        SongSearchMode.entries.forEach { mode ->
+            val count = uiState.otherScopeCounts[mode] ?: return@forEach
+            ImasFilterChip(
+                label = "${mode.label(uiState.listMode)} ${count}件",
+                selected = false,
+                onClick = { viewModel.setSearchMode(mode) }
+            )
+        }
+    }
+}
+
+/**
+ * タグ絞り込みの取得に失敗した (オフライン等) ことを知らせるバナー。
+ *
+ * 「タグに合致する曲が 0 件」との誤読を避けるため、VM は失敗時に一覧を空にせず
+ * 絞り込み自体を見送る。ここでその状態を明示する。
+ */
+@Composable
+private fun TagFilterErrorBanner(visible: Boolean) {
+    if (!visible) return
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = Icons.Filled.Warning,
+            contentDescription = null,
+            tint = DS.warning,
+            modifier = Modifier.size(16.dp)
+        )
+        Text(
+            text = "タグ絞り込みの取得に失敗しました。表示中の一覧にはタグ条件が反映されていません。",
+            style = MaterialTheme.typography.bodySmall,
+            color = DS.ink2
+        )
+    }
+}
+
+/**
  * 適用中フィルタの removable チップ列 (iOS SongListView.removableFilterBar 相当)。
- * 担当 / お気に入り / 回収済み or 未回収 / 選択中タグ を横スクロールで一覧し、× で個別解除する。
+ * マイマーク / 回収 / シートで選んだ絞り込み / 選択中タグ を横スクロールで一覧し、× で個別解除する。
  */
 @Composable
 private fun RemovableFilterChipRow(uiState: SongListUiState, viewModel: SongListViewModel) {
-    val hasChips = uiState.myMarkFilter.requireMyPick ||
-        uiState.myMarkFilter.requireFavorite ||
+    val filter = uiState.filter
+    // 検索語と同じ軸の条件は、打った語に上書きされている間だけ出さない
+    // (VM の withSearch を参照。入力欄とチップに違う値が並ぶのを避ける)。
+    val searching = uiState.searchText.isNotEmpty()
+    val idolOverridden = searching && uiState.searchMode == SongSearchMode.PERFORMER
+    val songwriterOverridden = searching && uiState.searchMode == SongSearchMode.CREATOR
+    val hasChips = uiState.myMarkFilter.isActive ||
         uiState.collectFilter != SongCollectFilter.ALL ||
-        uiState.selectedTags.isNotEmpty()
+        uiState.selectedTags.isNotEmpty() ||
+        !filter.seriesGroup.isNullOrEmpty() ||
+        !filter.cdSeries.isNullOrEmpty() ||
+        !filter.liveName.isNullOrEmpty() ||
+        (!filter.songwriter.isNullOrEmpty() && !songwriterOverridden) ||
+        filter.songType != null ||
+        (!filter.idolIds.isNullOrEmpty() && !idolOverridden)
     if (!hasChips) return
 
     Row(
@@ -267,10 +430,50 @@ private fun RemovableFilterChipRow(uiState: SongListUiState, viewModel: SongList
         if (uiState.myMarkFilter.requireFavorite) {
             ImasRemovableChip(text = "お気に入り", onRemove = viewModel::clearFavoriteFilter)
         }
+        if (uiState.myMarkFilter.requireNote) {
+            ImasRemovableChip(text = "メモあり", onRemove = viewModel::clearNoteFilter)
+        }
         when (uiState.collectFilter) {
             SongCollectFilter.COLLECTED -> ImasRemovableChip(text = "現地回収済", onRemove = viewModel::clearCollectFilter)
             SongCollectFilter.UNCOLLECTED -> ImasRemovableChip(text = "未回収", onRemove = viewModel::clearCollectFilter)
             SongCollectFilter.ALL -> {}
+        }
+        filter.idolIds?.takeIf { it.isNotEmpty() && !idolOverridden }?.let { ids ->
+            // 名前の引き当てはフィルタシート側にしか無いので、チップは人数で出す。
+            ImasRemovableChip(
+                text = "アイドル ${ids.size}人",
+                onRemove = { viewModel.clearFilterField { f -> f.copy(idolIds = null) } }
+            )
+        }
+        filter.songType?.let { type ->
+            ImasRemovableChip(
+                text = songTypeLabel(type),
+                onRemove = { viewModel.clearFilterField { f -> f.copy(songType = null) } }
+            )
+        }
+        filter.seriesGroup?.takeIf { it.isNotEmpty() }?.let { value ->
+            ImasRemovableChip(
+                text = value,
+                onRemove = { viewModel.clearFilterField { f -> f.copy(seriesGroup = null) } }
+            )
+        }
+        filter.cdSeries?.takeIf { it.isNotEmpty() }?.let { value ->
+            ImasRemovableChip(
+                text = value,
+                onRemove = { viewModel.clearFilterField { f -> f.copy(cdSeries = null) } }
+            )
+        }
+        filter.liveName?.takeIf { it.isNotEmpty() }?.let { value ->
+            ImasRemovableChip(
+                text = value,
+                onRemove = { viewModel.clearFilterField { f -> f.copy(liveName = null) } }
+            )
+        }
+        filter.songwriter?.takeIf { it.isNotEmpty() && !songwriterOverridden }?.let { value ->
+            ImasRemovableChip(
+                text = value,
+                onRemove = { viewModel.clearFilterField { f -> f.copy(songwriter = null) } }
+            )
         }
         uiState.selectedTags.forEach { tag ->
             val label = if (uiState.selectedTags.size == 1) {

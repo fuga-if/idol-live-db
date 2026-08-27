@@ -124,9 +124,25 @@ class IdolListViewModel(app: Application) : AndroidViewModel(app) {
     private val syncEngine = AppModule.from(app).syncEngine
     private val prefs = app.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
+    /**
+     * 設定の「既定のブランド」を初期選択にする (iOS `IdolListView` の onAppear と同じ)。
+     *
+     * 保存先は設定画面の SharedPreferences (`imas_settings` / `default_brand_id`) なので、
+     * この画面の prefs とは別ファイルから読む。空文字は「すべて」なので選択なしのまま。
+     * 初期値としてしか使わない — 一度でも選び直したらそちらが正で、
+     * 画面へ戻るたびに既定へ引き戻さない。
+     */
+    private val defaultBrandIds: Set<String> =
+        app.getSharedPreferences(SETTINGS_PREFS_NAME, Context.MODE_PRIVATE)
+            .getString(KEY_DEFAULT_BRAND, "")
+            ?.takeIf { it.isNotEmpty() }
+            ?.let { setOf(it) }
+            ?: emptySet()
+
     private val _uiState = MutableStateFlow(
         IdolListUiState(
             isLoading = true,
+            selectedBrandIds = defaultBrandIds,
             displayMode = if (prefs.getString(KEY_DISPLAY_MODE, null) == VALUE_CV) {
                 IdolDisplayMode.CV_NAME
             } else {
@@ -268,6 +284,10 @@ class IdolListViewModel(app: Application) : AndroidViewModel(app) {
 
     companion object {
         private const val PREFS_NAME = "idol_list_prefs"
+
+        /** 設定画面 (SettingsViewModel) が既定ブランドを書いている SharedPreferences。 */
+        private const val SETTINGS_PREFS_NAME = "imas_settings"
+        private const val KEY_DEFAULT_BRAND = "default_brand_id"
         private const val KEY_DISPLAY_MODE = "display_mode"
         private const val KEY_SHOW_CV = "show_cv"
         private const val KEY_LIST_MODE = "list_mode"

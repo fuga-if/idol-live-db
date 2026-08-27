@@ -107,6 +107,48 @@ interface SongDao {
     @Query("SELECT * FROM songs WHERE series_group = :seriesGroup")
     suspend fun fetchSongsBySeriesGroup(seriesGroup: String): List<Song>
 
+    // ---- 絞り込み一覧 (FilteredSongs) のフォールバック経路 ----
+    //
+    // どれもコア (songsByCdSeries / songsBySeriesGroup / songsByReleaseYear) と同じ母集団・
+    // 同じ並びに揃えてある。並びは iOS の songsBy*Query と同じ `release_date, title_kana`
+    // で、release_date が NULL の曲は SQLite の ASC 規約どおり先頭に来る。
+
+    /** CDシリーズ (完全一致) の楽曲。 */
+    @Query("SELECT * FROM songs WHERE cd_series = :series ORDER BY release_date, title_kana")
+    suspend fun fetchSongsByCdSeries(series: String): List<Song>
+
+    /**
+     * シリーズ (series_group 完全一致) の楽曲。
+     *
+     * 並び無しの [fetchSongsBySeriesGroup] は関連楽曲のスコアリング用で、そちらは
+     * 呼び出し側が並べ直すため ORDER BY を持たない。一覧に出す方はここを使う。
+     */
+    @Query("SELECT * FROM songs WHERE series_group = :seriesGroup ORDER BY release_date, title_kana")
+    suspend fun fetchSongsBySeriesGroupOrdered(seriesGroup: String): List<Song>
+
+    /** リリース年の楽曲。パターン ("YYYY%") は呼び出し側が組む。 */
+    @Query("SELECT * FROM songs WHERE release_date LIKE :yearPrefix ORDER BY release_date, title_kana")
+    suspend fun fetchSongsByReleaseYear(yearPrefix: String): List<Song>
+
+    /**
+     * クリエイター名 (作曲・作詞・編曲 横断) の候補曲。**コアに対応 API が無い唯一の絞り込み**なので、
+     * ここがフォールバックではなく唯一の経路になる。
+     *
+     * 3 欄は「/」「、」等で複数名が入った自由文字列なので、SQL では部分一致まで広く拾い、
+     * 「その名前が本当に 1 人ぶんとして入っているか」の判定は呼び出し側 (SongRepository) が行う
+     * (iOS fetchSongsByCreatorQuery + songsWithCreatorRoles と同じ 2 段構え)。
+     * `%` `_` を含む名前でパターンが壊れないよう、パターンはエスケープ済みを受け取り
+     * `ESCAPE '\'` を明示する (iOS の likeEscaped と対)。
+     */
+    @Query("""
+        SELECT * FROM songs
+        WHERE composer LIKE :pattern ESCAPE '\'
+           OR lyricist LIKE :pattern ESCAPE '\'
+           OR arranger LIKE :pattern ESCAPE '\'
+        ORDER BY title_kana, title
+    """)
+    suspend fun fetchSongsByCreator(pattern: String): List<Song>
+
     @Query("""
         SELECT DISTINCT s.* FROM songs s
         JOIN song_artists sa ON s.id = sa.song_id

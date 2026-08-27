@@ -68,4 +68,19 @@ interface ShowDao {
      */
     @Query("SELECT DISTINCT event_id FROM shows WHERE venue_id = :venueId")
     suspend fun fetchEventIdsAtVenue(venueId: String): List<String>
+
+    /**
+     * 会場での公演一覧 (新しい順)。コア `showsAtVenue` のフォールバック。
+     *
+     * 会場を ID 管理にする前は生の会場文字列 (`shows.venue`) で突き合わせていた。表記ゆれで
+     * 同じ会場が分断されるため venue_id を正とするが、ID が付いていない公演 (会場を特定
+     * できなかったもの) は生文字列でしか辿れないので「ID 一致 または 生文字列一致」の OR
+     * にしておく (iOS showsByVenueQuery と同一条件)。
+     */
+    @Query("SELECT * FROM shows WHERE venue_id = :venue OR venue = :venue ORDER BY date DESC")
+    suspend fun fetchShowsAtVenue(venue: String): List<Show>
+
+    /** 指定日 (YYYY-MM-DD) の公演一覧。コア `showsOnDate` のフォールバック。 */
+    @Query("SELECT * FROM shows WHERE date = :date ORDER BY sort_order")
+    suspend fun fetchShowsOnDate(date: String): List<Show>
 }
