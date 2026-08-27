@@ -51,10 +51,12 @@ KIND_TABLES = {
     "events": ["events", "shows"],
     "idols": ["idols", "idol_brands"],
     "units": ["units", "unit_members"],
+    "unit_versions": ["unit_versions"],
+    "creators": ["creators"],
 }
 # data/fixes/ で既存レコードを UPDATE 可能なテーブル (id 列を持つ事実情報のみ)
 ALLOWED_FIX_TABLES = {"idols", "songs", "events", "shows", "units", "brands", "venues"}
-# 読みの表は fixes ではなく専用の投入口 (data/credit_readings/) から入れる。
+# 読みの表は fixes ではなく専用の投入口 (data/creators/) から入れる。
 
 
 def cols(conn, table):

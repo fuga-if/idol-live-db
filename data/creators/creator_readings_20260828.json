@@ -1,0 +1,4140 @@
+{
+ "title": "作詞・作曲・編曲の作家に読み仮名を入れる",
+ "_help": "漢字の作家名は読みが無いとかなで引けない (こだまあめこ → 児玉雨子)。曲の欄は連名や所属つきの自由文字列なので、コアの split_credits で人ごとに割り、canonical_credit_key で表記ゆれを寄せた上で 1 人 1 行にしてある。曲側に現れる別表記は aliases (改行区切り) に持つ。英数字だけの名前には読みを付けない (打った通りで引けるため)。",
+ "creators": [
+  {
+   "id": "cr_833870408eca",
+   "name": "GBBあやか",
+   "name_kana": "じーびーびーあやか",
+   "aliases": "GBB あやか"
+  },
+  {
+   "id": "cr_e638515a52ab",
+   "name": "KawaiiPsycho倶楽部",
+   "name_kana": "かわいいさいこくらぶ",
+   "aliases": "Kawaii Psycho 倶楽部"
+  },
+  {
+   "id": "cr_6f31123e3beb",
+   "name": "SOMETHINGa.k.aゆよゆっぺ",
+   "name_kana": "さむしんぐゆよゆっぺ",
+   "aliases": "SOMETHING a.k.a ゆよゆっぺ"
+  },
+  {
+   "id": "cr_d79ada1d1bb9",
+   "name": "cosMo@暴走P",
+   "name_kana": "こすもぼうそうぴー",
+   "aliases": null
+  },
+  {
+   "id": "cr_f72b06684dfc",
+   "name": "あさくらあずみ",
+   "name_kana": "あさくらあずみ",
+   "aliases": null
+  },
+  {
+   "id": "cr_8030a7fd06ed",
+   "name": "いつきおと",
+   "name_kana": "いつきおと",
+   "aliases": null
+  },
+  {
+   "id": "cr_19c0330e711e",
+   "name": "いのる",
+   "name_kana": "いのる",
+   "aliases": "いのる (CoWRITE)"
+  },
+  {
+   "id": "cr_c01f30abf0df",
+   "name": "いよわ",
+   "name_kana": "いよわ",
+   "aliases": null
+  },
+  {
+   "id": "cr_0b97dc0ba1a8",
+   "name": "おおくぼひろし",
+   "name_kana": "おおくぼひろし",
+   "aliases": "BNGI(おおくぼひろし)\nBNSI(おおくぼひろし)\nBNSI(おおくぼひろし）\nNBGI(おおくぼひろし)\nNBSI(おおくぼひろし)"
+  },
+  {
+   "id": "cr_640e4715f418",
+   "name": "おもち花",
+   "name_kana": "おもちか",
+   "aliases": null
+  },
+  {
+   "id": "cr_e659763c532f",
+   "name": "きなみうみ",
+   "name_kana": "きなみうみ",
+   "aliases": null
+  },
+  {
+   "id": "cr_a41fbce1894d",
+   "name": "きみコ",
+   "name_kana": "きみこ",
+   "aliases": null
+  },
+  {
+   "id": "cr_1555471f8cc3",
+   "name": "くじら",
+   "name_kana": "くじら",
+   "aliases": null
+  },
+  {
+   "id": "cr_9e1b04fe0f59",
+   "name": "くぼけん・エトウ",
+   "name_kana": "くぼけんえとう",
+   "aliases": "BNSI（くぼけん・エトウ"
+  },
+  {
+   "id": "cr_65de1af58844",
+   "name": "こだまさおり",
+   "name_kana": "こだまさおり",
+   "aliases": null
+  },
+  {
+   "id": "cr_a6f2cd3984e4",
+   "name": "じん",
+   "name_kana": "じん",
+   "aliases": null
+  },
+  {
+   "id": "cr_1956f18829f2",
+   "name": "ぜったくん",
+   "name_kana": "ぜったくん",
+   "aliases": null
+  },
+  {
+   "id": "cr_d5408f1583c4",
+   "name": "たかはし智秋",
+   "name_kana": "たかはしちあき",
+   "aliases": null
+  },
+  {
+   "id": "cr_6b82b10079b6",
+   "name": "ねりきり",
+   "name_kana": "ねりきり",
+   "aliases": "ねりきり (KEYTONE)\nねりきり(KEYTONE)"
+  },
+  {
+   "id": "cr_f7df1624a44b",
+   "name": "まんきゅう",
+   "name_kana": "まんきゅう",
+   "aliases": null
+  },
+  {
+   "id": "cr_0f50ee7ef451",
+   "name": "めんま",
+   "name_kana": "めんま",
+   "aliases": null
+  },
+  {
+   "id": "cr_a81d9a31b04f",
+   "name": "やいり",
+   "name_kana": "やいり",
+   "aliases": null
+  },
+  {
+   "id": "cr_62ed71e5f3ef",
+   "name": "やぎぬまかな",
+   "name_kana": "やぎぬまかな",
+   "aliases": null
+  },
+  {
+   "id": "cr_8dc17e8efe2d",
+   "name": "やしきん",
+   "name_kana": "やしきん",
+   "aliases": null
+  },
+  {
+   "id": "cr_6d0af2f8440d",
+   "name": "ゆよゆっぺ",
+   "name_kana": "ゆよゆっぺ",
+   "aliases": null
+  },
+  {
+   "id": "cr_4cac0cc98c6f",
+   "name": "アオワイファイ",
+   "name_kana": "あおわいふぁい",
+   "aliases": null
+  },
+  {
+   "id": "cr_b11594714126",
+   "name": "アッシュ井上",
+   "name_kana": "あっしゅいのうえ",
+   "aliases": "アッシュ井上(Dream Monster)"
+  },
+  {
+   "id": "cr_9812847d3091",
+   "name": "アツミサオリ",
+   "name_kana": "あつみさおり",
+   "aliases": null
+  },
+  {
+   "id": "cr_32f25cdaa5ae",
+   "name": "イイジマケン",
+   "name_kana": "いいじまけん",
+   "aliases": null
+  },
+  {
+   "id": "cr_f010f8a1c9b6",
+   "name": "イケガミキヨシ",
+   "name_kana": "いけがみきよし",
+   "aliases": null
+  },
+  {
+   "id": "cr_94db48abe640",
+   "name": "イズミカワソラ",
+   "name_kana": "いずみかわそら",
+   "aliases": null
+  },
+  {
+   "id": "cr_79462c7cd666",
+   "name": "イトイ",
+   "name_kana": "いとい",
+   "aliases": "イトイ(Dream Monster)"
+  },
+  {
+   "id": "cr_77ff373f2526",
+   "name": "ウツミタカアキ",
+   "name_kana": "うつみたかあき",
+   "aliases": null
+  },
+  {
+   "id": "cr_d4b3e7396f6c",
+   "name": "オオヤギヒロオ",
+   "name_kana": "おおやぎひろお",
+   "aliases": null
+  },
+  {
+   "id": "cr_5e8cc7cc9afd",
+   "name": "オタユキ",
+   "name_kana": "おたゆき",
+   "aliases": null
+  },
+  {
+   "id": "cr_3d73578787c7",
+   "name": "オノダヒロユキ",
+   "name_kana": "おのだひろゆき",
+   "aliases": null
+  },
+  {
+   "id": "cr_6de09cb5d72f",
+   "name": "オミ織葉",
+   "name_kana": "おみおりは",
+   "aliases": null
+  },
+  {
+   "id": "cr_a727cb9dfc9a",
+   "name": "オリバー",
+   "name_kana": "おりばー",
+   "aliases": null
+  },
+  {
+   "id": "cr_2ff517f13bb5",
+   "name": "クレジットは作曲",
+   "name_kana": "くれじっとはさっきょく",
+   "aliases": null
+  },
+  {
+   "id": "cr_8acda7e97520",
+   "name": "グシミヤギヒデユキ",
+   "name_kana": "ぐしみやぎひでゆき",
+   "aliases": "グシミヤギ ヒデユキ\nグシミヤギヒデユキ(Hifumi,inc.)"
+  },
+  {
+   "id": "cr_94a1b9c8186f",
+   "name": "グッド",
+   "name_kana": "ぐっど",
+   "aliases": "グッド(MONACA)"
+  },
+  {
+   "id": "cr_c86a32f1832b",
+   "name": "ケンモチヒデフミ",
+   "name_kana": "けんもちひでふみ",
+   "aliases": null
+  },
+  {
+   "id": "cr_95170eba114a",
+   "name": "サイトウヨシヒロ",
+   "name_kana": "さいとうよしひろ",
+   "aliases": null
+  },
+  {
+   "id": "cr_e16149259143",
+   "name": "サイトウリョースケ",
+   "name_kana": "さいとうりょーすけ",
+   "aliases": "サイトウ リョースケ(Relic Lyric, inc.)"
+  },
+  {
+   "id": "cr_ade25e451b17",
+   "name": "サクマリョウ",
+   "name_kana": "さくまりょう",
+   "aliases": null
+  },
+  {
+   "id": "cr_3cfb106c2fb4",
+   "name": "ササキジュン",
+   "name_kana": "ささきじゅん",
+   "aliases": null
+  },
+  {
+   "id": "cr_c7f2bee409a6",
+   "name": "ササキトモコ",
+   "name_kana": "ささきともこ",
+   "aliases": null
+  },
+  {
+   "id": "cr_83d181755a79",
+   "name": "サツキ",
+   "name_kana": "さつき",
+   "aliases": null
+  },
+  {
+   "id": "cr_2d00f4bdf657",
+   "name": "シバタトモキ",
+   "name_kana": "しばたともき",
+   "aliases": "シバタトモキ(Dream Monster)"
+  },
+  {
+   "id": "cr_b02938485c69",
+   "name": "ジョンジュ",
+   "name_kana": "じょんじゅ",
+   "aliases": "ジョンジュ(Heo Jeongjoo/허정주)"
+  },
+  {
+   "id": "cr_d3763fd354b3",
+   "name": "ダンス☆マン",
+   "name_kana": "だんす☆まん",
+   "aliases": null
+  },
+  {
+   "id": "cr_53cc3c93176c",
+   "name": "チバニャン",
+   "name_kana": "ちばにゃん",
+   "aliases": null
+  },
+  {
+   "id": "cr_df4fce07d976",
+   "name": "ツミキ",
+   "name_kana": "つみき",
+   "aliases": null
+  },
+  {
+   "id": "cr_d9fac93b8be6",
+   "name": "デレパジ",
+   "name_kana": "でれぱじ",
+   "aliases": "デレパジ(佳村はるか)\nデレパジ(原紗友里)\nデレパジ(大橋彩香)\nデレパジ(福原綾香)\nデレパジ(青木瑠璃子)"
+  },
+  {
+   "id": "cr_954f191ce48d",
+   "name": "トミタカズキ",
+   "name_kana": "とみたかずき",
+   "aliases": "トミタカズキ(SUPA LOVE)"
+  },
+  {
+   "id": "cr_528b63f6edea",
+   "name": "トリ音",
+   "name_kana": "とりおん",
+   "aliases": "BNSI(トリ音)\nBNSI（トリ音）"
+  },
+  {
+   "id": "cr_3a87fae3645d",
+   "name": "ナカシマ",
+   "name_kana": "なかしま",
+   "aliases": null
+  },
+  {
+   "id": "cr_ecdd1057b294",
+   "name": "ナカムラジュンキ",
+   "name_kana": "なかむらじゅんき",
+   "aliases": "ナカムラジュンキ(Blue Bird's Nest)"
+  },
+  {
+   "id": "cr_622cdd9dfebe",
+   "name": "ナナホシ管弦楽団",
+   "name_kana": "ななほしかんげんがくだん",
+   "aliases": null
+  },
+  {
+   "id": "cr_0627c64cce61",
+   "name": "ナユタン星人",
+   "name_kana": "なゆたんせいじん",
+   "aliases": null
+  },
+  {
+   "id": "cr_966f15d766a8",
+   "name": "ハマサキユウジ",
+   "name_kana": "はまさきゆうじ",
+   "aliases": null
+  },
+  {
+   "id": "cr_9dcd513ab4f2",
+   "name": "ハヤシケイ",
+   "name_kana": "はやしけい",
+   "aliases": null
+  },
+  {
+   "id": "cr_f9f5dcf3ef30",
+   "name": "ハラユカ。",
+   "name_kana": "はらゆか。",
+   "aliases": null
+  },
+  {
+   "id": "cr_8f702cc681e8",
+   "name": "バグベア",
+   "name_kana": "ばぐべあ",
+   "aliases": null
+  },
+  {
+   "id": "cr_89a6e720a2c8",
+   "name": "ヒゲドライバー",
+   "name_kana": "ひげどらいばー",
+   "aliases": null
+  },
+  {
+   "id": "cr_693b4be5eb8f",
+   "name": "ファンキー末吉",
+   "name_kana": "ふぁんきーすえよし",
+   "aliases": null
+  },
+  {
+   "id": "cr_795aeaeeb0c0",
+   "name": "フロクロ",
+   "name_kana": "ふろくろ",
+   "aliases": null
+  },
+  {
+   "id": "cr_229e0a263017",
+   "name": "フワリ",
+   "name_kana": "ふわり",
+   "aliases": "フワリ(Dream Monster)"
+  },
+  {
+   "id": "cr_e37c54f36ef7",
+   "name": "ペロ",
+   "name_kana": "ぺろ",
+   "aliases": null
+  },
+  {
+   "id": "cr_3b78b1a6779e",
+   "name": "マイクスギヤマ",
+   "name_kana": "まいくすぎやま",
+   "aliases": null
+  },
+  {
+   "id": "cr_f8646bdf6722",
+   "name": "マチゲリータ",
+   "name_kana": "まちげりーた",
+   "aliases": null
+  },
+  {
+   "id": "cr_e96a4ae80dd5",
+   "name": "マルヤマテツオ",
+   "name_kana": "まるやまてつお",
+   "aliases": null
+  },
+  {
+   "id": "cr_62b5ca8a6a41",
+   "name": "ミズノゲンキ",
+   "name_kana": "みずのげんき",
+   "aliases": null
+  },
+  {
+   "id": "cr_e369ac048fb8",
+   "name": "ミディ",
+   "name_kana": "みでぃ",
+   "aliases": null
+  },
+  {
+   "id": "cr_13c91b0cc5b6",
+   "name": "ミト",
+   "name_kana": "みと",
+   "aliases": "ミト(クラムボン)\nミト[クラムボン]"
+  },
+  {
+   "id": "cr_f4f0a62ba6ed",
+   "name": "ミフメイ",
+   "name_kana": "みふめい",
+   "aliases": "BNSI (ミフメイ)\nBNSI(ミフメイ)\nBNSI（ミフメイ）\nミフメイ(Bandai Namco Studios Inc.)"
+  },
+  {
+   "id": "cr_5b809af151a0",
+   "name": "モモキエイジ",
+   "name_kana": "ももきえいじ",
+   "aliases": "BNEI(モモキエイジ)\nBNSI(モモキエイジ)\nNBGI(モモキエイジ)"
+  },
+  {
+   "id": "cr_21c65765d4b3",
+   "name": "モリタコータ",
+   "name_kana": "もりたこーた",
+   "aliases": null
+  },
+  {
+   "id": "cr_2d70bee35397",
+   "name": "ヤナガワタカオ",
+   "name_kana": "やながわたかお",
+   "aliases": null
+  },
+  {
+   "id": "cr_69756052af5e",
+   "name": "ヤマモトショウ",
+   "name_kana": "やまもとしょう",
+   "aliases": null
+  },
+  {
+   "id": "cr_8da413e81e90",
+   "name": "ラムシーニ",
+   "name_kana": "らむしーに",
+   "aliases": null
+  },
+  {
+   "id": "cr_adefb56c6a74",
+   "name": "リスナーP有志＆ミンゴス（今井麻美）＆ちあking",
+   "name_kana": "りすなーぴーゆうしみんごすいまいあさみちあきんぐ",
+   "aliases": "リスナーP有志＆ミンゴス（今井麻美）＆ちあking（たかはし智秋）"
+  },
+  {
+   "id": "cr_c2ed352784e1",
+   "name": "一色真実",
+   "name_kana": "いっしきまみ",
+   "aliases": null
+  },
+  {
+   "id": "cr_cde07ea3e709",
+   "name": "七条レタス",
+   "name_kana": "しちじょうれたす",
+   "aliases": "七条レタス (IOSYS)"
+  },
+  {
+   "id": "cr_5b8b94abc7c2",
+   "name": "三井真一",
+   "name_kana": "みついしんいち",
+   "aliases": "三井真一(Dream Monster)"
+  },
+  {
+   "id": "cr_6f5b36ad80b0",
+   "name": "三好啓太",
+   "name_kana": "みよしけいた",
+   "aliases": null
+  },
+  {
+   "id": "cr_10a793b9c4d2",
+   "name": "三宅優",
+   "name_kana": "みやけゆう",
+   "aliases": "三宅優(ミヤケユウスタジオ)"
+  },
+  {
+   "id": "cr_2a83d8cac520",
+   "name": "三浦誠司",
+   "name_kana": "みうらせいじ",
+   "aliases": null
+  },
+  {
+   "id": "cr_3c91ebfe2257",
+   "name": "三澤康広",
+   "name_kana": "みさわやすひろ",
+   "aliases": null
+  },
+  {
+   "id": "cr_5a641ac3ac23",
+   "name": "三輪智也",
+   "name_kana": "みわともや",
+   "aliases": null
+  },
+  {
+   "id": "cr_8d826be1be14",
+   "name": "三重野瞳",
+   "name_kana": "みえのひとみ",
+   "aliases": null
+  },
+  {
+   "id": "cr_a0d9303faf76",
+   "name": "上倉紀行",
+   "name_kana": "かみくらのりゆき",
+   "aliases": null
+  },
+  {
+   "id": "cr_176ba61275a4",
+   "name": "上松範康",
+   "name_kana": "あげまつのりやす",
+   "aliases": "上松範康(Elements Garden)"
+  },
+  {
+   "id": "cr_94521e1d7b10",
+   "name": "上江洲誠",
+   "name_kana": "うえずまこと",
+   "aliases": null
+  },
+  {
+   "id": "cr_321a69b06c6f",
+   "name": "上田晃司",
+   "name_kana": "うえだこうじ",
+   "aliases": null
+  },
+  {
+   "id": "cr_46cdcc1c3bbc",
+   "name": "下地悠",
+   "name_kana": "しもじゆう",
+   "aliases": null
+  },
+  {
+   "id": "cr_faf1cd59faaf",
+   "name": "中原徹也",
+   "name_kana": "なかはらてつや",
+   "aliases": null
+  },
+  {
+   "id": "cr_c0f72740ae3f",
+   "name": "中土智博",
+   "name_kana": "なかつちともひろ",
+   "aliases": null
+  },
+  {
+   "id": "cr_abd528fe00f5",
+   "name": "中塚武",
+   "name_kana": "なかつかたけし",
+   "aliases": null
+  },
+  {
+   "id": "cr_55f3bd7da9c7",
+   "name": "中山真斗",
+   "name_kana": "なかやままなと",
+   "aliases": "中山真斗(Elements Garden)"
+  },
+  {
+   "id": "cr_61e07d219bda",
+   "name": "中島慧",
+   "name_kana": "なかじまけい",
+   "aliases": null
+  },
+  {
+   "id": "cr_3194eaa4480d",
+   "name": "中川浩二",
+   "name_kana": "なかがわこうじ",
+   "aliases": "BNEI(中川浩二)\nBNGI(中川浩二)\nBNSI(中川浩二)\nBNSI（中川浩二)\nBNSI（中川浩二）\nNBGI(中川浩二)\nNBSI（中川浩二)\n中川浩二 (Bandai Namco Studios Inc.)"
+  },
+  {
+   "id": "cr_a25d40bdca6a",
+   "name": "中村さんそ",
+   "name_kana": "なかむらさんそ",
+   "aliases": null
+  },
+  {
+   "id": "cr_050f43bb58a9",
+   "name": "中村ヒロ",
+   "name_kana": "なかむらひろ",
+   "aliases": null
+  },
+  {
+   "id": "cr_0fab8f5af3fc",
+   "name": "中村彼方",
+   "name_kana": "なかむらかなた",
+   "aliases": null
+  },
+  {
+   "id": "cr_1d1ac73ecbb3",
+   "name": "中村恵",
+   "name_kana": "なかむらめぐみ",
+   "aliases": null
+  },
+  {
+   "id": "cr_8c69b2d15f32",
+   "name": "中村瑛彦",
+   "name_kana": "なかむらあきひこ",
+   "aliases": "中村瑛彦(SUPA LOVE)"
+  },
+  {
+   "id": "cr_97df627f0061",
+   "name": "中村真悟",
+   "name_kana": "なかむらしんご",
+   "aliases": null
+  },
+  {
+   "id": "cr_8d5411519c62",
+   "name": "中沢伴行",
+   "name_kana": "なかざわともゆき",
+   "aliases": null
+  },
+  {
+   "id": "cr_43ff94e309fd",
+   "name": "中潟憲雄",
+   "name_kana": "なかがたのりお",
+   "aliases": "NBGI(中潟憲雄)"
+  },
+  {
+   "id": "cr_63af58c5aa3f",
+   "name": "中西圭三",
+   "name_kana": "なかにしけいぞう",
+   "aliases": null
+  },
+  {
+   "id": "cr_35c448253f28",
+   "name": "中野ゆう",
+   "name_kana": "なかのゆう",
+   "aliases": null
+  },
+  {
+   "id": "cr_6908c87649f6",
+   "name": "中野領太",
+   "name_kana": "なかのりょうた",
+   "aliases": "中野領太(onetrap)\n中野領太（onetrap）"
+  },
+  {
+   "id": "cr_f6efe5b74039",
+   "name": "中鶴潤一",
+   "name_kana": "なかつるじゅんいち",
+   "aliases": "中鶴潤一(Bandai Namco Studios Inc.)"
+  },
+  {
+   "id": "cr_90c5077e6777",
+   "name": "丸山哲生",
+   "name_kana": "まるやまてつお",
+   "aliases": null
+  },
+  {
+   "id": "cr_259b7af03ac3",
+   "name": "丸山真由子",
+   "name_kana": "まるやままゆこ",
+   "aliases": "丸山真由子(Blue Bird's Nest)"
+  },
+  {
+   "id": "cr_d18d692b7a22",
+   "name": "乃々花りあら",
+   "name_kana": "ののかりあら",
+   "aliases": null
+  },
+  {
+   "id": "cr_6517e18b59fb",
+   "name": "久澄春人",
+   "name_kana": "くすみはると",
+   "aliases": null
+  },
+  {
+   "id": "cr_31791ac80a3d",
+   "name": "亀山耕一郎",
+   "name_kana": "かめやまこういちろう",
+   "aliases": null
+  },
+  {
+   "id": "cr_4791900903da",
+   "name": "五十嵐凪月",
+   "name_kana": "いがらしなつき",
+   "aliases": null
+  },
+  {
+   "id": "cr_258ea24d54e6",
+   "name": "井上馨太",
+   "name_kana": "いのうえけいた",
+   "aliases": "井上馨太(MONACA)"
+  },
+  {
+   "id": "cr_0eb10bf0e0b2",
+   "name": "井口イチロウ",
+   "name_kana": "いぐちいちろう",
+   "aliases": null
+  },
+  {
+   "id": "cr_0fc667e67075",
+   "name": "井筒日美",
+   "name_kana": "いづつひとみ",
+   "aliases": null
+  },
+  {
+   "id": "cr_715bba22942d",
+   "name": "今井麻美",
+   "name_kana": "いまいあさみ",
+   "aliases": null
+  },
+  {
+   "id": "cr_7b74f908299e",
+   "name": "今泉洋",
+   "name_kana": "いまいずみひろし",
+   "aliases": null
+  },
+  {
+   "id": "cr_2a858becf5b5",
+   "name": "伊福部崇",
+   "name_kana": "いふくべたかし",
+   "aliases": null
+  },
+  {
+   "id": "cr_f34625bb77df",
+   "name": "伊藤\"三代\"タカシ",
+   "name_kana": "いとうみよたかし",
+   "aliases": null
+  },
+  {
+   "id": "cr_86d7862c5b97",
+   "name": "伊藤和馬",
+   "name_kana": "いとうかずま",
+   "aliases": "伊藤和馬(Arte Refact)"
+  },
+  {
+   "id": "cr_84f8fb4e52a2",
+   "name": "伊藤心太郎",
+   "name_kana": "いとうしんたろう",
+   "aliases": null
+  },
+  {
+   "id": "cr_66fdd9cf0530",
+   "name": "伊藤立",
+   "name_kana": "いとうりつ",
+   "aliases": null
+  },
+  {
+   "id": "cr_5745b16f97e8",
+   "name": "伊藤翼",
+   "name_kana": "いとうつばさ",
+   "aliases": null
+  },
+  {
+   "id": "cr_b2be649346de",
+   "name": "伊藤賢",
+   "name_kana": "いとうけん",
+   "aliases": null
+  },
+  {
+   "id": "cr_44697974b5c6",
+   "name": "伊那村さちこ",
+   "name_kana": "いなむらさちこ",
+   "aliases": null
+  },
+  {
+   "id": "cr_669bdf0f16d2",
+   "name": "住谷翔平",
+   "name_kana": "すみたにしょうへい",
+   "aliases": null
+  },
+  {
+   "id": "cr_a5b9dde53c8b",
+   "name": "佐々倉有吾",
+   "name_kana": "ささくらゆうご",
+   "aliases": null
+  },
+  {
+   "id": "cr_728c06b62510",
+   "name": "佐々木宏人",
+   "name_kana": "ささきひろと",
+   "aliases": "BNEI(佐々木宏人)\nBNGI(佐々木宏人)\nBNSI(佐々木宏人)\nNBGI(佐々木宏人)"
+  },
+  {
+   "id": "cr_1fd242d1310e",
+   "name": "佐々木恵梨",
+   "name_kana": "ささきえり",
+   "aliases": null
+  },
+  {
+   "id": "cr_f2aefbddfbc1",
+   "name": "佐々木淳",
+   "name_kana": "ささきじゅん",
+   "aliases": null
+  },
+  {
+   "id": "cr_e8c06c18a43d",
+   "name": "佐々木裕",
+   "name_kana": "ささきゆう",
+   "aliases": null
+  },
+  {
+   "id": "cr_b4357a59cc28",
+   "name": "佐久間誠",
+   "name_kana": "さくままこと",
+   "aliases": null
+  },
+  {
+   "id": "cr_d35b23b027b0",
+   "name": "佐伯youthK",
+   "name_kana": "さえきゆーすけー",
+   "aliases": "佐伯youthK(rhythm zone)"
+  },
+  {
+   "id": "cr_28646fea7b34",
+   "name": "佐伯高志",
+   "name_kana": "さえきたかし",
+   "aliases": null
+  },
+  {
+   "id": "cr_c202eae15c87",
+   "name": "佐藤ノリチカ",
+   "name_kana": "さとうのりちか",
+   "aliases": null
+  },
+  {
+   "id": "cr_63cde80dcf71",
+   "name": "佐藤亘",
+   "name_kana": "さとうわたる",
+   "aliases": "佐藤亘(ストリングスアレンジ)"
+  },
+  {
+   "id": "cr_6bda92a2cbe9",
+   "name": "佐藤厚仁",
+   "name_kana": "さとうあつひと",
+   "aliases": "佐藤厚仁(Dream Monster)"
+  },
+  {
+   "id": "cr_24adbbd24a51",
+   "name": "佐藤和郎",
+   "name_kana": "さとうかずお",
+   "aliases": null
+  },
+  {
+   "id": "cr_c084e95212bd",
+   "name": "佐藤樹",
+   "name_kana": "さとうたつき",
+   "aliases": null
+  },
+  {
+   "id": "cr_7604b4f717a6",
+   "name": "佐藤泰将",
+   "name_kana": "さとうやすまさ",
+   "aliases": null
+  },
+  {
+   "id": "cr_4d78e5170a8b",
+   "name": "佐藤純一",
+   "name_kana": "さとうじゅんいち",
+   "aliases": "佐藤純一 (fhána)\n佐藤純一(fhána)"
+  },
+  {
+   "id": "cr_31a2149060f7",
+   "name": "佐藤貴文",
+   "name_kana": "さとうたかふみ",
+   "aliases": "BNEI(佐藤貴文)\nBNSI (佐藤貴文)\nBNSI(佐藤貴文)\nBNSI(佐藤貴文）\nBNSI（佐藤貴文）\nNBGI(佐藤貴文)\n佐藤貴文(Bandai Namco Studio Inc.)\n佐藤貴文(Bandai Namco Studios Inc.)\n佐藤貴文(バンダイナムコスタジオ)"
+  },
+  {
+   "id": "cr_8d1728723868",
+   "name": "佐野信義",
+   "name_kana": "さののぶよし",
+   "aliases": null
+  },
+  {
+   "id": "cr_fde4b71caafc",
+   "name": "佐野宏晃",
+   "name_kana": "さのひろあき",
+   "aliases": null
+  },
+  {
+   "id": "cr_fbccbb57fc20",
+   "name": "佐高陵平",
+   "name_kana": "さたかりょうへい",
+   "aliases": "佐高陵平(Hifumi,Inc.)\n佐高陵平(Hifumi,inc.)"
+  },
+  {
+   "id": "cr_9dd245e82042",
+   "name": "俊龍",
+   "name_kana": "しゅんりゅう",
+   "aliases": null
+  },
+  {
+   "id": "cr_890ac11389bd",
+   "name": "信政誠",
+   "name_kana": "のぶまさまこと",
+   "aliases": null
+  },
+  {
+   "id": "cr_996171b642e2",
+   "name": "倉内達矢",
+   "name_kana": "くらうちたつや",
+   "aliases": null
+  },
+  {
+   "id": "cr_40ec1a5adb5c",
+   "name": "光増ハジメ",
+   "name_kana": "みつますはじめ",
+   "aliases": "光増ハジメ(FirstCall)"
+  },
+  {
+   "id": "cr_eeb3dadf003e",
+   "name": "児玉雨子",
+   "name_kana": "こだまあめこ",
+   "aliases": null
+  },
+  {
+   "id": "cr_dcbd7adcbed4",
+   "name": "八城雄太",
+   "name_kana": "やしろゆうた",
+   "aliases": "BNEI(八城雄太)\nBNSI(八城雄太)\nBNSI(八城雄太).\nNBGI(八城雄太)"
+  },
+  {
+   "id": "cr_d2d6fb31efa1",
+   "name": "八尋春菜",
+   "name_kana": "やひろはるな",
+   "aliases": null
+  },
+  {
+   "id": "cr_e1250a949172",
+   "name": "八木篤史",
+   "name_kana": "やぎあつし",
+   "aliases": "八木篤史（SUPA LOVE）"
+  },
+  {
+   "id": "cr_5caa86b58ad8",
+   "name": "兼松衆",
+   "name_kana": "かねまつしゅう",
+   "aliases": null
+  },
+  {
+   "id": "cr_abf0a2d9633f",
+   "name": "内海孝彰",
+   "name_kana": "うつみたかあき",
+   "aliases": "内海孝彰（TRYTONELABO）"
+  },
+  {
+   "id": "cr_9be92619178a",
+   "name": "内田哲也",
+   "name_kana": "うちだてつや",
+   "aliases": "BNEI(内田哲也)\nBNGI(内田哲也)\nBNSI(内田哲也)\nBNSI（内田哲也）\nNBGI(内田哲也)\nNBGI（内田哲也）\nNBSI(内田哲也)\n内田哲也(Cygames)"
+  },
+  {
+   "id": "cr_3a439a227fab",
+   "name": "内藤匠",
+   "name_kana": "ないとうたくみ",
+   "aliases": "内藤匠(SETOFF RECORDS)"
+  },
+  {
+   "id": "cr_3852097e0bf0",
+   "name": "凛々咲",
+   "name_kana": "りりさ",
+   "aliases": null
+  },
+  {
+   "id": "cr_5ffe4df16d83",
+   "name": "出口遼",
+   "name_kana": "でぐちりょう",
+   "aliases": "出口遼(KEYTONE)"
+  },
+  {
+   "id": "cr_3d3a7d9b27b7",
+   "name": "前口ワタル",
+   "name_kana": "まえぐちわたる",
+   "aliases": null
+  },
+  {
+   "id": "cr_24ff9668abbd",
+   "name": "前山田健一",
+   "name_kana": "まえやまだけんいち",
+   "aliases": null
+  },
+  {
+   "id": "cr_4bd800ca06ba",
+   "name": "前川みく",
+   "name_kana": "まえかわみく",
+   "aliases": "前川みく（高森奈津美）"
+  },
+  {
+   "id": "cr_63b01a98bae8",
+   "name": "前田甘露",
+   "name_kana": "まえだかんろ",
+   "aliases": null
+  },
+  {
+   "id": "cr_1d3a9305c3d2",
+   "name": "前迫潤哉",
+   "name_kana": "まえさこじゅんや",
+   "aliases": null
+  },
+  {
+   "id": "cr_bc6cba7e5c34",
+   "name": "加藤冴人",
+   "name_kana": "かとうさえと",
+   "aliases": null
+  },
+  {
+   "id": "cr_7eb9774b0bc6",
+   "name": "加藤弘也",
+   "name_kana": "かとうひろや",
+   "aliases": null
+  },
+  {
+   "id": "cr_21edd927e029",
+   "name": "加藤祐平",
+   "name_kana": "かとうゆうへい",
+   "aliases": null
+  },
+  {
+   "id": "cr_affe91f1e9db",
+   "name": "北ノ原凉",
+   "name_kana": "きたのはらりょう",
+   "aliases": null
+  },
+  {
+   "id": "cr_dbb2f8a578a6",
+   "name": "北川勝利",
+   "name_kana": "きたがわしょうり",
+   "aliases": null
+  },
+  {
+   "id": "cr_e1dcdf72dd24",
+   "name": "北川悠仁",
+   "name_kana": "きたがわゆうじん",
+   "aliases": null
+  },
+  {
+   "id": "cr_6f3f6d8f9a28",
+   "name": "北谷光浩",
+   "name_kana": "きたたにみつひろ",
+   "aliases": "BNSI(北谷光浩)\nBNSI（北谷光浩）"
+  },
+  {
+   "id": "cr_46e8cd04696e",
+   "name": "十王邦夫",
+   "name_kana": "じゅうおうくにお",
+   "aliases": null
+  },
+  {
+   "id": "cr_7f8991648773",
+   "name": "半田彬倫",
+   "name_kana": "はんだあきのり",
+   "aliases": null
+  },
+  {
+   "id": "cr_78b0ef98bf46",
+   "name": "半田翼",
+   "name_kana": "はんだつばさ",
+   "aliases": null
+  },
+  {
+   "id": "cr_233103aa03bc",
+   "name": "南悠翔",
+   "name_kana": "みなみゆうと",
+   "aliases": null
+  },
+  {
+   "id": "cr_a3901b17ac2b",
+   "name": "南田健吾",
+   "name_kana": "みなみだけんご",
+   "aliases": "南田健吾(agehasprings Party)\n南田健吾（onetrap）"
+  },
+  {
+   "id": "cr_0173034a1205",
+   "name": "南直博",
+   "name_kana": "みなみなおひろ",
+   "aliases": null
+  },
+  {
+   "id": "cr_32b173e3f87b",
+   "name": "南郷達也",
+   "name_kana": "なんごうたつや",
+   "aliases": null
+  },
+  {
+   "id": "cr_77cf030953cc",
+   "name": "南陽子",
+   "name_kana": "みなみようこ",
+   "aliases": null
+  },
+  {
+   "id": "cr_7b934c62d309",
+   "name": "原一博",
+   "name_kana": "はらかずひろ",
+   "aliases": null
+  },
+  {
+   "id": "cr_1fe47e7ba28f",
+   "name": "原口沙輔",
+   "name_kana": "はらぐちさすけ",
+   "aliases": null
+  },
+  {
+   "id": "cr_b3d10124a569",
+   "name": "原田アツシ",
+   "name_kana": "はらだあつし",
+   "aliases": null
+  },
+  {
+   "id": "cr_95e1653c4833",
+   "name": "原田ナオ",
+   "name_kana": "はらだなお",
+   "aliases": null
+  },
+  {
+   "id": "cr_ef51bae9cebe",
+   "name": "原田篤",
+   "name_kana": "はらだあつし",
+   "aliases": "原田篤 (Arte Refact)\n原田篤(Arte Refact)\n原田篤（Arte Refact）"
+  },
+  {
+   "id": "cr_58167376c553",
+   "name": "原田雄一",
+   "name_kana": "はらだゆういち",
+   "aliases": null
+  },
+  {
+   "id": "cr_4582417623f0",
+   "name": "原由実",
+   "name_kana": "はらゆみ",
+   "aliases": null
+  },
+  {
+   "id": "cr_c5dc7f2d4367",
+   "name": "原知也",
+   "name_kana": "はらともや",
+   "aliases": null
+  },
+  {
+   "id": "cr_2f9217e3fee9",
+   "name": "原紗友里",
+   "name_kana": "はらさゆり",
+   "aliases": null
+  },
+  {
+   "id": "cr_60965c6041f9",
+   "name": "原紗友里＆青木瑠璃子fromCINDERELLAPARTY！",
+   "name_kana": "はらさゆりあおきるりこしんでれらぱーてぃー",
+   "aliases": "原紗友里＆青木瑠璃子 from CINDERELLA PARTY！"
+  },
+  {
+   "id": "cr_48139459c0ef",
+   "name": "及川眠子",
+   "name_kana": "おいかわねこ",
+   "aliases": null
+  },
+  {
+   "id": "cr_7240557d33fc",
+   "name": "古屋真",
+   "name_kana": "ふるやまこと",
+   "aliases": null
+  },
+  {
+   "id": "cr_da394337f7fd",
+   "name": "古峰拓真",
+   "name_kana": "こみねたくま",
+   "aliases": "古峰拓真(Hifumi,inc.)"
+  },
+  {
+   "id": "cr_405dfa59998d",
+   "name": "只野菜摘",
+   "name_kana": "ただのなつみ",
+   "aliases": null
+  },
+  {
+   "id": "cr_554ce141cad1",
+   "name": "叶人",
+   "name_kana": "かなと",
+   "aliases": null
+  },
+  {
+   "id": "cr_bac4f99d0bd2",
+   "name": "吉川奏",
+   "name_kana": "よしかわそう",
+   "aliases": null
+  },
+  {
+   "id": "cr_e6cbdd3890ff",
+   "name": "吉田勝弥",
+   "name_kana": "よしだかつや",
+   "aliases": null
+  },
+  {
+   "id": "cr_44f30fd26d18",
+   "name": "吉田穣",
+   "name_kana": "よしだじょう",
+   "aliases": null
+  },
+  {
+   "id": "cr_1a722fecc948",
+   "name": "吉野貴雄",
+   "name_kana": "よしのたかお",
+   "aliases": null
+  },
+  {
+   "id": "cr_3931872532e0",
+   "name": "吟",
+   "name_kana": "ぎん",
+   "aliases": "吟 [BUSTED ROSE]"
+  },
+  {
+   "id": "cr_da8868ec1589",
+   "name": "和賀裕希",
+   "name_kana": "わがゆうき",
+   "aliases": "和賀裕希(sixth floor)"
+  },
+  {
+   "id": "cr_42a92ed397e3",
+   "name": "咲乃木ロク",
+   "name_kana": "さきのきろく",
+   "aliases": null
+  },
+  {
+   "id": "cr_f53181958b07",
+   "name": "品川樹",
+   "name_kana": "しながわいつき",
+   "aliases": null
+  },
+  {
+   "id": "cr_666256e29b3e",
+   "name": "哥丸雄貴",
+   "name_kana": "うたまるゆうき",
+   "aliases": null
+  },
+  {
+   "id": "cr_a0066ab5db65",
+   "name": "唐沢美帆",
+   "name_kana": "からさわみほ",
+   "aliases": null
+  },
+  {
+   "id": "cr_ebdc4b237cbb",
+   "name": "園田健太郎",
+   "name_kana": "そのだけんたろう",
+   "aliases": null
+  },
+  {
+   "id": "cr_f6b21e9ae9b9",
+   "name": "園田凌士",
+   "name_kana": "そのだりょうじ",
+   "aliases": null
+  },
+  {
+   "id": "cr_562209a6b96a",
+   "name": "園田智也",
+   "name_kana": "そのだともや",
+   "aliases": null
+  },
+  {
+   "id": "cr_13ee2c531404",
+   "name": "坂井季乃",
+   "name_kana": "さかいきの",
+   "aliases": null
+  },
+  {
+   "id": "cr_43d3de67f196",
+   "name": "坂井竜二",
+   "name_kana": "さかいりゅうじ",
+   "aliases": null
+  },
+  {
+   "id": "cr_e3ae1faa2aa2",
+   "name": "坂東邑真",
+   "name_kana": "ばんどうゆうま",
+   "aliases": null
+  },
+  {
+   "id": "cr_4af2dec55f94",
+   "name": "坂部剛",
+   "name_kana": "さかべつよし",
+   "aliases": null
+  },
+  {
+   "id": "cr_239a28f8ea37",
+   "name": "坪井リヒト",
+   "name_kana": "つぼいりひと",
+   "aliases": "坪井リヒト(Bandai Namco Studio Inc.)"
+  },
+  {
+   "id": "cr_9df1809a6048",
+   "name": "坪田修平",
+   "name_kana": "つぼたしゅうへい",
+   "aliases": "坪田修平 [TRYTONELABO]\n坪田修平(TRYTONELABO)\n坪田修平（TRYTONELABO）\n坪田修平［TRYTONELABO］"
+  },
+  {
+   "id": "cr_b0f838350659",
+   "name": "堀江晶太",
+   "name_kana": "ほりえしょうた",
+   "aliases": null
+  },
+  {
+   "id": "cr_e929a123293a",
+   "name": "堀秀彰",
+   "name_kana": "ほりひであき",
+   "aliases": null
+  },
+  {
+   "id": "cr_b5d4d3db22c5",
+   "name": "堀込高樹",
+   "name_kana": "ほりごめたかき",
+   "aliases": null
+  },
+  {
+   "id": "cr_779504f0724c",
+   "name": "塚田耕平",
+   "name_kana": "つかだこうへい",
+   "aliases": "塚田耕平(Dream Monster)"
+  },
+  {
+   "id": "cr_1992cdde9b7d",
+   "name": "塩原大貴",
+   "name_kana": "しおばらだいき",
+   "aliases": "塩原大貴 (SUPA LOVE)\n塩原大貴(SUPA LOVE)"
+  },
+  {
+   "id": "cr_ae4cf299b2d0",
+   "name": "増渕裕二",
+   "name_kana": "ますぶちゆうじ",
+   "aliases": "BNSI(増渕裕二)\nBNSI（増渕裕二）\nNBGI(増渕裕二)"
+  },
+  {
+   "id": "cr_9b477df7ac58",
+   "name": "増田武史",
+   "name_kana": "ますだたけし",
+   "aliases": null
+  },
+  {
+   "id": "cr_05e9fb98ce80",
+   "name": "増谷賢",
+   "name_kana": "ますたにけん",
+   "aliases": null
+  },
+  {
+   "id": "cr_c7355532e6f9",
+   "name": "夏海",
+   "name_kana": "なつみ",
+   "aliases": null
+  },
+  {
+   "id": "cr_9f0a16d31739",
+   "name": "夕野ヨシミ",
+   "name_kana": "ゆうのよしみ",
+   "aliases": "夕野ヨシミ (IOSYS)\n夕野ヨシミ(IOSYS)\n夕野ヨシミ（IOSYS）"
+  },
+  {
+   "id": "cr_ab56d0a0fb94",
+   "name": "夕野ヨシミ(IOSYS)狐夢想",
+   "name_kana": "ゆうのよしみこむそう",
+   "aliases": "夕野ヨシミ (IOSYS)　狐夢想 (COOL＆CREATE)"
+  },
+  {
+   "id": "cr_c4dac738c247",
+   "name": "多田李衣菜",
+   "name_kana": "ただりいな",
+   "aliases": "多田李衣菜（青木瑠璃子）"
+  },
+  {
+   "id": "cr_6fee9a7b492b",
+   "name": "夜兎",
+   "name_kana": "やと",
+   "aliases": null
+  },
+  {
+   "id": "cr_28e84171ac37",
+   "name": "大上昌子",
+   "name_kana": "おおうえまさこ",
+   "aliases": "NBGI(大上昌子)"
+  },
+  {
+   "id": "cr_41249676a880",
+   "name": "大久保博",
+   "name_kana": "おおくぼひろし",
+   "aliases": "BNSI（大久保博）"
+  },
+  {
+   "id": "cr_2639794aef31",
+   "name": "大久保薫",
+   "name_kana": "おおくぼかおる",
+   "aliases": null
+  },
+  {
+   "id": "cr_ae568b1ff4ff",
+   "name": "大和",
+   "name_kana": "やまと",
+   "aliases": null
+  },
+  {
+   "id": "cr_e2cb91b83f22",
+   "name": "大山恭子",
+   "name_kana": "おおやまきょうこ",
+   "aliases": "大山恭子 (Rebrast)"
+  },
+  {
+   "id": "cr_db21af8df8e8",
+   "name": "大岩航",
+   "name_kana": "おおいわわたる",
+   "aliases": "大岩航(TRYTONELABO)"
+  },
+  {
+   "id": "cr_00093769df93",
+   "name": "大川茂伸",
+   "name_kana": "おおかわしげのぶ",
+   "aliases": null
+  },
+  {
+   "id": "cr_9d7e4117c8d3",
+   "name": "大木奏弥",
+   "name_kana": "おおきそうや",
+   "aliases": "大木奏弥(Bandai Namco Studios Inc.)"
+  },
+  {
+   "id": "cr_73f739186707",
+   "name": "大森祥子",
+   "name_kana": "おおもりしょうこ",
+   "aliases": null
+  },
+  {
+   "id": "cr_ae8d763c591d",
+   "name": "大橋ちっぽけ",
+   "name_kana": "おおはしちっぽけ",
+   "aliases": null
+  },
+  {
+   "id": "cr_73caf104524a",
+   "name": "大橋恵",
+   "name_kana": "おおはしめぐみ",
+   "aliases": null
+  },
+  {
+   "id": "cr_14f205373d87",
+   "name": "大橋莉子",
+   "name_kana": "おおはしりこ",
+   "aliases": null
+  },
+  {
+   "id": "cr_6539474093a1",
+   "name": "大澤めい",
+   "name_kana": "おおさわめい",
+   "aliases": "BNSI(大澤めい)\n大澤めい (Bandai Namco Studios Inc.)\n大澤めい(Bandai Namco Studios Inc.)"
+  },
+  {
+   "id": "cr_643f7f022845",
+   "name": "大濱健悟",
+   "name_kana": "おおはまけんご",
+   "aliases": null
+  },
+  {
+   "id": "cr_13d17e74971f",
+   "name": "大熊淳生",
+   "name_kana": "おおくまあつお",
+   "aliases": "大熊淳生(Arte Refact)"
+  },
+  {
+   "id": "cr_31386e29aec3",
+   "name": "大石憲一郎",
+   "name_kana": "おおいしけんいちろう",
+   "aliases": null
+  },
+  {
+   "id": "cr_712b498c87b1",
+   "name": "大竹智之",
+   "name_kana": "おおたけともゆき",
+   "aliases": null
+  },
+  {
+   "id": "cr_e11cf4c2b6f1",
+   "name": "大西克巳",
+   "name_kana": "おおにしかつみ",
+   "aliases": "大西克巳 (Blue Bird's Nest)\n大西克巳(Blue Bird's Nest)"
+  },
+  {
+   "id": "cr_449bdcb8719a",
+   "name": "大野宏明",
+   "name_kana": "おおのひろあき",
+   "aliases": null
+  },
+  {
+   "id": "cr_04b7fa4d9554",
+   "name": "大野木宣幸",
+   "name_kana": "おおのぎのぶゆき",
+   "aliases": "NBGI(大野木宣幸)"
+  },
+  {
+   "id": "cr_703d309e1a1d",
+   "name": "太田貴之",
+   "name_kana": "おおたたかゆき",
+   "aliases": null
+  },
+  {
+   "id": "cr_5b36fcc8561a",
+   "name": "奈須野新平",
+   "name_kana": "なすのしんぺい",
+   "aliases": null
+  },
+  {
+   "id": "cr_2bb754e2b83f",
+   "name": "奥井康介",
+   "name_kana": "おくいこうすけ",
+   "aliases": null
+  },
+  {
+   "id": "cr_bda598617d53",
+   "name": "奥井雅美",
+   "name_kana": "おくいまさみ",
+   "aliases": null
+  },
+  {
+   "id": "cr_7352605b629b",
+   "name": "奥田もとい",
+   "name_kana": "おくだもとい",
+   "aliases": null
+  },
+  {
+   "id": "cr_e97499e9043a",
+   "name": "奥野涼",
+   "name_kana": "おくのりょう",
+   "aliases": null
+  },
+  {
+   "id": "cr_5fcc11899011",
+   "name": "安岡洋一郎",
+   "name_kana": "やすおかよういちろう",
+   "aliases": null
+  },
+  {
+   "id": "cr_a7fd5290bb55",
+   "name": "安島龍人",
+   "name_kana": "あじまりゅうと",
+   "aliases": null
+  },
+  {
+   "id": "cr_c36cf2a5dcc3",
+   "name": "安瀬聖",
+   "name_kana": "あんぜひじり",
+   "aliases": null
+  },
+  {
+   "id": "cr_f06e754dbac5",
+   "name": "安藤紗々",
+   "name_kana": "あんどうささ",
+   "aliases": null
+  },
+  {
+   "id": "cr_b6d34cda6b3f",
+   "name": "宝野聡史",
+   "name_kana": "たからのさとし",
+   "aliases": null
+  },
+  {
+   "id": "cr_3b7fe40613cf",
+   "name": "宮原恵太",
+   "name_kana": "みやはらけいた",
+   "aliases": null
+  },
+  {
+   "id": "cr_92efb1bd09a3",
+   "name": "宮原慶太",
+   "name_kana": "みやはらけいた",
+   "aliases": null
+  },
+  {
+   "id": "cr_3ebf1043bb36",
+   "name": "宮垣憲一郎",
+   "name_kana": "みやがきけんいちろう",
+   "aliases": null
+  },
+  {
+   "id": "cr_58afa2fd17d3",
+   "name": "宮島律子",
+   "name_kana": "みやじまりつこ",
+   "aliases": null
+  },
+  {
+   "id": "cr_6df48ea03755",
+   "name": "宮崎まゆ",
+   "name_kana": "みやざきまゆ",
+   "aliases": "宮崎まゆ(SUPA LOVE)"
+  },
+  {
+   "id": "cr_340e11375ec9",
+   "name": "宮崎誠",
+   "name_kana": "みやざきまこと",
+   "aliases": null
+  },
+  {
+   "id": "cr_ec583745a06a",
+   "name": "宮川弾",
+   "name_kana": "みやがわだん",
+   "aliases": null
+  },
+  {
+   "id": "cr_67f0b74af2e6",
+   "name": "宮野弦士",
+   "name_kana": "みやのげんし",
+   "aliases": null
+  },
+  {
+   "id": "cr_e1e2bad52811",
+   "name": "家原正樹",
+   "name_kana": "いえはらまさき",
+   "aliases": null
+  },
+  {
+   "id": "cr_81b910666013",
+   "name": "小久保祐希",
+   "name_kana": "こくぼゆうき",
+   "aliases": null
+  },
+  {
+   "id": "cr_e1190f6d0792",
+   "name": "小室みつ子",
+   "name_kana": "こむろみつこ",
+   "aliases": null
+  },
+  {
+   "id": "cr_03ef66c27e47",
+   "name": "小岩井ことり",
+   "name_kana": "こいわいことり",
+   "aliases": null
+  },
+  {
+   "id": "cr_18c5fcf62112",
+   "name": "小川裕司",
+   "name_kana": "おがわゆうじ",
+   "aliases": null
+  },
+  {
+   "id": "cr_417cc01b7f93",
+   "name": "小杉保夫",
+   "name_kana": "こすぎやすお",
+   "aliases": null
+  },
+  {
+   "id": "cr_5dc13b88e8f2",
+   "name": "小松レナ",
+   "name_kana": "こまつれな",
+   "aliases": null
+  },
+  {
+   "id": "cr_046260a6616b",
+   "name": "小松一也",
+   "name_kana": "こまつかずや",
+   "aliases": null
+  },
+  {
+   "id": "cr_ebb0871711c6",
+   "name": "小林俊太郎",
+   "name_kana": "こばやししゅんたろう",
+   "aliases": null
+  },
+  {
+   "id": "cr_e325cf6ca624",
+   "name": "小林写楽",
+   "name_kana": "こばやししゃらく",
+   "aliases": null
+  },
+  {
+   "id": "cr_e5820c57bd6c",
+   "name": "小林啓樹",
+   "name_kana": "こばやしひろき",
+   "aliases": "BNEI(小林啓樹)\nBNSI(小林啓樹)\nBNSI(小林啓樹）\nNBGI(小林啓樹)"
+  },
+  {
+   "id": "cr_5ae4953fa08f",
+   "name": "小栢伸五",
+   "name_kana": "こがやしんご",
+   "aliases": null
+  },
+  {
+   "id": "cr_0148650ab10d",
+   "name": "小椋健司",
+   "name_kana": "おぐらけんじ",
+   "aliases": null
+  },
+  {
+   "id": "cr_f4c822825657",
+   "name": "小池竜暉",
+   "name_kana": "こいけりゅうき",
+   "aliases": null
+  },
+  {
+   "id": "cr_4ab9d5f1b5da",
+   "name": "小沢純子",
+   "name_kana": "おざわじゅんこ",
+   "aliases": "NBGI(小沢純子)"
+  },
+  {
+   "id": "cr_828989261e97",
+   "name": "小田桐ゆうき",
+   "name_kana": "おだぎりゆうき",
+   "aliases": null
+  },
+  {
+   "id": "cr_3f87d23c9d56",
+   "name": "小西裕子",
+   "name_kana": "こにしゆうこ",
+   "aliases": null
+  },
+  {
+   "id": "cr_5ef7a668e22a",
+   "name": "小西貴雄",
+   "name_kana": "こにしたかお",
+   "aliases": null
+  },
+  {
+   "id": "cr_f9793d78a08e",
+   "name": "小野寺祐輔",
+   "name_kana": "おのでらゆうすけ",
+   "aliases": null
+  },
+  {
+   "id": "cr_2df08430f0a2",
+   "name": "小野貴光",
+   "name_kana": "おのたかみつ",
+   "aliases": null
+  },
+  {
+   "id": "cr_792dd01807db",
+   "name": "小金井つくも",
+   "name_kana": "こがねいつくも",
+   "aliases": null
+  },
+  {
+   "id": "cr_26d314f2c849",
+   "name": "小高光太郎",
+   "name_kana": "こだかこうたろう",
+   "aliases": null
+  },
+  {
+   "id": "cr_4b5008713469",
+   "name": "山下恭文",
+   "name_kana": "やましたやすふみ",
+   "aliases": null
+  },
+  {
+   "id": "cr_1e8ccdda5309",
+   "name": "山下洋介",
+   "name_kana": "やましたようすけ",
+   "aliases": null
+  },
+  {
+   "id": "cr_849873c752bc",
+   "name": "山元祐介",
+   "name_kana": "やまもとゆうすけ",
+   "aliases": null
+  },
+  {
+   "id": "cr_c150794a6131",
+   "name": "山口俊樹",
+   "name_kana": "やまぐちとしき",
+   "aliases": null
+  },
+  {
+   "id": "cr_724bd18b678b",
+   "name": "山口朗彦",
+   "name_kana": "やまぐちあきひこ",
+   "aliases": null
+  },
+  {
+   "id": "cr_17a8d5144beb",
+   "name": "山崎光",
+   "name_kana": "やまざきひかる",
+   "aliases": "山崎光(Arte Refact)"
+  },
+  {
+   "id": "cr_83a7ead90dc1",
+   "name": "山崎寛子",
+   "name_kana": "やまざきひろこ",
+   "aliases": null
+  },
+  {
+   "id": "cr_d2225345afc4",
+   "name": "山崎真吾",
+   "name_kana": "やまざきしんご",
+   "aliases": "山崎真吾 (SUPA LOVE)"
+  },
+  {
+   "id": "cr_e2ac443296c9",
+   "name": "山本メーコ",
+   "name_kana": "やまもとめーこ",
+   "aliases": "山本メーコ(Hifumi,inc.)"
+  },
+  {
+   "id": "cr_22a01c071a4f",
+   "name": "山本恭平",
+   "name_kana": "やまもときょうへい",
+   "aliases": "山本恭平 (Arte Refact)\n山本恭平(Arte Refact)\n山本恭平（Arte Refact）"
+  },
+  {
+   "id": "cr_3ce81386e9e1",
+   "name": "山本真央樹",
+   "name_kana": "やまもとまおき",
+   "aliases": "山本真央樹(TRYTONELABO)\n山本真央樹（TRYTONELABO）"
+  },
+  {
+   "id": "cr_f1a59902af97",
+   "name": "山本翔馬",
+   "name_kana": "やまもとしょうま",
+   "aliases": null
+  },
+  {
+   "id": "cr_a77198165bbf",
+   "name": "山本陽介",
+   "name_kana": "やまもとようすけ",
+   "aliases": null
+  },
+  {
+   "id": "cr_d342ca75d7f8",
+   "name": "山田智和",
+   "name_kana": "やまだともかず",
+   "aliases": null
+  },
+  {
+   "id": "cr_7e03603cf2cd",
+   "name": "山田竜平",
+   "name_kana": "やまだりゅうへい",
+   "aliases": null
+  },
+  {
+   "id": "cr_1eddc1fecdf9",
+   "name": "山田飛鳥",
+   "name_kana": "やまだあすか",
+   "aliases": "山田飛鳥(Arte Refact)"
+  },
+  {
+   "id": "cr_0e61ac18a022",
+   "name": "山野井孝和",
+   "name_kana": "やまのいたかかず",
+   "aliases": null
+  },
+  {
+   "id": "cr_f3eb7558b215",
+   "name": "岡本健介",
+   "name_kana": "おかもとけんすけ",
+   "aliases": null
+  },
+  {
+   "id": "cr_c6ff1393ecf2",
+   "name": "岡田祥",
+   "name_kana": "おかだしょう",
+   "aliases": "BNSI(岡田祥)"
+  },
+  {
+   "id": "cr_bbd8a6331b04",
+   "name": "岡部啓一",
+   "name_kana": "おかべけいいち",
+   "aliases": "岡部啓一(MONACA)"
+  },
+  {
+   "id": "cr_e10b3199772f",
+   "name": "岡野裕次郎",
+   "name_kana": "おかのゆうじろう",
+   "aliases": "岡野裕次郎(TRYTONELABO)\n岡野裕次郎（TRYTONELABO）\n岡野裕次郎［TRYTONELABO］"
+  },
+  {
+   "id": "cr_fd4967a80b5b",
+   "name": "岩城由美",
+   "name_kana": "いわきゆみ",
+   "aliases": null
+  },
+  {
+   "id": "cr_5cf12d18514d",
+   "name": "岩崎隆一",
+   "name_kana": "いわさきりゅういち",
+   "aliases": null
+  },
+  {
+   "id": "cr_a8089965d64f",
+   "name": "岩瀬賢明",
+   "name_kana": "いわせまさあき",
+   "aliases": "岩瀬賢明 (とけた電球)"
+  },
+  {
+   "id": "cr_38061e5135a2",
+   "name": "岩見陸",
+   "name_kana": "いわみりく",
+   "aliases": null
+  },
+  {
+   "id": "cr_e98ea5a5c6bc",
+   "name": "岩越涼大",
+   "name_kana": "いわこしりょうた",
+   "aliases": null
+  },
+  {
+   "id": "cr_dc62a317f497",
+   "name": "岩里祐穂",
+   "name_kana": "いわさとゆうほ",
+   "aliases": null
+  },
+  {
+   "id": "cr_aa6d8d660c01",
+   "name": "岸井将",
+   "name_kana": "きしいまさし",
+   "aliases": null
+  },
+  {
+   "id": "cr_f8449335fa92",
+   "name": "岸田勇気",
+   "name_kana": "きしだゆうき",
+   "aliases": null
+  },
+  {
+   "id": "cr_78965762f11a",
+   "name": "島みやえい子",
+   "name_kana": "しまみやえいこ",
+   "aliases": null
+  },
+  {
+   "id": "cr_7ba9dcce84bf",
+   "name": "島崎貴光",
+   "name_kana": "しまざきたかみつ",
+   "aliases": null
+  },
+  {
+   "id": "cr_8a27b40c7c58",
+   "name": "川島亮祐",
+   "name_kana": "かわしまりょうすけ",
+   "aliases": null
+  },
+  {
+   "id": "cr_dbe0f5e953fc",
+   "name": "川島弘光",
+   "name_kana": "かわしまひろみつ",
+   "aliases": null
+  },
+  {
+   "id": "cr_c6c03e27a4f3",
+   "name": "川崎智哉",
+   "name_kana": "かわさきともや",
+   "aliases": null
+  },
+  {
+   "id": "cr_c6fff7613963",
+   "name": "川崎良介",
+   "name_kana": "かわさきりょうすけ",
+   "aliases": "川崎良介(Dimension Cruise)"
+  },
+  {
+   "id": "cr_aeda8332a3d8",
+   "name": "川田宏行",
+   "name_kana": "かわたひろゆき",
+   "aliases": "BNSI(川田宏行）\nBNSI（川田宏行）\nNBGI(川田宏行)"
+  },
+  {
+   "id": "cr_05813504d97b",
+   "name": "川田瑠夏",
+   "name_kana": "かわだるか",
+   "aliases": null
+  },
+  {
+   "id": "cr_ad0efcfe51dc",
+   "name": "川野勝広",
+   "name_kana": "かわのかつひろ",
+   "aliases": null
+  },
+  {
+   "id": "cr_a301d1f14aae",
+   "name": "工藤了",
+   "name_kana": "くどうりょう",
+   "aliases": null
+  },
+  {
+   "id": "cr_6654b7584b54",
+   "name": "工藤祐介",
+   "name_kana": "くどうゆうすけ",
+   "aliases": "BNSI(工藤祐介)"
+  },
+  {
+   "id": "cr_9ceb39a76020",
+   "name": "巽兄悟",
+   "name_kana": "たつみけいご",
+   "aliases": null
+  },
+  {
+   "id": "cr_df35d8ad3288",
+   "name": "市蔵",
+   "name_kana": "いちぞう",
+   "aliases": null
+  },
+  {
+   "id": "cr_328121ca7697",
+   "name": "帆足圭吾",
+   "name_kana": "ほあしけいご",
+   "aliases": "帆足圭吾(MONACA)"
+  },
+  {
+   "id": "cr_45843579796f",
+   "name": "常楽寺澪",
+   "name_kana": "じょうらくじみお",
+   "aliases": null
+  },
+  {
+   "id": "cr_749d1b99ba20",
+   "name": "平井克明",
+   "name_kana": "ひらいかつあき",
+   "aliases": "BNSI(平井克明)\nBNSI（平井克明）"
+  },
+  {
+   "id": "cr_b2234077efe7",
+   "name": "平朋崇",
+   "name_kana": "たいらともたか",
+   "aliases": null
+  },
+  {
+   "id": "cr_fb024b0de908",
+   "name": "平沢敦士",
+   "name_kana": "ひらさわあつし",
+   "aliases": null
+  },
+  {
+   "id": "cr_a4175b83576a",
+   "name": "平清十郎",
+   "name_kana": "たいらせいじゅうろう",
+   "aliases": "平清十郎(TRYTONELABO)\n平清十郎（TRYTONELABO）\n平清十郎［TRYTONELABO］"
+  },
+  {
+   "id": "cr_35199a315f3f",
+   "name": "平田祥一郎",
+   "name_kana": "ひらたしょういちろう",
+   "aliases": null
+  },
+  {
+   "id": "cr_575d3690261a",
+   "name": "広川恵一",
+   "name_kana": "ひろかわけいいち",
+   "aliases": "広川恵一(MONACA)\n広川恵一（MONACA）\n広川恵一［MONACA］"
+  },
+  {
+   "id": "cr_370a88b24a7d",
+   "name": "廣中トキワ",
+   "name_kana": "ひろなかときわ",
+   "aliases": null
+  },
+  {
+   "id": "cr_a0d84fd99dfb",
+   "name": "廣澤優也",
+   "name_kana": "ひろさわゆうや",
+   "aliases": null
+  },
+  {
+   "id": "cr_3d2dcd177697",
+   "name": "弦哲也",
+   "name_kana": "げんてつや",
+   "aliases": null
+  },
+  {
+   "id": "cr_ceac39999e6e",
+   "name": "後藤裕之",
+   "name_kana": "ごとうひろゆき",
+   "aliases": null
+  },
+  {
+   "id": "cr_dbd60ac60ab8",
+   "name": "徳田光希",
+   "name_kana": "とくだこうき",
+   "aliases": null
+  },
+  {
+   "id": "cr_c17da5d1c2aa",
+   "name": "志倉千代丸",
+   "name_kana": "しくらちよまる",
+   "aliases": null
+  },
+  {
+   "id": "cr_3a289d5ad724",
+   "name": "志村真白",
+   "name_kana": "しむらましろ",
+   "aliases": null
+  },
+  {
+   "id": "cr_26dceb892047",
+   "name": "志記",
+   "name_kana": "しき",
+   "aliases": "志記(sixth floor)"
+  },
+  {
+   "id": "cr_eef5abf5fe7e",
+   "name": "愛原圭織",
+   "name_kana": "あいはらかおり",
+   "aliases": null
+  },
+  {
+   "id": "cr_b50c101a5311",
+   "name": "慶野由利子",
+   "name_kana": "けいのゆりこ",
+   "aliases": "NBGI(慶野由利子)"
+  },
+  {
+   "id": "cr_2c021ef6ffff",
+   "name": "成瀬裕介",
+   "name_kana": "なるせゆうすけ",
+   "aliases": null
+  },
+  {
+   "id": "cr_b350407fbd4f",
+   "name": "戸田宏武",
+   "name_kana": "とだひろむ",
+   "aliases": null
+  },
+  {
+   "id": "cr_221cee3e5389",
+   "name": "折倉俊則",
+   "name_kana": "おりくらとしのり",
+   "aliases": null
+  },
+  {
+   "id": "cr_0485617c154a",
+   "name": "斎藤仁久",
+   "name_kana": "さいとうよしひさ",
+   "aliases": null
+  },
+  {
+   "id": "cr_cbf38be63660",
+   "name": "新田目翔",
+   "name_kana": "あらためしょう",
+   "aliases": null
+  },
+  {
+   "id": "cr_6ed889314c96",
+   "name": "新田目駿",
+   "name_kana": "あらためしゅん",
+   "aliases": null
+  },
+  {
+   "id": "cr_96d02dbd223c",
+   "name": "新谷風太",
+   "name_kana": "しんたにふうた",
+   "aliases": null
+  },
+  {
+   "id": "cr_86710db263c6",
+   "name": "日暮裕紀",
+   "name_kana": "ひぐらしゆうき",
+   "aliases": null
+  },
+  {
+   "id": "cr_9768dec2d150",
+   "name": "日比野裕史",
+   "name_kana": "ひびのひろし",
+   "aliases": "日比野裕史(Blue Bird's Nest)"
+  },
+  {
+   "id": "cr_b58461700cc0",
+   "name": "日置江佑一朗",
+   "name_kana": "ひおきえゆういちろう",
+   "aliases": null
+  },
+  {
+   "id": "cr_fc98396662ff",
+   "name": "早川博隆",
+   "name_kana": "はやかわひろたか",
+   "aliases": "早川博隆 (Rebrast)\n早川博隆(Rebrast)"
+  },
+  {
+   "id": "cr_cc19259cf155",
+   "name": "星野孝文",
+   "name_kana": "ほしのたかふみ",
+   "aliases": null
+  },
+  {
+   "id": "cr_29924bd31c68",
+   "name": "星銀乃丈",
+   "name_kana": "ほしぎんのじょう",
+   "aliases": null
+  },
+  {
+   "id": "cr_f98c310c435f",
+   "name": "春和文",
+   "name_kana": "はるかずふみ",
+   "aliases": null
+  },
+  {
+   "id": "cr_53a28afd529f",
+   "name": "春川仁志",
+   "name_kana": "はるかわひとし",
+   "aliases": "春川仁志(sixth floor)"
+  },
+  {
+   "id": "cr_35a1cdd3e1bf",
+   "name": "景家淳",
+   "name_kana": "かげいえじゅん",
+   "aliases": null
+  },
+  {
+   "id": "cr_a855ccaca4ad",
+   "name": "景山将太",
+   "name_kana": "かげやましょうた",
+   "aliases": null
+  },
+  {
+   "id": "cr_68eeb88f3b3d",
+   "name": "曽木琢磨",
+   "name_kana": "そぎたくま",
+   "aliases": "曽木琢磨(SUPA LOVE)"
+  },
+  {
+   "id": "cr_1d2208f1db36",
+   "name": "月丘りあ子",
+   "name_kana": "つきおかりあこ",
+   "aliases": "月丘りあ子(SUPA LOVE)"
+  },
+  {
+   "id": "cr_a6ed7d0a54c2",
+   "name": "有栖川姫子",
+   "name_kana": "ありすがわひめこ",
+   "aliases": null
+  },
+  {
+   "id": "cr_09658ba25793",
+   "name": "朝倉路",
+   "name_kana": "あさくらみち",
+   "aliases": null
+  },
+  {
+   "id": "cr_ee31bcaf9922",
+   "name": "朝日祭",
+   "name_kana": "あさひまつり",
+   "aliases": null
+  },
+  {
+   "id": "cr_a9987f1a385b",
+   "name": "木下龍平",
+   "name_kana": "きのしたりゅうへい",
+   "aliases": null
+  },
+  {
+   "id": "cr_1210388c20d8",
+   "name": "木村孝明",
+   "name_kana": "きむらたかあき",
+   "aliases": "木村孝明 (KEYTONE)"
+  },
+  {
+   "id": "cr_5105893232af",
+   "name": "木村有希",
+   "name_kana": "きむらゆうき",
+   "aliases": null
+  },
+  {
+   "id": "cr_0762b2227dba",
+   "name": "本多友紀",
+   "name_kana": "ほんだゆうき",
+   "aliases": "本多友紀 (Arte Refact)\n本多友紀(Arte Refact)\n本多友紀（Arte Refact）"
+  },
+  {
+   "id": "cr_c81f667fbdb5",
+   "name": "本澤尚之",
+   "name_kana": "もとざわなおゆき",
+   "aliases": null
+  },
+  {
+   "id": "cr_16bae89f89d0",
+   "name": "本田光史郎",
+   "name_kana": "ほんだこうしろう",
+   "aliases": null
+  },
+  {
+   "id": "cr_78942eada205",
+   "name": "本田光史郞",
+   "name_kana": "ほんだこうしろう",
+   "aliases": null
+  },
+  {
+   "id": "cr_16827b7a431b",
+   "name": "本田正樹",
+   "name_kana": "ほんだまさき",
+   "aliases": "本田正樹 (Dream Monster)\n本田正樹(Dream Monster)"
+  },
+  {
+   "id": "cr_745b64496160",
+   "name": "杉浦”ラフィン”誠一郎",
+   "name_kana": "すぎうららふぃんせいいちろう",
+   "aliases": null
+  },
+  {
+   "id": "cr_05ec93f7f775",
+   "name": "杉田未央",
+   "name_kana": "すぎたみお",
+   "aliases": null
+  },
+  {
+   "id": "cr_1a0b73234193",
+   "name": "村井大",
+   "name_kana": "むらいだい",
+   "aliases": null
+  },
+  {
+   "id": "cr_be4da94edfaf",
+   "name": "村山シベリウス達彦",
+   "name_kana": "むらやましべりうすたつひこ",
+   "aliases": null
+  },
+  {
+   "id": "cr_a63737cde566",
+   "name": "村田祐一",
+   "name_kana": "むらたゆういち",
+   "aliases": "村田祐一(LIVE LAB.)"
+  },
+  {
+   "id": "cr_1f49123d4b13",
+   "name": "東ノ獄彩",
+   "name_kana": "ひがしのごくさい",
+   "aliases": "BNSI(東ノ獄彩)\nBNSI（東ノ獄彩）\nNBSI(東ノ獄彩)"
+  },
+  {
+   "id": "cr_626162ba32d9",
+   "name": "東優太",
+   "name_kana": "あずまゆうた",
+   "aliases": null
+  },
+  {
+   "id": "cr_647bf144a4a8",
+   "name": "東大路憲太",
+   "name_kana": "ひがしおおじけんた",
+   "aliases": null
+  },
+  {
+   "id": "cr_de99c161d98c",
+   "name": "東義人",
+   "name_kana": "あずまよしと",
+   "aliases": "BNSI(東義人)"
+  },
+  {
+   "id": "cr_a27df372ca98",
+   "name": "松下昇平",
+   "name_kana": "まつしたしょうへい",
+   "aliases": null
+  },
+  {
+   "id": "cr_647edcd459ee",
+   "name": "松井俊介",
+   "name_kana": "まついしゅんすけ",
+   "aliases": null
+  },
+  {
+   "id": "cr_078370b132e7",
+   "name": "松井洋平",
+   "name_kana": "まついようへい",
+   "aliases": null
+  },
+  {
+   "id": "cr_fe5f20aedc5c",
+   "name": "松坂康司",
+   "name_kana": "まつざかこうじ",
+   "aliases": null
+  },
+  {
+   "id": "cr_83bba4c72b10",
+   "name": "松田信男",
+   "name_kana": "まつだのぶお",
+   "aliases": null
+  },
+  {
+   "id": "cr_ac7a8c276643",
+   "name": "松田彬人",
+   "name_kana": "まつだあきひと",
+   "aliases": null
+  },
+  {
+   "id": "cr_066648b5e0fa",
+   "name": "松藤量平",
+   "name_kana": "まつふじりょうへい",
+   "aliases": "松藤量平(sixth floor)"
+  },
+  {
+   "id": "cr_7cdf28ecd911",
+   "name": "松隈ケンタ",
+   "name_kana": "まつくまけんた",
+   "aliases": null
+  },
+  {
+   "id": "cr_dcff3731ddb4",
+   "name": "板垣祐介",
+   "name_kana": "いたがきゆうすけ",
+   "aliases": null
+  },
+  {
+   "id": "cr_1ed8ea43382b",
+   "name": "林英樹",
+   "name_kana": "はやしひでき",
+   "aliases": null
+  },
+  {
+   "id": "cr_03845276b102",
+   "name": "林部亜紀子",
+   "name_kana": "はやしべあきこ",
+   "aliases": null
+  },
+  {
+   "id": "cr_8267752b9fdf",
+   "name": "柚木美祐",
+   "name_kana": "ゆずきみゆ",
+   "aliases": null
+  },
+  {
+   "id": "cr_33804221c53a",
+   "name": "柳田しゆ",
+   "name_kana": "やなぎだしゆ",
+   "aliases": null
+  },
+  {
+   "id": "cr_037973fe8c53",
+   "name": "柿埜嘉奈子",
+   "name_kana": "かきのかなこ",
+   "aliases": "BNSI(柿埜嘉奈子)\nBNSI（柿埜嘉奈子）"
+  },
+  {
+   "id": "cr_998ddf144bb8",
+   "name": "柿沼雅美",
+   "name_kana": "かきぬままさみ",
+   "aliases": "柿沼雅美 (KEYTONE)"
+  },
+  {
+   "id": "cr_b661f5bf98ca",
+   "name": "柿迫ヒカル",
+   "name_kana": "かきさこひかる",
+   "aliases": "柿迫ヒカル(Rebrast)"
+  },
+  {
+   "id": "cr_0868fd9be9be",
+   "name": "栁沼廉",
+   "name_kana": "やぎぬまれん",
+   "aliases": null
+  },
+  {
+   "id": "cr_11a54d380f80",
+   "name": "栗原悠希",
+   "name_kana": "くりはらゆうき",
+   "aliases": null
+  },
+  {
+   "id": "cr_681eaf85e090",
+   "name": "栗山健太",
+   "name_kana": "くりやまけんた",
+   "aliases": null
+  },
+  {
+   "id": "cr_1a87fa7302e5",
+   "name": "根本優樹",
+   "name_kana": "ねもとゆうき",
+   "aliases": null
+  },
+  {
+   "id": "cr_bb409bb75e2c",
+   "name": "桃井はるこ",
+   "name_kana": "ももいはるこ",
+   "aliases": null
+  },
+  {
+   "id": "cr_0caeb32921cb",
+   "name": "桑原佑介",
+   "name_kana": "くわばらゆうすけ",
+   "aliases": null
+  },
+  {
+   "id": "cr_4f0b2872a5b8",
+   "name": "桑原聖",
+   "name_kana": "くわばらひじり",
+   "aliases": "桑原聖(Arte Refact)"
+  },
+  {
+   "id": "cr_27fa6946666a",
+   "name": "桜アス恵",
+   "name_kana": "さくらあすえ",
+   "aliases": "桜アス恵（TRYTONELABO）"
+  },
+  {
+   "id": "cr_e9076513366d",
+   "name": "桜庭統",
+   "name_kana": "さくらばもとい",
+   "aliases": null
+  },
+  {
+   "id": "cr_27f59e3bcb9f",
+   "name": "梅堀淳",
+   "name_kana": "うめぼりじゅん",
+   "aliases": null
+  },
+  {
+   "id": "cr_b93c716181cb",
+   "name": "梔",
+   "name_kana": "くちなし",
+   "aliases": null
+  },
+  {
+   "id": "cr_ab69ee4bd717",
+   "name": "森悠也",
+   "name_kana": "もりゆうや",
+   "aliases": null
+  },
+  {
+   "id": "cr_a3ecac1cb40f",
+   "name": "森本練",
+   "name_kana": "もりもとれん",
+   "aliases": null
+  },
+  {
+   "id": "cr_d1ad751f0de9",
+   "name": "森本貴大",
+   "name_kana": "もりもとたかひろ",
+   "aliases": "森本貴大(CoRecTive)"
+  },
+  {
+   "id": "cr_6a6a8b55d34a",
+   "name": "森田和樹",
+   "name_kana": "もりたかずき",
+   "aliases": null
+  },
+  {
+   "id": "cr_dcec98a5afa2",
+   "name": "森由里子",
+   "name_kana": "もりゆりこ",
+   "aliases": null
+  },
+  {
+   "id": "cr_4eb660361a73",
+   "name": "森谷敏紀",
+   "name_kana": "もりやとしき",
+   "aliases": null
+  },
+  {
+   "id": "cr_f4d4166a6605",
+   "name": "森谷貴晴",
+   "name_kana": "もりやたかはる",
+   "aliases": null
+  },
+  {
+   "id": "cr_2fe5af8610f4",
+   "name": "椎名豪",
+   "name_kana": "しいなごう",
+   "aliases": "BNEI(椎名豪)\nBNEI（椎名豪）\nBNGI(椎名豪)\nBNSI (椎名豪)\nBNSI(椎名豪)\nNBGI(椎名豪)"
+  },
+  {
+   "id": "cr_8ccf39ae2964",
+   "name": "椿山日南子",
+   "name_kana": "つばきやまひなこ",
+   "aliases": "椿山日南子(Dream Monster)"
+  },
+  {
+   "id": "cr_10530fce3ee2",
+   "name": "樫原伸彦",
+   "name_kana": "かしはらのぶひこ",
+   "aliases": null
+  },
+  {
+   "id": "cr_236773b6341d",
+   "name": "樽井朋弥",
+   "name_kana": "たるいともや",
+   "aliases": null
+  },
+  {
+   "id": "cr_c17509f1ec8b",
+   "name": "橋本彩子",
+   "name_kana": "はしもとさいこ",
+   "aliases": null
+  },
+  {
+   "id": "cr_9e628b95afd9",
+   "name": "橋本由香利",
+   "name_kana": "はしもとゆかり",
+   "aliases": null
+  },
+  {
+   "id": "cr_12da00b0cae7",
+   "name": "橘亮佑",
+   "name_kana": "たちばなりょうすけ",
+   "aliases": null
+  },
+  {
+   "id": "cr_5b1a7bf9a5f0",
+   "name": "橘亮祐",
+   "name_kana": "たちばなりょうすけ",
+   "aliases": null
+  },
+  {
+   "id": "cr_029fc038e9af",
+   "name": "櫻澤ヒカル",
+   "name_kana": "さくらざわひかる",
+   "aliases": "櫻澤ヒカル(Hifumi,inc.)"
+  },
+  {
+   "id": "cr_e5634d7a774e",
+   "name": "武田城以",
+   "name_kana": "たけだじょうい",
+   "aliases": null
+  },
+  {
+   "id": "cr_29e24ad3a5cb",
+   "name": "武田将弥",
+   "name_kana": "たけだまさや",
+   "aliases": "武田将弥(Dream Monster)"
+  },
+  {
+   "id": "cr_5ec57b91a272",
+   "name": "毛蟹",
+   "name_kana": "けがに",
+   "aliases": "毛蟹(LIVE LAB.)"
+  },
+  {
+   "id": "cr_20f4e4b65082",
+   "name": "水永ここ",
+   "name_kana": "みずながここ",
+   "aliases": null
+  },
+  {
+   "id": "cr_05e0a921b0ae",
+   "name": "水野大輔",
+   "name_kana": "みずのだいすけ",
+   "aliases": null
+  },
+  {
+   "id": "cr_791b470f5203",
+   "name": "水野敏宏",
+   "name_kana": "みずのとしひろ",
+   "aliases": null
+  },
+  {
+   "id": "cr_0e5023bc2675",
+   "name": "水野谷怜",
+   "name_kana": "みずのやれい",
+   "aliases": "水野谷怜(Arte Refact)"
+  },
+  {
+   "id": "cr_4f527d5f6fb7",
+   "name": "永井正道",
+   "name_kana": "ながいまさみち",
+   "aliases": null
+  },
+  {
+   "id": "cr_2bf2c0a62623",
+   "name": "永谷喬夫",
+   "name_kana": "ながやたかお",
+   "aliases": null
+  },
+  {
+   "id": "cr_9d8c8e509132",
+   "name": "江並哲志",
+   "name_kana": "えなみさとし",
+   "aliases": null
+  },
+  {
+   "id": "cr_f8ddd3dfedac",
+   "name": "池月源",
+   "name_kana": "いけづきげん",
+   "aliases": null
+  },
+  {
+   "id": "cr_14a2ce873754",
+   "name": "池田健仁",
+   "name_kana": "いけだたけひと",
+   "aliases": "池田健仁(TRYTONELABO)"
+  },
+  {
+   "id": "cr_57b774708bd5",
+   "name": "河原レオ",
+   "name_kana": "かわはられお",
+   "aliases": "河原レオ (Rebrast)"
+  },
+  {
+   "id": "cr_9bb69d59ace7",
+   "name": "河合泰志",
+   "name_kana": "かわいやすし",
+   "aliases": "河合泰志(Arte Refact)"
+  },
+  {
+   "id": "cr_b5750c0e2bbd",
+   "name": "河合英嗣",
+   "name_kana": "かわいひでつぐ",
+   "aliases": null
+  },
+  {
+   "id": "cr_34459093acb6",
+   "name": "河田貴央",
+   "name_kana": "かわだたかひろ",
+   "aliases": null
+  },
+  {
+   "id": "cr_3d21ebb9e91b",
+   "name": "河田貴央＆juun.coo",
+   "name_kana": "かわだたかひろじゅん",
+   "aliases": null
+  },
+  {
+   "id": "cr_820fbbf4e2fe",
+   "name": "沼倉愛美",
+   "name_kana": "ぬまくらまなみ",
+   "aliases": null
+  },
+  {
+   "id": "cr_901f98ed0dc6",
+   "name": "泉典孝",
+   "name_kana": "いずみのりたか",
+   "aliases": null
+  },
+  {
+   "id": "cr_118d299ddac0",
+   "name": "流歌",
+   "name_kana": "るか",
+   "aliases": null
+  },
+  {
+   "id": "cr_31c993c6da39",
+   "name": "浅倉杏美",
+   "name_kana": "あさくらあずみ",
+   "aliases": null
+  },
+  {
+   "id": "cr_1e3bf5f5abde",
+   "name": "浅利進吾",
+   "name_kana": "あさりしんご",
+   "aliases": null
+  },
+  {
+   "id": "cr_937b8784dce6",
+   "name": "浅原康浩",
+   "name_kana": "あさはらやすひろ",
+   "aliases": null
+  },
+  {
+   "id": "cr_04a148fd3bbb",
+   "name": "浜田ピエール裕介",
+   "name_kana": "はまだぴえーるゆうすけ",
+   "aliases": null
+  },
+  {
+   "id": "cr_c3a6b969d212",
+   "name": "浩川卿中二",
+   "name_kana": "ひろかわきょうちゅうじ",
+   "aliases": "BNSI(浩川卿中二)\nNBSI(浩川卿中二)"
+  },
+  {
+   "id": "cr_50dab6885b01",
+   "name": "涼木シンジ",
+   "name_kana": "すずきしんじ",
+   "aliases": "涼木シンジ (KEYTONE)\n涼木シンジ(KEYTONE)"
+  },
+  {
+   "id": "cr_9e410774d2f6",
+   "name": "深川琴美",
+   "name_kana": "ふかがわことみ",
+   "aliases": null
+  },
+  {
+   "id": "cr_c49b38873c35",
+   "name": "淵ヶ谷増二",
+   "name_kana": "ふちがやますじ",
+   "aliases": "NBSI(淵ヶ谷増二)"
+  },
+  {
+   "id": "cr_e1c5ae64ae38",
+   "name": "清水\"カルロス\"宥人",
+   "name_kana": "しみずかるろすゆうと",
+   "aliases": "清水\"カルロス\"宥人 (KEYTONE)\n清水\"カルロス\"宥人(KEYTONE)"
+  },
+  {
+   "id": "cr_519111f7f315",
+   "name": "清水哲平",
+   "name_kana": "しみずてっぺい",
+   "aliases": null
+  },
+  {
+   "id": "cr_9876c5e42e8f",
+   "name": "清水昭男",
+   "name_kana": "しみずあきお",
+   "aliases": null
+  },
+  {
+   "id": "cr_0eb108248368",
+   "name": "清水武仁",
+   "name_kana": "しみずたけひと",
+   "aliases": "清水武仁(Blue Bird's Nest)"
+  },
+  {
+   "id": "cr_b0470c64f1b5",
+   "name": "清田直人",
+   "name_kana": "きよたなおと",
+   "aliases": null
+  },
+  {
+   "id": "cr_0e1bf680f9cc",
+   "name": "渡辺ほのか",
+   "name_kana": "わたなべほのか",
+   "aliases": null
+  },
+  {
+   "id": "cr_a48eab79f448",
+   "name": "渡辺和紀",
+   "name_kana": "わたなべかずのり",
+   "aliases": null
+  },
+  {
+   "id": "cr_cbc9b13b8d88",
+   "name": "渡辺宙明",
+   "name_kana": "わたなべちゅうめい",
+   "aliases": null
+  },
+  {
+   "id": "cr_80bd20476959",
+   "name": "渡辺徹",
+   "name_kana": "わたなべとおる",
+   "aliases": "渡辺徹(Blue Bird's Nest)"
+  },
+  {
+   "id": "cr_868573949b9b",
+   "name": "渡辺徹×日比野裕史",
+   "name_kana": "わたなべとおるひびのひろし",
+   "aliases": null
+  },
+  {
+   "id": "cr_73a8db1b69a1",
+   "name": "渡辺拓也",
+   "name_kana": "わたなべたくや",
+   "aliases": null
+  },
+  {
+   "id": "cr_f690eefa1e72",
+   "name": "渡辺未来",
+   "name_kana": "わたなべみらい",
+   "aliases": null
+  },
+  {
+   "id": "cr_ec20b157682a",
+   "name": "渡辺泰司",
+   "name_kana": "わたなべたいじ",
+   "aliases": null
+  },
+  {
+   "id": "cr_92040f0066b3",
+   "name": "渡辺淳",
+   "name_kana": "わたなべじゅん",
+   "aliases": null
+  },
+  {
+   "id": "cr_0bbce72b4a46",
+   "name": "渡辺翔",
+   "name_kana": "わたなべしょう",
+   "aliases": null
+  },
+  {
+   "id": "cr_165c85f27368",
+   "name": "渡辺量",
+   "name_kana": "わたなべりょう",
+   "aliases": "BNEI(渡辺量)\nBNSI(渡辺量)\nBNSI(渡辺量).\nBNSI(渡辺量）\nBNSI（渡辺量）"
+  },
+  {
+   "id": "cr_aff8aa595ea7",
+   "name": "渡邉俊彦",
+   "name_kana": "わたなべとしひこ",
+   "aliases": "渡邉俊彦(LSMJ)"
+  },
+  {
+   "id": "cr_cd41781430f0",
+   "name": "渡邊亜希子",
+   "name_kana": "わたなべあきこ",
+   "aliases": null
+  },
+  {
+   "id": "cr_0bd36eaf6ecc",
+   "name": "渡部チェル",
+   "name_kana": "わたべちぇる",
+   "aliases": null
+  },
+  {
+   "id": "cr_be2af21ccdec",
+   "name": "渡部紫緒",
+   "name_kana": "わたべしお",
+   "aliases": null
+  },
+  {
+   "id": "cr_70c03ac10591",
+   "name": "湯原聡史",
+   "name_kana": "ゆはらさとし",
+   "aliases": "湯原聡史(KEYTONE)"
+  },
+  {
+   "id": "cr_27a7191e7ed9",
+   "name": "滝澤俊輔",
+   "name_kana": "たきざわしゅんすけ",
+   "aliases": "滝澤俊輔(TRYTONELABO)\n滝澤俊輔(Try Tone Labo)\n滝澤俊輔[TRYTONELABO]\n滝澤俊輔（TRYTONELABO）\n滝澤俊輔［TRYTONELABO］"
+  },
+  {
+   "id": "cr_bf28ce298ab0",
+   "name": "滝澤俊輔(TRYTONELABO]",
+   "name_kana": "たきざわしゅんすけ",
+   "aliases": null
+  },
+  {
+   "id": "cr_199b65a643e5",
+   "name": "澤田空海理",
+   "name_kana": "さわだそかり",
+   "aliases": null
+  },
+  {
+   "id": "cr_e7e2e716fea5",
+   "name": "濱本理央",
+   "name_kana": "はまもとりお",
+   "aliases": "BNEI(濱本理央)\nBNSI(濱本理央)\nBNSI(濱本理央）\nBNSI（濱本理央）"
+  },
+  {
+   "id": "cr_434eff6e602c",
+   "name": "濱田幹浩",
+   "name_kana": "はまだみきひろ",
+   "aliases": null
+  },
+  {
+   "id": "cr_869410ab3ea6",
+   "name": "瀬尾祥太郎",
+   "name_kana": "せおしょうたろう",
+   "aliases": "瀬尾祥太郎(MONACA)"
+  },
+  {
+   "id": "cr_15b2c4c9d7f3",
+   "name": "瀬良羽美",
+   "name_kana": "せらはねみ",
+   "aliases": null
+  },
+  {
+   "id": "cr_280f09c791d7",
+   "name": "炭竃智弘",
+   "name_kana": "すみがまともひろ",
+   "aliases": null
+  },
+  {
+   "id": "cr_f021271c1b3e",
+   "name": "炭竈智弘",
+   "name_kana": "すみがまともひろ",
+   "aliases": null
+  },
+  {
+   "id": "cr_755bb7666058",
+   "name": "烏屋茶房",
+   "name_kana": "からすやさぼう",
+   "aliases": null
+  },
+  {
+   "id": "cr_cdefcd895518",
+   "name": "無敵DEADSNAKE",
+   "name_kana": "むてきでっどすねーく",
+   "aliases": "無敵DEAD SNAKE"
+  },
+  {
+   "id": "cr_2958efa18525",
+   "name": "熊谷憲康",
+   "name_kana": "くまがいのりやす",
+   "aliases": null
+  },
+  {
+   "id": "cr_8f9a052faa72",
+   "name": "片山将太",
+   "name_kana": "かたやましょうた",
+   "aliases": null
+  },
+  {
+   "id": "cr_16f47631a5fa",
+   "name": "牧野太洋",
+   "name_kana": "まきのたいよう",
+   "aliases": null
+  },
+  {
+   "id": "cr_399f11b5e785",
+   "name": "狐夢想",
+   "name_kana": "こむそう",
+   "aliases": "狐夢想(COOL＆CREATE)"
+  },
+  {
+   "id": "cr_ffa058a4870c",
+   "name": "玉屋2060%",
+   "name_kana": "たまや",
+   "aliases": "玉屋2060%(Wienners)"
+  },
+  {
+   "id": "cr_e8bdcc8b5acb",
+   "name": "玉木千尋",
+   "name_kana": "たまきちひろ",
+   "aliases": null
+  },
+  {
+   "id": "cr_5495e028dc58",
+   "name": "王子マスター",
+   "name_kana": "おうじますたー",
+   "aliases": null
+  },
+  {
+   "id": "cr_99d4e94d14a3",
+   "name": "生田真心",
+   "name_kana": "いくたまこと",
+   "aliases": null
+  },
+  {
+   "id": "cr_22a9a523039d",
+   "name": "田中ひなの",
+   "name_kana": "たなかひなの",
+   "aliases": "田中ひなの(IKW)"
+  },
+  {
+   "id": "cr_c02c150e3bed",
+   "name": "田中俊亮",
+   "name_kana": "たなかしゅんすけ",
+   "aliases": null
+  },
+  {
+   "id": "cr_d6ffd6ef42b7",
+   "name": "田中秀和",
+   "name_kana": "たなかひでかず",
+   "aliases": "田中秀和(MONACA)\n田中秀和（MONACA）\n田中秀和［MONACA］"
+  },
+  {
+   "id": "cr_ce3c3be0740b",
+   "name": "田中透真",
+   "name_kana": "たなかとうま",
+   "aliases": "田中透真(Dream Monster)"
+  },
+  {
+   "id": "cr_5872060a4590",
+   "name": "田中龍志",
+   "name_kana": "たなかりゅうじ",
+   "aliases": "田中龍志(Rebrast)"
+  },
+  {
+   "id": "cr_cf99a784c537",
+   "name": "田代智一",
+   "name_kana": "たしろともかず",
+   "aliases": null
+  },
+  {
+   "id": "cr_0b8553db26aa",
+   "name": "田尻知之",
+   "name_kana": "たじりともゆき",
+   "aliases": "田尻知之(note native)"
+  },
+  {
+   "id": "cr_021ab9dbaea8",
+   "name": "田島勝朗",
+   "name_kana": "たじまかつろう",
+   "aliases": "BNSI(田島勝朗)"
+  },
+  {
+   "id": "cr_0d7153385c33",
+   "name": "田村信二",
+   "name_kana": "たむらしんじ",
+   "aliases": null
+  },
+  {
+   "id": "cr_5cbd9ebfed81",
+   "name": "田村優太",
+   "name_kana": "たむらゆうた",
+   "aliases": null
+  },
+  {
+   "id": "cr_ffa42a639f22",
+   "name": "田村武也",
+   "name_kana": "たむらたけや",
+   "aliases": null
+  },
+  {
+   "id": "cr_5800680a4852",
+   "name": "田村歩美",
+   "name_kana": "たむらあゆみ",
+   "aliases": null
+  },
+  {
+   "id": "cr_c3442b45d390",
+   "name": "田淵智也",
+   "name_kana": "たぶちともなり",
+   "aliases": null
+  },
+  {
+   "id": "cr_7447a2cf527c",
+   "name": "田熊知存",
+   "name_kana": "たくまともあり",
+   "aliases": "田熊知存(Dream Monster)"
+  },
+  {
+   "id": "cr_8f331a569108",
+   "name": "由貴野ひめか",
+   "name_kana": "ゆきのひめか",
+   "aliases": null
+  },
+  {
+   "id": "cr_c66a6f3be352",
+   "name": "甲斐敏夫",
+   "name_kana": "かいとしお",
+   "aliases": "NBGI(甲斐敏夫)"
+  },
+  {
+   "id": "cr_acb46df9a526",
+   "name": "畑亜貴",
+   "name_kana": "はたあき",
+   "aliases": null
+  },
+  {
+   "id": "cr_807673a22a57",
+   "name": "白土祐輔",
+   "name_kana": "しらどゆうすけ",
+   "aliases": null
+  },
+  {
+   "id": "cr_80a28506af0d",
+   "name": "白戸佑輔",
+   "name_kana": "しろとゆうすけ",
+   "aliases": "白戸佑輔(Dream Monster)"
+  },
+  {
+   "id": "cr_865dd3727a50",
+   "name": "白戸祐輔",
+   "name_kana": "しろとゆうすけ",
+   "aliases": null
+  },
+  {
+   "id": "cr_5d197b8d0b90",
+   "name": "白澤亮",
+   "name_kana": "しらさわりょう",
+   "aliases": "白澤亮 (ノイジークローク)"
+  },
+  {
+   "id": "cr_cd6c72af7c9f",
+   "name": "白瀬彩",
+   "name_kana": "しらせあや",
+   "aliases": null
+  },
+  {
+   "id": "cr_5d61f1fb7a2a",
+   "name": "百引一",
+   "name_kana": "ひゃくびきはじめ",
+   "aliases": null
+  },
+  {
+   "id": "cr_a5a4c0189d07",
+   "name": "百石元",
+   "name_kana": "ひゃくいしげん",
+   "aliases": null
+  },
+  {
+   "id": "cr_083bcae75ab6",
+   "name": "真島ゆろ",
+   "name_kana": "ましまゆろ",
+   "aliases": null
+  },
+  {
+   "id": "cr_500b86dc4901",
+   "name": "真崎エリカ",
+   "name_kana": "まさきえりか",
+   "aliases": null
+  },
+  {
+   "id": "cr_4e9bcb324a30",
+   "name": "真船勝博",
+   "name_kana": "まふねかつひろ",
+   "aliases": null
+  },
+  {
+   "id": "cr_844ff2e6e4b2",
+   "name": "睦月周平",
+   "name_kana": "むつきしゅうへい",
+   "aliases": null
+  },
+  {
+   "id": "cr_4ac053cfecfd",
+   "name": "矢吹香那",
+   "name_kana": "やぶきかな",
+   "aliases": null
+  },
+  {
+   "id": "cr_25fcb724e4de",
+   "name": "矢野博康",
+   "name_kana": "やのひろやす",
+   "aliases": null
+  },
+  {
+   "id": "cr_b904d4143aad",
+   "name": "矢野達也",
+   "name_kana": "やのたつや",
+   "aliases": null
+  },
+  {
+   "id": "cr_52059300f2a8",
+   "name": "矢鴇つかさ",
+   "name_kana": "やときつかさ",
+   "aliases": "矢鴇つかさ (Arte Refact)\n矢鴇つかさ(Arte Refact)\n矢鴇つかさ(ArteRefact)\n矢鴇つかさ（Arte Refact）"
+  },
+  {
+   "id": "cr_3683a151f031",
+   "name": "石井伸昂",
+   "name_kana": "いしいのぶたか",
+   "aliases": null
+  },
+  {
+   "id": "cr_639bbfdb11fd",
+   "name": "石井健太郎",
+   "name_kana": "いしいけんたろう",
+   "aliases": null
+  },
+  {
+   "id": "cr_8e4e0101aa45",
+   "name": "石倉誉之",
+   "name_kana": "いしくらたかゆき",
+   "aliases": null
+  },
+  {
+   "id": "cr_d41ee0fab675",
+   "name": "石原章弘",
+   "name_kana": "いしはらあきひろ",
+   "aliases": "BNSI(石原章弘)"
+  },
+  {
+   "id": "cr_ba03451b634c",
+   "name": "石塚玲依",
+   "name_kana": "いしづかれい",
+   "aliases": null
+  },
+  {
+   "id": "cr_72431c9be09a",
+   "name": "石川慧樹",
+   "name_kana": "いしかわけいき",
+   "aliases": null
+  },
+  {
+   "id": "cr_a6e7c9936703",
+   "name": "石川智晶",
+   "name_kana": "いしかわちあき",
+   "aliases": null
+  },
+  {
+   "id": "cr_55d75da8d505",
+   "name": "石川絵理",
+   "name_kana": "いしかわえり",
+   "aliases": null
+  },
+  {
+   "id": "cr_4dd3ffc4e33a",
+   "name": "石濱翔",
+   "name_kana": "いしはましょう",
+   "aliases": "石濱 翔\n石濱翔(MONACA)\n石濱翔[MONACA]\n石濱翔（MONACA）\n石濱翔［MONACA］"
+  },
+  {
+   "id": "cr_6149f7d63e26",
+   "name": "石田秀登",
+   "name_kana": "いしだひでと",
+   "aliases": null
+  },
+  {
+   "id": "cr_2ecef69c4111",
+   "name": "石谷桂亮",
+   "name_kana": "いしたにけいすけ",
+   "aliases": null
+  },
+  {
+   "id": "cr_704be57d17ba",
+   "name": "石黑剛",
+   "name_kana": "いしぐろつよし",
+   "aliases": null
+  },
+  {
+   "id": "cr_b980a2fb726b",
+   "name": "磯崎健史",
+   "name_kana": "いそざきたけし",
+   "aliases": null
+  },
+  {
+   "id": "cr_16e2e72a5fbc",
+   "name": "磯谷佳江",
+   "name_kana": "いそがいよしえ",
+   "aliases": null
+  },
+  {
+   "id": "cr_93c8c0bce8c2",
+   "name": "神前暁",
+   "name_kana": "こうさきさとる",
+   "aliases": "BNGI(神前暁)\nBNSI(神前暁)\nNBGI(神前暁)\n神前暁(MONACA)"
+  },
+  {
+   "id": "cr_d917f1f89b64",
+   "name": "神山羊",
+   "name_kana": "かみやまよう",
+   "aliases": null
+  },
+  {
+   "id": "cr_e5e677cffa46",
+   "name": "神津裕之",
+   "name_kana": "こうづひろゆき",
+   "aliases": null
+  },
+  {
+   "id": "cr_099a02e81c8d",
+   "name": "神田ジョン",
+   "name_kana": "かんだじょん",
+   "aliases": null
+  },
+  {
+   "id": "cr_f15b068c608f",
+   "name": "神谷礼",
+   "name_kana": "かみやれい",
+   "aliases": null
+  },
+  {
+   "id": "cr_c1f879cde41e",
+   "name": "福富雅之",
+   "name_kana": "ふくとみまさゆき",
+   "aliases": "福富雅之(Nostalgic Orchestra)"
+  },
+  {
+   "id": "cr_b3eeef1d6bb3",
+   "name": "福田陽司",
+   "name_kana": "ふくだようじ",
+   "aliases": null
+  },
+  {
+   "id": "cr_d213ccc48990",
+   "name": "秋浦智裕",
+   "name_kana": "あきうらともひろ",
+   "aliases": "秋浦智裕(agehasprings Party)\n秋浦智裕(onetrap)"
+  },
+  {
+   "id": "cr_a3e7688ff94a",
+   "name": "秋葉広大",
+   "name_kana": "あきばこうだい",
+   "aliases": "秋葉広大(LIVE LAB.)"
+  },
+  {
+   "id": "cr_0081eaf59c4f",
+   "name": "竹中文一",
+   "name_kana": "たけなかふみかず",
+   "aliases": null
+  },
+  {
+   "id": "cr_7b4de35db03f",
+   "name": "竹市佳伸",
+   "name_kana": "たけいちよしのぶ",
+   "aliases": null
+  },
+  {
+   "id": "cr_b832671b012c",
+   "name": "笹川真生",
+   "name_kana": "ささがわまお",
+   "aliases": null
+  },
+  {
+   "id": "cr_fb393d2f2f50",
+   "name": "笹本安詞",
+   "name_kana": "ささもとやすし",
+   "aliases": null
+  },
+  {
+   "id": "cr_451d175369a2",
+   "name": "篠崎あやと",
+   "name_kana": "しのざきあやと",
+   "aliases": null
+  },
+  {
+   "id": "cr_427f6665b61a",
+   "name": "籠島裕昌",
+   "name_kana": "かごしまひろまさ",
+   "aliases": null
+  },
+  {
+   "id": "cr_57f6fc8f53ac",
+   "name": "糀谷拓土",
+   "name_kana": "こうじやたくと",
+   "aliases": null
+  },
+  {
+   "id": "cr_3d9a14ca8e73",
+   "name": "細江慎治",
+   "name_kana": "ほそえしんじ",
+   "aliases": "NBGI(細江慎治)"
+  },
+  {
+   "id": "cr_d9ed7ff8625e",
+   "name": "細見卓矢",
+   "name_kana": "ほそみたくや",
+   "aliases": null
+  },
+  {
+   "id": "cr_269d4179e554",
+   "name": "結城アイラ",
+   "name_kana": "ゆうきあいら",
+   "aliases": null
+  },
+  {
+   "id": "cr_e011d580f39d",
+   "name": "絵伊子",
+   "name_kana": "えいこ",
+   "aliases": null
+  },
+  {
+   "id": "cr_dcfbad9d929d",
+   "name": "網本ナオノブ",
+   "name_kana": "あみもとなおのぶ",
+   "aliases": null
+  },
+  {
+   "id": "cr_0d9b094937e7",
+   "name": "編曲",
+   "name_kana": "へんきょく",
+   "aliases": null
+  },
+  {
+   "id": "cr_de338f834aa2",
+   "name": "羊",
+   "name_kana": "ひつじ",
+   "aliases": null
+  },
+  {
+   "id": "cr_36f481f9c969",
+   "name": "美波",
+   "name_kana": "みなみ",
+   "aliases": null
+  },
+  {
+   "id": "cr_8c08f3d71e3e",
+   "name": "脇眞富",
+   "name_kana": "わきまさとみ",
+   "aliases": "脇眞富 (Arte Refact)\n脇眞富(Arte Refact)\n脇眞富（Arte Refact）"
+  },
+  {
+   "id": "cr_13c837dffb3c",
+   "name": "花衣",
+   "name_kana": "はなごろも",
+   "aliases": "花衣(SUPA LOVE)"
+  },
+  {
+   "id": "cr_079b9eab70fa",
+   "name": "若林タカツグ",
+   "name_kana": "わかばやしたかつぐ",
+   "aliases": null
+  },
+  {
+   "id": "cr_43b5491b21fa",
+   "name": "若林充",
+   "name_kana": "わかばやしみつる",
+   "aliases": null
+  },
+  {
+   "id": "cr_c2820020d67e",
+   "name": "茨木わたる",
+   "name_kana": "いばらぎわたる",
+   "aliases": "茨木わたる(MYSTICAL NIGHT)"
+  },
+  {
+   "id": "cr_9fd7c3cc0d93",
+   "name": "草野よしひろ",
+   "name_kana": "くさのよしひろ",
+   "aliases": null
+  },
+  {
+   "id": "cr_36c30e5ebaae",
+   "name": "草野ヨシヒロ",
+   "name_kana": "くさのよしひろ",
+   "aliases": null
+  },
+  {
+   "id": "cr_ab3db2cc7f38",
+   "name": "草野将史",
+   "name_kana": "くさのまさし",
+   "aliases": null
+  },
+  {
+   "id": "cr_9456adc3eb4e",
+   "name": "荒木啓六",
+   "name_kana": "あらきけいろく",
+   "aliases": null
+  },
+  {
+   "id": "cr_f194539f0f93",
+   "name": "荘野ジュリ",
+   "name_kana": "しょうのじゅり",
+   "aliases": null
+  },
+  {
+   "id": "cr_559e8cb49c89",
+   "name": "菊池博人",
+   "name_kana": "きくちひろと",
+   "aliases": "菊池博人(KEYTONE)"
+  },
+  {
+   "id": "cr_ec3c0189c6e7",
+   "name": "菊池達也",
+   "name_kana": "きくちたつや",
+   "aliases": null
+  },
+  {
+   "id": "cr_6e4e523523c6",
+   "name": "菊田大介",
+   "name_kana": "きくただいすけ",
+   "aliases": "菊田大介(Elements Garden)"
+  },
+  {
+   "id": "cr_af13ac7bde24",
+   "name": "菊谷知樹",
+   "name_kana": "きくたにともき",
+   "aliases": null
+  },
+  {
+   "id": "cr_018180e75285",
+   "name": "蓑部雄崇",
+   "name_kana": "みのべたかとし",
+   "aliases": null
+  },
+  {
+   "id": "cr_640f4b359c31",
+   "name": "藤井亮太",
+   "name_kana": "ふじいりょうた",
+   "aliases": null
+  },
+  {
+   "id": "cr_a41b1c66ba89",
+   "name": "藤井健太郎",
+   "name_kana": "ふじいけんたろう",
+   "aliases": "藤井健太郎(HANO)"
+  },
+  {
+   "id": "cr_e19e0de82549",
+   "name": "藤原彩豊",
+   "name_kana": "ふじわらあやほ",
+   "aliases": null
+  },
+  {
+   "id": "cr_f1cee503230f",
+   "name": "藤原燈太",
+   "name_kana": "ふじわらとうた",
+   "aliases": null
+  },
+  {
+   "id": "cr_142f44fbe244",
+   "name": "藤末樹",
+   "name_kana": "ふじすえたつき",
+   "aliases": null
+  },
+  {
+   "id": "cr_784bfd88ba1d",
+   "name": "藤本記子",
+   "name_kana": "ふじもとのりこ",
+   "aliases": "藤本記子 (Nostalgic Orchestra)\n藤本記子(Nostalgic Orchestra)"
+  },
+  {
+   "id": "cr_3ef1d6b6f58b",
+   "name": "藤村鼓乃美",
+   "name_kana": "ふじむらこのみ",
+   "aliases": null
+  },
+  {
+   "id": "cr_5ca7c9a1c4f6",
+   "name": "藤林聖子",
+   "name_kana": "ふじばやしせいこ",
+   "aliases": null
+  },
+  {
+   "id": "cr_5fb7160afa5a",
+   "name": "藤永龍太郎",
+   "name_kana": "ふじながりゅうたろう",
+   "aliases": "藤永龍太郎(Elements Garden)"
+  },
+  {
+   "id": "cr_e7dec555ee7f",
+   "name": "藤澤健至",
+   "name_kana": "ふじさわけんじ",
+   "aliases": null
+  },
+  {
+   "id": "cr_b25d5a57bfe8",
+   "name": "藤田麻衣子",
+   "name_kana": "ふじたまいこ",
+   "aliases": null
+  },
+  {
+   "id": "cr_0f110897791a",
+   "name": "藤長陽太",
+   "name_kana": "ふじながようた",
+   "aliases": null
+  },
+  {
+   "id": "cr_0749607de589",
+   "name": "虹音",
+   "name_kana": "にじね",
+   "aliases": null
+  },
+  {
+   "id": "cr_535fdace5444",
+   "name": "西川サスケ",
+   "name_kana": "にしかわさすけ",
+   "aliases": null
+  },
+  {
+   "id": "cr_1d56c94a3a87",
+   "name": "西本卓朗",
+   "name_kana": "にしもとたくろう",
+   "aliases": null
+  },
+  {
+   "id": "cr_50f0d4f26028",
+   "name": "西本卓郎",
+   "name_kana": "にしもとたくろう",
+   "aliases": null
+  },
+  {
+   "id": "cr_eff20574c77a",
+   "name": "西添健",
+   "name_kana": "にしぞえけん",
+   "aliases": "西添健(Arte Refact)"
+  },
+  {
+   "id": "cr_6b28f9a281dd",
+   "name": "角本麻衣",
+   "name_kana": "かくもとまい",
+   "aliases": null
+  },
+  {
+   "id": "cr_2153f26837a6",
+   "name": "設楽哲也",
+   "name_kana": "したらてつや",
+   "aliases": null
+  },
+  {
+   "id": "cr_1418b006afe4",
+   "name": "諭吉佳作",
+   "name_kana": "ゆきちかさく",
+   "aliases": null
+  },
+  {
+   "id": "cr_ce924538d1cf",
+   "name": "谷ナオキ",
+   "name_kana": "たになおき",
+   "aliases": "谷ナオキ(HANO)"
+  },
+  {
+   "id": "cr_ed034000aa7e",
+   "name": "谷山浩子",
+   "name_kana": "たにやまひろこ",
+   "aliases": null
+  },
+  {
+   "id": "cr_1da165724a7f",
+   "name": "谷島俊",
+   "name_kana": "たにしましゅん",
+   "aliases": null
+  },
+  {
+   "id": "cr_1d53aaef47cd",
+   "name": "貝田由里子",
+   "name_kana": "かいたゆりこ",
+   "aliases": null
+  },
+  {
+   "id": "cr_6f35ae17a79f",
+   "name": "賀佐泰洋",
+   "name_kana": "かさやすひろ",
+   "aliases": "賀佐泰洋(SUPA LOVE)"
+  },
+  {
+   "id": "cr_2205086269bc",
+   "name": "辻純更",
+   "name_kana": "つじすみさら",
+   "aliases": null
+  },
+  {
+   "id": "cr_e15b51056e2e",
+   "name": "近藤世真",
+   "name_kana": "こんどうせいま",
+   "aliases": "近藤世真(Elements Garden)"
+  },
+  {
+   "id": "cr_9d0365b33e8f",
+   "name": "近藤秀次",
+   "name_kana": "こんどうひでつぐ",
+   "aliases": null
+  },
+  {
+   "id": "cr_9d5676239322",
+   "name": "道場秀三郎",
+   "name_kana": "どうじょうしゅうざぶろう",
+   "aliases": null
+  },
+  {
+   "id": "cr_8b8de6f7f63c",
+   "name": "遠山明孝",
+   "name_kana": "とおやまあきたか",
+   "aliases": "BNEI(遠山明孝)\nBNSI(遠山明孝)\nNBGI(遠山明孝)"
+  },
+  {
+   "id": "cr_438870fe52c5",
+   "name": "遠藤ナオキ",
+   "name_kana": "えんどうなおき",
+   "aliases": "遠藤ナオキ（HOVERBOARD,Inc.）"
+  },
+  {
+   "id": "cr_e0af689d52f8",
+   "name": "遠藤フビト",
+   "name_kana": "えんどうふびと",
+   "aliases": null
+  },
+  {
+   "id": "cr_28dfb39e2184",
+   "name": "遠藤信吾",
+   "name_kana": "えんどうしんご",
+   "aliases": null
+  },
+  {
+   "id": "cr_c6d754360f70",
+   "name": "遠藤正樹",
+   "name_kana": "えんどうまさき",
+   "aliases": null
+  },
+  {
+   "id": "cr_0fe5c31965a1",
+   "name": "遠藤直弥",
+   "name_kana": "えんどうなおや",
+   "aliases": null
+  },
+  {
+   "id": "cr_d14253c1b1c4",
+   "name": "遠野四季",
+   "name_kana": "とおのしき",
+   "aliases": null
+  },
+  {
+   "id": "cr_55b8f3bdcd61",
+   "name": "都丸椋太",
+   "name_kana": "とまるりょうた",
+   "aliases": "都丸椋太(Elements Garden)"
+  },
+  {
+   "id": "cr_db9528cf0b07",
+   "name": "酒井ミキオ",
+   "name_kana": "さかいみきお",
+   "aliases": null
+  },
+  {
+   "id": "cr_89616fb5dda2",
+   "name": "酒井拓也",
+   "name_kana": "さかいたくや",
+   "aliases": "酒井拓也 (Arte Refact)\n酒井拓也(Arte Refact\n酒井拓也(Arte Refact)\n酒井拓也（Arte Refact）"
+  },
+  {
+   "id": "cr_2778e85334ee",
+   "name": "里乃塚玲央",
+   "name_kana": "さとのづかれお",
+   "aliases": null
+  },
+  {
+   "id": "cr_6ac2a1b46ad2",
+   "name": "重永亮介",
+   "name_kana": "しげながりょうすけ",
+   "aliases": null
+  },
+  {
+   "id": "cr_cad9165f3bdf",
+   "name": "重田佑介",
+   "name_kana": "しげたゆうすけ",
+   "aliases": "BNSI(重田佑介)"
+  },
+  {
+   "id": "cr_35a736c22113",
+   "name": "野井洋児",
+   "name_kana": "のいようじ",
+   "aliases": null
+  },
+  {
+   "id": "cr_e0d889be8488",
+   "name": "野口圭",
+   "name_kana": "のぐちけい",
+   "aliases": null
+  },
+  {
+   "id": "cr_d7dcaacda6b6",
+   "name": "金子雄紀",
+   "name_kana": "かねこゆうき",
+   "aliases": null
+  },
+  {
+   "id": "cr_32a18fba9d8a",
+   "name": "金山秀士",
+   "name_kana": "かなやまひでし",
+   "aliases": "金山秀士 (Dream Monster)\n金山秀士(Dream Monster)"
+  },
+  {
+   "id": "cr_c7818ae4efd5",
+   "name": "金崎真士",
+   "name_kana": "かなさきしんじ",
+   "aliases": null
+  },
+  {
+   "id": "cr_750d8f5576da",
+   "name": "鈴木CHiBUN智文",
+   "name_kana": "すずきちぶんとしふみ",
+   "aliases": null
+  },
+  {
+   "id": "cr_9908075167fc",
+   "name": "鈴木盛広",
+   "name_kana": "すずきもりひろ",
+   "aliases": null
+  },
+  {
+   "id": "cr_08443852507d",
+   "name": "鈴木航海",
+   "name_kana": "すずきこうかい",
+   "aliases": null
+  },
+  {
+   "id": "cr_7ee43ae39365",
+   "name": "鈴木裕哉",
+   "name_kana": "すずきゆうや",
+   "aliases": null
+  },
+  {
+   "id": "cr_4ff3d80645ea",
+   "name": "鈴木裕明",
+   "name_kana": "すずきひろあき",
+   "aliases": "鈴木裕明(SUPA LOVE)"
+  },
+  {
+   "id": "cr_b92cd1561f9a",
+   "name": "鈴木静那",
+   "name_kana": "すずきしずな",
+   "aliases": null
+  },
+  {
+   "id": "cr_0b7095eb81ec",
+   "name": "鈴谷皆人",
+   "name_kana": "すずたにかいと",
+   "aliases": null
+  },
+  {
+   "id": "cr_a6675df87410",
+   "name": "錦織孝宏",
+   "name_kana": "にしきおりたかひろ",
+   "aliases": "錦織孝宏(TRYTONELABO)"
+  },
+  {
+   "id": "cr_cffb638bb598",
+   "name": "鍋谷卓摩",
+   "name_kana": "なべやたくま",
+   "aliases": "鍋谷卓摩(luxis)\n鍋谷卓摩（luxis）"
+  },
+  {
+   "id": "cr_aab73d80100a",
+   "name": "長根博史",
+   "name_kana": "ながねひろし",
+   "aliases": null
+  },
+  {
+   "id": "cr_59481f8af456",
+   "name": "長田直之",
+   "name_kana": "ながたなおゆき",
+   "aliases": null
+  },
+  {
+   "id": "cr_a5982e615ddf",
+   "name": "長谷川智樹",
+   "name_kana": "はせがわともき",
+   "aliases": null
+  },
+  {
+   "id": "cr_c12158722a68",
+   "name": "長谷川白紙",
+   "name_kana": "はせがわはくし",
+   "aliases": null
+  },
+  {
+   "id": "cr_840bc5fb25ad",
+   "name": "間瀬公司",
+   "name_kana": "ませこうじ",
+   "aliases": null
+  },
+  {
+   "id": "cr_217c01f02065",
+   "name": "関口晶大",
+   "name_kana": "せきぐちあきひろ",
+   "aliases": null
+  },
+  {
+   "id": "cr_de9f852f5f52",
+   "name": "関根佑樹",
+   "name_kana": "せきねゆうき",
+   "aliases": null
+  },
+  {
+   "id": "cr_5b1dfa81b802",
+   "name": "関淳二郎",
+   "name_kana": "せきじゅんじろう",
+   "aliases": null
+  },
+  {
+   "id": "cr_465956b44121",
+   "name": "関野元規",
+   "name_kana": "せきのもとき",
+   "aliases": null
+  },
+  {
+   "id": "cr_b652b71e4980",
+   "name": "陶山隼",
+   "name_kana": "すやまはやと",
+   "aliases": null
+  },
+  {
+   "id": "cr_df5645ed9ec5",
+   "name": "陽茉莉-himari-",
+   "name_kana": "ひまり",
+   "aliases": "陽茉莉-himari-(Hifumi,inc.)"
+  },
+  {
+   "id": "cr_4836c4d60da6",
+   "name": "隠田遼平",
+   "name_kana": "おんだりょうへい",
+   "aliases": null
+  },
+  {
+   "id": "cr_b8854a07b64b",
+   "name": "雅樂川れとら",
+   "name_kana": "うたがわれとら",
+   "aliases": null
+  },
+  {
+   "id": "cr_a9081398f76d",
+   "name": "雪乃イト",
+   "name_kana": "ゆきのいと",
+   "aliases": null
+  },
+  {
+   "id": "cr_2d82800e6b0a",
+   "name": "霜月はるか",
+   "name_kana": "しもつきはるか",
+   "aliases": null
+  },
+  {
+   "id": "cr_683612b8afe3",
+   "name": "青木康平",
+   "name_kana": "あおきこうへい",
+   "aliases": null
+  },
+  {
+   "id": "cr_f1150cbe9537",
+   "name": "青木朋子",
+   "name_kana": "あおきともこ",
+   "aliases": "BNSI (青木朋子)"
+  },
+  {
+   "id": "cr_3cb212f3b369",
+   "name": "青木瑠璃子",
+   "name_kana": "あおきるりこ",
+   "aliases": null
+  },
+  {
+   "id": "cr_9f0cd3ebce3e",
+   "name": "青柳諒",
+   "name_kana": "あおやぎりょう",
+   "aliases": "青柳諒(Arte Refact)"
+  },
+  {
+   "id": "cr_bcc630516da4",
+   "name": "青海佑樹",
+   "name_kana": "あおみゆうき",
+   "aliases": null
+  },
+  {
+   "id": "cr_0132759cd2a3",
+   "name": "須藤幽玄",
+   "name_kana": "すどうゆうげん",
+   "aliases": null
+  },
+  {
+   "id": "cr_ae24fc7bf127",
+   "name": "飯田涼太",
+   "name_kana": "いいだりょうた",
+   "aliases": null
+  },
+  {
+   "id": "cr_d2718b1aeaa9",
+   "name": "首藤義勝",
+   "name_kana": "しゅどうよしかつ",
+   "aliases": null
+  },
+  {
+   "id": "cr_58ed2a693b5d",
+   "name": "馬渕直純",
+   "name_kana": "まぶちなおずみ",
+   "aliases": null
+  },
+  {
+   "id": "cr_4e23c6077fc2",
+   "name": "高取ヒデアキ",
+   "name_kana": "たかとりひであき",
+   "aliases": null
+  },
+  {
+   "id": "cr_011b1848953d",
+   "name": "高尾奏之介",
+   "name_kana": "たかおそうのすけ",
+   "aliases": null
+  },
+  {
+   "id": "cr_e37fdfdbcd52",
+   "name": "高木龍一",
+   "name_kana": "たかぎりゅういち",
+   "aliases": "高木龍一(Dream Monster)"
+  },
+  {
+   "id": "cr_fe47e51f129f",
+   "name": "高樹リオ",
+   "name_kana": "たかぎりお",
+   "aliases": null
+  },
+  {
+   "id": "cr_cc09ac6963c6",
+   "name": "高橋修平",
+   "name_kana": "たかはししゅうへい",
+   "aliases": null
+  },
+  {
+   "id": "cr_044a44c4a4a7",
+   "name": "高橋浩平",
+   "name_kana": "たかはしこうへい",
+   "aliases": null
+  },
+  {
+   "id": "cr_7a801e1011b1",
+   "name": "高橋諒",
+   "name_kana": "たかはしりょう",
+   "aliases": "高橋諒(Void_Chords)"
+  },
+  {
+   "id": "cr_d68399d0512f",
+   "name": "高瀬一矢",
+   "name_kana": "たかせかずや",
+   "aliases": null
+  },
+  {
+   "id": "cr_013cd3690f50",
+   "name": "高瀬愛虹",
+   "name_kana": "たかせあいこ",
+   "aliases": null
+  },
+  {
+   "id": "cr_76282ff619f7",
+   "name": "高田暁",
+   "name_kana": "たかだあきら",
+   "aliases": null
+  },
+  {
+   "id": "cr_ff7b15832500",
+   "name": "高田龍一",
+   "name_kana": "たかだりゅういち",
+   "aliases": "BNSI(高田龍一)\n高田龍一(MONACA)\n高田龍一(REMIX-A編曲)\n高田龍一（MONACA）"
+  },
+  {
+   "id": "cr_1e3575a0deb8",
+   "name": "鳥居克成",
+   "name_kana": "とりいかつなり",
+   "aliases": null
+  },
+  {
+   "id": "cr_441cf5bfc08e",
+   "name": "鴇沢直",
+   "name_kana": "ときざわなお",
+   "aliases": null
+  },
+  {
+   "id": "cr_68a9db76f3dc",
+   "name": "鵜飼大幹",
+   "name_kana": "うかいだいき",
+   "aliases": null
+  },
+  {
+   "id": "cr_fb22884a8144",
+   "name": "鶴﨑輝一",
+   "name_kana": "つるさきてるかず",
+   "aliases": null
+  },
+  {
+   "id": "cr_f8156da061f4",
+   "name": "麻枝准",
+   "name_kana": "まえだじゅん",
+   "aliases": null
+  },
+  {
+   "id": "cr_12fcf9b7bcad",
+   "name": "黒須克彦",
+   "name_kana": "くろすかつひこ",
+   "aliases": null
+  },
+  {
+   "id": "cr_7d74d3a44803",
+   "name": "齋藤大",
+   "name_kana": "さいとうひろし",
+   "aliases": "齋藤大(Dream Monster)\n齋藤大(Hifumi,inc.)"
+  },
+  {
+   "id": "cr_8d0f896e05bc",
+   "name": "齋藤真也",
+   "name_kana": "さいとうしんや",
+   "aliases": null
+  }
+ ]
+}
