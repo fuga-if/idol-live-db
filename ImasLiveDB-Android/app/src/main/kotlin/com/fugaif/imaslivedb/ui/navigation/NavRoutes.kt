@@ -119,6 +119,77 @@ sealed class NavRoutes(val route: String) {
                 "games_idolquiz/" + (if (brandIds.isEmpty()) "all" else brandIds.sorted().joinToString(","))
         }
     }
+    // --- 絞り込み一覧 (iOS Views/Filtered/) ---
+    //
+    // 「このブランドのライブ」「この会場での公演」のように、詳細画面の 1 行から
+    // 同じ条件の一覧へ抜ける導線。条件は種類ごとに違うので、1 本のルートに
+    // 詰め込まず種類ごとに分ける (引数の意味がルート名から読める方を採る)。
+    // 値は URL 経路に載るので、呼び出し側で必ず Uri.encode すること。
+    data class FilteredSongs(val kind: String, val value: String) :
+        NavRoutes("filtered_songs/{kind}/{value}") {
+        companion object {
+            const val ROUTE = "filtered_songs/{kind}/{value}"
+            /** kind: cd_series / series_group / release_year / brand / creator / song_type */
+            fun createRoute(kind: String, value: String) =
+                "filtered_songs/$kind/${android.net.Uri.encode(value)}"
+        }
+    }
+    data class FilteredEvents(val kind: String, val value: String) :
+        NavRoutes("filtered_events/{kind}/{value}") {
+        companion object {
+            const val ROUTE = "filtered_events/{kind}/{value}"
+            /** kind: brand / year */
+            fun createRoute(kind: String, value: String) =
+                "filtered_events/$kind/${android.net.Uri.encode(value)}"
+        }
+    }
+    data class FilteredShows(val kind: String, val value: String) :
+        NavRoutes("filtered_shows/{kind}/{value}") {
+        companion object {
+            const val ROUTE = "filtered_shows/{kind}/{value}"
+            /** kind: venue / date */
+            fun createRoute(kind: String, value: String) =
+                "filtered_shows/$kind/${android.net.Uri.encode(value)}"
+        }
+    }
+    data class FilteredIdols(val kind: String, val value: String) :
+        NavRoutes("filtered_idols/{kind}/{value}") {
+        companion object {
+            const val ROUTE = "filtered_idols/{kind}/{value}"
+            /** kind: brand / constellation / birth_place / blood_type */
+            fun createRoute(kind: String, value: String) =
+                "filtered_idols/$kind/${android.net.Uri.encode(value)}"
+        }
+    }
+
+    /** 終了したお題の優勝者一覧 (iOS PollHallOfFameView)。 */
+    data object PollHallOfFame : NavRoutes("poll_hall_of_fame")
+
+    /** ユニットタグの詳細 (曲/アイドルのタグ詳細と同型)。 */
+    data class UnitTagDetail(val tagId: String) : NavRoutes("unit_tag_detail/{tagId}") {
+        companion object {
+            const val ROUTE = "unit_tag_detail/{tagId}"
+            fun createRoute(tagId: String) = "unit_tag_detail/$tagId"
+        }
+    }
+
+    /** ブランドの年表 (iOS BrandTimelineView)。 */
+    data class BrandTimeline(val brandId: String) : NavRoutes("brand_timeline/{brandId}") {
+        companion object {
+            const val ROUTE = "brand_timeline/{brandId}"
+            fun createRoute(brandId: String) = "brand_timeline/$brandId"
+        }
+    }
+
+    /** アイドル × 曲 の披露履歴 (iOS IdolSongHistoryView)。 */
+    data class IdolSongHistory(val idolId: String, val songId: String) :
+        NavRoutes("idol_song_history/{idolId}/{songId}") {
+        companion object {
+            const val ROUTE = "idol_song_history/{idolId}/{songId}"
+            fun createRoute(idolId: String, songId: String) = "idol_song_history/$idolId/$songId"
+        }
+    }
+
     data object GamesSongQuizSetup : NavRoutes("games_songquiz_setup")
     data class GamesSongQuiz(val brandIds: String) : NavRoutes("games_songquiz/{brandIds}") {
         companion object {
