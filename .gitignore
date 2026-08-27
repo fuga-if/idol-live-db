@@ -99,3 +99,7 @@ imas-core/target/
 # tools/ の Python スクリプトを import/実行したときに出るバイトコード
 __pycache__/
 *.pyc
+
+# 読み突き合わせの作業ファイル (再生成できる。state は途中再開用)
+tools/readings/crosscheck.tsv
+tools/readings/crosscheck_state.json

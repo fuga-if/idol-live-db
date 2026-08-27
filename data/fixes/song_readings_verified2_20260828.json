@@ -1,0 +1,78 @@
+{
+ "title": "曲名の読み仮名を裏取りして訂正する (第2陣)",
+ "_help": "当方が起こした読みの裏取り。当て字 (美食=めいし / 禍魂=まがたま / ♪=ハッピー) と、記号 (√ / →→→) や副題の読み落としが主。",
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "sidem_掲げよう偽りなき自分を",
+   "fields": {
+    "title_kana": "かかげよういつわりなきじぶんを"
+   },
+   "note": "語順を取り違えていた。出典 https://utaten.com/lyric/yb17090646/"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_キセキ的_starry-tune",
+   "fields": {
+    "title_kana": "きせきてきすたーりーちゅーん"
+   },
+   "note": "STARRY の長音。出典 https://fujiwarahaji.me/music/sidem/8623"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_来来美食",
+   "fields": {
+    "title_kana": "らいらいめいし"
+   },
+   "note": "美食=めいし (当て字)。「びしょく」は誤り。出典 https://fujiwarahaji.me/music/sidem/8534"
+  },
+  {
+   "table": "songs",
+   "id": "cg_禍魂朧夜",
+   "fields": {
+    "title_kana": "まがたまのおぼろよ"
+   },
+   "note": "禍魂=まがたま。「かこん」は誤り。出典 https://fujiwarahaji.me/music/cg/10981"
+  },
+  {
+   "table": "songs",
+   "id": "ml_idescape_from_utopia",
+   "fields": {
+    "title_kana": "あいでぃーえすけーぷふろむゆーとぴあ"
+   },
+   "note": "副題が抜けていた。出典 https://fujiwarahaji.me/music/ml/2797"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_evolution",
+   "fields": {
+    "title_kana": "るーとえぼりゅーしょん"
+   },
+   "note": "冒頭の √ (ルート) が抜けていた。出典 https://fujiwarahaji.me/music/sidem/8682"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_made_in_",
+   "fields": {
+    "title_kana": "めいどいんはっぴー"
+   },
+   "note": "「♪」をハッピーと読む。出典 https://fujiwarahaji.me/music/sidem/8620"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_かざぐるま_windy_road",
+   "fields": {
+    "title_kana": "かざぐるまうぃんでぃーろーど"
+   },
+   "note": "副題が抜けていた。出典 https://fujiwarahaji.me/music/sidem/8510"
+  },
+  {
+   "table": "songs",
+   "id": "765as_→→→sp",
+   "fields": {
+    "title_kana": "みぎみぎみぎすぺしゃる"
+   },
+   "note": "「→→→」の読みが抜けていた。出典 https://fujiwarahaji.me/music/joint/12152"
+  }
+ ]
+}
