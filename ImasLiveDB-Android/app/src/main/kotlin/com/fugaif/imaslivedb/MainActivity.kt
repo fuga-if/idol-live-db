@@ -25,17 +25,25 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.lifecycleScope
+import com.fugaif.imaslivedb.data.notification.NotificationScheduler
 import com.fugaif.imaslivedb.data.sync.CloudKitSyncEngine
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.games.DailyPickSheet
 import com.fugaif.imaslivedb.ui.navigation.AppNavigation
 import com.fugaif.imaslivedb.ui.theme.ImasLiveDBTheme
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         val sync = AppModule.from(this).syncEngine
+        // ローカル通知を毎回まるごと組み直す (iOS ImasLiveDBApp と同じ起動時フック)。
+        // AlarmManager の予約はアプリ更新や端末再起動で消えるうえ、担当/お気に入りの
+        // 増減も起動のたびに拾い直したいので、差分更新ではなく全消去 → 全再スケジュール。
+        // 未許可なら中で何もしないので、ここで権限を要求することはない。
+        lifecycleScope.launch { NotificationScheduler.rescheduleAll(this@MainActivity) }
         setContent {
             ImasLiveDBTheme {
                 val state by sync.state.collectAsState()

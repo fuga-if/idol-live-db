@@ -3,6 +3,19 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- 通知は Android 13+ でランタイム権限。設定画面の「通知を許可する」から要求する。 -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- AlarmManager の予約は端末の再起動で全部消えるので、起動完了を受けて積み直す。 -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!--
+      SCHEDULE_EXACT_ALARM / USE_EXACT_ALARM は意図的に宣言しない。
+      誕生日 9:00・日曜 20:00 といった通知は数分ずれても価値が落ちない一方、
+      exact alarm はユーザーによる個別許可 (12+) を必要とし、USE_EXACT_ALARM は
+      「アラーム/カレンダーが主目的のアプリ」限定という Play のポリシーがある。
+      代わりに setAndAllowWhileIdle を使う (権限不要・Doze でも発火・数分の誤差)。
+      詳細は NotificationScheduler の KDoc。
+    -->
+
     <application
         android:name=".ImasLiveDBApplication"
         android:allowBackup="true"
@@ -26,6 +39,27 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- 予約時刻に叩かれて通知を 1 本出す。自アプリの AlarmManager からしか来ない。 -->
+        <receiver
+            android:name=".data.notification.NotificationAlarmReceiver"
+            android:exported="false" />
+
+        <!--
+          予約が消える/ずれる出来事のあとに積み直す。
+          exported="false" のままで届く: システム (uid=SYSTEM) が送るブロードキャストは
+          非 exported なレシーバにも配送される (WorkManager の RescheduleReceiver と同じ形)。
+        -->
+        <receiver
+            android:name=".data.notification.NotificationBootReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+            </intent-filter>
+        </receiver>
 
     </application>
 
