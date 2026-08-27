@@ -181,7 +181,8 @@ class EventListViewModel : ViewModel() {
         searchDebounceJob = viewModelScope.launch {
             delay(SEARCH_DEBOUNCE_MS)
             _uiState.value = _uiState.value.copy(appliedSearchText = text)
-            rebuild()
+            // 走行中の再構築があれば捨てて組み直す (rebuild を直に呼ぶと 2 本が同じ state を奪い合う)。
+            scheduleRebuild()
         }
     }
 

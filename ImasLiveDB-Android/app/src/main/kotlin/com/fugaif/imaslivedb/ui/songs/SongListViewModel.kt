@@ -98,13 +98,16 @@ data class SongListUiState(
     val fuzzySongs: List<SongWithArtists> = emptyList()
 ) {
     val activeFilterCount: Int get() = filter.activeFilterCount
-    /** ツールバーのフィルタバッジ件数。表示形式以外の絞り込み状態も含める。 */
+
+    /**
+     * ツールバーのフィルタバッジ件数。フィルタシートで決まる条件だけを数える。
+     * タグはツールバーに専用のバッジ付きボタンがあるので、ここでは数えない (二重表示になる)。
+     */
     val filterBadgeCount: Int
         get() {
             var count = activeFilterCount
             if (listMode != SongListMode.SONGS) count++
             if (collectFilter != SongCollectFilter.ALL) count++
-            if (selectedTags.isNotEmpty()) count++
             count += myMarkFilter.activeCount
             return count
         }
@@ -281,15 +284,15 @@ class SongListViewModel : ViewModel() {
             _uiState.value = _uiState.value.copy(isLoading = true)
             val state = _uiState.value
             val module = AppModule.from(ctx)
-            val baseFilter = state.filter.copy(includeOtherBrand = state.showOtherBrand)
-            val effectiveFilter = baseFilter.withSearch(state.searchText, state.searchMode)
-
             // アルバム / シリーズ表示は曲行を組まない (集計カードだけ)。
             // 曲側の重い取得 (マーク集合・回収数・あいまい候補) も丸ごと不要。
             if (state.listMode != SongListMode.SONGS) {
                 loadCollections(module, state)
                 return@launch
             }
+
+            val baseFilter = state.filter.copy(includeOtherBrand = state.showOtherBrand)
+            val effectiveFilter = baseFilter.withSearch(state.searchText, state.searchMode)
 
             // タグ絞り込み: Worker D1 (コミュニティタグ) は端末外データなので、選択中タグそれぞれの
             // 詳細 (付いた曲の song_id 一覧) を取得して AND (積集合) を取る。
