@@ -1,0 +1,5022 @@
+{
+ "title": "ライブ名に読み仮名を入れる (かな入力でライブを探せるようにする)",
+ "_help": "events.name_kana は列だけあって全 846 件空だった。漢字のライブ名は読みが無いとかなで引けない。検索はラテン文字を打った通りに、カタカナをかな畳み込みで既に拾えるので、**かなで引けない部分 (漢字) の読み**を入れてある (イベント名は平均 53 文字だが漢字部分は平均 8 文字で、残りを書いても検索結果は変わらない)。曲・アイドル・会場は名前全体が日本語なので結果的に全文の読みになっており、規則としては同じ。繰り返し出る 543 語の辞書を作って合成したので、同じ語は常に同じ読みになる。",
+ "fixes": [
+  {
+   "table": "events",
+   "id": "ev_こまくらオフコラボ歌枠リレーlantis曲縛り平成アイドルオタクいきます氷猫みう_mewlive新人vtuber",
+   "fields": {
+    "name_kana": "こまくらおふこらぼうたわくりれー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_ヴイアラ_1st_album彼方リリース記念イベント",
+   "fields": {
+    "name_kana": "ゔいあらかなたりりーすきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_ヴイアラデミカツ歌枠リレートップバッターは愛夏とみえるちゃんです灯里愛夏_姫乃みえる_ヴイアラ_デミカツ",
+   "fields": {
+    "name_kana": "ゔいあらでみかつうたわくりれー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_ヴイアラ歌枠リレー宇宙参ります_異次元フェス_セトリ楽曲で盛り上がりましょうヴイアラ_上水流宇宙",
+   "fields": {
+    "name_kana": "ゔいあらうたわくりれーいじげんふぇすせとりしばり"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_ヴイアラ歌枠リレートップバッター最高に可愛く決めちゃいますヴイアラ_灯里愛夏",
+   "fields": {
+    "name_kana": "ゔいあらうたわくりれー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_ヴイアラ歌枠リレーボカロ楽曲縛り歌枠1番手は愛夏ですヴイアラ_灯里愛夏",
+   "fields": {
+    "name_kana": "ゔいあらうたわくりれーぼかろがっきょくしばり"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_星街すいせい6周年記念livesheenderelladay",
+   "fields": {
+    "name_kana": "ほしまちすいせいしゅうねんきねん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_10分で覚えて踊れ3dダンス初コラボ配信_上水流宇宙_",
+   "fields": {
+    "name_kana": "ふんでおぼえておどれだんすはつこらぼはいしんかみずるそら"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_20th_anniversary_live_ランティス祭り2019_arigato_anisong_day-02sidem出演部分",
+   "fields": {
+    "name_kana": "らんてぃすまつりしゅつえんぶぶん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_20th_anniversary_live_ランティス祭り2019_arigato_anisong_day-02シャイニーカラーズ",
+   "fields": {
+    "name_kana": "らんてぃすまつりしゃいにーからーず"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_20th_anniversary_live_ランティス祭り2019_arigato_anisong_day-03ミリオンスターズ",
+   "fields": {
+    "name_kana": "らんてぃすまつりみりおんすたーず"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_24magic_シンデレラたちの24時間生放送_オープニングthe_idolmster_cinderella_girls_live_broadcast_2",
+   "fields": {
+    "name_kana": "しんでれらたちのじかんなまほうそうー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_283_production_musical_performance_騎士団のヴェール_veil_of_order_abnegatio_i_",
+   "fields": {
+    "name_kana": "きしだんのゔぇーる"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_283production_solo_performance_live我儘なまま",
+   "fields": {
+    "name_kana": "わがままなまま"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_315_production_presents_fntastic_battle_fes_who_goes_first_大阪公演",
+   "fields": {
+    "name_kana": "おおさかこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_315_production_presents_fntastic_battle_fes_who_goes_first_幕張公演",
+   "fields": {
+    "name_kana": "まくはりこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_315_production_presents_fntastic_combination_live_brainpower_幕張公演",
+   "fields": {
+    "name_kana": "まくはりこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_315_production_presents_fntastic_combination_live_brainpower_神奈川公演",
+   "fields": {
+    "name_kana": "かながわこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_315_winter_passion_ステージ_cfirst",
+   "fields": {
+    "name_kana": "すてーじー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_315_winter_passion_ステージ_climax",
+   "fields": {
+    "name_kana": "すてーじー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_315_winter_passion_ステージ_legenders",
+   "fields": {
+    "name_kana": "すてーじー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_315アニマルpassionステージ_cfirst",
+   "fields": {
+    "name_kana": "あにまるすてーじ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち",
+   "fields": {
+    "name_kana": "ふたごぼしのつばさつみまつよるまち"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_961_production_presents_reflame_追加公演_reflamedusk",
+   "fields": {
+    "name_kana": "ついかこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_a_night_in_fantasia_2009エミネンス交響楽団によるオーケストラコンサート",
+   "fields": {
+    "name_kana": "えみねんすこうきょうがくだんによるおーけすとらこんさーと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_animejapan2015_アイドルマスター_シンデレラガールズ_ステージ",
+   "fields": {
+    "name_kana": "あいどるますたーしんでれらがーるずすてーじ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_animelo_summer_live_2016_刻_-toki-",
+   "fields": {
+    "name_kana": "とき"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_animelo_summer_live_2017_-the_card-ミリオンライブ",
+   "fields": {
+    "name_kana": "みりおんらいぶ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_animelo_summer_live_2018_okミリオンスターズ",
+   "fields": {
+    "name_kana": "みりおんすたーず"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_animethon_2026_musicfes_アイドルマスター_シャイニーカラーズ出演",
+   "fields": {
+    "name_kana": "あいどるますたーしゃいにーからーずしゅつえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_anisong_world_matsuri_at_anime_expo_2018_japan_kawaii_liveアイマス出演部分のみ",
+   "fields": {
+    "name_kana": "あいますしゅつえんぶぶんのみ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_bilibili_macro_link_-star_phase_anisong_world_matsuri_2018シンデレラガールズ",
+   "fields": {
+    "name_kana": "しんでれらがーるず"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_bilibili_macro_link_-star_phase_anisong_world_matsuri_2018ミリオンライブ",
+   "fields": {
+    "name_kana": "みりおんらいぶ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_c3日本動玩博覽2015_the_idolmster_cinderella_girls_talklive_in_hong_kong",
+   "fields": {
+    "name_kana": "にほんどうがんはくらん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_cdtvライブライブフェスティバル",
+   "fields": {
+    "name_kana": "らいぶらいぶふぇすてぃばる"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_cdthe_idolmster_radioトークミニライブ",
+   "fields": {
+    "name_kana": "とーくみにらいぶ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_cinderella_party_デレパ参周年記念祝賀会",
+   "fields": {
+    "name_kana": "でれぱさんしゅうねんきねんしゅくがかいー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_cinderella_real_party_01_あかるくせいそにかわいくきよく",
+   "fields": {
+    "name_kana": "あかるくせいそにかわいくきよくー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_cinderella_real_party_02イケてる彼女と楽しい公録",
+   "fields": {
+    "name_kana": "いけてるかのじょとたのしいこうろくー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_cinderella_real_party_03_あつまれプロデューサー_すてきなパレードin_らんらんホール",
+   "fields": {
+    "name_kana": "あつまれぷろでゅーさーすてきなぱれーどらんらんほーるー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_cinderella_real_party_04_わいわいつどえ_しょねんしょうじょ_いやよいやよもすきのうち_第一部",
+   "fields": {
+    "name_kana": "わいわいつどえしょーねんしょうじょいやよいやよもすきのうちー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_cinderella_real_party_05_この時をまっていた_うきうき_ようきな_うんどうかい",
+   "fields": {
+    "name_kana": "このときをまっていたうきうきようきなうんどうかいー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_cinderella_real_party_06超excited_ノリ遅れるな_輪になろう",
+   "fields": {
+    "name_kana": "ちょうのりおくれるなわになろうー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_cinderella_real_party_09御利神オリジン",
+   "fields": {
+    "name_kana": "おりじんおりじんー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_cinderella_real_party_10_拾年の宴舟民の舞ww",
+   "fields": {
+    "name_kana": "じゅうねんのうたげーしゅうみんのまい"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_face_to_face_with_asami_shimodakawaii_kon_2016内イベント",
+   "fields": {
+    "name_kana": "ないいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_funky_dancing_nightthe_idolmster_cinderella_girls_live_broadcast_24magic_シンデレ",
+   "fields": {
+    "name_kana": "しんでれらたちのじかんなまほうそうー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_hibiki_radio_station_the_idolmster_春のp祭り",
+   "fields": {
+    "name_kana": "はるのまつり"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_ims_game_show_2017東京ゲームショウ2017",
+   "fields": {
+    "name_kana": "とうきょうげーむしょう"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_iriamマスターへの道_歌で心をユラせ_レトラ歌枠",
+   "fields": {
+    "name_kana": "ますたーへのみちうたでこころをゆらせ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_joynt_pops_公開収録",
+   "fields": {
+    "name_kana": "こうかいしゅうろく"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_live_dam_stadiumアニカラjapanスペシャルステージanimejapan_2018",
+   "fields": {
+    "name_kana": "あにからすぺしゃるすてーじ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_mega_hobby_life最強figure展示會_偶像大師高槻彌生的聲優仁後真耶子小姐的talk_show與mini_live",
+   "fields": {
+    "name_kana": "さいきょうてんじかいぐうぞうたいしたかつきやよいのせいゆうにごまやこと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_monacaフェス2016",
+   "fields": {
+    "name_kana": "ふぇす"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_motto_anisong_festival_2018アイマス出演パートのみ",
+   "fields": {
+    "name_kana": "あいますしゅつえんぱーとのみ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_nhk総合music_japan収録放送11月16日深夜0時55分",
+   "fields": {
+    "name_kana": "そうごうしゅうろくほうそうがつにちしんやじふん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_nhk総合naomiの部屋",
+   "fields": {
+    "name_kana": "そうごうのへや"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_nhk総合シブヤノオト生放送",
+   "fields": {
+    "name_kana": "そうごうしぶやのおとなまほうそう"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_reanimation-rave_in_新宿歌舞伎町-vol4",
+   "fields": {
+    "name_kana": "しんじゅくかぶきちょう"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_sidemライブビューイングステージ応援してみたニコニコ超会議2016",
+   "fields": {
+    "name_kana": "らいぶびゅーいんぐすてーじーおうえんしてみたーにこにこちょうかいぎ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_tamashii_nation_2022_オープニングセレモニー",
+   "fields": {
+    "name_kana": "おーぷにんぐせれもにー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_tbsアニメフェスタ2011",
+   "fields": {
+    "name_kana": "あにめふぇすた"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_tbsアニメフェスタ2013",
+   "fields": {
+    "name_kana": "あにめふぇすた"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_tgs2006バンダイナムコゲームスイベントステージ_アイドルマスターステージイベントスクープ連発xbox_360版アイドルマスターの秘密に迫る_暴かれた",
+   "fields": {
+    "name_kana": "ばんだいなむこげーむすいべんとすてーじあいどるますたーすてーじいべんとすくーぷれんぱつばんあいどるますたーのひみつにせまるあばかれたちょうにんきあいどるのひめられたかことゆけむりのむこうがわにまぼろしのしいたけりょうりをみた"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_tgs2009アイドルマスター_ディアリースターズ_スペシャルステージ",
+   "fields": {
+    "name_kana": "あいどるますたーでぃありーすたーずすぺしゃるすてーじ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_tgs2010_初音ミク_-project_diva-_2nd_スペシャルステージ",
+   "fields": {
+    "name_kana": "はつねみくすぺしゃるすてーじ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_20th_anniversary_special_party_アイ_must_go_on_これからもアイマスですよ_20th特",
+   "fields": {
+    "name_kana": "あいこれからもあいますですよとくべつなまはいしんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_6th_anniversary_smile_summer_festivl_名古屋公演",
+   "fields": {
+    "name_kana": "なごやこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_6th_anniversary_smile_summer_festivl_大阪公演",
+   "fields": {
+    "name_kana": "おおさかこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_6th_anniversary_smile_summer_festivl_札幌公演",
+   "fields": {
+    "name_kana": "さっぽろこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_6th_anniversary_smile_summer_festivl_東京公演",
+   "fields": {
+    "name_kana": "とうきょうこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_6th_anniversary_smile_summer_festivl_福岡公演",
+   "fields": {
+    "name_kana": "ふくおかこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_7th_anniversary_765pro_allstars_みんなといっしょに",
+   "fields": {
+    "name_kana": "みんなといっしょに"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_9th_anniversary_we_are_msterpiece_名古屋公演",
+   "fields": {
+    "name_kana": "なごやこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_9th_anniversary_we_are_msterpiece_大阪公演",
+   "fields": {
+    "name_kana": "おおさかこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_9th_anniversary_we_are_msterpiece_東京公演",
+   "fields": {
+    "name_kana": "とうきょうこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_animtion_master_secret_cover_song_event_生っすかspecial_xmas_prty",
+   "fields": {
+    "name_kana": "なまっすか"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_cinderella_girls_3rdlive_シンデレラの舞踏会_-_power_of_smile_-_day1",
+   "fields": {
+    "name_kana": "しんでれらのぶとうかい"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_cinderella_girls_4thlive_tricastle_story_さいたまスーパーアリーナ公演_day1bra",
+   "fields": {
+    "name_kana": "さいたますーぱーありーなこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_cinderella_girls_4thlive_tricastle_story_神戸ワールド記念ホール公演_day1star",
+   "fields": {
+    "name_kana": "こうべわーるどきねんほーるこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_cinderella_girls_5th_anniversary_party_ニコ生sp",
+   "fields": {
+    "name_kana": "にこなま"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_cinderella_girls_5th_live_tour_serendipity_parade上海ファンミーティング",
+   "fields": {
+    "name_kana": "しゃんはいふぁんみーてぃんぐ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_cinderella_girls_5thlive_tour_serendipity_parade_さいたまスーパーアリーナ公演",
+   "fields": {
+    "name_kana": "さいたますーぱーありーなこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_cinderella_girls_5thlive_tour_serendipity_parade_大阪公演",
+   "fields": {
+    "name_kana": "おおさかこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_cinderella_girls_5thlive_tour_serendipity_parade_宮城公演",
+   "fields": {
+    "name_kana": "みやぎこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_cinderella_girls_5thlive_tour_serendipity_parade_幕張公演",
+   "fields": {
+    "name_kana": "まくはりこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_cinderella_girls_5thlive_tour_serendipity_parade_石川公演",
+   "fields": {
+    "name_kana": "いしかわこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_cinderella_girls_5thlive_tour_serendipity_parade_福岡公演",
+   "fields": {
+    "name_kana": "ふくおかこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_cinderella_girls_5thlive_tour_serendipity_parade_静岡公演",
+   "fields": {
+    "name_kana": "しずおかこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_cinderella_girls_6thlive_merry-go-roundome_ナゴヤドーム公演",
+   "fields": {
+    "name_kana": "なごやどーむこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_cinderella_girls_6thlive_merry-go-roundome_メットライフドーム公演",
+   "fields": {
+    "name_kana": "めっとらいふどーむこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_cinderella_girls_animation_project_01_star発売記念スペシャルイベント",
+   "fields": {
+    "name_kana": "はつばいきねんすぺしゃるいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_cinderella_girls_animation_project_0203発売記念イベント_トークミニライブ",
+   "fields": {
+    "name_kana": "はつばいきねんいべんととーくみにらいぶ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_cinderella_girls_animation_project_0405発売記念イベント_トークミニライブ",
+   "fields": {
+    "name_kana": "はつばいきねんいべんととーくみにらいぶ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_cinderella_girls_animation_project_0607発売記念イベント_トークミニライブ",
+   "fields": {
+    "name_kana": "はつばいきねんいべんととーくみにらいぶ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_cinderella_girls_animation_project_08_goincd発売記念イベント_トークミニライブお渡",
+   "fields": {
+    "name_kana": "はつばいきねんいべんととーくみにらいぶおわたしかい"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_cinderella_girls_animation_project_2nd_season_01_shine_発売記念スペシャ",
+   "fields": {
+    "name_kana": "はつばいきねんすぺしゃるいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_cinderella_girls_next_live発表会_special_stage_miraiken_studio",
+   "fields": {
+    "name_kana": "はっぴょうかい"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_cinderella_girls_starlight_stage_10th_anniversary_tour_lets_amu",
+   "fields": {
+    "name_kana": "おおさかこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_cinderella_girls_starlight_stage_10th_anniversary_tour_lets_amu_2",
+   "fields": {
+    "name_kana": "とうきょうこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_cinderella_girls_starlight_stage_10th_anniversary_tour_lets_amu_3",
+   "fields": {
+    "name_kana": "おきなわこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_cinderella_girls_starlight_stage_10th_anniversary_tour_lets_amu_4",
+   "fields": {
+    "name_kana": "ふくおかこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_cinderella_girls_summer_festivl_2015_in_大阪",
+   "fields": {
+    "name_kana": "おおさか"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_cinderella_girls_summer_festivl_2015_in_東京",
+   "fields": {
+    "name_kana": "とうきょう"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_cinderella_girls_unit_live_tour_connectrip_大阪公演",
+   "fields": {
+    "name_kana": "おおさかこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_cinderella_girls_unit_live_tour_connectrip_山形公演",
+   "fields": {
+    "name_kana": "やまがたこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_cinderella_girls_unit_live_tour_connectrip_岩手公演",
+   "fields": {
+    "name_kana": "いわてこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_cinderella_girls_unit_live_tour_connectrip_東京公演",
+   "fields": {
+    "name_kana": "とうきょうこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_cinderella_girls_unit_live_tour_connectrip_石川公演",
+   "fields": {
+    "name_kana": "いしかわこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_cinderella_girls_unit_live_tour_connectrip_福岡公演",
+   "fields": {
+    "name_kana": "ふくおかこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_cinderella_girls_燿城夜祭_-かがやきよまつり-",
+   "fields": {
+    "name_kana": "ようじょうやさいかがやきよまつり"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_cinderella_masterwere_the_friendsリリース記念_ミニライブハイタッチ会",
+   "fields": {
+    "name_kana": "りりーすきねんみにらいぶはいたっちかい"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_cinderella_masterお願いシンデレラ発売記念イベント",
+   "fields": {
+    "name_kana": "おねがいしんでれらはつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_msters_of_idol_world_2025_前夜祭djイベント",
+   "fields": {
+    "name_kana": "ぜんやさいいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_masterwork_第0弾_私はアイドル_発売記念_xmsイベント",
+   "fields": {
+    "name_kana": "だいだんわたしはあいどるはつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_million_live_6thlive_tour_uni-onir_仙台公演_angel_station",
+   "fields": {
+    "name_kana": "せんだいこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_million_live_6thlive_tour_uni-onir_神戸公演_princess_station",
+   "fields": {
+    "name_kana": "こうべこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_million_live_6thlive_tour_uni-onir_福岡公演_fairy_station",
+   "fields": {
+    "name_kana": "ふくおかこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_million_live_million_theter_generation_0910_発売記念イベント_1回目",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_million_live_million_theter_generation_1213_発売記念イベント_1回目",
+   "fields": {
+    "name_kana": "はつばいきねんいべんとかいめ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_million_live_million_theter_generation_1213_発売記念イベント_2回目",
+   "fields": {
+    "name_kana": "はつばいきねんいべんとかいめ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_million_live_million_theter_generation_1415_発売記念イベント_1回目",
+   "fields": {
+    "name_kana": "はつばいきねんいべんとかいめ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_million_live_million_theter_generation_1415_発売記念イベント_2回目",
+   "fields": {
+    "name_kana": "はつばいきねんいべんとかいめ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_million_live_million_theter_generation_1617_発売記念イベント_1回目",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_million_live_theter_generation_02_mster_sparkle_04_発売記念イベント_1回目",
+   "fields": {
+    "name_kana": "はつばいきねんいべんとかいめ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_million_live_theter_generation_02_mster_sparkle_04_発売記念イベント_2回目",
+   "fields": {
+    "name_kana": "はつばいきねんいべんとかいめ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_million_live_theter_generation_03_mster_sparkle_05_発売記念イベント_1回目",
+   "fields": {
+    "name_kana": "はつばいきねんいべんとかいめ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_million_live_theter_generation_03_mster_sparkle_05_発売記念イベント_2回目",
+   "fields": {
+    "name_kana": "はつばいきねんいべんとかいめ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_million_live_theter_generation_04_mster_sparkle_06_発売記念イベント_1回目",
+   "fields": {
+    "name_kana": "はつばいきねんいべんとかいめ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_million_live_theter_generation_04_mster_sparkle_06_発売記念イベント_2回目",
+   "fields": {
+    "name_kana": "はつばいきねんいべんとかいめ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_million_live_theter_generation_05_mster_sparkle_07_発売記念イベント_1回目",
+   "fields": {
+    "name_kana": "はつばいきねんいべんとかいめ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_million_live_theter_generation_05_mster_sparkle_07_発売記念イベント_2回目",
+   "fields": {
+    "name_kana": "はつばいきねんいべんとかいめ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_million_live_theter_generation_06_mster_sparkle_08_発売記念イベント_1回目",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_million_live_theter_generation_0708_発売記念イベント_1回目",
+   "fields": {
+    "name_kana": "はつばいきねんいべんとかいめ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_million_live_theter_generation_0708_発売記念イベント_2回目",
+   "fields": {
+    "name_kana": "はつばいきねんいべんとかいめ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_million_movement_of_stardom_road_0103_購入者限定合同リリースイベント",
+   "fields": {
+    "name_kana": "こうにゅうしゃげんていごうどうりりーすいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_million_movement_of_stardom_road_0406_購入者限定合同リリースイベント",
+   "fields": {
+    "name_kana": "こうにゅうしゃげんていごうどうりりーすいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_million_movement_of_stardom_road_0710_購入者限定合同リリースイベント",
+   "fields": {
+    "name_kana": "こうにゅうしゃげんていごうどうりりーすいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_million_radio_special_party_02_welcome_2015年_day_party",
+   "fields": {
+    "name_kana": "ねんー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_million_radio_special_party_2013年はthank_you",
+   "fields": {
+    "name_kana": "ねんはー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_million_theter_generation_18_発売記念イベント_1回目",
+   "fields": {
+    "name_kana": "はつばいきねんいべんとかいめ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_million_theter_generation_18_発売記念イベント_2回目",
+   "fields": {
+    "name_kana": "はつばいきねんいべんとかいめ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_million_theter_wave_0203_発売記念イベント_1回目",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_million_theter_wave_0405_発売記念イベント第一回",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_million_theter_wave_0607_発売記念イベント第一回",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_million_theter_wave_0809_発売記念イベント第一回",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_million_theter_wave_1112_発売記念イベント第一回",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_million_theter_wave_1314_発売記念イベント第一回",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_million_theter_wave_1516_発売記念イベント第一回",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_million_theter_wave_1718_発売記念イベント第一回",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_movie_輝きの向こう側へ打ち上げパーティー",
+   "fields": {
+    "name_kana": "かがやきのむこうがわへうちあげぱーてぃー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_music_on_the_radio_公開録音_1",
+   "fields": {
+    "name_kana": "こうかいろくおん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_platinum_stars_スペシャルステージ偶像大師白金星光特別舞台活動playstation_festival内イベント",
+   "fields": {
+    "name_kana": "すぺしゃるすてーじぐうぞうたいしはっきんせいこうとくべつぶたいかつどうないいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_shiny_colors_283フェス_2021_happy_buffet",
+   "fields": {
+    "name_kana": "ふぇす"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_shiny_colors_4thlive_空は澄み今を越えて",
+   "fields": {
+    "name_kana": "そらはすみいまをこえて"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_shiny_colors_55th_anniversary_live_星が見上げた空",
+   "fields": {
+    "name_kana": "ほしがみあげたそら"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_shiny_colors_55th_anniversary_live_星が見上げた空_開催直前スペシャル配信",
+   "fields": {
+    "name_kana": "ほしがみあげたそらかいさいちょくぜんすぺしゃるはいしん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_shiny_colors_7th_live_tour_螺旋_-halo_around-_the_origin_on_the_a",
+   "fields": {
+    "name_kana": "らせん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_shiny_colors_7th_unitlive_tour_円環_-halo_around-_first_quadrant",
+   "fields": {
+    "name_kana": "えんかん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_shiny_colors_7th_unitlive_tour_円環_-halo_around-_fourth_quadrant",
+   "fields": {
+    "name_kana": "えんかん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_shiny_colors_7th_unitlive_tour_円環_-halo_around-_second_quadrant",
+   "fields": {
+    "name_kana": "えんかん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_shiny_colors_7th_unitlive_tour_円環_-halo_around-_third_quadrant",
+   "fields": {
+    "name_kana": "えんかん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolm@ster_shiny_colors_8th_live_ito_yume",
+   "fields": {
+    "name_kana": "とゆめ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_shiny_colors_brillint_wing_01_spread_the_wings発売記念イベント_大阪公演1回目",
+   "fields": {
+    "name_kana": "はつばいきねんいべんとおおさかこうえんかいめ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_shiny_colors_brillint_wing_01_spread_the_wings発売記念イベント_大阪公演2回目",
+   "fields": {
+    "name_kana": "はつばいきねんいべんとおおさかこうえんかいめ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_shiny_colors_brillint_wing_01_spread_the_wings発売記念イベント_東京公演1回目",
+   "fields": {
+    "name_kana": "はつばいきねんいべんととうきょうこうえんかいめ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_shiny_colors_brillint_wing_01_spread_the_wings発売記念イベント_東京公演2回目",
+   "fields": {
+    "name_kana": "はつばいきねんいべんととうきょうこうえんかいめ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_shiny_colors_brillint_wing_02_ヒカリのdestination発売記念イベント_1回目",
+   "fields": {
+    "name_kana": "ひかりのはつばいきねんいべんとかいめ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_shiny_colors_brillint_wing_02_ヒカリのdestination発売記念イベント_2回目",
+   "fields": {
+    "name_kana": "ひかりのはつばいきねんいべんとかいめ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_shiny_colors_brillint_wing_03_バベルシティグレイス発売記念イベント_1回目",
+   "fields": {
+    "name_kana": "ばべるしてぃぐれいすはつばいきねんいべんとかいめ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_shiny_colors_brillint_wing_03_バベルシティグレイス発売記念イベント_2回目",
+   "fields": {
+    "name_kana": "ばべるしてぃぐれいすはつばいきねんいべんとかいめ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_shiny_colors_brillint_wing_04_夢咲きafter_school発売記念イベント_1回目",
+   "fields": {
+    "name_kana": "ゆめさきはつばいきねんいべんとかいめ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_shiny_colors_brillint_wing_04_夢咲きafter_school発売記念イベント_2回目",
+   "fields": {
+    "name_kana": "ゆめさきはつばいきねんいべんとかいめ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_shiny_colors_brillint_wing_05_アルストロメリア発売記念イベント_1回目",
+   "fields": {
+    "name_kana": "あるすとろめりあはつばいきねんいべんとかいめ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_shiny_colors_brillint_wing_05_アルストロメリア発売記念イベント_2回目",
+   "fields": {
+    "name_kana": "あるすとろめりあはつばいきねんいべんとかいめ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_shiny_colors_song_for_prism_happier_枕木の歌_時限式狂騒ワンダーランド_links_連動発",
+   "fields": {
+    "name_kana": "まくらぎのうたじげんしききょうそうわんだーらんどれんどうはつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolm@ster_shiny_colors_song_for_prism_karma_naraku_発売記念イベント",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolm@ster_shiny_colors_song_for_prism_ring_ring_ringの魔法_街角メランコリー_発売記念イベント",
+   "fields": {
+    "name_kana": "のまほうまちかどめらんこりーはつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolm@ster_shiny_colors_song_for_prism_super_duper_dreamer_beast_mode_発売記念イベント",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolm@ster_shiny_colors_song_for_prism_ボーダーレス_ノンストレス_oh_yeah_発売記念イベント",
+   "fields": {
+    "name_kana": "ぼーだーれすのんすとれすはつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolm@ster_shiny_colors_song_for_prism_散花-sanka-_紅花-benibana-_発売記念イベント",
+   "fields": {
+    "name_kana": "さんかべにばなはつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolm@ster_shiny_colors_song_for_prism_自由系_ガール_my_time_発売記念イベント",
+   "fields": {
+    "name_kana": "じゆうけいがーるはつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_shiny_colors_song_for_prism_裸足じゃイラレナイ明日もbeautiful_dayハナムケのハナタバ青",
+   "fields": {
+    "name_kana": "はだしじゃいられないあすもはなむけのはなたばあおぞられんどうはつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_shiny_colors_シャニマス大感謝祭_283スポーツフェスティバル",
+   "fields": {
+    "name_kana": "しゃにますだいかんしゃさいーすぽーつふぇすてぃばるー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_shiny_festa前夜祭_in_tgs2012_新曲たっぷり聴かせちゃいますスペシャル",
+   "fields": {
+    "name_kana": "ぜんやさいーしんきょくたっぷりきかせちゃいますすぺしゃるー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_station_first_travel発売記念シークレットイベント",
+   "fields": {
+    "name_kana": "はつばいきねんしーくれっといべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_station_long_travelbest_of_the_idolmster_station_cd発売記念イベント",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_station_アイステ_the_world公開録音イベント_第一部",
+   "fields": {
+    "name_kana": "あいすてこうかいろくおんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_station公開録音",
+   "fields": {
+    "name_kana": "こうかいろくおん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_stationぜんぜんあいたかった",
+   "fields": {
+    "name_kana": "ぜんぜんあいたかったー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_stationsecond_travelseaside_date_発売記念イベント_トークミニライブ",
+   "fields": {
+    "name_kana": "はつばいきねんいべんととーくみにらいぶ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_stationsecond_travelseaside_date発売記念イベント_トークサイコロ占い",
+   "fields": {
+    "name_kana": "はつばいきねんいべんととーくさいころうらない"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_sidem_10th_anniversary_meeting_pssion_bang愛媛公演",
+   "fields": {
+    "name_kana": "えひめこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_sidem_10th_anniversary_meeting_pssion_sparks熊本公演",
+   "fields": {
+    "name_kana": "くまもとこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_sidem_10th_anniversary_meeting_pssion_sundae大阪公演",
+   "fields": {
+    "name_kana": "おおさかこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_sidem_3rdlive_tour_glorious_stge_仙台公演",
+   "fields": {
+    "name_kana": "せんだいこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_sidem_3rdlive_tour_glorious_stge_幕張公演",
+   "fields": {
+    "name_kana": "まくはりこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_sidem_3rdlive_tour_glorious_stge_福岡公演",
+   "fields": {
+    "name_kana": "ふくおかこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_sidem_3rdlive_tourglorious_stge_静岡公演",
+   "fields": {
+    "name_kana": "しずおかこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_sidem_greeting_tour_2017_beyond_the_dream_北海道公演",
+   "fields": {
+    "name_kana": "ほっかいどうこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_sidem_greeting_tour_2017_beyond_the_dream_大阪公演",
+   "fields": {
+    "name_kana": "おおさかこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_sidem_greeting_tour_2017_beyond_the_dream_広島公演",
+   "fields": {
+    "name_kana": "ひろしまこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_sidem_greeting_tour_2017_beyond_the_dream_愛知公演",
+   "fields": {
+    "name_kana": "あいちこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_sidem_greeting_tour_2017_beyond_the_dream_東京公演",
+   "fields": {
+    "name_kana": "とうきょうこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_sidem_greeting_tour_2017_beyond_the_dream_石川公演",
+   "fields": {
+    "name_kana": "いしかわこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_sidem_passionable_reading_show_天地四心伝",
+   "fields": {
+    "name_kana": "てんちよつごころでんー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_sidem_passionable_reading_show_ー超常事変対立スル正義ー",
+   "fields": {
+    "name_kana": "ちょうじょうじへんーたいりつするせいぎー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_sidem_passionable_reading_show_魂環の人形",
+   "fields": {
+    "name_kana": "こんかんのにんぎょうー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_sidem_special_stge_はじめましてオレたち315キャラホビ2015",
+   "fields": {
+    "name_kana": "はじめましておれたちーきゃらほび"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_tgs_special_event_01_ps3版アイドルマスター2の魅力を全部紹介しちゃいまshow",
+   "fields": {
+    "name_kana": "ばんあいどるますたーのみりょくをぜんぶしょうかいしちゃいま"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_tgs_special_event_02_アニメもゲームもグラビアも全部まとめてアイドルマスター",
+   "fields": {
+    "name_kana": "あにめもげーむもぐらびあもぜんぶまとめてあいどるますたー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_tgs_special_event_03_アイドルアイドル",
+   "fields": {
+    "name_kana": "あいどるあいどる"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_theter_boost_01_発売記念イベント_1回目",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_theter_boost_02_発売記念イベント_1回目",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_theter_boost_03_発売記念イベント_1回目",
+   "fields": {
+    "name_kana": "はつばいきねんいべんとかいめ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_theter_boost_03_発売記念イベント_2回目",
+   "fields": {
+    "name_kana": "はつばいきねんいべんとかいめ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_theter_challenge_01_発売記念イベント第一回",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_theter_challenge_02_発売記念イベント第一回",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_theter_challenge_03_発売記念イベント第一回",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_ニューイヤーライブ_初星宴舞",
+   "fields": {
+    "name_kana": "にゅーいやーらいぶはつぼしえんぶ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_生っすかサンデー出張版_in_tgs2012_見逃し厳禁驚きの新情報続々スペシャル",
+   "fields": {
+    "name_kana": "なまっすかさんでーしゅっちょうばんーみのがしげんきんおどろきのしんじょうほうぞくすぺしゃるー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_cinderella_girls_talk_live_stage_in_c3_hong_kongc3日本動玩博覽2016",
+   "fields": {
+    "name_kana": "にほんどうがんはくらん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster十週年台北國際電玩展特別舞台活動taipei_game_show_2016",
+   "fields": {
+    "name_kana": "じゅっしゅうねんたいぺいこくさいでんげんてんとくべつぶたいかつどう"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_sidem_理由あって特別生配信mke_you_proud",
+   "fields": {
+    "name_kana": "わけあってとくべつなまはいしんー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_tokyo_idol_festival_2022_0806_sat_supported_by_にしたんクリニック",
+   "fields": {
+    "name_kana": "にしたんくりにっく"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_tokyo_idol_festival_2024_0804_sun_supported_by_にしたんクリニック",
+   "fields": {
+    "name_kana": "にしたんくりにっく"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_tokyo_idol_festival_オンライン_2020_day1",
+   "fields": {
+    "name_kana": "おんらいん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_tvアニメアイドルマスター_シンデレラガールズ_u149_スペシャルトークイベント_トゥインクルパーティー",
+   "fields": {
+    "name_kana": "あにめあいどるますたーしんでれらがーるずすぺしゃるとーくいべんとーとぅいんくるぱーてぃー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_tvアニメアイドルマスターオープニングテーマready発売記念イベントare_you_ready",
+   "fields": {
+    "name_kana": "あにめあいどるますたーおーぷにんぐてーまはつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_tvアニメアイドルマスター新オープニングテーマchange発売記念イベントchange",
+   "fields": {
+    "name_kana": "あにめあいどるますたーしんおーぷにんぐてーまはつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_tvアニメシンデレラガールズ劇場エンディングテーマ発売記念ニコ生_cingeki_night",
+   "fields": {
+    "name_kana": "あにめしんでれらがーるずげきじょうえんでぃんぐてーまはつばいきねんにこなま"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_world_is_all_one_smoky_thrill_発売記念_secret_release_party_in_大阪",
+   "fields": {
+    "name_kana": "はつばいきねんおおさか"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_world_is_all_one_smoky_thrill_発売記念_secret_release_party_in_東京",
+   "fields": {
+    "name_kana": "はつばいきねんとうきょう"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_virtual_music_award_2025_summer_第五公演",
+   "fields": {
+    "name_kana": "だいごこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_vδlzdramatic_stars_collaboration_live_劇的演舞",
+   "fields": {
+    "name_kana": "げきてきえんぶー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_web番組今井麻美と中村繪里子のprestarthe_idolmster_49",
+   "fields": {
+    "name_kana": "ばんぐみいまいあさみとなかむらえりこの"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_web番組今井麻美と中村繪里子のprestarスペシャル_アイドルマスターロケテ記念今年もお世話になりましたプリスタープチライブ",
+   "fields": {
+    "name_kana": "ばんぐみいまいあさみとなかむらえりこのすぺしゃるあいどるますたーろけてきねんことしもおせわになりましたぷりすたーぷちらいぶ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_xbox_live_the_party_26回最終回",
+   "fields": {
+    "name_kana": "かいさいしゅうかい"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_bilibili_world2021上海日本特設会場アイドルマスター特別ステージ",
+   "fields": {
+    "name_kana": "しゃんはいにほんとくせつかいじょうあいどるますたーとくべつすてーじ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_765プロダクション所属星井美希特別生配信in_showroom",
+   "fields": {
+    "name_kana": "ぷろだくしょんしょぞくほしいみきとくべつなまはいしん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_animtion_master_05発売記念イベントspecil_night",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_cinderella_girls_u149_animation_mastercdシリーズ発売記念イベント_in_科学技術館サイ",
+   "fields": {
+    "name_kana": "しりーずはつばいきねんいべんとかがくぎじゅつかんさいえんすほーる"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_live_theter_activities_02発売記念イベント_第1回公演",
+   "fields": {
+    "name_kana": "はつばいきねんいべんとだいかいこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_live_theter_activities_02発売記念イベント_第2回公演",
+   "fields": {
+    "name_kana": "はつばいきねんいべんとだいかいこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_live_theter_activities_03発売記念イベント_第1回公演",
+   "fields": {
+    "name_kana": "はつばいきねんいべんとだいかいこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_live_theter_activities_03発売記念イベント_第2回公演",
+   "fields": {
+    "name_kana": "はつばいきねんいべんとだいかいこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_live_theter_dreamers_01_dreamingcd発売記念イベント_第1回公演",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_live_theter_dreamers_02cd発売記念イベント_第1回公演",
+   "fields": {
+    "name_kana": "はつばいきねんいべんとだいかいこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_live_theter_dreamers_02cd発売記念イベント_第2回公演",
+   "fields": {
+    "name_kana": "はつばいきねんいべんとだいかいこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_live_theter_dreamers_03cd発売記念イベント_第1回公演",
+   "fields": {
+    "name_kana": "はつばいきねんいべんとだいかいこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_live_theter_dreamers_03cd発売記念イベント_第2回公演",
+   "fields": {
+    "name_kana": "はつばいきねんいべんとだいかいこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_live_theter_dreamers_04cd発売記念イベント_第1回公演",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_live_theter_dreamers_05cd発売記念イベント_第1回公演",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_live_theter_dreamers_06cd発売記念イベント_第1回公演",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_live_theter_forward_01_sunshine_rhythm発売記念イベント_第1回公演",
+   "fields": {
+    "name_kana": "はつばいきねんいべんとだいかいこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_live_theter_forward_01_sunshine_rhythm発売記念イベント_第2回公演",
+   "fields": {
+    "name_kana": "はつばいきねんいべんとだいかいこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_live_theter_forward_02_bluemoon_harmony発売記念イベント_第1回公演",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_live_theter_forward_03_starlight_melody発売記念イベント_第1回公演",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_live_theter_harmony_0102発売記念イベント_第1回公演",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_live_theter_harmony_0304発売記念イベント_第1回公演",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_live_theter_harmony_0506発売記念イベント_第1回公演",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_live_theter_harmony_0708発売記念イベント_第1回公演",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_live_theter_harmony_0910発売記念イベント_第1回公演",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_live_theter_performance_02発売イベント_第1回公演",
+   "fields": {
+    "name_kana": "はつばいいべんとだいかいこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_live_theter_performance_02発売イベント_第2回公演",
+   "fields": {
+    "name_kana": "はつばいいべんとだいかいこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_live_theter_performance_03発売イベント_第1回公演",
+   "fields": {
+    "name_kana": "はつばいいべんとだいかいこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_live_theter_performance_03発売イベント_第2回公演",
+   "fields": {
+    "name_kana": "はつばいいべんとだいかいこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_live_theter_performance_04発売記念イベント",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_live_theter_performance_05発売記念イベント_第1回公演",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_live_theter_performance_06発売記念イベント_第1回公演",
+   "fields": {
+    "name_kana": "はつばいきねんいべんとだいかいこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_live_theter_performance_06発売記念イベント_第2回公演",
+   "fields": {
+    "name_kana": "はつばいきねんいべんとだいかいこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_live_theter_performance_07発売記念イベント_第1回公演",
+   "fields": {
+    "name_kana": "はつばいきねんいべんとだいかいこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_live_theter_performance_07発売記念イベント_第2回公演",
+   "fields": {
+    "name_kana": "はつばいきねんいべんとだいかいこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_live_theter_performance_08発売記念イベント_第1回公演",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_live_theter_performance_09発売記念イベント_第1回公演",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_live_theter_performance_10発売記念イベント_第1回公演",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_live_theter_performance_11発売記念イベント_第1回公演",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_live_theter_performance_12発売記念イベント_第1回公演",
+   "fields": {
+    "name_kana": "はつばいきねんいべんとだいかいこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_live_theter_performance_12発売記念イベント_第2回公演",
+   "fields": {
+    "name_kana": "はつばいきねんいべんとだいかいこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_live_theter_performance_13発売記念イベント_第1回公演",
+   "fields": {
+    "name_kana": "はつばいきねんいべんとだいかいこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_live_theter_performance_13発売記念イベント_第2回公演",
+   "fields": {
+    "name_kana": "はつばいきねんいべんとだいかいこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_masterpieceシリーズ発売記念シークレットイベント",
+   "fields": {
+    "name_kana": "しりーずはつばいきねんしーくれっといべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_million_live_mster_sparkle_0203発売記念イベント_第1回",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_million_livemillionstars特別生配信手作りのthank_you",
+   "fields": {
+    "name_kana": "とくべつなまはいしんーてづくりのー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_radio_歌姫楽園the_idolmster_master_movie発売記念シークレットイベント",
+   "fields": {
+    "name_kana": "うたひめがくえんーはつばいきねんしーくれっといべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_shiny_colors_echoes_01発売記念イベント第一回",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_shiny_colors_echoes_02発売記念イベント_第一回",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_shiny_colors_echoes_03発売記念イベント_第一回",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_shiny_colors_echoes_04発売記念イベント_第一回",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_shiny_colors_echoes_05発売記念イベント第一回",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_shiny_colors_echoes_06発売記念イベント_第一回",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_shiny_colors_echoes_07発売記念イベント第一回",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_shiny_colors_echoes_08発売記念イベント第一回",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_shiny_colors_frgment_wing_01発売記念イベント4月_第一回",
+   "fields": {
+    "name_kana": "はつばいきねんいべんとがつ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_shiny_colors_frgment_wing_01発売記念イベント5月_第一回",
+   "fields": {
+    "name_kana": "はつばいきねんいべんとがつ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_shiny_colors_frgment_wing_02発売記念イベント_第一回",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_shiny_colors_frgment_wing_03発売記念イベント_第一回",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_shiny_colors_frgment_wing_04発売記念イベント_第一回",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_shiny_colors_frgment_wing_05発売記念イベント_第一回",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_shiny_colors_frgment_wing_06発売記念イベント_第一回",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_shiny_colors_lyered_wing_02発売記念イベント第一回",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_shiny_colors_lyered_wing_03発売記念イベント第一回",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_shiny_colors_lyered_wing_04発売記念イベント第一回",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_shiny_colors_lyered_wing_05発売記念イベント第一回",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_shiny_colors_lyered_wing_07発売記念イベント第一回",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_shiny_colors_lyered_wing_08発売記念イベント第一回",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_shiny_colors_panorma_wingシリーズ完走記念イベント第一回",
+   "fields": {
+    "name_kana": "しりーずかんそうきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_shiny_colors_canvas_0104発売記念イベント第一回",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_shiny_colors_canvas_0508発売記念イベント第一回",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_station_third_travel_wanted発売記念シークレットイベント",
+   "fields": {
+    "name_kana": "はつばいきねんしーくれっといべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_sidem_strting_line_0102cd発売記念イベント_第1回公演",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_sidem_strting_line_0304cd発売記念イベント_第1回公演",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_sidem_strting_line_0506cd発売記念イベント_第1回公演",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_sidem_strting_line_0708cd発売記念イベント_第1回公演",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_sidem_strting_line_0910cd発売記念イベント_第1回公演",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_sidem_strting_line_1112cd発売記念イベント_第1回公演",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_sidem_strting_line_131415cd発売記念イベント_第1回公演",
+   "fields": {
+    "name_kana": "はつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_theter_activities_01発売記念イベント_第1回公演",
+   "fields": {
+    "name_kana": "はつばいきねんいべんとだいかいこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_theter_activities_01発売記念イベント_第2回公演",
+   "fields": {
+    "name_kana": "はつばいきねんいべんとだいかいこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster765pro_allstars_15周年記念特番_mster_weekend-",
+   "fields": {
+    "name_kana": "しゅうねんきねんとくばんー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_ぷちますトークライブイベント_ぷちますかんしゃさい",
+   "fields": {
+    "name_kana": "ぷちますとーくらいぶいべんとぷちますかんしゃさい"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスター_xenoglossiadvd第1巻発売記念イベント",
+   "fields": {
+    "name_kana": "あいどるますたーだいかんはつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスター_シャイニーフェスタ新作アニメ_プレミアム先行上映会_午前の部",
+   "fields": {
+    "name_kana": "あいどるますたーしゃいにーふぇすたしんさくあにめぷれみあむせんこうじょうえいかい"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスター_シンデレラガールズお渡し会ミニライブ_13時の回",
+   "fields": {
+    "name_kana": "あいどるますたーしんでれらがーるずおわたしかいみにらいぶ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスター_シンデレラガールズトークイベント",
+   "fields": {
+    "name_kana": "あいどるますたーしんでれらがーるずとーくいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスター_シンデレラガールズデレラジスペシャルステージ",
+   "fields": {
+    "name_kana": "あいどるますたーしんでれらがーるずでれらじすぺしゃるすてーじ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスター_プラチナスターズspecial_party",
+   "fields": {
+    "name_kana": "あいどるますたーぷらちなすたーず"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスター_ボーカルコレクション発売記念_ライブトークショー",
+   "fields": {
+    "name_kana": "あいどるますたーぼーかるこれくしょんはつばいきねんらいぶとーくしょー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスター_ポップリンクスポプマス生配信_特別版みんなでpoplinks_tune_sp",
+   "fields": {
+    "name_kana": "あいどるますたーぽっぷりんくすぽぷますなまはいしんとくべつばんーみんなでー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスター_ミリオンライブ_シアターデイズ私たちの描いた軌跡_ミリシタ5周年_生配信",
+   "fields": {
+    "name_kana": "あいどるますたーみりおんらいぶしあたーでいずわたしたちのえがいたきせきみりしたしゅうねんなまはいしん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスター_ミリオンライブ_シアターデイズミリシタ1周年サンキュー生配信",
+   "fields": {
+    "name_kana": "あいどるますたーみりおんらいぶしあたーでいずみりしたしゅうねんさんきゅーなまはいしん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスター_ミリオンライブ_シアターデイズミリシタ2周年サンキュー生配信",
+   "fields": {
+    "name_kana": "あいどるますたーみりおんらいぶしあたーでいずみりしたしゅうねんさんきゅーなまはいしん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスター_ミリオンライブローソンスペシャルパーティー",
+   "fields": {
+    "name_kana": "あいどるますたーみりおんらいぶろーそんすぺしゃるぱーてぃー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスター_ライブフォーユー新曲発表_live_for_press",
+   "fields": {
+    "name_kana": "あいどるますたーらいぶふぉーゆーしんきょくはっぴょう"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスターシャイニーカラーズ_トークミニライブlight_up_illumination_stars",
+   "fields": {
+    "name_kana": "あいどるますたーしゃいにーからーずとーくみにらいぶー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスターシンデレラガールズpassionセレクションステージニコニコ23時間テレビ",
+   "fields": {
+    "name_kana": "あいどるますたーしんでれらがーるずせれくしょんすてーじにこにこじかんてれび"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アギューitv24com公開録音",
+   "fields": {
+    "name_kana": "あぎゅーこうかいろくおん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_ラジオ_シンデレラガールズデレラジ公開録音_in_ナンジャタウン_魔法がかかるのは17時から",
+   "fields": {
+    "name_kana": "らじおしんでれらがーるずでれらじこうかいろくおんなんじゃたうんーまほうがかかるのはじからー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_学園アイドルマスター_gold_rush_3巻発売記念イベント_飯田ヒカルさんイベント2部トークショーミニライブ",
+   "fields": {
+    "name_kana": "がくえんあいどるますたーかんはつばいきねんいべんといいだひかるさんいべんとぶとーくしょーみにらいぶ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_生っすかレボリューション英会話チャレンジニコニコ超会議3",
+   "fields": {
+    "name_kana": "なまっすかれぼりゅーしょんーえいかいわちゃれんじーにこにこちょうかいぎ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_sp_presents_765プロ新曲発表会_in_tgs_20081011",
+   "fields": {
+    "name_kana": "ぷろしんきょくはっぴょうかい"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスター_シンデレラガールズ_u1493巻特別版発売記念イベント_第1回",
+   "fields": {
+    "name_kana": "あいどるますたーしんでれらがーるずかんとくべつばんはつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスターシリーズ_全国プロデューサー検定午前の部",
+   "fields": {
+    "name_kana": "あいどるますたーしりーずぜんこくぷろでゅーさーけんてい"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスターライブインスロットファンミーティング",
+   "fields": {
+    "name_kana": "あいどるますたーらいぶいんすろっとふぁんみーてぃんぐ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイマスぷちますすぺしゃるすてーじですよっ_さんっin_電撃20年祭",
+   "fields": {
+    "name_kana": "あいますぷちますすぺしゃるすてーじですよっさんっでんげきねんさい"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイマスタジオゲリラ公開収録",
+   "fields": {
+    "name_kana": "あいますたじおげりらこうかいしゅうろく"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_デレラジa公開録音デレソニ",
+   "fields": {
+    "name_kana": "でれらじこうかいろくおんーでれそにー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev__アコースティックに溺れる_ギターの音色にのせて歌いますヴイアラ_レトラ",
+   "fields": {
+    "name_kana": "あこーすてぃっくにおぼれるぎたーのねいろにのせてうたいますゔいあられとら"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev__メエこす歌枠_メエお姉さんと2人でアイマス楽曲たくさん歌います真未夢メエ上水流宇宙デミカツヴイアラ",
+   "fields": {
+    "name_kana": "めえこすうたわくめえおねえさんとにんであいますがっきょくたくさんうたいますまみむめえかみずるそらでみかつゔいあら"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev__メエこす歌枠_宇宙ちゃんと一緒にアイカツ楽曲いっぱい歌っちゃうぞ真未夢メエ上水流宇宙デミカツヴイアラ",
+   "fields": {
+    "name_kana": "めえこすうたわくそらちゃんといっしょにあいかつがっきょくいっぱいうたっちゃうぞまみむめえかみずるそらでみかつゔいあら"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev__輝くアニソン歌枠リレー_アニソンでブチアゲロォヴイアラ_レトラ",
+   "fields": {
+    "name_kana": "かがやくあにそんうたわくりれーあにそんでぶちあげろぉゔいあられとら"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev__オールジャンルカラオケ歌枠_ヴイアラ歌枠リレー_トリはわたしだ盛り上がってくぞヴイアラ_レトラ",
+   "fields": {
+    "name_kana": "おーるじゃんるからおけうたわくゔいあらうたわくりれーとりはわたしだもりあがってくぞーゔいあられとら"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_super9歌枠リレー_高音多めのセトリで盛り上げていきましょうヴイアラ_上水流宇宙",
+   "fields": {
+    "name_kana": "うたわくりれーこうおんおおめのせとりでもりあげていきましょうーゔいあらかみずるそら"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_super9歌枠リレー歌うぞみんなで一緒に楽しもうヴイアラ_レトラ",
+   "fields": {
+    "name_kana": "うたわくりれーうたうぞみんなでいっしょにたのしもうゔいあられとら"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_utanofes豪華2日開催歌枠リレー盛大に盛り上げてバトンを繋げるぞヴイアラ_レトラ",
+   "fields": {
+    "name_kana": "ごうかにちかいさいうたわくりれーせいだいにもりあげてばとんをつなげるぞゔいあられとら"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_すばストsss2024_super_subaru_streetまりなすvtuber3d",
+   "fields": {
+    "name_kana": "すばすとまりなす"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_スリーマン歌枠リレー主催歌枠リレーラストはレトラがon_stageヴイアラ_レトラ",
+   "fields": {
+    "name_kana": "すりーまんうたわくりれーしゅさいうたわくりれーらすとはれとらがゔいあられとら"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_スリーマン歌枠リレー主催歌枠リレーラストも盛り上がっていくぞヴイアラ_レトラ",
+   "fields": {
+    "name_kana": "すりーまんうたわくりれーしゅさいうたわくりれーらすとももりあがっていくぞゔいあられとら"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_レトラ祝4万人ch登録者数4万人突破3d配信で歌っちゃうよんヴイアラ_レトラ",
+   "fields": {
+    "name_kana": "れとらいわいまんにんとうろくしゃすうまんにんとっぱーはいしんでうたっちゃうよーんゔいあられとら"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_レトラ誕生祭2023誕生日ミニlive感謝を込めて届けますヴイアラレトラ",
+   "fields": {
+    "name_kana": "れとらたんじょうさいたんじょうびみにかんしゃをこめてとどけますゔいあられとら"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_レトラ誕生祭2024レトラのバースデーリサイタルにようこそヴイアラ_レトラ",
+   "fields": {
+    "name_kana": "れとらたんじょうさいれとらのばーすでーりさいたるにようこそゔいあられとら"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_ヴイアラ3dお披露目リレーpちゃま力を貸してくれ踊って歌うぞヴイアラ_レトラ",
+   "fields": {
+    "name_kana": "ゔいあらおひろめりれー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_上水流宇宙祝10万人祝ch登録者数10万人突破感謝の気持ちを歌とダンスに込めますヴイアラ_上水流宇宙",
+   "fields": {
+    "name_kana": "かみずるそらいわいまんにんいわいとうろくしゃすうまんにんとっぱかんしゃのきもちをうたとだんすにこめますゔいあらかみずるそら"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_上水流宇宙誕生祭2024club_cosmoにようこそ18歳の誕生日に18曲歌いますヴイアラ_上水流宇宙",
+   "fields": {
+    "name_kana": "かみずるそらたんじょうさいにようこそさいのたんじょうびにきょくうたいますゔいあらかみずるそら"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_凸待ちっぽい歌枠優しくて歌の上手い女たちとぶちかます_お知らせもあるよ朝ノ瑠璃",
+   "fields": {
+    "name_kana": "とつまちっぽいうたわくやさしくてうたのうまいおんなたちとぶちかますおしらせもあるよあさのるり"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_和央パリン誕生日会後夜祭盛り上がる準備はできてるかーアイカツアカデミーワォyou_knowこねこねたいむリクム遠吠きゃんひょう太朗鈴鳴すばるレトラ",
+   "fields": {
+    "name_kana": "かずおぱりんたんじょうびかいこうやさいもりあがるじゅんびはできてるかーあいかつあかでみーわぉこねこねたいむりくむとおぼえきゃんひょうたろうすずなりすばるれとら"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_夜に溺れる歌枠リレー良い音集めました楽しい夜を一緒にどうですかヴイアラ_上水流宇宙",
+   "fields": {
+    "name_kana": "よるにおぼれるうたわくりれーよいおとあつめましたたのしいよるをいっしょにどうですかゔいあらかみずるそら"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_巫てんり主催歌枠リレーresonance",
+   "fields": {
+    "name_kana": "かんなぎてんりしゅさいうたわくりれー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_歌枠karaoke少しでも10万人へ12時間配信チャレンジ歌枠その3_shorts_vtuber_vsinger",
+   "fields": {
+    "name_kana": "うたわくすこしでもまんにんへじかんはいしんちゃれんじうたわくその"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_深海の歌枠リレー青曲海曲沢山歌っちゃいますヴイアラ_上水流宇宙",
+   "fields": {
+    "name_kana": "しんかいのうたわくりれーあおきょくうみきょくたくさんうたっちゃいますゔいあらかみずるそら"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_灯里愛夏祝4万人ch登録者数4万人ありがとう体を張った3d配信をお見せしますヴイアラ_灯里愛夏",
+   "fields": {
+    "name_kana": "あかりまなついわいまんにんとうろくしゃすうまんにんありがとうからだをはったはいしんをおみせしますゔいあらあかりまなつ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_灯里愛夏誕生祭2023happy_anniversary",
+   "fields": {
+    "name_kana": "あかりまなつたんじょうさい"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_灯里愛夏誕生祭2024愛夏のやりたいこと欲ばり歌枠劇場ヴイアラ",
+   "fields": {
+    "name_kana": "あかりまなつたんじょうさいまなつのやりたいことよくばりうたわくげきじょうゔいあら"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_真夏の深海歌枠リレー深海らしさ満点の涼し気セトリぜひ聴いていってくださいヴイアラ_上水流宇宙",
+   "fields": {
+    "name_kana": "まなつのしんかいうたわくりれーしんかいらしさまんてんのすずしげせとりぜひきいていってくださいゔいあらかみずるそら"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_3dライブ直前特別合同企画未発表楽曲披露配信_ヴイアラ_",
+   "fields": {
+    "name_kana": "らいぶちょくぜんとくべつごうどうきかくみはっぴょうがっきょくひろうはいしんゔいあら"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_3d配信祝ch登録者数5万人突破感謝を込めたダンスをお届けしますヴイアラ_上水流宇宙",
+   "fields": {
+    "name_kana": "はいしんいわいとうろくしゃすうまんにんとっぱかんしゃをこめただんすをおとどけしますゔいあらかみずるそら"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_3d配信祝ch登録者数4万人感謝のダンス配信ですヴイアラ_上水流宇宙",
+   "fields": {
+    "name_kana": "はいしんいわいとうろくしゃすうまんにんかんしゃのだんすはいしんですゔいあらかみずるそら"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_asobinotes楽曲縛りヴイアラ歌枠リレー_みんな盛り上がってるかぁヴイアラ_灯里愛夏",
+   "fields": {
+    "name_kana": "がっきょくしばりゔいあらうたわくりれー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_official_lessonアイドル育成プロジェクト_vα-liv_12月後編_特別講師real_akiba_boyz_さん",
+   "fields": {
+    "name_kana": "あいどるいくせいぷろじぇくとがつこうへんとくべつこうしさん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_official_lessonアイドル育成プロジェクト_vα-liv_2月後編_特別講師槙田紗子_さん",
+   "fields": {
+    "name_kana": "あいどるいくせいぷろじぇくとがつこうへんとくべつこうしまきたさこさん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_official_lessonアイドル育成プロジェクト_vα-liv_6月後編特別講師ヨビノリたくみ_さん",
+   "fields": {
+    "name_kana": "あいどるいくせいぷろじぇくとがつこうへんとくべつこうしよびのりたくみさん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_official_lessonアイドル育成プロジェクト_vα-liv_7月度後編特別講師渡辺量_さん",
+   "fields": {
+    "name_kana": "あいどるいくせいぷろじぇくとげつどこうへんとくべつこうしわたなべりょうさん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_official_lessonアイドル育成プロジェクト_vα-liv_9月後編特別講師jungoさん中川浩二さん高山祐介さん天海春香さん",
+   "fields": {
+    "name_kana": "あいどるいくせいぷろじぇくとがつこうへんとくべつこうしさんなかがわこうじさんたかやまゆうすけさんあまみはるかさん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイマスマコトーークアイドルマスターアイのキセキweek",
+   "fields": {
+    "name_kana": "あいますまことーくあいどるますたーあいのきせき"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイマス縛り歌枠ヴイアラ歌枠リレー_ラストはわたしヴイアラ_レトラ",
+   "fields": {
+    "name_kana": "あいますしばりうたわくゔいあらうたわくりれー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイマス縛り歌枠pちゃま一緒にブチアガろヴイアラ歌枠リレー_レトラ",
+   "fields": {
+    "name_kana": "あいますしばりうたわくちゃまいっしょにぶちあがろゔいあらうたわくりれーれとら"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイマス縛り歌枠トップバッターは愛夏ですヴイアラ歌枠リレー_灯里愛夏",
+   "fields": {
+    "name_kana": "あいますしばりうたわくとっぷばったーはまなつですゔいあらうたわくりれーあかりまなつ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイマス縛り歌枠最後まで盛り上がっていきますよヴイアラ歌枠リレー_上水流宇宙",
+   "fields": {
+    "name_kana": "あいますしばりうたわくさいごまでもりあがっていきますよゔいあらうたわくりれーかみずるそら"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_オールジャンルカラオケ歌枠ヴイアラ歌枠リレー_2番手宇宙大好きな曲を歌いますヴイアラ_上水流宇宙",
+   "fields": {
+    "name_kana": "おーるじゃんるからおけうたわくゔいあらうたわくりれー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_コラボ歌枠お家にれいちゃんが来たぞ歌うぞoff_collab_singing_stream_with_otsuka_rayヴイアラ_レトラ_おつかれとら_",
+   "fields": {
+    "name_kana": "こらぼうたわくおいえにれいちゃんがきたぞうたうぞゔいあられとらおつかれとらおとなつれい"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_コラボ歌枠ウタノちゃんと初コラボ歌っちゃうぞヴイアラ_レトラ_ウタノライブ_白玖ウタノ",
+   "fields": {
+    "name_kana": "こらぼうたわくうたのちゃんとはつこらぼうたっちゃうぞゔいあられとらうたのらいぶしらくうたの"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_コラボ歌枠オフで一緒に歌うよoff_collab_singing_stream_with_otsuka_rayヴイアラ_レトラ_おつかれとら_乙夏れい",
+   "fields": {
+    "name_kana": "こらぼうたわくおふでいっしょにうたうよーゔいあられとらおつかれとらおとなつれい"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_サブスク解禁記念群青イニシエーション制作秘話対談コラボレトラ_ヴイアラ",
+   "fields": {
+    "name_kana": "さぶすくかいきんきねんぐんじょういにしえーしょんせいさくひわたいだんこらぼれとらゔいあら"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_スタジオ生演奏最高の歌姫が集まりました_橙里ピアノセッション橙里セイ_上水流宇宙_鈴鳴すばる_瀬戸乃とと_ななしいんく",
+   "fields": {
+    "name_kana": "すたじおなまえんそうさいこうのうたひめがあつまりましただいだいりぴあのせっしょんだいだいりせいかみずるそらすずなりすばるせとのととななしいんく"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_ヴイアライヴ灯里愛夏_スペシャルトークライブkpf2025内イベント",
+   "fields": {
+    "name_kana": "ゔいあらいゔあかりまなつすぺしゃるとーくらいぶないいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_公式コラボアイマス曲縛りで鬼畜pとアイドル候補生がピアノ歌コラボ生配信よみぃ上水流宇宙アイドル育成プロジェクト_vα-liv",
+   "fields": {
+    "name_kana": "こうしきこらぼあいますきょくしばりできちくとあいどるこうほせいがぴあのうたこらぼなまはいしんよみぃかみずるそらあいどるいくせいぷろじぇくと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_冬のアイマス曲縛りヴイアラ歌枠リレー_で先輩の曲を歌わせていただきますヴイアラ_上水流宇宙",
+   "fields": {
+    "name_kana": "ふゆのあいますきょくしばりゔいあらうたわくりれー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_初歌枠ヴイアラ歌枠リレー_で電音部楽曲を歌います灯里愛夏_ヴイアラ",
+   "fields": {
+    "name_kana": "はつうたわくゔいあらうたわくりれーでんおんぶがっきょく"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_歌枠karaokeレトラちゃんvα-livproject_imsとオフコラボで歌うoff_collab_with_letoraおつかれとら_配信中",
+   "fields": {
+    "name_kana": "うたわくれとらちゃんとおふこらぼでうたうおつかれとらはいしんちゅう"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_歌枠karaokeレトラちゃんvα-livproject_imsとオフコラボで歌うoff_collab_singing_stream_with_letor",
+   "fields": {
+    "name_kana": "うたわくれとらちゃんとおふこらぼでうたう"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_歌枠876プロ新人アイドルが87分6秒歌い続ける歌枠ヴイアラ_レトラ",
+   "fields": {
+    "name_kana": "うたわくぷろしんじんあいどるがふんびょううたいつづけるうたわくゔいあられとら"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_歌枠はじめての外部歌枠リレーasobinotes学マス電音部ヴイアラ縛りだああ巫てんり主催歌枠リレーresonance",
+   "fields": {
+    "name_kana": "うたわくはじめてのがいぶうたわくりれーがくますでんおんぶゔいあらしばりだああかんなぎてんりしゅさいうたわくりれー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_歌枠祝3万人_重大発表あり遠征帰りのへろへろ歌枠ヴイアラ_レトラ",
+   "fields": {
+    "name_kana": "うたわくいわいまんにんじゅうだいはっぴょうありえんせいがえりのへろへろうたわくゔいあられとら"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_歌枠超かっこいいレトラちゃんと歌う_れとらぶ_ヴイアラ_ウタノライブ_karaokevsinger",
+   "fields": {
+    "name_kana": "うたわくちょうかっこいいれとらちゃんとうたうれとらぶゔいあらうたのらいぶ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_生配信lippsneon_sphere発表ミニライブinクロス新宿ビジョンアイドルマスター",
+   "fields": {
+    "name_kana": "なまはいしんはっぴょうみにらいぶくろすしんじゅくびじょんあいどるますたー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_第2回_きみとアイドル歌枠リレー_愛夏アイドル全開で歌いますヴイアラ_灯里愛夏",
+   "fields": {
+    "name_kana": "だいかいきみとあいどるうたわくりれーまなつあいどるぜんかいでうたいますゔいあらあかりまなつ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_縦型配信初のソロ歌枠で1曲耐久チャレンジヴイアラレトラshorts",
+   "fields": {
+    "name_kana": "たてがたはいしんはつのそろうたわくできょくたいきゅうちゃれんじゔいあられとら"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_誕生祭祝17歳上水流宇宙は1700人にお祝いされたいですヴイアラ_上水流宇宙誕生祭2023",
+   "fields": {
+    "name_kana": "たんじょうさいいわいさいかみずるそらはにんにおいわいされたいですゔいあらかみずるそらたんじょうさい"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_電音部縛りヴイアラリベンジ歌枠_あの日よりキラキラに歌いますヴイアラ灯里愛夏",
+   "fields": {
+    "name_kana": "でんおんぶしばりゔいあらりべんじうたわく"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_まりなすヴイアラ生配信まりなすvα-livヴイアライヴコラボ配信",
+   "fields": {
+    "name_kana": "まりなすゔいあらなまはいしんまりなすゔいあらいゔこらぼはいしん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_オールアイカツ歌枠リレー私のアツいアイドル活動届けますヴイアラ_上水流宇宙",
+   "fields": {
+    "name_kana": "おーるあいかつうたわくりれーわたしのあついあいどるかつどうとどけますゔいあらかみずるそら"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_ブイアワ2025夏開催直前カラオケ歌枠配信virtual_music_award_2025_summer",
+   "fields": {
+    "name_kana": "ぶいあわなつかいさいちょくぜんからおけうたわくはいしん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_ブイアワ開催直前スペシャル公式生配信第一部virtual_music_award_2025",
+   "fields": {
+    "name_kana": "ぶいあわかいさいちょくぜんすぺしゃるこうしきなまはいしんだいいちぶ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev__sputrip24時間3枠目_豪華ゲストさんと共に過ごすラスト枠_歌も企画もトークも_楽しんでいってね常磐カナメ_香鳴ハノン_暁月クララパレプロ",
+   "fields": {
+    "name_kana": "じかんわくめごうかげすとさんとともにすごすらすとわくうたもきかくもとーくもたのしんでいってねときわかなめかなりはのんあかつきくららぱれぷろ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_えるすりー直前スペシャルカラオケ大会第一部",
+   "fields": {
+    "name_kana": "えるすりーちょくぜんすぺしゃるからおけたいかい"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_こころの歌人たち第3回弦哲也",
+   "fields": {
+    "name_kana": "こころのうたびとたちだいかいげんてつや"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_まりなす7周年記念ライブ",
+   "fields": {
+    "name_kana": "まりなすしゅうねんきねんらいふ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイステ_in_wonderradio",
+   "fields": {
+    "name_kana": "あいすて"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスター_17周年生配信_17th_anniversary_prty",
+   "fields": {
+    "name_kana": "あいどるますたーしゅうねんなまはいしんー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスター_psプロデューサー_公開録音イベント_lets_exaite_皆公録さえくさ",
+   "fields": {
+    "name_kana": "あいどるますたーぷろでゅーさーこうかいろくおんいべんとーみなこうろくさえくさー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスター_radio_for_you_公開録音イベント_radio_for_結_you-i",
+   "fields": {
+    "name_kana": "あいどるますたーこうかいろくおんいべんとゆいー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスター_radio_for_you_公開録音イベント_結納you-i_know",
+   "fields": {
+    "name_kana": "あいどるますたーこうかいろくおんいべんとゆいのうー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスター_sidem_5th_anniversary_because_of_you_in市原",
+   "fields": {
+    "name_kana": "あいどるますたーいちはらー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_sidem_cfirst_理由あってリリースイベント",
+   "fields": {
+    "name_kana": "あいどるますたーわけあってりりーすいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスター_sidem_kizun_on_stgeステージ1回目",
+   "fields": {
+    "name_kana": "あいどるますたー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスター_sidem_ラジオ_315プロnight_ドラマチックミーティング_moon_side",
+   "fields": {
+    "name_kana": "あいどるますたーらじおぷろどらまちっくみーてぃんぐ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスター_sidem_ラジオ_315プロnight_ドラマチックミーティング_vol2_moon_side",
+   "fields": {
+    "name_kana": "あいどるますたーらじおぷろどらまちっくみーてぃんぐ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスター_sidem_ラジオ315プロnight_315回記念公開録音_ドラマチックミーティングvol3_moon_side",
+   "fields": {
+    "name_kana": "あいどるますたーらじおぷろかいきねんこうかいろくおんどらまちっくみーてぃんぐ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスター_sidem_特別生配信_2021",
+   "fields": {
+    "name_kana": "あいどるますたーとくべつなまはいしん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスター_シャイニーカラーズ_283プロダクションプロデューサー感謝祭15_anniversary_festival",
+   "fields": {
+    "name_kana": "あいどるますたーしゃいにーからーずぷろだくしょんぷろでゅーさーかんしゃさいー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスター_シャイニーカラーズ_新作ゲーム制作発表会",
+   "fields": {
+    "name_kana": "あいどるますたーしゃいにーからーずしんさくげーむせいさくはっぴょうかい"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスター_シャイニーカラーズshiny_piecesスペシャルドルフィンステージ",
+   "fields": {
+    "name_kana": "あいどるますたーしゃいにーからーずすぺしゃるどるふぃんすてーじ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスター_シャイニーフェスタ_シンデレラガールズ_スペシャルパーティー_in_新宿blaze",
+   "fields": {
+    "name_kana": "あいどるますたーしゃいにーふぇすたしんでれらがーるずすぺしゃるぱーてぃーしんじゅく"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスター_シンデレラガールズ_2周年記念イベント新宿ステーションスクエア",
+   "fields": {
+    "name_kana": "あいどるますたーしんでれらがーるずしゅうねんきねんいべんとしんじゅくすてーしょんすくえあ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスター_シンデレラガールズ_6th_anniversary_memorial_party",
+   "fields": {
+    "name_kana": "あいどるますたーしんでれらがーるず"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスター_シンデレラガールズ_7th_anniversary_memorial_stage_cygamesfes2018",
+   "fields": {
+    "name_kana": "あいどるますたーしんでれらがーるず"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスター_シンデレラガールズ_9th_anniversary_memorial_party",
+   "fields": {
+    "name_kana": "あいどるますたーしんでれらがーるず"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスター_シンデレラガールズ_コロムビアcd_オリコン週間ランキングトップ10累計100タイトル突破記念_プロデューサーさん感謝祭_in_新木場ス",
+   "fields": {
+    "name_kana": "あいどるますたーしんでれらがーるずころむびあおりこんしゅうかんらんきんぐとっぷるいけいたいとるとっぱきねんぷろでゅーさーさんかんしゃさいしんきばすたじおこーすと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスター_シンデレラガールズ_コロムビアcd映像作品累計出荷300万枚突破_the_idolmster_cinderella_girls_star",
+   "fields": {
+    "name_kana": "あいどるますたーしんでれらがーるずころむびあえいぞうさくひんるいけいしゅっかまんまいとっぱしりーずはつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスター_シンデレラガールズ_スターライトクルーズ_トークライブ_セカンドシーティング",
+   "fields": {
+    "name_kana": "あいどるますたーしんでれらがーるずすたーらいとくるーずとーくらいぶせかんどしーてぃんぐ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスター_シンデレラガールズ_スターライトクルーズ_トークライブ_ファーストシーティング",
+   "fields": {
+    "name_kana": "あいどるますたーしんでれらがーるずすたーらいとくるーずとーくらいぶふぁーすとしーてぃんぐ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスター_シンデレラガールズ_スターライトクルーズ_ピアノアレンジ生演奏下船時",
+   "fields": {
+    "name_kana": "あいどるますたーしんでれらがーるずすたーらいとくるーずぴあのあれんじなまえんそうげせんじ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスター_シンデレラガールズ_プレミアムイベント",
+   "fields": {
+    "name_kana": "あいどるますたーしんでれらがーるずぷれみあむいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスター_シンデレラガールズcd累計出荷100万枚突破キャラクターシングル第6弾発売記念イベント",
+   "fields": {
+    "name_kana": "あいどるますたーしんでれらがーるずるいけいしゅっかまんまいとっぱきゃらくたーしんぐるだいだんはつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスター_シンデレラガールズローソン_special_event",
+   "fields": {
+    "name_kana": "あいどるますたーしんでれらがーるずろーそん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスター_シンデレラガールズ_15周年イヤー直前生配信",
+   "fields": {
+    "name_kana": "あいどるますたーしんでれらがーるずしゅうねんいやーちょくぜんなまはいしん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスター_シンデレラガールズstar_キラキラver企画中ですマチアソビvol14",
+   "fields": {
+    "name_kana": "あいどるますたーしんでれらがーるずきらきらきかくちゅうですまちあそび"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスター_シンデレラガールズデレラジスペシャルステージ_in_ワンダーフェスティバル2014冬",
+   "fields": {
+    "name_kana": "あいどるますたーしんでれらがーるずでれらじすぺしゃるすてーじわんだーふぇすてぃばるふゆ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスター_シンデレラガールズデレラジスペシャルステージinワンダーフェスティバル2013夏",
+   "fields": {
+    "name_kana": "あいどるますたーしんでれらがーるずでれらじすぺしゃるすてーじわんだーふぇすてぃばるなつ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスター_シンデレラガールズ劇場_すぷりんぐふぇすてぃばる_2018",
+   "fields": {
+    "name_kana": "あいどるますたーしんでれらがーるずげきじょうすぷりんぐふぇすてぃばる"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスター_シンデレラガールズ346プロ_ワンフェスステージ",
+   "fields": {
+    "name_kana": "あいどるますたーしんでれらがーるずぷろわんふぇすすてーじ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスター_シンデレラガールズワンフェスwinterステージ_2017",
+   "fields": {
+    "name_kana": "あいどるますたーしんでれらがーるずわんふぇすすてーじ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスター_シンデレラガールズワンフェスサマーステージin_2016",
+   "fields": {
+    "name_kana": "あいどるますたーしんでれらがーるずわんふぇすさまーすてーじ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスター_シンデレラガールズ346プロ_ワンフェスサマーステージin_2015",
+   "fields": {
+    "name_kana": "あいどるますたーしんでれらがーるずぷろわんふぇすさまーすてーじ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスター_マストソングス_赤盤青盤アイドルマスターシンデレラガールズ_スターライトステージ_ゲームでバトルしちゃいmstgs2015",
+   "fields": {
+    "name_kana": "あいどるますたーますとそんぐすあかばんあおばんあいどるますたーしんでれらがーるずすたーらいとすてーじげーむでばとるしちゃい"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスター_ミリオンライブワンフェス_サマーステージ_2018",
+   "fields": {
+    "name_kana": "あいどるますたーみりおんらいぶわんふぇすさまーすてーじ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスター_ワンフォーオール_765プロ学祭クイーンへの道スペシャルtgs2014",
+   "fields": {
+    "name_kana": "あいどるますたーわんふぉーおーるぷろがくさいくいーんへのみちすぺしゃる"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスター_ワンフォーオールぷちます_すぺしゃるすてーじ_inゲームの電撃_感謝祭",
+   "fields": {
+    "name_kana": "あいどるますたーわんふぉーおーるぷちますすぺしゃるすてーじげーむのでんげきかんしゃさい"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスター6911時の回13時の回15時30分の回",
+   "fields": {
+    "name_kana": "あいどるますたーときのかいときのかいじふんのかい"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスターsidem_315_winter_passion_スペシャルイルカショー",
+   "fields": {
+    "name_kana": "あいどるますたーすぺしゃるいるかしょー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスターアムラックス_コラボレーションイベント生っすかサンデー出張版",
+   "fields": {
+    "name_kana": "あいどるますたーあむらっくすこらぼれーしょんいべんとーなまっすかさんでーしゅっちょうばんー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスターシリーズ島根スサノオマジック_スペシャルコラボレーション",
+   "fields": {
+    "name_kana": "あいどるますたーしりーずしまねすさのおまじっくすぺしゃるこらぼれーしょん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスターシンデレラガールズ_with_アサヒ飲料_premium_event",
+   "fields": {
+    "name_kana": "あいどるますたーしんでれらがーるずあさひいんりょう"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスターシンデレラガールズ_スペシャルステージ_キュートセレクションワンダーフェスティバル2014夏",
+   "fields": {
+    "name_kana": "あいどるますたーしんでれらがーるずすぺしゃるすてーじきゅーとせれくしょんわんだーふぇすてぃばるなつ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスターステーションプレゼンツ_シークレットクリスマスパーティ",
+   "fields": {
+    "name_kana": "あいどるますたーすてーしょんぷれぜんつしーくれっとくりすますぱーてぃ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスターミュージックフェスタ決勝大会joysound_diveアイドルマスターコラボのカラオケ大会",
+   "fields": {
+    "name_kana": "あいどるますたーみゅーじっくふぇすたけっしょうたいかいあいどるますたーこらぼのからおけたいかい"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイドルマスター2_presents_765プロダクション_2010年度決起集会",
+   "fields": {
+    "name_kana": "あいどるますたーぷろだくしょんねんどけっきしゅうかい"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アイマスエキスポ_ヴイアラspソロステージ_レトラ_",
+   "fields": {
+    "name_kana": "あいますえきすぽゔいあらそろすてーじ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アソビストア_presents_the_idolmster_shiny_colors_summer_party_2019",
+   "fields": {
+    "name_kana": "あそびすとあ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アニソンプレミアム",
+   "fields": {
+    "name_kana": "あにそんぷれみあむ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アニメコンテンツエキスポ2012_aceスペシャルライブステージ",
+   "fields": {
+    "name_kana": "あにめこんてんつえきすぽすぺしゃるらいぶすてーじ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アニメコンテンツエキスポ2013_redステージ_program8_アイドルマスター",
+   "fields": {
+    "name_kana": "あにめこんてんつえきすぽすてーじあいどるますたー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_アニュータライブ2018あにゅパ",
+   "fields": {
+    "name_kana": "あにゅーたらいぶあにゅぱ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_イナズマロック_フェス_2022",
+   "fields": {
+    "name_kana": "いなずまろっくふぇす"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_オールアイマス大感謝祭_2025年までもう待てない生配信",
+   "fields": {
+    "name_kana": "おーるあいますだいかんしゃさいーねんまでもうまてないなまはいしんー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_キリンビバレッジアイドルマスターワンフォーオールローソンキャンペーンアイドルマスターワンフォーオールspecial_event",
+   "fields": {
+    "name_kana": "きりんびばれっじあいどるますたーわんふぉーおーるろーそんきゃんぺーんあいどるますたーわんふぉーおーる"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_ゲームの電撃_感謝祭_2011アイドルマスター2ぷちますすぺしゃるすてーじですよっ_in秋葉原",
+   "fields": {
+    "name_kana": "げーむのでんげきかんしゃさいあいどるますたーぷちますすぺしゃるすてーじですよっあきはばら"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_ゲームの電撃_感謝祭_2012_アイマスぷちますすぺしゃるすてーじですよっ_にっ_in秋葉原",
+   "fields": {
+    "name_kana": "げーむのでんげきかんしゃさいあいますぷちますすぺしゃるすてーじですよっにっあきはばら"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_ゲームの電撃_感謝祭2013_アイマスぷちます_すぺしゃるすてーじですよんっ",
+   "fields": {
+    "name_kana": "げーむのでんげきかんしゃさいあいますぷちますすぺしゃるすてーじですよんっ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_シブヤノオト_and_more_fes2020",
+   "fields": {
+    "name_kana": "しぶやのおと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_シャニマス初の対バンライブ_283production_unit_live_mugen_beat",
+   "fields": {
+    "name_kana": "しゃにますはつのたいばんらいぶ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_シャニマス初の対バンライブ_283production_unit_live_setsuna_beat",
+   "fields": {
+    "name_kana": "しゃにますはつのたいばんらいぶ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_シンデレラガールズステージリズムにノッてみたニコニコ超会議2016",
+   "fields": {
+    "name_kana": "しんでれらがーるずすてーじーりずむにのってみたーにこにこちょうかいぎ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_スタマス発売直前アイドルマスター_スターリットシーズン_スペシャルトークステージ",
+   "fields": {
+    "name_kana": "すたますはつばいちょくぜんあいどるますたーすたーりっとしーずんすぺしゃるとーくすてーじ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_ドラマチックライブステージアイドルマスターsidem_6月16日木1800の回初日",
+   "fields": {
+    "name_kana": "どらまちっくらいぶすてーじあいどるますたー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_ナガノアニエラフェスタ2025",
+   "fields": {
+    "name_kana": "ながのあにえらふぇすた"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_ニコニコ超パーティーfirstnight_10_アイドルマスターメドレー超パーティースペシャルバージョン",
+   "fields": {
+    "name_kana": "にこにこちょうぱーてぃーあいどるますたーめどれーちょうぱーてぃーすぺしゃるばーじょん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_ニコニコ超会議2_ニコニコ超アニソンフェス",
+   "fields": {
+    "name_kana": "にこにこちょうかいぎにこにこちょうあにそんふぇす"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_ニコニコ超会議2012_電波研究社live_special",
+   "fields": {
+    "name_kana": "にこにこちょうかいぎでんぱけんきゅうしゃ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_バンダイナムコ_アニメキャンプ2014",
+   "fields": {
+    "name_kana": "ばんだいなむこあにめきゃんぷ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_バンダイナムコエンターテインメントフェスティバル",
+   "fields": {
+    "name_kana": "ばんだいなむこえんたーていんめんとふぇすてぃばる"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_バンダイナムコエンターテインメントフェスティバル_2nd",
+   "fields": {
+    "name_kana": "ばんだいなむこえんたーていんめんとふぇすてぃばる"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_バンダイナムコライブtv_アイドルマスター特番夏だ1番アイドルマスター祭りweb番組",
+   "fields": {
+    "name_kana": "ばんだいなむこらいぶあいどるますたーとくばんなつだばんあいどるますたーまつりばんぐみ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_フジテレビこの指とまれseason4_tifオンライン2020直前sp",
+   "fields": {
+    "name_kana": "ふじてれびこのゆびとーまれおんらいんちょくぜん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_ブシロードカードゲームlive2009",
+   "fields": {
+    "name_kana": "ぶしろーどかーどげーむ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_ブシロードカードゲームlive2010",
+   "fields": {
+    "name_kana": "ぶしろーどかーどげーむ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_ブシロードカードゲームlive2011",
+   "fields": {
+    "name_kana": "ぶしろーどかーどげーむ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_プラチナスターズステージ紹介してみたニコニコ超会議2016",
+   "fields": {
+    "name_kana": "ぷらちなすたーずすてーじーしょうかいしてみたーにこにこちょうかいぎ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_マチアソビ_vol11_アイドルマスターシンデレラガールズ_jewelriesシリーズ発売記念トークショー",
+   "fields": {
+    "name_kana": "まちあそびあいどるますたーしんでれらがーるずしりーずはつばいきねんとーくしょー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_マチアソビ_vol10_アイドルマスター_シンデレラガールズデレラジ徳島出張版",
+   "fields": {
+    "name_kana": "まちあそびあいどるますたーしんでれらがーるずでれらじとくしましゅっちょうばん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_マチアソビ_vol7_the_idolmster_autumn_festivl_in_tokushima",
+   "fields": {
+    "name_kana": "まちあそび"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_マチアソビ_vol8_一迅社フェブリpresentsアイドルマスター_シンデレラガールズcd大ヒット記念トークショー",
+   "fields": {
+    "name_kana": "まちあそびいちじんしゃふぇぶりあいどるますたーしんでれらがーるずだいひっときねんとーくしょー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_マチアソビ_vol9_アイドルマスター_シャイニーフェスタ_スペシャルステージ_in_マチアソビ",
+   "fields": {
+    "name_kana": "まちあそびあいどるますたーしゃいにーふぇすたすぺしゃるすてーじまちあそび"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_マチアソビ_vol9_ニュータイプ_アニメアワード授賞式",
+   "fields": {
+    "name_kana": "まちあそびにゅーたいぷあにめあわーどじゅしょうしき"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_マチアソビvol13_アイドルマスタートークイベント_-mchiasopiece-",
+   "fields": {
+    "name_kana": "まちあそびあいどるますたーとーくいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_マチアソビvol13_シンデレラガールズトークイベント_-machiasobi_mgic-",
+   "fields": {
+    "name_kana": "まちあそびしんでれらがーるずとーくいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_マチアソビnewtype_the_moving_pictures_festival_vol4",
+   "fields": {
+    "name_kana": "まちあそび"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_ミリオンシアターアクティビティーin_c3tokyo",
+   "fields": {
+    "name_kana": "みりおんしあたーあくてぃびてぃー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_ミリシタ4周年_anniversary4you_生配信",
+   "fields": {
+    "name_kana": "みりしたしゅうねんなまはいしん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_ミリシタ感謝祭_20192020",
+   "fields": {
+    "name_kana": "みりしたかんしゃさいー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_ミリシタ感謝祭_20202021_online",
+   "fields": {
+    "name_kana": "みりしたかんしゃさいー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_ミリシタ感謝祭_20212022",
+   "fields": {
+    "name_kana": "みりしたかんしゃさいー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_ラジオ_アイドルマスターシンデレラガールズデレラジ公開録音_サマデレ2014",
+   "fields": {
+    "name_kana": "らじおあいどるますたーしんでれらがーるずでれらじこうかいろくおんさまでれ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_ラジオdeアイマchuワールドchuアー",
+   "fields": {
+    "name_kana": "らじおあいまわーるどあー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_ラジオdeアイマchu公開録音イベント_もぎたてかんきっchu関内ホールへ行かんない",
+   "fields": {
+    "name_kana": "らじおあいまこうかいろくおんいべんともぎたてかんきっーかんないほーるへいかんないー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_ラジオdeアイマchu公開録音イベント春満開chuリップまだまだゆっくり旅気分",
+   "fields": {
+    "name_kana": "らじおあいまこうかいろくおんいべんとーはるまんかいりっぷまだまだゆっくりたびきぶんー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_ラジオdeアイマshow_2007年夏の感謝祭と言っておけばいいんじゃない_afternoonparty",
+   "fields": {
+    "name_kana": "らじおあいまねんなつのかんしゃさいといっておけばいいんじゃない"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_ラジオdeアイマshow_公開録音event_今田舎村で落ち合おうtorico_de_2006_autumn",
+   "fields": {
+    "name_kana": "らじおあいまこうかいろくおんーいまいなかむらでおちあおうー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_ラジオdeアイマstar公開録音イベント_panpan_アトリエdeあえまcheffle_桜の季節のフルコース",
+   "fields": {
+    "name_kana": "らじおあいまこうかいろくおんいべんとあとりえあえまーさくらのきせつのふるこーすー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_ラジオdeアイマstar公開録音イベント_星春桜歌祭_powerfulmiraclechefftival",
+   "fields": {
+    "name_kana": "らじおあいまこうかいろくおんいべんとほしはるさくらうたさい"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_ラジオimstudio公開録音ミニlive_みんなとすごす夏休み_with_えりっくくらぷとりん",
+   "fields": {
+    "name_kana": "らじおこうかいろくおんみにーみんなとすごすなつやすみえりっくくらぷとりんー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_ランティス祭り2014_東海公演",
+   "fields": {
+    "name_kana": "らんてぃすまつりとうかいこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_ランティス祭り2014_関東公演",
+   "fields": {
+    "name_kana": "らんてぃすまつりかんとうこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_ランティス祭り2014_関西公演",
+   "fields": {
+    "name_kana": "らんてぃすまつりかんさいこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_リアルステージイベントミリシタ感謝祭",
+   "fields": {
+    "name_kana": "りあるすてーじいべんとみりしたかんしゃさい"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_リスアニlive_2016_saturday_stage",
+   "fields": {
+    "name_kana": "りすあに"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_リスアニlive_2018_sunday_stage",
+   "fields": {
+    "name_kana": "りすあに"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_リスアニlive_2019_saturday_stage",
+   "fields": {
+    "name_kana": "りすあに"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_リスアニlive_2019_sunday_stage",
+   "fields": {
+    "name_kana": "りすあに"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_リスアニlive_2020_sunday_stage",
+   "fields": {
+    "name_kana": "りすあに"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_リスアニlive_2021_saturday_stage",
+   "fields": {
+    "name_kana": "りすあに"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_リスアニlive_2021_sunday_stage",
+   "fields": {
+    "name_kana": "りすあに"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_リスアニlive_2023_saturday_stage",
+   "fields": {
+    "name_kana": "りすあに"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_リスアニlive_2024_saturday_stage",
+   "fields": {
+    "name_kana": "りすあに"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_リスアニlive_2025_saturday_stage",
+   "fields": {
+    "name_kana": "りすあに"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_リスアニlive_2025_sunday_stage",
+   "fields": {
+    "name_kana": "りすあに"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_リスアニlive_2025_ナツヤスミ_sunday_stage",
+   "fields": {
+    "name_kana": "りすあになつやすみ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_リスアニlive_2026_saturday_stage",
+   "fields": {
+    "name_kana": "りすあに"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_リスアニlive_taiwan_2018saturday_stage",
+   "fields": {
+    "name_kana": "りすあに"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_リスアニlive_taiwansunday_stage",
+   "fields": {
+    "name_kana": "りすあに"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_e8a2e8ce-261b-43f6-829f-d4b041ddf000",
+   "fields": {
+    "name_kana": "りすあに"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_リスアニlive-3",
+   "fields": {
+    "name_kana": "りすあに"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_リスアニlive-4_saturday_stage",
+   "fields": {
+    "name_kana": "りすあに"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_リスアニlive-5_saturday_stage",
+   "fields": {
+    "name_kana": "りすあに"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_リスアニlive2011",
+   "fields": {
+    "name_kana": "りすあに"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_レトラ_birthday_online_live_2025",
+   "fields": {
+    "name_kana": "れとら"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_ローソンアイマスキャンペーン_シークレットイベント",
+   "fields": {
+    "name_kana": "ろーそんあいますきゃんぺーんしーくれっといべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_ローソンアイマスキャンペーン_年忘れシークレットパーティ",
+   "fields": {
+    "name_kana": "ろーそんあいますきゃんぺーんとしわすれしーくれっとぱーてぃ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_ワンダーフェスティバル_2007冬三浦あずさフィギュア発売記念イベント",
+   "fields": {
+    "name_kana": "わんだーふぇすてぃばるふゆみうらあずさふぃぎゅあはつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_ワンダーフェスティバル2012_summer_アイドルマスター_in_コトブキヤワンフェスへようこそ",
+   "fields": {
+    "name_kana": "わんだーふぇすてぃばるあいどるますたーことぶきやーわんふぇすへようこそー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_ヴァイスシュヴァルツ_アイドルマスター発売記念イベント",
+   "fields": {
+    "name_kana": "ゔぁいすしゅゔぁるつあいどるますたーはつばいきねんいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_ヴァイスシュヴァルツ_ポータブル_スペシャルステージ白黒学園_in_キャラホビ",
+   "fields": {
+    "name_kana": "ゔぁいすしゅゔぁるつぽーたぶるすぺしゃるすてーじしろくろがくえんきゃらほび"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_上水流宇宙_birthday_online_live_2025",
+   "fields": {
+    "name_kana": "かみずるそら"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_京_premium_live_2022_12月10日土",
+   "fields": {
+    "name_kana": "きょうがつにちど"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_今井麻美the_idolmster_radio_long_time_発売記念イベントアコースティックミニライブ",
+   "fields": {
+    "name_kana": "いまいあさみはつばいきねんいべんとあこーすてぃっくみにらいぶ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_今井麻美the_idolmster_radio_long_time_発売記念イベントトークミニライブ大阪",
+   "fields": {
+    "name_kana": "いまいあさみはつばいきねんいべんととーくみにらいぶおおさか"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_今井麻美the_idolmster_radio_long_time_発売記念イベントトークミニライブ東京",
+   "fields": {
+    "name_kana": "いまいあさみはつばいきねんいべんととーくみにらいぶとうきょう"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_倉本千奈_生誕ミニライブ2025",
+   "fields": {
+    "name_kana": "くらもとちなせいたんみにらいぶ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_偶像大師_百萬人演唱會_劇場時光_製作人感謝祭_聲優迷你live_stage_見面會_in_tica2020",
+   "fields": {
+    "name_kana": "ぐうぞうたいしひゃくまんにんえんしょうかいげきじょうじこうせいさくにんかんしゃさいせいゆうみにけんめんかい"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_僕らのidol_fairthe_idolmster_cinderella_girls_live_broadcast_24magic_シンデレラたちの24時",
+   "fields": {
+    "name_kana": "ぼくらのーしんでれらたちのじかんなまほうそうー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_劇場版the_idolmster_movie_輝きの向こう側へ舞台挨拶_梅田ブルク7_1140の回上映終了後",
+   "fields": {
+    "name_kana": "げきじょうばんかがやきのむこうがわへぶたいあいさつうめだぶるくのかいじょうえいしゅうりょうご"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_劇場版the_idolmster_movie_輝きの向こう側へ舞台挨拶_movix日吉津_1000の回上映終了後",
+   "fields": {
+    "name_kana": "げきじょうばんかがやきのむこうがわへぶたいあいさつひえづのかいじょうえいしゅうりょうご"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_劇場版the_idolmster_movie輝きの向こう側へスペシャルイベント",
+   "fields": {
+    "name_kana": "げきじょうばんーかがやきのむこうがわへーすぺしゃるいべんと"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_劇場版アイドルマスター_in_マチアソビ_vol11",
+   "fields": {
+    "name_kana": "げきじょうばんあいどるますたーまちあそび"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_十王星南_生誕ミニライブ2025",
+   "fields": {
+    "name_kana": "じゅうおうせいなせいたんみにらいぶ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_台北國際電玩展_偶像大師_2聲優今井麻美來台",
+   "fields": {
+    "name_kana": "たいぺいこくさいでんげんてんぐうぞうたいしせいゆういまいあさみらいたい"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_台北漫画博覧会2013_アイドルマスターミリオンライブステージ_1130の部",
+   "fields": {
+    "name_kana": "たいぺいまんがはくらんかいあいどるますたーみりおんらいぶすてーじ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_如月千早_-_msterpiece_the_first_take",
+   "fields": {
+    "name_kana": "きさらぎちはや"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_如月千早_-_約束_the_first_take",
+   "fields": {
+    "name_kana": "きさらぎちはややくそく"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_如月千早約束アイドルマスター",
+   "fields": {
+    "name_kana": "きさらぎちはややくそくあいどるますたー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_如月千早武道館単独公演oathone124土公演",
+   "fields": {
+    "name_kana": "きさらぎちはやぶどうかんたんどくこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_姫崎莉波_生誕ミニライブ2026",
+   "fields": {
+    "name_kana": "ひめさきりなみせいたんみにらいぶ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_学園アイドルマスター_debut_live_初_tour_-初声公演-_名古屋クラブクアトロ公演",
+   "fields": {
+    "name_kana": "がくえんあいどるますたーはつはつごえこうえんなごやくらぶくあとろこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_学園アイドルマスター_debut_live_初_tour_-初声公演-_梅田クラブクアトロ公演",
+   "fields": {
+    "name_kana": "がくえんあいどるますたーはつはつごえこうえんうめだくらぶくあとろこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_学園アイドルマスター_debut_live_初_tour_-初声公演-_渋谷クラブクアトロ公演",
+   "fields": {
+    "name_kana": "がくえんあいどるますたーはつはつごえこうえんしぶやくらぶくあとろこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_学園アイドルマスター_debut_live_初_tour_-初心公演-_名古屋クラブクアトロ公演",
+   "fields": {
+    "name_kana": "がくえんあいどるますたーはつはつごころこうえんなごやくらぶくあとろこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_学園アイドルマスター_debut_live_初_tour_-初心公演-_広島クラブクアトロ公演",
+   "fields": {
+    "name_kana": "がくえんあいどるますたーはつはつごころこうえんひろしまくらぶくあとろこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_学園アイドルマスター_debut_live_初_tour_-初心公演-_梅田クラブクアトロ公演",
+   "fields": {
+    "name_kana": "がくえんあいどるますたーはつはつごころこうえんうめだくらぶくあとろこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_学園アイドルマスター_debut_live_初_tour_-初恋公演-_広島クラブクアトロ公演",
+   "fields": {
+    "name_kana": "がくえんあいどるますたーはつはつこいこうえんひろしまくらぶくあとろこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_学園アイドルマスター_debut_live_初_tour_-初恋公演-_梅田クラブクアトロ公演",
+   "fields": {
+    "name_kana": "がくえんあいどるますたーはつはつこいこうえんうめだくらぶくあとろこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_学園アイドルマスター_debut_live_初_tour_-初恋公演-_渋谷クラブクアトロ公演",
+   "fields": {
+    "name_kana": "がくえんあいどるますたーはつはつこいこうえんしぶやくらぶくあとろこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_学園アイドルマスター_debut_live_初_tour_-初陣公演-_名古屋クラブクアトロ公演",
+   "fields": {
+    "name_kana": "がくえんあいどるますたーはつういじんこうえんなごやくらぶくあとろこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_学園アイドルマスター_debut_live_初_tour_-初陣公演-_東京追加公演",
+   "fields": {
+    "name_kana": "がくえんあいどるますたーはつういじんこうえんとうきょうついかこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_学園アイドルマスター_debut_live_初_tour_-初陣公演-_梅田クラブクアトロ公演",
+   "fields": {
+    "name_kana": "がくえんあいどるますたーはつういじんこうえんうめだくらぶくあとろこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_学園アイドルマスター_debut_live_初_tour_-初陣公演-_渋谷クラブクアトロ公演",
+   "fields": {
+    "name_kana": "がくえんあいどるますたーはつういじんこうえんしぶやくらぶくあとろこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final",
+   "fields": {
+    "name_kana": "がくえんあいどるますたーしるべありーなよこはまこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_学園アイドルマスター_live_tour_-標-_岩手公演",
+   "fields": {
+    "name_kana": "がくえんあいどるますたーしるべいわてこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_学園アイドルマスター_live_tour_-標-_福井公演",
+   "fields": {
+    "name_kana": "がくえんあいどるますたーしるべふくいこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_学園アイドルマスター_live_tour_-標-_福岡公演",
+   "fields": {
+    "name_kana": "がくえんあいどるますたーしるべふくおかこうえん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_学園アイドルマスター_the_1st_period_spotlight_star",
+   "fields": {
+    "name_kana": "がくえんあいどるますたー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_学園アイドルマスター_the_2nd_period_h_i_f選抜試験_セレクション",
+   "fields": {
+    "name_kana": "がくえんあいどるますたーせんばつしけんせれくしょん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_学園アイドルマスター_the_2nd_period_hatsuboshi_idol_festival",
+   "fields": {
+    "name_kana": "がくえんあいどるますたー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_学園アイドルマスター_クラス対抗初星大運動会",
+   "fields": {
+    "name_kana": "がくえんあいどるますたーくらすたいこうはつぼしだいうんどうかい"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_学園アイドルマスター_初星学園放送部_公開録音2025_放送部の優雅で軽やかで大騒ぎな一日第1部_放送部の優雅で大騒ぎな一日",
+   "fields": {
+    "name_kana": "がくえんあいどるますたーはつぼしがくえんほうそうぶこうかいろくおんーほうそうぶのゆうがでかろやかでおおさわぎないちにちー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_学園アイドルマスター_初星音楽祭",
+   "fields": {
+    "name_kana": "がくえんあいどるますたーはつぼしおんがくさい"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_学園アイドルマスターエキスポミニライブ",
+   "fields": {
+    "name_kana": "がくえんあいどるますたーえきすぽみにらいぶ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_帰ってきた今井麻美の華麗なるプロデューサー日記namco中野店",
+   "fields": {
+    "name_kana": "かえってきたいまいあさみのかれいなるぷろでゅーさーにっきなかのてん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_念願の東方アレンジ縛りコラボ歌枠盛り上がっていきましょう上水流宇宙_ヴイアラ",
+   "fields": {
+    "name_kana": "ねんがんのとうほうあれんじしばりこらぼうたわくもりあがっていきましょうかみずるそらゔいあら"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_教えてimajoさん_青木瑠璃子のギターレッスンアイドルマスター_シンデレラガールズ_コロムビアcd_オリコン週間ランキングトップ10累計100タイトル突",
+   "fields": {
+    "name_kana": "おしえてさんあおきるりこのぎたーれっすんあいどるますたーしんでれらがーるずころむびあおりこんしゅうかんらんきんぐとっぷるいけいたいとるとっぱきねんぷろでゅーさーさんかんしゃふぇすあきはばら"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_月村手毬_生誕ミニライブ2025",
+   "fields": {
+    "name_kana": "つきむらてまりせいたんみにらいぶ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_有村麻央_生誕ミニライブ2026",
+   "fields": {
+    "name_kana": "ありむらまおせいたんみにらいぶ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_涼風しとらレトラ_虛擬線下演唱會_in_開拓動漫祭_fancy_frontier46",
+   "fields": {
+    "name_kana": "すずかぜしとられとらきょぎせんかえんしょうかいかいたくどうまんさい"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_灯里愛夏_birthday_online_live_2025",
+   "fields": {
+    "name_kana": "あかりまなつ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_異次元フェス_アイドルマスターラブライブ歌合戦",
+   "fields": {
+    "name_kana": "いじげんふぇすあいどるますたーらぶらいぶうたがっせん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_異次元フェス開催記念音楽番組_music_bigbang",
+   "fields": {
+    "name_kana": "いじげんふぇすかいさいきねんおんがくばんぐみ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_秦谷美鈴_生誕ミニライブ2026",
+   "fields": {
+    "name_kana": "はたやみすずせいたんみにらいぶ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_第6回_ももいろ歌合戦",
+   "fields": {
+    "name_kana": "だいかいももいろうたがっせん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_篠澤_広_生誕ミニライブ2025",
+   "fields": {
+    "name_kana": "しのざわひろせいたんみにらいぶ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_紫雲清夏_生誕ミニライブ2025",
+   "fields": {
+    "name_kana": "しうんすがはせいたんみにらいぶ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_菊地_真_萩原_雪歩_twin_live_はんげつであえたら_友藍",
+   "fields": {
+    "name_kana": "きくちまことはぎわらゆきほはんげつであえたら"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_葛城リーリヤ_生誕ミニライブ2025",
+   "fields": {
+    "name_kana": "かつらぎりーりやせいたんみにらいぶ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_超音楽祭2014ニコニコ超会議3",
+   "fields": {
+    "name_kana": "ちょうおんがくさいにこにこちょうかいぎ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_超音楽祭2015ニコニコ超会議2015",
+   "fields": {
+    "name_kana": "ちょうおんがくさいにこにこちょうかいぎ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_超音楽祭2016",
+   "fields": {
+    "name_kana": "ちょうおんがくさい"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_超音楽祭2017sidem",
+   "fields": {
+    "name_kana": "ちょうおんがくさい"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_超音楽祭2017ミリオンスターズ",
+   "fields": {
+    "name_kana": "ちょうおんがくさいみりおんすたーず"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_超音楽祭2018",
+   "fields": {
+    "name_kana": "ちょうおんがくさい"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_電撃15年祭アイドルマスタークリスタルステージ",
+   "fields": {
+    "name_kana": "でんげきねんさいあいどるますたーくりすたるすてーじ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_電撃キャラクターフェスティバル2009ぷちますすぺしゃるすてーじもうすぐコミックス発売なのですよ",
+   "fields": {
+    "name_kana": "でんげききゃらくたーふぇすてぃばるぷちますすぺしゃるすてーじーもうすぐこみっくすはつばいなのですよー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_電音部dj生配信_20250605",
+   "fields": {
+    "name_kana": "でんおんぶなまはいしん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_電音部dj生配信_20260303",
+   "fields": {
+    "name_kana": "でんおんぶなまはいしん"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_音撃_game_sound_impact_2012",
+   "fields": {
+    "name_kana": "おんげきー"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_高槻_やよい_水瀬_伊織_twin_live_いつまでもなかよし_えがおだね",
+   "fields": {
+    "name_kana": "たかつきやよいみなせいおりいつまでもなかよし"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_高橋ゆま_ピアノリサイタル_-アイマスの調べおねシンマスピ-",
+   "fields": {
+    "name_kana": "たかはしゆまぴあのりさいたるあいますのしらべおねしんますぴ"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_나나_x_코스모_콜라보_노래방송_시작합니다_ナナ_x_宇宙_歌枠コラボ配信放送開始",
+   "fields": {
+    "name_kana": "ななそらうたわくこらぼはいしんほうそうかいし"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_아이돌마스터_밀리언_라이브_시어터_데이즈_프로듀서_감사제_in한국アイドルマスターミリオンライブシアターデイズ_プロデューサー感謝祭_in_韓国",
+   "fields": {
+    "name_kana": "あいどるますたーみりおんらいぶしあたーでいずぷろでゅーさーかんしゃさいかんこく"
+   },
+   "note": "ライブ名の読み"
+  },
+  {
+   "table": "events",
+   "id": "ev_jam_2013_アニソンday_supported_by_リスアニtv",
+   "fields": {
+    "name_kana": "あにそんりすあに"
+   },
+   "note": "ライブ名の読み"
+  }
+ ]
+}
