@@ -1,113 +1,112 @@
 {
-  "title": "dual twin live tour 双海 亜美・双海 真美 twin live “ふたごぼしのつばさ” [ソワソワフタリボシ] (2026-08-13 Zepp Nagoya) セットリスト",
-  "show_id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_3",
-  "all_performers": [
-    "765as_双海亜美",
+ "title": "dual twin live tour 双海 亜美・双海 真美 twin live “ふたごぼしのつばさ” [ソワソワフタリボシ] (2026-08-13 Zepp Nagoya) セットリスト",
+ "show_id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_3",
+ "all_performers": [
+  "765as_双海亜美",
+  "765as_双海真美"
+ ],
+ "_sources": [
+  "https://aimasupay.hatenablog.com/entry/2026/08/14/081831",
+  "https://idolmaster-official.jp/live_event/765as_dualtwin/"
+ ],
+ "_note": "大阪公演 (ワクワクフタリボシ) との共通曲は8曲、9曲が入れ替わり",
+ "songs": [
+  {
+   "position": 1,
+   "song_id": "765as_黎明スターライン",
+   "performers": "all"
+  },
+  {
+   "position": 2,
+   "song_id": "765as_ドキッラブアトラクション",
+   "performers": "all"
+  },
+  {
+   "position": 3,
+   "song_id": "ml_ユニークスタープレイヤー",
+   "performers": [
     "765as_双海真美"
-  ],
-  "source": "https://aimasupay.hatenablog.com/entry/2026/08/14/081831",
-  "_sources": [
-    "https://aimasupay.hatenablog.com/entry/2026/08/14/081831",
-    "https://idolmaster-official.jp/live_event/765as_dualtwin/"
-  ],
-  "_note": "大阪公演 (ワクワクフタリボシ) との共通曲は8曲、9曲が入れ替わり",
-  "songs": [
-    {
-      "position": 1,
-      "song_id": "765as_黎明スターライン",
-      "performers": "all"
-    },
-    {
-      "position": 2,
-      "song_id": "765as_ドキッラブアトラクション",
-      "performers": "all"
-    },
-    {
-      "position": 3,
-      "song_id": "ml_ユニークスタープレイヤー",
-      "performers": [
-        "765as_双海真美"
-      ]
-    },
-    {
-      "position": 4,
-      "song_id": "765as_北極星をズラしちゃえ",
-      "performers": "all"
-    },
-    {
-      "position": 5,
-      "song_id": "ml_ジャングルパーティー",
-      "performers": "all"
-    },
-    {
-      "position": 6,
-      "song_id": "765as_pon_de_beach",
-      "performers": "all"
-    },
-    {
-      "position": 7,
-      "song_id": "765as_エージェント夜を往く",
-      "performers": "all"
-    },
-    {
-      "position": 8,
-      "song_id": "765as_おとなのはじまり",
-      "performers": "all"
-    },
-    {
-      "position": 9,
-      "song_id": "765as_セクシータイフーン",
-      "performers": [
-        "765as_双海真美"
-      ]
-    },
-    {
-      "position": 10,
-      "song_id": "765as_ポジティブシンカー",
-      "performers": [
-        "765as_双海亜美"
-      ]
-    },
-    {
-      "position": 11,
-      "song_id": "765as_funny_logic",
-      "performers": "all"
-    },
-    {
-      "position": 12,
-      "song_id": "765as_ジェミー",
-      "performers": [
-        "765as_双海真美"
-      ]
-    },
-    {
-      "position": 13,
-      "song_id": "ml_微笑んだから気づいたんだ",
-      "performers": [
-        "765as_双海亜美"
-      ]
-    },
-    {
-      "position": 14,
-      "song_id": "765as_キミはメロディ",
-      "performers": [
-        "765as_双海真美"
-      ]
-    },
-    {
-      "position": 15,
-      "song_id": "765as_スタトスタ",
-      "performers": "all"
-    },
-    {
-      "position": 16,
-      "song_id": "765as_brave_star",
-      "performers": "all"
-    },
-    {
-      "position": 17,
-      "song_id": "765as_new_me_continued",
-      "performers": "all"
-    }
-  ]
+   ]
+  },
+  {
+   "position": 4,
+   "song_id": "765as_北極星をズラしちゃえ",
+   "performers": "all"
+  },
+  {
+   "position": 5,
+   "song_id": "ml_ジャングルパーティー",
+   "performers": "all"
+  },
+  {
+   "position": 6,
+   "song_id": "765as_pon_de_beach",
+   "performers": "all"
+  },
+  {
+   "position": 7,
+   "song_id": "765as_エージェント夜を往く",
+   "performers": "all"
+  },
+  {
+   "position": 8,
+   "song_id": "765as_おとなのはじまり",
+   "performers": "all"
+  },
+  {
+   "position": 9,
+   "song_id": "765as_セクシータイフーン",
+   "performers": [
+    "765as_双海真美"
+   ]
+  },
+  {
+   "position": 10,
+   "song_id": "765as_ポジティブシンカー",
+   "performers": [
+    "765as_双海亜美"
+   ]
+  },
+  {
+   "position": 11,
+   "song_id": "765as_funny_logic",
+   "performers": "all"
+  },
+  {
+   "position": 12,
+   "song_id": "765as_ジェミー",
+   "performers": [
+    "765as_双海真美"
+   ]
+  },
+  {
+   "position": 13,
+   "song_id": "ml_微笑んだから気づいたんだ",
+   "performers": [
+    "765as_双海亜美"
+   ]
+  },
+  {
+   "position": 14,
+   "song_id": "765as_キミはメロディ",
+   "performers": [
+    "765as_双海真美"
+   ]
+  },
+  {
+   "position": 15,
+   "song_id": "765as_スタトスタ",
+   "performers": "all"
+  },
+  {
+   "position": 16,
+   "song_id": "765as_brave_star",
+   "performers": "all"
+  },
+  {
+   "position": 17,
+   "song_id": "765as_new_me_continued",
+   "performers": "all"
+  }
+ ]
 }

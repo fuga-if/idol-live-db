@@ -1,119 +1,118 @@
 {
-  "title": "dual twin live tour 三浦 あずさ・秋月 律子 twin live “つみまつよるまち” [OSAKA SILENTCITY LOVE] (2026-08-07 Zepp Namba) セットリスト",
-  "show_id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_2",
-  "all_performers": [
-    "765as_三浦あずさ",
+ "title": "dual twin live tour 三浦 あずさ・秋月 律子 twin live “つみまつよるまち” [OSAKA SILENTCITY LOVE] (2026-08-07 Zepp Namba) セットリスト",
+ "show_id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_2",
+ "all_performers": [
+  "765as_三浦あずさ",
+  "765as_秋月律子"
+ ],
+ "_sources": [
+  "https://idolmaster-official.jp/news/01_19572",
+  "https://x.com/imas_official/status/2085697486493200604",
+  "https://aimasupay.hatenablog.com/entry/2026/08/07/233417",
+  "https://panora.tokyo/archives/152535"
+ ],
+ "_note": "曲間に朗読 (ポエトリー) パートあり",
+ "songs": [
+  {
+   "position": 1,
+   "song_id": "765as_902pm",
+   "performers": [
+    "765as_三浦あずさ"
+   ]
+  },
+  {
+   "position": 2,
+   "song_id": "765as_crimson_lovers",
+   "performers": "all"
+  },
+  {
+   "position": 3,
+   "song_id": "765as_inferno_squaring",
+   "performers": [
+    "765as_三浦あずさ"
+   ]
+  },
+  {
+   "position": 4,
+   "song_id": "765as_アイシテの呪縛je_vous_aime",
+   "performers": "all"
+  },
+  {
+   "position": 5,
+   "song_id": "ml_嘆きのfraction",
+   "performers": [
+    "765as_三浦あずさ"
+   ]
+  },
+  {
+   "position": 6,
+   "song_id": "961_kiss",
+   "performers": "all"
+  },
+  {
+   "position": 7,
+   "song_id": "765as_dream",
+   "performers": [
     "765as_秋月律子"
-  ],
-  "source": "https://idolmaster-official.jp/news/01_19572",
-  "_sources": [
-    "https://idolmaster-official.jp/news/01_19572",
-    "https://x.com/imas_official/status/2085697486493200604",
-    "https://aimasupay.hatenablog.com/entry/2026/08/07/233417",
-    "https://panora.tokyo/archives/152535"
-  ],
-  "_note": "曲間に朗読 (ポエトリー) パートあり",
-  "songs": [
-    {
-      "position": 1,
-      "song_id": "765as_902pm",
-      "performers": [
-        "765as_三浦あずさ"
-      ]
-    },
-    {
-      "position": 2,
-      "song_id": "765as_crimson_lovers",
-      "performers": "all"
-    },
-    {
-      "position": 3,
-      "song_id": "765as_inferno_squaring",
-      "performers": [
-        "765as_三浦あずさ"
-      ]
-    },
-    {
-      "position": 4,
-      "song_id": "765as_アイシテの呪縛je_vous_aime",
-      "performers": "all"
-    },
-    {
-      "position": 5,
-      "song_id": "ml_嘆きのfraction",
-      "performers": [
-        "765as_三浦あずさ"
-      ]
-    },
-    {
-      "position": 6,
-      "song_id": "961_kiss",
-      "performers": "all"
-    },
-    {
-      "position": 7,
-      "song_id": "765as_dream",
-      "performers": [
-        "765as_秋月律子"
-      ]
-    },
-    {
-      "position": 8,
-      "song_id": "765as_mythmaker",
-      "performers": [
-        "765as_三浦あずさ"
-      ]
-    },
-    {
-      "position": 9,
-      "song_id": "765as_live",
-      "performers": "all",
-      "notes": "三浦あずさが1番を歌唱し、2番から秋月律子が参加"
-    },
-    {
-      "position": 10,
-      "song_id": "765as_arcadia",
-      "performers": "all"
-    },
-    {
-      "position": 11,
-      "song_id": "ml_discord_area",
-      "performers": [
-        "765as_秋月律子"
-      ]
-    },
-    {
-      "position": 12,
-      "song_id": "765as_lost",
-      "performers": [
-        "765as_三浦あずさ"
-      ]
-    },
-    {
-      "position": 13,
-      "song_id": "765as_new_me_continued",
-      "performers": "all"
-    },
-    {
-      "position": 14,
-      "song_id": "ml_i_do",
-      "performers": [
-        "765as_三浦あずさ"
-      ]
-    },
-    {
-      "position": 15,
-      "song_id": "765as_隣に",
-      "performers": [
-        "765as_三浦あずさ"
-      ],
-      "notes": "三浦あずさがロングヘアで歌唱"
-    },
-    {
-      "position": 16,
-      "song_id": "765as_binary_star",
-      "performers": "all",
-      "notes": "新曲初披露 (会場オリジナルCD SACX-1139 表題曲)"
-    }
-  ]
+   ]
+  },
+  {
+   "position": 8,
+   "song_id": "765as_mythmaker",
+   "performers": [
+    "765as_三浦あずさ"
+   ]
+  },
+  {
+   "position": 9,
+   "song_id": "765as_live",
+   "performers": "all",
+   "notes": "三浦あずさが1番を歌唱し、2番から秋月律子が参加"
+  },
+  {
+   "position": 10,
+   "song_id": "765as_arcadia",
+   "performers": "all"
+  },
+  {
+   "position": 11,
+   "song_id": "ml_discord_area",
+   "performers": [
+    "765as_秋月律子"
+   ]
+  },
+  {
+   "position": 12,
+   "song_id": "765as_lost",
+   "performers": [
+    "765as_三浦あずさ"
+   ]
+  },
+  {
+   "position": 13,
+   "song_id": "765as_new_me_continued",
+   "performers": "all"
+  },
+  {
+   "position": 14,
+   "song_id": "ml_i_do",
+   "performers": [
+    "765as_三浦あずさ"
+   ]
+  },
+  {
+   "position": 15,
+   "song_id": "765as_隣に",
+   "performers": [
+    "765as_三浦あずさ"
+   ],
+   "notes": "三浦あずさがロングヘアで歌唱"
+  },
+  {
+   "position": 16,
+   "song_id": "765as_binary_star",
+   "performers": "all",
+   "notes": "新曲初披露 (会場オリジナルCD SACX-1139 表題曲)"
+  }
+ ]
 }

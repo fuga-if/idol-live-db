@@ -1,534 +1,502 @@
 {
-  "title": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Stella-/-Luna-/-Sol- 収録曲",
-  "_help": "2026-09-16 発売の3タイトル。ソロ28曲 + 各チームの -N colors- 3曲",
-  "source": "https://shinycolors.lantis.jp/extra/260826_1/",
-  "songs": [
-    {
-      "id": "sc_magical_forest",
-      "title": "MAGICAL FOREST",
-      "brand_id": "sc",
-      "song_type": "solo",
-      "release_date": "2026-09-16",
-      "lyricist": "渡邊亜希子",
-      "composer": "石黑剛、常楽寺澪",
-      "arranger": "石黑剛",
-      "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Stella-",
-      "original_singers": [
-        "sc_櫻木真乃"
-      ],
-      "source": "https://shinycolors.lantis.jp/extra/260826_1/",
-      "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Stella- (LACA-25301) 収録"
-    },
-    {
-      "id": "sc_恋するクオリア",
-      "title": "恋するクオリア",
-      "brand_id": "sc",
-      "song_type": "solo",
-      "release_date": "2026-09-16",
-      "lyricist": "真崎エリカ",
-      "composer": "成本智美 (SUPA LOVE)",
-      "arranger": "賀佐泰洋 (SUPA LOVE)",
-      "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Stella-",
-      "original_singers": [
-        "sc_月岡恋鐘"
-      ],
-      "source": "https://shinycolors.lantis.jp/extra/260826_1/",
-      "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Stella- (LACA-25301) 収録"
-    },
-    {
-      "id": "sc_ハグルマヒマワリ",
-      "title": "ハグルマヒマワリ",
-      "brand_id": "sc",
-      "song_type": "solo",
-      "release_date": "2026-09-16",
-      "lyricist": "古屋真",
-      "composer": "大谷月斗",
-      "arranger": "清水\"カルロス\"宥人 (KEYTONE)",
-      "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Stella-",
-      "original_singers": [
-        "sc_小宮果穂"
-      ],
-      "source": "https://shinycolors.lantis.jp/extra/260826_1/",
-      "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Stella- (LACA-25301) 収録"
-    },
-    {
-      "id": "sc_ナイススパイス研究会",
-      "title": "ナイススパイス研究会",
-      "brand_id": "sc",
-      "song_type": "solo",
-      "release_date": "2026-09-16",
-      "lyricist": "渡邊亜希子",
-      "composer": "矢吹香那",
-      "arranger": "前口ワタル",
-      "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Stella-",
-      "original_singers": [
-        "sc_園田智代子"
-      ],
-      "source": "https://shinycolors.lantis.jp/extra/260826_1/",
-      "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Stella- (LACA-25301) 収録"
-    },
-    {
-      "id": "sc_どっちみちlove",
-      "title": "どっちみちLOVE",
-      "brand_id": "sc",
-      "song_type": "solo",
-      "release_date": "2026-09-16",
-      "lyricist": "常楽寺澪",
-      "composer": "石黑剛、常楽寺澪",
-      "arranger": "石黑剛",
-      "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Stella-",
-      "original_singers": [
-        "sc_大崎甘奈"
-      ],
-      "source": "https://shinycolors.lantis.jp/extra/260826_1/",
-      "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Stella- (LACA-25301) 収録"
-    },
-    {
-      "id": "sc_ワタシグラビティ",
-      "title": "ワタシグラビティ",
-      "brand_id": "sc",
-      "song_type": "solo",
-      "release_date": "2026-09-16",
-      "lyricist": "倉持マミ",
-      "composer": "APAZZI",
-      "arranger": "APAZZI",
-      "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Stella-",
-      "original_singers": [
-        "sc_芹沢あさひ"
-      ],
-      "source": "https://shinycolors.lantis.jp/extra/260826_1/",
-      "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Stella- (LACA-25301) 収録"
-    },
-    {
-      "id": "sc_ダミーガール",
-      "title": "ダミーガール",
-      "brand_id": "sc",
-      "song_type": "solo",
-      "release_date": "2026-09-16",
-      "lyricist": "涼木シンジ (KEYTONE)",
-      "composer": "涼木シンジ (KEYTONE)",
-      "arranger": "涼木シンジ (KEYTONE)",
-      "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Stella-",
-      "original_singers": [
-        "sc_樋口円香"
-      ],
-      "source": "https://shinycolors.lantis.jp/extra/260826_1/",
-      "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Stella- (LACA-25301) 収録"
-    },
-    {
-      "id": "sc_crying_diamond",
-      "title": "Crying Diamond",
-      "brand_id": "sc",
-      "song_type": "solo",
-      "release_date": "2026-09-16",
-      "lyricist": "真崎エリカ",
-      "composer": "成本智美 (SUPA LOVE)",
-      "arranger": "賀佐泰洋 (SUPA LOVE)",
-      "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Stella-",
-      "original_singers": [
-        "sc_緋田美琴"
-      ],
-      "source": "https://shinycolors.lantis.jp/extra/260826_1/",
-      "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Stella- (LACA-25301) 収録"
-    },
-    {
-      "id": "sc_imaginary",
-      "title": "Imaginary",
-      "brand_id": "sc",
-      "song_type": "solo",
-      "release_date": "2026-09-16",
-      "lyricist": "園田健太郎",
-      "composer": "ねりきり (KEYTONE)",
-      "arranger": "ねりきり (KEYTONE)",
-      "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Stella-",
-      "original_singers": [
-        "sc_鈴木羽那"
-      ],
-      "source": "https://shinycolors.lantis.jp/extra/260826_1/",
-      "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Stella- (LACA-25301) 収録"
-    },
-    {
-      "id": "sc_プラニスフィア_planisphere_-9_colors-",
-      "title": "プラニスフィア ～planisphere～ -9 colors-",
-      "brand_id": "sc",
-      "song_type": "unit",
-      "release_date": "2026-09-16",
-      "lyricist": "松井洋平",
-      "composer": "ArmySlick、Giz'Mo (from Jam9)",
-      "arranger": "山口朗彦",
-      "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Stella-",
-      "original_singers": [
-        "sc_園田智代子",
-        "sc_大崎甘奈",
-        "sc_小宮果穂",
-        "sc_月岡恋鐘",
-        "sc_樋口円香",
-        "sc_櫻木真乃",
-        "sc_緋田美琴",
-        "sc_芹沢あさひ",
-        "sc_鈴木羽那"
-      ],
-      "source": "https://shinycolors.lantis.jp/extra/260826_1/",
-      "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Stella- (LACA-25301) 収録",
-      "unit_id": "teamstella",
-      "unit_name": "Team.Stella"
-    },
-    {
-      "id": "sc_embers_glow",
-      "title": "Embers glow",
-      "brand_id": "sc",
-      "song_type": "solo",
-      "release_date": "2026-09-16",
-      "lyricist": "RUCCA",
-      "composer": "本多友紀 (EverNest)",
-      "arranger": "水野谷怜",
-      "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Luna-",
-      "original_singers": [
-        "sc_風野灯織"
-      ],
-      "source": "https://shinycolors.lantis.jp/extra/260826_1/",
-      "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Luna- (LACA-25302) 収録"
-    },
-    {
-      "id": "sc_正解な不正解",
-      "title": "正解な不正解",
-      "brand_id": "sc",
-      "song_type": "solo",
-      "release_date": "2026-09-16",
-      "lyricist": "Soflan Daichi",
-      "composer": "柳沢英樹 (SUPA LOVE)",
-      "arranger": "柳沢英樹 (SUPA LOVE)",
-      "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Luna-",
-      "original_singers": [
-        "sc_田中摩美々"
-      ],
-      "source": "https://shinycolors.lantis.jp/extra/260826_1/",
-      "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Luna- (LACA-25302) 収録"
-    },
-    {
-      "id": "sc_最上級パンチライン",
-      "title": "最上級パンチライン",
-      "brand_id": "sc",
-      "song_type": "solo",
-      "release_date": "2026-09-16",
-      "lyricist": "涼木シンジ (KEYTONE)",
-      "composer": "涼木シンジ (KEYTONE)",
-      "arranger": "涼木シンジ (KEYTONE)",
-      "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Luna-",
-      "original_singers": [
-        "sc_三峰結華"
-      ],
-      "source": "https://shinycolors.lantis.jp/extra/260826_1/",
-      "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Luna- (LACA-25302) 収録"
-    },
-    {
-      "id": "sc_カラースプレーとうさぎさん",
-      "title": "カラースプレーとうさぎさん",
-      "brand_id": "sc",
-      "song_type": "solo",
-      "release_date": "2026-09-16",
-      "lyricist": "鈴木静那",
-      "composer": "西片瑞樹",
-      "arranger": "西片瑞樹",
-      "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Luna-",
-      "original_singers": [
-        "sc_幽谷霧子"
-      ],
-      "source": "https://shinycolors.lantis.jp/extra/260826_1/",
-      "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Luna- (LACA-25302) 収録"
-    },
-    {
-      "id": "sc_月とネオンと薄紅と",
-      "title": "月とネオンと薄紅と",
-      "brand_id": "sc",
-      "song_type": "solo",
-      "release_date": "2026-09-16",
-      "lyricist": "園田健太郎",
-      "composer": "蒼井純人 (SUPA LOVE)",
-      "arranger": "蒼井純人 (SUPA LOVE)",
-      "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Luna-",
-      "original_singers": [
-        "sc_杜野凛世"
-      ],
-      "source": "https://shinycolors.lantis.jp/extra/260826_1/",
-      "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Luna- (LACA-25302) 収録"
-    },
-    {
-      "id": "sc_odette",
-      "title": "Odette",
-      "brand_id": "sc",
-      "song_type": "solo",
-      "release_date": "2026-09-16",
-      "lyricist": "只野菜摘",
-      "composer": "鈴木裕明 (SUPA LOVE)",
-      "arranger": "鈴木裕明 (SUPA LOVE)",
-      "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Luna-",
-      "original_singers": [
-        "sc_大崎甜花"
-      ],
-      "source": "https://shinycolors.lantis.jp/extra/260826_1/",
-      "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Luna- (LACA-25302) 収録"
-    },
-    {
-      "id": "sc_hold_on_me",
-      "title": "Hold on me",
-      "brand_id": "sc",
-      "song_type": "solo",
-      "release_date": "2026-09-16",
-      "lyricist": "鈴木静那",
-      "composer": "山崎真吾 (SUPA LOVE)",
-      "arranger": "山崎真吾 (SUPA LOVE)",
-      "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Luna-",
-      "original_singers": [
-        "sc_和泉愛依"
-      ],
-      "source": "https://shinycolors.lantis.jp/extra/260826_1/",
-      "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Luna- (LACA-25302) 収録"
-    },
-    {
-      "id": "sc_here_for_you",
-      "title": "Here for you",
-      "brand_id": "sc",
-      "song_type": "solo",
-      "release_date": "2026-09-16",
-      "lyricist": "やぎぬまかな",
-      "composer": "田村優太",
-      "arranger": "田村優太",
-      "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Luna-",
-      "original_singers": [
-        "sc_福丸小糸"
-      ],
-      "source": "https://shinycolors.lantis.jp/extra/260826_1/",
-      "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Luna- (LACA-25302) 収録"
-    },
-    {
-      "id": "sc_hell-o",
-      "title": "HELL-O",
-      "brand_id": "sc",
-      "song_type": "solo",
-      "release_date": "2026-09-16",
-      "lyricist": "Soflan Daichi",
-      "composer": "kenken",
-      "arranger": "kenken",
-      "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Luna-",
-      "original_singers": [
-        "sc_斑鳩ルカ"
-      ],
-      "source": "https://shinycolors.lantis.jp/extra/260826_1/",
-      "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Luna- (LACA-25302) 収録"
-    },
-    {
-      "id": "sc_リフレクトサイン_-9_colors-",
-      "title": "リフレクトサイン -9 colors-",
-      "brand_id": "sc",
-      "song_type": "unit",
-      "release_date": "2026-09-16",
-      "lyricist": "真崎エリカ",
-      "composer": "家原正樹、Lauren Kaori",
-      "arranger": "家原正樹",
-      "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Luna-",
-      "original_singers": [
-        "sc_三峰結華",
-        "sc_和泉愛依",
-        "sc_大崎甜花",
-        "sc_幽谷霧子",
-        "sc_斑鳩ルカ",
-        "sc_杜野凛世",
-        "sc_田中摩美々",
-        "sc_福丸小糸",
-        "sc_風野灯織"
-      ],
-      "source": "https://shinycolors.lantis.jp/extra/260826_1/",
-      "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Luna- (LACA-25302) 収録",
-      "unit_id": "teamluna",
-      "unit_name": "Team.Luna"
-    },
-    {
-      "id": "sc_take_ur_time",
-      "title": "Take Ur Time",
-      "brand_id": "sc",
-      "song_type": "solo",
-      "release_date": "2026-09-16",
-      "lyricist": "下地悠",
-      "composer": "横地健太 (SUPA LOVE)",
-      "arranger": "横地健太 (SUPA LOVE)",
-      "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Sol-",
-      "original_singers": [
-        "sc_八宮めぐる"
-      ],
-      "source": "https://shinycolors.lantis.jp/extra/260826_1/",
-      "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Sol- (LACA-25303) 収録"
-    },
-    {
-      "id": "sc_lights_on_me",
-      "title": "Lights on me",
-      "brand_id": "sc",
-      "song_type": "solo",
-      "release_date": "2026-09-16",
-      "lyricist": "Co-sho",
-      "composer": "Chica (2PRIME)",
-      "arranger": "YUKI FUNAKOSHI (2PRIME)",
-      "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Sol-",
-      "original_singers": [
-        "sc_白瀬咲耶"
-      ],
-      "source": "https://shinycolors.lantis.jp/extra/260826_1/",
-      "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Sol- (LACA-25303) 収録"
-    },
-    {
-      "id": "sc_パラボラ",
-      "title": "パラボラ",
-      "brand_id": "sc",
-      "song_type": "solo",
-      "release_date": "2026-09-16",
-      "lyricist": "秋浦智裕",
-      "composer": "Ryosuke Matsuzaki、YUU for YOU",
-      "arranger": "Ryosuke Matsuzaki、YUU for YOU",
-      "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Sol-",
-      "original_singers": [
-        "sc_西城樹里"
-      ],
-      "source": "https://shinycolors.lantis.jp/extra/260826_1/",
-      "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Sol- (LACA-25303) 収録"
-    },
-    {
-      "id": "sc_be-witched",
-      "title": "Be-witched",
-      "brand_id": "sc",
-      "song_type": "solo",
-      "release_date": "2026-09-16",
-      "lyricist": "古屋真",
-      "composer": "中村瑛彦 (SUPA LOVE)",
-      "arranger": "中村瑛彦 (SUPA LOVE)",
-      "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Sol-",
-      "original_singers": [
-        "sc_有栖川夏葉"
-      ],
-      "source": "https://shinycolors.lantis.jp/extra/260826_1/",
-      "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Sol- (LACA-25303) 収録"
-    },
-    {
-      "id": "sc_sweet_boozy",
-      "title": "Sweet Boozy",
-      "brand_id": "sc",
-      "song_type": "solo",
-      "release_date": "2026-09-16",
-      "lyricist": "長内映里",
-      "composer": "濱田有共、三好啓太",
-      "arranger": "三好啓太、濱田有共",
-      "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Sol-",
-      "original_singers": [
-        "sc_桑山千雪"
-      ],
-      "source": "https://shinycolors.lantis.jp/extra/260826_1/",
-      "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Sol- (LACA-25303) 収録"
-    },
-    {
-      "id": "sc_ガガリズム",
-      "title": "ガガリズム",
-      "brand_id": "sc",
-      "song_type": "solo",
-      "release_date": "2026-09-16",
-      "lyricist": "下地悠",
-      "composer": "傳田有矢 (EverNest)",
-      "arranger": "傳田有矢 (EverNest)",
-      "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Sol-",
-      "original_singers": [
-        "sc_黛冬優子"
-      ],
-      "source": "https://shinycolors.lantis.jp/extra/260826_1/",
-      "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Sol- (LACA-25303) 収録"
-    },
-    {
-      "id": "sc_paradox",
-      "title": "Paradox",
-      "brand_id": "sc",
-      "song_type": "solo",
-      "release_date": "2026-09-16",
-      "lyricist": "Risa Horie",
-      "composer": "橘亮祐、篠崎あやと",
-      "arranger": "橘亮祐、篠崎あやと",
-      "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Sol-",
-      "original_singers": [
-        "sc_浅倉透"
-      ],
-      "source": "https://shinycolors.lantis.jp/extra/260826_1/",
-      "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Sol- (LACA-25303) 収録"
-    },
-    {
-      "id": "sc_ハートフルデイ_ハートフルミー",
-      "title": "ハートフルデイ ハートフルミー",
-      "brand_id": "sc",
-      "song_type": "solo",
-      "release_date": "2026-09-16",
-      "lyricist": "鈴木静那",
-      "composer": "後藤拓也",
-      "arranger": "横山広稀",
-      "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Sol-",
-      "original_singers": [
-        "sc_市川雛菜"
-      ],
-      "source": "https://shinycolors.lantis.jp/extra/260826_1/",
-      "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Sol- (LACA-25303) 収録"
-    },
-    {
-      "id": "sc_unstoppable",
-      "title": "Unstoppable",
-      "brand_id": "sc",
-      "song_type": "solo",
-      "release_date": "2026-09-16",
-      "lyricist": "Co-sho",
-      "composer": "大西克巳 (Blue Bird's Nest)",
-      "arranger": "大西克巳 (Blue Bird's Nest)",
-      "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Sol-",
-      "original_singers": [
-        "sc_七草にちか"
-      ],
-      "source": "https://shinycolors.lantis.jp/extra/260826_1/",
-      "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Sol- (LACA-25303) 収録"
-    },
-    {
-      "id": "sc_hsv色空間",
-      "title": "HSV色空間",
-      "brand_id": "sc",
-      "song_type": "solo",
-      "release_date": "2026-09-16",
-      "lyricist": "出口遼",
-      "composer": "鈴木裕明 (SUPA LOVE)",
-      "arranger": "鈴木裕明 (SUPA LOVE)",
-      "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Sol-",
-      "original_singers": [
-        "sc_郁田はるき"
-      ],
-      "source": "https://shinycolors.lantis.jp/extra/260826_1/",
-      "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Sol- (LACA-25303) 収録"
-    },
-    {
-      "id": "sc_solar_way_-10_colors-",
-      "title": "SOLAR WAY -10 colors-",
-      "brand_id": "sc",
-      "song_type": "unit",
-      "release_date": "2026-09-16",
-      "lyricist": "古屋真",
-      "composer": "板垣祐介",
-      "arranger": "板垣祐介",
-      "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Sol-",
-      "original_singers": [
-        "sc_七草にちか",
-        "sc_八宮めぐる",
-        "sc_市川雛菜",
-        "sc_有栖川夏葉",
-        "sc_桑山千雪",
-        "sc_浅倉透",
-        "sc_白瀬咲耶",
-        "sc_西城樹里",
-        "sc_郁田はるき",
-        "sc_黛冬優子"
-      ],
-      "source": "https://shinycolors.lantis.jp/extra/260826_1/",
-      "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Sol- (LACA-25303) 収録",
-      "unit_id": "teamsol",
-      "unit_name": "Team.Sol"
-    }
-  ]
+ "title": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Stella-/-Luna-/-Sol- 収録曲",
+ "_help": "2026-09-16 発売の3タイトル。ソロ28曲 + 各チームの -N colors- 3曲",
+ "songs": [
+  {
+   "id": "sc_magical_forest",
+   "title": "MAGICAL FOREST",
+   "brand_id": "sc",
+   "song_type": "solo",
+   "release_date": "2026-09-16",
+   "lyricist": "渡邊亜希子",
+   "composer": "石黑剛、常楽寺澪",
+   "arranger": "石黑剛",
+   "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Stella-",
+   "original_singers": [
+    "sc_櫻木真乃"
+   ],
+   "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Stella- (LACA-25301) 収録"
+  },
+  {
+   "id": "sc_恋するクオリア",
+   "title": "恋するクオリア",
+   "brand_id": "sc",
+   "song_type": "solo",
+   "release_date": "2026-09-16",
+   "lyricist": "真崎エリカ",
+   "composer": "成本智美 (SUPA LOVE)",
+   "arranger": "賀佐泰洋 (SUPA LOVE)",
+   "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Stella-",
+   "original_singers": [
+    "sc_月岡恋鐘"
+   ],
+   "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Stella- (LACA-25301) 収録"
+  },
+  {
+   "id": "sc_ハグルマヒマワリ",
+   "title": "ハグルマヒマワリ",
+   "brand_id": "sc",
+   "song_type": "solo",
+   "release_date": "2026-09-16",
+   "lyricist": "古屋真",
+   "composer": "大谷月斗",
+   "arranger": "清水\"カルロス\"宥人 (KEYTONE)",
+   "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Stella-",
+   "original_singers": [
+    "sc_小宮果穂"
+   ],
+   "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Stella- (LACA-25301) 収録"
+  },
+  {
+   "id": "sc_ナイススパイス研究会",
+   "title": "ナイススパイス研究会",
+   "brand_id": "sc",
+   "song_type": "solo",
+   "release_date": "2026-09-16",
+   "lyricist": "渡邊亜希子",
+   "composer": "矢吹香那",
+   "arranger": "前口ワタル",
+   "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Stella-",
+   "original_singers": [
+    "sc_園田智代子"
+   ],
+   "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Stella- (LACA-25301) 収録"
+  },
+  {
+   "id": "sc_どっちみちlove",
+   "title": "どっちみちLOVE",
+   "brand_id": "sc",
+   "song_type": "solo",
+   "release_date": "2026-09-16",
+   "lyricist": "常楽寺澪",
+   "composer": "石黑剛、常楽寺澪",
+   "arranger": "石黑剛",
+   "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Stella-",
+   "original_singers": [
+    "sc_大崎甘奈"
+   ],
+   "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Stella- (LACA-25301) 収録"
+  },
+  {
+   "id": "sc_ワタシグラビティ",
+   "title": "ワタシグラビティ",
+   "brand_id": "sc",
+   "song_type": "solo",
+   "release_date": "2026-09-16",
+   "lyricist": "倉持マミ",
+   "composer": "APAZZI",
+   "arranger": "APAZZI",
+   "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Stella-",
+   "original_singers": [
+    "sc_芹沢あさひ"
+   ],
+   "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Stella- (LACA-25301) 収録"
+  },
+  {
+   "id": "sc_ダミーガール",
+   "title": "ダミーガール",
+   "brand_id": "sc",
+   "song_type": "solo",
+   "release_date": "2026-09-16",
+   "lyricist": "涼木シンジ (KEYTONE)",
+   "composer": "涼木シンジ (KEYTONE)",
+   "arranger": "涼木シンジ (KEYTONE)",
+   "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Stella-",
+   "original_singers": [
+    "sc_樋口円香"
+   ],
+   "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Stella- (LACA-25301) 収録"
+  },
+  {
+   "id": "sc_crying_diamond",
+   "title": "Crying Diamond",
+   "brand_id": "sc",
+   "song_type": "solo",
+   "release_date": "2026-09-16",
+   "lyricist": "真崎エリカ",
+   "composer": "成本智美 (SUPA LOVE)",
+   "arranger": "賀佐泰洋 (SUPA LOVE)",
+   "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Stella-",
+   "original_singers": [
+    "sc_緋田美琴"
+   ],
+   "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Stella- (LACA-25301) 収録"
+  },
+  {
+   "id": "sc_imaginary",
+   "title": "Imaginary",
+   "brand_id": "sc",
+   "song_type": "solo",
+   "release_date": "2026-09-16",
+   "lyricist": "園田健太郎",
+   "composer": "ねりきり (KEYTONE)",
+   "arranger": "ねりきり (KEYTONE)",
+   "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Stella-",
+   "original_singers": [
+    "sc_鈴木羽那"
+   ],
+   "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Stella- (LACA-25301) 収録"
+  },
+  {
+   "id": "sc_プラニスフィア_planisphere_-9_colors-",
+   "title": "プラニスフィア ～planisphere～ -9 colors-",
+   "brand_id": "sc",
+   "song_type": "unit",
+   "release_date": "2026-09-16",
+   "lyricist": "松井洋平",
+   "composer": "ArmySlick、Giz'Mo (from Jam9)",
+   "arranger": "山口朗彦",
+   "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Stella-",
+   "original_singers": [
+    "sc_園田智代子",
+    "sc_大崎甘奈",
+    "sc_小宮果穂",
+    "sc_月岡恋鐘",
+    "sc_樋口円香",
+    "sc_櫻木真乃",
+    "sc_緋田美琴",
+    "sc_芹沢あさひ",
+    "sc_鈴木羽那"
+   ],
+   "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Stella- (LACA-25301) 収録",
+   "unit_id": "teamstella",
+   "unit_name": "Team.Stella"
+  },
+  {
+   "id": "sc_embers_glow",
+   "title": "Embers glow",
+   "brand_id": "sc",
+   "song_type": "solo",
+   "release_date": "2026-09-16",
+   "lyricist": "RUCCA",
+   "composer": "本多友紀 (EverNest)",
+   "arranger": "水野谷怜",
+   "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Luna-",
+   "original_singers": [
+    "sc_風野灯織"
+   ],
+   "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Luna- (LACA-25302) 収録"
+  },
+  {
+   "id": "sc_正解な不正解",
+   "title": "正解な不正解",
+   "brand_id": "sc",
+   "song_type": "solo",
+   "release_date": "2026-09-16",
+   "lyricist": "Soflan Daichi",
+   "composer": "柳沢英樹 (SUPA LOVE)",
+   "arranger": "柳沢英樹 (SUPA LOVE)",
+   "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Luna-",
+   "original_singers": [
+    "sc_田中摩美々"
+   ],
+   "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Luna- (LACA-25302) 収録"
+  },
+  {
+   "id": "sc_最上級パンチライン",
+   "title": "最上級パンチライン",
+   "brand_id": "sc",
+   "song_type": "solo",
+   "release_date": "2026-09-16",
+   "lyricist": "涼木シンジ (KEYTONE)",
+   "composer": "涼木シンジ (KEYTONE)",
+   "arranger": "涼木シンジ (KEYTONE)",
+   "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Luna-",
+   "original_singers": [
+    "sc_三峰結華"
+   ],
+   "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Luna- (LACA-25302) 収録"
+  },
+  {
+   "id": "sc_カラースプレーとうさぎさん",
+   "title": "カラースプレーとうさぎさん",
+   "brand_id": "sc",
+   "song_type": "solo",
+   "release_date": "2026-09-16",
+   "lyricist": "鈴木静那",
+   "composer": "西片瑞樹",
+   "arranger": "西片瑞樹",
+   "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Luna-",
+   "original_singers": [
+    "sc_幽谷霧子"
+   ],
+   "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Luna- (LACA-25302) 収録"
+  },
+  {
+   "id": "sc_月とネオンと薄紅と",
+   "title": "月とネオンと薄紅と",
+   "brand_id": "sc",
+   "song_type": "solo",
+   "release_date": "2026-09-16",
+   "lyricist": "園田健太郎",
+   "composer": "蒼井純人 (SUPA LOVE)",
+   "arranger": "蒼井純人 (SUPA LOVE)",
+   "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Luna-",
+   "original_singers": [
+    "sc_杜野凛世"
+   ],
+   "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Luna- (LACA-25302) 収録"
+  },
+  {
+   "id": "sc_odette",
+   "title": "Odette",
+   "brand_id": "sc",
+   "song_type": "solo",
+   "release_date": "2026-09-16",
+   "lyricist": "只野菜摘",
+   "composer": "鈴木裕明 (SUPA LOVE)",
+   "arranger": "鈴木裕明 (SUPA LOVE)",
+   "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Luna-",
+   "original_singers": [
+    "sc_大崎甜花"
+   ],
+   "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Luna- (LACA-25302) 収録"
+  },
+  {
+   "id": "sc_hold_on_me",
+   "title": "Hold on me",
+   "brand_id": "sc",
+   "song_type": "solo",
+   "release_date": "2026-09-16",
+   "lyricist": "鈴木静那",
+   "composer": "山崎真吾 (SUPA LOVE)",
+   "arranger": "山崎真吾 (SUPA LOVE)",
+   "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Luna-",
+   "original_singers": [
+    "sc_和泉愛依"
+   ],
+   "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Luna- (LACA-25302) 収録"
+  },
+  {
+   "id": "sc_here_for_you",
+   "title": "Here for you",
+   "brand_id": "sc",
+   "song_type": "solo",
+   "release_date": "2026-09-16",
+   "lyricist": "やぎぬまかな",
+   "composer": "田村優太",
+   "arranger": "田村優太",
+   "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Luna-",
+   "original_singers": [
+    "sc_福丸小糸"
+   ],
+   "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Luna- (LACA-25302) 収録"
+  },
+  {
+   "id": "sc_hell-o",
+   "title": "HELL-O",
+   "brand_id": "sc",
+   "song_type": "solo",
+   "release_date": "2026-09-16",
+   "lyricist": "Soflan Daichi",
+   "composer": "kenken",
+   "arranger": "kenken",
+   "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Luna-",
+   "original_singers": [
+    "sc_斑鳩ルカ"
+   ],
+   "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Luna- (LACA-25302) 収録"
+  },
+  {
+   "id": "sc_リフレクトサイン_-9_colors-",
+   "title": "リフレクトサイン -9 colors-",
+   "brand_id": "sc",
+   "song_type": "unit",
+   "release_date": "2026-09-16",
+   "lyricist": "真崎エリカ",
+   "composer": "家原正樹、Lauren Kaori",
+   "arranger": "家原正樹",
+   "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Luna-",
+   "original_singers": [
+    "sc_三峰結華",
+    "sc_和泉愛依",
+    "sc_大崎甜花",
+    "sc_幽谷霧子",
+    "sc_斑鳩ルカ",
+    "sc_杜野凛世",
+    "sc_田中摩美々",
+    "sc_福丸小糸",
+    "sc_風野灯織"
+   ],
+   "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Luna- (LACA-25302) 収録",
+   "unit_id": "teamluna",
+   "unit_name": "Team.Luna"
+  },
+  {
+   "id": "sc_take_ur_time",
+   "title": "Take Ur Time",
+   "brand_id": "sc",
+   "song_type": "solo",
+   "release_date": "2026-09-16",
+   "lyricist": "下地悠",
+   "composer": "横地健太 (SUPA LOVE)",
+   "arranger": "横地健太 (SUPA LOVE)",
+   "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Sol-",
+   "original_singers": [
+    "sc_八宮めぐる"
+   ],
+   "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Sol- (LACA-25303) 収録"
+  },
+  {
+   "id": "sc_lights_on_me",
+   "title": "Lights on me",
+   "brand_id": "sc",
+   "song_type": "solo",
+   "release_date": "2026-09-16",
+   "lyricist": "Co-sho",
+   "composer": "Chica (2PRIME)",
+   "arranger": "YUKI FUNAKOSHI (2PRIME)",
+   "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Sol-",
+   "original_singers": [
+    "sc_白瀬咲耶"
+   ],
+   "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Sol- (LACA-25303) 収録"
+  },
+  {
+   "id": "sc_パラボラ",
+   "title": "パラボラ",
+   "brand_id": "sc",
+   "song_type": "solo",
+   "release_date": "2026-09-16",
+   "lyricist": "秋浦智裕",
+   "composer": "Ryosuke Matsuzaki、YUU for YOU",
+   "arranger": "Ryosuke Matsuzaki、YUU for YOU",
+   "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Sol-",
+   "original_singers": [
+    "sc_西城樹里"
+   ],
+   "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Sol- (LACA-25303) 収録"
+  },
+  {
+   "id": "sc_be-witched",
+   "title": "Be-witched",
+   "brand_id": "sc",
+   "song_type": "solo",
+   "release_date": "2026-09-16",
+   "lyricist": "古屋真",
+   "composer": "中村瑛彦 (SUPA LOVE)",
+   "arranger": "中村瑛彦 (SUPA LOVE)",
+   "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Sol-",
+   "original_singers": [
+    "sc_有栖川夏葉"
+   ],
+   "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Sol- (LACA-25303) 収録"
+  },
+  {
+   "id": "sc_sweet_boozy",
+   "title": "Sweet Boozy",
+   "brand_id": "sc",
+   "song_type": "solo",
+   "release_date": "2026-09-16",
+   "lyricist": "長内映里",
+   "composer": "濱田有共、三好啓太",
+   "arranger": "三好啓太、濱田有共",
+   "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Sol-",
+   "original_singers": [
+    "sc_桑山千雪"
+   ],
+   "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Sol- (LACA-25303) 収録"
+  },
+  {
+   "id": "sc_ガガリズム",
+   "title": "ガガリズム",
+   "brand_id": "sc",
+   "song_type": "solo",
+   "release_date": "2026-09-16",
+   "lyricist": "下地悠",
+   "composer": "傳田有矢 (EverNest)",
+   "arranger": "傳田有矢 (EverNest)",
+   "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Sol-",
+   "original_singers": [
+    "sc_黛冬優子"
+   ],
+   "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Sol- (LACA-25303) 収録"
+  },
+  {
+   "id": "sc_paradox",
+   "title": "Paradox",
+   "brand_id": "sc",
+   "song_type": "solo",
+   "release_date": "2026-09-16",
+   "lyricist": "Risa Horie",
+   "composer": "橘亮祐、篠崎あやと",
+   "arranger": "橘亮祐、篠崎あやと",
+   "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Sol-",
+   "original_singers": [
+    "sc_浅倉透"
+   ],
+   "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Sol- (LACA-25303) 収録"
+  },
+  {
+   "id": "sc_ハートフルデイ_ハートフルミー",
+   "title": "ハートフルデイ ハートフルミー",
+   "brand_id": "sc",
+   "song_type": "solo",
+   "release_date": "2026-09-16",
+   "lyricist": "鈴木静那",
+   "composer": "後藤拓也",
+   "arranger": "横山広稀",
+   "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Sol-",
+   "original_singers": [
+    "sc_市川雛菜"
+   ],
+   "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Sol- (LACA-25303) 収録"
+  },
+  {
+   "id": "sc_unstoppable",
+   "title": "Unstoppable",
+   "brand_id": "sc",
+   "song_type": "solo",
+   "release_date": "2026-09-16",
+   "lyricist": "Co-sho",
+   "composer": "大西克巳 (Blue Bird's Nest)",
+   "arranger": "大西克巳 (Blue Bird's Nest)",
+   "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Sol-",
+   "original_singers": [
+    "sc_七草にちか"
+   ],
+   "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Sol- (LACA-25303) 収録"
+  },
+  {
+   "id": "sc_hsv色空間",
+   "title": "HSV色空間",
+   "brand_id": "sc",
+   "song_type": "solo",
+   "release_date": "2026-09-16",
+   "lyricist": "出口遼",
+   "composer": "鈴木裕明 (SUPA LOVE)",
+   "arranger": "鈴木裕明 (SUPA LOVE)",
+   "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Sol-",
+   "original_singers": [
+    "sc_郁田はるき"
+   ],
+   "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Sol- (LACA-25303) 収録"
+  },
+  {
+   "id": "sc_solar_way_-10_colors-",
+   "title": "SOLAR WAY -10 colors-",
+   "brand_id": "sc",
+   "song_type": "unit",
+   "release_date": "2026-09-16",
+   "lyricist": "古屋真",
+   "composer": "板垣祐介",
+   "arranger": "板垣祐介",
+   "cd_series": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Sol-",
+   "original_singers": [
+    "sc_七草にちか",
+    "sc_八宮めぐる",
+    "sc_市川雛菜",
+    "sc_有栖川夏葉",
+    "sc_桑山千雪",
+    "sc_浅倉透",
+    "sc_白瀬咲耶",
+    "sc_西城樹里",
+    "sc_郁田はるき",
+    "sc_黛冬優子"
+   ],
+   "note": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Sol- (LACA-25303) 収録",
+   "unit_id": "teamsol",
+   "unit_name": "Team.Sol"
+  }
+ ]
 }

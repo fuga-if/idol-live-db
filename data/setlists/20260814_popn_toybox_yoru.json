@@ -1,214 +1,213 @@
 {
-  "title": "CINDERELLA GIRLS CONCEPT xR LIVE Pop'n ToyBox!! 夜公演 (2026-08-14 Shibuya LOVEZ) セットリスト",
-  "show_id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_3",
-  "source": "https://aimasupay.hatenablog.com/entry/2026/08/14/213404",
-  "_sources": [
-    "https://aimasupay.hatenablog.com/entry/2026/08/14/213404",
-    "https://idolmaster-official.jp/live_event/cg_ptb/",
-    "https://columbia.jp/idolmaster/imasnews/260717.html"
-  ],
-  "_note": "performers は歌唱アイドル。サポートメンバーは歌唱せずダンスのみ参加のため notes に記録",
-  "songs": [
-    {
-      "position": 1,
-      "song_id": "cg_ジュビリー",
-      "performers": [
-        "cg_高垣楓"
-      ],
-      "section": "～COOL～",
-      "notes": "ダンス参加: 東郷あい・黒川千秋"
-    },
-    {
-      "position": 2,
-      "song_id": "cg_max_beat",
-      "performers": [
-        "cg_大和亜季",
-        "cg_高垣楓",
-        "cg_鷹富士茄子"
-      ],
-      "section": "～COOL～",
-      "notes": "ダンス参加: 高橋礼子・財前時子"
-    },
-    {
-      "position": 3,
-      "song_id": "cg_レッドソール",
-      "performers": [
-        "cg_三船美優",
-        "cg_鷹富士茄子"
-      ],
-      "section": "～COOL～",
-      "notes": "ダンス参加: 篠原礼・柊志乃"
-    },
-    {
-      "position": 4,
-      "song_id": "cg_弾丸サバイバー",
-      "performers": [
-        "cg_大和亜季"
-      ],
-      "section": "～COOL～"
-    },
-    {
-      "position": 5,
-      "song_id": "cg_秘密のトワレ",
-      "performers": [
-        "cg_川島瑞樹",
-        "cg_三船美優"
-      ],
-      "section": "～COOL～"
-    },
-    {
-      "position": 6,
-      "song_id": "cg_nocturne",
-      "performers": [
-        "cg_高垣楓",
-        "cg_川島瑞樹"
-      ],
-      "section": "～COOL～"
-    },
-    {
-      "position": 7,
-      "song_id": "cg_angel_breeze",
-      "performers": [
-        "cg_川島瑞樹"
-      ],
-      "section": "～Easy-going～"
-    },
-    {
-      "position": 8,
-      "song_id": "cg_初夢をあなたと",
-      "performers": [
-        "cg_鷹富士茄子"
-      ],
-      "section": "～Easy-going～"
-    },
-    {
-      "position": 9,
-      "song_id": "cg_take_metake_you",
-      "performers": [
-        "cg_三船美優",
-        "cg_高垣楓",
-        "cg_佐藤心"
-      ],
-      "section": "～Easy-going～"
-    },
-    {
-      "position": 10,
-      "song_id": "cg_オルゴールの小箱",
-      "performers": [
-        "cg_川島瑞樹",
-        "cg_三船美優"
-      ],
-      "section": "～Easy-going～"
-    },
-    {
-      "position": 11,
-      "song_id": "cg_流星浪漫",
-      "performers": [
-        "cg_鷹富士茄子"
-      ],
-      "section": "～Easy-going～"
-    },
-    {
-      "position": 12,
-      "song_id": "cg_つぼみ",
-      "performers": [
-        "cg_高垣楓"
-      ],
-      "section": "～Easy-going～"
-    },
-    {
-      "position": 13,
-      "song_id": "cg_dreaming_of_you",
-      "performers": [
-        "cg_川島瑞樹"
-      ],
-      "section": "～Easy-going～"
-    },
-    {
-      "position": 14,
-      "song_id": "cg_ダンスダンスダンス_-ミフメイ_remix-",
-      "performers": [
-        "cg_高橋礼子",
-        "cg_東郷あい",
-        "cg_財前時子",
-        "cg_黒川千秋",
-        "cg_柊志乃",
-        "cg_篠原礼"
-      ],
-      "section": "～Midnight Dance Performance～",
-      "notes": "歌唱なし・サポートアイドルによるダンスパフォーマンスのみ"
-    },
-    {
-      "position": 15,
-      "song_id": "cg_熱情エナモラル",
-      "performers": [
-        "cg_佐藤心",
-        "cg_大和亜季"
-      ],
-      "section": "～Sexy～",
-      "notes": "ダンス参加: 東郷あい・篠原礼・黒川千秋"
-    },
-    {
-      "position": 16,
-      "song_id": "cg_last_kiss",
-      "performers": [
-        "cg_三船美優"
-      ],
-      "section": "～Sexy～"
-    },
-    {
-      "position": 17,
-      "song_id": "cg_next_chapter",
-      "performers": [
-        "cg_佐藤心"
-      ],
-      "section": "～Sexy～",
-      "notes": "ダンス参加: 黒川千秋・柊志乃・高橋礼子・財前時子"
-    },
-    {
-      "position": 18,
-      "song_id": "cg_クレイジークレイジー",
-      "performers": [
-        "cg_佐藤心",
-        "cg_鷹富士茄子"
-      ],
-      "section": "～Sexy～"
-    },
-    {
-      "position": 19,
-      "song_id": "cg_little_more",
-      "performers": [
-        "cg_三船美優"
-      ],
-      "section": "～Sexy～"
-    },
-    {
-      "position": 20,
-      "song_id": "cg_cookie_dough",
-      "performers": [
-        "cg_三船美優",
-        "cg_高垣楓",
-        "cg_大和亜季"
-      ],
-      "section": "～Sexy～"
-    },
-    {
-      "position": 21,
-      "song_id": "cg_サマーサイダー",
-      "performers": [
-        "cg_高垣楓",
-        "cg_川島瑞樹"
-      ],
-      "section": "～ENCORE～"
-    },
-    {
-      "position": 22,
-      "song_id": "cg_もしもカワイイが世界からなくなっても",
-      "performers": [
-        "cg_佐藤心"
-      ],
-      "section": "～ENCORE～",
-      "notes": "ダンス参加: 鷹富士茄子・大和亜季・篠原礼・黒川千秋・東郷あい・財前時子・高橋礼子・柊志乃・川島瑞樹・高垣楓・三船美優"
-    }
-  ]
+ "title": "CINDERELLA GIRLS CONCEPT xR LIVE Pop'n ToyBox!! 夜公演 (2026-08-14 Shibuya LOVEZ) セットリスト",
+ "show_id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_3",
+ "_sources": [
+  "https://aimasupay.hatenablog.com/entry/2026/08/14/213404",
+  "https://idolmaster-official.jp/live_event/cg_ptb/",
+  "https://columbia.jp/idolmaster/imasnews/260717.html"
+ ],
+ "_note": "performers は歌唱アイドル。サポートメンバーは歌唱せずダンスのみ参加のため notes に記録",
+ "songs": [
+  {
+   "position": 1,
+   "song_id": "cg_ジュビリー",
+   "performers": [
+    "cg_高垣楓"
+   ],
+   "section": "～COOL～",
+   "notes": "ダンス参加: 東郷あい・黒川千秋"
+  },
+  {
+   "position": 2,
+   "song_id": "cg_max_beat",
+   "performers": [
+    "cg_大和亜季",
+    "cg_高垣楓",
+    "cg_鷹富士茄子"
+   ],
+   "section": "～COOL～",
+   "notes": "ダンス参加: 高橋礼子・財前時子"
+  },
+  {
+   "position": 3,
+   "song_id": "cg_レッドソール",
+   "performers": [
+    "cg_三船美優",
+    "cg_鷹富士茄子"
+   ],
+   "section": "～COOL～",
+   "notes": "ダンス参加: 篠原礼・柊志乃"
+  },
+  {
+   "position": 4,
+   "song_id": "cg_弾丸サバイバー",
+   "performers": [
+    "cg_大和亜季"
+   ],
+   "section": "～COOL～"
+  },
+  {
+   "position": 5,
+   "song_id": "cg_秘密のトワレ",
+   "performers": [
+    "cg_川島瑞樹",
+    "cg_三船美優"
+   ],
+   "section": "～COOL～"
+  },
+  {
+   "position": 6,
+   "song_id": "cg_nocturne",
+   "performers": [
+    "cg_高垣楓",
+    "cg_川島瑞樹"
+   ],
+   "section": "～COOL～"
+  },
+  {
+   "position": 7,
+   "song_id": "cg_angel_breeze",
+   "performers": [
+    "cg_川島瑞樹"
+   ],
+   "section": "～Easy-going～"
+  },
+  {
+   "position": 8,
+   "song_id": "cg_初夢をあなたと",
+   "performers": [
+    "cg_鷹富士茄子"
+   ],
+   "section": "～Easy-going～"
+  },
+  {
+   "position": 9,
+   "song_id": "cg_take_metake_you",
+   "performers": [
+    "cg_三船美優",
+    "cg_高垣楓",
+    "cg_佐藤心"
+   ],
+   "section": "～Easy-going～"
+  },
+  {
+   "position": 10,
+   "song_id": "cg_オルゴールの小箱",
+   "performers": [
+    "cg_川島瑞樹",
+    "cg_三船美優"
+   ],
+   "section": "～Easy-going～"
+  },
+  {
+   "position": 11,
+   "song_id": "cg_流星浪漫",
+   "performers": [
+    "cg_鷹富士茄子"
+   ],
+   "section": "～Easy-going～"
+  },
+  {
+   "position": 12,
+   "song_id": "cg_つぼみ",
+   "performers": [
+    "cg_高垣楓"
+   ],
+   "section": "～Easy-going～"
+  },
+  {
+   "position": 13,
+   "song_id": "cg_dreaming_of_you",
+   "performers": [
+    "cg_川島瑞樹"
+   ],
+   "section": "～Easy-going～"
+  },
+  {
+   "position": 14,
+   "song_id": "cg_ダンスダンスダンス_-ミフメイ_remix-",
+   "performers": [
+    "cg_高橋礼子",
+    "cg_東郷あい",
+    "cg_財前時子",
+    "cg_黒川千秋",
+    "cg_柊志乃",
+    "cg_篠原礼"
+   ],
+   "section": "～Midnight Dance Performance～",
+   "notes": "歌唱なし・サポートアイドルによるダンスパフォーマンスのみ"
+  },
+  {
+   "position": 15,
+   "song_id": "cg_熱情エナモラル",
+   "performers": [
+    "cg_佐藤心",
+    "cg_大和亜季"
+   ],
+   "section": "～Sexy～",
+   "notes": "ダンス参加: 東郷あい・篠原礼・黒川千秋"
+  },
+  {
+   "position": 16,
+   "song_id": "cg_last_kiss",
+   "performers": [
+    "cg_三船美優"
+   ],
+   "section": "～Sexy～"
+  },
+  {
+   "position": 17,
+   "song_id": "cg_next_chapter",
+   "performers": [
+    "cg_佐藤心"
+   ],
+   "section": "～Sexy～",
+   "notes": "ダンス参加: 黒川千秋・柊志乃・高橋礼子・財前時子"
+  },
+  {
+   "position": 18,
+   "song_id": "cg_クレイジークレイジー",
+   "performers": [
+    "cg_佐藤心",
+    "cg_鷹富士茄子"
+   ],
+   "section": "～Sexy～"
+  },
+  {
+   "position": 19,
+   "song_id": "cg_little_more",
+   "performers": [
+    "cg_三船美優"
+   ],
+   "section": "～Sexy～"
+  },
+  {
+   "position": 20,
+   "song_id": "cg_cookie_dough",
+   "performers": [
+    "cg_三船美優",
+    "cg_高垣楓",
+    "cg_大和亜季"
+   ],
+   "section": "～Sexy～"
+  },
+  {
+   "position": 21,
+   "song_id": "cg_サマーサイダー",
+   "performers": [
+    "cg_高垣楓",
+    "cg_川島瑞樹"
+   ],
+   "section": "～ENCORE～"
+  },
+  {
+   "position": 22,
+   "song_id": "cg_もしもカワイイが世界からなくなっても",
+   "performers": [
+    "cg_佐藤心"
+   ],
+   "section": "～ENCORE～",
+   "notes": "ダンス参加: 鷹富士茄子・大和亜季・篠原礼・黒川千秋・東郷あい・財前時子・高橋礼子・柊志乃・川島瑞樹・高垣楓・三船美優"
+  }
+ ]
 }

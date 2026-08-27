@@ -1,7 +1,6 @@
 {
  "title": "派生曲の読み仮名を本体から継承する (2 巡目)",
  "_help": "本体に読みが入ったことで継承できるようになった派生曲。1 巡目では本体が未入力だったため対象外だったもの。",
- "source": "derived:songs.title_kana (本体の読みを派生曲へ継承)",
  "fixes": [
   {
    "table": "songs",
@@ -9,7 +8,6 @@
    "fields": {
     "title_kana": "おたへんあんせむ"
    },
-   "source": "derived:songs.title_kana (本体の読みを派生曲へ継承)",
    "note": "派生曲 (Remix / ○○ Ver. / Game Size) の読みは本体と同じ"
   },
   {
@@ -18,7 +16,6 @@
    "fields": {
     "title_kana": "すぱいすぱらだいす"
    },
-   "source": "derived:songs.title_kana (本体の読みを派生曲へ継承)",
    "note": "派生曲 (Remix / ○○ Ver. / Game Size) の読みは本体と同じ"
   },
   {
@@ -27,7 +24,6 @@
    "fields": {
     "title_kana": "そらいろ"
    },
-   "source": "derived:songs.title_kana (本体の読みを派生曲へ継承)",
    "note": "派生曲 (Remix / ○○ Ver. / Game Size) の読みは本体と同じ"
   },
   {
@@ -36,7 +32,6 @@
    "fields": {
     "title_kana": "きらぴこ"
    },
-   "source": "derived:songs.title_kana (本体の読みを派生曲へ継承)",
    "note": "派生曲 (Remix / ○○ Ver. / Game Size) の読みは本体と同じ"
   },
   {
@@ -45,7 +40,6 @@
    "fields": {
     "title_kana": "あいのう"
    },
-   "source": "derived:songs.title_kana (本体の読みを派生曲へ継承)",
    "note": "派生曲 (Remix / ○○ Ver. / Game Size) の読みは本体と同じ"
   },
   {
@@ -54,7 +48,6 @@
    "fields": {
     "title_kana": "ぼーだーれすのんすとれす"
    },
-   "source": "derived:songs.title_kana (本体の読みを派生曲へ継承)",
    "note": "派生曲 (Remix / ○○ Ver. / Game Size) の読みは本体と同じ"
   },
   {
@@ -63,7 +56,6 @@
    "fields": {
     "title_kana": "かうんとだうんらぶ"
    },
-   "source": "derived:songs.title_kana (本体の読みを派生曲へ継承)",
    "note": "派生曲 (Remix / ○○ Ver. / Game Size) の読みは本体と同じ"
   },
   {
@@ -72,7 +64,6 @@
    "fields": {
     "title_kana": "めくるめ"
    },
-   "source": "derived:songs.title_kana (本体の読みを派生曲へ継承)",
    "note": "派生曲 (Remix / ○○ Ver. / Game Size) の読みは本体と同じ"
   },
   {
@@ -81,7 +72,6 @@
    "fields": {
     "title_kana": "つきのかめ"
    },
-   "source": "derived:songs.title_kana (本体の読みを派生曲へ継承)",
    "note": "派生曲 (Remix / ○○ Ver. / Game Size) の読みは本体と同じ"
   },
   {
@@ -90,7 +80,6 @@
    "fields": {
     "title_kana": "ぐっどさいん"
    },
-   "source": "derived:songs.title_kana (本体の読みを派生曲へ継承)",
    "note": "派生曲 (Remix / ○○ Ver. / Game Size) の読みは本体と同じ"
   },
   {
@@ -99,7 +88,6 @@
    "fields": {
     "title_kana": "ぐっどさいん"
    },
-   "source": "derived:songs.title_kana (本体の読みを派生曲へ継承)",
    "note": "派生曲 (Remix / ○○ Ver. / Game Size) の読みは本体と同じ"
   },
   {
@@ -108,7 +96,6 @@
    "fields": {
     "title_kana": "ぐっどさいん"
    },
-   "source": "derived:songs.title_kana (本体の読みを派生曲へ継承)",
    "note": "派生曲 (Remix / ○○ Ver. / Game Size) の読みは本体と同じ"
   },
   {
@@ -117,7 +104,6 @@
    "fields": {
     "title_kana": "ぐっどさいん"
    },
-   "source": "derived:songs.title_kana (本体の読みを派生曲へ継承)",
    "note": "派生曲 (Remix / ○○ Ver. / Game Size) の読みは本体と同じ"
   },
   {
@@ -126,7 +112,6 @@
    "fields": {
     "title_kana": "ぐっどさいん"
    },
-   "source": "derived:songs.title_kana (本体の読みを派生曲へ継承)",
    "note": "派生曲 (Remix / ○○ Ver. / Game Size) の読みは本体と同じ"
   },
   {
@@ -135,7 +120,6 @@
    "fields": {
     "title_kana": "ぐっどさいん"
    },
-   "source": "derived:songs.title_kana (本体の読みを派生曲へ継承)",
    "note": "派生曲 (Remix / ○○ Ver. / Game Size) の読みは本体と同じ"
   },
   {
@@ -144,7 +128,6 @@
    "fields": {
     "title_kana": "ぐっどさいん"
    },
-   "source": "derived:songs.title_kana (本体の読みを派生曲へ継承)",
    "note": "派生曲 (Remix / ○○ Ver. / Game Size) の読みは本体と同じ"
   }
  ]

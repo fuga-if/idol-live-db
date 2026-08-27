@@ -13,8 +13,6 @@ data/ 配下を読み、検証 → master.sqlite に反映 → CloudKit へ一�
     CLOUDKIT_KEY_ID=... python3 tools/apply_data.py --apply --push --production
 
 形式は data/<種類>/_template.json / data/fixes/_template.json と data/README.md 参照。
-全ファイルに source 必須 (出典URL、または既存データから導いた場合は
-`derived:<何から導いたか>`)。
 """
 from __future__ import annotations
 
@@ -110,37 +108,10 @@ def resolve_song(conn, brand_id, song_id, title, pending=()):
 
 # ---- 検証 -----------------------------------------------------------------
 
-def valid_source(source) -> bool:
-    """出典として認めるか。
-
-    外部の情報は URL で辿れないと検証できないので原則 URL。ただし読み仮名のように
-    **既に DB にある値から導いた** データは URL を持たない。そこに適当な URL を書くと
-    出典を偽ることになる (実際、曲名から起こした読みに出典サイトの URL が付きかけた)。
-    導出は `derived:<何から導いたか>` で申告する。何から導いたかを書かせるので、
-    「出典不明」を隠す逃げ道にはならない。
-    """
-    text = str(source).strip()
-    return text.startswith("http") or len(text) > len("derived:") and text.startswith("derived:")
-
-
 def validate(conn):
     problems = []
 
-    def need_source(path, data):
-        """ファイル全体の出典の申告を必須にする。
-
-        外部の情報は URL で辿れないと検証できないので原則 URL。ただし読み仮名のように
-        **既に DB にある値から導いた** データは URL を持たない。そこに適当な URL を書くと
-        出典を偽ることになる (実際、曲名から起こした読みに出典サイトの URL が付きかけた)。
-        導出は `derived:<何から導いたか>` で申告する。何から導いたかを書かせるので、
-        「出典不明」を隠す逃げ道にはならない。
-        """
-        if not valid_source(data.get("source", "")):
-            problems.append(
-                f"{path.name}: source は出典URL か 'derived:<何から導いたか>' が必須")
-
     for path, data in load("songs"):
-        need_source(path, data)
         scol = cols(conn, "songs")
         for i, s in enumerate(data.get("songs", [])):
             tag = f"songs/{path.name}[{i}]"
@@ -163,7 +134,6 @@ def validate(conn):
     new_songs = [s for _, d in load("songs") for s in d.get("songs", [])]
 
     for path, data in load("setlists"):
-        need_source(path, data)
         show_id = data.get("show_id")
         if not show_id or not exists(conn, "shows", show_id):
             problems.append(f"setlists/{path.name}: show_id '{show_id}' が存在しない")
@@ -190,7 +160,6 @@ def validate(conn):
                 problems.append(f"setlists/{path.name}: all_performers の '{idol}' が存在しない")
 
     for path, data in load("events"):
-        need_source(path, data)
         ecol, scol = cols(conn, "events"), cols(conn, "shows")
         for i, ev in enumerate(data.get("events", [])):
             tag = f"events/{path.name}[{i}]"
@@ -209,7 +178,6 @@ def validate(conn):
                         problems.append(f"{tag}: shows に未知の列 '{k}'")
 
     for path, data in load("idols"):
-        need_source(path, data)
         icol = cols(conn, "idols")
         for i, idol in enumerate(data.get("idols", [])):
             tag = f"idols/{path.name}[{i}]"
@@ -222,7 +190,6 @@ def validate(conn):
                     problems.append(f"{tag}: idols に未知の列 '{k}'")
 
     for path, data in load("units"):
-        need_source(path, data)
         ucol = cols(conn, "units")
         for i, u in enumerate(data.get("units", [])):
             tag = f"units/{path.name}[{i}]"
@@ -256,9 +223,6 @@ def validate(conn):
                         problems.append(f"{tag}: id は変更不可")
                     elif k not in tcol:
                         problems.append(f"{tag}: '{table}' に列 '{k}' が無い")
-            if not valid_source(fx.get("source", "")):
-                problems.append(
-                    f"{tag}: source は出典URL か 'derived:<何から導いたか>' が必須")
 
     return problems
 

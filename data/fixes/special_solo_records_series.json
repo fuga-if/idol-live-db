@@ -1,0 +1,3751 @@
+{
+ "title": "SPECIAL SOLO RECORDS を1つの楽曲シリーズにまとめる",
+ "author": "",
+ "_note": "52週連続リリース企画 (2025-07-23〜2026-07-15) でギネス世界記録を達成した一連のソロCD。series_group が空だと年表に cd_series 単位で52本並んで潰れるうえ、「1年かけた1つの企画」という実態も伝わらない。1シリーズとして束ねる。",
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week春日未来ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_brand_new_theater春日未来ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing春日未来ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers春日未来ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map春日未来ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you春日未来ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union春日未来ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン春日未来ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow春日未来ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week木下ひなたver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_brand_new_theater木下ひなたver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing木下ひなたver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers木下ひなたver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map木下ひなたver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you木下ひなたver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union木下ひなたver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン木下ひなたver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow木下ひなたver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week三浦あずさver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_brand_new_theater三浦あずさver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing三浦あずさver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers三浦あずさver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map三浦あずさver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you三浦あずさver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union三浦あずさver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン三浦あずさver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow三浦あずさver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week舞浜歩ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_brand_new_theater舞浜歩ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing舞浜歩ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers舞浜歩ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map舞浜歩ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you舞浜歩ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union舞浜歩ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン舞浜歩ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow舞浜歩ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week伊吹翼ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_brand_new_theater伊吹翼ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing伊吹翼ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers伊吹翼ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map伊吹翼ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you伊吹翼ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union伊吹翼ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン伊吹翼ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow伊吹翼ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week高坂海美ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_brand_new_theater高坂海美ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing高坂海美ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers高坂海美ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map高坂海美ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you高坂海美ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union高坂海美ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン高坂海美ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow高坂海美ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week矢吹可奈ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_brand_new_theater矢吹可奈ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing矢吹可奈ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers矢吹可奈ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map矢吹可奈ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you矢吹可奈ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union矢吹可奈ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン矢吹可奈ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow矢吹可奈ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week篠宮可憐ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_brand_new_theater篠宮可憐ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing篠宮可憐ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers篠宮可憐ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map篠宮可憐ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you篠宮可憐ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union篠宮可憐ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン篠宮可憐ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow篠宮可憐ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week菊地真ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_brand_new_theater菊地真ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing菊地真ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers菊地真ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map菊地真ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you菊地真ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union菊地真ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン菊地真ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow菊地真ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week豊川風花ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_brand_new_theater豊川風花ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing豊川風花ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers豊川風花ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map豊川風花ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you豊川風花ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union豊川風花ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン豊川風花ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow豊川風花ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week最上静香ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_brand_new_theater最上静香ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing最上静香ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers最上静香ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map最上静香ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you最上静香ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union最上静香ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン最上静香ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow最上静香ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week永吉昴ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_brand_new_theater永吉昴ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing永吉昴ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers永吉昴ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map永吉昴ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you永吉昴ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union永吉昴ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン永吉昴ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow永吉昴ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_weekジュリアver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_brand_new_theaterジュリアver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossingジュリアver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyersジュリアver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_mapジュリアver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_youジュリアver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_unionジュリアver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサインジュリアver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbowジュリアver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week田中琴葉ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_brand_new_theater田中琴葉ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing田中琴葉ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers田中琴葉ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map田中琴葉ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you田中琴葉ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union田中琴葉ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン田中琴葉ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow田中琴葉ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week我那覇響ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_brand_new_theater我那覇響ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing我那覇響ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers我那覇響ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map我那覇響ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you我那覇響ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union我那覇響ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン我那覇響ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow我那覇響ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week二階堂千鶴ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_brand_new_theater二階堂千鶴ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing二階堂千鶴ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers二階堂千鶴ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map二階堂千鶴ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you二階堂千鶴ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union二階堂千鶴ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン二階堂千鶴ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow二階堂千鶴ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week島原エレナver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_brand_new_theater島原エレナver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing島原エレナver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers島原エレナver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map島原エレナver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you島原エレナver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union島原エレナver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン島原エレナver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow島原エレナver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week周防桃子ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_brand_new_theater周防桃子ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing周防桃子ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers周防桃子ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map周防桃子ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you周防桃子ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union周防桃子ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン周防桃子ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow周防桃子ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week天空橋朋花ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_brand_new_theater天空橋朋花ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing天空橋朋花ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers天空橋朋花ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map天空橋朋花ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you天空橋朋花ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union天空橋朋花ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン天空橋朋花ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow天空橋朋花ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week百瀬莉緒ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_brand_new_theater百瀬莉緒ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing百瀬莉緒ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers百瀬莉緒ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map百瀬莉緒ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you百瀬莉緒ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union百瀬莉緒ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン百瀬莉緒ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow百瀬莉緒ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week星井美希ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_brand_new_theater星井美希ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing星井美希ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers星井美希ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map星井美希ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you星井美希ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union星井美希ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン星井美希ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow星井美希ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week野々原茜ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_brand_new_theater野々原茜ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing野々原茜ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers野々原茜ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map野々原茜ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you野々原茜ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union野々原茜ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン野々原茜ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow野々原茜ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week中谷育ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_brand_new_theater中谷育ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing中谷育ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers中谷育ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map中谷育ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you中谷育ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union中谷育ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン中谷育ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow中谷育ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week萩原雪歩ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_brand_new_theater萩原雪歩ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing萩原雪歩ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers萩原雪歩ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map萩原雪歩ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you萩原雪歩ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union萩原雪歩ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン萩原雪歩ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow萩原雪歩ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7daysaweek高山紗代子ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_brandnewtheater高山紗代子ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing高山紗代子ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers高山紗代子ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glowmap高山紗代子ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony4you高山紗代子ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union高山紗代子ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン高山紗代子ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow高山紗代子ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_weekエミリースチュアートver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_brand_new_theaterエミリースチュアートver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossingエミリースチュアートver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyersエミリースチュアートver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_mapエミリースチュアートver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_youエミリースチュアートver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_unionエミリースチュアートver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサインエミリースチュアートver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbowエミリースチュアートver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week北沢志保ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_brand_new_theater北沢志保ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing北沢志保ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers北沢志保ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map北沢志保ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you北沢志保ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union北沢志保ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン北沢志保ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow北沢志保ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week四条貴音ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_brand_new_theater四条貴音ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing四条貴音ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers四条貴音ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map四条貴音ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you四条貴音ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union四条貴音ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン四条貴音ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow四条貴音ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7daysaweek真壁瑞希ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_brandnewtheater真壁瑞希ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing真壁瑞希ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers真壁瑞希ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glowmap真壁瑞希ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony4you真壁瑞希ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union真壁瑞希ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン真壁瑞希ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow真壁瑞希ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week徳川まつりver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_brand_new_theater徳川まつりver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing徳川まつりver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers徳川まつりver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map徳川まつりver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you徳川まつりver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union徳川まつりver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン徳川まつりver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow徳川まつりver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week横山奈緒ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_brand_new_theater横山奈緒ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing横山奈緒ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers横山奈緒ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map横山奈緒ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you横山奈緒ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union横山奈緒ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン横山奈緒ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow横山奈緒ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week箱崎星梨花ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_brand_new_theater箱崎星梨花ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing箱崎星梨花ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers箱崎星梨花ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map箱崎星梨花ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you箱崎星梨花ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union箱崎星梨花ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン箱崎星梨花ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow箱崎星梨花ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week如月千早ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_brandnewtheater如月千早ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing如月千早ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers如月千早ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glowmap如月千早ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony4you如月千早ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union如月千早ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン如月千早ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow如月千早ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_weekロコver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_brand_new_theaterロコver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossingロコver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyersロコver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_mapロコver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_youロコver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_unionロコver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサインロコver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbowロコver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week七尾百合子ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_brand_new_theater七尾百合子ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing七尾百合子ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers七尾百合子ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map七尾百合子ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you七尾百合子ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union七尾百合子ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン七尾百合子ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow七尾百合子ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week佐竹美奈子ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_brand_new_theater佐竹美奈子ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing佐竹美奈子ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers佐竹美奈子ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map佐竹美奈子ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you佐竹美奈子ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union佐竹美奈子ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン佐竹美奈子ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow佐竹美奈子ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week高槻やよいver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_brand_new_theater高槻やよいver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing高槻やよいver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers高槻やよいver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map高槻やよいver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you高槻やよいver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union高槻やよいver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン高槻やよいver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow高槻やよいver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week桜守歌織ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_brand_new_theater桜守歌織ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing桜守歌織ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers桜守歌織ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glowmap桜守歌織ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony4you桜守歌織ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union桜守歌織ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン桜守歌織ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow桜守歌織ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week福田のり子ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_brand_new_theater福田のり子ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing福田のり子ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers福田のり子ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map福田のり子ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you福田のり子ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union福田のり子ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン福田のり子ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow福田のり子ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week天海春香ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_brand_new_theater天海春香ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing天海春香ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers天海春香ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map天海春香ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you天海春香ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union天海春香ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン天海春香ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow天海春香ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week所恵美ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_brand_new_theater所恵美ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing所恵美ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers所恵美ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map所恵美ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you所恵美ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union所恵美ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン所恵美ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow所恵美ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week宮尾美也ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_brand_new_theater宮尾美也ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing宮尾美也ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers宮尾美也ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map宮尾美也ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you宮尾美也ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union宮尾美也ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン宮尾美也ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow宮尾美也ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week大神環ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_brand_new_theater大神環ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing大神環ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers大神環ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map大神環ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you大神環ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union大神環ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン大神環ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow大神環ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week水瀬伊織ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_brand_new_theater水瀬伊織ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing水瀬伊織ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers水瀬伊織ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map水瀬伊織ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you水瀬伊織ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union水瀬伊織ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン水瀬伊織ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow水瀬伊織ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7daysaweek北上麗花ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_brandnewtheater北上麗花ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing北上麗花ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers北上麗花ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glowmap北上麗花ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony4you北上麗花ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union北上麗花ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン北上麗花ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow北上麗花ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week双海亜美ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_brand_new_theater双海亜美ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing双海亜美ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers双海亜美ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map双海亜美ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you双海亜美ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union双海亜美ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン双海亜美ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow双海亜美ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week双海真美ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_brand_new_theater双海真美ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing双海真美ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers双海真美ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map双海真美ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you双海真美ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union双海真美ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン双海真美ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow双海真美ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week白石紬ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_brand_new_theater白石紬ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing白石紬ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers白石紬ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map白石紬ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you白石紬ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union白石紬ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン白石紬ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow白石紬ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week望月杏奈ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_brand_new_theater望月杏奈ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing望月杏奈ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers望月杏奈ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glowmap望月杏奈ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you望月杏奈ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union望月杏奈ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン望月杏奈ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow望月杏奈ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7daysaweek松田亜利沙ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_brand_new_theater松田亜利沙ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing松田亜利沙ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers松田亜利沙ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map松田亜利沙ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you松田亜利沙ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union松田亜利沙ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン松田亜利沙ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow松田亜利沙ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7daysaweek馬場このみver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_brandnewtheater馬場このみver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing馬場このみver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers馬場このみver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glowmap馬場このみver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony4you馬場このみver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union馬場このみver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン馬場このみver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow馬場このみver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week秋月律子ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_brand_new_theater秋月律子ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing秋月律子ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers秋月律子ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map秋月律子ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you秋月律子ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union秋月律子ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン秋月律子ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow秋月律子ver",
+   "fields": {
+    "series_group": "SPECIAL SOLO RECORDS"
+   },
+   "note": "52週連続リリース企画「SPECIAL SOLO RECORDS」の1枚。"
+  }
+ ]
+}

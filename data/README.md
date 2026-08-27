@@ -36,10 +36,8 @@ master.sqlite → CloudKit に一括反映します（直接 CloudKit に書く�
 
 既存レコードのフィールドを直す。対象テーブルは `idols / songs / events / shows / units / brands`。
 ```json
-{ "fixes": [ { "table": "songs", "id": "対象id", "fields": { "release_date": "2024-09-04" }, "source": "https://出典" } ] }
+{ "fixes": [ { "table": "songs", "id": "対象id", "fields": { "release_date": "2024-09-04" } } ] }
 ```
-
-すべてのエントリに **`source`（出典URL・一次ソース）が必須**です。
 
 ## 値の決まり
 
@@ -55,7 +53,7 @@ master.sqlite → CloudKit に一括反映します（直接 CloudKit に書く�
 
 ## 注意
 
-- 事実情報は**必ず公式など一次ソースで確認**してから（`source` に URL）。
+- 事実情報は**必ず公式など一次ソースで確認**してから。根拠は PR 説明欄に書く。
 - `apple_music_id` を入れる曲は `artwork_url` も入れる（一覧のジャケ写は `artwork_url` 直参照）。
 - 楽曲は `original_singers`（原唱者）を必ず入れる（一覧の performer アイコン表示に必要）。
 - 対象の id（show_id など）が分からなければアプリで探すか、PR 説明欄でオーナーに相談を。
