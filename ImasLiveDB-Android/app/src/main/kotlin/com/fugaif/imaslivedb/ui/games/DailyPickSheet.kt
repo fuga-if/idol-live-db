@@ -91,7 +91,11 @@ fun DailyPickSheet(
         when (kind) {
             DailyPickKind.SONG -> {
                 val candidates = brands.mapNotNull { brand ->
-                    val ids = module.database.songDao().fetchDailyPickSongIds(brand.id)
+                    // 候補列も番号と同じく共有コアが正本。未ロード時だけ Room の同条件クエリへ落ちる
+                    // (ウィジェット側 InfoWidgetData.todaySong も同じ 2 段で、両者は必ず同じ列を見る)。
+                    val ids = module.snapshotStoreProvider.query {
+                        it.dailyPickSongIds(brand.id, includeCovers = false, excludeRemixes = true)
+                    } ?: module.database.songDao().fetchDailyPickSongIds(brand.id)
                     if (ids.isEmpty()) null else brand to ids
                 }
                 // 全ブランド分を 1 回の FFI 呼び出しで解決する。

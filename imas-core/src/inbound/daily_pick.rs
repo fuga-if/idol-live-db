@@ -11,7 +11,30 @@
 //! (iOS: `Calendar.current.date(byAdding: .day, value: -1, to:)`)。
 //! 設計意図の詳細は domain::daily_pick のモジュールコメント参照。
 
+use super::snapshot_store::{SnapshotError, SnapshotStore};
 use crate::domain::daily_pick::{self, DailyPickBrandCandidates, DailyPickKind};
+
+#[uniffi::export]
+impl SnapshotStore {
+    /// 「今日の 1 曲」の候補列 (そのブランドの曲 id を id 昇順で)。
+    ///
+    /// SQL 時代の iOS `songIds(brandId:includeCovers:excludeRemixes:)` /
+    /// Android `SongDao.fetchDailyPickSongIds` に対応する。番号を引く
+    /// [`daily_pick_song_indices`] と対で使い、両方が共有コアにある状態で初めて
+    /// 「同じ日に同じ曲」が両 OS・アプリ本体・ウィジェットで揃う。
+    ///
+    /// スナップショット未ロード時は `NotLoaded` が返るので、呼び出し側は
+    /// 従来の SQL 経路へフォールバックする (他のクエリと同じ規約)。
+    pub fn daily_pick_song_ids(
+        &self,
+        brand_id: String,
+        include_covers: bool,
+        exclude_remixes: bool,
+    ) -> Result<Vec<String>, SnapshotError> {
+        let snap = self.current()?;
+        Ok(daily_pick::candidate_song_ids(&snap, &brand_id, include_covers, exclude_remixes))
+    }
+}
 
 #[uniffi::export]
 pub fn daily_pick_day_key(local_year: i32, local_month: i32, local_day: i32) -> String {
@@ -54,4 +77,46 @@ pub fn daily_pick_idol_indices(day_key: String, brands: Vec<DailyPickBrandCandid
 #[uniffi::export]
 pub fn daily_pick_sheet_kind(local_day: i32) -> DailyPickKind {
     daily_pick::sheet_kind(local_day)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn loaded_store() -> std::sync::Arc<SnapshotStore> {
+        let store = SnapshotStore::new();
+        let db = format!("{}/../ImasLiveDB/Resources/master.sqlite", env!("CARGO_MANIFEST_DIR"));
+        store.load(db).expect("bundle DB はロードできる");
+        store
+    }
+
+    #[test]
+    fn not_loaded_is_a_typed_error() {
+        let store = SnapshotStore::new();
+        assert!(matches!(
+            store.daily_pick_song_ids("cg".into(), false, true),
+            Err(SnapshotError::NotLoaded)
+        ));
+    }
+
+    /// ロジックの等価性は domain 側の照合テストが担う。ここは委譲の疎通だけ確認する。
+    #[test]
+    fn ffi_surface_smoke() {
+        let store = loaded_store();
+        let snap = store.current().unwrap();
+        let brand = snap
+            .brands
+            .iter()
+            .map(|b| b.id.clone())
+            .max_by_key(|b| daily_pick::candidate_song_ids(&snap, b, false, true).len())
+            .expect("ブランドが 1 つはある");
+        let ids = store.daily_pick_song_ids(brand.clone(), false, true).unwrap();
+        assert!(ids.len() > 50, "brand={brand} ids={}", ids.len());
+        assert_eq!(ids, daily_pick::candidate_song_ids(&snap, &brand, false, true));
+
+        assert!(store
+            .daily_pick_song_ids("存在しないブランド".into(), false, true)
+            .unwrap()
+            .is_empty());
+    }
 }

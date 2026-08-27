@@ -39,6 +39,8 @@
 //! (コメントに「同一実装」と書いてあるだけ)、片方を直すとウィジェットとアプリが
 //! 黙って違う曲を出す状態だった。契約なのでここに集約してテストで固定する。
 
+use crate::domain::snapshot::Snapshot;
+
 /// 端末ローカルの `"yyyy-MM-dd"`。端末の暦法設定で解決済みの年月日成分から組む
 /// (和暦端末なら `local_year` は era 年で来る。モジュールコメント参照)。
 ///
@@ -159,9 +161,79 @@ pub fn sheet_kind(local_day: i32) -> DailyPickKind {
     }
 }
 
+/// 「今日の 1 曲」の候補列 (そのブランドの曲 id を id 昇順で)。
+///
+/// 番号を引く [`song_index`] と**対**の契約なのでここに置く。番号だけ共有しても
+/// 候補列がずれれば同じ日に別の曲が出るので、母集団の作り方も 1 か所に固定する
+/// (モジュールコメントの「1 か所に置く理由」がそのまま候補列にも当てはまる)。
+///
+/// 元 SQL (iOS `AppDatabase.fetchSongIdsQuery` / Android `SongDao.fetchDailyPickSongIds`):
+///
+/// ```sql
+/// SELECT id FROM songs WHERE brand_id=?
+///   -- include_covers=false のときだけ
+///   AND song_type<>'cover'
+///   -- exclude_remixes=true のときだけ
+///   AND (parent_song_id IS NULL OR parent_song_id='')
+///  ORDER BY id
+/// ```
+///
+/// SQL の非自明な挙動をそのまま写す:
+/// - `song_type<>'cover'` は三値論理。`song_type` が NULL の行は比較結果が NULL =
+///   偽になって**落ちる**。同梱スキーマは `song_type TEXT NOT NULL` なので実データで
+///   差は出ないが、NULL を通す実装にすると DB 次第で候補数が変わり、番号が同じでも
+///   別の曲が出てしまう。落とす側で固定する。
+/// - `parent_song_id=''` を NULL と同列に扱うのは、空文字が入った行を「派生ではない」と
+///   見る運用のため (id の無い派生は表現できない)。空文字を派生扱いにすると
+///   その曲が候補から消える。
+/// - `ORDER BY id` は BINARY 照合 (バイト列比較) で、Rust の `str` の `Ord` と一致する。
+///   id は PRIMARY KEY なのでタイは無く、並びは完全に決まる。
+///
+/// スナップショットの添字順 (rowid 順) に**依存しない**のがこの候補列の要点:
+/// Android の rowid は同期で届いた順で iOS の同梱ファイルとは別物なので、
+/// id 昇順に並べ直して初めて両 OS が同じ列を見る。
+pub fn candidate_song_ids(
+    snap: &Snapshot,
+    brand_id: &str,
+    include_covers: bool,
+    exclude_remixes: bool,
+) -> Vec<String> {
+    let mut ids: Vec<&str> = snap
+        .songs
+        .iter()
+        .filter(|s| s.brand_id.as_deref() == Some(brand_id))
+        .filter(|s| include_covers || s.song_type.as_deref().is_some_and(|t| t != "cover"))
+        .filter(|s| !exclude_remixes || s.parent_song_id.as_deref().is_none_or(str::is_empty))
+        .map(|s| s.id.as_str())
+        .collect();
+    ids.sort_unstable();
+    ids.into_iter().map(str::to_owned).collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::outbound::sqlite_loader::load_snapshot;
+    use rusqlite::{Connection, OpenFlags};
+    use std::sync::OnceLock;
+
+    fn db_path() -> String {
+        format!("{}/../ImasLiveDB/Resources/master.sqlite", env!("CARGO_MANIFEST_DIR"))
+    }
+
+    /// スナップショットは全テストで共有 (不変なので安全・ロードを 1 回にする)。
+    fn snap() -> &'static Snapshot {
+        static SNAP: OnceLock<Snapshot> = OnceLock::new();
+        SNAP.get_or_init(|| load_snapshot(&db_path()).expect("bundle DB はロードできる"))
+    }
+
+    fn conn() -> Connection {
+        Connection::open_with_flags(
+            db_path(),
+            OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+        )
+        .expect("bundle DB を開ける")
+    }
 
     // MARK: idol_index / sheet_kind
 
@@ -359,5 +431,127 @@ mod tests {
     #[test]
     fn song_indices_with_empty_input() {
         assert!(song_indices("2026-07-26", &[]).is_empty());
+    }
+
+    // MARK: candidate_song_ids (元 SQL との等価性)
+
+    /// 元 SQL (iOS fetchSongIdsQuery / Android fetchDailyPickSongIds) の写経を
+    /// 同梱 DB に対して直接実行する。候補列は**順序込み**で一致しないといけない
+    /// (番号は共有しているので、列がずれれば同じ日に別の曲が出る)。
+    fn run_original_sql(brand_id: &str, include_covers: bool, exclude_remixes: bool) -> Vec<String> {
+        let mut sql = String::from("SELECT id FROM songs WHERE brand_id=?");
+        if !include_covers {
+            sql.push_str(" AND song_type<>'cover'");
+        }
+        if exclude_remixes {
+            sql.push_str(" AND (parent_song_id IS NULL OR parent_song_id='')");
+        }
+        sql.push_str(" ORDER BY id");
+        let db = conn();
+        let mut stmt = db.prepare(&sql).expect("元 SQL は妥当");
+        stmt.query_map([brand_id], |r| r.get::<_, String>(0))
+            .expect("元 SQL を実行できる")
+            .collect::<Result<Vec<_>, _>>()
+            .expect("行を読める")
+    }
+
+    /// 実在ブランド全部 × フラグ 4 通りで元 SQL と順序込みで一致する。
+    #[test]
+    fn candidate_song_ids_match_sql_for_every_brand() {
+        let brand_ids: Vec<String> = snap().brands.iter().map(|b| b.id.clone()).collect();
+        assert!(brand_ids.len() > 5, "ブランドが載っている前提: {}", brand_ids.len());
+        let mut non_empty = 0usize;
+        for brand in &brand_ids {
+            for include_covers in [false, true] {
+                for exclude_remixes in [false, true] {
+                    let want = run_original_sql(brand, include_covers, exclude_remixes);
+                    let got = candidate_song_ids(snap(), brand, include_covers, exclude_remixes);
+                    assert_eq!(
+                        got, want,
+                        "brand={brand} include_covers={include_covers} exclude_remixes={exclude_remixes}"
+                    );
+                    non_empty += usize::from(!want.is_empty());
+                }
+            }
+        }
+        assert!(non_empty > 20, "候補が空の組み合わせばかりでは検証にならない: {non_empty}");
+    }
+
+    /// 除外の 2 条件が実データで効いていること。全ブランド一致だけだと
+    /// 「両方の条件を無視する実装」でも (カバーも派生も持たないブランドが多いので)
+    /// たまたま通り得るため、条件ごとに「そのブランドで実際に減る」ことを見る。
+    #[test]
+    fn candidate_song_ids_actually_drop_covers_and_variants() {
+        // カバーを一番多く持つブランド / 派生を一番多く持つブランドは別々なので分けて選ぶ。
+        let dropped_by = |include_covers: bool, exclude_remixes: bool| {
+            snap()
+                .brands
+                .iter()
+                .map(|b| {
+                    let all = candidate_song_ids(snap(), &b.id, true, false).len();
+                    let kept = candidate_song_ids(snap(), &b.id, include_covers, exclude_remixes).len();
+                    (b.id.clone(), all - kept)
+                })
+                .max_by_key(|(_, dropped)| *dropped)
+                .expect("ブランドが 1 つはある")
+        };
+
+        let (cover_brand, covers_dropped) = dropped_by(false, false);
+        assert!(covers_dropped > 0, "カバー曲を持つブランドがある前提 (brand={cover_brand})");
+
+        let (variant_brand, variants_dropped) = dropped_by(true, true);
+        assert!(variants_dropped > 0, "派生曲を持つブランドがある前提 (brand={variant_brand})");
+
+        // 実際に使う組み合わせは両方の除外が同時に効く (どちらの単独より多くは残らない)。
+        for brand in [&cover_brand, &variant_brand] {
+            let used = candidate_song_ids(snap(), brand, false, true).len();
+            let no_cover = candidate_song_ids(snap(), brand, false, false).len();
+            let no_variant = candidate_song_ids(snap(), brand, true, true).len();
+            assert!(used <= no_cover.min(no_variant), "brand={brand}");
+        }
+    }
+
+    /// 未知ブランドは空 (呼び出し側が空判定してスキップする前提)。
+    #[test]
+    fn candidate_song_ids_for_unknown_brand_is_empty() {
+        assert!(candidate_song_ids(snap(), "存在しないブランド", false, true).is_empty());
+        assert_eq!(run_original_sql("存在しないブランド", false, true), Vec::<String>::new());
+    }
+
+    /// 並びは id 昇順 (BINARY) で、スナップショットの添字順ではない。
+    /// ここが崩れると Android (rowid = 同期到着順) と iOS で候補列がずれる。
+    #[test]
+    fn candidate_song_ids_are_sorted_by_id_not_by_snapshot_order() {
+        let brand = snap()
+            .brands
+            .iter()
+            .map(|b| b.id.as_str())
+            .max_by_key(|b| candidate_song_ids(snap(), b, false, true).len())
+            .expect("ブランドが 1 つはある");
+        let ids = candidate_song_ids(snap(), brand, false, true);
+        assert!(ids.len() > 50, "検証に足る件数がある前提: {}", ids.len());
+        assert!(ids.windows(2).all(|w| w[0] < w[1]), "id 昇順・重複なし");
+
+        // 添字順とは実際に違うこと (同じなら「並べ替えを忘れた実装」でも通ってしまう)
+        let in_snapshot_order: Vec<&str> = snap()
+            .songs
+            .iter()
+            .filter(|s| s.brand_id.as_deref() == Some(brand))
+            .filter(|s| s.song_type.as_deref().is_some_and(|t| t != "cover"))
+            .filter(|s| s.parent_song_id.as_deref().is_none_or(str::is_empty))
+            .map(|s| s.id.as_str())
+            .collect();
+        assert_ne!(ids, in_snapshot_order, "添字順と id 昇順が同じ DB では検証にならない");
+    }
+
+    /// 共有 CARGO_TARGET_DIR の成果物混入の回帰ガード (search_queries と同型)。
+    #[test]
+    fn test_binary_was_built_from_this_tree() {
+        let baked = include_str!("daily_pick.rs");
+        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/src/domain/daily_pick.rs");
+        let on_disk = std::fs::read_to_string(path).unwrap_or_else(|e| {
+            panic!("ビルド元ツリーの {path} を読めない = 陳腐化した成果物で検証している: {e}")
+        });
+        assert!(baked == on_disk, "ビルド元とディスク上の {path} が不一致 = 陳腐化した成果物で検証している");
     }
 }

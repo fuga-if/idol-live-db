@@ -355,12 +355,17 @@ interface SongDao {
     suspend fun fetchSoloOriginalSingers(): List<SoloOriginalSingerRow>
 
     /**
-     * 日替わりピック「今日の1曲」の候補。
+     * 日替わりピック「今日の1曲」の候補 — **スナップショット未ロード時のフォールバック**。
      *
-     * 条件と並びは iOS `AppDatabase.fetchSongIdsQuery(brandId:includeCovers:false,
-     * excludeRemixes:true)` と同一にしてある。日付から番号を引く仕組み (imas-core の
-     * `daily_pick`) は両 OS 共通なので、候補列がずれると同じ日に別の曲が出る。
-     * カバーとリミックス変種 (同名の紛らわしい重複) を落とし、id 昇順で固定する。
+     * 正本は共有コアの `SnapshotStore.dailyPickSongIds(brandId, includeCovers=false,
+     * excludeRemixes=true)` (`imas-core/src/domain/daily_pick.rs`)。番号を引く仕組みだけ
+     * 共有しても候補列がずれれば同じ日に別の曲が出るので、候補列も番号と同じ 1 実装に
+     * 寄せてある。ここに残っているのは、コアが使えないビルド (ネイティブ .so 無しの
+     * コントリビューター環境) と未ロード時に機能を失わせないため。
+     *
+     * よってこの SQL はコア側の条件と一字一句そろっている必要がある:
+     * カバー (`song_type <> 'cover'`) と派生曲 (`parent_song_id` あり) を落とし、id 昇順。
+     * 片方だけ直すと「スナップショットが載っているかどうか」で曲が変わる。
      */
     @Query("""
         SELECT id FROM songs

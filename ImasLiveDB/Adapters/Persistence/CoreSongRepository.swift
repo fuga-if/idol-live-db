@@ -266,9 +266,18 @@ struct CoreSongRepository: SongReading {
         }
     }
 
-    /// 今日の 1 曲の決定論的ピック用。core 未移送のため GRDB 経路。
+    /// 今日の 1 曲の候補列 (id 昇順)。
+    ///
+    /// 番号を引く `DailyPick.songIndices` と**対**でコアが持つ (`domain/daily_pick.rs`)。
+    /// 候補列と番号のどちらか片方だけを共有しても、列がずれれば同じ日に別の曲が出る。
+    /// Android の `SongDao.fetchDailyPickSongIds` に同じ SQL が二重に書かれていたのを
+    /// この移送で 1 実装に寄せた。
     func songIds(brandId: String, includeCovers: Bool, excludeRemixes: Bool) async throws -> [String] {
-        try await fallback.songIds(brandId: brandId, includeCovers: includeCovers, excludeRemixes: excludeRemixes)
+        try await snapshot.withStore(fallbackTo: {
+            try await fallback.songIds(brandId: brandId, includeCovers: includeCovers, excludeRemixes: excludeRemixes)
+        }) { store in
+            try store.dailyPickSongIds(brandId: brandId, includeCovers: includeCovers, excludeRemixes: excludeRemixes)
+        }
     }
 
     /// show_cast (公演キャスト) を跨ぐ結合はイベント/公演スライス (Phase 4) の領域。

@@ -5,6 +5,7 @@ import android.util.Log
 import com.fugaif.imaslivedb.data.db.AppDatabase
 import com.fugaif.imaslivedb.data.model.DailyPick
 import com.fugaif.imaslivedb.data.model.JstDay
+import com.fugaif.imaslivedb.di.AppModule
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -97,9 +98,9 @@ object InfoWidgetData {
      * 今日の 1 曲。
      *
      * **アプリ内の起動シート ([com.fugaif.imaslivedb.ui.games.DailyPickSheet]) と必ず同じ曲**に
-     * なる必要がある。そのために揃えるものは 2 つだけ:
-     * - 候補列 … `fetchDailyPickSongIds` (シートと同じクエリ = 同じ順序・同じ除外条件)
-     * - 何番目を引くか … [DailyPick.songIndices] (共有コアが持つ唯一の実装)
+     * なる必要がある。そのために揃えるものは 2 つだけ、どちらも共有コアが唯一の実装を持つ:
+     * - 候補列 … `SnapshotStore.dailyPickSongIds` (未ロード時のみ Room の同条件クエリへ落ちる)
+     * - 何番目を引くか … [DailyPick.songIndices]
      *
      * ブランドごとの番号は互いに独立に解かれる (種は `"日付|ブランドID"`) ので、
      * 1 ブランドだけ渡してもシートの一括呼び出しと同じ答えになる。
@@ -113,8 +114,11 @@ object InfoWidgetData {
             val dayKey = DailyPick.dayKey()
             // fetchBrands() は sort_order 順。
             val brands = database.brandDao().fetchBrands().filter { it.id != EXCLUDED_BRAND_ID }
+            val snapshots = AppModule.from(context).snapshotStoreProvider
             for (brand in brands) {
-                val songIds = database.songDao().fetchDailyPickSongIds(brand.id)
+                val songIds = snapshots.query {
+                    it.dailyPickSongIds(brand.id, includeCovers = false, excludeRemixes = true)
+                } ?: database.songDao().fetchDailyPickSongIds(brand.id)
                 if (songIds.isEmpty()) continue
                 val index = DailyPick.songIndices(dayKey, listOf(brand.id to songIds.size)).firstOrNull()
                 val song = index?.let { songIds.getOrNull(it) }?.let { database.songDao().fetchSong(it) }
