@@ -10,6 +10,7 @@ import uniffi.imas_core.GameProgressUpdate
 import uniffi.imas_core.GameRecord
 import uniffi.imas_core.GameStreakState
 import uniffi.imas_core.gameProgressApplyResult
+import uniffi.imas_core.gameProgressDailySheetGate
 import uniffi.imas_core.gameProgressDidClearToday
 import uniffi.imas_core.gameProgressDisplayStreak
 
@@ -102,6 +103,22 @@ class GameProgressStore(context: Context) {
 
     // MARK: - 永続化
 
+    /**
+     * 起動時の日替わりシートを今日まだ出していなければ true を返し、**出した印を書く**。
+     *
+     * 「今日はもう出したか」の判定はコア (`game_progress`) が持つ。リセットの単位は
+     * 連続達成日数と同じ端末ローカル日なので、日付キーも [DailyPick] から渡す。
+     * 出す/出さないに関わらず今日を書き戻すのは iOS と同じ (書き忘れると同じ日に何度も出る)。
+     */
+    fun consumeDailySheetSlot(): Boolean {
+        val gate = gameProgressDailySheetGate(
+            lastShownDay = prefs.getString(KEY_DAILY_SHEET_DAY, null),
+            todayKey = DailyPick.dayKey()
+        )
+        prefs.edit().putString(KEY_DAILY_SHEET_DAY, gate.lastShownDay).apply()
+        return gate.shouldShow
+    }
+
     private fun loadRecords(): Map<GameKind, GameRecord> {
         val raw = prefs.getString(KEY_RECORDS, null) ?: return emptyMap()
         return try {
@@ -163,5 +180,8 @@ class GameProgressStore(context: Context) {
         private const val PREFS_NAME = "game_progress_store"
         private const val KEY_RECORDS = "game_records_v1"
         private const val KEY_STREAK = "game_streak_v1"
+
+        /** 日替わりシートを最後に出した日 (iOS UserDefaults の `daily_vote_last_date` と対)。 */
+        private const val KEY_DAILY_SHEET_DAY = "daily_sheet_last_day"
     }
 }

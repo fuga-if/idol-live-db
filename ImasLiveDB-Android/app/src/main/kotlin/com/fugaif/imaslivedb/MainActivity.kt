@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -26,6 +27,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.fugaif.imaslivedb.data.sync.CloudKitSyncEngine
 import com.fugaif.imaslivedb.di.AppModule
+import com.fugaif.imaslivedb.ui.games.DailyPickSheet
 import com.fugaif.imaslivedb.ui.navigation.AppNavigation
 import com.fugaif.imaslivedb.ui.theme.ImasLiveDBTheme
 
@@ -49,7 +51,19 @@ class MainActivity : ComponentActivity() {
                 }
                 val ready = hasData == true || state is CloudKitSyncEngine.SyncState.Completed
                 if (ready) {
-                    AppNavigation()
+                    // 起動時の日替わりピック。データが揃ってから 1 回だけ枠を消費する
+                    // (「今日はもう出したか」の判定と印付けはコア + GameProgressStore)。
+                    var showDailyPick by remember {
+                        mutableStateOf(AppModule.from(this@MainActivity).gameProgressStore.consumeDailySheetSlot())
+                    }
+                    // オーバーレイにするのは、この上でタグピッカー (ModalBottomSheet) を開くため。
+                    // ボトムシートの中からボトムシートを開くと重なりとタッチ処理が壊れる。
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        AppNavigation()
+                        if (showDailyPick) {
+                            DailyPickSheet(onDismiss = { showDailyPick = false })
+                        }
+                    }
                 } else {
                     // seed 投入失敗などでデータが無いまま Error になった場合、再起動せず
                     // その場でやり直せるように再試行を用意する (無限「データを準備中…」の防止)。

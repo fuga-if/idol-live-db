@@ -308,4 +308,21 @@ interface SongDao {
         WHERE s.song_type = 'solo' AND s.parent_song_id IS NULL AND sa.role = 'original'
     """)
     suspend fun fetchSoloOriginalSingers(): List<SoloOriginalSingerRow>
+
+    /**
+     * 日替わりピック「今日の1曲」の候補。
+     *
+     * 条件と並びは iOS `AppDatabase.fetchSongIdsQuery(brandId:includeCovers:false,
+     * excludeRemixes:true)` と同一にしてある。日付から番号を引く仕組み (imas-core の
+     * `daily_pick`) は両 OS 共通なので、候補列がずれると同じ日に別の曲が出る。
+     * カバーとリミックス変種 (同名の紛らわしい重複) を落とし、id 昇順で固定する。
+     */
+    @Query("""
+        SELECT id FROM songs
+        WHERE brand_id = :brandId
+          AND song_type <> 'cover'
+          AND (parent_song_id IS NULL OR parent_song_id = '')
+        ORDER BY id
+    """)
+    suspend fun fetchDailyPickSongIds(brandId: String): List<String>
 }
