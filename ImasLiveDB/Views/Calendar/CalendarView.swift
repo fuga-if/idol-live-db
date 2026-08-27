@@ -132,20 +132,21 @@ struct CalendarView: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        AppAnalytics.tap("calendar.daily_song")
+                        AppAnalytics.tap("calendar.daily_pick")
                         showDailySong = true
                     } label: {
-                        Image(systemName: "music.note.house.fill")
+                        // その日どちらが出るかはコアが決める。押す前に分かるよう見た目も揃える。
+                        Image(systemName: DailyPickSheet.symbol(for: DailyPickSheet.defaultKind()))
                     }
-                    .accessibilityLabel("今日の1曲")
-                    .accessibilityHint("各ブランドの日替わり1曲を試聴・タグ投票します")
+                    .accessibilityLabel(DailyPickSheet.title(for: DailyPickSheet.defaultKind()))
+                    .accessibilityHint("各ブランドの日替わりピックにタグを付けて投票します")
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     SearchToolbarButton(scope: .all)
                 }
             }
             .sheet(isPresented: $showDailySong) {
-                DailySongVoteSheet().environment(database)
+                DailyPickSheet().environment(database)
             }
             .sheet(item: $sheetDestination) { dest in
                 DetailSheetView(destination: dest)

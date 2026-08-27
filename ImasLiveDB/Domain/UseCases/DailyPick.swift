@@ -50,4 +50,24 @@ enum DailyPick {
             }
         ).map(Int.init)
     }
+
+    /// 複数ブランド分の「今日のアイドル」を 1 回の FFI 呼び出しでまとめて解決する
+    /// (`songIndices` と同じ規約)。曲とは種の名前空間が違うので連動しない。
+    static func idolIndices(dayKey: String, brands: [(brandId: String, count: Int)]) -> [Int] {
+        dailyPickIdolIndices(
+            dayKey: dayKey,
+            brands: brands.map {
+                DailyPickBrandCandidates(brandId: $0.brandId, count: UInt32(max(0, $0.count)))
+            }
+        ).map(Int.init)
+    }
+
+    /// その日の起動シートが曲とアイドルどちらを出すか (偶数日=曲 / 奇数日=アイドル)。
+    ///
+    /// 渡すのは日付キー文字列ではなく日の成分。キーの表記は端末の暦法で変わる
+    /// (和暦端末では年が era 年になる) が、「その月の何日目か」はどの暦でも同じ。
+    static func sheetKind(_ date: Date = Date()) -> DailyPickKind {
+        let day = Calendar.current.dateComponents([.day], from: date).day ?? 0
+        return dailyPickSheetKind(localDay: Int32(clamping: day))
+    }
 }

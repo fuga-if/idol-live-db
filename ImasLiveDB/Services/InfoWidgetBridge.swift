@@ -48,14 +48,18 @@ enum InfoWidgetBridge {
         )
     }
 
-    // MARK: - 今日の1曲 (DailySongVoteSheet と同じロジック)
+    // MARK: - 今日の1曲 (DailyPickSheet の曲の日と同じロジック)
+    //
+    // ウィジェットは曲だけを出す。アプリの起動シートは日で曲とアイドルを入れ替えるが、
+    // 「今日の1曲」ウィジェットに求められているのは曲なので追随させない。
+    // 曲の日にシートを開いたときは、ここで選ばれた曲と必ず同じ曲が並ぶ。
 
     private static func resolveTodaySong(database: AppDatabase, today: String) async -> TodaySongInfo? {
         let brands = ((try? database.fetchBrands()) ?? [])
             .filter { $0.id != "other" }
             .sorted { $0.sortOrder < $1.sortOrder }
 
-        // 各ブランドから決定論的に1曲選ぶ。アプリ内の DailySongVoteSheet と
+        // 各ブランドから決定論的に1曲選ぶ。アプリ内の DailyPickSheet と
         // 同じ曲になる必要があるので、選び方は DailyPick に集約している。
         var chosen: (brand: Brand, songId: String)?
         for brand in brands {

@@ -115,7 +115,7 @@ struct ImasLiveDBApp: App {
                     }
                 }
                 .onOpenURL { _ in
-                    // deeplink 着地時は起動シート (オンボーディング/今日の1曲) を閉じて
+                    // deeplink 着地時は起動シート (オンボーディング/日替わりピック) を閉じて
                     // 詳細ページの提示 (ContentView 側の onOpenURL) を優先する。
                     // オンボーディング既読フラグは onDismiss で通常どおり確定される。
                     launchSheet = nil
@@ -130,7 +130,7 @@ struct ImasLiveDBApp: App {
                     case .announcements:
                         InboxView()
                     case .dailyVote:
-                        DailySongVoteSheet()
+                        DailyPickSheet()
                             .environment(appDatabase)
                     }
                 }

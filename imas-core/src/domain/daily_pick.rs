@@ -82,6 +82,16 @@ pub fn song_index(day_key: &str, brand_id: &str, count: i64) -> i64 {
     stable_index(&format!("{day_key}|{brand_id}"), count)
 }
 
+/// その日そのブランドの「今日のアイドル」を、アイドル ID 一覧の何番目にするか。
+///
+/// 種を `"日付|idol|ブランドID"` と曲側 (`"日付|ブランドID"`) で分けている。
+/// 分けないと、候補数がたまたま一致するブランドで曲とアイドルが同じ番号を引き、
+/// 「1 番目の曲と 1 番目のアイドル」が毎日そろって出る。番号の意味が別物なので
+/// 種の名前空間も分ける。
+pub fn idol_index(day_key: &str, brand_id: &str, count: i64) -> i64 {
+    stable_index(&format!("{day_key}|idol|{brand_id}"), count)
+}
+
 /// 一括版 [`song_index`] の入力射影。ブランド ID と候補曲数だけを渡す
 /// (エンティティ全体を FFI 越しに運ばないための Record)。
 #[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
@@ -104,9 +114,113 @@ pub fn song_indices(day_key: &str, brands: &[DailyPickBrandCandidates]) -> Vec<u
         .collect()
 }
 
+/// 一括版 [`idol_index`] ([`song_indices`] と同じ規約)。
+pub fn idol_indices(day_key: &str, brands: &[DailyPickBrandCandidates]) -> Vec<u32> {
+    brands
+        .iter()
+        // idol_index の結果は常に [0, count) なので u32 に収まる。
+        .map(|b| idol_index(day_key, &b.brand_id, i64::from(b.count)) as u32)
+        .collect()
+}
+
+/// 起動時の日替わりシートが、その日どちらを出すか。
+#[derive(uniffi::Enum, Clone, Copy, Debug, PartialEq, Eq)]
+pub enum DailyPickKind {
+    /// 各ブランドの「今日の 1 曲」に曲タグを付けてもらう。
+    Song,
+    /// 各ブランドの「今日のアイドル」にアイドルタグを付けてもらう。
+    Idol,
+}
+
+/// その日に出すシートの種別。**日で交互**に入れ替える (偶数日=曲 / 奇数日=アイドル)。
+///
+/// # なぜ日付キーのハッシュではなく日の偶奇か
+///
+/// [`stable_index`] で 2 を法に取ると長い目では半々になるが、同じ側が 3 日 4 日と
+/// 続くことがある。毎日開く画面なので「昨日と違う方が出る」ことに意味があり、
+/// 交互になる規則を選んでいる。
+///
+/// # なぜ日付キー文字列ではなく日の成分を受け取るか
+///
+/// 日付キーは端末の暦法で解決済みの表記で、和暦端末では `"0008-07-26"` のように
+/// 年の桁が変わる (モジュールコメント参照)。文字列から日を切り出す規則を足すと
+/// 暦法ごとの表記に依存してしまう。日の成分はどの暦法でも同じ「その月の何日目か」
+/// なので、そのまま受け取る。
+///
+/// 月末で偶奇が続くこと (31 日 → 翌月 1 日 はどちらも奇数) は許容している。
+/// 厳密に途切れなく交互にするには暦の日数計算が要り、それは core が持たない責務
+/// (モジュールコメントの「前日」と同じ理由)。年に数回、同じ側が 2 日続くだけ。
+pub fn sheet_kind(local_day: i32) -> DailyPickKind {
+    // 負の成分 (欠損時のフォールバック 0 や異常値) でも panic せず定義通りに返す。
+    if local_day.rem_euclid(2) == 0 {
+        DailyPickKind::Song
+    } else {
+        DailyPickKind::Idol
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // MARK: idol_index / sheet_kind
+
+    /// 曲とアイドルは種の名前空間が違う。候補数が同じでも同じ番号にはならない。
+    #[test]
+    fn the_idol_pick_does_not_track_the_song_pick() {
+        let day = "2026-08-28";
+        // 同じ日・同じブランド・同じ候補数でも別の番号を引く。
+        let same_count = 190;
+        assert_ne!(
+            song_index(day, "cg", same_count),
+            idol_index(day, "cg", same_count),
+            "種を分けていないと曲とアイドルが連動する"
+        );
+    }
+
+    /// 日が変われば選ばれるアイドルも変わる (同じ日なら何度呼んでも同じ)。
+    #[test]
+    fn the_idol_pick_is_stable_within_a_day_and_moves_across_days() {
+        assert_eq!(idol_index("2026-08-28", "ml", 52), idol_index("2026-08-28", "ml", 52));
+        assert_ne!(idol_index("2026-08-28", "ml", 52), idol_index("2026-08-29", "ml", 52));
+    }
+
+    /// 候補 0 人 (そのブランドにアイドルが居ない) でもゼロ除算で落ちない。
+    #[test]
+    fn the_idol_pick_survives_an_empty_brand() {
+        assert_eq!(idol_index("2026-08-28", "other", 0), 0);
+    }
+
+    /// 一括版は 1 件ずつの答えと必ず一致する (曲側と同じ契約)。
+    #[test]
+    fn bulk_idol_indices_match_the_single_answers() {
+        let brands = vec![
+            DailyPickBrandCandidates { brand_id: "cg".into(), count: 190 },
+            DailyPickBrandCandidates { brand_id: "ml".into(), count: 52 },
+            DailyPickBrandCandidates { brand_id: "sc".into(), count: 28 },
+        ];
+        let bulk = idol_indices("2026-08-28", &brands);
+        for (b, got) in brands.iter().zip(bulk) {
+            assert_eq!(u32::from(got), idol_index("2026-08-28", &b.brand_id, i64::from(b.count)) as u32);
+        }
+    }
+
+    /// 起動シートは日で交互 (偶数日=曲 / 奇数日=アイドル)。
+    #[test]
+    fn the_launch_sheet_alternates_day_by_day() {
+        assert_eq!(sheet_kind(28), DailyPickKind::Song);
+        assert_eq!(sheet_kind(29), DailyPickKind::Idol);
+        assert_eq!(sheet_kind(30), DailyPickKind::Song);
+        assert_eq!(sheet_kind(31), DailyPickKind::Idol);
+    }
+
+    /// 欠損時のフォールバック 0 や負の成分でも panic しない。
+    #[test]
+    fn the_launch_sheet_kind_survives_degenerate_components() {
+        assert_eq!(sheet_kind(0), DailyPickKind::Song);
+        assert_eq!(sheet_kind(-1), DailyPickKind::Idol);
+        assert_eq!(sheet_kind(i32::MIN), DailyPickKind::Song);
+    }
 
     // MARK: day_key
 
