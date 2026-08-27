@@ -2,8 +2,6 @@ package com.fugaif.imaslivedb.ui.share
 
 import android.content.Context
 import androidx.compose.foundation.background
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -19,10 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
@@ -42,7 +37,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fugaif.imaslivedb.di.AppModule
-import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.hexToColor
 import java.util.Locale
 
@@ -213,36 +207,24 @@ private fun ShareProgressBar(ratio: Double, height: Dp, fill: Color) {
 }
 
 /** 回収ダッシュボードから開くシェアシート。 */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CollectionShareSheet(collected: Int, total: Int, onDismiss: () -> Unit) {
     val context = LocalContext.current
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var stats by remember { mutableStateOf<CollectionShareStats?>(null) }
 
     LaunchedEffect(collected, total) {
         stats = CollectionShareStats.load(context, collected, total)
     }
 
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, containerColor = DS.bg) {
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp)
-                .padding(bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            ShareCardSheetHeader("回収率をシェア", onClose = onDismiss)
-            val current = stats
-            if (current == null) {
-                Box(Modifier.fillMaxWidth().padding(vertical = 40.dp), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
-            } else {
-                ShareCardActionPane(fileNamePrefix = "collection") { size ->
-                    CollectionShareCard(stats = current, size = size)
-                }
+    ShareCardSheet(title = "回収率をシェア", onDismiss = onDismiss) {
+        val current = stats
+        if (current == null) {
+            Box(Modifier.fillMaxWidth().padding(vertical = 40.dp), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        } else {
+            ShareCardActionPane(fileNamePrefix = "collection") { size ->
+                CollectionShareCard(stats = current, size = size)
             }
         }
     }

@@ -1,8 +1,6 @@
 package com.fugaif.imaslivedb.ui.share
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,11 +17,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Alignment
@@ -259,7 +254,6 @@ private fun introGrade(percentage: Int): Pair<String, Color> = when {
  * (X などは画像付きの方が伸びるうえ、本家アプリの導線をカードに焼き込める)。
  * このカードのレイアウトは 4:5 前提で組んであるので、比率トグルは出さない。
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun IntroDonShareSheet(
     modeLabel: String,
@@ -272,34 +266,22 @@ fun IntroDonShareSheet(
     shareText: String,
     onDismiss: () -> Unit
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, containerColor = DS.bg) {
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp)
-                .padding(bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            ShareCardSheetHeader("結果をシェア", onClose = onDismiss)
-            ShareCardActionPane(
-                ratios = listOf(ShareCardRatio.PORTRAIT),
-                shareText = shareText,
-                fileNamePrefix = "introdon"
-            ) { size ->
-                IntroResultShareCard(
-                    modeLabel = modeLabel,
-                    score = score,
-                    total = total,
-                    percentage = percentage,
-                    timeText = timeText,
-                    bestCombo = bestCombo,
-                    lines = lines,
-                    size = size
-                )
-            }
+    ShareCardSheet(title = "結果をシェア", onDismiss = onDismiss) {
+        ShareCardActionPane(
+            ratios = listOf(ShareCardRatio.PORTRAIT),
+            shareText = shareText,
+            fileNamePrefix = "introdon"
+        ) { size ->
+            IntroResultShareCard(
+                modeLabel = modeLabel,
+                score = score,
+                total = total,
+                percentage = percentage,
+                timeText = timeText,
+                bestCombo = bestCombo,
+                lines = lines,
+                size = size
+            )
         }
     }
 }

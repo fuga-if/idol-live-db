@@ -17,18 +17,24 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
@@ -474,20 +480,44 @@ private fun ShareCardButton(
     }
 }
 
-/** カードシートの見出し行 (タイトル + 閉じる)。4 つの入口で位置がバラけないよう一本化する。 */
+/**
+ * シェアカードを出すシートの外枠。
+ *
+ * 4 つの入口がそれぞれ ModalBottomSheet + スクロール + 見出し + 「閉じる」を書いていると、
+ * 閉じるの位置や余白が入口ごとにズレる。枠はここに一本化する (iOS ShareCardSheet と同じ役割)。
+ */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ShareCardSheetHeader(title: String, onClose: () -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(title, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = DS.ink)
-        Spacer(Modifier.weight(1f))
-        Text(
-            "閉じる",
-            fontSize = 15.sp,
-            color = DS.ink2,
-            modifier = Modifier.clickable(onClick = onClose).padding(horizontal = 4.dp, vertical = 4.dp)
-        )
+fun ShareCardSheet(
+    title: String,
+    onDismiss: () -> Unit,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, containerColor = DS.bg) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .imePadding()
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(title, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = DS.ink)
+                Spacer(Modifier.weight(1f))
+                Text(
+                    "閉じる",
+                    fontSize = 15.sp,
+                    color = DS.ink2,
+                    modifier = Modifier.clickable(onClick = onDismiss).padding(4.dp)
+                )
+            }
+            content()
+        }
     }
 }

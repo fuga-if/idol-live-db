@@ -1,21 +1,13 @@
 package com.fugaif.imaslivedb.ui.share
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -112,7 +104,6 @@ fun SetlistCommentShareCard(
  * プレビューはレンダリング済み画像ではなく実カードを縮小表示しているので、
  * 入力中の文字がそのまま反映される (出力とプレビューが必ず一致する)。
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SetlistCommentComposeSheet(
     songTitle: String,
@@ -122,49 +113,36 @@ fun SetlistCommentComposeSheet(
     artworkUrl: String?,
     onDismiss: () -> Unit
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var comment by remember { mutableStateOf("") }
     val artwork = rememberShareArtwork(artworkUrl)
 
     // 未入力時はプレースホルダで完成形を見せる (空のカードを見せない)。
     val displayComment = comment.trim().ifEmpty { "ここに感想が入ります" }
 
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, containerColor = DS.bg) {
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .imePadding()
-                .padding(horizontal = 16.dp)
-                .padding(bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            ShareCardSheetHeader("感想カードを作る", onClose = onDismiss)
+    ShareCardSheet(title = "感想カードを作る", onDismiss = onDismiss) {
+        Text("この曲の感想", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = DS.ink3)
+        OutlinedTextField(
+            value = comment,
+            onValueChange = { comment = it },
+            placeholder = { Text("最高だった！ 泣いた…など") },
+            minLines = 3,
+            maxLines = 6,
+            modifier = Modifier.fillMaxWidth()
+        )
 
-            Text("この曲の感想", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = DS.ink3)
-            OutlinedTextField(
-                value = comment,
-                onValueChange = { comment = it },
-                placeholder = { Text("最高だった！ 泣いた…など") },
-                minLines = 3,
-                maxLines = 6,
-                modifier = Modifier.fillMaxWidth()
+        ShareCardActionPane(
+            isPreparingCard = artwork.isPreparing,
+            fileNamePrefix = "setlist_comment"
+        ) { size ->
+            SetlistCommentShareCard(
+                songTitle = songTitle,
+                showName = showName,
+                showDate = showDate,
+                comment = displayComment,
+                seed = seed,
+                artwork = artwork.image,
+                size = size
             )
-
-            ShareCardActionPane(
-                isPreparingCard = artwork.isPreparing,
-                fileNamePrefix = "setlist_comment"
-            ) { size ->
-                SetlistCommentShareCard(
-                    songTitle = songTitle,
-                    showName = showName,
-                    showDate = showDate,
-                    comment = displayComment,
-                    seed = seed,
-                    artwork = artwork.image,
-                    size = size
-                )
-            }
         }
     }
 }
