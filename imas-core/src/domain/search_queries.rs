@@ -5,7 +5,7 @@
 //!   アダプタは `GRDBGlobalSearchRepository`)。GRDB が生成していた SQL は 3 本:
 //!   - `SELECT * FROM songs  WHERE title LIKE ? ESCAPE '\' OR title_kana LIKE ? ESCAPE '\' LIMIT 20`
 //!   - `SELECT * FROM idols  WHERE name  LIKE ? ESCAPE '\' OR name_kana  LIKE ? ESCAPE '\' LIMIT 20`
-//!   - `SELECT * FROM events WHERE name  LIKE ? ESCAPE '\' LIMIT 20`
+//!   - `SELECT * FROM events WHERE name  LIKE ? ESCAPE '\' OR name_kana  LIKE ? ESCAPE '\' LIMIT 20`
 //!   - バインド値はどれも `%<likeEscaped(query)>%` (Swift `String.likeEscaped` が `\` `%` `_` を
 //!     エスケープするので、検索語は**リテラルの部分一致**として当たる)。
 //!
@@ -180,7 +180,7 @@ mod tests {
         run_original_sql("idols", Some("name_kana"), q)
     }
     fn sql_events(q: &str) -> Vec<String> {
-        run_original_sql("events", None, q)
+        run_original_sql("events", Some("name_kana"), q)
     }
 
     fn song_ids(q: &str) -> Vec<String> {

@@ -25,11 +25,27 @@
 //! `BNEI(椎名豪)` と表記が揃わず、同じ会社の人が二通りに分かれてしまう。
 
 /// 括弧の外で人を分ける区切り。
-const OUTER_SEPARATORS: [char; 5] = ['/', '／', ',', '、', '・'];
+///
+/// 全角スペース (U+3000) も入っている。実データの 6 例すべてが人の区切りで、
+/// 名前の中に現れたことは一度も無かった (`夕野ヨシミ (IOSYS)　狐夢想 (COOL＆CREATE)` /
+/// `星銀乃丈　ストリングスアレンジ：松田彬人`)。半角スペースは逆に名前の中でしか
+/// 使われていない (`古屋 真` `TAKT (TRYTONELABO)` `Lauren Kaori`) ので入れない。
+///
+/// `×` は共作を表す 1 例だけ (`渡辺徹×日比野裕史`)。両名とも単独でも入っていて、
+/// 割らないと同じ人が「連名の 1 人」として二重に持たれる。
+///
+/// `＆` は入れない。人の区切り (`リスナーP有志＆ミンゴス＆ちあking`) とユニット名
+/// (`原紗友里＆青木瑠璃子 from CINDERELLA PARTY！`) の両方に使われていて、
+/// 構造でも実データでも見分けが付かない。
+const OUTER_SEPARATORS: [char; 7] = ['/', '／', ',', '、', '・', '\u{3000}', '\u{00D7}'];
 /// 括弧の中で人を分ける区切り (`,` と `/` は社名の一部なので入れない)。
 const INNER_SEPARATORS: [char; 2] = ['、', '・'];
 
 /// 名前ではなく役割を表す語。`ストリングスアレンジ：松田彬人` の前半。
+///
+/// 役割注記は前の人と**全角スペースで区切られて**並ぶ (`家原正樹　　弦管編曲：森悠也`)。
+/// 区切ってから注記を外すので、前の人 (家原正樹) が落ちない。
+/// 区切りに入れる前は 1 断片として扱われ、`：` の後ろだけが残って前の人が消えていた。
 const ROLE_MARK: char = '：';
 
 /// 名前として扱わない値。「不明」の代わりに置かれた記号。
@@ -216,6 +232,46 @@ mod tests {
         );
     }
 
+    /// 全角スペースは人の区切り。半角スペースは名前の一部。
+    ///
+    /// 区切らないと役割注記の規則に飲まれ、前の人が丸ごと消える
+    /// (`家原正樹　　弦管編曲：森悠也` が `森悠也` だけになっていた)。
+    #[test]
+    fn an_ideographic_space_separates_people() {
+        assert_eq!(
+            split_credits("夕野ヨシミ (IOSYS)\u{3000}狐夢想 (COOL＆CREATE)"),
+            ["夕野ヨシミ (IOSYS)", "狐夢想 (COOL＆CREATE)"]
+        );
+        assert_eq!(
+            split_credits("家原正樹\u{3000}\u{3000}弦管編曲：森悠也"),
+            ["家原正樹", "森悠也"]
+        );
+        assert_eq!(
+            split_credits("星銀乃丈\u{3000}ストリングスアレンジ：松田彬人"),
+            ["星銀乃丈", "松田彬人"]
+        );
+        // 末尾の全角スペースは空断片になるだけ。
+        assert_eq!(split_credits("Cocoro.(Dream Monster)\u{3000}"), ["Cocoro.(Dream Monster)"]);
+        // 半角スペースでは割らない。
+        assert_eq!(split_credits("TAKT (TRYTONELABO)"), ["TAKT (TRYTONELABO)"]);
+        assert_eq!(split_credits("古屋 真"), ["古屋 真"]);
+    }
+
+    /// 共作を表す `×` も人の区切り。
+    #[test]
+    fn a_multiplication_sign_separates_collaborators() {
+        assert_eq!(split_credits("渡辺徹×日比野裕史"), ["渡辺徹", "日比野裕史"]);
+    }
+
+    /// `＆` では割らない。ユニット名にも使われていて見分けが付かない。
+    #[test]
+    fn an_ampersand_is_not_a_separator() {
+        assert_eq!(
+            split_credits("原紗友里＆青木瑠璃子 from CINDERELLA PARTY！"),
+            ["原紗友里＆青木瑠璃子 from CINDERELLA PARTY！"]
+        );
+    }
+
     /// 角括弧の中の並びも開く (韓国の作家陣がこの形で入っている)。
     #[test]
     fn a_bracketed_list_is_opened_too() {
@@ -308,15 +364,22 @@ fn strip_affiliation(name: &str) -> &str {
 ///
 /// 単純に最後の開き括弧を探すと入れ子で壊れる
 /// (`Gamenrider(서용배(Seo Yong Bae))` が `Gamenrider(서용배` になる)。
+///
+/// 開きと閉じの**種類は照合しない**。クレジットは人が手で打った文字列で、
+/// 実際に `滝澤俊輔(TRYTONELABO]` のような打ち間違いが入っている。同種ペアだけを
+/// 対応させると、この形は所属を落とせず括弧ごと人名になり、正しく打たれた
+/// `滝澤俊輔(TRYTONELABO)` と別人に分かれてしまう。
+/// 閉じ忘れを見る `first_unclosed_bracket` も同じ規則 (どの閉じでも 1 つ戻す)。
 fn strip_trailing_bracket(name: &str) -> Option<&str> {
-    let (close_char, _) = name.char_indices().next_back()?;
-    let last = name[close_char..].chars().next()?;
-    let (open, close) = BRACKET_PAIRS.iter().find(|(_, c)| *c == last)?;
+    let (_, last) = name.char_indices().next_back()?;
+    if !is_closing_bracket(last) {
+        return None;
+    }
     let mut depth = 0i32;
     for (i, ch) in name.char_indices().rev() {
-        if ch == *close {
+        if is_closing_bracket(ch) {
             depth += 1;
-        } else if ch == *open {
+        } else if is_opening_bracket(ch) {
             depth -= 1;
             if depth == 0 {
                 let head = name[..i].trim();
@@ -327,17 +390,25 @@ fn strip_trailing_bracket(name: &str) -> Option<&str> {
     None
 }
 
+fn is_opening_bracket(c: char) -> bool {
+    BRACKET_PAIRS.iter().any(|(o, _)| *o == c)
+}
+
+fn is_closing_bracket(c: char) -> bool {
+    BRACKET_PAIRS.iter().any(|(_, c2)| *c2 == c)
+}
+
 /// 閉じられていない開き括弧の位置。
 fn first_unclosed_bracket(name: &str) -> Option<usize> {
-    let mut stack: Vec<(usize, char)> = Vec::new();
+    let mut stack: Vec<usize> = Vec::new();
     for (i, ch) in name.char_indices() {
-        if let Some((_, close)) = BRACKET_PAIRS.iter().find(|(o, _)| *o == ch) {
-            stack.push((i, *close));
-        } else if BRACKET_PAIRS.iter().any(|(_, c)| *c == ch) {
+        if is_opening_bracket(ch) {
+            stack.push(i);
+        } else if is_closing_bracket(ch) {
             stack.pop();
         }
     }
-    stack.first().map(|(i, _)| *i)
+    stack.first().copied()
 }
 
 fn is_japanese(c: char) -> bool {
@@ -383,6 +454,24 @@ mod canonical_tests {
             assert_eq!(canonical_credit_key(n), "ARM", "{n}");
         }
         assert_eq!(canonical_credit_key("Mitsu.J (Digz, Inc. Group)"), "Mitsu.J");
+    }
+
+    /// 開きと閉じが食い違う打ち間違いも、所属として落とす。
+    ///
+    /// `滝澤俊輔(TRYTONELABO]` は実データにあった表記。同種ペアだけを対応させると
+    /// 括弧ごと人名になり、`滝澤俊輔` と別人に分かれる (実際に分かれていた)。
+    #[test]
+    fn a_mistyped_bracket_pair_still_drops_the_affiliation() {
+        for n in [
+            "滝澤俊輔(TRYTONELABO)",
+            "滝澤俊輔（TRYTONELABO）",
+            "滝澤俊輔[TRYTONELABO]",
+            "滝澤俊輔［TRYTONELABO］",
+            "滝澤俊輔(TRYTONELABO]",
+        ] {
+            assert_eq!(canonical_credit_key(n), "滝澤俊輔", "{n}");
+        }
+        assert_eq!(canonical_credit_key("TAKT(TRYTONELABO]"), "TAKT");
         // 角括弧・山括弧も所属として落とす。
         assert_eq!(canonical_credit_key("Asu [The New Classics]"), "Asu");
         assert_eq!(canonical_credit_key("Apis［TRYTONELABO］"), "Apis");
