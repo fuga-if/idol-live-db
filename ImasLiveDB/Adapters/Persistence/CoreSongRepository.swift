@@ -280,9 +280,14 @@ struct CoreSongRepository: SongReading {
         }
     }
 
-    /// show_cast (公演キャスト) を跨ぐ結合はイベント/公演スライス (Phase 4) の領域。
+    /// 指定公演の出演キャストがオリメンの曲 id 集合 (予想ピッカーの絞り込み)。
+    ///
+    /// コアは `DISTINCT` の未規定な並びを曲の添字昇順で決定化して返す。ここでは
+    /// 集合として使うので順序は問わない (元 SQL も Swift 側で Set にしていた)。
     func originalSongIds(forShowCastOf showId: String) async throws -> Set<String> {
-        try await fallback.originalSongIds(forShowCastOf: showId)
+        try await snapshot.withStore(fallbackTo: { try await fallback.originalSongIds(forShowCastOf: showId) }) { store in
+            Set(try store.originalSongIdsForShowCast(showId: showId))
+        }
     }
 
     /// ブランドに属する曲の id 集合 (統計スライスがコアに持っている)。
