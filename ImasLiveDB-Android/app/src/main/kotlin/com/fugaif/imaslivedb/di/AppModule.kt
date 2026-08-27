@@ -6,6 +6,7 @@ import com.fugaif.imaslivedb.data.backup.BackupTransferApi
 import com.fugaif.imaslivedb.data.core.SnapshotStoreProvider
 import com.fugaif.imaslivedb.data.db.AppDatabase
 import com.fugaif.imaslivedb.data.edit.EditApi
+import com.fugaif.imaslivedb.data.image.CustomImageStore
 import com.fugaif.imaslivedb.data.repository.CalendarRepository
 import com.fugaif.imaslivedb.data.repository.EditFeedRepository
 import com.fugaif.imaslivedb.data.repository.EventRepository
@@ -55,6 +56,8 @@ class AppModule private constructor(context: Context) {
     val performanceEvidenceRepository: PerformanceEvidenceRepository by lazy {
         PerformanceEvidenceRepository(database, snapshotStoreProvider)
     }
+    /** ユーザーが端末に取り込んだアイドル/ユニット/ブランド画像。filesDir 配下でウィジェットと共有する。 */
+    val customImageStore: CustomImageStore by lazy { CustomImageStore(appContext) }
     val userMarkRepository: UserMarkRepository by lazy { UserMarkRepository(database) }
     val personalTagRepository: PersonalTagRepository by lazy { PersonalTagRepository(database) }
     val authService: AuthService by lazy { AuthService(appContext) }

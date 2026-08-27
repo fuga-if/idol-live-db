@@ -1,11 +1,14 @@
 package com.fugaif.imaslivedb.ui.settings
 
+import android.Manifest
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -29,6 +32,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -39,6 +43,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -46,6 +52,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -55,15 +62,23 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fugaif.imaslivedb.data.backup.BackupFormatException
 import com.fugaif.imaslivedb.data.backup.BackupImportResult
 import com.fugaif.imaslivedb.data.backup.BackupTransferException
 import com.fugaif.imaslivedb.data.backup.TransferCodeResult
+import com.fugaif.imaslivedb.data.notification.NotificationCategory
+import com.fugaif.imaslivedb.data.notification.NotificationPrefs
+import com.fugaif.imaslivedb.data.notification.NotificationScheduler
+import com.fugaif.imaslivedb.data.image.BulkImageImporter
 import com.fugaif.imaslivedb.data.sync.CloudKitSyncEngine
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.theme.DS
@@ -124,6 +139,13 @@ fun SettingsScreen(
                 HorizontalDivider()
             }
 
+            // 通知
+            item {
+                SettingsSectionTitle("通知")
+                NotificationSection()
+                HorizontalDivider()
+            }
+
             // データ
             item {
                 SettingsSectionTitle("データ")
@@ -137,6 +159,13 @@ fun SettingsScreen(
             item {
                 SettingsSectionTitle("バックアップ")
                 BackupSection(viewModel)
+                HorizontalDivider()
+            }
+
+            // キャラクター画像 (端末ローカル)
+            item {
+                SettingsSectionTitle("キャラクター画像")
+                ImageImportSection()
                 HorizontalDivider()
             }
 
@@ -503,6 +532,184 @@ private fun SettingsInfoRow(label: String, value: String) {
     HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
 }
 
+// =============================================================================
+// キャラクター画像の一括インポート (iOS MyPageView.imageImportSection と対)
+// 取り込んだ画像は端末内 (filesDir) にだけ置く。サーバにも CloudKit にも送らない。
+// =============================================================================
+
+/** 一括インポート/型紙の対象。UI 文言・ファイル名・呼ぶ API がこれで決まる。 */
+private enum class ImageImportTarget(
+    val label: String,
+    val templateFileName: String,
+) {
+    IDOL("アイドル", "idol_images_template.json"),
+    BRAND("ブランド", "brand_images_template.json"),
+    UNIT("ユニット", "unit_images_template.json"),
+}
+
+@Composable
+private fun ImageImportSection() {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val module = remember { AppModule.from(context) }
+    // 画面を離れると進捗が消えるが、iOS も View 側の @State に持たせている (同じ寿命)。
+    val importer = remember {
+        BulkImageImporter(
+            store = module.customImageStore,
+            idolRepository = module.idolRepository,
+            statsRepository = module.statsRepository,
+            unitRepository = module.unitRepository,
+            snapshots = module.snapshotStoreProvider,
+        )
+    }
+    val state by importer.state.collectAsState()
+
+    var urlTarget by remember { mutableStateOf<ImageImportTarget?>(null) }
+    var urlText by remember { mutableStateOf("") }
+    var showClearConfirm by remember { mutableStateOf(false) }
+    // SAF は起動時に保存先を決めるので、「どの型紙を書くか」は launch 前に控えておく。
+    var templateTarget by remember { mutableStateOf(ImageImportTarget.IDOL) }
+
+    val saveTemplateLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        val target = templateTarget
+        scope.launch {
+            // 型紙 JSON の組み立ては共有コア (imas-core) が唯一の正。ここは書き出すだけ。
+            val json = when (target) {
+                ImageImportTarget.IDOL -> importer.idolTemplateJson()
+                ImageImportTarget.BRAND -> importer.brandTemplateJson()
+                ImageImportTarget.UNIT -> importer.unitTemplateJson()
+            }
+            withContext(Dispatchers.IO) {
+                context.contentResolver.openOutputStream(uri)?.use {
+                    it.write(json.toByteArray(Charsets.UTF_8))
+                }
+            }
+        }
+    }
+
+    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+        Text(
+            "「名前 → 画像URL」の JSON を指定すると、アイコン画像をまとめて取り込めます。" +
+                "画像はこの端末の中だけに保存され、サーバーには送信されません。",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        ImageImportTarget.entries.forEach { target ->
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                OutlinedButton(
+                    onClick = { urlTarget = target; urlText = "" },
+                    enabled = !state.isImporting,
+                    modifier = Modifier.weight(1f)
+                ) { Text("${target.label}画像をインポート") }
+                TextButton(
+                    onClick = {
+                        templateTarget = target
+                        saveTemplateLauncher.launch(target.templateFileName)
+                    }
+                ) { Text("型紙", fontSize = 13.sp) }
+            }
+        }
+
+        if (state.isImporting) {
+            LinearProgressIndicator(
+                progress = { state.progress },
+                modifier = Modifier.fillMaxWidth().padding(top = 12.dp)
+            )
+        }
+        if (state.statusMessage.isNotEmpty()) {
+            Text(
+                state.statusMessage, fontSize = 13.sp, color = DS.ink2,
+                modifier = Modifier.padding(top = 8.dp)
+            )
+        }
+        // 失敗内訳は「名前が DB に無い」等ユーザーが型紙を直せる情報なので、件数だけでなく中身も出す。
+        if (state.failures.isNotEmpty()) {
+            Column(modifier = Modifier.padding(top = 4.dp)) {
+                Text("失敗内訳 (${state.failures.size} 件)", fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold, color = DS.warning)
+                state.failures.take(MAX_SHOWN_FAILURES).forEach { failure ->
+                    Text("${failure.key}: ${failure.reason}", fontSize = 11.sp, color = DS.ink3)
+                }
+                if (state.failures.size > MAX_SHOWN_FAILURES) {
+                    Text("ほか ${state.failures.size - MAX_SHOWN_FAILURES} 件", fontSize = 11.sp, color = DS.ink3)
+                }
+            }
+        }
+
+        TextButton(
+            onClick = { showClearConfirm = true },
+            enabled = !state.isImporting,
+            modifier = Modifier.padding(top = 4.dp)
+        ) { Text("カスタム画像をすべて削除", color = DS.danger) }
+    }
+
+    urlTarget?.let { target ->
+        AlertDialog(
+            onDismissRequest = { urlTarget = null },
+            title = { Text("${target.label}画像の一括インポート") },
+            text = {
+                Column {
+                    Text(
+                        "{ \"名前\": \"画像URL\" } 形式の JSON を置いた URL を入力してください。",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    OutlinedTextField(
+                        value = urlText,
+                        onValueChange = { urlText = it },
+                        label = { Text("JSON の URL") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val url = urlText
+                        urlTarget = null
+                        scope.launch {
+                            when (target) {
+                                ImageImportTarget.IDOL -> importer.importIdolImages(url)
+                                ImageImportTarget.BRAND -> importer.importBrandImages(url)
+                                ImageImportTarget.UNIT -> importer.importUnitImages(url)
+                            }
+                        }
+                    },
+                    enabled = urlText.isNotBlank()
+                ) { Text("インポート") }
+            },
+            dismissButton = { TextButton(onClick = { urlTarget = null }) { Text("キャンセル") } }
+        )
+    }
+
+    if (showClearConfirm) {
+        AlertDialog(
+            onDismissRequest = { showClearConfirm = false },
+            title = { Text("カスタム画像をすべて削除") },
+            text = { Text("取り込んだアイドル・ユニット・ブランドの画像をすべて消します。元に戻せません。") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showClearConfirm = false
+                    scope.launch { importer.clearAllImages() }
+                }) { Text("削除", color = DS.danger) }
+            },
+            dismissButton = { TextButton(onClick = { showClearConfirm = false }) { Text("キャンセル") } }
+        )
+    }
+}
+
+/** 失敗内訳を設定画面に直接並べる上限 (これ以上は「ほか N 件」に畳む)。 */
+private const val MAX_SHOWN_FAILURES = 20
+
 @Composable
 private fun CreditText(text: String) {
     Text(
@@ -735,3 +942,114 @@ private fun BackupSection(viewModel: SettingsViewModel) {
         )
     }
 }
+
+/**
+ * 通知の許可状態と 4 種類のトグル。iOS `MyPageView.notificationSection` の移植。
+ *
+ * 保存キー (notif_oshi_birthday など) は iOS と同じ。トグルを触るたびに全再スケジュール
+ * するのも iOS と同じで、差分更新はしない (組み立てが安いので、状態を持たない方が確実)。
+ */
+@Composable
+private fun NotificationSection() {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val prefs = remember { NotificationPrefs(context) }
+
+    var enabled by remember { mutableStateOf(NotificationScheduler.areNotificationsEnabled(context)) }
+    var permissionDenied by remember { mutableStateOf(false) }
+
+    // システムの通知設定で切られた/許可された場合、この画面に戻ってきた時点で表示を合わせる。
+    // (アプリ内トグルだけ ON に見えて通知が来ない、という状態を作らないため)
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                enabled = NotificationScheduler.areNotificationsEnabled(context)
+                if (enabled) permissionDenied = false
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        enabled = granted && NotificationScheduler.areNotificationsEnabled(context)
+        permissionDenied = !enabled
+        if (enabled) scope.launch { NotificationScheduler.rescheduleAll(context) }
+    }
+
+    if (!enabled) {
+        SettingsNavRow("通知を許可する") {
+            // Android 13+ はランタイム権限のダイアログ。ただし 2 回拒否済みだと
+            // ダイアログが出ずに即 denied で返るので、その場合は下の導線に切り替える。
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            } else {
+                // 12 以下に POST_NOTIFICATIONS は無い。切られている = システム設定側なので直接飛ばす。
+                context.startActivity(appNotificationSettingsIntent(context))
+            }
+        }
+        if (permissionDenied) {
+            Text(
+                "通知が拒否されています。システムの通知設定から許可してください。",
+                style = MaterialTheme.typography.bodySmall,
+                color = DS.warning,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+            SettingsNavRow("システムの通知設定を開く") {
+                context.startActivity(appNotificationSettingsIntent(context))
+            }
+        }
+        return
+    }
+
+    NotificationToggleRow("担当アイドルの誕生日", prefs, NotificationCategory.OSHI_BIRTHDAY, scope)
+    NotificationToggleRow("ライブ1週間前", prefs, NotificationCategory.LIVE_WEEK, scope)
+    NotificationToggleRow("チケット締切・当落通知", prefs, NotificationCategory.TICKET, scope)
+    NotificationToggleRow("月曜が近いことを知らせる (日曜 20:00)", prefs, NotificationCategory.MONDAY, scope)
+    Text(
+        "お気に入りまたは参加マークしたイベントにライブ前・チケット通知を送ります。",
+        style = MaterialTheme.typography.bodySmall,
+        color = DS.ink2,
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+    )
+}
+
+@Composable
+private fun NotificationToggleRow(
+    label: String,
+    prefs: NotificationPrefs,
+    category: NotificationCategory,
+    scope: kotlinx.coroutines.CoroutineScope
+) {
+    val context = LocalContext.current
+    var checked by remember(category) { mutableStateOf(prefs.isEnabled(category)) }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = DS.ink, modifier = Modifier.weight(1f))
+        Switch(
+            checked = checked,
+            onCheckedChange = { value ->
+                checked = value
+                prefs.setEnabled(category, value)
+                // 設定を変えたら即座に予定表を作り直す (iOS の onChange と同じ)。
+                scope.launch { NotificationScheduler.rescheduleAll(context) }
+            },
+            // システムクロムは無彩 (DS の方針)。色はエンティティ側からしか出さない。
+            colors = SwitchDefaults.colors(checkedTrackColor = DS.sys, checkedThumbColor = DS.onSys)
+        )
+    }
+    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+}
+
+/** このアプリの通知設定画面。チャンネル単位の音量・重要度もここから触れる。 */
+private fun appNotificationSettingsIntent(context: Context): Intent =
+    Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+        .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

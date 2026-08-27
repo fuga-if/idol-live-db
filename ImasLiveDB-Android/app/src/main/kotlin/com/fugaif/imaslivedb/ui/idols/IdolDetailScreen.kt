@@ -1,5 +1,9 @@
 package com.fugaif.imaslivedb.ui.idols
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -9,6 +13,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,7 +22,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.combinedClickable
@@ -30,9 +38,12 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -40,6 +51,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -53,8 +65,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
@@ -64,11 +78,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil3.compose.SubcomposeAsyncImage
 import com.fugaif.imaslivedb.data.auth.AuthState
 import com.fugaif.imaslivedb.data.auth.shouldPromptLogin
 import com.fugaif.imaslivedb.data.auth.showEditAffordance
 import com.fugaif.imaslivedb.data.auth.startCommunityEdit
 import com.fugaif.imaslivedb.data.community.CommunityApi
+import com.fugaif.imaslivedb.data.image.CustomImageStore
 import com.fugaif.imaslivedb.data.model.CastShowRow
 import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.data.model.IdolPerformedSong
@@ -95,6 +111,7 @@ import uniffi.imas_core.IdolProfileInput
 import uniffi.imas_core.RowAction
 import uniffi.imas_core.RowStyle
 import uniffi.imas_core.idolProfileRows
+import java.io.File
 
 /**
  * アイドル詳細。iOS IdolDetailView の構成を 1:1 で写す。
@@ -104,7 +121,7 @@ import uniffi.imas_core.idolProfileRows
  * iOS にあって Android にまだ無いもの (対応基盤が無いため未実装):
  * - CV (声優) 表示 — idols テーブルに voice_actors 列が無く、CloudKit マッパー側の追加が必要
  * - メモ (UserMarkBar note) — テキスト入力 UI が Android に無い
- * - 画像ギャラリー / ウィジェット — CustomImageService 相当の基盤が無い
+ * - ホーム画面ウィジェット — 画像基盤 (CustomImageStore) は入ったが、ウィジェット本体は未実装
  * - 編集導線・編集履歴 — Android に編集フロー自体が無い
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -302,12 +319,36 @@ private fun Hero(idol: Idol, brandShortName: String?, t: ImasTheme) {
         pick = marks.isOn(UserMark.IDOL, idol.id, UserMark.PICK)
         fav = marks.isOn(UserMark.IDOL, idol.id, UserMark.FAVORITE)
     }
+    val store = remember { AppModule.from(context).customImageStore }
+    // アバタータップ = 「この写真をアイコンにする」。追加してすぐ先頭 (プライマリ) へ動かす。
+    // 追加だけだと末尾に積まれてアイコンが変わらず、押した結果が見えないため。
+    val pickAvatar = rememberImagePicker(maxItems = 1) { uris ->
+        scope.launch {
+            uris.firstOrNull()?.let { uri ->
+                store.addImage(uri, idol.id)?.let { store.setPrimary(it, idol.id) }
+            }
+        }
+    }
     Column(
         modifier = Modifier.fillMaxWidth().background(t.heroSurface).padding(top = 16.dp, bottom = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        ImasAvatar(label = idol.name, seed = idol.color, brand = idol.brandId, size = 72.dp, isPick = pick)
+        Box(contentAlignment = Alignment.BottomEnd) {
+            Box(Modifier.clickable(onClick = pickAvatar)) {
+                ImasAvatar(label = idol.name, seed = idol.color, brand = idol.brandId, size = 72.dp,
+                    isPick = pick, entityId = idol.id)
+            }
+            // 「押せる」ことが分かるカメラバッジ (iOS の PhotosPicker バッジと対)。
+            Box(
+                modifier = Modifier.size(26.dp).clip(CircleShape).background(t.accent)
+                    .clickable(onClick = pickAvatar),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Filled.PhotoCamera, contentDescription = "アイコン写真を変更",
+                    tint = t.onAccent, modifier = Modifier.size(14.dp))
+            }
+        }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(idol.name, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = DS.ink)
             if (!brandShortName.isNullOrEmpty()) {
@@ -518,6 +559,174 @@ private fun ProfileBody(idol: Idol, onNavigateToBirthMonth: (Int) -> Unit) {
         }
         idol.description?.takeIf { it.isNotEmpty() }?.let { desc ->
             Text(desc, fontSize = 14.sp, color = DS.ink2, modifier = Modifier.padding(16.dp))
+        }
+        // iOS も profileBody の末尾にギャラリーを置いている (プロフィールの一部という位置づけ)。
+        GallerySection(idol.id)
+    }
+}
+
+// =============================================================================
+// 画像ギャラリー (ユーザーが端末に取り込む複数画像)
+// iOS IdolDetailView.gallerySection / CustomImageService と対。
+// 画像は端末内にだけ置く — サーバにも CloudKit にも上げない。
+// =============================================================================
+
+/** 1 回の追加で選べる枚数の上限 (iOS の PhotosPicker maxSelectionCount と同じ)。 */
+private const val MAX_GALLERY_PICK = 10
+
+/**
+ * 端末のフォトピッカーを開くランチャ。
+ *
+ * Android 13+ / Play システム更新済みの端末は権限不要のシステムフォトピッカーを使う。
+ * 未対応端末では [ActivityResultContracts.PickVisualMedia] が解決できないので、
+ * SAF の `GetMultipleContents` に落とす (READ_MEDIA_IMAGES 権限を要求しないため)。
+ */
+@Composable
+private fun rememberImagePicker(maxItems: Int, onPicked: (List<Uri>) -> Unit): () -> Unit {
+    val context = LocalContext.current
+    // PickMultipleVisualMedia は maxItems >= 2 が前提なので、1 枚選択は単数版を使う。
+    val multiple = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickMultipleVisualMedia(maxItems.coerceAtLeast(2))
+    ) { uris -> onPicked(uris.take(maxItems)) }
+    val single = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickVisualMedia()
+    ) { uri -> onPicked(listOfNotNull(uri)) }
+    val fallback = rememberLauncherForActivityResult(
+        ActivityResultContracts.GetMultipleContents()
+    ) { uris -> onPicked(uris.take(maxItems)) }
+    return {
+        val request = PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+        when {
+            !ActivityResultContracts.PickVisualMedia.isPhotoPickerAvailable(context) ->
+                fallback.launch("image/*")
+            maxItems <= 1 -> single.launch(request)
+            else -> multiple.launch(request)
+        }
+    }
+}
+
+/**
+ * 横スクロールのギャラリー。長押しで「アイコンにする / スライドショー切替 / 削除」。
+ *
+ * スライドショーのフラグはホーム画面ウィジェットが読む値で、この画面が唯一の入力口になる
+ * (ウィジェット本体は別途実装)。
+ */
+@Composable
+private fun GallerySection(idolId: String) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val store = remember { AppModule.from(context).customImageStore }
+    // 追加/削除/並べ替えのたびに引き直す (iOS が galleryVersion を読んで再描画するのと同じ)。
+    val version by store.galleryVersion.collectAsState()
+    val files = remember(idolId, version) { store.imageFiles(idolId) }
+    val addImages = rememberImagePicker(MAX_GALLERY_PICK) { uris ->
+        scope.launch { uris.forEach { store.addImage(it, idolId) } }
+    }
+
+    Column {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            ImasSectionHeader("ギャラリー", count = "${files.size}", tight = true, modifier = Modifier.weight(1f))
+            TextButton(onClick = addImages) {
+                Icon(Icons.Filled.Add, contentDescription = null, tint = DS.ink2, modifier = Modifier.size(16.dp))
+                Text("追加", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = DS.ink2,
+                    modifier = Modifier.padding(start = 4.dp))
+            }
+        }
+        if (files.isEmpty()) {
+            Text(
+                "画像を追加すると、先頭の1枚がアイコンになります。画像はこの端末の中だけに保存され、どこにも送信されません。",
+                fontSize = 12.sp, color = DS.ink2,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+            )
+        } else {
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // ファイル名は UUID なので、並べ替えても同一性が壊れない安定キーになる。
+                items(files, key = { it.name }) { file ->
+                    GalleryThumb(
+                        file = file,
+                        isPrimary = file.name == files.first().name,
+                        inSlideshow = remember(file, version) { store.isInSlideshow(file, idolId) },
+                        store = store,
+                        idolId = idolId,
+                        scope = scope
+                    )
+                }
+            }
+            Text(
+                "長押しでアイコン設定・ウィジェットのスライドショー対象・削除を切り替えられます。",
+                fontSize = 11.sp, color = DS.ink3,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun GalleryThumb(
+    file: File,
+    isPrimary: Boolean,
+    inSlideshow: Boolean,
+    store: CustomImageStore,
+    idolId: String,
+    scope: kotlinx.coroutines.CoroutineScope
+) {
+    var menuOpen by remember(file) { mutableStateOf(false) }
+    Box {
+        SubcomposeAsyncImage(
+            model = file,
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.size(96.dp).clip(RoundedCornerShape(10.dp)).background(DS.fill)
+                // タップも長押しも同じメニューを出す。削除以外に「アイコンにする」等もあるので、
+                // 誤爆しない形 (即実行ではなくメニュー) に寄せている。
+                .combinedClickable(onClick = { menuOpen = true }, onLongClick = { menuOpen = true })
+                // スライドショー対象外は淡く落として一目で分かるようにする。
+                .then(if (inSlideshow) Modifier else Modifier.alpha(0.45f)),
+            loading = { Box(Modifier.size(96.dp).background(DS.fill)) },
+            error = { Box(Modifier.size(96.dp).background(DS.fill)) }
+        )
+        if (isPrimary) {
+            Row(
+                modifier = Modifier.padding(5.dp).clip(RoundedCornerShape(999.dp))
+                    .background(Color.Black.copy(alpha = 0.55f))
+                    .padding(horizontal = 6.dp, vertical = 3.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(Icons.Filled.Star, contentDescription = null, tint = Color.White,
+                    modifier = Modifier.size(9.dp))
+                Text("アイコン", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White,
+                    modifier = Modifier.padding(start = 3.dp))
+            }
+        }
+        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+            if (!isPrimary) {
+                DropdownMenuItem(
+                    text = { Text("アイコンにする") },
+                    onClick = {
+                        menuOpen = false
+                        scope.launch { store.setPrimary(file, idolId) }
+                    }
+                )
+            }
+            DropdownMenuItem(
+                text = { Text(if (inSlideshow) "スライドショーから外す" else "スライドショーに入れる") },
+                onClick = {
+                    menuOpen = false
+                    scope.launch { store.setInSlideshow(!inSlideshow, file, idolId) }
+                }
+            )
+            DropdownMenuItem(
+                text = { Text("削除", color = DS.danger) },
+                onClick = {
+                    menuOpen = false
+                    scope.launch { store.deleteImage(file, idolId) }
+                }
+            )
         }
     }
 }

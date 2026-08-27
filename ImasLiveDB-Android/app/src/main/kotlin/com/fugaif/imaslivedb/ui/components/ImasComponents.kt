@@ -24,6 +24,9 @@ import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,8 +39,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
 import coil3.compose.SubcomposeAsyncImage
+import com.fugaif.imaslivedb.data.image.CustomImageStore
+import com.fugaif.imaslivedb.data.image.GalleryKind
 import com.fugaif.imaslivedb.data.model.Idol
+import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.theme.BrandPalette
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasTheme
@@ -47,7 +54,27 @@ import com.fugaif.imaslivedb.ui.theme.ImasTheme
 // SF Symbol は ImageVector へ、Nuke は Coil へ置換。色は ImasTheme(seed) から導出。
 // =============================================================================
 
-/** アイドル等の円形アバター。画像があれば表示、無ければ tint 面 + モノグラム。 */
+/**
+ * ユーザーが端末に取り込んだカスタム画像 (プライマリ 1 枚) を返す。無ければ null。
+ *
+ * [CustomImageStore.galleryVersion] を購読しているので、追加・削除・アイコン変更を
+ * したその場でアバターが差し替わる (iOS が `galleryVersion` を読んで再描画するのと同じ)。
+ * 参照解決自体はメモリキャッシュ済みの manifest を見るだけで、描画中にディスクは読まない。
+ */
+@Composable
+fun rememberCustomImage(entityId: String?, kind: GalleryKind = GalleryKind.IDOL): java.io.File? {
+    if (entityId == null) return null
+    val store = AppModule.from(LocalContext.current).customImageStore
+    val version by store.galleryVersion.collectAsState()
+    return remember(entityId, kind, version) { store.primaryImageFile(entityId, kind) }
+}
+
+/**
+ * アイドル等の円形アバター。画像があれば表示、無ければ tint 面 + モノグラム。
+ *
+ * [entityId] を渡すと、ユーザーが取り込んだカスタム画像 (あれば) を [imageUrl] より優先して出す。
+ * 「誰の」画像かはこの id でしか引けないので、アイドル/ユニットのアバターには必ず渡すこと。
+ */
 @Composable
 fun ImasAvatar(
     label: String,
@@ -55,9 +82,13 @@ fun ImasAvatar(
     brand: String? = null,
     size: Dp = 40.dp,
     isPick: Boolean = false,
-    imageUrl: String? = null
+    imageUrl: String? = null,
+    entityId: String? = null,
+    entityKind: GalleryKind = GalleryKind.IDOL
 ) {
     val t = ImasTheme.derive(seed, brand, dark = true)
+    // ローカル取り込み画像が最優先。File のまま渡せば Coil が file:// として読む。
+    val model: Any? = rememberCustomImage(entityId, entityKind) ?: imageUrl
     // 占有スペースは isPick に関わらず常に一定 (担当リング分の size + 11.dp) にする。
     // isPick で外形が変わると一覧/グリッド/詳細でレイアウトが崩れるため (リングは中央に重ねて描画するのみ)。
     Box(
@@ -74,9 +105,9 @@ fun ImasAvatar(
                 .border(1.5.dp, t.ring, CircleShape),
             contentAlignment = Alignment.Center
         ) {
-            if (imageUrl != null) {
+            if (model != null) {
                 SubcomposeAsyncImage(
-                    model = imageUrl, contentDescription = label,
+                    model = model, contentDescription = label,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.size(size).clip(CircleShape),
                     loading = { Monogram(label, t, size) },
@@ -541,7 +572,8 @@ fun IdolGridSection(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.width(64.dp).clickable { onIdolClick(idol.id) }
                 ) {
-                    ImasAvatar(label = idol.name, seed = idol.color, brand = idol.brandId, size = 52.dp)
+                    ImasAvatar(label = idol.name, seed = idol.color, brand = idol.brandId, size = 52.dp,
+                        entityId = idol.id)
                     Text(idol.name, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = DS.ink2,
                         textAlign = TextAlign.Center, maxLines = 1, overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.padding(top = 6.dp))
