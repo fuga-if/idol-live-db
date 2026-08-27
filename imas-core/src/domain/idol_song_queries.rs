@@ -2,7 +2,8 @@
 //!
 //! SQL 時代の対応: AppDatabase+IdolQueries.swift の曲関連クエリ
 //! (fetchIdolSongs / fetchIdolPerformedSongs / fetchIdolSongHistory /
-//! fetchUnitIdsWithSongs) と、ユニット経由の関与曲 (unit_members × songs.unit_id)。
+//! fetchUnitIdsWithSongs) と、ユニット経由の関与曲 (unit_members × songs.unit_id)、
+//! および担当アイドル絞り込みの母集合 (fetchSongIdsWithAnyArtist)。
 //! アイドル詳細画面の「楽曲 (原曲)」「ライブ歌唱曲」タブと、曲あり/曲なしユニット分割が顧客。
 //!
 //! ここは Snapshot を引数に取る純粋関数のみ。SQL の暗黙挙動は次の方針で明示化してある:
@@ -234,6 +235,44 @@ pub fn idol_unit_song_ids(snap: &Snapshot, idol_id: &str) -> Vec<String> {
         .iter()
         .flat_map(|&ui| snap.songs_by_unit[ui as usize].iter())
         .map(|&si| snap.songs[si as usize].id.clone())
+        .collect()
+}
+
+/// 指定アイドルのいずれかが**原曲歌唱者**として立っている曲の song_id 列。
+/// iOS `fetchSongIdsWithAnyArtistQuery` 相当:
+///
+/// ```sql
+/// SELECT DISTINCT song_id FROM song_artists
+///  WHERE role='original' AND idol_id IN (...)
+/// ```
+///
+/// 顧客は曲一覧の「担当アイドルで絞る」(SongListViewModel / SongSearchPickerView)。
+/// role='original' 限定なのは、ライブで歌っただけの曲を持ち歌として数えないため
+/// (曲一覧本体の担当絞り込み JOIN も同じ `sa.role = 'original'` に揃えてある)。
+///
+/// 呼び出し側は結果を Set で持ち、入力も Set (順不同) なので、**出力順を入力順に
+/// 依存させない**。songs Vec の添字昇順 (= rowid 読み込み順) に固定して、どの順で
+/// idol_id を渡しても同じ列が返るようにする (集合化はプラットフォーム側)。
+///
+/// 意図的な差分: song_artists の FK 孤児 (songs / idols に無い id を指す行) は
+/// スナップショットに載らないので返らない。元 SQL は songs と JOIN していない分
+/// 孤児 song_id も返しうるが、返り値は曲一覧の絞り込みにしか使われず、一覧の母集団は
+/// songs 由来なので観測できない差 (ローダの「FK 孤児は読み飛ばす」規約と揃う)。
+pub fn song_ids_with_any_artist(snap: &Snapshot, idol_ids: &[String]) -> Vec<String> {
+    // 添字で真偽を立ててから走査するので、入力の重複も順序も結果に響かない。
+    let mut hit = vec![false; snap.songs.len()];
+    for id in idol_ids {
+        let Some(&ii) = snap.idol_index_by_id.get(id) else { continue };
+        for l in &snap.songs_by_idol[ii as usize] {
+            if l.role == "original" {
+                hit[l.song as usize] = true;
+            }
+        }
+    }
+    hit.iter()
+        .enumerate()
+        .filter(|&(_, &h)| h)
+        .map(|(si, _)| snap.songs[si].id.clone())
         .collect()
 }
 
@@ -539,6 +578,84 @@ mod tests {
     }
 
     /// 未知 ID は SQL の 0 行と同じく空を返す (panic しない)。
+    /// 元 SQL (DISTINCT + role 限定 + IN) を rusqlite で直接実行した集合。
+    fn sql_song_ids_with_any_artist(
+        conn: &Connection,
+        ids: &[String],
+    ) -> std::collections::HashSet<String> {
+        if ids.is_empty() {
+            // Swift 側は空入力を guard で弾く (IN () は SQLite の構文エラー)。
+            return std::collections::HashSet::new();
+        }
+        let ph = ids.iter().map(|_| "?").collect::<Vec<_>>().join(",");
+        conn.prepare(&format!(
+            "SELECT DISTINCT song_id FROM song_artists
+              WHERE role='original' AND idol_id IN ({ph})"
+        ))
+        .unwrap()
+        .query_map(rusqlite::params_from_iter(ids.iter()), |r| r.get::<_, String>(0))
+        .unwrap()
+        .map(Result::unwrap)
+        .collect()
+    }
+
+    /// 照合 6: song_ids_with_any_artist が元 SQL と一致する。
+    /// 呼び出し側が Set として使うので集合一致で照合し、そのうえで
+    /// 「出力が入力の並びに依らない」決定性を別に固定する。
+    #[test]
+    fn song_ids_with_any_artist_matches_sql() {
+        let (snap, conn) = load();
+        let all: Vec<String> = snap.idols.iter().map(|i| i.id.clone()).collect();
+
+        // (1) 単独 idol を全員ぶん照合 (role='original' の絞り込みが効いているか)
+        let mut nonempty = 0usize;
+        for id in &all {
+            let input = [id.clone()];
+            let got: std::collections::HashSet<String> =
+                song_ids_with_any_artist(&snap, &input).into_iter().collect();
+            assert_eq!(got, sql_song_ids_with_any_artist(&conn, &input), "idol={id}");
+            if !got.is_empty() {
+                nonempty += 1;
+            }
+        }
+        // Bundle DB 実測で 395 人中 250 人が原曲持ち (残りはライブ歌唱のみ / 曲なし)。
+        // 母集団が痩せて照合が骨抜きになったら気づけるよう下限だけ置く。
+        assert!(nonempty > 200, "原曲を持つアイドルが少なすぎる: {nonempty}");
+
+        // (2) 複数 idol の和集合 (先頭 5 / 飛ばし読み / 全員)
+        let sampled: Vec<String> = all.iter().step_by(37).cloned().collect();
+        for input in [all[..5.min(all.len())].to_vec(), sampled, all.clone()] {
+            let got: std::collections::HashSet<String> =
+                song_ids_with_any_artist(&snap, &input).into_iter().collect();
+            assert_eq!(got, sql_song_ids_with_any_artist(&conn, &input), "n={}", input.len());
+        }
+
+        // (3) 未知 id は SQL でも 0 行 / 空入力は空 (Swift の guard と同じ観測)
+        let ghost = ["idol_does_not_exist".to_string()];
+        assert!(song_ids_with_any_artist(&snap, &ghost).is_empty());
+        assert!(song_ids_with_any_artist(&snap, &[]).is_empty());
+    }
+
+    /// 出力は「入力順・重複に依らず songs 添字昇順」。プラットフォーム間で
+    /// 同じ列を返すための決定性規約なので、元 SQL 照合とは別に固定しておく。
+    #[test]
+    fn song_ids_with_any_artist_is_input_order_independent() {
+        let (snap, _conn) = load();
+        let ids: Vec<String> = snap.idols.iter().map(|i| i.id.clone()).step_by(23).collect();
+        let forward = song_ids_with_any_artist(&snap, &ids);
+        let mut reversed = ids.clone();
+        reversed.reverse();
+        assert_eq!(forward, song_ids_with_any_artist(&snap, &reversed), "入力順で変わらない");
+        // 重複入力も結果を変えない (DISTINCT 相当)
+        let mut doubled = ids.clone();
+        doubled.extend(ids.iter().cloned());
+        assert_eq!(forward, song_ids_with_any_artist(&snap, &doubled), "重複入力で変わらない");
+        // songs 添字昇順であること
+        let idx: Vec<u32> = forward.iter().map(|id| snap.song_index_by_id[id]).collect();
+        assert!(idx.windows(2).all(|w| w[0] < w[1]), "songs 添字の昇順で返る");
+        assert!(!forward.is_empty(), "サンプルは原曲持ちを含む");
+    }
+
     #[test]
     fn unknown_ids_yield_empty_results() {
         let (snap, _conn) = load();

@@ -56,6 +56,18 @@ impl SnapshotStore {
         let snap = self.current()?;
         Ok(idol_song_queries::idol_unit_song_ids(&snap, &idol_id))
     }
+
+    /// 指定アイドルのいずれかが原曲歌唱者として立つ曲の song_id 列
+    /// (songs 添字昇順・重複なし)。SQL 時代の fetchSongIdsWithAnyArtist 相当。
+    /// 曲一覧の担当アイドル絞り込みが顧客で、集合化は呼び出し側 (iOS は Set<String>)。
+    /// 1 idol ずつ FFI を往復させないため、id 集合をまとめて受ける形にしてある。
+    pub fn song_ids_with_any_artist(
+        &self,
+        idol_ids: Vec<String>,
+    ) -> Result<Vec<String>, SnapshotError> {
+        let snap = self.current()?;
+        Ok(idol_song_queries::song_ids_with_any_artist(&snap, &idol_ids))
+    }
 }
 
 #[cfg(test)]

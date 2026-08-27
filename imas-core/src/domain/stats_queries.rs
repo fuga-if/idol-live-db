@@ -6,8 +6,10 @@
 //! - `fetchCastShowCountRankingQuery` — アイドル別出演公演数ランキング (idols JOIN show_cast)
 //! - `fetchYearlyShowCountsQuery` — 年別ライブ開催数推移 (strftime('%Y') GROUP BY)
 //! - `fetchBrandedSongIdsQuery` — 回収率集計の母集合 (brand_id IS NOT NULL)
+//! - `fetchCdSeriesListQuery` — CD シリーズ名の一覧 (曲フィルタのピッカー)
 //!
-//! ポート対応: `StatsReading` 全メソッド + `SongReading.brandedSongIds`。
+//! ポート対応: `StatsReading` 全メソッド + `SongReading.brandedSongIds` +
+//! `SongReading.cdSeriesList`。
 //! `DiagnosticsReading.metaValue` は `Snapshot::meta_value` を inbound がそのまま公開する
 //! (ロジックが無いのでこのファイルに関数は置かない)。同ポートの `databaseStats` /
 //! `syncDiagnostics` は意図的に移送しない: どちらも「永続 DB そのものの状態」を観測する
@@ -205,6 +207,33 @@ pub fn yearly_show_counts(snap: &Snapshot) -> Vec<YearlyShowCountRecord> {
 /// で決定的に返し、集合化はプラットフォーム側に任せる。
 pub fn branded_song_ids(snap: &Snapshot) -> Vec<String> {
     snap.songs.iter().filter(|s| s.brand_id.is_some()).map(|s| s.id.clone()).collect()
+}
+
+/// CD シリーズ名の一覧 (曲フィルタのピッカー用)。iOS `fetchCdSeriesListQuery` 相当:
+///
+/// ```sql
+/// SELECT DISTINCT cd_series FROM songs
+///  WHERE cd_series IS NOT NULL AND cd_series != ''
+///  ORDER BY cd_series
+/// ```
+///
+/// `!= ''` があるので空文字は NULL と同じく「未設定」として落とす
+/// (落とさないとピッカーに名前の無い行が 1 つ出る)。
+///
+/// 並びは列に COLLATE 指定が無い = BINARY 昇順で、Rust の `str` の `Ord`
+/// (バイト列比較) と一致する。かな/漢字が五十音順に並ばないのは SQL 時代からの
+/// 挙動なので、ここで「読み順に直す」ことはしない (直すとピッカーの並びが黙って変わる)。
+pub fn cd_series_list(snap: &Snapshot) -> Vec<String> {
+    let mut out: Vec<&str> = snap
+        .songs
+        .iter()
+        .filter_map(|s| s.cd_series.as_deref())
+        .filter(|v| !v.is_empty())
+        .collect();
+    // sort + dedup で SQL の DISTINCT + ORDER BY と同じ (隣接重複のみ消えれば十分)。
+    out.sort_unstable();
+    out.dedup();
+    out.into_iter().map(str::to_string).collect()
 }
 
 /// SQLite `strftime('%Y', date)` の、当アプリの date 契約域での等価実装。
@@ -574,6 +603,36 @@ mod tests {
         assert_eq!(branded_song_ids(s), expected);
     }
 
+    /// 元 SQL の写経 (DISTINCT + NULL/空文字の除外 + BINARY 昇順)。
+    fn sql_cd_series_list(db: &Connection) -> Vec<String> {
+        db.prepare(
+            "SELECT DISTINCT cd_series FROM songs
+              WHERE cd_series IS NOT NULL AND cd_series != ''
+              ORDER BY cd_series",
+        )
+        .unwrap()
+        .query_map([], |r| r.get::<_, String>(0))
+        .unwrap()
+        .map(Result::unwrap)
+        .collect()
+    }
+
+    #[test]
+    fn cd_series_list_matches_sql_verbatim() {
+        let db = conn();
+        let sql = sql_cd_series_list(&db);
+        // ORDER BY + DISTINCT で並びまで一意に決まるので逐語一致を要求できる。
+        assert_eq!(cd_series_list(snap()), sql);
+        assert!(sql.len() > 10, "Bundle DB の CD シリーズ数={}", sql.len());
+    }
+
+    #[test]
+    fn cd_series_list_is_sorted_and_deduped() {
+        let got = cd_series_list(snap());
+        assert!(got.windows(2).all(|w| w[0] < w[1]), "厳密昇順 (= 重複なし・BINARY 順)");
+        assert!(got.iter().all(|v| !v.is_empty()), "空文字は落ちている");
+    }
+
     // ---- ミニ DB 照合 (Bundle には無いエッジデータで暗黙挙動を固定) ----
 
     /// Bundle DB では観測できない境界データを持つミニ DB を作り、全クエリを元 SQL と
@@ -582,6 +641,7 @@ mod tests {
     /// - brand_id = '' / 未知 id → branded には含む・brand 集計には数えない
     /// - 楽曲ゼロのブランド → LEFT JOIN で 0 件行が残る
     /// - 披露 0 回の曲・出演 0 回のアイドル → INNER JOIN で行なし
+    /// - cd_series の NULL / '' / 重複・非整列 → DISTINCT + != '' + ORDER BY で畳む
     #[test]
     fn mini_db_edge_semantics_match_sql() {
         let path = std::env::temp_dir().join(format!(
@@ -656,12 +716,14 @@ mod tests {
                      ('b_empty', '曲ゼロ', 'ZERO', NULL, 0),
                      ('b1', 'ブランド1', 'B1', '#111111', 1),
                      ('b2', 'ブランド2', 'B2', NULL, 2);
-                 INSERT INTO songs (id, title, brand_id) VALUES
-                     ('s1', '定番曲', 'b1'),
-                     ('s2', '空文字ブランド曲', ''),
-                     ('s3', 'ブランドなし曲', NULL),
-                     ('s4', '未知ブランド曲', 'ghost_brand'),
-                     ('s5', '披露ゼロ曲', 'b2');
+                 -- cd_series は NULL / 空文字 / 重複 / 非整列 を 1 つずつ含めて
+                 -- DISTINCT・!= '' ・ORDER BY の境界を Bundle DB 非依存で押さえる。
+                 INSERT INTO songs (id, title, brand_id, cd_series) VALUES
+                     ('s1', '定番曲', 'b1', 'seriesB'),
+                     ('s2', '空文字ブランド曲', '', ''),
+                     ('s3', 'ブランドなし曲', NULL, NULL),
+                     ('s4', '未知ブランド曲', 'ghost_brand', 'seriesA'),
+                     ('s5', '披露ゼロ曲', 'b2', 'seriesB');
                  INSERT INTO idols (id, name, sort_order) VALUES
                      ('i1', '重複出演', 1), ('i2', '単独出演', 2), ('i3', '出演なし', 3);
                  INSERT INTO events (id, name, event_type) VALUES ('ev1', 'ミニライブ', 'live');
@@ -707,6 +769,13 @@ mod tests {
         assert_eq!(branded, sql_branded);
         assert!(branded.contains("s2") && branded.contains("s4"), "'' と未知 id も IS NOT NULL");
         assert!(!branded.contains("s3"));
+
+        assert_eq!(cd_series_list(&mini), sql_cd_series_list(&db));
+        assert_eq!(
+            cd_series_list(&mini),
+            ["seriesA", "seriesB"],
+            "NULL と '' は落ち、重複は 1 つ、挿入順でなく昇順"
+        );
 
         drop(db);
         let _ = std::fs::remove_file(&path);

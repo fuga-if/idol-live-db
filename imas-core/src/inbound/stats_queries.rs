@@ -2,7 +2,7 @@
 //!
 //! SQL 時代の対応: iOS `AppDatabase+StatsQueries` の Stats 系 (Android は StatsDao 相当)。
 //! ポート対応: `StatsReading` 全メソッド + `SongReading.brandedSongIds` +
-//! `DiagnosticsReading.metaValue`。ここは domain::stats_queries / domain::snapshot への
+//! `SongReading.cdSeriesList` + `DiagnosticsReading.metaValue`。ここは domain::stats_queries / domain::snapshot への
 //! 委譲だけ。
 //!
 //! FFI 形状の規約 (song_list_queries.rs と同じ):
@@ -65,6 +65,13 @@ impl SnapshotStore {
     /// 行なしと value NULL は区別せず None (Meta.getValue の観測挙動と同じ)。
     pub fn meta_value(&self, key: String) -> Result<Option<String>, SnapshotError> {
         Ok(self.current()?.meta_value(&key).map(str::to_string))
+    }
+
+    /// CD シリーズ名の一覧 (BINARY 昇順・重複なし・空文字と NULL は除外)。
+    /// SQL 時代の fetchCdSeriesList 相当で、曲フィルタのピッカーが顧客。
+    pub fn cd_series_list(&self) -> Result<Vec<String>, SnapshotError> {
+        let snap = self.current()?;
+        Ok(queries::cd_series_list(&snap))
     }
 }
 
