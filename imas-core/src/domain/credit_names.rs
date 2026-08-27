@@ -29,10 +29,24 @@ const OUTER_SEPARATORS: [char; 5] = ['/', '／', ',', '、', '・'];
 /// 括弧の中で人を分ける区切り (`,` と `/` は社名の一部なので入れない)。
 const INNER_SEPARATORS: [char; 2] = ['、', '・'];
 
-/// クレジット表記を人ごとに割る。空白だけの断片は落とす。
+/// 名前ではなく役割を表す語。`ストリングスアレンジ：松田彬人` の前半。
+const ROLE_MARK: char = '：';
+
+/// 名前として扱わない値。「不明」の代わりに置かれた記号。
+const PLACEHOLDERS: [&str; 3] = ["-", "ー", "―"];
+
+/// クレジット表記を人ごとに割る。空白だけの断片と、名前でない値は落とす。
 pub fn split_credits(text: &str) -> Vec<String> {
     let mut out = Vec::new();
     for part in split_outside_parens(text) {
+        // 役割注記が付いていたら、名前はその後ろ (`弦編曲：森悠也` → `森悠也`)。
+        let part = match part.rsplit_once(ROLE_MARK) {
+            Some((_, person)) if !person.trim().is_empty() => person.trim().to_string(),
+            _ => part,
+        };
+        if PLACEHOLDERS.contains(&part.as_str()) {
+            continue;
+        }
         match split_inside_parens(&part) {
             Some(people) => out.extend(people),
             None => out.push(part),
@@ -41,21 +55,32 @@ pub fn split_credits(text: &str) -> Vec<String> {
     out
 }
 
+/// `・` が名前の一部か、人の区切りかを見分ける。
+///
+/// `R・O・N` `m.c.A・T` は中黒ごと 1 人の名前で、割ると `R` `O` `N` という
+/// 存在しない作家が生まれる。人の並びなら各断片は姓名の長さになるので、
+/// **1 文字の断片が出る割り方はしない**。
+fn nakaguro_is_part_of_the_name(text: &str) -> bool {
+    text.split('\u{30FB}').any(|p| p.trim().chars().count() <= 1)
+}
+
 /// 括弧の深さが 0 のところだけで割る。
 fn split_outside_parens(text: &str) -> Vec<String> {
     let mut parts = Vec::new();
     let mut buf = String::new();
     let mut depth = 0i32;
+    let keep_nakaguro = nakaguro_is_part_of_the_name(text);
     for ch in text.chars() {
         match ch {
-            '(' | '（' => {
+            '(' | '（' | '[' | '［' => {
                 depth += 1;
                 buf.push(ch);
             }
-            ')' | '）' => {
+            ')' | '）' | ']' | '］' => {
                 depth -= 1;
                 buf.push(ch);
             }
+            '\u{30FB}' if keep_nakaguro => buf.push(ch),
             c if depth == 0 && OUTER_SEPARATORS.contains(&c) => {
                 push_trimmed(&mut parts, &buf);
                 buf.clear();
@@ -69,9 +94,9 @@ fn split_outside_parens(text: &str) -> Vec<String> {
 
 /// `所属(人1・人2)` を `所属(人1)` `所属(人2)` に開く。開けない形なら None。
 fn split_inside_parens(part: &str) -> Option<Vec<String>> {
-    let open = part.find(['(', '（'])?;
+    let open = part.find(['(', '（', '[', '［'])?;
     // 閉じ括弧が末尾でないもの (人(所属)つき の後ろに何か続く形) は触らない。
-    let close = part.rfind([')', '）'])?;
+    let close = part.rfind([')', '）', ']', '］'])?;
     if close + part[close..].chars().next()?.len_utf8() != part.len() {
         return None;
     }
@@ -170,6 +195,43 @@ mod tests {
         );
     }
 
+    /// `・` が名前の一部のときは割らない。
+    ///
+    /// `R・O・N` を割ると `R` `O` `N` という存在しない作家が 3 人生まれる。
+    #[test]
+    fn a_stylised_name_is_not_split_at_the_nakaguro() {
+        assert_eq!(split_credits("R・O・N"), ["R・O・N"]);
+        assert_eq!(split_credits("m.c.A・T"), ["m.c.A・T"]);
+        // 人の並びは今までどおり割る。
+        assert_eq!(split_credits("中川浩二・小林啓樹"), ["中川浩二", "小林啓樹"]);
+    }
+
+    /// 役割の注記が付いていたら、名前はその後ろ。
+    #[test]
+    fn a_role_annotation_is_dropped() {
+        assert_eq!(split_credits("ストリングスアレンジ：松田彬人"), ["松田彬人"]);
+        assert_eq!(
+            split_credits("堀江晶太、Orchestra Arrangement：Evan Call"),
+            ["堀江晶太", "Evan Call"]
+        );
+    }
+
+    /// 角括弧の中の並びも開く (韓国の作家陣がこの形で入っている)。
+    #[test]
+    fn a_bracketed_list_is_opened_too() {
+        assert_eq!(
+            split_credits("Gamenrider［서용배、박우상］"),
+            ["Gamenrider(서용배)", "Gamenrider(박우상)"]
+        );
+    }
+
+    /// 「不明」の代わりに置かれた記号は名前として扱わない。
+    #[test]
+    fn placeholders_are_not_names() {
+        assert_eq!(split_credits("-"), Vec::<String>::new());
+        assert_eq!(split_credits("ー"), Vec::<String>::new());
+    }
+
     #[test]
     fn drops_empty_fragments() {
         assert_eq!(split_credits(""), Vec::<String>::new());
@@ -185,52 +247,97 @@ mod tests {
 /// (`ARM(IOSYS)` `TAKT(...)` 等) はすべて「人(所属)」だった。
 const COMPANY_PREFIXES: [&str; 5] = ["BNSI", "NBGI", "BNEI", "BNGI", "NBSI"];
 
-/// 括弧の中が社名であることを示す手がかり。
-const COMPANY_HINTS: [&str; 9] = [
-    "Inc.", "inc.", "Corp", "Group", "Production", "Records", "Studio", "PARTY", "from ",
-];
+/// 名前の末尾に付く所属の括弧。書き手によって種類が揺れる
+/// (`ARM(IOSYS)` `ARM (IOSYS)` `ARM（IOSYS）` `Asu [The New Classics]`
+/// `Apis［TRYTONELABO］` `BNSI〈Jesahm〉`)。
+const BRACKET_PAIRS: [(char, char); 5] =
+    [('(', ')'), ('（', '）'), ('[', ']'), ('［', '］'), ('〈', '〉')];
 
 /// 表記の揺れを落として、同じ人を 1 つに寄せるための鍵を作る。
 ///
-/// 同じ作家が社名の変遷と括弧の全角半角で最大 9 通りに割れていた:
+/// 同じ作家が社名の変遷と括弧の揺れで最大 9 通りに割れていた:
 /// `BNEI(佐藤貴文)` `BNSI (佐藤貴文)` `BNSI（佐藤貴文）` `NBGI(佐藤貴文)` `佐藤貴文`
 /// `佐藤貴文(Bandai Namco Studios Inc.)` …。曲詳細から作家で絞り込むと、
 /// 同じ人が別人として何通りにも分かれてしまう。
 ///
-/// 所属を落として人名だけを取り出し、日本語名は空白も落とす
-/// (`グシミヤギ ヒデユキ` と `グシミヤギヒデユキ` が別人にならないように)。
+/// 所属を落として人名だけを取り出す。`X(Y)` の向きは、前が**会社の略称**なら中が人、
+/// それ以外は前が人 (実データでは前に置く側はバンダイナムコの略称だけだった)。
+/// 日本語名は空白も落とす (`グシミヤギ ヒデユキ` と `グシミヤギヒデユキ` が
+/// 別人にならないように)。英字名の空白は残す — 落とすと別の名前になる。
 pub fn canonical_credit_key(name: &str) -> String {
     let trimmed = name.trim().trim_end_matches('.').trim();
     let person = strip_affiliation(trimmed);
+    // 引用符の字体ゆれ (K's と K’s) を寄せる。
+    let person: String = person.chars().map(|c| if c == '\u{2019}' { '\'' } else { c }).collect();
     if person.chars().any(is_japanese) {
         person.chars().filter(|c| !matches!(c, ' ' | '\u{3000}')).collect()
     } else {
-        person.to_string()
+        person
     }
 }
 
+/// 所属を落として人名だけを返す。
 fn strip_affiliation(name: &str) -> &str {
-    let Some(open) = name.find(['(', '（']) else {
-        return name;
-    };
-    let Some(close) = name.rfind([')', '）']) else {
-        return name;
-    };
-    if close < open {
-        return name;
+    // ① 会社の略称が前に置かれている形は、括弧の中が人。
+    for open in ['(', '（'] {
+        if let Some(i) = name.find(open) {
+            let outer = name[..i].trim();
+            if COMPANY_PREFIXES.contains(&outer) {
+                let open_len = name[i..].chars().next().map_or(1, char::len_utf8);
+                let inner = &name[i + open_len..];
+                let inner = inner.strip_suffix([')', '）']).unwrap_or(inner);
+                return inner.trim();
+            }
+        }
     }
-    let open_len = name[open..].chars().next().map_or(1, char::len_utf8);
-    let outer = name[..open].trim();
-    let inner = name[open + open_len..close].trim();
-    // 所属が前に置かれている形 (会社の略称) は、括弧の中が人。
-    if COMPANY_PREFIXES.contains(&outer) {
-        return inner;
+    // ② それ以外は、末尾に付いた括弧を所属として落とす。
+    if let Some(head) = strip_trailing_bracket(name) {
+        return head;
     }
-    // 括弧の中が社名なら、前が人。
-    if COMPANY_HINTS.iter().any(|h| inner.contains(h)) && !outer.is_empty() {
-        return outer;
+    // ③ 閉じ忘れ (`酒井拓也(Arte Refact`)。開いたところから後ろを落とす。
+    if let Some(i) = first_unclosed_bracket(name) {
+        let head = name[..i].trim();
+        if !head.is_empty() {
+            return head;
+        }
     }
     name
+}
+
+/// 末尾の括弧を、入れ子を数えて落とす。
+///
+/// 単純に最後の開き括弧を探すと入れ子で壊れる
+/// (`Gamenrider(서용배(Seo Yong Bae))` が `Gamenrider(서용배` になる)。
+fn strip_trailing_bracket(name: &str) -> Option<&str> {
+    let (close_char, _) = name.char_indices().next_back()?;
+    let last = name[close_char..].chars().next()?;
+    let (open, close) = BRACKET_PAIRS.iter().find(|(_, c)| *c == last)?;
+    let mut depth = 0i32;
+    for (i, ch) in name.char_indices().rev() {
+        if ch == *close {
+            depth += 1;
+        } else if ch == *open {
+            depth -= 1;
+            if depth == 0 {
+                let head = name[..i].trim();
+                return (!head.is_empty()).then_some(head);
+            }
+        }
+    }
+    None
+}
+
+/// 閉じられていない開き括弧の位置。
+fn first_unclosed_bracket(name: &str) -> Option<usize> {
+    let mut stack: Vec<(usize, char)> = Vec::new();
+    for (i, ch) in name.char_indices() {
+        if let Some((_, close)) = BRACKET_PAIRS.iter().find(|(o, _)| *o == ch) {
+            stack.push((i, *close));
+        } else if BRACKET_PAIRS.iter().any(|(_, c)| *c == ch) {
+            stack.pop();
+        }
+    }
+    stack.first().map(|(i, _)| *i)
 }
 
 fn is_japanese(c: char) -> bool {
@@ -268,10 +375,40 @@ mod canonical_tests {
     }
 
     /// 「人(所属)」を取り違えない。ARM は人で IOSYS が所属。
+    ///
+    /// 括弧の種類・空白の有無は書き手によって揺れるので、そこも寄せる。
     #[test]
     fn a_person_with_an_affiliation_is_not_inverted() {
-        assert_eq!(canonical_credit_key("ARM(IOSYS)"), "ARM(IOSYS)");
+        for n in ["ARM(IOSYS)", "ARM (IOSYS)", "ARM（IOSYS）", "ARM"] {
+            assert_eq!(canonical_credit_key(n), "ARM", "{n}");
+        }
         assert_eq!(canonical_credit_key("Mitsu.J (Digz, Inc. Group)"), "Mitsu.J");
+        // 角括弧・山括弧も所属として落とす。
+        assert_eq!(canonical_credit_key("Asu [The New Classics]"), "Asu");
+        assert_eq!(canonical_credit_key("Apis［TRYTONELABO］"), "Apis");
+    }
+
+    /// 入れ子の括弧でも所属だけを落とす。
+    #[test]
+    fn nested_brackets_do_not_break_the_key() {
+        assert_eq!(canonical_credit_key("Gamenrider(서용배(Seo Yong Bae))"), "Gamenrider");
+    }
+
+    /// 閉じ忘れの括弧も所属として落とす (データ側の打ち間違い)。
+    #[test]
+    fn an_unclosed_bracket_is_still_an_affiliation() {
+        assert_eq!(canonical_credit_key("酒井拓也(Arte Refact"), "酒井拓也");
+        assert_eq!(canonical_credit_key("酒井拓也(Arte Refact)"), "酒井拓也");
+        assert_eq!(canonical_credit_key("酒井拓也 (Arte Refact)"), "酒井拓也");
+        assert_eq!(canonical_credit_key("酒井拓也（Arte Refact）"), "酒井拓也");
+    }
+
+    /// 引用符の字体ゆれを寄せる (K's と K’s)。
+    #[test]
+    fn curly_and_straight_apostrophes_are_the_same_person() {
+        assert_eq!(canonical_credit_key("K's"), canonical_credit_key("K’s"));
     }
 }
+
+
 
