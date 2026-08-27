@@ -13,8 +13,9 @@ import GRDB
 /// - user_marks (担当/お気に入り/参加/回収) はスナップショットに**含まれない**。回収系の
 ///   クエリには、ここで解決した参加 show/event id 集合を引数で渡す。
 ///
-/// スナップショット未対応のクエリ (検索・関連曲・ピッカー・コミュニティ構造化ミラー等) は
-/// 常に GRDB 経路。各メソッドのコメントに理由を書く。
+/// GRDB 経路に**残す**と決めたクエリは 4 つだけ (`songSpellings` / `collectedShows` /
+/// `songCalls` / `songVideos`)。どれも「スナップショットに載せない設計」の側に理由があり、
+/// コアに API を生やせば済む話ではない。各メソッドのコメントに理由を書く。
 struct CoreSongRepository: SongReading {
     let snapshot: CoreSnapshotManager
     /// 未ロード時と未移送クエリの受け皿 (Strangler の旧経路)。
@@ -121,8 +122,13 @@ struct CoreSongRepository: SongReading {
         }
     }
 
-    /// 綴りだけを返す API はスナップショットに無い (照合はコア、母集団の供給は
-    /// プラットフォーム側という分担)。ローカル store から直接引く。
+    /// あいまい検索 (「もしかして」) の母集団になる綴り表。**移送しない**。
+    ///
+    /// 編集距離の照合そのものはコアが持っている (`domain/fuzzy_search.rs`)。
+    /// ここが渡すのは「どの曲を候補に入れるか」という母集団で、その線引き
+    /// (SQL 側の `WHERE brand_id IS NOT 'other'` = 曲一覧が既定で隠すものと揃える)
+    /// はプラットフォーム側の都合で決まる。照合はコア・母集団の供給はプラットフォーム、
+    /// という分担を保つために意図的に残している (技術的に移せないわけではない)。
     func songSpellings() async throws -> [SongSpelling] {
         try await fallback.songSpellings()
     }
@@ -181,8 +187,13 @@ struct CoreSongRepository: SongReading {
         }
     }
 
-    /// user_marks (参加マーク) を主語にした結合で、ユーザーデータはプラットフォーム側が正。
-    /// core に対応 API が無いため GRDB 経路のまま。
+    /// この曲を回収した公演。**移送しない**。
+    ///
+    /// `user_marks` (参加マーク) を主語にした結合で、ユーザーデータはプラットフォーム側が
+    /// 正という分担の側に置いてある。技術的には他の回収系 (`songCollectedCounts`) と同じく
+    /// 「解決済みの参加 id 集合を引数で渡す」形で移せるが、曲詳細を 1 回開くたびに参加マーク
+    /// 全件を FFI 越しに運ぶことになり、既にある SQL に対して得るものが無い
+    /// (一覧のように全曲ぶんを 1 回でさばく必要も無い)。
     func collectedShows(for songId: String) async throws -> [ShowWithEventName] {
         try await fallback.collectedShows(for: songId)
     }
@@ -327,7 +338,12 @@ struct CoreSongRepository: SongReading {
     }
 
     // MARK: - コミュニティ構造化 (CloudKit 同期のローカルミラー)
-    // スナップショットは楽曲マスタのみを対象とする設計 (song_calls / song_videos は含まれない)。
+    //
+    // コーレスと参考動画は **移送しない**。スナップショットが載せていないのは容量の話では
+    // なく、ローカル編集経路がスナップショット再ロードを促さない契約 (`CoreSnapshotManager`
+    // の `SnapshotInvalidatingSongWriting` が対象にしていない) だから。載せると「投稿した
+    // 直後に自分の投稿が見えない」回帰になる。読み取りは SQL 経路に残すのが正しい
+    // (`imas-core/src/domain/snapshot.rs` の同じ注記と対)。
 
     func songCalls(songId: String) async throws -> [SongCall] {
         try await fallback.songCalls(songId: songId)
