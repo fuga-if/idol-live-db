@@ -73,10 +73,16 @@ struct CoreEventRepository: EventReading {
         }
     }
 
-    /// ライブ名と会場名の両方に当てる検索。core に対応 API が無い
-    /// (`globalSearch` はイベント名のみ・件数上限つきで別物) ため GRDB 経路のまま。
+    /// ライブ名と会場名の両方に当てる検索 (検索スコープ「ライブ」)。
+    ///
+    /// `globalSearch` (イベント名のみ・各 20 件) とは別物なので、コアにも別の
+    /// クエリとして持たせている。結果が id 昇順なのは元 SQL が DISTINCT のために
+    /// PK 索引で走査していたからで、`limit` はその並びの先頭を取る。
     func searchEventsByNameOrVenue(query: String, limit: Int) async throws -> [Event] {
-        try await fallback.searchEventsByNameOrVenue(query: query, limit: limit)
+        try await snapshot.withStore(fallbackTo: { try await fallback.searchEventsByNameOrVenue(query: query, limit: limit) }) { store in
+            try store.searchEventsByNameOrVenue(query: query, limit: UInt32(max(0, limit)))
+                .map(CoreRecordMapping.event(from:))
+        }
     }
 
     // MARK: - イベント詳細

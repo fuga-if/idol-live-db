@@ -94,6 +94,21 @@ impl SnapshotStore {
     }
 
     /// イベント名一覧 (フィルタ補完用)。SQL 時代の fetchEventNames 相当 (name 昇順)。
+    /// ライブ名 または 公演会場 の部分一致検索 (検索スコープ「ライブ」)。
+    /// searchEventsByNameOrVenue(query:limit:) 相当。
+    ///
+    /// 結果は id 昇順 (元 SQL が DISTINCT のために PK 索引で走査する順) で、
+    /// `limit` はその並びの先頭を取る。詳細は
+    /// domain::event_list_queries::search_events_by_name_or_venue のコメント。
+    pub fn search_events_by_name_or_venue(
+        &self,
+        query: String,
+        limit: u32,
+    ) -> Result<Vec<EventListRecord>, SnapshotError> {
+        let snap = self.current()?;
+        Ok(queries::search_events_by_name_or_venue(&snap, &query, limit))
+    }
+
     pub fn event_names(&self) -> Result<Vec<String>, SnapshotError> {
         let snap = self.current()?;
         Ok(queries::event_names(&snap))

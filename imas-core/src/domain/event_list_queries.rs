@@ -8,6 +8,7 @@
 //! - [`attended_events_with_date`]  ← fetchAttendedEventsWithDateQuery (参加ライブ一覧)
 //! - [`attended_event_type_sets`]   ← fetchAttendedEventTypeSetsQuery (現地/配信/LV フィルタ)
 //! - [`event_names`]                ← fetchEventNamesQuery (フィルタ補完用の名前一覧)
+//! - [`search_events_by_name_or_venue`] ← searchEventsByNameOrVenueQuery (検索スコープ「ライブ」)
 //!
 //! SQL の暗黙挙動をコードで明示して固定する (等価性はテストの照合で保証):
 //! - `ORDER BY COALESCE(MIN(s.date), '') DESC`: 公演なしイベントは '' 扱いで末尾。
@@ -199,6 +200,71 @@ pub fn event_records_by_brand(snap: &Snapshot, brand_id: Option<&str>) -> Vec<Ev
         .collect()
 }
 
+/// ライブ名 または 公演会場 の部分一致検索 (検索画面のスコープ「ライブ」)。
+/// iOS `AppDatabase.searchEventsByNameOrVenueQuery` 相当:
+///
+/// ```sql
+/// SELECT DISTINCT e.* FROM events e
+/// LEFT JOIN shows sh ON sh.event_id = e.id
+///  WHERE LOWER(e.name) LIKE ? ESCAPE '\'
+///     OR LOWER(IFNULL(sh.venue, '')) LIKE ? ESCAPE '\'
+///  LIMIT ?
+/// ```
+/// バインド値は `%<likeEscaped(query.lowercased())>%`。
+///
+/// 写すべき非自明な点:
+/// - **結果は id 昇順 (BINARY)**。ORDER BY は無いが、DISTINCT を満たすために
+///   SQLite が events を PK 索引 (`sqlite_autoindex_events_1`) で走査するため
+///   (EXPLAIN QUERY PLAN と実測で確認)。rowid 順ではない。`LIMIT` はこの並びの
+///   先頭を取るので、順序を間違えると**返るイベントの集合そのものが変わる**。
+/// - 検索語の小文字化は **Swift の `lowercased()`** (Unicode 全域)、列側の `LOWER()` は
+///   **SQLite の ASCII 限定**。この非対称は出荷済みの挙動で、非 ASCII の大文字を
+///   打つと当たらなくなる。両側を Unicode 小文字化に「揃える」と当たり方が広がるので
+///   等価移送の範囲では直さない。`char::to_lowercase` を使うのは Swift と同じ
+///   無条件写像にするため (`str::to_lowercase` は語末 Σ→ς の文脈規則を持ち込む。
+///   `text_search_index::fold_lowercase` の注記と同じ理由)。
+/// - 列側は ASCII 小文字化 + LIKE の ASCII 大小無視なので、`LOWER(e.name) LIKE p` は
+///   「name を ASCII 小文字化した文字列が p を含む」と等価。
+/// - `IFNULL(sh.venue,'')` と LEFT JOIN の未一致行 (公演なしイベント) は空文字扱い。
+///   空文字が LIKE に当たるのは検索語が空のときだけで、そのときは `LOWER(e.name)` 側が
+///   全件に当たっているので、実質的な差は出ない。挙動としてはそのまま写す。
+/// - 会場は同一イベントの複数公演にまたがるので、どれか 1 公演でも当たれば採用
+///   (元 SQL の JOIN + DISTINCT がそうなっている)。
+pub fn search_events_by_name_or_venue(
+    snap: &Snapshot,
+    query: &str,
+    limit: u32,
+) -> Vec<EventListRecord> {
+    // Swift の `query.lowercased()`。以降は列側の ASCII 小文字化と突き合わせる。
+    let needle: String = query.chars().flat_map(char::to_lowercase).collect();
+
+    let mut indexes: Vec<u32> = (0..snap.events.len() as u32)
+        .filter(|&i| {
+            if ascii_lower_contains(&snap.events[i as usize].name, &needle) {
+                return true;
+            }
+            let shows = &snap.shows_by_event[i as usize];
+            if shows.is_empty() {
+                // LEFT JOIN の未一致行: sh.venue が NULL → IFNULL で '' になる。
+                return ascii_lower_contains("", &needle);
+            }
+            shows.iter().any(|&s| {
+                ascii_lower_contains(snap.shows[s as usize].venue.as_deref().unwrap_or(""), &needle)
+            })
+        })
+        .collect();
+    // DISTINCT を満たす PK 索引走査の順 = id 昇順 (id は一意なのでタイは無い)。
+    indexes.sort_by(|&a, &b| snap.events[a as usize].id.cmp(&snap.events[b as usize].id));
+    indexes.truncate(limit as usize);
+    indexes.into_iter().map(|i| EventListRecord::from(&snap.events[i as usize])).collect()
+}
+
+/// `LOWER(col) LIKE '%needle%'` 相当。列は SQLite の ASCII 限定 LOWER で畳み、
+/// needle は呼び出し側で Swift の `lowercased()` 済みであること。
+fn ascii_lower_contains(haystack: &str, needle: &str) -> bool {
+    haystack.to_ascii_lowercase().contains(needle)
+}
+
 /// イベント一覧 (最初/最後の公演日付き、最初の公演日の降順)。
 /// iOS fetchEventsWithFirstDateQuery の移送。
 ///
@@ -382,6 +448,109 @@ mod tests {
             OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
         )
         .expect("bundle DB を開ける")
+    }
+
+    /// Swift `String.likeEscaped` の写経。
+    fn like_escaped(s: &str) -> String {
+        s.replace('\\', "\\\\").replace('%', "\\%").replace('_', "\\_")
+    }
+
+    /// 原本 `searchEventsByNameOrVenueQuery` の写経を rusqlite で直接実行し、
+    /// 返った id 列を**順序込み**で基準にする (ORDER BY は無いが DISTINCT の
+    /// 走査順が LIMIT の効き方を決めるので、順序を落として比べては意味がない)。
+    fn run_original_event_search_sql(query: &str, limit: u32) -> Vec<String> {
+        // Swift 側は lowercased() してから likeEscaped する。
+        let lowered: String = query.chars().flat_map(char::to_lowercase).collect();
+        let pattern = format!("%{}%", like_escaped(&lowered));
+        let db = conn();
+        let mut stmt = db
+            .prepare(
+                "SELECT DISTINCT e.* FROM events e
+                 LEFT JOIN shows sh ON sh.event_id = e.id
+                  WHERE LOWER(e.name) LIKE ?1 ESCAPE '\\'
+                     OR LOWER(IFNULL(sh.venue, '')) LIKE ?1 ESCAPE '\\'
+                  LIMIT ?2",
+            )
+            .unwrap();
+        let rows: Vec<String> = stmt
+            .query_map(rusqlite::params![&pattern, limit], |r| r.get::<_, String>("id"))
+            .unwrap()
+            .map(Result::unwrap)
+            .collect();
+        rows
+    }
+
+    fn searched_event_ids(query: &str, limit: u32) -> Vec<String> {
+        search_events_by_name_or_venue(snap(), query, limit)
+            .into_iter()
+            .map(|e| e.id)
+            .collect()
+    }
+
+    /// 照合: searchEventsByNameOrVenue。名前だけ当たる語・会場だけ当たる語・
+    /// 打ち切りが効く語・空振り・ワイルドカードで元 SQL と順序込みで一致する。
+    #[test]
+    fn search_events_by_name_or_venue_matches_sql() {
+        let queries = [
+            "武道館", "ライブ", "M@STER", "SSA", "さいたま", "横浜", "ready", "READY",
+            "", "%", "_", "\\", "zzz存在しない検索語",
+        ];
+        let mut with_hits = 0usize;
+        let mut capped = 0usize;
+        for q in queries {
+            for limit in [5u32, 100, 200] {
+                let want = run_original_event_search_sql(q, limit);
+                assert_eq!(searched_event_ids(q, limit), want, "query={q:?} limit={limit}");
+            }
+            let hits = searched_event_ids(q, 200);
+            with_hits += usize::from(!hits.is_empty());
+            capped += usize::from(searched_event_ids(q, 5).len() == 5);
+        }
+        assert!(with_hits > 5, "ヒットする検索語のサンプル数 ({with_hits})");
+        assert!(capped > 3, "打ち切りが効くサンプル数 ({capped})");
+    }
+
+    /// 会場だけで当たる経路が実在すること (名前には無い語が shows.venue で拾える)。
+    /// ここが死ぬと「会場名でライブを探す」用途が黙って消える。
+    #[test]
+    fn search_events_reaches_the_venue_column() {
+        // 名前に含まれないが会場に含まれる語を実データから探す。
+        let venue_word = snap()
+            .shows
+            .iter()
+            .filter_map(|s| s.venue.as_deref())
+            .find(|v| {
+                v.chars().count() >= 3 && !snap().events.iter().any(|e| e.name.contains(*v))
+            })
+            .expect("名前に出てこない会場名がある前提")
+            .to_string();
+        let hits = search_events_by_name_or_venue(snap(), &venue_word, 200);
+        assert!(!hits.is_empty(), "venue={venue_word:?}");
+        assert!(
+            hits.iter().all(|e| !e.name.contains(&venue_word)),
+            "会場経由でしか当たらない語のはず: {venue_word:?}"
+        );
+        assert_eq!(
+            searched_event_ids(&venue_word, 200),
+            run_original_event_search_sql(&venue_word, 200)
+        );
+    }
+
+    /// 結果は id 昇順 (DISTINCT を満たす PK 索引走査の順)。rowid 順ではない。
+    /// LIMIT がこの並びの先頭を取るので、順序を間違えると返る集合ごと変わる。
+    #[test]
+    fn search_events_are_ordered_by_id_not_by_snapshot_order() {
+        let hits = searched_event_ids("ライブ", 200);
+        assert!(hits.len() > 20, "検証に足る件数がある前提: {}", hits.len());
+        assert!(hits.windows(2).all(|w| w[0] < w[1]), "id 昇順");
+
+        // 添字順 (rowid 順) とは実際に違うこと。
+        let in_snapshot_order: Vec<String> = {
+            let mut v: Vec<String> = hits.clone();
+            v.sort_by_key(|id| snap().event_index_by_id[id]);
+            v
+        };
+        assert_ne!(hits, in_snapshot_order, "id 順と添字順が同じ DB では検証にならない");
     }
 
     /// (id, first_date, last_date) — with-date 系の照合対象射影。
