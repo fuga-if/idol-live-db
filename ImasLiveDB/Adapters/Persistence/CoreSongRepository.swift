@@ -68,11 +68,15 @@ struct CoreSongRepository: SongReading {
         }
     }
 
-    /// core に「idol id 集合 → song id 集合」の一括逆引き API が無い (Phase 3 アイドル/ユニット
-    /// スライスの領域)。1 idol ずつ FFI を往復すると「1 ユーザー操作 = 1 呼び出し」の規約に
-    /// 反するため、生えるまで GRDB 経路のまま。
+    /// 担当アイドルの原唱曲を一括で逆引きする。
+    ///
+    /// id 集合をまるごと 1 回で渡す (「1 ユーザー操作 = 1 FFI 呼び出し」の規約。
+    /// 1 idol ずつ往復すると担当が多い人ほど遅くなる)。
+    /// 返りは集合として使うので、コア側は入力順に依らない固定順で返す。
     func songIdsWithAnyArtist(idolIds: Set<String>) async throws -> Set<String> {
-        try await fallback.songIdsWithAnyArtist(idolIds: idolIds)
+        try await snapshot.withStore(fallbackTo: { try await fallback.songIdsWithAnyArtist(idolIds: idolIds) }) { store in
+            Set(try store.songIdsWithAnyArtist(idolIds: Array(idolIds)))
+        }
     }
 
     func songPerformerIdolsMap(songIds: [String]) async throws -> [String: [Idol]] {
@@ -246,9 +250,14 @@ struct CoreSongRepository: SongReading {
         }
     }
 
-    /// CD シリーズ名の全列挙は core 未提供 (統計スライス側の領域) のため GRDB 経路。
+    /// CD シリーズ名の全列挙 (ピッカーの母集団)。
+    ///
+    /// 並びは元 SQL の BINARY 順のまま。かな/漢字が音読み順に並ばないのは SQL 時代からの
+    /// 挙動で、直すとピッカーの並びが黙って変わるのでコア側でも触っていない。
     func cdSeriesList() async throws -> [String] {
-        try await fallback.cdSeriesList()
+        try await snapshot.withStore(fallbackTo: { try await fallback.cdSeriesList() }) { store in
+            try store.cdSeriesList()
+        }
     }
 
     func seriesGroups(brandIds: Set<String>) async throws -> [String] {
