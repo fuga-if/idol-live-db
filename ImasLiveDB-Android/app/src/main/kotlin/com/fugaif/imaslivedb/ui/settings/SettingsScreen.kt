@@ -86,7 +86,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-private enum class SettingsInfoScreen { HELP, PRIVACY, TERMS, SUPPORT }
+private enum class SettingsInfoScreen { HELP, INBOX, PRIVACY, TERMS, SUPPORT }
 
 private const val GITHUB_ISSUE_URL = "https://github.com/fuga-if/imas-live-privacy/issues/new"
 
@@ -203,6 +203,7 @@ fun SettingsScreen(
             item {
                 SettingsSectionTitle("アプリ情報")
                 SettingsNavRow("使い方") { infoScreen = SettingsInfoScreen.HELP }
+                SettingsNavRow("お知らせ") { infoScreen = SettingsInfoScreen.INBOX }
                 SettingsNavRow("プライバシーポリシー") { infoScreen = SettingsInfoScreen.PRIVACY }
                 SettingsNavRow("利用規約") { infoScreen = SettingsInfoScreen.TERMS }
                 SettingsNavRow("サポート") { infoScreen = SettingsInfoScreen.SUPPORT }
@@ -234,6 +235,11 @@ fun SettingsScreen(
             onDismissRequest = { infoScreen = null },
             properties = DialogProperties(usePlatformDefaultWidth = false)
         ) { HelpScreen(onBack = { infoScreen = null }) }
+
+        SettingsInfoScreen.INBOX -> Dialog(
+            onDismissRequest = { infoScreen = null },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) { InboxScreen(onBack = { infoScreen = null }) }
 
         SettingsInfoScreen.PRIVACY -> Dialog(
             onDismissRequest = { infoScreen = null },
