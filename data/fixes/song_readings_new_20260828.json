@@ -1,0 +1,294 @@
+{
+ "title": "新しく入ってきた曲に読み仮名を入れる",
+ "_help": "CloudKit の日次取り込みで増えた 36 曲 (大半がシャニマス)。35 件はアイマス楽曲DB のかな表記が出典。HSV色空間 の「色空間」は辞書 3 種とも いろくうかん (しきくうかん ではない)。I＝WE は先方のかな欄が空で、ニコニコ大百科の記事名「I=WE（アイウィー）」を採った。Binary Star だけは会場限定 CD の新曲で先方未収録のため、表記から起こしている。",
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "765as_binary_star",
+   "fields": {
+    "title_kana": "ばいなりーすたー"
+   },
+   "note": "CloudKit から新しく入ってきた曲。読みが空だとかなで一切引けない。出典が取れず表記から起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "cg_cookie_dough",
+   "fields": {
+    "title_kana": "くっきーどう"
+   },
+   "note": "CloudKit から新しく入ってきた曲。読みが空だとかなで一切引けない。出典 https://api.fujiwarahaji.me/v3/music?id=12138"
+  },
+  {
+   "table": "songs",
+   "id": "cg_poppin_para_pong",
+   "fields": {
+    "title_kana": "ぽっぴんぱらぽん"
+   },
+   "note": "CloudKit から新しく入ってきた曲。読みが空だとかなで一切引けない。出典 https://api.fujiwarahaji.me/v3/music?id=12137"
+  },
+  {
+   "table": "songs",
+   "id": "sc_be-witched",
+   "fields": {
+    "title_kana": "びーうぃっちと"
+   },
+   "note": "CloudKit から新しく入ってきた曲。読みが空だとかなで一切引けない。出典 https://api.fujiwarahaji.me/v3/music?id=12228"
+  },
+  {
+   "table": "songs",
+   "id": "sc_beam",
+   "fields": {
+    "title_kana": "びーむ"
+   },
+   "note": "CloudKit から新しく入ってきた曲。読みが空だとかなで一切引けない。出典 https://api.fujiwarahaji.me/v3/music?id=12238"
+  },
+  {
+   "table": "songs",
+   "id": "sc_crying_diamond",
+   "fields": {
+    "title_kana": "くらいんぐだいあもんど"
+   },
+   "note": "CloudKit から新しく入ってきた曲。読みが空だとかなで一切引けない。出典 https://api.fujiwarahaji.me/v3/music?id=12214"
+  },
+  {
+   "table": "songs",
+   "id": "sc_embers_glow",
+   "fields": {
+    "title_kana": "えんばーずぐろー"
+   },
+   "note": "CloudKit から新しく入ってきた曲。読みが空だとかなで一切引けない。出典 https://api.fujiwarahaji.me/v3/music?id=12216"
+  },
+  {
+   "table": "songs",
+   "id": "sc_hell-o",
+   "fields": {
+    "title_kana": "はろー"
+   },
+   "note": "CloudKit から新しく入ってきた曲。読みが空だとかなで一切引けない。出典 https://api.fujiwarahaji.me/v3/music?id=12224"
+  },
+  {
+   "table": "songs",
+   "id": "sc_here_for_you",
+   "fields": {
+    "title_kana": "ひあふぉーゆー"
+   },
+   "note": "CloudKit から新しく入ってきた曲。読みが空だとかなで一切引けない。出典 https://api.fujiwarahaji.me/v3/music?id=12223"
+  },
+  {
+   "table": "songs",
+   "id": "sc_hold_on_me",
+   "fields": {
+    "title_kana": "ほーるどおんみー"
+   },
+   "note": "CloudKit から新しく入ってきた曲。読みが空だとかなで一切引けない。出典 https://api.fujiwarahaji.me/v3/music?id=12222"
+  },
+  {
+   "table": "songs",
+   "id": "sc_hsv色空間",
+   "fields": {
+    "title_kana": "えっちえすぶいいろくうかん"
+   },
+   "note": "CloudKit から新しく入ってきた曲。読みが空だとかなで一切引けない。出典 https://api.fujiwarahaji.me/v3/music?id=12234"
+  },
+  {
+   "table": "songs",
+   "id": "sc_imaginary",
+   "fields": {
+    "title_kana": "いまじなりー"
+   },
+   "note": "CloudKit から新しく入ってきた曲。読みが空だとかなで一切引けない。出典 https://api.fujiwarahaji.me/v3/music?id=12215"
+  },
+  {
+   "table": "songs",
+   "id": "sc_iwe",
+   "fields": {
+    "title_kana": "あいうぃー"
+   },
+   "note": "CloudKit から新しく入ってきた曲。読みが空だとかなで一切引けない。出典 https://dic.nicovideo.jp/a/I%EF%BC%9DWE"
+  },
+  {
+   "table": "songs",
+   "id": "sc_lights_on_me",
+   "fields": {
+    "title_kana": "らいつおんみー"
+   },
+   "note": "CloudKit から新しく入ってきた曲。読みが空だとかなで一切引けない。出典 https://api.fujiwarahaji.me/v3/music?id=12226"
+  },
+  {
+   "table": "songs",
+   "id": "sc_magical_forest",
+   "fields": {
+    "title_kana": "まじかるふぉれすと"
+   },
+   "note": "CloudKit から新しく入ってきた曲。読みが空だとかなで一切引けない。出典 https://api.fujiwarahaji.me/v3/music?id=12207"
+  },
+  {
+   "table": "songs",
+   "id": "sc_odette",
+   "fields": {
+    "title_kana": "おでっと"
+   },
+   "note": "CloudKit から新しく入ってきた曲。読みが空だとかなで一切引けない。出典 https://api.fujiwarahaji.me/v3/music?id=12221"
+  },
+  {
+   "table": "songs",
+   "id": "sc_paradox",
+   "fields": {
+    "title_kana": "ぱらどっくす"
+   },
+   "note": "CloudKit から新しく入ってきた曲。読みが空だとかなで一切引けない。出典 https://api.fujiwarahaji.me/v3/music?id=12231"
+  },
+  {
+   "table": "songs",
+   "id": "sc_solar_way_-10_colors-",
+   "fields": {
+    "title_kana": "そーらーうぇいてんからーず"
+   },
+   "note": "CloudKit から新しく入ってきた曲。読みが空だとかなで一切引けない。出典 https://api.fujiwarahaji.me/v3/music?id=4139"
+  },
+  {
+   "table": "songs",
+   "id": "sc_sweet_boozy",
+   "fields": {
+    "title_kana": "すいーとぶーじー"
+   },
+   "note": "CloudKit から新しく入ってきた曲。読みが空だとかなで一切引けない。出典 https://api.fujiwarahaji.me/v3/music?id=12229"
+  },
+  {
+   "table": "songs",
+   "id": "sc_take_ur_time",
+   "fields": {
+    "title_kana": "ていくゆあたいむ"
+   },
+   "note": "CloudKit から新しく入ってきた曲。読みが空だとかなで一切引けない。出典 https://api.fujiwarahaji.me/v3/music?id=12225"
+  },
+  {
+   "table": "songs",
+   "id": "sc_unstoppable",
+   "fields": {
+    "title_kana": "あんすとっぱぶる"
+   },
+   "note": "CloudKit から新しく入ってきた曲。読みが空だとかなで一切引けない。出典 https://api.fujiwarahaji.me/v3/music?id=12233"
+  },
+  {
+   "table": "songs",
+   "id": "sc_どっちみちlove",
+   "fields": {
+    "title_kana": "どっちみちらぶ"
+   },
+   "note": "CloudKit から新しく入ってきた曲。読みが空だとかなで一切引けない。出典 https://api.fujiwarahaji.me/v3/music?id=12211"
+  },
+  {
+   "table": "songs",
+   "id": "sc_カラースプレーとうさぎさん",
+   "fields": {
+    "title_kana": "からーすぷれーとうさぎさん"
+   },
+   "note": "CloudKit から新しく入ってきた曲。読みが空だとかなで一切引けない。出典 https://api.fujiwarahaji.me/v3/music?id=12219"
+  },
+  {
+   "table": "songs",
+   "id": "sc_ガガリズム",
+   "fields": {
+    "title_kana": "ががりずむ"
+   },
+   "note": "CloudKit から新しく入ってきた曲。読みが空だとかなで一切引けない。出典 https://api.fujiwarahaji.me/v3/music?id=12230"
+  },
+  {
+   "table": "songs",
+   "id": "sc_ダミーガール",
+   "fields": {
+    "title_kana": "だみーがーる"
+   },
+   "note": "CloudKit から新しく入ってきた曲。読みが空だとかなで一切引けない。出典 https://api.fujiwarahaji.me/v3/music?id=12213"
+  },
+  {
+   "table": "songs",
+   "id": "sc_ナイススパイス研究会",
+   "fields": {
+    "title_kana": "ないすすぱいすけんきゅうかい"
+   },
+   "note": "CloudKit から新しく入ってきた曲。読みが空だとかなで一切引けない。出典 https://api.fujiwarahaji.me/v3/music?id=12210"
+  },
+  {
+   "table": "songs",
+   "id": "sc_ハグルマヒマワリ",
+   "fields": {
+    "title_kana": "はぐるまひまわり"
+   },
+   "note": "CloudKit から新しく入ってきた曲。読みが空だとかなで一切引けない。出典 https://api.fujiwarahaji.me/v3/music?id=12209"
+  },
+  {
+   "table": "songs",
+   "id": "sc_ハートフルデイ_ハートフルミー",
+   "fields": {
+    "title_kana": "はーとふるでいはーとふるみー"
+   },
+   "note": "CloudKit から新しく入ってきた曲。読みが空だとかなで一切引けない。出典 https://api.fujiwarahaji.me/v3/music?id=12232"
+  },
+  {
+   "table": "songs",
+   "id": "sc_パラボラ",
+   "fields": {
+    "title_kana": "ぱらぼら"
+   },
+   "note": "CloudKit から新しく入ってきた曲。読みが空だとかなで一切引けない。出典 https://api.fujiwarahaji.me/v3/music?id=12227"
+  },
+  {
+   "table": "songs",
+   "id": "sc_プラニスフィア_planisphere_-9_colors-",
+   "fields": {
+    "title_kana": "ぷらにすふぃあないんからーず"
+   },
+   "note": "CloudKit から新しく入ってきた曲。読みが空だとかなで一切引けない。出典 https://api.fujiwarahaji.me/v3/music?id=3987"
+  },
+  {
+   "table": "songs",
+   "id": "sc_リフレクトサイン_-9_colors-",
+   "fields": {
+    "title_kana": "りふれくとさいんないんからーず"
+   },
+   "note": "CloudKit から新しく入ってきた曲。読みが空だとかなで一切引けない。出典 https://api.fujiwarahaji.me/v3/music?id=4061"
+  },
+  {
+   "table": "songs",
+   "id": "sc_ワタシグラビティ",
+   "fields": {
+    "title_kana": "わたしぐらびてぃ"
+   },
+   "note": "CloudKit から新しく入ってきた曲。読みが空だとかなで一切引けない。出典 https://api.fujiwarahaji.me/v3/music?id=12212"
+  },
+  {
+   "table": "songs",
+   "id": "sc_恋するクオリア",
+   "fields": {
+    "title_kana": "こいするくおりあ"
+   },
+   "note": "CloudKit から新しく入ってきた曲。読みが空だとかなで一切引けない。出典 https://api.fujiwarahaji.me/v3/music?id=12208"
+  },
+  {
+   "table": "songs",
+   "id": "sc_最上級パンチライン",
+   "fields": {
+    "title_kana": "さいじょうきゅうぱんちらいん"
+   },
+   "note": "CloudKit から新しく入ってきた曲。読みが空だとかなで一切引けない。出典 https://api.fujiwarahaji.me/v3/music?id=12218"
+  },
+  {
+   "table": "songs",
+   "id": "sc_月とネオンと薄紅と",
+   "fields": {
+    "title_kana": "つきとねおんとうすべにと"
+   },
+   "note": "CloudKit から新しく入ってきた曲。読みが空だとかなで一切引けない。出典 https://api.fujiwarahaji.me/v3/music?id=12220"
+  },
+  {
+   "table": "songs",
+   "id": "sc_正解な不正解",
+   "fields": {
+    "title_kana": "せいかいなふせいかい"
+   },
+   "note": "CloudKit から新しく入ってきた曲。読みが空だとかなで一切引けない。出典 https://api.fujiwarahaji.me/v3/music?id=12217"
+  }
+ ]
+}
