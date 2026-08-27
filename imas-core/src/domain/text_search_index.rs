@@ -71,7 +71,43 @@ pub fn prepare_needle(text: &str) -> Vec<u8> {
 /// 不一致は全て U+03A3 絡みのこの規則差だった)。`char::to_lowercase` は
 /// 無条件の全小文字化写像 (U+0130 → "i\u{307}" の 1:N 展開含む) で Swift と一致する。
 fn fold_lowercase(text: &str) -> String {
-    text.chars().flat_map(char::to_lowercase).map(fold_kana).collect()
+    let mut out = String::with_capacity(text.len());
+    for ch in text.chars().flat_map(char::to_lowercase).map(fold_kana) {
+        match out.chars().next_back().and_then(|prev| compose_voiced_mark(prev, ch)) {
+            Some(composed) => {
+                out.pop();
+                out.push(composed);
+            }
+            None => out.push(ch),
+        }
+    }
+    out
+}
+
+/// 単独の濁点・半濁点を直前のかなに合成する (か + ゛ → が)。合成できなければ None。
+///
+/// 濁点付きのかなには合成済み (NFC: が U+304C) と分解済み (NFD: か + U+3099) の
+/// 2 つの表し方がある。バイト列で比べる以上、片方だけでは当たらない。
+/// 実データにも 1 曲・1 ライブ紛れていて、**自分の名前で検索できない**状態だった。
+/// データを直しても、アプリ内編集や貼り付けで再び入ってくるのでここで吸収する。
+///
+/// 表を持たずに済むのは、ひらがなが濁点の有無で連続して並んでいるため
+/// (か U+304B → が U+304C → 半濁点は は行のみ +2)。`fold_kana` の後に呼ぶ前提。
+fn compose_voiced_mark(base: char, mark: char) -> Option<char> {
+    const DAKUTEN: char = '\u{3099}';
+    const HANDAKUTEN: char = '\u{309A}';
+    let voiced = |c: char| char::from_u32(c as u32 + 1);
+    let semi = |c: char| char::from_u32(c as u32 + 2);
+    match (base, mark) {
+        // う゛ = ゔ だけ並びから外れる。
+        ('\u{3046}', DAKUTEN) => Some('\u{3094}'),
+        // か行 さ行 た行 は行 (清音は 2 つおき / は行は 3 つおきに並ぶ)。
+        ('\u{304B}'..='\u{3062}', DAKUTEN) if (base as u32 - 0x304B) % 2 == 0 => voiced(base),
+        ('\u{3064}'..='\u{3068}', DAKUTEN) if (base as u32 - 0x3064) % 2 == 0 => voiced(base),
+        ('\u{306F}'..='\u{307B}', DAKUTEN) if (base as u32 - 0x306F) % 3 == 0 => voiced(base),
+        ('\u{306F}'..='\u{307B}', HANDAKUTEN) if (base as u32 - 0x306F) % 3 == 0 => semi(base),
+        _ => None,
+    }
 }
 
 /// カタカナをひらがなへ畳む (1 文字 → 1 文字、UTF-8 では 3 バイト → 3 バイト)。
@@ -100,6 +136,21 @@ fn fold_with_offsets(text: &str) -> (Vec<u8>, Vec<usize>, Vec<usize>) {
     for (offset, ch) in text.char_indices() {
         let end = offset + ch.len_utf8();
         for folded in ch.to_lowercase().map(fold_kana) {
+            // 直前の文字と合成できるなら、積んだ 1 文字ぶんを差し替える。
+            // 元の 2 文字ぶんを覆うので、始まりは前の文字のまま・終わりだけ伸ばす。
+            if let Some(composed) = last_char(&bytes).and_then(|prev| compose_voiced_mark(prev, folded)) {
+                let previous = prev_char_len(&bytes);
+                let start = starts[bytes.len() - previous];
+                bytes.truncate(bytes.len() - previous);
+                starts.truncate(bytes.len());
+                ends.truncate(bytes.len());
+                for _ in composed.encode_utf8(&mut buf).bytes() {
+                    starts.push(start);
+                    ends.push(end);
+                }
+                bytes.extend_from_slice(composed.encode_utf8(&mut buf).as_bytes());
+                continue;
+            }
             for _ in folded.encode_utf8(&mut buf).bytes() {
                 starts.push(offset);
                 ends.push(end);
@@ -108,6 +159,16 @@ fn fold_with_offsets(text: &str) -> (Vec<u8>, Vec<usize>, Vec<usize>) {
         }
     }
     (bytes, starts, ends)
+}
+
+/// 積んだバイト列の末尾 1 文字 (合成できるか見るため)。
+fn last_char(bytes: &[u8]) -> Option<char> {
+    std::str::from_utf8(bytes).ok()?.chars().next_back()
+}
+
+/// 積んだバイト列の末尾 1 文字のバイト数。
+fn prev_char_len(bytes: &[u8]) -> usize {
+    last_char(bytes).map_or(0, char::len_utf8)
 }
 
 /// 検索語が `haystack` のどこに当たったかを、**元の文字列のバイト範囲**で返す。
@@ -445,5 +506,36 @@ mod tests {
                 "「{needle}」→「{text}」で判定と範囲が食い違う"
             );
         }
+    }
+
+    // --- 濁点の表し方 (合成済み / 分解済み) ---
+
+    /// 分解された濁点でも、合成済みと同じに当たる。
+    ///
+    /// 実データに「ムケ゛ンタ゛イグロウアップ！」(NFD) が 1 曲あり、
+    /// 「ムゲンダイ」(NFC) と打っても**自分の曲名で検索できなかった**。
+    #[test]
+    fn decomposed_dakuten_matches_the_composed_form() {
+        let decomposed = "ムケ\u{3099}ンタ\u{3099}イ";
+        assert!(hit(&index(&[decomposed]), "ムゲンダイ"));
+        assert!(hit(&index(&["ムゲンダイ"]), decomposed));
+        // 半濁点も同じ。
+        assert!(hit(&index(&["ハ\u{309A}ステル"]), "パステル"));
+    }
+
+    /// 合成しても、ハイライトは元の文字列の 2 文字ぶんを覆う。
+    #[test]
+    fn a_composed_match_covers_both_original_characters() {
+        let title = "ムケ\u{3099}ンタ\u{3099}イ";
+        let (start, end) = match_range(title, "ムゲンダイ").expect("当たるはず");
+        assert_eq!(&title[start as usize..end as usize], title);
+    }
+
+    /// 濁点が付かないかなには合成しない (あ + ゛ は「あ」のままにしない)。
+    #[test]
+    fn only_kana_that_take_a_dakuten_are_composed() {
+        assert!(!hit(&index(&["あ\u{3099}"]), "い"));
+        // か行に半濁点は無い。
+        assert!(!hit(&index(&["カ\u{309A}"]), "が"));
     }
 }

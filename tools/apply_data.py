@@ -13,7 +13,8 @@ data/ 配下を読み、検証 → master.sqlite に反映 → CloudKit へ一�
     CLOUDKIT_KEY_ID=... python3 tools/apply_data.py --apply --push --production
 
 形式は data/<種類>/_template.json / data/fixes/_template.json と data/README.md 参照。
-全ファイルに source (出典URL) 必須。
+全ファイルに source 必須 (出典URL、または既存データから導いた場合は
+`derived:<何から導いたか>`)。
 """
 from __future__ import annotations
 
@@ -65,6 +66,15 @@ def exists(conn, table, rec_id):
     return conn.execute(f"SELECT 1 FROM {table} WHERE id = ?", (rec_id,)).fetchone() is not None
 
 
+# 処理対象を 1 ファイルに絞るときのファイル名 (--only)。
+#
+# data/ 全体を一度に流すと、無関係な保留中の投稿が 1 件でも失敗した時点で
+# トランザクションごと巻き戻り、レビュー済みの投稿まで入らなくなる
+# (実際、保留中のセトリの UNIQUE 違反で読み仮名 316 件が入らなかった)。
+# レビューが済んだものから順に入れられるようにする。
+ONLY_FILE = None
+
+
 def load(kind):
     out = []
     d = DATA_DIR / kind
@@ -72,6 +82,8 @@ def load(kind):
         return out
     for p in sorted(d.glob("*.json")):
         if p.name.startswith("_"):
+            continue
+        if ONLY_FILE and p.name != ONLY_FILE:
             continue
         out.append((p, json.loads(p.read_text(encoding="utf-8"))))
     return out
@@ -98,12 +110,34 @@ def resolve_song(conn, brand_id, song_id, title, pending=()):
 
 # ---- 検証 -----------------------------------------------------------------
 
+def valid_source(source) -> bool:
+    """出典として認めるか。
+
+    外部の情報は URL で辿れないと検証できないので原則 URL。ただし読み仮名のように
+    **既に DB にある値から導いた** データは URL を持たない。そこに適当な URL を書くと
+    出典を偽ることになる (実際、曲名から起こした読みに出典サイトの URL が付きかけた)。
+    導出は `derived:<何から導いたか>` で申告する。何から導いたかを書かせるので、
+    「出典不明」を隠す逃げ道にはならない。
+    """
+    text = str(source).strip()
+    return text.startswith("http") or len(text) > len("derived:") and text.startswith("derived:")
+
+
 def validate(conn):
     problems = []
 
     def need_source(path, data):
-        if not str(data.get("source", "")).strip().startswith("http"):
-            problems.append(f"{path.name}: source (出典URL) が必須")
+        """ファイル全体の出典の申告を必須にする。
+
+        外部の情報は URL で辿れないと検証できないので原則 URL。ただし読み仮名のように
+        **既に DB にある値から導いた** データは URL を持たない。そこに適当な URL を書くと
+        出典を偽ることになる (実際、曲名から起こした読みに出典サイトの URL が付きかけた)。
+        導出は `derived:<何から導いたか>` で申告する。何から導いたかを書かせるので、
+        「出典不明」を隠す逃げ道にはならない。
+        """
+        if not valid_source(data.get("source", "")):
+            problems.append(
+                f"{path.name}: source は出典URL か 'derived:<何から導いたか>' が必須")
 
     for path, data in load("songs"):
         need_source(path, data)
@@ -222,8 +256,9 @@ def validate(conn):
                         problems.append(f"{tag}: id は変更不可")
                     elif k not in tcol:
                         problems.append(f"{tag}: '{table}' に列 '{k}' が無い")
-            if not str(fx.get("source", "")).strip().startswith("http"):
-                problems.append(f"{tag}: source (出典URL) が必須")
+            if not valid_source(fx.get("source", "")):
+                problems.append(
+                    f"{tag}: source は出典URL か 'derived:<何から導いたか>' が必須")
 
     return problems
 
@@ -341,7 +376,12 @@ def main():
     ap.add_argument("--push", action="store_true", help="反映後 CloudKit へ push (要 --apply)")
     ap.add_argument("--production", action="store_true", help="push 先を Production に")
     ap.add_argument("--db", default=str(DB_PATH))
+    ap.add_argument("--only", metavar="FILE.json",
+                    help="この 1 ファイルだけを対象にする (他の保留中の投稿に巻き込まれない)")
     args = ap.parse_args()
+    if args.only:
+        global ONLY_FILE
+        ONLY_FILE = Path(args.only).name
 
     ensure_db(args.db)
     conn = sqlite3.connect(args.db)
