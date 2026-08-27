@@ -267,9 +267,14 @@ struct CoreSongRepository: SongReading {
         try await fallback.originalSongIds(forShowCastOf: showId)
     }
 
-    /// 統計スライス (Phase 5) の領域。
+    /// ブランドに属する曲の id 集合 (統計スライスがコアに持っている)。
+    ///
+    /// コア側 (`inbound/stats_queries.rs` の `branded_song_ids`) は 8/25 に移送済みだったのに
+    /// ここだけ GRDB 経路のまま残っていた。集合として使う側なので順序は問わない。
     func brandedSongIds() async throws -> Set<String> {
-        try await fallback.brandedSongIds()
+        try await snapshot.withStore(fallbackTo: { try await fallback.brandedSongIds() }) { store in
+            Set(try store.brandedSongIds())
+        }
     }
 
     // MARK: - コミュニティ構造化 (CloudKit 同期のローカルミラー)
