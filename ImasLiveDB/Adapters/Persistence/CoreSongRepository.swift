@@ -232,9 +232,14 @@ struct CoreSongRepository: SongReading {
         }
     }
 
-    /// ピッカー用の軽量全曲列挙は core 未移送。
+    /// 編集 UI の曲ピッカー用の全曲 (id + title だけ)。
+    ///
+    /// 並びは `title` のバイト列昇順で、曲一覧の 50 音順とは別物。SQL 時代からの
+    /// 挙動なのでコア側でも揃えていない (直すとピッカーの並びが黙って変わる)。
     func allSongsForPicker() async throws -> [PickedSong] {
-        try await fallback.allSongsForPicker()
+        try await snapshot.withStore(fallbackTo: { try await fallback.allSongsForPicker() }) { store in
+            try store.allSongsForPicker().map { PickedSong(id: $0.id, title: $0.title) }
+        }
     }
 
     // MARK: - カタログ (アルバム/シリーズ)

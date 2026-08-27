@@ -5,6 +5,7 @@
 //! - [`search_songs`]                ← searchSongsAsync(query:limit:)
 //! - [`related_songs`]               ← fetchRelatedSongsAsync(to:limit:)
 //! - [`songs_by_creator`]            ← fetchSongsByCreatorAsync(_:)
+//! - [`all_songs_for_picker`]        ← fetchAllSongsForPickerAsync()
 //! - [`listable_song_records_by_ids`] ← fetchListableSongsAsync(ids:)
 //! - [`performer_idol_ids_map`]       ← fetchSongPerformerIdolsMap(songIds:)
 //! - [`performance_history`]          ← fetchSongPerformanceHistoryAsync(songId:)
@@ -133,6 +134,16 @@ pub struct SeriesSummaryRecord {
     /// 影響を受けない仕様だったので、ここも全曲から選ぶ。
     pub artwork_url: Option<String>,
     pub brand_ids: Vec<String>,
+}
+
+/// 編集 UI の曲ピッカー 1 行 (iOS `PickedSong`)。
+///
+/// 全曲を運ぶので、行の描画と選択に要る id + title だけの軽量射影にする
+/// (`SongDetailRecord` を全曲ぶん FFI 越しに渡すのは無駄が大きい)。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct PickedSongRecord {
+    pub id: String,
+    pub title: String,
 }
 
 /// クリエイター絞り込みの 1 行 (iOS `SongWithRoles`)。
@@ -433,6 +444,34 @@ fn trim_foundation_spaces(s: &str) -> &str {
             '\u{0009}' | '\u{0020}' | '\u{00A0}' | '\u{1680}'
             | '\u{2000}'..='\u{200A}' | '\u{202F}' | '\u{205F}' | '\u{3000}')
     })
+}
+
+/// 編集 UI の曲ピッカー用の全曲列。iOS `AppDatabase.fetchAllSongsForPickerQuery` 相当:
+///
+/// ```sql
+/// SELECT id, title FROM songs ORDER BY title
+/// ```
+///
+/// 写すべき非自明な点:
+/// - 並びは `title` であって `title_kana` ではない。BINARY 照合 (バイト列比較) なので、
+///   かなも漢字も英字も**音読み順には並ばない**。曲一覧 (50 音順) とは別の並びだが、
+///   SQL 時代からこうで、直すとピッカーの並びが黙って変わる。
+/// - 絞り込みは一切なし。カバーも派生曲もその他ブランドも全部出る (編集時に
+///   どの曲でも選べる必要があるため)。
+/// - 同題の曲が複数あるときの並びは SQL 未規定なので、添字 (= rowid 読み込み順) を
+///   最終キーにして決定化する。
+pub fn all_songs_for_picker(snap: &Snapshot) -> Vec<PickedSongRecord> {
+    let mut indexes: Vec<u32> = (0..snap.songs.len() as u32).collect();
+    indexes.sort_by(|&l, &r| {
+        snap.songs[l as usize].title.cmp(&snap.songs[r as usize].title).then(l.cmp(&r))
+    });
+    indexes
+        .into_iter()
+        .map(|i| {
+            let s = &snap.songs[i as usize];
+            PickedSongRecord { id: s.id.clone(), title: s.title.clone() }
+        })
+        .collect()
 }
 
 /// 一覧に出す資格のある曲だけを id で引く (fetchListableSongsAsync(ids:))。
@@ -830,6 +869,49 @@ mod tests {
 
     fn placeholders(n: usize) -> String {
         vec!["?"; n].join(",")
+    }
+
+    /// 照合: allSongsForPicker。元 SQL と**順序込み**で一致する。
+    #[test]
+    fn all_songs_for_picker_matches_sql() {
+        let snap = snapshot();
+        let db = conn();
+        let mut stmt = db.prepare("SELECT id, title FROM songs ORDER BY title").unwrap();
+        let expected: Vec<PickedSongRecord> = stmt
+            .query_map([], |r| {
+                Ok(PickedSongRecord { id: r.get_unwrap("id"), title: r.get_unwrap("title") })
+            })
+            .unwrap()
+            .map(Result::unwrap)
+            .collect();
+
+        let actual = all_songs_for_picker(&snap);
+        assert_eq!(actual.len(), snap.songs.len(), "絞り込みは一切ない (全曲)");
+        assert!(actual.len() > 3000, "全曲が載っている前提: {}", actual.len());
+        assert_eq!(actual, expected);
+    }
+
+    /// 並びは title (BINARY) であって title_kana ではない。
+    /// 50 音順に「直す」と編集 UI のピッカーの並びが黙って変わる。
+    #[test]
+    fn all_songs_for_picker_is_ordered_by_title_not_kana() {
+        let snap = snapshot();
+        let picker = all_songs_for_picker(&snap);
+        assert!(
+            picker.windows(2).all(|w| w[0].title <= w[1].title),
+            "title のバイト列昇順"
+        );
+
+        // 50 音順 (title_kana) とは実際に違うこと (同じなら検証として退化する)。
+        let mut by_kana: Vec<u32> = (0..snap.songs.len() as u32).collect();
+        by_kana.sort_by(|&l, &r| {
+            let (a, b) = (&snap.songs[l as usize], &snap.songs[r as usize]);
+            a.title_kana.cmp(&b.title_kana).then_with(|| a.title.cmp(&b.title)).then(l.cmp(&r))
+        });
+        let kana_ids: Vec<&str> =
+            by_kana.iter().map(|&i| snap.songs[i as usize].id.as_str()).collect();
+        let picker_ids: Vec<&str> = picker.iter().map(|p| p.id.as_str()).collect();
+        assert_ne!(picker_ids, kana_ids, "title 順と title_kana 順が同じ DB では検証にならない");
     }
 
     /// 原本 `fetchSongsByCreator` の写経 (SQL の候補抽出 + Swift の役割判定)。

@@ -5,8 +5,8 @@
 
 use super::snapshot_store::{SnapshotError, SnapshotStore};
 use crate::domain::song_detail_queries::{
-    self, AlbumSummaryRecord, PerformanceHistoryEntry, SeriesSummaryRecord, SongDetailRecord,
-    SongWithRolesRecord,
+    self, AlbumSummaryRecord, PerformanceHistoryEntry, PickedSongRecord, SeriesSummaryRecord,
+    SongDetailRecord, SongWithRolesRecord,
 };
 use std::collections::HashMap;
 
@@ -58,6 +58,13 @@ impl SnapshotStore {
     ) -> Result<Vec<SongWithRolesRecord>, SnapshotError> {
         let snap = self.current()?;
         Ok(song_detail_queries::songs_by_creator(&snap, &name))
+    }
+
+    /// 編集 UI の曲ピッカー用の全曲 (id + title だけ・title のバイト列昇順)。
+    /// fetchAllSongsForPicker() 相当。絞り込みは無く、カバーも派生曲も出る。
+    pub fn all_songs_for_picker(&self) -> Result<Vec<PickedSongRecord>, SnapshotError> {
+        let snap = self.current()?;
+        Ok(song_detail_queries::all_songs_for_picker(&snap))
     }
 
     /// 一覧に出す資格のある曲だけを id で引く (派生曲と brand='other' を隠す)。
