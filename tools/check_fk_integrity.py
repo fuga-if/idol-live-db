@@ -57,6 +57,10 @@ UNDECLARED_REFS = [
     ("song_artists", "song_id", "songs"),
     ("show_cast", "show_id", "shows"),
     ("shows", "event_id", "events"),
+    ("unit_members", "unit_id", "units"),
+    ("unit_members", "idol_id", "idols"),
+    ("idol_brands", "idol_id", "idols"),
+    ("song_units", "song_id", "songs"),
 ]
 
 
