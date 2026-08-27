@@ -85,6 +85,7 @@ import com.fugaif.imaslivedb.data.auth.showEditAffordance
 import com.fugaif.imaslivedb.data.auth.startCommunityEdit
 import com.fugaif.imaslivedb.data.community.CommunityApi
 import com.fugaif.imaslivedb.data.image.CustomImageStore
+import com.fugaif.imaslivedb.data.model.Brand
 import com.fugaif.imaslivedb.data.model.CastShowRow
 import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.data.model.IdolPerformedSong
@@ -101,7 +102,10 @@ import com.fugaif.imaslivedb.ui.components.ImasLabeledRow
 import com.fugaif.imaslivedb.ui.components.PersonalTagsSection
 import com.fugaif.imaslivedb.ui.components.ImasSectionHeader
 import com.fugaif.imaslivedb.ui.components.ImasSegmented
+import com.fugaif.imaslivedb.ui.components.ImasChip
+import com.fugaif.imaslivedb.ui.components.ImasChipStyle
 import com.fugaif.imaslivedb.ui.components.MarkToggleAction
+import com.fugaif.imaslivedb.ui.filtered.IdolFilterKind
 import com.fugaif.imaslivedb.ui.tags.IdolTagPickerSheet
 import com.fugaif.imaslivedb.ui.theme.BrandPalette
 import com.fugaif.imaslivedb.ui.theme.DS
@@ -137,6 +141,13 @@ fun IdolDetailScreen(
     onIdolTagClick: (String) -> Unit = {},
     /** 誕生日の行から「同じ誕生月のアイドル」一覧へ (1..12)。押せる行かどうかはコアが決める。 */
     onNavigateToBirthMonth: (Int) -> Unit = {},
+    /** ライブ歌唱曲の行から「この人がこの曲を歌った公演」へ (idolId, songId)。 */
+    onNavigateToSongHistory: (String, String) -> Unit = { _, _ -> },
+    /**
+     * プロフィールの属性から「同じ属性のアイドル」一覧へ (kind, value は
+     * [com.fugaif.imaslivedb.ui.filtered.IdolFilterKind] の定義に従う)。
+     */
+    onFilteredIdolsClick: (String, String) -> Unit = { _, _ -> },
     viewModel: IdolDetailViewModel = viewModel(
         factory = IdolDetailViewModel.Factory(
             LocalContext.current.applicationContext as android.app.Application, idolId
@@ -183,9 +194,11 @@ fun IdolDetailScreen(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)
                 )
                 when (segment) {
-                    0 -> LiveBody(state, idol, onNavigateToSongDetail, onNavigateToShowDetail)
+                    0 -> LiveBody(state, idol, onNavigateToShowDetail) { songId ->
+                        onNavigateToSongHistory(idol.id, songId)
+                    }
                     1 -> SongsBody(state, idol, onNavigateToUnitDetail, onNavigateToSongDetail)
-                    2 -> ProfileBody(idol, onNavigateToBirthMonth)
+                    2 -> ProfileBody(idol, state.brand, onNavigateToBirthMonth, onFilteredIdolsClick)
                     else -> Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
                         CommunityBody(
                             idolId = idol.id,
@@ -383,7 +396,16 @@ private fun HeroToggle(label: String, on: Boolean, activeColor: Color, t: ImasTh
 }
 
 @Composable
-private fun LiveBody(state: IdolDetailUiState, idol: Idol, onSong: (String) -> Unit, onShow: (String) -> Unit) {
+private fun LiveBody(
+    state: IdolDetailUiState,
+    idol: Idol,
+    onShow: (String) -> Unit,
+    /**
+     * 「ライブ歌唱曲」の行き先は曲詳細ではなく **この人 × この曲の披露履歴**。
+     * 曲詳細へ飛ばすと全歌唱者ぶんの履歴に混ざり、「この人がいつ歌ったか」が読めなくなる。
+     */
+    onSongHistory: (String) -> Unit
+) {
     if (state.performedSongs.isEmpty() && state.castShows.isEmpty()) {
         ImasEmptyState(Icons.Filled.MusicNote, "ライブ記録はまだありません",
             "このアイドルのライブ出演・歌唱記録はまだ登録されていません。", seed = idol.color, brand = idol.brandId)
@@ -397,7 +419,7 @@ private fun LiveBody(state: IdolDetailUiState, idol: Idol, onSong: (String) -> U
             Column {
                 ImasSectionHeader("ライブ歌唱曲", count = "${state.performedSongs.size}", tight = true)
                 state.performedSongs.forEach { item ->
-                    SongRow(item.song, idol.color, performCount = item.performCount) { onSong(item.song.id) }
+                    SongRow(item.song, idol.color, performCount = item.performCount) { onSongHistory(item.song.id) }
                 }
             }
         }
@@ -504,7 +526,12 @@ private fun UnitChip(unit: ImasUnit, idol: Idol, onClick: () -> Unit) {
 }
 
 @Composable
-private fun ProfileBody(idol: Idol, onNavigateToBirthMonth: (Int) -> Unit) {
+private fun ProfileBody(
+    idol: Idol,
+    brand: Brand?,
+    onNavigateToBirthMonth: (Int) -> Unit,
+    onFilteredIdolsClick: (String, String) -> Unit
+) {
     val clipboard = LocalClipboardManager.current
     // 行の組み立て (どの行が・どの順で・押せるか) は共有コアが唯一の正。
     // iOS と同じ条件を二重に書くと必ずいつかズレるので、ここは整形済みの値を渡すだけにする。
@@ -560,8 +587,45 @@ private fun ProfileBody(idol: Idol, onNavigateToBirthMonth: (Int) -> Unit) {
         idol.description?.takeIf { it.isNotEmpty() }?.let { desc ->
             Text(desc, fontSize = 14.sp, color = DS.ink2, modifier = Modifier.padding(16.dp))
         }
+        SameProfileSection(idol, brand, onFilteredIdolsClick)
         // iOS も profileBody の末尾にギャラリーを置いている (プロフィールの一部という位置づけ)。
         GallerySection(idol.id)
+    }
+}
+
+/**
+ * 「同じ属性のアイドル」への入口 (ブランド / 星座 / 出身地 / 血液型)。
+ *
+ * プロフィールの行そのものを押させないのは、行の組み立て — どの行が・どの順で・押せるか —
+ * を共有コア (`idolProfileRows`) が持っているため。血液型と星座は 1 行に同居していて
+ * 行き先が 2 つあり、コアの `RowAction` では表現できない。行の内訳ではなくチップで
+ * 「この属性で辿れる」ことを示す方が、どこを押すと何が起きるかも明快になる。
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun SameProfileSection(idol: Idol, brand: Brand?, onFilteredIdolsClick: (String, String) -> Unit) {
+    val chips = buildList {
+        brand?.let { add(Triple(IdolFilterKind.BRAND, it.id, it.shortName)) }
+        idol.constellation?.takeIf { it.isNotEmpty() }?.let { add(Triple(IdolFilterKind.CONSTELLATION, it, it)) }
+        idol.birthPlace?.takeIf { it.isNotEmpty() }?.let { add(Triple(IdolFilterKind.BIRTH_PLACE, it, "${it}出身")) }
+        idol.bloodType?.takeIf { it.isNotEmpty() }?.let { add(Triple(IdolFilterKind.BLOOD_TYPE, it, "${it}型")) }
+    }
+    if (chips.isEmpty()) return
+    Column {
+        ImasSectionHeader("同じプロフィールのアイドル", tight = true)
+        FlowRow(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            chips.forEach { (kind, value, label) ->
+                ImasChip(
+                    text = label, style = ImasChipStyle.THEMED,
+                    seed = idol.color, brand = idol.brandId,
+                    onClick = { onFilteredIdolsClick(kind, value) }
+                )
+            }
+        }
     }
 }
 

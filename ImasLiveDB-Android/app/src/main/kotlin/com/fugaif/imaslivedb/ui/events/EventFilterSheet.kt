@@ -37,9 +37,12 @@ import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.brandColor
 
 /**
- * イベント種別 (events.kind) の内部値と表示ラベル。
- * iOS `EventKind` に対応する。DB は生文字列なので、ここに無い kind は除外チップに出ない
- * (= 常に表示される)。増えたときに黙って一覧から消えないよう、ホワイトリストで除外する側に置く。
+ * イベント種別 (events.kind) の内部値と表示ラベル。iOS `EventKind` と同じ 5 種。
+ *
+ * DB の kind は生文字列で、この 5 種以外 ('other' 等) も入っている。コアの
+ * `normalize_kind` はそれらを **"live" 扱い**にするので (新しい kind が増えても旧
+ * クライアントから消えないためのフォールバック)、「ライブ」を除外すると未知 kind の
+ * イベントも一緒に落ちる。iOS と同じ挙動なので揃えてある。
  */
 val EVENT_KINDS: List<Pair<String, String>> = listOf(
     "live" to "ライブ",

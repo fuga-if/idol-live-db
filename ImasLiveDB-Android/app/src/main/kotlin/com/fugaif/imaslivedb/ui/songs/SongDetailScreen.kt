@@ -95,7 +95,9 @@ import com.fugaif.imaslivedb.ui.theme.BrandPalette
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasTheme
 import com.fugaif.imaslivedb.ui.theme.hexToColor
+import com.fugaif.imaslivedb.ui.filtered.SongFilterKind
 import uniffi.imas_core.shortYearMonth
+import uniffi.imas_core.splitCreditNames
 
 /**
  * 楽曲詳細。iOS の SongSheetContent (大ジャケ hero + ImasSegmented 3 タブ
@@ -116,6 +118,11 @@ fun SongDetailScreen(
     onIdolClick: (String) -> Unit,
     onShowClick: (String) -> Unit,
     onPollClick: (String) -> Unit = {},
+    /**
+     * 楽曲情報の行から「同じ条件の楽曲一覧」へ (kind, value は
+     * [com.fugaif.imaslivedb.ui.filtered.SongFilterKind] の定義に従う)。
+     */
+    onFilteredSongsClick: (String, String) -> Unit = { _, _ -> },
     viewModel: SongDetailViewModel = viewModel(key = songId)
 ) {
     val context = LocalContext.current
@@ -213,7 +220,8 @@ fun SongDetailScreen(
                 onEditCall = { call -> startCommunityEdit { editingCall = call; showCallSheet = true } },
                 onOpenPenlightVote = { startCommunityEdit { showPenlightSheet = true } },
                 onUnitClick = onUnitClick,
-                onPollClick = onPollClick
+                onPollClick = onPollClick,
+                onFilteredSongsClick = onFilteredSongsClick
             )
         }
     }
@@ -280,7 +288,8 @@ private fun SongSheetContent(
     onEditCall: (SongCall) -> Unit,
     onOpenPenlightVote: () -> Unit,
     onUnitClick: (String) -> Unit,
-    onPollClick: (String) -> Unit
+    onPollClick: (String) -> Unit,
+    onFilteredSongsClick: (String, String) -> Unit
 ) {
     // 配色シード: ソロ (歌唱1人) はその個人カラー、それ以外はブランド色。
     val seed = if (state.originalArtists.size == 1) state.originalArtists.first().color else null
@@ -295,7 +304,11 @@ private fun SongSheetContent(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)
         )
         when (segment) {
-            0 -> InfoTab(song, state, seed, onIdolClick, onUnitClick, onSongClick, onShowClick, onRegisterAttendance = { segment = 1 })
+            0 -> InfoTab(
+                song, state, seed, onIdolClick, onUnitClick, onSongClick, onShowClick,
+                onRegisterAttendance = { segment = 1 },
+                onFilteredSongsClick = onFilteredSongsClick
+            )
             1 -> HistoryTab(
                 state.performanceHistory, state.performanceEvidence, seed, song.brandId,
                 onShowClick, onSongClick, onIdolClick
@@ -387,7 +400,12 @@ private fun Hero(
     }
 }
 
-private fun songTypeLabel(songType: String): String = when (songType) {
+/**
+ * songs.song_type の生値 → 表示ラベル。
+ * 曲一覧の絞り込みチップと絞り込み一覧のタイトルも同じラベルを出すので internal で共有する
+ * (画面ごとに書き直すと、同じ生値が二通りの日本語で出る)。
+ */
+internal fun songTypeLabel(songType: String): String = when (songType) {
     "solo" -> "ソロ"
     "unit", "group" -> "ユニット"
     "all" -> "全体曲"
@@ -436,8 +454,10 @@ private val eventNamePrefixes = listOf(
  * 除去後が短くなりすぎる場合は元の名前を返す — 「THE IDOLM@STER」のような
  * プレフィックスだけのイベント名を空ラベルにしないため。
  * 正式名称が要る箇所 (詳細タイトル・共有文・カレンダー保存名) では使わないこと。
+ *
+ * 会場/日付で絞った公演一覧も同じ整形を掛けるので internal で共有する。
  */
-private fun eventDisplayName(name: String): String {
+internal fun eventDisplayName(name: String): String {
     val prefix = eventNamePrefixes.firstOrNull { name.startsWith(it) } ?: return name
     val stripped = name.removePrefix(prefix).trim()
     return if (stripped.length >= 2) stripped else name
@@ -452,7 +472,8 @@ private fun InfoTab(
     onUnitClick: (String) -> Unit,
     onSongClick: (String) -> Unit,
     onShowClick: (String) -> Unit,
-    onRegisterAttendance: () -> Unit
+    onRegisterAttendance: () -> Unit,
+    onFilteredSongsClick: (String, String) -> Unit
 ) {
     val artistLine = when {
         state.originalArtists.isNotEmpty() -> state.originalArtists.joinToString(" / ") { it.name }
@@ -508,16 +529,43 @@ private fun InfoTab(
             // 「この曲が出てこない」としか思われず直しようがない (機械生成ぶんが混ざっている)。
             InfoRow("よみ", song.titleKana)
             InfoRow("アーティスト", artistLine)
-            InfoRow("ブランド", state.brand?.shortName)
-            if (song.songType.isNotEmpty() && song.songType != "unknown") {
-                InfoRow("タイプ", songTypeLabel(song.songType))
+            // 以降、値そのものが「同じ条件の曲の集合」を指す行は一覧へ抜けられるようにする。
+            // ここが唯一の入口の条件もある (シリーズや作家は一覧の絞り込み UI に無い)。
+            state.brand?.let { brand ->
+                FilterRow("ブランド", brand.shortName, seed, song.brandId) {
+                    onFilteredSongsClick(SongFilterKind.BRAND, brand.id)
+                }
             }
-            InfoRow("リリース日", song.releaseDate)
+            if (song.songType.isNotEmpty() && song.songType != "unknown") {
+                FilterRow("タイプ", songTypeLabel(song.songType), seed, song.brandId) {
+                    onFilteredSongsClick(SongFilterKind.SONG_TYPE, song.songType)
+                }
+            }
+            // 「YYYY-...」から年だけ取れたときにリリース年の一覧へ。年が読めない表記
+            // (未定・年だけ等) は押せない普通の行に落とす — 行き先が作れないため。
+            val releaseYear = song.releaseDate?.take(4)?.takeIf { it.length == 4 && it.toIntOrNull() != null }
+            if (releaseYear != null) {
+                FilterRow("リリース日", song.releaseDate, seed, song.brandId) {
+                    onFilteredSongsClick(SongFilterKind.RELEASE_YEAR, releaseYear)
+                }
+            } else {
+                InfoRow("リリース日", song.releaseDate)
+            }
             InfoRow("再生時間", formatDuration(song.durationSec))
-            InfoRow("作曲", song.composer)
-            InfoRow("作詞", song.lyricist)
-            InfoRow("編曲", song.arranger)
-            InfoRow("CDシリーズ", song.cdSeries)
+            // クレジットは 1 欄に複数名が入るので、行ごとではなく名前ごとに押せるようにする。
+            CreditRow("作曲", song.composer, seed, song.brandId, onFilteredSongsClick)
+            CreditRow("作詞", song.lyricist, seed, song.brandId, onFilteredSongsClick)
+            CreditRow("編曲", song.arranger, seed, song.brandId, onFilteredSongsClick)
+            song.seriesGroup?.takeIf { it.isNotEmpty() }?.let { series ->
+                FilterRow("シリーズ", series, seed, song.brandId) {
+                    onFilteredSongsClick(SongFilterKind.SERIES_GROUP, series)
+                }
+            }
+            song.cdSeries?.takeIf { it.isNotEmpty() }?.let { cdSeries ->
+                FilterRow("CDシリーズ", cdSeries, seed, song.brandId) {
+                    onFilteredSongsClick(SongFilterKind.CD_SERIES, cdSeries)
+                }
+            }
             InfoRow("収録", song.cdTitle)
             if (state.unit != null) {
                 ImasLabeledRow(key = "ユニット", value = state.unit.name, tappable = true, seed = seed, brand = song.brandId,
@@ -538,6 +586,65 @@ private fun InfoTab(
             RelatedSongsSection("関連楽曲", state.relatedSongs, seed, song.brandId, badge = null, onSongClick = onSongClick)
         }
     }
+}
+
+/**
+ * 値が「同じ条件の曲の集合」を指す行。押すと絞り込み一覧へ抜ける。
+ * 押せる見た目 (accent 文字 + 矢印) は tappable が出す。
+ */
+@Composable
+private fun FilterRow(key: String, value: String?, seed: String?, brand: String?, onClick: () -> Unit) {
+    if (value.isNullOrEmpty()) return
+    ImasLabeledRow(key = key, value = value, tappable = true, seed = seed, brand = brand, onClick = onClick)
+    HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 16.dp))
+}
+
+/**
+ * クレジット行 (作曲 / 作詞 / 編曲)。欄を人ごとに割って、名前 1 つずつを
+ * 「その人が関わった楽曲」へのリンクにする。
+ *
+ * 欄の割り方はコア (`splitCreditNames`) が唯一の正 — 括弧の外は 5 種類の区切りで割り、
+ * 括弧の中は `・` と `、` だけで割る (`,` `/` は社名の一部)。ここで書き直すと
+ * 一覧側の突き合わせ (SongRepository.fetchSongsByCreator) とずれて、同じ人が
+ * 二通りに分かれるか一覧が 0 件になる。
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun CreditRow(
+    key: String,
+    value: String?,
+    seed: String?,
+    brand: String?,
+    onFilteredSongsClick: (String, String) -> Unit
+) {
+    if (value.isNullOrEmpty()) return
+    // 空白だけの断片 (欄が "/" だけ等) は人名ではないので落とす。ルート引数が空になると
+    // 行き先のパスが組み立たず、押した瞬間に落ちる。
+    val names = remember(value) { splitCreditNames(value).filter { it.isNotBlank() } }
+    if (names.isEmpty()) return
+    val t = ImasTheme.derive(seed, BrandPalette.hex(brand), dark = true)
+    Row(
+        modifier = Modifier.fillMaxWidth().background(DS.surface).padding(horizontal = 16.dp, vertical = 11.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text(key, fontSize = 15.sp, color = DS.ink2)
+        Box(Modifier.weight(1f))
+        // 名前は右寄せで「A / B」と並べる。区切りの "/" は押せない (人ではないので)。
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            names.forEachIndexed { index, name ->
+                if (index > 0) Text("/", fontSize = 15.sp, color = DS.ink3)
+                Text(
+                    name, fontSize = 15.sp, color = t.accent,
+                    modifier = Modifier.clickable { onFilteredSongsClick(SongFilterKind.CREATOR, name) }
+                )
+            }
+        }
+    }
+    HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 16.dp))
 }
 
 @Composable

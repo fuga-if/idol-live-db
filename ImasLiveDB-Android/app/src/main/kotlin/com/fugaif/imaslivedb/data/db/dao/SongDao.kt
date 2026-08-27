@@ -126,8 +126,11 @@ interface SongDao {
     @Query("SELECT * FROM songs WHERE series_group = :seriesGroup ORDER BY release_date, title_kana")
     suspend fun fetchSongsBySeriesGroupOrdered(seriesGroup: String): List<Song>
 
-    /** リリース年の楽曲。パターン ("YYYY%") は呼び出し側が組む。 */
-    @Query("SELECT * FROM songs WHERE release_date LIKE :yearPrefix ORDER BY release_date, title_kana")
+    /**
+     * リリース年の楽曲。パターン ("YYYY%") は呼び出し側が組む。
+     * 年は経路引数由来で `%` が紛れ込み得るので、[fetchSongsByCreator] と同じくエスケープ前提にする。
+     */
+    @Query("SELECT * FROM songs WHERE release_date LIKE :yearPrefix ESCAPE '\' ORDER BY release_date, title_kana")
     suspend fun fetchSongsByReleaseYear(yearPrefix: String): List<Song>
 
     /**

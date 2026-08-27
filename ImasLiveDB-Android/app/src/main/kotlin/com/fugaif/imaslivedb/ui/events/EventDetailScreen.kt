@@ -78,6 +78,7 @@ import com.fugaif.imaslivedb.ui.components.ImasSectionHeader
 import com.fugaif.imaslivedb.ui.components.ImasSegmented
 import com.fugaif.imaslivedb.ui.components.ImasStatTile
 import com.fugaif.imaslivedb.ui.components.ImasTagChip
+import com.fugaif.imaslivedb.ui.filtered.EventFilterKind
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasTheme
 import kotlinx.coroutines.launch
@@ -90,7 +91,6 @@ import java.time.temporal.ChronoUnit
  * ImasSegmented で [公演・セトリ][出演][情報] に切り替える。
  *
  * 披露ユニット表示 (unit 被覆判定) は Setlist 側の担当範囲と重複するため対象外。
- * ブランド/年度行はタップ遷移なし (Android 側にブランド絞り込み付き遷移経路が未整備)。
  * チケット編集・イベント編集・BD/DVD所有チェックは Android に対応する基盤 (編集権限/event_releases 同期) が
  * まだ無いため対象外。
  */
@@ -101,6 +101,11 @@ fun EventDetailScreen(
     onBack: () -> Unit,
     onShowClick: (String) -> Unit,
     onIdolClick: (String) -> Unit,
+    /**
+     * 情報タブのブランド/年度行から「同じ条件のライブ一覧」へ (kind, value は
+     * [com.fugaif.imaslivedb.ui.filtered.EventFilterKind] の定義に従う)。
+     */
+    onFilteredEventsClick: (String, String) -> Unit = { _, _ -> },
     viewModel: EventDetailViewModel = viewModel(key = eventId)
 ) {
     val context = LocalContext.current
@@ -112,6 +117,14 @@ fun EventDetailScreen(
     val seed: String? = if (uiState.isJoint) null else uiState.brandColorHex
     val brand = uiState.brandColorHex
     val t = ImasTheme.derive(seed, brand, dark = true)
+
+    // ブランド行の行き先には brand_id が要るが、UiState が持つのは表示名と色だけ。
+    // この画面の担当範囲外である ViewModel を変えずに済ませるため、ここで 1 回だけ引く
+    // (スナップショット経路なのでメモリ内の参照で終わる)。
+    var brandId by remember(eventId) { mutableStateOf<String?>(null) }
+    LaunchedEffect(eventId) {
+        brandId = AppModule.from(context).eventRepository.fetchEvent(eventId)?.brandId?.takeIf { it.isNotEmpty() }
+    }
 
     val marks = remember { AppModule.from(context).userMarkRepository }
     val scope = rememberCoroutineScope()
@@ -188,7 +201,7 @@ fun EventDetailScreen(
                     when (segment) {
                         0 -> showsSection(uiState, seed, brand, onShowClick)
                         1 -> castSection(uiState, seed, brand, onIdolClick)
-                        else -> infoSection(uiState, seed, brand)
+                        else -> infoSection(uiState, seed, brand, brandId, onFilteredEventsClick)
                     }
                 }
             }
@@ -526,7 +539,13 @@ private fun AvatarGrid(
 
 // MARK: - Panel 2: 情報
 
-private fun LazyListScope.infoSection(state: EventDetailUiState, seed: String?, brand: String?) {
+private fun LazyListScope.infoSection(
+    state: EventDetailUiState,
+    seed: String?,
+    brand: String?,
+    brandId: String?,
+    onFilteredEventsClick: (String, String) -> Unit
+) {
     state.stats?.let { stats ->
         item { StatsGrid(stats, seed, brand) }
     }
@@ -534,7 +553,7 @@ private fun LazyListScope.infoSection(state: EventDetailUiState, seed: String?, 
         item { TicketInfoSection(state, seed, brand) }
     }
     if (state.brandShortName != null || firstShowYear(state) != null) {
-        item { MetaSection(state, seed, brand) }
+        item { MetaSection(state, seed, brand, brandId, onFilteredEventsClick) }
     }
 }
 
@@ -597,19 +616,35 @@ private fun TicketInfoSection(state: EventDetailUiState, seed: String?, brand: S
 }
 
 @Composable
-private fun MetaSection(state: EventDetailUiState, seed: String?, brand: String?) {
+private fun MetaSection(
+    state: EventDetailUiState,
+    seed: String?,
+    brand: String?,
+    brandId: String?,
+    onFilteredEventsClick: (String, String) -> Unit
+) {
     Column(
         Modifier.padding(horizontal = 16.dp, vertical = 8.dp).fillMaxWidth()
             .clip(RoundedCornerShape(14.dp)).background(DS.surface)
     ) {
         var shown = false
-        state.brandShortName?.let {
-            ImasLabeledRow(key = "ブランド", value = it, seed = seed, brand = brand)
+        state.brandShortName?.let { name ->
+            // brand_id がまだ解決できていない間は押せない普通の行にしておく
+            // (押せる見た目だけ出して何も起きない方が悪い)。
+            ImasLabeledRow(
+                key = "ブランド", value = name, seed = seed, brand = brand,
+                tappable = brandId != null,
+                onClick = brandId?.let { id -> { onFilteredEventsClick(EventFilterKind.BRAND, id) } }
+            )
             shown = true
         }
         firstShowYear(state)?.let { year ->
             if (shown) HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 16.dp))
-            ImasLabeledRow(key = "年度", value = "${year}年", seed = seed, brand = brand)
+            ImasLabeledRow(
+                key = "年度", value = "${year}年", seed = seed, brand = brand,
+                tappable = true,
+                onClick = { onFilteredEventsClick(EventFilterKind.YEAR, year.toString()) }
+            )
         }
     }
 }

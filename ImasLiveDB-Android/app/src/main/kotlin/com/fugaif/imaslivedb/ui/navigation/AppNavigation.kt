@@ -31,7 +31,12 @@ import com.fugaif.imaslivedb.ui.games.SongSingerQuizScreen
 import com.fugaif.imaslivedb.ui.games.SongSingerQuizSetupScreen
 import com.fugaif.imaslivedb.ui.idols.IdolDetailScreen
 import com.fugaif.imaslivedb.ui.idols.IdolListScreen
+import com.fugaif.imaslivedb.ui.idols.IdolSongHistoryScreen
 import com.fugaif.imaslivedb.ui.idols.IdolsByBirthMonthScreen
+import com.fugaif.imaslivedb.ui.filtered.FilteredEventsScreen
+import com.fugaif.imaslivedb.ui.filtered.FilteredIdolsScreen
+import com.fugaif.imaslivedb.ui.filtered.FilteredShowsScreen
+import com.fugaif.imaslivedb.ui.filtered.FilteredSongsScreen
 import com.fugaif.imaslivedb.ui.introdon.IntroDonHomeScreen
 import com.fugaif.imaslivedb.ui.introdon.IntroDonGameScreen
 import com.fugaif.imaslivedb.ui.introdon.IntroDonMode
@@ -158,6 +163,9 @@ private fun NavGraphBuilder.eventsNavGraph(navController: NavHostController) {
             },
             onIdolClick = { idolId ->
                 navController.navigate(NavRoutes.IdolDetail.createRoute(idolId))
+            },
+            onFilteredEventsClick = { kind, value ->
+                navController.navigate(NavRoutes.FilteredEvents.createRoute(kind, value))
             }
         )
     }
@@ -171,6 +179,9 @@ private fun NavGraphBuilder.eventsNavGraph(navController: NavHostController) {
             },
             onIdolClick = { idolId ->
                 navController.navigate(NavRoutes.IdolDetail.createRoute(idolId))
+            },
+            onFilteredShowsClick = { kind, value ->
+                navController.navigate(NavRoutes.FilteredShows.createRoute(kind, value))
             }
         )
     }
@@ -199,6 +210,12 @@ private fun NavGraphBuilder.eventsNavGraph(navController: NavHostController) {
             },
             onNavigateToBirthMonth = { month ->
                 navController.navigate(NavRoutes.IdolsByBirthMonth.createRoute(month))
+            },
+            onNavigateToSongHistory = { id, songId ->
+                navController.navigate(NavRoutes.IdolSongHistory.createRoute(id, songId))
+            },
+            onFilteredIdolsClick = { kind, value ->
+                navController.navigate(NavRoutes.FilteredIdols.createRoute(kind, value))
             }
         )
     }
@@ -218,6 +235,9 @@ private fun NavGraphBuilder.eventsNavGraph(navController: NavHostController) {
             },
             onPollClick = { pollId ->
                 navController.navigate(NavRoutes.PollDetail.createRoute(pollId))
+            },
+            onFilteredSongsClick = { kind, value ->
+                navController.navigate(NavRoutes.FilteredSongs.createRoute(kind, value))
             }
         )
     }
@@ -258,6 +278,7 @@ private fun NavGraphBuilder.eventsNavGraph(navController: NavHostController) {
         )
     }
     idolsByBirthMonthRoute(navController)
+    filteredListRoutes(navController)
 }
 
 private fun NavGraphBuilder.songsNavGraph(navController: NavHostController) {
@@ -287,6 +308,9 @@ private fun NavGraphBuilder.songsNavGraph(navController: NavHostController) {
             },
             onPollClick = { pollId ->
                 navController.navigate(NavRoutes.PollDetail.createRoute(pollId))
+            },
+            onFilteredSongsClick = { kind, value ->
+                navController.navigate(NavRoutes.FilteredSongs.createRoute(kind, value))
             }
         )
     }
@@ -315,6 +339,12 @@ private fun NavGraphBuilder.songsNavGraph(navController: NavHostController) {
             },
             onNavigateToBirthMonth = { month ->
                 navController.navigate(NavRoutes.IdolsByBirthMonth.createRoute(month))
+            },
+            onNavigateToSongHistory = { id, songId ->
+                navController.navigate(NavRoutes.IdolSongHistory.createRoute(id, songId))
+            },
+            onFilteredIdolsClick = { kind, value ->
+                navController.navigate(NavRoutes.FilteredIdols.createRoute(kind, value))
             }
         )
     }
@@ -347,10 +377,14 @@ private fun NavGraphBuilder.songsNavGraph(navController: NavHostController) {
             },
             onIdolClick = { idolId ->
                 navController.navigate(NavRoutes.IdolDetail.createRoute(idolId))
+            },
+            onFilteredShowsClick = { kind, value ->
+                navController.navigate(NavRoutes.FilteredShows.createRoute(kind, value))
             }
         )
     }
     idolsByBirthMonthRoute(navController)
+    filteredListRoutes(navController)
 }
 
 private fun NavGraphBuilder.idolsNavGraph(navController: NavHostController) {
@@ -392,6 +426,12 @@ private fun NavGraphBuilder.idolsNavGraph(navController: NavHostController) {
             },
             onNavigateToBirthMonth = { month ->
                 navController.navigate(NavRoutes.IdolsByBirthMonth.createRoute(month))
+            },
+            onNavigateToSongHistory = { id, songId ->
+                navController.navigate(NavRoutes.IdolSongHistory.createRoute(id, songId))
+            },
+            onFilteredIdolsClick = { kind, value ->
+                navController.navigate(NavRoutes.FilteredIdols.createRoute(kind, value))
             }
         )
     }
@@ -430,6 +470,9 @@ private fun NavGraphBuilder.idolsNavGraph(navController: NavHostController) {
             },
             onPollClick = { pollId ->
                 navController.navigate(NavRoutes.PollDetail.createRoute(pollId))
+            },
+            onFilteredSongsClick = { kind, value ->
+                navController.navigate(NavRoutes.FilteredSongs.createRoute(kind, value))
             }
         )
     }
@@ -443,10 +486,14 @@ private fun NavGraphBuilder.idolsNavGraph(navController: NavHostController) {
             },
             onIdolClick = { idolId ->
                 navController.navigate(NavRoutes.IdolDetail.createRoute(idolId))
+            },
+            onFilteredShowsClick = { kind, value ->
+                navController.navigate(NavRoutes.FilteredShows.createRoute(kind, value))
             }
         )
     }
     idolsByBirthMonthRoute(navController)
+    filteredListRoutes(navController)
 }
 
 private fun NavGraphBuilder.scheduleNavGraph(navController: NavHostController) {
@@ -654,6 +701,69 @@ private fun NavGraphBuilder.idolsByBirthMonthRoute(navController: NavHostControl
     }
 }
 
+/**
+ * 絞り込み一覧 4 種 + アイドル×曲の披露履歴。
+ *
+ * [idolsByBirthMonthRoute] と同じ理由でタブごとの全グラフに登録する — 詳細画面はどのタブにも
+ * 積めるので、登録が漏れたタブでは行を押しても遷移できない (押せる見た目だけ残る) 。
+ *
+ * ルート引数の value は `createRoute` 側で `Uri.encode` 済み。Navigation の
+ * `NavDeepLink.getMatchingPathArguments` が取り出す時点で `Uri.decode` するので、
+ * ここで復号し直さないこと (`%` を含む値が二重復号で壊れる)。
+ */
+private fun NavGraphBuilder.filteredListRoutes(navController: NavHostController) {
+    composable(NavRoutes.FilteredSongs.ROUTE) { backStackEntry ->
+        val kind = backStackEntry.arguments?.getString("kind") ?: return@composable
+        val value = backStackEntry.arguments?.getString("value") ?: return@composable
+        FilteredSongsScreen(
+            kind = kind,
+            value = value,
+            onBack = { navController.popBackStack() },
+            onSongClick = { navController.navigate(NavRoutes.SongDetail.createRoute(it)) }
+        )
+    }
+    composable(NavRoutes.FilteredEvents.ROUTE) { backStackEntry ->
+        val kind = backStackEntry.arguments?.getString("kind") ?: return@composable
+        val value = backStackEntry.arguments?.getString("value") ?: return@composable
+        FilteredEventsScreen(
+            kind = kind,
+            value = value,
+            onBack = { navController.popBackStack() },
+            onEventClick = { navController.navigate(NavRoutes.EventDetail.createRoute(it)) }
+        )
+    }
+    composable(NavRoutes.FilteredShows.ROUTE) { backStackEntry ->
+        val kind = backStackEntry.arguments?.getString("kind") ?: return@composable
+        val value = backStackEntry.arguments?.getString("value") ?: return@composable
+        FilteredShowsScreen(
+            kind = kind,
+            value = value,
+            onBack = { navController.popBackStack() },
+            onShowClick = { navController.navigate(NavRoutes.Setlist.createRoute(it)) }
+        )
+    }
+    composable(NavRoutes.FilteredIdols.ROUTE) { backStackEntry ->
+        val kind = backStackEntry.arguments?.getString("kind") ?: return@composable
+        val value = backStackEntry.arguments?.getString("value") ?: return@composable
+        FilteredIdolsScreen(
+            kind = kind,
+            value = value,
+            onBack = { navController.popBackStack() },
+            onIdolClick = { navController.navigate(NavRoutes.IdolDetail.createRoute(it)) }
+        )
+    }
+    composable(NavRoutes.IdolSongHistory.ROUTE) { backStackEntry ->
+        val idolId = backStackEntry.arguments?.getString("idolId") ?: return@composable
+        val songId = backStackEntry.arguments?.getString("songId") ?: return@composable
+        IdolSongHistoryScreen(
+            idolId = idolId,
+            songId = songId,
+            onBack = { navController.popBackStack() },
+            onShowClick = { navController.navigate(NavRoutes.Setlist.createRoute(it)) }
+        )
+    }
+}
+
 /** 複数タブで共有する詳細・検索ルート群 (公演/曲/アイドル/ユニット/イベント/検索)。 */
 private fun NavGraphBuilder.detailRoutes(navController: NavHostController) {
     composable(NavRoutes.EventDetail.ROUTE) { backStackEntry ->
@@ -662,7 +772,10 @@ private fun NavGraphBuilder.detailRoutes(navController: NavHostController) {
             eventId = eventId,
             onBack = { navController.popBackStack() },
             onShowClick = { navController.navigate(NavRoutes.Setlist.createRoute(it)) },
-            onIdolClick = { navController.navigate(NavRoutes.IdolDetail.createRoute(it)) }
+            onIdolClick = { navController.navigate(NavRoutes.IdolDetail.createRoute(it)) },
+            onFilteredEventsClick = { kind, value ->
+                navController.navigate(NavRoutes.FilteredEvents.createRoute(kind, value))
+            }
         )
     }
     composable(NavRoutes.Setlist.ROUTE) { backStackEntry ->
@@ -671,7 +784,10 @@ private fun NavGraphBuilder.detailRoutes(navController: NavHostController) {
             showId = showId,
             onBack = { navController.popBackStack() },
             onSongClick = { navController.navigate(NavRoutes.SongDetail.createRoute(it)) },
-            onIdolClick = { navController.navigate(NavRoutes.IdolDetail.createRoute(it)) }
+            onIdolClick = { navController.navigate(NavRoutes.IdolDetail.createRoute(it)) },
+            onFilteredShowsClick = { kind, value ->
+                navController.navigate(NavRoutes.FilteredShows.createRoute(kind, value))
+            }
         )
     }
     composable(NavRoutes.SongDetail.ROUTE) { backStackEntry ->
@@ -682,7 +798,10 @@ private fun NavGraphBuilder.detailRoutes(navController: NavHostController) {
             onUnitClick = { navController.navigate(NavRoutes.UnitDetail.createRoute(it)) },
             onIdolClick = { navController.navigate(NavRoutes.IdolDetail.createRoute(it)) },
             onShowClick = { navController.navigate(NavRoutes.Setlist.createRoute(it)) },
-            onPollClick = { navController.navigate(NavRoutes.PollDetail.createRoute(it)) }
+            onPollClick = { navController.navigate(NavRoutes.PollDetail.createRoute(it)) },
+            onFilteredSongsClick = { kind, value ->
+                navController.navigate(NavRoutes.FilteredSongs.createRoute(kind, value))
+            }
         )
     }
     composable(NavRoutes.IdolDetail.ROUTE) { backStackEntry ->
@@ -696,7 +815,13 @@ private fun NavGraphBuilder.detailRoutes(navController: NavHostController) {
             onNavigateToIdolDetail = { navController.navigate(NavRoutes.IdolDetail.createRoute(it)) },
             onPollClick = { navController.navigate(NavRoutes.PollDetail.createRoute(it)) },
             onIdolTagClick = { navController.navigate(NavRoutes.IdolTagDetail.createRoute(it)) },
-            onNavigateToBirthMonth = { navController.navigate(NavRoutes.IdolsByBirthMonth.createRoute(it)) }
+            onNavigateToBirthMonth = { navController.navigate(NavRoutes.IdolsByBirthMonth.createRoute(it)) },
+            onNavigateToSongHistory = { id, songId ->
+                navController.navigate(NavRoutes.IdolSongHistory.createRoute(id, songId))
+            },
+            onFilteredIdolsClick = { kind, value ->
+                navController.navigate(NavRoutes.FilteredIdols.createRoute(kind, value))
+            }
         )
     }
     composable(NavRoutes.UnitDetail.ROUTE) { backStackEntry ->
@@ -728,4 +853,5 @@ private fun NavGraphBuilder.detailRoutes(navController: NavHostController) {
         )
     }
     idolsByBirthMonthRoute(navController)
+    filteredListRoutes(navController)
 }

@@ -39,7 +39,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.background
+import androidx.compose.ui.draw.clip
+import com.fugaif.imaslivedb.data.model.Show
+import com.fugaif.imaslivedb.data.model.VenueDirectory
+import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.components.GradientHeader
+import com.fugaif.imaslivedb.ui.components.ImasLabeledRow
+import com.fugaif.imaslivedb.ui.filtered.ShowFilterKind
 import com.fugaif.imaslivedb.ui.share.SetlistCommentComposeSheet
 import com.fugaif.imaslivedb.ui.theme.BrandPalette
 import com.fugaif.imaslivedb.ui.theme.DS
@@ -58,10 +65,21 @@ fun SetlistScreen(
     onBack: () -> Unit,
     onSongClick: (String) -> Unit,
     onIdolClick: (String) -> Unit,
+    /**
+     * 会場/日付の行から「同じ会場・同じ日の公演一覧」へ (kind, value は
+     * [com.fugaif.imaslivedb.ui.filtered.ShowFilterKind] の定義に従う)。
+     */
+    onFilteredShowsClick: (String, String) -> Unit = { _, _ -> },
     viewModel: SetlistViewModel = viewModel(key = showId)
 ) {
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
+
+    // 会場名は「公演日時点の名前」で出す (改名前の公演は当時名)。解決には会場マスタが要るが、
+    // この画面の担当範囲外である ViewModel は変えないのでここで 1 回だけ読む
+    // (244 施設ぶんの小さなマスタで、公演ごとの引き直しはしない)。
+    var venues by remember { mutableStateOf(VenueDirectory.EMPTY) }
+    LaunchedEffect(Unit) { venues = AppModule.from(context).eventRepository.fetchVenueDirectory() }
 
     LaunchedEffect(showId) { viewModel.load(context, showId) }
 
@@ -109,6 +127,16 @@ fun SetlistScreen(
                         }
                     }
                 }
+                uiState.show?.let { show ->
+                    item(key = "venue_date") {
+                        VenueDateCard(
+                            show = show,
+                            venues = venues,
+                            brandId = uiState.brandId,
+                            onFilteredShowsClick = onFilteredShowsClick
+                        )
+                    }
+                }
                 uiState.sections.forEach { section ->
                     stickyHeader(key = section.sectionName) {
                         Surface(
@@ -145,6 +173,43 @@ fun SetlistScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+/**
+ * 会場 / 日付のカード。どちらも「同じ条件の公演」への入口になる。
+ *
+ * 会場は ID で持つ (表記ゆれで同じ会場が分断されないように) ので、ID を持たない古い公演では
+ * 押せない普通の行に落とす — 生の会場文字列でも引けはするが、押した先が表記ゆれで
+ * 分断された一部だけになり、「この会場での公演」という約束を守れないため。
+ */
+@Composable
+private fun VenueDateCard(
+    show: Show,
+    venues: VenueDirectory,
+    brandId: String?,
+    onFilteredShowsClick: (String, String) -> Unit
+) {
+    Column(
+        Modifier.padding(horizontal = 16.dp, vertical = 8.dp).fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp)).background(DS.surface)
+    ) {
+        val venueId = show.venueId?.takeIf { it.isNotEmpty() }
+        val venueLabel = venues.displayName(show) ?: show.venue
+        if (!venueLabel.isNullOrEmpty()) {
+            ImasLabeledRow(
+                key = "会場", value = venueLabel, brand = brandId,
+                tappable = venueId != null,
+                onClick = venueId?.let { id -> { onFilteredShowsClick(ShowFilterKind.VENUE, id) } }
+            )
+            HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 16.dp))
+        }
+        if (show.date.isNotEmpty()) {
+            ImasLabeledRow(
+                key = "日付", value = show.date, brand = brandId, tappable = true,
+                onClick = { onFilteredShowsClick(ShowFilterKind.DATE, show.date) }
+            )
         }
     }
 }
