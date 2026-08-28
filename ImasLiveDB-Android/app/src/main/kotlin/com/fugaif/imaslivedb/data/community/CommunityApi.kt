@@ -19,8 +19,38 @@ class CommunityApi(private val appContext: Context, private val authService: Aut
     data class SongTag(val id: String, val name: String, val color: String?, val voteCount: Int, val mine: Boolean)
     data class IdolTag(val id: String, val name: String, val color: String?, val voteCount: Int, val mine: Boolean)
     data class UnitTag(val id: String, val name: String, val color: String?, val voteCount: Int, val mine: Boolean)
-    data class PollSummary(val id: String, val title: String, val targetType: String)
+    data class PollSummary(
+        val id: String,
+        val title: String,
+        val targetType: String,
+        /** サーバのお題ステータス ("active"/"removed" 等)。締切済みでも status は active のまま。 */
+        val status: String = "active",
+        /** 締切日時 (epoch millis)。未知/欠損なら Long.MAX_VALUE (常に「開催中」扱い)。 */
+        val endsAtMs: Long = Long.MAX_VALUE,
+    ) {
+        /** iOS Poll.isActive の移植: サーバが active かつ締切前。 */
+        val isActive: Boolean get() = status == "active" && endsAtMs > System.currentTimeMillis()
+    }
     data class PollEntry(val entityId: String, val voteCount: Int, val mine: Boolean)
+    /** 終了お題の優勝者 1 件 (殿堂)。iOS PollResult の移植。 */
+    data class PollResult(
+        val pollId: String,
+        val title: String,
+        val targetType: String,
+        val endsAtMs: Long,
+        val entityId: String,
+        val voteCount: Int
+    )
+    /**
+     * お題作成の結果。作成は認証・レート制限 (1日◯件) の対象で、失敗理由を
+     * 出し分けないと利用者が「なぜ作れないか」分からないので、タグ作成 ([TagCreateResult])
+     * と同じく成功/上限/その他エラーを型で分ける。
+     */
+    sealed class PollCreateResult {
+        data class Success(val poll: PollSummary) : PollCreateResult()
+        object RateLimited : PollCreateResult()
+        data class Error(val message: String?) : PollCreateResult()
+    }
     /**
      * 投票候補の絞り込みスコープ。
      * - `all`: 既存挙動 (全曲/全アイドルから自由選択)
@@ -55,6 +85,8 @@ class CommunityApi(private val appContext: Context, private val authService: Aut
         val status: String = "active",
         /** 締切日時 (epoch millis)。未知/パース不可なら Long.MAX_VALUE (常に「開催中」扱い)。 */
         val endsAtMs: Long = Long.MAX_VALUE,
+        /** 作成者の uid。削除導線 (作成者 or admin) を出すかの判定に使う。 */
+        val createdBy: String? = null,
     ) {
         /** iOS Poll.isActive の移植: サーバが active かつ締切前。 */
         val isActive: Boolean get() = status == "active" && endsAtMs > System.currentTimeMillis()
@@ -626,15 +658,113 @@ class CommunityApi(private val appContext: Context, private val authService: Aut
         }
     }
 
-    /** 進行中のポール一覧。 */
-    suspend fun polls(): List<PollSummary> = withContext(Dispatchers.IO) {
-        val arr = getArray("/polls?status=active") ?: return@withContext emptyList()
-        (0 until arr.length()).mapNotNull { i ->
+    /**
+     * GET /polls?status= — お題一覧。
+     * status は "active" (開催中) / "past" (締切済み)。サーバ側で締切日時と突き合わせて出し分けるので、
+     * クライアントは 2 本のリストを status で切り替えるだけでよい (iOS PollListViewModel と同じ契約)。
+     *
+     * 通信失敗は null、「お題が 0 件」は空リストで返す。ここを両方 emptyList にすると、
+     * 引っ張って更新が一度失敗しただけで表示中の一覧が消える (iOS も両者を区別している)。
+     */
+    suspend fun polls(status: String = "active"): List<PollSummary>? = withContext(Dispatchers.IO) {
+        val arr = getArray("/polls?status=${enc(status)}") ?: return@withContext null
+        (0 until arr.length()).mapNotNull { i -> parsePollSummary(arr.getJSONObject(i)) }
+    }
+
+    /** GET /polls/results — 終了お題の優勝者一覧 (殿堂)。認証不要の公開集計。通信失敗は null。 */
+    suspend fun pollResults(): List<PollResult>? = withContext(Dispatchers.IO) {
+        val arr = getArray("/polls/results") ?: return@withContext null
+        (0 until arr.length()).map { i ->
             val o = arr.getJSONObject(i)
-            val id = o.optString("id")
-            if (id.isEmpty()) null else PollSummary(id, o.optString("title"), o.optString("target_type"))
+            PollResult(
+                pollId = o.optString("poll_id"),
+                title = o.optString("title"),
+                targetType = o.optString("target_type"),
+                endsAtMs = epochSecToMs(o.optLong("ends_at")),
+                entityId = o.optString("entity_id"),
+                voteCount = o.optInt("vote_count"),
+            )
         }
     }
+
+    /**
+     * POST /polls — 新しいお題を作成 (認証必須)。iOS `CommunityVoting.createPoll` と同じ body。
+     *
+     * スコープ外の ID はサーバが弾くので送らない (brand スコープなら scope_brand_ids だけ、
+     * manual スコープなら scope_entity_ids だけ)。
+     */
+    suspend fun createPoll(
+        title: String,
+        description: String?,
+        targetType: String,
+        days: Int,
+        candidateScope: PollCandidateScope,
+        scopeBrandIds: List<String>?,
+        scopeEntityIds: List<String>?
+    ): PollCreateResult = withContext(Dispatchers.IO) {
+        val body = JSONObject()
+            .put("title", title)
+            .put("description", description ?: JSONObject.NULL)
+            .put("target_type", targetType)
+            .put("days", days)
+            .put("candidate_scope", candidateScope.raw)
+        if (candidateScope == PollCandidateScope.BRAND && scopeBrandIds != null) {
+            body.put("scope_brand_ids", JSONArray(scopeBrandIds))
+        }
+        if (candidateScope == PollCandidateScope.MANUAL && scopeEntityIds != null) {
+            body.put("scope_entity_ids", JSONArray(scopeEntityIds))
+        }
+        // 429 も body を読む: サーバは上限到達を JSON で返すので、通信失敗と区別して案内する。
+        val (code, json) = sendJsonWithStatus("POST", "/polls", body, allowedExtra = setOf(429))
+        when {
+            code == 429 -> PollCreateResult.RateLimited
+            code in 200..299 && json != null ->
+                parsePollSummary(json)?.let { PollCreateResult.Success(it) }
+                    ?: PollCreateResult.Error(null)
+            // 401/403 は「作れない理由」が利用者側にある唯一のケースなので個別に案内する。
+            // それ以外 (通信断・5xx) はサーバが本文を返さないこともあるので呼び出し側の既定文言に任せる。
+            code == 401 -> PollCreateResult.Error("お題の作成にはサインインが必要です")
+            code == 403 -> PollCreateResult.Error("この操作は制限されています。")
+            else -> PollCreateResult.Error(null)
+        }
+    }
+
+    /** DELETE /polls/{id} — お題を削除 (作成者本人 or 管理者のみ。それ以外はサーバが 403)。 */
+    suspend fun deletePoll(id: String): Boolean = withContext(Dispatchers.IO) {
+        send("DELETE", "/polls/${enc(id)}", null)
+    }
+
+    /** GET /polls と POST /polls は同じ poll オブジェクトを返すので、パースを 1 か所に寄せる。 */
+    private fun parsePollSummary(o: JSONObject): PollSummary? {
+        val id = o.optString("id")
+        if (id.isEmpty()) return null
+        return PollSummary(
+            id = id,
+            title = o.optString("title"),
+            targetType = o.optString("target_type"),
+            status = o.strOrNull("status") ?: "active",
+            endsAtMs = epochSecToMs(o.optLong("ends_at")),
+        )
+    }
+
+    /**
+     * サインイン中のユーザー ID (= セッション JWT の `sub`)。未サインインなら null。
+     *
+     * サーバは「作成者本人 or 管理者」しか削除させないので、押しても 403 になるボタンを
+     * 出さないために自分の uid が要る。`/auth/me` を叩き直さず手元のトークンから読むのは、
+     * 導線の出し分けが 1 リクエスト待ちで遅れないようにするため (最終的な可否はサーバが決める)。
+     */
+    val currentUserId: String?
+        get() {
+            val payload = authService.sessionToken?.split(".")?.getOrNull(1) ?: return null
+            return runCatching {
+                val decoded = android.util.Base64.decode(
+                    payload,
+                    android.util.Base64.URL_SAFE or android.util.Base64.NO_PADDING or android.util.Base64.NO_WRAP
+                )
+                JSONObject(String(decoded, Charsets.UTF_8)).strOrNull("sub")
+            }.getOrNull()
+        }
 
     /** GET /polls/{id} — ポール詳細 (選択肢 + 票数 + 自分の投票)。 */
     suspend fun pollDetail(id: String): PollDetail? = withContext(Dispatchers.IO) {
@@ -658,6 +788,7 @@ class CommunityApi(private val appContext: Context, private val authService: Aut
             myVoteCount = poll.optInt("my_vote_count"),
             status = poll.strOrNull("status") ?: "active",
             endsAtMs = epochSecToMs(poll.optLong("ends_at")),
+            createdBy = poll.strOrNull("created_by"),
         )
     }
 

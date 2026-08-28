@@ -13,6 +13,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AddCircle
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -21,6 +23,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -59,6 +62,8 @@ fun PollDetailScreen(
     val context = LocalContext.current
     val state by viewModel.uiState.collectAsState()
     var showPicker by remember { mutableStateOf(false) }
+    // 削除は取り返しがつかないので、ボタンタップ→即実行にせず確認を挟む。
+    var showDeleteConfirm by remember { mutableStateOf(false) }
     val authService = remember { AppModule.from(context).authService }
     val authState by authService.state.collectAsState()
     val scope = rememberCoroutineScope()
@@ -67,6 +72,10 @@ fun PollDetailScreen(
     LaunchedEffect(pollId) { viewModel.load(pollId) }
 
     val detail = state.detail
+    // 削除は作成者本人か管理者だけ (iOS PollDetailView.canDelete と同じ条件)。
+    // 最終判定はサーバ (403) が持つので、ここは押しても無駄なボタンを出さないための前さばき。
+    val createdBy = detail?.createdBy
+    val canDelete = createdBy != null && (authState.isAdmin || createdBy == viewModel.myUserId)
 
     Scaffold(
         topBar = {
@@ -84,6 +93,15 @@ fun PollDetailScreen(
                             ),
                             contentDescription = "このお題をシェア"
                         )
+                    }
+                    if (canDelete) {
+                        IconButton(onClick = { showDeleteConfirm = true }, enabled = !state.isDeleting) {
+                            if (state.isDeleting) {
+                                CircularProgressIndicator(modifier = Modifier.size(18.dp), color = DS.ink2)
+                            } else {
+                                Icon(Icons.Filled.Delete, contentDescription = "このお題を削除", tint = DS.danger)
+                            }
+                        }
                     }
                 }
             )
@@ -183,6 +201,33 @@ fun PollDetailScreen(
                 onConfirm = { newIds -> viewModel.voteForNewEntities(newIds); showPicker = false }
             )
         }
+    }
+
+    if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title = { Text("このお題を削除しますか？") },
+            text = { Text("ランキング・投票データも一緒に削除され、元に戻せません。") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDeleteConfirm = false
+                    // 削除できた時だけ戻る。一覧は再表示時の再ロードでこのお題が消える。
+                    viewModel.delete(onDeleted = onBack)
+                }) { Text("削除", color = DS.danger) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = false }) { Text("キャンセル") }
+            }
+        )
+    }
+
+    if (state.deleteError != null) {
+        AlertDialog(
+            onDismissRequest = { viewModel.clearDeleteError() },
+            title = { Text("エラー") },
+            text = { Text(state.deleteError ?: "") },
+            confirmButton = { TextButton(onClick = { viewModel.clearDeleteError() }) { Text("OK") } }
+        )
     }
 }
 

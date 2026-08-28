@@ -1,7 +1,9 @@
 package com.fugaif.imaslivedb.ui.units
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -81,6 +83,7 @@ fun UnitDetailScreen(
     onNavigateToSongDetail: (String) -> Unit,
     onNavigateToUnitDetail: (String) -> Unit = {},
     onPollClick: (String) -> Unit = {},
+    onUnitTagClick: (String) -> Unit = {},
     viewModel: UnitDetailViewModel = viewModel(
         factory = UnitDetailViewModel.Factory(
             LocalContext.current.applicationContext as android.app.Application, unitId
@@ -154,6 +157,7 @@ fun UnitDetailScreen(
                             },
                             onOpenTagPicker = { startCommunityEdit { showTagPicker = true } },
                             onPollClick = onPollClick,
+                            onTagDetailClick = onUnitTagClick,
                             onUnitClick = onNavigateToUnitDetail
                         )
                         PersonalTagsSection(
@@ -250,7 +254,7 @@ private fun MembersBody(state: UnitDetailUiState, onIdolClick: (String) -> Unit)
  * コミュニティタブ。`ui.idols.IdolDetailScreen` の CommunityBody をユニット向けに置換したもの。
  * タグ表示・付与 (unit_tag_master) + タグが似ているユニット (サーバ算出) + 投票実績バッジ。
  */
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @Composable
 private fun CommunityBody(
     unitId: String,
@@ -261,6 +265,7 @@ private fun CommunityBody(
     onToggleTag: (CommunityApi.UnitTag) -> Unit,
     onOpenTagPicker: () -> Unit,
     onPollClick: (String) -> Unit,
+    onTagDetailClick: (String) -> Unit,
     onUnitClick: (String) -> Unit
 ) {
     // 権限フラグは認証状態が変わった時だけコアへ問い合わせる (再コンポーズごとに
@@ -300,7 +305,11 @@ private fun CommunityBody(
                         val fg = if (tag.mine) DS.pick else DS.ink
                         Row(
                             modifier = Modifier.clip(RoundedCornerShape(999.dp)).background(bg)
-                                .clickable { onToggleTag(tag) }
+                                // タップは投票トグル、長押しでタグ詳細 (アイドルタグのチップと同じ作法)。
+                                .combinedClickable(
+                                    onClick = { onToggleTag(tag) },
+                                    onLongClick = { onTagDetailClick(tag.id) }
+                                )
                                 .padding(horizontal = 12.dp, vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {

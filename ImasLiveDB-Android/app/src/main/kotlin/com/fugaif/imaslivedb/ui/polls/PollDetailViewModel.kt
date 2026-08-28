@@ -13,7 +13,9 @@ import kotlinx.coroutines.launch
 data class PollDetailUiState(
     val isLoading: Boolean = true,
     val detail: CommunityApi.PollDetail? = null,
-    val entityNames: Map<String, String> = emptyMap()
+    val entityNames: Map<String, String> = emptyMap(),
+    val isDeleting: Boolean = false,
+    val deleteError: String? = null
 )
 
 /** お題詳細。iOS PollDetailView の移植 (単体お題の投票・候補追加)。 */
@@ -55,6 +57,28 @@ class PollDetailViewModel(app: Application) : AndroidViewModel(app) {
         "idol" -> idolRepo.fetchIdol(id)?.name ?: id
         "unit" -> unitRepo.fetchUnit(id)?.displayName ?: id
         else -> songRepo.fetchSong(id)?.title ?: id
+    }
+
+    /** サインイン中のユーザー ID。お題の作成者と突き合わせて削除導線を出すかを決める。 */
+    val myUserId: String? get() = api.currentUserId
+
+    /** 削除に成功したら [onDeleted] (詳細を閉じる) を呼ぶ。失敗理由は uiState.deleteError に出す。 */
+    fun delete(onDeleted: () -> Unit) {
+        val id = pollId ?: return
+        if (_uiState.value.isDeleting) return
+        _uiState.value = _uiState.value.copy(isDeleting = true, deleteError = null)
+        viewModelScope.launch {
+            val ok = runCatching { api.deletePoll(id) }.getOrDefault(false)
+            _uiState.value = _uiState.value.copy(
+                isDeleting = false,
+                deleteError = if (ok) null else "削除に失敗しました。時間をおいて再試行してください。"
+            )
+            if (ok) onDeleted()
+        }
+    }
+
+    fun clearDeleteError() {
+        _uiState.value = _uiState.value.copy(deleteError = null)
     }
 
     /** 既存候補へワンタップ投票/取消のトグル。 */
