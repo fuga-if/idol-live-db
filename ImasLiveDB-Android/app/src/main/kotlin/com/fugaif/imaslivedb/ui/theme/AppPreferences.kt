@@ -43,32 +43,38 @@ object AppPreferences {
 
     private var prefs: SharedPreferences? = null
 
+    // 値は「private な可変 state + 公開の読み取り専用プロパティ + 明示的な変更関数」で持つ。
+    // `var x by mutableStateOf(...) ; private set` にすると自動生成の setter (setX) が
+    // 保存処理つきの `setX(...)` 関数と JVM シグネチャで衝突するため、この形にしている。
+    // 読み取りは state 経由なので Compose の購読はそのまま効く。
+
+    private var textScaleState by mutableFloatStateOf(1.0f)
+    private var abbreviateState by mutableStateOf(true)
+    private var includeStreamState by mutableStateOf(false)
+    private var useOshiColorState by mutableStateOf(false)
+    private var oshiIdolIdState by mutableStateOf("")
+    private var oshiColorHexState by mutableStateOf("")
+
     /**
      * アプリ内の文字サイズ倍率。OS のフォントサイズ設定に**乗算**で重ねる追加倍率で、
      * OS 設定を置き換えるものではない (iOS が Dynamic Type に乗算するのと同じ)。
      */
-    var textScale by mutableFloatStateOf(1.0f)
-        private set
+    val textScale: Float get() = textScaleState
 
     /** ライブ名の作品名プレフィックスを一覧で省略するか。既定 ON (iOS と同じ)。 */
-    var abbreviateEventNames by mutableStateOf(true)
-        private set
+    val abbreviateEventNames: Boolean get() = abbreviateState
 
     /** 披露回収の判定に配信参加を含めるか。既定 OFF = 現地参加のみ。 */
-    var includeStreamInCollection by mutableStateOf(false)
-        private set
+    val includeStreamInCollection: Boolean get() = includeStreamState
 
     /** 担当 (推し) のイメージカラーをアプリ全体のアクセントに使うか。 */
-    var useOshiColor by mutableStateOf(false)
-        private set
+    val useOshiColor: Boolean get() = useOshiColorState
 
     /** テーマに使う担当アイドル ID (複数担当のうち 1 人)。 */
-    var oshiIdolId by mutableStateOf("")
-        private set
+    val oshiIdolId: String get() = oshiIdolIdState
 
     /** 解決済みのテーマ色 hex。空 = 無効 (既定アクセントにフォールバック)。 */
-    var oshiColorHex by mutableStateOf("")
-        private set
+    val oshiColorHex: String get() = oshiColorHexState
 
     /**
      * SharedPreferences から現在値を読み込む。合成のルートと設定画面から呼ぶ (冪等)。
@@ -80,23 +86,23 @@ object AppPreferences {
             .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .also { prefs = it }
 
-        textScale = p.getFloat(KEY_TEXT_SCALE, 1.0f)
-        abbreviateEventNames = p.getBoolean(KEY_EVENT_NAME_ABBREVIATE, true)
-        includeStreamInCollection = p.getBoolean(KEY_COLLECTION_INCLUDE_STREAM, false)
-        useOshiColor = p.getBoolean(KEY_THEME_USE_OSHI_COLOR, false)
-        oshiIdolId = p.getString(KEY_THEME_OSHI_IDOL_ID, "").orEmpty()
-        oshiColorHex = p.getString(KEY_THEME_OSHI_COLOR, "").orEmpty()
+        textScaleState = p.getFloat(KEY_TEXT_SCALE, 1.0f)
+        abbreviateState = p.getBoolean(KEY_EVENT_NAME_ABBREVIATE, true)
+        includeStreamState = p.getBoolean(KEY_COLLECTION_INCLUDE_STREAM, false)
+        useOshiColorState = p.getBoolean(KEY_THEME_USE_OSHI_COLOR, false)
+        oshiIdolIdState = p.getString(KEY_THEME_OSHI_IDOL_ID, "").orEmpty()
+        oshiColorHexState = p.getString(KEY_THEME_OSHI_COLOR, "").orEmpty()
 
         pushCollectionScope(context)
     }
 
     fun setTextScale(value: Float) {
-        textScale = value
+        textScaleState = value
         prefs?.edit()?.putFloat(KEY_TEXT_SCALE, value)?.apply()
     }
 
     fun setAbbreviateEventNames(value: Boolean) {
-        abbreviateEventNames = value
+        abbreviateState = value
         prefs?.edit()?.putBoolean(KEY_EVENT_NAME_ABBREVIATE, value)?.apply()
     }
 
@@ -109,23 +115,23 @@ object AppPreferences {
      * (iOS の `UserMarkService.refreshAutoCollected()` に相当)。
      */
     fun setIncludeStreamInCollection(context: Context, value: Boolean) {
-        includeStreamInCollection = value
+        includeStreamState = value
         prefs?.edit()?.putBoolean(KEY_COLLECTION_INCLUDE_STREAM, value)?.apply()
         pushCollectionScope(context)
     }
 
     fun setUseOshiColor(value: Boolean) {
-        useOshiColor = value
+        useOshiColorState = value
         prefs?.edit()?.putBoolean(KEY_THEME_USE_OSHI_COLOR, value)?.apply()
     }
 
     fun setOshiIdolId(value: String) {
-        oshiIdolId = value
+        oshiIdolIdState = value
         prefs?.edit()?.putString(KEY_THEME_OSHI_IDOL_ID, value)?.apply()
     }
 
     fun setOshiColorHex(value: String) {
-        oshiColorHex = value
+        oshiColorHexState = value
         prefs?.edit()?.putString(KEY_THEME_OSHI_COLOR, value)?.apply()
     }
 
