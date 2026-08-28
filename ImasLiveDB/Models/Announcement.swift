@@ -21,7 +21,7 @@ enum AnnouncementCatalog {
     /// 新しいものほど上 (表示順)。
     static let all: [Announcement] = [
         Announcement(
-            id: "v1.13.0_readings_android_parity",
+            id: "v2.0.0_readings_android_parity",
             date: "2026-08-28",
             title: "かなで引けるようになりました",
             summary: "曲・会場・ライブ名・作詞作曲の読み仮名を全部入れました。Android 版も iOS に大きく追いつきました。",
