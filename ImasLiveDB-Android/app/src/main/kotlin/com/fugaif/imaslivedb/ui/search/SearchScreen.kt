@@ -57,6 +57,7 @@ import com.fugaif.imaslivedb.ui.components.ImasAvatar
 import com.fugaif.imaslivedb.ui.components.ImasEmptyState
 import com.fugaif.imaslivedb.ui.components.ImasLeadBar
 import com.fugaif.imaslivedb.ui.components.ImasSegmented
+import com.fugaif.imaslivedb.ui.components.rememberHighlighted
 import com.fugaif.imaslivedb.ui.theme.DS
 
 /**
@@ -230,14 +231,14 @@ private fun ResultList(
         if (state.scope.includes(SearchScope.IDOLS) && state.results.idols.isNotEmpty()) {
             item { ResultSectionHeader("アイドル", state.results.idols.size) }
             items(state.results.idols) { idol ->
-                IdolSearchRow(idol) { onNavigateToIdolDetail(idol.id) }
+                IdolSearchRow(idol, state.matchedQuery) { onNavigateToIdolDetail(idol.id) }
                 HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 44.dp))
             }
         }
         if (state.scope.includes(SearchScope.SONGS) && state.results.songs.isNotEmpty()) {
             item { ResultSectionHeader("楽曲", state.results.songs.size) }
             items(state.results.songs) { song ->
-                SongSearchRow(song) { onNavigateToSongDetail(song.id) }
+                SongSearchRow(song, state.matchedQuery) { onNavigateToSongDetail(song.id) }
                 HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 44.dp))
             }
         }
@@ -246,14 +247,14 @@ private fun ResultList(
         if (state.scope.includes(SearchScope.SONGS) && state.results.fuzzySongs.isNotEmpty()) {
             item { ResultSectionHeader("もしかして", state.results.fuzzySongs.size) }
             items(state.results.fuzzySongs) { song ->
-                SongSearchRow(song) { onNavigateToSongDetail(song.id) }
+                SongSearchRow(song, state.matchedQuery) { onNavigateToSongDetail(song.id) }
                 HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 44.dp))
             }
         }
         if (state.scope.includes(SearchScope.EVENTS) && state.results.events.isNotEmpty()) {
             item { ResultSectionHeader("ライブ", state.results.events.size) }
             items(state.results.events) { event ->
-                EventSearchRow(event) { onNavigateToEventDetail(event.id) }
+                EventSearchRow(event, state.matchedQuery) { onNavigateToEventDetail(event.id) }
                 HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 16.dp))
             }
         }
@@ -273,33 +274,39 @@ private fun ResultSectionHeader(title: String, count: Int) {
 }
 
 @Composable
-private fun IdolSearchRow(idol: Idol, onClick: () -> Unit) {
+private fun IdolSearchRow(idol: Idol, needle: String, onClick: () -> Unit) {
     SearchRow(onClick = onClick, lead = {
         ImasAvatar(label = idol.name, seed = idol.color, brand = idol.brandId, size = 36.dp)
-    }, title = idol.name, subtitle = idol.nameKana)
+    }, title = idol.name, subtitle = idol.nameKana, needle = needle)
 }
 
 @Composable
-private fun SongSearchRow(song: Song, onClick: () -> Unit) {
+private fun SongSearchRow(song: Song, needle: String, onClick: () -> Unit) {
     SearchRow(onClick = onClick, lead = {
         ImasArtwork(title = song.title, brand = song.brandId, size = 36.dp, imageUrl = song.artworkUrl)
-    }, title = song.title, subtitle = null)
+    }, title = song.title, subtitle = null, needle = needle)
 }
 
 @Composable
-private fun EventSearchRow(event: Event, onClick: () -> Unit) {
+private fun EventSearchRow(event: Event, needle: String, onClick: () -> Unit) {
     SearchRow(onClick = onClick, lead = {
         ImasLeadBar(brandId = event.brandId, height = 32.dp)
-    }, title = event.name, subtitle = null)
+    }, title = event.name, subtitle = null, needle = needle)
 }
 
-/** 検索結果の 1 行。3 種で先頭要素だけ差し替える (行の余白・タイポは共通)。 */
+/**
+ * 検索結果の 1 行。3 種で先頭要素だけ差し替える (行の余白・タイポは共通)。
+ *
+ * 打った語が当たった箇所には曲一覧と同じ色を敷く。読みや別名で当たった行 (表記側に範囲が
+ * 無い) には色が付かないが、それは「表記のどこにも打った語は無い」という事実そのもの。
+ */
 @Composable
 private fun SearchRow(
     onClick: () -> Unit,
     lead: @Composable () -> Unit,
     title: String,
-    subtitle: String?
+    subtitle: String?,
+    needle: String
 ) {
     Row(
         modifier = Modifier
@@ -312,9 +319,9 @@ private fun SearchRow(
         lead()
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
-            Text(title, fontSize = 15.sp, color = DS.ink)
+            Text(rememberHighlighted(title, needle), fontSize = 15.sp, color = DS.ink)
             if (!subtitle.isNullOrEmpty()) {
-                Text(subtitle, fontSize = 12.sp, color = DS.ink2)
+                Text(rememberHighlighted(subtitle, needle), fontSize = 12.sp, color = DS.ink2)
             }
         }
         Icon(

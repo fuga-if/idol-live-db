@@ -57,6 +57,7 @@ import com.fugaif.imaslivedb.ui.components.ImasRemovableChip
 import com.fugaif.imaslivedb.ui.components.ImasSectionHeader
 import com.fugaif.imaslivedb.ui.components.SkeletonThumb
 import com.fugaif.imaslivedb.ui.components.SongRow
+import com.fugaif.imaslivedb.ui.components.SongRowMatch
 import com.fugaif.imaslivedb.ui.tags.TagFilterSheet
 import com.fugaif.imaslivedb.ui.theme.DS
 
@@ -272,6 +273,12 @@ private fun SongListRow(
         isMyPick = uiState.myPickSongIds.contains(item.song.id),
         collectedCount = uiState.collectedCounts[item.song.id],
         tagVoteCount = if (uiState.selectedTags.size == 1) uiState.tagVoteCounts[item.song.id] else null,
+        lyricist = item.song.lyricist,
+        composer = item.song.composer,
+        arranger = item.song.arranger,
+        // 何で絞っているかを行に渡す。当たった箇所に色が敷かれ、スコープに応じた補足が出る。
+        searchMatch = uiState.searchText.takeIf { it.isNotEmpty() }
+            ?.let { SongRowMatch(text = it, scope = uiState.searchMode) },
         onFavoriteToggle = { viewModel.toggleFavorite(item.song.id) },
         modifier = Modifier
             .fillMaxWidth()

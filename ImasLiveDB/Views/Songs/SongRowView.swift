@@ -323,24 +323,13 @@ struct SongRowView: View {
 
     /// 絞り込み語に当たった部分に色を敷く。
     ///
-    /// 歌詞検索のスニペットと同じ見せ方に揃える。「何で引っかかったか」の示し方が
-    /// 検索対象ごとに違うと、同じ一覧なのに読み方を切り替えることになる。
-    ///
-    /// 別のスコープで絞っているときは敷かない (曲名で絞ったのにアイドル名が光ると、
-    /// どちらで当たったのか読めなくなる)。漢字の曲名を読み仮名で引いた場合は
-    /// 表記側に範囲が無いので、そのときも敷かない。
+    /// 敷き方そのものは `SearchHighlight` (検索画面と共通) が持つ。ここが決めるのは
+    /// 「このスコープで絞っているか」だけ。別のスコープで絞っているときは敷かない
+    /// (曲名で絞ったのにアイドル名が光ると、どちらで当たったのか読めなくなる)。
+    /// 漢字の曲名を読み仮名で引いた場合は表記側に範囲が無いので、そのときも敷かない。
     private func highlighted(_ source: String, in scope: SongSearchMode) -> AttributedString {
-        // 絞り込んでいない行が大半なので、`AttributedString` を組む前に降りる。
-        guard searchMatch?.scope == scope, let needle = trimmedMatch,
-              let range = matchRange(of: needle, in: source)
-        else { return AttributedString(source) }
-        var text = AttributedString(source)
-        guard let from = AttributedString.Index(range.lowerBound, within: text),
-              let to = AttributedString.Index(range.upperBound, within: text)
-        else { return text }
-        text[from ..< to].backgroundColor =
-            ImasTheme.derive(seed: nil, scheme: scheme).accent.opacity(0.28)
-        return text
+        guard searchMatch?.scope == scope else { return AttributedString(source) }
+        return SearchHighlight.attributed(source, matching: trimmedMatch, scheme: scheme)
     }
 
     // MARK: - Brand color
