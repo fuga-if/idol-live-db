@@ -39,10 +39,25 @@ git add ... && PR
 
 ```bash
 # PR をレビュー (出典確認) 後:
-python3 tools/apply_data.py --apply                                      # ローカル master.sqlite に反映
-CLOUDKIT_KEY_ID=$KID python3 tools/apply_data.py --apply --push --production  # CloudKit へ push
+KID="<.claude/skills/sync-new-songs/SKILL.md に書いてある Production の key ID>"
+python3 tools/apply_data.py --check  --only <ファイル名>.json                            # そのファイル単体で検証
+python3 tools/apply_data.py --apply  --only <ファイル名>.json                            # ローカル master.sqlite に反映
+CLOUDKIT_KEY_ID=$KID python3 tools/apply_data.py --apply --push --production --only <ファイル名>.json
 # CloudKit に反映 → 翌日の cron が db/master.sql を更新 → 貢献が git にも反映される
 ```
+
+**`--only` を付けること。** `--apply` は検証エラーが 1 件でもあると `sys.exit(1)` する。
+`data/` には push 済みの INSERT 用 JSON が残ったままになりやすく、それが全部
+「id は既に存在」で problem 判定になるため、絞らないと自分の変更が push まで到達しない
+(2026-08-28 時点で 732 件が該当)。`--only` はパスではなくファイル名で照合する。
+
+**鍵の在り処**: key ID は環境変数にも `~/.zshrc` にも無い。`.claude/skills/sync-new-songs/SKILL.md`
+の冒頭に Production の値が書いてある (このディレクトリは `.git/info/exclude` で
+リポジトリから除外済み)。秘密鍵は `tools/eckey.pem` で、スクリプトが自分で読む。
+
+**スキーマを足した場合は push の前に**、`tools/cloudkit_schema.ckdb` を
+Development へ `xcrun cktool import-schema` してから Dashboard で Production へ昇格する。
+Production に列が無いうちに push すると弾かれる。
 
 スキーマを変えた時 (列追加等) は、ローカル master.sqlite から `sqlite3 ... .dump > db/master.sql` で
 dump を作り直してコミットする (cron はデータのみ更新し、スキーマは db/master.sql 由来のため)。
