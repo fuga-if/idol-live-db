@@ -69,6 +69,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import com.fugaif.imaslivedb.ui.components.rememberSearchFiltered
 
 // ---------------------------------------------------------------------------
 // Show picker (セトリ編集の対象公演を選ぶ)
@@ -296,12 +297,12 @@ fun IdolMultiSelectSheet(
         ImasTheme.prewarm(state.idols.map { it.color to it.brandId })
     }
 
-    val filtered = remember(state.idols, query, selectedBrandId) {
-        val q = query.trim().lowercase()
-        state.idols.filter { idol ->
-            (selectedBrandId == null || idol.brandId == selectedBrandId) &&
-                (q.isEmpty() || idol.name.lowercase().contains(q) || idol.nameKana?.lowercase()?.contains(q) == true)
-        }
+    // 語で絞ってからブランドで絞る (索引は母集団全体で組んであるため)。並びは入力順のまま。
+    val matched = rememberSearchFiltered(state.idols, query) {
+        listOf(it.name, it.nameKana, it.voiceActors, it.aliases)
+    }
+    val filtered = remember(matched, selectedBrandId) {
+        matched.filter { selectedBrandId == null || it.brandId == selectedBrandId }
     }
     val grouped = remember(filtered, state.brands) {
         state.brands.mapNotNull { brand ->

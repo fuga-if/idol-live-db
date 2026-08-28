@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import com.fugaif.imaslivedb.ui.components.searchFiltered
 
 data class TagListUiState(
     val isLoading: Boolean = true,
@@ -26,12 +27,10 @@ data class TagListUiState(
      */
     val visibleTags: List<CommunityApi.CommunityTag>
         get() {
-            val q = nameFilter.trim()
-            if (q.isEmpty()) return tags
-            return tags.filter {
-                it.name.contains(q, ignoreCase = true) ||
-                    it.description?.contains(q, ignoreCase = true) == true
-            }
+            // 照合はコア (`domain/text_search_index.rs`) に一任する。タグ名はユーザーが
+            // 打つ自由文字列なので表記の揺れが大きく、他の一覧と同じく かなを畳む。
+            // API が返す件数は高々数百なので、索引を使い捨てても割に合う。
+            return searchFiltered(tags, nameFilter) { listOf(it.name, it.description) }
         }
 
     val activeFilterCount: Int

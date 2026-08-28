@@ -45,6 +45,7 @@ import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasLiveDBTheme
 import com.fugaif.imaslivedb.ui.theme.ImasTheme
 import kotlinx.coroutines.launch
+import com.fugaif.imaslivedb.ui.components.searchFiltered
 
 /**
  * 担当画像ウィジェットの設定画面 (`APPWIDGET_CONFIGURE`)。
@@ -184,7 +185,9 @@ private fun OshiConfigureScreen(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp)
                     )
                     OshiCandidateList(
-                        candidates = candidates.filter { it.matches(query) },
+                        candidates = searchFiltered(candidates, query) {
+                            listOf(it.name, it.nameKana, it.brandShortName)
+                        },
                         selectedId = selectedId,
                         onPick = onPick
                     )
@@ -263,10 +266,4 @@ private fun OshiRow(candidate: OshiCandidate, selected: Boolean, onPick: () -> U
     }
 }
 
-/** 名前・ブランド略称の部分一致 (iOS のピッカー検索と同じ当たり方)。 */
-private fun OshiCandidate.matches(query: String): Boolean {
-    val trimmed = query.trim()
-    if (trimmed.isEmpty()) return true
-    return name.contains(trimmed, ignoreCase = true) ||
-        brandShortName?.contains(trimmed, ignoreCase = true) == true
-}
+

@@ -35,6 +35,7 @@ import com.fugaif.imaslivedb.ui.components.ImasFilterChip
 import com.fugaif.imaslivedb.ui.components.NameFilterField
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.brandColor
+import com.fugaif.imaslivedb.ui.components.rememberSearchFiltered
 
 /**
  * フィルタシートの中で開く「選択ページ」。
@@ -80,10 +81,7 @@ fun SingleValuePickerPage(
     onSelect: (String?) -> Unit
 ) {
     var query by remember { mutableStateOf("") }
-    val visible = remember(items, query) {
-        val q = query.trim()
-        if (q.isEmpty()) items else items.filter { it.contains(q, ignoreCase = true) }
-    }
+    val visible = rememberSearchFiltered(items, query) { listOf(it) }
 
     FilterPickerPage(title = title, onBack = onBack) {
         NameFilterField(prompt = "${title}で絞り込み", value = query, onValueChange = { query = it })
@@ -116,15 +114,10 @@ fun IdolMultiPickerPage(
 ) {
     var query by remember { mutableStateOf("") }
     var brandId by remember { mutableStateOf<String?>(null) }
-    val visible = remember(idols, query, brandId) {
-        val q = query.trim()
-        idols.filter { idol ->
-            (brandId == null || idol.brandId == brandId) &&
-                (
-                    q.isEmpty() || idol.name.contains(q, ignoreCase = true) ||
-                        idol.nameKana?.contains(q, ignoreCase = true) == true
-                    )
-        }
+    // 語で絞ってからブランドで絞る (索引は idols 全体で組んであるため)。並びは入力順のまま。
+    val matched = rememberSearchFiltered(idols, query) { listOf(it.name, it.nameKana, it.aliases) }
+    val visible = remember(matched, brandId) {
+        matched.filter { brandId == null || it.brandId == brandId }
     }
 
     FilterPickerPage(title = "アイドル (${selected.size})", onBack = onBack) {

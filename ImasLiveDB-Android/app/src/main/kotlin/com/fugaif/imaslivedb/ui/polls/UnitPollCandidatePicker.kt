@@ -66,6 +66,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import com.fugaif.imaslivedb.ui.components.rememberSearchFiltered
 
 data class UnitPickerUiState(
     val units: List<ImasUnit> = emptyList(),
@@ -119,12 +120,9 @@ fun UnitPollCandidatePicker(
         ImasTheme.prewarm(state.units.map { it.id to it.brandId })
     }
 
-    val filtered = remember(state.units, query, selectedBrandId) {
-        val q = query.trim().lowercase()
-        state.units.filter { unit ->
-            (selectedBrandId == null || unit.brandId == selectedBrandId) &&
-                (q.isEmpty() || unit.name.lowercase().contains(q) || unit.nameAlt?.lowercase()?.contains(q) == true)
-        }
+    val matched = rememberSearchFiltered(state.units, query) { listOf(it.name, it.nameAlt) }
+    val filtered = remember(matched, selectedBrandId) {
+        matched.filter { selectedBrandId == null || it.brandId == selectedBrandId }
     }
     val grouped = remember(filtered, state.brands) {
         state.brands.mapNotNull { brand ->

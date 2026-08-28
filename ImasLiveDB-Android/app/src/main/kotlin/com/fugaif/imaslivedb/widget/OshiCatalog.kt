@@ -13,6 +13,8 @@ import java.io.File
 data class OshiCandidate(
     val idolId: String,
     val name: String,
+    /** 検索用の読み。候補は 300 件を超えるので、かなで絞れないと目当てまで届かない。 */
+    val nameKana: String?,
     /** アイドル色 (hex)。設定画面のアバターの発色に使う。 */
     val colorHex: String?,
     val brandId: String?,
@@ -58,6 +60,7 @@ object OshiCatalog {
             OshiCandidate(
                 idolId = idol.id,
                 name = idol.name,
+                nameKana = idol.nameKana,
                 colorHex = idol.color,
                 brandId = idol.brandId,
                 brandShortName = brand?.shortName,

@@ -33,6 +33,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -55,6 +56,7 @@ import com.fugaif.imaslivedb.ui.components.NameFilterField
 import com.fugaif.imaslivedb.ui.theme.BrandPalette
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasTheme
+import uniffi.imas_core.TextSearchCatalog
 
 /**
  * ユニット一覧の本体 (曲ありユニットのみ)。`ui.idols.IdolListScreen` の「アイドル」タブと同じ骨格
@@ -72,15 +74,26 @@ fun UnitListBody(
 ) {
     val state by viewModel.uiState.collectAsState()
 
-    val q = state.searchText.trim().lowercase()
+    val q = state.searchText.trim()
 
-    fun matchesSearch(unit: ImasUnit): Boolean {
-        if (q.isEmpty()) return true
-        if (unit.name.lowercase().contains(q)) return true
-        return unit.nameAlt?.lowercase()?.contains(q) == true
+    // 照合はコア (`domain/text_search_index.rs`) に一任する。ここで `lowercase().contains()`
+    // を書いていたせいで、曲・アイドル・ライブは「あるすとろめりあ」で当たるのに
+    // ユニットだけ当たらなかった (かなを畳んでいなかった)。同じ検索欄に打つ人からは
+    // 説明の付かない差になる。
+    //
+    // 索引は units が変わった時だけ組み直す (1 打鍵 = matchingIndices 1 回で、
+    // 項目ごとに FFI を跨がない)。名前と別名の両方を綴りに入れるので
+    // 「Cleasky」でも「クレスカイ」でも当たる。
+    val searchCatalog = remember(state.units) {
+        TextSearchCatalog(state.units.map { listOfNotNull(it.name, it.nameAlt) })
     }
-
-    val filteredUnits = state.units.filter { matchesSearch(it) }
+    // 索引の実体は Rust 側にある。画面を離れたら (または units が入れ替わったら) 明示的に返す。
+    // Cleaner 任せでも最後には解放されるが、それは GC の都合で、いつかは決まらない。
+    DisposableEffect(searchCatalog) { onDispose { searchCatalog.close() } }
+    val filteredUnits = remember(searchCatalog, q) {
+        if (q.isEmpty()) state.units
+        else searchCatalog.matchingIndices(q).mapNotNull { state.units.getOrNull(it.toInt()) }
+    }
     val groupedByBrand = filteredUnits.groupBy { it.brandId }
     val visibleBrands = state.brands.filter { !groupedByBrand[it.id].isNullOrEmpty() }
 

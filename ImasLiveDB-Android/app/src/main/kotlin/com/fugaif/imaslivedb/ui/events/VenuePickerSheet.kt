@@ -36,6 +36,7 @@ import com.fugaif.imaslivedb.data.model.VenueDirectory
 import com.fugaif.imaslivedb.ui.components.ImasEmptyState
 import com.fugaif.imaslivedb.ui.components.NameFilterField
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.components.rememberSearchFiltered
 
 /**
  * 会場を 1 つ選ぶピッカー (iOS `VenuePickerView` の移植)。
@@ -56,18 +57,11 @@ fun VenuePickerSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var query by remember { mutableStateOf("") }
 
-    val filtered = remember(directory, query) {
-        val q = query.trim()
-        if (q.isEmpty()) {
-            directory.venues
-        } else {
-            directory.venues.filter { v ->
-                v.name.contains(q, ignoreCase = true) ||
-                    (v.prefecture?.contains(q, ignoreCase = true) == true) ||
-                    // 旧名でも引けるようにする (「武蔵野の森」→ 京王アリーナTOKYO)
-                    v.aliasList.any { it.contains(q, ignoreCase = true) }
-            }
-        }
+    // 綴りは現行名・読み・都道府県・別名 (旧名/通称)。以前は `contains` を並べていて、
+    // `venues.name_kana` を持っているのに読みで引けなかった (「ぶどうかん」で出ない)。
+    val filtered = rememberSearchFiltered(directory.venues, query) { v ->
+        // 旧名でも引けるようにする (「武蔵野の森」→ 京王アリーナTOKYO)
+        listOf(v.name, v.nameKana, v.prefecture) + v.aliasList
     }
     // 都道府県ごとにまとめる。244件あるので地域で塊にしないと探せない。
     val grouped = remember(filtered) {
