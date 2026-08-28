@@ -291,7 +291,9 @@ object SyncMappers {
                 singerLabel = row.singerLabel.emptyToNull(),
                 unitName = row.unitName.emptyToNull(),
                 unitId = row.unitId.emptyToNull(),
-                seriesGroup = row.seriesGroup.emptyToNull()
+                seriesGroup = row.seriesGroup.emptyToNull(),
+                // 読み落とすと、同期のたびに版つきの曲 (sc_beam / sc_iwe) が無印へ戻る。
+                unitVersionId = row.unitVersionId.emptyToNull()
             )
         }
 

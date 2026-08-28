@@ -65,6 +65,7 @@ final class CKRecordMapperCoverageTests: XCTestCase {
             "unitName": "ユニット名" as NSString,
             "unitId": "u1" as NSString,
             "seriesGroup": "LIVE THE@TER FORWARD" as NSString,
+            "unitVersionId": "unit_アルストロメリア__axe8" as NSString,
         ])
 
         let song = try XCTUnwrap(CKRecordMapper.song(from: rec))

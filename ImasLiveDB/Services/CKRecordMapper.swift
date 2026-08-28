@@ -187,7 +187,10 @@ enum CKRecordMapper {
             // ここを読み落とすと、GRDB の upsert が Song のエンコード列を全部書くため
             // 同期のたび series_group が NULL 上書きされ、シリーズ絞り込みが壊れる。
             // Song に列を足したら共有コアの CkSongRow にも必ず足すこと。
-            seriesGroup: row.seriesGroup
+            seriesGroup: row.seriesGroup,
+            // 同じ理由。読み落としていたので、同期のたびに版つきの曲 (sc_beam / sc_iwe) が
+            // 無印へ戻っていた。`CKRecordMapperCoverageTests` がこれを捕まえる。
+            unitVersionId: row.unitVersionId
         )
     }
 
