@@ -36,6 +36,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -234,10 +235,17 @@ fun SongFilterSheet(
                     )
                     SwitchRow(
                         title = "メモがある曲のみ",
-                        subtitle = "ON にした条件すべてに該当する曲 (AND) だけ表示",
                         checked = myMarkFilter.requireNote,
                         tint = DS.warning,
                         onCheckedChange = { myMarkFilter = myMarkFilter.copy(requireNote = it) }
+                    )
+                    // 上の 3 つ全体にかかる注記。1 つのトグルの subtitle に置くと
+                    // 「その項目だけが AND」と読めてしまう (iOS はセクションの footer)。
+                    Text(
+                        "チェック ON で AND 条件絞り込み",
+                        fontSize = 11.sp,
+                        color = DS.ink3,
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
                     )
 
                     HorizontalDivider()
