@@ -228,6 +228,53 @@ mod tests {
         );
     }
 
+    /// 漢字のユニット名が**読み経由で**引けること。
+    ///
+    /// `units.name_kana` を足すまで、「あたらよづき」と打っても「可惜夜月」には
+    /// 辿り着けなかった。曲・アイドル・会場・ライブ・作家は読みを持つのに
+    /// ユニットだけ持たない、という取り残しだった。
+    ///
+    /// 読みは全行には入れていない (一覧に出る 27 件のうち出典が取れた 24 件だけ)。
+    /// ここが見るのは「入っている行は、その読みで名前に辿り着ける」ことと、
+    /// 読みが**漢字を含む名前にしか付いていない**こと。カタカナ名に読みを足しても
+    /// 引ける語が増えないので、増えていたら投入の仕方を間違えている。
+    #[test]
+    fn kanji_unit_names_are_reachable_through_their_reading() {
+        use crate::domain::text_search_index::match_range;
+        let snap = snap();
+        let with_kana: Vec<&crate::domain::snapshot::Unit> = snap
+            .units
+            .iter()
+            .filter(|u| u.name_kana.as_deref().is_some_and(|k| !k.is_empty()))
+            .collect();
+        assert!(with_kana.len() >= 20, "読みが入った行が少なすぎる: {}", with_kana.len());
+
+        for u in &with_kana {
+            let kana = u.name_kana.as_deref().unwrap();
+            assert!(
+                match_range(kana, kana).is_some(),
+                "「{}」の読み「{kana}」が自分自身に当たらない",
+                u.name
+            );
+            assert!(
+                u.name.chars().any(|c| ('\u{4E00}'..='\u{9FFF}').contains(&c)),
+                "漢字を含まない「{}」に読みが入っている (引ける語が増えない)",
+                u.name
+            );
+        }
+
+        // 実例。素朴に読むと外すもの (でこれーしょん / ゆうづつひ / きみどり) を含める。
+        for (name, kana) in [
+            ("可惜夜月", "あたらよづき"),
+            ("凸レーション", "でこれーしょん"),
+            ("夕星灯", "ゆうづつひ"),
+            ("≡君彩≡", "きみどり"),
+        ] {
+            let u = snap.units.iter().find(|u| u.name == name).expect(name);
+            assert_eq!(u.name_kana.as_deref(), Some(kana), "{name} の読み");
+        }
+    }
+
     use super::*;
     use crate::outbound::sqlite_loader::load_snapshot;
     use rusqlite::{Connection, OpenFlags};
