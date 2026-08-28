@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.automirrored.filled.Sort
@@ -46,10 +47,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.fugaif.imaslivedb.data.auth.showEditAffordance
+import com.fugaif.imaslivedb.data.auth.startCommunityEdit
 import com.fugaif.imaslivedb.data.model.SongCollectFilter
 import com.fugaif.imaslivedb.data.model.SongSortOrder
 import com.fugaif.imaslivedb.data.model.SongWithArtists
+import com.fugaif.imaslivedb.di.AppModule
+import com.fugaif.imaslivedb.ui.components.CommunityLoginPromptDialog
 import com.fugaif.imaslivedb.ui.components.ImasEmptyState
 import com.fugaif.imaslivedb.ui.components.ImasFilterChip
 import com.fugaif.imaslivedb.ui.components.ImasListSkeleton
@@ -58,6 +65,7 @@ import com.fugaif.imaslivedb.ui.components.ImasSectionHeader
 import com.fugaif.imaslivedb.ui.components.SkeletonThumb
 import com.fugaif.imaslivedb.ui.components.SongRow
 import com.fugaif.imaslivedb.ui.components.SongRowMatch
+import com.fugaif.imaslivedb.ui.edit.SongEditScreen
 import com.fugaif.imaslivedb.ui.tags.TagFilterSheet
 import com.fugaif.imaslivedb.ui.theme.DS
 
@@ -72,6 +80,11 @@ fun SongListScreen(
     val uiState by viewModel.uiState.collectAsState()
     var showFilter by remember { mutableStateOf(false) }
     var showTagFilter by remember { mutableStateOf(false) }
+    var showSongCreate by remember { mutableStateOf(false) }
+    var showLoginPrompt by remember { mutableStateOf(false) }
+    val authState by AppModule.from(context).authService.state.collectAsState()
+    // 権限フラグは認証状態が変わった時だけコアへ問い合わせる (詳細は data/auth/EditPermission.kt)。
+    val canEditHere = remember(authState) { authState.showEditAffordance }
 
     LaunchedEffect(Unit) { viewModel.init(context) }
 
@@ -82,6 +95,17 @@ fun SongListScreen(
                 actions = {
                     IconButton(onClick = onNavigateToSearch) {
                         Icon(Icons.Filled.Search, contentDescription = "検索")
+                    }
+                    // BAN 済みには導線自体を出さない。未ログインはゲートがログイン誘導へ回す。
+                    if (canEditHere) {
+                        IconButton(onClick = {
+                            authState.startCommunityEdit(
+                                promptLogin = { showLoginPrompt = true },
+                                present = { showSongCreate = true }
+                            )
+                        }) {
+                            Icon(Icons.Filled.Add, contentDescription = "曲を追加")
+                        }
                     }
                     BadgedBox(
                         badge = {
@@ -246,6 +270,34 @@ fun SongListScreen(
             initialSelection = uiState.selectedTags,
             onDismiss = { showTagFilter = false },
             onDone = { viewModel.applyTagFilter(it) }
+        )
+    }
+
+    // 編集フォームはフルスクリーン Dialog に載せる (RecentEditsScreen → SetlistEditScreen と同じ)。
+    if (showSongCreate) {
+        Dialog(
+            onDismissRequest = { showSongCreate = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            SongEditScreen(
+                // 1 ブランドに絞り込んでいる時だけ初期値にする (その文脈で追加するのが普通なので)。
+                // 複数ブランドを選んでいる時は決め打てないので未指定のまま出す。
+                initialBrandId = uiState.filter.brandIds.singleOrNull(),
+                onDismiss = { showSongCreate = false },
+                onSaved = {
+                    showSongCreate = false
+                    // admin が即時反映した時に一覧へ載るよう引き直す。修正リクエスト
+                    // (一般ユーザー) では DB が変わらないので、結果は同じ一覧になる。
+                    viewModel.init(context)
+                }
+            )
+        }
+    }
+
+    if (showLoginPrompt) {
+        CommunityLoginPromptDialog(
+            message = "楽曲の追加にはログインが必要です。",
+            onDismiss = { showLoginPrompt = false }
         )
     }
 }

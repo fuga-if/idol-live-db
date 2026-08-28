@@ -31,9 +31,12 @@ import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -63,13 +66,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.fugaif.imaslivedb.data.auth.showEditAffordance
+import com.fugaif.imaslivedb.data.auth.startCommunityEdit
+import com.fugaif.imaslivedb.data.model.Event
 import com.fugaif.imaslivedb.data.model.EventStats
 import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.data.model.JstDay
 import com.fugaif.imaslivedb.data.model.Show
 import com.fugaif.imaslivedb.data.model.UserMark
 import com.fugaif.imaslivedb.di.AppModule
+import com.fugaif.imaslivedb.ui.components.CommunityLoginPromptDialog
 import com.fugaif.imaslivedb.ui.components.ImasAvatar
 import com.fugaif.imaslivedb.ui.components.ImasEmptyState
 import com.fugaif.imaslivedb.ui.components.ImasLabeledRow
@@ -78,6 +87,9 @@ import com.fugaif.imaslivedb.ui.components.ImasSectionHeader
 import com.fugaif.imaslivedb.ui.components.ImasSegmented
 import com.fugaif.imaslivedb.ui.components.ImasStatTile
 import com.fugaif.imaslivedb.ui.components.ImasTagChip
+import com.fugaif.imaslivedb.ui.edit.EventEditScreen
+import com.fugaif.imaslivedb.ui.edit.RecordHistorySheet
+import com.fugaif.imaslivedb.ui.edit.ShowEditScreen
 import com.fugaif.imaslivedb.ui.filtered.EventFilterKind
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasTheme
@@ -91,8 +103,7 @@ import java.time.temporal.ChronoUnit
  * ImasSegmented で [公演・セトリ][出演][情報] に切り替える。
  *
  * 披露ユニット表示 (unit 被覆判定) は Setlist 側の担当範囲と重複するため対象外。
- * チケット編集・イベント編集・BD/DVD所有チェックは Android に対応する基盤 (編集権限/event_releases 同期) が
- * まだ無いため対象外。
+ * BD/DVD所有チェックは Android に event_releases の同期が無いため対象外。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -111,7 +122,11 @@ fun EventDetailScreen(
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
 
-    LaunchedEffect(eventId) { viewModel.load(context, eventId) }
+    // 編集後の読み直しトリガ。編集は「保存中…」の裏で DB を書き換えるので、
+    // 画面に残っている旧値を捨てて引き直す (VM の load は public なのでそのまま呼べる)。
+    var reloadToken by remember(eventId) { mutableIntStateOf(0) }
+
+    LaunchedEffect(eventId, reloadToken) { viewModel.load(context, eventId) }
 
     var segment by rememberSaveable(eventId) { mutableIntStateOf(0) }
     val seed: String? = if (uiState.isJoint) null else uiState.brandColorHex
@@ -121,10 +136,29 @@ fun EventDetailScreen(
     // ブランド行の行き先には brand_id が要るが、UiState が持つのは表示名と色だけ。
     // この画面の担当範囲外である ViewModel を変えずに済ませるため、ここで 1 回だけ引く
     // (スナップショット経路なのでメモリ内の参照で終わる)。
+    // 編集フォームには Event レコードそのものが要るので、同じ 1 回で受けておく。
+    var eventRecord by remember(eventId) { mutableStateOf<Event?>(null) }
     var brandId by remember(eventId) { mutableStateOf<String?>(null) }
-    LaunchedEffect(eventId) {
-        brandId = AppModule.from(context).eventRepository.fetchEvent(eventId)?.brandId?.takeIf { it.isNotEmpty() }
+    LaunchedEffect(eventId, reloadToken) {
+        val event = AppModule.from(context).eventRepository.fetchEvent(eventId)
+        eventRecord = event
+        brandId = event?.brandId?.takeIf { it.isNotEmpty() }
     }
+
+    var showMenu by remember { mutableStateOf(false) }
+    var showEventEdit by remember { mutableStateOf(false) }
+    var showEventHistory by remember { mutableStateOf(false) }
+    var showCreate by remember { mutableStateOf(false) }
+    var editingShow by remember { mutableStateOf<Show?>(null) }
+    var historyShow by remember { mutableStateOf<Show?>(null) }
+    var showLoginPrompt by remember { mutableStateOf(false) }
+    val authState by AppModule.from(context).authService.state.collectAsState()
+    // 権限フラグは認証状態が変わった時だけコアへ問い合わせる (詳細は data/auth/EditPermission.kt)。
+    val canEditHere = remember(authState) { authState.showEditAffordance }
+
+    // 投稿/編集導線の共通ゲート。未ログインはログイン誘導へ、BAN 済みは無反応 (優先順はコアが持つ)。
+    fun startEdit(present: () -> Unit) =
+        authState.startCommunityEdit(promptLogin = { showLoginPrompt = true }, present = present)
 
     val marks = remember { AppModule.from(context).userMarkRepository }
     val scope = rememberCoroutineScope()
@@ -172,6 +206,27 @@ fun EventDetailScreen(
                     }) {
                         Icon(Icons.Filled.Share, contentDescription = "このイベントをシェア")
                     }
+                    IconButton(onClick = { showMenu = true }) {
+                        Icon(Icons.Filled.MoreVert, contentDescription = "その他")
+                    }
+                    DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                        // BAN 済みには編集導線を出さない (押しても 403 になるだけ)。判定はコア。
+                        if (canEditHere) {
+                            DropdownMenuItem(
+                                text = { Text("このライブを編集") },
+                                onClick = { showMenu = false; startEdit { showEventEdit = true } },
+                                enabled = eventRecord != null
+                            )
+                            DropdownMenuItem(
+                                text = { Text("公演を追加") },
+                                onClick = { showMenu = false; startEdit { showCreate = true } }
+                            )
+                        }
+                        DropdownMenuItem(
+                            text = { Text("編集履歴") },
+                            onClick = { showMenu = false; showEventHistory = true }
+                        )
+                    }
                 }
             )
         }
@@ -199,7 +254,12 @@ fun EventDetailScreen(
                 )
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                     when (segment) {
-                        0 -> showsSection(uiState, seed, brand, onShowClick)
+                        0 -> showsSection(
+                            uiState, seed, brand, onShowClick,
+                            canEdit = canEditHere,
+                            onEditShow = { show -> startEdit { editingShow = show } },
+                            onShowHistory = { show -> historyShow = show }
+                        )
                         1 -> castSection(uiState, seed, brand, onIdolClick)
                         else -> infoSection(uiState, seed, brand, brandId, onFilteredEventsClick)
                     }
@@ -215,6 +275,75 @@ fun EventDetailScreen(
             brand = brand,
             onDismiss = { showAttendanceSheet = false },
             onChange = { scope.launch { reloadAttendance() } }
+        )
+    }
+
+    // 編集フォームはフルスクリーン Dialog に載せる (RecentEditsScreen → SetlistEditScreen と同じ)。
+    val editingEvent = eventRecord
+    if (showEventEdit && editingEvent != null) {
+        Dialog(
+            onDismissRequest = { showEventEdit = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            EventEditScreen(
+                original = editingEvent,
+                onDismiss = { showEventEdit = false },
+                onSaved = { showEventEdit = false; reloadToken++ }
+            )
+        }
+    }
+
+    if (showCreate) {
+        Dialog(
+            onDismissRequest = { showCreate = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            ShowEditScreen(
+                eventId = eventId,
+                // 既存公演数を初期の並び順にする (末尾に足すのが普通なので)。
+                suggestedSortOrder = uiState.shows.size,
+                onDismiss = { showCreate = false },
+                onSaved = { showCreate = false; reloadToken++ }
+            )
+        }
+    }
+
+    val currentEditingShow = editingShow
+    if (currentEditingShow != null) {
+        Dialog(
+            onDismissRequest = { editingShow = null },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            ShowEditScreen(
+                original = currentEditingShow,
+                eventId = currentEditingShow.eventId,
+                onDismiss = { editingShow = null },
+                onSaved = { editingShow = null; reloadToken++ }
+            )
+        }
+    }
+
+    if (showEventHistory) {
+        RecordHistorySheet(
+            recordType = "Event",
+            recordName = eventId,
+            onDismiss = { showEventHistory = false }
+        )
+    }
+
+    val currentHistoryShow = historyShow
+    if (currentHistoryShow != null) {
+        RecordHistorySheet(
+            recordType = "Show",
+            recordName = currentHistoryShow.id,
+            onDismiss = { historyShow = null }
+        )
+    }
+
+    if (showLoginPrompt) {
+        CommunityLoginPromptDialog(
+            message = "ライブ・公演の編集にはログインが必要です。",
+            onDismiss = { showLoginPrompt = false }
         )
     }
 }
@@ -340,7 +469,10 @@ private fun LazyListScope.showsSection(
     state: EventDetailUiState,
     seed: String?,
     brand: String?,
-    onShowClick: (String) -> Unit
+    onShowClick: (String) -> Unit,
+    canEdit: Boolean,
+    onEditShow: (Show) -> Unit,
+    onShowHistory: (Show) -> Unit
 ) {
     item { ImasSectionHeader(title = "公演 ・ ${state.shows.size} 公演 → セトリへ", tight = true) }
     if (state.shows.isEmpty()) {
@@ -353,17 +485,35 @@ private fun LazyListScope.showsSection(
         }
     } else {
         items(state.shows, key = { it.id }) { show ->
-            ShowRow(show, seed, brand, state.isJoint) { onShowClick(show.id) }
+            ShowRow(
+                show, seed, brand, state.isJoint,
+                canEdit = canEdit,
+                onEdit = { onEditShow(show) },
+                onHistory = { onShowHistory(show) },
+                onClick = { onShowClick(show.id) }
+            )
             HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 16.dp))
         }
     }
 }
 
 @Composable
-private fun ShowRow(show: Show, seed: String?, brand: String?, rainbow: Boolean, onClick: () -> Unit) {
+private fun ShowRow(
+    show: Show,
+    seed: String?,
+    brand: String?,
+    rainbow: Boolean,
+    canEdit: Boolean,
+    onEdit: () -> Unit,
+    onHistory: () -> Unit,
+    onClick: () -> Unit
+) {
+    // 公演そのものの編集はセトリ画面ではなくこの行から入る (セトリ画面は別担当)。
+    // 行タップはこれまで通りセトリへ。編集/履歴は ⋯ に畳んで誤爆を避ける。
+    var menuOpen by remember { mutableStateOf(false) }
     Row(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+            .padding(start = 16.dp, end = 4.dp, top = 10.dp, bottom = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
@@ -379,6 +529,24 @@ private fun ShowRow(show: Show, seed: String?, brand: String?, rainbow: Boolean,
             )
         }
         Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = DS.ink3, modifier = Modifier.size(16.dp))
+        Box {
+            IconButton(onClick = { menuOpen = true }) {
+                Icon(Icons.Filled.MoreVert, contentDescription = "公演の操作", tint = DS.ink3,
+                    modifier = Modifier.size(18.dp))
+            }
+            DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                if (canEdit) {
+                    DropdownMenuItem(
+                        text = { Text("公演を編集") },
+                        onClick = { menuOpen = false; onEdit() }
+                    )
+                }
+                DropdownMenuItem(
+                    text = { Text("編集履歴") },
+                    onClick = { menuOpen = false; onHistory() }
+                )
+            }
+        }
     }
 }
 

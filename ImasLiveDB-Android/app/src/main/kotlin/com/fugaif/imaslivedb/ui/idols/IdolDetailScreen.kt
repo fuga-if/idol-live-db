@@ -30,6 +30,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -38,6 +40,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
@@ -94,6 +97,8 @@ import com.fugaif.imaslivedb.data.model.Song
 import com.fugaif.imaslivedb.data.model.UserMark
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.components.CommunityLoginPromptDialog
+import com.fugaif.imaslivedb.ui.edit.IdolEditScreen
+import com.fugaif.imaslivedb.ui.edit.RecordHistorySheet
 import com.fugaif.imaslivedb.ui.components.ImasArtwork
 import com.fugaif.imaslivedb.ui.components.ImasAvatar
 import com.fugaif.imaslivedb.ui.components.IdolGridSection
@@ -126,7 +131,6 @@ import java.io.File
  * - CV (声優) 表示 — idols テーブルに voice_actors 列が無く、CloudKit マッパー側の追加が必要
  * - メモ (UserMarkBar note) — テキスト入力 UI が Android に無い
  * - ホーム画面ウィジェット — 画像基盤 (CustomImageStore) は入ったが、ウィジェット本体は未実装
- * - 編集導線・編集履歴 — Android に編集フロー自体が無い
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -156,12 +160,21 @@ fun IdolDetailScreen(
 ) {
     val context = LocalContext.current
     val state by viewModel.uiState.collectAsState()
-    val idol = state.idol
+    // 編集直後の姿。IdolDetailViewModel には外から呼べる再読込の口が無い (load は private) ので、
+    // admin の即時反映ぶんだけ画面側で上書きして、保存した瞬間から新しい値を見せる。
+    // 一般ユーザーは修正リクエスト止まりで反映されないため、ここに入ることはない。
+    var editedIdol by remember(idolId) { mutableStateOf<Idol?>(null) }
+    val idol = editedIdol ?: state.idol
     val t = ImasTheme.derive(idol?.color, BrandPalette.hex(idol?.brandId), dark = true)
     var segment by rememberSaveable(idolId) { mutableIntStateOf(0) }
     var showTagPicker by rememberSaveable { mutableStateOf(false) }
     var showLoginPrompt by rememberSaveable { mutableStateOf(false) }
+    var showMenu by remember { mutableStateOf(false) }
+    var showIdolEdit by remember { mutableStateOf(false) }
+    var showRecordHistory by remember { mutableStateOf(false) }
     val authState by AppModule.from(context).authService.state.collectAsState()
+    // 権限フラグは認証状態が変わった時だけコアへ問い合わせる (詳細は data/auth/EditPermission.kt)。
+    val canEditHere = remember(authState) { authState.showEditAffordance }
 
     // 投稿/編集導線の共通ゲート (iOS IdolDetailView.startCommunityEdit と同じ)。優先順はコアが持つので
     // if で並べ直さない。BAN 済みは iOS の .ignore と同じく無反応 (onBanned 既定) —
@@ -176,6 +189,27 @@ fun IdolDetailScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "戻る")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { showMenu = true }) {
+                        Icon(Icons.Filled.MoreVert, contentDescription = "その他")
+                    }
+                    DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                        // BAN 済みには編集導線を出さない (押しても 403 になるだけ)。判定はコア。
+                        if (idol != null && canEditHere) {
+                            DropdownMenuItem(
+                                text = { Text("編集") },
+                                onClick = {
+                                    showMenu = false
+                                    startCommunityEdit { showIdolEdit = true }
+                                }
+                            )
+                        }
+                        DropdownMenuItem(
+                            text = { Text("編集履歴") },
+                            onClick = { showMenu = false; showRecordHistory = true }
+                        )
                     }
                 }
             )
@@ -235,6 +269,29 @@ fun IdolDetailScreen(
             alreadyAppliedTagIds = state.tags.filter { it.mine }.map { it.id }.toSet(),
             onDismiss = { showTagPicker = false },
             onApplied = { viewModel.onTagsApplied() }
+        )
+    }
+
+    // 編集フォームはフルスクリーン Dialog に載せる (RecentEditsScreen → SetlistEditScreen と同じ)。
+    val editingIdol = idol
+    if (showIdolEdit && editingIdol != null) {
+        Dialog(
+            onDismissRequest = { showIdolEdit = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            IdolEditScreen(
+                original = editingIdol,
+                onDismiss = { showIdolEdit = false },
+                onSaved = { saved -> showIdolEdit = false; editedIdol = saved }
+            )
+        }
+    }
+
+    if (showRecordHistory) {
+        RecordHistorySheet(
+            recordType = "Idol",
+            recordName = idolId,
+            onDismiss = { showRecordHistory = false }
         )
     }
 

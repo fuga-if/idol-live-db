@@ -266,13 +266,19 @@ class IdolMultiSelectViewModel(app: Application) : AndroidViewModel(app) {
     }
 }
 
-/** セトリ 1 行の出演者を選ぶ。既存選択の解除も含め自由にトグルできる (お題ピッカーと違い一方通行ではない)。 */
+/**
+ * アイドルを複数選ぶ。既存選択の解除も含め自由にトグルできる (お題ピッカーと違い一方通行ではない)。
+ *
+ * セトリ 1 行の出演者と、曲の歌唱アイドル (SongArtist role=original) の両方で使うので、
+ * 見出しだけ [title] で差し替える。中身は同じ母集団・同じ絞り込みでよい。
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun IdolMultiSelectSheet(
     selected: Set<String>,
     onDismiss: () -> Unit,
     onConfirm: (Set<String>) -> Unit,
+    title: String = "出演者を選択",
     viewModel: IdolMultiSelectViewModel = viewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -311,7 +317,7 @@ fun IdolMultiSelectSheet(
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(modifier = Modifier.fillMaxWidth().fillMaxHeight(0.92f)) {
             Text(
-                "出演者を選択 (${current.size})",
+                "$title (${current.size})",
                 fontSize = 17.sp, fontWeight = FontWeight.Bold, color = DS.ink,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
             )

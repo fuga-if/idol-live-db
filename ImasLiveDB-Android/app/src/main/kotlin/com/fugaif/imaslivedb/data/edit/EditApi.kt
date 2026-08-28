@@ -50,7 +50,17 @@ class EditApi(private val appContext: Context, private val authService: AuthServ
     }
 
     data class EditResult(val recordType: String?, val recordName: String, val op: String, val ok: Boolean)
-    data class EditResponse(val ok: Boolean, val batchId: Int?, val results: List<EditResult>)
+
+    data class EditResponse(val ok: Boolean, val batchId: Int?, val results: List<EditResult>) {
+        /**
+         * この batch の主対象 (= ops[0]) についてサーバが確定させた recordName。
+         * create を recordName 省略で送った時はサーバ採番 ID がここに入るので、
+         * ローカル upsert は送信値ではなく必ずこちらを使う (契約 #3)。
+         * iOS `EditService.EditResponse.primaryRecordName(fallback:)` と同じ。
+         */
+        fun primaryRecordName(fallback: String? = null): String? =
+            results.firstOrNull()?.recordName ?: fallback
+    }
     data class EditRequestResponse(val ok: Boolean, val issueNumber: Int?, val issueUrl: String?)
 
     /** マスタ編集の結末。admin は直接反映、一般ユーザーは修正リクエスト (issue) 送信。 */
@@ -322,6 +332,23 @@ class EditApi(private val appContext: Context, private val authService: AuthServ
     companion object {
         private const val TAG = "EditApi"
         private const val BASE = "https://imas-live-api.tokata3011.workers.dev"
+    }
+}
+
+/**
+ * 「入力が空になったらクリア、元から空なら送らない」フィールドの詰め方。
+ * iOS `AnyEncodable.clearable(_:original:)` と同じ 3 分岐で、update のサーバ側マージ
+ * (未送信 = 現状維持 / null 明示 = クリア) を利用する。
+ *
+ * 元値が無いのに null を送ると「変更なし」が「クリア」として編集履歴に残ってしまうので、
+ * 空 → 空 の時は**キーごと落とす**のが要点。
+ */
+fun MutableMap<String, Any?>.putClearable(key: String, raw: String, original: String?) {
+    val trimmed = raw.trim()
+    when {
+        trimmed.isNotEmpty() -> this[key] = trimmed
+        !original.isNullOrEmpty() -> this[key] = null
+        else -> Unit
     }
 }
 

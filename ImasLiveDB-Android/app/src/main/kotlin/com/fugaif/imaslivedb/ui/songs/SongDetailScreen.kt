@@ -63,6 +63,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.SubcomposeAsyncImage
 import com.fugaif.imaslivedb.data.auth.AuthState
@@ -74,12 +76,16 @@ import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.data.model.PerformanceHistoryRow
 import com.fugaif.imaslivedb.data.model.Song
 import com.fugaif.imaslivedb.data.model.SongCall
+import com.fugaif.imaslivedb.data.model.SongVideo
 import com.fugaif.imaslivedb.data.model.SongPerformanceEvidence
 import com.fugaif.imaslivedb.data.model.SongSingerTally
 import com.fugaif.imaslivedb.player.AudioPreviewManager
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.components.ArtworkImage
 import com.fugaif.imaslivedb.ui.components.CommunityLoginPromptDialog
+import com.fugaif.imaslivedb.ui.edit.RecordHistorySheet
+import com.fugaif.imaslivedb.ui.edit.SongEditScreen
+import com.fugaif.imaslivedb.ui.edit.VideoEditSheet
 import com.fugaif.imaslivedb.ui.components.ImasArtwork
 import com.fugaif.imaslivedb.ui.components.ImasAvatar
 import com.fugaif.imaslivedb.ui.components.ImasEmptyState
@@ -135,7 +141,18 @@ fun SongDetailScreen(
     var tagDetailId by rememberSaveable { mutableStateOf<String?>(null) }
     var showMenu by remember { mutableStateOf(false) }
     var showLoginPrompt by rememberSaveable { mutableStateOf(false) }
+    var showSongEdit by remember { mutableStateOf(false) }
+    var showRecordHistory by remember { mutableStateOf(false) }
+    var showVideoSheet by remember { mutableStateOf(false) }
+    var editingVideo by remember { mutableStateOf<SongVideo?>(null) }
+    // 曲そのものを編集した後は VM を素直に読み直す。ViewModel はこの画面の担当範囲外なので
+    // 差分反映のための API を足さず、再読込のきっかけだけ画面側で持つ。
+    var reloadToken by remember { mutableStateOf(0) }
     val authState by AppModule.from(context).authService.state.collectAsState()
+    // 権限フラグは認証状態が変わった時だけコアへ問い合わせる。extension property は 1 回ごとに
+    // JNA を跨ぐので、メニューを開くたび・再コンポーズのたびに呼ばない
+    // (詳細は data/auth/EditPermission.kt のヘッダ)。
+    val canEditHere = remember(authState) { authState.showEditAffordance }
 
     // 投稿/編集導線の共通ゲート。iOS DetailSheet.handle(intent) と同じで、
     // 「開く/書き込む」操作は全部ここを通す。
@@ -147,7 +164,7 @@ fun SongDetailScreen(
     fun startCommunityEdit(present: () -> Unit) =
         authState.startCommunityEdit(promptLogin = { showLoginPrompt = true }, present = present)
 
-    LaunchedEffect(currentSongId) { viewModel.load(context, currentSongId) }
+    LaunchedEffect(currentSongId, reloadToken) { viewModel.load(context, currentSongId) }
 
     if (tagDetailId != null) {
         // タグ詳細をこの画面内で表示 (別 route を経由しない, 上記コメント参照)。
@@ -190,6 +207,23 @@ fun SongDetailScreen(
                                 }
                             )
                         }
+                        // 編集導線。BAN 済みには出さない (押しても 403 になるだけ)。判定はコア。
+                        if (song != null && canEditHere) {
+                            DropdownMenuItem(
+                                text = { Text("この楽曲を編集") },
+                                onClick = {
+                                    showMenu = false
+                                    startCommunityEdit { showSongEdit = true }
+                                }
+                            )
+                        }
+                        DropdownMenuItem(
+                            text = { Text("編集履歴") },
+                            onClick = {
+                                showMenu = false
+                                showRecordHistory = true
+                            }
+                        )
                     }
                 }
             )
@@ -218,6 +252,8 @@ fun SongDetailScreen(
                 onTagDetailClick = { tagDetailId = it },
                 onCreateCall = { startCommunityEdit { editingCall = null; showCallSheet = true } },
                 onEditCall = { call -> startCommunityEdit { editingCall = call; showCallSheet = true } },
+                onCreateVideo = { startCommunityEdit { editingVideo = null; showVideoSheet = true } },
+                onEditVideo = { video -> startCommunityEdit { editingVideo = video; showVideoSheet = true } },
                 onOpenPenlightVote = { startCommunityEdit { showPenlightSheet = true } },
                 onUnitClick = onUnitClick,
                 onPollClick = onPollClick,
@@ -249,6 +285,39 @@ fun SongDetailScreen(
             songId = currentSongId,
             onDismiss = { showPenlightSheet = false },
             onVoted = { viewModel.onPenlightVoted() }
+        )
+    }
+
+    if (showVideoSheet) {
+        VideoEditSheet(
+            songId = currentSongId,
+            existing = editingVideo,
+            onDismiss = { showVideoSheet = false },
+            // 参考動画は VM に差分反映の口が無いので、保存後に読み直して一覧へ載せる。
+            onSaved = { reloadToken++ }
+        )
+    }
+
+    // 編集フォームはフルスクリーン Dialog に載せる (RecentEditsScreen → SetlistEditScreen と同じ)。
+    val editingSong = uiState.song
+    if (showSongEdit && editingSong != null) {
+        Dialog(
+            onDismissRequest = { showSongEdit = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            SongEditScreen(
+                original = editingSong,
+                onDismiss = { showSongEdit = false },
+                onSaved = { showSongEdit = false; reloadToken++ }
+            )
+        }
+    }
+
+    if (showRecordHistory) {
+        RecordHistorySheet(
+            recordType = "Song",
+            recordName = currentSongId,
+            onDismiss = { showRecordHistory = false }
         )
     }
 
@@ -286,6 +355,8 @@ private fun SongSheetContent(
     onTagDetailClick: (String) -> Unit,
     onCreateCall: () -> Unit,
     onEditCall: (SongCall) -> Unit,
+    onCreateVideo: () -> Unit,
+    onEditVideo: (SongVideo) -> Unit,
     onOpenPenlightVote: () -> Unit,
     onUnitClick: (String) -> Unit,
     onPollClick: (String) -> Unit,
@@ -316,7 +387,8 @@ private fun SongSheetContent(
             else -> CommunityTab(
                 state, seed, song.brandId, authState, onSongClick,
                 onToggleTag, onOpenTagPicker, onTagDetailClick,
-                onCreateCall, onEditCall, onOpenPenlightVote, onPollClick
+                onCreateCall, onEditCall, onCreateVideo, onEditVideo,
+                onOpenPenlightVote, onPollClick
             )
         }
         Box(Modifier.size(24.dp))
@@ -702,6 +774,8 @@ private fun CommunityTab(
     onTagDetailClick: (String) -> Unit,
     onCreateCall: () -> Unit,
     onEditCall: (SongCall) -> Unit,
+    onCreateVideo: () -> Unit,
+    onEditVideo: (SongVideo) -> Unit,
     onOpenPenlightVote: () -> Unit,
     onPollClick: (String) -> Unit
 ) {
@@ -842,12 +916,19 @@ private fun CommunityTab(
                 }
             }
         }
-        // 参考動画 (構造化コミュニティ・CloudKit)
+        // 参考動画 (構造化コミュニティ・CloudKit 直書き。コーレスと同じく全ユーザーが投稿/編集可能)
         Column {
-            ImasSectionHeader("参考動画", count = "${state.songVideos.size}")
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                ImasSectionHeader("参考動画", count = "${state.songVideos.size}", modifier = Modifier.weight(1f))
+                if (canEditHere) {
+                    IconButton(onClick = onCreateVideo, modifier = Modifier.padding(end = 8.dp)) {
+                        Icon(Icons.Filled.Add, contentDescription = "参考動画を追加", tint = DS.ink2)
+                    }
+                }
+            }
             if (state.songVideos.isEmpty()) {
                 ImasEmptyState(Icons.Filled.OndemandVideo, "参考動画はまだありません",
-                    "ライブ映像などの参考動画が登録されると、ここに表示されます。", seed = seed, brand = brand)
+                    "ライブ映像などの参考動画を共有しませんか？", seed = seed, brand = brand)
             } else {
                 state.songVideos.forEach { video ->
                     val videoId = youTubeVideoId(video.youtubeUrl)
@@ -875,6 +956,12 @@ private fun CommunityTab(
                             }
                             if (!video.authorDisplayName.isNullOrEmpty()) {
                                 Text("投稿者: ${video.authorDisplayName}", fontSize = 11.sp, color = DS.ink3)
+                            }
+                        }
+                        if (canEditHere) {
+                            IconButton(onClick = { onEditVideo(video) }, modifier = Modifier.size(28.dp)) {
+                                Icon(Icons.Filled.Edit, contentDescription = "参考動画を編集", tint = DS.ink2,
+                                    modifier = Modifier.size(16.dp))
                             }
                         }
                     }

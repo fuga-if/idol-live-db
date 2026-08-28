@@ -104,6 +104,9 @@ fun RecentEditsScreen(onBack: () -> Unit, viewModel: RecentEditsViewModel = view
     var tab by remember { mutableStateOf(0) }
     var showProposeSheet by remember { mutableStateOf(false) }
     var showShowPicker by remember { mutableStateOf(false) }
+    // 新規作成 (曲 / ライブ)。既存の修正は各詳細画面が入口なので、ここは create だけ持つ。
+    var showSongCreate by remember { mutableStateOf(false) }
+    var showEventCreate by remember { mutableStateOf(false) }
     var editingShow by remember { mutableStateOf<ShowWithEventName?>(null) }
     var historyEntry by remember { mutableStateOf<EditApi.EditFeedEntry?>(null) }
     var revertTarget by remember { mutableStateOf<EditApi.EditFeedEntry?>(null) }
@@ -215,8 +218,36 @@ fun RecentEditsScreen(onBack: () -> Unit, viewModel: RecentEditsViewModel = view
     if (showProposeSheet) {
         ProposeEditTypeSheet(
             onDismiss = { showProposeSheet = false },
-            onPickSetlist = { showProposeSheet = false; showShowPicker = true }
+            onPickSetlist = { showProposeSheet = false; showShowPicker = true },
+            onPickNewSong = { showProposeSheet = false; showSongCreate = true },
+            onPickNewEvent = { showProposeSheet = false; showEventCreate = true }
         )
+    }
+
+    // 編集フォームはフルスクリーン Dialog に載せる (セトリ編集と同じ出し方)。
+    // 中身は必ず Scaffold なので、システムバーに保存ボタンが潜り込むことはない。
+    if (showSongCreate) {
+        Dialog(
+            onDismissRequest = { showSongCreate = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            SongEditScreen(
+                onDismiss = { showSongCreate = false },
+                onSaved = { showSongCreate = false; viewModel.refresh() }
+            )
+        }
+    }
+
+    if (showEventCreate) {
+        Dialog(
+            onDismissRequest = { showEventCreate = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            EventEditScreen(
+                onDismiss = { showEventCreate = false },
+                onSaved = { showEventCreate = false; viewModel.refresh() }
+            )
+        }
     }
 
     if (showShowPicker) {
@@ -246,7 +277,11 @@ fun RecentEditsScreen(onBack: () -> Unit, viewModel: RecentEditsViewModel = view
 
     val currentHistoryEntry = historyEntry
     if (currentHistoryEntry != null) {
-        RecordHistorySheet(entry = currentHistoryEntry, onDismiss = { historyEntry = null })
+        RecordHistorySheet(
+            recordType = currentHistoryEntry.recordType,
+            recordName = currentHistoryEntry.recordName,
+            onDismiss = { historyEntry = null }
+        )
     }
 
     val currentRevertTarget = revertTarget
@@ -274,7 +309,12 @@ fun RecentEditsScreen(onBack: () -> Unit, viewModel: RecentEditsViewModel = view
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ProposeEditTypeSheet(onDismiss: () -> Unit, onPickSetlist: () -> Unit) {
+private fun ProposeEditTypeSheet(
+    onDismiss: () -> Unit,
+    onPickSetlist: () -> Unit,
+    onPickNewSong: () -> Unit,
+    onPickNewEvent: () -> Unit
+) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
@@ -282,24 +322,28 @@ private fun ProposeEditTypeSheet(onDismiss: () -> Unit, onPickSetlist: () -> Uni
                 "編集の種類を選択", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = DS.ink,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)
             )
-            Row(
-                modifier = Modifier.fillMaxWidth()
-                    .clickable(onClick = onPickSetlist)
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Box(
-                    modifier = Modifier.height(40.dp).background(DS.fill, CircleShape).padding(horizontal = 10.dp),
-                    contentAlignment = Alignment.Center
-                ) { Icon(Icons.Filled.QueueMusic, contentDescription = null, tint = DS.ink2) }
-                Column {
-                    Text("セトリを編集", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink)
-                    Text("公演の楽曲・出演者の追加/修正/削除", fontSize = 12.sp, color = DS.ink2)
-                }
-            }
+            ProposeEditTypeRow(
+                icon = Icons.Filled.QueueMusic,
+                title = "セトリを編集",
+                subtitle = "公演の楽曲・出演者の追加/修正/削除",
+                onClick = onPickSetlist
+            )
+            ProposeEditTypeRow(
+                icon = Icons.Filled.MusicNote,
+                title = "曲を追加",
+                subtitle = "まだ登録されていない楽曲を作る",
+                onClick = onPickNewSong
+            )
+            ProposeEditTypeRow(
+                icon = Icons.Filled.Event,
+                title = "ライブを追加",
+                subtitle = "まだ登録されていないライブ・イベントを作る",
+                onClick = onPickNewEvent
+            )
+            // 既存レコードの修正はそれぞれの詳細画面が入口 (どれを直すのか選ばせる画面を
+            // ここに二重で作らない)。公演の追加も親ライブが決まっていないと作れない。
             Text(
-                "他の編集タイプ (曲情報・アイドル情報・イベント/公演情報) は今後追加予定です。",
+                "既存の楽曲・アイドル・ライブの修正、公演の追加は、それぞれの詳細画面から行えます。",
                 fontSize = 11.sp, color = DS.ink3,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
             )
@@ -307,18 +351,50 @@ private fun ProposeEditTypeSheet(onDismiss: () -> Unit, onPickSetlist: () -> Uni
     }
 }
 
+@Composable
+private fun ProposeEditTypeRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Box(
+            modifier = Modifier.height(40.dp).background(DS.fill, CircleShape).padding(horizontal = 10.dp),
+            contentAlignment = Alignment.Center
+        ) { Icon(icon, contentDescription = null, tint = DS.ink2) }
+        Column {
+            Text(title, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink)
+            Text(subtitle, fontSize = 12.sp, color = DS.ink2)
+        }
+    }
+}
+
+/**
+ * 1 レコードの変更履歴 (`GET /master/:recordType/:recordName/history`)。
+ *
+ * このフィードの行からだけでなく、曲/ライブ/公演/アイドルの各詳細の「編集履歴」からも開く。
+ * 呼び出し側が持っているのは編集対象そのもの (id と型) なので、フィード行ではなく
+ * recordType / recordName を受け取る形にしてある。
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun RecordHistorySheet(entry: EditApi.EditFeedEntry, onDismiss: () -> Unit) {
+fun RecordHistorySheet(recordType: String, recordName: String, onDismiss: () -> Unit) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val context = LocalContext.current
     var history by remember { mutableStateOf<List<EditApi.RecordHistoryEntry>?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
 
-    LaunchedEffect(entry.recordType, entry.recordName) {
+    LaunchedEffect(recordType, recordName) {
         val editApi = AppModule.from(context).editApi
         try {
-            history = editApi.recordHistory(entry.recordType, entry.recordName)
+            history = editApi.recordHistory(recordType, recordName)
         } catch (e: Exception) {
             error = "変更履歴の取得に失敗しました"
         }
@@ -328,7 +404,7 @@ private fun RecordHistorySheet(entry: EditApi.EditFeedEntry, onDismiss: () -> Un
         Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
             Text("変更履歴", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = DS.ink)
             Text(
-                EditFeedFormat.recordTypeLabel(entry.recordType),
+                EditFeedFormat.recordTypeLabel(recordType),
                 fontSize = 12.sp, color = DS.ink2, modifier = Modifier.padding(bottom = 8.dp)
             )
             when {
