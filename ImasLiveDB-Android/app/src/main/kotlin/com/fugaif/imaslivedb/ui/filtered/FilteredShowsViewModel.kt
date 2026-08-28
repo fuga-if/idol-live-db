@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import com.fugaif.imaslivedb.ui.theme.AppPreferences
 
 /** 一覧に出す公演 1 行ぶんの表示値。整形はすべて ViewModel 側で済ませる。 */
 data class FilteredShowRowUi(
@@ -84,7 +85,7 @@ class FilteredShowsViewModel(
                         val event = eventsById[show.eventId]
                         FilteredShowRowUi(
                             showId = show.id,
-                            title = event?.name?.let { eventDisplayName(it) } ?: show.name,
+                            title = event?.name?.let { AppPreferences.eventDisplayName(it) } ?: show.name,
                             subtitle = subtitle(show, directory, showsVenueInRow),
                             brandId = event?.brandId,
                             rainbow = event?.jointBrandIdList?.isNotEmpty() == true

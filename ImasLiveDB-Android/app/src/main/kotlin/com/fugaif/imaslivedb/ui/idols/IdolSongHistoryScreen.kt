@@ -40,6 +40,7 @@ import com.fugaif.imaslivedb.ui.components.ImasEmptyState
 import com.fugaif.imaslivedb.ui.components.ImasLeadBar
 import com.fugaif.imaslivedb.ui.components.ImasSectionHeader
 import com.fugaif.imaslivedb.ui.songs.eventDisplayName
+import com.fugaif.imaslivedb.ui.theme.AppPreferences
 import com.fugaif.imaslivedb.ui.theme.DS
 
 /**
@@ -122,7 +123,7 @@ private fun HistoryRow(row: CastShowRow, seed: String?, brand: String?, onClick:
         ImasLeadBar(seedHex = seed, brandId = brand, height = 38.dp)
         Column(Modifier.weight(1f)) {
             Text(
-                eventDisplayName(row.eventName),
+                AppPreferences.eventDisplayName(row.eventName),
                 fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink,
                 maxLines = 1, overflow = TextOverflow.Ellipsis
             )

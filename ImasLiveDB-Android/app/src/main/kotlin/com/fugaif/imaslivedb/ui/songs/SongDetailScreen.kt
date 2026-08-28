@@ -98,6 +98,7 @@ import com.fugaif.imaslivedb.ui.components.ImasStatTile
 import com.fugaif.imaslivedb.ui.tags.SongTagPickerSheet
 import com.fugaif.imaslivedb.ui.tags.TagDetailScreen
 import com.fugaif.imaslivedb.ui.theme.BrandPalette
+import com.fugaif.imaslivedb.ui.theme.AppPreferences
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasTheme
 import com.fugaif.imaslivedb.ui.theme.hexToColor
@@ -528,6 +529,10 @@ private val eventNamePrefixes = listOf(
  * 正式名称が要る箇所 (詳細タイトル・共有文・カレンダー保存名) では使わないこと。
  *
  * 会場/日付で絞った公演一覧も同じ整形を掛けるので internal で共有する。
+ *
+ * **画面から直接呼ばないこと。** 設定「ライブ名を省略して表示」を無視してしまう。
+ * 表示側は [com.fugaif.imaslivedb.ui.theme.AppPreferences.eventDisplayName] を通す
+ * (実際に、カレンダー以外の 4 箇所が直接呼んでいてトグルが効いていなかった)。
  */
 internal fun eventDisplayName(name: String): String {
     val prefix = eventNamePrefixes.firstOrNull { name.startsWith(it) } ?: return name
@@ -584,7 +589,7 @@ private fun InfoTab(
                         ) {
                             Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = DS.success, modifier = Modifier.size(16.dp))
                             Column(Modifier.weight(1f).padding(start = 10.dp)) {
-                                Text(eventDisplayName(show.eventName), fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink,
+                                Text(AppPreferences.eventDisplayName(show.eventName), fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink,
                                     maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 Text(listOf(show.showName, show.date).filter { it.isNotEmpty() }.joinToString(" ・ "),
                                     fontSize = 12.sp, color = DS.ink2, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -1034,7 +1039,7 @@ private fun HistoryTab(
             ) {
                 ImasLeadBar(seedHex = seed, brandId = brand, height = 34.dp)
                 Column(Modifier.weight(1f).padding(start = 12.dp)) {
-                    Text(eventDisplayName(row.eventName), fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink,
+                    Text(AppPreferences.eventDisplayName(row.eventName), fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink,
                         maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text(listOf(row.showName, row.date).filter { it.isNotEmpty() }.joinToString(" ・ "),
                         fontSize = 12.sp, color = DS.ink2, maxLines = 1, overflow = TextOverflow.Ellipsis)
