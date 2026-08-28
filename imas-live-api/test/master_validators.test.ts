@@ -111,3 +111,27 @@ describe("validateMasterEdit — create の必須フィールド", () => {
       .toBeNull();
   });
 });
+
+describe("validateMasterEdit — チケット情報 (回帰)", () => {
+  // `ticketOpenDate` だけ FIELD_RULES.Event に無く、一般ユーザーが受付開始を
+  // 入力するとイベント編集が丸ごと 400 になっていた。CloudKit にも DB にも列があり
+  // iOS/Android どちらも送っているのに、Worker だけが知らない状態だった。
+  it("受付開始・締切・当落・URL が 4 つとも通る", () => {
+    expect(ok({
+      recordType: "Event", op: "update", recordName: "ev_x",
+      fields: {
+        ticketOpenDate: "2026-09-01",
+        ticketDeadline: "2026-09-10",
+        ticketLotteryDate: "2026-09-15",
+        ticketUrl: "https://example.com/ticket",
+      },
+    })).toBeNull();
+  });
+
+  it("知らないフィールドは従来どおり弾く", () => {
+    expect(ok({
+      recordType: "Event", op: "update", recordName: "ev_x",
+      fields: { ticketNopeDate: "2026-09-01" },
+    })).toMatch(/ticketNopeDate/);
+  });
+});

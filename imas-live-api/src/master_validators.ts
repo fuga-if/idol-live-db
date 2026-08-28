@@ -49,6 +49,10 @@ const FIELD_RULES: Record<string, Record<string, FieldRule>> = {
     eventType: { type: "STRING", maxLen: 100 },
     isSolo: { type: "INT64", min: 0, max: 1 },
     isStreaming: { type: "INT64", min: 0, max: 1 },
+    // 受付開始・締切・当落は 3 つで 1 組。`ticketOpenDate` だけ規則が無く、
+    // 一般ユーザーが受付開始を入れるとイベント編集が丸ごと 400 になっていた
+    // (CloudKit にも DB にも列はあり、iOS/Android どちらも送っている)。
+    ticketOpenDate: { type: "STRING", maxLen: 100 },
     ticketDeadline: { type: "STRING", maxLen: 100 },
     ticketLotteryDate: { type: "STRING", maxLen: 100 },
     ticketUrl: { type: "STRING", url: "http", maxLen: MAX_STR_DEFAULT },
