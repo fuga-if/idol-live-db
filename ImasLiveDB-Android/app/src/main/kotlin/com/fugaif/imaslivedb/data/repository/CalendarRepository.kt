@@ -18,7 +18,9 @@ import com.fugaif.imaslivedb.data.model.TicketDateKind
 import com.fugaif.imaslivedb.data.model.TicketPeriodRow
 import uniffi.imas_core.CalendarEntryRecord
 import uniffi.imas_core.CalendarTicketKind
+import java.time.LocalDate
 import java.time.YearMonth
+import java.time.temporal.ChronoUnit
 
 /**
  * カレンダー (公演/リリース/誕生日/事務員誕生日/記念日/チケット日程) の読み取り口。
@@ -38,19 +40,38 @@ class CalendarRepository(
 ) {
 
     /**
-     * [month] の 1 日〜末日に出現するカレンダーエントリ。並びはコアが確定させた表示順。
+     * [start]〜[end] (両端含む) に出現するカレンダーエントリと、公演の追加情報。
+     * 並びはコアが確定させた表示順。
      *
-     * 範囲を「月グリッドの 42 日」でなく暦月ちょうどにしているのは、Android の月グリッドが
-     * 月外セルを空描画するため。iOS の 42 日範囲に寄せると描画されない日のエントリまで
-     * 取ることになる。
+     * 呼び出し側が渡すのは月グリッドの実描画範囲 (6 行 × 7 列 = 42 日) で、暦月ちょうどでは
+     * ない。グリッドは前後の月の日も描き、週表示は月をまたぐので、暦月で切ると端の日だけ
+     * 空になるため (iOS `CalendarView.monthGridInterval` と同じ範囲)。
+     *
+     * 公演の追加情報 (開始時刻・会場・ブランド色) はコアの射影 `CalendarEntryRecord.Show`
+     * には載っているが、表示用の `CalShowRow` には無い列。週の時間グリッドは開始時刻が
+     * 無いと縦位置を決められないので、行の型を変えずに別マップで運ぶ
+     * (`data/model` の行定義は共有物なので、カレンダーの都合で列を足さない)。
+     *
+     * Room フォールバックは月単位のクエリしか持たないので、範囲の中心にあたる月で代用する
+     * (端の数日が欠けるが、この経路はスナップショットが載るまでの一時的な受け皿)。
+     * 追加情報もあちらでは取れないので空になり、全公演が「時刻未定」レーンに出る。
      */
-    suspend fun fetchEntries(month: YearMonth): List<CalendarEntry> {
-        val startDay = "%04d-%02d-01".format(month.year, month.monthValue)
-        val endDay = "%04d-%02d-%02d".format(month.year, month.monthValue, month.lengthOfMonth())
-        snapshots?.query { store -> store.calendarEntries(startDay, endDay) }
-            ?.let { return hydrate(it) }
-        return fetchEntriesFromRoom(month)
+    suspend fun fetchRange(start: LocalDate, end: LocalDate): CalendarMonthData {
+        snapshots?.query { store -> store.calendarEntries(start.toString(), end.toString()) }
+            ?.let { return CalendarMonthData(hydrate(it), showDetails(it)) }
+        val middle = YearMonth.from(start.plusDays(ChronoUnit.DAYS.between(start, end) / 2))
+        return CalendarMonthData(fetchEntriesFromRoom(middle), emptyMap())
     }
+
+    /** コアの公演射影から、行に載らない列だけを show_id 引きのマップに落とす。 */
+    private fun showDetails(records: List<CalendarEntryRecord>): Map<String, CalendarShowDetail> =
+        records.filterIsInstance<CalendarEntryRecord.Show>().associate { record ->
+            record.showId to CalendarShowDetail(
+                startTime = record.startTime,
+                venue = record.venue,
+                brandColor = record.brandColor
+            )
+        }
 
     // ---- スナップショット経路: id → 実体 ----
 
@@ -235,3 +256,22 @@ class CalendarRepository(
         const val RANK_STAFF_BIRTHDAY = 6
     }
 }
+
+/**
+ * 月ぶんのカレンダーデータ。並びが確定したエントリ列と、公演の追加情報。
+ * 追加情報を別に持つ理由は [CalendarRepository.fetchMonth] を参照。
+ */
+data class CalendarMonthData(
+    val entries: List<CalendarEntry>,
+    /** show_id → 追加情報。フォールバック経路では空。 */
+    val showDetails: Map<String, CalendarShowDetail>
+)
+
+/** `CalShowRow` に無い公演の列 (週の時間グリッド・日詳細で使う)。 */
+data class CalendarShowDetail(
+    /** "HH:MM"。未定・未登録は null (= 終日レーン行き)。 */
+    val startTime: String?,
+    val venue: String?,
+    /** ブランドカラー hex。コアが JOIN 済みの値をそのまま運ぶ。 */
+    val brandColor: String?
+)

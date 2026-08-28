@@ -25,6 +25,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Edit
@@ -61,6 +63,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -81,12 +84,16 @@ import com.fugaif.imaslivedb.data.notification.NotificationScheduler
 import com.fugaif.imaslivedb.data.image.BulkImageImporter
 import com.fugaif.imaslivedb.data.sync.CloudKitSyncEngine
 import com.fugaif.imaslivedb.di.AppModule
+import coil3.compose.AsyncImage
+import com.fugaif.imaslivedb.ui.components.ImasSegmented
+import com.fugaif.imaslivedb.ui.theme.AppPreferences
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.theme.hexToColor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-private enum class SettingsInfoScreen { HELP, INBOX, PRIVACY, TERMS, SUPPORT }
+private enum class SettingsInfoScreen { HELP, INBOX, PRIVACY, TERMS, SUPPORT, LICENSES }
 
 private const val GITHUB_ISSUE_URL = "https://github.com/fuga-if/imas-live-privacy/issues/new"
 
@@ -121,6 +128,10 @@ fun SettingsScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
+            // アプリヘッダ (アイコン + バージョン)。最初に目に入る位置で「何のアプリの、
+            // どのビルドか」が分かるようにしておく (不具合報告のときに聞き返さずに済む)。
+            item { AppHeader() }
+
             // アカウント (投票に必要)
             item {
                 SettingsSectionTitle("アカウント")
@@ -136,6 +147,27 @@ fun SettingsScreen(
                     selectedBrandId = state.defaultBrandId,
                     onBrandSelected = { viewModel.setDefaultBrand(it) }
                 )
+                HorizontalDivider()
+            }
+
+            // 表示 (文字サイズ・ライブ名の省略)
+            item {
+                SettingsSectionTitle("表示")
+                DisplaySettingsSection()
+                HorizontalDivider()
+            }
+
+            // 披露回収の対象
+            item {
+                SettingsSectionTitle("披露回収")
+                CollectionSettingsSection()
+                HorizontalDivider()
+            }
+
+            // テーマ (担当カラー)
+            item {
+                SettingsSectionTitle("テーマ")
+                OshiThemeSection(viewModel, state)
                 HorizontalDivider()
             }
 
@@ -207,6 +239,7 @@ fun SettingsScreen(
                 SettingsNavRow("プライバシーポリシー") { infoScreen = SettingsInfoScreen.PRIVACY }
                 SettingsNavRow("利用規約") { infoScreen = SettingsInfoScreen.TERMS }
                 SettingsNavRow("サポート") { infoScreen = SettingsInfoScreen.SUPPORT }
+                SettingsNavRow("オープンソースライセンス") { infoScreen = SettingsInfoScreen.LICENSES }
                 SettingsNavRow("開発をサポートする") {
                     context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://ko-fi.com/fugaapp")))
                 }
@@ -225,6 +258,13 @@ fun SettingsScreen(
                         )
                     }
                 }
+                HorizontalDivider()
+            }
+
+            // 開発者
+            item {
+                SettingsSectionTitle("開発者")
+                DeveloperSection()
                 HorizontalDivider()
             }
         }
@@ -262,6 +302,11 @@ fun SettingsScreen(
                 }
             )
         }
+
+        SettingsInfoScreen.LICENSES -> Dialog(
+            onDismissRequest = { infoScreen = null },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) { OssLicensesScreen(onBack = { infoScreen = null }) }
 
         null -> {}
     }
@@ -1059,3 +1104,217 @@ private fun appNotificationSettingsIntent(context: Context): Intent =
     Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
         .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+
+// =============================================================================
+// アプリヘッダ / 表示 / 披露回収 / テーマ / 開発者
+// iOS `MyPageView` の generalSettingsSection・collectionSettingsSection・themeSection
+// および About 節の移植。設定値の保存先は AppPreferences (iOS の @AppStorage と同じキー)。
+// =============================================================================
+
+/** アプリアイコン + 名前 + バージョン (ビルド番号つき)。 */
+@Composable
+private fun AppHeader() {
+    val context = LocalContext.current
+    val info = remember {
+        runCatching { context.packageManager.getPackageInfo(context.packageName, 0) }.getOrNull()
+    }
+    val versionName = info?.versionName ?: "-"
+    // ビルド番号は不具合報告の突き合わせに要る。longVersionCode は API 28 から。
+    val versionCode = info?.let {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) it.longVersionCode else @Suppress("DEPRECATION") it.versionCode.toLong()
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        // アダプティブアイコン (XML) なので painterResource ではなく Coil で描く。
+        AsyncImage(
+            model = com.fugaif.imaslivedb.R.mipmap.ic_launcher,
+            contentDescription = null,
+            modifier = Modifier.size(56.dp).clip(RoundedCornerShape(14.dp))
+        )
+        Column {
+            Text("アイドルライブDB", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = DS.ink)
+            Text(
+                if (versionCode != null) "バージョン $versionName (Build $versionCode)" else "バージョン $versionName",
+                fontSize = 12.sp,
+                color = DS.ink2
+            )
+        }
+    }
+}
+
+/** 文字サイズとライブ名の省略。どちらも変更が即座にアプリ全体へ効く。 */
+@Composable
+private fun DisplaySettingsSection() {
+    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("文字サイズ", style = MaterialTheme.typography.bodyMedium, color = DS.ink)
+        ImasSegmented(
+            labels = AppPreferences.textScaleLabels,
+            // 保存値が選択肢に無い (将来値を足した/減らした) 場合は「中」に倒す。
+            selection = AppPreferences.textScaleOptions.indexOf(AppPreferences.textScale)
+                .takeIf { it >= 0 } ?: AppPreferences.textScaleOptions.indexOf(1.0f),
+            onSelect = { AppPreferences.setTextScale(AppPreferences.textScaleOptions[it]) },
+            modifier = Modifier.fillMaxWidth()
+        )
+        // プレビュー: この設定画面の文字自体も倍率が効くので、実データ風の文字で
+        // 「一覧がどう見えるか」を確かめられるようにする。
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.padding(top = 4.dp)) {
+            Text("プレビュー", fontSize = 11.sp, color = DS.ink2)
+            Text("Timeless Shooting Star", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = DS.ink)
+            Text("ストレイライト ・ 全員", fontSize = 11.sp, color = DS.ink2)
+        }
+        Text(
+            "OS のフォントサイズ設定に掛け合わせた倍率です。",
+            style = MaterialTheme.typography.bodySmall,
+            color = DS.ink2
+        )
+    }
+    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+
+    SettingsToggleRow(
+        label = "ライブ名を省略表示",
+        checked = AppPreferences.abbreviateEventNames,
+        onCheckedChange = { AppPreferences.setAbbreviateEventNames(it) }
+    )
+    // 設定値で見え方が変わるサンプル。ON なら作品名プレフィックスを省く。
+    Text(
+        AppPreferences.eventDisplayName("THE IDOLM@STER SHINY COLORS 3rdLIVE TOUR"),
+        style = MaterialTheme.typography.bodySmall,
+        color = DS.ink2,
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+    )
+}
+
+/** 回収の対象に配信参加を含めるか。切り替えると次の集計から新しい条件で数え直される。 */
+@Composable
+private fun CollectionSettingsSection() {
+    val context = LocalContext.current
+    SettingsToggleRow(
+        label = "配信参加も回収に含める",
+        checked = AppPreferences.includeStreamInCollection,
+        onCheckedChange = { AppPreferences.setIncludeStreamInCollection(context, it) }
+    )
+    Text(
+        "回収はリアルライブ (ライブ/フェス) の現地参加のみが対象です。" +
+            "配信でしか観られない方は、配信参加も回収に含められます。",
+        style = MaterialTheme.typography.bodySmall,
+        color = DS.ink2,
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+    )
+}
+
+/** 担当のイメージカラーをアプリ全体のアクセントにする設定。 */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun OshiThemeSection(viewModel: SettingsViewModel, state: SettingsUiState) {
+    SettingsToggleRow(
+        label = "担当の色をテーマに使う",
+        checked = AppPreferences.useOshiColor,
+        onCheckedChange = {
+            AppPreferences.setUseOshiColor(it)
+            // ON にした直後は担当が 1 人も選ばれていないことがある。解決はコアに任せる。
+            viewModel.syncOshiTheme()
+        }
+    )
+
+    if (AppPreferences.useOshiColor) {
+        if (state.pickIdols.isEmpty()) {
+            Text(
+                "アイドル詳細で担当 (推し) に設定すると、ここで色を選べます。",
+                style = MaterialTheme.typography.bodySmall,
+                color = DS.ink2,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+        } else {
+            var expanded by remember { mutableStateOf(false) }
+            val selected = state.pickIdols.find { it.id == AppPreferences.oshiIdolId }
+            ExposedDropdownMenuBox(
+                expanded = expanded,
+                onExpandedChange = { expanded = it },
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                OutlinedTextField(
+                    value = selected?.name ?: "未選択",
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("テーマにする担当") },
+                    leadingIcon = {
+                        Box(
+                            modifier = Modifier
+                                .size(14.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    selected?.color?.let(::hexToColor) ?: DS.ink3
+                                )
+                        )
+                    },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                    modifier = Modifier.fillMaxWidth().menuAnchor()
+                )
+                ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                    state.pickIdols.forEach { idol ->
+                        DropdownMenuItem(
+                            text = { Text(idol.name) },
+                            leadingIcon = {
+                                Box(
+                                    modifier = Modifier
+                                        .size(14.dp)
+                                        .clip(CircleShape)
+                                        .background(idol.color?.let(::hexToColor) ?: DS.ink3)
+                                )
+                            },
+                            onClick = {
+                                AppPreferences.setOshiIdolId(idol.id)
+                                viewModel.syncOshiTheme()
+                                expanded = false
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    }
+    Text(
+        "ON にすると、選んだ担当のイメージカラーがアプリ全体のアクセントカラーになります。",
+        style = MaterialTheme.typography.bodySmall,
+        color = DS.ink2,
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+    )
+}
+
+/** 開発者と、その公開リポジトリへの導線。 */
+@Composable
+private fun DeveloperSection() {
+    val context = LocalContext.current
+    SettingsInfoRow("開発", "fuga-if")
+    SettingsNavRow("GitHub (fuga-if)") {
+        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/fuga-if")))
+    }
+    Text(
+        "非公式のファンメイドアプリです。データの誤りや要望は GitHub Issue からお知らせください。",
+        style = MaterialTheme.typography.bodySmall,
+        color = DS.ink2,
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+    )
+}
+
+/** ラベル + スイッチの 1 行。通知セクションの行と見た目を揃える。 */
+@Composable
+private fun SettingsToggleRow(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = DS.ink, modifier = Modifier.weight(1f))
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            // システムクロムは無彩 (DS の方針)。色はエンティティ側からしか出さない。
+            colors = SwitchDefaults.colors(checkedTrackColor = DS.sys, checkedThumbColor = DS.onSys)
+        )
+    }
+    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+}

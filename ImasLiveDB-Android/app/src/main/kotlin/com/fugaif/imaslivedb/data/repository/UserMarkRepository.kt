@@ -6,6 +6,8 @@ import com.fugaif.imaslivedb.data.model.EventWithDateRange
 import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.data.model.Song
 import com.fugaif.imaslivedb.data.model.UserMark
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.time.Instant
 
 /** 担当/お気に入り等のユーザーマークを管理 (端末ローカル)。 */
@@ -44,6 +46,40 @@ class UserMarkRepository(private val db: AppDatabase) {
         }
     }
 
+    /**
+     * メモ本文 (未入力は null)。空白だけの保存は「無い」と同じ扱いにする
+     * (空文字が残ると UI の「メモあり」判定が立ちっぱなしになるため)。
+     */
+    suspend fun note(type: String, id: String): String? =
+        dao.memo(type, id)?.takeIf { it.isNotBlank() }
+
+    /** メモを保存する。null / 空白のみ なら行ごと削除して「メモなし」に戻す。 */
+    suspend fun setNote(type: String, id: String, text: String?) =
+        setText(type, id, UserMark.MEMO, text)
+
+    /** 座席メモ (未入力は null)。 */
+    suspend fun seat(type: String, id: String): String? =
+        dao.textValue(type, id, SEAT)?.takeIf { it.isNotBlank() }
+
+    /** 座席メモを保存する。null / 空白のみ なら行ごと削除。 */
+    suspend fun setSeat(type: String, id: String, text: String?) =
+        setText(type, id, SEAT, text)
+
+    /**
+     * text_value を持つマークの共通の書き込み口。
+     *
+     * `bool_value` は必ず true で入れる。読み出しに使う [UserMarkDao.textValue] が
+     * `bool_value = 1` を条件にしているので、false で入れると書いた値が二度と読めない。
+     */
+    private suspend fun setText(type: String, id: String, kind: String, text: String?) {
+        val trimmed = text?.trim()
+        if (trimmed.isNullOrEmpty()) {
+            dao.delete(type, id, kind)
+        } else {
+            dao.upsert(UserMark(type, id, kind, true, trimmed, Instant.now().toString()))
+        }
+    }
+
     /** 与えた公演のうち参加マークが付いているものの id。 */
     suspend fun attendedShowIds(showIds: List<String>): Set<String> =
         if (showIds.isEmpty()) emptySet()
@@ -62,8 +98,58 @@ class UserMarkRepository(private val db: AppDatabase) {
     /** メモがあるアイドルの ID セット。 */
     suspend fun notedIdolIds(): Set<String> = dao.idsWithNote(UserMark.IDOL).toSet()
 
-    /** attended ライブのセトリから自動判定した「回収済み」song_id セット (回収ダッシュボード用)。 */
-    suspend fun autoCollectedSongIds(): Set<String> = db.statsDao().fetchAutoCollectedSongIds().toSet()
+    /**
+     * 回収に配信参加も含めるか (既定 = 現地参加のみ)。地方勢など配信中心の人向けの設定。
+     *
+     * 設定の保存先 ([com.fugaif.imaslivedb.ui.theme.AppPreferences]) は Context を要るので、
+     * リポジトリから読みに行かず**押し込んでもらう**。逆向き (data → ui) の依存を作らずに
+     * 済ませるための向きで、押し込みは設定の読み込み時と変更時の 2 箇所。
+     */
+    @Volatile
+    var includeStreamInCollection: Boolean = false
+
+    /**
+     * attended ライブのセトリから自動判定した「回収済み」song_id セット (回収ダッシュボード用)。
+     *
+     * 現地のみ (既定) は Room の DAO をそのまま使う。配信を含める場合だけ、参加種別の条件を
+     * 外した同じ SQL を直接引く — 条件が SQL の WHERE 句にある以上、Kotlin 側で後から
+     * 足し引きできないため。DAO に 2 本目を生やせない事情での分岐なので、SQL は
+     * [com.fugaif.imaslivedb.data.db.dao.StatsDao.fetchAutoCollectedSongIds] の写しを保つこと。
+     */
+    suspend fun autoCollectedSongIds(): Set<String> {
+        if (!includeStreamInCollection) return db.statsDao().fetchAutoCollectedSongIds().toSet()
+        return withContext(Dispatchers.IO) {
+            val ids = mutableSetOf<String>()
+            // Room の生クエリは呼び出し元スレッドで走る (suspend DAO と違いディスパッチされない)。
+            db.query(SQL_AUTO_COLLECTED_ANY_ATTENDANCE, null).use { cursor ->
+                while (cursor.moveToNext()) ids.add(cursor.getString(0))
+            }
+            ids
+        }
+    }
+
+    /**
+     * 参加種別を問わない版の自動回収クエリ (現地・配信・LV すべて回収に数える)。
+     * DAO 版との違いは公演マークの `text_value` 条件を落とした 1 点だけで、
+     * 対象を「リアルライブ (live/festival)」に絞るところは同じ。
+     */
+    private val SQL_AUTO_COLLECTED_ANY_ATTENDANCE = """
+        SELECT DISTINCT si.song_id
+        FROM setlist_items si
+        JOIN shows sh ON si.show_id = sh.id
+        JOIN events e ON e.id = sh.event_id
+        WHERE e.kind IN ('live','festival')
+        AND (
+            sh.id IN (
+                SELECT entity_id FROM user_marks
+                WHERE entity_type='show' AND kind='attended' AND bool_value=1
+            )
+            OR sh.event_id IN (
+                SELECT entity_id FROM user_marks
+                WHERE entity_type='event' AND kind='attended' AND bool_value=1
+            )
+        )
+    """
 
     /** お気に入りアイドル一覧。 */
     suspend fun favoriteIdols(): List<Idol> =
@@ -128,6 +214,16 @@ class UserMarkRepository(private val db: AppDatabase) {
         val toInsert = marks.filter { Triple(it.entityType, it.entityId, it.kind) !in existingKeys }
         if (toInsert.isNotEmpty()) dao.insertAll(toInsert)
         return toInsert.size
+    }
+
+    companion object {
+        /**
+         * 座席メモの kind (iOS `UserMarkKind.seat` と同じ生値)。
+         *
+         * `UserMark` の定数群には無いので、ここをマークの意味の持ち主として正本にする。
+         * 画面側で "seat" を直接書かないこと (綴りがズレると別のマークになる)。
+         */
+        const val SEAT = "seat"
     }
 }
 

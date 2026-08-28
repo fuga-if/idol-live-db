@@ -9,7 +9,11 @@ import com.fugaif.imaslivedb.data.backup.BackupImportResult
 import com.fugaif.imaslivedb.data.backup.TransferCodeResult
 import com.fugaif.imaslivedb.data.model.Brand
 import com.fugaif.imaslivedb.data.model.DatabaseStats
+import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.di.AppModule
+import com.fugaif.imaslivedb.ui.theme.AppPreferences
+import uniffi.imas_core.OshiThemePickIdol
+import uniffi.imas_core.resolveOshiTheme
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,6 +26,8 @@ data class SettingsUiState(
     val brands: List<Brand> = emptyList(),
     /** iOS `@AppStorage("defaultBrandId")` に相当。空文字は「すべて」。 */
     val defaultBrandId: String = "",
+    /** 担当 (推し) マークの付いたアイドル。テーマ色に使う 1 人をここから選ばせる。 */
+    val pickIdols: List<Idol> = emptyList(),
     val isLoading: Boolean = true
 )
 
@@ -44,15 +50,37 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
             val dataVersion = statsRepo.fetchMetaValue("data_version") ?: "不明"
             val databaseStats = statsRepo.fetchDatabaseStats()
             val brands = statsRepo.fetchBrands()
+            val pickIdols = module.userMarkRepository.pickedIdols()
 
             _uiState.value = _uiState.value.copy(
                 schemaVersion = schemaVersion,
                 dataVersion = dataVersion,
                 databaseStats = databaseStats,
                 brands = brands,
+                pickIdols = pickIdols,
                 isLoading = false
             )
+            // 担当が増減している可能性があるので、開くたびにテーマ色を解決し直す
+            // (担当を外したアイドルの色がテーマに残り続けるのを防ぐ)。
+            syncOshiTheme()
         }
+    }
+
+    /**
+     * 担当テーマ色を現在の選択から再計算して保存する。
+     *
+     * 解決規則そのもの (OFF のときは色だけ消して選択 ID は残す / 選択中の担当が外れていたら
+     * 先頭へ黙って寄せる) は共有コアの `resolveOshiTheme` が正本。iOS と同じ関数を呼ぶので、
+     * 同じ状態からは必ず同じ結果になる。
+     */
+    fun syncOshiTheme() {
+        val resolved = resolveOshiTheme(
+            isEnabled = AppPreferences.useOshiColor,
+            currentIdolId = AppPreferences.oshiIdolId,
+            pickIdols = _uiState.value.pickIdols.map { OshiThemePickIdol(it.id, it.color) }
+        )
+        resolved.idolId?.let { AppPreferences.setOshiIdolId(it) }
+        AppPreferences.setOshiColorHex(resolved.colorHex)
     }
 
     /** デフォルトブランドを永続化する。iOS `MyPageView` の `defaultBrandId` と同じキー意味。 */
