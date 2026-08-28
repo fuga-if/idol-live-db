@@ -59,7 +59,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.fugaif.ImasLiveDB
         PRODUCT_NAME: ImasLiveDB
         MARKETING_VERSION: "2.0.0"
-        CURRENT_PROJECT_VERSION: "49"
+        CURRENT_PROJECT_VERSION: "50"
         INFOPLIST_KEY_CFBundleDisplayName: アイドルライブDB
         INFOPLIST_KEY_CFBundleDevelopmentRegion: ja
         INFOPLIST_KEY_CFBundleAllowMixedLocalizations: YES
