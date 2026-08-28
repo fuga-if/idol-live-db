@@ -6,12 +6,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavType
 import androidx.navigation.NavHostController
@@ -50,8 +52,12 @@ import com.fugaif.imaslivedb.ui.mypage.FavoritesScreen
 import com.fugaif.imaslivedb.ui.mypage.MyContributionsScreen
 import com.fugaif.imaslivedb.ui.polls.MyVotesScreen
 import com.fugaif.imaslivedb.ui.polls.PollDetailScreen
+import com.fugaif.imaslivedb.ui.polls.PollHallOfFameScreen
 import com.fugaif.imaslivedb.ui.polls.PollsScreen
+import com.fugaif.imaslivedb.ui.produce.CollectedSongsScreen
 import com.fugaif.imaslivedb.ui.produce.ProduceScreen
+import com.fugaif.imaslivedb.ui.produce.RecentsStore
+import com.fugaif.imaslivedb.ui.timeline.BrandTimelineScreen
 import com.fugaif.imaslivedb.ui.schedule.CalendarScreen
 import com.fugaif.imaslivedb.data.repository.SearchScope
 import com.fugaif.imaslivedb.ui.search.SearchScreen
@@ -63,7 +69,17 @@ import com.fugaif.imaslivedb.ui.tags.IdolTagDetailScreen
 import com.fugaif.imaslivedb.ui.tags.TagActivityScreen
 import com.fugaif.imaslivedb.ui.tags.TagDetailScreen
 import com.fugaif.imaslivedb.ui.tags.TagListScreen
+import com.fugaif.imaslivedb.ui.tags.UnitTagDetailScreen
 import com.fugaif.imaslivedb.ui.units.UnitDetailScreen
+
+/**
+ * 回収した楽曲一覧のルート。件数が端末ローカルのマークから毎回導出されるので、
+ * 条件を経路に載せる [NavRoutes.FilteredSongs] には相乗りできない。
+ */
+private const val ROUTE_COLLECTED_SONGS = "collected_songs"
+
+/** 年表を「ブランド指定なし」で開くための番人役の値 ([NavRoutes.BrandTimeline] の引数は必須)。 */
+private const val ALL_BRANDS = "all"
 
 @Composable
 fun AppNavigation() {
@@ -132,6 +148,15 @@ private fun TabNavHost(
     startDestination: String,
     graphBuilder: NavGraphBuilder.() -> Unit
 ) {
+    // 「最近見た」の記録はここ 1 箇所に置く。詳細画面はどのタブからも積めるので、
+    // 遷移のコールバック側 (20 箇所以上) に記録を撒くと必ずどこかで漏れる。
+    // どのルートが記録対象かは RecentsStore が決める (画面側は行き先を渡すだけ)。
+    val context = LocalContext.current
+    LaunchedEffect(navController) {
+        navController.currentBackStackEntryFlow.collect { entry ->
+            RecentsStore.recordRoute(context, entry.destination.route) { entry.arguments?.getString(it) }
+        }
+    }
     NavHost(
         navController = navController,
         startDestination = startDestination,
@@ -518,10 +543,17 @@ private fun NavGraphBuilder.produceNavGraph(navController: NavHostController) {
             onNavigateToSettings = { navController.navigate(NavRoutes.Settings.route) },
             onNavigateToSearch = { navController.navigate(NavRoutes.Search.createRoute()) },
             onNavigateToPolls = { navController.navigate(NavRoutes.Polls.route) },
+            onNavigateToPollDetail = { navController.navigate(NavRoutes.PollDetail.createRoute(it)) },
             onNavigateToIdol = { navController.navigate(NavRoutes.IdolDetail.createRoute(it)) },
             onNavigateToSong = { navController.navigate(NavRoutes.SongDetail.createRoute(it)) },
+            onNavigateToEvent = { navController.navigate(NavRoutes.EventDetail.createRoute(it)) },
             onNavigateToFavorites = { navController.navigate(NavRoutes.Favorites.route) },
             onNavigateToAttendedEvents = { navController.navigate(NavRoutes.AttendedEvents.route) },
+            onNavigateToCollectedSongs = { navController.navigate(ROUTE_COLLECTED_SONGS) },
+            // ブランド未指定は "all"。年表側が先頭ブランドを選ぶ (ルート引数は必須なので番人役の値)。
+            onNavigateToTimeline = {
+                navController.navigate(NavRoutes.BrandTimeline.createRoute(it ?: ALL_BRANDS))
+            },
             onNavigateToMyContributions = { navController.navigate(NavRoutes.MyContributions.route) },
             onNavigateToMyVotes = { navController.navigate(NavRoutes.MyVotes.route) },
             onNavigateToEditHistory = { navController.navigate(NavRoutes.EditHistory.route) },
@@ -530,17 +562,43 @@ private fun NavGraphBuilder.produceNavGraph(navController: NavHostController) {
             onNavigateToGamesHub = { navController.navigate(NavRoutes.GamesHub.route) }
         )
     }
+    composable(ROUTE_COLLECTED_SONGS) {
+        CollectedSongsScreen(
+            onBack = { navController.popBackStack() },
+            onSongClick = { navController.navigate(NavRoutes.SongDetail.createRoute(it)) }
+        )
+    }
+    composable(NavRoutes.BrandTimeline.ROUTE) { backStackEntry ->
+        val raw = backStackEntry.arguments?.getString("brandId")
+        BrandTimelineScreen(
+            initialBrandId = raw?.takeIf { it != ALL_BRANDS },
+            onBack = { navController.popBackStack() },
+            onEventClick = { navController.navigate(NavRoutes.EventDetail.createRoute(it)) },
+            onFilteredSongsClick = { kind, value ->
+                navController.navigate(NavRoutes.FilteredSongs.createRoute(kind, value))
+            }
+        )
+    }
     composable(NavRoutes.Stats.route) { StatsScreen() }
     composable(NavRoutes.Settings.route) { SettingsScreen() }
     composable(NavRoutes.Polls.route) {
         PollsScreen(
             onBack = { navController.popBackStack() },
-            onPollClick = { navController.navigate(NavRoutes.PollDetail.createRoute(it)) }
+            onPollClick = { navController.navigate(NavRoutes.PollDetail.createRoute(it)) },
+            onHallOfFameClick = { navController.navigate(NavRoutes.PollHallOfFame.route) }
         )
     }
     composable(NavRoutes.PollDetail.ROUTE) { backStackEntry ->
         val pollId = backStackEntry.arguments?.getString("pollId") ?: return@composable
         PollDetailScreen(pollId = pollId, onBack = { navController.popBackStack() })
+    }
+    composable(NavRoutes.PollHallOfFame.route) {
+        PollHallOfFameScreen(
+            onBack = { navController.popBackStack() },
+            onSongClick = { navController.navigate(NavRoutes.SongDetail.createRoute(it)) },
+            onIdolClick = { navController.navigate(NavRoutes.IdolDetail.createRoute(it)) },
+            onUnitClick = { navController.navigate(NavRoutes.UnitDetail.createRoute(it)) }
+        )
     }
     composable(NavRoutes.Favorites.route) {
         FavoritesScreen(
@@ -585,6 +643,14 @@ private fun NavGraphBuilder.produceNavGraph(navController: NavHostController) {
             tagId = tagId,
             onBack = { navController.popBackStack() },
             onIdolClick = { navController.navigate(NavRoutes.IdolDetail.createRoute(it)) }
+        )
+    }
+    composable(NavRoutes.UnitTagDetail.ROUTE) { backStackEntry ->
+        val tagId = backStackEntry.arguments?.getString("tagId") ?: return@composable
+        UnitTagDetailScreen(
+            tagId = tagId,
+            onBack = { navController.popBackStack() },
+            onUnitClick = { navController.navigate(NavRoutes.UnitDetail.createRoute(it)) }
         )
     }
     composable(NavRoutes.TagActivity.route) {
@@ -832,7 +898,8 @@ private fun NavGraphBuilder.detailRoutes(navController: NavHostController) {
             onNavigateToIdolDetail = { navController.navigate(NavRoutes.IdolDetail.createRoute(it)) },
             onNavigateToSongDetail = { navController.navigate(NavRoutes.SongDetail.createRoute(it)) },
             onNavigateToUnitDetail = { navController.navigate(NavRoutes.UnitDetail.createRoute(it)) },
-            onPollClick = { navController.navigate(NavRoutes.PollDetail.createRoute(it)) }
+            onPollClick = { navController.navigate(NavRoutes.PollDetail.createRoute(it)) },
+            onUnitTagClick = { navController.navigate(NavRoutes.UnitTagDetail.createRoute(it)) }
         )
     }
     composable(

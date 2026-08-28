@@ -25,6 +25,7 @@ import uniffi.imas_core.EventListRecord
 import uniffi.imas_core.EventWithDateRecord
 import uniffi.imas_core.SetlistPerformerRecord
 import uniffi.imas_core.ShowRecord
+import uniffi.imas_core.TimelineBarRecord
 
 /**
  * ライブ (イベント/公演/セトリ/会場) の読み取り口。
@@ -213,6 +214,19 @@ class EventRepository(
             halls = db.showDao().fetchVenueHalls()
         )
     }
+
+    /**
+     * 年表 (ブランド史) の帯。`brandId` が null なら全ブランド横断。
+     *
+     * 節目・ライブ・楽曲シリーズの束ね方も、帯の色シード・バッジ・遷移先も**すべてコアが決める**。
+     * ここは射影をそのまま渡すだけで、画面側は返ってきた帯を並べるだけにすること
+     * (束ね方を UI で書き直すと iOS と黙ってズレる)。
+     *
+     * スナップショットが無い環境では空を返す — 年表はイベント・楽曲・節目を横断して束ねた
+     * 射影で、Room の SQL に同じ組み立ては無い。空なら画面は「描けるデータがありません」に落ちる。
+     */
+    suspend fun fetchTimelineBars(brandId: String?): List<TimelineBarRecord> =
+        snapshots?.query { store -> store.timelineBars(brandId) } ?: emptyList()
 
     /** 指定会場 (venue_id) で公演があったイベントの id 集合 (ライブ一覧の会場絞り込み用)。 */
     suspend fun fetchEventIdsAtVenue(venueId: String): Set<String> {
