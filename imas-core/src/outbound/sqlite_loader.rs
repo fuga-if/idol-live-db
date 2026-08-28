@@ -754,9 +754,14 @@ fn load_setlist_items(
 }
 
 fn load_units(conn: &Connection) -> Result<Vec<Unit>, String> {
-    let mut stmt = conn
-        .prepare("SELECT id, brand_id, name, is_permanent, name_alt FROM units")
-        .map_err(|e| e.to_string())?;
+    // name_kana は後から足した列。スキーマ適用より先にここが走る経路でも
+    // 落ちないよう、列の有無を見てから引く (brands の icon_url と同じ扱い)。
+    let cols = table_columns(conn, "units")?;
+    let sql = format!(
+        "SELECT id, brand_id, name, is_permanent, name_alt, {name_kana} FROM units",
+        name_kana = optional_col(&cols, "name_kana"),
+    );
+    let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
     let rows = stmt
         .query_map([], |r| {
             Ok(Unit {
@@ -765,6 +770,7 @@ fn load_units(conn: &Connection) -> Result<Vec<Unit>, String> {
                 name: r.get(2)?,
                 is_permanent: r.get::<_, Option<i64>>(3)?.unwrap_or(1) != 0,
                 name_alt: r.get(4)?,
+                name_kana: r.get(5)?,
             })
         })
         .map_err(|e| e.to_string())?;

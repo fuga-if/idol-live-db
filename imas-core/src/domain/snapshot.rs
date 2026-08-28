@@ -165,6 +165,9 @@ pub struct Unit {
     pub name: String,
     pub is_permanent: bool,
     pub name_alt: Option<String>,
+    /// 読み。漢字のユニット名 (「可惜夜月」「星纏天女」) を かなで引くために持つ。
+    /// 表記から機械的に起こせないので、入っているのは人が確かめた分だけ。
+    pub name_kana: Option<String>,
 }
 
 /// brands 全カラム。

@@ -97,7 +97,7 @@ struct UnitMultiPickerView: View {
                 }
             }
             .onChange(of: sourceUnits.map(\.id), initial: true) { _, _ in
-                catalog = TextSearchCatalog(fieldsPerItem: sourceUnits.map { [$0.name, $0.nameAlt] })
+                catalog = TextSearchCatalog(fieldsPerItem: sourceUnits.map { [$0.name, $0.nameAlt, $0.nameKana] })
             }
             .trackScreen("unit_multi_picker")
         }

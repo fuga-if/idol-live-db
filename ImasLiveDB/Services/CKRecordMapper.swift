@@ -198,7 +198,8 @@ enum CKRecordMapper {
             brandId: row.brandId,
             name: row.name,
             isPermanent: row.isPermanent,
-            nameAlt: row.nameAlt
+            nameAlt: row.nameAlt,
+            nameKana: row.nameKana
         )
     }
 

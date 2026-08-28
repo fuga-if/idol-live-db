@@ -297,7 +297,10 @@ object SyncMappers {
 
     fun units(rows: List<CkRow>): List<ImasUnit> =
         rows.filterIsInstance<CkRow.Unit>().map { (row) ->
-            ImasUnit(row.id, row.brandId, row.name, row.isPermanent, row.nameAlt.emptyToNull())
+            ImasUnit(
+                row.id, row.brandId, row.name, row.isPermanent,
+                row.nameAlt.emptyToNull(), row.nameKana.emptyToNull()
+            )
         }
 
     fun idolBrands(rows: List<CkRow>): List<IdolBrand> =

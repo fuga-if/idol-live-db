@@ -45,8 +45,9 @@ final class UnitListViewModel {
             let (loadedBrands, loadedUnits) = try await (b, u)
             brands = loadedBrands
             units = loadedUnits
-            // 名前と別名の両方を綴りに入れる (「Cleasky」でも「クレスカイ」でも当たる)。
-            catalog = TextSearchCatalog(fieldsPerItem: loadedUnits.map { [$0.name, $0.nameAlt] })
+            // 名前・別名・読みを綴りに入れる (「Cleasky」でも「クレスカイ」でも、
+            // 「可惜夜月」を「あたらよづき」でも当たる)。
+            catalog = TextSearchCatalog(fieldsPerItem: loadedUnits.map { [$0.name, $0.nameAlt, $0.nameKana] })
             rebuild(searchText: searchText)
         } catch {
             Logger.database.error("load_failed units: \(error.localizedDescription)")

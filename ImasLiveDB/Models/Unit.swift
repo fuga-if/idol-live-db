@@ -9,6 +9,9 @@ struct Unit: Codable, FetchableRecord, PersistableRecord, Identifiable, Hashable
     var name: String
     var isPermanent: Bool
     var nameAlt: String?
+    /// 読み。漢字のユニット名 (「可惜夜月」「凸レーション」) を かなで引くために持つ。
+    /// 表記から機械的に起こせないので、入っているのは出典を確かめた分だけ (nil あり)。
+    var nameKana: String?
 
     /// 表示用の名前（別名があれば "name / nameAlt"）
     var displayName: String {
@@ -23,6 +26,7 @@ struct Unit: Codable, FetchableRecord, PersistableRecord, Identifiable, Hashable
         case brandId = "brand_id"
         case isPermanent = "is_permanent"
         case nameAlt = "name_alt"
+        case nameKana = "name_kana"
     }
 
     // MARK: - Associations

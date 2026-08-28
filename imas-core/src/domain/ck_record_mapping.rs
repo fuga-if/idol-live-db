@@ -492,6 +492,8 @@ pub struct CkUnitRow {
     pub name: String,
     pub is_permanent: bool,
     pub name_alt: Option<String>,
+    /// 読み。漢字のユニット名を かなで引くために持つ。
+    pub name_kana: Option<String>,
 }
 
 /// idol_brands
@@ -862,6 +864,7 @@ pub fn unit(record: &CkRecordInput) -> Option<CkUnitRow> {
         // 常設ユニットが既定 (期間限定の方が少数派)。
         is_permanent: f.bool_value("isPermanent", true),
         name_alt: f.str("nameAlt"),
+        name_kana: f.str("nameKana"),
     })
 }
 

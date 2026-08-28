@@ -152,6 +152,7 @@ DEFINE SCHEMA
         modifiedAt      TIMESTAMP QUERYABLE SORTABLE,
         name            STRING QUERYABLE SEARCHABLE SORTABLE,
         nameAlt         STRING QUERYABLE SEARCHABLE SORTABLE,
+        nameKana        STRING QUERYABLE SEARCHABLE SORTABLE,
         GRANT WRITE TO "_creator",
         GRANT CREATE TO "_icloud",
         GRANT READ TO "_world"

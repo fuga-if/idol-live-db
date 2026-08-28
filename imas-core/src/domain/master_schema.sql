@@ -62,7 +62,7 @@ CREATE TABLE unit_versions (
             valid_from TEXT, valid_to TEXT,
             sort_order INTEGER NOT NULL DEFAULT 0
         );
-CREATE TABLE units (id TEXT PRIMARY KEY NOT NULL, brand_id TEXT NOT NULL, name TEXT NOT NULL, is_permanent INTEGER NOT NULL DEFAULT 1, name_alt TEXT);
+CREATE TABLE units (id TEXT PRIMARY KEY NOT NULL, brand_id TEXT NOT NULL, name TEXT NOT NULL, is_permanent INTEGER NOT NULL DEFAULT 1, name_alt TEXT, name_kana TEXT);
 CREATE TABLE venue_halls (
             id TEXT PRIMARY KEY NOT NULL, venue_id TEXT NOT NULL, name TEXT NOT NULL,
             capacity INTEGER

@@ -85,7 +85,7 @@ fun UnitListBody(
     // 項目ごとに FFI を跨がない)。名前と別名の両方を綴りに入れるので
     // 「Cleasky」でも「クレスカイ」でも当たる。
     val searchCatalog = remember(state.units) {
-        TextSearchCatalog(state.units.map { listOfNotNull(it.name, it.nameAlt) })
+        TextSearchCatalog(state.units.map { listOfNotNull(it.name, it.nameAlt, it.nameKana) })
     }
     // 索引の実体は Rust 側にある。画面を離れたら (または units が入れ替わったら) 明示的に返す。
     // Cleaner 任せでも最後には解放されるが、それは GC の都合で、いつかは決まらない。

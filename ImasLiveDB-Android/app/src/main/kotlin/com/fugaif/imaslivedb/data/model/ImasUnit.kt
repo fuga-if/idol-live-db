@@ -22,7 +22,14 @@ data class ImasUnit(
     val isPermanent: Boolean,
 
     @ColumnInfo(name = "name_alt")
-    val nameAlt: String?
+    val nameAlt: String?,
+
+    /**
+     * 読み。漢字のユニット名 (「可惜夜月」「凸レーション」) を かなで引くために持つ。
+     * 表記から機械的に起こせないので、入っているのは出典を確かめた分だけ (null あり)。
+     */
+    @ColumnInfo(name = "name_kana")
+    val nameKana: String? = null
 ) {
     val displayName: String
         get() = if (nameAlt != null) "$name / $nameAlt" else name

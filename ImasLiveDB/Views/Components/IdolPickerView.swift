@@ -471,7 +471,7 @@ private struct UnitMemberAddPicker: View {
             .task {
                 brands = (try? await AppContainer.shared.brandReading.brands()) ?? []
                 units = (try? await AppContainer.shared.unitReading.allUnits()) ?? []
-                catalog = TextSearchCatalog(fieldsPerItem: units.map { [$0.name, $0.nameAlt] })
+                catalog = TextSearchCatalog(fieldsPerItem: units.map { [$0.name, $0.nameAlt, $0.nameKana] })
             }
         }
     }

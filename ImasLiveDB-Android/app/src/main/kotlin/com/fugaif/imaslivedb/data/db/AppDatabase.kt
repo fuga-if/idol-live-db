@@ -73,7 +73,7 @@ import com.fugaif.imaslivedb.data.model.UserMark
         UnitVersion::class,
         Creator::class
     ],
-    version = 11,
+    version = 12,
     // 確定スキーマを app/schemas へ JSON で吐く。共有コア (imas-core) が持つ
     // マスタ DDL と突き合わせて、片方だけスキーマを変えた事故を CI で捕まえるため。
     exportSchema = true
@@ -138,7 +138,7 @@ abstract class AppDatabase : RoomDatabase() {
             )
                 // スキーマ変更時は破壊的再構築せず Room Migration を書く (iOS の DatabaseMigrations と対)。
                 // UserMark 等のローカル唯一データを保全するため (.fallbackToDestructiveMigration は使わない)。
-                .addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11)
+                .addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12)
                 .addCallback(seedCallback)
                 .build()
         }
@@ -341,6 +341,13 @@ abstract class AppDatabase : RoomDatabase() {
                         "aliases TEXT, PRIMARY KEY(id))"
                 )
                 db.execSQL("CREATE INDEX IF NOT EXISTS idx_creators_name ON creators(name)")
+            }
+        }
+
+        /** ユニット名の読み。漢字のユニット名をかなで引けるようにする。 */
+        val MIGRATION_11_12 = object : Migration(11, 12) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE units ADD COLUMN name_kana TEXT")
             }
         }
     }

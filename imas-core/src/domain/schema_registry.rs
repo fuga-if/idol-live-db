@@ -66,7 +66,7 @@ pub fn expected_tables() -> Vec<TableSpec> {
              "曲。title_kana は現在全曲空 (読み仮名の出典が無い)"),
         spec("song_artists", Master, &["song_id", "idol_id", "role"],
              "原唱者。role='original' は一覧のアイコン表示の根拠 (複合 PK)"),
-        spec("units", Master, &["id", "name"], "ユニット"),
+        spec("units", Master, &["id", "name", "name_kana"], "ユニット"),
         spec("unit_members", Master, &["unit_id", "idol_id"], "ユニット所属 (複合 PK)"),
         spec("events", Master, &["id", "name", "brand_id", "kind"],
              "ライブ。joint_brand_ids を持つと合同ライブ扱い"),

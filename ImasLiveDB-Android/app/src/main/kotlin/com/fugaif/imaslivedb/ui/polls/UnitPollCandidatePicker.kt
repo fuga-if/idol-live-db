@@ -120,7 +120,7 @@ fun UnitPollCandidatePicker(
         ImasTheme.prewarm(state.units.map { it.id to it.brandId })
     }
 
-    val matched = rememberSearchFiltered(state.units, query) { listOf(it.name, it.nameAlt) }
+    val matched = rememberSearchFiltered(state.units, query) { listOf(it.name, it.nameAlt, it.nameKana) }
     val filtered = remember(matched, selectedBrandId) {
         matched.filter { selectedBrandId == null || it.brandId == selectedBrandId }
     }

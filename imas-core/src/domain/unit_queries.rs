@@ -37,6 +37,8 @@ pub struct UnitRecord {
     pub name: String,
     pub is_permanent: bool,
     pub name_alt: Option<String>,
+    /// 読み。一覧・ピッカーの綴りに入れて かなで引けるようにするために運ぶ。
+    pub name_kana: Option<String>,
 }
 
 /// unit_members 1 行ぶんの射影 (`SELECT unit_id, idol_id FROM unit_members` の行)。
@@ -70,6 +72,7 @@ fn record(snap: &Snapshot, unit_index: u32) -> UnitRecord {
         name: u.name.clone(),
         is_permanent: u.is_permanent,
         name_alt: u.name_alt.clone(),
+        name_kana: u.name_kana.clone(),
     }
 }
 
@@ -294,7 +297,7 @@ mod tests {
         // 注意: `SELECT id FROM units` は covering index (PK) 走査で id 順になり
         // 全行スキャンの rowid 順と食い違うため、基準は必ず全カラムの走査で取る。
         let mut stmt = db
-            .prepare("SELECT id, brand_id, name, is_permanent, name_alt FROM units")
+            .prepare("SELECT id, brand_id, name, is_permanent, name_alt, name_kana FROM units")
             .unwrap();
         let expected_rows: Vec<UnitRecord> = stmt
             .query_map([], |r| {
@@ -304,6 +307,7 @@ mod tests {
                     name: r.get(2)?,
                     is_permanent: r.get::<_, i64>(3)? != 0,
                     name_alt: r.get(4)?,
+                    name_kana: r.get(5)?,
                 })
             })
             .unwrap()
@@ -387,7 +391,7 @@ mod tests {
             // fetchUnitQuery: 全カラム一致。
             let expected = db
                 .query_row(
-                    "SELECT id, brand_id, name, is_permanent, name_alt FROM units WHERE id = ?1",
+                    "SELECT id, brand_id, name, is_permanent, name_alt, name_kana FROM units WHERE id = ?1",
                     [unit_id],
                     |r| {
                         Ok(UnitRecord {
@@ -396,6 +400,7 @@ mod tests {
                             name: r.get(2)?,
                             is_permanent: r.get::<_, i64>(3)? != 0,
                             name_alt: r.get(4)?,
+                            name_kana: r.get(5)?,
                         })
                     },
                 )
