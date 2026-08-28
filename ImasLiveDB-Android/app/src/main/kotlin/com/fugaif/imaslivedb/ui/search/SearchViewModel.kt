@@ -19,6 +19,14 @@ import kotlinx.coroutines.launch
 
 data class SearchUiState(
     val query: String = "",
+    /**
+     * いま画面に出ている結果を引いた語。ハイライトはこれで敷く。
+     *
+     * 打鍵中の [query] で敷くと、まだ引いていない語で古い結果に色が付く (1 打鍵ぶん先の語で
+     * 色が消えたり動いたりする)。「なぜこの行が出ているか」を示す印なので、行を出した語と
+     * 必ず同じにする。
+     */
+    val matchedQuery: String = "",
     val scope: SearchScope = SearchScope.ALL,
     val results: SearchResults = SearchResults(emptyList(), emptyList(), emptyList()),
     val history: List<String> = emptyList(),
@@ -71,6 +79,7 @@ class SearchViewModel(app: Application) : AndroidViewModel(app) {
             searchJob?.cancel()
             _uiState.value = _uiState.value.copy(
                 results = SearchResults(emptyList(), emptyList(), emptyList()),
+                matchedQuery = "",
                 isSearching = false
             )
             return
@@ -126,7 +135,7 @@ class SearchViewModel(app: Application) : AndroidViewModel(app) {
             //
             // 例外は確実な一致が 0 件のとき。ここで出すと「見つかりません」が一瞬映った
             // 直後に「もしかして」が生えて画面が入れ替わるので、そのときだけ候補を待つ。
-            val exact = _uiState.value.copy(results = results, isSearching = false)
+            val exact = _uiState.value.copy(results = results, matchedQuery = query, isSearching = false)
             if (exact.visibleResultCount > 0) _uiState.value = exact
 
             val fuzzy: List<Song> = try {
@@ -142,6 +151,7 @@ class SearchViewModel(app: Application) : AndroidViewModel(app) {
             ensureActive()
             _uiState.value = _uiState.value.copy(
                 results = results.copy(fuzzySongs = fuzzy),
+                matchedQuery = query,
                 isSearching = false
             )
         }
