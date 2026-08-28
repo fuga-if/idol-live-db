@@ -32,18 +32,16 @@ struct UnitMultiPickerView: View {
     /// 表示に使うユニット。呼び出し元の配列が空 (ロード未完/失敗) なら自力ロード分にフォールバック。
     private var sourceUnits: [Unit] { units.isEmpty ? loadedUnits : units }
 
+    /// 絞り込み用の索引 (`IdolPickerView` と同じくコアに寄せる)。
+    @State private var catalog: TextSearchCatalog?
+
     private var filtered: [Unit] {
-        var result = sourceUnits
+        let trimmed = query.trimmingCharacters(in: .whitespaces)
+        var result = trimmed.isEmpty
+            ? sourceUnits
+            : (catalog?.filter(sourceUnits, needle: trimmed) ?? sourceUnits)
         if !selectedBrandIds.isEmpty {
             result = result.filter { selectedBrandIds.contains($0.brandId) }
-        }
-        let trimmed = query.trimmingCharacters(in: .whitespaces)
-        if !trimmed.isEmpty {
-            let lower = trimmed.lowercased()
-            result = result.filter {
-                $0.name.lowercased().contains(lower)
-                    || ($0.nameAlt?.lowercased().contains(lower) == true)
-            }
         }
         return result
     }
@@ -97,6 +95,9 @@ struct UnitMultiPickerView: View {
                     // 万一空のまま呼ばれた場合のフォールバックも同じ母集団に揃える。
                     loadedUnits = (try? await AppContainer.shared.unitReading.unitsWithSongs()) ?? []
                 }
+            }
+            .onChange(of: sourceUnits.map(\.id), initial: true) { _, _ in
+                catalog = TextSearchCatalog(fieldsPerItem: sourceUnits.map { [$0.name, $0.nameAlt] })
             }
             .trackScreen("unit_multi_picker")
         }

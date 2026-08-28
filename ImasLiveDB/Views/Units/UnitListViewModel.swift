@@ -45,18 +45,30 @@ final class UnitListViewModel {
             let (loadedBrands, loadedUnits) = try await (b, u)
             brands = loadedBrands
             units = loadedUnits
+            // 名前と別名の両方を綴りに入れる (「Cleasky」でも「クレスカイ」でも当たる)。
+            catalog = TextSearchCatalog(fieldsPerItem: loadedUnits.map { [$0.name, $0.nameAlt] })
             rebuild(searchText: searchText)
         } catch {
             Logger.database.error("load_failed units: \(error.localizedDescription)")
         }
     }
 
+    /// 絞り込み用の索引。`units` を読んだ時に 1 回だけ組む。
+    ///
+    /// 1 打鍵 = `matchingIndices` 1 呼び出し (項目ごとに FFI を跨がない)。
+    /// 曲一覧・アイドル一覧と同じ作りで、照合規則もコア
+    /// (`domain/text_search_index.rs`) の同じ関数を通る。
+    private var catalog: TextSearchCatalog?
+
     /// 検索語で絞り込み + ブランド別グループ化を再計算する。
     func rebuild(searchText: String) {
         let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        let result = trimmed.isEmpty
-            ? units
-            : units.filter { $0.displayName.localizedCaseInsensitiveContains(trimmed) }
+        // 照合はコア (`domain/text_search_index.rs`) に一任する。
+        // ここで `localizedCaseInsensitiveContains` を書いていたせいで、曲・アイドル・
+        // ライブは「あるすとろめりあ」で当たるのにユニットだけ当たらなかった
+        // (かなを畳んでいなかった)。同じ検索欄に打つ人からは説明の付かない差になる。
+        // 索引が無い (読み込み前) なら素通し。黙って 0 件にする方が悪い。
+        let result = trimmed.isEmpty ? units : (catalog?.filter(units, needle: trimmed) ?? units)
         filteredUnits = result
 
         let grouped = Dictionary(grouping: result, by: \.brandId)

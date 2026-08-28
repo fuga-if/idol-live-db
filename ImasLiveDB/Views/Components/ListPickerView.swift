@@ -12,10 +12,17 @@ struct ListPickerView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var searchText = ""
 
+    /// 絞り込み用の索引。`items` は開いている間変わらないので 1 回だけ組む。
+    /// 照合規則はコア (`domain/text_search_index.rs`) に一任し、シリーズ名を
+    /// かなで打っても当たるようにする (曲一覧と同じ規則)。
+    @State private var catalog: TextSearchCatalog?
+
     private var filteredItems: [String] {
         let trimmed = searchText.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return items }
-        return items.filter { $0.localizedCaseInsensitiveContains(trimmed) }
+        // 索引が無い間は絞り込まない (黙って 0 件にする方が悪い)。
+        guard let catalog else { return items }
+        return catalog.filter(items, needle: trimmed)
     }
 
     var body: some View {
@@ -42,6 +49,7 @@ struct ListPickerView: View {
         .searchable(text: $searchText, prompt: "\(title)を検索")
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
+        .task { catalog = TextSearchCatalog(fieldsPerItem: items.map { [$0] }) }
     }
 
     private func row(label: String, value: String?, muted: Bool) -> some View {

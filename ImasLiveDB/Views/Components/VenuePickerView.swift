@@ -34,15 +34,27 @@ struct VenuePickerView: View {
             }
     }
 
+    /// 絞り込み用の索引。会場一覧は開いている間変わらないので 1 回だけ組む。
+    ///
+    /// 綴りは現行名・**読み**・都道府県・別名 (旧名/通称)。
+    /// 以前は `localizedCaseInsensitiveContains` を並べていて、`venues.name_kana` を
+    /// 持っているのに読みで引けなかった (「ぶどうかん」で日本武道館が出ない)。
+    /// 照合規則はコア (`domain/text_search_index.rs`) に一任する。
+    @State private var catalog: TextSearchCatalog?
+
+    private func makeCatalog() -> TextSearchCatalog {
+        TextSearchCatalog(fieldsPerItem: directory.venues.map { v in
+            // 旧名でも引けるようにする (「武蔵野の森」→ 京王アリーナTOKYO)
+            [v.name, v.nameKana, v.prefecture] + v.aliasList
+        })
+    }
+
     private var filteredVenues: [Venue] {
         let q = searchText.trimmingCharacters(in: .whitespaces)
         guard !q.isEmpty else { return directory.venues }
-        return directory.venues.filter { v in
-            v.name.localizedCaseInsensitiveContains(q)
-                || (v.prefecture ?? "").localizedCaseInsensitiveContains(q)
-                // 旧名でも引けるようにする (「武蔵野の森」→ 京王アリーナTOKYO)
-                || v.aliasList.contains { $0.localizedCaseInsensitiveContains(q) }
-        }
+        // 索引が無い間は絞り込まない (黙って 0 件にする方が悪い)。
+        guard let catalog else { return directory.venues }
+        return catalog.filter(directory.venues, needle: q)
     }
 
     var body: some View {
@@ -74,6 +86,7 @@ struct VenuePickerView: View {
         .searchable(text: $searchText, prompt: "会場名・旧名・地域で検索")
         .navigationTitle("会場")
         .navigationBarTitleDisplayMode(.inline)
+        .task { catalog = makeCatalog() }
     }
 
     @ViewBuilder

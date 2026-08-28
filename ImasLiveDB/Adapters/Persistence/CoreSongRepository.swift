@@ -249,7 +249,9 @@ struct CoreSongRepository: SongReading {
     /// 挙動なのでコア側でも揃えていない (直すとピッカーの並びが黙って変わる)。
     func allSongsForPicker() async throws -> [PickedSong] {
         try await snapshot.withStore(fallbackTo: { try await fallback.allSongsForPicker() }) { store in
-            try store.allSongsForPicker().map { PickedSong(id: $0.id, title: $0.title) }
+            try store.allSongsForPicker().map {
+                PickedSong(id: $0.id, title: $0.title, titleKana: $0.titleKana)
+            }
         }
     }
 

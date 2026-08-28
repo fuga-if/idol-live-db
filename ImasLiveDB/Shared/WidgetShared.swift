@@ -62,6 +62,9 @@ struct OshiWidgetEntry: Codable, Identifiable, Hashable {
     let images: [String]
     /// ブランド表示名 (ピッカーの副題・絞り込み用)。旧カタログ互換のため optional。
     var brandName: String? = nil
+    /// 読み。ウィジェット設定のピッカーを かなで引くために持つ。
+    /// 旧カタログ互換のため optional (無い間は名前だけで当たる)。
+    var nameKana: String? = nil
 }
 
 struct OshiWidgetCatalog: Codable {

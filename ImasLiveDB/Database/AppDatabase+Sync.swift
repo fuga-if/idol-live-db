@@ -81,8 +81,8 @@ extension AppDatabase {
     }
 
     private static func fetchAllSongsForPickerQuery(_ db: Database) throws -> [PickedSong] {
-        let rows = try Row.fetchAll(db, sql: "SELECT id, title FROM songs ORDER BY title")
-        return rows.map { PickedSong(id: $0["id"], title: $0["title"]) }
+        let rows = try Row.fetchAll(db, sql: "SELECT id, title, title_kana FROM songs ORDER BY title")
+        return rows.map { PickedSong(id: $0["id"], title: $0["title"], titleKana: $0["title_kana"]) }
     }
 
     /// あいまい検索の母集団 (曲名 + 読み)。

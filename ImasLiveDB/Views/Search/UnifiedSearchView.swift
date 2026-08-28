@@ -723,8 +723,11 @@ struct UnifiedSearchView: View {
     /// (自明な情報でリストを埋めないため)。
     private func resolveMatchedVenues(query: String, events: [Event]) async -> [String: String] {
         guard !events.isEmpty else { return [:] }
-        let lower = query.lowercased()
-        let byVenueOnly = events.filter { !$0.name.lowercased().contains(lower) }
+        // 「ライブ名では当たっていない」の判定は、当たったかを決めた側と**同じ規則**で
+        // 引くこと。ここで `lowercased().contains` を書いていたので、かなを畳んで
+        // 当たったライブが「会場でしか当たっていない」に分類され、名前に色が付いている
+        // 行にまで会場名の但し書きが出ていた。
+        let byVenueOnly = events.filter { $0.name.searchMatchRange(of: query) == nil }
         guard !byVenueOnly.isEmpty else { return [:] }
         return (try? await AppContainer.shared.showReading.venuesMatching(
             query: query,

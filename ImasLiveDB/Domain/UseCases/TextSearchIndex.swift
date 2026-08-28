@@ -20,6 +20,20 @@ extension TextSearchCatalog {
     convenience init(fieldsPerItem: [[String?]]) {
         self.init(items: fieldsPerItem.map { $0.compactMap { $0 } })
     }
+
+    /// 当たった項目を手元の配列から引き直す (index → 実体)。
+    ///
+    /// **カタログを組んだ時と同じ配列を渡すこと。** 綴りは index で紐付いているので、
+    /// 並べ替えた配列を渡すと別の項目が返る。
+    ///
+    /// ピッカーやフィルタで `contains` を手書きすると、そこだけ かなを畳まない検索欄が
+    /// できてしまう (実際にユニット一覧がそうなっていた)。照合規則は 1 か所
+    /// (`domain/text_search_index.rs`) に置き、呼ぶ側は index を引くだけにする。
+    func filter<T>(_ items: [T], needle: String) -> [T] {
+        matchingIndices(needle: needle).compactMap {
+            items.indices.contains(Int($0)) ? items[Int($0)] : nil
+        }
+    }
 }
 
 /// あいまい一致 (「もしかして」) の候補集合。

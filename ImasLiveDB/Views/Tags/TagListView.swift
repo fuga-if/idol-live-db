@@ -26,14 +26,18 @@ struct TagListView: View {
         (selectedCategory.isEmpty ? 0 : 1) + (nameFilter.isEmpty ? 0 : 1)
     }
 
+    /// 名前絞り込み用の索引。`vm.tags` が入れ替わった時だけ組み直す。
+    /// 照合はコア (`domain/text_search_index.rs`) に一任するので、他の一覧と同じく
+    /// ひらがな↔カタカナを畳む (タグ名はユーザーが打つ自由文字列なので揺れが大きい)。
+    @State private var catalog: TextSearchCatalog?
+
     /// 名前絞り込み適用後のタグ。名前・説明の部分一致で絞る。
     private var filteredTags: [CommunityTag] {
         let trimmed = nameFilter.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return vm.tags }
-        return vm.tags.filter {
-            $0.name.localizedCaseInsensitiveContains(trimmed)
-                || ($0.description?.localizedCaseInsensitiveContains(trimmed) ?? false)
-        }
+        // 索引が無い間は絞り込まない (黙って 0 件にする方が悪い)。
+        guard let catalog else { return vm.tags }
+        return catalog.filter(vm.tags, needle: trimmed)
     }
 
     var body: some View {
@@ -120,6 +124,11 @@ struct TagListView: View {
                 .onDisappear { vm.scheduleLoad(category: selectedCategory, sort: selectedSort, debounce: false) }
             }
             .task { await vm.load(category: selectedCategory, sort: selectedSort) }
+            // タグは category / sort を変えるたびに読み直す。索引もそれに追随させる
+            // (id 列を鍵にするので、件数が同じで中身だけ入れ替わっても組み直る)。
+            .onChange(of: vm.tags.map(\.id), initial: true) { _, _ in
+                catalog = TextSearchCatalog(fieldsPerItem: vm.tags.map { [$0.name, $0.description] })
+            }
             .onChange(of: selectedCategory) { _, _ in vm.scheduleLoad(category: selectedCategory, sort: selectedSort, debounce: false) }
             .onChange(of: selectedSort) { _, _ in vm.scheduleLoad(category: selectedCategory, sort: selectedSort, debounce: false) }
             .trackScreen("tag_list")

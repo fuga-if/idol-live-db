@@ -10,12 +10,18 @@ struct SongPickerView: View {
     @State private var allSongs: [PickedSong] = []
     @State private var query: String = ""
     @State private var isLoading = true
+    /// 絞り込み用の索引。曲を読んだ時に 1 回だけ組む。
+    @State private var catalog: TextSearchCatalog?
 
     private var filtered: [PickedSong] {
         let trimmed = query.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return Array(allSongs.prefix(100)) }
-        let lower = trimmed.lowercased()
-        return allSongs.filter { $0.title.lowercased().contains(lower) }.prefix(200).map { $0 }
+        // 照合はコア (`domain/text_search_index.rs`) に一任する。ここで
+        // `title.lowercased().contains` を書いていたので、**読みで引けなかった**
+        // (曲一覧は「みちしるべ」で当たるのに、編集 UI の曲ピッカーだけ当たらない)。
+        // 索引が無い (読み込み前) 間は絞り込まない。黙って 0 件にする方が悪い。
+        guard let catalog else { return Array(allSongs.prefix(200)) }
+        return Array(catalog.filter(allSongs, needle: trimmed).prefix(200))
     }
 
     var body: some View {
@@ -52,6 +58,7 @@ struct SongPickerView: View {
             .task {
                 do {
                     allSongs = try await AppContainer.shared.songReading.allSongsForPicker()
+                    catalog = TextSearchCatalog(fieldsPerItem: allSongs.map { [$0.title, $0.titleKana] })
                     isLoading = false
                 } catch {
                     isLoading = false
@@ -65,4 +72,6 @@ struct SongPickerView: View {
 struct PickedSong: Identifiable, Hashable {
     let id: String
     let title: String
+    /// 検索用の読み。並びには使わない (ピッカーの並びは `title` のバイト列順)。
+    let titleKana: String?
 }

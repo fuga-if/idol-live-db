@@ -56,20 +56,30 @@ struct IdolPickerView: View {
     /// 表示に使うアイドル。呼び出し元の配列が空 (ロード未完/未指定) なら自力ロード分にフォールバック。
     private var sourceIdols: [Idol] { idols.isEmpty ? loadedIdols : idols }
 
+    /// 絞り込み用の索引。`sourceIdols` が入れ替わった時だけ組み直す。
+    ///
+    /// 照合はコア (`domain/text_search_index.rs`) に一任する。ここで
+    /// `lowercased().contains` を並べていた頃は、ひらがな↔カタカナを畳まないので
+    /// アイドル一覧で当たる語がピッカーでは当たらない、という差になっていた。
+    @State private var catalog: TextSearchCatalog?
+
+    private func makeIdolCatalog() -> TextSearchCatalog {
+        TextSearchCatalog(fieldsPerItem: sourceIdols.map { idol in
+            [idol.name, idol.nameKana, idol.aliases,
+             VoiceActorDirectory.shared.current(for: idol.id)]
+        })
+    }
+
     private var filtered: [Idol] {
-        var result = sourceIdols
+        let trimmed = query.trimmingCharacters(in: .whitespaces)
+        // 索引は `sourceIdols` 全体で組んであるので、**先に語で絞ってから**ブランドで絞る。
+        // 並びは入力順のままなので、どちらを先にしても結果は同じ。
+        // 索引が無い間は語で絞らない (黙って 0 件にする方が悪い)。
+        var result = trimmed.isEmpty
+            ? sourceIdols
+            : (catalog?.filter(sourceIdols, needle: trimmed) ?? sourceIdols)
         if !selectedBrandIds.isEmpty {
             result = result.filter { selectedBrandIds.contains($0.brandId) }
-        }
-        let trimmed = query.trimmingCharacters(in: .whitespaces)
-        if !trimmed.isEmpty {
-            let lower = trimmed.lowercased()
-            result = result.filter {
-                $0.name.lowercased().contains(lower)
-                    || ($0.nameKana?.lowercased().contains(lower) == true)
-                    || (VoiceActorDirectory.shared.current(for: $0.id)?.lowercased().contains(lower) == true)
-                    || ($0.aliases?.lowercased().contains(lower) == true)
-            }
         }
         return result
     }
@@ -129,6 +139,7 @@ struct IdolPickerView: View {
                     loadedIdols = (try? await AppContainer.shared.idolReading.idols(brandId: nil)) ?? []
                 }
             }
+            .onChange(of: sourceIdols.map(\.id), initial: true) { _, _ in catalog = makeIdolCatalog() }
             .trackScreen("idol_picker")
         }
     }
@@ -369,18 +380,16 @@ private struct UnitMemberAddPicker: View {
     @State private var brands: [Brand] = []
     @State private var selectedBrandIds: Set<String> = []
 
+    /// 絞り込み用の索引 (アイドル側と同じ理由でコアに寄せる)。
+    @State private var catalog: TextSearchCatalog?
+
     private var filtered: [Unit] {
-        var result = units
+        let trimmed = query.trimmingCharacters(in: .whitespaces)
+        var result = trimmed.isEmpty
+            ? units
+            : (catalog?.filter(units, needle: trimmed) ?? units)
         if !selectedBrandIds.isEmpty {
             result = result.filter { selectedBrandIds.contains($0.brandId) }
-        }
-        let trimmed = query.trimmingCharacters(in: .whitespaces)
-        if !trimmed.isEmpty {
-            let lower = trimmed.lowercased()
-            result = result.filter {
-                $0.name.lowercased().contains(lower)
-                    || ($0.nameAlt?.lowercased().contains(lower) == true)
-            }
         }
         return result
     }
@@ -462,6 +471,7 @@ private struct UnitMemberAddPicker: View {
             .task {
                 brands = (try? await AppContainer.shared.brandReading.brands()) ?? []
                 units = (try? await AppContainer.shared.unitReading.allUnits()) ?? []
+                catalog = TextSearchCatalog(fieldsPerItem: units.map { [$0.name, $0.nameAlt] })
             }
         }
     }
