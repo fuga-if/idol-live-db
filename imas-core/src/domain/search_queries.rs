@@ -25,6 +25,7 @@
 //! 契約なので、LIKE の意味論をそのまま実装する。
 
 use crate::domain::snapshot::Snapshot;
+use crate::domain::text_search_index::FoldedNeedle;
 
 /// iOS `searchQuery` の `.limit(20)` の写し。各エンティティ種別ごとの上限。
 pub const GLOBAL_SEARCH_LIMIT: usize = 20;
@@ -39,35 +40,14 @@ pub struct GlobalSearchHits {
     pub event_ids: Vec<String>,
 }
 
-/// SQLite の `LIKE '%needle%'` 相当: ASCII のみ大文字小文字を無視する部分一致。
-///
-/// エスケープ済みパターンの中身はリテラルなので、生の検索語の包含判定に還元できる。
-/// バイト列で照合しても文字境界を跨いだ誤一致は起きない (needle 先頭は ASCII バイトか
-/// UTF-8 先頭バイトで、haystack の継続バイト 0x80-0xBF とは一致し得ない)。
-/// song_list_queries の同名 private と重複するのは意図的 — LIKE の意味論は各移送単位の
-/// 契約の一部なので、モジュール間で private を共有せず単位ごとに固定する。
-fn like_contains(haystack: &str, needle: &str) -> bool {
-    let (h, n) = (haystack.as_bytes(), needle.as_bytes());
-    if n.is_empty() {
-        return true; // LIKE '%%' は非 NULL の全行に一致
-    }
-    if n.len() > h.len() {
-        return false;
-    }
-    h.windows(n.len()).any(|w| w.eq_ignore_ascii_case(n))
-}
-
-/// NULL 列への LIKE: SQL では結果が NULL (= 不一致) になる。
-fn opt_like(value: &Option<String>, needle: &str) -> bool {
-    value.as_deref().is_some_and(|v| like_contains(v, needle))
-}
 
 /// 曲の横断検索 (title / title_kana の部分一致、先頭 20 件)。添字はスナップショット順。
 pub fn searched_song_indexes(snap: &Snapshot, query: &str) -> Vec<u32> {
+    let needle = FoldedNeedle::new(query);
     snap.songs
         .iter()
         .enumerate()
-        .filter(|(_, s)| like_contains(&s.title, query) || opt_like(&s.title_kana, query))
+        .filter(|(_, s)| needle.matches(&s.title) || needle.matches_opt(s.title_kana.as_deref()))
         .map(|(i, _)| i as u32)
         .take(GLOBAL_SEARCH_LIMIT)
         .collect()
@@ -76,10 +56,11 @@ pub fn searched_song_indexes(snap: &Snapshot, query: &str) -> Vec<u32> {
 /// アイドルの横断検索 (name / name_kana の部分一致、先頭 20 件)。
 /// 元 SQL 同様 is_external も対象に含める (絞らないのが現行仕様)。
 pub fn searched_idol_indexes(snap: &Snapshot, query: &str) -> Vec<u32> {
+    let needle = FoldedNeedle::new(query);
     snap.idols
         .iter()
         .enumerate()
-        .filter(|(_, i)| like_contains(&i.name, query) || opt_like(&i.name_kana, query))
+        .filter(|(_, i)| needle.matches(&i.name) || needle.matches_opt(i.name_kana.as_deref()))
         .map(|(i, _)| i as u32)
         .take(GLOBAL_SEARCH_LIMIT)
         .collect()
@@ -89,10 +70,11 @@ pub fn searched_idol_indexes(snap: &Snapshot, query: &str) -> Vec<u32> {
 ///
 /// 漢字のライブ名は読みが無いとかなで引けない。曲・アイドルと同じ扱いに揃える。
 pub fn searched_event_indexes(snap: &Snapshot, query: &str) -> Vec<u32> {
+    let needle = FoldedNeedle::new(query);
     snap.events
         .iter()
         .enumerate()
-        .filter(|(_, e)| like_contains(&e.name, query) || opt_like(&e.name_kana, query))
+        .filter(|(_, e)| needle.matches(&e.name) || needle.matches_opt(e.name_kana.as_deref()))
         .map(|(i, _)| i as u32)
         .take(GLOBAL_SEARCH_LIMIT)
         .collect()
@@ -212,6 +194,13 @@ mod tests {
     }
 
     // ---- 照合テスト (元 SQL との等価性保証) ----
+    //
+    // **ここでの「一致」は無条件ではない。** 判定は `FoldedNeedle` (大文字小文字 +
+    // ひらがな↔カタカナを畳む) に寄せてあり、SQL の `LIKE` の真の上位集合になっている。
+    // 下に並ぶ検索語は「両者が同じ集合になるもの」を選んである — 表記違いでしか
+    // 増えないので、かな表記の揺れを跨がない語なら一致する。
+    // 増える側の実例は `kana_folding_finds_more_than_sql_like` に置いた。
+    // 語を足すときは、増分が出ないことを確かめてからここへ入れること。
 
     /// 実データで当たり方の異なる検索語 5 系統。各種別が元 SQL と順序込みで一致する。
     #[test]
@@ -289,6 +278,45 @@ mod tests {
         assert!(harukas.contains(&"天海春香"), "kana 側だけで当たるヒットが要る: {ids:?}");
     }
 
+    /// `LIKE` から意図的に逸脱している側。**かなの表記違いでも当たる**。
+    ///
+    /// 長らくコアのクエリ関数だけが SQL 忠実 (ASCII の大小のみ) で、同じ語を同じ
+    /// 検索欄に打っても iOS の一覧 (TextSearchCatalog) では当たり Android では
+    /// 当たらなかった。増える方向にしか変わらないので、従来出ていた行は消えない。
+    #[test]
+    fn kana_folding_finds_more_than_sql_like() {
+        // 実データから「カタカナ表記の題を持ち、読みがひらがな」の曲を 1 つ拾い、
+        // 題のカタカナ部分をひらがなに開いた語で引く (SQL の LIKE では当たらない語)。
+        let snap = snap();
+        let (kana_query, sql_hits, ours) = snap
+            .songs
+            .iter()
+            .find_map(|s| {
+                let katakana: String = s
+                    .title
+                    .chars()
+                    .filter(|c| ('\u{30A1}'..='\u{30F6}').contains(c))
+                    .collect();
+                if katakana.chars().count() < 4 {
+                    return None;
+                }
+                let hiragana: String = katakana
+                    .chars()
+                    .map(|c| char::from_u32(c as u32 - 0x60).unwrap())
+                    .collect();
+                let sql = sql_songs(&hiragana);
+                let ours = song_ids(&hiragana);
+                (!ours.is_empty() && ours.len() > sql.len()).then_some((hiragana, sql, ours))
+            })
+            .expect("カタカナ題 + ひらがな読みの曲が実データにある前提");
+
+        assert!(
+            sql_hits.iter().all(|id| ours.contains(id)),
+            "従来 SQL のヒットは全部残る: {kana_query}"
+        );
+        assert!(ours.len() > sql_hits.len(), "かなを畳んだぶん増える: {kana_query}");
+    }
+
     #[test]
     fn no_hit_query_is_empty_like_sql() {
         let (s, i, e) = assert_all_kinds_match_sql("zzz存在しない検索語");
@@ -298,23 +326,26 @@ mod tests {
     // ---- 純粋関数の性質 ----
 
     #[test]
-    fn like_contains_edge_cases() {
-        assert!(like_contains("READY!!", "ready"));
-        assert!(like_contains("Ready Steady", "STEADY"));
-        assert!(like_contains("夢色ハーモニー", "ハーモ"));
-        assert!(like_contains("anything", "")); // LIKE '%%'
-        assert!(!like_contains("短", "短い方より長い検索語"));
+    fn needle_matching_edge_cases() {
+        let hit = |h: &str, n: &str| FoldedNeedle::new(n).matches(h);
+        assert!(hit("READY!!", "ready"));
+        assert!(hit("Ready Steady", "STEADY"));
+        assert!(hit("夢色ハーモニー", "ハーモ"));
+        assert!(hit("anything", "")); // LIKE '%%' と同じく全行に一致
+        assert!(!hit("短", "短い方より長い検索語"));
         // 多バイト文字の途中バイトから始まる誤一致は起きない (「亜」E4BA9C vs「介」E4BB8B)
-        assert!(!like_contains("亜", "介"));
-        // ASCII 以外は畳み込まない (SQLite LIKE と同じ / TextSearchCatalog との差分)
-        assert!(!like_contains("ツバサ", "つばさ"));
+        assert!(!hit("亜", "介"));
+        // ここが `LIKE` からの意図的な逸脱。SQL 忠実だった頃は当たらず、
+        // 同じ語が iOS の一覧 (TextSearchCatalog) では当たっていた。
+        assert!(hit("ツバサ", "つばさ"), "ひらがな↔カタカナを畳む");
     }
 
     #[test]
     fn null_kana_is_no_match() {
-        assert!(!opt_like(&None, "夢"));
+        let none: Option<&str> = None;
+        assert!(!FoldedNeedle::new("夢").matches_opt(none));
         // `NULL LIKE '%%'` も結果は NULL = 不一致 (空パターンでも NULL 列は落ちる)
-        assert!(!opt_like(&None, ""));
+        assert!(!FoldedNeedle::new("").matches_opt(none));
     }
 
     /// global_search は 3 本の添字関数を id 化して束ねただけであること (二重実装の防止)。

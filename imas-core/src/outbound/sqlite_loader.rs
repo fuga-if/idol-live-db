@@ -17,7 +17,8 @@
 //! 被害が小さい (過去に FK 孤児で起動クラッシュ→審査 reject の事故があった系譜のデータ)。
 
 use crate::domain::snapshot::{
-    Anniversary, Brand, BrandMemberLink, Event, EventRelease, Idol, IdolBrandLink, IdolSongLink,
+    Anniversary, Brand, BrandMemberLink, Creator, Event, EventRelease, Idol, IdolBrandLink,
+    IdolSongLink,
     IdolVoiceActor, SetlistItem, Show, ShowCastLink, Snapshot, Song, SongArtistLink, Staff, Unit,
     Venue, VenueHall, VenueName,
 };
@@ -36,6 +37,7 @@ pub fn load_snapshot(db_path: &str) -> Result<Snapshot, String> {
     let events = load_events(&conn)?;
     let units = load_units(&conn)?;
     let brands = load_brands(&conn)?;
+    let creators = load_creators(&conn)?;
     let venues = load_venues(&conn)?;
     let staff = load_staff(&conn)?;
     let anniversaries = load_anniversaries(&conn)?;
@@ -401,6 +403,19 @@ pub fn load_snapshot(db_path: &str) -> Result<Snapshot, String> {
         setlist_items,
         units,
         brands,
+        creator_spellings: creators
+            .iter()
+            .map(|c| {
+                // 読み・表記・別表記をまとめて 1 人ぶんの綴り列にする。
+                // `aliases` は改行区切り (曲側に現れる「烏屋茶房」以外の書き方)。
+                let mut v = vec![c.name.clone(), c.name_kana.clone()];
+                if let Some(a) = &c.aliases {
+                    v.extend(a.lines().map(str::trim).filter(|l| !l.is_empty()).map(str::to_string));
+                }
+                v
+            })
+            .collect(),
+        creators,
         venues,
         venue_names,
         venue_halls,
@@ -772,6 +787,29 @@ fn load_brands(conn: &Connection) -> Result<Vec<Brand>, String> {
                 color: r.get(3)?,
                 sort_order: r.get::<_, Option<i64>>(4)?.unwrap_or(0),
                 icon_url: r.get(5)?,
+            })
+        })
+        .map_err(|e| e.to_string())?;
+    rows.collect::<Result<_, _>>().map_err(|e| e.to_string())
+}
+
+/// 作家の読み。テーブルが無い DB (旧スキーマの端末) では空で返す。
+///
+/// 空でも一覧やクレジット表示は動く (かなで引けなくなるだけ) ので、
+/// ここで読み込みを失敗させて**スナップショット全体を落とす方が損失が大きい**。
+/// Android は `idol_voice_actors` を持たない等、端末ごとに表が欠けることが実際にある。
+fn load_creators(conn: &Connection) -> Result<Vec<Creator>, String> {
+    let mut stmt = match conn.prepare("SELECT id, name, name_kana, aliases FROM creators") {
+        Ok(s) => s,
+        Err(_) => return Ok(Vec::new()),
+    };
+    let rows = stmt
+        .query_map([], |r| {
+            Ok(Creator {
+                id: r.get(0)?,
+                name: r.get(1)?,
+                name_kana: r.get(2)?,
+                aliases: r.get(3)?,
             })
         })
         .map_err(|e| e.to_string())?;

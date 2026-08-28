@@ -33,6 +33,7 @@
 use crate::domain::snapshot::Snapshot;
 use std::cmp::Reverse;
 use std::collections::{HashMap, HashSet};
+use crate::domain::text_search_index::FoldedNeedle;
 
 // =============================================================================
 // FFI 射影 Record (uniffi は型 derive のみ / ロジックはこのファイルの関数側)
@@ -219,17 +220,6 @@ pub struct VenueDirectoryRecord {
 /// SQLite の `LIKE '%needle%'` 相当: ASCII のみ大文字小文字を無視する部分一致。
 /// (song_list_queries と同じ実装。needle 先頭バイトは UTF-8 継続バイトと衝突しないため
 /// バイト列照合でも文字境界を跨いだ誤一致は起きない。)
-fn like_contains(haystack: &str, needle: &str) -> bool {
-    let (h, n) = (haystack.as_bytes(), needle.as_bytes());
-    if n.is_empty() {
-        return true; // LIKE '%%' は非 NULL の全行に一致
-    }
-    if n.len() > h.len() {
-        return false;
-    }
-    h.windows(n.len()).any(|w| w.eq_ignore_ascii_case(n))
-}
-
 /// `ORDER BY sort_order` (idols) の明示キー。NULL 先頭 (Option の None < Some) +
 /// 添字タイブレークで決定的にする。
 fn idol_sort_key(snap: &Snapshot, idol: u32) -> (Option<i64>, u32) {
@@ -355,18 +345,22 @@ pub fn all_shows_with_event_name(snap: &Snapshot, limit: u32) -> Vec<ShowWithEve
         .collect()
 }
 
-/// ピッカー用の公演検索 (iOS searchShows = 公演名 or イベント名の LIKE 部分一致、新しい順)。
+/// ピッカー用の公演検索 (iOS searchShows = 公演名 or イベント名の部分一致、新しい順)。
+///
+/// 当たり方は一覧の索引 (`TextSearchCatalog`) と同じ `FoldedNeedle` — 元 SQL の LIKE より
+/// 広く、ひらがな↔カタカナも畳む。
 pub fn search_shows_with_event_name(
     snap: &Snapshot,
     query: &str,
     limit: u32,
 ) -> Vec<ShowWithEventNameRecord> {
+    let needle = FoldedNeedle::new(query);
     shows_newest_first(snap)
         .into_iter()
         .filter(|&s| {
             let show = &snap.shows[s as usize];
-            like_contains(&show.name, query)
-                || like_contains(&snap.events[show.event as usize].name, query)
+            needle.matches(&show.name)
+                || needle.matches(&snap.events[show.event as usize].name)
         })
         .take(limit as usize)
         .map(|s| show_with_event_name_at(snap, s))
@@ -568,7 +562,7 @@ pub fn venues_matching(
     if query.is_empty() || event_ids.is_empty() {
         return HashMap::new();
     }
-    let needle = query.to_lowercase();
+    let needle = FoldedNeedle::new(query);
     let mut result: HashMap<String, String> = HashMap::new();
     for event_id in event_ids {
         let Some(&e) = snap.event_index_by_id.get(event_id) else { continue };
@@ -576,7 +570,7 @@ pub fn venues_matching(
         let min_venue = snap.shows_by_event[e as usize]
             .iter()
             .filter_map(|&s| snap.shows[s as usize].venue.as_deref())
-            .filter(|v| like_contains(v, &needle))
+            .filter(|v| needle.matches(v))
             .min();
         if let Some(v) = min_venue {
             // 同一 event_id が入力に重複していても結果は 1 件 (SQL の GROUP BY と同じ)。

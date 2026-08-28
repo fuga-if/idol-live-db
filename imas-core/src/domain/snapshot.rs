@@ -179,6 +179,21 @@ pub struct Brand {
     pub icon_url: Option<String>,
 }
 
+/// 作詞・作曲・編曲の作家。
+///
+/// **読みを持つためだけに存在する。** 曲側のクレジット欄 (`songs.composer` 等) は
+/// 「BNSI(中川浩二)／烏屋茶房」のような自由文字列で、そのままでは かなで引けない。
+/// `credit_names` で人ごとに割った表記を鍵に、ここの `name_kana` を当てる。
+#[derive(Debug, Clone)]
+pub struct Creator {
+    pub id: String,
+    /// `canonical_credit_key` を通した後の表記。
+    pub name: String,
+    pub name_kana: String,
+    /// 曲側に現れる別表記 (改行区切り)。
+    pub aliases: Option<String>,
+}
+
 /// venues 全カラム (会場マスタ)。VenueDirectory 相当の解決はクエリ層がメモリ上で行う。
 #[derive(Debug, Clone)]
 pub struct Venue {
@@ -319,6 +334,10 @@ pub struct Snapshot {
     pub setlist_items: Vec<SetlistItem>,
     pub units: Vec<Unit>,
     pub brands: Vec<Brand>,
+    pub creators: Vec<Creator>,
+    /// 作家の読み・別表記を畳んだ検索用の綴り列 (`creators` と同じ並び)。
+    /// 打鍵ごとに組み直さないよう読み込み時に 1 回だけ作る。
+    pub creator_spellings: Vec<Vec<String>>,
     pub venues: Vec<Venue>,
     /// 並びはテーブル出現順 (SQL 時代の fetchAll も ORDER BY なし)。
     pub venue_names: Vec<VenueName>,

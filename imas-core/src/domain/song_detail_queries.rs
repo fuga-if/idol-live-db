@@ -144,6 +144,11 @@ pub struct SeriesSummaryRecord {
 pub struct PickedSongRecord {
     pub id: String,
     pub title: String,
+    /// 読み。**並び順には使わない** (並びは `title` のバイト列順のまま) が、
+    /// ピッカーの検索欄で かなから引けるようにするために運ぶ。
+    /// これが無かった頃は、曲一覧では「みちしるべ」で当たるのに編集 UI の
+    /// 曲ピッカーだけ当たらなかった。
+    pub title_kana: Option<String>,
 }
 
 /// クリエイター絞り込みの 1 行 (iOS `SongWithRoles`)。
@@ -469,7 +474,11 @@ pub fn all_songs_for_picker(snap: &Snapshot) -> Vec<PickedSongRecord> {
         .into_iter()
         .map(|i| {
             let s = &snap.songs[i as usize];
-            PickedSongRecord { id: s.id.clone(), title: s.title.clone() }
+            PickedSongRecord {
+                id: s.id.clone(),
+                title: s.title.clone(),
+                title_kana: s.title_kana.clone(),
+            }
         })
         .collect()
 }
@@ -876,10 +885,16 @@ mod tests {
     fn all_songs_for_picker_matches_sql() {
         let snap = snapshot();
         let db = conn();
-        let mut stmt = db.prepare("SELECT id, title FROM songs ORDER BY title").unwrap();
+        let mut stmt = db
+            .prepare("SELECT id, title, title_kana FROM songs ORDER BY title")
+            .unwrap();
         let expected: Vec<PickedSongRecord> = stmt
             .query_map([], |r| {
-                Ok(PickedSongRecord { id: r.get_unwrap("id"), title: r.get_unwrap("title") })
+                Ok(PickedSongRecord {
+                    id: r.get_unwrap("id"),
+                    title: r.get_unwrap("title"),
+                    title_kana: r.get_unwrap("title_kana"),
+                })
             })
             .unwrap()
             .map(Result::unwrap)

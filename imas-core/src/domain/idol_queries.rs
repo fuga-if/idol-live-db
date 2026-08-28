@@ -35,6 +35,7 @@
 
 use crate::domain::snapshot::{Idol, Snapshot};
 use std::collections::{HashMap, HashSet};
+use crate::domain::text_search_index::FoldedNeedle;
 
 // =============================================================================
 // FFI 射影 Record (uniffi は型 derive のみ / ロジックはこのファイルの関数側)
@@ -304,32 +305,30 @@ pub fn idols_by_voice_actor(snap: &Snapshot, name: &str) -> Vec<IdolRecord> {
 ///  ORDER BY sort_order LIMIT :limit
 /// ```
 /// :p は likeEscaped 済みの `%query%` なのでワイルドカードを含まないリテラル部分一致。
-/// SQLite の LIKE は ASCII だけ大文字小文字を無視するので、ASCII 小文字化 + contains
-/// で等価になる (非 ASCII は大小区別あり = バイト列一致)。NULL 列は不一致。
+/// 当たり方は一覧の索引 (`TextSearchCatalog`) と同じ `FoldedNeedle` に寄せてあり、
+/// 大文字小文字に加えて**ひらがな↔カタカナも畳む**。元 SQL の LIKE (ASCII の大小のみ)
+/// の真の上位集合。ただし `limit` で切る以上、**打ち切りで押し出される行はある**
+/// (「ミ」で読みが「み」の 46 人が新たに入り、上位 50 件の顔ぶれが変わる)。
+/// 絞り込みが甘い語ほど増えるが、そこは語を足して絞る局面なので許容する。
+/// NULL 列は不一致 (`NULL LIKE ?` は NULL)。
 /// is_external を絞らない (ピッカーはゲスト出演者も引けてよい) のも元 SQL のまま。
 pub fn search_idols(snap: &Snapshot, query: &str, limit: u32) -> Vec<IdolRecord> {
-    let needle = query.to_ascii_lowercase();
+    let needle = FoldedNeedle::new(query);
     snap.idol_order
         .iter()
         .filter(|&&i| {
             let idol = &snap.idols[i as usize];
-            like_contains(Some(idol.name.as_str()), &needle)
-                || like_contains(idol.name_kana.as_deref(), &needle)
-                || like_contains(idol.name_romaji.as_deref(), &needle)
-                || like_contains(idol.aliases.as_deref(), &needle)
+            needle.matches(&idol.name)
+                || needle.matches_opt(idol.name_kana.as_deref())
+                || needle.matches_opt(idol.name_romaji.as_deref())
+                || needle.matches_opt(idol.aliases.as_deref())
                 || snap.voice_actors_by_idol[i as usize].iter().any(|&v| {
-                    like_contains(Some(snap.idol_voice_actors[v as usize].name.as_str()), &needle)
+                    needle.matches(&snap.idol_voice_actors[v as usize].name)
                 })
         })
         .take(limit as usize)
         .map(|&i| IdolRecord::from(&snap.idols[i as usize]))
         .collect()
-}
-
-/// SQLite の `LIKE '%q%'` (リテラル q) 相当: ASCII だけ小文字化した contains。
-/// needle は呼び出し側で小文字化済み。NULL (None) は LIKE が NULL になり偽。
-fn like_contains(haystack: Option<&str>, needle_lower: &str) -> bool {
-    haystack.is_some_and(|h| h.to_ascii_lowercase().contains(needle_lower))
 }
 
 /// 編集 UI のピッカー用: 全アイドル (fetchAllIdolsForPicker)。
@@ -768,7 +767,24 @@ mod tests {
                     .collect();
                 let got_ids: Vec<String> =
                     search_idols(&snap, q, limit).into_iter().map(|r| r.id).collect();
-                assert_eq!(sql_ids, got_ids, "query={q:?} limit={limit}");
+                // **等価ではなく上位集合**。判定を `FoldedNeedle` (かなも畳む) に寄せた
+                // ので、SQL の LIKE より広く当たる。`limit` で切るぶん、SQL のヒットが
+                // 押し出されることはあるが、打ち切りに達していなければ全部残る。
+                let sql_set: HashSet<&String> = sql_ids.iter().collect();
+                let got_set: HashSet<&String> = got_ids.iter().collect();
+                if got_ids.len() < limit as usize {
+                    assert!(
+                        sql_set.is_subset(&got_set),
+                        "SQL のヒットが消えている: query={q:?} limit={limit}\n                         SQL={sql_ids:?}\nours={got_ids:?}"
+                    );
+                }
+                // 並びは元 SQL と同じ (sort_order 昇順) であること。
+                let order: Vec<u32> = got_ids
+                    .iter()
+                    .map(|id| snap.idol_index_by_id[id])
+                    .map(|i| snap.idol_order.iter().position(|&x| x == i).unwrap() as u32)
+                    .collect();
+                assert!(order.windows(2).all(|w| w[0] < w[1]), "query={q:?} の並びが崩れた");
                 if !got_ids.is_empty() {
                     nonempty += 1;
                 }

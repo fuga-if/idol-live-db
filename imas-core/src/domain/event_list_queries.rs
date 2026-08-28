@@ -31,6 +31,7 @@
 
 use crate::domain::snapshot::{Event, Snapshot};
 use std::collections::HashSet;
+use crate::domain::text_search_index::FoldedNeedle;
 
 // =============================================================================
 // FFI 射影 Record (uniffi は型 derive のみ / ロジックはこのファイルの関数側)
@@ -235,21 +236,29 @@ pub fn search_events_by_name_or_venue(
     query: &str,
     limit: u32,
 ) -> Vec<EventListRecord> {
-    // Swift の `query.lowercased()`。以降は列側の ASCII 小文字化と突き合わせる。
-    let needle: String = query.chars().flat_map(char::to_lowercase).collect();
+    // 検索語はここで 1 回だけ畳む。当たり方は一覧の索引 (`TextSearchCatalog`) と
+    // 同じ規則 — 大文字小文字に加えて ひらがな↔カタカナも畳む。
+    let needle = FoldedNeedle::new(query);
 
     let mut indexes: Vec<u32> = (0..snap.events.len() as u32)
         .filter(|&i| {
-            if ascii_lower_contains(&snap.events[i as usize].name, &needle) {
+            if needle.matches(&snap.events[i as usize].name) {
                 return true;
             }
             let shows = &snap.shows_by_event[i as usize];
             if shows.is_empty() {
                 // LEFT JOIN の未一致行: sh.venue が NULL → IFNULL で '' になる。
-                return ascii_lower_contains("", &needle);
+                return needle.matches("");
             }
             shows.iter().any(|&s| {
-                ascii_lower_contains(snap.shows[s as usize].venue.as_deref().unwrap_or(""), &needle)
+                let show = &snap.shows[s as usize];
+                if needle.matches(show.venue.as_deref().unwrap_or("")) {
+                    return true;
+                }
+                // `shows.venue` は表示用の生文字列で、読みも改名前の名前も入っていない。
+                // ここだけ見ていると「よこはまありーな」でも「横浜アリーナ」の旧名でも
+                // 引けない (漢字の会場は 175 件ある)。会場マスタ側の読み・別名も当てる。
+                venue_spellings_hit(snap, show.venue_id.as_deref(), &needle)
             })
         })
         .collect();
@@ -259,10 +268,24 @@ pub fn search_events_by_name_or_venue(
     indexes.into_iter().map(|i| EventListRecord::from(&snap.events[i as usize])).collect()
 }
 
-/// `LOWER(col) LIKE '%needle%'` 相当。列は SQLite の ASCII 限定 LOWER で畳み、
-/// needle は呼び出し側で Swift の `lowercased()` 済みであること。
-fn ascii_lower_contains(haystack: &str, needle: &str) -> bool {
-    haystack.to_ascii_lowercase().contains(needle)
+/// 会場マスタ側の綴り (現行名・読み・別名) に当たるか。
+///
+/// 公演に `venue_id` が無い (会場を特定できていない古い公演) 場合は false。
+/// そこは `shows.venue` の生文字列でしか引けないが、それが仕様どおり
+/// (会場マスタに無いものの読みは持ちようがない)。
+fn venue_spellings_hit(snap: &Snapshot, venue_id: Option<&str>, needle: &FoldedNeedle) -> bool {
+    let Some(venue) = venue_id.and_then(|id| snap.venue(id)) else { return false };
+    if needle.matches(&venue.name) {
+        return true;
+    }
+    if needle.matches_opt(venue.name_kana.as_deref()) {
+        return true;
+    }
+    // 別名は改行区切り (改名前の名前・略称)。
+    venue
+        .aliases
+        .as_deref()
+        .is_some_and(|a| a.lines().any(|l| !l.trim().is_empty() && needle.matches(l)))
 }
 
 /// イベント一覧 (最初/最後の公演日付き、最初の公演日の降順)。
@@ -427,6 +450,42 @@ pub fn event_names(snap: &Snapshot) -> Vec<String> {
 
 #[cfg(test)]
 mod tests {
+
+    /// 回帰 (2026-08-28): 会場の読みでライブを引けなかった。
+    ///
+    /// `venues.name_kana` は全 234 件入っているのに、検索は公演の生文字列
+    /// `shows.venue` しか見ていなかった。漢字の会場は 175 件あり、
+    /// 「よこはまありーな」では 0 件になっていた。
+    /// **ここは元 SQL と意図的に振る舞いが違う** (SQL は会場マスタを引かない)。
+    #[test]
+    fn event_search_matches_the_venue_reading() {
+        let by = |q: &str| search_events_by_name_or_venue(snap(), q, 500).len();
+        // 会場マスタに読みが入っている会場を 1 つ選ぶ。
+        let venue = snap()
+            .venues
+            .iter()
+            .find(|v| {
+                v.name_kana.as_deref().is_some_and(|k| !k.is_empty())
+                    && v.name.chars().any(|c| ('\u{4E00}'..='\u{9FFF}').contains(&c))
+                    && snap().shows.iter().any(|s| s.venue_id.as_deref() == Some(&v.id))
+            })
+            .expect("読みつきで漢字の会場が 1 つはある");
+        let kana = venue.name_kana.as_deref().unwrap();
+        let by_kanji = by(&venue.name);
+        let by_kana = by(kana);
+        assert!(by_kanji > 0, "表記で引けない時点でこのテストは無意味");
+        // 直前まで 0 件だったのがここの回帰。
+        assert!(by_kana > 0, "会場「{}」の読み「{}」で 1 件も出ない", venue.name, kana);
+        // 読みで引ける集合は表記で引ける集合の**部分集合**になる。会場マスタに
+        // 紐付いていない公演 (`venue_id` が空で、生文字列にだけ会場名がある) は
+        // 読みを持ちようがないため。実データで 幕張メッセ は 130 公演中 6 件がそれ。
+        assert!(
+            by_kana <= by_kanji,
+            "読みの方が多いのはおかしい ({} > {})",
+            by_kana,
+            by_kanji
+        );
+    }
     use super::*;
     use crate::outbound::sqlite_loader::load_snapshot;
     use rusqlite::{Connection, OpenFlags};
@@ -488,19 +547,42 @@ mod tests {
     }
 
     /// 照合: searchEventsByNameOrVenue。名前だけ当たる語・会場だけ当たる語・
-    /// 打ち切りが効く語・空振り・ワイルドカードで元 SQL と順序込みで一致する。
+    /// 打ち切りが効く語・空振り・ワイルドカードを元 SQL と突き合わせる。
+    ///
+    /// **等価ではなく上位集合**。判定を `FoldedNeedle` (一覧の索引と同じ規則) に
+    /// 寄せてあり、SQL の LIKE より広く当たる:
+    /// - ひらがな↔カタカナを畳む
+    /// - 会場マスタの読み・別名 (旧名) にも当てる — 生の `shows.venue` には無い情報
+    ///
+    /// 消える方向には動かない (打ち切りに達している場合を除く)。並びは元 SQL と同じ
+    /// id 昇順であること。
     #[test]
-    fn search_events_by_name_or_venue_matches_sql() {
+    fn search_events_by_name_or_venue_is_a_superset_of_sql() {
         let queries = [
             "武道館", "ライブ", "M@STER", "SSA", "さいたま", "横浜", "ready", "READY",
             "", "%", "_", "\\", "zzz存在しない検索語",
         ];
         let mut with_hits = 0usize;
         let mut capped = 0usize;
+        let mut widened = 0usize;
         for q in queries {
             for limit in [5u32, 100, 200] {
                 let want = run_original_event_search_sql(q, limit);
-                assert_eq!(searched_event_ids(q, limit), want, "query={q:?} limit={limit}");
+                let got = searched_event_ids(q, limit);
+                assert!(
+                    got.windows(2).all(|w| w[0] < w[1]),
+                    "並びが id 昇順でない: query={q:?} limit={limit}"
+                );
+                if got.len() < limit as usize {
+                    let got_set: HashSet<&String> = got.iter().collect();
+                    let missing: Vec<&String> =
+                        want.iter().filter(|id| !got_set.contains(id)).collect();
+                    assert!(
+                        missing.is_empty(),
+                        "SQL のヒットが消えている: query={q:?} limit={limit} → {missing:?}"
+                    );
+                    widened += usize::from(got.len() > want.len());
+                }
             }
             let hits = searched_event_ids(q, 200);
             with_hits += usize::from(!hits.is_empty());
@@ -508,6 +590,7 @@ mod tests {
         }
         assert!(with_hits > 5, "ヒットする検索語のサンプル数 ({with_hits})");
         assert!(capped > 3, "打ち切りが効くサンプル数 ({capped})");
+        assert!(widened > 0, "広がった実例が 1 つも無いなら、寄せた意味の検証として退化する");
     }
 
     /// 会場だけで当たる経路が実在すること (名前には無い語が shows.venue で拾える)。

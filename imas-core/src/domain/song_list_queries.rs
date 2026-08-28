@@ -24,6 +24,7 @@
 use crate::domain::snapshot::Snapshot;
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
+use crate::domain::text_search_index::FoldedNeedle;
 
 /// 楽曲一覧の動的絞り込み条件。iOS `SongSearchFilter` の 1:1 対応。
 ///
@@ -79,33 +80,30 @@ impl SongListSort {
 
 // ---- LIKE (%q% / q%) の明示実装 ----
 
-/// SQLite の `LIKE '%needle%'` 相当: ASCII のみ大文字小文字を無視する部分一致。
-///
-/// バイト列で照合しても文字境界を跨いだ誤一致は起きない (needle 先頭は ASCII バイトか
-/// UTF-8 先頭バイトで、haystack の継続バイト 0x80-0xBF とは一致し得ない)。
-fn like_contains(haystack: &str, needle: &str) -> bool {
-    let (h, n) = (haystack.as_bytes(), needle.as_bytes());
-    if n.is_empty() {
-        return true; // LIKE '%%' は非 NULL の全行に一致
-    }
-    if n.len() > h.len() {
-        return false;
-    }
-    h.windows(n.len()).any(|w| w.eq_ignore_ascii_case(n))
-}
-
 /// SQLite の `LIKE 'needle%'` 相当 (前方一致)。リリース年フィルタで使う。
 fn like_prefix(haystack: &str, needle: &str) -> bool {
     let (h, n) = (haystack.as_bytes(), needle.as_bytes());
     n.len() <= h.len() && h[..n.len()].eq_ignore_ascii_case(n)
 }
 
-/// NULL 列への LIKE: SQL では結果が NULL (= 不一致) になる。
-fn opt_like(value: &Option<String>, needle: &str) -> bool {
-    value.as_deref().is_some_and(|v| like_contains(v, needle))
+/// iOS 側の「nil も空文字も条件なし」を 1 箇所に固定する。
+/// 打った語が読み・別表記に当たった作家の、**曲側の欄に出る表記**を返す。
+///
+/// 曲の欄は自由文字列なので、そこに読みは書かれていない。「からすやさぼう」を
+/// 「烏屋茶房」に翻訳してから欄を見る、という 2 段構えにしている。
+///
+/// 別表記 (`aliases`) も鍵に含めるのは、同じ人が「滝澤俊輔(TRYTONELABO)」
+/// 「滝澤俊輔［TRYTONELABO］」のように複数の書き方で欄に出るため。
+/// 綴り列は読み込み時に 1 回だけ組んである (`Snapshot::creator_spellings`)。
+fn creator_names_matching<'a>(snap: &'a Snapshot, needle: &FoldedNeedle) -> Vec<&'a str> {
+    snap.creator_spellings
+        .iter()
+        .enumerate()
+        .filter(|(_, spellings)| spellings.iter().any(|sp| needle.matches(sp)))
+        .map(|(i, _)| snap.creators[i].name.as_str())
+        .collect()
 }
 
-/// iOS 側の「nil も空文字も条件なし」を 1 箇所に固定する。
 fn non_empty(value: &Option<String>) -> Option<&str> {
     value.as_deref().filter(|v| !v.is_empty())
 }
@@ -126,12 +124,14 @@ fn non_blank(value: &Option<String>) -> Option<&str> {
 pub fn filter_song_indexes(snap: &Snapshot, filter: &SongListFilter) -> Vec<u32> {
     let brand_set: HashSet<&str> = filter.brand_ids.iter().map(String::as_str).collect();
     let idol_set: HashSet<&str> = filter.idol_ids.iter().map(String::as_str).collect();
-    let title_q = non_empty(&filter.title);
-    let idol_name_q = non_empty(&filter.idol_name);
-    let songwriter_q = non_empty(&filter.songwriter);
-    let cd_series_q = non_empty(&filter.cd_series);
+    // 検索語は行ごとではなく**ここで 1 回だけ**畳む (`FoldedNeedle`)。
+    // 当たり方は一覧の索引 (`TextSearchCatalog`) と同じ規則 — かなの表記違いも畳む。
+    let title_q = non_empty(&filter.title).map(FoldedNeedle::new);
+    let idol_name_q = non_empty(&filter.idol_name).map(FoldedNeedle::new);
+    let songwriter_q = non_empty(&filter.songwriter).map(FoldedNeedle::new);
+    let cd_series_q = non_empty(&filter.cd_series).map(FoldedNeedle::new);
     let series_group_q = non_empty(&filter.series_group);
-    let live_name_q = non_empty(&filter.live_name);
+    let live_name_q = non_empty(&filter.live_name).map(FoldedNeedle::new);
 
     snap.songs
         .iter()
@@ -169,18 +169,31 @@ pub fn filter_song_indexes(snap: &Snapshot, filter: &SongListFilter) -> Vec<u32>
                     return false;
                 }
             }
-            if let Some(q) = title_q {
-                if !(like_contains(&s.title, q) || opt_like(&s.title_kana, q)) {
+            if let Some(q) = &title_q {
+                if !(q.matches(&s.title) || q.matches_opt(s.title_kana.as_deref())) {
                     return false;
                 }
             }
-            if let Some(q) = songwriter_q {
-                if !(opt_like(&s.composer, q) || opt_like(&s.lyricist, q) || opt_like(&s.arranger, q)) {
+            if let Some(q) = &songwriter_q {
+                let hit = q.matches_opt(s.composer.as_deref())
+                    || q.matches_opt(s.lyricist.as_deref())
+                    || q.matches_opt(s.arranger.as_deref())
+                    // クレジット欄は「BNSI(中川浩二)／烏屋茶房」のような自由文字列なので、
+                    // 生の欄だけを見ると**読みでは永久に当たらない** (「からすやさぼう」で
+                    // 烏屋茶房 の 36 曲が 0 件になっていた)。読みで当たった作家の表記に
+                    // 置き換えてもう一度欄を見る。
+                    || creator_names_matching(snap, q).iter().any(|n| {
+                        let name = FoldedNeedle::new(n);
+                        name.matches_opt(s.composer.as_deref())
+                            || name.matches_opt(s.lyricist.as_deref())
+                            || name.matches_opt(s.arranger.as_deref())
+                    });
+                if !hit {
                     return false;
                 }
             }
-            if let Some(q) = cd_series_q {
-                if !opt_like(&s.cd_series, q) {
+            if let Some(q) = &cd_series_q {
+                if !q.matches_opt(s.cd_series.as_deref()) {
                     return false;
                 }
             }
@@ -206,19 +219,19 @@ pub fn filter_song_indexes(snap: &Snapshot, filter: &SongListFilter) -> Vec<u32>
                     if !idol_set.is_empty() {
                         idol_set.contains(idol.id.as_str())
                     } else {
-                        let q = idol_name_q.expect("idol_name_q は Some の分岐");
-                        like_contains(&idol.name, q) || opt_like(&idol.name_kana, q)
+                        let q = idol_name_q.as_ref().expect("idol_name_q は Some の分岐");
+                        q.matches(&idol.name) || q.matches_opt(idol.name_kana.as_deref())
                     }
                 });
                 if !matched {
                     return false;
                 }
             }
-            if let Some(q) = live_name_q {
+            if let Some(q) = &live_name_q {
                 // セトリ → show → event と辿り、イベント名が一致する披露が 1 つでもあるか。
                 let matched = snap.setlist_items_by_song[i].iter().any(|&ti| {
                     let show = &snap.shows[snap.setlist_items[ti as usize].show as usize];
-                    like_contains(&snap.events[show.event as usize].name, q)
+                    q.matches(&snap.events[show.event as usize].name)
                 });
                 if !matched {
                     return false;
@@ -654,6 +667,38 @@ mod tests {
         }
     }
 
+    /// 回帰 (2026-08-28): 作家の読みで曲を引けなかった。
+    ///
+    /// `creators` に「烏屋茶房 = からすやさぼう」は入っていたのに、クレジット欄の
+    /// 生文字列しか見ていなかったので「からすやさぼう」で 0 件になっていた。
+    /// **ここは元 SQL と意図的に振る舞いが違う** (SQL は読みを知らない)。
+    #[test]
+    fn songwriter_filter_matches_the_creator_reading() {
+        let by_name = |q: &str| {
+            let filter = SongListFilter { songwriter: Some(q.into()), ..browse_filter() };
+            song_list_indexes(snap(), &filter, SongListSort::TitleKana, None, &[], &[]).len()
+        };
+        let kanji = by_name("烏屋茶房");
+        assert!(kanji > 0, "表記で引けない時点でこのテストは無意味");
+        // 読みでも同じ集合が出る。
+        assert_eq!(by_name("からすやさぼう"), kanji);
+        // 部分一致でも当たる (打鍵の途中で 0 件にならない)。
+        assert!(by_name("からすや") >= kanji);
+    }
+
+    /// 別表記でも同じ人に当たる。
+    ///
+    /// 同じ作家が「滝澤俊輔(TRYTONELABO)」「滝澤俊輔［TRYTONELABO］」のように
+    /// 複数の書き方で欄に出るので、綴り列には aliases も入れてある。
+    #[test]
+    fn songwriter_filter_matches_through_aliases() {
+        let by_name = |q: &str| {
+            let filter = SongListFilter { songwriter: Some(q.into()), ..browse_filter() };
+            song_list_indexes(snap(), &filter, SongListSort::TitleKana, None, &[], &[]).len()
+        };
+        assert!(by_name("たきざわしゅんすけ") > 0);
+    }
+
     // ---- 照合テスト (元 SQL との等価性保証) ----
 
     #[test]
@@ -1017,15 +1062,23 @@ mod tests {
 
     // ---- 単体 (SQL 非依存の境界ケース) ----
 
+    /// 絞り込みの当たり方。SQL の `LIKE` より**広い** (一覧の索引と同じ規則)。
     #[test]
-    fn like_is_ascii_case_insensitive_only() {
-        assert!(like_contains("READY!!", "ready"));
-        assert!(like_contains("お願い！シンデレラ", "シンデレラ"));
-        // 非 ASCII は大小無視しない (SQLite の既定 LIKE と同じ)。
-        assert!(!like_contains("ＳＴＡＲ", "ｓｔａｒ"));
+    fn search_folds_case_and_kana() {
+        let hit = |h: &str, n: &str| FoldedNeedle::new(n).matches(h);
+        assert!(hit("READY!!", "ready"));
+        assert!(hit("お願い！シンデレラ", "シンデレラ"));
+        // ひらがな↔カタカナを畳む。SQL 忠実だった頃はここが当たらず、同じ語が
+        // iOS の一覧 (TextSearchCatalog) では当たっていた。
+        assert!(hit("お願い！シンデレラ", "しんでれら"));
+        // 大小無視は非 ASCII にも及ぶ (畳み込みは `char::to_lowercase` を通す)。
+        assert!(hit("ＳＴＡＲ", "ｓｔａｒ"));
         // 多バイト文字の部分一致は文字境界どおりに効く。
-        assert!(like_contains("アイドルマスター", "ドルマ"));
-        assert!(!like_contains("アイドル", "アイド ル"));
+        assert!(hit("アイドルマスター", "ドルマ"));
+        assert!(!hit("アイドル", "アイド ル"));
+        // 全角半角は畳まない (`ＳＴＡＲ` は半角 `star` では引けない)。
+        assert!(!hit("ＳＴＡＲ", "star"));
+        // 年フィルタの前方一致は SQL の LIKE 'x%' のまま (検索欄ではないので畳まない)。
         assert!(like_prefix("2015-04-15", "2015"));
         assert!(!like_prefix("2015-04-15", "2016"));
     }

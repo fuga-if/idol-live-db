@@ -102,8 +102,6 @@ pub fn unit_by_id(snap: &Snapshot, id: &str) -> Option<UnitRecord> {
     snap.unit_index_by_id.get(id).map(|&ui| record(snap, ui))
 }
 
-/// 全ユニット (iOS `fetchAllUnitsQuery` = `ORDER BY brand_id, name` 相当)。
-/// 並びはスナップショット構築時の前計算 (unit_order)。同キーは添字で決定的。
 pub fn all_units(snap: &Snapshot) -> Vec<UnitRecord> {
     snap.unit_order.iter().map(|&ui| record(snap, ui)).collect()
 }
@@ -186,6 +184,47 @@ pub fn performed_unit_ids(snap: &Snapshot, event_id: &str) -> Vec<String> {
 
 #[cfg(test)]
 mod tests {
+
+    /// 回帰 (2026-08-28): ユニット検索だけ かなを畳んでいなかった。
+    ///
+    /// Swift/Kotlin 側が `displayName.localizedCaseInsensitiveContains` を直に
+    /// 呼んでいて、曲・アイドル・ライブが「あるすとろめりあ」で当たるのに
+    /// ユニットだけ当たらない、という説明の付かない差になっていた。
+    /// 一覧の絞り込みは `TextSearchCatalog` (= `text_search_index`) を通す約束で、
+    /// ここでは**実データのユニット名がその規則で引ける**ことだけを押さえる
+    /// (両プラットフォームとも一覧は「曲ありユニット」に絞ってから畳むので、
+    /// 全ユニットを返す絞り込み関数はコアに置かない)。
+    #[test]
+    fn unit_names_fold_kana_under_the_shared_match_rule() {
+        use crate::domain::text_search_index::match_range;
+        let snap = snap();
+        let katakana = snap
+            .units
+            .iter()
+            .find(|u| {
+                u.name.chars().count() >= 4
+                    && u.name.chars().all(|c| ('\u{30A0}'..='\u{30FF}').contains(&c))
+            })
+            .expect("カタカナだけのユニットが 1 つはある");
+        let hiragana: String = katakana
+            .name
+            .chars()
+            .map(|c| {
+                if ('\u{30A1}'..='\u{30F6}').contains(&c) {
+                    char::from_u32(c as u32 - 0x60).unwrap()
+                } else {
+                    c
+                }
+            })
+            .collect();
+        assert!(match_range(&katakana.name, &katakana.name).is_some());
+        assert!(
+            match_range(&katakana.name, &hiragana).is_some(),
+            "「{hiragana}」で「{}」に当たらない",
+            katakana.name
+        );
+    }
+
     use super::*;
     use crate::outbound::sqlite_loader::load_snapshot;
     use rusqlite::{Connection, OpenFlags};

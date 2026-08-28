@@ -62,6 +62,55 @@ pub fn prepare_needle(text: &str) -> Vec<u8> {
     fold_lowercase(text).into_bytes()
 }
 
+/// 一覧クエリ側 (索引を組まずに 1 行ずつ判定する経路) 用の、畳み済み検索語。
+///
+/// ## なぜこれが要るのか
+///
+/// 検索の当たり方は長らく **2 つの規則に割れていた**。
+/// 一覧を手元で絞る経路 (`TextSearchIndex` = iOS の `TextSearchCatalog`) は
+/// 大文字小文字と ひらがな↔カタカナを畳むのに、コアのクエリ関数側は SQL の
+/// `LIKE` を忠実に写した「ASCII の大文字小文字だけ」の判定だった。
+/// 同じ検索欄に同じ語を打っても、**iOS では当たって Android では当たらない**
+/// (Android の一覧はクエリ関数を通るため)。移植の忠実さのつもりで残していた差が、
+/// そのまま使う人にとっての不具合になっていた。
+///
+/// 判定はこちらに寄せる。`LIKE` が当てるものは全部当てる (真の上位集合) ので、
+/// 従来出ていた行が消えることはない。
+///
+/// ## 代償
+///
+/// 索引版と違って行ごとに畳むため、1 行 1 回の割り当てが出る (索引版は読み込み時に
+/// 1 回だけ畳んでバイト列を持つ)。検索語の方は `new` で 1 度だけ畳んで使い回す。
+/// 打鍵ごとに数千行を舐める経路でも、DB クエリ 1 本より十分に安い。
+pub struct FoldedNeedle {
+    folded: String,
+}
+
+impl FoldedNeedle {
+    pub fn new(needle: &str) -> Self {
+        Self { folded: fold_lowercase(needle) }
+    }
+
+    /// 空の検索語 (= 絞り込まない)。
+    pub fn is_empty(&self) -> bool {
+        self.folded.is_empty()
+    }
+
+    /// `haystack` が検索語を含むか。空の検索語は `LIKE '%%'` と同じく true。
+    pub fn matches(&self, haystack: &str) -> bool {
+        if self.folded.is_empty() {
+            return true;
+        }
+        fold_lowercase(haystack).contains(&self.folded)
+    }
+
+    /// NULL 許容の列。SQL の `col LIKE ?` は NULL に対して NULL (= 偽) なので、
+    /// **空の検索語でも None は false**。`matches` と非対称なのは元の SQL がそうだから。
+    pub fn matches_opt(&self, value: Option<&str>) -> bool {
+        value.is_some_and(|v| self.matches(v))
+    }
+}
+
 /// 原本 Swift の `String.lowercased()` と同じ「文脈を見ない」小文字化。
 ///
 /// `str::to_lowercase` を使わないのは、Unicode SpecialCasing の Final_Sigma
