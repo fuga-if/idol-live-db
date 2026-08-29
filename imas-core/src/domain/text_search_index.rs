@@ -26,6 +26,7 @@
 ///
 /// 連結して 1 本にしないのは、境界をまたいだ偽陽性を避けるため
 /// (「A」と「B」を繋ぐと "AB" が当たってしまう)。
+#[derive(Debug, Default, Clone)]
 pub struct TextSearchIndex {
     fields: Vec<Vec<u8>>,
 }
@@ -77,11 +78,22 @@ pub fn prepare_needle(text: &str) -> Vec<u8> {
 /// 判定はこちらに寄せる。`LIKE` が当てるものは全部当てる (真の上位集合) ので、
 /// 従来出ていた行が消えることはない。
 ///
-/// ## 代償
+/// ## 使い分け (ここを間違えると遅い)
 ///
-/// 索引版と違って行ごとに畳むため、1 行 1 回の割り当てが出る (索引版は読み込み時に
-/// 1 回だけ畳んでバイト列を持つ)。検索語の方は `new` で 1 度だけ畳んで使い回す。
-/// 打鍵ごとに数千行を舐める経路でも、DB クエリ 1 本より十分に安い。
+/// [`matches`](Self::matches) は**行ごとに畳む**。畳み込みは 1 文字ごとに
+/// `char::to_lowercase` を通すので安くない。3,154 曲を舐める曲名検索の実測で:
+///
+/// ```text
+///   元の SQL (LIKE)                    0.29ms
+///   畳まない byte 走査                  1.8ms
+///   matches() で行ごとに畳む            7.4ms
+///   読み込み時に畳んだ索引と突き合わせ    0.6ms
+/// ```
+///
+/// **全行を舐める経路では [`TextSearchIndex`] を使うこと** (スナップショットが
+/// 読み込み時に組んである。`Snapshot::song_search` など)。`matches` は
+/// 「条件が指定されたときだけ見る列」(作詞作曲・CD シリーズ等) 向け。
+/// 検索語の方は `new` で 1 度だけ畳んで使い回す。
 pub struct FoldedNeedle {
     folded: String,
 }
@@ -89,6 +101,12 @@ pub struct FoldedNeedle {
 impl FoldedNeedle {
     pub fn new(needle: &str) -> Self {
         Self { folded: fold_lowercase(needle) }
+    }
+
+    /// 畳み済みのバイト列。読み込み時に畳んである索引
+    /// ([`TextSearchIndex`]) と突き合わせるときに使う。
+    pub fn as_bytes(&self) -> &[u8] {
+        self.folded.as_bytes()
     }
 
     /// 空の検索語 (= 絞り込まない)。

@@ -47,7 +47,7 @@ pub fn searched_song_indexes(snap: &Snapshot, query: &str) -> Vec<u32> {
     snap.songs
         .iter()
         .enumerate()
-        .filter(|(_, s)| needle.matches(&s.title) || needle.matches_opt(s.title_kana.as_deref()))
+        .filter(|(i, _)| snap.song_search[*i].matches(needle.as_bytes()))
         .map(|(i, _)| i as u32)
         .take(GLOBAL_SEARCH_LIMIT)
         .collect()
@@ -60,7 +60,7 @@ pub fn searched_idol_indexes(snap: &Snapshot, query: &str) -> Vec<u32> {
     snap.idols
         .iter()
         .enumerate()
-        .filter(|(_, i)| needle.matches(&i.name) || needle.matches_opt(i.name_kana.as_deref()))
+        .filter(|(i, _)| snap.idol_search[*i].matches(needle.as_bytes()))
         .map(|(i, _)| i as u32)
         .take(GLOBAL_SEARCH_LIMIT)
         .collect()
@@ -74,7 +74,7 @@ pub fn searched_event_indexes(snap: &Snapshot, query: &str) -> Vec<u32> {
     snap.events
         .iter()
         .enumerate()
-        .filter(|(_, e)| needle.matches(&e.name) || needle.matches_opt(e.name_kana.as_deref()))
+        .filter(|(i, _)| snap.event_search[*i].matches(needle.as_bytes()))
         .map(|(i, _)| i as u32)
         .take(GLOBAL_SEARCH_LIMIT)
         .collect()

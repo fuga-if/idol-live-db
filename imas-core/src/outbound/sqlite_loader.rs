@@ -24,6 +24,7 @@ use crate::domain::snapshot::{
 };
 use rusqlite::{Connection, OpenFlags};
 use std::collections::{HashMap, HashSet};
+use crate::domain::text_search_index::TextSearchIndex;
 
 pub fn load_snapshot(db_path: &str) -> Result<Snapshot, String> {
     let conn = Connection::open_with_flags(
@@ -395,7 +396,67 @@ pub fn load_snapshot(db_path: &str) -> Result<Snapshot, String> {
         (&events[a as usize].name, a).cmp(&(&events[b as usize].name, b))
     });
 
+    // 検索用の畳み込みは**ここで 1 回だけ**やる。打鍵ごとに行を畳むと
+    // 1 文字ごとに char::to_lowercase が走り、曲名検索が 7.4ms かかっていた。
+    let song_search = songs
+        .iter()
+        .map(|s| TextSearchIndex::new([Some(s.title.as_str()), s.title_kana.as_deref()].into_iter().flatten()))
+        .collect();
+    // 横断検索は名前と読みだけ (元 SQL がそう)。広げると当たり方が変わる。
+    let idol_search = idols
+        .iter()
+        .map(|d| TextSearchIndex::new([Some(d.name.as_str()), d.name_kana.as_deref()].into_iter().flatten()))
+        .collect();
+    // ピッカーはローマ字・別名・CV 名まで見る (声優名で探すのが主要な導線)。
+    let idol_picker_search = idols
+        .iter()
+        .enumerate()
+        .map(|(i, d)| {
+            let mut v: Vec<&str> = [
+                Some(d.name.as_str()),
+                d.name_kana.as_deref(),
+                d.name_romaji.as_deref(),
+                d.aliases.as_deref(),
+            ]
+            .into_iter()
+            .flatten()
+            .collect();
+            v.extend(
+                voice_actors_by_idol[i]
+                    .iter()
+                    .map(|&a| idol_voice_actors[a as usize].name.as_str()),
+            );
+            TextSearchIndex::new(v)
+        })
+        .collect();
+    let event_search = events
+        .iter()
+        .map(|e| TextSearchIndex::new([Some(e.name.as_str()), e.name_kana.as_deref()].into_iter().flatten()))
+        .collect();
+    let show_venue_search = shows
+        .iter()
+        .map(|sh| TextSearchIndex::new(sh.venue.as_deref()))
+        .collect();
+    let venue_search = venues
+        .iter()
+        .map(|v| {
+            let mut spellings: Vec<&str> =
+                [Some(v.name.as_str()), v.name_kana.as_deref()].into_iter().flatten().collect();
+            // 別名は改行区切り (改名前の名前・略称)。1 行ずつ別のフィールドにする。
+            if let Some(a) = &v.aliases {
+                spellings.extend(a.lines().map(str::trim).filter(|l| !l.is_empty()));
+            }
+            TextSearchIndex::new(spellings)
+        })
+        .collect();
+
     Ok(Snapshot {
+        song_search,
+        idol_search,
+        idol_picker_search,
+        event_search,
+        show_venue_search,
+        venue_search,
         songs,
         idols,
         events,

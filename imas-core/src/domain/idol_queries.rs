@@ -316,16 +316,7 @@ pub fn search_idols(snap: &Snapshot, query: &str, limit: u32) -> Vec<IdolRecord>
     let needle = FoldedNeedle::new(query);
     snap.idol_order
         .iter()
-        .filter(|&&i| {
-            let idol = &snap.idols[i as usize];
-            needle.matches(&idol.name)
-                || needle.matches_opt(idol.name_kana.as_deref())
-                || needle.matches_opt(idol.name_romaji.as_deref())
-                || needle.matches_opt(idol.aliases.as_deref())
-                || snap.voice_actors_by_idol[i as usize].iter().any(|&v| {
-                    needle.matches(&snap.idol_voice_actors[v as usize].name)
-                })
-        })
+        .filter(|&&i| snap.idol_picker_search[i as usize].matches(needle.as_bytes()))
         .take(limit as usize)
         .map(|&i| IdolRecord::from(&snap.idols[i as usize]))
         .collect()

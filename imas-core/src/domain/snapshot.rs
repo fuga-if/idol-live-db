@@ -25,6 +25,7 @@
 //! - 表: event_releases → 無い DB では空 Vec。
 
 use std::collections::HashMap;
+use crate::domain::text_search_index::TextSearchIndex;
 
 /// songs 全カラム。GRDB Record / Room Entity と同じ「Record = Entity 兼用」の現実的判断。
 #[derive(Debug, Clone)]
@@ -341,6 +342,38 @@ pub struct Snapshot {
     /// 作家の読み・別表記を畳んだ検索用の綴り列 (`creators` と同じ並び)。
     /// 打鍵ごとに組み直さないよう読み込み時に 1 回だけ作る。
     pub creator_spellings: Vec<Vec<String>>,
+
+    // ---- 検索用の畳み済み索引 (それぞれ対応する Vec と同じ並び) ----
+    //
+    // 打鍵ごとに全行を舐める経路のためだけに持つ。行ごとに畳むと 1 文字ごとに
+    // `char::to_lowercase` が走り、3,154 曲の走査で 7.4ms かかっていた
+    // (畳み済みなら 0.6ms)。読み込みは元々 DB を全件読む処理なので、
+    // ここで 1 回畳むぶんは誤差に収まる。
+    //
+    // 何を綴りに入れたかは各フィールドの注記が正本。増やすときは
+    // **その列を見ている検索がどれか**を確かめること (綴りを足すと当たる語が増える)。
+    /// 曲: title / title_kana。
+    pub song_search: Vec<TextSearchIndex>,
+    /// アイドル (横断検索): name / name_kana **だけ**。
+    ///
+    /// ピッカー用の `idol_picker_search` とは対象が違う。横断検索は元 SQL から
+    /// 名前と読みしか見ておらず、ここに CV 名や別名を混ぜると「はるか」で
+    /// 佳村はるか がCVのアイドルまで並ぶ (実際に混ぜて照合テストが落ちた)。
+    pub idol_search: Vec<TextSearchIndex>,
+    /// アイドル (ピッカー): name / name_kana / name_romaji / aliases + CV 名。
+    /// 出演者を選ぶ場面では声優名で探すのが主要な導線なので、あえて広く取る。
+    pub idol_picker_search: Vec<TextSearchIndex>,
+    /// ライブ: name / name_kana。
+    pub event_search: Vec<TextSearchIndex>,
+    /// 公演の会場 (生文字列) だけ。ライブ検索が公演ごとに見る唯一の列。
+    ///
+    /// 公演名を混ぜていないのは、元 SQL のライブ検索が `sh.venue` しか見ないから。
+    /// 公演名で引くのは公演ピッカー (`search_shows_with_event_name`) の役目で、
+    /// あちらは「公演名 or ライブ名」という別の組み合わせを見る。
+    /// 会場マスタ側の綴り (読み・旧名) は `venue_search`。
+    pub show_venue_search: Vec<TextSearchIndex>,
+    /// 会場: name / name_kana / aliases (改行区切りを 1 行ずつ)。
+    pub venue_search: Vec<TextSearchIndex>,
     pub venues: Vec<Venue>,
     /// 並びはテーブル出現順 (SQL 時代の fetchAll も ORDER BY なし)。
     pub venue_names: Vec<VenueName>,

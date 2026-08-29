@@ -242,7 +242,8 @@ pub fn search_events_by_name_or_venue(
 
     let mut indexes: Vec<u32> = (0..snap.events.len() as u32)
         .filter(|&i| {
-            if needle.matches(&snap.events[i as usize].name) {
+            // 全行を舐めるので、読み込み時に畳んだ索引と突き合わせる。
+            if snap.event_search[i as usize].matches(needle.as_bytes()) {
                 return true;
             }
             let shows = &snap.shows_by_event[i as usize];
@@ -252,7 +253,7 @@ pub fn search_events_by_name_or_venue(
             }
             shows.iter().any(|&s| {
                 let show = &snap.shows[s as usize];
-                if needle.matches(show.venue.as_deref().unwrap_or("")) {
+                if snap.show_venue_search[s as usize].matches(needle.as_bytes()) {
                     return true;
                 }
                 // `shows.venue` は表示用の生文字列で、読みも改名前の名前も入っていない。
@@ -274,18 +275,9 @@ pub fn search_events_by_name_or_venue(
 /// そこは `shows.venue` の生文字列でしか引けないが、それが仕様どおり
 /// (会場マスタに無いものの読みは持ちようがない)。
 fn venue_spellings_hit(snap: &Snapshot, venue_id: Option<&str>, needle: &FoldedNeedle) -> bool {
-    let Some(venue) = venue_id.and_then(|id| snap.venue(id)) else { return false };
-    if needle.matches(&venue.name) {
-        return true;
-    }
-    if needle.matches_opt(venue.name_kana.as_deref()) {
-        return true;
-    }
-    // 別名は改行区切り (改名前の名前・略称)。
-    venue
-        .aliases
-        .as_deref()
-        .is_some_and(|a| a.lines().any(|l| !l.trim().is_empty() && needle.matches(l)))
+    // 綴り (現行名・読み・別名の各行) は読み込み時に畳んである。
+    let Some(index) = venue_id.and_then(|id| snap.venue_index_by_id.get(id)) else { return false };
+    snap.venue_search[*index as usize].matches(needle.as_bytes())
 }
 
 /// イベント一覧 (最初/最後の公演日付き、最初の公演日の降順)。
