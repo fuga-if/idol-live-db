@@ -39,7 +39,11 @@ enum SongSearchMode: String, CaseIterable, Hashable {
     func label(in listMode: SongListMode) -> String {
         switch self {
         case .title:     listMode.nameFilterLabel
-        case .performer: "アイドル"
+        // 「アイドル」ではなく「歌唱」。ほかの 3 つ (曲名 / 作詞作曲 / 歌詞) が
+        // **何と照合するか**を指すのに、ここだけ実体の名前だった。
+        // タブ移動のチップ (`CrossTabCountChips`) も「アイドルに N」を出すので、
+        // 同じ列に「アイドル」が 2 つ並んで、別の動作が同じ語に見えていた。
+        case .performer: "歌唱"
         case .creator:   "作詞作曲"
         case .lyrics:    "歌詞"
         }

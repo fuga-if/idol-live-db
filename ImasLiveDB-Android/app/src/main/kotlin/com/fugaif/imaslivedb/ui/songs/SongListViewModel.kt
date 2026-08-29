@@ -51,7 +51,11 @@ enum class SongSearchMode {
     fun label(listMode: SongListMode): String = when (this) {
         // 曲名スコープだけは表示形式で絞る対象が変わる (曲 / アルバム / シリーズ)。
         TITLE -> listMode.nameFilterLabel
-        PERFORMER -> "アイドル"
+        // 「アイドル」ではなく「歌唱」。ほかの 2 つ (曲名 / 作詞作曲) が
+        // **何と照合するか**を指すのに、ここだけ実体の名前だった。
+        // タブ移動のチップも「アイドルに N」を出すので、同じ列に「アイドル」が
+        // 2 つ並んで、別の動作が同じ語に見えてしまう。
+        PERFORMER -> "歌唱"
         CREATOR -> "作詞作曲"
     }
 }

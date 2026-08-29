@@ -72,7 +72,13 @@ struct CrossTabCountChips: View {
         Group {
             if !suggestions.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: DS.sp2) {
+                    HStack(spacing: DS.sp3) {
+                        // 上のスコープ列 (「ほかに」) と同じ形の見出しを置く。
+                        // 見出しが無いと、同じ見た目のチップ列が 2 段あるだけになり、
+                        // 「絞り込む対象を変える」のか「別の画面へ移る」のかが読めない。
+                        Text("別のタブ")
+                            .font(.imasCaption)
+                            .foregroundStyle(DS.ink3)
                         ForEach(suggestions, id: \.tab) { item in
                             ImasFilterChip(text: "\(item.tab.label)に \(item.count)", isSelected: false) {
                                 AppAnalytics.tap("cross_tab_search.jump")
