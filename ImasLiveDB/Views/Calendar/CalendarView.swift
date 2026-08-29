@@ -142,7 +142,6 @@ struct CalendarView: View {
                     .accessibilityHint("各ブランドの日替わりピックにタグを付けて投票します")
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    SearchToolbarButton(scope: .all)
                 }
             }
             .sheet(isPresented: $showDailySong) {

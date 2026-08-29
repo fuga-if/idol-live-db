@@ -43,6 +43,8 @@ struct IdolListView: View {
     @State private var sheetIdol: Idol?
     @State private var showFilterSheet = false
     @State private var searchText = ""
+    /// タブを跨いだ検索の引き継ぎ (「他のタブに N 件」の受け側)。
+    @State private var crossTab = CrossTabSearch.shared
     /// 一覧タブ (0=アイドル, 1=ユニット)。
     @State private var listTab = 0
     /// ユニットタブの ViewModel。ここで hoist して `UnitListContent` に注入することで、
@@ -153,6 +155,8 @@ struct IdolListView: View {
     @ViewBuilder
     private var idolBody: some View {
         VStack(spacing: 0) {
+            // 同じ語が曲・ライブに何件あるか (虫眼鏡を畳んだ代わりの導線)。
+            CrossTabCountChips(query: searchText, from: .idols)
             if vm.isLoading {
                 ScrollView {
                     if idolListMode == .grid {
@@ -215,6 +219,10 @@ struct IdolListView: View {
         .navigationBarTitleDisplayMode(.inline)
         .onChange(of: searchText) { _, _ in
             vm.rebuild(filter: filterContext, sortOrder: sortOrder, ascending: sortAscending)
+        }
+        // 「他のタブに N 件」から飛んで来たら、その語で絞り込む。
+        .onChange(of: crossTab.target, initial: true) { _, _ in
+            if let handed = crossTab.take(for: .idols) { searchText = handed }
         }
         .toolbar {
             // 検索は一覧そのものを絞る。虫眼鏡のシートは結果がそこで完結してしまい、

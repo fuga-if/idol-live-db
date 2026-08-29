@@ -2,25 +2,11 @@ import SwiftUI
 import UIKit
 
 extension Notification.Name {
-    /// 全タブ共通で発火させる「検索を開く」通知。
-    /// 各タブの toolbar 虫眼鏡が `SearchRequest` を添えて post し、ContentView の sheet が拾う。
-    static let openSearch = Notification.Name("openSearch")
     /// 全タブ共通で発火させる「設定・マイページを開く」通知。
     /// 各タブの toolbar 歯車が post し、ContentView の sheet が拾う。
     static let openSettings = Notification.Name("openSettings")
 }
 
-/// 検索画面を開くときの要求。呼び出し元タブのスコープを引き継ぐ。
-///
-/// `Identifiable` にして `.sheet(item:)` で提示する。`.sheet(isPresented:)` + 別 `@State` だと
-/// 「要求の格納」と「提示フラグ」が別更新になり、初回提示で content closure が更新前の
-/// 要求を読んでスコープが `.all` に落ちることがあった (実機で再現)。item 方式なら値と提示が
-/// 不可分になる。`id` を毎回変えることで、同じスコープでも再提示できる。
-struct SearchRequest: Identifiable {
-    let id = UUID()
-    var scope: UnifiedSearchScope = .all
-    var query: String = ""
-}
 
 struct ContentView: View {
     @State private var selectedTab: Int = {
@@ -29,8 +15,8 @@ struct ContentView: View {
         }
         return 0
     }()
-    /// 提示中の検索要求 (nil = 非表示)。呼び出し元タブのスコープ・初期クエリを運ぶ。
-    @State private var searchRequest: SearchRequest?
+    /// タブを跨いだ検索の引き継ぎ (「他のタブに N 件」を押されたとき)。
+    @State private var crossTab = CrossTabSearch.shared
     /// 設定・マイページ sheet (全タブ共通)。
     @State private var showSettings = false
     /// deeplink (Universal Links / imaslivedb://) で開く詳細 sheet。
@@ -111,19 +97,18 @@ struct ContentView: View {
             }
         }
         .onChange(of: selectedTab) { _, tab in AppAnalytics.screen(Self.tabName(tab)) }
+        // 「他のタブに N 件」を押されたら、そのタブへ移る。語の受け渡しは
+        // 移った先の一覧が `CrossTabSearch.take(for:)` で拾う。
+        .onChange(of: crossTab.target) { _, target in
+            if let target { selectedTab = target.rawValue }
+        }
         .environment(\.imasTextScale, textScale)
         // アプリ既定フォントを imas (スケール対応) にする。これで明示フォント未指定の Text や
         // Picker/Toggle 等コントロールのラベルも文字サイズ設定に追従する。
         // (ナビタイトル/タブバー等の UIKit chrome は OS 管轄なので対象外)
         .environment(\.font, .imasBody)
-        .onReceive(NotificationCenter.default.publisher(for: .openSearch)) { note in
-            searchRequest = (note.object as? SearchRequest) ?? SearchRequest()
-        }
         .onReceive(NotificationCenter.default.publisher(for: .openSettings)) { _ in
             showSettings = true
-        }
-        .sheet(item: $searchRequest, onDismiss: presentPendingDeeplink) { request in
-            UnifiedSearchView(initialScope: request.scope, initialQuery: request.query)
         }
         .sheet(isPresented: $showSettings, onDismiss: presentPendingDeeplink) {
             MyPageView().environment(database).environment(syncEngine)
@@ -184,9 +169,8 @@ struct ContentView: View {
             return
         }
         pendingDeeplinkDestination = destination
-        if searchRequest != nil || showSettings {
+        if showSettings {
             // 開いている sheet を閉じる → onDismiss → presentPendingDeeplink で提示する。
-            searchRequest = nil
             showSettings = false
         } else {
             presentPendingDeeplink()
@@ -219,19 +203,3 @@ struct SettingsToolbarButton: View {
     }
 }
 
-/// 各タブ最上位の toolbar に置く検索ボタン (全タブ共通・虫眼鏡はアプリ全体でこの 1 つだけ)。
-/// 呼び出し元タブのスコープを引き継いで `UnifiedSearchView` を開く。
-struct SearchToolbarButton: View {
-    let scope: UnifiedSearchScope
-
-    var body: some View {
-        Button {
-            AppAnalytics.tap("search.open")
-            NotificationCenter.default.post(name: .openSearch, object: SearchRequest(scope: scope))
-        } label: {
-            Image(systemName: "magnifyingglass")
-        }
-        .accessibilityLabel("検索")
-        .accessibilityHint("ライブ・楽曲・アイドルを名前で探します")
-    }
-}

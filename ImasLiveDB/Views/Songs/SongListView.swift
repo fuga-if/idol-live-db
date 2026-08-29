@@ -290,6 +290,9 @@ struct SongListView: View {
                 .padding(.vertical, DS.sp2)
             }
         }
+        // 同じ語がアイドル・ライブに何件あるか。スコープ切替の隣に置くのは、
+        // 「打った語の行き先」という点で利用者にとって同じ判断だから。
+        CrossTabCountChips(query: searchText, from: .songs)
     }
 
     /// 表示中でないスコープのうち、1 件以上当たるもの。

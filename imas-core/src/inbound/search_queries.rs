@@ -10,7 +10,7 @@
 //! - user_marks 非依存なので解決済み id 集合の引数は無い。
 
 use super::snapshot_store::{SnapshotError, SnapshotStore};
-use crate::domain::search_queries::{self as queries, GlobalSearchHits};
+use crate::domain::search_queries::{self as queries, GlobalSearchHits, SearchCounts};
 
 #[uniffi::export]
 impl SnapshotStore {
@@ -19,6 +19,13 @@ impl SnapshotStore {
     pub fn global_search(&self, query: String) -> Result<GlobalSearchHits, SnapshotError> {
         let snap = self.current()?;
         Ok(queries::global_search(&snap, &query))
+    }
+
+    /// 打った語が種別ごとに何件当たるか (打ち切りなし)。
+    /// 各一覧が「他のタブに N 件」を出すための 1 呼び出し。
+    pub fn search_counts(&self, query: String) -> Result<SearchCounts, SnapshotError> {
+        let snap = self.current()?;
+        Ok(queries::search_counts(&snap, &query))
     }
 }
 

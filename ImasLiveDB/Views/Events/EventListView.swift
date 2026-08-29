@@ -24,6 +24,8 @@ struct EventListView: View {
     @State private var selectedBrandIds: Set<String> = []
     @State private var showFilterSheet = false
     @State private var searchText = ""
+    /// タブを跨いだ検索の引き継ぎ (「他のタブに N 件」の受け側)。
+    @State private var crossTab = CrossTabSearch.shared
     /// 絞り込みに実際に使う検索語 (searchText を落ち着いてから反映する)。
     ///
     /// 日本語 IME の変換中は 1 打鍵ごとに未確定文字が差し替わり、そのたびに
@@ -153,6 +155,8 @@ struct EventListView: View {
     var body: some View {
         NavigationStack(path: $navPath) {
             VStack(spacing: 0) {
+                // 同じ語が曲・アイドルに何件あるか (虫眼鏡を畳んだ代わりの導線)。
+                CrossTabCountChips(query: appliedSearchText, from: .events)
                 ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0) {
                     ImasSegmented(labels: ["今後の予定", "開催済み"], selection: $timeFilter)
@@ -238,6 +242,10 @@ struct EventListView: View {
                     // 「〜で絞り込み」まで書くと狭い欄で末尾が切れる。
                     ListSearchField(prompt: "ライブ名・会場", text: $searchText)
                 }
+            }
+            // 「他のタブに N 件」から飛んで来たら、その語で絞り込む。
+            .onChange(of: crossTab.target, initial: true) { _, _ in
+                if let handed = crossTab.take(for: .events) { searchText = handed }
             }
             .navigationDestination(for: Event.self) { event in
                 EventDetailView(event: event)

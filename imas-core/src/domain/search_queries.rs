@@ -80,6 +80,37 @@ pub fn searched_event_indexes(snap: &Snapshot, query: &str) -> Vec<u32> {
         .collect()
 }
 
+/// 種別ごとの一致件数 (打ち切りなし)。
+///
+/// 各一覧の検索欄が「いま見ているタブ以外に何件あるか」を出すために使う。
+/// `global_search` と違って**上限で切らない**。「ライブに 20 件」と出したのに
+/// 実は 137 件ある、では切り替える判断の根拠にならないため。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct SearchCounts {
+    pub songs: u32,
+    pub idols: u32,
+    pub events: u32,
+}
+
+/// 打った語が種別ごとに何件当たるかを数える。
+///
+/// 当たり方は各一覧の検索と同じ索引を通るので、「N 件」と出しておいて
+/// 切り替えたら違う数だった、が起きない。
+///
+/// 実体は返さない。件数だけなら id の複製も並べ替えも要らず、
+/// 打鍵ごとに呼んでも 3 種類あわせて数 ms で終わる。
+pub fn search_counts(snap: &Snapshot, query: &str) -> SearchCounts {
+    let needle = FoldedNeedle::new(query);
+    let count = |indexes: &[crate::domain::text_search_index::TextSearchIndex]| {
+        indexes.iter().filter(|ix| ix.matches(needle.as_bytes())).count() as u32
+    };
+    SearchCounts {
+        songs: count(&snap.song_search),
+        idols: count(&snap.idol_search),
+        events: count(&snap.event_search),
+    }
+}
+
 /// 横断検索 1 回分 (曲/アイドル/イベントまとめて)。SQL 時代の `searchQuery` と同じく
 /// 1 ユーザー操作 = この 1 関数で、FFI もこれを 1 呼び出しで渡す。
 pub fn global_search(snap: &Snapshot, query: &str) -> GlobalSearchHits {
@@ -276,6 +307,41 @@ mod tests {
             .filter(|name| !name.contains("はるか"))
             .collect();
         assert!(harukas.contains(&"天海春香"), "kana 側だけで当たるヒットが要る: {ids:?}");
+    }
+
+    /// 件数は各一覧の検索と**同じ当たり方**であること。
+    ///
+    /// 「ライブに 8 件」と出しておいて、切り替えたら 3 件だった、では
+    /// 切り替える判断の根拠にならない。数える側と絞る側で索引がずれたら落ちる。
+    #[test]
+    fn counts_agree_with_what_each_list_actually_shows() {
+        for q in ["夢", "はるか", "ready", "武道館", "アルストロメリア", "zzz存在しない"] {
+            let c = search_counts(snap(), q);
+            let needle = FoldedNeedle::new(q);
+            let songs = snap().song_search.iter().filter(|i| i.matches(needle.as_bytes())).count();
+            let idols = snap().idol_search.iter().filter(|i| i.matches(needle.as_bytes())).count();
+            let events = snap().event_search.iter().filter(|i| i.matches(needle.as_bytes())).count();
+            assert_eq!((c.songs as usize, c.idols as usize, c.events as usize),
+                       (songs, idols, events), "query={q:?}");
+        }
+    }
+
+    /// 打ち切らない。`global_search` は各 20 件で切るが、件数は実数を返す。
+    #[test]
+    fn counts_are_not_capped_unlike_global_search() {
+        // 実データで 20 件を超える語を選ぶ (超えないなら検証として退化する)。
+        let c = search_counts(snap(), "の");
+        assert!(c.songs > 20, "曲 {} 件", c.songs);
+        assert_eq!(global_search(snap(), "の").song_ids.len(), 20, "横断検索は 20 件で切る");
+    }
+
+    /// 空の語は「絞り込んでいない」= 全件。一覧の挙動と同じ。
+    #[test]
+    fn empty_query_counts_everything() {
+        let c = search_counts(snap(), "");
+        assert_eq!(c.songs as usize, snap().songs.len());
+        assert_eq!(c.idols as usize, snap().idols.len());
+        assert_eq!(c.events as usize, snap().events.len());
     }
 
     /// `LIKE` から意図的に逸脱している側。**かなの表記違いでも当たる**。
