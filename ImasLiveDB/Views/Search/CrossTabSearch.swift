@@ -69,7 +69,9 @@ struct CrossTabCountChips: View {
     @State private var counts = CrossTabSearchCounts()
 
     var body: some View {
-        Group {
+        // 器は常に置く (中身が無くても高さ 0)。`Group { if ... }` だと候補が空のとき
+        // View ごと消えて `.task` が走らず、件数が 0 のままでまた消える、で永久に出なかった。
+        VStack(spacing: 0) {
             if !suggestions.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: DS.sp3) {
@@ -113,13 +115,28 @@ struct CrossTabCountChips: View {
         }
     }
 
+    /// 件数を引き直す。まだ数えられない (スナップショット未ロード) 間は待つ。
+    ///
+    /// 起動直後はスナップショットがまだ載っていないことがある。そこで諦めると、
+    /// 語を打ち替えるまでチップが出ない (`.task(id:)` は語が変わらないと再実行
+    /// されないため)。載るまで数回だけ待ち直す。
     private func reload() async {
         let trimmed = query.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else {
             counts = CrossTabSearchCounts()
             return
         }
-        counts = (try? await AppContainer.shared.globalSearchReading.counts(query: trimmed))
-            ?? CrossTabSearchCounts()
+        for attempt in 0..<6 {
+            if attempt > 0 {
+                try? await Task.sleep(for: .milliseconds(400))
+                if Task.isCancelled { return }
+            }
+            if let got = try? await AppContainer.shared.globalSearchReading.counts(query: trimmed) {
+                counts = got
+                return
+            }
+        }
+        // 数えられないまま。0 件として扱う (チップを出さない) 以外にできることがない。
+        counts = CrossTabSearchCounts()
     }
 }

@@ -20,7 +20,7 @@ struct CoreGlobalSearchRepository: GlobalSearchReading {
         }
     }
 
-    func counts(query: String) async throws -> CrossTabSearchCounts {
+    func counts(query: String) async throws -> CrossTabSearchCounts? {
         try await snapshot.withStore(fallbackTo: { try await fallback.counts(query: query) }) { store in
             let c = try store.searchCounts(query: query)
             return CrossTabSearchCounts(

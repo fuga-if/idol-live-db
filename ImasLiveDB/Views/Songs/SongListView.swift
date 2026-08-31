@@ -75,7 +75,7 @@ struct SongListView: View {
     @State private var sortAscending: Bool? = nil
     @State private var showFilter = false
     @State private var sheetDestination: DetailDestination?
-    @State private var searchText = ""
+    @State private var searchText = SongListView.initialSearchText()
     /// 曲名で絞るか、歌詞で絞るか。歌詞はサーバに問い合わせる。
     @State private var searchMode: SongSearchMode = .title
     @State private var lyricsSearching = false
@@ -177,6 +177,9 @@ struct SongListView: View {
     private var content: some View {
             VStack(spacing: 0) {
                 scopeSuggestionBar
+                // 同じ語がアイドル・ライブに何件あるか。スコープ切替の直下に置くのは、
+                // 「打った語の行き先」という点で利用者にとって同じ判断だから。
+                CrossTabCountChips(query: searchText, from: .songs)
                 removableFilterBar
                 tagFilterErrorBanner
                 introDonLaunchBar
@@ -273,6 +276,20 @@ struct SongListView: View {
     ///
     /// 歌詞に件数が付かないのは、数えるだけで D1 のクエリを 1 本消費するから。
     /// 誘い文句だけ置いて、押したときに初めて投げる。
+    /// 起動時に入れておく検索語。通常は空。
+    ///
+    /// DEBUG では `INITIAL_SEARCH` で埋められる。検索欄に文字が入っている状態
+    /// (スコープ切替のチップ列・「別のタブ」の件数) は、打たないと出ない一方で
+    /// シミュレータには文字入力の口が無く、スクショが撮れなかった。
+    /// `SCREENSHOT_MODE` / `INITIAL_TAB` / `DAILY_PICK_KIND` と同じ流儀。
+    static func initialSearchText() -> String {
+        #if DEBUG
+        return ProcessInfo.processInfo.environment["INITIAL_SEARCH"] ?? ""
+        #else
+        return ""
+        #endif
+    }
+
     @ViewBuilder
     private var scopeSuggestionBar: some View {
         let suggestions = scopeSuggestions
@@ -294,9 +311,6 @@ struct SongListView: View {
                 .padding(.vertical, DS.sp2)
             }
         }
-        // 同じ語がアイドル・ライブに何件あるか。スコープ切替の隣に置くのは、
-        // 「打った語の行き先」という点で利用者にとって同じ判断だから。
-        CrossTabCountChips(query: searchText, from: .songs)
     }
 
     /// 表示中でないスコープのうち、1 件以上当たるもの。

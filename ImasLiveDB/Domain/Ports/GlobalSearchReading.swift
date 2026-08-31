@@ -13,7 +13,12 @@ protocol GlobalSearchReading: Sendable {
     /// 各一覧の検索欄が「他のタブに N 件」を出すために使う。実体は要らないので
     /// 数だけ返す。上限で切らないのは、「20 件」と出しておいて実は 137 件ある、では
     /// タブを移る判断の根拠にならないため。
-    func counts(query: String) async throws -> CrossTabSearchCounts
+    ///
+    /// **nil = まだ数えられない**。0 件とは区別する。スナップショットは起動直後に
+    /// バックグラウンドで載るので、それより先に訊くと数えようがない。ここを 0 で
+    /// 返すと「どこにも無い」と読めてしまい、呼び出し側が待つべきか諦めるべきかを
+    /// 判断できない (実際それでチップが永久に出なかった)。
+    func counts(query: String) async throws -> CrossTabSearchCounts?
 }
 
 /// 種別ごとの一致件数。コアの `SearchCounts` をアプリ側の型に写したもの。
