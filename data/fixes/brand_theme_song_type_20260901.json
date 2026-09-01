@@ -1,0 +1,23 @@
+{
+ "title": "ブランドの全体曲が unit 扱いになっていたのを直す (8 曲)",
+ "_help": "`song_type='all'` はブランド全体曲。歌唱者としてクレジットされる人数ではなく、『そのブランド全員の曲か』で決まる。Dreaming! のように **CD ごとに歌唱メンバーが変わるだけで、結局は全員が歌っている**曲がこれに当たる。song_artists に載っている原唱者数は「あるレコーディングの参加者」でしかないので、そこから機械的には判定できない。",
+ "_how_not_to_judge": "人数比でも披露実績でも判定できないことを確認済み。(1) 原唱者数 ÷ ブランド人数 は、song_artists が過剰登録されている曲 (sidem_flash_light は 4 人名義なのに 49 人登録) を全体曲と誤認する。(2) ライブでの延べ出演者数は、デレステ曲のように誰でも歌う人気曲 (Orange Sapphire 95人 / BEYOND THE STARLIGHT 88人) を拾ってしまう。1 件ずつ判断するしかない。",
+ "fixes": [
+  { "table": "songs", "id": "ml_dreaming", "fields": { "song_type": "all" },
+    "note": "ミリオンライブの全体曲。CD ごとに歌唱者が変わるだけで全員が歌う" },
+
+  { "table": "songs", "id": "gakuen_初", "fields": { "song_type": "all" },
+    "note": "学園アイドルマスターの主題歌。リリース時点の在籍 9 人全員" },
+  { "table": "songs", "id": "gakuen_campus_mode", "fields": { "song_type": "all" },
+    "note": "同じ 9 人全員" },
+  { "table": "songs", "id": "gakuen_がむしゃらに行こう", "fields": { "song_type": "all" },
+    "note": "同じ 9 人全員" },
+  { "table": "songs", "id": "gakuen_標", "fields": { "song_type": "all" },
+    "note": "名義が「初星学園」。個人でもユニットでもなく学園全体" },
+  { "table": "songs", "id": "gakuen_endless_dance", "fields": { "song_type": "all" },
+    "note": "名義が「初星学園」" },
+
+  { "table": "songs", "id": "sidem_next_stage", "fields": { "song_type": "all" },
+    "note": "名義が「(SideM NEW STAGE共通曲)」。特定ユニットの曲ではない" }
+ ]
+}
