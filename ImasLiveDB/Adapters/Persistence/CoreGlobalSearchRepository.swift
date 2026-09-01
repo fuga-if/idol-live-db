@@ -28,6 +28,15 @@ struct CoreGlobalSearchRepository: GlobalSearchReading {
         }
     }
 
+    func eventSides(query: String, todayKey: String) async throws -> EventSearchSideCounts? {
+        try await snapshot.withStore(
+            fallbackTo: { try await fallback.eventSides(query: query, todayKey: todayKey) }
+        ) { store in
+            let s = try store.eventSearchSides(query: query, todayKey: todayKey)
+            return EventSearchSideCounts(upcoming: Int(s.upcoming), past: Int(s.past))
+        }
+    }
+
     /// イベントは「入力 id 順で引く」API が無く `eventsWithDateByIds` は公演日降順で返すが、
     /// ここで `hitIds` 順に組み直すので core 側の並びは影響しない (SQL 時代の rowid 順が復元される)。
     /// 公演なしイベントも落とさずに返る API なので、ヒット分 (最大 20 件) だけ FFI で受け取れば足りる。

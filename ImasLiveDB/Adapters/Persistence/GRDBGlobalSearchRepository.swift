@@ -19,4 +19,9 @@ struct GRDBGlobalSearchRepository: GlobalSearchReading {
     func counts(query: String) async throws -> CrossTabSearchCounts? {
         nil
     }
+
+    /// 同上 (nil = まだ分からない)。着地先を決められないので既定のままにする。
+    func eventSides(query: String, todayKey: String) async throws -> EventSearchSideCounts? {
+        nil
+    }
 }

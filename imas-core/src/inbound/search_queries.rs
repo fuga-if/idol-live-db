@@ -10,7 +10,7 @@
 //! - user_marks 非依存なので解決済み id 集合の引数は無い。
 
 use super::snapshot_store::{SnapshotError, SnapshotStore};
-use crate::domain::search_queries::{self as queries, GlobalSearchHits, SearchCounts};
+use crate::domain::search_queries::{self as queries, EventSearchSides, GlobalSearchHits, SearchCounts};
 
 #[uniffi::export]
 impl SnapshotStore {
@@ -26,6 +26,17 @@ impl SnapshotStore {
     pub fn search_counts(&self, query: String) -> Result<SearchCounts, SnapshotError> {
         let snap = self.current()?;
         Ok(queries::search_counts(&snap, &query))
+    }
+
+    /// 打った語がライブの「今後の予定」「開催済み」それぞれに何件あるか。
+    /// 「ライブに N 件」から飛んだとき、0 件の側へ着地しないために使う。
+    pub fn event_search_sides(
+        &self,
+        query: String,
+        today_key: String,
+    ) -> Result<EventSearchSides, SnapshotError> {
+        let snap = self.current()?;
+        Ok(queries::event_search_sides(&snap, &query, &today_key))
     }
 }
 

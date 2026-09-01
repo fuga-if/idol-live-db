@@ -19,6 +19,24 @@ protocol GlobalSearchReading: Sendable {
     /// 返すと「どこにも無い」と読めてしまい、呼び出し側が待つべきか諦めるべきかを
     /// 判断できない (実際それでチップが永久に出なかった)。
     func counts(query: String) async throws -> CrossTabSearchCounts?
+
+    /// 打った語がライブの「今後の予定」「開催済み」それぞれに何件あるか。
+    ///
+    /// 「ライブに N 件」から飛んだとき、当たりが過去のライブなのに既定の
+    /// 「今後の予定」へ着地すると 0 件の画面が出る。件数を見せて誘っておいて
+    /// 空を出すのは、この導線の趣旨に反するので、当たりのある側へ着地させる。
+    /// nil = まだ数えられない (`counts` と同じ)。
+    func eventSides(query: String, todayKey: String) async throws -> EventSearchSideCounts?
+}
+
+/// ライブの当たりが今後/開催済みのどちらにいるか。
+struct EventSearchSideCounts: Equatable, Sendable {
+    var upcoming: Int = 0
+    var past: Int = 0
+
+    /// 着地すべき側。同数・両方 0 なら既定の「今後の予定」。
+    /// 件数で選ぶのは、当たりが両側にある語 (「ライブ」等) でも多い方を出すため。
+    var landsOnPast: Bool { past > upcoming }
 }
 
 /// 種別ごとの一致件数。コアの `SearchCounts` をアプリ側の型に写したもの。

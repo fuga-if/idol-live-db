@@ -111,6 +111,48 @@ pub fn search_counts(snap: &Snapshot, query: &str) -> SearchCounts {
     }
 }
 
+/// 打った語がライブの「今後の予定」「開催済み」それぞれに何件あるか。
+///
+/// ライブ一覧は 2 つに分かれていて、既定は「今後の予定」。そこへ
+/// 「ライブに 1 件」から飛ぶと、当たりが過去のライブだった場合に **0 件の画面へ
+/// 着地する**。件数を見せて誘っておいて空を出すのは、この導線の趣旨に反する。
+///
+/// 境界の規則 (境界日ちょうどは今後側 / 日付不明は今後にのみ残す) は
+/// [`crate::domain::event_grouping::group_events_by_year`] が正本で、ここも同じ
+/// 関数に通す。両 OS で日付の切り方を書き直すと必ずずれる。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct EventSearchSides {
+    pub upcoming: u32,
+    pub past: u32,
+}
+
+pub fn event_search_sides(snap: &Snapshot, query: &str, today_key: &str) -> EventSearchSides {
+    let needle = FoldedNeedle::new(query);
+    let first_dates: Vec<Option<String>> = snap
+        .events
+        .iter()
+        .enumerate()
+        .filter(|(i, _)| snap.event_search[*i].matches(needle.as_bytes()))
+        .map(|(i, _)| first_show_date(snap, i as u32))
+        .collect();
+
+    let count = |upcoming: bool| {
+        crate::domain::event_grouping::group_events_by_year(&first_dates, upcoming, today_key)
+            .iter()
+            .map(|g| g.indices.len() as u32)
+            .sum()
+    };
+    EventSearchSides { upcoming: count(true), past: count(false) }
+}
+
+/// 初回公演日 (公演が無ければ None)。`group_events_by_year` に渡す射影。
+fn first_show_date(snap: &Snapshot, event_index: u32) -> Option<String> {
+    snap.shows_by_event[event_index as usize]
+        .iter()
+        .map(|&s| snap.shows[s as usize].date.clone())
+        .min()
+}
+
 /// 横断検索 1 回分 (曲/アイドル/イベントまとめて)。SQL 時代の `searchQuery` と同じく
 /// 1 ユーザー操作 = この 1 関数で、FFI もこれを 1 呼び出しで渡す。
 pub fn global_search(snap: &Snapshot, query: &str) -> GlobalSearchHits {
@@ -342,6 +384,41 @@ mod tests {
         assert_eq!(c.songs as usize, snap().songs.len());
         assert_eq!(c.idols as usize, snap().idols.len());
         assert_eq!(c.events as usize, snap().events.len());
+    }
+
+    /// 「今後」と「開催済み」を足すと、ライブの当たり総数に一致する。
+    ///
+    /// 一致しないなら、どちらにも入らない (= 飛んだ先で見えない) ライブがいる。
+    /// 日付不明は今後側にのみ残る規則なので、取りこぼしはここで捕まる。
+    #[test]
+    fn event_sides_add_up_to_the_total_hits() {
+        for q in ["ready", "武道館", "ライブ", "M@STER"] {
+            let sides = event_search_sides(snap(), q, "2026-09-01");
+            let total = search_counts(snap(), q).events;
+            assert_eq!(sides.upcoming + sides.past, total, "query={q:?}");
+        }
+    }
+
+    /// 境界日ちょうどは「今後」側 (`group_events_by_year` の規則をそのまま使う)。
+    /// ここを自前で書き直すと、両 OS で日付の切り方がずれる。
+    #[test]
+    fn the_boundary_day_counts_as_upcoming() {
+        // 実データから公演日を 1 つ取り、その日を「今日」として数える。
+        let date = snap()
+            .shows
+            .iter()
+            .map(|s| s.date.clone())
+            .find(|d| d.len() == 10)
+            .expect("フル日付の公演がある前提");
+        let event = snap()
+            .events
+            .iter()
+            .enumerate()
+            .find(|(i, _)| first_show_date(snap(), *i as u32).as_deref() == Some(date.as_str()))
+            .map(|(_, e)| e.name.clone())
+            .expect("その日を初日とするライブがある前提");
+        let sides = event_search_sides(snap(), &event, &date);
+        assert!(sides.upcoming > 0, "境界日は今後側に入る: {event} / {date}");
     }
 
     /// `LIKE` から意図的に逸脱している側。**かなの表記違いでも当たる**。

@@ -244,8 +244,17 @@ struct EventListView: View {
                 }
             }
             // 「他のタブに N 件」から飛んで来たら、その語で絞り込む。
+            // 当たりが開催済みにしか無いなら、そちらへ着地する。件数を見せて誘って
+            // おいて 0 件の画面を出すのは、この導線の趣旨に反する。
             .onChange(of: crossTab.target, initial: true) { _, _ in
-                if let handed = crossTab.take(for: .events) { searchText = handed }
+                guard let handed = crossTab.take(for: .events) else { return }
+                searchText = handed
+                appliedSearchText = handed
+                Task {
+                    let sides = try? await AppContainer.shared.globalSearchReading
+                        .eventSides(query: handed, todayKey: todayKey)
+                    if let sides, sides.landsOnPast { timeFilter = 1 }
+                }
             }
             .navigationDestination(for: Event.self) { event in
                 EventDetailView(event: event)

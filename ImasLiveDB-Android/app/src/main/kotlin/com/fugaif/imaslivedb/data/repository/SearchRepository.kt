@@ -62,6 +62,20 @@ class SearchRepository(
                 songs = c.songs.toInt(), idols = c.idols.toInt(), events = c.events.toInt())
         }
 
+    /**
+     * 打った語がライブの「今後の予定」「開催済み」それぞれに何件あるか。
+     *
+     * 「ライブに N 件」から飛んだとき、当たりが過去のライブなのに既定の
+     * 「今後の予定」へ着地すると 0 件の画面が出る。件数を見せて誘っておいて空を
+     * 出すのは、この導線の趣旨に反するので、当たりのある側へ着地させる。
+     * null = まだ数えられない ([crossTabCounts] と同じ)。
+     */
+    suspend fun eventSearchSides(query: String, todayKey: String): Pair<Int, Int>? =
+        snapshots?.query { store ->
+            val s = store.eventSearchSides(query, todayKey)
+            s.upcoming.toInt() to s.past.toInt()
+        }
+
     suspend fun search(query: String, scope: SearchScope = SearchScope.ALL): SearchResults {
         return when (scope) {
             SearchScope.ALL -> SearchResults(

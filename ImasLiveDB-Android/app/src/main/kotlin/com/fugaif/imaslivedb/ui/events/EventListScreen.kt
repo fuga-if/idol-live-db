@@ -61,6 +61,8 @@ import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.navigation.TopLevelTab
 import com.fugaif.imaslivedb.ui.search.CrossTabCountChips
 import com.fugaif.imaslivedb.ui.search.CrossTabSearch
+import com.fugaif.imaslivedb.di.AppModule
+import com.fugaif.imaslivedb.data.model.JstDay
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -140,8 +142,14 @@ fun EventListScreen(
             // 同じ語が曲・アイドルに何件あるか (虫眼鏡を畳んだ代わりの導線)。
             CrossTabCountChips(query = uiState.searchText, from = TopLevelTab.Events)
             // 「他のタブに N 件」から飛んで来たら、その語で絞り込む。
+            // 当たりが開催済みにしか無いなら、そちらへ着地する。件数を見せて誘って
+            // おいて 0 件の画面を出すのは、この導線の趣旨に反する。
             LaunchedEffect(CrossTabSearch.generation) {
-                CrossTabSearch.take(TopLevelTab.Events)?.let { viewModel.setSearchText(it) }
+                val handed = CrossTabSearch.take(TopLevelTab.Events) ?: return@LaunchedEffect
+                viewModel.setSearchText(handed)
+                val sides = AppModule.from(context).searchRepository
+                    .eventSearchSides(handed, JstDay.today())
+                if (sides != null && sides.second > sides.first) viewModel.selectTimeFilter(1)
             }
 
             ActiveFilterChipRow(
