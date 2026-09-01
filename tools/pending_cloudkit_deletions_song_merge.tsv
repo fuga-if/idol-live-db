@@ -1,5 +1,0 @@
-# 二重登録の統合で不要になったレコード。子 (SongArtist) を先に消す。
-SongArtist	song_artists-cg_cookie_dough-cg_三船美優-original
-SongArtist	song_artists-cg_cookie_dough-cg_大和亜季-original
-SongArtist	song_artists-cg_cookie_dough-cg_高垣楓-original
-Song	cg_cookie_dough
