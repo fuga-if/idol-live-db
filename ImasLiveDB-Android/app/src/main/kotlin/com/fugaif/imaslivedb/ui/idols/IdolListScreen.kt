@@ -77,6 +77,10 @@ import com.fugaif.imaslivedb.ui.theme.ImasTheme
 import com.fugaif.imaslivedb.ui.units.UnitListBody
 import com.fugaif.imaslivedb.ui.units.UnitListMode
 import com.fugaif.imaslivedb.ui.units.UnitListViewModel
+import com.fugaif.imaslivedb.ui.navigation.TopLevelTab
+import com.fugaif.imaslivedb.ui.search.CrossTabCountChips
+import androidx.compose.runtime.LaunchedEffect
+import com.fugaif.imaslivedb.ui.search.CrossTabSearch
 
 /**
  * アイドル一覧。iOS `IdolListView` の構成: ブランド別セクション (見出し + 行/グリッド)。
@@ -88,7 +92,6 @@ import com.fugaif.imaslivedb.ui.units.UnitListViewModel
 fun IdolListScreen(
     onNavigateToIdolDetail: (String) -> Unit,
     onNavigateToUnitDetail: (String) -> Unit = {},
-    onNavigateToSearch: () -> Unit = {},
     viewModel: IdolListViewModel = viewModel(),
     unitListViewModel: UnitListViewModel = viewModel()
 ) {
@@ -140,9 +143,6 @@ fun IdolListScreen(
             TopAppBar(
                 title = { Text(if (tab == 0) "アイドル" else "ユニット", fontWeight = FontWeight.Bold) },
                 actions = {
-                    IconButton(onClick = onNavigateToSearch) {
-                        Icon(Icons.Filled.Search, contentDescription = "検索")
-                    }
                     IconButton(onClick = {
                         if (tab == 0) {
                             viewModel.setListMode(if (state.listMode == IdolListMode.GRID) IdolListMode.LIST else IdolListMode.GRID)
@@ -183,6 +183,12 @@ fun IdolListScreen(
                 value = state.searchText,
                 onValueChange = viewModel::setSearchText
             )
+            // 同じ語が曲・ライブに何件あるか (虫眼鏡を畳んだ代わりの導線)。
+            CrossTabCountChips(query = state.searchText, from = TopLevelTab.Idols)
+            // 「他のタブに N 件」から飛んで来たら、その語で絞り込む。
+            LaunchedEffect(CrossTabSearch.generation) {
+                CrossTabSearch.take(TopLevelTab.Idols)?.let { viewModel.setSearchText(it) }
+            }
             HorizontalDivider(color = DS.sep)
 
             when {

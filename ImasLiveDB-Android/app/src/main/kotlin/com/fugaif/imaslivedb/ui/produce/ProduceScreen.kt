@@ -83,7 +83,6 @@ private const val ATTENDED_INLINE_LIMIT = 5
 fun ProduceScreen(
     onNavigateToStats: () -> Unit,
     onNavigateToSettings: () -> Unit,
-    onNavigateToSearch: () -> Unit,
     onNavigateToPolls: () -> Unit,
     onNavigateToPollDetail: (String) -> Unit,
     onNavigateToIdol: (String) -> Unit,
@@ -110,7 +109,6 @@ fun ProduceScreen(
             TopAppBar(
                 title = { Text("プロデュース", fontWeight = FontWeight.Bold) },
                 actions = {
-                    IconButton(onClick = onNavigateToSearch) { Icon(Icons.Filled.Search, "検索") }
                     IconButton(onClick = onNavigateToSettings) { Icon(Icons.Filled.Settings, "設定・マイ") }
                 }
             )

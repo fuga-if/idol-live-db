@@ -68,12 +68,14 @@ import com.fugaif.imaslivedb.ui.components.SongRowMatch
 import com.fugaif.imaslivedb.ui.edit.SongEditScreen
 import com.fugaif.imaslivedb.ui.tags.TagFilterSheet
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.navigation.TopLevelTab
+import com.fugaif.imaslivedb.ui.search.CrossTabCountChips
+import com.fugaif.imaslivedb.ui.search.CrossTabSearch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SongListScreen(
     onSongClick: (String) -> Unit,
-    onNavigateToSearch: () -> Unit = {},
     viewModel: SongListViewModel = viewModel()
 ) {
     val context = LocalContext.current
@@ -93,9 +95,6 @@ fun SongListScreen(
             TopAppBar(
                 title = { Text("楽曲") },
                 actions = {
-                    IconButton(onClick = onNavigateToSearch) {
-                        Icon(Icons.Filled.Search, contentDescription = "検索")
-                    }
                     // BAN 済みには導線自体を出さない。未ログインはゲートがログイン誘導へ回す。
                     if (canEditHere) {
                         IconButton(onClick = {
@@ -169,6 +168,12 @@ fun SongListScreen(
             ) {}
 
             ScopeSuggestionBar(uiState = uiState, viewModel = viewModel)
+            // 同じ語がアイドル・ライブに何件あるか (虫眼鏡を畳んだ代わりの導線)。
+            CrossTabCountChips(query = uiState.searchText, from = TopLevelTab.Songs)
+            // 「他のタブに N 件」から飛んで来たら、その語で絞り込む。
+            LaunchedEffect(CrossTabSearch.generation) {
+                CrossTabSearch.take(TopLevelTab.Songs)?.let { viewModel.setSearchText(it) }
+            }
 
             RemovableFilterChipRow(uiState = uiState, viewModel = viewModel)
 

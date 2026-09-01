@@ -7,6 +7,7 @@ import com.fugaif.imaslivedb.data.db.AppDatabase
 import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.data.model.SearchResults
 import com.fugaif.imaslivedb.data.model.Song
+import com.fugaif.imaslivedb.ui.search.CrossTabSearchCounts
 
 /** 検索スコープ。UI 上の絞り込み単位 (iOS `UnifiedSearchScope` の移植)。 */
 enum class SearchScope(val label: String, val prompt: String, val emptyNoun: String) {
@@ -42,6 +43,25 @@ class SearchRepository(
      * 同じ待ちに乗せると打った通りの結果まで候補の計算ぶんだけ遅れて出ることになる。
      * 呼び出し側が確実な一致を出してから [fuzzySongs] で足す。
      */
+    /**
+     * 打った語が種別ごとに何件当たるか (打ち切りなし)。
+     *
+     * 各一覧の検索欄が「他のタブに N 件」を出すために使う。実体は要らないので数だけ返す。
+     * 上限で切らないのは、「20 件」と出しておいて実は 137 件ある、では移る判断の
+     * 根拠にならないため。
+     *
+     * **null = まだ数えられない**。0 件とは区別する。スナップショットは起動直後に
+     * バックグラウンドで載るので、それより先に訊くと数えようがない。ここを 0 で
+     * 返すと「どこにも無い」と読めてしまい、呼び出し側が待つべきか諦めるべきかを
+     * 判断できない (iOS で実際それでチップが永久に出なかった)。
+     */
+    suspend fun crossTabCounts(query: String): CrossTabSearchCounts? =
+        snapshots?.query { store ->
+            val c = store.searchCounts(query)
+            CrossTabSearchCounts(
+                songs = c.songs.toInt(), idols = c.idols.toInt(), events = c.events.toInt())
+        }
+
     suspend fun search(query: String, scope: SearchScope = SearchScope.ALL): SearchResults {
         return when (scope) {
             SearchScope.ALL -> SearchResults(

@@ -69,7 +69,6 @@ fun CalendarScreen(
     onNavigateToSong: (String) -> Unit,
     onNavigateToIdol: (String) -> Unit,
     onNavigateToEvent: (String) -> Unit,
-    onNavigateToSearch: () -> Unit,
     onNavigateToSettings: () -> Unit,
     viewModel: CalendarViewModel = viewModel()
 ) {
@@ -96,9 +95,6 @@ fun CalendarScreen(
             TopAppBar(
                 title = { Text("スケジュール", fontWeight = FontWeight.Bold) },
                 actions = {
-                    IconButton(onClick = onNavigateToSearch) {
-                        Icon(Icons.Filled.Search, contentDescription = "検索")
-                    }
                     IconButton(onClick = onNavigateToSettings) {
                         Icon(Icons.Filled.Settings, contentDescription = "設定・マイ")
                     }

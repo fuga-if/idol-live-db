@@ -55,14 +55,6 @@ sealed class NavRoutes(val route: String) {
     }
     data object Stats : NavRoutes("stats")
     data object Settings : NavRoutes("settings")
-    /**
-     * 検索。呼び出し元タブのスコープを引き継ぐ (`SearchScope` の name)。
-     * 省略時は ALL。
-     */
-    data object Search : NavRoutes("search?scope={scope}") {
-        const val ROUTE = "search?scope={scope}"
-        fun createRoute(scope: String = "ALL") = "search?scope=$scope"
-    }
 
     data object Favorites : NavRoutes("favorites")
     data object AttendedEvents : NavRoutes("attended_events")
@@ -205,10 +197,15 @@ fun decodeGameBrandIds(raw: String?): Set<String> =
     if (raw.isNullOrEmpty() || raw == "all") emptySet() else raw.split(",").filter { it.isNotEmpty() }.toSet()
 
 // Top-level tab routes (iOS の確定 IA に合わせる: スケジュール/ライブ/楽曲/アイドル/プロデュース)
-enum class TopLevelTab(val route: String) {
-    Schedule("tab_schedule"),
-    Events("tab_events"),
-    Songs("tab_songs"),
-    Idols("tab_idols"),
-    Produce("tab_produce")
+enum class TopLevelTab(val route: String, val label: String) {
+    Schedule("tab_schedule", "スケジュール"),
+    Events("tab_events", "ライブ"),
+    Songs("tab_songs", "楽曲"),
+    Idols("tab_idols", "アイドル"),
+    Produce("tab_produce", "プロデュース");
+
+    companion object {
+        /** 「他のタブに N 件」で押せる先。検索欄を持つ一覧だけ。 */
+        val searchable = listOf(Events, Songs, Idols)
+    }
 }

@@ -58,12 +58,14 @@ import com.fugaif.imaslivedb.ui.components.MarkToggleAction
 import com.fugaif.imaslivedb.ui.components.NameFilterField
 import com.fugaif.imaslivedb.ui.components.SkeletonThumb
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.navigation.TopLevelTab
+import com.fugaif.imaslivedb.ui.search.CrossTabCountChips
+import com.fugaif.imaslivedb.ui.search.CrossTabSearch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun EventListScreen(
     onEventClick: (String) -> Unit,
-    onNavigateToSearch: () -> Unit = {},
     viewModel: EventListViewModel = viewModel()
 ) {
     val context = LocalContext.current
@@ -106,9 +108,6 @@ fun EventListScreen(
             TopAppBar(
                 title = { Text("ライブ") },
                 actions = {
-                    IconButton(onClick = onNavigateToSearch) {
-                        Icon(Icons.Filled.Search, contentDescription = "検索")
-                    }
                     BadgedBox(
                         badge = {
                             if (uiState.activeFilterCount > 0) Badge { Text("${uiState.activeFilterCount}") }
@@ -138,6 +137,12 @@ fun EventListScreen(
                 value = uiState.searchText,
                 onValueChange = { viewModel.setSearchText(it) }
             )
+            // 同じ語が曲・アイドルに何件あるか (虫眼鏡を畳んだ代わりの導線)。
+            CrossTabCountChips(query = uiState.searchText, from = TopLevelTab.Events)
+            // 「他のタブに N 件」から飛んで来たら、その語で絞り込む。
+            LaunchedEffect(CrossTabSearch.generation) {
+                CrossTabSearch.take(TopLevelTab.Events)?.let { viewModel.setSearchText(it) }
+            }
 
             ActiveFilterChipRow(
                 uiState = uiState,
