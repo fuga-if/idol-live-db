@@ -47,6 +47,15 @@ MERGES = [
         "同じ曲の二重登録 (半角/全角の違い)。歌ネット (song/280408) が全角表記なので"
         "全角側を残す。song_artists は 5 件とも同一。",
     ),
+    (
+        "cg_cookie_dough", "cg_cookiedough",
+        "同じ曲の二重登録。曲名・ブランド・配信日 (2026-08-13)・原唱者 (三船美優・"
+        "大和亜季・高垣楓) がすべて同じで、どちらも Pop'n ToyBox!! の会場 CD。"
+        "残す側はセトリ 4 件から参照されており、消す側はどこからも参照が無い。"
+        "id の綴りは消す側 (cg_cookie_dough) の方が命名規則に沿っているが、"
+        "**参照のある方を残す**。id を揃えるために参照を付け替えるのは、"
+        "得るものが綴りだけで、セトリを壊す危険に見合わない。",
+    ),
 ]
 
 
@@ -67,9 +76,17 @@ def main() -> None:
     deletions: list[tuple[str, str]] = []
 
     for dup, keep, why in MERGES:
-        for song_id in (dup, keep):
-            if not db.execute("SELECT 1 FROM songs WHERE id=?", (song_id,)).fetchone():
-                raise SystemExit(f"songs に無い: {song_id}")
+        exists = lambda sid: db.execute("SELECT 1 FROM songs WHERE id=?", (sid,)).fetchone()
+        # MERGES は「何を統合したか」の履歴も兼ねるので、適用済みの行はここに残り続ける。
+        # 消す側がもう居ないなら統合は済んでいる。落とさずに飛ばす
+        # (落とすと、新しく足した 1 件を試すたびに過去分を消して回ることになる)。
+        if not exists(dup):
+            if not exists(keep):
+                raise SystemExit(f"消す側も残す側も songs に無い: {dup} / {keep}")
+            print(f"済: {dup} → {keep}")
+            continue
+        if not exists(keep):
+            raise SystemExit(f"残す側が songs に無い: {keep}")
 
         # 同じ公演に両方載っていると付け替えで主キーが衝突する。事前に弾く。
         clash = db.execute(

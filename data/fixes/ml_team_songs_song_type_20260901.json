@@ -1,0 +1,23 @@
+{
+ "title": "MILLIONSTARS Team1st〜8th の 8 曲が全体曲扱いになっていたのを直す",
+ "_help": "`songs.song_type='all'` はブランド全体曲を指す。ミリオンなら『Thank You!』『UNION!!』のように 50 人前後が名を連ねるものが該当する。ところが MILLION ANIMATION THE@TER のチーム曲 8 曲 (Team1st〜Team8th) も `all` になっていた。各曲の原唱者は 4〜6 人で、CD 題も『THE IDOLM@STER MILLION ANIMATION THE@TER MILLIONSTARS Team7th 「トワラー」- Single』のようにチーム名義。全体曲ではなくユニット曲なので `unit` に直す。",
+ "_note": "song_artists (role='original') と unit_id / unit_name は既に正しくチーム 4〜6 人を指しており、song_type だけが食い違っていた。人数の少なさだけを根拠に一括で直すのは危険で、876PRO ALLSTARS の『ソライロ!』は 6 人でも 876 の全体曲なので `all` が正しい。ここは『チーム名義の 8 曲』に限定してある。",
+ "fixes": [
+  { "table": "songs", "id": "ml_star_impression", "fields": { "song_type": "unit" },
+    "note": "MILLIONSTARS Team1st (4人) のチーム曲" },
+  { "table": "songs", "id": "ml_海風とカスタネット", "fields": { "song_type": "unit" },
+    "note": "MILLIONSTARS Team2nd (5人) のチーム曲" },
+  { "table": "songs", "id": "ml_オレンジノキオク", "fields": { "song_type": "unit" },
+    "note": "MILLIONSTARS Team3rd (5人) のチーム曲" },
+  { "table": "songs", "id": "ml_catch_my_feeling", "fields": { "song_type": "unit" },
+    "note": "MILLIONSTARS Team4th (6人) のチーム曲" },
+  { "table": "songs", "id": "ml_バトンタッチ", "fields": { "song_type": "unit" },
+    "note": "MILLIONSTARS Team5th (5人) のチーム曲" },
+  { "table": "songs", "id": "ml_unknown_boxの開き方", "fields": { "song_type": "unit" },
+    "note": "MILLIONSTARS Team6th (5人) のチーム曲" },
+  { "table": "songs", "id": "ml_トワラー", "fields": { "song_type": "unit" },
+    "note": "MILLIONSTARS Team7th (4人) のチーム曲" },
+  { "table": "songs", "id": "ml_refrain_reltion", "fields": { "song_type": "unit" },
+    "note": "MILLIONSTARS Team8th (5人) のチーム曲" }
+ ]
+}

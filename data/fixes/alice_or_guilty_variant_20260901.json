@@ -1,0 +1,10 @@
+{
+ "title": "Alice or Guilty の別バージョンを親曲へ紐付ける",
+ "_help": "`Alice or Guilty –Indies Live Arrange-` (sidem) が `Alice or Guilty` (961) の派生として紐付いていなかった。`parent_song_id` が空だと一覧・カレンダー・統計・クイズが別曲として扱う (どれも `parent_song_id IS NULL` で派生を除外している)。",
+ "_why_the_tool_missed_it": "`tools/link_song_variants.py` は「修飾を剥がした素の曲名が**同じブランドに**実在する」ことを派生の根拠にしている。この同ブランド条件は必要で、外すと『メッセージ』(cg と sc に別々の曲として実在) や『Memories』(other と cg) のような同題異曲を誤って親子にしてしまう。Jupiter は 961プロ から SideM へ移った経緯があり、原曲が 961・アレンジが sidem とブランドを跨ぐ。規則で拾えない例外なので手で紐付ける。",
+ "fixes": [
+  { "table": "songs", "id": "sidem_alice_or_guilty_indies_live_arrange-",
+    "fields": { "parent_song_id": "961_alice_or_guilty" },
+    "note": "アニメ「アイドルマスターSideM」特典CD の Indies Live Arrange。原曲は 961 の Jupiter 名義" }
+ ]
+}
