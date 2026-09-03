@@ -387,7 +387,9 @@ mod real {
     use imas_core::outbound::sqlite_loader::load_snapshot;
     use imas_core::web_export::emit::context::Ctx;
     use imas_core::web_export::emit::search;
-    use imas_core::web_export::url::{fallback_reason, path_key, reserved_for, FallbackReason};
+    use imas_core::web_export::url::{
+        fallback_reason, path_key, reserved_for, FallbackReason, MAX_SEGMENT_BYTES,
+    };
     use std::collections::{BTreeMap, BTreeSet, HashSet};
     use std::sync::OnceLock;
 
@@ -433,7 +435,7 @@ mod real {
     // -----------------------------------------------------------------------
 
     #[test]
-    fn t2_fallback_slugs_stay_at_the_five_ids_we_know_about() {
+    fn t2_fallback_slugs_stay_at_the_two_ids_we_know_about() {
         let ctx = ctx();
         let mut by_reason: BTreeMap<&str, Vec<String>> = BTreeMap::new();
         let collections: [(&str, Vec<String>); 7] = [
@@ -463,12 +465,25 @@ mod real {
         // 1 件増えたときに気付けない (前者はデータ修正、後者は放置でよい別の話)。
         assert_eq!(
             (unsafe_ids, too_long),
-            (2, 3),
+            (2, 0),
             "フォールバック slug の内訳が変わった:\n{by_reason:#?}\n\
              危険 id が増えたならデータ側 (db/master.sql) を直す。\
-             長い id が増えただけなら期待値を更新してよい。"
+             長い id が増えただけなら MAX_SEGMENT_BYTES と期待値を見直してよい。"
         );
-        assert_eq!(ctx.fallback_unsafe + ctx.fallback_too_long, 5);
+        assert_eq!(ctx.fallback_unsafe + ctx.fallback_too_long, 2);
+
+        // 実データの最長 id が上限に収まっていること。上限を割ると、その id を持つ
+        // ページの URL だけが静かにハッシュに変わる (ビルドは通ってしまう)。
+        let longest = collections
+            .iter()
+            .flat_map(|(_, ids)| ids.iter())
+            .map(|id| id.len())
+            .max()
+            .unwrap_or(0);
+        assert!(
+            longest <= MAX_SEGMENT_BYTES,
+            "最長 id ({longest} バイト) が MAX_SEGMENT_BYTES ({MAX_SEGMENT_BYTES}) を超えた"
+        );
     }
 
     #[test]

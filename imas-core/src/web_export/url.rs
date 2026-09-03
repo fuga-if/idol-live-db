@@ -6,12 +6,12 @@
 //! 「URL を見て何のページか分かる」利点を全部失うので、**危険な id だけ**を
 //! フォールバック slug に落とす部分適用にしてある。
 //!
-//! 現行データ (db/master.sql) で落ちるのは **5 件**で、内訳は:
+//! 現行データ (db/master.sql) で落ちるのは **2 件**で、内訳は:
 //!
 //! | 理由 | 件数 | 例 |
 //! |---|---|---|
 //! | [`FallbackReason::Unsafe`] (`/` を含む) | 2 (venues) | `venue_grandpeacepalace(慶熙大学,ソウル/韓国)` |
-//! | [`FallbackReason::TooLong`] ([`MAX_SEGMENT_BYTES`] 超え) | 3 (events) | 200 バイトを超える長いイベント名由来の id |
+//! | [`FallbackReason::TooLong`] ([`MAX_SEGMENT_BYTES`] 超え) | 0 | — |
 //!
 //! この件数はテストで固定してある (新しい壊れ id が入ったら気付けるように)。
 //!
@@ -23,10 +23,15 @@
 
 /// percent-encode 前の、1 パスセグメントの UTF-8 バイト数の上限。
 ///
-/// 255 ではなく 200 なのは、多くのファイルシステムの上限 255 バイトに対して
-/// percent-encode 後 (最悪 3 倍) ではなく **encode 前**で測っているため。
-/// Astro は生の値でディレクトリを掘るので、効くのは encode 前の長さ。
-pub const MAX_SEGMENT_BYTES: usize = 200;
+/// **encode 前**で測るのは、Astro が生の値でディレクトリを掘るから (効くのは
+/// ファイル名としての長さで、percent-encode 後の URL の長さではない)。
+///
+/// 240 なのは、多くのファイルシステムの上限 255 バイトに 15 バイトの余裕を見た値。
+/// 実データの最長 id は 206 バイトのライブが 3 件あり、これを超えると URL が
+/// ハッシュに落ちて「見て何のページか分かる」利点を失う。206 バイトの id が
+/// Astro のビルドと Cloudflare の配信の両方を通ることは実測で確認済み
+/// (percent-encode 後は 596 文字になるが、どちらも問題にしない)。
+pub const MAX_SEGMENT_BYTES: usize = 240;
 
 /// フォールバック slug に落ちた理由。stderr の内訳とテストで使う。
 ///
