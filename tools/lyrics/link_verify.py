@@ -14,16 +14,31 @@ Usage:
   コレサワ「シンデレラ」のような無関係な曲が混ざる。
 
   したがって判定条件は2つだけ:
-    1. 候補ページのタイトルに、こちらの曲名が含まれる
-    2. 候補ページのタイトルに、アイマス関連の固有名詞が含まれる
+    1. 候補ページの曲名が、こちらの曲名と一致する
+    2. 候補ページの歌手名に、アイマス関連の固有名詞が含まれる
        (アイドル名 395 / 声優名 301 / ユニット名 1539 / ブランド名 を DB から取る)
 
   1 だけ満たす = 同名の別曲の疑い → low
   両方満たす   = high
   候補なし     = not_found
+
+  ⚠️ **照合には `lyrics_local/lyrics/<song_id>.json` の `scraped` を使う。**
+  ここには歌ネットの曲名と歌手名が構造化されて入っている。links.tsv の
+  `candidate_title` (ページの <title> 文字列) を使ってはいけない:
+
+    - **歌手名が入っているとは限らない。** 「KAWAII ウォーズ 歌詞」のように曲名だけの
+      ページがあり、固有名詞の照合が必ず落ちる。2026-09-03 時点で low だった 78 件は
+      **全件リンクが正しく**、うち 50 件がこの偽陰性だった。
+    - **取得に失敗することがある。** `sc_感謝のコントレイル` は
+      `shainikarazu's "kanshanokontoreiru" lyrics page.` という機械生成の題が入っていた
+      (`scraped` 側は「感謝のコントレイル / シャイニーカラーズ」で正しい)。
+
+  JSON が無い曲だけ candidate_title に落とす。
 """
 
 import argparse
+import io
+import json
 import os
 import re
 import sqlite3
@@ -37,6 +52,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
 DEFAULT_DB = os.path.join(REPO, "ImasLiveDB", "Resources", "master.sqlite")
 LINKS_TSV = os.path.join(HERE, "links.tsv")
+JSON_DIR = os.path.join(REPO, "lyrics_local", "lyrics")
 
 # 語彙として短すぎると誤爆する (「和」「初」等の1文字ユニット名が
 # 無関係なページのタイトルに偶然含まれてしまう)。
@@ -81,8 +97,10 @@ def load_vocab(db_path):
 
     for (name,) in conn.execute("SELECT name FROM idols WHERE name <> ''"):
         vocab.add(name)
-    for (va,) in conn.execute(
-            "SELECT voice_actors FROM idols WHERE voice_actors IS NOT NULL AND voice_actors <> ''"):
+    # 声優は idols.voice_actors から idol_voice_actors テーブルへ移った
+    # (代役・交代を期間つきで持つため)。歴代すべてを語彙に入れる — 収録時点の
+    # 声優名が歌ネットに載っているので、現任だけだと古い曲を落とす。
+    for (va,) in conn.execute("SELECT name FROM idol_voice_actors WHERE name <> ''"):
         # 「五十嵐裕美」単体のことも、複数を区切っていることもある
         for part in re.split(r"[、,／/]", va):
             vocab.add(part.strip())
@@ -147,6 +165,18 @@ def base_title(title):
     return t
 
 
+def scraped_fields(song_id):
+    """投入用 JSON に残した歌ネットの取得結果 (曲名・歌手名)。無ければ空。"""
+    path = os.path.join(JSON_DIR, "%s.json" % song_id)
+    if not os.path.exists(path):
+        return {}
+    try:
+        with io.open(path, encoding="utf-8") as f:
+            return json.load(f).get("scraped") or {}
+    except (ValueError, OSError):
+        return {}
+
+
 def judge(row, vocab, leading_vocab, song_type=""):
     """(confidence, 理由) を返す。"""
     cand = row.get("candidate_title", "")
@@ -154,22 +184,37 @@ def judge(row, vocab, leading_vocab, song_type=""):
     if not URL_RE.match(url) or not cand:
         return "not_found", "候補なし"
 
-    cand_n = norm(cand)
-    title_n = norm(row["title"])
+    # 構造化された取得結果があればそちらを見る (理由はモジュール冒頭)。
+    scraped = scraped_fields(row["song_id"])
+    page_title = scraped.get("utanet_title") or cand
+    page_artist = scraped.get("utanet_artist") or cand
+
+    title_n = norm(page_title)
+    want_n = norm(row["title"])
     base_n = norm(base_title(row["title"]))
 
-    title_hit = (title_n and title_n in cand_n) or (base_n and base_n in cand_n)
+    # 版違いは素の曲名のページを指すので、どちら向きの包含も一致とみなす。
+    title_hit = bool(title_n) and (
+        (want_n and (want_n in title_n or title_n in want_n))
+        or (base_n and (base_n in title_n or title_n in base_n))
+    )
+
+    artist_n = norm(page_artist)
+    matched = [v for v in vocab if v and v in artist_n]
+    if not matched:
+        # 短い固有名詞は歌手名の先頭との照合だけ許す (誤爆を避ける)。
+        matched = [v for v in leading_vocab if v and artist_n.startswith(v)]
+
+    if title_hit and matched:
+        return "high", "曲名一致 + 歌手名に関連名詞 %d件" % len(matched)
+
+    if not title_hit and matched:
+        # 歌手が一致しているので別曲を掴んでいる線は薄い。表記ゆれが疑わしい
+        # (リローディング/RELOADING・俠/侠・ØωØver/OωOver・神さま/神様 等)。
+        return "low", "歌手名は一致するが曲名の表記が違う: %r (要確認)" % page_title[:40]
+
     if not title_hit:
-        return "low", "候補タイトルに曲名が含まれない"
-
-    matched = [v for v in vocab if v and v in cand_n]
-    if matched:
-        return "high", "曲名一致 + 関連名詞 %d件" % len(matched)
-
-    # 短い固有名詞はタイトル先頭 (= アーティスト表記) との照合だけ許す。
-    lead = [v for v in leading_vocab if v and cand_n.startswith(v)]
-    if lead:
-        return "high", "曲名一致 + 先頭の関連名詞 (%s)" % max(lead, key=len)[:20]
+        return "low", "候補ページの曲名が違う: %r" % page_title[:40]
 
     # カバー曲は原曲アーティストのページが正解なので、アイマス語彙に当たらないのが
     # 当たり前。同名別曲の疑いとは別の状態なので区別する。
@@ -178,7 +223,7 @@ def judge(row, vocab, leading_vocab, song_type=""):
     if song_type == "cover":
         return "cover", "カバー曲。原曲アーティストのページと思われる (要確認)"
 
-    return "low", "アイマス関連の固有名詞がタイトルに無い (同名別曲の疑い)"
+    return "low", "曲名は一致するが歌手名にアイマス関連の固有名詞が無い"
 
 
 def read_tsv(path):
