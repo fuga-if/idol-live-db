@@ -3,7 +3,7 @@
 //! 文言を 1 箇所に集めてあるのは、同じ断り書きがページごとに少しずつ違う、という
 //! 事故を防ぐため。**Astro 側に日本語の固定文を書かない** (書くと出典が 2 つになる)。
 
-use super::dto::{AppLinks, AppOpen};
+use super::dto::{AboutLink, AboutSection, AppLinks, AppOpen};
 
 /// サイトの起点。独自ドメインを取るときに変えるのはここと `astro.config` の `site`、
 /// robots.txt の 3 箇所だけで済むようにしてある。
@@ -35,6 +35,16 @@ pub const APP_OPEN_NOTE: &str = "参加記録・投票・歌詞・コール・�
 
 /// カスタムスキーム。`DeeplinkRouter` が受けるのは events / shows / polls の 3 種だけ。
 pub const DEEPLINK_SCHEME: &str = "imaslivedb";
+
+/// 見出しに使う書体。SIL Open Font License 1.1。
+///
+/// Google Fonts から読み込まず、latin サブセットを自己ホストしている
+/// (第三者へのリクエストをゼロにするため)。OFL は**ライセンス文の同梱**を求めるので、
+/// `web/public/fonts/OFL.txt` を配布物に入れ、About からそこへリンクする。
+pub const FONT_NAME: &str = "Chakra Petch";
+pub const FONT_LICENSE_NOTE: &str =
+    "見出しの書体 Chakra Petch は SIL Open Font License 1.1 のもとで利用しています。";
+pub const FONT_LICENSE_URL: &str = "/fonts/OFL.txt";
 
 /// 既定の OGP 画像。
 pub const DEFAULT_OG_IMAGE: &str = "/og/default.png";
@@ -101,3 +111,71 @@ pub fn kind_label(kind: &str) -> &'static str {
 /// (省略すると既定が効いて、一覧から静かに消える種別が出る)。
 pub const ALL_EVENT_KINDS: [&str; 6] =
     ["live", "festival", "release_event", "other", "radio", "stream"];
+
+/// About ページの固定文。
+///
+/// **出面の日本語はここが正。**Astro 側に文面を書くと、同じ断り書きがページごとに
+/// 少しずつ違う、という壊れ方をする (直したつもりの箇所が 1 つ残る)。
+pub fn about_sections() -> Vec<AboutSection> {
+    vec![
+        AboutSection {
+            heading: "このサイトについて".to_string(),
+            paragraphs: vec![SITE_DISCLAIMER.to_string(), SITE_TAGLINE.to_string()],
+            links: vec![],
+        },
+        AboutSection {
+            heading: "版権について".to_string(),
+            paragraphs: vec![
+                "キャラクター画像・公式ロゴ・歌詞は掲載していません。アイドルは名前の 1 文字を使ったモノグラムで表示しています。".to_string(),
+                "ジャケット画像は Apple Music の配信情報 (songs.artwork_url) を参照しています。".to_string(),
+            ],
+            links: vec![],
+        },
+        AboutSection {
+            heading: "歌詞について".to_string(),
+            paragraphs: vec![LYRICS_NOTE.to_string()],
+            links: vec![AboutLink {
+                label: "App Store でアプリを見る".to_string(),
+                href: APP_STORE_URL.to_string(),
+                external: true,
+            }],
+        },
+        AboutSection {
+            heading: "アプリについて".to_string(),
+            paragraphs: vec![
+                "参加記録・投票・タグ付け・歌詞・コールはアプリでご利用いただけます。本サイトは閲覧専用です。".to_string(),
+            ],
+            links: vec![
+                AboutLink { label: "X (@idollivedb)".to_string(), href: X_URL.to_string(), external: true },
+                AboutLink { label: "プライバシーポリシー".to_string(), href: PRIVACY_URL.to_string(), external: true },
+                AboutLink { label: "サポート".to_string(), href: SUPPORT_URL.to_string(), external: true },
+                AboutLink { label: "利用規約".to_string(), href: TERMS_URL.to_string(), external: true },
+            ],
+        },
+        AboutSection {
+            heading: "書体".to_string(),
+            paragraphs: vec![
+                FONT_LICENSE_NOTE.to_string(),
+                "本文は端末に入っている書体 (ヒラギノ角ゴ / Noto Sans JP 等) を使っています。"
+                    .to_string(),
+            ],
+            links: vec![AboutLink {
+                label: "SIL Open Font License 1.1 (全文)".to_string(),
+                href: FONT_LICENSE_URL.to_string(),
+                // 配布物に同梱しているので同一サイト内。
+                external: false,
+            }],
+        },
+        AboutSection {
+            heading: "データの貢献".to_string(),
+            paragraphs: vec![
+                "セットリストや楽曲情報の誤りは GitHub からご指摘いただけます。データは公開リポジトリで管理しています。".to_string(),
+            ],
+            links: vec![AboutLink {
+                label: "GitHub リポジトリ".to_string(),
+                href: REPOSITORY_URL.to_string(),
+                external: true,
+            }],
+        },
+    ]
+}

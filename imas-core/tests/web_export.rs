@@ -764,6 +764,98 @@ mod real {
     }
 
     #[test]
+    fn sibling_show_chips_are_short_and_absent_on_single_show_events() {
+        // 「このライブの他の公演」は 2 本以上あるときだけ出す。単日公演で出すと
+        // 自分 1 本しか並ばず、選べないものの見出しだけが残る。
+        //
+        // チップの名前はライブ名との重なりを落とした短い形。ページ見出しが既に
+        // ライブ名なので、フルの公演名を並べると同じ文字列が繰り返されて
+        // 肝心の見分け (DAY1 / 昼公演 / ステージ１回目) が読めなくなる。
+        let dir = exported();
+        let routes: RoutesFile =
+            serde_json::from_str(&std::fs::read_to_string(dir.path().join("routes.json")).unwrap())
+                .unwrap();
+
+        let mut with_siblings = 0usize;
+        let mut single_show = 0usize;
+        let mut repeated_event_name: Vec<String> = Vec::new();
+        for entry in routes.routes.iter().filter(|r| r.kind == RouteKind::Show) {
+            let page: ShowPage = serde_json::from_str(
+                &std::fs::read_to_string(dir.path().join(&entry.data)).unwrap(),
+            )
+            .unwrap();
+            if page.sibling_shows.is_empty() {
+                single_show += 1;
+                continue;
+            }
+            with_siblings += 1;
+            assert!(
+                page.sibling_shows.len() >= 2,
+                "{}: 兄弟公演が 1 件だけ出ている",
+                page.path
+            );
+            for sibling in &page.sibling_shows {
+                if sibling.name.starts_with(page.event.name.as_str()) {
+                    repeated_event_name.push(format!("{} → {:?}", page.path, sibling.name));
+                }
+                // 日付はチップだけで分かること。公演名がライブ名と丸ごと同じで
+                // 名前が日付になっている公演は、それ自体が日付なので sub は要らない。
+                let name_is_a_date = sibling.name.len() == 10
+                    && sibling.name.bytes().filter(|b| *b == b'-').count() == 2;
+                assert!(
+                    sibling.sub.is_some() || name_is_a_date,
+                    "{}: 兄弟公演 {:?} から日付が分からない",
+                    page.path,
+                    sibling.name
+                );
+            }
+        }
+
+        assert!(
+            repeated_event_name.is_empty(),
+            "兄弟公演の名前がライブ名で始まっている {} 件 (先頭 10 件):\n{}",
+            repeated_event_name.len(),
+            repeated_event_name.iter().take(10).cloned().collect::<Vec<_>>().join("\n")
+        );
+        // 実データには単日公演も複数公演も両方ある。片方だけになっていたら
+        // この検査が空回りしているので、両方を踏んでいることを確かめる。
+        assert!(single_show > 100, "単日公演が少なすぎる: {single_show}");
+        assert!(with_siblings > 100, "複数公演のライブが少なすぎる: {with_siblings}");
+    }
+
+    #[test]
+    fn about_credits_the_display_font_and_ships_its_licence() {
+        // OFL はライセンス文の同梱を求める。About から辿れて、実体が配布物にあること。
+        let dir = exported();
+        let about: AboutPage = serde_json::from_str(
+            &std::fs::read_to_string(dir.path().join("index/about.json")).unwrap(),
+        )
+        .unwrap();
+        let section = about
+            .sections
+            .iter()
+            .find(|s| s.heading == "書体")
+            .expect("About に「書体」の節が無い");
+        assert!(
+            section.paragraphs.iter().any(|p| p.contains("SIL Open Font License")),
+            "ライセンス名が本文に無い"
+        );
+        let link = section
+            .links
+            .iter()
+            .find(|l| l.href == "/fonts/OFL.txt")
+            .expect("OFL 全文へのリンクが無い");
+        assert!(!link.external, "同梱物なので外部リンクにしない");
+
+        // 配布物にライセンス文が実在すること (リンク切れは OFL 違反になる)。
+        let ofl = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../web/public/fonts/OFL.txt");
+        let text = std::fs::read_to_string(&ofl)
+            .unwrap_or_else(|e| panic!("{} が読めない: {e}", ofl.display()));
+        assert!(text.contains("SIL OPEN FONT LICENSE"), "OFL.txt の中身がライセンス文でない");
+    }
+
+    #[test]
     fn t11_output_stays_inside_the_cloudflare_limits() {
         let dir = exported();
         let mut files = 0usize;

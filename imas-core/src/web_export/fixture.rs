@@ -952,49 +952,8 @@ fn about_page() -> AboutPage {
         generated_at: GENERATED_AT.to_string(),
         today_jst: TODAY.to_string(),
         app: content::app_links(),
-        sections: vec![
-            AboutSection {
-                heading: "このサイトについて".to_string(),
-                paragraphs: vec![content::SITE_DISCLAIMER.to_string(), content::SITE_TAGLINE.to_string()],
-                links: vec![],
-            },
-            AboutSection {
-                heading: "版権について".to_string(),
-                paragraphs: vec![
-                    "キャラクター画像・公式ロゴ・歌詞は掲載していません。".to_string(),
-                    "ジャケット画像は Apple Music の配信情報から取得しています。".to_string(),
-                ],
-                links: vec![],
-            },
-            AboutSection {
-                heading: "歌詞について".to_string(),
-                paragraphs: vec![content::LYRICS_NOTE.to_string()],
-                links: vec![AboutLink {
-                    label: "App Store".to_string(),
-                    href: content::APP_STORE_URL.to_string(),
-                    external: true,
-                }],
-            },
-            AboutSection {
-                heading: "プライバシー・サポート・利用規約".to_string(),
-                paragraphs: vec![],
-                links: vec![
-                    AboutLink { label: "X (@idollivedb)".to_string(), href: content::X_URL.to_string(), external: true },
-                    AboutLink { label: "プライバシーポリシー".to_string(), href: content::PRIVACY_URL.to_string(), external: true },
-                    AboutLink { label: "サポート".to_string(), href: content::SUPPORT_URL.to_string(), external: true },
-                    AboutLink { label: "利用規約".to_string(), href: content::TERMS_URL.to_string(), external: true },
-                ],
-            },
-            AboutSection {
-                heading: "データの貢献".to_string(),
-                paragraphs: vec!["セットリストの誤りは GitHub からご指摘いただけます。".to_string()],
-                links: vec![AboutLink {
-                    label: "GitHub リポジトリ".to_string(),
-                    href: content::REPOSITORY_URL.to_string(),
-                    external: true,
-                }],
-            },
-        ],
+        // About の文面はコアが正。フィクスチャで書き直すと実物とずれる。
+        sections: content::about_sections(),
         seo: seo("このサイトについて", "非公式・版権・ライセンス・アプリ。", "/about/", Robots::IndexFollow, &[("ホーム", "/")]),
     }
 }

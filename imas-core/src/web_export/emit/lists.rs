@@ -976,7 +976,7 @@ pub fn about(ctx: &Ctx, counts: Counts) -> AboutPage {
         generated_at: ctx.generated_at.clone(),
         today_jst: ctx.today.clone(),
         app: content::app_links(),
-        sections: about_sections(),
+        sections: content::about_sections(),
         seo: ctx.seo(
             "このサイトについて",
             "非公式のファンメイドサイトです。版権方針・ライセンス・アプリ・データの貢献について。",
@@ -990,56 +990,6 @@ pub fn about(ctx: &Ctx, counts: Counts) -> AboutPage {
             vec![ctx.crumb("ホーム", "/"), ctx.crumb("このサイトについて", path)],
         ),
     }
-}
-
-fn about_sections() -> Vec<AboutSection> {
-    vec![
-        AboutSection {
-            heading: "このサイトについて".to_string(),
-            paragraphs: vec![content::SITE_DISCLAIMER.to_string(), content::SITE_TAGLINE.to_string()],
-            links: vec![],
-        },
-        AboutSection {
-            heading: "版権について".to_string(),
-            paragraphs: vec![
-                "キャラクター画像・公式ロゴ・歌詞は掲載していません。アイドルは名前の 1 文字を使ったモノグラムで表示しています。".to_string(),
-                "ジャケット画像は Apple Music の配信情報 (songs.artwork_url) を参照しています。".to_string(),
-            ],
-            links: vec![],
-        },
-        AboutSection {
-            heading: "歌詞について".to_string(),
-            paragraphs: vec![content::LYRICS_NOTE.to_string()],
-            links: vec![AboutLink {
-                label: "App Store でアプリを見る".to_string(),
-                href: content::APP_STORE_URL.to_string(),
-                external: true,
-            }],
-        },
-        AboutSection {
-            heading: "アプリについて".to_string(),
-            paragraphs: vec![
-                "参加記録・投票・タグ付け・歌詞・コールはアプリでご利用いただけます。本サイトは閲覧専用です。".to_string(),
-            ],
-            links: vec![
-                AboutLink { label: "X (@idollivedb)".to_string(), href: content::X_URL.to_string(), external: true },
-                AboutLink { label: "プライバシーポリシー".to_string(), href: content::PRIVACY_URL.to_string(), external: true },
-                AboutLink { label: "サポート".to_string(), href: content::SUPPORT_URL.to_string(), external: true },
-                AboutLink { label: "利用規約".to_string(), href: content::TERMS_URL.to_string(), external: true },
-            ],
-        },
-        AboutSection {
-            heading: "データの貢献".to_string(),
-            paragraphs: vec![
-                "セットリストや楽曲情報の誤りは GitHub からご指摘いただけます。データは公開リポジトリで管理しています。".to_string(),
-            ],
-            links: vec![AboutLink {
-                label: "GitHub リポジトリ".to_string(),
-                href: content::REPOSITORY_URL.to_string(),
-                external: true,
-            }],
-        },
-    ]
 }
 
 fn collection_json_ld(name: &str, path: &str) -> serde_json::Value {

@@ -37,8 +37,8 @@
     {
       "heading": "版権について",
       "paragraphs": [
-        "キャラクター画像・公式ロゴ・歌詞は掲載していません。",
-        "ジャケット画像は Apple Music の配信情報から取得しています。"
+        "キャラクター画像・公式ロゴ・歌詞は掲載していません。アイドルは名前の 1 文字を使ったモノグラムで表示しています。",
+        "ジャケット画像は Apple Music の配信情報 (songs.artwork_url) を参照しています。"
       ],
       "links": []
     },
@@ -49,15 +49,17 @@
       ],
       "links": [
         {
-          "label": "App Store",
+          "label": "App Store でアプリを見る",
           "href": "https://apps.apple.com/jp/app/id6763342297",
           "external": true
         }
       ]
     },
     {
-      "heading": "プライバシー・サポート・利用規約",
-      "paragraphs": [],
+      "heading": "アプリについて",
+      "paragraphs": [
+        "参加記録・投票・タグ付け・歌詞・コールはアプリでご利用いただけます。本サイトは閲覧専用です。"
+      ],
       "links": [
         {
           "label": "X (@idollivedb)",
@@ -82,9 +84,23 @@
       ]
     },
     {
+      "heading": "書体",
+      "paragraphs": [
+        "見出しの書体 Chakra Petch は SIL Open Font License 1.1 のもとで利用しています。",
+        "本文は端末に入っている書体 (ヒラギノ角ゴ / Noto Sans JP 等) を使っています。"
+      ],
+      "links": [
+        {
+          "label": "SIL Open Font License 1.1 (全文)",
+          "href": "/fonts/OFL.txt",
+          "external": false
+        }
+      ]
+    },
+    {
       "heading": "データの貢献",
       "paragraphs": [
-        "セットリストの誤りは GitHub からご指摘いただけます。"
+        "セットリストや楽曲情報の誤りは GitHub からご指摘いただけます。データは公開リポジトリで管理しています。"
       ],
       "links": [
         {

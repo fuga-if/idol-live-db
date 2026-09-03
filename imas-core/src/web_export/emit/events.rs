@@ -265,6 +265,7 @@ pub fn show_page(ctx: &Ctx, show_id: &str) -> Option<ShowPage> {
         .collect();
 
     let venue = show.venue_id.as_deref().and_then(|v| ctx.venue_ref(v));
+    let siblings = sibling_shows(ctx, &show.event_id, &event.name);
     let title = format!("{} {}", event.name, show.name);
     let breadcrumbs = vec![
         ctx.crumb("ホーム", "/"),
@@ -292,10 +293,7 @@ pub fn show_page(ctx: &Ctx, show_id: &str) -> Option<ShowPage> {
             .iter()
             .filter_map(|id| ctx.idol_ref(id))
             .collect(),
-        sibling_shows: detail::shows_by_event(ctx.snap, &show.event_id)
-            .iter()
-            .filter_map(|s| ctx.show_ref(&s.id))
-            .collect(),
+        sibling_shows: siblings,
         app: content::app_open_deeplink("show", &url_segment(&show.id)),
         seo: ctx.seo(
             &title,
@@ -342,6 +340,44 @@ fn show_json_ld(
             "url": url,
         }),
     }
+}
+
+/// 「このライブの他の公演」に出すチップ。
+///
+/// 単日公演のライブでは**空**を返す。自分 1 本しか無いところに「他の公演」を出しても
+/// 選べるものが無く、見出しだけが残る。
+///
+/// 名前はライブ名との重なりを落とした短い形 (`DAY1` / `昼公演` / `ステージ１回目`)。
+/// このページの見出しが既にライブ名なので、チップにフルの公演名を並べると同じ文字列が
+/// 何度も出て、肝心の見分けが付かなくなる。落とす規則は披露履歴の `placeDisplay` と同じ。
+///
+/// **公演名がライブ名と丸ごと同じ公演が実データに 38 件ある** (2 日間開催なのに
+/// どちらの公演にも同じ名前が付いている)。重なりを落とすと何も残らないので、
+/// その場合は日付をチップの名前にする — 区別できるのが日付しか無いのだから、
+/// 出すべきものも日付。
+fn sibling_shows(ctx: &Ctx, event_id: &str, event_name: &str) -> Vec<Ref> {
+    let shows = detail::shows_by_event(ctx.snap, event_id);
+    if shows.len() <= 1 {
+        return Vec::new();
+    }
+    shows
+        .iter()
+        .filter_map(|s| {
+            let mut reference = ctx.show_ref(&s.id)?;
+            match distinguishing_show_name(event_name, &s.name) {
+                Some(short) => {
+                    reference.name = short.to_string();
+                    reference.sub = Some(s.date.clone());
+                }
+                None => {
+                    reference.name = s.date.clone();
+                    // 名前が日付そのものなので、補助表記に日付を重ねない。
+                    reference.sub = None;
+                }
+            }
+            Some(reference)
+        })
+        .collect()
 }
 
 /// 会場ページ用: ある会場で行われた公演の要約。
