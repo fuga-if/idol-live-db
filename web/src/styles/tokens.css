@@ -80,6 +80,7 @@
   --lh-body: 1.65;
 
   /* 版面 */
+  --header-h: 52px; /* sticky なヘッダの高さ。年見出しの吸着位置に使う */
   --page-max: 960px;
   --page-wide: 1180px;
 

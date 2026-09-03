@@ -16,7 +16,8 @@ import type { FoldParity } from "../src/lib/schema/FoldParity";
 
 const DATA = path.resolve(process.env.IMAS_WEB_DATA ?? "./data");
 const PARITY = path.join(DATA, "parity/fold.json");
-const FOLD_MODULE = path.resolve("./public/fold/imas_fold_wasm.js");
+const FOLD_MODULE = path.resolve("./src/lib/fold/imas_fold_wasm.js");
+const FOLD_WASM = path.resolve("./src/lib/fold/imas_fold_wasm_bg.wasm");
 
 type Fold = (text: string) => string;
 
@@ -29,10 +30,12 @@ beforeAll(async () => {
       "(検索の畳み込みは imas-text-fold の wasm が実体です)。",
   ).toBe(true);
   const mod = (await import(pathToFileURL(FOLD_MODULE).href)) as {
-    default: () => Promise<unknown>;
+    default: (init?: { module_or_path: BufferSource }) => Promise<unknown>;
     fold: Fold;
   };
-  await mod.default();
+  // `--target web` の glue は既定で fetch(new URL(...)) するので、
+  // Node では .wasm のバイト列を直接渡す。
+  await mod.default({ module_or_path: fs.readFileSync(FOLD_WASM) });
   fold = mod.fold;
 });
 

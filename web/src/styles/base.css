@@ -208,6 +208,30 @@ hr {
   color: var(--ds-ink);
 }
 
+/* 狭い画面ではナビを 2 段目に落とす。1 行に詰めると項目が中途半端に切れて
+   「横に流せる」ことが伝わらない。 */
+@media (max-width: 44rem) {
+  .site-header__inner {
+    flex-wrap: wrap;
+    gap: var(--sp3);
+    padding-block: var(--sp3) var(--sp2);
+  }
+  .site-header__brand {
+    flex: 1;
+    min-width: 0;
+  }
+  .site-nav {
+    order: 3;
+    flex-basis: 100%;
+    margin-inline: calc(-1 * var(--sp5));
+    padding-inline: var(--sp5);
+  }
+  :root {
+    /* ヘッダが 2 段になるぶん、吸着する年見出しの位置も下げる */
+    --header-h: 96px;
+  }
+}
+
 /* --- サイトフッタ --------------------------------------------------------- */
 .site-footer {
   border-top: 1px solid var(--ds-sep);

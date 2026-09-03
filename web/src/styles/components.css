@@ -765,7 +765,7 @@ a.labeled-row .labeled-row__value {
 }
 .year-group__title {
   position: sticky;
-  top: calc(var(--sp9) + var(--sp3));
+  top: calc(var(--header-h) + var(--sp2));
   z-index: 5;
   align-self: flex-start;
   padding: var(--sp1) var(--sp4);
