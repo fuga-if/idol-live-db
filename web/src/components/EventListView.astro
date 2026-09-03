@@ -1,0 +1,40 @@
+---
+import ListLayout from "../layouts/ListLayout.astro";
+import YearGroups from "./YearGroups.astro";
+import { meta } from "../lib/data";
+import type { EventListPage } from "../lib/schema/EventListPage";
+
+/**
+ * ライブ一覧 (総合 / 今後 / 開催済み / 年別 / ブランド別)。
+ * 「今後と開催済みをどう分けるか」「どの年にまとめるか」は Rust の event_grouping が
+ * 決めていて、ここは groups をそのまま並べるだけ。
+ */
+interface Props {
+  list: EventListPage;
+}
+const { list } = Astro.props;
+
+// ブランド別のページでは、全行が同じブランドなので副題からブランド名を落とす。
+const isBrandScoped = list.kind === "brand";
+// 年で切ったページと開催済みの索引では、年リンクの方が使う切り口になる。
+const useYearLinks = list.kind === "past" || list.kind === "pastYear";
+---
+
+<ListLayout
+  seo={list.seo}
+  meta={meta()}
+  title={list.title}
+  total={list.total}
+  scopeLinks={list.scopeLinks}
+  scopeLabel="今後 / 開催済み"
+  filterLinks={useYearLinks ? list.yearLinks : list.brandLinks}
+  filterLabel={useYearLinks ? "年で絞る" : "ブランドで絞る"}
+>
+  <YearGroups
+    groups={list.groups}
+    showBrand={!isBrandScoped}
+    emptyTitle={list.kind === "upcoming"
+      ? "今後の開催予定はまだ登録されていません"
+      : "該当するライブがありません"}
+  />
+</ListLayout>

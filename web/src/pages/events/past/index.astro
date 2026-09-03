@@ -1,21 +1,8 @@
 ---
-import ListLayout from "../../../layouts/ListLayout.astro";
-import YearGroups from "../../../components/YearGroups.astro";
-import { meta, page, routeData } from "../../../lib/data";
+import EventListView from "../../../components/EventListView.astro";
+import { page, routeData } from "../../../lib/data";
 import type { EventListPage } from "../../../lib/schema/EventListPage";
-
 const list = page<EventListPage>(routeData("eventListPast", "/events/past/"));
 ---
 
-<ListLayout
-  seo={list.seo}
-  meta={meta()}
-  title={list.title}
-  total={list.total}
-  scopeLinks={list.scopeLinks}
-  scopeLabel="今後 / 開催済み"
-  filterLinks={list.yearLinks}
-  filterLabel="年で絞る"
->
-  <YearGroups groups={list.groups} />
-</ListLayout>
+<EventListView list={list} />
