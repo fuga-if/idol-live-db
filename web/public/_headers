@@ -23,5 +23,8 @@
 /_astro/*
   Cache-Control: public, max-age=31536000, immutable
 
+# /fonts/* はファイル名が固定 (中身を差し替えても名前が変わらない) なので immutable は
+# 不適切 (RedTeam 指摘 M-6)。フォントを差し替えたときに古いキャッシュが 1 年残る事故を
+# 避け、30 日 (2,592,000 秒) に留める。
 /fonts/*
-  Cache-Control: public, max-age=31536000, immutable
+  Cache-Control: public, max-age=2592000

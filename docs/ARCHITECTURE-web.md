@@ -255,6 +255,7 @@ Cloudflare Workers Static Assets の上限は **20,000 ファイル / 1 ファ�
 - 歌詞本文・プレビュー音源 URL・キャラクター画像・公式ロゴを出力 JSON や HTML に含める。
 - `imas-live-api/` の `wrangler.jsonc` / ルート / cron / secret を変更する。
 - `/search/` 以外のページに `<script>` を置く。
+- 文面 (ラベル・SEO 文・版権表記) を `.astro` に書く。文言の正は imas-core の `SeoBlock` / 各 DTO のフィールドであり、Astro は受け取った文字列を置くだけ。現状の例外: `/search/` と `/404` の (imas-core が持たない) 案内文、ヘッダ/フッタの固定ナビ表記と版権表記 (`about.json` 等のデータではなくレイアウト側の定型文として扱う)。
 
 ---
 

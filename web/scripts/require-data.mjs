@@ -10,6 +10,12 @@
 import fs from "node:fs";
 import path from "node:path";
 
+// この定数は 3 箇所の手動同期が必要 (Rust ⇄ Node の境界を跨ぐため 1 箇所に集約できない):
+//   1. imas-core/src/web_export/dto/common.rs — SiteMeta.schema_version の実際の出力元 (正)
+//   2. web/src/lib/data.ts — 同じ定数を持つ実行時ガード (astro dev / build 経路)
+//   3. ここ (web/scripts/require-data.mjs) — npm run prebuild の門番
+// スキーマを破壊的に変える場合は 3 箇所を同時に上げること。ずれれば起動時に
+// 「schemaVersion 不一致」で気付ける (require-data.mjs と data.ts の両方が個別に検査する)。
 const SCHEMA_VERSION = 1;
 
 const root = path.resolve(process.env.IMAS_WEB_DATA ?? "./data");

@@ -16,8 +16,30 @@ const MAX_FILES = 18_000;
 const MAX_FILE_BYTES = 20 * 1024 * 1024; // 20 MiB
 const WARN_TOTAL_BYTES = 400 * 1024 * 1024; // 400 MiB (参考値。超えても失敗させない)
 
+// ビルドパイプラインの複数ステップ (Rust の web-export / web-coder の copy フック /
+// Astro の integrations) がそれぞれ書き出すファイル。1 つでも欠けると「一見ビルドは
+// 成功したがサイトの一部機能が死んでいる」事故になる (例: themes.css が無いと全ページが
+// 無彩色のまま無言で成功する)。ここで存在だけを機械的に確認する (中身の妥当性は見ない)。
+const REQUIRED_FILES = [
+  "themes.css", // imas-core が出すテーマトークン (web/data/themes.css → dist へコピー)
+  "search/manifest.json", // 検索シャードの一覧 (/search/ island の起動に必須)
+  "sitemap-index.xml", // @astrojs/sitemap の出力
+  "robots.txt",
+  "404.html",
+  "_headers", // CSP / キャッシュ / X-Robots-Tag (web/public/_headers がそのままコピーされる)
+];
+
 if (!fs.existsSync(DIST)) {
   console.error(`[check-limits] dist/ が無い: ${DIST} (先に astro build を実行)`);
+  process.exit(1);
+}
+
+const missingRequired = REQUIRED_FILES.filter((rel) => !fs.existsSync(path.join(DIST, rel)));
+if (missingRequired.length > 0) {
+  console.error(`[check-limits] 必須ファイルが無い (ビルドの一部が無言で欠落している可能性):`);
+  for (const rel of missingRequired) {
+    console.error(`  - ${rel}`);
+  }
   process.exit(1);
 }
 

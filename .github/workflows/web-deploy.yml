@@ -87,8 +87,14 @@ jobs:
             exit 1
           fi
 
+      # `git diff --exit-code` は「追跡済みファイルの変更」しか見ないため、ts-rs が
+      # 新しい DTO を追加して *未追跡の* .ts ファイルが増えたケースを素通ししてしまう
+      # (RedTeam 指摘 H-5)。一旦 add してからステージ済み差分を見ることで、新規/変更/削除
+      # のいずれも確実に検出する。
       - name: Schema drift check
-        run: git diff --exit-code -- web/src/lib/schema
+        run: |
+          git add -A -- web/src/lib/schema
+          git diff --cached --exit-code -- web/src/lib/schema
 
       - name: Export JSON from db/master.sql
         working-directory: imas-core
