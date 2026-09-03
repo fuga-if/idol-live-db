@@ -1,0 +1,8 @@
+# アイドルライブDB (非公式ファンサイト)
+# 個別ページの index / noindex は各 HTML の <meta name="robots"> が持つ
+# (判断は imas-core の SeoBlock.robots)。noindex を効かせるにはクロール自体は
+# 許可する必要があるので、ここでは何も Disallow しない。
+User-agent: *
+Allow: /
+
+Sitemap: https://imas-live-web.tokata3011.workers.dev/sitemap-index.xml
