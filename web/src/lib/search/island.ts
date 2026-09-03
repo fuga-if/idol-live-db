@@ -30,7 +30,11 @@ if (form && input && status && results) {
   form.addEventListener("submit", (e) => e.preventDefault());
   // JS が動いた時点で「JS を有効にすると検索できます」の案内を下げる。
   fallback?.setAttribute("hidden", "");
-  input.disabled = false;
+  // 入力欄は最初から使える (disabled にすると支援技術から要素ごと消え、
+  // フォーカスも当たらないので「準備中」であることすら伝わらない)。
+  // 打鍵は受け付けたうえで、準備中であることは aria-busy と status で伝える。
+  input.removeAttribute("aria-busy");
+  setStatus("");
 
   let loading: Promise<Loaded> | null = null;
   let timer: number | undefined;
@@ -71,6 +75,8 @@ if (form && input && status && results) {
     const needle = loaded.fold(text);
     // sep はフィールド境界。検索語がそれを含むなら、境界を跨いだ偽陽性しか起きない。
     const groups: Group[] = loaded.shards.map((shard) => {
+      // sep が空だと includes が常に真になり、全行が当たってしまう。
+      if (!shard.body.sep) throw new Error(`${shard.meta.kind}: sep が空`);
       const matched = needle.includes(shard.body.sep)
         ? []
         : shard.body.rows.filter((r) => r.f.includes(needle));

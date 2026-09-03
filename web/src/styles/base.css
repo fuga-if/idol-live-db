@@ -78,9 +78,14 @@ a:hover .u-underline-hover {
   text-underline-offset: 2px;
 }
 
+/* フォーカスリングは **テーマ色を使わない**。エンティティ色は 400 通りあり、
+   ml (#ffc30b) や学マス (#f39800) のような暖色だと accent 対背景が 1.5〜2.1:1 しか
+   なく、キーボード操作中の現在位置が見えなくなる。ニュートラルの ink で描き、
+   背景色の外縁を重ねて、どんな面の上でも輪郭が立つようにする。 */
 :focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--ds-ink);
   outline-offset: 2px;
+  box-shadow: 0 0 0 4px var(--ds-bg);
   border-radius: var(--r-xs);
 }
 

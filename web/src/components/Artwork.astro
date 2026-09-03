@@ -20,7 +20,9 @@ const isHero = size === "hero";
 ---
 
 <span class:list={["artwork", sizeClass, cls]} data-theme={themeKey}>
-  <span class="artwork__fallback">{title}</span>
+  {/* 画像が無いときだけ曲名を描く。画像の上に敷いたままだと、
+      見えていない文字を読み上げが拾って曲名が二重に読まれる。 */}
+  {!artworkUrl && <span class="artwork__fallback">{title}</span>}
   {
     artworkUrl && (
       <img

@@ -5,37 +5,74 @@ import { defineConfig } from "astro/config";
 import sitemap from "@astrojs/sitemap";
 
 /**
- * sitemap から外すパス集合。
- * 「どのページを index させないか」の判断は Rust (SeoBlock.robots) が持ち、
- * ここはその結果 (routes.json の noindexPaths) を写すだけ。
+ * sitemap のための routes.json の索引。
+ *
+ * ここで作るのは「decode 済みパス → routes.json の正規パス」の対応表 1 つだけで、
+ * URL の組み立て規則も index / noindex の判断も持たない (どちらも Rust が決めている)。
+ *
+ * なぜ引き当てが要るか:
+ *  - Astro が sitemap に出す `loc` は `@` を percent-encode せず生で書く。
+ *    `share_text.rs` に「SNS が `@` で URL を切ってしまい 404 になった」実害の記録があり、
+ *    配信物に 2 通りの綴りを出したくない。**正は routes.json の `path`** なので、
+ *    `serialize` でそこに引き当てて書き戻す。
+ *  - noindex の判定も同じ対応表を使う (綴りの揺れで取りこぼす余地を無くす)。
+ *
  * ※ web/data が無い状態 (npm run check だけ回すとき) でも config が壊れないようにする。
  */
-function noindexPaths() {
+function routeIndex() {
+  const empty = { canonical: /** @type {Map<string, string>} */ (new Map()), noindex: new Set() };
   const root = path.resolve(process.env.IMAS_WEB_DATA ?? "./data");
   const file = path.join(root, "routes.json");
-  if (!fs.existsSync(file)) return new Set();
+  if (!fs.existsSync(file)) return empty;
   try {
     const routes = JSON.parse(fs.readFileSync(file, "utf8"));
-    return new Set(routes.noindexPaths ?? []);
+    const canonical = new Map();
+    for (const r of routes.routes ?? []) canonical.set(decodePath(r.path), r.path);
+    const noindex = new Set();
+    for (const p of routes.noindexPaths ?? []) noindex.add(decodePath(p));
+    return { canonical, noindex };
   } catch {
-    return new Set();
+    return empty;
   }
 }
 
-const noindex = noindexPaths();
+/** 綴りの揺れを吸収するための鍵。decode できない綴りはそのまま鍵にする。 */
+function decodePath(/** @type {string} */ p) {
+  try {
+    return decodeURIComponent(p);
+  } catch {
+    return p;
+  }
+}
+
+const routes = routeIndex();
 
 /**
- * 検索索引 (`<data>/search/*.json`) を `dist/search/` へ写す。
+ * Rust が出した配信物 (検索索引と themes.css) を `dist/` へ写す。
+ *
  * `web/data/` は public/ の外に置いてある (詳細ページ 7,600 個を dist に出さないため) ので、
- * 配信が要るファイルだけをここで運ぶ。index.html と同じディレクトリに同居できる。
+ * 配信が要るファイルだけをここで運ぶ。検索索引は `dist/search/` に置く
+ * (`/search/` の index.html と同じディレクトリに同居できる)。
  */
-function copySearchIndex() {
+function copyGeneratedAssets() {
   return {
-    name: "imas:copy-search-index",
+    name: "imas:copy-generated-assets",
     hooks: {
       /** @param {{ dir: URL, logger: { info: (m: string) => void, warn: (m: string) => void } }} ctx */
       "astro:build:done": ({ dir, logger }) => {
-        const src = path.join(path.resolve(process.env.IMAS_WEB_DATA ?? "./data"), "search");
+        const root = path.resolve(process.env.IMAS_WEB_DATA ?? "./data");
+
+        // テーマ (エンティティ色の CSS 変数)。無いと全ページが neutral 表示になる。
+        const themes = path.join(root, "themes.css");
+        if (fs.existsSync(themes)) {
+          fs.copyFileSync(themes, new URL("themes.css", dir));
+          logger.info(`themes.css を配置しました (${fs.statSync(themes).size} B)`);
+        } else {
+          logger.warn(`${themes} がありません (色が neutral のままになります)`);
+        }
+
+        // 検索索引。
+        const src = path.join(root, "search");
         if (!fs.existsSync(src)) {
           logger.warn(`検索索引が見つかりません: ${src} (/search/ は結果を出せません)`);
           return;
@@ -63,18 +100,16 @@ export default defineConfig({
   build: { format: "directory", inlineStylesheets: "never" },
   compressHTML: true,
   integrations: [
-    copySearchIndex(),
+    copyGeneratedAssets(),
     sitemap({
-      filter: (page) => {
-        const p = new URL(page).pathname;
-        // percent-encode の揺れ (Astro は `@` を素で出す) で取りこぼさないよう両方見る。
-        let decoded = p;
-        try {
-          decoded = decodeURIComponent(p);
-        } catch {
-          /* 不正なエスケープはそのまま扱う */
-        }
-        return !p.includes("/404") && !noindex.has(p) && !noindex.has(decoded);
+      filter: (page) =>
+        !page.includes("/404") && !routes.noindex.has(decodePath(new URL(page).pathname)),
+      // `loc` を routes.json の綴りに揃える (Astro は `@` を生で出すため)。
+      serialize: (item) => {
+        const url = new URL(item.url);
+        const canonical = routes.canonical.get(decodePath(url.pathname));
+        if (canonical) item.url = new URL(canonical, url.origin).href;
+        return item;
       },
     }),
   ],

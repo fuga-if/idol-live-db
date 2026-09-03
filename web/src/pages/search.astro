@@ -52,7 +52,7 @@ const lists = [
       name="q"
       type="search"
       data-search-input
-      disabled
+      aria-busy="true"
       autocomplete="off"
       autocapitalize="off"
       spellcheck="false"
@@ -63,9 +63,18 @@ const lists = [
     />
   </form>
 
-  <p class="search-status" id="search-status" data-search-status aria-live="polite"></p>
+  <p class="search-status" id="search-status" data-search-status aria-live="polite">
+    検索の準備をしています…
+  </p>
 
-  <div class="search-results" id="search-results" data-search-results></div>
+  <div
+    class="search-results"
+    id="search-results"
+    role="region"
+    aria-label="検索結果"
+    data-search-results
+  >
+  </div>
 
   <div class="empty" data-search-fallback>
     <p class="empty__title">JavaScript を有効にすると検索できます</p>

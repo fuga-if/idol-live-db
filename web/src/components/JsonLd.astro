@@ -9,8 +9,16 @@ interface Props {
   data?: Record<string, unknown> | null;
 }
 const { data } = Astro.props;
-// 空オブジェクト (JSON-LD を出さないページ) は何も描かない。
-const json = data && Object.keys(data).length > 0 ? JSON.stringify(data) : null;
+/**
+ * `set:html` はエスケープせずそのまま流すので、値の中に `</script>` が現れると
+ * そこで要素が閉じ、後続がマークアップとして解釈される。データは Rust 側から来るが、
+ * 元をたどれば曲名・ライブ名・会場名といった DB の自由入力なので、
+ * **出口であるここで必ず無害化する** (JSON では `<` を `\u003c` と書いても同じ値)。
+ */
+const json =
+  data && Object.keys(data).length > 0
+    ? JSON.stringify(data).replace(/</g, "\\u003c")
+    : null;
 ---
 
 {json && <script is:inline type="application/ld+json" set:html={json} />}

@@ -144,26 +144,29 @@ describe("配信物 (dist)", () => {
     expect(hits).toEqual([]);
   });
 
-  it.skipIf(!distExists)("HTML が絶対 URL で参照する先が想定内", () => {
+  /**
+   * ブラウザが**自動で取りに行く**先 (サブリソース) だけを縛る。
+   *
+   * `<a href>` の行き先は公式サイト・チケット・映像商品などデータ由来の外部リンクで、
+   * DB に入り得るホストを列挙することはできないし、列挙する意味も無い
+   * (踏むかどうかは人が決める)。一方サブリソースは**ページを開いただけで発火する**
+   * ので、自分と Apple Music の CDN 以外が混ざったら事故。CSP と同じ線を張る。
+   */
+  it.skipIf(!distExists)("自動で取りに行く先は自分と Apple Music CDN だけ", () => {
     const files = walk(DIST, (p) => p.endsWith(".html"));
-    const hosts = new Set<string>();
+    const hosts = new Map<string, string>();
     for (const f of files) {
-      for (const m of fs.readFileSync(f, "utf8").matchAll(/https?:\/\/([A-Za-z0-9.-]+)/g)) {
-        hosts.add(m[1]!);
-      }
+      const text = fs.readFileSync(f, "utf8");
+      const subresources = [
+        ...text.matchAll(/\ssrc=["']https?:\/\/([A-Za-z0-9.-]+)/g),
+        ...text.matchAll(/<link\b[^>]*?\shref=["']https?:\/\/([A-Za-z0-9.-]+)/g),
+        ...text.matchAll(/\ssrcset=["']https?:\/\/([A-Za-z0-9.-]+)/g),
+      ];
+      for (const m of subresources) hosts.set(m[1]!, rel(f));
     }
-    // 配信物には Rust が出したデータ由来のホストも入る (ジャケ画像の Apple Music CDN)。
-    const allowedInDist = new Set([
-      ...ALLOWED_HOSTS,
-      "is1-ssl.mzstatic.com",
-      "is2-ssl.mzstatic.com",
-      "is3-ssl.mzstatic.com",
-      "is4-ssl.mzstatic.com",
-      "is5-ssl.mzstatic.com",
-      "www.wikidata.org",
-      "example.com", // フィクスチャのチケット URL
-    ]);
-    expect([...hosts].filter((h) => !allowedInDist.has(h))).toEqual([]);
+    const allowed = (h: string): boolean =>
+      h === "imas-live-web.tokata3011.workers.dev" || /^is\d-ssl\.mzstatic\.com$/.test(h);
+    expect([...hosts].filter(([h]) => !allowed(h)).map(([h, f]) => `${h} (${f})`)).toEqual([]);
   });
 });
 

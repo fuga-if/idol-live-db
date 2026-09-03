@@ -35,7 +35,7 @@ const facts = [
         {song.brand && <Chip text={song.brand.name} href={song.brand.path} variant="themed" themeKey={song.brand.themeKey} />}
         {song.unit && <Chip text={song.unit.name} href={song.unit.path} variant="themed" themeKey={song.unit.themeKey} />}
         {!song.unit && song.unitLabel && <Chip text={song.unitLabel} />}
-        {song.appleMusicUrl && <a class="btn btn--ghost" href={song.appleMusicUrl} rel="noopener">Apple Music</a>}
+        {song.appleMusicUrl && <a class="btn btn--ghost" href={song.appleMusicUrl}>Apple Music</a>}
       </div>
       {
         song.parent && (

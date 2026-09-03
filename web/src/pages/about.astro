@@ -47,13 +47,7 @@ const tiles = [
           {s.links.length > 0 && (
             <p class="u-row">
               {s.links.map((l) => (
-                <a
-                  class="btn btn--ghost"
-                  href={l.href}
-                  rel={l.external ? "noopener" : undefined}
-                >
-                  {l.label}
-                </a>
+                <a class="btn btn--ghost" href={l.href}>{l.label}</a>
               ))}
             </p>
           )}
