@@ -14,6 +14,9 @@ interface Props {
 const { title, artworkUrl, themeKey, size = "md", class: cls = "" } = Astro.props;
 const px = { sm: 44, md: 56, lg: 120, hero: 160 }[size];
 const sizeClass = size === "md" ? "" : `artwork--${size}`;
+// ヒーローのジャケは折り返しの上にあり、そのページの LCP そのもの。
+// 遅延させると初期表示が目に見えて遅くなるので、ここだけ先に取りに行かせる。
+const isHero = size === "hero";
 ---
 
 <span class:list={["artwork", sizeClass, cls]} data-theme={themeKey}>
@@ -25,7 +28,8 @@ const sizeClass = size === "md" ? "" : `artwork--${size}`;
         alt=""
         width={px}
         height={px}
-        loading="lazy"
+        loading={isHero ? "eager" : "lazy"}
+        fetchpriority={isHero ? "high" : undefined}
         decoding="async"
       />
     )
