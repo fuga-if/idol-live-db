@@ -19,7 +19,7 @@ const idol = page<IdolPage>(Astro.props.data);
 
 <DetailLayout seo={idol.seo} meta={meta()} themeKey={idol.themeKey} app={idol.app}>
   <section class="hero" slot="hero" aria-labelledby="idol-title">
-    <Avatar label={idol.name} monogram={idol.monogram} size="xl" />
+    <Avatar monogram={idol.monogram} size="xl" />
     <div class="hero__body">
       {idol.brand && <p class="hero__eyebrow">{idol.brand.name}</p>}
       <h1 class="hero__title" id="idol-title">{idol.name}</h1>
@@ -57,12 +57,7 @@ const idol = page<IdolPage>(Astro.props.data);
       <Section id="idol-cv" title="CV">
         <ListContainer>
           {idol.voiceActorHistory.map((v) => (
-            <LabeledRow
-              label={v.isCurrent ? "現任" : "歴代"}
-              value={[v.name, v.startDate && `${v.startDate}〜${v.endDate ?? ""}`, v.note]
-                .filter((x) => Boolean(x))
-                .join(" ・ ")}
-            />
+            <LabeledRow label={v.isCurrent ? "現任" : "歴代"} value={v.display} />
           ))}
         </ListContainer>
       </Section>
@@ -87,7 +82,7 @@ const idol = page<IdolPage>(Astro.props.data);
             <li>
               <LeadRow
                 title={s.song.name}
-                subtitle={[s.role, s.releaseDate].filter((v) => Boolean(v)).join(" ・ ")}
+                subtitle={s.subtitle}
                 href={s.song.path}
                 themeKey={s.song.themeKey}
               >
@@ -113,6 +108,7 @@ const idol = page<IdolPage>(Astro.props.data);
                 lead="artwork"
                 title={s.song.name}
                 sub={s.lastDate ? `最後の披露 ${s.lastDate}` : s.song.sub}
+                monogram={s.song.monogram}
                 artworkUrl={s.song.artworkUrl}
                 metric={s.times}
                 href={s.song.path}
@@ -133,7 +129,7 @@ const idol = page<IdolPage>(Astro.props.data);
             <li>
               <LeadRow
                 title={s.event.name}
-                subtitle={[s.show.name, s.venueLabel].filter((v) => Boolean(v)).join(" ・ ")}
+                subtitle={s.subtitle}
                 href={s.show.path}
                 themeKey={s.show.themeKey}
               >

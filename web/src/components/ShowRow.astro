@@ -1,24 +1,21 @@
 ---
 import LeadRow from "./LeadRow.astro";
 import type { ShowSummary } from "../lib/schema/ShowSummary";
-/** 公演 1 件の行。 */
+/**
+ * 公演 1 件の行。
+ * 副題は Rust が文脈ごとに組んだ `subtitle` をそのまま置く
+ * (ライブ詳細では親ライブ名を出さない、といった出し分けも emit 側で決まっている)。
+ */
 interface Props {
   show: ShowSummary;
-  showEvent?: boolean;
 }
-const { show, showEvent = false } = Astro.props;
-const parts = [
-  showEvent ? show.event?.name : null,
-  show.venueLabel,
-  show.hall,
-  show.startTime ? `開演 ${show.startTime}` : null,
-].filter((v): v is string => Boolean(v));
+const { show } = Astro.props;
 ---
 
 <li>
   <LeadRow
     title={show.ref.name}
-    subtitle={parts.join(" ・ ")}
+    subtitle={show.subtitle}
     href={show.ref.path}
     themeKey={show.ref.themeKey}
   >

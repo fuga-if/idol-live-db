@@ -5,18 +5,21 @@
  * モノグラムの文字は Rust が `Ref.monogram` として出す (アプリの ImasAvatar と同じ規則)。
  */
 interface Props {
-  label: string;
-  monogram?: string | null;
+  /**
+   * アプリの ImasAvatar と同じ頭文字。`Ref.monogram` が必ず持っている。
+   * この span は aria-hidden なので、読み上げ名は囲っているリンクの文言が担う。
+   */
+  monogram: string;
   themeKey?: string;
   size?: "sm" | "md" | "lg" | "xl";
   class?: string;
 }
-const { label, monogram, themeKey, size = "md", class: cls = "" } = Astro.props;
+const { monogram, themeKey, size = "md", class: cls = "" } = Astro.props;
 const sizeClass = size === "md" ? "" : `avatar--${size}`;
 ---
 
 <span
   class:list={["avatar", sizeClass, cls]}
   data-theme={themeKey}
-  aria-hidden="true">{monogram ?? label.slice(0, 1)}</span
+  aria-hidden="true">{monogram}</span
 >

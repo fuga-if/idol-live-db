@@ -42,6 +42,8 @@ const { app } = Astro.props;
         <h2>App</h2>
         <ul>
           <li><a href={app.appStoreUrl}>App Store</a></li>
+          {app.playStoreUrl && <li><a href={app.playStoreUrl}>Google Play</a></li>}
+          {app.xUrl && <li><a href={app.xUrl}>X (お知らせ)</a></li>}
           <li><a href={app.privacyUrl}>プライバシーポリシー</a></li>
           <li><a href={app.supportUrl}>サポート</a></li>
           <li><a href={app.termsUrl}>利用規約</a></li>

@@ -14,9 +14,9 @@ export const getStaticPaths = () => pathsFor("venue", "venueId");
 
 const venue = page<VenuePage>(Astro.props.data);
 const facts = [
-  { label: "所在", value: [venue.prefecture, venue.city].filter((v) => Boolean(v)).join(" ") || null },
+  { label: "所在", value: venue.locationDisplay },
   { label: "収容人数", value: venue.capacity ? `${venue.capacity}人` : null, mono: true },
-  { label: "別名", value: venue.aliases.join(" / ") || null },
+  { label: "別名", value: venue.aliasesDisplay },
 ].filter((r) => Boolean(r.value));
 ---
 
@@ -62,11 +62,7 @@ const facts = [
       <Section id="venue-names" title="旧称">
         <ListContainer>
           {venue.pastNames.map((n) => (
-            <LabeledRow
-              label={n.name}
-              value={[n.startDate, n.endDate].filter((v) => Boolean(v)).join(" 〜 ") || "—"}
-              mono
-            />
+            <LabeledRow label={n.name} value={n.periodDisplay ?? "—"} mono />
           ))}
         </ListContainer>
       </Section>
@@ -88,7 +84,7 @@ const facts = [
       ) : (
         <ListContainer as="ul">
           {venue.shows.map((s) => (
-            <ShowRow show={s} showEvent />
+            <ShowRow show={s} />
           ))}
         </ListContainer>
       )

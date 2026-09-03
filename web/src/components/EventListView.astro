@@ -14,8 +14,6 @@ interface Props {
 }
 const { list } = Astro.props;
 
-// ブランド別のページでは、全行が同じブランドなので副題からブランド名を落とす。
-const isBrandScoped = list.kind === "brand";
 // 年で切ったページと開催済みの索引では、年リンクの方が使う切り口になる。
 const useYearLinks = list.kind === "past" || list.kind === "pastYear";
 ---
@@ -32,7 +30,6 @@ const useYearLinks = list.kind === "past" || list.kind === "pastYear";
 >
   <YearGroups
     groups={list.groups}
-    showBrand={!isBrandScoped}
     emptyTitle={list.kind === "upcoming"
       ? "今後の開催予定はまだ登録されていません"
       : "該当するライブがありません"}

@@ -8,7 +8,7 @@ interface Props {
   lead: "artwork" | "avatar";
   title: string;
   sub?: string | null;
-  monogram?: string | null;
+  monogram: string;
   artworkUrl?: string | null;
   metric: number | string;
   unit?: string;
@@ -39,7 +39,7 @@ const {
     lead === "artwork" ? (
       <Artwork title={title} artworkUrl={artworkUrl} size="sm" />
     ) : (
-      <Avatar label={title} monogram={monogram} />
+      <Avatar monogram={monogram} />
     )
   }
   <span class="ranking-row__body">

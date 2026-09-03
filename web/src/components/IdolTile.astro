@@ -11,7 +11,7 @@ const { entity, sub } = Astro.props;
 
 <li>
   <a class="tile" data-theme={entity.themeKey} href={entity.path}>
-    <Avatar label={entity.name} monogram={entity.monogram} size="lg" />
+    <Avatar monogram={entity.monogram} size="lg" />
     <span class="tile__name u-underline-hover">{entity.name}</span>
     {(sub ?? entity.sub) && <span class="tile__sub u-clamp1">{sub ?? entity.sub}</span>}
   </a>

@@ -50,17 +50,11 @@ const { list } = Astro.props;
                 <Artwork title={item.ref.name} artworkUrl={item.ref.artworkUrl} size="sm" />
                 <span class="ranking-row__body">
                   <span class="ranking-row__title u-clamp1 u-underline-hover">{item.ref.name}</span>
-                  <span class="ranking-row__sub u-clamp1">
-                    {[
-                      item.unitLabel,
-                      item.originalArtists.map((a) => a.name).join(" / ") || null,
-                      item.releaseDate,
-                    ]
-                      .filter((v) => Boolean(v))
-                      .join(" ・ ")}
-                  </span>
+                  {item.subtitle && <span class="ranking-row__sub u-clamp1">{item.subtitle}</span>}
                 </span>
-                {item.performanceCount > 0 && (
+                {/* `/songs/all/` の軽い行では null。0 回披露と取り違えないよう
+                    「載せていない」を素通りさせる。 */}
+                {item.performanceCount != null && item.performanceCount > 0 && (
                   <MetricBadge value={item.performanceCount} unit="回" muted />
                 )}
               </a>

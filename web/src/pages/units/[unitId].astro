@@ -16,7 +16,7 @@ const unit = page<UnitPage>(Astro.props.data);
 
 <DetailLayout seo={unit.seo} meta={meta()} themeKey={unit.themeKey} app={unit.app}>
   <section class="hero" slot="hero" aria-labelledby="unit-title">
-    <Avatar label={unit.name} monogram={unit.monogram} size="xl" />
+    <Avatar monogram={unit.monogram} size="xl" />
     <div class="hero__body">
       {unit.brand && <p class="hero__eyebrow">{unit.brand.name}</p>}
       <h1 class="hero__title" id="unit-title">{unit.name}</h1>

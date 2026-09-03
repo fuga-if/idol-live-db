@@ -60,7 +60,7 @@ const tiles = [
       ) : (
         <ListContainer as="ul">
           {home.recentShows.map((s) => (
-            <ShowRow show={s} showEvent />
+            <ShowRow show={s} />
           ))}
         </ListContainer>
       )
@@ -78,7 +78,7 @@ const tiles = [
       {
         home.brands.map((b) => (
           <EntryCard
-            glyph={b.shortName?.slice(0, 2) ?? b.ref.name.slice(0, 1)}
+            glyph={b.glyph}
             title={b.ref.name}
             preview={`ライブ ${b.counts.events} ・ 楽曲 ${b.counts.songs} ・ アイドル ${b.counts.idols}`}
             href={b.ref.path}

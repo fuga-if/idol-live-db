@@ -29,7 +29,7 @@ const { list } = Astro.props;
           <li>
             <LeadRow
               title={item.ref.name}
-              subtitle={[item.prefecture, item.city].filter((v) => Boolean(v)).join(" ") || null}
+              subtitle={item.locationDisplay}
               href={item.ref.path}
               themeKey={item.ref.themeKey}
             >

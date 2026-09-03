@@ -1,31 +1,26 @@
 ---
 import LeadRow from "./LeadRow.astro";
 import type { EventListItem } from "../lib/schema/EventListItem";
-/** 一覧の 1 ライブ。日付・種別・公演数・会場は Rust が整えた値をそのまま置く。 */
+/**
+ * 一覧の 1 ライブ。
+ * 副題は Rust が文脈ごとに組んだ `subtitle` をそのまま置く
+ * (ブランド別ページでブランド名を落とすかどうかも emit 側で決まっている)。
+ */
 interface Props {
   item: EventListItem;
-  showBrand?: boolean;
 }
-const { item, showBrand = true } = Astro.props;
-const parts = [
-  item.firstDate && item.lastDate && item.firstDate !== item.lastDate
-    ? `${item.firstDate} 〜 ${item.lastDate}`
-    : item.firstDate,
-  showBrand ? item.brand?.name : null,
-  item.venueLabels.join(" / ") || null,
-].filter((v): v is string => Boolean(v));
+const { item } = Astro.props;
 ---
 
 <li>
   <LeadRow
     title={item.ref.name}
-    subtitle={parts.join(" ・ ")}
+    subtitle={item.subtitle}
     href={item.ref.path}
     themeKey={item.ref.themeKey}
   >
     <span slot="trailing" class="u-row">
       <span class="tag tag--all">{item.kindLabel}</span>
-      <span class="u-num">{item.showCount}公演</span>
     </span>
   </LeadRow>
 </li>

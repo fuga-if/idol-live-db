@@ -6,10 +6,9 @@ import type { YearGroup } from "../lib/schema/YearGroup";
 /** 年でまとめたライブ一覧。年の切り方と並びは Rust の event_grouping が決めている。 */
 interface Props {
   groups: readonly YearGroup[];
-  showBrand?: boolean;
   emptyTitle?: string;
 }
-const { groups, showBrand = true, emptyTitle = "該当するライブがありません" } = Astro.props;
+const { groups, emptyTitle = "該当するライブがありません" } = Astro.props;
 ---
 
 {
@@ -25,7 +24,7 @@ const { groups, showBrand = true, emptyTitle = "該当するライブがあり�
           <h2 class="year-group__title">{g.year}</h2>
           <ListContainer as="ul">
             {g.events.map((e) => (
-              <EventRow item={e} showBrand={showBrand} />
+              <EventRow item={e} />
             ))}
           </ListContainer>
         </section>

@@ -35,7 +35,7 @@ const { row } = Astro.props;
           <span class="performers">
             {row.performers.map((p) => (
               <a class="performer" href={p.ref.path} data-theme={p.ref.themeKey}>
-                <span class="avatar avatar--sm">{p.ref.monogram ?? p.idolName.slice(0, 1)}</span>
+                <span class="avatar avatar--sm">{p.ref.monogram}</span>
                 {p.displayName}
               </a>
             ))}

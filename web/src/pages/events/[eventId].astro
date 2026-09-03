@@ -88,7 +88,7 @@ const hasTicket = ticketRows.some((r) => r.value) || ev.ticket.url;
                   return idol ? (
                     <li>
                       <a class="performer" href={idol.path} data-theme={idol.themeKey}>
-                        <Avatar label={idol.name} monogram={idol.monogram} size="sm" />
+                        <Avatar monogram={idol.monogram} size="sm" />
                         {idol.name}
                         {leadIds.get(p.showId)?.has(id) && <span class="tag tag--lead">主演</span>}
                         {guestIds.get(p.showId)?.has(id) && <span class="tag tag--guest">ゲスト</span>}
