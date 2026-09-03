@@ -1,7 +1,6 @@
 ---
 import DetailLayout from "../../layouts/DetailLayout.astro";
 import Section from "../../components/Section.astro";
-import StatTiles from "../../components/StatTiles.astro";
 import SegmentedLinks from "../../components/SegmentedLinks.astro";
 import IdolTile from "../../components/IdolTile.astro";
 import RefList from "../../components/RefList.astro";
@@ -19,11 +18,12 @@ const brand = page<BrandPage>(Astro.props.data);
     <div class="hero__body">
       {brand.shortName && <p class="hero__eyebrow">{brand.shortName}</p>}
       <h1 class="hero__title" id="brand-title">{brand.name}</h1>
+      {/* `statTiles` と `sectionLinks` はこのページでは同じ 4 つの数を持つ
+          (ライブ / 楽曲 / アイドル / ユニット の件数)。タイルは href を持たないので、
+          リンク付きの `sectionLinks` だけを出す。同じ数字を 2 度見せない。 */}
       <SegmentedLinks label="このブランドの一覧" links={brand.sectionLinks} variant="chips" />
     </div>
   </section>
-
-  <StatTiles tiles={brand.statTiles} />
 
   <Section id="brand-idols" title="アイドル" count={brand.idols.length}>
     {
