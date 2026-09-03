@@ -25,7 +25,8 @@
       "raw": "山崎寛子",
       "people": [
         "山崎寛子"
-      ]
+      ],
+      "display": "山崎寛子"
     },
     {
       "role": "作曲",
@@ -33,12 +34,14 @@
       "people": [
         "睦月周平",
         "EFFY"
-      ]
+      ],
+      "display": "睦月周平 / EFFY"
     }
   ],
   "cdSeries": "THE IDOLM@STER MILLION THE@TER WAVE",
   "cdTitle": "Thank You!",
   "seriesGroup": null,
+  "seriesDisplay": "THE IDOLM@STER MILLION THE@TER WAVE",
   "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music/sample/600x600bb.jpg",
   "appleMusicUrl": "https://music.apple.com/jp/song/1451234567",
   "jasracCode": "123-4567-8",
@@ -115,8 +118,10 @@
       "date": "2026-04-03",
       "shortDate": "26/04",
       "venue": "幕張メッセ",
-      "position": 1,
-      "section": "本編"
+      "number": 1,
+      "position": 11593,
+      "section": "本編",
+      "placeDisplay": "DAY1 ・ 幕張メッセ"
     }
   ],
   "frequentSingers": [

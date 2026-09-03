@@ -19,8 +19,12 @@ pub struct SearchManifest {
 #[ts(export, export_to = "../../web/src/lib/schema/")]
 pub struct SearchShardMeta {
     pub kind: RefKind,
-    /// `/search/songs.json` 等 (サイトルートからの絶対パス)。
-    pub path: String,
+    /// 取得先 (`/search/songs.json`)。
+    ///
+    /// フィールド名が `path` でないのは、**JSON 中の `path` は必ずページの URL**、
+    /// という不変条件を全体で保つため (到達性テストが `path` を機械的に辿れる)。
+    /// これはページではなくデータファイルの場所なので `url` にしてある。
+    pub url: String,
     /// セクション見出しに出す日本語 (「楽曲」「アイドル」…)。
     pub label: String,
     pub count: u32,

@@ -35,7 +35,10 @@
 
 pub mod content;
 pub mod dto;
+pub mod emit;
 pub mod fixture;
+pub mod restore;
+pub mod theme;
 pub mod url;
 pub mod writer;
 
@@ -98,13 +101,15 @@ pub struct Stats {
     pub pages: usize,
     pub files: usize,
     pub bytes: u64,
+    /// フォールバック slug に落ちた id の件数。
     pub fallback_slugs: usize,
+    /// うち、危険な文字・予約語が理由のもの (データ側を直すべき)。
+    pub fallback_unsafe: usize,
+    /// うち、長すぎるのが理由のもの (URL が読めなくなるだけ)。
+    pub fallback_too_long: usize,
 }
 
 /// エクスポータ本体。
-///
-/// C2a 時点では `--emit-fixture` だけが通る。実データの export (`--sql` / `--db`) は
-/// C3 (emit 本体) で実装する。
 pub fn run(args: &Args) -> Result<Stats> {
     if let Some(dir) = &args.emit_fixture {
         return fixture::emit(dir, args.pretty);
@@ -112,8 +117,5 @@ pub fn run(args: &Args) -> Result<Stats> {
     if let Some(dir) = &args.fixture_check {
         return fixture::check(dir);
     }
-    Err(WebExportError::Args(
-        "実データの export は未実装 (C3)。いまは --emit-fixture <dir> / --fixture-check <dir> のみ"
-            .to_string(),
-    ))
+    emit::run(args)
 }

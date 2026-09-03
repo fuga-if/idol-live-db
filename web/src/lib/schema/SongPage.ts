@@ -23,6 +23,11 @@ durationDisplay: string | null,
  */
 credits: Array<CreditGroup>, cdSeries: string | null, cdTitle: string | null, seriesGroup: string | null, 
 /**
+ * 「シリーズ」行に出す 1 つの値 (`cd_series` が無ければ `series_group`)。
+ * どちらを優先するかは表示の判断なので Rust 側で解決しておく。
+ */
+seriesDisplay: string | null, 
+/**
  * Apple Music CDN。サイト唯一の外部画像。
  */
 artworkUrl: string | null, appleMusicUrl: string | null, jasracCode: string | null, originalArtists: Array<Ref>, otherArtists: Array<Ref>, unit: Ref | null, 

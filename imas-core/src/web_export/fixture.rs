@@ -287,6 +287,7 @@ fn event_page(reference: &Ref, empty: bool) -> EventPage {
                 id: "rel_sample".to_string(),
                 title: "Blu-ray BOX".to_string(),
                 kind: Some("bluray".to_string()),
+                kind_label: "Blu-ray".to_string(),
                 release_date: Some("2026-10-01".to_string()),
                 url: None,
             }]
@@ -339,7 +340,8 @@ fn show_page() -> ShowPage {
         setlist: vec![
             SetlistRow {
                 id: "si_1".to_string(),
-                position: 1,
+                number: 1,
+                position: 11593,
                 section: Some("本編".to_string()),
                 notes: None,
                 unit_label: Some("765MILLION ALLSTARS".to_string()),
@@ -355,7 +357,8 @@ fn show_page() -> ShowPage {
             // 歌唱メンバーが記録されていない行 (実データに多い)。
             SetlistRow {
                 id: "si_2".to_string(),
-                position: 2,
+                number: 2,
+                position: 11594,
                 section: None,
                 notes: Some("映像のみ".to_string()),
                 unit_label: None,
@@ -399,14 +402,17 @@ fn song_page(reference: &Ref, minimal: bool) -> SongPage {
                     role: "作詞".to_string(),
                     raw: "山崎寛子".to_string(),
                     people: vec!["山崎寛子".to_string()],
+                    display: "山崎寛子".to_string(),
                 },
                 CreditGroup {
                     role: "作曲".to_string(),
                     raw: "睦月周平・EFFY".to_string(),
                     people: vec!["睦月周平".to_string(), "EFFY".to_string()],
+                    display: "睦月周平 / EFFY".to_string(),
                 },
             ]
         },
+        series_display: if minimal { None } else { Some("THE IDOLM@STER MILLION THE@TER WAVE".to_string()) },
         cd_series: if minimal { None } else { Some("THE IDOLM@STER MILLION THE@TER WAVE".to_string()) },
         cd_title: if minimal { None } else { Some("Thank You!".to_string()) },
         series_group: None,
@@ -433,8 +439,10 @@ fn song_page(reference: &Ref, minimal: bool) -> SongPage {
                 date: "2026-04-03".to_string(),
                 short_date: "26/04".to_string(),
                 venue: Some("幕張メッセ".to_string()),
-                position: 1,
+                number: 1,
+                position: 11593,
                 section: Some("本編".to_string()),
+                place_display: "DAY1 ・ 幕張メッセ".to_string(),
             }]
         },
         frequent_singers: if minimal {
@@ -732,6 +740,11 @@ fn song_list_page(path: &str, title: &str, kind: SongListKind) -> SongListPage {
             nav("すべて", "/songs/", path == "/songs/", None, Some(2040)),
             nav("ミリオンライブ!", "/songs/brand/ml/", path == "/songs/brand/ml/", Some("brand:ml"), Some(600)),
         ],
+        all_songs_link: if path == "/songs/" {
+            Some(nav("派生曲・ライブ限定曲を含む全件", "/songs/all/", false, None, Some(3153)))
+        } else {
+            None
+        },
         total: 2,
         seo: seo(
             title,
@@ -1129,7 +1142,7 @@ pub fn emit(dir: &Path, pretty: bool) -> Result<Stats> {
         let bytes = serde_json::to_string(&shard)?.len() as u32;
         shard_metas.push(SearchShardMeta {
             kind,
-            path: format!("/search/{file}.json"),
+            url: format!("/search/{file}.json"),
             label: label.to_string(),
             count: shard.rows.len() as u32,
             bytes,
@@ -1146,7 +1159,10 @@ pub fn emit(dir: &Path, pretty: bool) -> Result<Stats> {
     }
     w.write_json("routes.json", &routes)?;
 
-    Ok(w.into_stats())
+    let mut stats = w.into_stats();
+    // 代表値のフォールバックは「危険な文字を含む会場 id」1 件だけ (長さ超過は入れていない)。
+    stats.fallback_unsafe = stats.fallback_slugs;
+    Ok(stats)
 }
 
 /// 代表値ぶんのルート台帳。

@@ -13,4 +13,11 @@ export type SongListPage = { schemaVersion: number, path: string, title: string,
 /**
  * よみの先頭 1 文字で切った目次。
  */
-kanaSections: Array<KanaSection>, brandLinks: Array<NavLink>, total: number, seo: SeoBlock, };
+kanaSections: Array<KanaSection>, brandLinks: Array<NavLink>, 
+/**
+ * 既定フィルタから外れた曲も含む全件ハブ (`/songs/all/`) への案内。
+ *
+ * `/songs/` にだけ入る。これが無いと、一覧規則で外れた曲 (派生曲・ライブ限定曲・
+ * `other` ブランド) の詳細ページが `/` からどこからも辿れなくなる。
+ */
+allSongsLink: NavLink | null, total: number, seo: SeoBlock, };

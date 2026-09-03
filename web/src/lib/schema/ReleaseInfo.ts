@@ -3,4 +3,8 @@
 /**
  * 円盤 (Blu-ray / DVD / CD)。
  */
-export type ReleaseInfo = { id: string, title: string, kind: string | null, releaseDate: string | null, url: string | null, };
+export type ReleaseInfo = { id: string, title: string, kind: string | null, 
+/**
+ * 種別の表示名。種別が無いものは「リリース」。
+ */
+kindLabel: string, releaseDate: string | null, url: string | null, };

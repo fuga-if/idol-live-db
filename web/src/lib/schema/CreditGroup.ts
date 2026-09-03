@@ -11,4 +11,9 @@ role: string,
 /**
  * 分割前の自由文字列 (分割規則が拾えなかった表記もそのまま見せられるように)。
  */
-raw: string, people: Array<string>, };
+raw: string, people: Array<string>, 
+/**
+ * 1 行で出すときの表記。`people` を `" / "` で繋いだもので、分割できなかったときは
+ * `raw` そのまま。**TS 側で join しない**ための項目 (区切り文字の判断もコアが持つ)。
+ */
+display: string, };

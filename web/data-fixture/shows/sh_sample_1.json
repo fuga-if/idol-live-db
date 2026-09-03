@@ -44,7 +44,8 @@
   "setlist": [
     {
       "id": "si_1",
-      "position": 1,
+      "number": 1,
+      "position": 11593,
       "section": "本編",
       "notes": null,
       "unitLabel": "765MILLION ALLSTARS",
@@ -100,7 +101,8 @@
     },
     {
       "id": "si_2",
-      "position": 2,
+      "number": 2,
+      "position": 11594,
       "section": null,
       "notes": "映像のみ",
       "unitLabel": null,

@@ -138,6 +138,7 @@
       "id": "rel_sample",
       "title": "Blu-ray BOX",
       "kind": "bluray",
+      "kindLabel": "Blu-ray",
       "releaseDate": "2026-10-01",
       "url": null
     }

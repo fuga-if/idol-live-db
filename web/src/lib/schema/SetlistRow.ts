@@ -5,7 +5,19 @@ import type { Ref } from "./Ref";
 /**
  * セトリの 1 行。
  */
-export type SetlistRow = { id: string, position: number, 
+export type SetlistRow = { id: string, 
+/**
+ * **公演内で何曲目か (1 始まり)。画面に出す番号はこちら。**
+ *
+ * [`Self::position`] は `setlist_items` 全体を通した並び順の値で、実データでは
+ * 11593 のような大きな数になる。並べ替えの鍵としては正しいが、そのまま番号として
+ * 描くと読めない。どちらを出すかは表示の判断なので、Rust 側で決めておく。
+ */
+number: number, 
+/**
+ * 並び順の鍵 (`setlist_items.position`)。表示用の番号ではない。
+ */
+position: number, 
 /**
  * アンコール等の区切り。
  */

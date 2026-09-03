@@ -11,6 +11,14 @@
 use serde::{Deserialize, Serialize};
 
 /// JSON スキーマの版。TS ローダはこれが一致しない JSON を読んだら即 throw する。
+///
+/// **上げるときは 3 箇所を同時に直すこと。**片方だけ上げると、古い `web/data` を
+/// 読んだまま新しい形として描いてしまう (壊れ方が「一部のフィールドが undefined」に
+/// なるので、ビルドは通って画面だけ静かに崩れる):
+///
+/// 1. ここ (`imas-core/src/web_export/dto/common.rs`)
+/// 2. `web/src/lib/data.ts` — JSON 読み込みの唯一の入口。不一致なら throw する
+/// 3. `web/scripts/require-data.mjs` — ビルド前に `web/data` の版を確かめる
 pub const SCHEMA_VERSION: u32 = 1;
 
 /// サイト全体のメタ (`meta.json`)。

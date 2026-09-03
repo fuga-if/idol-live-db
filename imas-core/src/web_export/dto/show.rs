@@ -39,6 +39,13 @@ pub struct ShowPage {
 #[ts(export, export_to = "../../web/src/lib/schema/")]
 pub struct SetlistRow {
     pub id: String,
+    /// **公演内で何曲目か (1 始まり)。画面に出す番号はこちら。**
+    ///
+    /// [`Self::position`] は `setlist_items` 全体を通した並び順の値で、実データでは
+    /// 11593 のような大きな数になる。並べ替えの鍵としては正しいが、そのまま番号として
+    /// 描くと読めない。どちらを出すかは表示の判断なので、Rust 側で決めておく。
+    pub number: u32,
+    /// 並び順の鍵 (`setlist_items.position`)。表示用の番号ではない。
     pub position: i32,
     /// アンコール等の区切り。
     pub section: Option<String>,

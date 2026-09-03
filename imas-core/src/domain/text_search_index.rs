@@ -48,6 +48,23 @@ impl TextSearchIndex {
         }
     }
 
+    /// 畳み済みのフィールド列。
+    ///
+    /// Web 出面がブラウザに配る検索索引の中身がこれ。**索引そのものの写しを配る**ので、
+    /// 「どのフィールドが検索対象か」「どう畳むか」の判断が Web 側に染み出さない
+    /// (`title` と `title_kana` を web が選び直すと、規則が二重になる)。
+    pub fn folded_fields(&self) -> &[Vec<u8>] {
+        &self.fields
+    }
+
+    /// [`Self::folded_fields`] を `&str` として見たもの。
+    ///
+    /// 畳み込みは `String` 上で行って `into_bytes()` しただけなので、各要素は常に
+    /// 妥当な UTF-8。万一そうでなくなったら、その要素だけ落とす (JSON に載せられない)。
+    pub fn folded_str_fields(&self) -> Vec<&str> {
+        self.fields.iter().filter_map(|f| std::str::from_utf8(f).ok()).collect()
+    }
+
     /// いずれかのフィールドに検索語を含むか。空の検索語は「絞り込まない」= true。
     pub fn matches(&self, needle: &[u8]) -> bool {
         if needle.is_empty() {

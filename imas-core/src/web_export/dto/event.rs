@@ -116,6 +116,8 @@ pub struct ReleaseInfo {
     pub id: String,
     pub title: String,
     pub kind: Option<String>,
+    /// 種別の表示名。種別が無いものは「リリース」。
+    pub kind_label: String,
     pub release_date: Option<String>,
     pub url: Option<String>,
 }

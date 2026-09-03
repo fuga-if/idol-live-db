@@ -352,9 +352,465 @@ fn schema_version_is_stamped_on_every_top_level_document() {
 }
 
 #[test]
-fn run_rejects_the_data_export_until_c3_lands() {
-    // まだ実装していない経路を「黙って空を書く」ではなく明示的に落とす。
-    let args = Args { sql: Some(PathBuf::from("x")), out: Some(PathBuf::from("y")), ..Args::default() };
-    let err = imas_core::web_export::run(&args).unwrap_err();
-    assert_eq!(err.exit_code(), 1, "{err}");
+fn run_rejects_ambiguous_or_incomplete_arguments() {
+    // 引数の取り違えは「黙って空を書く」ではなく、引数エラー (exit 1) で落とす。
+    let cases = [
+        // 入力がない。
+        Args { out: Some(PathBuf::from("y")), ..Args::default() },
+        // --sql と --db の両方。どちらを正とすべきか決められない。
+        Args {
+            sql: Some(PathBuf::from("x")),
+            db: Some(PathBuf::from("z")),
+            out: Some(PathBuf::from("y")),
+            ..Args::default()
+        },
+        // 出力先がない。
+        Args { db: Some(PathBuf::from("z")), ..Args::default() },
+    ];
+    for args in cases {
+        let err = imas_core::web_export::run(&args).unwrap_err();
+        assert_eq!(err.exit_code(), 1, "{err}");
+    }
+}
+
+// ===========================================================================
+// 実データ (同梱 master.sqlite) を通した検査
+//
+// ここだけ重い (フル出力に 1 分強)。既定の `cargo test --locked` には feature が
+// 付かないので走らず、`--features web-export` のときだけ走る。
+// ===========================================================================
+
+mod real {
+    use super::*;
+    use imas_core::domain::snapshot::Snapshot;
+    use imas_core::domain::text_search_index::prepare_needle;
+    use imas_core::outbound::sqlite_loader::load_snapshot;
+    use imas_core::web_export::emit::context::Ctx;
+    use imas_core::web_export::emit::search;
+    use imas_core::web_export::url::{fallback_reason, path_key, reserved_for, FallbackReason};
+    use std::collections::{BTreeMap, BTreeSet, HashSet};
+    use std::sync::OnceLock;
+
+    /// 出力を固定するための「今日」。実時刻を使うと結果が日ごとに変わる。
+    const TODAY: &str = "2026-09-04";
+
+    fn db_path() -> String {
+        format!("{}/../ImasLiveDB/Resources/master.sqlite", env!("CARGO_MANIFEST_DIR"))
+    }
+
+    /// スナップショットは全テストで共有する (不変なので安全・ロードを 1 回にする)。
+    fn snap() -> &'static Snapshot {
+        static SNAP: OnceLock<Snapshot> = OnceLock::new();
+        SNAP.get_or_init(|| {
+            load_snapshot(&db_path()).expect(
+                "同梱 master.sqlite が読めない。`bash tools/build_db.sh` で生成すること",
+            )
+        })
+    }
+
+    fn ctx() -> Ctx<'static> {
+        Ctx::new(snap(), TODAY.to_string(), format!("{TODAY}T00:00:00Z"), None)
+    }
+
+    /// フル出力を 1 回だけ作り、複数のテストで共有する (毎回作ると 1 分 × テスト数になる)。
+    fn exported() -> &'static TempDir {
+        static DIR: OnceLock<TempDir> = OnceLock::new();
+        DIR.get_or_init(|| {
+            let dir = TempDir::new("real");
+            let args = Args {
+                db: Some(PathBuf::from(db_path())),
+                out: Some(dir.path().to_path_buf()),
+                today: Some(TODAY.to_string()),
+                ..Args::default()
+            };
+            imas_core::web_export::run(&args).expect("実データの export が失敗した");
+            dir
+        })
+    }
+
+    // -----------------------------------------------------------------------
+    // T2: URL の安全化
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn t2_fallback_slugs_stay_at_the_five_ids_we_know_about() {
+        let ctx = ctx();
+        let mut by_reason: BTreeMap<&str, Vec<String>> = BTreeMap::new();
+        let collections: [(&str, Vec<String>); 7] = [
+            ("events", snap().events.iter().map(|e| e.id.clone()).collect()),
+            ("shows", snap().shows.iter().map(|s| s.id.clone()).collect()),
+            ("songs", snap().songs.iter().map(|s| s.id.clone()).collect()),
+            ("idols", snap().idols.iter().map(|i| i.id.clone()).collect()),
+            ("units", snap().units.iter().map(|u| u.id.clone()).collect()),
+            ("venues", snap().venues.iter().map(|v| v.id.clone()).collect()),
+            ("brands", snap().brands.iter().map(|b| b.id.clone()).collect()),
+        ];
+        for (collection, ids) in &collections {
+            for id in ids {
+                if let Some(reason) = fallback_reason(id, reserved_for(collection)) {
+                    let key = match reason {
+                        FallbackReason::Unsafe => "unsafe",
+                        FallbackReason::TooLong => "tooLong",
+                    };
+                    by_reason.entry(key).or_default().push(format!("{collection}: {id}"));
+                }
+            }
+        }
+        let unsafe_ids = by_reason.get("unsafe").map(Vec::len).unwrap_or(0);
+        let too_long = by_reason.get("tooLong").map(Vec::len).unwrap_or(0);
+
+        // 内訳まで固定する。合計だけ見ていると、危険 id が 1 件消えて長い id が
+        // 1 件増えたときに気付けない (前者はデータ修正、後者は放置でよい別の話)。
+        assert_eq!(
+            (unsafe_ids, too_long),
+            (2, 3),
+            "フォールバック slug の内訳が変わった:\n{by_reason:#?}\n\
+             危険 id が増えたならデータ側 (db/master.sql) を直す。\
+             長い id が増えただけなら期待値を更新してよい。"
+        );
+        assert_eq!(ctx.fallback_unsafe + ctx.fallback_too_long, 5);
+    }
+
+    #[test]
+    fn t2b_path_keys_are_unique_within_every_collection() {
+        // フォールバック名は fnv1a64 の**上位 32bit しか使っていない**ので、
+        // 衝突は理論上ありうる。実データで起きていないことを固定する
+        // (起きたら URL が 1 本消えるが、ビルドは通ってしまう)。
+        for (collection, ids) in [
+            ("events", snap().events.iter().map(|e| e.id.clone()).collect::<Vec<_>>()),
+            ("shows", snap().shows.iter().map(|s| s.id.clone()).collect()),
+            ("songs", snap().songs.iter().map(|s| s.id.clone()).collect()),
+            ("idols", snap().idols.iter().map(|i| i.id.clone()).collect()),
+            ("units", snap().units.iter().map(|u| u.id.clone()).collect()),
+            ("venues", snap().venues.iter().map(|v| v.id.clone()).collect()),
+            ("brands", snap().brands.iter().map(|b| b.id.clone()).collect()),
+        ] {
+            let mut seen: BTreeMap<String, String> = BTreeMap::new();
+            for id in ids {
+                let key = path_key(&id, reserved_for(collection), collection);
+                if let Some(other) = seen.insert(key.clone(), id.clone()) {
+                    panic!("{collection} で path_key が衝突: {other:?} と {id:?} → {key:?}");
+                }
+            }
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // T5 / T6: 検索
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn t5_folded_fields_are_exactly_what_prepare_needle_produces() {
+        // 索引の accessor が「畳み済みの中身」をそのまま返していること。
+        // ここがずれると、配った索引とアプリの索引が別物になる。
+        let mut checked = 0;
+        for (i, song) in snap().songs.iter().enumerate().take(100) {
+            let sources: Vec<&str> = [Some(song.title.as_str()), song.title_kana.as_deref()]
+                .into_iter()
+                .flatten()
+                .filter(|s| !s.is_empty())
+                .collect();
+            let folded = snap().song_search[i].folded_fields();
+            assert_eq!(folded.len(), sources.len(), "曲 {} のフィールド数", song.id);
+            for (actual, source) in folded.iter().zip(&sources) {
+                assert_eq!(actual, &prepare_needle(source), "曲 {} の {source:?}", song.id);
+                checked += 1;
+            }
+        }
+        assert!(checked > 100, "確かめたフィールドが少なすぎる: {checked}");
+    }
+
+    #[test]
+    fn t6_browser_side_matching_agrees_with_the_core_index() {
+        // ブラウザは `row.f.includes(fold(q))` の 1 行しか実行しない。
+        // それがコアの `TextSearchIndex::matches` と同じ集合を返すことを、
+        // 実データ全件 × 代表クエリで確かめる。
+        let ctx = ctx();
+        let shards = search::shards(&ctx);
+        let songs = shards.iter().find(|s| s.file == "songs").expect("曲シャードが無い");
+        assert_eq!(songs.shard.rows.len(), snap().songs.len());
+
+        let queries = [
+            "はるか", "ハルカ", "HARUKA", "haruka", "Thank", "THANK", "thank you",
+            "おねがい", "オネガイ", "しんでれら", "ラ", "ら", "が", "か\u{3099}",
+            "ミライ", "みらい", "@", "!", "M@STER", "m@ster", "ー", "・", "★",
+            "ΑΣ", "σ", "", " ", "9", "live", "ゆめ", "夢",
+        ];
+        for query in queries {
+            let needle = prepare_needle(query);
+            let expected: BTreeSet<usize> = snap()
+                .song_search
+                .iter()
+                .enumerate()
+                .filter(|(_, index)| index.matches(&needle))
+                .map(|(i, _)| i)
+                .collect();
+
+            // ブラウザ側の式をそのまま書く (畳んだ検索語の部分一致 1 本)。
+            let folded_query = String::from_utf8(needle.clone()).unwrap();
+            let actual: BTreeSet<usize> = songs
+                .shard
+                .rows
+                .iter()
+                .enumerate()
+                .filter(|(_, row)| folded_query.is_empty() || row.f.contains(&folded_query))
+                .map(|(i, _)| i)
+                .collect();
+
+            assert_eq!(
+                actual, expected,
+                "検索語 {query:?} で、ブラウザ側の照合とコアの索引が食い違った"
+            );
+        }
+    }
+
+    #[test]
+    fn t6b_the_field_separator_never_appears_in_the_index_itself() {
+        // 区切りが本文に混ざると、境界をまたぐ偽陽性を防ぐ仕掛けが無効になる。
+        let ctx = ctx();
+        for shard in search::shards(&ctx) {
+            for row in &shard.shard.rows {
+                assert!(
+                    !row.n.contains(search::SEP),
+                    "{}: 表示名に区切り文字が入っている ({:?})",
+                    shard.file,
+                    row.n
+                );
+            }
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // T8 / T11 / T12: 出力全体
+    // -----------------------------------------------------------------------
+
+    /// JSON を舐めて、リンクとして書かれている `path` を全部集める。
+    fn collect_paths(value: &serde_json::Value, out: &mut Vec<String>) {
+        match value {
+            serde_json::Value::Object(map) => {
+                for (k, v) in map {
+                    if k == "path" {
+                        if let Some(s) = v.as_str() {
+                            out.push(s.to_string());
+                        }
+                    }
+                    collect_paths(v, out);
+                }
+            }
+            serde_json::Value::Array(items) => items.iter().for_each(|v| collect_paths(v, out)),
+            _ => {}
+        }
+    }
+
+    #[test]
+    fn t8_every_page_is_reachable_from_the_top_and_no_link_dangles() {
+        let dir = exported();
+        let root = dir.path();
+        let routes: RoutesFile =
+            serde_json::from_str(&std::fs::read_to_string(root.join("routes.json")).unwrap())
+                .unwrap();
+        let known: BTreeMap<&str, &RouteEntry> =
+            routes.routes.iter().map(|r| (r.path.as_str(), r)).collect();
+        assert!(routes.routes.len() > 7_000, "ルートが少なすぎる: {}", routes.routes.len());
+
+        // 1) すべてのリンクがルート台帳に載っていること (リンク切れゼロ)。
+        let mut links: BTreeMap<String, Vec<String>> = BTreeMap::new();
+        let mut dangling: Vec<String> = Vec::new();
+        for entry in &routes.routes {
+            let data = root.join(&entry.data);
+            let text = std::fs::read_to_string(&data)
+                .unwrap_or_else(|e| panic!("{} が読めない: {e}", entry.data));
+            let mut paths = Vec::new();
+            collect_paths(&serde_json::from_str(&text).unwrap(), &mut paths);
+            for p in &paths {
+                if !known.contains_key(p.as_str()) {
+                    dangling.push(format!("{} → {p}", entry.path));
+                }
+            }
+            links.insert(entry.path.clone(), paths);
+        }
+        assert!(
+            dangling.is_empty(),
+            "ルート台帳に無いリンクが {} 本ある (先頭 10 件):\n{}",
+            dangling.len(),
+            dangling.iter().take(10).cloned().collect::<Vec<_>>().join("\n")
+        );
+
+        // 2) `/` から全ページに辿り着けること。
+        //    辿り着けないページは、検索エンジンにも人にも見つけられない。
+        let mut seen: HashSet<&str> = HashSet::new();
+        let mut stack = vec!["/"];
+        seen.insert("/");
+        while let Some(current) = stack.pop() {
+            for next in links.get(current).into_iter().flatten() {
+                if let Some((path, _)) = known.get_key_value(next.as_str()) {
+                    if seen.insert(path) {
+                        stack.push(path);
+                    }
+                }
+            }
+        }
+        let unreachable: Vec<&str> =
+            known.keys().filter(|p| !seen.contains(*p)).copied().take(10).collect();
+        assert!(
+            unreachable.is_empty(),
+            "`/` から辿り着けないページがある (先頭 10 件): {unreachable:?}"
+        );
+    }
+
+    #[test]
+    fn t11_output_stays_inside_the_cloudflare_limits() {
+        let dir = exported();
+        let mut files = 0usize;
+        let mut largest = (0u64, String::new());
+        fn walk(dir: &Path, files: &mut usize, largest: &mut (u64, String)) {
+            for entry in std::fs::read_dir(dir).unwrap() {
+                let path = entry.unwrap().path();
+                if path.is_dir() {
+                    walk(&path, files, largest);
+                } else {
+                    *files += 1;
+                    let size = path.metadata().unwrap().len();
+                    if size > largest.0 {
+                        *largest = (size, path.display().to_string());
+                    }
+                }
+            }
+        }
+        walk(dir.path(), &mut files, &mut largest);
+
+        // Cloudflare Workers Static Assets は 20,000 ファイル / 1 ファイル 25MiB。
+        // 手前で落として、上限に触れる前に気付けるようにする。
+        assert!(files < 18_000, "ファイルが多すぎる: {files}");
+        assert!(
+            largest.0 < 8 * 1024 * 1024,
+            "1 ファイルが大きすぎる: {} ({} バイト)",
+            largest.1,
+            largest.0
+        );
+    }
+
+    #[test]
+    fn t9_two_runs_of_the_real_export_are_byte_identical() {
+        // 差分レビューが成立する条件。HashMap をそのまま serde していたり、
+        // 生成時刻を実時刻から取っていたりすると、ここで落ちる。
+        let a = exported();
+        let b = TempDir::new("real-again");
+        let args = Args {
+            db: Some(PathBuf::from(db_path())),
+            out: Some(b.path().to_path_buf()),
+            today: Some(TODAY.to_string()),
+            ..Args::default()
+        };
+        imas_core::web_export::run(&args).unwrap();
+
+        // 代表的な 1 枚ずつではなく、全ファイルのハッシュで比べる。
+        fn digest(root: &Path) -> BTreeMap<String, u64> {
+            fn walk(root: &Path, dir: &Path, out: &mut BTreeMap<String, u64>) {
+                for entry in std::fs::read_dir(dir).unwrap() {
+                    let path = entry.unwrap().path();
+                    if path.is_dir() {
+                        walk(root, &path, out);
+                    } else {
+                        let rel = path.strip_prefix(root).unwrap().display().to_string();
+                        let bytes = std::fs::read(&path).unwrap();
+                        out.insert(rel, imas_core::web_export::url::fnv1a64(&String::from_utf8_lossy(&bytes)));
+                    }
+                }
+            }
+            let mut out = BTreeMap::new();
+            walk(root, root, &mut out);
+            out
+        }
+        let (x, y) = (digest(a.path()), digest(b.path()));
+        assert_eq!(x.keys().collect::<Vec<_>>(), y.keys().collect::<Vec<_>>(), "顔ぶれが違う");
+        let diff: Vec<&String> = x.iter().filter(|(k, v)| y.get(*k) != Some(v)).map(|(k, _)| k).collect();
+        assert!(diff.is_empty(), "2 回の実行で内容が違うファイル: {:?}", &diff[..diff.len().min(10)]);
+    }
+
+    #[test]
+    fn t12_the_real_output_carries_no_lyrics_or_preview_audio() {
+        let dir = exported();
+        let mut checked = 0;
+        fn walk(dir: &Path, checked: &mut usize) {
+            for entry in std::fs::read_dir(dir).unwrap() {
+                let path = entry.unwrap().path();
+                if path.is_dir() {
+                    walk(&path, checked);
+                    continue;
+                }
+                if path.extension().is_some_and(|e| e == "json") {
+                    let text = std::fs::read_to_string(&path).unwrap();
+                    // キー名で見る (値に "lyrics" を含む曲名がありうるため)。
+                    for forbidden in ["\"previewUrl\"", "\"lyricsUrl\"", "\"lyrics\""] {
+                        assert!(
+                            !text.contains(forbidden),
+                            "{}: {forbidden} を出してはいけない",
+                            path.display()
+                        );
+                    }
+                    assert!(
+                        !text.contains("audio-ssl.itunes.apple.com"),
+                        "{}: プレビュー音源の URL を出してはいけない",
+                        path.display()
+                    );
+                    *checked += 1;
+                }
+            }
+        }
+        walk(dir.path(), &mut checked);
+        assert!(checked > 7_000, "検査したファイルが少なすぎる: {checked}");
+    }
+
+    #[test]
+    fn themes_css_covers_every_idol_brand_and_neutral() {
+        let dir = exported();
+        let css = std::fs::read_to_string(dir.path().join("themes.css")).unwrap();
+        // アイドル 394 + ブランド 9 + neutral = 404 テーマ × ライト/ダーク。
+        let expected = snap().idols.len() + snap().brands.len() + 1;
+        assert_eq!(
+            css.matches("[data-theme=").count(),
+            expected * 2,
+            "テーマ数がアイドル + ブランド + neutral と合わない"
+        );
+        assert!(css.contains("@media (prefers-color-scheme: dark)"));
+        // 変数名は web 側の tokens.css と噛み合っている必要がある。
+        for name in ["--accent:", "--on-accent:", "--tint-strong:", "--hero-surface:"] {
+            assert!(css.contains(name), "{name} が出ていない");
+        }
+    }
+
+    #[test]
+    fn meta_carries_the_content_fingerprint_and_the_frozen_today() {
+        let dir = exported();
+        let meta: SiteMeta =
+            serde_json::from_str(&std::fs::read_to_string(dir.path().join("meta.json")).unwrap())
+                .unwrap();
+        assert_eq!(meta.today_jst, TODAY);
+        // 生成時刻は today から作る (実時刻だと 2 回の実行でバイト一致しない)。
+        assert_eq!(meta.generated_at, format!("{TODAY}T00:00:00Z"));
+        assert!(meta.data_version.is_some(), "data_version が meta に無い");
+        assert_eq!(meta.counts.songs, snap().songs.len() as u32);
+    }
+
+    #[test]
+    fn fold_parity_fixture_covers_real_data_and_the_known_traps() {
+        let dir = exported();
+        let parity: FoldParity =
+            serde_json::from_str(&std::fs::read_to_string(dir.path().join("parity/fold.json")).unwrap())
+                .unwrap();
+        assert!(parity.cases.len() > 2_000, "パリティケースが少なすぎる: {}", parity.cases.len());
+        // 期待値はコアの畳み込みそのものであること。
+        for case in parity.cases.iter().take(500) {
+            assert_eq!(
+                case.output,
+                String::from_utf8(prepare_needle(&case.input)).unwrap(),
+                "{:?} の期待値がコアの畳み込みと違う",
+                case.input
+            );
+        }
+        // JS の toLowerCase() が落ちる語末 Σ は必ず入れておく。
+        let sigma = parity.cases.iter().find(|c| c.input == "ΑΣ").expect("ΑΣ が入っていない");
+        assert_eq!(sigma.output, "ασ");
+    }
 }

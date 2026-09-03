@@ -4,4 +4,16 @@ import type { Ref } from "./Ref";
 /**
  * 披露履歴の 1 行。
  */
-export type PerformanceRow = { show: Ref, event: Ref, date: string, shortDate: string, venue: string | null, position: number, section: string | null, };
+export type PerformanceRow = { show: Ref, event: Ref, date: string, shortDate: string, venue: string | null, 
+/**
+ * その公演で何曲目に披露されたか (1 始まり)。0 は不明。
+ */
+number: number, 
+/**
+ * 並び順の鍵。表示用の番号ではない ([`super::show::SetlistRow::number`] を見よ)。
+ */
+position: number, section: string | null, 
+/**
+ * 1 行で出すときの場所表記 (公演名と会場を `" ・ "` で繋いだもの)。
+ */
+placeDisplay: string, };

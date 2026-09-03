@@ -31,8 +31,13 @@ fn main() {
         Ok(args) => match run(&args) {
             Ok(stats) => {
                 eprintln!(
-                    "pages={} files={} bytes={} fallbackSlugs={}",
-                    stats.pages, stats.files, stats.bytes, stats.fallback_slugs
+                    "pages={} files={} bytes={} fallbackSlugs={} (unsafe={} tooLong={})",
+                    stats.pages,
+                    stats.files,
+                    stats.bytes,
+                    stats.fallback_slugs,
+                    stats.fallback_unsafe,
+                    stats.fallback_too_long
                 );
             }
             Err(e) => fail(&e),

@@ -35,6 +35,7 @@
 
 use crate::domain::snapshot::{Idol, Snapshot};
 use std::collections::{HashMap, HashSet};
+use crate::domain::screen_composition::IdolProfileInput;
 use crate::domain::text_search_index::FoldedNeedle;
 
 // =============================================================================
@@ -436,6 +437,105 @@ pub fn idol_shows(snap: &Snapshot, idol_id: &str) -> Vec<IdolShowRecord> {
 }
 
 /// 全ブランド (表示順・fetchBrands)。
+
+/// アイドル詳細のプロフィール欄に渡す入力を組み立てる。
+///
+/// ## なぜコアに置くか
+///
+/// **値の整形が iOS の View にしか無かった。** 「4月3日」「160cm」「A型 ・ 牡羊座」を
+/// どう作るかが `IdolDetailView` の private computed property に埋まっていて、
+/// Android も Web も同じものを書き直すしかない状態だった (3 実装目が生えかけていた)。
+/// [`screen_composition::idol_profile_rows`] が「並べる判断」だけを持っていたのに対し、
+/// こちらは「値の作り方」を持つ。
+///
+/// ## 移送元
+///
+/// 規則は Swift 原本の逐語の写し:
+/// * `ImasLiveDB/Models/Idol.swift` の `birthdayDisplay` / `heightDisplay` /
+///   `threeSizeDisplay` / `birthMonth`
+/// * `ImasLiveDB/Views/Idols/IdolDetailView.swift` の `ageHeightWeight` /
+///   `bloodConstellation` / `birthplaceHand` / `hobbyTalent`
+///
+/// 区切りは全角スペース込みの `" ・ "` (原本の `joined(separator: " ・ ")`)。
+/// 身長・体重・スリーサイズの整数化は Swift の `Int(_:)` と同じ**ゼロ方向への切り捨て**。
+pub fn idol_profile_input(r: &IdolRecord) -> IdolProfileInput {
+    IdolProfileInput {
+        name_kana: r.name_kana.clone(),
+        name_romaji: r.name_romaji.clone(),
+        birthday_display: birthday_display(r.birthday.as_deref()),
+        birth_month: birth_month(r.birthday.as_deref()),
+        age_height_weight: join_parts(&[
+            r.age.map(|a| format!("{a}歳")),
+            height_display(r.height),
+            r.weight.map(|w| format!("{}kg", w as i64)),
+        ]),
+        three_size: three_size(r.bust, r.waist, r.hip),
+        blood_constellation: join_parts(&[
+            r.blood_type.as_ref().map(|b| format!("{b}型")),
+            r.constellation.clone(),
+        ]),
+        birthplace_handedness: join_parts(&[
+            r.birth_place.clone(),
+            r.handedness.as_deref().map(handedness_label),
+        ]),
+        hobby_talent: join_parts(&[r.hobbies.clone(), r.talents.clone()]),
+        color: r.color.clone(),
+    }
+}
+
+/// 原本 `joined(separator: " ・ ")`。要素が 1 つも無ければ行ごと出さない。
+fn join_parts(parts: &[Option<String>]) -> Option<String> {
+    let joined: Vec<&str> = parts.iter().filter_map(|p| p.as_deref()).collect();
+    if joined.is_empty() {
+        None
+    } else {
+        Some(joined.join(" ・ "))
+    }
+}
+
+/// `"--04-03"` → `"4月3日"` (前置ゼロを落とす)。`--` 始まりでなければそのまま返す。
+fn birthday_display(birthday: Option<&str>) -> Option<String> {
+    let birthday = birthday?;
+    let Some(rest) = birthday.strip_prefix("--") else { return Some(birthday.to_string()) };
+    let parts: Vec<&str> = rest.split('-').collect();
+    match parts.as_slice() {
+        [m, d] => match (m.parse::<i64>(), d.parse::<i64>()) {
+            (Ok(m), Ok(d)) => Some(format!("{m}月{d}日")),
+            // 数字として読めない形はそのまま出す (原本も同じ)。
+            _ => Some(birthday.to_string()),
+        },
+        _ => Some(birthday.to_string()),
+    }
+}
+
+/// `"--04-03"` → `4`。`--` 始まりでなければ月が決まらないので `None`。
+fn birth_month(birthday: Option<&str>) -> Option<u32> {
+    birthday?.strip_prefix("--")?.split('-').next()?.parse().ok()
+}
+
+/// 整数なら `"160cm"`、小数を含むなら `"160.5cm"`。
+///
+/// 原本は `"\(height)cm"` (Swift の `Double` 既定表記)。Rust の `{}` と一致することは
+/// テストで固定してある。
+fn height_display(height: Option<f64>) -> Option<String> {
+    let h = height?;
+    Some(if h.fract() == 0.0 { format!("{}cm", h as i64) } else { format!("{h}cm") })
+}
+
+/// 3 つ揃ったときだけ `"B83 W56 H84"`。1 つでも欠けたら行ごと出さない (原本と同じ)。
+fn three_size(bust: Option<f64>, waist: Option<f64>, hip: Option<f64>) -> Option<String> {
+    Some(format!("B{} W{} H{}", bust? as i64, waist? as i64, hip? as i64))
+}
+
+/// `right` / `left` だけ日本語にする。知らない値はそのまま出す (原本と同じ)。
+fn handedness_label(handedness: &str) -> String {
+    match handedness {
+        "right" => "右".to_string(),
+        "left" => "左".to_string(),
+        other => other.to_string(),
+    }
+}
+
 /// `ORDER BY sort_order` は brand_order に前計算済み (同値は添字で決定的)。
 pub fn brand_records(snap: &Snapshot) -> Vec<BrandRecord> {
     snap.brand_order
@@ -462,6 +562,152 @@ pub fn brand_records(snap: &Snapshot) -> Vec<BrandRecord> {
 mod tests {
     use super::*;
     use rusqlite::Connection;
+
+    // -----------------------------------------------------------------------
+    // idol_profile_input — Swift 原本 (Models/Idol.swift + IdolDetailView.swift) の逐語移送。
+    //
+    // ここが崩れると、iOS の画面と Web の画面で同じアイドルの表記が変わる。
+    // 期待値は原本の式から手で起こしたもので、実装から起こしていない。
+    // -----------------------------------------------------------------------
+
+    fn blank_idol() -> IdolRecord {
+        IdolRecord {
+            id: "x".into(), brand_id: None, name: "テスト".into(), name_kana: None,
+            name_romaji: None, color: None, sort_order: None, birthday: None, blood_type: None,
+            height: None, weight: None, birth_place: None, age: None, bust: None, waist: None,
+            hip: None, constellation: None, hobbies: None, talents: None, description: None,
+            gender: None, handedness: None, family_name: None, given_name: None, nickname: None,
+            debut_date: None, attribute: None, is_external: false, aliases: None,
+        }
+    }
+
+    #[test]
+    fn profile_input_formats_the_birthday_like_swift() {
+        let mut idol = blank_idol();
+        // "--MM-DD" は前置ゼロを落として「4月3日」。
+        idol.birthday = Some("--04-03".into());
+        let input = idol_profile_input(&idol);
+        assert_eq!(input.birthday_display.as_deref(), Some("4月3日"));
+        assert_eq!(input.birth_month, Some(4));
+
+        // 2 桁の月日も同じ規則。
+        idol.birthday = Some("--12-25".into());
+        assert_eq!(idol_profile_input(&idol).birthday_display.as_deref(), Some("12月25日"));
+
+        // "--" 始まりでなければ、原本はそのまま出す (月は決まらない)。
+        idol.birthday = Some("1999-04-03".into());
+        let input = idol_profile_input(&idol);
+        assert_eq!(input.birthday_display.as_deref(), Some("1999-04-03"));
+        assert_eq!(input.birth_month, None);
+
+        // 数字として読めない形もそのまま (落とさない)。
+        idol.birthday = Some("--??-??".into());
+        assert_eq!(idol_profile_input(&idol).birthday_display.as_deref(), Some("--??-??"));
+
+        idol.birthday = None;
+        assert_eq!(idol_profile_input(&idol).birthday_display, None);
+    }
+
+    #[test]
+    fn profile_input_joins_age_height_and_weight_with_the_swift_separator() {
+        let mut idol = blank_idol();
+        idol.age = Some(17);
+        idol.height = Some(160.0);
+        idol.weight = Some(45.0);
+        // 区切りは全角スペース込みの " ・ " (原本 joined(separator: " ・ "))。
+        assert_eq!(
+            idol_profile_input(&idol).age_height_weight.as_deref(),
+            Some("17歳 ・ 160cm ・ 45kg")
+        );
+
+        // 小数を持つ身長は小数のまま (Swift の "\(height)cm")。
+        idol.height = Some(160.5);
+        assert_eq!(
+            idol_profile_input(&idol).age_height_weight.as_deref(),
+            Some("17歳 ・ 160.5cm ・ 45kg")
+        );
+
+        // 体重は Int(_) 相当のゼロ方向切り捨て。
+        idol.weight = Some(45.9);
+        assert_eq!(
+            idol_profile_input(&idol).age_height_weight.as_deref(),
+            Some("17歳 ・ 160.5cm ・ 45kg")
+        );
+
+        // 欠けた項目は詰める。全部無ければ行ごと出さない。
+        idol.height = None;
+        idol.weight = None;
+        assert_eq!(idol_profile_input(&idol).age_height_weight.as_deref(), Some("17歳"));
+        idol.age = None;
+        assert_eq!(idol_profile_input(&idol).age_height_weight, None);
+    }
+
+    #[test]
+    fn profile_input_needs_all_three_sizes() {
+        let mut idol = blank_idol();
+        idol.bust = Some(83.0);
+        idol.waist = Some(56.0);
+        idol.hip = Some(84.0);
+        assert_eq!(idol_profile_input(&idol).three_size.as_deref(), Some("B83 W56 H84"));
+        // 1 つでも欠けたら行ごと出さない (原本と同じ)。
+        idol.waist = None;
+        assert_eq!(idol_profile_input(&idol).three_size, None);
+    }
+
+    #[test]
+    fn profile_input_translates_handedness_but_keeps_unknown_values() {
+        let mut idol = blank_idol();
+        idol.birth_place = Some("東京都".into());
+        idol.handedness = Some("right".into());
+        assert_eq!(
+            idol_profile_input(&idol).birthplace_handedness.as_deref(),
+            Some("東京都 ・ 右")
+        );
+        idol.handedness = Some("left".into());
+        assert_eq!(
+            idol_profile_input(&idol).birthplace_handedness.as_deref(),
+            Some("東京都 ・ 左")
+        );
+        // 知らない値はそのまま出す (原本の三項演算子の else 相当)。
+        idol.handedness = Some("both".into());
+        assert_eq!(
+            idol_profile_input(&idol).birthplace_handedness.as_deref(),
+            Some("東京都 ・ both")
+        );
+    }
+
+    #[test]
+    fn profile_input_joins_blood_type_and_hobbies() {
+        let mut idol = blank_idol();
+        idol.blood_type = Some("A".into());
+        idol.constellation = Some("牡羊座".into());
+        assert_eq!(
+            idol_profile_input(&idol).blood_constellation.as_deref(),
+            Some("A型 ・ 牡羊座")
+        );
+        idol.constellation = None;
+        assert_eq!(idol_profile_input(&idol).blood_constellation.as_deref(), Some("A型"));
+
+        idol.hobbies = Some("料理".into());
+        idol.talents = Some("そろばん".into());
+        assert_eq!(idol_profile_input(&idol).hobby_talent.as_deref(), Some("料理 ・ そろばん"));
+    }
+
+    #[test]
+    fn profile_input_of_a_real_idol_produces_rows() {
+        // 実データを 1 件通して、行が組み上がるところまで見る。
+        let (snap, _conn) = load();
+        let record = idol_list(&snap, None).into_iter().find(|i| i.birthday.is_some()).unwrap();
+        let input = idol_profile_input(&record);
+        let rows = crate::domain::screen_composition::idol_profile_rows(&input);
+        assert!(!rows.is_empty(), "{} のプロフィール行が空", record.id);
+        // 誕生日の行だけが「同じ誕生月の一覧へ」を持つ。
+        let with_action = rows
+            .iter()
+            .filter(|r| matches!(r.action, crate::domain::screen_composition::RowAction::FilterByBirthMonth { .. }))
+            .count();
+        assert!(with_action <= 1, "誕生月へ飛べる行が複数ある");
+    }
 
     fn db_path() -> String {
         format!("{}/../ImasLiveDB/Resources/master.sqlite", env!("CARGO_MANIFEST_DIR"))

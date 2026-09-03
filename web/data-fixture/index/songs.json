@@ -77,6 +77,13 @@
       "count": 600
     }
   ],
+  "allSongsLink": {
+    "label": "派生曲・ライブ限定曲を含む全件",
+    "path": "/songs/all/",
+    "current": false,
+    "themeKey": null,
+    "count": 3153
+  },
   "total": 2,
   "seo": {
     "title": "楽曲 | アイドルライブDB",

@@ -92,6 +92,11 @@ pub struct SongListPage {
     /// よみの先頭 1 文字で切った目次。
     pub kana_sections: Vec<KanaSection>,
     pub brand_links: Vec<NavLink>,
+    /// 既定フィルタから外れた曲も含む全件ハブ (`/songs/all/`) への案内。
+    ///
+    /// `/songs/` にだけ入る。これが無いと、一覧規則で外れた曲 (派生曲・ライブ限定曲・
+    /// `other` ブランド) の詳細ページが `/` からどこからも辿れなくなる。
+    pub all_songs_link: Option<NavLink>,
     pub total: u32,
     pub seo: SeoBlock,
 }

@@ -4,8 +4,16 @@
 //!
 //! id には日本語・`@`・`×`・`'`・`(` が入っている。これをまとめて ASCII 化すると
 //! 「URL を見て何のページか分かる」利点を全部失うので、**危険な id だけ**を
-//! フォールバック slug に落とす部分適用にしてある。現行データで落ちるのは会場 2 件だけ
-//! (`/` を含む id) で、その件数はテストで固定してある。
+//! フォールバック slug に落とす部分適用にしてある。
+//!
+//! 現行データ (db/master.sql) で落ちるのは **5 件**で、内訳は:
+//!
+//! | 理由 | 件数 | 例 |
+//! |---|---|---|
+//! | [`FallbackReason::Unsafe`] (`/` を含む) | 2 (venues) | `venue_grandpeacepalace(慶熙大学,ソウル/韓国)` |
+//! | [`FallbackReason::TooLong`] ([`MAX_SEGMENT_BYTES`] 超え) | 3 (events) | 200 バイトを超える長いイベント名由来の id |
+//!
+//! この件数はテストで固定してある (新しい壊れ id が入ったら気付けるように)。
 //!
 //! ## `share_text::escaped_id` は使わない
 //!
@@ -19,6 +27,31 @@
 /// percent-encode 後 (最悪 3 倍) ではなく **encode 前**で測っているため。
 /// Astro は生の値でディレクトリを掘るので、効くのは encode 前の長さ。
 pub const MAX_SEGMENT_BYTES: usize = 200;
+
+/// フォールバック slug に落ちた理由。stderr の内訳とテストで使う。
+///
+/// 理由を分けているのは、対処が違うから。[`Self::Unsafe`] はデータ側の id を直すべき
+/// もの (CloudKit の PK 変更になるので別タスク)、[`Self::TooLong`] は id の付け方の
+/// 問題で、URL が読めなくなるだけで壊れてはいない。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FallbackReason {
+    /// パス構文を壊す文字を含む / 予約語 / `.` / 空。
+    Unsafe,
+    /// [`MAX_SEGMENT_BYTES`] を超える。
+    TooLong,
+}
+
+/// この id がフォールバック slug に落ちるか、落ちるならなぜか。
+pub fn fallback_reason(id: &str, reserved: &[&str]) -> Option<FallbackReason> {
+    if is_safe_segment(id, reserved) {
+        return None;
+    }
+    if id.len() > MAX_SEGMENT_BYTES {
+        Some(FallbackReason::TooLong)
+    } else {
+        Some(FallbackReason::Unsafe)
+    }
+}
 
 /// 1 パスセグメントとして安全に置けるか。
 ///

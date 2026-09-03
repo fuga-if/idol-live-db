@@ -6,9 +6,13 @@ import type { RefKind } from "./RefKind";
  */
 export type SearchShardMeta = { kind: RefKind, 
 /**
- * `/search/songs.json` 等 (サイトルートからの絶対パス)。
+ * 取得先 (`/search/songs.json`)。
+ *
+ * フィールド名が `path` でないのは、**JSON 中の `path` は必ずページの URL**、
+ * という不変条件を全体で保つため (到達性テストが `path` を機械的に辿れる)。
+ * これはページではなくデータファイルの場所なので `url` にしてある。
  */
-path: string, 
+url: string, 
 /**
  * セクション見出しに出す日本語 (「楽曲」「アイドル」…)。
  */

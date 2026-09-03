@@ -28,6 +28,9 @@ pub struct SongPage {
     pub cd_series: Option<String>,
     pub cd_title: Option<String>,
     pub series_group: Option<String>,
+    /// 「シリーズ」行に出す 1 つの値 (`cd_series` が無ければ `series_group`)。
+    /// どちらを優先するかは表示の判断なので Rust 側で解決しておく。
+    pub series_display: Option<String>,
     /// Apple Music CDN。サイト唯一の外部画像。
     pub artwork_url: Option<String>,
     pub apple_music_url: Option<String>,
@@ -64,6 +67,9 @@ pub struct CreditGroup {
     /// 分割前の自由文字列 (分割規則が拾えなかった表記もそのまま見せられるように)。
     pub raw: String,
     pub people: Vec<String>,
+    /// 1 行で出すときの表記。`people` を `" / "` で繋いだもので、分割できなかったときは
+    /// `raw` そのまま。**TS 側で join しない**ための項目 (区切り文字の判断もコアが持つ)。
+    pub display: String,
 }
 
 /// 披露履歴の 1 行。
@@ -76,8 +82,13 @@ pub struct PerformanceRow {
     pub date: String,
     pub short_date: String,
     pub venue: Option<String>,
+    /// その公演で何曲目に披露されたか (1 始まり)。0 は不明。
+    pub number: u32,
+    /// 並び順の鍵。表示用の番号ではない ([`super::show::SetlistRow::number`] を見よ)。
     pub position: i32,
     pub section: Option<String>,
+    /// 1 行で出すときの場所表記 (公演名と会場を `" ・ "` で繋いだもの)。
+    pub place_display: String,
 }
 
 /// 「よく歌う人」の 1 行。
