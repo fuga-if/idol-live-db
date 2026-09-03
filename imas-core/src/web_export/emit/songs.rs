@@ -107,7 +107,8 @@ pub fn song_page(ctx: &Ctx, song_id: &str) -> Option<SongPage> {
         performance_history: detail::performance_history(ctx.snap, song_id)
             .into_iter()
             .filter_map(|h| {
-                let place_display = [Some(h.show_name.as_str()), h.venue.as_deref()]
+                let show_name = distinguishing_show_name(&h.event_name, &h.show_name);
+                let place_display = [show_name, h.venue.as_deref()]
                     .into_iter()
                     .flatten()
                     .filter(|s| !s.is_empty())
@@ -161,6 +162,25 @@ pub fn song_page(ctx: &Ctx, song_id: &str) -> Option<SongPage> {
     })
 }
 
+/// 披露履歴の行に出す公演名。行のタイトルがライブ名なので、**ライブ名と重なる部分は落とす**。
+///
+/// 公演名はライブ名を頭に含んでいることが多い:
+///
+/// ```text
+///   ライブ名: THE IDOLM@STER MILLION THE@TER WAVE 11&12 発売記念イベント
+///   公演名  : THE IDOLM@STER MILLION THE@TER WAVE 11&12 発売記念イベント【第一回】
+/// ```
+///
+/// そのまま繋ぐと同じ長い名前が 2 行続いて、公演を見分ける手掛かり (`【第一回】`) が
+/// 行末に埋もれる。重なりを取り除いて残った部分だけを出し、公演が 1 本しかないライブ
+/// (公演名 = ライブ名) では公演名ごと落とす。
+fn distinguishing_show_name<'a>(event_name: &str, show_name: &'a str) -> Option<&'a str> {
+    let rest = show_name.strip_prefix(event_name).unwrap_or(show_name);
+    // 区切りの空白と中黒だけを落とす。`【` や `第` は見分けに要るので残す。
+    let rest = rest.trim_start_matches([' ', '\u{3000}', '-', '~', '～', '・']).trim();
+    (!rest.is_empty()).then_some(rest)
+}
+
 fn song_description(record: &detail::SongDetailRecord) -> String {
     let unit = record
         .unit_name
@@ -196,4 +216,36 @@ fn song_json_ld(record: &detail::SongDetailRecord, path: &str) -> serde_json::Va
         value["inAlbum"] = serde_json::json!({ "@type": "MusicAlbum", "name": album });
     }
     value
+}
+
+#[cfg(test)]
+mod tests {
+    use super::distinguishing_show_name;
+
+    #[test]
+    fn a_show_named_after_its_event_adds_nothing() {
+        // 公演が 1 本しかないライブ。行のタイトルと同じ名前を繰り返さない。
+        assert_eq!(distinguishing_show_name("A LIVE", "A LIVE"), None);
+        assert_eq!(distinguishing_show_name("A LIVE", "A LIVE "), None);
+    }
+
+    #[test]
+    fn only_the_part_that_tells_shows_apart_is_kept() {
+        assert_eq!(
+            distinguishing_show_name("MILLION THE@TER WAVE 発売記念イベント", "MILLION THE@TER WAVE 発売記念イベント【第一回】"),
+            Some("【第一回】")
+        );
+        assert_eq!(
+            distinguishing_show_name("SideM 2nd STAGE", "SideM 2nd STAGE Shining Side"),
+            Some("Shining Side")
+        );
+        // 区切りの中黒や波ダッシュは落とすが、見分けに要る文字は残す。
+        assert_eq!(distinguishing_show_name("ツアー", "ツアー ・ 第1回公演"), Some("第1回公演"));
+    }
+
+    #[test]
+    fn an_unrelated_show_name_is_left_alone() {
+        assert_eq!(distinguishing_show_name("A LIVE", "DAY2"), Some("DAY2"));
+        assert_eq!(distinguishing_show_name("A LIVE", "昼公演"), Some("昼公演"));
+    }
 }
