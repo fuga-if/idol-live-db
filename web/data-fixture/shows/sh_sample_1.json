@@ -163,9 +163,30 @@
     "robots": "index,follow",
     "jsonLd": {
       "@context": "https://schema.org",
-      "@type": "WebPage",
-      "name": "DAY1",
-      "url": "https://imas-live-web.tokata3011.workers.dev/shows/sh_sample_1/"
+      "@graph": [
+        {
+          "@type": "WebPage",
+          "name": "DAY1",
+          "url": "https://imas-live-web.tokata3011.workers.dev/shows/sh_sample_1/"
+        },
+        {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "item": "https://imas-live-web.tokata3011.workers.dev/",
+              "name": "ホーム",
+              "position": 1
+            },
+            {
+              "@type": "ListItem",
+              "item": "https://imas-live-web.tokata3011.workers.dev/events/",
+              "name": "ライブ",
+              "position": 2
+            }
+          ]
+        }
+      ]
     },
     "breadcrumbs": [
       {

@@ -152,9 +152,24 @@
     "robots": "index,follow",
     "jsonLd": {
       "@context": "https://schema.org",
-      "@type": "WebPage",
-      "name": "このサイトについて",
-      "url": "https://imas-live-web.tokata3011.workers.dev/about/"
+      "@graph": [
+        {
+          "@type": "WebPage",
+          "name": "このサイトについて",
+          "url": "https://imas-live-web.tokata3011.workers.dev/about/"
+        },
+        {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "item": "https://imas-live-web.tokata3011.workers.dev/",
+              "name": "ホーム",
+              "position": 1
+            }
+          ]
+        }
+      ]
     },
     "breadcrumbs": [
       {

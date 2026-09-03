@@ -28,9 +28,30 @@
     "robots": "index,follow",
     "jsonLd": {
       "@context": "https://schema.org",
-      "@type": "WebPage",
-      "name": "Donald E. Stephens Convention Center / Hyatt Regency O'Hare",
-      "url": "https://imas-live-web.tokata3011.workers.dev/venues/venue_donalde.stephensconventioncenterhyattregen-0c52f2eb/"
+      "@graph": [
+        {
+          "@type": "WebPage",
+          "name": "Donald E. Stephens Convention Center / Hyatt Regency O'Hare",
+          "url": "https://imas-live-web.tokata3011.workers.dev/venues/venue_donalde.stephensconventioncenterhyattregen-0c52f2eb/"
+        },
+        {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "item": "https://imas-live-web.tokata3011.workers.dev/",
+              "name": "ホーム",
+              "position": 1
+            },
+            {
+              "@type": "ListItem",
+              "item": "https://imas-live-web.tokata3011.workers.dev/venues/",
+              "name": "会場",
+              "position": 2
+            }
+          ]
+        }
+      ]
     },
     "breadcrumbs": [
       {

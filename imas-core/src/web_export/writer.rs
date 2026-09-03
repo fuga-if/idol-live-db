@@ -12,6 +12,9 @@ pub struct Writer {
     root: PathBuf,
     pretty: bool,
     stats: Stats,
+    /// 作成済みのディレクトリ。7,640 ファイルすべてで `create_dir_all` を呼ぶと、
+    /// 同じ 10 個ほどのディレクトリに対して毎回 syscall が走る。
+    created_dirs: std::collections::HashSet<PathBuf>,
 }
 
 impl Writer {
@@ -21,7 +24,12 @@ impl Writer {
             std::fs::remove_dir_all(root)?;
         }
         std::fs::create_dir_all(root)?;
-        Ok(Self { root: root.to_path_buf(), pretty, stats: Stats::default() })
+        Ok(Self {
+            root: root.to_path_buf(),
+            pretty,
+            stats: Stats::default(),
+            created_dirs: std::collections::HashSet::new(),
+        })
     }
 
     /// JSON を 1 本書く。`rel` は出力ルートからの相対パス。
@@ -38,7 +46,9 @@ impl Writer {
     pub fn write_text(&mut self, rel: &str, text: &str) -> Result<()> {
         let path = self.resolve(rel)?;
         if let Some(parent) = path.parent() {
-            std::fs::create_dir_all(parent)?;
+            if self.created_dirs.insert(parent.to_path_buf()) {
+                std::fs::create_dir_all(parent)?;
+            }
         }
         // 一時ファイル → rename。書き込み途中で落ちても半端な JSON を残さない。
         let tmp = path.with_extension("tmp");

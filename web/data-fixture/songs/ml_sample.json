@@ -198,9 +198,30 @@
     "robots": "index,follow",
     "jsonLd": {
       "@context": "https://schema.org",
-      "@type": "WebPage",
-      "name": "Thank You!",
-      "url": "https://imas-live-web.tokata3011.workers.dev/songs/ml_sample/"
+      "@graph": [
+        {
+          "@type": "WebPage",
+          "name": "Thank You!",
+          "url": "https://imas-live-web.tokata3011.workers.dev/songs/ml_sample/"
+        },
+        {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "item": "https://imas-live-web.tokata3011.workers.dev/",
+              "name": "ホーム",
+              "position": 1
+            },
+            {
+              "@type": "ListItem",
+              "item": "https://imas-live-web.tokata3011.workers.dev/songs/",
+              "name": "楽曲",
+              "position": 2
+            }
+          ]
+        }
+      ]
     },
     "breadcrumbs": [
       {

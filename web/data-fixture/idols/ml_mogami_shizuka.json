@@ -148,9 +148,30 @@
     "robots": "index,follow",
     "jsonLd": {
       "@context": "https://schema.org",
-      "@type": "WebPage",
-      "name": "最上静香",
-      "url": "https://imas-live-web.tokata3011.workers.dev/idols/ml_mogami_shizuka/"
+      "@graph": [
+        {
+          "@type": "WebPage",
+          "name": "最上静香",
+          "url": "https://imas-live-web.tokata3011.workers.dev/idols/ml_mogami_shizuka/"
+        },
+        {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "item": "https://imas-live-web.tokata3011.workers.dev/",
+              "name": "ホーム",
+              "position": 1
+            },
+            {
+              "@type": "ListItem",
+              "item": "https://imas-live-web.tokata3011.workers.dev/idols/",
+              "name": "アイドル",
+              "position": 2
+            }
+          ]
+        }
+      ]
     },
     "breadcrumbs": [
       {

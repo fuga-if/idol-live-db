@@ -197,7 +197,9 @@ fn write_all(ctx: &Ctx, out: &std::path::Path, pretty: bool) -> Result<Stats> {
             }
         };
     }
-    write_lists!(lists::event_lists(ctx));
+    let event_pages = lists::event_lists(ctx);
+    let upcoming = lists::upcoming_items(&event_pages);
+    write_lists!(event_pages);
     write_lists!(lists::song_lists(ctx));
     write_lists!(lists::idol_lists(ctx));
     write_lists!(lists::unit_lists(ctx));
@@ -208,7 +210,6 @@ fn write_all(ctx: &Ctx, out: &std::path::Path, pretty: bool) -> Result<Stats> {
     book.listing(RouteKind::BrandList, "/brands/", "index/brands.json", true);
 
     let counts = lists::counts(ctx);
-    let upcoming = lists::upcoming_items(ctx);
     let home = lists::home(ctx, &upcoming, counts);
     w.write_json("index/home.json", &home)?;
     book.listing(RouteKind::Home, "/", "index/home.json", true);
@@ -220,7 +221,8 @@ fn write_all(ctx: &Ctx, out: &std::path::Path, pretty: bool) -> Result<Stats> {
     // --- 検索 ---
     let shards = search::shards(ctx);
     for shard in &shards {
-        w.write_json(&format!("search/{}.json", shard.file), &shard.shard)?;
+        // 既にシリアライズ済みの本文をそのまま書く (manifest の bytes と同じもの)。
+        w.write_text(&format!("search/{}.json", shard.file), &shard.json)?;
     }
     w.write_json("search/manifest.json", &search::manifest(&shards))?;
     book.listing(RouteKind::Search, "/search/", "search/manifest.json", true);

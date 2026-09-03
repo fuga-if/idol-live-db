@@ -167,9 +167,30 @@
     "robots": "index,follow",
     "jsonLd": {
       "@context": "https://schema.org",
-      "@type": "WebPage",
-      "name": "THE IDOLM@STER MILLION LIVE! 10thLIVE TOUR Act-4 ROAD TO MEMORIES 幕張",
-      "url": "https://imas-live-web.tokata3011.workers.dev/events/ev_sample/"
+      "@graph": [
+        {
+          "@type": "WebPage",
+          "name": "THE IDOLM@STER MILLION LIVE! 10thLIVE TOUR Act-4 ROAD TO MEMORIES 幕張",
+          "url": "https://imas-live-web.tokata3011.workers.dev/events/ev_sample/"
+        },
+        {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "item": "https://imas-live-web.tokata3011.workers.dev/",
+              "name": "ホーム",
+              "position": 1
+            },
+            {
+              "@type": "ListItem",
+              "item": "https://imas-live-web.tokata3011.workers.dev/events/",
+              "name": "ライブ",
+              "position": 2
+            }
+          ]
+        }
+      ]
     },
     "breadcrumbs": [
       {

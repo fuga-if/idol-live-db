@@ -6,6 +6,7 @@ use super::idols::period_display;
 use crate::domain::event_detail_queries as detail;
 use crate::domain::event_list_queries;
 use crate::domain::idol_queries;
+use crate::domain::snapshot::Snapshot;
 use crate::domain::unit_queries;
 use crate::web_export::content;
 use crate::web_export::dto::*;
@@ -55,9 +56,9 @@ pub fn venue_page(ctx: &Ctx, venue_id: &str, directory: &VenueDirectory) -> Opti
     let aliases_display = join_parts(split_csv(venue.aliases.as_deref()).map(Some));
 
     let breadcrumbs = vec![
-        ctx.crumb("ホーム", "/"),
-        ctx.crumb("会場", "/venues/"),
-        ctx.crumb(&venue.name, &path),
+        Ctx::crumb("ホーム", "/"),
+        Ctx::crumb("会場", "/venues/"),
+        Ctx::crumb(&venue.name, &path),
     ];
 
     Some(VenuePage {
@@ -153,29 +154,35 @@ pub struct BrandCounts {
     pub units: u32,
 }
 
-pub fn brand_counts(ctx: &Ctx, brand_id: &str) -> BrandCounts {
-    let event_ids: std::collections::HashSet<&str> = ctx
-        .snap
-        .events
-        .iter()
-        .filter(|e| e.brand_id.as_deref() == Some(brand_id))
-        .map(|e| e.id.as_str())
-        .collect();
-    let shows = ctx
-        .snap
-        .shows
-        .iter()
-        .filter(|s| event_ids.contains(ctx.snap.events[s.event as usize].id.as_str()))
-        .count();
-    BrandCounts {
-        events: event_ids.len() as u32,
-        shows: shows as u32,
-        songs: ctx.snap.songs.iter().filter(|s| s.brand_id.as_deref() == Some(brand_id)).count()
-            as u32,
-        idols: ctx.snap.idols.iter().filter(|i| i.brand_id.as_deref() == Some(brand_id)).count()
-            as u32,
-        units: ctx.snap.units.iter().filter(|u| u.brand_id == brand_id).count() as u32,
+/// 全ブランドの件数を **1 パスで**数える。
+///
+/// ブランドごとに全表を舐めると、9 ブランド × 5 コレクション (計 7,278 行) を
+/// ブランドページ・トップ・`/brands/` のそれぞれで数え直すことになる。
+/// 作るのは 1 度きりで、[`Ctx`] が持ち回る。
+pub fn brand_counts_table(snap: &Snapshot) -> BTreeMap<String, BrandCounts> {
+    let mut table: BTreeMap<String, BrandCounts> =
+        snap.brands.iter().map(|b| (b.id.clone(), BrandCounts::default())).collect();
+    let mut bump = |brand: Option<&str>, f: fn(&mut BrandCounts)| {
+        if let Some(counts) = brand.and_then(|b| table.get_mut(b)) {
+            f(counts);
+        }
+    };
+    for event in &snap.events {
+        bump(event.brand_id.as_deref(), |c| c.events += 1);
     }
+    for show in &snap.shows {
+        bump(snap.events[show.event as usize].brand_id.as_deref(), |c| c.shows += 1);
+    }
+    for song in &snap.songs {
+        bump(song.brand_id.as_deref(), |c| c.songs += 1);
+    }
+    for idol in &snap.idols {
+        bump(idol.brand_id.as_deref(), |c| c.idols += 1);
+    }
+    for unit in &snap.units {
+        bump(Some(unit.brand_id.as_str()), |c| c.units += 1);
+    }
+    table
 }
 
 /// ブランドページの入口リンク。件数付きで、そのブランドの各一覧へ飛ばす。
@@ -230,13 +237,13 @@ pub fn brand_page(ctx: &Ctx, brand_id: &str) -> Option<BrandPage> {
         .filter_map(|&i| ctx.song_ref(&ctx.snap.songs[i as usize].id))
         .collect();
 
-    let counts = brand_counts(ctx, brand_id);
+    let counts = ctx.brand_counts(brand_id);
     // `other` は一覧の入口を作らない。既定フィルタが other を含めないというコアの規則と、
     // 一覧の入口が存在するという事実が食い違うため (到達は検索と個別ページから)。
     let breadcrumbs = vec![
-        ctx.crumb("ホーム", "/"),
-        ctx.crumb("ブランド", "/brands/"),
-        ctx.crumb(&brand.name, &path),
+        Ctx::crumb("ホーム", "/"),
+        Ctx::crumb("ブランド", "/brands/"),
+        Ctx::crumb(&brand.name, &path),
     ];
 
     Some(BrandPage {

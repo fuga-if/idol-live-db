@@ -50,9 +50,30 @@
     "robots": "index,follow",
     "jsonLd": {
       "@context": "https://schema.org",
-      "@type": "WebPage",
-      "name": "公演未定のライブ",
-      "url": "https://imas-live-web.tokata3011.workers.dev/events/ev_empty/"
+      "@graph": [
+        {
+          "@type": "WebPage",
+          "name": "公演未定のライブ",
+          "url": "https://imas-live-web.tokata3011.workers.dev/events/ev_empty/"
+        },
+        {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "item": "https://imas-live-web.tokata3011.workers.dev/",
+              "name": "ホーム",
+              "position": 1
+            },
+            {
+              "@type": "ListItem",
+              "item": "https://imas-live-web.tokata3011.workers.dev/events/",
+              "name": "ライブ",
+              "position": 2
+            }
+          ]
+        }
+      ]
     },
     "breadcrumbs": [
       {

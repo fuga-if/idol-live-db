@@ -8,7 +8,7 @@ use super::context::{join_parts, simple_json_ld, Ctx, PARTS_SEPARATOR};
 use crate::domain::display_join::join_capped;
 use crate::domain::kana_row::kana_row_label;
 use super::events::show_summary;
-use super::places::{brand_counts, location_display, UNCLASSIFIED_PREFECTURE};
+use super::places::{location_display, UNCLASSIFIED_PREFECTURE};
 use crate::domain::event_detail_queries as detail;
 use crate::domain::event_grouping::group_events_by_year;
 use crate::domain::event_list_queries::{self, EventWithDateRecord};
@@ -208,7 +208,7 @@ pub fn event_lists(ctx: &Ctx) -> Vec<Emitted<EventListPage>> {
                     path,
                     None,
                     collection_json_ld(title, path),
-                    vec![ctx.crumb("ホーム", "/"), ctx.crumb(title, path)],
+                    vec![Ctx::crumb("ホーム", "/"), Ctx::crumb(title, path)],
                 ),
             },
         }
@@ -274,7 +274,7 @@ pub fn event_lists(ctx: &Ctx) -> Vec<Emitted<EventListPage>> {
             EventListKind::Brand,
             (RouteKind::EventListBrand, Some(brand.id.clone())),
             groups,
-            format!("index/events-brand-{}.json", ctx.param_key(&brand.id)),
+            format!("index/events-brand-{}.json", Ctx::param_key(&brand.id)),
             &format!("{}のライブ・イベントの一覧。", brand.name),
         ));
     }
@@ -405,7 +405,7 @@ pub fn song_lists(ctx: &Ctx) -> Vec<Emitted<SongListPage>> {
             &path,
             brand_id.as_deref(),
             collection_json_ld(&title, &path),
-            vec![ctx.crumb("ホーム", "/"), ctx.crumb(&title, &path)],
+            vec![Ctx::crumb("ホーム", "/"), Ctx::crumb(&title, &path)],
         );
         if matches!(kind, SongListKind::All) {
             // 一覧規則から外れた曲の詳細ページを孤立させないためだけのハブ。
@@ -492,7 +492,7 @@ pub fn song_lists(ctx: &Ctx) -> Vec<Emitted<SongListPage>> {
             SongListKind::Brand,
             (RouteKind::SongListBrand, Some(brand.id.clone())),
             indexes,
-            format!("index/songs-brand-{}.json", ctx.param_key(&brand.id)),
+            format!("index/songs-brand-{}.json", Ctx::param_key(&brand.id)),
             ctx.brand_ref(&brand.id),
             format!("{}の楽曲一覧。", brand.name),
         ));
@@ -562,7 +562,7 @@ pub fn idol_lists(ctx: &Ctx) -> Vec<Emitted<IdolListPage>> {
                     &path,
                     brand_id.as_deref(),
                     collection_json_ld(&title, &path),
-                    vec![ctx.crumb("ホーム", "/"), ctx.crumb(&title, &path)],
+                    vec![Ctx::crumb("ホーム", "/"), Ctx::crumb(&title, &path)],
                 ),
             },
         }
@@ -589,7 +589,7 @@ pub fn idol_lists(ctx: &Ctx) -> Vec<Emitted<IdolListPage>> {
             IdolListKind::Brand,
             (RouteKind::IdolListBrand, Some(brand.id.clone())),
             idol_queries::idol_list(ctx.snap, Some(&brand.id)),
-            format!("index/idols-brand-{}.json", ctx.param_key(&brand.id)),
+            format!("index/idols-brand-{}.json", Ctx::param_key(&brand.id)),
             ctx.brand_ref(&brand.id),
             None,
             format!("{}のアイドル一覧。", brand.name),
@@ -675,7 +675,7 @@ pub fn unit_lists(ctx: &Ctx) -> Vec<Emitted<UnitListPage>> {
                     &path,
                     brand_id.as_deref(),
                     collection_json_ld(&title, &path),
-                    vec![ctx.crumb("ホーム", "/"), ctx.crumb(&title, &path)],
+                    vec![Ctx::crumb("ホーム", "/"), Ctx::crumb(&title, &path)],
                 ),
             },
         }
@@ -698,7 +698,7 @@ pub fn unit_lists(ctx: &Ctx) -> Vec<Emitted<UnitListPage>> {
             format!("{}のユニット", brand.name),
             (RouteKind::UnitListBrand, Some(brand.id.clone())),
             index.units.iter().filter(|u| u.brand_id == brand.id).collect(),
-            format!("index/units-brand-{}.json", ctx.param_key(&brand.id)),
+            format!("index/units-brand-{}.json", Ctx::param_key(&brand.id)),
             ctx.brand_ref(&brand.id),
             format!("{}のユニット一覧。", brand.name),
         ));
@@ -794,7 +794,7 @@ pub fn venue_lists(ctx: &Ctx) -> Vec<Emitted<VenueListPage>> {
                     &path,
                     None,
                     collection_json_ld(&title, &path),
-                    vec![ctx.crumb("ホーム", "/"), ctx.crumb(&title, &path)],
+                    vec![Ctx::crumb("ホーム", "/"), Ctx::crumb(&title, &path)],
                 ),
             },
         }
@@ -816,7 +816,7 @@ pub fn venue_lists(ctx: &Ctx) -> Vec<Emitted<VenueListPage>> {
             format!("{pref}の会場"),
             (RouteKind::VenueListPref, Some(pref.clone())),
             indexes,
-            format!("index/venues-pref-{}.json", ctx.param_key(pref)),
+            format!("index/venues-pref-{}.json", Ctx::param_key(pref)),
             Some(pref.clone()),
             format!("{pref}にある、アイドルマスターのライブが行われた会場。"),
         ));
@@ -836,7 +836,7 @@ fn brand_glyph(short_name: &str) -> String {
 
 fn brand_list_item(ctx: &Ctx, brand_id: &str) -> Option<BrandListItem> {
     let brand = ctx.brand(brand_id)?;
-    let counts = brand_counts(ctx, brand_id);
+    let counts = ctx.brand_counts(brand_id);
     Some(BrandListItem {
         reference: ctx.brand_ref(brand_id)?,
         // カードに大きく出す短い名前。短縮名は実データで最長 5 文字なのでそのまま通る。
@@ -873,7 +873,7 @@ pub fn brand_list(ctx: &Ctx) -> BrandListPage {
             path,
             None,
             collection_json_ld("ブランド", path),
-            vec![ctx.crumb("ホーム", "/"), ctx.crumb("ブランド", path)],
+            vec![Ctx::crumb("ホーム", "/"), Ctx::crumb("ブランド", path)],
         ),
     }
 }
@@ -954,7 +954,7 @@ pub fn home(ctx: &Ctx, upcoming: &[EventListItem], counts: Counts) -> HomePage {
             path,
             None,
             simple_json_ld("WebSite", content::SITE_NAME, "/"),
-            vec![ctx.crumb("ホーム", "/")],
+            vec![Ctx::crumb("ホーム", "/")],
         ),
     }
 }
@@ -986,7 +986,7 @@ pub fn about(ctx: &Ctx, counts: Counts) -> AboutPage {
             path,
             None,
             simple_json_ld("AboutPage", "このサイトについて", path),
-            vec![ctx.crumb("ホーム", "/"), ctx.crumb("このサイトについて", path)],
+            vec![Ctx::crumb("ホーム", "/"), Ctx::crumb("このサイトについて", path)],
         ),
     }
 }
@@ -995,11 +995,16 @@ fn collection_json_ld(name: &str, path: &str) -> serde_json::Value {
     simple_json_ld("CollectionPage", name, path)
 }
 
-/// 「今後のライブ」のリスト (トップと `/events/upcoming/` が共有する)。
-pub fn upcoming_items(ctx: &Ctx) -> Vec<EventListItem> {
-    let kinds = all_event_kinds();
-    let all = event_list_queries::events_with_first_date(ctx.snap, None, true, false, Some(&kinds));
-    year_groups(ctx, &all, true, true).into_iter().flat_map(|g| g.events).collect()
+/// 「今後のライブ」のリスト。
+///
+/// `/events/upcoming/` を組んだ結果から取り出す。トップのためだけに
+/// `events_with_first_date` と年グループ化をもう一度回さない。
+pub fn upcoming_items(pages: &[Emitted<EventListPage>]) -> Vec<EventListItem> {
+    pages
+        .iter()
+        .find(|p| p.route_kind == RouteKind::EventListUpcoming)
+        .map(|p| p.page.groups.iter().flat_map(|g| g.events.iter().cloned()).collect())
+        .unwrap_or_default()
 }
 
 /// 会場ページで使う公演要約 (`places.rs` から呼ぶ用の再輸出)。

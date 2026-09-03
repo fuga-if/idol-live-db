@@ -26,9 +26,30 @@
     "robots": "noindex,follow",
     "jsonLd": {
       "@context": "https://schema.org",
-      "@type": "WebPage",
-      "name": "その他",
-      "url": "https://imas-live-web.tokata3011.workers.dev/brands/other/"
+      "@graph": [
+        {
+          "@type": "WebPage",
+          "name": "その他",
+          "url": "https://imas-live-web.tokata3011.workers.dev/brands/other/"
+        },
+        {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "item": "https://imas-live-web.tokata3011.workers.dev/",
+              "name": "ホーム",
+              "position": 1
+            },
+            {
+              "@type": "ListItem",
+              "item": "https://imas-live-web.tokata3011.workers.dev/brands/",
+              "name": "ブランド",
+              "position": 2
+            }
+          ]
+        }
+      ]
     },
     "breadcrumbs": [
       {

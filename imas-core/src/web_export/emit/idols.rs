@@ -10,9 +10,8 @@ use crate::web_export::content;
 use crate::web_export::dto::*;
 
 pub fn idol_page(ctx: &Ctx, idol_id: &str) -> Option<IdolPage> {
-    let record = idol_queries::idol_records_by_ids(ctx.snap, std::slice::from_ref(&idol_id.to_string()))
-        .into_iter()
-        .next()?;
+    let record =
+        idol_queries::idol_records_by_ids(ctx.snap, &[idol_id.to_string()]).into_iter().next()?;
     let &index = ctx.snap.idol_index_by_id.get(idol_id)?;
     let path = ctx.path(RefKind::Idol, idol_id);
     let brand_id = record.brand_id.clone();
@@ -24,13 +23,13 @@ pub fn idol_page(ctx: &Ctx, idol_id: &str) -> Option<IdolPage> {
         .collect();
 
     let breadcrumbs = {
-        let mut crumbs = vec![ctx.crumb("ホーム", "/"), ctx.crumb("アイドル", "/idols/")];
+        let mut crumbs = vec![Ctx::crumb("ホーム", "/"), Ctx::crumb("アイドル", "/idols/")];
         if let Some(brand) = brand_id.as_deref().and_then(|b| ctx.brand_ref(b)) {
             if let Some(list) = ctx.brand_list_path("idols", &brand.id) {
-                crumbs.push(ctx.crumb(&brand.name, &list));
+                crumbs.push(Ctx::crumb(&brand.name, &list));
             }
         }
-        crumbs.push(ctx.crumb(&record.name, &path));
+        crumbs.push(Ctx::crumb(&record.name, &path));
         crumbs
     };
 
@@ -47,7 +46,7 @@ pub fn idol_page(ctx: &Ctx, idol_id: &str) -> Option<IdolPage> {
         brand: brand_id.as_deref().and_then(|b| ctx.brand_ref(b)),
         brands,
         color: record.color.clone(),
-        profile_rows: profile_rows(ctx, &record),
+        profile_rows: profile_rows(&record),
         voice_actor_history: idol_queries::voice_actor_history(ctx.snap, idol_id)
             .into_iter()
             .map(|v| {
@@ -105,25 +104,7 @@ pub fn idol_page(ctx: &Ctx, idol_id: &str) -> Option<IdolPage> {
                 })
             })
             .collect(),
-        shows: idol_queries::idol_shows(ctx.snap, idol_id)
-            .into_iter()
-            .filter_map(|s| {
-                let event = ctx.event_ref(&s.event_id)?;
-                // 行のタイトルがライブ名なので、公演名から重なる部分を落とす
-                // (披露履歴の placeDisplay と同じ規則)。
-                let show_label =
-                    distinguishing_show_name(&s.event_name, &s.show_name).map(str::to_string);
-                Some(IdolShowRow {
-                    subtitle: join_parts([show_label, s.venue.clone()]),
-                    show: ctx.show_ref(&s.show_id)?,
-                    event,
-                    short_date: short_year_month(&s.date),
-                    date: s.date,
-                    venue_label: s.venue,
-                    song_count: songs_sung_at(ctx, idol_id, &s.show_id),
-                })
-            })
-            .collect(),
+        shows: idol_shows(ctx, idol_id, index),
         description: record.description.clone(),
         app: content::app_open_plain(),
         seo: ctx.seo(
@@ -145,8 +126,7 @@ pub fn idol_page(ctx: &Ctx, idol_id: &str) -> Option<IdolPage> {
 /// 「何を並べるか」は `screen_composition::idol_profile_rows`、「値をどう作るか」は
 /// `idol_queries::idol_profile_input` が持つ。ここは `RowAction` を Web の形
 /// (リンクか、リンクでないか) に写すだけ。
-fn profile_rows(ctx: &Ctx, record: &idol_queries::IdolRecord) -> Vec<ProfileRow> {
-    let _ = ctx;
+fn profile_rows(record: &idol_queries::IdolRecord) -> Vec<ProfileRow> {
     idol_profile_rows(&idol_queries::idol_profile_input(record))
         .into_iter()
         .map(|row| ProfileRow {
@@ -179,32 +159,55 @@ pub fn period_display(start: Option<&str>, end: Option<&str>) -> Option<String> 
     }
 }
 
-/// そのアイドルがその公演で歌った曲数。
-fn songs_sung_at(ctx: &Ctx, idol_id: &str, show_id: &str) -> u32 {
-    let (Some(&idol), Some(&show)) =
-        (ctx.snap.idol_index_by_id.get(idol_id), ctx.snap.show_index_by_id.get(show_id))
-    else {
-        return 0;
-    };
-    let items: std::collections::HashSet<u32> =
-        ctx.snap.setlist_items_by_show[show as usize].iter().copied().collect();
-    ctx.snap.performed_items_by_idol[idol as usize]
-        .iter()
-        .filter(|i| items.contains(i))
-        .count() as u32
+/// 出演公演の行。
+///
+/// 「その公演で歌った曲数」を公演ごとに求めると、公演の全セトリ項目から HashSet を
+/// 作り直すことになる (アイドル 394 人 × 出演公演で 1 万回超)。**アイドルの
+/// 披露項目を 1 度だけ集合にして**、公演ごとに数え上げる。
+fn idol_shows(ctx: &Ctx, idol_id: &str, idol_index: u32) -> Vec<IdolShowRow> {
+    let sung: std::collections::HashSet<u32> =
+        ctx.snap.performed_items_by_idol[idol_index as usize].iter().copied().collect();
+    idol_queries::idol_shows(ctx.snap, idol_id)
+        .into_iter()
+        .filter_map(|s| {
+            let song_count = ctx
+                .snap
+                .show_index_by_id
+                .get(&s.show_id)
+                .map_or(0, |&show| {
+                    ctx.snap.setlist_items_by_show[show as usize]
+                        .iter()
+                        .filter(|i| sung.contains(i))
+                        .count() as u32
+                });
+            // 行のタイトルがライブ名なので、公演名から重なる部分を落とす
+            // (披露履歴の placeDisplay と同じ規則)。
+            let show_label =
+                distinguishing_show_name(&s.event_name, &s.show_name).map(str::to_string);
+            Some(IdolShowRow {
+                subtitle: join_parts([show_label, s.venue.clone()]),
+                show: ctx.show_ref(&s.show_id)?,
+                event: ctx.event_ref(&s.event_id)?,
+                short_date: short_year_month(&s.date),
+                date: s.date,
+                venue_label: s.venue,
+                song_count,
+            })
+        })
+        .collect()
 }
 
 pub fn unit_page(ctx: &Ctx, unit_id: &str) -> Option<UnitPage> {
     let record = unit_queries::unit_by_id(ctx.snap, unit_id)?;
     let path = ctx.path(RefKind::Unit, unit_id);
     let breadcrumbs = {
-        let mut crumbs = vec![ctx.crumb("ホーム", "/"), ctx.crumb("ユニット", "/units/")];
+        let mut crumbs = vec![Ctx::crumb("ホーム", "/"), Ctx::crumb("ユニット", "/units/")];
         if let Some(brand) = ctx.brand_ref(&record.brand_id) {
             if let Some(list) = ctx.brand_list_path("units", &brand.id) {
-                crumbs.push(ctx.crumb(&brand.name, &list));
+                crumbs.push(Ctx::crumb(&brand.name, &list));
             }
         }
-        crumbs.push(ctx.crumb(&record.name, &path));
+        crumbs.push(Ctx::crumb(&record.name, &path));
         crumbs
     };
 

@@ -101,9 +101,30 @@
     "robots": "index,follow",
     "jsonLd": {
       "@context": "https://schema.org",
-      "@type": "WebPage",
-      "name": "アイドルマスター ミリオンライブ!",
-      "url": "https://imas-live-web.tokata3011.workers.dev/brands/ml/"
+      "@graph": [
+        {
+          "@type": "WebPage",
+          "name": "アイドルマスター ミリオンライブ!",
+          "url": "https://imas-live-web.tokata3011.workers.dev/brands/ml/"
+        },
+        {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "item": "https://imas-live-web.tokata3011.workers.dev/",
+              "name": "ホーム",
+              "position": 1
+            },
+            {
+              "@type": "ListItem",
+              "item": "https://imas-live-web.tokata3011.workers.dev/brands/",
+              "name": "ブランド",
+              "position": 2
+            }
+          ]
+        }
+      ]
     },
     "breadcrumbs": [
       {

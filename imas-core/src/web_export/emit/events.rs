@@ -35,9 +35,9 @@ pub fn event_page(ctx: &Ctx, event_id: &str) -> Option<EventPage> {
     let name = event.name.clone();
     let brand = record.brand_id.as_deref().and_then(|b| ctx.brand_ref(b));
     let breadcrumbs = vec![
-        ctx.crumb("ホーム", "/"),
-        ctx.crumb("ライブ", "/events/"),
-        ctx.crumb(&name, &path),
+        Ctx::crumb("ホーム", "/"),
+        Ctx::crumb("ライブ", "/events/"),
+        Ctx::crumb(&name, &path),
     ];
 
     Some(EventPage {
@@ -89,7 +89,7 @@ pub fn event_page(ctx: &Ctx, event_id: &str) -> Option<EventPage> {
             &event_description(&name, first_date.as_deref(), last_date.as_deref()),
             &path,
             record.brand_id.as_deref(),
-            event_json_ld(ctx, &name, &path, first_date.as_deref(), last_date.as_deref()),
+            event_json_ld(&name, &path, first_date.as_deref(), last_date.as_deref()),
             breadcrumbs,
         ),
     })
@@ -125,13 +125,11 @@ fn event_description(name: &str, first: Option<&str>, last: Option<&str>) -> Str
 }
 
 fn event_json_ld(
-    ctx: &Ctx,
     name: &str,
     path: &str,
     first: Option<&str>,
     last: Option<&str>,
 ) -> serde_json::Value {
-    let _ = ctx;
     let mut value = serde_json::json!({
         "@type": "MusicEvent",
         "name": name,
@@ -225,7 +223,8 @@ pub fn show_summary(
         venue: show.venue_id.as_deref().and_then(|v| ctx.venue_ref(v)),
         hall: show.hall.clone(),
         start_time: show.start_time.clone(),
-        setlist_count: detail::setlist(ctx.snap, &show.id).len() as u32,
+        // Eff: セトリ本体を組み直さずに本数だけ数える (前計算済みの索引の長さ)。
+        setlist_count: ctx.setlist_len(&show.id),
         stream_platform: show.stream_platform.clone(),
         event,
         subtitle,
@@ -284,10 +283,10 @@ pub fn show_page(ctx: &Ctx, show_id: &str) -> Option<ShowPage> {
     let siblings = sibling_shows(ctx, &show.event_id, &event.name);
     let title = show_title(&event.name, &show.name);
     let breadcrumbs = vec![
-        ctx.crumb("ホーム", "/"),
-        ctx.crumb("ライブ", "/events/"),
-        ctx.crumb(&event.name, &event.path),
-        ctx.crumb(&show.name, &path),
+        Ctx::crumb("ホーム", "/"),
+        Ctx::crumb("ライブ", "/events/"),
+        Ctx::crumb(&event.name, &event.path),
+        Ctx::crumb(&show.name, &path),
     ];
 
     Some(ShowPage {

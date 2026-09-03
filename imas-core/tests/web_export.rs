@@ -440,7 +440,7 @@ mod real {
     use imas_core::web_export::emit::context::Ctx;
     use imas_core::web_export::emit::search;
     use imas_core::web_export::url::{
-        fallback_reason, path_key, reserved_for, FallbackReason, MAX_SEGMENT_BYTES,
+        fallback_reason, path_key, reserved_for,
     };
     use std::collections::{BTreeMap, BTreeSet, HashSet};
     use std::sync::OnceLock;
@@ -486,11 +486,55 @@ mod real {
     // T2: URL の安全化
     // -----------------------------------------------------------------------
 
+    /// フォールバック slug に落ちてよい id。**データ側を直すべきもの**の一覧で、
+    /// 直ったらここから消す (O3: id 変更は CloudKit の PK 変更を伴うので別タスク)。
+    const KNOWN_BROKEN_IDS: [&str; 2] = [
+        "venue_donalde.stephensconventioncenter/hyattregencyo'hare(rosemont,il,usa)",
+        "venue_grandpeacepalace(慶熙大学,ソウル/韓国)",
+    ];
+
     #[test]
-    fn t2_fallback_slugs_stay_at_the_two_ids_we_know_about() {
+    fn t2_only_the_known_broken_ids_fall_back_to_a_slug() {
+        // 件数ではなく **どの id か** を固定する。数だけ見ていると、危険な id が
+        // 1 件消えて別の 1 件が増えたときに気付けない (前者はデータ修正、
+        // 後者は放置してよい別の話)。
+        let collections = all_collections();
+        let mut unexpected: Vec<String> = Vec::new();
+        let mut seen_known: Vec<&str> = Vec::new();
+        for (collection, ids) in &collections {
+            for id in ids {
+                let Some(reason) = fallback_reason(id, reserved_for(collection)) else { continue };
+                match KNOWN_BROKEN_IDS.iter().find(|known| *known == id) {
+                    Some(known) => seen_known.push(known),
+                    None => unexpected.push(format!("{collection}: {id:?} ({reason:?})")),
+                }
+            }
+        }
+
+        assert!(
+            unexpected.is_empty(),
+            "許可していない id がフォールバック slug に落ちている:\n{}\n\
+             危険な文字を含むならデータ側 (db/master.sql) を直す。\
+             長すぎるだけなら MAX_SEGMENT_BYTES を見直すか、この allowlist に足す。",
+            unexpected.join("\n")
+        );
+        seen_known.sort_unstable();
+        seen_known.dedup();
+        assert_eq!(
+            seen_known.len(),
+            KNOWN_BROKEN_IDS.len(),
+            "allowlist に載っているのに実データに無い id がある (直ったなら消すこと): {seen_known:?}"
+        );
+
+        // 長さ超過は 0 件であること (上限を下げたら真っ先にここが落ちる)。
         let ctx = ctx();
-        let mut by_reason: BTreeMap<&str, Vec<String>> = BTreeMap::new();
-        let collections: [(&str, Vec<String>); 7] = [
+        assert_eq!(ctx.fallback_too_long, 0, "長すぎてフォールバックした id がある");
+        assert_eq!(ctx.fallback_unsafe, KNOWN_BROKEN_IDS.len());
+    }
+
+    /// 全コレクションの id 一覧。
+    fn all_collections() -> Vec<(&'static str, Vec<String>)> {
+        vec![
             ("events", snap().events.iter().map(|e| e.id.clone()).collect()),
             ("shows", snap().shows.iter().map(|s| s.id.clone()).collect()),
             ("songs", snap().songs.iter().map(|s| s.id.clone()).collect()),
@@ -498,44 +542,7 @@ mod real {
             ("units", snap().units.iter().map(|u| u.id.clone()).collect()),
             ("venues", snap().venues.iter().map(|v| v.id.clone()).collect()),
             ("brands", snap().brands.iter().map(|b| b.id.clone()).collect()),
-        ];
-        for (collection, ids) in &collections {
-            for id in ids {
-                if let Some(reason) = fallback_reason(id, reserved_for(collection)) {
-                    let key = match reason {
-                        FallbackReason::Unsafe => "unsafe",
-                        FallbackReason::TooLong => "tooLong",
-                    };
-                    by_reason.entry(key).or_default().push(format!("{collection}: {id}"));
-                }
-            }
-        }
-        let unsafe_ids = by_reason.get("unsafe").map(Vec::len).unwrap_or(0);
-        let too_long = by_reason.get("tooLong").map(Vec::len).unwrap_or(0);
-
-        // 内訳まで固定する。合計だけ見ていると、危険 id が 1 件消えて長い id が
-        // 1 件増えたときに気付けない (前者はデータ修正、後者は放置でよい別の話)。
-        assert_eq!(
-            (unsafe_ids, too_long),
-            (2, 0),
-            "フォールバック slug の内訳が変わった:\n{by_reason:#?}\n\
-             危険 id が増えたならデータ側 (db/master.sql) を直す。\
-             長い id が増えただけなら MAX_SEGMENT_BYTES と期待値を見直してよい。"
-        );
-        assert_eq!(ctx.fallback_unsafe + ctx.fallback_too_long, 2);
-
-        // 実データの最長 id が上限に収まっていること。上限を割ると、その id を持つ
-        // ページの URL だけが静かにハッシュに変わる (ビルドは通ってしまう)。
-        let longest = collections
-            .iter()
-            .flat_map(|(_, ids)| ids.iter())
-            .map(|id| id.len())
-            .max()
-            .unwrap_or(0);
-        assert!(
-            longest <= MAX_SEGMENT_BYTES,
-            "最長 id ({longest} バイト) が MAX_SEGMENT_BYTES ({MAX_SEGMENT_BYTES}) を超えた"
-        );
+        ]
     }
 
     #[test]
@@ -543,15 +550,7 @@ mod real {
         // フォールバック名は fnv1a64 の**上位 32bit しか使っていない**ので、
         // 衝突は理論上ありうる。実データで起きていないことを固定する
         // (起きたら URL が 1 本消えるが、ビルドは通ってしまう)。
-        for (collection, ids) in [
-            ("events", snap().events.iter().map(|e| e.id.clone()).collect::<Vec<_>>()),
-            ("shows", snap().shows.iter().map(|s| s.id.clone()).collect()),
-            ("songs", snap().songs.iter().map(|s| s.id.clone()).collect()),
-            ("idols", snap().idols.iter().map(|i| i.id.clone()).collect()),
-            ("units", snap().units.iter().map(|u| u.id.clone()).collect()),
-            ("venues", snap().venues.iter().map(|v| v.id.clone()).collect()),
-            ("brands", snap().brands.iter().map(|b| b.id.clone()).collect()),
-        ] {
+        for (collection, ids) in all_collections() {
             let mut seen: BTreeMap<String, String> = BTreeMap::new();
             for id in ids {
                 let key = path_key(&id, reserved_for(collection), collection);

@@ -5,6 +5,7 @@
 
 use crate::domain::display_join::year_of;
 use crate::domain::idol_queries::{self, BrandRecord};
+use crate::domain::performance_stats::CoOccurIndex;
 use crate::domain::snapshot::Snapshot;
 use crate::web_export::content::{self, absolute};
 use crate::web_export::dto::*;
@@ -46,6 +47,10 @@ pub struct Ctx<'a> {
     idol_brand_color: HashMap<String, Option<String>>,
     /// イベント index → (最初の公演日, 最後の公演日)。
     pub event_dates: Vec<(Option<String>, Option<String>)>,
+    /// 「一緒に来る曲」の前計算。全 3,153 曲ぶん出すので 1 度だけ作って使い回す。
+    pub co_occur: CoOccurIndex,
+    /// ブランドごとの件数 (1 パスで数えたもの)。
+    brand_counts: BTreeMap<String, super::places::BrandCounts>,
 }
 
 impl<'a> Ctx<'a> {
@@ -121,7 +126,14 @@ impl<'a> Ctx<'a> {
             brands,
             idol_brand_color,
             event_dates,
+            co_occur: CoOccurIndex::build(snap),
+            brand_counts: super::places::brand_counts_table(snap),
         }
+    }
+
+    /// ブランドの件数。未知のブランドは 0。
+    pub fn brand_counts(&self, brand_id: &str) -> super::places::BrandCounts {
+        self.brand_counts.get(brand_id).copied().unwrap_or_default()
     }
 
     // -----------------------------------------------------------------------
@@ -143,8 +155,7 @@ impl<'a> Ctx<'a> {
     ///
     /// 詳細ページの id とは**別の keyspace**。予約語も衝突検査も詳細ページのものとは
     /// 無関係なので、[`Self::key`] とは分けてある。
-    pub fn param_key(&self, value: &str) -> String {
-        let _ = self;
+    pub fn param_key(value: &str) -> String {
         path_key(value, &[], "param")
     }
 
@@ -377,6 +388,17 @@ impl<'a> Ctx<'a> {
         }
     }
 
+    /// その公演のセトリの本数。
+    ///
+    /// `setlist()` を呼ぶと `SetlistEntryRecord` を全件組み立ててから捨てることになる。
+    /// 数えるだけなら前計算済みの索引の長さで足りる。
+    pub fn setlist_len(&self, show_id: &str) -> u32 {
+        self.snap
+            .show_index_by_id
+            .get(show_id)
+            .map_or(0, |&s| self.snap.setlist_items_by_show[s as usize].len() as u32)
+    }
+
     /// その公演で何曲目か (1 始まり)。分からなければ 0。
     ///
     /// `setlist_items.position` は全体を通した連番なので、公演内での番号は
@@ -384,11 +406,11 @@ impl<'a> Ctx<'a> {
     /// (`setlist_items_by_show` は position 昇順で前計算済み)。
     pub fn setlist_number(&self, show_id: &str, position: i64) -> u32 {
         let Some(&show) = self.snap.show_index_by_id.get(show_id) else { return 0 };
-        self.snap.setlist_items_by_show[show as usize]
-            .iter()
-            .position(|&i| self.snap.setlist_items[i as usize].position == position)
-            .map(|i| i as u32 + 1)
-            .unwrap_or(0)
+        let items = &self.snap.setlist_items_by_show[show as usize];
+        // `setlist_items_by_show` は position 昇順で前計算済みなので二分探索できる。
+        items
+            .binary_search_by_key(&position, |&i| self.snap.setlist_items[i as usize].position)
+            .map_or(0, |i| i as u32 + 1)
     }
 
     // -----------------------------------------------------------------------
@@ -432,8 +454,7 @@ impl<'a> Ctx<'a> {
         }
     }
 
-    pub fn crumb(&self, name: &str, path: &str) -> Crumb {
-        let _ = self;
+    pub fn crumb(name: &str, path: &str) -> Crumb {
         Crumb { name: name.to_string(), path: path.to_string() }
     }
 }

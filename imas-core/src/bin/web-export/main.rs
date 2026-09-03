@@ -11,7 +11,6 @@
 //! 終了コード: 0=成功 / 1=引数エラー / 2=DB エラー / 3=出力エラー / 4=不変条件違反。
 
 use imas_core::web_export::{run, Args, WebExportError};
-use std::path::PathBuf;
 
 const USAGE: &str = "\
 使い方:
@@ -59,21 +58,18 @@ fn parse() -> Result<Args, WebExportError> {
     let mut args = Args::default();
     let mut it = std::env::args().skip(1);
     while let Some(flag) = it.next() {
-        let mut value = || {
-            it.next()
-                .map(PathBuf::from)
-                .ok_or_else(|| WebExportError::Args(format!("{flag} に値がない")))
-        };
+        // 値は文字列のまま取り、要るところで PathBuf にする。
+        // `--today` のために PathBuf → OsString → String と往復させない。
+        let mut value =
+            || it.next().ok_or_else(|| WebExportError::Args(format!("{flag} に値がない")));
         match flag.as_str() {
-            "--sql" => args.sql = Some(value()?),
-            "--db" => args.db = Some(value()?),
-            "--work-db" => args.work_db = Some(value()?),
-            "--out" => args.out = Some(value()?),
-            "--emit-fixture" => args.emit_fixture = Some(value()?),
-            "--fixture-check" => args.fixture_check = Some(value()?),
-            "--today" => {
-                args.today = Some(value()?.to_string_lossy().into_owned());
-            }
+            "--sql" => args.sql = Some(value()?.into()),
+            "--db" => args.db = Some(value()?.into()),
+            "--work-db" => args.work_db = Some(value()?.into()),
+            "--out" => args.out = Some(value()?.into()),
+            "--emit-fixture" => args.emit_fixture = Some(value()?.into()),
+            "--fixture-check" => args.fixture_check = Some(value()?.into()),
+            "--today" => args.today = Some(value()?),
             "--pretty" => args.pretty = true,
             "-h" | "--help" => {
                 print!("{USAGE}");

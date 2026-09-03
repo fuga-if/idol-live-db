@@ -207,16 +207,20 @@
     }
   ],
   "seo": {
-    "title": "アイドルライブDB | アイドルライブDB",
+    "title": "アイドルライブDB — アイマス ライブ・セトリ データベース",
     "description": "アイマスのライブ・公演・セットリスト・楽曲・アイドルを横断して調べられるデータベースです。",
     "canonical": "https://imas-live-web.tokata3011.workers.dev/",
     "ogImage": "https://imas-live-web.tokata3011.workers.dev/og/default.png",
     "robots": "index,follow",
     "jsonLd": {
       "@context": "https://schema.org",
-      "@type": "WebPage",
-      "name": "アイドルライブDB",
-      "url": "https://imas-live-web.tokata3011.workers.dev/"
+      "@graph": [
+        {
+          "@type": "WebPage",
+          "name": "アイドルライブDB",
+          "url": "https://imas-live-web.tokata3011.workers.dev/"
+        }
+      ]
     },
     "breadcrumbs": []
   }

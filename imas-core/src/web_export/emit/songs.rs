@@ -18,9 +18,7 @@ const TOP_N: u32 = 10;
 const RELATED_N: u32 = 12;
 
 pub fn song_page(ctx: &Ctx, song_id: &str) -> Option<SongPage> {
-    let record = detail::song_records_by_ids(ctx.snap, std::slice::from_ref(&song_id.to_string()))
-        .into_iter()
-        .next()?;
+    let record = detail::song_records_by_ids(ctx.snap, &[song_id.to_string()]).into_iter().next()?;
     let &index = ctx.snap.song_index_by_id.get(song_id)?;
     let path = ctx.path(RefKind::Song, song_id);
     let brand_id = record.brand_id.clone();
@@ -56,15 +54,15 @@ pub fn song_page(ctx: &Ctx, song_id: &str) -> Option<SongPage> {
         .collect();
 
     let breadcrumbs = {
-        let mut crumbs = vec![ctx.crumb("ホーム", "/"), ctx.crumb("楽曲", "/songs/")];
+        let mut crumbs = vec![Ctx::crumb("ホーム", "/"), Ctx::crumb("楽曲", "/songs/")];
         // 一覧を作っていない組み合わせ (`other`) はパンくずにも入れない。
         // 存在の判断は Ctx が 1 箇所で持つ。
         if let Some(brand) = brand_id.as_deref().and_then(|b| ctx.brand_ref(b)) {
             if let Some(list) = ctx.brand_list_path("songs", &brand.id) {
-                crumbs.push(ctx.crumb(&brand.name, &list));
+                crumbs.push(Ctx::crumb(&brand.name, &list));
             }
         }
-        crumbs.push(ctx.crumb(&record.title, &path));
+        crumbs.push(Ctx::crumb(&record.title, &path));
         crumbs
     };
 
@@ -126,13 +124,10 @@ pub fn song_page(ctx: &Ctx, song_id: &str) -> Option<SongPage> {
                 Some(SingerRow { idol: ctx.idol_ref(&t.idol_id)?, times: t.times, total: t.total })
             })
             .collect(),
-        co_occurring: performance_stats::co_occurring_songs(ctx.snap, song_id, TOP_N)
+        co_occurring: ctx.co_occur.co_occurring(ctx.snap, song_id, TOP_N)
             .into_iter()
             .filter_map(|c| {
-                Some(CoOccurRow {
-                    song: ctx.song_ref(&c.song_id)?,
-                    together: c.together,
-                })
+                Some(CoOccurRow { song: ctx.song_ref(&c.song_id)?, together: c.together })
             })
             .collect(),
         related: detail::related_songs(ctx.snap, song_id, RELATED_N)

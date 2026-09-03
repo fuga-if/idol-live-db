@@ -140,11 +140,21 @@ pub fn url_segment(key: &str) -> String {
         {
             out.push(c);
         } else {
-            out.push('%');
-            out.push_str(&format!("{b:02X}"));
+            push_percent(&mut out, *b);
         }
     }
     out
+}
+
+/// 1 バイトを `%XX` (大文字 hex) として積む。
+///
+/// `format!` を使わないのは、7,600 ページぶんの URL で 1 バイトごとに `String` を
+/// 作ることになるため。
+fn push_percent(out: &mut String, byte: u8) {
+    const HEX: &[u8; 16] = b"0123456789ABCDEF";
+    out.push('%');
+    out.push(HEX[(byte >> 4) as usize] as char);
+    out.push(HEX[(byte & 0x0f) as usize] as char);
 }
 
 /// コレクションと id から、末尾スラッシュ付きの完成形 URL を作る。

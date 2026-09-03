@@ -137,9 +137,24 @@
     "robots": "index,follow",
     "jsonLd": {
       "@context": "https://schema.org",
-      "@type": "WebPage",
-      "name": "開催済みのライブ",
-      "url": "https://imas-live-web.tokata3011.workers.dev/events/past/"
+      "@graph": [
+        {
+          "@type": "WebPage",
+          "name": "開催済みのライブ",
+          "url": "https://imas-live-web.tokata3011.workers.dev/events/past/"
+        },
+        {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "item": "https://imas-live-web.tokata3011.workers.dev/",
+              "name": "ホーム",
+              "position": 1
+            }
+          ]
+        }
+      ]
     },
     "breadcrumbs": [
       {

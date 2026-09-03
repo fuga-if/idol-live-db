@@ -28,6 +28,9 @@ pub struct Shard {
     pub file: &'static str,
     pub meta: SearchShardMeta,
     pub shard: SearchShard,
+    /// 書き出す本文。**`bytes` と同じ 1 回のシリアライズから作る。**
+    /// 別々に作ると、`--pretty` のとき manifest の `bytes` が実ファイルと合わない。
+    pub json: String,
 }
 
 fn folded(index: &TextSearchIndex) -> String {
@@ -35,7 +38,6 @@ fn folded(index: &TextSearchIndex) -> String {
 }
 
 fn build(
-    ctx: &Ctx,
     kind: RefKind,
     label: &'static str,
     file: &'static str,
@@ -49,8 +51,7 @@ fn build(
         path_prefix: prefix,
         rows,
     };
-    let bytes = serde_json::to_string(&shard).map(|s| s.len()).unwrap_or(0) as u32;
-    let _ = ctx;
+    let json = serde_json::to_string(&shard).unwrap_or_default();
     Shard {
         file,
         meta: SearchShardMeta {
@@ -58,8 +59,9 @@ fn build(
             url: format!("/search/{file}.json"),
             label: label.to_string(),
             count: shard.rows.len() as u32,
-            bytes,
+            bytes: json.len() as u32,
         },
+        json,
         shard,
     }
 }
@@ -126,10 +128,10 @@ pub fn shards(ctx: &Ctx) -> Vec<Shard> {
         .collect();
 
     vec![
-        build(ctx, RefKind::Song, "楽曲", "songs", songs),
-        build(ctx, RefKind::Idol, "アイドル", "idols", idols),
-        build(ctx, RefKind::Event, "ライブ", "events", events),
-        build(ctx, RefKind::Venue, "会場", "venues", venues),
+        build(RefKind::Song, "楽曲", "songs", songs),
+        build(RefKind::Idol, "アイドル", "idols", idols),
+        build(RefKind::Event, "ライブ", "events", events),
+        build(RefKind::Venue, "会場", "venues", venues),
     ]
     // 公演とユニットは v1 の検索対象外。show_venue_search は「会場文字列のみ」を見る
     // ライブ検索専用の索引で、単独スコープにすると当たり方が説明できない。

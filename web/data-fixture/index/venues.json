@@ -71,9 +71,24 @@
     "robots": "index,follow",
     "jsonLd": {
       "@context": "https://schema.org",
-      "@type": "WebPage",
-      "name": "会場",
-      "url": "https://imas-live-web.tokata3011.workers.dev/venues/"
+      "@graph": [
+        {
+          "@type": "WebPage",
+          "name": "会場",
+          "url": "https://imas-live-web.tokata3011.workers.dev/venues/"
+        },
+        {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "item": "https://imas-live-web.tokata3011.workers.dev/",
+              "name": "ホーム",
+              "position": 1
+            }
+          ]
+        }
+      ]
     },
     "breadcrumbs": [
       {

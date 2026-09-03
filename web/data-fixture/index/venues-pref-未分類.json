@@ -71,9 +71,24 @@
     "robots": "index,follow",
     "jsonLd": {
       "@context": "https://schema.org",
-      "@type": "WebPage",
-      "name": "未分類の会場",
-      "url": "https://imas-live-web.tokata3011.workers.dev/venues/pref/%E6%9C%AA%E5%88%86%E9%A1%9E/"
+      "@graph": [
+        {
+          "@type": "WebPage",
+          "name": "未分類の会場",
+          "url": "https://imas-live-web.tokata3011.workers.dev/venues/pref/%E6%9C%AA%E5%88%86%E9%A1%9E/"
+        },
+        {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "item": "https://imas-live-web.tokata3011.workers.dev/",
+              "name": "ホーム",
+              "position": 1
+            }
+          ]
+        }
+      ]
     },
     "breadcrumbs": [
       {

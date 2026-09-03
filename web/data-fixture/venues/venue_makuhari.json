@@ -111,9 +111,30 @@
     "robots": "index,follow",
     "jsonLd": {
       "@context": "https://schema.org",
-      "@type": "WebPage",
-      "name": "幕張メッセ",
-      "url": "https://imas-live-web.tokata3011.workers.dev/venues/venue_makuhari/"
+      "@graph": [
+        {
+          "@type": "WebPage",
+          "name": "幕張メッセ",
+          "url": "https://imas-live-web.tokata3011.workers.dev/venues/venue_makuhari/"
+        },
+        {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "item": "https://imas-live-web.tokata3011.workers.dev/",
+              "name": "ホーム",
+              "position": 1
+            },
+            {
+              "@type": "ListItem",
+              "item": "https://imas-live-web.tokata3011.workers.dev/venues/",
+              "name": "会場",
+              "position": 2
+            }
+          ]
+        }
+      ]
     },
     "breadcrumbs": [
       {
