@@ -213,10 +213,14 @@ a.lead-row:hover {
   line-height: 1.35;
   background: var(--ds-fill);
   color: var(--ds-ink2);
-  white-space: nowrap;
+  /* 中身は公演名・会場名・ホール名などデータ由来で、長さに上限が無い。
+     flex の子は min-width:auto で内容幅より縮まないため、nowrap のままだと
+     375px でコンテナからはみ出して横スクロールが出る。折り返して収める
+     (省略で隠すのではなく折り返すのは、チップの中身が名前そのものだから)。 */
+  white-space: normal;
+  overflow-wrap: anywhere;
+  min-inline-size: 0;
   max-inline-size: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 .chip--themed {
   background: var(--chip-bg);
@@ -239,7 +243,10 @@ a.chip:hover {
   font-size: var(--fs-caption2);
   font-weight: 600;
   line-height: 1.5;
-  white-space: nowrap;
+  /* `tag--unit` にはこの披露限りのユニット表記が入り、長いものがある。 */
+  overflow-wrap: anywhere;
+  min-inline-size: 0;
+  max-inline-size: 100%;
 }
 .tag--unit {
   background: color-mix(in srgb, var(--accent) 12%, transparent);
@@ -276,7 +283,9 @@ a.chip:hover {
   background: var(--ds-fill);
   overflow-x: auto;
   scrollbar-width: none;
-  max-inline-size: max-content;
+  /* 中身が収まるなら内容幅、溢れるなら親幅で止めて自身が横スクロールする
+     (max-content だけだと親をはみ出してページごと横スクロールになる)。 */
+  max-inline-size: min(100%, max-content);
 }
 .segmented::-webkit-scrollbar {
   display: none;
@@ -311,6 +320,8 @@ a.chip:hover {
   font-size: var(--fs-footnote);
   font-weight: 600;
   color: var(--ds-ink2);
+  overflow-wrap: anywhere;
+  max-inline-size: 100%;
 }
 .link-chips a:hover {
   color: var(--ds-ink);
