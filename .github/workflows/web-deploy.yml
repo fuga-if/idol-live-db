@@ -10,6 +10,10 @@ name: web-deploy
 #
 # 既存ワークフロー (core-guard / ios-guard / android-guard / worker-guard 等) には
 # 一切触れない。imas-live-api/ の Worker とは別デプロイ (docs/ARCHITECTURE-web.md)。
+#
+# (2)(3) は `web/package.json` の `npm run export` / `npm run wasm` をそのまま呼ぶ
+# (Simplifier 指摘 Altitude-11: CI が同じコマンドを別の綴りで YAML に書き直すと、
+# `--locked` の有無や出力先のような差分が 2 箇所で個別にずれる)。
 on:
   push:
     branches: [develop]
@@ -20,10 +24,13 @@ on:
       - "db/master.sql"
       - ".github/workflows/web-deploy.yml"
   pull_request:
+    # push 側と揃える (Simplifier 指摘 Simpl C-14): db/master.sql だけを直す PR で
+    # ビルド検証が走らない片手落ちを防ぐ。挙動変化あり (PR で走るジョブが増える)。
     paths:
       - "web/**"
       - "imas-core/**"
       - "imas-text-fold/**"
+      - "db/master.sql"
       - ".github/workflows/web-deploy.yml"
   schedule:
     # 毎日 20:00 UTC = JST 05:00。データが動かない日でも「今日」(todayJst) を進め、
@@ -51,22 +58,36 @@ jobs:
       - name: Add wasm target
         run: rustup target add wasm32-unknown-unknown
 
+      # `~/.cargo/registry` を丸ごとキャッシュすると展開済みの registry/src/ まで
+      # 入り容量・復元時間が膨らむので index/cache に絞る。restore-keys が無いと
+      # Cargo.lock が 1 バイト動いた瞬間に完全キャッシュミスして依存全体を
+      # コールドビルドし直すので、プレフィックス一致の復元先を足す
+      # (Simplifier 指摘 Eff-11)。
       - name: Cache cargo
         uses: actions/cache@v4
         with:
           path: |
-            ~/.cargo/registry
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
             ~/.cargo/git
             ~/.cargo/bin
             imas-core/target
             web/wasm/imas-fold-wasm/target
           key: web-cargo-${{ runner.os }}-${{ hashFiles('imas-core/Cargo.lock', 'web/wasm/imas-fold-wasm/Cargo.lock') }}
+          restore-keys: |
+            web-cargo-${{ runner.os }}-
 
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: npm
           cache-dependency-path: web/package-lock.json
+
+      # cargo export (npm run export) より前に上げる (Simplifier 指摘 Altitude-11)。
+      # 以降の cargo/wasm-pack 呼び出しは npm script 経由に統一する。
+      - name: npm ci
+        working-directory: web
+        run: npm ci
 
       # web-export の serde 構造体のテストは同梱 master.sqlite を読む
       # (imas-core の既存テスト流儀に合わせる。core-guard.yml と同じ手順)。
@@ -96,22 +117,24 @@ jobs:
           git add -A -- web/src/lib/schema
           git diff --cached --exit-code -- web/src/lib/schema
 
+      # web/package.json の "export" スクリプトをそのまま呼ぶ (cargo のコマンド文字列を
+      # ここに再掲しない)。CI 専用の --locked は package.json 側に付与されている。
       - name: Export JSON from db/master.sql
-        working-directory: imas-core
-        run: >-
-          cargo run --release --locked --features web-export --bin web-export --
-          --sql ../db/master.sql --out ../web/data
-
-      - name: Install wasm-pack
-        run: command -v wasm-pack || cargo install wasm-pack --locked
-
-      - name: Build fold wasm
-        working-directory: web/wasm/imas-fold-wasm
-        run: wasm-pack build --release --target web --out-dir ../../src/lib/fold
-
-      - name: npm ci
         working-directory: web
-        run: npm ci
+        run: npm run export
+
+      # ソースからのビルド (cargo install wasm-pack) は依存ツリーが大きくキャッシュミス時に
+      # 数分かかる。プリビルドバイナリを取得する (Simplifier 指摘 Eff-12)。
+      - name: Install wasm-pack
+        uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-pack
+
+      # web/package.json の "wasm" スクリプトをそのまま呼ぶ (出力先 ../../src/lib/fold の
+      # 綴りを 2 箇所に持たない)。
+      - name: Build fold wasm
+        working-directory: web
+        run: npm run wasm
 
       - name: Type check
         working-directory: web

@@ -122,8 +122,8 @@ https://imas-live-web.tokata3011.workers.dev/
 
 - **正**: `imas-core/src/web_export/dto/**` の serde 構造体 (`imas-core/src/bin/web-export/main.rs` はごく薄い CLI 解析のみ)。
 - **生成物**: `web/src/lib/schema/**` — `ts-rs` が `cargo test --features web-export` の実行時に生成する TypeScript 型。**commit 対象**であり、web-coder はこれを import するだけで自分では編集しない。
-- **ドリフト検知**: CI (`web-deploy.yml`) が `cargo test --locked --features web-export` の後に `git diff --exit-code -- web/src/lib/schema` を実行し、コミット済みの生成物と実際の生成結果がずれていれば落とす。
-- **schemaVersion**: 現在 `1`。破壊的にスキーマを変える場合はこの値を上げ、`web/src/lib/data.ts` の期待値と `web/scripts/require-data.mjs` の期待値を同時に更新する (両方とも定数を 1 箇所に持つのが理想だが、Rust ⇄ Node の境界を跨ぐため現状は 2 箇所の手動同期。ずれれば `require-data.mjs` がビルドを止める)。
+- **ドリフト検知**: CI (`web-deploy.yml`) が `cargo test --locked --features web-export` の後に `git add -A -- web/src/lib/schema && git diff --cached --exit-code -- web/src/lib/schema` を実行し、コミット済みの生成物と実際の生成結果がずれていれば落とす (`git diff --exit-code` 単体だと追跡済みファイルの変更しか見えず、新しい DTO が増えて *未追跡* の `.ts` が生えたケースを素通ししてしまうため、一旦 `add` してからステージ済み差分を見る)。
+- **schemaVersion**: 現在 `1`。正は `imas-core/src/web_export/dto/common.rs` の `SiteMeta.schema_version`。Node 側の参照は `web/scripts/data-root.mjs` の `SCHEMA_VERSION` 定数 1 箇所に集約してあり、`web/src/lib/data.ts` / `web/scripts/require-data.mjs` / `web/wasm/imas-fold-wasm/check-parity.mjs` / テスト群はすべてそこから import する (Node 側で裸のリテラルを持たない)。破壊的にスキーマを変える場合は Rust 側の値と `data-root.mjs` の値を同時に上げる — 手動同期が要るのは Rust ⇄ Node の境界を跨ぐこの 1 箇所だけで、ずれれば `require-data.mjs` (prebuild) と `check-parity.mjs` の両方がビルドを止める。
 
 ---
 
@@ -257,7 +257,9 @@ Cloudflare Workers Static Assets の上限は **20,000 ファイル / 1 ファ�
 - 歌詞本文・プレビュー音源 URL・キャラクター画像・公式ロゴを出力 JSON や HTML に含める。
 - `imas-live-api/` の `wrangler.jsonc` / ルート / cron / secret を変更する。
 - `/search/` 以外のページに `<script>` を置く。
-- 文面 (ラベル・SEO 文・版権表記) を `.astro` に書く。文言の正は imas-core の `SeoBlock` / 各 DTO のフィールドであり、Astro は受け取った文字列を置くだけ。現状の例外: `/search/` と `/404` の (imas-core が持たない) 案内文、ヘッダ/フッタの固定ナビ表記と版権表記 (`about.json` 等のデータではなくレイアウト側の定型文として扱う)。
+- **データが行の集合や値を決める**文面 (何件出すか・どの順で並べるか・値によって出し分けるラベル、SEO 文・版権表記を含む) を `.astro` に直書きする。文言の正は imas-core の `SeoBlock` / 各 DTO のフィールドであり、Astro は受け取った文字列を置くだけ。
+  - **例外 (レイアウト側の定型文として許容)**: レコードに依存しない見出し (「原唱者」「クレジット」「披露履歴」「よく歌うアイドル」等のセクション見出し) と空状態 (`EmptyState`) の文言。全ページ共通のテンプレート構造テキストであり、どのレコードを読んでも変わらないため。`/search/` と `/404` の案内文 (imas-core が持たない画面)、ヘッダ/フッタの固定ナビ表記と版権表記も同様に扱う。
+  - 全部を Rust の DTO に持たせて見出しの入れ物にするのは割に合わないため、この例外は意図的な線引き。**データによって集合や値が変わるもの** (件数タイル・一覧行・プロフィール行など) は例外にせず Rust 側に置く。
 
 ---
 
