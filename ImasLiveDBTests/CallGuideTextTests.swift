@@ -203,3 +203,51 @@ final class CallGuideTextTests: XCTestCase {
                   text: "(Hi!)", emphasis: .normal, timing: timing, stale: stale)
     }
 }
+
+/// タップでアンカーを選ぶときの「語のまとまり」(`imas-core` の `lyric_chunks`) が
+/// FFI 越しに期待どおり返ることの確認。
+///
+/// 1 タップで語を確定する導線に変えたので、ここがズレると「押した語と違う範囲が
+/// 選ばれる」という一番気付きにくい壊れ方をする。切れ目の規則そのものは Rust 側の
+/// テストが持っているので、ここでは**バインディングが繋がっていること**と、
+/// アンカーがスカラー単位のままであることだけを押さえる。
+final class LyricChunkBridgeTests: XCTestCase {
+
+    func testTappingAnyCharacterOfAWordSelectsTheWholeWord() {
+        let line = "ダミー歌詞のサンプル行です"
+        // 「歌詞」は 3..<5。どちらの文字を触っても同じまとまりが返る。
+        for scalar in [UInt32(3), UInt32(4)] {
+            let chunk = lyricChunkAt(line: line, scalar: scalar)
+            XCTAssertEqual(chunk?.text, "歌詞", "scalar=\(scalar)")
+            XCTAssertEqual(chunk?.start, 3)
+            XCTAssertEqual(chunk?.end, 5)
+        }
+    }
+
+    func testAnchorOffsetsStayScalarBasedAcrossTheBridge() {
+        // 絵文字を含む行。UTF-16 で数えていると 1 文字ぶんズレる。
+        let line = "あ😀いろは"
+        XCTAssertEqual(line.unicodeScalars.count, 5)
+        XCTAssertEqual(line.utf16.count, 6)
+        let chunk = lyricChunkAt(line: line, scalar: 2)
+        XCTAssertEqual(chunk?.text, "いろは")
+        XCTAssertEqual(chunk?.start, 2, "UTF-16 で数えていると 3 になる")
+    }
+
+    func testTapPastTheEndOfTheLineStillSelectsSomething() {
+        // 行の右端の余白を触っても空振りしない (指は文字ちょうどには乗らない)。
+        XCTAssertEqual(lyricChunkAt(line: "ダミー歌詞", scalar: 99)?.text, "歌詞")
+    }
+
+    func testChunksCoverTheLineWithoutGaps() {
+        // アンカーの計算がズレないこと。実際の歌詞にありがちな並びで確かめる。
+        for line in ["キミが好きだよ、ずっと", "Shiny Days！", "ミュージック・アワー"] {
+            let got = lyricChunks(line: line)
+            XCTAssertEqual(got.first?.start, 0, line)
+            XCTAssertEqual(got.last?.end, UInt32(line.unicodeScalars.count), line)
+            for (a, b) in zip(got, got.dropFirst()) {
+                XCTAssertEqual(a.end, b.start, line)
+            }
+        }
+    }
+}

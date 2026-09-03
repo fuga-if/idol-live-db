@@ -151,8 +151,7 @@ struct CallGuideCallRows: View {
 /// 行末 (追っかけ) にコールを 1 タップで足すボタン。
 ///
 /// アイマスのコールは**フレーズの後で客が返す**追っかけが多数派で、歌詞に被せるものは
-/// 少数派。多数派を「文字を 2 回タップして範囲を選ぶ → シート」の 3 手に置くのは重いので、
-/// 行末にボタンを常設して 1 タップでシートまで飛ばす (範囲選択は被せる用に残す)。
+/// 少数派。行末にボタンを常設して 1 タップでシートまで飛ばす (範囲選択は被せる用に残す)。
 ///
 /// 置き場所は**最後の文字のすぐ後ろ**。「行末に付く」ことを位置そのもので示すためで、
 /// 行が折り返しても最後の文字に付いて回る。
@@ -234,10 +233,15 @@ struct CallGuideLegend: View {
 /// 独自の範囲選択なら、編集モードの View にしか選択の口が存在しない = 閲覧モードには
 /// 構造的に漏れない。
 ///
-/// 選び方は 2 通りあり、**どちらでも同じ結果**になる:
-///   1. なぞる — 長押し (約 0.2 秒) してから指を滑らせる。なぞった範囲がその場で色付く。
-///   2. 2 タップ — 開始文字をタップ → 終了文字をタップ。
-/// 主導線は 1。2 は 1 文字だけ直したいときや、なぞりが効かない場面のために残してある。
+/// 選び方は 2 通り:
+///   1. **タップ — 触れた位置の語をひとまとまりで選ぶ。** 主導線。切れ目の規則は
+///      `imas-core` の `lyric_chunks` (同じ種類の文字が続く限りひとまとまり)。
+///   2. なぞる — 長押し (約 0.2 秒) してから指を滑らせる。語をまたぐ範囲用。
+///
+/// 以前は「開始文字をタップ → 終了文字をタップ」の 2 タップ方式だった。指で 1 文字を
+/// 狙わせるうえ、1 回目のタップでは見た目にほぼ何も起きず、押したのに反応が無い状態から
+/// 次の意図しない範囲が選ばれる、という動きになっていた。実際のアンカーはほぼ「語」なので、
+/// 1 タップで語を確定する方に寄せた。
 ///
 /// なぞりに**長押しを前置している**のは、この行が `ScrollView` の中にいるから。
 /// 前置しないと歌詞行の上から始まる縦スクロールが全部選択に食われて、編集モードで
@@ -266,8 +270,6 @@ struct CallGuideSelectableLine: View {
     var resetToken: Int = 0
 
     @Environment(\.colorScheme) private var scheme
-    /// 2 タップ方式で開始文字だけ押された状態。
-    @State private var pendingStart: Int?
     /// なぞり中の範囲 (セル添字)。指を離すと nil に戻る。
     @State private var dragRange: ClosedRange<Int>?
     /// なぞりを始めたセル。指が戻ったときに範囲を縮められるよう覚えておく。
@@ -316,7 +318,7 @@ struct CallGuideSelectableLine: View {
         .onChange(of: resetToken) { _, _ in reset() }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(text)
-        .accessibilityHint("長押しからなぞる、または開始と終了の文字を順にタップすると、歌詞に被せるコールの範囲を選べます")
+        .accessibilityHint("語をタップすると、その語に被せるコールを付けられます。長押しからなぞると語をまたいだ範囲を選べます")
         .accessibilityActions {
             if let onAppendCall {
                 Button("行末にコールを追加", action: onAppendCall)
@@ -329,7 +331,7 @@ struct CallGuideSelectableLine: View {
     @ViewBuilder
     private func background(for cell: CallGuideText.Cell) -> some View {
         let theme = ImasTheme.derive(seed: nil, scheme: scheme)
-        if dragRange?.contains(cell.id) == true || pendingStart == cell.id {
+        if dragRange?.contains(cell.id) == true {
             Rectangle().fill(theme.accent.opacity(0.45))
         } else if let color = highlightColor(for: cell) {
             // 0.18 では暗所でほぼ見えなかった (実機確認)。
@@ -365,8 +367,6 @@ struct CallGuideSelectableLine: View {
         guard let index = CallGuideText.cellIndex(at: point, in: cellFrames) else { return }
         let origin = dragOrigin ?? index
         dragOrigin = origin
-        // 2 タップ方式の選択待ちが残っていたら、なぞりが上書きする。
-        pendingStart = nil
         dragRange = min(origin, index)...max(origin, index)
     }
 
@@ -383,21 +383,30 @@ struct CallGuideSelectableLine: View {
 
     // MARK: - タップで選ぶ
 
-    /// 1 回目のタップで開始位置を覚え、2 回目で範囲を確定する。
+    /// **触れた位置の語をひとまとまりで選ぶ。**
+    ///
+    /// 以前は「1 回目のタップで開始文字、2 回目で終了文字」だった。指で 1 文字を
+    /// 狙わせるうえ、1 回目のタップでは見た目にほぼ何も起きず、押したのに反応が無い
+    /// 状態から次の意図しない範囲が選ばれる、という動きになっていた。
+    ///
+    /// 実際のアンカーはほぼ「語」なので、1 タップで語を確定する。
+    /// 語をまたぐ範囲は長押しからのなぞりで選ぶ (そちらは従来どおり)。
+    /// 切れ目の規則は `imas-core` の `lyric_chunks` が唯一の正。
     private func tap(at point: CGPoint, in cells: [CallGuideText.Cell]) {
-        guard let index = CallGuideText.cellIndex(at: point, in: cellFrames) else { return }
-        guard let start = pendingStart else {
-            pendingStart = index
-            return
+        guard let index = CallGuideText.cellIndex(at: point, in: cellFrames),
+              cells.indices.contains(index) else { return }
+        if let chunk = lyricChunkAt(line: text, scalar: UInt32(cells[index].scalarStart)) {
+            onSelect(Int(chunk.start), Int(chunk.end), chunk.text)
+        } else {
+            // 記号だけの行など、まとまりが取れないときは触れた 1 文字にする。
+            commit(index...index, in: cells)
         }
-        pendingStart = nil
-        commit(min(start, index)...max(start, index), in: cells)
     }
 
     // MARK: - 確定
 
-    /// セル添字の範囲をスカラー範囲に直して返す。なぞり・2 タップの両方がここに合流するので、
-    /// **どちらで選んでも結果は同じ**。
+    /// セル添字の範囲をスカラー範囲に直して返す。なぞりと、語が取れなかったときの
+    /// 1 文字選択がここに合流する。
     private func commit(_ range: ClosedRange<Int>, in cells: [CallGuideText.Cell]) {
         guard cells.indices.contains(range.lowerBound),
               cells.indices.contains(range.upperBound) else { return }
@@ -407,7 +416,6 @@ struct CallGuideSelectableLine: View {
     }
 
     private func reset() {
-        pendingStart = nil
         dragOrigin = nil
         dragRange = nil
     }

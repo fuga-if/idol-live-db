@@ -63,6 +63,8 @@ declare_and_call_checksums! {
     uniffi_imas_core_checksum_func_color_match_effective_pool,
     uniffi_imas_core_checksum_func_color_match_judge_round,
     uniffi_imas_core_checksum_func_color_match_start_game,
+    uniffi_imas_core_checksum_func_lyric_chunk_at,
+    uniffi_imas_core_checksum_func_lyric_chunks,
     uniffi_imas_core_checksum_func_daily_pick_day_key,
     uniffi_imas_core_checksum_func_daily_pick_idol_index,
     uniffi_imas_core_checksum_func_daily_pick_idol_indices,

@@ -347,7 +347,7 @@ struct SongLyricsTab: View {
         if let target = reanchorTarget {
             HStack(spacing: DS.sp3) {
                 Image(systemName: "scope").font(.imasCaption)
-                Text("「\(target.text)」の掛かる範囲を選び直しています。長押しからなぞる、または文字を 2 回タップ。")
+                Text("「\(target.text)」の掛かる範囲を選び直しています。語をタップ、または長押しからなぞる。")
                     .font(.imasCaption)
                     .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 0)
@@ -360,7 +360,7 @@ struct SongLyricsTab: View {
                         in: RoundedRectangle(cornerRadius: DS.rSM, style: .continuous))
         } else {
             // 多数派 (追っかけ) の導線を先に書く。被せるコールの範囲選択はその次。
-            Label("行末の ＋ で追っかけのコールを追加。歌詞に被せるときは長押しからなぞって範囲を選ぶ（文字を 2 回タップでも可）。行頭の記号で手拍子を指定。",
+            Label("歌詞の語をタップすると、その語に被せるコールを付けられます。行末の ＋ は追っかけ、行頭の記号は手拍子。語をまたぐ範囲は長押しからなぞって選びます。",
                   systemImage: "hand.tap")
                 .font(.imasCaption)
                 .foregroundStyle(DS.ink2)
@@ -490,7 +490,7 @@ struct SongLyricsTab: View {
     /// 行末 (追っかけ) にコールを足す。範囲を選ばせず 1 タップでシートまで飛ばす。
     ///
     /// アイマスのコールは**フレーズの後で客が返す**追っかけが多数派で、歌詞に被せるものは
-    /// 少数派。多数派を範囲選択 (2 タップ) の後ろに置くのは手数が合わない。
+    /// 少数派。多数派を範囲選択の後ろに置くのは手数が合わない。
     /// アンカーは `start == end == 行の文字数` の幅ゼロ。サーバは `start <= end` を許し、
     /// `anchorText` は本文から切り出した空文字になる。
     private func appendTrailingCall(_ line: LyricLine) {

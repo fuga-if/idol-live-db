@@ -43,4 +43,5 @@ pub mod share_text;
 pub mod sync_decisions;
 pub mod screen_composition;
 pub mod fuzzy_search;
+pub mod lyric_chunks;
 pub mod performance_stats;
