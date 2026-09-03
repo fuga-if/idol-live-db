@@ -13,8 +13,8 @@ enum SongSearchMode: String, CaseIterable, Hashable {
 
     /// 画面に出してよい検索対象。
     ///
-    /// 歌詞は JASRAC の許諾が下りるまで載せない (`LyricsFeature`)。サーバ側も
-    /// `status=draft` で一般ユーザーには返さないが、それは「配信されない」保証であって
+    /// 歌詞は JASRAC の許諾 (`LyricsFeature`) に従う。サーバ側も未公開の曲は
+    /// `status=draft` で一般ユーザーに返さないが、それは「配信されない」保証であって
     /// 「アプリに導線が無い」保証ではない。`SongDetailTab.available` /
     /// `UnifiedSearchScope.available` と同じ流儀で、ここでも導線ごと消す。
     static var available: [SongSearchMode] {

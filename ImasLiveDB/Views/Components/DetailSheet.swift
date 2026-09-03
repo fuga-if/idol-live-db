@@ -179,8 +179,8 @@ enum SongDetailTab: Int, CaseIterable, Hashable {
         }
     }
 
-    /// 実際に画面へ出すタブ。歌詞は JASRAC の許諾が下りるまで Release ビルドに載せない
-    /// (`LyricsFeature`)。セグメントバーも初期タブもここを唯一の根拠にする。
+    /// 実際に画面へ出すタブ。歌詞は JASRAC の許諾 (`LyricsFeature`) に従う。
+    /// セグメントバーも初期タブもここを唯一の根拠にする。
     static var available: [SongDetailTab] {
         allCases.filter { $0 != .lyrics || LyricsFeature.isAvailable }
     }

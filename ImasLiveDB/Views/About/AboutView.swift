@@ -74,6 +74,9 @@ struct AboutView: View {
             }
 
             Section("ライセンス情報") {
+                // 許諾条件で掲示が要る。歌詞タブを畳んでも消さないこと
+                // (許諾期間中は掲載し続けるのが条件)。
+                JASRACLicenseNotice(placement: .about)
                 ossCredit(name: "GRDB.swift", license: "MIT License", url: "https://github.com/groue/GRDB.swift")
                 ossCredit(name: "Nuke", license: "MIT License", url: "https://github.com/kean/Nuke")
             }

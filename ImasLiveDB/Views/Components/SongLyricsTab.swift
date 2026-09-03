@@ -54,6 +54,11 @@ struct SongLyricsTab: View {
         VStack(alignment: .leading, spacing: DS.sp4) {
             InlineLoginPrompt(message: "歌詞の表示にはログインが必要です", seed: seed)
             content
+            // 歌詞が実際に出ているときだけ掲示する。読み込み中やエラーの画面に
+            // 許諾番号だけが残っていると、何に対する許諾なのか分からなくなる。
+            if vm.lyrics != nil {
+                JASRACLicenseNotice(placement: .lyrics)
+            }
         }
         .padding(.top, DS.sp4)
         .padding(.horizontal, DS.sp5)

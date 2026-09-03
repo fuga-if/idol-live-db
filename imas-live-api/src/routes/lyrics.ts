@@ -36,6 +36,18 @@ const MAX_SECTION_CHARS = 32;
 const LINE_KINDS = new Set(["lyric", "marker", "blank"]);
 const LYRIC_STATUSES = new Set(["draft", "published"]);
 
+// ---- 掲載曲数の上限 ----
+//
+// ⚠️ JASRAC 許諾 J260943703 の「ご利用曲数 100曲まで」。これは料金区分そのもので、
+//    超えた時点で許諾の範囲外になる。曲の入れ替えは自由 (draft に戻せば枠が空く) だが、
+//    **同時に published でいられるのは 100 曲まで**。
+//
+//    ここで止めているのは、投入 CLI に `--status published` を渡す運用だと
+//    `--all` 一発で 2,000 曲以上が公開されうるから。フラグの付け間違いが
+//    そのまま許諾違反になる経路を、サーバ側で塞いでおく。
+//    上限を上げるときは JASRAC への区分変更が先。ここだけ直しても許諾は広がらない。
+const PUBLISHED_SONG_LIMIT = 100;
+
 /** 歌詞応答は端末にもエッジにも残さない (許諾条件の「一括ダウンロード不可」の実効性)。 */
 export const NO_STORE: Record<string, string> = { "Cache-Control": "no-store" };
 
@@ -700,6 +712,34 @@ export async function handleLyrics(ctx: RouteContext): Promise<Response | null> 
   }
 
   // ----------------------------------------------------------------
+  // GET /admin/lyrics/quota — 許諾枠の残り (モデレーターのみ)
+  // ----------------------------------------------------------------
+  //
+  // 「今いくつ公開しているか」を数える手段が無いと、上限に当たって初めて
+  // 気づくことになる。年次利用曲目報告の母集団もここで見えているものと同じ。
+  if (path === "/admin/lyrics/quota" && request.method === "GET") {
+    if (!(await authorizeLyricsWrite(request, env))) return error("Unauthorized", 401);
+    const row = await env.DB.prepare(
+      `SELECT
+         count(*) FILTER (WHERE status = 'published') AS published,
+         count(*) FILTER (WHERE status = 'draft')     AS draft
+       FROM song_lyrics`
+    ).first<{ published: number; draft: number }>();
+    const published = row?.published ?? 0;
+    return json(
+      {
+        license: "J260943703",
+        limit: PUBLISHED_SONG_LIMIT,
+        published,
+        remaining: Math.max(0, PUBLISHED_SONG_LIMIT - published),
+        draft: row?.draft ?? 0,
+      },
+      200,
+      NO_STORE
+    );
+  }
+
+  // ----------------------------------------------------------------
   // PUT /admin/lyrics/:song_id — 歌詞の投入・差し替え (モデレーターのみ)
   // ----------------------------------------------------------------
   const putMatch = path.match(/^\/admin\/lyrics\/([^/]+)$/);
@@ -733,6 +773,28 @@ export async function handleLyrics(ctx: RouteContext): Promise<Response | null> 
       status: string;
       lines: Array<{ kind?: string; text?: string | null; section?: string | null }>;
     };
+
+    // 許諾枠の確認。published にするときだけ数える (draft は何曲でも持ってよい)。
+    // 自分自身は除外する: 既に published の曲を差し替えても枠は増えない。
+    //
+    // 参照と書き込みの間に別の PUT が挟まると理屈の上では 101 曲目が通りうるが、
+    // この経路は運用者トークンを持った CLI 1 本からの逐次実行しかない。
+    // 競合を厳密に塞ぐより、超えた事実を検知できる形 (GET /admin/lyrics/quota) を
+    // 用意する方を選んでいる。
+    if (status === "published") {
+      const used = await env.DB.prepare(
+        "SELECT count(*) AS n FROM song_lyrics WHERE status = 'published' AND song_id <> ?"
+      )
+        .bind(songId)
+        .first<{ n: number }>();
+      if ((used?.n ?? 0) >= PUBLISHED_SONG_LIMIT) {
+        return error(
+          `published song limit reached (${PUBLISHED_SONG_LIMIT}); ` +
+            "set another song to draft first",
+          409
+        );
+      }
+    }
 
     // ⚠️ 行 ID は発行後不変という契約 (将来コールがこの ID を参照する)。
     //    ord 順に既存 id を再利用し、増えた分だけ新しく採番する。

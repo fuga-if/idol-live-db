@@ -23,6 +23,7 @@ Usage:
 """
 
 import argparse
+import io
 import os
 import re
 import sys
@@ -266,6 +267,27 @@ def cmd_annual(args):
         sys.exit("ファイル名末尾の任意文字列は英数字のみ: %r" % args.suffix)
 
     rows = [r for r in read_works(args.works) if r.get("match_status") != "excluded"]
+
+    # ⚠️ 報告の母集団は「実際に歌詞を掲載した曲」だけ。works.tsv は照合台帳なので
+    #    掲載していない曲まで載っている (2,600曲超)。許諾は 100曲区分なので、
+    #    台帳をそのまま出すと利用実態と桁が合わない報告になる。
+    #    掲載中の song_id は D1 が持っている:
+    #      npx wrangler d1 execute imas-live-db --remote \
+    #        --command "SELECT song_id FROM song_lyrics WHERE status='published'"
+    #    の出力を1行1IDのファイルにして --published に渡す。
+    if args.published:
+        with io.open(args.published, encoding="utf-8") as f:
+            allowed = {ln.strip() for ln in f if ln.strip() and not ln.startswith("#")}
+        before = len(rows)
+        rows = [r for r in rows if r.get("song_id") in allowed]
+        print("掲載中の %d 曲に絞った (台帳 %d 曲中)" % (len(rows), before))
+        missing = allowed - {r.get("song_id") for r in rows}
+        if missing:
+            print("⚠️ 掲載中だが台帳に無い/excluded: %s" % ", ".join(sorted(missing)),
+                  file=sys.stderr)
+    else:
+        print("⚠️ --published を付けていない。台帳の全 %d 曲を報告対象にしている。"
+              % len(rows), file=sys.stderr)
     records = [build_record(r, args) for r in rows]
     errors = validate(records)
 
@@ -366,7 +388,11 @@ def main():
     p_form.set_defaults(func=cmd_form)
 
     p_ann = sub.add_parser("annual", help="年次利用曲目報告 (19項目/SJIS/CRLF/TAB)")
-    p_ann.add_argument("--license-no", required=True, help="非商用配信の許諾番号 英数字10桁")
+    # 許諾 J260943703 (2026年8月〜)。既定にしてあるのは打ち間違いを避けるため。
+    p_ann.add_argument("--license-no", default="J260943703",
+                       help="非商用配信の許諾番号 英数字10桁 (既定: J260943703)")
+    p_ann.add_argument("--published",
+                       help="掲載中の song_id を1行1件で書いたファイル。報告の母集団になる")
     p_ann.add_argument("--month", required=True, help="報告年月 YYYYMM")
     p_ann.add_argument("--suffix", default="", help="ファイル名末尾の任意文字列 (英数字)")
     p_ann.add_argument("--force", action="store_true", help="検証エラーを無視して書く")

@@ -3,12 +3,9 @@ import XCTest
 
 /// 楽曲詳細タブの出し分け (`SongDetailTab.available` / `resolved`) の検査。
 ///
-/// 歌詞タブは JASRAC の許諾が下りるまで Release ビルドに載せない (`LyricsFeature`)。
-/// ここが崩れると「審査に出したバイナリに歌詞が載っていた」という取り返しのつかない
-/// 事故になるので、不変条件をテストで固定しておく。
-///
-/// フラグ自体はコンパイル時 (`#if DEBUG`) なので、テストが検証できるのは
-/// 「available と resolved が矛盾しないこと」と「歌詞タブがフラグに従うこと」。
+/// 歌詞タブの出し入れは JASRAC の許諾 (`LyricsFeature`) にだけ従う。
+/// 許諾が失効・変更されたときに落とす先がここ 1 箇所であることを固定しておく
+/// (掲載曲数の上限はサーバが持っているので、アプリ側の関心はタブの有無だけ)。
 final class SongDetailTabAvailabilityTests: XCTestCase {
 
     /// 情報タブは常に出る。ここが空になると詳細シートが真っ白になる。

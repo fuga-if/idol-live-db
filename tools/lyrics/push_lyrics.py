@@ -161,16 +161,29 @@ def put_lyrics(base_url, token, song_id, payload):
         return 0, str(e)
 
 
+def fetch_quota(base_url, token):
+    """GET /admin/lyrics/quota。取れなければ None (枠の確認は必須ではない)。"""
+    req = urllib.request.Request(
+        base_url.rstrip("/") + "/admin/lyrics/quota",
+        headers={"X-Push-Token": token} if token else {},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=20) as res:
+            return json.loads(res.read().decode("utf-8"))
+    except Exception:
+        return None
+
+
 def main():
     ap = argparse.ArgumentParser(description="歌詞 JSON を D1 に投入する")
     ap.add_argument("song_ids", nargs="*", help="投入する song_id")
     ap.add_argument("--all", action="store_true", help="lyrics_local/lyrics/*.json 全部")
     ap.add_argument("--base-url", default=DEFAULT_BASE_URL,
                     help="API のベース URL (ローカル検証は http://127.0.0.1:8787)")
-    # 既定は draft。JASRAC の許諾が下りるまで公開してはいけないので、
-    # 事故で配信状態にならないよう published は明示指定を要求する。
+    # 既定は draft。published は掲載枠 (許諾 J260943703 / 100曲) を消費するので、
+    # 事故で配信状態にならないよう明示指定を要求する。
     ap.add_argument("--status", default="draft", choices=["draft", "published"],
-                    help="JSON 側に status が無いときの既定 (既定: published)")
+                    help="JSON 側に status が無いときの既定 (既定: draft)")
     # トークンは常にファイルから読む。値そのものを引数で渡す経路は作らない
     # (ps とシェル履歴に残る)。ここで受けるのは置き場所だけ。
     ap.add_argument("--token-path", default=TOKEN_PATH,
@@ -195,6 +208,23 @@ def main():
     token = read_token(args.token_path) if args.apply else None
     mode = "APPLY" if args.apply else "DRY-RUN"
     print("[%s] %s → %d 曲" % (mode, args.base_url, len(song_ids)))
+
+    # published を含む実行では、始める前に残り枠を見せる。サーバも 101 曲目を 409 で
+    # 弾くが、そちらは「途中まで公開されて残りが失敗する」形になる。何曲入るのかを
+    # 先に出しておけば、流す前に選び直せる。
+    wants_published = args.status == "published" or any(
+        (load_doc(sid)[0] or {}).get("status") == "published" for sid in song_ids
+    )
+    if wants_published:
+        quota = fetch_quota(args.base_url, token) if args.apply else None
+        if quota:
+            print("  掲載枠: %d/%d 使用中 (残り %d)"
+                  % (quota["published"], quota["limit"], quota["remaining"]))
+            if len(song_ids) > quota["remaining"]:
+                print("  ⚠️ 残り枠より多い。%d 曲目以降は 409 で弾かれる。"
+                      % (quota["remaining"] + 1))
+        else:
+            print("  掲載枠: JASRAC 許諾 J260943703 / 100曲まで")
 
     ok = failed = 0
     for song_id in song_ids:
