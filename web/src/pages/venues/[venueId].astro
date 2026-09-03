@@ -48,11 +48,16 @@ const venue = page<VenuePage>(Astro.props.data);
   {
     venue.halls.length > 0 && (
       <Section id="venue-halls" title="ホール">
-        <ListContainer>
+        {/* 収容人数が分かっているホールは 39 行中 6 行だけ。ラベル + 値の行にすると
+            26 会場中 21 会場で値の列が全部「—」になり、何も伝えない列ができる。
+            ホール名の一覧に、分かっているものだけ人数を添える形にする。 */}
+        <ul class="u-row" aria-label="ホール">
           {venue.halls.map((h) => (
-            <LabeledRow label={h.name} value={h.capacity ? `${h.capacity}人` : "—"} mono />
+            <li>
+              <Chip text={h.name} sub={h.capacity ? `${h.capacity}人` : null} />
+            </li>
           ))}
-        </ListContainer>
+        </ul>
       </Section>
     )
   }
