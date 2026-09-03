@@ -12,6 +12,7 @@ on:
       - 'ImasLiveDB/**'
       - 'ImasLiveDBTests/**'
       - 'ImasLiveDBWidget/**'
+      - 'imas-core/**'
       - 'project.yml'
       - '.github/workflows/ios-guard.yml'
   pull_request:
@@ -19,6 +20,7 @@ on:
       - 'ImasLiveDB/**'
       - 'ImasLiveDBTests/**'
       - 'ImasLiveDBWidget/**'
+      - 'imas-core/**'
       - 'project.yml'
       - '.github/workflows/ios-guard.yml'
   workflow_dispatch:
@@ -31,6 +33,26 @@ jobs:
 
       - name: Install xcodegen
         run: brew install xcodegen
+
+      # xcodegen が build/imas-core/swift/imas_core.swift を sources に要求するので、
+      # プロジェクト生成の前にコアをビルドする。これが無いと
+      # 「Target "ImasLiveDB" has a missing source directory」で落ちる。
+      # --ios-only で Android 側 (NDK が要る) を飛ばす。
+      - name: Install Rust iOS targets
+        run: rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            imas-core/target
+          key: ${{ runner.os }}-imas-core-${{ hashFiles('imas-core/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-imas-core-
+
+      - name: Build imas-core (iOS only)
+        run: bash imas-core/build.sh --ios-only
 
       # 同梱 master.sqlite は gitignore で各自生成する運用 (docs/DATA_PIPELINE.md)。
       # FK 整合性ゲートも兼ねるので CI でも同じ手順で作る。
