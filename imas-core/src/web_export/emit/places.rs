@@ -28,14 +28,36 @@ pub struct VenueDirectory {
 impl VenueDirectory {
     pub fn load(ctx: &Ctx) -> Self {
         let directory = detail::venue_directory(ctx.snap);
-        let mut names_by_venue: BTreeMap<String, Vec<VenueNameRow>> = BTreeMap::new();
+
+        // `venue_names` は**現在の名前も 1 行として持つ**。234 会場中 233 会場は
+        // その 1 行だけなので、そのまま配ると「旧称」の見出しの下に現在名が 1 つ
+        // 並ぶ (しかも期間が両端とも空なので値が `—` になる)。
+        //
+        // 旧称として意味があるのは「名前が変わったことがある会場」だけなので、
+        // 名称履歴が 2 件以上ある会場に絞り、そのうえで現在名の行を落とす。
+        let mut grouped: BTreeMap<String, Vec<_>> = BTreeMap::new();
         for n in directory.names {
-            names_by_venue.entry(n.venue_id).or_default().push(VenueNameRow {
-                period_display: period_display(n.valid_from.as_deref(), n.valid_to.as_deref()),
-                name: n.name,
-                start_date: n.valid_from,
-                end_date: n.valid_to,
-            });
+            grouped.entry(n.venue_id.clone()).or_default().push(n);
+        }
+        let mut names_by_venue: BTreeMap<String, Vec<VenueNameRow>> = BTreeMap::new();
+        for (venue_id, rows) in grouped {
+            if rows.len() < 2 {
+                continue;
+            }
+            let current = ctx.snap.venue(&venue_id).map(|v| v.name.as_str());
+            let past: Vec<VenueNameRow> = rows
+                .into_iter()
+                .filter(|n| Some(n.name.as_str()) != current)
+                .map(|n| VenueNameRow {
+                    period_display: period_display(n.valid_from.as_deref(), n.valid_to.as_deref()),
+                    name: n.name,
+                    start_date: n.valid_from,
+                    end_date: n.valid_to,
+                })
+                .collect();
+            if !past.is_empty() {
+                names_by_venue.insert(venue_id, past);
+            }
         }
         let mut halls_by_venue: BTreeMap<String, Vec<HallRow>> = BTreeMap::new();
         for h in directory.halls {

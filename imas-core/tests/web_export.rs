@@ -1075,6 +1075,54 @@ mod real {
     }
 
     #[test]
+    fn past_venue_names_only_appear_where_a_venue_was_actually_renamed() {
+        // `venue_names` は現在の名前も 1 行として持つので、素直に配ると 234 会場中
+        // 233 会場で「旧称」の見出しの下に現在名が 1 つ並ぶ (期間も両端が空で `—`)。
+        // 旧称として意味があるのは名前が変わったことがある会場だけ。
+        let dir = exported();
+        let root = dir.path();
+        let routes: RoutesFile =
+            serde_json::from_str(&std::fs::read_to_string(root.join("routes.json")).unwrap())
+                .unwrap();
+
+        let mut with_past: Vec<String> = Vec::new();
+        let mut checked = 0usize;
+        for entry in routes.routes.iter().filter(|r| r.kind == RouteKind::Venue) {
+            let page: VenuePage = serde_json::from_str(
+                &std::fs::read_to_string(root.join(&entry.data)).unwrap(),
+            )
+            .unwrap();
+            checked += 1;
+            if page.past_names.is_empty() {
+                continue;
+            }
+            with_past.push(page.name.clone());
+            for row in &page.past_names {
+                assert_ne!(
+                    row.name, page.name,
+                    "{}: 旧称に現在名が混ざっている",
+                    page.path
+                );
+                // 旧称の行は「いつまでの名前か」が分かること。分からない行を出しても
+                // 読み手には何も伝わらない。
+                assert!(
+                    row.period_display.is_some(),
+                    "{}: 旧称 {:?} に期間が無い",
+                    page.path,
+                    row.name
+                );
+            }
+        }
+
+        assert!(checked > 200, "確かめた会場が少なすぎる: {checked}");
+        assert_eq!(
+            with_past,
+            vec!["京王アリーナTOKYO".to_string()],
+            "旧称を持つ会場が変わった。データに改名が増えたなら期待値を更新してよい"
+        );
+    }
+
+    #[test]
     fn about_credits_the_display_font_and_ships_its_licence() {
         // OFL はライセンス文の同梱を求める。About から辿れて、実体が配布物にあること。
         let dir = exported();
