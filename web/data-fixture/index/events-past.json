@@ -1,0 +1,155 @@
+{
+  "schemaVersion": 1,
+  "path": "/events/past/",
+  "title": "開催済みのライブ",
+  "kind": "past",
+  "groups": [
+    {
+      "year": "2026",
+      "events": [
+        {
+          "ref": {
+            "kind": "event",
+            "id": "ev_sample",
+            "name": "THE IDOLM@STER MILLION LIVE! 10thLIVE TOUR Act-4 ROAD TO MEMORIES 幕張",
+            "sub": "2026",
+            "path": "/events/ev_sample/",
+            "themeKey": "brand:ml",
+            "artworkUrl": null,
+            "monogram": null
+          },
+          "firstDate": "2026-04-03",
+          "lastDate": "2026-04-04",
+          "shortDate": "26/04",
+          "brand": {
+            "kind": "brand",
+            "id": "ml",
+            "name": "アイドルマスター ミリオンライブ!",
+            "sub": "ML",
+            "path": "/brands/ml/",
+            "themeKey": "brand:ml",
+            "artworkUrl": null,
+            "monogram": null
+          },
+          "kind": "live",
+          "kindLabel": "ライブ",
+          "showCount": 2,
+          "venueLabels": [
+            "幕張メッセ"
+          ]
+        }
+      ]
+    },
+    {
+      "year": "2025",
+      "events": [
+        {
+          "ref": {
+            "kind": "event",
+            "id": "ev_the_idolm@ster_×_ふたご",
+            "name": "THE IDOLM@STER × ふたご星",
+            "sub": "2025",
+            "path": "/events/ev_the_idolm%40ster_%C3%97_%E3%81%B5%E3%81%9F%E3%81%94/",
+            "themeKey": "brand:cg",
+            "artworkUrl": null,
+            "monogram": null
+          },
+          "firstDate": "2026-04-03",
+          "lastDate": "2026-04-04",
+          "shortDate": "26/04",
+          "brand": {
+            "kind": "brand",
+            "id": "ml",
+            "name": "アイドルマスター ミリオンライブ!",
+            "sub": "ML",
+            "path": "/brands/ml/",
+            "themeKey": "brand:ml",
+            "artworkUrl": null,
+            "monogram": null
+          },
+          "kind": "festival",
+          "kindLabel": "フェス",
+          "showCount": 2,
+          "venueLabels": [
+            "幕張メッセ"
+          ]
+        }
+      ]
+    }
+  ],
+  "scopeLinks": [
+    {
+      "label": "今後のライブ",
+      "path": "/events/upcoming/",
+      "current": false,
+      "themeKey": null,
+      "count": 24
+    },
+    {
+      "label": "開催済み",
+      "path": "/events/past/",
+      "current": true,
+      "themeKey": null,
+      "count": 827
+    }
+  ],
+  "brandLinks": [
+    {
+      "label": "すべて",
+      "path": "/events/",
+      "current": false,
+      "themeKey": null,
+      "count": null
+    },
+    {
+      "label": "ミリオンライブ!",
+      "path": "/events/brand/ml/",
+      "current": false,
+      "themeKey": "brand:ml",
+      "count": 210
+    },
+    {
+      "label": "シンデレラガールズ",
+      "path": "/events/brand/cg/",
+      "current": false,
+      "themeKey": "brand:cg",
+      "count": 180
+    }
+  ],
+  "yearLinks": [
+    {
+      "label": "2026",
+      "path": "/events/past/2026/",
+      "current": false,
+      "themeKey": null,
+      "count": 40
+    },
+    {
+      "label": "2025",
+      "path": "/events/past/2025/",
+      "current": false,
+      "themeKey": null,
+      "count": 52
+    }
+  ],
+  "total": 2,
+  "seo": {
+    "title": "開催済みのライブ | アイドルライブDB",
+    "description": "ライブの一覧。",
+    "canonical": "https://imas-live-web.tokata3011.workers.dev/events/past/",
+    "ogImage": "https://imas-live-web.tokata3011.workers.dev/og/default.png",
+    "robots": "index,follow",
+    "jsonLd": {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": "開催済みのライブ",
+      "url": "https://imas-live-web.tokata3011.workers.dev/events/past/"
+    },
+    "breadcrumbs": [
+      {
+        "name": "ホーム",
+        "path": "/"
+      }
+    ]
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "id": "other",
+  "path": "/brands/other/",
+  "name": "その他",
+  "shortName": "その他",
+  "color": null,
+  "themeKey": "neutral",
+  "counts": {
+    "events": 851,
+    "shows": 1341,
+    "songs": 3153,
+    "idols": 394,
+    "units": 1539,
+    "venues": 234,
+    "brands": 9,
+    "setlistItems": 13762
+  },
+  "idols": [],
+  "units": [],
+  "recentEvents": [],
+  "topSongs": [],
+  "sectionLinks": [
+    {
+      "label": "アイドル",
+      "path": "/idols/brand/other/",
+      "current": false,
+      "themeKey": null,
+      "count": 12
+    }
+  ],
+  "seo": {
+    "title": "その他 | アイドルライブDB",
+    "description": "ブランドのアイドル・ユニット・ライブ・楽曲。",
+    "canonical": "https://imas-live-web.tokata3011.workers.dev/brands/other/",
+    "ogImage": "https://imas-live-web.tokata3011.workers.dev/og/default.png",
+    "robots": "noindex,follow",
+    "jsonLd": {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": "その他",
+      "url": "https://imas-live-web.tokata3011.workers.dev/brands/other/"
+    },
+    "breadcrumbs": [
+      {
+        "name": "ホーム",
+        "path": "/"
+      },
+      {
+        "name": "ブランド",
+        "path": "/brands/"
+      }
+    ]
+  }
+}

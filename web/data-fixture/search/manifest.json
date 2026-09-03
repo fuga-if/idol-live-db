@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "shards": [
+    {
+      "kind": "song",
+      "path": "/search/songs.json",
+      "label": "楽曲",
+      "count": 2,
+      "bytes": 278
+    },
+    {
+      "kind": "idol",
+      "path": "/search/idols.json",
+      "label": "アイドル",
+      "count": 2,
+      "bytes": 312
+    },
+    {
+      "kind": "event",
+      "path": "/search/events.json",
+      "label": "ライブ",
+      "count": 2,
+      "bytes": 393
+    },
+    {
+      "kind": "venue",
+      "path": "/search/venues.json",
+      "label": "会場",
+      "count": 2,
+      "bytes": 353
+    }
+  ]
+}

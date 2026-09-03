@@ -1,0 +1,189 @@
+{
+  "schemaVersion": 1,
+  "path": "/idols/brand/other/",
+  "title": "その他のアイドル",
+  "kind": "brand",
+  "brand": {
+    "kind": "brand",
+    "id": "other",
+    "name": "その他",
+    "sub": "その他",
+    "path": "/brands/other/",
+    "themeKey": "neutral",
+    "artworkUrl": null,
+    "monogram": null
+  },
+  "birthMonth": null,
+  "items": [
+    {
+      "ref": {
+        "kind": "idol",
+        "id": "ml_kasuga_mirai",
+        "name": "春日未来",
+        "sub": "ミリオンライブ!",
+        "path": "/idols/ml_kasuga_mirai/",
+        "themeKey": "idol:ml_kasuga_mirai",
+        "artworkUrl": null,
+        "monogram": "春"
+      },
+      "brand": {
+        "kind": "brand",
+        "id": "ml",
+        "name": "アイドルマスター ミリオンライブ!",
+        "sub": "ML",
+        "path": "/brands/ml/",
+        "themeKey": "brand:ml",
+        "artworkUrl": null,
+        "monogram": null
+      },
+      "currentVoiceActor": "山崎はるか",
+      "birthdayDisplay": "4月3日"
+    },
+    {
+      "ref": {
+        "kind": "idol",
+        "id": "ml_mogami_shizuka",
+        "name": "最上静香",
+        "sub": "ミリオンライブ!",
+        "path": "/idols/ml_mogami_shizuka/",
+        "themeKey": "idol:ml_mogami_shizuka",
+        "artworkUrl": null,
+        "monogram": "最"
+      },
+      "brand": {
+        "kind": "brand",
+        "id": "ml",
+        "name": "アイドルマスター ミリオンライブ!",
+        "sub": "ML",
+        "path": "/brands/ml/",
+        "themeKey": "brand:ml",
+        "artworkUrl": null,
+        "monogram": null
+      },
+      "currentVoiceActor": "田所あずさ",
+      "birthdayDisplay": "6月26日"
+    }
+  ],
+  "brandLinks": [
+    {
+      "label": "すべて",
+      "path": "/idols/",
+      "current": false,
+      "themeKey": null,
+      "count": 394
+    },
+    {
+      "label": "ミリオンライブ!",
+      "path": "/idols/brand/ml/",
+      "current": false,
+      "themeKey": "brand:ml",
+      "count": 52
+    }
+  ],
+  "birthMonthLinks": [
+    {
+      "label": "1月",
+      "path": "/idols/birth-month/1/",
+      "current": false,
+      "themeKey": null,
+      "count": null
+    },
+    {
+      "label": "2月",
+      "path": "/idols/birth-month/2/",
+      "current": false,
+      "themeKey": null,
+      "count": null
+    },
+    {
+      "label": "3月",
+      "path": "/idols/birth-month/3/",
+      "current": false,
+      "themeKey": null,
+      "count": null
+    },
+    {
+      "label": "4月",
+      "path": "/idols/birth-month/4/",
+      "current": false,
+      "themeKey": null,
+      "count": null
+    },
+    {
+      "label": "5月",
+      "path": "/idols/birth-month/5/",
+      "current": false,
+      "themeKey": null,
+      "count": null
+    },
+    {
+      "label": "6月",
+      "path": "/idols/birth-month/6/",
+      "current": false,
+      "themeKey": null,
+      "count": null
+    },
+    {
+      "label": "7月",
+      "path": "/idols/birth-month/7/",
+      "current": false,
+      "themeKey": null,
+      "count": null
+    },
+    {
+      "label": "8月",
+      "path": "/idols/birth-month/8/",
+      "current": false,
+      "themeKey": null,
+      "count": null
+    },
+    {
+      "label": "9月",
+      "path": "/idols/birth-month/9/",
+      "current": false,
+      "themeKey": null,
+      "count": null
+    },
+    {
+      "label": "10月",
+      "path": "/idols/birth-month/10/",
+      "current": false,
+      "themeKey": null,
+      "count": null
+    },
+    {
+      "label": "11月",
+      "path": "/idols/birth-month/11/",
+      "current": false,
+      "themeKey": null,
+      "count": null
+    },
+    {
+      "label": "12月",
+      "path": "/idols/birth-month/12/",
+      "current": false,
+      "themeKey": null,
+      "count": null
+    }
+  ],
+  "total": 2,
+  "seo": {
+    "title": "その他のアイドル | アイドルライブDB",
+    "description": "アイドルの一覧。",
+    "canonical": "https://imas-live-web.tokata3011.workers.dev/idols/brand/other/",
+    "ogImage": "https://imas-live-web.tokata3011.workers.dev/og/default.png",
+    "robots": "noindex,follow",
+    "jsonLd": {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": "その他のアイドル",
+      "url": "https://imas-live-web.tokata3011.workers.dev/idols/brand/other/"
+    },
+    "breadcrumbs": [
+      {
+        "name": "ホーム",
+        "path": "/"
+      }
+    ]
+  }
+}

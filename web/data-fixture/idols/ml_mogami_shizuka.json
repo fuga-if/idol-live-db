@@ -1,0 +1,165 @@
+{
+  "schemaVersion": 1,
+  "id": "ml_mogami_shizuka",
+  "path": "/idols/ml_mogami_shizuka/",
+  "name": "最上静香",
+  "nameKana": "かすがみらい",
+  "themeKey": "idol:ml_mogami_shizuka",
+  "monogram": "最",
+  "brand": {
+    "kind": "brand",
+    "id": "ml",
+    "name": "アイドルマスター ミリオンライブ!",
+    "sub": "ML",
+    "path": "/brands/ml/",
+    "themeKey": "brand:ml",
+    "artworkUrl": null,
+    "monogram": null
+  },
+  "brands": [
+    {
+      "kind": "brand",
+      "id": "ml",
+      "name": "アイドルマスター ミリオンライブ!",
+      "sub": "ML",
+      "path": "/brands/ml/",
+      "themeKey": "brand:ml",
+      "artworkUrl": null,
+      "monogram": null
+    }
+  ],
+  "color": "#f39800",
+  "profileRows": [
+    {
+      "label": "よみ",
+      "value": "かすがみらい",
+      "style": "plain",
+      "link": null
+    },
+    {
+      "label": "誕生日",
+      "value": "4月3日",
+      "style": "plain",
+      "link": "/idols/birth-month/4/"
+    },
+    {
+      "label": "カラー",
+      "value": "#f39800",
+      "style": "colorSwatch",
+      "link": null
+    }
+  ],
+  "currentVoiceActor": "山崎はるか",
+  "voiceActorHistory": [
+    {
+      "name": "山崎はるか",
+      "startDate": "2013-02-27",
+      "endDate": null,
+      "isCurrent": true,
+      "note": null
+    }
+  ],
+  "units": [
+    {
+      "kind": "unit",
+      "id": "unit_sample",
+      "name": "サンプルユニット",
+      "sub": "ミリオンライブ!",
+      "path": "/units/unit_sample/",
+      "themeKey": "brand:ml",
+      "artworkUrl": null,
+      "monogram": "サ"
+    }
+  ],
+  "songs": [
+    {
+      "song": {
+        "kind": "song",
+        "id": "ml_sample",
+        "name": "Thank You!",
+        "sub": "765MILLION ALLSTARS",
+        "path": "/songs/ml_sample/",
+        "themeKey": "brand:ml",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music/sample/600x600bb.jpg",
+        "monogram": null
+      },
+      "role": "original",
+      "releaseDate": "2019-03-13",
+      "performanceCount": 12
+    }
+  ],
+  "performedSongs": [
+    {
+      "song": {
+        "kind": "song",
+        "id": "ml_sample_variant",
+        "name": "Thank You! (Live ver.)",
+        "sub": "派生曲",
+        "path": "/songs/ml_sample_variant/",
+        "themeKey": "brand:ml",
+        "artworkUrl": null,
+        "monogram": null
+      },
+      "times": 3,
+      "lastDate": "2026-04-03"
+    }
+  ],
+  "shows": [
+    {
+      "show": {
+        "kind": "show",
+        "id": "sh_sample_1",
+        "name": "DAY1",
+        "sub": "2026-04-03",
+        "path": "/shows/sh_sample_1/",
+        "themeKey": "brand:ml",
+        "artworkUrl": null,
+        "monogram": null
+      },
+      "event": {
+        "kind": "event",
+        "id": "ev_sample",
+        "name": "THE IDOLM@STER MILLION LIVE! 10thLIVE TOUR Act-4 ROAD TO MEMORIES 幕張",
+        "sub": "2026",
+        "path": "/events/ev_sample/",
+        "themeKey": "brand:ml",
+        "artworkUrl": null,
+        "monogram": null
+      },
+      "date": "2026-04-03",
+      "shortDate": "26/04",
+      "venueLabel": "幕張メッセ",
+      "songCount": 7
+    }
+  ],
+  "description": null,
+  "app": {
+    "appStoreUrl": "https://apps.apple.com/jp/app/id6763342297",
+    "deeplink": null,
+    "deeplinkKind": null,
+    "note": "参加記録・投票・歌詞・コール・タグ付けはアプリでご利用いただけます。"
+  },
+  "seo": {
+    "title": "最上静香 | アイドルライブDB",
+    "description": "プロフィール・CV・所属ユニット・持ち曲・出演公演。",
+    "canonical": "https://imas-live-web.tokata3011.workers.dev/idols/ml_mogami_shizuka/",
+    "ogImage": "https://imas-live-web.tokata3011.workers.dev/og/default.png",
+    "robots": "index,follow",
+    "jsonLd": {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": "最上静香",
+      "url": "https://imas-live-web.tokata3011.workers.dev/idols/ml_mogami_shizuka/"
+    },
+    "breadcrumbs": [
+      {
+        "name": "ホーム",
+        "path": "/"
+      },
+      {
+        "name": "アイドル",
+        "path": "/idols/"
+      }
+    ]
+  }
+}

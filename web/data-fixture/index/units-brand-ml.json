@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "path": "/units/brand/ml/",
+  "title": "ミリオンライブ! のユニット",
+  "brand": {
+    "kind": "brand",
+    "id": "ml",
+    "name": "アイドルマスター ミリオンライブ!",
+    "sub": "ML",
+    "path": "/brands/ml/",
+    "themeKey": "brand:ml",
+    "artworkUrl": null,
+    "monogram": null
+  },
+  "items": [
+    {
+      "ref": {
+        "kind": "unit",
+        "id": "unit_sample",
+        "name": "サンプルユニット",
+        "sub": "ミリオンライブ!",
+        "path": "/units/unit_sample/",
+        "themeKey": "brand:ml",
+        "artworkUrl": null,
+        "monogram": "サ"
+      },
+      "brand": {
+        "kind": "brand",
+        "id": "ml",
+        "name": "アイドルマスター ミリオンライブ!",
+        "sub": "ML",
+        "path": "/brands/ml/",
+        "themeKey": "brand:ml",
+        "artworkUrl": null,
+        "monogram": null
+      },
+      "isPermanent": true,
+      "memberCount": 2,
+      "songCount": 1
+    },
+    {
+      "ref": {
+        "kind": "unit",
+        "id": "unit_empty",
+        "name": "からっぽユニット",
+        "sub": null,
+        "path": "/units/unit_empty/",
+        "themeKey": "neutral",
+        "artworkUrl": null,
+        "monogram": "か"
+      },
+      "brand": null,
+      "isPermanent": false,
+      "memberCount": 0,
+      "songCount": 0
+    }
+  ],
+  "brandLinks": [
+    {
+      "label": "すべて",
+      "path": "/units/",
+      "current": false,
+      "themeKey": null,
+      "count": 1539
+    },
+    {
+      "label": "ミリオンライブ!",
+      "path": "/units/brand/ml/",
+      "current": true,
+      "themeKey": "brand:ml",
+      "count": 300
+    }
+  ],
+  "total": 2,
+  "seo": {
+    "title": "ミリオンライブ! のユニット | アイドルライブDB",
+    "description": "ユニットの一覧。",
+    "canonical": "https://imas-live-web.tokata3011.workers.dev/units/brand/ml/",
+    "ogImage": "https://imas-live-web.tokata3011.workers.dev/og/default.png",
+    "robots": "index,follow",
+    "jsonLd": {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": "ミリオンライブ! のユニット",
+      "url": "https://imas-live-web.tokata3011.workers.dev/units/brand/ml/"
+    },
+    "breadcrumbs": [
+      {
+        "name": "ホーム",
+        "path": "/"
+      }
+    ]
+  }
+}

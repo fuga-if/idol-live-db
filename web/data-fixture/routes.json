@@ -1,0 +1,434 @@
+{
+  "schemaVersion": 1,
+  "routes": [
+    {
+      "path": "/",
+      "kind": "home",
+      "key": null,
+      "id": null,
+      "data": "index/home.json",
+      "inSitemap": true
+    },
+    {
+      "path": "/about/",
+      "kind": "about",
+      "key": null,
+      "id": null,
+      "data": "index/about.json",
+      "inSitemap": true
+    },
+    {
+      "path": "/search/",
+      "kind": "search",
+      "key": null,
+      "id": null,
+      "data": "search/manifest.json",
+      "inSitemap": true
+    },
+    {
+      "path": "/events/",
+      "kind": "eventListIndex",
+      "key": null,
+      "id": null,
+      "data": "index/events.json",
+      "inSitemap": true
+    },
+    {
+      "path": "/events/upcoming/",
+      "kind": "eventListUpcoming",
+      "key": null,
+      "id": null,
+      "data": "index/events-upcoming.json",
+      "inSitemap": true
+    },
+    {
+      "path": "/events/past/",
+      "kind": "eventListPast",
+      "key": null,
+      "id": null,
+      "data": "index/events-past.json",
+      "inSitemap": true
+    },
+    {
+      "path": "/events/past/2026/",
+      "kind": "eventListPastYear",
+      "key": "2026",
+      "id": null,
+      "data": "index/events-past-2026.json",
+      "inSitemap": true
+    },
+    {
+      "path": "/events/past/2025/",
+      "kind": "eventListPastYear",
+      "key": "2025",
+      "id": null,
+      "data": "index/events-past-2025.json",
+      "inSitemap": true
+    },
+    {
+      "path": "/events/brand/ml/",
+      "kind": "eventListBrand",
+      "key": "ml",
+      "id": null,
+      "data": "index/events-brand-ml.json",
+      "inSitemap": true
+    },
+    {
+      "path": "/events/brand/cg/",
+      "kind": "eventListBrand",
+      "key": "cg",
+      "id": null,
+      "data": "index/events-brand-cg.json",
+      "inSitemap": true
+    },
+    {
+      "path": "/songs/",
+      "kind": "songListIndex",
+      "key": null,
+      "id": null,
+      "data": "index/songs.json",
+      "inSitemap": true
+    },
+    {
+      "path": "/songs/brand/ml/",
+      "kind": "songListBrand",
+      "key": "ml",
+      "id": null,
+      "data": "index/songs-brand-ml.json",
+      "inSitemap": true
+    },
+    {
+      "path": "/songs/brand/cg/",
+      "kind": "songListBrand",
+      "key": "cg",
+      "id": null,
+      "data": "index/songs-brand-cg.json",
+      "inSitemap": true
+    },
+    {
+      "path": "/songs/all/",
+      "kind": "songListAll",
+      "key": null,
+      "id": null,
+      "data": "index/songs-all.json",
+      "inSitemap": false
+    },
+    {
+      "path": "/idols/",
+      "kind": "idolListIndex",
+      "key": null,
+      "id": null,
+      "data": "index/idols.json",
+      "inSitemap": true
+    },
+    {
+      "path": "/idols/brand/ml/",
+      "kind": "idolListBrand",
+      "key": "ml",
+      "id": null,
+      "data": "index/idols-brand-ml.json",
+      "inSitemap": true
+    },
+    {
+      "path": "/idols/brand/cg/",
+      "kind": "idolListBrand",
+      "key": "cg",
+      "id": null,
+      "data": "index/idols-brand-cg.json",
+      "inSitemap": true
+    },
+    {
+      "path": "/idols/brand/other/",
+      "kind": "idolListBrand",
+      "key": "other",
+      "id": null,
+      "data": "index/idols-brand-other.json",
+      "inSitemap": false
+    },
+    {
+      "path": "/units/",
+      "kind": "unitListIndex",
+      "key": null,
+      "id": null,
+      "data": "index/units.json",
+      "inSitemap": true
+    },
+    {
+      "path": "/units/brand/ml/",
+      "kind": "unitListBrand",
+      "key": "ml",
+      "id": null,
+      "data": "index/units-brand-ml.json",
+      "inSitemap": true
+    },
+    {
+      "path": "/units/brand/cg/",
+      "kind": "unitListBrand",
+      "key": "cg",
+      "id": null,
+      "data": "index/units-brand-cg.json",
+      "inSitemap": true
+    },
+    {
+      "path": "/venues/",
+      "kind": "venueListIndex",
+      "key": null,
+      "id": null,
+      "data": "index/venues.json",
+      "inSitemap": true
+    },
+    {
+      "path": "/brands/",
+      "kind": "brandList",
+      "key": null,
+      "id": null,
+      "data": "index/brands.json",
+      "inSitemap": true
+    },
+    {
+      "path": "/events/ev_sample/",
+      "kind": "event",
+      "key": "ev_sample",
+      "id": "ev_sample",
+      "data": "events/ev_sample.json",
+      "inSitemap": true
+    },
+    {
+      "path": "/events/ev_the_idolm%40ster_%C3%97_%E3%81%B5%E3%81%9F%E3%81%94/",
+      "kind": "event",
+      "key": "ev_the_idolm@ster_×_ふたご",
+      "id": "ev_the_idolm@ster_×_ふたご",
+      "data": "events/ev_the_idolm@ster_×_ふたご.json",
+      "inSitemap": true
+    },
+    {
+      "path": "/events/ev_empty/",
+      "kind": "event",
+      "key": "ev_empty",
+      "id": "ev_empty",
+      "data": "events/ev_empty.json",
+      "inSitemap": true
+    },
+    {
+      "path": "/shows/sh_sample_1/",
+      "kind": "show",
+      "key": "sh_sample_1",
+      "id": "sh_sample_1",
+      "data": "shows/sh_sample_1.json",
+      "inSitemap": true
+    },
+    {
+      "path": "/songs/ml_sample/",
+      "kind": "song",
+      "key": "ml_sample",
+      "id": "ml_sample",
+      "data": "songs/ml_sample.json",
+      "inSitemap": true
+    },
+    {
+      "path": "/songs/ml_sample_variant/",
+      "kind": "song",
+      "key": "ml_sample_variant",
+      "id": "ml_sample_variant",
+      "data": "songs/ml_sample_variant.json",
+      "inSitemap": true
+    },
+    {
+      "path": "/songs/ml_no_artwork/",
+      "kind": "song",
+      "key": "ml_no_artwork",
+      "id": "ml_no_artwork",
+      "data": "songs/ml_no_artwork.json",
+      "inSitemap": true
+    },
+    {
+      "path": "/idols/ml_kasuga_mirai/",
+      "kind": "idol",
+      "key": "ml_kasuga_mirai",
+      "id": "ml_kasuga_mirai",
+      "data": "idols/ml_kasuga_mirai.json",
+      "inSitemap": true
+    },
+    {
+      "path": "/idols/ml_mogami_shizuka/",
+      "kind": "idol",
+      "key": "ml_mogami_shizuka",
+      "id": "ml_mogami_shizuka",
+      "data": "idols/ml_mogami_shizuka.json",
+      "inSitemap": true
+    },
+    {
+      "path": "/units/unit_sample/",
+      "kind": "unit",
+      "key": "unit_sample",
+      "id": "unit_sample",
+      "data": "units/unit_sample.json",
+      "inSitemap": true
+    },
+    {
+      "path": "/units/unit_empty/",
+      "kind": "unit",
+      "key": "unit_empty",
+      "id": "unit_empty",
+      "data": "units/unit_empty.json",
+      "inSitemap": true
+    },
+    {
+      "path": "/venues/venue_makuhari/",
+      "kind": "venue",
+      "key": "venue_makuhari",
+      "id": "venue_makuhari",
+      "data": "venues/venue_makuhari.json",
+      "inSitemap": true
+    },
+    {
+      "path": "/venues/venue_donalde.stephensconventioncenterhyattregen-0c52f2eb/",
+      "kind": "venue",
+      "key": "venue_donalde.stephensconventioncenterhyattregen-0c52f2eb",
+      "id": "venue_donalde.stephensconventioncenter/hyattregencyo'hare",
+      "data": "venues/venue_donalde.stephensconventioncenterhyattregen-0c52f2eb.json",
+      "inSitemap": true
+    },
+    {
+      "path": "/brands/ml/",
+      "kind": "brand",
+      "key": "ml",
+      "id": "ml",
+      "data": "brands/ml.json",
+      "inSitemap": true
+    },
+    {
+      "path": "/brands/cg/",
+      "kind": "brand",
+      "key": "cg",
+      "id": "cg",
+      "data": "brands/cg.json",
+      "inSitemap": true
+    },
+    {
+      "path": "/brands/other/",
+      "kind": "brand",
+      "key": "other",
+      "id": "other",
+      "data": "brands/other.json",
+      "inSitemap": false
+    },
+    {
+      "path": "/idols/birth-month/1/",
+      "kind": "idolListBirthMonth",
+      "key": "1",
+      "id": null,
+      "data": "index/idols-birth-month-1.json",
+      "inSitemap": true
+    },
+    {
+      "path": "/idols/birth-month/2/",
+      "kind": "idolListBirthMonth",
+      "key": "2",
+      "id": null,
+      "data": "index/idols-birth-month-2.json",
+      "inSitemap": true
+    },
+    {
+      "path": "/idols/birth-month/3/",
+      "kind": "idolListBirthMonth",
+      "key": "3",
+      "id": null,
+      "data": "index/idols-birth-month-3.json",
+      "inSitemap": true
+    },
+    {
+      "path": "/idols/birth-month/4/",
+      "kind": "idolListBirthMonth",
+      "key": "4",
+      "id": null,
+      "data": "index/idols-birth-month-4.json",
+      "inSitemap": true
+    },
+    {
+      "path": "/idols/birth-month/5/",
+      "kind": "idolListBirthMonth",
+      "key": "5",
+      "id": null,
+      "data": "index/idols-birth-month-5.json",
+      "inSitemap": true
+    },
+    {
+      "path": "/idols/birth-month/6/",
+      "kind": "idolListBirthMonth",
+      "key": "6",
+      "id": null,
+      "data": "index/idols-birth-month-6.json",
+      "inSitemap": true
+    },
+    {
+      "path": "/idols/birth-month/7/",
+      "kind": "idolListBirthMonth",
+      "key": "7",
+      "id": null,
+      "data": "index/idols-birth-month-7.json",
+      "inSitemap": true
+    },
+    {
+      "path": "/idols/birth-month/8/",
+      "kind": "idolListBirthMonth",
+      "key": "8",
+      "id": null,
+      "data": "index/idols-birth-month-8.json",
+      "inSitemap": true
+    },
+    {
+      "path": "/idols/birth-month/9/",
+      "kind": "idolListBirthMonth",
+      "key": "9",
+      "id": null,
+      "data": "index/idols-birth-month-9.json",
+      "inSitemap": true
+    },
+    {
+      "path": "/idols/birth-month/10/",
+      "kind": "idolListBirthMonth",
+      "key": "10",
+      "id": null,
+      "data": "index/idols-birth-month-10.json",
+      "inSitemap": true
+    },
+    {
+      "path": "/idols/birth-month/11/",
+      "kind": "idolListBirthMonth",
+      "key": "11",
+      "id": null,
+      "data": "index/idols-birth-month-11.json",
+      "inSitemap": true
+    },
+    {
+      "path": "/idols/birth-month/12/",
+      "kind": "idolListBirthMonth",
+      "key": "12",
+      "id": null,
+      "data": "index/idols-birth-month-12.json",
+      "inSitemap": true
+    },
+    {
+      "path": "/venues/pref/%E6%9D%B1%E4%BA%AC%E9%83%BD/",
+      "kind": "venueListPref",
+      "key": "東京都",
+      "id": null,
+      "data": "index/venues-pref-東京都.json",
+      "inSitemap": true
+    },
+    {
+      "path": "/venues/pref/%E6%9C%AA%E5%88%86%E9%A1%9E/",
+      "kind": "venueListPref",
+      "key": "未分類",
+      "id": null,
+      "data": "index/venues-pref-未分類.json",
+      "inSitemap": true
+    }
+  ],
+  "noindexPaths": [
+    "/songs/all/",
+    "/idols/brand/other/",
+    "/brands/other/"
+  ]
+}

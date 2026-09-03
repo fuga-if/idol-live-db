@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "id": "venue_donalde.stephensconventioncenter/hyattregencyo'hare",
+  "path": "/venues/venue_donalde.stephensconventioncenterhyattregen-0c52f2eb/",
+  "name": "Donald E. Stephens Convention Center / Hyatt Regency O'Hare",
+  "nameKana": null,
+  "themeKey": "neutral",
+  "prefecture": null,
+  "city": null,
+  "capacity": null,
+  "aliases": [],
+  "halls": [],
+  "pastNames": [],
+  "events": [],
+  "shows": [],
+  "app": {
+    "appStoreUrl": "https://apps.apple.com/jp/app/id6763342297",
+    "deeplink": null,
+    "deeplinkKind": null,
+    "note": "参加記録・投票・歌詞・コール・タグ付けはアプリでご利用いただけます。"
+  },
+  "seo": {
+    "title": "Donald E. Stephens Convention Center / Hyatt Regency O'Hare | アイドルライブDB",
+    "description": "この会場で行われたライブと公演。",
+    "canonical": "https://imas-live-web.tokata3011.workers.dev/venues/venue_donalde.stephensconventioncenterhyattregen-0c52f2eb/",
+    "ogImage": "https://imas-live-web.tokata3011.workers.dev/og/default.png",
+    "robots": "index,follow",
+    "jsonLd": {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": "Donald E. Stephens Convention Center / Hyatt Regency O'Hare",
+      "url": "https://imas-live-web.tokata3011.workers.dev/venues/venue_donalde.stephensconventioncenterhyattregen-0c52f2eb/"
+    },
+    "breadcrumbs": [
+      {
+        "name": "ホーム",
+        "path": "/"
+      },
+      {
+        "name": "会場",
+        "path": "/venues/"
+      }
+    ]
+  }
+}

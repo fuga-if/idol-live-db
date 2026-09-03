@@ -1,0 +1,249 @@
+//! 全ページで共有する DTO。
+//!
+//! 共通規約 (全 DTO に効く):
+//! * `#[serde(rename_all = "camelCase")]`
+//! * `Option<T>` に `skip_serializing_if` を **付けない**。常にキーを出して TS 側を
+//!   `T | null` に固定する (キー欠落と null を区別しなくて済む)。空の `Vec` も出す。
+//! * 整数は `i32` / `u32` のみ。`i64` / `u64` を使わないのは、`JSON.parse` が number を
+//!   返すのに ts-rs の既定が `bigint` になり、TS 側で無用な変換が要るため。
+//!   (実データの最大値は setlist_items 13,762 件・秒数・容量のいずれも i32 に収まる)
+
+use serde::{Deserialize, Serialize};
+
+/// JSON スキーマの版。TS ローダはこれが一致しない JSON を読んだら即 throw する。
+pub const SCHEMA_VERSION: u32 = 1;
+
+/// サイト全体のメタ (`meta.json`)。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ts_rs::TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../../web/src/lib/schema/")]
+pub struct SiteMeta {
+    pub schema_version: u32,
+    /// RFC3339 UTC。`--today` から導出する (`YYYY-MM-DDT00:00:00Z`)。
+    /// 実時刻を入れないのは、同じ入力で 2 回流したときに出力がバイト一致する
+    /// (= 再現性がある) ことをテストで固定したいから。
+    pub generated_at: String,
+    /// JST の「今日」。upcoming / past の分割はすべてこの 1 個から決まる。
+    /// Astro もブラウザも `Date` を触らない。
+    pub today_jst: String,
+    pub data_version: Option<String>,
+    pub content_hash: Option<String>,
+    pub counts: Counts,
+    pub app: AppLinks,
+}
+
+/// 各コレクションの件数。トップの統計タイルと `/about/` が使う。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../../web/src/lib/schema/")]
+pub struct Counts {
+    pub events: u32,
+    pub shows: u32,
+    pub songs: u32,
+    pub idols: u32,
+    pub units: u32,
+    pub venues: u32,
+    pub brands: u32,
+    pub setlist_items: u32,
+}
+
+/// アプリ / 外部サイトへのリンク集。値の正はこの 1 箇所だけ。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../../web/src/lib/schema/")]
+pub struct AppLinks {
+    pub app_store_url: String,
+    /// Google Play は 2026-09-04 時点で 404 のため `None`。出面にリンクを出さない。
+    pub play_store_url: Option<String>,
+    pub hashtag: String,
+    pub privacy_url: String,
+    pub support_url: String,
+    pub terms_url: String,
+    pub repository_url: String,
+}
+
+/// 他ページへのリンク 1 個。
+///
+/// **web はこれ以上の情報から href を組み立てない。** [`Self::path`] をそのまま
+/// `href` に入れる。エンコードのコードを TS に書かせないための型。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../../web/src/lib/schema/")]
+pub struct Ref {
+    pub kind: RefKind,
+    /// 生の id (アプリ連携・deeplink 用)。**href の材料にしない。**
+    pub id: String,
+    pub name: String,
+    /// 補助表記 (公演なら日付、曲ならユニット名 等)。
+    pub sub: Option<String>,
+    /// 先頭・末尾スラッシュ付きの完成形 URL (percent-encode 済み)。
+    pub path: String,
+    /// `themes.css` のセレクタキー (`idol:<id>` / `brand:<id>` / `neutral`)。
+    /// HTML は `data-theme` 属性にこれを 1 個置くだけでよい。
+    pub theme_key: String,
+    /// ジャケ画像 (Apple Music CDN)。曲以外は常に `None`。
+    /// **これがサイト唯一の外部画像**で、版権物はこれ以外に載せない。
+    pub artwork_url: Option<String>,
+    /// アイドル / ユニットの 1 文字 (アプリの `ImasAvatar` と同じ「表示名の先頭 1 文字」)。
+    pub monogram: Option<String>,
+}
+
+/// [`Ref`] が指す先の種別。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../../web/src/lib/schema/")]
+pub enum RefKind {
+    Event,
+    Show,
+    Song,
+    Idol,
+    Unit,
+    Venue,
+    Brand,
+}
+
+impl RefKind {
+    /// URL の第 1 セグメント (`/songs/…` の `songs`)。
+    pub fn collection(self) -> &'static str {
+        match self {
+            Self::Event => "events",
+            Self::Show => "shows",
+            Self::Song => "songs",
+            Self::Idol => "idols",
+            Self::Unit => "units",
+            Self::Venue => "venues",
+            Self::Brand => "brands",
+        }
+    }
+}
+
+/// 「アプリで開く」導線。
+///
+/// Web は閲覧専用なので、状態を持つ操作 (参加記録・投票・タグ・歌詞・コール) は
+/// すべてここからアプリへ送る。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../../web/src/lib/schema/")]
+pub struct AppOpen {
+    pub app_store_url: String,
+    /// `imaslivedb://events/<id>` 等。**event / show にしか無い**
+    /// (`DeeplinkRouter` が受けるのは events / shows / polls の 3 種だけ)。
+    pub deeplink: Option<String>,
+    /// `"event"` | `"show"`。`deeplink` が `None` なら `None`。
+    pub deeplink_kind: Option<String>,
+    /// 「参加記録・投票・歌詞・タグはアプリで」等の固定文。
+    pub note: String,
+}
+
+/// 検索エンジンへの指示。
+///
+/// `other` ブランド (ラブライブ等、他フランチャイズの合同ライブ楽曲) 配下は
+/// [`Self::NoindexFollow`] にする。非公式ファンサイトが他フランチャイズ名で
+/// 検索流入を取りにいかないための判断で、**判断は Rust 側で済ませ**、Astro は
+/// `<meta name="robots">` と sitemap の filter に写すだけにする。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
+#[ts(export, export_to = "../../web/src/lib/schema/")]
+pub enum Robots {
+    #[serde(rename = "index,follow")]
+    IndexFollow,
+    #[serde(rename = "noindex,follow")]
+    NoindexFollow,
+}
+
+/// `<head>` に入れるものと、パンくず。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ts_rs::TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../../web/src/lib/schema/")]
+pub struct SeoBlock {
+    pub title: String,
+    pub description: String,
+    /// 絶対 URL。
+    pub canonical: String,
+    /// OGP 画像の絶対 URL。
+    pub og_image: String,
+    pub robots: Robots,
+    /// `<script type="application/ld+json">` にそのまま流し込む値。
+    /// 構造の判断 (どの型を出すか) は Rust 側で済ませてある。
+    ///
+    /// TS 型を手で指定しているのは、ts-rs の `serde-json-impl` に任せると
+    /// `JsonValue` が `<CARGO_MANIFEST_DIR>/bindings/` に落ち、生成された `.ts` が
+    /// `web/` の外を `import` しに行くため (Astro の tsconfig の外に出る)。
+    /// JSON-LD の最上位は必ずオブジェクトなので、この 1 行で十分。
+    #[ts(type = "Record<string, unknown>")]
+    pub json_ld: serde_json::Value,
+    pub breadcrumbs: Vec<Crumb>,
+}
+
+/// パンくずの 1 要素。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../../web/src/lib/schema/")]
+pub struct Crumb {
+    pub name: String,
+    pub path: String,
+}
+
+/// 一覧ページ間の切替リンク (ブランド別など)。
+///
+/// クライアント状態を持たせないため、切替は必ず「別ページへのリンク」になる。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../../web/src/lib/schema/")]
+pub struct NavLink {
+    pub label: String,
+    pub path: String,
+    /// いま見ているページか (`aria-current="page"` を付ける材料)。
+    pub current: bool,
+    /// ブランド切替のときだけ入る。行にブランド色を当てるのに使う。
+    pub theme_key: Option<String>,
+    /// 件数を出せるときだけ入る。
+    pub count: Option<u32>,
+}
+
+/// テーマトークン表 (`themes.json`)。
+///
+/// 実際に配るのは Rust が書き出す単一の `themes.css` (`[data-theme="idol:xxx"]{…}`) で、
+/// この JSON は **CSS の生成元 + テスト用の突き合わせ材料**として置く。
+/// 出面がインライン style を配らないのは、CSP に `unsafe-inline` を要らなくするため。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ts_rs::TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../../web/src/lib/schema/")]
+pub struct ThemeTable {
+    pub schema_version: u32,
+    /// キーは `idol:<idolId>` / `brand:<brandId>` / `neutral`。
+    /// `BTreeMap` なのは出力をバイト一致で再現するため (`HashMap` を serde しない)。
+    pub themes: std::collections::BTreeMap<String, ThemePair>,
+}
+
+/// 1 テーマぶんのライト / ダーク。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../../web/src/lib/schema/")]
+pub struct ThemePair {
+    pub light: ThemeTokens,
+    pub dark: ThemeTokens,
+}
+
+/// `color_engine::derive(seed, brand, dark)` の結果を hex にしたもの。
+///
+/// **ブランド id を seed に渡してはいけない** (`first_valid_hex` の doc: `"876"` が
+/// `#887766` として通ってしまう)。渡すのは `brands.color` の値だけ。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../../web/src/lib/schema/")]
+pub struct ThemeTokens {
+    pub accent: String,
+    pub on_accent: String,
+    pub tint: String,
+    pub tint_strong: String,
+    pub chip_bg: String,
+    pub chip_text: String,
+    pub ring: String,
+    pub bar: String,
+    pub dot: String,
+    pub grad_from: String,
+    pub grad_to: String,
+    pub separator: String,
+    pub hero_surface: String,
+    pub is_neutral: bool,
+}

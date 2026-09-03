@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "kind": "venue",
+  "sep": "\u0001",
+  "pathPrefix": "/venues/",
+  "rows": [
+    {
+      "n": "幕張メッセ",
+      "s": "千葉県",
+      "k": "venue_makuhari",
+      "f": "幕張めっせ\u0001まくはりめっせ"
+    },
+    {
+      "n": "Donald E. Stephens Convention Center",
+      "s": null,
+      "k": "venue_donalde.stephensconventioncenterhyattregen-0c52f2eb",
+      "f": "donald e. stephens convention center"
+    }
+  ]
+}

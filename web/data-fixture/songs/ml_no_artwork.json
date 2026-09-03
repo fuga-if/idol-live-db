@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "id": "ml_no_artwork",
+  "path": "/songs/ml_no_artwork/",
+  "title": "ジャケットの無い曲",
+  "titleKana": null,
+  "themeKey": "brand:ml",
+  "brand": {
+    "kind": "brand",
+    "id": "ml",
+    "name": "アイドルマスター ミリオンライブ!",
+    "sub": "ML",
+    "path": "/brands/ml/",
+    "themeKey": "brand:ml",
+    "artworkUrl": null,
+    "monogram": null
+  },
+  "songType": "other",
+  "releaseDate": null,
+  "durationSec": null,
+  "durationDisplay": null,
+  "credits": [],
+  "cdSeries": null,
+  "cdTitle": null,
+  "seriesGroup": null,
+  "artworkUrl": null,
+  "appleMusicUrl": null,
+  "jasracCode": null,
+  "originalArtists": [],
+  "otherArtists": [],
+  "unit": null,
+  "unitLabel": null,
+  "parent": null,
+  "variants": [],
+  "performanceCount": 0,
+  "performanceHistory": [],
+  "frequentSingers": [],
+  "coOccurring": [],
+  "related": [],
+  "app": {
+    "appStoreUrl": "https://apps.apple.com/jp/app/id6763342297",
+    "deeplink": null,
+    "deeplinkKind": null,
+    "note": "参加記録・投票・歌詞・コール・タグ付けはアプリでご利用いただけます。"
+  },
+  "seo": {
+    "title": "ジャケットの無い曲 | アイドルライブDB",
+    "description": "クレジット・原唱者・披露履歴。",
+    "canonical": "https://imas-live-web.tokata3011.workers.dev/songs/ml_no_artwork/",
+    "ogImage": "https://imas-live-web.tokata3011.workers.dev/og/default.png",
+    "robots": "index,follow",
+    "jsonLd": {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": "ジャケットの無い曲",
+      "url": "https://imas-live-web.tokata3011.workers.dev/songs/ml_no_artwork/"
+    },
+    "breadcrumbs": [
+      {
+        "name": "ホーム",
+        "path": "/"
+      },
+      {
+        "name": "楽曲",
+        "path": "/songs/"
+      }
+    ]
+  },
+  "lyricsNote": "歌詞はアプリ『アイドルライブDB』でご覧いただけます（アプリは JASRAC 許諾番号 J260943703 のもとで歌詞を配信しています）。本サイトでは歌詞を掲載していません。"
+}

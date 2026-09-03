@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "id": "unit_empty",
+  "path": "/units/unit_empty/",
+  "name": "からっぽユニット",
+  "nameKana": null,
+  "nameAlt": null,
+  "themeKey": "neutral",
+  "monogram": "か",
+  "isPermanent": false,
+  "brand": null,
+  "members": [],
+  "songs": [],
+  "app": {
+    "appStoreUrl": "https://apps.apple.com/jp/app/id6763342297",
+    "deeplink": null,
+    "deeplinkKind": null,
+    "note": "参加記録・投票・歌詞・コール・タグ付けはアプリでご利用いただけます。"
+  },
+  "seo": {
+    "title": "からっぽユニット | アイドルライブDB",
+    "description": "メンバーとユニット曲。",
+    "canonical": "https://imas-live-web.tokata3011.workers.dev/units/unit_empty/",
+    "ogImage": "https://imas-live-web.tokata3011.workers.dev/og/default.png",
+    "robots": "index,follow",
+    "jsonLd": {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": "からっぽユニット",
+      "url": "https://imas-live-web.tokata3011.workers.dev/units/unit_empty/"
+    },
+    "breadcrumbs": [
+      {
+        "name": "ホーム",
+        "path": "/"
+      },
+      {
+        "name": "ユニット",
+        "path": "/units/"
+      }
+    ]
+  }
+}

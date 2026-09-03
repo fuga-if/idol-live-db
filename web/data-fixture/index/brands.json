@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "path": "/brands/",
+  "title": "ブランド",
+  "items": [
+    {
+      "ref": {
+        "kind": "brand",
+        "id": "ml",
+        "name": "アイドルマスター ミリオンライブ!",
+        "sub": "ML",
+        "path": "/brands/ml/",
+        "themeKey": "brand:ml",
+        "artworkUrl": null,
+        "monogram": null
+      },
+      "shortName": "ML",
+      "counts": {
+        "events": 851,
+        "shows": 1341,
+        "songs": 3153,
+        "idols": 394,
+        "units": 1539,
+        "venues": 234,
+        "brands": 9,
+        "setlistItems": 13762
+      }
+    },
+    {
+      "ref": {
+        "kind": "brand",
+        "id": "cg",
+        "name": "アイドルマスター シンデレラガールズ",
+        "sub": "CG",
+        "path": "/brands/cg/",
+        "themeKey": "brand:cg",
+        "artworkUrl": null,
+        "monogram": null
+      },
+      "shortName": "CG",
+      "counts": {
+        "events": 851,
+        "shows": 1341,
+        "songs": 3153,
+        "idols": 394,
+        "units": 1539,
+        "venues": 234,
+        "brands": 9,
+        "setlistItems": 13762
+      }
+    },
+    {
+      "ref": {
+        "kind": "brand",
+        "id": "other",
+        "name": "その他",
+        "sub": "その他",
+        "path": "/brands/other/",
+        "themeKey": "neutral",
+        "artworkUrl": null,
+        "monogram": null
+      },
+      "shortName": "その他",
+      "counts": {
+        "events": 851,
+        "shows": 1341,
+        "songs": 3153,
+        "idols": 394,
+        "units": 1539,
+        "venues": 234,
+        "brands": 9,
+        "setlistItems": 13762
+      }
+    }
+  ],
+  "seo": {
+    "title": "ブランド | アイドルライブDB",
+    "description": "ブランドの一覧。",
+    "canonical": "https://imas-live-web.tokata3011.workers.dev/brands/",
+    "ogImage": "https://imas-live-web.tokata3011.workers.dev/og/default.png",
+    "robots": "index,follow",
+    "jsonLd": {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": "ブランド",
+      "url": "https://imas-live-web.tokata3011.workers.dev/brands/"
+    },
+    "breadcrumbs": [
+      {
+        "name": "ホーム",
+        "path": "/"
+      }
+    ]
+  }
+}

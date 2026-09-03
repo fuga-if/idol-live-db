@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "id": "unit_sample",
+  "path": "/units/unit_sample/",
+  "name": "サンプルユニット",
+  "nameKana": "さんぷるゆにっと",
+  "nameAlt": "Sample Unit",
+  "themeKey": "brand:ml",
+  "monogram": "サ",
+  "isPermanent": true,
+  "brand": {
+    "kind": "brand",
+    "id": "ml",
+    "name": "アイドルマスター ミリオンライブ!",
+    "sub": "ML",
+    "path": "/brands/ml/",
+    "themeKey": "brand:ml",
+    "artworkUrl": null,
+    "monogram": null
+  },
+  "members": [
+    {
+      "kind": "idol",
+      "id": "ml_kasuga_mirai",
+      "name": "春日未来",
+      "sub": "ミリオンライブ!",
+      "path": "/idols/ml_kasuga_mirai/",
+      "themeKey": "idol:ml_kasuga_mirai",
+      "artworkUrl": null,
+      "monogram": "春"
+    },
+    {
+      "kind": "idol",
+      "id": "ml_mogami_shizuka",
+      "name": "最上静香",
+      "sub": "ミリオンライブ!",
+      "path": "/idols/ml_mogami_shizuka/",
+      "themeKey": "idol:ml_mogami_shizuka",
+      "artworkUrl": null,
+      "monogram": "最"
+    }
+  ],
+  "songs": [
+    {
+      "kind": "song",
+      "id": "ml_sample",
+      "name": "Thank You!",
+      "sub": "765MILLION ALLSTARS",
+      "path": "/songs/ml_sample/",
+      "themeKey": "brand:ml",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music/sample/600x600bb.jpg",
+      "monogram": null
+    }
+  ],
+  "app": {
+    "appStoreUrl": "https://apps.apple.com/jp/app/id6763342297",
+    "deeplink": null,
+    "deeplinkKind": null,
+    "note": "参加記録・投票・歌詞・コール・タグ付けはアプリでご利用いただけます。"
+  },
+  "seo": {
+    "title": "サンプルユニット | アイドルライブDB",
+    "description": "メンバーとユニット曲。",
+    "canonical": "https://imas-live-web.tokata3011.workers.dev/units/unit_sample/",
+    "ogImage": "https://imas-live-web.tokata3011.workers.dev/og/default.png",
+    "robots": "index,follow",
+    "jsonLd": {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": "サンプルユニット",
+      "url": "https://imas-live-web.tokata3011.workers.dev/units/unit_sample/"
+    },
+    "breadcrumbs": [
+      {
+        "name": "ホーム",
+        "path": "/"
+      },
+      {
+        "name": "ユニット",
+        "path": "/units/"
+      }
+    ]
+  }
+}

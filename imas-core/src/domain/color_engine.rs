@@ -249,6 +249,21 @@ pub fn hex_string(rgb: Rgb) -> String {
     format!("#{:02x}{:02x}{:02x}", to_byte(rgb.r), to_byte(rgb.g), to_byte(rgb.b))
 }
 
+/// 導出済みトークン (0.0–1.0 の sRGB) → `#rrggbb`。
+///
+/// [`hex_string`] が 0–255 の [`Rgb`] を取るのに対し、こちらは FFI で渡す
+/// [`ThemeRgb`] (0–1) を取る。CSS 変数・HTML の色指定は必ずこの関数を通すこと
+/// (掛け算と丸めを呼び出し側で書くと、丸め方向が 1 箇所ずれただけで
+/// アプリと Web の色が食い違う)。
+pub fn theme_hex(c: ThemeRgb) -> String {
+    format!(
+        "#{:02x}{:02x}{:02x}",
+        (c.r * 255.0).round() as u32,
+        (c.g * 255.0).round() as u32,
+        (c.b * 255.0).round() as u32
+    )
+}
+
 /// Swift `Int(clamp(v, 0, 255).rounded())` 相当。`rounded()` も `f64::round` も
 /// 「0 から遠い側へ half を寄せる」なので丸め方向まで一致する。
 fn to_byte(v: f64) -> u32 {
@@ -496,26 +511,16 @@ mod tests {
             t.hero_surface,
         ]
         .iter()
-        .map(|c| {
-            format!(
-                "#{:02x}{:02x}{:02x}",
-                (c.r * 255.0).round() as u32,
-                (c.g * 255.0).round() as u32,
-                (c.b * 255.0).round() as u32
-            )
-        })
+        .map(|c| theme_hex(*c))
         .chain(std::iter::once(if t.is_neutral { "1" } else { "0" }.to_string()))
         .collect();
         cells.join(",")
     }
 
+    /// 基準値 (Swift 原本の出力) と突き合わせる書式。本体の `theme_hex` に委譲するので、
+    /// 以下の一致テストがそのまま `theme_hex` の正しさの証明になる。
     fn hex_of(c: ThemeRgb) -> String {
-        format!(
-            "#{:02x}{:02x}{:02x}",
-            (c.r * 255.0).round() as u32,
-            (c.g * 255.0).round() as u32,
-            (c.b * 255.0).round() as u32
-        )
+        theme_hex(c)
     }
 
     // =======================================================================

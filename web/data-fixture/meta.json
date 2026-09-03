@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-09-04T00:00:00Z",
+  "todayJst": "2026-09-04",
+  "dataVersion": "2026090401",
+  "contentHash": "6c41f0e2b9d4a7c8e5f1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f7",
+  "counts": {
+    "events": 851,
+    "shows": 1341,
+    "songs": 3153,
+    "idols": 394,
+    "units": 1539,
+    "venues": 234,
+    "brands": 9,
+    "setlistItems": 13762
+  },
+  "app": {
+    "appStoreUrl": "https://apps.apple.com/jp/app/id6763342297",
+    "playStoreUrl": null,
+    "hashtag": "#アイドルライブDB",
+    "privacyUrl": "https://fuga-if.github.io/imas-live-privacy/privacy.html",
+    "supportUrl": "https://fuga-if.github.io/imas-live-privacy/support.html",
+    "termsUrl": "https://fuga-if.github.io/imas-live-privacy/terms.html",
+    "repositoryUrl": "https://github.com/fuga-if/idol-live-db"
+  }
+}

@@ -11,3 +11,8 @@ uniffi::setup_scaffolding!();
 pub mod domain;
 pub mod inbound;
 pub mod outbound;
+
+// Web 出面 (静的サイト) の JSON エクスポータ。既定 off の feature で、
+// iOS/Android のビルドには一切入らない (uniffi も通らない)。
+#[cfg(feature = "web-export")]
+pub mod web_export;

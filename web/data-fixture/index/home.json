@@ -1,0 +1,212 @@
+{
+  "schemaVersion": 1,
+  "path": "/",
+  "tagline": "アイマスのライブ・公演・セットリスト・楽曲・アイドルを横断して調べられるデータベースです。",
+  "disclaimer": "非公式のファンメイドサイトです。株式会社バンダイナムコエンターテインメントおよび関連権利者とは一切関係ありません。",
+  "upcoming": [
+    {
+      "ref": {
+        "kind": "event",
+        "id": "ev_sample",
+        "name": "THE IDOLM@STER MILLION LIVE! 10thLIVE TOUR Act-4 ROAD TO MEMORIES 幕張",
+        "sub": "2026",
+        "path": "/events/ev_sample/",
+        "themeKey": "brand:ml",
+        "artworkUrl": null,
+        "monogram": null
+      },
+      "firstDate": "2026-04-03",
+      "lastDate": "2026-04-04",
+      "shortDate": "26/04",
+      "brand": {
+        "kind": "brand",
+        "id": "ml",
+        "name": "アイドルマスター ミリオンライブ!",
+        "sub": "ML",
+        "path": "/brands/ml/",
+        "themeKey": "brand:ml",
+        "artworkUrl": null,
+        "monogram": null
+      },
+      "kind": "live",
+      "kindLabel": "ライブ",
+      "showCount": 2,
+      "venueLabels": [
+        "幕張メッセ"
+      ]
+    }
+  ],
+  "recentShows": [
+    {
+      "ref": {
+        "kind": "show",
+        "id": "sh_sample_1",
+        "name": "DAY1",
+        "sub": "2026-04-03",
+        "path": "/shows/sh_sample_1/",
+        "themeKey": "brand:ml",
+        "artworkUrl": null,
+        "monogram": null
+      },
+      "date": "2026-04-03",
+      "shortDate": "26/04",
+      "venueLabel": "幕張メッセ",
+      "venue": {
+        "kind": "venue",
+        "id": "venue_makuhari",
+        "name": "幕張メッセ",
+        "sub": "千葉県",
+        "path": "/venues/venue_makuhari/",
+        "themeKey": "neutral",
+        "artworkUrl": null,
+        "monogram": null
+      },
+      "hall": "イベントホール",
+      "startTime": "17:00",
+      "setlistCount": 23,
+      "streamPlatform": "ニコニコ生放送",
+      "event": {
+        "kind": "event",
+        "id": "ev_sample",
+        "name": "THE IDOLM@STER MILLION LIVE! 10thLIVE TOUR Act-4 ROAD TO MEMORIES 幕張",
+        "sub": "2026",
+        "path": "/events/ev_sample/",
+        "themeKey": "brand:ml",
+        "artworkUrl": null,
+        "monogram": null
+      }
+    }
+  ],
+  "counts": {
+    "events": 851,
+    "shows": 1341,
+    "songs": 3153,
+    "idols": 394,
+    "units": 1539,
+    "venues": 234,
+    "brands": 9,
+    "setlistItems": 13762
+  },
+  "brands": [
+    {
+      "ref": {
+        "kind": "brand",
+        "id": "ml",
+        "name": "アイドルマスター ミリオンライブ!",
+        "sub": "ML",
+        "path": "/brands/ml/",
+        "themeKey": "brand:ml",
+        "artworkUrl": null,
+        "monogram": null
+      },
+      "shortName": "ML",
+      "counts": {
+        "events": 851,
+        "shows": 1341,
+        "songs": 3153,
+        "idols": 394,
+        "units": 1539,
+        "venues": 234,
+        "brands": 9,
+        "setlistItems": 13762
+      }
+    },
+    {
+      "ref": {
+        "kind": "brand",
+        "id": "cg",
+        "name": "アイドルマスター シンデレラガールズ",
+        "sub": "CG",
+        "path": "/brands/cg/",
+        "themeKey": "brand:cg",
+        "artworkUrl": null,
+        "monogram": null
+      },
+      "shortName": "CG",
+      "counts": {
+        "events": 851,
+        "shows": 1341,
+        "songs": 3153,
+        "idols": 394,
+        "units": 1539,
+        "venues": 234,
+        "brands": 9,
+        "setlistItems": 13762
+      }
+    }
+  ],
+  "app": {
+    "appStoreUrl": "https://apps.apple.com/jp/app/id6763342297",
+    "playStoreUrl": null,
+    "hashtag": "#アイドルライブDB",
+    "privacyUrl": "https://fuga-if.github.io/imas-live-privacy/privacy.html",
+    "supportUrl": "https://fuga-if.github.io/imas-live-privacy/support.html",
+    "termsUrl": "https://fuga-if.github.io/imas-live-privacy/terms.html",
+    "repositoryUrl": "https://github.com/fuga-if/idol-live-db"
+  },
+  "sectionLinks": [
+    {
+      "label": "今後のライブ",
+      "path": "/events/upcoming/",
+      "current": false,
+      "themeKey": null,
+      "count": 24
+    },
+    {
+      "label": "開催済み",
+      "path": "/events/past/",
+      "current": false,
+      "themeKey": null,
+      "count": 827
+    },
+    {
+      "label": "楽曲",
+      "path": "/songs/",
+      "current": false,
+      "themeKey": null,
+      "count": 2040
+    },
+    {
+      "label": "アイドル",
+      "path": "/idols/",
+      "current": false,
+      "themeKey": null,
+      "count": 394
+    },
+    {
+      "label": "ユニット",
+      "path": "/units/",
+      "current": false,
+      "themeKey": null,
+      "count": 1539
+    },
+    {
+      "label": "会場",
+      "path": "/venues/",
+      "current": false,
+      "themeKey": null,
+      "count": 234
+    },
+    {
+      "label": "検索",
+      "path": "/search/",
+      "current": false,
+      "themeKey": null,
+      "count": null
+    }
+  ],
+  "seo": {
+    "title": "アイドルライブDB | アイドルライブDB",
+    "description": "アイマスのライブ・公演・セットリスト・楽曲・アイドルを横断して調べられるデータベースです。",
+    "canonical": "https://imas-live-web.tokata3011.workers.dev/",
+    "ogImage": "https://imas-live-web.tokata3011.workers.dev/og/default.png",
+    "robots": "index,follow",
+    "jsonLd": {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": "アイドルライブDB",
+      "url": "https://imas-live-web.tokata3011.workers.dev/"
+    },
+    "breadcrumbs": []
+  }
+}

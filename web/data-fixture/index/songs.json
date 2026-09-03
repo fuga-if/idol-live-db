@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "path": "/songs/",
+  "title": "楽曲",
+  "kind": "index",
+  "brand": null,
+  "items": [
+    {
+      "ref": {
+        "kind": "song",
+        "id": "ml_sample",
+        "name": "Thank You!",
+        "sub": "765MILLION ALLSTARS",
+        "path": "/songs/ml_sample/",
+        "themeKey": "brand:ml",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music/sample/600x600bb.jpg",
+        "monogram": null
+      },
+      "releaseDate": "2019-03-13",
+      "unitLabel": "765MILLION ALLSTARS",
+      "originalArtists": [
+        {
+          "kind": "idol",
+          "id": "ml_kasuga_mirai",
+          "name": "春日未来",
+          "sub": "ミリオンライブ!",
+          "path": "/idols/ml_kasuga_mirai/",
+          "themeKey": "idol:ml_kasuga_mirai",
+          "artworkUrl": null,
+          "monogram": "春"
+        }
+      ],
+      "performanceCount": 12
+    },
+    {
+      "ref": {
+        "kind": "song",
+        "id": "ml_no_artwork",
+        "name": "ジャケットの無い曲",
+        "sub": null,
+        "path": "/songs/ml_no_artwork/",
+        "themeKey": "brand:ml",
+        "artworkUrl": null,
+        "monogram": null
+      },
+      "releaseDate": null,
+      "unitLabel": null,
+      "originalArtists": [],
+      "performanceCount": 0
+    }
+  ],
+  "kanaSections": [
+    {
+      "label": "さ",
+      "startIndex": 0,
+      "count": 1
+    },
+    {
+      "label": "英数",
+      "startIndex": 1,
+      "count": 1
+    }
+  ],
+  "brandLinks": [
+    {
+      "label": "すべて",
+      "path": "/songs/",
+      "current": true,
+      "themeKey": null,
+      "count": 2040
+    },
+    {
+      "label": "ミリオンライブ!",
+      "path": "/songs/brand/ml/",
+      "current": false,
+      "themeKey": "brand:ml",
+      "count": 600
+    }
+  ],
+  "total": 2,
+  "seo": {
+    "title": "楽曲 | アイドルライブDB",
+    "description": "楽曲の一覧。",
+    "canonical": "https://imas-live-web.tokata3011.workers.dev/songs/",
+    "ogImage": "https://imas-live-web.tokata3011.workers.dev/og/default.png",
+    "robots": "index,follow",
+    "jsonLd": {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": "楽曲",
+      "url": "https://imas-live-web.tokata3011.workers.dev/songs/"
+    },
+    "breadcrumbs": [
+      {
+        "name": "ホーム",
+        "path": "/"
+      }
+    ]
+  }
+}

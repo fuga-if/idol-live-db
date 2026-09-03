@@ -1,0 +1,141 @@
+{
+  "schemaVersion": 1,
+  "themes": {
+    "brand:cg": {
+      "light": {
+        "accent": "#2681c8",
+        "onAccent": "#15161a",
+        "tint": "#f3f6f9",
+        "tintStrong": "#dfe9f1",
+        "chipBg": "#e9eff4",
+        "chipText": "#216fab",
+        "ring": "#3490d8",
+        "bar": "#2681c8",
+        "dot": "#2681c8",
+        "gradFrom": "#308ed8",
+        "gradTo": "#1966a2",
+        "separator": "#d3dce4",
+        "heroSurface": "#f0f4f7",
+        "isNeutral": false
+      },
+      "dark": {
+        "accent": "#4298db",
+        "onAccent": "#15161a",
+        "tint": "#1d2e3c",
+        "tintStrong": "#253f52",
+        "chipBg": "#263c4d",
+        "chipText": "#5ca6e0",
+        "ring": "#4298db",
+        "bar": "#4298db",
+        "dot": "#4298db",
+        "gradFrom": "#4298db",
+        "gradTo": "#1e75b8",
+        "separator": "#384f61",
+        "heroSurface": "#223544",
+        "isNeutral": false
+      }
+    },
+    "brand:ml": {
+      "light": {
+        "accent": "#f5be15",
+        "onAccent": "#15161a",
+        "tint": "#f9f8f3",
+        "tintStrong": "#f2edde",
+        "chipBg": "#f4f1e9",
+        "chipText": "#c79705",
+        "ring": "#f6c632",
+        "bar": "#f5be15",
+        "dot": "#f5be15",
+        "gradFrom": "#f6c52d",
+        "gradTo": "#d4a003",
+        "separator": "#e4e0d3",
+        "heroSurface": "#f8f6ef",
+        "isNeutral": false
+      },
+      "dark": {
+        "accent": "#f2c12c",
+        "onAccent": "#15161a",
+        "tint": "#3f361a",
+        "tintStrong": "#594b1f",
+        "chipBg": "#514621",
+        "chipText": "#f3c949",
+        "ring": "#f2c12c",
+        "bar": "#f2c12c",
+        "dot": "#f2c12c",
+        "gradFrom": "#f2c12c",
+        "gradTo": "#ce9d09",
+        "separator": "#635836",
+        "heroSurface": "#4a3f1c",
+        "isNeutral": false
+      }
+    },
+    "idol:ml_kasuga_mirai": {
+      "light": {
+        "accent": "#e9960a",
+        "onAccent": "#15161a",
+        "tint": "#f9f7f3",
+        "tintStrong": "#f2eade",
+        "chipBg": "#f4f0e9",
+        "chipText": "#c77e05",
+        "ring": "#f6a41c",
+        "bar": "#e9960a",
+        "dot": "#e9960a",
+        "gradFrom": "#f5a217",
+        "gradTo": "#bd7703",
+        "separator": "#e4ddd3",
+        "heroSurface": "#f8f5ef",
+        "isNeutral": false
+      },
+      "dark": {
+        "accent": "#f2a82c",
+        "onAccent": "#15161a",
+        "tint": "#3f311a",
+        "tintStrong": "#59431f",
+        "chipBg": "#513f21",
+        "chipText": "#f3b449",
+        "ring": "#f2a82c",
+        "bar": "#f2a82c",
+        "dot": "#f2a82c",
+        "gradFrom": "#f2a82c",
+        "gradTo": "#ce8409",
+        "separator": "#635236",
+        "heroSurface": "#4a391c",
+        "isNeutral": false
+      }
+    },
+    "neutral": {
+      "light": {
+        "accent": "#87878c",
+        "onAccent": "#15161a",
+        "tint": "#f6f6f6",
+        "tintStrong": "#e7e7e9",
+        "chipBg": "#eeeeef",
+        "chipText": "#646468",
+        "ring": "#97979b",
+        "bar": "#87878c",
+        "dot": "#87878c",
+        "gradFrom": "#949499",
+        "gradTo": "#686878",
+        "separator": "#dadadd",
+        "heroSurface": "#f3f3f4",
+        "isNeutral": true
+      },
+      "dark": {
+        "accent": "#8e8e93",
+        "onAccent": "#15161a",
+        "tint": "#2a2a2f",
+        "tintStrong": "#383840",
+        "chipBg": "#35353d",
+        "chipText": "#9e9ea2",
+        "ring": "#8e8e93",
+        "bar": "#8e8e93",
+        "dot": "#8e8e93",
+        "gradFrom": "#8e8e93",
+        "gradTo": "#666674",
+        "separator": "#494950",
+        "heroSurface": "#303036",
+        "isNeutral": true
+      }
+    }
+  }
+}

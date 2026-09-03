@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 1,
+  "path": "/about/",
+  "counts": {
+    "events": 851,
+    "shows": 1341,
+    "songs": 3153,
+    "idols": 394,
+    "units": 1539,
+    "venues": 234,
+    "brands": 9,
+    "setlistItems": 13762
+  },
+  "dataVersion": "2026090401",
+  "contentHash": "6c41f0e2b9d4a7c8",
+  "generatedAt": "2026-09-04T00:00:00Z",
+  "todayJst": "2026-09-04",
+  "app": {
+    "appStoreUrl": "https://apps.apple.com/jp/app/id6763342297",
+    "playStoreUrl": null,
+    "hashtag": "#アイドルライブDB",
+    "privacyUrl": "https://fuga-if.github.io/imas-live-privacy/privacy.html",
+    "supportUrl": "https://fuga-if.github.io/imas-live-privacy/support.html",
+    "termsUrl": "https://fuga-if.github.io/imas-live-privacy/terms.html",
+    "repositoryUrl": "https://github.com/fuga-if/idol-live-db"
+  },
+  "sections": [
+    {
+      "heading": "このサイトについて",
+      "paragraphs": [
+        "非公式のファンメイドサイトです。株式会社バンダイナムコエンターテインメントおよび関連権利者とは一切関係ありません。",
+        "アイマスのライブ・公演・セットリスト・楽曲・アイドルを横断して調べられるデータベースです。"
+      ],
+      "links": []
+    },
+    {
+      "heading": "版権について",
+      "paragraphs": [
+        "キャラクター画像・公式ロゴ・歌詞は掲載していません。",
+        "ジャケット画像は Apple Music の配信情報から取得しています。"
+      ],
+      "links": []
+    },
+    {
+      "heading": "歌詞について",
+      "paragraphs": [
+        "歌詞はアプリ『アイドルライブDB』でご覧いただけます（アプリは JASRAC 許諾番号 J260943703 のもとで歌詞を配信しています）。本サイトでは歌詞を掲載していません。"
+      ],
+      "links": [
+        {
+          "label": "App Store",
+          "href": "https://apps.apple.com/jp/app/id6763342297",
+          "external": true
+        }
+      ]
+    },
+    {
+      "heading": "プライバシー・サポート・利用規約",
+      "paragraphs": [],
+      "links": [
+        {
+          "label": "プライバシーポリシー",
+          "href": "https://fuga-if.github.io/imas-live-privacy/privacy.html",
+          "external": true
+        },
+        {
+          "label": "サポート",
+          "href": "https://fuga-if.github.io/imas-live-privacy/support.html",
+          "external": true
+        },
+        {
+          "label": "利用規約",
+          "href": "https://fuga-if.github.io/imas-live-privacy/terms.html",
+          "external": true
+        }
+      ]
+    },
+    {
+      "heading": "データの貢献",
+      "paragraphs": [
+        "セットリストの誤りは GitHub からご指摘いただけます。"
+      ],
+      "links": [
+        {
+          "label": "GitHub リポジトリ",
+          "href": "https://github.com/fuga-if/idol-live-db",
+          "external": true
+        }
+      ]
+    }
+  ],
+  "seo": {
+    "title": "このサイトについて | アイドルライブDB",
+    "description": "非公式・版権・ライセンス・アプリ。",
+    "canonical": "https://imas-live-web.tokata3011.workers.dev/about/",
+    "ogImage": "https://imas-live-web.tokata3011.workers.dev/og/default.png",
+    "robots": "index,follow",
+    "jsonLd": {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": "このサイトについて",
+      "url": "https://imas-live-web.tokata3011.workers.dev/about/"
+    },
+    "breadcrumbs": [
+      {
+        "name": "ホーム",
+        "path": "/"
+      }
+    ]
+  }
+}

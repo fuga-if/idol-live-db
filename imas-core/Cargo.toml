@@ -13,6 +13,26 @@ crate-type = ["lib", "staticlib", "cdylib"]
 name = "uniffi-bindgen"
 path = "src/bin/uniffi-bindgen.rs"
 
+# Web 出面 (静的サイト) の JSON エクスポータ。
+# required-features を付けるのは build.sh が `cargo build --release --target aarch64-apple-ios`
+# 等を **--lib 無し**で叩くため (build.sh:57,78-80)。既定 off にしておかないと
+# iOS/Android のクロスビルドがこの bin まで巻き込む。
+[[bin]]
+name = "web-export"
+path = "src/bin/web-export/main.rs"
+required-features = ["web-export"]
+
+# 同じ理由で integration test も feature ゲートする。付けないと既存 core-guard の
+# `cargo test --locked` (feature 無し) が web_export.rs のコンパイルで落ちる。
+[[test]]
+name = "web_export"
+path = "tests/web_export.rs"
+required-features = ["web-export"]
+
+[features]
+# Web 出面の静的エクスポート。既定 off。
+web-export = ["dep:ts-rs"]
+
 [dependencies]
 uniffi = { version = "0.32.0", features = ["cli"] }
 chrono = { version = "0.4.45", default-features = false, features = ["std", "clock"] }
@@ -21,6 +41,13 @@ serde_json = "1.0.151"
 # タイトル/ID 比較を Swift の String == (Unicode 正準等価) に合わせるための NFC 正規化
 unicode-normalization = "0.1.25"
 thiserror = "2.0.20"
+
+# TS 型の生成 (web-export feature 限定)。DTO と web/src/lib/schema/*.ts の
+# ドリフトを CI で落とすために使う。
+# serde-json-impl は入れない: SeoBlock.json_ld の TS 型は #[ts(type = ...)] で
+# 直接与える (impl に任せると JsonValue.ts が imas-core/bindings/ に落ち、
+# 生成された .ts が web/ の外を import してしまう)。
+ts-rs = { version = "12", optional = true }
 
 # SQLite の実体は 1 プロセス 1 つに保つ:
 # - Apple (iOS/macOS): system libsqlite3 とリンク。bundled を静的リンクすると

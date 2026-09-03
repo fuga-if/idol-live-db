@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "path": "/units/",
+  "title": "ユニット",
+  "brand": null,
+  "items": [
+    {
+      "ref": {
+        "kind": "unit",
+        "id": "unit_sample",
+        "name": "サンプルユニット",
+        "sub": "ミリオンライブ!",
+        "path": "/units/unit_sample/",
+        "themeKey": "brand:ml",
+        "artworkUrl": null,
+        "monogram": "サ"
+      },
+      "brand": {
+        "kind": "brand",
+        "id": "ml",
+        "name": "アイドルマスター ミリオンライブ!",
+        "sub": "ML",
+        "path": "/brands/ml/",
+        "themeKey": "brand:ml",
+        "artworkUrl": null,
+        "monogram": null
+      },
+      "isPermanent": true,
+      "memberCount": 2,
+      "songCount": 1
+    },
+    {
+      "ref": {
+        "kind": "unit",
+        "id": "unit_empty",
+        "name": "からっぽユニット",
+        "sub": null,
+        "path": "/units/unit_empty/",
+        "themeKey": "neutral",
+        "artworkUrl": null,
+        "monogram": "か"
+      },
+      "brand": null,
+      "isPermanent": false,
+      "memberCount": 0,
+      "songCount": 0
+    }
+  ],
+  "brandLinks": [
+    {
+      "label": "すべて",
+      "path": "/units/",
+      "current": true,
+      "themeKey": null,
+      "count": 1539
+    },
+    {
+      "label": "ミリオンライブ!",
+      "path": "/units/brand/ml/",
+      "current": false,
+      "themeKey": "brand:ml",
+      "count": 300
+    }
+  ],
+  "total": 2,
+  "seo": {
+    "title": "ユニット | アイドルライブDB",
+    "description": "ユニットの一覧。",
+    "canonical": "https://imas-live-web.tokata3011.workers.dev/units/",
+    "ogImage": "https://imas-live-web.tokata3011.workers.dev/og/default.png",
+    "robots": "index,follow",
+    "jsonLd": {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": "ユニット",
+      "url": "https://imas-live-web.tokata3011.workers.dev/units/"
+    },
+    "breadcrumbs": [
+      {
+        "name": "ホーム",
+        "path": "/"
+      }
+    ]
+  }
+}

@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "path": "/events/brand/ml/",
+  "title": "ミリオンライブ! のライブ",
+  "kind": "brand",
+  "groups": [],
+  "scopeLinks": [
+    {
+      "label": "今後のライブ",
+      "path": "/events/upcoming/",
+      "current": false,
+      "themeKey": null,
+      "count": 24
+    },
+    {
+      "label": "開催済み",
+      "path": "/events/past/",
+      "current": false,
+      "themeKey": null,
+      "count": 827
+    }
+  ],
+  "brandLinks": [
+    {
+      "label": "すべて",
+      "path": "/events/",
+      "current": false,
+      "themeKey": null,
+      "count": null
+    },
+    {
+      "label": "ミリオンライブ!",
+      "path": "/events/brand/ml/",
+      "current": true,
+      "themeKey": "brand:ml",
+      "count": 210
+    },
+    {
+      "label": "シンデレラガールズ",
+      "path": "/events/brand/cg/",
+      "current": false,
+      "themeKey": "brand:cg",
+      "count": 180
+    }
+  ],
+  "yearLinks": [
+    {
+      "label": "2026",
+      "path": "/events/past/2026/",
+      "current": false,
+      "themeKey": null,
+      "count": 40
+    },
+    {
+      "label": "2025",
+      "path": "/events/past/2025/",
+      "current": false,
+      "themeKey": null,
+      "count": 52
+    }
+  ],
+  "total": 0,
+  "seo": {
+    "title": "ミリオンライブ! のライブ | アイドルライブDB",
+    "description": "ライブの一覧。",
+    "canonical": "https://imas-live-web.tokata3011.workers.dev/events/brand/ml/",
+    "ogImage": "https://imas-live-web.tokata3011.workers.dev/og/default.png",
+    "robots": "index,follow",
+    "jsonLd": {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": "ミリオンライブ! のライブ",
+      "url": "https://imas-live-web.tokata3011.workers.dev/events/brand/ml/"
+    },
+    "breadcrumbs": [
+      {
+        "name": "ホーム",
+        "path": "/"
+      }
+    ]
+  }
+}

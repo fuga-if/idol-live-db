@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "path": "/venues/pref/%E6%9D%B1%E4%BA%AC%E9%83%BD/",
+  "title": "東京都の会場",
+  "prefecture": "東京都",
+  "items": [
+    {
+      "ref": {
+        "kind": "venue",
+        "id": "venue_makuhari",
+        "name": "幕張メッセ",
+        "sub": "千葉県",
+        "path": "/venues/venue_makuhari/",
+        "themeKey": "neutral",
+        "artworkUrl": null,
+        "monogram": null
+      },
+      "prefecture": "千葉県",
+      "city": "千葉市美浜区",
+      "capacity": 9000,
+      "showCount": 24
+    },
+    {
+      "ref": {
+        "kind": "venue",
+        "id": "venue_donalde.stephensconventioncenter/hyattregencyo'hare",
+        "name": "Donald E. Stephens Convention Center / Hyatt Regency O'Hare",
+        "sub": null,
+        "path": "/venues/venue_donalde.stephensconventioncenterhyattregen-0c52f2eb/",
+        "themeKey": "neutral",
+        "artworkUrl": null,
+        "monogram": null
+      },
+      "prefecture": null,
+      "city": null,
+      "capacity": null,
+      "showCount": 1
+    }
+  ],
+  "prefectureLinks": [
+    {
+      "label": "すべて",
+      "path": "/venues/",
+      "current": false,
+      "themeKey": null,
+      "count": 234
+    },
+    {
+      "label": "東京都",
+      "path": "/venues/pref/%E6%9D%B1%E4%BA%AC%E9%83%BD/",
+      "current": true,
+      "themeKey": null,
+      "count": 105
+    },
+    {
+      "label": "未分類",
+      "path": "/venues/pref/%E6%9C%AA%E5%88%86%E9%A1%9E/",
+      "current": false,
+      "themeKey": null,
+      "count": 35
+    }
+  ],
+  "total": 2,
+  "seo": {
+    "title": "東京都の会場 | アイドルライブDB",
+    "description": "会場の一覧。",
+    "canonical": "https://imas-live-web.tokata3011.workers.dev/venues/pref/%E6%9D%B1%E4%BA%AC%E9%83%BD/",
+    "ogImage": "https://imas-live-web.tokata3011.workers.dev/og/default.png",
+    "robots": "index,follow",
+    "jsonLd": {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": "東京都の会場",
+      "url": "https://imas-live-web.tokata3011.workers.dev/venues/pref/%E6%9D%B1%E4%BA%AC%E9%83%BD/"
+    },
+    "breadcrumbs": [
+      {
+        "name": "ホーム",
+        "path": "/"
+      }
+    ]
+  }
+}

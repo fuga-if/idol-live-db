@@ -1,0 +1,185 @@
+{
+  "schemaVersion": 1,
+  "id": "sh_sample_1",
+  "path": "/shows/sh_sample_1/",
+  "name": "DAY1",
+  "date": "2026-04-03",
+  "shortDate": "26/04",
+  "themeKey": "brand:ml",
+  "event": {
+    "kind": "event",
+    "id": "ev_sample",
+    "name": "THE IDOLM@STER MILLION LIVE! 10thLIVE TOUR Act-4 ROAD TO MEMORIES 幕張",
+    "sub": "2026",
+    "path": "/events/ev_sample/",
+    "themeKey": "brand:ml",
+    "artworkUrl": null,
+    "monogram": null
+  },
+  "brand": {
+    "kind": "brand",
+    "id": "ml",
+    "name": "アイドルマスター ミリオンライブ!",
+    "sub": "ML",
+    "path": "/brands/ml/",
+    "themeKey": "brand:ml",
+    "artworkUrl": null,
+    "monogram": null
+  },
+  "venueLabel": "幕張メッセ",
+  "venue": {
+    "kind": "venue",
+    "id": "venue_makuhari",
+    "name": "幕張メッセ",
+    "sub": "千葉県",
+    "path": "/venues/venue_makuhari/",
+    "themeKey": "neutral",
+    "artworkUrl": null,
+    "monogram": null
+  },
+  "venueCity": "千葉市",
+  "hall": "イベントホール",
+  "startTime": "17:00",
+  "streamPlatform": null,
+  "setlist": [
+    {
+      "id": "si_1",
+      "position": 1,
+      "section": "本編",
+      "notes": null,
+      "unitLabel": "765MILLION ALLSTARS",
+      "song": {
+        "kind": "song",
+        "id": "ml_sample",
+        "name": "Thank You!",
+        "sub": "765MILLION ALLSTARS",
+        "path": "/songs/ml_sample/",
+        "themeKey": "brand:ml",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music/sample/600x600bb.jpg",
+        "monogram": null
+      },
+      "performers": [
+        {
+          "ref": {
+            "kind": "idol",
+            "id": "ml_kasuga_mirai",
+            "name": "春日未来",
+            "sub": "ミリオンライブ!",
+            "path": "/idols/ml_kasuga_mirai/",
+            "themeKey": "idol:ml_kasuga_mirai",
+            "artworkUrl": null,
+            "monogram": "春"
+          },
+          "displayName": "山崎はるか",
+          "idolName": "春日未来"
+        }
+      ],
+      "originalArtists": [
+        {
+          "kind": "idol",
+          "id": "ml_kasuga_mirai",
+          "name": "春日未来",
+          "sub": "ミリオンライブ!",
+          "path": "/idols/ml_kasuga_mirai/",
+          "themeKey": "idol:ml_kasuga_mirai",
+          "artworkUrl": null,
+          "monogram": "春"
+        },
+        {
+          "kind": "idol",
+          "id": "ml_mogami_shizuka",
+          "name": "最上静香",
+          "sub": "ミリオンライブ!",
+          "path": "/idols/ml_mogami_shizuka/",
+          "themeKey": "idol:ml_mogami_shizuka",
+          "artworkUrl": null,
+          "monogram": "最"
+        }
+      ],
+      "isCover": false
+    },
+    {
+      "id": "si_2",
+      "position": 2,
+      "section": null,
+      "notes": "映像のみ",
+      "unitLabel": null,
+      "song": {
+        "kind": "song",
+        "id": "ml_no_artwork",
+        "name": "ジャケットの無い曲",
+        "sub": null,
+        "path": "/songs/ml_no_artwork/",
+        "themeKey": "brand:ml",
+        "artworkUrl": null,
+        "monogram": null
+      },
+      "performers": [],
+      "originalArtists": [],
+      "isCover": true
+    }
+  ],
+  "cast": [
+    {
+      "kind": "idol",
+      "id": "ml_kasuga_mirai",
+      "name": "春日未来",
+      "sub": "ミリオンライブ!",
+      "path": "/idols/ml_kasuga_mirai/",
+      "themeKey": "idol:ml_kasuga_mirai",
+      "artworkUrl": null,
+      "monogram": "春"
+    },
+    {
+      "kind": "idol",
+      "id": "ml_mogami_shizuka",
+      "name": "最上静香",
+      "sub": "ミリオンライブ!",
+      "path": "/idols/ml_mogami_shizuka/",
+      "themeKey": "idol:ml_mogami_shizuka",
+      "artworkUrl": null,
+      "monogram": "最"
+    }
+  ],
+  "siblingShows": [
+    {
+      "kind": "show",
+      "id": "sh_sample_1",
+      "name": "DAY1",
+      "sub": "2026-04-03",
+      "path": "/shows/sh_sample_1/",
+      "themeKey": "brand:ml",
+      "artworkUrl": null,
+      "monogram": null
+    }
+  ],
+  "app": {
+    "appStoreUrl": "https://apps.apple.com/jp/app/id6763342297",
+    "deeplink": "imaslivedb://shows/sh_sample_1",
+    "deeplinkKind": "show",
+    "note": "参加記録・投票・歌詞・コール・タグ付けはアプリでご利用いただけます。"
+  },
+  "seo": {
+    "title": "DAY1 | アイドルライブDB",
+    "description": "セットリストと歌唱メンバー。",
+    "canonical": "https://imas-live-web.tokata3011.workers.dev/shows/sh_sample_1/",
+    "ogImage": "https://imas-live-web.tokata3011.workers.dev/og/default.png",
+    "robots": "index,follow",
+    "jsonLd": {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": "DAY1",
+      "url": "https://imas-live-web.tokata3011.workers.dev/shows/sh_sample_1/"
+    },
+    "breadcrumbs": [
+      {
+        "name": "ホーム",
+        "path": "/"
+      },
+      {
+        "name": "ライブ",
+        "path": "/events/"
+      }
+    ]
+  }
+}

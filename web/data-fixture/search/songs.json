@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "kind": "song",
+  "sep": "\u0001",
+  "pathPrefix": "/songs/",
+  "rows": [
+    {
+      "n": "Thank You!",
+      "s": "765MILLION ALLSTARS",
+      "k": "ml_sample",
+      "f": "thank you!\u0001さんきゅー"
+    },
+    {
+      "n": "ジャケットの無い曲",
+      "s": null,
+      "k": "ml_no_artwork",
+      "f": "じゃけっとの無い曲"
+    }
+  ]
+}
