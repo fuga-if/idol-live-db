@@ -15,12 +15,17 @@ final class NotificationService {
 
     func requestAuthorization() async -> Bool {
         do {
-            // UNUserNotificationCenter は非 Sendable なので、async 版をそのまま await すると
-            // 隔離境界を越える形になり Swift 6 の厳格チェックで落ちる (CI の Xcode で顕在化)。
-            // コールバック版で Sendable な Bool だけを持ち帰る。
+            // ⚠️ このクラスは @MainActor。ここのコールバックを素の (MainActor 推論の)
+            //    クロージャで書くと、UNUserNotificationCenter が**バックグラウンドキュー**で
+            //    呼び返した瞬間に Swift ランタイムの実行者チェック
+            //    (swift_task_isCurrentExecutor → dispatch_assert_queue) が
+            //    「MainActor のはずが違う」で SIGTRAP を投げる。iOS 26.2 ランタイム
+            //    (CI の runner) で顕在化した。
+            //    → コールバックを **@Sendable (非隔離)** にして実行者の期待を外す。
+            //    中で触るのは Sendable な Bool / Error と Sendable な continuation だけ。
             let center = self.center
             let granted = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Bool, Error>) in
-                center.requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+                center.requestAuthorization(options: [.alert, .sound, .badge]) { @Sendable granted, error in
                     if let error { continuation.resume(throwing: error) }
                     else { continuation.resume(returning: granted) }
                 }
@@ -33,11 +38,14 @@ final class NotificationService {
     }
 
     func authorizationStatus() async -> UNAuthorizationStatus {
-        // UNNotificationSettings は非 Sendable なので、await でそのまま持ち帰ると
-        // 隔離境界を越える形になり Swift 6 の厳格チェックで落ちる。
-        // コールバックの中で Sendable な列挙値だけを取り出して返す。
-        await withCheckedContinuation { continuation in
-            center.getNotificationSettings { settings in
+        // ⚠️ 完了ハンドラは @Sendable にする (requestAuthorization と同じ理由)。
+        //    getNotificationSettings はバックグラウンドキューで呼び返すので、
+        //    MainActor 推論のクロージャだと dispatch_assert_queue で SIGTRAP になる
+        //    (起動時に rescheduleAll から呼ばれ、iOS 26.2 の CI で毎回落ちていた)。
+        //    非 Sendable な UNNotificationSettings はここで Sendable な列挙値に落として返す。
+        let center = self.center
+        return await withCheckedContinuation { continuation in
+            center.getNotificationSettings { @Sendable settings in
                 continuation.resume(returning: settings.authorizationStatus)
             }
         }
@@ -75,7 +83,7 @@ final class NotificationService {
                 // 同上。center も request も非 Sendable なのでコールバック版を使う。
                 let center = self.center
                 try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-                    center.add(request) { error in
+                    center.add(request) { @Sendable error in
                         if let error { continuation.resume(throwing: error) }
                         else { continuation.resume() }
                     }
