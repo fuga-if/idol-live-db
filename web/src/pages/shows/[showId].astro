@@ -68,7 +68,7 @@ const show = page<ShowPage>(Astro.props.data);
   {
     show.siblingShows.length > 0 && (
       <Section id="show-siblings" title="このライブの他の公演">
-        <RefList refs={show.siblingShows} variant="neutral" label="他の公演" />
+        <RefList refs={show.siblingShows} variant="neutral" withSub label="他の公演" />
       </Section>
     )
   }

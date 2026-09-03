@@ -233,6 +233,13 @@ a.lead-row:hover {
 a.chip:hover {
   filter: brightness(0.97);
 }
+/* チップの添字 (公演の日付・会場の都道府県)。本体より一段落として並べる。 */
+.chip__sub {
+  margin-inline-start: var(--sp2);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.72;
+}
 
 /* --- TagChip (ImasTagChip: セトリ行のユニット/カバー/全員) ----------------- */
 .tag {

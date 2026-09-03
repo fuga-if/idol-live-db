@@ -107,7 +107,7 @@ const hasTicket = ticketRows.some((r) => r.value) || ev.ticket.url;
   {
     ev.venues.length > 0 && (
       <Section id="event-venues" title="会場">
-        <RefList refs={ev.venues} variant="neutral" label="会場" />
+        <RefList refs={ev.venues} variant="neutral" withSub label="会場" />
       </Section>
     )
   }

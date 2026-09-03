@@ -6,10 +6,16 @@ import type { Ref } from "../lib/schema/Ref";
 interface Props {
   refs: readonly Ref[];
   variant?: "neutral" | "themed";
+  /**
+   * `Ref.sub` を添字として見せるか。**中身は Rust が決めていて、ここで選ぶのは
+   * 「この一覧で添字まで見せる密度にするか」だけ**。
+   * 既定 off なのは、原唱者 60 人の一覧でブランド名が 60 回並ぶと読めなくなるため。
+   */
+  withSub?: boolean;
   emptyTitle?: string;
   label?: string;
 }
-const { refs, variant = "themed", emptyTitle, label } = Astro.props;
+const { refs, variant = "themed", withSub = false, emptyTitle, label } = Astro.props;
 ---
 
 {
@@ -24,6 +30,7 @@ const { refs, variant = "themed", emptyTitle, label } = Astro.props;
             href={r.path}
             variant={variant}
             themeKey={r.themeKey}
+            sub={withSub ? r.sub : undefined}
             title={r.sub ?? undefined}
           />
         </li>

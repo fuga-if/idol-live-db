@@ -5,17 +5,27 @@
  */
 interface Props {
   text: string;
+  /** 添字 (公演の日付など)。**何を入れるかは Rust の `Ref.sub`** が決める。 */
+  sub?: string | null;
   variant?: "neutral" | "themed" | "selected";
   themeKey?: string;
   href?: string;
   title?: string;
   class?: string;
 }
-const { text, variant = "neutral", themeKey, href, title, class: cls = "" } = Astro.props;
+const {
+  text,
+  sub,
+  variant = "neutral",
+  themeKey,
+  href,
+  title,
+  class: cls = "",
+} = Astro.props;
 const Tag = href ? "a" : "span";
 const variantClass = variant === "neutral" ? "" : `chip--${variant}`;
 ---
 
 <Tag class:list={["chip", variantClass, cls]} data-theme={themeKey} href={href} title={title}>
-  <slot name="icon" />{text}
+  <slot name="icon" />{text}{sub && <span class="chip__sub">{sub}</span>}
 </Tag>
