@@ -49,8 +49,8 @@ const show = page<ShowPage>(Astro.props.data);
         />
       ) : (
         <ol class="card setlist">
-          {show.setlist.map((row, i) => (
-            <SetlistRow row={row} number={i + 1} />
+          {show.setlist.map((row) => (
+            <SetlistRow row={row} />
           ))}
         </ol>
       )

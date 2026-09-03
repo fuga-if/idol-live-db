@@ -8,18 +8,16 @@ import type { SetlistRow } from "../lib/schema/SetlistRow";
  */
 interface Props {
   row: SetlistRow;
-  /** この公演の中で何曲目か (1 始まり)。<ol> の並び自体は Rust が決めている。 */
-  number: number;
 }
-const { row, number } = Astro.props;
+const { row } = Astro.props;
 ---
 
 <li class="setlist__row" data-theme={row.song.themeKey}>
-  {/* `row.position` はテーブル全体を通した並び順の値 (公演内で 11593 から始まる等)
-      なので画面には出さない。出すのは「この <ol> の何番目か」。
-      CSS カウンタを使わないのは、長い一覧に敷いた content-visibility: auto が
-      style containment を伴い、カウンタを要素内にスコープしてしまうため。 */}
-  <span class="setlist__no">{number}</span>
+  {/* 表示する番号は `row.number` (Rust が公演内で 1 から振ったもの)。
+      `row.position` は setlist_items 全体を通した並び順の鍵で、表示用ではない。
+      描画側で連番を振らないのは、将来「アンコールは別番号」のような規則が
+      入ったときに番号の決め方が 2 実装になるため。 */}
+  <span class="setlist__no">{row.number}</span>
   <span class="setlist__body">
     <Artwork title={row.song.name} artworkUrl={row.song.artworkUrl} size="sm" />
     <span class="setlist__main">

@@ -185,7 +185,7 @@ async function load(): Promise<Loaded> {
   const shards = await Promise.all(
     manifest.shards.map(async (meta) => ({
       meta,
-      body: await fetchJson<SearchShard>(meta.path),
+      body: await fetchJson<SearchShard>(meta.url),
     })),
   );
   return { fold, shards };

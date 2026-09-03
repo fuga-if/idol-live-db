@@ -152,13 +152,13 @@ describe("検索索引", () => {
     expect(manifest.shards.length).toBeGreaterThan(0);
     for (const s of manifest.shards) {
       expect(s.label, `${s.kind} に label が無い`).toBeTruthy();
-      expect(fs.existsSync(path.join(DATA, s.path.replace(/^\//, "")))).toBe(true);
+      expect(fs.existsSync(path.join(DATA, s.url.replace(/^\//, "")))).toBe(true);
     }
   });
 
   it("行の href が組めて、pathPrefix が完成形である", () => {
     for (const s of manifest.shards) {
-      const shard = read<SearchShard>(s.path.replace(/^\//, ""));
+      const shard = read<SearchShard>(s.url.replace(/^\//, ""));
       expect(shard.pathPrefix.startsWith("/")).toBe(true);
       expect(shard.pathPrefix.endsWith("/")).toBe(true);
       expect(shard.sep.length).toBeGreaterThan(0);
@@ -172,7 +172,7 @@ describe("検索索引", () => {
 
   it("索引の行数が manifest の count と一致する", () => {
     for (const s of manifest.shards) {
-      const shard = read<SearchShard>(s.path.replace(/^\//, ""));
+      const shard = read<SearchShard>(s.url.replace(/^\//, ""));
       expect(shard.rows.length, s.kind).toBe(s.count);
     }
   });

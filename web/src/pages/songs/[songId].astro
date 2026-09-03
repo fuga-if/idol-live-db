@@ -18,7 +18,7 @@ const song = page<SongPage>(Astro.props.data);
 const facts = [
   { label: "リリース", value: song.releaseDate, mono: true },
   { label: "収録", value: song.cdTitle },
-  { label: "シリーズ", value: song.cdSeries ?? song.seriesGroup },
+  { label: "シリーズ", value: song.seriesDisplay },
   { label: "再生時間", value: song.durationDisplay, mono: true },
   { label: "JASRAC 作品コード", value: song.jasracCode, mono: true },
 ].filter((r) => Boolean(r.value));
@@ -72,7 +72,7 @@ const facts = [
       <Section id="song-credits" title="クレジット">
         <ListContainer>
           {song.credits.map((c) => (
-            <LabeledRow label={c.role} value={c.people.length > 0 ? c.people.join(" / ") : c.raw} />
+            <LabeledRow label={c.role} value={c.display} />
           ))}
         </ListContainer>
       </Section>
@@ -105,11 +105,14 @@ const facts = [
             <li>
               <LeadRow
                 title={h.event.name}
-                subtitle={[h.show.name, h.venue].filter((v) => Boolean(v)).join(" ・ ")}
+                subtitle={h.placeDisplay}
                 href={h.show.path}
                 themeKey={h.show.themeKey}
               >
-                <time slot="trailing" class="u-num" datetime={h.date}>{h.date}</time>
+                <span slot="trailing" class="u-row">
+                  <span class="u-num">{h.number}曲目</span>
+                  <time class="u-num" datetime={h.date}>{h.date}</time>
+                </span>
               </LeadRow>
             </li>
           ))}

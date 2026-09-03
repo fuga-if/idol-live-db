@@ -178,8 +178,8 @@ describe("検索索引の参照", () => {
       fs.readFileSync(path.join(DATA, "search/manifest.json"), "utf8"),
     ) as SearchManifest;
     for (const s of manifest.shards) {
-      expect(s.path.startsWith("/search/"), `${s.path} が /search/ 始まりでない`).toBe(true);
-      expect(/^https?:/.test(s.path), `${s.path} が絶対 URL`).toBe(false);
+      expect(s.url.startsWith("/search/"), `${s.url} が /search/ 始まりでない`).toBe(true);
+      expect(/^https?:/.test(s.url), `${s.url} が絶対 URL`).toBe(false);
     }
   });
 });

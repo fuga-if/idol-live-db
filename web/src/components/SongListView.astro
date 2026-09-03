@@ -70,4 +70,19 @@ const { list } = Astro.props;
       </ListContainer>
     )
   }
+
+  {
+    /* 一覧規則 (SongListFilter の既定) から外れる曲へのハブ。
+       ここに置かないと、派生曲・ライブ限定曲・other ブランドの曲の詳細ページが
+       トップからどこからも辿れなくなる (到達性の要)。 */
+    list.allSongsLink && (
+      <p class="u-muted">
+        一覧に出していない曲 (派生曲・ライブ限定・その他ブランド) もあります。
+        <a class="u-underline-hover" href={list.allSongsLink.path}>
+          {list.allSongsLink.label}
+        </a>
+        <span class="u-dim u-num">&nbsp;{list.allSongsLink.count}</span>
+      </p>
+    )
+  }
 </ListLayout>
