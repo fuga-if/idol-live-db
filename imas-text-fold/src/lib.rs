@@ -66,10 +66,10 @@ fn compose_voiced_mark(base: char, mark: char) -> Option<char> {
         // う゛ = ゔ だけ並びから外れる。
         ('\u{3046}', DAKUTEN) => Some('\u{3094}'),
         // か行 さ行 た行 は行 (清音は 2 つおき / は行は 3 つおきに並ぶ)。
-        ('\u{304B}'..='\u{3062}', DAKUTEN) if (base as u32 - 0x304B) % 2 == 0 => voiced(base),
-        ('\u{3064}'..='\u{3068}', DAKUTEN) if (base as u32 - 0x3064) % 2 == 0 => voiced(base),
-        ('\u{306F}'..='\u{307B}', DAKUTEN) if (base as u32 - 0x306F) % 3 == 0 => voiced(base),
-        ('\u{306F}'..='\u{307B}', HANDAKUTEN) if (base as u32 - 0x306F) % 3 == 0 => semi(base),
+        ('\u{304B}'..='\u{3062}', DAKUTEN) if (base as u32 - 0x304B).is_multiple_of(2) => voiced(base),
+        ('\u{3064}'..='\u{3068}', DAKUTEN) if (base as u32 - 0x3064).is_multiple_of(2) => voiced(base),
+        ('\u{306F}'..='\u{307B}', DAKUTEN) if (base as u32 - 0x306F).is_multiple_of(3) => voiced(base),
+        ('\u{306F}'..='\u{307B}', HANDAKUTEN) if (base as u32 - 0x306F).is_multiple_of(3) => semi(base),
         _ => None,
     }
 }
@@ -159,3 +159,143 @@ pub fn find(haystack: &[u8], needle: &[u8]) -> Option<usize> {
     (0..=last).find(|&i| haystack[i] == first && &haystack[i..i + needle.len()] == needle)
 }
 
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // これらは `imas-core` の `text_search_index` にも同じ規則のテストがある。
+    // 二重に持っているのは、この crate だけを wasm 向けに触ったときにも
+    // 規則が自力で守られるようにするため (`imas-core` を通さずに壊せてしまうと、
+    // 「唯一の実体」という位置づけが崩れる)。
+
+    // --- 大文字小文字 ---
+
+    #[test]
+    fn folds_final_sigma_unconditionally_like_swift() {
+        // 語末 Σ も σ に畳む。`str::to_lowercase` は Final_Sigma 規則で ς にしてしまう。
+        assert_eq!(fold("ΑΣ"), "ασ");
+        assert_eq!(fold("ΣΣ"), "σσ");
+        // 小文字 ς はどちらの写像でも不変 (ς で入力された曲名はそのまま当たる)。
+        assert_eq!(fold("ς"), "ς");
+    }
+
+    #[test]
+    fn expands_one_to_many_lowercase_mappings() {
+        // U+0130 (İ) → "i" + U+0307 (結合ドット)。1:N 展開を潰さない。
+        assert_eq!(fold("İ"), "i\u{307}");
+        assert_eq!(fold("ẞ"), "ß");
+        assert_eq!(fold("HARUKA"), "haruka");
+    }
+
+    // --- かな ---
+
+    #[test]
+    fn katakana_folds_to_hiragana() {
+        assert_eq!(fold("オネガイ"), "おねがい");
+        assert_eq!(fold_kana('ア'), 'あ');
+        assert_eq!(fold_kana('ヶ'), 'ゖ'); // 範囲の端 (U+30F6)
+        assert_eq!(fold_kana('ァ'), 'ぁ'); // 範囲の端 (U+30A1)
+    }
+
+    #[test]
+    fn marks_without_a_hiragana_counterpart_are_left_alone() {
+        // ー (U+30FC) と ・ (U+30FB) は対応するひらがなが無く、表記の弁別に効く。
+        assert_eq!(fold("ハーモニー"), "はーもにー");
+        assert_eq!(fold("ラ・ラ・ラ"), "ら・ら・ら");
+        // ヷヸヹヺ (U+30F7..=U+30FA) も対応が無いのでそのまま。
+        assert_eq!(fold("ヷ"), "ヷ");
+    }
+
+    // --- 濁点・半濁点の合成 ---
+
+    #[test]
+    fn decomposed_dakuten_composes_into_the_precomposed_form() {
+        // NFD で入ってきた濁点を NFC 相当に畳む (実データに紛れていて、
+        // 自分の名前で検索できない状態になっていた)。
+        assert_eq!(fold("ムケ\u{3099}ンタ\u{3099}イ"), "むげんだい");
+        assert_eq!(fold("ハ\u{309A}ステル"), "ぱすてる");
+        assert_eq!(fold("う\u{3099}"), "ゔ"); // 並びから外れる 1 件
+    }
+
+    #[test]
+    fn only_kana_that_take_a_dakuten_are_composed() {
+        // あ に濁点は付かない。
+        assert_eq!(fold("あ\u{3099}"), "あ\u{3099}");
+        // か行に半濁点は無い。
+        assert_eq!(fold("カ\u{309A}"), "か\u{309A}");
+        // は行だけが半濁点を取る。
+        assert_eq!(fold("は\u{309A}"), "ぱ");
+    }
+
+    #[test]
+    fn folding_is_idempotent() {
+        // 索引側と検索語側の両方をこれに通す以上、2 回通しても変わらないこと。
+        for s in ["ΑΣ", "オネガイ", "ムケ\u{3099}ンタ\u{3099}イ", "İstanbul", "ハーモニー", ""] {
+            assert_eq!(fold(&fold(s)), fold(s), "{s:?}");
+        }
+    }
+
+    // --- ハイライト用の対応表 ---
+
+    #[test]
+    fn offsets_point_back_at_the_original_text() {
+        let (bytes, starts, ends) = fold_with_offsets("オネガイ");
+        assert_eq!(std::str::from_utf8(&bytes).unwrap(), "おねがい");
+        // 畳んだ先頭バイトは元の 0 バイト目から来ている。
+        assert_eq!(starts[0], 0);
+        assert_eq!(*ends.last().unwrap(), "オネガイ".len());
+    }
+
+    #[test]
+    fn a_composed_match_covers_both_original_characters() {
+        // 元は 2 文字 (か + 濁点)、畳むと 1 文字 (が)。範囲は 2 文字ぶんを覆う。
+        let (bytes, starts, ends) = fold_with_offsets("か\u{3099}");
+        assert_eq!(std::str::from_utf8(&bytes).unwrap(), "が");
+        assert_eq!(starts[0], 0);
+        assert_eq!(ends[0], "か\u{3099}".len());
+    }
+
+    #[test]
+    fn offsets_survive_one_to_many_expansion() {
+        // İ は 1 文字 → 2 文字に開く。どちらのバイトも元の 1 文字を指す。
+        let (bytes, starts, ends) = fold_with_offsets("İ");
+        assert_eq!(std::str::from_utf8(&bytes).unwrap(), "i\u{307}");
+        assert!(starts.iter().all(|&s| s == 0));
+        assert!(ends.iter().all(|&e| e == "İ".len()));
+    }
+
+    // --- 部分列探索 ---
+
+    #[test]
+    fn find_resumes_after_a_partial_match() {
+        assert_eq!(find(b"aaab", b"aab"), Some(1));
+        assert!(contains(b"ababab", b"abab"));
+        assert!(!contains(b"ababa", b"abb"));
+    }
+
+    #[test]
+    fn find_edge_cases() {
+        assert_eq!(find(&[], &[1]), None);
+        // 空の検索語はここでは None (「絞り込まない」の判定は呼び出し側の責務)。
+        assert_eq!(find(&[1], &[]), None);
+        assert_eq!(find(&[1, 2, 3], &[3]), Some(2));
+        assert!(!contains(&[1, 2], &[1, 2, 3]));
+    }
+
+    #[test]
+    fn a_byte_match_is_always_a_character_match() {
+        // バイト列で比べてよい根拠。UTF-8 は先頭バイト (0x00-0x7F / 0xC0-0xFF) と
+        // 継続バイト (0x80-0xBF) の範囲が重ならないので、当たった位置は必ず
+        // 文字境界になる。ここが崩れると「文字の途中に色が付く」ことになる。
+        let haystack = fold("春日未来とハーモニー");
+        for needle in ["未来", "ハーモニー", "春", "と"] {
+            let at = find(haystack.as_bytes(), fold(needle).as_bytes())
+                .unwrap_or_else(|| panic!("{needle} が見つからない"));
+            assert!(haystack.is_char_boundary(at), "{needle} が文字境界でない位置に当たった");
+            assert!(haystack.is_char_boundary(at + fold(needle).len()));
+        }
+        // 継続バイトだけを検索語にしても、文字として当たらないものは当たらない。
+        assert!(!contains(fold("未来").as_bytes(), fold("来未").as_bytes()));
+    }
+}

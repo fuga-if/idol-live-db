@@ -96,6 +96,8 @@ tools/lyrics/node_modules
 
 # imas-core (Rust) のビルド生成物。imas-core/build.sh が再生成する
 imas-core/target/
+# imas-text-fold (畳み込み規則の crate) のビルド生成物
+imas-text-fold/target/
 # tools/ の Python スクリプトを import/実行したときに出るバイトコード
 __pycache__/
 *.pyc
