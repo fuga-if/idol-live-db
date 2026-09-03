@@ -7,7 +7,7 @@
 # 実データでは is1-ssl.mzstatic.com のみ確認 (2026-09-04 時点) だが、Apple 側のホスト名は
 # is1〜is5 で変動しうるためワイルドカードにする。
 /*
-  Content-Security-Policy: default-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; img-src 'self' https://*.mzstatic.com data:; style-src 'self'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self'; font-src 'self'
+  Content-Security-Policy: default-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; img-src 'self' https://*.mzstatic.com data:; style-src 'self'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self'; font-src 'self'; manifest-src 'self'
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
 
