@@ -15,3 +15,13 @@
 # 検索エンジンに直接インデックスされる意味が無いので個別に除外する。
 /search/*.json
   X-Robots-Tag: noindex
+
+# content-hash 付きアセットは中身が変われば必ずファイル名も変わるため immutable で安全
+# (web-coder の wrangler dev 実測: /* の max-age=0, must-revalidate がここにも継承されて
+# いて、検索の wasm を含む毎回の再訪で条件付きリクエストが飛んでいた)。
+# HTML (/*) は日次再ビルドで内容が変わるので max-age=0 のままにする。
+/_astro/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/fonts/*
+  Cache-Control: public, max-age=31536000, immutable
