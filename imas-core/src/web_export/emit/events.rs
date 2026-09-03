@@ -182,14 +182,22 @@ pub fn show_summary(
     with_event: bool,
 ) -> Option<ShowSummary> {
     let event = if with_event { ctx.event_ref(&show.event_id) } else { None };
-    // 公演名からライブ名と重なる部分を落とすのは **どちらの文脈でも**。
-    // ライブ詳細ページではページ見出しがライブ名なので、副題にその繰り返しが出ると
-    // 「ステージ１回目」のような見分けの手掛かりが行末に埋もれる。
-    let event_name = ctx.snap.event(&show.event_id).map(|e| e.name.as_str()).unwrap_or_default();
-    let show_label = distinguishing_show_name(event_name, &show.name).map(str::to_string);
+    // **公演名は副題に入れない。** 行のタイトルが必ず公演名 (`reference.name`) なので、
+    // 副題にも入れると画面で 2 回出る。副題が担うのは「タイトルだけでは分からないこと」
+    // — どのライブの公演か (一覧の文脈でのみ) と、どこで何時からか。
+    //
+    // ここに公演名を入れていたとき、2 つの副題を持つツアーで扱いが割れていた:
+    // ライブ名の末尾と重なる側だけ公演名が短くなり、同じ一覧の中で行の形が揃わない。
+    // 公演名を落とすと、その非対称ごと消える。
+    // ライブ名も、行タイトル (= 公演名) が既に抱えているなら入れない。
+    // 単日公演では公演名がライブ名と同じことが多く (実データで 394 行)、
+    // そのまま入れると行タイトルと副題の頭がまったく同じ文字列になる。
+    let event_name = event
+        .as_ref()
+        .map(|e| e.name.clone())
+        .filter(|name| !show.name.contains(name.as_str()));
     let subtitle = join_parts([
-        event.as_ref().map(|e| e.name.clone()),
-        show_label,
+        event_name,
         show.venue.clone(),
         show.hall.clone(),
         show.start_time.as_deref().map(|t| format!("{t} 開演")),

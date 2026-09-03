@@ -884,6 +884,119 @@ mod real {
     }
 
     #[test]
+    fn show_row_subtitles_never_repeat_the_row_title() {
+        // 公演行のタイトルは必ず公演名 (`ref.name`)。副題にも公演名が入ると画面で
+        // 2 回出る。副題が担うのは「タイトルだけでは分からないこと」だけ。
+        //
+        // 3 種類の置き場すべてを見る (ライブ詳細・会場詳細・トップの最近の公演)。
+        // 1 箇所だけ直しても、同じ型を別のページで組み直したときに戻る。
+        let dir = exported();
+        let root = dir.path();
+        let routes: RoutesFile =
+            serde_json::from_str(&std::fs::read_to_string(root.join("routes.json")).unwrap())
+                .unwrap();
+
+        let mut offenders: Vec<String> = Vec::new();
+        let mut checked = 0usize;
+        let check = |where_: &str, shows: &[ShowSummary], offenders: &mut Vec<String>, checked: &mut usize| {
+            for summary in shows {
+                *checked += 1;
+                let Some(subtitle) = &summary.subtitle else { continue };
+                let name = summary.reference.name.trim();
+                // 短い名前 (「DAY1」等) は会場名に偶然含まれうるので、独立した語として
+                // 出ているときだけを見る。ここでは素直に部分一致で足りる長さに絞る。
+                if name.chars().count() >= 4 && subtitle.contains(name) {
+                    offenders.push(format!("{where_}: {name:?} が副題 {subtitle:?} にも出ている"));
+                }
+            }
+        };
+
+        for entry in &routes.routes {
+            match entry.kind {
+                RouteKind::Event => {
+                    let page: EventPage = serde_json::from_str(
+                        &std::fs::read_to_string(root.join(&entry.data)).unwrap(),
+                    )
+                    .unwrap();
+                    check(&page.path, &page.shows, &mut offenders, &mut checked);
+                }
+                RouteKind::Venue => {
+                    let page: VenuePage = serde_json::from_str(
+                        &std::fs::read_to_string(root.join(&entry.data)).unwrap(),
+                    )
+                    .unwrap();
+                    check(&page.path, &page.shows, &mut offenders, &mut checked);
+                }
+                RouteKind::Home => {
+                    let page: HomePage = serde_json::from_str(
+                        &std::fs::read_to_string(root.join(&entry.data)).unwrap(),
+                    )
+                    .unwrap();
+                    check(&page.path, &page.recent_shows, &mut offenders, &mut checked);
+                }
+                _ => {}
+            }
+        }
+
+        assert!(checked > 2_000, "確かめた公演行が少なすぎる: {checked}");
+        assert!(
+            offenders.is_empty(),
+            "副題が行タイトルを繰り返している {} 件 (先頭 10 件):\n{}",
+            offenders.len(),
+            offenders.iter().take(10).cloned().collect::<Vec<_>>().join("\n")
+        );
+    }
+
+    #[test]
+    fn show_row_subtitles_carry_the_event_only_outside_the_event_page() {
+        // 副題にライブ名を入れるかは「どのページに並べるか」で決まる。
+        // ライブ詳細では自明なので入れず、トップと会場詳細では入れる。
+        let dir = exported();
+        let root = dir.path();
+        let home: HomePage =
+            serde_json::from_str(&std::fs::read_to_string(root.join("index/home.json")).unwrap())
+                .unwrap();
+        // 公演名がライブ名を抱えていない行を選ぶ (抱えている行は副題に入れない規則)。
+        let recent = home
+            .recent_shows
+            .iter()
+            .find(|s| {
+                s.event.as_ref().is_some_and(|e| !s.reference.name.contains(e.name.as_str()))
+            })
+            .expect("公演名がライブ名と別の行がトップに無い");
+        let event = recent.event.as_ref().expect("トップの公演行にはライブ名が要る");
+        assert!(
+            recent.subtitle.as_deref().is_some_and(|s| s.contains(event.name.as_str())),
+            "トップの副題にライブ名が無い: {:?}",
+            recent.subtitle
+        );
+
+        let routes: RoutesFile =
+            serde_json::from_str(&std::fs::read_to_string(root.join("routes.json")).unwrap())
+                .unwrap();
+        let with_shows = routes
+            .routes
+            .iter()
+            .filter(|r| r.kind == RouteKind::Event)
+            .find_map(|r| {
+                let page: EventPage =
+                    serde_json::from_str(&std::fs::read_to_string(root.join(&r.data)).unwrap())
+                        .unwrap();
+                (!page.shows.is_empty()).then_some(page)
+            })
+            .expect("公演のあるライブが 1 件も無い");
+        for summary in &with_shows.shows {
+            assert!(summary.event.is_none(), "ライブ詳細の公演行にライブ名が入っている");
+            if let Some(subtitle) = &summary.subtitle {
+                assert!(
+                    !subtitle.contains(with_shows.name.as_str()),
+                    "ライブ詳細の副題にライブ名が入っている: {subtitle:?}"
+                );
+            }
+        }
+    }
+
+    #[test]
     fn about_credits_the_display_font_and_ships_its_licence() {
         // OFL はライセンス文の同梱を求める。About から辿れて、実体が配布物にあること。
         let dir = exported();
