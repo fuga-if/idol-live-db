@@ -23,11 +23,12 @@ iOS / Android ネイティブアプリと、それを支える Cloudflare Worker
 | iOS アプリ | `ImasLiveDB/` | SwiftUI (iOS 17+), GRDB, Nuke, MusicKit, xcodegen |
 | Android アプリ | `ImasLiveDB-Android/` | Jetpack Compose, Retrofit, Coil, Firebase |
 | バックエンド API | `imas-live-api/` | Cloudflare Workers, D1 (SQLite), CloudKit S2S |
+| Web 出面 | `web/` | Astro (静的サイト), Cloudflare Workers Static Assets |
 | データ整備ツール | `tools/` | Python / Ruby (CloudKit seed・Apple Music 補完・整合性チェック) |
 
 iOS と Android はファイル/コンポーネント構成を意図的に揃えており、片方の変更はもう片方に 1:1 で横展開する運用です。
 
-各コンポーネントの設計方針: [iOS](docs/ARCHITECTURE.md) / [Android](docs/ARCHITECTURE-android.md) / [Worker](docs/ARCHITECTURE-worker.md)。データ所在・同期・マイグレーションの共通思想は [iOS 文書のデータ節](docs/ARCHITECTURE.md) と [DATA_PIPELINE.md](docs/DATA_PIPELINE.md)。
+各コンポーネントの設計方針: [iOS](docs/ARCHITECTURE.md) / [Android](docs/ARCHITECTURE-android.md) / [Worker](docs/ARCHITECTURE-worker.md) / [Web](docs/ARCHITECTURE-web.md)。データ所在・同期・マイグレーションの共通思想は [iOS 文書のデータ節](docs/ARCHITECTURE.md) と [DATA_PIPELINE.md](docs/DATA_PIPELINE.md)。
 
 ## データソースは「2系統」(重要)
 
@@ -88,6 +89,19 @@ npm run deploy                   # 本番デプロイ (オーナーのみ)
 - 非秘密の設定は `wrangler.jsonc` の `vars` (APPLE_BUNDLE_ID / ALLOWED_ORIGINS) と D1 binding に定義。
 - 本番シークレット (`CLOUDKIT_KEY_ID` / `CLOUDKIT_PRIVATE_KEY` / `SESSION_JWT_SECRET` / `ADMIN_USER_IDS`) は `wrangler secret put` で登録する。
 
+### Web (`web/`)
+
+```bash
+cd web
+npm ci
+npm run build:all   # db/master.sql → JSON 生成 (cargo) → 検索 wasm ビルド → astro build
+npm run preview     # wrangler dev (Cloudflare Workers Static Assets と同じ配信)
+```
+
+- マスタ DB (ライブ/公演/セトリ/楽曲/アイドル/ユニット/会場/ブランド) を閲覧・検索・共有できる静的サイト。**閲覧専用**で、担当/投票/歌詞/コール等の状態を持つ機能は持たない (すべてアプリへ誘導)。
+- 表示ルールの正は `imas-core` (Rust)。`web/src` には業務ルールを書かない。詳細は [docs/ARCHITECTURE-web.md](docs/ARCHITECTURE-web.md)。
+- 公開 URL: https://imas-live-web.tokata3011.workers.dev/ (Cloudflare secret 未登録時は CI がビルド検証のみ行い、デプロイはスキップされる)。
+
 ---
 
 ## 開発上の注意 (ハマりどころ)
@@ -96,6 +110,7 @@ npm run deploy                   # 本番デプロイ (オーナーのみ)
 - **CloudKit スキーマ変更**: 新フィールドは Dashboard で Indexable 設定 → Dev→Production を Deploy しないと反映されない。スキーマは `tools/cloudkit_schema.ckdb` を正として `cktool` 経由で管理。
 - **集計系 D1 はホットパス**: 集計系コミュニティ読みは D1 の固定無料枠 (ユーザー数で増えない) に乗る唯一のホットパス。コスト/性能のボトルネックになりうる (TTL キャッシュで緩和済み)。
 - **master データの所在**: CloudKit が source of truth。git には `db/master.sql` (テキスト dump) が日次自動更新で載る。binary `master.sqlite` は gitignore で各自 `tools/build_db.sh` 生成 (apply ツールは自動生成)。詳細は [`docs/DATA_PIPELINE.md`](docs/DATA_PIPELINE.md)。
+- **Web は表示専用**: インタラクティブ要素は全部アプリに寄せる。表示ルールの正は `imas-core` であり、`web/src` に SQL や業務ルール (何を出す/隠す・並び・色導出・検索の畳み込み等) を書かない。詳細は [`docs/ARCHITECTURE-web.md`](docs/ARCHITECTURE-web.md)。
 
 ## データに協力する
 

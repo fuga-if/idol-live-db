@@ -103,3 +103,13 @@ __pycache__/
 # 読み突き合わせの作業ファイル (再生成できる。state は途中再開用)
 tools/readings/crosscheck.tsv
 tools/readings/crosscheck_state.json
+
+# Web 出面 (web/) のビルド生成物。web-export bin / astro build / wasm-pack が再生成する。
+# web/data-fixture/ と web/src/lib/schema/ は commit 対象 (生成物だが正として扱う) なので含めない。
+web/data/
+web/.cache/
+web/dist/
+web/src/lib/fold/
+web/node_modules/
+web/wasm/*/target/
+web/wasm/*/pkg/

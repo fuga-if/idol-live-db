@@ -15,12 +15,14 @@ on:
       - 'ImasLiveDB-Android/**'
       - 'db/master.sql'
       - 'imas-core/**'
+      - 'imas-text-fold/**'
       - '.github/workflows/android-guard.yml'
   pull_request:
     paths:
       - 'ImasLiveDB-Android/**'
       - 'db/master.sql'
       - 'imas-core/**'
+      - 'imas-text-fold/**'
       - '.github/workflows/android-guard.yml'
   workflow_dispatch:
 

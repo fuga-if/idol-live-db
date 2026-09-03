@@ -1,0 +1,19 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // assets-only Worker: "main" を書かない。静的アセット配信は無料・リクエスト無制限・
+  // Worker 呼び出しは 0 回 (Web の絶対制約「ランニングコスト 0」。docs/ARCHITECTURE-web.md §2)。
+  // imas-live-api/wrangler.jsonc とは別ファイル・別 Worker 名。既存 Worker の設定・
+  // ルート・cron には一切触れない。
+  "name": "imas-live-web",
+  "compatibility_date": "2026-09-01",
+  "workers_dev": true,
+  "assets": {
+    "directory": "./dist",
+    // astro.config.mjs の trailingSlash:"always" と対にする。
+    // /events/xxx を叩かれたら /events/xxx/ へ 308 で寄せ、URL を 1 本化する。
+    "html_handling": "force-trailing-slash",
+    // 未知パスは dist/404.html を 404 で返す。
+    "not_found_handling": "404-page"
+  },
+  "observability": { "enabled": false }
+}

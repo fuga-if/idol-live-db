@@ -1,0 +1,17 @@
+# Cloudflare Workers Static Assets が読む _headers ファイル。
+# https://developers.cloudflare.com/pages/configuration/headers/ (Workers Static Assets でも同形式)
+#
+# CSP は「JS は /search/ の island のみ・インライン style は使わない・外部リソースを
+# 読み込まない」という設計 (docs/ARCHITECTURE-web.md) を機械的に強制する。
+# img-src だけ Apple Music CDN (ジャケ画像 = songs.artwork_url の唯一の外部参照) を許可する。
+# 実データでは is1-ssl.mzstatic.com のみ確認 (2026-09-04 時点) だが、Apple 側のホスト名は
+# is1〜is5 で変動しうるためワイルドカードにする。
+/*
+  Content-Security-Policy: default-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; img-src 'self' https://*.mzstatic.com data:; style-src 'self'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self'; font-src 'self'
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+
+# 検索索引 JSON は「検索語で当たるためのデータ」であって記事ではない。
+# 検索エンジンに直接インデックスされる意味が無いので個別に除外する。
+/search/*.json
+  X-Robots-Tag: noindex

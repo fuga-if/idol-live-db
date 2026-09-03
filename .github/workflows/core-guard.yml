@@ -8,6 +8,7 @@ on:
   pull_request:
     paths:
       - "imas-core/**"
+      - "imas-text-fold/**"
       - "db/master.sql"
       - "ImasLiveDB-Android/app/schemas/**"
       - ".github/workflows/core-guard.yml"
@@ -15,6 +16,7 @@ on:
     branches: [develop, main]
     paths:
       - "imas-core/**"
+      - "imas-text-fold/**"
       - "db/master.sql"
       - "ImasLiveDB-Android/app/schemas/**"
 

@@ -1,0 +1,134 @@
+name: web-deploy
+
+# Web 出面 (ImasLiveDB Web) のビルド検証 + デプロイ。
+#
+# データの正は db/master.sql、表示ルールの正は imas-core (Rust)。
+# ここでは (1) imas-core の web-export 機能をテスト → (2) db/master.sql から
+# web/data/**.json を生成 → (3) 検索の畳み込み wasm をビルド → (4) Astro で
+# 静的サイトをビルド → (5) Cloudflare Workers Static Assets へ deploy、を順に行う。
+# PR では deploy を行わず、ビルド検証のみ。
+#
+# 既存ワークフロー (core-guard / ios-guard / android-guard / worker-guard 等) には
+# 一切触れない。imas-live-api/ の Worker とは別デプロイ (docs/ARCHITECTURE-web.md)。
+on:
+  push:
+    branches: [develop]
+    paths:
+      - "web/**"
+      - "imas-core/**"
+      - "imas-text-fold/**"
+      - "db/master.sql"
+      - ".github/workflows/web-deploy.yml"
+  pull_request:
+    paths:
+      - "web/**"
+      - "imas-core/**"
+      - "imas-text-fold/**"
+      - ".github/workflows/web-deploy.yml"
+  schedule:
+    # 毎日 20:00 UTC = JST 05:00。データが動かない日でも「今日」(todayJst) を進め、
+    # 開催済み/今後の分類を最新に保つ (imas-core の jst_day::jst_today がビルド時に
+    # 1 回だけ確定する設計。docs/ARCHITECTURE-web.md 参照)。
+    - cron: "0 20 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: web-deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      HAS_CF: ${{ secrets.CLOUDFLARE_API_TOKEN != '' && secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        run: rustup toolchain install stable --profile minimal
+
+      - name: Add wasm target
+        run: rustup target add wasm32-unknown-unknown
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ~/.cargo/bin
+            imas-core/target
+            web/wasm/imas-fold-wasm/target
+          key: web-cargo-${{ runner.os }}-${{ hashFiles('imas-core/Cargo.lock', 'web/wasm/imas-fold-wasm/Cargo.lock') }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      # web-export の serde 構造体のテストは同梱 master.sqlite を読む
+      # (imas-core の既存テスト流儀に合わせる。core-guard.yml と同じ手順)。
+      - name: Build master.sqlite from db/master.sql
+        run: bash tools/build_db.sh
+
+      - name: Rust tests (web-export)
+        working-directory: imas-core
+        run: cargo test --locked --features web-export
+
+      # ts-rs が生成する TS 型 (web/src/lib/schema/**) は commit 済みのものが正。
+      # 生成先が空のまま `git diff --exit-code` を通すと「差分ゼロ」で誤って緑になるため、
+      # ドリフト検査の前にファイルが実在することを別ステップで確認する。
+      - name: Ensure generated schema exists
+        run: |
+          if [ -z "$(ls web/src/lib/schema/*.ts 2>/dev/null)" ]; then
+            echo "::error::web/src/lib/schema/*.ts が無い (cargo test --features web-export で生成され commit されているはず)"
+            exit 1
+          fi
+
+      - name: Schema drift check
+        run: git diff --exit-code -- web/src/lib/schema
+
+      - name: Export JSON from db/master.sql
+        working-directory: imas-core
+        run: >-
+          cargo run --release --locked --features web-export --bin web-export --
+          --sql ../db/master.sql --out ../web/data
+
+      - name: Install wasm-pack
+        run: command -v wasm-pack || cargo install wasm-pack --locked
+
+      - name: Build fold wasm
+        working-directory: web/wasm/imas-fold-wasm
+        run: wasm-pack build --release --target web --out-dir ../../src/lib/fold
+
+      - name: npm ci
+        working-directory: web
+        run: npm ci
+
+      - name: Type check
+        working-directory: web
+        run: npm run check
+
+      - name: Unit tests (fold parity / fixture schema)
+        working-directory: web
+        run: npm test
+
+      - name: Build site
+        working-directory: web
+        run: npm run build # astro build (prebuild が require-data.mjs) + check-limits.mjs
+
+      - name: Deploy to Cloudflare
+        if: >-
+          github.event_name != 'pull_request' && env.HAS_CF == 'true'
+        working-directory: web
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx wrangler deploy
+
+      - name: Skip notice
+        if: >-
+          github.event_name != 'pull_request' && env.HAS_CF != 'true'
+        run: echo "::notice::CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID 未登録のためデプロイをスキップしました (docs/ARCHITECTURE-web.md の secret 設定手順を参照)"
