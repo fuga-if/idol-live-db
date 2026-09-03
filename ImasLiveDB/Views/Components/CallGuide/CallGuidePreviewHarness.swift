@@ -44,7 +44,8 @@ struct CallGuidePreviewHarness: View {
             case .sheet:
                 CallEditorSheet(
                     request: .init(lineId: "ll_5", start: 0, end: 3,
-                                   anchorText: "ダミー", existing: nil),
+                                   anchorText: "ダミー",
+                                   lineText: "ダミー歌詞のサンプル行です 2", existing: nil),
                     seed: nil,
                     onSubmit: { _, _, _ in },
                     onDelete: nil

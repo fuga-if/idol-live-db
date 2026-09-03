@@ -52,6 +52,9 @@ enum CallGuideText {
         let start: Int
         let end: Int
         let color: Color
+        /// いま編集中のアンカーか。確定済みのアンカー (淡く敷く) と見分けるため、
+        /// 編集中はもっと濃く出す。同じ濃さだと「どれを今いじっているか」が消える。
+        var isPending: Bool = false
     }
 
     /// アンカー範囲に色を敷いた行を組み立てる。
@@ -72,7 +75,12 @@ enum CallGuideText {
             }
             var segment = AttributedString(String(String.UnicodeScalarView(scalars[start..<end])))
             var container = AttributeContainer()
-            container.swiftUI.backgroundColor = highlight.color.opacity(0.18)
+            // 閲覧中のアンカーは本文の邪魔をしないよう薄く敷く。編集中のアンカー
+            // (シートの「アンカー」欄) は**そこが主役**なので、はっきり出す。
+            // 同じ濃さにすると、行の中のどこに掛かるのかが読み取れない。
+            container.swiftUI.backgroundColor =
+                highlight.color.opacity(highlight.isPending ? 0.55 : 0.18)
+            if highlight.isPending { container.swiftUI.font = .imasBody.weight(.bold) }
             container.swiftUI.underlineStyle = .single
             segment.mergeAttributes(container)
             result += segment

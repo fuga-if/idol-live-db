@@ -16,6 +16,9 @@ struct CallEditorSheet: View {
         let start: Int
         let end: Int
         let anchorText: String
+        /// アンカーが乗っている行の本文。**どこに掛かるのかを行ごと見せる**ために持つ。
+        /// 語だけを出しても、同じ語が行に 2 回出てくるとどちらか分からない。
+        let lineText: String
         /// 既存コールの編集なら中身。新規なら nil。
         let existing: LyricCall?
 
@@ -91,10 +94,19 @@ struct CallEditorSheet: View {
                     .foregroundStyle(DS.ink2)
                     .fixedSize(horizontal: false, vertical: true)
             } else {
-                Text(request.anchorText)
-                    .font(.imasBody.weight(.semibold))
-                    .foregroundStyle(DS.ink)
-                    .fixedSize(horizontal: false, vertical: true)
+                // 行ごと出して、その中でアンカーを光らせる。
+                // シートは歌詞を覆うので、後ろの行に色を敷いても見えない
+                // (`.medium` でも隠れる位置にあることを実機で確認した)。
+                // 語だけを出す形だと、同じ語が行に 2 回出てくるとどちらか分からない。
+                Text(CallGuideText.attributed(
+                    request.lineText,
+                    highlights: [.init(start: request.start, end: request.end,
+                                       color: ImasTheme.derive(seed: seed, scheme: scheme).accent,
+                                       isPending: true)]
+                ))
+                .font(.imasBody)
+                .foregroundStyle(DS.ink)
+                .fixedSize(horizontal: false, vertical: true)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

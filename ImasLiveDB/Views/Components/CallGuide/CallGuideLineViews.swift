@@ -333,16 +333,19 @@ struct CallGuideSelectableLine: View {
         let theme = ImasTheme.derive(seed: nil, scheme: scheme)
         if dragRange?.contains(cell.id) == true {
             Rectangle().fill(theme.accent.opacity(0.45))
-        } else if let color = highlightColor(for: cell) {
-            // 0.18 では暗所でほぼ見えなかった (実機確認)。
-            Rectangle().fill(color.opacity(0.30))
+        } else if let hit = highlight(for: cell) {
+            // 編集中のアンカーはなぞり中と同じ濃さにする。確定済み (0.30) と同じだと
+            // 「いまどれを触っているか」が見えない。0.18 では暗所でほぼ見えなかった
+            // (実機確認) ので、確定済みも 0.30 より下げない。
+            Rectangle().fill(hit.color.opacity(hit.isPending ? 0.45 : 0.30))
         } else {
             Rectangle().fill(Color.clear)
         }
     }
 
-    private func highlightColor(for cell: CallGuideText.Cell) -> Color? {
-        highlights.first { $0.start <= cell.scalarStart && cell.scalarEnd <= $0.end }?.color
+    /// 一番後ろに積まれたものを優先する (編集中のアンカーは最後に足される)。
+    private func highlight(for cell: CallGuideText.Cell) -> CallGuideText.Highlight? {
+        highlights.last { $0.start <= cell.scalarStart && cell.scalarEnd <= $0.end }
     }
 
     private func frameReporter(_ cell: CallGuideText.Cell) -> some View {

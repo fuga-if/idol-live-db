@@ -484,7 +484,7 @@ struct SongLyricsTab: View {
             return
         }
         callRequest = CallEditorSheet.Request(lineId: line.id, start: start, end: end,
-                                              anchorText: text, existing: nil)
+                                              anchorText: text, lineText: line.text, existing: nil)
     }
 
     /// 行末 (追っかけ) にコールを足す。範囲を選ばせず 1 タップでシートまで飛ばす。
@@ -497,14 +497,15 @@ struct SongLyricsTab: View {
         AppAnalytics.tap("call_guide.add_trailing")
         let end = CallGuideText.scalarCount(of: line.text)
         callRequest = CallEditorSheet.Request(lineId: line.id, start: end, end: end,
-                                              anchorText: "", existing: nil)
+                                              anchorText: "", lineText: line.text, existing: nil)
         // 範囲選択の途中 (開始だけタップ済み) なら取り消す。
         selectionResetToken += 1
     }
 
     private func editCall(line: LyricLine, call: LyricCall) {
         callRequest = CallEditorSheet.Request(lineId: line.id, start: call.start, end: call.end,
-                                              anchorText: call.anchorText, existing: call)
+                                              anchorText: call.anchorText, lineText: line.text,
+                                              existing: call)
     }
 
     private func apply(_ request: CallEditorSheet.Request, text: String,
@@ -538,12 +539,22 @@ struct SongLyricsTab: View {
             }
             if rank(call.emphasis) > rank(current.emphasis) { strongest[key] = call }
         }
-        return order.compactMap { key in
+        var result = order.compactMap { key in
             strongest[key].map {
                 CallGuideText.Highlight(start: $0.start, end: $0.end,
                                         color: anchorColor($0.emphasis, theme: theme))
             }
         }
+        // いま編集中のアンカーを最後に重ねる。シートは `.medium` で開くので歌詞の
+        // 上半分は見えたままで、そこに「どこに掛けようとしているか」が出ていないと
+        // 何を選んだのか分からない (タップで即シートが開くので、なぞりのような
+        // 途中経過も残らない)。色はなぞり中と同じアクセントにして、確定済みの
+        // アンカー (淡い) と見分けられるようにする。
+        if let pending = callRequest, pending.lineId == line.id, pending.hasAnchor {
+            result.append(CallGuideText.Highlight(start: pending.start, end: pending.end,
+                                                  color: theme.accent, isPending: true))
+        }
+        return result
     }
 
     private func anchorColor(_ emphasis: CallEmphasis, theme: ImasTheme) -> Color {
