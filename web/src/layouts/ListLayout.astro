@@ -1,0 +1,56 @@
+---
+import BaseLayout from "./BaseLayout.astro";
+import Breadcrumbs from "../components/Breadcrumbs.astro";
+import SegmentedLinks from "../components/SegmentedLinks.astro";
+import type { NavLinkLike, SeoLike, SiteMetaLike } from "../lib/ui-types";
+
+/**
+ * 一覧ページの枠。
+ * 切替 (今後/開催済み・ブランド・年・都道府県) は **クライアント状態ではなくリンク**。
+ * どれが現在地かは Rust が `current` で出す。
+ */
+interface Props {
+  seo: SeoLike;
+  meta: SiteMetaLike;
+  title: string;
+  lead?: string | null;
+  total?: number | null;
+  themeKey?: string;
+  scopeLinks?: readonly NavLinkLike[];
+  scopeLabel?: string;
+  filterLinks?: readonly NavLinkLike[];
+  filterLabel?: string;
+  wide?: boolean;
+}
+const {
+  seo,
+  meta,
+  title,
+  lead,
+  total,
+  themeKey,
+  scopeLinks = [],
+  scopeLabel = "表示の切替",
+  filterLinks = [],
+  filterLabel = "絞り込み",
+  wide = false,
+} = Astro.props;
+---
+
+<BaseLayout seo={seo} meta={meta} themeKey={themeKey} wide={wide}>
+  <header class="u-stack">
+    <Breadcrumbs crumbs={seo.breadcrumbs} />
+    <h1 class="hero__title">{title}</h1>
+    {lead && <p class="u-muted">{lead}</p>}
+    {
+      total !== undefined && total !== null && (
+        <p class="u-dim">
+          <span class="u-num">{total}</span> 件
+        </p>
+      )
+    }
+    <SegmentedLinks label={scopeLabel} links={scopeLinks} />
+    <SegmentedLinks label={filterLabel} links={filterLinks} variant="chips" />
+  </header>
+  <slot />
+</BaseLayout>

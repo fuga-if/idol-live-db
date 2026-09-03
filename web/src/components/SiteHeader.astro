@@ -1,0 +1,48 @@
+---
+/** サイト共通ヘッダ。現在地はパス接頭辞で決まる (状態は持たない)。 */
+interface Props {
+  pathname: string;
+}
+const { pathname } = Astro.props;
+const nav = [
+  { name: "ライブ", href: "/events/" },
+  { name: "楽曲", href: "/songs/" },
+  { name: "アイドル", href: "/idols/" },
+  { name: "ユニット", href: "/units/" },
+  { name: "会場", href: "/venues/" },
+  { name: "ブランド", href: "/brands/" },
+];
+const isCurrent = (href: string) =>
+  href === "/" ? pathname === "/" : pathname.startsWith(href);
+---
+
+<header class="site-header">
+  <div class="page site-header__inner">
+    <a class="site-header__brand" href="/">
+      <img
+        class="site-header__mark"
+        src="/icon-192.png"
+        alt=""
+        width="26"
+        height="26"
+      />
+      アイドルライブDB
+    </a>
+    <nav class="site-nav" aria-label="サイト内の主要な一覧">
+      <ul>
+        {
+          nav.map((n) => (
+            <li>
+              <a href={n.href} aria-current={isCurrent(n.href) ? "page" : undefined}>
+                {n.name}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </nav>
+    <a class="site-header__search" href="/search/">
+      <span aria-hidden="true">⌕</span>検索
+    </a>
+  </div>
+</header>

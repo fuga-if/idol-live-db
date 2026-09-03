@@ -1,0 +1,35 @@
+---
+import type { AppOpenLike } from "../lib/ui-types";
+/**
+ * 「アプリで開く」導線。ユーザー指示により、状態を持つ機能 (参加記録・投票・歌詞・
+ * タグ・コール) はすべてアプリ側なので、詳細ページから必ずここへ誘導する。
+ * 文面 (`note`) と deeplink の有無は Rust が決める。
+ */
+interface Props {
+  app: AppOpenLike;
+  themeKey?: string;
+}
+const { app, themeKey } = Astro.props;
+---
+
+<aside class="open-in-app" data-theme={themeKey} aria-label="アプリで開く">
+  <img
+    class="open-in-app__icon"
+    src="/icon-192.png"
+    alt=""
+    width="48"
+    height="48"
+    loading="lazy"
+    decoding="async"
+  />
+  <div class="open-in-app__body">
+    <p class="open-in-app__title">アプリ「アイドルライブDB」</p>
+    <p class="open-in-app__note">{app.note}</p>
+  </div>
+  <div class="open-in-app__actions">
+    {app.deeplink && <a class="btn" href={app.deeplink}>アプリで開く</a>}
+    <a class:list={["btn", app.deeplink && "btn--ghost"]} href={app.appStoreUrl}>
+      App Store
+    </a>
+  </div>
+</aside>

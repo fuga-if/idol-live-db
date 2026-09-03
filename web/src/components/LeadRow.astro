@@ -1,0 +1,30 @@
+---
+/**
+ * ImasLeadRow の Web 版 — リードバー + 見出し + 副題 + 末尾スロット。
+ * 行全体が奥のページへのリンク。末尾は既定でシェブロン。
+ */
+interface Props {
+  title: string;
+  subtitle?: string | null;
+  href: string;
+  themeKey?: string;
+  rainbow?: boolean;
+}
+const { title, subtitle, href, themeKey, rainbow = false } = Astro.props;
+const hasTrailing = Astro.slots.has("trailing");
+---
+
+<a
+  class:list={["lead-row", rainbow && "lead-row--rainbow"]}
+  data-theme={themeKey}
+  href={href}
+>
+  <span class="lead-row__body">
+    <span class="lead-row__title u-underline-hover">{title}</span>
+    {subtitle && <span class="lead-row__sub">{subtitle}</span>}
+  </span>
+  <span class="lead-row__trailing">
+    {hasTrailing && <slot name="trailing" />}
+    <span class="chevron" aria-hidden="true">›</span>
+  </span>
+</a>

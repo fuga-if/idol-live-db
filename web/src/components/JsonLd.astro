@@ -1,0 +1,15 @@
+---
+/**
+ * JSON-LD の唯一の出口。
+ * 中身 (@type / プロパティ) は Rust の `SeoBlock.json_ld` が組み、ここは埋めるだけ。
+ * `<script type="application/ld+json">` を pages/** に直接書かないための部品
+ * (「pages に <script> は search.astro だけ」というレビュー規約を成立させる)。
+ */
+interface Props {
+  data?: unknown;
+}
+const { data } = Astro.props;
+const json = data === undefined || data === null ? null : JSON.stringify(data);
+---
+
+{json && <script is:inline type="application/ld+json" set:html={json} />}

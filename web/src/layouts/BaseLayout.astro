@@ -1,0 +1,42 @@
+---
+import Head from "../components/Head.astro";
+import SiteHeader from "../components/SiteHeader.astro";
+import SiteFooter from "../components/SiteFooter.astro";
+import JsonLd from "../components/JsonLd.astro";
+import type { SeoLike, SiteMetaLike } from "../lib/ui-types";
+import "../styles/tokens.css";
+import "../styles/base.css";
+import "../styles/components.css";
+
+/**
+ * 全ページの外枠。
+ * - テーマは `data-theme` 属性 1 個で当てる (実体は Rust が出す public/themes.css)。
+ *   ライト / ダークの切替は prefers-color-scheme のみ。トグル UI は作らない。
+ * - ブラウザ JS は /search/ の island だけ。ここでは 1 行も読み込まない。
+ */
+interface Props {
+  seo: SeoLike;
+  meta: SiteMetaLike;
+  themeKey?: string;
+  wide?: boolean;
+  bodyClass?: string;
+}
+const { seo, meta, themeKey = "neutral", wide = false, bodyClass } = Astro.props;
+const SITE_NAME = "アイドルライブDB";
+---
+
+<html lang="ja" prefix="og: https://ogp.me/ns#">
+  <head>
+    <Head seo={seo} siteName={SITE_NAME} />
+    <link rel="stylesheet" href="/themes.css" />
+    <JsonLd data={seo.jsonLd} />
+  </head>
+  <body data-theme={themeKey} class={bodyClass}>
+    <a class="skip-link" href="#main">本文へスキップ</a>
+    <SiteHeader pathname={Astro.url.pathname} />
+    <main id="main" class:list={["page", wide && "page--wide", "main"]}>
+      <slot />
+    </main>
+    <SiteFooter app={meta.app} />
+  </body>
+</html>

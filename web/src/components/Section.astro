@@ -1,0 +1,27 @@
+---
+import SectionHeader from "./SectionHeader.astro";
+/** 見出し + 中身のひとかたまり。`aria-labelledby` を自動で結ぶ。 */
+interface Props {
+  title: string;
+  count?: number | string | null;
+  moreHref?: string;
+  moreLabel?: string;
+  level?: 2 | 3;
+  tight?: boolean;
+  id: string;
+}
+const { title, count, moreHref, moreLabel, level, tight, id } = Astro.props;
+---
+
+<section class="section" aria-labelledby={id}>
+  <SectionHeader
+    title={title}
+    count={count}
+    moreHref={moreHref}
+    moreLabel={moreLabel}
+    level={level}
+    tight={tight}
+    id={id}
+  />
+  <slot />
+</section>

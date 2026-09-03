@@ -1,0 +1,13 @@
+---
+/** ImasListContainer 相当 — inset-grouped 風のカード。行の間に自動で罫が入る。 */
+interface Props {
+  as?: "div" | "ul" | "ol";
+  plain?: boolean;
+  class?: string;
+  "aria-label"?: string;
+}
+const props: Props = Astro.props;
+const { as: Tag = "div", plain = false, class: cls = "", ...rest } = props;
+---
+
+<Tag class:list={["card", plain && "card--plain", cls]} {...rest}><slot /></Tag>

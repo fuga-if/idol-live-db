@@ -1,0 +1,14 @@
+---
+/** ImasEmptyState の Web 版。投稿導線ではなく「アプリで見る / GitHub で協力」へ寄せる。 */
+interface Props {
+  title: string;
+  body?: string;
+}
+const { title, body } = Astro.props;
+---
+
+<div class="empty">
+  <p class="empty__title">{title}</p>
+  {body && <p class="empty__body">{body}</p>}
+  <slot />
+</div>

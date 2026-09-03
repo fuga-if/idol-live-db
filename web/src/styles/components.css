@@ -1,0 +1,844 @@
+/* =============================================================================
+ * components.css — src/components/*.astro の見た目。
+ * 対応表は docs/ARCHITECTURE-web.md / PLAN §4.6 (アプリの Imas* 部品 ↔ Web)。
+ * Web は表示専用なので、トグル・削除・選択などの状態は一切持たない。
+ * ========================================================================== */
+
+/* --- ListContainer (inset-grouped 風カード) -------------------------------- */
+.card {
+  background: var(--ds-surface);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  box-shadow: var(--ds-shadow1);
+}
+.card > * + * {
+  border-top: 1px solid var(--ds-sep);
+}
+.card--plain {
+  box-shadow: none;
+  border: 1px solid var(--ds-sep);
+}
+.card__pad {
+  padding: var(--sp5);
+}
+
+/* --- SectionHeader (ImasSectionHeader) ------------------------------------ */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp4);
+}
+.section__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp3);
+}
+.section__title {
+  font-size: var(--fs-title3);
+  font-weight: 700;
+}
+.section__count {
+  font-size: var(--fs-footnote);
+  font-weight: 600;
+  color: var(--ds-ink3);
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+}
+.section__more {
+  margin-inline-start: auto;
+  font-size: var(--fs-footnote);
+  font-weight: 600;
+  color: var(--ds-ink2);
+  white-space: nowrap;
+}
+.section__more:hover {
+  color: var(--ds-ink);
+}
+.section--tight .section__title {
+  font-size: var(--fs-footnote);
+  font-weight: 600;
+  color: var(--ds-ink2);
+}
+
+/* --- Avatar (ImasAvatar: 淡ティント面 + 細リング + アクセント頭文字) -------- */
+.avatar {
+  display: inline-grid;
+  place-items: center;
+  inline-size: var(--avatar-size, 40px);
+  block-size: var(--avatar-size, 40px);
+  border-radius: var(--r-pill);
+  background: var(--tint);
+  color: var(--accent);
+  box-shadow: inset 0 0 0 1.5px var(--ring);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: calc(var(--avatar-size, 40px) * 0.4);
+  line-height: 1;
+  flex: none;
+  user-select: none;
+}
+.avatar--sm {
+  --avatar-size: 30px;
+}
+.avatar--lg {
+  --avatar-size: 64px;
+}
+.avatar--xl {
+  --avatar-size: 88px;
+}
+
+/* --- Artwork (ImasArtwork: 画像 or ソリッド面 + 曲名) ---------------------- */
+.artwork {
+  position: relative;
+  inline-size: var(--artwork-size, 56px);
+  block-size: var(--artwork-size, 56px);
+  border-radius: max(8px, calc(var(--artwork-size, 56px) * 0.16));
+  overflow: hidden;
+  background: var(--accent);
+  flex: none;
+}
+.artwork img {
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+.artwork__fallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: calc(var(--artwork-size, 56px) * 0.12);
+  color: var(--on-accent);
+  font-size: max(9px, calc(var(--artwork-size, 56px) * 0.13));
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+  overflow: hidden;
+}
+.artwork--sm {
+  --artwork-size: 44px;
+}
+.artwork--lg {
+  --artwork-size: 120px;
+}
+.artwork--hero {
+  --artwork-size: 160px;
+}
+
+/* --- LeadRow (ImasLeadRow + ImasLeadBar + ImasRowChevron) ------------------ */
+.lead-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp4);
+  padding: var(--sp3) var(--sp4);
+  background: var(--ds-surface);
+}
+a.lead-row:hover {
+  background: var(--ds-surface2);
+}
+.lead-row::before {
+  content: "";
+  flex: none;
+  inline-size: 3px;
+  block-size: 36px;
+  border-radius: 2px;
+  background: var(--bar);
+}
+.lead-row--rainbow::before {
+  background: linear-gradient(
+    to bottom,
+    #ff3b30,
+    #ff9500,
+    #ffcc00,
+    #34c759,
+    #007aff,
+    #af52de
+  );
+}
+.lead-row__body {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp1);
+}
+.lead-row__title {
+  font-size: var(--fs-subhead);
+  font-weight: 600;
+  line-height: var(--lh-snug);
+}
+.lead-row__sub {
+  font-size: var(--fs-caption);
+  color: var(--ds-ink2);
+  line-height: var(--lh-snug);
+}
+.lead-row__trailing {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--sp3);
+  color: var(--ds-ink2);
+  font-size: var(--fs-caption);
+}
+.chevron {
+  flex: none;
+  color: var(--ds-ink3);
+  font-size: var(--fs-footnote);
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* --- Chip (ImasChip) ------------------------------------------------------ */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp2);
+  padding: 6px 13px;
+  border-radius: var(--r-pill);
+  font-size: var(--fs-footnote);
+  font-weight: 600;
+  line-height: 1.35;
+  background: var(--ds-fill);
+  color: var(--ds-ink2);
+  white-space: nowrap;
+  max-inline-size: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.chip--themed {
+  background: var(--chip-bg);
+  color: var(--chip-text);
+}
+.chip--selected {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+a.chip:hover {
+  filter: brightness(0.97);
+}
+
+/* --- TagChip (ImasTagChip: セトリ行のユニット/カバー/全員) ----------------- */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border-radius: var(--r-pill);
+  font-size: var(--fs-caption2);
+  font-weight: 600;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+.tag--unit {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+}
+.tag--all {
+  background: var(--ds-fill);
+  color: var(--ds-ink2);
+}
+.tag--cover {
+  background: color-mix(in srgb, var(--ds-pick) 14%, transparent);
+  color: var(--ds-pick);
+}
+.tag--partial {
+  background: color-mix(in srgb, var(--ds-warning) 14%, transparent);
+  color: var(--ds-warning);
+}
+.tag--lead {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.tag--guest {
+  background: transparent;
+  color: var(--ds-ink2);
+  box-shadow: inset 0 0 0 1px var(--ds-ink3);
+}
+
+/* --- SegmentedLinks (ImasSegmented を「状態なしリンク集合」に翻訳) --------- */
+.segmented {
+  display: flex;
+  gap: var(--sp1);
+  padding: 3px;
+  border-radius: var(--r-pill);
+  background: var(--ds-fill);
+  overflow-x: auto;
+  scrollbar-width: none;
+  max-inline-size: max-content;
+}
+.segmented::-webkit-scrollbar {
+  display: none;
+}
+.segmented a {
+  padding: 5px 14px;
+  border-radius: var(--r-pill);
+  font-size: var(--fs-footnote);
+  font-weight: 600;
+  color: var(--ds-ink2);
+  white-space: nowrap;
+}
+.segmented a:hover {
+  color: var(--ds-ink);
+}
+.segmented a[aria-current="page"] {
+  background: var(--ds-surface);
+  color: var(--ds-ink);
+  box-shadow: var(--ds-shadow1);
+}
+
+/* 大量のリンク (年・ブランド・かな) はセグメントではなく折返しのチップ列にする */
+.link-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp2);
+}
+.link-chips a {
+  padding: 5px 12px;
+  border-radius: var(--r-pill);
+  background: var(--ds-fill);
+  font-size: var(--fs-footnote);
+  font-weight: 600;
+  color: var(--ds-ink2);
+}
+.link-chips a:hover {
+  color: var(--ds-ink);
+}
+.link-chips a[aria-current="page"] {
+  background: var(--ds-sys);
+  color: var(--ds-on-sys);
+}
+
+/* --- StatTile (ImasStatTile) ---------------------------------------------- */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--sp4);
+}
+.stat-tile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp3);
+  padding: 14px;
+  border-radius: var(--r-md);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow1);
+}
+.stat-tile__icon {
+  inline-size: 30px;
+  block-size: 30px;
+  border-radius: 9px;
+  background: var(--chip-bg);
+  color: var(--chip-text);
+  display: grid;
+  place-items: center;
+  font-size: var(--fs-callout);
+}
+.stat-tile__value {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+  font-size: 1.625rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+.stat-tile__unit {
+  font-size: var(--fs-footnote);
+  font-weight: 600;
+  color: var(--ds-ink3);
+}
+.stat-tile__label {
+  font-size: var(--fs-caption);
+  font-weight: 500;
+  color: var(--ds-ink2);
+}
+
+/* --- MetricBadge (ImasMetricBadge) ---------------------------------------- */
+.metric {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--fs-subhead);
+  font-weight: 700;
+  color: var(--accent);
+  white-space: nowrap;
+}
+.metric--muted {
+  color: var(--ds-ink2);
+}
+.metric__unit {
+  font-size: var(--fs-caption2);
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+/* --- EntryCard (ImasEntryCard) -------------------------------------------- */
+.entry-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--sp4);
+}
+.entry-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: var(--sp5);
+  border-radius: var(--r-md);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow1);
+}
+.entry-card:hover {
+  background: var(--ds-surface2);
+}
+.entry-card__icon {
+  inline-size: 44px;
+  block-size: 44px;
+  border-radius: 12px;
+  background: var(--chip-bg);
+  color: var(--chip-text);
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--fs-title3);
+  flex: none;
+}
+.entry-card__body {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.entry-card__title {
+  font-size: var(--fs-body);
+  font-weight: 700;
+}
+.entry-card__preview {
+  font-size: var(--fs-footnote);
+  color: var(--ds-ink2);
+}
+
+/* --- RankingRow (ImasRankingRow) ------------------------------------------ */
+.ranking-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp4);
+  padding: 9px 14px;
+  background: var(--ds-surface);
+}
+a.ranking-row:hover {
+  background: var(--ds-surface2);
+}
+.ranking-row__rank {
+  inline-size: 26px;
+  flex: none;
+  text-align: center;
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--fs-body);
+  font-weight: 700;
+  color: var(--ds-ink3);
+}
+.ranking-row--top .ranking-row__rank {
+  color: var(--accent);
+}
+.ranking-row__body {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.ranking-row__title {
+  font-size: var(--fs-subhead);
+  font-weight: 600;
+}
+.ranking-row__sub {
+  font-size: var(--fs-caption);
+  color: var(--ds-ink2);
+}
+
+/* --- LabeledRow (ImasLabeledRow) ------------------------------------------ */
+.labeled-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp4);
+  padding: 11px var(--sp5);
+  background: var(--ds-surface);
+  font-size: var(--fs-subhead);
+}
+.labeled-row__key {
+  color: var(--ds-ink2);
+  flex: none;
+  min-inline-size: 5.5em;
+}
+.labeled-row__value {
+  margin-inline-start: auto;
+  text-align: end;
+  min-width: 0;
+}
+.labeled-row__value--mono {
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+}
+a.labeled-row .labeled-row__value {
+  color: var(--accent);
+  font-weight: 600;
+}
+.labeled-row__swatch {
+  inline-size: 16px;
+  block-size: 16px;
+  border-radius: var(--r-pill);
+  background: var(--accent);
+  flex: none;
+  align-self: center;
+}
+
+/* --- EmptyState (ImasEmptyState) ------------------------------------------ */
+.empty {
+  padding: var(--sp8) var(--sp5);
+  text-align: center;
+  color: var(--ds-ink2);
+  background: var(--ds-surface);
+  border-radius: var(--r-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp3);
+  align-items: center;
+}
+.empty__title {
+  font-size: var(--fs-subhead);
+  font-weight: 600;
+  color: var(--ds-ink);
+}
+.empty__body {
+  font-size: var(--fs-footnote);
+  max-inline-size: 34em;
+}
+
+/* --- Hero (詳細ページ共通の頭) -------------------------------------------- */
+.hero {
+  background:
+    linear-gradient(160deg, var(--grad-from), var(--grad-to)),
+    var(--hero-surface);
+  border-radius: var(--r-xl);
+  padding: var(--sp7) var(--sp6);
+  display: flex;
+  gap: var(--sp6);
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+.hero__body {
+  min-width: min(100%, 18rem);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp3);
+}
+.hero__eyebrow {
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--chip-text);
+  text-transform: uppercase;
+  font-family: var(--font-display);
+}
+.hero__title {
+  font-size: clamp(1.5rem, 1.1rem + 2vw, var(--fs-title1));
+  font-weight: 700;
+  letter-spacing: 0.002em;
+}
+.hero__kana {
+  font-size: var(--fs-footnote);
+  color: var(--ds-ink2);
+}
+.hero__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp2);
+  align-items: center;
+  margin-top: var(--sp1);
+}
+
+/* --- Breadcrumbs ---------------------------------------------------------- */
+.crumbs {
+  font-size: var(--fs-caption);
+  color: var(--ds-ink2);
+}
+.crumbs ol {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp2);
+}
+.crumbs li + li::before {
+  content: "/";
+  margin-inline-end: var(--sp2);
+  color: var(--ds-ink3);
+}
+.crumbs a:hover {
+  color: var(--ds-ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* --- OpenInApp (アプリで開く導線) ----------------------------------------- */
+.open-in-app {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp4);
+  padding: var(--sp5);
+  border-radius: var(--r-md);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow1);
+}
+.open-in-app__icon {
+  inline-size: 48px;
+  block-size: 48px;
+  border-radius: 12px;
+  flex: none;
+}
+.open-in-app__body {
+  min-width: min(100%, 14rem);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp1);
+}
+.open-in-app__title {
+  font-size: var(--fs-subhead);
+  font-weight: 700;
+}
+.open-in-app__note {
+  font-size: var(--fs-caption);
+  color: var(--ds-ink2);
+}
+.open-in-app__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp3);
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp2);
+  padding: 9px var(--sp5);
+  border-radius: var(--r-pill);
+  font-size: var(--fs-footnote);
+  font-weight: 700;
+  background: var(--ds-sys);
+  color: var(--ds-on-sys);
+}
+.btn:hover {
+  filter: brightness(1.15);
+}
+.btn--ghost {
+  background: var(--ds-fill);
+  color: var(--ds-ink);
+}
+.btn--accent {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+/* --- セトリ行 ------------------------------------------------------------- */
+.setlist {
+  counter-reset: setlist;
+}
+.setlist__row {
+  display: flex;
+  gap: var(--sp4);
+  padding: var(--sp4);
+  background: var(--ds-surface);
+}
+.setlist__no {
+  flex: none;
+  inline-size: 2rem;
+  padding-top: 2px;
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--fs-subhead);
+  font-weight: 700;
+  color: var(--ds-ink3);
+  text-align: end;
+}
+.setlist__body {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  gap: var(--sp4);
+  align-items: flex-start;
+}
+.setlist__main {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp2);
+}
+.setlist__title {
+  font-size: var(--fs-callout);
+  font-weight: 600;
+  line-height: var(--lh-snug);
+}
+.setlist__section {
+  font-size: var(--fs-caption2);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--ds-ink3);
+  padding: var(--sp3) var(--sp5) var(--sp1);
+  background: var(--ds-surface);
+  text-transform: uppercase;
+  font-family: var(--font-display);
+}
+.setlist__notes {
+  font-size: var(--fs-caption);
+  color: var(--ds-ink2);
+}
+.performers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp2);
+}
+.performer {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp2);
+  padding: 3px 10px 3px 3px;
+  border-radius: var(--r-pill);
+  background: var(--ds-fill);
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  color: var(--ds-ink);
+}
+.performer:hover {
+  background: var(--tint-strong);
+}
+
+/* --- グリッド (曲・アイドル・ユニット一覧) -------------------------------- */
+.grid-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: var(--sp4);
+}
+.tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp3);
+  padding: var(--sp5) var(--sp3);
+  border-radius: var(--r-md);
+  background: var(--ds-surface);
+  text-align: center;
+  box-shadow: var(--ds-shadow1);
+}
+.tile:hover {
+  background: var(--ds-surface2);
+}
+.tile__name {
+  font-size: var(--fs-footnote);
+  font-weight: 600;
+  line-height: var(--lh-snug);
+}
+.tile__sub {
+  font-size: var(--fs-caption2);
+  color: var(--ds-ink2);
+}
+
+/* --- 年グループ ----------------------------------------------------------- */
+.year-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp3);
+}
+.year-group__title {
+  position: sticky;
+  top: calc(var(--sp9) + var(--sp3));
+  z-index: 5;
+  align-self: flex-start;
+  padding: var(--sp1) var(--sp4);
+  border-radius: var(--r-pill);
+  background: var(--ds-sys);
+  color: var(--ds-on-sys);
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--fs-footnote);
+  font-weight: 700;
+}
+
+/* --- 表 (出演者マトリクス等) ---------------------------------------------- */
+.table-wrap {
+  overflow-x: auto;
+  border-radius: var(--r-md);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow1);
+}
+table.data {
+  border-collapse: collapse;
+  inline-size: 100%;
+  font-size: var(--fs-footnote);
+}
+table.data th,
+table.data td {
+  padding: var(--sp3) var(--sp4);
+  text-align: start;
+  border-bottom: 1px solid var(--ds-sep);
+  white-space: nowrap;
+}
+table.data thead th {
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  color: var(--ds-ink2);
+  position: sticky;
+  top: 0;
+  background: var(--ds-surface);
+}
+table.data tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+/* --- 検索 (/search/ の island) -------------------------------------------- */
+.search-form {
+  display: flex;
+  gap: var(--sp3);
+  align-items: center;
+}
+.search-input {
+  flex: 1;
+  min-width: 0;
+  padding: 12px var(--sp5);
+  border-radius: var(--r-pill);
+  border: 1px solid var(--ds-sep);
+  background: var(--ds-surface);
+  color: var(--ds-ink);
+  font: inherit;
+  font-size: var(--fs-callout);
+}
+.search-input::placeholder {
+  color: var(--ds-ink3);
+}
+.search-status {
+  font-size: var(--fs-footnote);
+  color: var(--ds-ink2);
+  min-block-size: 1.4em;
+}
+.search-results {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp6);
+}
+
+/* --- 印字用 --------------------------------------------------------------- */
+@media print {
+  .site-header,
+  .site-footer,
+  .open-in-app,
+  .segmented,
+  .link-chips {
+    display: none !important;
+  }
+}

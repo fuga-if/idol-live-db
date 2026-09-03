@@ -1,0 +1,25 @@
+---
+import BaseLayout from "./BaseLayout.astro";
+import Breadcrumbs from "../components/Breadcrumbs.astro";
+import OpenInApp from "../components/OpenInApp.astro";
+import type { AppOpenLike, SeoLike, SiteMetaLike } from "../lib/ui-types";
+
+/**
+ * 詳細ページ (ライブ / 公演 / 楽曲 / アイドル / ユニット / 会場 / ブランド) の枠。
+ * パンくず → ヒーロー (`hero` スロット) → 本文 → 「アプリで開く」導線、の順で固定する。
+ */
+interface Props {
+  seo: SeoLike;
+  meta: SiteMetaLike;
+  themeKey?: string;
+  app?: AppOpenLike | null;
+}
+const { seo, meta, themeKey, app } = Astro.props;
+---
+
+<BaseLayout seo={seo} meta={meta} themeKey={themeKey}>
+  <Breadcrumbs crumbs={seo.breadcrumbs} />
+  <slot name="hero" />
+  <slot />
+  {app && <OpenInApp app={app} />}
+</BaseLayout>

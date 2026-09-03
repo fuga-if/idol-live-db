@@ -1,0 +1,297 @@
+/* =============================================================================
+ * base.css — リセット / 版面 / ヘッダ・フッタ / ユーティリティ
+ * 色は必ず tokens.css の変数を通す (hex 直書き禁止)。
+ * ========================================================================== */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--ds-bg);
+  color: var(--ds-ink);
+  font-family: var(--font-body);
+  font-size: var(--fs-callout);
+  line-height: var(--lh-body);
+  -webkit-font-smoothing: antialiased;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  line-break: strict;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  margin: 0;
+  line-height: var(--lh-tight);
+  font-weight: 700;
+  letter-spacing: 0.005em;
+}
+
+p {
+  margin: 0;
+}
+
+ul,
+ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+a:hover .u-underline-hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--r-xs);
+}
+
+hr {
+  border: 0;
+  border-top: 1px solid var(--ds-sep);
+  margin: var(--sp6) 0;
+}
+
+/* --- スキップリンク ------------------------------------------------------- */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
+  padding: var(--sp3) var(--sp5);
+  background: var(--ds-surface);
+  color: var(--ds-ink);
+  border-radius: 0 0 var(--r-sm) 0;
+  box-shadow: var(--ds-shadow1);
+}
+.skip-link:focus {
+  left: 0;
+}
+
+/* --- 版面 ---------------------------------------------------------------- */
+.page {
+  width: 100%;
+  max-width: var(--page-max);
+  margin-inline: auto;
+  padding-inline: var(--sp5);
+}
+.page--wide {
+  max-width: var(--page-wide);
+}
+
+.main {
+  padding-block: var(--sp6) var(--sp9);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp8);
+}
+
+/* --- サイトヘッダ --------------------------------------------------------- */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: color-mix(in srgb, var(--ds-bg) 88%, transparent);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 1px solid var(--ds-sep);
+}
+.site-header__inner {
+  display: flex;
+  align-items: center;
+  gap: var(--sp5);
+  min-height: var(--sp9);
+  padding-block: var(--sp3);
+}
+.site-header__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp3);
+  font-weight: 700;
+  font-size: var(--fs-subhead);
+  white-space: nowrap;
+}
+.site-header__mark {
+  width: 26px;
+  height: 26px;
+  border-radius: var(--r-xs);
+  flex: none;
+}
+.site-nav {
+  min-width: 0;
+  flex: 1;
+}
+.site-nav ul {
+  display: flex;
+  gap: var(--sp2);
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-block: var(--sp1);
+}
+.site-nav ul::-webkit-scrollbar {
+  display: none;
+}
+.site-nav a {
+  display: block;
+  padding: var(--sp2) var(--sp4);
+  border-radius: var(--r-pill);
+  font-size: var(--fs-footnote);
+  font-weight: 600;
+  color: var(--ds-ink2);
+  white-space: nowrap;
+}
+.site-nav a:hover {
+  background: var(--ds-fill);
+  color: var(--ds-ink);
+}
+.site-nav a[aria-current="page"] {
+  background: var(--ds-sys);
+  color: var(--ds-on-sys);
+}
+.site-header__search {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp2);
+  padding: var(--sp2) var(--sp4);
+  border-radius: var(--r-pill);
+  background: var(--ds-fill);
+  color: var(--ds-ink2);
+  font-size: var(--fs-footnote);
+  font-weight: 600;
+}
+.site-header__search:hover {
+  color: var(--ds-ink);
+}
+
+/* --- サイトフッタ --------------------------------------------------------- */
+.site-footer {
+  border-top: 1px solid var(--ds-sep);
+  background: var(--ds-surface);
+  padding-block: var(--sp7) var(--sp8);
+  font-size: var(--fs-footnote);
+  color: var(--ds-ink2);
+}
+.site-footer__cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--sp6);
+  margin-bottom: var(--sp6);
+}
+.site-footer h2 {
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--ds-ink3);
+  margin-bottom: var(--sp3);
+  text-transform: uppercase;
+  font-family: var(--font-display);
+}
+.site-footer li + li {
+  margin-top: var(--sp2);
+}
+.site-footer a:hover {
+  color: var(--ds-ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.site-footer__note {
+  border-top: 1px solid var(--ds-sep);
+  padding-top: var(--sp5);
+  font-size: var(--fs-caption);
+  color: var(--ds-ink3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp2);
+}
+
+/* --- ユーティリティ ------------------------------------------------------- */
+.u-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+.u-num {
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+.u-clamp1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.u-clamp2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.u-muted {
+  color: var(--ds-ink2);
+}
+.u-dim {
+  color: var(--ds-ink3);
+}
+.u-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp4);
+}
+.u-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp2);
+}
+.u-scroll-x {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}

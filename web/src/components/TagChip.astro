@@ -1,0 +1,11 @@
+---
+/** ImasTagChip の Web 版 — セトリ行の「ユニット / カバー / 全員 / 主演 / ゲスト」。 */
+interface Props {
+  text: string;
+  kind: "unit" | "all" | "cover" | "partial" | "lead" | "guest";
+  themeKey?: string;
+}
+const { text, kind, themeKey } = Astro.props;
+---
+
+<span class:list={["tag", `tag--${kind}`]} data-theme={themeKey}>{text}</span>

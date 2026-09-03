@@ -1,0 +1,29 @@
+---
+import type { NavLinkLike } from "../lib/ui-types";
+/**
+ * ImasSegmented の Web 版。
+ * **状態を持たないリンク集合**にする (ユーザー指示: 一覧のフィルタは静的ページとして分ける)。
+ * どれが現在地かは Rust が `current` で出す。
+ */
+interface Props {
+  label: string;
+  links: readonly NavLinkLike[];
+  variant?: "segmented" | "chips";
+}
+const { label, links, variant = "segmented" } = Astro.props;
+---
+
+{
+  links.length > 0 && (
+    <nav aria-label={label} class={variant === "chips" ? "link-chips" : "segmented"}>
+      {links.map((l) => (
+        <a href={l.path} aria-current={l.current ? "page" : undefined}>
+          {l.name}
+          {l.count !== undefined && l.count !== null && (
+            <span class="u-dim u-num">&nbsp;{l.count}</span>
+          )}
+        </a>
+      ))}
+    </nav>
+  )
+}

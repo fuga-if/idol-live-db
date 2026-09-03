@@ -1,0 +1,24 @@
+---
+/**
+ * ImasLabeledRow の Web 版。
+ * アプリの「長押しでコピー / タップで展開」は状態を持つので Web には作らない。
+ * 長文も省略せずそのまま出す (SEO のため)。
+ */
+interface Props {
+  label: string;
+  value: string;
+  href?: string | null;
+  mono?: boolean;
+  swatch?: boolean;
+  themeKey?: string;
+}
+const { label, value, href, mono = false, swatch = false, themeKey } = Astro.props;
+const Tag = href ? "a" : "div";
+---
+
+<Tag class="labeled-row" data-theme={themeKey} href={href ?? undefined}>
+  <span class="labeled-row__key">{label}</span>
+  {swatch && <span class="labeled-row__swatch" aria-hidden="true" />}
+  <span class:list={["labeled-row__value", mono && "labeled-row__value--mono"]}>{value}</span>
+  {href && <span class="chevron" aria-hidden="true">›</span>}
+</Tag>

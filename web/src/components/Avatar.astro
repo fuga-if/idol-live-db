@@ -1,0 +1,22 @@
+---
+/**
+ * ImasAvatar の Web 版 — 淡ティント面 + 細リング + アクセント頭文字。
+ * 版権物ゼロの制約により **画像は持たない** (常にモノグラム)。
+ * モノグラムの文字は Rust が `Ref.monogram` として出す (アプリの ImasAvatar と同じ規則)。
+ */
+interface Props {
+  label: string;
+  monogram?: string | null;
+  themeKey?: string;
+  size?: "sm" | "md" | "lg" | "xl";
+  class?: string;
+}
+const { label, monogram, themeKey, size = "md", class: cls = "" } = Astro.props;
+const sizeClass = size === "md" ? "" : `avatar--${size}`;
+---
+
+<span
+  class:list={["avatar", sizeClass, cls]}
+  data-theme={themeKey}
+  aria-hidden="true">{monogram ?? label.slice(0, 1)}</span
+>

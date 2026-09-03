@@ -1,0 +1,26 @@
+---
+import type { CrumbLike } from "../lib/ui-types";
+/** パンくず。段の内容は Rust の `seo.breadcrumbs` が決める (JSON-LD と同じ並び)。 */
+interface Props {
+  crumbs?: readonly CrumbLike[];
+}
+const { crumbs = [] } = Astro.props;
+---
+
+{
+  crumbs.length > 0 && (
+    <nav class="crumbs" aria-label="パンくず">
+      <ol>
+        {crumbs.map((c, i) => (
+          <li>
+            {i === crumbs.length - 1 ? (
+              <span aria-current="page">{c.name}</span>
+            ) : (
+              <a href={c.path}>{c.name}</a>
+            )}
+          </li>
+        ))}
+      </ol>
+    </nav>
+  )
+}

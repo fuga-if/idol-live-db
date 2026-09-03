@@ -1,0 +1,20 @@
+---
+/** ImasEntryCard の Web 版 — 奥のページへの入口。 */
+interface Props {
+  glyph: string;
+  title: string;
+  preview?: string | null;
+  href: string;
+  themeKey?: string;
+}
+const { glyph, title, preview, href, themeKey } = Astro.props;
+---
+
+<a class="entry-card" data-theme={themeKey} href={href}>
+  <span class="entry-card__icon" aria-hidden="true">{glyph}</span>
+  <span class="entry-card__body">
+    <span class="entry-card__title u-underline-hover">{title}</span>
+    {preview && <span class="entry-card__preview u-clamp2">{preview}</span>}
+  </span>
+  <span class="chevron" aria-hidden="true">›</span>
+</a>

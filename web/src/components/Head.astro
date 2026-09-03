@@ -1,0 +1,40 @@
+---
+import type { SeoLike } from "../lib/ui-types";
+/**
+ * <head> の中身。
+ * **文面 (title / description) も canonical も robots も OG 画像も Rust の `SeoBlock` が決める。**
+ * ここは受け取った値をタグに置くだけ (INV-1)。
+ */
+interface Props {
+  seo: SeoLike;
+  siteName: string;
+}
+const { seo, siteName } = Astro.props;
+const canonical = new URL(seo.canonical, Astro.site).href;
+const ogImage = new URL(seo.ogImage, Astro.site).href;
+---
+
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>{seo.title}</title>
+<meta name="description" content={seo.description} />
+<link rel="canonical" href={canonical} />
+{seo.robots && <meta name="robots" content={seo.robots} />}
+
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content={siteName} />
+<meta property="og:title" content={seo.title} />
+<meta property="og:description" content={seo.description} />
+<meta property="og:url" content={canonical} />
+<meta property="og:image" content={ogImage} />
+<meta property="og:locale" content="ja_JP" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={seo.title} />
+<meta name="twitter:description" content={seo.description} />
+<meta name="twitter:image" content={ogImage} />
+
+<link rel="icon" href="/favicon.ico" sizes="32x32" />
+<link rel="icon" href="/favicon.png" type="image/png" sizes="96x96" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+<link rel="manifest" href="/site.webmanifest" />
+<link rel="sitemap" href="/sitemap-index.xml" />

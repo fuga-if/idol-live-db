@@ -1,0 +1,50 @@
+---
+import Artwork from "./Artwork.astro";
+import Avatar from "./Avatar.astro";
+import MetricBadge from "./MetricBadge.astro";
+/** ImasRankingRow の Web 版 — 順位 + 先頭ビジュアル + 名前 + 数値。 */
+interface Props {
+  rank: number;
+  lead: "artwork" | "avatar";
+  title: string;
+  sub?: string | null;
+  monogram?: string | null;
+  artworkUrl?: string | null;
+  metric: number | string;
+  unit?: string;
+  href: string;
+  themeKey?: string;
+}
+const {
+  rank,
+  lead,
+  title,
+  sub,
+  monogram,
+  artworkUrl,
+  metric,
+  unit = "回",
+  href,
+  themeKey,
+} = Astro.props;
+---
+
+<a
+  class:list={["ranking-row", rank <= 3 && "ranking-row--top"]}
+  data-theme={themeKey}
+  href={href}
+>
+  <span class="ranking-row__rank">{rank}</span>
+  {
+    lead === "artwork" ? (
+      <Artwork title={title} artworkUrl={artworkUrl} size="sm" />
+    ) : (
+      <Avatar label={title} monogram={monogram} />
+    )
+  }
+  <span class="ranking-row__body">
+    <span class="ranking-row__title u-clamp1 u-underline-hover">{title}</span>
+    {sub && <span class="ranking-row__sub u-clamp1">{sub}</span>}
+  </span>
+  <MetricBadge value={metric} unit={unit} />
+</a>

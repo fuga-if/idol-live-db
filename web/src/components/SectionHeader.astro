@@ -1,0 +1,28 @@
+---
+/** ImasSectionHeader の Web 版。`id` を渡すと見出しがアンカーになる。 */
+interface Props {
+  title: string;
+  count?: number | string | null;
+  moreHref?: string;
+  moreLabel?: string;
+  level?: 2 | 3;
+  tight?: boolean;
+  id?: string;
+}
+const {
+  title,
+  count,
+  moreHref,
+  moreLabel = "すべて見る",
+  level = 2,
+  tight = false,
+  id,
+} = Astro.props;
+const H = `h${level}` as "h2" | "h3";
+---
+
+<div class:list={["section__head", tight && "section--tight"]}>
+  <H class="section__title" id={id}>{title}</H>
+  {count !== undefined && count !== null && <span class="section__count">{count}</span>}
+  {moreHref && <a class="section__more" href={moreHref}>{moreLabel} ›</a>}
+</div>

@@ -1,0 +1,21 @@
+---
+/** ImasStatTile の Web 版。アイコンは絵文字 1 文字 (SF Symbols は Web に無い)。 */
+interface Props {
+  glyph: string;
+  value: number | string;
+  unit?: string | null;
+  label: string;
+  themeKey?: string;
+  href?: string;
+}
+const { glyph, value, unit, label, themeKey, href } = Astro.props;
+const Tag = href ? "a" : "div";
+---
+
+<Tag class="stat-tile" data-theme={themeKey} href={href}>
+  <span class="stat-tile__icon" aria-hidden="true">{glyph}</span>
+  <span class="stat-tile__value">
+    {value}{unit && <span class="stat-tile__unit">{unit}</span>}
+  </span>
+  <span class="stat-tile__label">{label}</span>
+</Tag>
