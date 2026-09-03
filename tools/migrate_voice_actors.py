@@ -119,6 +119,25 @@ def build_rows(db) -> list[tuple]:
     return rows
 
 
+def normalize_master_sql(path):
+    """sqlite3 CLI の .dump が吐く unistr() を素の SQL リテラルに戻す。
+
+    3.49+ の .dump は改行入りの文字列を unistr('…\\u000a…') で書くが、この関数は
+    それより古い sqlite3 に無い。db/master.sql は CI や他環境の sqlite3 も読む正本
+    なので、手元の版に依存しない形にしてから置く。詳細は
+    tools/normalize_master_sql.py。
+    """
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from normalize_master_sql import normalize
+    with open(path, encoding="utf-8") as f:
+        text = f.read()
+    out, n = normalize(text)
+    if n:
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(out)
+        print(f"  unistr() を {n} 箇所ほどいた (古い sqlite3 でも読めるように)")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--apply", action="store_true")
@@ -161,6 +180,11 @@ def main() -> None:
     with open(DUMP_PATH, "w", encoding="utf-8") as f:
         subprocess.run(["sqlite3", DB_PATH, ".dump"], stdout=f, check=True)
     print(f"{DUMP_PATH} を更新した")
+    # ⚠️ sqlite3 3.49+ の .dump は制御文字を含む文字列を unistr('…\\u000a…') で書く。
+    #    それより古い sqlite3 では読めず、CI (core-guard / Android の generateSeedDb) が
+    #    「no such function: unistr」で落ちる。正本は誰でも読める形で置く。
+    normalize_master_sql(DUMP_PATH)
+
 
 
 if __name__ == "__main__":

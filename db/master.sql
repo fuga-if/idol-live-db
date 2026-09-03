@@ -64,7 +64,11 @@ INSERT INTO creators VALUES('cr_f72b06684dfc','あさくらあずみ','あさく
 INSERT INTO creators VALUES('cr_8030a7fd06ed','いつきおと','いつきおと',NULL);
 INSERT INTO creators VALUES('cr_19c0330e711e','いのる','いのる','いのる (CoWRITE)');
 INSERT INTO creators VALUES('cr_c01f30abf0df','いよわ','いよわ',NULL);
-INSERT INTO creators VALUES('cr_0b97dc0ba1a8','おおくぼひろし','おおくぼひろし',unistr('BNGI(おおくぼひろし)\u000aBNSI(おおくぼひろし)\u000aBNSI(おおくぼひろし）\u000aNBGI(おおくぼひろし)\u000aNBSI(おおくぼひろし)'));
+INSERT INTO creators VALUES('cr_0b97dc0ba1a8','おおくぼひろし','おおくぼひろし','BNGI(おおくぼひろし)
+BNSI(おおくぼひろし)
+BNSI(おおくぼひろし）
+NBGI(おおくぼひろし)
+NBSI(おおくぼひろし)');
 INSERT INTO creators VALUES('cr_640e4715f418','おもち花','おもちか',NULL);
 INSERT INTO creators VALUES('cr_e659763c532f','きなみうみ','きなみうみ',NULL);
 INSERT INTO creators VALUES('cr_a41fbce1894d','きみコ','きみこ',NULL);
@@ -74,7 +78,8 @@ INSERT INTO creators VALUES('cr_65de1af58844','こだまさおり','こだまさ
 INSERT INTO creators VALUES('cr_a6f2cd3984e4','じん','じん',NULL);
 INSERT INTO creators VALUES('cr_1956f18829f2','ぜったくん','ぜったくん',NULL);
 INSERT INTO creators VALUES('cr_d5408f1583c4','たかはし智秋','たかはしちあき',NULL);
-INSERT INTO creators VALUES('cr_6b82b10079b6','ねりきり','ねりきり',unistr('ねりきり (KEYTONE)\u000aねりきり(KEYTONE)'));
+INSERT INTO creators VALUES('cr_6b82b10079b6','ねりきり','ねりきり','ねりきり (KEYTONE)
+ねりきり(KEYTONE)');
 INSERT INTO creators VALUES('cr_f7df1624a44b','まんきゅう','まんきゅう',NULL);
 INSERT INTO creators VALUES('cr_0f50ee7ef451','めんま','めんま',NULL);
 INSERT INTO creators VALUES('cr_a81d9a31b04f','やいり','やいり',NULL);
@@ -94,7 +99,8 @@ INSERT INTO creators VALUES('cr_5e8cc7cc9afd','オタユキ','おたゆき',NULL
 INSERT INTO creators VALUES('cr_3d73578787c7','オノダヒロユキ','おのだひろゆき',NULL);
 INSERT INTO creators VALUES('cr_6de09cb5d72f','オミ織葉','おみおりは',NULL);
 INSERT INTO creators VALUES('cr_a727cb9dfc9a','オリバー','おりばー',NULL);
-INSERT INTO creators VALUES('cr_8acda7e97520','グシミヤギヒデユキ','ぐしみやぎひでゆき',unistr('グシミヤギ ヒデユキ\u000aグシミヤギヒデユキ(Hifumi,inc.)'));
+INSERT INTO creators VALUES('cr_8acda7e97520','グシミヤギヒデユキ','ぐしみやぎひでゆき','グシミヤギ ヒデユキ
+グシミヤギヒデユキ(Hifumi,inc.)');
 INSERT INTO creators VALUES('cr_94a1b9c8186f','グッド','ぐっど','グッド(MONACA)');
 INSERT INTO creators VALUES('cr_c86a32f1832b','ケンモチヒデフミ','けんもちひでふみ',NULL);
 INSERT INTO creators VALUES('cr_95170eba114a','サイトウヨシヒロ','さいとうよしひろ',NULL);
@@ -108,9 +114,14 @@ INSERT INTO creators VALUES('cr_b02938485c69','ジョンジュ','じょんじゅ
 INSERT INTO creators VALUES('cr_d3763fd354b3','ダンス☆マン','だんす☆まん',NULL);
 INSERT INTO creators VALUES('cr_53cc3c93176c','チバニャン','ちばにゃん',NULL);
 INSERT INTO creators VALUES('cr_df4fce07d976','ツミキ','つみき',NULL);
-INSERT INTO creators VALUES('cr_d9fac93b8be6','デレパジ','でれぱじ',unistr('デレパジ(佳村はるか)\u000aデレパジ(原紗友里)\u000aデレパジ(大橋彩香)\u000aデレパジ(福原綾香)\u000aデレパジ(青木瑠璃子)'));
+INSERT INTO creators VALUES('cr_d9fac93b8be6','デレパジ','でれぱじ','デレパジ(佳村はるか)
+デレパジ(原紗友里)
+デレパジ(大橋彩香)
+デレパジ(福原綾香)
+デレパジ(青木瑠璃子)');
 INSERT INTO creators VALUES('cr_954f191ce48d','トミタカズキ','とみたかずき','トミタカズキ(SUPA LOVE)');
-INSERT INTO creators VALUES('cr_528b63f6edea','トリ音','とりおん',unistr('BNSI(トリ音)\u000aBNSI（トリ音）'));
+INSERT INTO creators VALUES('cr_528b63f6edea','トリ音','とりおん','BNSI(トリ音)
+BNSI（トリ音）');
 INSERT INTO creators VALUES('cr_3a87fae3645d','ナカシマ','なかしま',NULL);
 INSERT INTO creators VALUES('cr_ecdd1057b294','ナカムラジュンキ','なかむらじゅんき','ナカムラジュンキ(Blue Bird''s Nest)');
 INSERT INTO creators VALUES('cr_622cdd9dfebe','ナナホシ管弦楽団','ななほしかんげんがくだん',NULL);
@@ -129,9 +140,15 @@ INSERT INTO creators VALUES('cr_f8646bdf6722','マチゲリータ','まちげり
 INSERT INTO creators VALUES('cr_e96a4ae80dd5','マルヤマテツオ','まるやまてつお',NULL);
 INSERT INTO creators VALUES('cr_62b5ca8a6a41','ミズノゲンキ','みずのげんき',NULL);
 INSERT INTO creators VALUES('cr_e369ac048fb8','ミディ','みでぃ',NULL);
-INSERT INTO creators VALUES('cr_13c91b0cc5b6','ミト','みと',unistr('ミト(クラムボン)\u000aミト[クラムボン]'));
-INSERT INTO creators VALUES('cr_f4f0a62ba6ed','ミフメイ','みふめい',unistr('BNSI (ミフメイ)\u000aBNSI(ミフメイ)\u000aBNSI（ミフメイ）\u000aミフメイ(Bandai Namco Studios Inc.)'));
-INSERT INTO creators VALUES('cr_5b809af151a0','モモキエイジ','ももきえいじ',unistr('BNEI(モモキエイジ)\u000aBNSI(モモキエイジ)\u000aNBGI(モモキエイジ)'));
+INSERT INTO creators VALUES('cr_13c91b0cc5b6','ミト','みと','ミト(クラムボン)
+ミト[クラムボン]');
+INSERT INTO creators VALUES('cr_f4f0a62ba6ed','ミフメイ','みふめい','BNSI (ミフメイ)
+BNSI(ミフメイ)
+BNSI（ミフメイ）
+ミフメイ(Bandai Namco Studios Inc.)');
+INSERT INTO creators VALUES('cr_5b809af151a0','モモキエイジ','ももきえいじ','BNEI(モモキエイジ)
+BNSI(モモキエイジ)
+NBGI(モモキエイジ)');
 INSERT INTO creators VALUES('cr_21c65765d4b3','モリタコータ','もりたこーた',NULL);
 INSERT INTO creators VALUES('cr_2d70bee35397','ヤナガワタカオ','やながわたかお',NULL);
 INSERT INTO creators VALUES('cr_69756052af5e','ヤマモトショウ','やまもとしょう',NULL);
@@ -156,7 +173,14 @@ INSERT INTO creators VALUES('cr_c0f72740ae3f','中土智博','なかつちとも
 INSERT INTO creators VALUES('cr_abd528fe00f5','中塚武','なかつかたけし',NULL);
 INSERT INTO creators VALUES('cr_55f3bd7da9c7','中山真斗','なかやままなと','中山真斗(Elements Garden)');
 INSERT INTO creators VALUES('cr_61e07d219bda','中島慧','なかじまけい',NULL);
-INSERT INTO creators VALUES('cr_3194eaa4480d','中川浩二','なかがわこうじ',unistr('BNEI(中川浩二)\u000aBNGI(中川浩二)\u000aBNSI(中川浩二)\u000aBNSI（中川浩二)\u000aBNSI（中川浩二）\u000aNBGI(中川浩二)\u000aNBSI（中川浩二)\u000a中川浩二 (Bandai Namco Studios Inc.)'));
+INSERT INTO creators VALUES('cr_3194eaa4480d','中川浩二','なかがわこうじ','BNEI(中川浩二)
+BNGI(中川浩二)
+BNSI(中川浩二)
+BNSI（中川浩二)
+BNSI（中川浩二）
+NBGI(中川浩二)
+NBSI（中川浩二)
+中川浩二 (Bandai Namco Studios Inc.)');
 INSERT INTO creators VALUES('cr_a25d40bdca6a','中村さんそ','なかむらさんそ',NULL);
 INSERT INTO creators VALUES('cr_050f43bb58a9','中村ヒロ','なかむらひろ',NULL);
 INSERT INTO creators VALUES('cr_0fab8f5af3fc','中村彼方','なかむらかなた',NULL);
@@ -167,7 +191,8 @@ INSERT INTO creators VALUES('cr_8d5411519c62','中沢伴行','なかざわとも
 INSERT INTO creators VALUES('cr_43ff94e309fd','中潟憲雄','なかがたのりお','NBGI(中潟憲雄)');
 INSERT INTO creators VALUES('cr_63af58c5aa3f','中西圭三','なかにしけいぞう',NULL);
 INSERT INTO creators VALUES('cr_35c448253f28','中野ゆう','なかのゆう',NULL);
-INSERT INTO creators VALUES('cr_6908c87649f6','中野領太','なかのりょうた',unistr('中野領太(onetrap)\u000a中野領太（onetrap）'));
+INSERT INTO creators VALUES('cr_6908c87649f6','中野領太','なかのりょうた','中野領太(onetrap)
+中野領太（onetrap）');
 INSERT INTO creators VALUES('cr_f6efe5b74039','中鶴潤一','なかつるじゅんいち','中鶴潤一(Bandai Namco Studios Inc.)');
 INSERT INTO creators VALUES('cr_90c5077e6777','丸山哲生','まるやまてつお',NULL);
 INSERT INTO creators VALUES('cr_259b7af03ac3','丸山真由子','まるやままゆこ','丸山真由子(Blue Bird''s Nest)');
@@ -190,7 +215,10 @@ INSERT INTO creators VALUES('cr_b2be649346de','伊藤賢','いとうけん',NULL
 INSERT INTO creators VALUES('cr_44697974b5c6','伊那村さちこ','いなむらさちこ',NULL);
 INSERT INTO creators VALUES('cr_669bdf0f16d2','住谷翔平','すみやしょうへい',NULL);
 INSERT INTO creators VALUES('cr_a5b9dde53c8b','佐々倉有吾','ささくらゆうご',NULL);
-INSERT INTO creators VALUES('cr_728c06b62510','佐々木宏人','ささきひろと',unistr('BNEI(佐々木宏人)\u000aBNGI(佐々木宏人)\u000aBNSI(佐々木宏人)\u000aNBGI(佐々木宏人)'));
+INSERT INTO creators VALUES('cr_728c06b62510','佐々木宏人','ささきひろと','BNEI(佐々木宏人)
+BNGI(佐々木宏人)
+BNSI(佐々木宏人)
+NBGI(佐々木宏人)');
 INSERT INTO creators VALUES('cr_1fd242d1310e','佐々木恵梨','ささきえり',NULL);
 INSERT INTO creators VALUES('cr_f2aefbddfbc1','佐々木淳','ささきじゅん',NULL);
 INSERT INTO creators VALUES('cr_e8c06c18a43d','佐々木裕','ささきひろし',NULL);
@@ -203,22 +231,42 @@ INSERT INTO creators VALUES('cr_6bda92a2cbe9','佐藤厚仁','さとうあつひ
 INSERT INTO creators VALUES('cr_24adbbd24a51','佐藤和郎','さとうかずお',NULL);
 INSERT INTO creators VALUES('cr_c084e95212bd','佐藤樹','さとうたつき',NULL);
 INSERT INTO creators VALUES('cr_7604b4f717a6','佐藤泰将','さとうやすまさ',NULL);
-INSERT INTO creators VALUES('cr_4d78e5170a8b','佐藤純一','さとうじゅんいち',unistr('佐藤純一 (fhána)\u000a佐藤純一(fhána)'));
-INSERT INTO creators VALUES('cr_31a2149060f7','佐藤貴文','さとうたかふみ',unistr('BNEI(佐藤貴文)\u000aBNSI (佐藤貴文)\u000aBNSI(佐藤貴文)\u000aBNSI(佐藤貴文）\u000aBNSI（佐藤貴文）\u000aNBGI(佐藤貴文)\u000a佐藤貴文(Bandai Namco Studio Inc.)\u000a佐藤貴文(Bandai Namco Studios Inc.)\u000a佐藤貴文(バンダイナムコスタジオ)'));
+INSERT INTO creators VALUES('cr_4d78e5170a8b','佐藤純一','さとうじゅんいち','佐藤純一 (fhána)
+佐藤純一(fhána)');
+INSERT INTO creators VALUES('cr_31a2149060f7','佐藤貴文','さとうたかふみ','BNEI(佐藤貴文)
+BNSI (佐藤貴文)
+BNSI(佐藤貴文)
+BNSI(佐藤貴文）
+BNSI（佐藤貴文）
+NBGI(佐藤貴文)
+佐藤貴文(Bandai Namco Studio Inc.)
+佐藤貴文(Bandai Namco Studios Inc.)
+佐藤貴文(バンダイナムコスタジオ)');
 INSERT INTO creators VALUES('cr_8d1728723868','佐野信義','さののぶよし',NULL);
 INSERT INTO creators VALUES('cr_fde4b71caafc','佐野宏晃','さのひろあき',NULL);
-INSERT INTO creators VALUES('cr_fbccbb57fc20','佐高陵平','さたかりょうへい',unistr('佐高陵平(Hifumi,Inc.)\u000a佐高陵平(Hifumi,inc.)'));
+INSERT INTO creators VALUES('cr_fbccbb57fc20','佐高陵平','さたかりょうへい','佐高陵平(Hifumi,Inc.)
+佐高陵平(Hifumi,inc.)');
 INSERT INTO creators VALUES('cr_9dd245e82042','俊龍','しゅんりゅう',NULL);
 INSERT INTO creators VALUES('cr_890ac11389bd','信政誠','のぶまさまこと',NULL);
 INSERT INTO creators VALUES('cr_996171b642e2','倉内達矢','くらうちたつや',NULL);
 INSERT INTO creators VALUES('cr_40ec1a5adb5c','光増ハジメ','みつますはじめ','光増ハジメ(FirstCall)');
 INSERT INTO creators VALUES('cr_eeb3dadf003e','児玉雨子','こだまあめこ',NULL);
-INSERT INTO creators VALUES('cr_dcbd7adcbed4','八城雄太','やしろゆうた',unistr('BNEI(八城雄太)\u000aBNSI(八城雄太)\u000aBNSI(八城雄太).\u000aNBGI(八城雄太)'));
+INSERT INTO creators VALUES('cr_dcbd7adcbed4','八城雄太','やしろゆうた','BNEI(八城雄太)
+BNSI(八城雄太)
+BNSI(八城雄太).
+NBGI(八城雄太)');
 INSERT INTO creators VALUES('cr_d2d6fb31efa1','八尋春菜','やひろはるな',NULL);
 INSERT INTO creators VALUES('cr_e1250a949172','八木篤史','やぎあつし','八木篤史（SUPA LOVE）');
 INSERT INTO creators VALUES('cr_5caa86b58ad8','兼松衆','かねまつしゅう',NULL);
 INSERT INTO creators VALUES('cr_abf0a2d9633f','内海孝彰','うつみたかあき','内海孝彰（TRYTONELABO）');
-INSERT INTO creators VALUES('cr_9be92619178a','内田哲也','うちだてつや',unistr('BNEI(内田哲也)\u000aBNGI(内田哲也)\u000aBNSI(内田哲也)\u000aBNSI（内田哲也）\u000aNBGI(内田哲也)\u000aNBGI（内田哲也）\u000aNBSI(内田哲也)\u000a内田哲也(Cygames)'));
+INSERT INTO creators VALUES('cr_9be92619178a','内田哲也','うちだてつや','BNEI(内田哲也)
+BNGI(内田哲也)
+BNSI(内田哲也)
+BNSI（内田哲也）
+NBGI(内田哲也)
+NBGI（内田哲也）
+NBSI(内田哲也)
+内田哲也(Cygames)');
 INSERT INTO creators VALUES('cr_3a439a227fab','内藤匠','ないとうたくみ','内藤匠(SETOFF RECORDS)');
 INSERT INTO creators VALUES('cr_3852097e0bf0','凛々咲','りりしゃ',NULL);
 INSERT INTO creators VALUES('cr_5ffe4df16d83','出口遼','でぐちりょう','出口遼(KEYTONE)');
@@ -233,12 +281,14 @@ INSERT INTO creators VALUES('cr_21edd927e029','加藤祐平','かとうゆうへ
 INSERT INTO creators VALUES('cr_affe91f1e9db','北ノ原凉','きたのはらりょう',NULL);
 INSERT INTO creators VALUES('cr_dbb2f8a578a6','北川勝利','きたがわしょうり',NULL);
 INSERT INTO creators VALUES('cr_e1dcdf72dd24','北川悠仁','きたがわゆうじん',NULL);
-INSERT INTO creators VALUES('cr_6f3f6d8f9a28','北谷光浩','きただにみつひろ',unistr('BNSI(北谷光浩)\u000aBNSI（北谷光浩）'));
+INSERT INTO creators VALUES('cr_6f3f6d8f9a28','北谷光浩','きただにみつひろ','BNSI(北谷光浩)
+BNSI（北谷光浩）');
 INSERT INTO creators VALUES('cr_46e8cd04696e','十王邦夫','じゅうおうくにお',NULL);
 INSERT INTO creators VALUES('cr_7f8991648773','半田彬倫','はんだあきのり',NULL);
 INSERT INTO creators VALUES('cr_78b0ef98bf46','半田翼','はんだつばさ',NULL);
 INSERT INTO creators VALUES('cr_233103aa03bc','南悠翔','みなみゆうと',NULL);
-INSERT INTO creators VALUES('cr_a3901b17ac2b','南田健吾','みなみだけんご',unistr('南田健吾(agehasprings Party)\u000a南田健吾（onetrap）'));
+INSERT INTO creators VALUES('cr_a3901b17ac2b','南田健吾','みなみだけんご','南田健吾(agehasprings Party)
+南田健吾（onetrap）');
 INSERT INTO creators VALUES('cr_0173034a1205','南直博','みなみなおひろ',NULL);
 INSERT INTO creators VALUES('cr_32b173e3f87b','南郷達也','なんごうたつや',NULL);
 INSERT INTO creators VALUES('cr_77cf030953cc','南陽子','みなみようこ',NULL);
@@ -246,7 +296,9 @@ INSERT INTO creators VALUES('cr_7b934c62d309','原一博','はらかずひろ',N
 INSERT INTO creators VALUES('cr_1fe47e7ba28f','原口沙輔','はらぐちさすけ',NULL);
 INSERT INTO creators VALUES('cr_b3d10124a569','原田アツシ','はらだあつし',NULL);
 INSERT INTO creators VALUES('cr_95e1653c4833','原田ナオ','はらだなお',NULL);
-INSERT INTO creators VALUES('cr_ef51bae9cebe','原田篤','はらだあつし',unistr('原田篤 (Arte Refact)\u000a原田篤(Arte Refact)\u000a原田篤（Arte Refact）'));
+INSERT INTO creators VALUES('cr_ef51bae9cebe','原田篤','はらだあつし','原田篤 (Arte Refact)
+原田篤(Arte Refact)
+原田篤（Arte Refact）');
 INSERT INTO creators VALUES('cr_58167376c553','原田雄一','はらだゆういち',NULL);
 INSERT INTO creators VALUES('cr_4582417623f0','原由実','はらゆみ',NULL);
 INSERT INTO creators VALUES('cr_c5dc7f2d4367','原知也','はらともや',NULL);
@@ -275,17 +327,25 @@ INSERT INTO creators VALUES('cr_43d3de67f196','坂井竜二','さかいりゅう
 INSERT INTO creators VALUES('cr_e3ae1faa2aa2','坂東邑真','ばんどうゆま',NULL);
 INSERT INTO creators VALUES('cr_4af2dec55f94','坂部剛','さかべごう',NULL);
 INSERT INTO creators VALUES('cr_239a28f8ea37','坪井リヒト','つぼいりひと','坪井リヒト(Bandai Namco Studio Inc.)');
-INSERT INTO creators VALUES('cr_9df1809a6048','坪田修平','つぼたしゅうへい',unistr('坪田修平 [TRYTONELABO]\u000a坪田修平(TRYTONELABO)\u000a坪田修平（TRYTONELABO）\u000a坪田修平［TRYTONELABO］'));
+INSERT INTO creators VALUES('cr_9df1809a6048','坪田修平','つぼたしゅうへい','坪田修平 [TRYTONELABO]
+坪田修平(TRYTONELABO)
+坪田修平（TRYTONELABO）
+坪田修平［TRYTONELABO］');
 INSERT INTO creators VALUES('cr_b0f838350659','堀江晶太','ほりえしょうた',NULL);
 INSERT INTO creators VALUES('cr_e929a123293a','堀秀彰','ほりひであき',NULL);
 INSERT INTO creators VALUES('cr_b5d4d3db22c5','堀込高樹','ほりごめたかき',NULL);
 INSERT INTO creators VALUES('cr_779504f0724c','塚田耕平','つかだこうへい','塚田耕平(Dream Monster)');
-INSERT INTO creators VALUES('cr_1992cdde9b7d','塩原大貴','しおばらだいき',unistr('塩原大貴 (SUPA LOVE)\u000a塩原大貴(SUPA LOVE)'));
-INSERT INTO creators VALUES('cr_ae4cf299b2d0','増渕裕二','ますぶちゆうじ',unistr('BNSI(増渕裕二)\u000aBNSI（増渕裕二）\u000aNBGI(増渕裕二)'));
+INSERT INTO creators VALUES('cr_1992cdde9b7d','塩原大貴','しおばらだいき','塩原大貴 (SUPA LOVE)
+塩原大貴(SUPA LOVE)');
+INSERT INTO creators VALUES('cr_ae4cf299b2d0','増渕裕二','ますぶちゆうじ','BNSI(増渕裕二)
+BNSI（増渕裕二）
+NBGI(増渕裕二)');
 INSERT INTO creators VALUES('cr_9b477df7ac58','増田武史','ますだたけし',NULL);
 INSERT INTO creators VALUES('cr_05e9fb98ce80','増谷賢','ますたにけん',NULL);
 INSERT INTO creators VALUES('cr_c7355532e6f9','夏海','なつみ',NULL);
-INSERT INTO creators VALUES('cr_9f0a16d31739','夕野ヨシミ','ゆうのよしみ',unistr('夕野ヨシミ (IOSYS)\u000a夕野ヨシミ(IOSYS)\u000a夕野ヨシミ（IOSYS）'));
+INSERT INTO creators VALUES('cr_9f0a16d31739','夕野ヨシミ','ゆうのよしみ','夕野ヨシミ (IOSYS)
+夕野ヨシミ(IOSYS)
+夕野ヨシミ（IOSYS）');
 INSERT INTO creators VALUES('cr_c4dac738c247','多田李衣菜','ただりいな','多田李衣菜（青木瑠璃子）');
 INSERT INTO creators VALUES('cr_6fee9a7b492b','夜兎','やと',NULL);
 INSERT INTO creators VALUES('cr_28e84171ac37','大上昌子','おおがみまさこ','NBGI(大上昌子)');
@@ -300,12 +360,15 @@ INSERT INTO creators VALUES('cr_73f739186707','大森祥子','おおもりしょ
 INSERT INTO creators VALUES('cr_ae8d763c591d','大橋ちっぽけ','おおはしちっぽけ',NULL);
 INSERT INTO creators VALUES('cr_73caf104524a','大橋恵','おおはしめぐみ',NULL);
 INSERT INTO creators VALUES('cr_14f205373d87','大橋莉子','おおはしりこ',NULL);
-INSERT INTO creators VALUES('cr_6539474093a1','大澤めい','おおさわめい',unistr('BNSI(大澤めい)\u000a大澤めい (Bandai Namco Studios Inc.)\u000a大澤めい(Bandai Namco Studios Inc.)'));
+INSERT INTO creators VALUES('cr_6539474093a1','大澤めい','おおさわめい','BNSI(大澤めい)
+大澤めい (Bandai Namco Studios Inc.)
+大澤めい(Bandai Namco Studios Inc.)');
 INSERT INTO creators VALUES('cr_643f7f022845','大濱健悟','おおはまけんご',NULL);
 INSERT INTO creators VALUES('cr_13d17e74971f','大熊淳生','おおくまあつお','大熊淳生(Arte Refact)');
 INSERT INTO creators VALUES('cr_31386e29aec3','大石憲一郎','おおいしけんいちろう',NULL);
 INSERT INTO creators VALUES('cr_712b498c87b1','大竹智之','おおたけともゆき',NULL);
-INSERT INTO creators VALUES('cr_e11cf4c2b6f1','大西克巳','おおにしかつみ',unistr('大西克巳 (Blue Bird''s Nest)\u000a大西克巳(Blue Bird''s Nest)'));
+INSERT INTO creators VALUES('cr_e11cf4c2b6f1','大西克巳','おおにしかつみ','大西克巳 (Blue Bird''s Nest)
+大西克巳(Blue Bird''s Nest)');
 INSERT INTO creators VALUES('cr_449bdcb8719a','大野宏明','おおのひろあき',NULL);
 INSERT INTO creators VALUES('cr_04b7fa4d9554','大野木宣幸','おおのぎのぶゆき','NBGI(大野木宣幸)');
 INSERT INTO creators VALUES('cr_703d309e1a1d','太田貴之','おおたたかゆき',NULL);
@@ -337,7 +400,10 @@ INSERT INTO creators VALUES('cr_5dc13b88e8f2','小松レナ','こまつれな',N
 INSERT INTO creators VALUES('cr_046260a6616b','小松一也','こまつかずや',NULL);
 INSERT INTO creators VALUES('cr_ebb0871711c6','小林俊太郎','こばやししゅんたろう',NULL);
 INSERT INTO creators VALUES('cr_e325cf6ca624','小林写楽','こばやししゃらく',NULL);
-INSERT INTO creators VALUES('cr_e5820c57bd6c','小林啓樹','こばやしけいき',unistr('BNEI(小林啓樹)\u000aBNSI(小林啓樹)\u000aBNSI(小林啓樹）\u000aNBGI(小林啓樹)'));
+INSERT INTO creators VALUES('cr_e5820c57bd6c','小林啓樹','こばやしけいき','BNEI(小林啓樹)
+BNSI(小林啓樹)
+BNSI(小林啓樹）
+NBGI(小林啓樹)');
 INSERT INTO creators VALUES('cr_5ae4953fa08f','小栢伸五','おがやしんご',NULL);
 INSERT INTO creators VALUES('cr_0148650ab10d','小椋健司','おぐらけんじ',NULL);
 INSERT INTO creators VALUES('cr_f4c822825657','小池竜暉','こいけりゅうき',NULL);
@@ -358,8 +424,11 @@ INSERT INTO creators VALUES('cr_17a8d5144beb','山崎光','やまさきひかる
 INSERT INTO creators VALUES('cr_83a7ead90dc1','山崎寛子','やまさきひろこ',NULL);
 INSERT INTO creators VALUES('cr_d2225345afc4','山崎真吾','やまざきしんご','山崎真吾 (SUPA LOVE)');
 INSERT INTO creators VALUES('cr_e2ac443296c9','山本メーコ','やまもとめーこ','山本メーコ(Hifumi,inc.)');
-INSERT INTO creators VALUES('cr_22a01c071a4f','山本恭平','やまもときょうへい',unistr('山本恭平 (Arte Refact)\u000a山本恭平(Arte Refact)\u000a山本恭平（Arte Refact）'));
-INSERT INTO creators VALUES('cr_3ce81386e9e1','山本真央樹','やまもとまおき',unistr('山本真央樹(TRYTONELABO)\u000a山本真央樹（TRYTONELABO）'));
+INSERT INTO creators VALUES('cr_22a01c071a4f','山本恭平','やまもときょうへい','山本恭平 (Arte Refact)
+山本恭平(Arte Refact)
+山本恭平（Arte Refact）');
+INSERT INTO creators VALUES('cr_3ce81386e9e1','山本真央樹','やまもとまおき','山本真央樹(TRYTONELABO)
+山本真央樹（TRYTONELABO）');
 INSERT INTO creators VALUES('cr_f1a59902af97','山本翔馬','やまもとしょうま',NULL);
 INSERT INTO creators VALUES('cr_a77198165bbf','山本陽介','やまもとようすけ',NULL);
 INSERT INTO creators VALUES('cr_d342ca75d7f8','山田智和','やまだともかず',NULL);
@@ -369,7 +438,9 @@ INSERT INTO creators VALUES('cr_0e61ac18a022','山野井孝和','やまのいた
 INSERT INTO creators VALUES('cr_f3eb7558b215','岡本健介','おかもとけんすけ',NULL);
 INSERT INTO creators VALUES('cr_c6ff1393ecf2','岡田祥','おかだしょう','BNSI(岡田祥)');
 INSERT INTO creators VALUES('cr_bbd8a6331b04','岡部啓一','おかべけいいち','岡部啓一(MONACA)');
-INSERT INTO creators VALUES('cr_e10b3199772f','岡野裕次郎','おかのゆうじろう',unistr('岡野裕次郎(TRYTONELABO)\u000a岡野裕次郎（TRYTONELABO）\u000a岡野裕次郎［TRYTONELABO］'));
+INSERT INTO creators VALUES('cr_e10b3199772f','岡野裕次郎','おかのゆうじろう','岡野裕次郎(TRYTONELABO)
+岡野裕次郎（TRYTONELABO）
+岡野裕次郎［TRYTONELABO］');
 INSERT INTO creators VALUES('cr_fd4967a80b5b','岩城由美','いわきゆみ',NULL);
 INSERT INTO creators VALUES('cr_5cf12d18514d','岩崎隆一','いわさきりゅういち',NULL);
 INSERT INTO creators VALUES('cr_a8089965d64f','岩瀬賢明','いわせけんめい','岩瀬賢明 (とけた電球)');
@@ -384,7 +455,9 @@ INSERT INTO creators VALUES('cr_8a27b40c7c58','川島亮祐','かわしまりょ
 INSERT INTO creators VALUES('cr_dbe0f5e953fc','川島弘光','かわしまひろみつ',NULL);
 INSERT INTO creators VALUES('cr_c6c03e27a4f3','川崎智哉','かわさきともや',NULL);
 INSERT INTO creators VALUES('cr_c6fff7613963','川崎良介','かわさきりょうすけ','川崎良介(Dimension Cruise)');
-INSERT INTO creators VALUES('cr_aeda8332a3d8','川田宏行','かわだひろゆき',unistr('BNSI(川田宏行）\u000aBNSI（川田宏行）\u000aNBGI(川田宏行)'));
+INSERT INTO creators VALUES('cr_aeda8332a3d8','川田宏行','かわだひろゆき','BNSI(川田宏行）
+BNSI（川田宏行）
+NBGI(川田宏行)');
 INSERT INTO creators VALUES('cr_05813504d97b','川田瑠夏','かわだるか',NULL);
 INSERT INTO creators VALUES('cr_ad0efcfe51dc','川野勝広','かわのかつひろ',NULL);
 INSERT INTO creators VALUES('cr_a301d1f14aae','工藤了','くどうりょう',NULL);
@@ -393,12 +466,17 @@ INSERT INTO creators VALUES('cr_9ceb39a76020','巽兄悟','たつみけいご',N
 INSERT INTO creators VALUES('cr_df35d8ad3288','市蔵','いちくら',NULL);
 INSERT INTO creators VALUES('cr_328121ca7697','帆足圭吾','ほあしけいご','帆足圭吾(MONACA)');
 INSERT INTO creators VALUES('cr_45843579796f','常楽寺澪','じょうらくじみお',NULL);
-INSERT INTO creators VALUES('cr_749d1b99ba20','平井克明','ひらいよしのり',unistr('BNSI(平井克明)\u000aBNSI（平井克明）'));
+INSERT INTO creators VALUES('cr_749d1b99ba20','平井克明','ひらいよしのり','BNSI(平井克明)
+BNSI（平井克明）');
 INSERT INTO creators VALUES('cr_b2234077efe7','平朋崇','たいらともたか',NULL);
 INSERT INTO creators VALUES('cr_fb024b0de908','平沢敦士','ひらさわあつし',NULL);
-INSERT INTO creators VALUES('cr_a4175b83576a','平清十郎','たいらせいじゅうろう',unistr('平清十郎(TRYTONELABO)\u000a平清十郎（TRYTONELABO）\u000a平清十郎［TRYTONELABO］'));
+INSERT INTO creators VALUES('cr_a4175b83576a','平清十郎','たいらせいじゅうろう','平清十郎(TRYTONELABO)
+平清十郎（TRYTONELABO）
+平清十郎［TRYTONELABO］');
 INSERT INTO creators VALUES('cr_35199a315f3f','平田祥一郎','ひらたしょういちろう',NULL);
-INSERT INTO creators VALUES('cr_575d3690261a','広川恵一','ひろかわけいいち',unistr('広川恵一(MONACA)\u000a広川恵一（MONACA）\u000a広川恵一［MONACA］'));
+INSERT INTO creators VALUES('cr_575d3690261a','広川恵一','ひろかわけいいち','広川恵一(MONACA)
+広川恵一（MONACA）
+広川恵一［MONACA］');
 INSERT INTO creators VALUES('cr_370a88b24a7d','廣中トキワ','ひろなかときわ',NULL);
 INSERT INTO creators VALUES('cr_a0d84fd99dfb','廣澤優也','ひろさわゆうや',NULL);
 INSERT INTO creators VALUES('cr_3d2dcd177697','弦哲也','げんてつや',NULL);
@@ -419,7 +497,8 @@ INSERT INTO creators VALUES('cr_96d02dbd223c','新谷風太','しんたにふう
 INSERT INTO creators VALUES('cr_86710db263c6','日暮裕紀','ひぐらしゆうき',NULL);
 INSERT INTO creators VALUES('cr_9768dec2d150','日比野裕史','ひびのひろふみ','日比野裕史(Blue Bird''s Nest)');
 INSERT INTO creators VALUES('cr_b58461700cc0','日置江佑一朗','ひきえゆういちろう',NULL);
-INSERT INTO creators VALUES('cr_fc98396662ff','早川博隆','はやかわひろたか',unistr('早川博隆 (Rebrast)\u000a早川博隆(Rebrast)'));
+INSERT INTO creators VALUES('cr_fc98396662ff','早川博隆','はやかわひろたか','早川博隆 (Rebrast)
+早川博隆(Rebrast)');
 INSERT INTO creators VALUES('cr_cc19259cf155','星野孝文','ほしのたかふみ',NULL);
 INSERT INTO creators VALUES('cr_29924bd31c68','星銀乃丈','ほしぎんのじょう',NULL);
 INSERT INTO creators VALUES('cr_f98c310c435f','春和文','はるかずあや',NULL);
@@ -434,17 +513,22 @@ INSERT INTO creators VALUES('cr_ee31bcaf9922','朝日祭','あさひまつり',N
 INSERT INTO creators VALUES('cr_a9987f1a385b','木下龍平','きのしたりゅうへい',NULL);
 INSERT INTO creators VALUES('cr_1210388c20d8','木村孝明','きむらたかあき','木村孝明 (KEYTONE)');
 INSERT INTO creators VALUES('cr_5105893232af','木村有希','きむらゆうき',NULL);
-INSERT INTO creators VALUES('cr_0762b2227dba','本多友紀','ほんだゆうき',unistr('本多友紀 (Arte Refact)\u000a本多友紀(Arte Refact)\u000a本多友紀（Arte Refact）'));
+INSERT INTO creators VALUES('cr_0762b2227dba','本多友紀','ほんだゆうき','本多友紀 (Arte Refact)
+本多友紀(Arte Refact)
+本多友紀（Arte Refact）');
 INSERT INTO creators VALUES('cr_c81f667fbdb5','本澤尚之','もとざわなおゆき',NULL);
 INSERT INTO creators VALUES('cr_16bae89f89d0','本田光史郎','ほんだこうしろう',NULL);
 INSERT INTO creators VALUES('cr_78942eada205','本田光史郞','ほんだこうしろう',NULL);
-INSERT INTO creators VALUES('cr_16827b7a431b','本田正樹','ほんだまさき',unistr('本田正樹 (Dream Monster)\u000a本田正樹(Dream Monster)'));
+INSERT INTO creators VALUES('cr_16827b7a431b','本田正樹','ほんだまさき','本田正樹 (Dream Monster)
+本田正樹(Dream Monster)');
 INSERT INTO creators VALUES('cr_745b64496160','杉浦”ラフィン”誠一郎','すぎうららふぃんせいいちろう',NULL);
 INSERT INTO creators VALUES('cr_05ec93f7f775','杉田未央','すぎたみお',NULL);
 INSERT INTO creators VALUES('cr_1a0b73234193','村井大','むらいだい',NULL);
 INSERT INTO creators VALUES('cr_be4da94edfaf','村山シベリウス達彦','むらやましべりうすたつひこ',NULL);
 INSERT INTO creators VALUES('cr_a63737cde566','村田祐一','むらたゆういち','村田祐一(LIVE LAB.)');
-INSERT INTO creators VALUES('cr_1f49123d4b13','東ノ獄彩','ひがしのごくさい',unistr('BNSI(東ノ獄彩)\u000aBNSI（東ノ獄彩）\u000aNBSI(東ノ獄彩)'));
+INSERT INTO creators VALUES('cr_1f49123d4b13','東ノ獄彩','ひがしのごくさい','BNSI(東ノ獄彩)
+BNSI（東ノ獄彩）
+NBSI(東ノ獄彩)');
 INSERT INTO creators VALUES('cr_626162ba32d9','東優太','あずまゆうた',NULL);
 INSERT INTO creators VALUES('cr_647bf144a4a8','東大路憲太','ひがしおおじけんた',NULL);
 INSERT INTO creators VALUES('cr_de99c161d98c','東義人','ひがしよしと','BNSI(東義人)');
@@ -461,7 +545,8 @@ INSERT INTO creators VALUES('cr_1ed8ea43382b','林英樹','はやしひでき',N
 INSERT INTO creators VALUES('cr_03845276b102','林部亜紀子','はやしべあきこ',NULL);
 INSERT INTO creators VALUES('cr_8267752b9fdf','柚木美祐','ゆずきみゆ',NULL);
 INSERT INTO creators VALUES('cr_33804221c53a','柳田しゆ','やなぎだしゆ',NULL);
-INSERT INTO creators VALUES('cr_037973fe8c53','柿埜嘉奈子','かきのかなこ',unistr('BNSI(柿埜嘉奈子)\u000aBNSI（柿埜嘉奈子）'));
+INSERT INTO creators VALUES('cr_037973fe8c53','柿埜嘉奈子','かきのかなこ','BNSI(柿埜嘉奈子)
+BNSI（柿埜嘉奈子）');
 INSERT INTO creators VALUES('cr_998ddf144bb8','柿沼雅美','かきぬままさみ','柿沼雅美 (KEYTONE)');
 INSERT INTO creators VALUES('cr_b661f5bf98ca','柿迫ヒカル','かきさこひかる','柿迫ヒカル(Rebrast)');
 INSERT INTO creators VALUES('cr_0868fd9be9be','栁沼廉','やぎぬまれん',NULL);
@@ -482,7 +567,12 @@ INSERT INTO creators VALUES('cr_6a6a8b55d34a','森田和樹','もりたかずき
 INSERT INTO creators VALUES('cr_dcec98a5afa2','森由里子','もりゆりこ',NULL);
 INSERT INTO creators VALUES('cr_4eb660361a73','森谷敏紀','もりやとしのり',NULL);
 INSERT INTO creators VALUES('cr_f4d4166a6605','森谷貴晴','もりやたかはる',NULL);
-INSERT INTO creators VALUES('cr_2fe5af8610f4','椎名豪','しいなごう',unistr('BNEI(椎名豪)\u000aBNEI（椎名豪）\u000aBNGI(椎名豪)\u000aBNSI (椎名豪)\u000aBNSI(椎名豪)\u000aNBGI(椎名豪)'));
+INSERT INTO creators VALUES('cr_2fe5af8610f4','椎名豪','しいなごう','BNEI(椎名豪)
+BNEI（椎名豪）
+BNGI(椎名豪)
+BNSI (椎名豪)
+BNSI(椎名豪)
+NBGI(椎名豪)');
 INSERT INTO creators VALUES('cr_8ccf39ae2964','椿山日南子','つばきやまひなこ','椿山日南子(Dream Monster)');
 INSERT INTO creators VALUES('cr_10530fce3ee2','樫原伸彦','かしはらのぶひこ',NULL);
 INSERT INTO creators VALUES('cr_236773b6341d','樽井朋弥','たるいともや',NULL);
@@ -515,11 +605,14 @@ INSERT INTO creators VALUES('cr_31c993c6da39','浅倉杏美','あさくらあず
 INSERT INTO creators VALUES('cr_1e3bf5f5abde','浅利進吾','あさりしんご',NULL);
 INSERT INTO creators VALUES('cr_937b8784dce6','浅原康浩','あさはらやすひろ',NULL);
 INSERT INTO creators VALUES('cr_04a148fd3bbb','浜田ピエール裕介','はまだぴえーるゆうすけ',NULL);
-INSERT INTO creators VALUES('cr_c3a6b969d212','浩川卿中二','ひろかわきょうちゅうじ',unistr('BNSI(浩川卿中二)\u000aNBSI(浩川卿中二)'));
-INSERT INTO creators VALUES('cr_50dab6885b01','涼木シンジ','すずきしんじ',unistr('涼木シンジ (KEYTONE)\u000a涼木シンジ(KEYTONE)'));
+INSERT INTO creators VALUES('cr_c3a6b969d212','浩川卿中二','ひろかわきょうちゅうじ','BNSI(浩川卿中二)
+NBSI(浩川卿中二)');
+INSERT INTO creators VALUES('cr_50dab6885b01','涼木シンジ','すずきしんじ','涼木シンジ (KEYTONE)
+涼木シンジ(KEYTONE)');
 INSERT INTO creators VALUES('cr_9e410774d2f6','深川琴美','ふかがわことみ',NULL);
 INSERT INTO creators VALUES('cr_c49b38873c35','淵ヶ谷増二','ふちがやますじ','NBSI(淵ヶ谷増二)');
-INSERT INTO creators VALUES('cr_e1c5ae64ae38','清水"カルロス"宥人','しみずかるろすゆうと',unistr('清水"カルロス"宥人 (KEYTONE)\u000a清水"カルロス"宥人(KEYTONE)'));
+INSERT INTO creators VALUES('cr_e1c5ae64ae38','清水"カルロス"宥人','しみずかるろすゆうと','清水"カルロス"宥人 (KEYTONE)
+清水"カルロス"宥人(KEYTONE)');
 INSERT INTO creators VALUES('cr_519111f7f315','清水哲平','しみずてっぺい',NULL);
 INSERT INTO creators VALUES('cr_9876c5e42e8f','清水昭男','しみずあきお',NULL);
 INSERT INTO creators VALUES('cr_0eb108248368','清水武仁','しみずたけひと','清水武仁(Blue Bird''s Nest)');
@@ -534,15 +627,27 @@ INSERT INTO creators VALUES('cr_f690eefa1e72','渡辺未来','わたなべみき
 INSERT INTO creators VALUES('cr_ec20b157682a','渡辺泰司','わたなべやすし',NULL);
 INSERT INTO creators VALUES('cr_92040f0066b3','渡辺淳','わたなべじゅん',NULL);
 INSERT INTO creators VALUES('cr_0bbce72b4a46','渡辺翔','わたなべしょう',NULL);
-INSERT INTO creators VALUES('cr_165c85f27368','渡辺量','わたなべりょう',unistr('BNEI(渡辺量)\u000aBNSI(渡辺量)\u000aBNSI(渡辺量).\u000aBNSI(渡辺量）\u000aBNSI（渡辺量）'));
+INSERT INTO creators VALUES('cr_165c85f27368','渡辺量','わたなべりょう','BNEI(渡辺量)
+BNSI(渡辺量)
+BNSI(渡辺量).
+BNSI(渡辺量）
+BNSI（渡辺量）');
 INSERT INTO creators VALUES('cr_aff8aa595ea7','渡邉俊彦','わたなべとしひこ','渡邉俊彦(LSMJ)');
 INSERT INTO creators VALUES('cr_cd41781430f0','渡邊亜希子','わたなべあきこ',NULL);
 INSERT INTO creators VALUES('cr_0bd36eaf6ecc','渡部チェル','わたなべちぇる',NULL);
 INSERT INTO creators VALUES('cr_be2af21ccdec','渡部紫緒','わたなべしお',NULL);
 INSERT INTO creators VALUES('cr_70c03ac10591','湯原聡史','ゆはらさとし','湯原聡史(KEYTONE)');
-INSERT INTO creators VALUES('cr_27a7191e7ed9','滝澤俊輔','たきざわしゅんすけ',unistr('滝澤俊輔(TRYTONELABO)\u000a滝澤俊輔(TRYTONELABO]\u000a滝澤俊輔(Try Tone Labo)\u000a滝澤俊輔[TRYTONELABO]\u000a滝澤俊輔（TRYTONELABO）\u000a滝澤俊輔［TRYTONELABO］'));
+INSERT INTO creators VALUES('cr_27a7191e7ed9','滝澤俊輔','たきざわしゅんすけ','滝澤俊輔(TRYTONELABO)
+滝澤俊輔(TRYTONELABO]
+滝澤俊輔(Try Tone Labo)
+滝澤俊輔[TRYTONELABO]
+滝澤俊輔（TRYTONELABO）
+滝澤俊輔［TRYTONELABO］');
 INSERT INTO creators VALUES('cr_199b65a643e5','澤田空海理','さわだそうり',NULL);
-INSERT INTO creators VALUES('cr_e7e2e716fea5','濱本理央','はまもとりお',unistr('BNEI(濱本理央)\u000aBNSI(濱本理央)\u000aBNSI(濱本理央）\u000aBNSI（濱本理央）'));
+INSERT INTO creators VALUES('cr_e7e2e716fea5','濱本理央','はまもとりお','BNEI(濱本理央)
+BNSI(濱本理央)
+BNSI(濱本理央）
+BNSI（濱本理央）');
 INSERT INTO creators VALUES('cr_434eff6e602c','濱田幹浩','はまだみきひろ',NULL);
 INSERT INTO creators VALUES('cr_869410ab3ea6','瀬尾祥太郎','せおしょうたろう','瀬尾祥太郎(MONACA)');
 INSERT INTO creators VALUES('cr_15b2c4c9d7f3','瀬良羽美','せらはねみ',NULL);
@@ -553,14 +658,17 @@ INSERT INTO creators VALUES('cr_cdefcd895518','無敵DEADSNAKE','むてきでっ
 INSERT INTO creators VALUES('cr_2958efa18525','熊谷憲康','くまがいのりやす',NULL);
 INSERT INTO creators VALUES('cr_8f9a052faa72','片山将太','かたやましょうた',NULL);
 INSERT INTO creators VALUES('cr_16f47631a5fa','牧野太洋','まきのたいよう',NULL);
-INSERT INTO creators VALUES('cr_399f11b5e785','狐夢想','こむそう',unistr('狐夢想 (COOL＆CREATE)\u000a狐夢想(COOL＆CREATE)'));
+INSERT INTO creators VALUES('cr_399f11b5e785','狐夢想','こむそう','狐夢想 (COOL＆CREATE)
+狐夢想(COOL＆CREATE)');
 INSERT INTO creators VALUES('cr_ffa058a4870c','玉屋2060%','たまやにせんろくじゅっぱーせんと','玉屋2060%(Wienners)');
 INSERT INTO creators VALUES('cr_e8bdcc8b5acb','玉木千尋','たまきちひろ',NULL);
 INSERT INTO creators VALUES('cr_5495e028dc58','王子マスター','おうじますたー',NULL);
 INSERT INTO creators VALUES('cr_99d4e94d14a3','生田真心','いくたましん',NULL);
 INSERT INTO creators VALUES('cr_22a9a523039d','田中ひなの','たなかひなの','田中ひなの(IKW)');
 INSERT INTO creators VALUES('cr_c02c150e3bed','田中俊亮','たなかしゅんすけ',NULL);
-INSERT INTO creators VALUES('cr_d6ffd6ef42b7','田中秀和','たなかひでかず',unistr('田中秀和(MONACA)\u000a田中秀和（MONACA）\u000a田中秀和［MONACA］'));
+INSERT INTO creators VALUES('cr_d6ffd6ef42b7','田中秀和','たなかひでかず','田中秀和(MONACA)
+田中秀和（MONACA）
+田中秀和［MONACA］');
 INSERT INTO creators VALUES('cr_ce3c3be0740b','田中透真','たなかとうま','田中透真(Dream Monster)');
 INSERT INTO creators VALUES('cr_5872060a4590','田中龍志','たなかりゅうじ','田中龍志(Rebrast)');
 INSERT INTO creators VALUES('cr_cf99a784c537','田代智一','たしろともかず',NULL);
@@ -589,7 +697,10 @@ INSERT INTO creators VALUES('cr_844ff2e6e4b2','睦月周平','むつきしゅう
 INSERT INTO creators VALUES('cr_4ac053cfecfd','矢吹香那','やぶきかな',NULL);
 INSERT INTO creators VALUES('cr_25fcb724e4de','矢野博康','やのひろやす',NULL);
 INSERT INTO creators VALUES('cr_b904d4143aad','矢野達也','やのたつや',NULL);
-INSERT INTO creators VALUES('cr_52059300f2a8','矢鴇つかさ','やときつかさ',unistr('矢鴇つかさ (Arte Refact)\u000a矢鴇つかさ(Arte Refact)\u000a矢鴇つかさ(ArteRefact)\u000a矢鴇つかさ（Arte Refact）'));
+INSERT INTO creators VALUES('cr_52059300f2a8','矢鴇つかさ','やときつかさ','矢鴇つかさ (Arte Refact)
+矢鴇つかさ(Arte Refact)
+矢鴇つかさ(ArteRefact)
+矢鴇つかさ（Arte Refact）');
 INSERT INTO creators VALUES('cr_3683a151f031','石井伸昂','いしいのぶたか',NULL);
 INSERT INTO creators VALUES('cr_639bbfdb11fd','石井健太郎','いしいけんたろう',NULL);
 INSERT INTO creators VALUES('cr_8e4e0101aa45','石倉誉之','いしくらたかゆき',NULL);
@@ -598,20 +709,28 @@ INSERT INTO creators VALUES('cr_ba03451b634c','石塚玲依','いしづかれい
 INSERT INTO creators VALUES('cr_72431c9be09a','石川慧樹','いしかわけいじゅ',NULL);
 INSERT INTO creators VALUES('cr_a6e7c9936703','石川智晶','いしかわちあき',NULL);
 INSERT INTO creators VALUES('cr_55d75da8d505','石川絵理','いしかわえり',NULL);
-INSERT INTO creators VALUES('cr_4dd3ffc4e33a','石濱翔','いしはまかける',unistr('石濱 翔\u000a石濱翔(MONACA)\u000a石濱翔[MONACA]\u000a石濱翔（MONACA）\u000a石濱翔［MONACA］'));
+INSERT INTO creators VALUES('cr_4dd3ffc4e33a','石濱翔','いしはまかける','石濱 翔
+石濱翔(MONACA)
+石濱翔[MONACA]
+石濱翔（MONACA）
+石濱翔［MONACA］');
 INSERT INTO creators VALUES('cr_6149f7d63e26','石田秀登','いしだひでと',NULL);
 INSERT INTO creators VALUES('cr_2ecef69c4111','石谷桂亮','いしたにけいすけ',NULL);
 INSERT INTO creators VALUES('cr_704be57d17ba','石黑剛','いしぐろごう',NULL);
 INSERT INTO creators VALUES('cr_b980a2fb726b','磯崎健史','いそざきたけし',NULL);
 INSERT INTO creators VALUES('cr_16e2e72a5fbc','磯谷佳江','いそがいよしえ',NULL);
-INSERT INTO creators VALUES('cr_93c8c0bce8c2','神前暁','こうさきさとる',unistr('BNGI(神前暁)\u000aBNSI(神前暁)\u000aNBGI(神前暁)\u000a神前暁(MONACA)'));
+INSERT INTO creators VALUES('cr_93c8c0bce8c2','神前暁','こうさきさとる','BNGI(神前暁)
+BNSI(神前暁)
+NBGI(神前暁)
+神前暁(MONACA)');
 INSERT INTO creators VALUES('cr_d917f1f89b64','神山羊','かみやまよう',NULL);
 INSERT INTO creators VALUES('cr_e5e677cffa46','神津裕之','こうづひろゆき',NULL);
 INSERT INTO creators VALUES('cr_099a02e81c8d','神田ジョン','かんだじょん',NULL);
 INSERT INTO creators VALUES('cr_f15b068c608f','神谷礼','かみやれい',NULL);
 INSERT INTO creators VALUES('cr_c1f879cde41e','福富雅之','ふくとみまさゆき','福富雅之(Nostalgic Orchestra)');
 INSERT INTO creators VALUES('cr_b3eeef1d6bb3','福田陽司','ふくだようじ',NULL);
-INSERT INTO creators VALUES('cr_d213ccc48990','秋浦智裕','あきうらともひろ',unistr('秋浦智裕(agehasprings Party)\u000a秋浦智裕(onetrap)'));
+INSERT INTO creators VALUES('cr_d213ccc48990','秋浦智裕','あきうらともひろ','秋浦智裕(agehasprings Party)
+秋浦智裕(onetrap)');
 INSERT INTO creators VALUES('cr_a3e7688ff94a','秋葉広大','あきばこうだい','秋葉広大(LIVE LAB.)');
 INSERT INTO creators VALUES('cr_0081eaf59c4f','竹中文一','たけなかふみかず',NULL);
 INSERT INTO creators VALUES('cr_7b4de35db03f','竹市佳伸','たけいちよしのぶ',NULL);
@@ -627,7 +746,9 @@ INSERT INTO creators VALUES('cr_e011d580f39d','絵伊子','えいこ',NULL);
 INSERT INTO creators VALUES('cr_dcfbad9d929d','網本ナオノブ','あみもとなおのぶ',NULL);
 INSERT INTO creators VALUES('cr_de338f834aa2','羊','ひつじ',NULL);
 INSERT INTO creators VALUES('cr_36f481f9c969','美波','みなみ',NULL);
-INSERT INTO creators VALUES('cr_8c08f3d71e3e','脇眞富','わきまさとみ',unistr('脇眞富 (Arte Refact)\u000a脇眞富(Arte Refact)\u000a脇眞富（Arte Refact）'));
+INSERT INTO creators VALUES('cr_8c08f3d71e3e','脇眞富','わきまさとみ','脇眞富 (Arte Refact)
+脇眞富(Arte Refact)
+脇眞富（Arte Refact）');
 INSERT INTO creators VALUES('cr_13c837dffb3c','花衣','はなごろも','花衣(SUPA LOVE)');
 INSERT INTO creators VALUES('cr_079b9eab70fa','若林タカツグ','わかばやしたかつぐ',NULL);
 INSERT INTO creators VALUES('cr_43b5491b21fa','若林充','わかばやしみつる',NULL);
@@ -647,7 +768,8 @@ INSERT INTO creators VALUES('cr_a41b1c66ba89','藤井健太郎','ふじいけん
 INSERT INTO creators VALUES('cr_e19e0de82549','藤原彩豊','ふじわらあやと',NULL);
 INSERT INTO creators VALUES('cr_f1cee503230f','藤原燈太','ふじわらとうた',NULL);
 INSERT INTO creators VALUES('cr_142f44fbe244','藤末樹','ふじすえみき',NULL);
-INSERT INTO creators VALUES('cr_784bfd88ba1d','藤本記子','ふじもとのりこ',unistr('藤本記子 (Nostalgic Orchestra)\u000a藤本記子(Nostalgic Orchestra)'));
+INSERT INTO creators VALUES('cr_784bfd88ba1d','藤本記子','ふじもとのりこ','藤本記子 (Nostalgic Orchestra)
+藤本記子(Nostalgic Orchestra)');
 INSERT INTO creators VALUES('cr_3ef1d6b6f58b','藤村鼓乃美','ふじむらこのみ',NULL);
 INSERT INTO creators VALUES('cr_5ca7c9a1c4f6','藤林聖子','ふじばやししょうこ',NULL);
 INSERT INTO creators VALUES('cr_5fb7160afa5a','藤永龍太郎','ふじながりゅうたろう','藤永龍太郎(Elements Garden)');
@@ -671,7 +793,9 @@ INSERT INTO creators VALUES('cr_2205086269bc','辻純更','つじじゅんこ',N
 INSERT INTO creators VALUES('cr_e15b51056e2e','近藤世真','こんどうせいま','近藤世真(Elements Garden)');
 INSERT INTO creators VALUES('cr_9d0365b33e8f','近藤秀次','こんどうしゅうじ',NULL);
 INSERT INTO creators VALUES('cr_9d5676239322','道場秀三郎','どうじょうしゅうざぶろう',NULL);
-INSERT INTO creators VALUES('cr_8b8de6f7f63c','遠山明孝','とおやまあきたか',unistr('BNEI(遠山明孝)\u000aBNSI(遠山明孝)\u000aNBGI(遠山明孝)'));
+INSERT INTO creators VALUES('cr_8b8de6f7f63c','遠山明孝','とおやまあきたか','BNEI(遠山明孝)
+BNSI(遠山明孝)
+NBGI(遠山明孝)');
 INSERT INTO creators VALUES('cr_438870fe52c5','遠藤ナオキ','えんどうなおき','遠藤ナオキ（HOVERBOARD,Inc.）');
 INSERT INTO creators VALUES('cr_e0af689d52f8','遠藤フビト','えんどうふびと',NULL);
 INSERT INTO creators VALUES('cr_28dfb39e2184','遠藤信吾','えんどうしんご',NULL);
@@ -680,14 +804,18 @@ INSERT INTO creators VALUES('cr_0fe5c31965a1','遠藤直弥','えんどうなお
 INSERT INTO creators VALUES('cr_d14253c1b1c4','遠野四季','とおのしき',NULL);
 INSERT INTO creators VALUES('cr_55b8f3bdcd61','都丸椋太','とまるりょうた','都丸椋太(Elements Garden)');
 INSERT INTO creators VALUES('cr_db9528cf0b07','酒井ミキオ','さかいみきお',NULL);
-INSERT INTO creators VALUES('cr_89616fb5dda2','酒井拓也','さかいたくや',unistr('酒井拓也 (Arte Refact)\u000a酒井拓也(Arte Refact\u000a酒井拓也(Arte Refact)\u000a酒井拓也（Arte Refact）'));
+INSERT INTO creators VALUES('cr_89616fb5dda2','酒井拓也','さかいたくや','酒井拓也 (Arte Refact)
+酒井拓也(Arte Refact
+酒井拓也(Arte Refact)
+酒井拓也（Arte Refact）');
 INSERT INTO creators VALUES('cr_2778e85334ee','里乃塚玲央','りのづかれお',NULL);
 INSERT INTO creators VALUES('cr_6ac2a1b46ad2','重永亮介','しげながりょうすけ',NULL);
 INSERT INTO creators VALUES('cr_cad9165f3bdf','重田佑介','しげたゆうすけ','BNSI(重田佑介)');
 INSERT INTO creators VALUES('cr_35a736c22113','野井洋児','のいようじ',NULL);
 INSERT INTO creators VALUES('cr_e0d889be8488','野口圭','のぐちけい',NULL);
 INSERT INTO creators VALUES('cr_d7dcaacda6b6','金子雄紀','かねこゆうき',NULL);
-INSERT INTO creators VALUES('cr_32a18fba9d8a','金山秀士','かなやましゅうじ',unistr('金山秀士 (Dream Monster)\u000a金山秀士(Dream Monster)'));
+INSERT INTO creators VALUES('cr_32a18fba9d8a','金山秀士','かなやましゅうじ','金山秀士 (Dream Monster)
+金山秀士(Dream Monster)');
 INSERT INTO creators VALUES('cr_c7818ae4efd5','金崎真士','かなさきまさし',NULL);
 INSERT INTO creators VALUES('cr_750d8f5576da','鈴木CHiBUN智文','すずきちぶんともふみ',NULL);
 INSERT INTO creators VALUES('cr_9908075167fc','鈴木盛広','すずきもりひろ',NULL);
@@ -697,7 +825,8 @@ INSERT INTO creators VALUES('cr_4ff3d80645ea','鈴木裕明','すずきひろあ
 INSERT INTO creators VALUES('cr_b92cd1561f9a','鈴木静那','すずきしずな',NULL);
 INSERT INTO creators VALUES('cr_0b7095eb81ec','鈴谷皆人','すずやみなと',NULL);
 INSERT INTO creators VALUES('cr_a6675df87410','錦織孝宏','にしこおりたかひろ','錦織孝宏(TRYTONELABO)');
-INSERT INTO creators VALUES('cr_cffb638bb598','鍋谷卓摩','なべやたくま',unistr('鍋谷卓摩(luxis)\u000a鍋谷卓摩（luxis）'));
+INSERT INTO creators VALUES('cr_cffb638bb598','鍋谷卓摩','なべやたくま','鍋谷卓摩(luxis)
+鍋谷卓摩（luxis）');
 INSERT INTO creators VALUES('cr_aab73d80100a','長根博史','ながねひろふみ',NULL);
 INSERT INTO creators VALUES('cr_59481f8af456','長田直之','おさだなおゆき',NULL);
 INSERT INTO creators VALUES('cr_a5982e615ddf','長谷川智樹','はせがわともき',NULL);
@@ -732,14 +861,18 @@ INSERT INTO creators VALUES('cr_7a801e1011b1','高橋諒','たかはしりょう
 INSERT INTO creators VALUES('cr_d68399d0512f','高瀬一矢','たかせかずや',NULL);
 INSERT INTO creators VALUES('cr_013cd3690f50','高瀬愛虹','たかせあいこ',NULL);
 INSERT INTO creators VALUES('cr_76282ff619f7','高田暁','たかだきょう',NULL);
-INSERT INTO creators VALUES('cr_ff7b15832500','高田龍一','たかだりゅういち',unistr('BNSI(高田龍一)\u000a高田龍一(MONACA)\u000a高田龍一(REMIX-A編曲)\u000a高田龍一（MONACA）'));
+INSERT INTO creators VALUES('cr_ff7b15832500','高田龍一','たかだりゅういち','BNSI(高田龍一)
+高田龍一(MONACA)
+高田龍一(REMIX-A編曲)
+高田龍一（MONACA）');
 INSERT INTO creators VALUES('cr_1e3575a0deb8','鳥居克成','とりいかつなり',NULL);
 INSERT INTO creators VALUES('cr_441cf5bfc08e','鴇沢直','ときさわなお',NULL);
 INSERT INTO creators VALUES('cr_68a9db76f3dc','鵜飼大幹','うかいだいき',NULL);
 INSERT INTO creators VALUES('cr_fb22884a8144','鶴﨑輝一','つるさきこういち',NULL);
 INSERT INTO creators VALUES('cr_f8156da061f4','麻枝准','まえだじゅん',NULL);
 INSERT INTO creators VALUES('cr_12fcf9b7bcad','黒須克彦','くろすかつひこ',NULL);
-INSERT INTO creators VALUES('cr_7d74d3a44803','齋藤大','さいとうひろし',unistr('齋藤大(Dream Monster)\u000a齋藤大(Hifumi,inc.)'));
+INSERT INTO creators VALUES('cr_7d74d3a44803','齋藤大','さいとうひろし','齋藤大(Dream Monster)
+齋藤大(Hifumi,inc.)');
 INSERT INTO creators VALUES('cr_8d0f896e05bc','齋藤真也','さいとうしんや',NULL);
 CREATE TABLE events (id TEXT PRIMARY KEY NOT NULL, brand_id TEXT, name TEXT NOT NULL, event_type TEXT NOT NULL, is_streaming INTEGER NOT NULL DEFAULT 0, is_solo INTEGER NOT NULL DEFAULT 1, kind TEXT NOT NULL DEFAULT 'live', ticket_deadline TEXT, ticket_lottery_date TEXT, ticket_url TEXT, joint_brand_ids TEXT, ticket_open_date TEXT, name_kana TEXT);
 INSERT INTO events VALUES('ev_bafca9af-8a58-4701-8753-d1166e28d577','sidem','THE IDOLM@STER SideM PASSIONABLE READING SHOW 魂環の人形','live',0,0,'live',NULL,NULL,NULL,NULL,NULL,NULL);
