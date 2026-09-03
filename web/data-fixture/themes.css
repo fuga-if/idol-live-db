@@ -1,0 +1,12 @@
+/* 自動生成 — imas-core の web-export が color_engine から出力する。手で編集しない。
+   アプリ (iOS/Android) と同じ導出を通しているので、ここを手で直すと色がずれる。 */
+[data-theme="brand:cg"]{--accent:#2681c8;--on-accent:#15161a;--tint:#f3f6f9;--tint-strong:#dfe9f1;--chip-bg:#e9eff4;--chip-text:#216fab;--ring:#3490d8;--bar:#2681c8;--dot:#2681c8;--grad-from:#308ed8;--grad-to:#1966a2;--separator:#d3dce4;--hero-surface:#f0f4f7;}
+[data-theme="brand:ml"]{--accent:#f5be15;--on-accent:#15161a;--tint:#f9f8f3;--tint-strong:#f2edde;--chip-bg:#f4f1e9;--chip-text:#c79705;--ring:#f6c632;--bar:#f5be15;--dot:#f5be15;--grad-from:#f6c52d;--grad-to:#d4a003;--separator:#e4e0d3;--hero-surface:#f8f6ef;}
+[data-theme="idol:ml_kasuga_mirai"]{--accent:#e9960a;--on-accent:#15161a;--tint:#f9f7f3;--tint-strong:#f2eade;--chip-bg:#f4f0e9;--chip-text:#c77e05;--ring:#f6a41c;--bar:#e9960a;--dot:#e9960a;--grad-from:#f5a217;--grad-to:#bd7703;--separator:#e4ddd3;--hero-surface:#f8f5ef;}
+[data-theme="neutral"]{--accent:#87878c;--on-accent:#15161a;--tint:#f6f6f6;--tint-strong:#e7e7e9;--chip-bg:#eeeeef;--chip-text:#646468;--ring:#97979b;--bar:#87878c;--dot:#87878c;--grad-from:#949499;--grad-to:#686878;--separator:#dadadd;--hero-surface:#f3f3f4;}
+@media (prefers-color-scheme: dark){
+[data-theme="brand:cg"]{--accent:#4298db;--on-accent:#15161a;--tint:#1d2e3c;--tint-strong:#253f52;--chip-bg:#263c4d;--chip-text:#5ca6e0;--ring:#4298db;--bar:#4298db;--dot:#4298db;--grad-from:#4298db;--grad-to:#1e75b8;--separator:#384f61;--hero-surface:#223544;}
+[data-theme="brand:ml"]{--accent:#f2c12c;--on-accent:#15161a;--tint:#3f361a;--tint-strong:#594b1f;--chip-bg:#514621;--chip-text:#f3c949;--ring:#f2c12c;--bar:#f2c12c;--dot:#f2c12c;--grad-from:#f2c12c;--grad-to:#ce9d09;--separator:#635836;--hero-surface:#4a3f1c;}
+[data-theme="idol:ml_kasuga_mirai"]{--accent:#f2a82c;--on-accent:#15161a;--tint:#3f311a;--tint-strong:#59431f;--chip-bg:#513f21;--chip-text:#f3b449;--ring:#f2a82c;--bar:#f2a82c;--dot:#f2a82c;--grad-from:#f2a82c;--grad-to:#ce8409;--separator:#635236;--hero-surface:#4a391c;}
+[data-theme="neutral"]{--accent:#8e8e93;--on-accent:#15161a;--tint:#2a2a2f;--tint-strong:#383840;--chip-bg:#35353d;--chip-text:#9e9ea2;--ring:#8e8e93;--bar:#8e8e93;--dot:#8e8e93;--grad-from:#8e8e93;--grad-to:#666674;--separator:#494950;--hero-surface:#303036;}
+}

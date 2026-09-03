@@ -1050,7 +1050,13 @@ pub fn emit(dir: &Path, pretty: bool) -> Result<Stats> {
     let broken_key = path_key(&venue_broken.id, reserved_for("venues"), "venues");
 
     w.write_json("meta.json", &site_meta())?;
-    w.write_json("themes.json", &theme_table())?;
+    // themes.json だけでなく themes.css も出す。web が読むのは CSS の方で、
+    // 無いと `copyGeneratedAssets` が警告してスキップし、フィクスチャで開発した
+    // 画面だけが全ページ無彩色になる (`/themes.css` も 404 になる)。
+    // 実データ側と同じ `theme::build_css` を通すので、色の出方も揃う。
+    let themes = theme_table();
+    w.write_json("themes.json", &themes)?;
+    w.write_text("themes.css", &crate::web_export::theme::build_css(&themes))?;
 
     // --- 詳細 ---
     for (rel, page) in [

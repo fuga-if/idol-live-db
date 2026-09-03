@@ -341,6 +341,33 @@ fn every_ref_path_in_the_fixture_is_a_known_route() {
     assert!(missing.is_empty(), "ルート台帳に無いリンクがある:\n{}", missing.join("\n"));
 }
 
+/// 代表値にも `themes.css` が出ていること。
+///
+/// web が読むのは JSON ではなく CSS の方で、無いと `copyGeneratedAssets` が警告して
+/// スキップし、**フィクスチャで開発した画面だけが全ページ無彩色**になる
+/// (`/themes.css` も 404 になる)。実データ側にしか無い出力があると、代表値で組んだ
+/// 画面が実データで初めて違って見える。
+#[test]
+fn the_fixture_ships_the_same_theme_css_as_the_real_export() {
+    let dir = emit_fixture("themes");
+    let css = std::fs::read_to_string(dir.path().join("themes.css"))
+        .expect("data-fixture に themes.css が無い");
+    let table: ThemeTable =
+        serde_json::from_str(&std::fs::read_to_string(dir.path().join("themes.json")).unwrap())
+            .unwrap();
+
+    assert!(!table.themes.is_empty());
+    for key in table.themes.keys() {
+        // ライトとダークで 1 回ずつ。
+        assert_eq!(
+            css.matches(&format!("[data-theme=\"{key}\"]{{")).count(),
+            2,
+            "{key} のセレクタがライト/ダークで 2 回出ていない"
+        );
+    }
+    assert!(css.contains("@media (prefers-color-scheme: dark)"));
+}
+
 #[test]
 fn schema_version_is_stamped_on_every_top_level_document() {
     let dir = emit_fixture("schema-version");
