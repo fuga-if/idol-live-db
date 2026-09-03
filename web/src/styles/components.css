@@ -18,6 +18,19 @@
   box-shadow: none;
   border: 1px solid var(--ds-sep);
 }
+/* 楽曲一覧は 2,000 行を超える。画面外の行のレイアウトと描画を省いて初期表示を軽くする。
+   `auto <size>` なので、一度出た行の高さは記憶され、スクロール位置が飛ばない。
+   内容は DOM に居るままなので、ページ内検索・アンカー移動・SEO には影響しない。 */
+.card > li,
+.grid-tiles > li {
+  content-visibility: auto;
+}
+.card > li {
+  contain-intrinsic-size: auto 56px;
+}
+.grid-tiles > li {
+  contain-intrinsic-size: auto 150px;
+}
 .card__pad {
   padding: var(--sp5);
 }
