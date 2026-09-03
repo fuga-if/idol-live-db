@@ -383,6 +383,7 @@ name = "imas-core"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "imas-text-fold",
  "rusqlite",
  "serde",
  "serde_json",
@@ -391,6 +392,10 @@ dependencies = [
  "unicode-normalization",
  "uniffi",
 ]
+
+[[package]]
+name = "imas-text-fold"
+version = "0.1.0"
 
 [[package]]
 name = "indexmap"

@@ -19,10 +19,17 @@
 //!   走査順は rowid 昇順で決定的。Snapshot の各 Vec は同じ全表走査で読み込まれるため、
 //!   添字順の走査 + 先頭 20 件がそのまま元 SQL の結果順になる。
 //!
-//! Phase 1 の `text_search_index` (TextSearchCatalog) を**使わない**のは意図的:
-//! あちらは Swift `String.lowercased()` 互換の Unicode 全域の小文字化 (Σ→σ 等) で、
-//! SQLite LIKE の ASCII 限定畳み込みと当たり方が違う。ここは「元 SQL と同一の結果」が
-//! 契約なので、LIKE の意味論をそのまま実装する。
+//! **畳み込みは `text_search_index::FoldedNeedle` に寄せてある** (この節はかつて
+//! 「`text_search_index` を使わないのは意図的」と書いていたが、実装が変わっている)。
+//!
+//! もとは SQLite `LIKE` の「ASCII の大文字小文字だけ」を忠実に写していた。だが同じ
+//! 検索欄に同じ語を打っても、iOS (一覧を `TextSearchCatalog` で絞る) では当たるのに
+//! Android (このクエリ関数を通る) では当たらない、という形で使う人に見えていた。
+//! `FoldedNeedle` が畳む範囲は `LIKE` の真の上位集合なので、寄せても従来出ていた行が
+//! 消えることはなく、当たり方だけが 3 プラットフォームで揃う。
+//!
+//! 変わっていないのは**件数と順序**の契約: `LIMIT 20` 相当の [`GLOBAL_SEARCH_LIMIT`] と、
+//! rowid 昇順 (= Snapshot の添字順) の走査順は元 SQL のまま。
 
 use crate::domain::snapshot::Snapshot;
 use crate::domain::text_search_index::FoldedNeedle;

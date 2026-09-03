@@ -1,0 +1,11 @@
+[package]
+name = "imas-text-fold"
+version = "0.1.0"
+edition = "2021"
+description = "ImasLiveDB の検索照合で使う文字の畳み込み規則 (唯一の実体)"
+
+# 依存は空のまま保つこと。
+# この crate は wasm32-unknown-unknown にもそのまま乗る前提で切り出してある
+# (ブラウザの検索欄でアプリと同じ規則を使うため)。依存を 1 つ足すたびに
+# 「wasm でも動く」が確からしさを失う。
+[dependencies]

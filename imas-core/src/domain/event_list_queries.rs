@@ -223,7 +223,7 @@ pub fn event_records_by_brand(snap: &Snapshot, brand_id: Option<&str>) -> Vec<Ev
 ///   打つと当たらなくなる。両側を Unicode 小文字化に「揃える」と当たり方が広がるので
 ///   等価移送の範囲では直さない。`char::to_lowercase` を使うのは Swift と同じ
 ///   無条件写像にするため (`str::to_lowercase` は語末 Σ→ς の文脈規則を持ち込む。
-///   `text_search_index::fold_lowercase` の注記と同じ理由)。
+///   畳み規則の実体 `imas_text_fold::fold` の注記と同じ理由)。
 /// - 列側は ASCII 小文字化 + LIKE の ASCII 大小無視なので、`LOWER(e.name) LIKE p` は
 ///   「name を ASCII 小文字化した文字列が p を含む」と等価。
 /// - `IFNULL(sh.venue,'')` と LEFT JOIN の未一致行 (公演なしイベント) は空文字扱い。
