@@ -13,6 +13,7 @@
 //! [`TextSearchIndex`]: crate::domain::text_search_index::TextSearchIndex
 
 use super::context::Ctx;
+use crate::domain::display_join::year_of;
 use crate::domain::text_search_index::{prepare_needle, TextSearchIndex};
 use crate::web_export::dto::*;
 
@@ -105,7 +106,7 @@ pub fn shards(ctx: &Ctx) -> Vec<Shard> {
         .enumerate()
         .map(|(i, e)| SearchRow {
             n: e.name.clone(),
-            s: ctx.event_dates[i].0.as_deref().map(|d| d[..4.min(d.len())].to_string()),
+            s: ctx.event_dates[i].0.as_deref().map(year_of),
             k: ctx.key("events", &e.id),
             f: folded(&ctx.snap.event_search[i]),
         })

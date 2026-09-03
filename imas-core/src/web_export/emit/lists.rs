@@ -4,16 +4,17 @@
 //! クライアント状態を持たないというユーザー指示の直接の帰結で、切替 UI は
 //! [`NavLink`] のリンク集になる。
 
-use super::context::{join_parts, Ctx};
+use super::context::{join_parts, Ctx, PARTS_SEPARATOR};
+use crate::domain::display_join::join_capped;
+use crate::domain::kana_row::kana_row_label;
 use super::events::show_summary;
-use super::places::{brand_counts, UNCLASSIFIED_PREFECTURE};
+use super::places::{brand_counts, location_display, UNCLASSIFIED_PREFECTURE};
 use crate::domain::event_detail_queries as detail;
 use crate::domain::event_grouping::group_events_by_year;
 use crate::domain::event_list_queries::{self, EventWithDateRecord};
 use crate::domain::idol_queries;
 use crate::domain::short_year_month::short_year_month;
 use crate::domain::song_list_queries::{song_list_indexes, SongListFilter, SongListSort};
-use crate::domain::text_search_index::prepare_needle;
 use crate::domain::unit_queries;
 use crate::web_export::content;
 use crate::web_export::dto::*;
@@ -73,15 +74,8 @@ fn date_range_display(first: Option<&str>, last: Option<&str>) -> Option<String>
 
 /// 会場をまとめた 1 行。多いときは畳む (ツアーは 20 会場を超える)。
 fn venue_display(labels: &[String]) -> Option<String> {
-    const SHOWN: usize = 3;
-    if labels.is_empty() {
-        return None;
-    }
-    if labels.len() <= SHOWN {
-        return join_parts(labels.iter().map(|l| Some(l.as_str())));
-    }
-    let head = labels[..SHOWN].join(crate::web_export::emit::context::PARTS_SEPARATOR);
-    Some(format!("{head} ほか {} 会場", labels.len() - SHOWN))
+    let labels: Vec<&str> = labels.iter().map(String::as_str).collect();
+    join_capped(&labels, PARTS_SEPARATOR, 3, "会場")
 }
 
 /// 一覧の 1 行。
@@ -132,49 +126,27 @@ fn event_list_item(
     })
 }
 
-/// ブランド切替のリンク。`other` は入口を作らない (§brand_page と同じ理由)。
-fn brand_links(ctx: &Ctx, prefix: &str, current: &str, all_label: &str, all_count: u32) -> Vec<NavLink> {
-    let mut links = vec![NavLink {
-        label: all_label.to_string(),
-        path: format!("/{prefix}/"),
-        current: current == format!("/{prefix}/"),
-        theme_key: None,
-        count: Some(all_count),
-    }];
-    for &i in &ctx.snap.brand_order {
+/// ブランド切替のリンク。**作っていない一覧は並べない** (判断は `Ctx::brand_list_path`)。
+fn brand_links(ctx: &Ctx, collection: &str, current: &str, all_label: &str, all_count: u32) -> Vec<NavLink> {
+    let mut links = vec![NavLink::new(all_label, format!("/{collection}/")).with_count(all_count)];
+    links.extend(ctx.snap.brand_order.iter().filter_map(|&i| {
         let brand = &ctx.snap.brands[i as usize];
-        if ctx.is_other_brand(Some(&brand.id)) && prefix != "idols" {
-            continue;
-        }
-        let path = format!("/{prefix}/brand/{}/", url_segment(&brand.id));
-        links.push(NavLink {
-            label: brand.short_name.clone(),
-            current: current == path,
-            path,
-            theme_key: Some(ctx.brand_theme(Some(&brand.id))),
-            count: None,
-        });
-    }
+        Some(
+            NavLink::new(&brand.short_name, ctx.brand_list_path(collection, &brand.id)?)
+                .with_theme(ctx.brand_theme(Some(&brand.id))),
+        )
+    }));
+    mark_current(&mut links, current);
     links
 }
 
 fn scope_links(current: &str, upcoming: u32, past: u32) -> Vec<NavLink> {
-    vec![
-        NavLink {
-            label: "今後のライブ".to_string(),
-            path: "/events/upcoming/".to_string(),
-            current: current == "/events/upcoming/",
-            theme_key: None,
-            count: Some(upcoming),
-        },
-        NavLink {
-            label: "開催済み".to_string(),
-            path: "/events/past/".to_string(),
-            current: current == "/events/past/",
-            theme_key: None,
-            count: Some(past),
-        },
-    ]
+    let mut links = vec![
+        NavLink::new("今後のライブ", "/events/upcoming/").with_count(upcoming),
+        NavLink::new("開催済み", "/events/past/").with_count(past),
+    ];
+    mark_current(&mut links, current);
+    links
 }
 
 /// ライブ一覧をすべて組む (`/events/` から `/events/brand/<b>/` まで)。
@@ -191,12 +163,9 @@ pub fn event_lists(ctx: &Ctx) -> Vec<Emitted<EventListPage>> {
 
     let year_links: Vec<NavLink> = past_groups
         .iter()
-        .map(|g| NavLink {
-            label: format!("{}年", g.year),
-            path: format!("/events/past/{}/", url_segment(&g.year)),
-            current: false,
-            theme_key: None,
-            count: Some(g.events.len() as u32),
+        .map(|g| {
+            NavLink::new(&format!("{}年", g.year), format!("/events/past/{}/", url_segment(&g.year)))
+                .with_count(g.events.len() as u32)
         })
         .collect();
 
@@ -207,10 +176,8 @@ pub fn event_lists(ctx: &Ctx) -> Vec<Emitted<EventListPage>> {
                 data: String,
                 description: &str| {
         let total: u32 = groups.iter().map(|g| g.events.len() as u32).sum();
-        let year_links = year_links
-            .iter()
-            .map(|l| NavLink { current: l.path == path, ..l.clone() })
-            .collect();
+        let mut year_links = year_links.clone();
+        mark_current(&mut year_links, path);
         Emitted {
             path: path.to_string(),
             data,
@@ -280,15 +247,12 @@ pub fn event_lists(ctx: &Ctx) -> Vec<Emitted<EventListPage>> {
 
     for &i in &ctx.snap.brand_order {
         let brand = &ctx.snap.brands[i as usize];
-        if ctx.is_other_brand(Some(&brand.id)) {
-            continue;
-        }
+        let Some(path) = ctx.brand_list_path("events", &brand.id) else { continue };
         let records =
             event_list_queries::events_with_first_date(ctx.snap, Some(&brand.id), true, false, Some(&kinds));
         // ブランド別ページなので、行の副題にブランド名は入れない。
         let mut groups = year_groups(ctx, &records, true, false);
         groups.extend(year_groups(ctx, &records, false, false));
-        let path = format!("/events/brand/{}/", url_segment(&brand.id));
         out.push(make(
             &path,
             &format!("{}のライブ", brand.name),
@@ -317,16 +281,9 @@ fn default_song_filter(brand_ids: Vec<String>) -> SongListFilter {
     }
 }
 
-/// 原唱者名を 1 行に畳む。全体曲は 50 人を超えるので、多いときは人数で丸める。
+/// 原唱者名を 1 行に畳む。全体曲は 60 人を超えるので、多いときは人数で丸める。
 fn artists_display(names: &[&str]) -> Option<String> {
-    const SHOWN: usize = 4;
-    if names.is_empty() {
-        return None;
-    }
-    if names.len() <= SHOWN {
-        return Some(names.join(" / "));
-    }
-    Some(format!("{} ほか {} 名", names[..SHOWN].join(" / "), names.len() - SHOWN))
+    join_capped(names, " / ", 4, "名")
 }
 
 /// 一覧の 1 行。
@@ -390,7 +347,7 @@ fn kana_sections(ctx: &Ctx, items: &[SongListItem]) -> Vec<KanaSection> {
         let source = song
             .and_then(|s| s.title_kana.clone())
             .unwrap_or_else(|| item.reference.name.clone());
-        let label = kana_label(&source);
+        let label = kana_row_label(&source).to_string();
         match sections.last_mut() {
             Some(last) if last.label == label => last.count += 1,
             _ => sections.push(KanaSection { label, start_index: i as u32, count: 1 }),
@@ -399,37 +356,6 @@ fn kana_sections(ctx: &Ctx, items: &[SongListItem]) -> Vec<KanaSection> {
     sections
 }
 
-fn kana_label(text: &str) -> String {
-    // 畳んでから見るので、カタカナ表記も濁点付きも同じ行に入る。
-    let folded = String::from_utf8(prepare_needle(text)).unwrap_or_default();
-    let Some(c) = folded.chars().next() else { return "その他".to_string() };
-    if c.is_ascii_alphanumeric() {
-        return "英数".to_string();
-    }
-    // ひらがなの行 (小書き・濁点付きも含めて素直に範囲で切る)。
-    //
-    // 範囲の端に注意: `ゔ` (U+3094) は `ん` (U+3093) の**後ろ**にあるので
-    // 「わ行」の範囲に巻き込まれる。`ゕゖ` (U+3095..=U+3096) も同様に末尾にあり、
-    // 素直に上から順の範囲だけで書くと「その他」に落ちる。どちらも先に拾う。
-    let row = match c {
-        // う + 濁点。畳み込みが `う゛` を 1 文字にするので実データに現れる。
-        'ゔ' => "あ",
-        // 小書きの か / け。
-        'ゕ'..='ゖ' => "か",
-        'ぁ'..='お' => "あ",
-        'か'..='ご' => "か",
-        'さ'..='ぞ' => "さ",
-        'た'..='ど' => "た",
-        'な'..='の' => "な",
-        'は'..='ぽ' => "は",
-        'ま'..='も' => "ま",
-        'ゃ'..='よ' => "や",
-        'ら'..='ろ' => "ら",
-        'ゎ'..='ん' => "わ",
-        _ => return "その他".to_string(),
-    };
-    row.to_string()
-}
 
 pub fn song_lists(ctx: &Ctx) -> Vec<Emitted<SongListPage>> {
     let total_all = ctx.snap.songs.len() as u32;
@@ -530,9 +456,7 @@ pub fn song_lists(ctx: &Ctx) -> Vec<Emitted<SongListPage>> {
 
     for &i in &ctx.snap.brand_order {
         let brand = &ctx.snap.brands[i as usize];
-        if ctx.is_other_brand(Some(&brand.id)) {
-            continue;
-        }
+        let Some(path) = ctx.brand_list_path("songs", &brand.id) else { continue };
         let indexes = song_list_indexes(
             ctx.snap,
             &default_song_filter(vec![brand.id.clone()]),
@@ -542,7 +466,7 @@ pub fn song_lists(ctx: &Ctx) -> Vec<Emitted<SongListPage>> {
             &[],
         );
         out.push(make(
-            format!("/songs/brand/{}/", url_segment(&brand.id)),
+            path,
             format!("{}の楽曲", brand.name),
             SongListKind::Brand,
             indexes,
@@ -570,12 +494,9 @@ fn idol_list_item(ctx: &Ctx, record: &idol_queries::IdolRecord) -> Option<IdolLi
 
 pub fn idol_lists(ctx: &Ctx) -> Vec<Emitted<IdolListPage>> {
     let birth_month_links: Vec<NavLink> = (1..=12u32)
-        .map(|m| NavLink {
-            label: format!("{m}月"),
-            path: format!("/idols/birth-month/{m}/"),
-            current: false,
-            theme_key: None,
-            count: Some(idol_queries::idols_by_birth_month(ctx.snap, m).len() as u32),
+        .map(|m| {
+            NavLink::new(&format!("{m}月"), birth_month_path(m))
+                .with_count(idol_queries::idols_by_birth_month(ctx.snap, m).len() as u32)
         })
         .collect();
 
@@ -605,10 +526,11 @@ pub fn idol_lists(ctx: &Ctx) -> Vec<Emitted<IdolListPage>> {
                 total: items.len() as u32,
                 items,
                 brand_links: brand_links(ctx, "idols", &path, "すべて", all_total),
-                birth_month_links: birth_month_links
-                    .iter()
-                    .map(|l| NavLink { current: l.path == path, ..l.clone() })
-                    .collect(),
+                birth_month_links: {
+                    let mut links = birth_month_links.clone();
+                    mark_current(&mut links, &path);
+                    links
+                },
                 seo: ctx.seo(
                     &title,
                     &description,
@@ -634,8 +556,9 @@ pub fn idol_lists(ctx: &Ctx) -> Vec<Emitted<IdolListPage>> {
 
     for &i in &ctx.snap.brand_order {
         let brand = &ctx.snap.brands[i as usize];
+        let Some(path) = ctx.brand_list_path("idols", &brand.id) else { continue };
         out.push(make(
-            format!("/idols/brand/{}/", url_segment(&brand.id)),
+            path,
             format!("{}のアイドル", brand.name),
             IdolListKind::Brand,
             idol_queries::idol_list(ctx.snap, Some(&brand.id)),
@@ -648,7 +571,7 @@ pub fn idol_lists(ctx: &Ctx) -> Vec<Emitted<IdolListPage>> {
 
     for month in 1..=12u32 {
         out.push(make(
-            format!("/idols/birth-month/{month}/"),
+            birth_month_path(month),
             format!("{month}月生まれのアイドル"),
             IdolListKind::BirthMonth,
             idol_queries::idols_by_birth_month(ctx.snap, month),
@@ -730,11 +653,9 @@ pub fn unit_lists(ctx: &Ctx) -> Vec<Emitted<UnitListPage>> {
     )];
     for &i in &ctx.snap.brand_order {
         let brand = &ctx.snap.brands[i as usize];
-        if ctx.is_other_brand(Some(&brand.id)) {
-            continue;
-        }
+        let Some(path) = ctx.brand_list_path("units", &brand.id) else { continue };
         out.push(make(
-            format!("/units/brand/{}/", url_segment(&brand.id)),
+            path,
             format!("{}のユニット", brand.name),
             index.units.iter().filter(|u| u.brand_id == brand.id).collect(),
             format!("index/units-brand-{}.json", ctx.key("brands", &brand.id)),
@@ -748,6 +669,16 @@ pub fn unit_lists(ctx: &Ctx) -> Vec<Emitted<UnitListPage>> {
 // ---------------------------------------------------------------------------
 // 会場一覧
 // ---------------------------------------------------------------------------
+
+/// 誕生月別一覧の URL。
+fn birth_month_path(month: u32) -> String {
+    format!("/idols/birth-month/{month}/")
+}
+
+/// 都道府県別一覧の URL。都道府県名は日本語なので必ず `url_segment` を通す。
+fn pref_path(prefecture: &str) -> String {
+    format!("/venues/pref/{}/", url_segment(prefecture))
+}
 
 /// 会場の都道府県。空欄は `未分類` にまとめる (実データに 35 件ある)。
 pub fn prefecture_of(venue: &crate::domain::snapshot::Venue) -> String {
@@ -777,27 +708,16 @@ pub fn venue_lists(ctx: &Ctx) -> Vec<Emitted<VenueListPage>> {
 
     let prefecture_links: Vec<NavLink> = by_prefecture
         .iter()
-        .map(|(pref, list)| NavLink {
-            label: pref.clone(),
-            path: format!("/venues/pref/{}/", url_segment(pref)),
-            current: false,
-            theme_key: None,
-            count: Some(list.len() as u32),
-        })
+        .map(|(pref, list)| NavLink::new(pref, pref_path(pref)).with_count(list.len() as u32))
         .collect();
 
     let item = |i: u32| -> Option<VenueListItem> {
         let v = &ctx.snap.venues[i as usize];
-        let location: Vec<&str> = [v.prefecture.as_deref(), v.city.as_deref()]
-            .into_iter()
-            .flatten()
-            .filter(|s| !s.is_empty())
-            .collect();
         Some(VenueListItem {
             reference: ctx.venue_ref(&v.id)?,
+            location_display: location_display(v.prefecture.as_deref(), v.city.as_deref()),
             prefecture: v.prefecture.clone(),
             city: v.city.clone(),
-            location_display: (!location.is_empty()).then(|| location.join(" ")),
             capacity: v.capacity.map(|c| c as i32),
             show_count: show_counts.get(v.id.as_str()).copied().unwrap_or(0),
         })
@@ -815,10 +735,11 @@ pub fn venue_lists(ctx: &Ctx) -> Vec<Emitted<VenueListPage>> {
                 prefecture,
                 total: items.len() as u32,
                 items,
-                prefecture_links: prefecture_links
-                    .iter()
-                    .map(|l| NavLink { current: l.path == path, ..l.clone() })
-                    .collect(),
+                prefecture_links: {
+                    let mut links = prefecture_links.clone();
+                    mark_current(&mut links, &path);
+                    links
+                },
                 seo: ctx.seo(
                     &title,
                     &description,
@@ -842,7 +763,7 @@ pub fn venue_lists(ctx: &Ctx) -> Vec<Emitted<VenueListPage>> {
     )];
     for (pref, indexes) in &by_prefecture {
         out.push(make(
-            format!("/venues/pref/{}/", url_segment(pref)),
+            pref_path(pref),
             format!("{pref}の会場"),
             indexes,
             format!("index/venues-pref-{}.json", ctx.key("venues", pref)),
@@ -992,8 +913,13 @@ pub fn home(ctx: &Ctx, upcoming: &[EventListItem], counts: Counts) -> HomePage {
     }
 }
 
+/// トップの入口リンク。件数が意味を持たないもの (検索・About) は数字を出さない。
 fn plain_nav(label: &str, path: &str, count: Option<u32>) -> NavLink {
-    NavLink { label: label.to_string(), path: path.to_string(), current: false, theme_key: None, count }
+    let link = NavLink::new(label, path);
+    match count {
+        Some(n) => link.with_count(n),
+        None => link,
+    }
 }
 
 pub fn about(ctx: &Ctx, counts: Counts) -> AboutPage {

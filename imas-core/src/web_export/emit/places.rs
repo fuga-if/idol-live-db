@@ -10,7 +10,6 @@ use crate::domain::unit_queries;
 use crate::web_export::content;
 use crate::web_export::dto::*;
 use crate::web_export::url::split_csv;
-use crate::web_export::url::url_segment;
 use std::collections::BTreeMap;
 
 /// ブランドページに出す「最近のライブ」「代表曲」の件数。
@@ -51,15 +50,7 @@ impl VenueDirectory {
 pub fn venue_page(ctx: &Ctx, venue_id: &str, directory: &VenueDirectory) -> Option<VenuePage> {
     let venue = ctx.snap.venue(venue_id)?;
     let path = ctx.path(RefKind::Venue, venue_id);
-    // 所在地は「千葉県 千葉市美浜区」。都道府県と市区町村の間だけは中黒でなく空白。
-    let location_display = {
-        let parts: Vec<&str> = [venue.prefecture.as_deref(), venue.city.as_deref()]
-            .into_iter()
-            .flatten()
-            .filter(|s| !s.is_empty())
-            .collect();
-        (!parts.is_empty()).then(|| parts.join(" "))
-    };
+    let location_display = location_display(venue.prefecture.as_deref(), venue.city.as_deref());
     let place = location_display.clone().unwrap_or_default();
     let aliases_display = join_parts(split_csv(venue.aliases.as_deref()).map(Some));
 
@@ -111,6 +102,19 @@ pub fn venue_page(ctx: &Ctx, venue_id: &str, directory: &VenueDirectory) -> Opti
             breadcrumbs,
         ),
     })
+}
+
+/// 所在地の表記 (`"千葉県 千葉市美浜区"`)。
+///
+/// 都道府県と市区町村の間だけは中黒ではなく空白。地名の 2 段は「別の項目」ではなく
+/// 「1 つの住所」なので、項目の区切り ([`PARTS_SEPARATOR`]) とは意味が違う。
+pub fn location_display(prefecture: Option<&str>, city: Option<&str>) -> Option<String> {
+    let parts: Vec<&str> = [prefecture, city]
+        .into_iter()
+        .flatten()
+        .filter(|s| !s.is_empty())
+        .collect();
+    (!parts.is_empty()).then(|| parts.join(" "))
 }
 
 /// 会場の「基本情報」行。値が無い行は出さない (アイドルの `profile_rows` と同じ規則)。
@@ -178,20 +182,28 @@ pub fn brand_counts(ctx: &Ctx, brand_id: &str) -> BrandCounts {
     }
 }
 
-/// ブランドページの件数タイル。公演は出さない (現行の 4 タイルを維持)。
-pub fn brand_stat_tiles(counts: BrandCounts) -> Vec<StatTile> {
+/// ブランドページの入口リンク。件数付きで、そのブランドの各一覧へ飛ばす。
+///
+/// **一覧を作っていない組み合わせは並べない。**どの組み合わせが存在するかの判断は
+/// [`Ctx::brand_list_path`] が 1 箇所で持つ (かつて 6 箇所に散っていて、パンくずだけ
+/// 判断を持たずに存在しないページへリンクしていた)。
+fn brand_section_links(ctx: &Ctx, brand_id: &str, counts: BrandCounts) -> Vec<NavLink> {
+    let theme_key = ctx.brand_theme(Some(brand_id));
     [
-        ("♪", counts.events, "ライブ"),
-        ("♬", counts.songs, "楽曲"),
-        ("☺", counts.idols, "アイドル"),
-        ("❋", counts.units, "ユニット"),
+        ("ライブ", "events", counts.events),
+        ("楽曲", "songs", counts.songs),
+        ("アイドル", "idols", counts.idols),
+        ("ユニット", "units", counts.units),
     ]
     .into_iter()
-    .map(|(glyph, value, label)| StatTile {
-        glyph: glyph.to_string(),
-        value,
-        label: label.to_string(),
-        href: None,
+    .filter_map(|(label, collection, count)| {
+        Some(NavLink {
+            label: label.to_string(),
+            path: ctx.brand_list_path(collection, brand_id)?,
+            current: false,
+            theme_key: Some(theme_key.clone()),
+            count: Some(count),
+        })
     })
     .collect()
 }
@@ -225,21 +237,6 @@ pub fn brand_page(ctx: &Ctx, brand_id: &str) -> Option<BrandPage> {
     let counts = brand_counts(ctx, brand_id);
     // `other` は一覧の入口を作らない。既定フィルタが other を含めないというコアの規則と、
     // 一覧の入口が存在するという事実が食い違うため (到達は検索と個別ページから)。
-    // id を URL に埋めるときは必ず url_segment を通す (ブランド id は今のところ
-    // すべて ASCII だが、規則を 1 箇所に保たないと将来の id で静かに壊れる)。
-    let segment = url_segment(brand_id);
-    let brand_path = |collection: &str| format!("/{collection}/brand/{segment}/");
-    let section_links = if ctx.is_other_brand(Some(brand_id)) {
-        vec![nav("アイドル", &brand_path("idols"), &theme_key, counts.idols)]
-    } else {
-        vec![
-            nav("ライブ", &brand_path("events"), &theme_key, counts.events),
-            nav("楽曲", &brand_path("songs"), &theme_key, counts.songs),
-            nav("アイドル", &brand_path("idols"), &theme_key, counts.idols),
-            nav("ユニット", &brand_path("units"), &theme_key, counts.units),
-        ]
-    };
-
     let breadcrumbs = vec![
         ctx.crumb("ホーム", "/"),
         ctx.crumb("ブランド", "/brands/"),
@@ -252,8 +249,8 @@ pub fn brand_page(ctx: &Ctx, brand_id: &str) -> Option<BrandPage> {
         path: path.clone(),
         name: brand.name.clone(),
         short_name: Some(brand.short_name.clone()),
+        section_links: brand_section_links(ctx, brand_id, counts),
         theme_key,
-        stat_tiles: brand_stat_tiles(counts),
         idols: idol_queries::idol_list(ctx.snap, Some(brand_id))
             .iter()
             .filter_map(|i| ctx.idol_ref(&i.id))
@@ -265,7 +262,6 @@ pub fn brand_page(ctx: &Ctx, brand_id: &str) -> Option<BrandPage> {
             .collect(),
         recent_events,
         top_songs,
-        section_links,
         seo: ctx.seo(
             &brand.name,
             &format!("{}のアイドル・ユニット・ライブ・楽曲。", brand.name),
@@ -279,14 +275,4 @@ pub fn brand_page(ctx: &Ctx, brand_id: &str) -> Option<BrandPage> {
             breadcrumbs,
         ),
     })
-}
-
-fn nav(label: &str, path: &str, theme_key: &str, count: u32) -> NavLink {
-    NavLink {
-        label: label.to_string(),
-        path: path.to_string(),
-        current: false,
-        theme_key: Some(theme_key.to_string()),
-        count: Some(count),
-    }
 }

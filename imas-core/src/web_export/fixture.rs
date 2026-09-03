@@ -123,15 +123,6 @@ fn site_tiles(with_links: bool, with_setlist_items: bool) -> Vec<StatTile> {
         .collect()
 }
 
-/// ブランドページの 4 タイル (代表値)。
-fn brand_stat_tiles_fixture() -> Vec<StatTile> {
-    vec![
-        tile("♪", 210, "ライブ", None),
-        tile("♬", 600, "楽曲", None),
-        tile("☺", 52, "アイドル", None),
-        tile("❋", 300, "ユニット", None),
-    ]
-}
 
 fn counts() -> Counts {
     Counts {
@@ -147,13 +138,11 @@ fn counts() -> Counts {
 }
 
 fn nav(label: &str, path: &str, current: bool, theme_key: Option<&str>, count: Option<u32>) -> NavLink {
-    NavLink {
-        label: label.to_string(),
-        path: path.to_string(),
-        current,
-        theme_key: theme_key.map(str::to_string),
-        count,
-    }
+    let mut link = NavLink::new(label, path);
+    link.current = current;
+    link.theme_key = theme_key.map(str::to_string);
+    link.count = count;
+    link
 }
 
 // ---------------------------------------------------------------------------
@@ -686,7 +675,6 @@ fn brand_page(reference: &Ref, noindex: bool) -> BrandPage {
         name: reference.name.clone(),
         short_name: reference.sub.clone(),
         theme_key: reference.theme_key.clone(),
-        stat_tiles: brand_stat_tiles_fixture(),
         idols: if noindex { vec![] } else { vec![idol_mirai(), idol_shizuka()] },
         units: if noindex { vec![] } else { vec![unit_sample()] },
         recent_events: if noindex { vec![] } else { vec![event_sample()] },
@@ -696,13 +684,14 @@ fn brand_page(reference: &Ref, noindex: bool) -> BrandPage {
         // 規則と、一覧の入口が存在するという事実が食い違う。到達はアイドル一覧と
         // 検索・個別ページからだけにする。
         section_links: if noindex {
-            vec![nav("アイドル", &format!("/idols/brand/{}/", reference.id), false, None, Some(12))]
+            // `other` はアイドル一覧しか作らないので、入口も 1 本だけ。
+            vec![nav("アイドル", "/idols/brand/other/", false, None, Some(12))]
         } else {
             vec![
-                nav("ライブ", &format!("/events/brand/{}/", reference.id), false, Some(&reference.theme_key), Some(120)),
-                nav("楽曲", &format!("/songs/brand/{}/", reference.id), false, Some(&reference.theme_key), Some(600)),
-                nav("アイドル", &format!("/idols/brand/{}/", reference.id), false, Some(&reference.theme_key), Some(52)),
-                nav("ユニット", &format!("/units/brand/{}/", reference.id), false, Some(&reference.theme_key), Some(300)),
+                nav("ライブ", "/events/brand/ml/", false, Some("brand:ml"), Some(210)),
+                nav("楽曲", "/songs/brand/ml/", false, Some("brand:ml"), Some(600)),
+                nav("アイドル", "/idols/brand/ml/", false, Some("brand:ml"), Some(52)),
+                nav("ユニット", "/units/brand/ml/", false, Some("brand:ml"), Some(300)),
             ]
         },
         seo: seo(

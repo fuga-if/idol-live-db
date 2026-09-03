@@ -4,7 +4,7 @@
 //! 到達できるべきだから。一覧に載せるかどうかだけが `SongListFilter` の判断で、
 //! それは `lists.rs` の関心事。
 
-use super::context::{distinguishing_show_name, duration_display, Ctx};
+use super::context::{distinguishing_show_name, duration_display, join_parts, Ctx};
 use crate::domain::credit_names::split_credits;
 use crate::domain::performance_stats;
 use crate::domain::short_year_month::short_year_month;
@@ -57,11 +57,11 @@ pub fn song_page(ctx: &Ctx, song_id: &str) -> Option<SongPage> {
 
     let breadcrumbs = {
         let mut crumbs = vec![ctx.crumb("ホーム", "/"), ctx.crumb("楽曲", "/songs/")];
-        // `other` にはブランド別一覧を作っていないので、パンくずにも入れない
-        // (入れると存在しないページへのリンクになる)。
-        if !ctx.is_other_brand(brand_id.as_deref()) {
-            if let Some(brand) = brand_id.as_deref().and_then(|b| ctx.brand_ref(b)) {
-                crumbs.push(ctx.crumb(&brand.name, &format!("/songs/brand/{}/", brand.id)));
+        // 一覧を作っていない組み合わせ (`other`) はパンくずにも入れない。
+        // 存在の判断は Ctx が 1 箇所で持つ。
+        if let Some(brand) = brand_id.as_deref().and_then(|b| ctx.brand_ref(b)) {
+            if let Some(list) = ctx.brand_list_path("songs", &brand.id) {
+                crumbs.push(ctx.crumb(&brand.name, &list));
             }
         }
         crumbs.push(ctx.crumb(&record.title, &path));
@@ -106,12 +106,8 @@ pub fn song_page(ctx: &Ctx, song_id: &str) -> Option<SongPage> {
             .into_iter()
             .filter_map(|h| {
                 let show_name = distinguishing_show_name(&h.event_name, &h.show_name);
-                let place_display = [show_name, h.venue.as_deref()]
-                    .into_iter()
-                    .flatten()
-                    .filter(|s| !s.is_empty())
-                    .collect::<Vec<_>>()
-                    .join(" ・ ");
+                let place_display =
+                    join_parts([show_name, h.venue.as_deref()]).unwrap_or_default();
                 let number = ctx.setlist_number(&h.show_id, h.position);
                 Some(PerformanceRow {
                     show: ctx.show_ref(&h.show_id)?,

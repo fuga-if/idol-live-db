@@ -20,7 +20,7 @@ pub mod venue;
 
 pub use brand::BrandPage;
 pub use common::{
-    AppLinks, AppOpen, Counts, Crumb, NavLink, Ref, RefKind, Robots, SeoBlock, SiteMeta,
+    mark_current, AppLinks, AppOpen, Counts, Crumb, NavLink, Ref, RefKind, Robots, SeoBlock, SiteMeta,
     StatTile, ThemePair, ThemeTable, ThemeTokens, SCHEMA_VERSION,
 };
 pub use event::{

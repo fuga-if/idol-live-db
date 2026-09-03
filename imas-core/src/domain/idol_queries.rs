@@ -483,14 +483,12 @@ pub fn idol_profile_input(r: &IdolRecord) -> IdolProfileInput {
     }
 }
 
-/// 原本 `joined(separator: " ・ ")`。要素が 1 つも無ければ行ごと出さない。
+/// 原本 `joined(separator: " ・ ")`。実体は [`crate::domain::display_join::join_parts`]。
+///
+/// 区切り文字の判断を 1 箇所に保つための委譲。ここで `" ・ "` を書き直すと、
+/// 同じ規則が Rust の中だけで複数に割れる (実際に 3 実装まで増えていた)。
 fn join_parts(parts: &[Option<String>]) -> Option<String> {
-    let joined: Vec<&str> = parts.iter().filter_map(|p| p.as_deref()).collect();
-    if joined.is_empty() {
-        None
-    } else {
-        Some(joined.join(" ・ "))
-    }
+    crate::domain::display_join::join_parts(parts.iter().map(|p| p.as_deref()))
 }
 
 /// `"--04-03"` → `"4月3日"` (前置ゼロを落とす)。`--` 始まりでなければそのまま返す。

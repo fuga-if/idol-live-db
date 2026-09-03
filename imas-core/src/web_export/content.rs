@@ -15,7 +15,9 @@ pub const SITE_DISCLAIMER: &str =
     "非公式のファンメイドサイトです。株式会社バンダイナムコエンターテインメントおよび関連権利者とは一切関係ありません。";
 
 pub const APP_STORE_URL: &str = "https://apps.apple.com/jp/app/id6763342297";
-pub const HASHTAG: &str = "#アイドルライブDB";
+/// 共有文と同じハッシュタグ。**値の正は `domain::share_text`** で、アプリの共有シートと
+/// 出面で別のタグを出さないよう再輸出にしてある。
+pub use crate::domain::share_text::HASHTAG;
 /// 公式 X アカウント (@idollivedb)。
 pub const X_URL: &str = "https://x.com/idollivedb";
 pub const PRIVACY_URL: &str = "https://fuga-if.github.io/imas-live-privacy/privacy.html";

@@ -3,6 +3,7 @@
 //! 各 emit がそれぞれ `format!("/songs/{}/", ...)` を書き始めると、URL 規約が
 //! 散らばって必ずどこかがずれる。**リンクは必ず [`Ctx`] のメソッドから作ること。**
 
+use crate::domain::display_join::year_of;
 use crate::domain::idol_queries::{self, BrandRecord};
 use crate::domain::snapshot::Snapshot;
 use crate::web_export::content::{self, absolute};
@@ -197,6 +198,25 @@ impl<'a> Ctx<'a> {
         brand_id == Some(OTHER_BRAND_ID)
     }
 
+    /// ブランド別一覧の URL。**その一覧を作っていない組み合わせでは `None`。**
+    ///
+    /// `other` (他フランチャイズの合同ライブ曲) はアイドル一覧しか作らない。既定フィルタが
+    /// `other` を含めないというコアの規則と、一覧の入口が存在するという事実が食い違うため
+    /// (到達は検索と個別ページから)。この判断がかつて 6 箇所に散っていて、パンくずだけ
+    /// 判断を持たずに存在しないページへリンクしていた。
+    ///
+    /// id を URL に埋めるときは必ず [`url_segment`] を通す。ブランド id は今のところ
+    /// すべて ASCII だが、規則を 1 箇所に保たないと将来の id で静かに壊れる。
+    pub fn brand_list_path(&self, collection: &str, brand_id: &str) -> Option<String> {
+        if !self.brands.contains_key(brand_id) {
+            return None;
+        }
+        if self.is_other_brand(Some(brand_id)) && collection != "idols" {
+            return None;
+        }
+        Some(format!("/{collection}/brand/{}/", url_segment(brand_id)))
+    }
+
     pub fn robots(&self, brand_id: Option<&str>) -> Robots {
         if self.is_other_brand(brand_id) {
             Robots::NoindexFollow
@@ -276,7 +296,7 @@ impl<'a> Ctx<'a> {
         let &i = self.snap.event_index_by_id.get(id)?;
         let event = &self.snap.events[i as usize];
         // 補助表記は開催年 (同名ツアーが並ぶので年が無いと見分けられない)。
-        let sub = self.event_dates[i as usize].0.as_deref().map(|d| d[..4.min(d.len())].to_string());
+        let sub = self.event_dates[i as usize].0.as_deref().map(year_of);
         Some(self.make_ref(
             RefKind::Event,
             &event.id,
@@ -432,80 +452,10 @@ fn monogram_of(kind: RefKind, name: &str, sub: Option<&str>) -> String {
     source.chars().next().map(|c| c.to_string()).unwrap_or_default()
 }
 
-/// 一覧の行に出す公演名。行のタイトルがライブ名なので、**ライブ名と重なる部分は落とす**。
-///
-/// 実データの公演名は、ライブ名との重なり方が 2 通りある:
-///
-/// ```text
-/// (a) 公演名がライブ名を丸ごと頭に含む
-///     ライブ: THE IDOLM@STER MILLION THE@TER WAVE 11&12 発売記念イベント
-///     公演  : THE IDOLM@STER MILLION THE@TER WAVE 11&12 発売記念イベント【第一回】
-///                                                                    → 【第一回】
-///
-/// (b) ライブ名の末尾と公演名の先頭が重なる (2 つの副題を持つツアー)
-///     ライブ: 765PRO ALLSTARS dual twin live tour ふたごぼしのつばさ / つみまつよるまち
-///     公演  : つみまつよるまち TOKYO LAST CHOICE
-///                                                → TOKYO LAST CHOICE
-/// ```
-///
-/// (a) は (b) の「重なりがライブ名の全体」という特別な場合なので、**末尾と先頭の
-/// 最長の重なりを落とす**という 1 つの規則で両方を扱う。そのまま繋ぐと
-/// `… / つみまつよるまち つみまつよるまち TOKYO LAST CHOICE` のように同じ語が
-/// 続けて出て、公演を見分ける手掛かりが読めなくなる。
-///
-/// 落としたあとが空なら `None` (公演名を出さない = 公演が 1 本しかないライブ)。
-/// 重なりの下限を [`MIN_OVERLAP_CHARS`] 文字にしてあるのは、「〜」「!」のような
-/// 1 文字の一致で名前の頭を削らないため。
-pub fn distinguishing_show_name<'a>(event_name: &str, show_name: &'a str) -> Option<&'a str> {
-    let rest = strip_leading_overlap(event_name, show_name);
-    // 区切りの空白と中黒だけを落とす。`【` や `第` は見分けに要るので残す。
-    let rest = rest.trim_start_matches([' ', '\u{3000}', '-', '~', '～', '・', '/']).trim();
-    (!rest.is_empty()).then_some(rest)
-}
-
-/// **部分的な**重なりとみなす最短の長さ (文字数)。
-///
-/// ライブ名を丸ごと含む場合 (下の 1.) には効かない。効くのは末尾だけが重なる場合で、
-/// 「〜」「!!」「2nd」のような短い一致で公演名の頭を削らないための下限。
-const MIN_OVERLAP_CHARS: usize = 4;
-
-/// `event_name` の末尾と `show_name` の先頭が重なっているぶんを落とす。
-///
-/// 1. まず**ライブ名そのもの**が頭に付いていないかを見る。付いていれば長さを問わず
-///    落とす (ライブ名が丸ごと一致している以上、偶然ではない)。
-/// 2. 次に末尾だけの重なりを、**長い方から**試す。短い方から消すと `AB AB` のような
-///    形で片方が残る。こちらは偶然の一致がありうるので下限を設ける。
-fn strip_leading_overlap<'a>(event_name: &str, show_name: &'a str) -> &'a str {
-    if let Some(stripped) = show_name.strip_prefix(event_name) {
-        return stripped;
-    }
-    let event: Vec<char> = event_name.chars().collect();
-    let max = event.len().min(show_name.chars().count());
-    for len in (MIN_OVERLAP_CHARS..=max).rev() {
-        let tail: String = event[event.len() - len..].iter().collect();
-        if let Some(stripped) = show_name.strip_prefix(tail.as_str()) {
-            return stripped;
-        }
-    }
-    show_name
-}
-
-/// 表示用の区切り。アプリのプロフィール行と同じ全角スペース込みの中黒。
-///
-/// **区切り文字の判断は Rust 側に集める。** TS に `join(" ・ ")` を書き始めると、
-/// 画面ごとに区切りが揺れる (実際にアプリでも `" ・ "` に統一するまで揺れていた)。
-pub const PARTS_SEPARATOR: &str = " ・ ";
-
-/// 非 `None` の要素を [`PARTS_SEPARATOR`] で繋ぐ。1 つも無ければ `None` (行ごと出さない)。
-pub fn join_parts<S: AsRef<str>>(parts: impl IntoIterator<Item = Option<S>>) -> Option<String> {
-    let kept: Vec<String> = parts
-        .into_iter()
-        .flatten()
-        .map(|s| s.as_ref().to_string())
-        .filter(|s| !s.is_empty())
-        .collect();
-    (!kept.is_empty()).then(|| kept.join(PARTS_SEPARATOR))
-}
+/// 区切り規則と公演名の重なり落としは domain が持つ。ここは呼び出し側のための再輸出で、
+/// web_export に規則の複製を作らないための入口。
+pub use crate::domain::display_join::{join_parts, PARTS_SEPARATOR};
+pub use crate::domain::show_naming::distinguishing_show_name;
 
 /// `<title>` の形。サイト名を 2 回出さない (トップは `home.rs` が別に組む)。
 pub fn page_title(title: &str) -> String {
@@ -519,57 +469,4 @@ pub fn page_title(title: &str) -> String {
 /// 秒 → `"4:32"`。
 pub fn duration_display(sec: i64) -> String {
     format!("{}:{:02}", sec / 60, sec % 60)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn a_show_named_after_its_event_adds_nothing() {
-        // 公演が 1 本しかないライブ。行のタイトルと同じ名前を繰り返さない。
-        assert_eq!(distinguishing_show_name("A LIVE", "A LIVE"), None);
-        assert_eq!(distinguishing_show_name("A LIVE", "A LIVE "), None);
-    }
-
-    #[test]
-    fn only_the_part_that_tells_shows_apart_is_kept() {
-        assert_eq!(
-            distinguishing_show_name("MILLION THE@TER WAVE 発売記念イベント", "MILLION THE@TER WAVE 発売記念イベント【第一回】"),
-            Some("【第一回】")
-        );
-        assert_eq!(
-            distinguishing_show_name("SideM 2nd STAGE", "SideM 2nd STAGE Shining Side"),
-            Some("Shining Side")
-        );
-        // 区切りの中黒や波ダッシュは落とすが、見分けに要る文字は残す。
-        assert_eq!(distinguishing_show_name("ツアー", "ツアー ・ 第1回公演"), Some("第1回公演"));
-    }
-
-    #[test]
-    fn an_unrelated_show_name_is_left_alone() {
-        assert_eq!(distinguishing_show_name("A LIVE", "DAY2"), Some("DAY2"));
-        assert_eq!(distinguishing_show_name("A LIVE", "昼公演"), Some("昼公演"));
-    }
-
-    #[test]
-    fn a_tail_that_the_show_name_repeats_is_dropped() {
-        // 2 つの副題を持つツアー。ライブ名の末尾と公演名の先頭が重なる。
-        assert_eq!(
-            distinguishing_show_name(
-                "765PRO ALLSTARS dual twin live tour ふたごぼしのつばさ / つみまつよるまち",
-                "つみまつよるまち TOKYO LAST CHOICE"
-            ),
-            Some("TOKYO LAST CHOICE")
-        );
-        // 重なりが全体のときは、前からある挙動と同じ。
-        assert_eq!(distinguishing_show_name("ツアー名", "ツアー名 DAY1"), Some("DAY1"));
-    }
-
-    #[test]
-    fn a_short_coincidental_overlap_does_not_eat_the_name() {
-        // 3 文字以下の一致で名前の頭を削らない (「〜」「!!」のような記号の一致が起きる)。
-        assert_eq!(distinguishing_show_name("ライブ 2nd", "2nd 昼公演"), Some("2nd 昼公演"));
-        assert_eq!(distinguishing_show_name("A LIVE!!", "!! DAY1"), Some("!! DAY1"));
-    }
 }

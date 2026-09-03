@@ -5,30 +5,34 @@
   "name": "アイドルマスター ミリオンライブ!",
   "shortName": "ML",
   "themeKey": "brand:ml",
-  "statTiles": [
+  "sectionLinks": [
     {
-      "glyph": "♪",
-      "value": 210,
       "label": "ライブ",
-      "href": null
+      "path": "/events/brand/ml/",
+      "current": false,
+      "themeKey": "brand:ml",
+      "count": 210
     },
     {
-      "glyph": "♬",
-      "value": 600,
       "label": "楽曲",
-      "href": null
+      "path": "/songs/brand/ml/",
+      "current": false,
+      "themeKey": "brand:ml",
+      "count": 600
     },
     {
-      "glyph": "☺",
-      "value": 52,
       "label": "アイドル",
-      "href": null
+      "path": "/idols/brand/ml/",
+      "current": false,
+      "themeKey": "brand:ml",
+      "count": 52
     },
     {
-      "glyph": "❋",
-      "value": 300,
       "label": "ユニット",
-      "href": null
+      "path": "/units/brand/ml/",
+      "current": false,
+      "themeKey": "brand:ml",
+      "count": 300
     }
   ],
   "idols": [
@@ -87,36 +91,6 @@
       "themeKey": "brand:ml",
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music/sample/600x600bb.jpg",
       "monogram": "T"
-    }
-  ],
-  "sectionLinks": [
-    {
-      "label": "ライブ",
-      "path": "/events/brand/ml/",
-      "current": false,
-      "themeKey": "brand:ml",
-      "count": 120
-    },
-    {
-      "label": "楽曲",
-      "path": "/songs/brand/ml/",
-      "current": false,
-      "themeKey": "brand:ml",
-      "count": 600
-    },
-    {
-      "label": "アイドル",
-      "path": "/idols/brand/ml/",
-      "current": false,
-      "themeKey": "brand:ml",
-      "count": 52
-    },
-    {
-      "label": "ユニット",
-      "path": "/units/brand/ml/",
-      "current": false,
-      "themeKey": "brand:ml",
-      "count": 300
     }
   ],
   "seo": {

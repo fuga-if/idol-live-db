@@ -26,7 +26,9 @@ pub fn idol_page(ctx: &Ctx, idol_id: &str) -> Option<IdolPage> {
     let breadcrumbs = {
         let mut crumbs = vec![ctx.crumb("ホーム", "/"), ctx.crumb("アイドル", "/idols/")];
         if let Some(brand) = brand_id.as_deref().and_then(|b| ctx.brand_ref(b)) {
-            crumbs.push(ctx.crumb(&brand.name, &format!("/idols/brand/{}/", brand.id)));
+            if let Some(list) = ctx.brand_list_path("idols", &brand.id) {
+                crumbs.push(ctx.crumb(&brand.name, &list));
+            }
         }
         crumbs.push(ctx.crumb(&record.name, &path));
         crumbs
@@ -201,10 +203,9 @@ pub fn unit_page(ctx: &Ctx, unit_id: &str) -> Option<UnitPage> {
     let path = ctx.path(RefKind::Unit, unit_id);
     let breadcrumbs = {
         let mut crumbs = vec![ctx.crumb("ホーム", "/"), ctx.crumb("ユニット", "/units/")];
-        // `other` にはブランド別一覧を作っていない (§songs.rs と同じ理由)。
-        if !ctx.is_other_brand(Some(&record.brand_id)) {
-            if let Some(brand) = ctx.brand_ref(&record.brand_id) {
-                crumbs.push(ctx.crumb(&brand.name, &format!("/units/brand/{}/", brand.id)));
+        if let Some(brand) = ctx.brand_ref(&record.brand_id) {
+            if let Some(list) = ctx.brand_list_path("units", &brand.id) {
+                crumbs.push(ctx.crumb(&brand.name, &list));
             }
         }
         crumbs.push(ctx.crumb(&record.name, &path));

@@ -236,6 +236,34 @@ pub struct NavLink {
     pub count: Option<u32>,
 }
 
+impl NavLink {
+    /// 押せる切替リンク 1 本。`current` は後から [`mark_current`] でまとめて立てる。
+    pub fn new(label: &str, path: impl Into<String>) -> Self {
+        Self { label: label.to_string(), path: path.into(), current: false, theme_key: None, count: None }
+    }
+
+    pub fn with_count(mut self, count: u32) -> Self {
+        self.count = Some(count);
+        self
+    }
+
+    pub fn with_theme(mut self, theme_key: String) -> Self {
+        self.theme_key = Some(theme_key);
+        self
+    }
+}
+
+/// いま見ているページに当たるリンクへ `current` を立てる。
+///
+/// 各リンクを作るときに `path == current` を書くと、切替リンクを組む場所すべてに
+/// 同じ比較が散る (実データでは 5 種類の一覧が同じことをしていた)。組み終わってから
+/// 1 回で立てる。
+pub fn mark_current(links: &mut [NavLink], current: &str) {
+    for link in links {
+        link.current = link.path == current;
+    }
+}
+
 /// テーマトークン表 (`themes.json`)。
 ///
 /// 実際に配るのは Rust が書き出す単一の `themes.css` (`[data-theme="idol:xxx"]{…}`) で、
