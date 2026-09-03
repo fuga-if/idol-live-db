@@ -1,0 +1,48 @@
+---
+import ListLayout from "../layouts/ListLayout.astro";
+import ListContainer from "./ListContainer.astro";
+import LeadRow from "./LeadRow.astro";
+import EmptyState from "./EmptyState.astro";
+import { meta } from "../lib/data";
+import type { UnitListPage } from "../lib/schema/UnitListPage";
+
+interface Props {
+  list: UnitListPage;
+}
+const { list } = Astro.props;
+---
+
+<ListLayout
+  seo={list.seo}
+  meta={meta()}
+  title={list.title}
+  total={list.total}
+  themeKey={list.brand?.themeKey}
+  filterLinks={list.brandLinks}
+  filterLabel="ブランドで絞る"
+>
+  {
+    list.items.length === 0 ? (
+      <EmptyState title="該当するユニットがありません" />
+    ) : (
+      <ListContainer as="ul">
+        {list.items.map((item) => (
+          <li>
+            <LeadRow
+              title={item.ref.name}
+              subtitle={item.brand?.name ?? item.ref.sub}
+              href={item.ref.path}
+              themeKey={item.ref.themeKey}
+            >
+              <span slot="trailing" class="u-row">
+                {item.isPermanent && <span class="tag tag--all">常設</span>}
+                <span class="u-num">{item.memberCount}人</span>
+                {item.songCount > 0 && <span class="u-num">{item.songCount}曲</span>}
+              </span>
+            </LeadRow>
+          </li>
+        ))}
+      </ListContainer>
+    )
+  }
+</ListLayout>

@@ -40,7 +40,7 @@
 .section__count {
   font-size: var(--fs-footnote);
   font-weight: 600;
-  color: var(--ds-ink3);
+  color: var(--ds-ink2);
   font-family: var(--font-display);
   font-variant-numeric: tabular-nums;
 }
@@ -345,7 +345,7 @@ a.chip:hover {
 .stat-tile__unit {
   font-size: var(--fs-footnote);
   font-weight: 600;
-  color: var(--ds-ink3);
+  color: var(--ds-ink2);
 }
 .stat-tile__label {
   font-size: var(--fs-caption);
@@ -440,7 +440,7 @@ a.ranking-row:hover {
   font-variant-numeric: tabular-nums;
   font-size: var(--fs-body);
   font-weight: 700;
-  color: var(--ds-ink3);
+  color: var(--ds-ink2);
 }
 .ranking-row--top .ranking-row__rank {
   color: var(--accent);
@@ -521,8 +521,15 @@ a.labeled-row .labeled-row__value {
 
 /* --- Hero (詳細ページ共通の頭) -------------------------------------------- */
 .hero {
+  /* エンティティ色は「差し色」であって主役ではない (DS: 色は常にエンティティ側から来るが、
+     システムクロムはほぼ無彩)。グラデーションを薄く敷き、文字のコントラストは
+     hero-surface (ライト/ダークで別途導出済み) が保証する。 */
   background:
-    linear-gradient(160deg, var(--grad-from), var(--grad-to)),
+    linear-gradient(
+      160deg,
+      color-mix(in srgb, var(--grad-from) 22%, transparent),
+      color-mix(in srgb, var(--grad-to) 8%, transparent)
+    ),
     var(--hero-surface);
   border-radius: var(--r-xl);
   padding: var(--sp7) var(--sp6);
@@ -538,12 +545,13 @@ a.labeled-row .labeled-row__value {
   flex-direction: column;
   gap: var(--sp3);
 }
+/* 上に添える小見出し。**大文字化はしない** — 親ライブ名などの固有名詞が入るので、
+   uppercase にすると "10thLIVE" が "10THLIVE" に化ける。 */
 .hero__eyebrow {
   font-size: var(--fs-caption);
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   color: var(--chip-text);
-  text-transform: uppercase;
   font-family: var(--font-display);
 }
 .hero__title {
@@ -663,7 +671,7 @@ a.labeled-row .labeled-row__value {
   font-variant-numeric: tabular-nums;
   font-size: var(--fs-subhead);
   font-weight: 700;
-  color: var(--ds-ink3);
+  color: var(--ds-ink2);
   text-align: end;
 }
 .setlist__body {
@@ -689,7 +697,7 @@ a.labeled-row .labeled-row__value {
   font-size: var(--fs-caption2);
   font-weight: 700;
   letter-spacing: 0.06em;
-  color: var(--ds-ink3);
+  color: var(--ds-ink2);
   padding: var(--sp3) var(--sp5) var(--sp1);
   background: var(--ds-surface);
   text-transform: uppercase;
@@ -819,7 +827,7 @@ table.data tbody tr:last-child td {
   font-size: var(--fs-callout);
 }
 .search-input::placeholder {
-  color: var(--ds-ink3);
+  color: var(--ds-ink2);
 }
 .search-status {
   font-size: var(--fs-footnote);

@@ -1,0 +1,24 @@
+---
+import ListLayout from "../../layouts/ListLayout.astro";
+import EntryCard from "../../components/EntryCard.astro";
+import { meta, page, routeData } from "../../lib/data";
+import type { BrandListPage } from "../../lib/schema/BrandListPage";
+
+const list = page<BrandListPage>(routeData("brandList", "/brands/"));
+---
+
+<ListLayout seo={list.seo} meta={meta()} title={list.title} total={list.items.length}>
+  <div class="entry-grid">
+    {
+      list.items.map((b) => (
+        <EntryCard
+          glyph={b.shortName?.slice(0, 2) ?? b.ref.name.slice(0, 1)}
+          title={b.ref.name}
+          preview={`ライブ ${b.counts.events} ・ 楽曲 ${b.counts.songs} ・ アイドル ${b.counts.idols} ・ ユニット ${b.counts.units}`}
+          href={b.ref.path}
+          themeKey={b.ref.themeKey}
+        />
+      ))
+    }
+  </div>
+</ListLayout>

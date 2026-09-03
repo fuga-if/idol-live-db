@@ -1,0 +1,73 @@
+---
+import DetailLayout from "../../layouts/DetailLayout.astro";
+import Section from "../../components/Section.astro";
+import StatTile from "../../components/StatTile.astro";
+import SegmentedLinks from "../../components/SegmentedLinks.astro";
+import IdolTile from "../../components/IdolTile.astro";
+import RefList from "../../components/RefList.astro";
+import EmptyState from "../../components/EmptyState.astro";
+import { meta, page, pathsFor } from "../../lib/data";
+import type { BrandPage } from "../../lib/schema/BrandPage";
+
+export const getStaticPaths = () => pathsFor("brand", "brandId");
+
+const brand = page<BrandPage>(Astro.props.data);
+const tiles = [
+  { glyph: "♪", value: brand.counts.events, label: "ライブ" },
+  { glyph: "♬", value: brand.counts.songs, label: "楽曲" },
+  { glyph: "☺", value: brand.counts.idols, label: "アイドル" },
+  { glyph: "❋", value: brand.counts.units, label: "ユニット" },
+];
+---
+
+<DetailLayout seo={brand.seo} meta={meta()} themeKey={brand.themeKey}>
+  <section class="hero" slot="hero" aria-labelledby="brand-title">
+    <div class="hero__body">
+      {brand.shortName && <p class="hero__eyebrow">{brand.shortName}</p>}
+      <h1 class="hero__title" id="brand-title">{brand.name}</h1>
+      <SegmentedLinks label="このブランドの一覧" links={brand.sectionLinks} variant="chips" />
+    </div>
+  </section>
+
+  <div class="stat-grid">
+    {tiles.map((t) => <StatTile glyph={t.glyph} value={t.value} label={t.label} />)}
+  </div>
+
+  <Section id="brand-idols" title="アイドル" count={brand.idols.length}>
+    {
+      brand.idols.length === 0 ? (
+        <EmptyState title="アイドルが登録されていません" />
+      ) : (
+        <ul class="grid-tiles">
+          {brand.idols.map((i) => (
+            <IdolTile entity={i} />
+          ))}
+        </ul>
+      )
+    }
+  </Section>
+
+  {
+    brand.recentEvents.length > 0 && (
+      <Section id="brand-events" title="最近のライブ">
+        <RefList refs={brand.recentEvents} variant="neutral" label="最近のライブ" />
+      </Section>
+    )
+  }
+
+  {
+    brand.topSongs.length > 0 && (
+      <Section id="brand-songs" title="よく披露される曲">
+        <RefList refs={brand.topSongs} label="よく披露される曲" />
+      </Section>
+    )
+  }
+
+  {
+    brand.units.length > 0 && (
+      <Section id="brand-units" title="ユニット" count={brand.units.length}>
+        <RefList refs={brand.units} variant="neutral" label="ユニット" />
+      </Section>
+    )
+  }
+</DetailLayout>

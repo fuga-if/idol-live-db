@@ -1,12 +1,12 @@
 ---
-import type { AppLinksLike } from "../lib/ui-types";
+import type { AppLinks } from "../lib/schema/AppLinks";
 /**
  * サイト共通フッタ。
  * プライバシー / サポート / 利用規約は既存の GitHub Pages にリンクする (複製しない)。
  * 更新日はここに出さない (DECISIONS A17: 日次再ビルドで全 HTML が変わるのを避ける)。
  */
 interface Props {
-  app: AppLinksLike;
+  app: AppLinks;
 }
 const { app } = Astro.props;
 ---

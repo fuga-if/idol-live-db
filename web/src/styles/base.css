@@ -84,6 +84,12 @@ a:hover .u-underline-hover {
   border-radius: var(--r-xs);
 }
 
+/* UA の `[hidden]{display:none}` は作者スタイル (.empty{display:flex} 等) に負けるので、
+   ここで明示的に勝たせる。JS が hidden を付ける要素が消えなくなる事故を防ぐ。 */
+[hidden] {
+  display: none !important;
+}
+
 hr {
   border: 0;
   border-top: 1px solid var(--ds-sep);
@@ -220,7 +226,7 @@ hr {
   font-size: var(--fs-caption);
   font-weight: 700;
   letter-spacing: 0.06em;
-  color: var(--ds-ink3);
+  color: var(--ds-ink2);
   margin-bottom: var(--sp3);
   text-transform: uppercase;
   font-family: var(--font-display);
@@ -237,7 +243,7 @@ hr {
   border-top: 1px solid var(--ds-sep);
   padding-top: var(--sp5);
   font-size: var(--fs-caption);
-  color: var(--ds-ink3);
+  color: var(--ds-ink2);
   display: flex;
   flex-direction: column;
   gap: var(--sp2);
@@ -277,8 +283,9 @@ hr {
 .u-muted {
   color: var(--ds-ink2);
 }
+/* 弱い強調。**文字なので ink3 ではなく ink2** (ink3 は AA を満たさない)。 */
 .u-dim {
-  color: var(--ds-ink3);
+  color: var(--ds-ink2);
 }
 .u-stack {
   display: flex;

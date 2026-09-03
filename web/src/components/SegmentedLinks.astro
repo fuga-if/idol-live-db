@@ -1,5 +1,5 @@
 ---
-import type { NavLinkLike } from "../lib/ui-types";
+import type { NavLink } from "../lib/schema/NavLink";
 /**
  * ImasSegmented の Web 版。
  * **状態を持たないリンク集合**にする (ユーザー指示: 一覧のフィルタは静的ページとして分ける)。
@@ -7,7 +7,7 @@ import type { NavLinkLike } from "../lib/ui-types";
  */
 interface Props {
   label: string;
-  links: readonly NavLinkLike[];
+  links: readonly NavLink[];
   variant?: "segmented" | "chips";
 }
 const { label, links, variant = "segmented" } = Astro.props;
@@ -18,7 +18,7 @@ const { label, links, variant = "segmented" } = Astro.props;
     <nav aria-label={label} class={variant === "chips" ? "link-chips" : "segmented"}>
       {links.map((l) => (
         <a href={l.path} aria-current={l.current ? "page" : undefined}>
-          {l.name}
+          {l.label}
           {l.count !== undefined && l.count !== null && (
             <span class="u-dim u-num">&nbsp;{l.count}</span>
           )}

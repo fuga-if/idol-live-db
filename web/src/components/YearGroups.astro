@@ -1,0 +1,35 @@
+---
+import EventRow from "./EventRow.astro";
+import ListContainer from "./ListContainer.astro";
+import EmptyState from "./EmptyState.astro";
+import type { YearGroup } from "../lib/schema/YearGroup";
+/** 年でまとめたライブ一覧。年の切り方と並びは Rust の event_grouping が決めている。 */
+interface Props {
+  groups: readonly YearGroup[];
+  showBrand?: boolean;
+  emptyTitle?: string;
+}
+const { groups, showBrand = true, emptyTitle = "該当するライブがありません" } = Astro.props;
+---
+
+{
+  groups.length === 0 ? (
+    <EmptyState
+      title={emptyTitle}
+      body="別の年やブランドに切り替えるか、検索からお探しください。"
+    />
+  ) : (
+    <div class="u-stack">
+      {groups.map((g) => (
+        <section class="year-group" aria-label={`${g.year}年`}>
+          <h2 class="year-group__title">{g.year}</h2>
+          <ListContainer as="ul">
+            {g.events.map((e) => (
+              <EventRow item={e} showBrand={showBrand} />
+            ))}
+          </ListContainer>
+        </section>
+      ))}
+    </div>
+  )
+}

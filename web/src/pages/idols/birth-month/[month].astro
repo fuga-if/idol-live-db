@@ -1,0 +1,10 @@
+---
+import IdolListView from "../../../components/IdolListView.astro";
+import { page, pathsFor } from "../../../lib/data";
+import type { IdolListPage } from "../../../lib/schema/IdolListPage";
+/** アイドル詳細の誕生日行 (ProfileRow.link) の着地先。状態を持たない静的ページにする。 */
+export const getStaticPaths = () => pathsFor("idolListBirthMonth", "month");
+const list = page<IdolListPage>(Astro.props.data);
+---
+
+<IdolListView list={list} />

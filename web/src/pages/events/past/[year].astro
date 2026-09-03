@@ -1,0 +1,23 @@
+---
+import ListLayout from "../../../layouts/ListLayout.astro";
+import YearGroups from "../../../components/YearGroups.astro";
+import { meta, page, pathsFor } from "../../../lib/data";
+import type { EventListPage } from "../../../lib/schema/EventListPage";
+
+export const getStaticPaths = () => pathsFor("eventListPastYear", "year");
+
+const list = page<EventListPage>(Astro.props.data);
+---
+
+<ListLayout
+  seo={list.seo}
+  meta={meta()}
+  title={list.title}
+  total={list.total}
+  scopeLinks={list.scopeLinks}
+  scopeLabel="今後 / 開催済み"
+  filterLinks={list.yearLinks}
+  filterLabel="年で絞る"
+>
+  <YearGroups groups={list.groups} />
+</ListLayout>

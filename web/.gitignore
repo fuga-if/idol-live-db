@@ -8,5 +8,5 @@ dist/
 data/
 # core-coder が Rust から出す本番テーマ CSS (生成物)
 public/themes.css
-# wasm-pack の出力
-src/lib/fold/
+# wasm-pack の出力 (public/ に置くので実行時 URL /fold/… で取りに行ける)
+public/fold/

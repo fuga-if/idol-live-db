@@ -1,0 +1,75 @@
+---
+import DetailLayout from "../../layouts/DetailLayout.astro";
+import Section from "../../components/Section.astro";
+import SetlistRow from "../../components/SetlistRow.astro";
+import RefList from "../../components/RefList.astro";
+import Chip from "../../components/Chip.astro";
+import EmptyState from "../../components/EmptyState.astro";
+import { meta, page, pathsFor } from "../../lib/data";
+import type { ShowPage } from "../../lib/schema/ShowPage";
+
+export const getStaticPaths = () => pathsFor("show", "showId");
+
+const show = page<ShowPage>(Astro.props.data);
+---
+
+<DetailLayout seo={show.seo} meta={meta()} themeKey={show.themeKey} app={show.app}>
+  <section class="hero" slot="hero" aria-labelledby="show-title">
+    <div class="hero__body">
+      <p class="hero__eyebrow">
+        <a href={show.event.path}>{show.event.name}</a>
+      </p>
+      <h1 class="hero__title" id="show-title">{show.name}</h1>
+      <p class="u-muted">
+        <time datetime={show.date}>{show.date}</time>
+        {show.startTime && <> ・ 開演 {show.startTime}</>}
+      </p>
+      <div class="hero__meta">
+        {
+          show.venue ? (
+            <Chip text={show.venue.name} href={show.venue.path} variant="themed" themeKey={show.venue.themeKey} />
+          ) : (
+            show.venueLabel && <Chip text={show.venueLabel} />
+          )
+        }
+        {show.hall && <Chip text={show.hall} />}
+        {show.venueCity && <Chip text={show.venueCity} />}
+        {show.streamPlatform && <Chip text={show.streamPlatform} />}
+        {show.brand && <Chip text={show.brand.name} href={show.brand.path} variant="themed" themeKey={show.brand.themeKey} />}
+      </div>
+    </div>
+  </section>
+
+  <Section id="show-setlist" title="セットリスト" count={show.setlist.length}>
+    {
+      show.setlist.length === 0 ? (
+        <EmptyState
+          title="セットリストがまだ登録されていません"
+          body="GitHub のリポジトリからデータの追加にご協力いただけます。"
+        />
+      ) : (
+        <ol class="card setlist">
+          {show.setlist.map((row) => (
+            <SetlistRow row={row} />
+          ))}
+        </ol>
+      )
+    }
+  </Section>
+
+  {
+    show.cast.length > 0 && (
+      <Section id="show-cast" title="出演者" count={show.cast.length}>
+        <RefList refs={show.cast} label="出演者" />
+      </Section>
+    )
+  }
+
+  {
+    show.siblingShows.length > 0 && (
+      <Section id="show-siblings" title="このライブの他の公演">
+        <RefList refs={show.siblingShows} variant="neutral" label="他の公演" />
+      </Section>
+    )
+  }
+</DetailLayout>

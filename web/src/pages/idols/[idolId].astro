@@ -1,0 +1,151 @@
+---
+import DetailLayout from "../../layouts/DetailLayout.astro";
+import Section from "../../components/Section.astro";
+import Avatar from "../../components/Avatar.astro";
+import Chip from "../../components/Chip.astro";
+import ListContainer from "../../components/ListContainer.astro";
+import LabeledRow from "../../components/LabeledRow.astro";
+import LeadRow from "../../components/LeadRow.astro";
+import RefList from "../../components/RefList.astro";
+import RankingRow from "../../components/RankingRow.astro";
+import EmptyState from "../../components/EmptyState.astro";
+import { meta, page, pathsFor } from "../../lib/data";
+import type { IdolPage } from "../../lib/schema/IdolPage";
+
+export const getStaticPaths = () => pathsFor("idol", "idolId");
+
+const idol = page<IdolPage>(Astro.props.data);
+---
+
+<DetailLayout seo={idol.seo} meta={meta()} themeKey={idol.themeKey} app={idol.app}>
+  <section class="hero" slot="hero" aria-labelledby="idol-title">
+    <Avatar label={idol.name} monogram={idol.monogram} size="xl" />
+    <div class="hero__body">
+      {idol.brand && <p class="hero__eyebrow">{idol.brand.name}</p>}
+      <h1 class="hero__title" id="idol-title">{idol.name}</h1>
+      {idol.nameKana && <p class="hero__kana">{idol.nameKana}</p>}
+      {idol.currentVoiceActor && <p class="u-muted">CV: {idol.currentVoiceActor}</p>}
+      <div class="hero__meta">
+        {idol.brands.map((b) => (
+          <Chip text={b.name} href={b.path} variant="themed" themeKey={b.themeKey} />
+        ))}
+      </div>
+      {idol.description && <p>{idol.description}</p>}
+    </div>
+  </section>
+
+  {
+    idol.profileRows.length > 0 && (
+      <Section id="idol-profile" title="プロフィール">
+        <ListContainer>
+          {idol.profileRows.map((r) => (
+            <LabeledRow
+              label={r.label}
+              value={r.value}
+              href={r.link}
+              mono={r.style === "monospaced"}
+              swatch={r.style === "colorSwatch"}
+            />
+          ))}
+        </ListContainer>
+      </Section>
+    )
+  }
+
+  {
+    idol.voiceActorHistory.length > 1 && (
+      <Section id="idol-cv" title="CV">
+        <ListContainer>
+          {idol.voiceActorHistory.map((v) => (
+            <LabeledRow
+              label={v.isCurrent ? "現任" : "歴代"}
+              value={[v.name, v.startDate && `${v.startDate}〜${v.endDate ?? ""}`, v.note]
+                .filter((x) => Boolean(x))
+                .join(" ・ ")}
+            />
+          ))}
+        </ListContainer>
+      </Section>
+    )
+  }
+
+  {
+    idol.units.length > 0 && (
+      <Section id="idol-units" title="所属ユニット" count={idol.units.length}>
+        <RefList refs={idol.units} label="所属ユニット" />
+      </Section>
+    )
+  }
+
+  <Section id="idol-songs" title="持ち曲" count={idol.songs.length}>
+    {
+      idol.songs.length === 0 ? (
+        <EmptyState title="持ち曲がまだ登録されていません" />
+      ) : (
+        <ListContainer as="ul">
+          {idol.songs.map((s) => (
+            <li>
+              <LeadRow
+                title={s.song.name}
+                subtitle={[s.role, s.releaseDate].filter((v) => Boolean(v)).join(" ・ ")}
+                href={s.song.path}
+                themeKey={s.song.themeKey}
+              >
+                {s.performanceCount > 0 && (
+                  <span slot="trailing" class="u-num">{s.performanceCount}回</span>
+                )}
+              </LeadRow>
+            </li>
+          ))}
+        </ListContainer>
+      )
+    }
+  </Section>
+
+  {
+    idol.performedSongs.length > 0 && (
+      <Section id="idol-performed" title="ライブで歌った曲" count={idol.performedSongs.length}>
+        <ListContainer as="ol">
+          {idol.performedSongs.map((s, i) => (
+            <li>
+              <RankingRow
+                rank={i + 1}
+                lead="artwork"
+                title={s.song.name}
+                sub={s.lastDate ? `最後の披露 ${s.lastDate}` : s.song.sub}
+                artworkUrl={s.song.artworkUrl}
+                metric={s.times}
+                href={s.song.path}
+                themeKey={s.song.themeKey}
+              />
+            </li>
+          ))}
+        </ListContainer>
+      </Section>
+    )
+  }
+
+  {
+    idol.shows.length > 0 && (
+      <Section id="idol-shows" title="出演公演" count={idol.shows.length}>
+        <ListContainer as="ul">
+          {idol.shows.map((s) => (
+            <li>
+              <LeadRow
+                title={s.event.name}
+                subtitle={[s.show.name, s.venueLabel].filter((v) => Boolean(v)).join(" ・ ")}
+                href={s.show.path}
+                themeKey={s.show.themeKey}
+              >
+                <span slot="trailing" class="u-row">
+                  <time class="u-num" datetime={s.date}>{s.date}</time>
+                  {s.songCount > 0 && <span class="u-num">{s.songCount}曲</span>}
+                </span>
+              </LeadRow>
+            </li>
+          ))}
+        </ListContainer>
+      </Section>
+    )
+  }
+</DetailLayout>

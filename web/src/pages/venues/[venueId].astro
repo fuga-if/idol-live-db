@@ -1,0 +1,97 @@
+---
+import DetailLayout from "../../layouts/DetailLayout.astro";
+import Section from "../../components/Section.astro";
+import Chip from "../../components/Chip.astro";
+import ListContainer from "../../components/ListContainer.astro";
+import LabeledRow from "../../components/LabeledRow.astro";
+import ShowRow from "../../components/ShowRow.astro";
+import RefList from "../../components/RefList.astro";
+import EmptyState from "../../components/EmptyState.astro";
+import { meta, page, pathsFor } from "../../lib/data";
+import type { VenuePage } from "../../lib/schema/VenuePage";
+
+export const getStaticPaths = () => pathsFor("venue", "venueId");
+
+const venue = page<VenuePage>(Astro.props.data);
+const facts = [
+  { label: "所在", value: [venue.prefecture, venue.city].filter((v) => Boolean(v)).join(" ") || null },
+  { label: "収容人数", value: venue.capacity ? `${venue.capacity}人` : null, mono: true },
+  { label: "別名", value: venue.aliases.join(" / ") || null },
+].filter((r) => Boolean(r.value));
+---
+
+<DetailLayout seo={venue.seo} meta={meta()} themeKey={venue.themeKey} app={venue.app}>
+  <section class="hero" slot="hero" aria-labelledby="venue-title">
+    <div class="hero__body">
+      {venue.prefecture && <p class="hero__eyebrow">{venue.prefecture}</p>}
+      <h1 class="hero__title" id="venue-title">{venue.name}</h1>
+      {venue.nameKana && <p class="hero__kana">{venue.nameKana}</p>}
+      <div class="hero__meta">
+        {venue.city && <Chip text={venue.city} />}
+        {venue.capacity && <Chip text={`収容 ${venue.capacity}人`} />}
+      </div>
+    </div>
+  </section>
+
+  {
+    facts.length > 0 && (
+      <Section id="venue-facts" title="基本情報">
+        <ListContainer>
+          {facts.map((r) => (
+            <LabeledRow label={r.label} value={r.value!} mono={r.mono} />
+          ))}
+        </ListContainer>
+      </Section>
+    )
+  }
+
+  {
+    venue.halls.length > 0 && (
+      <Section id="venue-halls" title="ホール">
+        <ListContainer>
+          {venue.halls.map((h) => (
+            <LabeledRow label={h.name} value={h.capacity ? `${h.capacity}人` : "—"} mono />
+          ))}
+        </ListContainer>
+      </Section>
+    )
+  }
+
+  {
+    venue.pastNames.length > 0 && (
+      <Section id="venue-names" title="旧称">
+        <ListContainer>
+          {venue.pastNames.map((n) => (
+            <LabeledRow
+              label={n.name}
+              value={[n.startDate, n.endDate].filter((v) => Boolean(v)).join(" 〜 ") || "—"}
+              mono
+            />
+          ))}
+        </ListContainer>
+      </Section>
+    )
+  }
+
+  {
+    venue.events.length > 0 && (
+      <Section id="venue-events" title="ここで行われたライブ" count={venue.events.length}>
+        <RefList refs={venue.events} variant="neutral" label="ここで行われたライブ" />
+      </Section>
+    )
+  }
+
+  <Section id="venue-shows" title="公演" count={venue.shows.length}>
+    {
+      venue.shows.length === 0 ? (
+        <EmptyState title="公演の記録がありません" />
+      ) : (
+        <ListContainer as="ul">
+          {venue.shows.map((s) => (
+            <ShowRow show={s} showEvent />
+          ))}
+        </ListContainer>
+      )
+    }
+  </Section>
+</DetailLayout>

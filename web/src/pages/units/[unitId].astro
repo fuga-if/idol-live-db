@@ -1,0 +1,55 @@
+---
+import DetailLayout from "../../layouts/DetailLayout.astro";
+import Section from "../../components/Section.astro";
+import Avatar from "../../components/Avatar.astro";
+import Chip from "../../components/Chip.astro";
+import IdolTile from "../../components/IdolTile.astro";
+import RefList from "../../components/RefList.astro";
+import EmptyState from "../../components/EmptyState.astro";
+import { meta, page, pathsFor } from "../../lib/data";
+import type { UnitPage } from "../../lib/schema/UnitPage";
+
+export const getStaticPaths = () => pathsFor("unit", "unitId");
+
+const unit = page<UnitPage>(Astro.props.data);
+---
+
+<DetailLayout seo={unit.seo} meta={meta()} themeKey={unit.themeKey} app={unit.app}>
+  <section class="hero" slot="hero" aria-labelledby="unit-title">
+    <Avatar label={unit.name} monogram={unit.monogram} size="xl" />
+    <div class="hero__body">
+      {unit.brand && <p class="hero__eyebrow">{unit.brand.name}</p>}
+      <h1 class="hero__title" id="unit-title">{unit.name}</h1>
+      {unit.nameKana && <p class="hero__kana">{unit.nameKana}</p>}
+      {unit.nameAlt && <p class="u-muted">別名: {unit.nameAlt}</p>}
+      <div class="hero__meta">
+        <Chip text={unit.isPermanent ? "常設ユニット" : "期間限定"} variant="themed" />
+        {unit.brand && <Chip text={unit.brand.name} href={unit.brand.path} variant="themed" themeKey={unit.brand.themeKey} />}
+      </div>
+    </div>
+  </section>
+
+  <Section id="unit-members" title="メンバー" count={unit.members.length}>
+    {
+      unit.members.length === 0 ? (
+        <EmptyState title="メンバーがまだ登録されていません" />
+      ) : (
+        <ul class="grid-tiles">
+          {unit.members.map((m) => (
+            <IdolTile entity={m} />
+          ))}
+        </ul>
+      )
+    }
+  </Section>
+
+  <Section id="unit-songs" title="ユニット曲" count={unit.songs.length}>
+    {
+      unit.songs.length === 0 ? (
+        <EmptyState title="ユニット曲がまだ登録されていません" />
+      ) : (
+        <RefList refs={unit.songs} label="ユニット曲" />
+      )
+    }
+  </Section>
+</DetailLayout>

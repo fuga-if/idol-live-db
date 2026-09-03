@@ -1,0 +1,180 @@
+---
+import DetailLayout from "../../layouts/DetailLayout.astro";
+import Section from "../../components/Section.astro";
+import Artwork from "../../components/Artwork.astro";
+import Chip from "../../components/Chip.astro";
+import RefList from "../../components/RefList.astro";
+import ListContainer from "../../components/ListContainer.astro";
+import LabeledRow from "../../components/LabeledRow.astro";
+import RankingRow from "../../components/RankingRow.astro";
+import LeadRow from "../../components/LeadRow.astro";
+import EmptyState from "../../components/EmptyState.astro";
+import { meta, page, pathsFor } from "../../lib/data";
+import type { SongPage } from "../../lib/schema/SongPage";
+
+export const getStaticPaths = () => pathsFor("song", "songId");
+
+const song = page<SongPage>(Astro.props.data);
+const facts = [
+  { label: "リリース", value: song.releaseDate, mono: true },
+  { label: "収録", value: song.cdTitle },
+  { label: "シリーズ", value: song.cdSeries ?? song.seriesGroup },
+  { label: "再生時間", value: song.durationDisplay, mono: true },
+  { label: "JASRAC 作品コード", value: song.jasracCode, mono: true },
+].filter((r) => Boolean(r.value));
+---
+
+<DetailLayout seo={song.seo} meta={meta()} themeKey={song.themeKey} app={song.app}>
+  <section class="hero" slot="hero" aria-labelledby="song-title">
+    <Artwork title={song.title} artworkUrl={song.artworkUrl} size="hero" />
+    <div class="hero__body">
+      {song.songType && <p class="hero__eyebrow">{song.songType}</p>}
+      <h1 class="hero__title" id="song-title">{song.title}</h1>
+      {song.titleKana && <p class="hero__kana">{song.titleKana}</p>}
+      <div class="hero__meta">
+        {song.brand && <Chip text={song.brand.name} href={song.brand.path} variant="themed" themeKey={song.brand.themeKey} />}
+        {song.unit && <Chip text={song.unit.name} href={song.unit.path} variant="themed" themeKey={song.unit.themeKey} />}
+        {!song.unit && song.unitLabel && <Chip text={song.unitLabel} />}
+        {song.appleMusicUrl && <a class="btn btn--ghost" href={song.appleMusicUrl} rel="noopener">Apple Music</a>}
+      </div>
+      {
+        song.parent && (
+          <p class="u-muted">
+            この曲は <a class="u-underline-hover" href={song.parent.path}>{song.parent.name}</a> の派生曲です。
+          </p>
+        )
+      }
+    </div>
+  </section>
+
+  {
+    song.originalArtists.length > 0 && (
+      <Section id="song-original" title="原唱者">
+        <RefList refs={song.originalArtists} label="原唱者" />
+      </Section>
+    )
+  }
+
+  {
+    facts.length > 0 && (
+      <Section id="song-facts" title="基本情報">
+        <ListContainer>
+          {facts.map((r) => (
+            <LabeledRow label={r.label} value={r.value!} mono={r.mono} />
+          ))}
+        </ListContainer>
+      </Section>
+    )
+  }
+
+  {
+    song.credits.length > 0 && (
+      <Section id="song-credits" title="クレジット">
+        <ListContainer>
+          {song.credits.map((c) => (
+            <LabeledRow label={c.role} value={c.people.length > 0 ? c.people.join(" / ") : c.raw} />
+          ))}
+        </ListContainer>
+      </Section>
+    )
+  }
+
+  {
+    song.otherArtists.length > 0 && (
+      <Section id="song-artists" title="その他の歌唱者">
+        <RefList refs={song.otherArtists} variant="neutral" label="その他の歌唱者" />
+      </Section>
+    )
+  }
+
+  {
+    song.variants.length > 0 && (
+      <Section id="song-variants" title="派生曲" count={song.variants.length}>
+        <RefList refs={song.variants} variant="neutral" label="派生曲" />
+      </Section>
+    )
+  }
+
+  <Section id="song-history" title="披露履歴" count={song.performanceCount}>
+    {
+      song.performanceHistory.length === 0 ? (
+        <EmptyState title="ライブでの披露記録がありません" />
+      ) : (
+        <ListContainer as="ol">
+          {song.performanceHistory.map((h) => (
+            <li>
+              <LeadRow
+                title={h.event.name}
+                subtitle={[h.show.name, h.venue].filter((v) => Boolean(v)).join(" ・ ")}
+                href={h.show.path}
+                themeKey={h.show.themeKey}
+              >
+                <time slot="trailing" class="u-num" datetime={h.date}>{h.date}</time>
+              </LeadRow>
+            </li>
+          ))}
+        </ListContainer>
+      )
+    }
+  </Section>
+
+  {
+    song.frequentSingers.length > 0 && (
+      <Section id="song-singers" title="よく歌うアイドル">
+        <ListContainer as="ol">
+          {song.frequentSingers.map((s, i) => (
+            <li>
+              <RankingRow
+                rank={i + 1}
+                lead="avatar"
+                title={s.idol.name}
+                sub={s.idol.sub}
+                monogram={s.idol.monogram}
+                metric={s.times}
+                href={s.idol.path}
+                themeKey={s.idol.themeKey}
+              />
+            </li>
+          ))}
+        </ListContainer>
+      </Section>
+    )
+  }
+
+  {
+    song.coOccurring.length > 0 && (
+      <Section id="song-cooccur" title="よく一緒に披露される曲">
+        <ListContainer as="ol">
+          {song.coOccurring.map((c, i) => (
+            <li>
+              <RankingRow
+                rank={i + 1}
+                lead="artwork"
+                title={c.song.name}
+                sub={c.song.sub}
+                artworkUrl={c.song.artworkUrl}
+                metric={c.together}
+                href={c.song.path}
+                themeKey={c.song.themeKey}
+              />
+            </li>
+          ))}
+        </ListContainer>
+      </Section>
+    )
+  }
+
+  {
+    song.related.length > 0 && (
+      <Section id="song-related" title="関連する曲">
+        <RefList refs={song.related} variant="neutral" label="関連する曲" />
+      </Section>
+    )
+  }
+
+  <Section id="song-lyrics" title="歌詞">
+    <div class="card card__pad">
+      <p>{song.lyricsNote}</p>
+    </div>
+  </Section>
+</DetailLayout>

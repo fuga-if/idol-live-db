@@ -1,0 +1,8 @@
+---
+import VenueListView from "../../components/VenueListView.astro";
+import { page, routeData } from "../../lib/data";
+import type { VenueListPage } from "../../lib/schema/VenueListPage";
+const list = page<VenueListPage>(routeData("venueListIndex", "/venues/"));
+---
+
+<VenueListView list={list} />

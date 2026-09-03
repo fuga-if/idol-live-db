@@ -2,7 +2,9 @@
 import BaseLayout from "./BaseLayout.astro";
 import Breadcrumbs from "../components/Breadcrumbs.astro";
 import SegmentedLinks from "../components/SegmentedLinks.astro";
-import type { NavLinkLike, SeoLike, SiteMetaLike } from "../lib/ui-types";
+import type { NavLink } from "../lib/schema/NavLink";
+import type { SeoBlock } from "../lib/schema/SeoBlock";
+import type { SiteMeta } from "../lib/schema/SiteMeta";
 
 /**
  * 一覧ページの枠。
@@ -10,15 +12,15 @@ import type { NavLinkLike, SeoLike, SiteMetaLike } from "../lib/ui-types";
  * どれが現在地かは Rust が `current` で出す。
  */
 interface Props {
-  seo: SeoLike;
-  meta: SiteMetaLike;
+  seo: SeoBlock;
+  meta: SiteMeta;
   title: string;
   lead?: string | null;
   total?: number | null;
   themeKey?: string;
-  scopeLinks?: readonly NavLinkLike[];
+  scopeLinks?: readonly NavLink[];
   scopeLabel?: string;
-  filterLinks?: readonly NavLinkLike[];
+  filterLinks?: readonly NavLink[];
   filterLabel?: string;
   wide?: boolean;
 }
@@ -38,7 +40,7 @@ const {
 ---
 
 <BaseLayout seo={seo} meta={meta} themeKey={themeKey} wide={wide}>
-  <header class="u-stack">
+  <div class="u-stack">
     <Breadcrumbs crumbs={seo.breadcrumbs} />
     <h1 class="hero__title">{title}</h1>
     {lead && <p class="u-muted">{lead}</p>}
@@ -51,6 +53,6 @@ const {
     }
     <SegmentedLinks label={scopeLabel} links={scopeLinks} />
     <SegmentedLinks label={filterLabel} links={filterLinks} variant="chips" />
-  </header>
+  </div>
   <slot />
 </BaseLayout>

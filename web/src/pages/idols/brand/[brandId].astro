@@ -1,0 +1,9 @@
+---
+import IdolListView from "../../../components/IdolListView.astro";
+import { page, pathsFor } from "../../../lib/data";
+import type { IdolListPage } from "../../../lib/schema/IdolListPage";
+export const getStaticPaths = () => pathsFor("idolListBrand", "brandId");
+const list = page<IdolListPage>(Astro.props.data);
+---
+
+<IdolListView list={list} />

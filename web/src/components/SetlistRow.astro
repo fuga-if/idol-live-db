@@ -1,0 +1,44 @@
+---
+import Artwork from "./Artwork.astro";
+import TagChip from "./TagChip.astro";
+import type { SetlistRow } from "../lib/schema/SetlistRow";
+/**
+ * セトリの 1 行。曲・ジャケ・この披露限りのユニット表記・カバー・歌唱メンバー。
+ * 歌唱メンバーの表示名 (現任 CV による解決) は Rust が済ませている。
+ */
+interface Props {
+  row: SetlistRow;
+}
+const { row } = Astro.props;
+---
+
+<li class="setlist__row" data-theme={row.song.themeKey}>
+  <span class="setlist__no">{row.position}</span>
+  <span class="setlist__body">
+    <Artwork title={row.song.name} artworkUrl={row.song.artworkUrl} size="sm" />
+    <span class="setlist__main">
+      <a class="setlist__title u-underline-hover" href={row.song.path}>{row.song.name}</a>
+      {
+        (row.unitLabel || row.isCover) && (
+          <span class="u-row">
+            {row.unitLabel && <TagChip text={row.unitLabel} kind="unit" />}
+            {row.isCover && <TagChip text="カバー" kind="cover" />}
+          </span>
+        )
+      }
+      {
+        row.performers.length > 0 && (
+          <span class="performers">
+            {row.performers.map((p) => (
+              <a class="performer" href={p.ref.path} data-theme={p.ref.themeKey}>
+                <span class="avatar avatar--sm">{p.ref.monogram ?? p.idolName.slice(0, 1)}</span>
+                {p.displayName}
+              </a>
+            ))}
+          </span>
+        )
+      }
+      {row.notes && <span class="setlist__notes">{row.notes}</span>}
+    </span>
+  </span>
+</li>

@@ -1,0 +1,84 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { meta } from "../lib/data";
+import type { SeoBlock } from "../lib/schema/SeoBlock";
+
+/**
+ * 検索 — このサイトで唯一 JS が動くページ。
+ *
+ * ページを探すためのナビゲーション補助であって、状態を持つ機能ではない:
+ * フォームは送信せず (action 無し・submit は preventDefault)、履歴も書かず、
+ * 結果に色も付けない。JS が無効なら下の一覧リンクだけが見える。
+ */
+// 検索は 1 枚きりの静的ページなので、SeoBlock は Rust から来ない。ここで組む。
+const seo: SeoBlock = {
+  title: "検索 | アイドルライブDB",
+  description:
+    "アイマスの楽曲・アイドル・ライブ・会場をまとめて検索します。ひらがな / カタカナ / 英字の違いは自動で吸収します。",
+  canonical: "/search/",
+  ogImage: "/og/default.png",
+  robots: "index,follow",
+  jsonLd: {},
+  breadcrumbs: [
+    { name: "ホーム", path: "/" },
+    { name: "検索", path: "/search/" },
+  ],
+};
+const site = meta();
+const lists = [
+  { name: "楽曲", path: "/songs/" },
+  { name: "アイドル", path: "/idols/" },
+  { name: "ライブ", path: "/events/" },
+  { name: "ユニット", path: "/units/" },
+  { name: "会場", path: "/venues/" },
+  { name: "ブランド", path: "/brands/" },
+];
+---
+
+<BaseLayout seo={seo} meta={site}>
+  <div class="u-stack">
+    <h1 class="hero__title">検索</h1>
+    <p class="u-muted">
+      楽曲・アイドル・ライブ・会場をまとめて探します。ひらがな / カタカナ /
+      英字の大小の違いはアプリと同じ規則で吸収します。
+    </p>
+  </div>
+
+  <form class="search-form" data-search-form role="search">
+    <label class="u-visually-hidden" for="q">検索語</label>
+    <input
+      class="search-input"
+      id="q"
+      name="q"
+      type="search"
+      data-search-input
+      disabled
+      autocomplete="off"
+      autocapitalize="off"
+      spellcheck="false"
+      enterkeyhint="search"
+      placeholder="例: 未来 / HARUKA / 武道館"
+      aria-describedby="search-status"
+      aria-controls="search-results"
+    />
+  </form>
+
+  <p class="search-status" id="search-status" data-search-status aria-live="polite"></p>
+
+  <div class="search-results" id="search-results" data-search-results></div>
+
+  <div class="empty" data-search-fallback>
+    <p class="empty__title">JavaScript を有効にすると検索できます</p>
+    <p class="empty__body">
+      検索だけはブラウザ側で動きます。無効のままでも、下の一覧からすべてのページに辿り着けます。
+    </p>
+  </div>
+
+  <nav class="link-chips" aria-label="一覧から辿る">
+    {lists.map((l) => <a href={l.path}>{l.name}の一覧</a>)}
+  </nav>
+</BaseLayout>
+
+<script>
+  import "../lib/search/island";
+</script>

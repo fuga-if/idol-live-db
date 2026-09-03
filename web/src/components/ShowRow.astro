@@ -1,0 +1,30 @@
+---
+import LeadRow from "./LeadRow.astro";
+import type { ShowSummary } from "../lib/schema/ShowSummary";
+/** 公演 1 件の行。 */
+interface Props {
+  show: ShowSummary;
+  showEvent?: boolean;
+}
+const { show, showEvent = false } = Astro.props;
+const parts = [
+  showEvent ? show.event?.name : null,
+  show.venueLabel,
+  show.hall,
+  show.startTime ? `開演 ${show.startTime}` : null,
+].filter((v): v is string => Boolean(v));
+---
+
+<li>
+  <LeadRow
+    title={show.ref.name}
+    subtitle={parts.join(" ・ ")}
+    href={show.ref.path}
+    themeKey={show.ref.themeKey}
+  >
+    <span slot="trailing" class="u-row">
+      <time class="u-num" datetime={show.date}>{show.date}</time>
+      {show.setlistCount > 0 && <span class="u-num">{show.setlistCount}曲</span>}
+    </span>
+  </LeadRow>
+</li>

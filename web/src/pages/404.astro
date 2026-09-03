@@ -1,0 +1,42 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import EntryCard from "../components/EntryCard.astro";
+import { meta } from "../lib/data";
+import type { SeoBlock } from "../lib/schema/SeoBlock";
+
+/**
+ * 404。レコードに対応しないページなので、文面はここに持つ (Rust の SeoBlock は無い)。
+ * Cloudflare 側の `not_found_handling: "404-page"` がこの HTML を 404 で返す。
+ */
+// レコードに対応しないページなので、SeoBlock は Rust から来ない。ここで組む。
+const seo: SeoBlock = {
+  title: "ページが見つかりません | アイドルライブDB",
+  description: "お探しのページは見つかりませんでした。検索か一覧からお探しください。",
+  canonical: "/404.html",
+  ogImage: "/og/default.png",
+  robots: "noindex,follow",
+  jsonLd: {},
+  breadcrumbs: [],
+};
+const site = meta();
+const entries = [
+  { glyph: "⌕", title: "検索", preview: "曲・アイドル・ライブ・会場をまとめて探す", href: "/search/" },
+  { glyph: "♪", title: "ライブ", preview: "今後の予定と開催済みの記録", href: "/events/" },
+  { glyph: "♬", title: "楽曲", preview: "クレジット・原唱者・披露履歴", href: "/songs/" },
+  { glyph: "☺", title: "アイドル", preview: "プロフィール・持ち曲・出演履歴", href: "/idols/" },
+];
+---
+
+<BaseLayout seo={seo} meta={site}>
+  <div class="u-stack">
+    <p class="hero__eyebrow">404</p>
+    <h1 class="hero__title">ページが見つかりません</h1>
+    <p class="u-muted">
+      URL が変わったか、そのデータがまだ登録されていない可能性があります。
+      下の入口からお探しください。
+    </p>
+  </div>
+  <div class="entry-grid">
+    {entries.map((e) => <EntryCard {...e} />)}
+  </div>
+</BaseLayout>

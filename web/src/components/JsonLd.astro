@@ -6,10 +6,11 @@
  * (「pages に <script> は search.astro だけ」というレビュー規約を成立させる)。
  */
 interface Props {
-  data?: unknown;
+  data?: Record<string, unknown> | null;
 }
 const { data } = Astro.props;
-const json = data === undefined || data === null ? null : JSON.stringify(data);
+// 空オブジェクト (JSON-LD を出さないページ) は何も描かない。
+const json = data && Object.keys(data).length > 0 ? JSON.stringify(data) : null;
 ---
 
 {json && <script is:inline type="application/ld+json" set:html={json} />}

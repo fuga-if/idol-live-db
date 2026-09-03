@@ -1,0 +1,9 @@
+---
+import SongListView from "../../../components/SongListView.astro";
+import { page, pathsFor } from "../../../lib/data";
+import type { SongListPage } from "../../../lib/schema/SongListPage";
+export const getStaticPaths = () => pathsFor("songListBrand", "brandId");
+const list = page<SongListPage>(Astro.props.data);
+---
+
+<SongListView list={list} />

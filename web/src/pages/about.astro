@@ -1,0 +1,73 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Section from "../components/Section.astro";
+import StatTile from "../components/StatTile.astro";
+import ListContainer from "../components/ListContainer.astro";
+import LabeledRow from "../components/LabeledRow.astro";
+import { meta, page, routeData } from "../lib/data";
+import type { AboutPage } from "../lib/schema/AboutPage";
+
+/**
+ * このサイトについて。
+ * 見出し・本文・リンク (非公式表記 / 版権方針 / JASRAC の文言 / ライセンス) は
+ * すべて Rust の `AboutPage.sections` が持つ。ここは並べるだけ。
+ */
+const about = page<AboutPage>(routeData("about", "/about/"));
+const site = meta();
+
+const tiles = [
+  { glyph: "♪", value: about.counts.events, label: "ライブ" },
+  { glyph: "▤", value: about.counts.shows, label: "公演" },
+  { glyph: "♬", value: about.counts.songs, label: "楽曲" },
+  { glyph: "☺", value: about.counts.idols, label: "アイドル" },
+  { glyph: "❋", value: about.counts.units, label: "ユニット" },
+  { glyph: "⌂", value: about.counts.venues, label: "会場" },
+  { glyph: "≡", value: about.counts.setlistItems, label: "セトリ項目" },
+];
+---
+
+<BaseLayout seo={about.seo} meta={site}>
+  <div class="u-stack">
+    <h1 class="hero__title">このサイトについて</h1>
+  </div>
+
+  <Section id="about-scale" title="収録データ">
+    <div class="stat-grid">
+      {tiles.map((t) => <StatTile glyph={t.glyph} value={t.value} label={t.label} />)}
+    </div>
+  </Section>
+
+  {
+    about.sections.map((s, i) => (
+      <Section id={`about-s${i}`} title={s.heading}>
+        <div class="card card__pad u-stack">
+          {s.paragraphs.map((p) => (
+            <p>{p}</p>
+          ))}
+          {s.links.length > 0 && (
+            <p class="u-row">
+              {s.links.map((l) => (
+                <a
+                  class="btn btn--ghost"
+                  href={l.href}
+                  rel={l.external ? "noopener" : undefined}
+                >
+                  {l.label}
+                </a>
+              ))}
+            </p>
+          )}
+        </div>
+      </Section>
+    ))
+  }
+
+  <Section id="about-freshness" title="データの更新">
+    <ListContainer>
+      <LabeledRow label="基準日 (JST)" value={about.todayJst} mono />
+      <LabeledRow label="生成日時" value={about.generatedAt} mono />
+      {about.dataVersion && <LabeledRow label="データ版" value={about.dataVersion} mono />}
+      {about.contentHash && <LabeledRow label="内容ハッシュ" value={about.contentHash} mono />}
+    </ListContainer>
+  </Section>
+</BaseLayout>

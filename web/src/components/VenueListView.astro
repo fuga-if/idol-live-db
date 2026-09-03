@@ -1,0 +1,46 @@
+---
+import ListLayout from "../layouts/ListLayout.astro";
+import ListContainer from "./ListContainer.astro";
+import LeadRow from "./LeadRow.astro";
+import EmptyState from "./EmptyState.astro";
+import { meta } from "../lib/data";
+import type { VenueListPage } from "../lib/schema/VenueListPage";
+
+interface Props {
+  list: VenueListPage;
+}
+const { list } = Astro.props;
+---
+
+<ListLayout
+  seo={list.seo}
+  meta={meta()}
+  title={list.title}
+  total={list.total}
+  filterLinks={list.prefectureLinks}
+  filterLabel="都道府県で絞る"
+>
+  {
+    list.items.length === 0 ? (
+      <EmptyState title="該当する会場がありません" />
+    ) : (
+      <ListContainer as="ul">
+        {list.items.map((item) => (
+          <li>
+            <LeadRow
+              title={item.ref.name}
+              subtitle={[item.prefecture, item.city].filter((v) => Boolean(v)).join(" ") || null}
+              href={item.ref.path}
+              themeKey={item.ref.themeKey}
+            >
+              <span slot="trailing" class="u-row">
+                {item.capacity && <span class="u-num">{item.capacity}人</span>}
+                {item.showCount > 0 && <span class="u-num">{item.showCount}公演</span>}
+              </span>
+            </LeadRow>
+          </li>
+        ))}
+      </ListContainer>
+    )
+  }
+</ListLayout>

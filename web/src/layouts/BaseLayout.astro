@@ -3,7 +3,8 @@ import Head from "../components/Head.astro";
 import SiteHeader from "../components/SiteHeader.astro";
 import SiteFooter from "../components/SiteFooter.astro";
 import JsonLd from "../components/JsonLd.astro";
-import type { SeoLike, SiteMetaLike } from "../lib/ui-types";
+import type { SeoBlock } from "../lib/schema/SeoBlock";
+import type { SiteMeta } from "../lib/schema/SiteMeta";
 import "../styles/tokens.css";
 import "../styles/base.css";
 import "../styles/components.css";
@@ -15,8 +16,8 @@ import "../styles/components.css";
  * - ブラウザ JS は /search/ の island だけ。ここでは 1 行も読み込まない。
  */
 interface Props {
-  seo: SeoLike;
-  meta: SiteMetaLike;
+  seo: SeoBlock;
+  meta: SiteMeta;
   themeKey?: string;
   wide?: boolean;
   bodyClass?: string;

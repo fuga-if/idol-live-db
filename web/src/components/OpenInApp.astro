@@ -1,12 +1,12 @@
 ---
-import type { AppOpenLike } from "../lib/ui-types";
+import type { AppOpen } from "../lib/schema/AppOpen";
 /**
  * 「アプリで開く」導線。ユーザー指示により、状態を持つ機能 (参加記録・投票・歌詞・
  * タグ・コール) はすべてアプリ側なので、詳細ページから必ずここへ誘導する。
  * 文面 (`note`) と deeplink の有無は Rust が決める。
  */
 interface Props {
-  app: AppOpenLike;
+  app: AppOpen;
   themeKey?: string;
 }
 const { app, themeKey } = Astro.props;

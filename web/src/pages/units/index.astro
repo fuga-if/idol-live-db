@@ -1,0 +1,8 @@
+---
+import UnitListView from "../../components/UnitListView.astro";
+import { page, routeData } from "../../lib/data";
+import type { UnitListPage } from "../../lib/schema/UnitListPage";
+const list = page<UnitListPage>(routeData("unitListIndex", "/units/"));
+---
+
+<UnitListView list={list} />

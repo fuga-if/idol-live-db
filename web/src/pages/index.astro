@@ -1,0 +1,109 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Section from "../components/Section.astro";
+import StatTile from "../components/StatTile.astro";
+import EntryCard from "../components/EntryCard.astro";
+import EventRow from "../components/EventRow.astro";
+import ShowRow from "../components/ShowRow.astro";
+import ListContainer from "../components/ListContainer.astro";
+import EmptyState from "../components/EmptyState.astro";
+import { meta, page, routeData } from "../lib/data";
+import type { HomePage } from "../lib/schema/HomePage";
+
+const home = page<HomePage>(routeData("home", "/"));
+const site = meta();
+const tiles = [
+  { glyph: "♪", value: home.counts.events, label: "ライブ", href: "/events/" },
+  { glyph: "▤", value: home.counts.shows, label: "公演", href: "/events/past/" },
+  { glyph: "♬", value: home.counts.songs, label: "楽曲", href: "/songs/" },
+  { glyph: "☺", value: home.counts.idols, label: "アイドル", href: "/idols/" },
+  { glyph: "❋", value: home.counts.units, label: "ユニット", href: "/units/" },
+  { glyph: "⌂", value: home.counts.venues, label: "会場", href: "/venues/" },
+];
+---
+
+<BaseLayout seo={home.seo} meta={site}>
+  <section class="hero" aria-labelledby="home-title">
+    <div class="hero__body">
+      <p class="hero__eyebrow">Idol Live DB</p>
+      <h1 class="hero__title" id="home-title">アイドルライブDB</h1>
+      <p>{home.tagline}</p>
+      <p class="u-row">
+        <a class="btn" href="/search/">検索する</a>
+        <a class="btn btn--ghost" href="/events/upcoming/">今後のライブ</a>
+      </p>
+      <p class="u-dim">{home.disclaimer}</p>
+    </div>
+  </section>
+
+  <Section id="home-upcoming" title="今後のライブ" moreHref="/events/upcoming/">
+    {
+      home.upcoming.length === 0 ? (
+        <EmptyState
+          title="今後の開催予定はまだ登録されていません"
+          body="発表され次第このページに載ります。過去の記録は「開催済み」からご覧ください。"
+        />
+      ) : (
+        <ListContainer as="ul">
+          {home.upcoming.map((e) => (
+            <EventRow item={e} />
+          ))}
+        </ListContainer>
+      )
+    }
+  </Section>
+
+  <Section id="home-recent" title="最近の公演" moreHref="/events/past/">
+    {
+      home.recentShows.length === 0 ? (
+        <EmptyState title="公演の記録がありません" />
+      ) : (
+        <ListContainer as="ul">
+          {home.recentShows.map((s) => (
+            <ShowRow show={s} showEvent />
+          ))}
+        </ListContainer>
+      )
+    }
+  </Section>
+
+  <Section id="home-scale" title="収録データ" moreHref="/about/" moreLabel="このサイトについて">
+    <div class="stat-grid">
+      {tiles.map((t) => <StatTile {...t} />)}
+    </div>
+  </Section>
+
+  <Section id="home-brands" title="ブランドから探す" moreHref="/brands/">
+    <div class="entry-grid">
+      {
+        home.brands.map((b) => (
+          <EntryCard
+            glyph={b.shortName?.slice(0, 2) ?? b.ref.name.slice(0, 1)}
+            title={b.ref.name}
+            preview={`ライブ ${b.counts.events} ・ 楽曲 ${b.counts.songs} ・ アイドル ${b.counts.idols}`}
+            href={b.ref.path}
+            themeKey={b.ref.themeKey}
+          />
+        ))
+      }
+    </div>
+  </Section>
+
+  <Section id="home-app" title="アプリで、もっと">
+    <div class="card card__pad u-stack">
+      <p>
+        参加記録・担当設定・歌詞・コール・投票・タグ付けといった、操作して残していく機能は
+        すべて iOS アプリ側にあります。このサイトは閲覧と共有に専念しています。
+      </p>
+      <p class="u-row">
+        <a class="btn" href={home.app.appStoreUrl} rel="noopener">App Store で見る</a>
+        <a class="btn btn--ghost" href={home.app.repositoryUrl} rel="noopener">
+          GitHub でデータに協力する
+        </a>
+      </p>
+      <p class="u-dim">
+        データ基準日 <span class="u-num">{site.todayJst}</span> (JST)
+      </p>
+    </div>
+  </Section>
+</BaseLayout>

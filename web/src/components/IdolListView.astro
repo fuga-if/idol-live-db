@@ -1,0 +1,41 @@
+---
+import ListLayout from "../layouts/ListLayout.astro";
+import IdolTile from "./IdolTile.astro";
+import EmptyState from "./EmptyState.astro";
+import { meta } from "../lib/data";
+import type { IdolListPage } from "../lib/schema/IdolListPage";
+
+/** アイドル一覧 (総合 / ブランド別 / 誕生月別)。is_external の除外規則はコアの中。 */
+interface Props {
+  list: IdolListPage;
+}
+const { list } = Astro.props;
+---
+
+<ListLayout
+  seo={list.seo}
+  meta={meta()}
+  title={list.title}
+  total={list.total}
+  themeKey={list.brand?.themeKey}
+  scopeLinks={list.brandLinks}
+  scopeLabel="ブランドで絞る"
+  filterLinks={list.birthMonthLinks}
+  filterLabel="誕生月で絞る"
+  wide
+>
+  {
+    list.items.length === 0 ? (
+      <EmptyState title="該当するアイドルがいません" body="別のブランドや誕生月に切り替えてみてください。" />
+    ) : (
+      <ul class="grid-tiles">
+        {list.items.map((item) => (
+          <IdolTile
+            entity={item.ref}
+            sub={item.currentVoiceActor ?? item.birthdayDisplay ?? item.brand?.name}
+          />
+        ))}
+      </ul>
+    )
+  }
+</ListLayout>

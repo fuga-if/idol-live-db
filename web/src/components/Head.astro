@@ -1,12 +1,12 @@
 ---
-import type { SeoLike } from "../lib/ui-types";
+import type { SeoBlock } from "../lib/schema/SeoBlock";
 /**
  * <head> の中身。
  * **文面 (title / description) も canonical も robots も OG 画像も Rust の `SeoBlock` が決める。**
  * ここは受け取った値をタグに置くだけ (INV-1)。
  */
 interface Props {
-  seo: SeoLike;
+  seo: SeoBlock;
   siteName: string;
 }
 const { seo, siteName } = Astro.props;

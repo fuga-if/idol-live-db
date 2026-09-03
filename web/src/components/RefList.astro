@@ -1,0 +1,33 @@
+---
+import Chip from "./Chip.astro";
+import EmptyState from "./EmptyState.astro";
+import type { Ref } from "../lib/schema/Ref";
+/** Ref の並びをチップのリンク列にする (原唱者・ユニット・派生曲・関連曲 など)。 */
+interface Props {
+  refs: readonly Ref[];
+  variant?: "neutral" | "themed";
+  emptyTitle?: string;
+  label?: string;
+}
+const { refs, variant = "themed", emptyTitle, label } = Astro.props;
+---
+
+{
+  refs.length === 0 ? (
+    emptyTitle ? <EmptyState title={emptyTitle} /> : null
+  ) : (
+    <ul class="u-row" aria-label={label}>
+      {refs.map((r) => (
+        <li>
+          <Chip
+            text={r.name}
+            href={r.path}
+            variant={variant}
+            themeKey={r.themeKey}
+            title={r.sub ?? undefined}
+          />
+        </li>
+      ))}
+    </ul>
+  )
+}

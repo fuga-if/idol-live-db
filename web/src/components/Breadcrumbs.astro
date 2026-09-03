@@ -1,8 +1,8 @@
 ---
-import type { CrumbLike } from "../lib/ui-types";
+import type { Crumb } from "../lib/schema/Crumb";
 /** パンくず。段の内容は Rust の `seo.breadcrumbs` が決める (JSON-LD と同じ並び)。 */
 interface Props {
-  crumbs?: readonly CrumbLike[];
+  crumbs?: readonly Crumb[];
 }
 const { crumbs = [] } = Astro.props;
 ---
