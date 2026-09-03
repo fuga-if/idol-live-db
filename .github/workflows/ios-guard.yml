@@ -135,6 +135,33 @@ jobs:
             }
           tail -20 xcodebuild.log
 
+      # テストホストが起動中に SIGTRAP で落ちると、原因（強制アンラップ・境界外・
+      # precondition のどれか）はシミュレータのクラッシュレポート (.ips) にしか出ない。
+      # xcodebuild のログにも xcresult にも入らないので、ここで拾って中身をログに出す。
+      - name: Collect simulator crash logs
+        if: failure()
+        run: |
+          mkdir -p crashlogs
+          # ブートしたシミュレータと共有ドメインの両方の DiagnosticReports を漁る。
+          for base in \
+            "$HOME/Library/Developer/CoreSimulator/Devices/${{ steps.sim.outputs.udid }}/data/Library/Logs/DiagnosticReports" \
+            "$HOME/Library/Logs/DiagnosticReports"; do
+            [ -d "$base" ] || continue
+            find "$base" -type f \( -name "ImasLiveDB*.ips" -o -name "ImasLiveDB*.crash" \) \
+              -exec cp {} crashlogs/ \; 2>/dev/null || true
+          done
+          echo "=== 集めたクラッシュレポート ==="
+          ls -la crashlogs/ || echo "(なし)"
+          echo "::group::クラッシュレポートの中身（スタックトレース）"
+          for f in crashlogs/*; do
+            [ -f "$f" ] || continue
+            echo "───── $f ─────"
+            # .ips は 1 行目が JSON メタ、2 行目以降が本体 JSON。両方そのまま出す。
+            cat "$f"
+            echo
+          done
+          echo "::endgroup::"
+
       - name: Upload test results
         if: failure()
         uses: actions/upload-artifact@v4
@@ -143,4 +170,5 @@ jobs:
           path: |
             TestResults.xcresult
             xcodebuild.log
+            crashlogs
           retention-days: 7
