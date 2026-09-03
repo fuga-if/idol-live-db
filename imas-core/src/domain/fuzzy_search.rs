@@ -396,8 +396,16 @@ mod tests {
             best = best.min(t.elapsed());
         }
         let elapsed = best;
-        // 打鍵ごとに引き直しても間に合う (人が遅さを感じ始める 100ms を大きく下回ること)
-        assert!(elapsed.as_millis() < 100, "{:?} かかった", elapsed);
+        // ⚠️ 閾値は「人が遅いと感じる時間」ではなく**桁が変わる regression の検出**用。
+        //
+        // 以前は 100ms で切っていたが、これは開発機 (実測 33ms) の感覚で決めた値で、
+        // CI の runner はおおよそ 3 倍遅く、best-of-5 でも 100.7ms を出して落ちた。
+        // 「打鍵ごとに間に合うか」は**ユーザーの端末**の話で、CI の実機速度で測っても
+        // 答えは出ない。CI に見てほしいのは「アルゴリズムが O(n) から落ちていないか」で、
+        // それが起きれば 3 倍ではなく桁で変わる。
+        //
+        // 実測値は下の println! に出るので、じわじわ遅くなる変化はログで追える。
+        assert!(elapsed.as_millis() < 400, "{:?} かかった (桁が変わっている疑い)", elapsed);
         let names: Vec<&str> = got.iter().map(|h| titles[h.index as usize].as_str()).collect();
         println!("FUZZY 全{}曲 {:?} → {:?}", titles.len(), elapsed, &names[..names.len().min(3)]);
         // ひらがなで打っても実在の曲 (カタカナ表記) に当たること

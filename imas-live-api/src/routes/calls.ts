@@ -16,6 +16,7 @@
 //
 // 検証・正規化の実装は src/lyrics_calls.ts が唯一の正。ここは HTTP と D1 の面倒だけ見る。
 
+import { getAuthUser } from "../auth";
 import { checkRateLimit } from "../rate_limit";
 import { validateCallsBody } from "../lyrics_calls";
 import { authorizeLyricsWrite, buildLyricsPayload, parseLines, NO_STORE } from "./lyrics";
@@ -28,9 +29,26 @@ export async function handleLyricsCalls(ctx: RouteContext): Promise<Response | n
   const match = path.match(/^\/songs\/([^/]+)\/calls$/);
   if (!match || request.method !== "PUT") return null;
 
-  // 認証は歌詞投入と同じ2経路 (運用者トークン X-Push-Token / admin のセッション JWT)。
-  const subject = await authorizeLyricsWrite(request, env);
-  if (!subject) return error("Unauthorized", 401);
+  // コールは**ユーザーが書くもの**なので、ログインしていれば誰でも通す。
+  // 歌詞本文の投入 (PUT /admin/lyrics/:id) とは権限が違う — この経路では本文を
+  // 書き換えられない構造にしてあるので (ファイル冒頭)、開けても歌詞は守られる。
+  //
+  // タグ等の投稿と同じ形にそろえてある: ログイン必須 + is_banned + "edit" レート枠。
+  // 荒らしの速度を落とす一次防御で、権限の細分化はしない
+  // (モデレーターはフラットに全権。判定を増やすと運用が破綻する)。
+  const operator = await authorizeLyricsWrite(request, env);
+  let subject: string;
+  if (operator) {
+    subject = operator;
+  } else {
+    const authUser = await getAuthUser(request, env);
+    if (!authUser) return error("Unauthorized", 401);
+    const banned = await env.DB.prepare("SELECT is_banned FROM users WHERE id = ?")
+      .bind(authUser.uid)
+      .first<{ is_banned: number }>();
+    if (banned?.is_banned) return error("Banned", 403);
+    subject = authUser.uid;
+  }
 
   let songId: string;
   try {
@@ -58,7 +76,8 @@ export async function handleLyricsCalls(ctx: RouteContext): Promise<Response | n
   );
   if (!result.ok) return error(result.error, 400);
 
-  const rl = await checkRateLimit(env.DB, subject, "lyrics_calls");
+  // 運用者は専用枠、一般ユーザーは編集系と共有の "edit" 枠 (タグ・マスタ編集と同じ)。
+  const rl = await checkRateLimit(env.DB, subject, operator ? "lyrics_calls" : "edit");
   if (!rl.allowed) return rateLimitResponse(rl.used, rl.limit, rl.reset_at);
 
   const byId = new Map(result.lines.map((l) => [l.id, l]));

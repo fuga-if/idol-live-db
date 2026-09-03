@@ -528,9 +528,12 @@ function timingSafeEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
-/** 歌詞の書き込み権限。運用者トークン、または admin のセッション JWT。
+/** 歌詞**本文**の書き込み権限。運用者トークン、または admin のセッション JWT。
  *  レート制限の主体に使う文字列を返す (拒否なら null)。
- *  コール保存 (routes/calls.ts) も同じ権限で通す。判定を 2 か所に増やさないこと。 */
+ *
+ *  ⚠️ コール保存 (routes/calls.ts) はこれより緩い — ログインしていれば誰でも書ける。
+ *     コールはユーザーが書くもので、あの経路では歌詞本文を書き換えられないため。
+ *     ここを緩めると本文まで書けるようになるので、混ぜないこと。 */
 export async function authorizeLyricsWrite(request: Request, env: Env): Promise<string | null> {
   const pushToken = request.headers.get("X-Push-Token");
   if (pushToken && env.LYRICS_PUSH_TOKEN && timingSafeEqual(pushToken, env.LYRICS_PUSH_TOKEN)) {

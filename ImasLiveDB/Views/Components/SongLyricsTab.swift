@@ -258,14 +258,20 @@ struct SongLyricsTab: View {
 
     /// コールガイドを編集してよいか。
     ///
-    /// 判定は admin のみ。歌詞そのものがサーバ側で admin にしか返らない (draft) 以上、
-    /// クライアントで細かく分ける意味がない。
+    /// **ログインしていれば誰でも書ける。** コールはユーザーが書くもので、タグと同じ扱い。
+    ///
+    /// サーバ側 (`PUT /songs/:id/calls`) もログイン + `is_banned` + 編集レート枠で通す。
+    /// あの経路では**歌詞本文を書き換えられない**構造 (行 ID と clap/calls しか受け取らず、
+    /// 本文は D1 の既存行が唯一の正) なので、開けても歌詞は守られる。
+    ///
+    /// 許諾が下りるまでは admin 限定だった。歌詞そのものが admin にしか返らなかったので
+    /// 分ける意味が無かったが、公開した今はその前提が消えている。
     private var canEdit: Bool {
         #if DEBUG
         // サーバ未実装でも編集の見た目を確認できるようにする (FAKE_LYRICS は DEBUG 限定)。
         if ProcessInfo.processInfo.environment["FAKE_LYRICS"] == "1" { return true }
         #endif
-        return AuthService.shared.isAdmin
+        return AuthService.shared.isSignedIn
     }
 
     @ViewBuilder
