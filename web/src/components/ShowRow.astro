@@ -1,6 +1,7 @@
 ---
 import LeadRow from "./LeadRow.astro";
 import type { ShowSummary } from "../lib/schema/ShowSummary";
+import Count from "./Count.astro";
 /**
  * 公演 1 件の行。
  * 副題は Rust が文脈ごとに組んだ `subtitle` をそのまま置く
@@ -21,7 +22,7 @@ const { show } = Astro.props;
   >
     <span slot="trailing" class="u-row">
       <time class="u-num" datetime={show.date}>{show.date}</time>
-      {show.setlistCount > 0 && <span class="u-num">{show.setlistCount}曲</span>}
+      {show.setlistCount > 0 && <Count value={show.setlistCount} unit="曲" />}
     </span>
   </LeadRow>
 </li>

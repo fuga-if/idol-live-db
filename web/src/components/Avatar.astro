@@ -12,14 +12,13 @@ interface Props {
   monogram: string;
   themeKey?: string;
   size?: "sm" | "md" | "lg" | "xl";
-  class?: string;
 }
-const { monogram, themeKey, size = "md", class: cls = "" } = Astro.props;
+const { monogram, themeKey, size = "md" } = Astro.props;
 const sizeClass = size === "md" ? "" : `avatar--${size}`;
 ---
 
 <span
-  class:list={["avatar", sizeClass, cls]}
+  class:list={["avatar", sizeClass]}
   data-theme={themeKey}
   aria-hidden="true">{monogram}</span
 >

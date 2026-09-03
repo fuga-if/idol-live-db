@@ -12,6 +12,8 @@
 import { describe, expect, it } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
+import { walk } from "../scripts/walk.mjs";
+import { readJson } from "../src/lib/data";
 import type { SearchManifest } from "../src/lib/schema/SearchManifest";
 
 const SRC = path.resolve("./src");
@@ -48,22 +50,10 @@ const FORBIDDEN = [
   "sparql",
 ];
 
-function walk(dir: string, pick: (p: string) => boolean): string[] {
-  const out: string[] = [];
-  const visit = (d: string): void => {
-    for (const name of fs.readdirSync(d)) {
-      const full = path.join(d, name);
-      if (fs.statSync(full).isDirectory()) {
-        if (SKIP_DIRS.has(name)) continue;
-        visit(full);
-      } else if (pick(full)) out.push(full);
-    }
-  };
-  visit(dir);
-  return out;
-}
-
-const srcFiles = walk(SRC, (p) => /\.(ts|astro|css|mjs)$/.test(p));
+const srcFiles = walk(SRC, {
+  include: (p) => /\.(ts|astro|css|mjs)$/.test(p),
+  skipDir: (name) => SKIP_DIRS.has(name),
+});
 const rel = (p: string): string => path.relative(path.resolve("."), p);
 
 describe("実行時の通信は同一オリジンだけ", () => {
@@ -134,7 +124,7 @@ const distExists = fs.existsSync(DIST);
 
 describe("配信物 (dist)", () => {
   it.skipIf(!distExists)("HTML と JS に禁止ホストが出てこない", () => {
-    const files = walk(DIST, (p) => /\.(html|js)$/.test(p));
+    const files = walk(DIST, { include: (p) => /\.(html|js)$/.test(p) });
     expect(files.length, "dist に HTML/JS が無い").toBeGreaterThan(0);
     const hits: string[] = [];
     for (const f of files) {
@@ -153,7 +143,7 @@ describe("配信物 (dist)", () => {
    * ので、自分と Apple Music の CDN 以外が混ざったら事故。CSP と同じ線を張る。
    */
   it.skipIf(!distExists)("自動で取りに行く先は自分と Apple Music CDN だけ", () => {
-    const files = walk(DIST, (p) => p.endsWith(".html"));
+    const files = walk(DIST, { include: (p) => p.endsWith(".html") });
     const hosts = new Map<string, string>();
     for (const f of files) {
       const text = fs.readFileSync(f, "utf8");
@@ -171,12 +161,8 @@ describe("配信物 (dist)", () => {
 });
 
 describe("検索索引の参照", () => {
-  const DATA = path.resolve(process.env.IMAS_WEB_DATA ?? "./data");
-
   it("manifest の path が同一オリジンの相対パス", () => {
-    const manifest = JSON.parse(
-      fs.readFileSync(path.join(DATA, "search/manifest.json"), "utf8"),
-    ) as SearchManifest;
+    const manifest = readJson<SearchManifest>("search/manifest.json");
     for (const s of manifest.shards) {
       expect(s.url.startsWith("/search/"), `${s.url} が /search/ 始まりでない`).toBe(true);
       expect(/^https?:/.test(s.url), `${s.url} が絶対 URL`).toBe(false);

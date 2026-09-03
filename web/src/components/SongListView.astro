@@ -1,11 +1,11 @@
 ---
 import ListLayout from "../layouts/ListLayout.astro";
 import ListContainer from "./ListContainer.astro";
-import Artwork from "./Artwork.astro";
-import MetricBadge from "./MetricBadge.astro";
+import RankingRow from "./RankingRow.astro";
 import EmptyState from "./EmptyState.astro";
 import { meta } from "../lib/data";
 import type { SongListPage } from "../lib/schema/SongListPage";
+import Count from "./Count.astro";
 
 /** 楽曲一覧 (総合 / ブランド別 / all)。何を載せるかは Rust の SongListFilter が決めている。 */
 interface Props {
@@ -30,7 +30,7 @@ const { list } = Astro.props;
         {list.kanaSections.map((s) => (
           <a href={`#kana-${s.startIndex}`}>
             {s.label}
-            <span class="u-dim u-num">&nbsp;{s.count}</span>
+            <Count value={s.count} dim />
           </a>
         ))}
       </nav>
@@ -46,18 +46,18 @@ const { list } = Astro.props;
           const section = list.kanaSections.find((s) => s.startIndex === i);
           return (
             <li id={section ? `kana-${i}` : undefined}>
-              <a class="ranking-row" data-theme={item.ref.themeKey} href={item.ref.path}>
-                <Artwork title={item.ref.name} artworkUrl={item.ref.artworkUrl} size="sm" />
-                <span class="ranking-row__body">
-                  <span class="ranking-row__title u-clamp1 u-underline-hover">{item.ref.name}</span>
-                  {item.subtitle && <span class="ranking-row__sub u-clamp1">{item.subtitle}</span>}
-                </span>
-                {/* `/songs/all/` の軽い行では null。0 回披露と取り違えないよう
-                    「載せていない」を素通りさせる。 */}
-                {item.performanceCount != null && item.performanceCount > 0 && (
-                  <MetricBadge value={item.performanceCount} unit="回" muted />
-                )}
-              </a>
+              {/* 披露回数は `/songs/all/` の軽い行では null。0 回披露と
+                  「載せていない」を取り違えないよう、0 も null も出さない。 */}
+              <RankingRow
+                lead="artwork"
+                title={item.ref.name}
+                sub={item.subtitle}
+                monogram={item.ref.monogram}
+                artworkUrl={item.ref.artworkUrl}
+                metric={item.performanceCount ? item.performanceCount : null}
+                href={item.ref.path}
+                themeKey={item.ref.themeKey}
+              />
             </li>
           );
         })}
@@ -75,7 +75,7 @@ const { list } = Astro.props;
         <a class="u-underline-hover" href={list.allSongsLink.path}>
           {list.allSongsLink.label}
         </a>
-        <span class="u-dim u-num">&nbsp;{list.allSongsLink.count}</span>
+        <Count value={list.allSongsLink.count} dim />
       </p>
     )
   }

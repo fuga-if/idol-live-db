@@ -1,7 +1,7 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
 import Section from "../components/Section.astro";
-import StatTile from "../components/StatTile.astro";
+import StatTiles from "../components/StatTiles.astro";
 import ListContainer from "../components/ListContainer.astro";
 import LabeledRow from "../components/LabeledRow.astro";
 import { meta, page, routeData } from "../lib/data";
@@ -15,15 +15,6 @@ import type { AboutPage } from "../lib/schema/AboutPage";
 const about = page<AboutPage>(routeData("about", "/about/"));
 const site = meta();
 
-const tiles = [
-  { glyph: "♪", value: about.counts.events, label: "ライブ" },
-  { glyph: "▤", value: about.counts.shows, label: "公演" },
-  { glyph: "♬", value: about.counts.songs, label: "楽曲" },
-  { glyph: "☺", value: about.counts.idols, label: "アイドル" },
-  { glyph: "❋", value: about.counts.units, label: "ユニット" },
-  { glyph: "⌂", value: about.counts.venues, label: "会場" },
-  { glyph: "≡", value: about.counts.setlistItems, label: "セトリ項目" },
-];
 ---
 
 <BaseLayout seo={about.seo} meta={site}>
@@ -32,9 +23,7 @@ const tiles = [
   </div>
 
   <Section id="about-scale" title="収録データ">
-    <div class="stat-grid">
-      {tiles.map((t) => <StatTile glyph={t.glyph} value={t.value} label={t.label} />)}
-    </div>
+    <StatTiles tiles={about.statTiles} />
   </Section>
 
   {

@@ -11,16 +11,11 @@ import RefList from "../../components/RefList.astro";
 import EmptyState from "../../components/EmptyState.astro";
 import { meta, page, pathsFor } from "../../lib/data";
 import type { EventPage } from "../../lib/schema/EventPage";
+import TagChip from "../../components/TagChip.astro";
 
 export const getStaticPaths = () => pathsFor("event", "eventId");
 
 const ev = page<EventPage>(Astro.props.data);
-
-// id → Ref の索引。並びも中身も Rust が決めたものをそのまま引くだけの配線。
-const idolById = new Map((ev.cast?.brandIdols ?? []).map((r) => [r.id, r]));
-const showName = new Map(ev.shows.map((s) => [s.ref.id, s.ref.name]));
-const leadIds = new Map((ev.cast?.leadByShow ?? []).map((s) => [s.showId, new Set(s.idolIds)]));
-const guestIds = new Map((ev.cast?.guestByShow ?? []).map((s) => [s.showId, new Set(s.idolIds)]));
 
 const ticketRows = [
   { label: "チケット発売", value: ev.ticket.openDate },
@@ -74,28 +69,23 @@ const hasTicket = ticketRows.some((r) => r.value) || ev.ticket.url;
   </Section>
 
   {
-    ev.cast && ev.cast.presenceByShow.length > 0 && (
+    ev.cast && ev.cast.shows.length > 0 && (
       <Section id="event-cast" title="出演者">
         <div class="u-stack">
-          {ev.cast.presenceByShow.map((p) => (
+          {ev.cast.shows.map((cs) => (
             <div class="card card__pad u-stack">
-              <h3 class="section__title">
-                {showName.get(p.showId) ?? p.showId}
-              </h3>
+              <h3 class="section__title">{cs.show.name}</h3>
               <ul class="performers">
-                {p.idolIds.map((id) => {
-                  const idol = idolById.get(id);
-                  return idol ? (
-                    <li>
-                      <a class="performer" href={idol.path} data-theme={idol.themeKey}>
-                        <Avatar monogram={idol.monogram} size="sm" />
-                        {idol.name}
-                        {leadIds.get(p.showId)?.has(id) && <span class="tag tag--lead">主演</span>}
-                        {guestIds.get(p.showId)?.has(id) && <span class="tag tag--guest">ゲスト</span>}
-                      </a>
-                    </li>
-                  ) : null;
-                })}
+                {cs.performers.map((m) => (
+                  <li>
+                    <a class="performer" href={m.ref.path} data-theme={m.ref.themeKey}>
+                      <Avatar monogram={m.ref.monogram} size="sm" />
+                      {m.ref.name}
+                      {m.isLead && <TagChip text="主演" kind="lead" />}
+                      {m.isGuest && <TagChip text="ゲスト" kind="guest" />}
+                    </a>
+                  </li>
+                ))}
               </ul>
             </div>
           ))}

@@ -5,56 +5,52 @@
  * (`src/lib/search/fold.ts`)。**このテストは「ブラウザで使う実体が Rust と一致するか」の検収**で、
  * Rust の bin が出したフィクスチャ (`parity/fold.json`: 入力 → 畳み後) を全件流して突き合わせる。
  *
+ * 突き合わせの本体は `wasm/imas-fold-wasm/parity.mjs` で、CLI (`check-parity.mjs`) と共有する。
+ * 検査を 2 回書くと、片方だけ厳しい/緩いという事態が起き得るため。
+ *
  * wasm がまだ生成されていない環境 (`npm run wasm` 前) では、パリティを取りようがないので
  * **skip ではなく明示的に失敗させる**。「テストが緑だから検索も正しい」という誤解を作らないため。
  */
 import { describe, expect, it, beforeAll } from "vitest";
-import fs from "node:fs";
 import path from "node:path";
-import { pathToFileURL } from "node:url";
-import type { FoldParity } from "../src/lib/schema/FoldParity";
+import {
+  MISSING_WASM_HINT,
+  formatMismatches,
+  loadFold,
+  mismatches,
+  readCases,
+  wasmExists,
+} from "../wasm/imas-fold-wasm/parity.mjs";
+import { dataRoot } from "../scripts/data-root.mjs";
+import type { FoldCase } from "../src/lib/schema/FoldCase";
 
-const DATA = path.resolve(process.env.IMAS_WEB_DATA ?? "./data");
-const PARITY = path.join(DATA, "parity/fold.json");
-const FOLD_MODULE = path.resolve("./src/lib/fold/imas_fold_wasm.js");
-const FOLD_WASM = path.resolve("./src/lib/fold/imas_fold_wasm_bg.wasm");
+const PARITY = path.join(dataRoot(), "parity/fold.json");
 
 type Fold = (text: string) => string;
 
 let fold: Fold;
+let cases: FoldCase[];
 
 beforeAll(async () => {
-  expect(
-    fs.existsSync(FOLD_MODULE),
-    `${FOLD_MODULE} がありません。先に \`npm run wasm\` を実行してください ` +
-      "(検索の畳み込みは imas-text-fold の wasm が実体です)。",
-  ).toBe(true);
-  const mod = (await import(pathToFileURL(FOLD_MODULE).href)) as {
-    default: (init?: { module_or_path: BufferSource }) => Promise<unknown>;
-    fold: Fold;
-  };
-  // `--target web` の glue は既定で fetch(new URL(...)) するので、
-  // Node では .wasm のバイト列を直接渡す。
-  await mod.default({ module_or_path: fs.readFileSync(FOLD_WASM) });
-  fold = mod.fold;
+  expect(wasmExists(), MISSING_WASM_HINT).toBe(true);
+  fold = await loadFold();
+  cases = await readCases(PARITY);
 });
 
 describe("fold のパリティ (Rust ↔ ブラウザ)", () => {
-  const parity = JSON.parse(fs.readFileSync(PARITY, "utf8")) as FoldParity;
-
   it("フィクスチャが空でない", () => {
-    expect(parity.cases.length).toBeGreaterThan(0);
+    expect(cases.length).toBeGreaterThan(0);
   });
 
   it("全ケースで Rust の畳み結果と一致する", () => {
-    const mismatches = parity.cases
-      .map((c) => ({ ...c, got: fold(c.in) }))
-      .filter((c) => c.got !== c.out);
-    expect(mismatches, `不一致 ${mismatches.length} 件 / 全 ${parity.cases.length} 件`).toEqual([]);
+    const failures = mismatches(fold, cases);
+    expect(failures.length, failures.length > 0 ? formatMismatches(failures, cases.length) : "").toBe(
+      0,
+    );
   });
 
   it("畳み込みは冪等 (畳んだものをもう一度畳んでも変わらない)", () => {
-    const unstable = parity.cases.filter((c) => fold(c.out) !== c.out);
+    const unstable = cases.filter((c) => fold(c.out) !== c.out);
     expect(unstable).toEqual([]);
   });
 });

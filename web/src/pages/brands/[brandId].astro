@@ -1,7 +1,7 @@
 ---
 import DetailLayout from "../../layouts/DetailLayout.astro";
 import Section from "../../components/Section.astro";
-import StatTile from "../../components/StatTile.astro";
+import StatTiles from "../../components/StatTiles.astro";
 import SegmentedLinks from "../../components/SegmentedLinks.astro";
 import IdolTile from "../../components/IdolTile.astro";
 import RefList from "../../components/RefList.astro";
@@ -12,12 +12,6 @@ import type { BrandPage } from "../../lib/schema/BrandPage";
 export const getStaticPaths = () => pathsFor("brand", "brandId");
 
 const brand = page<BrandPage>(Astro.props.data);
-const tiles = [
-  { glyph: "♪", value: brand.counts.events, label: "ライブ" },
-  { glyph: "♬", value: brand.counts.songs, label: "楽曲" },
-  { glyph: "☺", value: brand.counts.idols, label: "アイドル" },
-  { glyph: "❋", value: brand.counts.units, label: "ユニット" },
-];
 ---
 
 <DetailLayout seo={brand.seo} meta={meta()} themeKey={brand.themeKey}>
@@ -29,9 +23,7 @@ const tiles = [
     </div>
   </section>
 
-  <div class="stat-grid">
-    {tiles.map((t) => <StatTile glyph={t.glyph} value={t.value} label={t.label} />)}
-  </div>
+  <StatTiles tiles={brand.statTiles} />
 
   <Section id="brand-idols" title="アイドル" count={brand.idols.length}>
     {

@@ -11,6 +11,7 @@ import RankingRow from "../../components/RankingRow.astro";
 import EmptyState from "../../components/EmptyState.astro";
 import { meta, page, pathsFor } from "../../lib/data";
 import type { IdolPage } from "../../lib/schema/IdolPage";
+import Count from "../../components/Count.astro";
 
 export const getStaticPaths = () => pathsFor("idol", "idolId");
 
@@ -87,7 +88,7 @@ const idol = page<IdolPage>(Astro.props.data);
                 themeKey={s.song.themeKey}
               >
                 {s.performanceCount > 0 && (
-                  <span slot="trailing" class="u-num">{s.performanceCount}回</span>
+                  <Count slot="trailing" value={s.performanceCount} unit="回" />
                 )}
               </LeadRow>
             </li>
@@ -107,7 +108,7 @@ const idol = page<IdolPage>(Astro.props.data);
                 rank={i + 1}
                 lead="artwork"
                 title={s.song.name}
-                sub={s.lastDate ? `最後の披露 ${s.lastDate}` : s.song.sub}
+                sub={s.subtitle}
                 monogram={s.song.monogram}
                 artworkUrl={s.song.artworkUrl}
                 metric={s.times}
@@ -135,7 +136,7 @@ const idol = page<IdolPage>(Astro.props.data);
               >
                 <span slot="trailing" class="u-row">
                   <time class="u-num" datetime={s.date}>{s.date}</time>
-                  {s.songCount > 0 && <span class="u-num">{s.songCount}曲</span>}
+                  {s.songCount > 0 && <Count value={s.songCount} unit="曲" />}
                 </span>
               </LeadRow>
             </li>

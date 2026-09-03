@@ -11,7 +11,6 @@ interface Props {
   themeKey?: string;
   href?: string;
   title?: string;
-  class?: string;
 }
 const {
   text,
@@ -20,12 +19,11 @@ const {
   themeKey,
   href,
   title,
-  class: cls = "",
 } = Astro.props;
 const Tag = href ? "a" : "span";
 const variantClass = variant === "neutral" ? "" : `chip--${variant}`;
 ---
 
-<Tag class:list={["chip", variantClass, cls]} data-theme={themeKey} href={href} title={title}>
+<Tag class:list={["chip", variantClass]} data-theme={themeKey} href={href} title={title}>
   <slot name="icon" />{text}{sub && <span class="chip__sub">{sub}</span>}
 </Tag>

@@ -11,15 +11,17 @@
 import { describe, expect, it } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
+import { SCHEMA_VERSION, dataRoot, readJson } from "../src/lib/data";
 import type { RoutesFile } from "../src/lib/schema/RoutesFile";
 import type { SiteMeta } from "../src/lib/schema/SiteMeta";
 import type { ThemeTable } from "../src/lib/schema/ThemeTable";
 import type { SearchManifest } from "../src/lib/schema/SearchManifest";
 import type { SearchShard } from "../src/lib/schema/SearchShard";
 
-const SCHEMA_VERSION = 1;
-const DATA = path.resolve(process.env.IMAS_WEB_DATA ?? "./data");
-const read = <T>(rel: string): T => JSON.parse(fs.readFileSync(path.join(DATA, rel), "utf8")) as T;
+const DATA = dataRoot();
+// 読みと schemaVersion 検査は本番と同じ入口 (src/lib/data.ts) を通す。
+// テストだけ別の読み方をしていると、入口を直したときにテストが追随しない。
+const read = readJson;
 
 const routes = read<RoutesFile>("routes.json");
 const meta = read<SiteMeta>("meta.json");

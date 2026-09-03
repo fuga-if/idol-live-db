@@ -5,6 +5,7 @@ import SegmentedLinks from "../components/SegmentedLinks.astro";
 import type { NavLink } from "../lib/schema/NavLink";
 import type { SeoBlock } from "../lib/schema/SeoBlock";
 import type { SiteMeta } from "../lib/schema/SiteMeta";
+import Count from "../components/Count.astro";
 
 /**
  * 一覧ページの枠。
@@ -15,7 +16,6 @@ interface Props {
   seo: SeoBlock;
   meta: SiteMeta;
   title: string;
-  lead?: string | null;
   total?: number | null;
   themeKey?: string;
   scopeLinks?: readonly NavLink[];
@@ -28,7 +28,6 @@ const {
   seo,
   meta,
   title,
-  lead,
   total,
   themeKey,
   scopeLinks = [],
@@ -43,11 +42,10 @@ const {
   <div class="u-stack">
     <Breadcrumbs crumbs={seo.breadcrumbs} />
     <h1 class="hero__title">{title}</h1>
-    {lead && <p class="u-muted">{lead}</p>}
     {
       total !== undefined && total !== null && (
         <p class="u-dim">
-          <span class="u-num">{total}</span> 件
+          <Count value={total} /> 件
         </p>
       )
     }

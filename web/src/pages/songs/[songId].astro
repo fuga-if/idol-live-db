@@ -11,17 +11,11 @@ import LeadRow from "../../components/LeadRow.astro";
 import EmptyState from "../../components/EmptyState.astro";
 import { meta, page, pathsFor } from "../../lib/data";
 import type { SongPage } from "../../lib/schema/SongPage";
+import Count from "../../components/Count.astro";
 
 export const getStaticPaths = () => pathsFor("song", "songId");
 
 const song = page<SongPage>(Astro.props.data);
-const facts = [
-  { label: "リリース", value: song.releaseDate, mono: true },
-  { label: "収録", value: song.cdTitle },
-  { label: "シリーズ", value: song.seriesDisplay },
-  { label: "再生時間", value: song.durationDisplay, mono: true },
-  { label: "JASRAC 作品コード", value: song.jasracCode, mono: true },
-].filter((r) => Boolean(r.value));
 ---
 
 <DetailLayout seo={song.seo} meta={meta()} themeKey={song.themeKey} app={song.app}>
@@ -56,11 +50,16 @@ const facts = [
   }
 
   {
-    facts.length > 0 && (
+    song.factRows.length > 0 && (
       <Section id="song-facts" title="基本情報">
         <ListContainer>
-          {facts.map((r) => (
-            <LabeledRow label={r.label} value={r.value!} mono={r.mono} />
+          {song.factRows.map((r) => (
+            <LabeledRow
+              label={r.label}
+              value={r.value}
+              href={r.link}
+              mono={r.style === "monospaced"}
+            />
           ))}
         </ListContainer>
       </Section>
@@ -110,7 +109,7 @@ const facts = [
                 themeKey={h.show.themeKey}
               >
                 <span slot="trailing" class="u-row">
-                  <span class="u-num">{h.number}曲目</span>
+                  <Count value={h.number} unit="曲目" />
                   <time class="u-num" datetime={h.date}>{h.date}</time>
                 </span>
               </LeadRow>

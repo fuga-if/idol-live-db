@@ -14,7 +14,7 @@ const list = page<BrandListPage>(routeData("brandList", "/brands/"));
         <EntryCard
           glyph={b.glyph}
           title={b.ref.name}
-          preview={`ライブ ${b.counts.events} ・ 楽曲 ${b.counts.songs} ・ アイドル ${b.counts.idols} ・ ユニット ${b.counts.units}`}
+          preview={b.previewDisplay}
           href={b.ref.path}
           themeKey={b.ref.themeKey}
         />

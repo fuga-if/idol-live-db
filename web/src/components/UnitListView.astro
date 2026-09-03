@@ -5,6 +5,8 @@ import LeadRow from "./LeadRow.astro";
 import EmptyState from "./EmptyState.astro";
 import { meta } from "../lib/data";
 import type { UnitListPage } from "../lib/schema/UnitListPage";
+import Count from "./Count.astro";
+import TagChip from "./TagChip.astro";
 
 interface Props {
   list: UnitListPage;
@@ -35,9 +37,9 @@ const { list } = Astro.props;
               themeKey={item.ref.themeKey}
             >
               <span slot="trailing" class="u-row">
-                {item.isPermanent && <span class="tag tag--all">常設</span>}
-                <span class="u-num">{item.memberCount}人</span>
-                {item.songCount > 0 && <span class="u-num">{item.songCount}曲</span>}
+                {item.isPermanent && <TagChip text="常設" kind="all" />}
+                <Count value={item.memberCount} unit="人" />
+                {item.songCount > 0 && <Count value={item.songCount} unit="曲" />}
               </span>
             </LeadRow>
           </li>

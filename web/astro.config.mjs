@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { defineConfig } from "astro/config";
 import sitemap from "@astrojs/sitemap";
+import { dataRoot } from "./scripts/data-root.mjs";
 
 /**
  * sitemap のための routes.json の索引。
@@ -21,8 +22,7 @@ import sitemap from "@astrojs/sitemap";
  */
 function routeIndex() {
   const empty = { canonical: /** @type {Map<string, string>} */ (new Map()), noindex: new Set() };
-  const root = path.resolve(process.env.IMAS_WEB_DATA ?? "./data");
-  const file = path.join(root, "routes.json");
+  const file = path.join(dataRoot(), "routes.json");
   if (!fs.existsSync(file)) return empty;
   try {
     const routes = JSON.parse(fs.readFileSync(file, "utf8"));
@@ -45,7 +45,14 @@ function decodePath(/** @type {string} */ p) {
   }
 }
 
-const routes = routeIndex();
+/** @type {ReturnType<typeof routeIndex> | null} */
+let routesCache = null;
+/**
+ * sitemap を実際に書き出すときまで routes.json を読まない。
+ * config はページを 1 枚も作らないコマンド (astro check / astro info) でも読まれ、
+ * そこで data/ を要求すると「型検査したいだけなのに export が要る」になる。
+ */
+const routes = () => (routesCache ??= routeIndex());
 
 /**
  * Rust が出した配信物 (検索索引と themes.css) を `dist/` へ写す。
@@ -60,7 +67,7 @@ function copyGeneratedAssets() {
     hooks: {
       /** @param {{ dir: URL, logger: { info: (m: string) => void, warn: (m: string) => void } }} ctx */
       "astro:build:done": ({ dir, logger }) => {
-        const root = path.resolve(process.env.IMAS_WEB_DATA ?? "./data");
+        const root = dataRoot();
 
         // テーマ (エンティティ色の CSS 変数)。無いと全ページが neutral 表示になる。
         const themes = path.join(root, "themes.css");
@@ -103,11 +110,11 @@ export default defineConfig({
     copyGeneratedAssets(),
     sitemap({
       filter: (page) =>
-        !page.includes("/404") && !routes.noindex.has(decodePath(new URL(page).pathname)),
+        !page.includes("/404") && !routes().noindex.has(decodePath(new URL(page).pathname)),
       // `loc` を routes.json の綴りに揃える (Astro は `@` を生で出すため)。
       serialize: (item) => {
         const url = new URL(item.url);
-        const canonical = routes.canonical.get(decodePath(url.pathname));
+        const canonical = routes().canonical.get(decodePath(url.pathname));
         if (canonical) item.url = new URL(canonical, url.origin).href;
         return item;
       },

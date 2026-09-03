@@ -13,11 +13,6 @@ import type { VenuePage } from "../../lib/schema/VenuePage";
 export const getStaticPaths = () => pathsFor("venue", "venueId");
 
 const venue = page<VenuePage>(Astro.props.data);
-const facts = [
-  { label: "所在", value: venue.locationDisplay },
-  { label: "収容人数", value: venue.capacity ? `${venue.capacity}人` : null, mono: true },
-  { label: "別名", value: venue.aliasesDisplay },
-].filter((r) => Boolean(r.value));
 ---
 
 <DetailLayout seo={venue.seo} meta={meta()} themeKey={venue.themeKey} app={venue.app}>
@@ -34,11 +29,16 @@ const facts = [
   </section>
 
   {
-    facts.length > 0 && (
+    venue.factRows.length > 0 && (
       <Section id="venue-facts" title="基本情報">
         <ListContainer>
-          {facts.map((r) => (
-            <LabeledRow label={r.label} value={r.value!} mono={r.mono} />
+          {venue.factRows.map((r) => (
+            <LabeledRow
+              label={r.label}
+              value={r.value}
+              href={r.link}
+              mono={r.style === "monospaced"}
+            />
           ))}
         </ListContainer>
       </Section>

@@ -5,6 +5,7 @@ import LeadRow from "./LeadRow.astro";
 import EmptyState from "./EmptyState.astro";
 import { meta } from "../lib/data";
 import type { VenueListPage } from "../lib/schema/VenueListPage";
+import Count from "./Count.astro";
 
 interface Props {
   list: VenueListPage;
@@ -34,8 +35,8 @@ const { list } = Astro.props;
               themeKey={item.ref.themeKey}
             >
               <span slot="trailing" class="u-row">
-                {item.capacity && <span class="u-num">{item.capacity}人</span>}
-                {item.showCount > 0 && <span class="u-num">{item.showCount}公演</span>}
+                {item.capacity && <Count value={item.capacity} unit="人" />}
+                {item.showCount > 0 && <Count value={item.showCount} unit="公演" />}
               </span>
             </LeadRow>
           </li>

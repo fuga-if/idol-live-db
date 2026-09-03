@@ -8,15 +8,18 @@
 //   node check-parity.mjs [fold.json のパス]
 //
 // 既定は web/data/parity/fold.json、無ければ web/data-fixture/parity/fold.json。
-// wasm は web/src/lib/fold/ に wasm-pack が出したものを読む。
-//
-// Astro 側 (vitest) にも同じ突き合わせを置くが、こちらは npm に一切依存せず
-// `node` だけで回るので、wasm を作り直した直後の確認に使える。
-
-import { readFile } from "node:fs/promises";
+// 検査の本体は parity.mjs (vitest の tests/fold.parity.test.ts と共有)。
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
+import {
+  MISSING_WASM_HINT,
+  formatMismatches,
+  loadFold,
+  mismatches,
+  readCases,
+  wasmExists,
+} from "./parity.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const webRoot = resolve(here, "../..");
@@ -37,46 +40,22 @@ if (!fixturePath) {
   process.exit(2);
 }
 
-const glue = resolve(webRoot, "src/lib/fold/imas_fold_wasm.js");
-const wasmPath = resolve(webRoot, "src/lib/fold/imas_fold_wasm_bg.wasm");
-if (!existsSync(glue) || !existsSync(wasmPath)) {
-  console.error(
-    "wasm がまだ無い。web/wasm/imas-fold-wasm で以下を実行すること:\n" +
-      "  wasm-pack build --release --target web --out-dir ../../src/lib/fold",
-  );
+if (!wasmExists()) {
+  console.error(MISSING_WASM_HINT);
   process.exit(2);
 }
 
-// --target web の既定は fetch(new URL(..., import.meta.url)) なので、
-// Node では .wasm のバイト列を直接渡す。
-const { default: init, fold } = await import(glue);
-await init({ module_or_path: await readFile(wasmPath) });
-
-const { schemaVersion, cases } = JSON.parse(await readFile(fixturePath, "utf8"));
-if (schemaVersion !== 1) {
-  console.error(`知らない schemaVersion: ${schemaVersion}`);
+let cases;
+try {
+  cases = await readCases(fixturePath);
+} catch (err) {
+  console.error(err instanceof Error ? err.message : String(err));
   process.exit(2);
 }
 
-const failures = [];
-for (const { in: input, out: expected } of cases) {
-  const actual = fold(input);
-  if (actual !== expected) failures.push({ input, expected, actual });
-}
-
-// 落ちる原因はたいてい目に見えない文字 (制御文字・結合する濁点) なので、必ずエスケープして出す。
-const show = (s) =>
-  JSON.stringify(s).replace(
-    /[\u0000-\u001F\u0300-\u036F\u3099\u309A]/g,
-    (c) => "\\u" + c.charCodeAt(0).toString(16).padStart(4, "0"),
-  );
-
+const failures = mismatches(await loadFold(), cases);
 if (failures.length > 0) {
-  console.error(`パリティ不一致 ${failures.length} / ${cases.length} 件:`);
-  for (const f of failures.slice(0, 20)) {
-    console.error(`  in=${show(f.input)}\n    rust=${show(f.expected)}\n    wasm=${show(f.actual)}`);
-  }
-  if (failures.length > 20) console.error(`  ... 他 ${failures.length - 20} 件`);
+  console.error(formatMismatches(failures, cases.length));
   process.exit(1);
 }
 

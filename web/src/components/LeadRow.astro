@@ -8,17 +8,12 @@ interface Props {
   subtitle?: string | null;
   href: string;
   themeKey?: string;
-  rainbow?: boolean;
 }
-const { title, subtitle, href, themeKey, rainbow = false } = Astro.props;
+const { title, subtitle, href, themeKey } = Astro.props;
 const hasTrailing = Astro.slots.has("trailing");
 ---
 
-<a
-  class:list={["lead-row", rainbow && "lead-row--rainbow"]}
-  data-theme={themeKey}
-  href={href}
->
+<a class="lead-row" data-theme={themeKey} href={href}>
   <span class="lead-row__body">
     <span class="lead-row__title u-underline-hover">{title}</span>
     {subtitle && <span class="lead-row__sub">{subtitle}</span>}

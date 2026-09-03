@@ -1,5 +1,6 @@
 ---
 import Artwork from "./Artwork.astro";
+import Avatar from "./Avatar.astro";
 import TagChip from "./TagChip.astro";
 import type { SetlistRow } from "../lib/schema/SetlistRow";
 /**
@@ -35,7 +36,7 @@ const { row } = Astro.props;
           <span class="performers">
             {row.performers.map((p) => (
               <a class="performer" href={p.ref.path} data-theme={p.ref.themeKey}>
-                <span class="avatar avatar--sm">{p.ref.monogram}</span>
+                <Avatar monogram={p.ref.monogram} size="sm" />
                 {p.displayName}
               </a>
             ))}

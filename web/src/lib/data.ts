@@ -5,19 +5,19 @@
  * それらはすべて imas-core (Rust) が済ませて JSON に落としてあり、Astro は
  * 「読んで HTML の要素に置く」だけをする。
  *
- * `IMAS_WEB_DATA` でデータ根を差し替えられる (`npm run dev:fixture` が
- * `./data-fixture` を指す)。実データが来ても呼び出し側のコードは変わらない。
+ * データ根と schemaVersion は `scripts/data-root.mjs` が正
+ * (prebuild の門番・vitest・パリティ検査も同じものを見る)。
  */
 import fs from "node:fs";
 import path from "node:path";
+import { SCHEMA_VERSION, dataRoot } from "../../scripts/data-root.mjs";
 import type { SiteMeta } from "./schema/SiteMeta";
 import type { RoutesFile } from "./schema/RoutesFile";
 import type { RouteKind } from "./schema/RouteKind";
 
-/** JSON の互換性ゲート。Rust の DTO と揃える。 */
-export const SCHEMA_VERSION = 1;
+export { SCHEMA_VERSION, dataRoot };
 
-const ROOT = path.resolve(process.env.IMAS_WEB_DATA ?? "./data");
+const ROOT = dataRoot();
 
 /**
  * データ根の下から JSON を 1 個読む。
@@ -26,15 +26,21 @@ const ROOT = path.resolve(process.env.IMAS_WEB_DATA ?? "./data");
  */
 export function readJson<T>(rel: string): T {
   const file = path.join(ROOT, rel);
-  if (!fs.existsSync(file)) {
-    throw new Error(
-      `データが見つかりません: ${file}\n` +
-        "先に `npm run export` (実データ) を回すか、IMAS_WEB_DATA=./data-fixture を指定してください。",
-    );
+  let text: string;
+  try {
+    // 存在確認を別に投げず、読んで ENOENT を捕まえる。7,600 ページ分の
+    // stat を省ける上に、read と exists の間で消えた場合の取りこぼしも無い。
+    text = fs.readFileSync(file, "utf8");
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === "ENOENT") {
+      throw new Error(
+        `データが見つかりません: ${file}\n` +
+          "先に `npm run export` (実データ) を回すか、IMAS_WEB_DATA=./data-fixture を指定してください。",
+      );
+    }
+    throw err;
   }
-  const value = JSON.parse(fs.readFileSync(file, "utf8")) as T & {
-    schemaVersion?: number;
-  };
+  const value = JSON.parse(text) as T & { schemaVersion?: number };
   if (value.schemaVersion !== undefined && value.schemaVersion !== SCHEMA_VERSION) {
     throw new Error(
       `schemaVersion が一致しません: ${file} (${value.schemaVersion} != ${SCHEMA_VERSION})`,
@@ -42,9 +48,6 @@ export function readJson<T>(rel: string): T {
   }
   return value;
 }
-
-/** データ根 (診断メッセージ用)。 */
-export const dataRoot = (): string => ROOT;
 
 /* --------------------------------------------------------------------------
  * サイト全体で 1 回だけ読むもの。
@@ -70,16 +73,18 @@ export const page = <T>(dataPath: string): T => readJson<T>(dataPath);
  * `{ params, props: { data } }` の配列になる。
  *
  * `RouteEntry.key` が params に渡す値 (`id` は DB 上の id であって URL の材料にしない)。
- * ここでの `filter` は「このルートファイルが担当する行を拾う」配線であって、
+ * ここでの絞り込みは「このルートファイルが担当する行を拾う」配線であって、
  * 表示規則ではない (何を出すか / どう並べるかは Rust が routes.json を作る時点で決めている)。
  */
 export function pathsFor(
   kind: RouteKind,
   paramName: string,
 ): { params: Record<string, string>; props: { data: string } }[] {
-  return routes()
-    .routes.filter((r) => r.kind === kind && r.key !== null)
-    .map((r) => ({ params: { [paramName]: r.key! }, props: { data: r.data } }));
+  return routes().routes.flatMap((r) =>
+    r.kind === kind && r.key !== null
+      ? [{ params: { [paramName]: r.key }, props: { data: r.data } }]
+      : [],
+  );
 }
 
 /**

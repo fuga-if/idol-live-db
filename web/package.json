@@ -6,7 +6,7 @@
     "node": ">=22"
   },
   "scripts": {
-    "export": "cd ../imas-core && cargo run --release --features web-export --bin web-export -- --sql ../db/master.sql --out ../web/data",
+    "export": "cd ../imas-core && cargo run --release --locked --features web-export --bin web-export -- --sql ../db/master.sql --out ../web/data",
     "wasm": "cd wasm/imas-fold-wasm && wasm-pack build --release --target web --out-dir ../../src/lib/fold",
     "prebuild": "node scripts/require-data.mjs",
     "build": "astro build && node scripts/check-limits.mjs",

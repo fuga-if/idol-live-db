@@ -1,0 +1,25 @@
+---
+/**
+ * 数値の表示。ディスプレイ書体 + 等幅数字で桁を揃える。
+ * `dim` は一覧リンクに添える件数 (本体の後ろに一段落として置く)。
+ * 値が無い (`null` / `undefined`) ときは何も描かない — 件数を持たない
+ * NavLink を呼び出し側でいちいち判定しなくて済む。
+ */
+interface Props {
+  value: number | string | null | undefined;
+  unit?: string;
+  dim?: boolean;
+}
+const { value, unit, dim = false } = Astro.props;
+---
+
+{
+  value !== null &&
+    value !== undefined && (
+      <span class:list={["u-num", dim && "u-dim"]}>
+        {dim && " "}
+        {value}
+        {unit}
+      </span>
+    )
+}

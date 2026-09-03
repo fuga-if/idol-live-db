@@ -2,15 +2,18 @@
 import Artwork from "./Artwork.astro";
 import Avatar from "./Avatar.astro";
 import MetricBadge from "./MetricBadge.astro";
-/** ImasRankingRow の Web 版 — 順位 + 先頭ビジュアル + 名前 + 数値。 */
+/**
+ * ImasRankingRow の Web 版 — 順位 + 先頭ビジュアル + 名前 + 数値。
+ * `rank` と `metric` は省略可 (順位を振らない一覧・回数を持たない行でも同じ形を使う)。
+ */
 interface Props {
-  rank: number;
+  rank?: number;
   lead: "artwork" | "avatar";
   title: string;
   sub?: string | null;
   monogram: string;
   artworkUrl?: string | null;
-  metric: number | string;
+  metric?: number | string | null;
   unit?: string;
   href: string;
   themeKey?: string;
@@ -30,11 +33,11 @@ const {
 ---
 
 <a
-  class:list={["ranking-row", rank <= 3 && "ranking-row--top"]}
+  class:list={["ranking-row", rank !== undefined && rank <= 3 && "ranking-row--top"]}
   data-theme={themeKey}
   href={href}
 >
-  <span class="ranking-row__rank">{rank}</span>
+  {rank !== undefined && <span class="ranking-row__rank">{rank}</span>}
   {
     lead === "artwork" ? (
       <Artwork title={title} artworkUrl={artworkUrl} size="sm" />
@@ -46,5 +49,11 @@ const {
     <span class="ranking-row__title u-clamp1 u-underline-hover">{title}</span>
     {sub && <span class="ranking-row__sub u-clamp1">{sub}</span>}
   </span>
-  <MetricBadge value={metric} unit={unit} />
+  {
+    /* 順位を振らない一覧では数値を強調しない (2,000 行が全部アクセント色になると
+       「上位」の意味が消える)。順位付きの行だけ accent にする。 */
+    metric !== undefined && metric !== null && (
+      <MetricBadge value={metric} unit={unit} muted={rank === undefined} />
+    )
+  }
 </a>

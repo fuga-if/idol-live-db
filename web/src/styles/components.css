@@ -14,10 +14,6 @@
 .card > * + * {
   border-top: 1px solid var(--ds-sep);
 }
-.card--plain {
-  box-shadow: none;
-  border: 1px solid var(--ds-sep);
-}
 /* 楽曲一覧は 2,000 行を超える。画面外の行のレイアウトと描画を省いて初期表示を軽くする。
    `auto <size>` なので、一度出た行の高さは記憶され、スクロール位置が飛ばない。
    内容は DOM に居るままなので、ページ内検索・アンカー移動・SEO には影響しない。 */
@@ -66,11 +62,6 @@
 }
 .section__more:hover {
   color: var(--ds-ink);
-}
-.section--tight .section__title {
-  font-size: var(--fs-footnote);
-  font-weight: 600;
-  color: var(--ds-ink2);
 }
 
 /* --- Avatar (ImasAvatar: 淡ティント面 + 細リング + アクセント頭文字) -------- */
@@ -131,9 +122,6 @@
 .artwork--sm {
   --artwork-size: 44px;
 }
-.artwork--lg {
-  --artwork-size: 120px;
-}
 .artwork--hero {
   --artwork-size: 160px;
 }
@@ -156,17 +144,6 @@ a.lead-row:hover {
   block-size: 36px;
   border-radius: 2px;
   background: var(--bar);
-}
-.lead-row--rainbow::before {
-  background: linear-gradient(
-    to bottom,
-    #ff3b30,
-    #ff9500,
-    #ffcc00,
-    #34c759,
-    #007aff,
-    #af52de
-  );
 }
 .lead-row__body {
   min-width: 0;
@@ -266,10 +243,6 @@ a.chip:hover {
 .tag--cover {
   background: color-mix(in srgb, var(--ds-pick) 14%, transparent);
   color: var(--ds-pick);
-}
-.tag--partial {
-  background: color-mix(in srgb, var(--ds-warning) 14%, transparent);
-  color: var(--ds-warning);
 }
 .tag--lead {
   background: var(--accent);
@@ -679,10 +652,6 @@ a.labeled-row .labeled-row__value {
   background: var(--ds-fill);
   color: var(--ds-ink);
 }
-.btn--accent {
-  background: var(--accent);
-  color: var(--on-accent);
-}
 
 /* --- セトリ行 ------------------------------------------------------------- */
 .setlist {
@@ -723,16 +692,6 @@ a.labeled-row .labeled-row__value {
   font-size: var(--fs-callout);
   font-weight: 600;
   line-height: var(--lh-snug);
-}
-.setlist__section {
-  font-size: var(--fs-caption2);
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  color: var(--ds-ink2);
-  padding: var(--sp3) var(--sp5) var(--sp1);
-  background: var(--ds-surface);
-  text-transform: uppercase;
-  font-family: var(--font-display);
 }
 .setlist__notes {
   font-size: var(--fs-caption);
@@ -807,37 +766,6 @@ a.labeled-row .labeled-row__value {
   font-variant-numeric: tabular-nums;
   font-size: var(--fs-footnote);
   font-weight: 700;
-}
-
-/* --- 表 (出演者マトリクス等) ---------------------------------------------- */
-.table-wrap {
-  overflow-x: auto;
-  border-radius: var(--r-md);
-  background: var(--ds-surface);
-  box-shadow: var(--ds-shadow1);
-}
-table.data {
-  border-collapse: collapse;
-  inline-size: 100%;
-  font-size: var(--fs-footnote);
-}
-table.data th,
-table.data td {
-  padding: var(--sp3) var(--sp4);
-  text-align: start;
-  border-bottom: 1px solid var(--ds-sep);
-  white-space: nowrap;
-}
-table.data thead th {
-  font-size: var(--fs-caption);
-  font-weight: 700;
-  color: var(--ds-ink2);
-  position: sticky;
-  top: 0;
-  background: var(--ds-surface);
-}
-table.data tbody tr:last-child td {
-  border-bottom: 0;
 }
 
 /* --- 検索 (/search/ の island) -------------------------------------------- */

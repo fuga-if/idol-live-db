@@ -10,6 +10,7 @@
 //                                   無いため exit 1 にはしない。リーダー決定 DECISIONS.md C4)
 import fs from "node:fs";
 import path from "node:path";
+import { walk } from "./walk.mjs";
 
 const DIST = path.resolve("./dist");
 const MAX_FILES = 18_000;
@@ -44,19 +45,7 @@ if (missingRequired.length > 0) {
 }
 
 /** @type {{path: string, size: number}[]} */
-const files = [];
-
-function walk(dir) {
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) {
-      walk(full);
-    } else if (entry.isFile()) {
-      files.push({ path: full, size: fs.statSync(full).size });
-    }
-  }
-}
-walk(DIST);
+const files = walk(DIST).map((full) => ({ path: full, size: fs.statSync(full).size }));
 
 const totalBytes = files.reduce((sum, f) => sum + f.size, 0);
 const largest = files.reduce((max, f) => (f.size > max.size ? f : max), { path: "(none)", size: 0 });

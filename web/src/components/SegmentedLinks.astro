@@ -1,5 +1,6 @@
 ---
 import type { NavLink } from "../lib/schema/NavLink";
+import Count from "./Count.astro";
 /**
  * ImasSegmented の Web 版。
  * **状態を持たないリンク集合**にする (ユーザー指示: 一覧のフィルタは静的ページとして分ける)。
@@ -19,9 +20,7 @@ const { label, links, variant = "segmented" } = Astro.props;
       {links.map((l) => (
         <a href={l.path} aria-current={l.current ? "page" : undefined}>
           {l.label}
-          {l.count !== undefined && l.count !== null && (
-            <span class="u-dim u-num">&nbsp;{l.count}</span>
-          )}
+          <Count value={l.count} dim />
         </a>
       ))}
     </nav>

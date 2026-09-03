@@ -1,7 +1,7 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
 import Section from "../components/Section.astro";
-import StatTile from "../components/StatTile.astro";
+import StatTiles from "../components/StatTiles.astro";
 import EntryCard from "../components/EntryCard.astro";
 import EventRow from "../components/EventRow.astro";
 import ShowRow from "../components/ShowRow.astro";
@@ -9,17 +9,10 @@ import ListContainer from "../components/ListContainer.astro";
 import EmptyState from "../components/EmptyState.astro";
 import { meta, page, routeData } from "../lib/data";
 import type { HomePage } from "../lib/schema/HomePage";
+import Count from "../components/Count.astro";
 
 const home = page<HomePage>(routeData("home", "/"));
 const site = meta();
-const tiles = [
-  { glyph: "♪", value: home.counts.events, label: "ライブ", href: "/events/" },
-  { glyph: "▤", value: home.counts.shows, label: "公演", href: "/events/past/" },
-  { glyph: "♬", value: home.counts.songs, label: "楽曲", href: "/songs/" },
-  { glyph: "☺", value: home.counts.idols, label: "アイドル", href: "/idols/" },
-  { glyph: "❋", value: home.counts.units, label: "ユニット", href: "/units/" },
-  { glyph: "⌂", value: home.counts.venues, label: "会場", href: "/venues/" },
-];
 ---
 
 <BaseLayout seo={home.seo} meta={site}>
@@ -68,9 +61,7 @@ const tiles = [
   </Section>
 
   <Section id="home-scale" title="収録データ" moreHref="/about/" moreLabel="このサイトについて">
-    <div class="stat-grid">
-      {tiles.map((t) => <StatTile {...t} />)}
-    </div>
+    <StatTiles tiles={home.statTiles} />
   </Section>
 
   <Section id="home-brands" title="ブランドから探す" moreHref="/brands/">
@@ -80,7 +71,7 @@ const tiles = [
           <EntryCard
             glyph={b.glyph}
             title={b.ref.name}
-            preview={`ライブ ${b.counts.events} ・ 楽曲 ${b.counts.songs} ・ アイドル ${b.counts.idols}`}
+            preview={b.previewDisplay}
             href={b.ref.path}
             themeKey={b.ref.themeKey}
           />
@@ -102,7 +93,7 @@ const tiles = [
         </a>
       </p>
       <p class="u-dim">
-        データ基準日 <span class="u-num">{site.todayJst}</span> (JST)
+        データ基準日 <Count value={site.todayJst} /> (JST)
       </p>
     </div>
   </Section>

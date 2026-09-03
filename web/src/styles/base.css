@@ -327,7 +327,3 @@ hr {
   align-items: center;
   gap: var(--sp2);
 }
-.u-scroll-x {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-}

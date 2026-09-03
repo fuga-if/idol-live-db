@@ -20,9 +20,8 @@ interface Props {
   meta: SiteMeta;
   themeKey?: string;
   wide?: boolean;
-  bodyClass?: string;
 }
-const { seo, meta, themeKey = "neutral", wide = false, bodyClass } = Astro.props;
+const { seo, meta, themeKey = "neutral", wide = false } = Astro.props;
 const SITE_NAME = "アイドルライブDB";
 ---
 
@@ -32,7 +31,7 @@ const SITE_NAME = "アイドルライブDB";
     <link rel="stylesheet" href="/themes.css" />
     <JsonLd data={seo.jsonLd} />
   </head>
-  <body data-theme={themeKey} class={bodyClass}>
+  <body data-theme={themeKey}>
     <a class="skip-link" href="#main">本文へスキップ</a>
     <SiteHeader pathname={Astro.url.pathname} />
     <main id="main" class:list={["page", wide && "page--wide", "main"]}>

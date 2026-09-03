@@ -6,22 +6,12 @@ interface Props {
   count?: number | string | null;
   moreHref?: string;
   moreLabel?: string;
-  level?: 2 | 3;
-  tight?: boolean;
   id: string;
 }
-const { title, count, moreHref, moreLabel, level, tight, id } = Astro.props;
+const { title, count, moreHref, moreLabel, id } = Astro.props;
 ---
 
 <section class="section" aria-labelledby={id}>
-  <SectionHeader
-    title={title}
-    count={count}
-    moreHref={moreHref}
-    moreLabel={moreLabel}
-    level={level}
-    tight={tight}
-    id={id}
-  />
+  <SectionHeader title={title} count={count} moreHref={moreHref} moreLabel={moreLabel} id={id} />
   <slot />
 </section>

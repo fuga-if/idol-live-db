@@ -1,6 +1,7 @@
 ---
 import LeadRow from "./LeadRow.astro";
 import type { EventListItem } from "../lib/schema/EventListItem";
+import TagChip from "./TagChip.astro";
 /**
  * 一覧の 1 ライブ。
  * 副題は Rust が文脈ごとに組んだ `subtitle` をそのまま置く
@@ -20,7 +21,7 @@ const { item } = Astro.props;
     themeKey={item.ref.themeKey}
   >
     <span slot="trailing" class="u-row">
-      <span class="tag tag--all">{item.kindLabel}</span>
+      <TagChip text={item.kindLabel} kind="all" />
     </span>
   </LeadRow>
 </li>
