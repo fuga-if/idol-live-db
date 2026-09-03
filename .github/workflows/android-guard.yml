@@ -14,11 +14,13 @@ on:
     paths:
       - 'ImasLiveDB-Android/**'
       - 'db/master.sql'
+      - 'imas-core/**'
       - '.github/workflows/android-guard.yml'
   pull_request:
     paths:
       - 'ImasLiveDB-Android/**'
       - 'db/master.sql'
+      - 'imas-core/**'
       - '.github/workflows/android-guard.yml'
   workflow_dispatch:
 
@@ -40,6 +42,30 @@ jobs:
       # 同梱 seed を作るのに sqlite3 を使う。
       - name: Ensure sqlite3
         run: sqlite3 --version
+
+      # UniFFI 生成の Kotlin バインディングと jniLibs は git 管理外で、ビルド時に作る。
+      # これが無いと Kotlin のコンパイルが「Symbol not found for SongRecord」等で
+      # 大量に落ちる (原因が UniFFI だと分かりにくいエラーになる)。
+      # --android-only で iOS 側 (xcframework・Xcode が要る) を飛ばす。
+      - name: Install Rust Android targets
+        run: |
+          rustup target add aarch64-linux-android x86_64-linux-android
+          cargo install cargo-ndk --locked
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            imas-core/target
+          key: ${{ runner.os }}-imas-core-${{ hashFiles('imas-core/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-imas-core-
+
+      - name: Build imas-core (Android only)
+        env:
+          ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_LATEST_HOME }}
+        run: bash imas-core/build.sh --android-only
 
       - name: Build (debug)
         working-directory: ImasLiveDB-Android
