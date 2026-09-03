@@ -11,7 +11,7 @@
     "path": "/brands/ml/",
     "themeKey": "brand:ml",
     "artworkUrl": null,
-    "monogram": null
+    "monogram": "M"
   },
   "birthMonth": null,
   "items": [
@@ -34,7 +34,7 @@
         "path": "/brands/ml/",
         "themeKey": "brand:ml",
         "artworkUrl": null,
-        "monogram": null
+        "monogram": "M"
       },
       "currentVoiceActor": "山崎はるか",
       "birthdayDisplay": "4月3日"
@@ -58,7 +58,7 @@
         "path": "/brands/ml/",
         "themeKey": "brand:ml",
         "artworkUrl": null,
-        "monogram": null
+        "monogram": "M"
       },
       "currentVoiceActor": "田所あずさ",
       "birthdayDisplay": "6月26日"

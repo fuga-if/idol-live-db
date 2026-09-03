@@ -4,4 +4,8 @@ import type { Ref } from "./Ref";
 /**
  * 会場一覧の 1 行。
  */
-export type VenueListItem = { ref: Ref, prefecture: string | null, city: string | null, capacity: number | null, showCount: number, };
+export type VenueListItem = { ref: Ref, prefecture: string | null, city: string | null, 
+/**
+ * 「千葉県 千葉市美浜区」。
+ */
+locationDisplay: string | null, capacity: number | null, showCount: number, };

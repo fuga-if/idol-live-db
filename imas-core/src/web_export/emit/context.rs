@@ -213,6 +213,7 @@ impl<'a> Ctx<'a> {
         sub: Option<String>,
         theme_key: String,
     ) -> Ref {
+        let monogram = monogram_of(kind, name, sub.as_deref());
         Ref {
             kind,
             id: id.to_string(),
@@ -221,11 +222,10 @@ impl<'a> Ctx<'a> {
             path: self.path(kind, id),
             theme_key,
             artwork_url: None,
-            monogram: match kind {
-                // アプリの ImasAvatar と同じ「表示名の先頭 1 文字」。画像は載せない。
-                RefKind::Idol | RefKind::Unit => name.chars().next().map(|c| c.to_string()),
-                _ => None,
-            },
+            // アプリの ImasAvatar と同じ 1 文字。画像を載せないのでこれが唯一の「顔」。
+            // ブランドだけは表示名ではなく短縮名から取る (正式名は長すぎて先頭 1 文字が
+            // 「ア」ばかりになり、見分けが付かない)。
+            monogram,
         }
     }
 
@@ -425,6 +425,55 @@ fn json_ld_graph(entity: serde_json::Value, breadcrumbs: &[Crumb]) -> serde_json
     serde_json::json!({ "@context": "https://schema.org", "@graph": graph })
 }
 
+/// アバター代わりの 1 文字。
+///
+/// ブランドだけは表示名ではなく短縮名から取る (正式名は「アイドルマスター …」で
+/// 揃っていて、先頭 1 文字が全部「ア」になり見分けが付かない)。名前が空の行は
+/// 実データに無いが、その場合だけ空文字になる。
+fn monogram_of(kind: RefKind, name: &str, sub: Option<&str>) -> String {
+    let source = match kind {
+        RefKind::Brand => sub.filter(|s| !s.is_empty()).unwrap_or(name),
+        _ => name,
+    };
+    source.chars().next().map(|c| c.to_string()).unwrap_or_default()
+}
+
+/// 一覧の行に出す公演名。行のタイトルがライブ名なので、**ライブ名と重なる部分は落とす**。
+///
+/// 公演名はライブ名を頭に含んでいることが多い:
+///
+/// ```text
+///   ライブ名: THE IDOLM@STER MILLION THE@TER WAVE 11&12 発売記念イベント
+///   公演名  : THE IDOLM@STER MILLION THE@TER WAVE 11&12 発売記念イベント【第一回】
+/// ```
+///
+/// そのまま繋ぐと同じ長い名前が 2 行続いて、公演を見分ける手掛かり (`【第一回】`) が
+/// 行末に埋もれる。重なりを取り除いて残った部分だけを出し、公演が 1 本しかないライブ
+/// (公演名 = ライブ名) では公演名ごと落とす。
+pub fn distinguishing_show_name<'a>(event_name: &str, show_name: &'a str) -> Option<&'a str> {
+    let rest = show_name.strip_prefix(event_name).unwrap_or(show_name);
+    // 区切りの空白と中黒だけを落とす。`【` や `第` は見分けに要るので残す。
+    let rest = rest.trim_start_matches([' ', '\u{3000}', '-', '~', '～', '・']).trim();
+    (!rest.is_empty()).then_some(rest)
+}
+
+/// 表示用の区切り。アプリのプロフィール行と同じ全角スペース込みの中黒。
+///
+/// **区切り文字の判断は Rust 側に集める。** TS に `join(" ・ ")` を書き始めると、
+/// 画面ごとに区切りが揺れる (実際にアプリでも `" ・ "` に統一するまで揺れていた)。
+pub const PARTS_SEPARATOR: &str = " ・ ";
+
+/// 非 `None` の要素を [`PARTS_SEPARATOR`] で繋ぐ。1 つも無ければ `None` (行ごと出さない)。
+pub fn join_parts<S: AsRef<str>>(parts: impl IntoIterator<Item = Option<S>>) -> Option<String> {
+    let kept: Vec<String> = parts
+        .into_iter()
+        .flatten()
+        .map(|s| s.as_ref().to_string())
+        .filter(|s| !s.is_empty())
+        .collect();
+    (!kept.is_empty()).then(|| kept.join(PARTS_SEPARATOR))
+}
+
 /// `<title>` の形。サイト名を 2 回出さない (トップは `home.rs` が別に組む)。
 pub fn page_title(title: &str) -> String {
     if title == content::SITE_NAME {
@@ -437,4 +486,36 @@ pub fn page_title(title: &str) -> String {
 /// 秒 → `"4:32"`。
 pub fn duration_display(sec: i64) -> String {
     format!("{}:{:02}", sec / 60, sec % 60)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_show_named_after_its_event_adds_nothing() {
+        // 公演が 1 本しかないライブ。行のタイトルと同じ名前を繰り返さない。
+        assert_eq!(distinguishing_show_name("A LIVE", "A LIVE"), None);
+        assert_eq!(distinguishing_show_name("A LIVE", "A LIVE "), None);
+    }
+
+    #[test]
+    fn only_the_part_that_tells_shows_apart_is_kept() {
+        assert_eq!(
+            distinguishing_show_name("MILLION THE@TER WAVE 発売記念イベント", "MILLION THE@TER WAVE 発売記念イベント【第一回】"),
+            Some("【第一回】")
+        );
+        assert_eq!(
+            distinguishing_show_name("SideM 2nd STAGE", "SideM 2nd STAGE Shining Side"),
+            Some("Shining Side")
+        );
+        // 区切りの中黒や波ダッシュは落とすが、見分けに要る文字は残す。
+        assert_eq!(distinguishing_show_name("ツアー", "ツアー ・ 第1回公演"), Some("第1回公演"));
+    }
+
+    #[test]
+    fn an_unrelated_show_name_is_left_alone() {
+        assert_eq!(distinguishing_show_name("A LIVE", "DAY2"), Some("DAY2"));
+        assert_eq!(distinguishing_show_name("A LIVE", "昼公演"), Some("昼公演"));
+    }
 }

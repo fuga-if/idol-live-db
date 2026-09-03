@@ -3,4 +3,8 @@
 /**
  * CV の履歴 1 行。
  */
-export type VoiceActorRow = { name: string, startDate: string | null, endDate: string | null, isCurrent: boolean, note: string | null, };
+export type VoiceActorRow = { name: string, startDate: string | null, endDate: string | null, isCurrent: boolean, note: string | null, 
+/**
+ * 1 行で出すときの表記 (名前・在任期間・備考を `" ・ "` で繋いだもの)。
+ */
+display: string, };

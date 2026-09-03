@@ -8,4 +8,11 @@ export type IdolShowRow = { show: Ref, event: Ref, date: string, shortDate: stri
 /**
  * このアイドルがこの公演で歌った曲数。
  */
-songCount: number, };
+songCount: number, 
+/**
+ * 行の副題 (公演名・会場)。
+ *
+ * 公演名はライブ名と重なる部分を落としてある (行のタイトルがライブ名なので、
+ * そのまま繋ぐと同じ名前が 2 行続く)。規則は披露履歴の `placeDisplay` と同じ。
+ */
+subtitle: string | null, };

@@ -52,9 +52,13 @@ fn make_ref(kind: RefKind, id: &str, name: &str, sub: Option<&str>, theme_key: &
         theme_key: theme_key.to_string(),
         artwork_url: None,
         monogram: match kind {
-            RefKind::Idol | RefKind::Unit => name.chars().next().map(|c| c.to_string()),
-            _ => None,
-        },
+            RefKind::Brand => sub.unwrap_or(name),
+            _ => name,
+        }
+        .chars()
+        .next()
+        .map(|c| c.to_string())
+        .unwrap_or_default(),
     }
 }
 
@@ -316,6 +320,7 @@ fn show_summary() -> ShowSummary {
         setlist_count: 23,
         stream_platform: Some("ニコニコ生放送".to_string()),
         event: Some(event_sample()),
+        subtitle: Some("DAY1 ・ 幕張メッセ ・ イベントホール ・ 17:00 開演".to_string()),
     }
 }
 
@@ -518,6 +523,7 @@ fn idol_page(reference: &Ref) -> IdolPage {
             end_date: None,
             is_current: true,
             note: None,
+            display: "山崎はるか ・ 2013-02-27 〜".to_string(),
         }],
         units: vec![unit_sample()],
         songs: vec![IdolSongRow {
@@ -525,11 +531,13 @@ fn idol_page(reference: &Ref) -> IdolPage {
             role: Some("original".to_string()),
             release_date: Some("2019-03-13".to_string()),
             performance_count: 12,
+            subtitle: Some("765MILLION ALLSTARS ・ 2019-03-13 ・ 12 回披露".to_string()),
         }],
         performed_songs: vec![IdolPerformedRow {
             song: song_variant(),
             times: 3,
             last_date: Some("2026-04-03".to_string()),
+            subtitle: Some("派生曲 ・ 3 回披露".to_string()),
         }],
         shows: vec![IdolShowRow {
             show: show_sample(),
@@ -538,6 +546,7 @@ fn idol_page(reference: &Ref) -> IdolPage {
             short_date: "26/04".to_string(),
             venue_label: Some("幕張メッセ".to_string()),
             song_count: 7,
+            subtitle: Some("DAY1 ・ 幕張メッセ".to_string()),
         }],
         description: None,
         app: content::app_open_plain(),
@@ -587,8 +596,10 @@ fn venue_page(reference: &Ref, minimal: bool) -> VenuePage {
         // 都道府県が空の会場が 35 件ある。一覧では「未分類」に集める。
         prefecture: if minimal { None } else { Some("千葉県".to_string()) },
         city: if minimal { None } else { Some("千葉市美浜区".to_string()) },
+        location_display: if minimal { None } else { Some("千葉県 千葉市美浜区".to_string()) },
         capacity: if minimal { None } else { Some(9000) },
         aliases: if minimal { vec![] } else { vec!["幕張".to_string()] },
+        aliases_display: if minimal { None } else { Some("幕張".to_string()) },
         halls: if minimal {
             vec![]
         } else {
@@ -601,6 +612,7 @@ fn venue_page(reference: &Ref, minimal: bool) -> VenuePage {
                 name: "日本コンベンションセンター".to_string(),
                 start_date: None,
                 end_date: Some("1999-03-31".to_string()),
+                period_display: Some("〜 1999-03-31".to_string()),
             }]
         },
         events: if minimal { vec![] } else { vec![event_sample()] },
@@ -666,6 +678,8 @@ fn event_list_item(reference: &Ref, kind: &str) -> EventListItem {
         kind: kind.to_string(),
         kind_label: content::kind_label(kind).to_string(),
         show_count: 2,
+        venue_display: Some("幕張メッセ".to_string()),
+        subtitle: Some("2026-04-03 〜 2026-04-04 ・ アイドルマスター ミリオンライブ! ・ 2 公演 ・ 幕張メッセ".to_string()),
         venue_labels: vec!["幕張メッセ".to_string()],
     }
 }
@@ -714,15 +728,18 @@ fn song_list_page(path: &str, title: &str, kind: SongListKind) -> SongListPage {
             reference: song_sample(),
             release_date: Some("2019-03-13".to_string()),
             unit_label: Some("765MILLION ALLSTARS".to_string()),
-            original_artists: vec![idol_mirai()],
-            performance_count: 12,
+            artists_display: Some("春日未来".to_string()),
+            performance_count: Some(12),
+            subtitle: Some("765MILLION ALLSTARS ・ 春日未来 ・ 2019-03-13".to_string()),
         },
+        // `/songs/all/` の軽い行 (ref だけ・ジャケも原唱者も披露回数も無い)。
         SongListItem {
             reference: song_no_artwork(),
             release_date: None,
             unit_label: None,
-            original_artists: vec![],
-            performance_count: 0,
+            artists_display: None,
+            performance_count: None,
+            subtitle: None,
         },
     ];
     SongListPage {
@@ -853,6 +870,7 @@ fn venue_list_page(path: &str, title: &str, prefecture: Option<&str>) -> VenueLi
                 reference: venue_sample(),
                 prefecture: Some("千葉県".to_string()),
                 city: Some("千葉市美浜区".to_string()),
+                location_display: Some("千葉県 千葉市美浜区".to_string()),
                 capacity: Some(9000),
                 show_count: 24,
             },
@@ -860,6 +878,7 @@ fn venue_list_page(path: &str, title: &str, prefecture: Option<&str>) -> VenueLi
                 reference: venue_broken_id(),
                 prefecture: None,
                 city: None,
+                location_display: None,
                 capacity: None,
                 show_count: 1,
             },
@@ -881,7 +900,12 @@ fn venue_list_page(path: &str, title: &str, prefecture: Option<&str>) -> VenueLi
 }
 
 fn brand_list_item(reference: &Ref) -> BrandListItem {
-    BrandListItem { reference: reference.clone(), short_name: reference.sub.clone(), counts: counts() }
+    BrandListItem {
+        glyph: reference.sub.as_deref().unwrap_or(&reference.name).chars().take(2).collect(),
+        reference: reference.clone(),
+        short_name: reference.sub.clone(),
+        counts: counts(),
+    }
 }
 
 fn brand_list_page() -> BrandListPage {
@@ -955,6 +979,7 @@ fn about_page() -> AboutPage {
                 heading: "プライバシー・サポート・利用規約".to_string(),
                 paragraphs: vec![],
                 links: vec![
+                    AboutLink { label: "X (@idollivedb)".to_string(), href: content::X_URL.to_string(), external: true },
                     AboutLink { label: "プライバシーポリシー".to_string(), href: content::PRIVACY_URL.to_string(), external: true },
                     AboutLink { label: "サポート".to_string(), href: content::SUPPORT_URL.to_string(), external: true },
                     AboutLink { label: "利用規約".to_string(), href: content::TERMS_URL.to_string(), external: true },

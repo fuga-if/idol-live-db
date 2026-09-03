@@ -1,14 +1,19 @@
 //! 会場 (venue) とブランド (brand) の詳細ページ。
 
-use super::context::Ctx;
+use super::context::{join_parts, Ctx};
 use super::events::shows_at_venue;
+use super::idols::period_display;
 use crate::domain::event_detail_queries as detail;
 use crate::domain::event_list_queries;
 use crate::domain::idol_queries;
 use crate::domain::unit_queries;
 use crate::web_export::content;
 use crate::web_export::dto::*;
+use crate::web_export::url::url_segment;
 use std::collections::BTreeMap;
+
+/// ブランドページに出す「最近のライブ」「代表曲」の件数。
+const TOP_N: usize = 12;
 
 /// 都道府県が空の会場をまとめる先。実データに 35 件ある。
 pub const UNCLASSIFIED_PREFECTURE: &str = "未分類";
@@ -25,6 +30,7 @@ impl VenueDirectory {
         let mut names_by_venue: BTreeMap<String, Vec<VenueNameRow>> = BTreeMap::new();
         for n in directory.names {
             names_by_venue.entry(n.venue_id).or_default().push(VenueNameRow {
+                period_display: period_display(n.valid_from.as_deref(), n.valid_to.as_deref()),
                 name: n.name,
                 start_date: n.valid_from,
                 end_date: n.valid_to,
@@ -44,11 +50,25 @@ impl VenueDirectory {
 pub fn venue_page(ctx: &Ctx, venue_id: &str, directory: &VenueDirectory) -> Option<VenuePage> {
     let venue = ctx.snap.venue(venue_id)?;
     let path = ctx.path(RefKind::Venue, venue_id);
-    let place = [venue.prefecture.as_deref(), venue.city.as_deref()]
-        .into_iter()
-        .flatten()
-        .collect::<Vec<_>>()
-        .join(" ");
+    // 所在地は「千葉県 千葉市美浜区」。都道府県と市区町村の間だけは中黒でなく空白。
+    let location_display = {
+        let parts: Vec<&str> = [venue.prefecture.as_deref(), venue.city.as_deref()]
+            .into_iter()
+            .flatten()
+            .filter(|s| !s.is_empty())
+            .collect();
+        (!parts.is_empty()).then(|| parts.join(" "))
+    };
+    let place = location_display.clone().unwrap_or_default();
+    let aliases: Vec<String> = venue
+        .aliases
+        .as_deref()
+        .unwrap_or_default()
+        .split(',')
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(str::to_string)
+        .collect();
 
     let breadcrumbs = vec![
         ctx.crumb("ホーム", "/"),
@@ -65,16 +85,10 @@ pub fn venue_page(ctx: &Ctx, venue_id: &str, directory: &VenueDirectory) -> Opti
         theme_key: ctx.brand_theme(None),
         prefecture: venue.prefecture.clone(),
         city: venue.city.clone(),
+        location_display,
         capacity: venue.capacity.map(|c| c as i32),
-        aliases: venue
-            .aliases
-            .as_deref()
-            .unwrap_or_default()
-            .split(',')
-            .map(str::trim)
-            .filter(|s| !s.is_empty())
-            .map(str::to_string)
-            .collect(),
+        aliases_display: join_parts(aliases.iter().map(|a| Some(a.as_str()))),
+        aliases,
         halls: directory.halls_by_venue.get(venue_id).cloned().unwrap_or_default(),
         past_names: directory.names_by_venue.get(venue_id).cloned().unwrap_or_default(),
         events: detail::event_ids_at_venue(ctx.snap, venue_id)
@@ -133,42 +147,42 @@ pub fn brand_page(ctx: &Ctx, brand_id: &str) -> Option<BrandPage> {
     let path = ctx.path(RefKind::Brand, brand_id);
     let theme_key = ctx.brand_theme(Some(brand_id));
 
-    // ブランドの最近のライブ (開催日の新しい順に 12 件)。
-    let mut events = event_list_queries::events_with_first_date(
+    // ブランドの最近のライブ。`events_with_first_date` が first_date の降順で返すので
+    // ここで並べ直さない (並びの規則を 2 箇所に持たない)。
+    let events = event_list_queries::events_with_first_date(
         ctx.snap,
         Some(brand_id),
         true,
         false,
         Some(&super::lists::all_event_kinds()),
     );
-    events.sort_by(|a, b| b.first_date.cmp(&a.first_date).then(a.event.id.cmp(&b.event.id)));
     let recent_events: Vec<Ref> =
-        events.iter().take(12).filter_map(|e| ctx.event_ref(&e.event.id)).collect();
+        events.iter().take(TOP_N).filter_map(|e| ctx.event_ref(&e.event.id)).collect();
 
-    // 代表曲 = 披露回数の多い順。
-    let mut songs: Vec<(u32, &str)> = ctx
-        .snap
-        .songs
+    // 代表曲。並べ替えの規則 (披露回数の降順・同数の解き方) はコアが持っているので、
+    // 一覧と同じ関数を通す。ここで performance_counts を自前にソートすると、
+    // アプリの「披露回数順」と並びが食い違う。
+    let top_songs: Vec<Ref> = super::lists::brand_top_song_indexes(ctx, brand_id)
         .iter()
-        .enumerate()
-        .filter(|(_, s)| s.brand_id.as_deref() == Some(brand_id))
-        .map(|(i, s)| (ctx.snap.performance_counts[i], s.id.as_str()))
+        .take(TOP_N)
+        .filter_map(|&i| ctx.song_ref(&ctx.snap.songs[i as usize].id))
         .collect();
-    songs.sort_by(|a, b| b.0.cmp(&a.0).then(a.1.cmp(b.1)));
-    let top_songs: Vec<Ref> =
-        songs.iter().take(12).filter_map(|(_, id)| ctx.song_ref(id)).collect();
 
     let counts = brand_counts(ctx, brand_id);
     // `other` は一覧の入口を作らない。既定フィルタが other を含めないというコアの規則と、
     // 一覧の入口が存在するという事実が食い違うため (到達は検索と個別ページから)。
+    // id を URL に埋めるときは必ず url_segment を通す (ブランド id は今のところ
+    // すべて ASCII だが、規則を 1 箇所に保たないと将来の id で静かに壊れる)。
+    let segment = url_segment(brand_id);
+    let brand_path = |collection: &str| format!("/{collection}/brand/{segment}/");
     let section_links = if ctx.is_other_brand(Some(brand_id)) {
-        vec![nav("アイドル", &format!("/idols/brand/{brand_id}/"), &theme_key, counts.idols)]
+        vec![nav("アイドル", &brand_path("idols"), &theme_key, counts.idols)]
     } else {
         vec![
-            nav("ライブ", &format!("/events/brand/{brand_id}/"), &theme_key, counts.events),
-            nav("楽曲", &format!("/songs/brand/{brand_id}/"), &theme_key, counts.songs),
-            nav("アイドル", &format!("/idols/brand/{brand_id}/"), &theme_key, counts.idols),
-            nav("ユニット", &format!("/units/brand/{brand_id}/"), &theme_key, counts.units),
+            nav("ライブ", &brand_path("events"), &theme_key, counts.events),
+            nav("楽曲", &brand_path("songs"), &theme_key, counts.songs),
+            nav("アイドル", &brand_path("idols"), &theme_key, counts.idols),
+            nav("ユニット", &brand_path("units"), &theme_key, counts.units),
         ]
     };
 

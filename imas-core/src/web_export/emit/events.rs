@@ -1,6 +1,6 @@
 //! ライブ (event) と公演 (show) の詳細ページ。
 
-use super::context::Ctx;
+use super::context::{distinguishing_show_name, join_parts, Ctx};
 use crate::domain::event_detail_queries as detail;
 use crate::domain::event_grouping::group_events_by_year;
 use crate::domain::short_year_month::short_year_month;
@@ -170,12 +170,30 @@ fn event_cast(ctx: &Ctx, event_id: &str) -> Option<EventCast> {
     })
 }
 
-/// 公演 1 件の要約。`with_event` はライブ名を添えるか (会場ページやトップで要る)。
+/// 公演 1 件の要約。
+///
+/// `with_event` は「ライブ名を添えるか」。**副題の出し分けもここで済ませる**:
+/// ライブ詳細ページの中では親ライブ名は自明なので入れず、トップと会場詳細では入れる。
+/// 一覧 JSON はページ単位で吐かれるので、どちらの文脈かは作る側が知っている
+/// (TS に `showEvent` のような prop を持たせない)。
 pub fn show_summary(
     ctx: &Ctx,
     show: &detail::ShowRecord,
     with_event: bool,
 ) -> Option<ShowSummary> {
+    let event = if with_event { ctx.event_ref(&show.event_id) } else { None };
+    // 公演名からライブ名と重なる部分を落とすのは **どちらの文脈でも**。
+    // ライブ詳細ページではページ見出しがライブ名なので、副題にその繰り返しが出ると
+    // 「ステージ１回目」のような見分けの手掛かりが行末に埋もれる。
+    let event_name = ctx.snap.event(&show.event_id).map(|e| e.name.as_str()).unwrap_or_default();
+    let show_label = distinguishing_show_name(event_name, &show.name).map(str::to_string);
+    let subtitle = join_parts([
+        event.as_ref().map(|e| e.name.clone()),
+        show_label,
+        show.venue.clone(),
+        show.hall.clone(),
+        show.start_time.as_deref().map(|t| format!("{t} 開演")),
+    ]);
     Some(ShowSummary {
         reference: ctx.show_ref(&show.id)?,
         date: show.date.clone(),
@@ -186,7 +204,8 @@ pub fn show_summary(
         start_time: show.start_time.clone(),
         setlist_count: detail::setlist(ctx.snap, &show.id).len() as u32,
         stream_platform: show.stream_platform.clone(),
-        event: if with_event { ctx.event_ref(&show.event_id) } else { None },
+        event,
+        subtitle,
     })
 }
 
@@ -325,37 +344,28 @@ fn show_json_ld(
     }
 }
 
-/// 会場ページ用: ある会場で行われた公演の要約 (日付降順)。
+/// 会場ページ用: ある会場で行われた公演の要約。
+///
+/// 並び (date DESC・同日は sort_order と添字で決定化) と、会場マスタ id を持たない
+/// 過去公演を `venue` 文字列で拾う後方互換は、どちらも
+/// [`detail::shows_at_venue`] が持っている。ここで並べ直さない。
 pub fn shows_at_venue(ctx: &Ctx, venue_id: &str) -> Vec<ShowSummary> {
-    let mut indexes: Vec<u32> =
-        ctx.snap.shows_by_venue_id.get(venue_id).cloned().unwrap_or_default();
-    // 日付降順 + 同日は snapshot の添字順で決定的に。
-    indexes.sort_by(|&a, &b| {
-        let (x, y) = (&ctx.snap.shows[a as usize], &ctx.snap.shows[b as usize]);
-        y.date.cmp(&x.date).then(a.cmp(&b))
-    });
-    indexes
+    detail::shows_at_venue(ctx.snap, venue_id)
         .iter()
-        .filter_map(|&i| {
-            let show = detail::show_record(ctx.snap, &ctx.snap.shows[i as usize].id)?;
-            show_summary(ctx, &show, true)
-        })
+        .filter_map(|show| show_summary(ctx, show, true))
         .collect()
 }
 
-/// トップの「最近の公演」。日付降順で `limit` 件。
-pub fn recent_shows(ctx: &Ctx, limit: usize) -> Vec<ShowSummary> {
-    // shows_in_date_order は日付昇順。過去側の末尾から取る。
-    ctx.snap
-        .shows_in_date_order
+/// トップの「最近の公演」。
+///
+/// **当日の公演はここに出ない。**「今日以降は今後」という境界の規則は
+/// [`detail::recent_shows`] に置いてあり、`group_events_by_year` /
+/// `jst_is_today_or_later` と対称になっている (ここで日付を比べると、同じ公演が
+/// 「今後のライブ」と「最近の公演」に二重で並ぶ)。
+pub fn recent_shows(ctx: &Ctx, limit: u32) -> Vec<ShowSummary> {
+    detail::recent_shows(ctx.snap, &ctx.today, limit)
         .iter()
-        .rev()
-        .filter(|&&i| ctx.snap.shows[i as usize].date.as_str() <= ctx.today.as_str())
-        .take(limit)
-        .filter_map(|&i| {
-            let show = detail::show_record(ctx.snap, &ctx.snap.shows[i as usize].id)?;
-            show_summary(ctx, &show, true)
-        })
+        .filter_map(|show| show_summary(ctx, show, true))
         .collect()
 }
 

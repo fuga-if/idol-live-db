@@ -4,4 +4,26 @@ import type { Ref } from "./Ref";
 /**
  * 楽曲一覧の 1 行。
  */
-export type SongListItem = { ref: Ref, releaseDate: string | null, unitLabel: string | null, originalArtists: Array<Ref>, performanceCount: number, };
+export type SongListItem = { ref: Ref, releaseDate: string | null, unitLabel: string | null, 
+/**
+ * 原唱者名を `" / "` で繋いだもの。多いときは「ほか N 名」で畳む。空なら `None`。
+ *
+ * 原唱者の [`Ref`] 列は**持たない**。一覧の行はここを 1 行描くだけで、
+ * 全体曲は原唱者が 50 人を超えるため、行ごとに Ref を並べると
+ * `/songs/` の JSON だけで 2.8MB になっていた (実測)。1 人ずつ辿りたいときは
+ * 曲の詳細ページに全員分がある。
+ */
+artistsDisplay: string | null, 
+/**
+ * 披露回数。
+ *
+ * `/songs/all/` (全件ハブ) では **`None`**。あちらは 3,153 行を 1 枚に並べる
+ * 到達性のためのページなので、行に付ける情報を `ref` だけまで削ってある。
+ * `0` ではなく `None` にしてあるのは、「0 回披露」と「載せていない」を
+ * 取り違えないようにするため。
+ */
+performanceCount: number | null, 
+/**
+ * 行の副題 (ユニット名・原唱者・リリース日)。空なら `None`。
+ */
+subtitle: string | null, };

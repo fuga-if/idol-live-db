@@ -4,4 +4,8 @@ import type { Ref } from "./Ref";
 /**
  * 「歌ったことのある曲」の 1 行 (原唱者でなくても披露していれば載る)。
  */
-export type IdolPerformedRow = { song: Ref, times: number, lastDate: string | null, };
+export type IdolPerformedRow = { song: Ref, times: number, lastDate: string | null, 
+/**
+ * 行の副題 (ユニット名・披露回数)。空なら `None`。
+ */
+subtitle: string | null, };

@@ -93,6 +93,7 @@ pub fn fold_kana(ch: char) -> char {
 /// ハイライトは**元の文字列**の範囲を必要とするが、照合は畳んだ列で行う。
 /// 小文字化には 1 文字が 2 文字に開くもの (U+0130 → "i\u{307}") があるので、
 /// 畳んだ位置をそのまま元の位置として使うとずれる。畳みながら対応を記録しておく。
+#[inline]
 pub fn fold_with_offsets(text: &str) -> (Vec<u8>, Vec<usize>, Vec<usize>) {
     let mut bytes = Vec::with_capacity(text.len());
     let mut starts = Vec::with_capacity(text.len());
@@ -148,6 +149,7 @@ pub fn contains(haystack: &[u8], needle: &[u8]) -> bool {
 }
 
 /// `contains` の位置を返す版。ハイライトの範囲を出すのに要る。
+#[inline]
 pub fn find(haystack: &[u8], needle: &[u8]) -> Option<usize> {
     // 空の検索語はここでは None (「絞り込まない」の判定は matches 側の責務)。
     let &first = needle.first()?;

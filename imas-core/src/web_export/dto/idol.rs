@@ -61,6 +61,8 @@ pub struct VoiceActorRow {
     pub end_date: Option<String>,
     pub is_current: bool,
     pub note: Option<String>,
+    /// 1 行で出すときの表記 (名前・在任期間・備考を `" ・ "` で繋いだもの)。
+    pub display: String,
 }
 
 /// 持ち曲の 1 行。
@@ -73,6 +75,8 @@ pub struct IdolSongRow {
     pub role: Option<String>,
     pub release_date: Option<String>,
     pub performance_count: u32,
+    /// 行の副題 (ユニット名・リリース日・披露回数を `" ・ "` で繋いだもの)。空なら `None`。
+    pub subtitle: Option<String>,
 }
 
 /// 「歌ったことのある曲」の 1 行 (原唱者でなくても披露していれば載る)。
@@ -83,6 +87,8 @@ pub struct IdolPerformedRow {
     pub song: Ref,
     pub times: u32,
     pub last_date: Option<String>,
+    /// 行の副題 (ユニット名・披露回数)。空なら `None`。
+    pub subtitle: Option<String>,
 }
 
 /// 出演公演の 1 行。
@@ -97,4 +103,9 @@ pub struct IdolShowRow {
     pub venue_label: Option<String>,
     /// このアイドルがこの公演で歌った曲数。
     pub song_count: u32,
+    /// 行の副題 (公演名・会場)。
+    ///
+    /// 公演名はライブ名と重なる部分を落としてある (行のタイトルがライブ名なので、
+    /// そのまま繋ぐと同じ名前が 2 行続く)。規則は披露履歴の `placeDisplay` と同じ。
+    pub subtitle: Option<String>,
 }

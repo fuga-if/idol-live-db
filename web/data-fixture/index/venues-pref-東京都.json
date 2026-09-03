@@ -13,10 +13,11 @@
         "path": "/venues/venue_makuhari/",
         "themeKey": "neutral",
         "artworkUrl": null,
-        "monogram": null
+        "monogram": "幕"
       },
       "prefecture": "千葉県",
       "city": "千葉市美浜区",
+      "locationDisplay": "千葉県 千葉市美浜区",
       "capacity": 9000,
       "showCount": 24
     },
@@ -29,10 +30,11 @@
         "path": "/venues/venue_donalde.stephensconventioncenterhyattregen-0c52f2eb/",
         "themeKey": "neutral",
         "artworkUrl": null,
-        "monogram": null
+        "monogram": "D"
       },
       "prefecture": null,
       "city": null,
+      "locationDisplay": null,
       "capacity": null,
       "showCount": 1
     }

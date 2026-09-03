@@ -12,9 +12,10 @@
         "path": "/brands/ml/",
         "themeKey": "brand:ml",
         "artworkUrl": null,
-        "monogram": null
+        "monogram": "M"
       },
       "shortName": "ML",
+      "glyph": "ML",
       "counts": {
         "events": 851,
         "shows": 1341,
@@ -35,9 +36,10 @@
         "path": "/brands/cg/",
         "themeKey": "brand:cg",
         "artworkUrl": null,
-        "monogram": null
+        "monogram": "C"
       },
       "shortName": "CG",
+      "glyph": "CG",
       "counts": {
         "events": 851,
         "shows": 1341,
@@ -58,9 +60,10 @@
         "path": "/brands/other/",
         "themeKey": "neutral",
         "artworkUrl": null,
-        "monogram": null
+        "monogram": "そ"
       },
       "shortName": "その他",
+      "glyph": "その",
       "counts": {
         "events": 851,
         "shows": 1341,

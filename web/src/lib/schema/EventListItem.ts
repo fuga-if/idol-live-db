@@ -8,4 +8,12 @@ export type EventListItem = { ref: Ref, firstDate: string | null, lastDate: stri
 /**
  * 種別チップ (`live` / `festival` / …)。一覧を全種別で出すので、行で見分けが要る。
  */
-kind: string, kindLabel: string, showCount: number, venueLabels: Array<string>, };
+kind: string, kindLabel: string, showCount: number, venueLabels: Array<string>, 
+/**
+ * 会場をまとめた 1 行 (`" ・ "` 連結。3 つを超えたら「ほか N 会場」)。
+ */
+venueDisplay: string | null, 
+/**
+ * 行の副題 (期間・公演数・会場)。空なら `None`。
+ */
+subtitle: string | null, };

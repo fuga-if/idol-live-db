@@ -14,7 +14,7 @@
     "path": "/events/ev_sample/",
     "themeKey": "brand:ml",
     "artworkUrl": null,
-    "monogram": null
+    "monogram": "T"
   },
   "brand": {
     "kind": "brand",
@@ -24,7 +24,7 @@
     "path": "/brands/ml/",
     "themeKey": "brand:ml",
     "artworkUrl": null,
-    "monogram": null
+    "monogram": "M"
   },
   "venueLabel": "幕張メッセ",
   "venue": {
@@ -35,7 +35,7 @@
     "path": "/venues/venue_makuhari/",
     "themeKey": "neutral",
     "artworkUrl": null,
-    "monogram": null
+    "monogram": "幕"
   },
   "venueCity": "千葉市",
   "hall": "イベントホール",
@@ -57,7 +57,7 @@
         "path": "/songs/ml_sample/",
         "themeKey": "brand:ml",
         "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music/sample/600x600bb.jpg",
-        "monogram": null
+        "monogram": "T"
       },
       "performers": [
         {
@@ -114,7 +114,7 @@
         "path": "/songs/ml_no_artwork/",
         "themeKey": "brand:ml",
         "artworkUrl": null,
-        "monogram": null
+        "monogram": "ジ"
       },
       "performers": [],
       "originalArtists": [],
@@ -152,7 +152,7 @@
       "path": "/shows/sh_sample_1/",
       "themeKey": "brand:ml",
       "artworkUrl": null,
-      "monogram": null
+      "monogram": "D"
     }
   ],
   "app": {

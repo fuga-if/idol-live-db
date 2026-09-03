@@ -319,6 +319,28 @@ pub fn shows_at_venue(snap: &Snapshot, venue: &str) -> Vec<ShowRecord> {
     indexes.into_iter().map(|s| show_record_at(snap, s)).collect()
 }
 
+/// 「最近の公演」= 今日より前で日付の新しい順に `limit` 件。
+///
+/// **今日の公演をここに入れない**のが要点。開催日当日はまだ終わっていないので
+/// [`crate::domain::jst_day::jst_is_today_or_later`] と
+/// [`crate::domain::event_grouping::group_events_by_year`] はどちらも当日を「今後」に
+/// 入れる。ここで `<=` を使うと、同じ公演が「今後のライブ」と「最近の公演」の両方に
+/// 並ぶ。境界日の扱いは 3 箇所で対称でなければならないので、判定をここに集める
+/// (呼び出し側で日付を比べない)。
+///
+/// `today_key` は `"yyyy-MM-dd"`。前計算済みの日付昇順列を二分探索するので、
+/// 全公演を舐めない。
+pub fn recent_shows(snap: &Snapshot, today_key: &str, limit: u32) -> Vec<ShowRecord> {
+    let order = &snap.shows_in_date_order;
+    let past_end = order.partition_point(|&s| snap.shows[s as usize].date.as_str() < today_key);
+    order[..past_end]
+        .iter()
+        .rev()
+        .take(limit as usize)
+        .map(|&s| show_record_at(snap, s))
+        .collect()
+}
+
 /// 指定日の公演一覧 (iOS showsByDateQuery = `WHERE date = ? ORDER BY sort_order`)。
 /// 前計算済みの (date, sort_order, 添字) 順列を二分探索して該当区間をそのまま流す。
 pub fn shows_on_date(snap: &Snapshot, date: &str) -> Vec<ShowRecord> {
@@ -1757,5 +1779,55 @@ mod tests {
         assert!(docs_snap.event_releases.iter().all(|r| r.id != "er_orphan_event"));
 
         let _ = std::fs::remove_file(&path);
+    }
+
+    // -----------------------------------------------------------------------
+    // recent_shows — 境界日の扱いが「今後」側と対称であること
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn recent_shows_excludes_today_so_nothing_is_listed_twice() {
+        use crate::domain::event_grouping::group_events_by_year;
+        use crate::domain::jst_day::jst_is_today_or_later;
+
+        let snap = snap();
+        // 実データから公演のある日を 1 つ選び、その日を「今日」とみなす。
+        let today = snap.shows[snap.shows_in_date_order[snap.shows_in_date_order.len() / 2] as usize]
+            .date
+            .clone();
+
+        let recent = recent_shows(snap, &today, 500);
+        assert!(!recent.is_empty(), "最近の公演が空");
+        // 当日は「今後」側なので、ここには 1 件も出ない。
+        assert!(
+            recent.iter().all(|s| s.date.as_str() < today.as_str()),
+            "当日の公演が「最近の公演」に混ざっている"
+        );
+        // 日付降順。
+        assert!(recent.windows(2).all(|w| w[0].date >= w[1].date), "日付降順でない");
+
+        // 当日を「今後」に入れる 2 つの規則と同じ向きであること。
+        assert!(jst_is_today_or_later(today.clone(), epoch_of(&today)));
+        let groups = group_events_by_year(&[Some(today.clone())], true, &today);
+        assert!(!groups.is_empty(), "group_events_by_year は当日を今後に入れるはず");
+    }
+
+    /// `yyyy-MM-dd` の JST 正午を epoch 秒に (境界の確認用)。
+    fn epoch_of(date: &str) -> i64 {
+        use chrono::{FixedOffset, NaiveDate, TimeZone};
+        let d = NaiveDate::parse_from_str(date, "%Y-%m-%d").expect("日付");
+        FixedOffset::east_opt(9 * 3600)
+            .unwrap()
+            .from_local_datetime(&d.and_hms_opt(12, 0, 0).unwrap())
+            .unwrap()
+            .timestamp()
+    }
+
+    #[test]
+    fn recent_shows_honours_the_limit_and_an_empty_past() {
+        let snap = snap();
+        assert_eq!(recent_shows(snap, "2026-09-04", 3).len(), 3);
+        // すべての公演より前の日付なら「最近の公演」は無い。
+        assert!(recent_shows(snap, "1900-01-01", 10).is_empty());
     }
 }

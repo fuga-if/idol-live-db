@@ -14,23 +14,13 @@
         "path": "/songs/ml_sample/",
         "themeKey": "brand:ml",
         "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music/sample/600x600bb.jpg",
-        "monogram": null
+        "monogram": "T"
       },
       "releaseDate": "2019-03-13",
       "unitLabel": "765MILLION ALLSTARS",
-      "originalArtists": [
-        {
-          "kind": "idol",
-          "id": "ml_kasuga_mirai",
-          "name": "春日未来",
-          "sub": "ミリオンライブ!",
-          "path": "/idols/ml_kasuga_mirai/",
-          "themeKey": "idol:ml_kasuga_mirai",
-          "artworkUrl": null,
-          "monogram": "春"
-        }
-      ],
-      "performanceCount": 12
+      "artistsDisplay": "春日未来",
+      "performanceCount": 12,
+      "subtitle": "765MILLION ALLSTARS ・ 春日未来 ・ 2019-03-13"
     },
     {
       "ref": {
@@ -41,12 +31,13 @@
         "path": "/songs/ml_no_artwork/",
         "themeKey": "brand:ml",
         "artworkUrl": null,
-        "monogram": null
+        "monogram": "ジ"
       },
       "releaseDate": null,
       "unitLabel": null,
-      "originalArtists": [],
-      "performanceCount": 0
+      "artistsDisplay": null,
+      "performanceCount": null,
+      "subtitle": null
     }
   ],
   "kanaSections": [

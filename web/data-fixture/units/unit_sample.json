@@ -16,7 +16,7 @@
     "path": "/brands/ml/",
     "themeKey": "brand:ml",
     "artworkUrl": null,
-    "monogram": null
+    "monogram": "M"
   },
   "members": [
     {
@@ -49,7 +49,7 @@
       "path": "/songs/ml_sample/",
       "themeKey": "brand:ml",
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music/sample/600x600bb.jpg",
-      "monogram": null
+      "monogram": "T"
     }
   ],
   "app": {

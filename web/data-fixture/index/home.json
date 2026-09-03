@@ -13,7 +13,7 @@
         "path": "/events/ev_sample/",
         "themeKey": "brand:ml",
         "artworkUrl": null,
-        "monogram": null
+        "monogram": "T"
       },
       "firstDate": "2026-04-03",
       "lastDate": "2026-04-04",
@@ -26,14 +26,16 @@
         "path": "/brands/ml/",
         "themeKey": "brand:ml",
         "artworkUrl": null,
-        "monogram": null
+        "monogram": "M"
       },
       "kind": "live",
       "kindLabel": "ライブ",
       "showCount": 2,
       "venueLabels": [
         "幕張メッセ"
-      ]
+      ],
+      "venueDisplay": "幕張メッセ",
+      "subtitle": "2026-04-03 〜 2026-04-04 ・ アイドルマスター ミリオンライブ! ・ 2 公演 ・ 幕張メッセ"
     }
   ],
   "recentShows": [
@@ -46,7 +48,7 @@
         "path": "/shows/sh_sample_1/",
         "themeKey": "brand:ml",
         "artworkUrl": null,
-        "monogram": null
+        "monogram": "D"
       },
       "date": "2026-04-03",
       "shortDate": "26/04",
@@ -59,7 +61,7 @@
         "path": "/venues/venue_makuhari/",
         "themeKey": "neutral",
         "artworkUrl": null,
-        "monogram": null
+        "monogram": "幕"
       },
       "hall": "イベントホール",
       "startTime": "17:00",
@@ -73,8 +75,9 @@
         "path": "/events/ev_sample/",
         "themeKey": "brand:ml",
         "artworkUrl": null,
-        "monogram": null
-      }
+        "monogram": "T"
+      },
+      "subtitle": "DAY1 ・ 幕張メッセ ・ イベントホール ・ 17:00 開演"
     }
   ],
   "counts": {
@@ -97,9 +100,10 @@
         "path": "/brands/ml/",
         "themeKey": "brand:ml",
         "artworkUrl": null,
-        "monogram": null
+        "monogram": "M"
       },
       "shortName": "ML",
+      "glyph": "ML",
       "counts": {
         "events": 851,
         "shows": 1341,
@@ -120,9 +124,10 @@
         "path": "/brands/cg/",
         "themeKey": "brand:cg",
         "artworkUrl": null,
-        "monogram": null
+        "monogram": "C"
       },
       "shortName": "CG",
+      "glyph": "CG",
       "counts": {
         "events": 851,
         "shows": 1341,
@@ -139,6 +144,7 @@
     "appStoreUrl": "https://apps.apple.com/jp/app/id6763342297",
     "playStoreUrl": null,
     "hashtag": "#アイドルライブDB",
+    "xUrl": "https://x.com/idollivedb",
     "privacyUrl": "https://fuga-if.github.io/imas-live-privacy/privacy.html",
     "supportUrl": "https://fuga-if.github.io/imas-live-privacy/support.html",
     "termsUrl": "https://fuga-if.github.io/imas-live-privacy/terms.html",

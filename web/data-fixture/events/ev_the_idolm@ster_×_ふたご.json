@@ -13,7 +13,7 @@
     "path": "/brands/ml/",
     "themeKey": "brand:ml",
     "artworkUrl": null,
-    "monogram": null
+    "monogram": "M"
   },
   "jointBrands": [
     {
@@ -24,7 +24,7 @@
       "path": "/brands/cg/",
       "themeKey": "brand:cg",
       "artworkUrl": null,
-      "monogram": null
+      "monogram": "C"
     }
   ],
   "kind": "live",
@@ -55,7 +55,7 @@
         "path": "/shows/sh_sample_1/",
         "themeKey": "brand:ml",
         "artworkUrl": null,
-        "monogram": null
+        "monogram": "D"
       },
       "date": "2026-04-03",
       "shortDate": "26/04",
@@ -68,7 +68,7 @@
         "path": "/venues/venue_makuhari/",
         "themeKey": "neutral",
         "artworkUrl": null,
-        "monogram": null
+        "monogram": "幕"
       },
       "hall": "イベントホール",
       "startTime": "17:00",
@@ -82,8 +82,9 @@
         "path": "/events/ev_sample/",
         "themeKey": "brand:ml",
         "artworkUrl": null,
-        "monogram": null
-      }
+        "monogram": "T"
+      },
+      "subtitle": "DAY1 ・ 幕張メッセ ・ イベントホール ・ 17:00 開演"
     }
   ],
   "cast": {
@@ -152,7 +153,7 @@
       "path": "/venues/venue_makuhari/",
       "themeKey": "neutral",
       "artworkUrl": null,
-      "monogram": null
+      "monogram": "幕"
     }
   ],
   "app": {

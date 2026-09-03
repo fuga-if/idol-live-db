@@ -16,7 +16,7 @@
             "path": "/events/ev_sample/",
             "themeKey": "brand:ml",
             "artworkUrl": null,
-            "monogram": null
+            "monogram": "T"
           },
           "firstDate": "2026-04-03",
           "lastDate": "2026-04-04",
@@ -29,14 +29,16 @@
             "path": "/brands/ml/",
             "themeKey": "brand:ml",
             "artworkUrl": null,
-            "monogram": null
+            "monogram": "M"
           },
           "kind": "live",
           "kindLabel": "ライブ",
           "showCount": 2,
           "venueLabels": [
             "幕張メッセ"
-          ]
+          ],
+          "venueDisplay": "幕張メッセ",
+          "subtitle": "2026-04-03 〜 2026-04-04 ・ アイドルマスター ミリオンライブ! ・ 2 公演 ・ 幕張メッセ"
         }
       ]
     },
@@ -52,7 +54,7 @@
             "path": "/events/ev_the_idolm%40ster_%C3%97_%E3%81%B5%E3%81%9F%E3%81%94/",
             "themeKey": "brand:cg",
             "artworkUrl": null,
-            "monogram": null
+            "monogram": "T"
           },
           "firstDate": "2026-04-03",
           "lastDate": "2026-04-04",
@@ -65,14 +67,16 @@
             "path": "/brands/ml/",
             "themeKey": "brand:ml",
             "artworkUrl": null,
-            "monogram": null
+            "monogram": "M"
           },
           "kind": "festival",
           "kindLabel": "フェス",
           "showCount": 2,
           "venueLabels": [
             "幕張メッセ"
-          ]
+          ],
+          "venueDisplay": "幕張メッセ",
+          "subtitle": "2026-04-03 〜 2026-04-04 ・ アイドルマスター ミリオンライブ! ・ 2 公演 ・ 幕張メッセ"
         }
       ]
     }

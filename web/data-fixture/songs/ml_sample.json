@@ -13,7 +13,7 @@
     "path": "/brands/ml/",
     "themeKey": "brand:ml",
     "artworkUrl": null,
-    "monogram": null
+    "monogram": "M"
   },
   "songType": "original",
   "releaseDate": "2019-03-13",
@@ -89,7 +89,7 @@
       "path": "/songs/ml_sample_variant/",
       "themeKey": "brand:ml",
       "artworkUrl": null,
-      "monogram": null
+      "monogram": "T"
     }
   ],
   "performanceCount": 12,
@@ -103,7 +103,7 @@
         "path": "/shows/sh_sample_1/",
         "themeKey": "brand:ml",
         "artworkUrl": null,
-        "monogram": null
+        "monogram": "D"
       },
       "event": {
         "kind": "event",
@@ -113,7 +113,7 @@
         "path": "/events/ev_sample/",
         "themeKey": "brand:ml",
         "artworkUrl": null,
-        "monogram": null
+        "monogram": "T"
       },
       "date": "2026-04-03",
       "shortDate": "26/04",
@@ -150,7 +150,7 @@
         "path": "/songs/ml_sample_variant/",
         "themeKey": "brand:ml",
         "artworkUrl": null,
-        "monogram": null
+        "monogram": "T"
       },
       "together": 5,
       "performances": 9
@@ -165,7 +165,7 @@
       "path": "/songs/ml_sample_variant/",
       "themeKey": "brand:ml",
       "artworkUrl": null,
-      "monogram": null
+      "monogram": "T"
     }
   ],
   "app": {

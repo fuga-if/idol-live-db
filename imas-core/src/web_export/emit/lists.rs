@@ -4,7 +4,7 @@
 //! クライアント状態を持たないというユーザー指示の直接の帰結で、切替 UI は
 //! [`NavLink`] のリンク集になる。
 
-use super::context::Ctx;
+use super::context::{join_parts, Ctx};
 use super::events::show_summary;
 use super::places::{brand_counts, UNCLASSIFIED_PREFECTURE};
 use crate::domain::event_detail_queries as detail;
@@ -45,6 +45,7 @@ fn year_groups(
     ctx: &Ctx,
     records: &[EventWithDateRecord],
     upcoming: bool,
+    with_brand: bool,
 ) -> Vec<YearGroup> {
     let dates: Vec<Option<String>> = records.iter().map(|r| r.first_date.clone()).collect();
     group_events_by_year(&dates, upcoming, &ctx.today)
@@ -54,13 +55,45 @@ fn year_groups(
             events: g
                 .indices
                 .iter()
-                .filter_map(|&i| event_list_item(ctx, &records[i as usize]))
+                .filter_map(|&i| event_list_item(ctx, &records[i as usize], with_brand))
                 .collect(),
         })
         .collect()
 }
 
-fn event_list_item(ctx: &Ctx, record: &EventWithDateRecord) -> Option<EventListItem> {
+/// 開催期間の表記。1 日で終わるライブは 1 つだけ出す。
+fn date_range_display(first: Option<&str>, last: Option<&str>) -> Option<String> {
+    match (first, last) {
+        (Some(f), Some(l)) if f != l => Some(format!("{f} 〜 {l}")),
+        (Some(f), _) => Some(f.to_string()),
+        (None, Some(l)) => Some(l.to_string()),
+        (None, None) => None,
+    }
+}
+
+/// 会場をまとめた 1 行。多いときは畳む (ツアーは 20 会場を超える)。
+fn venue_display(labels: &[String]) -> Option<String> {
+    const SHOWN: usize = 3;
+    if labels.is_empty() {
+        return None;
+    }
+    if labels.len() <= SHOWN {
+        return join_parts(labels.iter().map(|l| Some(l.as_str())));
+    }
+    let head = labels[..SHOWN].join(crate::web_export::emit::context::PARTS_SEPARATOR);
+    Some(format!("{head} ほか {} 会場", labels.len() - SHOWN))
+}
+
+/// 一覧の 1 行。
+///
+/// `with_brand` は副題にブランド名を入れるか。**ブランド別ページでは入れない**
+/// (そのページの全行が同じブランドなので、行ごとに繰り返しても見分けに効かない)。
+/// 一覧 JSON はページ単位で吐かれるので、どちらの文脈かは作る側が知っている。
+fn event_list_item(
+    ctx: &Ctx,
+    record: &EventWithDateRecord,
+    with_brand: bool,
+) -> Option<EventListItem> {
     let e = &record.event;
     let show_count = ctx
         .snap
@@ -80,12 +113,21 @@ fn event_list_item(ctx: &Ctx, record: &EventWithDateRecord) -> Option<EventListI
         })
         .unwrap_or_default();
     venue_labels.dedup();
+    let brand = e.brand_id.as_deref().and_then(|b| ctx.brand_ref(b));
+    let venues = venue_display(&venue_labels);
     Some(EventListItem {
         reference: ctx.event_ref(&e.id)?,
         short_date: record.first_date.as_deref().map(short_year_month),
+        subtitle: join_parts([
+            date_range_display(record.first_date.as_deref(), record.last_date.as_deref()),
+            with_brand.then(|| brand.as_ref().map(|b| b.name.clone())).flatten(),
+            (show_count > 1).then(|| format!("{show_count} 公演")),
+            venues.clone(),
+        ]),
+        venue_display: venues,
         first_date: record.first_date.clone(),
         last_date: record.last_date.clone(),
-        brand: e.brand_id.as_deref().and_then(|b| ctx.brand_ref(b)),
+        brand,
         kind_label: content::kind_label(&e.kind).to_string(),
         kind: e.kind.clone(),
         show_count,
@@ -145,8 +187,8 @@ pub fn event_lists(ctx: &Ctx) -> Vec<Emitted<EventListPage>> {
     // `/` から辿れるようにするため。落とすとそのページが孤立する。
     let all = event_list_queries::events_with_first_date(ctx.snap, None, true, false, Some(&kinds));
 
-    let upcoming_groups = year_groups(ctx, &all, true);
-    let past_groups = year_groups(ctx, &all, false);
+    let upcoming_groups = year_groups(ctx, &all, true, true);
+    let past_groups = year_groups(ctx, &all, false, true);
     let upcoming_total: u32 = upcoming_groups.iter().map(|g| g.events.len() as u32).sum();
     let past_total: u32 = past_groups.iter().map(|g| g.events.len() as u32).sum();
 
@@ -246,8 +288,9 @@ pub fn event_lists(ctx: &Ctx) -> Vec<Emitted<EventListPage>> {
         }
         let records =
             event_list_queries::events_with_first_date(ctx.snap, Some(&brand.id), true, false, Some(&kinds));
-        let mut groups = year_groups(ctx, &records, true);
-        groups.extend(year_groups(ctx, &records, false));
+        // ブランド別ページなので、行の副題にブランド名は入れない。
+        let mut groups = year_groups(ctx, &records, true, false);
+        groups.extend(year_groups(ctx, &records, false, false));
         let path = format!("/events/brand/{}/", url_segment(&brand.id));
         out.push(make(
             &path,
@@ -277,20 +320,69 @@ fn default_song_filter(brand_ids: Vec<String>) -> SongListFilter {
     }
 }
 
-fn song_list_item(ctx: &Ctx, index: u32) -> Option<SongListItem> {
+/// 原唱者名を 1 行に畳む。全体曲は 50 人を超えるので、多いときは人数で丸める。
+fn artists_display(names: &[&str]) -> Option<String> {
+    const SHOWN: usize = 4;
+    if names.is_empty() {
+        return None;
+    }
+    if names.len() <= SHOWN {
+        return Some(names.join(" / "));
+    }
+    Some(format!("{} ほか {} 名", names[..SHOWN].join(" / "), names.len() - SHOWN))
+}
+
+/// 一覧の 1 行。
+///
+/// `light` は「`ref` だけの軽い行にするか」。`/songs/all/` は 3,153 行を 1 枚に並べる
+/// 到達性のためのハブなので、ジャケ・原唱者・披露回数を落として転送量を削る
+/// (付けたままだと 1 ファイル 2MB を超える)。
+fn song_list_item(ctx: &Ctx, index: u32, light: bool) -> Option<SongListItem> {
     let song = &ctx.snap.songs[index as usize];
+    let mut reference = ctx.song_ref(&song.id)?;
+    if light {
+        // ジャケも落とす。3,153 枚の外部画像をぶら下げるページにしない。
+        reference.artwork_url = None;
+        return Some(SongListItem {
+            reference,
+            release_date: None,
+            unit_label: None,
+            artists_display: None,
+            performance_count: None,
+            subtitle: None,
+        });
+    }
+    let names: Vec<&str> = ctx
+        .snap
+        .song_artists(&song.id, Some("original"))
+        .iter()
+        .map(|i| i.name.as_str())
+        .collect();
+    let artists = artists_display(&names);
     Some(SongListItem {
-        reference: ctx.song_ref(&song.id)?,
+        subtitle: join_parts([
+            song.unit_name.clone(),
+            artists.clone(),
+            song.release_date.clone(),
+        ]),
+        reference,
         release_date: song.release_date.clone(),
         unit_label: song.unit_name.clone(),
-        original_artists: ctx
-            .snap
-            .song_artists(&song.id, Some("original"))
-            .iter()
-            .filter_map(|i| ctx.idol_ref(&i.id))
-            .collect(),
-        performance_count: ctx.snap.performance_counts[index as usize],
+        artists_display: artists,
+        performance_count: Some(ctx.snap.performance_counts[index as usize]),
     })
+}
+
+/// ブランドの代表曲 (披露回数の降順)。並べ替えの規則はコアの `song_list_indexes` が持つ。
+pub fn brand_top_song_indexes(ctx: &Ctx, brand_id: &str) -> Vec<u32> {
+    song_list_indexes(
+        ctx.snap,
+        &default_song_filter(vec![brand_id.to_string()]),
+        SongListSort::PerformanceCount,
+        None,
+        &[],
+        &[],
+    )
 }
 
 /// よみの先頭 1 文字で切った目次。
@@ -321,7 +413,15 @@ fn kana_label(text: &str) -> String {
         return "英数".to_string();
     }
     // ひらがなの行 (小書き・濁点付きも含めて素直に範囲で切る)。
+    //
+    // 範囲の端に注意: `ゔ` (U+3094) は `ん` (U+3093) の**後ろ**にあるので
+    // 「わ行」の範囲に巻き込まれる。`ゕゖ` (U+3095..=U+3096) も同様に末尾にあり、
+    // 素直に上から順の範囲だけで書くと「その他」に落ちる。どちらも先に拾う。
     let row = match c {
+        // う + 濁点。畳み込みが `う゛` を 1 文字にするので実データに現れる。
+        'ゔ' => "あ",
+        // 小書きの か / け。
+        'ゕ'..='ゖ' => "か",
         'ぁ'..='お' => "あ",
         'か'..='ご' => "か",
         'さ'..='ぞ' => "さ",
@@ -339,6 +439,18 @@ fn kana_label(text: &str) -> String {
 
 pub fn song_lists(ctx: &Ctx) -> Vec<Emitted<SongListPage>> {
     let total_all = ctx.snap.songs.len() as u32;
+    // 既定フィルタを通した件数。ブランド切替の「すべて」に出す数はこれ
+    // (全 3,153 曲ではなく、その一覧が実際に並べる 2,035 曲)。
+    let listed = song_list_indexes(
+        ctx.snap,
+        &default_song_filter(vec![]),
+        SongListSort::TitleKana,
+        None,
+        &[],
+        &[],
+    );
+    let listed_total = listed.len() as u32;
+
     let make = |path: String,
                 title: String,
                 kind: SongListKind,
@@ -346,8 +458,9 @@ pub fn song_lists(ctx: &Ctx) -> Vec<Emitted<SongListPage>> {
                 data: String,
                 brand: Option<Ref>,
                 description: String| {
+        let light = matches!(kind, SongListKind::All);
         let items: Vec<SongListItem> =
-            indexes.iter().filter_map(|&i| song_list_item(ctx, i)).collect();
+            indexes.iter().filter_map(|&i| song_list_item(ctx, i, light)).collect();
         let brand_id = brand.as_ref().map(|b| b.id.clone());
         let mut seo = ctx.seo(
             &title,
@@ -381,20 +494,12 @@ pub fn song_lists(ctx: &Ctx) -> Vec<Emitted<SongListPage>> {
                     count: Some(total_all),
                 }),
                 items,
-                brand_links: brand_links(ctx, "songs", &path, "すべて", 0),
+                brand_links: brand_links(ctx, "songs", &path, "すべて", listed_total),
                 seo,
             },
         }
     };
 
-    let listed = song_list_indexes(
-        ctx.snap,
-        &default_song_filter(vec![]),
-        SongListSort::TitleKana,
-        None,
-        &[],
-        &[],
-    );
     let mut out = vec![make(
         "/songs/".to_string(),
         "楽曲".to_string(),
@@ -689,10 +794,16 @@ pub fn venue_lists(ctx: &Ctx) -> Vec<Emitted<VenueListPage>> {
 
     let item = |i: u32| -> Option<VenueListItem> {
         let v = &ctx.snap.venues[i as usize];
+        let location: Vec<&str> = [v.prefecture.as_deref(), v.city.as_deref()]
+            .into_iter()
+            .flatten()
+            .filter(|s| !s.is_empty())
+            .collect();
         Some(VenueListItem {
             reference: ctx.venue_ref(&v.id)?,
             prefecture: v.prefecture.clone(),
             city: v.city.clone(),
+            location_display: (!location.is_empty()).then(|| location.join(" ")),
             capacity: v.capacity.map(|c| c as i32),
             show_count: show_counts.get(v.id.as_str()).copied().unwrap_or(0),
         })
@@ -752,10 +863,19 @@ pub fn venue_lists(ctx: &Ctx) -> Vec<Emitted<VenueListPage>> {
 // ブランド一覧 / トップ / About
 // ---------------------------------------------------------------------------
 
+/// ブランドカードの見出し。短縮名をそのまま出し、長すぎるものだけ丸める。
+fn brand_glyph(short_name: &str) -> String {
+    const MAX_CHARS: usize = 6;
+    short_name.chars().take(MAX_CHARS).collect()
+}
+
 fn brand_list_item(ctx: &Ctx, brand_id: &str) -> Option<BrandListItem> {
     let brand = ctx.brand(brand_id)?;
     Some(BrandListItem {
         reference: ctx.brand_ref(brand_id)?,
+        // カードに大きく出す短い名前。短縮名は実データで最長 5 文字なのでそのまま通る。
+        // 2 文字に切ると `765AS` → `76`、`学マス` → `学マ` でどれも読めなくなる。
+        glyph: brand_glyph(&brand.short_name),
         short_name: Some(brand.short_name.clone()),
         counts: brand_counts(ctx, brand_id),
     })
@@ -902,6 +1022,7 @@ fn about_sections() -> Vec<AboutSection> {
                 "参加記録・投票・タグ付け・歌詞・コールはアプリでご利用いただけます。本サイトは閲覧専用です。".to_string(),
             ],
             links: vec![
+                AboutLink { label: "X (@idollivedb)".to_string(), href: content::X_URL.to_string(), external: true },
                 AboutLink { label: "プライバシーポリシー".to_string(), href: content::PRIVACY_URL.to_string(), external: true },
                 AboutLink { label: "サポート".to_string(), href: content::SUPPORT_URL.to_string(), external: true },
                 AboutLink { label: "利用規約".to_string(), href: content::TERMS_URL.to_string(), external: true },
@@ -933,7 +1054,7 @@ fn collection_json_ld(name: &str, path: &str) -> serde_json::Value {
 pub fn upcoming_items(ctx: &Ctx) -> Vec<EventListItem> {
     let kinds = all_event_kinds();
     let all = event_list_queries::events_with_first_date(ctx.snap, None, true, false, Some(&kinds));
-    year_groups(ctx, &all, true).into_iter().flat_map(|g| g.events).collect()
+    year_groups(ctx, &all, true, true).into_iter().flat_map(|g| g.events).collect()
 }
 
 /// 会場ページで使う公演要約 (`places.rs` から呼ぶ用の再輸出)。

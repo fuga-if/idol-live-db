@@ -5,4 +5,13 @@ import type { Ref } from "./Ref";
 /**
  * ブランド一覧の 1 行。
  */
-export type BrandListItem = { ref: Ref, shortName: string | null, counts: Counts, };
+export type BrandListItem = { ref: Ref, shortName: string | null, 
+/**
+ * ブランドカードに大きく出す短い名前 (`765AS` / `デレマス` / `SideM`)。
+ *
+ * [`Ref::monogram`] の 1 文字とは別物。カードには面積があるので短縮名を丸ごと出す
+ * — `765AS` を 2 文字に切ると `76`、`学マス` は `学マ` になり、どれも読めない。
+ * 実データの短縮名は最長 5 文字なので通常はそのまま通る。切る/切らないの判断を
+ * TS に持たせないための項目。
+ */
+glyph: string, counts: Counts, };

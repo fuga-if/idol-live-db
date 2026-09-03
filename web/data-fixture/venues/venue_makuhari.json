@@ -7,10 +7,12 @@
   "themeKey": "neutral",
   "prefecture": "千葉県",
   "city": "千葉市美浜区",
+  "locationDisplay": "千葉県 千葉市美浜区",
   "capacity": 9000,
   "aliases": [
     "幕張"
   ],
+  "aliasesDisplay": "幕張",
   "halls": [
     {
       "name": "イベントホール",
@@ -21,7 +23,8 @@
     {
       "name": "日本コンベンションセンター",
       "startDate": null,
-      "endDate": "1999-03-31"
+      "endDate": "1999-03-31",
+      "periodDisplay": "〜 1999-03-31"
     }
   ],
   "events": [
@@ -33,7 +36,7 @@
       "path": "/events/ev_sample/",
       "themeKey": "brand:ml",
       "artworkUrl": null,
-      "monogram": null
+      "monogram": "T"
     }
   ],
   "shows": [
@@ -46,7 +49,7 @@
         "path": "/shows/sh_sample_1/",
         "themeKey": "brand:ml",
         "artworkUrl": null,
-        "monogram": null
+        "monogram": "D"
       },
       "date": "2026-04-03",
       "shortDate": "26/04",
@@ -59,7 +62,7 @@
         "path": "/venues/venue_makuhari/",
         "themeKey": "neutral",
         "artworkUrl": null,
-        "monogram": null
+        "monogram": "幕"
       },
       "hall": "イベントホール",
       "startTime": "17:00",
@@ -73,8 +76,9 @@
         "path": "/events/ev_sample/",
         "themeKey": "brand:ml",
         "artworkUrl": null,
-        "monogram": null
-      }
+        "monogram": "T"
+      },
+      "subtitle": "DAY1 ・ 幕張メッセ ・ イベントホール ・ 17:00 開演"
     }
   ],
   "app": {

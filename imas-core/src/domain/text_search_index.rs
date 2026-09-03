@@ -59,10 +59,18 @@ impl TextSearchIndex {
 
     /// [`Self::folded_fields`] を `&str` として見たもの。
     ///
-    /// 畳み込みは `String` 上で行って `into_bytes()` しただけなので、各要素は常に
-    /// 妥当な UTF-8。万一そうでなくなったら、その要素だけ落とす (JSON に載せられない)。
+    /// 畳み込みは `String` の上で行って `into_bytes()` しただけなので、各要素は
+    /// **常に妥当な UTF-8**。ここで `filter_map(.ok())` のように黙って落とすと、
+    /// 索引から 1 フィールドだけが静かに消えて「検索に出てこない曲」が生まれる。
+    /// 不変条件が壊れたなら気付ける形で落とす。
     pub fn folded_str_fields(&self) -> Vec<&str> {
-        self.fields.iter().filter_map(|f| std::str::from_utf8(f).ok()).collect()
+        self.fields
+            .iter()
+            .map(|f| {
+                std::str::from_utf8(f)
+                    .expect("畳み済みフィールドは String 由来なので常に妥当な UTF-8")
+            })
+            .collect()
     }
 
     /// いずれかのフィールドに検索語を含むか。空の検索語は「絞り込まない」= true。

@@ -3,4 +3,9 @@
 /**
  * 旧称の 1 行 (命名権で会場名が変わる)。
  */
-export type VenueNameRow = { name: string, startDate: string | null, endDate: string | null, };
+export type VenueNameRow = { name: string, startDate: string | null, endDate: string | null, 
+/**
+ * 「1999-04-01 〜 2010-03-31」。片側しか無い場合は「〜 2010-03-31」「1999-04-01 〜」。
+ * どちらも無ければ `None` (期間の行を出さない)。
+ */
+periodDisplay: string | null, };

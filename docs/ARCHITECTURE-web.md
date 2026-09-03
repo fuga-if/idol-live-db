@@ -145,7 +145,7 @@ https://imas-live-web.tokata3011.workers.dev/
 
 - `trailingSlash: "always"` (Astro) と `html_handling: "force-trailing-slash"` (`wrangler.jsonc`) を対にする。
 - **id は生のまま (percent-encode のみ) を使う**。`domain/share_text.rs::escaped_id` は使わない — これは Swift の `URL(string:)` が「1 文字でも不正なら既存 `%` ごと再エンコードする」という癖を意図的に再現した関数で (`@` が `%2540` になる)、静的アセットのパス照合とは前提が異なる。
-- 危険文字・長すぎる id (既定 200 バイト超) だけ `<安全な先頭 N 文字>-<fnv1a64 の先頭 8 hex>` にフォールバックする部分適用。現行データでフォールバックに落ちるのは venues 2 件のみ (`/` を含む id)。フォールバック件数は Rust テストで固定してあり、新しい壊れ id が増えたら CI が気付く。
+- 危険文字・長すぎる id (`MAX_SEGMENT_BYTES` = **240 バイト**超) だけ `<安全な先頭 N 文字>-<fnv1a64 の先頭 8 hex>` にフォールバックする部分適用。**現在値は 2 件** (venues の `/` を含む id のみ・`unsafe=2 tooLong=0`)。上限を 200 から 240 に上げたのは、実データ最長 206 バイトのライブ 3 本を読める URL に戻すため (206 バイトの id が Astro のビルドと Cloudflare の配信の両方を通ることは実測済み)。フォールバック件数は**理由別に** Rust テストで固定してあり、危険 id が増えたら CI が気付く。
 - **`other` ブランド (ラブライブ等の合同ライブ楽曲・アイドル)** はページとしては掲載するが検索エンジンには載せない: `/brands/other/`・`/idols/brand/other/`・`other` 所属のアイドル/ユニット/曲の詳細ページは `<meta name="robots" content="noindex,follow">`。それ以外は `index,follow`。非公式ファンサイトが他フランチャイズ名で検索流入を取りに行かないための判断で、`SeoBlock.robots` として Rust 側が決め、Astro は `<meta>` と sitemap のフィルタに写すだけ (INV-1 のとおり判断は TS に置かない)。
 - `/songs/brand/other/` の一覧ページ自体は作らない (`SongListFilter` の既定 `include_other_brand=false` と矛盾するため)。`other` の曲は検索と個別ページからのみ到達する。
 
@@ -235,13 +235,15 @@ Cloudflare Workers Static Assets の上限は **20,000 ファイル / 1 ファ�
 
 | 指標 | 見積り (設計時点) | 実測 |
 |---|---|---|
-| ファイル数 | 約 7,690 (HTML 約 7,510 + 索引/固定ページ 約 140 + 資産 約 30) | *(統合検証で更新)* |
-| 最大ファイルサイズ | 1 MiB 未満 (最長は披露履歴の多い曲ページ) | *(統合検証で更新)* |
-| 総サイズ | 130–160 MB (平均 HTML 約 18KB × 約 7,650) | *(統合検証で更新)* |
-| 検索索引 (brotli 後) | 約 250KB (4 シャード) | *(統合検証で更新)* |
-| 上限に対する余裕 | ファイル数で 38% 程度。songs 5,000 / units 2,500 / shows 2,000 まで増えても半分以下 | — |
+| ページ数 | 約 7,650 | **7,631** |
+| ファイル数 (`dist/`) | 約 7,690 | **約 7,665** |
+| 最大ファイルサイズ | 1 MiB 未満 | **1.1 MB** (`/songs/` と `/songs/all/` の一覧 JSON。HTML は 1 MiB 未満) |
+| 総サイズ | 130–160 MB | **約 166 MB** |
+| 検索索引 (brotli 後) | 約 250KB (4 シャード) | **約 170KB** (raw 784KB) |
+| URL フォールバック slug | 2 件 (venues の `/`) | **2 件** (`unsafe=2 tooLong=0`) |
+| 上限に対する余裕 | ファイル数で 38% 程度 | 20,000 に対して 38%。songs 5,000 / units 2,500 / shows 2,000 まで増えても半分以下 |
 
-実測値は `npm run build` の `[check-limits]` ログと `npx wrangler deploy --dry-run` の結果から埋める (本タスクの最終ステップ)。
+実測値は `web-export` の stderr 統計 (`pages=… files=… bytes=… fallbackSlugs=…`)、`npm run build` の `[check-limits]` ログ、`npx wrangler deploy --dry-run` から埋めてある。
 
 ---
 

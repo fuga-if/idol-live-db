@@ -16,4 +16,12 @@ venueLabel: string | null, venue: Ref | null, hall: string | null, startTime: st
 /**
  * ライブ名 (会場ページなど、ライブの外から公演を並べるときに要る)。
  */
-event: Ref | null, };
+event: Ref | null, 
+/**
+ * 行の副題。
+ *
+ * **並べる場所によって中身が変わる**: ライブ詳細では親ライブ名が自明なので入らず、
+ * トップと会場詳細では入る。出し分けは JSON を作る側で済ませてあるので、
+ * TS は文脈を見ずにそのまま描いてよい ([`Self::event`] の有無と対応する)。
+ */
+subtitle: string | null, };

@@ -72,6 +72,10 @@ pub struct EventListItem {
     pub kind_label: String,
     pub show_count: u32,
     pub venue_labels: Vec<String>,
+    /// 会場をまとめた 1 行 (`" ・ "` 連結。3 つを超えたら「ほか N 会場」)。
+    pub venue_display: Option<String>,
+    /// 行の副題 (期間・公演数・会場)。空なら `None`。
+    pub subtitle: Option<String>,
 }
 
 // ---------------------------------------------------------------------------
@@ -123,8 +127,22 @@ pub struct SongListItem {
     pub reference: Ref,
     pub release_date: Option<String>,
     pub unit_label: Option<String>,
-    pub original_artists: Vec<Ref>,
-    pub performance_count: u32,
+    /// 原唱者名を `" / "` で繋いだもの。多いときは「ほか N 名」で畳む。空なら `None`。
+    ///
+    /// 原唱者の [`Ref`] 列は**持たない**。一覧の行はここを 1 行描くだけで、
+    /// 全体曲は原唱者が 50 人を超えるため、行ごとに Ref を並べると
+    /// `/songs/` の JSON だけで 2.8MB になっていた (実測)。1 人ずつ辿りたいときは
+    /// 曲の詳細ページに全員分がある。
+    pub artists_display: Option<String>,
+    /// 披露回数。
+    ///
+    /// `/songs/all/` (全件ハブ) では **`None`**。あちらは 3,153 行を 1 枚に並べる
+    /// 到達性のためのページなので、行に付ける情報を `ref` だけまで削ってある。
+    /// `0` ではなく `None` にしてあるのは、「0 回披露」と「載せていない」を
+    /// 取り違えないようにするため。
+    pub performance_count: Option<u32>,
+    /// 行の副題 (ユニット名・原唱者・リリース日)。空なら `None`。
+    pub subtitle: Option<String>,
 }
 
 /// かな目次の 1 区画。
@@ -237,6 +255,8 @@ pub struct VenueListItem {
     pub reference: Ref,
     pub prefecture: Option<String>,
     pub city: Option<String>,
+    /// 「千葉県 千葉市美浜区」。
+    pub location_display: Option<String>,
     pub capacity: Option<i32>,
     pub show_count: u32,
 }
@@ -261,6 +281,13 @@ pub struct BrandListItem {
     #[serde(rename = "ref")]
     pub reference: Ref,
     pub short_name: Option<String>,
+    /// ブランドカードに大きく出す短い名前 (`765AS` / `デレマス` / `SideM`)。
+    ///
+    /// [`Ref::monogram`] の 1 文字とは別物。カードには面積があるので短縮名を丸ごと出す
+    /// — `765AS` を 2 文字に切ると `76`、`学マス` は `学マ` になり、どれも読めない。
+    /// 実データの短縮名は最長 5 文字なので通常はそのまま通る。切る/切らないの判断を
+    /// TS に持たせないための項目。
+    pub glyph: String,
     pub counts: Counts,
 }
 

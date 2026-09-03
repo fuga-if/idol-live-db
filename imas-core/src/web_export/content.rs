@@ -16,6 +16,8 @@ pub const SITE_DISCLAIMER: &str =
 
 pub const APP_STORE_URL: &str = "https://apps.apple.com/jp/app/id6763342297";
 pub const HASHTAG: &str = "#アイドルライブDB";
+/// 公式 X アカウント (@idollivedb)。
+pub const X_URL: &str = "https://x.com/idollivedb";
 pub const PRIVACY_URL: &str = "https://fuga-if.github.io/imas-live-privacy/privacy.html";
 pub const SUPPORT_URL: &str = "https://fuga-if.github.io/imas-live-privacy/support.html";
 pub const TERMS_URL: &str = "https://fuga-if.github.io/imas-live-privacy/terms.html";
@@ -44,6 +46,7 @@ pub fn app_links() -> AppLinks {
         // 生きていないリンクを出面に置かない。
         play_store_url: None,
         hashtag: HASHTAG.to_string(),
+        x_url: Some(X_URL.to_string()),
         privacy_url: PRIVACY_URL.to_string(),
         support_url: SUPPORT_URL.to_string(),
         terms_url: TERMS_URL.to_string(),

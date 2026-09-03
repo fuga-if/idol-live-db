@@ -7,4 +7,12 @@ export type AppLinks = { appStoreUrl: string,
 /**
  * Google Play は 2026-09-04 時点で 404 のため `None`。出面にリンクを出さない。
  */
-playStoreUrl: string | null, hashtag: string, privacyUrl: string, supportUrl: string, termsUrl: string, repositoryUrl: string, };
+playStoreUrl: string | null, hashtag: string, 
+/**
+ * 公式 X アカウント。
+ *
+ * `Option` のままにしてあるのは、**リンクを出すかどうかの判断をデータ側に置く**ため。
+ * TS は「あればリンクを出す」だけを書けばよく、アカウントを畳んだり移したりしても
+ * 出面のコードを触らずに済む (Google Play を `None` にしてあるのと同じ扱い)。
+ */
+xUrl: string | null, privacyUrl: string, supportUrl: string, termsUrl: string, repositoryUrl: string, };

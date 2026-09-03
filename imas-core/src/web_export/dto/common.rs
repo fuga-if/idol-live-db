@@ -64,6 +64,12 @@ pub struct AppLinks {
     /// Google Play は 2026-09-04 時点で 404 のため `None`。出面にリンクを出さない。
     pub play_store_url: Option<String>,
     pub hashtag: String,
+    /// 公式 X アカウント。
+    ///
+    /// `Option` のままにしてあるのは、**リンクを出すかどうかの判断をデータ側に置く**ため。
+    /// TS は「あればリンクを出す」だけを書けばよく、アカウントを畳んだり移したりしても
+    /// 出面のコードを触らずに済む (Google Play を `None` にしてあるのと同じ扱い)。
+    pub x_url: Option<String>,
     pub privacy_url: String,
     pub support_url: String,
     pub terms_url: String,
@@ -92,8 +98,16 @@ pub struct Ref {
     /// ジャケ画像 (Apple Music CDN)。曲以外は常に `None`。
     /// **これがサイト唯一の外部画像**で、版権物はこれ以外に載せない。
     pub artwork_url: Option<String>,
-    /// アイドル / ユニットの 1 文字 (アプリの `ImasAvatar` と同じ「表示名の先頭 1 文字」)。
-    pub monogram: Option<String>,
+    /// アバター代わりの 1 文字 (アプリの `ImasAvatar` と同じ)。**必ず入る。**
+    ///
+    /// アイドルとユニットは表示名の先頭 1 文字、ブランドは短縮名の先頭 1 文字。
+    /// 画像を載せない (版権物ゼロ) ので、これが唯一の「顔」になる。
+    ///
+    /// `Option` にしていないのは、TS 側から `?? name.slice(0, 1)` を消すため。
+    /// 先頭 1 文字の切り出しは書記素クラスタの扱いが言語ごとに違うので、
+    /// **切る場所を決めるのは 1 箇所**でなければならない。曲・ライブ・公演・会場でも
+    /// 同じ規則で埋まるが、これらは表示に使わない。
+    pub monogram: String,
 }
 
 /// [`Ref`] が指す先の種別。

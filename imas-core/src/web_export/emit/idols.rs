@@ -1,6 +1,6 @@
 //! アイドル (idol) とユニット (unit) の詳細ページ。
 
-use super::context::Ctx;
+use super::context::{distinguishing_show_name, join_parts, Ctx};
 use crate::domain::idol_queries;
 use crate::domain::idol_song_queries;
 use crate::domain::screen_composition::{idol_profile_rows, RowAction, RowStyle};
@@ -48,12 +48,18 @@ pub fn idol_page(ctx: &Ctx, idol_id: &str) -> Option<IdolPage> {
         profile_rows: profile_rows(ctx, &record),
         voice_actor_history: idol_queries::voice_actor_history(ctx.snap, idol_id)
             .into_iter()
-            .map(|v| VoiceActorRow {
-                is_current: voice_actor.as_deref() == Some(v.name.as_str()) && v.valid_to.is_none(),
-                name: v.name,
-                start_date: v.valid_from,
-                end_date: v.valid_to,
-                note: None,
+            .map(|v| {
+                let period = period_display(v.valid_from.as_deref(), v.valid_to.as_deref());
+                VoiceActorRow {
+                    is_current: voice_actor.as_deref() == Some(v.name.as_str())
+                        && v.valid_to.is_none(),
+                    display: join_parts([Some(v.name.clone()), period.clone()])
+                        .unwrap_or_else(|| v.name.clone()),
+                    name: v.name,
+                    start_date: v.valid_from,
+                    end_date: v.valid_to,
+                    note: None,
+                }
             })
             .collect(),
         current_voice_actor: voice_actor,
@@ -70,8 +76,14 @@ pub fn idol_page(ctx: &Ctx, idol_id: &str) -> Option<IdolPage> {
                     .get(&s.song_id)
                     .map(|&i| ctx.snap.performance_counts[i as usize])
                     .unwrap_or(0);
+                let song = ctx.song_ref(&s.song_id)?;
                 Some(IdolSongRow {
-                    song: ctx.song_ref(&s.song_id)?,
+                    subtitle: join_parts([
+                        song.sub.clone(),
+                        s.release_date.clone(),
+                        (performance_count > 0).then(|| format!("{performance_count} 回披露")),
+                    ]),
+                    song,
                     role: Some(s.role),
                     release_date: s.release_date,
                     performance_count,
@@ -81,8 +93,13 @@ pub fn idol_page(ctx: &Ctx, idol_id: &str) -> Option<IdolPage> {
         performed_songs: idol_song_queries::idol_performed_songs(ctx.snap, idol_id)
             .into_iter()
             .filter_map(|s| {
+                let song = ctx.song_ref(&s.song_id)?;
                 Some(IdolPerformedRow {
-                    song: ctx.song_ref(&s.song_id)?,
+                    subtitle: join_parts([
+                        song.sub.clone(),
+                        Some(format!("{} 回披露", s.perform_count)),
+                    ]),
+                    song,
                     times: s.perform_count,
                     last_date: None,
                 })
@@ -91,9 +108,15 @@ pub fn idol_page(ctx: &Ctx, idol_id: &str) -> Option<IdolPage> {
         shows: idol_queries::idol_shows(ctx.snap, idol_id)
             .into_iter()
             .filter_map(|s| {
+                let event = ctx.event_ref(&s.event_id)?;
+                // 行のタイトルがライブ名なので、公演名から重なる部分を落とす
+                // (披露履歴の placeDisplay と同じ規則)。
+                let show_label =
+                    distinguishing_show_name(&s.event_name, &s.show_name).map(str::to_string);
                 Some(IdolShowRow {
+                    subtitle: join_parts([show_label, s.venue.clone()]),
                     show: ctx.show_ref(&s.show_id)?,
-                    event: ctx.event_ref(&s.event_id)?,
+                    event,
                     short_date: short_year_month(&s.date),
                     date: s.date,
                     venue_label: s.venue,
@@ -148,6 +171,16 @@ fn profile_rows(ctx: &Ctx, record: &idol_queries::IdolRecord) -> Vec<ProfileRow>
             },
         })
         .collect()
+}
+
+/// 在任期間の表記。片側しか無ければその側だけを出す。どちらも無ければ行に出さない。
+pub fn period_display(start: Option<&str>, end: Option<&str>) -> Option<String> {
+    match (start.filter(|s| !s.is_empty()), end.filter(|s| !s.is_empty())) {
+        (None, None) => None,
+        (Some(s), None) => Some(format!("{s} 〜")),
+        (None, Some(e)) => Some(format!("〜 {e}")),
+        (Some(s), Some(e)) => Some(format!("{s} 〜 {e}")),
+    }
 }
 
 /// そのアイドルがその公演で歌った曲数。

@@ -18,8 +18,12 @@ pub struct VenuePage {
     /// 都道府県 (文字列。空のものは一覧では `未分類` に集める)。
     pub prefecture: Option<String>,
     pub city: Option<String>,
+    /// 「千葉県 千葉市美浜区」。都道府県と市区町村の連結を TS に書かせない。
+    pub location_display: Option<String>,
     pub capacity: Option<i32>,
     pub aliases: Vec<String>,
+    /// 別名を `" ・ "` で繋いだもの。空なら `None`。
+    pub aliases_display: Option<String>,
     pub halls: Vec<HallRow>,
     /// 旧称。
     pub past_names: Vec<VenueNameRow>,
@@ -46,4 +50,7 @@ pub struct VenueNameRow {
     pub name: String,
     pub start_date: Option<String>,
     pub end_date: Option<String>,
+    /// 「1999-04-01 〜 2010-03-31」。片側しか無い場合は「〜 2010-03-31」「1999-04-01 〜」。
+    /// どちらも無ければ `None` (期間の行を出さない)。
+    pub period_display: Option<String>,
 }

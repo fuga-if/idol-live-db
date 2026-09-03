@@ -580,18 +580,108 @@ mod real {
     }
 
     #[test]
-    fn t6b_the_field_separator_never_appears_in_the_index_itself() {
-        // 区切りが本文に混ざると、境界をまたぐ偽陽性を防ぐ仕掛けが無効になる。
+    fn t6b_the_field_separator_never_leaks_into_the_index_text() {
+        // 区切り (U+0001) が本文に混ざると、フィールド境界をまたぐ偽陽性を防ぐ仕掛けが
+        // 無効になる (`f.includes(q)` が別フィールドをまたいで当たる)。
+        //
+        // 「連結を解いたら索引のフィールド列に戻る」ことを実データ全件で見る。
+        // これが成り立つ限り、本文に区切りは 1 つも混ざっていない。
         let ctx = ctx();
+        let mut checked = 0usize;
         for shard in search::shards(&ctx) {
-            for row in &shard.shard.rows {
+            let indexes = match shard.shard.kind {
+                RefKind::Song => &snap().song_search,
+                RefKind::Idol => &snap().idol_search,
+                RefKind::Event => &snap().event_search,
+                RefKind::Venue => &snap().venue_search,
+                other => panic!("知らないシャード: {other:?}"),
+            };
+            assert_eq!(shard.shard.rows.len(), indexes.len(), "{} の行数", shard.file);
+            for (row, index) in shard.shard.rows.iter().zip(indexes) {
+                let fields: Vec<&str> = if row.f.is_empty() {
+                    // 索引が空 (曲名もよみも空) の行。split は [""] を返すので特別扱い。
+                    Vec::new()
+                } else {
+                    row.f.split(search::SEP).collect()
+                };
+                assert_eq!(
+                    fields,
+                    index.folded_str_fields(),
+                    "{}: 連結を解いても索引のフィールド列に戻らない ({:?})",
+                    shard.file,
+                    row.n
+                );
                 assert!(
                     !row.n.contains(search::SEP),
                     "{}: 表示名に区切り文字が入っている ({:?})",
                     shard.file,
                     row.n
                 );
+                checked += 1;
             }
+        }
+        assert!(checked > 4_000, "確かめた行が少なすぎる: {checked}");
+    }
+
+    // -----------------------------------------------------------------------
+    // L-7: マスタの分類値
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn l7_event_kinds_and_release_types_stay_within_the_known_set() {
+        // 未知の値が入ると、表示名の写像 (content::kind_label) が黙って
+        // 「その他」「リリース」に落ちる。ラベルが消えたことは画面を見ないと
+        // 気付けないので、値の集合の方をここで固定する。
+        let kinds: BTreeSet<&str> = snap().events.iter().map(|e| e.kind.as_str()).collect();
+        let known: BTreeSet<&str> =
+            ["live", "festival", "release_event", "other", "radio", "stream"].into_iter().collect();
+        assert!(
+            kinds.is_subset(&known),
+            "知らない events.kind がある: {:?}\n\
+             content::kind_label と lists::all_event_kinds の両方に足すこと \
+             (all_event_kinds に足し忘れると一覧から静かに消える)。",
+            kinds.difference(&known).collect::<Vec<_>>()
+        );
+
+        let types: BTreeSet<&str> =
+            snap().event_releases.iter().map(|r| r.product_type.as_str()).collect();
+        let known_types: BTreeSet<&str> =
+            ["bluray", "dvd", "cd", "digital"].into_iter().collect();
+        assert!(
+            types.is_subset(&known_types),
+            "知らない event_releases.product_type がある: {:?}\n\
+             emit::events::release_kind_label に足すこと。",
+            types.difference(&known_types).collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn l1_kana_index_places_every_listed_song_in_a_real_row() {
+        // かな目次で「その他」に落ちる曲が増えていないか。`ゔ` や小書きの `ゕゖ` は
+        // ひらがなの並びの末尾にあるので、範囲を素直に書くと取りこぼす。
+        let dir = exported();
+        let songs: SongListPage = serde_json::from_str(
+            &std::fs::read_to_string(dir.path().join("index/songs.json")).unwrap(),
+        )
+        .unwrap();
+        let other: u32 = songs
+            .kana_sections
+            .iter()
+            .filter(|s| s.label == "その他")
+            .map(|s| s.count)
+            .sum();
+        let total: u32 = songs.kana_sections.iter().map(|s| s.count).sum();
+        assert_eq!(total, songs.items.len() as u32, "目次が全行を覆っていない");
+        // 記号始まりの曲名は実在するので 0 にはならないが、行の取りこぼしがあると跳ね上がる。
+        assert!(
+            f64::from(other) / f64::from(total) < 0.15,
+            "「その他」が多すぎる ({other}/{total})。かなの範囲に抜けがある可能性"
+        );
+        // 区画は items の並び順に沿って連続していること。
+        let mut expected_start = 0u32;
+        for section in &songs.kana_sections {
+            assert_eq!(section.start_index, expected_start, "区画 {} の開始位置", section.label);
+            expected_start += section.count;
         }
     }
 

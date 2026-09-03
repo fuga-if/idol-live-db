@@ -8,4 +8,8 @@ export type IdolSongRow = { song: Ref,
 /**
  * `song_artists.role` (`original` / `cover` 等)。
  */
-role: string | null, releaseDate: string | null, performanceCount: number, };
+role: string | null, releaseDate: string | null, performanceCount: number, 
+/**
+ * 行の副題 (ユニット名・リリース日・披露回数を `" ・ "` で繋いだもの)。空なら `None`。
+ */
+subtitle: string | null, };
