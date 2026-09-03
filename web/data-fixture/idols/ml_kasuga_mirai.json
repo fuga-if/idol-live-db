@@ -56,7 +56,6 @@
       "startDate": "2013-02-27",
       "endDate": null,
       "isCurrent": true,
-      "note": null,
       "display": "山崎はるか ・ 2013-02-27 〜"
     }
   ],
@@ -103,7 +102,6 @@
         "monogram": "T"
       },
       "times": 3,
-      "lastDate": "2026-04-03",
       "subtitle": "派生曲 ・ 3 回披露"
     }
   ],
@@ -140,7 +138,6 @@
   "app": {
     "appStoreUrl": "https://apps.apple.com/jp/app/id6763342297",
     "deeplink": null,
-    "deeplinkKind": null,
     "note": "参加記録・投票・歌詞・コール・タグ付けはアプリでご利用いただけます。"
   },
   "seo": {

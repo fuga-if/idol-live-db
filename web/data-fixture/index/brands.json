@@ -16,16 +16,7 @@
       },
       "shortName": "ML",
       "glyph": "ML",
-      "counts": {
-        "events": 851,
-        "shows": 1341,
-        "songs": 3153,
-        "idols": 394,
-        "units": 1539,
-        "venues": 234,
-        "brands": 9,
-        "setlistItems": 13762
-      }
+      "previewDisplay": "ライブ 210 ・ 楽曲 600 ・ アイドル 52 ・ ユニット 300"
     },
     {
       "ref": {
@@ -40,16 +31,7 @@
       },
       "shortName": "CG",
       "glyph": "CG",
-      "counts": {
-        "events": 851,
-        "shows": 1341,
-        "songs": 3153,
-        "idols": 394,
-        "units": 1539,
-        "venues": 234,
-        "brands": 9,
-        "setlistItems": 13762
-      }
+      "previewDisplay": "ライブ 210 ・ 楽曲 600 ・ アイドル 52 ・ ユニット 300"
     },
     {
       "ref": {
@@ -64,16 +46,7 @@
       },
       "shortName": "その他",
       "glyph": "その",
-      "counts": {
-        "events": 851,
-        "shows": 1341,
-        "songs": 3153,
-        "idols": 394,
-        "units": 1539,
-        "venues": 234,
-        "brands": 9,
-        "setlistItems": 13762
-      }
+      "previewDisplay": "ライブ 210 ・ 楽曲 600 ・ アイドル 52 ・ ユニット 300"
     }
   ],
   "seo": {

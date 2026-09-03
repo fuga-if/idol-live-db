@@ -3,6 +3,7 @@ import type { AppOpen } from "./AppOpen";
 import type { CoOccurRow } from "./CoOccurRow";
 import type { CreditGroup } from "./CreditGroup";
 import type { PerformanceRow } from "./PerformanceRow";
+import type { ProfileRow } from "./ProfileRow";
 import type { Ref } from "./Ref";
 import type { SeoBlock } from "./SeoBlock";
 import type { SingerRow } from "./SingerRow";
@@ -13,7 +14,7 @@ import type { SingerRow } from "./SingerRow";
  * **ページは全曲ぶん作る** (派生曲・`other` ブランドを含む)。共有リンクや検索から
  * 到達できるべきだから。一覧に載せるかどうかだけが `SongListFilter` の判断。
  */
-export type SongPage = { schemaVersion: number, id: string, path: string, title: string, titleKana: string | null, themeKey: string, brand: Ref | null, songType: string | null, releaseDate: string | null, durationSec: number | null, 
+export type SongPage = { schemaVersion: number, id: string, path: string, title: string, titleKana: string | null, themeKey: string, brand: Ref | null, songType: string | null, releaseDate: string | null, 
 /**
  * `"4:32"`。整形だけなのでここで作る。
  */
@@ -21,7 +22,7 @@ durationDisplay: string | null,
 /**
  * `credit_names::split_credits` 済み。
  */
-credits: Array<CreditGroup>, cdSeries: string | null, cdTitle: string | null, seriesGroup: string | null, 
+credits: Array<CreditGroup>, cdTitle: string | null, 
 /**
  * 「シリーズ」行に出す 1 つの値 (`cd_series` が無ければ `series_group`)。
  * どちらを優先するかは表示の判断なので Rust 側で解決しておく。
@@ -46,7 +47,14 @@ variants: Array<Ref>, performanceCount: number,
 /**
  * date 降順。
  */
-performanceHistory: Array<PerformanceRow>, frequentSingers: Array<SingerRow>, coOccurring: Array<CoOccurRow>, related: Array<Ref>, app: AppOpen, seo: SeoBlock, 
+performanceHistory: Array<PerformanceRow>, frequentSingers: Array<SingerRow>, coOccurring: Array<CoOccurRow>, related: Array<Ref>, 
+/**
+ * 「基本情報」の行 (リリース・収録・シリーズ・再生時間・JASRAC 作品コード)。
+ *
+ * アイドルの `profile_rows` と同じ形。**どの項目をどの順で出すか / 値が無い行を
+ * 落とすか**の判断はここで済ませてあるので、web は上から並べるだけでよい。
+ */
+factRows: Array<ProfileRow>, app: AppOpen, seo: SeoBlock, 
 /**
  * 歌詞は Web に載せない。この固定文だけを出す。
  * JASRAC 許諾を持つのは**アプリ**であって本サイトではない、という主語を崩さないこと。

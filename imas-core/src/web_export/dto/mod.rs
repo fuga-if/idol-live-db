@@ -21,10 +21,11 @@ pub mod venue;
 pub use brand::BrandPage;
 pub use common::{
     AppLinks, AppOpen, Counts, Crumb, NavLink, Ref, RefKind, Robots, SeoBlock, SiteMeta,
-    ThemePair, ThemeTable, ThemeTokens, SCHEMA_VERSION,
+    StatTile, ThemePair, ThemeTable, ThemeTokens, SCHEMA_VERSION,
 };
 pub use event::{
-    EventCast, EventPage, EventStats, ReleaseInfo, ShowIdolIds, ShowSummary, TicketInfo,
+    EventCast, EventCastMember, EventCastShow, EventPage, EventStats, ReleaseInfo, ShowSummary,
+    TicketInfo,
 };
 pub use idol::{IdolPage, IdolPerformedRow, IdolShowRow, IdolSongRow, ProfileRow, VoiceActorRow};
 pub use index::{

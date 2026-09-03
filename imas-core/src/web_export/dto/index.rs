@@ -4,7 +4,7 @@
 //! 出す。クライアント状態を持たせないというユーザー指示の直接の帰結で、切替 UI は
 //! [`super::common::NavLink`] のリンク集になる。
 
-use super::common::{AppLinks, Counts, NavLink, Ref, SeoBlock};
+use super::common::{AppLinks, NavLink, Ref, SeoBlock, StatTile};
 use super::event::ShowSummary;
 use serde::{Deserialize, Serialize};
 
@@ -71,10 +71,10 @@ pub struct EventListItem {
     pub kind: String,
     pub kind_label: String,
     pub show_count: u32,
-    pub venue_labels: Vec<String>,
-    /// 会場をまとめた 1 行 (`" ・ "` 連結。3 つを超えたら「ほか N 会場」)。
-    pub venue_display: Option<String>,
-    /// 行の副題 (期間・公演数・会場)。空なら `None`。
+    /// 行の副題 (期間・ブランド名・公演数・会場)。空なら `None`。
+    ///
+    /// ブランド名を入れるかは**そのページの文脈**で決まり、作る側が解決済み
+    /// (ブランド別一覧では入らない)。
     pub subtitle: Option<String>,
 }
 
@@ -127,13 +127,6 @@ pub struct SongListItem {
     pub reference: Ref,
     pub release_date: Option<String>,
     pub unit_label: Option<String>,
-    /// 原唱者名を `" / "` で繋いだもの。多いときは「ほか N 名」で畳む。空なら `None`。
-    ///
-    /// 原唱者の [`Ref`] 列は**持たない**。一覧の行はここを 1 行描くだけで、
-    /// 全体曲は原唱者が 50 人を超えるため、行ごとに Ref を並べると
-    /// `/songs/` の JSON だけで 2.8MB になっていた (実測)。1 人ずつ辿りたいときは
-    /// 曲の詳細ページに全員分がある。
-    pub artists_display: Option<String>,
     /// 披露回数。
     ///
     /// `/songs/all/` (全件ハブ) では **`None`**。あちらは 3,153 行を 1 枚に並べる
@@ -288,7 +281,11 @@ pub struct BrandListItem {
     /// 実データの短縮名は最長 5 文字なので通常はそのまま通る。切る/切らないの判断を
     /// TS に持たせないための項目。
     pub glyph: String,
-    pub counts: Counts,
+    /// カードの 1 行紹介 (`ライブ 210 ・ 楽曲 600 ・ アイドル 52 ・ ユニット 300`)。
+    ///
+    /// 素の `Counts` を配ると .astro が組み立て直すことになり、実際にトップと
+    /// `/brands/` で項目数が食い違っていた (片方だけユニット数が無かった)。
+    pub preview_display: String,
 }
 
 // ---------------------------------------------------------------------------
@@ -310,7 +307,8 @@ pub struct HomePage {
     pub upcoming: Vec<EventListItem>,
     /// 最近の公演 (直近 8 件)。
     pub recent_shows: Vec<ShowSummary>,
-    pub counts: Counts,
+    /// 件数タイル (ライブ / 公演 / 楽曲 / アイドル / ユニット / 会場)。各一覧への入口を持つ。
+    pub stat_tiles: Vec<StatTile>,
     pub brands: Vec<BrandListItem>,
     pub app: AppLinks,
     /// 「今後のライブ」「開催済み」等への入口。
@@ -325,7 +323,8 @@ pub struct HomePage {
 pub struct AboutPage {
     pub schema_version: u32,
     pub path: String,
-    pub counts: Counts,
+    /// 件数タイル (トップの 6 種 + セトリ項目)。押せるリンクは持たない。
+    pub stat_tiles: Vec<StatTile>,
     pub data_version: Option<String>,
     pub content_hash: Option<String>,
     pub generated_at: String,

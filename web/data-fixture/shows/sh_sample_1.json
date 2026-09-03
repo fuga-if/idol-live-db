@@ -45,8 +45,6 @@
     {
       "id": "si_1",
       "number": 1,
-      "position": 11593,
-      "section": "本編",
       "notes": null,
       "unitLabel": "765MILLION ALLSTARS",
       "song": {
@@ -71,8 +69,7 @@
             "artworkUrl": null,
             "monogram": "春"
           },
-          "displayName": "山崎はるか",
-          "idolName": "春日未来"
+          "displayName": "山崎はるか"
         }
       ],
       "originalArtists": [
@@ -102,8 +99,6 @@
     {
       "id": "si_2",
       "number": 2,
-      "position": 11594,
-      "section": null,
       "notes": "映像のみ",
       "unitLabel": null,
       "song": {
@@ -158,7 +153,6 @@
   "app": {
     "appStoreUrl": "https://apps.apple.com/jp/app/id6763342297",
     "deeplink": "imaslivedb://shows/sh_sample_1",
-    "deeplinkKind": "show",
     "note": "参加記録・投票・歌詞・コール・タグ付けはアプリでご利用いただけます。"
   },
   "seo": {

@@ -7,7 +7,7 @@ export type AppLinks = { appStoreUrl: string,
 /**
  * Google Play は 2026-09-04 時点で 404 のため `None`。出面にリンクを出さない。
  */
-playStoreUrl: string | null, hashtag: string, 
+playStoreUrl: string | null, 
 /**
  * 公式 X アカウント。
  *

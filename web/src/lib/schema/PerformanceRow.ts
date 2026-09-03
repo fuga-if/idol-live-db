@@ -10,10 +10,6 @@ export type PerformanceRow = { show: Ref, event: Ref, date: string, shortDate: s
  */
 number: number, 
 /**
- * 並び順の鍵。表示用の番号ではない ([`super::show::SetlistRow::number`] を見よ)。
- */
-position: number, section: string | null, 
-/**
  * 1 行で出すときの場所表記 (公演名と会場を `" ・ "` で繋いだもの)。
  */
 placeDisplay: string, };

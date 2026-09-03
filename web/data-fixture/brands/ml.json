@@ -4,18 +4,33 @@
   "path": "/brands/ml/",
   "name": "アイドルマスター ミリオンライブ!",
   "shortName": "ML",
-  "color": "#ffc30b",
   "themeKey": "brand:ml",
-  "counts": {
-    "events": 851,
-    "shows": 1341,
-    "songs": 3153,
-    "idols": 394,
-    "units": 1539,
-    "venues": 234,
-    "brands": 9,
-    "setlistItems": 13762
-  },
+  "statTiles": [
+    {
+      "glyph": "♪",
+      "value": 210,
+      "label": "ライブ",
+      "href": null
+    },
+    {
+      "glyph": "♬",
+      "value": 600,
+      "label": "楽曲",
+      "href": null
+    },
+    {
+      "glyph": "☺",
+      "value": 52,
+      "label": "アイドル",
+      "href": null
+    },
+    {
+      "glyph": "❋",
+      "value": 300,
+      "label": "ユニット",
+      "href": null
+    }
+  ],
   "idols": [
     {
       "kind": "idol",

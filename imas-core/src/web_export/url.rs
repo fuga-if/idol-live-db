@@ -152,6 +152,14 @@ pub fn detail_path(collection: &str, key: &str) -> String {
     format!("/{collection}/{}/", url_segment(key))
 }
 
+/// カンマ区切りの列 (`aliases` / `joint_brand_ids`) を空要素を除いて分解する。
+///
+/// マスタの複数値はどれもこの形で入っている。分け方を呼び出し側ごとに書くと、
+/// 空白の扱いが揃わずに「別名が 1 つだけ空文字になる」といった差が出る。
+pub fn split_csv(text: Option<&str>) -> impl Iterator<Item = &str> {
+    text.unwrap_or_default().split(',').map(str::trim).filter(|s| !s.is_empty())
+}
+
 /// 各コレクションの予約語 (詳細ページの id がこれと衝突するとルートが曖昧になる)。
 pub fn reserved_for(collection: &str) -> &'static [&'static str] {
     match collection {

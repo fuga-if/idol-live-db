@@ -82,6 +82,57 @@ fn seo(title: &str, description: &str, path: &str, robots: Robots, crumbs: &[(&s
     }
 }
 
+/// 「基本情報」行 1 つ。
+fn fact(label: &str, value: &str, style: &str) -> ProfileRow {
+    ProfileRow {
+        label: label.to_string(),
+        value: value.to_string(),
+        style: style.to_string(),
+        link: None,
+    }
+}
+
+/// 件数タイル 1 枚。
+fn tile(glyph: &str, value: u32, label: &str, href: Option<&str>) -> StatTile {
+    StatTile {
+        glyph: glyph.to_string(),
+        value,
+        label: label.to_string(),
+        href: href.map(str::to_string),
+    }
+}
+
+/// サイト全体の件数タイル (代表値)。実データ側と同じ顔ぶれ・同じ順。
+fn site_tiles(with_links: bool, with_setlist_items: bool) -> Vec<StatTile> {
+    let c = counts();
+    let mut rows = vec![
+        ("♪", c.events, "ライブ", "/events/"),
+        ("▤", c.shows, "公演", "/events/past/"),
+        ("♬", c.songs, "楽曲", "/songs/"),
+        ("☺", c.idols, "アイドル", "/idols/"),
+        ("❋", c.units, "ユニット", "/units/"),
+        ("⌂", c.venues, "会場", "/venues/"),
+    ];
+    if with_setlist_items {
+        rows.push(("≡", c.setlist_items, "セトリ項目", "/songs/"));
+    }
+    rows.into_iter()
+        .map(|(glyph, value, label, href)| {
+            tile(glyph, value, label, (with_links && label != "セトリ項目").then_some(href))
+        })
+        .collect()
+}
+
+/// ブランドページの 4 タイル (代表値)。
+fn brand_stat_tiles_fixture() -> Vec<StatTile> {
+    vec![
+        tile("♪", 210, "ライブ", None),
+        tile("♬", 600, "楽曲", None),
+        tile("☺", 52, "アイドル", None),
+        tile("❋", 300, "ユニット", None),
+    ]
+}
+
 fn counts() -> Counts {
     Counts {
         events: 851,
@@ -214,7 +265,6 @@ fn theme_table() -> ThemeTable {
             grad_to: theme_hex(c.grad_to),
             separator: theme_hex(c.separator),
             hero_surface: theme_hex(c.hero_surface),
-            is_neutral: c.is_neutral,
         }
     }
     fn pair(seed: Option<&str>, brand: Option<&str>) -> ThemePair {
@@ -247,7 +297,6 @@ fn event_page(reference: &Ref, empty: bool) -> EventPage {
         joint_brands: if empty { vec![] } else { vec![brand_cg()] },
         kind: "live".to_string(),
         kind_label: content::kind_label("live").to_string(),
-        event_type: "tour".to_string(),
         first_date: Some("2026-04-03".to_string()),
         last_date: Some("2026-04-04".to_string()),
         is_upcoming: true,
@@ -269,18 +318,16 @@ fn event_page(reference: &Ref, empty: bool) -> EventPage {
             None
         } else {
             Some(EventCast {
-                brand_idols: vec![idol_mirai(), idol_shizuka()],
-                presence_by_show: vec![ShowIdolIds {
-                    show_id: "sh_sample_1".to_string(),
-                    idol_ids: vec!["ml_kasuga_mirai".to_string(), "ml_mogami_shizuka".to_string()],
-                }],
-                lead_by_show: vec![ShowIdolIds {
-                    show_id: "sh_sample_1".to_string(),
-                    idol_ids: vec!["ml_kasuga_mirai".to_string()],
-                }],
-                guest_by_show: vec![ShowIdolIds {
-                    show_id: "sh_sample_1".to_string(),
-                    idol_ids: vec![],
+                shows: vec![EventCastShow {
+                    show: show_sample(),
+                    performers: vec![
+                        EventCastMember { reference: idol_mirai(), is_lead: true, is_guest: false },
+                        EventCastMember {
+                            reference: idol_shizuka(),
+                            is_lead: false,
+                            is_guest: true,
+                        },
+                    ],
                 }],
             })
         },
@@ -346,15 +393,12 @@ fn show_page() -> ShowPage {
             SetlistRow {
                 id: "si_1".to_string(),
                 number: 1,
-                position: 11593,
-                section: Some("本編".to_string()),
                 notes: None,
                 unit_label: Some("765MILLION ALLSTARS".to_string()),
                 song: song_sample(),
                 performers: vec![PerformerRef {
                     reference: idol_mirai(),
                     display_name: "山崎はるか".to_string(),
-                    idol_name: "春日未来".to_string(),
                 }],
                 original_artists: vec![idol_mirai(), idol_shizuka()],
                 is_cover: false,
@@ -363,8 +407,6 @@ fn show_page() -> ShowPage {
             SetlistRow {
                 id: "si_2".to_string(),
                 number: 2,
-                position: 11594,
-                section: None,
                 notes: Some("映像のみ".to_string()),
                 unit_label: None,
                 song: song_no_artwork(),
@@ -397,7 +439,6 @@ fn song_page(reference: &Ref, minimal: bool) -> SongPage {
         brand: Some(brand_ml()),
         song_type: Some(if minimal { "other".to_string() } else { "original".to_string() }),
         release_date: if minimal { None } else { Some("2019-03-13".to_string()) },
-        duration_sec: if minimal { None } else { Some(272) },
         duration_display: if minimal { None } else { Some("4:32".to_string()) },
         credits: if minimal {
             vec![]
@@ -405,22 +446,16 @@ fn song_page(reference: &Ref, minimal: bool) -> SongPage {
             vec![
                 CreditGroup {
                     role: "作詞".to_string(),
-                    raw: "山崎寛子".to_string(),
-                    people: vec!["山崎寛子".to_string()],
                     display: "山崎寛子".to_string(),
                 },
                 CreditGroup {
                     role: "作曲".to_string(),
-                    raw: "睦月周平・EFFY".to_string(),
-                    people: vec!["睦月周平".to_string(), "EFFY".to_string()],
                     display: "睦月周平 / EFFY".to_string(),
                 },
             ]
         },
         series_display: if minimal { None } else { Some("THE IDOLM@STER MILLION THE@TER WAVE".to_string()) },
-        cd_series: if minimal { None } else { Some("THE IDOLM@STER MILLION THE@TER WAVE".to_string()) },
         cd_title: if minimal { None } else { Some("Thank You!".to_string()) },
-        series_group: None,
         artwork_url: reference.artwork_url.clone(),
         apple_music_url: if minimal {
             None
@@ -445,8 +480,6 @@ fn song_page(reference: &Ref, minimal: bool) -> SongPage {
                 short_date: "26/04".to_string(),
                 venue: Some("幕張メッセ".to_string()),
                 number: 1,
-                position: 11593,
-                section: Some("本編".to_string()),
                 place_display: "DAY1 ・ 幕張メッセ".to_string(),
             }]
         },
@@ -458,10 +491,21 @@ fn song_page(reference: &Ref, minimal: bool) -> SongPage {
         co_occurring: if minimal {
             vec![]
         } else {
-            vec![CoOccurRow { song: song_variant(), together: 5, performances: 9 }]
+            vec![CoOccurRow { song: song_variant(), together: 5 }]
         },
         related: if minimal { vec![] } else { vec![song_variant()] },
         // 曲に deeplink は無い (DeeplinkRouter が受けない)。
+        fact_rows: if minimal {
+            vec![]
+        } else {
+            vec![
+                fact("リリース", "2019-03-13", "monospaced"),
+                fact("収録", "Thank You!", "plain"),
+                fact("シリーズ", "THE IDOLM@STER MILLION THE@TER WAVE", "plain"),
+                fact("再生時間", "4:32", "monospaced"),
+                fact("JASRAC 作品コード", "123-4567-8", "monospaced"),
+            ]
+        },
         app: content::app_open_plain(),
         seo: seo(
             &reference.name,
@@ -522,7 +566,6 @@ fn idol_page(reference: &Ref) -> IdolPage {
             start_date: Some("2013-02-27".to_string()),
             end_date: None,
             is_current: true,
-            note: None,
             display: "山崎はるか ・ 2013-02-27 〜".to_string(),
         }],
         units: vec![unit_sample()],
@@ -536,7 +579,6 @@ fn idol_page(reference: &Ref) -> IdolPage {
         performed_songs: vec![IdolPerformedRow {
             song: song_variant(),
             times: 3,
-            last_date: Some("2026-04-03".to_string()),
             subtitle: Some("派生曲 ・ 3 回披露".to_string()),
         }],
         shows: vec![IdolShowRow {
@@ -598,7 +640,6 @@ fn venue_page(reference: &Ref, minimal: bool) -> VenuePage {
         city: if minimal { None } else { Some("千葉市美浜区".to_string()) },
         location_display: if minimal { None } else { Some("千葉県 千葉市美浜区".to_string()) },
         capacity: if minimal { None } else { Some(9000) },
-        aliases: if minimal { vec![] } else { vec!["幕張".to_string()] },
         aliases_display: if minimal { None } else { Some("幕張".to_string()) },
         halls: if minimal {
             vec![]
@@ -614,6 +655,15 @@ fn venue_page(reference: &Ref, minimal: bool) -> VenuePage {
                 end_date: Some("1999-03-31".to_string()),
                 period_display: Some("〜 1999-03-31".to_string()),
             }]
+        },
+        fact_rows: if minimal {
+            vec![]
+        } else {
+            vec![
+                fact("所在", "千葉県 千葉市美浜区", "plain"),
+                fact("収容人数", "9000人", "monospaced"),
+                fact("別名", "幕張", "plain"),
+            ]
         },
         events: if minimal { vec![] } else { vec![event_sample()] },
         shows: if minimal { vec![] } else { vec![show_summary()] },
@@ -635,9 +685,8 @@ fn brand_page(reference: &Ref, noindex: bool) -> BrandPage {
         path: reference.path.clone(),
         name: reference.name.clone(),
         short_name: reference.sub.clone(),
-        color: if noindex { None } else { Some("#ffc30b".to_string()) },
         theme_key: reference.theme_key.clone(),
-        counts: counts(),
+        stat_tiles: brand_stat_tiles_fixture(),
         idols: if noindex { vec![] } else { vec![idol_mirai(), idol_shizuka()] },
         units: if noindex { vec![] } else { vec![unit_sample()] },
         recent_events: if noindex { vec![] } else { vec![event_sample()] },
@@ -678,9 +727,7 @@ fn event_list_item(reference: &Ref, kind: &str) -> EventListItem {
         kind: kind.to_string(),
         kind_label: content::kind_label(kind).to_string(),
         show_count: 2,
-        venue_display: Some("幕張メッセ".to_string()),
         subtitle: Some("2026-04-03 〜 2026-04-04 ・ アイドルマスター ミリオンライブ! ・ 2 公演 ・ 幕張メッセ".to_string()),
-        venue_labels: vec!["幕張メッセ".to_string()],
     }
 }
 
@@ -728,7 +775,6 @@ fn song_list_page(path: &str, title: &str, kind: SongListKind) -> SongListPage {
             reference: song_sample(),
             release_date: Some("2019-03-13".to_string()),
             unit_label: Some("765MILLION ALLSTARS".to_string()),
-            artists_display: Some("春日未来".to_string()),
             performance_count: Some(12),
             subtitle: Some("765MILLION ALLSTARS ・ 春日未来 ・ 2019-03-13".to_string()),
         },
@@ -737,7 +783,6 @@ fn song_list_page(path: &str, title: &str, kind: SongListKind) -> SongListPage {
             reference: song_no_artwork(),
             release_date: None,
             unit_label: None,
-            artists_display: None,
             performance_count: None,
             subtitle: None,
         },
@@ -904,7 +949,7 @@ fn brand_list_item(reference: &Ref) -> BrandListItem {
         glyph: reference.sub.as_deref().unwrap_or(&reference.name).chars().take(2).collect(),
         reference: reference.clone(),
         short_name: reference.sub.clone(),
-        counts: counts(),
+        preview_display: "ライブ 210 ・ 楽曲 600 ・ アイドル 52 ・ ユニット 300".to_string(),
     }
 }
 
@@ -926,7 +971,7 @@ fn home_page() -> HomePage {
         disclaimer: content::SITE_DISCLAIMER.to_string(),
         upcoming: vec![event_list_item(&event_sample(), "live")],
         recent_shows: vec![show_summary()],
-        counts: counts(),
+        stat_tiles: site_tiles(true, false),
         brands: vec![brand_list_item(&brand_ml()), brand_list_item(&brand_cg())],
         app: content::app_links(),
         section_links: vec![
@@ -946,7 +991,7 @@ fn about_page() -> AboutPage {
     AboutPage {
         schema_version: SCHEMA_VERSION,
         path: "/about/".to_string(),
-        counts: counts(),
+        stat_tiles: site_tiles(false, true),
         data_version: Some("2026090401".to_string()),
         content_hash: Some("6c41f0e2b9d4a7c8".to_string()),
         generated_at: GENERATED_AT.to_string(),

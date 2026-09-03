@@ -165,7 +165,7 @@ fn t9_two_runs_produce_byte_identical_output() {
 fn t12_no_lyrics_or_preview_audio_anywhere_in_the_output() {
     let dir = emit_fixture("forbidden");
 
-    /// 唯一許すキー。「歌詞はアプリで」の固定文であって歌詞本文ではない。
+    /// 歌詞まわりで唯一許すキー。「歌詞はアプリで」の固定文であって歌詞本文ではない。
     const ALLOWED: &str = "lyricsNote";
 
     fn walk(rel: &str, value: &serde_json::Value) {
@@ -176,8 +176,11 @@ fn t12_no_lyrics_or_preview_audio_anywhere_in_the_output() {
                     if lower.contains("lyric") {
                         assert_eq!(key, ALLOWED, "{rel}: 歌詞まわりのキーは {ALLOWED} 以外を出さない ({key})");
                     }
+                    // 禁じたいのは**プレビュー音源**であって「preview」という語ではない。
+                    // 一覧カードの紹介文 (`previewDisplay`) のような無関係なキーまで
+                    // 落とすと、正しい命名を避けるためだけに名前を歪めることになる。
                     assert!(
-                        !lower.contains("preview"),
+                        !lower.contains("previewurl") && !lower.contains("preview_url"),
                         "{rel}: プレビュー音源のキーを出してはいけない ({key})"
                     );
                     walk(rel, child);
@@ -269,7 +272,7 @@ fn fixture_covers_the_boundary_cases_the_web_needs() {
     let no_art: SongPage = serde_json::from_str(&read("songs/ml_no_artwork.json")).unwrap();
     assert!(no_art.artwork_url.is_none());
     // 曲に deeplink は無い (DeeplinkRouter が受けるのは events / shows / polls だけ)。
-    assert!(no_art.app.deeplink.is_none() && no_art.app.deeplink_kind.is_none());
+    assert!(no_art.app.deeplink.is_none());
     // 歌詞の断り書きは必ず出る。
     assert!(no_art.lyrics_note.contains("J260943703"));
 
@@ -277,7 +280,7 @@ fn fixture_covers_the_boundary_cases_the_web_needs() {
     let show: ShowPage = serde_json::from_str(&read("shows/sh_sample_1.json")).unwrap();
     assert!(show.setlist.iter().any(|r| r.performers.is_empty()), "performers 空の行が無い");
     // event / show には deeplink がある。
-    assert_eq!(show.app.deeplink_kind.as_deref(), Some("show"));
+    assert!(show.app.deeplink.as_deref().is_some_and(|d| d.starts_with("imaslivedb://shows/")));
 
     // 60 文字級の長い名前。
     let long: EventPage = serde_json::from_str(&read("events/ev_sample.json")).unwrap();

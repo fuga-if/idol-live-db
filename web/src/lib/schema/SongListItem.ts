@@ -6,15 +6,6 @@ import type { Ref } from "./Ref";
  */
 export type SongListItem = { ref: Ref, releaseDate: string | null, unitLabel: string | null, 
 /**
- * 原唱者名を `" / "` で繋いだもの。多いときは「ほか N 名」で畳む。空なら `None`。
- *
- * 原唱者の [`Ref`] 列は**持たない**。一覧の行はここを 1 行描くだけで、
- * 全体曲は原唱者が 50 人を超えるため、行ごとに Ref を並べると
- * `/songs/` の JSON だけで 2.8MB になっていた (実測)。1 人ずつ辿りたいときは
- * 曲の詳細ページに全員分がある。
- */
-artistsDisplay: string | null, 
-/**
  * 披露回数。
  *
  * `/songs/all/` (全件ハブ) では **`None`**。あちらは 3,153 行を 1 枚に並べる

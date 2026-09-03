@@ -21,7 +21,6 @@ pub struct EventPage {
     pub kind: String,
     /// 種別チップに出す日本語表記。
     pub kind_label: String,
-    pub event_type: String,
     pub first_date: Option<String>,
     pub last_date: Option<String>,
     /// `first_date >= todayJst`。判定は `event_grouping::group_events_by_year` を
@@ -90,28 +89,37 @@ pub struct ShowSummary {
     pub subtitle: Option<String>,
 }
 
-/// 出演者マトリクス。
+/// 出演者。**公演ごとに、出た人と役割を結合済みで持つ。**
+///
+/// 以前は「アイドル id の並行配列 3 本」(`presence` / `lead` / `guest`) だった。
+/// 描画側が毎ページ id → 実体の結合と主演/ゲスト判定をやり直すことになり、
+/// 「そのまま描ける形まで作り込む」という DTO の方針から外れていた。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export, export_to = "../../web/src/lib/schema/")]
 pub struct EventCast {
-    /// このライブのブランドに属するアイドル (表の行)。
-    pub brand_idols: Vec<Ref>,
-    pub presence_by_show: Vec<ShowIdolIds>,
-    pub lead_by_show: Vec<ShowIdolIds>,
-    pub guest_by_show: Vec<ShowIdolIds>,
+    /// 公演の並びは `shows_by_event` (date ASC, sort_order ASC) のまま。
+    pub shows: Vec<EventCastShow>,
 }
 
-/// 公演 1 件ぶんのアイドル id 列。
-///
-/// `HashMap` をそのまま serde しないのは、反復順が非決定でバイト一致の再現性を
-/// 壊すため (T9)。
+/// 公演 1 本ぶんの出演者。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export, export_to = "../../web/src/lib/schema/")]
-pub struct ShowIdolIds {
-    pub show_id: String,
-    pub idol_ids: Vec<String>,
+pub struct EventCastShow {
+    pub show: Ref,
+    pub performers: Vec<EventCastMember>,
+}
+
+/// 出演者 1 人と、その公演での役割。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../../web/src/lib/schema/")]
+pub struct EventCastMember {
+    #[serde(rename = "ref")]
+    pub reference: Ref,
+    pub is_lead: bool,
+    pub is_guest: bool,
 }
 
 /// 円盤 (Blu-ray / DVD / CD)。

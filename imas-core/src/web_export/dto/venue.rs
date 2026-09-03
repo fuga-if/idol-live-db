@@ -1,6 +1,7 @@
 //! 会場 (venue) 詳細ページの DTO。
 
 use super::common::{AppOpen, Ref, SeoBlock};
+use super::idol::ProfileRow;
 use super::event::ShowSummary;
 use serde::{Deserialize, Serialize};
 
@@ -21,12 +22,13 @@ pub struct VenuePage {
     /// 「千葉県 千葉市美浜区」。都道府県と市区町村の連結を TS に書かせない。
     pub location_display: Option<String>,
     pub capacity: Option<i32>,
-    pub aliases: Vec<String>,
     /// 別名を `" ・ "` で繋いだもの。空なら `None`。
     pub aliases_display: Option<String>,
     pub halls: Vec<HallRow>,
     /// 旧称。
     pub past_names: Vec<VenueNameRow>,
+    /// 「基本情報」の行 (所在・収容人数・別名)。曲の `fact_rows` と同じ形。
+    pub fact_rows: Vec<ProfileRow>,
     pub events: Vec<Ref>,
     pub shows: Vec<ShowSummary>,
     pub app: AppOpen,

@@ -38,8 +38,6 @@ pub fn song_page(ctx: &Ctx, song_id: &str) -> Option<SongPage> {
             role: role.to_string(),
             // 1 行表記は Rust 側で決める。区切りを TS に選ばせない。
             display: if people.is_empty() { raw.to_string() } else { people.join(" / ") },
-            raw: raw.to_string(),
-            people,
         })
     })
     .collect();
@@ -70,6 +68,9 @@ pub fn song_page(ctx: &Ctx, song_id: &str) -> Option<SongPage> {
         crumbs
     };
 
+    let series_display = record.cd_series.clone().or_else(|| record.series_group.clone());
+    let duration_display = record.duration_sec.map(duration_display);
+
     Some(SongPage {
         schema_version: SCHEMA_VERSION,
         id: record.id.clone(),
@@ -80,14 +81,11 @@ pub fn song_page(ctx: &Ctx, song_id: &str) -> Option<SongPage> {
         brand: brand_id.as_deref().and_then(|b| ctx.brand_ref(b)),
         song_type: record.song_type.clone(),
         release_date: record.release_date.clone(),
-        duration_display: record.duration_sec.map(duration_display),
-        duration_sec: record.duration_sec.map(|s| s as i32),
+        duration_display: duration_display.clone(),
         credits,
         // 「シリーズ」行に出すのは 1 つ。CD シリーズを優先し、無ければ系列名。
-        series_display: record.cd_series.clone().or_else(|| record.series_group.clone()),
-        cd_series: record.cd_series.clone(),
+        series_display: series_display.clone(),
         cd_title: record.cd_title.clone(),
-        series_group: record.series_group.clone(),
         artwork_url: record.artwork_url.clone(),
         apple_music_url: record
             .apple_music_id
@@ -122,8 +120,6 @@ pub fn song_page(ctx: &Ctx, song_id: &str) -> Option<SongPage> {
                     date: h.date,
                     venue: h.venue,
                     number,
-                    position: h.position as i32,
-                    section: h.section,
                     place_display,
                 })
             })
@@ -140,7 +136,6 @@ pub fn song_page(ctx: &Ctx, song_id: &str) -> Option<SongPage> {
                 Some(CoOccurRow {
                     song: ctx.song_ref(&c.song_id)?,
                     together: c.together,
-                    performances: c.performances,
                 })
             })
             .collect(),
@@ -148,6 +143,7 @@ pub fn song_page(ctx: &Ctx, song_id: &str) -> Option<SongPage> {
             .iter()
             .filter_map(|s| ctx.song_ref(&s.id))
             .collect(),
+        fact_rows: song_fact_rows(&record, series_display.as_deref(), duration_display.as_deref()),
         app: content::app_open_plain(),
         seo: ctx.seo(
             &record.title,
@@ -160,6 +156,31 @@ pub fn song_page(ctx: &Ctx, song_id: &str) -> Option<SongPage> {
         // 歌詞は載せない。許諾を持つのはアプリであって本サイトではない。
         lyrics_note: content::LYRICS_NOTE.to_string(),
     })
+}
+
+/// 曲の「基本情報」行。値が無い行は出さない (アイドルの `profile_rows` と同じ規則)。
+fn song_fact_rows(
+    record: &detail::SongDetailRecord,
+    series_display: Option<&str>,
+    duration_display: Option<&str>,
+) -> Vec<ProfileRow> {
+    [
+        ("リリース", record.release_date.as_deref(), "monospaced"),
+        ("収録", record.cd_title.as_deref(), "plain"),
+        ("シリーズ", series_display, "plain"),
+        ("再生時間", duration_display, "monospaced"),
+        ("JASRAC 作品コード", record.jasrac_code.as_deref(), "monospaced"),
+    ]
+    .into_iter()
+    .filter_map(|(label, value, style)| {
+        Some(ProfileRow {
+            label: label.to_string(),
+            value: value.filter(|v| !v.is_empty())?.to_string(),
+            style: style.to_string(),
+            link: None,
+        })
+    })
+    .collect()
 }
 
 fn song_description(record: &detail::SongDetailRecord) -> String {

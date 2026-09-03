@@ -15,8 +15,7 @@
         "gradFrom": "#308ed8",
         "gradTo": "#1966a2",
         "separator": "#d3dce4",
-        "heroSurface": "#f0f4f7",
-        "isNeutral": false
+        "heroSurface": "#f0f4f7"
       },
       "dark": {
         "accent": "#4298db",
@@ -31,8 +30,7 @@
         "gradFrom": "#4298db",
         "gradTo": "#1e75b8",
         "separator": "#384f61",
-        "heroSurface": "#223544",
-        "isNeutral": false
+        "heroSurface": "#223544"
       }
     },
     "brand:ml": {
@@ -49,8 +47,7 @@
         "gradFrom": "#f6c52d",
         "gradTo": "#d4a003",
         "separator": "#e4e0d3",
-        "heroSurface": "#f8f6ef",
-        "isNeutral": false
+        "heroSurface": "#f8f6ef"
       },
       "dark": {
         "accent": "#f2c12c",
@@ -65,8 +62,7 @@
         "gradFrom": "#f2c12c",
         "gradTo": "#ce9d09",
         "separator": "#635836",
-        "heroSurface": "#4a3f1c",
-        "isNeutral": false
+        "heroSurface": "#4a3f1c"
       }
     },
     "idol:ml_kasuga_mirai": {
@@ -83,8 +79,7 @@
         "gradFrom": "#f5a217",
         "gradTo": "#bd7703",
         "separator": "#e4ddd3",
-        "heroSurface": "#f8f5ef",
-        "isNeutral": false
+        "heroSurface": "#f8f5ef"
       },
       "dark": {
         "accent": "#f2a82c",
@@ -99,8 +94,7 @@
         "gradFrom": "#f2a82c",
         "gradTo": "#ce8409",
         "separator": "#635236",
-        "heroSurface": "#4a391c",
-        "isNeutral": false
+        "heroSurface": "#4a391c"
       }
     },
     "neutral": {
@@ -117,8 +111,7 @@
         "gradFrom": "#949499",
         "gradTo": "#686878",
         "separator": "#dadadd",
-        "heroSurface": "#f3f3f4",
-        "isNeutral": true
+        "heroSurface": "#f3f3f4"
       },
       "dark": {
         "accent": "#8e8e93",
@@ -133,8 +126,7 @@
         "gradFrom": "#8e8e93",
         "gradTo": "#666674",
         "separator": "#494950",
-        "heroSurface": "#303036",
-        "isNeutral": true
+        "heroSurface": "#303036"
       }
     }
   }

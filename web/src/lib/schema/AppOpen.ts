@@ -13,10 +13,6 @@ export type AppOpen = { appStoreUrl: string,
  */
 deeplink: string | null, 
 /**
- * `"event"` | `"show"`。`deeplink` が `None` なら `None`。
- */
-deeplinkKind: string | null, 
-/**
  * 「参加記録・投票・歌詞・タグはアプリで」等の固定文。
  */
 note: string, };

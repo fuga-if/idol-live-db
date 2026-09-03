@@ -45,10 +45,6 @@ pub struct SetlistRow {
     /// 11593 のような大きな数になる。並べ替えの鍵としては正しいが、そのまま番号として
     /// 描くと読めない。どちらを出すかは表示の判断なので、Rust 側で決めておく。
     pub number: u32,
-    /// 並び順の鍵 (`setlist_items.position`)。表示用の番号ではない。
-    pub position: i32,
-    /// アンコール等の区切り。
-    pub section: Option<String>,
     pub notes: Option<String>,
     /// `setlist_items.unit_name`。**この披露限りの表記**で、曲のユニットとは別物。
     pub unit_label: Option<String>,
@@ -69,6 +65,7 @@ pub struct PerformerRef {
     #[serde(rename = "ref")]
     pub reference: Ref,
     /// 表示名 (CV 名で歌った回など、アイドル名と違うことがある)。
+    /// 表示名 (CV 名で歌った回など、アイドル名と違うことがある)。
+    /// アイドル名そのものは `reference.name` にある。
     pub display_name: String,
-    pub idol_name: String,
 }

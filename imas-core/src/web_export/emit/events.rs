@@ -50,7 +50,6 @@ pub fn event_page(ctx: &Ctx, event_id: &str) -> Option<EventPage> {
         joint_brands: ctx.joint_brand_refs(record.joint_brand_ids.as_deref()),
         kind: record.kind.clone(),
         kind_label: content::kind_label(&record.kind).to_string(),
-        event_type: record.event_type.clone(),
         is_upcoming: is_upcoming(ctx, first_date.as_deref()),
         first_date: first_date.clone(),
         last_date: last_date.clone(),
@@ -147,27 +146,42 @@ fn event_json_ld(
     value
 }
 
-/// 出演者マトリクス。`HashMap` をそのまま serde しないのは、反復順が非決定で
-/// 出力のバイト一致 (再現性) を壊すため。
+/// 出演者を公演ごとに結合する。
+///
+/// `HashMap` をそのまま serde しないのは、反復順が非決定で出力のバイト一致
+/// (再現性) を壊すため。公演の並びは `event_attendance` が返す順 (date ASC,
+/// sort_order ASC) をそのまま使う。
 fn event_cast(ctx: &Ctx, event_id: &str) -> Option<EventCast> {
     let record = detail::event_attendance(ctx.snap, event_id)?;
-    // 公演の並びは shows_by_event の順 (date ASC, sort_order ASC) をそのまま使う。
-    let show_order: Vec<String> = record.shows.iter().map(|s| s.id.clone()).collect();
-    let to_rows = |map: &std::collections::HashMap<String, Vec<String>>| -> Vec<ShowIdolIds> {
-        show_order
-            .iter()
-            .map(|show_id| ShowIdolIds {
-                show_id: show_id.clone(),
-                idol_ids: map.get(show_id).cloned().unwrap_or_default(),
-            })
-            .collect()
+    let lead = |show: &str, idol: &str| {
+        record.lead_by_show.get(show).is_some_and(|ids| ids.iter().any(|i| i == idol))
     };
-    Some(EventCast {
-        brand_idols: record.brand_idol_ids.iter().filter_map(|id| ctx.idol_ref(id)).collect(),
-        presence_by_show: to_rows(&record.presence_by_show),
-        lead_by_show: to_rows(&record.lead_by_show),
-        guest_by_show: to_rows(&record.guest_by_show),
-    })
+    let guest = |show: &str, idol: &str| {
+        record.guest_by_show.get(show).is_some_and(|ids| ids.iter().any(|i| i == idol))
+    };
+    let shows = record
+        .shows
+        .iter()
+        .filter_map(|show| {
+            let performers = record
+                .presence_by_show
+                .get(&show.id)
+                .map(|ids| {
+                    ids.iter()
+                        .filter_map(|idol_id| {
+                            Some(EventCastMember {
+                                reference: ctx.idol_ref(idol_id)?,
+                                is_lead: lead(&show.id, idol_id),
+                                is_guest: guest(&show.id, idol_id),
+                            })
+                        })
+                        .collect()
+                })
+                .unwrap_or_default();
+            Some(EventCastShow { show: ctx.show_ref(&show.id)?, performers })
+        })
+        .collect();
+    Some(EventCast { shows })
 }
 
 /// 公演 1 件の要約。
@@ -240,8 +254,6 @@ pub fn show_page(ctx: &Ctx, show_id: &str) -> Option<ShowPage> {
                 id: e.id.clone(),
                 // entries は position 昇順なので、添字がそのまま「何曲目か」になる。
                 number: n as u32 + 1,
-                position: e.position as i32,
-                section: e.section.clone(),
                 notes: e.notes.clone(),
                 unit_label: e.unit_name.clone(),
                 song: ctx.song_ref(&e.song_id)?,
@@ -253,7 +265,6 @@ pub fn show_page(ctx: &Ctx, show_id: &str) -> Option<ShowPage> {
                                 Some(PerformerRef {
                                     reference: ctx.idol_ref(&p.idol_id)?,
                                     display_name: p.display_name.clone(),
-                                    idol_name: p.idol_name.clone(),
                                 })
                             })
                             .collect()

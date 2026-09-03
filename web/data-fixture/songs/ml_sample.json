@@ -17,30 +17,18 @@
   },
   "songType": "original",
   "releaseDate": "2019-03-13",
-  "durationSec": 272,
   "durationDisplay": "4:32",
   "credits": [
     {
       "role": "作詞",
-      "raw": "山崎寛子",
-      "people": [
-        "山崎寛子"
-      ],
       "display": "山崎寛子"
     },
     {
       "role": "作曲",
-      "raw": "睦月周平・EFFY",
-      "people": [
-        "睦月周平",
-        "EFFY"
-      ],
       "display": "睦月周平 / EFFY"
     }
   ],
-  "cdSeries": "THE IDOLM@STER MILLION THE@TER WAVE",
   "cdTitle": "Thank You!",
-  "seriesGroup": null,
   "seriesDisplay": "THE IDOLM@STER MILLION THE@TER WAVE",
   "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music/sample/600x600bb.jpg",
   "appleMusicUrl": "https://music.apple.com/jp/song/1451234567",
@@ -119,8 +107,6 @@
       "shortDate": "26/04",
       "venue": "幕張メッセ",
       "number": 1,
-      "position": 11593,
-      "section": "本編",
       "placeDisplay": "DAY1 ・ 幕張メッセ"
     }
   ],
@@ -152,8 +138,7 @@
         "artworkUrl": null,
         "monogram": "T"
       },
-      "together": 5,
-      "performances": 9
+      "together": 5
     }
   ],
   "related": [
@@ -168,10 +153,41 @@
       "monogram": "T"
     }
   ],
+  "factRows": [
+    {
+      "label": "リリース",
+      "value": "2019-03-13",
+      "style": "monospaced",
+      "link": null
+    },
+    {
+      "label": "収録",
+      "value": "Thank You!",
+      "style": "plain",
+      "link": null
+    },
+    {
+      "label": "シリーズ",
+      "value": "THE IDOLM@STER MILLION THE@TER WAVE",
+      "style": "plain",
+      "link": null
+    },
+    {
+      "label": "再生時間",
+      "value": "4:32",
+      "style": "monospaced",
+      "link": null
+    },
+    {
+      "label": "JASRAC 作品コード",
+      "value": "123-4567-8",
+      "style": "monospaced",
+      "link": null
+    }
+  ],
   "app": {
     "appStoreUrl": "https://apps.apple.com/jp/app/id6763342297",
     "deeplink": null,
-    "deeplinkKind": null,
     "note": "参加記録・投票・歌詞・コール・タグ付けはアプリでご利用いただけます。"
   },
   "seo": {

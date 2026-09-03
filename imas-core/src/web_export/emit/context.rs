@@ -242,13 +242,7 @@ impl<'a> Ctx<'a> {
 
     /// カンマ区切りの `joint_brand_ids` を Ref に開く。
     pub fn joint_brand_refs(&self, joint: Option<&str>) -> Vec<Ref> {
-        joint
-            .unwrap_or_default()
-            .split(',')
-            .map(str::trim)
-            .filter(|s| !s.is_empty())
-            .filter_map(|id| self.brand_ref(id))
-            .collect()
+        crate::web_export::url::split_csv(joint).filter_map(|id| self.brand_ref(id)).collect()
     }
 
     pub fn idol_ref(&self, id: &str) -> Option<Ref> {

@@ -34,10 +34,6 @@
           "kind": "live",
           "kindLabel": "ライブ",
           "showCount": 2,
-          "venueLabels": [
-            "幕張メッセ"
-          ],
-          "venueDisplay": "幕張メッセ",
           "subtitle": "2026-04-03 〜 2026-04-04 ・ アイドルマスター ミリオンライブ! ・ 2 公演 ・ 幕張メッセ"
         }
       ]
@@ -72,10 +68,6 @@
           "kind": "festival",
           "kindLabel": "フェス",
           "showCount": 2,
-          "venueLabels": [
-            "幕張メッセ"
-          ],
-          "venueDisplay": "幕張メッセ",
           "subtitle": "2026-04-03 〜 2026-04-04 ・ アイドルマスター ミリオンライブ! ・ 2 公演 ・ 幕張メッセ"
         }
       ]

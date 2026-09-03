@@ -9,6 +9,7 @@ use crate::domain::idol_queries;
 use crate::domain::unit_queries;
 use crate::web_export::content;
 use crate::web_export::dto::*;
+use crate::web_export::url::split_csv;
 use crate::web_export::url::url_segment;
 use std::collections::BTreeMap;
 
@@ -60,15 +61,7 @@ pub fn venue_page(ctx: &Ctx, venue_id: &str, directory: &VenueDirectory) -> Opti
         (!parts.is_empty()).then(|| parts.join(" "))
     };
     let place = location_display.clone().unwrap_or_default();
-    let aliases: Vec<String> = venue
-        .aliases
-        .as_deref()
-        .unwrap_or_default()
-        .split(',')
-        .map(str::trim)
-        .filter(|s| !s.is_empty())
-        .map(str::to_string)
-        .collect();
+    let aliases_display = join_parts(split_csv(venue.aliases.as_deref()).map(Some));
 
     let breadcrumbs = vec![
         ctx.crumb("ホーム", "/"),
@@ -85,10 +78,14 @@ pub fn venue_page(ctx: &Ctx, venue_id: &str, directory: &VenueDirectory) -> Opti
         theme_key: ctx.brand_theme(None),
         prefecture: venue.prefecture.clone(),
         city: venue.city.clone(),
+        fact_rows: venue_fact_rows(
+            location_display.as_deref(),
+            venue.capacity,
+            aliases_display.as_deref(),
+        ),
         location_display,
         capacity: venue.capacity.map(|c| c as i32),
-        aliases_display: join_parts(aliases.iter().map(|a| Some(a.as_str()))),
-        aliases,
+        aliases_display,
         halls: directory.halls_by_venue.get(venue_id).cloned().unwrap_or_default(),
         past_names: directory.names_by_venue.get(venue_id).cloned().unwrap_or_default(),
         events: detail::event_ids_at_venue(ctx.snap, venue_id)
@@ -116,17 +113,61 @@ pub fn venue_page(ctx: &Ctx, venue_id: &str, directory: &VenueDirectory) -> Opti
     })
 }
 
-/// トップと `/brands/` に出す件数タイル用に、ブランド 1 件ぶんを数える。
-pub fn brand_counts(ctx: &Ctx, brand_id: &str) -> Counts {
-    let events = ctx.snap.events.iter().filter(|e| e.brand_id.as_deref() == Some(brand_id));
-    let event_ids: std::collections::HashSet<&str> = events.map(|e| e.id.as_str()).collect();
+/// 会場の「基本情報」行。値が無い行は出さない (アイドルの `profile_rows` と同じ規則)。
+///
+/// 「人」の付与もここでやる。単位は表示の判断だが、**どの単位を付けるかはデータの
+/// 意味に属する**ので、値を知っている側で決める。
+fn venue_fact_rows(
+    location: Option<&str>,
+    capacity: Option<i64>,
+    aliases: Option<&str>,
+) -> Vec<ProfileRow> {
+    [
+        ("所在", location.map(str::to_string), "plain"),
+        ("収容人数", capacity.map(|c| format!("{c}人")), "monospaced"),
+        ("別名", aliases.map(str::to_string), "plain"),
+    ]
+    .into_iter()
+    .filter_map(|(label, value, style)| {
+        Some(ProfileRow {
+            label: label.to_string(),
+            value: value.filter(|v| !v.is_empty())?,
+            style: style.to_string(),
+            link: None,
+        })
+    })
+    .collect()
+}
+
+/// ブランド 1 件ぶんの件数。
+///
+/// `Counts` (サイト全体用) を流用しない。会場とセトリ項目はブランドに紐付かないので
+/// 0 を詰めることになり、「web 側はその 3 つを読まない」という口約束に頼る形になる
+/// (実際にその約束はコメントと食い違っていた)。意味のある 5 つだけを持つ。
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct BrandCounts {
+    pub events: u32,
+    pub shows: u32,
+    pub songs: u32,
+    pub idols: u32,
+    pub units: u32,
+}
+
+pub fn brand_counts(ctx: &Ctx, brand_id: &str) -> BrandCounts {
+    let event_ids: std::collections::HashSet<&str> = ctx
+        .snap
+        .events
+        .iter()
+        .filter(|e| e.brand_id.as_deref() == Some(brand_id))
+        .map(|e| e.id.as_str())
+        .collect();
     let shows = ctx
         .snap
         .shows
         .iter()
         .filter(|s| event_ids.contains(ctx.snap.events[s.event as usize].id.as_str()))
         .count();
-    Counts {
+    BrandCounts {
         events: event_ids.len() as u32,
         shows: shows as u32,
         songs: ctx.snap.songs.iter().filter(|s| s.brand_id.as_deref() == Some(brand_id)).count()
@@ -134,12 +175,25 @@ pub fn brand_counts(ctx: &Ctx, brand_id: &str) -> Counts {
         idols: ctx.snap.idols.iter().filter(|i| i.brand_id.as_deref() == Some(brand_id)).count()
             as u32,
         units: ctx.snap.units.iter().filter(|u| u.brand_id == brand_id).count() as u32,
-        // 会場とブランドはブランドに紐付かないので、ここでは 0 にする
-        // (ブランドページで「会場 0」と出さないよう、web 側は events/shows/songs/idols/units だけ見る)。
-        venues: 0,
-        brands: 0,
-        setlist_items: 0,
     }
+}
+
+/// ブランドページの件数タイル。公演は出さない (現行の 4 タイルを維持)。
+pub fn brand_stat_tiles(counts: BrandCounts) -> Vec<StatTile> {
+    [
+        ("♪", counts.events, "ライブ"),
+        ("♬", counts.songs, "楽曲"),
+        ("☺", counts.idols, "アイドル"),
+        ("❋", counts.units, "ユニット"),
+    ]
+    .into_iter()
+    .map(|(glyph, value, label)| StatTile {
+        glyph: glyph.to_string(),
+        value,
+        label: label.to_string(),
+        href: None,
+    })
+    .collect()
 }
 
 pub fn brand_page(ctx: &Ctx, brand_id: &str) -> Option<BrandPage> {
@@ -198,9 +252,8 @@ pub fn brand_page(ctx: &Ctx, brand_id: &str) -> Option<BrandPage> {
         path: path.clone(),
         name: brand.name.clone(),
         short_name: Some(brand.short_name.clone()),
-        color: brand.color.clone(),
         theme_key,
-        counts,
+        stat_tiles: brand_stat_tiles(counts),
         idols: idol_queries::idol_list(ctx.snap, Some(brand_id))
             .iter()
             .filter_map(|i| ctx.idol_ref(&i.id))

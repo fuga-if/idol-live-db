@@ -8,8 +8,4 @@ export type CoOccurRow = { song: Ref,
 /**
  * 同じ公演に並んだ回数。
  */
-together: number, 
-/**
- * 相手の総披露回数。
- */
-performances: number, };
+together: number, };

@@ -114,7 +114,6 @@ fn event_list_item(
         .unwrap_or_default();
     venue_labels.dedup();
     let brand = e.brand_id.as_deref().and_then(|b| ctx.brand_ref(b));
-    let venues = venue_display(&venue_labels);
     Some(EventListItem {
         reference: ctx.event_ref(&e.id)?,
         short_date: record.first_date.as_deref().map(short_year_month),
@@ -122,16 +121,14 @@ fn event_list_item(
             date_range_display(record.first_date.as_deref(), record.last_date.as_deref()),
             with_brand.then(|| brand.as_ref().map(|b| b.name.clone())).flatten(),
             (show_count > 1).then(|| format!("{show_count} 公演")),
-            venues.clone(),
+            venue_display(&venue_labels),
         ]),
-        venue_display: venues,
         first_date: record.first_date.clone(),
         last_date: record.last_date.clone(),
         brand,
         kind_label: content::kind_label(&e.kind).to_string(),
         kind: e.kind.clone(),
         show_count,
-        venue_labels,
     })
 }
 
@@ -347,7 +344,6 @@ fn song_list_item(ctx: &Ctx, index: u32, light: bool) -> Option<SongListItem> {
             reference,
             release_date: None,
             unit_label: None,
-            artists_display: None,
             performance_count: None,
             subtitle: None,
         });
@@ -358,17 +354,15 @@ fn song_list_item(ctx: &Ctx, index: u32, light: bool) -> Option<SongListItem> {
         .iter()
         .map(|i| i.name.as_str())
         .collect();
-    let artists = artists_display(&names);
     Some(SongListItem {
         subtitle: join_parts([
             song.unit_name.clone(),
-            artists.clone(),
+            artists_display(&names),
             song.release_date.clone(),
         ]),
         reference,
         release_date: song.release_date.clone(),
         unit_label: song.unit_name.clone(),
-        artists_display: artists,
         performance_count: Some(ctx.snap.performance_counts[index as usize]),
     })
 }
@@ -871,13 +865,22 @@ fn brand_glyph(short_name: &str) -> String {
 
 fn brand_list_item(ctx: &Ctx, brand_id: &str) -> Option<BrandListItem> {
     let brand = ctx.brand(brand_id)?;
+    let counts = brand_counts(ctx, brand_id);
     Some(BrandListItem {
         reference: ctx.brand_ref(brand_id)?,
         // カードに大きく出す短い名前。短縮名は実データで最長 5 文字なのでそのまま通る。
         // 2 文字に切ると `765AS` → `76`、`学マス` → `学マ` でどれも読めなくなる。
         glyph: brand_glyph(&brand.short_name),
         short_name: Some(brand.short_name.clone()),
-        counts: brand_counts(ctx, brand_id),
+        // 素の件数を配ると .astro が組み立て直すことになり、実際にトップと /brands/ で
+        // 項目数が食い違っていた (片方だけユニット数が無かった)。
+        preview_display: join_parts([
+            Some(format!("ライブ {}", counts.events)),
+            Some(format!("楽曲 {}", counts.songs)),
+            Some(format!("アイドル {}", counts.idols)),
+            Some(format!("ユニット {}", counts.units)),
+        ])
+        .unwrap_or_default(),
     })
 }
 
@@ -917,6 +920,34 @@ pub fn counts(ctx: &Ctx) -> Counts {
     }
 }
 
+/// サイト全体の件数タイル。
+///
+/// `with_links` はタイルから一覧へ飛ばすか (トップは飛ばす / About は読み物なので飛ばさない)。
+/// `with_setlist_items` は「セトリ項目」を足すか (About だけ)。
+/// どの件数をどの順で出すかの判断はここ 1 箇所にある。
+fn site_stat_tiles(counts: Counts, with_links: bool, with_setlist_items: bool) -> Vec<StatTile> {
+    let mut rows = vec![
+        ("♪", counts.events, "ライブ", "/events/"),
+        ("▤", counts.shows, "公演", "/events/past/"),
+        ("♬", counts.songs, "楽曲", "/songs/"),
+        ("☺", counts.idols, "アイドル", "/idols/"),
+        ("❋", counts.units, "ユニット", "/units/"),
+        ("⌂", counts.venues, "会場", "/venues/"),
+    ];
+    if with_setlist_items {
+        rows.push(("≡", counts.setlist_items, "セトリ項目", "/songs/"));
+    }
+    rows.into_iter()
+        .map(|(glyph, value, label, href)| StatTile {
+            glyph: glyph.to_string(),
+            value,
+            label: label.to_string(),
+            // 「セトリ項目」だけは対応する一覧が無いのでリンクを持たない。
+            href: (with_links && label != "セトリ項目").then(|| href.to_string()),
+        })
+        .collect()
+}
+
 /// トップページ。
 pub fn home(ctx: &Ctx, upcoming: &[EventListItem], counts: Counts) -> HomePage {
     let path = "/";
@@ -927,7 +958,7 @@ pub fn home(ctx: &Ctx, upcoming: &[EventListItem], counts: Counts) -> HomePage {
         disclaimer: content::SITE_DISCLAIMER.to_string(),
         upcoming: upcoming.iter().take(8).cloned().collect(),
         recent_shows: super::events::recent_shows(ctx, 8),
-        counts,
+        stat_tiles: site_stat_tiles(counts, true, false),
         brands: ctx
             .snap
             .brand_order
@@ -970,7 +1001,7 @@ pub fn about(ctx: &Ctx, counts: Counts) -> AboutPage {
     AboutPage {
         schema_version: SCHEMA_VERSION,
         path: path.to_string(),
-        counts,
+        stat_tiles: site_stat_tiles(counts, false, true),
         data_version: ctx.data_version.clone(),
         content_hash: ctx.content_hash.clone(),
         generated_at: ctx.generated_at.clone(),

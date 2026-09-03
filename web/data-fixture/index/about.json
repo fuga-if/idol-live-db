@@ -1,16 +1,50 @@
 {
   "schemaVersion": 1,
   "path": "/about/",
-  "counts": {
-    "events": 851,
-    "shows": 1341,
-    "songs": 3153,
-    "idols": 394,
-    "units": 1539,
-    "venues": 234,
-    "brands": 9,
-    "setlistItems": 13762
-  },
+  "statTiles": [
+    {
+      "glyph": "♪",
+      "value": 851,
+      "label": "ライブ",
+      "href": null
+    },
+    {
+      "glyph": "▤",
+      "value": 1341,
+      "label": "公演",
+      "href": null
+    },
+    {
+      "glyph": "♬",
+      "value": 3153,
+      "label": "楽曲",
+      "href": null
+    },
+    {
+      "glyph": "☺",
+      "value": 394,
+      "label": "アイドル",
+      "href": null
+    },
+    {
+      "glyph": "❋",
+      "value": 1539,
+      "label": "ユニット",
+      "href": null
+    },
+    {
+      "glyph": "⌂",
+      "value": 234,
+      "label": "会場",
+      "href": null
+    },
+    {
+      "glyph": "≡",
+      "value": 13762,
+      "label": "セトリ項目",
+      "href": null
+    }
+  ],
   "dataVersion": "2026090401",
   "contentHash": "6c41f0e2b9d4a7c8",
   "generatedAt": "2026-09-04T00:00:00Z",
@@ -18,7 +52,6 @@
   "app": {
     "appStoreUrl": "https://apps.apple.com/jp/app/id6763342297",
     "playStoreUrl": null,
-    "hashtag": "#アイドルライブDB",
     "xUrl": "https://x.com/idollivedb",
     "privacyUrl": "https://fuga-if.github.io/imas-live-privacy/privacy.html",
     "supportUrl": "https://fuga-if.github.io/imas-live-privacy/support.html",

@@ -63,7 +63,6 @@ pub struct AppLinks {
     pub app_store_url: String,
     /// Google Play は 2026-09-04 時点で 404 のため `None`。出面にリンクを出さない。
     pub play_store_url: Option<String>,
-    pub hashtag: String,
     /// 公式 X アカウント。
     ///
     /// `Option` のままにしてあるのは、**リンクを出すかどうかの判断をデータ側に置く**ため。
@@ -151,8 +150,6 @@ pub struct AppOpen {
     /// `imaslivedb://events/<id>` 等。**event / show にしか無い**
     /// (`DeeplinkRouter` が受けるのは events / shows / polls の 3 種だけ)。
     pub deeplink: Option<String>,
-    /// `"event"` | `"show"`。`deeplink` が `None` なら `None`。
-    pub deeplink_kind: Option<String>,
     /// 「参加記録・投票・歌詞・タグはアプリで」等の固定文。
     pub note: String,
 }
@@ -203,6 +200,23 @@ pub struct SeoBlock {
 pub struct Crumb {
     pub name: String,
     pub path: String,
+}
+
+/// 件数タイル 1 枚。
+///
+/// どの件数を、どの順で、どのラベルとグリフで出すかは**そのページの意味の判断**なので
+/// Rust が決める。`Counts` を素で配って .astro が表を組むと、同じ表が画面ごとに
+/// コピーされ、実際にトップ 6 件・About 7 件・ブランド 4 件で中身が食い違っていた。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../../web/src/lib/schema/")]
+pub struct StatTile {
+    /// 見出しの記号 (`♪` `▤` `♬` …)。版権物を持たないので記号で見分ける。
+    pub glyph: String,
+    pub value: u32,
+    pub label: String,
+    /// 一覧への入口。押せないタイルは `None`。
+    pub href: Option<String>,
 }
 
 /// 一覧ページ間の切替リンク (ブランド別など)。
@@ -267,5 +281,4 @@ pub struct ThemeTokens {
     pub grad_to: String,
     pub separator: String,
     pub hero_surface: String,
-    pub is_neutral: bool,
 }

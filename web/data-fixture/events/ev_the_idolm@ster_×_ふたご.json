@@ -29,7 +29,6 @@
   ],
   "kind": "live",
   "kindLabel": "ライブ",
-  "eventType": "tour",
   "firstDate": "2026-04-03",
   "lastDate": "2026-04-04",
   "isUpcoming": true,
@@ -88,49 +87,48 @@
     }
   ],
   "cast": {
-    "brandIdols": [
+    "shows": [
       {
-        "kind": "idol",
-        "id": "ml_kasuga_mirai",
-        "name": "春日未来",
-        "sub": "ミリオンライブ!",
-        "path": "/idols/ml_kasuga_mirai/",
-        "themeKey": "idol:ml_kasuga_mirai",
-        "artworkUrl": null,
-        "monogram": "春"
-      },
-      {
-        "kind": "idol",
-        "id": "ml_mogami_shizuka",
-        "name": "最上静香",
-        "sub": "ミリオンライブ!",
-        "path": "/idols/ml_mogami_shizuka/",
-        "themeKey": "idol:ml_mogami_shizuka",
-        "artworkUrl": null,
-        "monogram": "最"
-      }
-    ],
-    "presenceByShow": [
-      {
-        "showId": "sh_sample_1",
-        "idolIds": [
-          "ml_kasuga_mirai",
-          "ml_mogami_shizuka"
+        "show": {
+          "kind": "show",
+          "id": "sh_sample_1",
+          "name": "DAY1",
+          "sub": "2026-04-03",
+          "path": "/shows/sh_sample_1/",
+          "themeKey": "brand:ml",
+          "artworkUrl": null,
+          "monogram": "D"
+        },
+        "performers": [
+          {
+            "ref": {
+              "kind": "idol",
+              "id": "ml_kasuga_mirai",
+              "name": "春日未来",
+              "sub": "ミリオンライブ!",
+              "path": "/idols/ml_kasuga_mirai/",
+              "themeKey": "idol:ml_kasuga_mirai",
+              "artworkUrl": null,
+              "monogram": "春"
+            },
+            "isLead": true,
+            "isGuest": false
+          },
+          {
+            "ref": {
+              "kind": "idol",
+              "id": "ml_mogami_shizuka",
+              "name": "最上静香",
+              "sub": "ミリオンライブ!",
+              "path": "/idols/ml_mogami_shizuka/",
+              "themeKey": "idol:ml_mogami_shizuka",
+              "artworkUrl": null,
+              "monogram": "最"
+            },
+            "isLead": false,
+            "isGuest": true
+          }
         ]
-      }
-    ],
-    "leadByShow": [
-      {
-        "showId": "sh_sample_1",
-        "idolIds": [
-          "ml_kasuga_mirai"
-        ]
-      }
-    ],
-    "guestByShow": [
-      {
-        "showId": "sh_sample_1",
-        "idolIds": []
       }
     ]
   },
@@ -159,7 +157,6 @@
   "app": {
     "appStoreUrl": "https://apps.apple.com/jp/app/id6763342297",
     "deeplink": "imaslivedb://events/ev_the_idolm%40ster_%C3%97_%E3%81%B5%E3%81%9F%E3%81%94",
-    "deeplinkKind": "event",
     "note": "参加記録・投票・歌詞・コール・タグ付けはアプリでご利用いただけます。"
   },
   "seo": {

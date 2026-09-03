@@ -6,4 +6,4 @@
  * **ブランド id を seed に渡してはいけない** (`first_valid_hex` の doc: `"876"` が
  * `#887766` として通ってしまう)。渡すのは `brands.color` の値だけ。
  */
-export type ThemeTokens = { accent: string, onAccent: string, tint: string, tintStrong: string, chipBg: string, chipText: string, ring: string, bar: string, dot: string, gradFrom: string, gradTo: string, separator: string, heroSurface: string, isNeutral: boolean, };
+export type ThemeTokens = { accent: string, onAccent: string, tint: string, tintStrong: string, chipBg: string, chipText: string, ring: string, bar: string, dot: string, gradFrom: string, gradTo: string, separator: string, heroSurface: string, };

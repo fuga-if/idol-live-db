@@ -7,5 +7,7 @@ import type { Ref } from "./Ref";
 export type PerformerRef = { ref: Ref, 
 /**
  * 表示名 (CV 名で歌った回など、アイドル名と違うことがある)。
+ * 表示名 (CV 名で歌った回など、アイドル名と違うことがある)。
+ * アイドル名そのものは `reference.name` にある。
  */
-displayName: string, idolName: string, };
+displayName: string, };

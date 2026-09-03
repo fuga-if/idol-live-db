@@ -48,7 +48,6 @@ fn tokens(c: &ImasThemeColors) -> ThemeTokens {
         grad_to: theme_hex(c.grad_to),
         separator: theme_hex(c.separator),
         hero_surface: theme_hex(c.hero_surface),
-        is_neutral: c.is_neutral,
     }
 }
 

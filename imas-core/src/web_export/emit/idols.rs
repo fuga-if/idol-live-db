@@ -58,7 +58,6 @@ pub fn idol_page(ctx: &Ctx, idol_id: &str) -> Option<IdolPage> {
                     name: v.name,
                     start_date: v.valid_from,
                     end_date: v.valid_to,
-                    note: None,
                 }
             })
             .collect(),
@@ -101,7 +100,6 @@ pub fn idol_page(ctx: &Ctx, idol_id: &str) -> Option<IdolPage> {
                     ]),
                     song,
                     times: s.perform_count,
-                    last_date: None,
                 })
             })
             .collect(),

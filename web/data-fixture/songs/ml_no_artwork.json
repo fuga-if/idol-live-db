@@ -17,12 +17,9 @@
   },
   "songType": "other",
   "releaseDate": null,
-  "durationSec": null,
   "durationDisplay": null,
   "credits": [],
-  "cdSeries": null,
   "cdTitle": null,
-  "seriesGroup": null,
   "seriesDisplay": null,
   "artworkUrl": null,
   "appleMusicUrl": null,
@@ -38,10 +35,10 @@
   "frequentSingers": [],
   "coOccurring": [],
   "related": [],
+  "factRows": [],
   "app": {
     "appStoreUrl": "https://apps.apple.com/jp/app/id6763342297",
     "deeplink": null,
-    "deeplinkKind": null,
     "note": "参加記録・投票・歌詞・コール・タグ付けはアプリでご利用いただけます。"
   },
   "seo": {

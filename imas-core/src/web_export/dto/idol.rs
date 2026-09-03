@@ -60,8 +60,7 @@ pub struct VoiceActorRow {
     pub start_date: Option<String>,
     pub end_date: Option<String>,
     pub is_current: bool,
-    pub note: Option<String>,
-    /// 1 行で出すときの表記 (名前・在任期間・備考を `" ・ "` で繋いだもの)。
+    /// 1 行で出すときの表記 (名前と在任期間を `" ・ "` で繋いだもの)。
     pub display: String,
 }
 
@@ -86,7 +85,6 @@ pub struct IdolSongRow {
 pub struct IdolPerformedRow {
     pub song: Ref,
     pub times: u32,
-    pub last_date: Option<String>,
     /// 行の副題 (ユニット名・披露回数)。空なら `None`。
     pub subtitle: Option<String>,
 }

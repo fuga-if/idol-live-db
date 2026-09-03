@@ -23,7 +23,7 @@ kind: string,
 /**
  * 種別チップに出す日本語表記。
  */
-kindLabel: string, eventType: string, firstDate: string | null, lastDate: string | null, 
+kindLabel: string, firstDate: string | null, lastDate: string | null, 
 /**
  * `first_date >= todayJst`。判定は `event_grouping::group_events_by_year` を
  * 1 要素で呼んだ結果で、**`>=` をここに書かない** (規則を二重に持たないため)。

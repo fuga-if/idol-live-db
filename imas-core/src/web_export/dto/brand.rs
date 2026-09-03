@@ -1,6 +1,6 @@
 //! ブランド (brand) 詳細ページの DTO。
 
-use super::common::{Counts, NavLink, Ref, SeoBlock};
+use super::common::{NavLink, Ref, SeoBlock, StatTile};
 use serde::{Deserialize, Serialize};
 
 /// `/brands/<id>/` の中身。
@@ -13,10 +13,13 @@ pub struct BrandPage {
     pub path: String,
     pub name: String,
     pub short_name: Option<String>,
-    pub color: Option<String>,
     pub theme_key: String,
-    /// このブランドに属する件数だけを数えたもの。
-    pub counts: Counts,
+    /// このブランドに属する件数のタイル (ライブ / 楽曲 / アイドル / ユニット)。
+    ///
+    /// 素の `Counts` を配らないのは、ブランドに紐付かない件数 (会場・セトリ項目) を
+    /// 0 で埋めて「web 側がそこを読まない」という口約束に頼る形になるため。
+    /// 意味のあるタイルだけを組んで渡す。
+    pub stat_tiles: Vec<StatTile>,
     pub idols: Vec<Ref>,
     pub units: Vec<Ref>,
     pub recent_events: Vec<Ref>,

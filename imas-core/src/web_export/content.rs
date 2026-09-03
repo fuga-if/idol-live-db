@@ -55,7 +55,6 @@ pub fn app_links() -> AppLinks {
         // Google Play (site.fugaapp.imaslivedb) は 2026-09-04 時点で 404。
         // 生きていないリンクを出面に置かない。
         play_store_url: None,
-        hashtag: HASHTAG.to_string(),
         x_url: Some(X_URL.to_string()),
         privacy_url: PRIVACY_URL.to_string(),
         support_url: SUPPORT_URL.to_string(),
@@ -69,7 +68,6 @@ pub fn app_open_plain() -> AppOpen {
     AppOpen {
         app_store_url: APP_STORE_URL.to_string(),
         deeplink: None,
-        deeplink_kind: None,
         note: APP_OPEN_NOTE.to_string(),
     }
 }
@@ -85,7 +83,6 @@ pub fn app_open_deeplink(kind: &str, segment: &str) -> AppOpen {
     AppOpen {
         app_store_url: APP_STORE_URL.to_string(),
         deeplink: Some(format!("{DEEPLINK_SCHEME}://{collection}/{segment}")),
-        deeplink_kind: Some(kind.to_string()),
         note: APP_OPEN_NOTE.to_string(),
     }
 }

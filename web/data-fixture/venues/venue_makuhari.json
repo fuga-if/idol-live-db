@@ -9,9 +9,6 @@
   "city": "千葉市美浜区",
   "locationDisplay": "千葉県 千葉市美浜区",
   "capacity": 9000,
-  "aliases": [
-    "幕張"
-  ],
   "aliasesDisplay": "幕張",
   "halls": [
     {
@@ -25,6 +22,26 @@
       "startDate": null,
       "endDate": "1999-03-31",
       "periodDisplay": "〜 1999-03-31"
+    }
+  ],
+  "factRows": [
+    {
+      "label": "所在",
+      "value": "千葉県 千葉市美浜区",
+      "style": "plain",
+      "link": null
+    },
+    {
+      "label": "収容人数",
+      "value": "9000人",
+      "style": "monospaced",
+      "link": null
+    },
+    {
+      "label": "別名",
+      "value": "幕張",
+      "style": "plain",
+      "link": null
     }
   ],
   "events": [
@@ -84,7 +101,6 @@
   "app": {
     "appStoreUrl": "https://apps.apple.com/jp/app/id6763342297",
     "deeplink": null,
-    "deeplinkKind": null,
     "note": "参加記録・投票・歌詞・コール・タグ付けはアプリでご利用いただけます。"
   },
   "seo": {

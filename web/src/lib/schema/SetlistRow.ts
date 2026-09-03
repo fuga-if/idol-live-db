@@ -13,15 +13,7 @@ export type SetlistRow = { id: string,
  * 11593 のような大きな数になる。並べ替えの鍵としては正しいが、そのまま番号として
  * 描くと読めない。どちらを出すかは表示の判断なので、Rust 側で決めておく。
  */
-number: number, 
-/**
- * 並び順の鍵 (`setlist_items.position`)。表示用の番号ではない。
- */
-position: number, 
-/**
- * アンコール等の区切り。
- */
-section: string | null, notes: string | null, 
+number: number, notes: string | null, 
 /**
  * `setlist_items.unit_name`。**この披露限りの表記**で、曲のユニットとは別物。
  */
