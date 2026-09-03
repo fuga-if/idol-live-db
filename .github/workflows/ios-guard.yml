@@ -94,18 +94,53 @@ jobs:
           python3 tools/pick_simulator.py /tmp/sims.json >> "$GITHUB_OUTPUT"
           cat "$GITHUB_OUTPUT"
 
+      # シミュレータを先に起動しきっておく。冷えた状態で `xcodebuild test` を始めると、
+      # シミュレータの初期化とアプリの起動が重なり、テストホストが
+      # 「Early unexpected exit, operation never finished bootstrapping」で落ちることがある。
+      # runner は開発機より遅いぶんこの窓が広い。
+      - name: Boot the simulator first
+        run: |
+          xcrun simctl boot "${{ steps.sim.outputs.udid }}" || true
+          xcrun simctl bootstatus "${{ steps.sim.outputs.udid }}" -b
+
       # 署名はアドホック ("-") にする。runner に Apple Developer の証明書は無いので
       # DEVELOPMENT_TEAM を空にして自動プロビジョニングを止める。
       # ⚠️ CODE_SIGNING_ALLOWED=NO は使えない。署名が無いと Keychain (KeychainStore /
       #    Firebase Installations) が SecItemCopyMatching -34018 で失敗しテストが落ちる。
+      # ⚠️ `| tail -60` にしない。テストが途中でアプリごと落ちたとき、原因は
+      #    クラッシュログ側にあって末尾 60 行には出てこない。結果は xcresult に
+      #    入るので、落ちたときだけ artifact に上げて中身を見られるようにする。
       - name: Test
         run: |
           set -o pipefail
           xcodebuild test \
             -scheme ImasLiveDB \
             -destination "id=${{ steps.sim.outputs.udid }}" \
+            -resultBundlePath TestResults.xcresult \
+            -test-timeouts-enabled YES \
+            -maximum-test-execution-time-allowance 300 \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGN_STYLE=Manual \
             DEVELOPMENT_TEAM="" \
             PROVISIONING_PROFILE_SPECIFIER="" \
-            | tail -60
+            > xcodebuild.log 2>&1 || {
+              echo "::group::失敗したテストと理由"
+              grep -nE "error:|Restarting after|Fatal|Assertion|Exception|Test Case .* failed|crashed" \
+                xcodebuild.log | tail -80
+              echo "::endgroup::"
+              echo "::group::末尾 120 行"
+              tail -120 xcodebuild.log
+              echo "::endgroup::"
+              exit 1
+            }
+          tail -20 xcodebuild.log
+
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcresult
+          path: |
+            TestResults.xcresult
+            xcodebuild.log
+          retention-days: 7
