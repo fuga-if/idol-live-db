@@ -1,0 +1,21 @@
+[package]
+name = "imas-fold-wasm"
+version = "0.1.0"
+edition = "2021"
+description = "検索語の畳み込みをブラウザで行うための wasm ラッパ"
+
+[lib]
+# cdylib: wasm-pack が読む本体 / rlib: check-parity 用にホストからも呼べるようにする
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# 規則の実体。ここには規則を 1 行も書かない。
+imas-text-fold = { path = "../../../imas-text-fold" }
+wasm-bindgen = "0.2"
+
+[profile.release]
+# 配るのは fold 1 関数だけなので、速度より大きさを優先する。
+opt-level = "z"
+lto = true
+panic = "abort"
+codegen-units = 1
