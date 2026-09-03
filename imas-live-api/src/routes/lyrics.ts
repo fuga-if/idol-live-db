@@ -36,17 +36,22 @@ const MAX_SECTION_CHARS = 32;
 const LINE_KINDS = new Set(["lyric", "marker", "blank"]);
 const LYRIC_STATUSES = new Set(["draft", "published"]);
 
-// ---- 掲載曲数の上限 ----
+/// POST /admin/lyrics/status で 1 回に渡せる song_id の数。
+///
+/// ⚠️ D1 の上限は **1 クエリあたりバインド変数 100 個**。この UPDATE は ids に加えて
+///    status を 3 回バインドするので、余裕を見て 90 に取ってある。
+///    超えると 500 (Internal error) になり、エラー本文からは原因が分からない。
+const MAX_STATUS_IDS = 90;
+
+// ---- 掲載曲数について ----
 //
-// ⚠️ JASRAC 許諾 J260943703 の「ご利用曲数 100曲まで」。これは料金区分そのもので、
-//    超えた時点で許諾の範囲外になる。曲の入れ替えは自由 (draft に戻せば枠が空く) だが、
-//    **同時に published でいられるのは 100 曲まで**。
+// JASRAC 許諾 J260943703 の許諾書には「ご利用曲数 100曲まで」とあるが、
+// 非商用配信の使用料表は**「以後10曲まで毎に加算する額」が「なし」**で、
+// 曲数を増やしても額が変わらない (2026-09-03 に許諾者本人が料金表で確認)。
+// したがって曲数で配信を止めない。
 //
-//    ここで止めているのは、投入 CLI に `--status published` を渡す運用だと
-//    `--all` 一発で 2,000 曲以上が公開されうるから。フラグの付け間違いが
-//    そのまま許諾違反になる経路を、サーバ側で塞いでおく。
-//    上限を上げるときは JASRAC への区分変更が先。ここだけ直しても許諾は広がらない。
-const PUBLISHED_SONG_LIMIT = 100;
+// 数えるものは残してある (GET /admin/lyrics/quota)。年次利用曲目報告の母集団が
+// 「実際に掲載した曲」なので、何曲公開しているかは結局要る。
 
 /** 歌詞応答は端末にもエッジにも残さない (許諾条件の「一括ダウンロード不可」の実効性)。 */
 export const NO_STORE: Record<string, string> = { "Cache-Control": "no-store" };
@@ -712,11 +717,66 @@ export async function handleLyrics(ctx: RouteContext): Promise<Response | null> 
   }
 
   // ----------------------------------------------------------------
-  // GET /admin/lyrics/quota — 許諾枠の残り (モデレーターのみ)
+  // POST /admin/lyrics/status — 公開状態だけをまとめて切り替える (モデレーターのみ)
   // ----------------------------------------------------------------
   //
-  // 「今いくつ公開しているか」を数える手段が無いと、上限に当たって初めて
-  // 気づくことになる。年次利用曲目報告の母集団もここで見えているものと同じ。
+  // 既に投入済みの歌詞を draft ⇄ published させるためだけの口。本文には触らない。
+  //
+  // ⚠️ このファイル冒頭の「1リクエスト = 高々1曲」は**読み取り**の規則で、
+  //    まとめ取りで歌詞を一括ダウンロードされないためのもの。ここは書き込みで、
+  //    応答に歌詞本文を一切含めない (返すのは件数だけ) ので趣旨には触れない。
+  //    ⚠️ 将来ここに本文や lines を返す実装を足さないこと。足した瞬間に
+  //       「まとめ取りできる口」になる。
+  //
+  // PUT を曲数ぶん叩くのに比べて、本文と転置インデックスを書き直さずに済む。
+  if (path === "/admin/lyrics/status" && request.method === "POST") {
+    const subject = await authorizeLyricsWrite(request, env);
+    if (!subject) return error("Unauthorized", 401);
+
+    const body = await request.json().catch(() => null) as
+      { song_ids?: unknown; status?: unknown } | null;
+    const status = body?.status;
+    if (typeof status !== "string" || !LYRIC_STATUSES.has(status)) {
+      return error("status must be 'draft' or 'published'", 400);
+    }
+    const ids = body?.song_ids;
+    if (!Array.isArray(ids) || ids.length === 0) return error("song_ids required", 400);
+    // 1 リクエストの上限。SQL のプレースホルダ数を現実的な範囲に留める。
+    if (ids.length > MAX_STATUS_IDS) {
+      return error(`song_ids must be at most ${MAX_STATUS_IDS}`, 400);
+    }
+    if (!ids.every((id) => typeof id === "string" && id.length > 0 && id.length <= 200)) {
+      return error("song_ids must be non-empty strings", 400);
+    }
+
+    const rl = await checkRateLimit(env.DB, subject, "lyrics_admin");
+    if (!rl.allowed) return rateLimitResponse(rl.used, rl.limit, rl.reset_at);
+
+    const holes = ids.map(() => "?").join(",");
+    // first_published_at は PUT と同じ規則で「初回 published の時刻だけ」を残す。
+    // 年次利用曲目報告の基準がここなので、published→draft→published で上書きしない。
+    const res = await env.DB.prepare(
+      `UPDATE song_lyrics
+          SET status = ?,
+              first_published_at = COALESCE(
+                first_published_at,
+                CASE WHEN ? = 'published' THEN datetime('now') END),
+              updated_at = datetime('now')
+        WHERE song_id IN (${holes}) AND status <> ?`
+    )
+      .bind(status, status, ...(ids as string[]), status)
+      .run();
+
+    return json({ status, requested: ids.length, updated: res.meta?.changes ?? 0 },
+                200, NO_STORE);
+  }
+
+  // ----------------------------------------------------------------
+  // GET /admin/lyrics/quota — 掲載曲数の集計 (モデレーターのみ)
+  // ----------------------------------------------------------------
+  //
+  // 年次利用曲目報告の母集団は「実際に掲載した曲」なので、何曲公開しているかを
+  // 数える手段が要る。上限ではなく実績の確認。
   if (path === "/admin/lyrics/quota" && request.method === "GET") {
     if (!(await authorizeLyricsWrite(request, env))) return error("Unauthorized", 401);
     const row = await env.DB.prepare(
@@ -725,15 +785,8 @@ export async function handleLyrics(ctx: RouteContext): Promise<Response | null> 
          count(*) FILTER (WHERE status = 'draft')     AS draft
        FROM song_lyrics`
     ).first<{ published: number; draft: number }>();
-    const published = row?.published ?? 0;
     return json(
-      {
-        license: "J260943703",
-        limit: PUBLISHED_SONG_LIMIT,
-        published,
-        remaining: Math.max(0, PUBLISHED_SONG_LIMIT - published),
-        draft: row?.draft ?? 0,
-      },
+      { license: "J260943703", published: row?.published ?? 0, draft: row?.draft ?? 0 },
       200,
       NO_STORE
     );
@@ -773,28 +826,6 @@ export async function handleLyrics(ctx: RouteContext): Promise<Response | null> 
       status: string;
       lines: Array<{ kind?: string; text?: string | null; section?: string | null }>;
     };
-
-    // 許諾枠の確認。published にするときだけ数える (draft は何曲でも持ってよい)。
-    // 自分自身は除外する: 既に published の曲を差し替えても枠は増えない。
-    //
-    // 参照と書き込みの間に別の PUT が挟まると理屈の上では 101 曲目が通りうるが、
-    // この経路は運用者トークンを持った CLI 1 本からの逐次実行しかない。
-    // 競合を厳密に塞ぐより、超えた事実を検知できる形 (GET /admin/lyrics/quota) を
-    // 用意する方を選んでいる。
-    if (status === "published") {
-      const used = await env.DB.prepare(
-        "SELECT count(*) AS n FROM song_lyrics WHERE status = 'published' AND song_id <> ?"
-      )
-        .bind(songId)
-        .first<{ n: number }>();
-      if ((used?.n ?? 0) >= PUBLISHED_SONG_LIMIT) {
-        return error(
-          `published song limit reached (${PUBLISHED_SONG_LIMIT}); ` +
-            "set another song to draft first",
-          409
-        );
-      }
-    }
 
     // ⚠️ 行 ID は発行後不変という契約 (将来コールがこの ID を参照する)。
     //    ord 順に既存 id を再利用し、増えた分だけ新しく採番する。

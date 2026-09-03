@@ -269,8 +269,8 @@ def cmd_annual(args):
     rows = [r for r in read_works(args.works) if r.get("match_status") != "excluded"]
 
     # ⚠️ 報告の母集団は「実際に歌詞を掲載した曲」だけ。works.tsv は照合台帳なので
-    #    掲載していない曲まで載っている (2,600曲超)。許諾は 100曲区分なので、
-    #    台帳をそのまま出すと利用実態と桁が合わない報告になる。
+    #    掲載していない曲まで載っている (2,600曲超)。台帳をそのまま出すと
+    #    「配信していない曲を報告する」ことになる。
     #    掲載中の song_id は D1 が持っている:
     #      npx wrangler d1 execute imas-live-db --remote \
     #        --command "SELECT song_id FROM song_lyrics WHERE status='published'"
