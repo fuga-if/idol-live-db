@@ -1,0 +1,32 @@
+{
+  "name": "imas-live-web",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "export": "cd ../imas-core && cargo run --release --features web-export --bin web-export -- --sql ../db/master.sql --out ../web/data",
+    "wasm": "cd wasm/imas-fold-wasm && wasm-pack build --release --target web --out-dir ../../src/lib/fold",
+    "prebuild": "node scripts/require-data.mjs",
+    "build": "astro build && node scripts/check-limits.mjs",
+    "build:all": "npm run export && npm run wasm && npm run build",
+    "dev": "astro dev",
+    "dev:fixture": "IMAS_WEB_DATA=./data-fixture astro dev",
+    "build:fixture": "IMAS_WEB_DATA=./data-fixture astro build",
+    "preview": "wrangler dev",
+    "preview:astro": "astro preview",
+    "check": "astro check && tsc --noEmit",
+    "test": "vitest run",
+    "test:fold": "vitest run tests/fold.parity.test.ts",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "@astrojs/check": "0.9.10",
+    "@astrojs/sitemap": "3.7.4",
+    "astro": "7.3.1",
+    "typescript": "~5.9.3",
+    "vitest": "^5.0.0",
+    "wrangler": "4.128.0"
+  }
+}
