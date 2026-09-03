@@ -4,7 +4,7 @@
 //! クライアント状態を持たないというユーザー指示の直接の帰結で、切替 UI は
 //! [`NavLink`] のリンク集になる。
 
-use super::context::{join_parts, Ctx, PARTS_SEPARATOR};
+use super::context::{join_parts, simple_json_ld, Ctx, PARTS_SEPARATOR};
 use crate::domain::display_join::join_capped;
 use crate::domain::kana_row::kana_row_label;
 use super::events::show_summary;
@@ -29,10 +29,18 @@ pub fn all_event_kinds() -> Vec<String> {
     content::ALL_EVENT_KINDS.iter().map(|k| k.to_string()).collect()
 }
 
-/// 1 枚ぶんの出力 (どこに置き、どの URL になるか)。
+/// 1 枚ぶんの出力 (どこに置き、どの URL になり、どのルートに対応するか)。
+///
+/// `route_kind` と `param_key` を作る側が持つのは、**URL を作った側が答えを知っている**から。
+/// 以前は書き出す側が `path` を文字列で刻んで種別と params を逆算していて、
+/// URL 規約が「組み立てる場所」と「読み解く場所」の 2 箇所にあった。
 pub struct Emitted<T> {
     pub path: String,
     pub data: String,
+    /// Astro のルートファイル 1 本に対応する種別。
+    pub route_kind: RouteKind,
+    /// `getStaticPaths` の params に渡す生値 (params を取らないページは `None`)。
+    pub param_key: Option<String>,
     pub page: T,
 }
 
@@ -172,6 +180,7 @@ pub fn event_lists(ctx: &Ctx) -> Vec<Emitted<EventListPage>> {
     let make = |path: &str,
                 title: &str,
                 kind: EventListKind,
+                route: (RouteKind, Option<String>),
                 groups: Vec<YearGroup>,
                 data: String,
                 description: &str| {
@@ -181,6 +190,8 @@ pub fn event_lists(ctx: &Ctx) -> Vec<Emitted<EventListPage>> {
         Emitted {
             path: path.to_string(),
             data,
+            route_kind: route.0,
+            param_key: route.1,
             page: EventListPage {
                 schema_version: SCHEMA_VERSION,
                 path: path.to_string(),
@@ -208,6 +219,7 @@ pub fn event_lists(ctx: &Ctx) -> Vec<Emitted<EventListPage>> {
             "/events/",
             "ライブ",
             EventListKind::Index,
+            (RouteKind::EventListIndex, None),
             upcoming_groups.clone(),
             "index/events.json".to_string(),
             "アイドルマスターのライブ・イベントの一覧。今後の開催予定と開催済みを年別に。",
@@ -216,6 +228,7 @@ pub fn event_lists(ctx: &Ctx) -> Vec<Emitted<EventListPage>> {
             "/events/upcoming/",
             "今後のライブ",
             EventListKind::Upcoming,
+            (RouteKind::EventListUpcoming, None),
             upcoming_groups,
             "index/events-upcoming.json".to_string(),
             "これから開催されるアイドルマスターのライブ・イベント。",
@@ -228,6 +241,7 @@ pub fn event_lists(ctx: &Ctx) -> Vec<Emitted<EventListPage>> {
         "/events/past/",
         "開催済みのライブ",
         EventListKind::Past,
+        (RouteKind::EventListPast, None),
         newest_past,
         "index/events-past.json".to_string(),
         "開催済みのアイドルマスターのライブ・イベントを年別に。",
@@ -239,6 +253,7 @@ pub fn event_lists(ctx: &Ctx) -> Vec<Emitted<EventListPage>> {
             &path,
             &format!("{}年のライブ", group.year),
             EventListKind::PastYear,
+            (RouteKind::EventListPastYear, Some(group.year.clone())),
             vec![group.clone()],
             format!("index/events-past-{}.json", group.year),
             &format!("{}年に開催されたアイドルマスターのライブ・イベント。", group.year),
@@ -257,8 +272,9 @@ pub fn event_lists(ctx: &Ctx) -> Vec<Emitted<EventListPage>> {
             &path,
             &format!("{}のライブ", brand.name),
             EventListKind::Brand,
+            (RouteKind::EventListBrand, Some(brand.id.clone())),
             groups,
-            format!("index/events-brand-{}.json", ctx.key("brands", &brand.id)),
+            format!("index/events-brand-{}.json", ctx.param_key(&brand.id)),
             &format!("{}のライブ・イベントの一覧。", brand.name),
         ));
     }
@@ -374,6 +390,7 @@ pub fn song_lists(ctx: &Ctx) -> Vec<Emitted<SongListPage>> {
     let make = |path: String,
                 title: String,
                 kind: SongListKind,
+                route: (RouteKind, Option<String>),
                 indexes: Vec<u32>,
                 data: String,
                 brand: Option<Ref>,
@@ -398,6 +415,8 @@ pub fn song_lists(ctx: &Ctx) -> Vec<Emitted<SongListPage>> {
         Emitted {
             path: path.clone(),
             data,
+            route_kind: route.0,
+            param_key: route.1,
             page: SongListPage {
                 schema_version: SCHEMA_VERSION,
                 path: path.clone(),
@@ -424,6 +443,7 @@ pub fn song_lists(ctx: &Ctx) -> Vec<Emitted<SongListPage>> {
         "/songs/".to_string(),
         "楽曲".to_string(),
         SongListKind::Index,
+        (RouteKind::SongListIndex, None),
         listed,
         "index/songs.json".to_string(),
         None,
@@ -448,6 +468,7 @@ pub fn song_lists(ctx: &Ctx) -> Vec<Emitted<SongListPage>> {
         "/songs/all/".to_string(),
         "楽曲（全件）".to_string(),
         SongListKind::All,
+        (RouteKind::SongListAll, None),
         all,
         "index/songs-all.json".to_string(),
         None,
@@ -469,8 +490,9 @@ pub fn song_lists(ctx: &Ctx) -> Vec<Emitted<SongListPage>> {
             path,
             format!("{}の楽曲", brand.name),
             SongListKind::Brand,
+            (RouteKind::SongListBrand, Some(brand.id.clone())),
             indexes,
-            format!("index/songs-brand-{}.json", ctx.key("brands", &brand.id)),
+            format!("index/songs-brand-{}.json", ctx.param_key(&brand.id)),
             ctx.brand_ref(&brand.id),
             format!("{}の楽曲一覧。", brand.name),
         ));
@@ -505,6 +527,7 @@ pub fn idol_lists(ctx: &Ctx) -> Vec<Emitted<IdolListPage>> {
     let make = |path: String,
                 title: String,
                 kind: IdolListKind,
+                route: (RouteKind, Option<String>),
                 records: Vec<idol_queries::IdolRecord>,
                 data: String,
                 brand: Option<Ref>,
@@ -516,6 +539,8 @@ pub fn idol_lists(ctx: &Ctx) -> Vec<Emitted<IdolListPage>> {
         Emitted {
             path: path.clone(),
             data,
+            route_kind: route.0,
+            param_key: route.1,
             page: IdolListPage {
                 schema_version: SCHEMA_VERSION,
                 path: path.clone(),
@@ -547,6 +572,7 @@ pub fn idol_lists(ctx: &Ctx) -> Vec<Emitted<IdolListPage>> {
         "/idols/".to_string(),
         "アイドル".to_string(),
         IdolListKind::Index,
+        (RouteKind::IdolListIndex, None),
         idol_queries::idol_list(ctx.snap, None),
         "index/idols.json".to_string(),
         None,
@@ -561,8 +587,9 @@ pub fn idol_lists(ctx: &Ctx) -> Vec<Emitted<IdolListPage>> {
             path,
             format!("{}のアイドル", brand.name),
             IdolListKind::Brand,
+            (RouteKind::IdolListBrand, Some(brand.id.clone())),
             idol_queries::idol_list(ctx.snap, Some(&brand.id)),
-            format!("index/idols-brand-{}.json", ctx.key("brands", &brand.id)),
+            format!("index/idols-brand-{}.json", ctx.param_key(&brand.id)),
             ctx.brand_ref(&brand.id),
             None,
             format!("{}のアイドル一覧。", brand.name),
@@ -574,6 +601,7 @@ pub fn idol_lists(ctx: &Ctx) -> Vec<Emitted<IdolListPage>> {
             birth_month_path(month),
             format!("{month}月生まれのアイドル"),
             IdolListKind::BirthMonth,
+            (RouteKind::IdolListBirthMonth, Some(month.to_string())),
             idol_queries::idols_by_birth_month(ctx.snap, month),
             format!("index/idols-birth-month-{month}.json"),
             None,
@@ -590,7 +618,6 @@ pub fn idol_lists(ctx: &Ctx) -> Vec<Emitted<IdolListPage>> {
 
 pub fn unit_lists(ctx: &Ctx) -> Vec<Emitted<UnitListPage>> {
     let index = unit_queries::unit_index_data(ctx.snap);
-    let with_songs: std::collections::HashSet<String> = index.song_unit_ids.iter().cloned().collect();
     let member_counts: BTreeMap<String, u32> = index.units.iter().map(|u| {
         let count = ctx
             .snap
@@ -613,16 +640,27 @@ pub fn unit_lists(ctx: &Ctx) -> Vec<Emitted<UnitListPage>> {
             brand: ctx.brand_ref(&u.brand_id),
             is_permanent: u.is_permanent,
             member_count: member_counts.get(&u.id).copied().unwrap_or(0),
-            song_count: if with_songs.contains(&u.id) { song_count.max(1) } else { song_count },
+            // `songs_by_unit` が空でないユニットが `song_unit_ids` に入る、という
+            // 関係なので `max(1)` は証明可能に no-op だった (そのために HashSet を
+            // 1 つ作っていた)。
+            song_count,
         })
     };
 
-    let make = |path: String, title: String, units: Vec<&unit_queries::UnitRecord>, data: String, brand: Option<Ref>, description: String| {
+    let make = |path: String,
+                title: String,
+                route: (RouteKind, Option<String>),
+                units: Vec<&unit_queries::UnitRecord>,
+                data: String,
+                brand: Option<Ref>,
+                description: String| {
         let items: Vec<UnitListItem> = units.iter().filter_map(|u| item(u)).collect();
         let brand_id = brand.as_ref().map(|b| b.id.clone());
         Emitted {
             path: path.clone(),
             data,
+            route_kind: route.0,
+            param_key: route.1,
             page: UnitListPage {
                 schema_version: SCHEMA_VERSION,
                 path: path.clone(),
@@ -646,6 +684,7 @@ pub fn unit_lists(ctx: &Ctx) -> Vec<Emitted<UnitListPage>> {
     let mut out = vec![make(
         "/units/".to_string(),
         "ユニット".to_string(),
+        (RouteKind::UnitListIndex, None),
         index.units.iter().collect(),
         "index/units.json".to_string(),
         None,
@@ -657,8 +696,9 @@ pub fn unit_lists(ctx: &Ctx) -> Vec<Emitted<UnitListPage>> {
         out.push(make(
             path,
             format!("{}のユニット", brand.name),
+            (RouteKind::UnitListBrand, Some(brand.id.clone())),
             index.units.iter().filter(|u| u.brand_id == brand.id).collect(),
-            format!("index/units-brand-{}.json", ctx.key("brands", &brand.id)),
+            format!("index/units-brand-{}.json", ctx.param_key(&brand.id)),
             ctx.brand_ref(&brand.id),
             format!("{}のユニット一覧。", brand.name),
         ));
@@ -723,11 +763,19 @@ pub fn venue_lists(ctx: &Ctx) -> Vec<Emitted<VenueListPage>> {
         })
     };
 
-    let make = |path: String, title: String, indexes: &[u32], data: String, prefecture: Option<String>, description: String| {
+    let make = |path: String,
+                title: String,
+                route: (RouteKind, Option<String>),
+                indexes: &[u32],
+                data: String,
+                prefecture: Option<String>,
+                description: String| {
         let items: Vec<VenueListItem> = indexes.iter().filter_map(|&i| item(i)).collect();
         Emitted {
             path: path.clone(),
             data,
+            route_kind: route.0,
+            param_key: route.1,
             page: VenueListPage {
                 schema_version: SCHEMA_VERSION,
                 path: path.clone(),
@@ -756,6 +804,7 @@ pub fn venue_lists(ctx: &Ctx) -> Vec<Emitted<VenueListPage>> {
     let mut out = vec![make(
         "/venues/".to_string(),
         "会場".to_string(),
+        (RouteKind::VenueListIndex, None),
         &all,
         "index/venues.json".to_string(),
         None,
@@ -765,8 +814,9 @@ pub fn venue_lists(ctx: &Ctx) -> Vec<Emitted<VenueListPage>> {
         out.push(make(
             pref_path(pref),
             format!("{pref}の会場"),
+            (RouteKind::VenueListPref, Some(pref.clone())),
             indexes,
-            format!("index/venues-pref-{}.json", ctx.key("venues", pref)),
+            format!("index/venues-pref-{}.json", ctx.param_key(pref)),
             Some(pref.clone()),
             format!("{pref}にある、アイドルマスターのライブが行われた会場。"),
         ));
@@ -903,11 +953,7 @@ pub fn home(ctx: &Ctx, upcoming: &[EventListItem], counts: Counts) -> HomePage {
             content::SITE_TAGLINE,
             path,
             None,
-            serde_json::json!({
-                        "@type": "WebSite",
-                "name": content::SITE_NAME,
-                "url": content::absolute("/"),
-            }),
+            simple_json_ld("WebSite", content::SITE_NAME, "/"),
             vec![ctx.crumb("ホーム", "/")],
         ),
     }
@@ -939,22 +985,14 @@ pub fn about(ctx: &Ctx, counts: Counts) -> AboutPage {
             "非公式のファンメイドサイトです。版権方針・ライセンス・アプリ・データの貢献について。",
             path,
             None,
-            serde_json::json!({
-                        "@type": "AboutPage",
-                "name": "このサイトについて",
-                "url": content::absolute(path),
-            }),
+            simple_json_ld("AboutPage", "このサイトについて", path),
             vec![ctx.crumb("ホーム", "/"), ctx.crumb("このサイトについて", path)],
         ),
     }
 }
 
 fn collection_json_ld(name: &str, path: &str) -> serde_json::Value {
-    serde_json::json!({
-        "@type": "CollectionPage",
-        "name": name,
-        "url": content::absolute(path),
-    })
+    simple_json_ld("CollectionPage", name, path)
 }
 
 /// 「今後のライブ」のリスト (トップと `/events/upcoming/` が共有する)。

@@ -202,7 +202,7 @@ pub fn candidate_song_ids(
         .songs
         .iter()
         .filter(|s| s.brand_id.as_deref() == Some(brand_id))
-        .filter(|s| include_covers || s.song_type.as_deref().is_some_and(|t| t != "cover"))
+        .filter(|s| include_covers || !Snapshot::is_cover(s))
         .filter(|s| !exclude_remixes || s.parent_song_id.as_deref().is_none_or(str::is_empty))
         .map(|s| s.id.as_str())
         .collect();
@@ -537,7 +537,7 @@ mod tests {
             .songs
             .iter()
             .filter(|s| s.brand_id.as_deref() == Some(brand))
-            .filter(|s| s.song_type.as_deref().is_some_and(|t| t != "cover"))
+            .filter(|s| !Snapshot::is_cover(s))
             .filter(|s| s.parent_song_id.as_deref().is_none_or(str::is_empty))
             .map(|s| s.id.as_str())
             .collect();

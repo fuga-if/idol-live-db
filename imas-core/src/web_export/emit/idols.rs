@@ -1,6 +1,6 @@
 //! アイドル (idol) とユニット (unit) の詳細ページ。
 
-use super::context::{distinguishing_show_name, join_parts, Ctx};
+use super::context::{distinguishing_show_name, join_parts, monogram_of, simple_json_ld, Ctx};
 use crate::domain::idol_queries;
 use crate::domain::idol_song_queries;
 use crate::domain::screen_composition::{idol_profile_rows, RowAction, RowStyle};
@@ -43,7 +43,7 @@ pub fn idol_page(ctx: &Ctx, idol_id: &str) -> Option<IdolPage> {
         name: record.name.clone(),
         name_kana: record.name_kana.clone(),
         theme_key: ctx.idol_theme(idol_id),
-        monogram: record.name.chars().next().map(|c| c.to_string()).unwrap_or_default(),
+        monogram: monogram_of(RefKind::Idol, &record.name, None),
         brand: brand_id.as_deref().and_then(|b| ctx.brand_ref(b)),
         brands,
         color: record.color.clone(),
@@ -134,11 +134,7 @@ pub fn idol_page(ctx: &Ctx, idol_id: &str) -> Option<IdolPage> {
             ),
             &path,
             brand_id.as_deref(),
-            serde_json::json!({
-                        "@type": "WebPage",
-                "name": record.name,
-                "url": content::absolute(&path),
-            }),
+            simple_json_ld("WebPage", &record.name, &path),
             breadcrumbs,
         ),
     })
@@ -220,7 +216,7 @@ pub fn unit_page(ctx: &Ctx, unit_id: &str) -> Option<UnitPage> {
         name_kana: record.name_kana.clone(),
         name_alt: record.name_alt.clone(),
         theme_key: ctx.brand_theme(Some(&record.brand_id)),
-        monogram: record.name.chars().next().map(|c| c.to_string()).unwrap_or_default(),
+        monogram: monogram_of(RefKind::Idol, &record.name, None),
         is_permanent: record.is_permanent,
         brand: ctx.brand_ref(&record.brand_id),
         members: unit_queries::unit_member_idol_ids(ctx.snap, unit_id)
@@ -237,11 +233,7 @@ pub fn unit_page(ctx: &Ctx, unit_id: &str) -> Option<UnitPage> {
             &format!("{}のメンバーとユニット曲。", record.name),
             &path,
             Some(&record.brand_id),
-            serde_json::json!({
-                        "@type": "MusicGroup",
-                "name": record.name,
-                "url": content::absolute(&path),
-            }),
+            simple_json_ld("MusicGroup", &record.name, &path),
             breadcrumbs,
         ),
     })

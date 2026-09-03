@@ -495,6 +495,15 @@ pub struct Snapshot {
 }
 
 impl Snapshot {
+    /// カバー曲か。
+    ///
+    /// `song_type` の値で判断する箇所が 4 つあり、それぞれ `!= "cover"` と `== "cover"` を
+    /// 手で書いていた。**`song_type` が `None` の曲はカバーではない**という扱いも
+    /// 揃えておかないと、「カバーを除く」と「カバーだけ」が補集合にならない。
+    pub fn is_cover(song: &Song) -> bool {
+        song.song_type.as_deref() == Some("cover")
+    }
+
     pub fn song(&self, id: &str) -> Option<&Song> {
         self.song_index_by_id.get(id).map(|&i| &self.songs[i as usize])
     }

@@ -74,68 +74,6 @@ impl RouteBook {
     }
 }
 
-/// 一覧ページの `path` から、その一覧がどの `RouteKind` かを決める。
-///
-/// 一覧の種別は「Astro のルートファイル 1 本」に対応させてある。ここで取り違えると
-/// `getStaticPaths` が params を取り出せなくなる。
-fn list_kind_and_key(path: &str) -> (RouteKind, Option<String>) {
-    let seg = |prefix: &str| path.strip_prefix(prefix).map(|r| r.trim_end_matches('/').to_string());
-    if let Some(year) = seg("/events/past/") {
-        if !year.is_empty() {
-            return (RouteKind::EventListPastYear, Some(decode(&year)));
-        }
-        return (RouteKind::EventListPast, None);
-    }
-    if let Some(b) = seg("/events/brand/") {
-        return (RouteKind::EventListBrand, Some(decode(&b)));
-    }
-    if let Some(b) = seg("/songs/brand/") {
-        return (RouteKind::SongListBrand, Some(decode(&b)));
-    }
-    if let Some(b) = seg("/idols/brand/") {
-        return (RouteKind::IdolListBrand, Some(decode(&b)));
-    }
-    if let Some(m) = seg("/idols/birth-month/") {
-        return (RouteKind::IdolListBirthMonth, Some(decode(&m)));
-    }
-    if let Some(b) = seg("/units/brand/") {
-        return (RouteKind::UnitListBrand, Some(decode(&b)));
-    }
-    if let Some(p) = seg("/venues/pref/") {
-        return (RouteKind::VenueListPref, Some(decode(&p)));
-    }
-    match path {
-        "/events/" => (RouteKind::EventListIndex, None),
-        "/events/upcoming/" => (RouteKind::EventListUpcoming, None),
-        "/songs/" => (RouteKind::SongListIndex, None),
-        "/songs/all/" => (RouteKind::SongListAll, None),
-        "/idols/" => (RouteKind::IdolListIndex, None),
-        "/units/" => (RouteKind::UnitListIndex, None),
-        "/venues/" => (RouteKind::VenueListIndex, None),
-        "/brands/" => (RouteKind::BrandList, None),
-        _ => (RouteKind::Home, None),
-    }
-}
-
-/// `path` に載っているのは percent-encode 済みの値なので、params 用に戻す。
-fn decode(segment: &str) -> String {
-    let bytes = segment.as_bytes();
-    let mut out = Vec::with_capacity(bytes.len());
-    let mut i = 0;
-    while i < bytes.len() {
-        if bytes[i] == b'%' && i + 2 < bytes.len() {
-            if let Ok(byte) = u8::from_str_radix(&segment[i + 1..i + 3], 16) {
-                out.push(byte);
-                i += 3;
-                continue;
-            }
-        }
-        out.push(bytes[i]);
-        i += 1;
-    }
-    String::from_utf8(out).unwrap_or_else(|_| segment.to_string())
-}
-
 /// 実データを `out` に書き出す。
 pub fn run(args: &Args) -> Result<Stats> {
     let out = args
@@ -209,116 +147,52 @@ fn write_all(ctx: &Ctx, out: &std::path::Path, pretty: bool) -> Result<Stats> {
     w.write_text("themes.css", &theme::build_css(&table))?;
 
     // --- 詳細ページ ---
-    for event in &ctx.snap.events {
-        if let Some(page) = events::event_page(ctx, &event.id) {
-            let data = ctx.data_path(RefKind::Event, &event.id);
-            w.write_json(&data, &page)?;
-            book.detail(
-                RouteKind::Event,
-                &page.path,
-                &ctx.key("events", &event.id),
-                &event.id,
-                &data,
-                page.seo.robots == Robots::IndexFollow,
-            );
-        }
-    }
-    for show in &ctx.snap.shows {
-        if let Some(page) = events::show_page(ctx, &show.id) {
-            let data = ctx.data_path(RefKind::Show, &show.id);
-            w.write_json(&data, &page)?;
-            book.detail(
-                RouteKind::Show,
-                &page.path,
-                &ctx.key("shows", &show.id),
-                &show.id,
-                &data,
-                page.seo.robots == Robots::IndexFollow,
-            );
-        }
-    }
-    for song in &ctx.snap.songs {
-        if let Some(page) = songs::song_page(ctx, &song.id) {
-            let data = ctx.data_path(RefKind::Song, &song.id);
-            w.write_json(&data, &page)?;
-            book.detail(
-                RouteKind::Song,
-                &page.path,
-                &ctx.key("songs", &song.id),
-                &song.id,
-                &data,
-                page.seo.robots == Robots::IndexFollow,
-            );
-        }
-    }
-    for idol in &ctx.snap.idols {
-        if let Some(page) = idols::idol_page(ctx, &idol.id) {
-            let data = ctx.data_path(RefKind::Idol, &idol.id);
-            w.write_json(&data, &page)?;
-            book.detail(
-                RouteKind::Idol,
-                &page.path,
-                &ctx.key("idols", &idol.id),
-                &idol.id,
-                &data,
-                page.seo.robots == Robots::IndexFollow,
-            );
-        }
-    }
-    for unit in &ctx.snap.units {
-        if let Some(page) = idols::unit_page(ctx, &unit.id) {
-            let data = ctx.data_path(RefKind::Unit, &unit.id);
-            w.write_json(&data, &page)?;
-            book.detail(
-                RouteKind::Unit,
-                &page.path,
-                &ctx.key("units", &unit.id),
-                &unit.id,
-                &data,
-                page.seo.robots == Robots::IndexFollow,
-            );
-        }
-    }
-    let directory = places::VenueDirectory::load(ctx);
-    for venue in &ctx.snap.venues {
-        if let Some(page) = places::venue_page(ctx, &venue.id, &directory) {
-            let data = ctx.data_path(RefKind::Venue, &venue.id);
-            w.write_json(&data, &page)?;
-            book.detail(
-                RouteKind::Venue,
-                &page.path,
-                &ctx.key("venues", &venue.id),
-                &venue.id,
-                &data,
-                page.seo.robots == Robots::IndexFollow,
-            );
-        }
-    }
-    for brand in &ctx.snap.brands {
-        if let Some(page) = places::brand_page(ctx, &brand.id) {
-            let data = ctx.data_path(RefKind::Brand, &brand.id);
-            w.write_json(&data, &page)?;
-            book.detail(
-                RouteKind::Brand,
-                &page.path,
-                &ctx.key("brands", &brand.id),
-                &brand.id,
-                &data,
-                page.seo.robots == Robots::IndexFollow,
-            );
-        }
+    //
+    // 7 コレクションで手順が同じ (ページを組む → 書く → ルート台帳に載せる)。
+    // 違うのは「どの一覧を回すか」と「どの関数でページを組むか」だけなので、
+    // その 2 つだけを渡す。コピペで並べると 1 つだけ `in_sitemap` の判定を
+    // 書き忘れる、といった壊れ方をする。
+    macro_rules! write_details {
+        ($kind:expr, $route:expr, $rows:expr, $page:expr) => {
+            for id in $rows {
+                let Some(page) = $page(&id) else { continue };
+                let data = ctx.data_path($kind, &id);
+                w.write_json(&data, &page)?;
+                book.detail(
+                    $route,
+                    &page.path,
+                    ctx.expect_key($kind, &id),
+                    &id,
+                    &data,
+                    page.seo.robots == Robots::IndexFollow,
+                );
+            }
+        };
     }
 
+    let ids = |f: fn(&Snapshot) -> Vec<String>| f(ctx.snap);
+    write_details!(RefKind::Event, RouteKind::Event, ids(|s| s.events.iter().map(|e| e.id.clone()).collect()), |id: &String| events::event_page(ctx, id));
+    write_details!(RefKind::Show, RouteKind::Show, ids(|s| s.shows.iter().map(|x| x.id.clone()).collect()), |id: &String| events::show_page(ctx, id));
+    write_details!(RefKind::Song, RouteKind::Song, ids(|s| s.songs.iter().map(|x| x.id.clone()).collect()), |id: &String| songs::song_page(ctx, id));
+    write_details!(RefKind::Idol, RouteKind::Idol, ids(|s| s.idols.iter().map(|x| x.id.clone()).collect()), |id: &String| idols::idol_page(ctx, id));
+    write_details!(RefKind::Unit, RouteKind::Unit, ids(|s| s.units.iter().map(|x| x.id.clone()).collect()), |id: &String| idols::unit_page(ctx, id));
+    let directory = places::VenueDirectory::load(ctx);
+    write_details!(RefKind::Venue, RouteKind::Venue, ids(|s| s.venues.iter().map(|x| x.id.clone()).collect()), |id: &String| places::venue_page(ctx, id, &directory));
+    write_details!(RefKind::Brand, RouteKind::Brand, ids(|s| s.brands.iter().map(|x| x.id.clone()).collect()), |id: &String| places::brand_page(ctx, id));
+
     // --- 一覧 ---
+    // 一覧は「どのルートか」を作る側が知っている (Emitted が持っている) ので、
+    // ここで path から逆算しない。
     macro_rules! write_lists {
         ($items:expr) => {
             for item in $items {
                 w.write_json(&item.data, &item.page)?;
-                let (kind, key) = list_kind_and_key(&item.path);
                 let in_sitemap = item.page.seo.robots == Robots::IndexFollow;
-                match key {
-                    Some(k) => book.param_listing(kind, &item.path, &k, &item.data, in_sitemap),
-                    None => book.listing(kind, &item.path, &item.data, in_sitemap),
+                match &item.param_key {
+                    Some(key) => {
+                        book.param_listing(item.route_kind, &item.path, key, &item.data, in_sitemap)
+                    }
+                    None => book.listing(item.route_kind, &item.path, &item.data, in_sitemap),
                 }
             }
         };
@@ -368,9 +242,7 @@ fn write_all(ctx: &Ctx, out: &std::path::Path, pretty: bool) -> Result<Stats> {
     )?;
 
     let routes = book.finish();
-    for _ in 0..routes.routes.len() {
-        w.count_page();
-    }
+    w.count_pages(routes.routes.len());
     w.write_json("routes.json", &routes)?;
 
     let mut stats = w.into_stats();

@@ -1,7 +1,8 @@
 //! ライブ (event) と公演 (show) の詳細ページ。
 
-use super::context::{distinguishing_show_name, join_parts, Ctx};
+use super::context::{distinguishing_show_name, join_parts, simple_json_ld, Ctx};
 use crate::domain::event_detail_queries as detail;
+use crate::domain::snapshot::Snapshot;
 use crate::domain::event_grouping::group_events_by_year;
 use crate::domain::short_year_month::short_year_month;
 use crate::web_export::content;
@@ -274,11 +275,7 @@ pub fn show_page(ctx: &Ctx, show_id: &str) -> Option<ShowPage> {
                     .get(&e.song_id)
                     .map(|ids| ids.iter().filter_map(|id| ctx.idol_ref(id)).collect())
                     .unwrap_or_default(),
-                is_cover: ctx
-                    .snap
-                    .song(&e.song_id)
-                    .and_then(|s| s.song_type.as_deref())
-                    .is_some_and(|t| t == "cover"),
+                is_cover: ctx.snap.song(&e.song_id).is_some_and(Snapshot::is_cover),
             })
         })
         .collect();
@@ -353,11 +350,7 @@ fn show_json_ld(
             "startDate": date,
             "location": { "@type": "Place", "name": place },
         }),
-        None => serde_json::json!({
-                "@type": "WebPage",
-            "name": title,
-            "url": url,
-        }),
+        None => simple_json_ld("WebPage", title, path),
     }
 }
 

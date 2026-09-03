@@ -24,6 +24,7 @@
 
 use super::content::{self, absolute};
 use super::dto::*;
+use super::emit::context::{json_ld_graph, monogram_of, page_title, simple_json_ld};
 use super::url::{detail_path, path_key, reserved_for};
 use super::writer::Writer;
 use super::{Result, Stats, WebExportError};
@@ -51,34 +52,29 @@ fn make_ref(kind: RefKind, id: &str, name: &str, sub: Option<&str>, theme_key: &
         path: detail_path(collection, &key),
         theme_key: theme_key.to_string(),
         artwork_url: None,
-        monogram: match kind {
-            RefKind::Brand => sub.unwrap_or(name),
-            _ => name,
-        }
-        .chars()
-        .next()
-        .map(|c| c.to_string())
-        .unwrap_or_default(),
+        // 代表値でも本番と同じ関数を通す (フィクスチャだけ違う文字が出ない)。
+        monogram: monogram_of(kind, name, sub),
     }
 }
 
+/// 代表値の `<head>`。
+///
+/// **本番と同じ関数を通す。**タイトルの組み方も JSON-LD の形 (`@graph` に
+/// `BreadcrumbList` を同梱する) もフィクスチャで書き直すと、web 側が代表値で作った
+/// 画面が実データで崩れる。ここで作るのは「値」だけで、「形」は emit と共有する。
 fn seo(title: &str, description: &str, path: &str, robots: Robots, crumbs: &[(&str, &str)]) -> SeoBlock {
+    let breadcrumbs: Vec<Crumb> = crumbs
+        .iter()
+        .map(|(name, path)| Crumb { name: name.to_string(), path: path.to_string() })
+        .collect();
     SeoBlock {
-        title: format!("{title} | {}", content::SITE_NAME),
+        title: page_title(title),
         description: description.to_string(),
         canonical: absolute(path),
         og_image: absolute(content::DEFAULT_OG_IMAGE),
         robots,
-        json_ld: serde_json::json!({
-            "@context": "https://schema.org",
-            "@type": "WebPage",
-            "name": title,
-            "url": absolute(path),
-        }),
-        breadcrumbs: crumbs
-            .iter()
-            .map(|(name, path)| Crumb { name: name.to_string(), path: path.to_string() })
-            .collect(),
+        json_ld: json_ld_graph(simple_json_ld("WebPage", title, path), &breadcrumbs),
+        breadcrumbs,
     }
 }
 
@@ -525,7 +521,7 @@ fn idol_page(reference: &Ref) -> IdolPage {
         name: reference.name.clone(),
         name_kana: Some("かすがみらい".to_string()),
         theme_key: reference.theme_key.clone(),
-        monogram: reference.name.chars().next().map(|c| c.to_string()).unwrap_or_default(),
+        monogram: monogram_of(RefKind::Unit, &reference.name, None),
         brand: Some(brand_ml()),
         brands: vec![brand_ml()],
         color: Some("#f39800".to_string()),
@@ -600,7 +596,7 @@ fn unit_page(reference: &Ref, empty: bool) -> UnitPage {
         name_kana: if empty { None } else { Some("さんぷるゆにっと".to_string()) },
         name_alt: if empty { None } else { Some("Sample Unit".to_string()) },
         theme_key: reference.theme_key.clone(),
-        monogram: reference.name.chars().next().map(|c| c.to_string()).unwrap_or_default(),
+        monogram: monogram_of(RefKind::Unit, &reference.name, None),
         is_permanent: !empty,
         brand: if empty { None } else { Some(brand_ml()) },
         members: if empty { vec![] } else { vec![idol_mirai(), idol_shizuka()] },
@@ -1074,7 +1070,6 @@ pub fn emit(dir: &Path, pretty: bool) -> Result<Stats> {
     w.write_json("units/unit_empty.json", &unit_page(&unit_empty(), true))?;
     w.write_json("venues/venue_makuhari.json", &venue_page(&venue_sample(), false))?;
     w.write_json(&format!("venues/{broken_key}.json"), &venue_page(&venue_broken, true))?;
-    w.count_fallback_slug();
     w.write_json("brands/ml.json", &brand_page(&brand_ml(), false))?;
     w.write_json("brands/cg.json", &brand_page(&brand_cg(), false))?;
     w.write_json("brands/other.json", &brand_page(&brand_other(), true))?;
@@ -1172,14 +1167,14 @@ pub fn emit(dir: &Path, pretty: bool) -> Result<Stats> {
 
     // --- ルート台帳 ---
     let routes = routes(&broken_key);
-    for _ in 0..routes.routes.len() {
-        w.count_page();
-    }
+    w.count_pages(routes.routes.len());
     w.write_json("routes.json", &routes)?;
 
     let mut stats = w.into_stats();
     // 代表値のフォールバックは「危険な文字を含む会場 id」1 件だけ (長さ超過は入れていない)。
-    stats.fallback_unsafe = stats.fallback_slugs;
+    stats.fallback_unsafe =
+        routes.routes.iter().filter(|r| r.id.is_some() && r.id != r.key).count();
+    stats.fallback_slugs = stats.fallback_unsafe;
     Ok(stats)
 }
 

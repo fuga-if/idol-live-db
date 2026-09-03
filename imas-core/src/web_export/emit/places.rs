@@ -1,6 +1,6 @@
 //! 会場 (venue) とブランド (brand) の詳細ページ。
 
-use super::context::{join_parts, Ctx};
+use super::context::{join_parts, simple_json_ld, Ctx};
 use super::events::shows_at_venue;
 use super::idols::period_display;
 use crate::domain::event_detail_queries as detail;
@@ -94,11 +94,7 @@ pub fn venue_page(ctx: &Ctx, venue_id: &str, directory: &VenueDirectory) -> Opti
             ),
             &path,
             None,
-            serde_json::json!({
-                        "@type": "Place",
-                "name": venue.name,
-                "url": content::absolute(&path),
-            }),
+            simple_json_ld("Place", &venue.name, &path),
             breadcrumbs,
         ),
     })
@@ -267,11 +263,7 @@ pub fn brand_page(ctx: &Ctx, brand_id: &str) -> Option<BrandPage> {
             &format!("{}のアイドル・ユニット・ライブ・楽曲。", brand.name),
             &path,
             Some(brand_id),
-            serde_json::json!({
-                        "@type": "CollectionPage",
-                "name": brand.name,
-                "url": content::absolute(&path),
-            }),
+            simple_json_ld("CollectionPage", &brand.name, &path),
             breadcrumbs,
         ),
     })

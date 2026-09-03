@@ -49,18 +49,9 @@ impl Writer {
         Ok(())
     }
 
-    /// ページを 1 枚数える (ファイル数とは別。1 ページ = 1 URL)。
-    pub fn count_page(&mut self) {
-        self.stats.pages += 1;
-    }
-
-    /// フォールバック slug に落ちた id を 1 件数える。
-    pub fn count_fallback_slug(&mut self) {
-        self.stats.fallback_slugs += 1;
-    }
-
-    pub fn stats(&self) -> &Stats {
-        &self.stats
+    /// ページ数を数える (ファイル数とは別。1 ページ = 1 URL)。
+    pub fn count_pages(&mut self, pages: usize) {
+        self.stats.pages += pages;
     }
 
     pub fn into_stats(self) -> Stats {

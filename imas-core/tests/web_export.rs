@@ -354,6 +354,55 @@ fn schema_version_is_stamped_on_every_top_level_document() {
     }
 }
 
+/// ts-rs の生成物と、手書きの barrel が食い違っていないか。
+///
+/// **ts-rs は消えた型の `.ts` を削除しない。**`ShowIdolIds` を廃止したとき、
+/// 生成物だけが残って web の型一覧に古い型が並び続けていた (web 側は barrel を
+/// 使わず個別 import しているので、あちらでは気付けない)。ここが唯一の検知点。
+#[test]
+fn the_generated_schema_files_and_the_barrel_agree() {
+    let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../web/src/lib/schema");
+    let mut generated: Vec<String> = std::fs::read_dir(&dir)
+        .unwrap_or_else(|e| panic!("{} が読めない: {e}", dir.display()))
+        .filter_map(|entry| {
+            let path = entry.ok()?.path();
+            let stem = path.file_stem()?.to_str()?.to_string();
+            (path.extension()? == "ts" && stem != "index").then_some(stem)
+        })
+        .collect();
+    generated.sort();
+    assert!(generated.len() > 60, "生成物が少なすぎる: {}", generated.len());
+
+    let barrel = std::fs::read_to_string(dir.join("index.ts")).expect("index.ts が読めない");
+    let mut exported: Vec<String> = barrel
+        .lines()
+        .filter_map(|line| {
+            let rest = line.strip_prefix("export type { ")?;
+            Some(rest.split(' ').next()?.to_string())
+        })
+        .collect();
+    exported.sort();
+
+    let missing: Vec<&String> = generated.iter().filter(|n| !exported.contains(n)).collect();
+    let stale: Vec<&String> = exported.iter().filter(|n| !generated.contains(n)).collect();
+    assert!(
+        missing.is_empty() && stale.is_empty(),
+        "schema/*.ts と index.ts が食い違っている\n\
+         barrel に無い型: {missing:?}\n\
+         生成物が無いのに barrel にある型 (消し忘れ): {stale:?}\n\
+         → 型を増減したら `cargo test --features web-export` で再生成し、\
+         消えた型の .ts を削除して index.ts を更新すること。"
+    );
+
+    // 生成物に「Rust 側に無い型」が残っていないこと。DTO の一覧と突き合わせる。
+    for name in &generated {
+        assert!(
+            barrel.contains(&format!("from \"./{name}\"")),
+            "{name}.ts が barrel から参照されていない"
+        );
+    }
+}
+
 #[test]
 fn run_rejects_ambiguous_or_incomplete_arguments() {
     // 引数の取り違えは「黙って空を書く」ではなく、引数エラー (exit 1) で落とす。

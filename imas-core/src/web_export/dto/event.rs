@@ -1,137 +1,135 @@
 //! ライブ (event) 詳細ページの DTO。
 
 use super::common::{AppOpen, Ref, SeoBlock};
-use serde::{Deserialize, Serialize};
 
-/// `/events/<id>/` の中身 (`events/<key>.json`)。
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ts_rs::TS)]
-#[serde(rename_all = "camelCase")]
-#[ts(export, export_to = "../../web/src/lib/schema/")]
-pub struct EventPage {
-    pub schema_version: u32,
-    pub id: String,
-    pub path: String,
-    pub name: String,
-    pub name_kana: Option<String>,
-    pub theme_key: String,
-    pub brand: Option<Ref>,
-    /// 合同ライブの相手ブランド (`events.joint_brand_ids` を分割して引いたもの)。
-    pub joint_brands: Vec<Ref>,
-    /// `live` / `festival` / `release_event` / `other` / `radio` / `stream`。
-    pub kind: String,
-    /// 種別チップに出す日本語表記。
-    pub kind_label: String,
-    pub first_date: Option<String>,
-    pub last_date: Option<String>,
-    /// `first_date >= todayJst`。判定は `event_grouping::group_events_by_year` を
-    /// 1 要素で呼んだ結果で、**`>=` をここに書かない** (規則を二重に持たないため)。
-    pub is_upcoming: bool,
-    pub ticket: TicketInfo,
-    pub stats: EventStats,
-    pub shows: Vec<ShowSummary>,
-    /// `event_attendance` が `None` を返しうるので `Option`。
-    /// v1 の Web は公演ごとの出演者だけを出し、欠席マトリクスは描かない。
-    pub cast: Option<EventCast>,
-    /// 円盤。Bundle DB では常に空。
-    pub releases: Vec<ReleaseInfo>,
-    /// 公演会場の重複排除 (初出順)。
-    pub venues: Vec<Ref>,
-    pub app: AppOpen,
-    pub seo: SeoBlock,
+web_dto! {
+    /// `/events/<id>/` の中身 (`events/<key>.json`)。
+    pub struct EventPage {
+        pub schema_version: u32,
+        pub id: String,
+        pub path: String,
+        pub name: String,
+        pub name_kana: Option<String>,
+        pub theme_key: String,
+        pub brand: Option<Ref>,
+        /// 合同ライブの相手ブランド (`events.joint_brand_ids` を分割して引いたもの)。
+        pub joint_brands: Vec<Ref>,
+        /// `live` / `festival` / `release_event` / `other` / `radio` / `stream`。
+        pub kind: String,
+        /// 種別チップに出す日本語表記。
+        pub kind_label: String,
+        pub first_date: Option<String>,
+        pub last_date: Option<String>,
+        /// `first_date >= todayJst`。判定は `event_grouping::group_events_by_year` を
+        /// 1 要素で呼んだ結果で、**`>=` をここに書かない** (規則を二重に持たないため)。
+        pub is_upcoming: bool,
+        pub ticket: TicketInfo,
+        pub stats: EventStats,
+        pub shows: Vec<ShowSummary>,
+        /// `event_attendance` が `None` を返しうるので `Option`。
+        /// v1 の Web は公演ごとの出演者だけを出し、欠席マトリクスは描かない。
+        pub cast: Option<EventCast>,
+        /// 円盤。Bundle DB では常に空。
+        pub releases: Vec<ReleaseInfo>,
+        /// 公演会場の重複排除 (初出順)。
+        pub venues: Vec<Ref>,
+        pub app: AppOpen,
+        pub seo: SeoBlock,
+    }
 }
 
-/// チケット情報 (列をそのまま写す)。
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
-#[serde(rename_all = "camelCase")]
-#[ts(export, export_to = "../../web/src/lib/schema/")]
-pub struct TicketInfo {
-    pub open_date: Option<String>,
-    pub deadline: Option<String>,
-    pub lottery_date: Option<String>,
-    pub url: Option<String>,
+web_dto! {
+    /// チケット情報 (列をそのまま写す)。
+    #[derive(Eq)]
+    pub struct TicketInfo {
+        pub open_date: Option<String>,
+        pub deadline: Option<String>,
+        pub lottery_date: Option<String>,
+        pub url: Option<String>,
+    }
 }
 
-/// `event_detail_queries::event_stats` の写し。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
-#[serde(rename_all = "camelCase")]
-#[ts(export, export_to = "../../web/src/lib/schema/")]
-pub struct EventStats {
-    pub show_count: u32,
-    pub total_songs: u32,
-    pub unique_songs: u32,
-    pub cast_count: u32,
+web_dto! {
+    /// `event_detail_queries::event_stats` の写し。
+    #[derive(Copy, Eq)]
+    pub struct EventStats {
+        pub show_count: u32,
+        pub total_songs: u32,
+        pub unique_songs: u32,
+        pub cast_count: u32,
+    }
 }
 
-/// 公演 1 件の要約 (ライブ詳細・会場詳細・トップの「最近の公演」で使い回す)。
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
-#[serde(rename_all = "camelCase")]
-#[ts(export, export_to = "../../web/src/lib/schema/")]
-pub struct ShowSummary {
-    #[serde(rename = "ref")]
-    pub reference: Ref,
-    pub date: String,
-    /// `short_year_month::short_year_month(date)` の結果。
-    pub short_date: String,
-    /// `shows.venue_label` (会場マスタに紐付かない自由記述もある)。
-    pub venue_label: Option<String>,
-    pub venue: Option<Ref>,
-    pub hall: Option<String>,
-    pub start_time: Option<String>,
-    pub setlist_count: u32,
-    pub stream_platform: Option<String>,
-    /// ライブ名 (会場ページなど、ライブの外から公演を並べるときに要る)。
-    pub event: Option<Ref>,
-    /// 行の副題。
+web_dto! {
+    /// 公演 1 件の要約 (ライブ詳細・会場詳細・トップの「最近の公演」で使い回す)。
+    #[derive(Eq)]
+    pub struct ShowSummary {
+        #[serde(rename = "ref")]
+        pub reference: Ref,
+        pub date: String,
+        /// `short_year_month::short_year_month(date)` の結果。
+        pub short_date: String,
+        /// `shows.venue_label` (会場マスタに紐付かない自由記述もある)。
+        pub venue_label: Option<String>,
+        pub venue: Option<Ref>,
+        pub hall: Option<String>,
+        pub start_time: Option<String>,
+        pub setlist_count: u32,
+        pub stream_platform: Option<String>,
+        /// ライブ名 (会場ページなど、ライブの外から公演を並べるときに要る)。
+        pub event: Option<Ref>,
+        /// 行の副題。
+        ///
+        /// **並べる場所によって中身が変わる**: ライブ詳細では親ライブ名が自明なので入らず、
+        /// トップと会場詳細では入る。出し分けは JSON を作る側で済ませてあるので、
+        /// TS は文脈を見ずにそのまま描いてよい ([`Self::event`] の有無と対応する)。
+        pub subtitle: Option<String>,
+    }
+}
+
+web_dto! {
+    /// 出演者。**公演ごとに、出た人と役割を結合済みで持つ。**
     ///
-    /// **並べる場所によって中身が変わる**: ライブ詳細では親ライブ名が自明なので入らず、
-    /// トップと会場詳細では入る。出し分けは JSON を作る側で済ませてあるので、
-    /// TS は文脈を見ずにそのまま描いてよい ([`Self::event`] の有無と対応する)。
-    pub subtitle: Option<String>,
+    /// 以前は「アイドル id の並行配列 3 本」(`presence` / `lead` / `guest`) だった。
+    /// 描画側が毎ページ id → 実体の結合と主演/ゲスト判定をやり直すことになり、
+    /// 「そのまま描ける形まで作り込む」という DTO の方針から外れていた。
+    #[derive(Eq)]
+    pub struct EventCast {
+        /// 公演の並びは `shows_by_event` (date ASC, sort_order ASC) のまま。
+        pub shows: Vec<EventCastShow>,
+    }
 }
 
-/// 出演者。**公演ごとに、出た人と役割を結合済みで持つ。**
-///
-/// 以前は「アイドル id の並行配列 3 本」(`presence` / `lead` / `guest`) だった。
-/// 描画側が毎ページ id → 実体の結合と主演/ゲスト判定をやり直すことになり、
-/// 「そのまま描ける形まで作り込む」という DTO の方針から外れていた。
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
-#[serde(rename_all = "camelCase")]
-#[ts(export, export_to = "../../web/src/lib/schema/")]
-pub struct EventCast {
-    /// 公演の並びは `shows_by_event` (date ASC, sort_order ASC) のまま。
-    pub shows: Vec<EventCastShow>,
+web_dto! {
+    /// 公演 1 本ぶんの出演者。
+    #[derive(Eq)]
+    pub struct EventCastShow {
+        pub show: Ref,
+        pub performers: Vec<EventCastMember>,
+    }
 }
 
-/// 公演 1 本ぶんの出演者。
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
-#[serde(rename_all = "camelCase")]
-#[ts(export, export_to = "../../web/src/lib/schema/")]
-pub struct EventCastShow {
-    pub show: Ref,
-    pub performers: Vec<EventCastMember>,
+web_dto! {
+    /// 出演者 1 人と、その公演での役割。
+    #[derive(Eq)]
+    pub struct EventCastMember {
+        #[serde(rename = "ref")]
+        pub reference: Ref,
+        pub is_lead: bool,
+        pub is_guest: bool,
+    }
 }
 
-/// 出演者 1 人と、その公演での役割。
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
-#[serde(rename_all = "camelCase")]
-#[ts(export, export_to = "../../web/src/lib/schema/")]
-pub struct EventCastMember {
-    #[serde(rename = "ref")]
-    pub reference: Ref,
-    pub is_lead: bool,
-    pub is_guest: bool,
-}
-
-/// 円盤 (Blu-ray / DVD / CD)。
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
-#[serde(rename_all = "camelCase")]
-#[ts(export, export_to = "../../web/src/lib/schema/")]
-pub struct ReleaseInfo {
-    pub id: String,
-    pub title: String,
-    pub kind: Option<String>,
-    /// 種別の表示名。種別が無いものは「リリース」。
-    pub kind_label: String,
-    pub release_date: Option<String>,
-    pub url: Option<String>,
+web_dto! {
+    /// 円盤 (Blu-ray / DVD / CD)。
+    #[derive(Eq)]
+    pub struct ReleaseInfo {
+        pub id: String,
+        pub title: String,
+        pub kind: Option<String>,
+        /// 種別の表示名。種別が無いものは「リリース」。
+        pub kind_label: String,
+        pub release_date: Option<String>,
+        pub url: Option<String>,
+    }
 }

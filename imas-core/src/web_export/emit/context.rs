@@ -128,23 +128,45 @@ impl<'a> Ctx<'a> {
     // URL
     // -----------------------------------------------------------------------
 
-    /// id → URL セグメント (フォールバック slug 込み)。未知の id はそのまま返す。
-    pub fn key(&self, collection: &str, id: &str) -> String {
-        self.keys
-            .get(collection)
-            .and_then(|m| m.get(id))
-            .cloned()
-            .unwrap_or_else(|| path_key(id, reserved_for(collection), collection))
+    /// 詳細ページの id → URL セグメント (フォールバック slug 込み)。
+    ///
+    /// **未知の id は `None`。**以前は黙って計算し直していたが、それだと
+    /// 「そのコレクションに無い値」を渡しても動いてしまい、実際に都道府県名を
+    /// 会場の keyspace に通してファイル名を作っていた (予約語や衝突の検査が
+    /// 別の集合に対して行われる)。任意の値を安全化したいときは [`Self::param_key`]。
+    pub fn key(&self, collection: &str, id: &str) -> Option<&str> {
+        self.keys.get(collection)?.get(id).map(String::as_str)
     }
 
-    /// 詳細ページの完成形 URL。
+    /// 一覧ページの params (年 / 月 / ブランド id / 都道府県名) をファイル名と URL に
+    /// 使える形へ。
+    ///
+    /// 詳細ページの id とは**別の keyspace**。予約語も衝突検査も詳細ページのものとは
+    /// 無関係なので、[`Self::key`] とは分けてある。
+    pub fn param_key(&self, value: &str) -> String {
+        let _ = self;
+        path_key(value, &[], "param")
+    }
+
+    /// 詳細ページの完成形 URL。id はスナップショットに在るものだけを渡すこと。
     pub fn path(&self, kind: RefKind, id: &str) -> String {
-        detail_path(kind.collection(), &self.key(kind.collection(), id))
+        detail_path(kind.collection(), self.expect_key(kind, id))
     }
 
     /// 出力する JSON の相対パス。
     pub fn data_path(&self, kind: RefKind, id: &str) -> String {
-        format!("{}/{}.json", kind.collection(), self.key(kind.collection(), id))
+        format!("{}/{}.json", kind.collection(), self.expect_key(kind, id))
+    }
+
+    /// 詳細ページの URL セグメント。
+    ///
+    /// 呼ぶのはスナップショットから取り出した id を持っているときだけなので、
+    /// 見つからないのは**組み立ての誤り** (別のコレクションの id を渡した等)。
+    /// 黙って計算し直すと、予約語や衝突の検査を通っていない値が URL に出る。
+    pub fn expect_key(&self, kind: RefKind, id: &str) -> &str {
+        self.key(kind.collection(), id).unwrap_or_else(|| {
+            panic!("{} に無い id を URL にしようとした: {id:?}", kind.collection())
+        })
     }
 
     // -----------------------------------------------------------------------
@@ -416,10 +438,19 @@ impl<'a> Ctx<'a> {
     }
 }
 
+/// 名前と URL だけの JSON-LD ノード。
+///
+/// 一覧・ブランド・会場・ユニット・アイドルは、出せる構造化データが「型・名前・URL」
+/// だけで同じ形をしている。6 箇所で同じ 4 行を書くと、`@context` を 1 つだけ付け忘れる
+/// といった差が出る (実際に `@graph` へ寄せるまで各所に散っていた)。
+pub fn simple_json_ld(schema_type: &str, name: &str, path: &str) -> serde_json::Value {
+    serde_json::json!({ "@type": schema_type, "name": name, "url": absolute(path) })
+}
+
 /// `@graph` にまとめた JSON-LD。
 ///
 /// パンくずは `BreadcrumbList` として同じ文書に入れる。`position` は 1 始まり。
-fn json_ld_graph(entity: serde_json::Value, breadcrumbs: &[Crumb]) -> serde_json::Value {
+pub fn json_ld_graph(entity: serde_json::Value, breadcrumbs: &[Crumb]) -> serde_json::Value {
     let mut graph = vec![entity];
     if !breadcrumbs.is_empty() {
         graph.push(serde_json::json!({
@@ -444,7 +475,7 @@ fn json_ld_graph(entity: serde_json::Value, breadcrumbs: &[Crumb]) -> serde_json
 /// ブランドだけは表示名ではなく短縮名から取る (正式名は「アイドルマスター …」で
 /// 揃っていて、先頭 1 文字が全部「ア」になり見分けが付かない)。名前が空の行は
 /// 実データに無いが、その場合だけ空文字になる。
-fn monogram_of(kind: RefKind, name: &str, sub: Option<&str>) -> String {
+pub fn monogram_of(kind: RefKind, name: &str, sub: Option<&str>) -> String {
     let source = match kind {
         RefKind::Brand => sub.filter(|s| !s.is_empty()).unwrap_or(name),
         _ => name,

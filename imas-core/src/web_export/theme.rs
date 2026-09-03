@@ -68,78 +68,78 @@ pub fn build_table(idols: &[IdolThemeInput], brands: &[BrandThemeInput]) -> Them
     ThemeTable { schema_version: SCHEMA_VERSION, themes }
 }
 
-/// CSS 変数名 (`ThemeTokens` のフィールド名を kebab-case にしたもの)。
+/// CSS 変数名と、その値を取る関数の対。
 ///
-/// `is_neutral` は色ではないので CSS には出さない (必要な出し分けは DTO 側で判断する)。
-const CSS_VARS: [&str; 13] = [
-    "accent",
-    "on-accent",
-    "tint",
-    "tint-strong",
-    "chip-bg",
-    "chip-text",
-    "ring",
-    "bar",
-    "dot",
-    "grad-from",
-    "grad-to",
-    "separator",
-    "hero-surface",
-];
+/// 名前の列と値の列を別々に並べると、片方だけ足したときに黙ってずれる
+/// (13 個が 2 箇所に手で同期されていた)。1 つの表にして、ずれようが無くする。
+type TokenAccessor = (&'static str, fn(&ThemeTokens) -> &str);
 
-fn values(t: &ThemeTokens) -> [&str; 13] {
-    [
-        &t.accent,
-        &t.on_accent,
-        &t.tint,
-        &t.tint_strong,
-        &t.chip_bg,
-        &t.chip_text,
-        &t.ring,
-        &t.bar,
-        &t.dot,
-        &t.grad_from,
-        &t.grad_to,
-        &t.separator,
-        &t.hero_surface,
-    ]
-}
+const CSS_TOKENS: [TokenAccessor; 13] = [
+    ("accent", |t| &t.accent),
+    ("on-accent", |t| &t.on_accent),
+    ("tint", |t| &t.tint),
+    ("tint-strong", |t| &t.tint_strong),
+    ("chip-bg", |t| &t.chip_bg),
+    ("chip-text", |t| &t.chip_text),
+    ("ring", |t| &t.ring),
+    ("bar", |t| &t.bar),
+    ("dot", |t| &t.dot),
+    ("grad-from", |t| &t.grad_from),
+    ("grad-to", |t| &t.grad_to),
+    ("separator", |t| &t.separator),
+    ("hero-surface", |t| &t.hero_surface),
+];
 
 /// 単一の `themes.css`。
 ///
 /// ライトを素で、ダークを `@media (prefers-color-scheme: dark)` の中で同じセレクタに
-/// 再定義する。テーマ切替 UI は作らない (OS 設定への追従のみ) ので、`[data-theme]` の
-/// 2 段組みだけで足りる。
+/// 再定義する。テーマ切替 UI は作らない (`prefers-color-scheme` 追従のみ) ので、
+/// `[data-theme]` の 2 段組みだけで足りる。
+///
+/// 404 テーマ × 2 × 13 変数 = 1 万回を超える連結になるので、`format!` で毎回
+/// `String` を作らず `push_str` で積む。
 pub fn build_css(table: &ThemeTable) -> String {
-    let mut out = String::with_capacity(table.themes.len() * 700);
+    // 1 テーマ約 270 バイト × ライト/ダーク。
+    let mut out = String::with_capacity(table.themes.len() * 560);
     out.push_str(
         "/* 自動生成 — imas-core の web-export が color_engine から出力する。手で編集しない。\n\
          \x20  アプリ (iOS/Android) と同じ導出を通しているので、ここを手で直すと色がずれる。 */\n",
     );
 
-    let rule = |key: &str, t: &ThemeTokens, out: &mut String| {
-        // キーに使う文字は id 由来なので、CSS 属性セレクタの引用符だけ守れば足りる。
-        out.push_str(&format!("[data-theme=\"{}\"]{{", escape_attr(key)));
-        for (name, value) in CSS_VARS.iter().zip(values(t)) {
-            out.push_str(&format!("--{name}:{value};"));
+    fn rule(out: &mut String, key: &str, tokens: &ThemeTokens) {
+        out.push_str("[data-theme=\"");
+        out.push_str(&escape_attr(key));
+        out.push_str("\"]{");
+        for (name, get) in CSS_TOKENS {
+            out.push_str("--");
+            out.push_str(name);
+            out.push(':');
+            out.push_str(get(tokens));
+            out.push(';');
         }
         out.push_str("}\n");
-    };
+    }
 
-    for (key, p) in &table.themes {
-        rule(key, &p.light, &mut out);
+    for (key, pair) in &table.themes {
+        rule(&mut out, key, &pair.light);
     }
     out.push_str("@media (prefers-color-scheme: dark){\n");
-    for (key, p) in &table.themes {
-        rule(key, &p.dark, &mut out);
+    for (key, pair) in &table.themes {
+        rule(&mut out, key, &pair.dark);
     }
     out.push_str("}\n");
     out
 }
 
 /// CSS 属性セレクタの中に置ける形にする。
-fn escape_attr(key: &str) -> String {
-    key.replace('\\', "\\\\").replace('"', "\\\"")
+///
+/// エスケープが要る id は実データに無いので、通常は借用のまま素通しする。
+fn escape_attr(key: &str) -> std::borrow::Cow<'_, str> {
+    if key.contains(['\\', '"']) {
+        std::borrow::Cow::Owned(key.replace('\\', "\\\\").replace('"', "\\\""))
+    } else {
+        std::borrow::Cow::Borrowed(key)
+    }
 }
 
 #[cfg(test)]
@@ -157,12 +157,12 @@ mod tests {
             let selector = format!("[data-theme=\"{key}\"]{{");
             assert_eq!(css.matches(&selector).count(), 2, "{key} がライト/ダークで 2 回出ていない");
         }
-        for name in CSS_VARS {
+        for (name, _) in CSS_TOKENS {
             assert!(css.contains(&format!("--{name}:")), "{name} が出ていない");
         }
         assert!(css.contains("@media (prefers-color-scheme: dark)"));
-        // is_neutral は色ではないので CSS には出さない。
-        assert!(!css.contains("is-neutral"));
+        // 変数の顔ぶれが表と一致すること (表に足したのに CSS に出ない、が起きない)。
+        assert_eq!(css.matches("--").count(), CSS_TOKENS.len() * 3 * 2);
     }
 
     #[test]

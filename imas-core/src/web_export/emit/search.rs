@@ -79,7 +79,7 @@ pub fn shards(ctx: &Ctx) -> Vec<Shard> {
                 .and_then(|u| ctx.snap.unit(u))
                 .map(|u| u.name.clone())
                 .or_else(|| s.unit_name.clone()),
-            k: ctx.key("songs", &s.id),
+            k: ctx.expect_key(RefKind::Song, &s.id).to_string(),
             f: folded(&ctx.snap.song_search[i]),
         })
         .collect();
@@ -92,7 +92,7 @@ pub fn shards(ctx: &Ctx) -> Vec<Shard> {
         .map(|(i, idol)| SearchRow {
             n: idol.name.clone(),
             s: idol.brand_id.as_deref().and_then(|b| ctx.brand(b)).map(|b| b.short_name.clone()),
-            k: ctx.key("idols", &idol.id),
+            k: ctx.expect_key(RefKind::Idol, &idol.id).to_string(),
             // CV 込みの `idol_picker_search` は使わない。横断検索に CV を混ぜると
             // 「佳村はるか」で別人が並ぶ (Snapshot の doc に明記されている)。
             f: folded(&ctx.snap.idol_search[i]),
@@ -107,7 +107,7 @@ pub fn shards(ctx: &Ctx) -> Vec<Shard> {
         .map(|(i, e)| SearchRow {
             n: e.name.clone(),
             s: ctx.event_dates[i].0.as_deref().map(year_of),
-            k: ctx.key("events", &e.id),
+            k: ctx.expect_key(RefKind::Event, &e.id).to_string(),
             f: folded(&ctx.snap.event_search[i]),
         })
         .collect();
@@ -120,7 +120,7 @@ pub fn shards(ctx: &Ctx) -> Vec<Shard> {
         .map(|(i, v)| SearchRow {
             n: v.name.clone(),
             s: v.prefecture.clone(),
-            k: ctx.key("venues", &v.id),
+            k: ctx.expect_key(RefKind::Venue, &v.id).to_string(),
             f: folded(&ctx.snap.venue_search[i]),
         })
         .collect();
