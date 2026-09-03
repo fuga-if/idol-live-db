@@ -266,7 +266,7 @@ pub fn show_page(ctx: &Ctx, show_id: &str) -> Option<ShowPage> {
 
     let venue = show.venue_id.as_deref().and_then(|v| ctx.venue_ref(v));
     let siblings = sibling_shows(ctx, &show.event_id, &event.name);
-    let title = format!("{} {}", event.name, show.name);
+    let title = show_title(&event.name, &show.name);
     let breadcrumbs = vec![
         ctx.crumb("ホーム", "/"),
         ctx.crumb("ライブ", "/events/"),
@@ -339,6 +339,32 @@ fn show_json_ld(
             "name": title,
             "url": url,
         }),
+    }
+}
+
+/// 公演ページの `<title>`。**ライブ名がちょうど 1 回だけ出る形**にする。
+///
+/// ここは検索結果・ブラウザのタブ・`og:title` (共有カード) に直接出る文字列で、
+/// サイトの中で最も人目に触れる。素朴に `<ライブ名> <公演名>` と繋ぐと、実データでは
+/// 2 通りの重複が出る:
+///
+/// ```text
+/// 1. 公演名 = ライブ名 (単日公演に多い)
+///      ローソン×アイマスキャンペーン 年忘れシークレットパーティ ローソン×アイマスキャンペーン 年忘れシークレットパーティ
+/// 2. 公演名が括弧書きでライブ名を再掲している (11 件)
+///      24magic 〜…〜 ★オープニング★(THE IDOLM@STER CINDERELLA GIRLS Live Broadcast 24magic 〜…〜)
+/// ```
+///
+/// 1 は重なりを落とすとライブ名だけが残る。2 は**公演名の側が既にライブ名を抱えている**
+/// ので、頭に付け足さない。括弧の中身を削るような加工はしない — 名前の途中を切ると
+/// 別の意味に読める文字列ができる。
+fn show_title(event_name: &str, show_name: &str) -> String {
+    match distinguishing_show_name(event_name, show_name) {
+        // 公演名がライブ名そのもの。日付は description が持つので、ここはライブ名だけ。
+        None => event_name.to_string(),
+        // 公演名が既にライブ名を含んでいる。前に付けると 2 回になる。
+        Some(rest) if rest.contains(event_name) => rest.to_string(),
+        Some(rest) => format!("{event_name} {rest}"),
     }
 }
 

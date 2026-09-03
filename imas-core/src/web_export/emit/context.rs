@@ -440,21 +440,60 @@ fn monogram_of(kind: RefKind, name: &str, sub: Option<&str>) -> String {
 
 /// 一覧の行に出す公演名。行のタイトルがライブ名なので、**ライブ名と重なる部分は落とす**。
 ///
-/// 公演名はライブ名を頭に含んでいることが多い:
+/// 実データの公演名は、ライブ名との重なり方が 2 通りある:
 ///
 /// ```text
-///   ライブ名: THE IDOLM@STER MILLION THE@TER WAVE 11&12 発売記念イベント
-///   公演名  : THE IDOLM@STER MILLION THE@TER WAVE 11&12 発売記念イベント【第一回】
+/// (a) 公演名がライブ名を丸ごと頭に含む
+///     ライブ: THE IDOLM@STER MILLION THE@TER WAVE 11&12 発売記念イベント
+///     公演  : THE IDOLM@STER MILLION THE@TER WAVE 11&12 発売記念イベント【第一回】
+///                                                                    → 【第一回】
+///
+/// (b) ライブ名の末尾と公演名の先頭が重なる (2 つの副題を持つツアー)
+///     ライブ: 765PRO ALLSTARS dual twin live tour ふたごぼしのつばさ / つみまつよるまち
+///     公演  : つみまつよるまち TOKYO LAST CHOICE
+///                                                → TOKYO LAST CHOICE
 /// ```
 ///
-/// そのまま繋ぐと同じ長い名前が 2 行続いて、公演を見分ける手掛かり (`【第一回】`) が
-/// 行末に埋もれる。重なりを取り除いて残った部分だけを出し、公演が 1 本しかないライブ
-/// (公演名 = ライブ名) では公演名ごと落とす。
+/// (a) は (b) の「重なりがライブ名の全体」という特別な場合なので、**末尾と先頭の
+/// 最長の重なりを落とす**という 1 つの規則で両方を扱う。そのまま繋ぐと
+/// `… / つみまつよるまち つみまつよるまち TOKYO LAST CHOICE` のように同じ語が
+/// 続けて出て、公演を見分ける手掛かりが読めなくなる。
+///
+/// 落としたあとが空なら `None` (公演名を出さない = 公演が 1 本しかないライブ)。
+/// 重なりの下限を [`MIN_OVERLAP_CHARS`] 文字にしてあるのは、「〜」「!」のような
+/// 1 文字の一致で名前の頭を削らないため。
 pub fn distinguishing_show_name<'a>(event_name: &str, show_name: &'a str) -> Option<&'a str> {
-    let rest = show_name.strip_prefix(event_name).unwrap_or(show_name);
+    let rest = strip_leading_overlap(event_name, show_name);
     // 区切りの空白と中黒だけを落とす。`【` や `第` は見分けに要るので残す。
-    let rest = rest.trim_start_matches([' ', '\u{3000}', '-', '~', '～', '・']).trim();
+    let rest = rest.trim_start_matches([' ', '\u{3000}', '-', '~', '～', '・', '/']).trim();
     (!rest.is_empty()).then_some(rest)
+}
+
+/// **部分的な**重なりとみなす最短の長さ (文字数)。
+///
+/// ライブ名を丸ごと含む場合 (下の 1.) には効かない。効くのは末尾だけが重なる場合で、
+/// 「〜」「!!」「2nd」のような短い一致で公演名の頭を削らないための下限。
+const MIN_OVERLAP_CHARS: usize = 4;
+
+/// `event_name` の末尾と `show_name` の先頭が重なっているぶんを落とす。
+///
+/// 1. まず**ライブ名そのもの**が頭に付いていないかを見る。付いていれば長さを問わず
+///    落とす (ライブ名が丸ごと一致している以上、偶然ではない)。
+/// 2. 次に末尾だけの重なりを、**長い方から**試す。短い方から消すと `AB AB` のような
+///    形で片方が残る。こちらは偶然の一致がありうるので下限を設ける。
+fn strip_leading_overlap<'a>(event_name: &str, show_name: &'a str) -> &'a str {
+    if let Some(stripped) = show_name.strip_prefix(event_name) {
+        return stripped;
+    }
+    let event: Vec<char> = event_name.chars().collect();
+    let max = event.len().min(show_name.chars().count());
+    for len in (MIN_OVERLAP_CHARS..=max).rev() {
+        let tail: String = event[event.len() - len..].iter().collect();
+        if let Some(stripped) = show_name.strip_prefix(tail.as_str()) {
+            return stripped;
+        }
+    }
+    show_name
 }
 
 /// 表示用の区切り。アプリのプロフィール行と同じ全角スペース込みの中黒。
@@ -517,5 +556,26 @@ mod tests {
     fn an_unrelated_show_name_is_left_alone() {
         assert_eq!(distinguishing_show_name("A LIVE", "DAY2"), Some("DAY2"));
         assert_eq!(distinguishing_show_name("A LIVE", "昼公演"), Some("昼公演"));
+    }
+
+    #[test]
+    fn a_tail_that_the_show_name_repeats_is_dropped() {
+        // 2 つの副題を持つツアー。ライブ名の末尾と公演名の先頭が重なる。
+        assert_eq!(
+            distinguishing_show_name(
+                "765PRO ALLSTARS dual twin live tour ふたごぼしのつばさ / つみまつよるまち",
+                "つみまつよるまち TOKYO LAST CHOICE"
+            ),
+            Some("TOKYO LAST CHOICE")
+        );
+        // 重なりが全体のときは、前からある挙動と同じ。
+        assert_eq!(distinguishing_show_name("ツアー名", "ツアー名 DAY1"), Some("DAY1"));
+    }
+
+    #[test]
+    fn a_short_coincidental_overlap_does_not_eat_the_name() {
+        // 3 文字以下の一致で名前の頭を削らない (「〜」「!!」のような記号の一致が起きる)。
+        assert_eq!(distinguishing_show_name("ライブ 2nd", "2nd 昼公演"), Some("2nd 昼公演"));
+        assert_eq!(distinguishing_show_name("A LIVE!!", "!! DAY1"), Some("!! DAY1"));
     }
 }

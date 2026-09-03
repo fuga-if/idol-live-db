@@ -823,6 +823,66 @@ mod real {
         assert!(with_siblings > 100, "複数公演のライブが少なすぎる: {with_siblings}");
     }
 
+    /// 文字列の中に「同じ十分長い部分文字列が隣り合って 2 回出る」箇所があれば返す。
+    fn consecutive_repeat(text: &str) -> Option<String> {
+        const MIN_CHARS: usize = 8;
+        let chars: Vec<char> = text.chars().collect();
+        // 前半と後半が一致する連続部分を探す (区切りの空白は許す)。
+        for len in (MIN_CHARS..=chars.len() / 2).rev() {
+            for start in 0..=chars.len().saturating_sub(len * 2) {
+                let first: String = chars[start..start + len].iter().collect();
+                let rest: String = chars[start + len..].iter().collect();
+                if rest.trim_start().starts_with(first.trim()) && !first.trim().is_empty() {
+                    return Some(first);
+                }
+            }
+        }
+        None
+    }
+
+    #[test]
+    fn show_titles_never_repeat_the_event_name() {
+        // `<title>` は検索結果・ブラウザのタブ・og:title に直接出る。公演名はライブ名を
+        // 丸ごと含んでいることが多く、素朴に連結すると一番見られる場所で同じ長い名前が
+        // 2 回並ぶ。チップやパンくずと同じ「重なりを落とす」規則を通す。
+        let dir = exported();
+        let routes: RoutesFile =
+            serde_json::from_str(&std::fs::read_to_string(dir.path().join("routes.json")).unwrap())
+                .unwrap();
+
+        let mut doubled: Vec<String> = Vec::new();
+        let mut checked = 0usize;
+        for entry in routes.routes.iter().filter(|r| r.kind == RouteKind::Show) {
+            let page: ShowPage = serde_json::from_str(
+                &std::fs::read_to_string(dir.path().join(&entry.data)).unwrap(),
+            )
+            .unwrap();
+            let event_name = page.event.name.as_str();
+            // 短いライブ名 (「1st」等) は公演名に偶然含まれうるので、十分に長いものだけ見る。
+            if event_name.chars().count() >= 8 && page.seo.title.matches(event_name).count() > 1 {
+                doubled.push(format!("{} → {:?}", page.path, page.seo.title));
+            }
+            // 同じ文字列が 2 回続く形 (`<名前> <名前>`) は、区切りに何が挟まっていても不可。
+            if let Some(repeat) = consecutive_repeat(&page.seo.title) {
+                doubled.push(format!("{} → 連続する繰り返し {repeat:?}", page.path));
+            }
+            assert!(
+                page.seo.title.contains(event_name) || event_name.is_empty(),
+                "{}: title にライブ名が入っていない ({:?})",
+                page.path,
+                page.seo.title
+            );
+            checked += 1;
+        }
+        assert!(checked > 1_000, "確かめた公演が少なすぎる: {checked}");
+        assert!(
+            doubled.is_empty(),
+            "title がライブ名を 2 回含む公演が {} 件 (先頭 10 件):\n{}",
+            doubled.len(),
+            doubled.iter().take(10).cloned().collect::<Vec<_>>().join("\n")
+        );
+    }
+
     #[test]
     fn about_credits_the_display_font_and_ships_its_licence() {
         // OFL はライセンス文の同梱を求める。About から辿れて、実体が配布物にあること。
