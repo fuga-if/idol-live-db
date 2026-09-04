@@ -61,6 +61,27 @@
 - 管理: `POST /admin/cloudkit/save` / `POST /admin/ban` / `POST /admin/revert-user` / `GET /admin/users/:id/edits`
 - アプリ証明: `GET /app/challenge` / `POST /app/attest|assert|integrity`
 
+## 歌詞の利用ログ (JASRAC リクエスト回数)
+
+歌詞を**実際に返したときだけ** `{"event":"lyrics_read","song_id":"..."}` を 1 行
+`console.log` する (`routes/lyrics.ts` の `logLyricsRead`。`GET /songs/:id/lyrics` と、
+Bearer 付きで歌詞を同梱した `GET /songs/:id/detail` の両方)。
+
+- **D1 に数えない。** 閲覧のたびに書くと、固定無料枠のホットパスが読み取りから
+  読み書きに変わる。集計は Workers Logs 側 (`wrangler.jsonc` の
+  `observability.enabled = true` / `head_sampling_rate = 1`) で行う。
+- **出すのは event 名と song_id だけ。** uid・IP・端末 ID・歌詞本文は載せない
+  (載せると Workers Logs が「誰が何を読んだか」の閲覧履歴になる)。
+- 日次バッチ `tools/lyrics/collect_request_logs.py` が Telemetry Query API
+  (`POST /accounts/{account_id}/workers/observability/telemetry/query`) で拾い、
+  `data/lyrics_requests/YYYY-MM-DD.tsv` に畳む。
+- ⚠️ **ログの保持は 3 日**。バッチが 3 日以上止まるとその分は取り返せない。
+  既定で 3 日ぶん引き直すのは 1〜2 日の失敗を翌日が埋めるため。
+- ログの形式 (JSON 1 行・キー名) はバッチのパーサと 1:1 の契約。片方だけ変えると
+  集計が 0 になる。`test/lyrics_read_log.test.ts` が「歌詞を返したときだけ出る」ことを固定する。
+
+詳細は [`JASRAC.md`](JASRAC.md)「リクエスト回数の集計」。
+
 ## セキュリティの要点
 
 - **SQL は全件パラメータバインド** (動的 SQL 断片はサーバ定義の定数のみ。ユーザー値は常にバインド)。

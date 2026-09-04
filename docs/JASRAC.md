@@ -124,6 +124,61 @@ npx wrangler d1 execute imas-live-db --remote \
 
 
 
+### リクエスト回数の集計 (19項目目)
+
+報告項目の 19 番目「リクエスト回数」は、以前は「集計不可能」として全曲 `0` で出していた。
+2026-09 から**実測を出す**。
+
+仕組み (D1 に列を足さない):
+
+```
+Worker  歌詞を返したときだけ 1 行 console.log
+        {"event":"lyrics_read","song_id":"..."}          imas-live-api/src/routes/lyrics.ts の logLyricsRead
+          ↓ Workers Logs (observability.enabled = true, head_sampling_rate = 1)
+日次バッチ  Telemetry Query API で前日ぶんを引き、song_id ごとに数える
+          ↓                                              tools/lyrics/collect_request_logs.py
+data/lyrics_requests/YYYY-MM-DD.tsv  (song_id, count)    毎日 06:00 JST / bot/lyrics-stats へ push
+          ↓ 期間ぶん合算
+build_reports.py annual --requests-dir data/lyrics_requests --period YYYYMM-YYYYMM
+```
+
+**D1 に数えない理由**: 閲覧のたびに D1 へ書くと、固定無料枠のホットパス (曲詳細・歌詞取得) が
+読み取りから読み書きに変わる。ランニングコスト 0 の制約に対して、報告のための集計が
+いちばん重い書き込み経路になるのは筋が悪い。ログは Worker の実行に含まれる。
+
+**数える対象**: `GET /songs/:id/lyrics` と、Bearer 付きで歌詞を同梱した
+`GET /songs/:id/detail`。読者にとってはどちらも「歌詞を読んだ」なので経路で数え方を変えない。
+401 / 404 / 429 や歌詞未投入では数えない (`imas-live-api/test/lyrics_read_log.test.ts` で固定)。
+
+**ログに出すのは event 名と song_id だけ**。uid・IP・端末 ID・歌詞本文は出さない
+(出した瞬間に Workers Logs が「誰が何を読んだか」の閲覧履歴になる)。
+
+⚠️ **制約: Workers Logs の保持期間は無料プランで 3 日。**
+日次バッチが 3 日以上止まると、その間のリクエスト回数は二度と取れない (再実行しても
+API が返さない)。バッチが既定で「昨日から 3 日ぶん」を引き直すのは、1〜2 日の失敗を
+翌日の実行が自動で埋めるため。3 日連続で失敗しているときだけ人が対処する。
+欠測は報告上「その日は 0 回」ではなく単に合計から抜ける — 過少申告になるので、
+`build_reports.py` は合算した日数を必ず表示する。
+
+⚠️ `head_sampling_rate` は 1 で固定。間引くと報告が実数より少なくなる。
+
+セットアップ (1 回だけ):
+
+```bash
+# Cloudflare ダッシュボード → My Profile → API Tokens で
+#   権限: Account / Workers Observability / Read  だけのトークンを作る
+# GitHub → Settings → Secrets and variables → Actions に
+#   CLOUDFLARE_OBSERVABILITY_TOKEN として登録する
+# 未登録の間、日次ワークフローは notice を出してスキップする (赤くならない)
+
+# 手元で試す (書かずに件数だけ見る)
+export CLOUDFLARE_OBSERVABILITY_TOKEN=...
+python3 tools/lyrics/collect_request_logs.py --days 3 --dry-run
+```
+
+集計の TSV は bot ブランチ `bot/lyrics-stats` に push される。develop へは PR で取り込む
+(`refresh-data.yml` と同じ運用。develop は保護ブランチなので bot は直接 push できない)。
+
 ### 2026-09-04 追記: 学マス・876 は draft に戻した (管理団体の確認待ち)
 
 JASRAC の許諾は **JASRAC が管理する作品にしか効かない**。学園アイドルマスター (`gakuen`) と
@@ -281,7 +336,7 @@ ImasLiveDB の現状 (2026-08-05 時点で確認):
 | 16 | ＩＶＴ区分 | M | 1 | **`T` (詞のみ)** — 歌詞掲載なので |
 | 17 | 原詞訳詞区分 | C | 1 | `1` (原詞)。IVT が V/T のとき必須 |
 | 18 | ＩＬ区分 | C | 1 | ブランク (CD音源配信ではない) |
-| 19 | リクエスト回数 | C | 9 | `0` (集計不可能な場合)。数字のみ、カンマ不可 |
+| 19 | リクエスト回数 | C | 9 | Workers Logs の実測 (§0「リクエスト回数の集計」)。集計不可能なら `0`。数字のみ、カンマ不可 |
 
 Excel テンプレート:
 <https://www.jasrac.or.jp/users/internet/procedure-nbusiness/excel/nb-report-sample.xlsx>
@@ -301,6 +356,7 @@ JASRAC 情報は `songs` テーブルに列を足さず `tools/jasrac/works.tsv`
 | `works_tsv.py` | 台帳のスキーマと入出力。両スクリプトの唯一の契約 |
 | `extract_works.py` | master.sqlite → 照合台帳 `works.tsv` |
 | `build_reports.py` | `works.tsv` → 提出物 |
+| `tools/lyrics/collect_request_logs.py` | Workers Logs → `data/lyrics_requests/YYYY-MM-DD.tsv` (リクエスト回数) |
 
 ```bash
 # 集計だけ見る (書き込まない)
@@ -317,7 +373,15 @@ python3 tools/jasrac/build_reports.py form --unmatched-only
 
 # 年次利用曲目報告 → out/<許諾番号><YYYYMM>.txt
 python3 tools/jasrac/build_reports.py annual --license-no J123456789 --month 202608
+
+# リクエスト回数の実測を入れる (期間内の日次 TSV を合算して各曲の19項目目にする)
+python3 tools/jasrac/build_reports.py annual --month 202704 \
+  --published published_ids.txt \
+  --requests-dir data/lyrics_requests --period 202604-202703
 ```
+
+`--requests-dir` を付けないと 19 項目目は `--request-count` の一律値 (既定 `0`) になる。
+`--requests-dir` と `--period` は対で指定する (片方だけはエラー)。集計に無い曲は `0`。
 
 `master.sqlite` は `.gitignore` 対象なので、無ければ `db/master.sql` から自動生成する
 (`tools/apply_data.py` と同じ作法)。

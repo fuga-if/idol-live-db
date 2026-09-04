@@ -159,8 +159,12 @@ def fit_optional(s, limit):
     return "".join(out), True
 
 
-def build_record(row, opts):
-    """1曲を19項目のレコードに展開する。"""
+def build_record(row, opts, request_counts=None):
+    """1曲を19項目のレコードに展開する。
+
+    request_counts があれば 19項目目「リクエスト回数」は曲別の実測値を使う
+    (無い曲は 0)。無ければ --request-count の一律値。
+    """
     r = dict(row)
     r.update(PROFILE)
     r["report_title"] = report_title(row)
@@ -170,7 +174,11 @@ def build_record(row, opts):
     r["info_fee"] = opts.info_fee
     r["ivt"] = opts.ivt
     r["lyric_kind"] = opts.lyric_kind if opts.ivt in ("V", "T") else ""
-    r["request_count"] = opts.request_count
+    # 手引き P.20 は「集計不可能な場合は 0」。実測があるならそちらが正しい報告。
+    if request_counts is None:
+        r["request_count"] = opts.request_count
+    else:
+        r["request_count"] = str(request_counts.get(row.get("song_id"), 0))
 
     # アーティスト名は任意項目 (O)。全員曲だと出演者連結で 300 バイトを超え、
     # ユニット名に SJIS 外の記号 (♡ 等) が入ることもある。提出可否に影響しない
@@ -182,6 +190,62 @@ def build_record(row, opts):
 
 # M* は「グループ内いずれか必須」。現状のグループは作詞者名/作曲者名の1つだけ。
 EITHER_REQUIRED = [(key, label) for key, label, req, _n, _p in ANNUAL_SPEC if req == "M*"]
+
+
+def parse_period(period):
+    """"YYYYMM-YYYYMM" を (開始月, 終了月) に分解する。片方だけの指定は許さない。"""
+    parts = period.split("-")
+    if len(parts) != 2 or not all(p.isdigit() and len(p) == 6 for p in parts):
+        sys.exit("--period は YYYYMM-YYYYMM 形式: %r" % period)
+    start, end = parts
+    if not all("01" <= p[4:6] <= "12" for p in parts):
+        sys.exit("--period の月が範囲外: %r" % period)
+    if start > end:
+        sys.exit("--period の開始が終了より後: %r" % period)
+    return start, end
+
+
+def read_request_counts(requests_dir, period):
+    """data/lyrics_requests/YYYY-MM-DD.tsv を期間ぶん合算して song_id → 回数 にする。
+
+    ⚠️ 日次ファイルが無い日は 0 ではなく **欠測**。ログの保持期間 (3日) を超えて
+       バッチが止まると取り返せないので、何日ぶん読んだかを必ず表示する
+       (報告者が「少なすぎないか」を判断できるようにする)。
+    """
+    if not os.path.isdir(requests_dir):
+        sys.exit("リクエスト集計のディレクトリが無い: %s" % requests_dir)
+    start, end = parse_period(period)
+
+    counts, days = {}, []
+    for name in sorted(os.listdir(requests_dir)):
+        if not name.endswith(".tsv"):
+            continue
+        # ファイル名 YYYY-MM-DD.tsv の年月だけ見る (日は範囲判定に要らない)。
+        month = name[:7].replace("-", "")
+        if len(month) != 6 or not month.isdigit() or not (start <= month <= end):
+            continue
+        days.append(name)
+        with io.open(os.path.join(requests_dir, name), encoding="utf-8") as f:
+            for i, line in enumerate(f):
+                line = line.rstrip("\n")
+                if not line or (i == 0 and line.startswith("song_id\t")):
+                    continue
+                song_id, _, raw = line.partition("\t")
+                if not raw.isdigit():
+                    sys.exit("%s の回数が数字でない: %r" % (name, line))
+                counts[song_id] = counts.get(song_id, 0) + int(raw)
+
+    total = sum(counts.values())
+    print("リクエスト回数: %s の日次ファイル %d 日ぶん / %d 曲 / 合計 %d 回"
+          % (period, len(days), len(counts), total))
+    if not days:
+        print("⚠️ 期間内の日次ファイルが 1 つも無い。全曲 0 で報告することになる",
+              file=sys.stderr)
+    # 9桁上限 (項目表)。超える曲は報告できないので先に落とす。
+    over = [sid for sid, n in counts.items() if n > 999999999]
+    if over:
+        sys.exit("リクエスト回数が9桁を超える曲がある: %s" % ", ".join(sorted(over)[:5]))
+    return counts
 
 
 def record_errors(r):
@@ -288,7 +352,22 @@ def cmd_annual(args):
     else:
         print("⚠️ --published を付けていない。台帳の全 %d 曲を報告対象にしている。"
               % len(rows), file=sys.stderr)
-    records = [build_record(r, args) for r in rows]
+    # 19項目目「リクエスト回数」。--requests-dir を渡したときだけ曲別の実測を使う。
+    # 材料は tools/lyrics/collect_request_logs.py が日次で書く TSV。
+    request_counts = None
+    if args.requests_dir:
+        if not args.period:
+            sys.exit("--requests-dir を使うときは --period YYYYMM-YYYYMM も指定する")
+        request_counts = read_request_counts(args.requests_dir, args.period)
+        unknown = set(request_counts) - {r.get("song_id") for r in rows}
+        if unknown:
+            # 掲載をやめた曲・台帳に無い曲。報告には出ないので合計が一致しなくなる。
+            print("⚠️ 集計にあるが報告対象でない曲 %d 件は報告に含めない" % len(unknown),
+                  file=sys.stderr)
+    elif args.period:
+        sys.exit("--period を使うときは --requests-dir も指定する")
+
+    records = [build_record(r, args, request_counts) for r in rows]
     errors = validate(records)
 
     if errors and not args.force:
@@ -318,8 +397,16 @@ def cmd_annual(args):
     print("wrote %s" % path)
     print("  %d レコード / %d項目 / SJIS / CRLF / タブ区切り"
           % (len(records), len(ANNUAL_SPEC)))
-    print("  IVT区分=%s 原詞訳詞区分=%s 情報料=%s リクエスト回数=%s"
-          % (args.ivt, args.lyric_kind, args.info_fee, args.request_count))
+    if request_counts is None:
+        print("  IVT区分=%s 原詞訳詞区分=%s 情報料=%s リクエスト回数=%s (一律)"
+              % (args.ivt, args.lyric_kind, args.info_fee, args.request_count))
+    else:
+        reported = sum(int(r["request_count"]) for r in records)
+        with_hits = sum(1 for r in records if r["request_count"] != "0")
+        print("  IVT区分=%s 原詞訳詞区分=%s 情報料=%s"
+              % (args.ivt, args.lyric_kind, args.info_fee))
+        print("  リクエスト回数=実測 (%s): %d曲中 %d曲に計上 / 合計 %d回"
+              % (args.period, len(records), with_hits, reported))
     if errors:
         print("  ※ --force で %d件の警告を無視した" % len(errors))
     adjusted = sum(1 for r in records if r.get("_artist_adjusted"))
@@ -396,6 +483,11 @@ def main():
     p_ann.add_argument("--month", required=True, help="報告年月 YYYYMM")
     p_ann.add_argument("--suffix", default="", help="ファイル名末尾の任意文字列 (英数字)")
     p_ann.add_argument("--force", action="store_true", help="検証エラーを無視して書く")
+    p_ann.add_argument("--requests-dir",
+                       help="曲別リクエスト回数の日次 TSV があるディレクトリ "
+                            "(既定の生成先は data/lyrics_requests)")
+    p_ann.add_argument("--period",
+                       help="集計期間 YYYYMM-YYYYMM (--requests-dir と対で指定)")
     add_profile_args(p_ann)
     p_ann.set_defaults(func=cmd_annual)
 
