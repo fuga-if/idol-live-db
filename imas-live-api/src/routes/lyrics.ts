@@ -21,6 +21,10 @@ import { getAuthUser } from "../auth";
 import { checkRateLimit, dryCheckIpRateLimit, commitIpRateLimit } from "../rate_limit";
 import { checkIsAdmin } from "../users";
 import { carryOverAnnotation } from "../lyrics_calls";
+import {
+  countCallAnnotations,
+  syncCallStatsStatement,
+} from "../call_stats";
 import { updateGramIndex } from "../lyrics_index";
 import type { ClapKind, LyricCall } from "../lyrics_calls";
 import type { RouteContext } from "./context";
@@ -393,7 +397,7 @@ export interface LyricLineRow {
  * iOS の APIClient が .secondsSince1970 でデコードするため、応答は必ず秒 epoch の数値。
  * ミリ秒や ISO 文字列にすると iOS 側のデコードが落ちる。
  */
-function sqliteTimestampToEpochSeconds(ts: string | null | undefined): number {
+export function sqliteTimestampToEpochSeconds(ts: string | null | undefined): number {
   if (!ts) return 0;
   const ms = Date.parse(ts.replace(" ", "T") + "Z");
   return Number.isNaN(ms) ? 0 : Math.floor(ms / 1000);
@@ -889,6 +893,12 @@ export async function handleLyrics(ctx: RouteContext): Promise<Response | null> 
         "UPDATE song_lyrics SET lines_json = ?, body = ?, body_norm = ? WHERE song_id = ?"
       ).bind(JSON.stringify(nextLines), searchBody, normalizeForSearch(searchBody), songId)
     );
+
+    // 歌詞の差し替えで行が消えるとコール数が変わる (carryOverAnnotation は消えた行の
+    // コールを持ち越さない)。統計 (0032) が実体からズレないよう、同じ batch で数え直す。
+    // UPDATE なので、コールを一度も書かれていない曲に 0 件の行は生えない。
+    // 「最後に誰がいつコールを書いたか」は歌詞の再投入では動かさない (call_stats.ts)。
+    statements.push(syncCallStatsStatement(env.DB, songId, countCallAnnotations(nextLines)));
 
     await env.DB.batch(statements);
 
