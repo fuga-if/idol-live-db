@@ -397,6 +397,22 @@ struct ProduceTabView: View {
             }
             .buttonStyle(.plain)
 
+            // 歌詞タブと同じ根拠 (JASRAC 許諾) で出し分ける。歌詞が出ないビルドでは
+            // コールガイドを書く場所そのものが無いので、入口も出さない。
+            if LyricsFeature.isAvailable {
+                NavigationLink {
+                    CallGuideDashboardView()
+                } label: {
+                    ImasEntryCard(
+                        systemImage: "hands.clap.fill",
+                        title: "コールガイド",
+                        preview: "コーレス投稿とは別の、歌詞行ごとのコールガイド。書かれている曲・最近の編集・書き手募集中の曲",
+                        brand: secondaryBrandSeed
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+
             NavigationLink {
                 TagActivityView()
             } label: {

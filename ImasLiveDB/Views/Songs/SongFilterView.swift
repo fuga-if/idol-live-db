@@ -20,6 +20,8 @@ struct SongFilterView: View {
     @Binding var showOtherBrand: Bool
     /// ライブ履歴のみのファントム曲を一覧から隠すか。
     @Binding var excludeLiveOnly: Bool
+    /// コールガイド (歌詞行のコール・手拍子) が書き込まれている曲だけに絞るか。
+    @Binding var callGuideOnly: Bool
 
     @State private var brands: [Brand] = []
     @State private var idols: [Idol] = []
@@ -85,6 +87,22 @@ struct SongFilterView: View {
                         Text("マイマーク")
                     } footer: {
                         Text("チェック ON で AND 条件絞り込み")
+                            .font(.imasCaption)
+                            .foregroundStyle(DS.ink3)
+                    }
+                    .listRowBackground(DS.surface)
+                    .listRowSeparatorTint(DS.sep)
+                }
+
+                if listMode == .songs, LyricsFeature.isAvailable {
+                    Section {
+                        Toggle(isOn: $callGuideOnly) {
+                            Label("コールガイドがある曲のみ", systemImage: "hands.clap.fill")
+                        }
+                    } header: {
+                        Text("コールガイド")
+                    } footer: {
+                        Text("歌詞の行にコール・手拍子が書き込まれている曲だけを表示します (通信が必要)。")
                             .font(.imasCaption)
                             .foregroundStyle(DS.ink3)
                     }

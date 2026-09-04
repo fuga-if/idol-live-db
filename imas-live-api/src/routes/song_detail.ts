@@ -30,7 +30,7 @@ import { getAuthUser } from "../auth";
 import { checkIsAdmin } from "../users";
 import { dryCheckIpRateLimit, commitIpRateLimit } from "../rate_limit";
 import { fetchPenlightVotes } from "./device_aggregates";
-import { fetchPublishedLyrics, NO_STORE } from "./lyrics";
+import { fetchPublishedLyrics, logLyricsRead, NO_STORE } from "./lyrics";
 import {
   clampSimilarLimit,
   fetchSimilarSongs,
@@ -122,9 +122,14 @@ async function loadLyrics(
   }
   // 未公開 (draft) は admin にだけ返す。許諾が下りるまでの開発プレビュー用。
   const lyrics = await fetchPublishedLyrics(env.DB, songId, isAdmin);
-  // 単体エンドポイントと同じく、歌詞を実際に返したときだけ枠を消費する
-  // (歌詞未投入の曲を開いただけで枠を減らさない)。
-  if (lyrics) await commitIpRateLimit(env.DB, ip, ipRl.bucket);
+  // 単体エンドポイントと同じく、歌詞を実際に返したときだけ枠を消費し、利用ログを出す
+  // (歌詞未投入の曲を開いただけでは枠も回数も動かない)。曲詳細から読んだ歌詞も
+  // JASRAC 報告のリクエスト回数に入る — 読者にとっては同じ「歌詞を読んだ」なので、
+  // 経路で数え方を変えない。
+  if (lyrics) {
+    await commitIpRateLimit(env.DB, ip, ipRl.bucket);
+    logLyricsRead(songId);
+  }
   return lyrics;
 }
 

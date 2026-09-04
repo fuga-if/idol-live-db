@@ -236,6 +236,23 @@ ImasLiveDB/
   (未解決)。**`migrations/` だけから作った D1 は本番と一致しない。** 詳細と対処方針は
   [`ARCHITECTURE-worker.md`](ARCHITECTURE-worker.md) の「D1 スキーマの drift」節。
 
+### 進捗 (2026-09) — コールガイド ダッシュボード
+- **コールガイドの整備状況を読むポートを新設**: `CallGuideDashboardReading` (1メソッド) +
+  `extension CallGuideAPI: CallGuideDashboardReading`、`AppContainer.callGuideDashboardReading` に登録。
+  DTO はポートと同じファイルに同居させた (`LyricsSearchReading` の前例に揃える。「この応答に
+  歌詞・コール本文を足してはいけない」という契約上の警告と DTO 定義を離さないため)。
+  **ポート総数 26** (`ImasLiveDB/Domain/Ports/` の `protocol` 宣言を数えた実数。
+  「進捗 (2026-07)」の 19 は当時の数え漏れで、実際は歌詞・コール系 (`LyricsReading` /
+  `LyricsSearchReading` / `SongDetailReading` / `CallGuideWriting` 等) が入っていなかった)。
+  画面は `Views/CallGuideDashboard/` (`@MainActor @Observable` VM + View)。
+  曲一覧の「コールガイドがある曲のみ」は Swift 前段で絞らず、解決済み集合を
+  imas-core の `SongListFilterCriteria.call_guide_song_ids` へ渡す (タグ集合と同じ位置・同じ流儀)。
+  取得失敗時は集合を渡さない (絞り込みを適用しない) 失敗規約もタグ側と揃えた。
+- **Android は対象外**: Android 版には歌詞・コール機能自体が無い (`SongDetailScreen.kt` は
+  `lyrics_url` リンクのみ) ため、「iOS の変更は必ず Android へ 1:1 横展開」の原則の適用外。
+  ダッシュボード画面・曲一覧フィルタ・**内蔵お知らせも iOS のみ**。Android へ歌詞機能を移植する
+  ときに、この節ごと持っていくこと。
+
 ### レイヤ違反の検査
 - `Domain/` 配下で `import SwiftUI|GRDB|CloudKit` を grep して 0 を保つ。**`tools/check_domain_purity.sh`** が自動チェック (違反で exit 1)。pre-commit / CI 組み込み候補。
 

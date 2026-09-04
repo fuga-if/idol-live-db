@@ -20,6 +20,14 @@
     // ID トークン署名検証方式では不要なため一切保持しない。
     "GOOGLE_WEB_CLIENT_ID": "612236234738-q1ku8tnnf4ce9jm1q006jp45k6mmmluc.apps.googleusercontent.com"
   },
+  // Workers Logs。歌詞の利用ログ (event=lyrics_read) を拾う唯一の経路なので、
+  // sampling は 1 (間引くと JASRAC 報告のリクエスト回数が実数より少なくなる)。
+  // 保持期間は無料プランで 3 日なので、日次バッチが 3 日以上止まるとその分は
+  // 取り返せない (docs/JASRAC.md「リクエスト回数の集計」)。
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
   // CLOUDKIT_KEY_ID and CLOUDKIT_PRIVATE_KEY are set via wrangler secret
   "triggers": {
     // "*/5 * * * *": インデックスの効いた軽い掃除 (api_rate_limits / transfer_codes)。

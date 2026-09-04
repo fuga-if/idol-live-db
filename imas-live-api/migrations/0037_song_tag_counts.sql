@@ -1,4 +1,4 @@
--- 0034: song_tag_counts (その曲に付いている有効タグの本数) を非正規化して持つ。
+-- 0037: song_tag_counts (その曲に付いている有効タグの本数) を非正規化して持つ。
 --
 -- GET /songs/:id/similar が D1 の最大消費源 (1,902,000 行/日 = 全体の 40%)。
 -- スコアは減衰つき Jaccard で、分母に「相手の曲のタグ総数」が要る。
@@ -8,9 +8,9 @@
 -- 数えるのをやめて引くだけにする。スコア式は一切変えないので、
 -- 返る類似曲とその並び順は今までと完全に同一。
 --
--- 更新は日次 cron (apply.ts の refreshTagCounts) の 1 か所のみ。
--- 推薦の重み付けにしか使わない近似値なので、タグ付けのたびに増減させて
--- ドリフトの原因を作るより、日次で数え直すほうが壊れにくい。
+-- 更新は 2 経路。タグ付け / 取り外し時にその曲だけ数え直し (routes/tags.ts の
+-- recountSongTags)、タグ自体が removed になった場合に備えて日次 cron が全曲を
+-- 数え直す (apply.ts の refreshTagCounts)。
 CREATE TABLE IF NOT EXISTS song_tag_counts (
   song_id   TEXT PRIMARY KEY,
   tag_count INTEGER NOT NULL DEFAULT 0

@@ -21,6 +21,10 @@ import { getAuthUser } from "../auth";
 import { checkRateLimit, dryCheckIpRateLimit, commitIpRateLimit } from "../rate_limit";
 import { checkIsAdmin } from "../users";
 import { carryOverAnnotation } from "../lyrics_calls";
+import {
+  countCallAnnotations,
+  syncCallStatsStatement,
+} from "../call_stats";
 import { updateGramIndex } from "../lyrics_index";
 import type { ClapKind, LyricCall } from "../lyrics_calls";
 import type { RouteContext } from "./context";
@@ -393,10 +397,30 @@ export interface LyricLineRow {
  * iOS の APIClient が .secondsSince1970 でデコードするため、応答は必ず秒 epoch の数値。
  * ミリ秒や ISO 文字列にすると iOS 側のデコードが落ちる。
  */
-function sqliteTimestampToEpochSeconds(ts: string | null | undefined): number {
+export function sqliteTimestampToEpochSeconds(ts: string | null | undefined): number {
   if (!ts) return 0;
   const ms = Date.parse(ts.replace(" ", "T") + "Z");
   return Number.isNaN(ms) ? 0 : Math.floor(ms / 1000);
+}
+
+/**
+ * 歌詞を **実際に返したときだけ** 1 行出す利用ログ。
+ *
+ * JASRAC 年次利用曲目報告の 19 項目目「リクエスト回数」を、D1 に列を足さずに
+ * 数えるための唯一の出口。Workers Logs (observability) に載り、日次バッチ
+ * (tools/lyrics/collect_request_logs.py) が Telemetry Query API で拾って
+ * data/lyrics_requests/YYYY-MM-DD.tsv に畳む。
+ *
+ * ⚠️ 出してよいのは event 名と song_id だけ。uid・IP・端末 ID・歌詞本文は載せない
+ *    — Workers Logs は D1 と違って「誰が何を読んだか」の閲覧履歴になり、
+ *    保持期間中は運用者が引ける状態になるため。曲単位の回数は報告に要るが、
+ *    誰が読んだかは要らない。
+ *
+ * ⚠️ 形式 (JSON 1 行・キー名) はバッチ側のパーサと 1:1 の契約。変えるなら
+ *    collect_request_logs.py の parse_event も同時に変えること。
+ */
+export function logLyricsRead(songId: string): void {
+  console.log(JSON.stringify({ event: "lyrics_read", song_id: songId }));
 }
 
 /** iOS と合意済みの応答形状。キーは camelCase、updatedAt は秒 epoch。 */
@@ -715,6 +739,8 @@ export async function handleLyrics(ctx: RouteContext): Promise<Response | null> 
 
     const lines = parseLines(header.lines_json);
     await commitIpRateLimit(env.DB, ip, ipRl.bucket);
+    // ここまで来たら歌詞を返すことが確定している (401/404/429 では数えない)。
+    logLyricsRead(songId);
     return json({ ...buildLyricsPayload(songId, header, lines), status: header.status },
                 200, NO_STORE);
   }
@@ -895,6 +921,12 @@ export async function handleLyrics(ctx: RouteContext): Promise<Response | null> 
         "UPDATE song_lyrics SET lines_json = ?, body = ?, body_norm = ? WHERE song_id = ?"
       ).bind(JSON.stringify(nextLines), searchBody, normalizeForSearch(searchBody), songId)
     );
+
+    // 歌詞の差し替えで行が消えるとコール数が変わる (carryOverAnnotation は消えた行の
+    // コールを持ち越さない)。統計 (0032) が実体からズレないよう、同じ batch で数え直す。
+    // UPDATE なので、コールを一度も書かれていない曲に 0 件の行は生えない。
+    // 「最後に誰がいつコールを書いたか」は歌詞の再投入では動かさない (call_stats.ts)。
+    statements.push(syncCallStatsStatement(env.DB, songId, countCallAnnotations(nextLines)));
 
     await env.DB.batch(statements);
 

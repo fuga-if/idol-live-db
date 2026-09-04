@@ -2,7 +2,7 @@
 //
 // 旧 submission-apply パイプライン (approved submission を CloudKit へ反映) は
 // 即時オープン編集 (POST /edits, Phase 1-3) への移行と submissions/votes テーブル DROP (0014)
-// により完全に廃止された。Cron に残る恒常タスクは rate_limits の日次掃除のみ。
+// により完全に廃止された。Cron に残る恒常タスクは保持期間の掃除と日次集計だけ。
 
 export interface ApplyEnv {
   DB: D1Database;
@@ -10,18 +10,28 @@ export interface ApplyEnv {
 
 /**
  * 1 日 1 回の恒常メンテナンス。
- * 7 日以上前の rate_limits レコードを掃除する (テーブル肥大化防止)。
+ *   - 7 日以上前の rate_limits レコードを掃除する (テーブル肥大化防止)。
+ *   - 180 日以上前のコール編集履歴を掃除する (下記)。
+ *   - song_tag_counts を数え直す (下記)。
  *
- * 5 分 cron から日次 cron に移したのは、この DELETE が rows_read を食っていたため。
- * date にインデックスが無かった頃は 1 回 1,006 行 (= 実質フルスキャン) を
- * 283 回/日 走らせて 285,000 行/日 を消費していた (実削除は 173 行)。
- * 0032 で idx_rate_limits_date を張り、さらに頻度を 1/288 に落としてある。
- * 7 日保持の掃除に 5 分精度は要らない。
+ * 5 分 cron から日次 cron に移したのは、rate_limits の DELETE が rows_read を
+ * 食っていたため。date にインデックスが無かった頃は 1 回 1,006 行 (= 実質フルスキャン)
+ * を 283 回/日 走らせて 285,000 行/日 を消費していた (実削除は 1 日 173 行)。
+ * idx_rate_limits_date を張り、さらに頻度を 1/288 に落としてある。
+ * ここに入っているのはいずれも保持期間の掃除と集計で、5 分精度は要らない。
  */
 export async function handleScheduled(env: ApplyEnv): Promise<void> {
   await env.DB.prepare(
     "DELETE FROM rate_limits WHERE date < date('now', '-7 days')"
   ).run();
+
+  // コール編集履歴 (migrations/0032_call_guide_stats) は「最近の編集」にしか使わない。
+  // GET /calls/dashboard が読むのは常に直近 30 件なので、古い行は誰も見ない。
+  // 無限に積むと荒らしで肥大しうるため 180 日で切る。
+  await env.DB.prepare(
+    "DELETE FROM call_edit_history WHERE at < datetime('now', '-180 days')"
+  ).run();
+
   await refreshTagCounts(env);
 }
 

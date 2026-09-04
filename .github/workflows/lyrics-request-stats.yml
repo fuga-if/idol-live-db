@@ -1,0 +1,79 @@
+name: Lyrics request stats
+
+# 歌詞の曲別リクエスト回数を Workers Logs から日次で集め、data/lyrics_requests/ に貯める。
+# JASRAC 年次利用曲目報告の 19 項目目 (リクエスト回数) の材料。
+#
+# ⚠️ なぜ毎日走らせる必要があるか:
+#    Workers Logs の保持期間は無料プランで 3 日。**3 日以上止まるとその間の回数は
+#    二度と取れない** (再実行しても API がもう返さない)。既定で「昨日から 3 日ぶん」を
+#    引き直すので、1〜2 日の失敗は翌日の実行が自動で埋める。3 日連続で赤いときだけ
+#    人が対処すればよい設計。
+#
+# ⚠️ セキュリティ前提:
+#    使う secret は Cloudflare の **Workers Observability: Read** だけの API トークン。
+#    CloudKit 鍵 (refresh-data.yml) と違い書き込み権限が無いので environment で
+#    ブランチを縛らず repository secret に置く。書き込み権限のあるトークンをここに
+#    入れないこと (このワークフローは develop の内容で走る)。
+on:
+  schedule:
+    - cron: "0 21 * * *"   # 毎日 06:00 JST
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "昨日から遡る日数 (既定 3)"
+        required: false
+        default: "3"
+
+concurrency:
+  group: lyrics-request-stats
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write            # bot/lyrics-stats への push に必要
+    steps:
+      # main / develop はどちらも保護ブランチなので bot は直接 push できない。
+      # refresh-data.yml と同じ流儀で bot 専用ブランチに出し、オーナーが
+      # bot/lyrics-stats → develop の PR で取り込む。
+      - uses: actions/checkout@v4
+        with:
+          ref: develop
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # 依存は標準ライブラリだけ (urllib)。pip install は要らない。
+
+      - name: Check secret
+        id: gate
+        env:
+          CLOUDFLARE_OBSERVABILITY_TOKEN: ${{ secrets.CLOUDFLARE_OBSERVABILITY_TOKEN }}
+        run: |
+          if [ -z "$CLOUDFLARE_OBSERVABILITY_TOKEN" ]; then
+            echo "::notice::CLOUDFLARE_OBSERVABILITY_TOKEN が未登録のため集計をスキップした。登録手順は docs/JASRAC.md「リクエスト回数の集計」"
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Collect lyrics_read logs
+        if: steps.gate.outputs.ok == 'true'
+        env:
+          CLOUDFLARE_OBSERVABILITY_TOKEN: ${{ secrets.CLOUDFLARE_OBSERVABILITY_TOKEN }}
+        run: |
+          python3 tools/lyrics/collect_request_logs.py --days "${{ inputs.days || '3' }}"
+
+      - name: Commit if changed
+        if: steps.gate.outputs.ok == 'true'
+        run: |
+          if git diff --quiet -- data/lyrics_requests; then
+            echo "変化なし"
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/lyrics_requests
+          git commit -m "chore(jasrac): 歌詞リクエスト回数を集計 ($(date -u +%Y-%m-%d))"
+          git push --force origin HEAD:bot/lyrics-stats

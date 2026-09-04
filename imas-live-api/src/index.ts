@@ -10,7 +10,7 @@ import { handleDeviceAggregates } from "./routes/device_aggregates";
 import { handlePolls } from "./routes/polls";
 import { handleTags } from "./routes/tags";
 import { handleLyrics } from "./routes/lyrics";
-import { handleLyricsCalls } from "./routes/calls";
+import { handleLyricsCalls, handleCallsDashboard } from "./routes/calls";
 import { handleSongDetail } from "./routes/song_detail";
 import { handleSetlistPredictions } from "./routes/setlist_predictions";
 import { fetchBadges, calcTier } from "./badges";
@@ -139,6 +139,9 @@ function isCommunityRead(path: string, method: string): boolean {
   if (/^\/idols\/[^/]+\/similar$/.test(path)) return true;
   if (/^\/units\/[^/]+\/similar$/.test(path)) return true;
   if (/^\/shows\/[^/]+\/(predictions|likes)$/.test(path)) return true;
+  // コールガイドの整備状況。歌詞本文もコール本文も含まない件数・日時・表示名だけの
+  // 集計なので、歌詞の枠 (認証必須・no-store) ではなくこちら側に置く。
+  if (path === "/calls/dashboard") return true;
   return false;
 }
 
@@ -871,6 +874,14 @@ export default {
             .bind(uid),
           env.DB.prepare("UPDATE edit_batch SET reverted_by = NULL WHERE reverted_by = ?").bind(uid),
 
+          // 本人のコール編集履歴を消す。コールそのもの (lines_json) は消さない —
+          // タグ・投票集計と同じ「みんなの共有データ」であって個人データではないため。
+          env.DB.prepare("DELETE FROM call_edit_history WHERE user_id = ?").bind(uid),
+          // 「最後にコールを書いた人」の参照だけ外す (表示は「匿名」に落ちる)。
+          env.DB
+            .prepare("UPDATE song_call_stats SET updated_by_uid = NULL WHERE updated_by_uid = ?")
+            .bind(uid),
+
           // 参照を外したので本人の編集 batch を削除し、最後に users 行を削除する。
           env.DB.prepare("DELETE FROM edit_batch WHERE editor_id = ?").bind(uid),
           env.DB.prepare("DELETE FROM users WHERE id = ?").bind(uid),
@@ -1182,13 +1193,27 @@ export default {
 
       // ----------------------------------------------------------------
       // コールガイド保存 (PUT /songs/:id/calls) は routes/calls.ts へ。
-      // 読み出しは専用エンドポイントを作らず、歌詞応答 (上の GET と /detail) に
-      // clap / calls が含まれる形にしてある。
+      // コール**本文**の読み出しは専用エンドポイントを作らず、歌詞応答 (上の GET と
+      // /detail) に clap / calls が含まれる形にしてある。
+      // waitUntil は保存後に /calls/dashboard のエッジキャッシュを捨てるのに使う。
       // ----------------------------------------------------------------
       const callsResponse = await handleLyricsCalls({
         request, env, url, path, json, error, rateLimitResponse, rateLimitSimple,
+        waitUntil: ctx.waitUntil.bind(ctx),
       });
       if (callsResponse) return callsResponse;
+
+      // ----------------------------------------------------------------
+      // GET /calls/dashboard — コールガイドの整備状況 (件数・日時・表示名のみ)。
+      //
+      // ⚠️ 歌詞本文もコール本文もアンカー文字列も含まない。含めた瞬間に、認証不要 =
+      //    edgeCacheEligible の公開キャッシュに歌詞の断片が載る (routes/calls.ts 冒頭)。
+      // ----------------------------------------------------------------
+      const callsDashboardResponse = await handleCallsDashboard({
+        request, env, url, path, json, error, rateLimitResponse, rateLimitSimple,
+        waitUntil: ctx.waitUntil.bind(ctx),
+      });
+      if (callsDashboardResponse) return callsDashboardResponse;
 
       // ----------------------------------------------------------------
       // GET /songs/:song_id/detail — 曲詳細の集計を 1 リクエストに束ねる

@@ -33,6 +33,10 @@
 | `routes/device_aggregates.ts` | `/favorites/*` `/penlight/*` (device 単位の集計。認証不要) |
 | `routes/polls.ts` | `/polls/*` (みんなの投票) |
 | `routes/tags.ts` | `/tags` `/idol-tags` `/unit-tags` の 3 プール + `/{songs,idols,units}/:id/tags` + `/{songs,idols,units}/:id/similar`。タグ専用ヘルパもここに閉じている |
+| `routes/lyrics.ts` | 歌詞の配信・検索・投入 (`/songs/:id/lyrics` `/lyrics/search` `/admin/lyrics/*`)。**Bearer 必須・`no-store`** (JASRAC 許諾の条件) |
+| `routes/calls.ts` | コールガイドの保存 (`PUT /songs/:id/calls`) と整備状況の一覧 (`GET /calls/dashboard`)。一覧は件数・日時・表示名だけで歌詞の断片を含まないため公開キャッシュに載せる |
+| `lyrics_calls.ts` | コール (clap / calls) のドメインロジック。ボディ検証・アンカーの数え方 (Unicode スカラー)・歌詞差し替え時の引き継ぎ |
+| `call_stats.ts` | コールの数え方と派生メタデータ (`song_call_stats` / `call_edit_history`, migrations/0032) の書き込み。数え方の定義はここが唯一の正 |
 | `routes/setlist_predictions.ts` | `/me/predictions` `/shows/:id/predictions` `/shows/:id/songs/:id/performers` `/shows/:id/likes` `/shows/:id/songs/:id/like` |
 | `cloudkit.ts` | CloudKit S2S クライアント (`cloudKitModify` / `cloudKitLookup` / forceUpdate・softDelete ビルダ)。`modifiedAt` 強制注入 |
 | `ck_schema.ts` | CloudKit Public DB スキーマ型情報の単一ソース |
@@ -52,9 +56,31 @@
 
 - 認証: `POST /auth/login` (Apple) / `GET /auth/me`
 - オープン編集: `POST /edits` / `GET /edits` (feed) / `GET /me/edits` / `POST|DELETE /edits/:batchId/good` / `POST /edits/:batchId/revert` / `GET /master/:recordType/:recordName/history`
+- 歌詞/コール: `GET /songs/:id/lyrics` / `GET /lyrics/search` / `PUT /songs/:id/calls` / `GET /calls/dashboard` / `PUT /admin/lyrics/:id`
 - 集計系: `GET/POST /polls…` / `/shows/:id/predictions` / `/shows/:id/likes` / `/songs/:song_id/tags|similar` / `/tags…` / `/favorites…` / `/penlight…` / `/leaderboard` / `/users/:id/badges`
 - 管理: `POST /admin/cloudkit/save` / `POST /admin/ban` / `POST /admin/revert-user` / `GET /admin/users/:id/edits`
 - アプリ証明: `GET /app/challenge` / `POST /app/attest|assert|integrity`
+
+## 歌詞の利用ログ (JASRAC リクエスト回数)
+
+歌詞を**実際に返したときだけ** `{"event":"lyrics_read","song_id":"..."}` を 1 行
+`console.log` する (`routes/lyrics.ts` の `logLyricsRead`。`GET /songs/:id/lyrics` と、
+Bearer 付きで歌詞を同梱した `GET /songs/:id/detail` の両方)。
+
+- **D1 に数えない。** 閲覧のたびに書くと、固定無料枠のホットパスが読み取りから
+  読み書きに変わる。集計は Workers Logs 側 (`wrangler.jsonc` の
+  `observability.enabled = true` / `head_sampling_rate = 1`) で行う。
+- **出すのは event 名と song_id だけ。** uid・IP・端末 ID・歌詞本文は載せない
+  (載せると Workers Logs が「誰が何を読んだか」の閲覧履歴になる)。
+- 日次バッチ `tools/lyrics/collect_request_logs.py` が Telemetry Query API
+  (`POST /accounts/{account_id}/workers/observability/telemetry/query`) で拾い、
+  `data/lyrics_requests/YYYY-MM-DD.tsv` に畳む。
+- ⚠️ **ログの保持は 3 日**。バッチが 3 日以上止まるとその分は取り返せない。
+  既定で 3 日ぶん引き直すのは 1〜2 日の失敗を翌日が埋めるため。
+- ログの形式 (JSON 1 行・キー名) はバッチのパーサと 1:1 の契約。片方だけ変えると
+  集計が 0 になる。`test/lyrics_read_log.test.ts` が「歌詞を返したときだけ出る」ことを固定する。
+
+詳細は [`JASRAC.md`](JASRAC.md)「リクエスト回数の集計」。
 
 ## セキュリティの要点
 
