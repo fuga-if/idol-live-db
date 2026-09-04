@@ -96,6 +96,7 @@ class PetitLyrics(object):
 
     def __init__(self, verbose=True, min_interval=MIN_INTERVAL):
         self.min_interval = min_interval
+        self.last_poster = ""
         self.conn = None
         self.cookie = ""
         self.token = ""
@@ -249,6 +250,8 @@ class PetitLyrics(object):
         m = re.search(r"<title>(.*?)</title>", page, re.S)
         if m:
             title = html_mod.unescape(m.group(1)).strip()
+        m = POSTER_RE.search(html_mod.unescape(page))
+        self.last_poster = m.group(1).strip() if m else ""
 
         for attempt in (1, 2):
             if not self.token:
@@ -604,6 +607,7 @@ def cmd_fetch(args):
             "petit_title": row["title"],
             "petit_artist": row["artist"],
             "page_title": page_title,
+            "poster": client.last_poster,
             "fetched_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
             "lines": lines,
         }
@@ -817,6 +821,10 @@ ARTIST_PAGE_RE = re.compile(
     r'href="/lyrics/artist/\d+/(\d+)-1\.html"[^>]*title="page \d+"')
 
 
+POSTER_RE = re.compile(
+    r'投稿者：\s*</b>\s*<a href="/profile/[^"]*">\s*([^<]+)')
+
+
 class Throttled(RuntimeError):
     """プチリリのアクセス制限ページを踏んだ。"""
 
@@ -916,6 +924,98 @@ def artist_rows(client, aid, max_pages):
     return rows
 
 
+def strict_key(text):
+    """曲名の完全一致用のキー。NFKC で幅を揃え、空白を落とし、大小を無視する。
+
+    `norm` (記号も落とす) より厳しい。取り込み対象を選ぶときは、記号違いの
+    同名曲を掴みたくないのでこちらを使う。
+    """
+    text = unicodedata.normalize("NFKC", text or "")
+    return "".join(ch for ch in text if not ch.isspace()).casefold()
+
+
+def singer_keys(singer):
+    """歌唱欄からアイドル名・ユニット名を切り出す。"""
+    out = set()
+    for part in re.split(r"[、,／/（）()\[\]]", singer or ""):
+        part = part.strip()
+        if len(part) >= 2:
+            out.add(strict_key(part))
+    return out
+
+
+def load_targets(path):
+    """対象曲の TSV を読む。song_id / 曲名 / 歌唱 の3列を見る。"""
+    rows = read_tsv(path, ["song_id", "曲名", "歌唱", "披露回数", "ブランド"])
+    return [{"song_id": r["song_id"], "title": r["曲名"],
+             "singer": r["歌唱"], "plays": r["披露回数"]}
+            for r in rows if r["song_id"]]
+
+
+def match_target(target, rows):
+    """一覧ページの行から、その曲だと言い切れる候補だけ返す。
+
+    条件は2つとも満たすこと:
+      1. 曲名が**完全一致** (NFKC・空白無視・大小無視)。版名つきは採らない。
+      2. アーティスト名にその曲の歌唱アイドル or ユニット名が含まれる。
+    同名異曲や尺違いを掴まないための線引きなので、緩めないこと。
+    """
+    want = strict_key(target["title"])
+    names = singer_keys(target["singer"])
+    out = []
+    for pid, ptitle, partist, palbum in rows:
+        if strict_key(ptitle) != want:
+            continue
+        artist_k = strict_key(partist)
+        if not any(n in artist_k for n in names):
+            continue
+        out.append((pid, ptitle, partist, palbum))
+    return out
+
+
+def collect_for_targets(client, artists, targets, existing, args):
+    """指定した曲について、歌唱名から一覧ページを辿って候補を集める。"""
+    akeys = {aid: strict_key(name) for aid, name in artists.items()}
+    wanted = {}
+    for target in targets:
+        names = singer_keys(target["singer"])
+        for aid, artist_k in akeys.items():
+            if any(n in artist_k for n in names):
+                wanted[aid] = wanted.get(aid, 0) + 1
+    order = sorted(wanted, key=lambda a: -wanted[a])[:args.max_artists]
+    print("歌唱名に当たるアーティスト %d件 (先頭 %d件を辿る)\n"
+          % (len(wanted), len(order)))
+
+    by_title = {}
+    for target in targets:
+        by_title.setdefault(strict_key(target["title"]), []).append(target)
+
+    found = {}
+    for i, aid in enumerate(order, 1):
+        rows = artist_rows(client, aid, args.max_pages)
+        hits = 0
+        for row in rows:
+            for target in by_title.get(strict_key(row[1]), []):
+                sid = target["song_id"]
+                if sid in found or not match_target(target, [row]):
+                    continue
+                found[sid] = {
+                    "song_id": sid, "petit_id": str(row[0]),
+                    "title": row[1], "artist": row[2],
+                    "confidence": "high",
+                    "note": "歌ネットに無し・プチリリ由来 (一覧 %s)" % aid,
+                }
+                hits += 1
+        if hits:
+            print("[%3d/%d] %-7s %d曲 %s" % (i, len(order), aid, hits,
+                                             artists[aid][:36]))
+    if found:
+        write_tsv(CANDIDATES_TSV, CANDIDATE_COLS,
+                  existing + [found[k] for k in sorted(found)])
+    print("\n候補が付いた: %d曲 / %d曲" % (len(found), len(targets)))
+    return 0
+
+
 def cmd_list(args):
     # 一覧ページは検索ほど厳しくないが、まとまった数を辿るので間隔を長めに取る。
     client = PetitLyrics(min_interval=args.interval)
@@ -925,12 +1025,18 @@ def cmd_list(args):
         print("robots.txt が使用パスを禁じている。中止する。")
         return 1
 
-    published = load_published()
-    songs = load_song_meta(args.db, published)[:args.limit]
     existing = read_tsv(CANDIDATES_TSV, CANDIDATE_COLS)
     done = {r["song_id"] for r in existing if r["confidence"] == "high"}
-    targets = [s for s in songs if s["song_id"] not in done]
-    print("対象 上位%d曲 / 未取得 %d曲" % (len(songs), len(targets)))
+    if args.targets:
+        # 対象曲を外から渡す経路 (歌ネットに無い曲を埋めるとき)。
+        songs = load_targets(args.targets)
+        targets = [s for s in songs if s["song_id"] not in done]
+        print("対象 %d曲 (指定リスト) / 未取得 %d曲" % (len(songs), len(targets)))
+    else:
+        published = load_published()
+        songs = load_song_meta(args.db, published)[:args.limit]
+        targets = [s for s in songs if s["song_id"] not in done]
+        print("対象 上位%d曲 / 未取得 %d曲" % (len(songs), len(targets)))
     if not targets:
         print("対象なし")
         return 0
@@ -949,6 +1055,8 @@ def cmd_list(args):
         artists = build_artist_index(client, refresh=args.refresh_index)
         print("索引 %d件" % len(artists))
 
+        if args.targets:
+            return collect_for_targets(client, artists, targets, existing, args)
         extra = ()
         if args.broad:
             # 短い語 (「彩」「W」等) は無関係な名前に紛れて誤爆するので落とす。
@@ -1002,6 +1110,92 @@ def cmd_list(args):
 
 
 # --------------------------------------------------------------------------
+# import — 取得した本文を lyrics_local/lyrics/<song_id>.json にする
+# --------------------------------------------------------------------------
+#
+# 歌ネットに無かった曲を埋める経路。**採用の条件を緩めないこと** —
+# 曲名が完全一致し、かつアーティスト名にその曲の歌唱アイドル/ユニット名が
+# 含まれる候補だけを入れる。同名異曲や尺違いを掴むと、誤った歌詞が公開される。
+
+# ♪ だけの行はカラオケ同期用の間奏記号であって歌詞ではない (§ 差分の仕分け)。
+# 本文に混ぜず間奏マーカーに落とす。
+# 括弧で囲った <♪> (♪) （♪） も同じ間奏記号。裸の ♪ だけを見ていると取りこぼす。
+INTERLUDE_LINE_RE = re.compile(r"^[\s<>()（）\[\]【】「」♪]*♪[\s<>()（）\[\]【】「」♪]*$")
+
+
+def petit_lines_to_text(lines):
+    """プチリリの行配列を lyrics_json.text_to_lines に渡すテキストにする。
+
+    - 空行はそのまま残す (段落の余白として text_to_lines が解釈する)
+    - ♪ の連続だけの行は落とし、代わりに空行を2つ置いて間奏マーカーにさせる
+    """
+    out = []
+    for line in lines:
+        if INTERLUDE_LINE_RE.match(line or ""):
+            out.extend(["", ""])
+        else:
+            out.append(line)
+    return "\n".join(out)
+
+
+def cmd_import(args):
+    sys.path.insert(0, HERE)
+    import lyrics_json
+
+    targets = {t["song_id"]: t for t in load_targets(args.targets)} \
+        if args.targets else {}
+    candidates = {r["song_id"]: r for r in read_tsv(CANDIDATES_TSV, CANDIDATE_COLS)
+                  if r["confidence"] == "high"}
+    song_ids = [args.only] if args.only else sorted(candidates)
+
+    made, skipped = [], []
+    for sid in song_ids:
+        cand = candidates.get(sid)
+        path = cache_path(sid)
+        if not cand or not os.path.exists(path):
+            skipped.append((sid, "本文が未取得"))
+            continue
+        if targets and sid not in targets:
+            skipped.append((sid, "対象リストに無い"))
+            continue
+        # **既存の歌詞は書き換えない。**
+        if os.path.exists(os.path.join(LOCAL_LYRICS_DIR, "%s.json" % sid)):
+            skipped.append((sid, "手元に既に歌詞がある"))
+            continue
+
+        with io.open(path, encoding="utf-8") as f:
+            cached = json.load(f)
+        target = targets.get(sid)
+        if target and not match_target(target, [(cached.get("petit_id"),
+                                                 cand["title"], cand["artist"], "")]):
+            skipped.append((sid, "曲名/歌唱の照合に通らない"))
+            continue
+
+        lines = lyrics_json.text_to_lines(petit_lines_to_text(cached.get("lines", [])))
+        if not [x for x in lines if x["kind"] == "lyric"]:
+            skipped.append((sid, "本文が空"))
+            continue
+
+        poster = cached.get("poster") or ""
+        source = "プチリリ %s%s" % (cached.get("petit_id"),
+                                    " (%s)" % poster if poster else "")
+        doc = lyrics_json.build_doc(sid, lines, source,
+                                    note="歌ネットに無し・プチリリ由来")
+        if args.apply:
+            lyrics_json.write_doc(sid, doc)
+        made.append((sid, doc["title"], cached.get("petit_id"), poster,
+                     len(lines)))
+
+    for sid, title, pid, poster, n in made:
+        print("%-34s %-24s petit %-8s %-12s %d行"
+              % (sid, title[:22], pid, poster[:12], n))
+    print("\n作成 %d件 / 見送り %d件%s"
+          % (len(made), len(skipped), "" if args.apply else " (--apply なしなので書き込んでいない)"))
+    for sid, why in skipped:
+        print("  skip %-34s %s" % (sid, why))
+    return 0
+
+# --------------------------------------------------------------------------
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
@@ -1023,6 +1217,7 @@ def main():
     p.add_argument("--max-artists", type=int, default=80, help="辿るアーティスト数の上限")
     p.add_argument("--max-pages", type=int, default=5, help="1アーティストあたりの一覧ページ数の上限")
     p.add_argument("--refresh-index", action="store_true", help="50音索引を取り直す")
+    p.add_argument("--targets", help="対象曲の TSV (song_id / 曲名 / 歌唱 の3列を見る)")
     p.add_argument("--interval", type=float, default=2.5, help="1リクエストの最小間隔 (秒)")
     p.add_argument("--broad", action="store_true",
                    help="対象曲の歌手名だけでなくアイマス語彙全体でアーティストを選ぶ "
@@ -1033,6 +1228,12 @@ def main():
     p.add_argument("--limit", type=int, default=0)
     p.add_argument("--only")
     p.set_defaults(func=cmd_fetch)
+
+    p = sub.add_parser("import", help="取得した本文を lyrics_local/lyrics/ の JSON にする")
+    p.add_argument("--targets", help="対象曲の TSV。照合に使う")
+    p.add_argument("--only")
+    p.add_argument("--apply", action="store_true", help="実際に書き込む")
+    p.set_defaults(func=cmd_import)
 
     p = sub.add_parser("diff", help="手元の歌詞とキャッシュを突き合わせて報告")
     p.add_argument("--only")

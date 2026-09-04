@@ -245,3 +245,42 @@ python3 tools/lyrics/petitlyrics_check.py diff --only 765as_ready
 
 `大差` 19曲は書き起こしの誤りではなく、プチリリ側が別バージョン (尺違い・
 ライブ版) を載せているケースが大半。人が見る優先度は低い。
+
+## 4. 歌ネットに無かった曲をプチリリから入れる (`import`)
+
+`songs.lyrics_url` が埋まらなかった曲 (歌ネットに無い) を、プチリリ由来の本文で埋める。
+
+```bash
+# 対象曲リスト (song_id / 曲名 / 歌唱 の3列) から候補を集める
+python3 tools/lyrics/petitlyrics_check.py list --targets targets.tsv --max-artists 700
+
+# 本文を取得
+python3 tools/lyrics/petitlyrics_check.py fetch
+
+# lyrics_local/lyrics/<song_id>.json を作る (--apply なしは何も書かない)
+python3 tools/lyrics/petitlyrics_check.py import --targets targets.tsv --apply
+python3 tools/lyrics/lyrics_json.py validate
+```
+
+### 採用の条件は緩めない
+
+`match_target()` の2条件を**両方**満たす候補だけを採る:
+
+1. 曲名が**完全一致** (NFKC・空白無視・大小無視)。`(M@STER VERSION)` のような
+   版名つきは採らない。
+2. アーティスト名に、その曲の**歌唱アイドル名かユニット名**が含まれる。
+
+同名異曲や尺違いを掴むと誤った歌詞がそのまま公開されるので、ここを緩めないこと。
+条件に通らないものは候補一覧に残して人が見る。
+
+### 行の落とし込み
+
+`lyrics_json.text_to_lines` に渡す前に整形する:
+
+- 空行はそのまま (段落の余白として解釈される)
+- **`♪` だけの行は間奏記号なので本文に入れない。** 空行2つに置き換えて間奏マーカーに
+  させる。`<♪>` `(♪)` `（♪）` のように括弧で囲った形もあるので、裸の `♪` だけを
+  見ていると取りこぼす (実測で2曲が検証に引っかかった)
+
+`source` は `プチリリ <petit_id> (投稿者名)`、`note` は `歌ネットに無し・プチリリ由来`。
+**手元に既に歌詞がある曲は書き換えない** (import が skip する)。
