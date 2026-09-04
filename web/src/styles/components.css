@@ -801,11 +801,120 @@ a.labeled-row .labeled-row__value {
 
 /* --- 印字用 --------------------------------------------------------------- */
 @media print {
-  .site-header,
+  .site-nav,
   .site-footer,
   .open-in-app,
   .segmented,
   .link-chips {
     display: none !important;
+  }
+}
+
+/* --- 楽曲の表 ------------------------------------------------------------
+   一覧が二次元になるものは行を積むより表のほうが密度が出る。ただし幅が要るので、
+   狭い画面では列を伏せて Rust が組んだ subtitle 1 本に切り替える。
+   外枠 (面・角丸・ハイライン) は .card に任せる。 */
+.song-table__scroll {
+  overflow-x: auto;
+}
+.song-table {
+  width: 100%;
+  /* 列幅を colgroup で決め打ちする。auto だと 2,000 行ぶんの内容幅を測ってからでないと
+     列が置けず、そのレイアウトパスは分割も省略もできない。 */
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: var(--fs-footnote);
+}
+.song-table__col-title {
+  width: 34%;
+}
+.song-table__col-date {
+  width: 6.5rem;
+}
+.song-table__col-count {
+  width: 4.5rem;
+}
+.song-table th,
+.song-table td {
+  text-align: left;
+  padding: var(--sp3) var(--sp4);
+  font-weight: 400;
+  vertical-align: middle;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.song-table tbody tr + tr th,
+.song-table tbody tr + tr td {
+  border-top: 1px solid var(--ds-sep);
+}
+.song-table thead th {
+  background: var(--ds-surface2);
+  border-bottom: 1px solid var(--ds-sep);
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  color: var(--ds-ink2);
+}
+.song-table tbody tr:hover {
+  background: var(--ds-fill);
+}
+.song-table__title {
+  font-weight: 600;
+}
+.song-table__title a {
+  display: flex;
+  align-items: center;
+  gap: var(--sp4);
+}
+.song-table__title a > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.song-table__dim {
+  color: var(--ds-ink2);
+}
+.song-table__num {
+  text-align: right;
+}
+/* 畳んだ表示専用の行。広い画面では列が出ているので伏せる。 */
+.song-table__subtitle {
+  display: none;
+}
+
+/* 狭い画面: 表の骨格を畳んで 1 曲 1 ブロックにする。列見出しが消えるので、
+   個々の列ではなく Rust が組んだ subtitle をそのまま出す。 */
+@media (max-width: 44rem) {
+  .song-table__scroll {
+    overflow-x: visible;
+  }
+  .song-table,
+  .song-table tbody,
+  .song-table tr,
+  .song-table th {
+    display: block;
+  }
+  .song-table thead,
+  .song-table colgroup,
+  .song-table__dim,
+  .song-table__num {
+    display: none;
+  }
+  .song-table tr {
+    padding: var(--sp3) var(--sp4);
+  }
+  .song-table tbody tr + tr {
+    border-top: 1px solid var(--ds-sep);
+  }
+  .song-table th,
+  .song-table td {
+    padding: 0;
+    border-top: 0;
+    white-space: normal;
+  }
+  .song-table td.song-table__subtitle {
+    display: block;
+    margin-top: var(--sp1);
+    color: var(--ds-ink2);
+    font-size: var(--fs-caption);
   }
 }

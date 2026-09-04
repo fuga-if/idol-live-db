@@ -760,6 +760,7 @@ fn song_list_page(path: &str, title: &str, kind: SongListKind) -> SongListPage {
             reference: song_sample(),
             release_date: Some("2019-03-13".to_string()),
             unit_label: Some("765MILLION ALLSTARS".to_string()),
+            artists_label: Some("春日未来".to_string()),
             performance_count: Some(12),
             subtitle: Some("765MILLION ALLSTARS ・ 春日未来 ・ 2019-03-13".to_string()),
         },
@@ -768,6 +769,7 @@ fn song_list_page(path: &str, title: &str, kind: SongListKind) -> SongListPage {
             reference: song_no_artwork(),
             release_date: None,
             unit_label: None,
+            artists_label: None,
             performance_count: None,
             subtitle: None,
         },
@@ -778,6 +780,7 @@ fn song_list_page(path: &str, title: &str, kind: SongListKind) -> SongListPage {
         title: title.to_string(),
         kind,
         brand: if matches!(kind, SongListKind::Brand) { Some(brand_ml()) } else { None },
+        rows_are_light: matches!(kind, SongListKind::All),
         kana_sections: vec![
             KanaSection { label: "さ".to_string(), start_index: 0, count: 1 },
             KanaSection { label: "英数".to_string(), start_index: 1, count: 1 },

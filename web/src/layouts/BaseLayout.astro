@@ -14,6 +14,7 @@ import "../styles/components.css";
  * - テーマは `data-theme` 属性 1 個で当てる (実体は Rust が出す public/themes.css)。
  *   ライト / ダークの切替は prefers-color-scheme のみ。トグル UI は作らない。
  * - ブラウザ JS は /search/ の island だけ。ここでは 1 行も読み込まない。
+ * - ナビは広い画面でサイドバー、狭い画面で上部バー。切り替えは CSS のみ。
  */
 interface Props {
   seo: SeoBlock;
@@ -33,10 +34,14 @@ const SITE_NAME = "アイドルライブDB";
   </head>
   <body data-theme={themeKey}>
     <a class="skip-link" href="#main">本文へスキップ</a>
-    <SiteHeader pathname={Astro.url.pathname} />
-    <main id="main" class:list={["page", wide && "page--wide", "main"]}>
-      <slot />
-    </main>
-    <SiteFooter app={meta.app} />
+    <div class="shell">
+      <SiteHeader pathname={Astro.url.pathname} />
+      <div class="shell__body">
+        <main id="main" class:list={["page", wide && "page--wide", "main"]}>
+          <slot />
+        </main>
+        <SiteFooter app={meta.app} />
+      </div>
+    </div>
   </body>
 </html>

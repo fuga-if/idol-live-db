@@ -89,7 +89,12 @@ web_dto! {
         pub kind: SongListKind,
         pub brand: Option<Ref>,
         pub items: Vec<SongListItem>,
-        /// よみの先頭 1 文字で切った目次。
+        /// 行を `ref` だけまで削った一覧か (`/songs/all/`)。
+        ///
+        /// **行から何を落としたかを決めるのは Rust の 1 箇所**なので、受け手は
+        /// 行を走査して列の有無を推測しない (走査すると「たまたま全行 null」と
+        /// 「そもそも載せていない」が混ざり、同じ種類のページで表の形が変わる)。
+        pub rows_are_light: bool,
         pub kana_sections: Vec<KanaSection>,
         pub brand_links: Vec<NavLink>,
         /// 既定フィルタから外れた曲も含む全件ハブ (`/songs/all/`) への案内。
@@ -123,6 +128,12 @@ web_dto! {
         pub reference: Ref,
         pub release_date: Option<String>,
         pub unit_label: Option<String>,
+        /// 原唱者を 1 行に畳んだもの (`join_capped` で「先頭 4 名 ほか N 名」に丸めた形)。
+        ///
+        /// `subtitle` にも畳み込まれているが、表形式の一覧は列に分けて出すので
+        /// 独立して持つ。**丸め方を決めるのはここ (Rust) の 1 箇所**で、
+        /// 受け手が名前の配列から組み立て直すことはしない。
+        pub artists_label: Option<String>,
         /// 披露回数。
         ///
         /// `/songs/all/` (全件ハブ) では **`None`**。あちらは 3,153 行を 1 枚に並べる

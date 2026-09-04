@@ -1,0 +1,72 @@
+---
+import Artwork from "./Artwork.astro";
+import Count from "./Count.astro";
+import type { SongListItem } from "../lib/schema/SongListItem";
+import type { KanaSection } from "../lib/schema/KanaSection";
+
+/**
+ * 楽曲一覧の表。
+ *
+ * 一覧が二次元 (曲 × 属性) になるものは、行を積むより**表のほうが密度が出る**。
+ * 画面幅のある環境でしか成立しないので、狭い画面では列を伏せて Rust が組んだ
+ * `subtitle` 1 本に切り替える (マークアップは 1 つ、切替は CSS だけ)。
+ *
+ * **区切り文字を CSS で作らない。** 「ユニット ・ 原唱者 ・ 初出」の畳み方を決めるのは
+ * `imas-core` の `display_join` 1 箇所で、ここは組み上がった `subtitle` を置くだけ。
+ *
+ * 行を `ref` だけに削った一覧 (`/songs/all/`) はそもそもここへ来ない
+ * (列が 1 つも無い表になるうえ、表の行には `content-visibility` が効かない)。
+ * 振り分けは `SongListView` が `rowsAreLight` で行う。
+ */
+interface Props {
+  items: readonly SongListItem[];
+  kanaSections: readonly KanaSection[];
+}
+const { items, kanaSections } = Astro.props;
+const sectionStarts = new Set(kanaSections.map((s) => s.startIndex));
+---
+
+<div class="card song-table__scroll">
+  <table class="song-table">
+    <colgroup>
+      <col class="song-table__col-title" />
+      <col />
+      <col />
+      <col class="song-table__col-date" />
+      <col class="song-table__col-count" />
+    </colgroup>
+    <thead>
+      <tr>
+        <th scope="col">曲名</th>
+        <th scope="col">ユニット</th>
+        <th scope="col">原唱者</th>
+        <th scope="col" class="song-table__num">初出</th>
+        <th scope="col" class="song-table__num">ライブ</th>
+      </tr>
+    </thead>
+    <tbody>
+      {
+        items.map((item, i) => (
+          <tr id={sectionStarts.has(i) ? `kana-${i}` : undefined} data-theme={item.ref.themeKey}>
+            <th scope="row" class="song-table__title">
+              {/* themeKey は tr から継承する。行ごとに 2 回置くと、
+                  3,000 行規模で custom property の再計算が倍になる。 */}
+              <a href={item.ref.path}>
+                <Artwork title={item.ref.name} artworkUrl={item.ref.artworkUrl} size="sm" />
+                <span class="u-underline-hover">{item.ref.name}</span>
+              </a>
+            </th>
+            <td class="song-table__dim">{item.unitLabel}</td>
+            <td class="song-table__dim">{item.artistsLabel}</td>
+            <td class="song-table__num song-table__dim u-num">{item.releaseDate}</td>
+            <td class="song-table__num">
+              {item.performanceCount !== null && <Count value={item.performanceCount} />}
+            </td>
+            {/* 狭い画面用。上の各列と排他で、同時に見えることはない。 */}
+            <td class="song-table__subtitle">{item.subtitle}</td>
+          </tr>
+        ))
+      }
+    </tbody>
+  </table>
+</div>

@@ -317,6 +317,7 @@ fn song_list_item(ctx: &Ctx, index: u32, light: bool) -> Option<SongListItem> {
             reference,
             release_date: None,
             unit_label: None,
+            artists_label: None,
             performance_count: None,
             subtitle: None,
         });
@@ -327,15 +328,17 @@ fn song_list_item(ctx: &Ctx, index: u32, light: bool) -> Option<SongListItem> {
         .iter()
         .map(|i| i.name.as_str())
         .collect();
+    let artists_label = artists_display(&names);
     Some(SongListItem {
         subtitle: join_parts([
             song.unit_name.clone(),
-            artists_display(&names),
+            artists_label.clone(),
             song.release_date.clone(),
         ]),
         reference,
         release_date: song.release_date.clone(),
         unit_label: song.unit_name.clone(),
+        artists_label,
         performance_count: Some(ctx.snap.performance_counts[index as usize]),
     })
 }
@@ -423,6 +426,7 @@ pub fn song_lists(ctx: &Ctx) -> Vec<Emitted<SongListPage>> {
                 title,
                 kind,
                 brand,
+                rows_are_light: light,
                 kana_sections: kana_sections(ctx, &items),
                 total: items.len() as u32,
                 all_songs_link: (path == "/songs/").then(|| NavLink {

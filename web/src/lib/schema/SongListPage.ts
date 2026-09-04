@@ -11,9 +11,13 @@ import type { SongListKind } from "./SongListKind";
  */
 export type SongListPage = { schemaVersion: number, path: string, title: string, kind: SongListKind, brand: Ref | null, items: Array<SongListItem>, 
 /**
- * よみの先頭 1 文字で切った目次。
+ * 行を `ref` だけまで削った一覧か (`/songs/all/`)。
+ *
+ * **行から何を落としたかを決めるのは Rust の 1 箇所**なので、受け手は
+ * 行を走査して列の有無を推測しない (走査すると「たまたま全行 null」と
+ * 「そもそも載せていない」が混ざり、同じ種類のページで表の形が変わる)。
  */
-kanaSections: Array<KanaSection>, brandLinks: Array<NavLink>, 
+rowsAreLight: boolean, kanaSections: Array<KanaSection>, brandLinks: Array<NavLink>, 
 /**
  * 既定フィルタから外れた曲も含む全件ハブ (`/songs/all/`) への案内。
  *
