@@ -811,28 +811,28 @@ a.labeled-row .labeled-row__value {
 }
 
 /* --- 楽曲の表 ------------------------------------------------------------
-   一覧が二次元になるものは行を積むより表のほうが密度が出る。ただし幅が要るので、
-   狭い画面では列を伏せて Rust が組んだ subtitle 1 本に切り替える。
-   外枠 (面・角丸・ハイライン) は .card に任せる。 */
+   一覧が二次元になるものは行を積むより表のほうが密度が出る。ただし列を出すには
+   幅が要るので、**使える幅に応じて列を減らす**。最後は Rust が組んだ subtitle 1 本。
+
+   判定はビューポートではなく `.main` のコンテナ幅で行う。サイドバーが出ると本文は
+   その分だけ狭くなるので、ビューポート幅で決めると同じ見た目の幅でも
+   サイドバーの有無で表の形が変わってしまう。
+   外枠 (面・角丸) は .card に任せる。 */
 .song-table__scroll {
   overflow-x: auto;
+  /* 列の出し入れの基準。**ここ自身の幅 = 表に使える幅**なので、サイドバーの有無に
+     関わらず正しく測れる (ビューポート幅だとサイドバーの 208px 分ずれる)。
+     包含をこの箱の中に閉じ込めてあるので、年見出しの position: sticky など
+     ページ側のレイアウトには一切触らない。 */
+  container: main / inline-size;
 }
 .song-table {
   width: 100%;
-  /* 列幅を colgroup で決め打ちする。auto だと 2,000 行ぶんの内容幅を測ってからでないと
-     列が置けず、そのレイアウトパスは分割も省略もできない。 */
+  /* 列幅は thead th で決め打ちする。auto だと 2,000 行ぶんの内容幅を測ってからで
+     ないと列が置けず、そのレイアウトパスは分割も省略もできない。 */
   table-layout: fixed;
   border-collapse: collapse;
   font-size: var(--fs-footnote);
-}
-.song-table__col-title {
-  width: 34%;
-}
-.song-table__col-date {
-  width: 6.5rem;
-}
-.song-table__col-count {
-  width: 4.5rem;
 }
 .song-table th,
 .song-table td {
@@ -840,9 +840,6 @@ a.labeled-row .labeled-row__value {
   padding: var(--sp3) var(--sp4);
   font-weight: 400;
   vertical-align: middle;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 .song-table tbody tr + tr th,
 .song-table tbody tr + tr td {
@@ -854,10 +851,25 @@ a.labeled-row .labeled-row__value {
   font-size: var(--fs-caption);
   font-weight: 700;
   color: var(--ds-ink2);
+  white-space: nowrap;
 }
 .song-table tbody tr:hover {
   background: var(--ds-fill);
 }
+
+/* 列幅。曲名は残りを取る。 */
+/* 幅の配分は実測で決めた。曲名は余りを取るので、割合を書くのは補助列だけ。
+   原唱者は「A / B / C ほか N 名」まで入るので一番広い。 */
+.song-table__c-unit {
+  width: 19%;
+}
+.song-table__c-date {
+  width: 6.5rem;
+}
+.song-table__c-count {
+  width: 4.5rem;
+}
+
 .song-table__title {
   font-weight: 600;
 }
@@ -866,55 +878,109 @@ a.labeled-row .labeled-row__value {
   align-items: center;
   gap: var(--sp4);
 }
-.song-table__title a > span:last-child {
-  overflow: hidden;
-  text-overflow: ellipsis;
+/* 曲名は折り返す。切ると曲が特定できなくなるので、行の高さより中身を優先する。 */
+.song-table__title span {
+  min-width: 0;
 }
+/* 補助列は 1 行に収め、あふれたら省略する (畳む前に読めなくなるようなら
+   その幅では列ごと落とす — 下のコンテナクエリを参照)。 */
 .song-table__dim {
   color: var(--ds-ink2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .song-table__num {
   text-align: right;
 }
-/* 畳んだ表示専用の行。広い画面では列が出ているので伏せる。 */
-.song-table__subtitle {
+
+/* --- 列の出し入れ --------------------------------------------------------
+   **display を触るのは列クラス (.song-table__c-*) と表の骨格だけ**にする。
+   `th, td` にまとめて display を書くと、詳細度 (0,1,1) が列クラス (0,1,0) を
+   上書きして、どの幅でも全列が出てしまう。余白は display と分けて指定する。 */
+
+/* 既定は畳んだ形: 曲名 + subtitle。 */
+.song-table,
+.song-table tbody,
+.song-table tr {
+  display: block;
+}
+.song-table thead {
   display: none;
 }
+.song-table__c-title,
+.song-table__subtitle {
+  display: block;
+}
+.song-table__c-unit,
+.song-table__c-artists,
+.song-table__c-date,
+.song-table__c-count {
+  display: none;
+}
+.song-table tr {
+  padding: var(--sp3) var(--sp4);
+}
+.song-table tbody tr + tr {
+  border-top: 1px solid var(--ds-sep);
+}
+.song-table th,
+.song-table td {
+  padding: 0;
+}
 
-/* 狭い画面: 表の骨格を畳んで 1 曲 1 ブロックにする。列見出しが消えるので、
-   個々の列ではなく Rust が組んだ subtitle をそのまま出す。 */
-@media (max-width: 44rem) {
-  .song-table__scroll {
-    overflow-x: visible;
+/* 3 列 (曲名 / 初出 / ライブ)。表の骨格に戻す。 */
+@container main (min-width: 32rem) {
+  .song-table {
+    display: table;
   }
-  .song-table,
-  .song-table tbody,
-  .song-table tr,
-  .song-table th {
-    display: block;
+  .song-table thead {
+    display: table-header-group;
   }
-  .song-table thead,
-  .song-table colgroup,
-  .song-table__dim,
-  .song-table__num {
-    display: none;
+  .song-table tbody {
+    display: table-row-group;
   }
   .song-table tr {
-    padding: var(--sp3) var(--sp4);
+    display: table-row;
+    padding: 0;
   }
-  .song-table tbody tr + tr {
-    border-top: 1px solid var(--ds-sep);
+  .song-table__c-title,
+  .song-table__c-date,
+  .song-table__c-count {
+    display: table-cell;
+  }
+  .song-table__subtitle {
+    display: none;
   }
   .song-table th,
   .song-table td {
-    padding: 0;
-    border-top: 0;
-    white-space: normal;
+    padding: var(--sp3) var(--sp4);
   }
-  .song-table td.song-table__subtitle {
-    display: block;
-    margin-top: var(--sp1);
-    color: var(--ds-ink2);
-    font-size: var(--fs-caption);
+  .song-table tbody tr + tr {
+    border-top: 0;
+  }
+  .song-table tbody tr + tr th,
+  .song-table tbody tr + tr td {
+    border-top: 1px solid var(--ds-sep);
+  }
+}
+
+/* 原唱者は「誰の曲か」を決める列なので、ユニットより先に戻す。
+   ユニットがまだ出ていない間は、その分を原唱者に回す (余りを曲名が全部吸うと、
+   曲名は余っているのに原唱者だけ切れる、という配分になる)。 */
+@container main (min-width: 46rem) {
+  .song-table__c-artists {
+    display: table-cell;
+    width: 42%;
+  }
+}
+
+/* ユニットは空の曲も多く、埋まっていても原唱者と重なりがちなので最後。 */
+@container main (min-width: 62rem) {
+  .song-table__c-unit {
+    display: table-cell;
+  }
+  .song-table__c-artists {
+    width: 31%;
   }
 }
