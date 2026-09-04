@@ -403,6 +403,26 @@ export function sqliteTimestampToEpochSeconds(ts: string | null | undefined): nu
   return Number.isNaN(ms) ? 0 : Math.floor(ms / 1000);
 }
 
+/**
+ * 歌詞を **実際に返したときだけ** 1 行出す利用ログ。
+ *
+ * JASRAC 年次利用曲目報告の 19 項目目「リクエスト回数」を、D1 に列を足さずに
+ * 数えるための唯一の出口。Workers Logs (observability) に載り、日次バッチ
+ * (tools/lyrics/collect_request_logs.py) が Telemetry Query API で拾って
+ * data/lyrics_requests/YYYY-MM-DD.tsv に畳む。
+ *
+ * ⚠️ 出してよいのは event 名と song_id だけ。uid・IP・端末 ID・歌詞本文は載せない
+ *    — Workers Logs は D1 と違って「誰が何を読んだか」の閲覧履歴になり、
+ *    保持期間中は運用者が引ける状態になるため。曲単位の回数は報告に要るが、
+ *    誰が読んだかは要らない。
+ *
+ * ⚠️ 形式 (JSON 1 行・キー名) はバッチ側のパーサと 1:1 の契約。変えるなら
+ *    collect_request_logs.py の parse_event も同時に変えること。
+ */
+export function logLyricsRead(songId: string): void {
+  console.log(JSON.stringify({ event: "lyrics_read", song_id: songId }));
+}
+
 /** iOS と合意済みの応答形状。キーは camelCase、updatedAt は秒 epoch。 */
 export function buildLyricsPayload(
   songId: string,
@@ -719,6 +739,8 @@ export async function handleLyrics(ctx: RouteContext): Promise<Response | null> 
 
     const lines = parseLines(header.lines_json);
     await commitIpRateLimit(env.DB, ip, ipRl.bucket);
+    // ここまで来たら歌詞を返すことが確定している (401/404/429 では数えない)。
+    logLyricsRead(songId);
     return json({ ...buildLyricsPayload(songId, header, lines), status: header.status },
                 200, NO_STORE);
   }
