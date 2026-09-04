@@ -124,6 +124,21 @@ npx wrangler d1 execute imas-live-db --remote \
 
 
 
+### 2026-09-04 追記: 学マス・876 は draft に戻した (管理団体の確認待ち)
+
+JASRAC の許諾は **JASRAC が管理する作品にしか効かない**。学園アイドルマスター (`gakuen`) と
+876 (ヴイアラ / Dearly Stars) の楽曲は NexTone 管理の疑いが強い (歌詞投稿サイトでの
+投稿者名が「NexTone DMKT」、`jasrac_code` も 0 件) ため、公開中だった **140 曲
+(gakuen 110 / 876 30) を draft に戻した**。以後の取り込みでもこの 2 ブランドは対象外。
+
+公開に戻す条件: 曲ごとに管理団体を確認する (JASRAC は J-WID を手動で、NexTone は
+<https://search.nex-tone.co.jp/>)。JASRAC 管理と確認できた曲だけ `set_status.py --status published`。
+NexTone 管理の曲を出すには NexTone の許諾を別途取る (非商用の扱いは NexTone に直接確認)。
+`tools/lyrics/set_status.py` の `--verified` はこの除外を知らないので、一括公開時は
+brand で絞ること。
+
+この時点の公開曲数: **2,479 曲** (draft 303)。
+
 ## 1. まず確認すべきこと — 本当に「非商用配信」か
 
 **これが手続き全体の前提。ここを外すと作った報告ファイルごと無駄になる。**
