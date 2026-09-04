@@ -303,9 +303,11 @@ class PetitLyrics(object):
         text = html_mod.unescape(page)
         if THROTTLE_RE.search(text):
             return "throttled", []
-        # 「N 件見つかりました」が本当の検索結果ページの目印。これが無いのに
-        # 結果も無いなら、こちらの想定していないページを見ている。
-        if not FOUND_COUNT_RE.search(text):
+        # 「N 件見つかりました」が結果ページ、「検索結果がありません」が0件ページ。
+        # **0件ページを見落とすと遮断と誤判定して走行が止まる** (実測: Don't U Worry で
+        # 4件目に停止し、遮断されていないのに打ち切っていた)。どちらでもなければ
+        # 想定外のページなので error。
+        if not FOUND_COUNT_RE.search(text) and not NO_RESULT_RE.search(text):
             return "error", []
         return "ok", parse_search_results(page)
 
@@ -316,6 +318,7 @@ class PetitLyrics(object):
 # 二度と調査されない。必ず区別して止めること。
 THROTTLE_RE = re.compile(r"歌詞検索ページへのアクセスが多いため")
 FOUND_COUNT_RE = re.compile(r"件見つかりました")
+NO_RESULT_RE = re.compile(r"検索結果がありません")
 
 SEARCH_ROW_RE = re.compile(
     r'<a href="/lyrics/(\d+)"><span class="lyrics-list-title">(.*?)</span></a>'
@@ -506,20 +509,26 @@ def cmd_search(args):
         print("robots.txt が使用パスを禁じている。中止する。")
         return 1
 
-    published = load_published(refresh=args.refresh_published)
-    songs = load_song_meta(args.db, published)
-    print("公開済み %d曲 / master に存在 %d曲" % (len(published), len(songs)))
-
     existing = read_tsv(CANDIDATES_TSV, CANDIDATE_COLS)
     done = {r["song_id"] for r in existing}
 
-    window = songs[args.offset:]
-    todo = [s for s in window if s["song_id"] not in done][:args.limit]
+    if args.targets:
+        # 対象曲を外から渡す経路。採用条件は list --targets と同じ厳しい方 (match_target)。
+        songs = load_targets(args.targets)
+        todo = [s for s in songs if s["song_id"] not in done][args.offset:][:args.limit]
+        print("対象 %d曲 (指定リスト) / 今回 %d曲\n" % (len(songs), len(todo)))
+    else:
+        published = load_published(refresh=args.refresh_published)
+        songs = load_song_meta(args.db, published)
+        print("公開済み %d曲 / master に存在 %d曲" % (len(published), len(songs)))
+        window = songs[args.offset:]
+        todo = [s for s in window if s["song_id"] not in done][:args.limit]
+        if todo:
+            print("今回の対象: %d曲 (披露回数 %d〜%d回)\n"
+                  % (len(todo), todo[0]["plays"], todo[-1]["plays"]))
     if not todo:
         print("対象なし (この範囲は調査済み)")
         return 0
-    print("今回の対象: %d曲 (披露回数 %d〜%d回)\n"
-          % (len(todo), todo[0]["plays"], todo[-1]["plays"]))
 
     vocab, leading_vocab = load_vocab(args.db)
     client.start_session()
@@ -537,8 +546,25 @@ def cmd_search(args):
                        "  時間を置いてから同じコマンドを再実行すれば続きから進む。"
                        % (status, len(added)))
             break
-        pid, ptitle, partist, conf, note = judge_candidates(
-            song, results, vocab, leading_vocab)
+        if args.targets:
+            # 曲名完全一致 + 歌唱名がアーティストに含まれる、の2条件だけ。
+            hits = match_target(song, results)
+            if not hits:
+                print("[%3d/%d] %-9s %-28s → 採用できる候補なし (%d件中)"
+                      % (i, len(todo), "none", song["title"][:26], len(results)))
+                added.append({"song_id": song["song_id"], "petit_id": "",
+                              "title": "", "artist": "", "confidence": "none",
+                              "note": "検索したが採用条件に通る候補なし"})
+                if args.interval:
+                    time.sleep(args.interval)
+                continue
+            pid, ptitle, partist, _ = hits[0]
+            conf, note = "high", "歌ネットに無し・プチリリ由来 (検索)"
+            if len(hits) > 1:
+                note += " / 他候補 %d件" % (len(hits) - 1)
+        else:
+            pid, ptitle, partist, conf, note = judge_candidates(
+                song, results, vocab, leading_vocab)
         added.append({
             "song_id": song["song_id"],
             "petit_id": str(pid) if pid else "",
@@ -934,13 +960,28 @@ def strict_key(text):
     return "".join(ch for ch in text if not ch.isspace()).casefold()
 
 
-def singer_keys(singer):
-    """歌唱欄からアイドル名・ユニット名を切り出す。"""
+# master の歌唱欄が空の曲がある (学マスの一部)。その場合はブランドの名義で照合する。
+# プチリリ側は「初星学園, 姫崎莉波」のようにブランド名を先頭に置くので、
+# ブランドが一致すれば別ブランドの同名曲を掴む心配はない。
+BRAND_ARTISTS = {
+    "gakuen": ["初星学園"],
+    "765as": ["765PRO ALLSTARS"],
+    "cg": ["THE IDOLM@STER CINDERELLA GIRLS", "シンデレラガールズ"],
+    "ml": ["765 MILLIONSTARS", "ミリオンライブ"],
+    "sc": ["シャイニーカラーズ"],
+    "sidem": ["SideM"],
+}
+
+
+def singer_keys(singer, brand=""):
+    """歌唱欄からアイドル名・ユニット名を切り出す。空ならブランド名義で代替する。"""
     out = set()
     for part in re.split(r"[、,／/（）()\[\]]", singer or ""):
         part = part.strip()
         if len(part) >= 2:
             out.add(strict_key(part))
+    if not out:
+        out = {strict_key(n) for n in BRAND_ARTISTS.get(brand, [])}
     return out
 
 
@@ -948,7 +989,8 @@ def load_targets(path):
     """対象曲の TSV を読む。song_id / 曲名 / 歌唱 の3列を見る。"""
     rows = read_tsv(path, ["song_id", "曲名", "歌唱", "披露回数", "ブランド"])
     return [{"song_id": r["song_id"], "title": r["曲名"],
-             "singer": r["歌唱"], "plays": r["披露回数"]}
+             "singer": r["歌唱"], "plays": r["披露回数"],
+             "brand": r["ブランド"]}
             for r in rows if r["song_id"]]
 
 
@@ -961,7 +1003,7 @@ def match_target(target, rows):
     同名異曲や尺違いを掴まないための線引きなので、緩めないこと。
     """
     want = strict_key(target["title"])
-    names = singer_keys(target["singer"])
+    names = singer_keys(target["singer"], target.get("brand", ""))
     out = []
     for pid, ptitle, partist, palbum in rows:
         if strict_key(ptitle) != want:
@@ -978,7 +1020,7 @@ def collect_for_targets(client, artists, targets, existing, args):
     akeys = {aid: strict_key(name) for aid, name in artists.items()}
     wanted = {}
     for target in targets:
-        names = singer_keys(target["singer"])
+        names = singer_keys(target["singer"], target.get("brand", ""))
         for aid, artist_k in akeys.items():
             if any(n in artist_k for n in names):
                 wanted[aid] = wanted.get(aid, 0) + 1
@@ -1210,6 +1252,7 @@ def main():
     p.add_argument("--interval", type=float, default=8.0,
                    help="検索1件ごとの追加の待ち時間 (秒)。"
                         "検索ページは制限が厳しいので既定を長めにしてある")
+    p.add_argument("--targets", help="対象曲の TSV (song_id / 曲名 / 歌唱)")
     p.set_defaults(func=cmd_search)
 
     p = sub.add_parser("list", help="アーティスト一覧を辿って候補を集める (検索を使わない)")

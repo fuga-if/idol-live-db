@@ -284,3 +284,37 @@ python3 tools/lyrics/lyrics_json.py validate
 
 `source` は `プチリリ <petit_id> (投稿者名)`、`note` は `歌ネットに無し・プチリリ由来`。
 **手元に既に歌詞がある曲は書き換えない** (import が skip する)。
+
+## 5. 版違いは親の歌詞を流用する (`copy_variants.py`)
+
+REM@STER / Remix / rearrange / Game Size のような**版違いは歌詞が同じ**なので、
+プチリリから取り直さず親 (`songs.parent_song_id`) の歌詞をそのまま使う。
+
+```bash
+python3 tools/lyrics/copy_variants.py            # 件数と除外一覧を見るだけ
+python3 tools/lyrics/copy_variants.py --apply
+python3 tools/lyrics/push_lyrics.py $(cat ids.txt) --status published --apply
+```
+
+対象は「親が公開済み・自分は未公開・手元に JSON が無い」曲のうち、
+**タイトルの本体部分が親と一致する**ものだけ。`parent_song_id` は人手で入るので
+別曲が親になっている取り違えがありうる。版名の剥がし方は `link_verify.base_title`
+を共用する。
+
+`strict_key` は NFKC に加えて**約物の字形も揃える**。NFKC は `’` (U+2019) を `'` に
+直さないので、これが無いと `Parade d’amour` と `Parade d'amour (les amis d'enfance ver.)`
+が別曲扱いで弾かれる (実測)。
+
+### D1 への投入は間隔を空ける
+
+445曲を一気に PUT したら **132曲が HTTP 503 (Cloudflare error 1102)** で落ちた。
+2秒あけて投げ直したら全件通ったので、まとめて入れるときは間隔を空けること。
+
+## 6. 検索ページの実測 (2026-09-04 追試)
+
+90秒間隔・1件ずつなら**遮断されない**。1.5秒間隔だと5件で遮断され解除に50分以上
+かかっていたので、間隔がそのまま効く。
+
+**0件ページを遮断と誤判定しないこと。** 結果ページの目印は「N 件見つかりました」だが、
+0件のときは代わりに「**検索結果がありません**」が出る。これを見落とすと、遮断されて
+いないのに走行が止まる (実測: `Don't U Worry` の検索で4件目に誤って打ち切った)。
