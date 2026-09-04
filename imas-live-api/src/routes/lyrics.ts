@@ -780,6 +780,12 @@ export async function handleLyrics(ctx: RouteContext): Promise<Response | null> 
   //
   // 年次利用曲目報告の母集団は「実際に掲載した曲」なので、何曲公開しているかを
   // 数える手段が要る。上限ではなく実績の確認。
+  //
+  // これは song_lyrics の全件集計で、1 回で約 2,800 行読む。索引を張っても
+  // 全行を数える以上は下がらないので、頻繁に叩かないことが唯一の対策。
+  // 呼び出し側 (tools/lyrics/push_lyrics.py, set_status.py) は既定で呼ばず、
+  // --show-quota を付けたときだけ叩くようにしてある。自動化から定期的に
+  // 叩く用途を足すときは、ここをキャッシュするか集計値を持つこと。
   if (path === "/admin/lyrics/quota" && request.method === "GET") {
     if (!(await authorizeLyricsWrite(request, env))) return error("Unauthorized", 401);
     const row = await env.DB.prepare(

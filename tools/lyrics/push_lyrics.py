@@ -162,7 +162,12 @@ def put_lyrics(base_url, token, song_id, payload):
 
 
 def fetch_quota(base_url, token):
-    """GET /admin/lyrics/quota。取れなければ None (枠の確認は必須ではない)。"""
+    """GET /admin/lyrics/quota。取れなければ None (枠の確認は必須ではない)。
+
+    このエンドポイントは song_lyrics の全件集計なので 1 回で約 2,800 行読む。
+    曲ごとに本スクリプトを起動すると回数ぶん丸ごと効いてくる (実測で 1 日 310 回 =
+    798,000 行 / D1 無料枠 500 万行の 16%)。既定では呼ばず --show-quota のときだけ。
+    """
     req = urllib.request.Request(
         base_url.rstrip("/") + "/admin/lyrics/quota",
         # UA を省くと 403 で弾かれる (PUT 側と同じ理由)。
@@ -191,6 +196,9 @@ def main():
     # (ps とシェル履歴に残る)。ここで受けるのは置き場所だけ。
     ap.add_argument("--token-path", default=TOKEN_PATH,
                     help="管理者トークンのファイル (既定: %s)" % TOKEN_PATH)
+    ap.add_argument("--show-quota", action="store_true",
+                    help="投入前に現在の掲載曲数を表示する "
+                         "(song_lyrics の全件集計なので毎回は叩かない)")
     ap.add_argument("--apply", action="store_true",
                     help="実際に送る。付けない限り dry-run (何も書き換えない)")
     args = ap.parse_args()
@@ -214,10 +222,11 @@ def main():
 
     # published を含む実行では、今いくつ公開しているかを見せる。
     # 年次利用曲目報告の母集団がこの数なので、流す前後で把握しておく。
+    # ただし全件集計で D1 の読み取りを食うため、明示的に頼まれたときだけ。
     wants_published = args.status == "published" or any(
         (load_doc(sid)[0] or {}).get("status") == "published" for sid in song_ids
     )
-    if wants_published and args.apply:
+    if args.show_quota and wants_published and args.apply:
         quota = fetch_quota(args.base_url, token)
         if quota:
             print("  掲載中: %d 曲 (draft %d)" % (quota["published"], quota["draft"]))

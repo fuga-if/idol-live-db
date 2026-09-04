@@ -103,6 +103,12 @@ function checkOrigin(request: Request, env: Env): boolean {
  * manual スコープ ({minLen:2, maxLen:500, maxEntryLen:64, allowDuplicates:false}) で共用。
  */
 
+/**
+ * 日次メンテナンス用の cron 式。wrangler.jsonc の crons と 1 文字でも
+ * ずれると日次タスクが一生走らないので、両方を触るときは必ず対で直すこと。
+ */
+const DAILY_CRON = "17 15 * * *";
+
 async function cleanOldRateLimitBuckets(db: D1Database): Promise<void> {
   const oneDayAgo = Math.floor(Date.now() / 1000 / 60) - 1440;
   await db
@@ -1295,12 +1301,16 @@ export default {
   // ----------------------------------------------------------------
   // Scheduled handler: approved → applied (via CloudKit) + rate limit cleanup
   // ----------------------------------------------------------------
-  async scheduled(_event: ScheduledEvent, env: Env, _ctx: ExecutionContext): Promise<void> {
-    await Promise.all([
-      handleScheduled(env),
+  async scheduled(event: ScheduledEvent, env: Env, _ctx: ExecutionContext): Promise<void> {
+    // 5 分 cron で回すのはインデックスが効いていて 1 回あたり数行しか読まない掃除だけ。
+    // フルスキャン気味の掃除 (rate_limits) は日次 cron に分けてある。
+    // 詳細は apply.ts の handleScheduled と wrangler.jsonc の crons を参照。
+    const tasks: Promise<unknown>[] = [
       cleanOldRateLimitBuckets(env.DB),
       cleanExpiredTransferCodes(env.DB),
-    ]);
+    ];
+    if (event.cron === DAILY_CRON) tasks.push(handleScheduled(env));
+    await Promise.all(tasks);
   },
 };
 

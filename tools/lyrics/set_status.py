@@ -98,6 +98,11 @@ def post(base_url, token, song_ids, status):
 
 
 def counts(base_url, token):
+    """GET /admin/lyrics/quota。song_lyrics の全件集計なので 1 回で約 2,800 行読む。
+
+    年次利用曲目報告の母集団を掴むための表示であって、状態変更に必須ではない。
+    D1 の読み取り枠を無駄に食わないよう --show-quota のときだけ呼ぶ。
+    """
     req = urllib.request.Request(
         base_url.rstrip("/") + "/admin/lyrics/quota",
         headers={"X-Push-Token": token, "User-Agent": UA},
@@ -118,6 +123,9 @@ def main():
     ap.add_argument("--status", required=True, choices=["draft", "published"])
     ap.add_argument("--base-url", default=DEFAULT_BASE_URL)
     ap.add_argument("--token-path", default=TOKEN_PATH)
+    ap.add_argument("--show-quota", action="store_true",
+                    help="前後の掲載曲数を表示する "
+                         "(song_lyrics の全件集計なので毎回は叩かない)")
     ap.add_argument("--apply", action="store_true",
                     help="実際に送る。付けない限り dry-run")
     args = ap.parse_args()
@@ -133,7 +141,7 @@ def main():
         sys.exit("対象が無い。song_id を指定するか --verified / --all を付ける。")
 
     token = read_token(args.token_path)
-    before = counts(args.base_url, token)
+    before = counts(args.base_url, token) if args.show_quota else None
     if before:
         print("現在: published %d / draft %d" % (before["published"], before["draft"]))
     print("[%s] %s → %d 曲を %s にする"
@@ -153,7 +161,7 @@ def main():
         updated += body["updated"]
         print("  %d/%d 件送信 (変更 %d)" % (min(i + CHUNK, len(ids)), len(ids), body["updated"]))
 
-    after = counts(args.base_url, token)
+    after = counts(args.base_url, token) if args.show_quota else None
     print("\n変更 %d 曲" % updated)
     if after:
         print("現在: published %d / draft %d" % (after["published"], after["draft"]))

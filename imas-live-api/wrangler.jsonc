@@ -22,6 +22,9 @@
   },
   // CLOUDKIT_KEY_ID and CLOUDKIT_PRIVATE_KEY are set via wrangler secret
   "triggers": {
-    "crons": ["*/5 * * * *"]
+    // "*/5 * * * *": インデックスの効いた軽い掃除 (api_rate_limits / transfer_codes)。
+    // "17 15 * * *": 重い掃除 (rate_limits の 7 日超削除)。日次で十分なので分けてある。
+    //                src/index.ts の DAILY_CRON と必ず一致させること。
+    "crons": ["*/5 * * * *", "17 15 * * *"]
   }
 }
