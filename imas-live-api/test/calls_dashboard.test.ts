@@ -116,6 +116,29 @@ describe("GET /calls/dashboard — 歌詞を漏らさない (最重要)", () => 
     expect(sql).toMatch(/song_lyrics/);
   });
 
+  it("応答のキー集合がホワイトリストと完全一致する (増えたら落ちる)", async () => {
+    // 「含まれていないこと」を個別に並べても、次に足されたキーは素通りする。
+    // ホワイトリストとの完全一致にしておけば、**何を足しても**ここで必ず止まる。
+    const { body } = await get();
+    expect(Object.keys(body).sort()).toEqual(
+      ["callTag", "generatedAt", "recentEdits", "songsWithCalls", "taggedWithoutCalls"].sort()
+    );
+    expect(Object.keys(body.songsWithCalls[0]).sort()).toEqual(
+      ["callCount", "callLines", "songId", "updatedAt", "updatedBy"].sort()
+    );
+    expect(Object.keys(body.recentEdits[0]).sort()).toEqual(
+      [
+        "at", "by", "callCountAfter", "callCountBefore",
+        "callLinesAfter", "callLinesBefore", "id", "songId", "summary",
+      ].sort()
+    );
+    expect(Object.keys(body.callTag).sort()).toEqual(
+      ["tagId", "tagName", "tagged", "withCalls", "withoutLyrics"].sort()
+    );
+    // ③ は song_id の文字列だけ (オブジェクトにすると本文を足す隙間ができる)。
+    expect(body.taggedWithoutCalls.every((v: unknown) => typeof v === "string")).toBe(true);
+  });
+
   it("生の uid を返さない (編集者匿名性)", async () => {
     const uid = "001094.fedcba9876543210";
     const { body } = await get((sql) => {

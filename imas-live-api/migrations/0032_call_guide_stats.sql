@@ -16,7 +16,7 @@
 -- タイムスタンプは 0026 の規約どおり datetime('now') 形式 (UTC・空白区切り・ミリ秒なし)。
 -- 読み出し時にのみ epoch 秒へ変換する (routes/lyrics.ts の sqliteTimestampToEpochSeconds)。
 
-CREATE TABLE song_call_stats (
+CREATE TABLE IF NOT EXISTS song_call_stats (
   song_id TEXT PRIMARY KEY,
   -- clap か calls が付いている行数 (= 注釈のある行数)。0 は「コールガイド無し」。
   -- 「コールは無いが手拍子だけ指定した曲」も整備済みなので、clap だけの行も数える。
@@ -30,13 +30,16 @@ CREATE TABLE song_call_stats (
   -- 表示名は読み出し時に users を LEFT JOIN し、maskDisplayName を通して出す。
   -- NULL になるのは backfill 分・歌詞差し替えに伴う数え直し・運用者トークンによる一括投入
   -- (運用者の投入は「みんなの編集」ではないので編集者として記録しない)。
+  -- ⚠️ 運用者トークンでの一括投入は、既にユーザーが書いていた曲の編集者参照も NULL で
+  --    上書きする (最後に保存したのは実際に運用者なので、嘘は言っていない)。
+  --    その曲の過去の編集者は call_edit_history 側に残る。
   updated_by_uid TEXT
 );
 
 -- 一覧は「最近整備された順」で出す。
-CREATE INDEX idx_song_call_stats_updated ON song_call_stats(updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_song_call_stats_updated ON song_call_stats(updated_at DESC);
 
-CREATE TABLE call_edit_history (
+CREATE TABLE IF NOT EXISTS call_edit_history (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   song_id TEXT NOT NULL,
   user_id TEXT NOT NULL,
@@ -53,11 +56,11 @@ CREATE TABLE call_edit_history (
 
 -- 「最近の編集」は at の新しい順。30 分以内の再保存は既存行を更新するので、
 -- id 順ではなく at 順で並べる (id 順だとまとめた行が古い位置に沈む)。
-CREATE INDEX idx_call_edit_history_at   ON call_edit_history(at DESC, id DESC);
+CREATE INDEX IF NOT EXISTS idx_call_edit_history_at   ON call_edit_history(at DESC, id DESC);
 -- 30 分以内の再保存を 1 行にまとめるときの直近行検索 (曲ごとの最新行を引く)。
-CREATE INDEX idx_call_edit_history_song ON call_edit_history(song_id, id DESC);
+CREATE INDEX IF NOT EXISTS idx_call_edit_history_song ON call_edit_history(song_id, id DESC);
 -- 退会時の一括削除 (DELETE ... WHERE user_id = ?) 用。
-CREATE INDEX idx_call_edit_history_user ON call_edit_history(user_id);
+CREATE INDEX IF NOT EXISTS idx_call_edit_history_user ON call_edit_history(user_id);
 
 -- summary 列を置かない理由:
 --   4 つの数から一意に決まる文字列なので、持つと二重管理になる。特に「30 分以内の
@@ -74,9 +77,9 @@ INSERT INTO song_call_stats (song_id, call_lines, call_count, updated_at, update
 SELECT sl.song_id,
        (SELECT COUNT(*)
           FROM json_each(sl.lines_json) je
-         WHERE json_array_length(COALESCE(json_extract(je.value, '$.calls'), '[]')) > 0
+         WHERE COALESCE(json_array_length(je.value, '$.calls'), 0) > 0
             OR json_extract(je.value, '$.clap') IS NOT NULL),
-       (SELECT COALESCE(SUM(json_array_length(COALESCE(json_extract(je.value, '$.calls'), '[]'))), 0)
+       (SELECT COALESCE(SUM(COALESCE(json_array_length(je.value, '$.calls'), 0)), 0)
           FROM json_each(sl.lines_json) je),
        sl.updated_at,
        NULL
@@ -84,5 +87,5 @@ SELECT sl.song_id,
  WHERE json_valid(sl.lines_json)
    AND EXISTS (SELECT 1
                  FROM json_each(sl.lines_json) je
-                WHERE json_array_length(COALESCE(json_extract(je.value, '$.calls'), '[]')) > 0
+                WHERE COALESCE(json_array_length(je.value, '$.calls'), 0) > 0
                    OR json_extract(je.value, '$.clap') IS NOT NULL);

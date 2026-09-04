@@ -95,6 +95,13 @@ describe("isCallAnnotationUnchanged", () => {
     expect(isCallAnnotationUnchanged(base, next)).toBe(false);
   });
 
+  it("stale を落とす保存 (アンカーの貼り直し) も変更として扱う", () => {
+    const staleBefore = structuredClone(base);
+    staleBefore[0].calls![0].stale = true;
+    // 件数も文言も同じだが、人がアンカーを貼り直した本物の編集。
+    expect(isCallAnnotationUnchanged(staleBefore, base)).toBe(false);
+  });
+
   it("clap を変えたら変更", () => {
     const next = structuredClone(base);
     next[0].clap = "ppph";

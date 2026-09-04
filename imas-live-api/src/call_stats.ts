@@ -19,8 +19,6 @@ export interface CallCounts {
   callCount: number;
 }
 
-export const ZERO_CALL_COUNTS: CallCounts = { callLines: 0, callCount: 0 };
-
 /**
  * 行配列からコール件数を数える。**数え方の定義はここが唯一の正**
  * (migration 0032 の backfill SQL はこの関数と同じ規則を SQL で書いたもの)。
@@ -105,7 +103,9 @@ export function syncCallStatsStatement(
     .bind(counts.callLines, counts.callCount, songId);
 }
 
-/** 同じ人が続けて保存し直したときに 1 行にまとめる時間幅。 */
+/** 同じ人が続けて保存し直したときに 1 行にまとめる時間幅 (datetime の修飾子)。
+ *  SQL 文字列に埋め込まず bind する — 動的 SQL 断片を作らないのがこのリポジトリの規律
+ *  (docs/ARCHITECTURE-worker.md「SQL は全件パラメータバインド」)。 */
 const MERGE_WINDOW = "-30 minutes";
 
 /**
@@ -142,9 +142,9 @@ export async function appendCallEditHistory(
         WHERE id = (SELECT id FROM call_edit_history
                      WHERE song_id = ? ORDER BY id DESC LIMIT 1)
           AND user_id = ?
-          AND at >= datetime('now', '${MERGE_WINDOW}')`
+          AND at >= datetime('now', ?)`
     )
-    .bind(after.callLines, after.callCount, songId, uid)
+    .bind(after.callLines, after.callCount, songId, uid, MERGE_WINDOW)
     .run();
   if (merged.meta.changes > 0) return;
 
@@ -174,7 +174,7 @@ export async function appendCallEditHistory(
  * 「変わっていないのに変わった」と判定されうるので、注釈の中身どうしも突き合わせる。
  *
  * 件数の一致だけでは足りない: コール文言だけを直した編集 (件数は同じ) は本物の編集なので、
- * text / emphasis / timing / 位置まで見て初めて「無変更」と言える。
+ * text / emphasis / timing / 位置 / stale まで見て初めて「無変更」と言える。
  */
 export function isCallAnnotationUnchanged(
   before: readonly LyricLineRow[],
@@ -196,12 +196,19 @@ function sameAnnotation(a: LyricLineRow, b: LyricLineRow): boolean {
   for (let i = 0; i < ac.length; i++) {
     // call の id は保存のたびにサーバが採番しうる (クライアントが送らなければ新 UUID)。
     // 内容が同じなら同じ編集結果なので、id は比較に入れない。
+    //
+    // stale は比較に入れる: 歌詞差し替えでズレた印が付いたコールを、人が位置を
+    // 貼り直して stale を落とす保存は「アンカーを直した」という本物の編集で、
+    // 件数も文言も変わらない。ここで見ないとその作業だけが履歴から消える。
+    // 逆に anchorText は比較に入れない — サーバが本文と位置から必ず導出するので、
+    // start/end と本文が同じなら常に同じ値になり、独立した情報を持たない。
     if (
       ac[i]?.start !== bc[i]?.start ||
       ac[i]?.end !== bc[i]?.end ||
       ac[i]?.text !== bc[i]?.text ||
       ac[i]?.emphasis !== bc[i]?.emphasis ||
-      ac[i]?.timing !== bc[i]?.timing
+      ac[i]?.timing !== bc[i]?.timing ||
+      (ac[i]?.stale ?? false) !== (bc[i]?.stale ?? false)
     ) {
       return false;
     }

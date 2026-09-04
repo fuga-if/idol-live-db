@@ -221,6 +221,15 @@ JASRAC 許諾の条件が「一括ダウンロードできない形式での配�
 一覧で `lines_json` を舐めない。読み取り行数の実測は本番適用後に:
 
 ```bash
+# 0) 事前確認: calls が配列でない行が無いか (0 でないと backfill の件数がその行だけ 0 になる)。
+#    2 引数の json_array_length は非配列で NULL を返すので migration は落ちないが、
+#    「壊れた行がある」こと自体は先に知っておく。
+npx wrangler d1 execute imas-live-db --remote --command \
+  "SELECT COUNT(*) AS broken FROM song_lyrics sl, json_each(sl.lines_json) je
+    WHERE json_valid(sl.lines_json)
+      AND json_extract(je.value, '\$.calls') IS NOT NULL
+      AND json_type(je.value, '\$.calls') NOT IN ('array', 'null');"
+
 # 反映順は migration → 検証 SELECT → deploy (逆にすると PUT が 500 になる)
 npx wrangler d1 migrations apply imas-live-db --remote
 npx wrangler d1 execute imas-live-db --remote --command \
@@ -230,6 +239,29 @@ npx wrangler deploy
 # キャッシュミス 1 回あたりの読み取り行数 (meta.rows_read) を実測する
 npx wrangler d1 execute imas-live-db --remote --json --command \
   "SELECT st.song_id FROM song_tags st WHERE st.tag_id = (SELECT id FROM tags WHERE name = 'コール曲');"
+```
+
+`song_call_stats` は派生データなので、ズレたら作り直せる。migration の backfill は
+素の `INSERT` (適用は 1 回きり) なので、**再実行するときは下の冪等版**を使う
+(`INSERT OR REPLACE` なので何度流しても同じ結果になる。件数と `updated_at` を
+実体から作り直し、`updated_by_uid` は相関副問い合わせで既存値を持ち越すので
+「最後にコールを書いた人」は消えない):
+
+```sql
+INSERT OR REPLACE INTO song_call_stats (song_id, call_lines, call_count, updated_at, updated_by_uid)
+SELECT sl.song_id,
+       (SELECT COUNT(*) FROM json_each(sl.lines_json) je
+         WHERE COALESCE(json_array_length(je.value, '$.calls'), 0) > 0
+            OR json_extract(je.value, '$.clap') IS NOT NULL),
+       (SELECT COALESCE(SUM(COALESCE(json_array_length(je.value, '$.calls'), 0)), 0)
+          FROM json_each(sl.lines_json) je),
+       sl.updated_at,
+       (SELECT cs.updated_by_uid FROM song_call_stats cs WHERE cs.song_id = sl.song_id)
+  FROM song_lyrics sl
+ WHERE json_valid(sl.lines_json)
+   AND EXISTS (SELECT 1 FROM json_each(sl.lines_json) je
+                WHERE COALESCE(json_array_length(je.value, '$.calls'), 0) > 0
+                   OR json_extract(je.value, '$.clap') IS NOT NULL);
 ```
 
 ### 曲詳細バンドル

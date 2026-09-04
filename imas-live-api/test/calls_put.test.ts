@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { handleLyricsCalls } from "../src/routes/calls";
 import { signSessionToken } from "../src/auth";
 import type { RouteContext } from "../src/routes/context";
@@ -28,6 +28,28 @@ const HEADER = {
   updated_at: "2026-09-01 12:00:00",
   lines_json: JSON.stringify(EXISTING_LINES),
 };
+
+/** BODY を保存した後の姿 (無変更の再保存・stale 貼り直しのテストで使う)。 */
+const SAVED_LINES = [
+  {
+    ...EXISTING_LINES[0],
+    clap: "back_beat",
+    calls: [
+      {
+        id: "cl_existing",
+        start: 0,
+        end: 5,
+        anchorText: "きみのこえ",
+        text: "ハイ！ハイ！",
+        emphasis: "normal",
+        timing: "after",
+      },
+    ],
+  },
+];
+
+/** 運用者トークン (歌詞投入 CLI 用)。 */
+const PUSH_TOKEN = "push-token-for-test";
 
 /** 1 件コールを付ける保存ボディ。 */
 const BODY = {
@@ -100,6 +122,18 @@ async function save(ctx: RouteContext): Promise<Response | null> {
   await Promise.all(pending.splice(0));
   return res;
 }
+
+/** ダッシュボードのキャッシュ破棄を記録する (テスト環境の Cache には触らせない)。 */
+function spyCachePurge() {
+  const purged: Request[] = [];
+  vi.spyOn(caches.default, "delete").mockImplementation(async (req: RequestInfo | URL) => {
+    purged.push(req as Request);
+    return true;
+  });
+  return purged;
+}
+
+afterEach(() => vi.restoreAllMocks());
 
 const sqlOf = (stub: StubD1) => stub.calls.map((c) => c.sql).join("\n");
 
@@ -184,7 +218,9 @@ describe("PUT /songs/:id/calls — 統計と履歴", () => {
     // 副問い合わせは song_id だけで直近行を引き、user_id の一致は外側で見る。
     expect(merge.sql).toMatch(/WHERE song_id = \? ORDER BY id DESC LIMIT 1/);
     expect(merge.sql).toMatch(/AND user_id = \?/);
-    expect(merge.sql).toMatch(/-30 minutes/);
+    // 時間幅も SQL に埋め込まずバインドする (動的 SQL 断片を作らない規律)。
+    expect(merge.sql).toMatch(/at >= datetime\('now', \?\)/);
+    expect(merge.params).toContain("-30 minutes");
   });
 
   it("履歴の書き込みが落ちても保存は 200 (副次データで保存を失敗にしない)", async () => {
@@ -194,27 +230,60 @@ describe("PUT /songs/:id/calls — 統計と履歴", () => {
     expect(sqlOf(stub)).toMatch(/INSERT INTO song_call_stats/);
   });
 
-  it("中身の変わらない保存では統計も履歴も書かない", async () => {
-    // 既に同じコールが入っている状態で、同じ内容を保存し直す。
-    const saved = [
+  it("運用者トークンでの投入は履歴を書かず、統計の編集者を NULL にする", async () => {
+    // 歌詞投入 CLI からの一括投入は「みんなの編集」ではない。最近の編集に運用者の
+    // 作業が並ぶと、ユーザーが書いたコールが見えなくなる。
+    const stub = stubD1(responder());
+    const ctx = put(stub, BODY, { "X-Push-Token": PUSH_TOKEN });
+    const res = (await save({
+      ...ctx,
+      env: { ...ctx.env, LYRICS_PUSH_TOKEN: PUSH_TOKEN } as RouteContext["env"],
+    }))!;
+    expect(res.status).toBe(200);
+    const upsert = stub.calls.find((c) => c.sql.includes("INSERT INTO song_call_stats"))!;
+    expect(upsert.params).toEqual([expect.any(String), 1, 1, null]);
+    expect(sqlOf(stub)).not.toMatch(/call_edit_history/);
+    // レート枠も運用者専用のものを使う (一般ユーザーの "edit" 枠を食わない)。
+    const rl = stub.calls.find((c) => c.sql.includes("INSERT INTO rate_limits"))!;
+    expect(rl.params).toContain("lyrics_calls");
+  });
+
+  it("保存後にダッシュボードのエッジキャッシュを捨てる", async () => {
+    const purged = spyCachePurge();
+    const stub = stubD1(responder());
+    await save(put(stub));
+    expect(purged).toHaveLength(1);
+    // index.ts のキャッシュキーと同じ形 (URL のみ・GET) でないと 1 件も消えない。
+    expect(purged[0].url).toBe("https://api.example.com/calls/dashboard");
+    expect(purged[0].method).toBe("GET");
+  });
+
+  it("無変更の保存ではキャッシュを捨てない (無駄なミスを増やさない)", async () => {
+    const purged = spyCachePurge();
+    const stub = stubD1(responder({ header: { ...HEADER, lines_json: JSON.stringify(SAVED_LINES) } }));
+    await save(put(stub));
+    expect(purged).toHaveLength(0);
+  });
+
+  it("アンカーの貼り直し (stale を落とすだけ) も編集として記録する", async () => {
+    // 歌詞差し替えでズレた印が付いたコールを人が直す作業。件数も文言も変わらないが、
+    // 見逃すとこの作業だけが履歴から消える。
+    const staleLines = [
       {
-        ...EXISTING_LINES[0],
-        clap: "back_beat",
-        calls: [
-          {
-            id: "cl_existing",
-            start: 0,
-            end: 5,
-            anchorText: "きみのこえ",
-            text: "ハイ！ハイ！",
-            emphasis: "normal",
-            timing: "after",
-          },
-        ],
+        ...SAVED_LINES[0],
+        calls: [{ ...SAVED_LINES[0].calls[0], stale: true }],
       },
     ];
+    const stub = stubD1(responder({ header: { ...HEADER, lines_json: JSON.stringify(staleLines) } }));
+    await save(put(stub));
+    expect(sqlOf(stub)).toMatch(/INSERT INTO song_call_stats/);
+    expect(sqlOf(stub)).toMatch(/call_edit_history/);
+  });
+
+  it("中身の変わらない保存では統計も履歴も書かない", async () => {
+    // 既に同じコールが入っている状態で、同じ内容を保存し直す。
     const stub = stubD1(
-      responder({ header: { ...HEADER, lines_json: JSON.stringify(saved) } })
+      responder({ header: { ...HEADER, lines_json: JSON.stringify(SAVED_LINES) } })
     );
     const res = (await save(put(stub)))!;
     expect(res.status).toBe(200);
