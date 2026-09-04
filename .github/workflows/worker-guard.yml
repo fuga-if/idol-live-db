@@ -1,6 +1,6 @@
 name: Worker Guard
 
-# imas-live-api (Cloudflare Worker) の型チェックとバンドル検証。
+# imas-live-api (Cloudflare Worker) の型チェック・テスト・バンドル検証。
 # wrangler は esbuild で型を無視してバンドルするため、型エラーはデプロイまで
 # 気付けない。tsc --noEmit を CI に置いて、壊れた型のまま develop/main に
 # 入らないようにする。
@@ -39,6 +39,12 @@ jobs:
 
       - name: Typecheck
         run: npm run typecheck
+
+      # vitest (Workers ランタイム上)。型が通っても契約は壊れうる —
+      # 特に GET /calls/dashboard は「応答にも発行 SQL にも歌詞の断片を出さない」ことを
+      # テストでしか担保できない (test/calls_dashboard.test.ts)。
+      - name: Test
+        run: npm test
 
       # バンドルできることまで確認する (import 漏れ・構文エラーの検出)。
       # --dry-run なので Cloudflare へは何も送らない。

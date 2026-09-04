@@ -67,7 +67,13 @@ D1 を叩くハンドラは、いまのところ `prepare().bind().first()` だ�
 npx wrangler tail
 ```
 
-Cron (scheduled) は `rate_limits` テーブルの日次掃除 (7 日より古いレコード削除) のみ。
+Cron (scheduled) は掃除だけ:
+
+- `rate_limits` の日次掃除 (7 日より古いレコード削除)
+- `call_edit_history` の掃除 (180 日より古い行を削除。`GET /calls/dashboard` が読むのは
+  常に直近 30 件なので、古い行は誰も見ない)
+- `api_rate_limits` / `transfer_codes` の期限切れ掃除 (`index.ts` の `scheduled`)
+
 旧 submission-apply パイプラインは即時オープン編集 (`POST /edits`) への移行で廃止済み。
 
 ## 主要エンドポイント
@@ -182,6 +188,49 @@ Cron (scheduled) は `rate_limits` テーブルの日次掃除 (7 日より古�
 | POST | /units/:id/tags | X-Device-Id | ユニットにタグ付与 |
 | DELETE | /units/:id/tags/:tid | X-Device-Id | ユニットのタグ削除 |
 | GET | /units/:id/similar | - | 似てるユニット (タグ共起ベース) |
+
+### 歌詞 / コールガイド
+
+| Method | Path | 認証 | 概要 |
+|--------|------|------|------|
+| GET | /songs/:id/lyrics | Bearer | 歌詞 1 曲 (コール込み)。`no-store` |
+| GET | /lyrics/search | Bearer | 歌詞本文の横断検索 (返すのは song_id とスニペットのみ) |
+| PUT | /songs/:id/calls | Bearer | コールガイドの保存 (曲単位の全置換)。`no-store` |
+| GET | /calls/dashboard | - | コールガイドの整備状況 (件数・日時・表示名のみ)。`public, max-age=1800` |
+| POST | /admin/lyrics/status | 運用者/admin | 歌詞の公開状態の一括切替 |
+| GET | /admin/lyrics/quota | 運用者/admin | 掲載曲数 (JASRAC 年次報告用) |
+| PUT | /admin/lyrics/:id | 運用者/admin | 歌詞の投入・差し替え |
+
+⚠️ **歌詞本文とコール本文が出るのは Bearer 必須・`no-store` の経路だけ。**
+JASRAC 許諾の条件が「一括ダウンロードできない形式での配信」なので、認証を外すと
+`index.ts` の `edgeCacheEligible` が真になり、エッジ共有キャッシュに歌詞が載る。
+
+`GET /calls/dashboard` はその例外ではなく、**歌詞の断片を 1 文字も含まない**ので
+公開キャッシュに置ける。返すのは以下だけ (`src/routes/calls.ts`):
+
+- `songsWithCalls[]` … `songId` / `callLines` / `callCount` / `updatedAt` / `updatedBy` (最大 200 件)
+- `recentEdits[]` … `id` / `songId` / `at` / `by` / `callLines{Before,After}` / `callCount{Before,After}` / `summary` (最大 30 件)
+- `taggedWithoutCalls[]` … 「コール曲」タグ付きで歌詞があるのにコールが無い song_id (票数降順・最大 100 件)
+- `callTag` … `tagId` / `tagName` / `tagged` / `withCalls` / `withoutLyrics` (タグが無ければ `null`)
+
+曲名は返さない (D1 に曲マスタは無く、端末の master.sqlite が song_id から解決する)。
+生の uid も返さない (表示名は `feed.ts` の `maskDisplayName` を通す)。
+クエリパラメータは受け付けない — キャッシュキーを 1 つに保つため。
+
+件数は `song_call_stats` / `call_edit_history` (migrations/0032) に畳んであり、
+一覧で `lines_json` を舐めない。読み取り行数の実測は本番適用後に:
+
+```bash
+# 反映順は migration → 検証 SELECT → deploy (逆にすると PUT が 500 になる)
+npx wrangler d1 migrations apply imas-live-db --remote
+npx wrangler d1 execute imas-live-db --remote --command \
+  "SELECT COUNT(*) AS songs, SUM(call_count) AS calls, SUM(call_lines) AS lines FROM song_call_stats;"
+# → songs = 3 (2026-09 時点でコールが入っている曲数)。0 なら backfill の WHERE が効いていない
+npx wrangler deploy
+# キャッシュミス 1 回あたりの読み取り行数 (meta.rows_read) を実測する
+npx wrangler d1 execute imas-live-db --remote --json --command \
+  "SELECT st.song_id FROM song_tags st WHERE st.tag_id = (SELECT id FROM tags WHERE name = 'コール曲');"
+```
 
 ### 曲詳細バンドル
 

@@ -33,6 +33,10 @@
 | `routes/device_aggregates.ts` | `/favorites/*` `/penlight/*` (device 単位の集計。認証不要) |
 | `routes/polls.ts` | `/polls/*` (みんなの投票) |
 | `routes/tags.ts` | `/tags` `/idol-tags` `/unit-tags` の 3 プール + `/{songs,idols,units}/:id/tags` + `/{songs,idols,units}/:id/similar`。タグ専用ヘルパもここに閉じている |
+| `routes/lyrics.ts` | 歌詞の配信・検索・投入 (`/songs/:id/lyrics` `/lyrics/search` `/admin/lyrics/*`)。**Bearer 必須・`no-store`** (JASRAC 許諾の条件) |
+| `routes/calls.ts` | コールガイドの保存 (`PUT /songs/:id/calls`) と整備状況の一覧 (`GET /calls/dashboard`)。一覧は件数・日時・表示名だけで歌詞の断片を含まないため公開キャッシュに載せる |
+| `lyrics_calls.ts` | コール (clap / calls) のドメインロジック。ボディ検証・アンカーの数え方 (Unicode スカラー)・歌詞差し替え時の引き継ぎ |
+| `call_stats.ts` | コールの数え方と派生メタデータ (`song_call_stats` / `call_edit_history`, migrations/0032) の書き込み。数え方の定義はここが唯一の正 |
 | `routes/setlist_predictions.ts` | `/me/predictions` `/shows/:id/predictions` `/shows/:id/songs/:id/performers` `/shows/:id/likes` `/shows/:id/songs/:id/like` |
 | `cloudkit.ts` | CloudKit S2S クライアント (`cloudKitModify` / `cloudKitLookup` / forceUpdate・softDelete ビルダ)。`modifiedAt` 強制注入 |
 | `ck_schema.ts` | CloudKit Public DB スキーマ型情報の単一ソース |
@@ -52,6 +56,7 @@
 
 - 認証: `POST /auth/login` (Apple) / `GET /auth/me`
 - オープン編集: `POST /edits` / `GET /edits` (feed) / `GET /me/edits` / `POST|DELETE /edits/:batchId/good` / `POST /edits/:batchId/revert` / `GET /master/:recordType/:recordName/history`
+- 歌詞/コール: `GET /songs/:id/lyrics` / `GET /lyrics/search` / `PUT /songs/:id/calls` / `GET /calls/dashboard` / `PUT /admin/lyrics/:id`
 - 集計系: `GET/POST /polls…` / `/shows/:id/predictions` / `/shows/:id/likes` / `/songs/:song_id/tags|similar` / `/tags…` / `/favorites…` / `/penlight…` / `/leaderboard` / `/users/:id/badges`
 - 管理: `POST /admin/cloudkit/save` / `POST /admin/ban` / `POST /admin/revert-user` / `GET /admin/users/:id/edits`
 - アプリ証明: `GET /app/challenge` / `POST /app/attest|assert|integrity`
