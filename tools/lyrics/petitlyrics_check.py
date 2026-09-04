@@ -41,6 +41,7 @@ robots.txt は 404 (= 記述なし)。それでも 1リクエスト 1.5秒以上
 
 import argparse
 import base64
+import gzip
 import html as html_mod
 import http.client
 import io
@@ -68,6 +69,8 @@ DEFAULT_DB = os.path.join(REPO, "ImasLiveDB", "Resources", "master.sqlite")
 LOCAL_LYRICS_DIR = os.path.join(REPO, "lyrics_local", "lyrics")
 CACHE_DIR = os.path.join(REPO, "lyrics_local", "petitlyrics")
 CANDIDATES_TSV = os.path.join(CACHE_DIR, "candidates.tsv")
+PAGES_DIR = os.path.join(CACHE_DIR, "pages")
+ARTISTS_JSON = os.path.join(CACHE_DIR, "artists.json")
 PUBLISHED_JSON = os.path.join(CACHE_DIR, "published.json")
 OUT_DIR = os.path.join(HERE, "out")
 REPORT_TSV = os.path.join(OUT_DIR, "petitlyrics_report.tsv")
@@ -81,7 +84,7 @@ MAX_TRIES = 5
 
 CANDIDATE_COLS = ["song_id", "petit_id", "title", "artist", "confidence", "note"]
 REPORT_COLS = ["song_id", "title", "verdict", "local_lines", "petit_lines",
-               "petit_id", "ndiff", "examples"]
+               "petit_id", "ndiff", "kinds", "examples"]
 
 
 # --------------------------------------------------------------------------
@@ -91,7 +94,8 @@ REPORT_COLS = ["song_id", "title", "verdict", "local_lines", "petit_lines",
 class PetitLyrics(object):
     """プチリリへの直列アクセス。1接続・1.5秒間隔・指数バックオフ。"""
 
-    def __init__(self, verbose=True):
+    def __init__(self, verbose=True, min_interval=MIN_INTERVAL):
+        self.min_interval = min_interval
         self.conn = None
         self.cookie = ""
         self.token = ""
@@ -113,7 +117,7 @@ class PetitLyrics(object):
                 self.conn = None
 
     def _throttle(self):
-        wait = MIN_INTERVAL - (time.time() - self.last_request)
+        wait = self.min_interval - (time.time() - self.last_request)
         if wait > 0:
             time.sleep(wait)
         self.last_request = time.time()
@@ -642,7 +646,7 @@ def compare(local, petit):
     a = "".join(nl(x) for x in local)
     b = "".join(nl(x) for x in petit)
     if a == b:
-        return "一致", 0, []
+        return "一致", 0, [], []
 
     matcher = SequenceMatcher(None, a, b, autojunk=False)
     if matcher.ratio() < DIFFERENT_VERSION_RATIO:
@@ -653,15 +657,74 @@ def compare(local, petit):
         verdict = "文字差"
 
     ctx = 12
-    examples, ndiff = [], 0
+    examples, ndiff, kinds = [], 0, []
     for tag, i1, i2, j1, j2 in matcher.get_opcodes():
         if tag == "equal":
             continue
         ndiff += 1
-        examples.append("手元…%s… / プチリリ…%s…"
-                        % (shorten(a[max(0, i1 - ctx):i2 + ctx], 60),
+        mine, theirs = a[i1:i2], b[j1:j2]
+        kind = classify(mine, theirs, a, b, i1, j1)
+        kinds.append(kind)
+        examples.append("[%s] 手元…%s… / プチリリ…%s…"
+                        % (kind,
+                           shorten(a[max(0, i1 - ctx):i2 + ctx], 60),
                            shorten(b[max(0, j1 - ctx):j2 + ctx], 60)))
-    return verdict, ndiff, examples
+    return verdict, ndiff, examples, kinds
+
+
+# 差分の仕分け。**どちらが正しいかは判定しない** — 人が見るときの当たりを付けるだけ。
+RUBY_RE = re.compile(r"^[(（][^)）]{1,8}[)）]$")
+CALL_CHARS = "!！?？♪♡★☆〜~・"
+KANA_RE = re.compile(r"^[ぁ-んァ-ヶー]+$")
+HAN_RE = re.compile(r"[一-龥]")
+
+
+def classify(mine, theirs, a, b, i, j):
+    """1つの差分を仕分ける。
+
+    記号欠落 / 漢字かな / ルビ / コール / プチリリ側誤字 / 不明 の6分類。
+    """
+    ml, tl = letters(mine), letters(theirs)
+
+    # 片方が空 = 一方にしか無い塊。
+    if not mine or not theirs:
+        extra = theirs or mine
+        if RUBY_RE.match(extra):
+            return "ルビ"
+        if extra and all(c in CALL_CHARS for c in extra):
+            # **向きが肝心。** プチリリ側にあって手元に無い記号こそ、
+            # 今回探している「取り込み時に落ちた ♡」の候補。
+            return "記号欠落(手元)" if not mine else "記号余分(手元)"
+        # 掛け声は括弧か記号で囲まれた短い塊であることが多い。
+        if len(extra) <= 12 and (extra.startswith("(") or extra.startswith("（")
+                                 or extra[-1:] in "!！"):
+            return "コール"
+        return "不明"
+
+    # 文字と数字が同じ = 記号だけの違い。向きを見て分ける。
+    if ml == tl:
+        sym_mine = {c for c in mine if not c.isalnum()}
+        sym_theirs = {c for c in theirs if not c.isalnum()}
+        if sym_theirs - sym_mine and not sym_mine - sym_theirs:
+            return "記号欠落(手元)"
+        if sym_mine - sym_theirs and not sym_theirs - sym_mine:
+            return "記号余分(手元)"
+        return "記号差"
+
+    # 片方が漢字、もう片方が同じ読みのかな、という形。
+    if (HAN_RE.search(mine) and KANA_RE.match(theirs)) or \
+       (HAN_RE.search(theirs) and KANA_RE.match(mine)):
+        return "漢字かな"
+
+    # 1文字だけ違う & 長さが同じ = 打ち間違いの形 (ENTERTAINMEN / 理田 など)。
+    if len(ml) == len(tl) and sum(1 for x, y in zip(ml, tl) if x != y) == 1:
+        return "プチリリ側誤字"
+    if abs(len(ml) - len(tl)) == 1 and min(len(ml), len(tl)) >= 3:
+        longer, shorter = (ml, tl) if len(ml) > len(tl) else (tl, ml)
+        if shorter in longer:
+            # 1文字の脱落。手元にあってプチリリに無いなら向こうの脱字。
+            return "プチリリ側誤字" if len(ml) > len(tl) else "手元の欠落疑い"
+    return "不明"
 
 
 def cmd_diff(args):
@@ -684,7 +747,7 @@ def cmd_diff(args):
             rows.append({"song_id": sid, "title": title, "verdict": verdict,
                          "local_lines": len(mine) if mine else 0, "petit_lines": 0,
                          "petit_id": cand.get("petit_id", ""), "ndiff": "",
-                         "examples": cand.get("note", "")})
+                         "kinds": "", "examples": cand.get("note", "")})
             counts[verdict] = counts.get(verdict, 0) + 1
             continue
 
@@ -692,14 +755,16 @@ def cmd_diff(args):
             cached = json.load(f)
         theirs = [x for x in cached.get("lines", []) if nl(x)]
         if mine is None:
-            verdict, ndiff, examples = "手元に歌詞なし", "", []
+            verdict, ndiff, examples, kinds = "手元に歌詞なし", "", [], []
         else:
-            verdict, ndiff, examples = compare(mine, theirs)
+            verdict, ndiff, examples, kinds = compare(mine, theirs)
 
         rows.append({
             "song_id": sid, "title": title, "verdict": verdict,
             "local_lines": len(mine) if mine else 0, "petit_lines": len(theirs),
             "petit_id": cached.get("petit_id", ""), "ndiff": ndiff,
+            "kinds": ",".join("%s*%d" % (k, kinds.count(k))
+                              for k in sorted(set(kinds))),
             "examples": " | ".join(examples[:args.examples]),
         })
         counts[verdict] = counts.get(verdict, 0) + 1
@@ -711,6 +776,212 @@ def cmd_diff(args):
     print("%d曲を判定 → %s\n" % (len(rows), REPORT_TSV))
     for k, v in sorted(counts.items(), key=lambda kv: (order.get(kv[0], 9), kv[0])):
         print("  %-10s %d" % (k, v))
+    return 0
+
+
+# --------------------------------------------------------------------------
+# list — 一覧ページ経由で petit_id を集める (検索ページを使わない経路)
+# --------------------------------------------------------------------------
+#
+# 検索ページ (/search_lyrics) は数件で長時間の制限に入るので、候補集めには使えない。
+# 代わりに**アーティスト歌詞一覧**を辿る。制限に入らないことを実測で確認済み。
+#
+#   /syllabary/<kana>.html      アーティスト50音索引。1ページに数千件の
+#                               (artist_id, アーティスト名) が載っている。全71ページ。
+#   /lyrics/artist/<id>         そのアーティストの歌詞一覧 (10件/ページ)
+#   /lyrics/artist/<id>/<n>-1.html   その2ページ目以降
+#
+# アルバム一覧 (/lyrics/album/<アルバム名の UTF-8 hex>) も同じ形式で使えるが、
+# master.sqlite の cd_title は公開曲 3,153 件中 378 件しか埋まっておらず、
+# 中身も "…シリーズ#MS2P" のような内部表記なのでアルバム名として使えない。
+# 一方 singer_label は 2,386 件埋まっているので、アーティスト経路を採る。
+
+SYLLABARY = (
+    "a ba be bi bo bu da de di do du e ga ge gi go gu ha he hi ho hu i "
+    "ka ke ki ko ku ma me mi mo mu na ne ni nn no nu o pa pe pi po pu "
+    "ra re ri ro ru sa se si so su ta te ti to tu u wa wo ya yo yu "
+    "za ze zi zo zu"
+).split()
+
+ARTIST_LINK_RE = re.compile(
+    r'href="/lyrics/artist/(\d+)"[^>]*>\s*(?:<span[^>]*>)?\s*([^<]+)')
+ARTIST_PAGE_RE = re.compile(
+    r'href="/lyrics/artist/\d+/(\d+)-1\.html"[^>]*title="page \d+"')
+
+
+class Throttled(RuntimeError):
+    """プチリリのアクセス制限ページを踏んだ。"""
+
+
+def cached_page(client, path, key, refresh=False):
+    """一覧ページを取得して gzip でキャッシュ。既にあれば**再取得しない**。"""
+    os.makedirs(PAGES_DIR, exist_ok=True)
+    dest = os.path.join(PAGES_DIR, "%s.html.gz" % key)
+    if not refresh and os.path.exists(dest):
+        with gzip.open(dest, "rt", encoding="utf-8") as fh:
+            return fh.read(), True
+    page = client.get_page(path)
+    if page is None:
+        return None, False
+    if THROTTLE_RE.search(html_mod.unescape(page)):
+        raise Throttled(path)
+    with gzip.open(dest, "wt", encoding="utf-8") as fh:
+        fh.write(page)
+    return page, False
+
+
+def build_artist_index(client, refresh=False):
+    """artist_id -> アーティスト名。50音索引 71ページから作る。"""
+    if not refresh and os.path.exists(ARTISTS_JSON):
+        with io.open(ARTISTS_JSON, encoding="utf-8") as f:
+            return json.load(f)
+
+    artists = {}
+    for i, kana in enumerate(SYLLABARY, 1):
+        page, hit = cached_page(client, "/syllabary/%s.html" % kana,
+                                "syllabary_%s" % kana, refresh)
+        if page is None:
+            continue
+        for aid, name in ARTIST_LINK_RE.findall(page):
+            name = html_mod.unescape(name).strip()
+            if name:
+                artists.setdefault(aid, name)
+        sys.stderr.write("  索引 %2d/%d %-3s %s (累計 %d件)\n"
+                         % (i, len(SYLLABARY), kana,
+                            "cache" if hit else "取得", len(artists)))
+    with io.open(ARTISTS_JSON, "w", encoding="utf-8") as f:
+        json.dump(artists, f, ensure_ascii=False)
+    return artists
+
+
+def pick_artists(artists, songs):
+    """対象曲の歌手名に当たるアーティストを選ぶ。
+
+    語彙全体 (2,000語超) を 30万件のアーティスト名に総当たりすると遅いので、
+    **対象曲の singer_label / unit_name** から作った短い集合だけを見る。
+    正規表現1本にまとめて1回の走査で済ませる。
+    """
+    labels = set()
+    for song in songs:
+        for label in (song.get("singer"), song.get("unit")):
+            for part in re.split(r"[、,／/（）()]", label or ""):
+                n = norm(part)
+                if len(n) >= 3:
+                    labels.add(n)
+    if not labels:
+        return []
+    pattern = re.compile("|".join(sorted((re.escape(l) for l in labels),
+                                         key=len, reverse=True)))
+
+    # **当たるラベルが多い名義ほど先に辿る。** プチリリのアーティスト名は
+    # 「天海春香(中村繪里子),如月千早(今井麻美),…」のような曲ごとの
+    # クレジット文字列なので、多くのアイドル名を含む名義ほどこちらの対象曲に
+    # 当たりやすい。名前の短い個人名義から辿ると空振りが続く (実測: 先頭80件で
+    # 23曲しか付かなかった)。
+    picked = []
+    for aid, name in artists.items():
+        hits = set(pattern.findall(norm(name)))
+        if hits:
+            picked.append((len(hits), aid, name))
+    picked.sort(key=lambda x: (-x[0], len(x[2]), x[1]))
+    return [(aid, name) for _, aid, name in picked]
+
+
+def artist_rows(client, aid, max_pages):
+    """そのアーティストの歌詞一覧の行を全ページ分。"""
+    rows = []
+    page, _ = cached_page(client, "/lyrics/artist/%s" % aid, "artist_%s_1" % aid)
+    if page is None:
+        return rows
+    rows += parse_search_results(page)
+    pages = [int(n) for n in ARTIST_PAGE_RE.findall(page)]
+    last = min(max(pages), max_pages) if pages else 1
+    for n in range(2, last + 1):
+        page, _ = cached_page(client, "/lyrics/artist/%s/%d-1.html" % (aid, n),
+                              "artist_%s_%d" % (aid, n))
+        if page is None:
+            break
+        rows += parse_search_results(page)
+    return rows
+
+
+def cmd_list(args):
+    # 一覧ページは検索ほど厳しくないが、まとまった数を辿るので間隔を長めに取る。
+    client = PetitLyrics(min_interval=args.interval)
+    ok, note = client.check_robots()
+    print(note)
+    if not ok:
+        print("robots.txt が使用パスを禁じている。中止する。")
+        return 1
+
+    published = load_published()
+    songs = load_song_meta(args.db, published)[:args.limit]
+    existing = read_tsv(CANDIDATES_TSV, CANDIDATE_COLS)
+    done = {r["song_id"] for r in existing if r["confidence"] == "high"}
+    targets = [s for s in songs if s["song_id"] not in done]
+    print("対象 上位%d曲 / 未取得 %d曲" % (len(songs), len(targets)))
+    if not targets:
+        print("対象なし")
+        return 0
+
+    # 曲名 -> song_id。版名を落とした形も引けるようにしておく。
+    by_title = {}
+    for song in targets:
+        for key in (norm(song["title"]), norm(base_title(song["title"]))):
+            if key:
+                by_title.setdefault(key, []).append(song)
+
+    vocab, leading_vocab = load_vocab(args.db)
+    found = {}
+    try:
+        print("アーティスト50音索引を用意中...")
+        artists = build_artist_index(client, refresh=args.refresh_index)
+        print("索引 %d件" % len(artists))
+
+        picked = pick_artists(artists, targets)
+        print("対象曲の歌手名に当たるアーティスト %d件 (先頭 %d件を辿る)\n"
+              % (len(picked), min(len(picked), args.max_artists)))
+
+        seen_artists = 0
+        for aid, name in picked[:args.max_artists]:
+            seen_artists += 1
+            rows = artist_rows(client, aid, args.max_pages)
+            hits = 0
+            for pid, ptitle, partist, palbum in rows:
+                for key in (norm(ptitle), norm(base_title(ptitle))):
+                    for song in by_title.get(key, []):
+                        sid = song["song_id"]
+                        if sid in found or sid in done:
+                            continue
+                        artist_n = norm(partist)
+                        matched = [v for v in vocab if v and v in artist_n]
+                        if not matched:
+                            matched = [v for v in leading_vocab
+                                       if v and artist_n.startswith(v)]
+                        if not matched:
+                            continue
+                        found[sid] = {
+                            "song_id": sid, "petit_id": str(pid),
+                            "title": ptitle, "artist": partist,
+                            "confidence": "high",
+                            "note": "アーティスト一覧 %s から (曲名一致 + アイマス語彙)" % aid,
+                        }
+                        hits += 1
+            print("[%3d/%d] %-4s %2d曲 %s"
+                  % (seen_artists, min(len(picked), args.max_artists), aid,
+                     hits, name[:40]))
+            if len(found) >= len(targets):
+                print("\n対象曲すべてに候補が付いた。")
+                break
+    except Throttled as exc:
+        print("\nアクセス制限に当たった (%s)。ここで打ち切る。" % exc)
+        print("  時間を置いて再実行すれば、キャッシュ済みのページは再取得せず続きから進む。")
+    finally:
+        if found:
+            write_tsv(CANDIDATES_TSV, CANDIDATE_COLS,
+                      existing + [found[k] for k in sorted(found)])
+            print("\n%s に %d件追記 (対象 %d曲中)"
+                  % (CANDIDATES_TSV, len(found), len(targets)))
     return 0
 
 
@@ -730,6 +1001,14 @@ def main():
                    help="検索1件ごとの追加の待ち時間 (秒)。"
                         "検索ページは制限が厳しいので既定を長めにしてある")
     p.set_defaults(func=cmd_search)
+
+    p = sub.add_parser("list", help="アーティスト一覧を辿って候補を集める (検索を使わない)")
+    p.add_argument("--limit", type=int, default=200, help="披露回数の上位何曲を対象にするか")
+    p.add_argument("--max-artists", type=int, default=80, help="辿るアーティスト数の上限")
+    p.add_argument("--max-pages", type=int, default=5, help="1アーティストあたりの一覧ページ数の上限")
+    p.add_argument("--refresh-index", action="store_true", help="50音索引を取り直す")
+    p.add_argument("--interval", type=float, default=2.5, help="1リクエストの最小間隔 (秒)")
+    p.set_defaults(func=cmd_list)
 
     p = sub.add_parser("fetch", help="high の候補の本文を取得してキャッシュ")
     p.add_argument("--limit", type=int, default=0)
