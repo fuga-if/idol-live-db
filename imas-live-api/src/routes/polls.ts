@@ -128,20 +128,29 @@ export async function handlePolls(ctx: RouteContext): Promise<Response | null> {
     const pollAchvMatch = path.match(/^\/polls\/achievements\/([^/]+)$/);
     if (pollAchvMatch && request.method === "GET") {
       const entityId = decodeURIComponent(pollAchvMatch[1]);
+      // 先に entity_id でエントリを絞り、その曲/アイドルが出たお題の中だけで順位を出す。
+      // 旧実装は「終了お題の全エントリを RANK してから entity_id で絞る」形で、
+      // 1 回あたり 3,954 行 (poll_entries ほぼ全件) を読んでいた。
+      // RANK() は「自分より票が多いエントリ数 + 1」と等価なので、
+      // 対象お題ごとの数え上げに置き換えても同点の扱いを含めて結果は変わらない。
       const { results } = await env.DB.prepare(
         `SELECT poll_id, title, target_type, ends_at, vote_count, rnk
            FROM (
              SELECT p.id AS poll_id, p.title, p.target_type,
                     CAST(strftime('%s', p.ends_at) AS INTEGER) AS ends_at,
-                    pe.entity_id, pe.vote_count,
-                    RANK() OVER (PARTITION BY p.id ORDER BY pe.vote_count DESC) AS rnk
-               FROM polls p
-               JOIN poll_entries pe ON pe.poll_id = p.id
-              WHERE p.status = 'active'
-                AND p.ends_at < datetime('now')
+                    pe.vote_count,
+                    (SELECT COUNT(*) + 1
+                       FROM poll_entries x
+                      WHERE x.poll_id = pe.poll_id
+                        AND x.vote_count > pe.vote_count) AS rnk
+               FROM poll_entries pe
+               JOIN polls p ON p.id = pe.poll_id
+              WHERE pe.entity_id = ?
                 AND pe.vote_count > 0
+                AND p.status = 'active'
+                AND p.ends_at < datetime('now')
            )
-          WHERE entity_id = ? AND rnk <= 3
+          WHERE rnk <= 3
           ORDER BY rnk ASC, ends_at DESC
           LIMIT 20`
       ).bind(entityId).all();
