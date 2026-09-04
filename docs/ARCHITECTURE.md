@@ -241,7 +241,10 @@ ImasLiveDB/
   `extension CallGuideAPI: CallGuideDashboardReading`、`AppContainer.callGuideDashboardReading` に登録。
   DTO はポートと同じファイルに同居させた (`LyricsSearchReading` の前例に揃える。「この応答に
   歌詞・コール本文を足してはいけない」という契約上の警告と DTO 定義を離さないため)。
-  **ポート総数 20**。画面は `Views/CallGuideDashboard/` (`@MainActor @Observable` VM + View)。
+  **ポート総数 26** (`ImasLiveDB/Domain/Ports/` の `protocol` 宣言を数えた実数。
+  「進捗 (2026-07)」の 19 は当時の数え漏れで、実際は歌詞・コール系 (`LyricsReading` /
+  `LyricsSearchReading` / `SongDetailReading` / `CallGuideWriting` 等) が入っていなかった)。
+  画面は `Views/CallGuideDashboard/` (`@MainActor @Observable` VM + View)。
   曲一覧の「コールガイドがある曲のみ」は Swift 前段で絞らず、解決済み集合を
   imas-core の `SongListFilterCriteria.call_guide_song_ids` へ渡す (タグ集合と同じ位置・同じ流儀)。
   取得失敗時は集合を渡さない (絞り込みを適用しない) 失敗規約もタグ側と揃えた。

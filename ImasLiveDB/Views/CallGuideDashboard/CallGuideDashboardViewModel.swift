@@ -19,14 +19,26 @@ final class CallGuideDashboardViewModel {
     private(set) var recentEdits: [CallGuideEditRow] = []
     private(set) var wanted: [CallGuideWantedRow] = []
     private(set) var tag: CallGuideTagStatus?
+    /// 「ガイドがある曲」がサーバ側の上限で打ち切られているか (断り書き用)。
+    private(set) var withCallsTruncated = false
     /// 未整備セクションがサーバ側の上限で打ち切られているか (footer の断り書き用)。
     private(set) var wantedTruncated = false
+    /// サーバが返したのに手元の曲マスタで解決できず、行にできなかった件数。
+    private(set) var droppedCount = 0
+    /// サーバがこの一覧を組み立てた時刻。エッジキャッシュ越しなので「今」ではない。
+    private(set) var generatedAt: Date?
 
     private let dashboard: any CallGuideDashboardReading
     private let songReading: any SongReading
 
-    /// サーバの `taggedWithoutCalls` はこの件数で打ち切られる (§2.4 のサーバ定数)。
+    /// サーバ側の件数上限 (§2.4 のサーバ定数)。ここに達していたら「打ち切られた」とみなす。
+    private static let withCallsServerLimit = 200
     private static let wantedServerLimit = 100
+
+    /// `load()` の世代。`await` の間に次の `load()` が始まっていたら、古い応答は捨てる
+    /// (`SongListViewModel.currentTaskId` と同じ規約。`refreshable` と `task` が
+    /// 重なったときに、遅れて戻ってきた古い一覧で新しい一覧を上書きしないため)。
+    private var currentLoadId = UUID()
 
     nonisolated init(
         dashboard: any CallGuideDashboardReading = AppContainer.shared.callGuideDashboardReading,
@@ -37,17 +49,24 @@ final class CallGuideDashboardViewModel {
     }
 
     func load() async {
+        let loadId = UUID()
+        currentLoadId = loadId
         isLoading = true
-        defer { isLoading = false }
+        defer { if currentLoadId == loadId { isLoading = false } }
         do {
             let response = try await dashboard.callGuideDashboard()
+            guard currentLoadId == loadId else { return }
             // 3 セクションぶんの song_id を 1 回で解決する。
-            // `listableSongs` は曲一覧と同じ母集合 (派生曲・その他ブランドを落とす) なので、
-            // ここで出た曲は必ず一覧・詳細から到達できる。
+            // `listableSongs` は曲一覧と同じ母集合なので、ここで出た曲は必ず一覧・詳細から
+            // 到達できる。**裏を返すと、派生曲 (ソロ Ver. 等) と「その他」ブランドの曲は
+            // コールが書かれていてもこの画面には出ない** (一覧が隠しているものを、この画面
+            // だけが見せる状態を作らない)。差分同期前で手元に無い曲も同じく出ない。
+            // 落とした件数は `droppedCount` に持ち、footer で「N曲は表示できません」と断る。
             var ids = Set(response.songsWithCalls.map(\.songId))
             ids.formUnion(response.recentEdits.map(\.songId))
             ids.formUnion(response.taggedWithoutCalls)
             let songs = try await songReading.listableSongs(ids: Array(ids))
+            guard currentLoadId == loadId else { return }
             let byId = Dictionary(songs.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
 
             // ローカルに無い id の行は落とす。差分同期前 / 統合で消えた曲を
@@ -56,7 +75,8 @@ final class CallGuideDashboardViewModel {
                 guard let song = byId[s.songId] else { return nil }
                 return CallGuideSongRow(
                     song: song, callLines: s.callLines, callCount: s.callCount,
-                    updatedAt: s.updatedAt.map { Date(timeIntervalSince1970: TimeInterval($0)) },
+                    // 0 は「記録なし」。1970-01-01 として「56年前」と出さない。
+                    updatedAt: s.updatedAt > 0 ? Date(timeIntervalSince1970: TimeInterval(s.updatedAt)) : nil,
                     updatedBy: s.updatedBy)
             }
             recentEdits = response.recentEdits.compactMap { e in
@@ -69,14 +89,18 @@ final class CallGuideDashboardViewModel {
             wanted = response.taggedWithoutCalls.compactMap { id in
                 byId[id].map(CallGuideWantedRow.init)
             }
+            withCallsTruncated = response.songsWithCalls.count >= Self.withCallsServerLimit
             wantedTruncated = response.taggedWithoutCalls.count >= Self.wantedServerLimit
             tag = response.callTag
+            generatedAt = Date(timeIntervalSince1970: TimeInterval(response.generatedAt))
             loadError = nil
-            let dropped = ids.count - songs.count
-            if dropped > 0 {
-                Logger.database.debug("call_guide_dashboard: 未解決の曲 \(dropped) 件を非表示")
+            droppedCount = max(0, ids.count - songs.count)
+            if droppedCount > 0 {
+                Logger.database.debug("call_guide_dashboard: 未解決の曲 \(self.droppedCount) 件を非表示")
             }
         } catch {
+            // 古い世代の失敗で、新しい読み込みの成功を上書きしない。
+            guard currentLoadId == loadId else { return }
             // 失敗しても既に出ている行は消さない (再読み込みで一瞬空になるのを避ける)。
             loadError = (error as? APIClientError)?.errorDescription ?? "通信エラー"
         }

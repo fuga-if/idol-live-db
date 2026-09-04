@@ -62,10 +62,22 @@ struct CallGuideDashboardView: View {
                 ImasStatTile(systemImage: "square.and.pencil", value: "\(vm.tag?.writable ?? 0)",
                              unit: "曲", label: "書き手募集中")
             }
-            Text("歌詞の行ごとに「ここでこう叫ぶ」を書き込むのがコールガイドです。曲ごとの「コーレス投稿」とは別物で、こちらは歌詞タブから直接付けられます。")
-                .font(.imasCaption)
-                .foregroundStyle(DS.ink3)
-                .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: DS.sp1) {
+                Text("歌詞の行ごとに「ここでこう叫ぶ」を書き込むのがコールガイドです。曲ごとの「コーレス投稿」とは別物で、こちらは歌詞タブから直接付けられます。")
+                if let generatedAt = vm.generatedAt {
+                    // 全端末で共有するキャッシュ (最大 30 分) 越しなので「今」ではない。
+                    // 自分が書いた直後に出てこない理由が、ここを見れば分かるようにする。
+                    Text("\(relativeTime(generatedAt))時点の情報です (最大 30 分ほど遅れます)。")
+                }
+                if vm.droppedCount > 0 {
+                    // 派生曲・「その他」ブランド・手元に未同期の曲。曲一覧と同じ母集合に
+                    // 揃えている以上ここには出せないので、数だけ正直に出す。
+                    Text("\(vm.droppedCount) 曲は、この端末の曲一覧に出ない曲 (別バージョン等) のため表示していません。")
+                }
+            }
+            .font(.imasCaption)
+            .foregroundStyle(DS.ink3)
+            .fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -102,6 +114,11 @@ struct CallGuideDashboardView: View {
                             open(row.song, from: "with_calls")
                         }
                     }
+                }
+                if vm.withCallsTruncated {
+                    Text("ここに出ているのは、最近更新された 200 曲です。")
+                        .font(.imasCaption)
+                        .foregroundStyle(DS.ink3)
                 }
             }
         }

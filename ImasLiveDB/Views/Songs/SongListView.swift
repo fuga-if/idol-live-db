@@ -488,17 +488,27 @@ struct SongListView: View {
     @ViewBuilder
     private var callGuideFilterErrorBanner: some View {
         if vm.callGuideFilterError {
-            HStack(spacing: 6) {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.imasCaption)
-                    .foregroundStyle(DS.warning)
-                Text("コールガイドの情報を取得できませんでした。表示中の一覧にはコールガイド条件が反映されていません。")
-                    .font(.imasCaption)
-                    .foregroundStyle(DS.ink2)
-            }
-            .padding(.horizontal, DS.sp5)
-            .padding(.vertical, DS.sp2)
+            callGuideBanner("exclamationmark.triangle.fill", DS.warning,
+                            "コールガイドの情報を取得できませんでした。表示中の一覧にはコールガイド条件が反映されていません。")
+        } else if callGuideOnly && listMode == .songs && vm.callGuideFilterTruncated {
+            // サーバは 200 件で打ち切る。201 曲目以降が黙って消えるのではなく、
+            // 「何で絞っているか」を名乗る。
+            callGuideBanner("info.circle.fill", DS.ink3,
+                            "最近更新された 200 曲で絞り込んでいます。")
         }
+    }
+
+    private func callGuideBanner(_ systemImage: String, _ tint: Color, _ text: String) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: systemImage)
+                .font(.imasCaption)
+                .foregroundStyle(tint)
+            Text(text)
+                .font(.imasCaption)
+                .foregroundStyle(DS.ink2)
+        }
+        .padding(.horizontal, DS.sp5)
+        .padding(.vertical, DS.sp2)
     }
 
     @ViewBuilder
@@ -542,7 +552,9 @@ struct SongListView: View {
         case .uncollected:
             chips.append(.init(id: "uncollected", label: "未回収") { collectFilter = .all; reload() })
         }
-        if callGuideOnly {
+        // アルバム/シリーズ表示ではこの絞り込みは効かない (曲行を絞る条件なので)。
+        // 効いていない条件をチップに出すと、外しても件数が変わらず理由が分からなくなる。
+        if callGuideOnly, listMode == .songs {
             // 解除の後始末 (集合を捨てて引き直す) は `onChange(of: callGuideOnly)` が担う。
             chips.append(.init(id: "call_guide", label: "コールガイドあり") { callGuideOnly = false })
         }
@@ -677,7 +689,9 @@ struct SongListView: View {
         collectFilter = .all
         myMarkFilter = SongMyMarkFilter()
         selectedTags = []
-        // こちらも解除は onChange に任せる (二重に reload しない)。
+        // `callGuideOnly` を false にすると `onChange` が別 Task で解除+reload を回すので、
+        // ここでは触らない。結果として reload は 2 回走るが、どちらも同じ条件で同じ一覧を
+        // 引き直すだけなので実害は無い (解除の後始末を 2 箇所に書く方が壊れやすい)。
         callGuideOnly = false
         Task {
             await vm.resolveTagFilter([])
@@ -702,7 +716,7 @@ struct SongListView: View {
         if listMode != .songs { count += 1 }
         if collectFilter != .all { count += 1 }
         if !selectedTags.isEmpty { count += 1 }
-        if callGuideOnly { count += 1 }
+        if callGuideOnly, listMode == .songs { count += 1 }
         count += myMarkFilter.activeCount
         return count
     }

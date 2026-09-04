@@ -99,6 +99,12 @@ final class SongListViewModel {
     /// 直近の `resolveCallGuideFilter` がオフライン等で失敗したか。
     /// タグ側と同じく、失敗時は絞り込みを適用せず本フラグだけ立てる。
     private(set) var callGuideFilterError = false
+    /// 集合がサーバ上限 (200 件) で打ち切られているか。
+    /// 打ち切られていると「コールガイドがある曲」を名乗りながら 201 曲目以降が落ちるので、
+    /// 黙って絞らず画面で断る (件数が合わない理由をユーザーが自分で説明できるように)。
+    private(set) var callGuideFilterTruncated = false
+    /// `resolveCallGuideFilter` の世代。`await` の間にトグルが動いていたら古い応答は捨てる。
+    private var currentCallGuideResolveId = UUID()
 
     private var loadTask: Task<Void, Never>?
     private var currentTaskId: UUID = UUID()
@@ -348,19 +354,30 @@ final class SongListViewModel {
     /// (`callGuideSongIds` を触らず `callGuideFilterError` だけ立てる)。オフラインで
     /// 一覧を誤って空にしないため。
     func resolveCallGuideFilter(_ enabled: Bool) async {
+        let resolveId = UUID()
+        currentCallGuideResolveId = resolveId
         guard enabled else {
             callGuideSongIds = nil
             callGuideFilterError = false
+            callGuideFilterTruncated = false
             return
         }
         do {
             let dashboard = try await callGuideDashboard.callGuideDashboard()
+            // 通信中にトグルが OFF に戻って (or 押し直されて) いたら、この結果は stale。
+            // 適用すると、解除したはずの絞り込みが遅れて復活する。
+            guard currentCallGuideResolveId == resolveId else { return }
             callGuideSongIds = Set(dashboard.songsWithCalls.map(\.songId))
+            callGuideFilterTruncated = dashboard.songsWithCalls.count >= Self.callGuideServerLimit
             callGuideFilterError = false
         } catch {
+            guard currentCallGuideResolveId == resolveId else { return }
             callGuideFilterError = true
         }
     }
+
+    /// `GET /calls/dashboard` の `songsWithCalls` のサーバ上限。ポートの DTO コメント参照。
+    private static let callGuideServerLimit = 200
 }
 
 /// SongListView の現在の UI 状態を、データ取得に必要な純粋値へまとめたリクエスト。

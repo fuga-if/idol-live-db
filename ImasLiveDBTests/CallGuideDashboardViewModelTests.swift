@@ -7,6 +7,12 @@ import XCTest
 final class StubCallGuideDashboardReading: CallGuideDashboardReading, @unchecked Sendable {
     var dashboardToReturn = CallGuideDashboard(
         generatedAt: 0, songsWithCalls: [], recentEdits: [], taggedWithoutCalls: [], callTag: nil)
+    /// n 回目の呼び出しで返すもの (無ければ `dashboardToReturn`)。世代ガードの検証用。
+    var responsesByCall: [Int: CallGuideDashboard] = [:]
+    /// n 回目の呼び出しが **応答を返す直前**に走るフック。
+    /// ここで「後発の呼び出し」を丸ごと走らせることで、`await` の最中に世代が進む状況を
+    /// 時間に頼らず (sleep 無しで) 再現できる。
+    var beforeReturn: [Int: @MainActor () async -> Void] = [:]
     var shouldThrow = false
     private(set) var callCount = 0
 
@@ -14,8 +20,10 @@ final class StubCallGuideDashboardReading: CallGuideDashboardReading, @unchecked
 
     func callGuideDashboard() async throws -> CallGuideDashboard {
         callCount += 1
+        let call = callCount
+        if let hook = beforeReturn[call] { await hook() }
         if shouldThrow { throw StubError.boom }
-        return dashboardToReturn
+        return responsesByCall[call] ?? dashboardToReturn
     }
 }
 
@@ -81,7 +89,7 @@ func makeStubSong(_ id: String) -> Song {
 final class CallGuideDashboardViewModelTests: XCTestCase {
 
     private func summary(_ id: String, lines: Int = 4, count: Int = 10,
-                         at: Int? = 1_756_900_000, by: String = "f***") -> CallGuideSongSummary {
+                         at: Int = 1_756_900_000, by: String = "f***") -> CallGuideSongSummary {
         CallGuideSongSummary(songId: id, callLines: lines, callCount: count, updatedAt: at, updatedBy: by)
     }
 
@@ -123,6 +131,50 @@ final class CallGuideDashboardViewModelTests: XCTestCase {
         // 未整備の件数は「タグ数 − ガイドあり − 歌詞なし」。一覧の行数とは一致しない。
         XCTAssertEqual(vm.tag?.writable, 243)
         XCTAssertFalse(vm.wantedTruncated)
+        XCTAssertFalse(vm.withCallsTruncated)
+        XCTAssertEqual(vm.droppedCount, 0)
+        XCTAssertEqual(vm.generatedAt, Date(timeIntervalSince1970: 1))
+    }
+
+    /// M-2: `updatedAt == 0` (記録なし) は 1970 年ではなく nil に落とす。
+    func testZeroUpdatedAtBecomesNil() async {
+        let dashboard = CallGuideDashboard(
+            generatedAt: 1,
+            songsWithCalls: [summary("s1", at: 0), summary("s2", at: 1_756_900_000)],
+            recentEdits: [], taggedWithoutCalls: [], callTag: nil)
+        let (vm, _, _) = makeVM(dashboard, known: ["s1", "s2"])
+
+        await vm.load()
+
+        XCTAssertNil(vm.withCalls[0].updatedAt)
+        XCTAssertEqual(vm.withCalls[1].updatedAt, Date(timeIntervalSince1970: 1_756_900_000))
+    }
+
+    /// H-1: `songsWithCalls` がサーバ上限 (200) に達していたら打ち切りとみなす。
+    func testWithCallsTruncatedFlagAtServerLimit() async {
+        let ids = (0 ..< 200).map { "c\($0)" }
+        let dashboard = CallGuideDashboard(
+            generatedAt: 1, songsWithCalls: ids.map { summary($0) }, recentEdits: [],
+            taggedWithoutCalls: [], callTag: nil)
+        let (vm, _, _) = makeVM(dashboard, known: ids)
+
+        await vm.load()
+
+        XCTAssertTrue(vm.withCallsTruncated)
+        XCTAssertEqual(vm.withCalls.count, 200)
+    }
+
+    /// M-3: 手元で解決できなかった曲の件数を数える (footer で断るため)。
+    func testDroppedCountCountsUnresolvedSongs() async {
+        let dashboard = CallGuideDashboard(
+            generatedAt: 1,
+            songsWithCalls: [summary("s1"), summary("gone")],
+            recentEdits: [], taggedWithoutCalls: ["gone2"], callTag: nil)
+        let (vm, _, _) = makeVM(dashboard, known: ["s1"])
+
+        await vm.load()
+
+        XCTAssertEqual(vm.droppedCount, 2)
     }
 
     /// I2: ローカル master に無い song_id の行は落ち、残りは出る。
@@ -194,6 +246,29 @@ final class CallGuideDashboardViewModelTests: XCTestCase {
         // 重複はまとめて渡す (s1 は 2 セクションに出てくる)。
         XCTAssertEqual(Set(songs.lastListableIds), ["s1", "s2", "s3"])
         XCTAssertEqual(songs.lastListableIds.count, 3)
+    }
+
+    /// M-1: `await` の最中に次の `load()` が終わっていたら、古い応答で上書きしない。
+    func testStaleLoadDoesNotOverwriteNewerResult() async {
+        let port = StubCallGuideDashboardReading()
+        let songs = StubSongReading()
+        songs.known = ["old": makeStubSong("old"), "new": makeStubSong("new")]
+        let vm = CallGuideDashboardViewModel(dashboard: port, songReading: songs)
+        port.responsesByCall[1] = CallGuideDashboard(
+            generatedAt: 1, songsWithCalls: [summary("old")], recentEdits: [],
+            taggedWithoutCalls: [], callTag: nil)
+        port.responsesByCall[2] = CallGuideDashboard(
+            generatedAt: 2, songsWithCalls: [summary("new")], recentEdits: [],
+            taggedWithoutCalls: [], callTag: nil)
+        // 1 回目が応答を返す前に、2 回目の load を最後まで走らせる。
+        port.beforeReturn[1] = { [weak vm] in await vm?.load() }
+
+        await vm.load()
+
+        XCTAssertEqual(port.callCount, 2)
+        XCTAssertEqual(vm.withCalls.map(\.id), ["new"], "先に始まった古い応答が勝ってはいけない")
+        XCTAssertEqual(vm.generatedAt, Date(timeIntervalSince1970: 2))
+        XCTAssertFalse(vm.isLoading)
     }
 
     /// 未整備一覧がサーバ上限に達していたら「上位 100 件」と断れるようフラグを立てる。
