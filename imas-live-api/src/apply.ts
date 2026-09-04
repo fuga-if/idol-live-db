@@ -22,4 +22,30 @@ export async function handleScheduled(env: ApplyEnv): Promise<void> {
   await env.DB.prepare(
     "DELETE FROM rate_limits WHERE date < date('now', '-7 days')"
   ).run();
+  await refreshTagCounts(env);
+}
+
+/**
+ * song_tag_counts (その曲に付いている有効タグの本数) を全曲ぶん数え直す。
+ *
+ * GET /songs/:id/similar のスコアの分母に使う値。タグ付け / 取り外しのときは
+ * その曲だけ即時に更新している (routes/tags.ts の recountSongTags) が、
+ * モデレーターがタグ自体を removed にした場合はそのタグが付いた全曲に効くので、
+ * 日次でまとめて辻褄を合わせる。
+ */
+export async function refreshTagCounts(env: ApplyEnv): Promise<void> {
+  await env.DB.batch([
+    env.DB.prepare(
+      `INSERT INTO song_tag_counts (song_id, tag_count)
+       SELECT s.song_id, COUNT(*)
+         FROM song_tags s
+         JOIN tags t ON t.id = s.tag_id AND t.status != 'removed'
+        GROUP BY s.song_id
+       ON CONFLICT(song_id) DO UPDATE SET tag_count = excluded.tag_count`
+    ),
+    // タグが 1 本も残っていない曲の行は残さない (分母は COALESCE で保険が効く)。
+    env.DB.prepare(
+      "DELETE FROM song_tag_counts WHERE song_id NOT IN (SELECT song_id FROM song_tags)"
+    ),
+  ]);
 }

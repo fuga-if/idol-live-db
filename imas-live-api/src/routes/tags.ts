@@ -113,6 +113,27 @@ async function resolveSlugFromTable(
  * 大きくするほど「タグがよく付いている曲」が有利になり、旧実装 (共有タグ数順) の
  * 人気バイアスに近づく。5 はその中間。
  */
+/**
+ * 1 曲ぶんの song_tag_counts を数え直す文を作る。
+ *
+ * 類似曲スコアの分母 (相手の曲のタグ総数) をここに持たせている。
+ * タグ付け / 取り外しの batch に混ぜて、その曲だけを数え直す (数行の読み取りで済む)。
+ * タグ自体が removed になった場合は全曲に効くので、日次 cron
+ * (apply.ts の refreshTagCounts) が全体を数え直して辻褄を合わせる。
+ */
+function recountSongTags(db: D1Database, songId: string): D1PreparedStatement {
+  return db
+    .prepare(
+      `INSERT INTO song_tag_counts (song_id, tag_count)
+       VALUES (?, (SELECT COUNT(*)
+                     FROM song_tags s
+                     JOIN tags t ON t.id = s.tag_id AND t.status != 'removed'
+                    WHERE s.song_id = ?))
+       ON CONFLICT(song_id) DO UPDATE SET tag_count = excluded.tag_count`
+    )
+    .bind(songId, songId);
+}
+
 const SIMILARITY_DAMPING = 5;
 
 // ---------------------------------------------------------------------------
@@ -153,7 +174,18 @@ export async function fetchSongTagList(
   return { tags, my_tag_ids: myTagIds };
 }
 
-/** GET /songs/:song_id/similar の本体 (完全にユーザー非依存)。limit は呼び出し側でクランプ済み。 */
+/**
+ * GET /songs/:song_id/similar の本体 (完全にユーザー非依存)。limit は呼び出し側でクランプ済み。
+ *
+ * 分母の「相手の曲のタグ総数」は song_tag_counts から引く。かつては候補 1 件ごとに
+ * 相関副問い合わせで数え直しており、候補が数百件出る曲では 1 回 16,800 行
+ * (平均 5,497 行 ≒ song_tags 全 4,717 行) を読んで、これだけで D1 無料枠
+ * 500 万行/日 の 40% を消費していた。数えるのをやめて引くだけにしても
+ * スコア式は変わらないので、返る類似曲も並び順も従来と完全に同一。
+ *
+ * COALESCE は song_tag_counts に行が無いときの保険。日次 cron と
+ * タグ付け/取り外しの両方で更新しているので通常は当たらない。
+ */
 export async function fetchSimilarSongs(
   db: D1Database,
   songId: string,
@@ -172,13 +204,12 @@ export async function fetchSimilarSongs(
                 SUM(st2.vote_count) AS vote_score,
                 CAST(COUNT(*) AS REAL) / (
                   (SELECT COUNT(*) FROM a_tags)
-                  + (SELECT COUNT(*) FROM song_tags s
-                     JOIN tags t2 ON t2.id = s.tag_id AND t2.status != 'removed'
-                     WHERE s.song_id = st2.song_id)
+                  + COALESCE(c.tag_count, COUNT(*))
                   - COUNT(*) + ?
                 ) AS score
          FROM song_tags st2
          JOIN a_tags ON a_tags.tag_id = st2.tag_id
+         LEFT JOIN song_tag_counts c ON c.song_id = st2.song_id
          WHERE st2.song_id != ?
          GROUP BY st2.song_id
          ORDER BY score DESC, shared_tags DESC
@@ -944,6 +975,8 @@ export async function handleTags(ctx: RouteContext): Promise<Response | null> {
             `INSERT INTO song_tags (song_id, tag_id, vote_count) VALUES (?, ?, 1)
              ON CONFLICT(song_id, tag_id) DO UPDATE SET vote_count = vote_count + 1`
           ).bind(songId, tagId),
+          // 類似曲スコアの分母を即時に追従させる (batch なので上の INSERT 後の状態を見る)。
+          recountSongTags(env.DB, songId),
         ]);
 
         if (deviceResult.meta.changes > 0) {
@@ -982,6 +1015,8 @@ export async function handleTags(ctx: RouteContext): Promise<Response | null> {
         env.DB.prepare(
           `DELETE FROM song_tags WHERE song_id = ? AND tag_id = ? AND vote_count <= 0`
         ).bind(songId, tagId),
+        // 類似曲スコアの分母を即時に追従させる (batch なので上の DELETE 後の状態を見る)。
+        recountSongTags(env.DB, songId),
       ]);
 
       await commitIpRateLimit(env.DB, ip, ipDry.bucket);
@@ -1547,6 +1582,11 @@ export async function handleTags(ctx: RouteContext): Promise<Response | null> {
     //   であり、この小サンプル事故が例外ではなく主流になる。
     //   分母に定数を足して平滑化すると、件数が少ないうちは慎重に、タグが貯まるほど
     //   素の Jaccard に近づく。
+    //
+    //   分母の tags_b (相手の曲のタグ総数) は song_tag_counts から引く。
+    //   ここを候補ごとに数え直していたのが D1 の最大の消費源だった (fetchSimilarSongs 参照)。
+    //   IDF 重み付けなど「珍しいタグほど重く見る」式に替える案も検討したが、
+    //   珍しいタグ 1 本の一致が 9 本の一致に勝ってしまい類似曲としては明確に劣るため採らない。
     //
     //   ここでは候補をスコア順に返すだけで、実際に何件見せるか / どれを見せるかは
     //   クライアントが決める (毎回同じ並びにならないよう重み付き抽選する)。
