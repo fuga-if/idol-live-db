@@ -555,6 +555,7 @@ def cmd_search(args):
                 added.append({"song_id": song["song_id"], "petit_id": "",
                               "title": "", "artist": "", "confidence": "none",
                               "note": "検索したが採用条件に通る候補なし"})
+                write_tsv(CANDIDATES_TSV, CANDIDATE_COLS, existing + added)
                 if args.interval:
                     time.sleep(args.interval)
                 continue
@@ -575,6 +576,9 @@ def cmd_search(args):
         })
         print("[%3d/%d] %-9s %-28s → %s"
               % (i, len(todo), conf, song["title"][:26], ptitle[:34] or note))
+        # **1件ごとに保存する。** 90秒間隔だと1本の走行が数時間になるので、
+        # 最後にまとめて書くと途中で止めたときに全部消える (実測で23件を失った)。
+        write_tsv(CANDIDATES_TSV, CANDIDATE_COLS, existing + added)
         if args.interval:
             time.sleep(args.interval)
 
