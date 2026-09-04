@@ -673,6 +673,10 @@ def compare(local, petit):
 
 
 # 差分の仕分け。**どちらが正しいかは判定しない** — 人が見るときの当たりを付けるだけ。
+# プチリリ側の ♪ (単独・連続とも) はカラオケ同期用の間奏記号であって歌詞ではない。
+# 補完の対象にしないので、手元の欠落とは別枠にする (☆ や ! は対象のまま)。
+INTERLUDE_MARK = "♪"
+
 RUBY_RE = re.compile(r"^[(（][^)）]{1,8}[)）]$")
 CALL_CHARS = "!！?？♪♡★☆〜~・"
 KANA_RE = re.compile(r"^[ぁ-んァ-ヶー]+$")
@@ -691,6 +695,8 @@ def classify(mine, theirs, a, b, i, j):
         extra = theirs or mine
         if RUBY_RE.match(extra):
             return "ルビ"
+        if not mine and set(extra) == {INTERLUDE_MARK}:
+            return "間奏記号(無視)"
         if extra and all(c in CALL_CHARS for c in extra):
             # **向きが肝心。** プチリリ側にあって手元に無い記号こそ、
             # 今回探している「取り込み時に落ちた ♡」の候補。
@@ -705,6 +711,8 @@ def classify(mine, theirs, a, b, i, j):
     if ml == tl:
         sym_mine = {c for c in mine if not c.isalnum()}
         sym_theirs = {c for c in theirs if not c.isalnum()}
+        if sym_theirs - sym_mine == {INTERLUDE_MARK} and not sym_mine - sym_theirs:
+            return "間奏記号(無視)"
         if sym_theirs - sym_mine and not sym_mine - sym_theirs:
             return "記号欠落(手元)"
         if sym_mine - sym_theirs and not sym_theirs - sym_mine:
