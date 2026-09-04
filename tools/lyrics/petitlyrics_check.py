@@ -854,14 +854,17 @@ def build_artist_index(client, refresh=False):
     return artists
 
 
-def pick_artists(artists, songs):
+def pick_artists(artists, songs, extra_terms=()):
     """対象曲の歌手名に当たるアーティストを選ぶ。
 
-    語彙全体 (2,000語超) を 30万件のアーティスト名に総当たりすると遅いので、
-    **対象曲の singer_label / unit_name** から作った短い集合だけを見る。
-    正規表現1本にまとめて1回の走査で済ませる。
+    既定は**対象曲の singer_label / unit_name** から作った短い集合だけを見る。
+    語彙全体を総当たりすると遅いので、正規表現1本にまとめて1回の走査で済ませる。
+
+    `extra_terms` (--broad で渡すアイマス語彙全体) を足すと対象は広がるが、
+    辿るページ数も跳ね上がる。singer_label は曲によって空だったり表記が
+    違ったりするので、取りこぼしを拾うにはこちらが要る。
     """
-    labels = set()
+    labels = set(extra_terms)
     for song in songs:
         for label in (song.get("singer"), song.get("unit")):
             for part in re.split(r"[、,／/（）()]", label or ""):
@@ -938,7 +941,12 @@ def cmd_list(args):
         artists = build_artist_index(client, refresh=args.refresh_index)
         print("索引 %d件" % len(artists))
 
-        picked = pick_artists(artists, targets)
+        extra = ()
+        if args.broad:
+            # 短い語 (「彩」「W」等) は無関係な名前に紛れて誤爆するので落とす。
+            extra = [v for v in vocab if len(v) >= 4]
+            print("語彙を拡張: アイマス関連 %d語を追加" % len(extra))
+        picked = pick_artists(artists, targets, extra)
         print("対象曲の歌手名に当たるアーティスト %d件 (先頭 %d件を辿る)\n"
               % (len(picked), min(len(picked), args.max_artists)))
 
@@ -1008,6 +1016,9 @@ def main():
     p.add_argument("--max-pages", type=int, default=5, help="1アーティストあたりの一覧ページ数の上限")
     p.add_argument("--refresh-index", action="store_true", help="50音索引を取り直す")
     p.add_argument("--interval", type=float, default=2.5, help="1リクエストの最小間隔 (秒)")
+    p.add_argument("--broad", action="store_true",
+                   help="対象曲の歌手名だけでなくアイマス語彙全体でアーティストを選ぶ "
+                        "(辿るページ数が大幅に増える)")
     p.set_defaults(func=cmd_list)
 
     p = sub.add_parser("fetch", help="high の候補の本文を取得してキャッシュ")
