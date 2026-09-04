@@ -824,7 +824,7 @@ a.labeled-row .labeled-row__value {
      関わらず正しく測れる (ビューポート幅だとサイドバーの 208px 分ずれる)。
      包含をこの箱の中に閉じ込めてあるので、年見出しの position: sticky など
      ページ側のレイアウトには一切触らない。 */
-  container: main / inline-size;
+  container: songtable / inline-size;
 }
 .song-table {
   width: 100%;
@@ -930,7 +930,7 @@ a.labeled-row .labeled-row__value {
 }
 
 /* 3 列 (曲名 / 初出 / ライブ)。表の骨格に戻す。 */
-@container main (min-width: 32rem) {
+@container songtable (min-width: 32rem) {
   .song-table {
     display: table;
   }
@@ -968,7 +968,7 @@ a.labeled-row .labeled-row__value {
 /* 原唱者は「誰の曲か」を決める列なので、ユニットより先に戻す。
    ユニットがまだ出ていない間は、その分を原唱者に回す (余りを曲名が全部吸うと、
    曲名は余っているのに原唱者だけ切れる、という配分になる)。 */
-@container main (min-width: 46rem) {
+@container songtable (min-width: 46rem) {
   .song-table__c-artists {
     display: table-cell;
     width: 42%;
@@ -976,11 +976,55 @@ a.labeled-row .labeled-row__value {
 }
 
 /* ユニットは空の曲も多く、埋まっていても原唱者と重なりがちなので最後。 */
-@container main (min-width: 62rem) {
+@container songtable (min-width: 62rem) {
   .song-table__c-unit {
     display: table-cell;
   }
   .song-table__c-artists {
     width: 31%;
+  }
+}
+
+/* --- 詳細ページの 2 段組 --------------------------------------------------
+   長いものが 1 本 (披露履歴 / セットリスト / 持ち曲 / 公演) と、短い属性の塊。
+   幅があるときだけ属性を右に寄せる。判定はビューポートではなくコンテナで行う
+   (サイドバーの有無で本文の幅が 208px 変わるため)。
+
+   DOM の順は「属性 → 本体」で、1 段組のときの読む順に合わせてある。2 段組では
+   grid の配置だけで右へ送るので、順序は入れ替えない。 */
+/* 計測はここ。中の .detail-cols を組み替えるので、コンテナは 1 つ上に要る。 */
+.detail-shell {
+  container: detail / inline-size;
+}
+.detail-cols {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp8);
+}
+.detail-cols__aside,
+.detail-cols__main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp8);
+  min-width: 0;
+}
+
+@container detail (min-width: 54rem) {
+  .detail-cols {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 20rem;
+    align-items: start;
+    gap: var(--sp8) var(--sp7);
+  }
+  .detail-cols__aside {
+    grid-column: 2;
+    grid-row: 1;
+    position: sticky;
+    top: calc(var(--header-h) + var(--sp5));
+    gap: var(--sp6);
+  }
+  .detail-cols__main {
+    grid-column: 1;
+    grid-row: 1;
   }
 }

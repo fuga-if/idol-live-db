@@ -43,7 +43,7 @@ const song = page<SongPage>(Astro.props.data);
 
   {
     song.originalArtists.length > 0 && (
-      <Section id="song-original" title="原唱者">
+      <Section slot="aside" id="song-original" title="原唱者">
         <RefList refs={song.originalArtists} label="原唱者" />
       </Section>
     )
@@ -51,7 +51,7 @@ const song = page<SongPage>(Astro.props.data);
 
   {
     song.factRows.length > 0 && (
-      <Section id="song-facts" title="基本情報">
+      <Section slot="aside" id="song-facts" title="基本情報">
         <ListContainer>
           {song.factRows.map((r) => (
             <LabeledRow
@@ -68,7 +68,7 @@ const song = page<SongPage>(Astro.props.data);
 
   {
     song.credits.length > 0 && (
-      <Section id="song-credits" title="クレジット">
+      <Section slot="aside" id="song-credits" title="クレジット">
         <ListContainer>
           {song.credits.map((c) => (
             <LabeledRow label={c.role} value={c.display} />
@@ -80,7 +80,7 @@ const song = page<SongPage>(Astro.props.data);
 
   {
     song.otherArtists.length > 0 && (
-      <Section id="song-artists" title="その他の歌唱者">
+      <Section slot="aside" id="song-artists" title="その他の歌唱者">
         <RefList refs={song.otherArtists} variant="neutral" label="その他の歌唱者" />
       </Section>
     )
@@ -88,7 +88,7 @@ const song = page<SongPage>(Astro.props.data);
 
   {
     song.variants.length > 0 && (
-      <Section id="song-variants" title="派生曲" count={song.variants.length}>
+      <Section slot="aside" id="song-variants" title="派生曲" count={song.variants.length}>
         <RefList refs={song.variants} variant="neutral" label="派生曲" />
       </Section>
     )

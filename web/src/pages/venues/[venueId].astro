@@ -30,7 +30,7 @@ const venue = page<VenuePage>(Astro.props.data);
 
   {
     venue.factRows.length > 0 && (
-      <Section id="venue-facts" title="基本情報">
+      <Section slot="aside" id="venue-facts" title="基本情報">
         <ListContainer>
           {venue.factRows.map((r) => (
             <LabeledRow
@@ -47,7 +47,7 @@ const venue = page<VenuePage>(Astro.props.data);
 
   {
     venue.halls.length > 0 && (
-      <Section id="venue-halls" title="ホール">
+      <Section slot="aside" id="venue-halls" title="ホール">
         {/* 収容人数が分かっているホールは 39 行中 6 行だけ。ラベル + 値の行にすると
             26 会場中 21 会場で値の列が全部「—」になり、何も伝えない列ができる。
             ホール名の一覧に、分かっているものだけ人数を添える形にする。 */}
@@ -64,7 +64,7 @@ const venue = page<VenuePage>(Astro.props.data);
 
   {
     venue.pastNames.length > 0 && (
-      <Section id="venue-names" title="旧称">
+      <Section slot="aside" id="venue-names" title="旧称">
         <ListContainer>
           {venue.pastNames.map((n) => (
             <LabeledRow label={n.name} value={n.periodDisplay ?? "—"} mono />

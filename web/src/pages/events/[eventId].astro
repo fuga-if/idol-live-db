@@ -70,7 +70,7 @@ const hasTicket = ticketRows.some((r) => r.value) || ev.ticket.url;
 
   {
     ev.cast && ev.cast.shows.length > 0 && (
-      <Section id="event-cast" title="出演者">
+      <Section slot="aside" id="event-cast" title="出演者">
         <div class="u-stack">
           {ev.cast.shows.map((cs) => (
             <div class="card card__pad u-stack">
@@ -96,7 +96,7 @@ const hasTicket = ticketRows.some((r) => r.value) || ev.ticket.url;
 
   {
     ev.venues.length > 0 && (
-      <Section id="event-venues" title="会場">
+      <Section slot="aside" id="event-venues" title="会場">
         <RefList refs={ev.venues} variant="neutral" withSub label="会場" />
       </Section>
     )
@@ -104,7 +104,7 @@ const hasTicket = ticketRows.some((r) => r.value) || ev.ticket.url;
 
   {
     ev.releases.length > 0 && (
-      <Section id="event-releases" title="映像・音源">
+      <Section slot="aside" id="event-releases" title="映像・音源">
         <ListContainer>
           {ev.releases.map((r) => (
             <LabeledRow
@@ -120,7 +120,7 @@ const hasTicket = ticketRows.some((r) => r.value) || ev.ticket.url;
 
   {
     hasTicket && (
-      <Section id="event-ticket" title="チケット">
+      <Section slot="aside" id="event-ticket" title="チケット">
         <ListContainer>
           {ticketRows.map((r) => (r.value ? <LabeledRow label={r.label} value={r.value} mono /> : null))}
           {ev.ticket.url && <LabeledRow label="公式情報" value="チケット情報" href={ev.ticket.url} />}

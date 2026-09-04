@@ -37,7 +37,7 @@ const idol = page<IdolPage>(Astro.props.data);
 
   {
     idol.profileRows.length > 0 && (
-      <Section id="idol-profile" title="プロフィール">
+      <Section slot="aside" id="idol-profile" title="プロフィール">
         <ListContainer>
           {idol.profileRows.map((r) => (
             <LabeledRow
@@ -55,7 +55,7 @@ const idol = page<IdolPage>(Astro.props.data);
 
   {
     idol.voiceActorHistory.length > 1 && (
-      <Section id="idol-cv" title="CV">
+      <Section slot="aside" id="idol-cv" title="CV">
         <ListContainer>
           {idol.voiceActorHistory.map((v) => (
             <LabeledRow label={v.isCurrent ? "現任" : "歴代"} value={v.display} />
@@ -67,7 +67,7 @@ const idol = page<IdolPage>(Astro.props.data);
 
   {
     idol.units.length > 0 && (
-      <Section id="idol-units" title="所属ユニット" count={idol.units.length}>
+      <Section slot="aside" id="idol-units" title="所属ユニット" count={idol.units.length}>
         <RefList refs={idol.units} label="所属ユニット" />
       </Section>
     )

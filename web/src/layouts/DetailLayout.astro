@@ -9,6 +9,14 @@ import type { SiteMeta } from "../lib/schema/SiteMeta";
 /**
  * 詳細ページ (ライブ / 公演 / 楽曲 / アイドル / ユニット / 会場 / ブランド) の枠。
  * パンくず → ヒーロー (`hero` スロット) → 本文 → 「アプリで開く」導線、の順で固定する。
+ *
+ * どの詳細ページも中身は同じ形をしている: **長いものがちょうど 1 本** (披露履歴 /
+ * セットリスト / 持ち曲 / 公演) と、**短い属性の塊** (基本情報 / プロフィール /
+ * クレジット / チケット 等)。幅があるときは属性を `aside` スロットに寄せて 2 段組にし、
+ * 長い 1 本を主カラムに置く。無ければ 1 段組のまま。
+ *
+ * DOM の順は 1 段組のときの読む順 (属性 → 本体) に合わせてあり、2 段組では
+ * grid の配置だけで右へ送る。属性が本体より先に来る今の順序を変えないため。
  */
 interface Props {
   seo: SeoBlock;
@@ -19,9 +27,24 @@ interface Props {
 const { seo, meta, themeKey, app } = Astro.props;
 ---
 
-<BaseLayout seo={seo} meta={meta} themeKey={themeKey}>
+<BaseLayout seo={seo} meta={meta} themeKey={themeKey} wide={Astro.slots.has("aside")}>
   <Breadcrumbs crumbs={seo.breadcrumbs} />
   <slot name="hero" />
-  <slot />
+  {
+    Astro.slots.has("aside") ? (
+      <div class="detail-shell">
+        <div class="detail-cols">
+          <aside class="detail-cols__aside">
+            <slot name="aside" />
+          </aside>
+          <div class="detail-cols__main">
+            <slot />
+          </div>
+        </div>
+      </div>
+    ) : (
+      <slot />
+    )
+  }
   {app && <OpenInApp app={app} />}
 </BaseLayout>

@@ -29,7 +29,7 @@ const unit = page<UnitPage>(Astro.props.data);
     </div>
   </section>
 
-  <Section id="unit-members" title="メンバー" count={unit.members.length}>
+  <Section slot="aside" id="unit-members" title="メンバー" count={unit.members.length}>
     {
       unit.members.length === 0 ? (
         <EmptyState title="メンバーがまだ登録されていません" />
