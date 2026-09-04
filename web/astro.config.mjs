@@ -93,6 +93,19 @@ function copyGeneratedAssets() {
           n += 1;
         }
         logger.info(`検索索引 ${n} ファイルを dist/search/ に配置しました`);
+
+        // 一覧の絞り込み素材。一覧 HTML とは別ファイルにしてあり、絞り込みを
+        // 開いた人だけが取りに行く (HTML の重さを増やさないため)。
+        const idx = path.join(root, "index");
+        const fdest = new URL("filters/", dir);
+        fs.mkdirSync(fdest, { recursive: true });
+        let m = 0;
+        for (const name of fs.readdirSync(idx)) {
+          if (!name.endsWith("-filter.json")) continue;
+          fs.copyFileSync(path.join(idx, name), new URL(name, fdest));
+          m += 1;
+        }
+        logger.info(`絞り込み素材 ${m} ファイルを dist/filters/ に配置しました`);
       },
     },
   };

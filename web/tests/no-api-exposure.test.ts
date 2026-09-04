@@ -56,13 +56,32 @@ const srcFiles = walk(SRC, {
 });
 const rel = (p: string): string => path.relative(path.resolve("."), p);
 
+/**
+ * 実行時に通信してよい島。**増やすときはここに明示する。**
+ *
+ * どちらも取りに行くのは自分のオリジンに置いた静的 JSON (検索索引 / 絞り込み素材) だけで、
+ * API は叩かない。「表示のみ」を守っているかは、この一覧と下の宛先テストで固定する。
+ */
+const FETCH_ALLOWED: Record<string, string> = {
+  "src/lib/search/island.ts": "/search/",
+  "src/lib/songfilter/island.ts": "/filters/",
+};
+
 describe("実行時の通信は同一オリジンだけ", () => {
-  it("fetch を書いてよいのは検索 island だけ", () => {
+  it("fetch を書いてよいのは決めた island だけ", () => {
     const offenders = srcFiles
       .filter((f) => /\bfetch\s*\(/.test(fs.readFileSync(f, "utf8")))
       .map(rel)
-      .filter((f) => f !== "src/lib/search/island.ts");
-    expect(offenders, "fetch は /search/ の island 以外に置かない").toEqual([]);
+      .filter((f) => !(f in FETCH_ALLOWED));
+    expect(offenders, "fetch は決めた island 以外に置かない").toEqual([]);
+  });
+
+  it("絞り込み island は素材の URL を自分で組み立てない", () => {
+    const island = fs.readFileSync(path.join(SRC, "lib/songfilter/island.ts"), "utf8");
+    // 宛先は Rust が出した `filterDataPath` を data 属性で受け取るだけ。
+    // 文字列から URL を組むと、置き場所の決定が Rust と TS の 2 箇所に散る。
+    expect(/fetch\s*\(\s*["'`]/.test(island), "fetch 先をリテラルで書かない").toBe(false);
+    expect(/https?:/.test(island), "絶対 URL を書かない").toBe(false);
   });
 
   it("island の fetch 先は `/search/` 始まりの相対パスだけ", () => {

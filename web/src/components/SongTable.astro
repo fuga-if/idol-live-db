@@ -33,7 +33,7 @@ const { items, kanaSections } = Astro.props;
 const sectionStarts = new Set(kanaSections.map((s) => s.startIndex));
 ---
 
-<div class="card song-table__scroll">
+<div class="card song-table__scroll" data-song-table>
   <table class="song-table">
     <thead>
       <tr>
@@ -47,7 +47,7 @@ const sectionStarts = new Set(kanaSections.map((s) => s.startIndex));
     <tbody>
       {
         items.map((item, i) => (
-          <tr id={sectionStarts.has(i) ? `kana-${i}` : undefined} data-theme={item.ref.themeKey}>
+          <tr id={sectionStarts.has(i) ? `kana-${i}` : undefined} data-row={i} data-theme={item.ref.themeKey}>
             <th scope="row" class="song-table__c-title song-table__title">
               {/* themeKey は tr から継承する。行ごとに 2 回置くと、
                   2,000 行規模で custom property の再計算が倍になる。 */}

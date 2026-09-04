@@ -1028,3 +1028,129 @@ a.labeled-row .labeled-row__value {
     grid-row: 1;
   }
 }
+
+/* --- 楽曲一覧の絞り込み --------------------------------------------------
+   素材を取るまでは触らせない (押しても何も起きない時間を作らない)。 */
+.song-filter {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp4);
+  padding: var(--sp5);
+  border: 1px solid var(--ds-sep);
+  border-radius: var(--r-md);
+  background: var(--ds-surface);
+}
+.song-filter[data-state="loading"] {
+  opacity: 0.6;
+}
+.song-filter__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp3);
+  align-items: center;
+}
+.song-filter__field {
+  min-width: 0;
+}
+.song-filter__field--grow {
+  flex: 1 1 14rem;
+}
+.song-filter__input,
+.song-filter__select {
+  width: 100%;
+  font: inherit;
+  font-size: var(--fs-footnote);
+  color: var(--ds-ink);
+  background: var(--ds-fill);
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  padding: var(--sp3) var(--sp4);
+  max-width: 20rem;
+}
+.song-filter__input:focus-visible,
+.song-filter__select:focus-visible {
+  outline: 2px solid var(--ds-sys);
+  outline-offset: 1px;
+}
+.song-filter__dir,
+.song-filter__reset {
+  font: inherit;
+  font-size: var(--fs-footnote);
+  font-weight: 600;
+  color: var(--ds-ink2);
+  background: var(--ds-fill);
+  border: 0;
+  border-radius: var(--r-sm);
+  padding: var(--sp3) var(--sp4);
+  cursor: pointer;
+  flex: none;
+}
+.song-filter__dir {
+  min-width: 2.5rem;
+}
+.song-filter__dir:hover,
+.song-filter__reset:hover {
+  color: var(--ds-ink);
+}
+.song-filter__facets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp4);
+  align-items: flex-start;
+}
+.song-filter__facets:empty {
+  display: none;
+}
+.song-filter__group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp2);
+  align-items: center;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+.song-filter__group legend {
+  font-size: var(--fs-caption2);
+  font-weight: 700;
+  color: var(--ds-ink3);
+  padding: 0 var(--sp2) 0 0;
+  float: left;
+  line-height: 1.9;
+}
+.song-filter__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp2);
+  padding: 4px 10px;
+  border-radius: var(--r-pill);
+  background: var(--ds-fill);
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  color: var(--ds-ink2);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.song-filter__chip input {
+  margin: 0;
+  accent-color: var(--ds-sys);
+}
+.song-filter__chip b {
+  font-weight: 400;
+  color: var(--ds-ink3);
+  font-variant-numeric: tabular-nums;
+}
+.song-filter__chip:has(input:checked) {
+  background: var(--ds-sys);
+  color: var(--ds-on-sys);
+}
+.song-filter__chip:has(input:checked) b {
+  color: var(--ds-on-sys);
+  opacity: 0.75;
+}
+.song-filter__status {
+  font-size: var(--fs-caption);
+  color: var(--ds-ink2);
+  font-variant-numeric: tabular-nums;
+}

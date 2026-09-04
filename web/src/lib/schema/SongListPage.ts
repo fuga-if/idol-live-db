@@ -17,7 +17,12 @@ export type SongListPage = { schemaVersion: number, path: string, title: string,
  * 行を走査して列の有無を推測しない (走査すると「たまたま全行 null」と
  * 「そもそも載せていない」が混ざり、同じ種類のページで表の形が変わる)。
  */
-rowsAreLight: boolean, kanaSections: Array<KanaSection>, brandLinks: Array<NavLink>, 
+rowsAreLight: boolean, 
+/**
+ * 絞り込み素材 (`SongListFilterData`) の置き場所。行を `ref` だけに
+ * 削った一覧には無い (絞り込む材料がそもそも載っていない)。
+ */
+filterDataPath: string | null, kanaSections: Array<KanaSection>, brandLinks: Array<NavLink>, 
 /**
  * 既定フィルタから外れた曲も含む全件ハブ (`/songs/all/`) への案内。
  *

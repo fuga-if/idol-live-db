@@ -1,0 +1,55 @@
+---
+/**
+ * 楽曲一覧の絞り込み・並べ替えの操作面。
+ *
+ * 中身 (軸と値) は Rust が出した素材から island が描く。ここが持つのは器だけで、
+ * **どんな軸があるかをこのファイルは知らない**。
+ *
+ * JS が動かない環境では操作できないので、その場合はそもそも出さない
+ * (押しても何も起きないものを置かない)。器は `hidden` で出しておき、
+ * island が起動したときに外す。
+ */
+interface Props {
+  /** 素材 (`/filters/*.json`) の URL。Rust が `SongListPage.filterDataPath` で出す。 */
+  src: string;
+  total: number;
+}
+const { src, total } = Astro.props;
+---
+
+<section class="song-filter" data-song-filter data-filter-src={src} data-state="loading" hidden>
+  <div class="song-filter__row">
+    <label class="song-filter__field song-filter__field--grow">
+      <span class="u-visually-hidden">曲名・原唱者・作家で絞り込み</span>
+      <input
+        class="song-filter__input"
+        type="search"
+        data-filter-name
+        placeholder="曲名・原唱者・作家で絞り込み"
+        autocomplete="off"
+        autocapitalize="off"
+        spellcheck="false"
+        enterkeyhint="search"
+        disabled
+      />
+    </label>
+    <label class="song-filter__field">
+      <span class="u-visually-hidden">並べ替え</span>
+      <select class="song-filter__select" data-filter-sort disabled></select>
+    </label>
+    <button class="song-filter__dir" type="button" data-filter-dir aria-label="昇順" disabled>↑</button>
+    <button class="song-filter__reset" type="button" data-filter-reset disabled>クリア</button>
+  </div>
+  <div class="song-filter__facets" data-filter-facets></div>
+  <p class="song-filter__status" data-filter-status aria-live="polite">{total} 件</p>
+</section>
+
+<script>
+  import { mountSongFilter } from "../lib/songfilter/island";
+
+  const root = document.querySelector<HTMLElement>("[data-song-filter]");
+  if (root) {
+    root.hidden = false;
+    mountSongFilter(root);
+  }
+</script>

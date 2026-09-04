@@ -4,6 +4,7 @@
 //! 「今日」は入口で 1 回だけ確定し、以降の upcoming / past の分割はすべてその 1 個から
 //! 決まる (Astro もブラウザも `Date` を触らない)。
 
+pub mod song_filters;
 pub mod context;
 pub mod events;
 pub mod idols;
@@ -187,6 +188,9 @@ fn write_all(ctx: &Ctx, out: &std::path::Path, pretty: bool) -> Result<Stats> {
         ($items:expr) => {
             for item in $items {
                 w.write_json(&item.data, &item.page)?;
+                for (path, value) in &item.extra {
+                    w.write_json(path, value)?;
+                }
                 let in_sitemap = item.page.seo.robots == Robots::IndexFollow;
                 match &item.param_key {
                     Some(key) => {

@@ -1,6 +1,7 @@
 ---
 import ListLayout from "../layouts/ListLayout.astro";
 import SongTable from "./SongTable.astro";
+import SongFilterBar from "./SongFilterBar.astro";
 import ListContainer from "./ListContainer.astro";
 import RankingRow from "./RankingRow.astro";
 import EmptyState from "./EmptyState.astro";
@@ -27,7 +28,7 @@ const { list } = Astro.props;
 >
   {
     list.kanaSections.length > 0 && (
-      <nav class="link-chips" aria-label="よみで飛ぶ">
+      <nav class="link-chips" aria-label="よみで飛ぶ" data-kana-index>
         {list.kanaSections.map((s) => (
           <a href={`#kana-${s.startIndex}`}>
             {s.label}
@@ -37,6 +38,8 @@ const { list } = Astro.props;
       </nav>
     )
   }
+
+  {list.filterDataPath && <SongFilterBar src={list.filterDataPath} total={list.total} />}
 
   {
     list.items.length === 0 ? (

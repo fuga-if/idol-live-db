@@ -781,6 +781,8 @@ fn song_list_page(path: &str, title: &str, kind: SongListKind) -> SongListPage {
         kind,
         brand: if matches!(kind, SongListKind::Brand) { Some(brand_ml()) } else { None },
         rows_are_light: matches!(kind, SongListKind::All),
+        filter_data_path: (!matches!(kind, SongListKind::All))
+            .then(|| "/data/songs-filter.json".to_string()),
         kana_sections: vec![
             KanaSection { label: "さ".to_string(), start_index: 0, count: 1 },
             KanaSection { label: "英数".to_string(), start_index: 1, count: 1 },

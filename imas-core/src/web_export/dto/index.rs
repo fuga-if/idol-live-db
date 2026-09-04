@@ -95,6 +95,9 @@ web_dto! {
         /// 行を走査して列の有無を推測しない (走査すると「たまたま全行 null」と
         /// 「そもそも載せていない」が混ざり、同じ種類のページで表の形が変わる)。
         pub rows_are_light: bool,
+        /// 絞り込み素材 (`SongListFilterData`) の置き場所。行を `ref` だけに
+        /// 削った一覧には無い (絞り込む材料がそもそも載っていない)。
+        pub filter_data_path: Option<String>,
         pub kana_sections: Vec<KanaSection>,
         pub brand_links: Vec<NavLink>,
         /// 既定フィルタから外れた曲も含む全件ハブ (`/songs/all/`) への案内。
@@ -143,6 +146,73 @@ web_dto! {
         pub performance_count: Option<u32>,
         /// 行の副題 (ユニット名・原唱者・リリース日)。空なら `None`。
         pub subtitle: Option<String>,
+    }
+}
+
+web_dto! {
+    /// 一覧を絞り込む/並べ替えるための素材。`index/songs-filter*.json`。
+    ///
+    /// **軸も値も並び順も決めるのは Rust**で、受け手 (ブラウザ) がやるのは
+    /// (1) 選ばれた値の集合一致、(2) 渡された順列を当てる、の 2 つだけ。
+    /// 照合規則・並び順の規則を TS に持たせないための形 (INV-1)。
+    /// 名前での絞り込みだけは任意の入力なので事前計算できず、`imas-text-fold` の
+    /// wasm (アプリと同じ規則) が `haystacks` に対して判定する。
+    ///
+    /// 一覧の HTML とは別ファイルにして、絞り込みを開いた人だけが取りに行く。
+    /// 行は `SongListPage.items` と同じ並び・同じ添字。
+    pub struct SongListFilterData {
+        pub schema_version: u32,
+        /// どの一覧のものか (`/songs/` `/songs/brand/<id>/`)。
+        pub path: String,
+        pub row_count: u32,
+        pub facets: Vec<SongFacet>,
+        pub orders: Vec<SongListOrder>,
+        /// フィールドの区切り。**JSON に明示して配る** (JS 側に定数を持たせない)。
+        pub separator: String,
+        /// 行ごとの照合対象。`Snapshot` が組んだ検索索引の畳み済みフィールドを
+        /// `separator` で連ねたもの。ブラウザは検索語だけを同じ規則で畳んで
+        /// 部分一致を見る (`/search/` と同じ照合)。
+        pub haystacks: Vec<String>,
+    }
+}
+
+web_dto! {
+    /// 絞り込みの 1 軸。
+    #[derive(Eq)]
+    pub struct SongFacet {
+        pub key: String,
+        pub label: String,
+        /// 複数選んだときに OR で結ぶか (false = 単一選択)。
+        pub multi: bool,
+        pub values: Vec<SongFacetValue>,
+        /// 行 i がこの軸で持つ値の添字列 (`values` への index)。
+        /// 原唱者・イベントのような多値の軸があるので、単値の軸でも列で持つ。
+        pub row_values: Vec<Vec<u32>>,
+    }
+}
+
+web_dto! {
+    #[derive(Eq)]
+    pub struct SongFacetValue {
+        pub value: String,
+        pub label: String,
+        pub count: u32,
+    }
+}
+
+web_dto! {
+    /// 並べ替えの 1 種。
+    ///
+    /// **昇順と降順の両方を持つ。** 受け手が片方を反転すると、同着の並び
+    /// (五十音での安定化) まで裏返ってアプリと違う並びになる。
+    #[derive(Eq)]
+    pub struct SongListOrder {
+        pub key: String,
+        pub label: String,
+        pub default_ascending: bool,
+        /// `items` の添字の順列。
+        pub ascending: Vec<u32>,
+        pub descending: Vec<u32>,
     }
 }
 
