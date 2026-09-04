@@ -76,4 +76,39 @@ final class SongListFilteringTests: XCTestCase {
         // 並べ替えなし → 入力順維持。
         XCTAssertEqual(applySongMarkFilters(input, ctx).map(\.id), ["a", "b"])
     }
+
+    // MARK: - コールガイド絞り込み
+
+    /// I9: nil は素通し (絞り込みなし)。
+    func testCallGuideNilPassesThrough() {
+        var ctx = SongMarkFilterContext(collectFilter: .all)
+        ctx.callGuideSongIds = nil
+        XCTAssertEqual(applySongMarkFilters(songs(), ctx).map(\.id), all)
+    }
+
+    /// I10: 指定した集合に含まれる曲だけが残る。
+    func testCallGuideRestrictsToSet() {
+        var ctx = SongMarkFilterContext(collectFilter: .all)
+        ctx.callGuideSongIds = ["a", "c"]
+        XCTAssertEqual(applySongMarkFilters(songs(), ctx).map(\.id), ["a", "c"])
+    }
+
+    /// 空集合は「該当 0 件」。nil (絞り込みなし) と区別する。
+    func testCallGuideEmptySetYieldsNothing() {
+        var ctx = SongMarkFilterContext(collectFilter: .all)
+        ctx.callGuideSongIds = []
+        XCTAssertTrue(applySongMarkFilters(songs(), ctx).isEmpty)
+    }
+
+    /// I11: タグ集合との併用は AND。タグ票数ソートの並びも壊れない。
+    func testCallGuideAndsWithTagsAndKeepsVoteRanking() {
+        let input = [makeSWA("a", titleKana: "あ"), makeSWA("b", titleKana: "い"), makeSWA("c", titleKana: "う")]
+        var ctx = SongMarkFilterContext(collectFilter: .all)
+        ctx.tagSongIds = ["a", "b", "c"]
+        ctx.callGuideSongIds = ["b", "c"]
+        ctx.rankByTagVotes = true
+        ctx.tagVoteCounts = ["a": 99, "b": 1, "c": 5]
+        // AND で a が落ち、残った集合に対して票数降順 (c=5 → b=1)。
+        XCTAssertEqual(applySongMarkFilters(input, ctx).map(\.id), ["c", "b"])
+    }
 }

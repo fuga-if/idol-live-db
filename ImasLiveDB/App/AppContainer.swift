@@ -156,6 +156,19 @@ final class AppContainer: Sendable {
         return CallGuideAPI.shared
     }()
 
+    /// コールガイドの整備状況 (一覧 / 最近の編集 / 未整備) の読み取り実装。
+    /// 認証不要・エッジキャッシュ前提の口で、**歌詞本文もコール本文も通らない**
+    /// (通るのは曲 id と件数・日時・マスク済み表示名だけ)。
+    /// DEBUG かつ `FAKE_LYRICS=1` のときは、Worker 未デプロイでも画面を確認できるフェイク。
+    let callGuideDashboardReading: any CallGuideDashboardReading = {
+        #if DEBUG
+        if ProcessInfo.processInfo.environment["FAKE_LYRICS"] == "1" {
+            return FakeCallGuideDashboardReading()
+        }
+        #endif
+        return CallGuideAPI.shared
+    }()
+
     // MARK: - 書き込み (編集/インポート系のローカル DB upsert)
     // スナップショットが読むマスタ表に触るため、init で SnapshotInvalidating* デコレータに
     // 包んで組み立てる (書き込み成功後に共有コアの再ロードを促す。配線は init 参照)。

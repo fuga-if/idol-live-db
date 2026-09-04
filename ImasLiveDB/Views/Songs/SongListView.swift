@@ -93,6 +93,10 @@ struct SongListView: View {
     @State private var myMarkFilter = SongMyMarkFilter()
     /// コミュニティタグ絞り込み (複数指定可)。選択タグ全てが付いた曲 (AND) に絞る。
     @State private var selectedTags: [CommunityTag] = []
+    /// 「コールガイドがある曲のみ」。
+    /// ⚠️ `@AppStorage` にしないこと。通信が要る絞り込みが起動直後から効いていると、
+    /// オフライン起動時に理由の分からない空一覧になる。
+    @State private var callGuideOnly = false
     @State private var showTagPicker = false
     @State private var showIntroDon = false
     /// 曲一覧の「この絞り込みでイントロドン」導線の表示/非表示 (設定アプリから戻せる)。
@@ -117,6 +121,7 @@ struct SongListView: View {
             collectFilter: collectFilter,
             myMarkFilter: myMarkFilter,
             selectedTagCount: selectedTags.count,
+            callGuideOnly: callGuideOnly,
             // 歌詞モードの入力は手元で絞れる語ではない。そのまま渡すと再ロードのたびに
             // 曲名で絞り直され、歌詞で当たった曲まで落ちる。
             searchText: searchMode.isLocal ? searchText : "",
@@ -182,6 +187,7 @@ struct SongListView: View {
                 CrossTabCountChips(query: searchText, from: .songs)
                 removableFilterBar
                 tagFilterErrorBanner
+                callGuideFilterErrorBanner
                 introDonLaunchBar
                 listContent
                     .refreshable {
@@ -215,7 +221,8 @@ struct SongListView: View {
                         collectFilter: $collectFilter,
                         myMarkFilter: $myMarkFilter,
                         showOtherBrand: $showOtherBrand,
-                        excludeLiveOnly: $excludeLiveOnly
+                        excludeLiveOnly: $excludeLiveOnly,
+                        callGuideOnly: $callGuideOnly
                     )
                     .environment(database)
                     .presentationDetents([.medium, .large])
@@ -256,6 +263,13 @@ struct SongListView: View {
                 .onChange(of: filter.brandIds) { _, _ in reload() }
                 .onChange(of: showOtherBrand) { _, _ in reload() }
                 .onChange(of: excludeLiveOnly) { _, _ in reload() }
+                // 集合の解決に通信が要るので、他のトグルと違って解決を待ってから引き直す。
+                .onChange(of: callGuideOnly) { _, enabled in
+                    Task {
+                        await vm.resolveCallGuideFilter(enabled)
+                        reload()
+                    }
+                }
                 .trackScreen("song_list")
     }
 
@@ -469,6 +483,24 @@ struct SongListView: View {
         }
     }
 
+    /// コールガイド絞り込みの取得に失敗した (オフライン等) ことを知らせるバナー。
+    /// タグ側と同じく、失敗時は絞り込みを適用しないので一覧は絞られていない。
+    @ViewBuilder
+    private var callGuideFilterErrorBanner: some View {
+        if vm.callGuideFilterError {
+            HStack(spacing: 6) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.imasCaption)
+                    .foregroundStyle(DS.warning)
+                Text("コールガイドの情報を取得できませんでした。表示中の一覧にはコールガイド条件が反映されていません。")
+                    .font(.imasCaption)
+                    .foregroundStyle(DS.ink2)
+            }
+            .padding(.horizontal, DS.sp5)
+            .padding(.vertical, DS.sp2)
+        }
+    }
+
     @ViewBuilder
     private var removableFilterBar: some View {
         let chips = activeFilterChips
@@ -509,6 +541,10 @@ struct SongListView: View {
             chips.append(.init(id: "collected", label: "現地回収済") { collectFilter = .all; reload() })
         case .uncollected:
             chips.append(.init(id: "uncollected", label: "未回収") { collectFilter = .all; reload() })
+        }
+        if callGuideOnly {
+            // 解除の後始末 (集合を捨てて引き直す) は `onChange(of: callGuideOnly)` が担う。
+            chips.append(.init(id: "call_guide", label: "コールガイドあり") { callGuideOnly = false })
         }
         if let series = filter.seriesGroup, !series.isEmpty {
             chips.append(.init(id: "series", label: series) { filter.seriesGroup = nil; reload() })
@@ -641,6 +677,8 @@ struct SongListView: View {
         collectFilter = .all
         myMarkFilter = SongMyMarkFilter()
         selectedTags = []
+        // こちらも解除は onChange に任せる (二重に reload しない)。
+        callGuideOnly = false
         Task {
             await vm.resolveTagFilter([])
             reload()
@@ -664,6 +702,7 @@ struct SongListView: View {
         if listMode != .songs { count += 1 }
         if collectFilter != .all { count += 1 }
         if !selectedTags.isEmpty { count += 1 }
+        if callGuideOnly { count += 1 }
         count += myMarkFilter.activeCount
         return count
     }

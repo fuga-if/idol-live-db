@@ -15,6 +15,10 @@ struct SongMarkFilterContext {
     var myPickSongIds: Set<String> = []
     /// コミュニティタグ絞り込みの song_id 集合 (nil = タグ絞り込みなし)。
     var tagSongIds: Set<String>? = nil
+    /// コールガイド (コール・手拍子) が書き込まれている song_id 集合 (nil = この絞り込みなし)。
+    /// タグ集合と同じく **解決済みの集合**を渡す。取得に失敗したときは nil を渡すこと
+    /// (空集合を渡すと一覧が丸ごと消え、オフラインで理由の分からない空一覧になる)。
+    var callGuideSongIds: Set<String>? = nil
     /// 単一タグ絞り込み + デフォルト並びの時に「そのタグの票数」降順へ並べ替えるか。
     var rankByTagVotes: Bool = false
     var tagVoteCounts: [String: Int] = [:]
@@ -47,6 +51,7 @@ func applySongMarkFilters(_ songs: [SongWithArtists], _ ctx: SongMarkFilterConte
         requireMyPick: ctx.requireMyPick,
         myPickSongIds: Array(ctx.myPickSongIds),
         tagSongIds: ctx.tagSongIds.map(Array.init),
+        callGuideSongIds: ctx.callGuideSongIds.map(Array.init),
         rankByTagVotes: ctx.rankByTagVotes,
         tagVoteCounts: ctx.tagVoteCounts.mapValues(Int64.init))
     return filterSongList(entries: entries, criteria: criteria).map { songs[Int($0)] }
