@@ -2,7 +2,7 @@
 //!
 //! DB にも UI にも依存しない純粋ロジック (id 集合は呼び出し側が UserMarkService 等から
 //! 解決済みで渡す) なので単体テスト可能。iOS `applySongMarkFilters` の一次実装。
-//! 適用順: 回収 → お気に入り → メモ → 担当 → タグ集合 → (任意で) タグ票数降順。
+//! 適用順: 回収 → お気に入り → メモ → 担当 → タグ集合 → コールガイド集合 → (任意で) タグ票数降順。
 //!
 //! FFI 境界はエンティティ全体を渡さず、判定に要る 3 フィールドの射影
 //! ([`SongListFilterEntry`]) を渡して「採用した index の列」を返す形にしている
@@ -48,6 +48,16 @@ pub struct SongListFilterCriteria {
     pub my_pick_song_ids: Vec<String>,
     /// コミュニティタグ絞り込みの song_id 集合 (None = タグ絞り込みなし)。
     pub tag_song_ids: Option<Vec<String>>,
+    /// コールガイド (コール・手拍子) が書き込まれている song_id 集合
+    /// (None = この絞り込みなし)。
+    ///
+    /// タグ集合と同じ流儀で、**解決済みの集合を呼び出し側が渡す**。中身をどう集めるかは
+    /// 通信の話で、ここは純粋な集合 AND だけを持つ。
+    ///
+    /// 取得に失敗したときは `None` を渡すこと (空の `Vec` ではない)。空を渡すと
+    /// 一覧が丸ごと消える。「絞り込まない」と「該当 0 件」は別物で、オフラインで
+    /// 理由の分からない空一覧を出さないための区別。
+    pub call_guide_song_ids: Option<Vec<String>>,
     /// 単一タグ絞り込み + デフォルト並びの時に「そのタグの票数」降順へ並べ替えるか。
     pub rank_by_tag_votes: bool,
     /// song_id → 票数。載っていない曲は 0 票扱い。
@@ -68,6 +78,10 @@ pub fn filter_song_list(entries: &[SongListFilterEntry], criteria: &SongListFilt
         .tag_song_ids
         .as_ref()
         .map(|ids| ids.iter().map(String::as_str).collect());
+    let call_guide_ids: Option<HashSet<&str>> = criteria
+        .call_guide_song_ids
+        .as_ref()
+        .map(|ids| ids.iter().map(String::as_str).collect());
 
     let mut results: Vec<u32> = entries
         .iter()
@@ -84,6 +98,7 @@ pub fn filter_song_list(entries: &[SongListFilterEntry], criteria: &SongListFilt
                 && (!criteria.require_note || notes.contains(id))
                 && (!criteria.require_my_pick || my_picks.contains(id))
                 && tag_ids.as_ref().is_none_or(|t| t.contains(id))
+                && call_guide_ids.as_ref().is_none_or(|c| c.contains(id))
         })
         .map(|(i, _)| i as u32)
         .collect();
@@ -134,6 +149,7 @@ mod tests {
             require_my_pick: false,
             my_pick_song_ids: vec![],
             tag_song_ids: None,
+            call_guide_song_ids: None,
             rank_by_tag_votes: false,
             tag_vote_counts: HashMap::new(),
         }
@@ -272,5 +288,61 @@ mod tests {
         let mut ctx = criteria(SongCollectMode::All);
         ctx.tag_song_ids = Some(vec_of(&["a", "c"]));
         assert_eq!(filter_song_list(&s, &ctx), vec![0, 2]);
+    }
+
+    // --- コールガイド絞り込み ---
+
+    #[test]
+    fn call_guide_keeps_only_songs_with_a_guide() {
+        let s = songs();
+        let mut ctx = criteria(SongCollectMode::All);
+        ctx.call_guide_song_ids = Some(vec_of(&["a", "c"]));
+        assert_eq!(picked_ids(&s, &filter_song_list(&s, &ctx)), vec_of(&["a", "c"]));
+    }
+
+    #[test]
+    fn no_call_guide_set_means_no_filtering() {
+        // None は「絞り込まない」。取得に失敗したときはこちらを渡す。
+        let s = songs();
+        let ctx = criteria(SongCollectMode::All);
+        assert_eq!(picked_ids(&s, &filter_song_list(&s, &ctx)), vec_of(&["a", "b", "c"]));
+    }
+
+    #[test]
+    fn an_empty_call_guide_set_hides_everything() {
+        // 空の Vec は「該当 0 件」。`None` (絞り込まない) と別物であることを固定する
+        // — ここを取り違えると、通信失敗時に一覧が丸ごと消える。
+        let s = songs();
+        let mut ctx = criteria(SongCollectMode::All);
+        ctx.call_guide_song_ids = Some(vec![]);
+        assert!(filter_song_list(&s, &ctx).is_empty());
+    }
+
+    #[test]
+    fn call_guide_is_an_and_condition_with_the_other_filters() {
+        let s = songs();
+        let mut ctx = criteria(SongCollectMode::Collected);
+        ctx.collected_ids = vec_of(&["a", "b"]);
+        ctx.call_guide_song_ids = Some(vec_of(&["b", "c"]));
+        // 回収済み {a,b} ∩ ガイドあり {b,c} = {b}
+        assert_eq!(picked_ids(&s, &filter_song_list(&s, &ctx)), vec_of(&["b"]));
+
+        // タグ集合とも AND になる。
+        ctx.tag_song_ids = Some(vec_of(&["a", "b", "c"]));
+        assert_eq!(picked_ids(&s, &filter_song_list(&s, &ctx)), vec_of(&["b"]));
+        ctx.tag_song_ids = Some(vec_of(&["a"]));
+        assert!(filter_song_list(&s, &ctx).is_empty());
+    }
+
+    #[test]
+    fn call_guide_preserves_input_order_and_does_not_rank() {
+        // 集合 AND なので並びは入力順のまま。票数ランキングはタグ絞り込み中だけに
+        // 掛かる規則も変わらない (コールガイドだけでは並べ替えない)。
+        let s = songs();
+        let mut ctx = criteria(SongCollectMode::All);
+        ctx.call_guide_song_ids = Some(vec_of(&["c", "a"]));
+        ctx.rank_by_tag_votes = true;
+        ctx.tag_vote_counts = HashMap::from([("a".to_string(), 1), ("c".to_string(), 99)]);
+        assert_eq!(picked_ids(&s, &filter_song_list(&s, &ctx)), vec_of(&["a", "c"]));
     }
 }

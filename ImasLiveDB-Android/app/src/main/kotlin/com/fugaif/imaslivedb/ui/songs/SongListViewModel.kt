@@ -446,6 +446,9 @@ class SongListViewModel : ViewModel() {
         requireMyPick = state.myMarkFilter.requireMyPick,
         myPickSongIds = myPickIds.toList(),
         tagSongIds = null,
+        // Android には歌詞・コール機能がまだ無いので、この絞り込みは使わない。
+        // null は「絞り込まない」の意味 (空リストは「該当 0 件」で一覧が消える)。
+        callGuideSongIds = null,
         rankByTagVotes = false,
         tagVoteCounts = emptyMap()
     )
