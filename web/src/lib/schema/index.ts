@@ -42,6 +42,7 @@ export type { IdolQuery } from "./IdolQuery";
 export type { IdolShowRow } from "./IdolShowRow";
 export type { IdolSongRow } from "./IdolSongRow";
 export type { KanaSection } from "./KanaSection";
+export type { LyricsBlock } from "./LyricsBlock";
 export type { NavLink } from "./NavLink";
 export type { PenlightSetDto } from "./PenlightSetDto";
 export type { PerformanceRow } from "./PerformanceRow";

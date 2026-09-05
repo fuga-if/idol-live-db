@@ -52,7 +52,7 @@ pub mod venue;
 
 pub use brand::BrandPage;
 pub use common::{
-    mark_current, AppLinks, AppOpen, Counts, Crumb, NavLink, PenlightSetDto,
+    mark_current, AppLinks, AppOpen, Counts, Crumb, LyricsBlock, NavLink, PenlightSetDto,
     PerformerNameOptionDto, Ref, RefKind, Robots, SeoBlock, SiteMeta, SongCommunity, StatTile,
     TagChipDto, ThemePair, ThemeTable, ThemeTokens, SCHEMA_VERSION,
 };

@@ -351,3 +351,24 @@ web_dto! {
         pub count: u32,
     }
 }
+
+web_dto! {
+    /// 歌詞とコールガイドの出し方。
+    ///
+    /// **本文はここに入らない。** 歌詞は D1 にしかなく、1 リクエスト 1 曲で
+    /// 取りに行く形でしか配れない (まとめて取れないことが許諾の条件)。
+    /// ここが持つのは「出すか」「どこへ取りに行くか」「何を掲示するか」だけ。
+    #[derive(Eq)]
+    pub struct LyricsBlock {
+        /// この出面で歌詞を出すか。false ならボタンも取得先も出ない。
+        pub available: bool,
+        /// 出さないときの案内文 (アプリへ誘導する)。
+        pub note: String,
+        /// 出すときに必ず掲示する許諾番号。
+        pub license_number: Option<String>,
+        /// 出すときに添える説明 (許諾番号つき)。
+        pub license_note: Option<String>,
+        /// 歌詞 1 曲の取得先 (絶対 URL)。**1 曲ぶんだけ返る。**
+        pub source_url: Option<String>,
+    }
+}

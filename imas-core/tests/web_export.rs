@@ -165,8 +165,15 @@ fn t9_two_runs_produce_byte_identical_output() {
 fn t12_no_lyrics_or_preview_audio_anywhere_in_the_output() {
     let dir = emit_fixture("forbidden");
 
-    /// 歌詞まわりで唯一許すキー。「歌詞はアプリで」の固定文であって歌詞本文ではない。
-    const ALLOWED: &str = "lyricsNote";
+    /// 歌詞まわりで許すキー。どちらも**本文ではない**:
+    /// - `lyricsNote` … 「歌詞はアプリで」の固定文
+    /// - `lyrics` … 出すか / 許諾番号 / 取得先だけを持つブロック (中身は下で固定する)
+    const ALLOWED: [&str; 2] = ["lyricsNote", "lyrics"];
+
+    /// `lyrics` ブロックに入ってよいキー。**ここに `lines` や `text` が増えたら落ちる。**
+    /// 歌詞本文は D1 にしか置けない (まとめて取れないことが JASRAC 許諾の条件)。
+    const LYRICS_BLOCK_KEYS: [&str; 5] =
+        ["available", "note", "licenseNumber", "licenseNote", "sourceUrl"];
 
     fn walk(rel: &str, value: &serde_json::Value) {
         match value {
@@ -174,7 +181,22 @@ fn t12_no_lyrics_or_preview_audio_anywhere_in_the_output() {
                 for (key, child) in map {
                     let lower = key.to_lowercase();
                     if lower.contains("lyric") {
-                        assert_eq!(key, ALLOWED, "{rel}: 歌詞まわりのキーは {ALLOWED} 以外を出さない ({key})");
+                        assert!(
+                            ALLOWED.contains(&key.as_str()),
+                            "{rel}: 歌詞まわりのキーは {ALLOWED:?} 以外を出さない ({key})"
+                        );
+                        if key == "lyrics" {
+                            let block = child.as_object().expect("lyrics はオブジェクト");
+                            let mut keys: Vec<&str> =
+                                block.keys().map(String::as_str).collect();
+                            keys.sort_unstable();
+                            let mut want = LYRICS_BLOCK_KEYS;
+                            want.sort_unstable();
+                            assert_eq!(
+                                keys, want,
+                                "{rel}: lyrics ブロックの中身が変わっている (本文を入れていないか)"
+                            );
+                        }
                     }
                     // 禁じたいのは**プレビュー音源**であって「preview」という語ではない。
                     // 一覧カードの紹介文 (`previewDisplay`) のような無関係なキーまで
@@ -273,8 +295,16 @@ fn fixture_covers_the_boundary_cases_the_web_needs() {
     assert!(no_art.artwork_url.is_none());
     // 曲に deeplink は無い (DeeplinkRouter が受けるのは events / shows / polls だけ)。
     assert!(no_art.app.deeplink.is_none());
-    // 歌詞の断り書きは必ず出る。
-    assert!(no_art.lyrics_note.contains("J260943703"));
+    // 歌詞の断り書きは必ず出る。出さない設定 (LYRICS_ON_WEB=false) では
+    // 取得先も許諾番号も配らず、案内文だけになる。
+    assert!(no_art.lyrics.note.contains("J260943703"));
+    if no_art.lyrics.available {
+        assert!(no_art.lyrics.source_url.is_some(), "出すなら取得先が要る");
+        assert!(no_art.lyrics.license_number.is_some(), "出すなら許諾番号の掲示が要る");
+    } else {
+        assert!(no_art.lyrics.source_url.is_none(), "出さないなら取得先を配らない");
+        assert!(no_art.lyrics.license_number.is_none());
+    }
 
     // 歌唱メンバーが空のセトリ行。
     let show: ShowPage = serde_json::from_str(&read("shows/sh_sample_1.json")).unwrap();
@@ -1265,10 +1295,13 @@ mod real {
                     // DTO ではなく行型をそのまま serde するから。camelCase だけ
                     // 見ていた頃は、試聴音源 URL が itunes のホスト名で偶然
                     // 引っかかっていただけで、歌詞の在り処は素通りだった。
+                    // `"lyrics"` は入れない。**本文ではなく**「出すか / 許諾番号 /
+                    // 取得先」だけのブロックのキーで、中身は
+                    // t12_no_lyrics_or_preview_audio_anywhere_in_the_output が
+                    // キー名まで固定して守っている。
                     for forbidden in [
                         "\"previewUrl\"",
                         "\"lyricsUrl\"",
-                        "\"lyrics\"",
                         "\"preview_url\"",
                         "\"lyrics_url\"",
                     ] {

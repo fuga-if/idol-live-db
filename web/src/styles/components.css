@@ -240,6 +240,52 @@ a.chip:hover {
 .tag--community.tag--official {
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tag-color, var(--accent)) 45%, transparent);
 }
+/* --- 歌詞 -----------------------------------------------------------------
+   本文はサーバから配る HTML に入っていない (押されたときに 1 曲ぶんだけ取る)。
+   ここでやるのは「選ばせない・印刷させない」だけで、判断は Rust 側にある。 */
+.lyrics {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp4);
+  align-items: flex-start;
+}
+.lyrics__license {
+  font-size: var(--fs-caption);
+  color: var(--ds-ink2);
+}
+.lyrics__status {
+  font-size: var(--fs-caption);
+  color: var(--ds-ink2);
+}
+.lyrics__body {
+  inline-size: 100%;
+  padding: var(--sp5);
+  border-radius: var(--r-md);
+  background: var(--ds-surface);
+  /* コピー防止 (完全には防げないが、まとめ取りの手間を上げる)。 */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+.lyrics__line {
+  line-height: var(--lh-relaxed, 1.9);
+}
+.lyrics__line:empty::before {
+  /* 空行 (間奏など) も行として高さを持たせる。 */
+  content: "\00a0";
+}
+.lyrics__calls {
+  display: block;
+  font-size: var(--fs-caption);
+  color: var(--accent);
+}
+/* 印刷では歌詞を出さない (紙に落とすのも「まとめ取り」に当たる)。 */
+@media print {
+  .lyrics {
+    display: none;
+  }
+}
+
 .polls__note {
   margin-block-end: var(--sp5);
 }

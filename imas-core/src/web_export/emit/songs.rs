@@ -11,6 +11,7 @@ use crate::domain::short_year_month::short_year_month;
 use crate::domain::song_detail_queries as detail;
 use crate::web_export::content;
 use crate::web_export::dto::*;
+use crate::web_export::url;
 
 /// 「よく歌う人」「よく一緒に披露される曲」に出す件数。アプリの詳細画面と同じ。
 const TOP_N: u32 = 10;
@@ -71,6 +72,19 @@ pub fn song_page(ctx: &Ctx, song_id: &str) -> Option<SongPage> {
 
     Some(SongPage {
         schema_version: SCHEMA_VERSION,
+        // 歌詞。**出すかどうかは content::LYRICS_ON_WEB 1 箇所で決まる。**
+        lyrics: LyricsBlock {
+            available: content::LYRICS_ON_WEB,
+            note: content::LYRICS_NOTE.to_string(),
+            license_number: content::LYRICS_ON_WEB
+                .then(|| content::JASRAC_LICENSE_NUMBER.to_string()),
+            license_note: content::LYRICS_ON_WEB
+                .then(|| content::LYRICS_ON_WEB_NOTE.to_string()),
+            // 1 リクエスト 1 曲。まとめて取れる形の URL は出さない。
+            source_url: content::LYRICS_ON_WEB.then(|| {
+                format!("{}/songs/{}/lyrics", content::API_ORIGIN, url::url_segment(&record.id))
+            }),
+        },
         id: record.id.clone(),
         path: path.clone(),
         title: record.title.clone(),
@@ -155,7 +169,6 @@ pub fn song_page(ctx: &Ctx, song_id: &str) -> Option<SongPage> {
             breadcrumbs,
         ),
         // 歌詞は載せない。許諾を持つのはアプリであって本サイトではない。
-        lyrics_note: content::LYRICS_NOTE.to_string(),
     })
 }
 

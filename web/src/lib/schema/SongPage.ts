@@ -2,6 +2,7 @@
 import type { AppOpen } from "./AppOpen";
 import type { CoOccurRow } from "./CoOccurRow";
 import type { CreditGroup } from "./CreditGroup";
+import type { LyricsBlock } from "./LyricsBlock";
 import type { PerformanceRow } from "./PerformanceRow";
 import type { ProfileRow } from "./ProfileRow";
 import type { Ref } from "./Ref";
@@ -19,7 +20,11 @@ export type SongPage = { schemaVersion: number, id: string, path: string, title:
 /**
  * コミュニティ集計 (タグ・お気に入り・ペンライト)。焼き込み。
  */
-community: SongCommunity, songType: string | null, releaseDate: string | null, 
+community: SongCommunity, 
+/**
+ * 歌詞・コールガイドの出し方。**出すかどうかを決めるのは Rust。**
+ */
+lyrics: LyricsBlock, songType: string | null, releaseDate: string | null, 
 /**
  * `"4:32"`。整形だけなのでここで作る。
  */
@@ -59,9 +64,4 @@ performanceHistory: Array<PerformanceRow>, frequentSingers: Array<SingerRow>, co
  * アイドルの `profile_rows` と同じ形。**どの項目をどの順で出すか / 値が無い行を
  * 落とすか**の判断はここで済ませてあるので、web は上から並べるだけでよい。
  */
-factRows: Array<ProfileRow>, app: AppOpen, seo: SeoBlock, 
-/**
- * 歌詞は Web に載せない。この固定文だけを出す。
- * JASRAC 許諾を持つのは**アプリ**であって本サイトではない、という主語を崩さないこと。
- */
-lyricsNote: string, };
+factRows: Array<ProfileRow>, app: AppOpen, seo: SeoBlock, };

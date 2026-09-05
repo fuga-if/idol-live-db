@@ -2,7 +2,7 @@
 
 use super::common::{AppOpen, Ref, SeoBlock};
 use super::idol::ProfileRow;
-use super::common::{PenlightSetDto, SongCommunity, TagChipDto};
+use super::common::{LyricsBlock, SongCommunity};
 
 web_dto! {
     /// `/songs/<id>/` の中身。
@@ -19,6 +19,8 @@ web_dto! {
         pub brand: Option<Ref>,
         /// コミュニティ集計 (タグ・お気に入り・ペンライト)。焼き込み。
         pub community: SongCommunity,
+        /// 歌詞・コールガイドの出し方。**出すかどうかを決めるのは Rust。**
+        pub lyrics: LyricsBlock,
         pub song_type: Option<String>,
         pub release_date: Option<String>,
         /// `"4:32"`。整形だけなのでここで作る。
@@ -55,9 +57,6 @@ web_dto! {
         pub fact_rows: Vec<ProfileRow>,
         pub app: AppOpen,
         pub seo: SeoBlock,
-        /// 歌詞は Web に載せない。この固定文だけを出す。
-        /// JASRAC 許諾を持つのは**アプリ**であって本サイトではない、という主語を崩さないこと。
-        pub lyrics_note: String,
     }
 }
 

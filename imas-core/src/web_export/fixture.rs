@@ -422,6 +422,17 @@ fn show_page() -> ShowPage {
 fn song_page(reference: &Ref, minimal: bool) -> SongPage {
     SongPage {
         schema_version: SCHEMA_VERSION,
+        // 代表値でも本番と同じ判断 (content::LYRICS_ON_WEB) を通す。
+        lyrics: LyricsBlock {
+            available: content::LYRICS_ON_WEB,
+            note: content::LYRICS_NOTE.to_string(),
+            license_number: content::LYRICS_ON_WEB
+                .then(|| content::JASRAC_LICENSE_NUMBER.to_string()),
+            license_note: content::LYRICS_ON_WEB
+                .then(|| content::LYRICS_ON_WEB_NOTE.to_string()),
+            source_url: content::LYRICS_ON_WEB
+                .then(|| format!("{}/songs/ml_mirai/lyrics", content::API_ORIGIN)),
+        },
         // 代表値でもコミュニティ集計が入る形にしておく (器だけ空にしない)。
         community: SongCommunity {
             tags: vec![TagChipDto {
@@ -517,7 +528,6 @@ fn song_page(reference: &Ref, minimal: bool) -> SongPage {
             Robots::IndexFollow,
             &[("ホーム", "/"), ("楽曲", "/songs/")],
         ),
-        lyrics_note: content::LYRICS_NOTE.to_string(),
     }
 }
 

@@ -4,6 +4,7 @@ import Section from "../../components/Section.astro";
 import Artwork from "../../components/Artwork.astro";
 import Chip from "../../components/Chip.astro";
 import CommunityTags from "../../components/CommunityTags.astro";
+import SongLyrics from "../../components/SongLyrics.astro";
 import RefList from "../../components/RefList.astro";
 import ListContainer from "../../components/ListContainer.astro";
 import LabeledRow from "../../components/LabeledRow.astro";
@@ -198,8 +199,6 @@ const song = page<SongPage>(Astro.props.data);
   }
 
   <Section id="song-lyrics" title="歌詞">
-    <div class="card card__pad">
-      <p>{song.lyricsNote}</p>
-    </div>
+    <SongLyrics lyrics={song.lyrics} />
   </Section>
 </DetailLayout>
