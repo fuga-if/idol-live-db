@@ -24,7 +24,17 @@ use rusqlite::{Connection, OpenFlags};
 use std::collections::{HashMap, HashSet};
 use crate::domain::snapshot_build::{self, RawTables};
 
+/// DB から `Snapshot` を組む。索引構築は `domain::snapshot_build` が持つ。
 pub fn load_snapshot(db_path: &str) -> Result<Snapshot, String> {
+    Ok(snapshot_build::build(load_raw_tables(db_path)?))
+}
+
+/// DB から生テーブルだけを読む。
+///
+/// Web 出面がこれをそのまま JSON にして配り、ブラウザが `snapshot_build::build` で
+/// Snapshot を組む。**配るのは生テーブルだけ**で、逆引き索引や畳み済み索引 (派生) は
+/// 配らない — 派生を配ると正データと二重に存在してズレても気づけないため。
+pub fn load_raw_tables(db_path: &str) -> Result<RawTables, String> {
     let conn = Connection::open_with_flags(
         db_path,
         OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
@@ -73,7 +83,7 @@ pub fn load_snapshot(db_path: &str) -> Result<Snapshot, String> {
     let idol_brands = load_idol_brands(&conn)?;
 
     // 以降 (索引構築) は SQLite に依存しないので domain 側に置いてある。
-    Ok(snapshot_build::build(RawTables {
+    Ok(RawTables {
         songs,
         idols,
         events,
@@ -95,7 +105,7 @@ pub fn load_snapshot(db_path: &str) -> Result<Snapshot, String> {
         show_cast,
         unit_members,
         idol_brands,
-    }))
+    })
 }
 
 /// PRAGMA table_info の列名集合。Documents 専用列の有無検出に使う。

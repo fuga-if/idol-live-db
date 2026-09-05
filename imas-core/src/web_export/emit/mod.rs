@@ -18,7 +18,8 @@ use super::writer::Writer;
 use super::{restore, theme, Args, Result, Stats, WebExportError};
 use crate::domain::jst_day::jst_today;
 use crate::domain::snapshot::Snapshot;
-use crate::outbound::sqlite_loader::load_snapshot;
+use crate::domain::snapshot_build::RawTables;
+use crate::outbound::sqlite_loader::{load_raw_tables, load_snapshot};
 use context::Ctx;
 use std::path::PathBuf;
 
@@ -93,10 +94,12 @@ pub fn run(args: &Args) -> Result<Stats> {
         _ => return Err(WebExportError::Args("--sql と --db のどちらか一方が要る".into())),
     };
 
-    let snap: Snapshot = load_snapshot(
-        db_path.to_str().ok_or_else(|| WebExportError::Db("DB パスが UTF-8 でない".into()))?,
-    )
-    .map_err(|e| WebExportError::Db(e.to_string()))?;
+    let db_path_str =
+        db_path.to_str().ok_or_else(|| WebExportError::Db("DB パスが UTF-8 でない".into()))?;
+    let snap: Snapshot = load_snapshot(db_path_str).map_err(|e| WebExportError::Db(e.to_string()))?;
+    // ブラウザへ渡す生テーブル。受け手は snapshot_build::build で索引を組み直す。
+    // **派生 (逆引き索引・畳み済み索引) は配らない。**
+    let raw_tables = load_raw_tables(db_path_str).map_err(|e| WebExportError::Db(e.to_string()))?;
 
     // 2) 「今日」をここで 1 回だけ確定する。
     let today = match &args.today {
@@ -117,7 +120,7 @@ pub fn run(args: &Args) -> Result<Stats> {
     let generated_at = format!("{today}T00:00:00Z");
 
     let ctx = Ctx::new(&snap, today, generated_at, content_hash);
-    write_all(&ctx, &out, args.pretty)
+    write_all(&ctx, &out, args.pretty, &raw_tables)
 }
 
 fn default_work_db(out: &std::path::Path) -> PathBuf {
@@ -136,7 +139,12 @@ fn validate_ymd(text: &str) -> Result<()> {
     }
 }
 
-fn write_all(ctx: &Ctx, out: &std::path::Path, pretty: bool) -> Result<Stats> {
+fn write_all(
+    ctx: &Ctx,
+    out: &std::path::Path,
+    pretty: bool,
+    raw_tables: &RawTables,
+) -> Result<Stats> {
     let mut w = Writer::create(out, pretty)?;
     let mut book = RouteBook::new();
 
@@ -212,6 +220,9 @@ fn write_all(ctx: &Ctx, out: &std::path::Path, pretty: bool) -> Result<Stats> {
     let brands = lists::brand_list(ctx);
     w.write_json("index/brands.json", &brands)?;
     book.listing(RouteKind::BrandList, "/brands/", "index/brands.json", true);
+
+    // 生テーブル。ブラウザ (wasm) が Snapshot を組み直すための素材。
+    w.write_json("snapshot/tables.json", &raw_tables)?;
 
     let counts = lists::counts(ctx);
     let home = lists::home(ctx, &upcoming, counts);

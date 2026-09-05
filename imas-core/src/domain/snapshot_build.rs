@@ -23,6 +23,7 @@ use crate::domain::text_search_index::TextSearchIndex;
 /// (どこで読んだかに依らず、ここに来る時点でリンクは張られている)。
 /// 結合表 5 つ (`song_artists` / `setlist_performers` / `show_cast` / `unit_members` /
 /// `idol_brands`) だけは素の行のまま渡し、添字への解決は `build` が行う。
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct RawTables {
     pub songs: Vec<Song>,
     pub idols: Vec<Idol>,

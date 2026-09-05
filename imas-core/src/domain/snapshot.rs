@@ -27,8 +27,16 @@
 use std::collections::HashMap;
 use crate::domain::text_search_index::TextSearchIndex;
 
+// 生テーブルの行型には serde を付けてある。ブラウザ (wasm) が
+// `snapshot_build::build` で Snapshot を組めるように、行だけを配るため。
+//
+// ⚠️ 付いているのは**生テーブルの行だけ**で、`Snapshot` 本体には付けない。
+//    Snapshot は逆引き索引と畳み済み索引 (派生データ) を抱えており、そのまま配ると
+//    正データと派生データが二重に存在してズレても気づけない。派生は受け手側で
+//    `build` を通して組み直すこと。
+
 /// songs 全カラム。GRDB Record / Room Entity と同じ「Record = Entity 兼用」の現実的判断。
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Song {
     pub id: String,
     pub title: String,
@@ -61,7 +69,7 @@ pub struct Song {
 /// Phase 2 では一覧・検索に要る主要カラムだけだったが、Phase 3 で idol 詳細
 /// (fetchIdol) とフィルタ (星座・出身地・血液型) が乗るため全カラムに拡張した。
 /// height/weight/bust/waist/hip は REAL 列なので f64 で持つ。
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Idol {
     pub id: String,
     pub brand_id: Option<String>,
@@ -95,7 +103,7 @@ pub struct Idol {
 }
 
 /// events 全カラム。
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Event {
     pub id: String,
     pub brand_id: Option<String>,
@@ -123,7 +131,7 @@ pub struct Event {
 }
 
 /// shows 全カラム。event は events Vec の添字。
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Show {
     pub id: String,
     /// 親イベント (events の添字)。FK 孤児はロード時に読み飛ばすので必ず有効。
@@ -146,7 +154,7 @@ pub struct Show {
 }
 
 /// setlist_items の行。show / song は各 Vec の添字。
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct SetlistItem {
     pub id: String,
     pub show: u32,
@@ -159,7 +167,7 @@ pub struct SetlistItem {
 }
 
 /// units 全カラム。
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Unit {
     pub id: String,
     pub brand_id: String,
@@ -172,7 +180,7 @@ pub struct Unit {
 }
 
 /// brands 全カラム。
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Brand {
     pub id: String,
     pub name: String,
@@ -188,7 +196,7 @@ pub struct Brand {
 /// **読みを持つためだけに存在する。** 曲側のクレジット欄 (`songs.composer` 等) は
 /// 「BNSI(中川浩二)／烏屋茶房」のような自由文字列で、そのままでは かなで引けない。
 /// `credit_names` で人ごとに割った表記を鍵に、ここの `name_kana` を当てる。
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Creator {
     pub id: String,
     /// `canonical_credit_key` を通した後の表記。
@@ -199,7 +207,7 @@ pub struct Creator {
 }
 
 /// venues 全カラム (会場マスタ)。VenueDirectory 相当の解決はクエリ層がメモリ上で行う。
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Venue {
     pub id: String,
     /// 現行名。過去公演の表示当時名は venue_names 側。
@@ -214,7 +222,7 @@ pub struct Venue {
 }
 
 /// venue_names (会場の期間つき名称履歴)。venue は venues Vec の添字。
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct VenueName {
     pub id: String,
     pub venue: u32,
@@ -224,7 +232,7 @@ pub struct VenueName {
 }
 
 /// venue_halls (会場のホール/構成)。venue は venues Vec の添字。
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct VenueHall {
     pub id: String,
     pub venue: u32,
@@ -234,7 +242,7 @@ pub struct VenueHall {
 
 /// staff 全カラム (アイドル本人ではない関係者。カレンダー誕生日用)。
 /// brand_id は brands に無い id でも保持する (表示に FK 整合は不要なため)。
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Staff {
     pub id: String,
     pub brand_id: String,
@@ -248,7 +256,7 @@ pub struct Staff {
 }
 
 /// anniversaries 全カラム (ブランド/アプリの記念日)。date は YYYY-MM-DD (年あり)。
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Anniversary {
     pub id: String,
     pub brand_id: String,
@@ -260,7 +268,7 @@ pub struct Anniversary {
 
 /// idol_voice_actors (期間つき CV 履歴)。idol は idols Vec の添字。
 /// 現任は valid_to IS NULL。交代発表後・後任未定の間は現任が居ないこともある。
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct IdolVoiceActor {
     pub id: String,
     pub idol: u32,
@@ -271,7 +279,7 @@ pub struct IdolVoiceActor {
 
 /// event_releases (ライブ円盤。Documents 専用表)。event は events Vec の添字。
 /// 公演単位の円盤なら show を持つ (イベント全体 BOX は None)。
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct EventRelease {
     pub id: String,
     pub event: u32,
