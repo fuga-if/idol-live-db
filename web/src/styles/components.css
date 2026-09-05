@@ -240,6 +240,15 @@ a.chip:hover {
 .tag--community.tag--official {
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tag-color, var(--accent)) 45%, transparent);
 }
+.polls__note {
+  margin-block-end: var(--sp5);
+}
+.polls__meta {
+  align-items: center;
+  gap: var(--sp3);
+  font-size: var(--fs-caption);
+}
+
 .community-stats {
   display: flex;
   flex-wrap: wrap;

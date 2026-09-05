@@ -194,6 +194,50 @@ web_dto! {
 }
 
 web_dto! {
+    /// お題の一覧 (`/polls/`)。
+    ///
+    /// **読むだけ。** 投票はログインが要るのでアプリへ誘導する。
+    /// 中身は D1 の集計を焼き込んだもので、閲覧時に D1 は読まない。
+    pub struct PollListPage {
+        pub schema_version: u32,
+        pub path: String,
+        pub title: String,
+        pub polls: Vec<PollSummaryDto>,
+        pub total: u32,
+        pub seo: SeoBlock,
+    }
+}
+
+web_dto! {
+    /// お題 1 件と、その時点の得票。
+    pub struct PollSummaryDto {
+        pub id: String,
+        pub title: String,
+        pub description: Option<String>,
+        /// 何を選ぶお題か (「曲」「アイドル」)。語は Rust が決める。
+        pub target_label: String,
+        /// 締切 (`YYYY-MM-DD`)。無期限なら None。
+        pub ends_on: Option<String>,
+        /// 締切前か。**判定は Rust** (TS に `new Date()` を書かせない)。
+        pub is_open: bool,
+        pub total_votes: u32,
+        /// 上位の得票。同数は entity id 順で安定させる。
+        pub entries: Vec<PollEntryDto>,
+    }
+}
+
+web_dto! {
+    /// お題の得票 1 行。
+    pub struct PollEntryDto {
+        #[serde(rename = "ref")]
+        pub reference: Ref,
+        pub votes: u32,
+        /// 1 始まりの順位 (同数でも別の順位を振る = 表示の通し番号)。
+        pub rank: u32,
+    }
+}
+
+web_dto! {
     /// アイドル一覧の切り口。
     #[derive(Copy, Eq)]
     pub enum IdolListKind {
@@ -486,6 +530,8 @@ web_dto! {
 
         /// `/brands/`
         BrandList,
+        /// `/polls/`
+        PollList,
 
         /// `/events/[id]/`
         Event,

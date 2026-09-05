@@ -66,6 +66,7 @@ pub use index::{
     EventListKind, EventListPage, HomePage, IdolListItem, IdolListKind, IdolListPage,
     KanaSection, RouteEntry, RouteKind, RoutesFile, SongListItem, SongListKind, SongListPage,
     UnitListItem, UnitListPage, VenueListItem, VenueListPage, YearGroup,
+    PollEntryDto, PollListPage, PollSummaryDto,
 };
 pub use search::{FoldCase, FoldParity, SearchManifest, SearchRow, SearchShard, SearchShardMeta};
 pub use show::{PerformerRef, SetlistRow, ShowPage};

@@ -1,0 +1,59 @@
+---
+import ListLayout from "../../layouts/ListLayout.astro";
+import Section from "../../components/Section.astro";
+import ListContainer from "../../components/ListContainer.astro";
+import LeadRow from "../../components/LeadRow.astro";
+import Count from "../../components/Count.astro";
+import TagChip from "../../components/TagChip.astro";
+import { meta, page, routeData } from "../../lib/data";
+import type { PollListPage } from "../../lib/schema/PollListPage";
+
+/**
+ * みんなのお題。
+ *
+ * **読むだけ。** 投票にはログインが要るので、この出面には操作を置かない。
+ * 中身は D1 の集計を焼き込んだもので、閲覧のたびに D1 は読まない。
+ * 「締切前か」も Rust が `ends_at` と出面の「今日」から決めた `isOpen` を出すだけ。
+ */
+const list = page<PollListPage>(routeData("pollList", "/polls/"));
+---
+
+<ListLayout seo={list.seo} meta={meta()} title={list.title} total={list.total} wide>
+  <p class="u-muted polls__note">
+    アプリの利用者が出し合ったお題と、記録した時点の得票です。投票はアプリから。
+  </p>
+
+  {
+    list.polls.map((poll) => (
+      <Section id={`poll-${poll.id}`} title={poll.title} count={poll.totalVotes}>
+        <div class="u-stack">
+          <p class="u-row polls__meta">
+            <TagChip text={poll.targetLabel} kind="all" />
+            {poll.endsOn && (
+              <span class="u-muted">
+                {poll.isOpen ? "締切" : "終了"} <time datetime={poll.endsOn}>{poll.endsOn}</time>
+              </span>
+            )}
+          </p>
+          {poll.description && <p class="u-muted">{poll.description}</p>}
+          <ListContainer as="ol">
+            {poll.entries.map((entry) => (
+              <li>
+                <LeadRow
+                  title={`${entry.rank}. ${entry.ref.name}`}
+                  subtitle={entry.ref.sub}
+                  href={entry.ref.path}
+                  themeKey={entry.ref.themeKey}
+                >
+                  <span slot="trailing">
+                    <Count value={entry.votes} unit="票" />
+                  </span>
+                </LeadRow>
+              </li>
+            ))}
+          </ListContainer>
+        </div>
+      </Section>
+    ))
+  }
+</ListLayout>

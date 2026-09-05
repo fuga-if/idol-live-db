@@ -17,6 +17,10 @@ const nav = [
   { name: "ユニット", href: "/units/" },
   { name: "会場", href: "/venues/" },
   { name: "ブランド", href: "/brands/" },
+  // ⚠️ お題ページは焼き込んだ集計が空だと書き出されない (emit/mod.rs)。
+  //    ここは手書きの一覧なので、その条件を知らない。**本来この並びも Rust が
+  //    出すべき** (routes.json には出す/出さないが載っている)。
+  { name: "お題", href: "/polls/" },
 ];
 const isCurrent = (href: string) =>
   href === "/" ? pathname === "/" : pathname.startsWith(href);

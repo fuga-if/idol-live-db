@@ -311,6 +311,14 @@ fn write_all(
     w.write_json("index/brands.json", &brands)?;
     book.listing(RouteKind::BrandList, "/brands/", "index/brands.json", true);
 
+    // お題。焼き込んだ集計が 1 件も無ければページごと出さない
+    // (中身の無いページを sitemap に載せない)。
+    let polls = lists::poll_list(ctx);
+    if !polls.polls.is_empty() {
+        w.write_json("index/polls.json", &polls)?;
+        book.listing(RouteKind::PollList, "/polls/", "index/polls.json", true);
+    }
+
     // 生テーブル。ブラウザ (wasm) が Snapshot を組み直すための素材。
     w.write_json("snapshot/tables.json", &shippable_tables(raw_tables))?;
 

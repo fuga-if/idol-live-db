@@ -903,6 +903,80 @@ pub fn brand_list(ctx: &Ctx) -> BrandListPage {
     }
 }
 
+/// お題の一覧。**焼き込んだ集計をそのまま並べる**だけで、投票は受け付けない。
+///
+/// 出すのは `status = 'active'` のものだけ (取り下げられたお題は出さない)。
+/// 締切前かどうかも、`ends_at` と出面の「今日」から Rust が決める。
+pub fn poll_list(ctx: &Ctx) -> PollListPage {
+    let path = "/polls/";
+    // 何件まで見せるか。全部出すと 1 ページが得票の羅列になるので上位だけ。
+    const TOP_N: usize = 10;
+
+    let polls: Vec<PollSummaryDto> = ctx
+        .community
+        .polls
+        .iter()
+        .filter(|p| p.status == "active")
+        .map(|poll| {
+            let all = ctx.community.poll_entries(&poll.id);
+            let entries: Vec<PollEntryDto> = all
+                .iter()
+                .filter_map(|e| {
+                    // 消えた曲・アイドルを指す得票は落とす (id は D1 側の値)。
+                    let reference = match poll.target_type.as_str() {
+                        "idol" => ctx.idol_ref(&e.entity_id),
+                        _ => ctx.song_ref(&e.entity_id),
+                    }?;
+                    Some((reference, e.vote_count))
+                })
+                .take(TOP_N)
+                .enumerate()
+                .map(|(i, (reference, votes))| PollEntryDto {
+                    reference,
+                    votes: votes.max(0) as u32,
+                    rank: i as u32 + 1,
+                })
+                .collect();
+            PollSummaryDto {
+                id: poll.id.clone(),
+                title: poll.title.clone(),
+                description: poll.description.clone(),
+                target_label: match poll.target_type.as_str() {
+                    "idol" => "アイドル",
+                    "unit" => "ユニット",
+                    _ => "曲",
+                }
+                .to_string(),
+                // 時刻は落として日付だけ見せる (分単位の締切に意味は無い)。
+                ends_on: poll.ends_at.as_ref().map(|e| e[..10.min(e.len())].to_string()),
+                // 締切前か。`ends_at` が無いお題は開いたまま。
+                is_open: poll
+                    .ends_at
+                    .as_deref()
+                    .is_none_or(|e| &e[..10.min(e.len())] >= ctx.today.as_str()),
+                total_votes: all.iter().map(|e| e.vote_count.max(0) as u32).sum(),
+                entries,
+            }
+        })
+        .collect();
+
+    PollListPage {
+        schema_version: SCHEMA_VERSION,
+        path: path.to_string(),
+        title: "みんなのお題".to_string(),
+        total: polls.len() as u32,
+        polls,
+        seo: ctx.seo(
+            "みんなのお題",
+            "アプリの利用者が出し合ったお題と、その時点の得票。投票はアプリから。",
+            path,
+            None,
+            collection_json_ld("みんなのお題", path),
+            vec![Ctx::crumb("ホーム", "/"), Ctx::crumb("みんなのお題", path)],
+        ),
+    }
+}
+
 pub fn counts(ctx: &Ctx) -> Counts {
     Counts {
         events: ctx.snap.events.len() as u32,
