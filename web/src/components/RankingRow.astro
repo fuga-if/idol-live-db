@@ -39,7 +39,13 @@ const {
   href={href}
 >
   {rank !== undefined && <span class="ranking-row__rank">{rank}</span>}
-  {artwork && <Artwork title={title} artworkUrl={artworkUrl} size="sm" />}
+  {
+    artwork ? (
+      <Artwork title={title} artworkUrl={artworkUrl} size="sm" />
+    ) : (
+      <span class="color-dot" aria-hidden="true" />
+    )
+  }
   <span class="ranking-row__body">
     <span class="ranking-row__title u-clamp1 u-underline-hover">{title}</span>
     {sub && <span class="ranking-row__sub u-clamp1">{sub}</span>}

@@ -679,12 +679,28 @@ a.labeled-row .labeled-row__value {
   display: inline-flex;
   align-items: center;
   gap: var(--sp2);
-  padding: 3px 10px 3px 3px;
+  padding: 3px 10px;
   border-radius: var(--r-pill);
   background: var(--ds-fill);
   font-size: var(--fs-caption);
   font-weight: 600;
   color: var(--ds-ink);
+}
+
+/* --- アイドルカラーの点 --------------------------------------------------
+   誰の行かを色で見分けるための印 (アプリの ColorDot と同じ役割)。
+   色は themes.css が `data-theme` から与えるので、ここに hex は書かない。
+   囲みが色を持たない要素 (neutral) では既定アクセントになる。 */
+.color-dot {
+  inline-size: 6px;
+  block-size: 6px;
+  border-radius: var(--r-pill);
+  background: var(--accent);
+  flex: none;
+}
+.color-dot--lg {
+  inline-size: 10px;
+  block-size: 10px;
 }
 .performer:hover {
   background: var(--tint-strong);

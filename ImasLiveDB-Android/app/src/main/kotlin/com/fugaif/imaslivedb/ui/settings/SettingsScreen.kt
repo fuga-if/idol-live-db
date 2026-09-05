@@ -78,6 +78,7 @@ import com.fugaif.imaslivedb.data.backup.BackupFormatException
 import com.fugaif.imaslivedb.data.backup.BackupImportResult
 import com.fugaif.imaslivedb.data.backup.BackupTransferException
 import com.fugaif.imaslivedb.data.backup.TransferCodeResult
+import com.fugaif.imaslivedb.data.model.PerformerRow
 import com.fugaif.imaslivedb.data.notification.NotificationCategory
 import com.fugaif.imaslivedb.data.notification.NotificationPrefs
 import com.fugaif.imaslivedb.data.notification.NotificationScheduler
@@ -88,7 +89,10 @@ import coil3.compose.AsyncImage
 import com.fugaif.imaslivedb.ui.components.ImasSegmented
 import com.fugaif.imaslivedb.ui.theme.AppPreferences
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.theme.PerformerNameSetting
+import com.fugaif.imaslivedb.ui.theme.displayName
 import com.fugaif.imaslivedb.ui.theme.hexToColor
+import com.fugaif.imaslivedb.ui.theme.joined
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -1146,7 +1150,16 @@ private fun AppHeader() {
     }
 }
 
-/** 文字サイズとライブ名の省略。どちらも変更が即座にアプリ全体へ効く。 */
+/** 歌唱者の表示サンプル (実データの 1 人)。設定を切り替えた見え方をその場で見せる。 */
+private val performerNameSample = PerformerRow(
+    id = "sample",
+    name = "下田麻美",
+    idolColor = null,
+    idolName = "双海亜美",
+    idolId = null
+)
+
+/** 文字サイズ・歌唱者の名前・ライブ名の省略。どれも変更が即座にアプリ全体へ効く。 */
 @Composable
 private fun DisplaySettingsSection() {
     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1168,6 +1181,23 @@ private fun DisplaySettingsSection() {
         }
         Text(
             "OS のフォントサイズ設定に掛け合わせた倍率です。",
+            style = MaterialTheme.typography.bodySmall,
+            color = DS.ink2
+        )
+    }
+    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+
+    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("セトリの歌唱者", style = MaterialTheme.typography.bodyMedium, color = DS.ink)
+        ImasSegmented(
+            labels = PerformerNameSetting.entries.map { it.label },
+            selection = PerformerNameSetting.entries.indexOf(AppPreferences.performerName),
+            onSelect = { AppPreferences.setPerformerName(PerformerNameSetting.entries[it]) },
+            modifier = Modifier.fillMaxWidth()
+        )
+        // 設定値で見え方が変わるサンプル。声優ライブの 1 人分をそのまま出す。
+        Text(
+            performerNameSample.displayName(AppPreferences.performerName, isCharacterLive = false).joined(),
             style = MaterialTheme.typography.bodySmall,
             color = DS.ink2
         )

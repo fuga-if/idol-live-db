@@ -33,6 +33,7 @@ object AppPreferences {
     private const val KEY_THEME_USE_OSHI_COLOR = "theme_use_oshi_color"
     private const val KEY_THEME_OSHI_IDOL_ID = "theme_oshi_idol_id"
     private const val KEY_THEME_OSHI_COLOR = "theme_oshi_color"
+    private const val KEY_PERFORMER_NAME_MODE = "performer_name_mode"
 
     /**
      * 文字サイズの選択肢 (極小 / 小 / 中 / 大 / 特大)。iOS `MyPageView.textScaleOptions` と同値。
@@ -54,6 +55,7 @@ object AppPreferences {
     private var useOshiColorState by mutableStateOf(false)
     private var oshiIdolIdState by mutableStateOf("")
     private var oshiColorHexState by mutableStateOf("")
+    private var performerNameState by mutableStateOf(PerformerNameSetting.IDOL)
 
     /**
      * アプリ内の文字サイズ倍率。OS のフォントサイズ設定に**乗算**で重ねる追加倍率で、
@@ -76,6 +78,9 @@ object AppPreferences {
     /** 解決済みのテーマ色 hex。空 = 無効 (既定アクセントにフォールバック)。 */
     val oshiColorHex: String get() = oshiColorHexState
 
+    /** セトリの歌唱者をどの名前で出すか。既定=アイドル名 (iOS と同じ)。 */
+    val performerName: PerformerNameSetting get() = performerNameState
+
     /**
      * SharedPreferences から現在値を読み込む。合成のルートと設定画面から呼ぶ (冪等)。
      *
@@ -92,6 +97,7 @@ object AppPreferences {
         useOshiColorState = p.getBoolean(KEY_THEME_USE_OSHI_COLOR, false)
         oshiIdolIdState = p.getString(KEY_THEME_OSHI_IDOL_ID, "").orEmpty()
         oshiColorHexState = p.getString(KEY_THEME_OSHI_COLOR, "").orEmpty()
+        performerNameState = PerformerNameSetting.from(p.getString(KEY_PERFORMER_NAME_MODE, null))
 
         pushCollectionScope(context)
     }
@@ -133,6 +139,11 @@ object AppPreferences {
     fun setOshiColorHex(value: String) {
         oshiColorHexState = value
         prefs?.edit()?.putString(KEY_THEME_OSHI_COLOR, value)?.apply()
+    }
+
+    fun setPerformerName(value: PerformerNameSetting) {
+        performerNameState = value
+        prefs?.edit()?.putString(KEY_PERFORMER_NAME_MODE, value.raw)?.apply()
     }
 
     /**

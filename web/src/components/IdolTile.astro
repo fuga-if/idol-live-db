@@ -10,6 +10,7 @@ const { entity, sub } = Astro.props;
 
 <li>
   <a class="tile" data-theme={entity.themeKey} href={entity.path}>
+    <span class="color-dot color-dot--lg" aria-hidden="true"></span>
     <span class="tile__name u-underline-hover">{entity.name}</span>
     {(sub ?? entity.sub) && <span class="tile__sub u-clamp1">{sub ?? entity.sub}</span>}
   </a>

@@ -78,6 +78,7 @@ const hasTicket = ticketRows.some((r) => r.value) || ev.ticket.url;
                 {cs.performers.map((m) => (
                   <li>
                     <a class="performer" href={m.ref.path} data-theme={m.ref.themeKey}>
+                      <span class="color-dot" aria-hidden="true" />
                       {m.ref.name}
                       {m.isLead && <TagChip text="主演" kind="lead" />}
                       {m.isGuest && <TagChip text="ゲスト" kind="guest" />}

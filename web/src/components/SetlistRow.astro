@@ -48,6 +48,7 @@ const { row } = Astro.props;
 
                     `castName` が無い = CV 不在 (この判断も Rust 側)。その人は
                     どのモードでもアイドル名のまま出す。 */}
+                <span class="color-dot" aria-hidden="true"></span>
                 <span class="performer__names">
                   <span class="performer__idol">{p.ref.name}</span>
                   {p.castName && <span class="performer__cast">{p.castName}</span>}

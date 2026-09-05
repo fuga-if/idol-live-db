@@ -81,10 +81,14 @@ import com.fugaif.imaslivedb.ui.components.PerformerChip
 import com.fugaif.imaslivedb.ui.edit.SetlistEditScreen
 import com.fugaif.imaslivedb.ui.filtered.ShowFilterKind
 import com.fugaif.imaslivedb.ui.share.SetlistCommentComposeSheet
+import com.fugaif.imaslivedb.ui.theme.AppPreferences
 import com.fugaif.imaslivedb.ui.theme.BrandPalette
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasTheme
+import com.fugaif.imaslivedb.ui.theme.PerformerNameSetting
 import com.fugaif.imaslivedb.ui.theme.brandColor
+import com.fugaif.imaslivedb.ui.theme.displayName
+import com.fugaif.imaslivedb.ui.theme.joined
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -214,6 +218,8 @@ fun SetlistScreen(
             }
         } else {
             val isCharacterLive = uiState.show?.isCharacterLive ?: false
+            // 歌唱者をどの名前で出すか。設定画面と同じ 1 箇所から読む。
+            val performerName = AppPreferences.performerName
             val seedHex = BrandPalette.hex(uiState.brandId)
             LazyColumn(
                 modifier = Modifier
@@ -350,7 +356,12 @@ fun SetlistScreen(
                                 SetlistSimpleRow(
                                     item = item,
                                     displayNumber = index + 1,
-                                    performerLabel = performerLabel(item, performers),
+                                    performerLabel = performerLabel(
+                                        item,
+                                        performers,
+                                        performerName,
+                                        isCharacterLive
+                                    ),
                                     brandHex = BrandPalette.hex(item.songBrandId) ?: seedHex,
                                     onClick = { onSongClick(item.songId) }
                                 )
@@ -472,12 +483,21 @@ private fun toggleLike(
  * ユニット単独曲ならユニット名 → それ以外は名前を「／」で連結。
  * 区切りが全角スラッシュなのは公式のセトリ画像に合わせているため。
  *
+ * **名前の決め方はここに書かない。** どちらを出すかは閲覧者の設定で変わるので、
+ * 1 人分の解決は imas-core の `performerDisplayName` に任せる
+ * (ここが `idolName ?: name` を直に読んでいたせいでアイドル名で固定されていた)。
+ *
  * iOS にある「出演者全員なら『全員』」は、その判定に要る show_cast の集合を
  * Android のセトリ画面が読んでいないので出さない (名前が並ぶだけで壊れはしない)。
  */
-private fun performerLabel(item: SetlistRow, performers: List<PerformerRow>): String {
+private fun performerLabel(
+    item: SetlistRow,
+    performers: List<PerformerRow>,
+    setting: PerformerNameSetting,
+    isCharacterLive: Boolean
+): String {
     item.unitName?.takeIf { it.isNotBlank() }?.let { return it }
-    return performers.joinToString("／") { it.idolName ?: it.name }
+    return performers.joinToString("／") { it.displayName(setting, isCharacterLive).joined() }
 }
 
 /** シンプル表示のオン/オフを端末に残す。画面をまたいで見方を保つためだけの 1 bit。 */
@@ -734,10 +754,8 @@ private fun SetlistItemRow(
                 ) {
                     performers.forEach { performer ->
                         PerformerChip(
-                            name = performer.name,
-                            idolName = performer.idolName,
+                            name = performer.displayName(AppPreferences.performerName, isCharacterLive),
                             idolColorHex = performer.idolColor,
-                            isCharacterLive = isCharacterLive,
                             modifier = Modifier.clickable(enabled = performer.idolId != null) {
                                 performer.idolId?.let { onIdolClick(it) }
                             }

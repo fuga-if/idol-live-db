@@ -16,33 +16,24 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fugaif.imaslivedb.ui.theme.DS
+import uniffi.imas_core.PerformerDisplayName
 
 /**
- * Small capsule chip showing a performer with color dot.
- * For character lives: displays idol name as primary + "CV:castName" as sub-text.
- * For cast lives: displays cast name as primary + idol name as sub-text.
- * Mirrors iOS PerformerChip.
+ * 歌唱者 1 人のカプセル chip (色ドット + 主の名前 + あれば副の名前)。
+ * iOS `PerformerChip` と 1:1。
  *
- * @param name          Primary display name (cast or idol)
- * @param idolName      Associated idol name (nullable)
- * @param idolColorHex  Hex color for the dot (nullable)
- * @param isCharacterLive When true, treat as a character live (idol name is primary)
+ * **どちらの名前を出すかはここで決めない。** 解決済みの [name] を受け取るだけで、
+ * 規則は imas-core の `performerDisplayName` が持つ。
+ *
+ * @param name          解決済みの表示名 (主と、あれば副)
+ * @param idolColorHex  色ドットの hex (null 可)
  */
 @Composable
 fun PerformerChip(
-    name: String,
-    idolName: String? = null,
+    name: PerformerDisplayName,
     idolColorHex: String? = null,
-    isCharacterLive: Boolean = false,
     modifier: Modifier = Modifier
 ) {
-    val displayName = if (isCharacterLive) idolName ?: name else name
-    val subName: String? = when {
-        isCharacterLive && idolName != null -> "CV:$name"
-        !isCharacterLive && idolName != null -> idolName
-        else -> null
-    }
-
     Surface(
         shape = CircleShape,
         color = DS.surface2,
@@ -58,13 +49,13 @@ fun PerformerChip(
 
             Column {
                 Text(
-                    text = displayName,
+                    text = name.primary,
                     style = MaterialTheme.typography.labelSmall,
                     maxLines = 1
                 )
-                if (subName != null) {
+                name.secondary?.let { sub ->
                     Text(
-                        text = subName,
+                        text = sub,
                         style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
                         color = DS.ink2,
                         maxLines = 1
