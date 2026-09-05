@@ -66,9 +66,15 @@ web_dto! {
         pub last_date: Option<String>,
         pub short_date: Option<String>,
         pub brand: Option<Ref>,
-        /// 種別チップ (`live` / `festival` / …)。一覧を全種別で出すので、行で見分けが要る。
+        /// 種別 (`live` / `festival` / …)。
         pub kind: String,
-        pub kind_label: String,
+        /// 行に出す種別チップ。
+        ///
+        /// **その一覧に 1 種別しか無ければ `None`。** 全部同じ札が並んでも
+        /// 見分けの役に立たず、行あたりの情報が薄くなるだけ
+        /// (トップの「今後のライブ」は 8 行すべて `ライブ` だった)。
+        /// 判断は [`super::super::emit::lists::drop_uniform_kind_labels`]。
+        pub kind_label: Option<String>,
         pub show_count: u32,
         /// 行の副題 (期間・ブランド名・公演数・会場)。空なら `None`。
         ///

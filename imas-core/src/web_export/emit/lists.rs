@@ -130,7 +130,7 @@ fn event_list_item(
         first_date: record.first_date.clone(),
         last_date: record.last_date.clone(),
         brand,
-        kind_label: content::kind_label(&e.kind).to_string(),
+        kind_label: Some(content::kind_label(&e.kind).to_string()),
         kind: e.kind.clone(),
         show_count,
     })
@@ -1026,7 +1026,14 @@ pub fn home(ctx: &Ctx, upcoming: &[EventListItem], counts: Counts) -> HomePage {
         path: path.to_string(),
         tagline: content::SITE_TAGLINE.to_string(),
         disclaimer: content::SITE_DISCLAIMER.to_string(),
-        upcoming: upcoming.iter().take(8).cloned().collect(),
+        // 種別チップは**実際に出す 8 件**で判断する。upcoming 全体には
+        // ライブとリリースイベントが混ざるが、先頭 8 件が全部ライブなら
+        // 同じ札が 8 個並ぶだけになる。
+        upcoming: {
+            let mut items: Vec<EventListItem> = upcoming.iter().take(8).cloned().collect();
+            drop_uniform_kind_labels(&mut items);
+            items
+        },
         recent_shows: super::events::recent_shows(ctx, 8),
         stat_tiles: site_stat_tiles(counts, true, false),
         brands: ctx
@@ -1104,6 +1111,22 @@ pub fn upcoming_items(pages: &[Emitted<EventListPage>]) -> Vec<EventListItem> {
         .find(|p| p.route_kind == RouteKind::EventListUpcoming)
         .map(|p| p.page.groups.iter().flat_map(|g| g.events.iter().cloned()).collect())
         .unwrap_or_default()
+}
+
+/// 1 種別しか無い一覧では種別チップを落とす。
+///
+/// **見分けが付かない札は情報ではない。** 「今後のライブ」のように全部
+/// `ライブ` の一覧では、行の右端に同じ札が並ぶだけで、読む側は何も得ない。
+/// 逆に年別の一覧には `ライブ` / `リリースイベント` / `フェス` が混ざるので、
+/// そこでは残す。
+pub fn drop_uniform_kind_labels(items: &mut [EventListItem]) {
+    let mut kinds = items.iter().map(|i| i.kind.as_str());
+    let Some(first) = kinds.next() else { return };
+    if kinds.all(|k| k == first) {
+        for item in items {
+            item.kind_label = None;
+        }
+    }
 }
 
 /// 会場ページで使う公演要約 (`places.rs` から呼ぶ用の再輸出)。

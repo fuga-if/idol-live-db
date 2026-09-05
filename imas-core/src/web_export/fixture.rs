@@ -750,7 +750,7 @@ fn event_list_item(reference: &Ref, kind: &str) -> EventListItem {
         short_date: Some("26/04".to_string()),
         brand: Some(brand_ml()),
         kind: kind.to_string(),
-        kind_label: content::kind_label(kind).to_string(),
+        kind_label: Some(content::kind_label(kind).to_string()),
         show_count: 2,
         subtitle: Some("2026-04-03 〜 2026-04-04 ・ アイドルマスター ミリオンライブ! ・ 2 公演 ・ 幕張メッセ".to_string()),
     }

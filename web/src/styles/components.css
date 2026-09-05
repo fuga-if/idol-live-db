@@ -457,8 +457,12 @@ a.chip:hover {
 /* --- EntryCard (ImasEntryCard) -------------------------------------------- */
 .entry-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  /* 短縮名の錠剤 + 件数 4 つが 1 行に入る幅を下限にする。240px だと
+     件数が 2 行に折れて、カードごとに高さが変わっていた。 */
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: var(--sp4);
+  /* 高さを揃える (行の中で一番高いカードに合わせる)。 */
+  align-items: stretch;
 }
 .entry-card {
   display: flex;
@@ -472,9 +476,14 @@ a.chip:hover {
 .entry-card:hover {
   background: var(--ds-surface2);
 }
+/* 中身は短縮名 (`765AS` / `シャニマス`) で、最長 5 文字。
+   **正方形に押し込めない。** 44px 角に入れていた頃は 7/9 が枠から溢れ、
+   `シャニ / マス` のように折り返して読めなくなっていた。
+   横に伸びる錠剤にして、1 行で必ず収める。 */
 .entry-card__icon {
-  inline-size: 44px;
+  min-inline-size: 44px;
   block-size: 44px;
+  padding-inline: var(--sp3);
   border-radius: 12px;
   background: var(--chip-bg);
   color: var(--chip-text);
@@ -482,7 +491,8 @@ a.chip:hover {
   place-items: center;
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: var(--fs-title3);
+  font-size: var(--fs-footnote);
+  white-space: nowrap;
   flex: none;
 }
 .entry-card__body {
@@ -496,9 +506,12 @@ a.chip:hover {
   font-size: var(--fs-body);
   font-weight: 700;
 }
+/* 件数の羅列。区切り (・) でだけ折り返させる。既定のままだと
+   `アイ / ドル 14` のように語の途中で切れる。 */
 .entry-card__preview {
   font-size: var(--fs-footnote);
   color: var(--ds-ink2);
+  word-break: keep-all;
 }
 
 /* --- RankingRow (ImasRankingRow) ------------------------------------------ */

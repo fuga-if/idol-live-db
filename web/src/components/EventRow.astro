@@ -20,8 +20,12 @@ const { item } = Astro.props;
     href={item.ref.path}
     themeKey={item.ref.themeKey}
   >
-    <span slot="trailing" class="u-row">
-      <TagChip text={item.kindLabel} kind="all" />
-    </span>
+    {/* 種別チップは「その一覧に 2 種別以上あるとき」だけ Rust が入れる。
+        全部同じ札が並んでも見分けの役に立たないため。 */}
+    {item.kindLabel && (
+      <span slot="trailing" class="u-row">
+        <TagChip text={item.kindLabel} kind="all" />
+      </span>
+    )}
   </LeadRow>
 </li>

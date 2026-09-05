@@ -6,9 +6,18 @@ import type { Ref } from "./Ref";
  */
 export type EventListItem = { ref: Ref, firstDate: string | null, lastDate: string | null, shortDate: string | null, brand: Ref | null, 
 /**
- * 種別チップ (`live` / `festival` / …)。一覧を全種別で出すので、行で見分けが要る。
+ * 種別 (`live` / `festival` / …)。
  */
-kind: string, kindLabel: string, showCount: number, 
+kind: string, 
+/**
+ * 行に出す種別チップ。
+ *
+ * **その一覧に 1 種別しか無ければ `None`。** 全部同じ札が並んでも
+ * 見分けの役に立たず、行あたりの情報が薄くなるだけ
+ * (トップの「今後のライブ」は 8 行すべて `ライブ` だった)。
+ * 判断は [`super::super::emit::lists::drop_uniform_kind_labels`]。
+ */
+kindLabel: string | null, showCount: number, 
 /**
  * 行の副題 (期間・ブランド名・公演数・会場)。空なら `None`。
  *
