@@ -4,6 +4,7 @@ pub mod credit_names;
 pub mod jst_day;
 pub mod prng;
 pub mod snapshot;
+pub mod snapshot_build;
 pub mod song_list_queries;
 pub mod song_detail_queries;
 pub mod idol_song_queries;
