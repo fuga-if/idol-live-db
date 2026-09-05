@@ -117,3 +117,6 @@ web/src/lib/fold/
 web/node_modules/
 web/wasm/*/target/
 web/wasm/*/pkg/
+
+# 並列エージェント用の共有 cargo ビルドキャッシュ (数GB)
+target-shared/
