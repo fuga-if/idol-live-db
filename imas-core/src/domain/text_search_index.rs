@@ -162,10 +162,17 @@ impl FoldedNeedle {
 // 同じ規則を使う**ため。Web の検索欄が独自に畳むと、iOS / Android / Web で
 // 当たり方が 3 通りになる (かつて iOS と Android で 2 通りに割れていたのと同じ壊れ方)。
 //
-// `imas-core` 全体を wasm に持っていく案は取らない。rusqlite (wasm では
-// sqlite-wasm-rs) と uniffi の scaffolding が丸ごと乗り、`fold` 1 関数のために
-// SQLite の実体を配ることになる (実測: sqlite-wasm-rs は Xcode 同梱の clang に
-// WebAssembly バックエンドが無いためビルドすら通らない)。
+// この crate を切り出したのは `fold` 1 関数だけをブラウザへ配るため。当時
+// 「`imas-core` 全体を wasm に持っていく案は取らない」と書いたが、それは
+// **fold 1 関数のために** SQLite を抱き込むのは割に合わない、という判断だった。
+//
+// 2026-09-05 追記: フィルタ機構ごとブラウザで動かす用途では話が違い、実測すると
+// ドメインは wasm でビルドできる。詰まっていたのは uniffi ではなく SQLite だけで、
+// wasm が `cfg(not(target_vendor = "apple"))` の枝に入って sqlite-wasm-rs を
+// 引いていた。wasm を除外し `outbound` (DB アダプタ) と `inbound` (FFI 入口) を
+// wasm から外せば 0 エラーで通る (Cargo.toml / lib.rs 参照)。
+// この crate は今もそのまま使う — 索引側を畳むのは Rust、検索語を畳むのはブラウザ、
+// という役割分担は変わらない。
 
 /// 畳み済みバイト列の部分列探索。
 ///
