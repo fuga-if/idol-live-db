@@ -61,6 +61,110 @@ pub struct SongListFilter {
     pub exclude_live_only: bool,
 }
 
+/// 一覧の絞り込み条件を、**出面 (JSON) で運ぶための形**。
+///
+/// `SongListFilter` + 並べ替え。ページを組んだ Rust が土台として書き出し、
+/// ブラウザの wasm がそのまま読んで `song_list_indexes` を回す。
+///
+/// **これが Rust ↔ wasm ↔ TS の唯一の定義**。以前は
+/// (a) `emit::lists::query_base_json` の手書き camelCase JSON、
+/// (b) wasm 側の写し、(c) TS の手書き interface、と 3 つに割れていて、
+/// 軸を 1 本足すと 3 箇所を人手で揃える必要があった (型でもテストでも捕まらない)。
+///
+/// ts-rs は `web-export` のときだけ付く。wasm 側はこの型を素の serde で読む。
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug, PartialEq)]
+#[serde(rename_all = "camelCase", default)]
+#[cfg_attr(
+    feature = "web-export",
+    derive(ts_rs::TS),
+    ts(export, export_to = "../../web/src/lib/schema/")
+)]
+pub struct SongQuery {
+    pub brand_ids: Vec<String>,
+    pub title: Option<String>,
+    pub idol_name: Option<String>,
+    pub idol_ids: Vec<String>,
+    pub songwriter: Option<String>,
+    pub cd_series: Option<String>,
+    pub series_group: Option<String>,
+    pub live_name: Option<String>,
+    pub song_type: Option<String>,
+    pub include_remixes: bool,
+    pub include_other_brand: bool,
+    pub exclude_live_only: bool,
+    /// `SongListSort::key()` の値。未知の鍵は既定 (50 音順) に倒れる。
+    pub sort: String,
+    /// 省略時はその並びの既定方向 (`SongListSort::default_ascending`)。
+    pub ascending: Option<bool>,
+}
+
+impl Default for SongQuery {
+    /// 一覧ページの既定。`SongListFilter::default()` ではなく
+    /// **一覧を組むときに使う既定** (ライブ履歴のみの曲は隠す) に合わせる。
+    fn default() -> Self {
+        Self {
+            brand_ids: Vec::new(),
+            title: None,
+            idol_name: None,
+            idol_ids: Vec::new(),
+            songwriter: None,
+            cd_series: None,
+            series_group: None,
+            live_name: None,
+            song_type: None,
+            include_remixes: false,
+            include_other_brand: false,
+            exclude_live_only: true,
+            sort: "kana".to_string(),
+            ascending: None,
+        }
+    }
+}
+
+impl SongQuery {
+    /// 絞り込み条件だけを取り出す。
+    pub fn to_filter(&self) -> SongListFilter {
+        SongListFilter {
+            brand_ids: self.brand_ids.clone(),
+            title: self.title.clone(),
+            idol_name: self.idol_name.clone(),
+            idol_ids: self.idol_ids.clone(),
+            songwriter: self.songwriter.clone(),
+            cd_series: self.cd_series.clone(),
+            series_group: self.series_group.clone(),
+            live_name: self.live_name.clone(),
+            song_type: self.song_type.clone(),
+            include_remixes: self.include_remixes,
+            include_other_brand: self.include_other_brand,
+            exclude_live_only: self.exclude_live_only,
+        }
+    }
+
+    /// 並べ替え軸。
+    pub fn sort_order(&self) -> SongListSort {
+        SongListSort::from_key(&self.sort)
+    }
+
+    /// 一覧を組んだ条件から土台を作る (並べ替えは既定のまま)。
+    pub fn from_filter(f: &SongListFilter) -> Self {
+        Self {
+            brand_ids: f.brand_ids.clone(),
+            title: f.title.clone(),
+            idol_name: f.idol_name.clone(),
+            idol_ids: f.idol_ids.clone(),
+            songwriter: f.songwriter.clone(),
+            cd_series: f.cd_series.clone(),
+            series_group: f.series_group.clone(),
+            live_name: f.live_name.clone(),
+            song_type: f.song_type.clone(),
+            include_remixes: f.include_remixes,
+            include_other_brand: f.include_other_brand,
+            exclude_live_only: f.exclude_live_only,
+            ..Self::default()
+        }
+    }
+}
+
 /// 楽曲一覧のソート軸。iOS `SongSortOrder` の 1:1 対応 (名前は衝突回避で変更)。
 #[derive(uniffi::Enum, Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SongListSort {

@@ -6,6 +6,7 @@
 
 use super::common::{AppLinks, NavLink, Ref, SeoBlock, StatTile};
 use super::event::ShowSummary;
+use crate::domain::song_list_queries::SongQuery;
 
 // ---------------------------------------------------------------------------
 // ライブ一覧
@@ -95,13 +96,13 @@ web_dto! {
         /// 行を走査して列の有無を推測しない (走査すると「たまたま全行 null」と
         /// 「そもそも載せていない」が混ざり、同じ種類のページで表の形が変わる)。
         pub rows_are_light: bool,
-        /// この一覧を組んだときの絞り込み条件 (JSON)。ブラウザの wasm が
+        /// この一覧を組んだときの絞り込み条件。ブラウザの wasm が
         /// これを土台に条件を足して `song_list_indexes` を回す。
         ///
         /// 土台を Rust が出すのは、ページの中身と絞り込みの出発点を同じ 1 箇所で
         /// 決めるため。JS 側で「/songs/ なら既定フィルタ」と書き直すと二重定義になる。
         /// 行を `ref` だけに削った一覧 (`/songs/all/`) には無い。
-        pub query_base: Option<String>,
+        pub query_base: Option<SongQuery>,
         pub kana_sections: Vec<KanaSection>,
         pub brand_links: Vec<NavLink>,
         /// 既定フィルタから外れた曲も含む全件ハブ (`/songs/all/`) への案内。

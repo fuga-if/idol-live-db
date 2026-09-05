@@ -5,6 +5,7 @@ import type { Ref } from "./Ref";
 import type { SeoBlock } from "./SeoBlock";
 import type { SongListItem } from "./SongListItem";
 import type { SongListKind } from "./SongListKind";
+import type { SongQuery } from "./SongQuery";
 
 /**
  * 楽曲一覧ページ。`/songs/` `/songs/brand/<brandId>/` `/songs/all/`。
@@ -19,14 +20,14 @@ export type SongListPage = { schemaVersion: number, path: string, title: string,
  */
 rowsAreLight: boolean, 
 /**
- * この一覧を組んだときの絞り込み条件 (JSON)。ブラウザの wasm が
+ * この一覧を組んだときの絞り込み条件。ブラウザの wasm が
  * これを土台に条件を足して `song_list_indexes` を回す。
  *
  * 土台を Rust が出すのは、ページの中身と絞り込みの出発点を同じ 1 箇所で
  * 決めるため。JS 側で「/songs/ なら既定フィルタ」と書き直すと二重定義になる。
  * 行を `ref` だけに削った一覧 (`/songs/all/`) には無い。
  */
-queryBase: string | null, kanaSections: Array<KanaSection>, brandLinks: Array<NavLink>, 
+queryBase: SongQuery | null, kanaSections: Array<KanaSection>, brandLinks: Array<NavLink>, 
 /**
  * 既定フィルタから外れた曲も含む全件ハブ (`/songs/all/`) への案内。
  *

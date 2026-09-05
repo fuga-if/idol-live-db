@@ -9,15 +9,16 @@
  * (押しても何も起きないものを置かない)。器は `hidden` で出しておき、
  * island が起動したときに外す。
  */
+import type { SongQuery } from "../lib/schema/SongQuery";
 interface Props {
-  /** この一覧を組んだときの条件 (JSON)。Rust が `SongListPage.queryBase` で出す。 */
-  queryBase: string;
+  /** この一覧を組んだときの条件。Rust が `SongListPage.queryBase` で出す。 */
+  queryBase: SongQuery;
   total: number;
 }
 const { queryBase, total } = Astro.props;
 ---
 
-<section class="song-filter" data-song-filter data-query-base={queryBase} data-state="loading" hidden>
+<section class="song-filter" data-song-filter data-query-base={JSON.stringify(queryBase)} data-state="loading" hidden>
   <div class="song-filter__fields" data-filter-fields></div>
   <div class="song-filter__row">
     <label class="song-filter__field">

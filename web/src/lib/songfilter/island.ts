@@ -125,17 +125,13 @@ export function mountSongFilter(root: HTMLElement): void {
   function apply(): void {
     if (!engine) return;
 
-    // 土台 (ページを組んだ条件) に画面の入力を重ねる。土台を上書きしない。
+    // 土台 (ページを組んだ条件) に、**入力のあった軸だけ**を重ねる。
+    // 空の軸で土台を上書きしない (ブランド別ページで曲名を打った瞬間に
+    // 全ブランドへ広がってしまう)。軸ごとに条件を書き分けないのは、
+    // 軸を 1 本足したときに「重ね方」を書き忘れないため。
     const query: SongQuery = {
       ...baseQuery,
-      title: state.title.trim() || null,
-      idolIds: state.idolIds,
-      songwriter: state.songwriter.trim() || null,
-      cdSeries: state.cdSeries || null,
-      seriesGroup: state.seriesGroup || null,
-      liveName: state.liveName.trim() || null,
-      songType: state.songType || baseQuery.songType || null,
-      brandIds: state.brandIds.length > 0 ? state.brandIds : (baseQuery.brandIds ?? []),
+      ...filled(state),
       sort: state.sort,
       ascending: state.ascending,
     };
@@ -195,6 +191,21 @@ function emptyState(sort: string): State {
     sort,
     ascending: null,
   };
+}
+
+/** 入力のあった軸だけを取り出す。空欄は「指定なし」で、土台をそのまま残す。 */
+function filled(s: State): Partial<SongQuery> {
+  const out: Partial<SongQuery> = {};
+  const text = (v: string) => v.trim() || null;
+  if (text(s.title)) out.title = text(s.title);
+  if (text(s.songwriter)) out.songwriter = text(s.songwriter);
+  if (text(s.liveName)) out.liveName = text(s.liveName);
+  if (s.cdSeries) out.cdSeries = s.cdSeries;
+  if (s.seriesGroup) out.seriesGroup = s.seriesGroup;
+  if (s.songType) out.songType = s.songType;
+  if (s.idolIds.length > 0) out.idolIds = s.idolIds;
+  if (s.brandIds.length > 0) out.brandIds = s.brandIds;
+  return out;
 }
 
 function isNarrowed(s: State): boolean {

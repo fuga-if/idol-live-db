@@ -11,6 +11,10 @@
  */
 import type { Query } from "../query/imas_query_wasm";
 
+// 条件の型は Rust が出す (`imas-core` の `SongQuery` を ts-rs が生成)。
+// ここに interface を手書きすると、軸を 1 本足したときに片方だけ古いまま残る。
+export type { SongQuery } from "../schema/SongQuery";
+
 /** 生テーブルの置き場所。dist/snapshot/ へは astro.config の copy-generated-assets が置く。 */
 const TABLES_URL = "/snapshot/tables.json";
 
@@ -35,24 +39,6 @@ export function loadQuery(): Promise<Query> {
     return new mod.Query(tables);
   })();
   return cached;
-}
-
-/** wasm の `SongQuery` と 1:1。キーを変えるなら Rust 側も同時に変えること。 */
-export interface SongQuery {
-  brandIds?: string[];
-  title?: string | null;
-  idolName?: string | null;
-  idolIds?: string[];
-  songwriter?: string | null;
-  cdSeries?: string | null;
-  seriesGroup?: string | null;
-  liveName?: string | null;
-  songType?: string | null;
-  includeRemixes?: boolean;
-  includeOtherBrand?: boolean;
-  excludeLiveOnly?: boolean;
-  sort?: string;
-  ascending?: boolean | null;
 }
 
 /** `Query.facets()` が返す選択肢。値は `SongQuery` にそのまま渡す文字列。 */

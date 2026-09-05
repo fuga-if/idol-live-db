@@ -67,6 +67,7 @@ export type { SongListItem } from "./SongListItem";
 export type { SongListKind } from "./SongListKind";
 export type { SongListPage } from "./SongListPage";
 export type { SongPage } from "./SongPage";
+export type { SongQuery } from "./SongQuery";
 export type { StatTile } from "./StatTile";
 export type { ThemePair } from "./ThemePair";
 export type { ThemeTable } from "./ThemeTable";

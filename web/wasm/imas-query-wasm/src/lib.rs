@@ -12,7 +12,7 @@
 use imas_core::domain::snapshot::Snapshot;
 use imas_core::domain::snapshot_build::{self, RawTables};
 use imas_core::domain::song_list_queries::{
-    song_list_indexes, song_list_sort_options_without_user_marks, SongListFilter, SongListSort,
+    song_list_indexes, song_list_sort_options_without_user_marks, SongQuery,
 };
 use imas_core::domain::{idol_queries, song_detail_queries};
 use wasm_bindgen::prelude::*;
@@ -26,75 +26,7 @@ pub struct Query {
     snap: Snapshot,
 }
 
-/// 絞り込み条件。JS から渡す形。`SongListFilter` と 1:1 で、既定値は
-/// **一覧ページを組んだときと同じ**にしてある (`SongListFilter::default` ではない)。
-#[derive(serde::Deserialize)]
-#[serde(rename_all = "camelCase", default)]
-pub struct SongQuery {
-    pub brand_ids: Vec<String>,
-    pub title: Option<String>,
-    pub idol_name: Option<String>,
-    pub idol_ids: Vec<String>,
-    pub songwriter: Option<String>,
-    pub cd_series: Option<String>,
-    pub series_group: Option<String>,
-    pub live_name: Option<String>,
-    pub song_type: Option<String>,
-    pub include_remixes: bool,
-    pub include_other_brand: bool,
-    pub exclude_live_only: bool,
-    /// "kana" / "release" / "performance"。未知の値は "kana" に倒す。
-    pub sort: String,
-    /// 省略時はその並びの既定方向 (`SongListSort::default_ascending`)。
-    pub ascending: Option<bool>,
-}
-
-impl Default for SongQuery {
-    fn default() -> Self {
-        Self {
-            brand_ids: Vec::new(),
-            title: None,
-            idol_name: None,
-            idol_ids: Vec::new(),
-            songwriter: None,
-            cd_series: None,
-            series_group: None,
-            live_name: None,
-            song_type: None,
-            include_remixes: false,
-            include_other_brand: false,
-            exclude_live_only: true,
-            sort: "kana".to_string(),
-            ascending: None,
-        }
-    }
-}
-
-impl SongQuery {
-    fn to_filter(&self) -> SongListFilter {
-        SongListFilter {
-            brand_ids: self.brand_ids.clone(),
-            title: self.title.clone(),
-            idol_name: self.idol_name.clone(),
-            idol_ids: self.idol_ids.clone(),
-            songwriter: self.songwriter.clone(),
-            cd_series: self.cd_series.clone(),
-            series_group: self.series_group.clone(),
-            live_name: self.live_name.clone(),
-            song_type: self.song_type.clone(),
-            include_remixes: self.include_remixes,
-            include_other_brand: self.include_other_brand,
-            exclude_live_only: self.exclude_live_only,
-        }
-    }
-
-    fn sort(&self) -> SongListSort {
-        // 鍵 → 並び の対応はコアが持つ (ここに match を書き写さない)。
-        SongListSort::from_key(&self.sort)
-    }
-}
-
-/// 選択肢 1 件。value は `SongListFilter` にそのまま渡す文字列。
+/// 選択肢 1 件。value は `SongQuery` にそのまま渡す文字列。
 #[derive(serde::Serialize)]
 struct Opt {
     value: String,
@@ -144,14 +76,14 @@ impl Query {
         let q: SongQuery = serde_json::from_str(query_json)
             .map_err(|e| JsValue::from_str(&format!("条件を読めない: {e}")))?;
         let indexes =
-            song_list_indexes(&self.snap, &q.to_filter(), q.sort(), q.ascending, &[], &[]);
+            song_list_indexes(&self.snap, &q.to_filter(), q.sort_order(), q.ascending, &[], &[]);
         Ok(indexes.iter().map(|&i| self.snap.songs[i as usize].id.clone()).collect())
     }
 
     /// 絞り込みの選択肢。**中身を決めるのは Snapshot** で、JS は並べるだけ。
     ///
     /// 値そのもの (ブランド id・アイドル id・CD シリーズ名) はコアが持つ文字列を
-    /// そのまま返す。JS 側で組み立て直すと `SongListFilter` に渡す値がズレる。
+    /// そのまま返す。JS 側で組み立て直すと `SongQuery` に渡す値がズレる。
     pub fn facets(&self) -> Result<String, JsValue> {
         // **選択肢を組む関数はアプリと同じもの**を呼ぶ。ここで snap を自前で
         // 走査すると、並びだけが他の画面と違う一覧になる (実際にアイドルは
@@ -225,7 +157,7 @@ mod tests {
             let want: Vec<String> = {
                 let sq: SongQuery = serde_json::from_str(q).unwrap();
                 imas_core::domain::song_list_queries::song_list_indexes(
-                    &from_db, &sq.to_filter(), sq.sort(), sq.ascending, &[], &[],
+                    &from_db, &sq.to_filter(), sq.sort_order(), sq.ascending, &[], &[],
                 )
                 .iter()
                 .map(|&i| from_db.songs[i as usize].id.clone())

@@ -29,6 +29,7 @@ use super::url::{detail_path, path_key, reserved_for};
 use super::writer::Writer;
 use super::{Result, Stats, WebExportError};
 use std::path::Path;
+use crate::domain::song_list_queries::{SongListFilter, SongQuery};
 
 const TODAY: &str = "2026-09-04";
 const GENERATED_AT: &str = "2026-09-04T00:00:00Z";
@@ -783,10 +784,9 @@ fn song_list_page(path: &str, title: &str, kind: SongListKind) -> SongListPage {
         kind,
         brand: if matches!(kind, SongListKind::Brand) { Some(brand_ml()) } else { None },
         rows_are_light: matches!(kind, SongListKind::All),
-        query_base: (!matches!(kind, SongListKind::All)).then(|| {
-            r#"{"brandIds":[],"excludeLiveOnly":true,"includeOtherBrand":false,"includeRemixes":false,"songType":null}"#
-                .to_string()
-        }),
+        // 代表値でも本番と同じ関数を通す (フィクスチャだけ違うキーが出ない)。
+        query_base: (!matches!(kind, SongListKind::All))
+            .then(|| SongQuery::from_filter(&SongListFilter::default())),
         kana_sections: vec![
             KanaSection { label: "さ".to_string(), start_index: 0, count: 1 },
             KanaSection { label: "英数".to_string(), start_index: 1, count: 1 },

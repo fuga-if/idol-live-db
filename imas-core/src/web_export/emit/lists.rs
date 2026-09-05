@@ -20,6 +20,7 @@ use crate::web_export::content;
 use crate::web_export::dto::*;
 use crate::web_export::url::url_segment;
 use std::collections::BTreeMap;
+use crate::domain::song_list_queries::SongQuery;
 
 /// 一覧に出すライブの種別。
 ///
@@ -376,21 +377,6 @@ fn kana_sections(ctx: &Ctx, items: &[SongListItem]) -> Vec<KanaSection> {
 }
 
 
-/// 一覧を組んだときの条件を、ブラウザの wasm がそのまま読める形 (camelCase) にする。
-///
-/// キーは `web/wasm/imas-query-wasm` の `SongQuery` と 1:1。ここを変えるなら
-/// 向こうも同時に変えること (JSON を挟むので型では守れない)。
-fn query_base_json(f: &SongListFilter) -> String {
-    serde_json::json!({
-        "brandIds": f.brand_ids,
-        "songType": f.song_type,
-        "includeRemixes": f.include_remixes,
-        "includeOtherBrand": f.include_other_brand,
-        "excludeLiveOnly": f.exclude_live_only,
-    })
-    .to_string()
-}
-
 pub fn song_lists(ctx: &Ctx) -> Vec<Emitted<SongListPage>> {
     let total_all = ctx.snap.songs.len() as u32;
     // 既定フィルタを通した件数。ブランド切替の「すべて」に出す数はこれ
@@ -418,7 +404,7 @@ pub fn song_lists(ctx: &Ctx) -> Vec<Emitted<SongListPage>> {
         let items: Vec<SongListItem> =
             indexes.iter().filter_map(|&i| song_list_item(ctx, i, light)).collect();
         // 行を ref だけに削った一覧 (/songs/all/) は絞り込みの土台を持たない。
-        let query_base = (!light).then(|| query_base_json(&base));
+        let query_base = (!light).then(|| SongQuery::from_filter(&base));
         let brand_id = brand.as_ref().map(|b| b.id.clone());
         let mut seo = ctx.seo(
             &title,
