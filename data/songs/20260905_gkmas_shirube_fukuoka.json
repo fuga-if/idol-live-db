@@ -1,0 +1,64 @@
+{
+  "title": "標ツアー 福岡公演 の会場ver.と DAY1 初披露曲",
+  "_help": "修楽旅行の福岡ver.は Apple Music で配信済み。新曲3曲は DAY1 初披露で未配信のため発売日・クレジット無し",
+  "source": "https://x.com/gkmas_official/status/2096204427170603296",
+  "songs": [
+    {
+      "id": "gakuen_修楽旅行_花海咲季月村手毬藤田ことね雨夜燕篠澤広ver",
+      "title": "修楽旅行 (花海咲季・月村手毬・藤田ことね・雨夜 燕・篠澤 広 ver.)",
+      "title_kana": "しゅうがくりょこう",
+      "brand_id": "gakuen",
+      "song_type": "unit",
+      "release_date": "2026-09-05",
+      "duration_sec": 227,
+      "cd_series": "修楽旅行 (花海咲季・月村手毬・藤田ことね・雨夜 燕・篠澤 広 ver.) - Single",
+      "cd_title": "修楽旅行 (花海咲季・月村手毬・藤田ことね・雨夜 燕・篠澤 広 ver.) - Single",
+      "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/50/95/8b/50958b46-6247-0b51-49ab-bd2bc824d1a7/PA00226559_0_253046_jacket.jpg/600x600bb.jpg",
+      "apple_music_id": "6806126722",
+      "apple_music_album_id": "6806126719",
+      "singer_label": "花海咲季、月村手毬、藤田ことね、雨夜 燕、篠澤 広",
+      "original_singers": [
+        "gakuen_花海咲季",
+        "gakuen_月村手毬",
+        "gakuen_藤田ことね",
+        "gakuen_篠澤広",
+        "gakuen_雨夜燕"
+      ],
+      "source": "https://music.apple.com/jp/album/6806126719",
+      "note": "標ツアーの会場ごとのメンバー別ver.。福岡公演ぶん。福井公演ぶん (有村麻央・葛城リーリヤ・花海佑芽・姫崎莉波 ver.) は登録済み"
+    },
+    {
+      "id": "gakuen_神かわいい",
+      "title": "神かわいい",
+      "brand_id": "gakuen",
+      "song_type": "solo",
+      "original_singers": [
+        "gakuen_藤田ことね"
+      ],
+      "source": "https://x.com/gkmas_official/status/2096204427170603296",
+      "note": "2026-09-05 標ツアー福岡公演 DAY1 でサプライズ初披露。配信・収録CDは未発表"
+    },
+    {
+      "id": "gakuen_nazonazo",
+      "title": "nazonazo",
+      "brand_id": "gakuen",
+      "song_type": "solo",
+      "original_singers": [
+        "gakuen_花海咲季"
+      ],
+      "source": "https://x.com/gkmas_official/status/2096204427170603296",
+      "note": "2026-09-05 標ツアー福岡公演 DAY1 でサプライズ初披露。配信・収録CDは未発表"
+    },
+    {
+      "id": "gakuen_be_proud",
+      "title": "Be Proud",
+      "brand_id": "gakuen",
+      "song_type": "solo",
+      "original_singers": [
+        "gakuen_雨夜燕"
+      ],
+      "source": "https://x.com/gkmas_official/status/2096204427170603296",
+      "note": "2026-09-05 標ツアー福岡公演 DAY1 でサプライズ初披露。配信・収録CDは未発表。同名の ml_be_proud (Be proud) とは別曲"
+    }
+  ]
+}
