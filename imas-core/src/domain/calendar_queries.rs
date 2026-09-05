@@ -601,8 +601,8 @@ mod tests {
 
     #[test]
     fn shows_match_sql_at_history_boundaries() {
-        // 最古公演 (2004-01-17) を境界に含む / データ以前は空
-        assert_shows_match("2004-01-01", "2004-01-17", true);
+        // 最古公演 (2004-12-27) を境界に含む / データ以前は空
+        assert_shows_match("2004-12-01", "2004-12-27", true);
         assert_shows_match("1990-01-01", "2003-12-31", false);
         let entries = calendar_entries(snap(), "1990-01-01", "2003-12-31");
         assert!(show_rows(&entries).is_empty());
