@@ -89,7 +89,7 @@ import coil3.compose.AsyncImage
 import com.fugaif.imaslivedb.ui.components.ImasSegmented
 import com.fugaif.imaslivedb.ui.theme.AppPreferences
 import com.fugaif.imaslivedb.ui.theme.DS
-import com.fugaif.imaslivedb.ui.theme.PerformerNameSetting
+import com.fugaif.imaslivedb.ui.theme.PerformerNamePref
 import com.fugaif.imaslivedb.ui.theme.displayName
 import com.fugaif.imaslivedb.ui.theme.hexToColor
 import com.fugaif.imaslivedb.ui.theme.joined
@@ -1189,10 +1189,13 @@ private fun DisplaySettingsSection() {
 
     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("セトリの歌唱者", style = MaterialTheme.typography.bodyMedium, color = DS.ink)
+        // 選択肢はコアが出す (順も文言もアプリ 1 本)。
+        val options = PerformerNamePref.options
         ImasSegmented(
-            labels = PerformerNameSetting.entries.map { it.label },
-            selection = PerformerNameSetting.entries.indexOf(AppPreferences.performerName),
-            onSelect = { AppPreferences.setPerformerName(PerformerNameSetting.entries[it]) },
+            labels = options.map { it.label },
+            selection = options.indexOfFirst { it.raw == AppPreferences.performerNameRaw }
+                .takeIf { it >= 0 } ?: 0,
+            onSelect = { AppPreferences.setPerformerNameRaw(options[it].raw) },
             modifier = Modifier.fillMaxWidth()
         )
         // 設定値で見え方が変わるサンプル。声優ライブの 1 人分をそのまま出す。

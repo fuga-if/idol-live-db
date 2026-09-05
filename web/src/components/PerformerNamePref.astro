@@ -1,12 +1,13 @@
 ---
-import {
-  PERFORMER_NAME_MODES,
-  PERFORMER_NAME_LABELS,
-  DEFAULT_MODE,
-} from "../lib/prefs/performerName";
+import { meta } from "../lib/data";
+import { DEFAULT_MODE } from "../lib/prefs/performerName";
 
 /**
  * セトリの歌唱者をどの名前で出すかの切り替え。
+ *
+ * **選択肢は Rust が出す。** 順も保存値も文言も `meta.json` の
+ * `performerNameOptions` (= `imas-core` の `performer_name_options`) そのままで、
+ * ここは `<option>` に置くだけ。アプリの設定画面と同じ 1 本を見ている。
  *
  * **表示の好みだけを持つ。** サーバには送らず、ログインも要らない
  * (この出面は書き込まない・状態をサーバに持たない、という原則は崩さない)。
@@ -15,15 +16,16 @@ import {
  * JS が動かない環境では出さない (押しても何も起きないものを置かない)。
  * 器は `hidden` で描いておき、島が起動したときに外す。
  */
+const options = meta().performerNameOptions;
 ---
 
 <div class="perf-pref" data-performer-pref hidden>
   <label class="perf-pref__label" for="performer-name">歌唱者の表示</label>
   <select class="song-filter__select" id="performer-name" data-performer-select>
     {
-      PERFORMER_NAME_MODES.map((m) => (
-        <option value={m} selected={m === DEFAULT_MODE}>
-          {PERFORMER_NAME_LABELS[m]}
+      options.map((o) => (
+        <option value={o.raw} selected={o.raw === DEFAULT_MODE}>
+          {o.label}
         </option>
       ))
     }
@@ -31,22 +33,24 @@ import {
 </div>
 
 <script>
-  import { readMode, writeMode, type PerformerNameMode } from "../lib/prefs/performerName";
+  import { readMode, writeMode } from "../lib/prefs/performerName";
 
   const root = document.querySelector<HTMLElement>("[data-performer-pref]");
   const select = root?.querySelector<HTMLSelectElement>("[data-performer-select]");
   if (root && select) {
+    // 選べる値は Rust が描いた <option> がそのまま名簿になる。
+    // JS 側にモードの一覧を持たない。
+    const known = [...select.options].map((o) => o.value);
     // モードは body に置く。切り替えの実体は CSS 側 (components.css) で、
     // どちらの名前を見せるかだけが変わる。
-    const apply = (mode: PerformerNameMode) => {
+    const apply = (mode: string) => {
       document.body.dataset.performerName = mode;
       select.value = mode;
     };
-    apply(readMode());
+    apply(readMode(known));
     select.addEventListener("change", () => {
-      const mode = select.value as PerformerNameMode;
-      writeMode(mode);
-      apply(mode);
+      writeMode(select.value);
+      apply(select.value);
     });
     root.hidden = false;
   }

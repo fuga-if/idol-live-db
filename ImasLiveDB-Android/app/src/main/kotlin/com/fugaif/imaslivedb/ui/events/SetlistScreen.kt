@@ -85,7 +85,7 @@ import com.fugaif.imaslivedb.ui.theme.AppPreferences
 import com.fugaif.imaslivedb.ui.theme.BrandPalette
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasTheme
-import com.fugaif.imaslivedb.ui.theme.PerformerNameSetting
+import uniffi.imas_core.PerformerNameMode
 import com.fugaif.imaslivedb.ui.theme.brandColor
 import com.fugaif.imaslivedb.ui.theme.displayName
 import com.fugaif.imaslivedb.ui.theme.joined
@@ -370,6 +370,7 @@ fun SetlistScreen(
                                     item = item,
                                     displayNumber = index + 1,
                                     performers = performers,
+                                    performerName = performerName,
                                     isCharacterLive = isCharacterLive,
                                     showName = uiState.show?.name,
                                     showDate = uiState.show?.date,
@@ -493,7 +494,7 @@ private fun toggleLike(
 private fun performerLabel(
     item: SetlistRow,
     performers: List<PerformerRow>,
-    setting: PerformerNameSetting,
+    setting: PerformerNameMode,
     isCharacterLive: Boolean
 ): String {
     item.unitName?.takeIf { it.isNotBlank() }?.let { return it }
@@ -673,6 +674,7 @@ private fun SetlistItemRow(
     item: SetlistRow,
     displayNumber: Int,
     performers: List<PerformerRow>,
+    performerName: PerformerNameMode,
     isCharacterLive: Boolean,
     showName: String?,
     showDate: String?,
@@ -754,7 +756,7 @@ private fun SetlistItemRow(
                 ) {
                     performers.forEach { performer ->
                         PerformerChip(
-                            name = performer.displayName(AppPreferences.performerName, isCharacterLive),
+                            name = performer.displayName(performerName, isCharacterLive),
                             idolColorHex = performer.idolColor,
                             modifier = Modifier.clickable(enabled = performer.idolId != null) {
                                 performer.idolId?.let { onIdolClick(it) }

@@ -43,6 +43,7 @@ export type { IdolSongRow } from "./IdolSongRow";
 export type { KanaSection } from "./KanaSection";
 export type { NavLink } from "./NavLink";
 export type { PerformanceRow } from "./PerformanceRow";
+export type { PerformerNameOptionDto } from "./PerformerNameOptionDto";
 export type { PerformerRef } from "./PerformerRef";
 export type { ProfileRow } from "./ProfileRow";
 export type { Ref } from "./Ref";

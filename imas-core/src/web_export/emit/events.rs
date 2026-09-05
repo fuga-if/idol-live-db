@@ -264,15 +264,9 @@ pub fn show_page(ctx: &Ctx, show_id: &str) -> Option<ShowPage> {
                             .filter_map(|p| {
                                 Some(PerformerRef {
                                     reference: ctx.idol_ref(&p.idol_id)?,
-                                    // 併記の材料はコアに決めさせる。`Both` の副は
-                                    // アイドル名と違うときだけ入るので、
-                                    // 「CV 不在なら同じ名前を 2 つ配る」が起きない。
-                                    cast_name: detail::performer_display_name(
-                                        p,
-                                        detail::PerformerNameMode::Both,
-                                        false,
-                                    )
-                                    .secondary,
+                                    // 「同じ名前を 2 つ配らない」判断はコアに任せる。
+                                    cast_name: detail::distinct_cast_name(p)
+                                        .map(str::to_string),
                                 })
                             })
                             .collect()
@@ -299,7 +293,7 @@ pub fn show_page(ctx: &Ctx, show_id: &str) -> Option<ShowPage> {
 
     Some(ShowPage {
         schema_version: SCHEMA_VERSION,
-        is_character_live: detail::is_character_live(ctx.snap, &show.id),
+        is_character_live: detail::is_character_live(show.performer_type.as_deref()),
         id: show.id.clone(),
         path: path.clone(),
         name: show.name.clone(),

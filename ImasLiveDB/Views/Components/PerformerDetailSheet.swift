@@ -4,38 +4,28 @@ import SwiftUI
 struct PerformerDetailSheet: View {
     @Environment(AppDatabase.self) private var database
     let songTitle: String
-    let idols: [Idol]
-    /// 歌唱者の行 (アイドル名と CV 名の両方を持つ)。`idols` と同じ並び・同じ人。
-    let performers: [PerformerRow]
-    /// どの名前を出すか。規則は imas-core の `performerDisplayName` が持つ。
-    var performerName: PerformerNameSetting = .idol
-    var isCharacterLive: Bool = false
+    /// 並べる歌唱者。**アイドルと表示名を 1 組で受け取る。**
+    /// 以前は `[Idol]` と `[PerformerRow]` を別々に受け取り、シート側が id で
+    /// 突き合わせ直していた (2 本が食い違い得る不変条件を人が守る必要があり、
+    /// 人数分の線形探索も走っていた)。組むのは呼び出し側の仕事。
+    let performers: [ResolvedPerformer]
     let navigate: (DetailDestination) -> Void
-
-    /// idol_id → 表示名。`idols` の並びで引けるようにしておく。
-    private func name(for idol: Idol) -> PerformerDisplayName {
-        guard let row = performers.first(where: { $0.idolId == idol.id }) else {
-            return PerformerDisplayName(primary: idol.name, secondary: nil)
-        }
-        return row.displayName(performerName, isCharacterLive: isCharacterLive)
-    }
 
     var body: some View {
         NavigationStack {
             List {
-                ForEach(idols) { idol in
+                ForEach(performers) { performer in
                     Button {
                         AppAnalytics.tap("performer_detail.select_idol")
-                        navigate(.idol(idol))
+                        navigate(.idol(performer.idol))
                     } label: {
                         HStack(spacing: DS.sp4) {
-                            IdolAvatarView(idol: idol, size: 40)
+                            IdolAvatarView(idol: performer.idol, size: 40)
                             VStack(alignment: .leading, spacing: 0) {
-                                let shown = name(for: idol)
-                                Text(shown.primary)
+                                Text(performer.name.primary)
                                     .font(.imasBody)
                                     .foregroundStyle(DS.ink)
-                                if let sub = shown.secondary {
+                                if let sub = performer.name.secondary {
                                     Text(sub)
                                         .font(.imasCaption)
                                         .foregroundStyle(DS.ink2)
@@ -48,7 +38,7 @@ struct PerformerDetailSheet: View {
                     .buttonStyle(.plain)
                 }
             }
-            .navigationTitle("\(songTitle) / 出演者 \(idols.count)名")
+            .navigationTitle("\(songTitle) / 出演者 \(performers.count)名")
             .navigationBarTitleDisplayMode(.inline)
         }
         .presentationDetents([.medium, .large])

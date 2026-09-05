@@ -151,19 +151,20 @@ export function mountSongFilter(root: HTMLElement): void {
     // 返ってきた順に並べ、載っていない行は隠す。
     const shown = new Set(ids);
     const frag = document.createDocumentFragment();
+    let visible = 0;
     for (const id of ids) {
       const tr = rows.get(id);
       if (!tr) continue; // 一覧に載っていない曲 (土台の外) は無視する。
       tr.hidden = false;
       frag.appendChild(tr);
+      visible += 1;
     }
     for (const [id, tr] of rows) if (!shown.has(id)) tr.hidden = true;
+    // appendChild で frag は空になるので、件数はここへ来る前に数えておく。
     el.tbody.appendChild(frag);
 
     const narrowed = isNarrowed(state);
-    el.status.textContent = narrowed
-      ? `${frag.childElementCount || countVisible(rows)} 件 / ${total} 件`
-      : `${total} 件`;
+    el.status.textContent = narrowed ? `${visible} 件 / ${total} 件` : `${total} 件`;
     el.root.dataset.filtered = String(narrowed);
     // かな目次は既定の並びを前提にした飛び先なので、絞り込み/並べ替え中は隠す。
     if (el.kana) el.kana.hidden = narrowed || state.sort !== "kana" || state.ascending === false;
@@ -177,12 +178,6 @@ function must<T extends HTMLElement>(root: HTMLElement, selector: string): T {
   const found = root.querySelector<T>(selector);
   if (!found) throw new Error(`絞り込みの部品が無い: ${selector}`);
   return found;
-}
-
-function countVisible(rows: Map<string, HTMLElement>): number {
-  let n = 0;
-  for (const tr of rows.values()) if (!tr.hidden) n += 1;
-  return n;
 }
 
 function emptyState(sort: string): State {
@@ -219,8 +214,9 @@ function currentAscending(s: State): boolean {
 }
 
 function setEnabled(el: Elements, on: boolean): void {
+  // 入力欄は素材 (facets) が来てから描くので、ここで触るものは無い。
+  // 器の側 (sort/dir/reset) だけを止めておく。
   for (const c of [el.sort, el.dir, el.reset]) c.disabled = !on;
-  el.fields.querySelectorAll<HTMLInputElement>("input,select").forEach((i) => (i.disabled = !on));
   el.root.dataset.state = on ? "ready" : "loading";
 }
 

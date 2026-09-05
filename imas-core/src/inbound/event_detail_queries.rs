@@ -15,8 +15,9 @@
 use super::snapshot_store::{SnapshotError, SnapshotStore};
 use crate::domain::event_detail_queries::{
     self as queries, EventAttendanceRecord, EventDetailRecord, EventReleaseRecord,
-    EventStatsRecord, PerformerDisplayName, PerformerNameMode, SetlistEntryRecord,
-    SetlistPerformerRecord, ShowRecord, ShowWithEventNameRecord, VenueDirectoryRecord,
+    EventStatsRecord, PerformerDisplayName, PerformerNameMode, PerformerNameOption,
+    SetlistEntryRecord, SetlistPerformerRecord, ShowRecord, ShowWithEventNameRecord,
+    VenueDirectoryRecord,
 };
 use std::collections::HashMap;
 
@@ -34,6 +35,33 @@ pub fn performer_display_name(
     is_character_live: bool,
 ) -> PerformerDisplayName {
     queries::performer_display_name(&record, mode, is_character_live)
+}
+
+/// 2 段に積めない場所 (簡易表示・共有文) 向けの 1 行表記。
+#[uniffi::export]
+pub fn performer_display_name_joined(name: PerformerDisplayName) -> String {
+    name.joined()
+}
+
+/// 設定画面に並べる選択肢一式 (順・保存値・文言)。
+///
+/// **これを並べるだけにする。** 4 モードのラベルと保存値を各プラットフォームの
+/// enum に書き写すと、文言を直したときに 1 面だけ古いまま残る。
+#[uniffi::export]
+pub fn performer_name_options() -> Vec<PerformerNameOption> {
+    queries::performer_name_options()
+}
+
+/// 保存値からモードを復元する。未知の値・未設定は既定 (アイドル名)。
+#[uniffi::export]
+pub fn performer_name_mode_from_raw(raw: Option<String>) -> PerformerNameMode {
+    PerformerNameMode::from_raw(raw.as_deref())
+}
+
+/// 公演がキャラライブか (`shows.performer_type == "character"`)。
+#[uniffi::export]
+pub fn is_character_live(performer_type: Option<String>) -> bool {
+    queries::is_character_live(performer_type.as_deref())
 }
 
 #[uniffi::export]

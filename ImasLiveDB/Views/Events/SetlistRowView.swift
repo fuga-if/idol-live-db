@@ -14,8 +14,8 @@ struct SetlistRowView: View {
     /// この公演でユニット単独曲を披露したユニット ID。
     /// 偶然メンバーが揃った合唱曲に過剰マッチするのを防ぐ。
     var activeUnitIds: Set<String> = []
-    /// 歌唱者をどの名前で出すか (親が AppStorage から渡す)。
-    var performerName: PerformerNameSetting = .idol
+    /// 歌唱者をどの名前で出すか (親が AppStorage から解決して渡す)。
+    var performerName: PerformerNameMode = .idolOnly
     /// `shows.performer_type == "character"`。
     ///
     /// 以前は既定値のまま誰も渡しておらず、キャラライブ分岐が死んでいた。
@@ -57,6 +57,18 @@ struct SetlistRowView: View {
 
     private var performerIdols: [Idol] {
         performers.compactMap { $0.idolId.flatMap { idolsById[$0] } }
+    }
+
+    /// アイドルと表示名を 1 組にした並び。**解決はここ 1 箇所**で、
+    /// チップもシートもこれを見る (同じ人の名前を 2 度解決しない)。
+    private var resolvedPerformers: [ResolvedPerformer] {
+        performers.compactMap { row in
+            guard let idol = row.idolId.flatMap({ idolsById[$0] }) else { return nil }
+            return ResolvedPerformer(
+                idol: idol,
+                name: row.displayName(performerName, isCharacterLive: isCharacterLive)
+            )
+        }
     }
 
     /// 公演に出ている全キャストが歌唱している = 「全員」表記対象。
@@ -257,10 +269,7 @@ struct SetlistRowView: View {
         .sheet(isPresented: $showPerformersSheet) {
             PerformerDetailSheet(
                 songTitle: item.songTitle,
-                idols: performerIdols,
-                performers: performers,
-                performerName: performerName,
-                isCharacterLive: isCharacterLive
+                performers: resolvedPerformers
             ) { dest in
                 showPerformersSheet = false
                 go(dest)
@@ -306,9 +315,8 @@ struct SetlistRowView: View {
                 FlowLayout(spacing: DS.sp2) {
                     ForEach(performers) { performer in
                         PerformerChip(
-                            performer: performer,
-                            performerName: performerName,
-                            isCharacterLive: isCharacterLive
+                            name: performer.displayName(performerName, isCharacterLive: isCharacterLive),
+                            colorHex: performer.idolColor
                         )
                     }
                 }
@@ -318,19 +326,15 @@ struct SetlistRowView: View {
 }
 
 private struct PerformerChip: View {
-    let performer: PerformerRow
-    var performerName: PerformerNameSetting = .idol
-    var isCharacterLive: Bool = false
-
-    /// 主と副。**どちらを出すかの規則は imas-core が持つ** (画面ごとに分岐を書かない)。
-    private var name: PerformerDisplayName {
-        performer.displayName(performerName, isCharacterLive: isCharacterLive)
-    }
+    /// 解決済みの表示名。**どちらを出すかの規則は imas-core が持つ**ので、
+    /// ここは受け取った主/副を並べるだけ (chip の中で解決し直さない)。
+    let name: PerformerDisplayName
+    let colorHex: String?
 
     var body: some View {
         HStack(spacing: DS.sp2) {
             Circle()
-                .fill(Color(hexString: performer.idolColor, default: DS.ink3))
+                .fill(Color(hexString: colorHex, default: DS.ink3))
                 .frame(width: 6, height: 6)
             VStack(alignment: .leading, spacing: 0) {
                 Text(name.primary)

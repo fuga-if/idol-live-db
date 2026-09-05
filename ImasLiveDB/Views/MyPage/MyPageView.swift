@@ -31,7 +31,8 @@ struct MyPageView: View {
     /// イベント名の作品名プレフィックスを省略表示するか (既定 ON)。OFF でフル表示。
     @AppStorage("event_name_abbreviate") private var abbreviateEventNames: Bool = true
     /// セトリの歌唱者をどの名前で出すか (既定=アイドル名)。
-    @AppStorage(PerformerNameSetting.storageKey) private var performerName: PerformerNameSetting = .idol
+    /// 保存するのはコアが決めた `raw` の文字列 (序数で保存しない)。
+    @AppStorage(PerformerNamePref.storageKey) private var performerNameRaw = PerformerNamePref.defaultRaw
     /// 曲一覧の「この絞り込みでイントロドン」導線を隠すか (曲一覧側の×と同じキー)。
     @AppStorage("songlist_introdon_bar_hidden") private var introDonBarHidden: Bool = false
     /// 回収に配信参加も含めるか (既定=現地のみ)。地方勢など配信中心の人向け。
@@ -449,13 +450,18 @@ struct MyPageView: View {
             }
             .padding(.vertical, DS.sp1)
 
-            Picker("セトリの歌唱者", selection: $performerName) {
-                ForEach(PerformerNameSetting.allCases) { setting in
-                    Text(setting.label).tag(setting)
+            // 選択肢はコアが出す (順も文言もアプリ 1 本)。
+            Picker("セトリの歌唱者", selection: $performerNameRaw) {
+                ForEach(PerformerNamePref.options, id: \.raw) { option in
+                    Text(option.label).tag(option.raw)
                 }
             }
             // 設定値で見え方が変わるサンプル。声優ライブの 1 人分をそのまま出す。
-            Text(Self.performerNameSample.displayName(performerName, isCharacterLive: false).joined)
+            Text(
+                Self.performerNameSample
+                    .displayName(PerformerNamePref.mode(performerNameRaw), isCharacterLive: false)
+                    .joined
+            )
                 .font(.imasCaption)
                 .foregroundStyle(DS.ink2)
 

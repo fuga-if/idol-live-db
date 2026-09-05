@@ -64,6 +64,27 @@
   color: var(--ds-ink);
 }
 
+/* --- アイドルカラーの点 --------------------------------------------------
+   誰の行かを色で見分けるための印 (アプリの ColorDot と同じ役割)。
+   色は themes.css が `data-theme` から与えるので、ここに hex は書かない。
+   囲みが色を持たない要素 (neutral) では既定アクセントになる。
+   マークアップは ColorDot.astro が持つ (生 span を各所に写さない)。 */
+.color-dot,
+.labeled-row__swatch {
+  inline-size: var(--dot-size, 6px);
+  block-size: var(--dot-size, 6px);
+  border-radius: var(--r-pill);
+  background: var(--accent);
+  flex: none;
+}
+.color-dot--lg {
+  --dot-size: 10px;
+}
+.labeled-row__swatch {
+  --dot-size: 16px;
+  align-self: center;
+}
+
 /* --- Artwork (ImasArtwork: 画像 or ソリッド面 + 曲名) ---------------------- */
 .artwork {
   position: relative;
@@ -465,14 +486,6 @@ a.labeled-row .labeled-row__value {
   color: var(--accent);
   font-weight: 600;
 }
-.labeled-row__swatch {
-  inline-size: 16px;
-  block-size: 16px;
-  border-radius: var(--r-pill);
-  background: var(--accent);
-  flex: none;
-  align-self: center;
-}
 
 /* --- EmptyState (ImasEmptyState) ------------------------------------------ */
 .empty {
@@ -687,23 +700,57 @@ a.labeled-row .labeled-row__value {
   color: var(--ds-ink);
 }
 
-/* --- アイドルカラーの点 --------------------------------------------------
-   誰の行かを色で見分けるための印 (アプリの ColorDot と同じ役割)。
-   色は themes.css が `data-theme` から与えるので、ここに hex は書かない。
-   囲みが色を持たない要素 (neutral) では既定アクセントになる。 */
-.color-dot {
-  inline-size: 6px;
-  block-size: 6px;
-  border-radius: var(--r-pill);
-  background: var(--accent);
-  flex: none;
-}
-.color-dot--lg {
-  inline-size: 10px;
-  block-size: 10px;
-}
 .performer:hover {
   background: var(--tint-strong);
+}
+
+/* セトリの歌唱者チップ。
+   両方の名前を持たせておき、閲覧者が選んだモード (data-performer-name) で
+   どちらを出すかを決める。**規則は imas-core が持ち、ここは見せ隠しだけ。**
+   既定 (属性なし = アイドル名) はサーバが描いたままで、JS を必要としない。
+
+   モードは「どの変数をどう置くか」だけを決め、要素は変数を読む。
+   モードごとに複合セレクタを書くと、モードを 1 つ足すたびに同じ条件を
+   3 箇所へ書き足すことになり、2/3 だけ直して半分だけ変わる事故になる。 */
+.performer__names {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.35;
+}
+.performer__idol {
+  display: var(--idol-show, inline);
+}
+.performer__cast {
+  display: var(--cast-show, none);
+  color: var(--cast-ink, var(--ds-ink2));
+  font-size: var(--cast-size, var(--fs-caption2));
+}
+.performer__cast::before {
+  content: var(--cast-prefix, "CV. ");
+}
+
+/* CV 名を主にするモード。
+   - 「CV 名」= 常に CV 名
+   - 「公演に合わせる」= 声優ライブのときだけ (公演種別は show ページが
+     data-character-live で持つ。キャラライブならアイドル名のまま) */
+:is([data-performer-name="cast"], [data-performer-name="show"]:not([data-character-live="true"])) {
+  --idol-show: none;
+  --cast-show: inline;
+  --cast-ink: inherit;
+  --cast-size: inherit;
+  --cast-prefix: "";
+}
+
+/* 併記。 */
+[data-performer-name="both"] {
+  --cast-show: inline;
+}
+
+/* CV 不在の人 (data-no-cast) はどのモードでもアイドル名を出す。
+   .performer__cast をそもそも持たないので、消すと名前が 1 つも出ない。 */
+.performer[data-no-cast] {
+  --idol-show: inline;
 }
 
 /* --- グリッド (曲・アイドル・ユニット一覧) -------------------------------- */
@@ -1041,9 +1088,6 @@ a.labeled-row .labeled-row__value {
 .song-filter__field {
   min-width: 0;
 }
-.song-filter__field--grow {
-  flex: 1 1 14rem;
-}
 .song-filter__input,
 .song-filter__select {
   width: 100%;
@@ -1081,62 +1125,15 @@ a.labeled-row .labeled-row__value {
 .song-filter__reset:hover {
   color: var(--ds-ink);
 }
-.song-filter__facets {
+/* 入力欄の並び。中身は island が facets から描くので、ここは器の形だけ。 */
+.song-filter__fields {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--sp4);
-  align-items: flex-start;
+  gap: var(--sp3);
+  align-items: center;
 }
-.song-filter__facets:empty {
+.song-filter__fields:empty {
   display: none;
-}
-.song-filter__group {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp2);
-  align-items: center;
-  border: 0;
-  margin: 0;
-  padding: 0;
-  min-width: 0;
-}
-.song-filter__group legend {
-  font-size: var(--fs-caption2);
-  font-weight: 700;
-  color: var(--ds-ink3);
-  padding: 0 var(--sp2) 0 0;
-  float: left;
-  line-height: 1.9;
-}
-.song-filter__chip {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--sp2);
-  padding: 4px 10px;
-  border-radius: var(--r-pill);
-  background: var(--ds-fill);
-  font-size: var(--fs-caption);
-  font-weight: 600;
-  color: var(--ds-ink2);
-  cursor: pointer;
-  white-space: nowrap;
-}
-.song-filter__chip input {
-  margin: 0;
-  accent-color: var(--ds-sys);
-}
-.song-filter__chip b {
-  font-weight: 400;
-  color: var(--ds-ink3);
-  font-variant-numeric: tabular-nums;
-}
-.song-filter__chip:has(input:checked) {
-  background: var(--ds-sys);
-  color: var(--ds-on-sys);
-}
-.song-filter__chip:has(input:checked) b {
-  color: var(--ds-on-sys);
-  opacity: 0.75;
 }
 .song-filter__status {
   font-size: var(--fs-caption);
@@ -1144,50 +1141,16 @@ a.labeled-row .labeled-row__value {
   font-variant-numeric: tabular-nums;
 }
 
-/* セトリの歌唱者チップ。
-   両方の名前を持たせておき、閲覧者が選んだモード (data-performer-name) で
-   どちらを出すかを決める。**規則は imas-core が持ち、ここは見せ隠しだけ。**
-   既定 (属性なし = アイドル名) はサーバが描いたままで、JS を必要としない。 */
-.performer__names {
+/* 歌唱者の表示切り替え。絞り込みと同じ入力部品を使うので、器だけ用意する。 */
+.perf-pref {
   display: flex;
-  flex-direction: column;
-  min-width: 0;
-  line-height: 1.35;
+  align-items: center;
+  gap: var(--sp3);
+  margin-block-end: var(--sp4);
 }
-.performer__cast {
-  display: none;
+.perf-pref__label {
+  font-size: var(--fs-caption);
   color: var(--ds-ink2);
-  font-size: var(--fs-caption2);
-}
-.performer__cast::before {
-  content: "CV. ";
+  white-space: nowrap;
 }
 
-/* CV 名を主にするモード。
-   - 「CV 名」= 常に CV 名
-   - 「公演に合わせる」= 声優ライブのときだけ (公演種別は show ページが
-     data-character-live で持つ。キャラライブならアイドル名のまま)
-   CV 不在の人 (data-no-cast) はどのモードでもアイドル名を出す。消してしまうと
-   名前が 1 つも出ない。 */
-:is([data-performer-name="cast"], [data-performer-name="show"]:not([data-character-live="true"]))
-  .performer:not([data-no-cast])
-  .performer__idol {
-  display: none;
-}
-:is([data-performer-name="cast"], [data-performer-name="show"]:not([data-character-live="true"]))
-  .performer:not([data-no-cast])
-  .performer__cast {
-  display: inline;
-  color: inherit;
-  font-size: inherit;
-}
-:is([data-performer-name="cast"], [data-performer-name="show"]:not([data-character-live="true"]))
-  .performer:not([data-no-cast])
-  .performer__cast::before {
-  content: none;
-}
-
-/* 併記。CV 不在の人はそもそも .performer__cast を持たないので何も起きない。 */
-[data-performer-name="both"] .performer__cast {
-  display: inline;
-}

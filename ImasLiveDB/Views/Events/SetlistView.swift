@@ -30,7 +30,9 @@ struct SetlistView: View {
     @AppStorage("setlist_simple_mode") private var simpleMode = false
     /// 歌唱者をどの名前で出すか。マイページの設定と同じ鍵を読む
     /// (公演をまたいで効く「表示の好み」なので画面には持たせない)。
-    @AppStorage(PerformerNameSetting.storageKey) private var performerName: PerformerNameSetting = .idol
+    @AppStorage(PerformerNamePref.storageKey) private var performerNameRaw = PerformerNamePref.defaultRaw
+    /// 保存値から解決したモード。行ごとに解決し直さないよう 1 箇所で持つ。
+    private var performerName: PerformerNameMode { PerformerNamePref.mode(performerNameRaw) }
     @State private var performersByItemId: [String: [PerformerRow]] = [:]
     @State private var originalIdsBySongId: [String: Set<String>] = [:]
     @State private var idolsById: [String: Idol] = [:]

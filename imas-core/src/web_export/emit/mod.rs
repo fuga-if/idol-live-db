@@ -119,7 +119,7 @@ pub fn run(args: &Args) -> Result<Stats> {
     let generated_at = format!("{today}T00:00:00Z");
 
     let ctx = Ctx::new(&snap, today, generated_at, content_hash);
-    write_all(&ctx, &out, args.pretty, &raw_tables)
+    write_all(&ctx, &out, args.pretty, raw_tables)
 }
 
 fn default_work_db(out: &std::path::Path) -> PathBuf {
@@ -144,8 +144,16 @@ fn validate_ymd(text: &str) -> Result<()> {
 /// 「DB の行そのまま」なので、DB に置いてよいが配ってはいけない列
 /// (試聴音源・歌詞の在り処) がそのまま混ざる。行型に列が増えたときは、
 /// ここを見て配ってよいかを決める。
-fn shippable_tables(raw: &RawTables) -> RawTables {
-    let mut raw = raw.clone();
+/// 歌唱者の表示モードの選択肢。**規則もラベルも domain が持つ** ので、
+/// ここは DTO の形へ移すだけ。
+fn performer_name_options() -> Vec<PerformerNameOptionDto> {
+    crate::domain::event_detail_queries::performer_name_options()
+        .into_iter()
+        .map(|o| PerformerNameOptionDto { raw: o.raw, label: o.label })
+        .collect()
+}
+
+fn shippable_tables(mut raw: RawTables) -> RawTables {
     for song in &mut raw.songs {
         // 試聴音源 (Apple の音源 URL)。アプリの中でだけ鳴らすもので、出面には出さない。
         song.preview_url = None;
@@ -159,7 +167,7 @@ fn write_all(
     ctx: &Ctx,
     out: &std::path::Path,
     pretty: bool,
-    raw_tables: &RawTables,
+    raw_tables: RawTables,
 ) -> Result<Stats> {
     let mut w = Writer::create(out, pretty)?;
     let mut book = RouteBook::new();
@@ -268,6 +276,7 @@ fn write_all(
             content_hash: ctx.content_hash.clone(),
             counts,
             app: crate::web_export::content::app_links(),
+            performer_name_options: performer_name_options(),
         },
     )?;
 

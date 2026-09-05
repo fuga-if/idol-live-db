@@ -35,6 +35,21 @@ web_dto! {
         pub content_hash: Option<String>,
         pub counts: Counts,
         pub app: AppLinks,
+        /// セトリの歌唱者をどの名前で出すかの選択肢 (順・保存値・文言)。
+        ///
+        /// **アプリと同じ 1 本** (`domain::event_detail_queries::performer_name_options`)。
+        /// 出面が独自にラベルを持つと、アプリの設定画面と文言がズレる。
+        pub performer_name_options: Vec<PerformerNameOptionDto>,
+    }
+}
+
+web_dto! {
+    /// 歌唱者の表示モード 1 つぶん。
+    #[derive(Eq)]
+    pub struct PerformerNameOptionDto {
+        /// localStorage に残す値。iOS/Android の保存値と同じ文字列。
+        pub raw: String,
+        pub label: String,
     }
 }
 

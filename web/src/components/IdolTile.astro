@@ -1,4 +1,5 @@
 ---
+import ColorDot from "./ColorDot.astro";
 import type { Ref } from "../lib/schema/Ref";
 /** アイドル / ユニットのグリッド 1 枚。名前と副題だけ (版権物ゼロなので絵は無い)。 */
 interface Props {
@@ -10,7 +11,7 @@ const { entity, sub } = Astro.props;
 
 <li>
   <a class="tile" data-theme={entity.themeKey} href={entity.path}>
-    <span class="color-dot color-dot--lg" aria-hidden="true"></span>
+    <ColorDot size="lg" />
     <span class="tile__name u-underline-hover">{entity.name}</span>
     {(sub ?? entity.sub) && <span class="tile__sub u-clamp1">{sub ?? entity.sub}</span>}
   </a>

@@ -1,5 +1,6 @@
 ---
 import Artwork from "./Artwork.astro";
+import ColorDot from "./ColorDot.astro";
 import MetricBadge from "./MetricBadge.astro";
 /**
  * ImasRankingRow の Web 版 — 順位 + (曲ならジャケ写) + 名前 + 数値。
@@ -43,7 +44,7 @@ const {
     artwork ? (
       <Artwork title={title} artworkUrl={artworkUrl} size="sm" />
     ) : (
-      <span class="color-dot" aria-hidden="true" />
+      <ColorDot />
     )
   }
   <span class="ranking-row__body">

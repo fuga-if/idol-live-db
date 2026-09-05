@@ -136,6 +136,80 @@ pub struct PerformerDisplayName {
     pub secondary: Option<String>,
 }
 
+impl PerformerDisplayName {
+    /// 2 段に積めない場所 (簡易表示・共有文) 向けの 1 行表記。
+    ///
+    /// **括弧の書き方を決めるのはここ 1 箇所。** 呼び出し側が
+    /// `"\(primary)(\(secondary))"` を書き始めると、端末ごとに違う見た目になる
+    /// ([`crate::domain::display_join`] と同じ理由)。
+    pub fn joined(&self) -> String {
+        match &self.secondary {
+            Some(sub) => format!("{}({})", self.primary, sub),
+            None => self.primary.clone(),
+        }
+    }
+}
+
+/// モード 1 つぶんの選択肢。設定画面はこれを並べるだけにする。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct PerformerNameOption {
+    pub mode: PerformerNameMode,
+    /// 保存に使う文字列。**序数で保存しない** (並べ替えた瞬間に化ける)。
+    pub raw: String,
+    pub label: String,
+}
+
+impl PerformerNameMode {
+    /// 保存値。iOS の UserDefaults / Android の SharedPreferences / Web の
+    /// localStorage で同じ文字列を使う。
+    pub fn raw(self) -> &'static str {
+        match self {
+            Self::IdolOnly => "idol",
+            Self::CastOnly => "cast",
+            Self::Both => "both",
+            Self::FollowShow => "show",
+        }
+    }
+
+    /// 設定画面に出す文言。
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::IdolOnly => "アイドル名",
+            Self::CastOnly => "CV名",
+            Self::Both => "アイドル名 + CV名",
+            Self::FollowShow => "公演に合わせる",
+        }
+    }
+
+    /// 既定 (これまでの表示と同じ)。
+    pub fn default_mode() -> Self {
+        Self::IdolOnly
+    }
+
+    /// 設定画面に出す順。
+    pub fn all() -> Vec<Self> {
+        vec![Self::IdolOnly, Self::CastOnly, Self::Both, Self::FollowShow]
+    }
+
+    /// 保存値からの復元。未知の値・未設定は既定。
+    pub fn from_raw(raw: Option<&str>) -> Self {
+        raw.and_then(|r| Self::all().into_iter().find(|m| m.raw() == r))
+            .unwrap_or_else(Self::default_mode)
+    }
+}
+
+/// 設定画面に並べる選択肢一式。
+pub fn performer_name_options() -> Vec<PerformerNameOption> {
+    PerformerNameMode::all()
+        .into_iter()
+        .map(|mode| PerformerNameOption {
+            mode,
+            raw: mode.raw().to_string(),
+            label: mode.label().to_string(),
+        })
+        .collect()
+}
+
 /// 歌唱者の表示名を決める。
 ///
 /// `is_character_live` は `shows.performer_type == "character"`。`FollowShow`
@@ -145,33 +219,44 @@ pub fn performer_display_name(
     mode: PerformerNameMode,
     is_character_live: bool,
 ) -> PerformerDisplayName {
-    let idol = record.idol_name.clone();
+    let idol = || record.idol_name.clone();
     // display_name は現任 CV (不在ならアイドル名) で解決済み。
-    let cast = record.display_name.clone();
-    let pair = |primary: String, other: String| PerformerDisplayName {
-        secondary: (other != primary).then_some(other),
-        primary,
-    };
+    let cast = || record.display_name.clone();
+    let only = |primary: String| PerformerDisplayName { primary, secondary: None };
     match mode {
-        PerformerNameMode::IdolOnly => PerformerDisplayName { primary: idol, secondary: None },
-        PerformerNameMode::CastOnly => PerformerDisplayName { primary: cast, secondary: None },
-        PerformerNameMode::Both => pair(idol, cast),
+        PerformerNameMode::IdolOnly => only(idol()),
+        PerformerNameMode::CastOnly => only(cast()),
+        PerformerNameMode::Both => PerformerDisplayName {
+            primary: idol(),
+            secondary: distinct_cast_name(record).map(str::to_string),
+        },
         PerformerNameMode::FollowShow => {
-            if is_character_live {
-                PerformerDisplayName { primary: idol, secondary: None }
-            } else {
-                PerformerDisplayName { primary: cast, secondary: None }
-            }
+            only(if is_character_live { idol() } else { cast() })
         }
     }
 }
 
-/// 公演がキャラライブか (`shows.performer_type == "character"`)。
-pub fn is_character_live(snap: &Snapshot, show_id: &str) -> bool {
+/// アイドル名と違うときだけの CV 名。CV 不在なら `None`。
+///
+/// 「同じ名前を 2 つ並べない」という判断はここ 1 本。併記 (`Both`) の副も、
+/// 配る素材 (`web_export` の `PerformerRef.cast_name`) もこれを通る。
+pub fn distinct_cast_name(record: &SetlistPerformerRecord) -> Option<&str> {
+    (record.display_name != record.idol_name).then_some(record.display_name.as_str())
+}
+
+/// 公演がキャラライブか。**判定の定義はここ 1 箇所。**
+///
+/// Swift の `Show.isCharacterLive` / Kotlin の `Show.isCharacterLive` も
+/// これを呼ぶ (同じ比較を 3 箇所に置かない)。
+pub fn is_character_live(performer_type: Option<&str>) -> bool {
+    performer_type == Some("character")
+}
+
+/// 公演 id から引く版。手元に行が無い呼び出し側のため。
+pub fn show_is_character_live(snap: &Snapshot, show_id: &str) -> bool {
     snap.show_index_by_id
         .get(show_id)
-        .map(|&s| snap.shows[s as usize].performer_type.as_deref() == Some("character"))
-        .unwrap_or(false)
+        .is_some_and(|&s| is_character_live(snap.shows[s as usize].performer_type.as_deref()))
 }
 
 /// ピッカー用の公演 1 行 (iOS `ShowWithEventName`)。

@@ -52,8 +52,8 @@ pub mod venue;
 
 pub use brand::BrandPage;
 pub use common::{
-    mark_current, AppLinks, AppOpen, Counts, Crumb, NavLink, Ref, RefKind, Robots, SeoBlock, SiteMeta,
-    StatTile, ThemePair, ThemeTable, ThemeTokens, SCHEMA_VERSION,
+    mark_current, AppLinks, AppOpen, Counts, Crumb, NavLink, PerformerNameOptionDto, Ref, RefKind,
+    Robots, SeoBlock, SiteMeta, StatTile, ThemePair, ThemeTable, ThemeTokens, SCHEMA_VERSION,
 };
 pub use event::{
     EventCast, EventCastMember, EventCastShow, EventPage, EventStats, ReleaseInfo, ShowSummary,

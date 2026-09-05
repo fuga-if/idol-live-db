@@ -225,6 +225,11 @@ fn site_meta() -> SiteMeta {
         content_hash: Some("6c41f0e2b9d4a7c8e5f1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f7".to_string()),
         counts: counts(),
         app: content::app_links(),
+        // 代表値でも本番と同じ関数を通す (フィクスチャだけ違う文言が出ない)。
+        performer_name_options: crate::domain::event_detail_queries::performer_name_options()
+            .into_iter()
+            .map(|o| PerformerNameOptionDto { raw: o.raw, label: o.label })
+            .collect(),
     }
 }
 
