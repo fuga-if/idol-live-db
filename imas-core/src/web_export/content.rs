@@ -7,7 +7,7 @@ use super::dto::{AboutLink, AboutSection, AppLinks, AppOpen};
 
 /// サイトの起点。独自ドメインを取るときに変えるのはここと `astro.config` の `site`、
 /// robots.txt の 3 箇所だけで済むようにしてある。
-pub const SITE_ORIGIN: &str = "https://imas-live-web.tokata3011.workers.dev";
+pub const SITE_ORIGIN: &str = "https://idollivedb.fugalabs.uk";
 
 pub const SITE_NAME: &str = "アイドルライブDB";
 pub const SITE_TAGLINE: &str = "アイマスのライブ・公演・セットリスト・楽曲・アイドルを横断して調べられるデータベースです。";

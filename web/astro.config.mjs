@@ -112,7 +112,7 @@ function copyGeneratedAssets() {
 }
 
 export default defineConfig({
-  site: "https://imas-live-web.tokata3011.workers.dev",
+  site: "https://idollivedb.fugalabs.uk",
   output: "static",
   trailingSlash: "always",
   // CSP (public/_headers) が `style-src 'self'` = unsafe-inline 無しなので、

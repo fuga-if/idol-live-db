@@ -6,7 +6,13 @@
   // ルート・cron には一切触れない。
   "name": "imas-live-web",
   "compatibility_date": "2026-09-01",
-  "workers_dev": true,
+  // 独自ドメイン 1 本に寄せる。workers.dev を残すと同じ内容が 2 つの URL で引けて
+  // 検索評価が割れる (canonical は打っているが、そもそも 1 本の方が単純)。
+  "workers_dev": false,
+  // Custom Domain。zone (fugalabs.uk) は同じアカウントの Cloudflare 管理下にあるので、
+  // DNS レコードと証明書は wrangler が用意する。
+  // apex は別のものが動いているのでサブドメインを使う。
+  "routes": [{ "pattern": "idollivedb.fugalabs.uk", "custom_domain": true }],
   "assets": {
     "directory": "./dist",
     // astro.config.mjs の trailingSlash:"always" と対にする。
