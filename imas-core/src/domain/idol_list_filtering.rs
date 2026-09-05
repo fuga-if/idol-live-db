@@ -89,6 +89,26 @@ fn meta(kind: IdolSortKind) -> IdolSortOrderMeta {
 }
 
 /// 未指定時の並び方向。数値系 (年齢・身長・体重) だけ降順。
+impl IdolSortKind {
+    /// URL・保存値に使う鍵。**序数を使わない** (並べ替えた瞬間に別物になる)。
+    pub fn key(self) -> &'static str {
+        match self {
+            Self::Official => "official",
+            Self::NameKana => "kana",
+            Self::Age => "age",
+            Self::Height => "height",
+            Self::Weight => "weight",
+            Self::Birthday => "birthday",
+            Self::Debut => "debut",
+        }
+    }
+
+    /// 鍵からの復元。未知の鍵は既定 (公式順)。
+    pub fn from_key(key: &str) -> Self {
+        ALL_SORT_KINDS.iter().copied().find(|k| k.key() == key).unwrap_or(Self::Official)
+    }
+}
+
 fn default_ascending(kind: IdolSortKind) -> bool {
     !matches!(kind, IdolSortKind::Age | IdolSortKind::Height | IdolSortKind::Weight)
 }
@@ -121,6 +141,78 @@ pub struct IdolListEntry {
     pub debut_date: Option<String>,
 }
 
+/// 一覧の絞り込み条件を、**出面 (JSON) で運ぶための形**。
+///
+/// `IdolListFilterCriteria` のうち、ログインもユーザーデータも持たない出面で
+/// 意味のある軸だけ + 並べ替え。`SongQuery` と同じ流儀で、
+/// **Rust ↔ wasm ↔ TS の唯一の定義**にする。
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug, PartialEq, Default)]
+#[serde(rename_all = "camelCase", default)]
+#[cfg_attr(
+    feature = "web-export",
+    derive(ts_rs::TS),
+    ts(export, export_to = "../../web/src/lib/schema/")
+)]
+pub struct IdolQuery {
+    /// 空 = 全ブランド。
+    pub brand_ids: Vec<String>,
+    /// ブランド内サブ属性 (cute/cool/passion 等)。
+    pub attribute: Option<String>,
+    /// 誕生月 (1..=12)。
+    pub birth_month: Option<u32>,
+    /// 名前 / かな / CV 名 / 別名 / 愛称の部分一致。
+    pub search_text: String,
+    /// `IdolSortKind::key()` の値。未知の鍵は既定 (公式順) に倒れる。
+    pub sort: String,
+    /// 省略時はその並びの既定方向。
+    pub ascending: Option<bool>,
+}
+
+impl IdolQuery {
+    /// 絞り込み条件へ。CV 名は検索対象なので呼び出し側が解決して渡す。
+    pub fn to_criteria(&self, cast_names: HashMap<String, String>) -> IdolListFilterCriteria {
+        IdolListFilterCriteria {
+            selected_brand_ids: self.brand_ids.clone(),
+            selected_attribute: self.attribute.clone(),
+            search_text: self.search_text.clone(),
+            birth_month: self.birth_month,
+            cast_names,
+            ..IdolListFilterCriteria::default()
+        }
+    }
+
+    /// 並べ替え軸。
+    pub fn sort_kind(&self) -> IdolSortKind {
+        IdolSortKind::from_key(&self.sort)
+    }
+}
+
+/// スナップショットから一覧の行を組む。
+///
+/// **出面もアプリもここを通る。** 行の射影 (どの列を検索対象にするか等) を
+/// 呼び出し側が組み直すと、Web だけ別名で引けない、といった食い違いが出る。
+/// 並びは `idol_list` と同じ公式順で、外部アイドル (`is_external`) は入らない。
+pub fn idol_list_entries(snap: &crate::domain::snapshot::Snapshot) -> Vec<IdolListEntry> {
+    crate::domain::idol_queries::idol_list(snap, None)
+        .into_iter()
+        .map(|r| IdolListEntry {
+            idol_id: r.id,
+            brand_id: r.brand_id.unwrap_or_default(),
+            name: r.name,
+            name_kana: r.name_kana,
+            nickname: r.nickname,
+            aliases: r.aliases,
+            attribute: r.attribute,
+            sort_order: r.sort_order.unwrap_or(0),
+            age: r.age,
+            height: r.height,
+            weight: r.weight,
+            birthday: r.birthday,
+            debut_date: r.debut_date,
+        })
+        .collect()
+}
+
 /// アイドル一覧の絞り込みに必要な、解決済みの条件・集合。
 ///
 /// FFI (uniffi::Record) 越しに渡すため集合は `Vec` で受け、内部で `HashSet` 化する。
@@ -141,6 +233,13 @@ pub struct IdolListFilterCriteria {
     pub search_text: String,
     /// idol_id → キャスト(声優)名。検索対象に含める。
     pub cast_names: HashMap<String, String>,
+    /// 誕生月 (1..=12)。None = 誕生月で絞らない。
+    ///
+    /// `#[uniffi(default = None)]` を付けてあるので、既存の Swift/Kotlin 呼び出しは
+    /// 引数を足さなくてもそのまま通る (軸を 1 本足すたびに 3 面の呼び出しを
+    /// 直さなくて済む)。
+    #[uniffi(default = None)]
+    pub birth_month: Option<u32>,
 }
 
 /// ブランド/属性/マイマーク/テキスト検索の絞り込みを適用し、採用した index 列を返す。
@@ -170,12 +269,19 @@ pub fn filter_idol_list(entries: &[IdolListEntry], criteria: &IdolListFilterCrit
                 && (!criteria.require_my_pick || my_picks.contains(id))
                 && (!criteria.require_favorite || favorites.contains(id))
                 && (!criteria.require_note || notes.contains(id))
+                && criteria.birth_month.is_none_or(|m| birthday_in_month(e, m))
                 && query_lower
                     .as_deref()
                     .is_none_or(|q| matches_search(e, &criteria.cast_names, q))
         })
         .map(|(i, _)| i as u32)
         .collect()
+}
+
+/// 誕生日がその月か。`birthday` は `"--MM-DD"` (年なし) なので前方一致で判定する。
+/// `idol_queries::idols_by_birth_month` と同じ規則。
+fn birthday_in_month(entry: &IdolListEntry, month: u32) -> bool {
+    entry.birthday.as_deref().is_some_and(|b| b.starts_with(&format!("--{month:02}-")))
 }
 
 /// 検索語 (小文字化済み) が名前/かな/キャスト名/別名/愛称のどれかに部分一致するか。
@@ -700,5 +806,38 @@ mod tests {
             assert_eq!(meta.ascending_label, asc);
             assert_eq!(meta.descending_label, desc);
         }
+    }
+
+    #[test]
+    fn 誕生月で絞れる() {
+        let mut a = entry("a");
+        a.birthday = Some("--03-15".to_string());
+        let mut b = entry("b");
+        b.birthday = Some("--12-01".to_string());
+        let mut c = entry("c");
+        c.birthday = None;
+        let entries = vec![a, b, c];
+
+        let of = |m: Option<u32>| {
+            filter_idol_list(
+                &entries,
+                &IdolListFilterCriteria { birth_month: m, ..Default::default() },
+            )
+        };
+        assert_eq!(of(Some(3)), vec![0]);
+        assert_eq!(of(Some(12)), vec![1]);
+        // 誕生日が無い人はどの月にも入らない。
+        assert_eq!(of(Some(1)), Vec::<u32>::new());
+        // 指定なしは全員。
+        assert_eq!(of(None), vec![0, 1, 2]);
+    }
+
+    #[test]
+    fn 並べ替えの鍵は往復する() {
+        for kind in ALL_SORT_KINDS {
+            assert_eq!(IdolSortKind::from_key(kind.key()), kind, "{}", kind.key());
+        }
+        // 未知の鍵は公式順。
+        assert_eq!(IdolSortKind::from_key("知らない"), IdolSortKind::Official);
     }
 }

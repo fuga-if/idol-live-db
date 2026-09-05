@@ -29,6 +29,7 @@ use super::url::{detail_path, path_key, reserved_for};
 use super::writer::Writer;
 use super::{Result, Stats, WebExportError};
 use std::path::Path;
+use crate::domain::idol_list_filtering::IdolQuery;
 use crate::domain::song_list_queries::{SongListFilter, SongQuery};
 
 const TODAY: &str = "2026-09-04";
@@ -829,6 +830,20 @@ fn idol_list_page(path: &str, title: &str, kind: IdolListKind, empty: bool) -> I
             path.trim_end_matches('/').rsplit('/').next().and_then(|m| m.parse().ok())
         } else {
             None
+        },
+        // 代表値でも本番と同じ組み方 (ページを決めた条件がそのまま土台)。
+        query_base: IdolQuery {
+            brand_ids: if matches!(kind, IdolListKind::Brand) {
+                vec![brand_ml().id]
+            } else {
+                vec![]
+            },
+            birth_month: if matches!(kind, IdolListKind::BirthMonth) {
+                path.trim_end_matches('/').rsplit('/').next().and_then(|m| m.parse().ok())
+            } else {
+                None
+            },
+            ..IdolQuery::default()
         },
         items: if empty {
             vec![]

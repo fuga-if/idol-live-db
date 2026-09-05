@@ -20,6 +20,7 @@ use crate::web_export::content;
 use crate::web_export::dto::*;
 use crate::web_export::url::url_segment;
 use std::collections::BTreeMap;
+use crate::domain::idol_list_filtering::IdolQuery;
 use crate::domain::song_list_queries::SongQuery;
 
 /// 一覧に出すライブの種別。
@@ -566,6 +567,13 @@ pub fn idol_lists(ctx: &Ctx) -> Vec<Emitted<IdolListPage>> {
                 brand,
                 birth_month,
                 total: items.len() as u32,
+                // 絞り込みの出発点。ページの中身を決めた条件をそのまま渡す
+                // (JS 側で「/idols/brand/cg/ ならブランド cg」と書き直すと二重定義になる)。
+                query_base: IdolQuery {
+                    brand_ids: brand_id.iter().cloned().collect(),
+                    birth_month,
+                    ..IdolQuery::default()
+                },
                 items,
                 brand_links: brand_links(ctx, "idols", &path, "すべて", all_total),
                 birth_month_links: {

@@ -14,6 +14,9 @@ use imas_core::domain::snapshot_build::{self, RawTables};
 use imas_core::domain::song_list_queries::{
     song_list_indexes, song_list_sort_options_without_user_marks, SongQuery,
 };
+use imas_core::domain::idol_list_filtering::{
+    filter_idol_list, idol_list_entries, sort_idol_list, sort_order_table, IdolListEntry, IdolQuery,
+};
 use imas_core::domain::{idol_queries, song_detail_queries};
 use wasm_bindgen::prelude::*;
 
@@ -24,6 +27,11 @@ use wasm_bindgen::prelude::*;
 #[wasm_bindgen]
 pub struct Query {
     snap: Snapshot,
+    /// アイドル一覧の行。`filter_idol_list` は行の列を渡す形なので、
+    /// 打鍵のたびに組み直さないよう 1 度だけ作る。
+    idol_entries: Vec<IdolListEntry>,
+    /// idol_id → 現任 CV 名。検索対象なので条件に毎回渡す。
+    cast_names: std::collections::HashMap<String, String>,
 }
 
 /// 選択肢 1 件。value は `SongQuery` にそのまま渡す文字列。
@@ -41,6 +49,15 @@ struct Facets {
     cd_series: Vec<Opt>,
     series_groups: Vec<Opt>,
     /// 並べ替えの選択肢。既定方向もコアが持つ値をそのまま渡す。
+    sorts: Vec<SortOpt>,
+}
+
+/// アイドル一覧の選択肢。
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct IdolFacets {
+    brands: Vec<Opt>,
+    attributes: Vec<Opt>,
     sorts: Vec<SortOpt>,
 }
 
@@ -65,7 +82,10 @@ impl Query {
     pub fn new(tables_json: &str) -> Result<Query, JsValue> {
         let raw: RawTables = serde_json::from_str(tables_json)
             .map_err(|e| JsValue::from_str(&format!("生テーブルを読めない: {e}")))?;
-        Ok(Query { snap: snapshot_build::build(raw) })
+        let snap = snapshot_build::build(raw);
+        let idol_entries = idol_list_entries(&snap);
+        let cast_names = idol_queries::idol_cast_names(&snap);
+        Ok(Query { snap, idol_entries, cast_names })
     }
 
     /// 条件に合う曲 id を、並び順どおりに返す。**絞り込みも並び替えもコアがやる。**
@@ -117,6 +137,51 @@ impl Query {
             .map_err(|e| JsValue::from_str(&format!("選択肢を組めない: {e}")))
     }
 
+    /// 条件に合うアイドル id を、並び順どおりに返す。
+    ///
+    /// 曲と同じで、**絞り込みも並べ替えもコアがやる**。アプリの
+    /// `filter_idol_list` / `sort_idol_list` をそのまま通す。
+    pub fn idol_ids(&self, query_json: &str) -> Result<Vec<String>, JsValue> {
+        let q: IdolQuery = serde_json::from_str(query_json)
+            .map_err(|e| JsValue::from_str(&format!("条件を読めない: {e}")))?;
+        let kept = filter_idol_list(&self.idol_entries, &q.to_criteria(self.cast_names.clone()));
+        // 絞ったあとの行を並べ替える (アプリと同じ順序: 絞る → 並べる)。
+        let kept_entries: Vec<IdolListEntry> =
+            kept.iter().map(|&i| self.idol_entries[i as usize].clone()).collect();
+        let order = sort_idol_list(&kept_entries, q.sort_kind(), q.ascending);
+        Ok(order.iter().map(|&i| kept_entries[i as usize].idol_id.clone()).collect())
+    }
+
+    /// アイドル一覧の選択肢 (ブランド・属性・誕生月・並べ替え)。
+    pub fn idol_facets(&self) -> Result<String, JsValue> {
+        let brands = idol_queries::brand_records(&self.snap)
+            .into_iter()
+            .map(|b| Opt { value: b.id, label: b.name })
+            .collect();
+        // 属性は実データに出てくるものだけ (ブランドごとに語彙が違う)。
+        let mut attrs: std::collections::BTreeSet<&str> = std::collections::BTreeSet::new();
+        for e in &self.idol_entries {
+            if let Some(a) = e.attribute.as_deref().filter(|a| !a.is_empty()) {
+                attrs.insert(a);
+            }
+        }
+        let attributes = attrs
+            .into_iter()
+            .map(|a| Opt { value: a.to_string(), label: a.to_string() })
+            .collect();
+        let sorts = sort_order_table()
+            .into_iter()
+            .map(|m| SortOpt {
+                key: m.kind.key().to_string(),
+                label: m.display_name,
+                default_ascending: m.default_ascending,
+            })
+            .collect();
+
+        serde_json::to_string(&IdolFacets { brands, attributes, sorts })
+            .map_err(|e| JsValue::from_str(&format!("選択肢を組めない: {e}")))
+    }
+
     /// 曲の総数。
     pub fn song_count(&self) -> usize {
         self.snap.songs.len()
@@ -164,6 +229,33 @@ mod tests {
                 .collect()
             };
             assert_eq!(got, want, "条件 {q} で結果が違う");
+        }
+
+        // アイドル一覧も同じく、DB から組んだ Snapshot と同じ結果になること。
+        let db_entries = idol_list_entries(&from_db);
+        let db_casts = idol_queries::idol_cast_names(&from_db);
+        for q in [
+            r#"{}"#,
+            r#"{"brandIds":["cg"]}"#,
+            r#"{"attribute":"cute"}"#,
+            r#"{"birthMonth":3}"#,
+            r#"{"searchText":"はるか"}"#,
+            r#"{"sort":"height"}"#,
+            r#"{"sort":"kana","ascending":true}"#,
+            r#"{"brandIds":["ml"],"birthMonth":7,"sort":"age"}"#,
+        ] {
+            let got = query.idol_ids(q).expect(q);
+            let want: Vec<String> = {
+                let iq: IdolQuery = serde_json::from_str(q).unwrap();
+                let kept = filter_idol_list(&db_entries, &iq.to_criteria(db_casts.clone()));
+                let kept_entries: Vec<IdolListEntry> =
+                    kept.iter().map(|&i| db_entries[i as usize].clone()).collect();
+                sort_idol_list(&kept_entries, iq.sort_kind(), iq.ascending)
+                    .iter()
+                    .map(|&i| kept_entries[i as usize].idol_id.clone())
+                    .collect()
+            };
+            assert_eq!(got, want, "アイドルの条件 {q} で結果が違う");
             assert!(!want.is_empty(), "条件 {q} が 0 件では確かめたことにならない");
         }
     }

@@ -1,6 +1,9 @@
 ---
+import type { IdolQuery } from "../lib/schema/IdolQuery";
+import type { SongQuery } from "../lib/schema/SongQuery";
+
 /**
- * 楽曲一覧の絞り込み・並べ替えの操作面。
+ * 一覧の絞り込み・並べ替えの操作面 (曲・アイドル共通)。
  *
  * 中身 (軸と値) は Rust が出した素材から island が描く。ここが持つのは器だけで、
  * **どんな軸があるかをこのファイルは知らない**。
@@ -9,16 +12,24 @@
  * (押しても何も起きないものを置かない)。器は `hidden` で出しておき、
  * island が起動したときに外す。
  */
-import type { SongQuery } from "../lib/schema/SongQuery";
 interface Props {
-  /** この一覧を組んだときの条件。Rust が `SongListPage.queryBase` で出す。 */
-  queryBase: SongQuery;
+  /** どの一覧か。島の実装をこれで選ぶ。 */
+  kind: "songs" | "idols";
+  /** この一覧を組んだときの条件。Rust が `*ListPage.queryBase` で出す。 */
+  queryBase: SongQuery | IdolQuery;
   total: number;
 }
-const { queryBase, total } = Astro.props;
+const { kind, queryBase, total } = Astro.props;
 ---
 
-<section class="song-filter" data-song-filter data-query-base={JSON.stringify(queryBase)} data-state="loading" hidden>
+<section
+  class="song-filter"
+  data-list-filter
+  data-filter-kind={kind}
+  data-query-base={JSON.stringify(queryBase)}
+  data-state="loading"
+  hidden
+>
   <div class="song-filter__fields" data-filter-fields></div>
   <div class="song-filter__row">
     <label class="song-filter__field">
@@ -32,11 +43,16 @@ const { queryBase, total } = Astro.props;
 </section>
 
 <script>
-  import { mountSongFilter } from "../lib/songfilter/island";
-
-  const root = document.querySelector<HTMLElement>("[data-song-filter]");
+  const root = document.querySelector<HTMLElement>("[data-list-filter]");
   if (root) {
     root.hidden = false;
-    mountSongFilter(root);
+    // 一覧ごとの設定は動的 import で分ける (曲のページにアイドルの設定を配らない)。
+    if (root.dataset.filterKind === "idols") {
+      const { mountIdolFilter } = await import("../lib/listfilter/idols");
+      mountIdolFilter(root);
+    } else {
+      const { mountSongFilter } = await import("../lib/listfilter/songs");
+      mountSongFilter(root);
+    }
   }
 </script>

@@ -41,13 +41,22 @@ export function loadQuery(): Promise<Query> {
   return cached;
 }
 
+export type { IdolQuery } from "../schema/IdolQuery";
+
 /** `Query.facets()` が返す選択肢。値は `SongQuery` にそのまま渡す文字列。 */
-export interface Facets {
+export interface SongFacets {
   brands: FacetOption[];
   idols: FacetOption[];
   cdSeries: FacetOption[];
   seriesGroups: FacetOption[];
   /** 並べ替え。既定方向もコアが決めた値をそのまま使う。 */
+  sorts: SortOption[];
+}
+
+/** `Query.idol_facets()` が返す選択肢。 */
+export interface IdolFacets {
+  brands: FacetOption[];
+  attributes: FacetOption[];
   sorts: SortOption[];
 }
 

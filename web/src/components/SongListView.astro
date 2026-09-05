@@ -1,7 +1,7 @@
 ---
 import ListLayout from "../layouts/ListLayout.astro";
 import SongTable from "./SongTable.astro";
-import SongFilterBar from "./SongFilterBar.astro";
+import ListFilterBar from "./ListFilterBar.astro";
 import ListContainer from "./ListContainer.astro";
 import RankingRow from "./RankingRow.astro";
 import EmptyState from "./EmptyState.astro";
@@ -39,7 +39,7 @@ const { list } = Astro.props;
     )
   }
 
-  {list.queryBase && <SongFilterBar queryBase={list.queryBase} total={list.total} />}
+  {list.queryBase && <ListFilterBar kind="songs" queryBase={list.queryBase} total={list.total} />}
 
   {
     list.items.length === 0 ? (

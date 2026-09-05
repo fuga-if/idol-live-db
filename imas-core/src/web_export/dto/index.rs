@@ -6,6 +6,7 @@
 
 use super::common::{AppLinks, NavLink, Ref, SeoBlock, StatTile};
 use super::event::ShowSummary;
+use crate::domain::idol_list_filtering::IdolQuery;
 use crate::domain::song_list_queries::SongQuery;
 
 // ---------------------------------------------------------------------------
@@ -184,6 +185,10 @@ web_dto! {
         pub brand_links: Vec<NavLink>,
         pub birth_month_links: Vec<NavLink>,
         pub total: u32,
+        /// この一覧を組んだときの条件。ブラウザの wasm がこれを土台に
+        /// 条件を足して `filter_idol_list` / `sort_idol_list` を回す
+        /// (曲一覧の `SongListPage.query_base` と同じ仕掛け)。
+        pub query_base: IdolQuery,
         pub seo: SeoBlock,
     }
 }

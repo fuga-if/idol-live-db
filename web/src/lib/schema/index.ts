@@ -38,6 +38,7 @@ export type { IdolListKind } from "./IdolListKind";
 export type { IdolListPage } from "./IdolListPage";
 export type { IdolPage } from "./IdolPage";
 export type { IdolPerformedRow } from "./IdolPerformedRow";
+export type { IdolQuery } from "./IdolQuery";
 export type { IdolShowRow } from "./IdolShowRow";
 export type { IdolSongRow } from "./IdolSongRow";
 export type { KanaSection } from "./KanaSection";
