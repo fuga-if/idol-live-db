@@ -52,7 +52,6 @@ fn make_ref(kind: RefKind, id: &str, name: &str, sub: Option<&str>, theme_key: &
         path: detail_path(collection, &key),
         theme_key: theme_key.to_string(),
         artwork_url: None,
-        // 代表値でも本番と同じ関数を通す (フィクスチャだけ違う文字が出ない)。
     }
 }
 

@@ -51,10 +51,15 @@ pub struct Song {
     pub cd_series: Option<String>,
     pub cd_title: Option<String>,
     pub artwork_url: Option<String>,
+    /// 試聴音源 (Apple の音源 URL)。**出面には配らない** ので、
+    /// None のときはキーごと出さない (`web_export::emit::shippable_tables`)。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub preview_url: Option<String>,
     pub apple_music_id: Option<String>,
     pub apple_music_album_id: Option<String>,
     pub isrc: Option<String>,
+    /// 歌詞の在り処。**出面には配らない** (歌詞は D1 だけ = JASRAC 許諾の条件)。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub lyrics_url: Option<String>,
     pub parent_song_id: Option<String>,
     pub singer_label: Option<String>,

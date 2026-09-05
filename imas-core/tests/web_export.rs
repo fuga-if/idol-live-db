@@ -1251,7 +1251,18 @@ mod real {
                 if path.extension().is_some_and(|e| e == "json") {
                     let text = std::fs::read_to_string(&path).unwrap();
                     // キー名で見る (値に "lyrics" を含む曲名がありうるため)。
-                    for forbidden in ["\"previewUrl\"", "\"lyricsUrl\"", "\"lyrics\""] {
+                    //
+                    // snake_case も見るのは、生テーブル (snapshot/tables.json) が
+                    // DTO ではなく行型をそのまま serde するから。camelCase だけ
+                    // 見ていた頃は、試聴音源 URL が itunes のホスト名で偶然
+                    // 引っかかっていただけで、歌詞の在り処は素通りだった。
+                    for forbidden in [
+                        "\"previewUrl\"",
+                        "\"lyricsUrl\"",
+                        "\"lyrics\"",
+                        "\"preview_url\"",
+                        "\"lyrics_url\"",
+                    ] {
                         assert!(
                             !text.contains(forbidden),
                             "{}: {forbidden} を出してはいけない",
@@ -1269,6 +1280,17 @@ mod real {
         }
         walk(dir.path(), &mut checked);
         assert!(checked > 7_000, "検査したファイルが少なすぎる: {checked}");
+
+        // 生テーブルは唯一「DB の行そのまま」を配るファイルなので、名指しでも見る。
+        // 上の walk に含まれてはいるが、ここが素通りすると JASRAC 許諾の条件
+        // (歌詞は D1 だけ) と試聴音源の非配布が同時に破れる。
+        let tables = std::fs::read_to_string(dir.path().join("snapshot/tables.json")).unwrap();
+        for forbidden in ["preview_url", "lyrics_url", "audio-ssl.itunes.apple.com"] {
+            assert!(
+                !tables.contains(forbidden),
+                "生テーブルに {forbidden} が載っている (emit::shippable_tables を見ること)"
+            );
+        }
     }
 
     #[test]

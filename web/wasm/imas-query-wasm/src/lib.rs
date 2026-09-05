@@ -11,7 +11,10 @@
 
 use imas_core::domain::snapshot::Snapshot;
 use imas_core::domain::snapshot_build::{self, RawTables};
-use imas_core::domain::song_list_queries::{song_list_indexes, SongListFilter, SongListSort};
+use imas_core::domain::song_list_queries::{
+    song_list_indexes, song_list_sort_options_without_user_marks, SongListFilter, SongListSort,
+};
+use imas_core::domain::{idol_queries, song_detail_queries};
 use wasm_bindgen::prelude::*;
 
 /// 組み立て済みの Snapshot を握るハンドル。
@@ -86,11 +89,8 @@ impl SongQuery {
     }
 
     fn sort(&self) -> SongListSort {
-        match self.sort.as_str() {
-            "release" => SongListSort::ReleaseDate,
-            "performance" => SongListSort::PerformanceCount,
-            _ => SongListSort::TitleKana,
-        }
+        // 鍵 → 並び の対応はコアが持つ (ここに match を書き写さない)。
+        SongListSort::from_key(&self.sort)
     }
 }
 
@@ -108,17 +108,22 @@ struct Facets {
     idols: Vec<Opt>,
     cd_series: Vec<Opt>,
     series_groups: Vec<Opt>,
+    /// 並べ替えの選択肢。既定方向もコアが持つ値をそのまま渡す。
+    sorts: Vec<SortOpt>,
 }
 
-/// 相異なる値を辞書順で。value と label は同じ (表示名がそのまま条件になる列)。
-fn distinct<'a>(values: impl Iterator<Item = &'a str>) -> Vec<Opt> {
-    let mut set: std::collections::BTreeSet<&str> = std::collections::BTreeSet::new();
-    for v in values {
-        if !v.is_empty() {
-            set.insert(v);
-        }
-    }
-    set.into_iter().map(|v| Opt { value: v.to_string(), label: v.to_string() }).collect()
+/// 並べ替え 1 件。
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct SortOpt {
+    key: String,
+    label: String,
+    default_ascending: bool,
+}
+
+/// 表示名がそのまま条件になる列 (CD シリーズ・シリーズ) の選択肢。
+fn same_value_options(names: Vec<String>) -> Vec<Opt> {
+    names.into_iter().map(|v| Opt { value: v.clone(), label: v }).collect()
 }
 
 #[wasm_bindgen]
@@ -148,24 +153,35 @@ impl Query {
     /// 値そのもの (ブランド id・アイドル id・CD シリーズ名) はコアが持つ文字列を
     /// そのまま返す。JS 側で組み立て直すと `SongListFilter` に渡す値がズレる。
     pub fn facets(&self) -> Result<String, JsValue> {
-        let brands: Vec<Opt> = self
-            .snap
-            .brand_order
-            .iter()
-            .map(|&i| &self.snap.brands[i as usize])
-            .map(|b| Opt { value: b.id.clone(), label: b.name.clone() })
+        // **選択肢を組む関数はアプリと同じもの**を呼ぶ。ここで snap を自前で
+        // 走査すると、並びだけが他の画面と違う一覧になる (実際にアイドルは
+        // rowid 順・シリーズは辞書順になっていて、アプリのピッカーと食い違っていた)。
+        let brands = idol_queries::brand_records(&self.snap)
+            .into_iter()
+            .map(|b| Opt { value: b.id, label: b.name })
             .collect();
-        let idols: Vec<Opt> = self
-            .snap
-            .idols
-            .iter()
-            .map(|i| Opt { value: i.id.clone(), label: i.name.clone() })
+        let idols = idol_queries::all_idols_for_picker(&self.snap)
+            .into_iter()
+            .map(|i| Opt { value: i.id, label: i.name })
             .collect();
-        let cd_series = distinct(self.snap.songs.iter().filter_map(|s| s.cd_series.as_deref()));
+        let cd_series = same_value_options(
+            song_detail_queries::album_summaries(&self.snap, &[], None)
+                .into_iter()
+                .map(|a| a.cd_series)
+                .collect(),
+        );
         let series_groups =
-            distinct(self.snap.songs.iter().filter_map(|s| s.series_group.as_deref()));
+            same_value_options(song_detail_queries::series_group_names(&self.snap, &[]));
+        let sorts = song_list_sort_options_without_user_marks()
+            .into_iter()
+            .map(|o| SortOpt {
+                key: o.key,
+                label: o.label,
+                default_ascending: o.default_ascending,
+            })
+            .collect();
 
-        serde_json::to_string(&Facets { brands, idols, cd_series, series_groups })
+        serde_json::to_string(&Facets { brands, idols, cd_series, series_groups, sorts })
             .map_err(|e| JsValue::from_str(&format!("選択肢を組めない: {e}")))
     }
 

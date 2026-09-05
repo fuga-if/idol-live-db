@@ -57,8 +57,21 @@ export interface SongQuery {
 
 /** `Query.facets()` が返す選択肢。値は `SongQuery` にそのまま渡す文字列。 */
 export interface Facets {
-  brands: { value: string; label: string }[];
-  idols: { value: string; label: string }[];
-  cdSeries: { value: string; label: string }[];
-  seriesGroups: { value: string; label: string }[];
+  brands: FacetOption[];
+  idols: FacetOption[];
+  cdSeries: FacetOption[];
+  seriesGroups: FacetOption[];
+  /** 並べ替え。既定方向もコアが決めた値をそのまま使う。 */
+  sorts: SortOption[];
+}
+
+export interface FacetOption {
+  value: string;
+  label: string;
+}
+
+export interface SortOption {
+  key: string;
+  label: string;
+  defaultAscending: boolean;
 }

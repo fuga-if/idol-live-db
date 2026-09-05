@@ -12,7 +12,7 @@
  * 状態は URL のクエリに置く。戻る/進むで復元でき、絞った状態のまま共有できる
  * (「選択 = URL」という、この出面の基本を崩さない)。
  */
-import { loadQuery, type Facets, type SongQuery } from "./query";
+import { loadQuery, type Facets, type SongQuery, type SortOption } from "./query";
 
 interface Elements {
   root: HTMLElement;
@@ -40,11 +40,9 @@ interface State {
 }
 
 const DEBOUNCE_MS = 120;
-const SORTS = [
-  { key: "kana", label: "五十音順", asc: true },
-  { key: "release", label: "リリース日順", asc: false },
-  { key: "performance", label: "披露回数順", asc: false },
-];
+
+/** 既定の並び。コアが返す一覧の先頭 (`SongListSort::from_key` の落とし先と同じ)。 */
+const FALLBACK_SORT = "kana";
 
 export function mountSongFilter(root: HTMLElement): void {
   const base = root.dataset.queryBase;
@@ -72,6 +70,8 @@ export function mountSongFilter(root: HTMLElement): void {
   const baseQuery = JSON.parse(base) as SongQuery;
   const state = readUrl();
   let engine: Awaited<ReturnType<typeof loadQuery>> | null = null;
+  // 並べ替えの一覧はコアが出す (鍵・文言・既定方向)。素材が来るまでは空。
+  let sorts: SortOption[] = [];
   let timer = 0;
 
   setEnabled(el, false);
@@ -81,8 +81,9 @@ export function mountSongFilter(root: HTMLElement): void {
     try {
       engine = await loadQuery();
       const facets = JSON.parse(engine.facets()) as Facets;
+      sorts = facets.sorts;
       renderFields(el, facets, state, onChange);
-      renderSorts(el, state);
+      renderSorts(el, sorts, state);
       setEnabled(el, true);
       apply();
     } catch (e) {
@@ -101,12 +102,12 @@ export function mountSongFilter(root: HTMLElement): void {
   el.sort.addEventListener("change", () => {
     state.sort = el.sort.value;
     state.ascending = null; // その並びの既定方向に戻す (決めるのはコア)。
-    syncDir(el, state);
+    syncDir(el, sorts, state);
     onChange();
   });
   el.dir.addEventListener("click", () => {
-    state.ascending = !currentAscending(state);
-    syncDir(el, state);
+    state.ascending = !currentAscending(sorts, state);
+    syncDir(el, sorts, state);
     onChange();
   });
   el.reset.addEventListener("click", () => {
@@ -117,7 +118,7 @@ export function mountSongFilter(root: HTMLElement): void {
   window.addEventListener("popstate", () => {
     Object.assign(state, readUrl());
     renderFieldValues(el, state);
-    renderSorts(el, state);
+    renderSorts(el, sorts, state);
     apply();
   });
 
@@ -167,7 +168,8 @@ export function mountSongFilter(root: HTMLElement): void {
     el.status.textContent = narrowed ? `${visible} 件 / ${total} 件` : `${total} 件`;
     el.root.dataset.filtered = String(narrowed);
     // かな目次は既定の並びを前提にした飛び先なので、絞り込み/並べ替え中は隠す。
-    if (el.kana) el.kana.hidden = narrowed || state.sort !== "kana" || state.ascending === false;
+    if (el.kana)
+      el.kana.hidden = narrowed || state.sort !== FALLBACK_SORT || state.ascending === false;
     writeUrl(state);
   }
 }
@@ -208,9 +210,9 @@ function isNarrowed(s: State): boolean {
   );
 }
 
-function currentAscending(s: State): boolean {
+function currentAscending(sorts: SortOption[], s: State): boolean {
   if (s.ascending !== null) return s.ascending;
-  return SORTS.find((x) => x.key === s.sort)?.asc ?? true;
+  return sorts.find((x) => x.key === s.sort)?.defaultAscending ?? true;
 }
 
 function setEnabled(el: Elements, on: boolean): void {
@@ -220,19 +222,19 @@ function setEnabled(el: Elements, on: boolean): void {
   el.root.dataset.state = on ? "ready" : "loading";
 }
 
-function syncDir(el: Elements, state: State): void {
-  const asc = currentAscending(state);
+function syncDir(el: Elements, sorts: SortOption[], state: State): void {
+  const asc = currentAscending(sorts, state);
   el.dir.textContent = asc ? "↑" : "↓";
   el.dir.setAttribute("aria-label", asc ? "昇順（クリックで降順）" : "降順（クリックで昇順）");
 }
 
-function renderSorts(el: Elements, state: State): void {
-  el.sort.innerHTML = SORTS.map(
-    (o) => `<option value="${o.key}">${escapeText(o.label)}</option>`,
-  ).join("");
-  if (!SORTS.some((o) => o.key === state.sort)) state.sort = "kana";
+function renderSorts(el: Elements, sorts: SortOption[], state: State): void {
+  el.sort.innerHTML = sorts
+    .map((o) => `<option value="${escapeAttr(o.key)}">${escapeText(o.label)}</option>`)
+    .join("");
+  if (!sorts.some((o) => o.key === state.sort)) state.sort = FALLBACK_SORT;
   el.sort.value = state.sort;
-  syncDir(el, state);
+  syncDir(el, sorts, state);
 }
 
 /** 入力欄。値の集合は wasm (= Snapshot) が出したものをそのまま並べる。 */
@@ -301,7 +303,7 @@ const URL_KEYS: (keyof State)[] = [
 
 function readUrl(): State {
   const q = new URLSearchParams(location.search);
-  const s = emptyState(q.get("sort") ?? "kana");
+  const s = emptyState(q.get("sort") ?? FALLBACK_SORT);
   for (const key of URL_KEYS) {
     const v = q.get(key);
     if (!v) continue;
@@ -320,7 +322,7 @@ function writeUrl(state: State): void {
     const text = Array.isArray(v) ? v.join(",") : String(v ?? "");
     if (text.trim()) q.set(key, text.trim());
   }
-  if (state.sort !== "kana") q.set("sort", state.sort);
+  if (state.sort !== FALLBACK_SORT) q.set("sort", state.sort);
   if (state.ascending !== null) q.set("dir", state.ascending ? "asc" : "desc");
   const next = q.toString() ? `${location.pathname}?${q}` : location.pathname;
   if (next !== location.pathname + location.search) history.replaceState(null, "", next);

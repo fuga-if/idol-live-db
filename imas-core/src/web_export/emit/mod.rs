@@ -154,13 +154,71 @@ fn performer_name_options() -> Vec<PerformerNameOptionDto> {
 }
 
 fn shippable_tables(mut raw: RawTables) -> RawTables {
-    for song in &mut raw.songs {
-        // 試聴音源 (Apple の音源 URL)。アプリの中でだけ鳴らすもので、出面には出さない。
-        song.preview_url = None;
-        // 歌詞の在り処。歌詞は D1 だけに置く (JASRAC 許諾の条件)。
-        song.lyrics_url = None;
-    }
+    raw.songs = raw.songs.into_iter().map(shippable_song).collect();
     raw
+}
+
+/// 配ってよい形の songs 1 行。
+///
+/// **全カラムを分解して組み直す。** 列が増えるとここがコンパイルエラーになり、
+/// 「配ってよいか」を 1 件ずつ決めることになる。`song.preview_url = None` と
+/// 書いていた頃は、新しい列が既定で配信される側に倒れていた。
+fn shippable_song(song: crate::domain::snapshot::Song) -> crate::domain::snapshot::Song {
+    use crate::domain::snapshot::Song;
+    let Song {
+        id,
+        title,
+        title_kana,
+        brand_id,
+        song_type,
+        release_date,
+        duration_sec,
+        composer,
+        lyricist,
+        arranger,
+        cd_series,
+        cd_title,
+        artwork_url,
+        // 試聴音源。アプリの中でだけ鳴らすもので、出面には出さない。
+        preview_url: _,
+        apple_music_id,
+        apple_music_album_id,
+        isrc,
+        // 歌詞の在り処。歌詞は D1 だけに置く (JASRAC 許諾の条件)。
+        lyrics_url: _,
+        parent_song_id,
+        singer_label,
+        unit_name,
+        unit_id,
+        series_group,
+        jasrac_code,
+    } = song;
+    Song {
+        id,
+        title,
+        title_kana,
+        brand_id,
+        song_type,
+        release_date,
+        duration_sec,
+        composer,
+        lyricist,
+        arranger,
+        cd_series,
+        cd_title,
+        artwork_url,
+        preview_url: None,
+        apple_music_id,
+        apple_music_album_id,
+        isrc,
+        lyrics_url: None,
+        parent_song_id,
+        singer_label,
+        unit_name,
+        unit_id,
+        series_group,
+        jasrac_code,
+    }
 }
 
 fn write_all(

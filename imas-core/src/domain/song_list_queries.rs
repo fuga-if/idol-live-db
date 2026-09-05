@@ -76,6 +76,73 @@ impl SongListSort {
     pub fn default_ascending(self) -> bool {
         matches!(self, SongListSort::TitleKana)
     }
+
+    /// URL・保存値に使う鍵。**序数を使わない** (並べ替えた瞬間に別物になる)。
+    pub fn key(self) -> &'static str {
+        match self {
+            Self::TitleKana => "kana",
+            Self::ReleaseDate => "release",
+            Self::PerformanceCount => "performance",
+            Self::CollectedCount => "collected",
+            Self::CollectedRate => "collected_rate",
+        }
+    }
+
+    /// 画面に出す文言。
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::TitleKana => "五十音順",
+            Self::ReleaseDate => "リリース日順",
+            Self::PerformanceCount => "披露回数順",
+            Self::CollectedCount => "回収数順",
+            Self::CollectedRate => "回収率順",
+        }
+    }
+
+    /// この並びに、その人の回収記録が要るか。
+    ///
+    /// 要るものは**ログインもユーザーデータも持たない出面 (Web) では出せない**。
+    /// 「どれを出すか」を出面側が列挙し直すと、並びを 1 つ足したときに
+    /// 片方だけ古いまま残る。
+    pub fn requires_user_marks(self) -> bool {
+        matches!(self, Self::CollectedCount | Self::CollectedRate)
+    }
+
+    pub fn all() -> Vec<Self> {
+        vec![
+            Self::TitleKana,
+            Self::ReleaseDate,
+            Self::PerformanceCount,
+            Self::CollectedCount,
+            Self::CollectedRate,
+        ]
+    }
+
+    /// 鍵からの復元。未知の鍵は既定 (50 音順)。
+    pub fn from_key(key: &str) -> Self {
+        Self::all().into_iter().find(|s| s.key() == key).unwrap_or(Self::TitleKana)
+    }
+}
+
+/// 並べ替え 1 つぶんの選択肢。
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SongListSortOption {
+    pub key: String,
+    pub label: String,
+    pub default_ascending: bool,
+}
+
+/// ユーザーデータを持たない出面で選べる並べ替え。
+pub fn song_list_sort_options_without_user_marks() -> Vec<SongListSortOption> {
+    SongListSort::all()
+        .into_iter()
+        .filter(|s| !s.requires_user_marks())
+        .map(|s| SongListSortOption {
+            key: s.key().to_string(),
+            label: s.label().to_string(),
+            default_ascending: s.default_ascending(),
+        })
+        .collect()
 }
 
 // ---- LIKE (%q% / q%) の明示実装 ----
