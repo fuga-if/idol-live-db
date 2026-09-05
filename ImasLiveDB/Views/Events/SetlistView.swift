@@ -28,6 +28,9 @@ struct SetlistView: View {
     /// シンプル表示 (番号・曲名・演者だけ)。 20 曲超のセトリを 1 枚のスクショに
     /// 収めたい用途向け。 公演をまたいで保持したいので AppStorage。
     @AppStorage("setlist_simple_mode") private var simpleMode = false
+    /// 歌唱者をどの名前で出すか。マイページの設定と同じ鍵を読む
+    /// (公演をまたいで効く「表示の好み」なので画面には持たせない)。
+    @AppStorage(PerformerNameSetting.storageKey) private var performerName: PerformerNameSetting = .idol
     @State private var performersByItemId: [String: [PerformerRow]] = [:]
     @State private var originalIdsBySongId: [String: Set<String>] = [:]
     @State private var idolsById: [String: Idol] = [:]
@@ -153,6 +156,8 @@ struct SetlistView: View {
                 unitIndex: unitIndex,
                 showAllCastIds: showAllCastIds,
                 activeUnitIds: activeUnitIds,
+                performerName: performerName,
+                isCharacterLive: show.isCharacterLive,
                 coverType: classifyCover(originalIds: originalIds, performerIds: performerIdolIds),
                 myPickIdolIds: myPickIdolIds,
                 showId: show.id,
@@ -176,6 +181,11 @@ struct SetlistView: View {
     /// シンプル表示の演者ラベル。 通常行の performerMeta と同じ優先順で決める:
     /// ユニット単独曲ならユニット名 → 出演者全員なら「全員」→ それ以外は名前を「／」で連結。
     /// 名前の区切りは公式のセトリ画像に合わせて全角スラッシュ。
+    ///
+    /// **名前の決め方はここに書かない。** どちらを出すかは閲覧者の設定で変わるので、
+    /// 1 人分の解決は imas-core の `performerDisplayName` に任せる
+    /// (ここが `idolsById[...]?.name` を直に読んでいたせいで、設定も公演種別も
+    /// 効かずアイドル名で固定されていた)。
     private func performerLabel(performers: [PerformerRow], idolIds: Set<String>) -> String {
         if let unitIndex {
             let units = unitIndex.exactMatchingUnits(for: idolIds, requireSongs: true)
@@ -184,9 +194,9 @@ struct SetlistView: View {
         }
         // showAllCastIds は cast_id 集合。 PerformerRow.id が cast_id なのでそのまま比較できる。
         if showAllCastIds.count >= 2, Set(performers.map(\.id)) == showAllCastIds { return "全員" }
-        let names = performers.compactMap { $0.idolId.flatMap { idolsById[$0]?.name } }
-        if !names.isEmpty { return names.joined(separator: "／") }
-        return performers.map(\.name).joined(separator: "／")
+        return performers
+            .map { $0.displayName(performerName, isCharacterLive: show.isCharacterLive).joined }
+            .joined(separator: "／")
     }
 
     private func brandHex(for item: SetlistRow) -> String? {

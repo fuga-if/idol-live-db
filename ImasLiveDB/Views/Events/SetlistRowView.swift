@@ -14,6 +14,11 @@ struct SetlistRowView: View {
     /// この公演でユニット単独曲を披露したユニット ID。
     /// 偶然メンバーが揃った合唱曲に過剰マッチするのを防ぐ。
     var activeUnitIds: Set<String> = []
+    /// 歌唱者をどの名前で出すか (親が AppStorage から渡す)。
+    var performerName: PerformerNameSetting = .idol
+    /// `shows.performer_type == "character"`。
+    ///
+    /// 以前は既定値のまま誰も渡しておらず、キャラライブ分岐が死んでいた。
     var isCharacterLive: Bool = false
     var coverType: CoverType = .unknown
     /// 担当アイドル ID。 performer に含まれていれば担当認知 (アバターの二重輪) に委ねる。
@@ -252,7 +257,10 @@ struct SetlistRowView: View {
         .sheet(isPresented: $showPerformersSheet) {
             PerformerDetailSheet(
                 songTitle: item.songTitle,
-                idols: performerIdols
+                idols: performerIdols,
+                performers: performers,
+                performerName: performerName,
+                isCharacterLive: isCharacterLive
             ) { dest in
                 showPerformersSheet = false
                 go(dest)
@@ -297,7 +305,11 @@ struct SetlistRowView: View {
                 // アイドル情報なし → テキスト chip フォールバック
                 FlowLayout(spacing: DS.sp2) {
                     ForEach(performers) { performer in
-                        PerformerChip(performer: performer, isCharacterLive: isCharacterLive)
+                        PerformerChip(
+                            performer: performer,
+                            performerName: performerName,
+                            isCharacterLive: isCharacterLive
+                        )
                     }
                 }
             }
@@ -307,22 +319,12 @@ struct SetlistRowView: View {
 
 private struct PerformerChip: View {
     let performer: PerformerRow
+    var performerName: PerformerNameSetting = .idol
     var isCharacterLive: Bool = false
 
-    /// キャラライブならアイドル名、声優ライブならCV名を表示
-    private var displayName: String {
-        if isCharacterLive {
-            return performer.idolName ?? performer.name
-        }
-        return performer.name
-    }
-
-    /// サブテキスト（キャラライブならCV名、声優ライブならアイドル名）
-    private var subName: String? {
-        if isCharacterLive {
-            return performer.idolName != nil ? "CV:\(performer.name)" : nil
-        }
-        return performer.idolName
+    /// 主と副。**どちらを出すかの規則は imas-core が持つ** (画面ごとに分岐を書かない)。
+    private var name: PerformerDisplayName {
+        performer.displayName(performerName, isCharacterLive: isCharacterLive)
     }
 
     var body: some View {
@@ -331,11 +333,11 @@ private struct PerformerChip: View {
                 .fill(Color(hexString: performer.idolColor, default: DS.ink3))
                 .frame(width: 6, height: 6)
             VStack(alignment: .leading, spacing: 0) {
-                Text(displayName)
+                Text(name.primary)
                     .font(.imasCaption)
                     .foregroundStyle(DS.ink)
                     .lineLimit(1)
-                if let sub = subName {
+                if let sub = name.secondary {
                     Text(sub)
                         .font(.imasCaption)
                         .foregroundStyle(DS.ink2)

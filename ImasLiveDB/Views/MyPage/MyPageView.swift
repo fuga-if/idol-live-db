@@ -12,6 +12,13 @@ struct MyPageView: View {
     /// 乗算で併用するアプリ内倍率。中(1.0) を境に縮小・拡大の両方向へ調整できる。
     @AppStorage("text_scale") private var textScale: Double = 1.0
     private static let textScaleOptions: [Double] = [0.7, 0.85, 1.0, 1.15, 1.3]
+    /// 歌唱者の表示サンプル (実データの 1 人)。設定を切り替えた見え方をその場で見せる。
+    private static let performerNameSample = PerformerRow(
+        id: "sample",
+        name: "下田麻美",
+        idolColor: nil,
+        idolName: "双海亜美"
+    )
     private static let textScaleLabels = ["極小", "小", "中", "大", "特大"]
     private var textScaleIndex: Binding<Int> {
         Binding(
@@ -23,6 +30,8 @@ struct MyPageView: View {
     }
     /// イベント名の作品名プレフィックスを省略表示するか (既定 ON)。OFF でフル表示。
     @AppStorage("event_name_abbreviate") private var abbreviateEventNames: Bool = true
+    /// セトリの歌唱者をどの名前で出すか (既定=アイドル名)。
+    @AppStorage(PerformerNameSetting.storageKey) private var performerName: PerformerNameSetting = .idol
     /// 曲一覧の「この絞り込みでイントロドン」導線を隠すか (曲一覧側の×と同じキー)。
     @AppStorage("songlist_introdon_bar_hidden") private var introDonBarHidden: Bool = false
     /// 回収に配信参加も含めるか (既定=現地のみ)。地方勢など配信中心の人向け。
@@ -439,6 +448,16 @@ struct MyPageView: View {
                     .foregroundStyle(DS.ink2)
             }
             .padding(.vertical, DS.sp1)
+
+            Picker("セトリの歌唱者", selection: $performerName) {
+                ForEach(PerformerNameSetting.allCases) { setting in
+                    Text(setting.label).tag(setting)
+                }
+            }
+            // 設定値で見え方が変わるサンプル。声優ライブの 1 人分をそのまま出す。
+            Text(Self.performerNameSample.displayName(performerName, isCharacterLive: false).joined)
+                .font(.imasCaption)
+                .foregroundStyle(DS.ink2)
 
             Toggle("ライブ名を省略表示", isOn: $abbreviateEventNames)
             // 設定値で見え方が変わるサンプル。ON なら作品名プレフィックスを省く。
