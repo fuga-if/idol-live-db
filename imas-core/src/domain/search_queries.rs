@@ -299,13 +299,18 @@ mod tests {
         assert_all_kinds_match_sql("READY");
         let lower = song_ids("ready");
         assert_eq!(lower, song_ids("READY"));
-        // 大小混在ヒットが実在すること (全部同ケースなら大小無視の検証として退化)
+        // 当たった題名が問い合わせと違う大小で書かれていること。
+        // (問い合わせと同じ綴りの題名しか当たっていないなら、大小を無視した証明にならない)
+        //
+        // 「READY と Ready の両方が居ること」を見ていた頃は、`Ready Steady`
+        // (配信で歌われたカバー) が消えた日に落ちた。実在する題名の顔ぶれに
+        // 依存しない形にしてある。
         let titles: Vec<&str> = lower
             .iter()
             .map(|id| snap().songs[snap().song_index_by_id[id] as usize].title.as_str())
             .collect();
-        assert!(titles.iter().any(|t| t.contains("READY")), "{titles:?}");
-        assert!(titles.iter().any(|t| t.contains("Ready")), "{titles:?}");
+        assert!(!titles.is_empty(), "ready が 1 件も当たらない");
+        assert!(titles.iter().all(|t| !t.contains("ready")), "{titles:?}");
     }
 
     /// LIMIT 20 の頭切り: 全件が 20 を超える検索語で「先頭 20 件 (rowid 順)」が一致する。
