@@ -7,6 +7,7 @@ import RefList from "../../components/RefList.astro";
 import EmptyState from "../../components/EmptyState.astro";
 import { meta, page, pathsFor } from "../../lib/data";
 import type { UnitPage } from "../../lib/schema/UnitPage";
+import CommunityTags from "../../components/CommunityTags.astro";
 
 export const getStaticPaths = () => pathsFor("unit", "unitId");
 
@@ -26,6 +27,16 @@ const unit = page<UnitPage>(Astro.props.data);
       </div>
     </div>
   </section>
+
+  {
+    unit.tags.length > 0 && (
+      <Section id="unit-tags" title="みんなのタグ">
+        <div class="card card__pad">
+          <CommunityTags tags={unit.tags} />
+        </div>
+      </Section>
+    )
+  }
 
   <Section slot="aside" id="unit-members" title="メンバー" count={unit.members.length}>
     {

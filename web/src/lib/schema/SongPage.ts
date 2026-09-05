@@ -7,6 +7,7 @@ import type { ProfileRow } from "./ProfileRow";
 import type { Ref } from "./Ref";
 import type { SeoBlock } from "./SeoBlock";
 import type { SingerRow } from "./SingerRow";
+import type { SongCommunity } from "./SongCommunity";
 
 /**
  * `/songs/<id>/` の中身。
@@ -14,7 +15,11 @@ import type { SingerRow } from "./SingerRow";
  * **ページは全曲ぶん作る** (派生曲・`other` ブランドを含む)。共有リンクや検索から
  * 到達できるべきだから。一覧に載せるかどうかだけが `SongListFilter` の判断。
  */
-export type SongPage = { schemaVersion: number, id: string, path: string, title: string, titleKana: string | null, themeKey: string, brand: Ref | null, songType: string | null, releaseDate: string | null, 
+export type SongPage = { schemaVersion: number, id: string, path: string, title: string, titleKana: string | null, themeKey: string, brand: Ref | null, 
+/**
+ * コミュニティ集計 (タグ・お気に入り・ペンライト)。焼き込み。
+ */
+community: SongCommunity, songType: string | null, releaseDate: string | null, 
 /**
  * `"4:32"`。整形だけなのでここで作る。
  */

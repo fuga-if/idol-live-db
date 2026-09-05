@@ -122,8 +122,17 @@ def main() -> int:
         "--    完全バックアップは tools/backup_d1.sh で db_backups_local/ に取ること。",
         "--",
         "-- 生成: python3 tools/export_community_snapshot.py --remote",
+        "--",
+        "-- CREATE TABLE も出すので、このファイルは単体で空の SQLite に流し込める",
+        "-- (Web 出面の書き出しが読む。INSERT だけだと受け手がスキーマを持つことになり、",
+        "--  列を足したときに片方だけ古いまま残る)。型は書かない: ここは読むだけの",
+        "-- スナップショットで、制約は D1 側が持っている。",
         "",
     ]
+    for table, _, columns, _, _ in EXPORTS:
+        cols = ", ".join(f'"{c}"' for c in columns)
+        lines.append(f'CREATE TABLE IF NOT EXISTS "{table}" ({cols});')
+    lines.append("")
 
     total = 0
     for table, note, columns, where, order in EXPORTS:

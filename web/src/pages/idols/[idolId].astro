@@ -11,6 +11,7 @@ import EmptyState from "../../components/EmptyState.astro";
 import { meta, page, pathsFor } from "../../lib/data";
 import type { IdolPage } from "../../lib/schema/IdolPage";
 import Count from "../../components/Count.astro";
+import CommunityTags from "../../components/CommunityTags.astro";
 
 export const getStaticPaths = () => pathsFor("idol", "idolId");
 
@@ -32,6 +33,16 @@ const idol = page<IdolPage>(Astro.props.data);
       {idol.description && <p>{idol.description}</p>}
     </div>
   </section>
+
+  {
+    idol.tags.length > 0 && (
+      <Section id="idol-tags" title="みんなのタグ">
+        <div class="card card__pad">
+          <CommunityTags tags={idol.tags} />
+        </div>
+      </Section>
+    )
+  }
 
   {
     idol.profileRows.length > 0 && (

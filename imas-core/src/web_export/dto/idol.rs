@@ -1,6 +1,7 @@
 //! アイドル (idol) 詳細ページの DTO。
 
 use super::common::{AppOpen, Ref, SeoBlock};
+use super::common::TagChipDto;
 
 web_dto! {
     /// `/idols/<id>/` の中身。
@@ -12,6 +13,8 @@ web_dto! {
         pub name_kana: Option<String>,
         pub theme_key: String,
         /// 主ブランド。
+        /// コミュニティが付けたタグ (多い順)。焼き込み。
+        pub tags: Vec<TagChipDto>,
         pub brand: Option<Ref>,
         /// `idol_brands` (primary 先頭)。掛け持ちのアイドルが居る。
         pub brands: Vec<Ref>,

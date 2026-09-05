@@ -37,6 +37,7 @@ pub fn idol_page(ctx: &Ctx, idol_id: &str) -> Option<IdolPage> {
 
     Some(IdolPage {
         schema_version: SCHEMA_VERSION,
+        tags: super::context::tag_chips(ctx.community.idol_tags(&record.id)),
         id: record.id.clone(),
         path: path.clone(),
         name: record.name.clone(),
@@ -212,6 +213,7 @@ pub fn unit_page(ctx: &Ctx, unit_id: &str) -> Option<UnitPage> {
 
     Some(UnitPage {
         schema_version: SCHEMA_VERSION,
+        tags: super::context::tag_chips(ctx.community.unit_tags(&record.id)),
         id: record.id.clone(),
         path: path.clone(),
         name: record.name.clone(),

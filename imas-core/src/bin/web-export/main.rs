@@ -21,6 +21,7 @@ const USAGE: &str = "\
 
 任意:
   --work-db <path>   --sql のときの中間 DB (既定: <out>/../.cache/master-web.sqlite)
+  --community <path> コミュニティ集計 (既定: db/community.sql)。無ければ集計抜きで出す
   --today <Y-m-d>    JST の「今日」を固定する (省略時は現在時刻から求める)
   --pretty           整形して書く (既定は minify)
 ";
@@ -66,6 +67,7 @@ fn parse() -> Result<Args, WebExportError> {
             "--sql" => args.sql = Some(value()?.into()),
             "--db" => args.db = Some(value()?.into()),
             "--work-db" => args.work_db = Some(value()?.into()),
+            "--community" => args.community = Some(value()?),
             "--out" => args.out = Some(value()?.into()),
             "--emit-fixture" => args.emit_fixture = Some(value()?.into()),
             "--fixture-check" => args.fixture_check = Some(value()?.into()),

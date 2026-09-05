@@ -6,6 +6,7 @@ import type { IdolSongRow } from "./IdolSongRow";
 import type { ProfileRow } from "./ProfileRow";
 import type { Ref } from "./Ref";
 import type { SeoBlock } from "./SeoBlock";
+import type { TagChipDto } from "./TagChipDto";
 import type { VoiceActorRow } from "./VoiceActorRow";
 
 /**
@@ -14,8 +15,9 @@ import type { VoiceActorRow } from "./VoiceActorRow";
 export type IdolPage = { schemaVersion: number, id: string, path: string, name: string, nameKana: string | null, themeKey: string, 
 /**
  * 主ブランド。
+ * コミュニティが付けたタグ (多い順)。焼き込み。
  */
-brand: Ref | null, 
+tags: Array<TagChipDto>, brand: Ref | null, 
 /**
  * `idol_brands` (primary 先頭)。掛け持ちのアイドルが居る。
  */

@@ -312,3 +312,42 @@ web_dto! {
         pub hero_surface: String,
     }
 }
+
+web_dto! {
+    /// コミュニティが付けたタグ 1 件。
+    ///
+    /// **この出面は読むだけ。** 付ける/外すはログインが要るのでアプリへ誘導する。
+    #[derive(Eq)]
+    pub struct TagChipDto {
+        pub id: String,
+        pub name: String,
+        /// 何人が付けたか。
+        pub count: u32,
+        /// タグ自身の色 (hex)。無ければ受け手が既定色で出す。
+        pub color: Option<String>,
+        /// 運営が用意したタグか。
+        pub is_official: bool,
+    }
+}
+
+web_dto! {
+    /// 曲のコミュニティ集計。ページに出すのはここにあるものだけ。
+    #[derive(Eq)]
+    pub struct SongCommunity {
+        pub tags: Vec<TagChipDto>,
+        /// お気に入りに入れている人の数。
+        pub favorites: u32,
+        /// ペンライトの色セット (得票の多い順)。
+        pub penlight: Vec<PenlightSetDto>,
+    }
+}
+
+web_dto! {
+    /// ペンライトの色セット 1 件。
+    #[derive(Eq)]
+    pub struct PenlightSetDto {
+        /// 色セットの鍵 (アプリ側が色に解決する)。
+        pub key: String,
+        pub count: u32,
+    }
+}

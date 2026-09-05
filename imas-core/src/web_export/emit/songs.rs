@@ -75,6 +75,16 @@ pub fn song_page(ctx: &Ctx, song_id: &str) -> Option<SongPage> {
         path: path.clone(),
         title: record.title.clone(),
         title_kana: record.title_kana.clone(),
+        community: SongCommunity {
+            tags: super::context::tag_chips(ctx.community.song_tags(&record.id)),
+            favorites: ctx.community.favorites(&record.id).max(0) as u32,
+            penlight: ctx
+                .community
+                .penlight(&record.id)
+                .iter()
+                .map(|p| PenlightSetDto { key: p.color_set_key.clone(), count: p.count.max(0) as u32 })
+                .collect(),
+        },
         theme_key: ctx.brand_theme(brand_id.as_deref()),
         brand: brand_id.as_deref().and_then(|b| ctx.brand_ref(b)),
         song_type: record.song_type.clone(),

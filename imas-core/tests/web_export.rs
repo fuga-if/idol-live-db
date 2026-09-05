@@ -490,7 +490,16 @@ mod real {
     }
 
     fn ctx() -> Ctx<'static> {
-        Ctx::new(snap(), TODAY.to_string(), format!("{TODAY}T00:00:00Z"), None)
+        // 集計は空で組む (ここで見たいのはページの形で、コミュニティの値ではない)。
+        static COMMUNITY: OnceLock<imas_core::domain::community::CommunitySnapshot> =
+            OnceLock::new();
+        Ctx::new(
+            snap(),
+            COMMUNITY.get_or_init(Default::default),
+            TODAY.to_string(),
+            format!("{TODAY}T00:00:00Z"),
+            None,
+        )
     }
 
     /// フル出力を 1 回だけ作り、複数のテストで共有する (毎回作ると 1 分 × テスト数になる)。

@@ -3,6 +3,7 @@ import DetailLayout from "../../layouts/DetailLayout.astro";
 import Section from "../../components/Section.astro";
 import Artwork from "../../components/Artwork.astro";
 import Chip from "../../components/Chip.astro";
+import CommunityTags from "../../components/CommunityTags.astro";
 import RefList from "../../components/RefList.astro";
 import ListContainer from "../../components/ListContainer.astro";
 import LabeledRow from "../../components/LabeledRow.astro";
@@ -168,6 +169,30 @@ const song = page<SongPage>(Astro.props.data);
     song.related.length > 0 && (
       <Section id="song-related" title="関連する曲">
         <RefList refs={song.related} variant="neutral" label="関連する曲" />
+      </Section>
+    )
+  }
+
+  {
+    (song.community.tags.length > 0 ||
+      song.community.favorites > 0 ||
+      song.community.penlight.length > 0) && (
+      <Section id="song-community" title="みんなの記録">
+        <div class="card card__pad u-stack">
+          <CommunityTags tags={song.community.tags} />
+          <p class="community-stats">
+            {song.community.favorites > 0 && (
+              <span>
+                お気に入り <b>{song.community.favorites}</b>
+              </span>
+            )}
+            {song.community.penlight.length > 0 && (
+              <span>
+                ペンライトの色 <b>{song.community.penlight.length}</b> 通り
+              </span>
+            )}
+          </p>
+        </div>
       </Section>
     )
   }

@@ -18,6 +18,7 @@ use super::{restore, theme, Args, Result, Stats, WebExportError};
 use crate::domain::jst_day::jst_today;
 use crate::domain::snapshot::Snapshot;
 use crate::domain::snapshot_build::RawTables;
+use crate::outbound::community_loader::load_community;
 use crate::outbound::sqlite_loader::{load_raw_tables, load_snapshot};
 use context::Ctx;
 use std::path::PathBuf;
@@ -118,8 +119,18 @@ pub fn run(args: &Args) -> Result<Stats> {
     // 「2 回流してバイト一致」で再現性を確かめられなくなる。
     let generated_at = format!("{today}T00:00:00Z");
 
-    let ctx = Ctx::new(&snap, today, generated_at, content_hash);
+    // コミュニティ集計 (D1 の公開用スナップショット)。無ければ空で続ける。
+    let community = load_community(community_path(args))
+        .map_err(|e| WebExportError::Db(e))?;
+
+    let ctx = Ctx::new(&snap, &community, today, generated_at, content_hash);
     write_all(&ctx, &out, args.pretty, raw_tables)
+}
+
+/// コミュニティ集計の置き場。`--community` が無ければ `db/community.sql` を
+/// 既定で見る (master.sql の隣に置いてある正本)。
+fn community_path(args: &Args) -> &str {
+    args.community.as_deref().unwrap_or("db/community.sql")
 }
 
 fn default_work_db(out: &std::path::Path) -> PathBuf {

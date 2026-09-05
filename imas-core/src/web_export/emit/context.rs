@@ -6,6 +6,7 @@
 use crate::domain::display_join::year_of;
 use crate::domain::idol_queries::{self, BrandRecord};
 use crate::domain::performance_stats::CoOccurIndex;
+use crate::domain::community::CommunitySnapshot;
 use crate::domain::snapshot::Snapshot;
 use crate::web_export::content::{self, absolute};
 use crate::web_export::dto::*;
@@ -27,6 +28,9 @@ pub type BrandThemeInput = (String, Option<String>);
 /// 出力全体で共有する読み取り専用の文脈。
 pub struct Ctx<'a> {
     pub snap: &'a Snapshot,
+    /// コミュニティ集計 (タグ・お気に入り・ペンライト・お題)。
+    /// `db/community.sql` が無ければ空 (集計抜きでも出面は組める)。
+    pub community: &'a CommunitySnapshot,
     /// JST の「今日」。upcoming / past の分割はすべてこの 1 個から決まる。
     pub today: String,
     pub generated_at: String,
@@ -56,6 +60,7 @@ pub struct Ctx<'a> {
 impl<'a> Ctx<'a> {
     pub fn new(
         snap: &'a Snapshot,
+        community: &'a CommunitySnapshot,
         today: String,
         generated_at: String,
         content_hash: Option<String>,
@@ -115,6 +120,7 @@ impl<'a> Ctx<'a> {
 
         Self {
             snap,
+            community,
             today,
             generated_at,
             data_version: snap.meta_value("data_version").map(str::to_string),
@@ -490,6 +496,19 @@ pub fn json_ld_graph(entity: serde_json::Value, breadcrumbs: &[Crumb]) -> serde_
 /// web_export に規則の複製を作らないための入口。
 pub use crate::domain::display_join::{join_parts, PARTS_SEPARATOR};
 pub use crate::domain::show_naming::distinguishing_show_name;
+
+/// タグを DTO へ。**上限も並びも domain が決めた形をそのまま**使う。
+pub fn tag_chips(tags: Vec<(&crate::domain::community::TagRow, i64)>) -> Vec<TagChipDto> {
+    tags.into_iter()
+        .map(|(t, count)| TagChipDto {
+            id: t.id.clone(),
+            name: t.name.clone(),
+            count: count.max(0) as u32,
+            color: t.color.clone(),
+            is_official: t.is_official,
+        })
+        .collect()
+}
 
 /// `<title>` の形。サイト名を 2 回出さない (トップは `home.rs` が別に組む)。
 pub fn page_title(title: &str) -> String {

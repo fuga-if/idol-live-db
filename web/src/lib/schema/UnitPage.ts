@@ -2,6 +2,7 @@
 import type { AppOpen } from "./AppOpen";
 import type { Ref } from "./Ref";
 import type { SeoBlock } from "./SeoBlock";
+import type { TagChipDto } from "./TagChipDto";
 
 /**
  * `/units/<id>/` の中身。
@@ -14,4 +15,8 @@ nameAlt: string | null, themeKey: string,
 /**
  * 常設ユニットか (false = ライブ限定などの期間限定)。
  */
-isPermanent: boolean, brand: Ref | null, members: Array<Ref>, songs: Array<Ref>, app: AppOpen, seo: SeoBlock, };
+isPermanent: boolean, 
+/**
+ * コミュニティが付けたタグ (多い順)。焼き込み。
+ */
+tags: Array<TagChipDto>, brand: Ref | null, members: Array<Ref>, songs: Array<Ref>, app: AppOpen, seo: SeoBlock, };

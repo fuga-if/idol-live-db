@@ -422,6 +422,18 @@ fn show_page() -> ShowPage {
 fn song_page(reference: &Ref, minimal: bool) -> SongPage {
     SongPage {
         schema_version: SCHEMA_VERSION,
+        // 代表値でもコミュニティ集計が入る形にしておく (器だけ空にしない)。
+        community: SongCommunity {
+            tags: vec![TagChipDto {
+                id: "tag_kawaii".to_string(),
+                name: "かわいい".to_string(),
+                count: 12,
+                color: Some("#E900E2".to_string()),
+                is_official: false,
+            }],
+            favorites: 34,
+            penlight: vec![PenlightSetDto { key: "pink_white".to_string(), count: 5 }],
+        },
         id: reference.id.clone(),
         path: reference.path.clone(),
         title: reference.name.clone(),
@@ -522,6 +534,13 @@ fn song_variant_page() -> SongPage {
 fn idol_page(reference: &Ref) -> IdolPage {
     IdolPage {
         schema_version: SCHEMA_VERSION,
+        tags: vec![TagChipDto {
+            id: "tag_genki".to_string(),
+            name: "元気".to_string(),
+            count: 7,
+            color: None,
+            is_official: true,
+        }],
         id: reference.id.clone(),
         path: reference.path.clone(),
         name: reference.name.clone(),
@@ -595,6 +614,13 @@ fn idol_page(reference: &Ref) -> IdolPage {
 fn unit_page(reference: &Ref, empty: bool) -> UnitPage {
     UnitPage {
         schema_version: SCHEMA_VERSION,
+        tags: vec![TagChipDto {
+            id: "tag_genki".to_string(),
+            name: "元気".to_string(),
+            count: 7,
+            color: None,
+            is_official: true,
+        }],
         id: reference.id.clone(),
         path: reference.path.clone(),
         name: reference.name.clone(),

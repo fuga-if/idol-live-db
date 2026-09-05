@@ -2,6 +2,7 @@
 
 use super::common::{AppOpen, Ref, SeoBlock};
 use super::idol::ProfileRow;
+use super::common::{PenlightSetDto, SongCommunity, TagChipDto};
 
 web_dto! {
     /// `/songs/<id>/` の中身。
@@ -16,6 +17,8 @@ web_dto! {
         pub title_kana: Option<String>,
         pub theme_key: String,
         pub brand: Option<Ref>,
+        /// コミュニティ集計 (タグ・お気に入り・ペンライト)。焼き込み。
+        pub community: SongCommunity,
         pub song_type: Option<String>,
         pub release_date: Option<String>,
         /// `"4:32"`。整形だけなのでここで作る。

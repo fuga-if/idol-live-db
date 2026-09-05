@@ -84,6 +84,9 @@ pub struct Args {
     pub work_db: Option<PathBuf>,
     /// 出力ディレクトリ (毎回まるごと作り直す)。
     pub out: Option<PathBuf>,
+    /// コミュニティ集計 (`db/community.sql`)。無指定なら既定の場所を見る。
+    /// ファイルが無ければ集計抜きで書き出す。
+    pub community: Option<String>,
     /// JST の「今日」を固定する (テスト・再現用)。`YYYY-MM-DD`。
     pub today: Option<String>,
     /// 整形して書く (既定は minify)。

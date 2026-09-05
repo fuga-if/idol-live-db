@@ -230,6 +230,33 @@ a.chip:hover {
   background: color-mix(in srgb, var(--accent) 12%, transparent);
   color: var(--accent);
 }
+/* コミュニティのタグ。色はタグ自身が持つ hex (無ければテーマのアクセント)。
+   ここでは色を決めず、`--tag-color` に来たものを使うだけ。 */
+.tag--community {
+  gap: var(--sp2);
+  background: color-mix(in srgb, var(--tag-color, var(--accent)) 14%, transparent);
+  color: var(--tag-color, var(--accent));
+}
+.tag--community.tag--official {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tag-color, var(--accent)) 45%, transparent);
+}
+.community-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp4);
+  font-size: var(--fs-caption);
+  color: var(--ds-ink2);
+}
+.community-stats b {
+  color: var(--ds-ink);
+  font-variant-numeric: tabular-nums;
+}
+.community-tags__count {
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.7;
+}
+
 .tag--all {
   background: var(--ds-fill);
   color: var(--ds-ink2);
