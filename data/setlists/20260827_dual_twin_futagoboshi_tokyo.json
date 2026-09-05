@@ -1,0 +1,97 @@
+{
+  "title": "dual twin live tour 双海 亜美・双海 真美 twin live “ふたごぼしのつばさ” [キラキラフタリボシ] (2026-08-27 Zepp Haneda) セットリスト",
+  "show_id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_5",
+  "all_performers": [
+    "765as_双海亜美",
+    "765as_双海真美"
+  ],
+  "source": "https://panora.tokyo/archives/154488",
+  "_note": "公式セットリスト画像より。ツアー千秋楽。全17曲すべて双海亜美・双海真美の2人歌唱でソロ枠なし",
+  "songs": [
+    {
+      "position": 1,
+      "song_id": "765as_スタトスタ",
+      "performers": "all"
+    },
+    {
+      "position": 2,
+      "song_id": "765as_ドキッラブアトラクション",
+      "performers": "all"
+    },
+    {
+      "position": 3,
+      "song_id": "ml_ユニークスターズオンステージ",
+      "performers": "all"
+    },
+    {
+      "position": 4,
+      "song_id": "ml_ジャングルパーティー",
+      "performers": "all"
+    },
+    {
+      "position": 5,
+      "song_id": "765as_pon_de_beach",
+      "performers": "all"
+    },
+    {
+      "position": 6,
+      "song_id": "765as_エージェント夜を往く",
+      "performers": "all"
+    },
+    {
+      "position": 7,
+      "song_id": "765as_そしてぼくらは旅にでる",
+      "performers": "all"
+    },
+    {
+      "position": 8,
+      "song_id": "765as_おとなのはじまり",
+      "performers": "all"
+    },
+    {
+      "position": 9,
+      "song_id": "765as_キラメキラリ",
+      "performers": "all"
+    },
+    {
+      "position": 10,
+      "song_id": "765as_ポジティブ",
+      "performers": "all"
+    },
+    {
+      "position": 11,
+      "song_id": "765as_brave_star",
+      "performers": "all"
+    },
+    {
+      "position": 12,
+      "song_id": "765as_星彩ステッパー",
+      "performers": "all"
+    },
+    {
+      "position": 13,
+      "song_id": "765as_黎明スターライン",
+      "performers": "all"
+    },
+    {
+      "position": 14,
+      "song_id": "765as_北極星をズラしちゃえ",
+      "performers": "all"
+    },
+    {
+      "position": 15,
+      "song_id": "765as_destiny",
+      "performers": "all"
+    },
+    {
+      "position": 16,
+      "song_id": "765as_the_愛",
+      "performers": "all"
+    },
+    {
+      "position": 17,
+      "song_id": "765as_翼",
+      "performers": "all"
+    }
+  ]
+}
