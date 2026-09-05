@@ -99,11 +99,26 @@ describe("GET /songs/:id/lyrics の利用ログ", () => {
     expect(logs.lines[0]).not.toContain("きみのこえ");
   });
 
-  it("未認証 (401) では出さない", async () => {
+  // 未認証でも配る。要件は「まとめ取りできないこと」と「回数が数えられること」で、
+  // 認証はどちらにも要らない (以前は認証をキャッシュ除外の代用にしていた)。
+  it("未認証でも公開済みは返り、回数はちゃんと数える", async () => {
     const logs = spyLogs();
     const stub = stubD1(responder());
-    const res = (await handleLyrics(ctxFor(lyricsPath, stub.db)))!;
-    expect(res.status).toBe(401);
+    const res = (await handleLyrics(ctxFor(lyricsPath, stub.db, { "CF-Connecting-IP": "203.0.113.9" })))!;
+    expect(res.status).toBe(200);
+    expect(logs.lines).toHaveLength(1);
+    expect(JSON.parse(logs.lines[0])).toEqual({ event: "lyrics_read", song_id: SONG_ID });
+    // 未認証でもキャッシュさせない (エッジで返ると Worker に届かず数えられない)。
+    expect(res.headers.get("Cache-Control")).toContain("no-store");
+  });
+
+  it("未認証には未公開 (draft) を返さない", async () => {
+    const logs = spyLogs();
+    const stub = stubD1(
+      responder({ header: { source: null, updated_at: "2026-09-01 12:00:00", lines_json: LINES, status: "draft" } })
+    );
+    const res = (await handleLyrics(ctxFor(lyricsPath, stub.db, { "CF-Connecting-IP": "203.0.113.9" })))!;
+    expect(res.status).toBe(404);
     expect(logs.lines).toHaveLength(0);
   });
 

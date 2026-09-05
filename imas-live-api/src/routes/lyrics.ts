@@ -8,10 +8,12 @@
 //    (配列パラメータ / カンマ区切り / バッチ POST) を後から足さないこと。
 //    まとめ取りができた時点で「一括ダウンロードできない形式」ではなくなる。
 //
-// ⚠️ このルートを index.ts の isCommunityRead に足さないこと。
-//    GET が Authorization を必須にしていることで index.ts:373 の edgeCacheEligible
-//    (= !request.headers.get("Authorization")) が false になり、エッジキャッシュから
-//    自動的に外れる。加えて歌詞応答には Cache-Control: no-store を付ける。
+// ⚠️ 共有キャッシュに載せないこと。index.ts の isLyricsRead でパスを名指しして
+//    edgeCacheEligible から外してある。加えて歌詞応答には Cache-Control: no-store。
+//    エッジで返すと Worker に届かず logLyricsRead が走らない =
+//    JASRAC 年次報告 19 項目目のリクエスト回数が数えられなくなる。
+//    ※ かつては Authorization 必須にすることで間接的に外していたが、それだと
+//      「未認証には配れない」という、要件でない制約が付いてきていた。
 //
 // タイムスタンプは datetime('now') 形式 (UTC・空白区切り・ミリ秒なし) に統一する。
 // 理由は migrations/0026_song_lyrics.sql の先頭コメントを参照。
@@ -700,9 +702,11 @@ export async function handleLyrics(ctx: RouteContext): Promise<Response | null> 
   // ----------------------------------------------------------------
   const getMatch = path.match(/^\/songs\/([^/]+)\/lyrics$/);
   if (getMatch && request.method === "GET") {
+    // 未認証でも配る。要件は「まとめ取りできないこと (1 リクエスト 1 曲)」と
+    // 「リクエスト回数が数えられること (logLyricsRead)」で、どちらも認証とは独立。
+    // キャッシュ除外は index.ts の isLyricsRead が受け持つ。
+    // 未認証の取得は IP 単位のレート制限だけで守る。
     const user = await getAuthUser(request, env);
-    // 認証必須。未認証を通すと edgeCacheEligible の対象になり、歌詞がエッジに載りうる。
-    if (!user) return error("Unauthorized", 401);
 
     let songId: string;
     try {
@@ -724,7 +728,8 @@ export async function handleLyrics(ctx: RouteContext): Promise<Response | null> 
       .first<{ source: string | null; updated_at: string; lines_json: string | null;
                status: string }>();
     if (!header) return error("lyrics not found", 404);
-    if (header.status !== "published" && !(await checkIsAdmin(env, user.uid))) {
+    // 未公開 (draft) は admin にだけ返す。未認証は当然 admin ではないので 404。
+    if (header.status !== "published" && !(user && (await checkIsAdmin(env, user.uid)))) {
       // 存在自体を伏せる必要はないが、公開済みと同じ 404 に揃える。
       return error("lyrics not found", 404);
     }

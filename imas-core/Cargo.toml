@@ -61,7 +61,10 @@ ts-rs = { version = "12", optional = true }
 [target.'cfg(target_vendor = "apple")'.dependencies]
 rusqlite = { version = "0.40.2" }
 
-[target.'cfg(not(target_vendor = "apple"))'.dependencies]
+# - wasm: SQLite を持ち込まない。ブラウザは Snapshot を受け取って domain を回すだけで、
+#   DB を開く経路 (outbound::sqlite_loader) を使わない。ここを除外しないと
+#   sqlite-wasm-rs が依存に入り、ビルドすら通らない。
+[target.'cfg(all(not(target_vendor = "apple"), not(target_family = "wasm")))'.dependencies]
 rusqlite = { version = "0.40.2", features = ["bundled"] }
 
 [profile.release]

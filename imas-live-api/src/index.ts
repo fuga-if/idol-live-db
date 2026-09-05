@@ -389,8 +389,18 @@ export default {
     //   ※ 他の公開 GET (favorites/ranking, songs/:id/similar 等) は端末非依存なので
     //     従来どおり X-Device-Id 付きでもエッジで賄う。
     const varyByDeviceId = /^\/songs\/[^/]+\/detail$/.test(path);
+    // 歌詞は共有キャッシュに載せない。**要件は「まとめ取りできないこと」と
+    // 「リクエスト回数が数えられること」**の 2 つで、エッジで返してしまうと後者が
+    // 崩れる (Worker に届かず logLyricsRead が走らない = JASRAC 年次報告の
+    // 19 項目目が数えられない)。
+    //
+    // 以前はここを Authorization の有無で間接的に外していたが、それだと
+    // 「未認証は配れない」という要件でない制約が付いてくる。除外はパスで明示する。
+    const isLyricsRead =
+      /^\/songs\/[^/]+\/lyrics$/.test(path) || path === "/lyrics/search";
     const edgeCacheEligible =
       request.method === "GET" &&
+      !isLyricsRead &&
       !request.headers.get("Authorization") &&
       !(varyByDeviceId && request.headers.get("X-Device-Id"));
     const cacheKey = new Request(url.toString(), { method: "GET" });
@@ -1181,10 +1191,9 @@ export default {
       // 歌詞 API (GET /songs/:id/lyrics, PUT /admin/lyrics/:id) は
       // routes/lyrics.ts へ切り出し済み。一致しなければ null が返る。
       //
-      // ⚠️ isCommunityRead には足さないこと。GET が Authorization を必須にしている
-      //    ことで上の edgeCacheEligible が false になり、歌詞がエッジキャッシュに
-      //    載らない。歌詞は JASRAC 許諾の条件上「一括ダウンロードできない形式」で
-      //    配信する必要があり、共有キャッシュに置くのはその条件に反する。
+      // ⚠️ isCommunityRead には足さないこと。歌詞は上の isLyricsRead で
+      //    edgeCacheEligible から明示的に外してあり、共有キャッシュに載らない。
+      //    エッジで返すと Worker に届かず、リクエスト回数が数えられなくなる。
       // ----------------------------------------------------------------
       const lyricsResponse = await handleLyrics({
         request, env, url, path, json, error, rateLimitResponse, rateLimitSimple,

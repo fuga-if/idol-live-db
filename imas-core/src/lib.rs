@@ -9,7 +9,13 @@
 uniffi::setup_scaffolding!();
 
 pub mod domain;
+// FFI 入口 (uniffi)。DB アダプタに依存するので wasm には持ち込まない。
+// ブラウザ向けの入口は別クレート (web/wasm/) が domain を直接呼ぶ。
+#[cfg(not(target_family = "wasm"))]
 pub mod inbound;
+// DB アダプタ (SQLite)。wasm には持ち込まない — ブラウザは Snapshot を受け取って
+// domain を回すだけで、DB を開く経路を使わない。
+#[cfg(not(target_family = "wasm"))]
 pub mod outbound;
 
 // Web 出面 (静的サイト) の JSON エクスポータ。既定 off の feature で、
