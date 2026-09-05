@@ -5,34 +5,30 @@
   "name": "アイドルマスター ミリオンライブ!",
   "shortName": "ML",
   "themeKey": "brand:ml",
-  "sectionLinks": [
+  "statTiles": [
     {
+      "glyph": "♪",
+      "value": 210,
       "label": "ライブ",
-      "path": "/events/brand/ml/",
-      "current": false,
-      "themeKey": "brand:ml",
-      "count": 210
+      "href": "/events/brand/ml/"
     },
     {
+      "glyph": "♬",
+      "value": 600,
       "label": "楽曲",
-      "path": "/songs/brand/ml/",
-      "current": false,
-      "themeKey": "brand:ml",
-      "count": 600
+      "href": "/songs/brand/ml/"
     },
     {
+      "glyph": "☺",
+      "value": 52,
       "label": "アイドル",
-      "path": "/idols/brand/ml/",
-      "current": false,
-      "themeKey": "brand:ml",
-      "count": 52
+      "href": "/idols/brand/ml/"
     },
     {
+      "glyph": "❋",
+      "value": 300,
       "label": "ユニット",
-      "path": "/units/brand/ml/",
-      "current": false,
-      "themeKey": "brand:ml",
-      "count": 300
+      "href": "/units/brand/ml/"
     }
   ],
   "idols": [
@@ -43,8 +39,7 @@
       "sub": "ミリオンライブ!",
       "path": "/idols/ml_kasuga_mirai/",
       "themeKey": "idol:ml_kasuga_mirai",
-      "artworkUrl": null,
-      "monogram": "春"
+      "artworkUrl": null
     },
     {
       "kind": "idol",
@@ -53,8 +48,7 @@
       "sub": "ミリオンライブ!",
       "path": "/idols/ml_mogami_shizuka/",
       "themeKey": "idol:ml_mogami_shizuka",
-      "artworkUrl": null,
-      "monogram": "最"
+      "artworkUrl": null
     }
   ],
   "units": [
@@ -65,8 +59,7 @@
       "sub": "ミリオンライブ!",
       "path": "/units/unit_sample/",
       "themeKey": "brand:ml",
-      "artworkUrl": null,
-      "monogram": "サ"
+      "artworkUrl": null
     }
   ],
   "recentEvents": [
@@ -77,8 +70,7 @@
       "sub": "2026",
       "path": "/events/ev_sample/",
       "themeKey": "brand:ml",
-      "artworkUrl": null,
-      "monogram": "T"
+      "artworkUrl": null
     }
   ],
   "topSongs": [
@@ -89,15 +81,14 @@
       "sub": "765MILLION ALLSTARS",
       "path": "/songs/ml_sample/",
       "themeKey": "brand:ml",
-      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music/sample/600x600bb.jpg",
-      "monogram": "T"
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music/sample/600x600bb.jpg"
     }
   ],
   "seo": {
     "title": "アイドルマスター ミリオンライブ! | アイドルライブDB",
     "description": "ブランドのアイドル・ユニット・ライブ・楽曲。",
-    "canonical": "https://imas-live-web.tokata3011.workers.dev/brands/ml/",
-    "ogImage": "https://imas-live-web.tokata3011.workers.dev/og/default.png",
+    "canonical": "https://idollivedb.fugalabs.uk/brands/ml/",
+    "ogImage": "https://idollivedb.fugalabs.uk/og/default.png",
     "robots": "index,follow",
     "jsonLd": {
       "@context": "https://schema.org",
@@ -105,20 +96,20 @@
         {
           "@type": "WebPage",
           "name": "アイドルマスター ミリオンライブ!",
-          "url": "https://imas-live-web.tokata3011.workers.dev/brands/ml/"
+          "url": "https://idollivedb.fugalabs.uk/brands/ml/"
         },
         {
           "@type": "BreadcrumbList",
           "itemListElement": [
             {
               "@type": "ListItem",
-              "item": "https://imas-live-web.tokata3011.workers.dev/",
+              "item": "https://idollivedb.fugalabs.uk/",
               "name": "ホーム",
               "position": 1
             },
             {
               "@type": "ListItem",
-              "item": "https://imas-live-web.tokata3011.workers.dev/brands/",
+              "item": "https://idollivedb.fugalabs.uk/brands/",
               "name": "ブランド",
               "position": 2
             }

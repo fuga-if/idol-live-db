@@ -1,15 +1,14 @@
 ---
 import DetailLayout from "../../layouts/DetailLayout.astro";
 import Section from "../../components/Section.astro";
-import StatTile from "../../components/StatTile.astro";
+import StatStrip from "../../components/StatStrip.astro";
 import ShowRow from "../../components/ShowRow.astro";
 import ListContainer from "../../components/ListContainer.astro";
 import LabeledRow from "../../components/LabeledRow.astro";
 import Chip from "../../components/Chip.astro";
 import ColorDot from "../../components/ColorDot.astro";
-import RefList from "../../components/RefList.astro";
 import EmptyState from "../../components/EmptyState.astro";
-import { meta, page, pathsFor } from "../../lib/data";
+import { page, pathsFor } from "../../lib/data";
 import type { EventPage } from "../../lib/schema/EventPage";
 import TagChip from "../../components/TagChip.astro";
 
@@ -25,34 +24,26 @@ const ticketRows = [
 const hasTicket = ticketRows.some((r) => r.value) || ev.ticket.url;
 ---
 
-<DetailLayout seo={ev.seo} meta={meta()} themeKey={ev.themeKey} app={ev.app}>
+<DetailLayout seo={ev.seo} themeKey={ev.themeKey} app={ev.app}>
   <section class="hero" slot="hero" aria-labelledby="event-title">
     <div class="hero__body">
       <p class="hero__eyebrow">{ev.kindLabel}</p>
       <h1 class="hero__title" id="event-title">{ev.name}</h1>
       {ev.nameKana && <p class="hero__kana">{ev.nameKana}</p>}
-      <p class="u-muted">
-        {ev.firstDate && <time datetime={ev.firstDate}>{ev.firstDate}</time>}
-        {ev.lastDate && ev.lastDate !== ev.firstDate && (
-          <> 〜 <time datetime={ev.lastDate}>{ev.lastDate}</time></>
-        )}
-      </p>
+      {ev.dateDisplay && <p class="hero__date u-num">{ev.dateDisplay}</p>}
       <div class="hero__meta">
         {ev.isUpcoming && <Chip text="開催予定" variant="selected" />}
         {ev.brand && <Chip text={ev.brand.name} href={ev.brand.path} variant="themed" themeKey={ev.brand.themeKey} />}
         {ev.jointBrands.map((b) => (
           <Chip text={b.name} href={b.path} variant="themed" themeKey={b.themeKey} />
         ))}
+        {ev.venues.map((v) => (
+          <Chip text={v.name} href={v.path} sub={v.sub} />
+        ))}
       </div>
+      <StatStrip items={ev.statTiles} label="このライブの数" />
     </div>
   </section>
-
-  <div class="stat-grid">
-    <StatTile glyph="▤" value={ev.stats.showCount} label="公演" />
-    <StatTile glyph="≡" value={ev.stats.totalSongs} label="のべ曲数" />
-    <StatTile glyph="♬" value={ev.stats.uniqueSongs} label="異なり曲数" />
-    <StatTile glyph="☺" value={ev.stats.castCount} label="出演者" />
-  </div>
 
   <Section id="event-shows" title="公演" count={ev.shows.length}>
     {
@@ -74,7 +65,9 @@ const hasTicket = ticketRows.some((r) => r.value) || ev.ticket.url;
         <div class="u-stack">
           {ev.cast.shows.map((cs) => (
             <div class="card card__pad u-stack">
-              <h3 class="section__title">{cs.show.name}</h3>
+              <h3 class="row__title">
+                <a class="u-underline-hover" href={cs.show.path}>{cs.show.name}</a>
+              </h3>
               <ul class="performers">
                 {cs.performers.map((m) => (
                   <li>
@@ -90,14 +83,6 @@ const hasTicket = ticketRows.some((r) => r.value) || ev.ticket.url;
             </div>
           ))}
         </div>
-      </Section>
-    )
-  }
-
-  {
-    ev.venues.length > 0 && (
-      <Section slot="aside" id="event-venues" title="会場">
-        <RefList refs={ev.venues} variant="neutral" withSub label="会場" />
       </Section>
     )
   }

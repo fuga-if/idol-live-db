@@ -5,13 +5,12 @@
   "name": "その他",
   "shortName": "その他",
   "themeKey": "neutral",
-  "sectionLinks": [
+  "statTiles": [
     {
+      "glyph": "☺",
+      "value": 12,
       "label": "アイドル",
-      "path": "/idols/brand/other/",
-      "current": false,
-      "themeKey": null,
-      "count": 12
+      "href": "/idols/brand/other/"
     }
   ],
   "idols": [],
@@ -21,8 +20,8 @@
   "seo": {
     "title": "その他 | アイドルライブDB",
     "description": "ブランドのアイドル・ユニット・ライブ・楽曲。",
-    "canonical": "https://imas-live-web.tokata3011.workers.dev/brands/other/",
-    "ogImage": "https://imas-live-web.tokata3011.workers.dev/og/default.png",
+    "canonical": "https://idollivedb.fugalabs.uk/brands/other/",
+    "ogImage": "https://idollivedb.fugalabs.uk/og/default.png",
     "robots": "noindex,follow",
     "jsonLd": {
       "@context": "https://schema.org",
@@ -30,20 +29,20 @@
         {
           "@type": "WebPage",
           "name": "その他",
-          "url": "https://imas-live-web.tokata3011.workers.dev/brands/other/"
+          "url": "https://idollivedb.fugalabs.uk/brands/other/"
         },
         {
           "@type": "BreadcrumbList",
           "itemListElement": [
             {
               "@type": "ListItem",
-              "item": "https://imas-live-web.tokata3011.workers.dev/",
+              "item": "https://idollivedb.fugalabs.uk/",
               "name": "ホーム",
               "position": 1
             },
             {
               "@type": "ListItem",
-              "item": "https://imas-live-web.tokata3011.workers.dev/brands/",
+              "item": "https://idollivedb.fugalabs.uk/brands/",
               "name": "ブランド",
               "position": 2
             }

@@ -15,26 +15,28 @@
             "sub": "2026",
             "path": "/events/ev_sample/",
             "themeKey": "brand:ml",
-            "artworkUrl": null,
-            "monogram": "T"
+            "artworkUrl": null
           },
-          "firstDate": "2026-04-03",
-          "lastDate": "2026-04-04",
-          "shortDate": "26/04",
-          "brand": {
+          "dateBadge": {
+            "iso": "2026-04-03",
+            "year": "2026",
+            "monthDay": "4/3",
+            "weekday": "金"
+          },
+          "endDisplay": "〜 4/4 (土)",
+          "brandMark": {
             "kind": "brand",
             "id": "ml",
             "name": "アイドルマスター ミリオンライブ!",
             "sub": "ML",
             "path": "/brands/ml/",
             "themeKey": "brand:ml",
-            "artworkUrl": null,
-            "monogram": "M"
+            "artworkUrl": null
           },
+          "venueDisplay": "幕張メッセ",
+          "showCountDisplay": "2 公演",
           "kind": "live",
-          "kindLabel": "ライブ",
-          "showCount": 2,
-          "subtitle": "2026-04-03 〜 2026-04-04 ・ アイドルマスター ミリオンライブ! ・ 2 公演 ・ 幕張メッセ"
+          "kindLabel": "ライブ"
         }
       ]
     },
@@ -49,26 +51,28 @@
             "sub": "2025",
             "path": "/events/ev_the_idolm%40ster_%C3%97_%E3%81%B5%E3%81%9F%E3%81%94/",
             "themeKey": "brand:cg",
-            "artworkUrl": null,
-            "monogram": "T"
+            "artworkUrl": null
           },
-          "firstDate": "2026-04-03",
-          "lastDate": "2026-04-04",
-          "shortDate": "26/04",
-          "brand": {
+          "dateBadge": {
+            "iso": "2026-04-03",
+            "year": "2026",
+            "monthDay": "4/3",
+            "weekday": "金"
+          },
+          "endDisplay": "〜 4/4 (土)",
+          "brandMark": {
             "kind": "brand",
             "id": "ml",
             "name": "アイドルマスター ミリオンライブ!",
             "sub": "ML",
             "path": "/brands/ml/",
             "themeKey": "brand:ml",
-            "artworkUrl": null,
-            "monogram": "M"
+            "artworkUrl": null
           },
+          "venueDisplay": "幕張メッセ",
+          "showCountDisplay": "2 公演",
           "kind": "festival",
-          "kindLabel": "フェス",
-          "showCount": 2,
-          "subtitle": "2026-04-03 〜 2026-04-04 ・ アイドルマスター ミリオンライブ! ・ 2 公演 ・ 幕張メッセ"
+          "kindLabel": "フェス"
         }
       ]
     }
@@ -132,8 +136,8 @@
   "seo": {
     "title": "開催済みのライブ | アイドルライブDB",
     "description": "ライブの一覧。",
-    "canonical": "https://imas-live-web.tokata3011.workers.dev/events/past/",
-    "ogImage": "https://imas-live-web.tokata3011.workers.dev/og/default.png",
+    "canonical": "https://idollivedb.fugalabs.uk/events/past/",
+    "ogImage": "https://idollivedb.fugalabs.uk/og/default.png",
     "robots": "index,follow",
     "jsonLd": {
       "@context": "https://schema.org",
@@ -141,14 +145,14 @@
         {
           "@type": "WebPage",
           "name": "開催済みのライブ",
-          "url": "https://imas-live-web.tokata3011.workers.dev/events/past/"
+          "url": "https://idollivedb.fugalabs.uk/events/past/"
         },
         {
           "@type": "BreadcrumbList",
           "itemListElement": [
             {
               "@type": "ListItem",
-              "item": "https://imas-live-web.tokata3011.workers.dev/",
+              "item": "https://idollivedb.fugalabs.uk/",
               "name": "ホーム",
               "position": 1
             }

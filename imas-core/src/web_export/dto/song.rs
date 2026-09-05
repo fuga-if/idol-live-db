@@ -1,6 +1,6 @@
 //! 楽曲 (song) 詳細ページの DTO。
 
-use super::common::{AppOpen, Ref, SeoBlock};
+use super::common::{AppOpen, DateBadge, Ref, SeoBlock};
 use super::idol::ProfileRow;
 use super::common::{LyricsBlock, SongCommunity};
 
@@ -21,7 +21,8 @@ web_dto! {
         pub community: SongCommunity,
         /// 歌詞・コールガイドの出し方。**出すかどうかを決めるのは Rust。**
         pub lyrics: LyricsBlock,
-        pub song_type: Option<String>,
+        /// 曲種別の表示名 (`全体曲` / `ソロ曲` …)。語彙に無い値なら `None`。
+        pub song_type_label: Option<String>,
         pub release_date: Option<String>,
         /// `"4:32"`。整形だけなのでここで作る。
         pub duration_display: Option<String>,
@@ -80,7 +81,8 @@ web_dto! {
         pub show: Ref,
         pub event: Ref,
         pub date: String,
-        pub short_date: String,
+        /// 行の左端に置く日付ブロック。
+        pub date_badge: DateBadge,
         pub venue: Option<String>,
         /// その公演で何曲目に披露されたか (1 始まり)。0 は不明。
         pub number: u32,

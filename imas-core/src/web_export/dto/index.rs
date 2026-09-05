@@ -4,7 +4,7 @@
 //! 出す。クライアント状態を持たせないというユーザー指示の直接の帰結で、切替 UI は
 //! [`super::common::NavLink`] のリンク集になる。
 
-use super::common::{AppLinks, NavLink, Ref, SeoBlock, StatTile};
+use super::common::{AppLinks, DateBadge, NavLink, Ref, SeoBlock, StatTile};
 use super::event::ShowSummary;
 use crate::domain::idol_list_filtering::IdolQuery;
 use crate::domain::song_list_queries::SongQuery;
@@ -58,15 +58,27 @@ web_dto! {
 
 web_dto! {
     /// ライブ一覧の 1 行。
+    ///
+    /// 日付・ブランド・会場・公演数を**別々の項目**で持つ。行はそれぞれを別の位置
+    /// (日付ブロック / 色付きの札 / 文字 / 数) に置くので、1 本に繋いだ副題は持たない。
+    /// 何を出す・何を落とすの判断はすべてここまでで済んでいて、受け手は置くだけ。
     #[derive(Eq)]
     pub struct EventListItem {
         #[serde(rename = "ref")]
         pub reference: Ref,
-        pub first_date: Option<String>,
-        pub last_date: Option<String>,
-        pub short_date: Option<String>,
-        pub brand: Option<Ref>,
-        /// 種別 (`live` / `festival` / …)。
+        /// 行の左端に置く日付ブロック (初日)。日付が無いライブでは `None`。
+        pub date_badge: Option<DateBadge>,
+        /// 期間の終端 (`〜 9/13 (日)`)。**1 日で終わるライブでは `None`**
+        /// (初日と同じ日を 2 度出さない。判断は `date_display::range_end`)。
+        pub end_display: Option<String>,
+        /// 行に出すブランドの札。**ブランド別一覧では `None`** (全行同じ札を並べても
+        /// 見分けに効かない)。
+        pub brand_mark: Option<Ref>,
+        /// 会場をまとめた 1 行 (多いときは畳む)。
+        pub venue_display: Option<String>,
+        /// 公演数 (`2 公演`)。**1 公演なら `None`** (数えるまでもないものに数を付けない)。
+        pub show_count_display: Option<String>,
+        /// 種別 (`live` / `festival` / …)。同じ種別だけの一覧で札を落とす判断の材料。
         pub kind: String,
         /// 行に出す種別チップ。
         ///
@@ -75,12 +87,6 @@ web_dto! {
         /// (トップの「今後のライブ」は 8 行すべて `ライブ` だった)。
         /// 判断は [`super::super::emit::lists::drop_uniform_kind_labels`]。
         pub kind_label: Option<String>,
-        pub show_count: u32,
-        /// 行の副題 (期間・ブランド名・公演数・会場)。空なら `None`。
-        ///
-        /// ブランド名を入れるかは**そのページの文脈**で決まり、作る側が解決済み
-        /// (ブランド別一覧では入らない)。
-        pub subtitle: Option<String>,
     }
 }
 
@@ -375,8 +381,6 @@ web_dto! {
         pub stat_tiles: Vec<StatTile>,
         pub brands: Vec<BrandListItem>,
         pub app: AppLinks,
-        /// 「今後のライブ」「開催済み」等への入口。
-        pub section_links: Vec<NavLink>,
         pub seo: SeoBlock,
     }
 }

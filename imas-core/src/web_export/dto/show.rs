@@ -1,6 +1,7 @@
 //! 公演 (show) 詳細ページの DTO。
 
 use super::common::{AppOpen, Ref, SeoBlock};
+use super::idol::ProfileRow;
 
 web_dto! {
     /// `/shows/<id>/` の中身。
@@ -12,17 +13,22 @@ web_dto! {
         pub id: String,
         pub path: String,
         pub name: String,
+        /// 公演名からライブ名と重なる部分を落としたもの (`Day2` / `昼公演`)。
+        ///
+        /// ページの見出しに使う。ライブ名は小見出し (パンくず) が担うので、見出しに
+        /// ライブ名を丸ごと繰り返さない。公演名がライブ名そのものなら `None`
+        /// (その場合は見出しに公演名をそのまま出し、小見出しを省く)。
+        /// 規則は `<title>` や「他の公演」のチップと同じ `distinguishing_show_name`。
+        pub short_name: Option<String>,
         pub date: String,
-        pub short_date: String,
         pub theme_key: String,
         pub event: Ref,
         pub brand: Option<Ref>,
-        pub venue_label: Option<String>,
-        pub venue: Option<Ref>,
         pub venue_city: Option<String>,
-        pub hall: Option<String>,
-        pub start_time: Option<String>,
-        pub stream_platform: Option<String>,
+        /// ヒーローに置く「事実の並び」(日程・開演・会場・ホール・配信)。
+        /// どの行を出すか・順・見出し・会場へのリンクはここで決めてある。
+        /// 曲の `fact_rows` / アイドルの `profile_rows` と同じ形。
+        pub fact_rows: Vec<ProfileRow>,
         /// position 昇順。
         pub setlist: Vec<SetlistRow>,
         /// `show_cast` (sort_order 順)。

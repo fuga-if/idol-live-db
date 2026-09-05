@@ -5,7 +5,15 @@
   "name": "最上静香",
   "nameKana": "かすがみらい",
   "themeKey": "idol:ml_mogami_shizuka",
-  "monogram": "最",
+  "tags": [
+    {
+      "id": "tag_genki",
+      "name": "元気",
+      "count": 7,
+      "color": null,
+      "isOfficial": true
+    }
+  ],
   "brand": {
     "kind": "brand",
     "id": "ml",
@@ -13,8 +21,7 @@
     "sub": "ML",
     "path": "/brands/ml/",
     "themeKey": "brand:ml",
-    "artworkUrl": null,
-    "monogram": "M"
+    "artworkUrl": null
   },
   "brands": [
     {
@@ -24,8 +31,7 @@
       "sub": "ML",
       "path": "/brands/ml/",
       "themeKey": "brand:ml",
-      "artworkUrl": null,
-      "monogram": "M"
+      "artworkUrl": null
     }
   ],
   "color": "#f39800",
@@ -67,8 +73,7 @@
       "sub": "ミリオンライブ!",
       "path": "/units/unit_sample/",
       "themeKey": "brand:ml",
-      "artworkUrl": null,
-      "monogram": "サ"
+      "artworkUrl": null
     }
   ],
   "songs": [
@@ -80,8 +85,7 @@
         "sub": "765MILLION ALLSTARS",
         "path": "/songs/ml_sample/",
         "themeKey": "brand:ml",
-        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music/sample/600x600bb.jpg",
-        "monogram": "T"
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music/sample/600x600bb.jpg"
       },
       "role": "original",
       "releaseDate": "2019-03-13",
@@ -98,8 +102,7 @@
         "sub": "派生曲",
         "path": "/songs/ml_sample_variant/",
         "themeKey": "brand:ml",
-        "artworkUrl": null,
-        "monogram": "T"
+        "artworkUrl": null
       },
       "times": 3,
       "subtitle": "派生曲 ・ 3 回披露"
@@ -114,8 +117,7 @@
         "sub": "2026-04-03",
         "path": "/shows/sh_sample_1/",
         "themeKey": "brand:ml",
-        "artworkUrl": null,
-        "monogram": "D"
+        "artworkUrl": null
       },
       "event": {
         "kind": "event",
@@ -124,11 +126,15 @@
         "sub": "2026",
         "path": "/events/ev_sample/",
         "themeKey": "brand:ml",
-        "artworkUrl": null,
-        "monogram": "T"
+        "artworkUrl": null
       },
       "date": "2026-04-03",
-      "shortDate": "26/04",
+      "dateBadge": {
+        "iso": "2026-04-03",
+        "year": "2026",
+        "monthDay": "4/3",
+        "weekday": "金"
+      },
       "venueLabel": "幕張メッセ",
       "songCount": 7,
       "subtitle": "DAY1 ・ 幕張メッセ"
@@ -143,8 +149,8 @@
   "seo": {
     "title": "最上静香 | アイドルライブDB",
     "description": "プロフィール・CV・所属ユニット・持ち曲・出演公演。",
-    "canonical": "https://imas-live-web.tokata3011.workers.dev/idols/ml_mogami_shizuka/",
-    "ogImage": "https://imas-live-web.tokata3011.workers.dev/og/default.png",
+    "canonical": "https://idollivedb.fugalabs.uk/idols/ml_mogami_shizuka/",
+    "ogImage": "https://idollivedb.fugalabs.uk/og/default.png",
     "robots": "index,follow",
     "jsonLd": {
       "@context": "https://schema.org",
@@ -152,20 +158,20 @@
         {
           "@type": "WebPage",
           "name": "最上静香",
-          "url": "https://imas-live-web.tokata3011.workers.dev/idols/ml_mogami_shizuka/"
+          "url": "https://idollivedb.fugalabs.uk/idols/ml_mogami_shizuka/"
         },
         {
           "@type": "BreadcrumbList",
           "itemListElement": [
             {
               "@type": "ListItem",
-              "item": "https://imas-live-web.tokata3011.workers.dev/",
+              "item": "https://idollivedb.fugalabs.uk/",
               "name": "ホーム",
               "position": 1
             },
             {
               "@type": "ListItem",
-              "item": "https://imas-live-web.tokata3011.workers.dev/idols/",
+              "item": "https://idollivedb.fugalabs.uk/idols/",
               "name": "アイドル",
               "position": 2
             }

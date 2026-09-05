@@ -131,6 +131,19 @@ pub fn kind_label(kind: &str) -> &'static str {
     }
 }
 
+/// 曲種別の日本語表記 (`songs.song_type` の語彙: solo / unit / all / cover / tie_in)。
+/// 知らない値は捏造せず `None` (受け手は出さない)。
+pub fn song_type_label(song_type: &str) -> Option<&'static str> {
+    match song_type {
+        "solo" => Some("ソロ曲"),
+        "unit" => Some("ユニット曲"),
+        "all" => Some("全体曲"),
+        "cover" => Some("カバー"),
+        "tie_in" => Some("タイアップ"),
+        _ => None,
+    }
+}
+
 /// 一覧に出す全種別。`event_list_queries` に渡す `kinds` はここを唯一の出典にする
 /// (省略すると既定が効いて、一覧から静かに消える種別が出る)。
 pub const ALL_EVENT_KINDS: [&str; 6] =

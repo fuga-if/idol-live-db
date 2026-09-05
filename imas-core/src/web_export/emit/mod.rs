@@ -314,7 +314,8 @@ fn write_all(
     // お題。焼き込んだ集計が 1 件も無ければページごと出さない
     // (中身の無いページを sitemap に載せない)。
     let polls = lists::poll_list(ctx);
-    if !polls.polls.is_empty() {
+    let has_polls = !polls.polls.is_empty();
+    if has_polls {
         w.write_json("index/polls.json", &polls)?;
         book.listing(RouteKind::PollList, "/polls/", "index/polls.json", true);
     }
@@ -354,6 +355,8 @@ fn write_all(
             counts,
             app: crate::web_export::content::app_links(),
             performer_name_options: performer_name_options(),
+            primary_nav: lists::primary_nav(has_polls),
+            utility_nav: lists::utility_nav(),
         },
     )?;
 

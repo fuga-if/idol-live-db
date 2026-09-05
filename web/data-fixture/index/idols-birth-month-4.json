@@ -109,11 +109,19 @@
     }
   ],
   "total": 0,
+  "queryBase": {
+    "brandIds": [],
+    "attribute": null,
+    "birthMonth": 4,
+    "searchText": "",
+    "sort": "",
+    "ascending": null
+  },
   "seo": {
     "title": "4月生まれのアイドル | アイドルライブDB",
     "description": "アイドルの一覧。",
-    "canonical": "https://imas-live-web.tokata3011.workers.dev/idols/birth-month/4/",
-    "ogImage": "https://imas-live-web.tokata3011.workers.dev/og/default.png",
+    "canonical": "https://idollivedb.fugalabs.uk/idols/birth-month/4/",
+    "ogImage": "https://idollivedb.fugalabs.uk/og/default.png",
     "robots": "index,follow",
     "jsonLd": {
       "@context": "https://schema.org",
@@ -121,14 +129,14 @@
         {
           "@type": "WebPage",
           "name": "4月生まれのアイドル",
-          "url": "https://imas-live-web.tokata3011.workers.dev/idols/birth-month/4/"
+          "url": "https://idollivedb.fugalabs.uk/idols/birth-month/4/"
         },
         {
           "@type": "BreadcrumbList",
           "itemListElement": [
             {
               "@type": "ListItem",
-              "item": "https://imas-live-web.tokata3011.workers.dev/",
+              "item": "https://idollivedb.fugalabs.uk/",
               "name": "ホーム",
               "position": 1
             }

@@ -52,8 +52,7 @@
       "sub": "2026",
       "path": "/events/ev_sample/",
       "themeKey": "brand:ml",
-      "artworkUrl": null,
-      "monogram": "T"
+      "artworkUrl": null
     }
   ],
   "shows": [
@@ -65,37 +64,21 @@
         "sub": "2026-04-03",
         "path": "/shows/sh_sample_1/",
         "themeKey": "brand:ml",
-        "artworkUrl": null,
-        "monogram": "D"
+        "artworkUrl": null
       },
+      "title": "THE IDOLM@STER MILLION LIVE! 10thLIVE TOUR Act-4 ROAD TO MEMORIES 幕張",
+      "showLabel": "DAY1",
       "date": "2026-04-03",
-      "shortDate": "26/04",
-      "venueLabel": "幕張メッセ",
-      "venue": {
-        "kind": "venue",
-        "id": "venue_makuhari",
-        "name": "幕張メッセ",
-        "sub": "千葉県",
-        "path": "/venues/venue_makuhari/",
-        "themeKey": "neutral",
-        "artworkUrl": null,
-        "monogram": "幕"
+      "dateBadge": {
+        "iso": "2026-04-03",
+        "year": "2026",
+        "monthDay": "4/3",
+        "weekday": "金"
       },
+      "venueLabel": null,
       "hall": "イベントホール",
-      "startTime": "17:00",
-      "setlistCount": 23,
-      "streamPlatform": "ニコニコ生放送",
-      "event": {
-        "kind": "event",
-        "id": "ev_sample",
-        "name": "THE IDOLM@STER MILLION LIVE! 10thLIVE TOUR Act-4 ROAD TO MEMORIES 幕張",
-        "sub": "2026",
-        "path": "/events/ev_sample/",
-        "themeKey": "brand:ml",
-        "artworkUrl": null,
-        "monogram": "T"
-      },
-      "subtitle": "DAY1 ・ 幕張メッセ ・ イベントホール ・ 17:00 開演"
+      "startTimeDisplay": "17:00 開演",
+      "setlistCount": 23
     }
   ],
   "app": {
@@ -106,8 +89,8 @@
   "seo": {
     "title": "幕張メッセ | アイドルライブDB",
     "description": "この会場で行われたライブと公演。",
-    "canonical": "https://imas-live-web.tokata3011.workers.dev/venues/venue_makuhari/",
-    "ogImage": "https://imas-live-web.tokata3011.workers.dev/og/default.png",
+    "canonical": "https://idollivedb.fugalabs.uk/venues/venue_makuhari/",
+    "ogImage": "https://idollivedb.fugalabs.uk/og/default.png",
     "robots": "index,follow",
     "jsonLd": {
       "@context": "https://schema.org",
@@ -115,20 +98,20 @@
         {
           "@type": "WebPage",
           "name": "幕張メッセ",
-          "url": "https://imas-live-web.tokata3011.workers.dev/venues/venue_makuhari/"
+          "url": "https://idollivedb.fugalabs.uk/venues/venue_makuhari/"
         },
         {
           "@type": "BreadcrumbList",
           "itemListElement": [
             {
               "@type": "ListItem",
-              "item": "https://imas-live-web.tokata3011.workers.dev/",
+              "item": "https://idollivedb.fugalabs.uk/",
               "name": "ホーム",
               "position": 1
             },
             {
               "@type": "ListItem",
-              "item": "https://imas-live-web.tokata3011.workers.dev/venues/",
+              "item": "https://idollivedb.fugalabs.uk/venues/",
               "name": "会場",
               "position": 2
             }

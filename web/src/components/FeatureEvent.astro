@@ -1,0 +1,39 @@
+---
+import DateBadge from "./DateBadge.astro";
+import BrandMark from "./BrandMark.astro";
+import type { EventListItem } from "../lib/schema/EventListItem";
+/**
+ * 注目カード — 一覧の先頭 1 件を大きく見せる (トップの「今後のライブ」)。
+ * 材料は行と同じ `EventListItem`。並び (どれが先頭か) は Rust が決めた順のまま。
+ */
+interface Props {
+  item: EventListItem;
+}
+const { item } = Astro.props;
+---
+
+<a class="feature" data-theme={item.ref.themeKey} href={item.ref.path}>
+  <span class="feature__date">
+    {item.dateBadge && <DateBadge badge={item.dateBadge} size="lg" />}
+    {item.endDisplay && <span class="date-badge__until u-num">{item.endDisplay}</span>}
+  </span>
+  <span class="feature__body">
+    {
+      (item.brandMark || item.kindLabel) && (
+        <span class="feature__kicker">
+          {item.brandMark && <BrandMark brand={item.brandMark} />}
+          {item.kindLabel && <span>{item.kindLabel}</span>}
+        </span>
+      )
+    }
+    <span class="feature__title u-underline-hover">{item.ref.name}</span>
+    {
+      (item.venueDisplay || item.showCountDisplay) && (
+        <span class="feature__meta">
+          {item.venueDisplay && <span>{item.venueDisplay}</span>}
+          {item.showCountDisplay && <span class="u-num">{item.showCountDisplay}</span>}
+        </span>
+      )
+    }
+  </span>
+</a>

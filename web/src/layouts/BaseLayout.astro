@@ -4,7 +4,6 @@ import SiteHeader from "../components/SiteHeader.astro";
 import SiteFooter from "../components/SiteFooter.astro";
 import JsonLd from "../components/JsonLd.astro";
 import type { SeoBlock } from "../lib/schema/SeoBlock";
-import type { SiteMeta } from "../lib/schema/SiteMeta";
 import "../styles/tokens.css";
 import "../styles/base.css";
 import "../styles/components.css";
@@ -13,17 +12,16 @@ import "../styles/components.css";
  * 全ページの外枠。
  * - テーマは `data-theme` 属性 1 個で当てる (実体は Rust が出す public/themes.css)。
  *   ライト / ダークの切替は prefers-color-scheme のみ。トグル UI は作らない。
- * - ブラウザ JS は /search/ の island だけ。ここでは 1 行も読み込まない。
- * - ナビは広い画面でサイドバー、狭い画面で上部バー。切り替えは CSS のみ。
+ * - ブラウザ JS は探す/絞るための島だけ。ここでは 1 行も読み込まない。
+ * - ナビは上部バー 1 本 (広い画面で 1 段、狭い画面で 2 段)。切り替えは CSS のみ。
  */
 interface Props {
   seo: SeoBlock;
-  meta: SiteMeta;
   themeKey?: string;
   wide?: boolean;
   isCharacterLive?: boolean;
 }
-const { seo, meta, themeKey = "neutral", wide = false, isCharacterLive } = Astro.props;
+const { seo, themeKey = "neutral", wide = false, isCharacterLive } = Astro.props;
 const SITE_NAME = "アイドルライブDB";
 ---
 
@@ -41,7 +39,7 @@ const SITE_NAME = "アイドルライブDB";
         <main id="main" class:list={["page", wide && "page--wide", "main"]}>
           <slot />
         </main>
-        <SiteFooter app={meta.app} />
+        <SiteFooter />
       </div>
     </div>
   </body>

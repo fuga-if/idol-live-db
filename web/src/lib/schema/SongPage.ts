@@ -24,7 +24,11 @@ community: SongCommunity,
 /**
  * 歌詞・コールガイドの出し方。**出すかどうかを決めるのは Rust。**
  */
-lyrics: LyricsBlock, songType: string | null, releaseDate: string | null, 
+lyrics: LyricsBlock, 
+/**
+ * 曲種別の表示名 (`全体曲` / `ソロ曲` …)。語彙に無い値なら `None`。
+ */
+songTypeLabel: string | null, releaseDate: string | null, 
 /**
  * `"4:32"`。整形だけなのでここで作る。
  */

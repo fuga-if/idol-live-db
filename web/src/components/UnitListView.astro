@@ -1,12 +1,11 @@
 ---
 import ListLayout from "../layouts/ListLayout.astro";
 import ListContainer from "./ListContainer.astro";
-import LeadRow from "./LeadRow.astro";
+import DatedRow from "./DatedRow.astro";
 import EmptyState from "./EmptyState.astro";
-import { meta } from "../lib/data";
-import type { UnitListPage } from "../lib/schema/UnitListPage";
-import Count from "./Count.astro";
 import TagChip from "./TagChip.astro";
+import Count from "./Count.astro";
+import type { UnitListPage } from "../lib/schema/UnitListPage";
 
 interface Props {
   list: UnitListPage;
@@ -16,7 +15,6 @@ const { list } = Astro.props;
 
 <ListLayout
   seo={list.seo}
-  meta={meta()}
   title={list.title}
   total={list.total}
   themeKey={list.brand?.themeKey}
@@ -30,18 +28,18 @@ const { list } = Astro.props;
       <ListContainer as="ul">
         {list.items.map((item) => (
           <li>
-            <LeadRow
+            <DatedRow
               title={item.ref.name}
-              subtitle={item.brand?.name ?? item.ref.sub}
               href={item.ref.path}
               themeKey={item.ref.themeKey}
+              meta={[item.brand?.name ?? item.ref.sub]}
             >
               <span slot="trailing" class="u-row">
                 {item.isPermanent && <TagChip text="常設" kind="all" />}
-                <Count value={item.memberCount} unit="人" />
-                {item.songCount > 0 && <Count value={item.songCount} unit="曲" />}
+                <Count strong value={item.memberCount} unit="人" />
+                {item.songCount > 0 && <Count strong value={item.songCount} unit="曲" />}
               </span>
-            </LeadRow>
+            </DatedRow>
           </li>
         ))}
       </ListContainer>

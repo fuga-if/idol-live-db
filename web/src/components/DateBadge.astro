@@ -1,0 +1,36 @@
+---
+import type { DateBadge as DateBadgeData } from "../lib/schema/DateBadge";
+/**
+ * 日付ブロック — 月日を大きく、曜日と年を小さく。
+ *
+ * 値の分け方も曜日も Rust の `DateBadge` が決めていて、ここは置くだけ
+ * (文字列を切らない・曜日を求めない)。部分日付では `weekday` が無く、
+ * `monthDay` に月だけ、あるいは原文がそのまま入る。
+ *
+ * `showYear`: 年の見出しの下に並ぶ行では年が自明なので落とす (呼び出し側が指名する)。
+ * `<time datetime>` は暦として読めた日付 (= 曜日がある) にだけ付ける。
+ * 「未定」のような文字列を datetime に入れると HTML として不正になる。
+ */
+interface Props {
+  badge: DateBadgeData;
+  size?: "sm" | "lg";
+  showYear?: boolean;
+}
+const { badge, size = "sm", showYear = true } = Astro.props;
+const Tag = badge.weekday ? "time" : "span";
+---
+
+<Tag
+  class:list={["date-badge", size === "lg" && "date-badge--lg"]}
+  datetime={badge.weekday ? badge.iso : undefined}
+>
+  {badge.monthDay && <span class="date-badge__md u-num">{badge.monthDay}</span>}
+  {
+    badge.weekday && (
+      <span class="date-badge__wd" data-weekday={badge.weekday}>
+        {badge.weekday}
+      </span>
+    )
+  }
+  {showYear && badge.year && <span class="date-badge__yr u-num">{badge.year}</span>}
+</Tag>

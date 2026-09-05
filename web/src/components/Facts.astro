@@ -1,0 +1,29 @@
+---
+import type { ProfileRow } from "../lib/schema/ProfileRow";
+/**
+ * 事実の並び (日程・開演・会場 …)。ラベル + 値を横に流す。ヒーローの中で使う。
+ *
+ * 行は Rust の `ProfileRow` (曲の `factRows` / 会場の `factRows` / 公演の `factRows`)
+ * そのもの。どの行を出すか・順・見出し・リンク・数字の見せ方 (`style`) は向こうで
+ * 決まっていて、ここは `LabeledRow` と同じ `ProfileRow` を横組みで描くだけ。
+ */
+interface Props {
+  rows: readonly ProfileRow[];
+}
+const { rows } = Astro.props;
+---
+
+{
+  rows.length > 0 && (
+    <dl class="facts">
+      {rows.map((r) => (
+        <div class="facts__item">
+          <dt class="facts__label">{r.label}</dt>
+          <dd class:list={["facts__value", r.style === "monospaced" && "u-num"]}>
+            {r.link ? <a href={r.link}>{r.value}</a> : r.value}
+          </dd>
+        </div>
+      ))}
+    </dl>
+  )
+}

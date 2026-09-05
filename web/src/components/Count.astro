@@ -1,7 +1,8 @@
 ---
 /**
  * 数値の表示。ディスプレイ書体 + 等幅数字で桁を揃える。
- * `dim` は一覧リンクに添える件数 (本体の後ろに一段落として置く)。
+ * - `dim`: 一覧リンクに添える件数 (本体の後ろに一段落として置く)。
+ * - `strong`: 行の末尾に置く数 (`23 曲` / `2 回`)。数だけを太くする。
  * 値が無い (`null` / `undefined`) ときは何も描かない — 件数を持たない
  * NavLink を呼び出し側でいちいち判定しなくて済む。
  */
@@ -9,17 +10,23 @@ interface Props {
   value: number | string | null | undefined;
   unit?: string;
   dim?: boolean;
+  strong?: boolean;
 }
-const { value, unit, dim = false } = Astro.props;
+const { value, unit, dim = false, strong = false } = Astro.props;
 ---
 
 {
   value !== null &&
-    value !== undefined && (
+    value !== undefined &&
+    (strong ? (
+      <span class="row__count u-num">
+        <b>{value}</b> {unit}
+      </span>
+    ) : (
       <span class:list={["u-num", dim && "u-dim"]}>
         {dim && " "}
         {value}
         {unit}
       </span>
-    )
+    ))
 }

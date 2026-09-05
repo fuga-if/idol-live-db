@@ -52,13 +52,12 @@ pub mod venue;
 
 pub use brand::BrandPage;
 pub use common::{
-    mark_current, AppLinks, AppOpen, Counts, Crumb, LyricsBlock, NavLink, PenlightSetDto,
+    mark_current, AppLinks, AppOpen, Counts, Crumb, DateBadge, LyricsBlock, NavLink, PenlightSetDto,
     PerformerNameOptionDto, Ref, RefKind, Robots, SeoBlock, SiteMeta, SongCommunity, StatTile,
     TagChipDto, ThemePair, ThemeTable, ThemeTokens, SCHEMA_VERSION,
 };
 pub use event::{
-    EventCast, EventCastMember, EventCastShow, EventPage, EventStats, ReleaseInfo, ShowSummary,
-    TicketInfo,
+    EventCast, EventCastMember, EventCastShow, EventPage, ReleaseInfo, ShowSummary, TicketInfo,
 };
 pub use idol::{IdolPage, IdolPerformedRow, IdolShowRow, IdolSongRow, ProfileRow, VoiceActorRow};
 pub use index::{

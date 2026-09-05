@@ -3,7 +3,6 @@ import ListLayout from "../layouts/ListLayout.astro";
 import IdolTile from "./IdolTile.astro";
 import ListFilterBar from "./ListFilterBar.astro";
 import EmptyState from "./EmptyState.astro";
-import { meta } from "../lib/data";
 import type { IdolListPage } from "../lib/schema/IdolListPage";
 
 /** アイドル一覧 (総合 / ブランド別 / 誕生月別)。is_external の除外規則はコアの中。 */
@@ -15,7 +14,6 @@ const { list } = Astro.props;
 
 <ListLayout
   seo={list.seo}
-  meta={meta()}
   title={list.title}
   total={list.total}
   themeKey={list.brand?.themeKey}

@@ -1,0 +1,19 @@
+---
+import ColorDot from "./ColorDot.astro";
+import type { Ref } from "../lib/schema/Ref";
+/**
+ * ブランドの小さな札 — 色の点 + 名前。行のメタ (`short`: 短縮名) と
+ * 注目カードの小見出し (フル名) で使う。どちらを出すかは置き場の密度の判断で、
+ * 名前そのものは Rust の `Ref` (`name` / `sub` = 短縮名) から取る。
+ */
+interface Props {
+  brand: Ref;
+  short?: boolean;
+}
+const { brand, short = false } = Astro.props;
+---
+
+<span class="brand-mark" data-theme={brand.themeKey}>
+  <ColorDot size="md" />
+  {short ? (brand.sub ?? brand.name) : brand.name}
+</span>

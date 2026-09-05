@@ -5,6 +5,36 @@
 
 ---
 
+## 対応状況 (2026-09-06、ブランチ `claude/web-page-high-quality-bfa367`)
+
+§2 の指摘はすべて対応した。§4 の 5 本の線は踏んでいない。
+
+| 指摘 | どう直したか |
+|---|---|
+| 「最近の公演」の主従が逆 | 行の見出しをライブ名、公演名 (`DAY1`) を副題に。Rust が `ShowSummary.show_label` (ライブ名との重なりを落とした公演名) を出す |
+| サイト名が 3 回 | eyebrow を廃止。上部バーのブランドとトップの `<h1>` の 2 箇所だけ |
+| 左サイドバー 208px | **上部バー 1 本**に置き換え (`base.css`)。本文の最大幅を 1120 / 1320px に広げた。並びは `meta.primaryNav` (Rust) |
+| 行が全部同じ | `DatedRow` (日付ブロック + 見出し + メタ + 末尾) を共通骨格に。トップの先頭 1 件は `FeatureEvent` で大きく |
+| 副題が長い 1 本 | 日付は `DateBadge` (月日・曜日・年、Rust の `DateBadge` DTO)、ブランドは色付きの札、会場は `venue_display`、公演数は数、に分解 |
+| 詳細ページも同じ問題 | ヒーローに `Facts` (日程・会場・開演 …) と数の帯。公演ページは `short_name` (`Day2`) を見出しに、同じライブの公演はセグメントで切替 |
+
+Rust に足した形 (`cargo test --features web-export` で TS 型を再生成済み):
+`DateBadge` / `EventListItem.{date_badge,end_display,brand_mark,venue_display,show_count_display}`
+(繋いだ `subtitle` は廃止) / `ShowSummary.{title,show_label,date_badge,start_time_display}`
+(文脈は `emit::events::ShowContext` が決める。`subtitle` 廃止) / `PerformanceRow.date_badge` /
+`IdolShowRow.date_badge` / `EventPage.{date_display,stat_tiles}` / `ShowPage.{short_name,fact_rows}` /
+`BrandPage.stat_tiles` / `SongPage.song_type_label` / `SiteMeta.{primary_nav,utility_nav}`。
+曜日と期間の畳み方は `domain::date_display` (chrono)、主要な一覧の記号・名前・入口は
+`emit::lists::SiteList` が 1 本で持つ。TS 側は `DatedRow` / `Count strong` / `BrandMark` /
+`Facts` (= `ProfileRow`) / `StatStrip` (= `StatTile`) を置くだけ。
+
+トップの検索窓は JS 無しの GET フォームで `/search/?q=` へ飛ぶ (CSP の `form-action` を `'self'` に)。
+
+**残っているもの (UI では直せない)**: §2-2 のデータ側 2 件 (SideM 11th STAGE の重複レコード /
+`shows.performer_type` が全件 `cast`)。
+
+---
+
 ## 0. 3 行で
 
 - **見た目と体験がまだ全然ダメ。** 情報は揃っているが、階層・密度・視線誘導が設計されていない。

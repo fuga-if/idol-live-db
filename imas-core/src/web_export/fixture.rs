@@ -29,6 +29,8 @@ use super::url::{detail_path, path_key, reserved_for};
 use super::writer::Writer;
 use super::{Result, Stats, WebExportError};
 use std::path::Path;
+use super::emit::events::ShowContext;
+use crate::domain::date_display::{range_with_weekday, until_display, with_weekday};
 use crate::domain::idol_list_filtering::IdolQuery;
 use crate::domain::song_list_queries::{SongListFilter, SongQuery};
 
@@ -231,6 +233,9 @@ fn site_meta() -> SiteMeta {
             .into_iter()
             .map(|o| PerformerNameOptionDto { raw: o.raw, label: o.label })
             .collect(),
+        // 代表値にはお題が無いので、ナビにも出ない (本番と同じ判断を通す)。
+        primary_nav: super::emit::lists::primary_nav(false),
+        utility_nav: super::emit::lists::utility_nav(),
     }
 }
 
@@ -287,8 +292,7 @@ fn event_page(reference: &Ref, empty: bool) -> EventPage {
         joint_brands: if empty { vec![] } else { vec![brand_cg()] },
         kind: "live".to_string(),
         kind_label: content::kind_label("live").to_string(),
-        first_date: Some("2026-04-03".to_string()),
-        last_date: Some("2026-04-04".to_string()),
+        date_display: range_with_weekday(Some("2026-04-03"), Some("2026-04-04")),
         is_upcoming: true,
         ticket: TicketInfo {
             open_date: Some("2026-02-01".to_string()),
@@ -296,13 +300,19 @@ fn event_page(reference: &Ref, empty: bool) -> EventPage {
             lottery_date: None,
             url: Some("https://example.com/ticket".to_string()),
         },
-        stats: if empty {
-            EventStats { show_count: 0, total_songs: 0, unique_songs: 0, cast_count: 0 }
+        // 0 の数は落とす規則なので、公演ゼロのライブでは帯そのものが無い。
+        stat_tiles: if empty {
+            vec![]
         } else {
-            EventStats { show_count: 2, total_songs: 46, unique_songs: 41, cast_count: 18 }
+            vec![
+                tile("▤", 2, "公演", None),
+                tile("≡", 46, "のべ曲数", None),
+                tile("♬", 41, "異なり曲数", None),
+                tile("☺", 18, "出演者", None),
+            ]
         },
         // 公演ゼロのライブ (空一覧の確認)。
-        shows: if empty { vec![] } else { vec![show_summary()] },
+        shows: if empty { vec![] } else { vec![show_summary(ShowContext::InEvent)] },
         cast: if empty {
             // event_attendance は None を返しうる。
             None
@@ -345,19 +355,22 @@ fn event_page(reference: &Ref, empty: bool) -> EventPage {
     }
 }
 
-fn show_summary() -> ShowSummary {
+/// 公演の要約。本番と同じ規則で文脈ごとに形が変わる (見出し・副題・会場名)。
+fn show_summary(context: ShowContext) -> ShowSummary {
+    let (title, show_label) = match context {
+        ShowContext::InEvent => ("DAY1".to_string(), None),
+        ShowContext::Home | ShowContext::AtVenue => (event_sample().name, Some("DAY1".to_string())),
+    };
     ShowSummary {
         reference: show_sample(),
+        title,
+        show_label,
         date: "2026-04-03".to_string(),
-        short_date: "26/04".to_string(),
-        venue_label: Some("幕張メッセ".to_string()),
-        venue: Some(venue_sample()),
+        date_badge: DateBadge::from_ymd("2026-04-03"),
+        venue_label: (context != ShowContext::AtVenue).then(|| "幕張メッセ".to_string()),
         hall: Some("イベントホール".to_string()),
-        start_time: Some("17:00".to_string()),
+        start_time_display: Some("17:00 開演".to_string()),
         setlist_count: 23,
-        stream_platform: Some("ニコニコ生放送".to_string()),
-        event: Some(event_sample()),
-        subtitle: Some("DAY1 ・ 幕張メッセ ・ イベントホール ・ 17:00 開演".to_string()),
     }
 }
 
@@ -369,17 +382,23 @@ fn show_page() -> ShowPage {
         id: reference.id.clone(),
         path: reference.path.clone(),
         name: "DAY1".to_string(),
+        short_name: Some("DAY1".to_string()),
         date: "2026-04-03".to_string(),
-        short_date: "26/04".to_string(),
         theme_key: reference.theme_key.clone(),
         event: event_sample(),
         brand: Some(brand_ml()),
-        venue_label: Some("幕張メッセ".to_string()),
-        venue: Some(venue_sample()),
         venue_city: Some("千葉市".to_string()),
-        hall: Some("イベントホール".to_string()),
-        start_time: Some("17:00".to_string()),
-        stream_platform: None,
+        fact_rows: vec![
+            fact("日程", &with_weekday("2026-04-03"), "plain"),
+            fact("開演", "17:00", "plain"),
+            ProfileRow {
+                label: "会場".to_string(),
+                value: "幕張メッセ".to_string(),
+                style: "plain".to_string(),
+                link: Some(venue_sample().path),
+            },
+            fact("ホール", "イベントホール", "plain"),
+        ],
         setlist: vec![
             SetlistRow {
                 id: "si_1".to_string(),
@@ -451,7 +470,9 @@ fn song_page(reference: &Ref, minimal: bool) -> SongPage {
         title_kana: if minimal { None } else { Some("さんきゅー".to_string()) },
         theme_key: reference.theme_key.clone(),
         brand: Some(brand_ml()),
-        song_type: Some(if minimal { "other".to_string() } else { "original".to_string() }),
+        // 種別は実データの語彙 (solo / unit / all / cover / tie_in) から取る。
+        song_type_label: content::song_type_label(if minimal { "cover" } else { "all" })
+            .map(str::to_string),
         release_date: if minimal { None } else { Some("2019-03-13".to_string()) },
         duration_display: if minimal { None } else { Some("4:32".to_string()) },
         credits: if minimal {
@@ -491,7 +512,7 @@ fn song_page(reference: &Ref, minimal: bool) -> SongPage {
                 show: show_sample(),
                 event: event_sample(),
                 date: "2026-04-03".to_string(),
-                short_date: "26/04".to_string(),
+                date_badge: DateBadge::from_ymd("2026-04-03"),
                 venue: Some("幕張メッセ".to_string()),
                 number: 1,
                 place_display: "DAY1 ・ 幕張メッセ".to_string(),
@@ -537,7 +558,7 @@ fn song_variant_page() -> SongPage {
     let mut page = song_page(&reference, false);
     page.parent = Some(song_sample());
     page.variants = vec![];
-    page.song_type = Some("live_ver".to_string());
+    page.song_type_label = content::song_type_label("solo").map(str::to_string);
     page
 }
 
@@ -604,7 +625,7 @@ fn idol_page(reference: &Ref) -> IdolPage {
             show: show_sample(),
             event: event_sample(),
             date: "2026-04-03".to_string(),
-            short_date: "26/04".to_string(),
+            date_badge: DateBadge::from_ymd("2026-04-03"),
             venue_label: Some("幕張メッセ".to_string()),
             song_count: 7,
             subtitle: Some("DAY1 ・ 幕張メッセ".to_string()),
@@ -691,7 +712,7 @@ fn venue_page(reference: &Ref, minimal: bool) -> VenuePage {
             ]
         },
         events: if minimal { vec![] } else { vec![event_sample()] },
-        shows: if minimal { vec![] } else { vec![show_summary()] },
+        shows: if minimal { vec![] } else { vec![show_summary(ShowContext::AtVenue)] },
         app: content::app_open_plain(),
         seo: seo(
             &reference.name,
@@ -719,15 +740,15 @@ fn brand_page(reference: &Ref, noindex: bool) -> BrandPage {
         // `/songs/brand/other/` を作ると「既定フィルタは other を含めない」というコアの
         // 規則と、一覧の入口が存在するという事実が食い違う。到達はアイドル一覧と
         // 検索・個別ページからだけにする。
-        section_links: if noindex {
+        stat_tiles: if noindex {
             // `other` はアイドル一覧しか作らないので、入口も 1 本だけ。
-            vec![nav("アイドル", "/idols/brand/other/", false, None, Some(12))]
+            vec![tile("☺", 12, "アイドル", Some("/idols/brand/other/"))]
         } else {
             vec![
-                nav("ライブ", "/events/brand/ml/", false, Some("brand:ml"), Some(210)),
-                nav("楽曲", "/songs/brand/ml/", false, Some("brand:ml"), Some(600)),
-                nav("アイドル", "/idols/brand/ml/", false, Some("brand:ml"), Some(52)),
-                nav("ユニット", "/units/brand/ml/", false, Some("brand:ml"), Some(300)),
+                tile("♪", 210, "ライブ", Some("/events/brand/ml/")),
+                tile("♬", 600, "楽曲", Some("/songs/brand/ml/")),
+                tile("☺", 52, "アイドル", Some("/idols/brand/ml/")),
+                tile("❋", 300, "ユニット", Some("/units/brand/ml/")),
             ]
         },
         seo: seo(
@@ -745,14 +766,13 @@ fn brand_page(reference: &Ref, noindex: bool) -> BrandPage {
 fn event_list_item(reference: &Ref, kind: &str) -> EventListItem {
     EventListItem {
         reference: reference.clone(),
-        first_date: Some("2026-04-03".to_string()),
-        last_date: Some("2026-04-04".to_string()),
-        short_date: Some("26/04".to_string()),
-        brand: Some(brand_ml()),
+        date_badge: Some(DateBadge::from_ymd("2026-04-03")),
+        end_display: until_display(Some("2026-04-03"), Some("2026-04-04")),
+        brand_mark: Some(brand_ml()),
+        venue_display: Some("幕張メッセ".to_string()),
+        show_count_display: Some("2 公演".to_string()),
         kind: kind.to_string(),
         kind_label: Some(content::kind_label(kind).to_string()),
-        show_count: 2,
-        subtitle: Some("2026-04-03 〜 2026-04-04 ・ アイドルマスター ミリオンライブ! ・ 2 公演 ・ 幕張メッセ".to_string()),
     }
 }
 
@@ -1015,19 +1035,10 @@ fn home_page() -> HomePage {
         tagline: content::SITE_TAGLINE.to_string(),
         disclaimer: content::SITE_DISCLAIMER.to_string(),
         upcoming: vec![event_list_item(&event_sample(), "live")],
-        recent_shows: vec![show_summary()],
+        recent_shows: vec![show_summary(ShowContext::Home)],
         stat_tiles: site_tiles(true, false),
         brands: vec![brand_list_item(&brand_ml()), brand_list_item(&brand_cg())],
         app: content::app_links(),
-        section_links: vec![
-            nav("今後のライブ", "/events/upcoming/", false, None, Some(24)),
-            nav("開催済み", "/events/past/", false, None, Some(827)),
-            nav("楽曲", "/songs/", false, None, Some(2040)),
-            nav("アイドル", "/idols/", false, None, Some(394)),
-            nav("ユニット", "/units/", false, None, Some(1539)),
-            nav("会場", "/venues/", false, None, Some(234)),
-            nav("検索", "/search/", false, None, None),
-        ],
         seo: seo(content::SITE_NAME, content::SITE_TAGLINE, "/", Robots::IndexFollow, &[]),
     }
 }

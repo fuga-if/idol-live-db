@@ -13,11 +13,11 @@
         "sub": "765MILLION ALLSTARS",
         "path": "/songs/ml_sample/",
         "themeKey": "brand:ml",
-        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music/sample/600x600bb.jpg",
-        "monogram": "T"
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music/sample/600x600bb.jpg"
       },
       "releaseDate": "2019-03-13",
       "unitLabel": "765MILLION ALLSTARS",
+      "artistsLabel": "春日未来",
       "performanceCount": 12,
       "subtitle": "765MILLION ALLSTARS ・ 春日未来 ・ 2019-03-13"
     },
@@ -29,15 +29,17 @@
         "sub": null,
         "path": "/songs/ml_no_artwork/",
         "themeKey": "brand:ml",
-        "artworkUrl": null,
-        "monogram": "ジ"
+        "artworkUrl": null
       },
       "releaseDate": null,
       "unitLabel": null,
+      "artistsLabel": null,
       "performanceCount": null,
       "subtitle": null
     }
   ],
+  "rowsAreLight": true,
+  "queryBase": null,
   "kanaSections": [
     {
       "label": "さ",
@@ -71,8 +73,8 @@
   "seo": {
     "title": "楽曲 (全件) | アイドルライブDB",
     "description": "楽曲の一覧。",
-    "canonical": "https://imas-live-web.tokata3011.workers.dev/songs/all/",
-    "ogImage": "https://imas-live-web.tokata3011.workers.dev/og/default.png",
+    "canonical": "https://idollivedb.fugalabs.uk/songs/all/",
+    "ogImage": "https://idollivedb.fugalabs.uk/og/default.png",
     "robots": "noindex,follow",
     "jsonLd": {
       "@context": "https://schema.org",
@@ -80,14 +82,14 @@
         {
           "@type": "WebPage",
           "name": "楽曲 (全件)",
-          "url": "https://imas-live-web.tokata3011.workers.dev/songs/all/"
+          "url": "https://idollivedb.fugalabs.uk/songs/all/"
         },
         {
           "@type": "BreadcrumbList",
           "itemListElement": [
             {
               "@type": "ListItem",
-              "item": "https://imas-live-web.tokata3011.workers.dev/",
+              "item": "https://idollivedb.fugalabs.uk/",
               "name": "ホーム",
               "position": 1
             }

@@ -5,44 +5,65 @@ import PerformerNamePref from "../../components/PerformerNamePref.astro";
 import SetlistRow from "../../components/SetlistRow.astro";
 import RefList from "../../components/RefList.astro";
 import Chip from "../../components/Chip.astro";
+import Facts from "../../components/Facts.astro";
+import Count from "../../components/Count.astro";
 import EmptyState from "../../components/EmptyState.astro";
-import { meta, page, pathsFor } from "../../lib/data";
+import { page, pathsFor } from "../../lib/data";
 import type { ShowPage } from "../../lib/schema/ShowPage";
 
 export const getStaticPaths = () => pathsFor("show", "showId");
 
 const show = page<ShowPage>(Astro.props.data);
+
+// 同じライブの公演の切替 (単日公演では Rust が空を返す)。数本ならセトリの頭に
+// セグメントで置き (DAY1 / DAY2 と行き来するのが一番多い操作)、ツアーのように
+// 多いときは横に並べきれないので脇のチップ列にする。何本まで横に並ぶかは純粋に幅の話。
+const MAX_SEGMENTED_SHOWS = 8;
+const siblings = show.siblingShows;
+const siblingsAsSegments = siblings.length > 0 && siblings.length <= MAX_SEGMENTED_SHOWS;
 ---
 
-<DetailLayout seo={show.seo} meta={meta()} themeKey={show.themeKey} app={show.app} isCharacterLive={show.isCharacterLive}>
+<DetailLayout seo={show.seo} themeKey={show.themeKey} app={show.app} isCharacterLive={show.isCharacterLive}>
   <section class="hero" slot="hero" aria-labelledby="show-title">
     <div class="hero__body">
-      <p class="hero__eyebrow">
-        <a href={show.event.path}>{show.event.name}</a>
-      </p>
-      <h1 class="hero__title" id="show-title">{show.name}</h1>
-      <p class="u-muted">
-        <time datetime={show.date}>{show.date}</time>
-        {show.startTime && <> ・ 開演 {show.startTime}</>}
-      </p>
-      <div class="hero__meta">
-        {
-          show.venue ? (
-            <Chip text={show.venue.name} href={show.venue.path} variant="themed" themeKey={show.venue.themeKey} />
-          ) : (
-            show.venueLabel && <Chip text={show.venueLabel} />
-          )
-        }
-        {show.hall && <Chip text={show.hall} />}
-        {show.venueCity && <Chip text={show.venueCity} />}
-        {show.streamPlatform && <Chip text={show.streamPlatform} />}
-        {show.brand && <Chip text={show.brand.name} href={show.brand.path} variant="themed" themeKey={show.brand.themeKey} />}
-      </div>
+      {/* 見出しはライブ名との重なりを落とした公演名 (`Day2`)。ライブ名は小見出しで 1 回だけ。
+          公演名がライブ名そのもの (短い名前が無い) なら、見出しに公演名を出して小見出しは省く。 */}
+      {
+        show.shortName && (
+          <p class="hero__eyebrow">
+            <a href={show.event.path}>{show.event.name}</a>
+          </p>
+        )
+      }
+      <h1 class="hero__title" id="show-title">{show.shortName ?? show.name}</h1>
+      <Facts rows={show.factRows} />
+      {
+        (show.brand || show.venueCity) && (
+          <div class="hero__meta">
+            {show.brand && <Chip text={show.brand.name} href={show.brand.path} variant="themed" themeKey={show.brand.themeKey} />}
+            {show.venueCity && <Chip text={show.venueCity} />}
+          </div>
+        )
+      }
     </div>
   </section>
 
   <Section id="show-setlist" title="セットリスト" count={show.setlist.length}>
-    <PerformerNamePref />
+    <div class="setlist-tools">
+      {
+        siblingsAsSegments && (
+          <nav class="segmented" aria-label="このライブの公演">
+            {siblings.map((s) => (
+              <a href={s.path} aria-current={s.id === show.id ? "page" : undefined}>
+                {s.name}
+                <Count value={s.sub} dim />
+              </a>
+            ))}
+          </nav>
+        )
+      }
+      <PerformerNamePref />
+    </div>
     {
       show.setlist.length === 0 ? (
         <EmptyState
@@ -68,9 +89,9 @@ const show = page<ShowPage>(Astro.props.data);
   }
 
   {
-    show.siblingShows.length > 0 && (
+    siblings.length > 0 && !siblingsAsSegments && (
       <Section slot="aside" id="show-siblings" title="このライブの他の公演">
-        <RefList refs={show.siblingShows} variant="neutral" withSub label="他の公演" />
+        <RefList refs={siblings} variant="neutral" withSub label="他の公演" />
       </Section>
     )
   }

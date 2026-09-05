@@ -4,7 +4,6 @@ use super::context::{distinguishing_show_name, join_parts, simple_json_ld, Ctx};
 use crate::domain::idol_queries;
 use crate::domain::idol_song_queries;
 use crate::domain::screen_composition::{idol_profile_rows, RowAction, RowStyle};
-use crate::domain::short_year_month::short_year_month;
 use crate::domain::unit_queries;
 use crate::web_export::content;
 use crate::web_export::dto::*;
@@ -188,7 +187,7 @@ fn idol_shows(ctx: &Ctx, idol_id: &str, idol_index: u32) -> Vec<IdolShowRow> {
                 subtitle: join_parts([show_label, s.venue.clone()]),
                 show: ctx.show_ref(&s.show_id)?,
                 event: ctx.event_ref(&s.event_id)?,
-                short_date: short_year_month(&s.date),
+                date_badge: DateBadge::from_ymd(&s.date),
                 date: s.date,
                 venue_label: s.venue,
                 song_count,
@@ -222,9 +221,10 @@ pub fn unit_page(ctx: &Ctx, unit_id: &str) -> Option<UnitPage> {
         theme_key: ctx.brand_theme(Some(&record.brand_id)),
         is_permanent: record.is_permanent,
         brand: ctx.brand_ref(&record.brand_id),
+        // 並ぶ全員が同じブランドなので、補助表記 (ブランド名) は落とす。
         members: unit_queries::unit_member_idol_ids(ctx.snap, unit_id)
             .iter()
-            .filter_map(|id| ctx.idol_ref(id))
+            .filter_map(|id| ctx.idol_ref(id).map(Ref::without_sub))
             .collect(),
         songs: unit_queries::unit_song_ids(ctx.snap, unit_id)
             .iter()

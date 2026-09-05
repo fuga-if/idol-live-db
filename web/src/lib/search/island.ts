@@ -178,28 +178,32 @@ function section(g: Group): HTMLElement {
   return el;
 }
 
+/** 結果の 1 行。一覧の行 (`DatedRow.astro`) と同じ骨格・クラスで描く (見た目を 2 つ持たない)。 */
 function item(row: SearchRow, shard: Shard): HTMLLIElement {
   const li = document.createElement("li");
   const a = document.createElement("a");
-  a.className = "lead-row";
+  a.className = "row row--bar";
   // `k` は Rust が path_key で安全化したキー。encode は配管であって規則ではない。
   a.href = `${shard.body.pathPrefix}${encodeURIComponent(row.k)}/`;
 
   const body = document.createElement("span");
-  body.className = "lead-row__body";
+  body.className = "row__body";
   const title = document.createElement("span");
-  title.className = "lead-row__title";
+  title.className = "row__title";
   title.textContent = row.n;
   body.append(title);
   if (row.s) {
+    const meta = document.createElement("span");
+    meta.className = "row__meta";
     const sub = document.createElement("span");
-    sub.className = "lead-row__sub";
+    sub.className = "row__meta-item";
     sub.textContent = row.s;
-    body.append(sub);
+    meta.append(sub);
+    body.append(meta);
   }
 
   const trailing = document.createElement("span");
-  trailing.className = "lead-row__trailing";
+  trailing.className = "row__trailing";
   const chev = document.createElement("span");
   chev.className = "chevron";
   chev.setAttribute("aria-hidden", "true");

@@ -23,8 +23,8 @@
   "seo": {
     "title": "Donald E. Stephens Convention Center / Hyatt Regency O'Hare | アイドルライブDB",
     "description": "この会場で行われたライブと公演。",
-    "canonical": "https://imas-live-web.tokata3011.workers.dev/venues/venue_donalde.stephensconventioncenterhyattregen-0c52f2eb/",
-    "ogImage": "https://imas-live-web.tokata3011.workers.dev/og/default.png",
+    "canonical": "https://idollivedb.fugalabs.uk/venues/venue_donalde.stephensconventioncenterhyattregen-0c52f2eb/",
+    "ogImage": "https://idollivedb.fugalabs.uk/og/default.png",
     "robots": "index,follow",
     "jsonLd": {
       "@context": "https://schema.org",
@@ -32,20 +32,20 @@
         {
           "@type": "WebPage",
           "name": "Donald E. Stephens Convention Center / Hyatt Regency O'Hare",
-          "url": "https://imas-live-web.tokata3011.workers.dev/venues/venue_donalde.stephensconventioncenterhyattregen-0c52f2eb/"
+          "url": "https://idollivedb.fugalabs.uk/venues/venue_donalde.stephensconventioncenterhyattregen-0c52f2eb/"
         },
         {
           "@type": "BreadcrumbList",
           "itemListElement": [
             {
               "@type": "ListItem",
-              "item": "https://imas-live-web.tokata3011.workers.dev/",
+              "item": "https://idollivedb.fugalabs.uk/",
               "name": "ホーム",
               "position": 1
             },
             {
               "@type": "ListItem",
-              "item": "https://imas-live-web.tokata3011.workers.dev/venues/",
+              "item": "https://idollivedb.fugalabs.uk/venues/",
               "name": "会場",
               "position": 2
             }

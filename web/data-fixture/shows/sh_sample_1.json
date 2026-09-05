@@ -1,10 +1,11 @@
 {
   "schemaVersion": 1,
+  "isCharacterLive": false,
   "id": "sh_sample_1",
   "path": "/shows/sh_sample_1/",
   "name": "DAY1",
+  "shortName": "DAY1",
   "date": "2026-04-03",
-  "shortDate": "26/04",
   "themeKey": "brand:ml",
   "event": {
     "kind": "event",
@@ -13,8 +14,7 @@
     "sub": "2026",
     "path": "/events/ev_sample/",
     "themeKey": "brand:ml",
-    "artworkUrl": null,
-    "monogram": "T"
+    "artworkUrl": null
   },
   "brand": {
     "kind": "brand",
@@ -23,24 +23,35 @@
     "sub": "ML",
     "path": "/brands/ml/",
     "themeKey": "brand:ml",
-    "artworkUrl": null,
-    "monogram": "M"
-  },
-  "venueLabel": "幕張メッセ",
-  "venue": {
-    "kind": "venue",
-    "id": "venue_makuhari",
-    "name": "幕張メッセ",
-    "sub": "千葉県",
-    "path": "/venues/venue_makuhari/",
-    "themeKey": "neutral",
-    "artworkUrl": null,
-    "monogram": "幕"
+    "artworkUrl": null
   },
   "venueCity": "千葉市",
-  "hall": "イベントホール",
-  "startTime": "17:00",
-  "streamPlatform": null,
+  "factRows": [
+    {
+      "label": "日程",
+      "value": "2026-04-03 (金)",
+      "style": "plain",
+      "link": null
+    },
+    {
+      "label": "開演",
+      "value": "17:00",
+      "style": "plain",
+      "link": null
+    },
+    {
+      "label": "会場",
+      "value": "幕張メッセ",
+      "style": "plain",
+      "link": "/venues/venue_makuhari/"
+    },
+    {
+      "label": "ホール",
+      "value": "イベントホール",
+      "style": "plain",
+      "link": null
+    }
+  ],
   "setlist": [
     {
       "id": "si_1",
@@ -54,8 +65,7 @@
         "sub": "765MILLION ALLSTARS",
         "path": "/songs/ml_sample/",
         "themeKey": "brand:ml",
-        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music/sample/600x600bb.jpg",
-        "monogram": "T"
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music/sample/600x600bb.jpg"
       },
       "performers": [
         {
@@ -66,10 +76,9 @@
             "sub": "ミリオンライブ!",
             "path": "/idols/ml_kasuga_mirai/",
             "themeKey": "idol:ml_kasuga_mirai",
-            "artworkUrl": null,
-            "monogram": "春"
+            "artworkUrl": null
           },
-          "displayName": "山崎はるか"
+          "castName": "山崎はるか"
         }
       ],
       "originalArtists": [
@@ -80,8 +89,7 @@
           "sub": "ミリオンライブ!",
           "path": "/idols/ml_kasuga_mirai/",
           "themeKey": "idol:ml_kasuga_mirai",
-          "artworkUrl": null,
-          "monogram": "春"
+          "artworkUrl": null
         },
         {
           "kind": "idol",
@@ -90,8 +98,7 @@
           "sub": "ミリオンライブ!",
           "path": "/idols/ml_mogami_shizuka/",
           "themeKey": "idol:ml_mogami_shizuka",
-          "artworkUrl": null,
-          "monogram": "最"
+          "artworkUrl": null
         }
       ],
       "isCover": false
@@ -108,8 +115,7 @@
         "sub": null,
         "path": "/songs/ml_no_artwork/",
         "themeKey": "brand:ml",
-        "artworkUrl": null,
-        "monogram": "ジ"
+        "artworkUrl": null
       },
       "performers": [],
       "originalArtists": [],
@@ -124,8 +130,7 @@
       "sub": "ミリオンライブ!",
       "path": "/idols/ml_kasuga_mirai/",
       "themeKey": "idol:ml_kasuga_mirai",
-      "artworkUrl": null,
-      "monogram": "春"
+      "artworkUrl": null
     },
     {
       "kind": "idol",
@@ -134,8 +139,7 @@
       "sub": "ミリオンライブ!",
       "path": "/idols/ml_mogami_shizuka/",
       "themeKey": "idol:ml_mogami_shizuka",
-      "artworkUrl": null,
-      "monogram": "最"
+      "artworkUrl": null
     }
   ],
   "siblingShows": [
@@ -146,8 +150,7 @@
       "sub": "2026-04-03",
       "path": "/shows/sh_sample_1/",
       "themeKey": "brand:ml",
-      "artworkUrl": null,
-      "monogram": "D"
+      "artworkUrl": null
     }
   ],
   "app": {
@@ -158,8 +161,8 @@
   "seo": {
     "title": "DAY1 | アイドルライブDB",
     "description": "セットリストと歌唱メンバー。",
-    "canonical": "https://imas-live-web.tokata3011.workers.dev/shows/sh_sample_1/",
-    "ogImage": "https://imas-live-web.tokata3011.workers.dev/og/default.png",
+    "canonical": "https://idollivedb.fugalabs.uk/shows/sh_sample_1/",
+    "ogImage": "https://idollivedb.fugalabs.uk/og/default.png",
     "robots": "index,follow",
     "jsonLd": {
       "@context": "https://schema.org",
@@ -167,20 +170,20 @@
         {
           "@type": "WebPage",
           "name": "DAY1",
-          "url": "https://imas-live-web.tokata3011.workers.dev/shows/sh_sample_1/"
+          "url": "https://idollivedb.fugalabs.uk/shows/sh_sample_1/"
         },
         {
           "@type": "BreadcrumbList",
           "itemListElement": [
             {
               "@type": "ListItem",
-              "item": "https://imas-live-web.tokata3011.workers.dev/",
+              "item": "https://idollivedb.fugalabs.uk/",
               "name": "ホーム",
               "position": 1
             },
             {
               "@type": "ListItem",
-              "item": "https://imas-live-web.tokata3011.workers.dev/events/",
+              "item": "https://idollivedb.fugalabs.uk/events/",
               "name": "ライブ",
               "position": 2
             }

@@ -22,5 +22,83 @@
     "supportUrl": "https://fuga-if.github.io/imas-live-privacy/support.html",
     "termsUrl": "https://fuga-if.github.io/imas-live-privacy/terms.html",
     "repositoryUrl": "https://github.com/fuga-if/idol-live-db"
-  }
+  },
+  "performerNameOptions": [
+    {
+      "raw": "idol",
+      "label": "アイドル名"
+    },
+    {
+      "raw": "cast",
+      "label": "CV名"
+    },
+    {
+      "raw": "both",
+      "label": "アイドル名 + CV名"
+    },
+    {
+      "raw": "show",
+      "label": "公演に合わせる"
+    }
+  ],
+  "primaryNav": [
+    {
+      "label": "ライブ",
+      "path": "/events/",
+      "current": false,
+      "themeKey": null,
+      "count": null
+    },
+    {
+      "label": "楽曲",
+      "path": "/songs/",
+      "current": false,
+      "themeKey": null,
+      "count": null
+    },
+    {
+      "label": "アイドル",
+      "path": "/idols/",
+      "current": false,
+      "themeKey": null,
+      "count": null
+    },
+    {
+      "label": "ユニット",
+      "path": "/units/",
+      "current": false,
+      "themeKey": null,
+      "count": null
+    },
+    {
+      "label": "会場",
+      "path": "/venues/",
+      "current": false,
+      "themeKey": null,
+      "count": null
+    },
+    {
+      "label": "ブランド",
+      "path": "/brands/",
+      "current": false,
+      "themeKey": null,
+      "count": null
+    }
+  ],
+  "utilityNav": [
+    {
+      "label": "検索",
+      "path": "/search/",
+      "current": false,
+      "themeKey": null,
+      "count": null
+    },
+    {
+      "label": "このサイトについて",
+      "path": "/about/",
+      "current": false,
+      "themeKey": null,
+      "count": null
+    }
+  ]
 }

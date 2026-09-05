@@ -40,6 +40,15 @@ web_dto! {
         /// **アプリと同じ 1 本** (`domain::event_detail_queries::performer_name_options`)。
         /// 出面が独自にラベルを持つと、アプリの設定画面と文言がズレる。
         pub performer_name_options: Vec<PerformerNameOptionDto>,
+        /// サイト共通ナビの並び (ヘッダとフッタが同じ 1 本を描く)。
+        ///
+        /// **お題 (`/polls/`) は焼き込んだ集計が空だと書き出されない**ので、
+        /// 出す/出さないを知っているのは JSON を作る側だけ。TS に手書きの一覧を
+        /// 持たせると、その条件を知らないままリンク切れを出す。
+        pub primary_nav: Vec<NavLink>,
+        /// 一覧以外の入口 (検索・このサイトについて)。フッタが描く。
+        /// 全ページのクロームに載るリンクはすべて `meta.json` にある = 到達性の起点。
+        pub utility_nav: Vec<NavLink>,
     }
 }
 
@@ -256,6 +265,16 @@ impl NavLink {
     }
 }
 
+impl Ref {
+    /// 補助表記を落とした形。並ぶ全員が同じブランドの場所 (ブランド詳細・ユニット詳細) で、
+    /// ブランド名を 1 枚ごとに繰り返さないために使う。**判断は JSON を作る側で済ませ**、
+    /// 受け手に「このページでは副題を出すな」という文脈を持たせない。
+    pub fn without_sub(mut self) -> Self {
+        self.sub = None;
+        self
+    }
+}
+
 /// いま見ているページに当たるリンクへ `current` を立てる。
 ///
 /// 各リンクを作るときに `path == current` を書くと、切替リンクを組む場所すべてに
@@ -264,6 +283,39 @@ impl NavLink {
 pub fn mark_current(links: &mut [NavLink], current: &str) {
     for link in links {
         link.current = link.path == current;
+    }
+}
+
+web_dto! {
+    /// 日付ブロック 1 つぶん (行の左端に置く「月日を大きく、曜日と年を小さく」の部品)。
+    ///
+    /// 文字列を切る・曜日を求める判断を受け手に持たせないための型。値の決め方は
+    /// `domain::date_display::date_parts` にあり、ここは詰め替えるだけ。
+    /// 部分日付 (`"2024-08"`) では `month_day` が `"8月"` で `weekday` が無い、
+    /// 解釈できない文字列では `month_day` に原文がそのまま入る (捏造しない)。
+    #[derive(Eq)]
+    pub struct DateBadge {
+        /// `"2026-09-19"`。そのまま `<time datetime>` に入れる。
+        pub iso: String,
+        /// `"2026"`。読めなければ空。
+        pub year: String,
+        /// `"9/19"`。
+        pub month_day: String,
+        /// `"土"`。日まで揃った実在の日付にだけ入る。
+        pub weekday: Option<String>,
+    }
+}
+
+impl DateBadge {
+    /// `yyyy-MM-dd` (部分日付も可) から作る。
+    pub fn from_ymd(date: &str) -> Self {
+        let parts = crate::domain::date_display::date_parts(date);
+        Self {
+            iso: date.to_string(),
+            year: parts.year,
+            month_day: parts.month_day,
+            weekday: parts.weekday.map(str::to_string),
+        }
     }
 }
 

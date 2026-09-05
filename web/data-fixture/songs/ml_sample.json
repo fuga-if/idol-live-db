@@ -12,10 +12,34 @@
     "sub": "ML",
     "path": "/brands/ml/",
     "themeKey": "brand:ml",
-    "artworkUrl": null,
-    "monogram": "M"
+    "artworkUrl": null
   },
-  "songType": "original",
+  "community": {
+    "tags": [
+      {
+        "id": "tag_kawaii",
+        "name": "かわいい",
+        "count": 12,
+        "color": "#E900E2",
+        "isOfficial": false
+      }
+    ],
+    "favorites": 34,
+    "penlight": [
+      {
+        "key": "pink_white",
+        "count": 5
+      }
+    ]
+  },
+  "lyrics": {
+    "available": false,
+    "note": "歌詞はアプリ『アイドルライブDB』でご覧いただけます（アプリは JASRAC 許諾番号 J260943703 のもとで歌詞を配信しています）。本サイトでは歌詞を掲載していません。",
+    "licenseNumber": null,
+    "licenseNote": null,
+    "sourceUrl": null
+  },
+  "songTypeLabel": "全体曲",
   "releaseDate": "2019-03-13",
   "durationDisplay": "4:32",
   "credits": [
@@ -41,8 +65,7 @@
       "sub": "ミリオンライブ!",
       "path": "/idols/ml_kasuga_mirai/",
       "themeKey": "idol:ml_kasuga_mirai",
-      "artworkUrl": null,
-      "monogram": "春"
+      "artworkUrl": null
     },
     {
       "kind": "idol",
@@ -51,8 +74,7 @@
       "sub": "ミリオンライブ!",
       "path": "/idols/ml_mogami_shizuka/",
       "themeKey": "idol:ml_mogami_shizuka",
-      "artworkUrl": null,
-      "monogram": "最"
+      "artworkUrl": null
     }
   ],
   "otherArtists": [],
@@ -63,8 +85,7 @@
     "sub": "ミリオンライブ!",
     "path": "/units/unit_sample/",
     "themeKey": "brand:ml",
-    "artworkUrl": null,
-    "monogram": "サ"
+    "artworkUrl": null
   },
   "unitLabel": "765MILLION ALLSTARS",
   "parent": null,
@@ -76,8 +97,7 @@
       "sub": "派生曲",
       "path": "/songs/ml_sample_variant/",
       "themeKey": "brand:ml",
-      "artworkUrl": null,
-      "monogram": "T"
+      "artworkUrl": null
     }
   ],
   "performanceCount": 12,
@@ -90,8 +110,7 @@
         "sub": "2026-04-03",
         "path": "/shows/sh_sample_1/",
         "themeKey": "brand:ml",
-        "artworkUrl": null,
-        "monogram": "D"
+        "artworkUrl": null
       },
       "event": {
         "kind": "event",
@@ -100,11 +119,15 @@
         "sub": "2026",
         "path": "/events/ev_sample/",
         "themeKey": "brand:ml",
-        "artworkUrl": null,
-        "monogram": "T"
+        "artworkUrl": null
       },
       "date": "2026-04-03",
-      "shortDate": "26/04",
+      "dateBadge": {
+        "iso": "2026-04-03",
+        "year": "2026",
+        "monthDay": "4/3",
+        "weekday": "金"
+      },
       "venue": "幕張メッセ",
       "number": 1,
       "placeDisplay": "DAY1 ・ 幕張メッセ"
@@ -119,8 +142,7 @@
         "sub": "ミリオンライブ!",
         "path": "/idols/ml_kasuga_mirai/",
         "themeKey": "idol:ml_kasuga_mirai",
-        "artworkUrl": null,
-        "monogram": "春"
+        "artworkUrl": null
       },
       "times": 8,
       "total": 12
@@ -135,8 +157,7 @@
         "sub": "派生曲",
         "path": "/songs/ml_sample_variant/",
         "themeKey": "brand:ml",
-        "artworkUrl": null,
-        "monogram": "T"
+        "artworkUrl": null
       },
       "together": 5
     }
@@ -149,8 +170,7 @@
       "sub": "派生曲",
       "path": "/songs/ml_sample_variant/",
       "themeKey": "brand:ml",
-      "artworkUrl": null,
-      "monogram": "T"
+      "artworkUrl": null
     }
   ],
   "factRows": [
@@ -193,8 +213,8 @@
   "seo": {
     "title": "Thank You! | アイドルライブDB",
     "description": "クレジット・原唱者・披露履歴。",
-    "canonical": "https://imas-live-web.tokata3011.workers.dev/songs/ml_sample/",
-    "ogImage": "https://imas-live-web.tokata3011.workers.dev/og/default.png",
+    "canonical": "https://idollivedb.fugalabs.uk/songs/ml_sample/",
+    "ogImage": "https://idollivedb.fugalabs.uk/og/default.png",
     "robots": "index,follow",
     "jsonLd": {
       "@context": "https://schema.org",
@@ -202,20 +222,20 @@
         {
           "@type": "WebPage",
           "name": "Thank You!",
-          "url": "https://imas-live-web.tokata3011.workers.dev/songs/ml_sample/"
+          "url": "https://idollivedb.fugalabs.uk/songs/ml_sample/"
         },
         {
           "@type": "BreadcrumbList",
           "itemListElement": [
             {
               "@type": "ListItem",
-              "item": "https://imas-live-web.tokata3011.workers.dev/",
+              "item": "https://idollivedb.fugalabs.uk/",
               "name": "ホーム",
               "position": 1
             },
             {
               "@type": "ListItem",
-              "item": "https://imas-live-web.tokata3011.workers.dev/songs/",
+              "item": "https://idollivedb.fugalabs.uk/songs/",
               "name": "楽曲",
               "position": 2
             }
@@ -233,6 +253,5 @@
         "path": "/songs/"
       }
     ]
-  },
-  "lyricsNote": "歌詞はアプリ『アイドルライブDB』でご覧いただけます（アプリは JASRAC 許諾番号 J260943703 のもとで歌詞を配信しています）。本サイトでは歌詞を掲載していません。"
+  }
 }

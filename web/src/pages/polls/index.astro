@@ -1,11 +1,9 @@
 ---
 import ListLayout from "../../layouts/ListLayout.astro";
-import Section from "../../components/Section.astro";
 import ListContainer from "../../components/ListContainer.astro";
-import LeadRow from "../../components/LeadRow.astro";
-import Count from "../../components/Count.astro";
+import RankingRow from "../../components/RankingRow.astro";
 import TagChip from "../../components/TagChip.astro";
-import { meta, page, routeData } from "../../lib/data";
+import { page, routeData } from "../../lib/data";
 import type { PollListPage } from "../../lib/schema/PollListPage";
 
 /**
@@ -18,42 +16,45 @@ import type { PollListPage } from "../../lib/schema/PollListPage";
 const list = page<PollListPage>(routeData("pollList", "/polls/"));
 ---
 
-<ListLayout seo={list.seo} meta={meta()} title={list.title} total={list.total} wide>
-  <p class="u-muted polls__note">
+<ListLayout seo={list.seo} title={list.title} total={list.total}>
+  <p class="u-muted">
     アプリの利用者が出し合ったお題と、記録した時点の得票です。投票はアプリから。
   </p>
 
   {
     list.polls.map((poll) => (
-      <Section id={`poll-${poll.id}`} title={poll.title} count={poll.totalVotes}>
-        <div class="u-stack">
+      <section class="poll" aria-labelledby={`poll-${poll.id}`}>
+        <div class="poll__head">
+          <h2 class="poll__title" id={`poll-${poll.id}`}>{poll.title}</h2>
           <p class="u-row polls__meta">
             <TagChip text={poll.targetLabel} kind="all" />
+            <span class="u-muted u-num">{poll.totalVotes} 票</span>
             {poll.endsOn && (
               <span class="u-muted">
-                {poll.isOpen ? "締切" : "終了"} <time datetime={poll.endsOn}>{poll.endsOn}</time>
+                {poll.isOpen ? "締切" : "終了"} <time class="u-num" datetime={poll.endsOn}>{poll.endsOn}</time>
               </span>
             )}
           </p>
-          {poll.description && <p class="u-muted">{poll.description}</p>}
-          <ListContainer as="ol">
-            {poll.entries.map((entry) => (
-              <li>
-                <LeadRow
-                  title={`${entry.rank}. ${entry.ref.name}`}
-                  subtitle={entry.ref.sub}
-                  href={entry.ref.path}
-                  themeKey={entry.ref.themeKey}
-                >
-                  <span slot="trailing">
-                    <Count value={entry.votes} unit="票" />
-                  </span>
-                </LeadRow>
-              </li>
-            ))}
-          </ListContainer>
+          {poll.description && <p class="lede lede--small">{poll.description}</p>}
         </div>
-      </Section>
+        <ListContainer as="ol">
+          {poll.entries.map((entry) => (
+            <li>
+              <RankingRow
+                rank={entry.rank}
+                artwork={entry.ref.kind === "song"}
+                artworkUrl={entry.ref.artworkUrl}
+                title={entry.ref.name}
+                sub={entry.ref.sub}
+                metric={entry.votes}
+                unit="票"
+                href={entry.ref.path}
+                themeKey={entry.ref.themeKey}
+              />
+            </li>
+          ))}
+        </ListContainer>
+      </section>
     ))
   }
 </ListLayout>

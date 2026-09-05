@@ -1,6 +1,6 @@
 //! アイドル (idol) 詳細ページの DTO。
 
-use super::common::{AppOpen, Ref, SeoBlock};
+use super::common::{AppOpen, DateBadge, Ref, SeoBlock};
 use super::common::TagChipDto;
 
 web_dto! {
@@ -95,7 +95,8 @@ web_dto! {
         pub show: Ref,
         pub event: Ref,
         pub date: String,
-        pub short_date: String,
+        /// 行の左端に置く日付ブロック。
+        pub date_badge: DateBadge,
         pub venue_label: Option<String>,
         /// このアイドルがこの公演で歌った曲数。
         pub song_count: u32,

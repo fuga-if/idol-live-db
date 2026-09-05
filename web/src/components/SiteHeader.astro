@@ -1,57 +1,46 @@
 ---
+import { meta } from "../lib/data";
 /**
- * サイト共通ナビ。現在地はパス接頭辞で決まる (状態は持たない)。
+ * サイト共通ナビ (上部バー)。現在地はパス接頭辞で決まる (状態は持たない)。
  *
- * マークアップは 1 つで、**広い画面ではサイドバー / 狭い画面では上部の横スクロールバー**に
- * なる。切り替えは base.css のメディアクエリだけで、JS は 1 行も要らない。
- * 一覧が 6 つあり、横 1 列に並べると幅の割に窮屈で、しかも項目が増やせない。
+ * **並びは Rust が出す** (`meta.primaryNav`)。お題ページは焼き込んだ集計が
+ * 空だと書き出されないので、その条件を知っている側がリンクの有無も決める。
+ * 広い画面では 1 段、狭い画面では「ブランド + 検索」の下に横スクロールの一覧。
+ * 切り替えは base.css のメディアクエリだけで、JS は 1 行も要らない。
  */
 interface Props {
   pathname: string;
 }
 const { pathname } = Astro.props;
-const nav = [
-  { name: "ライブ", href: "/events/" },
-  { name: "楽曲", href: "/songs/" },
-  { name: "アイドル", href: "/idols/" },
-  { name: "ユニット", href: "/units/" },
-  { name: "会場", href: "/venues/" },
-  { name: "ブランド", href: "/brands/" },
-  // ⚠️ お題ページは焼き込んだ集計が空だと書き出されない (emit/mod.rs)。
-  //    ここは手書きの一覧なので、その条件を知らない。**本来この並びも Rust が
-  //    出すべき** (routes.json には出す/出さないが載っている)。
-  { name: "お題", href: "/polls/" },
-];
-const isCurrent = (href: string) =>
-  href === "/" ? pathname === "/" : pathname.startsWith(href);
+const nav = meta().primaryNav;
+const isCurrent = (href: string) => pathname.startsWith(href);
 ---
 
-<div class="site-nav">
-  <a class="site-nav__brand" href="/">
-    <img
-      class="site-nav__mark"
-      src="/icon-192.png"
-      alt=""
-      width="26"
-      height="26"
-    />
-    アイドルライブDB
-  </a>
-  <a class="site-nav__search" href="/search/">
-    <span aria-hidden="true">⌕</span>検索
-  </a>
-  <nav class="site-nav__links" aria-label="サイト内の主要な一覧">
-    <p class="site-nav__label">一覧</p>
-    <ul>
-      {
-        nav.map((n) => (
-          <li>
-            <a href={n.href} aria-current={isCurrent(n.href) ? "page" : undefined}>
-              {n.name}
-            </a>
-          </li>
-        ))
-      }
-    </ul>
-  </nav>
-</div>
+<header class="site-nav">
+  <div class="site-nav__inner">
+    <a class="site-nav__brand" href="/">
+      <img class="site-nav__mark" src="/icon-192.png" alt="" width="28" height="28" />
+      アイドルライブDB
+    </a>
+    <nav class="site-nav__links" aria-label="サイト内の主要な一覧">
+      <ul>
+        {
+          nav.map((n) => (
+            <li>
+              <a href={n.path} aria-current={isCurrent(n.path) ? "page" : undefined}>
+                {n.label}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </nav>
+    <a
+      class="site-nav__search"
+      href="/search/"
+      aria-current={isCurrent("/search/") ? "page" : undefined}
+    >
+      <span class="site-nav__search-glyph" aria-hidden="true">⌕</span>検索
+    </a>
+  </div>
+</header>

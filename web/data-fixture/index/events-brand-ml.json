@@ -63,8 +63,8 @@
   "seo": {
     "title": "ミリオンライブ! のライブ | アイドルライブDB",
     "description": "ライブの一覧。",
-    "canonical": "https://imas-live-web.tokata3011.workers.dev/events/brand/ml/",
-    "ogImage": "https://imas-live-web.tokata3011.workers.dev/og/default.png",
+    "canonical": "https://idollivedb.fugalabs.uk/events/brand/ml/",
+    "ogImage": "https://idollivedb.fugalabs.uk/og/default.png",
     "robots": "index,follow",
     "jsonLd": {
       "@context": "https://schema.org",
@@ -72,14 +72,14 @@
         {
           "@type": "WebPage",
           "name": "ミリオンライブ! のライブ",
-          "url": "https://imas-live-web.tokata3011.workers.dev/events/brand/ml/"
+          "url": "https://idollivedb.fugalabs.uk/events/brand/ml/"
         },
         {
           "@type": "BreadcrumbList",
           "itemListElement": [
             {
               "@type": "ListItem",
-              "item": "https://imas-live-web.tokata3011.workers.dev/",
+              "item": "https://idollivedb.fugalabs.uk/",
               "name": "ホーム",
               "position": 1
             }

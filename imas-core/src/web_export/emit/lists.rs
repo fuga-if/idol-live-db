@@ -5,15 +5,14 @@
 //! [`NavLink`] のリンク集になる。
 
 use super::context::{join_parts, simple_json_ld, Ctx, PARTS_SEPARATOR};
+use crate::domain::date_display::until_display;
 use crate::domain::display_join::join_capped;
 use crate::domain::kana_row::kana_row_label;
-use super::events::show_summary;
 use super::places::{location_display, UNCLASSIFIED_PREFECTURE};
 use crate::domain::event_detail_queries as detail;
 use crate::domain::event_grouping::group_events_by_year;
 use crate::domain::event_list_queries::{self, EventWithDateRecord};
 use crate::domain::idol_queries;
-use crate::domain::short_year_month::short_year_month;
 use crate::domain::song_list_queries::{song_list_indexes, SongListFilter, SongListSort};
 use crate::domain::unit_queries;
 use crate::web_export::content;
@@ -72,16 +71,6 @@ fn year_groups(
         .collect()
 }
 
-/// 開催期間の表記。1 日で終わるライブは 1 つだけ出す。
-fn date_range_display(first: Option<&str>, last: Option<&str>) -> Option<String> {
-    match (first, last) {
-        (Some(f), Some(l)) if f != l => Some(format!("{f} 〜 {l}")),
-        (Some(f), _) => Some(f.to_string()),
-        (None, Some(l)) => Some(l.to_string()),
-        (None, None) => None,
-    }
-}
-
 /// 会場をまとめた 1 行。多いときは畳む (ツアーは 20 会場を超える)。
 fn venue_display(labels: &[String]) -> Option<String> {
     let labels: Vec<&str> = labels.iter().map(String::as_str).collect();
@@ -90,7 +79,7 @@ fn venue_display(labels: &[String]) -> Option<String> {
 
 /// 一覧の 1 行。
 ///
-/// `with_brand` は副題にブランド名を入れるか。**ブランド別ページでは入れない**
+/// `with_brand` はブランドの札を出すか。**ブランド別ページでは出さない**
 /// (そのページの全行が同じブランドなので、行ごとに繰り返しても見分けに効かない)。
 /// 一覧 JSON はページ単位で吐かれるので、どちらの文脈かは作る側が知っている。
 fn event_list_item(
@@ -117,22 +106,17 @@ fn event_list_item(
         })
         .unwrap_or_default();
     venue_labels.dedup();
-    let brand = e.brand_id.as_deref().and_then(|b| ctx.brand_ref(b));
+    let first = record.first_date.as_deref();
+    let last = record.last_date.as_deref();
     Some(EventListItem {
         reference: ctx.event_ref(&e.id)?,
-        short_date: record.first_date.as_deref().map(short_year_month),
-        subtitle: join_parts([
-            date_range_display(record.first_date.as_deref(), record.last_date.as_deref()),
-            with_brand.then(|| brand.as_ref().map(|b| b.name.clone())).flatten(),
-            (show_count > 1).then(|| format!("{show_count} 公演")),
-            venue_display(&venue_labels),
-        ]),
-        first_date: record.first_date.clone(),
-        last_date: record.last_date.clone(),
-        brand,
+        date_badge: first.map(DateBadge::from_ymd),
+        end_display: until_display(first, last),
+        brand_mark: if with_brand { e.brand_id.as_deref().and_then(|b| ctx.brand_ref(b)) } else { None },
+        venue_display: venue_display(&venue_labels),
+        show_count_display: (show_count > 1).then(|| format!("{show_count} 公演")),
         kind_label: Some(content::kind_label(&e.kind).to_string()),
         kind: e.kind.clone(),
-        show_count,
     })
 }
 
@@ -174,7 +158,8 @@ pub fn event_lists(ctx: &Ctx) -> Vec<Emitted<EventListPage>> {
     let year_links: Vec<NavLink> = past_groups
         .iter()
         .map(|g| {
-            NavLink::new(&format!("{}年", g.year), format!("/events/past/{}/", url_segment(&g.year)))
+            // `g.year` は domain が「2026年」まで付けた表示ラベル (日付不明は「年度不明」)。
+            NavLink::new(&g.year, format!("/events/past/{}/", url_segment(&g.year)))
                 .with_count(g.events.len() as u32)
         })
         .collect();
@@ -253,12 +238,12 @@ pub fn event_lists(ctx: &Ctx) -> Vec<Emitted<EventListPage>> {
         let path = format!("/events/past/{}/", url_segment(&group.year));
         out.push(make(
             &path,
-            &format!("{}年のライブ", group.year),
+            &format!("{}のライブ", group.year),
             EventListKind::PastYear,
             (RouteKind::EventListPastYear, Some(group.year.clone())),
             vec![group.clone()],
             format!("index/events-past-{}.json", group.year),
-            &format!("{}年に開催されたアイドルマスターのライブ・イベント。", group.year),
+            &format!("{}に開催されたアイドルマスターのライブ・イベント。", group.year),
         ));
     }
 
@@ -990,32 +975,107 @@ pub fn counts(ctx: &Ctx) -> Counts {
     }
 }
 
+/// サイトの主要な一覧。ナビ (ヘッダ / フッタ)・トップの件数タイル・ブランドの数の帯が、
+/// 記号・名前・入口を**この 1 本から**取る (並びと表記を 3 箇所に持たない)。
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum SiteList {
+    Events,
+    Shows,
+    Songs,
+    Idols,
+    Units,
+    Venues,
+    Brands,
+}
+
+impl SiteList {
+    /// 見出しの記号。版権物を持たないので記号で見分ける。
+    pub fn glyph(self) -> &'static str {
+        match self {
+            Self::Events => "♪",
+            Self::Shows => "▤",
+            Self::Songs => "♬",
+            Self::Idols => "☺",
+            Self::Units => "❋",
+            Self::Venues => "⌂",
+            Self::Brands => "◆",
+        }
+    }
+
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Events => "ライブ",
+            Self::Shows => "公演",
+            Self::Songs => "楽曲",
+            Self::Idols => "アイドル",
+            Self::Units => "ユニット",
+            Self::Venues => "会場",
+            Self::Brands => "ブランド",
+        }
+    }
+
+    /// サイト全体の一覧への入口。
+    pub fn path(self) -> &'static str {
+        match self {
+            Self::Events => "/events/",
+            Self::Shows => "/events/past/",
+            Self::Songs => "/songs/",
+            Self::Idols => "/idols/",
+            Self::Units => "/units/",
+            Self::Venues => "/venues/",
+            Self::Brands => "/brands/",
+        }
+    }
+
+    /// ブランド別一覧を持つものは、その collection 名 (`Ctx::brand_list_path` の引数)。
+    pub fn brand_collection(self) -> Option<&'static str> {
+        match self {
+            Self::Events => Some("events"),
+            Self::Songs => Some("songs"),
+            Self::Idols => Some("idols"),
+            Self::Units => Some("units"),
+            Self::Shows | Self::Venues | Self::Brands => None,
+        }
+    }
+
+    /// 件数タイル 1 枚。
+    pub fn tile(self, value: u32, href: Option<String>) -> StatTile {
+        StatTile { glyph: self.glyph().to_string(), value, label: self.label().to_string(), href }
+    }
+}
+
 /// サイト全体の件数タイル。
 ///
 /// `with_links` はタイルから一覧へ飛ばすか (トップは飛ばす / About は読み物なので飛ばさない)。
 /// `with_setlist_items` は「セトリ項目」を足すか (About だけ)。
 /// どの件数をどの順で出すかの判断はここ 1 箇所にある。
 fn site_stat_tiles(counts: Counts, with_links: bool, with_setlist_items: bool) -> Vec<StatTile> {
-    let mut rows = vec![
-        ("♪", counts.events, "ライブ", "/events/"),
-        ("▤", counts.shows, "公演", "/events/past/"),
-        ("♬", counts.songs, "楽曲", "/songs/"),
-        ("☺", counts.idols, "アイドル", "/idols/"),
-        ("❋", counts.units, "ユニット", "/units/"),
-        ("⌂", counts.venues, "会場", "/venues/"),
-    ];
+    let mut tiles: Vec<StatTile> = [
+        (SiteList::Events, counts.events),
+        (SiteList::Shows, counts.shows),
+        (SiteList::Songs, counts.songs),
+        (SiteList::Idols, counts.idols),
+        (SiteList::Units, counts.units),
+        (SiteList::Venues, counts.venues),
+    ]
+    .into_iter()
+    .map(|(list, value)| list.tile(value, with_links.then(|| list.path().to_string())))
+    .collect();
     if with_setlist_items {
-        rows.push(("≡", counts.setlist_items, "セトリ項目", "/songs/"));
+        // 「セトリ項目」だけは対応する一覧が無いのでリンクを持たない。
+        tiles.push(StatTile {
+            glyph: "≡".to_string(),
+            value: counts.setlist_items,
+            label: "セトリ項目".to_string(),
+            href: None,
+        });
     }
-    rows.into_iter()
-        .map(|(glyph, value, label, href)| StatTile {
-            glyph: glyph.to_string(),
-            value,
-            label: label.to_string(),
-            // 「セトリ項目」だけは対応する一覧が無いのでリンクを持たない。
-            href: (with_links && label != "セトリ項目").then(|| href.to_string()),
-        })
-        .collect()
+    tiles
+}
+
+/// 一覧以外の入口 (検索・このサイトについて)。ヘッダ / フッタが描く。
+pub fn utility_nav() -> Vec<NavLink> {
+    vec![NavLink::new("検索", "/search/"), NavLink::new("このサイトについて", "/about/")]
 }
 
 /// トップページ。
@@ -1043,17 +1103,6 @@ pub fn home(ctx: &Ctx, upcoming: &[EventListItem], counts: Counts) -> HomePage {
             .filter_map(|&i| brand_list_item(ctx, &ctx.snap.brands[i as usize].id))
             .collect(),
         app: content::app_links(),
-        section_links: vec![
-            plain_nav("今後のライブ", "/events/upcoming/", Some(upcoming.len() as u32)),
-            plain_nav("開催済み", "/events/past/", None),
-            plain_nav("楽曲", "/songs/", Some(counts.songs)),
-            plain_nav("アイドル", "/idols/", Some(counts.idols)),
-            plain_nav("ユニット", "/units/", Some(counts.units)),
-            plain_nav("会場", "/venues/", Some(counts.venues)),
-            plain_nav("ブランド", "/brands/", Some(counts.brands)),
-            plain_nav("検索", "/search/", None),
-            plain_nav("このサイトについて", "/about/", None),
-        ],
         seo: ctx.seo(
             content::SITE_NAME,
             content::SITE_TAGLINE,
@@ -1065,13 +1114,27 @@ pub fn home(ctx: &Ctx, upcoming: &[EventListItem], counts: Counts) -> HomePage {
     }
 }
 
-/// トップの入口リンク。件数が意味を持たないもの (検索・About) は数字を出さない。
-fn plain_nav(label: &str, path: &str, count: Option<u32>) -> NavLink {
-    let link = NavLink::new(label, path);
-    match count {
-        Some(n) => link.with_count(n),
-        None => link,
+/// サイト共通ナビ (ヘッダ / フッタ)。
+///
+/// お題は焼き込んだ集計が 1 件も無いとページごと出ない (`emit::run`) ので、
+/// その判断を知っている側がリンクの有無も決める。TS に手書きの並びを
+/// 持たせると、条件を知らないままリンク切れを出す。
+pub fn primary_nav(with_polls: bool) -> Vec<NavLink> {
+    let mut nav: Vec<NavLink> = [
+        SiteList::Events,
+        SiteList::Songs,
+        SiteList::Idols,
+        SiteList::Units,
+        SiteList::Venues,
+        SiteList::Brands,
+    ]
+    .into_iter()
+    .map(|list| NavLink::new(list.label(), list.path()))
+    .collect();
+    if with_polls {
+        nav.push(NavLink::new("お題", "/polls/"));
     }
+    nav
 }
 
 pub fn about(ctx: &Ctx, counts: Counts) -> AboutPage {
@@ -1129,11 +1192,3 @@ pub fn drop_uniform_kind_labels(items: &mut [EventListItem]) {
     }
 }
 
-/// 会場ページで使う公演要約 (`places.rs` から呼ぶ用の再輸出)。
-pub use super::events::show_summary as venue_show_summary;
-
-/// 公演要約を作るときに `detail::ShowRecord` が要るので、その取得口。
-pub fn show_record(ctx: &Ctx, show_id: &str) -> Option<ShowSummary> {
-    let record = detail::show_record(ctx.snap, show_id)?;
-    show_summary(ctx, &record, true)
-}

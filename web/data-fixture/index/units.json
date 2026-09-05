@@ -12,8 +12,7 @@
         "sub": "ミリオンライブ!",
         "path": "/units/unit_sample/",
         "themeKey": "brand:ml",
-        "artworkUrl": null,
-        "monogram": "サ"
+        "artworkUrl": null
       },
       "brand": {
         "kind": "brand",
@@ -22,8 +21,7 @@
         "sub": "ML",
         "path": "/brands/ml/",
         "themeKey": "brand:ml",
-        "artworkUrl": null,
-        "monogram": "M"
+        "artworkUrl": null
       },
       "isPermanent": true,
       "memberCount": 2,
@@ -37,8 +35,7 @@
         "sub": null,
         "path": "/units/unit_empty/",
         "themeKey": "neutral",
-        "artworkUrl": null,
-        "monogram": "か"
+        "artworkUrl": null
       },
       "brand": null,
       "isPermanent": false,
@@ -66,8 +63,8 @@
   "seo": {
     "title": "ユニット | アイドルライブDB",
     "description": "ユニットの一覧。",
-    "canonical": "https://imas-live-web.tokata3011.workers.dev/units/",
-    "ogImage": "https://imas-live-web.tokata3011.workers.dev/og/default.png",
+    "canonical": "https://idollivedb.fugalabs.uk/units/",
+    "ogImage": "https://idollivedb.fugalabs.uk/og/default.png",
     "robots": "index,follow",
     "jsonLd": {
       "@context": "https://schema.org",
@@ -75,14 +72,14 @@
         {
           "@type": "WebPage",
           "name": "ユニット",
-          "url": "https://imas-live-web.tokata3011.workers.dev/units/"
+          "url": "https://idollivedb.fugalabs.uk/units/"
         },
         {
           "@type": "BreadcrumbList",
           "itemListElement": [
             {
               "@type": "ListItem",
-              "item": "https://imas-live-web.tokata3011.workers.dev/",
+              "item": "https://idollivedb.fugalabs.uk/",
               "name": "ホーム",
               "position": 1
             }

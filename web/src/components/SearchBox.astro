@@ -1,0 +1,42 @@
+---
+/**
+ * 検索窓。
+ *
+ * トップでは**素の GET フォーム** (`/search/?q=…` へ飛ぶだけ。JS 無し)。
+ * `/search/` では検索の島が `data-search-form` を見つけて横取りし、送信せずに
+ * その場で結果を描く (`island` を立てる)。マークアップは 1 つ。
+ */
+interface Props {
+  island?: boolean;
+  placeholder?: string;
+}
+const { island = false, placeholder = "曲名・アイドル・ライブ・会場" } = Astro.props;
+---
+
+<form
+  class:list={["search-box", island && "search-box--island"]}
+  action="/search/"
+  method="get"
+  role="search"
+  data-search-form={island ? "" : undefined}
+>
+  <label class="search-box__field">
+    <span class="u-visually-hidden">検索語</span>
+    <span class="search-box__glyph" aria-hidden="true">⌕</span>
+    <input
+      class="search-box__input"
+      name="q"
+      type="search"
+      placeholder={placeholder}
+      autocomplete="off"
+      autocapitalize="off"
+      spellcheck="false"
+      enterkeyhint="search"
+      data-search-input={island ? "" : undefined}
+      aria-busy={island ? "true" : undefined}
+      aria-describedby={island ? "search-status" : undefined}
+      aria-controls={island ? "search-results" : undefined}
+    />
+  </label>
+  <button class="search-box__btn" type="submit">検索</button>
+</form>

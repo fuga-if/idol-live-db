@@ -2,7 +2,26 @@
  * components.css — src/components/*.astro の見た目。
  * 対応表は docs/ARCHITECTURE-web.md / PLAN §4.6 (アプリの Imas* 部品 ↔ Web)。
  * Web は表示専用なので、トグル・削除・選択などの状態は一切持たない。
+ *
+ * 情報階層の約束 (全ページ共通):
+ *   1. 見出し   … hero__title (ページに 1 つ) > section__title > row__title
+ *   2. 行       … 左に「日付ブロック / ジャケ / 色」、中央に見出し + メタ、右に数と ›
+ *   3. メタ     … 文字の羅列ではなく、種類ごとに別の部品 (日付=badge / ブランド=chip / 会場=文字)
  * ========================================================================== */
+
+/* --- 薄い段落 (ヒーローの説明・注記・お題の説明・アプリ紹介) ------------------
+   「本文より一段薄く、読める幅で止める」段落は 1 種類。置き場ごとに別クラスを
+   作らない (同じ意味の段落が画面ごとに少しずつ違う色・幅で出る)。 */
+.lede {
+  color: var(--ds-ink2);
+  max-inline-size: 40em;
+}
+.lede--small {
+  font-size: var(--fs-footnote);
+}
+.lede--wide {
+  max-inline-size: 48em;
+}
 
 /* --- ListContainer (inset-grouped 風カード) -------------------------------- */
 .card {
@@ -10,6 +29,9 @@
   border-radius: var(--r-md);
   overflow: hidden;
   box-shadow: var(--ds-shadow1);
+  /* 行の中身をカードの幅で切り替える (狭いカードでは末尾の札を落とす)。
+     ビューポートでなくカードで測るのは、脇 (aside) の 20rem 幅でも同じ判断が効くように。 */
+  container-type: inline-size;
 }
 .card > * + * {
   border-top: 1px solid var(--ds-sep);
@@ -22,7 +44,12 @@
   content-visibility: auto;
 }
 .card > li {
-  contain-intrinsic-size: auto 56px;
+  contain-intrinsic-size: auto 64px;
+}
+/* 日付ブロック (3 段) を持つ行はひと回り高い。見積りが実寸より低いと、行が現れるたびに
+   スクロールバーが伸び縮みする。カード単位の判定なので行数ぶんのコストは掛からない。 */
+.card:has(.date-badge) > li {
+  contain-intrinsic-size: auto 80px;
 }
 .grid-tiles > li {
   contain-intrinsic-size: auto 150px;
@@ -41,10 +68,16 @@
   display: flex;
   align-items: baseline;
   gap: var(--sp3);
+  padding-inline: var(--sp1);
 }
 .section__title {
-  font-size: var(--fs-title3);
+  font-size: var(--fs-title2);
   font-weight: 700;
+  letter-spacing: -0.005em;
+}
+/* サイド (aside) のセクションは一段小さい。 */
+.detail-cols__aside .section__title {
+  font-size: var(--fs-callout);
 }
 .section__count {
   font-size: var(--fs-footnote);
@@ -59,9 +92,12 @@
   font-weight: 600;
   color: var(--ds-ink2);
   white-space: nowrap;
+  padding: 2px var(--sp3);
+  border-radius: var(--r-pill);
 }
 .section__more:hover {
   color: var(--ds-ink);
+  background: var(--ds-fill);
 }
 
 /* --- アイドルカラーの点 --------------------------------------------------
@@ -77,8 +113,19 @@
   background: var(--accent);
   flex: none;
 }
-.color-dot--lg {
-  --dot-size: 10px;
+/* ブランドの札の中の点 (行のメタは文字が小さいので、点も一段大きい方が目に付く)。 */
+.color-dot--md {
+  --dot-size: 8px;
+}
+/* 版権物ゼロなので絵は持てない。色の円を「顔」の大きさで置く (アイドルのタイル / 詳細のヒーロー)。 */
+.color-dot--avatar,
+.color-dot--hero {
+  --dot-size: 34px;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+.color-dot--hero {
+  --dot-size: 64px;
+  margin-top: var(--sp1);
 }
 .labeled-row__swatch {
   --dot-size: 16px;
@@ -94,6 +141,7 @@
   overflow: hidden;
   background: var(--accent);
   flex: none;
+  box-shadow: inset 0 0 0 0.5px rgb(0 0 0 / 0.08);
 }
 .artwork img {
   inline-size: 100%;
@@ -114,55 +162,167 @@
   overflow: hidden;
 }
 .artwork--sm {
-  --artwork-size: 44px;
+  --artwork-size: var(--artwork-sm);
 }
 .artwork--hero {
   --artwork-size: 160px;
+  box-shadow: var(--ds-shadow2);
+}
+@media (min-width: 44rem) {
+  .artwork--hero {
+    --artwork-size: 200px;
+  }
 }
 
-/* --- LeadRow (ImasLeadRow + ImasLeadBar + ImasRowChevron) ------------------ */
-.lead-row {
+/* --- DateBadge (日付ブロック) ---------------------------------------------
+   行の左端に置く。月日を大きく、曜日と年を小さく。値の分け方も曜日も Rust が決めた
+   `DateBadge` をそのまま置くだけで、ここでは文字列を切らない。 */
+.date-badge {
   display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-inline-size: 3.5rem;
+  padding: var(--sp2) var(--sp2);
+  border-radius: var(--r-sm);
+  background: var(--tint);
+  color: var(--ds-ink);
+  line-height: 1.1;
+  text-align: center;
+  flex: none;
+}
+.date-badge__md {
+  font-weight: 700;
+  font-size: 1.0625rem;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+.date-badge__wd {
+  font-size: var(--fs-caption2);
+  font-weight: 700;
+  color: var(--ds-ink2);
+  margin-top: 2px;
+}
+.date-badge__wd[data-weekday="日"] {
+  color: var(--ds-sunday);
+}
+.date-badge__wd[data-weekday="土"] {
+  color: var(--ds-saturday);
+}
+.date-badge__yr {
+  font-size: 0.625rem;
+  color: var(--ds-ink2);
+  margin-top: 3px;
+  letter-spacing: 0.03em;
+}
+/* 大きい版 (注目カード・ヒーロー)。 */
+.date-badge--lg {
+  min-inline-size: 5rem;
+  padding: var(--sp3) var(--sp3);
+  border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--ds-surface) 70%, transparent);
+}
+.date-badge--lg .date-badge__md {
+  font-size: 1.75rem;
+}
+.date-badge--lg .date-badge__wd {
+  font-size: var(--fs-caption);
+  margin-top: 3px;
+}
+.date-badge--lg .date-badge__yr {
+  font-size: var(--fs-caption2);
+}
+/* 期間の終端 (初日の隣に小さく添える)。 */
+.date-badge__until {
+  font-size: var(--fs-caption);
+  color: var(--ds-ink2);
+  white-space: nowrap;
+}
+
+/* --- Row (行の共通骨格) ---------------------------------------------------
+   [先頭: 日付ブロック / ジャケ / 色] [本体: 見出し + メタ] [末尾: 数 + ›]。
+   ライブ・公演・披露履歴・出演公演・ユニット・会場の行が全部これ。 */
+.row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--sp4);
-  padding: var(--sp3) var(--sp4);
+  padding: var(--sp4) var(--sp5);
   background: var(--ds-surface);
+  min-height: 64px;
 }
-a.lead-row:hover {
+a.row:hover {
   background: var(--ds-surface2);
 }
-.lead-row::before {
+/* 先頭に何も置かない行は、色のリードバーで所属を示す。 */
+.row--bar {
+  grid-template-columns: minmax(0, 1fr) auto;
+  position: relative;
+  padding-inline-start: calc(var(--sp5) + 6px);
+}
+.row--bar::before {
   content: "";
-  flex: none;
+  position: absolute;
+  inset-block: 14px;
+  inset-inline-start: var(--sp4);
   inline-size: 3px;
-  block-size: 36px;
   border-radius: 2px;
   background: var(--bar);
 }
-.lead-row__body {
+.row__lead {
+  display: flex;
+  align-items: center;
+  gap: var(--sp2);
+  flex: none;
+}
+.row__body {
   min-width: 0;
-  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: var(--sp1);
+  gap: 3px;
 }
-.lead-row__title {
+.row__title {
   font-size: var(--fs-subhead);
   font-weight: 600;
   line-height: var(--lh-snug);
+  color: var(--ds-ink);
 }
-.lead-row__sub {
+.row__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp1) var(--sp3);
   font-size: var(--fs-caption);
   color: var(--ds-ink2);
   line-height: var(--lh-snug);
 }
-.lead-row__trailing {
-  flex: none;
+.row__meta-item {
+  min-width: 0;
+}
+.row__trailing {
   display: flex;
   align-items: center;
   gap: var(--sp3);
   color: var(--ds-ink2);
   font-size: var(--fs-caption);
+  white-space: nowrap;
+  flex: none;
+}
+.row__count {
+  font-weight: 600;
+  font-size: var(--fs-footnote);
+  color: var(--ds-ink2);
+}
+.row__count b {
+  color: var(--ds-ink);
+  font-weight: 700;
+}
+/* 狭いカード (電話・脇) では末尾の種別札を落として見出しに幅を回す。
+   数 (曲数・回数) は残す — 行を選ぶ判断に要るのはそちら。 */
+@container (max-width: 30rem) {
+  .row__trailing .tag {
+    display: none;
+  }
 }
 .chevron {
   flex: none;
@@ -170,6 +330,87 @@ a.lead-row:hover {
   font-size: var(--fs-footnote);
   font-weight: 700;
   line-height: 1;
+}
+/* ブランドの小さな札 (メタ行の中)。色の点 + 短縮名。 */
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 700;
+  color: var(--ds-ink);
+  font-size: var(--fs-caption);
+  white-space: nowrap;
+}
+
+/* --- Feature (注目カード: トップの直近ライブ) -------------------------------
+   一覧の行と同じ材料 (日付・名前・ブランド・会場) を、1 件だけ大きく置く。
+   「並べる塊」と「見せる塊」を分けるための部品。 */
+.feature {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--sp5);
+  align-items: center;
+  padding: var(--sp5);
+  border-radius: var(--r-lg);
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--grad-from) 30%, transparent),
+      color-mix(in srgb, var(--grad-to) 10%, transparent)
+    ),
+    var(--hero-surface);
+  box-shadow: var(--ds-shadow1);
+  transition: box-shadow 160ms ease;
+}
+.feature:hover {
+  box-shadow: var(--ds-shadow2);
+}
+@media (min-width: 44rem) {
+  .feature {
+    padding: var(--sp6) var(--sp7);
+    gap: var(--sp7);
+  }
+}
+.feature__date {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp2);
+}
+.feature__body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp2);
+}
+.feature__kicker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp2) var(--sp3);
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  color: var(--chip-text);
+  letter-spacing: 0.02em;
+}
+.feature__title {
+  font-size: var(--fs-title3);
+  font-weight: 700;
+  line-height: var(--lh-snug);
+  letter-spacing: -0.005em;
+}
+@media (min-width: 44rem) {
+  .feature__title {
+    font-size: var(--fs-title2);
+  }
+}
+.feature__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp1) var(--sp4);
+  font-size: var(--fs-footnote);
+  color: var(--ds-ink2);
 }
 
 /* --- Chip (ImasChip) ------------------------------------------------------ */
@@ -202,7 +443,7 @@ a.lead-row:hover {
   color: var(--on-accent);
 }
 a.chip:hover {
-  filter: brightness(0.97);
+  filter: brightness(0.96);
 }
 /* チップの添字 (公演の日付・会場の都道府県)。本体より一段落として並べる。 */
 .chip__sub {
@@ -240,6 +481,24 @@ a.chip:hover {
 .tag--community.tag--official {
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tag-color, var(--accent)) 45%, transparent);
 }
+.tag--all {
+  background: var(--ds-fill);
+  color: var(--ds-ink2);
+}
+.tag--cover {
+  background: color-mix(in srgb, var(--ds-pick) 14%, transparent);
+  color: var(--ds-pick);
+}
+.tag--lead {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.tag--guest {
+  background: transparent;
+  color: var(--ds-ink2);
+  box-shadow: inset 0 0 0 1px var(--ds-ink3);
+}
+
 /* --- 歌詞 -----------------------------------------------------------------
    本文はサーバから配る HTML に入っていない (押されたときに 1 曲ぶんだけ取る)。
    ここでやるのは「選ばせない・印刷させない」だけで、判断は Rust 側にある。 */
@@ -268,7 +527,7 @@ a.chip:hover {
   -webkit-touch-callout: none;
 }
 .lyrics__line {
-  line-height: var(--lh-relaxed, 1.9);
+  line-height: var(--lh-relaxed);
 }
 .lyrics__line:empty::before {
   /* 空行 (間奏など) も行として高さを持たせる。 */
@@ -286,15 +545,27 @@ a.chip:hover {
   }
 }
 
-.polls__note {
-  margin-block-end: var(--sp5);
-}
+/* --- お題 / コミュニティ --------------------------------------------------- */
 .polls__meta {
   align-items: center;
   gap: var(--sp3);
   font-size: var(--fs-caption);
 }
-
+.poll {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp4);
+}
+.poll__head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp2);
+  padding-inline: var(--sp1);
+}
+.poll__title {
+  font-size: var(--fs-title3);
+  font-weight: 700;
+}
 .community-stats {
   display: flex;
   flex-wrap: wrap;
@@ -310,24 +581,6 @@ a.chip:hover {
   font-weight: 400;
   font-variant-numeric: tabular-nums;
   opacity: 0.7;
-}
-
-.tag--all {
-  background: var(--ds-fill);
-  color: var(--ds-ink2);
-}
-.tag--cover {
-  background: color-mix(in srgb, var(--ds-pick) 14%, transparent);
-  color: var(--ds-pick);
-}
-.tag--lead {
-  background: var(--accent);
-  color: var(--on-accent);
-}
-.tag--guest {
-  background: transparent;
-  color: var(--ds-ink2);
-  box-shadow: inset 0 0 0 1px var(--ds-ink3);
 }
 
 /* --- SegmentedLinks (ImasSegmented を「状態なしリンク集合」に翻訳) --------- */
@@ -347,7 +600,7 @@ a.chip:hover {
   display: none;
 }
 .segmented a {
-  padding: 5px 14px;
+  padding: 6px 14px;
   border-radius: var(--r-pill);
   font-size: var(--fs-footnote);
   font-weight: 600;
@@ -361,6 +614,12 @@ a.chip:hover {
   background: var(--ds-surface);
   color: var(--ds-ink);
   box-shadow: var(--ds-shadow1);
+}
+/* 選択中の札の中の件数。地の色が反転するので、文字色も地に合わせる (ink2 のままだと消える)。 */
+.segmented a[aria-current="page"] .u-dim,
+.link-chips a[aria-current="page"] .u-dim {
+  color: inherit;
+  opacity: 0.7;
 }
 
 /* 大量のリンク (年・ブランド・かな) はセグメントではなく折返しのチップ列にする */
@@ -381,10 +640,45 @@ a.chip:hover {
 }
 .link-chips a:hover {
   color: var(--ds-ink);
+  background: var(--tint-strong);
 }
 .link-chips a[aria-current="page"] {
   background: var(--ds-sys);
   color: var(--ds-on-sys);
+}
+
+/* --- 一覧ページの頭 (ListLayout) ------------------------------------------ */
+.list-head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp4);
+}
+.list-head__title {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--sp2) var(--sp4);
+}
+.list-head__title h1 {
+  font-size: var(--fs-title1);
+  letter-spacing: -0.01em;
+}
+@media (min-width: 44rem) {
+  .list-head__title h1 {
+    font-size: var(--fs-large);
+  }
+}
+.list-head__count {
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  font-size: var(--fs-subhead);
+  color: var(--ds-ink2);
+}
+.list-head__filters {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp3);
 }
 
 /* --- StatTile (ImasStatTile) ---------------------------------------------- */
@@ -401,6 +695,9 @@ a.chip:hover {
   border-radius: var(--r-md);
   background: var(--ds-surface);
   box-shadow: var(--ds-shadow1);
+}
+a.stat-tile:hover {
+  background: var(--ds-surface2);
 }
 .stat-tile__icon {
   inline-size: 30px;
@@ -433,6 +730,30 @@ a.chip:hover {
   color: var(--ds-ink2);
 }
 
+/* 数を横一列に並べる (ヒーローの下・ライブ詳細の頭)。タイルより軽い。 */
+.stat-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp3) var(--sp6);
+}
+.stat-strip__item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--sp2);
+  color: var(--ds-ink2);
+  font-size: var(--fs-footnote);
+  font-weight: 600;
+}
+a.stat-strip__item:hover {
+  color: var(--ds-ink);
+}
+.stat-strip__value {
+  font-weight: 700;
+  font-size: var(--fs-title3);
+  color: var(--ds-ink);
+  line-height: 1;
+}
+
 /* --- MetricBadge (ImasMetricBadge) ---------------------------------------- */
 .metric {
   display: inline-flex;
@@ -454,7 +775,7 @@ a.chip:hover {
   opacity: 0.85;
 }
 
-/* --- EntryCard (ImasEntryCard) -------------------------------------------- */
+/* --- EntryCard (ImasEntryCard: ブランドカード) ----------------------------- */
 .entry-grid {
   display: grid;
   /* 短縮名の錠剤 + 件数 4 つが 1 行に入る幅を下限にする。240px だと
@@ -465,6 +786,7 @@ a.chip:hover {
   align-items: stretch;
 }
 .entry-card {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 14px;
@@ -472,9 +794,20 @@ a.chip:hover {
   border-radius: var(--r-md);
   background: var(--ds-surface);
   box-shadow: var(--ds-shadow1);
+  overflow: hidden;
+}
+/* ブランド色の帯を左端に。カードを並べたときに色で見分けが付く。 */
+.entry-card::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  inline-size: 4px;
+  background: var(--accent);
 }
 .entry-card:hover {
   background: var(--ds-surface2);
+  box-shadow: var(--ds-shadow2);
 }
 /* 中身は短縮名 (`765AS` / `シャニマス`) で、最長 5 文字。
    **正方形に押し込めない。** 44px 角に入れていた頃は 7/9 が枠から溢れ、
@@ -503,13 +836,13 @@ a.chip:hover {
   gap: 3px;
 }
 .entry-card__title {
-  font-size: var(--fs-body);
+  font-size: var(--fs-callout);
   font-weight: 700;
 }
 /* 件数の羅列。区切り (・) でだけ折り返させる。既定のままだと
    `アイ / ドル 14` のように語の途中で切れる。 */
 .entry-card__preview {
-  font-size: var(--fs-footnote);
+  font-size: var(--fs-caption);
   color: var(--ds-ink2);
   word-break: keep-all;
 }
@@ -567,6 +900,8 @@ a.ranking-row:hover {
   color: var(--ds-ink2);
   flex: none;
   min-inline-size: 5.5em;
+  font-size: var(--fs-footnote);
+  padding-top: 1px;
 }
 .labeled-row__value {
   margin-inline-start: auto;
@@ -576,6 +911,9 @@ a.ranking-row:hover {
 .labeled-row__value--mono {
   font-family: var(--font-display);
   font-variant-numeric: tabular-nums;
+}
+a.labeled-row:hover {
+  background: var(--ds-surface2);
 }
 a.labeled-row .labeled-row__value {
   color: var(--accent);
@@ -593,6 +931,7 @@ a.labeled-row .labeled-row__value {
   flex-direction: column;
   gap: var(--sp3);
   align-items: center;
+  box-shadow: var(--ds-shadow1);
 }
 .empty__title {
   font-size: var(--fs-subhead);
@@ -612,16 +951,32 @@ a.labeled-row .labeled-row__value {
   background:
     linear-gradient(
       160deg,
-      color-mix(in srgb, var(--grad-from) 22%, transparent),
+      color-mix(in srgb, var(--grad-from) 26%, transparent),
       color-mix(in srgb, var(--grad-to) 8%, transparent)
     ),
     var(--hero-surface);
   border-radius: var(--r-xl);
-  padding: var(--sp7) var(--sp6);
+  padding: var(--sp6) var(--sp5);
   display: flex;
   gap: var(--sp6);
   align-items: flex-start;
   flex-wrap: wrap;
+  position: relative;
+  overflow: hidden;
+}
+/* 上辺にエンティティ色の細い線。ページの主が誰かを色で言う。 */
+.hero::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: 0;
+  block-size: 4px;
+  background: var(--accent);
+}
+@media (min-width: 44rem) {
+  .hero {
+    padding: var(--sp8) var(--sp8);
+  }
 }
 .hero__body {
   min-width: min(100%, 18rem);
@@ -639,10 +994,15 @@ a.labeled-row .labeled-row__value {
   color: var(--chip-text);
   font-family: var(--font-display);
 }
+.hero__eyebrow a:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
 .hero__title {
   font-size: clamp(1.5rem, 1.1rem + 2vw, var(--fs-title1));
   font-weight: 700;
-  letter-spacing: 0.002em;
+  letter-spacing: -0.005em;
+  line-height: 1.25;
 }
 .hero__kana {
   font-size: var(--fs-footnote);
@@ -654,6 +1014,129 @@ a.labeled-row .labeled-row__value {
   gap: var(--sp2);
   align-items: center;
   margin-top: var(--sp1);
+}
+.hero__date {
+  font-weight: 600;
+  font-size: var(--fs-subhead);
+  color: var(--ds-ink);
+}
+
+/* 事実の並び (日付・会場・開演 …)。ラベル + 値を横に流す。 */
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp3) var(--sp6);
+  margin-top: var(--sp2);
+}
+.facts__item {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.facts__label {
+  font-family: var(--font-display);
+  font-size: var(--fs-caption2);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--ds-ink2);
+  text-transform: uppercase;
+}
+.facts__value {
+  font-size: var(--fs-subhead);
+  font-weight: 600;
+}
+.facts__value a:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* トップのヒーロー: 名前を 1 回だけ大きく、検索窓、数の帯。 */
+.hero--home {
+  padding: var(--sp7) var(--sp5);
+}
+@media (min-width: 44rem) {
+  .hero--home {
+    padding: 56px var(--sp8) var(--sp8);
+  }
+}
+.hero--home .hero__body {
+  gap: var(--sp4);
+}
+.hero__title--display {
+  font-size: var(--fs-display);
+  letter-spacing: -0.015em;
+  line-height: 1.15;
+}
+
+/* 検索窓。トップは素の GET フォーム (JS 無し)、/search/ では島が横取りする。 */
+.search-box {
+  display: flex;
+  gap: var(--sp3);
+  align-items: stretch;
+  max-inline-size: 40rem;
+  inline-size: 100%;
+}
+.search-box__field {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--sp3);
+  padding-inline: var(--sp5);
+  border-radius: var(--r-pill);
+  border: 1px solid var(--ds-sep);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow1);
+}
+.search-box__field:focus-within {
+  border-color: var(--ds-ink3);
+  box-shadow: var(--ds-shadow2);
+}
+.search-box__glyph {
+  color: var(--ds-ink2);
+  font-size: 1.1rem;
+  line-height: 1;
+  flex: none;
+}
+.search-box__input {
+  flex: 1;
+  min-width: 0;
+  padding: 13px 0;
+  border: 0;
+  background: transparent;
+  color: var(--ds-ink);
+  font: inherit;
+  font-size: var(--fs-callout);
+}
+.search-box__input:focus {
+  outline: none;
+}
+.search-box__input::placeholder {
+  color: var(--ds-ink2);
+}
+.search-box__input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+}
+.search-box__btn {
+  flex: none;
+  padding: 0 var(--sp6);
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--ds-sys);
+  color: var(--ds-on-sys);
+  font: inherit;
+  font-size: var(--fs-footnote);
+  font-weight: 700;
+  cursor: pointer;
+}
+.search-box__btn:hover {
+  filter: brightness(1.15);
+}
+/* /search/ 側は JS が横取りするので、送信ボタンは要らない (Enter で結果が出る)。 */
+.search-box--island .search-box__btn {
+  display: none;
 }
 
 /* --- Breadcrumbs ---------------------------------------------------------- */
@@ -667,10 +1150,27 @@ a.labeled-row .labeled-row__value {
   align-items: center;
   gap: var(--sp2);
 }
+.crumbs li {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  max-inline-size: 100%;
+}
 .crumbs li + li::before {
   content: "/";
   margin-inline-end: var(--sp2);
   color: var(--ds-ink3);
+}
+/* 段の中身はライブ名・公演名で長い。1 行に収め、余りは省略する
+   (全文は見出しと <title> が持つので、ここで折り返して 3 行にしない)。 */
+.crumbs a,
+.crumbs span {
+  display: inline-block;
+  max-inline-size: min(100%, 24rem);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
 }
 .crumbs a:hover {
   color: var(--ds-ink);
@@ -725,6 +1225,7 @@ a.labeled-row .labeled-row__value {
   font-weight: 700;
   background: var(--ds-sys);
   color: var(--ds-on-sys);
+  white-space: nowrap;
 }
 .btn:hover {
   filter: brightness(1.15);
@@ -732,6 +1233,51 @@ a.labeled-row .labeled-row__value {
 .btn--ghost {
   background: var(--ds-fill);
   color: var(--ds-ink);
+}
+.btn--ghost:hover {
+  filter: none;
+  background: var(--tint-strong);
+}
+
+/* アプリ紹介 (トップの末尾)。 */
+.cta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp5) var(--sp7);
+  padding: var(--sp6) var(--sp5);
+  border-radius: var(--r-lg);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow1);
+}
+@media (min-width: 44rem) {
+  .cta {
+    padding: var(--sp7) var(--sp8);
+  }
+}
+.cta__icon {
+  inline-size: 64px;
+  block-size: 64px;
+  border-radius: 16px;
+  flex: none;
+  box-shadow: var(--ds-shadow1);
+}
+.cta__body {
+  flex: 1 1 18rem;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp2);
+}
+.cta__title {
+  font-size: var(--fs-title3);
+  font-weight: 700;
+}
+.cta__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp3);
+  margin-top: var(--sp2);
 }
 
 /* --- セトリ行 ------------------------------------------------------------- */
@@ -741,8 +1287,11 @@ a.labeled-row .labeled-row__value {
 .setlist__row {
   display: flex;
   gap: var(--sp4);
-  padding: var(--sp4);
+  padding: var(--sp4) var(--sp5);
   background: var(--ds-surface);
+}
+.setlist__row:hover {
+  background: var(--ds-surface2);
 }
 .setlist__no {
   flex: none;
@@ -848,10 +1397,19 @@ a.labeled-row .labeled-row__value {
   --idol-show: inline;
 }
 
-/* --- グリッド (曲・アイドル・ユニット一覧) -------------------------------- */
+/* セトリの頭: 歌唱者の表示切替 + 公演の切替 (同じライブの他公演)。 */
+.setlist-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp3);
+}
+
+/* --- グリッド (アイドル・ユニット一覧) ------------------------------------ */
 .grid-tiles {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: var(--sp4);
 }
 .tile {
@@ -864,9 +1422,11 @@ a.labeled-row .labeled-row__value {
   background: var(--ds-surface);
   text-align: center;
   box-shadow: var(--ds-shadow1);
+  min-height: 100%;
 }
 .tile:hover {
   background: var(--ds-surface2);
+  box-shadow: var(--ds-shadow2);
 }
 .tile__name {
   font-size: var(--fs-footnote);
@@ -900,34 +1460,23 @@ a.labeled-row .labeled-row__value {
 }
 
 /* --- 検索 (/search/ の island) -------------------------------------------- */
-.search-form {
-  display: flex;
-  gap: var(--sp3);
-  align-items: center;
-}
-.search-input {
-  flex: 1;
-  min-width: 0;
-  padding: 12px var(--sp5);
-  border-radius: var(--r-pill);
-  border: 1px solid var(--ds-sep);
-  background: var(--ds-surface);
-  color: var(--ds-ink);
-  font: inherit;
-  font-size: var(--fs-callout);
-}
-.search-input::placeholder {
-  color: var(--ds-ink2);
-}
 .search-status {
   font-size: var(--fs-footnote);
   color: var(--ds-ink2);
   min-block-size: 1.4em;
 }
+.search-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp4);
+}
 .search-results {
   display: flex;
   flex-direction: column;
   gap: var(--sp6);
+}
+.search-results:empty {
+  display: none;
 }
 
 /* --- 印字用 --------------------------------------------------------------- */
@@ -936,7 +1485,9 @@ a.labeled-row .labeled-row__value {
   .site-footer,
   .open-in-app,
   .segmented,
-  .link-chips {
+  .link-chips,
+  .search-box,
+  .cta {
     display: none !important;
   }
 }
@@ -1059,6 +1610,12 @@ a.labeled-row .labeled-row__value {
 .song-table td {
   padding: 0;
 }
+/* ジャケの幅ぶん字下げして曲名の頭に揃える (`td` の余白 0 より詳細度を上げて勝つ)。 */
+.song-table td.song-table__subtitle {
+  color: var(--ds-ink2);
+  font-size: var(--fs-caption);
+  padding-inline-start: calc(var(--artwork-sm) + var(--sp4));
+}
 
 /* 3 列 (曲名 / 初出 / ライブ)。表の骨格に戻す。 */
 @container songtable (min-width: 32rem) {
@@ -1118,8 +1675,7 @@ a.labeled-row .labeled-row__value {
 
 /* --- 詳細ページの 2 段組 --------------------------------------------------
    長いものが 1 本 (披露履歴 / セットリスト / 持ち曲 / 公演) と、短い属性の塊。
-   幅があるときだけ属性を右に寄せる。判定はビューポートではなくコンテナで行う
-   (サイドバーの有無で本文の幅が 208px 変わるため)。
+   幅があるときだけ属性を右に寄せる。判定はビューポートではなくコンテナで行う。
 
    DOM の順は「属性 → 本体」で、1 段組のときの読む順に合わせてある。2 段組では
    grid の配置だけで右へ送るので、順序は入れ替えない。 */
@@ -1145,7 +1701,7 @@ a.labeled-row .labeled-row__value {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 20rem;
     align-items: start;
-    gap: var(--sp8) var(--sp7);
+    gap: var(--sp8) var(--sp8);
   }
   .detail-cols__aside {
     grid-column: 2;
@@ -1167,9 +1723,9 @@ a.labeled-row .labeled-row__value {
   flex-direction: column;
   gap: var(--sp4);
   padding: var(--sp5);
-  border: 1px solid var(--ds-sep);
   border-radius: var(--r-md);
   background: var(--ds-surface);
+  box-shadow: var(--ds-shadow1);
 }
 .song-filter[data-state="loading"] {
   opacity: 0.6;
@@ -1241,11 +1797,12 @@ a.labeled-row .labeled-row__value {
   display: flex;
   align-items: center;
   gap: var(--sp3);
-  margin-block-end: var(--sp4);
 }
 .perf-pref__label {
   font-size: var(--fs-caption);
   color: var(--ds-ink2);
   white-space: nowrap;
 }
-
+.perf-pref .song-filter__select {
+  width: auto;
+}

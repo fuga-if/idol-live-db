@@ -5,7 +5,6 @@ import ListFilterBar from "./ListFilterBar.astro";
 import ListContainer from "./ListContainer.astro";
 import RankingRow from "./RankingRow.astro";
 import EmptyState from "./EmptyState.astro";
-import { meta } from "../lib/data";
 import type { SongListPage } from "../lib/schema/SongListPage";
 import Count from "./Count.astro";
 
@@ -18,7 +17,6 @@ const { list } = Astro.props;
 
 <ListLayout
   seo={list.seo}
-  meta={meta()}
   title={list.title}
   total={list.total}
   themeKey={list.brand?.themeKey}

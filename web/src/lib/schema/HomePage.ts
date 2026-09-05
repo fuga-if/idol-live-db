@@ -2,7 +2,6 @@
 import type { AppLinks } from "./AppLinks";
 import type { BrandListItem } from "./BrandListItem";
 import type { EventListItem } from "./EventListItem";
-import type { NavLink } from "./NavLink";
 import type { SeoBlock } from "./SeoBlock";
 import type { ShowSummary } from "./ShowSummary";
 import type { StatTile } from "./StatTile";
@@ -30,8 +29,4 @@ recentShows: Array<ShowSummary>,
 /**
  * 件数タイル (ライブ / 公演 / 楽曲 / アイドル / ユニット / 会場)。各一覧への入口を持つ。
  */
-statTiles: Array<StatTile>, brands: Array<BrandListItem>, app: AppLinks, 
-/**
- * 「今後のライブ」「開催済み」等への入口。
- */
-sectionLinks: Array<NavLink>, seo: SeoBlock, };
+statTiles: Array<StatTile>, brands: Array<BrandListItem>, app: AppLinks, seo: SeoBlock, };

@@ -12,10 +12,34 @@
     "sub": "ML",
     "path": "/brands/ml/",
     "themeKey": "brand:ml",
-    "artworkUrl": null,
-    "monogram": "M"
+    "artworkUrl": null
   },
-  "songType": "other",
+  "community": {
+    "tags": [
+      {
+        "id": "tag_kawaii",
+        "name": "かわいい",
+        "count": 12,
+        "color": "#E900E2",
+        "isOfficial": false
+      }
+    ],
+    "favorites": 34,
+    "penlight": [
+      {
+        "key": "pink_white",
+        "count": 5
+      }
+    ]
+  },
+  "lyrics": {
+    "available": false,
+    "note": "歌詞はアプリ『アイドルライブDB』でご覧いただけます（アプリは JASRAC 許諾番号 J260943703 のもとで歌詞を配信しています）。本サイトでは歌詞を掲載していません。",
+    "licenseNumber": null,
+    "licenseNote": null,
+    "sourceUrl": null
+  },
+  "songTypeLabel": "カバー",
   "releaseDate": null,
   "durationDisplay": null,
   "credits": [],
@@ -44,8 +68,8 @@
   "seo": {
     "title": "ジャケットの無い曲 | アイドルライブDB",
     "description": "クレジット・原唱者・披露履歴。",
-    "canonical": "https://imas-live-web.tokata3011.workers.dev/songs/ml_no_artwork/",
-    "ogImage": "https://imas-live-web.tokata3011.workers.dev/og/default.png",
+    "canonical": "https://idollivedb.fugalabs.uk/songs/ml_no_artwork/",
+    "ogImage": "https://idollivedb.fugalabs.uk/og/default.png",
     "robots": "index,follow",
     "jsonLd": {
       "@context": "https://schema.org",
@@ -53,20 +77,20 @@
         {
           "@type": "WebPage",
           "name": "ジャケットの無い曲",
-          "url": "https://imas-live-web.tokata3011.workers.dev/songs/ml_no_artwork/"
+          "url": "https://idollivedb.fugalabs.uk/songs/ml_no_artwork/"
         },
         {
           "@type": "BreadcrumbList",
           "itemListElement": [
             {
               "@type": "ListItem",
-              "item": "https://imas-live-web.tokata3011.workers.dev/",
+              "item": "https://idollivedb.fugalabs.uk/",
               "name": "ホーム",
               "position": 1
             },
             {
               "@type": "ListItem",
-              "item": "https://imas-live-web.tokata3011.workers.dev/songs/",
+              "item": "https://idollivedb.fugalabs.uk/songs/",
               "name": "楽曲",
               "position": 2
             }
@@ -84,6 +108,5 @@
         "path": "/songs/"
       }
     ]
-  },
-  "lyricsNote": "歌詞はアプリ『アイドルライブDB』でご覧いただけます（アプリは JASRAC 許諾番号 J260943703 のもとで歌詞を配信しています）。本サイトでは歌詞を掲載していません。"
+  }
 }

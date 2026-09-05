@@ -1,11 +1,13 @@
 ---
-import LeadRow from "./LeadRow.astro";
-import type { ShowSummary } from "../lib/schema/ShowSummary";
+import DatedRow from "./DatedRow.astro";
 import Count from "./Count.astro";
+import type { ShowSummary } from "../lib/schema/ShowSummary";
 /**
  * 公演 1 件の行。
- * 副題は Rust が文脈ごとに組んだ `subtitle` をそのまま置く
- * (ライブ詳細では親ライブ名を出さない、といった出し分けも emit 側で決まっている)。
+ *
+ * 見出し (`title`: ライブの中では公演名、外ではライブ名) と副題の公演名 (`showLabel`)、
+ * 会場名を出すか (会場詳細では出さない) は **JSON を作る側が文脈ごとに決めてある**
+ * (`emit::events::ShowContext`)。ここは来た項目を置く場所を決めるだけ。
  */
 interface Props {
   show: ShowSummary;
@@ -14,15 +16,13 @@ const { show } = Astro.props;
 ---
 
 <li>
-  <LeadRow
-    title={show.ref.name}
-    subtitle={show.subtitle}
+  <DatedRow
+    badge={show.dateBadge}
+    title={show.title}
     href={show.ref.path}
     themeKey={show.ref.themeKey}
+    meta={[show.showLabel, show.venueLabel, show.hall, show.startTimeDisplay]}
   >
-    <span slot="trailing" class="u-row">
-      <time class="u-num" datetime={show.date}>{show.date}</time>
-      {show.setlistCount > 0 && <Count value={show.setlistCount} unit="曲" />}
-    </span>
-  </LeadRow>
+    {show.setlistCount > 0 && <Count slot="trailing" strong value={show.setlistCount} unit="曲" />}
+  </DatedRow>
 </li>

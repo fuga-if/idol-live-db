@@ -1,7 +1,6 @@
 ---
 import ListLayout from "../layouts/ListLayout.astro";
 import YearGroups from "./YearGroups.astro";
-import { meta } from "../lib/data";
 import type { EventListPage } from "../lib/schema/EventListPage";
 
 /**
@@ -20,7 +19,6 @@ const useYearLinks = list.kind === "past" || list.kind === "pastYear";
 
 <ListLayout
   seo={list.seo}
-  meta={meta()}
   title={list.title}
   total={list.total}
   scopeLinks={list.scopeLinks}

@@ -4,7 +4,6 @@ import Breadcrumbs from "../components/Breadcrumbs.astro";
 import SegmentedLinks from "../components/SegmentedLinks.astro";
 import type { NavLink } from "../lib/schema/NavLink";
 import type { SeoBlock } from "../lib/schema/SeoBlock";
-import type { SiteMeta } from "../lib/schema/SiteMeta";
 import Count from "../components/Count.astro";
 
 /**
@@ -14,7 +13,6 @@ import Count from "../components/Count.astro";
  */
 interface Props {
   seo: SeoBlock;
-  meta: SiteMeta;
   title: string;
   total?: number | null;
   themeKey?: string;
@@ -26,7 +24,6 @@ interface Props {
 }
 const {
   seo,
-  meta,
   title,
   total,
   themeKey,
@@ -36,21 +33,30 @@ const {
   filterLabel = "絞り込み",
   wide = false,
 } = Astro.props;
+const hasFilters = scopeLinks.length > 0 || filterLinks.length > 0;
 ---
 
-<BaseLayout seo={seo} meta={meta} themeKey={themeKey} wide={wide}>
-  <div class="u-stack">
+<BaseLayout seo={seo} themeKey={themeKey} wide={wide}>
+  <div class="list-head">
     <Breadcrumbs crumbs={seo.breadcrumbs} />
-    <h1 class="hero__title">{title}</h1>
+    <div class="list-head__title">
+      <h1>{title}</h1>
+      {
+        total !== undefined && total !== null && (
+          <span class="list-head__count">
+            <Count value={total} /> 件
+          </span>
+        )
+      }
+    </div>
     {
-      total !== undefined && total !== null && (
-        <p class="u-dim">
-          <Count value={total} /> 件
-        </p>
+      hasFilters && (
+        <div class="list-head__filters">
+          <SegmentedLinks label={scopeLabel} links={scopeLinks} />
+          <SegmentedLinks label={filterLabel} links={filterLinks} variant="chips" />
+        </div>
       )
     }
-    <SegmentedLinks label={scopeLabel} links={scopeLinks} />
-    <SegmentedLinks label={filterLabel} links={filterLinks} variant="chips" />
   </div>
   <slot />
 </BaseLayout>

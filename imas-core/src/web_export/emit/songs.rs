@@ -7,7 +7,6 @@
 use super::context::{distinguishing_show_name, duration_display, join_parts, Ctx};
 use crate::domain::credit_names::split_credits;
 use crate::domain::performance_stats;
-use crate::domain::short_year_month::short_year_month;
 use crate::domain::song_detail_queries as detail;
 use crate::web_export::content;
 use crate::web_export::dto::*;
@@ -101,7 +100,11 @@ pub fn song_page(ctx: &Ctx, song_id: &str) -> Option<SongPage> {
         },
         theme_key: ctx.brand_theme(brand_id.as_deref()),
         brand: brand_id.as_deref().and_then(|b| ctx.brand_ref(b)),
-        song_type: record.song_type.clone(),
+        song_type_label: record
+            .song_type
+            .as_deref()
+            .and_then(content::song_type_label)
+            .map(str::to_string),
         release_date: record.release_date.clone(),
         duration_display: duration_display.clone(),
         credits,
@@ -134,7 +137,7 @@ pub fn song_page(ctx: &Ctx, song_id: &str) -> Option<SongPage> {
                 Some(PerformanceRow {
                     show: ctx.show_ref(&h.show_id)?,
                     event: ctx.event_ref(&h.event_id)?,
-                    short_date: short_year_month(&h.date),
+                    date_badge: DateBadge::from_ymd(&h.date),
                     date: h.date,
                     venue: h.venue,
                     number,

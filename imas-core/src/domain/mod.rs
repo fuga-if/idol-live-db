@@ -37,6 +37,7 @@ pub mod setlist_diff;
 pub mod short_year_month;
 pub mod song_list_filtering;
 pub mod display_join;
+pub mod date_display;
 pub mod kana_row;
 pub mod sha256;
 pub mod show_naming;

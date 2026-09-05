@@ -1,11 +1,11 @@
 ---
 import DetailLayout from "../../layouts/DetailLayout.astro";
 import Section from "../../components/Section.astro";
-import SegmentedLinks from "../../components/SegmentedLinks.astro";
+import StatStrip from "../../components/StatStrip.astro";
 import IdolTile from "../../components/IdolTile.astro";
 import RefList from "../../components/RefList.astro";
 import EmptyState from "../../components/EmptyState.astro";
-import { meta, page, pathsFor } from "../../lib/data";
+import { page, pathsFor } from "../../lib/data";
 import type { BrandPage } from "../../lib/schema/BrandPage";
 
 export const getStaticPaths = () => pathsFor("brand", "brandId");
@@ -13,15 +13,13 @@ export const getStaticPaths = () => pathsFor("brand", "brandId");
 const brand = page<BrandPage>(Astro.props.data);
 ---
 
-<DetailLayout seo={brand.seo} meta={meta()} themeKey={brand.themeKey}>
+<DetailLayout seo={brand.seo} themeKey={brand.themeKey}>
   <section class="hero" slot="hero" aria-labelledby="brand-title">
     <div class="hero__body">
       {brand.shortName && <p class="hero__eyebrow">{brand.shortName}</p>}
       <h1 class="hero__title" id="brand-title">{brand.name}</h1>
-      {/* `statTiles` と `sectionLinks` はこのページでは同じ 4 つの数を持つ
-          (ライブ / 楽曲 / アイドル / ユニット の件数)。タイルは href を持たないので、
-          リンク付きの `sectionLinks` だけを出す。同じ数字を 2 度見せない。 */}
-      <SegmentedLinks label="このブランドの一覧" links={brand.sectionLinks} variant="chips" />
+      {/* 件数つきの入口 (ライブ / 楽曲 / アイドル / ユニット)。押せる数の帯として置く。 */}
+      <StatStrip items={brand.statTiles} label="このブランドの一覧" />
     </div>
   </section>
 
@@ -42,7 +40,7 @@ const brand = page<BrandPage>(Astro.props.data);
   {
     brand.recentEvents.length > 0 && (
       <Section id="brand-events" title="最近のライブ">
-        <RefList refs={brand.recentEvents} variant="neutral" label="最近のライブ" />
+        <RefList refs={brand.recentEvents} variant="neutral" withSub label="最近のライブ" />
       </Section>
     )
   }

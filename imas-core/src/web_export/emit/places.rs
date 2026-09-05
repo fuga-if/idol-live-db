@@ -207,28 +207,23 @@ pub fn brand_counts_table(snap: &Snapshot) -> BTreeMap<String, BrandCounts> {
     table
 }
 
-/// ブランドページの入口リンク。件数付きで、そのブランドの各一覧へ飛ばす。
+/// ブランドページの数の帯。件数付きで、そのブランドの各一覧へ飛ばす。
 ///
 /// **一覧を作っていない組み合わせは並べない。**どの組み合わせが存在するかの判断は
 /// [`Ctx::brand_list_path`] が 1 箇所で持つ (かつて 6 箇所に散っていて、パンくずだけ
-/// 判断を持たずに存在しないページへリンクしていた)。
-fn brand_section_links(ctx: &Ctx, brand_id: &str, counts: BrandCounts) -> Vec<NavLink> {
-    let theme_key = ctx.brand_theme(Some(brand_id));
+/// 判断を持たずに存在しないページへリンクしていた)。記号と名前はサイト全体の一覧と同じ。
+fn brand_stat_tiles(ctx: &Ctx, brand_id: &str, counts: BrandCounts) -> Vec<StatTile> {
+    use super::lists::SiteList;
     [
-        ("ライブ", "events", counts.events),
-        ("楽曲", "songs", counts.songs),
-        ("アイドル", "idols", counts.idols),
-        ("ユニット", "units", counts.units),
+        (SiteList::Events, counts.events),
+        (SiteList::Songs, counts.songs),
+        (SiteList::Idols, counts.idols),
+        (SiteList::Units, counts.units),
     ]
     .into_iter()
-    .filter_map(|(label, collection, count)| {
-        Some(NavLink {
-            label: label.to_string(),
-            path: ctx.brand_list_path(collection, brand_id)?,
-            current: false,
-            theme_key: Some(theme_key.clone()),
-            count: Some(count),
-        })
+    .filter_map(|(list, count)| {
+        let path = ctx.brand_list_path(list.brand_collection()?, brand_id)?;
+        Some(list.tile(count, Some(path)))
     })
     .collect()
 }
@@ -274,11 +269,12 @@ pub fn brand_page(ctx: &Ctx, brand_id: &str) -> Option<BrandPage> {
         path: path.clone(),
         name: brand.name.clone(),
         short_name: Some(brand.short_name.clone()),
-        section_links: brand_section_links(ctx, brand_id, counts),
+        stat_tiles: brand_stat_tiles(ctx, brand_id, counts),
         theme_key,
+        // 並ぶ全員がこのブランドなので、補助表記 (ブランド名) は落とす。
         idols: idol_queries::idol_list(ctx.snap, Some(brand_id))
             .iter()
-            .filter_map(|i| ctx.idol_ref(&i.id))
+            .filter_map(|i| ctx.idol_ref(&i.id).map(Ref::without_sub))
             .collect(),
         units: unit_queries::all_units(ctx.snap)
             .iter()

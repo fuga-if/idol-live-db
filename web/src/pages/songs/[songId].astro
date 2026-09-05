@@ -9,24 +9,31 @@ import RefList from "../../components/RefList.astro";
 import ListContainer from "../../components/ListContainer.astro";
 import LabeledRow from "../../components/LabeledRow.astro";
 import RankingRow from "../../components/RankingRow.astro";
-import LeadRow from "../../components/LeadRow.astro";
-import EmptyState from "../../components/EmptyState.astro";
-import { meta, page, pathsFor } from "../../lib/data";
-import type { SongPage } from "../../lib/schema/SongPage";
+import DatedRow from "../../components/DatedRow.astro";
 import Count from "../../components/Count.astro";
+import EmptyState from "../../components/EmptyState.astro";
+import { page, pathsFor } from "../../lib/data";
+import type { SongPage } from "../../lib/schema/SongPage";
 
 export const getStaticPaths = () => pathsFor("song", "songId");
 
 const song = page<SongPage>(Astro.props.data);
 ---
 
-<DetailLayout seo={song.seo} meta={meta()} themeKey={song.themeKey} app={song.app}>
+<DetailLayout seo={song.seo} themeKey={song.themeKey} app={song.app}>
   <section class="hero" slot="hero" aria-labelledby="song-title">
     <Artwork title={song.title} artworkUrl={song.artworkUrl} size="hero" />
     <div class="hero__body">
-      {song.songType && <p class="hero__eyebrow">{song.songType}</p>}
+      {song.songTypeLabel && <p class="hero__eyebrow">{song.songTypeLabel}</p>}
       <h1 class="hero__title" id="song-title">{song.title}</h1>
       {song.titleKana && <p class="hero__kana">{song.titleKana}</p>}
+      {
+        song.originalArtists.length > 0 && (
+          <div class="u-stack u-stack--tight">
+            <RefList refs={song.originalArtists} label="原唱者" />
+          </div>
+        )
+      }
       <div class="hero__meta">
         {song.brand && <Chip text={song.brand.name} href={song.brand.path} variant="themed" themeKey={song.brand.themeKey} />}
         {song.unit && <Chip text={song.unit.name} href={song.unit.path} variant="themed" themeKey={song.unit.themeKey} />}
@@ -42,14 +49,6 @@ const song = page<SongPage>(Astro.props.data);
       }
     </div>
   </section>
-
-  {
-    song.originalArtists.length > 0 && (
-      <Section slot="aside" id="song-original" title="原唱者">
-        <RefList refs={song.originalArtists} label="原唱者" />
-      </Section>
-    )
-  }
 
   {
     song.factRows.length > 0 && (
@@ -96,6 +95,14 @@ const song = page<SongPage>(Astro.props.data);
     )
   }
 
+  {
+    song.related.length > 0 && (
+      <Section slot="aside" id="song-related" title="関連する曲">
+        <RefList refs={song.related} variant="neutral" label="関連する曲" />
+      </Section>
+    )
+  }
+
   <Section id="song-history" title="披露履歴" count={song.performanceCount}>
     {
       song.performanceHistory.length === 0 ? (
@@ -104,17 +111,15 @@ const song = page<SongPage>(Astro.props.data);
         <ListContainer as="ol">
           {song.performanceHistory.map((h) => (
             <li>
-              <LeadRow
+              <DatedRow
+                badge={h.dateBadge}
                 title={h.event.name}
-                subtitle={h.placeDisplay}
                 href={h.show.path}
                 themeKey={h.show.themeKey}
+                meta={[h.placeDisplay]}
               >
-                <span slot="trailing" class="u-row">
-                  <Count value={h.number} unit="曲目" />
-                  <time class="u-num" datetime={h.date}>{h.date}</time>
-                </span>
-              </LeadRow>
+                {h.number > 0 && <Count slot="trailing" strong value={h.number} unit="曲目" />}
+              </DatedRow>
             </li>
           ))}
         </ListContainer>
@@ -162,14 +167,6 @@ const song = page<SongPage>(Astro.props.data);
             </li>
           ))}
         </ListContainer>
-      </Section>
-    )
-  }
-
-  {
-    song.related.length > 0 && (
-      <Section id="song-related" title="関連する曲">
-        <RefList refs={song.related} variant="neutral" label="関連する曲" />
       </Section>
     )
   }

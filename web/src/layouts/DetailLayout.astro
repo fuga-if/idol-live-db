@@ -4,7 +4,6 @@ import Breadcrumbs from "../components/Breadcrumbs.astro";
 import OpenInApp from "../components/OpenInApp.astro";
 import type { AppOpen } from "../lib/schema/AppOpen";
 import type { SeoBlock } from "../lib/schema/SeoBlock";
-import type { SiteMeta } from "../lib/schema/SiteMeta";
 
 /**
  * 詳細ページ (ライブ / 公演 / 楽曲 / アイドル / ユニット / 会場 / ブランド) の枠。
@@ -20,24 +19,24 @@ import type { SiteMeta } from "../lib/schema/SiteMeta";
  */
 interface Props {
   seo: SeoBlock;
-  meta: SiteMeta;
   themeKey?: string;
   app?: AppOpen | null;
   /** キャラライブか。歌唱者の表示モード「公演に合わせる」が見る。 */
   isCharacterLive?: boolean;
 }
-const { seo, meta, themeKey, app, isCharacterLive } = Astro.props;
+const { seo, themeKey, app, isCharacterLive } = Astro.props;
 ---
 
 <BaseLayout
   seo={seo}
-  meta={meta}
   themeKey={themeKey}
   wide={Astro.slots.has("aside")}
   isCharacterLive={isCharacterLive}
 >
-  <Breadcrumbs crumbs={seo.breadcrumbs} />
-  <slot name="hero" />
+  <div class="u-stack">
+    <Breadcrumbs crumbs={seo.breadcrumbs} />
+    <slot name="hero" />
+  </div>
   {
     Astro.slots.has("aside") ? (
       <div class="detail-shell">
