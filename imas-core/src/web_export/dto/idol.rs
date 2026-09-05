@@ -11,8 +11,6 @@ web_dto! {
         pub name: String,
         pub name_kana: Option<String>,
         pub theme_key: String,
-        /// 表示名の先頭 1 文字 (アプリの `ImasAvatar` と同じ)。画像は載せない。
-        pub monogram: String,
         /// 主ブランド。
         pub brand: Option<Ref>,
         /// `idol_brands` (primary 先頭)。掛け持ちのアイドルが居る。

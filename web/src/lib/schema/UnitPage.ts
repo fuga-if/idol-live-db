@@ -10,7 +10,7 @@ export type UnitPage = { schemaVersion: number, id: string, path: string, name: 
 /**
  * 別名 (`units.name_alt`)。
  */
-nameAlt: string | null, themeKey: string, monogram: string, 
+nameAlt: string | null, themeKey: string, 
 /**
  * 常設ユニットか (false = ライブ限定などの期間限定)。
  */

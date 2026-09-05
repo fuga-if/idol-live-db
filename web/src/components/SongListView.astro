@@ -53,10 +53,9 @@ const { list } = Astro.props;
           return (
             <li id={section ? `kana-${i}` : undefined}>
               <RankingRow
-                lead="artwork"
+                artwork
                 title={item.ref.name}
                 sub={item.subtitle}
-                monogram={item.ref.monogram}
                 artworkUrl={item.ref.artworkUrl}
                 href={item.ref.path}
                 themeKey={item.ref.themeKey}

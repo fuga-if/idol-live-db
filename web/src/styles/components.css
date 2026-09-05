@@ -64,33 +64,6 @@
   color: var(--ds-ink);
 }
 
-/* --- Avatar (ImasAvatar: 淡ティント面 + 細リング + アクセント頭文字) -------- */
-.avatar {
-  display: inline-grid;
-  place-items: center;
-  inline-size: var(--avatar-size, 40px);
-  block-size: var(--avatar-size, 40px);
-  border-radius: var(--r-pill);
-  background: var(--tint);
-  color: var(--accent);
-  box-shadow: inset 0 0 0 1.5px var(--ring);
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: calc(var(--avatar-size, 40px) * 0.4);
-  line-height: 1;
-  flex: none;
-  user-select: none;
-}
-.avatar--sm {
-  --avatar-size: 30px;
-}
-.avatar--lg {
-  --avatar-size: 64px;
-}
-.avatar--xl {
-  --avatar-size: 88px;
-}
-
 /* --- Artwork (ImasArtwork: 画像 or ソリッド面 + 曲名) ---------------------- */
 .artwork {
   position: relative;

@@ -266,7 +266,6 @@ impl<'a> Ctx<'a> {
         sub: Option<String>,
         theme_key: String,
     ) -> Ref {
-        let monogram = monogram_of(kind, name, sub.as_deref());
         Ref {
             kind,
             id: id.to_string(),
@@ -275,10 +274,6 @@ impl<'a> Ctx<'a> {
             path: self.path(kind, id),
             theme_key,
             artwork_url: None,
-            // アプリの ImasAvatar と同じ 1 文字。画像を載せないのでこれが唯一の「顔」。
-            // ブランドだけは表示名ではなく短縮名から取る (正式名は長すぎて先頭 1 文字が
-            // 「ア」ばかりになり、見分けが付かない)。
-            monogram,
         }
     }
 
@@ -489,19 +484,6 @@ pub fn json_ld_graph(entity: serde_json::Value, breadcrumbs: &[Crumb]) -> serde_
         }));
     }
     serde_json::json!({ "@context": "https://schema.org", "@graph": graph })
-}
-
-/// アバター代わりの 1 文字。
-///
-/// ブランドだけは表示名ではなく短縮名から取る (正式名は「アイドルマスター …」で
-/// 揃っていて、先頭 1 文字が全部「ア」になり見分けが付かない)。名前が空の行は
-/// 実データに無いが、その場合だけ空文字になる。
-pub fn monogram_of(kind: RefKind, name: &str, sub: Option<&str>) -> String {
-    let source = match kind {
-        RefKind::Brand => sub.filter(|s| !s.is_empty()).unwrap_or(name),
-        _ => name,
-    };
-    source.chars().next().map(|c| c.to_string()).unwrap_or_default()
 }
 
 /// 区切り規則と公演名の重なり落としは domain が持つ。ここは呼び出し側のための再輸出で、

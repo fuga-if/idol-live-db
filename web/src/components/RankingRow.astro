@@ -1,17 +1,19 @@
 ---
 import Artwork from "./Artwork.astro";
-import Avatar from "./Avatar.astro";
 import MetricBadge from "./MetricBadge.astro";
 /**
- * ImasRankingRow の Web 版 — 順位 + 先頭ビジュアル + 名前 + 数値。
+ * ImasRankingRow の Web 版 — 順位 + (曲ならジャケ写) + 名前 + 数値。
  * `rank` と `metric` は省略可 (順位を振らない一覧・回数を持たない行でも同じ形を使う)。
+ *
+ * アイドル/ユニットの行に絵は付かない。版権物を持てないので出せるのは頭文字だけで、
+ * それは名前の隣に置いても何も足さない。
  */
 interface Props {
   rank?: number;
-  lead: "artwork" | "avatar";
+  /** 先頭にジャケ写を出すか。曲の行だけ true。 */
+  artwork?: boolean;
   title: string;
   sub?: string | null;
-  monogram: string;
   artworkUrl?: string | null;
   metric?: number | string | null;
   unit?: string;
@@ -20,10 +22,9 @@ interface Props {
 }
 const {
   rank,
-  lead,
+  artwork = false,
   title,
   sub,
-  monogram,
   artworkUrl,
   metric,
   unit = "回",
@@ -38,13 +39,7 @@ const {
   href={href}
 >
   {rank !== undefined && <span class="ranking-row__rank">{rank}</span>}
-  {
-    lead === "artwork" ? (
-      <Artwork title={title} artworkUrl={artworkUrl} size="sm" />
-    ) : (
-      <Avatar monogram={monogram} />
-    )
-  }
+  {artwork && <Artwork title={title} artworkUrl={artworkUrl} size="sm" />}
   <span class="ranking-row__body">
     <span class="ranking-row__title u-clamp1 u-underline-hover">{title}</span>
     {sub && <span class="ranking-row__sub u-clamp1">{sub}</span>}

@@ -1,0 +1,10 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "web-preview",
+      "url": "http://localhost:4321",
+      "port": 4321
+    }
+  ]
+}

@@ -128,10 +128,8 @@ const song = page<SongPage>(Astro.props.data);
             <li>
               <RankingRow
                 rank={i + 1}
-                lead="avatar"
                 title={s.idol.name}
                 sub={s.idol.sub}
-                monogram={s.idol.monogram}
                 metric={s.times}
                 href={s.idol.path}
                 themeKey={s.idol.themeKey}
@@ -151,10 +149,9 @@ const song = page<SongPage>(Astro.props.data);
             <li>
               <RankingRow
                 rank={i + 1}
-                lead="artwork"
+                artwork
                 title={c.song.name}
                 sub={c.song.sub}
-                monogram={c.song.monogram}
                 artworkUrl={c.song.artworkUrl}
                 metric={c.together}
                 href={c.song.path}

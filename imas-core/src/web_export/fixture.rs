@@ -24,7 +24,7 @@
 
 use super::content::{self, absolute};
 use super::dto::*;
-use super::emit::context::{json_ld_graph, monogram_of, page_title, simple_json_ld};
+use super::emit::context::{json_ld_graph, page_title, simple_json_ld};
 use super::url::{detail_path, path_key, reserved_for};
 use super::writer::Writer;
 use super::{Result, Stats, WebExportError};
@@ -53,7 +53,6 @@ fn make_ref(kind: RefKind, id: &str, name: &str, sub: Option<&str>, theme_key: &
         theme_key: theme_key.to_string(),
         artwork_url: None,
         // 代表値でも本番と同じ関数を通す (フィクスチャだけ違う文字が出ない)。
-        monogram: monogram_of(kind, name, sub),
     }
 }
 
@@ -522,7 +521,6 @@ fn idol_page(reference: &Ref) -> IdolPage {
         name: reference.name.clone(),
         name_kana: Some("かすがみらい".to_string()),
         theme_key: reference.theme_key.clone(),
-        monogram: monogram_of(RefKind::Unit, &reference.name, None),
         brand: Some(brand_ml()),
         brands: vec![brand_ml()],
         color: Some("#f39800".to_string()),
@@ -597,7 +595,6 @@ fn unit_page(reference: &Ref, empty: bool) -> UnitPage {
         name_kana: if empty { None } else { Some("さんぷるゆにっと".to_string()) },
         name_alt: if empty { None } else { Some("Sample Unit".to_string()) },
         theme_key: reference.theme_key.clone(),
-        monogram: monogram_of(RefKind::Unit, &reference.name, None),
         is_permanent: !empty,
         brand: if empty { None } else { Some(brand_ml()) },
         members: if empty { vec![] } else { vec![idol_mirai(), idol_shizuka()] },

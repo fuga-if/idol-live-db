@@ -100,6 +100,7 @@ declare_and_call_checksums! {
     uniffi_imas_core_checksum_func_intro_quiz_choices_batch,
     uniffi_imas_core_checksum_func_jst_is_today_or_later,
     uniffi_imas_core_checksum_func_jst_today,
+    uniffi_imas_core_checksum_func_performer_display_name,
     uniffi_imas_core_checksum_func_plan_backup_import,
     uniffi_imas_core_checksum_func_quiz_brand_ids_decode,
     uniffi_imas_core_checksum_func_quiz_brand_ids_encode,

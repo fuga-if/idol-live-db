@@ -1,6 +1,5 @@
 ---
 import Artwork from "./Artwork.astro";
-import Avatar from "./Avatar.astro";
 import TagChip from "./TagChip.astro";
 import type { SetlistRow } from "../lib/schema/SetlistRow";
 /**
@@ -41,7 +40,6 @@ const { row } = Astro.props;
                 data-theme={p.ref.themeKey}
                 data-no-cast={p.castName === null ? "true" : undefined}
               >
-                <Avatar monogram={p.ref.monogram} size="sm" />
                 {/* **両方の名前を持たせ、どちらを出すかは CSS で切り替える。**
                     表示の規則 (どのモードで何を主/副にするか) は imas-core の
                     `performer_display_name` が持ち、JS は選ばれたモードを

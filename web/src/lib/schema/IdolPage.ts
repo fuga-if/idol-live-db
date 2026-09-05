@@ -13,10 +13,6 @@ import type { VoiceActorRow } from "./VoiceActorRow";
  */
 export type IdolPage = { schemaVersion: number, id: string, path: string, name: string, nameKana: string | null, themeKey: string, 
 /**
- * 表示名の先頭 1 文字 (アプリの `ImasAvatar` と同じ)。画像は載せない。
- */
-monogram: string, 
-/**
  * 主ブランド。
  */
 brand: Ref | null, 

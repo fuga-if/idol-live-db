@@ -1,7 +1,6 @@
 ---
 import DetailLayout from "../../layouts/DetailLayout.astro";
 import Section from "../../components/Section.astro";
-import Avatar from "../../components/Avatar.astro";
 import Chip from "../../components/Chip.astro";
 import ListContainer from "../../components/ListContainer.astro";
 import LabeledRow from "../../components/LabeledRow.astro";
@@ -20,7 +19,6 @@ const idol = page<IdolPage>(Astro.props.data);
 
 <DetailLayout seo={idol.seo} meta={meta()} themeKey={idol.themeKey} app={idol.app}>
   <section class="hero" slot="hero" aria-labelledby="idol-title">
-    <Avatar monogram={idol.monogram} size="xl" />
     <div class="hero__body">
       {idol.brand && <p class="hero__eyebrow">{idol.brand.name}</p>}
       <h1 class="hero__title" id="idol-title">{idol.name}</h1>
@@ -106,10 +104,9 @@ const idol = page<IdolPage>(Astro.props.data);
             <li>
               <RankingRow
                 rank={i + 1}
-                lead="artwork"
+                artwork
                 title={s.song.name}
                 sub={s.subtitle}
-                monogram={s.song.monogram}
                 artworkUrl={s.song.artworkUrl}
                 metric={s.times}
                 href={s.song.path}

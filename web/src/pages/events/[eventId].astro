@@ -6,7 +6,6 @@ import ShowRow from "../../components/ShowRow.astro";
 import ListContainer from "../../components/ListContainer.astro";
 import LabeledRow from "../../components/LabeledRow.astro";
 import Chip from "../../components/Chip.astro";
-import Avatar from "../../components/Avatar.astro";
 import RefList from "../../components/RefList.astro";
 import EmptyState from "../../components/EmptyState.astro";
 import { meta, page, pathsFor } from "../../lib/data";
@@ -79,7 +78,6 @@ const hasTicket = ticketRows.some((r) => r.value) || ev.ticket.url;
                 {cs.performers.map((m) => (
                   <li>
                     <a class="performer" href={m.ref.path} data-theme={m.ref.themeKey}>
-                      <Avatar monogram={m.ref.monogram} size="sm" />
                       {m.ref.name}
                       {m.isLead && <TagChip text="主演" kind="lead" />}
                       {m.isGuest && <TagChip text="ゲスト" kind="guest" />}

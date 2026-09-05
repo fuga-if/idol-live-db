@@ -15,10 +15,26 @@
 use super::snapshot_store::{SnapshotError, SnapshotStore};
 use crate::domain::event_detail_queries::{
     self as queries, EventAttendanceRecord, EventDetailRecord, EventReleaseRecord,
-    EventStatsRecord, SetlistEntryRecord, SetlistPerformerRecord, ShowRecord,
-    ShowWithEventNameRecord, VenueDirectoryRecord,
+    EventStatsRecord, PerformerDisplayName, PerformerNameMode, SetlistEntryRecord,
+    SetlistPerformerRecord, ShowRecord, ShowWithEventNameRecord, VenueDirectoryRecord,
 };
 use std::collections::HashMap;
+
+/// セトリの歌唱者をどの名前で出すか。
+///
+/// **スナップショットを要らない純関数として出す。** 行 (`SetlistPerformerRecord`) は
+/// 既に `setlist_performers_by_item` で受け取っているので、表示のたびに
+/// スナップショットを引き直す理由がない。
+///
+/// `is_character_live` は `ShowRecord.performer_type == "character"`。
+#[uniffi::export]
+pub fn performer_display_name(
+    record: SetlistPerformerRecord,
+    mode: PerformerNameMode,
+    is_character_live: bool,
+) -> PerformerDisplayName {
+    queries::performer_display_name(&record, mode, is_character_live)
+}
 
 #[uniffi::export]
 impl SnapshotStore {

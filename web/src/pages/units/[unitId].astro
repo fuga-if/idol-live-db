@@ -1,7 +1,6 @@
 ---
 import DetailLayout from "../../layouts/DetailLayout.astro";
 import Section from "../../components/Section.astro";
-import Avatar from "../../components/Avatar.astro";
 import Chip from "../../components/Chip.astro";
 import IdolTile from "../../components/IdolTile.astro";
 import RefList from "../../components/RefList.astro";
@@ -16,7 +15,6 @@ const unit = page<UnitPage>(Astro.props.data);
 
 <DetailLayout seo={unit.seo} meta={meta()} themeKey={unit.themeKey} app={unit.app}>
   <section class="hero" slot="hero" aria-labelledby="unit-title">
-    <Avatar monogram={unit.monogram} size="xl" />
     <div class="hero__body">
       {unit.brand && <p class="hero__eyebrow">{unit.brand.name}</p>}
       <h1 class="hero__title" id="unit-title">{unit.name}</h1>
