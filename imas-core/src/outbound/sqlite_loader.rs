@@ -21,7 +21,7 @@ use crate::domain::snapshot::{
     Snapshot, Song, Staff, Unit, Venue, VenueHall, VenueName,
 };
 use rusqlite::{Connection, OpenFlags};
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use crate::domain::snapshot_build::{self, RawTables};
 
 /// DB から `Snapshot` を組む。索引構築は `domain::snapshot_build` が持つ。
@@ -670,12 +670,12 @@ fn load_event_releases(
 }
 
 /// meta 表 (key → value)。value NULL の行は載せない (getValue の観測結果は行なしと同じ)。
-fn load_meta(conn: &Connection) -> Result<HashMap<String, String>, String> {
+fn load_meta(conn: &Connection) -> Result<BTreeMap<String, String>, String> {
     let mut stmt = conn.prepare("SELECT key, value FROM meta").map_err(|e| e.to_string())?;
     let rows = stmt
         .query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, Option<String>>(1)?)))
         .map_err(|e| e.to_string())?;
-    let mut meta = HashMap::new();
+    let mut meta = BTreeMap::new();
     for row in rows {
         let (key, value) = row.map_err(|e| e.to_string())?;
         if let Some(value) = value {

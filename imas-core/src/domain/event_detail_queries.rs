@@ -111,6 +111,69 @@ pub struct SetlistPerformerRecord {
     pub idol_color: Option<String>,
 }
 
+/// セトリの歌唱者をどの名前で出すか。**画面ごとに分岐を書かないための 1 本。**
+///
+/// これが無かった頃、iOS の簡易表示は `idolsById[...]?.name` でアイドル名、
+/// 詳細行は `PerformerRow.name` で CV 名、Web は CV 名だけ、と 3 通りに割れていた。
+/// さらに詳細行の「キャラライブ判定」は呼び出し側が値を渡しておらず死んでいた。
+#[derive(uniffi::Enum, Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PerformerNameMode {
+    /// アイドル名だけ。既定 (アプリの簡易表示がこれだった)。
+    IdolOnly,
+    /// 現任 CV 名だけ。CV が居なければアイドル名。
+    CastOnly,
+    /// アイドル名 + CV 名。
+    Both,
+    /// 公演に合わせる。キャラライブ = アイドル名 / 声優ライブ = CV 名。
+    FollowShow,
+}
+
+/// 歌唱者 1 人の表示名。主 (`primary`) と、必要なら副 (`secondary`)。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct PerformerDisplayName {
+    pub primary: String,
+    /// 併記する名前。無ければ None (同じ文字列は返さない)。
+    pub secondary: Option<String>,
+}
+
+/// 歌唱者の表示名を決める。
+///
+/// `is_character_live` は `shows.performer_type == "character"`。`FollowShow`
+/// 以外では使わないが、呼び出し側が分岐を持たなくて済むよう常に受け取る。
+pub fn performer_display_name(
+    record: &SetlistPerformerRecord,
+    mode: PerformerNameMode,
+    is_character_live: bool,
+) -> PerformerDisplayName {
+    let idol = record.idol_name.clone();
+    // display_name は現任 CV (不在ならアイドル名) で解決済み。
+    let cast = record.display_name.clone();
+    let pair = |primary: String, other: String| PerformerDisplayName {
+        secondary: (other != primary).then_some(other),
+        primary,
+    };
+    match mode {
+        PerformerNameMode::IdolOnly => PerformerDisplayName { primary: idol, secondary: None },
+        PerformerNameMode::CastOnly => PerformerDisplayName { primary: cast, secondary: None },
+        PerformerNameMode::Both => pair(idol, cast),
+        PerformerNameMode::FollowShow => {
+            if is_character_live {
+                PerformerDisplayName { primary: idol, secondary: None }
+            } else {
+                PerformerDisplayName { primary: cast, secondary: None }
+            }
+        }
+    }
+}
+
+/// 公演がキャラライブか (`shows.performer_type == "character"`)。
+pub fn is_character_live(snap: &Snapshot, show_id: &str) -> bool {
+    snap.show_index_by_id
+        .get(show_id)
+        .map(|&s| snap.shows[s as usize].performer_type.as_deref() == Some("character"))
+        .unwrap_or(false)
+}
+
 /// ピッカー用の公演 1 行 (iOS `ShowWithEventName`)。
 #[derive(uniffi::Record, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ShowWithEventNameRecord {
@@ -810,6 +873,49 @@ pub fn event_releases(snap: &Snapshot, event_id: &str) -> Vec<EventReleaseRecord
 // =============================================================================
 // テスト: 元 SQL を rusqlite で直接実行した結果との照合 (等価性の保証)
 // =============================================================================
+
+#[cfg(test)]
+mod performer_name_tests {
+    use super::*;
+
+    fn rec(idol: &str, cast: &str) -> SetlistPerformerRecord {
+        SetlistPerformerRecord {
+            idol_id: "i".into(),
+            display_name: cast.into(),
+            idol_name: idol.into(),
+            idol_color: None,
+        }
+    }
+
+    #[test]
+    fn モードごとに主と副が決まる() {
+        let r = rec("島村卯月", "大橋彩香");
+        let d = |m, ch| performer_display_name(&r, m, ch);
+
+        assert_eq!(d(PerformerNameMode::IdolOnly, false).primary, "島村卯月");
+        assert_eq!(d(PerformerNameMode::IdolOnly, false).secondary, None);
+        assert_eq!(d(PerformerNameMode::CastOnly, false).primary, "大橋彩香");
+        assert_eq!(d(PerformerNameMode::CastOnly, false).secondary, None);
+
+        let both = d(PerformerNameMode::Both, false);
+        assert_eq!(both.primary, "島村卯月");
+        assert_eq!(both.secondary.as_deref(), Some("大橋彩香"));
+
+        // 公演に合わせる: キャラライブ = アイドル名 / 声優ライブ = CV 名。
+        assert_eq!(d(PerformerNameMode::FollowShow, true).primary, "島村卯月");
+        assert_eq!(d(PerformerNameMode::FollowShow, false).primary, "大橋彩香");
+    }
+
+    /// CV が居ないアイドルは `display_name` がアイドル名に落ちている。
+    /// そのとき「同じ名前を 2 段」出さない。
+    #[test]
+    fn cvが居なければ併記しない() {
+        let r = rec("一ノ瀬志希", "一ノ瀬志希");
+        let both = performer_display_name(&r, PerformerNameMode::Both, false);
+        assert_eq!(both.primary, "一ノ瀬志希");
+        assert_eq!(both.secondary, None, "同じ名前を 2 度出さない");
+    }
+}
 
 #[cfg(test)]
 mod tests {

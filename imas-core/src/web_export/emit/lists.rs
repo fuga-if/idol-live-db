@@ -42,8 +42,6 @@ pub struct Emitted<T> {
     /// `getStaticPaths` の params に渡す生値 (params を取らないページは `None`)。
     pub param_key: Option<String>,
     pub page: T,
-    /// 本体と一緒に書き出す付随 JSON (絞り込み素材など)。(出力パス, 中身)。
-    pub extra: Vec<(String, serde_json::Value)>,
 }
 
 // ---------------------------------------------------------------------------
@@ -189,13 +187,11 @@ pub fn event_lists(ctx: &Ctx) -> Vec<Emitted<EventListPage>> {
         let total: u32 = groups.iter().map(|g| g.events.len() as u32).sum();
         let mut year_links = year_links.clone();
         mark_current(&mut year_links, path);
-        let extra = Vec::new();
         Emitted {
             path: path.to_string(),
             data,
             route_kind: route.0,
             param_key: route.1,
-            extra,
             page: EventListPage {
                 schema_version: SCHEMA_VERSION,
                 path: path.to_string(),
@@ -380,6 +376,21 @@ fn kana_sections(ctx: &Ctx, items: &[SongListItem]) -> Vec<KanaSection> {
 }
 
 
+/// 一覧を組んだときの条件を、ブラウザの wasm がそのまま読める形 (camelCase) にする。
+///
+/// キーは `web/wasm/imas-query-wasm` の `SongQuery` と 1:1。ここを変えるなら
+/// 向こうも同時に変えること (JSON を挟むので型では守れない)。
+fn query_base_json(f: &SongListFilter) -> String {
+    serde_json::json!({
+        "brandIds": f.brand_ids,
+        "songType": f.song_type,
+        "includeRemixes": f.include_remixes,
+        "includeOtherBrand": f.include_other_brand,
+        "excludeLiveOnly": f.exclude_live_only,
+    })
+    .to_string()
+}
+
 pub fn song_lists(ctx: &Ctx) -> Vec<Emitted<SongListPage>> {
     let total_all = ctx.snap.songs.len() as u32;
     // 既定フィルタを通した件数。ブランド切替の「すべて」に出す数はこれ
@@ -406,15 +417,8 @@ pub fn song_lists(ctx: &Ctx) -> Vec<Emitted<SongListPage>> {
         let light = matches!(kind, SongListKind::All);
         let items: Vec<SongListItem> =
             indexes.iter().filter_map(|&i| song_list_item(ctx, i, light)).collect();
-        // 行を ref だけに削った一覧 (/songs/all/) は絞り込む材料を持たないので出さない。
-        let filter_path: Option<String> = (!light).then(|| data.replace(".json", "-filter.json"));
-        let extra: Vec<(String, serde_json::Value)> = match &filter_path {
-            Some(fp) => {
-                let fd = super::song_filters::song_filter_data(ctx.snap, &path, &base, &indexes);
-                vec![(fp.clone(), serde_json::to_value(&fd).expect("絞り込み素材は JSON にできる"))]
-            }
-            None => Vec::new(),
-        };
+        // 行を ref だけに削った一覧 (/songs/all/) は絞り込みの土台を持たない。
+        let query_base = (!light).then(|| query_base_json(&base));
         let brand_id = brand.as_ref().map(|b| b.id.clone());
         let mut seo = ctx.seo(
             &title,
@@ -434,7 +438,6 @@ pub fn song_lists(ctx: &Ctx) -> Vec<Emitted<SongListPage>> {
             data,
             route_kind: route.0,
             param_key: route.1,
-            extra,
             page: SongListPage {
                 schema_version: SCHEMA_VERSION,
                 path: path.clone(),
@@ -442,11 +445,7 @@ pub fn song_lists(ctx: &Ctx) -> Vec<Emitted<SongListPage>> {
                 kind,
                 brand,
                 rows_are_light: light,
-                // 配信物では dist/filters/ に置かれる (astro.config.mjs の
-                // copy-generated-assets)。ここは配信 URL を出す。
-                filter_data_path: filter_path
-                    .as_ref()
-                    .map(|p| format!("/filters/{}", p.trim_start_matches("index/"))),
+                query_base,
                 kana_sections: kana_sections(ctx, &items),
                 total: items.len() as u32,
                 all_songs_link: (path == "/songs/").then(|| NavLink {
@@ -568,13 +567,11 @@ pub fn idol_lists(ctx: &Ctx) -> Vec<Emitted<IdolListPage>> {
         let items: Vec<IdolListItem> =
             records.iter().filter_map(|r| idol_list_item(ctx, r)).collect();
         let brand_id = brand.as_ref().map(|b| b.id.clone());
-        let extra = Vec::new();
         Emitted {
             path: path.clone(),
             data,
             route_kind: route.0,
             param_key: route.1,
-            extra,
             page: IdolListPage {
                 schema_version: SCHEMA_VERSION,
                 path: path.clone(),
@@ -690,13 +687,11 @@ pub fn unit_lists(ctx: &Ctx) -> Vec<Emitted<UnitListPage>> {
                 description: String| {
         let items: Vec<UnitListItem> = units.iter().filter_map(|u| item(u)).collect();
         let brand_id = brand.as_ref().map(|b| b.id.clone());
-        let extra = Vec::new();
         Emitted {
             path: path.clone(),
             data,
             route_kind: route.0,
             param_key: route.1,
-            extra,
             page: UnitListPage {
                 schema_version: SCHEMA_VERSION,
                 path: path.clone(),
@@ -807,13 +802,11 @@ pub fn venue_lists(ctx: &Ctx) -> Vec<Emitted<VenueListPage>> {
                 prefecture: Option<String>,
                 description: String| {
         let items: Vec<VenueListItem> = indexes.iter().filter_map(|&i| item(i)).collect();
-        let extra = Vec::new();
         Emitted {
             path: path.clone(),
             data,
             route_kind: route.0,
             param_key: route.1,
-            extra,
             page: VenueListPage {
                 schema_version: SCHEMA_VERSION,
                 path: path.clone(),

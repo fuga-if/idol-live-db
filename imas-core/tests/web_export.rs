@@ -1166,6 +1166,10 @@ mod real {
                     walk(&path, files, largest);
                 } else {
                     *files += 1;
+                    // 生テーブルだけは別枠で見る (下の tables を参照)。
+                    if path.file_name().is_some_and(|n| n == "tables.json") {
+                        continue;
+                    }
                     let size = path.metadata().unwrap().len();
                     if size > largest.0 {
                         *largest = (size, path.display().to_string());
@@ -1177,13 +1181,22 @@ mod real {
 
         // Cloudflare Workers Static Assets は 20,000 ファイル / 1 ファイル 25MiB。
         // 手前で落として、上限に触れる前に気付けるようにする。
+        //
+        // ページ用の JSON と、生テーブル 1 枚 (snapshot/tables.json) は性格が違うので
+        // 別々に見る。生テーブルは全行を配る前提の 1 枚で、桁が 3 つ違う。
+        // 一緒くたに一番大きい 1 個だけ見ると、ページ側が太っても生テーブルの陰で
+        // 気付けなくなる。
         assert!(files < 18_000, "ファイルが多すぎる: {files}");
         assert!(
-            largest.0 < 8 * 1024 * 1024,
+            largest.0 < 2 * 1024 * 1024,
             "1 ファイルが大きすぎる: {} ({} バイト)",
             largest.1,
             largest.0
         );
+        // 生テーブル。全行を配るので大きいが、配信時は gzip/brotli が効いて 1/8 程度。
+        // 25MiB の半分を上限にしておき、データが倍増しても手前で気付けるようにする。
+        let tables = dir.path().join("snapshot/tables.json").metadata().unwrap().len();
+        assert!(tables < 12 * 1024 * 1024, "生テーブルが大きすぎる: {tables} バイト");
     }
 
     #[test]

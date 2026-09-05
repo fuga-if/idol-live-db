@@ -6,8 +6,12 @@ import type { Ref } from "./Ref";
  */
 export type PerformerRef = { ref: Ref, 
 /**
- * 表示名 (CV 名で歌った回など、アイドル名と違うことがある)。
- * 表示名 (CV 名で歌った回など、アイドル名と違うことがある)。
- * アイドル名そのものは `reference.name` にある。
+ * 現任 CV 名。**アイドル名と違うときだけ入る** (CV 不在なら `None`)。
+ * アイドル名は `reference.name`。
+ *
+ * **どちらを出すかは受け手が決めない。** 表示の規則は
+ * `domain::event_detail_queries::performer_display_name` が持ち、
+ * 閲覧者が選んだモードに従って主/副を返す。ここは素材を両方渡すだけで、
+ * 「同じ名前を 2 つ持たせない」判断もその関数 (`Both` の副) に任せる。
  */
-displayName: string, };
+castName: string | null, };

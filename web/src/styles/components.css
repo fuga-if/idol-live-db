@@ -1154,3 +1154,51 @@ a.labeled-row .labeled-row__value {
   color: var(--ds-ink2);
   font-variant-numeric: tabular-nums;
 }
+
+/* セトリの歌唱者チップ。
+   両方の名前を持たせておき、閲覧者が選んだモード (data-performer-name) で
+   どちらを出すかを決める。**規則は imas-core が持ち、ここは見せ隠しだけ。**
+   既定 (属性なし = アイドル名) はサーバが描いたままで、JS を必要としない。 */
+.performer__names {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.35;
+}
+.performer__cast {
+  display: none;
+  color: var(--ds-ink2);
+  font-size: var(--fs-caption2);
+}
+.performer__cast::before {
+  content: "CV. ";
+}
+
+/* CV 名を主にするモード。
+   - 「CV 名」= 常に CV 名
+   - 「公演に合わせる」= 声優ライブのときだけ (公演種別は show ページが
+     data-character-live で持つ。キャラライブならアイドル名のまま)
+   CV 不在の人 (data-no-cast) はどのモードでもアイドル名を出す。消してしまうと
+   名前が 1 つも出ない。 */
+:is([data-performer-name="cast"], [data-performer-name="show"]:not([data-character-live="true"]))
+  .performer:not([data-no-cast])
+  .performer__idol {
+  display: none;
+}
+:is([data-performer-name="cast"], [data-performer-name="show"]:not([data-character-live="true"]))
+  .performer:not([data-no-cast])
+  .performer__cast {
+  display: inline;
+  color: inherit;
+  font-size: inherit;
+}
+:is([data-performer-name="cast"], [data-performer-name="show"]:not([data-character-live="true"]))
+  .performer:not([data-no-cast])
+  .performer__cast::before {
+  content: none;
+}
+
+/* 併記。CV 不在の人はそもそも .performer__cast を持たないので何も起きない。 */
+[data-performer-name="both"] .performer__cast {
+  display: inline;
+}

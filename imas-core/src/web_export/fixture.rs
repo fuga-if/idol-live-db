@@ -360,6 +360,7 @@ fn show_page() -> ShowPage {
     let reference = show_sample();
     ShowPage {
         schema_version: SCHEMA_VERSION,
+        is_character_live: false,
         id: reference.id.clone(),
         path: reference.path.clone(),
         name: "DAY1".to_string(),
@@ -383,7 +384,7 @@ fn show_page() -> ShowPage {
                 song: song_sample(),
                 performers: vec![PerformerRef {
                     reference: idol_mirai(),
-                    display_name: "山崎はるか".to_string(),
+                    cast_name: Some("山崎はるか".to_string()),
                 }],
                 original_artists: vec![idol_mirai(), idol_shizuka()],
                 is_cover: false,
@@ -781,8 +782,10 @@ fn song_list_page(path: &str, title: &str, kind: SongListKind) -> SongListPage {
         kind,
         brand: if matches!(kind, SongListKind::Brand) { Some(brand_ml()) } else { None },
         rows_are_light: matches!(kind, SongListKind::All),
-        filter_data_path: (!matches!(kind, SongListKind::All))
-            .then(|| "/data/songs-filter.json".to_string()),
+        query_base: (!matches!(kind, SongListKind::All)).then(|| {
+            r#"{"brandIds":[],"excludeLiveOnly":true,"includeOtherBrand":false,"includeRemixes":false,"songType":null}"#
+                .to_string()
+        }),
         kana_sections: vec![
             KanaSection { label: "さ".to_string(), start_index: 0, count: 1 },
             KanaSection { label: "英数".to_string(), start_index: 1, count: 1 },

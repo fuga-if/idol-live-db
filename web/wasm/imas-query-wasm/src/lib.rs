@@ -94,6 +94,33 @@ impl SongQuery {
     }
 }
 
+/// 選択肢 1 件。value は `SongListFilter` にそのまま渡す文字列。
+#[derive(serde::Serialize)]
+struct Opt {
+    value: String,
+    label: String,
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Facets {
+    brands: Vec<Opt>,
+    idols: Vec<Opt>,
+    cd_series: Vec<Opt>,
+    series_groups: Vec<Opt>,
+}
+
+/// 相異なる値を辞書順で。value と label は同じ (表示名がそのまま条件になる列)。
+fn distinct<'a>(values: impl Iterator<Item = &'a str>) -> Vec<Opt> {
+    let mut set: std::collections::BTreeSet<&str> = std::collections::BTreeSet::new();
+    for v in values {
+        if !v.is_empty() {
+            set.insert(v);
+        }
+    }
+    set.into_iter().map(|v| Opt { value: v.to_string(), label: v.to_string() }).collect()
+}
+
 #[wasm_bindgen]
 impl Query {
     /// 生テーブルの JSON から組む。**索引はここで組み直す** (配られたものは使わない)。
@@ -104,16 +131,45 @@ impl Query {
         Ok(Query { snap: snapshot_build::build(raw) })
     }
 
-    /// 曲の添字列を返す。**絞り込みも並び替えもコアがやる。**
+    /// 条件に合う曲 id を、並び順どおりに返す。**絞り込みも並び替えもコアがやる。**
     ///
-    /// 返すのは `songs` テーブルの添字なので、受け手は行 id ではなく添字で引く。
-    pub fn songs(&self, query_json: &str) -> Result<Vec<u32>, JsValue> {
+    /// 添字ではなく id を返すのは、ページの行と Snapshot の添字を結び付けないため。
+    /// 添字で渡すと、配った生テーブルとページの生成が同じ版であることが暗黙の前提になる。
+    pub fn song_ids(&self, query_json: &str) -> Result<Vec<String>, JsValue> {
         let q: SongQuery = serde_json::from_str(query_json)
             .map_err(|e| JsValue::from_str(&format!("条件を読めない: {e}")))?;
-        Ok(song_list_indexes(&self.snap, &q.to_filter(), q.sort(), q.ascending, &[], &[]))
+        let indexes =
+            song_list_indexes(&self.snap, &q.to_filter(), q.sort(), q.ascending, &[], &[]);
+        Ok(indexes.iter().map(|&i| self.snap.songs[i as usize].id.clone()).collect())
     }
 
-    /// 曲の総数 (添字の上限を JS 側で確かめるため)。
+    /// 絞り込みの選択肢。**中身を決めるのは Snapshot** で、JS は並べるだけ。
+    ///
+    /// 値そのもの (ブランド id・アイドル id・CD シリーズ名) はコアが持つ文字列を
+    /// そのまま返す。JS 側で組み立て直すと `SongListFilter` に渡す値がズレる。
+    pub fn facets(&self) -> Result<String, JsValue> {
+        let brands: Vec<Opt> = self
+            .snap
+            .brand_order
+            .iter()
+            .map(|&i| &self.snap.brands[i as usize])
+            .map(|b| Opt { value: b.id.clone(), label: b.name.clone() })
+            .collect();
+        let idols: Vec<Opt> = self
+            .snap
+            .idols
+            .iter()
+            .map(|i| Opt { value: i.id.clone(), label: i.name.clone() })
+            .collect();
+        let cd_series = distinct(self.snap.songs.iter().filter_map(|s| s.cd_series.as_deref()));
+        let series_groups =
+            distinct(self.snap.songs.iter().filter_map(|s| s.series_group.as_deref()));
+
+        serde_json::to_string(&Facets { brands, idols, cd_series, series_groups })
+            .map_err(|e| JsValue::from_str(&format!("選択肢を組めない: {e}")))
+    }
+
+    /// 曲の総数。
     pub fn song_count(&self) -> usize {
         self.snap.songs.len()
     }
@@ -149,12 +205,15 @@ mod tests {
             r#"{"songwriter":"BNSI"}"#,
             r#"{"title":"みらい"}"#,
         ] {
-            let got = query.songs(q).expect(q);
-            let want = {
+            let got = query.song_ids(q).expect(q);
+            let want: Vec<String> = {
                 let sq: SongQuery = serde_json::from_str(q).unwrap();
                 imas_core::domain::song_list_queries::song_list_indexes(
                     &from_db, &sq.to_filter(), sq.sort(), sq.ascending, &[], &[],
                 )
+                .iter()
+                .map(|&i| from_db.songs[i as usize].id.clone())
+                .collect()
             };
             assert_eq!(got, want, "条件 {q} で結果が違う");
             assert!(!want.is_empty(), "条件 {q} が 0 件では確かめたことにならない");

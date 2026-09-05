@@ -39,7 +39,7 @@ const { list } = Astro.props;
     )
   }
 
-  {list.filterDataPath && <SongFilterBar src={list.filterDataPath} total={list.total} />}
+  {list.queryBase && <SongFilterBar queryBase={list.queryBase} total={list.total} />}
 
   {
     list.items.length === 0 ? (

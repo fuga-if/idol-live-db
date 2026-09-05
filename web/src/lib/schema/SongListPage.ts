@@ -19,10 +19,14 @@ export type SongListPage = { schemaVersion: number, path: string, title: string,
  */
 rowsAreLight: boolean, 
 /**
- * 絞り込み素材 (`SongListFilterData`) の置き場所。行を `ref` だけに
- * 削った一覧には無い (絞り込む材料がそもそも載っていない)。
+ * この一覧を組んだときの絞り込み条件 (JSON)。ブラウザの wasm が
+ * これを土台に条件を足して `song_list_indexes` を回す。
+ *
+ * 土台を Rust が出すのは、ページの中身と絞り込みの出発点を同じ 1 箇所で
+ * 決めるため。JS 側で「/songs/ なら既定フィルタ」と書き直すと二重定義になる。
+ * 行を `ref` だけに削った一覧 (`/songs/all/`) には無い。
  */
-filterDataPath: string | null, kanaSections: Array<KanaSection>, brandLinks: Array<NavLink>, 
+queryBase: string | null, kanaSections: Array<KanaSection>, brandLinks: Array<NavLink>, 
 /**
  * 既定フィルタから外れた曲も含む全件ハブ (`/songs/all/`) への案内。
  *

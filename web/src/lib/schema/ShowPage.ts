@@ -7,7 +7,12 @@ import type { SetlistRow } from "./SetlistRow";
 /**
  * `/shows/<id>/` の中身。
  */
-export type ShowPage = { schemaVersion: number, id: string, path: string, name: string, date: string, shortDate: string, themeKey: string, event: Ref, brand: Ref | null, venueLabel: string | null, venue: Ref | null, venueCity: string | null, hall: string | null, startTime: string | null, streamPlatform: string | null, 
+export type ShowPage = { schemaVersion: number, 
+/**
+ * キャラライブか (`shows.performer_type == "character"`)。
+ * 歌唱者の表示モード「公演に合わせる」がこれを見る。
+ */
+isCharacterLive: boolean, id: string, path: string, name: string, date: string, shortDate: string, themeKey: string, event: Ref, brand: Ref | null, venueLabel: string | null, venue: Ref | null, venueCity: string | null, hall: string | null, startTime: string | null, streamPlatform: string | null, 
 /**
  * position 昇順。
  */

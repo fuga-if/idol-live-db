@@ -4,7 +4,6 @@
 //! 「今日」は入口で 1 回だけ確定し、以降の upcoming / past の分割はすべてその 1 個から
 //! 決まる (Astro もブラウザも `Date` を触らない)。
 
-pub mod song_filters;
 pub mod context;
 pub mod events;
 pub mod idols;
@@ -139,6 +138,23 @@ fn validate_ymd(text: &str) -> Result<()> {
     }
 }
 
+/// ブラウザに配ってよい形の生テーブル。
+///
+/// **出面に出してはいけない列を落とすのはここ 1 箇所。** 生テーブルは
+/// 「DB の行そのまま」なので、DB に置いてよいが配ってはいけない列
+/// (試聴音源・歌詞の在り処) がそのまま混ざる。行型に列が増えたときは、
+/// ここを見て配ってよいかを決める。
+fn shippable_tables(raw: &RawTables) -> RawTables {
+    let mut raw = raw.clone();
+    for song in &mut raw.songs {
+        // 試聴音源 (Apple の音源 URL)。アプリの中でだけ鳴らすもので、出面には出さない。
+        song.preview_url = None;
+        // 歌詞の在り処。歌詞は D1 だけに置く (JASRAC 許諾の条件)。
+        song.lyrics_url = None;
+    }
+    raw
+}
+
 fn write_all(
     ctx: &Ctx,
     out: &std::path::Path,
@@ -196,9 +212,6 @@ fn write_all(
         ($items:expr) => {
             for item in $items {
                 w.write_json(&item.data, &item.page)?;
-                for (path, value) in &item.extra {
-                    w.write_json(path, value)?;
-                }
                 let in_sitemap = item.page.seo.robots == Robots::IndexFollow;
                 match &item.param_key {
                     Some(key) => {
@@ -222,7 +235,7 @@ fn write_all(
     book.listing(RouteKind::BrandList, "/brands/", "index/brands.json", true);
 
     // 生テーブル。ブラウザ (wasm) が Snapshot を組み直すための素材。
-    w.write_json("snapshot/tables.json", &raw_tables)?;
+    w.write_json("snapshot/tables.json", &shippable_tables(raw_tables))?;
 
     let counts = lists::counts(ctx);
     let home = lists::home(ctx, &upcoming, counts);

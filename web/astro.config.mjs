@@ -94,18 +94,19 @@ function copyGeneratedAssets() {
         }
         logger.info(`検索索引 ${n} ファイルを dist/search/ に配置しました`);
 
-        // 一覧の絞り込み素材。一覧 HTML とは別ファイルにしてあり、絞り込みを
-        // 開いた人だけが取りに行く (HTML の重さを増やさないため)。
-        const idx = path.join(root, "index");
-        const fdest = new URL("filters/", dir);
-        fs.mkdirSync(fdest, { recursive: true });
-        let m = 0;
-        for (const name of fs.readdirSync(idx)) {
-          if (!name.endsWith("-filter.json")) continue;
-          fs.copyFileSync(path.join(idx, name), new URL(name, fdest));
-          m += 1;
+        // 生テーブル。ブラウザ (wasm) が snapshot_build::build で Snapshot を
+        // 組み直すための素材。**派生 (索引) は配らない。**
+        // 絞り込みを開いた人だけが取りに行くので、一覧 HTML の重さは増えない。
+        const tables = path.join(root, "snapshot", "tables.json");
+        if (fs.existsSync(tables)) {
+          const sdest = new URL("snapshot/", dir);
+          fs.mkdirSync(sdest, { recursive: true });
+          fs.copyFileSync(tables, new URL("tables.json", sdest));
+          const mb = (fs.statSync(tables).size / 1048576).toFixed(1);
+          logger.info(`生テーブルを dist/snapshot/ に配置しました (${mb} MB)`);
+        } else {
+          logger.warn(`${tables} がありません (一覧の絞り込みが動きません)`);
         }
-        logger.info(`絞り込み素材 ${m} ファイルを dist/filters/ に配置しました`);
       },
     },
   };

@@ -35,9 +35,25 @@ const { row } = Astro.props;
         row.performers.length > 0 && (
           <span class="performers">
             {row.performers.map((p) => (
-              <a class="performer" href={p.ref.path} data-theme={p.ref.themeKey}>
+              <a
+                class="performer"
+                href={p.ref.path}
+                data-theme={p.ref.themeKey}
+                data-no-cast={p.castName === null ? "true" : undefined}
+              >
                 <Avatar monogram={p.ref.monogram} size="sm" />
-                {p.displayName}
+                {/* **両方の名前を持たせ、どちらを出すかは CSS で切り替える。**
+                    表示の規則 (どのモードで何を主/副にするか) は imas-core の
+                    `performer_display_name` が持ち、JS は選ばれたモードを
+                    ルート要素の data 属性に書くだけ。JS が動かない環境や既定の
+                    閲覧者には、サーバが描いたアイドル名がそのまま出る。
+
+                    `castName` が無い = CV 不在 (この判断も Rust 側)。その人は
+                    どのモードでもアイドル名のまま出す。 */}
+                <span class="performer__names">
+                  <span class="performer__idol">{p.ref.name}</span>
+                  {p.castName && <span class="performer__cast">{p.castName}</span>}
+                </span>
               </a>
             ))}
           </span>

@@ -10,29 +10,16 @@
  * island が起動したときに外す。
  */
 interface Props {
-  /** 素材 (`/filters/*.json`) の URL。Rust が `SongListPage.filterDataPath` で出す。 */
-  src: string;
+  /** この一覧を組んだときの条件 (JSON)。Rust が `SongListPage.queryBase` で出す。 */
+  queryBase: string;
   total: number;
 }
-const { src, total } = Astro.props;
+const { queryBase, total } = Astro.props;
 ---
 
-<section class="song-filter" data-song-filter data-filter-src={src} data-state="loading" hidden>
+<section class="song-filter" data-song-filter data-query-base={queryBase} data-state="loading" hidden>
+  <div class="song-filter__fields" data-filter-fields></div>
   <div class="song-filter__row">
-    <label class="song-filter__field song-filter__field--grow">
-      <span class="u-visually-hidden">曲名・原唱者・作家で絞り込み</span>
-      <input
-        class="song-filter__input"
-        type="search"
-        data-filter-name
-        placeholder="曲名・原唱者・作家で絞り込み"
-        autocomplete="off"
-        autocapitalize="off"
-        spellcheck="false"
-        enterkeyhint="search"
-        disabled
-      />
-    </label>
     <label class="song-filter__field">
       <span class="u-visually-hidden">並べ替え</span>
       <select class="song-filter__select" data-filter-sort disabled></select>
@@ -40,7 +27,6 @@ const { src, total } = Astro.props;
     <button class="song-filter__dir" type="button" data-filter-dir aria-label="昇順" disabled>↑</button>
     <button class="song-filter__reset" type="button" data-filter-reset disabled>クリア</button>
   </div>
-  <div class="song-filter__facets" data-filter-facets></div>
   <p class="song-filter__status" data-filter-status aria-live="polite">{total} 件</p>
 </section>
 

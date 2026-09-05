@@ -24,7 +24,7 @@
 //! - 列: events/shows の has_streaming・has_live_viewing、brands.icon_url → 無い DB では None。
 //! - 表: event_releases → 無い DB では空 Vec。
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use crate::domain::text_search_index::TextSearchIndex;
 
 // 生テーブルの行型には serde を付けてある。ブラウザ (wasm) が
@@ -396,7 +396,7 @@ pub struct Snapshot {
     pub event_releases: Vec<EventRelease>,
     /// meta 表 (key → value)。value が NULL の行は載せない
     /// (SQL 時代の getValue も NULL と行なしを区別せず nil を返していた)。
-    pub meta: HashMap<String, String>,
+    pub meta: BTreeMap<String, String>,
 
     /// songs と同じ添字。リンクは idol の sort_order 順に格納済み
     /// (SQL 時代の `ORDER BY i.sort_order` を構築時に前計算)。

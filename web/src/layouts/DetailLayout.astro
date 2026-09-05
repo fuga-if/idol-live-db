@@ -23,11 +23,19 @@ interface Props {
   meta: SiteMeta;
   themeKey?: string;
   app?: AppOpen | null;
+  /** キャラライブか。歌唱者の表示モード「公演に合わせる」が見る。 */
+  isCharacterLive?: boolean;
 }
-const { seo, meta, themeKey, app } = Astro.props;
+const { seo, meta, themeKey, app, isCharacterLive } = Astro.props;
 ---
 
-<BaseLayout seo={seo} meta={meta} themeKey={themeKey} wide={Astro.slots.has("aside")}>
+<BaseLayout
+  seo={seo}
+  meta={meta}
+  themeKey={themeKey}
+  wide={Astro.slots.has("aside")}
+  isCharacterLive={isCharacterLive}
+>
   <Breadcrumbs crumbs={seo.breadcrumbs} />
   <slot name="hero" />
   {

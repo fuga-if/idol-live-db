@@ -1,102 +1,95 @@
 /**
  * 楽曲一覧の絞り込み・並べ替え island。
  *
- * **ここに条件も並び順の規則も無い。** 素材 (`/filters/*.json`) は Rust が
- * core 自身のフィルタで組んだもので、この島がやるのは 3 つだけ:
- *   1. 選ばれた値の行集合を、軸をまたいで積 (AND)・軸内で和 (OR) にする
- *   2. 名前入力を `imas-text-fold` の wasm で畳み、行の畳み済み文字列に含まれるか見る
- *      (`/search/` と同じ照合。索引側は Rust が畳んで載せてある)
- *   3. 渡された順列どおりに行を並べ替える
+ * **ここに条件も並び順も無い。** 条件を組み立てて `imas-core` の
+ * `song_list_indexes` を wasm 越しに呼び、返ってきた曲 id の順に行を並べ替えて
+ * 見せ隠しするだけ。アプリと同じ関数を通るので、当たり方も並びも食い違わない。
  *
- * 素材は**絞り込みを開いたときに初めて取りに行く**。一覧を読むだけの人に
- * 数百 KB を配らないため。
+ * 土台の条件 (`query_base`) はページを組んだ Rust が出す。JS が
+ * 「/songs/ なら既定フィルタ」と書き直すと、ページの中身と絞り込みの出発点が
+ * 二重定義になる。
  *
  * 状態は URL のクエリに置く。戻る/進むで復元でき、絞った状態のまま共有できる
  * (「選択 = URL」という、この出面の基本を崩さない)。
  */
-import { loadFold, type Fold } from "../search/fold";
-import type { SongListFilterData } from "../schema/SongListFilterData";
-import type { SongFacet } from "../schema/SongFacet";
+import { loadQuery, type Facets, type SongQuery } from "./query";
 
 interface Elements {
   root: HTMLElement;
-  table: HTMLElement;
   tbody: HTMLElement;
   status: HTMLElement;
-  name: HTMLInputElement;
+  fields: HTMLElement;
   sort: HTMLSelectElement;
   dir: HTMLButtonElement;
-  facets: HTMLElement;
   reset: HTMLButtonElement;
   kana?: HTMLElement | null;
 }
 
-/** 選択状態。値は facet の `value` (Rust が決めた文字列) をそのまま持つ。 */
+/** 画面に出す入力。`SongQuery` のうち web で意味のあるものだけ。 */
 interface State {
-  name: string;
+  title: string;
+  idolIds: string[];
+  songwriter: string;
+  cdSeries: string;
+  seriesGroup: string;
+  liveName: string;
+  brandIds: string[];
+  songType: string;
   sort: string;
-  ascending: boolean;
-  selected: Map<string, Set<string>>;
+  ascending: boolean | null;
 }
 
-const DEBOUNCE_MS = 80;
+const DEBOUNCE_MS = 120;
+const SORTS = [
+  { key: "kana", label: "五十音順", asc: true },
+  { key: "release", label: "リリース日順", asc: false },
+  { key: "performance", label: "披露回数順", asc: false },
+];
 
 export function mountSongFilter(root: HTMLElement): void {
-  const src = root.dataset.filterSrc;
-  const table = document.querySelector<HTMLElement>("[data-song-table]");
-  const tbody = table?.querySelector<HTMLElement>("tbody");
-  if (!src || !table || !tbody) return;
+  const base = root.dataset.queryBase;
+  const tbody = document.querySelector<HTMLElement>("[data-song-table] tbody");
+  if (!base || !tbody) return;
 
   const el: Elements = {
     root,
-    table,
     tbody,
     status: must(root, "[data-filter-status]"),
-    name: must(root, "[data-filter-name]"),
+    fields: must(root, "[data-filter-fields]"),
     sort: must(root, "[data-filter-sort]"),
     dir: must(root, "[data-filter-dir]"),
-    facets: must(root, "[data-filter-facets]"),
     reset: must(root, "[data-filter-reset]"),
     kana: document.querySelector<HTMLElement>("[data-kana-index]"),
   };
 
-  // 行は初期並び (Rust が出した items の順) の添字を持っている。
-  const rows = [...tbody.querySelectorAll<HTMLElement>("tr[data-row]")];
-  const total = rows.length;
+  // 曲 id → 行。wasm は id を返すので、添字で結び付けない。
+  const rows = new Map<string, HTMLElement>();
+  for (const tr of tbody.querySelectorAll<HTMLElement>("tr[data-song-id]")) {
+    rows.set(tr.dataset.songId!, tr);
+  }
+  const total = rows.size;
 
-  let data: SongListFilterData | null = null;
-  let fold: Fold | null = null;
+  const baseQuery = JSON.parse(base) as SongQuery;
+  const state = readUrl();
+  let engine: Awaited<ReturnType<typeof loadQuery>> | null = null;
   let timer = 0;
 
-  const state: State = readUrl();
-
-  // 素材を取るまでは触らせない (押しても何も起きない時間を作らない)。
   setEnabled(el, false);
-  void load();
+  void start();
 
-  async function load(): Promise<void> {
+  async function start(): Promise<void> {
     try {
-      const [json, f] = await Promise.all([
-        fetch(src!).then((r) => {
-          if (!r.ok) throw new Error(`${r.status}`);
-          return r.json() as Promise<SongListFilterData>;
-        }),
-        loadFold(),
-      ]);
-      if (json.rowCount !== total) {
-        throw new Error(`行数が合わない (素材 ${json.rowCount} / 表 ${total})`);
-      }
-      data = json;
-      fold = f;
-      renderFacets(el, data, state, onChange);
-      renderOrders(el, data, state);
+      engine = await loadQuery();
+      const facets = JSON.parse(engine.facets()) as Facets;
+      renderFields(el, facets, state, onChange);
+      renderSorts(el, state);
       setEnabled(el, true);
       apply();
     } catch (e) {
-      // 絞り込めないだけで一覧は読める。黙って壊れた見た目にしない。
+      // 絞り込めないだけで一覧は読める。壊れた見た目のまま黙らない。
       el.status.textContent = "絞り込みを読み込めませんでした。再読み込みしてください。";
       el.root.dataset.state = "failed";
-      console.error("song filter: 素材の読み込みに失敗", e);
+      console.error("song filter: 読み込みに失敗", e);
     }
   }
 
@@ -105,93 +98,76 @@ export function mountSongFilter(root: HTMLElement): void {
     timer = window.setTimeout(apply, DEBOUNCE_MS);
   }
 
-  el.name.addEventListener("input", () => {
-    state.name = el.name.value;
-    onChange();
-  });
   el.sort.addEventListener("change", () => {
     state.sort = el.sort.value;
-    state.ascending = defaultAscending(data, state.sort);
+    state.ascending = null; // その並びの既定方向に戻す (決めるのはコア)。
     syncDir(el, state);
     onChange();
   });
   el.dir.addEventListener("click", () => {
-    state.ascending = !state.ascending;
+    state.ascending = !currentAscending(state);
     syncDir(el, state);
     onChange();
   });
   el.reset.addEventListener("click", () => {
-    state.name = "";
-    state.selected.clear();
-    el.name.value = "";
-    el.facets.querySelectorAll<HTMLInputElement>("input").forEach((i) => (i.checked = false));
-    el.facets.querySelectorAll<HTMLSelectElement>("select").forEach((s) => (s.value = ""));
+    Object.assign(state, emptyState(state.sort));
+    renderFieldValues(el, state);
     apply();
   });
   window.addEventListener("popstate", () => {
-    const next = readUrl();
-    Object.assign(state, next);
-    state.selected = next.selected;
-    if (data) {
-      renderFacets(el, data, state, onChange);
-      renderOrders(el, data, state);
-    }
-    el.name.value = state.name;
+    Object.assign(state, readUrl());
+    renderFieldValues(el, state);
+    renderSorts(el, state);
     apply();
   });
 
   function apply(): void {
-    if (!data || !fold) return;
+    if (!engine) return;
 
-    // 1) 軸ごとの積。選択の無い軸は素通し。
-    let visible: Set<number> | null = null;
-    for (const facet of data.facets) {
-      const picked = state.selected.get(facet.key);
-      if (!picked || picked.size === 0) continue;
-      const allowed = new Set<number>();
-      picked.forEach((value) => {
-        const vi = facet.values.findIndex((v) => v.value === value);
-        if (vi < 0) return;
-        facet.rowValues.forEach((values, row) => {
-          if (values.includes(vi)) allowed.add(row);
-        });
-      });
-      visible = visible === null ? allowed : intersect(visible, allowed);
+    // 土台 (ページを組んだ条件) に画面の入力を重ねる。土台を上書きしない。
+    const query: SongQuery = {
+      ...baseQuery,
+      title: state.title.trim() || null,
+      idolIds: state.idolIds,
+      songwriter: state.songwriter.trim() || null,
+      cdSeries: state.cdSeries || null,
+      seriesGroup: state.seriesGroup || null,
+      liveName: state.liveName.trim() || null,
+      songType: state.songType || baseQuery.songType || null,
+      brandIds: state.brandIds.length > 0 ? state.brandIds : (baseQuery.brandIds ?? []),
+      sort: state.sort,
+      ascending: state.ascending,
+    };
+
+    let ids: string[];
+    try {
+      ids = engine.song_ids(JSON.stringify(query));
+    } catch (e) {
+      el.status.textContent = "絞り込みに失敗しました。";
+      console.error("song filter: 条件の適用に失敗", e);
+      return;
     }
 
-    // 2) 名前。索引と同じ規則で畳んだ語の部分一致。
-    const needle = state.name.trim() ? fold(state.name.trim()) : "";
-    if (needle && !needle.includes(data.separator)) {
-      const hit = new Set<number>();
-      data.haystacks.forEach((h, row) => {
-        if (h.includes(needle)) hit.add(row);
-      });
-      visible = visible === null ? hit : intersect(visible, hit);
-    }
-
-    // 3) 並べ替え。順列をそのまま当てる。
-    const order = data.orders.find((o) => o.key === state.sort) ?? data.orders[0];
-    const sequence = order ? (state.ascending ? order.ascending : order.descending) : null;
-    const sequenceRows = sequence ?? rows.map((_, i) => i);
-
+    // 返ってきた順に並べ、載っていない行は隠す。
+    const shown = new Set(ids);
     const frag = document.createDocumentFragment();
-    let shown = 0;
-    for (const row of sequenceRows) {
-      const tr = rows[row];
-      if (!tr) continue;
-      const ok = visible === null || visible.has(row);
-      tr.hidden = !ok;
-      if (ok) shown += 1;
+    for (const id of ids) {
+      const tr = rows.get(id);
+      if (!tr) continue; // 一覧に載っていない曲 (土台の外) は無視する。
+      tr.hidden = false;
       frag.appendChild(tr);
     }
+    for (const [id, tr] of rows) if (!shown.has(id)) tr.hidden = true;
     el.tbody.appendChild(frag);
 
-    const filtered = visible !== null || !!needle;
-    el.status.textContent = filtered ? `${shown} 件 / ${total} 件` : `${total} 件`;
-    el.root.dataset.filtered = String(filtered);
-    // かな目次は初期の並びを前提にした飛び先なので、並べ替え/絞り込み中は隠す。
-    if (el.kana) el.kana.hidden = filtered || state.sort !== data.orders[0]?.key || !state.ascending;
-    writeUrl(state, data);
+    const narrowed = isNarrowed(state);
+    el.status.textContent = narrowed
+      ? `${frag.childElementCount || countVisible(rows)} 件 / ${total} 件`
+      : `${total} 件`;
+    el.root.dataset.filtered = String(narrowed);
+    // かな目次は既定の並びを前提にした飛び先なので、絞り込み/並べ替え中は隠す。
+    if (el.kana) el.kana.hidden = narrowed || state.sort !== "kana" || state.ascending === false;
+    writeUrl(state);
   }
 }
 
@@ -203,133 +179,155 @@ function must<T extends HTMLElement>(root: HTMLElement, selector: string): T {
   return found;
 }
 
-function intersect(a: Set<number>, b: Set<number>): Set<number> {
-  const out = new Set<number>();
-  a.forEach((v) => {
-    if (b.has(v)) out.add(v);
-  });
-  return out;
+function countVisible(rows: Map<string, HTMLElement>): number {
+  let n = 0;
+  for (const tr of rows.values()) if (!tr.hidden) n += 1;
+  return n;
 }
 
-function defaultAscending(data: SongListFilterData | null, key: string): boolean {
-  return data?.orders.find((o) => o.key === key)?.defaultAscending ?? true;
+function emptyState(sort: string): State {
+  return {
+    title: "",
+    idolIds: [],
+    songwriter: "",
+    cdSeries: "",
+    seriesGroup: "",
+    liveName: "",
+    brandIds: [],
+    songType: "",
+    sort,
+    ascending: null,
+  };
+}
+
+function isNarrowed(s: State): boolean {
+  return (
+    !!s.title.trim() ||
+    s.idolIds.length > 0 ||
+    !!s.songwriter.trim() ||
+    !!s.cdSeries ||
+    !!s.seriesGroup ||
+    !!s.liveName.trim() ||
+    s.brandIds.length > 0 ||
+    !!s.songType
+  );
+}
+
+function currentAscending(s: State): boolean {
+  if (s.ascending !== null) return s.ascending;
+  return SORTS.find((x) => x.key === s.sort)?.asc ?? true;
 }
 
 function setEnabled(el: Elements, on: boolean): void {
-  for (const c of [el.name, el.sort, el.dir, el.reset]) c.disabled = !on;
+  for (const c of [el.sort, el.dir, el.reset]) c.disabled = !on;
+  el.fields.querySelectorAll<HTMLInputElement>("input,select").forEach((i) => (i.disabled = !on));
   el.root.dataset.state = on ? "ready" : "loading";
 }
 
 function syncDir(el: Elements, state: State): void {
-  el.dir.dataset.ascending = String(state.ascending);
-  el.dir.setAttribute("aria-label", state.ascending ? "昇順（クリックで降順）" : "降順（クリックで昇順）");
-  el.dir.textContent = state.ascending ? "↑" : "↓";
+  const asc = currentAscending(state);
+  el.dir.textContent = asc ? "↑" : "↓";
+  el.dir.setAttribute("aria-label", asc ? "昇順（クリックで降順）" : "降順（クリックで昇順）");
 }
 
-function renderOrders(el: Elements, data: SongListFilterData, state: State): void {
-  el.sort.innerHTML = data.orders
-    .map((o) => `<option value="${escapeAttr(o.key)}">${escapeText(o.label)}</option>`)
-    .join("");
-  if (!data.orders.some((o) => o.key === state.sort)) {
-    state.sort = data.orders[0]?.key ?? "";
-    state.ascending = defaultAscending(data, state.sort);
-  }
+function renderSorts(el: Elements, state: State): void {
+  el.sort.innerHTML = SORTS.map(
+    (o) => `<option value="${o.key}">${escapeText(o.label)}</option>`,
+  ).join("");
+  if (!SORTS.some((o) => o.key === state.sort)) state.sort = "kana";
   el.sort.value = state.sort;
   syncDir(el, state);
 }
 
-/** 軸の描画。値が多い軸は `select`、少ない軸はチップ (チェックボックス)。 */
-function renderFacets(
-  el: Elements,
-  data: SongListFilterData,
-  state: State,
-  onChange: () => void,
-): void {
-  el.facets.innerHTML = data.facets.map((f) => facetHtml(f, state)).join("");
-  el.facets.querySelectorAll<HTMLInputElement>("input[data-facet]").forEach((input) => {
-    input.addEventListener("change", () => {
-      const key = input.dataset.facet!;
-      const set = state.selected.get(key) ?? new Set<string>();
-      if (input.checked) set.add(input.value);
-      else set.delete(input.value);
-      state.selected.set(key, set);
+/** 入力欄。値の集合は wasm (= Snapshot) が出したものをそのまま並べる。 */
+function renderFields(el: Elements, f: Facets, state: State, onChange: () => void): void {
+  const select = (key: string, label: string, opts: { value: string; label: string }[]) =>
+    `<label class="song-filter__field"><span class="u-visually-hidden">${escapeText(label)}</span>
+      <select class="song-filter__select" data-key="${key}">
+        <option value="">${escapeText(label)}: すべて</option>
+        ${opts.map((o) => `<option value="${escapeAttr(o.value)}">${escapeText(o.label)}</option>`).join("")}
+      </select></label>`;
+  const text = (key: string, placeholder: string) =>
+    `<label class="song-filter__field"><span class="u-visually-hidden">${escapeText(placeholder)}</span>
+      <input class="song-filter__input" type="search" data-key="${key}"
+        placeholder="${escapeAttr(placeholder)}" autocomplete="off" spellcheck="false"></label>`;
+
+  el.fields.innerHTML = [
+    text("title", "曲名で絞り込み"),
+    select("idolIds", "原唱者", f.idols),
+    text("songwriter", "作家名"),
+    text("liveName", "ライブ名"),
+    select("cdSeries", "CD シリーズ", f.cdSeries),
+    select("seriesGroup", "シリーズ", f.seriesGroups),
+    select("brandIds", "ブランド", f.brands),
+    select("songType", "曲種別", [
+      { value: "all", label: "全体曲" },
+      { value: "unit", label: "ユニット曲" },
+      { value: "solo", label: "ソロ曲" },
+    ]),
+  ].join("");
+
+  el.fields.querySelectorAll<HTMLInputElement | HTMLSelectElement>("[data-key]").forEach((c) => {
+    c.addEventListener(c.tagName === "SELECT" ? "change" : "input", () => {
+      const key = c.dataset.key as keyof State;
+      // 複数値の軸も、画面では単一選択で足りる (アプリのピッカーに相当する UI は持たない)。
+      if (key === "idolIds" || key === "brandIds") {
+        (state[key] as string[]) = c.value ? [c.value] : [];
+      } else {
+        (state[key] as string) = c.value;
+      }
       onChange();
     });
   });
-  el.facets.querySelectorAll<HTMLSelectElement>("select[data-facet]").forEach((select) => {
-    select.addEventListener("change", () => {
-      const key = select.dataset.facet!;
-      state.selected.set(key, select.value ? new Set([select.value]) : new Set());
-      onChange();
-    });
-  });
+  renderFieldValues(el, state);
 }
 
-/** チップで出すか `select` で出すかの境目。多い軸を全部並べると読めない。 */
-const CHIP_LIMIT = 12;
-
-function facetHtml(facet: SongFacet, state: State): string {
-  const picked = state.selected.get(facet.key) ?? new Set<string>();
-  const label = escapeText(facet.label);
-  if (facet.values.length > CHIP_LIMIT || !facet.multi) {
-    const options = [`<option value="">${label}: すべて</option>`]
-      .concat(
-        facet.values.map(
-          (v) =>
-            `<option value="${escapeAttr(v.value)}"${picked.has(v.value) ? " selected" : ""}>` +
-            `${escapeText(v.label)} (${v.count})</option>`,
-        ),
-      )
-      .join("");
-    return `<label class="song-filter__field"><span class="u-visually-hidden">${label}</span>
-      <select class="song-filter__select" data-facet="${escapeAttr(facet.key)}">${options}</select></label>`;
-  }
-  const chips = facet.values
-    .map(
-      (v) =>
-        `<label class="song-filter__chip"><input type="checkbox" data-facet="${escapeAttr(facet.key)}"` +
-        ` value="${escapeAttr(v.value)}"${picked.has(v.value) ? " checked" : ""}>` +
-        `<span>${escapeText(v.label)}</span><b>${v.count}</b></label>`,
-    )
-    .join("");
-  return `<fieldset class="song-filter__group"><legend>${label}</legend>${chips}</fieldset>`;
+function renderFieldValues(el: Elements, state: State): void {
+  el.fields.querySelectorAll<HTMLInputElement | HTMLSelectElement>("[data-key]").forEach((c) => {
+    const key = c.dataset.key as keyof State;
+    const v = state[key];
+    c.value = Array.isArray(v) ? (v[0] ?? "") : typeof v === "string" ? v : "";
+  });
 }
 
 // --- URL との往復 ---------------------------------------------------------
 
+const URL_KEYS: (keyof State)[] = [
+  "title",
+  "idolIds",
+  "songwriter",
+  "cdSeries",
+  "seriesGroup",
+  "liveName",
+  "brandIds",
+  "songType",
+];
+
 function readUrl(): State {
   const q = new URLSearchParams(location.search);
-  const selected = new Map<string, Set<string>>();
-  for (const [key, value] of q.entries()) {
-    if (key === "q" || key === "sort" || key === "dir") continue;
-    const set = selected.get(key) ?? new Set<string>();
-    value.split(",").filter(Boolean).forEach((v) => set.add(v));
-    selected.set(key, set);
+  const s = emptyState(q.get("sort") ?? "kana");
+  for (const key of URL_KEYS) {
+    const v = q.get(key);
+    if (!v) continue;
+    if (key === "idolIds" || key === "brandIds") (s[key] as string[]) = v.split(",").filter(Boolean);
+    else (s[key] as string) = v;
   }
-  return {
-    name: q.get("q") ?? "",
-    sort: q.get("sort") ?? "",
-    ascending: q.get("dir") !== "desc",
-    selected,
-  };
+  const dir = q.get("dir");
+  s.ascending = dir === "asc" ? true : dir === "desc" ? false : null;
+  return s;
 }
 
-function writeUrl(state: State, data: SongListFilterData): void {
+function writeUrl(state: State): void {
   const q = new URLSearchParams();
-  if (state.name.trim()) q.set("q", state.name.trim());
-  state.selected.forEach((set, key) => {
-    if (set.size > 0) q.set(key, [...set].join(","));
-  });
-  const isDefaultSort =
-    state.sort === data.orders[0]?.key && state.ascending === defaultAscending(data, state.sort);
-  if (!isDefaultSort) {
-    q.set("sort", state.sort);
-    q.set("dir", state.ascending ? "asc" : "desc");
+  for (const key of URL_KEYS) {
+    const v = state[key];
+    const text = Array.isArray(v) ? v.join(",") : String(v ?? "");
+    if (text.trim()) q.set(key, text.trim());
   }
+  if (state.sort !== "kana") q.set("sort", state.sort);
+  if (state.ascending !== null) q.set("dir", state.ascending ? "asc" : "desc");
   const next = q.toString() ? `${location.pathname}?${q}` : location.pathname;
-  if (next !== location.pathname + location.search) {
-    history.replaceState(null, "", next);
-  }
+  if (next !== location.pathname + location.search) history.replaceState(null, "", next);
 }
 
 function escapeText(s: string): string {

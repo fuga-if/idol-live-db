@@ -7,7 +7,7 @@
 //!
 //! 並び順の規約は `domain/snapshot.rs` の各フィールド doc が正。
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 use crate::domain::snapshot::{
     Anniversary, Brand, BrandMemberLink, Creator, Event, EventRelease, Idol, IdolBrandLink,
@@ -34,7 +34,9 @@ pub struct RawTables {
     pub venues: Vec<Venue>,
     pub staff: Vec<Staff>,
     pub anniversaries: Vec<Anniversary>,
-    pub meta: HashMap<String, String>,
+    /// **順序の決まった型で持つ。** ここは配る形でもあるので、`HashMap` だと
+    /// 実行のたびに JSON のキー順が変わり、出力が byte 一致しなくなる。
+    pub meta: BTreeMap<String, String>,
     pub shows: Vec<Show>,
     pub setlist_items: Vec<SetlistItem>,
     pub venue_names: Vec<VenueName>,

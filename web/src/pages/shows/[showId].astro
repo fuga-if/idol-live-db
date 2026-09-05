@@ -1,6 +1,7 @@
 ---
 import DetailLayout from "../../layouts/DetailLayout.astro";
 import Section from "../../components/Section.astro";
+import PerformerNamePref from "../../components/PerformerNamePref.astro";
 import SetlistRow from "../../components/SetlistRow.astro";
 import RefList from "../../components/RefList.astro";
 import Chip from "../../components/Chip.astro";
@@ -13,7 +14,7 @@ export const getStaticPaths = () => pathsFor("show", "showId");
 const show = page<ShowPage>(Astro.props.data);
 ---
 
-<DetailLayout seo={show.seo} meta={meta()} themeKey={show.themeKey} app={show.app}>
+<DetailLayout seo={show.seo} meta={meta()} themeKey={show.themeKey} app={show.app} isCharacterLive={show.isCharacterLive}>
   <section class="hero" slot="hero" aria-labelledby="show-title">
     <div class="hero__body">
       <p class="hero__eyebrow">
@@ -41,6 +42,7 @@ const show = page<ShowPage>(Astro.props.data);
   </section>
 
   <Section id="show-setlist" title="セットリスト" count={show.setlist.length}>
+    <PerformerNamePref />
     {
       show.setlist.length === 0 ? (
         <EmptyState
