@@ -62,6 +62,16 @@ const MAX_STATUS_IDS = 90;
 /** 歌詞応答は端末にもエッジにも残さない (許諾条件の「一括ダウンロード不可」の実効性)。 */
 export const NO_STORE: Record<string, string> = { "Cache-Control": "no-store" };
 
+// ---- 歌詞・コールガイドの取得 (GET /songs/:id/lyrics, GET /lyrics/search) の IP 上限 ----
+//
+// 会場ではキャリアの NAT で大勢が同じ IP になり、同じ 1 分に何十人もコールガイドを開く。
+// 既定の 30/分 だと 31 人目から 429 (出面では「読み込めませんでした」) になる。
+// 分の上限を上げ、代わりに 1 日の上限で「まとめ取り」を押さえる (2,155 曲を 1 つの IP から
+// 取り切るには 3 日かかる。完全に防ぐものではなく、手間を上げるための歯止め)。
+// 数の根拠: ドーム規模で数十 IP に分かれ、1 IP あたり同じ 1 分に開くのは数十人、
+// 1 日に数百回、という見積り。本番の 429 の件数 (Workers Logs) を見て調整する。
+export const LYRICS_IP_LIMITS = { perMinute: 120, perDay: 1000 } as const;
+
 // ---- 歌詞検索 (GET /lyrics/search) の上限 ----
 //
 // ⚠️ 検索は「まとめ取り」に一番近い機能なので、返すものを構造で絞る:
@@ -598,7 +608,7 @@ export async function handleLyrics(ctx: RouteContext): Promise<Response | null> 
     const terms = collectTerms(expr);
 
     const ip = request.headers.get("CF-Connecting-IP") || "unknown";
-    const ipRl = await dryCheckIpRateLimit(env.DB, ip);
+    const ipRl = await dryCheckIpRateLimit(env.DB, ip, LYRICS_IP_LIMITS);
     if (!ipRl.allowed) return rateLimitSimple();
 
     // draft は admin にしか見せない (GET /songs/:id/lyrics と同じ規則)。
@@ -610,7 +620,7 @@ export async function handleLyrics(ctx: RouteContext): Promise<Response | null> 
     // 従来どおり全走査する。候補が空配列なら「該当なし」が確定しているので走査すらしない。
     const candidates = await candidatesForNode(env, expr);
     if (candidates?.length === 0) {
-      await commitIpRateLimit(env.DB, ip, ipRl.bucket);
+      await commitIpRateLimit(env.DB, ip, ipRl.bucket, ipRl.dayBucket);
       return json({ query, hits: [] }, 200, NO_STORE);
     }
 
@@ -692,7 +702,7 @@ export async function handleLyrics(ctx: RouteContext): Promise<Response | null> 
       return snippets.length > 0 ? [{ songId: row.song_id as string, snippets }] : [];
     });
 
-    await commitIpRateLimit(env.DB, ip, ipRl.bucket);
+    await commitIpRateLimit(env.DB, ip, ipRl.bucket, ipRl.dayBucket);
     return json({ query, hits }, 200, NO_STORE);
   }
 
@@ -734,16 +744,15 @@ export async function handleLyrics(ctx: RouteContext): Promise<Response | null> 
       return error("lyrics not found", 404);
     }
 
-    // 日次上限は置かない (rate_limit.ts のコメント参照)。IP 単位のバースト制限
-    // だけを掛ける。人間が1分に30曲読むことはないので正常利用には当たらず、
-    // クライアントの暴走やスクリプトによる連打だけを抑える。
+    // IP 単位の上限 (分と日、LYRICS_IP_LIMITS)。会場の NAT で同じ IP に大勢が乗っても
+    // 正常利用が 429 にならない値にし、まとめ取りは日の上限で押さえる。
     // 成功が確定してから commit する (404 等で枠を消費させない)。
     const ip = request.headers.get("CF-Connecting-IP") || "unknown";
-    const ipRl = await dryCheckIpRateLimit(env.DB, ip);
+    const ipRl = await dryCheckIpRateLimit(env.DB, ip, LYRICS_IP_LIMITS);
     if (!ipRl.allowed) return rateLimitSimple();
 
     const lines = parseLines(header.lines_json);
-    await commitIpRateLimit(env.DB, ip, ipRl.bucket);
+    await commitIpRateLimit(env.DB, ip, ipRl.bucket, ipRl.dayBucket);
     // ここまで来たら歌詞を返すことが確定している (401/404/429 では数えない)。
     logLyricsRead(songId);
     return json({ ...buildLyricsPayload(songId, header, lines), status: header.status },

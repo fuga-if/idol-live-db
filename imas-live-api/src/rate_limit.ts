@@ -97,39 +97,70 @@ export async function checkRateLimit(
 }
 
 /**
- * IP 単位の分割り当て。未認証エンドポイント (auth/login 等) や device 集計の
+ * IP 単位の割り当て。未認証エンドポイント (auth/login 等) や device 集計の
  * 一次防御に使う。user/device 単位の checkRateLimit とは別枠。
+ *
+ * 既定は 1 分 30 回。歌詞・コールガイドの GET は会場で大勢が同じ IP (キャリアの NAT)
+ * から同じ 1 分に開くので、呼び出し側が別の上限を渡す (routes/lyrics.ts の
+ * LYRICS_IP_LIMITS)。1 日の上限は、分の上限を上げたぶんの「まとめ取り」の歯止め。
+ * 日のバケットは同じ表に**負の鍵**で置く (分のバケットは正の整数なので衝突しない)。
  */
+export interface IpRateLimits {
+  perMinute: number;
+  /** 未指定なら日の上限を見ない (既定の呼び出し側)。 */
+  perDay?: number;
+}
 const IP_RATE_LIMIT_PER_MINUTE = 30;
+const DEFAULT_IP_LIMITS: IpRateLimits = { perMinute: IP_RATE_LIMIT_PER_MINUTE };
+
+export interface IpRateCheck {
+  allowed: boolean;
+  /** 今の分の回数。 */
+  count: number;
+  bucket: number;
+  /** 日の上限を見たときだけ入る (commit で一緒に +1 する)。 */
+  dayBucket: number | null;
+}
+
+const RATE_ROW_SQL = "SELECT count FROM api_rate_limits WHERE ip = ? AND minute_bucket = ?";
 
 /** チェックのみ（+1 しない）。成功時のみ commitIpRateLimit を呼ぶ。 */
 export async function dryCheckIpRateLimit(
   db: D1Database,
-  ip: string
-): Promise<{ allowed: boolean; count: number; bucket: number }> {
-  const bucket = Math.floor(Date.now() / 1000 / 60);
-  const row = await db
-    .prepare("SELECT count FROM api_rate_limits WHERE ip = ? AND minute_bucket = ?")
-    .bind(ip, bucket)
-    .first<{ count: number }>();
-  const count = row?.count ?? 0;
-  return { allowed: count < IP_RATE_LIMIT_PER_MINUTE, count, bucket };
+  ip: string,
+  limits: IpRateLimits = DEFAULT_IP_LIMITS
+): Promise<IpRateCheck> {
+  const nowSec = Math.floor(Date.now() / 1000);
+  const bucket = Math.floor(nowSec / 60);
+  const dayBucket = limits.perDay === undefined ? null : -Math.floor(nowSec / 86400);
+  const minute = await db.prepare(RATE_ROW_SQL).bind(ip, bucket).first<{ count: number }>();
+  const count = minute?.count ?? 0;
+  if (count >= limits.perMinute) return { allowed: false, count, bucket, dayBucket };
+  if (dayBucket !== null) {
+    const day = await db.prepare(RATE_ROW_SQL).bind(ip, dayBucket).first<{ count: number }>();
+    if ((day?.count ?? 0) >= limits.perDay!) return { allowed: false, count, bucket, dayBucket };
+  }
+  return { allowed: true, count, bucket, dayBucket };
 }
 
-/** handler 成功直前にのみ呼ぶ（+1 コミット）。 */
+/** handler 成功直前にのみ呼ぶ（+1 コミット）。日のバケットを見た呼び出しはそちらも +1。 */
 export async function commitIpRateLimit(
   db: D1Database,
   ip: string,
-  bucket: number
+  bucket: number,
+  dayBucket: number | null = null
 ): Promise<void> {
-  await db
-    .prepare(
-      `INSERT INTO api_rate_limits (ip, minute_bucket, count)
-       VALUES (?, ?, 1)
-       ON CONFLICT(ip, minute_bucket) DO UPDATE SET count = count + 1`
-    )
-    .bind(ip, bucket)
-    .run();
+  const upsert = (b: number) =>
+    db
+      .prepare(
+        `INSERT INTO api_rate_limits (ip, minute_bucket, count)
+         VALUES (?, ?, 1)
+         ON CONFLICT(ip, minute_bucket) DO UPDATE SET count = count + 1`
+      )
+      .bind(ip, b)
+      .run();
+  await upsert(bucket);
+  if (dayBucket !== null) await upsert(dayBucket);
 }
 
 /**

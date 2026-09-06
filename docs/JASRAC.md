@@ -479,7 +479,7 @@ SJIS で落ちる主な文字: `♡` (U+2661)、`É`/`é`、ハングル、`Ø`�
    `https://idollivedb.fugalabs.uk` を入れた (デプロイで反映)。空のままだと
    ブラウザから叩けない (preflight に Access-Control-Allow-Origin が付かない)。
 
-**D1 の読み取り枠**: 歌詞 1 曲 = `song_lyrics` 1 行 + IP レート制限のバケット 1〜2 行。
+**D1 の読み取り枠**: 歌詞 1 曲 = `song_lyrics` 1 行 + IP 上限のバケット (分・日) 2 行の読みと 2 行の書き。IP 上限は歌詞だけ 120/分 + 1,000/日 (`LYRICS_IP_LIMITS`。会場の NAT 対策)。
 歌詞検索 (`GET /lyrics/search`、n-gram 索引の走査で 1 回あたり数百行) は出面に持たない。
 押されたときだけ取りに行くので、曲ページの閲覧そのものは D1 を読まない。
 リクエスト回数の記録 (`logLyricsRead`) は出面からの分も同じ Worker で数えられる。
