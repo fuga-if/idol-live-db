@@ -65,6 +65,12 @@ CLOUDKIT_KEY_ID=$KID python3 tools/seed_cloudkit.py --production --tables shows 
 `--ids` の絞り込み列はテーブルごとに違う (`shows` は **event_id**、`setlist_items` は id、
 `song_artists` は song_id)。まとめて直した例: `tools/pending_push_20260906/README.md`。
 
+**複合主キーの列を書き換える修正も、push だけでは伝わらない。** `song_artists` は
+(song_id, idol_id, role) が主キーで、CloudKit の recordName にそのまま入る。role を
+performer → original に直して push すると **original のレコードが増えるだけ**で、旧 performer は
+残り、翌日の export で行が復活する。旧 recordName を `--delete-file` で消すこと
+(例: `tools/pending_cloudkit_deletions_765as_roles_20260906.tsv`)。
+
 **鍵の在り処**: key ID は環境変数にも `~/.zshrc` にも無い。`.claude/skills/sync-new-songs/SKILL.md`
 の冒頭に Production の値が書いてある (このディレクトリは `.git/info/exclude` で
 リポジトリから除外済み)。秘密鍵は `tools/eckey.pem` で、スクリプトが自分で読む。

@@ -2645,7 +2645,7 @@ CREATE TABLE meta (key TEXT PRIMARY KEY NOT NULL, value TEXT);
 INSERT INTO meta VALUES('schema_version','1');
 INSERT INTO meta VALUES('data_version','74');
 INSERT INTO meta VALUES('migration_v14_idol_is_external','applied');
-INSERT INTO meta VALUES('content_hash','69e6eaa45398c01cd87cc489b43491b56718fde5b89fe87b3ac9df2645637004');
+INSERT INTO meta VALUES('content_hash','ae0ae77781059aad3eb08054a6b1c641e6bf9d8e9db9821a5450b3e7bf47b36e');
 CREATE TABLE setlist_items (id TEXT PRIMARY KEY NOT NULL, show_id TEXT NOT NULL, song_id TEXT NOT NULL, position INTEGER NOT NULL, section TEXT, notes TEXT, unit_name TEXT, UNIQUE(show_id, position));
 INSERT INTO setlist_items VALUES('sh_L0264_2265','sh_L0264','sidem_drive_a_live',2265,NULL,NULL,NULL);
 INSERT INTO setlist_items VALUES('sh_L0265_2266','sh_L0265','sidem_drive_a_live',2266,NULL,NULL,NULL);
@@ -9944,7 +9944,7 @@ INSERT INTO setlist_items VALUES('sh_L0986_10091','sh_L0986','gakuen_初',10091,
 INSERT INTO setlist_items VALUES('sh_L0987_10092','sh_L0987','765as_start',10092,NULL,NULL,NULL);
 INSERT INTO setlist_items VALUES('sh_L0987_10093','sh_L0987','765as_乙女よ大志を抱け',10093,NULL,NULL,NULL);
 INSERT INTO setlist_items VALUES('sh_L0987_10094','sh_L0987','765as_go_my_way',10094,NULL,NULL,NULL);
-INSERT INTO setlist_items VALUES('sh_L0987_10095','sh_L0987','765as_私はアイドル_2',10095,NULL,NULL,NULL);
+INSERT INTO setlist_items VALUES('sh_L0987_10095','sh_L0987','765as_私はアイドル',10095,NULL,NULL,NULL);
 INSERT INTO setlist_items VALUES('sh_L0987_10096','sh_L0987','765as_ステキハピネス',10096,NULL,NULL,NULL);
 INSERT INTO setlist_items VALUES('sh_L0987_10097','sh_L0987','765as_i_want',10097,NULL,NULL,NULL);
 INSERT INTO setlist_items VALUES('sh_L0987_10098','sh_L0987','765as_ストレートラブ',10098,NULL,'765プロVer.',NULL);
@@ -94306,9 +94306,6 @@ INSERT INTO song_artists VALUES('765as_私はアイドルワルキューレの�
 INSERT INTO song_artists VALUES('765as_私はアイドルワルキューレの伝説ファミソン8bit_mix','765as_星井美希','original');
 INSERT INTO song_artists VALUES('765as_私はアイドルremster-b','765as_如月千早','original');
 INSERT INTO song_artists VALUES('765as_私はアイドルremster-b','765as_萩原雪歩','original');
-INSERT INTO song_artists VALUES('765as_私はアイドル_2','765as_星井美希','original');
-INSERT INTO song_artists VALUES('765as_私はアイドル_2','765as_天海春香','original');
-INSERT INTO song_artists VALUES('765as_私はアイドル_2','765as_如月千早','original');
 INSERT INTO song_artists VALUES('765as_自転車_-house_rearrange_mix-','765as_菊地真','original');
 INSERT INTO song_artists VALUES('cg_華蕾夢ミル狂詩曲_魂ノ導_-for_anzu_rearrange_mix-','cg_双葉杏','original');
 INSERT INTO song_artists VALUES('765as_蒼い鳥ドラゴンスピリットファミソン8bit_mix','765as_如月千早','original');
@@ -94590,6 +94587,7 @@ INSERT INTO song_artists VALUES('765as_私はアイドル','765as_如月千早',
 INSERT INTO song_artists VALUES('765as_私はアイドル','765as_三浦あずさ','performer');
 INSERT INTO song_artists VALUES('765as_私はアイドル','765as_菊地真','performer');
 INSERT INTO song_artists VALUES('765as_私はアイドル','765as_萩原雪歩','performer');
+INSERT INTO song_artists VALUES('765as_私はアイドル','765as_双海真美','original');
 INSERT INTO song_artists VALUES('765as_思い出をありがとう','765as_如月千早','performer');
 INSERT INTO song_artists VALUES('765as_思い出をありがとう','765as_双海真美','performer');
 INSERT INTO song_artists VALUES('765as_思い出をありがとう','765as_高槻やよい','performer');
@@ -111867,7 +111865,6 @@ INSERT INTO songs VALUES('765as_私たちはずっとでしょう_-ryo_watanabe_
 INSERT INTO songs VALUES('765as_私はアイドルremster-a','私はアイドル(REM@STER-A)','わたしはあいどる','765as','solo','2008-06-25',NULL,'BNSI(佐々木宏人)','中村恵','鴇沢直','TVアニメ「アイドルマスター」 劇中歌 COLLECTION -FIRST SEASON-',NULL,'https://is1-ssl.mzstatic.com/image/thumb/Music123/v4/35/4f/43/354f43b0-7aa8-4412-b621-e731b17ff9fd/COKM-31524.jpg/600x600bb.jpg','https://audio-ssl.itunes.apple.com/itunes-assets/Music/52/70/16/mzi.ehjrqrst.aac.p.m4a','558745572','558745005','','https://www.uta-net.com/song/51305/',NULL,'高槻やよい',NULL,NULL,'TVアニメ「アイドルマスター」 劇中歌 COLLECTION',NULL,NULL);
 INSERT INTO songs VALUES('765as_私はアイドルワルキューレの伝説ファミソン8bit_mix','私はアイドル♡(『ワルキューレの伝説』ファミソン8BIT MIX)','わたしはあいどる','765as','unit','2008-06-25',NULL,'BNSI(佐々木宏人)','中村恵','KPLECRAFT','ファミソン8BIT☆アイドルマスター02',NULL,'https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/96/80/64/96806435-086e-04ad-f2ad-eed5cf9db9ed/PA00114560_0_162943_jacket.jpg/600x600bb.jpg','https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview116/v4/49/6b/54/496b54c4-68a4-5076-2ce2-3b024ccaf8c5/mzaf_4975656629798945985.plus.aac.p.m4a','1677719863','1677719841','','https://www.uta-net.com/song/51305/','765as_私はアイドル','天海春香、星井美希',NULL,NULL,'ファミソン8BIT☆アイドルマスター',NULL,NULL);
 INSERT INTO songs VALUES('765as_私はアイドルremster-b','私はアイドル♡(REM@STER-B)','わたしはあいどる','765as','unit','2008-06-25',NULL,'BNSI(佐々木宏人)','中村恵','宮垣憲一郎','THE IDOLM@STER 765PRO ALLSTARS+ GRE@TEST BEST! -SWEET&SMILE!-',NULL,'https://is1-ssl.mzstatic.com/image/thumb/Music112/v4/f2/a2/a3/f2a2a322-77c8-95d1-838a-2320cdd8afa8/COCX-38071.jpg/600x600bb.jpg','https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview122/v4/cb/c1/14/cbc11470-2b09-2963-868a-33d9b40e8c03/mzaf_2799649245755821759.plus.aac.p.m4a','1659368283','1659368274','','https://www.uta-net.com/song/51305/','765as_私はアイドル','如月千早、音無小鳥、萩原雪歩',NULL,NULL,'765PRO ALLSTARS+ GRE@TEST BEST',NULL,NULL);
-INSERT INTO songs VALUES('765as_私はアイドル_2','私はアイドル♥','わたしはあいどる','765as','unit','2006-12-20',NULL,'BNSI(佐々木宏人)','中村恵','BNSI(佐々木宏人)','THE IDOLM@STER 765PRO ALLSTARS+ GRE@TEST BEST! -SWEET&SMILE!-',NULL,'https://is1-ssl.mzstatic.com/image/thumb/Music112/v4/f2/a2/a3/f2a2a322-77c8-95d1-838a-2320cdd8afa8/COCX-38071.jpg/600x600bb.jpg','https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview122/v4/cb/c1/14/cbc11470-2b09-2963-868a-33d9b40e8c03/mzaf_2799649245755821759.plus.aac.p.m4a','1659368283','1659368274','','https://www.uta-net.com/song/290321/',NULL,'星井美希、天海春香、如月千早',NULL,NULL,'765PRO ALLSTARS+ GRE@TEST BEST',NULL,NULL);
 INSERT INTO songs VALUES('cg_秘密のトワレ_-midnight_lab_remix-','秘密のトワレ -Midnight Lab Remix-','ひみつのとわれ','cg','solo','2017-08-12',NULL,'ササキトモコ','ササキトモコ','BNSI(Taku Inoue)','CINDERELLA GIRLSのライブ会場限定CD#5thSSA限定','CINDERELLA GIRLSのライブ会場限定CD#5thSSA限定',NULL,NULL,NULL,NULL,NULL,NULL,'cg_秘密のトワレ','神谷奈緒',NULL,NULL,'ライブ会場限定CD',NULL,NULL);
 INSERT INTO songs VALUES('765as_約束_-hidekazu_tanaka_remix-','約束 -Hidekazu Tanaka Remix-','やくそく','765as','all','2021-06-16',NULL,'BNEI(中川浩二・小林啓樹)','森由里子','田中秀和［MONACA］','TO D@NCE TO シリーズ#TDT04','TO D@NCE TO シリーズ#TDT04',NULL,NULL,NULL,NULL,NULL,NULL,'765as_約束','765PRO ALLSTARS',NULL,NULL,'Remixes Collection TO D@NCE TO',NULL,NULL);
 INSERT INTO songs VALUES('ml_素敵なキセキkan_takahiko_remix','素敵なキセキ (KAN TAKAHIKO Remix)','すてきなきせき','ml','solo','2021-02-26',NULL,'岡本健介','岡本健介','KAN TAKAHIKO',NULL,NULL,NULL,NULL,NULL,NULL,NULL,'https://www.uta-net.com/song/148530/','ml_素敵なキセキ','春日未来',NULL,NULL,NULL,NULL,NULL);

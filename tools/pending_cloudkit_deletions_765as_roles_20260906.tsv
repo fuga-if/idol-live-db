@@ -1,0 +1,16 @@
+# 765AS 全体曲 4 曲 + Thank You! の春香/律子/真美を performer → original に直した分。
+# song_artists は (song_id, idol_id, role) が PK で recordName に role が入るため、
+# original を push しても旧 performer レコードは残る (翌日の export で行が復活する)。先に消す。
+SongArtist	song_artists-765as_change-765as_天海春香-performer
+SongArtist	song_artists-765as_change-765as_秋月律子-performer
+SongArtist	song_artists-765as_change-765as_双海真美-performer
+SongArtist	song_artists-765as_music-765as_天海春香-performer
+SongArtist	song_artists-765as_music-765as_秋月律子-performer
+SongArtist	song_artists-765as_music-765as_双海真美-performer
+SongArtist	song_artists-765as_the_world_is_all_one_-765as_天海春香-performer
+SongArtist	song_artists-765as_the_world_is_all_one_-765as_秋月律子-performer
+SongArtist	song_artists-765as_the_world_is_all_one_-765as_双海真美-performer
+SongArtist	song_artists-765as_ラムネ色_青春-765as_天海春香-performer
+SongArtist	song_artists-765as_ラムネ色_青春-765as_秋月律子-performer
+SongArtist	song_artists-765as_ラムネ色_青春-765as_双海真美-performer
+SongArtist	song_artists-ml_thank_you-765as_天海春香-performer

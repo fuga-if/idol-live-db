@@ -1,0 +1,5 @@
+# 二重登録の統合で不要になったレコード。子 (SongArtist) を先に消す。
+SongArtist	song_artists-765as_私はアイドル_2-765as_天海春香-original
+SongArtist	song_artists-765as_私はアイドル_2-765as_如月千早-original
+SongArtist	song_artists-765as_私はアイドル_2-765as_星井美希-original
+Song	765as_私はアイドル_2
