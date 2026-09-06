@@ -124,66 +124,58 @@
     "themeKey": null,
     "count": 827
   },
-  "scopeLinks": [
+  "scope": {
+    "label": "今後 / 開催済み",
+    "links": [
+      {
+        "label": "今後のライブ",
+        "path": "/events/upcoming/",
+        "current": false,
+        "themeKey": null,
+        "count": 24
+      },
+      {
+        "label": "開催済み",
+        "path": "/events/past/",
+        "current": false,
+        "themeKey": null,
+        "count": 827
+      },
+      {
+        "label": "カレンダー",
+        "path": "/calendar/",
+        "current": false,
+        "themeKey": null,
+        "count": null
+      }
+    ]
+  },
+  "filters": [
     {
-      "label": "今後のライブ",
-      "path": "/events/upcoming/",
-      "current": false,
-      "themeKey": null,
-      "count": 24
-    },
-    {
-      "label": "開催済み",
-      "path": "/events/past/",
-      "current": false,
-      "themeKey": null,
-      "count": 827
-    },
-    {
-      "label": "カレンダー",
-      "path": "/calendar/",
-      "current": false,
-      "themeKey": null,
-      "count": null
-    }
-  ],
-  "brandLinks": [
-    {
-      "label": "すべて",
-      "path": "/events/",
-      "current": true,
-      "themeKey": null,
-      "count": null
-    },
-    {
-      "label": "ミリオンライブ!",
-      "path": "/events/brand/ml/",
-      "current": false,
-      "themeKey": "brand:ml",
-      "count": 210
-    },
-    {
-      "label": "シンデレラガールズ",
-      "path": "/events/brand/cg/",
-      "current": false,
-      "themeKey": "brand:cg",
-      "count": 180
-    }
-  ],
-  "yearLinks": [
-    {
-      "label": "2026",
-      "path": "/events/past/2026/",
-      "current": false,
-      "themeKey": null,
-      "count": 40
-    },
-    {
-      "label": "2025",
-      "path": "/events/past/2025/",
-      "current": false,
-      "themeKey": null,
-      "count": 52
+      "label": "ブランド",
+      "links": [
+        {
+          "label": "すべて",
+          "path": "/events/",
+          "current": true,
+          "themeKey": null,
+          "count": null
+        },
+        {
+          "label": "ミリオンライブ!",
+          "path": "/events/brand/ml/",
+          "current": false,
+          "themeKey": "brand:ml",
+          "count": 210
+        },
+        {
+          "label": "シンデレラガールズ",
+          "path": "/events/brand/cg/",
+          "current": false,
+          "themeKey": "brand:cg",
+          "count": 180
+        }
+      ]
     }
   ],
   "total": 2,

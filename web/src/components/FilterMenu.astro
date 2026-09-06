@@ -1,0 +1,35 @@
+---
+import type { FilterAxis } from "../lib/schema/FilterAxis";
+import Count from "./Count.astro";
+/**
+ * 値の多い切替 (ブランド・年・誕生月・都道府県・月) の畳んだメニュー。
+ * 閉じた札には「軸 いまの値」だけを出し、開くと件数つきの一覧。チップを並べると一覧の頭が
+ * 札だらけになるので畳む。`details` なので JS は要らず、同じ `group` の中では 1 つしか開かない。
+ * 軸の名も値も現在地も Rust (`FilterAxis` / `NavLink.current`) が決める。
+ */
+interface Props {
+  axis: FilterAxis;
+  /** 同時に 1 つしか開かないまとまり (details の name)。 */
+  group?: string;
+}
+const { axis, group } = Astro.props;
+const current = axis.links.find((l) => l.current);
+---
+
+<details class="fmenu" name={group}>
+  <summary class="chip fmenu__summary">
+    <span class="fmenu__label">{axis.label}</span>
+    {current?.label}
+    <span class="chevron" aria-hidden="true">›</span>
+  </summary>
+  <nav class="fmenu__panel" aria-label={axis.label}>
+    {
+      axis.links.map((l) => (
+        <a href={l.path} aria-current={l.current ? "page" : undefined}>
+          {l.label}
+          <Count value={l.count} dim />
+        </a>
+      ))
+    }
+  </nav>
+</details>

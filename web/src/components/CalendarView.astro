@@ -1,6 +1,5 @@
 ---
 import ListLayout from "../layouts/ListLayout.astro";
-import StatStrip from "./StatStrip.astro";
 import DateBadge from "./DateBadge.astro";
 import TagChip from "./TagChip.astro";
 import RefList from "./RefList.astro";
@@ -26,12 +25,9 @@ const anchor = (date: string) => `d-${date}`;
 <ListLayout
   seo={page.seo}
   title={page.title}
-  scopeLinks={page.monthLinks}
-  scopeLabel="月"
-  filterLinks={page.yearLinks}
-  filterLabel="年"
+  filters={page.filters}
 >
-  <p slot="lede" class="u-muted">{page.lede}</p>
+  {page.summary && <p slot="lede" class="u-muted">{page.summary}</p>}
 
   <nav class="pager" aria-label="前後の月">
     {
@@ -60,8 +56,6 @@ const anchor = (date: string) => `d-${date}`;
       )
     }
   </nav>
-
-  <StatStrip items={page.statTiles} label="この月の数" />
 
   <div class="cal">
     <table class="cal__table">

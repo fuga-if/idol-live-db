@@ -1,28 +1,25 @@
 ---
-import type { NavLink } from "../lib/schema/NavLink";
+import type { FilterAxis } from "../lib/schema/FilterAxis";
 import Count from "./Count.astro";
 /**
- * ImasSegmented の Web 版。
- * **状態を持たないリンク集合**にする (ユーザー指示: 一覧のフィルタは静的ページとして分ける)。
- * どれが現在地かは Rust が `current` で出す。
+ * 2〜3 択の切替の帯 (ImasSegmented の Web 版)。今後 / 開催済み / カレンダー など。
+ * 切替は静的ページへのリンクで (ユーザー指示: 一覧のフィルタは静的ページとして分ける)、
+ * 軸の名も、どれが現在地かも Rust (`FilterAxis` / `NavLink.current`) が出す。
+ * 値の多い軸は FilterMenu。
  */
 interface Props {
-  label: string;
-  links: readonly NavLink[];
-  variant?: "segmented" | "chips";
+  axis: FilterAxis;
 }
-const { label, links, variant = "segmented" } = Astro.props;
+const { axis } = Astro.props;
 ---
 
-{
-  links.length > 0 && (
-    <nav aria-label={label} class={variant === "chips" ? "link-chips" : "segmented"}>
-      {links.map((l) => (
-        <a href={l.path} aria-current={l.current ? "page" : undefined}>
-          {l.label}
-          <Count value={l.count} dim />
-        </a>
-      ))}
-    </nav>
-  )
-}
+<nav aria-label={axis.label} class="segmented">
+  {
+    axis.links.map((l) => (
+      <a href={l.path} aria-current={l.current ? "page" : undefined}>
+        {l.label}
+        <Count value={l.count} dim />
+      </a>
+    ))
+  }
+</nav>

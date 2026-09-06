@@ -341,6 +341,14 @@ a.row:hover {
   font-weight: 700;
   line-height: 1;
 }
+/* details の見出しの中では開閉の印: 閉じていれば下向き、開けば上向き。 */
+summary .chevron {
+  transform: rotate(90deg);
+  transition: transform 160ms ease;
+}
+details[open] > summary .chevron {
+  transform: rotate(-90deg);
+}
 /* ブランドの小さな札 (メタ行の中)。色の点 + 短縮名。 */
 .brand-mark {
   display: inline-flex;
@@ -728,11 +736,9 @@ a.chip:hover {
   scrollbar-width: none;
   /* 中身が収まるなら内容幅、溢れるなら親幅で止めて自身が横スクロールする
      (max-content だけだと親をはみ出してページごと横スクロールになる)。
-     `min(100%, max-content)` は無効 (min() に内在サイズは書けない) で捨てられ、
-     縦積みの親の中で全幅に伸びていた。 */
+     `min(100%, max-content)` は無効 (min() に内在サイズは書けない) で捨てられる。 */
   inline-size: fit-content;
   max-inline-size: 100%;
-  align-self: flex-start;
 }
 .segmented::-webkit-scrollbar {
   display: none;
@@ -754,34 +760,9 @@ a.chip:hover {
 }
 /* 選択中の札の中の件数。地の色が反転するので、文字色も地に合わせる (ink2 のままだと消える)。 */
 .segmented a[aria-current="page"] .u-dim,
-.link-chips a[aria-current="page"] .u-dim {
+.fmenu__panel a[aria-current="page"] .u-dim {
   color: inherit;
   opacity: 0.7;
-}
-
-/* 大量のリンク (年・ブランド・かな) はセグメントではなく折返しのチップ列にする */
-.link-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp2);
-}
-.link-chips a {
-  padding: 5px 12px;
-  border-radius: var(--r-pill);
-  background: var(--ds-fill);
-  font-size: var(--fs-footnote);
-  font-weight: 600;
-  color: var(--ds-ink2);
-  overflow-wrap: anywhere;
-  max-inline-size: 100%;
-}
-.link-chips a:hover {
-  color: var(--ds-ink);
-  background: var(--tint-strong);
-}
-.link-chips a[aria-current="page"] {
-  background: var(--ds-sys);
-  color: var(--ds-on-sys);
 }
 
 /* --- 一覧ページの頭 (ListLayout) ------------------------------------------ */
@@ -814,8 +795,81 @@ a.chip:hover {
 }
 .list-head__filters {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp2) var(--sp3);
+}
+
+/* --- 畳んだ切替メニュー (FilterMenu) ------------------------------------------
+   閉じているときは「軸 いまの値 ›」の札 1 つ (.chip の上に角丸と文字色だけ重ねる)。
+   開くと一覧が浮く (details、JS 無し)。一覧は .fmenu-row (position: relative) の左下に
+   付き、その幅で止まる。札の真下ではなく列に付けるので、電話で右寄りの札を開いても
+   画面からはみ出ない。 */
+.fmenu-row {
+  position: relative;
+}
+.fmenu__summary {
+  border-radius: var(--r-sm);
+  color: var(--ds-ink);
+  white-space: nowrap;
+}
+.fmenu__summary:hover {
+  background: var(--tint-strong);
+}
+.fmenu__label {
+  color: var(--ds-ink2);
+  font-weight: 500;
+}
+.fmenu__panel {
+  position: absolute;
+  inset-block-start: calc(100% + 4px);
+  inset-inline-start: 0;
+  z-index: 20;
+  display: grid;
+  gap: 1px;
+  min-inline-size: min(12rem, 100%);
+  max-inline-size: min(22rem, 100%);
+  max-block-size: 60vh;
+  overflow: auto;
+  padding: var(--sp1);
+  border-radius: var(--r-md);
+  border: 1px solid var(--ds-sep);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow2);
+}
+.fmenu__panel a {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
   gap: var(--sp3);
+  padding: 7px 10px;
+  border-radius: var(--r-sm);
+  font-size: var(--fs-footnote);
+  color: var(--ds-ink);
+  white-space: nowrap;
+}
+.fmenu__panel a:hover {
+  background: var(--ds-fill);
+}
+.fmenu__panel a[aria-current="page"] {
+  background: var(--ds-sys);
+  color: var(--ds-on-sys);
+}
+
+/* --- 文字だけのリンク列 (よみの目次・検索の逃げ道) ----------------------------
+   飛び先の印を並べるだけの所。札にすると頭が札だらけになるので、文字の列にする
+   (.u-row の上に間隔と文字の大きさだけ重ね、下線は .u-underline-hover)。 */
+.link-row {
+  gap: 2px var(--sp3);
+  font-size: var(--fs-caption);
+  font-weight: 600;
+}
+.link-row a {
+  padding-block: 2px;
+  color: var(--ds-ink2);
+}
+.link-row a:hover {
+  color: var(--ds-ink);
 }
 
 /* --- StatTile (ImasStatTile) ---------------------------------------------- */
@@ -1705,26 +1759,14 @@ a.labeled-row .labeled-row__value {
 /* 歌唱者が多い行 (全員曲など) は名前を畳む。畳んだままでも色の点で「誰が・何人」を示す。
    JS 無しで開閉できる <details>。開閉の向きは行の › と同じ印を回して言う。 */
 .fold > summary {
-  list-style: none;
-  cursor: pointer;
   display: inline-flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--sp3);
   padding: 2px 0;
 }
-.fold > summary::-webkit-details-marker {
-  display: none;
-}
 .fold > summary:hover .row__count {
   color: var(--ds-ink);
-}
-.fold .chevron {
-  transform: rotate(90deg);
-  transition: transform 160ms ease;
-}
-.fold[open] .chevron {
-  transform: rotate(-90deg);
 }
 .fold__dots {
   display: inline-flex;
@@ -1815,7 +1857,7 @@ a.labeled-row .labeled-row__value {
   .site-footer,
   .open-in-app,
   .segmented,
-  .link-chips,
+  .fmenu,
   .search-box,
   .cta {
     display: none !important;

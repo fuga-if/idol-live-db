@@ -64,8 +64,8 @@ const site = meta();
     </p>
   </div>
 
-  <nav class="link-chips" aria-label="一覧から辿る">
-    {site.primaryNav.map((l) => <a href={l.path}>{l.label}の一覧</a>)}
+  <nav class="u-row link-row" aria-label="一覧から辿る">
+    {site.primaryNav.map((l) => <a class="u-underline-hover" href={l.path}>{l.label}の一覧</a>)}
   </nav>
 </BaseLayout>
 

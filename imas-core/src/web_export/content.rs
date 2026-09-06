@@ -177,10 +177,18 @@ pub fn tag_page_description(name: &str, count: u32) -> String {
     format!("アイドルマスターの楽曲のうち「{name}」のタグが付いた {count} 曲。")
 }
 
+// ---- 一覧の頭の切替 -------------------------------------------------------------
+/// 帯 (今後 / 開催済み / カレンダー) の名。読み上げにだけ使う。
+pub const FILTER_SCOPE_EVENTS: &str = "今後 / 開催済み";
+/// 畳んだメニューの軸名。閉じた札に「軸 いまの値」と出る。
+pub const FILTER_AXIS_BRAND: &str = "ブランド";
+pub const FILTER_AXIS_YEAR: &str = "年";
+pub const FILTER_AXIS_BIRTH_MONTH: &str = "誕生月";
+pub const FILTER_AXIS_PREFECTURE: &str = "都道府県";
+pub const FILTER_AXIS_MONTH: &str = "月";
+
 // ---- カレンダー -----------------------------------------------------------------
 pub const CALENDAR_TITLE: &str = "カレンダー";
-pub const CALENDAR_LEDE: &str =
-    "公演・楽曲のリリース・アイドルの誕生日・記念日・チケットの日程。日付を押すと、その日の一覧へ。";
 pub const CALENDAR_DESCRIPTION: &str = "アイドルマスターのライブ公演・楽曲リリース・誕生日・記念日のカレンダー。";
 pub const CALENDAR_TODAY_LINK: &str = "今月へ";
 /// 日曜始まり (アプリのカレンダーと同じ)。
@@ -192,8 +200,8 @@ pub const CALENDAR_KIND_ANNIVERSARY: &str = "記念日";
 pub const CALENDAR_KIND_TICKET_DEADLINE: &str = "申込締切";
 pub const CALENDAR_KIND_TICKET_LOTTERY: &str = "当落発表";
 pub const CALENDAR_KIND_TICKET_OPEN: &str = "受付開始";
-/// 件数の帯の「リリース曲」(予定の札は「リリース」、公演・誕生日・記念日の帯は札と同じ語)。
-pub const CALENDAR_TILE_RELEASES: &str = "リリース曲";
+/// 件数の 1 行での「リリース曲」(予定の札は「リリース」。公演・誕生日・記念日は札と同じ語)。
+pub const CALENDAR_SUMMARY_RELEASES: &str = "リリース曲";
 
 pub fn calendar_month_title(year: i32, month: u32) -> String {
     format!("{year}年{month}月")
@@ -201,6 +209,26 @@ pub fn calendar_month_title(year: i32, month: u32) -> String {
 
 pub fn calendar_month_description(year: i32, month: u32, shows: u32) -> String {
     format!("{year}年{month}月のアイドルマスターの公演 {shows} 件と、楽曲のリリース・誕生日・記念日の日程。")
+}
+
+/// 月の件数 (数え方は `emit::calendar::month_counts`)。説明文と `calendar_summary` の材料。
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub struct CalendarCounts {
+    pub shows: u32,
+    pub release_songs: u32,
+    pub birthdays: u32,
+    pub anniversaries: u32,
+}
+
+/// この月の件数を 1 行に (`公演 10 ・ リリース曲 35 ・ 誕生日 32 ・ 記念日 3`)。0 は言わない。
+pub fn calendar_summary(c: &CalendarCounts) -> Option<String> {
+    let part = |label: &str, n: u32| (n > 0).then(|| format!("{label} {n}"));
+    crate::domain::display_join::join_parts([
+        part(CALENDAR_KIND_SHOW, c.shows),
+        part(CALENDAR_SUMMARY_RELEASES, c.release_songs),
+        part(CALENDAR_KIND_BIRTHDAY, c.birthdays),
+        part(CALENDAR_KIND_ANNIVERSARY, c.anniversaries),
+    ])
 }
 
 /// 同じ日に出た曲をまとめた札。曲は一覧に全部並べる。

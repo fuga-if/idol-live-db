@@ -31,7 +31,7 @@ use super::{Result, Stats, WebExportError};
 use std::path::Path;
 use super::emit::events::ShowContext;
 use super::emit::context::TAGS_PATH;
-use super::emit::calendar::{month_grid, month_path, CALENDAR_PATH};
+use super::emit::calendar::{month_counts, month_grid, month_path, CALENDAR_PATH};
 use crate::domain::date_display::{range_with_weekday, until_display, with_weekday};
 use crate::domain::setlist_lineup::Lineup;
 use crate::domain::idol_list_filtering::IdolQuery;
@@ -903,20 +903,36 @@ fn event_list_page(path: &str, title: &str, kind: EventListKind, empty: bool) ->
         recent_past_title: (path == "/events/").then(|| "開催済み (2025年)".to_string()),
         next: (path == "/events/")
             .then(|| nav("開催済みのライブをすべて見る", "/events/past/", false, None, Some(827))),
-        scope_links: vec![
-            nav("今後のライブ", "/events/upcoming/", path == "/events/upcoming/", None, Some(24)),
-            nav("開催済み", "/events/past/", path == "/events/past/", None, Some(827)),
-            nav(content::CALENDAR_TITLE, CALENDAR_PATH, false, None, None),
-        ],
-        brand_links: vec![
-            nav("すべて", "/events/", path == "/events/", None, None),
-            nav("ミリオンライブ!", "/events/brand/ml/", path == "/events/brand/ml/", Some("brand:ml"), Some(210)),
-            nav("シンデレラガールズ", "/events/brand/cg/", false, Some("brand:cg"), Some(180)),
-        ],
-        year_links: vec![
-            nav("2026", "/events/past/2026/", false, None, Some(40)),
-            nav("2025", "/events/past/2025/", false, None, Some(52)),
-        ],
+        scope: FilterAxis::new(
+            content::FILTER_SCOPE_EVENTS,
+            vec![
+                nav("今後のライブ", "/events/upcoming/", path == "/events/upcoming/", None, Some(24)),
+                nav("開催済み", "/events/past/", path == "/events/past/", None, Some(827)),
+                nav(content::CALENDAR_TITLE, CALENDAR_PATH, false, None, None),
+            ],
+        ),
+        // 本番と同じ規則: 年の軸は開催済みの側だけ。
+        filters: filter_axes([
+            FilterAxis::new(
+                content::FILTER_AXIS_YEAR,
+                if matches!(kind, EventListKind::Past | EventListKind::PastYear) {
+                    vec![
+                        nav("2026", "/events/past/2026/", false, None, Some(40)),
+                        nav("2025", "/events/past/2025/", false, None, Some(52)),
+                    ]
+                } else {
+                    vec![]
+                },
+            ),
+            FilterAxis::new(
+                content::FILTER_AXIS_BRAND,
+                vec![
+                    nav("すべて", "/events/", path == "/events/", None, None),
+                    nav("ミリオンライブ!", "/events/brand/ml/", path == "/events/brand/ml/", Some("brand:ml"), Some(210)),
+                    nav("シンデレラガールズ", "/events/brand/cg/", false, Some("brand:cg"), Some(180)),
+                ],
+            ),
+        ]),
         total: if empty { 0 } else { 2 },
         seo: seo(title, "ライブの一覧。", path, Robots::IndexFollow, &[("ホーム", "/")]),
     }
@@ -959,14 +975,17 @@ fn song_list_page(path: &str, title: &str, kind: SongListKind) -> SongListPage {
         query_base: (!matches!(kind, SongListKind::All))
             .then(|| SongQuery::from_filter(&SongListFilter::default())),
         kana_sections: vec![
-            KanaSection { label: "さ".to_string(), start_index: 0, count: 1 },
-            KanaSection { label: "英数".to_string(), start_index: 1, count: 1 },
+            KanaSection { label: "さ".to_string(), start_index: 0 },
+            KanaSection { label: "英数".to_string(), start_index: 1 },
         ],
         items,
-        brand_links: vec![
-            nav("すべて", "/songs/", path == "/songs/", None, Some(2040)),
-            nav("ミリオンライブ!", "/songs/brand/ml/", path == "/songs/brand/ml/", Some("brand:ml"), Some(600)),
-        ],
+        filters: vec![FilterAxis::new(
+            content::FILTER_AXIS_BRAND,
+            vec![
+                nav("すべて", "/songs/", path == "/songs/", None, Some(2040)),
+                nav("ミリオンライブ!", "/songs/brand/ml/", path == "/songs/brand/ml/", Some("brand:ml"), Some(600)),
+            ],
+        )],
         all_songs_link: if path == "/songs/" {
             Some(nav("派生曲・ライブ限定曲を含む全件", "/songs/all/", false, None, Some(3153)))
         } else {
@@ -1038,13 +1057,21 @@ fn idol_list_page(path: &str, title: &str, kind: IdolListKind, empty: bool) -> I
                 },
             ]
         },
-        brand_links: vec![
-            nav("すべて", "/idols/", path == "/idols/", None, Some(394)),
-            nav("ミリオンライブ!", "/idols/brand/ml/", path == "/idols/brand/ml/", Some("brand:ml"), Some(52)),
+        filters: vec![
+            FilterAxis::new(
+                content::FILTER_AXIS_BRAND,
+                vec![
+                    nav("すべて", "/idols/", path == "/idols/", None, Some(394)),
+                    nav("ミリオンライブ!", "/idols/brand/ml/", path == "/idols/brand/ml/", Some("brand:ml"), Some(52)),
+                ],
+            ),
+            FilterAxis::new(
+                content::FILTER_AXIS_BIRTH_MONTH,
+                (1..=12)
+                    .map(|m| nav(&format!("{m}月"), &birth_month_path(m), path == birth_month_path(m), None, None))
+                    .collect(),
+            ),
         ],
-        birth_month_links: (1..=12)
-            .map(|m| nav(&format!("{m}月"), &birth_month_path(m), path == birth_month_path(m), None, None))
-            .collect(),
         total: if empty { 0 } else { 2 },
         seo: seo(title, "アイドルの一覧。", path, Robots::IndexFollow, &[("ホーム", "/")]),
     }
@@ -1199,10 +1226,12 @@ fn calendar_page(path: &str, key: &str) -> CalendarPage {
     let first = chrono::NaiveDate::from_ymd_opt(2026, 9, 1).expect("実在する日付");
     let last = chrono::NaiveDate::from_ymd_opt(2026, 9, 30).expect("実在する日付");
     let weeks = month_grid(first, last, "2026-09-06", &items, &bands);
-    let days = items
+    let days: Vec<CalendarDayGroup> = items
         .into_iter()
         .map(|(date, items)| CalendarDayGroup { date_badge: DateBadge::from_ymd(&date), items })
         .collect();
+    // 本番と同じ数え方 (公演 3 ・ リリース曲 2 ・ 誕生日 1 ・ 記念日 1)。
+    let counts = month_counts(&days);
     let title = content::calendar_month_title(2026, 9);
     let is_index = path == CALENDAR_PATH;
     let mut seo = seo(
@@ -1219,18 +1248,14 @@ fn calendar_page(path: &str, key: &str) -> CalendarPage {
         schema_version: SCHEMA_VERSION,
         path: path.to_string(),
         title,
-        lede: content::CALENDAR_LEDE.to_string(),
-        stat_tiles: nonzero_tiles([
-            StatTile::new("▤", 3, content::CALENDAR_KIND_SHOW),
-            StatTile::new("♬", 2, content::CALENDAR_TILE_RELEASES),
-            StatTile::new("☺", 1, content::CALENDAR_KIND_BIRTHDAY),
-            StatTile::new("◆", 1, content::CALENDAR_KIND_ANNIVERSARY),
-        ]),
+        summary: content::calendar_summary(&counts),
         prev: None,
         next: None,
         today_link: (!is_index).then(|| nav(content::CALENDAR_TODAY_LINK, CALENDAR_PATH, false, None, None)),
-        year_links: vec![nav("2026", &month_path(key), true, None, Some(3))],
-        month_links: vec![nav("9月", &month_path(key), true, None, Some(3))],
+        filters: vec![
+            FilterAxis::new(content::FILTER_AXIS_YEAR, vec![nav("2026", &month_path(key), true, None, Some(3))]),
+            FilterAxis::new(content::FILTER_AXIS_MONTH, vec![nav("9月", &month_path(key), true, None, Some(3))]),
+        ],
         weekday_labels: content::CALENDAR_WEEKDAYS.iter().map(|w| w.to_string()).collect(),
         weeks,
         days,
@@ -1260,11 +1285,14 @@ fn unit_list_page(path: &str, title: &str) -> UnitListPage {
                 song_count: 0,
             },
         ],
-        kana_sections: vec![KanaSection { label: "あ".to_string(), start_index: 0, count: 2 }],
-        brand_links: vec![
-            nav("すべて", "/units/", path == "/units/", None, Some(1539)),
-            nav("ミリオンライブ!", "/units/brand/ml/", path == "/units/brand/ml/", Some("brand:ml"), Some(300)),
-        ],
+        kana_sections: vec![KanaSection { label: "あ".to_string(), start_index: 0 }],
+        filters: vec![FilterAxis::new(
+            content::FILTER_AXIS_BRAND,
+            vec![
+                nav("すべて", "/units/", path == "/units/", None, Some(1539)),
+                nav("ミリオンライブ!", "/units/brand/ml/", path == "/units/brand/ml/", Some("brand:ml"), Some(300)),
+            ],
+        )],
         total: 2,
         seo: seo(title, "ユニットの一覧。", path, Robots::IndexFollow, &[("ホーム", "/")]),
     }
@@ -1301,17 +1329,20 @@ fn venue_list_page(path: &str, title: &str, prefecture: Option<&str>) -> VenueLi
                 show_count: 1,
             },
         ],
-        prefecture_links: vec![
-            nav("すべて", "/venues/", path == "/venues/", None, Some(234)),
-            nav("東京都", &pref_path("東京都"), path == pref_path("東京都"), None, Some(105)),
-            nav(
-                UNCLASSIFIED_PREFECTURE,
-                &pref_path(UNCLASSIFIED_PREFECTURE),
-                path == pref_path(UNCLASSIFIED_PREFECTURE),
-                None,
-                Some(35),
-            ),
-        ],
+        filters: vec![FilterAxis::new(
+            content::FILTER_AXIS_PREFECTURE,
+            vec![
+                nav("すべて", "/venues/", path == "/venues/", None, Some(234)),
+                nav("東京都", &pref_path("東京都"), path == pref_path("東京都"), None, Some(105)),
+                nav(
+                    UNCLASSIFIED_PREFECTURE,
+                    &pref_path(UNCLASSIFIED_PREFECTURE),
+                    path == pref_path(UNCLASSIFIED_PREFECTURE),
+                    None,
+                    Some(35),
+                ),
+            ],
+        )],
         total: 2,
         seo: seo(title, "会場の一覧。", path, Robots::IndexFollow, &[("ホーム", "/")]),
     }

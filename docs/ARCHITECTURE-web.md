@@ -401,6 +401,15 @@ D1 (コミュニティ表) のすべてに反映済み (経緯は git 履歴 `22
   チケットの締切/当落/受付期間)。`emit/calendar.rs` が週 × 7 日の枠 (日曜始まり) に流し込み、枠には
   先頭 3 件と `+N`、下の一覧に全部を出す。受付期間は日を跨ぐ帯。ナビは「ライブ」の隣、ライブ一覧の
   切替 (今後 / 開催済み / カレンダー) からも入れる。語は `content::CALENDAR_*`。
+- **一覧の頭に札を並べない** (2026-09-07): 切替の軸は Rust が `FilterAxis { label, links }` で出す
+  (`*ListPage.filters` / `CalendarPage.filters`、軸名は `content::FILTER_AXIS_*`、ライブ一覧の帯は
+  `scope`)。どの軸をどの順で出すか (年の軸は開催済みの側だけ) も Rust。Astro は `FilterMenu`
+  (= `details` の畳んだメニュー、`.fmenu`) を軸の数だけ置くだけで、閉じた札に「軸 いまの値」だけを
+  出し、開くと件数つきの一覧。2〜3 択の切替 (今後 / 開催済み) だけ帯 (`SegmentedLinks`、`.segmented`)。
+  よみの目次と検索の逃げ道は文字だけの列 (`.link-row`)。チップ列 (`.link-chips`) と `KanaSection.count`
+  (読み手が無くなった) は撤去。カレンダーの頭も題 + 件数の 1 行 (`summary`、`content::calendar_summary`、
+  数え方は `emit::calendar::month_counts`) + 前後ページャ + 年/月のメニューだけにして、説明文と件数の帯は
+  出さない。
 - **並べ替えは絞り込みバーの札**: 列見出しが無くなったので、島 (`listfilter/island.ts`) が Rust の
   `sorts` から札 (`button.song-filter__sort`) を描く。押すと「その並びに → もう一度押すと向きを反転」
   (表の見出しと同じ一押し)。状態は向きボタンと同じ 1 つで、URL (`?sort=&dir=`) にも同じく写る。

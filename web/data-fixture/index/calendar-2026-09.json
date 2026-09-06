@@ -2,33 +2,7 @@
   "schemaVersion": 1,
   "path": "/calendar/2026-09/",
   "title": "2026年9月",
-  "lede": "公演・楽曲のリリース・アイドルの誕生日・記念日・チケットの日程。日付を押すと、その日の一覧へ。",
-  "statTiles": [
-    {
-      "glyph": "▤",
-      "value": 3,
-      "label": "公演",
-      "href": null
-    },
-    {
-      "glyph": "♬",
-      "value": 2,
-      "label": "リリース曲",
-      "href": null
-    },
-    {
-      "glyph": "☺",
-      "value": 1,
-      "label": "誕生日",
-      "href": null
-    },
-    {
-      "glyph": "◆",
-      "value": 1,
-      "label": "記念日",
-      "href": null
-    }
-  ],
+  "summary": "公演 3 ・ リリース曲 2 ・ 誕生日 1 ・ 記念日 1",
   "prev": null,
   "next": null,
   "todayLink": {
@@ -38,22 +12,30 @@
     "themeKey": null,
     "count": null
   },
-  "yearLinks": [
+  "filters": [
     {
-      "label": "2026",
-      "path": "/calendar/2026-09/",
-      "current": true,
-      "themeKey": null,
-      "count": 3
-    }
-  ],
-  "monthLinks": [
+      "label": "年",
+      "links": [
+        {
+          "label": "2026",
+          "path": "/calendar/2026-09/",
+          "current": true,
+          "themeKey": null,
+          "count": 3
+        }
+      ]
+    },
     {
-      "label": "9月",
-      "path": "/calendar/2026-09/",
-      "current": true,
-      "themeKey": null,
-      "count": 3
+      "label": "月",
+      "links": [
+        {
+          "label": "9月",
+          "path": "/calendar/2026-09/",
+          "current": true,
+          "themeKey": null,
+          "count": 3
+        }
+      ]
     }
   ],
   "weekdayLabels": [

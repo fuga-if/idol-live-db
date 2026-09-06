@@ -251,9 +251,18 @@ pub fn event_lists(ctx: &Ctx) -> Vec<Emitted<EventListPage>> {
                 recent_past,
                 recent_past_title,
                 next: spec.next,
-                scope_links: scope_links(spec.path, upcoming_total, past_total),
-                brand_links: brand_links(ctx, "events", spec.path, "すべて", upcoming_total + past_total),
-                year_links,
+                scope: FilterAxis::new(content::FILTER_SCOPE_EVENTS, scope_links(spec.path, upcoming_total, past_total)),
+                // 年の軸は開催済みの側だけ (今後の一覧に過去の年を並べても行き先が違う)。
+                filters: filter_axes([
+                    FilterAxis::new(
+                        content::FILTER_AXIS_YEAR,
+                        if matches!(spec.kind, EventListKind::Past | EventListKind::PastYear) { year_links } else { vec![] },
+                    ),
+                    FilterAxis::new(
+                        content::FILTER_AXIS_BRAND,
+                        brand_links(ctx, "events", spec.path, "すべて", upcoming_total + past_total),
+                    ),
+                ]),
                 total: spec.total,
                 seo: ctx.seo(
                     spec.title,
@@ -451,9 +460,8 @@ fn kana_sections_of(sources: impl Iterator<Item = String>) -> Vec<KanaSection> {
     let mut sections: Vec<KanaSection> = Vec::new();
     for (i, source) in sources.enumerate() {
         let label = kana_row_label(&source).to_string();
-        match sections.last_mut() {
-            Some(last) if last.label == label => last.count += 1,
-            _ => sections.push(KanaSection { label, start_index: i as u32, count: 1 }),
+        if !sections.last().is_some_and(|last| last.label == label) {
+            sections.push(KanaSection { label, start_index: i as u32 });
         }
     }
     sections
@@ -523,7 +531,10 @@ pub fn song_lists(ctx: &Ctx) -> Vec<Emitted<SongListPage>> {
                 // タグから探す入口。一覧を作るかどうかと同じ判断 (`Ctx::tags_link`)。
                 tags_link: (path == "/songs/").then(|| ctx.tags_link(content::TAG_LIST_LINK_LABEL)).flatten(),
                 items,
-                brand_links: brand_links(ctx, "songs", &path, "すべて", listed_total),
+                filters: filter_axes([FilterAxis::new(
+                    content::FILTER_AXIS_BRAND,
+                    brand_links(ctx, "songs", &path, "すべて", listed_total),
+                )]),
                 seo,
             },
         }
@@ -763,12 +774,14 @@ pub fn idol_lists(ctx: &Ctx) -> Vec<Emitted<IdolListPage>> {
                     ..IdolQuery::default()
                 },
                 items,
-                brand_links: brand_links(ctx, "idols", &path, "すべて", all_total),
-                birth_month_links: {
-                    let mut links = birth_month_links.clone();
-                    mark_current(&mut links, &path);
-                    links
-                },
+                filters: filter_axes([
+                    FilterAxis::new(content::FILTER_AXIS_BRAND, brand_links(ctx, "idols", &path, "すべて", all_total)),
+                    FilterAxis::new(content::FILTER_AXIS_BIRTH_MONTH, {
+                        let mut links = birth_month_links.clone();
+                        mark_current(&mut links, &path);
+                        links
+                    }),
+                ]),
                 seo: ctx.seo(
                     &title,
                     &description,
@@ -887,7 +900,10 @@ pub fn unit_lists(ctx: &Ctx) -> Vec<Emitted<UnitListPage>> {
                 total: items.len() as u32,
                 items,
                 kana_sections,
-                brand_links: brand_links(ctx, "units", &path, "すべて", index.units.len() as u32),
+                filters: filter_axes([FilterAxis::new(
+                    content::FILTER_AXIS_BRAND,
+                    brand_links(ctx, "units", &path, "すべて", index.units.len() as u32),
+                )]),
                 seo: ctx.seo(
                     &title,
                     &description,
@@ -1004,11 +1020,11 @@ pub fn venue_lists(ctx: &Ctx) -> Vec<Emitted<VenueListPage>> {
                 prefecture,
                 total: items.len() as u32,
                 items,
-                prefecture_links: {
+                filters: filter_axes([FilterAxis::new(content::FILTER_AXIS_PREFECTURE, {
                     let mut links = prefecture_links.clone();
                     mark_current(&mut links, &path);
                     links
-                },
+                })]),
                 seo: ctx.seo(
                     &title,
                     &description,

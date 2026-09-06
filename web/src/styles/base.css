@@ -85,6 +85,16 @@ a.u-underline-hover:hover {
   text-underline-offset: 2px;
 }
 
+/* --- details の見出し ----------------------------------------------------
+   開閉の印 (.chevron) は各部品が自前で置くので、既定の三角は出さない。 */
+summary {
+  list-style: none;
+  cursor: pointer;
+}
+summary::-webkit-details-marker {
+  display: none;
+}
+
 /* フォーカスリングは **テーマ色を使わない**。エンティティ色は 400 通りあり、
    ml (#ffc30b) や学マス (#f39800) のような暖色だと accent 対背景が 1.5〜2.1:1 しか
    なく、キーボード操作中の現在位置が見えなくなる。ニュートラルの ink で描き、

@@ -4,7 +4,7 @@
 //! 出す。クライアント状態を持たせないというユーザー指示の直接の帰結で、切替 UI は
 //! [`super::common::NavLink`] のリンク集になる。
 
-use super::common::{AppLinks, DateBadge, NavLink, Ref, SeoBlock, StatTile, TagBadge};
+use super::common::{AppLinks, DateBadge, FilterAxis, NavLink, Ref, SeoBlock, StatTile, TagBadge};
 use super::event::ShowSummary;
 use crate::domain::idol_list_filtering::IdolQuery;
 use crate::domain::song_list_queries::SongQuery;
@@ -30,10 +30,10 @@ web_dto! {
         /// このページの続き (入口では「開催済みをすべて見る」、年の一覧では 1 つ前の年)。
         /// 一覧が途中で切れていることをページの末尾で言うための 1 本。
         pub next: Option<NavLink>,
-        /// 今後 / 開催済み の切替。
-        pub scope_links: Vec<NavLink>,
-        pub brand_links: Vec<NavLink>,
-        pub year_links: Vec<NavLink>,
+        /// 今後 / 開催済み / カレンダー の切替 (帯)。
+        pub scope: FilterAxis,
+        /// 畳んだメニューにする軸: ブランド、開催済みの側では年も。
+        pub filters: Vec<FilterAxis>,
         pub total: u32,
         pub seo: SeoBlock,
     }
@@ -121,7 +121,8 @@ web_dto! {
         /// 行を `ref` だけに削った一覧 (`/songs/all/`) には無い。
         pub query_base: Option<SongQuery>,
         pub kana_sections: Vec<KanaSection>,
-        pub brand_links: Vec<NavLink>,
+        /// 畳んだメニューにする軸 (ブランド)。
+        pub filters: Vec<FilterAxis>,
         /// 既定フィルタから外れた曲も含む全件ハブ (`/songs/all/`) への案内。
         ///
         /// `/songs/` にだけ入る。これが無いと、一覧規則で外れた曲 (派生曲・ライブ限定曲・
@@ -254,7 +255,6 @@ web_dto! {
         pub label: String,
         /// `items` の何番目から始まるか。
         pub start_index: u32,
-        pub count: u32,
     }
 }
 
@@ -273,8 +273,8 @@ web_dto! {
         /// 誕生月別のときだけ入る (1–12)。
         pub birth_month: Option<u32>,
         pub items: Vec<IdolListItem>,
-        pub brand_links: Vec<NavLink>,
-        pub birth_month_links: Vec<NavLink>,
+        /// 畳んだメニューにする軸 (ブランド・誕生月)。
+        pub filters: Vec<FilterAxis>,
         pub total: u32,
         /// この一覧を組んだときの条件。ブラウザの wasm がこれを土台に
         /// 条件を足して `filter_idol_list` / `sort_idol_list` を回す
@@ -360,7 +360,8 @@ web_dto! {
         pub items: Vec<UnitListItem>,
         /// 楽曲一覧と同じ、よみの目次。`items` はよみ順に並んでいる。
         pub kana_sections: Vec<KanaSection>,
-        pub brand_links: Vec<NavLink>,
+        /// 畳んだメニューにする軸 (ブランド)。
+        pub filters: Vec<FilterAxis>,
         pub total: u32,
         pub seo: SeoBlock,
     }
@@ -389,7 +390,8 @@ web_dto! {
         /// 都道府県別のときだけ入る。空欄の会場は `未分類` に集める。
         pub prefecture: Option<String>,
         pub items: Vec<VenueListItem>,
-        pub prefecture_links: Vec<NavLink>,
+        /// 畳んだメニューにする軸 (都道府県)。
+        pub filters: Vec<FilterAxis>,
         pub total: u32,
         pub seo: SeoBlock,
     }

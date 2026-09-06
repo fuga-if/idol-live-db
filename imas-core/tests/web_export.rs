@@ -795,25 +795,26 @@ mod real {
             &std::fs::read_to_string(dir.path().join("index/songs.json")).unwrap(),
         )
         .unwrap();
-        let other: u32 = songs
-            .kana_sections
+        let sections = &songs.kana_sections;
+        let total = songs.items.len() as u32;
+        // 区画は items の並び順に沿って連続している。大きさは持たず、次の区画の開始位置
+        // (最後は行数) との差がその区画の行数。
+        assert_eq!(sections.first().map(|s| s.start_index), Some(0), "先頭の区画が 0 から始まっていない");
+        let next_starts = sections.iter().skip(1).map(|s| s.start_index).chain(std::iter::once(total));
+        let sizes: Vec<u32> = sections
             .iter()
-            .filter(|s| s.label == "その他")
-            .map(|s| s.count)
-            .sum();
-        let total: u32 = songs.kana_sections.iter().map(|s| s.count).sum();
-        assert_eq!(total, songs.items.len() as u32, "目次が全行を覆っていない");
+            .zip(next_starts)
+            .map(|(section, next_start)| {
+                assert!(next_start > section.start_index, "区画 {} が空か、並びが逆", section.label);
+                next_start - section.start_index
+            })
+            .collect();
+        let other: u32 = sections.iter().zip(&sizes).filter(|(s, _)| s.label == "その他").map(|(_, n)| n).sum();
         // 記号始まりの曲名は実在するので 0 にはならないが、行の取りこぼしがあると跳ね上がる。
         assert!(
             f64::from(other) / f64::from(total) < 0.15,
             "「その他」が多すぎる ({other}/{total})。かなの範囲に抜けがある可能性"
         );
-        // 区画は items の並び順に沿って連続していること。
-        let mut expected_start = 0u32;
-        for section in &songs.kana_sections {
-            assert_eq!(section.start_index, expected_start, "区画 {} の開始位置", section.label);
-            expected_start += section.count;
-        }
     }
 
     // -----------------------------------------------------------------------

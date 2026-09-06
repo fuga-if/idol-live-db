@@ -23,8 +23,7 @@ const sectionStarts = new Set(list.kanaSections.map((s) => s.startIndex));
   title={list.title}
   total={list.total}
   themeKey={list.brand?.themeKey}
-  filterLinks={list.brandLinks}
-  filterLabel="ブランドで絞る"
+  filters={list.filters}
   wide
 >
   <KanaIndex sections={list.kanaSections} />

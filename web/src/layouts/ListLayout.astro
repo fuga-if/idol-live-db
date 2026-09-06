@@ -2,38 +2,28 @@
 import BaseLayout from "./BaseLayout.astro";
 import Breadcrumbs from "../components/Breadcrumbs.astro";
 import SegmentedLinks from "../components/SegmentedLinks.astro";
-import type { NavLink } from "../lib/schema/NavLink";
+import FilterMenu from "../components/FilterMenu.astro";
+import type { FilterAxis } from "../lib/schema/FilterAxis";
 import type { SeoBlock } from "../lib/schema/SeoBlock";
 import Count from "../components/Count.astro";
 
 /**
  * 一覧ページの枠。
  * 切替 (今後/開催済み・ブランド・年・都道府県) は **クライアント状態ではなくリンク**。
- * どれが現在地かは Rust が `current` で出す。
+ * どの軸をどの名で出すか、どれが現在地かは Rust (`FilterAxis` / `NavLink.current`)。
+ * 2〜3 択の切替 (`scope`) は帯、値の多い軸 (`filters`) は畳んだメニューにして、頭に札を並べない。
  */
 interface Props {
   seo: SeoBlock;
   title: string;
   total?: number | null;
   themeKey?: string;
-  scopeLinks?: readonly NavLink[];
-  scopeLabel?: string;
-  filterLinks?: readonly NavLink[];
-  filterLabel?: string;
+  scope?: FilterAxis;
+  filters?: readonly FilterAxis[];
   wide?: boolean;
 }
-const {
-  seo,
-  title,
-  total,
-  themeKey,
-  scopeLinks = [],
-  scopeLabel = "表示の切替",
-  filterLinks = [],
-  filterLabel = "絞り込み",
-  wide = false,
-} = Astro.props;
-const hasFilters = scopeLinks.length > 0 || filterLinks.length > 0;
+const { seo, title, total, themeKey, scope, filters = [], wide = false } = Astro.props;
+const hasFilters = scope !== undefined || filters.length > 0;
 ---
 
 <BaseLayout seo={seo} themeKey={themeKey} wide={wide}>
@@ -51,9 +41,11 @@ const hasFilters = scopeLinks.length > 0 || filterLinks.length > 0;
     </div>
     {
       hasFilters && (
-        <div class="list-head__filters">
-          <SegmentedLinks label={scopeLabel} links={scopeLinks} />
-          <SegmentedLinks label={filterLabel} links={filterLinks} variant="chips" />
+        <div class="list-head__filters fmenu-row">
+          {scope && <SegmentedLinks axis={scope} />}
+          {filters.map((f) => (
+            <FilterMenu axis={f} group="list-filters" />
+          ))}
         </div>
       )
     }

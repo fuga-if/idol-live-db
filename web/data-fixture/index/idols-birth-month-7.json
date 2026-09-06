@@ -51,106 +51,114 @@
       "birthdayDisplay": "6月26日"
     }
   ],
-  "brandLinks": [
+  "filters": [
     {
-      "label": "すべて",
-      "path": "/idols/",
-      "current": false,
-      "themeKey": null,
-      "count": 394
+      "label": "ブランド",
+      "links": [
+        {
+          "label": "すべて",
+          "path": "/idols/",
+          "current": false,
+          "themeKey": null,
+          "count": 394
+        },
+        {
+          "label": "ミリオンライブ!",
+          "path": "/idols/brand/ml/",
+          "current": false,
+          "themeKey": "brand:ml",
+          "count": 52
+        }
+      ]
     },
     {
-      "label": "ミリオンライブ!",
-      "path": "/idols/brand/ml/",
-      "current": false,
-      "themeKey": "brand:ml",
-      "count": 52
-    }
-  ],
-  "birthMonthLinks": [
-    {
-      "label": "1月",
-      "path": "/idols/birth-month/1/",
-      "current": false,
-      "themeKey": null,
-      "count": null
-    },
-    {
-      "label": "2月",
-      "path": "/idols/birth-month/2/",
-      "current": false,
-      "themeKey": null,
-      "count": null
-    },
-    {
-      "label": "3月",
-      "path": "/idols/birth-month/3/",
-      "current": false,
-      "themeKey": null,
-      "count": null
-    },
-    {
-      "label": "4月",
-      "path": "/idols/birth-month/4/",
-      "current": false,
-      "themeKey": null,
-      "count": null
-    },
-    {
-      "label": "5月",
-      "path": "/idols/birth-month/5/",
-      "current": false,
-      "themeKey": null,
-      "count": null
-    },
-    {
-      "label": "6月",
-      "path": "/idols/birth-month/6/",
-      "current": false,
-      "themeKey": null,
-      "count": null
-    },
-    {
-      "label": "7月",
-      "path": "/idols/birth-month/7/",
-      "current": true,
-      "themeKey": null,
-      "count": null
-    },
-    {
-      "label": "8月",
-      "path": "/idols/birth-month/8/",
-      "current": false,
-      "themeKey": null,
-      "count": null
-    },
-    {
-      "label": "9月",
-      "path": "/idols/birth-month/9/",
-      "current": false,
-      "themeKey": null,
-      "count": null
-    },
-    {
-      "label": "10月",
-      "path": "/idols/birth-month/10/",
-      "current": false,
-      "themeKey": null,
-      "count": null
-    },
-    {
-      "label": "11月",
-      "path": "/idols/birth-month/11/",
-      "current": false,
-      "themeKey": null,
-      "count": null
-    },
-    {
-      "label": "12月",
-      "path": "/idols/birth-month/12/",
-      "current": false,
-      "themeKey": null,
-      "count": null
+      "label": "誕生月",
+      "links": [
+        {
+          "label": "1月",
+          "path": "/idols/birth-month/1/",
+          "current": false,
+          "themeKey": null,
+          "count": null
+        },
+        {
+          "label": "2月",
+          "path": "/idols/birth-month/2/",
+          "current": false,
+          "themeKey": null,
+          "count": null
+        },
+        {
+          "label": "3月",
+          "path": "/idols/birth-month/3/",
+          "current": false,
+          "themeKey": null,
+          "count": null
+        },
+        {
+          "label": "4月",
+          "path": "/idols/birth-month/4/",
+          "current": false,
+          "themeKey": null,
+          "count": null
+        },
+        {
+          "label": "5月",
+          "path": "/idols/birth-month/5/",
+          "current": false,
+          "themeKey": null,
+          "count": null
+        },
+        {
+          "label": "6月",
+          "path": "/idols/birth-month/6/",
+          "current": false,
+          "themeKey": null,
+          "count": null
+        },
+        {
+          "label": "7月",
+          "path": "/idols/birth-month/7/",
+          "current": true,
+          "themeKey": null,
+          "count": null
+        },
+        {
+          "label": "8月",
+          "path": "/idols/birth-month/8/",
+          "current": false,
+          "themeKey": null,
+          "count": null
+        },
+        {
+          "label": "9月",
+          "path": "/idols/birth-month/9/",
+          "current": false,
+          "themeKey": null,
+          "count": null
+        },
+        {
+          "label": "10月",
+          "path": "/idols/birth-month/10/",
+          "current": false,
+          "themeKey": null,
+          "count": null
+        },
+        {
+          "label": "11月",
+          "path": "/idols/birth-month/11/",
+          "current": false,
+          "themeKey": null,
+          "count": null
+        },
+        {
+          "label": "12月",
+          "path": "/idols/birth-month/12/",
+          "current": false,
+          "themeKey": null,
+          "count": null
+        }
+      ]
     }
   ],
   "total": 2,

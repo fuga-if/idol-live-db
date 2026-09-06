@@ -250,6 +250,30 @@ impl StatTile {
     }
 }
 
+web_dto! {
+    /// 一覧の頭の切替 1 軸 (ブランド・年・誕生月・都道府県・月…)。
+    ///
+    /// `label` は軸の名で、畳んだメニューの札に「軸 いまの値」と出る語。値は `links`
+    /// (現在地は `NavLink.current`)。どの軸をどの名で、どの順に出すかは Rust が決め、
+    /// Astro は並べるだけ。
+    #[derive(Eq)]
+    pub struct FilterAxis {
+        pub label: String,
+        pub links: Vec<NavLink>,
+    }
+}
+
+impl FilterAxis {
+    pub fn new(label: &str, links: Vec<NavLink>) -> Self {
+        Self { label: label.to_string(), links }
+    }
+}
+
+/// 値の無い軸 (その一覧を作っていない) は並べない。
+pub fn filter_axes(axes: impl IntoIterator<Item = FilterAxis>) -> Vec<FilterAxis> {
+    axes.into_iter().filter(|a| !a.links.is_empty()).collect()
+}
+
 /// 数の帯にする。**0 は「まだ無い」で情報ではない**ので落とす
 /// (開催前は曲数が全部 0 で、並べても何も言わない)。
 pub fn nonzero_tiles(tiles: impl IntoIterator<Item = StatTile>) -> Vec<StatTile> {

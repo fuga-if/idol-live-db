@@ -16,8 +16,7 @@ const { list } = Astro.props;
   seo={list.seo}
   title={list.title}
   total={list.total}
-  filterLinks={list.prefectureLinks}
-  filterLabel="都道府県で絞る"
+  filters={list.filters}
 >
   {
     list.items.length === 0 ? (

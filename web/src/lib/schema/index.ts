@@ -42,6 +42,7 @@ export type { EventListItem } from "./EventListItem";
 export type { EventListKind } from "./EventListKind";
 export type { EventListPage } from "./EventListPage";
 export type { EventPage } from "./EventPage";
+export type { FilterAxis } from "./FilterAxis";
 export type { FoldCase } from "./FoldCase";
 export type { FoldParity } from "./FoldParity";
 export type { HallRow } from "./HallRow";

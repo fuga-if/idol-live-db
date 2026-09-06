@@ -74,8 +74,10 @@ pub fn calendar_pages(ctx: &Ctx) -> Vec<Emitted<CalendarPage>> {
         .map(month_key)
         .take_while(|k| *k <= last_key)
         .collect();
+    // 年の切替は新しい順 (開催済みのライブの年と同じ)。畳んだメニューで上に来るのが今の年。
     let years = months
         .chunk_by(|a, b| a[..4] == b[..4])
+        .rev()
         .map(|chunk| {
             let count: u32 = chunk.iter().filter_map(|k| show_counts.get(k)).sum();
             NavLink::new(&chunk[0][..4], month_path(&chunk[0])).with_count(count)
@@ -242,6 +244,20 @@ pub fn month_grid(
     cells.chunks(7).map(|week| CalendarWeek { days: week.to_vec() }).collect()
 }
 
+/// 月の件数を 1 度の走査で数える (説明文と件数の 1 行の材料)。リリースは曲数で数える。
+pub fn month_counts(days: &[CalendarDayGroup]) -> content::CalendarCounts {
+    days.iter().flat_map(|g| &g.items).fold(content::CalendarCounts::default(), |mut c, item| {
+        match item.kind {
+            CalendarItemKind::Show => c.shows += 1,
+            CalendarItemKind::Release => c.release_songs += item.refs.len() as u32,
+            CalendarItemKind::Birthday => c.birthdays += 1,
+            CalendarItemKind::Anniversary => c.anniversaries += 1,
+            CalendarItemKind::Ticket => {}
+        }
+        c
+    })
+}
+
 fn month_page(ctx: &Ctx, index: usize, range: &MonthRange) -> Option<Emitted<CalendarPage>> {
     let key = &range.months[index];
     let (year, month) = year_month(key)?;
@@ -253,8 +269,7 @@ fn month_page(ctx: &Ctx, index: usize, range: &MonthRange) -> Option<Emitted<Cal
         .into_iter()
         .map(|(date, items)| CalendarDayGroup { date_badge: DateBadge::from_ymd(&date), items })
         .collect();
-    let count = |kind: CalendarItemKind| days.iter().flat_map(|g| &g.items).filter(|i| i.kind == kind).count() as u32;
-    let release_songs: u32 = days.iter().flat_map(|g| &g.items).map(|i| i.refs.len() as u32).sum();
+    let counts = month_counts(&days);
 
     let path = month_path(key);
     // 年・月の切替。今の年の札はこのページを指すので `mark_current` が現在地として拾う。
@@ -298,25 +313,21 @@ fn month_page(ctx: &Ctx, index: usize, range: &MonthRange) -> Option<Emitted<Cal
             path: path.clone(),
             seo: ctx.seo(
                 &title,
-                &content::calendar_month_description(year, month, count(CalendarItemKind::Show)),
+                &content::calendar_month_description(year, month, counts.shows),
                 &path,
                 None,
                 simple_json_ld("CollectionPage", &title, &path),
                 list_crumbs(SiteList::Calendar, &title, &path),
             ),
             title,
-            lede: content::CALENDAR_LEDE.to_string(),
-            stat_tiles: nonzero_tiles([
-                SiteList::Shows.tile(count(CalendarItemKind::Show), None),
-                StatTile::new("♬", release_songs, content::CALENDAR_TILE_RELEASES),
-                StatTile::new("☺", count(CalendarItemKind::Birthday), content::CALENDAR_KIND_BIRTHDAY),
-                StatTile::new("◆", count(CalendarItemKind::Anniversary), content::CALENDAR_KIND_ANNIVERSARY),
-            ]),
+            summary: content::calendar_summary(&counts),
             prev: index.checked_sub(1).and_then(neighbour),
             next: neighbour(index + 1),
             today_link: (*key != range.today_key).then(|| NavLink::new(content::CALENDAR_TODAY_LINK, CALENDAR_PATH)),
-            year_links,
-            month_links,
+            filters: filter_axes([
+                FilterAxis::new(content::FILTER_AXIS_YEAR, year_links),
+                FilterAxis::new(content::FILTER_AXIS_MONTH, month_links),
+            ]),
             weekday_labels: content::CALENDAR_WEEKDAYS.iter().map(|w| w.to_string()).collect(),
             weeks,
             days,

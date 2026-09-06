@@ -17,10 +17,7 @@ const { list } = Astro.props;
   title={list.title}
   total={list.total}
   themeKey={list.brand?.themeKey}
-  scopeLinks={list.brandLinks}
-  scopeLabel="ブランドで絞る"
-  filterLinks={list.birthMonthLinks}
-  filterLabel="誕生月で絞る"
+  filters={list.filters}
   wide
 >
   <ListFilterBar kind="idols" queryBase={list.queryBase} total={list.total} />

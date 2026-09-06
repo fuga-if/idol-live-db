@@ -3,7 +3,7 @@
 //! 何をどの日に出すかは `domain::calendar_queries` (アプリのカレンダーと同じ 1 本)。
 //! ここは月の枠 (週 × 7 日) に流し込んだ形で、Astro は並べるだけ。
 
-use super::common::{DateBadge, NavLink, Ref, SeoBlock, StatTile};
+use super::common::{DateBadge, FilterAxis, NavLink, Ref, SeoBlock};
 
 web_dto! {
     /// 月のカレンダー 1 枚。
@@ -12,18 +12,15 @@ web_dto! {
         pub path: String,
         /// `2026年9月`。
         pub title: String,
-        pub lede: String,
-        /// この月の件数 (公演・リリース曲・誕生日・記念日)。0 のものは無い。
-        pub stat_tiles: Vec<StatTile>,
+        /// この月の件数を 1 行に (`公演 10 ・ リリース曲 35 ・ 誕生日 32`)。0 のものは無く、全部 0 なら `None`。
+        pub summary: Option<String>,
         /// 前の月・次の月。範囲の端では `None`。
         pub prev: Option<NavLink>,
         pub next: Option<NavLink>,
         /// 今月へ戻る導線。今月のページ自身には無い。
         pub today_link: Option<NavLink>,
-        /// 年の切替 (範囲内の年だけ。押すとその年の最初の月)。
-        pub year_links: Vec<NavLink>,
-        /// 同じ年の月の切替 (範囲外の月は無い)。
-        pub month_links: Vec<NavLink>,
+        /// 年 (範囲内の年だけ、新しい順。押すとその年の最初の月) と、同じ年の月 (範囲外の月は無い) の切替。
+        pub filters: Vec<FilterAxis>,
         /// 曜日の見出し (日曜始まり、アプリと同じ)。
         pub weekday_labels: Vec<String>,
         /// 週ごとの 7 日。月の外の日も枠を揃えるために入る (`in_month = false`)。
