@@ -105,7 +105,8 @@ git に載せる方は識別子を含む列を一切出力しない。`export_co
 # リリース前に (オーナー)
 bash tools/backup_d1.sh                                  # 完全バックアップ → 手元
 python3 tools/export_community_snapshot.py --remote      # 公開スナップショット → db/community.sql
-git add db/community.sql && git commit -m "data(community): リリース時点のスナップショット"
+python3 tools/export_calls_dashboard.py                  # コールガイド進捗の写し → db/calls_dashboard.json (鍵不要)
+git add db/community.sql db/calls_dashboard.json && git commit -m "data(community): リリース時点のスナップショット"
 
 # 動作確認 (誰でも・鍵不要)
 python3 tools/export_community_snapshot.py --local
@@ -113,6 +114,10 @@ python3 tools/export_community_snapshot.py --local
 # 復元 (災害時)
 npx wrangler d1 execute imas-live-db --remote --file db_backups_local/d1_<日時>.sql
 ```
+
+> `db/calls_dashboard.json` は Web の `/calls/` の素材。本番の鮮度は `web-deploy.yml` の
+> 日次ビルドが export 直前に取り直して担保するので、git 管理分はテスト・ローカルビルド用の
+> 写しでよい (docs/ARCHITECTURE-web.md)。
 
 > `wrangler d1 execute --json` は SQL の NULL を文字列 `"null"` として返し、本物の
 > 文字列 `'null'` と区別できない。スナップショット生成は値の整形を Python でやらず

@@ -303,5 +303,8 @@ D1 の読み取りは 1 曲 = 数行、検索 1 回 = 数百行 (Paid の枠に�
   `tools/export_calls_dashboard.py` で `db/calls_dashboard.json` に写し、`web-export --calls`
   が焼く (写しが無ければページごと出さない。お題と同じ)。iOS のダッシュボードと同じ 3 区画で、
   編集の言い方 (`emit/calls.rs`) も同じ規則。
+  鮮度は `web-deploy.yml` が持つ: 日次ビルド (JST 05:00) の export 直前に写しを取り直す
+  (秘密不要の GET 1 回)。取れなければ git 管理の写しのまま焼いて警告する。git 管理分は
+  テストとローカルビルドの素材で、`community.sql` と同じくリリース時に手で更新する。
 - 出す/出さないの唯一の判断は `content::LYRICS_ON_WEB`。許諾の掲示 (フッタのマークと番号) と
   文言も Rust (`content.rs`) が持つ。詳細は docs/JASRAC.md §6.5。
