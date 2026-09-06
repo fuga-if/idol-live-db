@@ -55,7 +55,8 @@ pub use brand::BrandPage;
 pub use common::nonzero_tiles;
 pub use calls::{CallGuideEditRow, CallGuidePage, CallGuideSongRow};
 pub use common::{
-    mark_current, AppLinks, AppOpen, Counts, Crumb, DateBadge, LyricsBlock, NavLink, PenlightSetDto,
+    mark_current, AppLinks, AppOpen, CallGuideClap, CallGuideEmphasis, CallGuideVocabulary, Counts, Crumb,
+    DateBadge, LyricsBlock, NavLink, PenlightSetDto,
     PerformerNameOptionDto, Ref, RefKind, Robots, SeoBlock, SiteMeta, SongCommunity, StatTile,
     TagChipDto, ThemePair, ThemeTable, ThemeTokens, SCHEMA_VERSION,
 };

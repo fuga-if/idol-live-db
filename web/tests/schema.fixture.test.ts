@@ -189,7 +189,10 @@ describe("絶対制約: 歌詞の本文とプレビュー音源を出力に含�
    * Rust 側のテスト (T12) と同じ線をこちらでも引く。
    */
   const forbidden = /"(previewUrl|preview_url|lyricsUrl|lyrics_url|lyricsText|lyrics_text|lyricsBody|lyrics_body|lines)"\s*:/;
-  const LYRICS_BLOCK_KEYS = new Set(["available", "note", "licenseNumber", "licenseNote", "sourceUrl", "readLabel"]);
+  // callGuide は記号・札・凡例の語彙 (Rust content::call_guide_vocabulary) で、本文ではない。
+  const LYRICS_BLOCK_KEYS = new Set([
+    "available", "note", "licenseNumber", "licenseNote", "sourceUrl", "readLabel", "callGuide",
+  ]);
 
   it("web/data 配下の全 JSON に歌詞本文・試聴音源のキーが無い", () => {
     const hits: string[] = [];

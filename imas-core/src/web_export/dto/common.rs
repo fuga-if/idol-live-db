@@ -461,5 +461,52 @@ web_dto! {
     
         /// 取りに行くボタンの文言 (`歌詞とコールガイドを読む`)。出さないときは `None`。
         pub read_label: Option<String>,
+        /// コールガイドの語彙 (記号・札・凡例の語)。出すときだけ。
+        pub call_guide: Option<CallGuideVocabulary>,
+}
+}
+
+web_dto! {
+    /// 手拍子の指示 1 種。行頭に `symbol`、凡例に `label` を出す。
+    #[derive(Eq)]
+    pub struct CallGuideClap {
+        /// Worker が返す `clap` の値 (`back_beat` / `four_on_floor` / `ppph` / `none`)。
+        pub kind: String,
+        pub symbol: String,
+        pub label: String,
+    }
+}
+
+web_dto! {
+    /// コールの強調度 1 種。凡例の語。色は出面の CSS が `kind` で引く。
+    #[derive(Eq)]
+    pub struct CallGuideEmphasis {
+        /// Worker が返す `emphasis` の値 (`normal` / `optional` / `performer_request`)。
+        pub kind: String,
+        pub label: String,
+    }
+}
+
+web_dto! {
+    /// コールガイドの語彙。アプリ (`Models/Lyrics.swift` / `CallGuideLineViews.swift`) と同じ
+    /// 語・記号を Rust が配り、出面はアンカーの位置とこの語彙を突き合わせて置くだけ。
+    #[derive(Eq)]
+    pub struct CallGuideVocabulary {
+        pub claps: Vec<CallGuideClap>,
+        pub emphases: Vec<CallGuideEmphasis>,
+        /// 行内の 1 箇所に掛かるコールの印 (`↳`)。
+        pub marker_single: String,
+        /// 掛かる範囲が無い (行末) コールの印 (`»`)。
+        pub marker_end: String,
+        /// 同じ行に複数のアンカーがあるときの対応付け (`①②③…`)。足りなければ受け手が素の数字に落とす。
+        pub anchor_markers: Vec<String>,
+        /// 歌に被せるコールの札 (`同時`)。追っかけが既定なので被せる方だけ出す。
+        pub timing_over_label: String,
+        /// 範囲付きと混ざった行での行末コールの札 (`行末`)。
+        pub end_label: String,
+        /// 歌詞が直されてアンカーがズレたコールの印 (`ズレ`)。
+        pub stale_label: String,
+        /// 凡例で `同時` に添える説明 (`歌に被せる`)。
+        pub legend_over_label: String,
 }
 }

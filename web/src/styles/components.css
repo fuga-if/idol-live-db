@@ -546,16 +546,133 @@ a.chip:hover {
   -webkit-touch-callout: none;
 }
 .lyrics__line {
+  display: flex;
+  align-items: flex-start;
   line-height: var(--lh-relaxed);
 }
 .lyrics__line:empty::before {
   /* 空行 (間奏など) も行として高さを持たせる。 */
   content: "\00a0";
 }
-.lyrics__calls {
-  display: block;
+/* 間奏などの構造の印。歌詞ではないので一段落とす。 */
+.lyrics__line--marker {
+  color: var(--ds-ink2);
   font-size: var(--fs-caption);
+}
+.lyrics__content {
+  min-width: 0;
+  flex: 1;
+}
+/* --- コールガイド (アプリ CallGuideLineViews と同じ描き方) ----------------------
+   1. アンカーした範囲を行内で色付きに敷く  2. コールは行の直下にインデントして並べる
+   3. 同じ行に複数のアンカーがあるときだけ ①②③ で対応付ける。
+   語の真下に置かないのは、可変幅の書体では桁が揃わず、折り返すと「真下」が別の行になるから。 */
+/* 行頭の手拍子記号。1 行でも指示があれば全行に列を確保する (記号のある行だけ本文がズレないように)。 */
+.lyrics__clap {
+  flex: none;
+  inline-size: 18px;
+  font-size: var(--fs-caption);
+  color: var(--ds-ink2);
+}
+/* アンカー範囲。閲覧では本文の邪魔をしないよう薄く敷き、下線で範囲の端を示す。 */
+.lyrics__anchor {
+  --anchor: var(--accent-ink);
+  color: inherit;
+  background: color-mix(in srgb, var(--anchor) 18%, transparent);
+  text-decoration: underline;
+  text-decoration-color: var(--anchor);
+  text-underline-offset: 3px;
+  border-radius: 2px;
+}
+.lyrics__anchor[data-emphasis="optional"] {
+  --anchor: var(--ds-success);
+}
+.lyrics__anchor[data-emphasis="performer_request"] {
+  --anchor: var(--ds-danger);
+}
+.lyrics__calls {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding-inline-start: var(--sp5);
+  padding-block: 2px 4px;
+  font-size: var(--fs-footnote);
+  font-weight: 600;
+  line-height: var(--lh-snug);
+}
+.lyrics__call {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  /* 本文と同じ色だと太字なだけで歌詞と同化するので、曲の色にする (アプリと同じ)。 */
   color: var(--accent-ink);
+}
+.lyrics__call--optional {
+  color: var(--ds-success);
+}
+.lyrics__call--performer_request {
+  color: var(--ds-danger);
+}
+/* 印: ↳ (行内 1 箇所) / ①②③ (行内に複数) / » (掛かる範囲が無い = 行末)。 */
+.lyrics__marker {
+  flex: none;
+  inline-size: 16px;
+  text-align: end;
+  font-size: var(--fs-caption2);
+  font-weight: 400;
+  color: var(--ds-ink3);
+}
+.lyrics__call-text {
+  min-width: 0;
+}
+/* 札は例外だけ: 同時 (歌に被せる) / 行末 (範囲付きと混ざったときだけ) / ズレ。 */
+.lyrics__tag {
+  flex: none;
+  font-size: var(--fs-caption2);
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 999px;
+  color: var(--ds-ink2);
+  background: color-mix(in srgb, currentColor 16%, transparent);
+}
+.lyrics__tag--end {
+  color: var(--ds-ink3);
+}
+.lyrics__tag--stale {
+  color: var(--ds-warning);
+}
+/* 凡例。その曲で使われているものだけ。 */
+.lyrics__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp2);
+  margin-block-end: var(--sp4);
+  font-size: var(--fs-caption2);
+  font-weight: 600;
+  color: var(--ds-ink2);
+}
+.lyrics__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: var(--ds-fill);
+}
+.lyrics__legend-symbol {
+  font-weight: 400;
+}
+.lyrics__dot {
+  inline-size: 7px;
+  block-size: 7px;
+  border-radius: 50%;
+  background: var(--accent-ink);
+}
+.lyrics__dot--optional {
+  background: var(--ds-success);
+}
+.lyrics__dot--performer_request {
+  background: var(--ds-danger);
 }
 /* 印刷では歌詞を出さない (紙に落とすのも「まとめ取り」に当たる)。 */
 @media print {

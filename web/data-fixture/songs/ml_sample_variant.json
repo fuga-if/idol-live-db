@@ -38,7 +38,63 @@
     "licenseNumber": "J260943703",
     "licenseNote": "JASRAC 許諾番号 J260943703 のもとで掲載しています。1 曲ずつの表示のみで、まとめての取得はできません。",
     "sourceUrl": "https://imas-live-api.tokata3011.workers.dev/songs/ml_mirai/lyrics",
-    "readLabel": "歌詞とコールガイドを読む"
+    "readLabel": "歌詞とコールガイドを読む",
+    "callGuide": {
+      "claps": [
+        {
+          "kind": "back_beat",
+          "symbol": "★",
+          "label": "裏拍"
+        },
+        {
+          "kind": "four_on_floor",
+          "symbol": "■",
+          "label": "4つ打ち"
+        },
+        {
+          "kind": "ppph",
+          "symbol": "♠",
+          "label": "PPPH"
+        },
+        {
+          "kind": "none",
+          "symbol": "♥",
+          "label": "コールなし"
+        }
+      ],
+      "emphases": [
+        {
+          "kind": "normal",
+          "label": "通常"
+        },
+        {
+          "kind": "optional",
+          "label": "おこのみで"
+        },
+        {
+          "kind": "performer_request",
+          "label": "演者要望"
+        }
+      ],
+      "markerSingle": "↳",
+      "markerEnd": "»",
+      "anchorMarkers": [
+        "①",
+        "②",
+        "③",
+        "④",
+        "⑤",
+        "⑥",
+        "⑦",
+        "⑧",
+        "⑨",
+        "⑩"
+      ],
+      "timingOverLabel": "同時",
+      "endLabel": "行末",
+      "staleLabel": "ズレ",
+      "legendOverLabel": "歌に被せる"
+    }
   },
   "songTypeLabel": "ソロ曲",
   "releaseDate": "2019-03-13",

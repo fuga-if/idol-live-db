@@ -3,7 +3,9 @@
 //! 文言を 1 箇所に集めてあるのは、同じ断り書きがページごとに少しずつ違う、という
 //! 事故を防ぐため。**Astro 側に日本語の固定文を書かない** (書くと出典が 2 つになる)。
 
-use super::dto::{AboutLink, AboutSection, AppLinks, AppOpen};
+use super::dto::{
+    AboutLink, AboutSection, AppLinks, AppOpen, CallGuideClap, CallGuideEmphasis, CallGuideVocabulary,
+};
 
 /// サイトの起点。独自ドメインを取るときに変えるのはここと `astro.config` の `site`、
 /// robots.txt の 3 箇所だけで済むようにしてある。
@@ -62,6 +64,60 @@ pub fn lyrics_note() -> &'static str {
         LYRICS_ON_WEB_NOTE
     } else {
         LYRICS_OFF_NOTE
+    }
+}
+
+// ---- コールガイド (歌詞行につけるコール) の語彙 -------------------------------
+// アプリ (`ImasLiveDB/Models/Lyrics.swift` / `CallGuideLineViews.swift`) と同じ語・記号。
+// 出面はこれを置くだけで、意味 (どれが手拍子か・何番のアンカーか) は決めない。
+
+/// 手拍子の指示 (Worker の `clap` の値, 記号, 名前)。行頭に記号、凡例に名前。
+pub const CALL_GUIDE_CLAPS: [(&str, &str, &str); 4] = [
+    ("back_beat", "★", "裏拍"),
+    ("four_on_floor", "■", "4つ打ち"),
+    ("ppph", "♠", "PPPH"),
+    ("none", "♥", "コールなし"),
+];
+/// コールの強調度 (Worker の `emphasis` の値, 名前)。`normal` は既定なので凡例に出さない。
+pub const CALL_GUIDE_EMPHASES: [(&str, &str); 3] = [
+    ("normal", "通常"),
+    ("optional", "おこのみで"),
+    ("performer_request", "演者要望"),
+];
+/// 行内の 1 箇所に掛かるコールの印 / 掛かる範囲が無い (行末) コールの印。
+pub const CALL_MARKER_SINGLE: &str = "↳";
+pub const CALL_MARKER_END: &str = "»";
+/// 同じ行に複数のアンカーがあるときの対応付け。超えたら受け手が素の数字に落とす。
+pub const CALL_ANCHOR_MARKERS: [&str; 10] = ["①", "②", "③", "④", "⑤", "⑥", "⑦", "⑧", "⑨", "⑩"];
+/// 歌に被せるコールの札 / 範囲付きと混ざった行での行末コールの札 / ズレたコールの印。
+pub const CALL_TIMING_OVER_LABEL: &str = "同時";
+pub const CALL_END_LABEL: &str = "行末";
+pub const CALL_STALE_LABEL: &str = "ズレ";
+/// 凡例で「同時」に添える説明。
+pub const CALL_LEGEND_OVER_LABEL: &str = "歌に被せる";
+
+/// 出面に配るコールガイドの語彙 (上の定数を 1 つに束ねる)。
+pub fn call_guide_vocabulary() -> CallGuideVocabulary {
+    CallGuideVocabulary {
+        claps: CALL_GUIDE_CLAPS
+            .iter()
+            .map(|(kind, symbol, label)| CallGuideClap {
+                kind: kind.to_string(),
+                symbol: symbol.to_string(),
+                label: label.to_string(),
+            })
+            .collect(),
+        emphases: CALL_GUIDE_EMPHASES
+            .iter()
+            .map(|(kind, label)| CallGuideEmphasis { kind: kind.to_string(), label: label.to_string() })
+            .collect(),
+        marker_single: CALL_MARKER_SINGLE.to_string(),
+        marker_end: CALL_MARKER_END.to_string(),
+        anchor_markers: CALL_ANCHOR_MARKERS.iter().map(|m| m.to_string()).collect(),
+        timing_over_label: CALL_TIMING_OVER_LABEL.to_string(),
+        end_label: CALL_END_LABEL.to_string(),
+        stale_label: CALL_STALE_LABEL.to_string(),
+        legend_over_label: CALL_LEGEND_OVER_LABEL.to_string(),
     }
 }
 

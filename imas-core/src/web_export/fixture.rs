@@ -550,6 +550,7 @@ fn song_page(reference: &Ref, minimal: bool) -> SongPage {
             source_url: content::LYRICS_ON_WEB
                 .then(|| format!("{}/songs/ml_mirai/lyrics", content::API_ORIGIN)),
             read_label: content::LYRICS_ON_WEB.then(|| content::LYRICS_READ_LABEL.to_string()),
+            call_guide: content::LYRICS_ON_WEB.then(content::call_guide_vocabulary),
         },
         // 代表値でもコミュニティ集計が入る形にしておく (器だけ空にしない)。
         community: SongCommunity {

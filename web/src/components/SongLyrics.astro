@@ -18,6 +18,14 @@ import type { LyricsBlock } from "../lib/schema/LyricsBlock";
  *   完全には防げないが「一括ダウンロード不可」の実効性を担保する形にする。
  *   右クリックと selectstart までは止めない: 読み上げ・辞書・拡大のような支援の道具を
  *   殺すだけで、ソースを見る人には何の障害にもならない。
+ *
+ * コールの置き方はアプリ (`CallGuideLineViews.swift`) と同じ:
+ * 1. アンカーした範囲を**行内で色付きに敷く** (どこに掛かるコールかを行の中で示す)。
+ * 2. コールはその行の**直下にインデントして並べる** (上下の近さで対応を示す)。
+ * 3. 同じ行に複数のアンカーがあるときだけ ①②③ を振って一意に対応付ける。
+ * 語の真下に置かないのは、可変幅の書体では文字数で桁が揃わず、行が折り返すと「真下」が
+ * 別の行になるから。記号・札・凡例の語は Rust (`content::call_guide_vocabulary`) が
+ * `lyrics.callGuide` で配り、ここは位置 (Unicode スカラー単位の start/end) と突き合わせて置くだけ。
  */
 interface Props {
   lyrics: LyricsBlock;
@@ -27,7 +35,12 @@ const { lyrics } = Astro.props;
 
 {
   lyrics.available && lyrics.sourceUrl ? (
-    <div class="lyrics" data-lyrics data-source={lyrics.sourceUrl}>
+    <div
+      class="lyrics"
+      data-lyrics
+      data-source={lyrics.sourceUrl}
+      data-call-guide={lyrics.callGuide ? JSON.stringify(lyrics.callGuide) : undefined}
+    >
       <p class="lyrics__license">{lyrics.licenseNote}</p>
       <button class="btn" type="button" data-lyrics-load>
         {lyrics.readLabel}
@@ -46,12 +59,35 @@ const { lyrics } = Astro.props;
 }
 
 <script>
+  import type { CallGuideVocabulary } from "../lib/schema/CallGuideVocabulary";
+
+  /** Worker が返す歌詞 1 曲。本文はここでしか扱わない。 */
+  interface LyricCall {
+    id: string;
+    /** 行内の位置 (Unicode スカラー単位、end は排他)。start === end は行末 (掛かる範囲が無い)。 */
+    start: number;
+    end: number;
+    text: string;
+    emphasis?: string | null;
+    timing?: string | null;
+    stale?: boolean | null;
+  }
+  interface LyricLine {
+    kind?: string | null;
+    text: string;
+    clap?: string | null;
+    calls?: LyricCall[] | null;
+  }
+
   const root = document.querySelector<HTMLElement>("[data-lyrics]");
   const source = root?.dataset.source;
   if (root && source) {
     const button = root.querySelector<HTMLButtonElement>("[data-lyrics-load]")!;
     const status = root.querySelector<HTMLElement>("[data-lyrics-status]")!;
     const body = root.querySelector<HTMLElement>("[data-lyrics-body]")!;
+    const vocabulary: CallGuideVocabulary | null = root.dataset.callGuide
+      ? (JSON.parse(root.dataset.callGuide) as CallGuideVocabulary)
+      : null;
 
     // コピーを取りにくくする。コピー・切り取り・ドラッグを止める (選択は CSS、印刷も CSS)。
     // 完全には防げないが、まとめ取りの手間を上げる。
@@ -63,6 +99,148 @@ const { lyrics } = Astro.props;
       status.textContent = text;
     };
 
+    const el = (tag: string, className: string, text?: string): HTMLElement => {
+      const node = document.createElement(tag);
+      node.className = className;
+      if (text !== undefined) node.textContent = text;
+      return node;
+    };
+
+    /** 強調度の強さ。同じ範囲に複数のコールがあるとき、行内に敷く色は一番強いものにする。 */
+    const rank = (emphasis: string | null | undefined): number =>
+      emphasis === "performer_request" ? 2 : emphasis === "optional" ? 1 : 0;
+    const hasAnchor = (c: LyricCall): boolean => c.end > c.start;
+
+    /**
+     * 行内のアンカーの通し番号 (call.id → 0 始まり)。同じ範囲は同じ番号。
+     * アンカーが 1 つしか無い行では null (振っても情報が増えない)。
+     */
+    const anchorIndexes = (calls: LyricCall[]): Map<string, number> | null => {
+      const groups = new Map<string, number>();
+      const result = new Map<string, number>();
+      for (const c of calls) {
+        if (!hasAnchor(c)) continue;
+        const key = `${c.start}-${c.end}`;
+        if (!groups.has(key)) groups.set(key, groups.size);
+        result.set(c.id, groups.get(key)!);
+      }
+      return groups.size > 1 ? result : null;
+    };
+
+    /** アンカー範囲に色を敷いた本文。重なりは先勝ち (両方描くと色が濁る)。位置はスカラー単位。 */
+    const textWithAnchors = (text: string, calls: LyricCall[]): HTMLElement => {
+      const scalars = Array.from(text);
+      const strongest = new Map<string, LyricCall>();
+      for (const c of calls) {
+        if (!hasAnchor(c)) continue;
+        const key = `${c.start}-${c.end}`;
+        const current = strongest.get(key);
+        if (!current || rank(c.emphasis) > rank(current.emphasis)) strongest.set(key, c);
+      }
+      const highlights = [...strongest.values()].sort((a, b) => a.start - b.start);
+      const out = el("span", "lyrics__text");
+      let cursor = 0;
+      for (const h of highlights) {
+        const start = Math.max(h.start, cursor);
+        const end = Math.min(h.end, scalars.length);
+        if (start >= end) continue;
+        if (start > cursor) out.append(scalars.slice(cursor, start).join(""));
+        const mark = el("mark", "lyrics__anchor", scalars.slice(start, end).join(""));
+        mark.dataset.emphasis = h.emphasis ?? "normal";
+        out.append(mark);
+        cursor = end;
+      }
+      if (cursor < scalars.length) out.append(scalars.slice(cursor).join(""));
+      return out;
+    };
+
+    /** 行の直下に並ぶコール群。印 (↳ / ①②③ / ») と札 (同時 / 行末 / ズレ) はアプリと同じ規則。 */
+    const callRows = (calls: LyricCall[]): HTMLElement => {
+      const rows = el("span", "lyrics__calls");
+      const indexes = anchorIndexes(calls);
+      const mixed = calls.some(hasAnchor) && calls.some((c) => !hasAnchor(c));
+      for (const c of calls) {
+        const row = el("span", `lyrics__call lyrics__call--${c.emphasis ?? "normal"}`);
+        let marker = vocabulary?.markerEnd ?? "";
+        if (hasAnchor(c)) {
+          const index = indexes?.get(c.id);
+          marker =
+            index === undefined
+              ? (vocabulary?.markerSingle ?? "")
+              : (vocabulary?.anchorMarkers[index] ?? `(${index + 1})`);
+        }
+        row.append(el("span", "lyrics__marker", marker), el("span", "lyrics__call-text", c.text));
+        if (vocabulary) {
+          if (c.timing === "over" && hasAnchor(c)) {
+            row.append(el("span", "lyrics__tag lyrics__tag--over", vocabulary.timingOverLabel));
+          } else if (mixed && !hasAnchor(c)) {
+            row.append(el("span", "lyrics__tag lyrics__tag--end", vocabulary.endLabel));
+          }
+          if (c.stale && hasAnchor(c)) {
+            row.append(el("span", "lyrics__tag lyrics__tag--stale", vocabulary.staleLabel));
+          }
+        }
+        rows.append(row);
+      }
+      return rows;
+    };
+
+    /** 凡例。その曲で実際に使われているものだけ (曲ごとに中身が変わる、実物のコール表と同じ)。 */
+    const legend = (lines: LyricLine[]): HTMLElement | null => {
+      if (!vocabulary) return null;
+      const calls = lines.flatMap((l) => l.calls ?? []);
+      const usedEmphases = vocabulary.emphases.filter(
+        (e) => e.kind !== "normal" && calls.some((c) => c.emphasis === e.kind),
+      );
+      const usedClaps = vocabulary.claps.filter((k) => lines.some((l) => l.clap === k.kind));
+      const usesOver = calls.some((c) => c.timing === "over" && hasAnchor(c));
+      if (usedEmphases.length === 0 && usedClaps.length === 0 && !usesOver) return null;
+      const box = el("p", "lyrics__legend");
+      for (const e of usedEmphases) {
+        const item = el("span", "lyrics__legend-item");
+        const dot = el("span", `lyrics__dot lyrics__dot--${e.kind}`);
+        item.append(dot, e.label);
+        box.append(item);
+      }
+      for (const k of usedClaps) {
+        const item = el("span", "lyrics__legend-item");
+        item.append(el("span", "lyrics__legend-symbol", k.symbol), k.label);
+        box.append(item);
+      }
+      if (usesOver) {
+        const item = el("span", "lyrics__legend-item");
+        item.append(el("span", "lyrics__legend-symbol", vocabulary.timingOverLabel), vocabulary.legendOverLabel);
+        box.append(item);
+      }
+      return box;
+    };
+
+    const render = (lines: LyricLine[]): void => {
+      const nodes: HTMLElement[] = [];
+      const head = legend(lines);
+      if (head) nodes.push(head);
+      // 手拍子の記号は行頭の固定幅の列に置く。ある行だけ本文が右にズレないよう、
+      // 1 行でも指示があれば全行にその列を確保する (アプリと同じ)。
+      const clapColumn = lines.some((l) => l.clap && vocabulary);
+      for (const line of lines) {
+        const calls = line.calls ?? [];
+        const kind = line.kind ?? "lyric";
+        const p = el("p", `lyrics__line lyrics__line--${kind}`);
+        if (clapColumn) {
+          const clap = vocabulary!.claps.find((k) => k.kind === line.clap);
+          const glyph = el("span", "lyrics__clap", clap?.symbol ?? "");
+          if (clap) glyph.setAttribute("aria-label", clap.label);
+          p.append(glyph);
+        }
+        const content = el("span", "lyrics__content");
+        content.append(kind === "lyric" ? textWithAnchors(line.text, calls) : el("span", "lyrics__text", line.text));
+        if (calls.length > 0) content.append(callRows(calls));
+        p.append(content);
+        nodes.push(p);
+      }
+      body.replaceChildren(...nodes);
+    };
+
     button.addEventListener("click", async () => {
       button.disabled = true;
       say("読み込み中…");
@@ -70,24 +248,8 @@ const { lyrics } = Astro.props;
         // **1 曲ぶんだけ。** まとめて取る道は用意しない。
         const res = await fetch(source, { headers: { Accept: "application/json" } });
         if (!res.ok) throw new Error(String(res.status));
-        const data = (await res.json()) as {
-          lines: { text: string; kind?: string | null; calls?: { text: string }[] }[];
-        };
-        body.replaceChildren(
-          ...data.lines.map((line) => {
-            const p = document.createElement("p");
-            p.className = "lyrics__line";
-            p.textContent = line.text;
-            // コールガイドは歌詞行の下に添える (アプリと同じ並び)。
-            if (line.calls?.length) {
-              const calls = document.createElement("span");
-              calls.className = "lyrics__calls";
-              calls.textContent = line.calls.map((c) => c.text).join(" ");
-              p.append(calls);
-            }
-            return p;
-          }),
-        );
+        const data = (await res.json()) as { lines: LyricLine[] };
+        render(data.lines);
         body.hidden = false;
         button.hidden = true;
         say("歌詞を表示しました。");
