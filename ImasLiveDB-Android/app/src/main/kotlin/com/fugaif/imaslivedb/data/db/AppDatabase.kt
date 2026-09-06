@@ -40,7 +40,6 @@ import com.fugaif.imaslivedb.data.model.Show
 import com.fugaif.imaslivedb.data.model.ShowCast
 import com.fugaif.imaslivedb.data.model.Song
 import com.fugaif.imaslivedb.data.model.SongArtist
-import com.fugaif.imaslivedb.data.model.SongCall
 import com.fugaif.imaslivedb.data.model.SongVideo
 import com.fugaif.imaslivedb.data.model.Staff
 import com.fugaif.imaslivedb.data.model.UnitMember
@@ -60,7 +59,6 @@ import com.fugaif.imaslivedb.data.model.UserMark
         ImasUnit::class,
         UnitMember::class,
         SongArtist::class,
-        SongCall::class,
         SongVideo::class,
         UserMark::class,
         Meta::class,
@@ -73,7 +71,7 @@ import com.fugaif.imaslivedb.data.model.UserMark
         UnitVersion::class,
         Creator::class
     ],
-    version = 12,
+    version = 13,
     // 確定スキーマを app/schemas へ JSON で吐く。共有コア (imas-core) が持つ
     // マスタ DDL と突き合わせて、片方だけスキーマを変えた事故を CI で捕まえるため。
     exportSchema = true
@@ -138,7 +136,7 @@ abstract class AppDatabase : RoomDatabase() {
             )
                 // スキーマ変更時は破壊的再構築せず Room Migration を書く (iOS の DatabaseMigrations と対)。
                 // UserMark 等のローカル唯一データを保全するため (.fallbackToDestructiveMigration は使わない)。
-                .addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12)
+                .addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13)
                 .addCallback(seedCallback)
                 .build()
         }
@@ -348,6 +346,17 @@ abstract class AppDatabase : RoomDatabase() {
         val MIGRATION_11_12 = object : Migration(11, 12) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE units ADD COLUMN name_kana TEXT")
+            }
+        }
+
+        /**
+         * コーレス (song_calls) を廃止。CloudKit のレコードタイプごと撤去され同期でも
+         * 取り込まなくなったので、ローカルの表も落とす (中身は CloudKit の写しだけで、
+         * 端末ローカル唯一のデータは無い)。
+         */
+        val MIGRATION_12_13 = object : Migration(12, 13) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("DROP TABLE IF EXISTS song_calls")
             }
         }
     }

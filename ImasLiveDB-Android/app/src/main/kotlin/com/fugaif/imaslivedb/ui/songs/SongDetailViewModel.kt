@@ -9,7 +9,6 @@ import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.data.model.ImasUnit
 import com.fugaif.imaslivedb.data.model.PerformanceHistoryRow
 import com.fugaif.imaslivedb.data.model.Song
-import com.fugaif.imaslivedb.data.model.SongCall
 import com.fugaif.imaslivedb.data.model.SongPerformanceEvidence
 import com.fugaif.imaslivedb.data.model.SongVideo
 import com.fugaif.imaslivedb.data.model.UserMark
@@ -41,7 +40,6 @@ data class SongDetailUiState(
     /** タグが似ている楽曲 (この曲が好きな人にはこれも, サーバ算出)。 */
     val similarTagSongs: List<Song> = emptyList(),
     val similarSharedTags: Map<String, Int> = emptyMap(),
-    val songCalls: List<SongCall> = emptyList(),
     val songVideos: List<SongVideo> = emptyList(),
     val tags: List<CommunityApi.SongTag> = emptyList(),
     val penlight: CommunityApi.PenlightResult? = null,
@@ -80,7 +78,6 @@ class SongDetailViewModel : ViewModel() {
             // 曲詳細 1 オープンにつき FFI は 1 回だけ。共起と歌唱者はコア側で束ねてある
             // (スナップショットが無いときは Room の固定 4 クエリ。行ごとには引かない)。
             val evidence = module.performanceEvidenceRepository.fetchSongPerformanceEvidence(songId)
-            val calls = module.database.communityDao().callsForSong(songId)
             val videos = module.database.communityDao().videosForSong(songId)
             val isFavorite = module.userMarkRepository.isOn(UserMark.SONG, songId, UserMark.FAVORITE)
             _uiState.value = SongDetailUiState(
@@ -94,7 +91,6 @@ class SongDetailViewModel : ViewModel() {
                 collectedShows = collectedShows,
                 relatedSongs = relatedSongs,
                 performanceEvidence = evidence,
-                songCalls = calls,
                 songVideos = videos,
                 isFavorite = isFavorite
             )
@@ -158,17 +154,6 @@ class SongDetailViewModel : ViewModel() {
     fun onTagsApplied() {
         val songId = currentSongId ?: return
         viewModelScope.launch { loadCommunity(songId) }
-    }
-
-    /** コーレス投稿/編集 (CallEditSheet) 成功後、一覧を差し替える (新規は先頭に追加)。 */
-    fun onCallSaved(call: SongCall) {
-        val current = _uiState.value.songCalls
-        val updated = if (current.any { it.id == call.id }) {
-            current.map { if (it.id == call.id) call else it }
-        } else {
-            listOf(call) + current
-        }
-        _uiState.value = _uiState.value.copy(songCalls = updated)
     }
 
     /** お気に入りトグル (端末ローカル)。 */

@@ -41,9 +41,8 @@ private const val MAX_VIDEO_NOTE = 1000
 /**
  * 参考動画 (SongVideo) の投稿・編集フォーム。iOS `VideoEditView` の移植。
  *
- * SongVideo はコーレスと同じコミュニティ型レコードなので、一般ユーザーでも
+ * SongVideo はコミュニティ型レコードなので、一般ユーザーでも
  * `POST /edits` で即時反映される (マスタ型の admin/一般振り分けは不要 = [EditApi.submit] を直接叩く)。
- * 見た目・状態の持ち方は同型の [com.fugaif.imaslivedb.ui.songs.CallEditSheet] に揃えてある。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

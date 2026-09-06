@@ -84,7 +84,7 @@ import java.util.Locale
  * 契約 (imas-live-api を実ソースで確認済み): マスタ (Song/Show/Idol/Event/Setlist系) の直接反映は
  * admin 限定。一般ユーザーがここから編集すると `POST /edit-requests` で GitHub issue 化され、
  * このフィードには載らない (CloudKit 未反映のため)。フィードに載るのは admin の直接編集と
- * コミュニティ投稿 (コーレス/参考動画。別画面) のみ。
+ * コミュニティ投稿 (参考動画。別画面) のみ。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

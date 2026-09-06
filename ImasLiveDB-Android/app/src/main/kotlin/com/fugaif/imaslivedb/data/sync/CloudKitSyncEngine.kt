@@ -141,10 +141,6 @@ class CloudKitSyncEngine(context: Context, private val db: AppDatabase) {
             { d, rows, _ -> d.upsertSetlistPerformers(SyncMappers.setlistPerformers(rows)) },
             { d, keys -> keys.forEach { d.deleteSetlistPerformer(it[0], it[1]) } }),
         // Phase 6: コミュニティコンテンツ (songs に依存)
-        "SongCall" to StepIo(
-            { d, rows, _ -> d.upsertSongCalls(SyncMappers.songCalls(rows)) },
-            { d, keys -> d.deleteSongCalls(singlePk(keys)) },
-            { d -> d.songCallIds() }),
         "SongVideo" to StepIo(
             { d, rows, _ -> d.upsertSongVideos(SyncMappers.songVideos(rows)) },
             { d, keys -> d.deleteSongVideos(singlePk(keys)) },

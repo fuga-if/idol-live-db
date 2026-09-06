@@ -16,7 +16,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.Sell
@@ -73,7 +72,7 @@ fun MyContributionsScreen(onBack: () -> Unit) {
             SummaryCard(total = total)
             Breakdown(counts = counts)
             Text(
-                "セトリ編集・コーレス・動画追加・タグ追加が累計に含まれます。再インストールするとカウントはリセットされます (端末ローカル記録)。",
+                "セトリ編集・動画追加・タグ追加が累計に含まれます。再インストールするとカウントはリセットされます (端末ローカル記録)。",
                 fontSize = 12.sp, color = DS.ink3
             )
         }
@@ -134,7 +133,6 @@ private fun BreakdownRow(kind: LocalContributionLog.Kind, count: Int) {
 
 private fun LocalContributionLog.Kind.icon(): ImageVector = when (this) {
     LocalContributionLog.Kind.SETLIST_EDIT -> Icons.Filled.EditNote
-    LocalContributionLog.Kind.CALL_RESPONSE -> Icons.Filled.Campaign
     LocalContributionLog.Kind.VIDEO -> Icons.Filled.Movie
     LocalContributionLog.Kind.TAG -> Icons.Filled.Sell
 }

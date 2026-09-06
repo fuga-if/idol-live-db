@@ -22,7 +22,7 @@ import kotlinx.coroutines.launch
  */
 @Composable
 fun CommunityLoginPromptDialog(
-    message: String = "タグ・コーレス・投票にはログインが必要です。",
+    message: String = "タグ・投票にはログインが必要です。",
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
