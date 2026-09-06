@@ -27,7 +27,7 @@
 //!    のように value だけ平坦化すると型が復元できなくなる。壊れ方は 2 つ:
 //!    (a) `deletedAt` が [`CkValue::Int`] に潰れて [`deleted_at_millis`] が None を返し、
 //!        soft delete が 1 件も伝搬しない (消えたはずの行が残り続ける)。
-//!    (b) SongCall / SongVideo の `createdAt` が Date と認識されず `now_millis` に
+//!    (b) SongVideo の `createdAt` が Date と認識されず `now_millis` に
 //!        フォールバックして、投稿日時が同期のたび書き換わる。
 //!    → Kotlin では HTTP と `serverErrorCode` / `continuationMarker` だけ扱い、
 //!      レコードの生 JSON を [`ingest_web_services_batch`] に渡せばこの条件は自動で満たされる。
@@ -547,18 +547,6 @@ pub struct CkSetlistPerformerRow {
     pub idol_id: String,
 }
 
-/// song_calls
-#[derive(uniffi::Record, Clone, Debug, PartialEq)]
-pub struct CkSongCallRow {
-    pub id: String,
-    pub song_id: String,
-    pub call_text: String,
-    pub source_url: Option<String>,
-    /// ISO8601 (`yyyy-MM-dd'T'HH:mm:ss'Z'`)。
-    pub created_at: String,
-    pub author_display_name: Option<String>,
-}
-
 /// song_videos
 #[derive(uniffi::Record, Clone, Debug, PartialEq)]
 pub struct CkSongVideoRow {
@@ -592,7 +580,6 @@ pub enum CkRow {
     ShowCast { row: CkShowCastRow },
     SetlistItem { row: CkSetlistItemRow },
     SetlistPerformer { row: CkSetlistPerformerRow },
-    SongCall { row: CkSongCallRow },
     SongVideo { row: CkSongVideoRow },
 }
 
@@ -928,21 +915,6 @@ pub fn setlist_performer(record: &CkRecordInput) -> Option<CkSetlistPerformerRow
     Some(CkSetlistPerformerRow { setlist_item_id, idol_id })
 }
 
-pub fn song_call(record: &CkRecordInput, now_millis: i64) -> Option<CkSongCallRow> {
-    let f = Fields::new(record);
-    let song_id = f.required("songId")?;
-    let call_text = f.required("callText")?;
-    Some(CkSongCallRow {
-        // 投稿系は id フィールドを持たず recordName が主キー。
-        id: record.record_name.clone(),
-        song_id,
-        call_text,
-        source_url: f.str("sourceUrl"),
-        created_at: created_at_string(&f, now_millis),
-        author_display_name: f.str("authorDisplayName"),
-    })
-}
-
 pub fn song_video(record: &CkRecordInput, now_millis: i64) -> Option<CkSongVideoRow> {
     let f = Fields::new(record);
     let song_id = f.required("songId")?;
@@ -983,7 +955,6 @@ pub fn map_record(record_type: &str, record: &CkRecordInput, now_millis: i64) ->
         "ShowCast" => show_cast(record).map(|row| CkRow::ShowCast { row }),
         "SetlistItem" => setlist_item(record).map(|row| CkRow::SetlistItem { row }),
         "SetlistPerformer" => setlist_performer(record).map(|row| CkRow::SetlistPerformer { row }),
-        "SongCall" => song_call(record, now_millis).map(|row| CkRow::SongCall { row }),
         "SongVideo" => song_video(record, now_millis).map(|row| CkRow::SongVideo { row }),
         _ => None,
     }
@@ -1011,7 +982,6 @@ pub fn is_ingested_record_type(record_type: &str) -> bool {
             | "ShowCast"
             | "SetlistItem"
             | "SetlistPerformer"
-            | "SongCall"
             | "SongVideo"
     )
 }
@@ -1286,34 +1256,26 @@ mod tests {
     #[test]
     fn created_at_falls_back_to_now_when_not_a_date() {
         let now = 1_700_000_000_000;
-        let base = [("songId", text("s1")), ("callText", text("せーの"))];
+        let base = [("songId", text("s1")), ("youtubeUrl", text("https://y"))];
 
         let mut fields = base.to_vec();
         fields.push(("createdAt", CkValue::Timestamp { millis: 1_600_000_000_000 }));
-        let c = song_call(&rec("c1", &fields), now).unwrap();
-        assert_eq!(c.created_at, "2020-09-13T12:26:40Z");
+        let v = song_video(&rec("v1", &fields), now).unwrap();
+        assert_eq!(v.created_at, "2020-09-13T12:26:40Z");
 
         // 欠損は now。
-        let c = song_call(&rec("c1", &base), now).unwrap();
-        assert_eq!(c.created_at, "2023-11-14T22:13:20Z");
+        let v = song_video(&rec("v1", &base), now).unwrap();
+        assert_eq!(v.created_at, "2023-11-14T22:13:20Z");
 
         // 文字列で来ても Date ではないので now (iOS の `as? Date` と同じ)。
         let mut fields = base.to_vec();
         fields.push(("createdAt", text("2020-09-13T12:26:40Z")));
-        let c = song_call(&rec("c1", &fields), now).unwrap();
-        assert_eq!(c.created_at, "2023-11-14T22:13:20Z");
+        let v = song_video(&rec("v1", &fields), now).unwrap();
+        assert_eq!(v.created_at, "2023-11-14T22:13:20Z");
     }
 
     #[test]
     fn community_rows_use_record_name_as_id() {
-        let c = song_call(
-            &rec("call-uuid", &[("songId", text("s1")), ("callText", text("せーの"))]),
-            0,
-        )
-        .unwrap();
-        assert_eq!(c.id, "call-uuid");
-        assert_eq!(c.source_url, None);
-
         let v = song_video(
             &rec("vid-uuid", &[("songId", text("s1")), ("youtubeUrl", text("https://y"))]),
             0,
@@ -1326,8 +1288,6 @@ mod tests {
             0
         )
         .is_none());
-        assert!(song_call(&rec("c", &[("songId", text("s1")), ("callText", text(""))]), 0)
-            .is_none());
     }
 
     #[test]
@@ -1583,7 +1543,6 @@ mod tests {
                 "SetlistPerformer",
                 rec("sp", &[("setlistItemId", text("sl")), ("idolId", text("i"))]),
             ),
-            ("SongCall", rec("c", &[("songId", text("s")), ("callText", text("せーの"))])),
             ("SongVideo", rec("v", &[("songId", text("s")), ("youtubeUrl", text("u"))])),
         ];
         for (ty, r) in &cases {
@@ -1666,16 +1625,16 @@ mod tests {
         assert!(out.invalid_record_names.is_empty());
 
         // (b) createdAt が now に流れない = 投稿日時が同期のたび動かない。
-        let call = record_from_web_services_json(
-            r#"{"recordName":"c1","fields":{
+        let video = record_from_web_services_json(
+            r#"{"recordName":"v1","fields":{
                 "songId":{"value":"s1","type":"STRING"},
-                "callText":{"value":"せーの","type":"STRING"},
+                "youtubeUrl":{"value":"https://y","type":"STRING"},
                 "createdAt":{"value":1600000000000,"type":"TIMESTAMP"}
             }}"#,
         );
-        assert_eq!(song_call(&call, 1).unwrap().created_at, "2020-09-13T12:26:40Z");
+        assert_eq!(song_video(&video, 1).unwrap().created_at, "2020-09-13T12:26:40Z");
         assert_eq!(
-            song_call(&call, 1_800_000_000_000).unwrap().created_at,
+            song_video(&video, 1_800_000_000_000).unwrap().created_at,
             "2020-09-13T12:26:40Z"
         );
     }
@@ -1690,17 +1649,17 @@ mod tests {
         assert!(out.deleted_record_names.is_empty(), "削除が 1 件も伝搬しない");
         assert_eq!(out.invalid_record_names, vec!["gone".to_string()]);
 
-        let call = rec(
-            "c1",
+        let video = rec(
+            "v1",
             &[
                 ("songId", text("s1")),
-                ("callText", text("せーの")),
+                ("youtubeUrl", text("https://y")),
                 ("createdAt", int(1_600_000_000_000)),
             ],
         );
         assert_ne!(
-            song_call(&call, 1_700_000_000_000).unwrap().created_at,
-            song_call(&call, 1_800_000_000_000).unwrap().created_at,
+            song_video(&video, 1_700_000_000_000).unwrap().created_at,
+            song_video(&video, 1_800_000_000_000).unwrap().created_at,
             "createdAt が now に流れて同期のたび書き換わる"
         );
     }

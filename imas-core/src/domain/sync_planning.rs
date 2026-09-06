@@ -222,7 +222,6 @@ const STEPS_IN_FK_ORDER: &[(&str, &str)] = &[
     // Phase 5: setlist_items に依存
     ("SetlistPerformer", "セトリ出演者"),
     // Phase 6: コミュニティコンテンツ (songs に依存)
-    ("SongCall", "コーレス"),
     ("SongVideo", "参考動画"),
 ];
 
@@ -467,7 +466,6 @@ pub fn table_info(record_type: &str) -> Option<SyncTableInfo> {
         "Creator" => ("creators", &["id"]),
         "VenueHall" => ("venue_halls", &["id"]),
         "Song" => ("songs", &["id"]),
-        "SongCall" => ("song_calls", &["id"]),
         "SongVideo" => ("song_videos", &["id"]),
         "SetlistItem" => ("setlist_items", &["id"]),
         "IdolBrand" => ("idol_brands", &["idol_id", "brand_id"]),
@@ -632,7 +630,7 @@ const SEED_SKIP_TABLES: &[&str] = &["room_master_table", "android_metadata", "sq
 ///
 /// Room がスキーマの真実を握ったまま実データだけ移す方式なので、両方に存在するものだけが
 /// 対象になる。seed 側にしか無いテーブル (song_units 等) は移す先が無いので落とし、
-/// main 側にしか無いテーブル (user_marks / song_calls / song_videos) は空のまま残す
+/// main 側にしか無いテーブル (user_marks / song_videos) は空のまま残す
 /// (ローカル投稿・CloudKit 同期で埋まる)。
 pub fn seed_common_tables(main_tables: &[String], seed_tables: &[String]) -> Vec<String> {
     let seed: HashSet<&str> = seed_tables.iter().map(String::as_str).collect();
@@ -670,7 +668,6 @@ const DEFAULT_PRESERVED_TABLES: &[&str] = &[
     "custom_image_paths",
     "grdb_migrations",
     "meta",
-    "song_calls",
     "song_videos",
     "song_tags",
     "device_song_tag",
@@ -951,7 +948,7 @@ mod tests {
     #[test]
     fn all_steps_keeps_parents_before_children() {
         let steps = all_steps();
-        assert_eq!(steps.len(), 19);
+        assert_eq!(steps.len(), 18);
         let index = |record_type: &str| {
             steps
                 .iter()
@@ -973,7 +970,6 @@ mod tests {
         assert!(index("Show") < index("SetlistItem"));
         assert!(index("Song") < index("SetlistItem"));
         assert!(index("SetlistItem") < index("SetlistPerformer"));
-        assert!(index("Song") < index("SongCall"));
         assert!(index("Song") < index("SongVideo"));
         assert_eq!(steps[0].display_name, "ブランド");
     }
@@ -1000,7 +996,6 @@ mod tests {
             "ShowCast",
             "SetlistItem",
             "SetlistPerformer",
-            "SongCall",
         ]);
         let steps: Vec<String> = steps_for(&android)
             .into_iter()
@@ -1021,7 +1016,6 @@ mod tests {
                 "ShowCast",
                 "SetlistItem",
                 "SetlistPerformer",
-                "SongCall",
                 "SongVideo",
             ])
         );
@@ -1655,7 +1649,6 @@ mod tests {
             "custom_image_paths",
             "grdb_migrations",
             "meta",
-            "song_calls",
             "song_videos",
             "song_tags",
             "device_song_tag",
@@ -1671,7 +1664,7 @@ mod tests {
                 Vec::<String>::new()
             );
         }
-        assert_eq!(preserved.len(), 9);
+        assert_eq!(preserved.len(), 8);
     }
 
     #[test]

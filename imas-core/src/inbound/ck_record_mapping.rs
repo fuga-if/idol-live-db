@@ -15,7 +15,7 @@
 //! `idols.voice_actors` のようにローカルだけが持つ列を、行全体の置換で NULL に
 //! 潰さないこと (domain の受け入れ条件 2)。
 //!
-//! `now_millis` は投稿系 (SongCall / SongVideo) の createdAt 欠損時の既定値にだけ使う。
+//! `now_millis` は投稿系 (SongVideo) の createdAt 欠損時の既定値にだけ使う。
 //! domain は OS 時刻を取らないので引数で受ける。
 
 use crate::domain::ck_record_mapping as mapping;

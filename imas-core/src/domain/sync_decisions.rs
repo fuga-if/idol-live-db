@@ -653,7 +653,7 @@ mod tests {
             "not defined",
             "no such",
         ] {
-            let reason = format!("Record Type 'SongCall' {missing}");
+            let reason = format!("Record Type 'SongVideo' {missing}");
             assert_eq!(
                 classify_error(&ckws(400, Some("BAD_REQUEST"), Some(&reason))),
                 SyncErrorKind::UnknownRecordType,
@@ -833,7 +833,7 @@ mod tests {
     /// Android のレコードタイプ未作成も同じ扱い (iOS の unknownItem → continue に揃う)。
     #[test]
     fn android_unknown_record_type_skips_the_step() {
-        let plan = step_failure_plan("SongCall", "コーレス", &ckws(404, Some("NOT_FOUND"), None));
+        let plan = step_failure_plan("SongVideo", "参考動画", &ckws(404, Some("NOT_FOUND"), None));
         assert_eq!(plan.action, SyncStepFailureAction::SkipStep);
     }
 
@@ -971,10 +971,10 @@ mod tests {
 
     #[test]
     fn progress_fraction_matches_ios_step_position() {
-        // iOS は全 19 ステップを分母にする。
-        assert_eq!(progress_fraction("ブランド", &[]), Some(1.0 / 19.0));
+        // iOS は全 18 ステップを分母にする (SongCall 廃止で 19 → 18)。
+        assert_eq!(progress_fraction("ブランド", &[]), Some(1.0 / 18.0));
         assert_eq!(progress_fraction("参考動画", &[]), Some(1.0));
-        assert_eq!(progress_fraction("公演", &[]), Some(10.0 / 19.0));
+        assert_eq!(progress_fraction("公演", &[]), Some(10.0 / 18.0));
         // 未知のラベル (同期中でない) は None。
         assert_eq!(progress_fraction("存在しない", &[]), None);
     }

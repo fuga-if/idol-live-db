@@ -21,9 +21,8 @@ const NON_STRING_FIELDS: Record<string, Record<string, CKFieldType>> = {
   Show: { sortOrder: "INT64" },
   Song: { durationSec: "INT64" },
   SetlistItem: { position: "INT64" },
-  // SongCall/SongVideo の createdAt は CKRecordMapper が Date で読むため TIMESTAMP
+  // SongVideo の createdAt は CKRecordMapper が Date で読むため TIMESTAMP
   // (authorDisplayName は STRING なので未掲載で既定の STRING になる)。
-  SongCall: { createdAt: "TIMESTAMP" },
   SongVideo: { createdAt: "TIMESTAMP" },
   Venue: { capacity: "INT64", sortOrder: "INT64" },
   // キャパは施設 (Venue) 既定値をホール構成が上書きするので、両方に持つ。
@@ -42,8 +41,8 @@ export function ckFieldType(recordType: string, field: string): CKFieldType {
 export const OPEN_EDIT_TYPES = new Set([
   "Event", "Show", "Idol", "Song",
   "SetlistItem", "SetlistPerformer", "SongArtist", "ShowCast",
-  // コーレス (SongCall) / 参考動画 (SongVideo) もオープン編集 (確定契約 §4)。
-  "SongCall", "SongVideo",
+  // 参考動画 (SongVideo) もオープン編集 (確定契約 §4)。コーレス (SongCall) は廃止済み。
+  "SongVideo",
 ]);
 
 /** admin 限定の構造マスタ。一般ユーザーは編集不可。 */

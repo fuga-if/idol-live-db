@@ -4,7 +4,7 @@
 // 運営が issue を見て data/fixes に落とし込み apply_data.py で本DBへ反映する
 // (= マスタ変更を git 経路に一本化し、二重書き込みによる乖離/巻き戻しを防ぐ)。
 //
-// コミュニティ投稿 (コーレス/参考動画) は従来どおり /edits で全員オープン。ここはマスタ専用。
+// コミュニティ投稿 (参考動画) は従来どおり /edits で全員オープン。ここはマスタ専用。
 
 import { validateMasterEdit, type EditOp } from "./master_validators";
 

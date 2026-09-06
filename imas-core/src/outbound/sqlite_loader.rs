@@ -11,7 +11,7 @@
 //! sqlite_master で有無を動的検出して「あれば読む・無ければ既定値 (None / 空)」にする。
 //! これで Bundle DB と移行済み Documents DB のどちらを渡されても同じコードが通る。
 //!
-//! song_calls / song_videos は意図して読まない (理由は domain/snapshot.rs 冒頭)。
+//! song_videos は意図して読まない (理由は domain/snapshot.rs 冒頭)。
 //!
 //! FK 孤児 (参照整合が壊れた行) は黙って捨てて継続する。起動を壊すより読み飛ばす方が
 //! 被害が小さい (過去に FK 孤児で起動クラッシュ→審査 reject の事故があった系譜のデータ)。

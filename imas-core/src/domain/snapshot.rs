@@ -8,7 +8,7 @@
 //! - **user_marks (担当/お気に入り/メモ/回収) は載せない**。ユーザーデータは書き込みが
 //!   頻繁でプラットフォーム側が正。必要な判定は解決済み id 集合を引数で受け取る
 //!   (SongListFiltering と同じ流儀)。
-//! - **song_calls / song_videos も載せない**。コミュニティ投稿はローカル編集経路が
+//! - **song_videos も載せない**。コミュニティ投稿はローカル編集経路が
 //!   スナップショット再ロードを促さない契約 (iOS CoreSnapshotManager の
 //!   SnapshotInvalidatingSongWriting) で確定済みで、載せると「投稿直後に自分の投稿が
 //!   見えない」回帰になる。読み取りは SQL 経路 (fallback) に残す。
