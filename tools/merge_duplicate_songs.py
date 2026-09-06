@@ -38,13 +38,13 @@ OUT_TSV = os.path.join(HERE, "pending_cloudkit_deletions_song_merge.tsv")
 MERGES = [
     (
         "876_reloading", "876_リローディング",
-        "同じ曲の二重登録。歌ネットは英字表記 (song/371743) だが、Apple Music "
+        "同じ曲の二重登録。歌詞サイトは英字表記 (song/371743) だが、Apple Music "
         "(1725264451) も CD 名もカタカナなので、メタの揃っているカタカナ側を残す。"
         "消す側は brand=other・配信日/配信ID/CD すべて無しのセトリ由来レコード。",
     ),
     (
         "cg_sun_high_gold", "cg_sunhighgold",
-        "同じ曲の二重登録 (半角/全角の違い)。歌ネット (song/280408) が全角表記なので"
+        "同じ曲の二重登録 (半角/全角の違い)。歌詞サイト (song/280408) が全角表記なので"
         "全角側を残す。song_artists は 5 件とも同一。",
     ),
     (

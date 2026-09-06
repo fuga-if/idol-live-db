@@ -560,7 +560,7 @@ def cmd_search(args):
                     time.sleep(args.interval)
                 continue
             pid, ptitle, partist, _ = hits[0]
-            conf, note = "high", "歌ネットに無し・プチリリ由来 (検索)"
+            conf, note = "high", "リンク先に無し・プチリリ由来 (検索)"
             if len(hits) > 1:
                 note += " / 他候補 %d件" % (len(hits) - 1)
         else:
@@ -1049,7 +1049,7 @@ def collect_for_targets(client, artists, targets, existing, args):
                     "song_id": sid, "petit_id": str(row[0]),
                     "title": row[1], "artist": row[2],
                     "confidence": "high",
-                    "note": "歌ネットに無し・プチリリ由来 (一覧 %s)" % aid,
+                    "note": "リンク先に無し・プチリリ由来 (一覧 %s)" % aid,
                 }
                 hits += 1
         if hits:
@@ -1074,7 +1074,7 @@ def cmd_list(args):
     existing = read_tsv(CANDIDATES_TSV, CANDIDATE_COLS)
     done = {r["song_id"] for r in existing if r["confidence"] == "high"}
     if args.targets:
-        # 対象曲を外から渡す経路 (歌ネットに無い曲を埋めるとき)。
+        # 対象曲を外から渡す経路 (歌詞リンクの無い曲を埋めるとき)。
         songs = load_targets(args.targets)
         targets = [s for s in songs if s["song_id"] not in done]
         print("対象 %d曲 (指定リスト) / 未取得 %d曲" % (len(songs), len(targets)))
@@ -1159,7 +1159,7 @@ def cmd_list(args):
 # import — 取得した本文を lyrics_local/lyrics/<song_id>.json にする
 # --------------------------------------------------------------------------
 #
-# 歌ネットに無かった曲を埋める経路。**採用の条件を緩めないこと** —
+# 歌詞リンクが無かった曲を埋める経路。**採用の条件を緩めないこと** —
 # 曲名が完全一致し、かつアーティスト名にその曲の歌唱アイドル/ユニット名が
 # 含まれる候補だけを入れる。同名異曲や尺違いを掴むと、誤った歌詞が公開される。
 
@@ -1226,7 +1226,7 @@ def cmd_import(args):
         source = "プチリリ %s%s" % (cached.get("petit_id"),
                                     " (%s)" % poster if poster else "")
         doc = lyrics_json.build_doc(sid, lines, source,
-                                    note="歌ネットに無し・プチリリ由来")
+                                    note="リンク先に無し・プチリリ由来")
         if args.apply:
             lyrics_json.write_doc(sid, doc)
         made.append((sid, doc["title"], cached.get("petit_id"), poster,

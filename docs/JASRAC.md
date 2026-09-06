@@ -97,7 +97,7 @@
 ### `link_verify.py` の判定 — candidate_title を信用しない
 
 照合には `lyrics_local/lyrics/<song_id>.json` の `scraped`
-(`utanet_title` / `utanet_artist`) を使う。links.tsv の `candidate_title`
+(`page_title` / `page_artist`) を使う。links.tsv の `candidate_title`
 (ページの `<title>` 文字列) を使ってはいけない:
 
 - **歌手名が入っているとは限らない。** 「KAWAII ウォーズ 歌詞」のように曲名だけの

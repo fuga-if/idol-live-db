@@ -23,7 +23,7 @@ Usage:
   候補なし     = not_found
 
   ⚠️ **照合には `lyrics_local/lyrics/<song_id>.json` の `scraped` を使う。**
-  ここには歌ネットの曲名と歌手名が構造化されて入っている。links.tsv の
+  ここには歌詞サイトの曲名と歌手名が構造化されて入っている。links.tsv の
   `candidate_title` (ページの <title> 文字列) を使ってはいけない:
 
     - **歌手名が入っているとは限らない。** 「KAWAII ウォーズ 歌詞」のように曲名だけの
@@ -99,7 +99,7 @@ def load_vocab(db_path):
         vocab.add(name)
     # 声優は idols.voice_actors から idol_voice_actors テーブルへ移った
     # (代役・交代を期間つきで持つため)。歴代すべてを語彙に入れる — 収録時点の
-    # 声優名が歌ネットに載っているので、現任だけだと古い曲を落とす。
+    # 声優名が歌詞サイトに載っているので、現任だけだと古い曲を落とす。
     for (va,) in conn.execute("SELECT name FROM idol_voice_actors WHERE name <> ''"):
         # 「五十嵐裕美」単体のことも、複数を区切っていることもある
         for part in re.split(r"[、,／/]", va):
@@ -121,14 +121,14 @@ def load_vocab(db_path):
             vocab.add(part.strip())
     conn.close()
 
-    # ブランドの通称・レーベル名。DB に無いが歌ネットのクレジットに出る。
+    # ブランドの通称・レーベル名。DB に無いが歌詞サイトのクレジットに出る。
     vocab |= {
         "アイドルマスター", "THE IDOLM@STER", "アイマス",
         "765PRO ALLSTARS", "765 MILLIONSTARS", "765 MILLION ALLSTARS",
         "315 ALLSTARS", "CINDERELLA PROJECT", "シンデレラガールズ",
         "ミリオンライブ", "シャイニーカラーズ", "SideM", "学園アイドルマスター",
         "初星学園", "ハツボシ", "ASTERISM",
-        # ローマ字表記。歌ネットのクレジットは @ を使わないことがある。
+        # ローマ字表記。歌詞サイトのクレジットは @ を使わないことがある。
         "THE IDOLMASTER", "IDOLMASTER", "CINDERELLA GIRLS", "MILLION LIVE",
         "SHINY COLORS", "GAKUEN IDOLMASTER",
     }
@@ -136,7 +136,7 @@ def load_vocab(db_path):
     normed = {norm(v) for v in vocab if len(v.strip()) >= MIN_VOCAB_LEN}
     normed.discard("")
     # 短い固有名詞 (彩 / W / ＊(Asterisk) / vα-liv 等) は本文中に紛れると誤爆するが、
-    # 歌ネットのページタイトルは「アーティスト名 曲名 歌詞 - 歌ネット」の形なので、
+    # 歌詞サイトのページタイトルは「アーティスト名 曲名 歌詞」の形なので、
     # **先頭との照合に限れば**安全に使える。別集合として返す。
     leading = {norm(v) for v in vocab if v.strip()}
     leading.discard("")
@@ -144,7 +144,7 @@ def load_vocab(db_path):
 
 
 def base_title(title):
-    """版サフィックスを落とした曲名。歌ネット側は版名が付くことが多い。
+    """版サフィックスを落とした曲名。歌詞サイト側は版名が付くことが多い。
 
     「READY!!(M＠STER VERSION)」に対してこちらは「READY!!」なので、
     こちらの曲名が相手に含まれるかを見る形にする。
@@ -166,7 +166,7 @@ def base_title(title):
 
 
 def scraped_fields(song_id):
-    """投入用 JSON に残した歌ネットの取得結果 (曲名・歌手名)。無ければ空。"""
+    """投入用 JSON に残した歌詞サイトの取得結果 (曲名・歌手名)。無ければ空。"""
     path = os.path.join(JSON_DIR, "%s.json" % song_id)
     if not os.path.exists(path):
         return {}
@@ -186,8 +186,8 @@ def judge(row, vocab, leading_vocab, song_type=""):
 
     # 構造化された取得結果があればそちらを見る (理由はモジュール冒頭)。
     scraped = scraped_fields(row["song_id"])
-    page_title = scraped.get("utanet_title") or cand
-    page_artist = scraped.get("utanet_artist") or cand
+    page_title = scraped.get("page_title") or cand
+    page_artist = scraped.get("page_artist") or cand
 
     title_n = norm(page_title)
     want_n = norm(row["title"])
