@@ -3,6 +3,7 @@ package com.fugaif.imaslivedb.ui.settings
 import android.content.Context
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Abc
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.Apartment
 import androidx.compose.material.icons.filled.BarChart
@@ -42,6 +43,19 @@ enum class AnnouncementLink { WIDGET_HOW_TO }
 object AnnouncementCatalog {
     /** 新しいものほど上 (表示順)。 */
     val all: List<Announcement> = listOf(
+        Announcement(
+            id = "20260906_call_response_retired",
+            date = "2026-09-06",
+            title = "「コーレス」の投稿を終了しました",
+            summary = "曲ごとに文章で書くコールは、歌詞の行につけるコールガイドに一本化しました。",
+            body = listOf(
+                "曲の詳細にあった「コーレス」(曲ごとにコールを文章で書く欄) をなくしました。歌詞の行ごとに「ここでこう叫ぶ」を付けられるコールガイドができて、役目が重なっていたためです。",
+                "これまでのコーレス投稿はアプリに表示されなくなります (データは残していますが、コールガイドへの自動の移し替えはしていません)。",
+            ),
+            icon = Icons.Filled.Info,
+            tint = "#F28C4D",
+            link = null
+        ),
         Announcement(
             id = "v2.1.0_cross_tab_search",
             date = "2026-09-01",

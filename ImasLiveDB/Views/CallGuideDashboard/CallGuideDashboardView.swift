@@ -63,7 +63,7 @@ struct CallGuideDashboardView: View {
                              unit: "曲", label: "書き手募集中")
             }
             VStack(alignment: .leading, spacing: DS.sp1) {
-                Text("歌詞の行ごとに「ここでこう叫ぶ」を書き込むのがコールガイドです。曲ごとの「コーレス投稿」とは別物で、こちらは歌詞タブから直接付けられます。")
+                Text("歌詞の行ごとに「ここでこう叫ぶ」を書き込むのがコールガイドです。歌詞タブから直接付けられます。")
                 if let generatedAt = vm.generatedAt {
                     // 全端末で共有するキャッシュ (最大 30 分) 越しなので「今」ではない。
                     // 自分が書いた直後に出てこない理由が、ここを見れば分かるようにする。

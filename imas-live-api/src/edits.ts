@@ -229,6 +229,12 @@ export async function handlePostEdits<E extends EditsEnv>(
 
   const isAdmin = await deps.checkIsAdmin(env, user.uid);
 
+  // コーレス (SongCall) は 2026-09-06 に廃止。旧アプリからの投稿は「終了」と分かる形で返す
+  // (下の一般ユーザー判定に落ちると「マスタは申請経由」という無関係な文言になる)。
+  if (ops.some((o) => o?.recordType === "SongCall")) {
+    return error("コーレス投稿は終了しました。コールは歌詞タブのコールガイドに書いてください", 410);
+  }
+
   // マスタ事実 (Song/Idol/Event/Show/Setlist 等) の直接編集は管理者のみ。
   // 一般ユーザーは /edit-requests (GitHub issue 化 → 人手で取り込み) に回す。
   // コミュニティ投稿 (参考動画 SongVideo) は従来どおり全員オープン。

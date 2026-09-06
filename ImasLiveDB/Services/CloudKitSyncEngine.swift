@@ -245,6 +245,8 @@ final class CloudKitSyncEngine: @unchecked Sendable {
 
         var totalFetched = 0
         var fetchedByType: [String: Int] = [:]
+        // 2026-09-06 に廃止した SongCall の途中再開キーが残っている端末がある。一度だけ捨てる。
+        ud.removeObject(forKey: "sync_ckpt_SongCall")
         for step in syncSteps {
             // フルsync再開: 完了済みステップはスキップ。
             if isFullSync && doneSteps.contains(step.recordType) { continue }

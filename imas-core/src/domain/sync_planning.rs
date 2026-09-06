@@ -578,7 +578,7 @@ pub struct SyncCompletion {
     ///
     /// **これが [`startup_plan`] の 24h 判定 ([`SyncModeReason::FullSyncStale`]) を進める
     /// 唯一の書き込み**。落とすと `last_full_sync_epoch` が固定され、24 時間後から毎起動が
-    /// フルになって 17 ステップ全件 (SongArtist ~20k 行) を取り直し続ける。
+    /// フルになって 18 ステップ全件 (SongArtist ~20k 行) を取り直し続ける。
     /// `full_sync_interval_seconds = None` の Android では露見せず iOS だけが静かに劣化する。
     pub should_update_last_full_sync: bool,
     /// そこに書く時刻。`should_update_last_full_sync` が false なら None。

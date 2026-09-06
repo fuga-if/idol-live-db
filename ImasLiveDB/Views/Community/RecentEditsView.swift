@@ -496,6 +496,8 @@ enum EditFeedFormat {
         case "SetlistPerformer": return "セトリ出演者"
         case "SongArtist":       return "楽曲アーティスト"
         case "ShowCast":         return "出演キャスト"
+        // 2026-09-06 に廃止した投稿型。過去の履歴だけが残る。
+        case "SongCall":         return "コーレス (終了)"
         default:                 return type
         }
     }

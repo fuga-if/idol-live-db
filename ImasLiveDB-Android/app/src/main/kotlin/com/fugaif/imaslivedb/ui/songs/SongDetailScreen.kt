@@ -780,7 +780,7 @@ private fun CommunityTab(
                     .clip(RoundedCornerShape(12.dp)).background(DS.fill).padding(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("タグ・投票にはログインが必要です", fontSize = 12.5.sp, color = DS.ink2)
+                Text("タグ・動画・投票にはログインが必要です", fontSize = 12.5.sp, color = DS.ink2)
             }
         }
         // タグ (集計系コミュニティ・Worker D1)。タップで自分の投票をトグル、長押しでタグ詳細、+ で全タグから追加。

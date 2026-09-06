@@ -214,6 +214,10 @@ function buildRevertOpsForEntry(row: HistoryRow): CloudKitOperation[] | null {
     return buildSnapshotRevertOps(before as SnapshotShape, after as SnapshotShape | null);
   }
 
+  // コーレス (SongCall) は 2026-09-06 に廃止。過去の履歴を差し戻しても、どのクライアントも
+  // 読まない型へ書くだけなので、逆適用不能として扱う。
+  if (row.record_type === "SongCall") return null;
+
   switch (row.op) {
     case "create":
       // 追加されたレコードを soft delete で消す。

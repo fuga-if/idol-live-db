@@ -591,6 +591,8 @@ private object EditFeedFormat {
         "SetlistPerformer" -> "セトリ出演者"
         "SongArtist" -> "楽曲アーティスト"
         "ShowCast" -> "出演キャスト"
+        // 2026-09-06 に廃止した投稿型。過去の履歴だけが残る。
+        "SongCall" -> "コーレス (終了)"
         else -> type
     }
 
