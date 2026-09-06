@@ -1,0 +1,167 @@
+---
+import ListLayout from "../layouts/ListLayout.astro";
+import StatStrip from "./StatStrip.astro";
+import DateBadge from "./DateBadge.astro";
+import TagChip from "./TagChip.astro";
+import Chip from "./Chip.astro";
+import EmptyState from "./EmptyState.astro";
+import type { CalendarPage } from "../lib/schema/CalendarPage";
+
+/**
+ * 月のカレンダー。
+ *
+ * 何をどの日に出すか (公演・リリース・誕生日・記念日・チケット) は Rust の
+ * `domain::calendar_queries` で、アプリのカレンダーと同じ規則。週 × 7 日の枠も Rust が
+ * 組んであり、ここは表に並べるだけ。狭い幅では枠の中の文字を落として点にし、
+ * 下の一覧で読む (枠の日付を押すとその日の一覧へ飛ぶ)。
+ */
+interface Props {
+  page: CalendarPage;
+}
+const { page } = Astro.props;
+const anchor = (date: string) => `d-${date}`;
+const withDetail = new Set(page.days.map((d) => d.dateBadge.iso));
+---
+
+<ListLayout
+  seo={page.seo}
+  title={page.title}
+  scopeLinks={page.monthLinks}
+  scopeLabel="月"
+  filterLinks={page.yearLinks}
+  filterLabel="年"
+>
+  <p slot="lede" class="u-muted">{page.lede}</p>
+
+  <nav class="pager" aria-label="前後の月">
+    {
+      page.prev ? (
+        <a class="pager__link" rel="prev" href={page.prev.path}>
+          ‹ {page.prev.label}
+        </a>
+      ) : (
+        <span />
+      )
+    }
+    <span class="pager__pos">
+      {
+        page.todayLink ? (
+          <a class="u-underline-hover" href={page.todayLink.path}>
+            {page.todayLink.label}
+          </a>
+        ) : (
+          page.title
+        )
+      }
+    </span>
+    {
+      page.next ? (
+        <a class="pager__link pager__link--next" rel="next" href={page.next.path}>
+          {page.next.label} ›
+        </a>
+      ) : (
+        <span />
+      )
+    }
+  </nav>
+
+  <StatStrip items={page.statTiles} label="この月の数" />
+
+  <div class="cal">
+    <table class="cal__table">
+      <caption class="u-visually-hidden">{page.title}</caption>
+      <thead>
+        <tr>{page.weekdayLabels.map((w) => <th scope="col">{w}</th>)}</tr>
+      </thead>
+      <tbody>
+        {
+          page.weeks.map((week) => (
+            <tr>
+              {week.days.map((d) => (
+                <td
+                  class:list={[
+                    "cal__cell",
+                    !d.inMonth && "cal__cell--out",
+                    d.isToday && "cal__cell--today",
+                    d.weekday === 0 && "cal__cell--sun",
+                  ]}
+                >
+                  {d.inMonth && withDetail.has(d.date) ? (
+                    <a class="cal__day" href={`#${anchor(d.date)}`}>
+                      <time datetime={d.date}>{d.day}</time>
+                    </a>
+                  ) : (
+                    <span class="cal__day">
+                      <time datetime={d.date}>{d.day}</time>
+                    </span>
+                  )}
+                  {d.bands.map((b) => (
+                    <a
+                      class:list={["cal__band", b.starts && "cal__band--start", b.ends && "cal__band--end"]}
+                      data-theme={b.themeKey}
+                      href={b.path}
+                      title={b.label}
+                    >
+                      {b.starts && <span class="cal__band-label">{b.label}</span>}
+                    </a>
+                  ))}
+                  {d.items.length > 0 && (
+                    <ul class="cal__items">
+                      {d.items.map((i) => {
+                        const Tag = i.path ? "a" : "span";
+                        return (
+                          <li>
+                            <Tag class={`cal__item cal__item--${i.kind}`} data-theme={i.themeKey} href={i.path} title={i.label}>
+                              <span class="cal__item-text">{i.label}</span>
+                            </Tag>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                  {d.overflowLabel && <span class="cal__more">{d.overflowLabel}</span>}
+                </td>
+              ))}
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <section class="cal-days" aria-label="この月の予定">
+    {
+      page.days.length === 0 ? (
+        <EmptyState title="この月の予定はまだありません" />
+      ) : (
+        page.days.map((g) => (
+          <article class="cal-day" id={anchor(g.dateBadge.iso)}>
+            <DateBadge badge={g.dateBadge} showYear={false} />
+            <ul class="cal-day__items">
+              {g.items.map((i) => (
+                <li class="cal-day__item" data-theme={i.themeKey}>
+                  <TagChip text={i.kindLabel} kind="all" />
+                  {i.path ? (
+                    <a class="u-underline-hover cal-day__label" href={i.path}>
+                      {i.label}
+                    </a>
+                  ) : (
+                    <span class="cal-day__label">{i.label}</span>
+                  )}
+                  {i.sub && <span class="u-muted">{i.sub}</span>}
+                  {i.refs.length > 0 && (
+                    <span class="u-row cal-day__refs">
+                      {i.refs.map((r) => (
+                        <Chip text={r.name} href={r.path} variant="themed" themeKey={r.themeKey} />
+                      ))}
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </article>
+        ))
+      )
+    }
+  </section>
+</ListLayout>

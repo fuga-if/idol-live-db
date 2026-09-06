@@ -163,6 +163,8 @@ fn scope_links(current: &str, upcoming: u32, past: u32) -> Vec<NavLink> {
     let mut links = vec![
         NavLink::new("今後のライブ", "/events/upcoming/").with_count(upcoming),
         NavLink::new("開催済み", "/events/past/").with_count(past),
+        // 月の枠で見る (中身は同じ公演)。
+        NavLink::new(content::CALENDAR_TITLE, super::calendar::CALENDAR_PATH),
     ];
     mark_current(&mut links, current);
     links
@@ -1339,6 +1341,8 @@ pub fn primary_nav(with_polls: bool, with_calls: bool) -> Vec<NavLink> {
     .into_iter()
     .map(|list| NavLink::new(list.label(), list.path()))
     .collect();
+    // カレンダーはライブの隣 (月の枠で見る入口)。
+    nav.insert(1, NavLink::new(content::CALENDAR_TITLE, super::calendar::CALENDAR_PATH));
     if with_polls {
         nav.push(NavLink::new("お題", "/polls/"));
     }

@@ -267,6 +267,7 @@ fn fixture_covers_the_boundary_cases_the_web_needs() {
                 | RouteKind::UnitListBrand
                 | RouteKind::VenueListPref
                 | RouteKind::Tag
+                | RouteKind::CalendarMonth
                 | RouteKind::Event
                 | RouteKind::Show
                 | RouteKind::Song

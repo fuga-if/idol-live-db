@@ -4,6 +4,7 @@
 //! 「今日」は入口で 1 回だけ確定し、以降の upcoming / past の分割はすべてその 1 個から
 //! 決まる (Astro もブラウザも `Date` を触らない)。
 
+pub mod calendar;
 pub mod calls;
 pub mod context;
 pub mod events;
@@ -321,6 +322,8 @@ fn write_all(
     let (tag_index, tag_pages) = lists::tag_lists(ctx);
     write_lists!(tag_index);
     write_lists!(tag_pages);
+    // カレンダー (月ごと + 今月の写し)。
+    write_lists!(calendar::calendar_pages(ctx));
 
     let brands = lists::brand_list(ctx);
     w.write_json("index/brands.json", &brands)?;

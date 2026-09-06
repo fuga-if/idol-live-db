@@ -609,6 +609,10 @@ web_dto! {
         TagListIndex,
         /// `/tags/[tagId]/` — `key` = タグ id
         Tag,
+        /// `/calendar/` — 今月のカレンダー (正規 URL は月のページ)
+        CalendarIndex,
+        /// `/calendar/[month]/` — `key` = `YYYY-MM`
+        CalendarMonth,
 
         /// `/idols/`
         IdolListIndex,

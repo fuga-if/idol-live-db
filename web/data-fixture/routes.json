@@ -186,6 +186,22 @@
       "inSitemap": true
     },
     {
+      "path": "/calendar/",
+      "kind": "calendarIndex",
+      "key": null,
+      "id": null,
+      "data": "index/calendar.json",
+      "inSitemap": true
+    },
+    {
+      "path": "/calendar/2026-09/",
+      "kind": "calendarMonth",
+      "key": "2026-09",
+      "id": null,
+      "data": "index/calendar-2026-09.json",
+      "inSitemap": true
+    },
+    {
       "path": "/tags/tag_kawaii/",
       "kind": "tag",
       "key": "tag_kawaii",

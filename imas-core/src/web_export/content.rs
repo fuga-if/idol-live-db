@@ -177,6 +177,54 @@ pub fn tag_page_description(name: &str, count: u32) -> String {
     format!("アイドルマスターの楽曲のうち「{name}」のタグが付いた {count} 曲。")
 }
 
+// ---- カレンダー -----------------------------------------------------------------
+pub const CALENDAR_TITLE: &str = "カレンダー";
+pub const CALENDAR_LEDE: &str =
+    "公演・楽曲のリリース・アイドルの誕生日・記念日・チケットの日程。日付を押すと、その日の一覧へ。";
+pub const CALENDAR_DESCRIPTION: &str = "アイドルマスターのライブ公演・楽曲リリース・誕生日・記念日のカレンダー。";
+pub const CALENDAR_TODAY_LINK: &str = "今月へ";
+/// 日曜始まり (アプリのカレンダーと同じ)。
+pub const CALENDAR_WEEKDAYS: [&str; 7] = ["日", "月", "火", "水", "木", "金", "土"];
+pub const CALENDAR_KIND_SHOW: &str = "公演";
+pub const CALENDAR_KIND_RELEASE: &str = "リリース";
+pub const CALENDAR_KIND_BIRTHDAY: &str = "誕生日";
+pub const CALENDAR_KIND_ANNIVERSARY: &str = "記念日";
+pub const CALENDAR_KIND_TICKET_DEADLINE: &str = "申込締切";
+pub const CALENDAR_KIND_TICKET_LOTTERY: &str = "当落発表";
+pub const CALENDAR_KIND_TICKET_OPEN: &str = "受付開始";
+pub const CALENDAR_TILE_SHOWS: &str = "公演";
+pub const CALENDAR_TILE_RELEASES: &str = "リリース曲";
+pub const CALENDAR_TILE_BIRTHDAYS: &str = "誕生日";
+pub const CALENDAR_TILE_ANNIVERSARIES: &str = "記念日";
+
+pub fn calendar_month_title(year: i32, month: u32) -> String {
+    format!("{year}年{month}月")
+}
+
+/// 同じ年の月の切替の札 (`9月`)。
+pub fn calendar_month_short(month: u32) -> String {
+    format!("{month}月")
+}
+
+pub fn calendar_month_description(year: i32, month: u32, shows: u32) -> String {
+    format!("{year}年{month}月のアイドルマスターの公演 {shows} 件と、楽曲のリリース・誕生日・記念日の日程。")
+}
+
+/// 同じ日に出た曲をまとめた札。曲は一覧に全部並べる。
+pub fn calendar_release_label(count: usize) -> String {
+    format!("リリース {count} 曲")
+}
+
+/// 枠に入り切らなかった件数。
+pub fn calendar_overflow_label(count: usize) -> String {
+    format!("+{count}")
+}
+
+/// 記念日の表示 (`アーケード版稼働 21周年`)。当年 (0 周年) は年数を付けない。
+pub fn anniversary_display(label: &str, years: i32) -> String {
+    if years > 0 { format!("{label} {years}周年") } else { label.to_string() }
+}
+
 /// 歌詞・コールガイドを取りに行く API の起点。
 pub const API_ORIGIN: &str = "https://imas-live-api.tokata3011.workers.dev";
 

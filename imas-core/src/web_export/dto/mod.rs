@@ -40,6 +40,7 @@ macro_rules! web_dto {
 }
 
 pub mod brand;
+pub mod calendar;
 pub mod calls;
 pub mod common;
 pub mod event;
@@ -52,6 +53,9 @@ pub mod unit;
 pub mod venue;
 
 pub use brand::BrandPage;
+pub use calendar::{
+    CalendarBand, CalendarDay, CalendarDayGroup, CalendarItem, CalendarItemKind, CalendarPage, CalendarWeek,
+};
 pub use common::nonzero_tiles;
 pub use calls::{CallGuideEditRow, CallGuidePage, CallGuideSongRow};
 pub use common::{

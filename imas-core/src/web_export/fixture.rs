@@ -31,6 +31,7 @@ use super::{Result, Stats, WebExportError};
 use std::path::Path;
 use super::emit::events::ShowContext;
 use super::emit::context::TAGS_PATH;
+use super::emit::calendar::CALENDAR_PATH;
 use crate::domain::date_display::{range_with_weekday, until_display, with_weekday};
 use crate::domain::setlist_lineup::Lineup;
 use crate::domain::idol_list_filtering::IdolQuery;
@@ -905,6 +906,7 @@ fn event_list_page(path: &str, title: &str, kind: EventListKind, empty: bool) ->
         scope_links: vec![
             nav("今後のライブ", "/events/upcoming/", path == "/events/upcoming/", None, Some(24)),
             nav("開催済み", "/events/past/", path == "/events/past/", None, Some(827)),
+            nav(content::CALENDAR_TITLE, CALENDAR_PATH, false, None, None),
         ],
         brand_links: vec![
             nav("すべて", "/events/", path == "/events/", None, None),
@@ -1140,6 +1142,113 @@ fn tag_page() -> TagPage {
             &[("ホーム", "/"), ("楽曲", "/songs/"), (content::TAG_LIST_TITLE, TAGS_PATH)],
         ),
         title,
+    }
+}
+
+/// カレンダー。今月 (`/calendar/`) と月のページで同じ形。2 週ぶんの枠に、公演・リリース・
+/// 誕生日・記念日・チケットを 1 つずつ置く (色と押し先の有無の組み合わせを網羅する)。
+fn calendar_page(path: &str, key: &str) -> CalendarPage {
+    let item = |kind: CalendarItemKind, kind_label: &str, label: &str, path: Option<&str>, theme: &str| CalendarItem {
+        kind,
+        kind_label: kind_label.to_string(),
+        label: label.to_string(),
+        sub: None,
+        path: path.map(str::to_string),
+        theme_key: theme.to_string(),
+        refs: vec![],
+    };
+    let show = || {
+        let mut i = item(CalendarItemKind::Show, content::CALENDAR_KIND_SHOW, "サンプルライブ", Some("/shows/sh_sample_1/"), "brand:ml");
+        i.sub = Some("DAY1 ・ 幕張メッセ".to_string());
+        i
+    };
+    let release = || CalendarItem {
+        refs: vec![song_sample(), song_no_artwork()],
+        ..item(CalendarItemKind::Release, content::CALENDAR_KIND_RELEASE, &content::calendar_release_label(2), None, "neutral")
+    };
+    let birthday = || item(CalendarItemKind::Birthday, content::CALENDAR_KIND_BIRTHDAY, "春日未来", Some("/idols/ml_kasuga_mirai/"), "idol:ml_kasuga_mirai");
+    let anniversary = || item(CalendarItemKind::Anniversary, content::CALENDAR_KIND_ANNIVERSARY, &content::anniversary_display("シリーズ開始", 21), Some("/brands/ml/"), "brand:ml");
+    let ticket = || item(CalendarItemKind::Ticket, content::CALENDAR_KIND_TICKET_DEADLINE, "サンプルライブ", Some("/events/ev_sample/"), "brand:ml");
+    let band = |starts: bool, ends: bool| CalendarBand {
+        label: "サンプルライブ".to_string(),
+        theme_key: "brand:ml".to_string(),
+        starts,
+        ends,
+        path: Some("/events/ev_sample/".to_string()),
+    };
+    let day = |date: &str, day: u32, weekday: u32, in_month: bool, items: Vec<CalendarItem>, bands: Vec<CalendarBand>| CalendarDay {
+        date: date.to_string(),
+        day,
+        in_month,
+        is_today: date == "2026-09-06",
+        weekday,
+        overflow_label: (items.len() > 3).then(|| content::calendar_overflow_label(items.len() - 3)),
+        items: items.into_iter().take(3).collect(),
+        bands,
+    };
+    let weeks = vec![
+        CalendarWeek {
+            days: vec![
+                day("2026-08-30", 30, 0, false, vec![], vec![]),
+                day("2026-08-31", 31, 1, false, vec![], vec![]),
+                day("2026-09-01", 1, 2, true, vec![ticket()], vec![band(true, false)]),
+                day("2026-09-02", 2, 3, true, vec![], vec![band(false, false)]),
+                day("2026-09-03", 3, 4, true, vec![release()], vec![band(false, true)]),
+                day("2026-09-04", 4, 5, true, vec![], vec![]),
+                day("2026-09-05", 5, 6, true, vec![show(), show(), birthday(), anniversary()], vec![]),
+            ],
+        },
+        CalendarWeek {
+            days: vec![
+                day("2026-09-06", 6, 0, true, vec![show()], vec![]),
+                day("2026-09-07", 7, 1, true, vec![], vec![]),
+                day("2026-09-08", 8, 2, true, vec![], vec![]),
+                day("2026-09-09", 9, 3, true, vec![], vec![]),
+                day("2026-09-10", 10, 4, true, vec![], vec![]),
+                day("2026-09-11", 11, 5, true, vec![], vec![]),
+                day("2026-09-12", 12, 6, true, vec![], vec![]),
+            ],
+        },
+    ];
+    let group = |date: &str, items: Vec<CalendarItem>| CalendarDayGroup { date_badge: DateBadge::from_ymd(date), items };
+    let title = content::calendar_month_title(2026, 9);
+    let is_index = path == CALENDAR_PATH;
+    let mut seo = seo(
+        if is_index { content::CALENDAR_TITLE } else { &title },
+        content::CALENDAR_DESCRIPTION,
+        path,
+        Robots::IndexFollow,
+        &[("ホーム", "/"), (content::CALENDAR_TITLE, CALENDAR_PATH)],
+    );
+    if is_index {
+        seo.canonical = absolute(&format!("/calendar/{key}/"));
+    }
+    CalendarPage {
+        schema_version: SCHEMA_VERSION,
+        path: path.to_string(),
+        title,
+        month_key: key.to_string(),
+        lede: content::CALENDAR_LEDE.to_string(),
+        stat_tiles: nonzero_tiles([
+            StatTile::new("▤", 3, content::CALENDAR_TILE_SHOWS),
+            StatTile::new("♬", 2, content::CALENDAR_TILE_RELEASES),
+            StatTile::new("☺", 1, content::CALENDAR_TILE_BIRTHDAYS),
+            StatTile::new("◆", 1, content::CALENDAR_TILE_ANNIVERSARIES),
+        ]),
+        prev: None,
+        next: None,
+        today_link: (!is_index).then(|| nav(content::CALENDAR_TODAY_LINK, CALENDAR_PATH, false, None, None)),
+        year_links: vec![nav("2026", &format!("/calendar/{key}/"), true, None, Some(3))],
+        month_links: vec![nav(&content::calendar_month_short(9), &format!("/calendar/{key}/"), true, None, Some(3))],
+        weekday_labels: content::CALENDAR_WEEKDAYS.iter().map(|w| w.to_string()).collect(),
+        weeks,
+        days: vec![
+            group("2026-09-01", vec![ticket()]),
+            group("2026-09-03", vec![release()]),
+            group("2026-09-05", vec![show(), show(), birthday(), anniversary()]),
+            group("2026-09-06", vec![show()]),
+        ],
+        seo,
     }
 }
 
@@ -1408,6 +1517,8 @@ pub fn emit(dir: &Path, pretty: bool) -> Result<Stats> {
     w.write_json("index/units-brand-cg.json", &unit_list_page("/units/brand/cg/", "シンデレラガールズ のユニット"))?;
     w.write_json("index/tags.json", &tag_list_page())?;
     w.write_json("index/tags-tag_kawaii.json", &tag_page())?;
+    w.write_json("index/calendar.json", &calendar_page(CALENDAR_PATH, "2026-09"))?;
+    w.write_json("index/calendar-2026-09.json", &calendar_page("/calendar/2026-09/", "2026-09"))?;
     w.write_json("index/venues.json", &venue_list_page("/venues/", "会場", None))?;
     for pref in ["東京都", UNCLASSIFIED_PREFECTURE] {
         w.write_json(
@@ -1526,6 +1637,8 @@ fn routes(broken_key: &str) -> RoutesFile {
         param_listing(RouteKind::UnitListBrand, "/units/brand/ml/", "ml", "index/units-brand-ml.json", true),
         param_listing(RouteKind::UnitListBrand, "/units/brand/cg/", "cg", "index/units-brand-cg.json", true),
         listing(RouteKind::TagListIndex, TAGS_PATH, "index/tags.json", true),
+        listing(RouteKind::CalendarIndex, CALENDAR_PATH, "index/calendar.json", true),
+        param_listing(RouteKind::CalendarMonth, "/calendar/2026-09/", "2026-09", "index/calendar-2026-09.json", true),
         param_listing(RouteKind::Tag, &tag_kawaii_path(), "tag_kawaii", "index/tags-tag_kawaii.json", true),
         listing(RouteKind::VenueListIndex, "/venues/", "index/venues.json", true),
         listing(RouteKind::BrandList, "/brands/", "index/brands.json", true),
@@ -1621,6 +1734,7 @@ fn verify(rel: &str, text: &str) -> std::result::Result<(), serde_json::Error> {
         "index" if name.starts_with("songs") => as_::<SongListPage>(text),
         "index" if name == "tags.json" => as_::<TagListPage>(text),
         "index" if name.starts_with("tags-") => as_::<TagPage>(text),
+        "index" if name.starts_with("calendar") => as_::<CalendarPage>(text),
         "index" if name.starts_with("idols") => as_::<IdolListPage>(text),
         "index" if name.starts_with("units") => as_::<UnitListPage>(text),
         "index" if name.starts_with("venues") => as_::<VenueListPage>(text),

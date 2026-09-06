@@ -50,6 +50,13 @@
       "count": null
     },
     {
+      "label": "カレンダー",
+      "path": "/calendar/",
+      "current": false,
+      "themeKey": null,
+      "count": null
+    },
+    {
       "label": "楽曲",
       "path": "/songs/",
       "current": false,

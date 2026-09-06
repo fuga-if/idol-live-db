@@ -2040,3 +2040,183 @@ a.labeled-row .labeled-row__value {
   box-shadow: none;
   border-radius: 0;
 }
+
+/* --- カレンダー (CalendarView) ------------------------------------------------
+   週 × 7 日の枠は Rust が組んだ表。枠の中は 1 日 3 件までで、残りは +N と下の一覧。
+   色は各予定の data-theme (ブランド / アイドル) がそのまま --accent に来る。 */
+.cal {
+  container-type: inline-size;
+}
+.cal__table {
+  inline-size: 100%;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 3px;
+}
+.cal__table th {
+  padding-block: var(--sp1);
+  font-size: var(--fs-caption2);
+  font-weight: 600;
+  color: var(--ds-ink2);
+  text-align: center;
+}
+.cal__table th:first-child {
+  color: var(--ds-danger);
+}
+.cal__cell {
+  vertical-align: top;
+  block-size: 6rem;
+  padding: 3px;
+  border-radius: var(--r-sm);
+  background: var(--ds-surface);
+  overflow: hidden;
+}
+/* 月の外の日は枠を揃えるためだけに居る。 */
+.cal__cell--out {
+  background: transparent;
+  opacity: 0.45;
+}
+.cal__cell--sun .cal__day {
+  color: var(--ds-danger);
+}
+.cal__day {
+  display: inline-grid;
+  place-items: center;
+  inline-size: 1.5rem;
+  block-size: 1.5rem;
+  border-radius: 999px;
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ds-ink);
+  text-decoration: none;
+}
+a.cal__day:hover {
+  background: var(--ds-fill);
+}
+.cal__cell--today .cal__day {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+/* 日を跨ぐ帯 (チケット受付期間)。始まりの日にだけ名前を書く。 */
+.cal__band {
+  display: block;
+  block-size: 14px;
+  margin-block: 1px;
+  padding-inline: 4px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 10px;
+  line-height: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-decoration: none;
+}
+.cal__band--start {
+  border-start-start-radius: 3px;
+  border-end-start-radius: 3px;
+}
+.cal__band--end {
+  border-start-end-radius: 3px;
+  border-end-end-radius: 3px;
+}
+.cal__items {
+  list-style: none;
+  margin: 2px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+.cal__item {
+  display: block;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: var(--fs-caption2);
+  line-height: 1.35;
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-decoration: none;
+}
+/* 公演だけ塗る (主役)。ほかは色敷き。 */
+.cal__item--show {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.cal__item--release {
+  background: var(--ds-fill);
+  color: var(--ds-ink2);
+}
+.cal__more {
+  display: block;
+  padding-inline: 4px;
+  font-size: var(--fs-caption2);
+  color: var(--ds-ink2);
+}
+/* 狭い幅: 文字を落として点にする。中身は下の一覧で読む。 */
+@container (max-width: 40rem) {
+  .cal__table {
+    border-spacing: 2px;
+  }
+  .cal__cell {
+    block-size: 4.4rem;
+    padding: 2px;
+  }
+  .cal__items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    margin-block-start: 3px;
+  }
+  .cal__item {
+    inline-size: 8px;
+    block-size: 8px;
+    padding: 0;
+    border-radius: 50%;
+  }
+  .cal__item-text {
+    display: none;
+  }
+  .cal__band {
+    block-size: 4px;
+    padding: 0;
+    font-size: 0;
+  }
+  .cal__more {
+    padding: 0;
+    font-size: 9px;
+  }
+}
+/* 枠の下の一覧。 */
+.cal-days {
+  display: grid;
+  gap: var(--sp4);
+  margin-block-start: var(--sp5);
+}
+.cal-day {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--sp4);
+  align-items: start;
+  /* 枠の日付から飛んできたとき、固定ヘッダの下に隠れないように。 */
+  scroll-margin-block-start: 5rem;
+}
+.cal-day__items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--sp2);
+}
+.cal-day__item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp2);
+}
+.cal-day__refs {
+  gap: var(--sp1);
+}

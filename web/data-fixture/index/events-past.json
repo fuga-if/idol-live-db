@@ -96,6 +96,13 @@
       "current": true,
       "themeKey": null,
       "count": 827
+    },
+    {
+      "label": "カレンダー",
+      "path": "/calendar/",
+      "current": false,
+      "themeKey": null,
+      "count": null
     }
   ],
   "brandLinks": [

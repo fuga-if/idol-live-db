@@ -1,0 +1,492 @@
+{
+  "schemaVersion": 1,
+  "path": "/calendar/2026-09/",
+  "title": "2026年9月",
+  "monthKey": "2026-09",
+  "lede": "公演・楽曲のリリース・アイドルの誕生日・記念日・チケットの日程。日付を押すと、その日の一覧へ。",
+  "statTiles": [
+    {
+      "glyph": "▤",
+      "value": 3,
+      "label": "公演",
+      "href": null
+    },
+    {
+      "glyph": "♬",
+      "value": 2,
+      "label": "リリース曲",
+      "href": null
+    },
+    {
+      "glyph": "☺",
+      "value": 1,
+      "label": "誕生日",
+      "href": null
+    },
+    {
+      "glyph": "◆",
+      "value": 1,
+      "label": "記念日",
+      "href": null
+    }
+  ],
+  "prev": null,
+  "next": null,
+  "todayLink": {
+    "label": "今月へ",
+    "path": "/calendar/",
+    "current": false,
+    "themeKey": null,
+    "count": null
+  },
+  "yearLinks": [
+    {
+      "label": "2026",
+      "path": "/calendar/2026-09/",
+      "current": true,
+      "themeKey": null,
+      "count": 3
+    }
+  ],
+  "monthLinks": [
+    {
+      "label": "9月",
+      "path": "/calendar/2026-09/",
+      "current": true,
+      "themeKey": null,
+      "count": 3
+    }
+  ],
+  "weekdayLabels": [
+    "日",
+    "月",
+    "火",
+    "水",
+    "木",
+    "金",
+    "土"
+  ],
+  "weeks": [
+    {
+      "days": [
+        {
+          "date": "2026-08-30",
+          "day": 30,
+          "inMonth": false,
+          "isToday": false,
+          "weekday": 0,
+          "items": [],
+          "overflowLabel": null,
+          "bands": []
+        },
+        {
+          "date": "2026-08-31",
+          "day": 31,
+          "inMonth": false,
+          "isToday": false,
+          "weekday": 1,
+          "items": [],
+          "overflowLabel": null,
+          "bands": []
+        },
+        {
+          "date": "2026-09-01",
+          "day": 1,
+          "inMonth": true,
+          "isToday": false,
+          "weekday": 2,
+          "items": [
+            {
+              "kind": "ticket",
+              "kindLabel": "申込締切",
+              "label": "サンプルライブ",
+              "sub": null,
+              "path": "/events/ev_sample/",
+              "themeKey": "brand:ml",
+              "refs": []
+            }
+          ],
+          "overflowLabel": null,
+          "bands": [
+            {
+              "label": "サンプルライブ",
+              "themeKey": "brand:ml",
+              "starts": true,
+              "ends": false,
+              "path": "/events/ev_sample/"
+            }
+          ]
+        },
+        {
+          "date": "2026-09-02",
+          "day": 2,
+          "inMonth": true,
+          "isToday": false,
+          "weekday": 3,
+          "items": [],
+          "overflowLabel": null,
+          "bands": [
+            {
+              "label": "サンプルライブ",
+              "themeKey": "brand:ml",
+              "starts": false,
+              "ends": false,
+              "path": "/events/ev_sample/"
+            }
+          ]
+        },
+        {
+          "date": "2026-09-03",
+          "day": 3,
+          "inMonth": true,
+          "isToday": false,
+          "weekday": 4,
+          "items": [
+            {
+              "kind": "release",
+              "kindLabel": "リリース",
+              "label": "リリース 2 曲",
+              "sub": null,
+              "path": null,
+              "themeKey": "neutral",
+              "refs": [
+                {
+                  "kind": "song",
+                  "id": "ml_sample",
+                  "name": "Thank You!",
+                  "sub": "765MILLION ALLSTARS",
+                  "path": "/songs/ml_sample/",
+                  "themeKey": "brand:ml",
+                  "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music/sample/600x600bb.jpg"
+                },
+                {
+                  "kind": "song",
+                  "id": "ml_no_artwork",
+                  "name": "ジャケットの無い曲",
+                  "sub": null,
+                  "path": "/songs/ml_no_artwork/",
+                  "themeKey": "brand:ml",
+                  "artworkUrl": null
+                }
+              ]
+            }
+          ],
+          "overflowLabel": null,
+          "bands": [
+            {
+              "label": "サンプルライブ",
+              "themeKey": "brand:ml",
+              "starts": false,
+              "ends": true,
+              "path": "/events/ev_sample/"
+            }
+          ]
+        },
+        {
+          "date": "2026-09-04",
+          "day": 4,
+          "inMonth": true,
+          "isToday": false,
+          "weekday": 5,
+          "items": [],
+          "overflowLabel": null,
+          "bands": []
+        },
+        {
+          "date": "2026-09-05",
+          "day": 5,
+          "inMonth": true,
+          "isToday": false,
+          "weekday": 6,
+          "items": [
+            {
+              "kind": "show",
+              "kindLabel": "公演",
+              "label": "サンプルライブ",
+              "sub": "DAY1 ・ 幕張メッセ",
+              "path": "/shows/sh_sample_1/",
+              "themeKey": "brand:ml",
+              "refs": []
+            },
+            {
+              "kind": "show",
+              "kindLabel": "公演",
+              "label": "サンプルライブ",
+              "sub": "DAY1 ・ 幕張メッセ",
+              "path": "/shows/sh_sample_1/",
+              "themeKey": "brand:ml",
+              "refs": []
+            },
+            {
+              "kind": "birthday",
+              "kindLabel": "誕生日",
+              "label": "春日未来",
+              "sub": null,
+              "path": "/idols/ml_kasuga_mirai/",
+              "themeKey": "idol:ml_kasuga_mirai",
+              "refs": []
+            }
+          ],
+          "overflowLabel": "+1",
+          "bands": []
+        }
+      ]
+    },
+    {
+      "days": [
+        {
+          "date": "2026-09-06",
+          "day": 6,
+          "inMonth": true,
+          "isToday": true,
+          "weekday": 0,
+          "items": [
+            {
+              "kind": "show",
+              "kindLabel": "公演",
+              "label": "サンプルライブ",
+              "sub": "DAY1 ・ 幕張メッセ",
+              "path": "/shows/sh_sample_1/",
+              "themeKey": "brand:ml",
+              "refs": []
+            }
+          ],
+          "overflowLabel": null,
+          "bands": []
+        },
+        {
+          "date": "2026-09-07",
+          "day": 7,
+          "inMonth": true,
+          "isToday": false,
+          "weekday": 1,
+          "items": [],
+          "overflowLabel": null,
+          "bands": []
+        },
+        {
+          "date": "2026-09-08",
+          "day": 8,
+          "inMonth": true,
+          "isToday": false,
+          "weekday": 2,
+          "items": [],
+          "overflowLabel": null,
+          "bands": []
+        },
+        {
+          "date": "2026-09-09",
+          "day": 9,
+          "inMonth": true,
+          "isToday": false,
+          "weekday": 3,
+          "items": [],
+          "overflowLabel": null,
+          "bands": []
+        },
+        {
+          "date": "2026-09-10",
+          "day": 10,
+          "inMonth": true,
+          "isToday": false,
+          "weekday": 4,
+          "items": [],
+          "overflowLabel": null,
+          "bands": []
+        },
+        {
+          "date": "2026-09-11",
+          "day": 11,
+          "inMonth": true,
+          "isToday": false,
+          "weekday": 5,
+          "items": [],
+          "overflowLabel": null,
+          "bands": []
+        },
+        {
+          "date": "2026-09-12",
+          "day": 12,
+          "inMonth": true,
+          "isToday": false,
+          "weekday": 6,
+          "items": [],
+          "overflowLabel": null,
+          "bands": []
+        }
+      ]
+    }
+  ],
+  "days": [
+    {
+      "dateBadge": {
+        "iso": "2026-09-01",
+        "year": "2026",
+        "monthDay": "9/1",
+        "weekday": "火",
+        "spoken": "2026年9月1日 火曜日"
+      },
+      "items": [
+        {
+          "kind": "ticket",
+          "kindLabel": "申込締切",
+          "label": "サンプルライブ",
+          "sub": null,
+          "path": "/events/ev_sample/",
+          "themeKey": "brand:ml",
+          "refs": []
+        }
+      ]
+    },
+    {
+      "dateBadge": {
+        "iso": "2026-09-03",
+        "year": "2026",
+        "monthDay": "9/3",
+        "weekday": "木",
+        "spoken": "2026年9月3日 木曜日"
+      },
+      "items": [
+        {
+          "kind": "release",
+          "kindLabel": "リリース",
+          "label": "リリース 2 曲",
+          "sub": null,
+          "path": null,
+          "themeKey": "neutral",
+          "refs": [
+            {
+              "kind": "song",
+              "id": "ml_sample",
+              "name": "Thank You!",
+              "sub": "765MILLION ALLSTARS",
+              "path": "/songs/ml_sample/",
+              "themeKey": "brand:ml",
+              "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music/sample/600x600bb.jpg"
+            },
+            {
+              "kind": "song",
+              "id": "ml_no_artwork",
+              "name": "ジャケットの無い曲",
+              "sub": null,
+              "path": "/songs/ml_no_artwork/",
+              "themeKey": "brand:ml",
+              "artworkUrl": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "dateBadge": {
+        "iso": "2026-09-05",
+        "year": "2026",
+        "monthDay": "9/5",
+        "weekday": "土",
+        "spoken": "2026年9月5日 土曜日"
+      },
+      "items": [
+        {
+          "kind": "show",
+          "kindLabel": "公演",
+          "label": "サンプルライブ",
+          "sub": "DAY1 ・ 幕張メッセ",
+          "path": "/shows/sh_sample_1/",
+          "themeKey": "brand:ml",
+          "refs": []
+        },
+        {
+          "kind": "show",
+          "kindLabel": "公演",
+          "label": "サンプルライブ",
+          "sub": "DAY1 ・ 幕張メッセ",
+          "path": "/shows/sh_sample_1/",
+          "themeKey": "brand:ml",
+          "refs": []
+        },
+        {
+          "kind": "birthday",
+          "kindLabel": "誕生日",
+          "label": "春日未来",
+          "sub": null,
+          "path": "/idols/ml_kasuga_mirai/",
+          "themeKey": "idol:ml_kasuga_mirai",
+          "refs": []
+        },
+        {
+          "kind": "anniversary",
+          "kindLabel": "記念日",
+          "label": "シリーズ開始 21周年",
+          "sub": null,
+          "path": "/brands/ml/",
+          "themeKey": "brand:ml",
+          "refs": []
+        }
+      ]
+    },
+    {
+      "dateBadge": {
+        "iso": "2026-09-06",
+        "year": "2026",
+        "monthDay": "9/6",
+        "weekday": "日",
+        "spoken": "2026年9月6日 日曜日"
+      },
+      "items": [
+        {
+          "kind": "show",
+          "kindLabel": "公演",
+          "label": "サンプルライブ",
+          "sub": "DAY1 ・ 幕張メッセ",
+          "path": "/shows/sh_sample_1/",
+          "themeKey": "brand:ml",
+          "refs": []
+        }
+      ]
+    }
+  ],
+  "seo": {
+    "title": "2026年9月 | アイドルライブDB",
+    "description": "アイドルマスターのライブ公演・楽曲リリース・誕生日・記念日のカレンダー。",
+    "canonical": "https://idollivedb.fugalabs.uk/calendar/2026-09/",
+    "ogImage": "https://idollivedb.fugalabs.uk/og/default.png",
+    "robots": "index,follow",
+    "jsonLd": {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebPage",
+          "name": "2026年9月",
+          "url": "https://idollivedb.fugalabs.uk/calendar/2026-09/"
+        },
+        {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "item": "https://idollivedb.fugalabs.uk/",
+              "name": "ホーム",
+              "position": 1
+            },
+            {
+              "@type": "ListItem",
+              "item": "https://idollivedb.fugalabs.uk/calendar/",
+              "name": "カレンダー",
+              "position": 2
+            }
+          ]
+        }
+      ]
+    },
+    "breadcrumbs": [
+      {
+        "name": "ホーム",
+        "path": "/"
+      },
+      {
+        "name": "カレンダー",
+        "path": "/calendar/"
+      }
+    ]
+  }
+}

@@ -126,6 +126,7 @@ describe("routes.json", () => {
       "unitListBrand",
       "venueListPref",
       "tag",
+      "calendarMonth",
       "event",
       "show",
       "song",

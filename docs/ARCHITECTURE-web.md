@@ -138,6 +138,7 @@ https://imas-live-web.tokata3011.workers.dev/
 | `/idols/` `/idols/brand/<brandId>/` `/idols/birth-month/<1..12>/` `/idols/<idolId>/` | アイドル |
 | `/units/` `/units/brand/<brandId>/` `/units/<unitId>/` | ユニット |
 | `/tags/` `/tags/<tagId>/` | 曲に付いたコミュニティのタグ (曲の多い順) と、タグごとの曲一覧 (付けた人の多い順)。タグの付いた曲が無ければ作らない |
+| `/calendar/` `/calendar/<YYYY-MM>/` | 月のカレンダー (公演・リリース・誕生日・記念日・チケット)。`/calendar/` は今月の写しで正規 URL は月のページ。範囲は最初の公演の月から最後の公演か今日の月まで連続 |
 | `/venues/` `/venues/pref/<prefecture>/` `/venues/<venueId>/` | 会場 |
 | `/brands/` `/brands/<brandId>/` | ブランド |
 | `/search/` | 検索 (唯一のクライアント island) |
@@ -395,6 +396,11 @@ D1 (コミュニティ表) のすべてに反映済み (経緯は git 履歴 `22
   付けた人の多い順) は `domain/song_tag_queries.rs` で、`Ctx::tag_ranking` に 1 回だけ組む。
   どの札が押せるかは `context::TagScope` の 1 箇所。パンくずは [ホーム, 楽曲, タグ, …]
   なので上部バーの現在地は「楽曲」。語 (見出し・説明・「公式」) は `content::TAG_*`。
+- **カレンダー** (2026-09-07): `/calendar/` と `/calendar/<YYYY-MM>/`。中身の規則はアプリと同じ
+  `domain::calendar_queries` (公演・同日リリースのまとめ・アイドル/スタッフの誕生日・記念日 (N周年)・
+  チケットの締切/当落/受付期間)。`emit/calendar.rs` が週 × 7 日の枠 (日曜始まり) に流し込み、枠には
+  先頭 3 件と `+N`、下の一覧に全部を出す。受付期間は日を跨ぐ帯。ナビは「ライブ」の隣、ライブ一覧の
+  切替 (今後 / 開催済み / カレンダー) からも入れる。語は `content::CALENDAR_*`。
 - **並べ替えは絞り込みバーの札**: 列見出しが無くなったので、島 (`listfilter/island.ts`) が Rust の
   `sorts` から札 (`button.song-filter__sort`) を描く。押すと「その並びに → もう一度押すと向きを反転」
   (表の見出しと同じ一押し)。状態は向きボタンと同じ 1 つで、URL (`?sort=&dir=`) にも同じく写る。
