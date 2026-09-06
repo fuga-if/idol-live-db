@@ -2644,7 +2644,7 @@ CREATE TABLE meta (key TEXT PRIMARY KEY NOT NULL, value TEXT);
 INSERT INTO "meta" VALUES('schema_version','1');
 INSERT INTO "meta" VALUES('data_version','75');
 INSERT INTO "meta" VALUES('migration_v14_idol_is_external','applied');
-INSERT INTO "meta" VALUES('content_hash','ae0ae77781059aad3eb08054a6b1c641e6bf9d8e9db9821a5450b3e7bf47b36e');
+INSERT INTO "meta" VALUES('content_hash','55731cc087f0edc21933331435bb54521d0f4b3b51d15d35ff9828564d48cbbb');
 CREATE TABLE setlist_items (id TEXT PRIMARY KEY NOT NULL, show_id TEXT NOT NULL, song_id TEXT NOT NULL, position INTEGER NOT NULL, section TEXT, notes TEXT, unit_name TEXT, UNIQUE(show_id, position));
 INSERT INTO "setlist_items" VALUES('sh_L0264_2265','sh_L0264','sidem_drive_a_live',2265,NULL,NULL,NULL);
 INSERT INTO "setlist_items" VALUES('sh_L0265_2266','sh_L0265','sidem_drive_a_live',2266,NULL,NULL,NULL);
@@ -15903,6 +15903,26 @@ INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_
 INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_福井公演_2_0016','sh_学園アイドルマスター_live_tour_-標-_福井公演_2','gakuen_古今東西ちょちょいのちょい',16,'',NULL,'');
 INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_福井公演_2_0017','sh_学園アイドルマスター_live_tour_-標-_福井公演_2','gakuen_ガラクタロード',17,'',NULL,'');
 INSERT INTO "setlist_items" VALUES('sh_L0987_10095','sh_L0987','765as_私はアイドル',10095,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0001','sh_学園アイドルマスター_live_tour_-標-_福岡公演_2','gakuen_fighting_my_way',1,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0002','sh_学園アイドルマスター_live_tour_-標-_福岡公演_2','gakuen_luna_say_maybe',2,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0003','sh_学園アイドルマスター_live_tour_-標-_福岡公演_2','gakuen_世界一可愛い私',3,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0004','sh_学園アイドルマスター_live_tour_-標-_福岡公演_2','gakuen_光景',4,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0005','sh_学園アイドルマスター_live_tour_-標-_福岡公演_2','gakuen_理論武装して',5,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0006','sh_学園アイドルマスター_live_tour_-標-_福岡公演_2','gakuen_修楽旅行_花海咲季月村手毬藤田ことね雨夜燕篠澤広ver',6,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0007','sh_学園アイドルマスター_live_tour_-標-_福岡公演_2','gakuen_order_fake',7,NULL,'サプライズ初披露',NULL);
+INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0008','sh_学園アイドルマスター_live_tour_-標-_福岡公演_2','gakuen_め',8,NULL,'サプライズ初披露',NULL);
+INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0009','sh_学園アイドルマスター_live_tour_-標-_福岡公演_2','gakuen_boom_boom_pow',9,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0010','sh_学園アイドルマスター_live_tour_-標-_福岡公演_2','gakuen_自己肯定感爆上げしゅきしゅきソング',10,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0011','sh_学園アイドルマスター_live_tour_-標-_福岡公演_2','gakuen_ねえ言っちゃうよ',11,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0012','sh_学園アイドルマスター_live_tour_-標-_福岡公演_2','gakuen_三分半の創世',12,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0013','sh_学園アイドルマスター_live_tour_-標-_福岡公演_2','gakuen_ふわふわ',13,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0014','sh_学園アイドルマスター_live_tour_-標-_福岡公演_2','gakuen_コンテンポラリのダンス',14,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0015','sh_学園アイドルマスター_live_tour_-標-_福岡公演_2','gakuen_unhappy_light',15,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0016','sh_学園アイドルマスター_live_tour_-標-_福岡公演_2','gakuen_wildest_flower',16,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0017','sh_学園アイドルマスター_live_tour_-標-_福岡公演_2','gakuen_クライアイ',17,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0018','sh_学園アイドルマスター_live_tour_-標-_福岡公演_2','gakuen_標',18,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0019','sh_学園アイドルマスター_live_tour_-標-_福岡公演_2','gakuen_古今東西ちょちょいのちょい',19,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0020','sh_学園アイドルマスター_live_tour_-標-_福岡公演_2','gakuen_初',20,NULL,NULL,NULL);
 CREATE TABLE "setlist_performers" (
             setlist_item_id TEXT NOT NULL,
             idol_id TEXT NOT NULL,
@@ -75649,6 +75669,46 @@ INSERT INTO "setlist_performers" VALUES('sh_765pro_allstars_dual_twin_live_tour_
 INSERT INTO "setlist_performers" VALUES('sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_6_0016','765as_秋月律子');
 INSERT INTO "setlist_performers" VALUES('sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_6_0017','765as_三浦あずさ');
 INSERT INTO "setlist_performers" VALUES('sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_6_0017','765as_秋月律子');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0001','gakuen_花海咲季');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0002','gakuen_月村手毬');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0003','gakuen_藤田ことね');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0004','gakuen_篠澤広');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0005','gakuen_雨夜燕');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0006','gakuen_花海咲季');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0006','gakuen_月村手毬');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0006','gakuen_藤田ことね');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0006','gakuen_篠澤広');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0006','gakuen_雨夜燕');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0007','gakuen_月村手毬');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0008','gakuen_篠澤広');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0009','gakuen_花海咲季');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0010','gakuen_藤田ことね');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0011','gakuen_花海咲季');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0011','gakuen_月村手毬');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0011','gakuen_藤田ことね');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0011','gakuen_篠澤広');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0011','gakuen_雨夜燕');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0012','gakuen_雨夜燕');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0013','gakuen_藤田ことね');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0014','gakuen_篠澤広');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0015','gakuen_月村手毬');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0016','gakuen_花海咲季');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0017','gakuen_雨夜燕');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0018','gakuen_花海咲季');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0018','gakuen_月村手毬');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0018','gakuen_藤田ことね');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0018','gakuen_篠澤広');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0018','gakuen_雨夜燕');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0019','gakuen_花海咲季');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0019','gakuen_月村手毬');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0019','gakuen_藤田ことね');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0019','gakuen_篠澤広');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0019','gakuen_雨夜燕');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0020','gakuen_花海咲季');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0020','gakuen_月村手毬');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0020','gakuen_藤田ことね');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0020','gakuen_篠澤広');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_2_0020','gakuen_雨夜燕');
 CREATE TABLE "show_cast" (
             show_id TEXT NOT NULL,
             idol_id TEXT NOT NULL, cast_role TEXT NOT NULL DEFAULT 'member',
@@ -109009,6 +109069,8 @@ INSERT INTO "song_artists" VALUES('765as_私はアイドル','ml_伊吹翼','per
 INSERT INTO "song_artists" VALUES('765as_私はアイドル','ml_春日未来','performer');
 INSERT INTO "song_artists" VALUES('765as_私はアイドル','ml_田中琴葉','performer');
 INSERT INTO "song_artists" VALUES('765as_私はアイドル','ml_矢吹可奈','performer');
+INSERT INTO "song_artists" VALUES('gakuen_order_fake','gakuen_月村手毬','original');
+INSERT INTO "song_artists" VALUES('gakuen_め','gakuen_篠澤広','original');
 CREATE TABLE song_units (
   song_id TEXT NOT NULL,
   unit_id TEXT NOT NULL,
@@ -112857,6 +112919,8 @@ INSERT INTO "songs" VALUES('gakuen_修楽旅行_花海咲季月村手毬藤田�
 INSERT INTO "songs" VALUES('gakuen_神かわいい','神かわいい',NULL,'gakuen','solo',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
 INSERT INTO "songs" VALUES('gakuen_nazonazo','nazonazo',NULL,'gakuen','solo',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
 INSERT INTO "songs" VALUES('gakuen_be_proud','Be Proud',NULL,'gakuen','solo',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
+INSERT INTO "songs" VALUES('gakuen_order_fake','ORDER FAKE','おーだーふぇいく','gakuen','solo','',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
+INSERT INTO "songs" VALUES('gakuen_め','め','め','gakuen','solo','',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
 CREATE TABLE staff (
     id TEXT PRIMARY KEY NOT NULL,
     brand_id TEXT NOT NULL REFERENCES brands(id),
