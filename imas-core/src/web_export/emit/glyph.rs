@@ -45,18 +45,18 @@ mod tests {
     }
 
     #[test]
-    fn idol_monogram_prefers_nickname_then_given_name_then_name() {
+    fn idol_monogram_takes_the_short_name_when_it_fits() {
+        // 名の選び方そのものは domain::snapshot::idol_short_name の受け持ち。
         assert_eq!(idol_monogram(&idol("春日未来", Some("未来"), None)), "未来");
-        assert_eq!(idol_monogram(&idol("園田海未", Some("海未"), Some("うみちゃん"))), "うみ");
+        assert_eq!(idol_monogram(&idol("園田海未", Some("海未"), Some("うみ"))), "うみ");
         assert_eq!(idol_monogram(&idol("ジュリア", None, None)), "ジュリア");
-        // 空文字は「無い」扱い (DB に '' が入っていても name に落ちる)。
-        assert_eq!(idol_monogram(&idol("亜夜", Some(""), Some(""))), "亜夜");
+        assert_eq!(idol_monogram(&idol("音無小鳥", None, None)), "音無小鳥");
     }
 
     #[test]
     fn idol_monogram_cuts_long_names_to_two_initials() {
         assert_eq!(idol_monogram(&idol("アナスタシア", None, None)), "アナ");
         assert_eq!(idol_monogram(&idol("アスラン=ベルゼビュートⅡ世", None, None)), "アス");
-        assert_eq!(idol_monogram(&idol("音無小鳥", None, None)), "音無小鳥");
+        assert_eq!(idol_monogram(&idol("園田海未", None, Some("うみちゃん"))), "うみ");
     }
 }

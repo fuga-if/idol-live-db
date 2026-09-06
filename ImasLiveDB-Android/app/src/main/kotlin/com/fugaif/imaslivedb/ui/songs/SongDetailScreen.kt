@@ -1012,7 +1012,7 @@ private fun SingersSection(
                         .padding(vertical = 9.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    ImasAvatar(label = row.idol.name, seed = row.idol.color, brand = row.idol.brandId, size = 36.dp)
+                    ImasAvatar(label = row.idol.shortName, seed = row.idol.color, brand = row.idol.brandId, size = 36.dp)
                     Column(Modifier.weight(1f).padding(start = 12.dp)) {
                         Text(row.idol.name, fontSize = 15.sp, color = DS.ink,
                             maxLines = 1, overflow = TextOverflow.Ellipsis)

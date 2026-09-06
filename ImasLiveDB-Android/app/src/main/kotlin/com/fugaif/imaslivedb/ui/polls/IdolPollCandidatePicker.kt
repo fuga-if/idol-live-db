@@ -257,7 +257,7 @@ private fun IdolGridCell(idol: Idol, isSelected: Boolean, onClick: () -> Unit) {
     ) {
         Box(contentAlignment = Alignment.BottomEnd) {
             Box(modifier = Modifier.background(if (isSelected) DS.fill else Color.Transparent, CircleShape)) {
-                ImasAvatar(label = idol.name, seed = idol.color, brand = idol.brandId, size = 56.dp)
+                ImasAvatar(label = idol.shortName, seed = idol.color, brand = idol.brandId, size = 56.dp)
             }
             Icon(
                 if (isSelected) Icons.Filled.CheckCircle else Icons.Filled.Circle,
@@ -280,7 +280,7 @@ private fun IdolListRow(idol: Idol, isSelected: Boolean, onClick: () -> Unit) {
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        ImasAvatar(label = idol.name, seed = idol.color, brand = idol.brandId, size = 40.dp)
+        ImasAvatar(label = idol.shortName, seed = idol.color, brand = idol.brandId, size = 40.dp)
         Column(Modifier.weight(1f).padding(start = 12.dp)) {
             Text(idol.name, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink,
                 maxLines = 1, overflow = TextOverflow.Ellipsis)

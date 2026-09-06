@@ -107,15 +107,56 @@ pub struct Idol {
     pub aliases: Option<String>,
 }
 
+/// 表示用の短い名: nickname > given_name > name。空文字は「無い」扱い。
+///
+/// アバターのモノグラム (iOS `ImasAvatar` / Android / Web の丸) に出す文字。
+/// **規則はここ 1 つ**で、iOS/Android は `inbound::idol_queries::idol_short_name` 越しに
+/// これを呼ぶ (以前は Swift に同じ規則が手書きされ、Android には無かった)。
+/// 推測はせず、DB の列の値をそのまま信じる。
+pub fn idol_short_name<'a>(
+    name: &'a str,
+    given_name: Option<&'a str>,
+    nickname: Option<&'a str>,
+) -> &'a str {
+    [nickname, given_name]
+        .into_iter()
+        .flatten()
+        .find(|candidate| !candidate.is_empty())
+        .unwrap_or(name)
+}
+
 impl Idol {
-    /// 表示用の短い名 (アプリの `Idol.shortName` と同じ規則): nickname > given_name > name。
-    /// 絵の代わりに置くモノグラムの文字。推測はせず、DB の列の値をそのまま信じる。
+    /// [`idol_short_name`] をこの行に当てたもの。
     pub fn short_name(&self) -> &str {
-        match (self.nickname.as_deref(), self.given_name.as_deref()) {
-            (Some(nick), _) if !nick.is_empty() => nick,
-            (_, Some(given)) if !given.is_empty() => given,
-            _ => &self.name,
+        idol_short_name(&self.name, self.given_name.as_deref(), self.nickname.as_deref())
+    }
+}
+
+#[cfg(test)]
+mod idol_short_name_tests {
+    use super::*;
+
+    fn idol(name: &str, given_name: Option<&str>, nickname: Option<&str>) -> Idol {
+        Idol {
+            name: name.to_string(),
+            given_name: given_name.map(str::to_string),
+            nickname: nickname.map(str::to_string),
+            ..Idol::default()
         }
+    }
+
+    #[test]
+    fn prefers_nickname_then_given_name_then_name() {
+        assert_eq!(idol("園田海未", Some("海未"), Some("うみちゃん")).short_name(), "うみちゃん");
+        assert_eq!(idol("春日未来", Some("未来"), None).short_name(), "未来");
+        assert_eq!(idol("ジュリア", None, None).short_name(), "ジュリア");
+    }
+
+    #[test]
+    fn treats_an_empty_column_as_missing() {
+        // DB に '' が入っていても「無い」として次の候補へ落ちる (Swift の実装と同じ)。
+        assert_eq!(idol("亜夜", Some(""), Some("")).short_name(), "亜夜");
+        assert_eq!(idol("最上静香", Some("静香"), Some("")).short_name(), "静香");
     }
 }
 

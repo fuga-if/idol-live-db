@@ -307,7 +307,7 @@ private fun EntityLead(domain: CommunityApi.TagActivityDomain, song: Song?, idol
         CommunityApi.TagActivityDomain.SONG ->
             ImasArtwork(title = song?.title ?: "?", size = 40.dp, imageUrl = song?.artworkUrl)
         CommunityApi.TagActivityDomain.IDOL ->
-            ImasAvatar(label = idol?.name ?: "?", seed = idol?.color, brand = idol?.brandId, size = 40.dp)
+            ImasAvatar(label = idol?.shortName ?: "?", seed = idol?.color, brand = idol?.brandId, size = 40.dp)
     }
 }
 

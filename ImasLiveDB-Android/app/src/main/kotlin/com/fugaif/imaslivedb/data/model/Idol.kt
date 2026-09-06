@@ -3,6 +3,7 @@ package com.fugaif.imaslivedb.data.model
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import uniffi.imas_core.idolShortName
 
 @Entity(tableName = "idols")
 data class Idol(
@@ -102,11 +103,14 @@ data class Idol(
     @ColumnInfo(name = "voice_actors")
     val voiceActors: String? = null
 ) {
-    /** 表示用の短縮名。優先順位: nickname > given_name > name。 */
+    /**
+     * 表示用の短縮名 (アバターのモノグラム等)。優先順位: nickname > given_name > name。
+     *
+     * **規則の正は共有コア** (imas-core: domain/snapshot.rs の idol_short_name)。
+     * iOS の `Idol.shortName` と同じ 1 本を呼ぶ。
+     */
     val shortName: String
-        get() = nickname?.takeIf { it.isNotEmpty() }
-            ?: givenName?.takeIf { it.isNotEmpty() }
-            ?: name
+        get() = idolShortName(name, givenName, nickname)
 
     /**
      * 現役 CV 名 (voiceActors 先頭)。

@@ -15,11 +15,25 @@
 //!   既に export 済み (二重 export しない)。
 
 use super::snapshot_store::{SnapshotError, SnapshotStore};
+use crate::domain::snapshot;
 use crate::domain::idol_queries::{
     self as queries, BrandRecord, IdolRecord, IdolShowRecord, IdolUnitRecord,
     IdolVoiceActorRecord,
 };
 use std::collections::HashMap;
+
+/// 表示用の短い名 (nickname > given_name > name)。アバターのモノグラムに出す文字。
+///
+/// 行を持たない呼び出し (GRDB / Room から直に引いた行) からも規則を引けるように、
+/// レコードではなく素の 3 列で受ける。`theme_derive` と同じ「純粋な規則を 1 本の関数で出す」形。
+#[uniffi::export]
+pub fn idol_short_name(
+    name: String,
+    given_name: Option<String>,
+    nickname: Option<String>,
+) -> String {
+    snapshot::idol_short_name(&name, given_name.as_deref(), nickname.as_deref()).to_string()
+}
 
 #[uniffi::export]
 impl SnapshotStore {

@@ -94,6 +94,7 @@ declare_and_call_checksums! {
     uniffi_imas_core_checksum_func_idol_quiz_pool_estimate,
     uniffi_imas_core_checksum_func_idol_quiz_session,
     uniffi_imas_core_checksum_func_idol_quiz_session_result,
+    uniffi_imas_core_checksum_func_idol_short_name,
     uniffi_imas_core_checksum_func_idol_sort_order_table,
     uniffi_imas_core_checksum_func_image_template_json,
     uniffi_imas_core_checksum_func_inspect_backup_envelope,

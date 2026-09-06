@@ -572,7 +572,7 @@ fun IdolGridSection(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.width(64.dp).clickable { onIdolClick(idol.id) }
                 ) {
-                    ImasAvatar(label = idol.name, seed = idol.color, brand = idol.brandId, size = 52.dp,
+                    ImasAvatar(label = idol.shortName, seed = idol.color, brand = idol.brandId, size = 52.dp,
                         entityId = idol.id)
                     Text(idol.name, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = DS.ink2,
                         textAlign = TextAlign.Center, maxLines = 1, overflow = TextOverflow.Ellipsis,

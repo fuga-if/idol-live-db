@@ -290,7 +290,7 @@ fun IdolChoiceGrid(choices: List<Idol>, answer: Idol, selectedId: String?, onPic
             val isAnswer = idol.id == answer.id
             QuizChoiceButton(
                 name = idol.name, answered = answered, isAnswer = isAnswer, isPicked = idol.id == selectedId,
-                avatar = { ImasAvatar(label = idol.name, seed = idol.color, brand = idol.brandId, size = 30.dp) }
+                avatar = { ImasAvatar(label = idol.shortName, seed = idol.color, brand = idol.brandId, size = 30.dp) }
             ) {
                 if (selectedId == null) onPick(idol, isAnswer)
             }
@@ -505,7 +505,7 @@ private fun AnswerChip(label: String, idol: Idol, tone: Color) {
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         modifier = Modifier.clip(CircleShape).background(tone.copy(alpha = 0.12f)).padding(horizontal = 8.dp, vertical = 4.dp)
     ) {
-        ImasAvatar(label = idol.name, seed = idol.color, brand = idol.brandId, size = 20.dp)
+        ImasAvatar(label = idol.shortName, seed = idol.color, brand = idol.brandId, size = 20.dp)
         Text(label, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = tone)
         Text(idol.name, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = DS.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
