@@ -30,6 +30,7 @@
 //!   idol の sort_order を最終キーにして決定的にする (プラットフォーム間で同一結果を
 //!   返すのが共有コアの目的なので、非決定性は残さない)。
 
+use crate::domain::setlist_notes::display_notes;
 use crate::domain::snapshot::Snapshot;
 use std::cmp::Reverse;
 use std::collections::{HashMap, HashSet};
@@ -554,7 +555,8 @@ pub fn setlist(snap: &Snapshot, show_id: &str) -> Vec<SetlistEntryRecord> {
                 id: item.id.clone(),
                 position: item.position,
                 section: item.section.clone(),
-                notes: item.notes.clone(),
+                // 綴りの揺れ (括弧・全角 ＠) はここで畳む。規則は domain::setlist_notes。
+                notes: display_notes(item.notes.as_deref()),
                 unit_name: item.unit_name.clone(),
                 song_id: song.id.clone(),
                 song_title: song.title.clone(),
@@ -1304,7 +1306,7 @@ mod tests {
                         id: r.get(0)?,
                         position: r.get(1)?,
                         section: r.get(2)?,
-                        notes: r.get(3)?,
+                        notes: display_notes(r.get::<_, Option<String>>(3)?.as_deref()),
                         unit_name: r.get(4)?,
                         song_id: r.get(5)?,
                         song_title: r.get(6)?,
