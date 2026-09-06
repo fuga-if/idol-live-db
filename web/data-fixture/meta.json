@@ -83,6 +83,13 @@
       "current": false,
       "themeKey": null,
       "count": null
+    },
+    {
+      "label": "コール",
+      "path": "/calls/",
+      "current": false,
+      "themeKey": null,
+      "count": null
     }
   ],
   "utilityNav": [
@@ -105,5 +112,6 @@
     "非公式のファンメイドサイトです。株式会社バンダイナムコエンターテインメントおよび関連権利者とは一切関係ありません。",
     "キャラクター画像・公式ロゴは掲載していません。ジャケット画像は Apple Music の提供によるものです。"
   ],
-  "lyricsLicenseNotice": "JASRAC 許諾番号 J260943703"
+  "lyricsLicenseNotice": "JASRAC 許諾番号 J260943703",
+  "lyricsSearchUrl": "https://imas-live-api.tokata3011.workers.dev/lyrics/search"
 }

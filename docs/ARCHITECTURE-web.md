@@ -287,3 +287,21 @@ Cloudflare Workers Static Assets の上限は **20,000 ファイル / 1 ファ�
 - `ImasLiveDB/DesignSystem/DesignTokens.swift` — `web/src/styles/tokens.css` に写すニュートラル・スペーシング・角丸・タイポの値の正。
 - `web/src/lib/data.ts` — JSON 読み込みの唯一の入口 (`join`/`filter`/`sort` を書かない場所)。
 - `web/wrangler.jsonc` / `.github/workflows/web-deploy.yml` — デプロイ設定の正。
+
+## 歌詞・コールガイド (2026-09-06 追記)
+
+「閲覧時に API を呼ばない」の例外は歌詞だけで、**押されたときに 1 曲**、または**検索で「歌詞」を
+選んで打ったとき**に限る (どちらも Worker `imas-live-api`。CSP `connect-src` はこの Worker だけ)。
+D1 の読み取りは 1 曲 = 数行、検索 1 回 = 数百行 (Paid の枠に対して無視できる)。
+
+- 曲ページ `SongLyrics.astro`: `LyricsBlock.sourceUrl` (Rust) を data 属性で受け、
+  「歌詞とコールガイドを読む」で `GET /songs/:id/lyrics`。本文は静的 HTML に無い。
+- 検索ページ: `meta.lyricsSearchUrl` (Rust) があるときだけ「名前 / 歌詞」の切替が並ぶ。
+  歌詞は `GET /lyrics/search?q=` (未認証可)。返るのは曲 id と一致箇所の窓だけで、曲名は
+  楽曲の索引 (`search/songs.json`、`i` = 生 id が鍵と違う行だけ) から引く。
+- `/calls/` コールガイドの進捗: Worker の公開エンドポイント `GET /calls/dashboard` を
+  `tools/export_calls_dashboard.py` で `db/calls_dashboard.json` に写し、`web-export --calls`
+  が焼く (写しが無ければページごと出さない。お題と同じ)。iOS のダッシュボードと同じ 3 区画で、
+  編集の言い方 (`emit/calls.rs`) も同じ規則。
+- 出す/出さないの唯一の判断は `content::LYRICS_ON_WEB`。許諾の掲示 (フッタのマークと番号) と
+  文言も Rust (`content.rs`) が持つ。詳細は docs/JASRAC.md §6.5。

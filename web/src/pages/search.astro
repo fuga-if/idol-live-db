@@ -15,7 +15,7 @@ import type { SeoBlock } from "../lib/schema/SeoBlock";
 const seo: SeoBlock = {
   title: "検索 | アイドルライブDB",
   description:
-    "アイマスの楽曲・アイドル・ライブ・会場をまとめて検索します。ひらがな / カタカナ / 英字の違いは自動で吸収します。",
+    "アイマスの楽曲・アイドル・ライブ・会場を名前で、または歌詞の中の言葉で検索します。ひらがな / カタカナ / 英字の違いは自動で吸収します。",
   canonical: "/search/",
   ogImage: "/og/default.png",
   robots: "index,follow",
@@ -34,8 +34,9 @@ const site = meta();
       <h1>検索</h1>
     </div>
     <p class="u-muted">
-      楽曲・アイドル・ライブ・会場をまとめて探します。ひらがな / カタカナ /
+      楽曲・アイドル・ライブ・会場を名前でまとめて探します。ひらがな / カタカナ /
       英字の大小の違いはアプリと同じ規則で吸収します。
+      {site.lyricsSearchUrl && "「歌詞」に切り替えると、歌詞の中の言葉から曲を探せます (2 文字以上)。"}
     </p>
     <SearchBox island placeholder="例: 未来 / HARUKA / 武道館" />
   </div>

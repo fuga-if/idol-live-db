@@ -71,6 +71,11 @@ web_dto! {
         pub k: String,
         /// 畳み済みフィールドを `sep` で連結したもの。
         pub f: String,
+        /// 生の id。**`k` と違うときだけ入る** (危険な文字を含む id がフォールバック slug に
+        /// 落ちた行)。歌詞検索の結果 (API は生の id で返す) をこの行に結び付けるために要る。
+        /// 出さないときは鍵ごと省く (4 シャード合計 1MB 級なので、空の鍵を全行に足さない)。
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        pub i: Option<String>,
     }
 }
 

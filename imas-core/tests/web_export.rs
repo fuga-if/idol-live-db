@@ -171,7 +171,8 @@ fn t12_no_lyrics_or_preview_audio_anywhere_in_the_output() {
     /// - `lyricsNote` … 歌詞の断り書き
     /// - `lyrics` … 出すか / 許諾番号 / 取得先だけを持つブロック (中身は下で固定する)
     /// - `lyricsLicenseNotice` … フッタの許諾表示 (`JASRAC 許諾番号 …`)
-    const ALLOWED: [&str; 3] = ["lyricsNote", "lyrics", "lyricsLicenseNotice"];
+    /// - `lyricsSearchUrl` … 歌詞検索の取得先 (URL であって本文ではない)
+    const ALLOWED: [&str; 4] = ["lyricsNote", "lyrics", "lyricsLicenseNotice", "lyricsSearchUrl"];
 
     /// `lyrics` ブロックに入ってよいキー。**ここに `lines` や `text` が増えたら落ちる。**
     /// 歌詞本文は D1 にしか置けない (まとめて取れないことが JASRAC 許諾の条件)。
@@ -548,6 +549,8 @@ mod real {
                 db: Some(PathBuf::from(db_path())),
                 out: Some(dir.path().to_path_buf()),
                 today: Some(TODAY.to_string()),
+                // コールガイドの写し (リポジトリに置いてある正本)。
+                calls: Some("../db/calls_dashboard.json".to_string()),
                 ..Args::default()
             };
             imas_core::web_export::run(&args).expect("実データの export が失敗した");
@@ -915,6 +918,37 @@ mod real {
                 })
                 .collect()
         })
+    }
+
+    #[test]
+    fn call_guide_page_is_baked_from_the_dashboard_snapshot() {
+        // Worker の写し (db/calls_dashboard.json) から `/calls/` を焼く。曲は Ref に解決され、
+        // 消えた曲は落ちる。ナビにも入る (到達性)。歌詞やコール本文は写しに無いので載らない。
+        let dir = exported();
+        let routes: RoutesFile =
+            serde_json::from_str(&std::fs::read_to_string(dir.path().join("routes.json")).unwrap())
+                .unwrap();
+        let entry = routes
+            .routes
+            .iter()
+            .find(|r| r.kind == RouteKind::CallGuide)
+            .expect("/calls/ が routes.json に無い");
+        assert_eq!(entry.path, "/calls/");
+        let page: CallGuidePage =
+            serde_json::from_str(&std::fs::read_to_string(dir.path().join(&entry.data)).unwrap())
+                .unwrap();
+        assert!(!page.with_calls.is_empty(), "ガイドのある曲が 1 曲も無い");
+        for row in &page.with_calls {
+            assert!(row.song.path.starts_with("/songs/"), "{}", row.song.name);
+            assert!(row.detail.contains("件"), "{}", row.detail);
+        }
+        assert!(page.wanted.len() <= 100);
+        assert_eq!(page.stat_tiles.len(), 3);
+        let meta: SiteMeta =
+            serde_json::from_str(&std::fs::read_to_string(dir.path().join("meta.json")).unwrap())
+                .unwrap();
+        assert!(meta.primary_nav.iter().any(|n| n.path == "/calls/"), "ナビに /calls/ が無い");
+        assert!(meta.lyrics_search_url.is_some(), "歌詞検索の取得先が meta に無い");
     }
 
     #[test]
@@ -1390,6 +1424,8 @@ mod real {
             db: Some(PathBuf::from(db_path())),
             out: Some(b.path().to_path_buf()),
             today: Some(TODAY.to_string()),
+            // 共有の出力 (exported) と同じ入力にする (写しの有無で顔ぶれが変わる)。
+            calls: Some("../db/calls_dashboard.json".to_string()),
             ..Args::default()
         };
         imas_core::web_export::run(&args).unwrap();

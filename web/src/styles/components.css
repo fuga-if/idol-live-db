@@ -1124,13 +1124,14 @@ a.labeled-row .labeled-row__value {
 /* 検索窓。トップは素の GET フォーム (JS 無し)、/search/ では島が横取りする。 */
 .search-box {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--sp3);
   align-items: stretch;
   max-inline-size: 40rem;
   inline-size: 100%;
 }
 .search-box__field {
-  flex: 1;
+  flex: 1 1 14rem;
   min-width: 0;
   display: flex;
   align-items: center;
@@ -1186,6 +1187,50 @@ a.labeled-row .labeled-row__value {
 .search-box__btn:hover {
   filter: brightness(1.15);
 }
+/* 探し方の切替 (名前 / 歌詞)。セグメントと同じ見た目のラジオ。出面で歌詞を出すときだけ並ぶ。 */
+.search-box__modes {
+  display: flex;
+  gap: var(--sp1);
+  margin: 0;
+  padding: 3px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--ds-fill);
+  align-self: center;
+}
+.search-box__modes label {
+  display: flex;
+  align-items: center;
+  padding: 8px 14px;
+  border-radius: var(--r-pill);
+  font-size: var(--fs-footnote);
+  font-weight: 600;
+  color: var(--ds-ink2);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.search-box__modes label:has(input:checked) {
+  background: var(--ds-surface);
+  color: var(--ds-ink);
+  box-shadow: var(--ds-shadow1);
+}
+.search-box__modes label:has(input:focus-visible) {
+  outline: 2px solid var(--ds-ink);
+  outline-offset: 2px;
+}
+
+/* 歌詞検索の一致箇所。本文の断片なので選べない (曲ページの歌詞と同じ扱い)。 */
+.search-snippet {
+  user-select: none;
+  -webkit-user-select: none;
+}
+.search-snippet mark {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  color: inherit;
+  border-radius: 3px;
+  padding: 0 2px;
+}
+
 /* /search/ 側は JS が横取りするので、送信ボタンは要らない (Enter で結果が出る)。 */
 .search-box--island .search-box__btn {
   display: none;

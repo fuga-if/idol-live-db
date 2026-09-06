@@ -40,6 +40,7 @@ macro_rules! web_dto {
 }
 
 pub mod brand;
+pub mod calls;
 pub mod common;
 pub mod event;
 pub mod idol;
@@ -51,6 +52,7 @@ pub mod unit;
 pub mod venue;
 
 pub use brand::BrandPage;
+pub use calls::{CallGuideEditRow, CallGuidePage, CallGuideSongRow};
 pub use common::{
     mark_current, AppLinks, AppOpen, Counts, Crumb, DateBadge, LyricsBlock, NavLink, PenlightSetDto,
     PerformerNameOptionDto, Ref, RefKind, Robots, SeoBlock, SiteMeta, SongCommunity, StatTile,

@@ -30,7 +30,7 @@ use super::writer::Writer;
 use super::{Result, Stats, WebExportError};
 use std::path::Path;
 use super::emit::events::ShowContext;
-use crate::domain::date_display::{range_with_weekday, until_display};
+use crate::domain::date_display::{range_with_weekday, until_display, with_weekday};
 use crate::domain::setlist_lineup::Lineup;
 use crate::domain::idol_list_filtering::IdolQuery;
 use crate::domain::song_list_queries::{SongListFilter, SongQuery};
@@ -220,6 +220,45 @@ fn venue_broken_id() -> Ref {
 // ページ
 // ---------------------------------------------------------------------------
 
+/// コールガイドの進捗の代表値: ガイドのある曲 / 最近の編集 / 書き手募集中。
+fn call_guide_page() -> CallGuidePage {
+    let path = "/calls/";
+    CallGuidePage {
+        schema_version: SCHEMA_VERSION,
+        path: path.to_string(),
+        title: "コールガイドの進捗".to_string(),
+        intro: content::CALL_GUIDE_INTRO.to_string(),
+        snapshot_note: "2026-09-06 12:34 (JST) 時点の情報です (日次で更新)。".to_string(),
+        stat_tiles: vec![
+            tile("♬", 1, "ガイドあり", None),
+            tile("✎", 1, "書き手募集中", None),
+            tile("#", 3, "コール曲タグ付き", None),
+        ],
+        with_calls: vec![CallGuideSongRow {
+            song: song_sample(),
+            detail: "32 件・19 行".to_string(),
+            updated_display: with_weekday("2026-09-05"),
+            updated_by: "匿名".to_string(),
+        }],
+        with_calls_note: None,
+        recent_edits: vec![CallGuideEditRow {
+            song: song_sample(),
+            label: "コールを付けた (32 件・19 行)".to_string(),
+            at_display: with_weekday("2026-09-05"),
+            by: "匿名".to_string(),
+        }],
+        wanted: vec![song_no_artwork()],
+        wanted_note: Some("ほかに「コール曲」タグの付いた 1 曲は歌詞が未登録のため、ここには並べていません (歌詞が入ってから書けるようになります)。".to_string()),
+        seo: seo(
+            "コールガイドの進捗",
+            "コールガイドがある曲、最近の編集、未整備の曲。",
+            path,
+            Robots::IndexFollow,
+            &[("ホーム", "/")],
+        ),
+    }
+}
+
 fn site_meta() -> SiteMeta {
     SiteMeta {
         schema_version: SCHEMA_VERSION,
@@ -235,10 +274,11 @@ fn site_meta() -> SiteMeta {
             .map(|o| PerformerNameOptionDto { raw: o.raw, label: o.label })
             .collect(),
         // 代表値にはお題が無いので、ナビにも出ない (本番と同じ判断を通す)。
-        primary_nav: super::emit::lists::primary_nav(false),
+        primary_nav: super::emit::lists::primary_nav(false, true),
         utility_nav: super::emit::lists::utility_nav(),
         footer_notes: content::footer_notes(),
         lyrics_license_notice: content::lyrics_license_notice(),
+        lyrics_search_url: content::lyrics_search_url(),
     }
 }
 
@@ -1125,6 +1165,7 @@ fn search_row(name: &str, sub: Option<&str>, key: &str, folded: &[&str]) -> Sear
         n: name.to_string(),
         s: sub.map(str::to_string),
         k: key.to_string(),
+        i: None,
         f: folded.join("\u{0001}"),
     }
 }
@@ -1203,6 +1244,7 @@ pub fn emit(dir: &Path, pretty: bool) -> Result<Stats> {
     // --- 一覧 ---
     w.write_json("index/home.json", &home_page())?;
     w.write_json("index/about.json", &about_page())?;
+    w.write_json("index/calls.json", &call_guide_page())?;
     w.write_json("index/events.json", &event_list_page("/events/", "ライブ", EventListKind::Index, false))?;
     w.write_json("index/events-upcoming.json", &event_list_page("/events/upcoming/", "今後のライブ", EventListKind::Upcoming, false))?;
     w.write_json("index/events-past.json", &event_list_page("/events/past/", "開催済みのライブ", EventListKind::Past, false))?;
@@ -1335,6 +1377,7 @@ fn routes(broken_key: &str) -> RoutesFile {
     let mut routes = vec![
         listing(RouteKind::Home, "/", "index/home.json", true),
         listing(RouteKind::About, "/about/", "index/about.json", true),
+        listing(RouteKind::CallGuide, "/calls/", "index/calls.json", true),
         listing(RouteKind::Search, "/search/", "search/manifest.json", true),
         listing(RouteKind::EventListIndex, "/events/", "index/events.json", true),
         listing(RouteKind::EventListUpcoming, "/events/upcoming/", "index/events-upcoming.json", true),

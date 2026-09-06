@@ -542,6 +542,8 @@ web_dto! {
         BrandList,
         /// `/polls/`
         PollList,
+        /// `/calls/` — コールガイドの進捗
+        CallGuide,
 
         /// `/events/[id]/`
         Event,

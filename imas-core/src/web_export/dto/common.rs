@@ -54,6 +54,9 @@ web_dto! {
         /// 歌詞掲載の許諾表示 (`JASRAC 許諾番号 …`)。出面で歌詞を出すときだけ入り、
         /// フッタが許諾マークの隣に描く (掲示が許諾の条件)。
         pub lyrics_license_notice: Option<String>,
+        /// 歌詞の中の言葉で曲を探す API (検索ページの「歌詞」が押されたときだけ叩く)。
+        /// 出面で歌詞を出すときだけ入る。TS は URL を組まず、ここに来たものを使う。
+        pub lyrics_search_url: Option<String>,
     }
 }
 

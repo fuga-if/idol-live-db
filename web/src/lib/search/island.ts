@@ -19,6 +19,20 @@ import type { SearchRow } from "../schema/SearchRow";
 
 const LIMIT_PER_KIND = 30;
 const DEBOUNCE_MS = 80;
+/** 歌詞は Worker (D1) を叩くので、打鍵ごとには飛ばさない。 */
+const LYRICS_DEBOUNCE_MS = 500;
+/** 1 文字の歌詞検索は索引で絞れず全走査になる。2 文字から。 */
+const LYRICS_MIN_CHARS = 2;
+
+/** 歌詞検索 (Worker) の応答。曲 id と一致箇所の窓だけで、本文は無い。 */
+interface LyricsHit {
+  songId: string;
+  snippets: { snippet: string; matchStart: number; matchLength: number }[];
+}
+interface LyricsResponse {
+  query: string;
+  hits: LyricsHit[];
+}
 
 /** 索引 1 本 = manifest の見出し情報 + 本体。 */
 interface Shard {
@@ -43,6 +57,9 @@ interface Elements {
   status: HTMLElement;
   results: HTMLElement;
   fallback: HTMLElement | null;
+  /** 歌詞検索の取得先 (Rust が meta.json に出したもの)。無ければ名前だけ。 */
+  lyricsSearchUrl: string | null;
+  modes: HTMLInputElement[];
 }
 
 function elements(): Elements | null {
@@ -57,11 +74,20 @@ function elements(): Elements | null {
     status,
     results,
     fallback: document.querySelector<HTMLElement>("[data-search-fallback]"),
+    lyricsSearchUrl: form.dataset.lyricsSearch ?? null,
+    modes: [...form.querySelectorAll<HTMLInputElement>("[data-search-mode]")],
   };
 }
 
-function init({ form, input, status, results, fallback }: Elements): void {
+function init({ form, input, status, results, fallback, lyricsSearchUrl, modes }: Elements): void {
   form.addEventListener("submit", (e) => e.preventDefault());
+  // 歌詞の一致箇所は本文の断片。選択・コピー・右クリック・ドラッグを止める
+  // (曲ページの歌詞と同じ扱い。完全には防げないが、まとめ取りの手間を上げる)。
+  for (const type of ["copy", "cut", "contextmenu", "dragstart", "selectstart"]) {
+    results.addEventListener(type, (e) => {
+      if ((e.target as Element | null)?.closest?.(".search-snippet")) e.preventDefault();
+    });
+  }
   // JS が動いた時点で「JS を有効にすると検索できます」の案内を下げる。
   fallback?.setAttribute("hidden", "");
   // 入力欄は最初から使える (disabled にすると支援技術から要素ごと消え、
@@ -76,13 +102,29 @@ function init({ form, input, status, results, fallback }: Elements): void {
 
   const start = (): Promise<Loaded> => (loading ??= load());
 
+  const lyricsMode = (): boolean =>
+    lyricsSearchUrl !== null && modes.some((m) => m.checked && m.value === "lyrics");
+
   input.addEventListener("focus", start, { once: true });
   input.addEventListener("input", () => {
     window.clearTimeout(timer);
-    timer = window.setTimeout(() => void run(input.value), DEBOUNCE_MS);
+    timer = window.setTimeout(
+      () => void run(input.value),
+      lyricsMode() ? LYRICS_DEBOUNCE_MS : DEBOUNCE_MS,
+    );
   });
+  for (const m of modes) {
+    m.addEventListener("change", () => {
+      window.clearTimeout(timer);
+      void run(input.value);
+    });
+  }
 
-  const initial = new URLSearchParams(location.search).get("q");
+  const params = new URLSearchParams(location.search);
+  const initial = params.get("q");
+  if (params.get("mode") === "lyrics") {
+    for (const m of modes) m.checked = m.value === "lyrics";
+  }
   if (initial) {
     input.value = initial;
     void run(initial);
@@ -94,6 +136,10 @@ function init({ form, input, status, results, fallback }: Elements): void {
     if (!text) {
       results.textContent = "";
       status.textContent = "";
+      return;
+    }
+    if (lyricsMode()) {
+      await runLyrics(text, seq);
       return;
     }
     status.textContent = "検索中…";
@@ -114,6 +160,95 @@ function init({ form, input, status, results, fallback }: Elements): void {
     status.textContent =
       total === 0 ? `「${text}」に一致するものはありません` : `${total} 件見つかりました`;
   }
+
+  /**
+   * 歌詞の中の言葉で探す。照合は Worker (D1 の索引) がやり、返るのは曲 id と一致箇所の窓だけ。
+   * 曲名は楽曲の索引から引く (Worker はマスタを持たない)。
+   */
+  async function runLyrics(text: string, seq: number): Promise<void> {
+    if (Array.from(text).length < LYRICS_MIN_CHARS) {
+      results.textContent = "";
+      status.textContent = `歌詞は ${LYRICS_MIN_CHARS} 文字以上で探せます`;
+      return;
+    }
+    status.textContent = "歌詞を検索中…";
+    let loaded: Loaded;
+    try {
+      loaded = await start();
+    } catch {
+      status.textContent = "検索の準備に失敗しました。ページを再読み込みしてください。";
+      return;
+    }
+    let data: LyricsResponse;
+    try {
+      // 取得先は data 属性 (Rust が出した URL)。ここで URL を組まない。
+      const res = await fetch(`${lyricsSearchUrl}?q=${encodeURIComponent(text)}`, {
+        headers: { Accept: "application/json" },
+      });
+      if (res.status === 429) {
+        if (seq === latest) status.textContent = "検索の回数が上限に達しました。しばらく待ってからお試しください。";
+        return;
+      }
+      if (!res.ok) throw new Error(String(res.status));
+      data = (await res.json()) as LyricsResponse;
+    } catch {
+      if (seq === latest) status.textContent = "歌詞の検索に失敗しました。時間をおいてお試しください。";
+      return;
+    }
+    if (seq !== latest) return;
+    const songs = loaded.shards.find((s) => s.meta.kind === "song");
+    const rows = new Map<string, SearchRow>();
+    for (const row of songs?.body.rows ?? []) rows.set(row.i ?? row.k, row);
+    const hits = data.hits.filter((h) => rows.has(h.songId));
+    results.textContent = "";
+    if (hits.length === 0) {
+      status.textContent = `歌詞に「${text}」を含む曲は見つかりませんでした`;
+      return;
+    }
+    results.append(lyricsSection(hits, rows, songs!));
+    status.textContent = `歌詞に「${text}」を含む曲が ${hits.length} 件`;
+  }
+}
+
+/** 歌詞検索の結果 1 区画。行は名前の検索と同じ骨格に、一致箇所の窓を 1 本添える。 */
+function lyricsSection(hits: LyricsHit[], rows: Map<string, SearchRow>, songs: Shard): HTMLElement {
+  const el = document.createElement("section");
+  el.className = "section";
+  const head = document.createElement("div");
+  head.className = "section__head";
+  const h = document.createElement("h2");
+  h.className = "section__title";
+  h.textContent = "歌詞";
+  const count = document.createElement("span");
+  count.className = "section__count";
+  count.textContent = String(hits.length);
+  head.append(h, count);
+
+  const list = document.createElement("ul");
+  list.className = "card";
+  for (const hit of hits) {
+    const row = rows.get(hit.songId)!;
+    const li = item(row, songs);
+    const first = hit.snippets[0];
+    if (first) li.querySelector(".row__body")?.append(snippet(first));
+    list.append(li);
+  }
+  el.append(head, list);
+  return el;
+}
+
+/** 一致箇所の窓。一致した部分だけ <mark> で示す。 */
+function snippet(s: { snippet: string; matchStart: number; matchLength: number }): HTMLElement {
+  const p = document.createElement("span");
+  p.className = "row__meta search-snippet";
+  const chars = Array.from(s.snippet);
+  const before = chars.slice(0, s.matchStart).join("");
+  const match = chars.slice(s.matchStart, s.matchStart + s.matchLength).join("");
+  const after = chars.slice(s.matchStart + s.matchLength).join("");
+  const mark = document.createElement("mark");
+  mark.textContent = match;
+  p.append(before, mark, after);
+  return p;
 }
 
 /**

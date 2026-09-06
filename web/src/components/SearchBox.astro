@@ -1,16 +1,21 @@
 ---
+import { meta } from "../lib/data";
 /**
  * 検索窓。
  *
  * トップでは**素の GET フォーム** (`/search/?q=…` へ飛ぶだけ。JS 無し)。
  * `/search/` では検索の島が `data-search-form` を見つけて横取りし、送信せずに
  * その場で結果を描く (`island` を立てる)。マークアップは 1 つ。
+ *
+ * 「歌詞」の探し方は、Rust が `meta.lyricsSearchUrl` を出しているときだけ並ぶ
+ * (出面で歌詞を出す設定のときだけ)。取得先は data 属性で受け取り、TS は URL を組まない。
  */
 interface Props {
   island?: boolean;
   placeholder?: string;
 }
 const { island = false, placeholder = "曲名・アイドル・ライブ・会場" } = Astro.props;
+const lyricsSearchUrl = island ? meta().lyricsSearchUrl : null;
 ---
 
 <form
@@ -19,7 +24,23 @@ const { island = false, placeholder = "曲名・アイドル・ライブ・会�
   method="get"
   role="search"
   data-search-form={island ? "" : undefined}
+  data-lyrics-search={lyricsSearchUrl ?? undefined}
 >
+  {
+    lyricsSearchUrl && (
+      <fieldset class="search-box__modes">
+        <legend class="u-visually-hidden">探し方</legend>
+        <label>
+          <input class="u-visually-hidden" type="radio" name="mode" value="name" checked data-search-mode />
+          名前
+        </label>
+        <label>
+          <input class="u-visually-hidden" type="radio" name="mode" value="lyrics" data-search-mode />
+          歌詞
+        </label>
+      </fieldset>
+    )
+  }
   <label class="search-box__field">
     <span class="u-visually-hidden">検索語</span>
     <span class="search-box__glyph" aria-hidden="true">⌕</span>

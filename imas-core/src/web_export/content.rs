@@ -65,6 +65,12 @@ pub fn lyrics_note() -> &'static str {
     }
 }
 
+/// 歌詞の中の言葉で曲を探す API (検索ページの「歌詞」)。出面で歌詞を出すときだけ。
+/// 応答は曲 id と一致箇所の窓だけで、本文は 1 曲ずつの GET と同じ経路。
+pub fn lyrics_search_url() -> Option<String> {
+    LYRICS_ON_WEB.then(|| format!("{API_ORIGIN}/lyrics/search"))
+}
+
 /// フッタに載せる許諾の表示 (マークの隣の文字)。歌詞を出しているときだけ。
 /// 「お申込みいただいたサイトのトップページ等の見やすい位置に表示」が許諾の条件で、
 /// 全ページ共通のフッタに置けばトップにも載る。
@@ -89,6 +95,9 @@ pub fn footer_notes() -> Vec<String> {
     ]
 }
 
+/// コールガイドの進捗ページ (`/calls/`) の説明。iOS のダッシュボードと同じ文。
+pub const CALL_GUIDE_INTRO: &str = "歌詞の行ごとに「ここでこう叫ぶ」を書き込むのがコールガイドです。曲ごとの「コーレス投稿」とは別物で、アプリの歌詞タブから直接付けられます。書き込みはアプリから、ここでは進み具合だけを見られます。";
+
 /// 歌詞・コールガイドを取りに行く API の起点。
 pub const API_ORIGIN: &str = "https://imas-live-api.tokata3011.workers.dev";
 
@@ -98,7 +107,7 @@ pub const APP_OPEN_NOTE: &str = APP_FEATURES_NOTE;
 /// アプリでしかできないことの並び。歌詞を出面で出すときは「歌詞」を「歌詞検索」に
 /// 言い換える (歌詞そのものは出面にもある)。
 pub const APP_FEATURES_NOTE: &str = if LYRICS_ON_WEB {
-    "参加記録・投票・歌詞検索・コールの編集・タグ付けはアプリでご利用いただけます。"
+    "参加記録・投票・コールの編集・タグ付けはアプリでご利用いただけます。"
 } else {
     "参加記録・投票・歌詞・コール・タグ付けはアプリでご利用いただけます。"
 };
@@ -216,7 +225,7 @@ pub fn about_sections() -> Vec<AboutSection> {
             paragraphs: if LYRICS_ON_WEB {
                 vec![
                     lyrics_note().to_string(),
-                    format!("曲ページで「{LYRICS_READ_LABEL}」を押すと、その 1 曲の歌詞とコールガイドが表示されます。歌詞の検索とコールガイドの編集はアプリでご利用いただけます。"),
+                    format!("曲ページで「{LYRICS_READ_LABEL}」を押すと、その 1 曲の歌詞とコールガイドが表示されます。歌詞の中の言葉から曲を探すには、検索ページの「歌詞」を使ってください。コールガイドの編集はアプリでご利用いただけます。"),
                 ]
             } else {
                 vec![lyrics_note().to_string()]

@@ -1118,7 +1118,7 @@ pub fn home(ctx: &Ctx, upcoming: &[EventListItem], counts: Counts) -> HomePage {
 /// お題は焼き込んだ集計が 1 件も無いとページごと出ない (`emit::run`) ので、
 /// その判断を知っている側がリンクの有無も決める。TS に手書きの並びを
 /// 持たせると、条件を知らないままリンク切れを出す。
-pub fn primary_nav(with_polls: bool) -> Vec<NavLink> {
+pub fn primary_nav(with_polls: bool, with_calls: bool) -> Vec<NavLink> {
     let mut nav: Vec<NavLink> = [
         SiteList::Events,
         SiteList::Songs,
@@ -1132,6 +1132,9 @@ pub fn primary_nav(with_polls: bool) -> Vec<NavLink> {
     .collect();
     if with_polls {
         nav.push(NavLink::new("お題", "/polls/"));
+    }
+    if with_calls {
+        nav.push(NavLink::new("コール", super::calls::PATH));
     }
     nav
 }

@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "path": "/calls/",
+  "title": "コールガイドの進捗",
+  "intro": "歌詞の行ごとに「ここでこう叫ぶ」を書き込むのがコールガイドです。曲ごとの「コーレス投稿」とは別物で、アプリの歌詞タブから直接付けられます。書き込みはアプリから、ここでは進み具合だけを見られます。",
+  "snapshotNote": "2026-09-06 12:34 (JST) 時点の情報です (日次で更新)。",
+  "statTiles": [
+    {
+      "glyph": "♬",
+      "value": 1,
+      "label": "ガイドあり",
+      "href": null
+    },
+    {
+      "glyph": "✎",
+      "value": 1,
+      "label": "書き手募集中",
+      "href": null
+    },
+    {
+      "glyph": "#",
+      "value": 3,
+      "label": "コール曲タグ付き",
+      "href": null
+    }
+  ],
+  "withCalls": [
+    {
+      "song": {
+        "kind": "song",
+        "id": "ml_sample",
+        "name": "Thank You!",
+        "sub": "765MILLION ALLSTARS",
+        "path": "/songs/ml_sample/",
+        "themeKey": "brand:ml",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music/sample/600x600bb.jpg"
+      },
+      "detail": "32 件・19 行",
+      "updatedDisplay": "2026-09-05 (土)",
+      "updatedBy": "匿名"
+    }
+  ],
+  "withCallsNote": null,
+  "recentEdits": [
+    {
+      "song": {
+        "kind": "song",
+        "id": "ml_sample",
+        "name": "Thank You!",
+        "sub": "765MILLION ALLSTARS",
+        "path": "/songs/ml_sample/",
+        "themeKey": "brand:ml",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music/sample/600x600bb.jpg"
+      },
+      "label": "コールを付けた (32 件・19 行)",
+      "atDisplay": "2026-09-05 (土)",
+      "by": "匿名"
+    }
+  ],
+  "wanted": [
+    {
+      "kind": "song",
+      "id": "ml_no_artwork",
+      "name": "ジャケットの無い曲",
+      "sub": null,
+      "path": "/songs/ml_no_artwork/",
+      "themeKey": "brand:ml",
+      "artworkUrl": null
+    }
+  ],
+  "wantedNote": "ほかに「コール曲」タグの付いた 1 曲は歌詞が未登録のため、ここには並べていません (歌詞が入ってから書けるようになります)。",
+  "seo": {
+    "title": "コールガイドの進捗 | アイドルライブDB",
+    "description": "コールガイドがある曲、最近の編集、未整備の曲。",
+    "canonical": "https://idollivedb.fugalabs.uk/calls/",
+    "ogImage": "https://idollivedb.fugalabs.uk/og/default.png",
+    "robots": "index,follow",
+    "jsonLd": {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebPage",
+          "name": "コールガイドの進捗",
+          "url": "https://idollivedb.fugalabs.uk/calls/"
+        },
+        {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "item": "https://idollivedb.fugalabs.uk/",
+              "name": "ホーム",
+              "position": 1
+            }
+          ]
+        }
+      ]
+    },
+    "breadcrumbs": [
+      {
+        "name": "ホーム",
+        "path": "/"
+      }
+    ]
+  }
+}

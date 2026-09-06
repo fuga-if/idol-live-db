@@ -18,6 +18,14 @@
       "inSitemap": true
     },
     {
+      "path": "/calls/",
+      "kind": "callGuide",
+      "key": null,
+      "id": null,
+      "data": "index/calls.json",
+      "inSitemap": true
+    },
+    {
       "path": "/search/",
       "kind": "search",
       "key": null,

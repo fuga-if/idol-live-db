@@ -1,0 +1,99 @@
+---
+import ListLayout from "../../layouts/ListLayout.astro";
+import Section from "../../components/Section.astro";
+import StatStrip from "../../components/StatStrip.astro";
+import ListContainer from "../../components/ListContainer.astro";
+import Artwork from "../../components/Artwork.astro";
+import RefList from "../../components/RefList.astro";
+import EmptyState from "../../components/EmptyState.astro";
+import { page, routeData } from "../../lib/data";
+import type { CallGuidePage } from "../../lib/schema/CallGuidePage";
+
+/**
+ * コールガイドの進捗。
+ *
+ * **読むだけ。** 書き込みはアプリから。中身は Worker の公開エンドポイントを日次で
+ * 写した JSON を Rust が焼き込んだもので、閲覧のたびに API は呼ばない。
+ * 3 区画 (ガイドのある曲 / 最近の編集 / 書き手募集中) は iOS のダッシュボードと同じ。
+ */
+const guide = page<CallGuidePage>(routeData("callGuide", "/calls/"));
+---
+
+<ListLayout seo={guide.seo} title={guide.title}>
+  <p class="lede lede--wide">{guide.intro}</p>
+  <p class="u-muted">{guide.snapshotNote}</p>
+  <StatStrip items={guide.statTiles} label="コールガイドの数" />
+
+  <Section id="calls-with" title="コールガイドがある曲" count={guide.withCalls.length}>
+    {
+      guide.withCalls.length === 0 ? (
+        <EmptyState
+          title="まだコールガイドがありません"
+          body="「コール曲」タグの付いた曲から書き始められます (アプリの歌詞タブから)。"
+        />
+      ) : (
+        <ListContainer as="ul">
+          {guide.withCalls.map((row) => (
+            <li>
+              <a class="row" href={row.song.path} data-theme={row.song.themeKey}>
+                <span class="row__lead">
+                  <Artwork title={row.song.name} artworkUrl={row.song.artworkUrl} size="sm" />
+                </span>
+                <span class="row__body">
+                  <span class="row__title u-underline-hover">{row.song.name}</span>
+                  <span class="row__meta">
+                    <span class="row__meta-item u-num">{row.detail}</span>
+                    <span class="row__meta-item">{row.updatedBy}</span>
+                  </span>
+                </span>
+                <span class="row__trailing">
+                  <span class="u-num">{row.updatedDisplay}</span>
+                  <span class="chevron" aria-hidden="true">›</span>
+                </span>
+              </a>
+            </li>
+          ))}
+        </ListContainer>
+      )
+    }
+    {guide.withCallsNote && <p class="u-dim">{guide.withCallsNote}</p>}
+  </Section>
+
+  <Section id="calls-recent" title="最近の編集" count={guide.recentEdits.length}>
+    {
+      guide.recentEdits.length === 0 ? (
+        <EmptyState title="まだ編集がありません" body="誰かがコールを書き込むと、ここに残ります。" />
+      ) : (
+        <ListContainer as="ul">
+          {guide.recentEdits.map((row) => (
+            <li>
+              <a class="row row--bar" href={row.song.path} data-theme={row.song.themeKey}>
+                <span class="row__body">
+                  <span class="row__title u-underline-hover">{row.song.name}</span>
+                  <span class="row__meta">
+                    <span class="row__meta-item">{row.label}</span>
+                    <span class="row__meta-item">{row.by}</span>
+                  </span>
+                </span>
+                <span class="row__trailing">
+                  <span class="u-num">{row.atDisplay}</span>
+                  <span class="chevron" aria-hidden="true">›</span>
+                </span>
+              </a>
+            </li>
+          ))}
+        </ListContainer>
+      )
+    }
+  </Section>
+
+  <Section id="calls-wanted" title="書き手募集中" count={guide.wanted.length}>
+    <p class="u-muted">「コール曲」タグが付いているのに、まだコールガイドが書かれていない曲 (票の多い順)。</p>
+    <RefList
+      refs={guide.wanted}
+      label="未整備の曲"
+      emptyTitle="未整備の曲はありません。タグの付いた曲は、いまのところ全部書かれています。"
+    />
+    {guide.wantedNote && <p class="u-dim">{guide.wantedNote}</p>}
+  </Section>
+</ListLayout>

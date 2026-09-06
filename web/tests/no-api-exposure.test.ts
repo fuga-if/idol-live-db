@@ -160,14 +160,21 @@ const distExists = fs.existsSync(DIST);
  * 出面で歌詞を出している間は、これだけが配信物に現れてよい Worker の URL で、
  * 現れてよい場所も `data-source` 属性 (曲ページ) だけ。Rust が出していない間は null。
  */
-const lyricsSource = ((): { origin: string; attr: RegExp } | null => {
-  const meta = readJson<{ lyricsLicenseNotice: string | null }>("meta.json");
+const lyricsSource = ((): { origin: string; attrs: RegExp[] } | null => {
+  const meta = readJson<{ lyricsLicenseNotice: string | null; lyricsSearchUrl: string | null }>("meta.json");
   if (!meta.lyricsLicenseNotice) return null;
   const songs = walk(path.resolve("./data/songs"), { include: (p) => p.endsWith(".json") });
   const first = JSON.parse(fs.readFileSync(songs[0]!, "utf8")) as { lyrics: { sourceUrl: string | null } };
   const url = new URL(first.lyrics.sourceUrl!);
   const origin = url.origin.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return { origin: url.origin, attr: new RegExp(`data-source="${origin}/songs/[^"]+/lyrics"`, "g") };
+  // 曲ページの取得先 (1 曲ずつ) と、検索ページの歌詞検索の取得先。この 2 つの data 属性だけ。
+  return {
+    origin: url.origin,
+    attrs: [
+      new RegExp(`data-source="${origin}/songs/[^"]+/lyrics"`, "g"),
+      new RegExp(`data-lyrics-search="${origin}/lyrics/search"`, "g"),
+    ],
+  };
 })();
 
 describe("配信物 (dist)", () => {
@@ -178,7 +185,8 @@ describe("配信物 (dist)", () => {
     for (const f of files) {
       // 歌詞の取得先は 1 曲ずつの `data-source` にしか置かない。それ以外の場所に
       // Worker のホストが出たら、経路が増えている。
-      const text = lyricsSource ? fs.readFileSync(f, "utf8").replace(lyricsSource.attr, "") : fs.readFileSync(f, "utf8");
+      let text = fs.readFileSync(f, "utf8");
+      for (const attr of lyricsSource?.attrs ?? []) text = text.replace(attr, "");
       for (const w of FORBIDDEN) if (text.includes(w)) hits.push(`${rel(f)}: ${w}`);
     }
     expect(hits).toEqual([]);
