@@ -14,7 +14,9 @@
     // ALLOWED_ORIGINS: Web フロントエンドの Origin をカンマ区切りで列挙。
     // iOS ネイティブは Origin ヘッダを送らないため、空文字列でも動作する。
     // 例: "https://yourapp.example.com,https://admin.example.com"
-    "ALLOWED_ORIGINS": "https://idollivedb.fugalabs.uk",
+    // localhost は出面の手元プレビュー (astro dev = 4321 / dist の静的配信 = 4323) から歌詞を
+    // 引くため。Bearer/Cookie を使わない API なので、localhost を許しても他サイトからは使えない。
+    "ALLOWED_ORIGINS": "https://idollivedb.fugalabs.uk,http://localhost:4321,http://localhost:4323",
     // Android Sign in with Google (Credential Manager) の ID トークン検証用 aud。
     // 秘密情報ではない (公開して問題ない値) ので vars でよい。クライアントシークレットは
     // ID トークン署名検証方式では不要なため一切保持しない。
