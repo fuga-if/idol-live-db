@@ -118,7 +118,7 @@ npx wrangler deploy # 本番へ
 web/src/
   layouts/    BaseLayout / ListLayout / DetailLayout   … 枠。サイドバーもここ
   components/ SiteHeader・Section・LeadRow・EntryCard・Chip・TagChip・
-              Artwork・ColorDot・SetlistRow・SongTable・ListFilterBar …
+              Artwork・ColorDot・SetlistRow・SongRow・ListFilterBar …
   styles/     tokens.css (色・間隔・書体の変数) / components.css (全部の見た目)
   pages/      ルーティング。中身は components に渡すだけ
 ```

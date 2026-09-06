@@ -223,6 +223,16 @@ pub fn song_type_label(song_type: &str) -> Option<&'static str> {
     }
 }
 
+/// 楽曲一覧の行に添える作家の記載。「作曲」の語はここだけ (受け手は置くだけ)。
+pub fn composer_credit(name: &str) -> String {
+    format!("作曲 {name}")
+}
+
+/// 楽曲一覧の行に添える収録盤の記載。「収録」の語はここだけ。
+pub fn cd_credit(title: &str) -> String {
+    format!("収録 {title}")
+}
+
 /// 一覧に出す全種別。`event_list_queries` に渡す `kinds` はここを唯一の出典にする
 /// (省略すると既定が効いて、一覧から静かに消える種別が出る)。
 pub const ALL_EVENT_KINDS: [&str; 6] =

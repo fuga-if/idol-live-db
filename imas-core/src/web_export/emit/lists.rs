@@ -389,8 +389,8 @@ fn song_list_item(ctx: &Ctx, index: u32, light: bool) -> Option<SongListItem> {
             unit_label: None,
             artists_label: None,
             song_type_label: None,
-            composer: None,
-            cd_title: None,
+            composer_credit: None,
+            cd_credit: None,
             performance_count: None,
             subtitle: None,
         });
@@ -413,8 +413,8 @@ fn song_list_item(ctx: &Ctx, index: u32, light: bool) -> Option<SongListItem> {
         unit_label: song.unit_name.clone(),
         artists_label,
         song_type_label: song.song_type.as_deref().and_then(content::song_type_label).map(str::to_string),
-        composer: song.composer.clone().filter(|c| !c.is_empty()),
-        cd_title: song.cd_title.clone().filter(|c| !c.is_empty()),
+        composer_credit: song.composer.as_deref().filter(|c| !c.is_empty()).map(content::composer_credit),
+        cd_credit: song.cd_title.as_deref().filter(|c| !c.is_empty()).map(content::cd_credit),
         performance_count: Some(ctx.snap.performance_counts[index as usize]),
     })
 }

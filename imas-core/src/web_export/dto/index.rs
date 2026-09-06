@@ -155,16 +155,16 @@ web_dto! {
         pub unit_label: Option<String>,
         /// 原唱者を 1 行に畳んだもの (`join_capped` で「先頭 4 名 ほか N 名」に丸めた形)。
         ///
-        /// `subtitle` にも畳み込まれているが、表形式の一覧は列に分けて出すので
+        /// `subtitle` にも畳み込まれているが、行の 2 行目はユニットと分けて出すので
         /// 独立して持つ。**丸め方を決めるのはここ (Rust) の 1 箇所**で、
         /// 受け手が名前の配列から組み立て直すことはしない。
         pub artists_label: Option<String>,
         /// 曲種別 (「ソロ曲」「ユニット曲」「全体曲」…)。語は `content::song_type_label`。
         pub song_type_label: Option<String>,
-        /// 作曲者 (`songs.composer` そのまま)。表の列。
-        pub composer: Option<String>,
-        /// 収録 CD (`songs.cd_title`)。表の列 (幅があるときだけ)。
-        pub cd_title: Option<String>,
+        /// 「作曲 <作曲者>」。語は `content::composer_credit`。行の 3 行目 (幅があるときだけ)。
+        pub composer_credit: Option<String>,
+        /// 「収録 <CD 名>」。語は `content::cd_credit`。同上。
+        pub cd_credit: Option<String>,
         /// 披露回数。
         ///
         /// `/songs/all/` (全件ハブ) では **`None`**。あちらは 3,153 行を 1 枚に並べる

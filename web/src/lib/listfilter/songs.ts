@@ -15,8 +15,8 @@ export function mountSongFilter(root: HTMLElement): void {
 
   const spec: ListFilterSpec<SongFacets> = {
     name: "song filter",
-    container: "[data-song-table] tbody",
-    item: "tr[data-song-id]",
+    container: "[data-song-list]",
+    item: "li[data-song-id]",
     idAttr: "songId",
     fallbackSort: "kana",
     facets: (e) => JSON.parse((e as Engine).facets()) as SongFacets,

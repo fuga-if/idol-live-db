@@ -91,7 +91,7 @@ export function mountListFilter<F>(
     container,
     status: must(root, "[data-filter-status]"),
     fields: must(root, "[data-filter-fields]"),
-    sort: must<HTMLSelectElement>(root, "[data-filter-sort]"),
+    sorts: must<HTMLElement>(root, "[data-filter-sorts]"),
     dir: must<HTMLButtonElement>(root, "[data-filter-dir]"),
     reset: must<HTMLButtonElement>(root, "[data-filter-reset]"),
   };
@@ -110,42 +110,6 @@ export function mountListFilter<F>(
   let state = emptyState(fields, spec.fallbackSort);
   let engine: Engine | null = null;
   let timer = 0;
-
-  // --- 列見出しで並べ替え ------------------------------------------------
-  // 表の見出し (`th[data-sort-column]`) は並びの鍵を持つだけの文字。島が動いたら押せる
-  // ボタンに差し替え、押すたびに「その並びにする → 向きを反転」と巡る。状態は上の
-  // select / 向きボタンと同じ 1 つ (`state.__sort` / `state.__ascending`)。
-  const columns = [...document.querySelectorAll<HTMLTableCellElement>("th[data-sort-column]")]
-    .filter((th) => sorts.length === 0 || sorts.some((o) => o.key === th.dataset.sortColumn))
-    .map((th) => {
-      const key = th.dataset.sortColumn!;
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "song-table__sort";
-      button.append(...th.childNodes);
-      button.addEventListener("click", () => {
-        if (state.__sort === key) {
-          state.__ascending = !currentAscending();
-        } else {
-          state.__sort = key;
-          state.__ascending = null; // その並びの既定方向 (決めるのはコア)。
-        }
-        el.sort.value = state.__sort;
-        syncDir();
-        syncColumns();
-        onChange();
-      });
-      th.replaceChildren(button);
-      return { th, key, button };
-    });
-
-  function syncColumns(): void {
-    for (const c of columns) {
-      const active = c.key === state.__sort && sorts.some((o) => o.key === c.key);
-      c.button.disabled = !sorts.some((o) => o.key === c.key);
-      c.th.setAttribute("aria-sort", active ? (currentAscending() ? "ascending" : "descending") : "none");
-    }
-  }
 
   setEnabled(false);
   void start();
@@ -175,15 +139,10 @@ export function mountListFilter<F>(
     timer = window.setTimeout(apply, DEBOUNCE_MS);
   }
 
-  el.sort.addEventListener("change", () => {
-    state.__sort = el.sort.value;
-    state.__ascending = null; // その並びの既定方向に戻す (決めるのはコア)。
-    syncDir();
-    onChange();
-  });
   el.dir.addEventListener("click", () => {
     state.__ascending = !currentAscending();
     syncDir();
+    syncSorts();
     onChange();
   });
   el.reset.addEventListener("click", () => {
@@ -247,8 +206,8 @@ export function mountListFilter<F>(
   function setEnabled(on: boolean): void {
     // 入力欄は素材 (facets) が来てから描くので、ここで触るものは無い。
     // 器の側 (sort/dir/reset と列見出し) だけを止めておく。
-    for (const c of [el.sort, el.dir, el.reset]) c.disabled = !on;
-    for (const c of columns) c.button.disabled = !on;
+    for (const c of [el.dir, el.reset]) c.disabled = !on;
+    for (const b of el.sorts.querySelectorAll("button")) b.disabled = !on;
     el.root.dataset.state = on ? "ready" : "loading";
   }
 
@@ -263,12 +222,44 @@ export function mountListFilter<F>(
     el.dir.setAttribute("aria-label", asc ? "昇順（クリックで降順）" : "降順（クリックで昇順）");
   }
 
+  /**
+   * 並べ替えの札。押すと「その並びにする → もう一度押すと向きを反転」と巡る (表の列見出しと
+   * 同じ一押しの手触り)。状態は向きボタンと同じ 1 つ (`state.__sort` / `state.__ascending`)。
+   * どの並びがあるかは Rust の素材 (`sorts`) が決め、ここは並べるだけ。
+   */
   function renderSorts(): void {
-    el.sort.replaceChildren(...sorts.map((o) => option(o.key, o.label)));
     if (!sorts.some((o) => o.key === state.__sort)) state.__sort = spec.fallbackSort;
-    el.sort.value = state.__sort;
+    el.sorts.replaceChildren(
+      ...sorts.map((o) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "song-filter__sort";
+        button.dataset.sortKey = o.key;
+        button.textContent = o.label;
+        button.addEventListener("click", () => {
+          if (state.__sort === o.key) {
+            state.__ascending = !currentAscending();
+          } else {
+            state.__sort = o.key;
+            state.__ascending = null; // その並びの既定方向 (決めるのはコア)。
+          }
+          syncDir();
+          syncSorts();
+          onChange();
+        });
+        return button;
+      }),
+    );
     syncDir();
-    syncColumns();
+    syncSorts();
+  }
+
+  function syncSorts(): void {
+    for (const b of el.sorts.querySelectorAll<HTMLButtonElement>("[data-sort-key]")) {
+      const active = b.dataset.sortKey === state.__sort;
+      b.setAttribute("aria-pressed", String(active));
+      b.dataset.dir = active ? (currentAscending() ? "asc" : "desc") : "";
+    }
   }
 
 

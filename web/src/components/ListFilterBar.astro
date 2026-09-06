@@ -32,10 +32,8 @@ const { kind, queryBase, total } = Astro.props;
 >
   <div class="song-filter__fields" data-filter-fields></div>
   <div class="song-filter__row">
-    <label class="song-filter__field">
-      <span class="u-visually-hidden">並べ替え</span>
-      <select class="song-filter__select" data-filter-sort disabled></select>
-    </label>
+    {/* 並べ替えの札。中身 (どの並びがあるか) は island が Rust の素材から描く。 */}
+    <div class="song-filter__sorts" role="group" aria-label="並べ替え" data-filter-sorts></div>
     <button class="song-filter__dir" type="button" data-filter-dir aria-label="昇順" disabled>↑</button>
     <button class="song-filter__reset" type="button" data-filter-reset disabled>クリア</button>
   </div>

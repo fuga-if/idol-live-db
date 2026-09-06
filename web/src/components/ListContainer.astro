@@ -1,9 +1,11 @@
 ---
-/** ImasListContainer 相当 — inset-grouped 風のカード。行の間に自動で罫が入る。 */
+/** ImasListContainer 相当 — inset-grouped 風のカード。行の間に自動で罫が入る。
+    余った属性 (data-*) は器にそのまま渡す (絞り込みの島が器を探す目印に使う)。 */
 interface Props {
   as?: "div" | "ul" | "ol";
+  [key: `data-${string}`]: string | undefined;
 }
-const { as: Tag = "div" }: Props = Astro.props;
+const { as: Tag = "div", ...rest }: Props = Astro.props;
 ---
 
-<Tag class="card"><slot /></Tag>
+<Tag class="card" {...rest}><slot /></Tag>

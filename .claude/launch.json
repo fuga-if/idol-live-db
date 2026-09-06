@@ -5,6 +5,13 @@
       "name": "web-preview",
       "url": "http://localhost:4321",
       "port": 4321
+    },
+    {
+      "name": "web-dist",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "4323", "--bind", "127.0.0.1", "--directory", "web/dist"],
+      "port": 4323,
+      "autoPort": false
     }
   ]
 }

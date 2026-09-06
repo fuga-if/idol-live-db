@@ -1707,248 +1707,30 @@ a.labeled-row .labeled-row__value {
   }
 }
 
-/* --- 楽曲の表 ------------------------------------------------------------
-   一覧が二次元になるものは行を積むより表のほうが密度が出る。ただし列を出すには
-   幅が要るので、**使える幅に応じて列を減らす**。最後は Rust が組んだ subtitle 1 本。
-
-   判定はビューポートではなく `.main` のコンテナ幅で行う。サイドバーが出ると本文は
-   その分だけ狭くなるので、ビューポート幅で決めると同じ見た目の幅でも
-   サイドバーの有無で表の形が変わってしまう。
-   外枠 (面・角丸) は .card に任せる。 */
-.song-table__scroll {
-  overflow-x: auto;
-  /* 列の出し入れの基準。**ここ自身の幅 = 表に使える幅**なので、サイドバーの有無に
-     関わらず正しく測れる (ビューポート幅だとサイドバーの 208px 分ずれる)。
-     包含をこの箱の中に閉じ込めてあるので、年見出しの position: sticky など
-     ページ側のレイアウトには一切触らない。 */
-  container: songtable / inline-size;
-}
-.song-table {
-  width: 100%;
-  /* 列幅は thead th で決め打ちする。auto だと 2,000 行ぶんの内容幅を測ってからで
-     ないと列が置けず、そのレイアウトパスは分割も省略もできない。 */
-  table-layout: fixed;
-  border-collapse: collapse;
-  font-size: var(--fs-footnote);
-}
-/* 揃えと太さは列クラス側が決める。骨格の指定は :where() で詳細度を 0 にし、
-   列クラス (0,1,0) が常に勝つようにする (`th, td` に直に書くと (0,1,1) で上書きする)。 */
-.song-table th,
-.song-table td {
-  padding: var(--sp3) var(--sp4);
-  vertical-align: middle;
-}
-:where(.song-table) th {
-  text-align: left;
-}
-.song-table tbody tr + tr th,
-.song-table tbody tr + tr td {
-  border-top: 1px solid var(--ds-sep);
-}
-.song-table thead th {
-  background: var(--ds-surface2);
-  border-bottom: 1px solid var(--ds-sep);
-  font-size: var(--fs-caption);
-  font-weight: 700;
-  color: var(--ds-ink2);
-  white-space: nowrap;
-}
-.song-table tbody tr:hover {
-  background: var(--ds-fill);
-}
-
-/* 列幅。曲名は残りを取る。 */
-/* 幅の配分は実測で決めた。曲名は余りを取るので、割合を書くのは補助列だけ。
-   原唱者は「A / B / C ほか N 名」まで入るので一番広い。 */
-.song-table__c-unit {
-  width: 19%;
-}
-.song-table__c-date {
-  width: 6.5rem;
-}
-.song-table__c-count {
-  width: 4.5rem;
-}
-
-.song-table__title {
-  font-weight: 600;
-}
-.song-table__title a {
-  display: flex;
-  align-items: center;
-  gap: var(--sp4);
-}
-/* 曲名は折り返す。切ると曲が特定できなくなるので、行の高さより中身を優先する。 */
-.song-table__title span {
-  min-width: 0;
-}
-/* 補助列は 1 行に収め、あふれたら省略する (畳む前に読めなくなるようなら
-   その幅では列ごと落とす — 下のコンテナクエリを参照)。 */
-.song-table__dim {
-  color: var(--ds-ink2);
-  font-weight: 400;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.song-table__num {
-  text-align: right;
-}
-
-/* --- 列の出し入れ --------------------------------------------------------
-   **display を触るのは列クラス (.song-table__c-*) と表の骨格だけ**にする。
-   `th, td` にまとめて display を書くと、詳細度 (0,1,1) が列クラス (0,1,0) を
-   上書きして、どの幅でも全列が出てしまう。余白は display と分けて指定する。 */
-
-/* 既定は畳んだ形: 曲名 + subtitle。 */
-.song-table,
-.song-table tbody,
-.song-table tr {
-  display: block;
-}
-.song-table thead {
-  display: none;
-}
-.song-table__c-title,
-.song-table__subtitle {
-  display: block;
-}
-.song-table__c-unit,
-.song-table__c-artists,
-.song-table__c-date,
-.song-table__c-count {
-  display: none;
-}
-.song-table tr {
-  padding: var(--sp3) var(--sp4);
-}
-.song-table tbody tr + tr {
-  border-top: 1px solid var(--ds-sep);
-}
-.song-table th,
-.song-table td {
-  padding: 0;
-}
-/* ジャケの幅ぶん字下げして曲名の頭に揃える (`td` の余白 0 より詳細度を上げて勝つ)。 */
-.song-table td.song-table__subtitle {
-  color: var(--ds-ink2);
-  font-size: var(--fs-caption);
-  padding-inline-start: calc(var(--artwork-sm) + var(--sp4));
-}
-
-/* 3 列 (曲名 / 初出 / ライブ)。表の骨格に戻す。 */
-@container songtable (min-width: 32rem) {
-  .song-table {
-    display: table;
-  }
-  .song-table thead {
-    display: table-header-group;
-  }
-  .song-table tbody {
-    display: table-row-group;
-  }
-  .song-table tr {
-    display: table-row;
-    padding: 0;
-  }
-  .song-table__c-title,
-  .song-table__c-date,
-  .song-table__c-count {
-    display: table-cell;
-  }
-  .song-table__subtitle {
-    display: none;
-  }
-  .song-table th,
-  .song-table td {
-    padding: var(--sp3) var(--sp4);
-  }
-  .song-table tbody tr + tr {
-    border-top: 0;
-  }
-  .song-table tbody tr + tr th,
-  .song-table tbody tr + tr td {
-    border-top: 1px solid var(--ds-sep);
-  }
-}
-
-/* 原唱者は「誰の曲か」を決める列なので、ユニットより先に戻す。
-   ユニットがまだ出ていない間は、その分を原唱者に回す (余りを曲名が全部吸うと、
-   曲名は余っているのに原唱者だけ切れる、という配分になる)。 */
-@container songtable (min-width: 46rem) {
-  .song-table__c-artists {
-    display: table-cell;
-    width: 42%;
-  }
-}
-
-/* ユニットは空の曲も多く、埋まっていても歌唱アイドルと重なりがちなので後ろ。 */
-@container songtable (min-width: 62rem) {
-  .song-table__c-unit {
-    display: table-cell;
-  }
-  .song-table__c-artists {
-    width: 31%;
-  }
-}
-
-/* さらに広ければ作曲・収録 CD。読み物ではなく「引く」ための列なので、狭い幅では出さない。 */
-@container songtable (min-width: 76rem) {
-  .song-table__c-composer {
-    display: table-cell;
-    width: 12%;
-  }
-  .song-table__c-artists {
-    width: 26%;
-  }
-}
-@container songtable (min-width: 92rem) {
-  .song-table__c-cd {
-    display: table-cell;
-    width: 18%;
-  }
-  .song-table__c-artists {
-    width: 22%;
-  }
-}
-
-/* 曲名の横の曲種別の札。表の中では小さく。 */
-.song-table__title .tag {
+/* --- 楽曲一覧の行 ---------------------------------------------------------
+   表 (曲 × 属性) は列に幅を配ると曲名が「余り」になり、幅によっては 1 文字ずつ縦に潰れた。
+   行に積む (ライブ・公演と同じ .row) と、どの幅でも曲名が先に幅を取り、属性は折り返すだけ。
+   作曲・収録は「引く」ための情報なので、幅があるカードでだけ 3 行目に出す。 */
+.song-row .row__title .tag {
   margin-inline-start: var(--sp2);
   vertical-align: 0.1em;
 }
-
-/* 列見出しで並べ替え (島が動いたときだけボタンになる)。 */
-.song-table__sort {
-  all: unset;
-  cursor: pointer;
-  color: inherit;
-  font: inherit;
+.song-row__date {
+  color: var(--ds-ink2);
 }
-.song-table__sort:hover {
-  color: var(--ds-ink);
+.song-row__credits {
+  display: none;
 }
-.song-table__sort:focus-visible {
-  outline: 2px solid var(--ds-ink);
-  outline-offset: 2px;
-  border-radius: var(--r-xs);
+@container (min-width: 62rem) {
+  .song-row__credits {
+    display: flex;
+  }
 }
-.song-table__sort::after {
-  content: "";
-  display: inline-block;
-  inline-size: 0.9em;
-  margin-inline-start: 2px;
-  text-align: start;
-}
-th[aria-sort="ascending"] .song-table__sort::after {
-  content: "↑";
-}
-th[aria-sort="descending"] .song-table__sort::after {
-  content: "↓";
-}
-th[aria-sort="ascending"],
-th[aria-sort="descending"] {
-  color: var(--ds-ink);
+/* 狭いカードでは初出を落として曲名に幅を回す (回数は残す — 行を選ぶ判断に要るのはそちら)。 */
+@container (max-width: 30rem) {
+  .song-row__date {
+    display: none;
+  }
 }
 
 /* --- 詳細ページの 2 段組 --------------------------------------------------
@@ -2054,6 +1836,55 @@ th[aria-sort="descending"] {
 .song-filter__dir:hover,
 .song-filter__reset:hover {
   color: var(--ds-ink);
+}
+/* 並べ替えの札。押すとその並びに、もう一度押すと向きが反転する (向きボタンと同じ状態)。
+   どの札があるかは island が Rust の素材から描く。 */
+.song-filter__sorts {
+  display: flex;
+  gap: var(--sp1);
+  padding: 2px;
+  border-radius: var(--r-sm);
+  background: var(--ds-fill);
+  flex: none;
+  max-inline-size: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.song-filter__sorts:empty {
+  display: none;
+}
+.song-filter__sort {
+  font: inherit;
+  font-size: var(--fs-footnote);
+  font-weight: 600;
+  color: var(--ds-ink2);
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  padding: 6px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.song-filter__sort:hover {
+  color: var(--ds-ink);
+}
+.song-filter__sort[aria-pressed="true"] {
+  background: var(--ds-surface);
+  color: var(--ds-ink);
+}
+.song-filter__sort[data-dir="asc"]::after {
+  content: " ↑";
+}
+.song-filter__sort[data-dir="desc"]::after {
+  content: " ↓";
+}
+.song-filter__sort:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+.song-filter__sort:focus-visible {
+  outline: 2px solid var(--ds-sys);
+  outline-offset: 1px;
 }
 /* 入力欄の並び。中身は island が facets から描くので、ここは器の形だけ。 */
 .song-filter__fields {

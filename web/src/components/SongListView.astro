@@ -1,6 +1,6 @@
 ---
 import ListLayout from "../layouts/ListLayout.astro";
-import SongTable from "./SongTable.astro";
+import SongRow from "./SongRow.astro";
 import ListFilterBar from "./ListFilterBar.astro";
 import KanaIndex from "./KanaIndex.astro";
 import { kanaAnchorId } from "../lib/anchors";
@@ -54,7 +54,15 @@ const sectionStarts = new Set(list.kanaSections.map((s) => s.startIndex));
         })}
       </ListContainer>
     ) : (
-      <SongTable items={list.items} kanaSections={list.kanaSections} />
+      /* 表ではなく行を積む。列に幅を配ると曲名が「余り」になって潰れる (SongRow 参照)。
+         `data-song-list` は絞り込みの島が器を探す目印。 */
+      <ListContainer as="ul" data-song-list="">
+        {list.items.map((item, i) => (
+          <li id={sectionStarts.has(i) ? kanaAnchorId(i) : undefined} data-song-id={item.ref.id}>
+            <SongRow item={item} />
+          </li>
+        ))}
+      </ListContainer>
     )
   }
 
