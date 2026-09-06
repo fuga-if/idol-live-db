@@ -73,6 +73,10 @@ INTERLUDE_BLANKS = 2
 BR_RE = re.compile(r"<\s*br\s*/?\s*>", re.IGNORECASE)
 # 素の HTML タグが残っていたら検出して警告する (取りこぼしの発見用)
 TAG_RE = re.compile(r"<[^>]{1,40}>")
+# 本文の二重化判定 (is_doubled_body)。全角スペースも除いて比べる。
+WHITESPACE_RE = re.compile(r"[\s\u3000]")
+# これより短い本文は「サビを 2 回歌う」だけでも半分ずつ一致しうるので判定しない。
+MIN_DOUBLED_BODY_CHARS = 200
 
 
 def default_source():
@@ -216,8 +220,24 @@ def validate_doc(doc, path):
     texts = [ln.get("text", "") for ln in lines if isinstance(ln, dict) and ln.get("kind") == "lyric"]
     if len(texts) > 3 and len(set(texts)) == 1:
         warnings.append("歌詞行が全て同一。貼り付け事故の疑い")
+    if is_doubled_body(texts):
+        warnings.append("本文の後半が前半の丸ごと繰り返し。取り込み元に歌詞が2回載っていた疑い")
 
     return errors, warnings
+
+
+def is_doubled_body(texts):
+    """歌詞本文が「同じ歌詞 2 回分」になっていないか。
+
+    取り込み元のテキストに同じ歌詞が 2 回 (2 回目は文節ごとに分割) 入っていて、
+    そのまま 200 行になった事故があった (sidem_劇星戦隊ドラスターズ, 2026-09-06)。
+    行の切り方が違っても本文は同じなので、空白を除いた全文で見る。
+    """
+    body = WHITESPACE_RE.sub("", "".join(texts))
+    if len(body) < MIN_DOUBLED_BODY_CHARS or len(body) % 2:
+        return False
+    half = len(body) // 2
+    return body[:half] == body[half:]
 
 
 def cmd_init(args):
