@@ -176,8 +176,10 @@ fn t12_no_lyrics_or_preview_audio_anywhere_in_the_output() {
 
     /// `lyrics` ブロックに入ってよいキー。**ここに `lines` や `text` が増えたら落ちる。**
     /// 歌詞本文は D1 にしか置けない (まとめて取れないことが JASRAC 許諾の条件)。
-    const LYRICS_BLOCK_KEYS: [&str; 6] =
-        ["available", "note", "licenseNumber", "licenseNote", "sourceUrl", "readLabel"];
+    /// `callGuide` はコールガイドの語彙 (記号・札・凡例の語。`content::call_guide_vocabulary`) で、
+    /// 歌詞にもコールの本文にも触れない。
+    const LYRICS_BLOCK_KEYS: [&str; 7] =
+        ["available", "note", "licenseNumber", "licenseNote", "sourceUrl", "readLabel", "callGuide"];
 
     fn walk(rel: &str, value: &serde_json::Value) {
         match value {
@@ -264,6 +266,7 @@ fn fixture_covers_the_boundary_cases_the_web_needs() {
                 | RouteKind::IdolListBirthMonth
                 | RouteKind::UnitListBrand
                 | RouteKind::VenueListPref
+                | RouteKind::Tag
                 | RouteKind::Event
                 | RouteKind::Show
                 | RouteKind::Song

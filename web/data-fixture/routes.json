@@ -178,6 +178,22 @@
       "inSitemap": true
     },
     {
+      "path": "/tags/",
+      "kind": "tagListIndex",
+      "key": null,
+      "id": null,
+      "data": "index/tags.json",
+      "inSitemap": true
+    },
+    {
+      "path": "/tags/tag_kawaii/",
+      "kind": "tag",
+      "key": "tag_kawaii",
+      "id": null,
+      "data": "index/tags-tag_kawaii.json",
+      "inSitemap": true
+    },
+    {
       "path": "/venues/",
       "kind": "venueListIndex",
       "key": null,

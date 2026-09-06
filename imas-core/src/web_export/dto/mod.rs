@@ -68,6 +68,7 @@ pub use index::{
     AboutLink, AboutPage, AboutSection, BrandListItem, BrandListPage, EventListItem,
     EventListKind, EventListPage, HomePage, IdolListItem, IdolListKind, IdolListPage,
     KanaSection, RouteEntry, RouteKind, RoutesFile, SongListItem, SongListKind, SongListPage,
+    TagListItem, TagListPage, TagPage, TagSongRow,
     UnitListItem, UnitListPage, VenueListItem, VenueListPage, YearGroup,
     PollEntryDto, PollListPage, PollSummaryDto,
 };

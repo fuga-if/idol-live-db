@@ -80,4 +80,15 @@ const sectionStarts = new Set(list.kanaSections.map((s) => s.startIndex));
       </p>
     )
   }
+  {
+    /* みんなが付けたタグから探す入口。タグの付いた曲が無いときは Rust が出さない。 */
+    list.tagsLink && (
+      <p class="u-muted">
+        <a class="u-underline-hover" href={list.tagsLink.path}>
+          {list.tagsLink.label}
+        </a>
+        <Count value={list.tagsLink.count} dim />
+      </p>
+    )
+  }
 </ListLayout>

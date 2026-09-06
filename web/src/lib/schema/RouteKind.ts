@@ -16,4 +16,4 @@
  *
  * で済み、TS 側には規則が 1 つも残らない。
  */
-export type RouteKind = "home" | "about" | "search" | "eventListIndex" | "eventListUpcoming" | "eventListPast" | "eventListPastYear" | "eventListBrand" | "songListIndex" | "songListBrand" | "songListAll" | "idolListIndex" | "idolListBrand" | "idolListBirthMonth" | "unitListIndex" | "unitListBrand" | "venueListIndex" | "venueListPref" | "brandList" | "pollList" | "callGuide" | "event" | "show" | "song" | "idol" | "unit" | "venue" | "brand";
+export type RouteKind = "home" | "about" | "search" | "eventListIndex" | "eventListUpcoming" | "eventListPast" | "eventListPastYear" | "eventListBrand" | "songListIndex" | "songListBrand" | "songListAll" | "tagListIndex" | "tag" | "idolListIndex" | "idolListBrand" | "idolListBirthMonth" | "unitListIndex" | "unitListBrand" | "venueListIndex" | "venueListPref" | "brandList" | "pollList" | "callGuide" | "event" | "show" | "song" | "idol" | "unit" | "venue" | "brand";

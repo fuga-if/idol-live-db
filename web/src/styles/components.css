@@ -495,6 +495,24 @@ a.chip:hover {
 .tag--community.tag--official {
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tag-color, var(--accent)) 45%, transparent);
 }
+/* 一覧のあるタグは押せる (曲のタグ → /tags/<tagId>/)。押せる札だけ手の形と下線。 */
+a.tag--community {
+  text-decoration: none;
+}
+a.tag--community:hover,
+a.tag--community:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+/* タグ一覧の行。見出しは色付きの札そのもの。 */
+.tag-row .row__title {
+  gap: var(--sp2);
+}
+.tag-page__description {
+  display: block;
+  margin-block-end: var(--sp1);
+  color: var(--ds-ink);
+}
 .tag--all {
   background: var(--ds-fill);
   color: var(--ds-ink2);

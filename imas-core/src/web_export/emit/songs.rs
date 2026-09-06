@@ -112,7 +112,9 @@ pub fn song_page(ctx: &Ctx, song_id: &str) -> Option<SongPage> {
         title: record.title.clone(),
         title_kana: record.title_kana.clone(),
         community: SongCommunity {
-            tags: super::context::tag_chips(ctx.community.song_tags(&record.id)),
+            tags: super::context::tag_chips(ctx.community.song_tags(&record.id), |t| {
+                Some(super::lists::tag_path(&t.id))
+            }),
             favorites: ctx.community.favorites(&record.id).max(0) as u32,
             penlight: ctx
                 .community

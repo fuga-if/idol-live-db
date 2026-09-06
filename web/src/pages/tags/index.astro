@@ -1,0 +1,51 @@
+---
+import ListLayout from "../../layouts/ListLayout.astro";
+import ListContainer from "../../components/ListContainer.astro";
+import Count from "../../components/Count.astro";
+import TagChip from "../../components/TagChip.astro";
+import { page, routeData } from "../../lib/data";
+import type { TagListPage } from "../../lib/schema/TagListPage";
+
+/**
+ * 曲に付いたタグの一覧。
+ *
+ * **読むだけ。** タグ付けはログインが要るので、この出面には操作を置かない。
+ * 並び (曲の多い順)・文言・どのタグに一覧があるかは Rust が決めている。
+ */
+const list = page<TagListPage>(routeData("tagListIndex", "/tags/"));
+---
+
+<ListLayout seo={list.seo} title={list.title} total={list.total}>
+  <p slot="lede" class="u-muted">{list.lede}</p>
+
+  <ListContainer as="ul">
+    {
+      list.items.map((item) => (
+        <li>
+          <a class="row row--bar tag-row" href={item.tag.path ?? "/tags/"}>
+            <span class="row__body">
+              <span class="row__title u-row">
+                <span
+                  class:list={["tag", "tag--community", item.tag.isOfficial && "tag--official"]}
+                  style={item.tag.color ? `--tag-color: ${item.tag.color}` : undefined}
+                >
+                  {item.tag.name}
+                </span>
+                {item.officialLabel && <TagChip text={item.officialLabel} kind="all" />}
+              </span>
+              {item.description && (
+                <span class="row__meta">
+                  <span class="row__meta-item">{item.description}</span>
+                </span>
+              )}
+            </span>
+            <span class="row__trailing">
+              <Count strong value={item.songCount} unit="曲" />
+              <span class="chevron" aria-hidden="true">›</span>
+            </span>
+          </a>
+        </li>
+      ))
+    }
+  </ListContainer>
+</ListLayout>

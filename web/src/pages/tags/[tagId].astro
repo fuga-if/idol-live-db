@@ -1,0 +1,50 @@
+---
+import ListLayout from "../../layouts/ListLayout.astro";
+import ListContainer from "../../components/ListContainer.astro";
+import RankingRow from "../../components/RankingRow.astro";
+import EmptyState from "../../components/EmptyState.astro";
+import Count from "../../components/Count.astro";
+import { page, pathsFor } from "../../lib/data";
+import type { TagPage } from "../../lib/schema/TagPage";
+
+/** タグ 1 つの曲一覧。付けた人の多い順 (順位と人数は Rust が振る)。 */
+export const getStaticPaths = () => pathsFor("tag", "tagId");
+
+const tag = page<TagPage>(Astro.props.data);
+---
+
+<ListLayout seo={tag.seo} title={tag.title} total={tag.total}>
+  <p slot="lede" class="u-muted">
+    {tag.description && <span class="tag-page__description">{tag.description}</span>}
+    {tag.lede}
+  </p>
+
+  {
+    tag.items.length === 0 ? (
+      <EmptyState title="このタグが付いた曲はまだありません" />
+    ) : (
+      <ListContainer as="ol">
+        {tag.items.map((row) => (
+          <li>
+            <RankingRow
+              rank={row.rank}
+              artwork
+              artworkUrl={row.ref.artworkUrl}
+              title={row.ref.name}
+              sub={row.subtitle}
+              metric={row.votes}
+              unit="人"
+              href={row.ref.path}
+              themeKey={row.ref.themeKey}
+            />
+          </li>
+        ))}
+      </ListContainer>
+    )
+  }
+
+  <p class="u-muted">
+    <a class="u-underline-hover" href={tag.allTagsLink.path}>{tag.allTagsLink.label}</a>
+    <Count value={tag.allTagsLink.count} dim />
+  </p>
+</ListLayout>

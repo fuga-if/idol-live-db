@@ -317,6 +317,10 @@ fn write_all(
     write_lists!(lists::idol_lists(ctx));
     write_lists!(lists::unit_lists(ctx));
     write_lists!(lists::venue_lists(ctx));
+    // タグ。曲に付いたタグが 1 つも無ければ一覧ごと出ない (`/songs/` の入口も同じ判断で消える)。
+    let (tag_index, tag_pages) = lists::tag_lists(ctx);
+    write_lists!(tag_index);
+    write_lists!(tag_pages);
 
     let brands = lists::brand_list(ctx);
     w.write_json("index/brands.json", &brands)?;

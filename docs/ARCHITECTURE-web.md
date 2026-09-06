@@ -137,6 +137,7 @@ https://imas-live-web.tokata3011.workers.dev/
 | `/songs/` `/songs/brand/<brandId>/` `/songs/<songId>/` | 楽曲 |
 | `/idols/` `/idols/brand/<brandId>/` `/idols/birth-month/<1..12>/` `/idols/<idolId>/` | アイドル |
 | `/units/` `/units/brand/<brandId>/` `/units/<unitId>/` | ユニット |
+| `/tags/` `/tags/<tagId>/` | 曲に付いたコミュニティのタグ (曲の多い順) と、タグごとの曲一覧 (付けた人の多い順)。タグの付いた曲が無ければ作らない |
 | `/venues/` `/venues/pref/<prefecture>/` `/venues/<venueId>/` | 会場 |
 | `/brands/` `/brands/<brandId>/` | ブランド |
 | `/search/` | 検索 (唯一のクライアント island) |
@@ -385,6 +386,12 @@ D1 (コミュニティ表) のすべてに反映済み (経緯は git 履歴 `22
   ものに注釈を付けると雑音になる。凡例はその曲で使っている手拍子記号 (★■♠♥) と強調度だけ。
   語彙は Rust (`content::call_guide_vocabulary` → `LyricsBlock.callGuide`)。歌詞本文は静的な出力に
   入らない (固定テストが許可キーを見ている)。
+- **タグごとの曲一覧** (同日夜): `/tags/` (曲に付いたタグを曲の多い順) と `/tags/<tagId>/` (そのタグの曲を
+  付けた人の多い順、`RankingRow`)。曲ページの「みんなの記録」の札は `TagChipDto.path` を持つものだけ
+  押せる (曲のタグ)。アイドル・ユニットのタグは一覧が無いので `path` 無し = 押せない札。入口は
+  `/songs/` の「タグから探す」(`SongListPage.tags_link`) と曲ページの札。タグの付いた曲が 1 曲も
+  無ければ一覧も入口も出さない (お題と同じ判断、`lists::tag_lists`)。パンくずは [ホーム, 楽曲, タグ, …]
+  なので上部バーの現在地は「楽曲」。語 (見出し・説明・「公式」) は `content::TAG_*`。
 - **並べ替えは絞り込みバーの札**: 列見出しが無くなったので、島 (`listfilter/island.ts`) が Rust の
   `sorts` から札 (`button.song-filter__sort`) を描く。押すと「その並びに → もう一度押すと向きを反転」
   (表の見出しと同じ一押し)。状態は向きボタンと同じ 1 つで、URL (`?sort=&dir=`) にも同じく写る。

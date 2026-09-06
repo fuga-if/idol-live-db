@@ -4,7 +4,7 @@
 //! 出す。クライアント状態を持たせないというユーザー指示の直接の帰結で、切替 UI は
 //! [`super::common::NavLink`] のリンク集になる。
 
-use super::common::{AppLinks, DateBadge, NavLink, Ref, SeoBlock, StatTile};
+use super::common::{AppLinks, DateBadge, NavLink, Ref, SeoBlock, StatTile, TagChipDto};
 use super::event::ShowSummary;
 use crate::domain::idol_list_filtering::IdolQuery;
 use crate::domain::song_list_queries::SongQuery;
@@ -127,6 +127,9 @@ web_dto! {
         /// `/songs/` にだけ入る。これが無いと、一覧規則で外れた曲 (派生曲・ライブ限定曲・
         /// `other` ブランド) の詳細ページが `/` からどこからも辿れなくなる。
         pub all_songs_link: Option<NavLink>,
+        /// タグから探す入口 (`/tags/`)。`/songs/` にだけ、タグの付いた曲が 1 曲でもあるときに入る
+        /// (タグ一覧はそのときだけ作る)。
+        pub tags_link: Option<NavLink>,
         pub total: u32,
         pub seo: SeoBlock,
     }
@@ -174,6 +177,70 @@ web_dto! {
         pub performance_count: Option<u32>,
         /// 行の副題 (ユニット名・原唱者・リリース日)。空なら `None`。
         pub subtitle: Option<String>,
+    }
+}
+
+web_dto! {
+    /// タグ一覧ページ。`/tags/`。曲に付いたコミュニティのタグを、付いている曲の多い順に並べる。
+    ///
+    /// **読むだけ。** タグ付けはログインが要るのでアプリへ誘導する。集計は `db/community.sql`
+    /// を焼き込んだもので、閲覧のたびに D1 は読まない。
+    pub struct TagListPage {
+        pub schema_version: u32,
+        pub path: String,
+        pub title: String,
+        /// 見出しの下の説明。
+        pub lede: String,
+        pub items: Vec<TagListItem>,
+        pub total: u32,
+        pub seo: SeoBlock,
+    }
+}
+
+web_dto! {
+    /// タグ一覧の 1 行。
+    pub struct TagListItem {
+        /// 札 (`path` はそのタグの曲一覧、`count` は付けた人の延べ数)。
+        pub tag: TagChipDto,
+        pub description: Option<String>,
+        /// 運営が用意したタグに付く札 (`content::TAG_OFFICIAL_LABEL`)。
+        pub official_label: Option<String>,
+        /// 付いている曲の数。
+        pub song_count: u32,
+    }
+}
+
+web_dto! {
+    /// タグ 1 つの曲一覧。`/tags/<tagId>/`。付けた人の多い順。
+    pub struct TagPage {
+        pub schema_version: u32,
+        pub path: String,
+        pub title: String,
+        pub tag: TagChipDto,
+        /// タグ自身の説明 (付けた人が書いたもの)。無ければ `None`。
+        pub description: Option<String>,
+        /// 見出しの下の説明 (並び順の断り)。
+        pub lede: String,
+        pub items: Vec<TagSongRow>,
+        pub total: u32,
+        /// タグ一覧 (`/tags/`) へ戻る導線。
+        pub all_tags_link: NavLink,
+        pub seo: SeoBlock,
+    }
+}
+
+web_dto! {
+    /// タグの付いた曲 1 行。
+    #[derive(Eq)]
+    pub struct TagSongRow {
+        #[serde(rename = "ref")]
+        pub reference: Ref,
+        /// 行の副題 (ユニット名・原唱者・リリース日)。楽曲一覧の行と同じ畳み方。
+        pub subtitle: Option<String>,
+        /// 何人が付けたか。
+        pub votes: u32,
+        /// 1 始まりの順位 (同数でも別の順位を振る = 表示の通し番号)。
+        pub rank: u32,
     }
 }
 
@@ -536,6 +603,10 @@ web_dto! {
         SongListBrand,
         /// `/songs/all/`
         SongListAll,
+        /// `/tags/` — 曲に付いたタグの一覧
+        TagListIndex,
+        /// `/tags/[tagId]/` — `key` = タグ id
+        Tag,
 
         /// `/idols/`
         IdolListIndex,

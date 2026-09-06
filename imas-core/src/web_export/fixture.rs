@@ -30,6 +30,7 @@ use super::writer::Writer;
 use super::{Result, Stats, WebExportError};
 use std::path::Path;
 use super::emit::events::ShowContext;
+use super::emit::lists::{tag_path, TAGS_PATH};
 use crate::domain::date_display::{range_with_weekday, until_display, with_weekday};
 use crate::domain::setlist_lineup::Lineup;
 use crate::domain::idol_list_filtering::IdolQuery;
@@ -560,6 +561,7 @@ fn song_page(reference: &Ref, minimal: bool) -> SongPage {
                 count: 12,
                 color: Some("#E900E2".to_string()),
                 is_official: false,
+                path: Some(tag_path("tag_kawaii")),
             }],
             favorites: 34,
             penlight: vec![PenlightSetDto { key: "pink_white".to_string(), count: 5 }],
@@ -679,12 +681,14 @@ fn idol_page(reference: &Ref) -> IdolPage {
             tile("♪", 2, "持ち曲", Some("#idol-songs")),
             tile("▤", 1, "出演公演", Some("#idol-shows")),
         ],
+        // アイドルのタグに一覧ページは無い (押せない札)。
         tags: vec![TagChipDto {
             id: "tag_genki".to_string(),
             name: "元気".to_string(),
             count: 7,
             color: None,
             is_official: true,
+            path: None,
         }],
         id: reference.id.clone(),
         path: reference.path.clone(),
@@ -765,6 +769,7 @@ fn unit_page(reference: &Ref, empty: bool) -> UnitPage {
             count: 7,
             color: None,
             is_official: true,
+            path: None,
         }],
         id: reference.id.clone(),
         path: reference.path.clone(),
@@ -987,6 +992,11 @@ fn song_list_page(path: &str, title: &str, kind: SongListKind) -> SongListPage {
         } else {
             None
         },
+        tags_link: if path == "/songs/" {
+            Some(nav(content::TAG_LIST_LINK_LABEL, TAGS_PATH, false, None, Some(1)))
+        } else {
+            None
+        },
         total: 2,
         seo: seo(
             title,
@@ -1057,6 +1067,73 @@ fn idol_list_page(path: &str, title: &str, kind: IdolListKind, empty: bool) -> I
             .collect(),
         total: if empty { 0 } else { 2 },
         seo: seo(title, "アイドルの一覧。", path, Robots::IndexFollow, &[("ホーム", "/")]),
+    }
+}
+
+/// タグの札 (曲ページ・タグ一覧で同じもの)。
+fn tag_kawaii_chip() -> TagChipDto {
+    TagChipDto {
+        id: "tag_kawaii".to_string(),
+        name: "かわいい".to_string(),
+        count: 12,
+        color: Some("#E900E2".to_string()),
+        is_official: false,
+        path: Some(tag_path("tag_kawaii")),
+    }
+}
+
+fn tag_list_page() -> TagListPage {
+    TagListPage {
+        schema_version: SCHEMA_VERSION,
+        path: TAGS_PATH.to_string(),
+        title: content::TAG_LIST_TITLE.to_string(),
+        lede: content::TAG_LIST_LEDE.to_string(),
+        items: vec![TagListItem {
+            tag: tag_kawaii_chip(),
+            description: Some("かわいい曲につけるタグ".to_string()),
+            official_label: None,
+            song_count: 2,
+        }],
+        total: 1,
+        seo: seo(
+            content::TAG_LIST_TITLE,
+            content::TAG_LIST_DESCRIPTION,
+            TAGS_PATH,
+            Robots::IndexFollow,
+            &[("ホーム", "/"), ("楽曲", "/songs/")],
+        ),
+    }
+}
+
+fn tag_page() -> TagPage {
+    let path = tag_path("tag_kawaii");
+    let title = content::tag_page_title("かわいい");
+    TagPage {
+        schema_version: SCHEMA_VERSION,
+        path: path.clone(),
+        tag: tag_kawaii_chip(),
+        description: Some("かわいい曲につけるタグ".to_string()),
+        lede: content::tag_page_lede("かわいい"),
+        items: vec![
+            TagSongRow {
+                reference: song_sample(),
+                subtitle: Some("765MILLION ALLSTARS ・ 春日未来 ・ 2019-03-13".to_string()),
+                votes: 12,
+                rank: 1,
+            },
+            // 副題もジャケも無い行。
+            TagSongRow { reference: song_no_artwork(), subtitle: None, votes: 1, rank: 2 },
+        ],
+        total: 2,
+        all_tags_link: nav(content::TAG_LIST_TITLE, TAGS_PATH, false, None, Some(1)),
+        seo: seo(
+            &title,
+            &content::tag_page_description("かわいい", 2),
+            &path,
+            Robots::IndexFollow,
+            &[("ホーム", "/"), ("楽曲", "/songs/"), (content::TAG_LIST_TITLE, TAGS_PATH)],
+        ),
+        title,
     }
 }
 
@@ -1323,6 +1400,8 @@ pub fn emit(dir: &Path, pretty: bool) -> Result<Stats> {
     w.write_json("index/units.json", &unit_list_page("/units/", "ユニット"))?;
     w.write_json("index/units-brand-ml.json", &unit_list_page("/units/brand/ml/", "ミリオンライブ! のユニット"))?;
     w.write_json("index/units-brand-cg.json", &unit_list_page("/units/brand/cg/", "シンデレラガールズ のユニット"))?;
+    w.write_json("index/tags.json", &tag_list_page())?;
+    w.write_json("index/tags-tag_kawaii.json", &tag_page())?;
     w.write_json("index/venues.json", &venue_list_page("/venues/", "会場", None))?;
     for pref in ["東京都", UNCLASSIFIED_PREFECTURE] {
         w.write_json(
@@ -1440,6 +1519,8 @@ fn routes(broken_key: &str) -> RoutesFile {
         listing(RouteKind::UnitListIndex, "/units/", "index/units.json", true),
         param_listing(RouteKind::UnitListBrand, "/units/brand/ml/", "ml", "index/units-brand-ml.json", true),
         param_listing(RouteKind::UnitListBrand, "/units/brand/cg/", "cg", "index/units-brand-cg.json", true),
+        listing(RouteKind::TagListIndex, TAGS_PATH, "index/tags.json", true),
+        param_listing(RouteKind::Tag, &tag_path("tag_kawaii"), "tag_kawaii", "index/tags-tag_kawaii.json", true),
         listing(RouteKind::VenueListIndex, "/venues/", "index/venues.json", true),
         listing(RouteKind::BrandList, "/brands/", "index/brands.json", true),
         detail(RouteKind::Event, "events", "ev_sample", "ev_sample", true),
@@ -1532,6 +1613,8 @@ fn verify(rel: &str, text: &str) -> std::result::Result<(), serde_json::Error> {
         "index" if name == "brands.json" => as_::<BrandListPage>(text),
         "index" if name.starts_with("events") => as_::<EventListPage>(text),
         "index" if name.starts_with("songs") => as_::<SongListPage>(text),
+        "index" if name == "tags.json" => as_::<TagListPage>(text),
+        "index" if name.starts_with("tags-") => as_::<TagPage>(text),
         "index" if name.starts_with("idols") => as_::<IdolListPage>(text),
         "index" if name.starts_with("units") => as_::<UnitListPage>(text),
         "index" if name.starts_with("venues") => as_::<VenueListPage>(text),

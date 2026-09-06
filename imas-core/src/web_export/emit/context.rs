@@ -498,7 +498,13 @@ pub use crate::domain::display_join::{join_parts, PARTS_SEPARATOR};
 pub use crate::domain::show_naming::distinguishing_show_name;
 
 /// タグを DTO へ。**上限も並びも domain が決めた形をそのまま**使う。
-pub fn tag_chips(tags: Vec<(&crate::domain::community::TagRow, i64)>) -> Vec<TagChipDto> {
+///
+/// `path_of` はそのタグの一覧ページ。曲のタグは `/tags/<tagId>/` を持ち、アイドル・ユニットの
+/// タグは一覧が無いので `None` を返す (押せない札になる)。
+pub fn tag_chips(
+    tags: Vec<(&crate::domain::community::TagRow, i64)>,
+    path_of: impl Fn(&crate::domain::community::TagRow) -> Option<String>,
+) -> Vec<TagChipDto> {
     tags.into_iter()
         .map(|(t, count)| TagChipDto {
             id: t.id.clone(),
@@ -506,6 +512,7 @@ pub fn tag_chips(tags: Vec<(&crate::domain::community::TagRow, i64)>) -> Vec<Tag
             count: count.max(0) as u32,
             color: t.color.clone(),
             is_official: t.is_official,
+            path: path_of(t),
         })
         .collect()
 }

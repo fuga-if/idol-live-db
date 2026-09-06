@@ -96,6 +96,13 @@
     "themeKey": null,
     "count": 3153
   },
+  "tagsLink": {
+    "label": "タグから探す",
+    "path": "/tags/",
+    "current": false,
+    "themeKey": null,
+    "count": 1
+  },
   "total": 2,
   "seo": {
     "title": "楽曲 | アイドルライブDB",

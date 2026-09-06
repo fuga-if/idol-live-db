@@ -34,4 +34,9 @@ queryBase: SongQuery | null, kanaSections: Array<KanaSection>, brandLinks: Array
  * `/songs/` にだけ入る。これが無いと、一覧規則で外れた曲 (派生曲・ライブ限定曲・
  * `other` ブランド) の詳細ページが `/` からどこからも辿れなくなる。
  */
-allSongsLink: NavLink | null, total: number, seo: SeoBlock, };
+allSongsLink: NavLink | null, 
+/**
+ * タグから探す入口 (`/tags/`)。`/songs/` にだけ、タグの付いた曲が 1 曲でもあるときに入る
+ * (タグ一覧はそのときだけ作る)。
+ */
+tagsLink: NavLink | null, total: number, seo: SeoBlock, };

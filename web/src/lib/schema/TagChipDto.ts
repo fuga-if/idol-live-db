@@ -17,4 +17,9 @@ color: string | null,
 /**
  * 運営が用意したタグか。
  */
-isOfficial: boolean, };
+isOfficial: boolean, 
+/**
+ * そのタグの曲一覧 (`/tags/<tagId>/`)。曲のタグにだけ入る
+ * (アイドル・ユニットのタグに一覧は無いので `None` = 押せない札)。
+ */
+path: string | null, };

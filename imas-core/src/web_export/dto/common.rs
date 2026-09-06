@@ -415,6 +415,9 @@ web_dto! {
         pub color: Option<String>,
         /// 運営が用意したタグか。
         pub is_official: bool,
+        /// そのタグの曲一覧 (`/tags/<tagId>/`)。曲のタグにだけ入る
+        /// (アイドル・ユニットのタグに一覧は無いので `None` = 押せない札)。
+        pub path: Option<String>,
     }
 }
 

@@ -14,7 +14,8 @@
       "name": "元気",
       "count": 7,
       "color": null,
-      "isOfficial": true
+      "isOfficial": true,
+      "path": null
     }
   ],
   "brand": null,

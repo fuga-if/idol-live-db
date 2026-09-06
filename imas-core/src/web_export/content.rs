@@ -157,6 +157,26 @@ pub fn unit_kind_label(is_permanent: bool) -> &'static str {
     if is_permanent { UNIT_PERMANENT_LABEL } else { UNIT_LIMITED_LABEL }
 }
 
+// ---- タグ (曲に付いたコミュニティのタグ) の一覧 ----------------------------------
+/// タグ一覧 (`/tags/`) の見出しと、楽曲一覧からの入口の文言。
+pub const TAG_LIST_TITLE: &str = "タグ";
+pub const TAG_LIST_LINK_LABEL: &str = "タグから探す";
+pub const TAG_LIST_LEDE: &str =
+    "アプリの利用者が曲に付けたタグです。付いている曲の多い順。タグ付けはアプリから。";
+pub const TAG_LIST_DESCRIPTION: &str = "アイドルマスターの楽曲に付いたタグの一覧。タグから曲を探せます。";
+/// 運営が用意したタグの札。
+pub const TAG_OFFICIAL_LABEL: &str = "公式";
+/// タグ 1 つの曲一覧 (`/tags/<tagId>/`) の見出し・説明。
+pub fn tag_page_title(name: &str) -> String {
+    format!("「{name}」の曲")
+}
+pub fn tag_page_lede(name: &str) -> String {
+    format!("「{name}」のタグが付いた曲を、付けた人の多い順に並べています。")
+}
+pub fn tag_page_description(name: &str, count: u32) -> String {
+    format!("アイドルマスターの楽曲のうち「{name}」のタグが付いた {count} 曲。")
+}
+
 /// 歌詞・コールガイドを取りに行く API の起点。
 pub const API_ORIGIN: &str = "https://imas-live-api.tokata3011.workers.dev";
 

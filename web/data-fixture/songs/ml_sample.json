@@ -21,7 +21,8 @@
         "name": "かわいい",
         "count": 12,
         "color": "#E900E2",
-        "isOfficial": false
+        "isOfficial": false,
+        "path": "/tags/tag_kawaii/"
       }
     ],
     "favorites": 34,
