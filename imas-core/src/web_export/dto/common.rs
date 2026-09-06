@@ -488,25 +488,20 @@ web_dto! {
 }
 
 web_dto! {
-    /// コールガイドの語彙。アプリ (`Models/Lyrics.swift` / `CallGuideLineViews.swift`) と同じ
-    /// 語・記号を Rust が配り、出面はアンカーの位置とこの語彙を突き合わせて置くだけ。
+    /// コールガイドの語彙。手拍子の記号・強調度の名前は アプリ (`Models/Lyrics.swift`) と同じ語を
+    /// Rust が配り、出面はアンカーの位置とこの語彙を突き合わせて置くだけ。
+    ///
+    /// 出面はコールを**位置で示す** (同時 = 語の真下 / 追っかけ = 語の後ろ) ので、
+    /// アプリの ↳ ①② » の印や「同時」札は持たない。
     #[derive(Eq)]
     pub struct CallGuideVocabulary {
         pub claps: Vec<CallGuideClap>,
         pub emphases: Vec<CallGuideEmphasis>,
-        /// 行内の 1 箇所に掛かるコールの印 (`↳`)。
-        pub marker_single: String,
-        /// 掛かる範囲が無い (行末) コールの印 (`»`)。
-        pub marker_end: String,
-        /// 同じ行に複数のアンカーがあるときの対応付け (`①②③…`)。足りなければ受け手が素の数字に落とす。
-        pub anchor_markers: Vec<String>,
-        /// 歌に被せるコールの札 (`同時`)。追っかけが既定なので被せる方だけ出す。
-        pub timing_over_label: String,
-        /// 範囲付きと混ざった行での行末コールの札 (`行末`)。
-        pub end_label: String,
         /// 歌詞が直されてアンカーがズレたコールの印 (`ズレ`)。
         pub stale_label: String,
-        /// 凡例で `同時` に添える説明 (`歌に被せる`)。
-        pub legend_over_label: String,
+        /// 凡例: 語の真下に置いたコールの意味 (歌に被せる)。その曲にあるときだけ出す。
+        pub placement_over_label: String,
+        /// 凡例: 語の後ろに置いたコールの意味 (追っかけ)。同上。
+        pub placement_after_label: String,
 }
 }

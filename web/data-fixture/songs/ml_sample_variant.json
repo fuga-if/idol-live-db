@@ -76,24 +76,9 @@
           "label": "演者要望"
         }
       ],
-      "markerSingle": "↳",
-      "markerEnd": "»",
-      "anchorMarkers": [
-        "①",
-        "②",
-        "③",
-        "④",
-        "⑤",
-        "⑥",
-        "⑦",
-        "⑧",
-        "⑨",
-        "⑩"
-      ],
-      "timingOverLabel": "同時",
-      "endLabel": "行末",
       "staleLabel": "ズレ",
-      "legendOverLabel": "歌に被せる"
+      "placementOverLabel": "語の真下 = 同時に叫ぶ",
+      "placementAfterLabel": "語の後ろ = 追っかけ"
     }
   },
   "songTypeLabel": "ソロ曲",

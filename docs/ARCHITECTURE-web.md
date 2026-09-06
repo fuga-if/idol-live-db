@@ -373,6 +373,13 @@ D1 (コミュニティ表) のすべてに反映済み (経緯は git 履歴 `22
   素材は `SongListItem.{song_type_label, composer_credit, cd_credit}` で、「作曲 …」「収録 …」の語は
   Rust (`content::composer_credit` / `cd_credit`)。作詞・編曲は絞り込みの「作家名」で引ける。
   行は `.card > li` なので `content-visibility` も効く (表の行には効かなかった)。
+- **コールガイドは位置で示す** (同日夜): 歌詞 1 曲は押されたときに Worker から取り、行内のアンカー
+  (Unicode スカラー単位の start/end) と突き合わせて置く。同時 (歌に被せる) は語の**真下**、追っかけは
+  語の**後ろ**、行末に足したものは行末。語とコールは inline-flex の縦積みの塊で、折り返しても離れず、
+  コールが語より長ければ行がそのぶん広がる (コール表の組み方)。アプリの ↳ ①② » の印と「同時」札は
+  位置で表せるので持たない。手拍子記号 (★■♠♥)・強調度の色名・凡例の語は Rust
+  (`content::call_guide_vocabulary` → `LyricsBlock.callGuide`)。歌詞本文は静的な出力に入らない
+  (固定テストが許可キーを見ている)。
 - **並べ替えは絞り込みバーの札**: 列見出しが無くなったので、島 (`listfilter/island.ts`) が Rust の
   `sorts` から札 (`button.song-filter__sort`) を描く。押すと「その並びに → もう一度押すと向きを反転」
   (表の見出しと同じ一押し)。状態は向きボタンと同じ 1 つで、URL (`?sort=&dir=`) にも同じく写る。

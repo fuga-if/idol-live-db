@@ -19,13 +19,14 @@ import type { LyricsBlock } from "../lib/schema/LyricsBlock";
  *   右クリックと selectstart までは止めない: 読み上げ・辞書・拡大のような支援の道具を
  *   殺すだけで、ソースを見る人には何の障害にもならない。
  *
- * コールの置き方はアプリ (`CallGuideLineViews.swift`) と同じ:
- * 1. アンカーした範囲を**行内で色付きに敷く** (どこに掛かるコールかを行の中で示す)。
- * 2. コールはその行の**直下にインデントして並べる** (上下の近さで対応を示す)。
- * 3. 同じ行に複数のアンカーがあるときだけ ①②③ を振って一意に対応付ける。
- * 語の真下に置かないのは、可変幅の書体では文字数で桁が揃わず、行が折り返すと「真下」が
- * 別の行になるから。記号・札・凡例の語は Rust (`content::call_guide_vocabulary`) が
- * `lyrics.callGuide` で配り、ここは位置 (Unicode スカラー単位の start/end) と突き合わせて置くだけ。
+ * コールは**位置で示す** (実物のコール表と同じ組み方):
+ * - 同時 (歌に被せる) は、アンカーした語の**真下**。語の幅よりコールが長ければ行がそのぶん広がる。
+ * - 追っかけ (フレーズの後で返す) は、アンカーした語の**後ろ** (語の右端から始まる)。
+ * - 掛かる範囲の無いコール (行末に足したもの) は、その位置 (ふつう行末)。
+ * アンカーした範囲は行内で薄く色を敷いて示す。語とコールは 1 つの塊 (inline-flex の縦積み)
+ * なので、行が折り返しても語とコールが離れない。
+ * 記号・凡例の語は Rust (`content::call_guide_vocabulary`) が `lyrics.callGuide` で配り、
+ * ここは位置 (Unicode スカラー単位の start/end) と突き合わせて置くだけ。
  */
 interface Props {
   lyrics: LyricsBlock;
@@ -110,79 +111,103 @@ const { lyrics } = Astro.props;
     const rank = (emphasis: string | null | undefined): number =>
       emphasis === "performer_request" ? 2 : emphasis === "optional" ? 1 : 0;
     const hasAnchor = (c: LyricCall): boolean => c.end > c.start;
+    const isOver = (c: LyricCall): boolean => c.timing === "over" && hasAnchor(c);
 
     /**
-     * 行内のアンカーの通し番号 (call.id → 0 始まり)。同じ範囲は同じ番号。
-     * アンカーが 1 つしか無い行では null (振っても情報が増えない)。
+     * コール 1 件の置き場所。同時は語の真下 (語の範囲を持つ塊)、追っかけと行末は
+     * その位置 (幅ゼロの塊) に置く。
      */
-    const anchorIndexes = (calls: LyricCall[]): Map<string, number> | null => {
-      const groups = new Map<string, number>();
-      const result = new Map<string, number>();
+    interface Slot {
+      start: number;
+      end: number;
+      calls: LyricCall[];
+    }
+    const slotsOf = (calls: LyricCall[]): Slot[] => {
+      const byKey = new Map<string, Slot>();
       for (const c of calls) {
-        if (!hasAnchor(c)) continue;
-        const key = `${c.start}-${c.end}`;
-        if (!groups.has(key)) groups.set(key, groups.size);
-        result.set(c.id, groups.get(key)!);
+        const start = isOver(c) ? c.start : c.end;
+        const end = isOver(c) ? c.end : c.end;
+        const key = `${start}-${end}`;
+        const slot = byKey.get(key) ?? { start, end, calls: [] };
+        slot.calls.push(c);
+        byKey.set(key, slot);
       }
-      return groups.size > 1 ? result : null;
+      return [...byKey.values()].sort((a, b) => a.start - b.start || a.end - b.end);
     };
 
-    /** アンカー範囲に色を敷いた本文。重なりは先勝ち (両方描くと色が濁る)。位置はスカラー単位。 */
-    const textWithAnchors = (text: string, calls: LyricCall[]): HTMLElement => {
+    const callNode = (c: LyricCall): HTMLElement => {
+      const node = el("span", `lyrics__call lyrics__call--${c.emphasis ?? "normal"}`, c.text);
+      if (c.stale && hasAnchor(c) && vocabulary) {
+        node.append(" ", el("span", "lyrics__tag lyrics__tag--stale", vocabulary.staleLabel));
+      }
+      return node;
+    };
+
+    /**
+     * 本文にコールを組み込む。アンカー範囲 (追っかけの分も含む) は薄く色を敷き、
+     * コールは塊 (語 + 真下のコール / 幅ゼロ + 後ろのコール) として位置に差し込む。
+     * 重なる範囲は先勝ち (両方描くと色が濁る)。位置はスカラー単位。
+     */
+    const textWithCalls = (text: string, calls: LyricCall[]): HTMLElement => {
       const scalars = Array.from(text);
-      const strongest = new Map<string, LyricCall>();
+      const out = el("span", "lyrics__text");
+      // 敷く色: 範囲ごとに一番強い強調度。
+      const tint = new Map<string, { start: number; end: number; emphasis: string }>();
       for (const c of calls) {
         if (!hasAnchor(c)) continue;
         const key = `${c.start}-${c.end}`;
-        const current = strongest.get(key);
-        if (!current || rank(c.emphasis) > rank(current.emphasis)) strongest.set(key, c);
+        const emphasis = c.emphasis ?? "normal";
+        const current = tint.get(key);
+        if (!current || rank(emphasis) > rank(current.emphasis)) {
+          tint.set(key, { start: c.start, end: c.end, emphasis });
+        }
       }
-      const highlights = [...strongest.values()].sort((a, b) => a.start - b.start);
-      const out = el("span", "lyrics__text");
+      // 差し込む点: 範囲付き (色敷き) と塊 (コール) を位置順に並べる。
+      interface Piece {
+        start: number;
+        end: number;
+        emphasis?: string;
+        calls?: LyricCall[];
+      }
+      const pieces: Piece[] = [];
+      for (const t of tint.values()) pieces.push({ start: t.start, end: t.end, emphasis: t.emphasis });
+      for (const slot of slotsOf(calls)) {
+        const same = pieces.find((p) => p.start === slot.start && p.end === slot.end && !p.calls);
+        if (same && slot.end > slot.start) same.calls = slot.calls;
+        else pieces.push({ start: slot.start, end: slot.end, calls: slot.calls });
+      }
+      pieces.sort((a, b) => a.start - b.start || a.end - b.end);
+
       let cursor = 0;
-      for (const h of highlights) {
-        const start = Math.max(h.start, cursor);
-        const end = Math.min(h.end, scalars.length);
-        if (start >= end) continue;
+      for (const piece of pieces) {
+        const start = Math.min(Math.max(piece.start, cursor), scalars.length);
+        const end = Math.min(Math.max(piece.end, start), scalars.length);
         if (start > cursor) out.append(scalars.slice(cursor, start).join(""));
-        const mark = el("mark", "lyrics__anchor", scalars.slice(start, end).join(""));
-        mark.dataset.emphasis = h.emphasis ?? "normal";
-        out.append(mark);
+        const word = scalars.slice(start, end).join("");
+        if (!piece.calls) {
+          // 追っかけの掛かる範囲: 色を敷くだけ (コールは範囲の後ろの塊に居る)。
+          const mark = el("mark", "lyrics__anchor", word);
+          mark.dataset.emphasis = piece.emphasis ?? "normal";
+          out.append(mark);
+        } else {
+          const slot = el("span", word ? "lyrics__slot" : "lyrics__slot lyrics__slot--point");
+          if (word) {
+            const mark = el("mark", "lyrics__anchor", word);
+            mark.dataset.emphasis = piece.emphasis ?? "normal";
+            slot.append(mark);
+          } else {
+            // 語の無い塊 (追っかけ・行末)。語の行ぶんの空きを先頭に置いて、コールが語の行の下に来るようにする。
+            slot.append(el("span", "lyrics__anchor lyrics__anchor--empty"));
+          }
+          const under = el("span", "lyrics__under");
+          for (const c of piece.calls) under.append(callNode(c));
+          slot.append(under);
+          out.append(slot);
+        }
         cursor = end;
       }
       if (cursor < scalars.length) out.append(scalars.slice(cursor).join(""));
       return out;
-    };
-
-    /** 行の直下に並ぶコール群。印 (↳ / ①②③ / ») と札 (同時 / 行末 / ズレ) はアプリと同じ規則。 */
-    const callRows = (calls: LyricCall[]): HTMLElement => {
-      const rows = el("span", "lyrics__calls");
-      const indexes = anchorIndexes(calls);
-      const mixed = calls.some(hasAnchor) && calls.some((c) => !hasAnchor(c));
-      for (const c of calls) {
-        const row = el("span", `lyrics__call lyrics__call--${c.emphasis ?? "normal"}`);
-        let marker = vocabulary?.markerEnd ?? "";
-        if (hasAnchor(c)) {
-          const index = indexes?.get(c.id);
-          marker =
-            index === undefined
-              ? (vocabulary?.markerSingle ?? "")
-              : (vocabulary?.anchorMarkers[index] ?? `(${index + 1})`);
-        }
-        row.append(el("span", "lyrics__marker", marker), el("span", "lyrics__call-text", c.text));
-        if (vocabulary) {
-          if (c.timing === "over" && hasAnchor(c)) {
-            row.append(el("span", "lyrics__tag lyrics__tag--over", vocabulary.timingOverLabel));
-          } else if (mixed && !hasAnchor(c)) {
-            row.append(el("span", "lyrics__tag lyrics__tag--end", vocabulary.endLabel));
-          }
-          if (c.stale && hasAnchor(c)) {
-            row.append(el("span", "lyrics__tag lyrics__tag--stale", vocabulary.staleLabel));
-          }
-        }
-        rows.append(row);
-      }
-      return rows;
     };
 
     /** 凡例。その曲で実際に使われているものだけ (曲ごとに中身が変わる、実物のコール表と同じ)。 */
@@ -193,13 +218,13 @@ const { lyrics } = Astro.props;
         (e) => e.kind !== "normal" && calls.some((c) => c.emphasis === e.kind),
       );
       const usedClaps = vocabulary.claps.filter((k) => lines.some((l) => l.clap === k.kind));
-      const usesOver = calls.some((c) => c.timing === "over" && hasAnchor(c));
-      if (usedEmphases.length === 0 && usedClaps.length === 0 && !usesOver) return null;
+      const usesOver = calls.some(isOver);
+      const usesAfter = calls.some((c) => hasAnchor(c) && !isOver(c));
+      if (usedEmphases.length === 0 && usedClaps.length === 0 && !usesOver && !usesAfter) return null;
       const box = el("p", "lyrics__legend");
       for (const e of usedEmphases) {
         const item = el("span", "lyrics__legend-item");
-        const dot = el("span", `lyrics__dot lyrics__dot--${e.kind}`);
-        item.append(dot, e.label);
+        item.append(el("span", `lyrics__dot lyrics__dot--${e.kind}`), e.label);
         box.append(item);
       }
       for (const k of usedClaps) {
@@ -207,11 +232,8 @@ const { lyrics } = Astro.props;
         item.append(el("span", "lyrics__legend-symbol", k.symbol), k.label);
         box.append(item);
       }
-      if (usesOver) {
-        const item = el("span", "lyrics__legend-item");
-        item.append(el("span", "lyrics__legend-symbol", vocabulary.timingOverLabel), vocabulary.legendOverLabel);
-        box.append(item);
-      }
+      if (usesOver) box.append(el("span", "lyrics__legend-item", vocabulary.placementOverLabel));
+      if (usesAfter) box.append(el("span", "lyrics__legend-item", vocabulary.placementAfterLabel));
       return box;
     };
 
@@ -233,8 +255,7 @@ const { lyrics } = Astro.props;
           p.append(glyph);
         }
         const content = el("span", "lyrics__content");
-        content.append(kind === "lyric" ? textWithAnchors(line.text, calls) : el("span", "lyrics__text", line.text));
-        if (calls.length > 0) content.append(callRows(calls));
+        content.append(textWithCalls(line.text, calls));
         p.append(content);
         nodes.push(p);
       }

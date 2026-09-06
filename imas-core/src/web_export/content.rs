@@ -84,17 +84,11 @@ pub const CALL_GUIDE_EMPHASES: [(&str, &str); 3] = [
     ("optional", "おこのみで"),
     ("performer_request", "演者要望"),
 ];
-/// 行内の 1 箇所に掛かるコールの印 / 掛かる範囲が無い (行末) コールの印。
-pub const CALL_MARKER_SINGLE: &str = "↳";
-pub const CALL_MARKER_END: &str = "»";
-/// 同じ行に複数のアンカーがあるときの対応付け。超えたら受け手が素の数字に落とす。
-pub const CALL_ANCHOR_MARKERS: [&str; 10] = ["①", "②", "③", "④", "⑤", "⑥", "⑦", "⑧", "⑨", "⑩"];
-/// 歌に被せるコールの札 / 範囲付きと混ざった行での行末コールの札 / ズレたコールの印。
-pub const CALL_TIMING_OVER_LABEL: &str = "同時";
-pub const CALL_END_LABEL: &str = "行末";
+/// 歌詞が直されてアンカーがズレたコールの印。
 pub const CALL_STALE_LABEL: &str = "ズレ";
-/// 凡例で「同時」に添える説明。
-pub const CALL_LEGEND_OVER_LABEL: &str = "歌に被せる";
+/// 凡例。出面はコールを位置で示す: 同時 (歌に被せる) は語の真下、追っかけは語の後ろ。
+pub const CALL_PLACEMENT_OVER_LABEL: &str = "語の真下 = 同時に叫ぶ";
+pub const CALL_PLACEMENT_AFTER_LABEL: &str = "語の後ろ = 追っかけ";
 
 /// 出面に配るコールガイドの語彙 (上の定数を 1 つに束ねる)。
 pub fn call_guide_vocabulary() -> CallGuideVocabulary {
@@ -111,13 +105,9 @@ pub fn call_guide_vocabulary() -> CallGuideVocabulary {
             .iter()
             .map(|(kind, label)| CallGuideEmphasis { kind: kind.to_string(), label: label.to_string() })
             .collect(),
-        marker_single: CALL_MARKER_SINGLE.to_string(),
-        marker_end: CALL_MARKER_END.to_string(),
-        anchor_markers: CALL_ANCHOR_MARKERS.iter().map(|m| m.to_string()).collect(),
-        timing_over_label: CALL_TIMING_OVER_LABEL.to_string(),
-        end_label: CALL_END_LABEL.to_string(),
         stale_label: CALL_STALE_LABEL.to_string(),
-        legend_over_label: CALL_LEGEND_OVER_LABEL.to_string(),
+        placement_over_label: CALL_PLACEMENT_OVER_LABEL.to_string(),
+        placement_after_label: CALL_PLACEMENT_AFTER_LABEL.to_string(),
     }
 }
 
