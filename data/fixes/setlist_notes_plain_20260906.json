@@ -1,0 +1,4564 @@
+{
+ "title": "セトリ注記の表記ゆれ整理 (括弧包みを外し ＠ を @ に)",
+ "author": "claude",
+ "source": "アプリは notes をそのまま出す (SetlistRowView / SetlistScreen)。同じ注記が「M@STER VERSION」(356 件) と「（M＠STER VERSION）」(138 件) 等に割れていたので、多数派の素の形に揃える。",
+ "fixes": [
+  {
+   "table": "setlist_items",
+   "id": "sh_L0266_2274",
+   "fields": {
+    "notes": "フルver"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0266_2276",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0267_2281",
+   "fields": {
+    "notes": "GAME Ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0267_2283",
+   "fields": {
+    "notes": "GAME Ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0267_2284",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0270_2292",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0275_2318",
+   "fields": {
+    "notes": "SHORT ver"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0276_2319",
+   "fields": {
+    "notes": "アカペラ・SHORT Ver サビのみ？"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0276_2320",
+   "fields": {
+    "notes": "アカペラ・SHORT Ver サビのみ？"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0283_2360",
+   "fields": {
+    "notes": "サイキック猫Ver."
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0283_2362",
+   "fields": {
+    "notes": "スペシャルメドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0283_2363",
+   "fields": {
+    "notes": "GAME Ver・スペシャルメドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0283_2364",
+   "fields": {
+    "notes": "GAME Ver・スペシャルメドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0283_2365",
+   "fields": {
+    "notes": "GAME Ver・スペシャルメドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0283_2366",
+   "fields": {
+    "notes": "GAME Ver・スペシャルメドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0283_2367",
+   "fields": {
+    "notes": "スペシャルメドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0283_2369",
+   "fields": {
+    "notes": "GAME Ver・スペシャルメドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0283_2370",
+   "fields": {
+    "notes": "GAME Ver・スペシャルメドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0283_2372",
+   "fields": {
+    "notes": "スペシャルメドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0284_2401",
+   "fields": {
+    "notes": "スペシャルメドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0284_2402",
+   "fields": {
+    "notes": "GAME Ver・スペシャルメドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0284_2403",
+   "fields": {
+    "notes": "GAME Ver・スペシャルメドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0284_2404",
+   "fields": {
+    "notes": "GAME Ver・スペシャルメドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0284_2405",
+   "fields": {
+    "notes": "GAME Ver・スペシャルメドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0284_2406",
+   "fields": {
+    "notes": "スペシャルメドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0284_2407",
+   "fields": {
+    "notes": "GAME Ver・スペシャルメドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0284_2408",
+   "fields": {
+    "notes": "GAME Ver・スペシャルメドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0284_2409",
+   "fields": {
+    "notes": "GAME Ver・スペシャルメドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0284_2411",
+   "fields": {
+    "notes": "スペシャルメドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0289_2463",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0312_2761",
+   "fields": {
+    "notes": "アカペラでBメロ最後の１フレーズ〜1番サビ"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0314_2770",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0320_2816",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0322_2824",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0322_2825",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0322_2826",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0327_2864",
+   "fields": {
+    "notes": "GAMEver"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0328_2892",
+   "fields": {
+    "notes": "GAMEver"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0328_2905",
+   "fields": {
+    "notes": "フルver"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0330_2943",
+   "fields": {
+    "notes": "フル"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0331_2972",
+   "fields": {
+    "notes": "早口言葉判定タイム付き"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0340_3027",
+   "fields": {
+    "notes": "一部分をアカベラで"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0351_3084",
+   "fields": {
+    "notes": "ライブ特別 Ver"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0351_3087",
+   "fields": {
+    "notes": "SHORT ver"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0351_3088",
+   "fields": {
+    "notes": "SHORT ver"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0351_3089",
+   "fields": {
+    "notes": "SHORT ver"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0351_3090",
+   "fields": {
+    "notes": "SHORT ver"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0351_3091",
+   "fields": {
+    "notes": "SHORT ver"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0351_3092",
+   "fields": {
+    "notes": "SHORT ver"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0351_3093",
+   "fields": {
+    "notes": "SHORT ver"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0352_3115",
+   "fields": {
+    "notes": "SHORT ver"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0352_3116",
+   "fields": {
+    "notes": "SHORT ver"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0352_3117",
+   "fields": {
+    "notes": "SHORT ver"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0352_3118",
+   "fields": {
+    "notes": "SHORT ver"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0352_3119",
+   "fields": {
+    "notes": "SHORT ver"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0352_3120",
+   "fields": {
+    "notes": "SHORT ver"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0356_3153",
+   "fields": {
+    "notes": "わっしょいVer"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0357_3160",
+   "fields": {
+    "notes": "わっしょいVer"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0365_3256",
+   "fields": {
+    "notes": "SHORT ver"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0365_3259",
+   "fields": {
+    "notes": "SHORT ver"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0366_3269",
+   "fields": {
+    "notes": "SHORT ver"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0366_3270",
+   "fields": {
+    "notes": "SHORT ver"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0366_3271",
+   "fields": {
+    "notes": "SHORT ver"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0366_3272",
+   "fields": {
+    "notes": "SHORT ver"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0367_3278",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0367_3280",
+   "fields": {
+    "notes": "Short ver・MILLION Medley"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0367_3281",
+   "fields": {
+    "notes": "GAME ver・MILLION Medley"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0367_3282",
+   "fields": {
+    "notes": "GAME ver・MILLION Medley"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0367_3283",
+   "fields": {
+    "notes": "Short ver・MILLION Medley"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0367_3284",
+   "fields": {
+    "notes": "Short ver・MILLION Medley"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0367_3285",
+   "fields": {
+    "notes": "Short ver・MILLION Medley"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0367_3286",
+   "fields": {
+    "notes": "Short ver・MILLION Medley"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0367_3287",
+   "fields": {
+    "notes": "GAME ver・MILLION Medley"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0367_3289",
+   "fields": {
+    "notes": "Short ver・765 Medley"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0367_3290",
+   "fields": {
+    "notes": "Short ver・765 Medley"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0367_3292",
+   "fields": {
+    "notes": "GAME ver・765 Medley"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0367_3293",
+   "fields": {
+    "notes": "Short ver・765 Medley"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0367_3294",
+   "fields": {
+    "notes": "GAME ver・765 Medley"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0367_3305",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0367_3306",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0368_3307",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0368_3309",
+   "fields": {
+    "notes": "Short ver・MILLION Medley"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0368_3310",
+   "fields": {
+    "notes": "GAME ver・MILLION Medley"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0368_3311",
+   "fields": {
+    "notes": "GAME ver・MILLION Medley"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0368_3312",
+   "fields": {
+    "notes": "Short ver・MILLION Medley"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0368_3313",
+   "fields": {
+    "notes": "Short ver・MILLION Medley"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0368_3314",
+   "fields": {
+    "notes": "Short ver・MILLION Medley"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0368_3315",
+   "fields": {
+    "notes": "Short ver・MILLION Medley"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0368_3316",
+   "fields": {
+    "notes": "GAME ver・MILLION Medley"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0368_3318",
+   "fields": {
+    "notes": "Short ver・765 Medley"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0368_3319",
+   "fields": {
+    "notes": "Short ver・765 Medley"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0368_3321",
+   "fields": {
+    "notes": "GAME ver・765 Medley"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0368_3322",
+   "fields": {
+    "notes": "Short ver・765 Medley"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0368_3323",
+   "fields": {
+    "notes": "GAME ver・765 Medley"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0368_3324",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0368_3334",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0368_3335",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0371_3349",
+   "fields": {
+    "notes": "SHORT ver"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0371_3350",
+   "fields": {
+    "notes": "SHORT ver"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0372_3360",
+   "fields": {
+    "notes": "ライブ特別 Ver"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0372_3362",
+   "fields": {
+    "notes": "SHORT ver"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0372_3363",
+   "fields": {
+    "notes": "SHORT ver"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0380_3530",
+   "fields": {
+    "notes": "SHORT ver"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0380_3531",
+   "fields": {
+    "notes": "SHORT ver"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0381_3542",
+   "fields": {
+    "notes": "SHORT ver"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0381_3543",
+   "fields": {
+    "notes": "SHORT ver"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0381_3544",
+   "fields": {
+    "notes": "SHORT ver"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0381_3545",
+   "fields": {
+    "notes": "SHORT ver"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0381_3546",
+   "fields": {
+    "notes": "SHORT ver"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0389_3726",
+   "fields": {
+    "notes": "頭サビのみ／Serendipity Medley!!!"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0389_3727",
+   "fields": {
+    "notes": "Medley ver／Serendipity Medley!!!"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0389_3728",
+   "fields": {
+    "notes": "Medley ver／Serendipity Medley!!!"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0389_3729",
+   "fields": {
+    "notes": "Medley ver／Serendipity Medley!!!"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0389_3730",
+   "fields": {
+    "notes": "Medley ver／Serendipity Medley!!!"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0389_3731",
+   "fields": {
+    "notes": "Medley ver／Serendipity Medley!!!"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0389_3732",
+   "fields": {
+    "notes": "Medley ver／Serendipity Medley!!!"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0389_3733",
+   "fields": {
+    "notes": "Medley ver／Serendipity Medley!!!"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0389_3734",
+   "fields": {
+    "notes": "Medley ver／Serendipity Medley!!!"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0389_3735",
+   "fields": {
+    "notes": "Medley ver／Serendipity Medley!!!"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0389_3736",
+   "fields": {
+    "notes": "Medley ver／Serendipity Medley!!!"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0389_3737",
+   "fields": {
+    "notes": "Medley ver／Serendipity Medley!!!"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0389_3738",
+   "fields": {
+    "notes": "Medley ver／Serendipity Medley!!!"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0389_3739",
+   "fields": {
+    "notes": "Medley ver／Serendipity Medley!!!"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0389_3740",
+   "fields": {
+    "notes": "Medley ver／Serendipity Medley!!!"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0389_3742",
+   "fields": {
+    "notes": "Medley ver／Serendipity Medley!!!"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0389_3743",
+   "fields": {
+    "notes": "Medley ver／Serendipity Medley!!!"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0389_3744",
+   "fields": {
+    "notes": "Medley ver／Serendipity Medley!!!"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0389_3745",
+   "fields": {
+    "notes": "終わりサビのみ／Serendipity Medley!!!"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0390_3779",
+   "fields": {
+    "notes": "頭サビのみ／Serendipity Medley!!!"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0390_3780",
+   "fields": {
+    "notes": "Medley ver／Serendipity Medley!!!"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0390_3781",
+   "fields": {
+    "notes": "Medley ver／Serendipity Medley!!!"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0390_3782",
+   "fields": {
+    "notes": "Medley ver／Serendipity Medley!!!"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0390_3784",
+   "fields": {
+    "notes": "Medley ver／Serendipity Medley!!!"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0390_3785",
+   "fields": {
+    "notes": "Medley ver／Serendipity Medley!!!"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0390_3786",
+   "fields": {
+    "notes": "Medley ver／Serendipity Medley!!!"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0390_3787",
+   "fields": {
+    "notes": "Medley ver／Serendipity Medley!!!"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0390_3788",
+   "fields": {
+    "notes": "Medley ver／Serendipity Medley!!!"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0390_3789",
+   "fields": {
+    "notes": "Medley ver／Serendipity Medley!!!"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0390_3790",
+   "fields": {
+    "notes": "Medley ver／Serendipity Medley!!!"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0390_3791",
+   "fields": {
+    "notes": "Medley ver／Serendipity Medley!!!"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0390_3792",
+   "fields": {
+    "notes": "Medley ver／Serendipity Medley!!!"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0390_3793",
+   "fields": {
+    "notes": "Medley ver／Serendipity Medley!!!"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0390_3794",
+   "fields": {
+    "notes": "Medley ver／Serendipity Medley!!!"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0390_3795",
+   "fields": {
+    "notes": "Medley ver／Serendipity Medley!!!"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0390_3796",
+   "fields": {
+    "notes": "Medley ver／Serendipity Medley!!!"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0390_3797",
+   "fields": {
+    "notes": "Medley ver／Serendipity Medley!!!"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0390_3798",
+   "fields": {
+    "notes": "終わりサビのみ／Serendipity Medley!!!"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0391_3811",
+   "fields": {
+    "notes": "Medley ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0391_3812",
+   "fields": {
+    "notes": "Medley ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0391_3813",
+   "fields": {
+    "notes": "Medley ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0391_3814",
+   "fields": {
+    "notes": "Medley ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0391_3815",
+   "fields": {
+    "notes": "Medley ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0391_3816",
+   "fields": {
+    "notes": "Medley ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0391_3817",
+   "fields": {
+    "notes": "Medley ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0391_3818",
+   "fields": {
+    "notes": "Medley ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0392_3821",
+   "fields": {
+    "notes": "メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0392_3822",
+   "fields": {
+    "notes": "メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0392_3823",
+   "fields": {
+    "notes": "メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0395_3851",
+   "fields": {
+    "notes": "GAME ver"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0395_3852",
+   "fields": {
+    "notes": "GAME ver"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0396_3857",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0396_3863",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0397_3879",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0397_3880",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0397_3885",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0397_3887",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0397_3888",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0397_3896",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0402_3925",
+   "fields": {
+    "notes": "TV＆GAME Size"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0403_3926",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0403_3927",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0403_3932",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0403_3933",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0404_3934",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0404_3938",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0405_3939",
+   "fields": {
+    "notes": "GAME ver"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0419_4076",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0419_4077",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0424_4150",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0425_4159",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0428_4170",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0431_4226",
+   "fields": {
+    "notes": "イントロでサビの振り付け指導"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0498_4523",
+   "fields": {
+    "notes": "我爱你ver"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0566_4908",
+   "fields": {
+    "notes": "ぱしふぃっくびいなす ver"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0567_4914",
+   "fields": {
+    "notes": "ぱしふぃっくびいなす ver"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0585_5028",
+   "fields": {
+    "notes": "ピコピコ体操バージョン"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0586_5056",
+   "fields": {
+    "notes": "ピコピコ体操バージョン"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0602_5226",
+   "fields": {
+    "notes": "アコースティックアレンジ"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0602_5228",
+   "fields": {
+    "notes": "※演劇パートを織り込んだミュージカルアレンジ"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0603_5254",
+   "fields": {
+    "notes": "アコースティックアレンジ"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0603_5256",
+   "fields": {
+    "notes": "※演劇パートを織り込んだミュージカルアレンジ"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0621_5411",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0622_5433",
+   "fields": {
+    "notes": "※演劇パートを織り込んだミュージカルアレンジ。一部新演出"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0622_5449",
+   "fields": {
+    "notes": "ピコピコ体操バージョン"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0685_6082",
+   "fields": {
+    "notes": "アコースティックアレンジ"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0267_2280",
+   "fields": {
+    "notes": "GAME Ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0267_2282",
+   "fields": {
+    "notes": "GAME Ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0283_2368",
+   "fields": {
+    "notes": "GAME Ver・スペシャルメドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0283_2371",
+   "fields": {
+    "notes": "GAME Ver・スペシャルメドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0284_2410",
+   "fields": {
+    "notes": "GAME Ver・スペシャルメドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0389_3741",
+   "fields": {
+    "notes": "Medley ver／Serendipity Medley!!!"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0067_0507",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0070_0574",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0070_0581",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0084_0631",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0086_0638",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0086_0646",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0086_0647",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0086_0648",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0087_0649",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0087_0657",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0087_0658",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0087_0659",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0097_0705",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0098_0706",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0098_0707",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0098_0718",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0098_0741",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0098_0749",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0099_0750",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0099_0751",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0099_0762",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0099_0785",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0099_0793",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0112_0831",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0120_0871",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0120_0872",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0120_0878",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0120_0879",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0120_0884",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0120_0885",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0120_0886",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0120_0893",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0120_0894",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0120_0895",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0122_0902",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0122_0903",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0122_0909",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0122_0910",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0122_0915",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0122_0916",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0122_0917",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0122_0918",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0122_0924",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0122_0925",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0122_0926",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0126_0932",
+   "fields": {
+    "notes": "SHORT ver"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0134_0974",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0134_0978",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0135_0980",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0135_0991",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0135_0998",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0135_0999",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0138_1016",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0138_1021",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0138_1032",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0138_1033",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0139_1038",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0139_1039",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0139_1043",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0139_1054",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0139_1055",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0140_1061",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0141_1063",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0141_1066",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0141_1077",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0141_1084",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0141_1085",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0142_1086",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0142_1087",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0144_1094",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0151_1114",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0152_1117",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0155_1131",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0155_1140",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0155_1141",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0155_1142",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0155_1151",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0155_1152",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0156_1153",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0156_1162",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0156_1174",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0156_1175",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0156_1181",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0156_1182",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0157_1183",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0157_1192",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0157_1204",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0157_1205",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0157_1211",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0157_1212",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0158_1213",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0159_1215",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0159_1218",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0164_1243",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0171_1286",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0173_1292",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0176_1306",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0176_1307",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0176_1308",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0176_1309",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0176_1312",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0176_1314",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0176_1319",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0176_1326",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0176_1327",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0176_1328",
+   "fields": {
+    "notes": "GAME Ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0176_1329",
+   "fields": {
+    "notes": "GAME Ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0176_1330",
+   "fields": {
+    "notes": "GAME Ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0176_1331",
+   "fields": {
+    "notes": "GAME Ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0176_1332",
+   "fields": {
+    "notes": "SHORT Ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0176_1333",
+   "fields": {
+    "notes": "GAME Ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0176_1334",
+   "fields": {
+    "notes": "GAME Ver+”いっせーの”つき・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0176_1335",
+   "fields": {
+    "notes": "GAME Ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0176_1336",
+   "fields": {
+    "notes": "GAMEver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0176_1337",
+   "fields": {
+    "notes": "GAME Ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0176_1338",
+   "fields": {
+    "notes": "GAMEver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0176_1339",
+   "fields": {
+    "notes": "GAME Ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0176_1340",
+   "fields": {
+    "notes": "SHORT Ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0176_1341",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0176_1347",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0177_1360",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0177_1361",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0177_1362",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0177_1363",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0177_1366",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0177_1368",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0177_1373",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0177_1380",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0177_1381",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0177_1382",
+   "fields": {
+    "notes": "GAME Ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0177_1383",
+   "fields": {
+    "notes": "GAME Ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0177_1384",
+   "fields": {
+    "notes": "GAME Ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0177_1385",
+   "fields": {
+    "notes": "GAME Ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0177_1386",
+   "fields": {
+    "notes": "1番のみ・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0177_1387",
+   "fields": {
+    "notes": "GAME Ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0177_1388",
+   "fields": {
+    "notes": "M@STER VERSION・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0177_1389",
+   "fields": {
+    "notes": "GAME Ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0177_1390",
+   "fields": {
+    "notes": "GAMEver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0177_1391",
+   "fields": {
+    "notes": "GAME Ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0177_1392",
+   "fields": {
+    "notes": "GAMEver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0177_1393",
+   "fields": {
+    "notes": "GAME Ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0177_1394",
+   "fields": {
+    "notes": "SHORT Ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0177_1396",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0177_1401",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0179_1416",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0183_1430",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0183_1451",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0184_1452",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0184_1473",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0185_1474",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0185_1495",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0189_1515",
+   "fields": {
+    "notes": "演奏。2番部分省略版"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0190_1520",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0191_1521",
+   "fields": {
+    "notes": "徳島スーパースペシャルハピ☆ハピver."
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0194_1539",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0195_1564",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0196_1593",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0198_1604",
+   "fields": {
+    "notes": "Passion VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0201_1609",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0202_1616",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0203_1634",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0204_1665",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0205_1683",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0205_1684",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0205_1700",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0206_1716",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0206_1732",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0209_1757",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0209_1758",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0213_1773",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0214_1779",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0215_1780",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0215_1793",
+   "fields": {
+    "notes": "フル"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0215_1804",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0215_1808",
+   "fields": {
+    "notes": "フル"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0216_1816",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0216_1819",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0216_1821",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0216_1840",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0216_1846",
+   "fields": {
+    "notes": "フル"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0217_1853",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0219_1855",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0219_1856",
+   "fields": {
+    "notes": "1番のみ"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0223_1872",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0223_1893",
+   "fields": {
+    "notes": "イントロで振り付け指導つき"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0223_1903",
+   "fields": {
+    "notes": "フルver"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0223_1906",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0225_1910",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0225_1911",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0225_1912",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0230_1947",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0231_1959",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0232_1966",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0233_1967",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0236_1979",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0240_2002",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0244_2067",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0247_2080",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0252_2105",
+   "fields": {
+    "notes": "キラキラVer."
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0253_2108",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0254_2112",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0255_2113",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0255_2118",
+   "fields": {
+    "notes": "間奏でイカタココールつき"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0256_2120",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0256_2123",
+   "fields": {
+    "notes": "イントロで振り付け指導つき"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0256_2125",
+   "fields": {
+    "notes": "間奏でイカタココールつき"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0259_2139",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0259_2141",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0259_2142",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0259_2150",
+   "fields": {
+    "notes": "GAME Ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0259_2151",
+   "fields": {
+    "notes": "GAME Ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0259_2152",
+   "fields": {
+    "notes": "GAME Ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0259_2153",
+   "fields": {
+    "notes": "GAME Ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0259_2154",
+   "fields": {
+    "notes": "GAME Ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0259_2155",
+   "fields": {
+    "notes": "GAME Ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0259_2156",
+   "fields": {
+    "notes": "GAME Ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0259_2158",
+   "fields": {
+    "notes": "GAME Ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0259_2159",
+   "fields": {
+    "notes": "SHORT ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0259_2160",
+   "fields": {
+    "notes": "GAME Ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0259_2161",
+   "fields": {
+    "notes": "GAME Ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0259_2162",
+   "fields": {
+    "notes": "GAME Ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0259_2163",
+   "fields": {
+    "notes": "GAME Ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0259_2164",
+   "fields": {
+    "notes": "GAME Ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0259_2165",
+   "fields": {
+    "notes": "M@STER VERSION・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0259_2182",
+   "fields": {
+    "notes": "フルver"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0260_2187",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0260_2188",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0260_2193",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0260_2205",
+   "fields": {
+    "notes": "GAME Ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0260_2206",
+   "fields": {
+    "notes": "SHORT ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0260_2207",
+   "fields": {
+    "notes": "SHORT ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0260_2208",
+   "fields": {
+    "notes": "SHORT ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0260_2209",
+   "fields": {
+    "notes": "GAME Ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0260_2210",
+   "fields": {
+    "notes": "SHORT ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0260_2211",
+   "fields": {
+    "notes": "SHORT ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0260_2212",
+   "fields": {
+    "notes": "SHORT ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0260_2214",
+   "fields": {
+    "notes": "GAME Ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0260_2215",
+   "fields": {
+    "notes": "SHORT ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0260_2216",
+   "fields": {
+    "notes": "SHORT ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0260_2217",
+   "fields": {
+    "notes": "SHORT ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0260_2218",
+   "fields": {
+    "notes": "GAME Ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0260_2219",
+   "fields": {
+    "notes": "SHORT ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0260_2220",
+   "fields": {
+    "notes": "SHORT ver＋すきあり・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0260_2221",
+   "fields": {
+    "notes": "SHORT ver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0260_2222",
+   "fields": {
+    "notes": "フルver・メドレー"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0260_2223",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0261_2241",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0262_2247",
+   "fields": {
+    "notes": "フルver"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0262_2253",
+   "fields": {
+    "notes": "フルver"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0262_2255",
+   "fields": {
+    "notes": "M@STER VERSION"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0023_0123",
+   "fields": {
+    "notes": "REM@STER-A"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0023_0124",
+   "fields": {
+    "notes": "REM@STER-B"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0023_0126",
+   "fields": {
+    "notes": "REM@STER-B"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0023_0127",
+   "fields": {
+    "notes": "REM@STER-A"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0023_0133",
+   "fields": {
+    "notes": "REM@STER-A"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_L0023_0134",
+   "fields": {
+    "notes": "REM@STER-A"
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_1_0001",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_1_0002",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_1_0003",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_1_0004",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_1_0005",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_1_0006",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_1_0007",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_1_0008",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_1_0009",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_1_0010",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_1_0011",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_1_0012",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_1_0013",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_1_0014",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_1_0015",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_1_0016",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_1_0017",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_2_0001",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_2_0002",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_2_0003",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_2_0004",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_2_0005",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_2_0006",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_2_0007",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_2_0008",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_2_0009",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_2_0010",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_2_0011",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_2_0012",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_2_0013",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_2_0014",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_2_0015",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_2_0016",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_3_0001",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_3_0002",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_3_0003",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_3_0004",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_3_0005",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_3_0006",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_3_0007",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_3_0008",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_3_0009",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_3_0010",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_3_0011",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_3_0012",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_3_0013",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_3_0014",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_3_0015",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_3_0016",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_3_0017",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_4_0001",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_4_0002",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_4_0003",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_4_0004",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_4_0005",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_4_0006",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_4_0007",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_4_0008",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_4_0009",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_4_0010",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_4_0011",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_4_0012",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_4_0013",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_4_0014",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_4_0015",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_765pro_allstars_dual_twin_live_tour_ふたごぼしのつばさ_つみまつよるまち_4_0016",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_animethon_2026_musicfes_アイドルマスター_シャイニーカラーズ出演_1_0001",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_animethon_2026_musicfes_アイドルマスター_シャイニーカラーズ出演_1_0002",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_animethon_2026_musicfes_アイドルマスター_シャイニーカラーズ出演_1_0003",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_animethon_2026_musicfes_アイドルマスター_シャイニーカラーズ出演_1_0004",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_animethon_2026_musicfes_アイドルマスター_シャイニーカラーズ出演_1_0005",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_animethon_2026_musicfes_アイドルマスター_シャイニーカラーズ出演_1_0006",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_1_0002",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_1_0004",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_1_0006",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_1_0007",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_1_0012",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_1_0016",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_1_0017",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_1_0018",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_1_0019",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_1_0021",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_2_0004",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_2_0005",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_2_0006",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_2_0007",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_2_0008",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_2_0012",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_2_0014",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_2_0016",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_2_0019",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_2_0020",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_2_0021",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_2_0022",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_2_0023",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_3_0004",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_3_0005",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_3_0006",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_3_0007",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_3_0008",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_3_0009",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_3_0010",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_3_0011",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_3_0012",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_3_0013",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_3_0016",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_3_0018",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_3_0019",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_3_0020",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_3_0021",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_4_0002",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_4_0004",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_4_0006",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_4_0007",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_4_0012",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_4_0016",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_4_0017",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_4_0018",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_4_0019",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_4_0021",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_5_0004",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_5_0005",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_5_0006",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_5_0007",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_5_0008",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_5_0012",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_5_0014",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_5_0016",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_5_0019",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_5_0020",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_5_0021",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_5_0022",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_5_0023",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_6_0004",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_6_0005",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_6_0006",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_6_0007",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_6_0008",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_6_0009",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_6_0010",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_6_0011",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_6_0012",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_6_0013",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_6_0016",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_6_0018",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_6_0019",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_6_0020",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_cinderella_girls_concept_xr_live_pop_n_toybox_6_0021",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_miki_hoshii_solo_showcase_the_future_spotlight_anime_central_2026_1_0001",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_miki_hoshii_solo_showcase_the_future_spotlight_anime_central_2026_1_0002",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_miki_hoshii_solo_showcase_the_future_spotlight_anime_central_2026_1_0003",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_miki_hoshii_solo_showcase_the_future_spotlight_anime_central_2026_1_0004",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_miki_hoshii_solo_showcase_the_future_spotlight_anime_central_2026_1_0005",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_miki_hoshii_solo_showcase_the_future_spotlight_anime_central_2026_1_0006",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_miki_hoshii_solo_showcase_the_future_spotlight_anime_central_2026_1_0007",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_miki_hoshii_solo_showcase_the_future_spotlight_anime_central_2026_1_0008",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_miki_hoshii_solo_showcase_the_future_spotlight_in_korea_1_0001",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_miki_hoshii_solo_showcase_the_future_spotlight_in_korea_1_0002",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_miki_hoshii_solo_showcase_the_future_spotlight_in_korea_1_0003",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_miki_hoshii_solo_showcase_the_future_spotlight_in_korea_1_0004",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_miki_hoshii_solo_showcase_the_future_spotlight_in_korea_1_0005",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_miki_hoshii_solo_showcase_the_future_spotlight_in_korea_1_0006",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_miki_hoshii_solo_showcase_the_future_spotlight_in_korea_1_0007",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_miki_hoshii_solo_showcase_the_future_spotlight_in_korea_1_0008",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_学園アイドルマスター_live_tour_-標-_福井公演_1_0001",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_学園アイドルマスター_live_tour_-標-_福井公演_1_0002",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_学園アイドルマスター_live_tour_-標-_福井公演_1_0003",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_学園アイドルマスター_live_tour_-標-_福井公演_1_0004",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_学園アイドルマスター_live_tour_-標-_福井公演_1_0005",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_学園アイドルマスター_live_tour_-標-_福井公演_1_0006",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_学園アイドルマスター_live_tour_-標-_福井公演_1_0007",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_学園アイドルマスター_live_tour_-標-_福井公演_1_0008",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_学園アイドルマスター_live_tour_-標-_福井公演_1_0010",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_学園アイドルマスター_live_tour_-標-_福井公演_1_0011",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_学園アイドルマスター_live_tour_-標-_福井公演_1_0012",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_学園アイドルマスター_live_tour_-標-_福井公演_1_0013",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_学園アイドルマスター_live_tour_-標-_福井公演_1_0015",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_学園アイドルマスター_live_tour_-標-_福井公演_1_0016",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_学園アイドルマスター_live_tour_-標-_福井公演_1_0017",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_学園アイドルマスター_live_tour_-標-_福井公演_2_0001",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_学園アイドルマスター_live_tour_-標-_福井公演_2_0002",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_学園アイドルマスター_live_tour_-標-_福井公演_2_0003",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_学園アイドルマスター_live_tour_-標-_福井公演_2_0004",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_学園アイドルマスター_live_tour_-標-_福井公演_2_0005",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_学園アイドルマスター_live_tour_-標-_福井公演_2_0006",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_学園アイドルマスター_live_tour_-標-_福井公演_2_0007",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_学園アイドルマスター_live_tour_-標-_福井公演_2_0008",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_学園アイドルマスター_live_tour_-標-_福井公演_2_0010",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_学園アイドルマスター_live_tour_-標-_福井公演_2_0011",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_学園アイドルマスター_live_tour_-標-_福井公演_2_0013",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_学園アイドルマスター_live_tour_-標-_福井公演_2_0014",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_学園アイドルマスター_live_tour_-標-_福井公演_2_0015",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_学園アイドルマスター_live_tour_-標-_福井公演_2_0016",
+   "fields": {
+    "notes": null
+   }
+  },
+  {
+   "table": "setlist_items",
+   "id": "sh_学園アイドルマスター_live_tour_-標-_福井公演_2_0017",
+   "fields": {
+    "notes": null
+   }
+  }
+ ]
+}

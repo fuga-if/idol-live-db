@@ -1,0 +1,96 @@
+{
+ "title": "配信欄が会場欄と同文だった公演 10 件の整理",
+ "author": "claude",
+ "fixes": [
+  {
+   "table": "shows",
+   "id": "sh_L0002",
+   "fields": {
+    "venue": "都内某所",
+    "stream_platform": "itv24.com（インターネットTV局・生放送）"
+   },
+   "note": "venue と stream_platform に同じ文字列が入っていた (会場欄と配信欄が同文で二重表示)。配信の実体を配信欄に、物理会場は都内某所か無しに分ける。"
+  },
+  {
+   "table": "shows",
+   "id": "sh_L0004",
+   "fields": {
+    "venue": "都内某所",
+    "stream_platform": "itv24.com（インターネットTV局・生放送）"
+   },
+   "note": "venue と stream_platform に同じ文字列が入っていた (会場欄と配信欄が同文で二重表示)。配信の実体を配信欄に、物理会場は都内某所か無しに分ける。"
+  },
+  {
+   "table": "shows",
+   "id": "sh_L0011B",
+   "fields": {
+    "venue": null,
+    "stream_platform": "InterFM（生放送）"
+   },
+   "note": "venue と stream_platform に同じ文字列が入っていた (会場欄と配信欄が同文で二重表示)。配信の実体を配信欄に、物理会場は都内某所か無しに分ける。"
+  },
+  {
+   "table": "shows",
+   "id": "sh_L0652",
+   "fields": {
+    "venue": null,
+    "stream_platform": "配信生放送"
+   },
+   "note": "venue と stream_platform に同じ文字列が入っていた (会場欄と配信欄が同文で二重表示)。配信の実体を配信欄に、物理会場は都内某所か無しに分ける。"
+  },
+  {
+   "table": "shows",
+   "id": "sh_L0653",
+   "fields": {
+    "venue": null,
+    "stream_platform": "配信生放送"
+   },
+   "note": "venue と stream_platform に同じ文字列が入っていた (会場欄と配信欄が同文で二重表示)。配信の実体を配信欄に、物理会場は都内某所か無しに分ける。"
+  },
+  {
+   "table": "shows",
+   "id": "sh_L0654",
+   "fields": {
+    "venue": null,
+    "stream_platform": "SHOWROOM（配信番組）"
+   },
+   "note": "venue と stream_platform に同じ文字列が入っていた (会場欄と配信欄が同文で二重表示)。配信の実体を配信欄に、物理会場は都内某所か無しに分ける。"
+  },
+  {
+   "table": "shows",
+   "id": "sh_L0655",
+   "fields": {
+    "venue": null,
+    "stream_platform": "生配信番組"
+   },
+   "note": "venue と stream_platform に同じ文字列が入っていた (会場欄と配信欄が同文で二重表示)。配信の実体を配信欄に、物理会場は都内某所か無しに分ける。"
+  },
+  {
+   "table": "shows",
+   "id": "sh_L0656",
+   "fields": {
+    "venue": null,
+    "stream_platform": "生配信番組"
+   },
+   "note": "venue と stream_platform に同じ文字列が入っていた (会場欄と配信欄が同文で二重表示)。配信の実体を配信欄に、物理会場は都内某所か無しに分ける。"
+  },
+  {
+   "table": "shows",
+   "id": "sh_L0657",
+   "fields": {
+    "venue": null,
+    "stream_platform": "生配信番組"
+   },
+   "note": "venue と stream_platform に同じ文字列が入っていた (会場欄と配信欄が同文で二重表示)。配信の実体を配信欄に、物理会場は都内某所か無しに分ける。"
+  },
+  {
+   "table": "shows",
+   "id": "sh_L0658",
+   "fields": {
+    "venue": null,
+    "stream_platform": "生配信番組"
+   },
+   "note": "venue と stream_platform に同じ文字列が入っていた (会場欄と配信欄が同文で二重表示)。配信の実体を配信欄に、物理会場は都内某所か無しに分ける。"
+  }
+ ]
+}

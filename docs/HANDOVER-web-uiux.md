@@ -30,8 +30,9 @@ Rust に足した形 (`cargo test --features web-export` で TS 型を再生成�
 
 トップの検索窓は JS 無しの GET フォームで `/search/?q=` へ飛ぶ (CSP の `form-action` を `'self'` に)。
 
-**残っているもの (UI では直せない)**: §2-2 のデータ側 2 件 (SideM 11th STAGE の重複レコード /
-`shows.performer_type` が全件 `cast`)。
+**残っているもの (UI では直せない)**: §2-2 のデータ側のうち `shows.performer_type` が全件 `cast`
+(入力漏れの疑い、判断待ち)。SideM 11th STAGE の重複は 2026-09-06 に master.sql 側で除去済み
+(CloudKit の削除はオーナー操作待ち、`tools/pending_push_20260906/README.md`)。
 
 ---
 
@@ -99,6 +100,8 @@ npx wrangler deploy # 本番へ
   `ev_2bd4cd37-...` (UUID) と `ev_the_idolmster_sidem_11th_stage_ever_everfter` (slug) の 2 レコード。
   トップの「今後のライブ」に同じ行が 2 つ並ぶ。master データの統合が要る
   (CloudKit の削除も要るので §4-2 を読むこと)。重複はこの 1 件だけ (実測)。
+  → 2026-09-06: 無日付の別綴り 2 件も含めて master.sql から除去済み。CloudKit の物理削除は
+  `tools/pending_cloudkit_deletions_sidem_11th_dup_20260906.tsv` (オーナー操作待ち)。
 - `shows.performer_type` が**全 1198 公演 `cast`**。`character` が 0 件なので、
   歌唱者表示の「公演に合わせる」モードが実質 CV 名固定になっている。入力漏れの疑い。
 
@@ -149,6 +152,8 @@ DTO を足したら `cargo test --features web-export` が `web/src/lib/schema/*
 **master.sql から消しただけでは日次 cron で復活する。** CloudKit 側も
 `tools/seed_cloudkit.py --delete-file <TSV>` で消す必要がある (手順は
 `docs/JASRAC.md` ではなく memory / 過去コミット `196ebb6` を参照)。
+同じ理由で、**列を NULL に直した修正も既定の push では戻る** (NULL 列は送られず、forceUpdate は
+送らなかった列を残す)。`seed_cloudkit.py --replace` (forceReplace、`--ids/--ids-file` 必須) で送る。
 
 ### 4-3. ランニングコストはゼロ
 

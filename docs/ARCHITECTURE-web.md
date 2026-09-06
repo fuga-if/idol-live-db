@@ -343,15 +343,25 @@ IA / ビジュアル / アクセシビリティ / 文言の 4 観点で 40 件�
   フォーカスを移し `role=status` で告げる。右クリック・selectstart は止めない (読み上げ・辞書を
   殺すだけで、まとめ取りの抑止にならない)。箱の中の行はフォーカスの輪郭を内側に描く。
 
-**データ側の宿題 (Web では直せない)** — CloudKit / master.sql の修正が要る:
-1. SideM 11th STAGE が 4 件 (UUID 版・slug 版が 9/12 に 2 つ、無日付の別綴り 2 つ)。
-   `ev_the_idolmster_sidem_11th_stage_ever_everfter` (DAY1/DAY2) を残し他を消す。future_events.json の
-   旧綴りも消す (名前→id 再生成で復活する)。
-2. 765AS の全体曲 (CHANGE!!!! / MUSIC♪ / ラムネ色 青春 / The world is all one !! と Thank You!) で
-   天海春香・秋月律子・双海真美が `performer` 扱い → オリメン札が「3/10」「オリメン不在」になる。
-   `song_artists.role='original'` に直す (公式クレジットで確認してから)。
-3. セトリの注記の綴り揺れ (`（M@STER VERSION）` / `（M＠STER VERSION）` / `M@STER VERSION`)。
-4. `sh_L0004` の配信欄に会場名が入っている。
+**データ側の宿題 (Web では直せない)** — 2026-09-06 に `db/master.sql` 側は直した。
+**CloudKit への反映 (push / 削除) はオーナー操作で未了**: 手順と id 一覧は
+`tools/pending_push_20260906/README.md`。push するまでは日次 export で巻き戻るので、
+巻き戻ったら同じ手順をやり直す。
+1. SideM 11th STAGE の重複 4 件 → slug 版 (`ev_the_idolmster_sidem_11th_stage_ever_everfter`, DAY1/DAY2)
+   だけ残して 3 イベント + 2 公演を master.sql から除去。CloudKit 側は
+   `tools/pending_cloudkit_deletions_sidem_11th_dup_20260906.tsv` で物理削除する (未実行)。
+2. 765AS の全体曲 4 曲 + Thank You! の春香・律子・真美 13 行を `song_artists.role='original'` に。
+   裏取り: コロムビア COCX-38070 / COCC-16516 / COCC-16883 / COCX-38437 (歌：765PRO ALLSTARS)、
+   ランティス LACM-14080 (765 MILLIONSTARS)。
+3. セトリ注記 651 件を素の形に (`（M＠STER VERSION）` → `M@STER VERSION`、空文字 → NULL)。
+   アプリは notes をそのまま出すので、データ側で揃えるのが本筋。加えてコアのセトリ取得
+   (`event_detail_queries::setlist`) が `domain/setlist_notes.rs` の `display_notes` で同じ畳み込みを
+   掛けるので、投稿で再発しても iOS / Android / Web のどれも見た目は割れない。
+   `data/fixes/setlist_notes_plain_20260906.json` が監査用の全件。
+4. 会場欄と配信欄が同文だった 10 公演 (`sh_L0004` 含む) を、配信の実体は配信欄・物理会場は
+   都内某所か NULL に分けた (`data/fixes/shows_stream_platform_dup_20260906.json`)。
+   **NULL にした列は既定の push (forceUpdate) では CloudKit に伝わらない**。
+   `seed_cloudkit.py --replace` (forceReplace) で送る。
 
 ## 2 巡目 (2026-09-06 追記): 楽曲表・語・アプリの部品との形合わせ
 
