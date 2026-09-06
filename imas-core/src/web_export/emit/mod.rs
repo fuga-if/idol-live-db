@@ -255,8 +255,7 @@ fn write_all(
     let mut book = RouteBook::new();
 
     // --- テーマ ---
-    let (idol_inputs, brand_inputs) = ctx.theme_inputs();
-    let table = theme::build_table(&idol_inputs, &brand_inputs);
+    let table = theme::build_table(&ctx.theme_inputs());
     w.write_json("themes.json", &table)?;
     // 単一の themes.css。HTML は data-theme 属性を 1 個置くだけでよくなる。
     w.write_text("themes.css", &theme::build_css(&table))?;

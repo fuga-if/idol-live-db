@@ -6,9 +6,10 @@
  */
 export type TagBadge = { id: string, name: string, 
 /**
- * タグ自身の色 (hex)。無ければ受け手が既定色で出す。
+ * `themes.css` のキー (`tag:<id>`)。自分の色を持つタグにだけ入る。
+ * 無ければ `data-theme` を置かず、囲む要素のテーマ (曲・アイドルの色) を継ぐ。
  */
-color: string | null, 
+themeKey: string | null, 
 /**
  * 運営が用意したタグか。
  */

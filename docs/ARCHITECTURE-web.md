@@ -159,8 +159,10 @@ https://imas-live-web.tokata3011.workers.dev/
 
 ## 7. テーマの当て方
 
-- Rust (`imas-core::web_export::theme`) が `color_engine::derive(seed, brand, dark)` と `theme_hex` を呼び、`web/public/themes.css` を単一ファイルとして出力する。キーは `idol:<idolId>` / `brand:<brandId>` / `neutral` の 3 種、計 404 件 (394 idols + 9 brands + neutral)。
+- Rust (`imas-core::web_export::theme`) が `color_engine::derive(seed, brand, dark)` と `theme_hex` を呼び、`web/public/themes.css` を単一ファイルとして出力する。キーは `idol:<idolId>` / `brand:<brandId>` / `tag:<tagId>` / `neutral` の 4 種 (394 idols + 9 brands + 色を持つコミュニティタグ + neutral)。
 - CSS は `[data-theme="idol:xxx"]{--accent:…}` を light と `@media (prefers-color-scheme: dark)` の 2 系統で出す。HTML 側は要素に `data-theme` 属性を 1 個持たせるだけで、インライン `style` 配布はしない。
+- **インライン `style` は本番で効かない** (`web/public/_headers` の CSP が `style-src 'self'`、`unsafe-inline` 無し)。色も寸法も `data-*` 属性 + CSS で渡す。ローカルの静的サーバはヘッダを付けないので、**インライン style は本番でだけ黙って落ちる** (2026-09-07 まで、コミュニティタグの色がこれで出ていなかった)。
+- コミュニティタグの色も同じ仕組み: 自分の色を持つタグは `theme::tag_key` の `tag:<tagId>`、色の無いタグは `theme_key` が `None` で、囲む要素のテーマ (曲・アイドルの色) を継ぐ。DTO (`TagBadge` / `TagChipDto`) は hex を渡さない。生の hex を文字色にしていた頃は白地で読めない色があったが、`--accent-ink` を通るのでコントラストも担保される。
 - 優先順位 (アイドル色→ブランド色→ニュートラル) は `color_engine::first_valid_hex` が決める。**ブランド ID そのものを seed に渡してはいけない** (`"876"` が `#887766` として通ってしまう既知の罠)。渡すのは `brands.color` の値のみ — これは Rust 側の既存契約であり Web もそれに従う。
 - **hex はどのファイルにも直書きしない。** ニュートラル (DS トークン) は `web/src/styles/tokens.css` 1 箇所、エンティティ色は `themes.css` 1 箇所のみが正。レビュー時 `grep -rnE "#[0-9a-fA-F]{6}" web/src --include=*.astro --include=*.ts` が 0 件であることを確認する。
 - テーマ切替 UI は作らない。`color-scheme: light dark` を `:root` に設定し、`prefers-color-scheme` にのみ追従する。

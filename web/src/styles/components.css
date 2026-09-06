@@ -518,15 +518,15 @@ a.chip:hover {
   background: color-mix(in srgb, var(--accent) 12%, transparent);
   color: var(--accent-ink);
 }
-/* コミュニティのタグ。色はタグ自身が持つ hex (無ければテーマのアクセント)。
-   ここでは色を決めず、`--tag-color` に来たものを使うだけ。 */
+/* コミュニティのタグ。色はタグ自身のテーマ (data-theme="tag:<id>")。自分の色を持たない
+   タグは data-theme が無く、囲む要素のテーマ (曲・アイドルの色) をそのまま継ぐ。 */
 .tag--community {
   gap: var(--sp2);
-  background: color-mix(in srgb, var(--tag-color, var(--accent)) 14%, transparent);
-  color: var(--tag-color, var(--accent-ink));
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent-ink);
 }
 .tag--community.tag--official {
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tag-color, var(--accent)) 45%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent);
 }
 
 .tag--all {

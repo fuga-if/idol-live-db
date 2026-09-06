@@ -11,9 +11,9 @@ export type TagChipDto = { id: string, name: string,
  */
 count: number, 
 /**
- * タグ自身の色 (hex)。無ければ受け手が既定色で出す。
+ * `themes.css` のキー (`tag:<id>`)。[`TagBadge::theme_key`] と同じ。
  */
-color: string | null, 
+themeKey: string | null, 
 /**
  * 運営が用意したタグか。
  */

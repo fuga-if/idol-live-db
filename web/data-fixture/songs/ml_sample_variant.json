@@ -21,7 +21,7 @@
         "id": "tag_kawaii",
         "name": "かわいい",
         "count": 12,
-        "color": "#E900E2",
+        "themeKey": "tag:tag_kawaii",
         "isOfficial": false,
         "path": "/tags/tag_kawaii/"
       }

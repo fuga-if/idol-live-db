@@ -25,6 +25,15 @@ pub const OTHER_BRAND_ID: &str = "other";
 pub type IdolThemeInput = (String, Option<String>, Option<String>);
 /// テーマ表を作る材料: (ブランド id, ブランド色)。
 pub type BrandThemeInput = (String, Option<String>);
+/// タグ id → タグ自身の色 (hex)。色を持つタグだけ。
+pub type TagThemeInput = (String, String);
+
+/// `themes.css` / `themes.json` に載せるテーマ表の材料。
+pub struct ThemeInputs {
+    pub idols: Vec<IdolThemeInput>,
+    pub brands: Vec<BrandThemeInput>,
+    pub tags: Vec<TagThemeInput>,
+}
 
 /// 出力全体で共有する読み取り専用の文脈。
 pub struct Ctx<'a> {
@@ -229,7 +238,7 @@ impl<'a> Ctx<'a> {
     }
 
     /// `themes.css` / `themes.json` に載せるテーマ表の材料。
-    pub fn theme_inputs(&self) -> (Vec<IdolThemeInput>, Vec<BrandThemeInput>) {
+    pub fn theme_inputs(&self) -> ThemeInputs {
         let idols = self
             .snap
             .idols
@@ -243,7 +252,17 @@ impl<'a> Ctx<'a> {
             })
             .collect();
         let brands = self.brands.values().map(|b| (b.id.clone(), b.color.clone())).collect();
-        (idols, brands)
+        // 色を持つタグだけ。同じ id が複数の語彙に居ても 1 つに畳む (並びも id 順で固定)。
+        let tags: BTreeMap<String, String> = [
+            &self.community.song_tag_vocab,
+            &self.community.idol_tag_vocab,
+            &self.community.unit_tag_vocab,
+        ]
+        .into_iter()
+        .flat_map(|vocab| vocab.values())
+        .filter_map(|tag| Some((tag.id.clone(), tag.color.clone()?)))
+        .collect();
+        ThemeInputs { idols, brands, tags: tags.into_iter().collect() }
     }
 
     // -----------------------------------------------------------------------
@@ -544,9 +563,21 @@ impl TagScope {
     }
 }
 
+/// タグの札の色。自分の色を持つタグはそのテーマ、持たないタグは `None` で
+/// 囲む要素のテーマ (曲・アイドルの色) を継ぐ。
+/// **hex は出面に渡さない** — インライン style は CSP (`style-src 'self'`) で効かない。
+fn tag_theme_key(tag: &TagRow) -> Option<String> {
+    tag.color.as_deref().map(|_| theme::tag_key(&tag.id))
+}
+
 /// タグの素性を DTO へ。
 pub fn tag_badge(tag: &TagRow) -> TagBadge {
-    TagBadge { id: tag.id.clone(), name: tag.name.clone(), color: tag.color.clone(), is_official: tag.is_official }
+    TagBadge {
+        id: tag.id.clone(),
+        name: tag.name.clone(),
+        theme_key: tag_theme_key(tag),
+        is_official: tag.is_official,
+    }
 }
 
 /// 札 1 枚。`votes` は付けた人の数 (その相手 1 件ぶん)。
@@ -555,7 +586,7 @@ pub fn tag_chip(ctx: &Ctx, scope: TagScope, tag: &TagRow, votes: i64) -> TagChip
         id: tag.id.clone(),
         name: tag.name.clone(),
         count: votes.max(0) as u32,
-        color: tag.color.clone(),
+        theme_key: tag_theme_key(tag),
         is_official: tag.is_official,
         path: scope.list_path(ctx, &tag.id),
     }

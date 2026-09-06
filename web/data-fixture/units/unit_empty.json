@@ -13,7 +13,7 @@
       "id": "tag_genki",
       "name": "元気",
       "count": 7,
-      "color": null,
+      "themeKey": null,
       "isOfficial": true,
       "path": null
     }

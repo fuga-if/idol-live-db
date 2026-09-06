@@ -5,7 +5,7 @@
   "badge": {
     "id": "tag_kawaii",
     "name": "かわいい",
-    "color": "#E900E2",
+    "themeKey": "tag:tag_kawaii",
     "isOfficial": false
   },
   "description": "かわいい曲につけるタグ",

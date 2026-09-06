@@ -436,8 +436,9 @@ web_dto! {
     pub struct TagBadge {
         pub id: String,
         pub name: String,
-        /// タグ自身の色 (hex)。無ければ受け手が既定色で出す。
-        pub color: Option<String>,
+        /// `themes.css` のキー (`tag:<id>`)。自分の色を持つタグにだけ入る。
+        /// 無ければ `data-theme` を置かず、囲む要素のテーマ (曲・アイドルの色) を継ぐ。
+        pub theme_key: Option<String>,
         /// 運営が用意したタグか。
         pub is_official: bool,
     }
@@ -453,8 +454,8 @@ web_dto! {
         pub name: String,
         /// 何人が付けたか。
         pub count: u32,
-        /// タグ自身の色 (hex)。無ければ受け手が既定色で出す。
-        pub color: Option<String>,
+        /// `themes.css` のキー (`tag:<id>`)。[`TagBadge::theme_key`] と同じ。
+        pub theme_key: Option<String>,
         /// 運営が用意したタグか。
         pub is_official: bool,
         /// そのタグの曲一覧 (`/tags/<tagId>/`)。曲のタグにだけ入る

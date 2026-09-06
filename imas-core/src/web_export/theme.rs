@@ -13,7 +13,7 @@ use crate::domain::color_engine::{
     ThemeRgb, DEFAULT_MIN_CONTRAST_RATIO,
 };
 use crate::domain::color_match::Rgb;
-use crate::web_export::emit::context::{BrandThemeInput, IdolThemeInput};
+use crate::web_export::emit::context::ThemeInputs;
 use std::collections::BTreeMap;
 
 /// 文字が載り得る地のうち、いちばん不利なもの。ライトでは `--ds-fill` を `--ds-surface2` に
@@ -34,6 +34,12 @@ pub fn idol_key(idol_id: &str) -> String {
 /// ブランドのテーマキー。
 pub fn brand_key(brand_id: &str) -> String {
     format!("brand:{brand_id}")
+}
+
+/// コミュニティのタグのテーマキー。色を持つタグにだけ作る
+/// (色の無いタグは囲む要素のテーマを継ぐ = 曲やアイドルの色で出る)。
+pub fn tag_key(tag_id: &str) -> String {
+    format!("tag:{tag_id}")
 }
 
 /// 1 テーマぶんのライト / ダークを導出する。
@@ -81,19 +87,23 @@ fn tokens(c: &ImasThemeColors, dark: bool) -> ThemeTokens {
     }
 }
 
-/// アイドル / ブランド / ニュートラルの全テーマ。
+/// アイドル / ブランド / タグ / ニュートラルの全テーマ。
 ///
-/// `idol_brand_color` はアイドル id → 主ブランドの色。アイドル色が無いときの
-/// 落とし先で、優先順位 (アイドル色 → ブランド色 → ニュートラル) の判断は
-/// `first_valid_hex` が持っているので、ここは候補を並べて渡すだけ。
-pub fn build_table(idols: &[IdolThemeInput], brands: &[BrandThemeInput]) -> ThemeTable {
+/// アイドルの `brand_color` は主ブランドの色。アイドル色が無いときの落とし先で、
+/// 優先順位 (アイドル色 → ブランド色 → ニュートラル) の判断は `first_valid_hex` が
+/// 持っているので、ここは候補を並べて渡すだけ。
+pub fn build_table(inputs: &ThemeInputs) -> ThemeTable {
     let mut themes = BTreeMap::new();
     themes.insert(NEUTRAL_KEY.to_string(), pair(None, None));
-    for (id, color) in brands {
+    for (id, color) in &inputs.brands {
         themes.insert(brand_key(id), pair(None, color.as_deref()));
     }
-    for (id, color, brand_color) in idols {
+    for (id, color, brand_color) in &inputs.idols {
         themes.insert(idol_key(id), pair(color.as_deref(), brand_color.as_deref()));
+    }
+    // タグは自分の色だけで決まる (ブランドに属さない)。
+    for (id, color) in &inputs.tags {
+        themes.insert(tag_key(id), pair(Some(color), None));
     }
     ThemeTable { schema_version: SCHEMA_VERSION, themes }
 }
@@ -177,14 +187,19 @@ fn escape_attr(key: &str) -> std::borrow::Cow<'_, str> {
 mod tests {
     use super::*;
 
+    fn sample_inputs() -> ThemeInputs {
+        ThemeInputs {
+            idols: vec![("ml_x".to_string(), Some("#f39800".to_string()), Some("#ffc30b".to_string()))],
+            brands: vec![("ml".to_string(), Some("#ffc30b".to_string()))],
+            tags: vec![("tag_kawaii".to_string(), "#e900e2".to_string())],
+        }
+    }
+
     #[test]
     fn css_defines_every_token_for_both_schemes() {
-        let table = build_table(
-            &[("ml_x".to_string(), Some("#f39800".to_string()), Some("#ffc30b".to_string()))],
-            &[("ml".to_string(), Some("#ffc30b".to_string()))],
-        );
+        let table = build_table(&sample_inputs());
         let css = build_css(&table);
-        for key in ["neutral", "brand:ml", "idol:ml_x"] {
+        for key in ["neutral", "brand:ml", "idol:ml_x", "tag:tag_kawaii"] {
             let selector = format!("[data-theme=\"{key}\"]{{");
             assert_eq!(css.matches(&selector).count(), 2, "{key} がライト/ダークで 2 回出ていない");
         }
@@ -193,15 +208,20 @@ mod tests {
         }
         assert!(css.contains("@media (prefers-color-scheme: dark)"));
         // 変数の顔ぶれが表と一致すること (表に足したのに CSS に出ない、が起きない)。
-        assert_eq!(css.matches("--").count(), CSS_TOKENS.len() * 3 * 2);
+        assert_eq!(css.matches("--").count(), table.themes.len() * CSS_TOKENS.len() * 2);
     }
 
     #[test]
     fn a_brand_id_is_never_used_as_a_color_seed() {
         // "876" のような id をシードに渡すと #887766 として通ってしまう。
         // ここでは色だけを渡していることを、id 由来の色が出ないことで確かめる。
-        let with_id_as_color = build_table(&[], &[("876".to_string(), Some("#656a75".to_string()))]);
-        let neutral_only = build_table(&[], &[("876".to_string(), None)]);
+        let brands_only = |color: Option<&str>| ThemeInputs {
+            idols: vec![],
+            brands: vec![("876".to_string(), color.map(str::to_string))],
+            tags: vec![],
+        };
+        let with_id_as_color = build_table(&brands_only(Some("#656a75")));
+        let neutral_only = build_table(&brands_only(None));
         assert_ne!(
             with_id_as_color.themes["brand:876"], neutral_only.themes["brand:876"],
             "色の有無でテーマが変わらないのはおかしい"

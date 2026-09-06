@@ -25,6 +25,7 @@
 use super::content::{self, absolute};
 use super::dto::*;
 use super::emit::context::{json_ld_graph, page_title, simple_json_ld};
+use super::theme;
 use super::url::{detail_path, path_key, reserved_for};
 use super::writer::Writer;
 use super::{Result, Stats, WebExportError};
@@ -1091,7 +1092,8 @@ fn tag_kawaii_badge() -> TagBadge {
     TagBadge {
         id: "tag_kawaii".to_string(),
         name: "かわいい".to_string(),
-        color: Some("#E900E2".to_string()),
+        // 色を持つタグ。札は themes.css の `tag:<id>` を data-theme で引く。
+        theme_key: Some(theme::tag_key("tag_kawaii")),
         is_official: false,
     }
 }
@@ -1107,7 +1109,7 @@ fn tag_kawaii_chip() -> TagChipDto {
         id: badge.id,
         name: badge.name,
         count: 12,
-        color: badge.color,
+        theme_key: badge.theme_key,
         is_official: badge.is_official,
         path: Some(tag_kawaii_path()),
     }
@@ -1119,7 +1121,8 @@ fn tag_genki_chip() -> TagChipDto {
         id: "tag_genki".to_string(),
         name: "元気".to_string(),
         count: 7,
-        color: None,
+        // 色を持たないタグ。囲む要素のテーマを継ぐので data-theme は置かない。
+        theme_key: None,
         is_official: true,
         path: None,
     }
