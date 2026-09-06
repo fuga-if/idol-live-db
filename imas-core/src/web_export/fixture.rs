@@ -56,6 +56,7 @@ fn make_ref(kind: RefKind, id: &str, name: &str, sub: Option<&str>, theme_key: &
         id: id.to_string(),
         name: name.to_string(),
         sub: sub.map(str::to_string),
+        monogram: None,
         path: detail_path(collection, &key),
         theme_key: theme_key.to_string(),
         artwork_url: None,
@@ -167,10 +168,17 @@ fn brand_other() -> Ref {
 }
 
 fn idol_mirai() -> Ref {
-    make_ref(RefKind::Idol, "ml_kasuga_mirai", "春日未来", Some("ミリオンライブ!"), "idol:ml_kasuga_mirai")
+    idol_ref("ml_kasuga_mirai", "春日未来", "未来")
 }
 fn idol_shizuka() -> Ref {
-    make_ref(RefKind::Idol, "ml_mogami_shizuka", "最上静香", Some("ミリオンライブ!"), "idol:ml_mogami_shizuka")
+    idol_ref("ml_mogami_shizuka", "最上静香", "静香")
+}
+/// アイドルの Ref は絵の代わりのモノグラム (`emit::glyph::idol_monogram` の結果) を持つ。
+fn idol_ref(id: &str, name: &str, monogram: &str) -> Ref {
+    Ref {
+        monogram: Some(monogram.to_string()),
+        ..make_ref(RefKind::Idol, id, name, Some("ミリオンライブ!"), &super::theme::idol_key(id))
+    }
 }
 
 fn song_sample() -> Ref {
@@ -680,6 +688,7 @@ fn idol_page(reference: &Ref) -> IdolPage {
         path: reference.path.clone(),
         name: reference.name.clone(),
         name_kana: Some("かすがみらい".to_string()),
+        monogram: reference.monogram.clone().expect("アイドルの Ref にはモノグラムがある"),
         theme_key: reference.theme_key.clone(),
         brand: Some(brand_ml()),
         brands: vec![brand_ml()],
@@ -1350,7 +1359,7 @@ fn venue_list_page(path: &str, title: &str, prefecture: Option<&str>) -> VenueLi
 
 fn brand_list_item(reference: &Ref) -> BrandListItem {
     BrandListItem {
-        glyph: reference.sub.as_deref().unwrap_or(&reference.name).chars().take(2).collect(),
+        glyph: super::emit::glyph::brand_glyph(reference.sub.as_deref().unwrap_or(&reference.name)),
         reference: reference.clone(),
         short_name: reference.sub.clone(),
         preview_display: "ライブ 210 ・ 楽曲 600 ・ アイドル 52 ・ ユニット 300".to_string(),

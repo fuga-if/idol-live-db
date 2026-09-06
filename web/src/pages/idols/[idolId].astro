@@ -2,7 +2,7 @@
 import DetailLayout from "../../layouts/DetailLayout.astro";
 import Section from "../../components/Section.astro";
 import Chip from "../../components/Chip.astro";
-import ColorDot from "../../components/ColorDot.astro";
+import Monogram from "../../components/Monogram.astro";
 import ListContainer from "../../components/ListContainer.astro";
 import LabeledRow from "../../components/LabeledRow.astro";
 import DatedRow from "../../components/DatedRow.astro";
@@ -23,7 +23,7 @@ const idol = page<IdolPage>(Astro.props.data);
 {/* 電話ではプロフィール・ユニット (脇) より持ち曲・出演公演 (本体) を先に。 */}
 <DetailLayout seo={idol.seo} themeKey={idol.themeKey} app={idol.app} asideAfterMain>
   <section class="hero" slot="hero" aria-labelledby="idol-title">
-    <ColorDot size="hero" />
+    <Monogram label={idol.monogram} size="hero" />
     <div class="hero__body">
       {idol.brand && <p class="hero__eyebrow">{idol.brand.name}</p>}
       <h1 class="hero__title" id="idol-title">{idol.name}</h1>

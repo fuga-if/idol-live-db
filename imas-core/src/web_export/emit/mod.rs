@@ -8,6 +8,7 @@ pub mod calendar;
 pub mod calls;
 pub mod context;
 pub mod events;
+pub mod glyph;
 pub mod idols;
 pub mod lists;
 pub mod places;

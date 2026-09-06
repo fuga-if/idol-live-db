@@ -9,8 +9,8 @@ use crate::web_export::content;
 use crate::web_export::dto::*;
 
 pub fn idol_page(ctx: &Ctx, idol_id: &str) -> Option<IdolPage> {
-    let record =
-        idol_queries::idol_records_by_ids(ctx.snap, &[idol_id.to_string()]).into_iter().next()?;
+    let idol = ctx.snap.idol(idol_id)?;
+    let record = idol_queries::IdolRecord::from(idol);
     let &index = ctx.snap.idol_index_by_id.get(idol_id)?;
     let path = ctx.path(RefKind::Idol, idol_id);
     let brand_id = record.brand_id.clone();
@@ -86,6 +86,7 @@ pub fn idol_page(ctx: &Ctx, idol_id: &str) -> Option<IdolPage> {
         path: path.clone(),
         name: record.name.clone(),
         name_kana: record.name_kana.clone(),
+        monogram: super::glyph::idol_monogram(idol),
         theme_key: ctx.idol_theme(idol_id),
         brand: brand_id.as_deref().and_then(|b| ctx.brand_ref(b)),
         brands,

@@ -817,6 +817,29 @@ mod real {
         );
     }
 
+    #[test]
+    fn l2_every_idol_tile_has_a_monogram() {
+        // 顔写真は版権物で持てないので、タイルの「顔」は短い名のモノグラム。空だと無地の丸に戻る。
+        let dir = exported();
+        let idols: IdolListPage = serde_json::from_str(
+            &std::fs::read_to_string(dir.path().join("index/idols.json")).unwrap(),
+        )
+        .unwrap();
+        assert!(!idols.items.is_empty());
+        for item in &idols.items {
+            let monogram = item.reference.monogram.as_deref().expect("アイドルの Ref にはモノグラムがある");
+            // 48px の丸で読める長さ (長い名は emit::glyph::idol_monogram が先頭 2 文字にする)。
+            assert!(
+                (1..=4).contains(&monogram.chars().count()),
+                "{} のモノグラムが丸に収まらない: {monogram:?}",
+                item.reference.name
+            );
+        }
+        // 規則は nickname > given_name > name (アプリの Idol.shortName と同じ)。春日未来は given_name。
+        let mirai = idols.items.iter().find(|i| i.reference.id == "ml_春日未来").expect("春日未来");
+        assert_eq!(mirai.reference.monogram.as_deref(), Some("未来"));
+    }
+
     // -----------------------------------------------------------------------
     // T8 / T11 / T12: 出力全体
     // -----------------------------------------------------------------------

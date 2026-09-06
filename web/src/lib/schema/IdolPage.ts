@@ -13,7 +13,11 @@ import type { VoiceActorRow } from "./VoiceActorRow";
 /**
  * `/idols/<id>/` の中身。
  */
-export type IdolPage = { schemaVersion: number, id: string, path: string, name: string, nameKana: string | null, themeKey: string, 
+export type IdolPage = { schemaVersion: number, id: string, path: string, name: string, nameKana: string | null, 
+/**
+ * ヒーローの絵の代わりに置く短い名 (`Ref.monogram` と同じ規則)。
+ */
+monogram: string, themeKey: string, 
 /**
  * 主ブランド。
  * コミュニティが付けたタグ (多い順)。焼き込み。

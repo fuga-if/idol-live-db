@@ -1065,12 +1065,6 @@ pub fn venue_lists(ctx: &Ctx) -> Vec<Emitted<VenueListPage>> {
 // ブランド一覧 / トップ / About
 // ---------------------------------------------------------------------------
 
-/// ブランドカードの見出し。短縮名をそのまま出し、長すぎるものだけ丸める。
-fn brand_glyph(short_name: &str) -> String {
-    const MAX_CHARS: usize = 6;
-    short_name.chars().take(MAX_CHARS).collect()
-}
-
 fn brand_list_item(ctx: &Ctx, brand_id: &str) -> Option<BrandListItem> {
     let brand = ctx.brand(brand_id)?;
     let counts = ctx.brand_counts(brand_id);
@@ -1078,7 +1072,7 @@ fn brand_list_item(ctx: &Ctx, brand_id: &str) -> Option<BrandListItem> {
         reference: ctx.brand_ref(brand_id)?,
         // カードに大きく出す短い名前。短縮名は実データで最長 5 文字なのでそのまま通る。
         // 2 文字に切ると `765AS` → `76`、`学マス` → `学マ` でどれも読めなくなる。
-        glyph: brand_glyph(&brand.short_name),
+        glyph: super::glyph::brand_glyph(&brand.short_name),
         short_name: Some(brand.short_name.clone()),
         // 素の件数を配ると .astro が組み立て直すことになり、実際にトップと /brands/ で
         // 項目数が食い違っていた (片方だけユニット数が無かった)。

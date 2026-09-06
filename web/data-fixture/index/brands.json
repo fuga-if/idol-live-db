@@ -9,6 +9,7 @@
         "id": "ml",
         "name": "アイドルマスター ミリオンライブ!",
         "sub": "ML",
+        "monogram": null,
         "path": "/brands/ml/",
         "themeKey": "brand:ml",
         "artworkUrl": null
@@ -23,6 +24,7 @@
         "id": "cg",
         "name": "アイドルマスター シンデレラガールズ",
         "sub": "CG",
+        "monogram": null,
         "path": "/brands/cg/",
         "themeKey": "brand:cg",
         "artworkUrl": null
@@ -37,12 +39,13 @@
         "id": "other",
         "name": "その他",
         "sub": "その他",
+        "monogram": null,
         "path": "/brands/other/",
         "themeKey": "neutral",
         "artworkUrl": null
       },
       "shortName": "その他",
-      "glyph": "その",
+      "glyph": "その他",
       "previewDisplay": "ライブ 210 ・ 楽曲 600 ・ アイドル 52 ・ ユニット 300"
     }
   ],

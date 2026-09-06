@@ -11,6 +11,8 @@ web_dto! {
         pub path: String,
         pub name: String,
         pub name_kana: Option<String>,
+        /// ヒーローの絵の代わりに置く短い名 (`Ref.monogram` と同じ規則)。
+        pub monogram: String,
         pub theme_key: String,
         /// 主ブランド。
         /// コミュニティが付けたタグ (多い順)。焼き込み。

@@ -401,6 +401,12 @@ D1 (コミュニティ表) のすべてに反映済み (経緯は git 履歴 `22
   チケットの締切/当落/受付期間)。`emit/calendar.rs` が週 × 7 日の枠 (日曜始まり) に流し込み、枠には
   先頭 3 件と `+N`、下の一覧に全部を出す。受付期間は日を跨ぐ帯。ナビは「ライブ」の隣、ライブ一覧の
   切替 (今後 / 開催済み / カレンダー) からも入れる。語は `content::CALENDAR_*`。
+- **アイドルの「顔」はモノグラム** (2026-09-07): 顔写真は版権物で持てないので、無地の色丸ではなく
+  アプリの ImasAvatar (画像なし時) と同じ「淡い色面 + 細い輪 + 短い名」を置く (`Monogram.astro`)。
+  短い名は Rust の `Idol::short_name` (nickname > given_name > name、アプリの `Idol.shortName` と同じ規則)
+  を `emit::glyph::idol_monogram` で 4 文字までに (長い名は先頭 2 文字) して `Ref.monogram` (アイドルだけ、
+  `artwork_url` と同じ任意項目) と `IdolPage.monogram` に入る。3〜4 文字は CSS が `data-chars` で縮める
+  (インライン style は CSP `style-src 'self'` で効かないので属性で渡す)。
 - **一覧の頭に札を並べない** (2026-09-07): 切替の軸は Rust が `FilterAxis { label, links }` で出す
   (`*ListPage.filters` / `CalendarPage.filters`、軸名は `content::FILTER_AXIS_*`、ライブ一覧の帯は
   `scope`)。どの軸をどの順で出すか (年の軸は開催済みの側だけ) も Rust。Astro は `FilterMenu`

@@ -74,7 +74,7 @@ pub struct Song {
 /// Phase 2 では一覧・検索に要る主要カラムだけだったが、Phase 3 で idol 詳細
 /// (fetchIdol) とフィルタ (星座・出身地・血液型) が乗るため全カラムに拡張した。
 /// height/weight/bust/waist/hip は REAL 列なので f64 で持つ。
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Idol {
     pub id: String,
     pub brand_id: Option<String>,
@@ -105,6 +105,18 @@ pub struct Idol {
     pub attribute: Option<String>,
     pub is_external: bool,
     pub aliases: Option<String>,
+}
+
+impl Idol {
+    /// 表示用の短い名 (アプリの `Idol.shortName` と同じ規則): nickname > given_name > name。
+    /// 絵の代わりに置くモノグラムの文字。推測はせず、DB の列の値をそのまま信じる。
+    pub fn short_name(&self) -> &str {
+        match (self.nickname.as_deref(), self.given_name.as_deref()) {
+            (Some(nick), _) if !nick.is_empty() => nick,
+            (_, Some(given)) if !given.is_empty() => given,
+            _ => &self.name,
+        }
+    }
 }
 
 /// events 全カラム。

@@ -299,6 +299,7 @@ impl<'a> Ctx<'a> {
             id: id.to_string(),
             name: name.to_string(),
             sub,
+            monogram: None,
             path: self.path(kind, id),
             theme_key,
             artwork_url: None,
@@ -324,7 +325,10 @@ impl<'a> Ctx<'a> {
     pub fn idol_ref(&self, id: &str) -> Option<Ref> {
         let idol = self.snap.idol(id)?;
         let sub = idol.brand_id.as_deref().and_then(|b| self.brands.get(b)).map(|b| b.name.clone());
-        Some(self.make_ref(RefKind::Idol, &idol.id, &idol.name, sub, self.idol_theme(&idol.id)))
+        Some(Ref {
+            monogram: Some(super::glyph::idol_monogram(idol)),
+            ..self.make_ref(RefKind::Idol, &idol.id, &idol.name, sub, self.idol_theme(&idol.id))
+        })
     }
 
     pub fn song_ref(&self, id: &str) -> Option<Ref> {

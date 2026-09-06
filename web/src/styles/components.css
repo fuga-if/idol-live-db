@@ -127,14 +127,39 @@
 .color-dot--md {
   --dot-size: 8px;
 }
-/* 版権物ゼロなので絵は持てない。色の円を「顔」の大きさで置く (アイドルのタイル / 詳細のヒーロー)。 */
-.color-dot--avatar,
-.color-dot--hero {
-  --dot-size: 34px;
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+
+/* --- モノグラム (ImasAvatar の画像なし時) ------------------------------------
+   版権物ゼロなので絵は持てない。アプリと同じく、淡い色面 + 細い輪 + 短い名を「顔」の
+   大きさで置く (アイドルのタイル / 詳細のヒーロー)。名の長さは Rust が 4 文字までに
+   切ってあるので、3〜4 文字だけ径に収まるよう縮める (data-chars は Monogram.astro)。 */
+.monogram {
+  --monogram-size: var(--monogram-avatar);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: var(--monogram-size);
+  block-size: var(--monogram-size);
+  flex: none;
+  border-radius: var(--r-pill);
+  background: var(--tint);
+  box-shadow: inset 0 0 0 1.5px var(--ring);
+  color: var(--accent-ink);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: calc(var(--monogram-size) * 0.4);
+  line-height: 1;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
 }
-.color-dot--hero {
-  --dot-size: 64px;
+.monogram[data-chars="3"] {
+  font-size: calc(var(--monogram-size) * 0.29);
+}
+.monogram[data-chars="4"] {
+  font-size: calc(var(--monogram-size) * 0.215);
+}
+.monogram--hero {
+  --monogram-size: var(--monogram-hero);
   margin-top: var(--sp1);
 }
 .labeled-row__swatch {

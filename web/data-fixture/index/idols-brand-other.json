@@ -8,6 +8,7 @@
     "id": "other",
     "name": "その他",
     "sub": "その他",
+    "monogram": null,
     "path": "/brands/other/",
     "themeKey": "neutral",
     "artworkUrl": null
@@ -20,6 +21,7 @@
         "id": "ml_kasuga_mirai",
         "name": "春日未来",
         "sub": "ミリオンライブ!",
+        "monogram": "未来",
         "path": "/idols/ml_kasuga_mirai/",
         "themeKey": "idol:ml_kasuga_mirai",
         "artworkUrl": null
@@ -29,6 +31,7 @@
         "id": "ml",
         "name": "アイドルマスター ミリオンライブ!",
         "sub": "ML",
+        "monogram": null,
         "path": "/brands/ml/",
         "themeKey": "brand:ml",
         "artworkUrl": null
@@ -42,6 +45,7 @@
         "id": "ml_mogami_shizuka",
         "name": "最上静香",
         "sub": "ミリオンライブ!",
+        "monogram": "静香",
         "path": "/idols/ml_mogami_shizuka/",
         "themeKey": "idol:ml_mogami_shizuka",
         "artworkUrl": null
@@ -51,6 +55,7 @@
         "id": "ml",
         "name": "アイドルマスター ミリオンライブ!",
         "sub": "ML",
+        "monogram": null,
         "path": "/brands/ml/",
         "themeKey": "brand:ml",
         "artworkUrl": null

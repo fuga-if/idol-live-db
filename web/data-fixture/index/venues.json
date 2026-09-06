@@ -10,6 +10,7 @@
         "id": "venue_makuhari",
         "name": "幕張メッセ",
         "sub": "千葉県",
+        "monogram": null,
         "path": "/venues/venue_makuhari/",
         "themeKey": "neutral",
         "artworkUrl": null
@@ -26,6 +27,7 @@
         "id": "venue_donalde.stephensconventioncenter/hyattregencyo'hare",
         "name": "Donald E. Stephens Convention Center / Hyatt Regency O'Hare",
         "sub": null,
+        "monogram": null,
         "path": "/venues/venue_donalde.stephensconventioncenterhyattregen-0c52f2eb/",
         "themeKey": "neutral",
         "artworkUrl": null

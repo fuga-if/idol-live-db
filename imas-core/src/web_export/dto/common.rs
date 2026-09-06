@@ -118,6 +118,10 @@ web_dto! {
         pub name: String,
         /// 補助表記 (公演なら日付、曲ならユニット名 等)。
         pub sub: Option<String>,
+        /// 絵の代わりに丸に置く短い名 (アイドルだけ。規則は `emit::glyph::idol_monogram`)。
+        /// 版権物ゼロなので顔写真は無く、アプリの ImasAvatar と同じモノグラムで「顔」を作る。
+        /// `artwork_url` と同じく、種別で埋まる `Ref` の任意項目。
+        pub monogram: Option<String>,
         /// 先頭・末尾スラッシュ付きの完成形 URL (percent-encode 済み)。
         pub path: String,
         /// `themes.css` のセレクタキー (`idol:<id>` / `brand:<id>` / `neutral`)。

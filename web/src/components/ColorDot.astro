@@ -5,17 +5,16 @@
  * 誰の行かを色で見分けるための印。**色は書かない** — 囲んでいる要素の
  * `data-theme` から themes.css が `--accent` を与える。
  *
- * 版権物ゼロなので絵は持てず、色だけが「顔」になる。大きさは置き場ごとに
- * ここで指名する (`avatar` = タイルの顔、`hero` = 詳細ページの顔)。
- * 祖先のセレクタで大きさを変えない — 部品を動かしたときに黙って変わる。
+ * 「顔」の大きさで置くのはこれではなく Monogram (短い名を載せた丸)。
+ * 大きさは置き場ごとにここで指名する。祖先のセレクタで大きさを変えない —
+ * 部品を動かしたときに黙って変わる。
  */
 interface Props {
-  size?: "sm" | "md" | "avatar" | "hero";
+  size?: "sm" | "md";
   /** 囲む要素が無いとき (点だけを並べるとき) は、点自身に `data-theme` を持たせる。 */
   themeKey?: string;
 }
 const { size = "sm", themeKey } = Astro.props;
-const sizeClass = size === "sm" ? "" : `color-dot--${size}`;
 ---
 
-<span class:list={["color-dot", sizeClass]} data-theme={themeKey} aria-hidden="true"></span>
+<span class:list={["color-dot", size === "md" && "color-dot--md"]} data-theme={themeKey} aria-hidden="true"></span>
