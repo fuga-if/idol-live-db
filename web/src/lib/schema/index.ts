@@ -47,6 +47,7 @@ export type { FoldCase } from "./FoldCase";
 export type { FoldParity } from "./FoldParity";
 export type { HallRow } from "./HallRow";
 export type { HomePage } from "./HomePage";
+export type { IdolColumn } from "./IdolColumn";
 export type { IdolListItem } from "./IdolListItem";
 export type { IdolListKind } from "./IdolListKind";
 export type { IdolListPage } from "./IdolListPage";

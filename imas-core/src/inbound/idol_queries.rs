@@ -22,7 +22,7 @@ use crate::domain::idol_queries::{
 };
 use std::collections::HashMap;
 
-/// 表示用の短い名 (nickname > given_name > name)。アバターのモノグラムに出す文字。
+/// 表示用の短い名 (nickname > given_name > name)。アプリのアバターのモノグラムに出す文字。
 ///
 /// 行を持たない呼び出し (GRDB / Room から直に引いた行) からも規則を引けるように、
 /// レコードではなく素の 3 列で受ける。`theme_derive` と同じ「純粋な規則を 1 本の関数で出す」形。

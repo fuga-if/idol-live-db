@@ -1,11 +1,16 @@
 ---
 import ListLayout from "../layouts/ListLayout.astro";
-import IdolTile from "./IdolTile.astro";
 import ListFilterBar from "./ListFilterBar.astro";
 import EmptyState from "./EmptyState.astro";
 import type { IdolListPage } from "../lib/schema/IdolListPage";
 
-/** アイドル一覧 (総合 / ブランド別 / 誕生月別)。is_external の除外規則はコアの中。 */
+/**
+ * アイドル一覧 (総合 / ブランド別 / 誕生月別)。is_external の除外規則はコアの中。
+ *
+ * 属性を見比べる一覧なので表で出す。**どの列をどの順で出すかは Rust**
+ * (`IdolListPage.columns` と `IdolListItem.cells` が同じ並び、全行が空の列は落ちる)ので、
+ * ここは見出しと値を順に置くだけ。並べ替え・絞り込みは島が `tbody` の中の行を入れ替える。
+ */
 interface Props {
   list: IdolListPage;
 }
@@ -25,14 +30,37 @@ const { list } = Astro.props;
     list.items.length === 0 ? (
       <EmptyState title="該当するアイドルがいません" body="別のブランドや誕生月に切り替えてみてください。" />
     ) : (
-      <ul class="grid-tiles" data-idol-grid>
-        {list.items.map((item) => (
-          <IdolTile
-            entity={item.ref}
-            sub={item.currentVoiceActor ?? item.birthdayDisplay ?? item.brand?.name}
-          />
-        ))}
-      </ul>
+      <div class="table-wrap">
+        <table class="dtable">
+          <thead>
+            <tr>
+              <th scope="col" class="dtable__name">
+                {list.nameColumnLabel}
+              </th>
+              {list.columns.map((c) => (
+                <th scope="col" class:list={[c.numeric && "dtable__num"]}>
+                  {c.label}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody data-idol-table>
+            {list.items.map((item) => (
+              <tr data-entity-id={item.ref.id} data-theme={item.ref.themeKey}>
+                <th scope="row" class="dtable__name">
+                  <a class="u-underline-hover" href={item.ref.path}>
+                    {item.ref.name}
+                  </a>
+                  {item.nameKana && <span class="dtable__kana">{item.nameKana}</span>}
+                </th>
+                {item.cells.map((value, i) => (
+                  <td class:list={[list.columns[i]?.numeric && "dtable__num"]}>{value}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     )
   }
 </ListLayout>

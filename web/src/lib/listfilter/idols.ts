@@ -19,8 +19,9 @@ const BIRTH_MONTHS = Array.from({ length: 12 }, (_, i) => ({
 export function mountIdolFilter(root: HTMLElement): void {
   const spec: ListFilterSpec<IdolFacets> = {
     name: "idol filter",
-    container: "[data-idol-grid]",
-    item: "li[data-entity-id]",
+    // 行は表の中。並べ替えは tbody の直下で入れ替わる。
+    container: "[data-idol-table]",
+    item: "tr[data-entity-id]",
     idAttr: "entityId",
     fallbackSort: "official",
     facets: (e) => JSON.parse((e as Engine).idol_facets()) as IdolFacets,

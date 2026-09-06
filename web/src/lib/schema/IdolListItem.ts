@@ -4,4 +4,13 @@ import type { Ref } from "./Ref";
 /**
  * アイドル一覧の 1 行。
  */
-export type IdolListItem = { ref: Ref, brand: Ref | null, currentVoiceActor: string | null, birthdayDisplay: string | null, };
+export type IdolListItem = { ref: Ref, 
+/**
+ * 名前の下に添える読み。
+ */
+nameKana: string | null, 
+/**
+ * [`IdolListPage::columns`] と**同じ並び**の値。無い列は `None`。
+ * 並びを受け手に組ませない (見出しと値がずれると別の列の下に値が出る)。
+ */
+cells: Array<string | null>, };

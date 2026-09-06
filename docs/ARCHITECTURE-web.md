@@ -29,7 +29,7 @@
 1. **ランニングコスト 0**。従量課金・有料 SaaS・常駐サーバは禁止。→ 静的サイトを Cloudflare **Workers Static Assets** (assets-only Worker。`main` を持たない) にデプロイする。静的アセット配信は無料・リクエスト無制限・Worker 呼び出し 0 回。Pages は保守モードのため使わない。
 2. **表示ルールの唯一の正は imas-core (Rust)**。TypeScript に SQL や業務ルール (何を出す/隠す・並び・年グルーピング・クレジット分割・披露回数・色導出・検索の畳み込み) を一切書かない。imas-core に Web 専用の export バイナリ (`web-export`) を足し、既存の `domain::*` を呼んで JSON を吐く。Astro は JSON を HTML に置くだけ。
 3. **検索の照合規則もコア一本**。畳み込み (fold) 規則は `imas-text-fold` crate (imas-core から抽出した依存ゼロの独立 crate) が唯一の実体。ブラウザ側は wasm でその crate を直接呼ぶ (§8)。
-4. **版権物ゼロ**。キャラ画像・公式ロゴ・歌詞は掲載しない。ジャケ画像は `songs.artwork_url` (Apple Music CDN) のみ。アイドルはモノグラム表示 (アプリと同じ)。
+4. **版権物ゼロ**。キャラ画像・公式ロゴ・歌詞は掲載しない。ジャケ画像は `songs.artwork_url` (Apple Music CDN) のみ。アイドルは名前だけで出す (顔の丸も置かない)。
 5. **歌詞は Web v1 の対象外**。JASRAC の許諾条件が「一括ダウンロードできない配信形式・ストリーム形式・認証必須・1曲/リクエスト」であり (`docs/JASRAC.md`)、静的サイトの配信モデルとは相容れない。歌詞本文・プレビュー音源 URL は **出力 JSON に一切含めない** (imas-core 側テスト `T12` で機械的に固定)。曲詳細ページには次の固定文を出す:
 
    > 歌詞はアプリ『アイドルライブDB』でご覧いただけます（アプリは JASRAC 許諾番号 J260943703 のもとで歌詞を配信しています）。本サイトでは歌詞を掲載していません。
@@ -403,12 +403,17 @@ D1 (コミュニティ表) のすべてに反映済み (経緯は git 履歴 `22
   チケットの締切/当落/受付期間)。`emit/calendar.rs` が週 × 7 日の枠 (日曜始まり) に流し込み、枠には
   先頭 3 件と `+N`、下の一覧に全部を出す。受付期間は日を跨ぐ帯。ナビは「ライブ」の隣、ライブ一覧の
   切替 (今後 / 開催済み / カレンダー) からも入れる。語は `content::CALENDAR_*`。
-- **アイドルの「顔」はモノグラム** (2026-09-07): 顔写真は版権物で持てないので、無地の色丸ではなく
-  アプリの ImasAvatar (画像なし時) と同じ「淡い色面 + 細い輪 + 短い名」を置く (`Monogram.astro`)。
-  短い名は Rust の `Idol::short_name` (nickname > given_name > name、アプリの `Idol.shortName` と同じ規則)
-  を `emit::glyph::idol_monogram` で 4 文字までに (長い名は先頭 2 文字) して `Ref.monogram` (アイドルだけ、
-  `artwork_url` と同じ任意項目) と `IdolPage.monogram` に入る。3〜4 文字は CSS が `data-chars` で縮める
-  (インライン style は CSP `style-src 'self'` で効かないので属性で渡す)。
+- **アイドル一覧は表** (2026-09-07): 属性を見比べるのが目的の一覧なので、行に積まず表で出す
+  (曲一覧とは逆の判断。曲は名前が主で属性が従)。**列と値は Rust が 1 箇所で決める**:
+  `IdolListPage.columns` (`IdolColumn { label, numeric }`) と `IdolListItem.cells` が同じ並びで、
+  `emit::lists::drop_empty_columns` が**その一覧で値が 1 種類しかない列を落とす** (誰も値を持たない列も、
+  全行同じ値の列も、そこでは見分けに使えない)。Astro は見出しと値を順に置くだけ。
+  絞り込みの島は `tbody[data-idol-table]` の中の `tr` を入れ替える。狭い幅では枠 (`.table-wrap`) の
+  中だけ横に流し、名前の列は左に貼り付ける (ページごと横スクロールさせない)。見出しは縦に貼り付けない
+  (枠が自前のスクロール面なので sticky の基準がページにならず、行に重なる)。
+- **アイドルに顔の丸は置かない** (2026-09-07): 顔写真は版権物で持てない。無地の丸も、名前を入れた丸も
+  置かず、色はタイル (ブランド・ユニットのメンバー) の上辺の線と、表の名前列の縦線で示す
+  (アプリの `ImasLeadBar` と同じ役割)。
 - **一覧の頭に札を並べない** (2026-09-07): 切替の軸は Rust が `FilterAxis { label, links }` で出す
   (`*ListPage.filters` / `CalendarPage.filters`、軸名は `content::FILTER_AXIS_*`、ライブ一覧の帯は
   `scope`)。どの軸をどの順で出すか (年の軸は開催済みの側だけ) も Rust。Astro は `FilterMenu`

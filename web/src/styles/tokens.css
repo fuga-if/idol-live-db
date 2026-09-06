@@ -69,9 +69,6 @@
   /* --- 部品の寸法 --- */
   /* 行に置く小さいジャケ。表の畳んだ副題の字下げもこれに揃える。 */
   --artwork-sm: 44px;
-  /* アイドルの顔 (モノグラム)。タイルと詳細のヒーロー。 */
-  --monogram-avatar: 48px;
-  --monogram-hero: 72px;
 
   /* --- タイポ --- */
   --font-body: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP",

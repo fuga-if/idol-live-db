@@ -8,7 +8,6 @@
     "id": "other",
     "name": "その他",
     "sub": "その他",
-    "monogram": null,
     "path": "/brands/other/",
     "themeKey": "neutral",
     "artworkUrl": null
@@ -21,23 +20,17 @@
         "id": "ml_kasuga_mirai",
         "name": "春日未来",
         "sub": "ミリオンライブ!",
-        "monogram": "未来",
         "path": "/idols/ml_kasuga_mirai/",
         "themeKey": "idol:ml_kasuga_mirai",
         "artworkUrl": null
       },
-      "brand": {
-        "kind": "brand",
-        "id": "ml",
-        "name": "アイドルマスター ミリオンライブ!",
-        "sub": "ML",
-        "monogram": null,
-        "path": "/brands/ml/",
-        "themeKey": "brand:ml",
-        "artworkUrl": null
-      },
-      "currentVoiceActor": "山崎はるか",
-      "birthdayDisplay": "4月3日"
+      "nameKana": "かすがみらい",
+      "cells": [
+        "山崎はるか",
+        "4月3日",
+        "14歳",
+        "156cm"
+      ]
     },
     {
       "ref": {
@@ -45,25 +38,38 @@
         "id": "ml_mogami_shizuka",
         "name": "最上静香",
         "sub": "ミリオンライブ!",
-        "monogram": "静香",
         "path": "/idols/ml_mogami_shizuka/",
         "themeKey": "idol:ml_mogami_shizuka",
         "artworkUrl": null
       },
-      "brand": {
-        "kind": "brand",
-        "id": "ml",
-        "name": "アイドルマスター ミリオンライブ!",
-        "sub": "ML",
-        "monogram": null,
-        "path": "/brands/ml/",
-        "themeKey": "brand:ml",
-        "artworkUrl": null
-      },
-      "currentVoiceActor": "田所あずさ",
-      "birthdayDisplay": "6月26日"
+      "nameKana": "もがみしずか",
+      "cells": [
+        "田所あずさ",
+        "6月26日",
+        "15歳",
+        "159cm"
+      ]
     }
   ],
+  "columns": [
+    {
+      "label": "CV",
+      "numeric": false
+    },
+    {
+      "label": "誕生日",
+      "numeric": false
+    },
+    {
+      "label": "年齢",
+      "numeric": true
+    },
+    {
+      "label": "身長",
+      "numeric": true
+    }
+  ],
+  "nameColumnLabel": "名前",
   "filters": [
     {
       "label": "ブランド",

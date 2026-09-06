@@ -125,7 +125,6 @@
                   "id": "ml_sample",
                   "name": "Thank You!",
                   "sub": "765MILLION ALLSTARS",
-                  "monogram": null,
                   "path": "/songs/ml_sample/",
                   "themeKey": "brand:ml",
                   "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music/sample/600x600bb.jpg"
@@ -135,7 +134,6 @@
                   "id": "ml_no_artwork",
                   "name": "ジャケットの無い曲",
                   "sub": null,
-                  "monogram": null,
                   "path": "/songs/ml_no_artwork/",
                   "themeKey": "brand:ml",
                   "artworkUrl": null
@@ -524,7 +522,6 @@
               "id": "ml_sample",
               "name": "Thank You!",
               "sub": "765MILLION ALLSTARS",
-              "monogram": null,
               "path": "/songs/ml_sample/",
               "themeKey": "brand:ml",
               "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music/sample/600x600bb.jpg"
@@ -534,7 +531,6 @@
               "id": "ml_no_artwork",
               "name": "ジャケットの無い曲",
               "sub": null,
-              "monogram": null,
               "path": "/songs/ml_no_artwork/",
               "themeKey": "brand:ml",
               "artworkUrl": null

@@ -1,8 +1,8 @@
 ---
-import Monogram from "./Monogram.astro";
 import type { Ref } from "../lib/schema/Ref";
 /**
- * アイドルのグリッド 1 枚。モノグラム (色面に短い名) と名前と副題だけ (版権物ゼロなので絵は無い)。
+ * アイドルのグリッド 1 枚 (ブランド詳細・ユニット詳細のメンバー)。名前と副題だけ。
+ * 顔写真は版権物で持てず、代わりの丸も置かない (名前が読めれば足りる)。色は上辺の線で示す。
  *
  * 副題は省略時 `Ref.sub` (アイドルならブランド名)。ブランド詳細やユニット詳細のように
  * 並ぶ全員が同じブランドの場所では、Rust が `sub` を落とした `Ref` を配ってくる。
@@ -19,7 +19,6 @@ const subtitle = sub ?? entity.sub;
 
 <li data-entity-id={entity.id}>
   <a class="tile" data-theme={entity.themeKey} href={entity.path}>
-    <Monogram label={entity.monogram} />
     <span class="tile__name u-underline-hover">{entity.name}</span>
     {subtitle && <span class="tile__sub u-clamp1">{subtitle}</span>}
   </a>

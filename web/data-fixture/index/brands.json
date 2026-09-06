@@ -9,7 +9,6 @@
         "id": "ml",
         "name": "アイドルマスター ミリオンライブ!",
         "sub": "ML",
-        "monogram": null,
         "path": "/brands/ml/",
         "themeKey": "brand:ml",
         "artworkUrl": null
@@ -24,7 +23,6 @@
         "id": "cg",
         "name": "アイドルマスター シンデレラガールズ",
         "sub": "CG",
-        "monogram": null,
         "path": "/brands/cg/",
         "themeKey": "brand:cg",
         "artworkUrl": null
@@ -39,7 +37,6 @@
         "id": "other",
         "name": "その他",
         "sub": "その他",
-        "monogram": null,
         "path": "/brands/other/",
         "themeKey": "neutral",
         "artworkUrl": null

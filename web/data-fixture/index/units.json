@@ -10,7 +10,6 @@
         "id": "unit_sample",
         "name": "サンプルユニット",
         "sub": "ミリオンライブ!",
-        "monogram": null,
         "path": "/units/unit_sample/",
         "themeKey": "brand:ml",
         "artworkUrl": null
@@ -20,7 +19,6 @@
         "id": "ml",
         "name": "アイドルマスター ミリオンライブ!",
         "sub": "ML",
-        "monogram": null,
         "path": "/brands/ml/",
         "themeKey": "brand:ml",
         "artworkUrl": null
@@ -35,7 +33,6 @@
         "id": "unit_empty",
         "name": "からっぽユニット",
         "sub": null,
-        "monogram": null,
         "path": "/units/unit_empty/",
         "themeKey": "neutral",
         "artworkUrl": null

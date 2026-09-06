@@ -177,6 +177,47 @@ pub fn tag_page_description(name: &str, count: u32) -> String {
     format!("アイドルマスターの楽曲のうち「{name}」のタグが付いた {count} 曲。")
 }
 
+// ---- アイドル一覧の表 -----------------------------------------------------------
+/// 表の見出し (名前の列の次から)。値の並びは `emit::lists::idol_list_item` が同じ順で作る。
+pub const IDOL_COLUMN_BRAND: &str = "ブランド";
+pub const IDOL_COLUMN_VOICE_ACTOR: &str = "CV";
+pub const IDOL_COLUMN_BIRTHDAY: &str = "誕生日";
+pub const IDOL_COLUMN_AGE: &str = "年齢";
+pub const IDOL_COLUMN_HEIGHT: &str = "身長";
+pub const IDOL_COLUMN_WEIGHT: &str = "体重";
+pub const IDOL_COLUMN_BLOOD: &str = "血液型";
+pub const IDOL_COLUMN_CONSTELLATION: &str = "星座";
+pub const IDOL_COLUMN_BIRTHPLACE: &str = "出身";
+pub const IDOL_COLUMN_ATTRIBUTE: &str = "属性";
+pub const IDOL_COLUMN_SONGS: &str = "持ち曲";
+pub const IDOL_COLUMN_SHOWS: &str = "出演";
+/// 名前の列の見出し。
+pub const IDOL_COLUMN_NAME: &str = "名前";
+
+pub fn idol_age_display(age: i64) -> String {
+    format!("{age}歳")
+}
+
+pub fn idol_weight_display(weight: f64) -> String {
+    format!("{}kg", weight as i64)
+}
+
+pub fn idol_blood_display(blood_type: &str) -> String {
+    format!("{blood_type}型")
+}
+
+/// ブランド内の属性。`cute` のような英字の分類は先頭だけ大文字にし、
+/// `1年` のように既に日本語のものはそのまま出す (対応表を持つほどの規則性が無い)。
+pub fn idol_attribute_label(attribute: &str) -> String {
+    let mut chars = attribute.chars();
+    match chars.next() {
+        Some(first) if first.is_ascii_alphabetic() => {
+            first.to_ascii_uppercase().to_string() + chars.as_str()
+        }
+        _ => attribute.to_string(),
+    }
+}
+
 // ---- 一覧の頭の切替 -------------------------------------------------------------
 /// 帯 (今後 / 開催済み / カレンダー) の名。読み上げにだけ使う。
 pub const FILTER_SCOPE_EVENTS: &str = "今後 / 開催済み";
@@ -382,7 +423,7 @@ pub fn about_sections() -> Vec<AboutSection> {
         AboutSection {
             heading: "版権について".to_string(),
             paragraphs: vec![
-                format!("{}アイドルは名前の 1 文字を使ったモノグラムで表示しています。", not_hosted_note()),
+                format!("{}アイドルは名前と、そのアイドルの色だけで表示しています。", not_hosted_note()),
                 "ジャケット画像は Apple Music が配信しているものを参照しています。".to_string(),
             ],
             links: vec![],

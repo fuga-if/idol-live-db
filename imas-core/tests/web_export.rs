@@ -818,26 +818,31 @@ mod real {
     }
 
     #[test]
-    fn l2_every_idol_tile_has_a_monogram() {
-        // 顔写真は版権物で持てないので、タイルの「顔」は短い名のモノグラム。空だと無地の丸に戻る。
+    fn l2_every_idol_row_fills_every_column_of_the_table() {
+        // 一覧は表。見出しと値の並びがずれると、別の列の値が別の見出しの下に出る。
         let dir = exported();
         let idols: IdolListPage = serde_json::from_str(
             &std::fs::read_to_string(dir.path().join("index/idols.json")).unwrap(),
         )
         .unwrap();
         assert!(!idols.items.is_empty());
+        assert!(!idols.columns.is_empty());
         for item in &idols.items {
-            let monogram = item.reference.monogram.as_deref().expect("アイドルの Ref にはモノグラムがある");
-            // 48px の丸で読める長さ (長い名は emit::glyph::idol_monogram が先頭 2 文字にする)。
-            assert!(
-                (1..=4).contains(&monogram.chars().count()),
-                "{} のモノグラムが丸に収まらない: {monogram:?}",
+            assert_eq!(
+                item.cells.len(),
+                idols.columns.len(),
+                "{} の値の数が見出しと違う",
                 item.reference.name
             );
         }
-        // 規則は nickname > given_name > name (アプリの Idol.shortName と同じ)。春日未来は given_name。
-        let mirai = idols.items.iter().find(|i| i.reference.id == "ml_春日未来").expect("春日未来");
-        assert_eq!(mirai.reference.monogram.as_deref(), Some("未来"));
+        // 値が全部空の列は出さない (表がスカスカにならない)。
+        for (i, column) in idols.columns.iter().enumerate() {
+            assert!(
+                idols.items.iter().any(|item| item.cells[i].is_some()),
+                "「{}」の列は全行が空",
+                column.label
+            );
+        }
     }
 
     // -----------------------------------------------------------------------

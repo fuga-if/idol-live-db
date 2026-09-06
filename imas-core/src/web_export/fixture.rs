@@ -57,7 +57,6 @@ fn make_ref(kind: RefKind, id: &str, name: &str, sub: Option<&str>, theme_key: &
         id: id.to_string(),
         name: name.to_string(),
         sub: sub.map(str::to_string),
-        monogram: None,
         path: detail_path(collection, &key),
         theme_key: theme_key.to_string(),
         artwork_url: None,
@@ -169,17 +168,13 @@ fn brand_other() -> Ref {
 }
 
 fn idol_mirai() -> Ref {
-    idol_ref("ml_kasuga_mirai", "春日未来", "未来")
+    idol_ref("ml_kasuga_mirai", "春日未来")
 }
 fn idol_shizuka() -> Ref {
-    idol_ref("ml_mogami_shizuka", "最上静香", "静香")
+    idol_ref("ml_mogami_shizuka", "最上静香")
 }
-/// アイドルの Ref は絵の代わりのモノグラム (`emit::glyph::idol_monogram` の結果) を持つ。
-fn idol_ref(id: &str, name: &str, monogram: &str) -> Ref {
-    Ref {
-        monogram: Some(monogram.to_string()),
-        ..make_ref(RefKind::Idol, id, name, Some("ミリオンライブ!"), &super::theme::idol_key(id))
-    }
+fn idol_ref(id: &str, name: &str) -> Ref {
+    make_ref(RefKind::Idol, id, name, Some("ミリオンライブ!"), &super::theme::idol_key(id))
 }
 
 fn song_sample() -> Ref {
@@ -689,7 +684,6 @@ fn idol_page(reference: &Ref) -> IdolPage {
         path: reference.path.clone(),
         name: reference.name.clone(),
         name_kana: Some("かすがみらい".to_string()),
-        monogram: reference.monogram.clone().expect("アイドルの Ref にはモノグラムがある"),
         theme_key: reference.theme_key.clone(),
         brand: Some(brand_ml()),
         brands: vec![brand_ml()],
@@ -1022,6 +1016,25 @@ fn birth_month_path(month: u32) -> String {
     format!("/idols/birth-month/{month}/")
 }
 
+/// 表の 1 行。値は `columns` と同じ並びで渡す (本番と同じ不変条件)。
+fn idol_list_item(
+    reference: Ref,
+    name_kana: &str,
+    voice_actor: &str,
+    birthday: &str,
+    age: &str,
+    height: &str,
+) -> IdolListItem {
+    IdolListItem {
+        reference,
+        name_kana: Some(name_kana.to_string()),
+        cells: [voice_actor, birthday, age, height]
+            .into_iter()
+            .map(|v| Some(v.to_string()))
+            .collect(),
+    }
+}
+
 fn idol_list_page(path: &str, title: &str, kind: IdolListKind, empty: bool) -> IdolListPage {
     IdolListPage {
         schema_version: SCHEMA_VERSION,
@@ -1053,20 +1066,21 @@ fn idol_list_page(path: &str, title: &str, kind: IdolListKind, empty: bool) -> I
             vec![]
         } else {
             vec![
-                IdolListItem {
-                    reference: idol_mirai(),
-                    brand: Some(brand_ml()),
-                    current_voice_actor: Some("山崎はるか".to_string()),
-                    birthday_display: Some("4月3日".to_string()),
-                },
-                IdolListItem {
-                    reference: idol_shizuka(),
-                    brand: Some(brand_ml()),
-                    current_voice_actor: Some("田所あずさ".to_string()),
-                    birthday_display: Some("6月26日".to_string()),
-                },
+                idol_list_item(idol_mirai(), "かすがみらい", "山崎はるか", "4月3日", "14歳", "156cm"),
+                idol_list_item(idol_shizuka(), "もがみしずか", "田所あずさ", "6月26日", "15歳", "159cm"),
             ]
         },
+        // 本番と同じ並び (`emit::lists::idol_columns` から空の列を落としたもの)。
+        columns: [
+            (content::IDOL_COLUMN_VOICE_ACTOR, false),
+            (content::IDOL_COLUMN_BIRTHDAY, false),
+            (content::IDOL_COLUMN_AGE, true),
+            (content::IDOL_COLUMN_HEIGHT, true),
+        ]
+        .into_iter()
+        .map(|(label, numeric)| IdolColumn { label: label.to_string(), numeric })
+        .collect(),
+        name_column_label: content::IDOL_COLUMN_NAME.to_string(),
         filters: vec![
             FilterAxis::new(
                 content::FILTER_AXIS_BRAND,

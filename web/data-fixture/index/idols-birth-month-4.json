@@ -6,6 +6,25 @@
   "brand": null,
   "birthMonth": 4,
   "items": [],
+  "columns": [
+    {
+      "label": "CV",
+      "numeric": false
+    },
+    {
+      "label": "誕生日",
+      "numeric": false
+    },
+    {
+      "label": "年齢",
+      "numeric": true
+    },
+    {
+      "label": "身長",
+      "numeric": true
+    }
+  ],
+  "nameColumnLabel": "名前",
   "filters": [
     {
       "label": "ブランド",

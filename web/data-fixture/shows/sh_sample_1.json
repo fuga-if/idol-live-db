@@ -19,7 +19,6 @@
     "id": "ev_sample",
     "name": "THE IDOLM@STER MILLION LIVE! 10thLIVE TOUR Act-4 ROAD TO MEMORIES 幕張",
     "sub": "2026",
-    "monogram": null,
     "path": "/events/ev_sample/",
     "themeKey": "brand:ml",
     "artworkUrl": null
@@ -29,7 +28,6 @@
     "id": "ml",
     "name": "アイドルマスター ミリオンライブ!",
     "sub": "ML",
-    "monogram": null,
     "path": "/brands/ml/",
     "themeKey": "brand:ml",
     "artworkUrl": null
@@ -88,7 +86,6 @@
             "id": "ml_sample",
             "name": "Thank You!",
             "sub": "765MILLION ALLSTARS",
-            "monogram": null,
             "path": "/songs/ml_sample/",
             "themeKey": "brand:ml",
             "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music/sample/600x600bb.jpg"
@@ -100,7 +97,6 @@
                 "id": "ml_kasuga_mirai",
                 "name": "春日未来",
                 "sub": "ミリオンライブ!",
-                "monogram": "未来",
                 "path": "/idols/ml_kasuga_mirai/",
                 "themeKey": "idol:ml_kasuga_mirai",
                 "artworkUrl": null
@@ -120,7 +116,6 @@
                   "id": "ml_mogami_shizuka",
                   "name": "最上静香",
                   "sub": "ミリオンライブ!",
-                  "monogram": "静香",
                   "path": "/idols/ml_mogami_shizuka/",
                   "themeKey": "idol:ml_mogami_shizuka",
                   "artworkUrl": null
@@ -141,7 +136,6 @@
             "id": "ml_no_artwork",
             "name": "ジャケットの無い曲",
             "sub": null,
-            "monogram": null,
             "path": "/songs/ml_no_artwork/",
             "themeKey": "brand:ml",
             "artworkUrl": null
@@ -167,7 +161,6 @@
             "id": "ml_sample",
             "name": "Thank You!",
             "sub": "765MILLION ALLSTARS",
-            "monogram": null,
             "path": "/songs/ml_sample/",
             "themeKey": "brand:ml",
             "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music/sample/600x600bb.jpg"
@@ -179,7 +172,6 @@
                 "id": "ml_kasuga_mirai",
                 "name": "春日未来",
                 "sub": "ミリオンライブ!",
-                "monogram": "未来",
                 "path": "/idols/ml_kasuga_mirai/",
                 "themeKey": "idol:ml_kasuga_mirai",
                 "artworkUrl": null
@@ -192,7 +184,6 @@
                 "id": "ml_mogami_shizuka",
                 "name": "最上静香",
                 "sub": "ミリオンライブ!",
-                "monogram": "静香",
                 "path": "/idols/ml_mogami_shizuka/",
                 "themeKey": "idol:ml_mogami_shizuka",
                 "artworkUrl": null
@@ -218,7 +209,6 @@
       "id": "ml_kasuga_mirai",
       "name": "春日未来",
       "sub": "ミリオンライブ!",
-      "monogram": "未来",
       "path": "/idols/ml_kasuga_mirai/",
       "themeKey": "idol:ml_kasuga_mirai",
       "artworkUrl": null
@@ -228,7 +218,6 @@
       "id": "ml_mogami_shizuka",
       "name": "最上静香",
       "sub": "ミリオンライブ!",
-      "monogram": "静香",
       "path": "/idols/ml_mogami_shizuka/",
       "themeKey": "idol:ml_mogami_shizuka",
       "artworkUrl": null
@@ -240,7 +229,6 @@
       "id": "sh_sample_1",
       "name": "DAY1",
       "sub": "2026-04-03",
-      "monogram": null,
       "path": "/shows/sh_sample_1/",
       "themeKey": "brand:ml",
       "artworkUrl": null

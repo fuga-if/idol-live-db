@@ -109,7 +109,7 @@ pub struct Idol {
 
 /// 表示用の短い名: nickname > given_name > name。空文字は「無い」扱い。
 ///
-/// アバターのモノグラム (iOS `ImasAvatar` / Android / Web の丸) に出す文字。
+/// アバターのモノグラム (iOS `ImasAvatar` / Android) に出す文字。Web は丸を置かないので使わない。
 /// **規則はここ 1 つ**で、iOS/Android は `inbound::idol_queries::idol_short_name` 越しに
 /// これを呼ぶ (以前は Swift に同じ規則が手書きされ、Android には無かった)。
 /// 推測はせず、DB の列の値をそのまま信じる。

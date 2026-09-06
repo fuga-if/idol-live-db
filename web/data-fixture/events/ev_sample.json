@@ -10,7 +10,6 @@
     "id": "ml",
     "name": "アイドルマスター ミリオンライブ!",
     "sub": "ML",
-    "monogram": null,
     "path": "/brands/ml/",
     "themeKey": "brand:ml",
     "artworkUrl": null
@@ -21,7 +20,6 @@
       "id": "cg",
       "name": "アイドルマスター シンデレラガールズ",
       "sub": "CG",
-      "monogram": null,
       "path": "/brands/cg/",
       "themeKey": "brand:cg",
       "artworkUrl": null
@@ -70,7 +68,6 @@
         "id": "sh_sample_1",
         "name": "DAY1",
         "sub": "2026-04-03",
-        "monogram": null,
         "path": "/shows/sh_sample_1/",
         "themeKey": "brand:ml",
         "artworkUrl": null
@@ -99,7 +96,6 @@
           "id": "sh_sample_1",
           "name": "DAY1",
           "sub": "2026-04-03",
-          "monogram": null,
           "path": "/shows/sh_sample_1/",
           "themeKey": "brand:ml",
           "artworkUrl": null
@@ -111,7 +107,6 @@
               "id": "ml_kasuga_mirai",
               "name": "春日未来",
               "sub": "ミリオンライブ!",
-              "monogram": "未来",
               "path": "/idols/ml_kasuga_mirai/",
               "themeKey": "idol:ml_kasuga_mirai",
               "artworkUrl": null
@@ -125,7 +120,6 @@
               "id": "ml_mogami_shizuka",
               "name": "最上静香",
               "sub": "ミリオンライブ!",
-              "monogram": "静香",
               "path": "/idols/ml_mogami_shizuka/",
               "themeKey": "idol:ml_mogami_shizuka",
               "artworkUrl": null
@@ -153,7 +147,6 @@
       "id": "venue_makuhari",
       "name": "幕張メッセ",
       "sub": "千葉県",
-      "monogram": null,
       "path": "/venues/venue_makuhari/",
       "themeKey": "neutral",
       "artworkUrl": null

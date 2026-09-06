@@ -17,7 +17,7 @@ use crate::domain::unit_queries;
 use crate::web_export::content;
 use crate::web_export::dto::*;
 use crate::web_export::url::url_segment;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 use crate::domain::idol_list_filtering::IdolQuery;
 use crate::domain::song_list_queries::SongQuery;
 
@@ -721,14 +721,80 @@ pub fn tag_lists(ctx: &Ctx) -> (Option<Emitted<TagListPage>>, Vec<Emitted<TagPag
 // アイドル一覧
 // ---------------------------------------------------------------------------
 
+/// 表の列 (名前の次から)。値の並びは [`idol_cells`] が同じ順で作る。
+/// **見出しと値を 1 箇所で決める**ので、片方だけ足してずれることが無い。
+fn idol_columns() -> Vec<IdolColumn> {
+    [
+        (content::IDOL_COLUMN_BRAND, false),
+        (content::IDOL_COLUMN_VOICE_ACTOR, false),
+        (content::IDOL_COLUMN_BIRTHDAY, false),
+        (content::IDOL_COLUMN_AGE, true),
+        (content::IDOL_COLUMN_HEIGHT, true),
+        (content::IDOL_COLUMN_WEIGHT, true),
+        (content::IDOL_COLUMN_BLOOD, false),
+        (content::IDOL_COLUMN_CONSTELLATION, false),
+        (content::IDOL_COLUMN_BIRTHPLACE, false),
+        (content::IDOL_COLUMN_ATTRIBUTE, false),
+        (content::IDOL_COLUMN_SONGS, true),
+        (content::IDOL_COLUMN_SHOWS, true),
+    ]
+    .into_iter()
+    .map(|(label, numeric)| IdolColumn { label: label.to_string(), numeric })
+    .collect()
+}
+
+/// 1 行ぶんの値。[`idol_columns`] と同じ並び。
+fn idol_cells(ctx: &Ctx, record: &idol_queries::IdolRecord) -> Vec<Option<String>> {
+    // 持ち曲 (原唱) と出演公演は索引を数えるだけ (行ごとにクエリを投げない)。
+    let counts = ctx.snap.idol_index_by_id.get(&record.id).map(|&i| {
+        let songs = ctx.snap.songs_by_idol[i as usize].iter().filter(|l| l.role == "original").count();
+        (songs as u32, ctx.snap.cast_shows_by_idol[i as usize].len() as u32)
+    });
+    let nonzero = |n: u32| (n > 0).then(|| n.to_string());
+    vec![
+        record.brand_id.as_deref().and_then(|b| ctx.brand(b)).map(|b| b.short_name.clone()),
+        idol_queries::current_voice_actor_name(ctx.snap, &record.id),
+        idol_queries::birthday_display(record.birthday.as_deref()),
+        record.age.map(content::idol_age_display),
+        idol_queries::height_display(record.height),
+        record.weight.map(content::idol_weight_display),
+        record.blood_type.as_deref().map(content::idol_blood_display),
+        record.constellation.clone(),
+        record.birth_place.clone(),
+        record.attribute.as_deref().map(content::idol_attribute_label),
+        counts.and_then(|(songs, _)| nonzero(songs)),
+        counts.and_then(|(_, shows)| nonzero(shows)),
+    ]
+    .into_iter()
+    .map(|value: Option<String>| value.filter(|v| !v.is_empty()))
+    .collect()
+}
+
 fn idol_list_item(ctx: &Ctx, record: &idol_queries::IdolRecord) -> Option<IdolListItem> {
-    let input = idol_queries::idol_profile_input(record);
     Some(IdolListItem {
         reference: ctx.idol_ref(&record.id)?,
-        brand: record.brand_id.as_deref().and_then(|b| ctx.brand_ref(b)),
-        current_voice_actor: idol_queries::current_voice_actor_name(ctx.snap, &record.id),
-        birthday_display: input.birthday_display,
+        name_kana: record.name_kana.clone(),
+        cells: idol_cells(ctx, record),
     })
+}
+
+/// **その一覧の中で値が 1 種類しかない列は落とす。** 全行が空の列 (誰も値を持たない)
+/// も、全行が同じ値の列 (ブランド別の一覧の「ブランド」) も、そこでは見分けに使えない。
+/// 見出しと値を一緒に間引くので、並びはずれない。
+fn drop_empty_columns(columns: Vec<IdolColumn>, items: &mut [IdolListItem]) -> Vec<IdolColumn> {
+    let keep: Vec<bool> = (0..columns.len())
+        .map(|i| {
+            // 1 行だけの一覧は間引かない (見分ける相手が居ないだけで、値は読みたい)。
+            items.len() <= 1
+                || items.iter().map(|item| item.cells[i].as_deref()).collect::<HashSet<_>>().len() > 1
+        })
+        .collect();
+    for item in items.iter_mut() {
+        let mut iter = keep.iter();
+        item.cells.retain(|_| *iter.next().expect("keep は cells と同じ長さ"));
+    }
+    let mut iter = keep.iter();
+    columns.into_iter().filter(|_| *iter.next().expect("keep は columns と同じ長さ")).collect()
 }
 
 pub fn idol_lists(ctx: &Ctx) -> Vec<Emitted<IdolListPage>> {
@@ -750,8 +816,9 @@ pub fn idol_lists(ctx: &Ctx) -> Vec<Emitted<IdolListPage>> {
                 brand: Option<Ref>,
                 birth_month: Option<u32>,
                 description: String| {
-        let items: Vec<IdolListItem> =
+        let mut items: Vec<IdolListItem> =
             records.iter().filter_map(|r| idol_list_item(ctx, r)).collect();
+        let columns = drop_empty_columns(idol_columns(), &mut items);
         let brand_id = brand.as_ref().map(|b| b.id.clone());
         Emitted {
             path: path.clone(),
@@ -774,6 +841,8 @@ pub fn idol_lists(ctx: &Ctx) -> Vec<Emitted<IdolListPage>> {
                     ..IdolQuery::default()
                 },
                 items,
+                columns,
+                name_column_label: content::IDOL_COLUMN_NAME.to_string(),
                 filters: filter_axes([
                     FilterAxis::new(content::FILTER_AXIS_BRAND, brand_links(ctx, "idols", &path, "すべて", all_total)),
                     FilterAxis::new(content::FILTER_AXIS_BIRTH_MONTH, {

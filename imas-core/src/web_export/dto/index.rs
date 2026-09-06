@@ -273,6 +273,10 @@ web_dto! {
         /// 誕生月別のときだけ入る (1–12)。
         pub birth_month: Option<u32>,
         pub items: Vec<IdolListItem>,
+        /// 表の見出し (名前の列の次から)。全行が空になる列は出さない。
+        pub columns: Vec<IdolColumn>,
+        /// 名前の列の見出し。
+        pub name_column_label: String,
         /// 畳んだメニューにする軸 (ブランド・誕生月)。
         pub filters: Vec<FilterAxis>,
         pub total: u32,
@@ -339,14 +343,26 @@ web_dto! {
 }
 
 web_dto! {
+    /// アイドル一覧の表の列 1 つ (名前の列の次から)。
+    #[derive(Eq)]
+    pub struct IdolColumn {
+        pub label: String,
+        /// 数の列 (右に寄せ、等幅で出す)。
+        pub numeric: bool,
+    }
+}
+
+web_dto! {
     /// アイドル一覧の 1 行。
     #[derive(Eq)]
     pub struct IdolListItem {
         #[serde(rename = "ref")]
         pub reference: Ref,
-        pub brand: Option<Ref>,
-        pub current_voice_actor: Option<String>,
-        pub birthday_display: Option<String>,
+        /// 名前の下に添える読み。
+        pub name_kana: Option<String>,
+        /// [`IdolListPage::columns`] と**同じ並び**の値。無い列は `None`。
+        /// 並びを受け手に組ませない (見出しと値がずれると別の列の下に値が出る)。
+        pub cells: Vec<Option<String>>,
     }
 }
 

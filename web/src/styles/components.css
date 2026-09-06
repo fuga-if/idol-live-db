@@ -128,40 +128,6 @@
   --dot-size: 8px;
 }
 
-/* --- モノグラム (ImasAvatar の画像なし時) ------------------------------------
-   版権物ゼロなので絵は持てない。アプリと同じく、淡い色面 + 細い輪 + 短い名を「顔」の
-   大きさで置く (アイドルのタイル / 詳細のヒーロー)。名の長さは Rust が 4 文字までに
-   切ってあるので、3〜4 文字だけ径に収まるよう縮める (data-chars は Monogram.astro)。 */
-.monogram {
-  --monogram-size: var(--monogram-avatar);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  inline-size: var(--monogram-size);
-  block-size: var(--monogram-size);
-  flex: none;
-  border-radius: var(--r-pill);
-  background: var(--tint);
-  box-shadow: inset 0 0 0 1.5px var(--ring);
-  color: var(--accent-ink);
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: calc(var(--monogram-size) * 0.4);
-  line-height: 1;
-  letter-spacing: -0.01em;
-  white-space: nowrap;
-  overflow: hidden;
-}
-.monogram[data-chars="3"] {
-  font-size: calc(var(--monogram-size) * 0.29);
-}
-.monogram[data-chars="4"] {
-  font-size: calc(var(--monogram-size) * 0.215);
-}
-.monogram--hero {
-  --monogram-size: var(--monogram-hero);
-  margin-top: var(--sp1);
-}
 .labeled-row__swatch {
   --dot-size: 16px;
   align-self: center;
@@ -1834,6 +1800,78 @@ a.labeled-row .labeled-row__value {
 .tile__sub {
   font-size: var(--fs-caption2);
   color: var(--ds-ink2);
+}
+
+/* 顔写真も丸も置かないので、色はタイルの上辺の線で示す (アプリの ImasLeadBar と同じ役割)。 */
+.tile {
+  border-block-start: 3px solid var(--accent);
+}
+
+/* --- 表 (アイドル一覧) -----------------------------------------------------
+   属性が多い一覧は行に積むより表の方が引きやすい (曲一覧とは逆の判断: 曲は名前が主で
+   属性が従、アイドルは属性を見比べるのが目的)。狭い幅では**枠の中だけ横に流し**、
+   名前の列は左に貼り付けたままにする (ページごと横スクロールさせない)。
+   見出しと値の並びは Rust が 1 箇所で決める (`IdolListPage.columns` / `IdolListItem.cells`)。 */
+.table-wrap {
+  overflow-x: auto;
+  border-radius: var(--r-md);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow1);
+}
+.dtable {
+  border-collapse: collapse;
+  inline-size: 100%;
+  font-size: var(--fs-footnote);
+  white-space: nowrap;
+}
+.dtable th,
+.dtable td {
+  padding: 8px 12px;
+  text-align: start;
+  border-block-end: 1px solid var(--ds-sep);
+}
+.dtable tbody tr:last-child :is(th, td) {
+  border-block-end: 0;
+}
+.dtable thead th {
+  /* 見出しは縦に貼り付けない。枠が overflow-x で自前のスクロール面になっているため、
+     sticky の基準がページではなくこの枠になり、見出しが行の上に重なって出る。 */
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  color: var(--ds-ink2);
+  background: var(--ds-surface2);
+}
+.dtable tbody tr:hover {
+  background: var(--ds-fill);
+}
+/* 名前の列。横に流しても見失わないよう左に貼り付ける。色はアイドル色の細い縦線。 */
+.dtable__name {
+  position: sticky;
+  inset-inline-start: 0;
+  z-index: 1;
+  background: inherit;
+  border-inline-start: 3px solid var(--accent);
+  font-weight: 600;
+}
+.dtable thead .dtable__name {
+  background: var(--ds-surface2);
+  border-inline-start-color: transparent;
+}
+.dtable tbody .dtable__name {
+  background: var(--ds-surface);
+}
+.dtable tbody tr:hover .dtable__name {
+  background: var(--ds-fill);
+}
+.dtable__kana {
+  display: block;
+  font-size: var(--fs-caption2);
+  font-weight: 400;
+  color: var(--ds-ink2);
+}
+.dtable__num {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
 }
 
 /* --- 年グループ ----------------------------------------------------------- */

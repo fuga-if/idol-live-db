@@ -13,7 +13,6 @@
             "id": "ev_sample",
             "name": "THE IDOLM@STER MILLION LIVE! 10thLIVE TOUR Act-4 ROAD TO MEMORIES 幕張",
             "sub": "2026",
-            "monogram": null,
             "path": "/events/ev_sample/",
             "themeKey": "brand:ml",
             "artworkUrl": null
@@ -31,7 +30,6 @@
             "id": "ml",
             "name": "アイドルマスター ミリオンライブ!",
             "sub": "ML",
-            "monogram": null,
             "path": "/brands/ml/",
             "themeKey": "brand:ml",
             "artworkUrl": null
@@ -52,7 +50,6 @@
             "id": "ev_the_idolm@ster_×_ふたご",
             "name": "THE IDOLM@STER × ふたご星",
             "sub": "2025",
-            "monogram": null,
             "path": "/events/ev_the_idolm%40ster_%C3%97_%E3%81%B5%E3%81%9F%E3%81%94/",
             "themeKey": "brand:cg",
             "artworkUrl": null
@@ -70,7 +67,6 @@
             "id": "ml",
             "name": "アイドルマスター ミリオンライブ!",
             "sub": "ML",
-            "monogram": null,
             "path": "/brands/ml/",
             "themeKey": "brand:ml",
             "artworkUrl": null
