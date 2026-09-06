@@ -14,7 +14,8 @@ pub const FULL_CAST_LABEL: &str = "全員";
 pub const MISSING_LABEL: &str = "不参加";
 
 /// 原唱者との関係。JSON にはそのまま camelCase の名前で出る (`partial` 等。CSS の見分け用)。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+/// アプリには FFI (`inbound::event_detail_queries::setlist_lineup`) で同じ enum が渡る。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, uniffi::Enum, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[cfg_attr(
     feature = "web-export",
@@ -93,6 +94,42 @@ pub fn missing_originals<'a>(original: &[&'a str], performers: &BTreeSet<&str>) 
         .collect()
 }
 
+/// 1 行ぶんの答え。札の文言と「いたのに歌わなかった人」を、Web とアプリが同じ形で受け取る。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LineupSummary<'a> {
+    pub lineup: Lineup,
+    /// 原唱者のうち歌っている人数 / 原唱者の人数。
+    pub present: usize,
+    pub total: usize,
+    /// 歌っていない原唱者のうち、その公演には出ている人 (原唱者の並び順)。
+    pub absent_in_cast: Vec<&'a str>,
+}
+
+impl LineupSummary<'_> {
+    pub fn label(&self) -> String {
+        self.lineup.label(self.present, self.total)
+    }
+}
+
+/// 札を付ける行なら、その 1 行ぶんの答え。`full_cast` は [`is_full_cast`] の結果
+/// (呼び出し側が「全員」の札のために既に求めているので、ここで比べ直さない)。
+pub fn summarize<'a>(
+    original: &[&'a str],
+    performers: &BTreeSet<&str>,
+    cast: &BTreeSet<&str>,
+    full_cast: bool,
+) -> Option<LineupSummary<'a>> {
+    let original_set: BTreeSet<&str> = original.iter().copied().collect();
+    let lineup = lineup_note(&original_set, performers, full_cast)?;
+    let missing = missing_originals(original, performers);
+    Some(LineupSummary {
+        lineup,
+        present: original.len() - missing.len(),
+        total: original.len(),
+        absent_in_cast: absent_in_cast(&missing, cast),
+    })
+}
+
 /// 歌っていない原唱者のうち、**その公演には出ている人**。名前で示す価値があるのはこちら
 /// (「いたのに歌わなかった」は出演者一覧からは読めない)。公演にいない人は出演者一覧を
 /// 見れば分かるので、数 (`4/5`) だけに任せる — 全体曲でその公演にいない 30 人を並べても
@@ -164,6 +201,19 @@ mod tests {
         let cast = set(&["a", "c", "x"]);
         assert_eq!(absent_in_cast(&["b", "c"], &cast), vec!["c"]);
         assert!(absent_in_cast(&["b"], &cast).is_empty());
+    }
+
+    #[test]
+    fn summary_has_the_ratio_and_only_in_cast_absentees() {
+        let performers = set(&["a", "x"]);
+        let cast = set(&["a", "c", "x"]);
+        let summary = summarize(&["a", "b", "c"], &performers, &cast, false).unwrap();
+        assert_eq!(summary.lineup, Lineup::Partial);
+        assert_eq!((summary.present, summary.total), (1, 3));
+        assert_eq!(summary.absent_in_cast, vec!["c"]);
+        assert_eq!(summary.label(), "オリメン 1/3");
+        // 札を付けない行は答えも無い。
+        assert_eq!(summarize(&["a"], &set(&["a"]), &cast, false), None);
     }
 
     #[test]

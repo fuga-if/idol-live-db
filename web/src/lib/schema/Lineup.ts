@@ -2,5 +2,6 @@
 
 /**
  * 原唱者との関係。JSON にはそのまま camelCase の名前で出る (`partial` 等。CSS の見分け用)。
+ * アプリには FFI (`inbound::event_detail_queries::setlist_lineup`) で同じ enum が渡る。
  */
 export type Lineup = "original" | "originalPlus" | "partial" | "cover";

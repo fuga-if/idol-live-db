@@ -5,9 +5,7 @@ use crate::domain::date_display::range_with_weekday;
 use crate::domain::event_detail_queries as detail;
 use crate::domain::snapshot::Snapshot;
 use crate::domain::event_grouping::group_events_by_year;
-use crate::domain::setlist_lineup::{
-    absent_in_cast, is_full_cast, lineup_note, missing_originals, FULL_CAST_LABEL, MISSING_LABEL,
-};
+use crate::domain::setlist_lineup::{is_full_cast, summarize, FULL_CAST_LABEL, MISSING_LABEL};
 use crate::domain::setlist_sections::{group_consecutive, section_label};
 use crate::domain::show_naming::show_identity;
 use crate::web_export::content;
@@ -373,8 +371,8 @@ fn setlist_rows(
         .collect()
 }
 
-/// オリメンとの関係の札。「誰がいなかったか」は、その公演に出ているのに歌っていない
-/// 原唱者だけを名前に解決して付ける (公演にいない人は数 `4/5` に任せる)。
+/// オリメンとの関係の札。規則も文言も `domain::setlist_lineup` (アプリと同じ)。
+/// ここは「いたのに歌わなかった人」の id を Ref に解決するだけ。
 fn lineup_note_of(
     ctx: &Ctx,
     original: &[&str],
@@ -382,16 +380,15 @@ fn lineup_note_of(
     cast: &BTreeSet<&str>,
     full_cast: bool,
 ) -> Option<LineupNote> {
-    let original_set: BTreeSet<&str> = original.iter().copied().collect();
-    let lineup = lineup_note(&original_set, performers, full_cast)?;
-    let missing = missing_originals(original, performers);
-    let idols: Vec<Ref> = absent_in_cast(&missing, cast)
-        .into_iter()
+    let summary = summarize(original, performers, cast, full_cast)?;
+    let idols: Vec<Ref> = summary
+        .absent_in_cast
+        .iter()
         .filter_map(|id| ctx.idol_ref(id))
         .collect();
     Some(LineupNote {
-        kind: lineup,
-        label: lineup.label(original.len() - missing.len(), original.len()),
+        kind: summary.lineup,
+        label: summary.label(),
         missing: (!idols.is_empty()).then(|| MissingOriginals {
             label: MISSING_LABEL.to_string(),
             idols,
