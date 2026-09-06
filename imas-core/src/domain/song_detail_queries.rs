@@ -540,6 +540,44 @@ pub fn performer_idol_ids_map(
 /// SQL は `ORDER BY sh.date DESC` だけで同日内が未規定だった。スナップショットの
 /// 前計算 (setlist_items_by_song) は同日を (show.sort_order ASC, position ASC, 添字)
 /// で決定化してあるので、その並びをそのまま流す。
+/// 披露履歴の各行に対応する setlist_items の添字。[`performance_history`] と同じ並び
+/// (どちらも `setlist_items_by_song` をそのまま流す)。行ごとの歌唱メンバーを引くのに使う。
+pub fn performance_item_indices(snap: &Snapshot, song_id: &str) -> Vec<u32> {
+    snap.song_index_by_id
+        .get(song_id)
+        .map(|&si| snap.setlist_items_by_song[si as usize].clone())
+        .unwrap_or_default()
+}
+
+/// 披露の時系列の鍵 (日付, 公演の並び, 曲順, 添字)。同日の昼夜は公演の `sort_order` で決まる。
+fn chronological_key(snap: &Snapshot, item_index: u32) -> (String, i64, i64, u32) {
+    let item = &snap.setlist_items[item_index as usize];
+    let show = &snap.shows[item.show as usize];
+    (show.date.clone(), show.sort_order, item.position, item_index)
+}
+
+/// 各披露が何回目か ([`performance_history`] と同じ並び。最古が 1)。
+///
+/// 履歴は新しい順だが、同日内は公演の並び・曲順の**昇順**なので、末尾から数え上げると
+/// 昼夜 2 公演の回数が入れ替わる。時系列の鍵で数え直す。
+pub fn performance_ordinals(snap: &Snapshot, song_id: &str) -> Vec<u32> {
+    let keys: Vec<_> = performance_item_indices(snap, song_id)
+        .into_iter()
+        .map(|i| chronological_key(snap, i))
+        .collect();
+    keys.iter()
+        .map(|k| 1 + keys.iter().filter(|other| *other < k).count() as u32)
+        .collect()
+}
+
+/// 初披露にあたる setlist_items の id。この DB に載っている範囲での最古 (履歴が無ければ None)。
+pub fn first_performance_item_id(snap: &Snapshot, song_id: &str) -> Option<String> {
+    performance_item_indices(snap, song_id)
+        .into_iter()
+        .min_by_key(|&i| chronological_key(snap, i))
+        .map(|i| snap.setlist_items[i as usize].id.clone())
+}
+
 pub fn performance_history(snap: &Snapshot, song_id: &str) -> Vec<PerformanceHistoryEntry> {
     let Some(&si) = snap.song_index_by_id.get(song_id) else { return Vec::new() };
     snap.setlist_items_by_song[si as usize]

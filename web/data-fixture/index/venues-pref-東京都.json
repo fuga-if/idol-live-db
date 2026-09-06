@@ -43,21 +43,24 @@
       "path": "/venues/",
       "current": false,
       "themeKey": null,
-      "count": 234
+      "count": 234,
+      "matchPrefixes": []
     },
     {
       "label": "東京都",
       "path": "/venues/pref/%E6%9D%B1%E4%BA%AC%E9%83%BD/",
       "current": true,
       "themeKey": null,
-      "count": 105
+      "count": 105,
+      "matchPrefixes": []
     },
     {
       "label": "未分類",
       "path": "/venues/pref/%E6%9C%AA%E5%88%86%E9%A1%9E/",
       "current": false,
       "themeKey": null,
-      "count": 35
+      "count": 35,
+      "matchPrefixes": []
     }
   ],
   "total": 2,

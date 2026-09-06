@@ -18,7 +18,8 @@
         "iso": "2026-04-03",
         "year": "2026",
         "monthDay": "4/3",
-        "weekday": "金"
+        "weekday": "金",
+        "spoken": "2026年4月3日 金曜日"
       },
       "endDisplay": "〜 4/4 (土)",
       "brandMark": {
@@ -33,7 +34,7 @@
       "venueDisplay": "幕張メッセ",
       "showCountDisplay": "2 公演",
       "kind": "live",
-      "kindLabel": "ライブ"
+      "kindLabel": null
     }
   ],
   "recentShows": [
@@ -54,7 +55,8 @@
         "iso": "2026-04-03",
         "year": "2026",
         "monthDay": "4/3",
-        "weekday": "金"
+        "weekday": "金",
+        "spoken": "2026年4月3日 金曜日"
       },
       "venueLabel": "幕張メッセ",
       "hall": "イベントホール",
@@ -138,6 +140,15 @@
     "supportUrl": "https://fuga-if.github.io/imas-live-privacy/support.html",
     "termsUrl": "https://fuga-if.github.io/imas-live-privacy/terms.html",
     "repositoryUrl": "https://github.com/fuga-if/idol-live-db"
+  },
+  "appNote": "参加記録・投票・コールの編集・タグ付けはアプリでご利用いただけます。このサイトは閲覧と共有に専念しています。",
+  "recentShowsMore": {
+    "label": "開催済みのライブへ",
+    "path": "/events/past/",
+    "current": false,
+    "themeKey": null,
+    "count": null,
+    "matchPrefixes": []
   },
   "seo": {
     "title": "アイドルライブDB — アイマス ライブ・セトリ データベース",

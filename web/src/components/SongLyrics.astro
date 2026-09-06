@@ -14,8 +14,10 @@ import type { LyricsBlock } from "../lib/schema/LyricsBlock";
  *   静的な HTML には 1 文字も入っていない。
  * - **回数が数えられる。** Worker が 1 リクエストごとに記録する
  *   (年次利用曲目報告の母集団)。だから共有キャッシュにも載せない。
- * - コピーを取りにくくする。選択・右クリック・ドラッグ・印刷を抑える。
+ * - コピーを取りにくくする。選択 (CSS)・コピー・ドラッグ・印刷を抑える。
  *   完全には防げないが「一括ダウンロード不可」の実効性を担保する形にする。
+ *   右クリックと selectstart までは止めない: 読み上げ・辞書・拡大のような支援の道具を
+ *   殺すだけで、ソースを見る人には何の障害にもならない。
  */
 interface Props {
   lyrics: LyricsBlock;
@@ -30,9 +32,11 @@ const { lyrics } = Astro.props;
       <button class="btn" type="button" data-lyrics-load>
         {lyrics.readLabel}
       </button>
-      <p class="lyrics__status" data-lyrics-status role="status" hidden />
-      {/* 本文はここに描かれる。サーバから配る HTML には入っていない。 */}
-      <div class="lyrics__body" data-lyrics-body hidden />
+      {/* 最初から木に居る (display:none の live region は最初の変化が読まれないことがある)。 */}
+      <p class="lyrics__status" data-lyrics-status role="status" aria-live="polite" />
+      {/* 本文はここに描かれる。サーバから配る HTML には入っていない。
+          読み込んだらここへフォーカスを移す (押したボタンが消えて焦点が迷子にならない)。 */}
+      <div class="lyrics__body" data-lyrics-body tabindex="-1" aria-labelledby="song-lyrics" hidden />
     </div>
   ) : (
     <div class="card card__pad">
@@ -49,15 +53,14 @@ const { lyrics } = Astro.props;
     const status = root.querySelector<HTMLElement>("[data-lyrics-status]")!;
     const body = root.querySelector<HTMLElement>("[data-lyrics-body]")!;
 
-    // コピーを取りにくくする。選択・コピー・右クリック・ドラッグを止める
-    // (印刷は CSS 側で消す)。完全には防げないが、まとめ取りの手間を上げる。
-    for (const type of ["copy", "cut", "contextmenu", "dragstart", "selectstart"]) {
+    // コピーを取りにくくする。コピー・切り取り・ドラッグを止める (選択は CSS、印刷も CSS)。
+    // 完全には防げないが、まとめ取りの手間を上げる。
+    for (const type of ["copy", "cut", "dragstart"]) {
       body.addEventListener(type, (e) => e.preventDefault());
     }
 
     const say = (text: string) => {
       status.textContent = text;
-      status.hidden = false;
     };
 
     button.addEventListener("click", async () => {
@@ -86,8 +89,9 @@ const { lyrics } = Astro.props;
           }),
         );
         body.hidden = false;
-        status.hidden = true;
         button.hidden = true;
+        say("歌詞を表示しました。");
+        body.focus();
       } catch (e) {
         say("歌詞を読み込めませんでした。アプリからご覧ください。");
         button.disabled = false;

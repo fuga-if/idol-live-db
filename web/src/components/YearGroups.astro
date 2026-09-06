@@ -2,6 +2,7 @@
 import EventRow from "./EventRow.astro";
 import ListContainer from "./ListContainer.astro";
 import EmptyState from "./EmptyState.astro";
+import Count from "./Count.astro";
 import type { YearGroup } from "../lib/schema/YearGroup";
 /**
  * 年でまとめたライブ一覧。年の切り方・並び・見出しの文字 (「2026年」「年度不明」) は
@@ -30,6 +31,13 @@ const { groups, emptyTitle = "該当するライブがありません" } = Astro
               <EventRow item={e} showYear={false} />
             ))}
           </ListContainer>
+          {g.more && (
+            <a class="year-group__more" href={g.more.path}>
+              {g.more.label}
+              {g.more.count !== null && <Count value={g.more.count} dim />}
+              <span class="chevron" aria-hidden="true">›</span>
+            </a>
+          )}
         </section>
       ))}
     </div>

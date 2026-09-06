@@ -6,4 +6,10 @@
  * **ブランド id を seed に渡してはいけない** (`first_valid_hex` の doc: `"876"` が
  * `#887766` として通ってしまう)。渡すのは `brands.color` の値だけ。
  */
-export type ThemeTokens = { accent: string, onAccent: string, tint: string, tintStrong: string, chipBg: string, chipText: string, ring: string, bar: string, dot: string, gradFrom: string, gradTo: string, separator: string, heroSurface: string, };
+export type ThemeTokens = { accent: string, onAccent: string, 
+/**
+ * 文字として使ってよいアクセント。`accent` はブランド色そのもので、黄 (ミリオン) や
+ * 水色 (シャニマス) は白地で 1.7:1 しか無い。文字に使う場面 (数・札・見出し) は
+ * 必ずこちら (地の色に対して AA を満たすまで寄せてある)。
+ */
+accentInk: string, tint: string, tintStrong: string, chipBg: string, chipText: string, ring: string, bar: string, dot: string, gradFrom: string, gradTo: string, separator: string, heroSurface: string, };

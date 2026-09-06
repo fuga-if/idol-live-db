@@ -8,7 +8,18 @@
 //! 要らなくするため (と、同じトークン列を 400 回 HTML に埋め込まないため)。
 
 use super::dto::{ThemePair, ThemeTable, ThemeTokens, SCHEMA_VERSION};
-use crate::domain::color_engine::{derive, theme_hex, ImasThemeColors};
+use crate::domain::color_engine::{
+    derive, ensure_contrast, hex_string, hex_to_rgb, theme_hex, ImasThemeColors, ThemeRgb,
+};
+
+/// 文字に使う色が地に対して満たす比 (WCAG AA、本文)。
+const WEB_TEXT_CONTRAST: f64 = 4.5;
+
+/// 文字が載り得る地のうち、いちばん不利なもの。ライトでは `--ds-fill` を `--ds-surface2` に
+/// 重ねた灰 (これより暗い地に文字は置かない)、ダークではその逆。tokens.css の値から求めた
+/// 近似で、ここで保証した比はそれより明るい (暗い) 地でも保たれる。
+const WORST_LIGHT_SURFACE: &str = "#e3e3e9";
+const WORST_DARK_SURFACE: &str = "#3e3e42";
 use crate::web_export::emit::context::{BrandThemeInput, IdolThemeInput};
 use std::collections::BTreeMap;
 
@@ -30,17 +41,37 @@ pub fn brand_key(brand_id: &str) -> String {
 /// **`seed` に渡してよいのは実体の色 (`#rrggbb`) だけ。** ブランド id を渡してはいけない
 /// (`color_engine::first_valid_hex` の doc: `"876"` が `#887766` として通ってしまう)。
 fn pair(seed: Option<&str>, brand: Option<&str>) -> ThemePair {
-    ThemePair { light: tokens(&derive(seed, brand, false)), dark: tokens(&derive(seed, brand, true)) }
+    ThemePair {
+        light: tokens(&derive(seed, brand, false), false),
+        dark: tokens(&derive(seed, brand, true), true),
+    }
 }
 
-fn tokens(c: &ImasThemeColors) -> ThemeTokens {
+/// `fg` を、並べた地のどれに対しても AA を満たすまで寄せる (地は同じ側 — 全部明るい、
+/// または全部暗い — なので、寄せる方向は 1 つで、順に締めれば全部に対して成り立つ)。
+///
+/// 色の**式**はアプリと共通の `color_engine` にしか無い。ここでやるのは、出面が文字を
+/// 置く地 (アプリには無い白い紙の上のチップや見出し) に対する読める保証だけで、
+/// 使うのも同じエンジンの `ensure_contrast`。
+fn legible(fg: ThemeRgb, backgrounds: &[String]) -> String {
+    let mut rgb = hex_to_rgb(&theme_hex(fg));
+    for bg in backgrounds {
+        rgb = ensure_contrast(rgb, hex_to_rgb(bg), WEB_TEXT_CONTRAST);
+    }
+    hex_string(rgb)
+}
+
+fn tokens(c: &ImasThemeColors, dark: bool) -> ThemeTokens {
+    let page = if dark { WORST_DARK_SURFACE } else { WORST_LIGHT_SURFACE }.to_string();
     ThemeTokens {
         accent: theme_hex(c.accent),
         on_accent: theme_hex(c.on_accent),
+        accent_ink: legible(c.accent, &[page]),
         tint: theme_hex(c.tint),
         tint_strong: theme_hex(c.tint_strong),
         chip_bg: theme_hex(c.chip_bg),
-        chip_text: theme_hex(c.chip_text),
+        // チップの地と、ヒーローの地 (見出しの小文字) の両方に載る。
+        chip_text: legible(c.chip_text, &[theme_hex(c.chip_bg), theme_hex(c.hero_surface)]),
         ring: theme_hex(c.ring),
         bar: theme_hex(c.bar),
         dot: theme_hex(c.dot),
@@ -74,9 +105,10 @@ pub fn build_table(idols: &[IdolThemeInput], brands: &[BrandThemeInput]) -> Them
 /// (13 個が 2 箇所に手で同期されていた)。1 つの表にして、ずれようが無くする。
 type TokenAccessor = (&'static str, fn(&ThemeTokens) -> &str);
 
-const CSS_TOKENS: [TokenAccessor; 13] = [
+const CSS_TOKENS: [TokenAccessor; 14] = [
     ("accent", |t| &t.accent),
     ("on-accent", |t| &t.on_accent),
+    ("accent-ink", |t| &t.accent_ink),
     ("tint", |t| &t.tint),
     ("tint-strong", |t| &t.tint_strong),
     ("chip-bg", |t| &t.chip_bg),

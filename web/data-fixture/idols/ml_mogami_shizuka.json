@@ -133,7 +133,8 @@
         "iso": "2026-04-03",
         "year": "2026",
         "monthDay": "4/3",
-        "weekday": "金"
+        "weekday": "金",
+        "spoken": "2026年4月3日 金曜日"
       },
       "venueLabel": "幕張メッセ",
       "songCount": 7,
@@ -141,6 +142,20 @@
     }
   ],
   "description": null,
+  "statTiles": [
+    {
+      "glyph": "♪",
+      "value": 2,
+      "label": "持ち曲",
+      "href": "#idol-songs"
+    },
+    {
+      "glyph": "▤",
+      "value": 1,
+      "label": "出演公演",
+      "href": "#idol-shows"
+    }
+  ],
   "app": {
     "appStoreUrl": "https://apps.apple.com/jp/app/id6763342297",
     "deeplink": null,

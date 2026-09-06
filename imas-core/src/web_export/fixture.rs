@@ -292,6 +292,7 @@ fn theme_table() -> ThemeTable {
         ThemeTokens {
             accent: theme_hex(c.accent),
             on_accent: theme_hex(c.on_accent),
+            accent_ink: theme_hex(c.accent),
             tint: theme_hex(c.tint),
             tint_strong: theme_hex(c.tint_strong),
             chip_bg: theme_hex(c.chip_bg),
@@ -469,6 +470,7 @@ fn show_page() -> ShowPage {
                             }),
                         }),
                         is_cover: false,
+                        first_performance_label: None,
                     },
                     // 歌唱メンバーが記録されていない行 (実データに多い)。
                     SetlistRow {
@@ -481,6 +483,7 @@ fn show_page() -> ShowPage {
                         full_cast_label: None,
                         lineup: None,
                         is_cover: true,
+                        first_performance_label: None,
                     },
                 ],
             },
@@ -510,6 +513,7 @@ fn show_page() -> ShowPage {
                         missing: None,
                     }),
                     is_cover: false,
+                    first_performance_label: None,
                 }],
             },
         ],
@@ -594,6 +598,14 @@ fn song_page(reference: &Ref, minimal: bool) -> SongPage {
         parent: None,
         variants: if minimal { vec![] } else { vec![song_variant()] },
         performance_count: if minimal { 0 } else { 12 },
+        stat_tiles: if minimal {
+            vec![]
+        } else {
+            vec![
+                tile("♪", 12, "回披露", Some("#song-history")),
+                tile("☺", 2, "原唱者", None),
+            ]
+        },
         performance_history: if minimal {
             vec![]
         } else {
@@ -605,6 +617,9 @@ fn song_page(reference: &Ref, minimal: bool) -> SongPage {
                 venue: Some("幕張メッセ".to_string()),
                 number: 1,
                 place_display: "DAY1 ・ 幕張メッセ".to_string(),
+                href: format!("{}#setlist-1", show_sample().path),
+                performers_display: Some("春日未来・最上静香・伊吹翼 ほか 9 人".to_string()),
+                ordinal_label: content::ordinal_label(12),
             }]
         },
         frequent_singers: if minimal {
@@ -654,6 +669,10 @@ fn song_variant_page() -> SongPage {
 fn idol_page(reference: &Ref) -> IdolPage {
     IdolPage {
         schema_version: SCHEMA_VERSION,
+        stat_tiles: vec![
+            tile("♪", 2, "持ち曲", Some("#idol-songs")),
+            tile("▤", 1, "出演公演", Some("#idol-shows")),
+        ],
         tags: vec![TagChipDto {
             id: "tag_genki".to_string(),
             name: "元気".to_string(),
@@ -861,7 +880,8 @@ fn event_list_item(reference: &Ref, kind: &str) -> EventListItem {
         venue_display: Some("幕張メッセ".to_string()),
         show_count_display: Some("2 公演".to_string()),
         kind: kind.to_string(),
-        kind_label: Some(content::kind_label(kind).to_string()),
+        // 本番と同じ規則: 既定の種別 (ライブ) には札を付けない。
+        kind_label: (kind != content::DEFAULT_EVENT_KIND).then(|| content::kind_label(kind).to_string()),
     }
 }
 
@@ -876,12 +896,14 @@ fn event_list_page(path: &str, title: &str, kind: EventListKind, empty: bool) ->
         } else {
             vec![
                 YearGroup {
-                    year: "2026".to_string(),
+                    year: "2026年".to_string(),
                     events: vec![event_list_item(&event_sample(), "live")],
+                    more: Some(nav("2025年のライブ", "/events/past/2025/", false, None, Some(52))),
                 },
                 YearGroup {
-                    year: "2025".to_string(),
+                    year: "2025年".to_string(),
                     events: vec![event_list_item(&event_weird_id(), "festival")],
+                    more: None,
                 },
             ]
         },
@@ -1031,6 +1053,7 @@ fn unit_list_page(path: &str, title: &str) -> UnitListPage {
                 reference: unit_sample(),
                 brand: Some(brand_ml()),
                 is_permanent: true,
+                note: None,
                 member_count: 2,
                 song_count: 1,
             },
@@ -1038,10 +1061,12 @@ fn unit_list_page(path: &str, title: &str) -> UnitListPage {
                 reference: unit_empty(),
                 brand: None,
                 is_permanent: false,
+                note: Some("公演限定".to_string()),
                 member_count: 0,
                 song_count: 0,
             },
         ],
+        kana_sections: vec![KanaSection { label: "あ".to_string(), start_index: 0, count: 2 }],
         brand_links: vec![
             nav("すべて", "/units/", path == "/units/", None, Some(1539)),
             nav("ミリオンライブ!", "/units/brand/ml/", path == "/units/brand/ml/", Some("brand:ml"), Some(300)),
@@ -1125,6 +1150,8 @@ fn home_page() -> HomePage {
         disclaimer: content::SITE_DISCLAIMER.to_string(),
         upcoming: vec![event_list_item(&event_sample(), "live")],
         recent_shows: vec![show_summary(ShowContext::Home)],
+        recent_shows_more: nav("開催済みのライブへ", "/events/past/", false, None, None),
+        app_note: content::home_app_note(),
         stat_tiles: site_tiles(true, false),
         brands: vec![brand_list_item(&brand_ml()), brand_list_item(&brand_cg())],
         app: content::app_links(),

@@ -34,21 +34,22 @@ const sectionStarts = new Set(kanaSections.map((s) => s.startIndex));
 ---
 
 <div class="card song-table__scroll" data-song-table>
-  <table class="song-table">
-    <thead>
-      <tr>
-        <th scope="col" class="song-table__c-title">曲名</th>
-        <th scope="col" class="song-table__c-unit">ユニット</th>
-        <th scope="col" class="song-table__c-artists">原唱者</th>
-        <th scope="col" class="song-table__c-date song-table__num">初出</th>
-        <th scope="col" class="song-table__c-count song-table__num">ライブ</th>
+  {/* 畳んだ形 (display: block) でも表の意味が残るよう、役割を明示する。 */}
+  <table class="song-table" role="table">
+    <thead role="rowgroup">
+      <tr role="row">
+        <th role="columnheader" scope="col" class="song-table__c-title">曲名</th>
+        <th role="columnheader" scope="col" class="song-table__c-unit">ユニット</th>
+        <th role="columnheader" scope="col" class="song-table__c-artists">原唱者</th>
+        <th role="columnheader" scope="col" class="song-table__c-date song-table__num">初出</th>
+        <th role="columnheader" scope="col" class="song-table__c-count song-table__num">ライブ</th>
       </tr>
     </thead>
-    <tbody>
+    <tbody role="rowgroup">
       {
         items.map((item, i) => (
-          <tr id={sectionStarts.has(i) ? `kana-${i}` : undefined} data-song-id={item.ref.id} data-theme={item.ref.themeKey}>
-            <th scope="row" class="song-table__c-title song-table__title">
+          <tr role="row" id={sectionStarts.has(i) ? `kana-${i}` : undefined} data-song-id={item.ref.id} data-theme={item.ref.themeKey}>
+            <th role="rowheader" scope="row" class="song-table__c-title song-table__title">
               {/* themeKey は tr から継承する。行ごとに 2 回置くと、
                   2,000 行規模で custom property の再計算が倍になる。 */}
               <a href={item.ref.path}>
@@ -56,16 +57,16 @@ const sectionStarts = new Set(kanaSections.map((s) => s.startIndex));
                 <span>{item.ref.name}</span>
               </a>
             </th>
-            <td class="song-table__c-unit song-table__dim">{item.unitLabel}</td>
-            <td class="song-table__c-artists song-table__dim">{item.artistsLabel}</td>
-            <td class="song-table__c-date song-table__num song-table__dim u-num">
+            <td role="cell" class="song-table__c-unit song-table__dim">{item.unitLabel}</td>
+            <td role="cell" class="song-table__c-artists song-table__dim">{item.artistsLabel}</td>
+            <td role="cell" class="song-table__c-date song-table__num song-table__dim u-num">
               {item.releaseDate}
             </td>
-            <td class="song-table__c-count song-table__num">
+            <td role="cell" class="song-table__c-count song-table__num">
               {item.performanceCount !== null && <Count value={item.performanceCount} />}
             </td>
             {/* 列を落としたぶんの受け皿。列と排他で、同時に見えることはない。 */}
-            <td class="song-table__subtitle">{item.subtitle}</td>
+            <td role="cell" class="song-table__subtitle">{item.subtitle}</td>
           </tr>
         ))
       }

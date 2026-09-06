@@ -57,14 +57,16 @@
       "path": "/idols/",
       "current": false,
       "themeKey": null,
-      "count": 394
+      "count": 394,
+      "matchPrefixes": []
     },
     {
       "label": "ミリオンライブ!",
       "path": "/idols/brand/ml/",
       "current": false,
       "themeKey": "brand:ml",
-      "count": 52
+      "count": 52,
+      "matchPrefixes": []
     }
   ],
   "birthMonthLinks": [
@@ -73,84 +75,96 @@
       "path": "/idols/birth-month/1/",
       "current": false,
       "themeKey": null,
-      "count": null
+      "count": null,
+      "matchPrefixes": []
     },
     {
       "label": "2月",
       "path": "/idols/birth-month/2/",
       "current": false,
       "themeKey": null,
-      "count": null
+      "count": null,
+      "matchPrefixes": []
     },
     {
       "label": "3月",
       "path": "/idols/birth-month/3/",
       "current": false,
       "themeKey": null,
-      "count": null
+      "count": null,
+      "matchPrefixes": []
     },
     {
       "label": "4月",
       "path": "/idols/birth-month/4/",
       "current": false,
       "themeKey": null,
-      "count": null
+      "count": null,
+      "matchPrefixes": []
     },
     {
       "label": "5月",
       "path": "/idols/birth-month/5/",
       "current": false,
       "themeKey": null,
-      "count": null
+      "count": null,
+      "matchPrefixes": []
     },
     {
       "label": "6月",
       "path": "/idols/birth-month/6/",
       "current": false,
       "themeKey": null,
-      "count": null
+      "count": null,
+      "matchPrefixes": []
     },
     {
       "label": "7月",
       "path": "/idols/birth-month/7/",
       "current": false,
       "themeKey": null,
-      "count": null
+      "count": null,
+      "matchPrefixes": []
     },
     {
       "label": "8月",
       "path": "/idols/birth-month/8/",
       "current": false,
       "themeKey": null,
-      "count": null
+      "count": null,
+      "matchPrefixes": []
     },
     {
       "label": "9月",
       "path": "/idols/birth-month/9/",
       "current": true,
       "themeKey": null,
-      "count": null
+      "count": null,
+      "matchPrefixes": []
     },
     {
       "label": "10月",
       "path": "/idols/birth-month/10/",
       "current": false,
       "themeKey": null,
-      "count": null
+      "count": null,
+      "matchPrefixes": []
     },
     {
       "label": "11月",
       "path": "/idols/birth-month/11/",
       "current": false,
       "themeKey": null,
-      "count": null
+      "count": null,
+      "matchPrefixes": []
     },
     {
       "label": "12月",
       "path": "/idols/birth-month/12/",
       "current": false,
       "themeKey": null,
-      "count": null
+      "count": null,
+      "matchPrefixes": []
     }
   ],
   "total": 2,

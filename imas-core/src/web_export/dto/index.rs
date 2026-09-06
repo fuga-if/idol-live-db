@@ -53,6 +53,9 @@ web_dto! {
     pub struct YearGroup {
         pub year: String,
         pub events: Vec<EventListItem>,
+        /// この束の続き (ハブでは「開催済みをすべて見る」、年の一覧では 1 つ前の年)。
+        /// 一覧が途中で切れていることを行の下で言うための 1 本。
+        pub more: Option<NavLink>,
     }
 }
 
@@ -279,6 +282,8 @@ web_dto! {
         pub title: String,
         pub brand: Option<Ref>,
         pub items: Vec<UnitListItem>,
+        /// 楽曲一覧と同じ、よみの目次。`items` はよみ順に並んでいる。
+        pub kana_sections: Vec<KanaSection>,
         pub brand_links: Vec<NavLink>,
         pub total: u32,
         pub seo: SeoBlock,
@@ -293,6 +298,8 @@ web_dto! {
         pub reference: Ref,
         pub brand: Option<Ref>,
         pub is_permanent: bool,
+        /// 例外にだけ付く札 (「公演限定」)。常設が 9 割なので、常設に札を付けても見分けにならない。
+        pub note: Option<String>,
         pub member_count: u32,
         pub song_count: u32,
     }
@@ -381,6 +388,11 @@ web_dto! {
         pub stat_tiles: Vec<StatTile>,
         pub brands: Vec<BrandListItem>,
         pub app: AppLinks,
+        /// 「アプリで、もっと」の説明文。アプリにしか無い機能の並びは `content` が 1 箇所で持つ
+        /// (歌詞を出面で出す/出さないで変わる)。
+        pub app_note: String,
+        /// 「最近の公演」の続き先。公演だけの一覧は無いので、開催済みのライブへ送る。
+        pub recent_shows_more: NavLink,
         pub seo: SeoBlock,
     }
 }

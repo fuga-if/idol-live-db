@@ -14,6 +14,9 @@ interface Props {
 const { pathname } = Astro.props;
 const nav = meta().primaryNav;
 const isCurrent = (href: string) => pathname.startsWith(href);
+// 「公演はライブの下」のような所属は Rust が `matchPrefixes` で言う。
+const isCurrentNav = (n: (typeof nav)[number]) =>
+  isCurrent(n.path) || n.matchPrefixes.some((p) => pathname.startsWith(p));
 ---
 
 <header class="site-nav">
@@ -27,7 +30,7 @@ const isCurrent = (href: string) => pathname.startsWith(href);
         {
           nav.map((n) => (
             <li>
-              <a href={n.path} aria-current={isCurrent(n.path) ? "page" : undefined}>
+              <a href={n.path} aria-current={isCurrentNav(n) ? "page" : undefined}>
                 {n.label}
               </a>
             </li>

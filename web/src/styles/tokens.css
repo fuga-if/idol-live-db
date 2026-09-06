@@ -23,7 +23,7 @@
      ライトの副次テキストが WCAG AA (4.5:1) を満たさない (bg #F2F2F7 上で 3.8:1)。
      .74 で bg #F2F2F7 上 4.6:1 / surface #FFFFFF 上はさらに上、と余裕を持って超える
      (.72 だと 4.47:1 で境界に張り付く)。ダークは .62 のままで 6:1 超。 */
-  --ds-ink2: rgb(60 60 67 / 0.74);
+  --ds-ink2: rgb(60 60 67 / 0.78);
   /* ink3 はコントラストを満たさないので **文字には使わない** (シェブロン・区切りなど装飾専用)。 */
   --ds-ink3: rgb(60 60 67 / 0.34);
 
@@ -35,10 +35,12 @@
   --ds-on-sys: #ffffff;
   --ds-sys2: rgb(60 60 67 / 0.55);
   --ds-pick: #ff2d78;
+  /* 文字に使う側 (14% の薄い地の上で AA)。--ds-pick は印・線用。 */
+  --ds-pick-ink: #c2185b;
   --ds-favorite: #e8a800;
   /* 曜日の色。日曜は赤・土曜は青という暦の慣習に合わせる (日付ブロック専用)。 */
-  --ds-sunday: #d93025;
-  --ds-saturday: #2a6fd6;
+  --ds-sunday: #c5221f;
+  --ds-saturday: #1f5fc4;
 
   /* --- エレベーション (フラット基調なので控えめ) --- */
   --ds-shadow1: 0 1px 2px rgb(18 18 20 / 0.06), 0 0 0 0.5px rgb(60 60 67 / 0.06);
@@ -132,9 +134,10 @@
     --ds-on-sys: #1c1c1e;
     --ds-sys2: rgb(235 235 245 / 0.55);
     --ds-pick: #ff5a8c;
+    --ds-pick-ink: #ff5a8c;
     --ds-favorite: #ffc83e;
-    --ds-sunday: #ff6b5e;
-    --ds-saturday: #6ea6ff;
+    --ds-sunday: #ff8a80;
+    --ds-saturday: #7fb0ff;
 
     --ds-shadow1: 0 1px 2px rgb(0 0 0 / 0.5);
     --ds-shadow2: 0 10px 28px rgb(0 0 0 / 0.55), 0 1px 2px rgb(0 0 0 / 0.5);

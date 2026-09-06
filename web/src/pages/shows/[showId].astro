@@ -63,19 +63,19 @@ const setlistCount = show.setlistSections.reduce((n, section) => n + section.row
       <div class="hero__lead">
         <DateBadge badge={show.dateBadge} size="lg" />
         <Facts rows={show.factRows} />
+        {
+          siblingsAsSegments && (
+            <nav class="segmented" aria-label="このライブの公演">
+              {siblings.map((s) => (
+                <a href={s.path} aria-current={s.id === show.id ? "page" : undefined}>
+                  {s.name}
+                  <Count value={s.sub} dim />
+                </a>
+              ))}
+            </nav>
+          )
+        }
       </div>
-      {
-        siblingsAsSegments && (
-          <nav class="segmented" aria-label="このライブの公演">
-            {siblings.map((s) => (
-              <a href={s.path} aria-current={s.id === show.id ? "page" : undefined}>
-                {s.name}
-                <Count value={s.sub} dim />
-              </a>
-            ))}
-          </nav>
-        )
-      }
       {
         siblingsAsPager && (
           <nav class="pager" aria-label="このライブの公演">
@@ -102,9 +102,7 @@ const setlistCount = show.setlistSections.reduce((n, section) => n + section.row
   </section>
 
   <Section id="show-setlist" title="セットリスト" count={setlistCount}>
-    <div class="setlist-tools">
-      <PerformerNamePref />
-    </div>
+    <PerformerNamePref slot="tools" />
     {
       setlistCount === 0 ? (
         <EmptyState

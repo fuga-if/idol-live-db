@@ -88,6 +88,8 @@ web_dto! {
         pub lineup: Option<LineupNote>,
         /// `songs.song_type == "cover"` (曲そのものがカバー曲)。
         pub is_cover: bool,
+        /// この披露がその曲の初披露 (この DB に載っている範囲で最古) なら「初披露」。
+        pub first_performance_label: Option<String>,
     }
 }
 

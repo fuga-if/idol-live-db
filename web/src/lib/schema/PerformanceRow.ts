@@ -17,4 +17,16 @@ number: number,
 /**
  * 1 行で出すときの場所表記 (公演名と会場を `" ・ "` で繋いだもの)。
  */
-placeDisplay: string, };
+placeDisplay: string, 
+/**
+ * 行の飛び先。公演ページのその曲の行 (`…/#setlist-N`)。曲順が分からなければ公演ページの頭。
+ */
+href: string, 
+/**
+ * この披露の歌唱メンバー (3 人まで並べて残りは「ほか N 人」)。無ければ None。
+ */
+performersDisplay: string | null, 
+/**
+ * 「初披露」または「N 回目」(この DB に載っている範囲で、最古から数えて)。
+ */
+ordinalLabel: string, };

@@ -9,6 +9,7 @@ import type { Ref } from "./Ref";
 import type { SeoBlock } from "./SeoBlock";
 import type { SingerRow } from "./SingerRow";
 import type { SongCommunity } from "./SongCommunity";
+import type { StatTile } from "./StatTile";
 
 /**
  * `/songs/<id>/` の中身。
@@ -58,6 +59,10 @@ parent: Ref | null,
  * この曲の派生 (リミックス・ソロver 等)。
  */
 variants: Array<Ref>, performanceCount: number, 
+/**
+ * 数の帯 (披露回数 / 原唱者 / 派生曲)。ページ内の該当の節へ飛ぶ。
+ */
+statTiles: Array<StatTile>, 
 /**
  * date 降順。
  */

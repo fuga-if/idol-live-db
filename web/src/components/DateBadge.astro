@@ -20,17 +20,19 @@ const { badge, size = "sm", showYear = true } = Astro.props;
 const Tag = badge.weekday ? "time" : "span";
 ---
 
+{/* 見た目の 3 分割は耳では「9/19 土 2026」と聞こえる。読み上げには Rust が組んだ 1 本を渡す。 */}
 <Tag
   class:list={["date-badge", size === "lg" && "date-badge--lg"]}
   datetime={badge.weekday ? badge.iso : undefined}
 >
-  {badge.monthDay && <span class="date-badge__md u-num">{badge.monthDay}</span>}
+  <span class="u-visually-hidden">{badge.spoken}</span>
+  {badge.monthDay && <span class="date-badge__md u-num" aria-hidden="true">{badge.monthDay}</span>}
   {
     badge.weekday && (
-      <span class="date-badge__wd" data-weekday={badge.weekday}>
+      <span class="date-badge__wd" data-weekday={badge.weekday} aria-hidden="true">
         {badge.weekday}
       </span>
     )
   }
-  {showYear && badge.year && <span class="date-badge__yr u-num">{badge.year}</span>}
+  {showYear && badge.year && <span class="date-badge__yr u-num" aria-hidden="true">{badge.year}</span>}
 </Tag>

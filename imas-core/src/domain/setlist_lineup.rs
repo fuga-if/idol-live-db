@@ -11,7 +11,9 @@ use std::collections::BTreeSet;
 /// 出演者全員で歌う行の札。
 pub const FULL_CAST_LABEL: &str = "全員";
 /// 「公演には出ているのにこの行では歌っていない原唱者」の並びの前に置く言葉。
-pub const MISSING_LABEL: &str = "不参加";
+/// 「不参加」だけだと「そのライブに出ていない」と読まれる (ファン用語の不参加は欠席)。
+/// ここに並ぶのは **出演しているのにこの曲は歌っていない** 原唱者なので、曲を主語にする。
+pub const MISSING_LABEL: &str = "この曲は不参加";
 
 /// 原唱者との関係。JSON にはそのまま camelCase の名前で出る (`partial` 等。CSS の見分け用)。
 /// アプリには FFI (`inbound::event_detail_queries::setlist_lineup`) で同じ enum が渡る。

@@ -47,49 +47,58 @@
       "path": "/events/",
       "current": false,
       "themeKey": null,
-      "count": null
+      "count": null,
+      "matchPrefixes": [
+        "/shows/"
+      ]
     },
     {
       "label": "楽曲",
       "path": "/songs/",
       "current": false,
       "themeKey": null,
-      "count": null
+      "count": null,
+      "matchPrefixes": []
     },
     {
       "label": "アイドル",
       "path": "/idols/",
       "current": false,
       "themeKey": null,
-      "count": null
+      "count": null,
+      "matchPrefixes": []
     },
     {
       "label": "ユニット",
       "path": "/units/",
       "current": false,
       "themeKey": null,
-      "count": null
+      "count": null,
+      "matchPrefixes": []
     },
     {
       "label": "会場",
       "path": "/venues/",
       "current": false,
       "themeKey": null,
-      "count": null
+      "count": null,
+      "matchPrefixes": []
     },
     {
       "label": "ブランド",
       "path": "/brands/",
       "current": false,
       "themeKey": null,
-      "count": null
+      "count": null,
+      "matchPrefixes": []
     },
     {
-      "label": "コール",
+      "label": "コールガイド",
       "path": "/calls/",
       "current": false,
       "themeKey": null,
-      "count": null
+      "count": null,
+      "matchPrefixes": []
     }
   ],
   "utilityNav": [
@@ -98,14 +107,16 @@
       "path": "/search/",
       "current": false,
       "themeKey": null,
-      "count": null
+      "count": null,
+      "matchPrefixes": []
     },
     {
       "label": "このサイトについて",
       "path": "/about/",
       "current": false,
       "themeKey": null,
-      "count": null
+      "count": null,
+      "matchPrefixes": []
     }
   ],
   "footerNotes": [

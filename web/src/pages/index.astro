@@ -28,7 +28,7 @@ const [featured, ...restUpcoming] = home.upcoming;
       <p class="lede">{home.tagline}</p>
       <SearchBox />
       <StatStrip items={home.statTiles} label="収録データ" />
-      <p class="lede lede--small lede--wide">{home.disclaimer}</p>
+      {/* 非公式の断りはフッタ (Rust の footerNotes) が全ページで言う。最初の一画面には置かない。 */}
     </div>
   </section>
 
@@ -54,7 +54,12 @@ const [featured, ...restUpcoming] = home.upcoming;
     }
   </Section>
 
-  <Section id="home-recent" title="最近の公演" moreHref="/events/past/">
+  <Section
+    id="home-recent"
+    title="最近の公演"
+    moreHref={home.recentShowsMore.path}
+    moreLabel={home.recentShowsMore.label}
+  >
     {
       home.recentShows.length === 0 ? (
         <EmptyState title="公演の記録がありません" />
@@ -96,10 +101,7 @@ const [featured, ...restUpcoming] = home.upcoming;
     />
     <div class="cta__body">
       <h2 class="cta__title" id="home-app">アプリで、もっと</h2>
-      <p class="lede lede--small">
-        参加記録・担当設定・歌詞・コール・投票・タグ付けといった、操作して残していく機能は
-        すべて iOS アプリ側にあります。このサイトは閲覧と共有に専念しています。
-      </p>
+      <p class="lede lede--small">{home.appNote}</p>
       <p class="cta__actions">
         <a class="btn" href={home.app.appStoreUrl}>App Store で見る</a>
         <a class="btn btn--ghost" href={home.app.repositoryUrl}>GitHub でデータに協力する</a>

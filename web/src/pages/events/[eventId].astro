@@ -71,9 +71,10 @@ const hasTicket = ticketRows.some((r) => r.value) || ev.ticket.url;
     }
   </Section>
 
+  {/* 出演者は本体側 (長いのはこちら。脇の 20rem に 36 人 × 2 日を詰めると 8 行に折れる)。 */}
   {
     ev.cast && ev.cast.shows.length > 0 && (
-      <Section slot="aside" id="event-cast" title="出演者">
+      <Section id="event-cast" title="出演者">
         <div class="u-stack">
           {ev.cast.shows.map((cs) => (
             <div class="card card__pad u-stack">

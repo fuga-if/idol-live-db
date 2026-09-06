@@ -96,7 +96,25 @@ pub fn footer_notes() -> Vec<String> {
 }
 
 /// コールガイドの進捗ページ (`/calls/`) の説明。iOS のダッシュボードと同じ文。
-pub const CALL_GUIDE_INTRO: &str = "歌詞の行ごとに「ここでこう叫ぶ」を書き込むのがコールガイドです。曲ごとの「コーレス投稿」とは別物で、アプリの歌詞タブから直接付けられます。書き込みはアプリから、ここでは進み具合だけを見られます。";
+pub const CALL_GUIDE_INTRO: &str = if LYRICS_ON_WEB {
+    // 出面で読める間は、読み手が得るものを先に言う (進捗表そのものが目的の人は少ない)。
+    "曲ページの「歌詞とコールガイドを読む」を押すと、歌詞の行ごとに「ここでこう叫ぶ」が読めます。それがコールガイドです。書き込みはアプリの歌詞タブから。ここでは進み具合を見られます。"
+} else {
+    "歌詞の行ごとに「ここでこう叫ぶ」を書き込むのがコールガイドです。読み書きはアプリの歌詞タブから。ここでは進み具合だけを見られます。"
+};
+
+/// 曲の初披露に付ける札。「この DB に載っている範囲で最古」の意味で、回数 (`ordinal_label`) と同じ基準。
+pub const FIRST_PERFORMANCE_LABEL: &str = "初披露";
+
+/// 披露が何回目か (1 なら [`FIRST_PERFORMANCE_LABEL`])。
+pub fn ordinal_label(ordinal: u32) -> String {
+    if ordinal <= 1 { FIRST_PERFORMANCE_LABEL.to_string() } else { format!("{ordinal} 回目") }
+}
+
+/// トップの「アプリで、もっと」の説明。機能の並びは [`APP_FEATURES_NOTE`] と同じ 1 箇所。
+pub fn home_app_note() -> String {
+    format!("{APP_FEATURES_NOTE}このサイトは閲覧と共有に専念しています。")
+}
 
 /// 歌詞・コールガイドを取りに行く API の起点。
 pub const API_ORIGIN: &str = "https://imas-live-api.tokata3011.workers.dev";
@@ -172,6 +190,9 @@ pub fn absolute(path: &str) -> String {
 }
 
 /// ライブ種別の日本語表記。一覧を全種別で出すので、行に付ける見分けが要る。
+/// 既定の種別 (ライブ)。一覧の行で札にしないのはこれだけ (例外の種別だけを言う)。
+pub const DEFAULT_EVENT_KIND: &str = "live";
+
 pub fn kind_label(kind: &str) -> &'static str {
     match kind {
         "live" => "ライブ",
@@ -216,7 +237,7 @@ pub fn about_sections() -> Vec<AboutSection> {
             heading: "版権について".to_string(),
             paragraphs: vec![
                 format!("{}アイドルは名前の 1 文字を使ったモノグラムで表示しています。", not_hosted_note()),
-                "ジャケット画像は Apple Music の配信情報 (songs.artwork_url) を参照しています。".to_string(),
+                "ジャケット画像は Apple Music が配信しているものを参照しています。".to_string(),
             ],
             links: vec![],
         },

@@ -22,26 +22,41 @@ const { list } = Astro.props;
   filterLabel="ブランドで絞る"
 >
   {
+    list.kanaSections.length > 0 && (
+      <nav class="link-chips" aria-label="よみで飛ぶ">
+        {list.kanaSections.map((s) => (
+          <a href={`#kana-${s.startIndex}`}>
+            {s.label}
+            <Count value={s.count} dim />
+          </a>
+        ))}
+      </nav>
+    )
+  }
+  {
     list.items.length === 0 ? (
       <EmptyState title="該当するユニットがありません" />
     ) : (
       <ListContainer as="ul">
-        {list.items.map((item) => (
-          <li>
-            <DatedRow
-              title={item.ref.name}
-              href={item.ref.path}
-              themeKey={item.ref.themeKey}
-              meta={[item.brand?.name ?? item.ref.sub]}
-            >
-              <span slot="trailing" class="u-row">
-                {item.isPermanent && <TagChip text="常設" kind="all" />}
-                <Count strong value={item.memberCount} unit="人" />
-                {item.songCount > 0 && <Count strong value={item.songCount} unit="曲" />}
-              </span>
-            </DatedRow>
-          </li>
-        ))}
+        {list.items.map((item, i) => {
+          const section = list.kanaSections.find((s) => s.startIndex === i);
+          return (
+            <li id={section ? `kana-${i}` : undefined}>
+              <DatedRow
+                title={item.ref.name}
+                href={item.ref.path}
+                themeKey={item.ref.themeKey}
+                meta={[item.brand?.name ?? item.ref.sub]}
+              >
+                <span slot="trailing" class="u-row">
+                  {item.note && <TagChip text={item.note} kind="all" />}
+                  <Count strong value={item.memberCount} unit="人" />
+                  {item.songCount > 0 && <Count strong value={item.songCount} unit="曲" />}
+                </span>
+              </DatedRow>
+            </li>
+          );
+        })}
       </ListContainer>
     )
   }

@@ -12,6 +12,9 @@ const { title, count, moreHref, moreLabel, id } = Astro.props;
 ---
 
 <section class="section" aria-labelledby={id}>
-  <SectionHeader title={title} count={count} moreHref={moreHref} moreLabel={moreLabel} id={id} />
+  <SectionHeader title={title} count={count} moreHref={moreHref} moreLabel={moreLabel} id={id}>
+    {/* 見出しの行の右端に置く操作 (表示切替など)。 */}
+    <slot name="tools" slot="tools" />
+  </SectionHeader>
   <slot />
 </section>

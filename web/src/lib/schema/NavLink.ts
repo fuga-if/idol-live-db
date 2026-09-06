@@ -17,4 +17,11 @@ themeKey: string | null,
 /**
  * 件数を出せるときだけ入る。
  */
-count: number | null, };
+count: number | null, 
+/**
+ * `path` 以外にこのリンクの「現在地」とみなすパスの接頭辞 (上部バーだけが使う)。
+ *
+ * 公演 (`/shows/…`) はライブ (`/events/`) の下にいる、という所属の判断はパンくずと
+ * 同じくこちらが持つ。受け手は `path` とこの列を前方一致で見るだけ。
+ */
+matchPrefixes: Array<string>, };

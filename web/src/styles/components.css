@@ -66,6 +66,7 @@
 }
 .section__head {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   gap: var(--sp3);
   padding-inline: var(--sp1);
@@ -98,6 +99,24 @@
 .section__more:hover {
   color: var(--ds-ink);
   background: var(--ds-fill);
+}
+/* 見出しの行の右端に置く操作 (歌唱者の表示切替など)。 */
+.section__tools {
+  margin-inline-start: auto;
+}
+/* 年の束の続き (「開催済みをすべて見る」「2025年のライブ」)。 */
+.year-group__more {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--sp2);
+  padding: var(--sp3) var(--sp2) 0;
+  font-size: var(--fs-footnote);
+  font-weight: 600;
+  color: var(--ds-ink2);
+}
+.year-group__more:hover {
+  color: var(--ds-ink);
 }
 
 /* --- アイドルカラーの点 --------------------------------------------------
@@ -210,7 +229,7 @@
   color: var(--ds-saturday);
 }
 .date-badge__yr {
-  font-size: 0.625rem;
+  font-size: var(--fs-caption2);
   color: var(--ds-ink2);
   margin-top: 3px;
   letter-spacing: 0.03em;
@@ -326,7 +345,7 @@ a.row:hover {
 }
 .chevron {
   flex: none;
-  color: var(--ds-ink3);
+  color: var(--ds-ink2);
   font-size: var(--fs-footnote);
   font-weight: 700;
   line-height: 1;
@@ -450,7 +469,7 @@ a.chip:hover {
   margin-inline-start: var(--sp2);
   font-weight: 500;
   font-variant-numeric: tabular-nums;
-  opacity: 0.72;
+  color: var(--ds-ink2);
   /* 日付が `202 / 0-02-22` のように途中で折れない。折り返すのは本体 (名前) の方。 */
   white-space: nowrap;
 }
@@ -469,16 +488,18 @@ a.chip:hover {
   min-inline-size: 0;
   max-inline-size: 100%;
 }
+/* 文字に使うのは常に --accent-ink (地に対して AA まで寄せた側)。--accent そのものは
+   ミリオンの黄・シャニマスの水色が白地で 1.7:1 しか無く、線と点にしか使えない。 */
 .tag--unit {
   background: color-mix(in srgb, var(--accent) 12%, transparent);
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 /* コミュニティのタグ。色はタグ自身が持つ hex (無ければテーマのアクセント)。
    ここでは色を決めず、`--tag-color` に来たものを使うだけ。 */
 .tag--community {
   gap: var(--sp2);
   background: color-mix(in srgb, var(--tag-color, var(--accent)) 14%, transparent);
-  color: var(--tag-color, var(--accent));
+  color: var(--tag-color, var(--accent-ink));
 }
 .tag--community.tag--official {
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tag-color, var(--accent)) 45%, transparent);
@@ -489,11 +510,16 @@ a.chip:hover {
 }
 .tag--cover {
   background: color-mix(in srgb, var(--ds-pick) 14%, transparent);
-  color: var(--ds-pick);
+  color: var(--ds-pick-ink);
 }
 .tag--lead {
   background: var(--accent);
   color: var(--on-accent);
+}
+/* 初披露。曲の色の薄い地に、読める側の色。 */
+.tag--first {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent-ink);
 }
 .tag--guest {
   background: transparent;
@@ -538,7 +564,7 @@ a.chip:hover {
 .lyrics__calls {
   display: block;
   font-size: var(--fs-caption);
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 /* 印刷では歌詞を出さない (紙に落とすのも「まとめ取り」に当たる)。 */
 @media print {
@@ -595,8 +621,12 @@ a.chip:hover {
   overflow-x: auto;
   scrollbar-width: none;
   /* 中身が収まるなら内容幅、溢れるなら親幅で止めて自身が横スクロールする
-     (max-content だけだと親をはみ出してページごと横スクロールになる)。 */
-  max-inline-size: min(100%, max-content);
+     (max-content だけだと親をはみ出してページごと横スクロールになる)。
+     `min(100%, max-content)` は無効 (min() に内在サイズは書けない) で捨てられ、
+     縦積みの親の中で全幅に伸びていた。 */
+  inline-size: fit-content;
+  max-inline-size: 100%;
+  align-self: flex-start;
 }
 .segmented::-webkit-scrollbar {
   display: none;
@@ -765,7 +795,8 @@ a.stat-strip__item:hover {
   font-variant-numeric: tabular-nums;
   font-size: var(--fs-subhead);
   font-weight: 700;
-  color: var(--accent);
+  /* 比べる数の列は 1 色。行ごとにアイドル色で塗ると赤い「3票」が警告に見える。 */
+  color: var(--ds-ink);
   white-space: nowrap;
 }
 .metric--muted {
@@ -871,7 +902,7 @@ a.ranking-row:hover {
   color: var(--ds-ink2);
 }
 .ranking-row--top .ranking-row__rank {
-  color: var(--accent);
+  color: var(--ds-ink);
 }
 .ranking-row__body {
   min-width: 0;
@@ -918,7 +949,7 @@ a.labeled-row:hover {
   background: var(--ds-surface2);
 }
 a.labeled-row .labeled-row__value {
-  color: var(--accent);
+  color: var(--accent-ink);
   font-weight: 600;
 }
 
@@ -1143,8 +1174,10 @@ a.labeled-row .labeled-row__value {
   box-shadow: var(--ds-shadow1);
 }
 .search-box__field:focus-within {
-  border-color: var(--ds-ink3);
-  box-shadow: var(--ds-shadow2);
+  /* 枠の色だけでは 1.9:1 で見えない。他の操作と同じ輪郭を描く。 */
+  outline: 2px solid var(--ds-ink);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px var(--ds-bg);
 }
 .search-box__glyph {
   color: var(--ds-ink2);
@@ -1162,7 +1195,7 @@ a.labeled-row .labeled-row__value {
   font: inherit;
   font-size: var(--fs-callout);
 }
-.search-box__input:focus {
+.search-box__input:focus-visible {
   outline: none;
 }
 .search-box__input::placeholder {
@@ -1269,10 +1302,33 @@ a.labeled-row .labeled-row__value {
   white-space: nowrap;
   vertical-align: bottom;
 }
+.crumbs a {
+  padding-block: 2px;
+}
 .crumbs a:hover {
   color: var(--ds-ink);
   text-decoration: underline;
   text-underline-offset: 2px;
+}
+/* 電話では 1 行に収める。段ごとに詰めて余りを省略する (3 行に折り返すと見出しより
+   パンくずが大きくなる)。全文は見出しと <title> が持つ。 */
+@media (max-width: 44rem) {
+  .crumbs ol {
+    flex-wrap: nowrap;
+  }
+  /* 縮めるのは長い段 (ライブ名・ブランド名 = 最後の 1 つ前) から。「ホーム」「ライブ」の
+     ような短い段まで比例して縮めると全段が「ホ…」になる。 */
+  .crumbs li {
+    flex: 0 1 auto;
+    min-inline-size: 4.5em;
+  }
+  .crumbs li:nth-last-child(2) {
+    min-inline-size: 0;
+  }
+  .crumbs a,
+  .crumbs span {
+    max-inline-size: 100%;
+  }
 }
 
 /* --- OpenInApp (アプリで開く導線) ----------------------------------------- */
@@ -1382,12 +1438,13 @@ a.labeled-row .labeled-row__value {
    行は [番号] [ジャケ] [曲名 + 注記 / 札 / 歌唱者]。歌唱者は名前の下にアイドル色の線を
    引いて並べる — 揃うとペンライトの帯のように見え、誰が・何人歌ったかが色で分かる。 */
 .setlist__section {
-  padding: var(--sp3) var(--sp5) var(--sp2);
+  padding: var(--sp4) var(--sp5) var(--sp3);
+  border-top: 1px solid var(--ds-sep);
   font-family: var(--font-display);
-  font-size: var(--fs-caption);
+  font-size: var(--fs-footnote);
   font-weight: 700;
   letter-spacing: 0.08em;
-  color: var(--ds-ink2);
+  color: var(--ds-ink);
   background: var(--ds-surface2);
 }
 /* 見出しの無い塊が続くとき (合同ライブで本編ブロックが戻る) は、線を少し太くして塊の境を見せる。 */
@@ -1433,9 +1490,16 @@ a.labeled-row .labeled-row__value {
   gap: var(--sp1) var(--sp3);
 }
 .setlist__title {
+  display: inline-block;
+  padding-block: 3px;
+  margin-block: -3px;
   font-size: var(--fs-callout);
   font-weight: 600;
   line-height: var(--lh-snug);
+}
+/* 公演ページのその曲へ飛んできたとき、吸着するヘッダの下に隠れない。 */
+.setlist__row {
+  scroll-margin-top: calc(var(--header-h) + var(--sp4));
 }
 .setlist__notes {
   font-size: var(--fs-caption);
@@ -1450,7 +1514,18 @@ a.labeled-row .labeled-row__value {
 }
 :is([data-lineup="original"], [data-lineup="originalPlus"]) .tag--lineup {
   background: color-mix(in srgb, var(--accent) 14%, transparent);
-  color: var(--accent);
+  color: var(--accent-ink);
+}
+/* 「いたのに歌わなかった」人は、歌唱者の**後**に控えめな 1 行で。歌唱者と同じ色の線を
+   引くと 2 つの歌唱者一覧に見え、49 人の全体曲では歌っていない人の方が目立っていた。 */
+.lineup__missing {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--sp1) var(--sp3);
+  margin-top: var(--sp2);
+  font-size: var(--fs-caption);
+  color: var(--ds-ink2);
 }
 .lineup__missing-label {
   font-weight: 600;
@@ -1476,7 +1551,8 @@ a.labeled-row .labeled-row__value {
 }
 /* 原唱者だがこの行では歌っていない人。 */
 .performer--absent {
-  border-bottom: 2px dashed var(--accent);
+  border-bottom: 0;
+  padding: 0;
   color: var(--ds-ink2);
   font-weight: 500;
   font-size: var(--fs-caption);
@@ -1559,7 +1635,7 @@ a.labeled-row .labeled-row__value {
   display: inline-flex;
   flex-wrap: wrap;
   gap: 2px;
-  max-inline-size: 16rem;
+  max-inline-size: 28rem;
 }
 .fold > .performers {
   margin-top: var(--sp3);
@@ -1681,12 +1757,15 @@ a.labeled-row .labeled-row__value {
   border-collapse: collapse;
   font-size: var(--fs-footnote);
 }
+/* 揃えと太さは列クラス側が決める。`th, td` (0,1,1) にまとめて書くと列クラス (0,1,0) を
+   上書きして、曲名の太さも数の右寄せも消える。 */
 .song-table th,
 .song-table td {
-  text-align: left;
   padding: var(--sp3) var(--sp4);
-  font-weight: 400;
   vertical-align: middle;
+}
+.song-table th:not(.song-table__num) {
+  text-align: left;
 }
 .song-table tbody tr + tr th,
 .song-table tbody tr + tr td {
@@ -1733,6 +1812,7 @@ a.labeled-row .labeled-row__value {
    その幅では列ごと落とす — 下のコンテナクエリを参照)。 */
 .song-table__dim {
   color: var(--ds-ink2);
+  font-weight: 400;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1971,4 +2051,16 @@ a.labeled-row .labeled-row__value {
 }
 .perf-pref .song-filter__select {
   width: auto;
+}
+
+/* --- 箱に収まった行のフォーカス -------------------------------------------
+   `.card` は overflow: hidden、行は li いっぱいなので、外側に描く輪郭 (outline-offset: 2px)
+   は描く場所が無く消える。行だけは内側に描く。 */
+.card a.row:focus-visible,
+.card a.ranking-row:focus-visible,
+.card a.labeled-row:focus-visible,
+.grid-tiles .tile:focus-visible {
+  outline-offset: -3px;
+  box-shadow: none;
+  border-radius: 0;
 }

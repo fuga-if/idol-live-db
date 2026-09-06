@@ -23,9 +23,11 @@ pub fn call_guide_page(ctx: &Ctx, dash: &Dashboard) -> CallGuidePage {
         .filter_map(|s| {
             Some(CallGuideSongRow {
                 song: ctx.song_ref(&s.song_id)?,
-                detail: format!("{} 件・{} 行", s.call_count, s.call_lines),
+                // 「32 件・19 行」だけでは何の数か分からない。単位の前に語を置く。
+                detail: format!("コール {} 件・歌詞 {} 行", s.call_count, s.call_lines),
                 updated_display: date_display(s.updated_at),
-                updated_by: s.updated_by.clone(),
+                // 名前だけ置くと誰の何なのか読めない (「万丈」が曲名にも見える)。
+                updated_by: format!("更新: {}", s.updated_by),
             })
         })
         .collect();
@@ -37,7 +39,7 @@ pub fn call_guide_page(ctx: &Ctx, dash: &Dashboard) -> CallGuidePage {
                 song: ctx.song_ref(&e.song_id)?,
                 label: edit_label(e),
                 at_display: date_display(e.at),
-                by: e.by.clone(),
+                by: format!("編集: {}", e.by),
             })
         })
         .collect();
@@ -48,19 +50,29 @@ pub fn call_guide_page(ctx: &Ctx, dash: &Dashboard) -> CallGuidePage {
         .collect();
     let tag = dash.call_tag.as_ref();
 
+    // 「書き手募集中」の数は Worker が返す上位 100 件ではなく、タグ付き − ガイドあり −
+    // 歌詞未登録 (= 書ける状態で待っている曲) の実数。並べるのは票の多い順の一部。
+    let wanted_total = tag.map_or(wanted.len() as u32, |t| {
+        t.tagged.saturating_sub(t.with_calls).saturating_sub(t.without_lyrics)
+    });
     let stat_tiles = vec![
         tile("♬", with_calls.len() as u32, "ガイドあり"),
-        tile("✎", wanted.len() as u32, "書き手募集中"),
+        tile("✎", wanted_total, "書き手募集中"),
         tile("#", tag.map_or(0, |t| t.tagged), "コール曲タグ付き"),
     ];
-    let wanted_note = tag.and_then(|t| {
-        (t.without_lyrics > 0).then(|| {
-            format!(
+    let wanted_note = {
+        let mut notes: Vec<String> = Vec::new();
+        if (wanted.len() as u32) < wanted_total {
+            notes.push(format!("ここに並べているのは票の多い順に {} 曲です。", wanted.len()));
+        }
+        if let Some(t) = tag.filter(|t| t.without_lyrics > 0) {
+            notes.push(format!(
                 "ほかに「{}」タグの付いた {} 曲は歌詞が未登録のため、ここには並べていません (歌詞が入ってから書けるようになります)。",
                 t.tag_name, t.without_lyrics
-            )
-        })
-    });
+            ));
+        }
+        (!notes.is_empty()).then(|| notes.join(""))
+    };
     let with_calls_note = (dash.songs_with_calls.len() >= WORKER_SONGS_LIMIT)
         .then(|| format!("ここに出ているのは、最近更新された {WORKER_SONGS_LIMIT} 曲です。"));
 

@@ -1,5 +1,6 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
+import Breadcrumbs from "../components/Breadcrumbs.astro";
 import SearchBox from "../components/SearchBox.astro";
 import { meta } from "../lib/data";
 import type { SeoBlock } from "../lib/schema/SeoBlock";
@@ -30,6 +31,7 @@ const site = meta();
 
 <BaseLayout seo={seo}>
   <div class="list-head">
+    <Breadcrumbs crumbs={seo.breadcrumbs} />
     <div class="list-head__title">
       <h1>検索</h1>
     </div>

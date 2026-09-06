@@ -1,13 +1,14 @@
 //! ライブ (event) と公演 (show) の詳細ページ。
 
 use super::context::{simple_json_ld, Ctx};
-use crate::domain::date_display::range_with_weekday;
+use crate::domain::date_display::{range_with_weekday, short_with_weekday};
 use crate::domain::event_detail_queries as detail;
 use crate::domain::snapshot::Snapshot;
 use crate::domain::event_grouping::group_events_by_year;
 use crate::domain::setlist_lineup::{is_full_cast, summarize, FULL_CAST_LABEL, MISSING_LABEL};
 use crate::domain::setlist_sections::{group_consecutive, section_label};
 use crate::domain::show_naming::show_identity;
+use crate::domain::song_detail_queries::first_performance_item_id;
 use crate::web_export::content;
 use crate::web_export::dto::*;
 use crate::web_export::url::url_segment;
@@ -94,16 +95,7 @@ pub fn event_page(ctx: &Ctx, event_id: &str) -> Option<EventPage> {
 /// 数の帯。**0 は「まだ無い」で情報ではない**ので落とす (開催前は曲数が全部 0 で、
 /// 並べても何も言わない)。対応する一覧が無いので押せない (`href` 無し)。
 fn stat_tiles<const N: usize>(items: [(&str, u32, &str); N]) -> Vec<StatTile> {
-    items
-        .into_iter()
-        .filter(|(_, value, _)| *value > 0)
-        .map(|(glyph, value, label)| StatTile {
-            glyph: glyph.to_string(),
-            value,
-            label: label.to_string(),
-            href: None,
-        })
-        .collect()
+    nonzero_tiles(items.into_iter().map(|(glyph, value, label)| StatTile::new(glyph, value, label)))
 }
 
 /// ライブの数の帯 (公演 / のべ曲数 / 異なり曲数 / 出演者)。
@@ -111,7 +103,7 @@ fn event_stat_tiles(s: detail::EventStatsRecord) -> Vec<StatTile> {
     stat_tiles([
         ("▤", s.show_count, "公演"),
         ("≡", s.total_songs, "のべ曲数"),
-        ("♬", s.unique_songs, "異なり曲数"),
+        ("♬", s.unique_songs, "曲数 (重複なし)"),
         ("☺", s.cast_count, "出演者"),
     ])
 }
@@ -247,7 +239,7 @@ pub fn show_summary(
         date: show.date.clone(),
         date_badge: DateBadge::from_ymd(&show.date),
         venue_label: (context != ShowContext::AtVenue).then(|| show.venue.clone()).flatten(),
-        hall: show.hall.clone(),
+        hall: hall_unless_in(show.hall.as_deref(), show.venue.as_deref()),
         start_time_display: show.start_time.as_deref().map(|t| format!("{t} 開演")),
         // Eff: セトリ本体を組み直さずに本数だけ数える (前計算済みの索引の長さ)。
         setlist_count: ctx.setlist_len(&show.id),
@@ -264,7 +256,8 @@ pub fn show_page(ctx: &Ctx, show_id: &str) -> Option<ShowPage> {
         .and_then(|e| e.brand_id.clone());
     let path = ctx.path(RefKind::Show, show_id);
 
-    let cast_ids = detail::show_cast_idol_ids(ctx.snap, show_id);
+    // 出演者は登録分に歌唱メンバーを足した和集合 (歌っているなら出ている)。
+    let cast_ids = detail::show_cast_with_performers(ctx.snap, show_id);
     let cast: BTreeSet<&str> = cast_ids.iter().map(String::as_str).collect();
     let rows = setlist_rows(ctx, show_id, &cast);
     let setlist_count = rows.len() as u32;
@@ -305,7 +298,7 @@ pub fn show_page(ctx: &Ctx, show_id: &str) -> Option<ShowPage> {
         seo: ctx.seo(
             &title,
             &format!(
-                "{}（{}）のセットリスト{}。",
+                "{}（{}{}）のセットリストと出演者。",
                 title,
                 show.date,
                 show.venue.as_deref().map(|v| format!("・{v}")).unwrap_or_default()
@@ -365,6 +358,9 @@ fn setlist_rows(
                 full_cast_label: full_cast.then(|| FULL_CAST_LABEL.to_string()),
                 lineup: lineup_note_of(ctx, &original_ids, &performer_ids, cast, full_cast),
                 is_cover: ctx.snap.song(&e.song_id).is_some_and(Snapshot::is_cover),
+                first_performance_label: (first_performance_item_id(ctx.snap, &e.song_id).as_deref()
+                    == Some(e.id.as_str()))
+                .then(|| content::FIRST_PERFORMANCE_LABEL.to_string()),
             };
             Some((section_label(e.section.as_deref()), row))
         })
@@ -427,10 +423,11 @@ fn show_json_ld(
 /// 優先する — マスタ名より細かい (ホール名込み等) ことがあるため。
 fn show_fact_rows(show: &detail::ShowRecord, venue: Option<&Ref>) -> Vec<ProfileRow> {
     let venue_name = show.venue.clone().or_else(|| venue.map(|v| v.name.clone()));
+    let hall = hall_unless_in(show.hall.as_deref(), venue_name.as_deref());
     [
         ("開演", show.start_time.clone(), None),
         ("会場", venue_name, venue.map(|v| v.path.clone())),
-        ("ホール", show.hall.clone(), None),
+        ("ホール", hall, None),
         ("所在地", show.venue_city.clone(), None),
         ("配信", show.stream_platform.clone(), None),
     ]
@@ -444,6 +441,13 @@ fn show_fact_rows(show: &detail::ShowRecord, venue: Option<&Ref>) -> Vec<Profile
         })
     })
     .collect()
+}
+
+/// ホール名が会場名に含まれているなら (「さいたまスーパーアリーナ(アリーナモード)」の
+/// 「アリーナモード」)、ホールの行は同じ語の繰り返しになるので出さない。
+fn hall_unless_in(hall: Option<&str>, venue: Option<&str>) -> Option<String> {
+    let hall = hall.filter(|h| !h.is_empty())?;
+    (!venue.is_some_and(|v| v.contains(hall))).then(|| hall.to_string())
 }
 
 /// 「このライブの他の公演」に出すチップ。
@@ -465,7 +469,8 @@ fn sibling_shows(ctx: &Ctx, event_id: &str, event_name: &str) -> Vec<Ref> {
             let mut reference = ctx.show_ref(&s.id)?;
             let identity = show_identity(event_name, &s.name, &s.date);
             // 名前が日付そのもの (見分けが無い) なら、補助表記に日付を重ねない。
-            reference.sub = identity.short.is_name().then(|| s.date.clone());
+            // 添えるのはページ本体と同じ短い形 (`4/4 (土)`)。ISO を並べると見出しと形が違う。
+            reference.sub = identity.short.is_name().then(|| short_with_weekday(&s.date));
             reference.name = identity.short.into_text();
             Some(reference)
         })

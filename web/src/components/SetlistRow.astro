@@ -24,7 +24,8 @@ const folded = row.fullCastLabel !== null || row.performers.length > FOLD_PERFOR
 const Wrap = folded ? "details" : "div";
 ---
 
-<li class="setlist__row" data-theme={row.song.themeKey}>
+{/* id は披露履歴 (曲ページ) からの飛び先 (`…/#setlist-N`)。番号は Rust が振ったもの。 */}
+<li class="setlist__row" id={`setlist-${row.number}`} data-theme={row.song.themeKey}>
   {/* 表示する番号は `row.number` (Rust が公演内で 1 から振ったもの)。
       `row.position` は setlist_items 全体を通した並び順の鍵で、表示用ではない。
       描画側で連番を振らないのは、将来「アンコールは別番号」のような規則が
@@ -37,19 +38,12 @@ const Wrap = folded ? "details" : "div";
       {row.notes && <span class="setlist__notes">{row.notes}</span>}
     </p>
     {
-      (row.unitLabel || row.isCover || row.lineup) && (
+      (row.unitLabel || row.isCover || row.lineup || row.firstPerformanceLabel) && (
         <p class="u-row" data-lineup={row.lineup?.kind}>
           {row.unitLabel && <TagChip text={row.unitLabel} kind="unit" />}
           {row.isCover && <TagChip text="カバー" kind="cover" />}
           {row.lineup && <TagChip text={row.lineup.label} kind="lineup" />}
-          {row.lineup?.missing && (
-            <span class="row__meta">
-              <span class="lineup__missing-label">{row.lineup.missing.label}</span>
-              {row.lineup.missing.idols.map((idol) => (
-                <Performer ref={idol} absent />
-              ))}
-            </span>
-          )}
+          {row.firstPerformanceLabel && <TagChip text={row.firstPerformanceLabel} kind="first" />}
         </p>
       )
     }
@@ -59,6 +53,8 @@ const Wrap = folded ? "details" : "div";
           {folded && (
             <summary class="fold__summary">
               {row.fullCastLabel && <TagChip text={row.fullCastLabel} kind="all" />}
+              {/* 読み上げには「15 人」だけが残るので、何の人数かを添える。 */}
+              <span class="u-visually-hidden">歌唱者</span>
               <span class="fold__dots" aria-hidden="true">
                 {row.performers.map((p) => (
                   <ColorDot size="md" themeKey={p.ref.themeKey} />
@@ -74,6 +70,17 @@ const Wrap = folded ? "details" : "div";
             ))}
           </span>
         </Wrap>
+      )
+    }
+    {/* 「いたのに歌わなかった」人は歌唱者の後に控えめに (行の答えは歌唱者の方)。 */}
+    {
+      row.lineup?.missing && (
+        <p class="lineup__missing">
+          <span class="lineup__missing-label">{row.lineup.missing.label}</span>
+          {row.lineup.missing.idols.map((idol) => (
+            <Performer ref={idol} absent />
+          ))}
+        </p>
       )
     }
   </div>

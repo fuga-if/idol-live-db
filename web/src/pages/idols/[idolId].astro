@@ -8,6 +8,7 @@ import LabeledRow from "../../components/LabeledRow.astro";
 import DatedRow from "../../components/DatedRow.astro";
 import Count from "../../components/Count.astro";
 import RefList from "../../components/RefList.astro";
+import StatStrip from "../../components/StatStrip.astro";
 import RankingRow from "../../components/RankingRow.astro";
 import EmptyState from "../../components/EmptyState.astro";
 import CommunityTags from "../../components/CommunityTags.astro";
@@ -19,7 +20,8 @@ export const getStaticPaths = () => pathsFor("idol", "idolId");
 const idol = page<IdolPage>(Astro.props.data);
 ---
 
-<DetailLayout seo={idol.seo} themeKey={idol.themeKey} app={idol.app}>
+{/* 電話ではプロフィール・ユニット (脇) より持ち曲・出演公演 (本体) を先に。 */}
+<DetailLayout seo={idol.seo} themeKey={idol.themeKey} app={idol.app} asideAfterMain>
   <section class="hero" slot="hero" aria-labelledby="idol-title">
     <ColorDot size="hero" />
     <div class="hero__body">
@@ -33,6 +35,7 @@ const idol = page<IdolPage>(Astro.props.data);
         ))}
       </div>
       {idol.description && <p class="lede">{idol.description}</p>}
+      <StatStrip items={idol.statTiles} label="このアイドルの数" />
     </div>
   </section>
 

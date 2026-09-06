@@ -8,6 +8,7 @@ use super::context::{join_parts, simple_json_ld, Ctx, PARTS_SEPARATOR};
 use crate::domain::date_display::until_display;
 use crate::domain::display_join::join_capped;
 use crate::domain::kana_row::kana_row_label;
+use crate::domain::text_search_index::prepare_needle;
 use super::places::{location_display, UNCLASSIFIED_PREFECTURE};
 use crate::domain::event_grouping::group_events_by_year;
 use crate::domain::event_list_queries::{self, EventWithDateRecord};
@@ -66,6 +67,7 @@ fn year_groups(
                 .iter()
                 .filter_map(|&i| event_list_item(ctx, &records[i as usize], with_brand))
                 .collect(),
+            more: None,
         })
         .collect()
 }
@@ -114,7 +116,9 @@ fn event_list_item(
         brand_mark: if with_brand { e.brand_id.as_deref().and_then(|b| ctx.brand_ref(b)) } else { None },
         venue_display: venue_display(&venue_labels),
         show_count_display: (show_count > 1).then(|| format!("{show_count} 公演")),
-        kind_label: Some(content::kind_label(&e.kind).to_string()),
+        // 種別の札は既定 (ライブ) には付けない。ほぼ全行に同じ札が並ぶと見分けにならず、
+        // フェス・リリースイベントのような例外だけを言えばよい。
+        kind_label: (e.kind != content::DEFAULT_EVENT_KIND).then(|| content::kind_label(&e.kind).to_string()),
         kind: e.kind.clone(),
     })
 }
@@ -142,7 +146,27 @@ fn scope_links(current: &str, upcoming: u32, past: u32) -> Vec<NavLink> {
     links
 }
 
+/// 年ラベル → URL の段。「2019年」は `2019`、日程未定は `undated`。
+///
+/// 表示ラベルをそのまま URL にすると `/events/past/2019%E5%B9%B4/` になり、共有した
+/// リンクが読めず、`[year]` ルートの契約 (fixture は `/events/past/2026/`) とも食い違う。
+fn year_key(label: &str) -> String {
+    label
+        .strip_suffix('年')
+        .filter(|y| !y.is_empty() && y.chars().all(|c| c.is_ascii_digit()))
+        .map_or_else(|| "undated".to_string(), str::to_string)
+}
+
+fn past_year_path(label: &str) -> String {
+    format!("/events/past/{}/", year_key(label))
+}
+
 /// ライブ一覧をすべて組む (`/events/` から `/events/brand/<b>/` まで)。
+///
+/// - `/events/` は入口 (ハブ): 今後の予定を全部と、開催済みのいちばん新しい年を載せ、
+///   その下に「開催済みをすべて見る」を置く。今後だけの一覧 (`/events/upcoming/`) の
+///   写しにしない (同じものが 2 枚あると、件数の食い違いだけが目立つ)。
+/// - `/events/past/` と各年のページは 1 年ぶんを載せ、束の下に 1 つ前の年への送りを置く。
 pub fn event_lists(ctx: &Ctx) -> Vec<Emitted<EventListPage>> {
     let kinds = all_event_kinds();
     // include_empty=true にするのは、公演がまだ無いライブ (発表直後) のページも
@@ -157,22 +181,40 @@ pub fn event_lists(ctx: &Ctx) -> Vec<Emitted<EventListPage>> {
     let year_links: Vec<NavLink> = past_groups
         .iter()
         .map(|g| {
-            // `g.year` は domain が「2026年」まで付けた表示ラベル (日付不明は「年度不明」)。
-            NavLink::new(&g.year, format!("/events/past/{}/", url_segment(&g.year)))
-                .with_count(g.events.len() as u32)
+            // `g.year` は domain が「2026年」まで付けた表示ラベル。URL には年だけを使う。
+            NavLink::new(&g.year, past_year_path(&g.year)).with_count(g.events.len() as u32)
         })
         .collect();
+    // 1 つ前の年 (開催済みは新しい順なので、次の要素) への送り。
+    let older_year_link = |i: usize| -> Option<NavLink> {
+        let g = past_groups.get(i + 1)?;
+        Some(
+            NavLink::new(&format!("{}のライブ", g.year), past_year_path(&g.year))
+                .with_count(g.events.len() as u32),
+        )
+    };
+    let with_more = |mut g: YearGroup, more: Option<NavLink>| {
+        g.more = more;
+        g
+    };
+
+    let crumb_events = || Ctx::crumb("ライブ", "/events/");
+    let crumb_past = || Ctx::crumb("開催済みのライブ", "/events/past/");
 
     let make = |path: &str,
                 title: &str,
                 kind: EventListKind,
                 route: (RouteKind, Option<String>),
                 groups: Vec<YearGroup>,
+                total: u32,
                 data: String,
-                description: &str| {
-        let total: u32 = groups.iter().map(|g| g.events.len() as u32).sum();
+                description: &str,
+                parents: Vec<Crumb>| {
         let mut year_links = year_links.clone();
         mark_current(&mut year_links, path);
+        let mut breadcrumbs = vec![Ctx::crumb("ホーム", "/")];
+        breadcrumbs.extend(parents);
+        breadcrumbs.push(Ctx::crumb(title, path));
         Emitted {
             path: path.to_string(),
             data,
@@ -194,10 +236,24 @@ pub fn event_lists(ctx: &Ctx) -> Vec<Emitted<EventListPage>> {
                     path,
                     None,
                     collection_json_ld(title, path),
-                    vec![Ctx::crumb("ホーム", "/"), Ctx::crumb(title, path)],
+                    breadcrumbs,
                 ),
             },
         }
+    };
+
+    // ハブ: 今後の予定 (全部) + 開催済みの最新の年 + 「すべて見る」。
+    let hub_groups = {
+        let mut groups = upcoming_groups.clone();
+        if let Some(newest) = past_groups.first() {
+            let mut g = newest.clone();
+            g.year = format!("開催済み ({})", newest.year);
+            groups.push(with_more(
+                g,
+                Some(NavLink::new("開催済みのライブをすべて見る", "/events/past/").with_count(past_total)),
+            ));
+        }
+        groups
     };
 
     let mut out = vec![
@@ -206,9 +262,11 @@ pub fn event_lists(ctx: &Ctx) -> Vec<Emitted<EventListPage>> {
             "ライブ",
             EventListKind::Index,
             (RouteKind::EventListIndex, None),
-            upcoming_groups.clone(),
+            hub_groups,
+            upcoming_total + past_total,
             "index/events.json".to_string(),
             "アイドルマスターのライブ・イベントの一覧。今後の開催予定と開催済みを年別に。",
+            vec![],
         ),
         make(
             "/events/upcoming/",
@@ -216,33 +274,47 @@ pub fn event_lists(ctx: &Ctx) -> Vec<Emitted<EventListPage>> {
             EventListKind::Upcoming,
             (RouteKind::EventListUpcoming, None),
             upcoming_groups,
+            upcoming_total,
             "index/events-upcoming.json".to_string(),
             "これから開催されるアイドルマスターのライブ・イベント。",
+            vec![crumb_events()],
         ),
     ];
 
-    // `/events/past/` は年の入口。中身は最新の年だけ載せる (全部載せると 1 枚が重い)。
-    let newest_past = past_groups.first().cloned().into_iter().collect();
+    // `/events/past/` は年の入口。中身は最新の年だけ載せ (全部載せると 1 枚が重い)、
+    // 束の下に 1 つ前の年への送りを置く。
+    let newest_past: Vec<YearGroup> = past_groups
+        .first()
+        .cloned()
+        .map(|g| with_more(g, older_year_link(0)))
+        .into_iter()
+        .collect();
     out.push(make(
         "/events/past/",
         "開催済みのライブ",
         EventListKind::Past,
         (RouteKind::EventListPast, None),
         newest_past,
+        past_total,
         "index/events-past.json".to_string(),
         "開催済みのアイドルマスターのライブ・イベントを年別に。",
+        vec![crumb_events()],
     ));
 
-    for group in &past_groups {
-        let path = format!("/events/past/{}/", url_segment(&group.year));
+    for (i, group) in past_groups.iter().enumerate() {
+        let key = year_key(&group.year);
+        let path = past_year_path(&group.year);
+        let total = group.events.len() as u32;
         out.push(make(
             &path,
             &format!("{}のライブ", group.year),
             EventListKind::PastYear,
-            (RouteKind::EventListPastYear, Some(group.year.clone())),
-            vec![group.clone()],
-            format!("index/events-past-{}.json", group.year),
+            (RouteKind::EventListPastYear, Some(key.clone())),
+            vec![with_more(group.clone(), older_year_link(i))],
+            total,
+            format!("index/events-past-{key}.json"),
             &format!("{}に開催されたアイドルマスターのライブ・イベント。", group.year),
+            vec![crumb_events(), crumb_past()],
         ));
     }
 
@@ -254,14 +326,17 @@ pub fn event_lists(ctx: &Ctx) -> Vec<Emitted<EventListPage>> {
         // ブランド別ページなので、行の副題にブランド名は入れない。
         let mut groups = year_groups(ctx, &records, true, false);
         groups.extend(year_groups(ctx, &records, false, false));
+        let total = groups.iter().map(|g| g.events.len() as u32).sum();
         out.push(make(
             &path,
             &format!("{}のライブ", brand.name),
             EventListKind::Brand,
             (RouteKind::EventListBrand, Some(brand.id.clone())),
             groups,
+            total,
             format!("index/events-brand-{}.json", Ctx::param_key(&brand.id)),
             &format!("{}のライブ・イベントの一覧。", brand.name),
+            vec![crumb_events()],
         ));
     }
     out
@@ -346,12 +421,18 @@ pub fn brand_top_song_indexes(ctx: &Ctx, brand_id: &str) -> Vec<u32> {
 /// 表示のための区切りなので規則はここに置く (コアの判断ではない)。判定の前に
 /// `prepare_needle` を通すので、「ア」も「あ」に入る = 検索の畳み込みと同じ規則になる。
 fn kana_sections(ctx: &Ctx, items: &[SongListItem]) -> Vec<KanaSection> {
-    let mut sections: Vec<KanaSection> = Vec::new();
-    for (i, item) in items.iter().enumerate() {
-        let song = ctx.snap.song(&item.reference.id);
-        let source = song
+    kana_sections_of(items.iter().map(|item| {
+        ctx.snap
+            .song(&item.reference.id)
             .and_then(|s| s.title_kana.clone())
-            .unwrap_or_else(|| item.reference.name.clone());
+            .unwrap_or_else(|| item.reference.name.clone())
+    }))
+}
+
+/// よみの目次を、並び順の読みの列から組む (曲・ユニット共通)。
+fn kana_sections_of(sources: impl Iterator<Item = String>) -> Vec<KanaSection> {
+    let mut sections: Vec<KanaSection> = Vec::new();
+    for (i, source) in sources.enumerate() {
         let label = kana_row_label(&source).to_string();
         match sections.last_mut() {
             Some(last) if last.label == label => last.count += 1,
@@ -359,6 +440,14 @@ fn kana_sections(ctx: &Ctx, items: &[SongListItem]) -> Vec<KanaSection> {
         }
     }
     sections
+}
+
+/// よみ順の鍵。行 (あ〜わ → 英数 → その他) を先に、行の中は検索と同じ畳み込みで並べる。
+/// 目次 (`kana_sections_of`) と同じ規則なので、目次の区画が並びの中で飛び地にならない。
+fn kana_sort_key(text: &str) -> (usize, String) {
+    const ROWS: [&str; 12] = ["あ", "か", "さ", "た", "な", "は", "ま", "や", "ら", "わ", "英数", "その他"];
+    let row = ROWS.iter().position(|r| *r == kana_row_label(text)).unwrap_or(ROWS.len());
+    (row, String::from_utf8(prepare_needle(text)).unwrap_or_default())
 }
 
 
@@ -425,6 +514,7 @@ pub fn song_lists(ctx: &Ctx) -> Vec<Emitted<SongListPage>> {
                     current: false,
                     theme_key: None,
                     count: Some(total_all),
+                    match_prefixes: Vec::new(),
                 }),
                 items,
                 brand_links: brand_links(ctx, "songs", &path, "すべて", listed_total),
@@ -627,6 +717,10 @@ pub fn idol_lists(ctx: &Ctx) -> Vec<Emitted<IdolListPage>> {
 
 pub fn unit_lists(ctx: &Ctx) -> Vec<Emitted<UnitListPage>> {
     let index = unit_queries::unit_index_data(ctx.snap);
+    // よみ順 (曲一覧と同じ規則)。DB の並びは登録順で、1,500 件を目で追えない。
+    let unit_reading = |u: &unit_queries::UnitRecord| u.name_kana.clone().unwrap_or_else(|| u.name.clone());
+    let mut units: Vec<&unit_queries::UnitRecord> = index.units.iter().collect();
+    units.sort_by_cached_key(|u| kana_sort_key(&unit_reading(u)));
     let member_counts: BTreeMap<String, u32> = index.units.iter().map(|u| {
         let count = ctx
             .snap
@@ -648,6 +742,7 @@ pub fn unit_lists(ctx: &Ctx) -> Vec<Emitted<UnitListPage>> {
             reference: ctx.unit_ref(&u.id)?,
             brand: ctx.brand_ref(&u.brand_id),
             is_permanent: u.is_permanent,
+            note: (!u.is_permanent).then(|| "公演限定".to_string()),
             member_count: member_counts.get(&u.id).copied().unwrap_or(0),
             // `songs_by_unit` が空でないユニットが `song_unit_ids` に入る、という
             // 関係なので `max(1)` は証明可能に no-op だった (そのために HashSet を
@@ -664,6 +759,7 @@ pub fn unit_lists(ctx: &Ctx) -> Vec<Emitted<UnitListPage>> {
                 brand: Option<Ref>,
                 description: String| {
         let items: Vec<UnitListItem> = units.iter().filter_map(|u| item(u)).collect();
+        let kana_sections = kana_sections_of(units.iter().map(|u| unit_reading(u)));
         let brand_id = brand.as_ref().map(|b| b.id.clone());
         Emitted {
             path: path.clone(),
@@ -677,6 +773,7 @@ pub fn unit_lists(ctx: &Ctx) -> Vec<Emitted<UnitListPage>> {
                 brand,
                 total: items.len() as u32,
                 items,
+                kana_sections,
                 brand_links: brand_links(ctx, "units", &path, "すべて", index.units.len() as u32),
                 seo: ctx.seo(
                     &title,
@@ -694,7 +791,7 @@ pub fn unit_lists(ctx: &Ctx) -> Vec<Emitted<UnitListPage>> {
         "/units/".to_string(),
         "ユニット".to_string(),
         (RouteKind::UnitListIndex, None),
-        index.units.iter().collect(),
+        units.clone(),
         "index/units.json".to_string(),
         None,
         "アイドルマスターのユニット一覧。メンバーとユニット曲。".to_string(),
@@ -706,7 +803,7 @@ pub fn unit_lists(ctx: &Ctx) -> Vec<Emitted<UnitListPage>> {
             path,
             format!("{}のユニット", brand.name),
             (RouteKind::UnitListBrand, Some(brand.id.clone())),
-            index.units.iter().filter(|u| u.brand_id == brand.id).collect(),
+            units.iter().copied().filter(|u| u.brand_id == brand.id).collect(),
             format!("index/units-brand-{}.json", Ctx::param_key(&brand.id)),
             ctx.brand_ref(&brand.id),
             format!("{}のユニット一覧。", brand.name),
@@ -755,10 +852,12 @@ pub fn venue_lists(ctx: &Ctx) -> Vec<Emitted<VenueListPage>> {
         by_prefecture.entry(prefecture_of(&ctx.snap.venues[i as usize])).or_default().push(i);
     }
 
-    let prefecture_links: Vec<NavLink> = by_prefecture
+    // 会場の多い順 (東京 105 が真ん中に埋もれない)。同数は名前順で決定化。
+    let mut prefecture_links: Vec<NavLink> = by_prefecture
         .iter()
         .map(|(pref, list)| NavLink::new(pref, pref_path(pref)).with_count(list.len() as u32))
         .collect();
+    prefecture_links.sort_by(|a, b| b.count.cmp(&a.count).then_with(|| a.label.cmp(&b.label)));
 
     let item = |i: u32| -> Option<VenueListItem> {
         let v = &ctx.snap.venues[i as usize];
@@ -1094,6 +1193,8 @@ pub fn home(ctx: &Ctx, upcoming: &[EventListItem], counts: Counts) -> HomePage {
             items
         },
         recent_shows: super::events::recent_shows(ctx, 8),
+        recent_shows_more: NavLink::new("開催済みのライブへ", "/events/past/"),
+        app_note: content::home_app_note(),
         stat_tiles: site_stat_tiles(counts, true, false),
         brands: ctx
             .snap
@@ -1128,13 +1229,18 @@ pub fn primary_nav(with_polls: bool, with_calls: bool) -> Vec<NavLink> {
         SiteList::Brands,
     ]
     .into_iter()
-    .map(|list| NavLink::new(list.label(), list.path()))
+    .map(|list| {
+        let link = NavLink::new(list.label(), list.path());
+        // 公演のページはライブの下 (パンくずと同じ所属)。
+        if list == SiteList::Events { link.with_match_prefixes(&["/shows/"]) } else { link }
+    })
     .collect();
     if with_polls {
         nav.push(NavLink::new("お題", "/polls/"));
     }
     if with_calls {
-        nav.push(NavLink::new("コール", super::calls::PATH));
+        // 「コール」だけではアプリの外で意味が取れない (コーレス? 電話?)。
+        nav.push(NavLink::new("コールガイド", super::calls::PATH));
     }
     nav
 }

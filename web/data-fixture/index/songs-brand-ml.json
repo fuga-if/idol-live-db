@@ -81,14 +81,16 @@
       "path": "/songs/",
       "current": false,
       "themeKey": null,
-      "count": 2040
+      "count": 2040,
+      "matchPrefixes": []
     },
     {
       "label": "ミリオンライブ!",
       "path": "/songs/brand/ml/",
       "current": true,
       "themeKey": "brand:ml",
-      "count": 600
+      "count": 600,
+      "matchPrefixes": []
     }
   ],
   "allSongsLink": null,

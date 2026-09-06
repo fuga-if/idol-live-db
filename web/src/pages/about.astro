@@ -1,5 +1,6 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
+import Breadcrumbs from "../components/Breadcrumbs.astro";
 import Section from "../components/Section.astro";
 import StatTiles from "../components/StatTiles.astro";
 import ListContainer from "../components/ListContainer.astro";
@@ -17,6 +18,7 @@ const about = page<AboutPage>(routeData("about", "/about/"));
 
 <BaseLayout seo={about.seo}>
   <div class="list-head">
+    <Breadcrumbs crumbs={about.seo.breadcrumbs} />
     <div class="list-head__title">
       <h1>このサイトについて</h1>
     </div>

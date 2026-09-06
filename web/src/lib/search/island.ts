@@ -81,9 +81,10 @@ function elements(): Elements | null {
 
 function init({ form, input, status, results, fallback, lyricsSearchUrl, modes }: Elements): void {
   form.addEventListener("submit", (e) => e.preventDefault());
-  // 歌詞の一致箇所は本文の断片。選択・コピー・右クリック・ドラッグを止める
-  // (曲ページの歌詞と同じ扱い。完全には防げないが、まとめ取りの手間を上げる)。
-  for (const type of ["copy", "cut", "contextmenu", "dragstart", "selectstart"]) {
+  // 歌詞の一致箇所は本文の断片。コピー・切り取り・ドラッグを止める (選択は CSS)。
+  // 曲ページの歌詞と同じ扱い: 右クリックまでは止めない (読み上げ・辞書のような支援の道具を
+  // 殺すだけで、まとめ取りの抑止にはならない)。完全には防げないが、手間を上げる。
+  for (const type of ["copy", "cut", "dragstart"]) {
     results.addEventListener(type, (e) => {
       if ((e.target as Element | null)?.closest?.(".search-snippet")) e.preventDefault();
     });
@@ -130,9 +131,23 @@ function init({ form, input, status, results, fallback, lyricsSearchUrl, modes }
     void run(initial);
   }
 
+  /**
+   * いま見ている検索を URL に写す (履歴は積まない: 1 文字ごとに戻る先が増えるので
+   * `replaceState`)。共有したリンクと再読み込みが、打ち込んだ語と探し方に戻れる。
+   */
+  function reflectInUrl(text: string): void {
+    const url = new URL(location.href);
+    if (text) url.searchParams.set("q", text);
+    else url.searchParams.delete("q");
+    if (lyricsMode()) url.searchParams.set("mode", "lyrics");
+    else url.searchParams.delete("mode");
+    history.replaceState(history.state, "", url);
+  }
+
   async function run(raw: string): Promise<void> {
     const seq = ++latest;
     const text = raw.trim();
+    reflectInUrl(text);
     if (!text) {
       results.textContent = "";
       status.textContent = "";

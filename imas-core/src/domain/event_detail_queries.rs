@@ -616,6 +616,27 @@ pub fn show_cast_idol_ids(snap: &Snapshot, show_id: &str) -> Vec<String> {
         .collect()
 }
 
+/// 出演者 (show_cast) に、セトリで歌っているのに出演者に登録されていない人を足した列。
+///
+/// 出演者の登録は手入力で、歌唱メンバーだけ先に入っている公演がある (2026-09 時点で 189 公演)。
+/// 「歌っているなら出ている」は確実に言えるので、出演者の数・一覧・「全員」の判定は
+/// この和集合で見る。並びは show_cast の順のあと、セトリでの初出順。
+pub fn show_cast_with_performers(snap: &Snapshot, show_id: &str) -> Vec<String> {
+    let Some(&s) = snap.show_index_by_id.get(show_id) else { return vec![] };
+    let mut seen: HashSet<u32> = HashSet::new();
+    let mut out: Vec<String> = Vec::new();
+    let cast = snap.cast_by_show[s as usize].iter().map(|link| link.idol);
+    let singers = snap.setlist_items_by_show[s as usize]
+        .iter()
+        .flat_map(|&i| snap.performers_by_item[i as usize].iter().copied());
+    for idol in cast.chain(singers) {
+        if seen.insert(idol) {
+            out.push(snap.idols[idol as usize].id.clone());
+        }
+    }
+    out
+}
+
 /// song_id → 原曲アーティスト (role='original') の idol_id 集合 (iOS fetchOriginalArtistIds)。
 /// SQL の行有無と同じく、original を 1 人も持たない曲・未知 id はキーごと載らない。
 /// 値の並びは idol の sort_order 順 (artists_by_song の前計算) で決定化。

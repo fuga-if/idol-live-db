@@ -6,6 +6,7 @@
 
 use super::context::{distinguishing_show_name, duration_display, join_parts, Ctx};
 use crate::domain::credit_names::split_credits;
+use crate::domain::display_join::join_capped;
 use crate::domain::performance_stats;
 use crate::domain::song_detail_queries as detail;
 use crate::web_export::content;
@@ -68,6 +69,20 @@ pub fn song_page(ctx: &Ctx, song_id: &str) -> Option<SongPage> {
 
     let series_display = record.cd_series.clone().or_else(|| record.series_group.clone());
     let duration_display = record.duration_sec.map(duration_display);
+    let variants: Vec<Ref> = detail::variant_song_records(ctx.snap, song_id)
+        .iter()
+        .filter_map(|v| ctx.song_ref(&v.id))
+        .collect();
+    let performance_count = ctx.snap.performance_counts[index as usize];
+    // 数の帯。ページ内の節へ飛ぶ (電話では披露履歴が脇の情報の下に来るので、入口を上に置く)。
+    let stat_tiles = nonzero_tiles([
+        StatTile::new("♪", performance_count, "回披露").with_href("#song-history"),
+        StatTile::new("☺", original_artists.len() as u32, "原唱者"),
+        StatTile::new("♬", variants.len() as u32, "派生曲").with_href("#song-variants"),
+    ]);
+    // 披露履歴 (新しい順)。行ごとの歌唱メンバーと何回目かは、同じ並びの添字列から引く。
+    let history_items = detail::performance_item_indices(ctx.snap, song_id);
+    let ordinals = detail::performance_ordinals(ctx.snap, song_id);
 
     Some(SongPage {
         schema_version: SCHEMA_VERSION,
@@ -123,26 +138,40 @@ pub fn song_page(ctx: &Ctx, song_id: &str) -> Option<SongPage> {
         unit: record.unit_id.as_deref().and_then(|u| ctx.unit_ref(u)),
         unit_label: record.unit_name.clone(),
         parent: record.parent_song_id.as_deref().and_then(|p| ctx.song_ref(p)),
-        variants: detail::variant_song_records(ctx.snap, song_id)
-            .iter()
-            .filter_map(|v| ctx.song_ref(&v.id))
-            .collect(),
-        performance_count: ctx.snap.performance_counts[index as usize],
+        variants,
+        performance_count,
+        stat_tiles,
         performance_history: detail::performance_history(ctx.snap, song_id)
             .into_iter()
-            .filter_map(|h| {
+            .enumerate()
+            .filter_map(|(i, h)| {
                 let show_name = distinguishing_show_name(&h.event_name, &h.show_name);
                 let place_display =
                     join_parts([show_name, h.venue.as_deref()]).unwrap_or_default();
                 let number = ctx.setlist_number(&h.show_id, h.position);
+                let show = ctx.show_ref(&h.show_id)?;
+                // 公演ページのその曲の行へ (曲順が分からなければ公演の頭)。
+                let href = if number > 0 { format!("{}#setlist-{number}", show.path) } else { show.path.clone() };
+                let names: Vec<&str> = history_items
+                    .get(i)
+                    .map(|&item| {
+                        ctx.snap.performers_by_item[item as usize]
+                            .iter()
+                            .map(|&idol| ctx.snap.idols[idol as usize].name.as_str())
+                            .collect()
+                    })
+                    .unwrap_or_default();
                 Some(PerformanceRow {
-                    show: ctx.show_ref(&h.show_id)?,
+                    show,
                     event: ctx.event_ref(&h.event_id)?,
                     date_badge: DateBadge::from_ymd(&h.date),
                     date: h.date,
                     venue: h.venue,
                     number,
                     place_display,
+                    href,
+                    performers_display: join_capped(&names, "・", 3, "人"),
+                    ordinal_label: content::ordinal_label(ordinals.get(i).copied().unwrap_or(1)),
                 })
             })
             .collect(),
@@ -201,18 +230,16 @@ fn song_fact_rows(
     .collect()
 }
 
+/// 検索結果や共有カードに出る 1 文。曲名は「」で括り、ユニットは丸括弧で添える
+/// (「Thank You!楽曲情報。」のように助詞が抜けた文にしない)。
 fn song_description(record: &detail::SongDetailRecord) -> String {
-    let unit = record
-        .unit_name
-        .as_deref()
-        .map(|u| format!("{u}の楽曲。"))
-        .unwrap_or_else(|| "楽曲情報。".to_string());
+    let unit = record.unit_name.as_deref().map(|u| format!("（{u}）")).unwrap_or_default();
     let release = record
         .release_date
         .as_deref()
         .map(|d| format!("{d} リリース。"))
         .unwrap_or_default();
-    format!("{}{}{}クレジット・原唱者・ライブでの披露履歴。", record.title, unit, release)
+    format!("「{}」{}の楽曲情報。{}クレジット・原唱者・ライブでの披露履歴。", record.title, unit, release)
 }
 
 fn song_json_ld(record: &detail::SongDetailRecord, path: &str) -> serde_json::Value {

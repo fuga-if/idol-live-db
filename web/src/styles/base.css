@@ -285,6 +285,13 @@ hr {
     flex-basis: 100%;
     margin-inline: calc(-1 * var(--sp5));
     padding-inline: var(--sp5);
+    /* 右端を透かして「まだ続きがある」と言う (項目が 8 つで、電話の幅には収まらない)。
+       末尾の余白で、いちばん右の項目も透かしの手前まで流し込める。 */
+    mask-image: linear-gradient(to right, currentColor calc(100% - 40px), transparent);
+    -webkit-mask-image: linear-gradient(to right, currentColor calc(100% - 40px), transparent);
+  }
+  .site-nav__links ul {
+    padding-inline-end: 40px;
   }
   :root {
     /* ヘッダが 2 段になるぶん、吸着する年見出しの位置も下げる */
@@ -339,7 +346,6 @@ hr {
   color: var(--ds-ink2);
   margin-bottom: var(--sp3);
   text-transform: uppercase;
-  font-family: var(--font-display);
 }
 .site-footer li + li {
   margin-top: var(--sp2);
@@ -421,4 +427,38 @@ hr {
   flex-wrap: wrap;
   align-items: center;
   gap: var(--sp2);
+}
+
+/* --- 本文中のリンク ------------------------------------------------------
+   行そのものがリンクの場所 (行・チップ・タイル) は形で分かるが、文の中の 1 語は
+   下線が無いと地の文と見分けが付かない。 */
+.facts__value a,
+.hero__eyebrow a,
+.hero__title a,
+.lede a,
+.u-muted a {
+  text-decoration: underline;
+  text-decoration-color: var(--ds-ink3);
+  text-underline-offset: 3px;
+}
+/* 見出し (大きい字) の下線は細く、薄く。太い字に既定の太さの線を引くと見出しが切れて見える。 */
+.hero__title a {
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+}
+.facts__value a:hover,
+.hero__eyebrow a:hover,
+.hero__title a:hover,
+.lede a:hover,
+.u-muted a:hover {
+  text-decoration-color: currentColor;
+}
+.facts__value a {
+  display: inline-block;
+  padding-block: 3px;
+}
+
+/* ページ内リンク (数の帯 → 節) の着地は、吸着するヘッダの下に隠れない位置。 */
+.section {
+  scroll-margin-top: calc(var(--header-h) + var(--sp4));
 }

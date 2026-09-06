@@ -73,7 +73,8 @@
         "iso": "2026-04-03",
         "year": "2026",
         "monthDay": "4/3",
-        "weekday": "金"
+        "weekday": "金",
+        "spoken": "2026年4月3日 金曜日"
       },
       "venueLabel": null,
       "hall": "イベントホール",

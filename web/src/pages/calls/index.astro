@@ -20,9 +20,11 @@ const guide = page<CallGuidePage>(routeData("callGuide", "/calls/"));
 ---
 
 <ListLayout seo={guide.seo} title={guide.title}>
-  <p class="lede lede--wide">{guide.intro}</p>
-  <p class="u-muted">{guide.snapshotNote}</p>
-  <StatStrip items={guide.statTiles} label="コールガイドの数" />
+  <div slot="lede" class="u-stack">
+    <p class="lede lede--wide">{guide.intro}</p>
+    <p class="u-muted">{guide.snapshotNote}</p>
+    <StatStrip items={guide.statTiles} label="コールガイドの数" />
+  </div>
 
   <Section id="calls-with" title="コールガイドがある曲" count={guide.withCalls.length}>
     {

@@ -52,6 +52,7 @@ pub mod unit;
 pub mod venue;
 
 pub use brand::BrandPage;
+pub use common::nonzero_tiles;
 pub use calls::{CallGuideEditRow, CallGuidePage, CallGuideSongRow};
 pub use common::{
     mark_current, AppLinks, AppOpen, Counts, Crumb, DateBadge, LyricsBlock, NavLink, PenlightSetDto,

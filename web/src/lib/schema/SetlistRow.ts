@@ -38,4 +38,8 @@ lineup: LineupNote | null,
 /**
  * `songs.song_type == "cover"` (曲そのものがカバー曲)。
  */
-isCover: boolean, };
+isCover: boolean, 
+/**
+ * この披露がその曲の初披露 (この DB に載っている範囲で最古) なら「初披露」。
+ */
+firstPerformanceLabel: string | null, };

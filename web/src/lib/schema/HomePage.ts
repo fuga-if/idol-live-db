@@ -2,6 +2,7 @@
 import type { AppLinks } from "./AppLinks";
 import type { BrandListItem } from "./BrandListItem";
 import type { EventListItem } from "./EventListItem";
+import type { NavLink } from "./NavLink";
 import type { SeoBlock } from "./SeoBlock";
 import type { ShowSummary } from "./ShowSummary";
 import type { StatTile } from "./StatTile";
@@ -29,4 +30,13 @@ recentShows: Array<ShowSummary>,
 /**
  * 件数タイル (ライブ / 公演 / 楽曲 / アイドル / ユニット / 会場)。各一覧への入口を持つ。
  */
-statTiles: Array<StatTile>, brands: Array<BrandListItem>, app: AppLinks, seo: SeoBlock, };
+statTiles: Array<StatTile>, brands: Array<BrandListItem>, app: AppLinks, 
+/**
+ * 「アプリで、もっと」の説明文。アプリにしか無い機能の並びは `content` が 1 箇所で持つ
+ * (歌詞を出面で出す/出さないで変わる)。
+ */
+appNote: string, 
+/**
+ * 「最近の公演」の続き先。公演だけの一覧は無いので、開催済みのライブへ送る。
+ */
+recentShowsMore: NavLink, seo: SeoBlock, };

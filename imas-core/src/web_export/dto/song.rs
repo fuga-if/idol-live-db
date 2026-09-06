@@ -1,6 +1,6 @@
 //! 楽曲 (song) 詳細ページの DTO。
 
-use super::common::{AppOpen, DateBadge, Ref, SeoBlock};
+use super::common::{AppOpen, DateBadge, Ref, SeoBlock, StatTile};
 use super::idol::ProfileRow;
 use super::common::{LyricsBlock, SongCommunity};
 
@@ -46,6 +46,8 @@ web_dto! {
         /// この曲の派生 (リミックス・ソロver 等)。
         pub variants: Vec<Ref>,
         pub performance_count: u32,
+        /// 数の帯 (披露回数 / 原唱者 / 派生曲)。ページ内の該当の節へ飛ぶ。
+        pub stat_tiles: Vec<StatTile>,
         /// date 降順。
         pub performance_history: Vec<PerformanceRow>,
         pub frequent_singers: Vec<SingerRow>,
@@ -88,6 +90,12 @@ web_dto! {
         pub number: u32,
         /// 1 行で出すときの場所表記 (公演名と会場を `" ・ "` で繋いだもの)。
         pub place_display: String,
+        /// 行の飛び先。公演ページのその曲の行 (`…/#setlist-N`)。曲順が分からなければ公演ページの頭。
+        pub href: String,
+        /// この披露の歌唱メンバー (3 人まで並べて残りは「ほか N 人」)。無ければ None。
+        pub performers_display: Option<String>,
+        /// 「初披露」または「N 回目」(この DB に載っている範囲で、最古から数えて)。
+        pub ordinal_label: String,
     }
 }
 

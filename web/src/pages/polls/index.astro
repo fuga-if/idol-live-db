@@ -17,7 +17,7 @@ const list = page<PollListPage>(routeData("pollList", "/polls/"));
 ---
 
 <ListLayout seo={list.seo} title={list.title} total={list.total}>
-  <p class="u-muted">
+  <p slot="lede" class="u-muted">
     アプリの利用者が出し合ったお題と、記録した時点の得票です。投票はアプリから。
   </p>
 

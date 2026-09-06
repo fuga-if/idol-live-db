@@ -1,6 +1,6 @@
 //! アイドル (idol) 詳細ページの DTO。
 
-use super::common::{AppOpen, DateBadge, Ref, SeoBlock};
+use super::common::{AppOpen, DateBadge, Ref, SeoBlock, StatTile};
 use super::common::TagChipDto;
 
 web_dto! {
@@ -31,6 +31,8 @@ web_dto! {
         pub performed_songs: Vec<IdolPerformedRow>,
         pub shows: Vec<IdolShowRow>,
         pub description: Option<String>,
+        /// 数の帯 (持ち曲 / ライブで歌った曲 / 出演公演)。ページ内の該当の節へ飛ぶ。
+        pub stat_tiles: Vec<StatTile>,
         pub app: AppOpen,
         pub seo: SeoBlock,
     }

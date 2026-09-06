@@ -239,6 +239,23 @@ web_dto! {
     }
 }
 
+impl StatTile {
+    pub fn new(glyph: &str, value: u32, label: &str) -> Self {
+        Self { glyph: glyph.to_string(), value, label: label.to_string(), href: None }
+    }
+
+    pub fn with_href(mut self, href: impl Into<String>) -> Self {
+        self.href = Some(href.into());
+        self
+    }
+}
+
+/// 数の帯にする。**0 は「まだ無い」で情報ではない**ので落とす
+/// (開催前は曲数が全部 0 で、並べても何も言わない)。
+pub fn nonzero_tiles(tiles: impl IntoIterator<Item = StatTile>) -> Vec<StatTile> {
+    tiles.into_iter().filter(|t| t.value > 0).collect()
+}
+
 web_dto! {
     /// 一覧ページ間の切替リンク (ブランド別など)。
     ///
@@ -253,13 +270,30 @@ web_dto! {
         pub theme_key: Option<String>,
         /// 件数を出せるときだけ入る。
         pub count: Option<u32>,
+        /// `path` 以外にこのリンクの「現在地」とみなすパスの接頭辞 (上部バーだけが使う)。
+        ///
+        /// 公演 (`/shows/…`) はライブ (`/events/`) の下にいる、という所属の判断はパンくずと
+        /// 同じくこちらが持つ。受け手は `path` とこの列を前方一致で見るだけ。
+        pub match_prefixes: Vec<String>,
     }
 }
 
 impl NavLink {
     /// 押せる切替リンク 1 本。`current` は後から [`mark_current`] でまとめて立てる。
     pub fn new(label: &str, path: impl Into<String>) -> Self {
-        Self { label: label.to_string(), path: path.into(), current: false, theme_key: None, count: None }
+        Self {
+            label: label.to_string(),
+            path: path.into(),
+            current: false,
+            theme_key: None,
+            count: None,
+            match_prefixes: Vec::new(),
+        }
+    }
+
+    pub fn with_match_prefixes(mut self, prefixes: &[&str]) -> Self {
+        self.match_prefixes = prefixes.iter().map(|p| p.to_string()).collect();
+        self
     }
 
     pub fn with_count(mut self, count: u32) -> Self {
@@ -311,6 +345,9 @@ web_dto! {
         pub month_day: String,
         /// `"土"`。日まで揃った実在の日付にだけ入る。
         pub weekday: Option<String>,
+        /// 読み上げ用の 1 本 (`"2026年9月19日 土曜日"`)。見た目の 3 分割は耳では
+        /// 「9/19 土 2026」と聞こえるので、支援技術にはこちらを渡す。
+        pub spoken: String,
     }
 }
 
@@ -318,11 +355,17 @@ impl DateBadge {
     /// `yyyy-MM-dd` (部分日付も可) から作る。
     pub fn from_ymd(date: &str) -> Self {
         let parts = crate::domain::date_display::date_parts(date);
+        let spoken = match parts.weekday {
+            Some(wd) => format!("{}年{}日 {wd}曜日", parts.year, parts.month_day.replace('/', "月")),
+            None if parts.year.is_empty() => parts.month_day.clone(),
+            None => format!("{}年{}", parts.year, parts.month_day),
+        };
         Self {
             iso: date.to_string(),
             year: parts.year,
             month_day: parts.month_day,
             weekday: parts.weekday.map(str::to_string),
+            spoken,
         }
     }
 }
@@ -359,6 +402,10 @@ web_dto! {
     pub struct ThemeTokens {
         pub accent: String,
         pub on_accent: String,
+        /// 文字として使ってよいアクセント。`accent` はブランド色そのもので、黄 (ミリオン) や
+        /// 水色 (シャニマス) は白地で 1.7:1 しか無い。文字に使う場面 (数・札・見出し) は
+        /// 必ずこちら (地の色に対して AA を満たすまで寄せてある)。
+        pub accent_ink: String,
         pub tint: String,
         pub tint_strong: String,
         pub chip_bg: String,

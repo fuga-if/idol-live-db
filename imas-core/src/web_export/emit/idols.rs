@@ -34,8 +34,9 @@ pub fn idol_page(ctx: &Ctx, idol_id: &str) -> Option<IdolPage> {
 
     let voice_actor = idol_queries::current_voice_actor_name(ctx.snap, idol_id);
 
-    Some(IdolPage {
+    let mut page = IdolPage {
         schema_version: SCHEMA_VERSION,
+        stat_tiles: Vec::new(),
         tags: super::context::tag_chips(ctx.community.idol_tags(&record.id)),
         id: record.id.clone(),
         path: path.clone(),
@@ -66,7 +67,9 @@ pub fn idol_page(ctx: &Ctx, idol_id: &str) -> Option<IdolPage> {
             .iter()
             .filter_map(|u| ctx.unit_ref(&u.id))
             .collect(),
-        songs: idol_song_queries::idol_songs(ctx.snap, idol_id, None)
+        // 持ち曲 = 原唱者として名を連ねる曲。歌っただけの曲は「ライブで歌った曲」に居る
+        // (両方の役で載る曲が 2 行になり、カバーが持ち曲に混ざっていた)。
+        songs: idol_song_queries::idol_songs(ctx.snap, idol_id, Some("original"))
             .into_iter()
             .filter_map(|s| {
                 let performance_count = ctx
@@ -94,10 +97,8 @@ pub fn idol_page(ctx: &Ctx, idol_id: &str) -> Option<IdolPage> {
             .filter_map(|s| {
                 let song = ctx.song_ref(&s.song_id)?;
                 Some(IdolPerformedRow {
-                    subtitle: join_parts([
-                        song.sub.clone(),
-                        Some(format!("{} 回披露", s.perform_count)),
-                    ]),
+                    // 回数は行の右の数 (`times`) が言う。副題にも書くと同じ数が 2 回並ぶ。
+                    subtitle: song.sub.clone(),
                     song,
                     times: s.perform_count,
                 })
@@ -117,7 +118,15 @@ pub fn idol_page(ctx: &Ctx, idol_id: &str) -> Option<IdolPage> {
             simple_json_ld("WebPage", &record.name, &path),
             breadcrumbs,
         ),
-    })
+    };
+    // 数の帯。長い一覧が 3 本あるページなので、上から各節へ飛べるようにする。
+    page.stat_tiles = nonzero_tiles([
+        StatTile::new("♪", page.songs.len() as u32, "持ち曲").with_href("#idol-songs"),
+        StatTile::new("♬", page.performed_songs.len() as u32, "ライブで歌った曲")
+            .with_href("#idol-performed"),
+        StatTile::new("▤", page.shows.len() as u32, "出演公演").with_href("#idol-shows"),
+    ]);
+    Some(page)
 }
 
 /// プロフィール行。

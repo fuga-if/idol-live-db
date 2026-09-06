@@ -55,10 +55,11 @@ describe("themes.json", () => {
     expect(themes.themes.neutral).toBeDefined();
   });
 
-  it("全テーマが light / dark の 13 トークンを持つ", () => {
+  it("全テーマが light / dark の 14 トークンを持つ", () => {
     const keys = [
       "accent",
       "onAccent",
+      "accentInk",
       "tint",
       "tintStrong",
       "chipBg",

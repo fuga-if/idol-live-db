@@ -102,6 +102,20 @@
     }
   ],
   "performanceCount": 12,
+  "statTiles": [
+    {
+      "glyph": "♪",
+      "value": 12,
+      "label": "回披露",
+      "href": "#song-history"
+    },
+    {
+      "glyph": "☺",
+      "value": 2,
+      "label": "原唱者",
+      "href": null
+    }
+  ],
   "performanceHistory": [
     {
       "show": {
@@ -127,11 +141,15 @@
         "iso": "2026-04-03",
         "year": "2026",
         "monthDay": "4/3",
-        "weekday": "金"
+        "weekday": "金",
+        "spoken": "2026年4月3日 金曜日"
       },
       "venue": "幕張メッセ",
       "number": 1,
-      "placeDisplay": "DAY1 ・ 幕張メッセ"
+      "placeDisplay": "DAY1 ・ 幕張メッセ",
+      "href": "/shows/sh_sample_1/#setlist-1",
+      "performersDisplay": "春日未来・最上静香・伊吹翼 ほか 9 人",
+      "ordinalLabel": "12 回目"
     }
   ],
   "frequentSingers": [
