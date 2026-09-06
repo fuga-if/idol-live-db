@@ -76,9 +76,7 @@
           "label": "演者要望"
         }
       ],
-      "staleLabel": "ズレ",
-      "placementOverLabel": "語の真下 = 同時に叫ぶ",
-      "placementAfterLabel": "語の後ろ = 追っかけ"
+      "staleLabel": "ズレ"
     }
   },
   "songTypeLabel": "ソロ曲",

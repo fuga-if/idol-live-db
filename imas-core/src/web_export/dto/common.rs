@@ -499,9 +499,5 @@ web_dto! {
         pub emphases: Vec<CallGuideEmphasis>,
         /// 歌詞が直されてアンカーがズレたコールの印 (`ズレ`)。
         pub stale_label: String,
-        /// 凡例: 語の真下に置いたコールの意味 (歌に被せる)。その曲にあるときだけ出す。
-        pub placement_over_label: String,
-        /// 凡例: 語の後ろに置いたコールの意味 (追っかけ)。同上。
-        pub placement_after_label: String,
 }
 }

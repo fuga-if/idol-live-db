@@ -548,7 +548,9 @@ a.chip:hover {
 .lyrics__line {
   display: flex;
   align-items: flex-start;
-  line-height: var(--lh-relaxed);
+  /* 長さで指定して子に継承させる: 行頭の記号 (小さい字) の行箱を本文 1 行と同じ高さにし、
+     記号が本文の 1 行目の中央に来るようにする。 */
+  line-height: calc(var(--lh-relaxed) * 1em);
 }
 .lyrics__line:empty::before {
   /* 空行 (間奏など) も行として高さを持たせる。 */
@@ -559,15 +561,23 @@ a.chip:hover {
   color: var(--ds-ink2);
   font-size: var(--fs-caption);
 }
+/* 行の本文 + コールの重ね書きの層。 */
 .lyrics__content {
+  position: relative;
   min-width: 0;
   flex: 1;
+  /* 折り返した段落の途中の行の下にコールが入らないときだけ (`--rows`)、行送りを段ずつ広げる。
+     行送りは上下に均等に割られるので、1 行目が下がるぶんを上の余白で戻し、行頭の記号と揃える。 */
+  --call-row: 0.85em;
+  --rows: 0;
+  line-height: calc(var(--lh-relaxed) * 1em + var(--rows) * var(--call-row));
+  margin-block-start: calc(var(--rows) * var(--call-row) * -0.5);
 }
 /* --- コールガイド --------------------------------------------------------------
    コールは位置で示す (実物のコール表と同じ組み方):
    同時 (歌に被せる) は語の真下、追っかけは語の後ろ、行末に足したものは行末。
-   語とコールは 1 つの塊 (inline-flex の縦積み) なので、行が折り返しても離れない。
-   コールが語より長ければ行はそのぶん広がる (コール表で歌詞の間を空けるのと同じ)。 */
+   本文は普通に折り返し、コールは重ね書きの層 (絶対配置) に置く。位置は描画後に
+   語の矩形から測って決める (SongLyrics.astro の layoutCalls)。 */
 /* 行頭の手拍子記号。1 行でも指示があれば全行に列を確保する (記号のある行だけ本文がズレないように)。 */
 .lyrics__clap {
   flex: none;
@@ -591,39 +601,33 @@ a.chip:hover {
 .lyrics__anchor[data-emphasis="performer_request"] {
   --anchor: var(--ds-danger);
 }
-/* 語の無い塊の先頭に置く空き (語の行と同じ高さ)。 */
-.lyrics__anchor--empty {
-  inline-size: 0;
-  block-size: calc(1em * var(--lh-relaxed));
-  background: none;
-  text-decoration: none;
+/* 幅ゼロの目印 (追っかけ・行末の位置)。中身はゼロ幅スペース。 */
+.lyrics__point {
+  display: inline;
 }
-/* 語 + 真下のコール、または 空き + 後ろのコール の塊。 */
-.lyrics__slot {
-  display: inline-flex;
-  flex-direction: column;
-  align-items: flex-start;
-  vertical-align: top;
-  max-inline-size: 100%;
-}
-.lyrics__under {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  padding-inline-start: 1px;
-  font-size: var(--fs-footnote);
-  font-weight: 600;
-  line-height: var(--lh-snug);
+/* コールの層。本文の流れに影響しないよう絶対配置で、位置は描画後に語の矩形から決める。 */
+.lyrics__overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
 }
 .lyrics__call {
-  /* 本文と同じ色だと太字なだけで歌詞と同化するので、曲の色にする (アプリと同じ)。 */
-  color: var(--accent-ink);
+  position: absolute;
   white-space: nowrap;
+  /* 歌詞より一段小さく・薄く。主役は歌詞で、コールは添え書き。 */
+  font-size: var(--fs-caption);
+  font-weight: 500;
+  line-height: 1.25;
+  color: var(--ds-ink2);
 }
-.lyrics__call--optional {
+/* 行幅より長いコールは行頭から折り返す (layoutCalls が幅を与える)。 */
+.lyrics__call[data-wrap] {
+  white-space: normal;
+}
+.lyrics__call-item--optional {
   color: var(--ds-success);
 }
-.lyrics__call--performer_request {
+.lyrics__call-item--performer_request {
   color: var(--ds-danger);
 }
 /* 札はズレ (歌詞が直されて位置が合わないもの) だけ。 */

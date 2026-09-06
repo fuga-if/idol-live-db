@@ -86,9 +86,6 @@ pub const CALL_GUIDE_EMPHASES: [(&str, &str); 3] = [
 ];
 /// 歌詞が直されてアンカーがズレたコールの印。
 pub const CALL_STALE_LABEL: &str = "ズレ";
-/// 凡例。出面はコールを位置で示す: 同時 (歌に被せる) は語の真下、追っかけは語の後ろ。
-pub const CALL_PLACEMENT_OVER_LABEL: &str = "語の真下 = 同時に叫ぶ";
-pub const CALL_PLACEMENT_AFTER_LABEL: &str = "語の後ろ = 追っかけ";
 
 /// 出面に配るコールガイドの語彙 (上の定数を 1 つに束ねる)。
 pub fn call_guide_vocabulary() -> CallGuideVocabulary {
@@ -106,8 +103,6 @@ pub fn call_guide_vocabulary() -> CallGuideVocabulary {
             .map(|(kind, label)| CallGuideEmphasis { kind: kind.to_string(), label: label.to_string() })
             .collect(),
         stale_label: CALL_STALE_LABEL.to_string(),
-        placement_over_label: CALL_PLACEMENT_OVER_LABEL.to_string(),
-        placement_after_label: CALL_PLACEMENT_AFTER_LABEL.to_string(),
     }
 }
 

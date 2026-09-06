@@ -20,11 +20,12 @@ import type { LyricsBlock } from "../lib/schema/LyricsBlock";
  *   殺すだけで、ソースを見る人には何の障害にもならない。
  *
  * コールは**位置で示す** (実物のコール表と同じ組み方):
- * - 同時 (歌に被せる) は、アンカーした語の**真下**。語の幅よりコールが長ければ行がそのぶん広がる。
- * - 追っかけ (フレーズの後で返す) は、アンカーした語の**後ろ** (語の右端から始まる)。
+ * - 同時 (歌に被せる) は、アンカーした語の**真下**。追っかけは語の**後ろ** (右端から)。
  * - 掛かる範囲の無いコール (行末に足したもの) は、その位置 (ふつう行末)。
- * アンカーした範囲は行内で薄く色を敷いて示す。語とコールは 1 つの塊 (inline-flex の縦積み)
- * なので、行が折り返しても語とコールが離れない。
+ * 歌詞の本文は普通に折り返し、コールは本文の流れに影響しない**重ね書き** (絶対配置) で
+ * 語の真下に置く。語とコールを 1 塊にすると、コールの長さぶん歌詞が広がり、狭い画面では
+ * 語だけが次の行に落ちて読めなくなった。位置は描画後に語の矩形から測って決め、
+ * 画面幅が変わったら測り直す。コールが重なるときは右へずらし、入らなければ段を足す。
  * 記号・凡例の語は Rust (`content::call_guide_vocabulary`) が `lyrics.callGuide` で配り、
  * ここは位置 (Unicode スカラー単位の start/end) と突き合わせて置くだけ。
  */
@@ -114,8 +115,8 @@ const { lyrics } = Astro.props;
     const isOver = (c: LyricCall): boolean => c.timing === "over" && hasAnchor(c);
 
     /**
-     * コール 1 件の置き場所。同時は語の真下 (語の範囲を持つ塊)、追っかけと行末は
-     * その位置 (幅ゼロの塊) に置く。
+     * コールの置き場所 (スロット)。同時は語の範囲 (真下に置く)、追っかけと行末は
+     * 位置 1 点 (その右に置く)。同じ場所のコールは 1 段にまとめる。
      */
     interface Slot {
       start: number;
@@ -135,23 +136,32 @@ const { lyrics } = Astro.props;
       return [...byKey.values()].sort((a, b) => a.start - b.start || a.end - b.end);
     };
 
-    const callNode = (c: LyricCall): HTMLElement => {
-      const node = el("span", `lyrics__call lyrics__call--${c.emphasis ?? "normal"}`, c.text);
-      if (c.stale && hasAnchor(c) && vocabulary) {
-        node.append(" ", el("span", "lyrics__tag lyrics__tag--stale", vocabulary.staleLabel));
-      }
-      return node;
+    /** 1 スロットぶんのコール (複数なら空白で 1 段に並べる)。 */
+    const callRow = (slot: Slot, index: number): HTMLElement => {
+      const row = el("span", "lyrics__call");
+      row.dataset.slot = String(index);
+      row.dataset.placement = slot.end > slot.start ? "over" : "after";
+      slot.calls.forEach((c, i) => {
+        if (i > 0) row.append(" ");
+        const item = el("span", `lyrics__call-item lyrics__call-item--${c.emphasis ?? "normal"}`, c.text);
+        if (c.stale && hasAnchor(c) && vocabulary) {
+          item.append(" ", el("span", "lyrics__tag", vocabulary.staleLabel));
+        }
+        row.append(item);
+      });
+      return row;
     };
 
     /**
-     * 本文にコールを組み込む。アンカー範囲 (追っかけの分も含む) は薄く色を敷き、
-     * コールは塊 (語 + 真下のコール / 幅ゼロ + 後ろのコール) として位置に差し込む。
-     * 重なる範囲は先勝ち (両方描くと色が濁る)。位置はスカラー単位。
+     * 本文。アンカー範囲 (追っかけの分も含む) は薄く色を敷き、スロットの位置に目印
+     * (範囲は mark そのもの、1 点は幅ゼロの span) を置く。コールは重ね書きの層に出し、
+     * 位置は描画後に目印の矩形から決める。重なる範囲は先勝ち。位置はスカラー単位。
      */
-    const textWithCalls = (text: string, calls: LyricCall[]): HTMLElement => {
+    const lineContent = (text: string, calls: LyricCall[]): HTMLElement => {
       const scalars = Array.from(text);
-      const out = el("span", "lyrics__text");
-      // 敷く色: 範囲ごとに一番強い強調度。
+      const content = el("span", "lyrics__content");
+      const textEl = el("span", "lyrics__text");
+      const overlay = el("span", "lyrics__overlay");
       const tint = new Map<string, { start: number; end: number; emphasis: string }>();
       for (const c of calls) {
         if (!hasAnchor(c)) continue;
@@ -162,53 +172,142 @@ const { lyrics } = Astro.props;
           tint.set(key, { start: c.start, end: c.end, emphasis });
         }
       }
-      // 差し込む点: 範囲付き (色敷き) と塊 (コール) を位置順に並べる。
       interface Piece {
         start: number;
         end: number;
         emphasis?: string;
-        calls?: LyricCall[];
+        slot?: Slot;
       }
-      const pieces: Piece[] = [];
-      for (const t of tint.values()) pieces.push({ start: t.start, end: t.end, emphasis: t.emphasis });
+      const pieces: Piece[] = [...tint.values()].map((t) => ({ ...t }));
       for (const slot of slotsOf(calls)) {
-        const same = pieces.find((p) => p.start === slot.start && p.end === slot.end && !p.calls);
-        if (same && slot.end > slot.start) same.calls = slot.calls;
-        else pieces.push({ start: slot.start, end: slot.end, calls: slot.calls });
+        const same = pieces.find((p) => p.start === slot.start && p.end === slot.end && !p.slot);
+        if (same && slot.end > slot.start) same.slot = slot;
+        else pieces.push({ start: slot.start, end: slot.end, slot });
       }
       pieces.sort((a, b) => a.start - b.start || a.end - b.end);
 
       let cursor = 0;
+      let slotIndex = 0;
       for (const piece of pieces) {
         const start = Math.min(Math.max(piece.start, cursor), scalars.length);
         const end = Math.min(Math.max(piece.end, start), scalars.length);
-        if (start > cursor) out.append(scalars.slice(cursor, start).join(""));
+        if (start > cursor) textEl.append(scalars.slice(cursor, start).join(""));
         const word = scalars.slice(start, end).join("");
-        if (!piece.calls) {
-          // 追っかけの掛かる範囲: 色を敷くだけ (コールは範囲の後ろの塊に居る)。
-          const mark = el("mark", "lyrics__anchor", word);
-          mark.dataset.emphasis = piece.emphasis ?? "normal";
-          out.append(mark);
+        let marker: HTMLElement;
+        if (word) {
+          marker = el("mark", "lyrics__anchor", word);
+          marker.dataset.emphasis = piece.emphasis ?? "normal";
         } else {
-          const slot = el("span", word ? "lyrics__slot" : "lyrics__slot lyrics__slot--point");
-          if (word) {
-            const mark = el("mark", "lyrics__anchor", word);
-            mark.dataset.emphasis = piece.emphasis ?? "normal";
-            slot.append(mark);
-          } else {
-            // 語の無い塊 (追っかけ・行末)。語の行ぶんの空きを先頭に置いて、コールが語の行の下に来るようにする。
-            slot.append(el("span", "lyrics__anchor lyrics__anchor--empty"));
-          }
-          const under = el("span", "lyrics__under");
-          for (const c of piece.calls) under.append(callNode(c));
-          slot.append(under);
-          out.append(slot);
+          // 幅ゼロの目印。中身はゼロ幅スペース (空の span は矩形を持たない)。
+          marker = el("span", "lyrics__point", "\u200b");
         }
+        if (piece.slot) {
+          marker.dataset.slotId = String(slotIndex);
+          overlay.append(callRow(piece.slot, slotIndex));
+          slotIndex += 1;
+        }
+        textEl.append(marker);
         cursor = end;
       }
-      if (cursor < scalars.length) out.append(scalars.slice(cursor).join(""));
-      return out;
+      if (cursor < scalars.length) textEl.append(scalars.slice(cursor).join(""));
+      content.append(textEl);
+      if (slotIndex > 0) {
+        content.dataset.hasCalls = "";
+        content.append(overlay);
+      }
+      return content;
     };
+
+    /**
+     * コールの位置を語の矩形から決める。
+     * - 同時: 語の先頭の x、追っかけ・行末: 目印の右端の x。y はその表示行の直下。
+     * - 右端に入らなければ左へ寄せる (語の色で対応は分かる)。行幅より長いコールは
+     *   行頭から折り返す (狭い画面の長いコール)。
+     * - 同じ表示行で重なるコールは右へずらし、右端に入らなければ 1 段下げる。
+     * - 折り返した段落の途中の行の下に置いたコールが次の行の本文に食い込むなら、
+     *   行送りを 1 段ずつ広げて (`--rows`) 収まるまで測り直す。最後の行の下は余白で受ける。
+     */
+    const GAP = 2;
+    const MAX_ROWS = 4;
+    const layoutCalls = (): void => {
+      for (const content of body.querySelectorAll<HTMLElement>(".lyrics__content[data-has-calls]")) {
+        const calls = [...content.querySelectorAll<HTMLElement>(".lyrics__call")];
+        const textEl = content.querySelector(".lyrics__text")!;
+        const measure = () => {
+          const origin = content.getBoundingClientRect();
+          const width = content.clientWidth;
+          const textRects = [...textEl.getClientRects()];
+          const placed: { left: number; right: number; top: number; bottom: number }[] = [];
+          let collides = false;
+          let overflow = 0;
+          for (const call of calls) {
+            const marker = content.querySelector<HTMLElement>(`[data-slot-id="${call.dataset.slot}"]`);
+            const rects = marker ? [...marker.getClientRects()] : [];
+            if (rects.length === 0) continue;
+            const over = call.dataset.placement === "over";
+            const r = over ? rects[0]! : rects[rects.length - 1]!;
+            // 測る前に前回の配置を戻す (画面幅が変わったときに測り直すため)。絶対配置の箱は
+            // left の残り幅で折り返すので、left を 0 に戻してから高さを測る。
+            delete call.dataset.wrap;
+            call.style.maxInlineSize = "";
+            call.style.left = "0px";
+            let w = call.offsetWidth;
+            const anchorLeft = (over ? r.left : r.right + 4) - origin.left;
+            let left = anchorLeft;
+            if (w > width) {
+              call.dataset.wrap = "";
+              call.style.maxInlineSize = `${width}px`;
+              left = 0;
+              w = width;
+            } else if (left + w > width) {
+              left = width - w;
+            }
+            const h = call.offsetHeight;
+            let top = r.bottom - origin.top + GAP;
+            for (let guard = 0; guard < 8; guard++) {
+              const hit = placed.find((b) => top < b.bottom && top + h > b.top && left < b.right && left + w > b.left);
+              if (!hit) break;
+              if (hit.right + 6 + w <= width) left = hit.right + 6;
+              else {
+                left = Math.max(0, Math.min(anchorLeft, width - w));
+                top = hit.bottom + GAP;
+              }
+            }
+            placed.push({ left, right: left + w, top, bottom: top + h });
+            call.style.left = `${left}px`;
+            call.style.top = `${top}px`;
+            // 後ろの行の本文 (同じ x の範囲) に食い込んでいないか。
+            const absLeft = origin.left + left;
+            const absBottom = origin.top + top + h;
+            if (
+              textRects.some(
+                (t) => t.top > r.bottom + 1 && t.top < absBottom + GAP && t.left < absLeft + w && t.right > absLeft,
+              )
+            ) {
+              collides = true;
+            }
+            overflow = Math.max(overflow, top + h - origin.height);
+          }
+          return { collides, overflow };
+        };
+        content.style.paddingBlockEnd = "";
+        content.style.removeProperty("--rows");
+        let result = measure();
+        for (let rows = 1; result.collides && rows <= MAX_ROWS; rows++) {
+          content.style.setProperty("--rows", String(rows));
+          result = measure();
+        }
+        content.style.paddingBlockEnd = `${Math.max(0, Math.ceil(result.overflow) + GAP)}px`;
+      }
+    };
+    let layoutFrame = 0;
+    const scheduleLayout = () => {
+      window.cancelAnimationFrame(layoutFrame);
+      layoutFrame = window.requestAnimationFrame(layoutCalls);
+    };
+    // 本文の幅が変わったら測り直す (画面の回転・幅の変更)。resize イベントより後の、
+    // 変わり終わった大きさで呼ばれる。
+    new ResizeObserver(scheduleLayout).observe(body);
 
     /** 凡例。その曲で実際に使われているものだけ (曲ごとに中身が変わる、実物のコール表と同じ)。 */
     const legend = (lines: LyricLine[]): HTMLElement | null => {
@@ -218,9 +317,7 @@ const { lyrics } = Astro.props;
         (e) => e.kind !== "normal" && calls.some((c) => c.emphasis === e.kind),
       );
       const usedClaps = vocabulary.claps.filter((k) => lines.some((l) => l.clap === k.kind));
-      const usesOver = calls.some(isOver);
-      const usesAfter = calls.some((c) => hasAnchor(c) && !isOver(c));
-      if (usedEmphases.length === 0 && usedClaps.length === 0 && !usesOver && !usesAfter) return null;
+      if (usedEmphases.length === 0 && usedClaps.length === 0) return null;
       const box = el("p", "lyrics__legend");
       for (const e of usedEmphases) {
         const item = el("span", "lyrics__legend-item");
@@ -232,8 +329,6 @@ const { lyrics } = Astro.props;
         item.append(el("span", "lyrics__legend-symbol", k.symbol), k.label);
         box.append(item);
       }
-      if (usesOver) box.append(el("span", "lyrics__legend-item", vocabulary.placementOverLabel));
-      if (usesAfter) box.append(el("span", "lyrics__legend-item", vocabulary.placementAfterLabel));
       return box;
     };
 
@@ -254,9 +349,7 @@ const { lyrics } = Astro.props;
           if (clap) glyph.setAttribute("aria-label", clap.label);
           p.append(glyph);
         }
-        const content = el("span", "lyrics__content");
-        content.append(textWithCalls(line.text, calls));
-        p.append(content);
+        p.append(lineContent(line.text, calls));
         nodes.push(p);
       }
       body.replaceChildren(...nodes);
@@ -271,7 +364,11 @@ const { lyrics } = Astro.props;
         if (!res.ok) throw new Error(String(res.status));
         const data = (await res.json()) as { lines: LyricLine[] };
         render(data.lines);
+        // 位置は見える状態で測る (隠れたままでは矩形が全部 0)。
         body.hidden = false;
+        layoutCalls();
+        // 書体の読み込みで幅が変わることがあるので、揃ってからもう一度。
+        void document.fonts?.ready.then(scheduleLayout);
         button.hidden = true;
         say("歌詞を表示しました。");
         body.focus();

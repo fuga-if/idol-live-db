@@ -13,12 +13,4 @@ export type CallGuideVocabulary = { claps: Array<CallGuideClap>, emphases: Array
 /**
  * 歌詞が直されてアンカーがズレたコールの印 (`ズレ`)。
  */
-staleLabel: string, 
-/**
- * 凡例: 語の真下に置いたコールの意味 (歌に被せる)。その曲にあるときだけ出す。
- */
-placementOverLabel: string, 
-/**
- * 凡例: 語の後ろに置いたコールの意味 (追っかけ)。同上。
- */
-placementAfterLabel: string, };
+staleLabel: string, };
