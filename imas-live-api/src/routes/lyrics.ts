@@ -585,15 +585,17 @@ export async function handleLyrics(ctx: RouteContext): Promise<Response | null> 
   const { request, env, url, path, json, error, rateLimitResponse, rateLimitSimple } = ctx;
 
   // ----------------------------------------------------------------
-  // GET /lyrics/search?q=... — 歌詞本文の横断検索 (セッション JWT 必須)
+  // GET /lyrics/search?q=... — 歌詞本文の横断検索 (未認証でも可)
   //   返すのは song_id と一致箇所まわりのスニペットだけ。曲名やアーティストは
   //   返さない (端末が同梱 SQLite から引ける。サーバはマスタを持っていない)。
+  //   以前は認証必須だったが、それは「未認証を通すと edgeCacheEligible の対象になり
+  //   断片がエッジに載る」ことを避けるための手段だった。index.ts の isLyricsRead が
+  //   このパスを名指しでキャッシュから外しているので、認証は要らない
+  //   (GET /songs/:id/lyrics と同じ整理)。Web の出面 (ログインを持たない) が使う。
+  //   draft の扱いだけは認証に依る (admin にしか見せない)。
   // ----------------------------------------------------------------
   if (path === "/lyrics/search" && request.method === "GET") {
     const user = await getAuthUser(request, env);
-    // GET /songs/:id/lyrics と同じ理由で認証必須。未認証を通すと
-    // edgeCacheEligible の対象になり、歌詞の断片がエッジに載りうる。
-    if (!user) return error("Unauthorized", 401);
 
     const query = (url.searchParams.get("q") ?? "").trim();
     if (query.length < SEARCH_MIN_CHARS) {
@@ -613,7 +615,7 @@ export async function handleLyrics(ctx: RouteContext): Promise<Response | null> 
 
     // draft は admin にしか見せない (GET /songs/:id/lyrics と同じ規則)。
     // 検索だけ緩めると、本文は読めないのにスニペットからは読める状態になる。
-    const isAdmin = await checkIsAdmin(env, user.uid);
+    const isAdmin = user ? await checkIsAdmin(env, user.uid) : false;
     const statusClause = isAdmin ? "" : "AND status = 'published'";
 
     // まず索引で候補を絞る。絞れない (索引未構築 / 候補が多すぎる) 場合は null が返り、

@@ -149,6 +149,16 @@ describe("GET /songs/:id/lyrics の利用ログ", () => {
   });
 });
 
+describe("GET /lyrics/search は未認証でも通る (Web の出面が使う)", () => {
+  it("未認証で 401 にならない (q が空なら 400 で止まる = 認証の門は無い)", async () => {
+    const stub = stubD1(responder());
+    const ctx = ctxFor("/lyrics/search", stub.db);
+    ctx.url.searchParams.set("q", "   ");
+    const res = (await handleLyrics(ctx))!;
+    expect(res.status).toBe(400);
+  });
+});
+
 describe("GET /songs/:id/detail の利用ログ", () => {
   it("Bearer 付きで歌詞を同梱したときは出す (経路で数え方を変えない)", async () => {
     const logs = spyLogs();
