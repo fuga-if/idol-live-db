@@ -78,7 +78,7 @@ pub fn song_page(ctx: &Ctx, song_id: &str) -> Option<SongPage> {
     // 数の帯。ページ内の節へ飛ぶ (電話では披露履歴が脇の情報の下に来るので、入口を上に置く)。
     let stat_tiles = nonzero_tiles([
         StatTile::new("♪", performance_count, "回披露").with_href("#song-history"),
-        StatTile::new("☺", original_artists.len() as u32, "原唱者"),
+        StatTile::new("☺", original_artists.len() as u32, "歌唱アイドル"),
         StatTile::new("♬", variants.len() as u32, "派生曲").with_href("#song-variants"),
     ]);
     // 披露履歴 (新しい順)。行ごとの歌唱メンバーは、同じ並びの setlist_items の添字から引く。
@@ -231,7 +231,7 @@ fn song_description(record: &detail::SongDetailRecord) -> String {
         .as_deref()
         .map(|d| format!("{d} リリース。"))
         .unwrap_or_default();
-    format!("「{}」{}の楽曲情報。{}クレジット・原唱者・ライブでの披露履歴。", record.title, unit, release)
+    format!("「{}」{}の楽曲情報。{}クレジット・歌唱アイドル・ライブでの披露履歴。", record.title, unit, release)
 }
 
 fn song_json_ld(record: &detail::SongDetailRecord, path: &str) -> serde_json::Value {

@@ -606,8 +606,8 @@ a.chip:hover {
 .segmented {
   display: flex;
   gap: var(--sp1);
-  padding: 3px;
-  border-radius: var(--r-pill);
+  padding: 2px;
+  border-radius: var(--r-sm);
   background: var(--ds-fill);
   overflow-x: auto;
   scrollbar-width: none;
@@ -624,7 +624,7 @@ a.chip:hover {
 }
 .segmented a {
   padding: 6px 14px;
-  border-radius: var(--r-pill);
+  border-radius: 8px;
   font-size: var(--fs-footnote);
   font-weight: 600;
   color: var(--ds-ink2);
@@ -636,7 +636,6 @@ a.chip:hover {
 .segmented a[aria-current="page"] {
   background: var(--ds-surface);
   color: var(--ds-ink);
-  box-shadow: var(--ds-shadow1);
 }
 /* 選択中の札の中の件数。地の色が反転するので、文字色も地に合わせる (ink2 のままだと消える)。 */
 .segmented a[aria-current="page"] .u-dim,
@@ -786,8 +785,8 @@ a.stat-strip__item:hover {
   font-variant-numeric: tabular-nums;
   font-size: var(--fs-subhead);
   font-weight: 700;
-  /* 比べる数の列は 1 色。行ごとにアイドル色で塗ると赤い「3票」が警告に見える。 */
-  color: var(--ds-ink);
+  /* アプリ (ImasMetricBadge) と同じくエンティティ色。ただし文字なので読める側 (accent-ink)。 */
+  color: var(--accent-ink);
   white-space: nowrap;
 }
 .metric--muted {
@@ -892,8 +891,9 @@ a.ranking-row:hover {
   font-weight: 700;
   color: var(--ds-ink2);
 }
+/* 上位 3 位はエンティティ色 (アプリの ImasRankingRow と同じ)。 */
 .ranking-row--top .ranking-row__rank {
-  color: var(--ds-ink);
+  color: var(--accent-ink);
 }
 .ranking-row__body {
   min-width: 0;
@@ -1882,7 +1882,7 @@ a.labeled-row .labeled-row__value {
   }
 }
 
-/* ユニットは空の曲も多く、埋まっていても原唱者と重なりがちなので最後。 */
+/* ユニットは空の曲も多く、埋まっていても歌唱アイドルと重なりがちなので後ろ。 */
 @container songtable (min-width: 62rem) {
   .song-table__c-unit {
     display: table-cell;
@@ -1890,6 +1890,65 @@ a.labeled-row .labeled-row__value {
   .song-table__c-artists {
     width: 31%;
   }
+}
+
+/* さらに広ければ作曲・収録 CD。読み物ではなく「引く」ための列なので、狭い幅では出さない。 */
+@container songtable (min-width: 76rem) {
+  .song-table__c-composer {
+    display: table-cell;
+    width: 12%;
+  }
+  .song-table__c-artists {
+    width: 26%;
+  }
+}
+@container songtable (min-width: 92rem) {
+  .song-table__c-cd {
+    display: table-cell;
+    width: 18%;
+  }
+  .song-table__c-artists {
+    width: 22%;
+  }
+}
+
+/* 曲名の横の曲種別の札。表の中では小さく。 */
+.song-table__title .tag {
+  margin-inline-start: var(--sp2);
+  vertical-align: 0.1em;
+}
+
+/* 列見出しで並べ替え (島が動いたときだけボタンになる)。 */
+.song-table__sort {
+  all: unset;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+}
+.song-table__sort:hover {
+  color: var(--ds-ink);
+}
+.song-table__sort:focus-visible {
+  outline: 2px solid var(--ds-ink);
+  outline-offset: 2px;
+  border-radius: var(--r-xs);
+}
+.song-table__sort::after {
+  content: "";
+  display: inline-block;
+  inline-size: 0.9em;
+  margin-inline-start: 2px;
+  text-align: start;
+}
+th[aria-sort="ascending"] .song-table__sort::after {
+  content: "↑";
+}
+th[aria-sort="descending"] .song-table__sort::after {
+  content: "↓";
+}
+th[aria-sort="ascending"],
+th[aria-sort="descending"] {
+  color: var(--ds-ink);
 }
 
 /* --- 詳細ページの 2 段組 --------------------------------------------------

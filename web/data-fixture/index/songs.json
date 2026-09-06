@@ -18,6 +18,9 @@
       "releaseDate": "2019-03-13",
       "unitLabel": "765MILLION ALLSTARS",
       "artistsLabel": "春日未来",
+      "songTypeLabel": "ユニット曲",
+      "composer": "高田暁",
+      "cdTitle": "THE IDOLM@STER LIVE THE@TER PERFORMANCE 01",
       "performanceCount": 12,
       "subtitle": "765MILLION ALLSTARS ・ 春日未来 ・ 2019-03-13"
     },
@@ -34,6 +37,9 @@
       "releaseDate": null,
       "unitLabel": null,
       "artistsLabel": null,
+      "songTypeLabel": null,
+      "composer": null,
+      "cdTitle": null,
       "performanceCount": null,
       "subtitle": null
     }

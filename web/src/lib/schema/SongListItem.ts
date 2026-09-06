@@ -14,6 +14,18 @@ export type SongListItem = { ref: Ref, releaseDate: string | null, unitLabel: st
  */
 artistsLabel: string | null, 
 /**
+ * 曲種別 (「ソロ曲」「ユニット曲」「全体曲」…)。語は `content::song_type_label`。
+ */
+songTypeLabel: string | null, 
+/**
+ * 作曲者 (`songs.composer` そのまま)。表の列。
+ */
+composer: string | null, 
+/**
+ * 収録 CD (`songs.cd_title`)。表の列 (幅があるときだけ)。
+ */
+cdTitle: string | null, 
+/**
  * 披露回数。
  *
  * `/songs/all/` (全件ハブ) では **`None`**。あちらは 3,153 行を 1 枚に並べる

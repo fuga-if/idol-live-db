@@ -609,7 +609,7 @@ fn song_page(reference: &Ref, minimal: bool) -> SongPage {
         } else {
             vec![
                 tile("♪", 12, "回披露", Some("#song-history")),
-                tile("☺", 2, "原唱者", None),
+                tile("☺", 2, "歌唱アイドル", None),
             ]
         },
         performance_history: if minimal {
@@ -653,7 +653,7 @@ fn song_page(reference: &Ref, minimal: bool) -> SongPage {
         app: content::app_open_plain(),
         seo: seo(
             &reference.name,
-            "クレジット・原唱者・披露履歴。",
+            "クレジット・歌唱アイドル・披露履歴。",
             &reference.path,
             Robots::IndexFollow,
             &[("ホーム", "/"), ("楽曲", "/songs/")],
@@ -943,6 +943,9 @@ fn song_list_page(path: &str, title: &str, kind: SongListKind) -> SongListPage {
             release_date: Some("2019-03-13".to_string()),
             unit_label: Some("765MILLION ALLSTARS".to_string()),
             artists_label: Some("春日未来".to_string()),
+            song_type_label: Some("ユニット曲".to_string()),
+            composer: Some("高田暁".to_string()),
+            cd_title: Some("THE IDOLM@STER LIVE THE@TER PERFORMANCE 01".to_string()),
             performance_count: Some(12),
             subtitle: Some("765MILLION ALLSTARS ・ 春日未来 ・ 2019-03-13".to_string()),
         },
@@ -952,6 +955,9 @@ fn song_list_page(path: &str, title: &str, kind: SongListKind) -> SongListPage {
             release_date: None,
             unit_label: None,
             artists_label: None,
+            song_type_label: None,
+            composer: None,
+            cd_title: None,
             performance_count: None,
             subtitle: None,
         },

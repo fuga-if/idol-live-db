@@ -34,8 +34,8 @@ const song = page<SongPage>(Astro.props.data);
       {/* 全体曲は 49 人。セトリの行と同じ畳み (色の点 + 人数、開けば全員)。 */}
       {
         song.originalArtists.length > 0 && (
-          <Fold label="原唱者" themeKeys={song.originalArtists.map((r) => r.themeKey)}>
-            <RefList refs={song.originalArtists} label="原唱者" />
+          <Fold label="歌唱アイドル" themeKeys={song.originalArtists.map((r) => r.themeKey)}>
+            <RefList refs={song.originalArtists} label="歌唱アイドル" />
           </Fold>
         )
       }
@@ -92,8 +92,8 @@ const song = page<SongPage>(Astro.props.data);
 
   {
     song.otherArtists.length > 0 && (
-      <Section slot="aside" id="song-artists" title="その他の歌唱者">
-        <RefList refs={song.otherArtists} variant="neutral" label="その他の歌唱者" />
+      <Section slot="aside" id="song-artists" title="ほかに歌ったアイドル">
+        <RefList refs={song.otherArtists} variant="neutral" label="ほかに歌ったアイドル" />
       </Section>
     )
   }

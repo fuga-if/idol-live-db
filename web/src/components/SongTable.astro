@@ -1,6 +1,7 @@
 ---
 import Artwork from "./Artwork.astro";
 import Count from "./Count.astro";
+import TagChip from "./TagChip.astro";
 import type { SongListItem } from "../lib/schema/SongListItem";
 import type { KanaSection } from "../lib/schema/KanaSection";
 import { kanaAnchorId } from "../lib/anchors";
@@ -16,8 +17,13 @@ import { kanaAnchorId } from "../lib/anchors";
  * 出ると本文の幅はその分だけ狭くなるので、ビューポート幅で決めると、同じ
  * 見た目の幅なのにサイドバーの有無で表の形が変わってしまう。
  *
- * **区切り文字を CSS で作らない。** 「ユニット ・ 原唱者 ・ 初出」の畳み方を決めるのは
+ * **区切り文字を CSS で作らない。** 「ユニット ・ 歌唱アイドル ・ 初出」の畳み方を決めるのは
  * `imas-core` の `display_join` 1 箇所で、ここは組み上がった `subtitle` を置くだけ。
+ *
+ * **列見出しを押すと並べ替わる** (曲名 = 五十音順 / 初出 = リリース日順 / ライブ = 披露回数順)。
+ * 並べ替えの実体は絞り込みの島 (`listfilter/island.ts`) で、見出しは `data-sort-column` に
+ * 並びの鍵 (Rust `SongListSort::key`) を持つだけ。島が動かない環境では文字のまま
+ * (押せないものを置かない)。
  *
  * 行を `ref` だけに削った一覧 (`/songs/all/`) はそもそもここへ来ない
  * (列が 1 つも無い表になるうえ、表の行には `content-visibility` が効かない)。
@@ -39,11 +45,13 @@ const sectionStarts = new Set(kanaSections.map((s) => s.startIndex));
   <table class="song-table" role="table">
     <thead role="rowgroup">
       <tr role="row">
-        <th role="columnheader" scope="col" class="song-table__c-title">曲名</th>
+        <th role="columnheader" scope="col" class="song-table__c-title" data-sort-column="kana">曲名</th>
         <th role="columnheader" scope="col" class="song-table__c-unit">ユニット</th>
-        <th role="columnheader" scope="col" class="song-table__c-artists">原唱者</th>
-        <th role="columnheader" scope="col" class="song-table__c-date song-table__num">初出</th>
-        <th role="columnheader" scope="col" class="song-table__c-count song-table__num">ライブ</th>
+        <th role="columnheader" scope="col" class="song-table__c-artists">歌唱アイドル</th>
+        <th role="columnheader" scope="col" class="song-table__c-composer">作曲</th>
+        <th role="columnheader" scope="col" class="song-table__c-cd">収録 CD</th>
+        <th role="columnheader" scope="col" class="song-table__c-date song-table__num" data-sort-column="release">初出</th>
+        <th role="columnheader" scope="col" class="song-table__c-count song-table__num" data-sort-column="performance">ライブ</th>
       </tr>
     </thead>
     <tbody role="rowgroup">
@@ -55,11 +63,16 @@ const sectionStarts = new Set(kanaSections.map((s) => s.startIndex));
                   2,000 行規模で custom property の再計算が倍になる。 */}
               <a href={item.ref.path}>
                 <Artwork title={item.ref.name} artworkUrl={item.ref.artworkUrl} size="sm" />
-                <span>{item.ref.name}</span>
+                <span>
+                  {item.ref.name}
+                  {item.songTypeLabel && <TagChip text={item.songTypeLabel} kind="all" />}
+                </span>
               </a>
             </th>
             <td role="cell" class="song-table__c-unit song-table__dim">{item.unitLabel}</td>
             <td role="cell" class="song-table__c-artists song-table__dim">{item.artistsLabel}</td>
+            <td role="cell" class="song-table__c-composer song-table__dim">{item.composer}</td>
+            <td role="cell" class="song-table__c-cd song-table__dim">{item.cdTitle}</td>
             <td role="cell" class="song-table__c-date song-table__num song-table__dim u-num">
               {item.releaseDate}
             </td>

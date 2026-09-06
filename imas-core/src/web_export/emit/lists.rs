@@ -388,6 +388,9 @@ fn song_list_item(ctx: &Ctx, index: u32, light: bool) -> Option<SongListItem> {
             release_date: None,
             unit_label: None,
             artists_label: None,
+            song_type_label: None,
+            composer: None,
+            cd_title: None,
             performance_count: None,
             subtitle: None,
         });
@@ -409,6 +412,9 @@ fn song_list_item(ctx: &Ctx, index: u32, light: bool) -> Option<SongListItem> {
         release_date: song.release_date.clone(),
         unit_label: song.unit_name.clone(),
         artists_label,
+        song_type_label: song.song_type.as_deref().and_then(content::song_type_label).map(str::to_string),
+        composer: song.composer.clone().filter(|c| !c.is_empty()),
+        cd_title: song.cd_title.clone().filter(|c| !c.is_empty()),
         performance_count: Some(ctx.snap.performance_counts[index as usize]),
     })
 }
@@ -527,7 +533,7 @@ pub fn song_lists(ctx: &Ctx) -> Vec<Emitted<SongListPage>> {
         listed,
         "index/songs.json".to_string(),
         None,
-        "アイドルマスターの楽曲一覧。クレジット・原唱者・ライブでの披露履歴。".to_string(),
+        "アイドルマスターの楽曲一覧。クレジット・歌唱アイドル・ライブでの披露履歴。".to_string(),
         default_song_filter(vec![]),
     )];
 

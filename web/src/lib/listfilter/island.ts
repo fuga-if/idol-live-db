@@ -111,6 +111,42 @@ export function mountListFilter<F>(
   let engine: Engine | null = null;
   let timer = 0;
 
+  // --- 列見出しで並べ替え ------------------------------------------------
+  // 表の見出し (`th[data-sort-column]`) は並びの鍵を持つだけの文字。島が動いたら押せる
+  // ボタンに差し替え、押すたびに「その並びにする → 向きを反転」と巡る。状態は上の
+  // select / 向きボタンと同じ 1 つ (`state.__sort` / `state.__ascending`)。
+  const columns = [...document.querySelectorAll<HTMLTableCellElement>("th[data-sort-column]")]
+    .filter((th) => sorts.length === 0 || sorts.some((o) => o.key === th.dataset.sortColumn))
+    .map((th) => {
+      const key = th.dataset.sortColumn!;
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "song-table__sort";
+      button.append(...th.childNodes);
+      button.addEventListener("click", () => {
+        if (state.__sort === key) {
+          state.__ascending = !currentAscending();
+        } else {
+          state.__sort = key;
+          state.__ascending = null; // その並びの既定方向 (決めるのはコア)。
+        }
+        el.sort.value = state.__sort;
+        syncDir();
+        syncColumns();
+        onChange();
+      });
+      th.replaceChildren(button);
+      return { th, key, button };
+    });
+
+  function syncColumns(): void {
+    for (const c of columns) {
+      const active = c.key === state.__sort && sorts.some((o) => o.key === c.key);
+      c.button.disabled = !sorts.some((o) => o.key === c.key);
+      c.th.setAttribute("aria-sort", active ? (currentAscending() ? "ascending" : "descending") : "none");
+    }
+  }
+
   setEnabled(false);
   void start();
 
@@ -210,8 +246,9 @@ export function mountListFilter<F>(
 
   function setEnabled(on: boolean): void {
     // 入力欄は素材 (facets) が来てから描くので、ここで触るものは無い。
-    // 器の側 (sort/dir/reset) だけを止めておく。
+    // 器の側 (sort/dir/reset と列見出し) だけを止めておく。
     for (const c of [el.sort, el.dir, el.reset]) c.disabled = !on;
+    for (const c of columns) c.button.disabled = !on;
     el.root.dataset.state = on ? "ready" : "loading";
   }
 
@@ -231,7 +268,9 @@ export function mountListFilter<F>(
     if (!sorts.some((o) => o.key === state.__sort)) state.__sort = spec.fallbackSort;
     el.sort.value = state.__sort;
     syncDir();
+    syncColumns();
   }
+
 
   /** 入力欄。値の集合は wasm (= Snapshot) が出したものをそのまま並べる。 */
   function renderFields(): void {
