@@ -11,10 +11,6 @@ export type CalendarDay = {
  */
 date: string, day: number, inMonth: boolean, isToday: boolean, 
 /**
- * 0 = 日曜 … 6 = 土曜。
- */
-weekday: number, 
-/**
  * 枠に出す分 (先頭の数件)。全部は [`CalendarDayGroup::items`]。月の外の日は空。
  */
 items: Array<CalendarItem>, 

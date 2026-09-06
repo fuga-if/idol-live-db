@@ -12,11 +12,7 @@ export type CalendarPage = { schemaVersion: number, path: string,
 /**
  * `2026年9月`。
  */
-title: string, 
-/**
- * `2026-09`。
- */
-monthKey: string, lede: string, 
+title: string, lede: string, 
 /**
  * この月の件数 (公演・リリース曲・誕生日・記念日)。0 のものは無い。
  */

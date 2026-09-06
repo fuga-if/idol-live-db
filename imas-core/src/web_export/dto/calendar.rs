@@ -12,8 +12,6 @@ web_dto! {
         pub path: String,
         /// `2026年9月`。
         pub title: String,
-        /// `2026-09`。
-        pub month_key: String,
         pub lede: String,
         /// この月の件数 (公演・リリース曲・誕生日・記念日)。0 のものは無い。
         pub stat_tiles: Vec<StatTile>,
@@ -52,8 +50,6 @@ web_dto! {
         pub day: u32,
         pub in_month: bool,
         pub is_today: bool,
-        /// 0 = 日曜 … 6 = 土曜。
-        pub weekday: u32,
         /// 枠に出す分 (先頭の数件)。全部は [`CalendarDayGroup::items`]。月の外の日は空。
         pub items: Vec<CalendarItem>,
         /// 枠に入り切らなかった件数の札 (`+2`)。
@@ -78,6 +74,21 @@ web_dto! {
         pub theme_key: String,
         /// リリースの日だけ: その日に出た曲。
         pub refs: Vec<Ref>,
+    }
+}
+
+impl CalendarItem {
+    /// 押し先・副題・曲の無い素の 1 件。呼ぶ側が `..` で足す。
+    pub fn new(kind: CalendarItemKind, kind_label: &str, label: impl Into<String>, theme_key: String) -> Self {
+        Self {
+            kind,
+            kind_label: kind_label.to_string(),
+            label: label.into(),
+            sub: None,
+            path: None,
+            theme_key,
+            refs: vec![],
+        }
     }
 }
 

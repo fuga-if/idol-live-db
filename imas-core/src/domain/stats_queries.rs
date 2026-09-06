@@ -29,6 +29,7 @@
 //! **user_marks はスナップショットに無い**。回収率はプラットフォーム側が回収済み id 集合を
 //! 解決し、`branded_song_ids` (母集合) と突き合わせる (iOS StatsView / CollectionShareCard)。
 
+use crate::domain::short_year_month::ymd_components;
 use crate::domain::snapshot::Snapshot;
 use std::cmp::Reverse;
 use std::collections::{BTreeMap, HashSet};
@@ -183,6 +184,17 @@ pub fn cast_show_count_ranking(snap: &Snapshot, limit: u32) -> Vec<CastShowCount
 /// strftime が NULL になる規約外の date は行ごと落とす: SQL では NULL 年グループが
 /// 先頭にできるが、その行は GRDB の `YearlyShowCount.year: String` デコードで
 /// エラーになっていた = 保存すべき既存挙動が無いため、落とす側に明示的に倒す。
+/// 月ごとの公演数 (`YYYY-MM` → 件数)。日付の読めない公演は数えない。
+pub fn monthly_show_counts(snap: &Snapshot) -> BTreeMap<String, u32> {
+    let mut out: BTreeMap<String, u32> = BTreeMap::new();
+    for show in &snap.shows {
+        if let [year, month, ..] = ymd_components(&show.date)[..] {
+            *out.entry(format!("{year}-{month}")).or_default() += 1;
+        }
+    }
+    out
+}
+
 pub fn yearly_show_counts(snap: &Snapshot) -> Vec<YearlyShowCountRecord> {
     let mut by_year: BTreeMap<&str, u32> = BTreeMap::new();
     for show in &snap.shows {

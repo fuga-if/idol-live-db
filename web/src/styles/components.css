@@ -2060,8 +2060,14 @@ a.labeled-row .labeled-row__value {
   color: var(--ds-ink2);
   text-align: center;
 }
-.cal__table th:first-child {
-  color: var(--ds-danger);
+/* 曜日の色は日付ブロックと同じ (--ds-sunday / --ds-saturday)。 */
+.cal__table th[data-weekday="日"],
+.cal__day[data-weekday="日"] {
+  color: var(--ds-sunday);
+}
+.cal__table th[data-weekday="土"],
+.cal__day[data-weekday="土"] {
+  color: var(--ds-saturday);
 }
 .cal__cell {
   vertical-align: top;
@@ -2076,9 +2082,6 @@ a.labeled-row .labeled-row__value {
   background: transparent;
   opacity: 0.45;
 }
-.cal__cell--sun .cal__day {
-  color: var(--ds-danger);
-}
 .cal__day {
   display: inline-grid;
   place-items: center;
@@ -2087,9 +2090,7 @@ a.labeled-row .labeled-row__value {
   border-radius: 999px;
   font-size: var(--fs-caption);
   font-weight: 600;
-  font-variant-numeric: tabular-nums;
   color: var(--ds-ink);
-  text-decoration: none;
 }
 a.cal__day:hover {
   background: var(--ds-fill);
@@ -2111,7 +2112,6 @@ a.cal__day:hover {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  text-decoration: none;
 }
 .cal__band--start {
   border-start-start-radius: 3px;
@@ -2122,9 +2122,7 @@ a.cal__day:hover {
   border-end-end-radius: 3px;
 }
 .cal__items {
-  list-style: none;
-  margin: 2px 0 0;
-  padding: 0;
+  margin-block-start: 2px;
   display: grid;
   gap: 2px;
 }
@@ -2134,12 +2132,11 @@ a.cal__day:hover {
   border-radius: 3px;
   font-size: var(--fs-caption2);
   line-height: 1.35;
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
   color: var(--accent-ink);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  text-decoration: none;
 }
 /* 公演だけ塗る (主役)。ほかは色敷き。 */
 .cal__item--show {
@@ -2156,8 +2153,8 @@ a.cal__day:hover {
   font-size: var(--fs-caption2);
   color: var(--ds-ink2);
 }
-/* 狭い幅: 文字を落として点にする。中身は下の一覧で読む。 */
-@container (max-width: 40rem) {
+/* 狭い幅 (上部ナビが折れる幅と同じ): 文字を落として点にする。中身は下の一覧で読む。 */
+@container (max-width: 44rem) {
   .cal__table {
     border-spacing: 2px;
   }
@@ -2177,13 +2174,13 @@ a.cal__day:hover {
     padding: 0;
     border-radius: 50%;
   }
-  .cal__item-text {
+  .cal__item-text,
+  .cal__band-label {
     display: none;
   }
   .cal__band {
     block-size: 4px;
     padding: 0;
-    font-size: 0;
   }
   .cal__more {
     padding: 0;
@@ -2201,22 +2198,8 @@ a.cal__day:hover {
   grid-template-columns: auto 1fr;
   gap: var(--sp4);
   align-items: start;
-  /* 枠の日付から飛んできたとき、固定ヘッダの下に隠れないように。 */
-  scroll-margin-block-start: 5rem;
 }
 .cal-day__items {
-  list-style: none;
-  margin: 0;
-  padding: 0;
   display: grid;
   gap: var(--sp2);
-}
-.cal-day__item {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--sp2);
-}
-.cal-day__refs {
-  gap: var(--sp1);
 }

@@ -136,7 +136,7 @@ fn event_list_item(
 /// 一覧ページのパンくず。入口 (`/songs/` など) は [ホーム, 自分]、絞った一覧
 /// (`/songs/brand/ml/` など) は [ホーム, 入口, 自分] — 上部バーの現在地も、この入口が
 /// パンくずに居るかで決まる。
-fn list_crumbs(root: SiteList, title: &str, path: &str) -> Vec<Crumb> {
+pub fn list_crumbs(root: SiteList, title: &str, path: &str) -> Vec<Crumb> {
     let mut crumbs = vec![Ctx::crumb("ホーム", "/")];
     if path != root.path() {
         crumbs.push(Ctx::crumb(root.label(), root.path()));
@@ -164,7 +164,7 @@ fn scope_links(current: &str, upcoming: u32, past: u32) -> Vec<NavLink> {
         NavLink::new("今後のライブ", "/events/upcoming/").with_count(upcoming),
         NavLink::new("開催済み", "/events/past/").with_count(past),
         // 月の枠で見る (中身は同じ公演)。
-        NavLink::new(content::CALENDAR_TITLE, super::calendar::CALENDAR_PATH),
+        NavLink::new(SiteList::Calendar.label(), SiteList::Calendar.path()),
     ];
     mark_current(&mut links, current);
     links
@@ -1191,6 +1191,8 @@ pub fn counts(ctx: &Ctx) -> Counts {
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum SiteList {
     Events,
+    /// ライブを月の枠で見る入口。件数のタイルとブランド別一覧は持たない。
+    Calendar,
     Shows,
     Songs,
     Idols,
@@ -1204,6 +1206,7 @@ impl SiteList {
     pub fn glyph(self) -> &'static str {
         match self {
             Self::Events => "♪",
+            Self::Calendar => "▦",
             Self::Shows => "▤",
             Self::Songs => "♬",
             Self::Idols => "☺",
@@ -1216,6 +1219,7 @@ impl SiteList {
     pub fn label(self) -> &'static str {
         match self {
             Self::Events => "ライブ",
+            Self::Calendar => content::CALENDAR_TITLE,
             Self::Shows => "公演",
             Self::Songs => "楽曲",
             Self::Idols => "アイドル",
@@ -1229,6 +1233,7 @@ impl SiteList {
     pub fn path(self) -> &'static str {
         match self {
             Self::Events => "/events/",
+            Self::Calendar => super::calendar::CALENDAR_PATH,
             Self::Shows => "/events/past/",
             Self::Songs => "/songs/",
             Self::Idols => "/idols/",
@@ -1245,7 +1250,7 @@ impl SiteList {
             Self::Songs => Some("songs"),
             Self::Idols => Some("idols"),
             Self::Units => Some("units"),
-            Self::Shows | Self::Venues | Self::Brands => None,
+            Self::Calendar | Self::Shows | Self::Venues | Self::Brands => None,
         }
     }
 
@@ -1332,6 +1337,8 @@ pub fn home(ctx: &Ctx, upcoming: &[EventListItem], counts: Counts) -> HomePage {
 pub fn primary_nav(with_polls: bool, with_calls: bool) -> Vec<NavLink> {
     let mut nav: Vec<NavLink> = [
         SiteList::Events,
+        // ライブを月の枠で見る入口はライブの隣。
+        SiteList::Calendar,
         SiteList::Songs,
         SiteList::Idols,
         SiteList::Units,
@@ -1341,8 +1348,6 @@ pub fn primary_nav(with_polls: bool, with_calls: bool) -> Vec<NavLink> {
     .into_iter()
     .map(|list| NavLink::new(list.label(), list.path()))
     .collect();
-    // カレンダーはライブの隣 (月の枠で見る入口)。
-    nav.insert(1, NavLink::new(content::CALENDAR_TITLE, super::calendar::CALENDAR_PATH));
     if with_polls {
         nav.push(NavLink::new("お題", "/polls/"));
     }

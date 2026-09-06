@@ -192,18 +192,11 @@ pub const CALENDAR_KIND_ANNIVERSARY: &str = "記念日";
 pub const CALENDAR_KIND_TICKET_DEADLINE: &str = "申込締切";
 pub const CALENDAR_KIND_TICKET_LOTTERY: &str = "当落発表";
 pub const CALENDAR_KIND_TICKET_OPEN: &str = "受付開始";
-pub const CALENDAR_TILE_SHOWS: &str = "公演";
+/// 件数の帯の「リリース曲」(予定の札は「リリース」、公演・誕生日・記念日の帯は札と同じ語)。
 pub const CALENDAR_TILE_RELEASES: &str = "リリース曲";
-pub const CALENDAR_TILE_BIRTHDAYS: &str = "誕生日";
-pub const CALENDAR_TILE_ANNIVERSARIES: &str = "記念日";
 
 pub fn calendar_month_title(year: i32, month: u32) -> String {
     format!("{year}年{month}月")
-}
-
-/// 同じ年の月の切替の札 (`9月`)。
-pub fn calendar_month_short(month: u32) -> String {
-    format!("{month}月")
 }
 
 pub fn calendar_month_description(year: i32, month: u32, shows: u32) -> String {

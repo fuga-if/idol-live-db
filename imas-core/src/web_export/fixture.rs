@@ -31,7 +31,7 @@ use super::{Result, Stats, WebExportError};
 use std::path::Path;
 use super::emit::events::ShowContext;
 use super::emit::context::TAGS_PATH;
-use super::emit::calendar::CALENDAR_PATH;
+use super::emit::calendar::{month_grid, month_path, CALENDAR_PATH};
 use crate::domain::date_display::{range_with_weekday, until_display, with_weekday};
 use crate::domain::setlist_lineup::Lineup;
 use crate::domain::idol_list_filtering::IdolQuery;
@@ -1145,30 +1145,32 @@ fn tag_page() -> TagPage {
     }
 }
 
-/// カレンダー。今月 (`/calendar/`) と月のページで同じ形。2 週ぶんの枠に、公演・リリース・
+/// カレンダー。今月 (`/calendar/`) と月のページで同じ形。2026 年 9 月の枠に、公演・リリース・
 /// 誕生日・記念日・チケットを 1 つずつ置く (色と押し先の有無の組み合わせを網羅する)。
+/// 枠は emit と同じ `month_grid` で組む (代表値だけ別の形にならないように)。
 fn calendar_page(path: &str, key: &str) -> CalendarPage {
-    let item = |kind: CalendarItemKind, kind_label: &str, label: &str, path: Option<&str>, theme: &str| CalendarItem {
-        kind,
-        kind_label: kind_label.to_string(),
-        label: label.to_string(),
-        sub: None,
-        path: path.map(str::to_string),
-        theme_key: theme.to_string(),
-        refs: vec![],
-    };
-    let show = || {
-        let mut i = item(CalendarItemKind::Show, content::CALENDAR_KIND_SHOW, "サンプルライブ", Some("/shows/sh_sample_1/"), "brand:ml");
-        i.sub = Some("DAY1 ・ 幕張メッセ".to_string());
-        i
+    use std::collections::BTreeMap;
+    let show = || CalendarItem {
+        sub: Some("DAY1 ・ 幕張メッセ".to_string()),
+        path: Some("/shows/sh_sample_1/".to_string()),
+        ..CalendarItem::new(CalendarItemKind::Show, content::CALENDAR_KIND_SHOW, "サンプルライブ", "brand:ml".to_string())
     };
     let release = || CalendarItem {
         refs: vec![song_sample(), song_no_artwork()],
-        ..item(CalendarItemKind::Release, content::CALENDAR_KIND_RELEASE, &content::calendar_release_label(2), None, "neutral")
+        ..CalendarItem::new(CalendarItemKind::Release, content::CALENDAR_KIND_RELEASE, content::calendar_release_label(2), "neutral".to_string())
     };
-    let birthday = || item(CalendarItemKind::Birthday, content::CALENDAR_KIND_BIRTHDAY, "春日未来", Some("/idols/ml_kasuga_mirai/"), "idol:ml_kasuga_mirai");
-    let anniversary = || item(CalendarItemKind::Anniversary, content::CALENDAR_KIND_ANNIVERSARY, &content::anniversary_display("シリーズ開始", 21), Some("/brands/ml/"), "brand:ml");
-    let ticket = || item(CalendarItemKind::Ticket, content::CALENDAR_KIND_TICKET_DEADLINE, "サンプルライブ", Some("/events/ev_sample/"), "brand:ml");
+    let birthday = || CalendarItem {
+        path: Some("/idols/ml_kasuga_mirai/".to_string()),
+        ..CalendarItem::new(CalendarItemKind::Birthday, content::CALENDAR_KIND_BIRTHDAY, "春日未来", "idol:ml_kasuga_mirai".to_string())
+    };
+    let anniversary = || CalendarItem {
+        path: Some("/brands/ml/".to_string()),
+        ..CalendarItem::new(CalendarItemKind::Anniversary, content::CALENDAR_KIND_ANNIVERSARY, content::anniversary_display("シリーズ開始", 21), "brand:ml".to_string())
+    };
+    let ticket = || CalendarItem {
+        path: Some("/events/ev_sample/".to_string()),
+        ..CalendarItem::new(CalendarItemKind::Ticket, content::CALENDAR_KIND_TICKET_DEADLINE, "サンプルライブ", "brand:ml".to_string())
+    };
     let band = |starts: bool, ends: bool| CalendarBand {
         label: "サンプルライブ".to_string(),
         theme_key: "brand:ml".to_string(),
@@ -1176,41 +1178,31 @@ fn calendar_page(path: &str, key: &str) -> CalendarPage {
         ends,
         path: Some("/events/ev_sample/".to_string()),
     };
-    let day = |date: &str, day: u32, weekday: u32, in_month: bool, items: Vec<CalendarItem>, bands: Vec<CalendarBand>| CalendarDay {
-        date: date.to_string(),
-        day,
-        in_month,
-        is_today: date == "2026-09-06",
-        weekday,
-        overflow_label: (items.len() > 3).then(|| content::calendar_overflow_label(items.len() - 3)),
-        items: items.into_iter().take(3).collect(),
-        bands,
-    };
-    let weeks = vec![
-        CalendarWeek {
-            days: vec![
-                day("2026-08-30", 30, 0, false, vec![], vec![]),
-                day("2026-08-31", 31, 1, false, vec![], vec![]),
-                day("2026-09-01", 1, 2, true, vec![ticket()], vec![band(true, false)]),
-                day("2026-09-02", 2, 3, true, vec![], vec![band(false, false)]),
-                day("2026-09-03", 3, 4, true, vec![release()], vec![band(false, true)]),
-                day("2026-09-04", 4, 5, true, vec![], vec![]),
-                day("2026-09-05", 5, 6, true, vec![show(), show(), birthday(), anniversary()], vec![]),
-            ],
-        },
-        CalendarWeek {
-            days: vec![
-                day("2026-09-06", 6, 0, true, vec![show()], vec![]),
-                day("2026-09-07", 7, 1, true, vec![], vec![]),
-                day("2026-09-08", 8, 2, true, vec![], vec![]),
-                day("2026-09-09", 9, 3, true, vec![], vec![]),
-                day("2026-09-10", 10, 4, true, vec![], vec![]),
-                day("2026-09-11", 11, 5, true, vec![], vec![]),
-                day("2026-09-12", 12, 6, true, vec![], vec![]),
-            ],
-        },
-    ];
-    let group = |date: &str, items: Vec<CalendarItem>| CalendarDayGroup { date_badge: DateBadge::from_ymd(date), items };
+    let items: BTreeMap<String, Vec<CalendarItem>> = [
+        ("2026-09-01", vec![ticket()]),
+        ("2026-09-03", vec![release()]),
+        // 4 件 = 枠には 3 件と +1。
+        ("2026-09-05", vec![show(), show(), birthday(), anniversary()]),
+        ("2026-09-06", vec![show()]),
+    ]
+    .into_iter()
+    .map(|(d, v)| (d.to_string(), v))
+    .collect();
+    let bands: BTreeMap<String, Vec<CalendarBand>> = [
+        ("2026-09-01", vec![band(true, false)]),
+        ("2026-09-02", vec![band(false, false)]),
+        ("2026-09-03", vec![band(false, true)]),
+    ]
+    .into_iter()
+    .map(|(d, v)| (d.to_string(), v))
+    .collect();
+    let first = chrono::NaiveDate::from_ymd_opt(2026, 9, 1).expect("実在する日付");
+    let last = chrono::NaiveDate::from_ymd_opt(2026, 9, 30).expect("実在する日付");
+    let weeks = month_grid(first, last, "2026-09-06", &items, &bands);
+    let days = items
+        .into_iter()
+        .map(|(date, items)| CalendarDayGroup { date_badge: DateBadge::from_ymd(&date), items })
+        .collect();
     let title = content::calendar_month_title(2026, 9);
     let is_index = path == CALENDAR_PATH;
     let mut seo = seo(
@@ -1221,33 +1213,27 @@ fn calendar_page(path: &str, key: &str) -> CalendarPage {
         &[("ホーム", "/"), (content::CALENDAR_TITLE, CALENDAR_PATH)],
     );
     if is_index {
-        seo.canonical = absolute(&format!("/calendar/{key}/"));
+        seo.canonical = absolute(&month_path(key));
     }
     CalendarPage {
         schema_version: SCHEMA_VERSION,
         path: path.to_string(),
         title,
-        month_key: key.to_string(),
         lede: content::CALENDAR_LEDE.to_string(),
         stat_tiles: nonzero_tiles([
-            StatTile::new("▤", 3, content::CALENDAR_TILE_SHOWS),
+            StatTile::new("▤", 3, content::CALENDAR_KIND_SHOW),
             StatTile::new("♬", 2, content::CALENDAR_TILE_RELEASES),
-            StatTile::new("☺", 1, content::CALENDAR_TILE_BIRTHDAYS),
-            StatTile::new("◆", 1, content::CALENDAR_TILE_ANNIVERSARIES),
+            StatTile::new("☺", 1, content::CALENDAR_KIND_BIRTHDAY),
+            StatTile::new("◆", 1, content::CALENDAR_KIND_ANNIVERSARY),
         ]),
         prev: None,
         next: None,
         today_link: (!is_index).then(|| nav(content::CALENDAR_TODAY_LINK, CALENDAR_PATH, false, None, None)),
-        year_links: vec![nav("2026", &format!("/calendar/{key}/"), true, None, Some(3))],
-        month_links: vec![nav(&content::calendar_month_short(9), &format!("/calendar/{key}/"), true, None, Some(3))],
+        year_links: vec![nav("2026", &month_path(key), true, None, Some(3))],
+        month_links: vec![nav("9月", &month_path(key), true, None, Some(3))],
         weekday_labels: content::CALENDAR_WEEKDAYS.iter().map(|w| w.to_string()).collect(),
         weeks,
-        days: vec![
-            group("2026-09-01", vec![ticket()]),
-            group("2026-09-03", vec![release()]),
-            group("2026-09-05", vec![show(), show(), birthday(), anniversary()]),
-            group("2026-09-06", vec![show()]),
-        ],
+        days,
         seo,
     }
 }

@@ -3,7 +3,7 @@ import ListLayout from "../layouts/ListLayout.astro";
 import StatStrip from "./StatStrip.astro";
 import DateBadge from "./DateBadge.astro";
 import TagChip from "./TagChip.astro";
-import Chip from "./Chip.astro";
+import RefList from "./RefList.astro";
 import EmptyState from "./EmptyState.astro";
 import type { CalendarPage } from "../lib/schema/CalendarPage";
 
@@ -19,8 +19,8 @@ interface Props {
   page: CalendarPage;
 }
 const { page } = Astro.props;
+/** 枠の日付と下の一覧を結ぶ id。予定のある日だけ (枠の予定は一覧と同じ日の先頭)。 */
 const anchor = (date: string) => `d-${date}`;
-const withDetail = new Set(page.days.map((d) => d.dateBadge.iso));
 ---
 
 <ListLayout
@@ -35,12 +35,10 @@ const withDetail = new Set(page.days.map((d) => d.dateBadge.iso));
 
   <nav class="pager" aria-label="前後の月">
     {
-      page.prev ? (
+      page.prev && (
         <a class="pager__link" rel="prev" href={page.prev.path}>
           ‹ {page.prev.label}
         </a>
-      ) : (
-        <span />
       )
     }
     <span class="pager__pos">
@@ -55,12 +53,10 @@ const withDetail = new Set(page.days.map((d) => d.dateBadge.iso));
       }
     </span>
     {
-      page.next ? (
+      page.next && (
         <a class="pager__link pager__link--next" rel="next" href={page.next.path}>
           {page.next.label} ›
         </a>
-      ) : (
-        <span />
       )
     }
   </nav>
@@ -71,30 +67,23 @@ const withDetail = new Set(page.days.map((d) => d.dateBadge.iso));
     <table class="cal__table">
       <caption class="u-visually-hidden">{page.title}</caption>
       <thead>
-        <tr>{page.weekdayLabels.map((w) => <th scope="col">{w}</th>)}</tr>
+        <tr>{page.weekdayLabels.map((w) => <th scope="col" data-weekday={w}>{w}</th>)}</tr>
       </thead>
       <tbody>
         {
           page.weeks.map((week) => (
             <tr>
-              {week.days.map((d) => (
-                <td
-                  class:list={[
-                    "cal__cell",
-                    !d.inMonth && "cal__cell--out",
-                    d.isToday && "cal__cell--today",
-                    d.weekday === 0 && "cal__cell--sun",
-                  ]}
-                >
-                  {d.inMonth && withDetail.has(d.date) ? (
-                    <a class="cal__day" href={`#${anchor(d.date)}`}>
-                      <time datetime={d.date}>{d.day}</time>
-                    </a>
-                  ) : (
-                    <span class="cal__day">
-                      <time datetime={d.date}>{d.day}</time>
-                    </span>
-                  )}
+              {week.days.map((d, column) => {
+                const Day = d.items.length > 0 ? "a" : "span";
+                return (
+                <td class:list={["cal__cell", !d.inMonth && "cal__cell--out", d.isToday && "cal__cell--today"]}>
+                  <Day
+                    class="cal__day u-num"
+                    data-weekday={page.weekdayLabels[column]}
+                    href={d.items.length > 0 ? `#${anchor(d.date)}` : undefined}
+                  >
+                    <time datetime={d.date}>{d.day}</time>
+                  </Day>
                   {d.bands.map((b) => (
                     <a
                       class:list={["cal__band", b.starts && "cal__band--start", b.ends && "cal__band--end"]}
@@ -121,7 +110,8 @@ const withDetail = new Set(page.days.map((d) => d.dateBadge.iso));
                   )}
                   {d.overflowLabel && <span class="cal__more">{d.overflowLabel}</span>}
                 </td>
-              ))}
+                );
+              })}
             </tr>
           ))
         }
@@ -138,26 +128,19 @@ const withDetail = new Set(page.days.map((d) => d.dateBadge.iso));
           <article class="cal-day" id={anchor(g.dateBadge.iso)}>
             <DateBadge badge={g.dateBadge} showYear={false} />
             <ul class="cal-day__items">
-              {g.items.map((i) => (
-                <li class="cal-day__item" data-theme={i.themeKey}>
-                  <TagChip text={i.kindLabel} kind="all" />
-                  {i.path ? (
-                    <a class="u-underline-hover cal-day__label" href={i.path}>
+              {g.items.map((i) => {
+                const Tag = i.path ? "a" : "span";
+                return (
+                  <li class="u-row" data-theme={i.themeKey}>
+                    <TagChip text={i.kindLabel} kind="all" />
+                    <Tag class:list={[i.path && "u-underline-hover"]} href={i.path}>
                       {i.label}
-                    </a>
-                  ) : (
-                    <span class="cal-day__label">{i.label}</span>
-                  )}
-                  {i.sub && <span class="u-muted">{i.sub}</span>}
-                  {i.refs.length > 0 && (
-                    <span class="u-row cal-day__refs">
-                      {i.refs.map((r) => (
-                        <Chip text={r.name} href={r.path} variant="themed" themeKey={r.themeKey} />
-                      ))}
-                    </span>
-                  )}
-                </li>
-              ))}
+                    </Tag>
+                    {i.sub && <span class="u-muted">{i.sub}</span>}
+                    {i.refs.length > 0 && <RefList refs={i.refs} variant="themed" label={i.label} />}
+                  </li>
+                );
+              })}
             </ul>
           </article>
         ))

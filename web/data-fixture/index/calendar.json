@@ -2,7 +2,6 @@
   "schemaVersion": 1,
   "path": "/calendar/",
   "title": "2026年9月",
-  "monthKey": "2026-09",
   "lede": "公演・楽曲のリリース・アイドルの誕生日・記念日・チケットの日程。日付を押すと、その日の一覧へ。",
   "statTiles": [
     {
@@ -68,7 +67,6 @@
           "day": 30,
           "inMonth": false,
           "isToday": false,
-          "weekday": 0,
           "items": [],
           "overflowLabel": null,
           "bands": []
@@ -78,7 +76,6 @@
           "day": 31,
           "inMonth": false,
           "isToday": false,
-          "weekday": 1,
           "items": [],
           "overflowLabel": null,
           "bands": []
@@ -88,7 +85,6 @@
           "day": 1,
           "inMonth": true,
           "isToday": false,
-          "weekday": 2,
           "items": [
             {
               "kind": "ticket",
@@ -116,7 +112,6 @@
           "day": 2,
           "inMonth": true,
           "isToday": false,
-          "weekday": 3,
           "items": [],
           "overflowLabel": null,
           "bands": [
@@ -134,7 +129,6 @@
           "day": 3,
           "inMonth": true,
           "isToday": false,
-          "weekday": 4,
           "items": [
             {
               "kind": "release",
@@ -181,7 +175,6 @@
           "day": 4,
           "inMonth": true,
           "isToday": false,
-          "weekday": 5,
           "items": [],
           "overflowLabel": null,
           "bands": []
@@ -191,7 +184,6 @@
           "day": 5,
           "inMonth": true,
           "isToday": false,
-          "weekday": 6,
           "items": [
             {
               "kind": "show",
@@ -233,7 +225,6 @@
           "day": 6,
           "inMonth": true,
           "isToday": true,
-          "weekday": 0,
           "items": [
             {
               "kind": "show",
@@ -253,7 +244,6 @@
           "day": 7,
           "inMonth": true,
           "isToday": false,
-          "weekday": 1,
           "items": [],
           "overflowLabel": null,
           "bands": []
@@ -263,7 +253,6 @@
           "day": 8,
           "inMonth": true,
           "isToday": false,
-          "weekday": 2,
           "items": [],
           "overflowLabel": null,
           "bands": []
@@ -273,7 +262,6 @@
           "day": 9,
           "inMonth": true,
           "isToday": false,
-          "weekday": 3,
           "items": [],
           "overflowLabel": null,
           "bands": []
@@ -283,7 +271,6 @@
           "day": 10,
           "inMonth": true,
           "isToday": false,
-          "weekday": 4,
           "items": [],
           "overflowLabel": null,
           "bands": []
@@ -293,7 +280,6 @@
           "day": 11,
           "inMonth": true,
           "isToday": false,
-          "weekday": 5,
           "items": [],
           "overflowLabel": null,
           "bands": []
@@ -303,7 +289,207 @@
           "day": 12,
           "inMonth": true,
           "isToday": false,
-          "weekday": 6,
+          "items": [],
+          "overflowLabel": null,
+          "bands": []
+        }
+      ]
+    },
+    {
+      "days": [
+        {
+          "date": "2026-09-13",
+          "day": 13,
+          "inMonth": true,
+          "isToday": false,
+          "items": [],
+          "overflowLabel": null,
+          "bands": []
+        },
+        {
+          "date": "2026-09-14",
+          "day": 14,
+          "inMonth": true,
+          "isToday": false,
+          "items": [],
+          "overflowLabel": null,
+          "bands": []
+        },
+        {
+          "date": "2026-09-15",
+          "day": 15,
+          "inMonth": true,
+          "isToday": false,
+          "items": [],
+          "overflowLabel": null,
+          "bands": []
+        },
+        {
+          "date": "2026-09-16",
+          "day": 16,
+          "inMonth": true,
+          "isToday": false,
+          "items": [],
+          "overflowLabel": null,
+          "bands": []
+        },
+        {
+          "date": "2026-09-17",
+          "day": 17,
+          "inMonth": true,
+          "isToday": false,
+          "items": [],
+          "overflowLabel": null,
+          "bands": []
+        },
+        {
+          "date": "2026-09-18",
+          "day": 18,
+          "inMonth": true,
+          "isToday": false,
+          "items": [],
+          "overflowLabel": null,
+          "bands": []
+        },
+        {
+          "date": "2026-09-19",
+          "day": 19,
+          "inMonth": true,
+          "isToday": false,
+          "items": [],
+          "overflowLabel": null,
+          "bands": []
+        }
+      ]
+    },
+    {
+      "days": [
+        {
+          "date": "2026-09-20",
+          "day": 20,
+          "inMonth": true,
+          "isToday": false,
+          "items": [],
+          "overflowLabel": null,
+          "bands": []
+        },
+        {
+          "date": "2026-09-21",
+          "day": 21,
+          "inMonth": true,
+          "isToday": false,
+          "items": [],
+          "overflowLabel": null,
+          "bands": []
+        },
+        {
+          "date": "2026-09-22",
+          "day": 22,
+          "inMonth": true,
+          "isToday": false,
+          "items": [],
+          "overflowLabel": null,
+          "bands": []
+        },
+        {
+          "date": "2026-09-23",
+          "day": 23,
+          "inMonth": true,
+          "isToday": false,
+          "items": [],
+          "overflowLabel": null,
+          "bands": []
+        },
+        {
+          "date": "2026-09-24",
+          "day": 24,
+          "inMonth": true,
+          "isToday": false,
+          "items": [],
+          "overflowLabel": null,
+          "bands": []
+        },
+        {
+          "date": "2026-09-25",
+          "day": 25,
+          "inMonth": true,
+          "isToday": false,
+          "items": [],
+          "overflowLabel": null,
+          "bands": []
+        },
+        {
+          "date": "2026-09-26",
+          "day": 26,
+          "inMonth": true,
+          "isToday": false,
+          "items": [],
+          "overflowLabel": null,
+          "bands": []
+        }
+      ]
+    },
+    {
+      "days": [
+        {
+          "date": "2026-09-27",
+          "day": 27,
+          "inMonth": true,
+          "isToday": false,
+          "items": [],
+          "overflowLabel": null,
+          "bands": []
+        },
+        {
+          "date": "2026-09-28",
+          "day": 28,
+          "inMonth": true,
+          "isToday": false,
+          "items": [],
+          "overflowLabel": null,
+          "bands": []
+        },
+        {
+          "date": "2026-09-29",
+          "day": 29,
+          "inMonth": true,
+          "isToday": false,
+          "items": [],
+          "overflowLabel": null,
+          "bands": []
+        },
+        {
+          "date": "2026-09-30",
+          "day": 30,
+          "inMonth": true,
+          "isToday": false,
+          "items": [],
+          "overflowLabel": null,
+          "bands": []
+        },
+        {
+          "date": "2026-10-01",
+          "day": 1,
+          "inMonth": false,
+          "isToday": false,
+          "items": [],
+          "overflowLabel": null,
+          "bands": []
+        },
+        {
+          "date": "2026-10-02",
+          "day": 2,
+          "inMonth": false,
+          "isToday": false,
+          "items": [],
+          "overflowLabel": null,
+          "bands": []
+        },
+        {
+          "date": "2026-10-03",
+          "day": 3,
+          "inMonth": false,
+          "isToday": false,
           "items": [],
           "overflowLabel": null,
           "bands": []
