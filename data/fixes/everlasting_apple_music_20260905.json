@@ -1,0 +1,22 @@
+{
+ "title": "EVERLASTING が別作品の同名曲 (アサルトリリィ) を指していたのを直す",
+ "_help": "songs.apple_music_id が指すトラックを iTunes Lookup で引き直した結果の修正。artwork_url / preview_url はそのトラックから取得した値。",
+ "_how_it_happened": "cg_everlasting の apple_music_id が 1807460863 になっていた。これは アサルトリリィ の『Everlasting』(郭神琳 (CV: 星守紗凪) / アルバム『Cherish』/ 2022-08-03) で、シンデレラガールズの EVERLASTING とは別の曲。曲名だけが同じ。アプリのクイズにこのジャケットと試聴音源が出ていた (ユーザー報告)。apple_music_album_id (1596344933) は元から正しく、そのアルバムの収録トラックは 1596344934 の 1 曲だけだった。",
+ "_verification": "apple_music_id を持つ 2,382 トラックすべてを iTunes Lookup で引き、Apple 側のアーティスト名・アルバム名にブランド語 / ユニット / アイドル / 声優のいずれの手がかりも無いものを洗い出した。誤りはこの 1 件のみ。点検は tools/check_apple_music_links.py として残した。",
+ "_sources": [
+  "https://itunes.apple.com/lookup?id=1596344934&country=jp (EVERLASTING (M@STER VERSION) / THE IDOLM@STER CINDERELLA MASTER EVERLASTING / 収録アーティストは本田未央・辻野あかり・双葉杏・木村夏樹・アナスタシア・橘ありす・輿水幸子・依田芳乃・川島瑞樹・ナターリアの10名で singer_label と一致)",
+  "https://itunes.apple.com/lookup?id=1807460863&country=jp (誤って入っていた方。郭神琳 (CV: 星守紗凪) / アルバム Cherish)"
+ ],
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "cg_everlasting",
+   "fields": {
+    "apple_music_id": "1596344934",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/82/9e/5f/829e5f9c-463c-ec2e-d4c2-f34657bf2abd/COCC-17949.jpg/600x600bb.jpg",
+    "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview116/v4/02/47/99/024799f2-f94d-6d28-852d-42cb881a9ff2/mzaf_17928183709281466351.plus.aac.p.m4a"
+   },
+   "note": "正しいのは CINDERELLA MASTER EVERLASTING (album 1596344933) の収録トラック 1596344934。artwork_url / preview_url もそこから引き直した"
+  }
+ ]
+}
