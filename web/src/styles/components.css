@@ -827,10 +827,10 @@ a.chip:hover {
 
 /* --- 畳んだ切替メニュー (FilterMenu) ------------------------------------------
    閉じているときは「軸 いまの値 ›」の札 1 つ (.chip の上に角丸と文字色だけ重ねる)。
-   開くと一覧が浮く (details、JS 無し)。一覧は .fmenu-row (position: relative) の左下に
-   付き、その幅で止まる。札の真下ではなく列に付けるので、電話で右寄りの札を開いても
-   画面からはみ出ない。 */
-.fmenu-row {
+   開くと一覧が浮く (details、JS 無し)。**一覧は押した札の真下**に出す (列の左端に出していた
+   ときは、右の札を押すと左の札の下に開いて出所が分からなかった)。
+   札は列の左側に並ぶので、左寄せのままで画面からはみ出さない。 */
+.fmenu {
   position: relative;
 }
 .fmenu__summary {
@@ -852,8 +852,9 @@ a.chip:hover {
   z-index: 20;
   display: grid;
   gap: 1px;
-  min-inline-size: min(12rem, 100%);
-  max-inline-size: min(22rem, 100%);
+  min-inline-size: 12rem;
+  /* 画面より広くならない (どの札の下でも横スクロールを作らない)。 */
+  max-inline-size: min(22rem, calc(100vw - 2rem));
   max-block-size: 60vh;
   overflow: auto;
   padding: var(--sp1);

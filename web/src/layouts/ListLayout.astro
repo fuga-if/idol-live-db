@@ -41,7 +41,7 @@ const hasFilters = scope !== undefined || filters.length > 0;
     </div>
     {
       hasFilters && (
-        <div class="list-head__filters fmenu-row">
+        <div class="list-head__filters">
           {scope && <SegmentedLinks axis={scope} />}
           {filters.map((f) => (
             <FilterMenu axis={f} group="list-filters" />
