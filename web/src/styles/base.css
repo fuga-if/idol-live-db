@@ -358,6 +358,17 @@ hr {
   flex-direction: column;
   gap: var(--sp2);
 }
+/* 歌詞の許諾表示。マークは原本のまま、大きさだけ 60px (iOS と同じ 3x 原本を等比で)。 */
+.site-footer__license {
+  display: flex;
+  align-items: center;
+  gap: var(--sp3);
+}
+.site-footer__license img {
+  flex: none;
+  inline-size: 60px;
+  block-size: 60px;
+}
 
 /* --- ユーティリティ ------------------------------------------------------- */
 .u-visually-hidden {

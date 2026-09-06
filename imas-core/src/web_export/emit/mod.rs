@@ -357,6 +357,8 @@ fn write_all(
             performer_name_options: performer_name_options(),
             primary_nav: lists::primary_nav(has_polls),
             utility_nav: lists::utility_nav(),
+            footer_notes: crate::web_export::content::footer_notes(),
+            lyrics_license_notice: crate::web_export::content::lyrics_license_notice(),
         },
     )?;
 

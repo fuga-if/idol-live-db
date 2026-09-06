@@ -10,6 +10,7 @@ import { meta as siteMeta } from "../lib/data";
  * 生成日時はここに出さない (DECISIONS A17: 日次再ビルドで全 HTML が変わるのを避ける)。
  * 基準日 (`todayJst`) は日次で変わる値だが、「いつ時点のデータか」は閲覧者に要る情報なので出す。
  * サイト全体のメタ (`meta.json`) はヘッダと同じく自分で読む (ページから受け渡さない)。
+ * 断り書きと歌詞の許諾表示も `meta.json` から (文面と出す/出さないは Rust が決める)。
  */
 const meta = siteMeta();
 const { app } = meta;
@@ -69,14 +70,19 @@ const { app } = meta;
       </div>
     </div>
     <div class="site-footer__note">
-      <p>
-        本サイトは非公式のファンメイドです。「アイドルマスター」およびブランド名・
-        作品名は株式会社バンダイナムコエンターテインメントおよび各権利者に帰属します。
-      </p>
-      <p>
-        キャラクター画像・公式ロゴ・歌詞は掲載していません。ジャケット画像は
-        Apple Music の提供によるものです。
-      </p>
+      {/* 断り書きの文面は Rust (`content::footer_notes`)。ここに日本語を書かない。 */}
+      {meta.footerNotes.map((note) => <p>{note}</p>)}
+      {
+        meta.lyricsLicenseNotice && (
+          <p class="site-footer__license">
+            {/* JASRAC の許諾マーク。**JASRAC から届いた原本をそのまま置く** (自作・加工・色替え禁止)。
+                「申し込んだサイトの見やすい位置に表示」が許諾の条件で、全ページのフッタに載せる。
+                版権物を持たない方針の唯一の例外で、これは版権物ではなく許諾の証。 */}
+            <img src="/jasrac-mark.png" alt="" width="60" height="60" loading="lazy" decoding="async" />
+            <span>{meta.lyricsLicenseNotice}</span>
+          </p>
+        )
+      }
     </div>
   </div>
 </footer>

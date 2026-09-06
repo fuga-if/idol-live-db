@@ -464,25 +464,35 @@ SJIS で落ちる主な文字: `♡` (U+2661)、`É`/`é`、ハングル、`Ø`�
 
 ---
 
-## 6.5 Web 出面 (web/) で歌詞を出すには
+## 6.5 Web 出面 (web/) で歌詞を出す
 
-実装は入っている。**出すか出さないかは `imas-core/src/web_export/content.rs` の
-`LYRICS_ON_WEB` 1 箇所**で、既定は `false` (歌詞は 1 文字も配られず、
-ページには「アプリでご覧いただけます」の案内だけが出る)。
+**出すか出さないかは `imas-core/src/web_export/content.rs` の `LYRICS_ON_WEB` 1 箇所。**
+2026-09-06 に JASRAC へ「この Web サイトも許諾 (J260943703) の対象か」を確認し、
+問題ないと回答を得たので **`true` にした** (出面のコードはこの状態で本番に出せる)。
+`false` に戻せば歌詞は 1 文字も配られず、案内文だけになる。
 
-`true` にする前に、次の 4 つを片付けること。
+出面が本番で動くには API 側の 2 つが要る (どちらも Worker のデプロイ):
 
-1. **JASRAC に「この Web サイトも許諾の対象か」を確認する。**
-   許諾 J260943703 はアプリの非商用配信に対して取ったもので、同じ許諾が
-   別の出面 (静的サイト) に及ぶかは許諾書だけでは決まらない。**これが最優先。**
-2. **API 側の匿名 GET を本番へ出す。** `GET /songs/:id/lyrics` は
-   develop の c8f33c2 で未認証でも通るようになったが、2026-09-06 時点の
-   本番はまだ 401 を返す。出面はログインを持てないので、これが出るまで動かない。
-3. **CORS の許可 origin に出面を足す。** `imas-live-api` の `ALLOWED_ORIGINS`
-   に `https://idollivedb.fugalabs.uk` が要る (既定は空 = ブラウザから叩けない)。
-4. **D1 の読み取り枠を確認する。** 歌詞 1 曲 = D1 読み取り 1 回で、
-   これは「リクエスト回数が数えられること」という許諾の要件そのものなので
-   キャッシュできない。無料枠は 2026-09 時点で 96% 消費している。
+1. **匿名 GET を本番へ出す。** `GET /songs/:id/lyrics` は c8f33c2 で未認証でも通るが、
+   2026-09-06 時点の本番は 401 を返す (develop 未取り込み)。出面はログインを持てない。
+2. **CORS の許可 origin。** `imas-live-api/wrangler.jsonc` の `ALLOWED_ORIGINS` に
+   `https://idollivedb.fugalabs.uk` を入れた (デプロイで反映)。空のままだと
+   ブラウザから叩けない (preflight に Access-Control-Allow-Origin が付かない)。
+
+**D1 の読み取り枠**: 歌詞 1 曲 = `song_lyrics` 1 行 + IP レート制限のバケット 1〜2 行。
+歌詞検索 (`GET /lyrics/search`、n-gram 索引の走査で 1 回あたり数百行) は出面に持たない。
+押されたときだけ取りに行くので、曲ページの閲覧そのものは D1 を読まない。
+リクエスト回数の記録 (`logLyricsRead`) は出面からの分も同じ Worker で数えられる。
+
+出面側で満たしてあること (`web/src/components/SongLyrics.astro` / `SiteFooter.astro`):
+
+- 許諾番号を歌詞の直前に掲示する。**許諾マーク (原本) と許諾番号を全ページのフッタに掲示**
+  (`web/public/jasrac-mark.png` は iOS と同じ 3x 原本のコピー。加工しない)。
+- 静的な HTML に本文を 1 文字も置かない。押されたときに **1 曲ぶんだけ**取りに行く
+  (CSP の `connect-src` は歌詞の Worker だけ許す。`web/public/_headers`)。
+- 選択・コピー・右クリック・ドラッグ・印刷を抑える (完全防止はできないが、
+  まとめ取りの手間を上げる)。
+- 回数は Worker 側が記録する (年次利用曲目報告の母集団)。
 
 出面側で満たしてあること (`web/src/components/SongLyrics.astro`):
 

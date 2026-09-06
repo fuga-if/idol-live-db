@@ -66,8 +66,7 @@ const rel = (p: string): string => path.relative(path.resolve("."), p);
  * 検索と絞り込みが取りに行くのは自分のオリジンに置いた静的 JSON (検索索引 / 生テーブル)
  * だけで、API は叩かない。歌詞だけは 1 曲ずつ取りに行く経路を持つが、宛先は Rust が
  * `LyricsBlock.sourceUrl` に入れたものを data 属性で受け取るだけで、TS に URL は無い
- * (しかも既定では `available=false` なので配られない。docs/JASRAC.md §6.5)。
- * 「表示のみ」を守っているかは、この一覧と下の宛先テストで固定する。
+ * (docs/JASRAC.md §6.5)。「表示のみ」を守っているかは、この一覧と下の宛先テストで固定する。
  */
 const FETCH_ALLOWED: Record<string, string> = {
   "src/lib/search/island.ts": "/search/",
@@ -156,13 +155,30 @@ describe("ソースに書かれた外部ホスト", () => {
 
 const distExists = fs.existsSync(DIST);
 
+/**
+ * 歌詞の取得先 (Rust が `LyricsBlock.sourceUrl` に入れた Worker の URL)。
+ * 出面で歌詞を出している間は、これだけが配信物に現れてよい Worker の URL で、
+ * 現れてよい場所も `data-source` 属性 (曲ページ) だけ。Rust が出していない間は null。
+ */
+const lyricsSource = ((): { origin: string; attr: RegExp } | null => {
+  const meta = readJson<{ lyricsLicenseNotice: string | null }>("meta.json");
+  if (!meta.lyricsLicenseNotice) return null;
+  const songs = walk(path.resolve("./data/songs"), { include: (p) => p.endsWith(".json") });
+  const first = JSON.parse(fs.readFileSync(songs[0]!, "utf8")) as { lyrics: { sourceUrl: string | null } };
+  const url = new URL(first.lyrics.sourceUrl!);
+  const origin = url.origin.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return { origin: url.origin, attr: new RegExp(`data-source="${origin}/songs/[^"]+/lyrics"`, "g") };
+})();
+
 describe("配信物 (dist)", () => {
-  it.skipIf(!distExists)("HTML と JS に禁止ホストが出てこない", () => {
+  it.skipIf(!distExists)("HTML と JS に禁止ホストが出てこない (歌詞の取得先の data 属性を除く)", () => {
     const files = walk(DIST, { include: (p) => /\.(html|js)$/.test(p) });
     expect(files.length, "dist に HTML/JS が無い").toBeGreaterThan(0);
     const hits: string[] = [];
     for (const f of files) {
-      const text = fs.readFileSync(f, "utf8");
+      // 歌詞の取得先は 1 曲ずつの `data-source` にしか置かない。それ以外の場所に
+      // Worker のホストが出たら、経路が増えている。
+      const text = lyricsSource ? fs.readFileSync(f, "utf8").replace(lyricsSource.attr, "") : fs.readFileSync(f, "utf8");
       for (const w of FORBIDDEN) if (text.includes(w)) hits.push(`${rel(f)}: ${w}`);
     }
     expect(hits).toEqual([]);

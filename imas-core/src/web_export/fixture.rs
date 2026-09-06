@@ -237,6 +237,8 @@ fn site_meta() -> SiteMeta {
         // 代表値にはお題が無いので、ナビにも出ない (本番と同じ判断を通す)。
         primary_nav: super::emit::lists::primary_nav(false),
         utility_nav: super::emit::lists::utility_nav(),
+        footer_notes: content::footer_notes(),
+        lyrics_license_notice: content::lyrics_license_notice(),
     }
 }
 
@@ -490,7 +492,7 @@ fn song_page(reference: &Ref, minimal: bool) -> SongPage {
         // 代表値でも本番と同じ判断 (content::LYRICS_ON_WEB) を通す。
         lyrics: LyricsBlock {
             available: content::LYRICS_ON_WEB,
-            note: content::LYRICS_NOTE.to_string(),
+            note: content::lyrics_note().to_string(),
             license_number: content::LYRICS_ON_WEB
                 .then(|| content::JASRAC_LICENSE_NUMBER.to_string()),
             license_note: content::LYRICS_ON_WEB

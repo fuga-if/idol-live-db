@@ -14,7 +14,7 @@
     // ALLOWED_ORIGINS: Web フロントエンドの Origin をカンマ区切りで列挙。
     // iOS ネイティブは Origin ヘッダを送らないため、空文字列でも動作する。
     // 例: "https://yourapp.example.com,https://admin.example.com"
-    "ALLOWED_ORIGINS": "",
+    "ALLOWED_ORIGINS": "https://idollivedb.fugalabs.uk",
     // Android Sign in with Google (Credential Manager) の ID トークン検証用 aud。
     // 秘密情報ではない (公開して問題ない値) ので vars でよい。クライアントシークレットは
     // ID トークン署名検証方式では不要なため一切保持しない。

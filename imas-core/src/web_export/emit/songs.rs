@@ -74,7 +74,7 @@ pub fn song_page(ctx: &Ctx, song_id: &str) -> Option<SongPage> {
         // 歌詞。**出すかどうかは content::LYRICS_ON_WEB 1 箇所で決まる。**
         lyrics: LyricsBlock {
             available: content::LYRICS_ON_WEB,
-            note: content::LYRICS_NOTE.to_string(),
+            note: content::lyrics_note().to_string(),
             license_number: content::LYRICS_ON_WEB
                 .then(|| content::JASRAC_LICENSE_NUMBER.to_string()),
             license_note: content::LYRICS_ON_WEB

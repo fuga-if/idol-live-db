@@ -167,10 +167,11 @@ fn t9_two_runs_produce_byte_identical_output() {
 fn t12_no_lyrics_or_preview_audio_anywhere_in_the_output() {
     let dir = emit_fixture("forbidden");
 
-    /// 歌詞まわりで許すキー。どちらも**本文ではない**:
-    /// - `lyricsNote` … 「歌詞はアプリで」の固定文
+    /// 歌詞まわりで許すキー。どれも**本文ではない**:
+    /// - `lyricsNote` … 歌詞の断り書き
     /// - `lyrics` … 出すか / 許諾番号 / 取得先だけを持つブロック (中身は下で固定する)
-    const ALLOWED: [&str; 2] = ["lyricsNote", "lyrics"];
+    /// - `lyricsLicenseNotice` … フッタの許諾表示 (`JASRAC 許諾番号 …`)
+    const ALLOWED: [&str; 3] = ["lyricsNote", "lyrics", "lyricsLicenseNotice"];
 
     /// `lyrics` ブロックに入ってよいキー。**ここに `lines` や `text` が増えたら落ちる。**
     /// 歌詞本文は D1 にしか置けない (まとめて取れないことが JASRAC 許諾の条件)。

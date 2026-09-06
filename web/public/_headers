@@ -6,10 +6,12 @@
 # form-action は 'self' — トップの検索窓は JS 無しの GET フォームで /search/?q= へ飛ぶ
 # (自分のオリジン以外へは送らない)。
 # img-src だけ Apple Music CDN (ジャケ画像 = songs.artwork_url の唯一の外部参照) を許可する。
+# connect-src の Worker は歌詞 (1 曲ずつ、押されたときだけ) の取得先。JASRAC 許諾のもとで出面でも歌詞を出す
+# (imas-core content::LYRICS_ON_WEB)。歌詞以外の API はここからも呼ばない。
 # 実データでは is1-ssl.mzstatic.com のみ確認 (2026-09-04 時点) だが、Apple 側のホスト名は
 # is1〜is5 で変動しうるためワイルドカードにする。
 /*
-  Content-Security-Policy: default-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; img-src 'self' https://*.mzstatic.com data:; style-src 'self'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self'; font-src 'self'; manifest-src 'self'
+  Content-Security-Policy: default-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; img-src 'self' https://*.mzstatic.com data:; style-src 'self'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self' https://imas-live-api.tokata3011.workers.dev; font-src 'self'; manifest-src 'self'
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
 

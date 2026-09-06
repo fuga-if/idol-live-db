@@ -49,6 +49,11 @@ web_dto! {
         /// 一覧以外の入口 (検索・このサイトについて)。フッタが描く。
         /// 全ページのクロームに載るリンクはすべて `meta.json` にある = 到達性の起点。
         pub utility_nav: Vec<NavLink>,
+        /// フッタの断り書き (非公式表記・載せていないもの)。文面は `content::footer_notes`。
+        pub footer_notes: Vec<String>,
+        /// 歌詞掲載の許諾表示 (`JASRAC 許諾番号 …`)。出面で歌詞を出すときだけ入り、
+        /// フッタが許諾マークの隣に描く (掲示が許諾の条件)。
+        pub lyrics_license_notice: Option<String>,
     }
 }
 

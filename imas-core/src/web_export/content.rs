@@ -30,35 +30,74 @@ pub const JASRAC_LICENSE_NUMBER: &str = "J260943703";
 
 /// **この出面で歌詞を出すか。**
 ///
-/// `false` の間、歌詞は 1 文字も配らない (ページにも API 呼び出しにも出てこない)。
+/// 2026-09-06、JASRAC に「この Web サイトも許諾 (J260943703) の対象か」を確認し、
+/// 問題ないと回答を得たので `true`。`false` に戻すと歌詞は 1 文字も配らない
+/// (ページにも API 呼び出しにも出てこず、案内文だけになる)。
 ///
-/// ⚠️ **`true` にしてよいのは、JASRAC に「この Web サイトも許諾の対象か」を
-/// 確認してからだけ。** 許諾 (J260943703) はアプリの非商用配信に対して取ったもので、
-/// 同じ許諾が別の出面 (この静的サイト) に及ぶかは許諾書だけでは決まらない。
-/// 実装 (許諾番号の掲示・コピー防止・1 リクエスト 1 曲・回数ログ) は揃えてあるので、
-/// 確認が取れたらここを `true` にするだけで出る。
+/// 出す側の実装 (許諾番号とマークの掲示・コピー防止・1 リクエスト 1 曲・回数ログ) は
+/// ここに揃っている。**本番で動く条件は API 側にもある** (docs/JASRAC.md §6.5):
+/// 匿名 GET が本番に出ていること、CORS の許可 origin に出面があること、D1 の読み取り枠。
 ///
-/// もう 1 つの注意: 歌詞 1 曲の取得は D1 の読み取り 1 回で、これは
-/// 「リクエスト回数が数えられること」という許諾の要件そのものなのでキャッシュできない。
-/// D1 無料枠は 2026-09 時点で 96% 消費しているので、公開前に枠の状況も見ること。
-pub const LYRICS_ON_WEB: bool = false;
+/// 歌詞 1 曲の取得は D1 の読み取り 1 回で、これは「リクエスト回数が数えられること」
+/// という許諾の要件そのものなのでキャッシュできない。出面は押されたときだけ取りに行き、
+/// 歌詞検索 (索引の全走査で最も枠を食う) は出面に持たない。
+pub const LYRICS_ON_WEB: bool = true;
 
-/// 歌詞についての固定文。
+/// 歌詞を出していないときの断り書き。
 ///
-/// **主語がアプリであることを崩さないこと。** JASRAC の許諾を受けて歌詞を
-/// 配信しているのはアプリであって、本サイトではない。ここを「本サイトは
-/// 許諾を受けています」と書くと事実に反する ([`LYRICS_ON_WEB`] が `true` に
-/// なったら、そのときは主語を足すこと)。
-pub const LYRICS_NOTE: &str = "歌詞はアプリ『アイドルライブDB』でご覧いただけます（アプリは JASRAC 許諾番号 J260943703 のもとで歌詞を配信しています）。本サイトでは歌詞を掲載していません。";
+/// **主語がアプリであることを崩さないこと。** この文が出るのは出面が歌詞を配って
+/// いないときで、そのとき JASRAC の許諾のもとで歌詞を配信しているのはアプリだけ。
+pub const LYRICS_OFF_NOTE: &str = "歌詞はアプリ『アイドルライブDB』でご覧いただけます（アプリは JASRAC 許諾番号 J260943703 のもとで歌詞を配信しています）。本サイトでは歌詞を掲載していません。";
 
 /// 出面で歌詞を出すときの文言。許諾番号を必ず添える (掲示が許諾の条件)。
 pub const LYRICS_ON_WEB_NOTE: &str = "JASRAC 許諾番号 J260943703 のもとで掲載しています。1 曲ずつの表示のみで、まとめての取得はできません。";
+
+/// 今の設定での歌詞の断り書き (曲ページ・About)。
+pub fn lyrics_note() -> &'static str {
+    if LYRICS_ON_WEB {
+        LYRICS_ON_WEB_NOTE
+    } else {
+        LYRICS_OFF_NOTE
+    }
+}
+
+/// フッタに載せる許諾の表示 (マークの隣の文字)。歌詞を出しているときだけ。
+/// 「お申込みいただいたサイトのトップページ等の見やすい位置に表示」が許諾の条件で、
+/// 全ページ共通のフッタに置けばトップにも載る。
+pub fn lyrics_license_notice() -> Option<String> {
+    LYRICS_ON_WEB.then(|| format!("JASRAC 許諾番号 {JASRAC_LICENSE_NUMBER}"))
+}
+
+/// 載せていないものの断り。歌詞を出しているときは歌詞を含めない。
+fn not_hosted_note() -> &'static str {
+    if LYRICS_ON_WEB {
+        "キャラクター画像・公式ロゴは掲載していません。"
+    } else {
+        "キャラクター画像・公式ロゴ・歌詞は掲載していません。"
+    }
+}
+
+/// フッタの断り書き (全ページ)。**出面の日本語はここが正** — Astro に文面を書かない。
+pub fn footer_notes() -> Vec<String> {
+    vec![
+        SITE_DISCLAIMER.to_string(),
+        format!("{}ジャケット画像は Apple Music の提供によるものです。", not_hosted_note()),
+    ]
+}
 
 /// 歌詞・コールガイドを取りに行く API の起点。
 pub const API_ORIGIN: &str = "https://imas-live-api.tokata3011.workers.dev";
 
 /// 「アプリで開く」の説明文 (詳細ページ共通)。
-pub const APP_OPEN_NOTE: &str = "参加記録・投票・歌詞・コール・タグ付けはアプリでご利用いただけます。";
+pub const APP_OPEN_NOTE: &str = APP_FEATURES_NOTE;
+
+/// アプリでしかできないことの並び。歌詞を出面で出すときは「歌詞」を「歌詞検索」に
+/// 言い換える (歌詞そのものは出面にもある)。
+pub const APP_FEATURES_NOTE: &str = if LYRICS_ON_WEB {
+    "参加記録・投票・歌詞検索・コールの編集・タグ付けはアプリでご利用いただけます。"
+} else {
+    "参加記録・投票・歌詞・コール・タグ付けはアプリでご利用いただけます。"
+};
 
 /// カスタムスキーム。`DeeplinkRouter` が受けるのは events / shows / polls の 3 種だけ。
 pub const DEEPLINK_SCHEME: &str = "imaslivedb";
@@ -163,14 +202,21 @@ pub fn about_sections() -> Vec<AboutSection> {
         AboutSection {
             heading: "版権について".to_string(),
             paragraphs: vec![
-                "キャラクター画像・公式ロゴ・歌詞は掲載していません。アイドルは名前の 1 文字を使ったモノグラムで表示しています。".to_string(),
+                format!("{}アイドルは名前の 1 文字を使ったモノグラムで表示しています。", not_hosted_note()),
                 "ジャケット画像は Apple Music の配信情報 (songs.artwork_url) を参照しています。".to_string(),
             ],
             links: vec![],
         },
         AboutSection {
             heading: "歌詞について".to_string(),
-            paragraphs: vec![LYRICS_NOTE.to_string()],
+            paragraphs: if LYRICS_ON_WEB {
+                vec![
+                    lyrics_note().to_string(),
+                    "曲ページで「歌詞を読む」を押すと、その 1 曲の歌詞とコールガイドが表示されます。歌詞の検索とコールガイドの編集はアプリでご利用いただけます。".to_string(),
+                ]
+            } else {
+                vec![lyrics_note().to_string()]
+            },
             links: vec![AboutLink {
                 label: "App Store でアプリを見る".to_string(),
                 href: APP_STORE_URL.to_string(),
@@ -180,7 +226,7 @@ pub fn about_sections() -> Vec<AboutSection> {
         AboutSection {
             heading: "アプリについて".to_string(),
             paragraphs: vec![
-                "参加記録・投票・タグ付け・歌詞・コールはアプリでご利用いただけます。本サイトは閲覧専用です。".to_string(),
+                format!("{APP_FEATURES_NOTE}本サイトは閲覧専用です。"),
             ],
             links: vec![
                 AboutLink { label: "X (@idollivedb)".to_string(), href: X_URL.to_string(), external: true },
