@@ -343,9 +343,9 @@ IA / ビジュアル / アクセシビリティ / 文言の 4 観点で 40 件�
   フォーカスを移し `role=status` で告げる。右クリック・selectstart は止めない (読み上げ・辞書を
   殺すだけで、まとめ取りの抑止にならない)。箱の中の行はフォーカスの輪郭を内側に描く。
 
-**データ側の宿題 (Web では直せない)** — 2026-09-06 に `db/master.sql` と CloudKit Production の
-両方に反映済み (経緯は `tools/pending_push_20260906/README.md`)。残りは D1 のコミュニティ表の
-付け替えだけ。同日に見つかった「私はアイドル♡ / ♥」の二重登録も統合した (`659fb41`)。
+**データ側の宿題 (Web では直せない)** — 2026-09-06 に `db/master.sql`・CloudKit Production・
+D1 (コミュニティ表) のすべてに反映済み (経緯は git 履歴 `2281879` / `659fb41` / `259b9d6`)。
+同日に見つかった「私はアイドル♡ / ♥」の二重登録も統合した。
 1. SideM 11th STAGE の重複 4 件 → slug 版 (`ev_the_idolmster_sidem_11th_stage_ever_everfter`, DAY1/DAY2)
    だけ残して 3 イベント + 2 公演を master.sql から除去し、CloudKit からも物理削除した。
 2. 765AS の全体曲 4 曲 + Thank You! の春香・律子・真美 13 行を `song_artists.role='original'` に。
