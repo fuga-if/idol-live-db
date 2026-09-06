@@ -343,13 +343,11 @@ IA / ビジュアル / アクセシビリティ / 文言の 4 観点で 40 件�
   フォーカスを移し `role=status` で告げる。右クリック・selectstart は止めない (読み上げ・辞書を
   殺すだけで、まとめ取りの抑止にならない)。箱の中の行はフォーカスの輪郭を内側に描く。
 
-**データ側の宿題 (Web では直せない)** — 2026-09-06 に `db/master.sql` 側は直した。
-**CloudKit への反映 (push / 削除) はオーナー操作で未了**: 手順と id 一覧は
-`tools/pending_push_20260906/README.md`。push するまでは日次 export で巻き戻るので、
-巻き戻ったら同じ手順をやり直す。
+**データ側の宿題 (Web では直せない)** — 2026-09-06 に `db/master.sql` と CloudKit Production の
+両方に反映済み (経緯は `tools/pending_push_20260906/README.md`)。残りは D1 のコミュニティ表の
+付け替えだけ。同日に見つかった「私はアイドル♡ / ♥」の二重登録も統合した (`659fb41`)。
 1. SideM 11th STAGE の重複 4 件 → slug 版 (`ev_the_idolmster_sidem_11th_stage_ever_everfter`, DAY1/DAY2)
-   だけ残して 3 イベント + 2 公演を master.sql から除去。CloudKit 側は
-   `tools/pending_cloudkit_deletions_sidem_11th_dup_20260906.tsv` で物理削除する (未実行)。
+   だけ残して 3 イベント + 2 公演を master.sql から除去し、CloudKit からも物理削除した。
 2. 765AS の全体曲 4 曲 + Thank You! の春香・律子・真美 13 行を `song_artists.role='original'` に。
    裏取り: コロムビア COCX-38070 / COCC-16516 / COCC-16883 / COCX-38437 (歌：765PRO ALLSTARS)、
    ランティス LACM-14080 (765 MILLIONSTARS)。
@@ -360,8 +358,8 @@ IA / ビジュアル / アクセシビリティ / 文言の 4 観点で 40 件�
    `data/fixes/setlist_notes_plain_20260906.json` が監査用の全件。
 4. 会場欄と配信欄が同文だった 10 公演 (`sh_L0004` 含む) を、配信の実体は配信欄・物理会場は
    都内某所か NULL に分けた (`data/fixes/shows_stream_platform_dup_20260906.json`)。
-   **NULL にした列は既定の push (forceUpdate) では CloudKit に伝わらない**。
-   `seed_cloudkit.py --replace` (forceReplace) で送る。
+   **NULL にした列は既定の push (forceUpdate) では CloudKit に伝わらない**ので
+   `seed_cloudkit.py --replace` (forceReplace) で送った。
 
 ## 2 巡目 (2026-09-06 追記): 楽曲表・語・アプリの部品との形合わせ
 
