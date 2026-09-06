@@ -51,6 +51,20 @@ CLOUDKIT_KEY_ID=$KID python3 tools/apply_data.py --apply --push --production --o
 「id は既に存在」で problem 判定になるため、絞らないと自分の変更が push まで到達しない
 (2026-08-28 時点で 732 件が該当)。`--only` はパスではなくファイル名で照合する。
 
+**列を NULL に直す修正は `--push` では伝わらない。** `seed_cloudkit.py` は NULL の列を送らず、
+操作が forceUpdate なので CloudKit 側の旧値がそのまま残り、翌日の cron で `db/master.sql` が
+巻き戻る (2026-09-06、`shows.venue` の NULL 化と `setlist_items.notes` の空文字→NULL で実際に起きた)。
+そういう修正は `--apply` の後、対象を id で絞って forceReplace で送る:
+
+```bash
+CLOUDKIT_KEY_ID=$KID python3 tools/seed_cloudkit.py --production --tables shows --ids-file <event id の一覧> --replace
+```
+
+`--replace` は `--ids/--ids-file` が必須で、`tools/cloudkit_schema.ckdb` と突き合わせて
+「CloudKit だけが持つ列」があるテーブルでは止まる (forceReplace は送らなかった列を消すため)。
+`--ids` の絞り込み列はテーブルごとに違う (`shows` は **event_id**、`setlist_items` は id、
+`song_artists` は song_id)。まとめて直した例: `tools/pending_push_20260906/README.md`。
+
 **鍵の在り処**: key ID は環境変数にも `~/.zshrc` にも無い。`.claude/skills/sync-new-songs/SKILL.md`
 の冒頭に Production の値が書いてある (このディレクトリは `.git/info/exclude` で
 リポジトリから除外済み)。秘密鍵は `tools/eckey.pem` で、スクリプトが自分で読む。
