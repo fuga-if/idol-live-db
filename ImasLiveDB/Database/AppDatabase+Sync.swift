@@ -1,4 +1,4 @@
-//  AppDatabase の CloudKit Sync Upsert Methods / SongCall / SongVideo Methods / CloudKit Sync Delete Methods / Sync Metadata を切り出したもの。
+//  AppDatabase の CloudKit Sync Upsert Methods / SongVideo Methods / CloudKit Sync Delete Methods / Sync Metadata を切り出したもの。
 //  分割の意図と分割線の引き方は docs/ARCHITECTURE.md を参照。
 //  ここにあるのは移動してきたクエリだけで、ロジックは 1 行も変えていない。
 
@@ -140,19 +140,7 @@ extension AppDatabase {
         }
     }
 
-    // MARK: - SongCall / SongVideo Methods
-
-    func upsertSongCalls(_ calls: [SongCall]) throws {
-        try upsertAll(calls)
-    }
-
-    func upsertSongCallsAsync(_ calls: [SongCall]) async throws {
-        try await upsertAllAsync(calls)
-    }
-
-    func fetchCallResponsesForSongAsync(songId: String) async throws -> [SongCall] {
-        try await fetchBySongIdAsync(songId)
-    }
+    // MARK: - SongVideo Methods
 
     func upsertSongVideos(_ videos: [SongVideo]) throws {
         try upsertAll(videos)

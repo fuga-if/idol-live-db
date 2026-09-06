@@ -266,18 +266,6 @@ enum CKRecordMapper {
 
     // MARK: - Community Content
 
-    static func songCall(from record: CKRecord) -> SongCall? {
-        guard case .songCall(let row)? = mapped(record, as: "SongCall") else { return nil }
-        return SongCall(
-            id: row.id,
-            songId: row.songId,
-            callText: row.callText,
-            sourceUrl: row.sourceUrl,
-            createdAt: row.createdAt,
-            authorDisplayName: row.authorDisplayName
-        )
-    }
-
     static func songVideo(from record: CKRecord) -> SongVideo? {
         guard case .songVideo(let row)? = mapped(record, as: "SongVideo") else { return nil }
         return SongVideo(
@@ -363,7 +351,7 @@ enum CKRecordMapper {
         }
     }
 
-    /// 投稿系 (SongCall / SongVideo) の createdAt 欠損時に使う既定値。
+    /// 投稿系 (SongVideo) の createdAt 欠損時に使う既定値。
     /// 共有コアは OS 時刻を取らない規約なので、ここで渡す。
     private static func nowMillis() -> Int64 {
         Int64((Date().timeIntervalSince1970 * 1000).rounded(.down))

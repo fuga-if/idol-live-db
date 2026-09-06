@@ -27,7 +27,6 @@ enum CloudKitSchemaBootstrap {
             ("SongArtist", ["songId": "x", "idolId": "x", "role": "x"]),
             ("UnitMember", ["unitId": "x", "idolId": "x"]),
             ("MetaData", ["value": "x"]),
-            ("SongCall", ["songId": "x", "callText": "x", "sourceUrl": "x", "authorDisplayName": "x", "createdAt": Date()]),
             ("SongVideo", ["songId": "x", "youtubeUrl": "x", "videoTitle": "x", "note": "x", "authorDisplayName": "x", "createdAt": Date()]),
             ("Venue", ["name": "x", "nameKana": "x", "prefecture": "x", "city": "x", "aliases": "x", "capacity": 0, "sortOrder": 0]),
             ("VenueName", ["venueId": "x", "name": "x", "validFrom": "x", "validTo": "x"]),
@@ -64,7 +63,7 @@ enum CloudKitSchemaBootstrap {
 
         let typeNames = ["Brand", "Idol", "Event", "Show", "Song", "ImasUnit",
                          "SetlistItem", "SetlistPerformer", "ShowCast", "IdolBrand",
-                         "SongArtist", "UnitMember", "MetaData", "SongCall", "SongVideo"]
+                         "SongArtist", "UnitMember", "MetaData", "SongVideo"]
 
         let sampleFields: [String: [String: any CKRecordValueProtocol]] = [
             "Brand": ["name": "x", "shortName": "x", "color": "x", "sortOrder": 0],
@@ -81,7 +80,6 @@ enum CloudKitSchemaBootstrap {
             "SongArtist": ["songId": "x", "idolId": "x", "role": "x"],
             "UnitMember": ["unitId": "x", "idolId": "x"],
             "MetaData": ["key": "x", "value": "x"],
-            "SongCall": ["songId": "x", "callText": "x", "sourceUrl": "x", "authorDisplayName": "x", "createdAt": Date()],
             "SongVideo": ["songId": "x", "youtubeUrl": "x", "videoTitle": "x", "note": "x", "authorDisplayName": "x", "createdAt": Date()],
         ]
 

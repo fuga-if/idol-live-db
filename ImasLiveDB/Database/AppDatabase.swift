@@ -234,7 +234,7 @@ final class AppDatabase: @unchecked Sendable {
             "custom_image_paths",
             "grdb_migrations",
             "meta",  // 自前で書き換える
-            "song_calls", "song_videos",  // コミュニティ投稿系 (CloudKit)
+            "song_videos",  // コミュニティ投稿系 (CloudKit)
             "song_tags",  // タグ投票 (CloudKit/サーバ)
             "device_song_tag", "device_song_penlight",
         ]
@@ -400,9 +400,11 @@ final class AppDatabase: @unchecked Sendable {
                 try db.execute(sql: "INSERT OR IGNORE INTO grdb_migrations(identifier) VALUES ('v2_add_indexes')")
             }
 
-            // v3: song_calls テーブルの存在で判定
-            let hasSongCalls = try Row.fetchOne(db, sql: "SELECT name FROM sqlite_master WHERE type='table' AND name='song_calls'") != nil
-            if hasSongCalls {
+            // v3: song_videos テーブルの存在で判定。
+            // v3 は song_calls / song_videos を対で作るが、song_calls は v29 で落とすので、
+            // 落とした後の起動でも揺れない残る側の song_videos を根拠にする。
+            let hasSongVideos = try Row.fetchOne(db, sql: "SELECT name FROM sqlite_master WHERE type='table' AND name='song_videos'") != nil
+            if hasSongVideos {
                 try db.execute(sql: "INSERT OR IGNORE INTO grdb_migrations(identifier) VALUES ('v3_song_calls_and_videos')")
             }
 

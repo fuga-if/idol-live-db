@@ -12,14 +12,12 @@ final class LocalContributionLog {
 
     enum Kind: String, CaseIterable, Codable, Sendable {
         case setlistEdit    // セトリ編集
-        case callResponse   // コーレス
         case video          // 動画
         case tag            // タグ追加
 
         var label: String {
             switch self {
             case .setlistEdit:  return "セトリ編集"
-            case .callResponse: return "コーレス"
             case .video:        return "動画"
             case .tag:          return "タグ"
             }
@@ -27,7 +25,6 @@ final class LocalContributionLog {
         var systemImage: String {
             switch self {
             case .setlistEdit:  return "square.and.pencil"
-            case .callResponse: return "megaphone.fill"
             case .video:        return "play.rectangle.fill"
             case .tag:          return "tag.fill"
             }

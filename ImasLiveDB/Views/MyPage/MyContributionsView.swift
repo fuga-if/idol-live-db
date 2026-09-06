@@ -2,7 +2,7 @@ import SwiftUI
 
 /// 自分の投稿累計の内訳ビュー。プロデュースタブ「投稿」タイル → ここに飛ぶ。
 /// ローカル LocalContributionLog のカウントを内訳として並べる。
-/// 個別履歴 (どのライブのコーレスか等) は将来の拡張 — 今は累計表示で割り切る。
+/// 個別履歴 (どのライブのセトリ編集か等) は将来の拡張 — 今は累計表示で割り切る。
 struct MyContributionsView: View {
     @State private var log = LocalContributionLog.shared
 
@@ -90,7 +90,7 @@ struct MyContributionsView: View {
     }
 
     private var helpText: some View {
-        Text("セトリ編集・コーレス・動画追加・タグ追加が累計に含まれます。再インストールするとカウントはリセットされます (端末ローカル記録)。")
+        Text("セトリ編集・動画追加・タグ追加が累計に含まれます。再インストールするとカウントはリセットされます (端末ローカル記録)。")
             .font(.imasCaption).foregroundStyle(DS.ink3)
             .padding(.top, DS.sp2)
     }

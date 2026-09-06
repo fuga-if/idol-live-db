@@ -13,8 +13,8 @@ import GRDB
 /// - user_marks (担当/お気に入り/参加/回収) はスナップショットに**含まれない**。回収系の
 ///   クエリには、ここで解決した参加 show/event id 集合を引数で渡す。
 ///
-/// GRDB 経路に**残す**と決めたクエリは 4 つだけ (`songSpellings` / `collectedShows` /
-/// `songCalls` / `songVideos`)。どれも「スナップショットに載せない設計」の側に理由があり、
+/// GRDB 経路に**残す**と決めたクエリは 3 つだけ (`songSpellings` / `collectedShows` /
+/// `songVideos`)。どれも「スナップショットに載せない設計」の側に理由があり、
 /// コアに API を生やせば済む話ではない。各メソッドのコメントに理由を書く。
 struct CoreSongRepository: SongReading {
     let snapshot: CoreSnapshotManager
@@ -341,15 +341,11 @@ struct CoreSongRepository: SongReading {
 
     // MARK: - コミュニティ構造化 (CloudKit 同期のローカルミラー)
     //
-    // コーレスと参考動画は **移送しない**。スナップショットが載せていないのは容量の話では
+    // 参考動画は **移送しない**。スナップショットが載せていないのは容量の話では
     // なく、ローカル編集経路がスナップショット再ロードを促さない契約 (`CoreSnapshotManager`
     // の `SnapshotInvalidatingSongWriting` が対象にしていない) だから。載せると「投稿した
     // 直後に自分の投稿が見えない」回帰になる。読み取りは SQL 経路に残すのが正しい
     // (`imas-core/src/domain/snapshot.rs` の同じ注記と対)。
-
-    func songCalls(songId: String) async throws -> [SongCall] {
-        try await fallback.songCalls(songId: songId)
-    }
 
     func songVideos(songId: String) async throws -> [SongVideo] {
         try await fallback.songVideos(songId: songId)

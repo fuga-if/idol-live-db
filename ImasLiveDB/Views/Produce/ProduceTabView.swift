@@ -354,7 +354,7 @@ struct ProduceTabView: View {
                 ImasEntryCard(
                     systemImage: "person.2.fill",
                     title: "みんなの動き",
-                    preview: "コーレス・参考動画など最近のコミュニティ投稿",
+                    preview: "参考動画・セトリ編集など最近のコミュニティ投稿",
                     brand: secondaryBrandSeed
                 )
             }
@@ -406,7 +406,7 @@ struct ProduceTabView: View {
                     ImasEntryCard(
                         systemImage: "hands.clap.fill",
                         title: "コールガイド",
-                        preview: "コーレス投稿とは別の、歌詞行ごとのコールガイド。書かれている曲・最近の編集・書き手募集中の曲",
+                        preview: "歌詞行ごとのコールガイド。書かれている曲・最近の編集・書き手募集中の曲",
                         brand: secondaryBrandSeed
                     )
                 }

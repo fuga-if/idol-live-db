@@ -174,7 +174,7 @@ struct RecentEditsView: View {
                let show = try? await showReading.show(id: showId) {
                 return .show(show)
             }
-        case "SongVideo", "SongCall":
+        case "SongVideo":
             if let songId = (try? await editFeed.editRecordSongId(recordType: entry.recordType, recordName: entry.recordName)) ?? nil,
                let song = try? await songReading.song(id: songId) {
                 return .song(song)

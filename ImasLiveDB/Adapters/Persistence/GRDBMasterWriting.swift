@@ -26,6 +26,5 @@ struct GRDBSongWriting: SongWriting {
     let database: AppDatabase
     func upsertSongs(_ songs: [Song]) async throws { try await database.upsertSongsAsync(songs) }
     func upsertSongArtists(_ songArtists: [SongArtist]) async throws { try await database.upsertSongArtistsAsync(songArtists) }
-    func upsertSongCalls(_ calls: [SongCall]) async throws { try await database.upsertSongCallsAsync(calls) }
     func upsertSongVideos(_ videos: [SongVideo]) async throws { try await database.upsertSongVideosAsync(videos) }
 }

@@ -491,8 +491,6 @@ final class CloudKitSyncEngine: @unchecked Sendable {
             try database.upsertSetlistItems(mapped(CKRecordMapper.setlistItem))
         case "SetlistPerformer":
             try database.upsertSetlistPerformers(mapped(CKRecordMapper.setlistPerformer))
-        case "SongCall":
-            try database.upsertSongCalls(mapped(CKRecordMapper.songCall))
         case "SongVideo":
             try database.upsertSongVideos(mapped(CKRecordMapper.songVideo))
         default:

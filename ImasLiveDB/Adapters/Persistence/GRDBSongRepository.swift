@@ -108,10 +108,6 @@ struct GRDBSongRepository: SongReading {
         try await database.fetchBrandedSongIdsAsync()
     }
 
-    func songCalls(songId: String) async throws -> [SongCall] {
-        try await database.fetchCallResponsesForSongAsync(songId: songId)
-    }
-
     func songVideos(songId: String) async throws -> [SongVideo] {
         try await database.fetchVideosForSongAsync(songId: songId)
     }

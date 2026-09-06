@@ -907,6 +907,16 @@ enum DatabaseMigrations {
             }
         }
 
+        // v29: 旧コミュニティ機能「コーレス」(SongCall) の撤去。
+        //
+        // 歌詞行ごとのコールガイド (CallGuide) に置き換わり、レコード型 SongCall は
+        // CloudKit からも同期しなくなった。v3 で対に作った song_videos は参考動画として
+        // 現役なので残す。表を落とせば索引も一緒に消えるが、意図を明示するため先に落とす。
+        migrator.registerMigration("v29_drop_song_calls") { db in
+            try db.execute(sql: "DROP INDEX IF EXISTS idx_song_calls_song")
+            try db.execute(sql: "DROP TABLE IF EXISTS song_calls")
+        }
+
         return migrator
     }
 }
