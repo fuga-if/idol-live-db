@@ -5,6 +5,8 @@
 //! 2. **出力が再現する** — 同じ入力で 2 回流すとバイト一致する (差分レビューが成立する条件)
 //! 3. **載せてはいけないものが載っていない** — 歌詞とプレビュー音源
 
+use imas_core::domain::setlist_lineup::Lineup;
+use imas_core::domain::show_naming::distinguishing_show_name;
 use imas_core::web_export::dto::*;
 use imas_core::web_export::url::{is_safe_segment, path_key, reserved_for, url_segment};
 use imas_core::web_export::{fixture, Args};
@@ -308,7 +310,11 @@ fn fixture_covers_the_boundary_cases_the_web_needs() {
 
     // 歌唱メンバーが空のセトリ行。
     let show: ShowPage = serde_json::from_str(&read("shows/sh_sample_1.json")).unwrap();
-    assert!(show.setlist.iter().any(|r| r.performers.is_empty()), "performers 空の行が無い");
+    let rows: Vec<&SetlistRow> = show.setlist_sections.iter().flat_map(|s| s.rows.iter()).collect();
+    assert!(rows.iter().any(|r| r.performers.is_empty()), "performers 空の行が無い");
+    assert!(rows.iter().any(|r| r.lineup.as_ref().is_some_and(|l| l.missing.is_some())), "不参加の名前が付いた行が無い");
+    assert!(rows.iter().any(|r| r.full_cast_label.is_some()), "全員曲の行が無い");
+    assert!(show.setlist_sections.iter().any(|s| s.label.is_some()), "区切り付きの塊が無い");
     // event / show には deeplink がある。
     assert!(show.app.deeplink.as_deref().is_some_and(|d| d.starts_with("imaslivedb://shows/")));
 
@@ -890,6 +896,156 @@ mod real {
         );
     }
 
+    /// 公演ページ全部 (1,198 件・30 MB)。読むのは 1 回だけで、公演を見る検査は皆これを使う。
+    fn show_pages() -> &'static [ShowPage] {
+        static SHOWS: OnceLock<Vec<ShowPage>> = OnceLock::new();
+        SHOWS.get_or_init(|| {
+            let dir = exported().path();
+            let routes: RoutesFile =
+                serde_json::from_str(&std::fs::read_to_string(dir.join("routes.json")).unwrap())
+                    .unwrap();
+            routes
+                .routes
+                .iter()
+                .filter(|r| r.kind == RouteKind::Show)
+                .map(|entry| {
+                    serde_json::from_str(&std::fs::read_to_string(dir.join(&entry.data)).unwrap())
+                        .unwrap()
+                })
+                .collect()
+        })
+    }
+
+    #[test]
+    fn show_headings_lead_with_the_event_name() {
+        // 公演ページの見出しはライブ名。`Day2` は添え物で、見出しにライブ名を繰り返さない。
+        // 公演名がライブ名を丸ごと含む稀な形だけ、公演名そのものが見出しになる (添えは無い)。
+        let mut labelled = 0usize;
+        for page in show_pages() {
+            match &page.show_label {
+                Some(label) => {
+                    labelled += 1;
+                    assert_eq!(page.heading, page.event.name, "{}", page.path);
+                    // 見分けにライブ名が残っていない (幅違い `IDOLM＠STER` / `IDOLM@STER` も含めて)。
+                    // 残っていれば、もう一度切ると短くなる。
+                    assert_eq!(
+                        distinguishing_show_name(&page.event.name, label),
+                        Some(label.as_str()),
+                        "{}: 添え {label:?} がライブ名と重なっている",
+                        page.path
+                    );
+                    // パンくずの最後の段は見分けだけ (ライブ名の段の直後にフル名を繰り返さない)。
+                    assert_eq!(
+                        page.seo.breadcrumbs.last().map(|c| c.name.as_str()),
+                        Some(label.as_str()),
+                        "{}",
+                        page.path
+                    );
+                }
+                None => assert!(
+                    page.heading.contains(page.event.name.as_str()),
+                    "{}: 見出し {:?} にライブ名が無い",
+                    page.path,
+                    page.heading
+                ),
+            }
+            assert!(page.seo.title.starts_with(page.heading.as_str()), "{}", page.path);
+        }
+        assert!(labelled > 500, "添え付きの公演が少なすぎる: {labelled}");
+    }
+
+    #[test]
+    fn setlist_sections_fold_encore_spellings_and_keep_the_running_order() {
+        // 区切り (アンコール等) は塊で届く。綴り揺れは 1 つの見出しに畳み、通し番号は
+        // 塊をまたいで 1 から続く。隣り合う塊の見出しは必ず違う (同じなら 1 つの塊)。
+        let mut encore = 0usize;
+        let mut raw_spellings: Vec<String> = Vec::new();
+        for page in show_pages() {
+            let count: u32 = page.setlist_sections.iter().map(|s| s.rows.len() as u32).sum();
+            let numbers: Vec<u32> = page
+                .setlist_sections
+                .iter()
+                .flat_map(|s| s.rows.iter().map(|r| r.number))
+                .collect();
+            assert_eq!(numbers, (1..=count).collect::<Vec<_>>(), "{}", page.path);
+            for pair in page.setlist_sections.windows(2) {
+                assert_ne!(pair[0].label, pair[1].label, "{}: 同じ見出しの塊が隣り合っている", page.path);
+            }
+            for label in page.setlist_sections.iter().filter_map(|s| s.label.as_deref()) {
+                if label.eq_ignore_ascii_case("encore") {
+                    raw_spellings.push(page.path.clone());
+                }
+                if label == "アンコール" {
+                    encore += 1;
+                }
+            }
+        }
+        assert!(raw_spellings.is_empty(), "encore の綴りが畳まれていない: {raw_spellings:?}");
+        assert!(encore >= 10, "アンコールの塊が少なすぎる: {encore}");
+    }
+
+    #[test]
+    fn lineup_notes_name_only_absentees_who_were_at_the_show() {
+        // 「オリメン 4/5」の札が数を持ち、名前で示すのは「その公演に出ているのに歌って
+        // いない原唱者」だけ。公演にいない人は出演者一覧で分かるので並べない。
+        // 出演者全員で歌う行 (全員) に「一部」は付かない (新メンバー追加や欠席で部分一致に
+        // なるだけで、カバーではない)。
+        let (mut partial, mut full_cast, mut noted, mut named) = (0usize, 0usize, 0usize, 0usize);
+        for page in show_pages() {
+            let cast_ids: Vec<&str> = page.cast.iter().map(|c| c.id.as_str()).collect();
+            for row in page.setlist_sections.iter().flat_map(|s| s.rows.iter()) {
+                let performer_ids: Vec<&str> =
+                    row.performers.iter().map(|p| p.reference.id.as_str()).collect();
+                if row.full_cast_label.is_some() {
+                    full_cast += 1;
+                    assert!(row.performers.len() >= 2, "{}: 1 人で「全員」", page.path);
+                }
+                let Some(note) = &row.lineup else { continue };
+                noted += 1;
+                assert!(!row.performers.is_empty(), "{}: 歌唱者が無いのに札がある", page.path);
+                if note.kind == Lineup::Partial {
+                    partial += 1;
+                    let (present, total) = note
+                        .label
+                        .strip_prefix("オリメン ")
+                        .and_then(|r| r.split_once('/'))
+                        .map(|(p, t)| (p.parse::<usize>().unwrap(), t.parse::<usize>().unwrap()))
+                        .unwrap_or_else(|| panic!("{}: 一部の札が数を持たない {:?}", page.path, note.label));
+                    assert!(0 < present && present < total, "{}: {:?}", page.path, note.label);
+                    assert!(row.full_cast_label.is_none(), "{}: 全員曲に一部が付いた", page.path);
+                }
+                let Some(missing) = &note.missing else { continue };
+                named += 1;
+                assert!(
+                    matches!(note.kind, Lineup::Partial | Lineup::Cover),
+                    "{}: 揃っている ({:?}) のに不参加がある",
+                    page.path,
+                    note.kind
+                );
+                assert!(!missing.idols.is_empty(), "{}: 不参加が空のまま付いている", page.path);
+                for idol in &missing.idols {
+                    assert!(
+                        cast_ids.contains(&idol.id.as_str()),
+                        "{}: 公演に出ていない人が不参加に入っている ({})",
+                        page.path,
+                        idol.name
+                    );
+                    assert!(
+                        !performer_ids.contains(&idol.id.as_str()),
+                        "{}: 歌っている人が不参加に入っている ({})",
+                        page.path,
+                        idol.name
+                    );
+                }
+            }
+        }
+        assert!(partial > 100, "オリメン一部の行が少なすぎる: {partial}");
+        assert!(full_cast > 100, "全員曲の行が少なすぎる: {full_cast}");
+        assert!(noted > partial, "札の付いた行が少なすぎる: {noted}");
+        assert!(named > 100, "不参加の名前が付いた行が少なすぎる: {named}");
+        assert!(named < partial, "一部の行の全部に名前が付いている (公演にいない人まで並べている)");
+    }
+
     #[test]
     fn sibling_show_chips_are_short_and_absent_on_single_show_events() {
         // 「このライブの他の公演」は 2 本以上あるときだけ出す。単日公演で出すと
@@ -898,19 +1054,10 @@ mod real {
         // チップの名前はライブ名との重なりを落とした短い形。ページ見出しが既に
         // ライブ名なので、フルの公演名を並べると同じ文字列が繰り返されて
         // 肝心の見分け (DAY1 / 昼公演 / ステージ１回目) が読めなくなる。
-        let dir = exported();
-        let routes: RoutesFile =
-            serde_json::from_str(&std::fs::read_to_string(dir.path().join("routes.json")).unwrap())
-                .unwrap();
-
         let mut with_siblings = 0usize;
         let mut single_show = 0usize;
         let mut repeated_event_name: Vec<String> = Vec::new();
-        for entry in routes.routes.iter().filter(|r| r.kind == RouteKind::Show) {
-            let page: ShowPage = serde_json::from_str(
-                &std::fs::read_to_string(dir.path().join(&entry.data)).unwrap(),
-            )
-            .unwrap();
+        for page in show_pages() {
             if page.sibling_shows.is_empty() {
                 single_show += 1;
                 continue;
@@ -926,9 +1073,9 @@ mod real {
                     repeated_event_name.push(format!("{} → {:?}", page.path, sibling.name));
                 }
                 // 日付はチップだけで分かること。公演名がライブ名と丸ごと同じで
-                // 名前が日付になっている公演は、それ自体が日付なので sub は要らない。
-                let name_is_a_date = sibling.name.len() == 10
-                    && sibling.name.bytes().filter(|b| *b == b'-').count() == 2;
+                // 名前が日付 (`9/13 (日)` / 部分日付なら `8月`) になっている公演は、
+                // それ自体が日付なので sub は要らない。
+                let name_is_a_date = sibling.name.contains('/') || sibling.name.ends_with('月');
                 assert!(
                     sibling.sub.is_some() || name_is_a_date,
                     "{}: 兄弟公演 {:?} から日付が分からない",
@@ -972,18 +1119,9 @@ mod real {
         // `<title>` は検索結果・ブラウザのタブ・og:title に直接出る。公演名はライブ名を
         // 丸ごと含んでいることが多く、素朴に連結すると一番見られる場所で同じ長い名前が
         // 2 回並ぶ。チップやパンくずと同じ「重なりを落とす」規則を通す。
-        let dir = exported();
-        let routes: RoutesFile =
-            serde_json::from_str(&std::fs::read_to_string(dir.path().join("routes.json")).unwrap())
-                .unwrap();
-
         let mut doubled: Vec<String> = Vec::new();
         let mut checked = 0usize;
-        for entry in routes.routes.iter().filter(|r| r.kind == RouteKind::Show) {
-            let page: ShowPage = serde_json::from_str(
-                &std::fs::read_to_string(dir.path().join(&entry.data)).unwrap(),
-            )
-            .unwrap();
+        for page in show_pages() {
             let event_name = page.event.name.as_str();
             // 短いライブ名 (「1st」等) は公演名に偶然含まれうるので、十分に長いものだけ見る。
             if event_name.chars().count() >= 8 && page.seo.title.matches(event_name).count() > 1 {
@@ -1036,11 +1174,16 @@ mod real {
                 RouteKind::Event => {
                     let page: EventPage = serde_json::from_str(&read(&entry.data)).unwrap();
                     let rows: &[ShowSummary] = &page.shows;
+                    // 見出しがライブ名のページなので、行は見分けだけ (`DAY1` / 日付)。
+                    // ライブ名で始まらず (重なりを落としてある)、副題も持たない。
+                    // 公演名がライブ名を途中に含む稀な形は公演名のまま出る (括弧の中を削らない)。
+                    let event_name = page.name.as_str();
                     for s in rows {
                         checked += 1;
-                        if s.title != s.reference.name || s.show_label.is_some() {
+                        let repeats_event = event_name.chars().count() >= 8 && s.title.starts_with(event_name);
+                        if s.title.is_empty() || repeats_event || s.show_label.is_some() {
                             offenders.push(format!(
-                                "{}: ライブ詳細の行なのに見出しが公演名でない: {:?} / {:?}",
+                                "{}: ライブ詳細の行がライブ名を繰り返している: {:?} / {:?}",
                                 page.path, s.title, s.show_label
                             ));
                         }

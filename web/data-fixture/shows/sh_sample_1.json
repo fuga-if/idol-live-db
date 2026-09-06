@@ -3,9 +3,15 @@
   "isCharacterLive": false,
   "id": "sh_sample_1",
   "path": "/shows/sh_sample_1/",
-  "name": "DAY1",
-  "shortName": "DAY1",
-  "date": "2026-04-03",
+  "heading": "THE IDOLM@STER MILLION LIVE! 10thLIVE TOUR Act-4 ROAD TO MEMORIES 幕張",
+  "showLabel": "DAY1",
+  "dateBadge": {
+    "iso": "2026-04-03",
+    "year": "2026",
+    "monthDay": "4/3",
+    "weekday": "金"
+  },
+  "isUpcoming": false,
   "themeKey": "brand:ml",
   "event": {
     "kind": "event",
@@ -25,14 +31,7 @@
     "themeKey": "brand:ml",
     "artworkUrl": null
   },
-  "venueCity": "千葉市",
   "factRows": [
-    {
-      "label": "日程",
-      "value": "2026-04-03 (金)",
-      "style": "plain",
-      "link": null
-    },
     {
       "label": "開演",
       "value": "17:00",
@@ -50,76 +49,154 @@
       "value": "イベントホール",
       "style": "plain",
       "link": null
-    }
-  ],
-  "setlist": [
-    {
-      "id": "si_1",
-      "number": 1,
-      "notes": null,
-      "unitLabel": "765MILLION ALLSTARS",
-      "song": {
-        "kind": "song",
-        "id": "ml_sample",
-        "name": "Thank You!",
-        "sub": "765MILLION ALLSTARS",
-        "path": "/songs/ml_sample/",
-        "themeKey": "brand:ml",
-        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music/sample/600x600bb.jpg"
-      },
-      "performers": [
-        {
-          "ref": {
-            "kind": "idol",
-            "id": "ml_kasuga_mirai",
-            "name": "春日未来",
-            "sub": "ミリオンライブ!",
-            "path": "/idols/ml_kasuga_mirai/",
-            "themeKey": "idol:ml_kasuga_mirai",
-            "artworkUrl": null
-          },
-          "castName": "山崎はるか"
-        }
-      ],
-      "originalArtists": [
-        {
-          "kind": "idol",
-          "id": "ml_kasuga_mirai",
-          "name": "春日未来",
-          "sub": "ミリオンライブ!",
-          "path": "/idols/ml_kasuga_mirai/",
-          "themeKey": "idol:ml_kasuga_mirai",
-          "artworkUrl": null
-        },
-        {
-          "kind": "idol",
-          "id": "ml_mogami_shizuka",
-          "name": "最上静香",
-          "sub": "ミリオンライブ!",
-          "path": "/idols/ml_mogami_shizuka/",
-          "themeKey": "idol:ml_mogami_shizuka",
-          "artworkUrl": null
-        }
-      ],
-      "isCover": false
     },
     {
-      "id": "si_2",
-      "number": 2,
-      "notes": "映像のみ",
-      "unitLabel": null,
-      "song": {
-        "kind": "song",
-        "id": "ml_no_artwork",
-        "name": "ジャケットの無い曲",
-        "sub": null,
-        "path": "/songs/ml_no_artwork/",
-        "themeKey": "brand:ml",
-        "artworkUrl": null
-      },
-      "performers": [],
-      "originalArtists": [],
-      "isCover": true
+      "label": "所在地",
+      "value": "千葉市",
+      "style": "plain",
+      "link": null
+    }
+  ],
+  "statTiles": [
+    {
+      "glyph": "≡",
+      "value": 3,
+      "label": "曲",
+      "href": null
+    },
+    {
+      "glyph": "☺",
+      "value": 2,
+      "label": "出演者",
+      "href": null
+    }
+  ],
+  "setlistSections": [
+    {
+      "label": null,
+      "rows": [
+        {
+          "id": "si_1",
+          "number": 1,
+          "notes": "M@STER VERSION",
+          "unitLabel": "765MILLION ALLSTARS",
+          "song": {
+            "kind": "song",
+            "id": "ml_sample",
+            "name": "Thank You!",
+            "sub": "765MILLION ALLSTARS",
+            "path": "/songs/ml_sample/",
+            "themeKey": "brand:ml",
+            "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music/sample/600x600bb.jpg"
+          },
+          "performers": [
+            {
+              "ref": {
+                "kind": "idol",
+                "id": "ml_kasuga_mirai",
+                "name": "春日未来",
+                "sub": "ミリオンライブ!",
+                "path": "/idols/ml_kasuga_mirai/",
+                "themeKey": "idol:ml_kasuga_mirai",
+                "artworkUrl": null
+              },
+              "castName": "山崎はるか"
+            }
+          ],
+          "fullCastLabel": null,
+          "lineup": {
+            "kind": "partial",
+            "label": "オリメン 1/2",
+            "missing": {
+              "label": "不参加",
+              "idols": [
+                {
+                  "kind": "idol",
+                  "id": "ml_mogami_shizuka",
+                  "name": "最上静香",
+                  "sub": "ミリオンライブ!",
+                  "path": "/idols/ml_mogami_shizuka/",
+                  "themeKey": "idol:ml_mogami_shizuka",
+                  "artworkUrl": null
+                }
+              ]
+            }
+          },
+          "isCover": false
+        },
+        {
+          "id": "si_2",
+          "number": 2,
+          "notes": "映像のみ",
+          "unitLabel": null,
+          "song": {
+            "kind": "song",
+            "id": "ml_no_artwork",
+            "name": "ジャケットの無い曲",
+            "sub": null,
+            "path": "/songs/ml_no_artwork/",
+            "themeKey": "brand:ml",
+            "artworkUrl": null
+          },
+          "performers": [],
+          "fullCastLabel": null,
+          "lineup": null,
+          "isCover": true
+        }
+      ]
+    },
+    {
+      "label": "アンコール",
+      "rows": [
+        {
+          "id": "si_3",
+          "number": 3,
+          "notes": null,
+          "unitLabel": null,
+          "song": {
+            "kind": "song",
+            "id": "ml_sample",
+            "name": "Thank You!",
+            "sub": "765MILLION ALLSTARS",
+            "path": "/songs/ml_sample/",
+            "themeKey": "brand:ml",
+            "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music/sample/600x600bb.jpg"
+          },
+          "performers": [
+            {
+              "ref": {
+                "kind": "idol",
+                "id": "ml_kasuga_mirai",
+                "name": "春日未来",
+                "sub": "ミリオンライブ!",
+                "path": "/idols/ml_kasuga_mirai/",
+                "themeKey": "idol:ml_kasuga_mirai",
+                "artworkUrl": null
+              },
+              "castName": "山崎はるか"
+            },
+            {
+              "ref": {
+                "kind": "idol",
+                "id": "ml_mogami_shizuka",
+                "name": "最上静香",
+                "sub": "ミリオンライブ!",
+                "path": "/idols/ml_mogami_shizuka/",
+                "themeKey": "idol:ml_mogami_shizuka",
+                "artworkUrl": null
+              },
+              "castName": "田所あずさ"
+            }
+          ],
+          "fullCastLabel": "全員",
+          "lineup": {
+            "kind": "original",
+            "label": "オリメン",
+            "missing": null
+          },
+          "isCover": false
+        }
+      ]
     }
   ],
   "cast": [

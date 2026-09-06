@@ -451,6 +451,8 @@ a.chip:hover {
   font-weight: 500;
   font-variant-numeric: tabular-nums;
   opacity: 0.72;
+  /* 日付が `202 / 0-02-22` のように途中で折れない。折り返すのは本体 (名前) の方。 */
+  white-space: nowrap;
 }
 
 /* --- TagChip (ImasTagChip: セトリ行のユニット/カバー/全員) ----------------- */
@@ -988,15 +990,15 @@ a.labeled-row .labeled-row__value {
 /* 上に添える小見出し。**大文字化はしない** — 親ライブ名などの固有名詞が入るので、
    uppercase にすると "10thLIVE" が "10THLIVE" に化ける。 */
 .hero__eyebrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp2) var(--sp3);
   font-size: var(--fs-caption);
   font-weight: 700;
   letter-spacing: 0.04em;
   color: var(--chip-text);
   font-family: var(--font-display);
-}
-.hero__eyebrow a:hover {
-  text-decoration: underline;
-  text-underline-offset: 2px;
 }
 .hero__title {
   font-size: clamp(1.5rem, 1.1rem + 2vw, var(--fs-title1));
@@ -1026,7 +1028,6 @@ a.labeled-row .labeled-row__value {
   display: flex;
   flex-wrap: wrap;
   gap: var(--sp3) var(--sp6);
-  margin-top: var(--sp2);
 }
 .facts__item {
   display: flex;
@@ -1049,6 +1050,57 @@ a.labeled-row .labeled-row__value {
 .facts__value a:hover {
   text-decoration: underline;
   text-underline-offset: 2px;
+}
+
+/* 公演のヒーロー: 見出し (ライブ名 + 公演の見分け) → 日付ブロック + 事実 → 公演の切替 → 数。
+   何のライブかが一番大きく、`Day2` は見出しに添える札 (.tag の上に大きさと色だけ足す)。 */
+.show-label {
+  vertical-align: 0.2em;
+  margin-inline-start: var(--sp2);
+  padding-inline: 12px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-family: var(--font-display);
+  font-size: 0.55em;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.hero__lead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--sp4) var(--sp6);
+}
+.hero__lead .facts {
+  padding-top: var(--sp2);
+}
+/* 公演の前後への送り (ツアーなど本数が多く、セグメントに並べきれないとき)。 */
+.pager {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--sp3);
+  font-size: var(--fs-footnote);
+  font-weight: 600;
+}
+.pager__link {
+  color: var(--ds-ink2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pager__link:hover {
+  color: var(--ds-ink);
+}
+/* 前が無い (先頭) でも位置と次は同じ列に居続ける。 */
+.pager__pos {
+  grid-column: 2;
+  color: var(--ds-ink2);
+  white-space: nowrap;
+}
+.pager__link--next {
+  grid-column: 3;
+  text-align: end;
 }
 
 /* トップのヒーロー: 名前を 1 回だけ大きく、検索窓、数の帯。 */
@@ -1280,13 +1332,36 @@ a.labeled-row .labeled-row__value {
   margin-top: var(--sp2);
 }
 
-/* --- セトリ行 ------------------------------------------------------------- */
-.setlist {
-  counter-reset: setlist;
+/* --- セトリ ---------------------------------------------------------------
+   区切り (本編 / アンコール / 合同ライブのブロック) ごとの <ol> を 1 枚のカードに積む。
+   行は [番号] [ジャケ] [曲名 + 注記 / 札 / 歌唱者]。歌唱者は名前の下にアイドル色の線を
+   引いて並べる — 揃うとペンライトの帯のように見え、誰が・何人歌ったかが色で分かる。 */
+.setlist__section {
+  padding: var(--sp3) var(--sp5) var(--sp2);
+  font-family: var(--font-display);
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--ds-ink2);
+  background: var(--ds-surface2);
+}
+/* 見出しの無い塊が続くとき (合同ライブで本編ブロックが戻る) は、線を少し太くして塊の境を見せる。 */
+.card > .setlist__rows + .setlist__rows {
+  border-top-width: 4px;
+}
+.setlist__rows > li + li {
+  border-top: 1px solid var(--ds-sep);
+}
+/* 70 曲 × 歌唱者の行は重い。画面外の行の描画を省く (楽曲一覧と同じ)。 */
+.setlist__rows > li {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 96px;
 }
 .setlist__row {
-  display: flex;
+  display: grid;
+  grid-template-columns: 2rem var(--artwork-sm) minmax(0, 1fr);
   gap: var(--sp4);
+  align-items: start;
   padding: var(--sp4) var(--sp5);
   background: var(--ds-surface);
 }
@@ -1294,29 +1369,23 @@ a.labeled-row .labeled-row__value {
   background: var(--ds-surface2);
 }
 .setlist__no {
-  flex: none;
-  inline-size: 2rem;
   padding-top: 2px;
-  font-family: var(--font-display);
-  font-variant-numeric: tabular-nums;
   font-size: var(--fs-subhead);
   font-weight: 700;
   color: var(--ds-ink2);
   text-align: end;
 }
-.setlist__body {
-  min-width: 0;
-  flex: 1;
-  display: flex;
-  gap: var(--sp4);
-  align-items: flex-start;
-}
 .setlist__main {
   min-width: 0;
-  flex: 1;
   display: flex;
   flex-direction: column;
   gap: var(--sp2);
+}
+.setlist__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--sp1) var(--sp3);
 }
 .setlist__title {
   font-size: var(--fs-callout);
@@ -1327,28 +1396,48 @@ a.labeled-row .labeled-row__value {
   font-size: var(--fs-caption);
   color: var(--ds-ink2);
 }
+
+/* オリメンの札。揃っている (original / originalPlus) は曲の色、欠けている
+   (partial / cover) は無彩で控えめに。「いたのに歌わなかった」人は破線の名前で続ける。 */
+.tag--lineup {
+  background: var(--ds-fill);
+  color: var(--ds-ink2);
+}
+:is([data-lineup="original"], [data-lineup="originalPlus"]) .tag--lineup {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent);
+}
+.lineup__missing-label {
+  font-weight: 600;
+}
+
+/* 歌唱者。名前の下にアイドル色の線 (ピルにしないのは、74 人の全体曲が読めるように)。 */
 .performers {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--sp2);
+  gap: var(--sp2) var(--sp4);
 }
 .performer {
   display: inline-flex;
-  align-items: center;
-  gap: var(--sp2);
-  padding: 3px 10px;
-  border-radius: var(--r-pill);
-  background: var(--ds-fill);
-  font-size: var(--fs-caption);
+  padding: 2px 0 3px;
+  border-bottom: 3px solid var(--accent);
+  font-size: var(--fs-footnote);
   font-weight: 600;
   color: var(--ds-ink);
+  line-height: 1.3;
 }
-
 .performer:hover {
-  background: var(--tint-strong);
+  background: var(--tint);
+}
+/* 原唱者だがこの行では歌っていない人。 */
+.performer--absent {
+  border-bottom: 2px dashed var(--accent);
+  color: var(--ds-ink2);
+  font-weight: 500;
+  font-size: var(--fs-caption);
 }
 
-/* セトリの歌唱者チップ。
+/* 歌唱者の名前。
    両方の名前を持たせておき、閲覧者が選んだモード (data-performer-name) で
    どちらを出すかを決める。**規則は imas-core が持ち、ここは見せ隠しだけ。**
    既定 (属性なし = アイドル名) はサーバが描いたままで、JS を必要としない。
@@ -1397,13 +1486,44 @@ a.labeled-row .labeled-row__value {
   --idol-show: inline;
 }
 
-/* セトリの頭: 歌唱者の表示切替 + 公演の切替 (同じライブの他公演)。 */
-.setlist-tools {
-  display: flex;
+/* 歌唱者が多い行 (全員曲など) は名前を畳む。畳んだままでも色の点で「誰が・何人」を示す。
+   JS 無しで開閉できる <details>。開閉の向きは行の › と同じ印を回して言う。 */
+.fold > summary {
+  list-style: none;
+  cursor: pointer;
+  display: inline-flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
   gap: var(--sp3);
+  padding: 2px 0;
+}
+.fold > summary::-webkit-details-marker {
+  display: none;
+}
+.fold > summary:hover .row__count {
+  color: var(--ds-ink);
+}
+.fold .chevron {
+  transform: rotate(90deg);
+  transition: transform 160ms ease;
+}
+.fold[open] .chevron {
+  transform: rotate(-90deg);
+}
+.fold__dots {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  max-inline-size: 16rem;
+}
+.fold > .performers {
+  margin-top: var(--sp3);
+}
+
+/* セトリの頭: 歌唱者の表示切替 (右寄せ)。 */
+.setlist-tools {
+  display: flex;
+  justify-content: flex-end;
 }
 
 /* --- グリッド (アイドル・ユニット一覧) ------------------------------------ */
@@ -1677,8 +1797,9 @@ a.labeled-row .labeled-row__value {
    長いものが 1 本 (披露履歴 / セットリスト / 持ち曲 / 公演) と、短い属性の塊。
    幅があるときだけ属性を右に寄せる。判定はビューポートではなくコンテナで行う。
 
-   DOM の順は「属性 → 本体」で、1 段組のときの読む順に合わせてある。2 段組では
-   grid の配置だけで右へ送るので、順序は入れ替えない。 */
+   DOM の順は 1 段組のときの読む順 (既定は「属性 → 本体」、セトリのように本体が主役の
+   ページは DetailLayout の asideAfterMain で「本体 → 属性」)。2 段組では grid の配置だけで
+   右へ送るので、順序は入れ替えない。 */
 /* 計測はここ。中の .detail-cols を組み替えるので、コンテナは 1 つ上に要る。 */
 .detail-shell {
   container: detail / inline-size;

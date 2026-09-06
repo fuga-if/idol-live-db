@@ -11,9 +11,11 @@
  */
 interface Props {
   size?: "sm" | "md" | "avatar" | "hero";
+  /** 囲む要素が無いとき (点だけを並べるとき) は、点自身に `data-theme` を持たせる。 */
+  themeKey?: string;
 }
-const { size = "sm" } = Astro.props;
+const { size = "sm", themeKey } = Astro.props;
 const sizeClass = size === "sm" ? "" : `color-dot--${size}`;
 ---
 
-<span class:list={["color-dot", sizeClass]} aria-hidden="true"></span>
+<span class:list={["color-dot", sizeClass]} data-theme={themeKey} aria-hidden="true"></span>

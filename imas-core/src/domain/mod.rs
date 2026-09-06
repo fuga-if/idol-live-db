@@ -34,6 +34,8 @@ pub mod intro_quiz_choices;
 pub mod lyric_chunks;
 pub mod oshi_theme_resolution;
 pub mod setlist_diff;
+pub mod setlist_lineup;
+pub mod setlist_sections;
 pub mod short_year_month;
 pub mod song_list_filtering;
 pub mod display_join;

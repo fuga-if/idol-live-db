@@ -30,7 +30,8 @@ use super::writer::Writer;
 use super::{Result, Stats, WebExportError};
 use std::path::Path;
 use super::emit::events::ShowContext;
-use crate::domain::date_display::{range_with_weekday, until_display, with_weekday};
+use crate::domain::date_display::{range_with_weekday, until_display};
+use crate::domain::setlist_lineup::Lineup;
 use crate::domain::idol_list_filtering::IdolQuery;
 use crate::domain::song_list_queries::{SongListFilter, SongQuery};
 
@@ -376,20 +377,20 @@ fn show_summary(context: ShowContext) -> ShowSummary {
 
 fn show_page() -> ShowPage {
     let reference = show_sample();
+    let event = event_sample();
     ShowPage {
         schema_version: SCHEMA_VERSION,
         is_character_live: false,
         id: reference.id.clone(),
         path: reference.path.clone(),
-        name: "DAY1".to_string(),
-        short_name: Some("DAY1".to_string()),
-        date: "2026-04-03".to_string(),
+        heading: event.name.clone(),
+        show_label: Some("DAY1".to_string()),
+        date_badge: DateBadge::from_ymd("2026-04-03"),
+        is_upcoming: false,
         theme_key: reference.theme_key.clone(),
-        event: event_sample(),
+        event,
         brand: Some(brand_ml()),
-        venue_city: Some("千葉市".to_string()),
         fact_rows: vec![
-            fact("日程", &with_weekday("2026-04-03"), "plain"),
             fact("開演", "17:00", "plain"),
             ProfileRow {
                 label: "会場".to_string(),
@@ -398,31 +399,76 @@ fn show_page() -> ShowPage {
                 link: Some(venue_sample().path),
             },
             fact("ホール", "イベントホール", "plain"),
+            fact("所在地", "千葉市", "plain"),
         ],
-        setlist: vec![
-            SetlistRow {
-                id: "si_1".to_string(),
-                number: 1,
-                notes: None,
-                unit_label: Some("765MILLION ALLSTARS".to_string()),
-                song: song_sample(),
-                performers: vec![PerformerRef {
-                    reference: idol_mirai(),
-                    cast_name: Some("山崎はるか".to_string()),
-                }],
-                original_artists: vec![idol_mirai(), idol_shizuka()],
-                is_cover: false,
+        stat_tiles: vec![tile("≡", 3, "曲", None), tile("☺", 2, "出演者", None)],
+        setlist_sections: vec![
+            SetlistSection {
+                label: None,
+                rows: vec![
+                    // 原唱者 2 人のうち 1 人だけが歌う行 (オリメン一部・いたのに歌わなかった人付き)。
+                    SetlistRow {
+                        id: "si_1".to_string(),
+                        number: 1,
+                        notes: Some("M@STER VERSION".to_string()),
+                        unit_label: Some("765MILLION ALLSTARS".to_string()),
+                        song: song_sample(),
+                        performers: vec![PerformerRef {
+                            reference: idol_mirai(),
+                            cast_name: Some("山崎はるか".to_string()),
+                        }],
+                        full_cast_label: None,
+                        lineup: Some(LineupNote {
+                            kind: Lineup::Partial,
+                            label: "オリメン 1/2".to_string(),
+                            missing: Some(MissingOriginals {
+                                label: "不参加".to_string(),
+                                idols: vec![idol_shizuka()],
+                            }),
+                        }),
+                        is_cover: false,
+                    },
+                    // 歌唱メンバーが記録されていない行 (実データに多い)。
+                    SetlistRow {
+                        id: "si_2".to_string(),
+                        number: 2,
+                        notes: Some("映像のみ".to_string()),
+                        unit_label: None,
+                        song: song_no_artwork(),
+                        performers: vec![],
+                        full_cast_label: None,
+                        lineup: None,
+                        is_cover: true,
+                    },
+                ],
             },
-            // 歌唱メンバーが記録されていない行 (実データに多い)。
-            SetlistRow {
-                id: "si_2".to_string(),
-                number: 2,
-                notes: Some("映像のみ".to_string()),
-                unit_label: None,
-                song: song_no_artwork(),
-                performers: vec![],
-                original_artists: vec![],
-                is_cover: true,
+            // アンコール: 出演者全員で歌う行 (名前は畳む)。
+            SetlistSection {
+                label: Some("アンコール".to_string()),
+                rows: vec![SetlistRow {
+                    id: "si_3".to_string(),
+                    number: 3,
+                    notes: None,
+                    unit_label: None,
+                    song: song_sample(),
+                    performers: vec![
+                        PerformerRef {
+                            reference: idol_mirai(),
+                            cast_name: Some("山崎はるか".to_string()),
+                        },
+                        PerformerRef {
+                            reference: idol_shizuka(),
+                            cast_name: Some("田所あずさ".to_string()),
+                        },
+                    ],
+                    full_cast_label: Some("全員".to_string()),
+                    lineup: Some(LineupNote {
+                        kind: Lineup::Original,
+                        label: "オリメン".to_string(),
+                        missing: None,
+                    }),
+                    is_cover: false,
+                }],
             },
         ],
         cast: vec![idol_mirai(), idol_shizuka()],

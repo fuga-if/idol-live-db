@@ -9,7 +9,6 @@ use crate::domain::date_display::until_display;
 use crate::domain::display_join::join_capped;
 use crate::domain::kana_row::kana_row_label;
 use super::places::{location_display, UNCLASSIFIED_PREFECTURE};
-use crate::domain::event_detail_queries as detail;
 use crate::domain::event_grouping::group_events_by_year;
 use crate::domain::event_list_queries::{self, EventWithDateRecord};
 use crate::domain::idol_queries;
