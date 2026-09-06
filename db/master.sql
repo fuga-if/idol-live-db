@@ -2644,7 +2644,7 @@ CREATE TABLE meta (key TEXT PRIMARY KEY NOT NULL, value TEXT);
 INSERT INTO "meta" VALUES('schema_version','1');
 INSERT INTO "meta" VALUES('data_version','75');
 INSERT INTO "meta" VALUES('migration_v14_idol_is_external','applied');
-INSERT INTO "meta" VALUES('content_hash','55731cc087f0edc21933331435bb54521d0f4b3b51d15d35ff9828564d48cbbb');
+INSERT INTO "meta" VALUES('content_hash','8cfbd5a6b1d282789f0fc903009f3241094fc975d2ee00e86237b54e0b2fbd5d');
 CREATE TABLE setlist_items (id TEXT PRIMARY KEY NOT NULL, show_id TEXT NOT NULL, song_id TEXT NOT NULL, position INTEGER NOT NULL, section TEXT, notes TEXT, unit_name TEXT, UNIQUE(show_id, position));
 INSERT INTO "setlist_items" VALUES('sh_L0264_2265','sh_L0264','sidem_drive_a_live',2265,NULL,NULL,NULL);
 INSERT INTO "setlist_items" VALUES('sh_L0265_2266','sh_L0265','sidem_drive_a_live',2266,NULL,NULL,NULL);
@@ -112916,11 +112916,11 @@ INSERT INTO "songs" VALUES('gakuen_lespoir','L’Espoir','れすぽわーる','g
 INSERT INTO "songs" VALUES('gakuen_春と光','春と光','はるとひかり','gakuen','solo','2026-08-21',NULL,'サツキ','サツキ、烏屋茶房','サツキ','春と光 - Single',NULL,'https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/8b/5a/52/8b5a5246-14e1-33f7-b7a8-9111377f794b/PA00225009_0_251888_jacket.jpg/600x600bb.jpg',NULL,'6799055140','6799055136',NULL,NULL,NULL,'',NULL,NULL,'',NULL,NULL);
 INSERT INTO "songs" VALUES('other_ラジオ体操第一','ラジオ体操第一','らじおたいそうだいいち','other','cover','',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'',NULL,NULL,NULL,NULL,NULL);
 INSERT INTO "songs" VALUES('gakuen_修楽旅行_花海咲季月村手毬藤田ことね雨夜燕篠澤広ver','修楽旅行 (花海咲季・月村手毬・藤田ことね・雨夜 燕・篠澤 広 ver.)','しゅうがくりょこう','gakuen','unit','2026-09-05',227,NULL,NULL,NULL,'修楽旅行 (花海咲季・月村手毬・藤田ことね・雨夜 燕・篠澤 広 ver.) - Single','修楽旅行 (花海咲季・月村手毬・藤田ことね・雨夜 燕・篠澤 広 ver.) - Single','https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/50/95/8b/50958b46-6247-0b51-49ab-bd2bc824d1a7/PA00226559_0_253046_jacket.jpg/600x600bb.jpg',NULL,'6806126722','6806126719',NULL,NULL,NULL,'花海咲季、月村手毬、藤田ことね、雨夜 燕、篠澤 広',NULL,NULL,NULL,NULL,NULL);
-INSERT INTO "songs" VALUES('gakuen_神かわいい','神かわいい',NULL,'gakuen','solo',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
-INSERT INTO "songs" VALUES('gakuen_nazonazo','nazonazo',NULL,'gakuen','solo',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
-INSERT INTO "songs" VALUES('gakuen_be_proud','Be Proud',NULL,'gakuen','solo',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
-INSERT INTO "songs" VALUES('gakuen_order_fake','ORDER FAKE','おーだーふぇいく','gakuen','solo','',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
-INSERT INTO "songs" VALUES('gakuen_め','め','め','gakuen','solo','',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
+INSERT INTO "songs" VALUES('gakuen_神かわいい','神かわいい','かみかわいい','gakuen','solo','2026-09-06',NULL,'早川博隆、広島拓弥','早川博隆','広島拓弥','神かわいい - Single',NULL,'https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/9e/18/52/9e18526a-3f71-c22e-3e8c-01de142d1127/PA00226558_0_253040_jacket.jpg/600x600bb.jpg',NULL,'6805791047','6805791040',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
+INSERT INTO "songs" VALUES('gakuen_nazonazo','nazonazo','なぞなぞ','gakuen','solo','2026-09-06',NULL,'ladyhood (Digz, Inc. Group)、Connexio (Digz, Inc. Group)','ladyhood (Digz, Inc. Group)','Connexio (Digz, Inc. Group)','nazonazo - Single',NULL,'https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/b7/b9/a2/b7b9a282-ada5-6e33-7e6d-8a32b70d937c/PA00226555_0_253036_jacket.jpg/600x600bb.jpg',NULL,'6806126338','6806126330',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
+INSERT INTO "songs" VALUES('gakuen_be_proud','Be proud','びーぷらうど','gakuen','solo','2026-09-06',NULL,'kenchang','kenchang','齋藤優輝','Be proud - Single',NULL,'https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/d5/34/5c/d5345c66-db8c-dc11-0614-76e92b11fa92/PA00226554_0_253038_jacket.jpg/600x600bb.jpg',NULL,'6806126972','6806126668',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
+INSERT INTO "songs" VALUES('gakuen_order_fake','ORDER FAKE','おーだーふぇいく','gakuen','solo','2026-09-07',NULL,'にほしか','にほしか','にほしか',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
+INSERT INTO "songs" VALUES('gakuen_め','め','め','gakuen','solo','2026-09-07',NULL,'虻瀬犬','虻瀬犬','虻瀬犬',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
 CREATE TABLE staff (
     id TEXT PRIMARY KEY NOT NULL,
     brand_id TEXT NOT NULL REFERENCES brands(id),
