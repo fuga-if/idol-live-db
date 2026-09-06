@@ -402,6 +402,20 @@ web_dto! {
 }
 
 web_dto! {
+    /// タグの素性 (名前・色・公式か)。札の見た目はこれだけで決まる。
+    /// 曲ページの札 ([`TagChipDto`]) は これに件数と押し先を足したもの。
+    #[derive(Eq)]
+    pub struct TagBadge {
+        pub id: String,
+        pub name: String,
+        /// タグ自身の色 (hex)。無ければ受け手が既定色で出す。
+        pub color: Option<String>,
+        /// 運営が用意したタグか。
+        pub is_official: bool,
+    }
+}
+
+web_dto! {
     /// コミュニティが付けたタグ 1 件。
     ///
     /// **この出面は読むだけ。** 付ける/外すはログインが要るのでアプリへ誘導する。

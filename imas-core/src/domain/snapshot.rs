@@ -511,6 +511,13 @@ pub struct Snapshot {
     pub venue_index_by_id: HashMap<String, u32>,
 }
 
+impl Song {
+    /// 並べ替え・よみの目次に使う読み。読み仮名が無ければ曲名で代用する (楽曲一覧と同じ規則)。
+    pub fn reading(&self) -> &str {
+        self.title_kana.as_deref().unwrap_or(&self.title)
+    }
+}
+
 impl Snapshot {
     /// カバー曲か。
     ///

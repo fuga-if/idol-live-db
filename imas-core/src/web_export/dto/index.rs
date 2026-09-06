@@ -4,7 +4,7 @@
 //! 出す。クライアント状態を持たせないというユーザー指示の直接の帰結で、切替 UI は
 //! [`super::common::NavLink`] のリンク集になる。
 
-use super::common::{AppLinks, DateBadge, NavLink, Ref, SeoBlock, StatTile, TagChipDto};
+use super::common::{AppLinks, DateBadge, NavLink, Ref, SeoBlock, StatTile, TagBadge};
 use super::event::ShowSummary;
 use crate::domain::idol_list_filtering::IdolQuery;
 use crate::domain::song_list_queries::SongQuery;
@@ -199,9 +199,11 @@ web_dto! {
 
 web_dto! {
     /// タグ一覧の 1 行。
+    #[derive(Eq)]
     pub struct TagListItem {
-        /// 札 (`path` はそのタグの曲一覧、`count` は付けた人の延べ数)。
-        pub tag: TagChipDto,
+        pub badge: TagBadge,
+        /// そのタグの曲一覧 (`/tags/<tagId>/`)。
+        pub path: String,
         pub description: Option<String>,
         /// 運営が用意したタグに付く札 (`content::TAG_OFFICIAL_LABEL`)。
         pub official_label: Option<String>,
@@ -216,7 +218,7 @@ web_dto! {
         pub schema_version: u32,
         pub path: String,
         pub title: String,
-        pub tag: TagChipDto,
+        pub badge: TagBadge,
         /// タグ自身の説明 (付けた人が書いたもの)。無ければ `None`。
         pub description: Option<String>,
         /// 見出しの下の説明 (並び順の断り)。

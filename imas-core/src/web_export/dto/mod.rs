@@ -58,7 +58,7 @@ pub use common::{
     mark_current, AppLinks, AppOpen, CallGuideClap, CallGuideEmphasis, CallGuideVocabulary, Counts, Crumb,
     DateBadge, LyricsBlock, NavLink, PenlightSetDto,
     PerformerNameOptionDto, Ref, RefKind, Robots, SeoBlock, SiteMeta, SongCommunity, StatTile,
-    TagChipDto, ThemePair, ThemeTable, ThemeTokens, SCHEMA_VERSION,
+    TagBadge, TagChipDto, ThemePair, ThemeTable, ThemeTokens, SCHEMA_VERSION,
 };
 pub use event::{
     EventCast, EventCastMember, EventCastShow, EventPage, ReleaseInfo, ShowSummary, TicketInfo,

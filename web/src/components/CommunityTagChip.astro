@@ -1,0 +1,26 @@
+---
+/**
+ * コミュニティのタグの札 1 枚 (曲ページの「みんなの記録」・タグ一覧・タグページで同じ見た目)。
+ *
+ * 色はタグ自身の hex (無ければテーマのアクセント)。ここでは色を決めず、来たものを使うだけ。
+ * `href` があれば押せる (曲のタグ = 一覧がある)。無ければ押せない札 (アイドル・ユニットのタグ)。
+ * どちらかは Rust が `path` の有無で決めている。
+ */
+interface Props {
+  tag: { name: string; color: string | null; isOfficial: boolean };
+  href?: string | null;
+  /** 何人が付けたか。曲ページの札だけ出す。 */
+  count?: number | null;
+}
+const { tag, href, count } = Astro.props;
+const Tag = href ? "a" : "span";
+---
+
+<Tag
+  class:list={["tag", "tag--community", tag.isOfficial && "tag--official", href && "u-underline-hover"]}
+  style={tag.color ? `--tag-color: ${tag.color}` : undefined}
+  href={href}
+>
+  {tag.name}
+  {count !== undefined && count !== null && <b class="community-tags__count">{count}</b>}
+</Tag>

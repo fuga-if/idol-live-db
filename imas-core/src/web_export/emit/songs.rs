@@ -4,7 +4,7 @@
 //! 到達できるべきだから。一覧に載せるかどうかだけが `SongListFilter` の判断で、
 //! それは `lists.rs` の関心事。
 
-use super::context::{distinguishing_show_name, duration_display, join_parts, Ctx};
+use super::context::{distinguishing_show_name, duration_display, join_parts, Ctx, TagScope};
 use crate::domain::credit_names::split_credits;
 use crate::domain::display_join::join_capped;
 use crate::domain::performance_stats;
@@ -112,9 +112,7 @@ pub fn song_page(ctx: &Ctx, song_id: &str) -> Option<SongPage> {
         title: record.title.clone(),
         title_kana: record.title_kana.clone(),
         community: SongCommunity {
-            tags: super::context::tag_chips(ctx.community.song_tags(&record.id), |t| {
-                Some(super::lists::tag_path(&t.id))
-            }),
+            tags: super::context::tag_chips(ctx, TagScope::Song, ctx.community.song_tags(&record.id)),
             favorites: ctx.community.favorites(&record.id).max(0) as u32,
             penlight: ctx
                 .community

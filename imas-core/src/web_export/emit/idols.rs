@@ -1,6 +1,6 @@
 //! アイドル (idol) とユニット (unit) の詳細ページ。
 
-use super::context::{distinguishing_show_name, join_parts, simple_json_ld, Ctx};
+use super::context::{distinguishing_show_name, join_parts, simple_json_ld, Ctx, TagScope};
 use crate::domain::idol_queries;
 use crate::domain::idol_song_queries;
 use crate::domain::screen_composition::{idol_profile_rows, RowAction, RowStyle};
@@ -81,8 +81,7 @@ pub fn idol_page(ctx: &Ctx, idol_id: &str) -> Option<IdolPage> {
             StatTile::new("♬", performed_songs.len() as u32, "ライブで歌った曲").with_href("#idol-performed"),
             StatTile::new("▤", shows.len() as u32, "出演公演").with_href("#idol-shows"),
         ]),
-        // アイドルのタグに一覧ページは無い (押せない札)。
-        tags: super::context::tag_chips(ctx.community.idol_tags(&record.id), |_| None),
+        tags: super::context::tag_chips(ctx, TagScope::Idol, ctx.community.idol_tags(&record.id)),
         id: record.id.clone(),
         path: path.clone(),
         name: record.name.clone(),
@@ -223,7 +222,7 @@ pub fn unit_page(ctx: &Ctx, unit_id: &str) -> Option<UnitPage> {
 
     Some(UnitPage {
         schema_version: SCHEMA_VERSION,
-        tags: super::context::tag_chips(ctx.community.unit_tags(&record.id), |_| None),
+        tags: super::context::tag_chips(ctx, TagScope::Unit, ctx.community.unit_tags(&record.id)),
         id: record.id.clone(),
         path: path.clone(),
         name: record.name.clone(),

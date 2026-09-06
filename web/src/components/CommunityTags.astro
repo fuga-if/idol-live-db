@@ -1,5 +1,6 @@
 ---
 import type { TagChipDto } from "../lib/schema/TagChipDto";
+import CommunityTagChip from "./CommunityTagChip.astro";
 
 /**
  * コミュニティが付けたタグ。
@@ -11,7 +12,6 @@ import type { TagChipDto } from "../lib/schema/TagChipDto";
  * 閲覧のたびに D1 を読むと無料枠を超えるので、ビルド時に固める。
  *
  * 一覧のあるタグ (曲のタグ) は `path` を持ち、押すとそのタグの曲一覧へ行く。
- * 無いもの (アイドル・ユニットのタグ) は押せない札。どちらかは Rust が決めている。
  */
 interface Props {
   tags: TagChipDto[];
@@ -22,21 +22,11 @@ const { tags } = Astro.props;
 {
   tags.length > 0 && (
     <ul class="u-row community-tags" aria-label="タグ">
-      {tags.map((tag) => {
-        const Tag = tag.path ? "a" : "span";
-        return (
-          <li>
-            <Tag
-              class:list={["tag", "tag--community", tag.isOfficial && "tag--official"]}
-              style={tag.color ? `--tag-color: ${tag.color}` : undefined}
-              href={tag.path ?? undefined}
-            >
-              {tag.name}
-              <b class="community-tags__count">{tag.count}</b>
-            </Tag>
-          </li>
-        );
-      })}
+      {tags.map((tag) => (
+        <li>
+          <CommunityTagChip tag={tag} href={tag.path} count={tag.count} />
+        </li>
+      ))}
     </ul>
   )
 }

@@ -136,11 +136,18 @@ const { lyrics } = Astro.props;
       return [...byKey.values()].sort((a, b) => a.start - b.start || a.end - b.end);
     };
 
+    /** 行ごとのコールと目印の対。配置は描画後に目印の矩形から決める (`placeCalls`)。 */
+    interface CallSlot {
+      marker: HTMLElement;
+      call: HTMLElement;
+      /** 同時 (語の真下に置く) か。false は追っかけ・行末 (目印の右に置く)。 */
+      over: boolean;
+    }
+    const lineSlots = new WeakMap<HTMLElement, CallSlot[]>();
+
     /** 1 スロットぶんのコール (複数なら空白で 1 段に並べる)。 */
-    const callRow = (slot: Slot, index: number): HTMLElement => {
+    const callRow = (slot: Slot): HTMLElement => {
       const row = el("span", "lyrics__call");
-      row.dataset.slot = String(index);
-      row.dataset.placement = slot.end > slot.start ? "over" : "after";
       slot.calls.forEach((c, i) => {
         if (i > 0) row.append(" ");
         const item = el("span", `lyrics__call-item lyrics__call-item--${c.emphasis ?? "normal"}`, c.text);
@@ -178,7 +185,7 @@ const { lyrics } = Astro.props;
         emphasis?: string;
         slot?: Slot;
       }
-      const pieces: Piece[] = [...tint.values()].map((t) => ({ ...t }));
+      const pieces: Piece[] = [...tint.values()];
       for (const slot of slotsOf(calls)) {
         const same = pieces.find((p) => p.start === slot.start && p.end === slot.end && !p.slot);
         if (same && slot.end > slot.start) same.slot = slot;
@@ -186,8 +193,8 @@ const { lyrics } = Astro.props;
       }
       pieces.sort((a, b) => a.start - b.start || a.end - b.end);
 
+      const slots: CallSlot[] = [];
       let cursor = 0;
-      let slotIndex = 0;
       for (const piece of pieces) {
         const start = Math.min(Math.max(piece.start, cursor), scalars.length);
         const end = Math.min(Math.max(piece.end, start), scalars.length);
@@ -202,18 +209,19 @@ const { lyrics } = Astro.props;
           marker = el("span", "lyrics__point", "\u200b");
         }
         if (piece.slot) {
-          marker.dataset.slotId = String(slotIndex);
-          overlay.append(callRow(piece.slot, slotIndex));
-          slotIndex += 1;
+          const call = callRow(piece.slot);
+          overlay.append(call);
+          slots.push({ marker, call, over: piece.slot.end > piece.slot.start });
         }
         textEl.append(marker);
         cursor = end;
       }
       if (cursor < scalars.length) textEl.append(scalars.slice(cursor).join(""));
       content.append(textEl);
-      if (slotIndex > 0) {
+      if (slots.length > 0) {
         content.dataset.hasCalls = "";
         content.append(overlay);
+        lineSlots.set(content, slots);
       }
       return content;
     };
@@ -221,93 +229,121 @@ const { lyrics } = Astro.props;
     /**
      * コールの位置を語の矩形から決める。
      * - 同時: 語の先頭の x、追っかけ・行末: 目印の右端の x。y はその表示行の直下。
-     * - 右端に入らなければ左へ寄せる (語の色で対応は分かる)。行幅より長いコールは
-     *   行頭から折り返す (狭い画面の長いコール)。
+     * - 右端に入らなければ左へ寄せる (語の色で対応は分かる)。行幅より長いコールは行頭から折り返す。
      * - 同じ表示行で重なるコールは右へずらし、右端に入らなければ 1 段下げる。
-     * - 折り返した段落の途中の行の下に置いたコールが次の行の本文に食い込むなら、
-     *   行送りを 1 段ずつ広げて (`--rows`) 収まるまで測り直す。最後の行の下は余白で受ける。
+     * - 折り返した段落の途中の行の下に置いたコールが次の行の本文に食い込むなら、その深さぶん
+     *   行送りを広げて (`--band`) 置き直す。行送りは上下に均等に割られるので、行と行の間は
+     *   ちょうど帯のぶん開く (1 回で収まる)。最後の行の下は余白で受ける。
+     * 読み (矩形) と書き (スタイル) は段落ごとにまとめ、1 回の配置の再レイアウトを 2 回に抑える。
      */
-    const GAP = 2;
-    const MAX_ROWS = 4;
-    const layoutCalls = (): void => {
-      for (const content of body.querySelectorAll<HTMLElement>(".lyrics__content[data-has-calls]")) {
-        const calls = [...content.querySelectorAll<HTMLElement>(".lyrics__call")];
-        const textEl = content.querySelector(".lyrics__text")!;
-        const measure = () => {
-          const origin = content.getBoundingClientRect();
-          const width = content.clientWidth;
-          const textRects = [...textEl.getClientRects()];
-          const placed: { left: number; right: number; top: number; bottom: number }[] = [];
-          let collides = false;
-          let overflow = 0;
-          for (const call of calls) {
-            const marker = content.querySelector<HTMLElement>(`[data-slot-id="${call.dataset.slot}"]`);
-            const rects = marker ? [...marker.getClientRects()] : [];
-            if (rects.length === 0) continue;
-            const over = call.dataset.placement === "over";
-            const r = over ? rects[0]! : rects[rects.length - 1]!;
-            // 測る前に前回の配置を戻す (画面幅が変わったときに測り直すため)。絶対配置の箱は
-            // left の残り幅で折り返すので、left を 0 に戻してから高さを測る。
-            delete call.dataset.wrap;
-            call.style.maxInlineSize = "";
-            call.style.left = "0px";
-            let w = call.offsetWidth;
-            const anchorLeft = (over ? r.left : r.right + 4) - origin.left;
-            let left = anchorLeft;
-            if (w > width) {
-              call.dataset.wrap = "";
-              call.style.maxInlineSize = `${width}px`;
-              left = 0;
-              w = width;
-            } else if (left + w > width) {
-              left = width - w;
-            }
-            const h = call.offsetHeight;
-            let top = r.bottom - origin.top + GAP;
-            for (let guard = 0; guard < 8; guard++) {
-              const hit = placed.find((b) => top < b.bottom && top + h > b.top && left < b.right && left + w > b.left);
-              if (!hit) break;
-              if (hit.right + 6 + w <= width) left = hit.right + 6;
-              else {
-                left = Math.max(0, Math.min(anchorLeft, width - w));
-                top = hit.bottom + GAP;
-              }
-            }
-            placed.push({ left, right: left + w, top, bottom: top + h });
-            call.style.left = `${left}px`;
-            call.style.top = `${top}px`;
-            // 後ろの行の本文 (同じ x の範囲) に食い込んでいないか。
-            const absLeft = origin.left + left;
-            const absBottom = origin.top + top + h;
-            if (
-              textRects.some(
-                (t) => t.top > r.bottom + 1 && t.top < absBottom + GAP && t.left < absLeft + w && t.right > absLeft,
-              )
-            ) {
-              collides = true;
-            }
-            overflow = Math.max(overflow, top + h - origin.height);
-          }
-          return { collides, overflow };
+    const CALL_GAP = 2; // 語の下端とコールの間
+    const AFTER_GAP = 4; // 追っかけ・行末: 目印の右端からの間
+    const SIDE_GAP = 6; // 同じ行に並ぶコール同士の間
+    const LINE_GAP = 4; // 途中の行に置いたコールと、次の行の本文の間
+    interface Box {
+      left: number;
+      right: number;
+      top: number;
+      bottom: number;
+    }
+
+    const placeCalls = (content: HTMLElement, slots: CallSlot[], band: number) => {
+      // 書き: 前回の配置を戻す (画面幅が変わったときに測り直すため)。
+      content.style.setProperty("--band", `${band}px`);
+      content.style.paddingBlockEnd = "";
+      for (const s of slots) {
+        delete s.call.dataset.wrap;
+        s.call.style.maxInlineSize = "";
+      }
+      // 読み: 語の矩形と、コールの自然な幅。
+      const origin = content.getBoundingClientRect();
+      const width = content.clientWidth;
+      const textRects = [...content.querySelector(".lyrics__text")!.getClientRects()];
+      const measured = slots.map((s) => {
+        const rects = s.marker.getClientRects();
+        return {
+          ...s,
+          rect: s.over ? rects[0] : rects[rects.length - 1],
+          width: s.call.offsetWidth,
+          height: 0,
+          left: 0,
+          top: 0,
         };
-        content.style.paddingBlockEnd = "";
-        content.style.removeProperty("--rows");
-        let result = measure();
-        for (let rows = 1; result.collides && rows <= MAX_ROWS; rows++) {
-          content.style.setProperty("--rows", String(rows));
-          result = measure();
+      });
+      // 書き → 読み: 行幅より長いコールは行頭から折り返し、その高さを測る。
+      for (const m of measured) {
+        if (m.width > width) {
+          m.call.dataset.wrap = "";
+          m.call.style.maxInlineSize = `${width}px`;
+          m.width = width;
         }
-        content.style.paddingBlockEnd = `${Math.max(0, Math.ceil(result.overflow) + GAP)}px`;
+      }
+      for (const m of measured) m.height = m.call.offsetHeight;
+
+      const placed: Box[] = [];
+      let intrusion = 0;
+      let overflow = 0;
+      for (const m of measured) {
+        if (!m.rect) continue;
+        const anchorLeft = (m.over ? m.rect.left : m.rect.right + AFTER_GAP) - origin.left;
+        const fit = (x: number) => Math.max(0, Math.min(x, width - m.width));
+        let left = fit(anchorLeft);
+        let top = m.rect.bottom - origin.top + CALL_GAP;
+        // 同じ行で重なるなら右へ。右端に入らなければ 1 段下げる (毎回右か下へ進むので必ず終わる)。
+        for (;;) {
+          const hit = placed.find(
+            (b) => top < b.bottom && top + m.height > b.top && left < b.right && left + m.width > b.left,
+          );
+          if (!hit) break;
+          if (hit.right + SIDE_GAP + m.width <= width) left = hit.right + SIDE_GAP;
+          else {
+            left = fit(anchorLeft);
+            top = hit.bottom + CALL_GAP;
+          }
+        }
+        placed.push({ left, right: left + m.width, top, bottom: top + m.height });
+        m.left = left;
+        m.top = top;
+        // 後ろの行の本文 (同じ x の範囲) に食い込む深さ。
+        const absLeft = origin.left + left;
+        const absBottom = origin.top + top + m.height;
+        for (const t of textRects) {
+          if (t.top > m.rect.bottom + 1 && t.left < absLeft + m.width && t.right > absLeft) {
+            intrusion = Math.max(intrusion, absBottom + LINE_GAP - t.top);
+          }
+        }
+        overflow = Math.max(overflow, top + m.height - origin.height);
+      }
+      // 書き: 置く。
+      for (const m of measured) {
+        if (m.rect) m.call.style.translate = `${m.left}px ${m.top}px`;
+      }
+      return { intrusion, overflow };
+    };
+
+    let laidOutWidth = -1;
+    const layoutCalls = (force = false): void => {
+      // 自分の余白で高さだけ変わったとき (幅が同じ) は置き直さない。
+      const width = body.clientWidth;
+      if (!force && width === laidOutWidth) return;
+      laidOutWidth = width;
+      for (const content of body.querySelectorAll<HTMLElement>(".lyrics__content[data-has-calls]")) {
+        const slots = lineSlots.get(content);
+        if (!slots) continue;
+        let result = placeCalls(content, slots, 0);
+        if (result.intrusion > 0) result = placeCalls(content, slots, Math.ceil(result.intrusion));
+        content.style.paddingBlockEnd = `${Math.max(0, Math.ceil(result.overflow) + CALL_GAP)}px`;
       }
     };
     let layoutFrame = 0;
-    const scheduleLayout = () => {
+    const scheduleLayout = (force = false) => {
       window.cancelAnimationFrame(layoutFrame);
-      layoutFrame = window.requestAnimationFrame(layoutCalls);
+      layoutFrame = window.requestAnimationFrame(() => layoutCalls(force));
     };
     // 本文の幅が変わったら測り直す (画面の回転・幅の変更)。resize イベントより後の、
     // 変わり終わった大きさで呼ばれる。
-    new ResizeObserver(scheduleLayout).observe(body);
+    new ResizeObserver(() => scheduleLayout()).observe(body);
+
 
     /** 凡例。その曲で実際に使われているものだけ (曲ごとに中身が変わる、実物のコール表と同じ)。 */
     const legend = (lines: LyricLine[]): HTMLElement | null => {
@@ -366,9 +402,9 @@ const { lyrics } = Astro.props;
         render(data.lines);
         // 位置は見える状態で測る (隠れたままでは矩形が全部 0)。
         body.hidden = false;
-        layoutCalls();
+        layoutCalls(true);
         // 書体の読み込みで幅が変わることがあるので、揃ってからもう一度。
-        void document.fonts?.ready.then(scheduleLayout);
+        void document.fonts?.ready.then(() => scheduleLayout(true));
         button.hidden = true;
         say("歌詞を表示しました。");
         body.focus();

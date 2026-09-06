@@ -2,13 +2,11 @@
   "schemaVersion": 1,
   "path": "/tags/tag_kawaii/",
   "title": "「かわいい」の曲",
-  "tag": {
+  "badge": {
     "id": "tag_kawaii",
     "name": "かわいい",
-    "count": 12,
     "color": "#E900E2",
-    "isOfficial": false,
-    "path": "/tags/tag_kawaii/"
+    "isOfficial": false
   },
   "description": "かわいい曲につけるタグ",
   "lede": "「かわいい」のタグが付いた曲を、付けた人の多い順に並べています。",

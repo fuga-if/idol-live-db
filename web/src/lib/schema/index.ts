@@ -86,6 +86,7 @@ export type { SongListPage } from "./SongListPage";
 export type { SongPage } from "./SongPage";
 export type { SongQuery } from "./SongQuery";
 export type { StatTile } from "./StatTile";
+export type { TagBadge } from "./TagBadge";
 export type { TagChipDto } from "./TagChipDto";
 export type { TagListItem } from "./TagListItem";
 export type { TagListPage } from "./TagListPage";

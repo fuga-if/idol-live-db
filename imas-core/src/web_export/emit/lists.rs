@@ -4,7 +4,7 @@
 //! クライアント状態を持たないというユーザー指示の直接の帰結で、切替 UI は
 //! [`NavLink`] のリンク集になる。
 
-use super::context::{join_parts, simple_json_ld, Ctx, PARTS_SEPARATOR};
+use super::context::{join_parts, simple_json_ld, tag_badge, Ctx, PARTS_SEPARATOR, TAGS_PATH};
 use crate::domain::date_display::until_display;
 use crate::domain::display_join::join_capped;
 use crate::domain::kana_row::{kana_row_label, kana_sort_key};
@@ -16,8 +16,7 @@ use crate::domain::song_list_queries::{song_list_indexes, SongListFilter, SongLi
 use crate::domain::unit_queries;
 use crate::web_export::content;
 use crate::web_export::dto::*;
-use crate::web_export::url::{detail_path, url_segment};
-use crate::domain::community::TagRow;
+use crate::web_export::url::url_segment;
 use std::collections::BTreeMap;
 use crate::domain::idol_list_filtering::IdolQuery;
 use crate::domain::song_list_queries::SongQuery;
@@ -440,7 +439,7 @@ fn kana_sections(ctx: &Ctx, items: &[SongListItem]) -> Vec<KanaSection> {
     kana_sections_of(items.iter().map(|item| {
         ctx.snap
             .song(&item.reference.id)
-            .and_then(|s| s.title_kana.clone())
+            .map(|s| s.reading().to_string())
             .unwrap_or_else(|| item.reference.name.clone())
     }))
 }
@@ -473,9 +472,6 @@ pub fn song_lists(ctx: &Ctx) -> Vec<Emitted<SongListPage>> {
         &[],
     );
     let listed_total = listed.len() as u32;
-    // タグから探す入口。タグ一覧はタグの付いた曲が 1 曲でもあるときだけ作る (`tag_lists`) ので、
-    // 同じ判断でリンクの有無も決める。
-    let tag_total = tagged_songs(ctx).len() as u32;
 
     let make = |path: String,
                 title: String,
@@ -522,8 +518,8 @@ pub fn song_lists(ctx: &Ctx) -> Vec<Emitted<SongListPage>> {
                 total: items.len() as u32,
                 all_songs_link: (path == "/songs/")
                     .then(|| NavLink::new("派生曲・ライブ限定曲を含む全件", "/songs/all/").with_count(total_all)),
-                tags_link: (path == "/songs/" && tag_total > 0)
-                    .then(|| NavLink::new(content::TAG_LIST_LINK_LABEL, TAGS_PATH).with_count(tag_total)),
+                // タグから探す入口。一覧を作るかどうかと同じ判断 (`Ctx::tags_link`)。
+                tags_link: (path == "/songs/").then(|| ctx.tags_link(content::TAG_LIST_LINK_LABEL)).flatten(),
                 items,
                 brand_links: brand_links(ctx, "songs", &path, "すべて", listed_total),
                 seo,
@@ -604,67 +600,10 @@ pub fn song_lists(ctx: &Ctx) -> Vec<Emitted<SongListPage>> {
 // タグ (曲に付いたコミュニティのタグ) の一覧
 // ---------------------------------------------------------------------------
 
-pub const TAGS_PATH: &str = "/tags/";
-
-/// タグ 1 つの曲一覧の URL。タグ id は今のところ ASCII だが、規則は詳細ページと同じ 1 箇所
-/// (`detail_path`) に置く。
-pub fn tag_path(tag_id: &str) -> String {
-    detail_path("tags", tag_id)
-}
-
-/// タグの付いた曲 (曲の添字と付けた人の数)。付けた人の多い順、同数はよみ順。
-type TaggedSongs = Vec<(u32, i64)>;
-
-/// 曲の付いたタグを、曲の多い順 (同数は名前順) に。
-///
-/// スナップショットに無い曲 (消えた曲) に付いた分は数えない — その分だけのタグに
-/// 空のページを作らない。
-fn tagged_songs<'a>(ctx: &'a Ctx<'a>) -> Vec<(&'a TagRow, TaggedSongs)> {
-    let reading = |i: u32| {
-        let song = &ctx.snap.songs[i as usize];
-        kana_sort_key(song.title_kana.as_deref().unwrap_or(&song.title))
-    };
-    let mut out: Vec<(&TagRow, TaggedSongs)> = ctx
-        .community
-        .song_tag_vocab
-        .values()
-        .filter_map(|tag| {
-            let mut songs: TaggedSongs = ctx
-                .community
-                .songs_with_song_tag(&tag.id)
-                .iter()
-                .filter_map(|row| Some((*ctx.snap.song_index_by_id.get(&row.entity_id)?, row.vote_count)))
-                .collect();
-            songs.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| reading(a.0).cmp(&reading(b.0))));
-            (!songs.is_empty()).then_some((tag, songs))
-        })
-        .collect();
-    out.sort_by(|a, b| {
-        b.1.len().cmp(&a.1.len()).then_with(|| a.0.name.cmp(&b.0.name)).then_with(|| a.0.id.cmp(&b.0.id))
-    });
-    out
-}
-
-/// タグの札。`count` は付けた人の延べ数 (曲ページの札は 1 曲ぶん、一覧の札は全曲ぶん)。
-fn tag_chip(tag: &TagRow, count: i64) -> TagChipDto {
-    TagChipDto {
-        id: tag.id.clone(),
-        name: tag.name.clone(),
-        count: count.max(0) as u32,
-        color: tag.color.clone(),
-        is_official: tag.is_official,
-        path: Some(tag_path(&tag.id)),
-    }
-}
-
 /// タグの一覧は楽曲の下に置く: パンくずは [ホーム, 楽曲, タグ, (そのタグ)]。上部バーの現在地は
 /// パンくずに `/songs/` が居ることで「楽曲」になる。
 fn tag_crumbs(leaf: Option<(&str, &str)>) -> Vec<Crumb> {
-    let mut crumbs = vec![
-        Ctx::crumb("ホーム", "/"),
-        Ctx::crumb(SiteList::Songs.label(), SiteList::Songs.path()),
-        Ctx::crumb(content::TAG_LIST_TITLE, TAGS_PATH),
-    ];
+    let mut crumbs = list_crumbs(SiteList::Songs, content::TAG_LIST_TITLE, TAGS_PATH);
     if let Some((name, path)) = leaf {
         crumbs.push(Ctx::crumb(name, path));
     }
@@ -673,36 +612,34 @@ fn tag_crumbs(leaf: Option<(&str, &str)>) -> Vec<Crumb> {
 
 /// タグ一覧 (`/tags/`) と、タグごとの曲一覧 (`/tags/<tagId>/`)。
 ///
-/// タグの付いた曲が 1 曲も無ければ**どちらも出さない** (お題と同じ: 中身の無いページを
-/// sitemap に載せない)。そのとき `/songs/` の入口 (`tags_link`) も消える。
-pub fn tag_lists(ctx: &Ctx) -> (Vec<Emitted<TagListPage>>, Vec<Emitted<TagPage>>) {
-    let tags = tagged_songs(ctx);
-    if tags.is_empty() {
-        return (vec![], vec![]);
-    }
-    let total = tags.len() as u32;
-    let all_tags_link = || NavLink::new(content::TAG_LIST_TITLE, TAGS_PATH).with_count(total);
+/// 並びは `domain::song_tag_queries` (`Ctx::tag_ranking`)。タグの付いた曲が 1 曲も無ければ
+/// **どちらも出さない** (お題と同じ: 中身の無いページを sitemap に載せない)。そのとき
+/// `/songs/` の入口 (`tags_link`) も同じ判断で消える。
+pub fn tag_lists(ctx: &Ctx) -> (Option<Emitted<TagListPage>>, Vec<Emitted<TagPage>>) {
+    let Some(all_tags_link) = ctx.tags_link(content::TAG_LIST_TITLE) else {
+        return (None, vec![]);
+    };
 
-    let pages: Vec<Emitted<TagPage>> = tags
+    let pages: Vec<Emitted<TagPage>> = ctx
+        .tag_ranking
         .iter()
-        .map(|(tag, songs)| {
-            let path = tag_path(&tag.id);
-            let items: Vec<TagSongRow> = songs
+        .map(|ranking| {
+            let tag = ranking.tag;
+            let path = ctx.tag_path(&tag.id);
+            let items: Vec<TagSongRow> = ranking
+                .songs
                 .iter()
-                .filter_map(|&(index, votes)| {
-                    let item = song_list_item(ctx, index, false)?;
-                    Some(TagSongRow {
-                        reference: item.reference,
-                        subtitle: item.subtitle,
-                        votes: votes.max(0) as u32,
-                        rank: 0,
-                    })
-                })
+                .filter_map(|&(index, votes)| song_list_item(ctx, index, false).map(|item| (item, votes)))
                 .enumerate()
-                .map(|(i, row)| TagSongRow { rank: i as u32 + 1, ..row })
+                .map(|(i, (item, votes))| TagSongRow {
+                    reference: item.reference,
+                    subtitle: item.subtitle,
+                    votes: votes.max(0) as u32,
+                    rank: i as u32 + 1,
+                })
                 .collect();
             let title = content::tag_page_title(&tag.name);
-            let count = items.len() as u32;
+            let total = items.len() as u32;
             Emitted {
                 path: path.clone(),
                 data: format!("index/tags-{}.json", Ctx::param_key(&tag.id)),
@@ -713,31 +650,33 @@ pub fn tag_lists(ctx: &Ctx) -> (Vec<Emitted<TagListPage>>, Vec<Emitted<TagPage>>
                     path: path.clone(),
                     seo: ctx.seo(
                         &title,
-                        &content::tag_page_description(&tag.name, count),
+                        &content::tag_page_description(&tag.name, total),
                         &path,
                         None,
                         collection_json_ld(&title, &path),
                         tag_crumbs(Some((&title, &path))),
                     ),
                     title,
-                    tag: tag_chip(tag, songs.iter().map(|s| s.1).sum()),
-                    description: tag.description.clone().filter(|d| !d.trim().is_empty()),
+                    badge: tag_badge(tag),
+                    description: tag.description.clone(),
                     lede: content::tag_page_lede(&tag.name),
-                    total: count,
+                    total,
                     items,
-                    all_tags_link: all_tags_link(),
+                    all_tags_link: all_tags_link.clone(),
                 },
             }
         })
         .collect();
 
-    let items: Vec<TagListItem> = tags
+    let items: Vec<TagListItem> = ctx
+        .tag_ranking
         .iter()
-        .map(|(tag, songs)| TagListItem {
-            tag: tag_chip(tag, songs.iter().map(|s| s.1).sum()),
-            description: tag.description.clone().filter(|d| !d.trim().is_empty()),
-            official_label: tag.is_official.then(|| content::TAG_OFFICIAL_LABEL.to_string()),
-            song_count: songs.len() as u32,
+        .map(|ranking| TagListItem {
+            badge: tag_badge(ranking.tag),
+            path: ctx.tag_path(&ranking.tag.id),
+            description: ranking.tag.description.clone(),
+            official_label: ranking.tag.is_official.then(|| content::TAG_OFFICIAL_LABEL.to_string()),
+            song_count: ranking.songs.len() as u32,
         })
         .collect();
     let index = Emitted {
@@ -750,7 +689,7 @@ pub fn tag_lists(ctx: &Ctx) -> (Vec<Emitted<TagListPage>>, Vec<Emitted<TagPage>>
             path: TAGS_PATH.to_string(),
             title: content::TAG_LIST_TITLE.to_string(),
             lede: content::TAG_LIST_LEDE.to_string(),
-            total,
+            total: items.len() as u32,
             items,
             seo: ctx.seo(
                 content::TAG_LIST_TITLE,
@@ -762,7 +701,7 @@ pub fn tag_lists(ctx: &Ctx) -> (Vec<Emitted<TagListPage>>, Vec<Emitted<TagPage>>
             ),
         },
     };
-    (vec![index], pages)
+    (Some(index), pages)
 }
 
 // ---------------------------------------------------------------------------

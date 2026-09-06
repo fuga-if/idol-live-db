@@ -495,24 +495,7 @@ a.chip:hover {
 .tag--community.tag--official {
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tag-color, var(--accent)) 45%, transparent);
 }
-/* 一覧のあるタグは押せる (曲のタグ → /tags/<tagId>/)。押せる札だけ手の形と下線。 */
-a.tag--community {
-  text-decoration: none;
-}
-a.tag--community:hover,
-a.tag--community:focus-visible {
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-/* タグ一覧の行。見出しは色付きの札そのもの。 */
-.tag-row .row__title {
-  gap: var(--sp2);
-}
-.tag-page__description {
-  display: block;
-  margin-block-end: var(--sp1);
-  color: var(--ds-ink);
-}
+
 .tag--all {
   background: var(--ds-fill);
   color: var(--ds-ink2);
@@ -584,12 +567,12 @@ a.tag--community:focus-visible {
   position: relative;
   min-width: 0;
   flex: 1;
-  /* 折り返した段落の途中の行の下にコールが入らないときだけ (`--rows`)、行送りを段ずつ広げる。
-     行送りは上下に均等に割られるので、1 行目が下がるぶんを上の余白で戻し、行頭の記号と揃える。 */
-  --call-row: 0.85em;
-  --rows: 0;
-  line-height: calc(var(--lh-relaxed) * 1em + var(--rows) * var(--call-row));
-  margin-block-start: calc(var(--rows) * var(--call-row) * -0.5);
+  /* 折り返した段落の途中の行の下にコールが入らないときだけ、行送りを食い込みのぶん (`--band`、
+     JS が測った px) 広げる。行送りは上下に均等に割られるので、行と行の間はちょうど帯のぶん開き、
+     1 行目が下がるぶんは上の余白で戻して行頭の記号と揃える。 */
+  --band: 0px;
+  line-height: calc(var(--lh-relaxed) * 1em + var(--band));
+  margin-block-start: calc(var(--band) * -0.5);
 }
 /* --- コールガイド --------------------------------------------------------------
    コールは位置で示す (実物のコール表と同じ組み方):
@@ -619,10 +602,6 @@ a.tag--community:focus-visible {
 .lyrics__anchor[data-emphasis="performer_request"] {
   --anchor: var(--ds-danger);
 }
-/* 幅ゼロの目印 (追っかけ・行末の位置)。中身はゼロ幅スペース。 */
-.lyrics__point {
-  display: inline;
-}
 /* コールの層。本文の流れに影響しないよう絶対配置で、位置は描画後に語の矩形から決める。 */
 .lyrics__overlay {
   position: absolute;
@@ -630,7 +609,10 @@ a.tag--community:focus-visible {
   pointer-events: none;
 }
 .lyrics__call {
+  /* 置き場所は translate で与える (left で動かすと、絶対配置の箱は残り幅で折り返してしまう)。 */
   position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
   white-space: nowrap;
   /* 歌詞より一段小さく・薄く。主役は歌詞で、コールは添え書き。 */
   font-size: var(--fs-caption);

@@ -13,7 +13,8 @@ interface Props {
   badge?: DateBadgeData | null;
   /** 年の見出しの下に並ぶ行では、日付ブロックの年を落とす。 */
   showYear?: boolean;
-  title: string;
+  /** 見出しの文字。文字でないもの (色付きの札など) を置く行は `title` スロットで差し替える。 */
+  title?: string;
   href: string;
   themeKey?: string;
   /** 見出しの下に並べる文字。null / 空は飛ばす。 */
@@ -33,7 +34,7 @@ const showMeta = Astro.slots.has("meta") || metaItems.length > 0;
     )
   }
   <span class="row__body">
-    <span class="row__title u-underline-hover">{title}</span>
+    <span class="row__title u-underline-hover"><slot name="title">{title}</slot></span>
     {
       showMeta && (
         <span class="row__meta">

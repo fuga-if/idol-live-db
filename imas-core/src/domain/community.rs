@@ -97,35 +97,42 @@ pub struct CommunityRows {
     pub poll_entries: Vec<PollEntryRow>,
 }
 
-/// 付与数の多い順、同数はタグ id 順 (毎回同じ順に並ぶ = 出力が byte 一致する)。
-fn group_tags(rows: Vec<TaggedRow>) -> HashMap<String, Vec<TaggedRow>> {
+/// 付与の行を `key` で束ねる。各束は付与数の多い順、同数は `tie` の昇順
+/// (毎回同じ順に並ぶ = 出力が byte 一致する)。相手側から引く索引もタグ側から引く索引も同じ形。
+fn grouped(
+    rows: impl IntoIterator<Item = TaggedRow>,
+    key: impl Fn(&TaggedRow) -> &str,
+    tie: impl Fn(&TaggedRow) -> &str,
+) -> HashMap<String, Vec<TaggedRow>> {
     let mut map: HashMap<String, Vec<TaggedRow>> = HashMap::new();
     for row in rows {
-        map.entry(row.entity_id.clone()).or_default().push(row);
+        map.entry(key(&row).to_string()).or_default().push(row);
     }
     for list in map.values_mut() {
-        list.sort_by(|a, b| b.vote_count.cmp(&a.vote_count).then_with(|| a.tag_id.cmp(&b.tag_id)));
-    }
-    map
-}
-
-/// タグ側からの逆引き。付与数の多い順、同数は相手の id 順 (こちらも決定的に並ぶ)。
-fn group_by_tag(rows: &[TaggedRow]) -> HashMap<String, Vec<TaggedRow>> {
-    let mut map: HashMap<String, Vec<TaggedRow>> = HashMap::new();
-    for row in rows {
-        map.entry(row.tag_id.clone()).or_default().push(row.clone());
-    }
-    for list in map.values_mut() {
-        list.sort_by(|a, b| b.vote_count.cmp(&a.vote_count).then_with(|| a.entity_id.cmp(&b.entity_id)));
+        list.sort_by(|a, b| b.vote_count.cmp(&a.vote_count).then_with(|| tie(a).cmp(tie(b))));
     }
     map
 }
 
 impl CommunitySnapshot {
     pub fn build(rows: CommunityRows) -> Self {
+        // 説明の空欄 (空文字・空白だけ) はここで `None` に畳む (読む側が毎回 trim しない)。
         let vocab = |v: Vec<TagRow>| -> HashMap<String, TagRow> {
-            v.into_iter().map(|t| (t.id.clone(), t)).collect()
+            v.into_iter()
+                .map(|mut t| {
+                    t.description = t.description.filter(|d| !d.trim().is_empty());
+                    (t.id.clone(), t)
+                })
+                .collect()
         };
+        let song_tag_vocab = vocab(rows.song_tag_vocab);
+        // タグ側からの逆引きは語彙にあるタグだけ (消えたタグの行は最初から入れない)。
+        let songs_by_song_tag = grouped(
+            rows.song_tags.iter().filter(|r| song_tag_vocab.contains_key(&r.tag_id)).cloned(),
+            |r| r.tag_id.as_str(),
+            |r| r.entity_id.as_str(),
+        );
+        let by_entity = |rows: Vec<TaggedRow>| grouped(rows, |r| r.entity_id.as_str(), |r| r.tag_id.as_str());
 
         let mut penlight: HashMap<String, Vec<PenlightVoteRow>> = HashMap::new();
         for row in rows.penlight {
@@ -154,13 +161,13 @@ impl CommunitySnapshot {
         });
 
         Self {
-            song_tag_vocab: vocab(rows.song_tag_vocab),
+            song_tag_vocab,
             idol_tag_vocab: vocab(rows.idol_tag_vocab),
             unit_tag_vocab: vocab(rows.unit_tag_vocab),
-            songs_by_song_tag: group_by_tag(&rows.song_tags),
-            song_tags: group_tags(rows.song_tags),
-            idol_tags: group_tags(rows.idol_tags),
-            unit_tags: group_tags(rows.unit_tags),
+            songs_by_song_tag,
+            song_tags: by_entity(rows.song_tags),
+            idol_tags: by_entity(rows.idol_tags),
+            unit_tags: by_entity(rows.unit_tags),
             favorites: rows.favorites.into_iter().collect(),
             penlight,
             polls,
@@ -175,9 +182,6 @@ impl CommunitySnapshot {
 
     /// そのタグが付いた曲 (付けた人の多い順)。語彙に無いタグ id は空。
     pub fn songs_with_song_tag(&self, tag_id: &str) -> &[TaggedRow] {
-        if !self.song_tag_vocab.contains_key(tag_id) {
-            return &[];
-        }
         self.songs_by_song_tag.get(tag_id).map(Vec::as_slice).unwrap_or(&[])
     }
 
@@ -226,7 +230,8 @@ mod tests {
         TagRow {
             id: id.to_string(),
             name: id.to_uppercase(),
-            description: None,
+            // 空白だけの説明は build で None に畳まれる。
+            description: Some("  ".to_string()),
             category: None,
             color: None,
             is_official: false,
@@ -279,6 +284,11 @@ mod tests {
         assert_eq!(got, vec![("s2", 5), ("s1", 3)]);
         assert!(s.songs_with_song_tag("消えた").is_empty());
         assert!(s.songs_with_song_tag("b").iter().all(|r| r.entity_id == "s1"));
+    }
+
+    #[test]
+    fn 空白だけの説明は無しに畳む() {
+        assert!(snap().song_tag_vocab["a"].description.is_none());
     }
 
     #[test]

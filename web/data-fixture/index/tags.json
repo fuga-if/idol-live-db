@@ -5,14 +5,13 @@
   "lede": "アプリの利用者が曲に付けたタグです。付いている曲の多い順。タグ付けはアプリから。",
   "items": [
     {
-      "tag": {
+      "badge": {
         "id": "tag_kawaii",
         "name": "かわいい",
-        "count": 12,
         "color": "#E900E2",
-        "isOfficial": false,
-        "path": "/tags/tag_kawaii/"
+        "isOfficial": false
       },
+      "path": "/tags/tag_kawaii/",
       "description": "かわいい曲につけるタグ",
       "officialLabel": null,
       "songCount": 2

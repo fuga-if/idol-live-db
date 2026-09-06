@@ -6,7 +6,8 @@
 use crate::domain::display_join::year_of;
 use crate::domain::idol_queries::{self, BrandRecord};
 use crate::domain::performance_stats::CoOccurIndex;
-use crate::domain::community::CommunitySnapshot;
+use crate::domain::community::{CommunitySnapshot, TagRow};
+use crate::domain::song_tag_queries::{song_tag_ranking, TagRanking};
 use crate::domain::snapshot::Snapshot;
 use crate::web_export::content::{self, absolute};
 use crate::web_export::dto::*;
@@ -53,6 +54,9 @@ pub struct Ctx<'a> {
     pub event_dates: Vec<(Option<String>, Option<String>)>,
     /// 「一緒に来る曲」の前計算。全 3,153 曲ぶん出すので 1 度だけ作って使い回す。
     pub co_occur: CoOccurIndex,
+    /// 曲に付いたタグの順位 (タグ一覧・タグごとの曲一覧・楽曲一覧の入口が同じ 1 本を見る)。
+    /// 空ならタグの一覧は作らない。
+    pub tag_ranking: Vec<TagRanking<'a>>,
     /// ブランドごとの件数 (1 パスで数えたもの)。
     brand_counts: BTreeMap<String, super::places::BrandCounts>,
 }
@@ -90,6 +94,8 @@ impl<'a> Ctx<'a> {
         add("units", snap.units.iter().map(|u| u.id.clone()).collect());
         add("venues", snap.venues.iter().map(|v| v.id.clone()).collect());
         add("brands", snap.brands.iter().map(|b| b.id.clone()).collect());
+        // タグ id はコミュニティ由来なので、危険な文字・予約語の検査を他の id と同じ台帳で受ける。
+        add("tags", community.song_tag_vocab.keys().cloned().collect());
 
         // アイドルの主ブランド色。アイドル自身の色が無いときの落とし先で、
         // 優先順位の判断は color_engine::first_valid_hex が持つ。
@@ -133,8 +139,24 @@ impl<'a> Ctx<'a> {
             idol_brand_color,
             event_dates,
             co_occur: CoOccurIndex::build(snap),
+            tag_ranking: song_tag_ranking(community, snap),
             brand_counts: super::places::brand_counts_table(snap),
         }
+    }
+
+    /// タグ 1 つの曲一覧の URL。語彙に無いタグ id を渡すのは組み立ての誤り。
+    pub fn tag_path(&self, tag_id: &str) -> String {
+        let key = self
+            .key("tags", tag_id)
+            .unwrap_or_else(|| panic!("tags に無い id を URL にしようとした: {tag_id:?}"));
+        detail_path("tags", key)
+    }
+
+    /// タグ一覧 (`/tags/`) への導線。タグの付いた曲が 1 曲も無ければ一覧を作らないので `None`。
+    /// 楽曲一覧の入口とタグページの「戻る」が同じ判断を見る。
+    pub fn tags_link(&self, label: &str) -> Option<NavLink> {
+        (!self.tag_ranking.is_empty())
+            .then(|| NavLink::new(label, TAGS_PATH).with_count(self.tag_ranking.len() as u32))
     }
 
     /// ブランドの件数。未知のブランドは 0。
@@ -497,24 +519,47 @@ pub fn json_ld_graph(entity: serde_json::Value, breadcrumbs: &[Crumb]) -> serde_
 pub use crate::domain::display_join::{join_parts, PARTS_SEPARATOR};
 pub use crate::domain::show_naming::distinguishing_show_name;
 
+/// タグ一覧の入口。
+pub const TAGS_PATH: &str = "/tags/";
+
+/// タグの付く相手。**一覧ページがあるのは曲のタグだけ** (`/tags/<tagId>/`) — どの札が押せるかの
+/// 判断はここ 1 箇所。
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum TagScope {
+    Song,
+    Idol,
+    Unit,
+}
+
+impl TagScope {
+    fn list_path(self, ctx: &Ctx, tag_id: &str) -> Option<String> {
+        match self {
+            Self::Song => Some(ctx.tag_path(tag_id)),
+            Self::Idol | Self::Unit => None,
+        }
+    }
+}
+
+/// タグの素性を DTO へ。
+pub fn tag_badge(tag: &TagRow) -> TagBadge {
+    TagBadge { id: tag.id.clone(), name: tag.name.clone(), color: tag.color.clone(), is_official: tag.is_official }
+}
+
+/// 札 1 枚。`votes` は付けた人の数 (その相手 1 件ぶん)。
+pub fn tag_chip(ctx: &Ctx, scope: TagScope, tag: &TagRow, votes: i64) -> TagChipDto {
+    TagChipDto {
+        id: tag.id.clone(),
+        name: tag.name.clone(),
+        count: votes.max(0) as u32,
+        color: tag.color.clone(),
+        is_official: tag.is_official,
+        path: scope.list_path(ctx, &tag.id),
+    }
+}
+
 /// タグを DTO へ。**上限も並びも domain が決めた形をそのまま**使う。
-///
-/// `path_of` はそのタグの一覧ページ。曲のタグは `/tags/<tagId>/` を持ち、アイドル・ユニットの
-/// タグは一覧が無いので `None` を返す (押せない札になる)。
-pub fn tag_chips(
-    tags: Vec<(&crate::domain::community::TagRow, i64)>,
-    path_of: impl Fn(&crate::domain::community::TagRow) -> Option<String>,
-) -> Vec<TagChipDto> {
-    tags.into_iter()
-        .map(|(t, count)| TagChipDto {
-            id: t.id.clone(),
-            name: t.name.clone(),
-            count: count.max(0) as u32,
-            color: t.color.clone(),
-            is_official: t.is_official,
-            path: path_of(t),
-        })
-        .collect()
+pub fn tag_chips(ctx: &Ctx, scope: TagScope, tags: Vec<(&TagRow, i64)>) -> Vec<TagChipDto> {
+    tags.into_iter().map(|(t, votes)| tag_chip(ctx, scope, t, votes)).collect()
 }
 
 /// `<title>` の形。サイト名を 2 回出さない (トップは `home.rs` が別に組む)。

@@ -8,7 +8,7 @@ import ListContainer from "./ListContainer.astro";
 import RankingRow from "./RankingRow.astro";
 import EmptyState from "./EmptyState.astro";
 import type { SongListPage } from "../lib/schema/SongListPage";
-import Count from "./Count.astro";
+import NavLinkLine from "./NavLinkLine.astro";
 
 /** 楽曲一覧 (総合 / ブランド別 / all)。何を載せるかは Rust の SongListFilter が決めている。 */
 interface Props {
@@ -71,24 +71,11 @@ const sectionStarts = new Set(list.kanaSections.map((s) => s.startIndex));
        ここに置かないと、派生曲・ライブ限定曲・other ブランドの曲の詳細ページが
        トップからどこからも辿れなくなる (到達性の要)。 */
     list.allSongsLink && (
-      <p class="u-muted">
+      <NavLinkLine link={list.allSongsLink}>
         一覧に出していない曲 (派生曲・ライブ限定・その他ブランド) もあります。
-        <a class="u-underline-hover" href={list.allSongsLink.path}>
-          {list.allSongsLink.label}
-        </a>
-        <Count value={list.allSongsLink.count} dim />
-      </p>
+      </NavLinkLine>
     )
   }
-  {
-    /* みんなが付けたタグから探す入口。タグの付いた曲が無いときは Rust が出さない。 */
-    list.tagsLink && (
-      <p class="u-muted">
-        <a class="u-underline-hover" href={list.tagsLink.path}>
-          {list.tagsLink.label}
-        </a>
-        <Count value={list.tagsLink.count} dim />
-      </p>
-    )
-  }
+  {/* みんなが付けたタグから探す入口。タグの付いた曲が無いときは Rust が出さない。 */}
+  {list.tagsLink && <NavLinkLine link={list.tagsLink} />}
 </ListLayout>

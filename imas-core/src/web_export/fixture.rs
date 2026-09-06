@@ -30,7 +30,7 @@ use super::writer::Writer;
 use super::{Result, Stats, WebExportError};
 use std::path::Path;
 use super::emit::events::ShowContext;
-use super::emit::lists::{tag_path, TAGS_PATH};
+use super::emit::context::TAGS_PATH;
 use crate::domain::date_display::{range_with_weekday, until_display, with_weekday};
 use crate::domain::setlist_lineup::Lineup;
 use crate::domain::idol_list_filtering::IdolQuery;
@@ -555,14 +555,7 @@ fn song_page(reference: &Ref, minimal: bool) -> SongPage {
         },
         // 代表値でもコミュニティ集計が入る形にしておく (器だけ空にしない)。
         community: SongCommunity {
-            tags: vec![TagChipDto {
-                id: "tag_kawaii".to_string(),
-                name: "かわいい".to_string(),
-                count: 12,
-                color: Some("#E900E2".to_string()),
-                is_official: false,
-                path: Some(tag_path("tag_kawaii")),
-            }],
+            tags: vec![tag_kawaii_chip()],
             favorites: 34,
             penlight: vec![PenlightSetDto { key: "pink_white".to_string(), count: 5 }],
         },
@@ -681,15 +674,7 @@ fn idol_page(reference: &Ref) -> IdolPage {
             tile("♪", 2, "持ち曲", Some("#idol-songs")),
             tile("▤", 1, "出演公演", Some("#idol-shows")),
         ],
-        // アイドルのタグに一覧ページは無い (押せない札)。
-        tags: vec![TagChipDto {
-            id: "tag_genki".to_string(),
-            name: "元気".to_string(),
-            count: 7,
-            color: None,
-            is_official: true,
-            path: None,
-        }],
+        tags: vec![tag_genki_chip()],
         id: reference.id.clone(),
         path: reference.path.clone(),
         name: reference.name.clone(),
@@ -763,14 +748,7 @@ fn idol_page(reference: &Ref) -> IdolPage {
 fn unit_page(reference: &Ref, empty: bool) -> UnitPage {
     UnitPage {
         schema_version: SCHEMA_VERSION,
-        tags: vec![TagChipDto {
-            id: "tag_genki".to_string(),
-            name: "元気".to_string(),
-            count: 7,
-            color: None,
-            is_official: true,
-            path: None,
-        }],
+        tags: vec![tag_genki_chip()],
         id: reference.id.clone(),
         path: reference.path.clone(),
         name: reference.name.clone(),
@@ -1070,15 +1048,42 @@ fn idol_list_page(path: &str, title: &str, kind: IdolListKind, empty: bool) -> I
     }
 }
 
-/// タグの札 (曲ページ・タグ一覧で同じもの)。
-fn tag_kawaii_chip() -> TagChipDto {
-    TagChipDto {
+/// 曲のタグの素性。曲ページの札とタグ一覧・タグページで同じもの。
+fn tag_kawaii_badge() -> TagBadge {
+    TagBadge {
         id: "tag_kawaii".to_string(),
         name: "かわいい".to_string(),
-        count: 12,
         color: Some("#E900E2".to_string()),
         is_official: false,
-        path: Some(tag_path("tag_kawaii")),
+    }
+}
+
+fn tag_kawaii_path() -> String {
+    detail_path("tags", "tag_kawaii")
+}
+
+/// 曲ページの札。曲のタグなので押せる (一覧がある)。
+fn tag_kawaii_chip() -> TagChipDto {
+    let badge = tag_kawaii_badge();
+    TagChipDto {
+        id: badge.id,
+        name: badge.name,
+        count: 12,
+        color: badge.color,
+        is_official: badge.is_official,
+        path: Some(tag_kawaii_path()),
+    }
+}
+
+/// アイドル・ユニットのタグの札。一覧ページが無いので押せない (path 無し)。
+fn tag_genki_chip() -> TagChipDto {
+    TagChipDto {
+        id: "tag_genki".to_string(),
+        name: "元気".to_string(),
+        count: 7,
+        color: None,
+        is_official: true,
+        path: None,
     }
 }
 
@@ -1089,7 +1094,8 @@ fn tag_list_page() -> TagListPage {
         title: content::TAG_LIST_TITLE.to_string(),
         lede: content::TAG_LIST_LEDE.to_string(),
         items: vec![TagListItem {
-            tag: tag_kawaii_chip(),
+            badge: tag_kawaii_badge(),
+            path: tag_kawaii_path(),
             description: Some("かわいい曲につけるタグ".to_string()),
             official_label: None,
             song_count: 2,
@@ -1106,12 +1112,12 @@ fn tag_list_page() -> TagListPage {
 }
 
 fn tag_page() -> TagPage {
-    let path = tag_path("tag_kawaii");
+    let path = tag_kawaii_path();
     let title = content::tag_page_title("かわいい");
     TagPage {
         schema_version: SCHEMA_VERSION,
         path: path.clone(),
-        tag: tag_kawaii_chip(),
+        badge: tag_kawaii_badge(),
         description: Some("かわいい曲につけるタグ".to_string()),
         lede: content::tag_page_lede("かわいい"),
         items: vec![
@@ -1520,7 +1526,7 @@ fn routes(broken_key: &str) -> RoutesFile {
         param_listing(RouteKind::UnitListBrand, "/units/brand/ml/", "ml", "index/units-brand-ml.json", true),
         param_listing(RouteKind::UnitListBrand, "/units/brand/cg/", "cg", "index/units-brand-cg.json", true),
         listing(RouteKind::TagListIndex, TAGS_PATH, "index/tags.json", true),
-        param_listing(RouteKind::Tag, &tag_path("tag_kawaii"), "tag_kawaii", "index/tags-tag_kawaii.json", true),
+        param_listing(RouteKind::Tag, &tag_kawaii_path(), "tag_kawaii", "index/tags-tag_kawaii.json", true),
         listing(RouteKind::VenueListIndex, "/venues/", "index/venues.json", true),
         listing(RouteKind::BrandList, "/brands/", "index/brands.json", true),
         detail(RouteKind::Event, "events", "ev_sample", "ev_sample", true),
