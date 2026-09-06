@@ -1,11 +1,9 @@
 ---
-import EventRow from "./EventRow.astro";
-import ListContainer from "./ListContainer.astro";
+import YearGroupSection from "./YearGroupSection.astro";
 import EmptyState from "./EmptyState.astro";
-import Count from "./Count.astro";
 import type { YearGroup } from "../lib/schema/YearGroup";
 /**
- * 年でまとめたライブ一覧。年の切り方・並び・見出しの文字 (「2026年」「年度不明」) は
+ * 年でまとめたライブ一覧。年の切り方・並び・見出しの文字 (「2026年」「日程未定」) は
  * Rust の event_grouping が決めている。年が見出しに出るので、行の日付ブロックからは落とす。
  */
 interface Props {
@@ -24,21 +22,7 @@ const { groups, emptyTitle = "該当するライブがありません" } = Astro
   ) : (
     <div class="u-stack">
       {groups.map((g) => (
-        <section class="year-group" aria-label={g.year}>
-          <h2 class="year-group__title">{g.year}</h2>
-          <ListContainer as="ul">
-            {g.events.map((e) => (
-              <EventRow item={e} showYear={false} />
-            ))}
-          </ListContainer>
-          {g.more && (
-            <a class="year-group__more" href={g.more.path}>
-              {g.more.label}
-              {g.more.count !== null && <Count value={g.more.count} dim />}
-              <span class="chevron" aria-hidden="true">›</span>
-            </a>
-          )}
-        </section>
+        <YearGroupSection title={g.year} group={g} />
       ))}
     </div>
   )

@@ -103,17 +103,17 @@ pub const CALL_GUIDE_INTRO: &str = if LYRICS_ON_WEB {
     "歌詞の行ごとに「ここでこう叫ぶ」を書き込むのがコールガイドです。読み書きはアプリの歌詞タブから。ここでは進み具合だけを見られます。"
 };
 
-/// 曲の初披露に付ける札。「この DB に載っている範囲で最古」の意味で、回数 (`ordinal_label`) と同じ基準。
-pub const FIRST_PERFORMANCE_LABEL: &str = "初披露";
-
-/// 披露が何回目か (1 なら [`FIRST_PERFORMANCE_LABEL`])。
-pub fn ordinal_label(ordinal: u32) -> String {
-    if ordinal <= 1 { FIRST_PERFORMANCE_LABEL.to_string() } else { format!("{ordinal} 回目") }
+/// 「アプリで、もっと」(トップ) と About の説明。機能の並びは [`APP_FEATURES_NOTE`] と同じ 1 箇所。
+pub fn app_note() -> String {
+    format!("{APP_FEATURES_NOTE}このサイトは閲覧と共有に専念しています。")
 }
 
-/// トップの「アプリで、もっと」の説明。機能の並びは [`APP_FEATURES_NOTE`] と同じ 1 箇所。
-pub fn home_app_note() -> String {
-    format!("{APP_FEATURES_NOTE}このサイトは閲覧と共有に専念しています。")
+/// ユニットの種類の言い方。一覧の札 (例外の「公演限定」だけ) と詳細ページで同じ語。
+pub const UNIT_PERMANENT_LABEL: &str = "常設ユニット";
+pub const UNIT_LIMITED_LABEL: &str = "公演限定";
+
+pub fn unit_kind_label(is_permanent: bool) -> &'static str {
+    if is_permanent { UNIT_PERMANENT_LABEL } else { UNIT_LIMITED_LABEL }
 }
 
 /// 歌詞・コールガイドを取りに行く API の起点。
@@ -189,10 +189,16 @@ pub fn absolute(path: &str) -> String {
     format!("{SITE_ORIGIN}{path}")
 }
 
-/// ライブ種別の日本語表記。一覧を全種別で出すので、行に付ける見分けが要る。
 /// 既定の種別 (ライブ)。一覧の行で札にしないのはこれだけ (例外の種別だけを言う)。
 pub const DEFAULT_EVENT_KIND: &str = "live";
 
+/// 一覧の行に出す種別の札。既定の種別 (ライブ) には付けない — ほぼ全行に同じ札が並んでも
+/// 見分けにならず、フェス・リリースイベントのような例外だけを言えばよい。
+pub fn kind_chip(kind: &str) -> Option<&'static str> {
+    (kind != DEFAULT_EVENT_KIND).then(|| kind_label(kind))
+}
+
+/// ライブ種別の日本語表記。
 pub fn kind_label(kind: &str) -> &'static str {
     match kind {
         "live" => "ライブ",
@@ -260,7 +266,7 @@ pub fn about_sections() -> Vec<AboutSection> {
         AboutSection {
             heading: "アプリについて".to_string(),
             paragraphs: vec![
-                format!("{APP_FEATURES_NOTE}本サイトは閲覧専用です。"),
+                app_note(),
             ],
             links: vec![
                 AboutLink { label: "X (@idollivedb)".to_string(), href: X_URL.to_string(), external: true },

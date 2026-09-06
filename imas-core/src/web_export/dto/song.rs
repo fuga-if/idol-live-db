@@ -90,8 +90,6 @@ web_dto! {
         pub number: u32,
         /// 1 行で出すときの場所表記 (公演名と会場を `" ・ "` で繋いだもの)。
         pub place_display: String,
-        /// 行の飛び先。公演ページのその曲の行 (`…/#setlist-N`)。曲順が分からなければ公演ページの頭。
-        pub href: String,
         /// この披露の歌唱メンバー (3 人まで並べて残りは「ほか N 人」)。無ければ None。
         pub performers_display: Option<String>,
         /// 「初披露」または「N 回目」(この DB に載っている範囲で、最古から数えて)。

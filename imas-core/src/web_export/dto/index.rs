@@ -23,6 +23,13 @@ web_dto! {
         pub kind: EventListKind,
         /// `event_grouping::group_events_by_year` の結果をそのまま写したもの。
         pub groups: Vec<YearGroup>,
+        /// 入口 (`/events/`) だけ: 開催済みのいちばん新しい年の束と、その見出し
+        /// (「開催済み (2026年)」)。`groups` (今後の予定) の下に置く。年の一覧では None。
+        pub recent_past: Option<YearGroup>,
+        pub recent_past_title: Option<String>,
+        /// このページの続き (入口では「開催済みをすべて見る」、年の一覧では 1 つ前の年)。
+        /// 一覧が途中で切れていることをページの末尾で言うための 1 本。
+        pub next: Option<NavLink>,
         /// 今後 / 開催済み の切替。
         pub scope_links: Vec<NavLink>,
         pub brand_links: Vec<NavLink>,
@@ -53,9 +60,6 @@ web_dto! {
     pub struct YearGroup {
         pub year: String,
         pub events: Vec<EventListItem>,
-        /// この束の続き (ハブでは「開催済みをすべて見る」、年の一覧では 1 つ前の年)。
-        /// 一覧が途中で切れていることを行の下で言うための 1 本。
-        pub more: Option<NavLink>,
     }
 }
 
@@ -81,14 +85,11 @@ web_dto! {
         pub venue_display: Option<String>,
         /// 公演数 (`2 公演`)。**1 公演なら `None`** (数えるまでもないものに数を付けない)。
         pub show_count_display: Option<String>,
-        /// 種別 (`live` / `festival` / …)。同じ種別だけの一覧で札を落とす判断の材料。
+        /// 種別 (`live` / `festival` / …)。
         pub kind: String,
-        /// 行に出す種別チップ。
-        ///
-        /// **その一覧に 1 種別しか無ければ `None`。** 全部同じ札が並んでも
-        /// 見分けの役に立たず、行あたりの情報が薄くなるだけ
-        /// (トップの「今後のライブ」は 8 行すべて `ライブ` だった)。
-        /// 判断は [`super::super::emit::lists::drop_uniform_kind_labels`]。
+        /// 行に出す種別チップ。**既定の種別 (ライブ) には付かない** — ほぼ全行に同じ札が並んでも
+        /// 見分けにならず、フェス・リリースイベントのような例外だけを言えばよい。
+        /// 判断は `content::kind_chip` 1 箇所。
         pub kind_label: Option<String>,
     }
 }
@@ -297,7 +298,6 @@ web_dto! {
         #[serde(rename = "ref")]
         pub reference: Ref,
         pub brand: Option<Ref>,
-        pub is_permanent: bool,
         /// 例外にだけ付く札 (「公演限定」)。常設が 9 割なので、常設に札を付けても見分けにならない。
         pub note: Option<String>,
         pub member_count: u32,
@@ -378,8 +378,6 @@ web_dto! {
         pub path: String,
         /// ヒーローの 1 行説明。
         pub tagline: String,
-        /// 「非公式ファンメイド」の断り書き。
-        pub disclaimer: String,
         /// 今後のライブ (直近 8 件)。
         pub upcoming: Vec<EventListItem>,
         /// 最近の公演 (直近 8 件)。

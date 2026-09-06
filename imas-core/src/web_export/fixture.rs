@@ -93,6 +93,12 @@ fn fact(label: &str, value: &str, style: &str) -> ProfileRow {
 
 /// 件数タイル 1 枚。
 fn tile(glyph: &str, value: u32, label: &str, href: Option<&str>) -> StatTile {
+    let tile = StatTile::new(glyph, value, label);
+    return match href {
+        Some(href) => tile.with_href(href),
+        None => tile,
+    };
+    #[allow(unreachable_code)]
     StatTile {
         glyph: glyph.to_string(),
         value,
@@ -617,9 +623,8 @@ fn song_page(reference: &Ref, minimal: bool) -> SongPage {
                 venue: Some("幕張メッセ".to_string()),
                 number: 1,
                 place_display: "DAY1 ・ 幕張メッセ".to_string(),
-                href: format!("{}#setlist-1", show_sample().path),
                 performers_display: Some("春日未来・最上静香・伊吹翼 ほか 9 人".to_string()),
-                ordinal_label: content::ordinal_label(12),
+                ordinal_label: crate::domain::song_detail_queries::performance_ordinal_label(12),
             }]
         },
         frequent_singers: if minimal {
@@ -767,6 +772,7 @@ fn unit_page(reference: &Ref, empty: bool) -> UnitPage {
         name_alt: if empty { None } else { Some("Sample Unit".to_string()) },
         theme_key: reference.theme_key.clone(),
         is_permanent: !empty,
+        kind_label: content::unit_kind_label(!empty).to_string(),
         brand: if empty { None } else { Some(brand_ml()) },
         members: if empty { vec![] } else { vec![idol_mirai(), idol_shizuka()] },
         songs: if empty { vec![] } else { vec![song_sample()] },
@@ -880,8 +886,7 @@ fn event_list_item(reference: &Ref, kind: &str) -> EventListItem {
         venue_display: Some("幕張メッセ".to_string()),
         show_count_display: Some("2 公演".to_string()),
         kind: kind.to_string(),
-        // 本番と同じ規則: 既定の種別 (ライブ) には札を付けない。
-        kind_label: (kind != content::DEFAULT_EVENT_KIND).then(|| content::kind_label(kind).to_string()),
+        kind_label: content::kind_chip(kind).map(str::to_string),
     }
 }
 
@@ -898,15 +903,21 @@ fn event_list_page(path: &str, title: &str, kind: EventListKind, empty: bool) ->
                 YearGroup {
                     year: "2026年".to_string(),
                     events: vec![event_list_item(&event_sample(), "live")],
-                    more: Some(nav("2025年のライブ", "/events/past/2025/", false, None, Some(52))),
                 },
                 YearGroup {
                     year: "2025年".to_string(),
                     events: vec![event_list_item(&event_weird_id(), "festival")],
-                    more: None,
                 },
             ]
         },
+        // 入口だけ開催済みの最新の年を添え、続きへ送る。
+        recent_past: (path == "/events/").then(|| YearGroup {
+            year: "2025年".to_string(),
+            events: vec![event_list_item(&event_weird_id(), "festival")],
+        }),
+        recent_past_title: (path == "/events/").then(|| "開催済み (2025年)".to_string()),
+        next: (path == "/events/")
+            .then(|| nav("開催済みのライブをすべて見る", "/events/past/", false, None, Some(827))),
         scope_links: vec![
             nav("今後のライブ", "/events/upcoming/", path == "/events/upcoming/", None, Some(24)),
             nav("開催済み", "/events/past/", path == "/events/past/", None, Some(827)),
@@ -1052,7 +1063,6 @@ fn unit_list_page(path: &str, title: &str) -> UnitListPage {
             UnitListItem {
                 reference: unit_sample(),
                 brand: Some(brand_ml()),
-                is_permanent: true,
                 note: None,
                 member_count: 2,
                 song_count: 1,
@@ -1060,8 +1070,7 @@ fn unit_list_page(path: &str, title: &str) -> UnitListPage {
             UnitListItem {
                 reference: unit_empty(),
                 brand: None,
-                is_permanent: false,
-                note: Some("公演限定".to_string()),
+                note: Some(content::UNIT_LIMITED_LABEL.to_string()),
                 member_count: 0,
                 song_count: 0,
             },
@@ -1147,11 +1156,10 @@ fn home_page() -> HomePage {
         schema_version: SCHEMA_VERSION,
         path: "/".to_string(),
         tagline: content::SITE_TAGLINE.to_string(),
-        disclaimer: content::SITE_DISCLAIMER.to_string(),
         upcoming: vec![event_list_item(&event_sample(), "live")],
         recent_shows: vec![show_summary(ShowContext::Home)],
         recent_shows_more: nav("開催済みのライブへ", "/events/past/", false, None, None),
-        app_note: content::home_app_note(),
+        app_note: content::app_note(),
         stat_tiles: site_tiles(true, false),
         brands: vec![brand_list_item(&brand_ml()), brand_list_item(&brand_cg())],
         app: content::app_links(),

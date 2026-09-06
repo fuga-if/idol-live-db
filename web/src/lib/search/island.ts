@@ -93,15 +93,20 @@ function init({ form, input, status, results, fallback, lyricsSearchUrl, modes }
   fallback?.setAttribute("hidden", "");
   // 入力欄は最初から使える (disabled にすると支援技術から要素ごと消え、
   // フォーカスも当たらないので「準備中」であることすら伝わらない)。
-  // 打鍵は受け付けたうえで、準備中であることは aria-busy と status で伝える。
-  input.removeAttribute("aria-busy");
+  // 索引を取りに行っている間だけ aria-busy を立て、status でも伝える (下の load)。
   status.textContent = "";
 
   let loading: Promise<Loaded> | null = null;
   let timer: number | undefined;
   let latest = 0;
 
-  const start = (): Promise<Loaded> => (loading ??= load());
+  const start = (): Promise<Loaded> => {
+    if (!loading) {
+      input.setAttribute("aria-busy", "true");
+      loading = load().finally(() => input.removeAttribute("aria-busy"));
+    }
+    return loading;
+  };
 
   const lyricsMode = (): boolean =>
     lyricsSearchUrl !== null && modes.some((m) => m.checked && m.value === "lyrics");

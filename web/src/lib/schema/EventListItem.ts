@@ -33,15 +33,12 @@ venueDisplay: string | null,
  */
 showCountDisplay: string | null, 
 /**
- * 種別 (`live` / `festival` / …)。同じ種別だけの一覧で札を落とす判断の材料。
+ * 種別 (`live` / `festival` / …)。
  */
 kind: string, 
 /**
- * 行に出す種別チップ。
- *
- * **その一覧に 1 種別しか無ければ `None`。** 全部同じ札が並んでも
- * 見分けの役に立たず、行あたりの情報が薄くなるだけ
- * (トップの「今後のライブ」は 8 行すべて `ライブ` だった)。
- * 判断は [`super::super::emit::lists::drop_uniform_kind_labels`]。
+ * 行に出す種別チップ。**既定の種別 (ライブ) には付かない** — ほぼ全行に同じ札が並んでも
+ * 見分けにならず、フェス・リリースイベントのような例外だけを言えばよい。
+ * 判断は `content::kind_chip` 1 箇所。
  */
 kindLabel: string | null, };

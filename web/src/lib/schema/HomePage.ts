@@ -16,10 +16,6 @@ export type HomePage = { schemaVersion: number, path: string,
  */
 tagline: string, 
 /**
- * 「非公式ファンメイド」の断り書き。
- */
-disclaimer: string, 
-/**
  * 今後のライブ (直近 8 件)。
  */
 upcoming: Array<EventListItem>, 

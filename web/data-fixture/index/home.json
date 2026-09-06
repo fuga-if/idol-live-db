@@ -2,7 +2,6 @@
   "schemaVersion": 1,
   "path": "/",
   "tagline": "アイマスのライブ・公演・セットリスト・楽曲・アイドルを横断して調べられるデータベースです。",
-  "disclaimer": "非公式のファンメイドサイトです。株式会社バンダイナムコエンターテインメントおよび関連権利者とは一切関係ありません。",
   "upcoming": [
     {
       "ref": {
@@ -147,8 +146,7 @@
     "path": "/events/past/",
     "current": false,
     "themeKey": null,
-    "count": null,
-    "matchPrefixes": []
+    "count": null
   },
   "seo": {
     "title": "アイドルライブDB — アイマス ライブ・セトリ データベース",

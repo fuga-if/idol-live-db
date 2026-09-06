@@ -39,15 +39,7 @@
           "kind": "live",
           "kindLabel": null
         }
-      ],
-      "more": {
-        "label": "2025年のライブ",
-        "path": "/events/past/2025/",
-        "current": false,
-        "themeKey": null,
-        "count": 52,
-        "matchPrefixes": []
-      }
+      ]
     },
     {
       "year": "2025年",
@@ -84,26 +76,68 @@
           "kind": "festival",
           "kindLabel": "フェス"
         }
-      ],
-      "more": null
+      ]
     }
   ],
+  "recentPast": {
+    "year": "2025年",
+    "events": [
+      {
+        "ref": {
+          "kind": "event",
+          "id": "ev_the_idolm@ster_×_ふたご",
+          "name": "THE IDOLM@STER × ふたご星",
+          "sub": "2025",
+          "path": "/events/ev_the_idolm%40ster_%C3%97_%E3%81%B5%E3%81%9F%E3%81%94/",
+          "themeKey": "brand:cg",
+          "artworkUrl": null
+        },
+        "dateBadge": {
+          "iso": "2026-04-03",
+          "year": "2026",
+          "monthDay": "4/3",
+          "weekday": "金",
+          "spoken": "2026年4月3日 金曜日"
+        },
+        "endDisplay": "〜 4/4 (土)",
+        "brandMark": {
+          "kind": "brand",
+          "id": "ml",
+          "name": "アイドルマスター ミリオンライブ!",
+          "sub": "ML",
+          "path": "/brands/ml/",
+          "themeKey": "brand:ml",
+          "artworkUrl": null
+        },
+        "venueDisplay": "幕張メッセ",
+        "showCountDisplay": "2 公演",
+        "kind": "festival",
+        "kindLabel": "フェス"
+      }
+    ]
+  },
+  "recentPastTitle": "開催済み (2025年)",
+  "next": {
+    "label": "開催済みのライブをすべて見る",
+    "path": "/events/past/",
+    "current": false,
+    "themeKey": null,
+    "count": 827
+  },
   "scopeLinks": [
     {
       "label": "今後のライブ",
       "path": "/events/upcoming/",
       "current": false,
       "themeKey": null,
-      "count": 24,
-      "matchPrefixes": []
+      "count": 24
     },
     {
       "label": "開催済み",
       "path": "/events/past/",
       "current": false,
       "themeKey": null,
-      "count": 827,
-      "matchPrefixes": []
+      "count": 827
     }
   ],
   "brandLinks": [
@@ -112,24 +146,21 @@
       "path": "/events/",
       "current": true,
       "themeKey": null,
-      "count": null,
-      "matchPrefixes": []
+      "count": null
     },
     {
       "label": "ミリオンライブ!",
       "path": "/events/brand/ml/",
       "current": false,
       "themeKey": "brand:ml",
-      "count": 210,
-      "matchPrefixes": []
+      "count": 210
     },
     {
       "label": "シンデレラガールズ",
       "path": "/events/brand/cg/",
       "current": false,
       "themeKey": "brand:cg",
-      "count": 180,
-      "matchPrefixes": []
+      "count": 180
     }
   ],
   "yearLinks": [
@@ -138,16 +169,14 @@
       "path": "/events/past/2026/",
       "current": false,
       "themeKey": null,
-      "count": 40,
-      "matchPrefixes": []
+      "count": 40
     },
     {
       "label": "2025",
       "path": "/events/past/2025/",
       "current": false,
       "themeKey": null,
-      "count": 52,
-      "matchPrefixes": []
+      "count": 52
     }
   ],
   "total": 2,

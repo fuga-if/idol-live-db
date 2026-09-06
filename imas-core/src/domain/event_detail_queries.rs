@@ -616,25 +616,26 @@ pub fn show_cast_idol_ids(snap: &Snapshot, show_id: &str) -> Vec<String> {
         .collect()
 }
 
-/// 出演者 (show_cast) に、セトリで歌っているのに出演者に登録されていない人を足した列。
+/// 公演に「いた」人 = 出演者 (show_cast) ∪ 歌唱メンバー (setlist_performers)。idol の添字列。
 ///
-/// 出演者の登録は手入力で、歌唱メンバーだけ先に入っている公演がある (2026-09 時点で 189 公演)。
-/// 「歌っているなら出ている」は確実に言えるので、出演者の数・一覧・「全員」の判定は
-/// この和集合で見る。並びは show_cast の順のあと、セトリでの初出順。
-pub fn show_cast_with_performers(snap: &Snapshot, show_id: &str) -> Vec<String> {
-    let Some(&s) = snap.show_index_by_id.get(show_id) else { return vec![] };
+/// **「誰が公演にいたか」の定義はここ 1 つ。** 出演者の登録は手入力で、歌唱メンバーだけ先に
+/// 入っている公演がある (2026-09 時点で 189 公演)。「歌っているなら出ている」は確実に言えるので、
+/// 出演者の数・一覧・「全員」の判定・出席表は全部この和集合で見る。
+/// 並びは show_cast の順 (sort_order) のあと、セトリでの初出順。重複なし。
+pub fn show_presence(snap: &Snapshot, show_index: u32) -> Vec<u32> {
+    let s = show_index as usize;
     let mut seen: HashSet<u32> = HashSet::new();
-    let mut out: Vec<String> = Vec::new();
-    let cast = snap.cast_by_show[s as usize].iter().map(|link| link.idol);
-    let singers = snap.setlist_items_by_show[s as usize]
+    let cast = snap.cast_by_show[s].iter().map(|link| link.idol);
+    let singers = snap.setlist_items_by_show[s]
         .iter()
         .flat_map(|&i| snap.performers_by_item[i as usize].iter().copied());
-    for idol in cast.chain(singers) {
-        if seen.insert(idol) {
-            out.push(snap.idols[idol as usize].id.clone());
-        }
-    }
-    out
+    cast.chain(singers).filter(|&idol| seen.insert(idol)).collect()
+}
+
+/// [`show_presence`] を idol_id で。
+pub fn show_cast_with_performers(snap: &Snapshot, show_id: &str) -> Vec<String> {
+    let Some(&s) = snap.show_index_by_id.get(show_id) else { return vec![] };
+    show_presence(snap, s).into_iter().map(|idol| snap.idols[idol as usize].id.clone()).collect()
 }
 
 /// song_id → 原曲アーティスト (role='original') の idol_id 集合 (iOS fetchOriginalArtistIds)。
@@ -815,10 +816,8 @@ pub fn event_stats(snap: &Snapshot, event_id: &str) -> EventStatsRecord {
             // COUNT(DISTINCT song_id)
             unique_songs.insert(snap.setlist_items[i as usize].song);
         }
-        for link in &snap.cast_by_show[s as usize] {
-            // COUNT(DISTINCT idol_id)
-            cast.insert(link.idol);
-        }
+        // COUNT(DISTINCT idol) — 「いた人」の定義は show_presence (出演者 ∪ 歌唱メンバー)。
+        cast.extend(show_presence(snap, s));
     }
     EventStatsRecord {
         show_count: shows.len() as u32,
@@ -856,16 +855,11 @@ pub fn event_attendance(snap: &Snapshot, event_id: &str) -> Option<EventAttendan
     let shows = &snap.shows_by_event[e as usize];
     let event_start_date = shows.first().map(|&s| snap.shows[s as usize].date.as_str());
 
-    // 出演実績 (show_cast ∪ 歌唱) の idol 集合。>= 3 ブランドの母集団に使う。
+    // 出演実績 (show_cast ∪ 歌唱 = show_presence) の idol 集合。>= 3 ブランドの母集団に使う。
     let mut performed: HashSet<u32> = HashSet::new();
     if candidate_count >= 3 {
         for &s in shows {
-            for link in &snap.cast_by_show[s as usize] {
-                performed.insert(link.idol);
-            }
-            for &i in &snap.setlist_items_by_show[s as usize] {
-                performed.extend(snap.performers_by_item[i as usize].iter().copied());
-            }
+            performed.extend(show_presence(snap, s));
         }
     }
 
@@ -909,21 +903,12 @@ pub fn event_attendance(snap: &Snapshot, event_id: &str) -> Option<EventAttendan
                 .is_some_and(|b| candidate_set.contains(b))
         };
 
-        let mut present: HashSet<u32> = HashSet::new();
-        for &i in &snap.setlist_items_by_show[s as usize] {
-            present.extend(
-                snap.performers_by_item[i as usize]
-                    .iter()
-                    .copied()
-                    .filter(|&idol| in_candidate_brand(idol)),
-            );
-        }
+        // 出席 = show_presence を母集団のブランドで絞ったもの。
+        let present: HashSet<u32> =
+            show_presence(snap, s).into_iter().filter(|&idol| in_candidate_brand(idol)).collect();
         let mut lead: Vec<String> = Vec::new();
         let mut guest: Vec<String> = Vec::new();
         for link in &snap.cast_by_show[s as usize] {
-            if in_candidate_brand(link.idol) {
-                present.insert(link.idol);
-            }
             // cast_by_show は sort_order 順に前計算済みなのでそのまま決定的な並びになる。
             match link.cast_role.as_str() {
                 "lead" => lead.push(snap.idols[link.idol as usize].id.clone()),
@@ -1650,7 +1635,12 @@ mod tests {
                      (SELECT COUNT(*) FROM event_shows) AS show_count,
                      (SELECT COUNT(*) FROM setlist_items WHERE show_id IN (SELECT id FROM event_shows)) AS total_songs,
                      (SELECT COUNT(DISTINCT song_id) FROM setlist_items WHERE show_id IN (SELECT id FROM event_shows)) AS unique_songs,
-                     (SELECT COUNT(DISTINCT idol_id) FROM show_cast WHERE show_id IN (SELECT id FROM event_shows)) AS cast_count",
+                     (SELECT COUNT(DISTINCT idol_id) FROM (
+                         SELECT idol_id FROM show_cast WHERE show_id IN (SELECT id FROM event_shows)
+                         UNION
+                         SELECT sp.idol_id FROM setlist_performers sp
+                           JOIN setlist_items si ON si.id = sp.setlist_item_id
+                          WHERE si.show_id IN (SELECT id FROM event_shows))) AS cast_count",
             )
             .unwrap();
         let mut nonzero = 0;

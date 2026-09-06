@@ -5,12 +5,15 @@ import DatedRow from "./DatedRow.astro";
 import EmptyState from "./EmptyState.astro";
 import TagChip from "./TagChip.astro";
 import Count from "./Count.astro";
+import KanaIndex from "./KanaIndex.astro";
+import { kanaAnchorId } from "../lib/anchors";
 import type { UnitListPage } from "../lib/schema/UnitListPage";
 
 interface Props {
   list: UnitListPage;
 }
 const { list } = Astro.props;
+const sectionStarts = new Set(list.kanaSections.map((s) => s.startIndex));
 ---
 
 <ListLayout
@@ -21,27 +24,15 @@ const { list } = Astro.props;
   filterLinks={list.brandLinks}
   filterLabel="ブランドで絞る"
 >
-  {
-    list.kanaSections.length > 0 && (
-      <nav class="link-chips" aria-label="よみで飛ぶ">
-        {list.kanaSections.map((s) => (
-          <a href={`#kana-${s.startIndex}`}>
-            {s.label}
-            <Count value={s.count} dim />
-          </a>
-        ))}
-      </nav>
-    )
-  }
+  <KanaIndex sections={list.kanaSections} />
   {
     list.items.length === 0 ? (
       <EmptyState title="該当するユニットがありません" />
     ) : (
       <ListContainer as="ul">
         {list.items.map((item, i) => {
-          const section = list.kanaSections.find((s) => s.startIndex === i);
           return (
-            <li id={section ? `kana-${i}` : undefined}>
+            <li id={sectionStarts.has(i) ? kanaAnchorId(i) : undefined}>
               <DatedRow
                 title={item.ref.name}
                 href={item.ref.path}

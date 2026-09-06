@@ -104,19 +104,10 @@
 .section__tools {
   margin-inline-start: auto;
 }
-/* 年の束の続き (「開催済みをすべて見る」「2025年のライブ」)。 */
-.year-group__more {
+/* 一覧の続き (「開催済みをすべて見る」「2025年のライブ」)。見た目は節の「すべて見る」と同じ。 */
+.list-next {
   display: flex;
   justify-content: flex-end;
-  align-items: center;
-  gap: var(--sp2);
-  padding: var(--sp3) var(--sp2) 0;
-  font-size: var(--fs-footnote);
-  font-weight: 600;
-  color: var(--ds-ink2);
-}
-.year-group__more:hover {
-  color: var(--ds-ink);
 }
 
 /* --- アイドルカラーの点 --------------------------------------------------
@@ -1173,12 +1164,7 @@ a.labeled-row .labeled-row__value {
   background: var(--ds-surface);
   box-shadow: var(--ds-shadow1);
 }
-.search-box__field:focus-within {
-  /* 枠の色だけでは 1.9:1 で見えない。他の操作と同じ輪郭を描く。 */
-  outline: 2px solid var(--ds-ink);
-  outline-offset: 2px;
-  box-shadow: 0 0 0 4px var(--ds-bg);
-}
+/* 検索欄の輪郭は base.css の 1 つのフォーカスリング規則が描く (枠の色だけでは 1.9:1 で見えない)。 */
 .search-box__glyph {
   color: var(--ds-ink2);
   font-size: 1.1rem;
@@ -1247,10 +1233,7 @@ a.labeled-row .labeled-row__value {
   color: var(--ds-ink);
   box-shadow: var(--ds-shadow1);
 }
-.search-box__modes label:has(input:focus-visible) {
-  outline: 2px solid var(--ds-ink);
-  outline-offset: 2px;
-}
+/* ラジオの輪郭も base.css のフォーカスリング規則 (隠した input の代わりに label に描く)。 */
 
 /* 歌詞検索の一致箇所。本文の断片なので選べない (曲ページの歌詞と同じ扱い)。 */
 .search-snippet {
@@ -1497,10 +1480,7 @@ a.labeled-row .labeled-row__value {
   font-weight: 600;
   line-height: var(--lh-snug);
 }
-/* 公演ページのその曲へ飛んできたとき、吸着するヘッダの下に隠れない。 */
-.setlist__row {
-  scroll-margin-top: calc(var(--header-h) + var(--sp4));
-}
+
 .setlist__notes {
   font-size: var(--fs-caption);
   color: var(--ds-ink2);
@@ -1641,12 +1621,6 @@ a.labeled-row .labeled-row__value {
   margin-top: var(--sp3);
 }
 
-/* セトリの頭: 歌唱者の表示切替 (右寄せ)。 */
-.setlist-tools {
-  display: flex;
-  justify-content: flex-end;
-}
-
 /* --- グリッド (アイドル・ユニット一覧) ------------------------------------ */
 .grid-tiles {
   display: grid;
@@ -1757,14 +1731,14 @@ a.labeled-row .labeled-row__value {
   border-collapse: collapse;
   font-size: var(--fs-footnote);
 }
-/* 揃えと太さは列クラス側が決める。`th, td` (0,1,1) にまとめて書くと列クラス (0,1,0) を
-   上書きして、曲名の太さも数の右寄せも消える。 */
+/* 揃えと太さは列クラス側が決める。骨格の指定は :where() で詳細度を 0 にし、
+   列クラス (0,1,0) が常に勝つようにする (`th, td` に直に書くと (0,1,1) で上書きする)。 */
 .song-table th,
 .song-table td {
   padding: var(--sp3) var(--sp4);
   vertical-align: middle;
 }
-.song-table th:not(.song-table__num) {
+:where(.song-table) th {
   text-align: left;
 }
 .song-table tbody tr + tr th,
@@ -2054,12 +2028,9 @@ a.labeled-row .labeled-row__value {
 }
 
 /* --- 箱に収まった行のフォーカス -------------------------------------------
-   `.card` は overflow: hidden、行は li いっぱいなので、外側に描く輪郭 (outline-offset: 2px)
-   は描く場所が無く消える。行だけは内側に描く。 */
-.card a.row:focus-visible,
-.card a.ranking-row:focus-visible,
-.card a.labeled-row:focus-visible,
-.grid-tiles .tile:focus-visible {
+   `.card` / `.grid-tiles` は overflow: hidden、行は li いっぱいなので、外側に描く輪郭
+   (outline-offset: 2px) は描く場所が無く消える。箱の直下の行は種類を問わず内側に描く。 */
+:is(.card, .grid-tiles) > li > a:focus-visible {
   outline-offset: -3px;
   box-shadow: none;
   border-radius: 0;

@@ -34,9 +34,53 @@ pub fn idol_page(ctx: &Ctx, idol_id: &str) -> Option<IdolPage> {
 
     let voice_actor = idol_queries::current_voice_actor_name(ctx.snap, idol_id);
 
-    let mut page = IdolPage {
+    // 長い一覧 3 本。数の帯 (上から各節へ飛ぶ) が長さを見るので、先に組む。
+    // 持ち曲 = 原唱者として名を連ねる曲。歌っただけの曲は「ライブで歌った曲」に居る
+    // (両方の役で載る曲が 2 行になり、カバーが持ち曲に混ざっていた)。
+    let songs: Vec<IdolSongRow> = idol_song_queries::idol_songs(ctx.snap, idol_id, Some("original"))
+            .into_iter()
+            .filter_map(|s| {
+                let performance_count = ctx
+                    .snap
+                    .song_index_by_id
+                    .get(&s.song_id)
+                    .map(|&i| ctx.snap.performance_counts[i as usize])
+                    .unwrap_or(0);
+                let song = ctx.song_ref(&s.song_id)?;
+                Some(IdolSongRow {
+                    subtitle: join_parts([
+                        song.sub.clone(),
+                        s.release_date.clone(),
+                        (performance_count > 0).then(|| format!("{performance_count} 回披露")),
+                    ]),
+                    song,
+                    role: Some(s.role),
+                    release_date: s.release_date,
+                    performance_count,
+                })
+            })
+            .collect();
+    let performed_songs: Vec<IdolPerformedRow> = idol_song_queries::idol_performed_songs(ctx.snap, idol_id)
+            .into_iter()
+            .filter_map(|s| {
+                let song = ctx.song_ref(&s.song_id)?;
+                Some(IdolPerformedRow {
+                    // 回数は行の右の数 (`times`) が言う。副題にも書くと同じ数が 2 回並ぶ。
+                    subtitle: song.sub.clone(),
+                    song,
+                    times: s.perform_count,
+                })
+            })
+            .collect();
+    let shows: Vec<IdolShowRow> = idol_shows(ctx, idol_id, index);
+
+    Some(IdolPage {
         schema_version: SCHEMA_VERSION,
-        stat_tiles: Vec::new(),
+        stat_tiles: nonzero_tiles([
+            StatTile::new("♪", songs.len() as u32, "持ち曲").with_href("#idol-songs"),
+            StatTile::new("♬", performed_songs.len() as u32, "ライブで歌った曲").with_href("#idol-performed"),
+            StatTile::new("▤", shows.len() as u32, "出演公演").with_href("#idol-shows"),
+        ]),
         tags: super::context::tag_chips(ctx.community.idol_tags(&record.id)),
         id: record.id.clone(),
         path: path.clone(),
@@ -67,44 +111,9 @@ pub fn idol_page(ctx: &Ctx, idol_id: &str) -> Option<IdolPage> {
             .iter()
             .filter_map(|u| ctx.unit_ref(&u.id))
             .collect(),
-        // 持ち曲 = 原唱者として名を連ねる曲。歌っただけの曲は「ライブで歌った曲」に居る
-        // (両方の役で載る曲が 2 行になり、カバーが持ち曲に混ざっていた)。
-        songs: idol_song_queries::idol_songs(ctx.snap, idol_id, Some("original"))
-            .into_iter()
-            .filter_map(|s| {
-                let performance_count = ctx
-                    .snap
-                    .song_index_by_id
-                    .get(&s.song_id)
-                    .map(|&i| ctx.snap.performance_counts[i as usize])
-                    .unwrap_or(0);
-                let song = ctx.song_ref(&s.song_id)?;
-                Some(IdolSongRow {
-                    subtitle: join_parts([
-                        song.sub.clone(),
-                        s.release_date.clone(),
-                        (performance_count > 0).then(|| format!("{performance_count} 回披露")),
-                    ]),
-                    song,
-                    role: Some(s.role),
-                    release_date: s.release_date,
-                    performance_count,
-                })
-            })
-            .collect(),
-        performed_songs: idol_song_queries::idol_performed_songs(ctx.snap, idol_id)
-            .into_iter()
-            .filter_map(|s| {
-                let song = ctx.song_ref(&s.song_id)?;
-                Some(IdolPerformedRow {
-                    // 回数は行の右の数 (`times`) が言う。副題にも書くと同じ数が 2 回並ぶ。
-                    subtitle: song.sub.clone(),
-                    song,
-                    times: s.perform_count,
-                })
-            })
-            .collect(),
-        shows: idol_shows(ctx, idol_id, index),
+        songs,
+        performed_songs,
+        shows,
         description: record.description.clone(),
         app: content::app_open_plain(),
         seo: ctx.seo(
@@ -118,15 +127,7 @@ pub fn idol_page(ctx: &Ctx, idol_id: &str) -> Option<IdolPage> {
             simple_json_ld("WebPage", &record.name, &path),
             breadcrumbs,
         ),
-    };
-    // 数の帯。長い一覧が 3 本あるページなので、上から各節へ飛べるようにする。
-    page.stat_tiles = nonzero_tiles([
-        StatTile::new("♪", page.songs.len() as u32, "持ち曲").with_href("#idol-songs"),
-        StatTile::new("♬", page.performed_songs.len() as u32, "ライブで歌った曲")
-            .with_href("#idol-performed"),
-        StatTile::new("▤", page.shows.len() as u32, "出演公演").with_href("#idol-shows"),
-    ]);
-    Some(page)
+    })
 }
 
 /// プロフィール行。
@@ -229,6 +230,7 @@ pub fn unit_page(ctx: &Ctx, unit_id: &str) -> Option<UnitPage> {
         name_alt: record.name_alt.clone(),
         theme_key: ctx.brand_theme(Some(&record.brand_id)),
         is_permanent: record.is_permanent,
+        kind_label: content::unit_kind_label(record.is_permanent).to_string(),
         brand: ctx.brand_ref(&record.brand_id),
         // 並ぶ全員が同じブランドなので、補助表記 (ブランド名) は落とす。
         members: unit_queries::unit_member_idol_ids(ctx.snap, unit_id)

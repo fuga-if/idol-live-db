@@ -1,0 +1,20 @@
+---
+import EventRow from "./EventRow.astro";
+import ListContainer from "./ListContainer.astro";
+import type { YearGroup } from "../lib/schema/YearGroup";
+/** 年 (または入口の「開催済み (2026年)」) の束 1 つ。見出しの文字は Rust が決める。 */
+interface Props {
+  title: string;
+  group: YearGroup;
+}
+const { title, group } = Astro.props;
+---
+
+<section class="year-group" aria-label={title}>
+  <h2 class="year-group__title">{title}</h2>
+  <ListContainer as="ul">
+    {group.events.map((e) => (
+      <EventRow item={e} showYear={false} />
+    ))}
+  </ListContainer>
+</section>

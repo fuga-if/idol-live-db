@@ -1,7 +1,10 @@
 ---
 import { meta } from "../lib/data";
+import type { Crumb } from "../lib/schema/Crumb";
 /**
- * サイト共通ナビ (上部バー)。現在地はパス接頭辞で決まる (状態は持たない)。
+ * サイト共通ナビ (上部バー)。現在地は **ページのパンくず** で決まる (状態は持たない):
+ * パンくずにそのリンクの path が居れば現在地。「公演はライブの下」のような所属の判断は
+ * Rust がパンくずを組むときに 1 回だけしている (ここでパスの接頭辞を見直さない)。
  *
  * **並びは Rust が出す** (`meta.primaryNav`)。お題ページは焼き込んだ集計が
  * 空だと書き出されないので、その条件を知っている側がリンクの有無も決める。
@@ -9,14 +12,12 @@ import { meta } from "../lib/data";
  * 切り替えは base.css のメディアクエリだけで、JS は 1 行も要らない。
  */
 interface Props {
-  pathname: string;
+  crumbs: readonly Crumb[];
 }
-const { pathname } = Astro.props;
+const { crumbs } = Astro.props;
 const nav = meta().primaryNav;
-const isCurrent = (href: string) => pathname.startsWith(href);
-// 「公演はライブの下」のような所属は Rust が `matchPrefixes` で言う。
-const isCurrentNav = (n: (typeof nav)[number]) =>
-  isCurrent(n.path) || n.matchPrefixes.some((p) => pathname.startsWith(p));
+const here = new Set(crumbs.map((c) => c.path));
+const isCurrent = (href: string) => here.has(href);
 ---
 
 <header class="site-nav">
@@ -30,7 +31,7 @@ const isCurrentNav = (n: (typeof nav)[number]) =>
         {
           nav.map((n) => (
             <li>
-              <a href={n.path} aria-current={isCurrentNav(n) ? "page" : undefined}>
+              <a href={n.path} aria-current={isCurrent(n.path) ? "page" : undefined}>
                 {n.label}
               </a>
             </li>

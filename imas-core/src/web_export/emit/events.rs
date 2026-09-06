@@ -8,7 +8,7 @@ use crate::domain::event_grouping::group_events_by_year;
 use crate::domain::setlist_lineup::{is_full_cast, summarize, FULL_CAST_LABEL, MISSING_LABEL};
 use crate::domain::setlist_sections::{group_consecutive, section_label};
 use crate::domain::show_naming::show_identity;
-use crate::domain::song_detail_queries::first_performance_item_id;
+use crate::domain::song_detail_queries::FIRST_PERFORMANCE_LABEL;
 use crate::web_export::content;
 use crate::web_export::dto::*;
 use crate::web_export::url::url_segment;
@@ -92,25 +92,19 @@ pub fn event_page(ctx: &Ctx, event_id: &str) -> Option<EventPage> {
     })
 }
 
-/// 数の帯。**0 は「まだ無い」で情報ではない**ので落とす (開催前は曲数が全部 0 で、
-/// 並べても何も言わない)。対応する一覧が無いので押せない (`href` 無し)。
-fn stat_tiles<const N: usize>(items: [(&str, u32, &str); N]) -> Vec<StatTile> {
-    nonzero_tiles(items.into_iter().map(|(glyph, value, label)| StatTile::new(glyph, value, label)))
-}
-
-/// ライブの数の帯 (公演 / のべ曲数 / 異なり曲数 / 出演者)。
+/// ライブの数の帯 (公演 / のべ曲数 / 曲数 (重複なし) / 出演者)。対応する一覧が無いので押せない。
 fn event_stat_tiles(s: detail::EventStatsRecord) -> Vec<StatTile> {
-    stat_tiles([
-        ("▤", s.show_count, "公演"),
-        ("≡", s.total_songs, "のべ曲数"),
-        ("♬", s.unique_songs, "曲数 (重複なし)"),
-        ("☺", s.cast_count, "出演者"),
+    nonzero_tiles([
+        StatTile::new("▤", s.show_count, "公演"),
+        StatTile::new("≡", s.total_songs, "のべ曲数"),
+        StatTile::new("♬", s.unique_songs, "曲数 (重複なし)"),
+        StatTile::new("☺", s.cast_count, "出演者"),
     ])
 }
 
 /// 公演の数の帯 (曲数 / 出演者)。
 fn show_stat_tiles(setlist_count: u32, cast_count: u32) -> Vec<StatTile> {
-    stat_tiles([("≡", setlist_count, "曲"), ("☺", cast_count, "出演者")])
+    nonzero_tiles([StatTile::new("≡", setlist_count, "曲"), StatTile::new("☺", cast_count, "出演者")])
 }
 
 /// 「今後のライブ」か。
@@ -325,11 +319,19 @@ fn setlist_rows(
     let performers = detail::setlist_performers_by_item(ctx.snap, show_id);
     let song_ids: Vec<String> = entries.iter().map(|e| e.song_id.clone()).collect();
     let originals = detail::original_artist_ids_map(ctx.snap, &song_ids);
+    // entries と同じ並び (どちらも setlist_items_by_show を position 順に流す)。何回目かは
+    // Snapshot 構築時に決まっている (`ordinal_by_item`)。
+    let item_indices: &[u32] = ctx
+        .snap
+        .show_index_by_id
+        .get(show_id)
+        .map_or(&[], |&s| ctx.snap.setlist_items_by_show[s as usize].as_slice());
 
     entries
         .iter()
+        .zip(item_indices)
         .enumerate()
-        .filter_map(|(n, e)| {
+        .filter_map(|(n, (e, &item))| {
             let performers = performers.get(&e.id).map(Vec::as_slice).unwrap_or_default();
             let performer_ids: BTreeSet<&str> =
                 performers.iter().map(|p| p.idol_id.as_str()).collect();
@@ -358,9 +360,8 @@ fn setlist_rows(
                 full_cast_label: full_cast.then(|| FULL_CAST_LABEL.to_string()),
                 lineup: lineup_note_of(ctx, &original_ids, &performer_ids, cast, full_cast),
                 is_cover: ctx.snap.song(&e.song_id).is_some_and(Snapshot::is_cover),
-                first_performance_label: (first_performance_item_id(ctx.snap, &e.song_id).as_deref()
-                    == Some(e.id.as_str()))
-                .then(|| content::FIRST_PERFORMANCE_LABEL.to_string()),
+                first_performance_label: (ctx.snap.ordinal_by_item[item as usize] == 1)
+                    .then(|| FIRST_PERFORMANCE_LABEL.to_string()),
             };
             Some((section_label(e.section.as_deref()), row))
         })

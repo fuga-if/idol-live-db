@@ -56,23 +56,24 @@ pub fn call_guide_page(ctx: &Ctx, dash: &Dashboard) -> CallGuidePage {
         t.tagged.saturating_sub(t.with_calls).saturating_sub(t.without_lyrics)
     });
     let stat_tiles = vec![
-        tile("♬", with_calls.len() as u32, "ガイドあり"),
-        tile("✎", wanted_total, "書き手募集中"),
-        tile("#", tag.map_or(0, |t| t.tagged), "コール曲タグ付き"),
+        StatTile::new("♬", with_calls.len() as u32, "ガイドあり"),
+        StatTile::new("✎", wanted_total, "書き手募集中"),
+        StatTile::new("#", tag.map_or(0, |t| t.tagged), "コール曲タグ付き"),
     ];
-    let wanted_note = {
-        let mut notes: Vec<String> = Vec::new();
-        if (wanted.len() as u32) < wanted_total {
-            notes.push(format!("ここに並べているのは票の多い順に {} 曲です。", wanted.len()));
-        }
-        if let Some(t) = tag.filter(|t| t.without_lyrics > 0) {
-            notes.push(format!(
+    let wanted_note: String = [
+        ((wanted.len() as u32) < wanted_total)
+            .then(|| format!("ここに並べているのは票の多い順に {} 曲です。", wanted.len())),
+        tag.filter(|t| t.without_lyrics > 0).map(|t| {
+            format!(
                 "ほかに「{}」タグの付いた {} 曲は歌詞が未登録のため、ここには並べていません (歌詞が入ってから書けるようになります)。",
                 t.tag_name, t.without_lyrics
-            ));
-        }
-        (!notes.is_empty()).then(|| notes.join(""))
-    };
+            )
+        }),
+    ]
+    .into_iter()
+    .flatten()
+    .collect();
+    let wanted_note = (!wanted_note.is_empty()).then_some(wanted_note);
     let with_calls_note = (dash.songs_with_calls.len() >= WORKER_SONGS_LIMIT)
         .then(|| format!("ここに出ているのは、最近更新された {WORKER_SONGS_LIMIT} 曲です。"));
 
@@ -96,15 +97,6 @@ pub fn call_guide_page(ctx: &Ctx, dash: &Dashboard) -> CallGuidePage {
             simple_json_ld("CollectionPage", TITLE, PATH),
             vec![Ctx::crumb("ホーム", "/"), Ctx::crumb(TITLE, PATH)],
         ),
-    }
-}
-
-fn tile(glyph: &str, value: u32, label: &str) -> StatTile {
-    StatTile {
-        glyph: glyph.to_string(),
-        value,
-        label: label.to_string(),
-        href: None,
     }
 }
 

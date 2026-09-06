@@ -423,6 +423,10 @@ pub struct Snapshot {
     /// show.date DESC。SQL では同日内が未規定だったので、同日は
     /// (show.sort_order ASC, position ASC) で決定的にしてある。
     pub setlist_items_by_song: Vec<Vec<u32>>,
+    /// setlist_items と同じ添字。その披露がその曲の何回目か (この DB に載っている範囲で
+    /// 最古が 1)。時系列は setlist_items_by_song の並びの逆 (同日内は公演の並び・曲順の昇順)。
+    /// 「初披露」= 1。曲ページの「N 回目」と公演ページの「初披露」札が同じ数を見る。
+    pub ordinal_by_item: Vec<u32>,
     /// setlist_items と同じ添字。その披露の歌唱メンバー (setlist_performers)。
     /// idol の sort_order 順。
     pub performers_by_item: Vec<Vec<u32>>,

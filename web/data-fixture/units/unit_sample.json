@@ -7,6 +7,7 @@
   "nameAlt": "Sample Unit",
   "themeKey": "brand:ml",
   "isPermanent": true,
+  "kindLabel": "常設ユニット",
   "tags": [
     {
       "id": "tag_genki",

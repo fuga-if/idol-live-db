@@ -3,6 +3,7 @@ import Artwork from "./Artwork.astro";
 import Count from "./Count.astro";
 import type { SongListItem } from "../lib/schema/SongListItem";
 import type { KanaSection } from "../lib/schema/KanaSection";
+import { kanaAnchorId } from "../lib/anchors";
 
 /**
  * 楽曲一覧の表。
@@ -48,7 +49,7 @@ const sectionStarts = new Set(kanaSections.map((s) => s.startIndex));
     <tbody role="rowgroup">
       {
         items.map((item, i) => (
-          <tr role="row" id={sectionStarts.has(i) ? `kana-${i}` : undefined} data-song-id={item.ref.id} data-theme={item.ref.themeKey}>
+          <tr role="row" id={sectionStarts.has(i) ? kanaAnchorId(i) : undefined} data-song-id={item.ref.id} data-theme={item.ref.themeKey}>
             <th role="rowheader" scope="row" class="song-table__c-title song-table__title">
               {/* themeKey は tr から継承する。行ごとに 2 回置くと、
                   2,000 行規模で custom property の再計算が倍になる。 */}

@@ -1,7 +1,7 @@
 ---
 import Artwork from "./Artwork.astro";
-import ColorDot from "./ColorDot.astro";
-import Count from "./Count.astro";
+import Fold from "./Fold.astro";
+import { setlistAnchorId } from "../lib/anchors";
 import TagChip from "./TagChip.astro";
 import Performer from "./Performer.astro";
 import type { SetlistRow } from "../lib/schema/SetlistRow";
@@ -17,15 +17,11 @@ interface Props {
 const { row } = Astro.props;
 
 // 歌唱者がこの数を超える行は名前を畳む (全員曲は数に関わらず畳む)。
-// 74 人の全体曲を毎行広げると 1 曲で 1 画面を使い、セトリが読めない。純粋に高さの話。
-// 畳んでも中身は DOM にあり、JS 無しで開ける (<details>)。
-const FOLD_PERFORMERS_OVER = 12;
-const folded = row.fullCastLabel !== null || row.performers.length > FOLD_PERFORMERS_OVER;
-const Wrap = folded ? "details" : "div";
+// 全員曲 (fullCastLabel あり) は人数に関わらず畳む。閾値は Fold が持つ。
 ---
 
 {/* id は披露履歴 (曲ページ) からの飛び先 (`…/#setlist-N`)。番号は Rust が振ったもの。 */}
-<li class="setlist__row" id={`setlist-${row.number}`} data-theme={row.song.themeKey}>
+<li class="setlist__row" id={setlistAnchorId(row.number)} data-theme={row.song.themeKey}>
   {/* 表示する番号は `row.number` (Rust が公演内で 1 から振ったもの)。
       `row.position` は setlist_items 全体を通した並び順の鍵で、表示用ではない。
       描画側で連番を振らないのは、将来「アンコールは別番号」のような規則が
@@ -49,27 +45,14 @@ const Wrap = folded ? "details" : "div";
     }
     {
       row.performers.length > 0 && (
-        <Wrap class:list={[folded && "fold"]}>
-          {folded && (
-            <summary class="fold__summary">
-              {row.fullCastLabel && <TagChip text={row.fullCastLabel} kind="all" />}
-              {/* 読み上げには「15 人」だけが残るので、何の人数かを添える。 */}
-              <span class="u-visually-hidden">歌唱者</span>
-              <span class="fold__dots" aria-hidden="true">
-                {row.performers.map((p) => (
-                  <ColorDot size="md" themeKey={p.ref.themeKey} />
-                ))}
-              </span>
-              <Count value={row.performers.length} unit="人" strong />
-              <span class="chevron" aria-hidden="true">›</span>
-            </summary>
-          )}
+        <Fold label="歌唱者" themeKeys={row.performers.map((p) => p.ref.themeKey)} force={row.fullCastLabel !== null}>
+          {row.fullCastLabel && <TagChip slot="lead" text={row.fullCastLabel} kind="all" />}
           <span class="performers">
             {row.performers.map((p) => (
               <Performer ref={p.ref} castName={p.castName} />
             ))}
           </span>
-        </Wrap>
+        </Fold>
       )
     }
     {/* 「いたのに歌わなかった」人は歌唱者の後に控えめに (行の答えは歌唱者の方)。 */}

@@ -39,15 +39,7 @@
           "kind": "live",
           "kindLabel": null
         }
-      ],
-      "more": {
-        "label": "2025年のライブ",
-        "path": "/events/past/2025/",
-        "current": false,
-        "themeKey": null,
-        "count": 52,
-        "matchPrefixes": []
-      }
+      ]
     },
     {
       "year": "2025年",
@@ -84,26 +76,26 @@
           "kind": "festival",
           "kindLabel": "フェス"
         }
-      ],
-      "more": null
+      ]
     }
   ],
+  "recentPast": null,
+  "recentPastTitle": null,
+  "next": null,
   "scopeLinks": [
     {
       "label": "今後のライブ",
       "path": "/events/upcoming/",
       "current": false,
       "themeKey": null,
-      "count": 24,
-      "matchPrefixes": []
+      "count": 24
     },
     {
       "label": "開催済み",
       "path": "/events/past/",
       "current": false,
       "themeKey": null,
-      "count": 827,
-      "matchPrefixes": []
+      "count": 827
     }
   ],
   "brandLinks": [
@@ -112,24 +104,21 @@
       "path": "/events/",
       "current": false,
       "themeKey": null,
-      "count": null,
-      "matchPrefixes": []
+      "count": null
     },
     {
       "label": "ミリオンライブ!",
       "path": "/events/brand/ml/",
       "current": false,
       "themeKey": "brand:ml",
-      "count": 210,
-      "matchPrefixes": []
+      "count": 210
     },
     {
       "label": "シンデレラガールズ",
       "path": "/events/brand/cg/",
       "current": false,
       "themeKey": "brand:cg",
-      "count": 180,
-      "matchPrefixes": []
+      "count": 180
     }
   ],
   "yearLinks": [
@@ -138,16 +127,14 @@
       "path": "/events/past/2026/",
       "current": false,
       "themeKey": null,
-      "count": 40,
-      "matchPrefixes": []
+      "count": 40
     },
     {
       "label": "2025",
       "path": "/events/past/2025/",
       "current": false,
       "themeKey": null,
-      "count": 52,
-      "matchPrefixes": []
+      "count": 52
     }
   ],
   "total": 2,

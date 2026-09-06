@@ -22,7 +22,7 @@ const unit = page<UnitPage>(Astro.props.data);
       {unit.nameKana && <p class="hero__kana">{unit.nameKana}</p>}
       {unit.nameAlt && <p class="lede">別名: {unit.nameAlt}</p>}
       <div class="hero__meta">
-        <Chip text={unit.isPermanent ? "常設ユニット" : "期間限定"} variant="themed" />
+        <Chip text={unit.kindLabel} variant="themed" />
         {unit.brand && <Chip text={unit.brand.name} href={unit.brand.path} variant="themed" themeKey={unit.brand.themeKey} />}
       </div>
     </div>

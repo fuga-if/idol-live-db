@@ -5,9 +5,27 @@
 
 use crate::domain::text_search_index::prepare_needle;
 
+/// 行の並び (目次の順 = よみ順の大枠)。かな → 英数 → その他。
+pub const ROWS: [&str; 12] = ["あ", "か", "さ", "た", "な", "は", "ま", "や", "ら", "わ", "英数", "その他"];
+
 /// 見出しに使う行の名前を返す。かなでも英数でもないものは「その他」。
 pub fn kana_row_label(text: &str) -> &'static str {
-    let folded = String::from_utf8(prepare_needle(text)).unwrap_or_default();
+    row_label_of_folded(&fold(text))
+}
+
+/// よみ順の鍵。行 ([`ROWS`] の順) を先に、行の中は検索と同じ畳み込みの文字列順。
+/// 目次 ([`kana_row_label`]) と同じ規則なので、目次の区画が並びの中で飛び地にならない。
+pub fn kana_sort_key(text: &str) -> (usize, String) {
+    let folded = fold(text);
+    let row = ROWS.iter().position(|r| *r == row_label_of_folded(&folded)).unwrap_or(ROWS.len());
+    (row, folded)
+}
+
+fn fold(text: &str) -> String {
+    String::from_utf8(prepare_needle(text)).unwrap_or_default()
+}
+
+fn row_label_of_folded(folded: &str) -> &'static str {
     let Some(c) = folded.chars().next() else { return "その他" };
     if c.is_ascii_alphanumeric() {
         return "英数";

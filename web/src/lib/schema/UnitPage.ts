@@ -17,6 +17,10 @@ nameAlt: string | null, themeKey: string,
  */
 isPermanent: boolean, 
 /**
+ * その言い方 (「常設ユニット」/「公演限定」)。一覧の札と同じ語 (`content::unit_kind_label`)。
+ */
+kindLabel: string, 
+/**
  * コミュニティが付けたタグ (多い順)。焼き込み。
  */
 tags: Array<TagChipDto>, brand: Ref | null, members: Array<Ref>, songs: Array<Ref>, app: AppOpen, seo: SeoBlock, };

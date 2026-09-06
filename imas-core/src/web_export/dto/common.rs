@@ -270,30 +270,16 @@ web_dto! {
         pub theme_key: Option<String>,
         /// 件数を出せるときだけ入る。
         pub count: Option<u32>,
-        /// `path` 以外にこのリンクの「現在地」とみなすパスの接頭辞 (上部バーだけが使う)。
-        ///
-        /// 公演 (`/shows/…`) はライブ (`/events/`) の下にいる、という所属の判断はパンくずと
-        /// 同じくこちらが持つ。受け手は `path` とこの列を前方一致で見るだけ。
-        pub match_prefixes: Vec<String>,
     }
 }
 
 impl NavLink {
     /// 押せる切替リンク 1 本。`current` は後から [`mark_current`] でまとめて立てる。
+    ///
+    /// 上部バーの現在地はここでは決めない: ページのパンくず (`seo.breadcrumbs`) に
+    /// このリンクの `path` が含まれていれば現在地 (所属の判断はパンくず 1 箇所)。
     pub fn new(label: &str, path: impl Into<String>) -> Self {
-        Self {
-            label: label.to_string(),
-            path: path.into(),
-            current: false,
-            theme_key: None,
-            count: None,
-            match_prefixes: Vec::new(),
-        }
-    }
-
-    pub fn with_match_prefixes(mut self, prefixes: &[&str]) -> Self {
-        self.match_prefixes = prefixes.iter().map(|p| p.to_string()).collect();
-        self
+        Self { label: label.to_string(), path: path.into(), current: false, theme_key: None, count: None }
     }
 
     pub fn with_count(mut self, count: u32) -> Self {
@@ -355,17 +341,12 @@ impl DateBadge {
     /// `yyyy-MM-dd` (部分日付も可) から作る。
     pub fn from_ymd(date: &str) -> Self {
         let parts = crate::domain::date_display::date_parts(date);
-        let spoken = match parts.weekday {
-            Some(wd) => format!("{}年{}日 {wd}曜日", parts.year, parts.month_day.replace('/', "月")),
-            None if parts.year.is_empty() => parts.month_day.clone(),
-            None => format!("{}年{}", parts.year, parts.month_day),
-        };
         Self {
             iso: date.to_string(),
             year: parts.year,
             month_day: parts.month_day,
             weekday: parts.weekday.map(str::to_string),
-            spoken,
+            spoken: crate::domain::date_display::spoken(date),
         }
     }
 }

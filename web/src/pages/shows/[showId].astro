@@ -57,7 +57,7 @@ const setlistCount = show.setlistSections.reduce((n, section) => n + section.row
       {/* 見出しの本体はライブ名 (何のライブかが一番大きい情報)。公演の見分け (`Day2`) は
           添える札。どちらも Rust が決めた文字列で、ここは並べるだけ。 */}
       <h1 class="hero__title" id="show-title">
-        <a class="u-underline-hover" href={show.event.path}>{show.heading}</a>
+        <a href={show.event.path}>{show.heading}</a>
         {show.showLabel && <span class="tag show-label">{show.showLabel}</span>}
       </h1>
       <div class="hero__lead">

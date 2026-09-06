@@ -96,6 +96,9 @@ impl From<&Song> for SongDetailRecord {
 /// 披露履歴 1 行 (iOS `PerformanceHistoryRow` / setlist_items × shows × events)。
 #[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
 pub struct PerformanceHistoryEntry {
+    /// 何回目の披露か (この DB に載っている範囲で最古が 1 = 初披露)。判断は Snapshot 構築時の
+    /// `ordinal_by_item` で、曲ページの「N 回目」と公演ページの「初披露」札が同じ数を見る。
+    pub ordinal: u32,
     pub show_id: String,
     pub event_id: String,
     pub event_name: String,
@@ -540,44 +543,6 @@ pub fn performer_idol_ids_map(
 /// SQL は `ORDER BY sh.date DESC` だけで同日内が未規定だった。スナップショットの
 /// 前計算 (setlist_items_by_song) は同日を (show.sort_order ASC, position ASC, 添字)
 /// で決定化してあるので、その並びをそのまま流す。
-/// 披露履歴の各行に対応する setlist_items の添字。[`performance_history`] と同じ並び
-/// (どちらも `setlist_items_by_song` をそのまま流す)。行ごとの歌唱メンバーを引くのに使う。
-pub fn performance_item_indices(snap: &Snapshot, song_id: &str) -> Vec<u32> {
-    snap.song_index_by_id
-        .get(song_id)
-        .map(|&si| snap.setlist_items_by_song[si as usize].clone())
-        .unwrap_or_default()
-}
-
-/// 披露の時系列の鍵 (日付, 公演の並び, 曲順, 添字)。同日の昼夜は公演の `sort_order` で決まる。
-fn chronological_key(snap: &Snapshot, item_index: u32) -> (String, i64, i64, u32) {
-    let item = &snap.setlist_items[item_index as usize];
-    let show = &snap.shows[item.show as usize];
-    (show.date.clone(), show.sort_order, item.position, item_index)
-}
-
-/// 各披露が何回目か ([`performance_history`] と同じ並び。最古が 1)。
-///
-/// 履歴は新しい順だが、同日内は公演の並び・曲順の**昇順**なので、末尾から数え上げると
-/// 昼夜 2 公演の回数が入れ替わる。時系列の鍵で数え直す。
-pub fn performance_ordinals(snap: &Snapshot, song_id: &str) -> Vec<u32> {
-    let keys: Vec<_> = performance_item_indices(snap, song_id)
-        .into_iter()
-        .map(|i| chronological_key(snap, i))
-        .collect();
-    keys.iter()
-        .map(|k| 1 + keys.iter().filter(|other| *other < k).count() as u32)
-        .collect()
-}
-
-/// 初披露にあたる setlist_items の id。この DB に載っている範囲での最古 (履歴が無ければ None)。
-pub fn first_performance_item_id(snap: &Snapshot, song_id: &str) -> Option<String> {
-    performance_item_indices(snap, song_id)
-        .into_iter()
-        .min_by_key(|&i| chronological_key(snap, i))
-        .map(|i| snap.setlist_items[i as usize].id.clone())
-}
-
 pub fn performance_history(snap: &Snapshot, song_id: &str) -> Vec<PerformanceHistoryEntry> {
     let Some(&si) = snap.song_index_by_id.get(song_id) else { return Vec::new() };
     snap.setlist_items_by_song[si as usize]
@@ -587,6 +552,7 @@ pub fn performance_history(snap: &Snapshot, song_id: &str) -> Vec<PerformanceHis
             let show = &snap.shows[item.show as usize];
             let event = &snap.events[show.event as usize];
             PerformanceHistoryEntry {
+                ordinal: snap.ordinal_by_item[ii as usize],
                 show_id: show.id.clone(),
                 event_id: event.id.clone(),
                 event_name: event.name.clone(),
@@ -598,6 +564,23 @@ pub fn performance_history(snap: &Snapshot, song_id: &str) -> Vec<PerformanceHis
             }
         })
         .collect()
+}
+
+/// 披露履歴の各行に対応する setlist_items の添字 ([`performance_history`] と同じ並び)。
+/// 行ごとの歌唱メンバーを引くのに使う。
+pub fn performance_item_indices<'a>(snap: &'a Snapshot, song_id: &str) -> &'a [u32] {
+    snap.song_index_by_id
+        .get(song_id)
+        .map_or(&[][..], |&si| snap.setlist_items_by_song[si as usize].as_slice())
+}
+
+/// 初披露の札。「この DB に載っている範囲で最古」の意味で、[`performance_ordinal_label`] と同じ基準。
+/// アプリも同じ語を出すので、ここが唯一の置き場。
+pub const FIRST_PERFORMANCE_LABEL: &str = "初披露";
+
+/// 何回目かの言い方 (1 は初披露)。
+pub fn performance_ordinal_label(ordinal: u32) -> String {
+    if ordinal <= 1 { FIRST_PERFORMANCE_LABEL.to_string() } else { format!("{ordinal} 回目") }
 }
 
 /// CD シリーズ別アルバム一覧 (fetchAlbumsAsync)。MIN(release_date) 降順。
@@ -1624,6 +1607,8 @@ mod tests {
             let mut expected: Vec<PerformanceHistoryEntry> = stmt
                 .query_map([song_id], |r| {
                     Ok(PerformanceHistoryEntry {
+                        // 何回目かは SQL に無い (Snapshot 構築時の導出)。下で別に検証する。
+                        ordinal: 0,
                         show_id: r.get_unwrap("show_id"),
                         event_id: r.get_unwrap("event_id"),
                         event_name: r.get_unwrap("event_name"),
@@ -1645,6 +1630,23 @@ mod tests {
                 actual.windows(2).all(|w| w[0].date >= w[1].date),
                 "song={song_id} の履歴が date 降順"
             );
+            // 何回目か: 1..=n の順列で、時系列 (日付 → 公演の並び → 曲順) の昇順に振られている。
+            {
+                let mut ordinals: Vec<u32> = actual.iter().map(|e| e.ordinal).collect();
+                ordinals.sort_unstable();
+                assert_eq!(ordinals, (1..=actual.len() as u32).collect::<Vec<_>>(), "song={song_id} の回数が順列");
+                let mut by_time: Vec<&PerformanceHistoryEntry> = actual.iter().collect();
+                by_time.sort_by(|a, b| {
+                    let show_order = |e: &PerformanceHistoryEntry| snap.shows[snap.show_index_by_id[&e.show_id] as usize].sort_order;
+                    (&a.date, show_order(a), a.position).cmp(&(&b.date, show_order(b), b.position))
+                });
+                assert!(
+                    by_time.windows(2).all(|w| w[0].ordinal < w[1].ordinal),
+                    "song={song_id} の回数が時系列の昇順"
+                );
+            }
+            let actual: Vec<PerformanceHistoryEntry> =
+                actual.into_iter().map(|e| PerformanceHistoryEntry { ordinal: 0, ..e }).collect();
 
             // 同日内の並びは SQL 未規定なので、決定キーに正規化して全カラム照合
             let canon = |v: &mut Vec<PerformanceHistoryEntry>| {

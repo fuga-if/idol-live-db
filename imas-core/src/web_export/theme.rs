@@ -9,19 +9,19 @@
 
 use super::dto::{ThemePair, ThemeTable, ThemeTokens, SCHEMA_VERSION};
 use crate::domain::color_engine::{
-    derive, ensure_contrast, hex_string, hex_to_rgb, theme_hex, ImasThemeColors, ThemeRgb,
+    derive, ensure_contrast, hex_string, hex_to_rgb, theme_hex, theme_to_rgb, ImasThemeColors,
+    ThemeRgb, DEFAULT_MIN_CONTRAST_RATIO,
 };
-
-/// 文字に使う色が地に対して満たす比 (WCAG AA、本文)。
-const WEB_TEXT_CONTRAST: f64 = 4.5;
-
-/// 文字が載り得る地のうち、いちばん不利なもの。ライトでは `--ds-fill` を `--ds-surface2` に
-/// 重ねた灰 (これより暗い地に文字は置かない)、ダークではその逆。tokens.css の値から求めた
-/// 近似で、ここで保証した比はそれより明るい (暗い) 地でも保たれる。
-const WORST_LIGHT_SURFACE: &str = "#e3e3e9";
-const WORST_DARK_SURFACE: &str = "#3e3e42";
+use crate::domain::color_match::Rgb;
 use crate::web_export::emit::context::{BrandThemeInput, IdolThemeInput};
 use std::collections::BTreeMap;
+
+/// 文字が載り得る地のうち、いちばん不利なもの。ライトでは `--ds-fill` を `--ds-surface2` に
+/// 重ねた灰 (これより暗い地に文字は置かない)、ダークではその逆。`web/src/styles/tokens.css`
+/// の値から求めた近似 (そちらを変えたらここも見直す)。ここで保証した比はそれより明るい
+/// (暗い) 地でも保たれる。
+const WORST_LIGHT_SURFACE: &str = "#e3e3e9";
+const WORST_DARK_SURFACE: &str = "#3e3e42";
 
 /// ニュートラル (色を持たないもの全部の受け皿)。
 pub const NEUTRAL_KEY: &str = "neutral";
@@ -52,17 +52,16 @@ fn pair(seed: Option<&str>, brand: Option<&str>) -> ThemePair {
 ///
 /// 色の**式**はアプリと共通の `color_engine` にしか無い。ここでやるのは、出面が文字を
 /// 置く地 (アプリには無い白い紙の上のチップや見出し) に対する読める保証だけで、
-/// 使うのも同じエンジンの `ensure_contrast`。
-fn legible(fg: ThemeRgb, backgrounds: &[String]) -> String {
-    let mut rgb = hex_to_rgb(&theme_hex(fg));
-    for bg in backgrounds {
-        rgb = ensure_contrast(rgb, hex_to_rgb(bg), WEB_TEXT_CONTRAST);
-    }
+/// 使うのも同じエンジンの `ensure_contrast` と閾値。
+fn legible(fg: ThemeRgb, backgrounds: &[Rgb]) -> String {
+    let rgb = backgrounds
+        .iter()
+        .fold(theme_to_rgb(fg), |fg, &bg| ensure_contrast(fg, bg, DEFAULT_MIN_CONTRAST_RATIO));
     hex_string(rgb)
 }
 
 fn tokens(c: &ImasThemeColors, dark: bool) -> ThemeTokens {
-    let page = if dark { WORST_DARK_SURFACE } else { WORST_LIGHT_SURFACE }.to_string();
+    let page = hex_to_rgb(if dark { WORST_DARK_SURFACE } else { WORST_LIGHT_SURFACE });
     ThemeTokens {
         accent: theme_hex(c.accent),
         on_accent: theme_hex(c.on_accent),
@@ -71,7 +70,7 @@ fn tokens(c: &ImasThemeColors, dark: bool) -> ThemeTokens {
         tint_strong: theme_hex(c.tint_strong),
         chip_bg: theme_hex(c.chip_bg),
         // チップの地と、ヒーローの地 (見出しの小文字) の両方に載る。
-        chip_text: legible(c.chip_text, &[theme_hex(c.chip_bg), theme_hex(c.hero_surface)]),
+        chip_text: legible(c.chip_text, &[theme_to_rgb(c.chip_bg), theme_to_rgb(c.hero_surface)]),
         ring: theme_hex(c.ring),
         bar: theme_hex(c.bar),
         dot: theme_hex(c.dot),

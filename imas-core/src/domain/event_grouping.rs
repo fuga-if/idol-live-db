@@ -41,6 +41,14 @@ fn year_date_key(date: Option<&str>) -> Option<&str> {
     (d.chars().count() >= 4).then_some(d)
 }
 
+/// 日付 → 年のキー (`"2019"`)。日付不明 (4 桁未満・None) は None。
+///
+/// 年グループのラベル (`"2019年"`) はこれに「年」を付けたもの。URL や添字にはラベルを
+/// 逆解析せず、こちらを使う (ラベルの綴りが変わっても鍵は変わらない)。
+pub fn year_key(date: Option<&str>) -> Option<String> {
+    year_date_key(date).map(|d| char_prefix(d, 4).to_string())
+}
+
 /// 先頭 `n` 文字 (バイトでなく文字数)。Swift `String.prefix` と同じ挙動。
 fn char_prefix(s: &str, n: usize) -> &str {
     match s.char_indices().nth(n) {
@@ -81,8 +89,8 @@ pub fn group_events_by_year(
     // Swift 原本の「同日・同不明はもとの並びを保つ」挙動を再現できる)。
     let mut year_map: Vec<(String, Vec<u32>)> = Vec::new();
     for (index, date) in time_filtered {
-        let year = match date {
-            Some(d) => format!("{}年", char_prefix(d, 4)),
+        let year = match year_key(date) {
+            Some(key) => format!("{key}年"),
             None => UNKNOWN_YEAR.to_string(),
         };
         match year_map.iter_mut().find(|(y, _)| *y == year) {

@@ -23,7 +23,6 @@
         "themeKey": "brand:ml",
         "artworkUrl": null
       },
-      "isPermanent": true,
       "note": null,
       "memberCount": 2,
       "songCount": 1
@@ -39,7 +38,6 @@
         "artworkUrl": null
       },
       "brand": null,
-      "isPermanent": false,
       "note": "公演限定",
       "memberCount": 0,
       "songCount": 0
@@ -58,16 +56,14 @@
       "path": "/units/",
       "current": true,
       "themeKey": null,
-      "count": 1539,
-      "matchPrefixes": []
+      "count": 1539
     },
     {
       "label": "ミリオンライブ!",
       "path": "/units/brand/ml/",
       "current": false,
       "themeKey": "brand:ml",
-      "count": 300,
-      "matchPrefixes": []
+      "count": 300
     }
   ],
   "total": 2,

@@ -11,8 +11,9 @@ import LabeledRow from "../../components/LabeledRow.astro";
 import RankingRow from "../../components/RankingRow.astro";
 import DatedRow from "../../components/DatedRow.astro";
 import Count from "../../components/Count.astro";
-import ColorDot from "../../components/ColorDot.astro";
+import Fold from "../../components/Fold.astro";
 import StatStrip from "../../components/StatStrip.astro";
+import { setlistAnchorId } from "../../lib/anchors";
 import EmptyState from "../../components/EmptyState.astro";
 import { page, pathsFor } from "../../lib/data";
 import type { SongPage } from "../../lib/schema/SongPage";
@@ -20,10 +21,6 @@ import type { SongPage } from "../../lib/schema/SongPage";
 export const getStaticPaths = () => pathsFor("song", "songId");
 
 const song = page<SongPage>(Astro.props.data);
-// 原唱者が多い曲 (全体曲は 49 人) はヒーローが 7 段のチップの壁になる。セトリの行と同じく
-// 色の点 + 人数で畳み、開けば全員出る (<details>、JS 無し)。純粋に高さの話。
-const FOLD_ARTISTS_OVER = 12;
-const foldArtists = song.originalArtists.length > FOLD_ARTISTS_OVER;
 ---
 
 {/* 電話では脇 (基本情報・クレジット・その他の歌唱者) より本体 (歌詞・披露履歴) を先に。 */}
@@ -34,25 +31,13 @@ const foldArtists = song.originalArtists.length > FOLD_ARTISTS_OVER;
       {song.songTypeLabel && <p class="hero__eyebrow">{song.songTypeLabel}</p>}
       <h1 class="hero__title" id="song-title">{song.title}</h1>
       {song.titleKana && <p class="hero__kana">{song.titleKana}</p>}
+      {/* 全体曲は 49 人。セトリの行と同じ畳み (色の点 + 人数、開けば全員)。 */}
       {
-        song.originalArtists.length > 0 &&
-          (foldArtists ? (
-            <details class="fold">
-              <summary class="fold__summary">
-                <span class="u-visually-hidden">原唱者</span>
-                <span class="fold__dots" aria-hidden="true">
-                  {song.originalArtists.map((r) => (
-                    <ColorDot size="md" themeKey={r.themeKey} />
-                  ))}
-                </span>
-                <Count value={song.originalArtists.length} unit="人" strong />
-                <span class="chevron" aria-hidden="true">›</span>
-              </summary>
-              <RefList refs={song.originalArtists} label="原唱者" />
-            </details>
-          ) : (
+        song.originalArtists.length > 0 && (
+          <Fold label="原唱者" themeKeys={song.originalArtists.map((r) => r.themeKey)}>
             <RefList refs={song.originalArtists} label="原唱者" />
-          ))
+          </Fold>
+        )
       }
       <div class="hero__meta">
         {song.brand && <Chip text={song.brand.name} href={song.brand.path} variant="themed" themeKey={song.brand.themeKey} />}
@@ -137,11 +122,12 @@ const foldArtists = song.originalArtists.length > FOLD_ARTISTS_OVER;
         <ListContainer as="ol">
           {song.performanceHistory.map((h) => (
             <li>
-              {/* 飛び先は公演ページのその曲の行。誰が歌ったかは行の中で言う (セトリを目で探さない)。 */}
+              {/* 飛び先は公演ページのその曲の行 (曲順が分からなければ公演の頭)。
+                  誰が歌ったかは行の中で言う (セトリを目で探さない)。 */}
               <DatedRow
                 badge={h.dateBadge}
                 title={h.event.name}
-                href={h.href}
+                href={h.number > 0 ? `${h.show.path}#${setlistAnchorId(h.number)}` : h.show.path}
                 themeKey={h.show.themeKey}
                 meta={[h.placeDisplay, h.performersDisplay]}
               >

@@ -89,7 +89,11 @@ a.u-underline-hover:hover {
    ml (#ffc30b) や学マス (#f39800) のような暖色だと accent 対背景が 1.5〜2.1:1 しか
    なく、キーボード操作中の現在位置が見えなくなる。ニュートラルの ink で描き、
    背景色の外縁を重ねて、どんな面の上でも輪郭が立つようにする。 */
-:focus-visible {
+/* フォーカスリングはここ 1 つ。輪郭を自前で描けない器 (検索欄は input でなく枠に、
+   隠したラジオは label に) もここに並べる。 */
+:focus-visible,
+.search-box__field:focus-within,
+.search-box__modes label:has(input:focus-visible) {
   outline: 2px solid var(--ds-ink);
   outline-offset: 2px;
   box-shadow: 0 0 0 4px var(--ds-bg);
@@ -458,7 +462,8 @@ hr {
   padding-block: 3px;
 }
 
-/* ページ内リンク (数の帯 → 節) の着地は、吸着するヘッダの下に隠れない位置。 */
-.section {
+/* ページ内リンク (数の帯 → 節、披露履歴 → セトリの行、よみ目次 → 区画) の着地は、
+   吸着するヘッダの下に隠れない位置。飛び先は id を持つものすべて。 */
+[id] {
   scroll-margin-top: calc(var(--header-h) + var(--sp4));
 }

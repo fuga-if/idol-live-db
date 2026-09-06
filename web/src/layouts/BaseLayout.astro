@@ -34,7 +34,7 @@ const SITE_NAME = "アイドルライブDB";
   <body data-theme={themeKey} data-character-live={isCharacterLive ? "true" : undefined}>
     <a class="skip-link" href="#main">本文へスキップ</a>
     <div class="shell">
-      <SiteHeader pathname={Astro.url.pathname} />
+      <SiteHeader crumbs={seo.breadcrumbs} />
       <div class="shell__body">
         <main id="main" class:list={["page", wide && "page--wide", "main"]}>
           <slot />

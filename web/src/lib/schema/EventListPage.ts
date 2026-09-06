@@ -14,6 +14,16 @@ export type EventListPage = { schemaVersion: number, path: string, title: string
  */
 groups: Array<YearGroup>, 
 /**
+ * 入口 (`/events/`) だけ: 開催済みのいちばん新しい年の束と、その見出し
+ * (「開催済み (2026年)」)。`groups` (今後の予定) の下に置く。年の一覧では None。
+ */
+recentPast: YearGroup | null, recentPastTitle: string | null, 
+/**
+ * このページの続き (入口では「開催済みをすべて見る」、年の一覧では 1 つ前の年)。
+ * 一覧が途中で切れていることをページの末尾で言うための 1 本。
+ */
+next: NavLink | null, 
+/**
  * 今後 / 開催済み の切替。
  */
 scopeLinks: Array<NavLink>, brandLinks: Array<NavLink>, yearLinks: Array<NavLink>, total: number, seo: SeoBlock, };

@@ -59,6 +59,16 @@ fn is_year(s: &str) -> bool {
     s.len() == 4 && s.bytes().all(|b| b.is_ascii_digit())
 }
 
+/// 読み上げ用の 1 本 (`"2026年9月19日 土曜日"`)。日付ブロックの 3 分割は耳では
+/// 「9/19 土 2026」と聞こえるので、支援技術にはこちらを渡す。部分日付は読める所まで。
+pub fn spoken(date: &str) -> String {
+    if let Some(d) = parse_ymd(date) {
+        return format!("{}年{}月{}日 {}曜日", d.year(), d.month(), d.day(), weekday_of(d));
+    }
+    let parts = date_parts(date);
+    if parts.year.is_empty() { parts.month_day } else { format!("{}年{}", parts.year, parts.month_day) }
+}
+
 /// `"2026-09-19"` → `"2026-09-19 (土)"`。曜日が決まらない入力は原文のまま。
 pub fn with_weekday(date: &str) -> String {
     match parse_ymd(date) {

@@ -160,6 +160,25 @@ pub fn build(raw: RawTables) -> Snapshot {
     let performance_counts: Vec<u32> =
         setlist_items_by_song.iter().map(|v| v.len() as u32).collect();
 
+    // 何回目か。履歴は新しい順だが同日内は昇順なので、末尾から数えるだけでは昼夜が
+    // 入れ替わる。同じ日付の連なり [a, b) を見つけ、その j 番目は (h - b) + 1 + j 回目。
+    let mut ordinal_by_item: Vec<u32> = vec![0; setlist_items.len()];
+    for list in &setlist_items_by_song {
+        let h = list.len();
+        let date_of = |i: u32| &shows[setlist_items[i as usize].show as usize].date;
+        let mut a = 0;
+        while a < h {
+            let mut b = a + 1;
+            while b < h && date_of(list[b]) == date_of(list[a]) {
+                b += 1;
+            }
+            for (j, &i) in list[a..b].iter().enumerate() {
+                ordinal_by_item[i as usize] = (h - b + 1 + j) as u32;
+            }
+            a = b;
+        }
+    }
+
     // setlist_performers → 双方向リンク。
     let mut performers_by_item: Vec<Vec<u32>> = vec![Vec::new(); setlist_items.len()];
     let mut performed_items_by_idol: Vec<Vec<u32>> = vec![Vec::new(); idols.len()];
@@ -473,6 +492,7 @@ pub fn build(raw: RawTables) -> Snapshot {
         artists_by_song,
         songs_by_idol,
         performance_counts,
+        ordinal_by_item,
         shows_by_event,
         setlist_items_by_show,
         setlist_items_by_song,
