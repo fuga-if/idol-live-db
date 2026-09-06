@@ -2,7 +2,7 @@
 import type { LyricsBlock } from "../lib/schema/LyricsBlock";
 
 /**
- * 歌詞とコールガイド。
+ * 歌詞とコールガイド。使われ方はコールガイド目的が多いので、ボタンの文言 (Rust) も両方を言う。
  *
  * **出すかどうかを決めるのはここではない。** `imas-core` の
  * `content::LYRICS_ON_WEB` が決めた結果が `lyrics.available` で来る。
@@ -28,7 +28,7 @@ const { lyrics } = Astro.props;
     <div class="lyrics" data-lyrics data-source={lyrics.sourceUrl}>
       <p class="lyrics__license">{lyrics.licenseNote}</p>
       <button class="btn" type="button" data-lyrics-load>
-        歌詞を読む
+        {lyrics.readLabel}
       </button>
       <p class="lyrics__status" data-lyrics-status role="status" hidden />
       {/* 本文はここに描かれる。サーバから配る HTML には入っていない。 */}

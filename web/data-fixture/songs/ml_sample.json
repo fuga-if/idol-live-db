@@ -37,7 +37,8 @@
     "note": "JASRAC 許諾番号 J260943703 のもとで掲載しています。1 曲ずつの表示のみで、まとめての取得はできません。",
     "licenseNumber": "J260943703",
     "licenseNote": "JASRAC 許諾番号 J260943703 のもとで掲載しています。1 曲ずつの表示のみで、まとめての取得はできません。",
-    "sourceUrl": "https://imas-live-api.tokata3011.workers.dev/songs/ml_mirai/lyrics"
+    "sourceUrl": "https://imas-live-api.tokata3011.workers.dev/songs/ml_mirai/lyrics",
+    "readLabel": "歌詞とコールガイドを読む"
   },
   "songTypeLabel": "全体曲",
   "releaseDate": "2019-03-13",

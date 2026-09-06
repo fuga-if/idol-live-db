@@ -427,5 +427,8 @@ web_dto! {
         pub license_note: Option<String>,
         /// 歌詞 1 曲の取得先 (絶対 URL)。**1 曲ぶんだけ返る。**
         pub source_url: Option<String>,
-    }
+    
+        /// 取りに行くボタンの文言 (`歌詞とコールガイドを読む`)。出さないときは `None`。
+        pub read_label: Option<String>,
+}
 }

@@ -83,6 +83,7 @@ pub fn song_page(ctx: &Ctx, song_id: &str) -> Option<SongPage> {
             source_url: content::LYRICS_ON_WEB.then(|| {
                 format!("{}/songs/{}/lyrics", content::API_ORIGIN, url::url_segment(&record.id))
             }),
+            read_label: content::LYRICS_ON_WEB.then(|| content::LYRICS_READ_LABEL.to_string()),
         },
         id: record.id.clone(),
         path: path.clone(),

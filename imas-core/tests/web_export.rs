@@ -175,8 +175,8 @@ fn t12_no_lyrics_or_preview_audio_anywhere_in_the_output() {
 
     /// `lyrics` ブロックに入ってよいキー。**ここに `lines` や `text` が増えたら落ちる。**
     /// 歌詞本文は D1 にしか置けない (まとめて取れないことが JASRAC 許諾の条件)。
-    const LYRICS_BLOCK_KEYS: [&str; 5] =
-        ["available", "note", "licenseNumber", "licenseNote", "sourceUrl"];
+    const LYRICS_BLOCK_KEYS: [&str; 6] =
+        ["available", "note", "licenseNumber", "licenseNote", "sourceUrl", "readLabel"];
 
     fn walk(rel: &str, value: &serde_json::Value) {
         match value {

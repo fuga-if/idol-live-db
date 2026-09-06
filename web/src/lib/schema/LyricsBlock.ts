@@ -27,4 +27,8 @@ licenseNote: string | null,
 /**
  * 歌詞 1 曲の取得先 (絶対 URL)。**1 曲ぶんだけ返る。**
  */
-sourceUrl: string | null, };
+sourceUrl: string | null, 
+/**
+ * 取りに行くボタンの文言 (`歌詞とコールガイドを読む`)。出さないときは `None`。
+ */
+readLabel: string | null, };

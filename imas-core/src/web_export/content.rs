@@ -49,6 +49,10 @@ pub const LYRICS_ON_WEB: bool = true;
 /// いないときで、そのとき JASRAC の許諾のもとで歌詞を配信しているのはアプリだけ。
 pub const LYRICS_OFF_NOTE: &str = "歌詞はアプリ『アイドルライブDB』でご覧いただけます（アプリは JASRAC 許諾番号 J260943703 のもとで歌詞を配信しています）。本サイトでは歌詞を掲載していません。";
 
+/// 歌詞を取りに行くボタンの文言。使われ方はコールガイド目的が多いので、歌詞だけの
+/// ボタンに見せない (About の説明文もこれを引く)。
+pub const LYRICS_READ_LABEL: &str = "歌詞とコールガイドを読む";
+
 /// 出面で歌詞を出すときの文言。許諾番号を必ず添える (掲示が許諾の条件)。
 pub const LYRICS_ON_WEB_NOTE: &str = "JASRAC 許諾番号 J260943703 のもとで掲載しています。1 曲ずつの表示のみで、まとめての取得はできません。";
 
@@ -212,7 +216,7 @@ pub fn about_sections() -> Vec<AboutSection> {
             paragraphs: if LYRICS_ON_WEB {
                 vec![
                     lyrics_note().to_string(),
-                    "曲ページで「歌詞を読む」を押すと、その 1 曲の歌詞とコールガイドが表示されます。歌詞の検索とコールガイドの編集はアプリでご利用いただけます。".to_string(),
+                    format!("曲ページで「{LYRICS_READ_LABEL}」を押すと、その 1 曲の歌詞とコールガイドが表示されます。歌詞の検索とコールガイドの編集はアプリでご利用いただけます。"),
                 ]
             } else {
                 vec![lyrics_note().to_string()]
