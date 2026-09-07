@@ -125,6 +125,22 @@ ID_FILTER_COLUMN = {
     "units": "id",
 }
 
+# 渡す id が「何の id か」。**列名からは決まらない** ので ID_FILTER_COLUMN とは別に持つ:
+# songs.id と song_artists.song_id はどちらも曲 id だが、
+# setlist_items.id と idols.id は同じ "id" でも別物。
+# 同じ空間の表だけをまとめて 1 回の push で絞れる (呼び出し側 apply_data.py がここを読む)。
+SCOPED_ID_SPACE = {
+    "songs": "song",
+    "song_artists": "song",
+    "setlist_items": "setlist_item",
+    "setlist_performers": "setlist_item",
+    "events": "event",
+    "shows": "event",
+    "show_cast": "show",
+    "idols": "idol",
+    "units": "unit",
+}
+
 # ---------------------------------------------------------------------------
 # Schema introspection helpers
 # ---------------------------------------------------------------------------
