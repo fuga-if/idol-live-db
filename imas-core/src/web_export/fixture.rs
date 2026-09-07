@@ -548,6 +548,7 @@ fn song_page(reference: &Ref, minimal: bool) -> SongPage {
         // 代表値でも本番と同じ判断 (content::LYRICS_ON_WEB) を通す。
         lyrics: LyricsBlock {
             available: content::LYRICS_ON_WEB,
+            status_label: content::lyrics_status_label(),
             note: content::lyrics_note().to_string(),
             license_number: content::LYRICS_ON_WEB
                 .then(|| content::JASRAC_LICENSE_NUMBER.to_string()),

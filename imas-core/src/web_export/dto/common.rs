@@ -492,6 +492,8 @@ web_dto! {
     pub struct LyricsBlock {
         /// この出面で歌詞を出すか。false ならボタンも取得先も出ない。
         pub available: bool,
+        /// 出さないときの状態の札 (`JASRAC 許諾待ち`)。出しているときは `None`。
+        pub status_label: Option<String>,
         /// 出さないときの案内文 (アプリへ誘導する)。
         pub note: String,
         /// 出すときに必ず掲示する許諾番号。

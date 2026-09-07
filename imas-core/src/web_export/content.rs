@@ -50,11 +50,17 @@ pub const JASRAC_LICENSE_NUMBER: &str = "J260943703";
 /// 歌詞検索 (索引の全走査で最も枠を食う) は出面に持たない。
 pub const LYRICS_ON_WEB: bool = false;
 
+/// 歌詞を出していないときの状態の札。**「載せない」ではなく「まだ待っている」**と読める
+/// 短い語にする (許諾が下りたら開ける、という状態を出すのがこの札の役目)。
+/// `LYRICS_ON_WEB` を `true` にすると消える。
+pub const LYRICS_PENDING_LABEL: &str = "JASRAC 許諾待ち";
+
 /// 歌詞を出していないときの断り書き。
 ///
 /// **主語がアプリであることを崩さないこと。** この文が出るのは出面が歌詞を配って
 /// いないときで、そのとき JASRAC の許諾のもとで歌詞を配信しているのはアプリだけ。
-pub const LYRICS_OFF_NOTE: &str = "歌詞はアプリ『アイドルライブDB』でご覧いただけます（アプリは JASRAC 許諾番号 J260943703 のもとで歌詞を配信しています）。本サイトでは歌詞を掲載していません。";
+/// 許諾番号 J260943703 は**アプリの**もので、この出面のものではない。
+pub const LYRICS_OFF_NOTE: &str = "本サイトでの歌詞の掲載には JASRAC の許諾が別に必要なため、いまは見合わせています。歌詞はアプリ『アイドルライブDB』でご覧いただけます（アプリは JASRAC 許諾番号 J260943703 のもとで歌詞を配信しています）。";
 
 /// 歌詞を取りに行くボタンの文言。使われ方はコールガイド目的が多いので、歌詞だけの
 /// ボタンに見せない (About の説明文もこれを引く)。
@@ -70,6 +76,11 @@ pub fn lyrics_note() -> &'static str {
     } else {
         LYRICS_OFF_NOTE
     }
+}
+
+/// 今の設定での状態の札。出しているときは状態を示す必要が無いので `None`。
+pub fn lyrics_status_label() -> Option<String> {
+    (!LYRICS_ON_WEB).then(|| LYRICS_PENDING_LABEL.to_string())
 }
 
 // ---- コールガイド (歌詞行につけるコール) の語彙 -------------------------------
@@ -445,7 +456,10 @@ pub fn about_sections() -> Vec<AboutSection> {
                     format!("曲ページで「{LYRICS_READ_LABEL}」を押すと、その 1 曲の歌詞とコールガイドが表示されます。歌詞の中の言葉から曲を探すには、検索ページの「歌詞」を使ってください。コールガイドの編集はアプリでご利用いただけます。"),
                 ]
             } else {
-                vec![lyrics_note().to_string()]
+                vec![
+                    lyrics_note().to_string(),
+                    "歌詞の中の言葉から曲を探す検索も、同じ理由で止めています（一致した箇所の前後を返すため、歌詞の掲載と同じ扱いになります）。許諾が得られ次第、どちらも本サイトで開きます。".to_string(),
+                ]
             },
             links: vec![AboutLink {
                 label: "App Store でアプリを見る".to_string(),

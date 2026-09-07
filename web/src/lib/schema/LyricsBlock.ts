@@ -14,6 +14,10 @@ export type LyricsBlock = {
  */
 available: boolean, 
 /**
+ * 出さないときの状態の札 (`JASRAC 許諾待ち`)。出しているときは `None`。
+ */
+statusLabel: string | null, 
+/**
  * 出さないときの案内文 (アプリへ誘導する)。
  */
 note: string, 

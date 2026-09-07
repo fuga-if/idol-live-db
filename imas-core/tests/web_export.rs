@@ -178,8 +178,17 @@ fn t12_no_lyrics_or_preview_audio_anywhere_in_the_output() {
     /// 歌詞本文は D1 にしか置けない (まとめて取れないことが JASRAC 許諾の条件)。
     /// `callGuide` はコールガイドの語彙 (記号・札・凡例の語。`content::call_guide_vocabulary`) で、
     /// 歌詞にもコールの本文にも触れない。
-    const LYRICS_BLOCK_KEYS: [&str; 7] =
-        ["available", "note", "licenseNumber", "licenseNote", "sourceUrl", "readLabel", "callGuide"];
+    /// `statusLabel` は状態の札 (`JASRAC 許諾待ち`) で、歌詞そのものではない。
+    const LYRICS_BLOCK_KEYS: [&str; 8] = [
+        "available",
+        "statusLabel",
+        "note",
+        "licenseNumber",
+        "licenseNote",
+        "sourceUrl",
+        "readLabel",
+        "callGuide",
+    ];
 
     fn walk(rel: &str, value: &serde_json::Value) {
         match value {

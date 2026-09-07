@@ -37,7 +37,8 @@
   },
   "lyrics": {
     "available": false,
-    "note": "歌詞はアプリ『アイドルライブDB』でご覧いただけます（アプリは JASRAC 許諾番号 J260943703 のもとで歌詞を配信しています）。本サイトでは歌詞を掲載していません。",
+    "statusLabel": "JASRAC 許諾待ち",
+    "note": "本サイトでの歌詞の掲載には JASRAC の許諾が別に必要なため、いまは見合わせています。歌詞はアプリ『アイドルライブDB』でご覧いただけます（アプリは JASRAC 許諾番号 J260943703 のもとで歌詞を配信しています）。",
     "licenseNumber": null,
     "licenseNote": null,
     "sourceUrl": null,

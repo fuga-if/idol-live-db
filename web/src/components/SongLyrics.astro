@@ -55,6 +55,7 @@ const { lyrics } = Astro.props;
     </div>
   ) : (
     <div class="card card__pad">
+      {lyrics.statusLabel && <p class="chip lyrics__pending">{lyrics.statusLabel}</p>}
       <p>{lyrics.note}</p>
     </div>
   )

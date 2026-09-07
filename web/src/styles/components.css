@@ -527,6 +527,11 @@ a.chip:hover {
   gap: var(--sp4);
   align-items: flex-start;
 }
+/* 歌詞を出していないときの状態の札 (`JASRAC 許諾待ち`)。語は Rust が決める。
+   見た目はチップと同じ (状態を一言で示す点で同じ役目)。 */
+.lyrics__pending {
+  margin-block-end: var(--sp3);
+}
 .lyrics__license {
   font-size: var(--fs-caption);
   color: var(--ds-ink2);
