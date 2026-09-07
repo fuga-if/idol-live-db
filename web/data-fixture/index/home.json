@@ -140,7 +140,7 @@
     "termsUrl": "https://fuga-if.github.io/imas-live-privacy/terms.html",
     "repositoryUrl": "https://github.com/fuga-if/idol-live-db"
   },
-  "appNote": "参加記録・投票・コールの編集・タグ付けはアプリでご利用いただけます。このサイトは閲覧と共有に専念しています。",
+  "appNote": "参加記録・投票・歌詞・コール・タグ付けはアプリでご利用いただけます。このサイトは閲覧と共有に専念しています。",
   "recentShowsMore": {
     "label": "開催済みのライブへ",
     "path": "/events/past/",

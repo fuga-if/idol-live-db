@@ -981,7 +981,13 @@ mod real {
             serde_json::from_str(&std::fs::read_to_string(dir.path().join("meta.json")).unwrap())
                 .unwrap();
         assert!(meta.primary_nav.iter().any(|n| n.path == "/calls/"), "ナビに /calls/ が無い");
-        assert!(meta.lyrics_search_url.is_some(), "歌詞検索の取得先が meta に無い");
+        // 歌詞検索の取得先は歌詞と一蓮托生 (`content::LYRICS_ON_WEB`)。閉じているときは
+        // 取得先ごと出さない — URL だけ残っていると「押せないのに在り処は分かる」形になる。
+        assert_eq!(
+            meta.lyrics_search_url.is_some(),
+            imas_core::web_export::content::LYRICS_ON_WEB,
+            "歌詞検索の取得先が LYRICS_ON_WEB と食い違っている"
+        );
     }
 
     #[test]

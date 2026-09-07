@@ -33,7 +33,7 @@
   "app": {
     "appStoreUrl": "https://apps.apple.com/jp/app/id6763342297",
     "deeplink": "imaslivedb://events/ev_empty",
-    "note": "参加記録・投票・コールの編集・タグ付けはアプリでご利用いただけます。"
+    "note": "参加記録・投票・歌詞・コール・タグ付けはアプリでご利用いただけます。"
   },
   "seo": {
     "title": "公演未定のライブ | アイドルライブDB",

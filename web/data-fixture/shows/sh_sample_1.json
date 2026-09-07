@@ -237,7 +237,7 @@
   "app": {
     "appStoreUrl": "https://apps.apple.com/jp/app/id6763342297",
     "deeplink": "imaslivedb://shows/sh_sample_1",
-    "note": "参加記録・投票・コールの編集・タグ付けはアプリでご利用いただけます。"
+    "note": "参加記録・投票・歌詞・コール・タグ付けはアプリでご利用いただけます。"
   },
   "seo": {
     "title": "DAY1 | アイドルライブDB",

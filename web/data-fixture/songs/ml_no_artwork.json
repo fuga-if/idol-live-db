@@ -36,51 +36,13 @@
     ]
   },
   "lyrics": {
-    "available": true,
-    "note": "JASRAC 許諾番号 J260943703 のもとで掲載しています。1 曲ずつの表示のみで、まとめての取得はできません。",
-    "licenseNumber": "J260943703",
-    "licenseNote": "JASRAC 許諾番号 J260943703 のもとで掲載しています。1 曲ずつの表示のみで、まとめての取得はできません。",
-    "sourceUrl": "https://imas-live-api.tokata3011.workers.dev/songs/ml_mirai/lyrics",
-    "readLabel": "歌詞とコールガイドを読む",
-    "callGuide": {
-      "claps": [
-        {
-          "kind": "back_beat",
-          "symbol": "★",
-          "label": "裏拍"
-        },
-        {
-          "kind": "four_on_floor",
-          "symbol": "■",
-          "label": "4つ打ち"
-        },
-        {
-          "kind": "ppph",
-          "symbol": "♠",
-          "label": "PPPH"
-        },
-        {
-          "kind": "none",
-          "symbol": "♥",
-          "label": "コールなし"
-        }
-      ],
-      "emphases": [
-        {
-          "kind": "normal",
-          "label": "通常"
-        },
-        {
-          "kind": "optional",
-          "label": "おこのみで"
-        },
-        {
-          "kind": "performer_request",
-          "label": "演者要望"
-        }
-      ],
-      "staleLabel": "ズレ"
-    }
+    "available": false,
+    "note": "歌詞はアプリ『アイドルライブDB』でご覧いただけます（アプリは JASRAC 許諾番号 J260943703 のもとで歌詞を配信しています）。本サイトでは歌詞を掲載していません。",
+    "licenseNumber": null,
+    "licenseNote": null,
+    "sourceUrl": null,
+    "readLabel": null,
+    "callGuide": null
   },
   "songTypeLabel": "カバー",
   "releaseDate": null,
@@ -107,7 +69,7 @@
   "app": {
     "appStoreUrl": "https://apps.apple.com/jp/app/id6763342297",
     "deeplink": null,
-    "note": "参加記録・投票・コールの編集・タグ付けはアプリでご利用いただけます。"
+    "note": "参加記録・投票・歌詞・コール・タグ付けはアプリでご利用いただけます。"
   },
   "seo": {
     "title": "ジャケットの無い曲 | アイドルライブDB",
