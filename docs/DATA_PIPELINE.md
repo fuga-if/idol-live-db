@@ -79,8 +79,15 @@ performer → original に直して push すると **original のレコードが
 Development へ `xcrun cktool import-schema` してから Dashboard で Production へ昇格する。
 Production に列が無いうちに push すると弾かれる。
 
-> 2026-09-07: `Song` に `jointBrandIds` / `isCollab` を足した (合同曲)。**未昇格**なので、
-> songs を push する前に上の手順を踏むこと。
+> 2026-09-07: `Song` に `jointBrandIds` / `isCollab` を足した (合同曲)。
+> **Development へは import 済み**。残るは Dashboard の **Deploy Schema Changes** で
+> Production へ昇格するところだけ (import-schema は production を受け付けない仕様)。
+> 昇格前に songs を push すると弾かれる。
+
+`tools/cloudkit_schema.ckdb` は **export-schema の出力そのまま**にしておく
+(並び順まで一致させる)。次に export した人が、本当の差分だけを見られるようにするため。
+手順は「export → その全文に追記 → validate → import」で、**部分適用はしない**
+(既存の定義を落とす)。
 
 スキーマを変えた時 (列追加等) は、ローカル master.sqlite から `sqlite3 ... .dump > db/master.sql` で
 dump を作り直してコミットする (cron はデータのみ更新し、スキーマは db/master.sql 由来のため)。
