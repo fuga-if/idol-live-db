@@ -17,6 +17,10 @@ web_dto! {
         pub title_kana: Option<String>,
         pub theme_key: String,
         pub brand: Option<Ref>,
+        /// 合同曲で一緒に参加しているブランド (`brand` 以外)。無ければ空。
+        pub joint_brands: Vec<Ref>,
+        /// 合同曲の札 (`content::SONG_COLLAB_LABEL`)。合同曲でなければ `None`。
+        pub collab_label: Option<String>,
         /// コミュニティ集計 (タグ・お気に入り・ペンライト)。焼き込み。
         pub community: SongCommunity,
         /// 歌詞・コールガイドの出し方。**出すかどうかを決めるのは Rust。**

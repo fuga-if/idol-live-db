@@ -14,6 +14,18 @@
     "themeKey": "brand:ml",
     "artworkUrl": null
   },
+  "jointBrands": [
+    {
+      "kind": "brand",
+      "id": "cg",
+      "name": "アイドルマスター シンデレラガールズ",
+      "sub": "CG",
+      "path": "/brands/cg/",
+      "themeKey": "brand:cg",
+      "artworkUrl": null
+    }
+  ],
+  "collabLabel": "合同曲",
   "community": {
     "tags": [
       {

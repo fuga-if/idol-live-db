@@ -79,6 +79,9 @@ performer → original に直して push すると **original のレコードが
 Development へ `xcrun cktool import-schema` してから Dashboard で Production へ昇格する。
 Production に列が無いうちに push すると弾かれる。
 
+> 2026-09-07: `Song` に `jointBrandIds` / `isCollab` を足した (合同曲)。**未昇格**なので、
+> songs を push する前に上の手順を踏むこと。
+
 スキーマを変えた時 (列追加等) は、ローカル master.sqlite から `sqlite3 ... .dump > db/master.sql` で
 dump を作り直してコミットする (cron はデータのみ更新し、スキーマは db/master.sql 由来のため)。
 

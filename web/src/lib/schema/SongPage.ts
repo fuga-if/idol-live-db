@@ -19,6 +19,14 @@ import type { StatTile } from "./StatTile";
  */
 export type SongPage = { schemaVersion: number, id: string, path: string, title: string, titleKana: string | null, themeKey: string, brand: Ref | null, 
 /**
+ * 合同曲で一緒に参加しているブランド (`brand` 以外)。無ければ空。
+ */
+jointBrands: Array<Ref>, 
+/**
+ * 合同曲の札 (`content::SONG_COLLAB_LABEL`)。合同曲でなければ `None`。
+ */
+collabLabel: string | null, 
+/**
  * コミュニティ集計 (タグ・お気に入り・ペンライト)。焼き込み。
  */
 community: SongCommunity, 

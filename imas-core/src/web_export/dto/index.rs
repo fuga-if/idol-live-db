@@ -165,6 +165,9 @@ web_dto! {
         pub artists_label: Option<String>,
         /// 曲種別 (「ソロ曲」「ユニット曲」「全体曲」…)。語は `content::song_type_label`。
         pub song_type_label: Option<String>,
+        /// 合同曲の札 (`content::SONG_COLLAB_LABEL`)。合同曲でなければ `None`。
+        /// ブランド別の一覧にはそのブランドの曲に混じって出るので、行で見分けられるようにする。
+        pub collab_label: Option<String>,
         /// 「作曲 <作曲者>」。語は `content::composer_credit`。行の 3 行目 (幅があるときだけ)。
         pub composer_credit: Option<String>,
         /// 「収録 <CD 名>」。語は `content::cd_credit`。同上。

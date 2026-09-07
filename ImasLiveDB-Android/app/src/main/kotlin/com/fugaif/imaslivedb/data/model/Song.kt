@@ -90,7 +90,28 @@ data class Song(
      * リブート前後の曲を区別できない。判定は [UnitVersion.code] で行うこと。
      */
     @ColumnInfo(name = "unit_version_id")
-    val unitVersionId: String? = null
+    val unitVersionId: String? = null,
+
+    /**
+     * 合同曲 (コラボ曲) で、brand_id 以外に参加しているブランド (カンマ区切り)。
+     * events の joint_brand_ids と同じ形で、参加ブランド全部の曲一覧に出すために使う。
+     * **在籍の重なりでは入れない** — ML の曲に 765AS の面々が居るのも、876 の曲に
+     * 秋月涼が居るのも合同ではない。
+     */
+    @ColumnInfo(name = "joint_brand_ids")
+    val jointBrandIds: String? = null,
+
+    /**
+     * シリーズ横断の合同曲か。判断は人が持つ (原唱者のブランドから導くと在籍の重なりを
+     * 合同と取り違える)。立てるなら [jointBrandIds] も入れる。
+     */
+    @ColumnInfo(name = "is_collab")
+    val isCollab: Boolean = false
 ) {
     val isRemix: Boolean get() = parentSongId != null
+
+    /** 参加ブランド ([brandId] が先頭、続いて [jointBrandIds])。 */
+    val brandIds: List<String>
+        get() = (listOfNotNull(brandId) + (jointBrandIds?.split(",") ?: emptyList()))
+            .filter { it.isNotEmpty() }
 }

@@ -123,6 +123,8 @@ pub fn song_page(ctx: &Ctx, song_id: &str) -> Option<SongPage> {
         },
         theme_key: ctx.brand_theme(brand_id.as_deref()),
         brand: brand_id.as_deref().and_then(|b| ctx.brand_ref(b)),
+        joint_brands: ctx.joint_brand_refs(record.joint_brand_ids.as_deref()),
+        collab_label: record.is_collab.then(|| content::SONG_COLLAB_LABEL.to_string()),
         song_type_label: record
             .song_type
             .as_deref()

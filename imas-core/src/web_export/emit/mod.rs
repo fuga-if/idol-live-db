@@ -215,6 +215,8 @@ fn shippable_song(song: crate::domain::snapshot::Song) -> crate::domain::snapsho
         unit_id,
         series_group,
         jasrac_code,
+        joint_brand_ids,
+        is_collab,
     } = song;
     Song {
         id,
@@ -241,6 +243,9 @@ fn shippable_song(song: crate::domain::snapshot::Song) -> crate::domain::snapsho
         unit_id,
         series_group,
         jasrac_code,
+        // 合同曲の印。どのブランドの一覧に出すかを出面が決めるのに要る。
+        joint_brand_ids,
+        is_collab,
     }
 }
 

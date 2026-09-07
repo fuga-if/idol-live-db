@@ -18,6 +18,11 @@ artistsLabel: string | null,
  */
 songTypeLabel: string | null, 
 /**
+ * 合同曲の札 (`content::SONG_COLLAB_LABEL`)。合同曲でなければ `None`。
+ * ブランド別の一覧にはそのブランドの曲に混じって出るので、行で見分けられるようにする。
+ */
+collabLabel: string | null, 
+/**
  * 「作曲 <作曲者>」。語は `content::composer_credit`。行の 3 行目 (幅があるときだけ)。
  */
 composerCredit: string | null, 

@@ -177,6 +177,10 @@ pub fn tag_page_description(name: &str, count: u32) -> String {
     format!("アイドルマスターの楽曲のうち「{name}」のタグが付いた {count} 曲。")
 }
 
+/// シリーズ横断の合同曲に付ける札。ブランド別の一覧では、そのブランドの曲に混じって出るので
+/// 「これは合同」と言っておく。
+pub const SONG_COLLAB_LABEL: &str = "合同曲";
+
 // ---- アイドル一覧の表 -----------------------------------------------------------
 /// 表の見出し (名前の列の次から)。値の並びは `emit::lists::idol_list_item` が同じ順で作る。
 pub const IDOL_COLUMN_BRAND: &str = "ブランド";

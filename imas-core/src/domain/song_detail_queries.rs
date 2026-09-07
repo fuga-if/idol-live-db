@@ -60,6 +60,10 @@ pub struct SongDetailRecord {
     pub unit_id: Option<String>,
     pub series_group: Option<String>,
     pub jasrac_code: Option<String>,
+    /// 合同曲で `brand_id` 以外に参加しているブランド (カンマ区切り)。
+    pub joint_brand_ids: Option<String>,
+    /// シリーズ横断の合同曲か。
+    pub is_collab: bool,
 }
 
 impl From<&Song> for SongDetailRecord {
@@ -89,6 +93,8 @@ impl From<&Song> for SongDetailRecord {
             unit_id: s.unit_id.clone(),
             series_group: s.series_group.clone(),
             jasrac_code: s.jasrac_code.clone(),
+            joint_brand_ids: s.joint_brand_ids.clone(),
+            is_collab: s.is_collab,
         }
     }
 }
@@ -894,6 +900,8 @@ mod tests {
             unit_id: row.get_unwrap("unit_id"),
             series_group: row.get_unwrap("series_group"),
             jasrac_code: row.get_unwrap("jasrac_code"),
+            joint_brand_ids: row.get_unwrap("joint_brand_ids"),
+            is_collab: row.get_unwrap::<_, i64>("is_collab") != 0,
         }
     }
 

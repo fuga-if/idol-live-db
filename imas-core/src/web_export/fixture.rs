@@ -570,6 +570,9 @@ fn song_page(reference: &Ref, minimal: bool) -> SongPage {
         title_kana: if minimal { None } else { Some("さんきゅー".to_string()) },
         theme_key: reference.theme_key.clone(),
         brand: Some(brand_ml()),
+        // 合同曲は参加ブランドを添えて札を出す。ふつうの曲は空 + None。
+        joint_brands: if minimal { vec![] } else { vec![brand_cg()] },
+        collab_label: (!minimal).then(|| content::SONG_COLLAB_LABEL.to_string()),
         // 種別は実データの語彙 (solo / unit / all / cover / tie_in) から取る。
         song_type_label: content::song_type_label(if minimal { "cover" } else { "all" })
             .map(str::to_string),
@@ -950,6 +953,8 @@ fn song_list_page(path: &str, title: &str, kind: SongListKind) -> SongListPage {
             unit_label: Some("765MILLION ALLSTARS".to_string()),
             artists_label: Some("春日未来".to_string()),
             song_type_label: Some("ユニット曲".to_string()),
+            // 合同曲の札が付く行 (ブランド別の一覧でも見分けられる)。
+            collab_label: Some(content::SONG_COLLAB_LABEL.to_string()),
             composer_credit: Some("作曲 高田暁".to_string()),
             cd_credit: Some("収録 THE IDOLM@STER LIVE THE@TER PERFORMANCE 01".to_string()),
             performance_count: Some(12),
@@ -962,6 +967,7 @@ fn song_list_page(path: &str, title: &str, kind: SongListKind) -> SongListPage {
             unit_label: None,
             artists_label: None,
             song_type_label: None,
+            collab_label: None,
             composer_credit: None,
             cd_credit: None,
             performance_count: None,

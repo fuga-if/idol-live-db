@@ -31,6 +31,8 @@ const credits = [item.composerCredit, item.cdCredit].filter((m): m is string => 
     <span class="row__title u-underline-hover">
       {item.ref.name}
       {item.songTypeLabel && <TagChip text={item.songTypeLabel} kind="all" />}
+      {/* 合同曲。ブランド別の一覧ではそのブランドの曲に混じって出るので、行で見分けられるように。 */}
+      {item.collabLabel && <TagChip text={item.collabLabel} kind="cover" />}
     </span>
     {
       meta.length > 0 && (

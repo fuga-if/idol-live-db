@@ -67,6 +67,13 @@ pub struct Song {
     pub unit_id: Option<String>,
     pub series_group: Option<String>,
     pub jasrac_code: Option<String>,
+    /// 合同曲 (コラボ曲) で、`brand_id` 以外に参加しているブランド (カンマ区切り)。
+    /// events の `joint_brand_ids` と同じ形。**在籍の重なりでは入れない** —
+    /// ML の曲に 765AS の面々が居るのも、876 の曲に秋月涼が居るのも合同ではない。
+    pub joint_brand_ids: Option<String>,
+    /// シリーズ横断の合同曲か。判断は人が持つ (原唱者のブランドから導くと、上の
+    /// 「在籍の重なり」を合同と取り違える)。立てるなら `joint_brand_ids` も入れる。
+    pub is_collab: bool,
 }
 
 /// idols 全カラム (Bundle スキーマ基準)。
@@ -105,6 +112,23 @@ pub struct Idol {
     pub attribute: Option<String>,
     pub is_external: bool,
     pub aliases: Option<String>,
+}
+
+impl Song {
+    /// 参加ブランドを順に (`brand_id` が先頭、続いて `joint_brand_ids`)。
+    pub fn brand_ids(&self) -> impl Iterator<Item = &str> {
+        self.brand_id
+            .as_deref()
+            .into_iter()
+            .chain(self.joint_brand_ids.as_deref().unwrap_or_default().split(','))
+            .filter(|b| !b.is_empty())
+    }
+
+    /// そのブランドの曲一覧に出るか。**合同曲は参加ブランド全部に出る**
+    /// (VOY@GER は 765AS の一覧にもデレマスの一覧にも出る)。
+    pub fn belongs_to_brand(&self, brand_id: &str) -> bool {
+        self.brand_ids().any(|b| b == brand_id)
+    }
 }
 
 /// 表示用の短い名: nickname > given_name > name。空文字は「無い」扱い。
