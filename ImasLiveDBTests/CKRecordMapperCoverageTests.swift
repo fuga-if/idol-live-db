@@ -66,9 +66,14 @@ final class CKRecordMapperCoverageTests: XCTestCase {
             "unitId": "u1" as NSString,
             "seriesGroup": "LIVE THE@TER FORWARD" as NSString,
             "unitVersionId": "unit_アルストロメリア__axe8" as NSString,
+            "jointBrandIds": "cg,ml" as NSString,
+            "isCollab": 1 as NSNumber,
         ])
 
         let song = try XCTUnwrap(CKRecordMapper.song(from: rec))
+        // Bool は nil を取らないので nilProperties では捕まらない。落とすと同期のたびに
+        // 合同曲の札が false へ戻るため、ここで直に見る。
+        XCTAssertTrue(song.isCollab, "CKRecordMapper.song(from:) が isCollab を読み落としている")
         let missing = nilProperties(of: song)
         XCTAssertTrue(
             missing.isEmpty,

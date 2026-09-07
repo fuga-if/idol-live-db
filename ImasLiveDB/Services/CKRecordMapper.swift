@@ -190,7 +190,10 @@ enum CKRecordMapper {
             seriesGroup: row.seriesGroup,
             // 同じ理由。読み落としていたので、同期のたびに版つきの曲 (sc_beam / sc_iwe) が
             // 無印へ戻っていた。`CKRecordMapperCoverageTests` がこれを捕まえる。
-            unitVersionId: row.unitVersionId
+            unitVersionId: row.unitVersionId,
+            // 同じ理由。落とすと同期のたびに合同曲の指定が消え、参加ブランドの曲一覧から落ちる。
+            jointBrandIds: row.jointBrandIds,
+            isCollab: row.isCollab
         )
     }
 

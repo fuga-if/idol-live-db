@@ -27,7 +27,10 @@ final class SongIdolFilterTests: XCTestCase {
                     parent_song_id TEXT, release_date TEXT, cd_series TEXT, series_group TEXT,
                     song_type TEXT NOT NULL, unit_id TEXT, unit_name TEXT, singer_label TEXT,
                     apple_music_id TEXT, artwork_url TEXT, lyrics_url TEXT,
-                    lyricist TEXT, composer TEXT, arranger TEXT
+                    lyricist TEXT, composer TEXT, arranger TEXT,
+                    -- NOT NULL の列は Swift 側が Optional でないので、抜くと GRDB の
+                    -- デコードが "column not found" で落ちる (String? の列は抜いてよい)。
+                    is_collab INTEGER NOT NULL DEFAULT 0
                 )
                 """)
             try db.execute(sql: "CREATE TABLE idols(id TEXT PRIMARY KEY, brand_id TEXT, name TEXT, name_kana TEXT, sort_order INTEGER NOT NULL DEFAULT 0, is_external INTEGER NOT NULL DEFAULT 0)")

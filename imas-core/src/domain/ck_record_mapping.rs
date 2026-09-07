@@ -482,6 +482,11 @@ pub struct CkSongRow {
     pub series_group: Option<String>,
     /// この曲がどのユニットの版のものか。None = 無印。
     pub unit_version_id: Option<String>,
+    /// 合同曲で参加している他ブランド (カンマ区切り)。events と同じ形。
+    pub joint_brand_ids: Option<String>,
+    /// 合同曲 (コラボ曲) の札。人が立てるもので、データから機械的には導けない
+    /// (在籍の重なりを合同と取り違える)。
+    pub is_collab: bool,
 }
 
 /// units
@@ -837,6 +842,10 @@ pub fn song(record: &CkRecordInput) -> Option<CkSongRow> {
         unit_id: f.str("unitId"),
         series_group: f.str("seriesGroup"),
         unit_version_id: f.str("unitVersionId"),
+        // 読み落とすと、GRDB / Room の upsert が Song の全列を書くので、同期のたびに
+        // 合同曲の指定が消えてブランド別の曲一覧から落ちる (unit_version_id と同じ壊れ方)。
+        joint_brand_ids: f.str("jointBrandIds"),
+        is_collab: f.bool_value("isCollab", false),
     })
 }
 
@@ -1418,6 +1427,28 @@ mod tests {
         ))
         .unwrap();
         assert_eq!(s.series_group, Some("MASTER ARTIST".to_string()));
+    }
+
+    #[test]
+    fn song_reads_collab_columns() {
+        // 同じ理由 (行全体を置換するので読み落とした列は毎回消える)。
+        // 落とすと合同曲が参加ブランドの曲一覧から抜ける。
+        let s = song(&rec(
+            "s1",
+            &[
+                ("title", text("なんどでも笑おう")),
+                ("jointBrandIds", text("cg,ml")),
+                ("isCollab", int(1)),
+            ],
+        ))
+        .unwrap();
+        assert_eq!(s.joint_brand_ids, Some("cg,ml".to_string()));
+        assert!(s.is_collab);
+
+        // 来ていなければ既定 (合同ではない)。
+        let plain = song(&rec("s2", &[("title", text("GO MY WAY!!"))])).unwrap();
+        assert_eq!(plain.joint_brand_ids, None);
+        assert!(!plain.is_collab);
     }
 
     #[test]

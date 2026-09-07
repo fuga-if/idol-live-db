@@ -291,7 +291,10 @@ object SyncMappers {
                 unitId = row.unitId.emptyToNull(),
                 seriesGroup = row.seriesGroup.emptyToNull(),
                 // 読み落とすと、同期のたびに版つきの曲 (sc_beam / sc_iwe) が無印へ戻る。
-                unitVersionId = row.unitVersionId.emptyToNull()
+                unitVersionId = row.unitVersionId.emptyToNull(),
+                // 同じ理由。落とすと合同曲の指定が消え、参加ブランドの曲一覧から落ちる。
+                jointBrandIds = row.jointBrandIds.emptyToNull(),
+                isCollab = row.isCollab
             )
         }
 
