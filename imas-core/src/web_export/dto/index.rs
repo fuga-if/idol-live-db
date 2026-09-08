@@ -278,8 +278,8 @@ web_dto! {
         pub items: Vec<IdolListItem>,
         /// 表の見出し (名前の列の次から)。全行が空になる列は出さない。
         pub columns: Vec<IdolColumn>,
-        /// 名前の列の見出し。
-        pub name_column_label: String,
+        /// 名前の列。他の列と同じ器にしてあるので、見出しの出し方を分岐させずに済む。
+        pub name_column: IdolColumn,
         /// 畳んだメニューにする軸 (ブランド・誕生月)。
         pub filters: Vec<FilterAxis>,
         pub total: u32,
@@ -352,6 +352,9 @@ web_dto! {
         pub label: String,
         /// 数の列 (右に寄せ、等幅で出す)。
         pub numeric: bool,
+        /// この列で並べ替えられるときの鍵 (`IdolSortKind::key`)。
+        /// `None` の列は押しても何も起きないので、見出しをボタンにしない。
+        pub sort_key: Option<String>,
     }
 }
 

@@ -7,4 +7,9 @@ export type IdolColumn = { label: string,
 /**
  * 数の列 (右に寄せ、等幅で出す)。
  */
-numeric: boolean, };
+numeric: boolean, 
+/**
+ * この列で並べ替えられるときの鍵 (`IdolSortKind::key`)。
+ * `None` の列は押しても何も起きないので、見出しをボタンにしない。
+ */
+sortKey: string | null, };

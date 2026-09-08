@@ -108,8 +108,13 @@ impl Query {
         // **選択肢を組む関数はアプリと同じもの**を呼ぶ。ここで snap を自前で
         // 走査すると、並びだけが他の画面と違う一覧になる (実際にアイドルは
         // rowid 順・シリーズは辞書順になっていて、アプリのピッカーと食い違っていた)。
+        // ブランドは**この一覧に実際に居るものだけ** (属性と同じ規則)。
+        // 外部ゲストしか居ないブランド (`other`) を選べても 0 件になるだけ。
+        let present: std::collections::HashSet<&str> =
+            self.idol_entries.iter().map(|e| e.brand_id.as_str()).collect();
         let brands = idol_queries::brand_records(&self.snap)
             .into_iter()
+            .filter(|b| present.contains(b.id.as_str()))
             .map(|b| Opt { value: b.id, label: b.name })
             .collect();
         let idols = idol_queries::all_idols_for_picker(&self.snap)
@@ -154,8 +159,13 @@ impl Query {
 
     /// アイドル一覧の選択肢 (ブランド・属性・誕生月・並べ替え)。
     pub fn idol_facets(&self) -> Result<String, JsValue> {
+        // ブランドは**この一覧に実際に居るものだけ** (属性と同じ規則)。
+        // 外部ゲストしか居ないブランド (`other`) を選べても 0 件になるだけ。
+        let present: std::collections::HashSet<&str> =
+            self.idol_entries.iter().map(|e| e.brand_id.as_str()).collect();
         let brands = idol_queries::brand_records(&self.snap)
             .into_iter()
+            .filter(|b| present.contains(b.id.as_str()))
             .map(|b| Opt { value: b.id, label: b.name })
             .collect();
         // 属性は実データに出てくるものだけ (ブランドごとに語彙が違う)。

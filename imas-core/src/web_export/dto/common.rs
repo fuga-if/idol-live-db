@@ -260,12 +260,24 @@ web_dto! {
     pub struct FilterAxis {
         pub label: String,
         pub links: Vec<NavLink>,
+        /// 同じ軸を島 (絞り込みバー) も持っているときの、その軸の鍵。
+        ///
+        /// 島が動く環境では**同じ軸が 2 つ並んでしまう**ので、島が起動したら
+        /// こちらを隠す。JS が無い環境ではこのリンクだけが残る (畳んだメニューが
+        /// 唯一の切替になる)。HTML には残るので、リンクとしての到達性も落ちない。
+        pub island_key: Option<String>,
     }
 }
 
 impl FilterAxis {
     pub fn new(label: &str, links: Vec<NavLink>) -> Self {
-        Self { label: label.to_string(), links }
+        Self { label: label.to_string(), links, island_key: None }
+    }
+
+    /// 島の同じ軸 (`FieldSpec.key`) と対にする。
+    pub fn also_in_island(mut self, key: &str) -> Self {
+        self.island_key = Some(key.to_string());
+        self
     }
 }
 

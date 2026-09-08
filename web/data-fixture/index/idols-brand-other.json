@@ -54,22 +54,30 @@
   "columns": [
     {
       "label": "CV",
-      "numeric": false
+      "numeric": false,
+      "sortKey": null
     },
     {
       "label": "誕生日",
-      "numeric": false
+      "numeric": false,
+      "sortKey": "birthday"
     },
     {
       "label": "年齢",
-      "numeric": true
+      "numeric": true,
+      "sortKey": "age"
     },
     {
       "label": "身長",
-      "numeric": true
+      "numeric": true,
+      "sortKey": "height"
     }
   ],
-  "nameColumnLabel": "名前",
+  "nameColumn": {
+    "label": "名前",
+    "numeric": false,
+    "sortKey": "kana"
+  },
   "filters": [
     {
       "label": "ブランド",
@@ -88,7 +96,8 @@
           "themeKey": "brand:ml",
           "count": 52
         }
-      ]
+      ],
+      "islandKey": "brandIds"
     },
     {
       "label": "誕生月",
@@ -177,7 +186,8 @@
           "themeKey": null,
           "count": null
         }
-      ]
+      ],
+      "islandKey": "birthMonth"
     }
   ],
   "total": 2,

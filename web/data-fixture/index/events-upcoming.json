@@ -106,7 +106,8 @@
         "themeKey": null,
         "count": null
       }
-    ]
+    ],
+    "islandKey": null
   },
   "filters": [
     {
@@ -133,7 +134,8 @@
           "themeKey": "brand:cg",
           "count": 180
         }
-      ]
+      ],
+      "islandKey": null
     }
   ],
   "total": 2,

@@ -35,7 +35,7 @@ use super::emit::context::TAGS_PATH;
 use super::emit::calendar::{month_counts, month_grid, month_path, CALENDAR_PATH};
 use crate::domain::date_display::{range_with_weekday, until_display, with_weekday};
 use crate::domain::setlist_lineup::Lineup;
-use crate::domain::idol_list_filtering::IdolQuery;
+use crate::domain::idol_list_filtering::{IdolQuery, IdolSortKind};
 use crate::domain::song_list_queries::{SongListFilter, SongQuery};
 
 const TODAY: &str = "2026-09-04";
@@ -996,7 +996,8 @@ fn song_list_page(path: &str, title: &str, kind: SongListKind) -> SongListPage {
                 nav("すべて", "/songs/", path == "/songs/", None, Some(2040)),
                 nav("ミリオンライブ!", "/songs/brand/ml/", path == "/songs/brand/ml/", Some("brand:ml"), Some(600)),
             ],
-        )],
+        )
+        .also_in_island("brandIds")],
         all_songs_link: if path == "/songs/" {
             Some(nav("派生曲・ライブ限定曲を含む全件", "/songs/all/", false, None, Some(3153)))
         } else {
@@ -1079,15 +1080,23 @@ fn idol_list_page(path: &str, title: &str, kind: IdolListKind, empty: bool) -> I
         },
         // 本番と同じ並び (`emit::lists::idol_columns` から空の列を落としたもの)。
         columns: [
-            (content::IDOL_COLUMN_VOICE_ACTOR, false),
-            (content::IDOL_COLUMN_BIRTHDAY, false),
-            (content::IDOL_COLUMN_AGE, true),
-            (content::IDOL_COLUMN_HEIGHT, true),
+            (content::IDOL_COLUMN_VOICE_ACTOR, false, None),
+            (content::IDOL_COLUMN_BIRTHDAY, false, Some(IdolSortKind::Birthday)),
+            (content::IDOL_COLUMN_AGE, true, Some(IdolSortKind::Age)),
+            (content::IDOL_COLUMN_HEIGHT, true, Some(IdolSortKind::Height)),
         ]
         .into_iter()
-        .map(|(label, numeric)| IdolColumn { label: label.to_string(), numeric })
+        .map(|(label, numeric, sort): (&str, bool, Option<IdolSortKind>)| IdolColumn {
+            label: label.to_string(),
+            numeric,
+            sort_key: sort.map(|k| k.key().to_string()),
+        })
         .collect(),
-        name_column_label: content::IDOL_COLUMN_NAME.to_string(),
+        name_column: IdolColumn {
+            label: content::IDOL_COLUMN_NAME.to_string(),
+            numeric: false,
+            sort_key: Some(IdolSortKind::NameKana.key().to_string()),
+        },
         filters: vec![
             FilterAxis::new(
                 content::FILTER_AXIS_BRAND,
@@ -1095,13 +1104,15 @@ fn idol_list_page(path: &str, title: &str, kind: IdolListKind, empty: bool) -> I
                     nav("すべて", "/idols/", path == "/idols/", None, Some(394)),
                     nav("ミリオンライブ!", "/idols/brand/ml/", path == "/idols/brand/ml/", Some("brand:ml"), Some(52)),
                 ],
-            ),
+            )
+            .also_in_island("brandIds"),
             FilterAxis::new(
                 content::FILTER_AXIS_BIRTH_MONTH,
                 (1..=12)
                     .map(|m| nav(&format!("{m}月"), &birth_month_path(m), path == birth_month_path(m), None, None))
                     .collect(),
-            ),
+            )
+            .also_in_island("birthMonth"),
         ],
         total: if empty { 0 } else { 2 },
         seo: seo(title, "アイドルの一覧。", path, Robots::IndexFollow, &[("ホーム", "/")]),

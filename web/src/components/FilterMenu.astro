@@ -6,6 +6,10 @@ import Count from "./Count.astro";
  * 閉じた札には「軸 いまの値」だけを出し、開くと件数つきの一覧。チップを並べると一覧の頭が
  * 札だらけになるので畳む。`details` なので JS は要らず、同じ `group` の中では 1 つしか開かない。
  * 軸の名も値も現在地も Rust (`FilterAxis` / `NavLink.current`) が決める。
+ *
+ * 絞り込みバー (島) が同じ軸を持つときは `islandKey` が入る。島が起動したら
+ * こちらは隠れる (同じ絞り込みを 2 つ並べない)。JS が無い環境ではこれだけが残り、
+ * HTML には常に居るのでリンクとしての到達性も落ちない。
  */
 interface Props {
   axis: FilterAxis;
@@ -16,7 +20,7 @@ const { axis, group } = Astro.props;
 const current = axis.links.find((l) => l.current);
 ---
 
-<details class="fmenu" name={group}>
+<details class="fmenu" name={group} data-island-key={axis.islandKey ?? undefined}>
   <summary class="chip fmenu__summary">
     <span class="fmenu__label">{axis.label}</span>
     {current?.label}

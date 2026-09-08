@@ -18,7 +18,7 @@ use crate::web_export::content;
 use crate::web_export::dto::*;
 use crate::web_export::url::url_segment;
 use std::collections::{BTreeMap, HashSet};
-use crate::domain::idol_list_filtering::IdolQuery;
+use crate::domain::idol_list_filtering::{IdolQuery, IdolSortKind};
 use crate::domain::song_list_queries::SongQuery;
 
 /// 一覧に出すライブの種別。
@@ -533,10 +533,12 @@ pub fn song_lists(ctx: &Ctx) -> Vec<Emitted<SongListPage>> {
                 // タグから探す入口。一覧を作るかどうかと同じ判断 (`Ctx::tags_link`)。
                 tags_link: (path == "/songs/").then(|| ctx.tags_link(content::TAG_LIST_LINK_LABEL)).flatten(),
                 items,
+                // アイドル一覧と同じ理由で、島が動く環境では隠れる (同じ軸を 2 つ並べない)。
                 filters: filter_axes([FilterAxis::new(
                     content::FILTER_AXIS_BRAND,
                     brand_links(ctx, "songs", &path, "すべて", listed_total),
-                )]),
+                )
+                .also_in_island("brandIds")]),
                 seo,
             },
         }
@@ -726,23 +728,39 @@ pub fn tag_lists(ctx: &Ctx) -> (Option<Emitted<TagListPage>>, Vec<Emitted<TagPag
 /// 表の列 (名前の次から)。値の並びは [`idol_cells`] が同じ順で作る。
 /// **見出しと値を 1 箇所で決める**ので、片方だけ足してずれることが無い。
 fn idol_columns() -> Vec<IdolColumn> {
+    use IdolSortKind::{Age, Birthday, Debut, Height, Weight};
     [
-        (content::IDOL_COLUMN_BRAND, false),
-        (content::IDOL_COLUMN_VOICE_ACTOR, false),
-        (content::IDOL_COLUMN_BIRTHDAY, false),
-        (content::IDOL_COLUMN_AGE, true),
-        (content::IDOL_COLUMN_HEIGHT, true),
-        (content::IDOL_COLUMN_WEIGHT, true),
-        (content::IDOL_COLUMN_BLOOD, false),
-        (content::IDOL_COLUMN_CONSTELLATION, false),
-        (content::IDOL_COLUMN_BIRTHPLACE, false),
-        (content::IDOL_COLUMN_ATTRIBUTE, false),
-        (content::IDOL_COLUMN_SONGS, true),
-        (content::IDOL_COLUMN_SHOWS, true),
+        // ブランドは押せない。既定の並び (公式順 = idols.sort_order) はブランドごとに
+        // 固まってはいるが、961 の 4 人が 765AS の中に散り、876 が末尾に来る。
+        // 「ブランドで並べた」と言える形になっていないので、押せる顔をさせない。
+        // 公式順そのものは一覧の既定で、「クリア」で戻れる。
+        (content::IDOL_COLUMN_BRAND, false, None),
+        (content::IDOL_COLUMN_VOICE_ACTOR, false, None),
+        (content::IDOL_COLUMN_BIRTHDAY, false, Some(Birthday)),
+        (content::IDOL_COLUMN_AGE, true, Some(Age)),
+        (content::IDOL_COLUMN_HEIGHT, true, Some(Height)),
+        (content::IDOL_COLUMN_WEIGHT, true, Some(Weight)),
+        (content::IDOL_COLUMN_BLOOD, false, None),
+        (content::IDOL_COLUMN_CONSTELLATION, false, None),
+        (content::IDOL_COLUMN_BIRTHPLACE, false, None),
+        (content::IDOL_COLUMN_ATTRIBUTE, false, None),
+        (content::IDOL_COLUMN_DEBUT, false, Some(Debut)),
+        (content::IDOL_COLUMN_SONGS, true, None),
+        (content::IDOL_COLUMN_SHOWS, true, None),
     ]
     .into_iter()
-    .map(|(label, numeric)| IdolColumn { label: label.to_string(), numeric })
+    .map(|(label, numeric, sort)| column(label, numeric, sort))
     .collect()
+}
+
+/// 列 1 つ。**並べ替えの鍵はコアの `IdolSortKind` から取る** (画面が "age" のような
+/// 文字列を自前で書くと、鍵を変えたときに黙って並ばなくなる)。
+fn column(label: &str, numeric: bool, sort: Option<IdolSortKind>) -> IdolColumn {
+    IdolColumn {
+        label: label.to_string(),
+        numeric,
+        sort_key: sort.map(|k| k.key().to_string()),
+    }
 }
 
 /// 1 行ぶんの値。[`idol_columns`] と同じ並び。
@@ -764,6 +782,7 @@ fn idol_cells(ctx: &Ctx, record: &idol_queries::IdolRecord) -> Vec<Option<String
         record.constellation.clone(),
         record.birth_place.clone(),
         record.attribute.as_deref().map(content::idol_attribute_label),
+        record.debut_date.as_deref().map(content::idol_debut_display),
         counts.and_then(|(songs, _)| nonzero(songs)),
         counts.and_then(|(_, shows)| nonzero(shows)),
     ]
@@ -844,14 +863,18 @@ pub fn idol_lists(ctx: &Ctx) -> Vec<Emitted<IdolListPage>> {
                 },
                 items,
                 columns,
-                name_column_label: content::IDOL_COLUMN_NAME.to_string(),
+                name_column: column(content::IDOL_COLUMN_NAME, false, Some(IdolSortKind::NameKana)),
+                // 島 (絞り込みバー) が同じ 2 軸を持つので、島が動く環境では隠れる。
+                // 鍵は `web/src/lib/listfilter/idols.ts` の `FieldSpec.key` と揃える。
                 filters: filter_axes([
-                    FilterAxis::new(content::FILTER_AXIS_BRAND, brand_links(ctx, "idols", &path, "すべて", all_total)),
+                    FilterAxis::new(content::FILTER_AXIS_BRAND, brand_links(ctx, "idols", &path, "すべて", all_total))
+                        .also_in_island("brandIds"),
                     FilterAxis::new(content::FILTER_AXIS_BIRTH_MONTH, {
                         let mut links = birth_month_links.clone();
                         mark_current(&mut links, &path);
                         links
-                    }),
+                    })
+                    .also_in_island("birthMonth"),
                 ]),
                 seo: ctx.seo(
                     &title,

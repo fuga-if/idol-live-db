@@ -209,10 +209,23 @@ pub const IDOL_COLUMN_BLOOD: &str = "血液型";
 pub const IDOL_COLUMN_CONSTELLATION: &str = "星座";
 pub const IDOL_COLUMN_BIRTHPLACE: &str = "出身";
 pub const IDOL_COLUMN_ATTRIBUTE: &str = "属性";
+pub const IDOL_COLUMN_DEBUT: &str = "デビュー日";
 pub const IDOL_COLUMN_SONGS: &str = "持ち曲";
 pub const IDOL_COLUMN_SHOWS: &str = "出演";
 /// 名前の列の見出し。
 pub const IDOL_COLUMN_NAME: &str = "名前";
+
+/// デビュー日 (`YYYY-MM-DD`)。年まで出す (誕生日と違い、いつデビューしたかが読みどころ)。
+pub fn idol_debut_display(debut: &str) -> String {
+    match debut.split('-').collect::<Vec<_>>().as_slice() {
+        [y, m, d] => match (m.parse::<i64>(), d.parse::<i64>()) {
+            (Ok(m), Ok(d)) => format!("{y}年{m}月{d}日"),
+            // 数字として読めない形はそのまま出す (原本も同じ)。
+            _ => debut.to_string(),
+        },
+        _ => debut.to_string(),
+    }
+}
 
 pub fn idol_age_display(age: i64) -> String {
     format!("{age}歳")

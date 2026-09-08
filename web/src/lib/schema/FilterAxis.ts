@@ -8,4 +8,12 @@ import type { NavLink } from "./NavLink";
  * (現在地は `NavLink.current`)。どの軸をどの名で、どの順に出すかは Rust が決め、
  * Astro は並べるだけ。
  */
-export type FilterAxis = { label: string, links: Array<NavLink>, };
+export type FilterAxis = { label: string, links: Array<NavLink>, 
+/**
+ * 同じ軸を島 (絞り込みバー) も持っているときの、その軸の鍵。
+ *
+ * 島が動く環境では**同じ軸が 2 つ並んでしまう**ので、島が起動したら
+ * こちらを隠す。JS が無い環境ではこのリンクだけが残る (畳んだメニューが
+ * 唯一の切替になる)。HTML には残るので、リンクとしての到達性も落ちない。
+ */
+islandKey: string | null, };

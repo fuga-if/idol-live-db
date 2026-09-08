@@ -1817,8 +1817,15 @@ a.labeled-row .labeled-row__value {
    属性が従、アイドルは属性を見比べるのが目的)。狭い幅では**枠の中だけ横に流し**、
    名前の列は左に貼り付けたままにする (ページごと横スクロールさせない)。
    見出しと値の並びは Rust が 1 箇所で決める (`IdolListPage.columns` / `IdolListItem.cells`)。 */
+/* 表を入れる枠。**この枠自体がスクロール面**で、縦にも横にも流れる。
+   こうしないと見出しを縦に貼り付けられない: overflow-x を持つ要素は縦も自動的に
+   スクロール面になり (visible と auto は同居できない)、sticky の基準がページではなく
+   この枠になる。高さを画面ぶんに抑えて枠の中を流すことで、見出しの行と名前の列を
+   その枠に貼り付ける (表計算のウィンドウ枠固定と同じ)。 */
 .table-wrap {
-  overflow-x: auto;
+  overflow: auto;
+  max-block-size: calc(100dvh - var(--header-h) - var(--sp6));
+  overscroll-behavior: contain;
   border-radius: var(--r-md);
   background: var(--ds-surface);
   box-shadow: var(--ds-shadow1);
@@ -1838,13 +1845,65 @@ a.labeled-row .labeled-row__value {
 .dtable tbody tr:last-child :is(th, td) {
   border-block-end: 0;
 }
+/* 見出しの行は枠の上端に貼り付く (基準は `.table-wrap`)。 */
 .dtable thead th {
-  /* 見出しは縦に貼り付けない。枠が overflow-x で自前のスクロール面になっているため、
-     sticky の基準がページではなくこの枠になり、見出しが行の上に重なって出る。 */
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 2;
+  padding: 0;
   font-size: var(--fs-caption);
   font-weight: 600;
   color: var(--ds-ink2);
   background: var(--ds-surface2);
+}
+/* 見出しの下の線。border は sticky だと一緒に流れて消えるので影で描く。 */
+.dtable thead tr :is(th, td) {
+  border-block-end: 0;
+  box-shadow: inset 0 -1px 0 var(--ds-sep);
+}
+/* 押せる見出し = 並べ替え。見出しの箱いっぱいを押し場所にする。 */
+.dtable__sort {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  inline-size: 100%;
+  padding: 8px 12px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+  cursor: pointer;
+}
+.dtable__num .dtable__sort {
+  justify-content: flex-end;
+}
+.dtable__sort:disabled {
+  cursor: default;
+}
+.dtable__sort:not(:disabled):hover {
+  color: var(--ds-ink);
+}
+/* いま並べ替えに使っている列。 */
+.dtable__sort[data-dir] {
+  color: var(--ds-ink);
+  font-weight: 700;
+}
+/* 並べ替えの矢印。いまの列だけ向きを出し、他の列は押せることを薄く示す。 */
+.dtable__arrow::before {
+  content: "↕";
+  opacity: 0.35;
+}
+.dtable__sort:disabled .dtable__arrow {
+  visibility: hidden;
+}
+.dtable__sort[data-dir="asc"] .dtable__arrow::before {
+  content: "↑";
+  opacity: 1;
+}
+.dtable__sort[data-dir="desc"] .dtable__arrow::before {
+  content: "↓";
+  opacity: 1;
 }
 .dtable tbody tr:hover {
   background: var(--ds-fill);
@@ -1858,7 +1917,9 @@ a.labeled-row .labeled-row__value {
   border-inline-start: 3px solid var(--accent);
   font-weight: 600;
 }
+/* 見出しの左端は縦横どちらにも貼り付くので、他の見出しより手前に置く。 */
 .dtable thead .dtable__name {
+  z-index: 3;
   background: var(--ds-surface2);
   border-inline-start-color: transparent;
 }

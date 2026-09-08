@@ -20,9 +20,9 @@ birthMonth: number | null, items: Array<IdolListItem>,
  */
 columns: Array<IdolColumn>, 
 /**
- * 名前の列の見出し。
+ * 名前の列。他の列と同じ器にしてあるので、見出しの出し方を分岐させずに済む。
  */
-nameColumnLabel: string, 
+nameColumn: IdolColumn, 
 /**
  * 畳んだメニューにする軸 (ブランド・誕生月)。
  */

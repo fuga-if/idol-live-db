@@ -17,7 +17,8 @@
           "themeKey": null,
           "count": 3
         }
-      ]
+      ],
+      "islandKey": null
     },
     {
       "label": "月",
@@ -29,7 +30,8 @@
           "themeKey": null,
           "count": 3
         }
-      ]
+      ],
+      "islandKey": null
     }
   ],
   "weekdayLabels": [
