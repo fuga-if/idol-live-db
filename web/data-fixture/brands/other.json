@@ -5,14 +5,7 @@
   "name": "その他",
   "shortName": "その他",
   "themeKey": "neutral",
-  "statTiles": [
-    {
-      "glyph": "☺",
-      "value": 12,
-      "label": "アイドル",
-      "href": "/idols/brand/other/"
-    }
-  ],
+  "statTiles": [],
   "idols": [],
   "units": [],
   "recentEvents": [],

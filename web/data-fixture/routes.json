@@ -146,14 +146,6 @@
       "inSitemap": true
     },
     {
-      "path": "/idols/brand/other/",
-      "kind": "idolListBrand",
-      "key": "other",
-      "id": null,
-      "data": "index/idols-brand-other.json",
-      "inSitemap": false
-    },
-    {
       "path": "/units/",
       "kind": "unitListIndex",
       "key": null,
@@ -468,7 +460,6 @@
   ],
   "noindexPaths": [
     "/songs/all/",
-    "/idols/brand/other/",
     "/brands/other/"
   ]
 }

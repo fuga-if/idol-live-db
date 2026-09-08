@@ -280,18 +280,20 @@ impl<'a> Ctx<'a> {
 
     /// ブランド別一覧の URL。**その一覧を作っていない組み合わせでは `None`。**
     ///
-    /// `other` (他フランチャイズの合同ライブ曲) はアイドル一覧しか作らない。既定フィルタが
+    /// `other` (他フランチャイズの合同ライブ曲) の一覧はどれも作らない。既定フィルタが
     /// `other` を含めないというコアの規則と、一覧の入口が存在するという事実が食い違うため
     /// (到達は検索と個別ページから)。この判断がかつて 6 箇所に散っていて、パンくずだけ
     /// 判断を持たずに存在しないページへリンクしていた。
     ///
+    /// **アイドル一覧だけは例外にしていたが、それもやめた。** そこに出るのは
+    /// 「`other` への副次的な所属を持つアイマスのアイドル」6 人だけで、ブランドの
+    /// 列には 765AS や SideM と出る。「その他のアイドル」という見出しの下に
+    /// 765AS の面々が並ぶ画面になっていて、読み手に何も言っていなかった。
+    ///
     /// id を URL に埋めるときは必ず [`url_segment`] を通す。ブランド id は今のところ
     /// すべて ASCII だが、規則を 1 箇所に保たないと将来の id で静かに壊れる。
     pub fn brand_list_path(&self, collection: &str, brand_id: &str) -> Option<String> {
-        if !self.brands.contains_key(brand_id) {
-            return None;
-        }
-        if self.is_other_brand(Some(brand_id)) && collection != "idols" {
+        if !self.brands.contains_key(brand_id) || self.is_other_brand(Some(brand_id)) {
             return None;
         }
         Some(format!("/{collection}/brand/{}/", url_segment(brand_id)))

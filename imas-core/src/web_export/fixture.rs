@@ -843,13 +843,12 @@ fn brand_page(reference: &Ref, noindex: bool) -> BrandPage {
         units: if noindex { vec![] } else { vec![unit_sample()] },
         recent_events: if noindex { vec![] } else { vec![event_sample()] },
         top_songs: if noindex { vec![] } else { vec![song_sample()] },
-        // `other` (他フランチャイズの合同ライブ曲) は入口を作らない。
-        // `/songs/brand/other/` を作ると「既定フィルタは other を含めない」というコアの
-        // 規則と、一覧の入口が存在するという事実が食い違う。到達はアイドル一覧と
-        // 検索・個別ページからだけにする。
+        // `other` (他フランチャイズの合同ライブ曲) は一覧の入口をひとつも作らない。
+        // 作ると「既定フィルタは other を含めない」というコアの規則と、一覧の入口が
+        // 存在するという事実が食い違う。到達は検索と個別ページからだけ
+        // (`Ctx::brand_list_path` が `other` に None を返す)。
         stat_tiles: if noindex {
-            // `other` はアイドル一覧しか作らないので、入口も 1 本だけ。
-            vec![tile("☺", 12, "アイドル", Some("/idols/brand/other/"))]
+            vec![]
         } else {
             vec![
                 tile("♪", 210, "ライブ", Some("/events/brand/ml/")),
@@ -1555,11 +1554,6 @@ pub fn emit(dir: &Path, pretty: bool) -> Result<Stats> {
     w.write_json("index/idols.json", &idol_list_page("/idols/", "アイドル", IdolListKind::Index, false))?;
     w.write_json("index/idols-brand-ml.json", &idol_list_page("/idols/brand/ml/", "ミリオンライブ! のアイドル", IdolListKind::Brand, false))?;
     w.write_json("index/idols-brand-cg.json", &idol_list_page("/idols/brand/cg/", "シンデレラガールズ のアイドル", IdolListKind::Brand, false))?;
-    // `other` 配下は noindex にする (非公式サイトが他フランチャイズ名で流入を取らない)。
-    let mut other_idols = idol_list_page("/idols/brand/other/", "その他のアイドル", IdolListKind::Brand, false);
-    other_idols.brand = Some(brand_other());
-    other_idols.seo.robots = Robots::NoindexFollow;
-    w.write_json("index/idols-brand-other.json", &other_idols)?;
     // 誕生月は 12 ページ全部出す。1 枚だけだと月ナビのリンク切れを web 側で踏む。
     // 4 月だけ空にしてあるのは EmptyState の確認用。
     for month in 1..=12u32 {
@@ -1693,7 +1687,6 @@ fn routes(broken_key: &str) -> RoutesFile {
         param_listing(RouteKind::IdolListBrand, "/idols/brand/ml/", "ml", "index/idols-brand-ml.json", true),
         param_listing(RouteKind::IdolListBrand, "/idols/brand/cg/", "cg", "index/idols-brand-cg.json", true),
         // `other` 配下は掲載するが index させない。
-        param_listing(RouteKind::IdolListBrand, "/idols/brand/other/", "other", "index/idols-brand-other.json", false),
         listing(RouteKind::UnitListIndex, "/units/", "index/units.json", true),
         param_listing(RouteKind::UnitListBrand, "/units/brand/ml/", "ml", "index/units-brand-ml.json", true),
         param_listing(RouteKind::UnitListBrand, "/units/brand/cg/", "cg", "index/units-brand-cg.json", true),
