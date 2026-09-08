@@ -13,15 +13,22 @@ Usage:
 
 ## 何を「公式順」とするか
 
-**公式ポータルのアイドル名鑑 (idollist.idolmaster-official.jp/search) の掲載順。**
-一次ソースがこれ以外に無い。名鑑はブランドごとに id を振っていて、その順が公式の並び:
+基本は**公式ポータルのアイドル名鑑 (idollist.idolmaster-official.jp/search) の掲載順**。
+名鑑はブランドごとに id を振っていて、その順が公式の並びになる:
 
-- 765AS / デレマス / ミリオン / SideM / シャニマス … **五十音順**
+- デレマス / ミリオン / SideM / シャニマス … **五十音順**
   (シャニマスは初期 23 人が五十音、以降は加入順に後ろへ足されている)
 - 学マス / 876 … **ロースター順** (花海咲季 から / 日高愛 から)
 
 つまり**「ロースター順」という単一の規則は公式にも無い**。ブランドごとに違う並びを
 公式がそのまま出しているので、その並びを写すのが唯一の正解になる。
+
+**例外: 765AS はスターリットシーズン (starlit-season.idolmaster.jp/idol/) の並び。**
+名鑑の 765AS は五十音順 (秋月律子 から) で、春香・千早・美希 から始まる 765AS の
+並びになっていない。スターリットシーズンはブランド全員 (13 人) を載せているので
+そのまま使える。**ブランド専用の公式一覧がそのブランド全員を載せているときだけ
+名鑑より優先する** (同ゲームのデレマス枠は 6 人だけなので使わない)。
+出典は tsv の 4 列目にある。
 
 ## 名鑑に居ない人
 
@@ -32,8 +39,9 @@ Usage:
 ## 名鑑の取り直し方
 
 一覧はクライアント側で描かれるので `curl` では取れない。ブラウザで
-`https://idollist.idolmaster-official.jp/search` を開き、次を実行して
-`tools/data/official_idol_order.tsv` の見出し行より下を差し替える:
+`https://idollist.idolmaster-official.jp/search` を開き、次を実行した結果に
+4 列目 `meikan` を足して `tools/data/official_idol_order.tsv` の `meikan` 行を
+差し替える (765AS の `starlit` 行は残す):
 
     [...document.querySelectorAll('a[href*="search/detail/"]')].map(a => {
       const t = a.innerText.trim().split('\\n').map(s => s.trim()).filter(Boolean);
@@ -73,8 +81,8 @@ def load_official() -> dict[str, int]:
         for line in f:
             if line.startswith("#") or not line.strip():
                 continue
-            official_id, name, _brand = line.rstrip("\n").split("\t")
-            order[key(name)] = int(official_id)
+            sort_key, name, _brand, _source = line.rstrip("\n").split("\t")
+            order[key(name)] = int(sort_key)
     return order
 
 
