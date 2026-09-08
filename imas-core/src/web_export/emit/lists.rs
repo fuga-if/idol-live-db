@@ -728,13 +728,13 @@ pub fn tag_lists(ctx: &Ctx) -> (Option<Emitted<TagListPage>>, Vec<Emitted<TagPag
 /// 表の列 (名前の次から)。値の並びは [`idol_cells`] が同じ順で作る。
 /// **見出しと値を 1 箇所で決める**ので、片方だけ足してずれることが無い。
 fn idol_columns() -> Vec<IdolColumn> {
-    use IdolSortKind::{Age, Birthday, Debut, Height, Weight};
+    use IdolSortKind::{Age, Birthday, Debut, Height, Official, Weight};
     [
-        // ブランドは押せない。既定の並び (公式順 = idols.sort_order) はブランドごとに
-        // 固まってはいるが、961 の 4 人が 765AS の中に散り、876 が末尾に来る。
-        // 「ブランドで並べた」と言える形になっていないので、押せる顔をさせない。
-        // 公式順そのものは一覧の既定で、「クリア」で戻れる。
-        (content::IDOL_COLUMN_BRAND, false, None),
+        // ブランドの列は公式順で並べる。`idols.sort_order` はブランドごとの番号帯
+        // (`brands.sort_order * 1000`) になっていて、公式順で並べると必ずブランド順に
+        // なる (tools/renumber_idol_sort_order.py が付番と検査を持つ)。
+        // 帯を導入する前はブランドが混ざっていたので、この列は押せなくしてあった。
+        (content::IDOL_COLUMN_BRAND, false, Some(Official)),
         (content::IDOL_COLUMN_VOICE_ACTOR, false, None),
         (content::IDOL_COLUMN_BIRTHDAY, false, Some(Birthday)),
         (content::IDOL_COLUMN_AGE, true, Some(Age)),
