@@ -12,8 +12,7 @@
     "sub": "ML",
     "path": "/brands/ml/",
     "themeKey": "brand:ml",
-    "artworkUrl": null,
-    "monogram": "M"
+    "artworkUrl": null
   },
   "jointBrands": [
     {
@@ -23,8 +22,7 @@
       "sub": "CG",
       "path": "/brands/cg/",
       "themeKey": "brand:cg",
-      "artworkUrl": null,
-      "monogram": "C"
+      "artworkUrl": null
     }
   ],
   "kind": "live",
@@ -53,8 +51,7 @@
         "sub": "2026-04-03",
         "path": "/shows/sh_sample_1/",
         "themeKey": "brand:ml",
-        "artworkUrl": null,
-        "monogram": "D"
+        "artworkUrl": null
       },
       "date": "2026-04-03",
       "shortDate": "26/04",
@@ -66,8 +63,7 @@
         "sub": "千葉県",
         "path": "/venues/venue_makuhari/",
         "themeKey": "neutral",
-        "artworkUrl": null,
-        "monogram": "幕"
+        "artworkUrl": null
       },
       "hall": "イベントホール",
       "startTime": "17:00",
@@ -80,8 +76,7 @@
         "sub": "2026",
         "path": "/events/ev_sample/",
         "themeKey": "brand:ml",
-        "artworkUrl": null,
-        "monogram": "T"
+        "artworkUrl": null
       },
       "subtitle": "DAY1 ・ 幕張メッセ ・ イベントホール ・ 17:00 開演"
     }
@@ -96,8 +91,7 @@
           "sub": "2026-04-03",
           "path": "/shows/sh_sample_1/",
           "themeKey": "brand:ml",
-          "artworkUrl": null,
-          "monogram": "D"
+          "artworkUrl": null
         },
         "performers": [
           {
@@ -108,8 +102,7 @@
               "sub": "ミリオンライブ!",
               "path": "/idols/ml_kasuga_mirai/",
               "themeKey": "idol:ml_kasuga_mirai",
-              "artworkUrl": null,
-              "monogram": "春"
+              "artworkUrl": null
             },
             "isLead": true,
             "isGuest": false
@@ -122,8 +115,7 @@
               "sub": "ミリオンライブ!",
               "path": "/idols/ml_mogami_shizuka/",
               "themeKey": "idol:ml_mogami_shizuka",
-              "artworkUrl": null,
-              "monogram": "最"
+              "artworkUrl": null
             },
             "isLead": false,
             "isGuest": true
@@ -150,8 +142,7 @@
       "sub": "千葉県",
       "path": "/venues/venue_makuhari/",
       "themeKey": "neutral",
-      "artworkUrl": null,
-      "monogram": "幕"
+      "artworkUrl": null
     }
   ],
   "app": {
@@ -162,8 +153,8 @@
   "seo": {
     "title": "THE IDOLM@STER × ふたご星 | アイドルライブDB",
     "description": "ライブの公演・セットリスト・出演者。",
-    "canonical": "https://imas-live-web.tokata3011.workers.dev/events/ev_the_idolm%40ster_%C3%97_%E3%81%B5%E3%81%9F%E3%81%94/",
-    "ogImage": "https://imas-live-web.tokata3011.workers.dev/og/default.png",
+    "canonical": "https://idollivedb.fugalabs.uk/events/ev_the_idolm%40ster_%C3%97_%E3%81%B5%E3%81%9F%E3%81%94/",
+    "ogImage": "https://idollivedb.fugalabs.uk/og/default.png",
     "robots": "index,follow",
     "jsonLd": {
       "@context": "https://schema.org",
@@ -171,20 +162,20 @@
         {
           "@type": "WebPage",
           "name": "THE IDOLM@STER × ふたご星",
-          "url": "https://imas-live-web.tokata3011.workers.dev/events/ev_the_idolm%40ster_%C3%97_%E3%81%B5%E3%81%9F%E3%81%94/"
+          "url": "https://idollivedb.fugalabs.uk/events/ev_the_idolm%40ster_%C3%97_%E3%81%B5%E3%81%9F%E3%81%94/"
         },
         {
           "@type": "BreadcrumbList",
           "itemListElement": [
             {
               "@type": "ListItem",
-              "item": "https://imas-live-web.tokata3011.workers.dev/",
+              "item": "https://idollivedb.fugalabs.uk/",
               "name": "ホーム",
               "position": 1
             },
             {
               "@type": "ListItem",
-              "item": "https://imas-live-web.tokata3011.workers.dev/events/",
+              "item": "https://idollivedb.fugalabs.uk/events/",
               "name": "ライブ",
               "position": 2
             }

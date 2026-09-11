@@ -172,6 +172,12 @@ mod room_parity {
         ("songs", "jasrac_code", "JASRAC 許諾が認可待ちのため Android 未追加"),
         ("idol_voice_actors", "*", "Android は entity を持たず、SeedImporter が『両方にある表』しか移さないため実機に無い。CV 名検索が Android で効かない原因"),
         ("song_units", "*", "非同期テーブル。Android は持たない"),
+        // Room の @Entity / MIGRATION_12_13 は書いてある。落ちているのは
+        // app/schemas/13.json (Gradle が吐く生成物) だけで、次に Android を
+        // ビルドした時点で消える。そのとき known_gaps_are_still_real が落ちるので、
+        // 「直したのに宣言が残る」ことはない。
+        ("costumes", "*", "Room の schema JSON が版 12 のまま (13 は未ビルド)"),
+        ("costume_wears", "*", "同上"),
     ];
 
     fn core_schema() -> BTreeMap<String, BTreeSet<String>> {

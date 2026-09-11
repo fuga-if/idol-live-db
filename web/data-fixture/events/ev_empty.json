@@ -12,8 +12,7 @@
     "sub": "ML",
     "path": "/brands/ml/",
     "themeKey": "brand:ml",
-    "artworkUrl": null,
-    "monogram": "M"
+    "artworkUrl": null
   },
   "jointBrands": [],
   "kind": "live",
@@ -45,8 +44,8 @@
   "seo": {
     "title": "公演未定のライブ | アイドルライブDB",
     "description": "ライブの公演・セットリスト・出演者。",
-    "canonical": "https://imas-live-web.tokata3011.workers.dev/events/ev_empty/",
-    "ogImage": "https://imas-live-web.tokata3011.workers.dev/og/default.png",
+    "canonical": "https://idollivedb.fugalabs.uk/events/ev_empty/",
+    "ogImage": "https://idollivedb.fugalabs.uk/og/default.png",
     "robots": "index,follow",
     "jsonLd": {
       "@context": "https://schema.org",
@@ -54,20 +53,20 @@
         {
           "@type": "WebPage",
           "name": "公演未定のライブ",
-          "url": "https://imas-live-web.tokata3011.workers.dev/events/ev_empty/"
+          "url": "https://idollivedb.fugalabs.uk/events/ev_empty/"
         },
         {
           "@type": "BreadcrumbList",
           "itemListElement": [
             {
               "@type": "ListItem",
-              "item": "https://imas-live-web.tokata3011.workers.dev/",
+              "item": "https://idollivedb.fugalabs.uk/",
               "name": "ホーム",
               "position": 1
             },
             {
               "@type": "ListItem",
-              "item": "https://imas-live-web.tokata3011.workers.dev/events/",
+              "item": "https://idollivedb.fugalabs.uk/events/",
               "name": "ライブ",
               "position": 2
             }

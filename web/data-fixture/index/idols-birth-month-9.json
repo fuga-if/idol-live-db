@@ -14,8 +14,7 @@
         "sub": "ミリオンライブ!",
         "path": "/idols/ml_kasuga_mirai/",
         "themeKey": "idol:ml_kasuga_mirai",
-        "artworkUrl": null,
-        "monogram": "春"
+        "artworkUrl": null
       },
       "brand": {
         "kind": "brand",
@@ -24,8 +23,7 @@
         "sub": "ML",
         "path": "/brands/ml/",
         "themeKey": "brand:ml",
-        "artworkUrl": null,
-        "monogram": "M"
+        "artworkUrl": null
       },
       "currentVoiceActor": "山崎はるか",
       "birthdayDisplay": "4月3日"
@@ -38,8 +36,7 @@
         "sub": "ミリオンライブ!",
         "path": "/idols/ml_mogami_shizuka/",
         "themeKey": "idol:ml_mogami_shizuka",
-        "artworkUrl": null,
-        "monogram": "最"
+        "artworkUrl": null
       },
       "brand": {
         "kind": "brand",
@@ -48,8 +45,7 @@
         "sub": "ML",
         "path": "/brands/ml/",
         "themeKey": "brand:ml",
-        "artworkUrl": null,
-        "monogram": "M"
+        "artworkUrl": null
       },
       "currentVoiceActor": "田所あずさ",
       "birthdayDisplay": "6月26日"
@@ -158,11 +154,19 @@
     }
   ],
   "total": 2,
+  "queryBase": {
+    "brandIds": [],
+    "attribute": null,
+    "birthMonth": 9,
+    "searchText": "",
+    "sort": "",
+    "ascending": null
+  },
   "seo": {
     "title": "9月生まれのアイドル | アイドルライブDB",
     "description": "アイドルの一覧。",
-    "canonical": "https://imas-live-web.tokata3011.workers.dev/idols/birth-month/9/",
-    "ogImage": "https://imas-live-web.tokata3011.workers.dev/og/default.png",
+    "canonical": "https://idollivedb.fugalabs.uk/idols/birth-month/9/",
+    "ogImage": "https://idollivedb.fugalabs.uk/og/default.png",
     "robots": "index,follow",
     "jsonLd": {
       "@context": "https://schema.org",
@@ -170,14 +174,14 @@
         {
           "@type": "WebPage",
           "name": "9月生まれのアイドル",
-          "url": "https://imas-live-web.tokata3011.workers.dev/idols/birth-month/9/"
+          "url": "https://idollivedb.fugalabs.uk/idols/birth-month/9/"
         },
         {
           "@type": "BreadcrumbList",
           "itemListElement": [
             {
               "@type": "ListItem",
-              "item": "https://imas-live-web.tokata3011.workers.dev/",
+              "item": "https://idollivedb.fugalabs.uk/",
               "name": "ホーム",
               "position": 1
             }

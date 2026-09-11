@@ -27,6 +27,8 @@ web_dto! {
         pub setlist: Vec<SetlistRow>,
         /// `show_cast` (sort_order 順)。
         pub cast: Vec<Ref>,
+        /// この公演で着られた衣装 (進行順)。記録が無ければ空。
+        pub costumes: Vec<ShowCostume>,
         /// 同一ライブ内の他公演 (前後移動用。自分自身も含む)。
         pub sibling_shows: Vec<Ref>,
         pub app: AppOpen,
@@ -55,6 +57,8 @@ web_dto! {
         pub original_artists: Vec<Ref>,
         /// `songs.song_type == "cover"`。
         pub is_cover: bool,
+        /// この披露で着ていた衣装。記録が無ければ空。
+        pub costumes: Vec<SetlistCostume>,
     }
 }
 
@@ -72,5 +76,41 @@ web_dto! {
         /// 閲覧者が選んだモードに従って主/副を返す。ここは素材を両方渡すだけで、
         /// 「同じ名前を 2 つ持たせない」判断もその関数 (`Both` の副) に任せる。
         pub cast_name: Option<String>,
+    }
+}
+
+web_dto! {
+    /// 公演で着られた衣装 1 着。
+    ///
+    /// **画像は無い。** 版権物を配らない方針なので、名前と出典だけで見分ける。
+    #[derive(Eq)]
+    pub struct ShowCostume {
+        pub id: String,
+        pub name: String,
+        /// 誰のための衣装か (ユニット名・アイドル名)。共通衣装なら `None`。
+        pub attribution: Option<String>,
+        pub description: Option<String>,
+        /// 出典 (公式)。
+        pub source_url: Option<String>,
+        /// どこで着たか (「1・5 曲目」「公演のどこか」)。
+        ///
+        /// **文にするのは Rust の仕事。** 曲番号の列を持たせて出面で繋ぐと、
+        /// 区切りも「どこかで着た」の言い方も画面ごとに割れる。
+        pub where_label: String,
+        /// 着ていた人の 1 行。共通衣装なら `None` (「全員」とは書かない)。
+        pub wearers_label: Option<String>,
+    }
+}
+
+web_dto! {
+    /// セトリ行に添える衣装。
+    #[derive(Eq)]
+    pub struct SetlistCostume {
+        pub id: String,
+        pub name: String,
+        /// 誰のための衣装か。共通衣装なら `None`。
+        pub attribution: Option<String>,
+        /// その曲でこの衣装を着ていた人。共通衣装なら `None`。
+        pub wearers_label: Option<String>,
     }
 }

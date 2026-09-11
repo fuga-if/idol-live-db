@@ -1,8 +1,8 @@
 ---
-/** ImasTagChip の Web 版 — セトリ行のユニット表記 / カバー、一覧の種別・主演・ゲスト。 */
+/** ImasTagChip の Web 版 — セトリ行のユニット表記 / カバー / 衣装、一覧の種別・主演・ゲスト。 */
 interface Props {
   text: string;
-  kind: "unit" | "all" | "cover" | "lead" | "guest";
+  kind: "unit" | "all" | "cover" | "lead" | "guest" | "costume";
 }
 const { text, kind } = Astro.props;
 ---

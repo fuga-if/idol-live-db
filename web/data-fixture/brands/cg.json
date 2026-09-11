@@ -43,8 +43,7 @@
       "sub": "ミリオンライブ!",
       "path": "/idols/ml_kasuga_mirai/",
       "themeKey": "idol:ml_kasuga_mirai",
-      "artworkUrl": null,
-      "monogram": "春"
+      "artworkUrl": null
     },
     {
       "kind": "idol",
@@ -53,8 +52,7 @@
       "sub": "ミリオンライブ!",
       "path": "/idols/ml_mogami_shizuka/",
       "themeKey": "idol:ml_mogami_shizuka",
-      "artworkUrl": null,
-      "monogram": "最"
+      "artworkUrl": null
     }
   ],
   "units": [
@@ -65,8 +63,7 @@
       "sub": "ミリオンライブ!",
       "path": "/units/unit_sample/",
       "themeKey": "brand:ml",
-      "artworkUrl": null,
-      "monogram": "サ"
+      "artworkUrl": null
     }
   ],
   "recentEvents": [
@@ -77,8 +74,7 @@
       "sub": "2026",
       "path": "/events/ev_sample/",
       "themeKey": "brand:ml",
-      "artworkUrl": null,
-      "monogram": "T"
+      "artworkUrl": null
     }
   ],
   "topSongs": [
@@ -89,15 +85,14 @@
       "sub": "765MILLION ALLSTARS",
       "path": "/songs/ml_sample/",
       "themeKey": "brand:ml",
-      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music/sample/600x600bb.jpg",
-      "monogram": "T"
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music/sample/600x600bb.jpg"
     }
   ],
   "seo": {
     "title": "アイドルマスター シンデレラガールズ | アイドルライブDB",
     "description": "ブランドのアイドル・ユニット・ライブ・楽曲。",
-    "canonical": "https://imas-live-web.tokata3011.workers.dev/brands/cg/",
-    "ogImage": "https://imas-live-web.tokata3011.workers.dev/og/default.png",
+    "canonical": "https://idollivedb.fugalabs.uk/brands/cg/",
+    "ogImage": "https://idollivedb.fugalabs.uk/og/default.png",
     "robots": "index,follow",
     "jsonLd": {
       "@context": "https://schema.org",
@@ -105,20 +100,20 @@
         {
           "@type": "WebPage",
           "name": "アイドルマスター シンデレラガールズ",
-          "url": "https://imas-live-web.tokata3011.workers.dev/brands/cg/"
+          "url": "https://idollivedb.fugalabs.uk/brands/cg/"
         },
         {
           "@type": "BreadcrumbList",
           "itemListElement": [
             {
               "@type": "ListItem",
-              "item": "https://imas-live-web.tokata3011.workers.dev/",
+              "item": "https://idollivedb.fugalabs.uk/",
               "name": "ホーム",
               "position": 1
             },
             {
               "@type": "ListItem",
-              "item": "https://imas-live-web.tokata3011.workers.dev/brands/",
+              "item": "https://idollivedb.fugalabs.uk/brands/",
               "name": "ブランド",
               "position": 2
             }

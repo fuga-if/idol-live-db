@@ -10,8 +10,7 @@
     "sub": "ML",
     "path": "/brands/ml/",
     "themeKey": "brand:ml",
-    "artworkUrl": null,
-    "monogram": "M"
+    "artworkUrl": null
   },
   "items": [
     {
@@ -22,11 +21,11 @@
         "sub": "765MILLION ALLSTARS",
         "path": "/songs/ml_sample/",
         "themeKey": "brand:ml",
-        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music/sample/600x600bb.jpg",
-        "monogram": "T"
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music/sample/600x600bb.jpg"
       },
       "releaseDate": "2019-03-13",
       "unitLabel": "765MILLION ALLSTARS",
+      "artistsLabel": "春日未来",
       "performanceCount": 12,
       "subtitle": "765MILLION ALLSTARS ・ 春日未来 ・ 2019-03-13"
     },
@@ -38,15 +37,32 @@
         "sub": null,
         "path": "/songs/ml_no_artwork/",
         "themeKey": "brand:ml",
-        "artworkUrl": null,
-        "monogram": "ジ"
+        "artworkUrl": null
       },
       "releaseDate": null,
       "unitLabel": null,
+      "artistsLabel": null,
       "performanceCount": null,
       "subtitle": null
     }
   ],
+  "rowsAreLight": false,
+  "queryBase": {
+    "brandIds": [],
+    "title": null,
+    "idolName": null,
+    "idolIds": [],
+    "songwriter": null,
+    "cdSeries": null,
+    "seriesGroup": null,
+    "liveName": null,
+    "songType": null,
+    "includeRemixes": false,
+    "includeOtherBrand": false,
+    "excludeLiveOnly": false,
+    "sort": "kana",
+    "ascending": null
+  },
   "kanaSections": [
     {
       "label": "さ",
@@ -80,8 +96,8 @@
   "seo": {
     "title": "シンデレラガールズ の楽曲 | アイドルライブDB",
     "description": "楽曲の一覧。",
-    "canonical": "https://imas-live-web.tokata3011.workers.dev/songs/brand/cg/",
-    "ogImage": "https://imas-live-web.tokata3011.workers.dev/og/default.png",
+    "canonical": "https://idollivedb.fugalabs.uk/songs/brand/cg/",
+    "ogImage": "https://idollivedb.fugalabs.uk/og/default.png",
     "robots": "index,follow",
     "jsonLd": {
       "@context": "https://schema.org",
@@ -89,14 +105,14 @@
         {
           "@type": "WebPage",
           "name": "シンデレラガールズ の楽曲",
-          "url": "https://imas-live-web.tokata3011.workers.dev/songs/brand/cg/"
+          "url": "https://idollivedb.fugalabs.uk/songs/brand/cg/"
         },
         {
           "@type": "BreadcrumbList",
           "itemListElement": [
             {
               "@type": "ListItem",
-              "item": "https://imas-live-web.tokata3011.workers.dev/",
+              "item": "https://idollivedb.fugalabs.uk/",
               "name": "ホーム",
               "position": 1
             }

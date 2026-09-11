@@ -6,8 +6,16 @@
   "nameKana": null,
   "nameAlt": null,
   "themeKey": "neutral",
-  "monogram": "か",
   "isPermanent": false,
+  "tags": [
+    {
+      "id": "tag_genki",
+      "name": "元気",
+      "count": 7,
+      "color": null,
+      "isOfficial": true
+    }
+  ],
   "brand": null,
   "members": [],
   "songs": [],
@@ -19,8 +27,8 @@
   "seo": {
     "title": "からっぽユニット | アイドルライブDB",
     "description": "メンバーとユニット曲。",
-    "canonical": "https://imas-live-web.tokata3011.workers.dev/units/unit_empty/",
-    "ogImage": "https://imas-live-web.tokata3011.workers.dev/og/default.png",
+    "canonical": "https://idollivedb.fugalabs.uk/units/unit_empty/",
+    "ogImage": "https://idollivedb.fugalabs.uk/og/default.png",
     "robots": "index,follow",
     "jsonLd": {
       "@context": "https://schema.org",
@@ -28,20 +36,20 @@
         {
           "@type": "WebPage",
           "name": "からっぽユニット",
-          "url": "https://imas-live-web.tokata3011.workers.dev/units/unit_empty/"
+          "url": "https://idollivedb.fugalabs.uk/units/unit_empty/"
         },
         {
           "@type": "BreadcrumbList",
           "itemListElement": [
             {
               "@type": "ListItem",
-              "item": "https://imas-live-web.tokata3011.workers.dev/",
+              "item": "https://idollivedb.fugalabs.uk/",
               "name": "ホーム",
               "position": 1
             },
             {
               "@type": "ListItem",
-              "item": "https://imas-live-web.tokata3011.workers.dev/units/",
+              "item": "https://idollivedb.fugalabs.uk/units/",
               "name": "ユニット",
               "position": 2
             }

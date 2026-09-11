@@ -5,6 +5,7 @@ import PerformerNamePref from "../../components/PerformerNamePref.astro";
 import SetlistRow from "../../components/SetlistRow.astro";
 import RefList from "../../components/RefList.astro";
 import Chip from "../../components/Chip.astro";
+import TagChip from "../../components/TagChip.astro";
 import EmptyState from "../../components/EmptyState.astro";
 import { meta, page, pathsFor } from "../../lib/data";
 import type { ShowPage } from "../../lib/schema/ShowPage";
@@ -63,6 +64,33 @@ const show = page<ShowPage>(Astro.props.data);
     show.cast.length > 0 && (
       <Section slot="aside" id="show-cast" title="出演者" count={show.cast.length}>
         <RefList refs={show.cast} label="出演者" />
+      </Section>
+    )
+  }
+
+  {
+    show.costumes.length > 0 && (
+      <Section slot="aside" id="show-costumes" title="衣装" count={show.costumes.length}>
+        <ul class="costumes">
+          {show.costumes.map((c) => (
+            <li class="costume">
+              <span class="costume__head">
+                <span class="costume__name">{c.name}</span>
+                {c.attribution && <TagChip text={c.attribution} kind="costume" />}
+              </span>
+              <span class="costume__meta u-muted">
+                {/* 「どこで着たか」の文は Rust が組んでいる (区切りも言い方も 1 か所)。 */}
+                <span>{c.whereLabel}</span>
+                {c.description && <span>{c.description}</span>}
+                {c.sourceUrl && (
+                  <a class="u-underline-hover" href={c.sourceUrl} rel="noopener noreferrer" target="_blank">
+                    出典
+                  </a>
+                )}
+              </span>
+            </li>
+          ))}
+        </ul>
       </Section>
     )
   }

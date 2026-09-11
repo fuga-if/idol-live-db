@@ -4,8 +4,12 @@ import ColorDot from "./ColorDot.astro";
 import TagChip from "./TagChip.astro";
 import type { SetlistRow } from "../lib/schema/SetlistRow";
 /**
- * セトリの 1 行。曲・ジャケ・この披露限りのユニット表記・カバー・歌唱メンバー。
+ * セトリの 1 行。曲・ジャケ・この披露限りのユニット表記・カバー・歌唱メンバー・衣装。
  * 歌唱メンバーの表示名 (現任 CV による解決) は Rust が済ませている。
+ *
+ * 衣装は**この披露で着ていたもの**で、曲そのものの属性ではない
+ * (同じ曲でも公演が違えば衣装は違う)。記録がある行の方が少ないので、
+ * 無いときは行ごと出さない。
  */
 interface Props {
   row: SetlistRow;
@@ -24,10 +28,15 @@ const { row } = Astro.props;
     <span class="setlist__main">
       <a class="setlist__title u-underline-hover" href={row.song.path}>{row.song.name}</a>
       {
-        (row.unitLabel || row.isCover) && (
+        (row.unitLabel || row.isCover || row.costumes.length > 0) && (
           <span class="u-row">
             {row.unitLabel && <TagChip text={row.unitLabel} kind="unit" />}
             {row.isCover && <TagChip text="カバー" kind="cover" />}
+            {row.costumes.map((c) => (
+              /* 着用者の行は共通衣装だと出ない (「全員」とは書かない)。
+                 どちらにするかは Rust の `wearers_label` が決めている。 */
+              <TagChip text={c.wearersLabel ? `${c.name}（${c.wearersLabel}）` : c.name} kind="costume" />
+            ))}
           </span>
         )
       }

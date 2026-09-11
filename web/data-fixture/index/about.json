@@ -147,8 +147,8 @@
   "seo": {
     "title": "このサイトについて | アイドルライブDB",
     "description": "非公式・版権・ライセンス・アプリ。",
-    "canonical": "https://imas-live-web.tokata3011.workers.dev/about/",
-    "ogImage": "https://imas-live-web.tokata3011.workers.dev/og/default.png",
+    "canonical": "https://idollivedb.fugalabs.uk/about/",
+    "ogImage": "https://idollivedb.fugalabs.uk/og/default.png",
     "robots": "index,follow",
     "jsonLd": {
       "@context": "https://schema.org",
@@ -156,14 +156,14 @@
         {
           "@type": "WebPage",
           "name": "このサイトについて",
-          "url": "https://imas-live-web.tokata3011.workers.dev/about/"
+          "url": "https://idollivedb.fugalabs.uk/about/"
         },
         {
           "@type": "BreadcrumbList",
           "itemListElement": [
             {
               "@type": "ListItem",
-              "item": "https://imas-live-web.tokata3011.workers.dev/",
+              "item": "https://idollivedb.fugalabs.uk/",
               "name": "ホーム",
               "position": 1
             }

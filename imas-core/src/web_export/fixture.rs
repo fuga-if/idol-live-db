@@ -393,6 +393,13 @@ fn show_page() -> ShowPage {
                 }],
                 original_artists: vec![idol_mirai(), idol_shizuka()],
                 is_cover: false,
+                costumes: vec![SetlistCostume {
+                    id: "cos_sample_common".to_string(),
+                    name: "THE@TER WAVE 共通衣装".to_string(),
+                    attribution: None,
+                    // 共通衣装は「全員」と書かず、行ごと出さない。
+                    wearers_label: None,
+                }],
             },
             // 歌唱メンバーが記録されていない行 (実データに多い)。
             SetlistRow {
@@ -404,6 +411,30 @@ fn show_page() -> ShowPage {
                 performers: vec![],
                 original_artists: vec![],
                 is_cover: true,
+                // 衣装の記録が無い行 (実データではこちらが大多数)。
+                costumes: vec![],
+            },
+        ],
+        costumes: vec![
+            ShowCostume {
+                id: "cos_sample_common".to_string(),
+                name: "THE@TER WAVE 共通衣装".to_string(),
+                attribution: None,
+                description: Some("白基調にブランドカラーのライン".to_string()),
+                source_url: Some("https://example.com/costume".to_string()),
+                where_label: "1 曲目".to_string(),
+                wearers_label: None,
+            },
+            // 人ごとに違う衣装 (ソロコーナー)。
+            ShowCostume {
+                id: "cos_sample_solo".to_string(),
+                name: "ソロステージ衣装".to_string(),
+                attribution: Some("春日未来".to_string()),
+                description: None,
+                source_url: None,
+                // 曲までは特定できていない記録。捨てずに「公演のどこか」として残す。
+                where_label: "公演のどこか".to_string(),
+                wearers_label: Some("春日未来".to_string()),
             },
         ],
         cast: vec![idol_mirai(), idol_shizuka()],

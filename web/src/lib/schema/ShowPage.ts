@@ -3,6 +3,7 @@ import type { AppOpen } from "./AppOpen";
 import type { Ref } from "./Ref";
 import type { SeoBlock } from "./SeoBlock";
 import type { SetlistRow } from "./SetlistRow";
+import type { ShowCostume } from "./ShowCostume";
 
 /**
  * `/shows/<id>/` の中身。
@@ -21,6 +22,10 @@ setlist: Array<SetlistRow>,
  * `show_cast` (sort_order 順)。
  */
 cast: Array<Ref>, 
+/**
+ * この公演で着られた衣装 (進行順)。記録が無ければ空。
+ */
+costumes: Array<ShowCostume>, 
 /**
  * 同一ライブ内の他公演 (前後移動用。自分自身も含む)。
  */

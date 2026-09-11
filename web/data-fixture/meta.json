@@ -22,5 +22,23 @@
     "supportUrl": "https://fuga-if.github.io/imas-live-privacy/support.html",
     "termsUrl": "https://fuga-if.github.io/imas-live-privacy/terms.html",
     "repositoryUrl": "https://github.com/fuga-if/idol-live-db"
-  }
+  },
+  "performerNameOptions": [
+    {
+      "raw": "idol",
+      "label": "アイドル名"
+    },
+    {
+      "raw": "cast",
+      "label": "CV名"
+    },
+    {
+      "raw": "both",
+      "label": "アイドル名 + CV名"
+    },
+    {
+      "raw": "show",
+      "label": "公演に合わせる"
+    }
+  ]
 }

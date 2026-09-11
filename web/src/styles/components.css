@@ -240,6 +240,59 @@ a.chip:hover {
 .tag--community.tag--official {
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tag-color, var(--accent)) 45%, transparent);
 }
+/* 衣装。ユニット表記 (`tag--unit`) がアクセント色を使っているので、こちらは
+   地の色で置く。同じ行に並ぶので、色まで同じだと種類の違いが読めなくなる。 */
+.tag--costume {
+  background: var(--ds-fill);
+  color: var(--ds-ink2);
+}
+
+/* --- 衣装 (公演ページの脇) ---------------------------------------------
+   画像は持てないので (版権物を配らない方針)、名前・帰属・どこで着たかの
+   3 つで見分ける。「どこで着たか」の文言は Rust が組んだものをそのまま出す。 */
+.costumes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.costume {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp1);
+  min-inline-size: 0;
+}
+.costume__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--sp2);
+  min-inline-size: 0;
+}
+.costume__name {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+/* 「どこで着たか」「説明」「出典」を 1 行に。項目の切れ目が分かるよう中黒を挟む
+   (区切り文字は本文と同じ `PARTS_SEPARATOR`)。 */
+.costume__meta {
+  display: flex;
+  flex-wrap: wrap;
+  font-size: var(--fs-caption);
+  min-inline-size: 0;
+}
+.costume__meta > * + *::before {
+  content: " ・ ";
+  white-space: pre;
+}
+/* 1 着ぶんを 1 かたまりに見せるため、2 着目からは区切り線を引く。 */
+.costume + .costume {
+  padding-block-start: var(--sp3);
+  border-block-start: 1px solid var(--ds-sep);
+}
+
 /* --- 歌詞 -----------------------------------------------------------------
    本文はサーバから配る HTML に入っていない (押されたときに 1 曲ぶんだけ取る)。
    ここでやるのは「選ばせない・印刷させない」だけで、判断は Rust 側にある。 */

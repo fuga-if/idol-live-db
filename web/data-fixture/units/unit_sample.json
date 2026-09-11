@@ -6,8 +6,16 @@
   "nameKana": "さんぷるゆにっと",
   "nameAlt": "Sample Unit",
   "themeKey": "brand:ml",
-  "monogram": "サ",
   "isPermanent": true,
+  "tags": [
+    {
+      "id": "tag_genki",
+      "name": "元気",
+      "count": 7,
+      "color": null,
+      "isOfficial": true
+    }
+  ],
   "brand": {
     "kind": "brand",
     "id": "ml",
@@ -15,8 +23,7 @@
     "sub": "ML",
     "path": "/brands/ml/",
     "themeKey": "brand:ml",
-    "artworkUrl": null,
-    "monogram": "M"
+    "artworkUrl": null
   },
   "members": [
     {
@@ -26,8 +33,7 @@
       "sub": "ミリオンライブ!",
       "path": "/idols/ml_kasuga_mirai/",
       "themeKey": "idol:ml_kasuga_mirai",
-      "artworkUrl": null,
-      "monogram": "春"
+      "artworkUrl": null
     },
     {
       "kind": "idol",
@@ -36,8 +42,7 @@
       "sub": "ミリオンライブ!",
       "path": "/idols/ml_mogami_shizuka/",
       "themeKey": "idol:ml_mogami_shizuka",
-      "artworkUrl": null,
-      "monogram": "最"
+      "artworkUrl": null
     }
   ],
   "songs": [
@@ -48,8 +53,7 @@
       "sub": "765MILLION ALLSTARS",
       "path": "/songs/ml_sample/",
       "themeKey": "brand:ml",
-      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music/sample/600x600bb.jpg",
-      "monogram": "T"
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music/sample/600x600bb.jpg"
     }
   ],
   "app": {
@@ -60,8 +64,8 @@
   "seo": {
     "title": "サンプルユニット | アイドルライブDB",
     "description": "メンバーとユニット曲。",
-    "canonical": "https://imas-live-web.tokata3011.workers.dev/units/unit_sample/",
-    "ogImage": "https://imas-live-web.tokata3011.workers.dev/og/default.png",
+    "canonical": "https://idollivedb.fugalabs.uk/units/unit_sample/",
+    "ogImage": "https://idollivedb.fugalabs.uk/og/default.png",
     "robots": "index,follow",
     "jsonLd": {
       "@context": "https://schema.org",
@@ -69,20 +73,20 @@
         {
           "@type": "WebPage",
           "name": "サンプルユニット",
-          "url": "https://imas-live-web.tokata3011.workers.dev/units/unit_sample/"
+          "url": "https://idollivedb.fugalabs.uk/units/unit_sample/"
         },
         {
           "@type": "BreadcrumbList",
           "itemListElement": [
             {
               "@type": "ListItem",
-              "item": "https://imas-live-web.tokata3011.workers.dev/",
+              "item": "https://idollivedb.fugalabs.uk/",
               "name": "ホーム",
               "position": 1
             },
             {
               "@type": "ListItem",
-              "item": "https://imas-live-web.tokata3011.workers.dev/units/",
+              "item": "https://idollivedb.fugalabs.uk/units/",
               "name": "ユニット",
               "position": 2
             }
