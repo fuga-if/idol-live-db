@@ -10,8 +10,8 @@
 use std::collections::{BTreeMap, HashMap};
 
 use crate::domain::snapshot::{
-    Anniversary, Brand, BrandMemberLink, Creator, Event, EventRelease, Idol, IdolBrandLink,
-    IdolSongLink,
+    Anniversary, Brand, BrandMemberLink, Costume, CostumeWear, Creator, Event, EventRelease, Idol,
+    IdolBrandLink, IdolSongLink,
     IdolVoiceActor, SetlistItem, Show, ShowCastLink, Snapshot, Song, SongArtistLink, Staff, Unit,
     Venue, VenueHall, VenueName,
 };
@@ -43,6 +43,8 @@ pub struct RawTables {
     pub venue_halls: Vec<VenueHall>,
     pub idol_voice_actors: Vec<IdolVoiceActor>,
     pub event_releases: Vec<EventRelease>,
+    pub costumes: Vec<Costume>,
+    pub costume_wears: Vec<CostumeWear>,
     /// (song_id, idol_id, role)
     pub song_artists: Vec<(String, String, Option<String>)>,
     /// (setlist_item_id, idol_id)
@@ -74,6 +76,8 @@ pub fn build(raw: RawTables) -> Snapshot {
         venue_halls,
         idol_voice_actors,
         event_releases,
+        costumes,
+        costume_wears,
         song_artists,
         setlist_performers,
         show_cast,
@@ -355,6 +359,33 @@ pub fn build(raw: RawTables) -> Snapshot {
         });
     }
 
+    // 衣装 → 着用記録。入力順 (sort_order) は「本編の進行順」を表せるようにしてある。
+    let costume_index_by_id: HashMap<String, u32> =
+        costumes.iter().enumerate().map(|(i, c)| (c.id.clone(), i as u32)).collect();
+    let mut wears_by_show: Vec<Vec<u32>> = vec![Vec::new(); shows.len()];
+    let mut wears_by_setlist_item: Vec<Vec<u32>> = vec![Vec::new(); setlist_items.len()];
+    let mut wears_by_costume: Vec<Vec<u32>> = vec![Vec::new(); costumes.len()];
+    for (i, w) in costume_wears.iter().enumerate() {
+        wears_by_show[w.show as usize].push(i as u32);
+        if let Some(item) = w.setlist_item {
+            wears_by_setlist_item[item as usize].push(i as u32);
+        }
+        wears_by_costume[w.costume as usize].push(i as u32);
+    }
+    let wear_order_key = |i: u32| (costume_wears[i as usize].sort_order, i);
+    for list in wears_by_show.iter_mut().chain(&mut wears_by_setlist_item) {
+        list.sort_by_key(|&i| wear_order_key(i));
+    }
+    for list in &mut wears_by_costume {
+        // 「最近いつ着たか」が先頭に来る並び。公演日で降順、同日は入力順。
+        list.sort_by_key(|&i| {
+            let w = &costume_wears[i as usize];
+            (show_date_desc_key(w.show), w.sort_order, i)
+        });
+    }
+    let mut costume_order: Vec<u32> = (0..costumes.len() as u32).collect();
+    costume_order.sort_by_key(|&i| (costumes[i as usize].sort_order, i));
+
     // 全体並びの前計算 (SQL 時代に毎回払っていた ORDER BY)。
     let mut brand_order: Vec<u32> = (0..brands.len() as u32).collect();
     brand_order.sort_by_key(|&i| (brands[i as usize].sort_order, i));
@@ -469,6 +500,8 @@ pub fn build(raw: RawTables) -> Snapshot {
         anniversaries,
         idol_voice_actors,
         event_releases,
+        costumes,
+        costume_wears,
         meta,
         artists_by_song,
         songs_by_idol,
@@ -493,6 +526,10 @@ pub fn build(raw: RawTables) -> Snapshot {
         shows_by_venue_id,
         shows_by_venue_label,
         releases_by_event,
+        wears_by_show,
+        wears_by_setlist_item,
+        wears_by_costume,
+        costume_order,
         brand_order,
         idol_order,
         unit_order,
@@ -507,6 +544,7 @@ pub fn build(raw: RawTables) -> Snapshot {
         unit_index_by_id,
         brand_index_by_id,
         venue_index_by_id,
+        costume_index_by_id,
     }
 }
 

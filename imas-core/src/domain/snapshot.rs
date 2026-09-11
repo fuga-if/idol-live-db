@@ -298,6 +298,44 @@ pub struct EventRelease {
     pub sort_order: i64,
 }
 
+/// costumes 全カラム (ライブ衣装の目録)。
+///
+/// **画像は持たない。** 版権物を配らない方針なので、衣装は名前と出典で見分ける。
+///
+/// `unit_id` / `idol_id` は「誰のための衣装か」。両方 NULL なら公演の共通衣装、
+/// `unit_id` があればその編成の衣装、`idol_id` があればその人のソロ衣装。
+/// 「実際に誰が着たか」は [`CostumeWear`] 側にあり、ここは目録としての帰属だけ。
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct Costume {
+    pub id: String,
+    pub brand_id: Option<String>,
+    pub name: String,
+    pub name_kana: Option<String>,
+    pub unit_id: Option<String>,
+    pub idol_id: Option<String>,
+    pub description: Option<String>,
+    /// 出典 (公式サイト・公式物販ページ等)。二次情報しか無い衣装は入れない。
+    pub source_url: Option<String>,
+    pub sort_order: i64,
+}
+
+/// costume_wears (その公演で衣装が着られた記録)。
+/// costume / show は各 Vec の添字、setlist_item / idol は分かっている時だけ。
+///
+/// **粗さをそのまま持てる形にしてある。** 衣装は「公演で使われたのは確かだが
+/// どの曲かまでは分からない」ことが多いので、`setlist_item` が None の行を許す。
+/// `idol` が None なら「その場の全員」= 共通衣装で、入っていればその人だけ
+/// (同じ曲でユニットごとに違う衣装、という記録ができる)。
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct CostumeWear {
+    pub id: String,
+    pub costume: u32,
+    pub show: u32,
+    pub setlist_item: Option<u32>,
+    pub idol: Option<u32>,
+    pub sort_order: i64,
+}
+
 /// 曲→歌唱者リンク。`idol` は idols Vec の添字。
 #[derive(Debug, Clone)]
 pub struct SongArtistLink {
@@ -397,6 +435,10 @@ pub struct Snapshot {
     pub staff: Vec<Staff>,
     pub anniversaries: Vec<Anniversary>,
     pub idol_voice_actors: Vec<IdolVoiceActor>,
+    /// 衣装の目録。並びはテーブル出現順 (表示順は `costume_order`)。
+    pub costumes: Vec<Costume>,
+    /// 着用記録。並びはテーブル出現順 (表示順は各逆引き索引)。
+    pub costume_wears: Vec<CostumeWear>,
     /// Documents 専用表。表が無い DB (Bundle) では空。
     pub event_releases: Vec<EventRelease>,
     /// meta 表 (key → value)。value が NULL の行は載せない
@@ -480,6 +522,18 @@ pub struct Snapshot {
     /// release_date NULL は先頭 = SQLite ASC と同じ)。
     pub releases_by_event: Vec<Vec<u32>>,
 
+    /// shows と同じ添字。その公演の着用記録 (costume_wears 添字群)。
+    /// (sort_order ASC, 添字) — 入力した順 = 本編の進行順に並べられるようにしてある。
+    pub wears_by_show: Vec<Vec<u32>>,
+    /// setlist_items と同じ添字。その披露の着用記録。並びは wears_by_show と同じ。
+    /// `setlist_item` が None の行はここには入らない (公演どまりの記録)。
+    pub wears_by_setlist_item: Vec<Vec<u32>>,
+    /// costumes と同じ添字。その衣装が着られた記録。show.date DESC
+    /// (「最近いつ着たか」を先頭で取れるように)。同日は (sort_order ASC, 添字)。
+    pub wears_by_costume: Vec<Vec<u32>>,
+    /// 全衣装を (sort_order ASC, 添字) で並べた添字列。
+    pub costume_order: Vec<u32>,
+
     /// 全ブランドを (sort_order ASC, 添字) で並べた添字列 (fetchBrands の表示順)。
     pub brand_order: Vec<u32>,
     /// 全アイドルを (sort_order ASC, 添字) で並べた添字列
@@ -505,6 +559,7 @@ pub struct Snapshot {
     pub unit_index_by_id: HashMap<String, u32>,
     pub brand_index_by_id: HashMap<String, u32>,
     pub venue_index_by_id: HashMap<String, u32>,
+    pub costume_index_by_id: HashMap<String, u32>,
 }
 
 impl Snapshot {
@@ -543,6 +598,10 @@ impl Snapshot {
 
     pub fn venue(&self, id: &str) -> Option<&Venue> {
         self.venue_index_by_id.get(id).map(|&i| &self.venues[i as usize])
+    }
+
+    pub fn costume(&self, id: &str) -> Option<&Costume> {
+        self.costume_index_by_id.get(id).map(|&i| &self.costumes[i as usize])
     }
 
     /// meta の値。行が無い場合と value NULL は区別しない (SQL 時代の getValue と同じ)。

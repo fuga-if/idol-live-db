@@ -7,6 +7,29 @@ CREATE TABLE anniversaries (
     sort_order INTEGER NOT NULL DEFAULT 0
 );
 CREATE TABLE brands (id TEXT PRIMARY KEY NOT NULL, name TEXT NOT NULL, short_name TEXT NOT NULL, color TEXT, sort_order INTEGER NOT NULL);
+CREATE TABLE costume_wears (
+            id TEXT PRIMARY KEY NOT NULL,
+            costume_id TEXT NOT NULL,
+            show_id TEXT NOT NULL,
+            setlist_item_id TEXT,
+            idol_id TEXT,
+            sort_order INTEGER NOT NULL DEFAULT 0,
+            FOREIGN KEY (costume_id) REFERENCES costumes(id) ON DELETE CASCADE,
+            FOREIGN KEY (show_id) REFERENCES shows(id) ON DELETE CASCADE,
+            FOREIGN KEY (setlist_item_id) REFERENCES setlist_items(id) ON DELETE CASCADE,
+            FOREIGN KEY (idol_id) REFERENCES idols(id) ON DELETE CASCADE
+        );
+CREATE TABLE costumes (
+            id TEXT PRIMARY KEY NOT NULL,
+            brand_id TEXT,
+            name TEXT NOT NULL,
+            name_kana TEXT,
+            unit_id TEXT,
+            idol_id TEXT,
+            description TEXT,
+            source_url TEXT,
+            sort_order INTEGER NOT NULL DEFAULT 0
+        );
 CREATE TABLE creators (
             id TEXT PRIMARY KEY NOT NULL, name TEXT NOT NULL, name_kana TEXT NOT NULL,
             aliases TEXT
@@ -78,6 +101,10 @@ CREATE TABLE venues (
         );
 CREATE INDEX idx_anniversaries_brand ON anniversaries(brand_id);
 CREATE INDEX idx_anniversaries_date ON anniversaries(date);
+CREATE INDEX idx_costume_wears_costume ON costume_wears(costume_id);
+CREATE INDEX idx_costume_wears_item ON costume_wears(setlist_item_id);
+CREATE INDEX idx_costume_wears_show ON costume_wears(show_id);
+CREATE INDEX idx_costumes_brand ON costumes(brand_id);
 CREATE INDEX idx_creators_name ON creators(name);
 CREATE INDEX idx_events_is_solo ON events(is_solo);
 CREATE INDEX idx_idol_voice_actors_idol ON idol_voice_actors(idol_id);

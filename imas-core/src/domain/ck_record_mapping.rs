@@ -427,6 +427,39 @@ pub struct CkCreatorRow {
     pub aliases: Option<String>,
 }
 
+/// costumes
+///
+/// **画像のフィールドは持たない。** 版権物を配らない方針なので、
+/// CloudKit 側にも器を作らない (あると入れたくなる)。
+#[derive(uniffi::Record, Clone, Debug, PartialEq)]
+pub struct CkCostumeRow {
+    pub id: String,
+    pub brand_id: Option<String>,
+    pub name: String,
+    pub name_kana: Option<String>,
+    /// この編成のための衣装。共通衣装なら None。
+    pub unit_id: Option<String>,
+    /// この人のための衣装 (ソロ衣装)。共通衣装なら None。
+    pub idol_id: Option<String>,
+    pub description: Option<String>,
+    pub source_url: Option<String>,
+    pub sort_order: i64,
+}
+
+/// costume_wears
+///
+/// `setlist_item_id` / `idol_id` が None なのは**欠損ではなく正規の状態**
+/// (曲までは特定できていない / その場の全員)。required にしてはいけない。
+#[derive(uniffi::Record, Clone, Debug, PartialEq)]
+pub struct CkCostumeWearRow {
+    pub id: String,
+    pub costume_id: String,
+    pub show_id: String,
+    pub setlist_item_id: Option<String>,
+    pub idol_id: Option<String>,
+    pub sort_order: i64,
+}
+
 /// unit_versions
 #[derive(uniffi::Record, Clone, Debug, PartialEq)]
 pub struct CkUnitVersionRow {
@@ -582,6 +615,8 @@ pub enum CkRow {
     Venue { row: CkVenueRow },
     VenueName { row: CkVenueNameRow },
     UnitVersion { row: CkUnitVersionRow },
+    Costume { row: CkCostumeRow },
+    CostumeWear { row: CkCostumeWearRow },
     Creator { row: CkCreatorRow },
     VenueHall { row: CkVenueHallRow },
     Song { row: CkSongRow },
@@ -813,6 +848,42 @@ pub fn unit_version(record: &CkRecordInput) -> Option<CkUnitVersionRow> {
     })
 }
 
+/// ライブ衣装の目録。
+pub fn costume(record: &CkRecordInput) -> Option<CkCostumeRow> {
+    let f = Fields::new(record);
+    let id = f.entity_id()?;
+    let name = f.required("name")?;
+    Some(CkCostumeRow {
+        id,
+        brand_id: f.str("brandId"),
+        name,
+        name_kana: f.str("nameKana"),
+        unit_id: f.str("unitId"),
+        idol_id: f.str("idolId"),
+        description: f.str("description"),
+        source_url: f.str("sourceUrl"),
+        sort_order: f.int_value("sortOrder"),
+    })
+}
+
+/// その公演で衣装を着た記録。
+///
+/// 必須は衣装と公演だけ。曲と人は「分からない」が正規の状態なので任意にしてある。
+pub fn costume_wear(record: &CkRecordInput) -> Option<CkCostumeWearRow> {
+    let f = Fields::new(record);
+    let id = f.entity_id()?;
+    let costume_id = f.required("costumeId")?;
+    let show_id = f.required("showId")?;
+    Some(CkCostumeWearRow {
+        id,
+        costume_id,
+        show_id,
+        setlist_item_id: f.str("setlistItemId"),
+        idol_id: f.str("idolId"),
+        sort_order: f.int_value("sortOrder"),
+    })
+}
+
 pub fn venue_hall(record: &CkRecordInput) -> Option<CkVenueHallRow> {
     let f = Fields::new(record);
     let id = f.entity_id()?;
@@ -973,6 +1044,8 @@ pub fn map_record(record_type: &str, record: &CkRecordInput, now_millis: i64) ->
         "Venue" => venue(record).map(|row| CkRow::Venue { row }),
         "VenueName" => venue_name(record).map(|row| CkRow::VenueName { row }),
         "UnitVersion" => unit_version(record).map(|row| CkRow::UnitVersion { row }),
+        "Costume" => costume(record).map(|row| CkRow::Costume { row }),
+        "CostumeWear" => costume_wear(record).map(|row| CkRow::CostumeWear { row }),
         "Creator" => credit_reading(record).map(|row| CkRow::Creator { row }),
         "VenueHall" => venue_hall(record).map(|row| CkRow::VenueHall { row }),
         "Song" => song(record).map(|row| CkRow::Song { row }),
@@ -1001,6 +1074,8 @@ pub fn is_ingested_record_type(record_type: &str) -> bool {
             | "Venue"
             | "VenueName"
             | "UnitVersion"
+            | "Costume"
+            | "CostumeWear"
             | "Creator"
             | "VenueHall"
             | "Song"
@@ -1120,6 +1195,90 @@ mod tests {
     fn duplicate_keys_take_the_last_one() {
         let r = rec("b", &[("name", text("first")), ("name", text("last"))]);
         assert_eq!(brand(&r).unwrap().name, "last");
+    }
+
+    // ---- 衣装 ----
+
+    /// 全列を読んでいること。読み落とすと同期のたびに列が消える
+    /// (GRDB も Room も行ごと置換するため)。
+    #[test]
+    fn costume_reads_every_column() {
+        let r = rec(
+            "c1",
+            &[
+                ("id", text("cos_10th_common")),
+                ("brandId", text("765as")),
+                ("name", text("10th 共通衣装")),
+                ("nameKana", text("てんす きょうつういしょう")),
+                ("unitId", text("unit_x")),
+                ("idolId", text("idol_y")),
+                ("description", text("白基調")),
+                ("sourceUrl", text("https://example.test/")),
+                ("sortOrder", int(3)),
+            ],
+        );
+        let row = costume(&r).unwrap();
+        assert_eq!(row.id, "cos_10th_common");
+        assert_eq!(row.brand_id.as_deref(), Some("765as"));
+        assert_eq!(row.name, "10th 共通衣装");
+        assert_eq!(row.name_kana.as_deref(), Some("てんす きょうつういしょう"));
+        assert_eq!(row.unit_id.as_deref(), Some("unit_x"));
+        assert_eq!(row.idol_id.as_deref(), Some("idol_y"));
+        assert_eq!(row.description.as_deref(), Some("白基調"));
+        assert_eq!(row.source_url.as_deref(), Some("https://example.test/"));
+        assert_eq!(row.sort_order, 3);
+    }
+
+    #[test]
+    fn costume_without_a_name_is_rejected() {
+        assert!(costume(&rec("c1", &[("brandId", text("765as"))])).is_none());
+    }
+
+    #[test]
+    fn costume_wear_reads_every_column() {
+        let r = rec(
+            "w1",
+            &[
+                ("id", text("wear_1")),
+                ("costumeId", text("cos_1")),
+                ("showId", text("show_1")),
+                ("setlistItemId", text("item_1")),
+                ("idolId", text("idol_1")),
+                ("sortOrder", int(2)),
+            ],
+        );
+        let row = costume_wear(&r).unwrap();
+        assert_eq!(row.id, "wear_1");
+        assert_eq!(row.costume_id, "cos_1");
+        assert_eq!(row.show_id, "show_1");
+        assert_eq!(row.setlist_item_id.as_deref(), Some("item_1"));
+        assert_eq!(row.idol_id.as_deref(), Some("idol_1"));
+        assert_eq!(row.sort_order, 2);
+    }
+
+    /// **曲と人が無いのは欠損ではない。** 「公演のどこかで全員が着た」という
+    /// 正規の記録なので、必須にして捨ててはいけない。
+    #[test]
+    fn costume_wear_keeps_a_row_without_a_song_or_an_idol() {
+        let r = rec("w1", &[("costumeId", text("cos_1")), ("showId", text("show_1"))]);
+        let row = costume_wear(&r).unwrap();
+        assert_eq!(row.setlist_item_id, None);
+        assert_eq!(row.idol_id, None);
+    }
+
+    /// 衣装と公演が欠けた行は、どこの記録か分からないので捨てること。
+    #[test]
+    fn costume_wear_without_a_costume_or_a_show_is_rejected() {
+        assert!(costume_wear(&rec("w1", &[("showId", text("show_1"))])).is_none());
+        assert!(costume_wear(&rec("w1", &[("costumeId", text("cos_1"))])).is_none());
+    }
+
+    #[test]
+    fn costume_record_types_are_ingested() {
+        assert!(is_ingested_record_type("Costume"));
+        assert!(is_ingested_record_type("CostumeWear"));
+        let r = rec("c1", &[("name", text("共通"))]);
+        assert!(matches!(map_record("Costume", &r, 0), Some(CkRow::Costume { .. })));
     }
 
     // ---- 数値・Bool の変換 ----

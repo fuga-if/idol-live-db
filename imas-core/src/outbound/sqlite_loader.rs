@@ -17,8 +17,8 @@
 //! 被害が小さい (過去に FK 孤児で起動クラッシュ→審査 reject の事故があった系譜のデータ)。
 
 use crate::domain::snapshot::{
-    Anniversary, Brand, Creator, Event, EventRelease, Idol, IdolVoiceActor, SetlistItem, Show,
-    Snapshot, Song, Staff, Unit, Venue, VenueHall, VenueName,
+    Anniversary, Brand, Costume, CostumeWear, Creator, Event, EventRelease, Idol, IdolVoiceActor,
+    SetlistItem, Show, Snapshot, Song, Staff, Unit, Venue, VenueHall, VenueName,
 };
 use rusqlite::{Connection, OpenFlags};
 use std::collections::{BTreeMap, HashMap, HashSet};
@@ -75,6 +75,20 @@ pub fn load_raw_tables(db_path: &str) -> Result<RawTables, String> {
     let idol_voice_actors = load_voice_actors(&conn, &idol_index_by_id)?;
     let event_releases = load_event_releases(&conn, &event_index_by_id, &show_index_by_id)?;
 
+    // 衣装は setlist_items の添字も要るので、そこまで揃ってから読む。
+    let setlist_item_index_by_id: HashMap<String, u32> =
+        setlist_items.iter().enumerate().map(|(i, it)| (it.id.clone(), i as u32)).collect();
+    let costumes = load_costumes(&conn)?;
+    let costume_index_by_id: HashMap<String, u32> =
+        costumes.iter().enumerate().map(|(i, c)| (c.id.clone(), i as u32)).collect();
+    let costume_wears = load_costume_wears(
+        &conn,
+        &costume_index_by_id,
+        &show_index_by_id,
+        &setlist_item_index_by_id,
+        &idol_index_by_id,
+    )?;
+
     // 結合表は素の行のまま読む (添字への解決と索引構築は domain 側)。
     let song_artists = load_song_artists(&conn)?;
     let setlist_performers = load_setlist_performers(&conn)?;
@@ -100,6 +114,8 @@ pub fn load_raw_tables(db_path: &str) -> Result<RawTables, String> {
         venue_halls,
         idol_voice_actors,
         event_releases,
+        costumes,
+        costume_wears,
         song_artists,
         setlist_performers,
         show_cast,
@@ -532,6 +548,98 @@ fn load_venue_halls(
         halls.push(VenueHall { id, venue, name, capacity });
     }
     Ok(halls)
+}
+
+/// costumes をロードする。表が無い DB (移行前の Documents) では空で続ける。
+fn load_costumes(conn: &Connection) -> Result<Vec<Costume>, String> {
+    if !table_exists(conn, "costumes")? {
+        return Ok(Vec::new());
+    }
+    let mut stmt = conn
+        .prepare(
+            "SELECT id, brand_id, name, name_kana, unit_id, idol_id, description, source_url,
+                    sort_order
+             FROM costumes",
+        )
+        .map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map([], |r| {
+            Ok(Costume {
+                id: r.get(0)?,
+                brand_id: r.get(1)?,
+                name: r.get(2)?,
+                name_kana: r.get(3)?,
+                unit_id: r.get(4)?,
+                idol_id: r.get(5)?,
+                description: r.get(6)?,
+                source_url: r.get(7)?,
+                sort_order: r.get::<_, Option<i64>>(8)?.unwrap_or(0),
+            })
+        })
+        .map_err(|e| e.to_string())?;
+    rows.collect::<Result<_, _>>().map_err(|e| e.to_string())
+}
+
+/// costume_wears をロードする。
+///
+/// 衣装・公演は必須なので、どちらかが引けない孤児行は読み飛ばす。
+/// **曲とアイドルは「分からない」が正規の状態**なので、NULL はそのまま None にする。
+/// ただし id が入っているのに引けない (= 消えた曲を指している) 行は、
+/// 「全員・公演どまり」に化けてしまうと嘘になるので落とす。
+fn load_costume_wears(
+    conn: &Connection,
+    costume_index_by_id: &HashMap<String, u32>,
+    show_index_by_id: &HashMap<String, u32>,
+    setlist_item_index_by_id: &HashMap<String, u32>,
+    idol_index_by_id: &HashMap<String, u32>,
+) -> Result<Vec<CostumeWear>, String> {
+    if !table_exists(conn, "costume_wears")? {
+        return Ok(Vec::new());
+    }
+    let mut stmt = conn
+        .prepare(
+            "SELECT id, costume_id, show_id, setlist_item_id, idol_id, sort_order
+             FROM costume_wears",
+        )
+        .map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map([], |r| {
+            Ok((
+                r.get::<_, String>(0)?,
+                r.get::<_, String>(1)?,
+                r.get::<_, String>(2)?,
+                r.get::<_, Option<String>>(3)?,
+                r.get::<_, Option<String>>(4)?,
+                r.get::<_, Option<i64>>(5)?.unwrap_or(0),
+            ))
+        })
+        .map_err(|e| e.to_string())?;
+    let mut wears = Vec::new();
+    for row in rows {
+        let (id, costume_id, show_id, item_id, idol_id, sort_order) =
+            row.map_err(|e| e.to_string())?;
+        let (Some(&costume), Some(&show)) =
+            (costume_index_by_id.get(&costume_id), show_index_by_id.get(&show_id))
+        else {
+            continue;
+        };
+        let setlist_item = match &item_id {
+            Some(k) => match setlist_item_index_by_id.get(k) {
+                Some(&i) => Some(i),
+                None => continue,
+            },
+            None => None,
+        };
+        let idol = match &idol_id {
+            Some(k) => match idol_index_by_id.get(k) {
+                Some(&i) => Some(i),
+                None => continue,
+            },
+            None => None,
+        };
+        wears.push(CostumeWear { id, costume, show, setlist_item, idol, sort_order });
+    }
+    Ok(wears)
 }
 
 fn load_staff(conn: &Connection) -> Result<Vec<Staff>, String> {

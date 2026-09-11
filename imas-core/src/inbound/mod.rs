@@ -9,6 +9,7 @@ pub mod idol_song_queries;
 pub mod idol_queries;
 pub mod unit_queries;
 pub mod event_list_queries;
+pub mod costume_queries;
 pub mod event_detail_queries;
 pub mod calendar_queries;
 pub mod stats_queries;

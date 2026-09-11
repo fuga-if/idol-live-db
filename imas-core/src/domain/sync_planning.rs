@@ -221,6 +221,10 @@ const STEPS_IN_FK_ORDER: &[(&str, &str)] = &[
     ("SetlistItem", "セトリ"),
     // Phase 5: setlist_items に依存
     ("SetlistPerformer", "セトリ出演者"),
+    // 衣装の目録はアイドル・ユニットにだけ依存するが、着用記録が setlist_items を
+    // 参照するので、対でこの位置に置く (目録が後から来ると着用記録が全部捨てられる)。
+    ("Costume", "衣装"),
+    ("CostumeWear", "衣装の着用"),
     // Phase 6: コミュニティコンテンツ (songs に依存)
     ("SongCall", "コーレス"),
     ("SongVideo", "参考動画"),
@@ -475,6 +479,8 @@ pub fn table_info(record_type: &str) -> Option<SyncTableInfo> {
         "SongArtist" => ("song_artists", &["song_id", "idol_id", "role"]),
         "ShowCast" => ("show_cast", &["show_id", "idol_id"]),
         "SetlistPerformer" => ("setlist_performers", &["setlist_item_id", "idol_id"]),
+        "Costume" => ("costumes", &["id"]),
+        "CostumeWear" => ("costume_wears", &["id"]),
         _ => return None,
     };
     Some(SyncTableInfo {
@@ -951,7 +957,7 @@ mod tests {
     #[test]
     fn all_steps_keeps_parents_before_children() {
         let steps = all_steps();
-        assert_eq!(steps.len(), 19);
+        assert_eq!(steps.len(), 21);
         let index = |record_type: &str| {
             steps
                 .iter()
@@ -975,6 +981,12 @@ mod tests {
         assert!(index("SetlistItem") < index("SetlistPerformer"));
         assert!(index("Song") < index("SongCall"));
         assert!(index("Song") < index("SongVideo"));
+        // 衣装の着用記録は、衣装・公演・セトリ行・アイドルの全部が揃ってから。
+        assert!(index("Costume") < index("CostumeWear"));
+        assert!(index("Show") < index("CostumeWear"));
+        assert!(index("SetlistItem") < index("CostumeWear"));
+        assert!(index("Idol") < index("Costume"));
+        assert!(index("ImasUnit") < index("Costume"));
         assert_eq!(steps[0].display_name, "ブランド");
     }
 

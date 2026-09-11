@@ -83,6 +83,13 @@ pub fn expected_tables() -> Vec<TableSpec> {
              "ユニットのバージョン (Project“ReLight”AXE8 等)。\n\
               ユニット自体は 1 行のまま。版で分けるのは曲側 (songs.unit_version_id)。\n\
               版の判定は code で行う (name の文字列一致に頼らない)"),
+        spec("costumes", Master, &["id", "name"],
+             "ライブ衣装の目録。unit_id / idol_id が入っていればその編成・その人の専用衣装、\n\
+              どちらも NULL なら公演の共通衣装。**画像は持たない** (版権物を載せない方針)"),
+        spec("costume_wears", Master, &["id", "costume_id", "show_id"],
+             "その公演で衣装を着た記録。setlist_item_id を持てば「この曲で着た」まで分かり、\n\
+              NULL なら公演で使われたことだけが分かっている。idol_id が NULL なら\n\
+              その場の全員 (共通衣装)、入っていればその人だけ (着替えの分岐)"),
         spec("venues", Master, &["id", "name"], "会場"),
         spec("venue_names", Master, &["venue_id", "name"], "会場の別名・改称"),
         spec("venue_halls", Master, &["venue_id", "name"], "会場内のホール"),

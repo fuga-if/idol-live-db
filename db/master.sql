@@ -52,6 +52,29 @@ INSERT INTO brands VALUES('sc','THE IDOLM@STER SHINY COLORS','シャニマス','
 INSERT INTO brands VALUES('gakuen','学園アイドルマスター','学マス','#f39800',8);
 INSERT INTO brands VALUES('other','その他','Other','#8E8E93',99);
 INSERT INTO brands VALUES('961','961 Production','961','#520000',2);
+CREATE TABLE costume_wears (
+            id TEXT PRIMARY KEY NOT NULL,
+            costume_id TEXT NOT NULL,
+            show_id TEXT NOT NULL,
+            setlist_item_id TEXT,
+            idol_id TEXT,
+            sort_order INTEGER NOT NULL DEFAULT 0,
+            FOREIGN KEY (costume_id) REFERENCES costumes(id) ON DELETE CASCADE,
+            FOREIGN KEY (show_id) REFERENCES shows(id) ON DELETE CASCADE,
+            FOREIGN KEY (setlist_item_id) REFERENCES setlist_items(id) ON DELETE CASCADE,
+            FOREIGN KEY (idol_id) REFERENCES idols(id) ON DELETE CASCADE
+        );
+CREATE TABLE costumes (
+            id TEXT PRIMARY KEY NOT NULL,
+            brand_id TEXT,
+            name TEXT NOT NULL,
+            name_kana TEXT,
+            unit_id TEXT,
+            idol_id TEXT,
+            description TEXT,
+            source_url TEXT,
+            sort_order INTEGER NOT NULL DEFAULT 0
+        );
 CREATE TABLE creators (
             id TEXT PRIMARY KEY NOT NULL, name TEXT NOT NULL, name_kana TEXT NOT NULL,
             aliases TEXT
@@ -120105,6 +120128,10 @@ CREATE INDEX idx_anniversaries_date ON anniversaries(date);
 CREATE INDEX idx_venue_names_venue ON venue_names(venue_id);
 CREATE INDEX idx_songs_unit_version ON songs(unit_version_id);
 CREATE INDEX idx_unit_versions_unit ON unit_versions(unit_id);
+CREATE INDEX idx_costume_wears_costume ON costume_wears(costume_id);
+CREATE INDEX idx_costume_wears_item ON costume_wears(setlist_item_id);
+CREATE INDEX idx_costume_wears_show ON costume_wears(show_id);
+CREATE INDEX idx_costumes_brand ON costumes(brand_id);
 CREATE INDEX idx_creators_name ON creators(name);
 CREATE INDEX idx_venue_halls_venue ON venue_halls(venue_id);
 CREATE INDEX idx_shows_venue_id ON shows(venue_id);
