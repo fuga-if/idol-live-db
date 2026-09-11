@@ -143,6 +143,29 @@ enum CKRecordMapper {
         )
     }
 
+    /// ライブ衣装の目録。
+    static func costume(from record: CKRecord) -> Costume? {
+        guard case .costume(let row)? = mapped(record, as: "Costume") else { return nil }
+        return Costume(
+            id: row.id, brandId: row.brandId, name: row.name, nameKana: row.nameKana,
+            unitId: row.unitId, idolId: row.idolId, description: row.description,
+            sourceUrl: row.sourceUrl, sortOrder: Int(row.sortOrder)
+        )
+    }
+
+    /// 衣装の着用記録。
+    ///
+    /// `setlistItemId` / `idolId` の nil は欠損ではない (曲までは特定していない /
+    /// その場の全員)。埋めたり捨てたりしないこと。
+    static func costumeWear(from record: CKRecord) -> CostumeWear? {
+        guard case .costumeWear(let row)? = mapped(record, as: "CostumeWear") else { return nil }
+        return CostumeWear(
+            id: row.id, costumeId: row.costumeId, showId: row.showId,
+            setlistItemId: row.setlistItemId, idolId: row.idolId,
+            sortOrder: Int(row.sortOrder)
+        )
+    }
+
     /// 会場名と有効期間。表示を「公演日時点の名前」にするために使う。
     static func venueName(from record: CKRecord) -> VenueName? {
         guard case .venueName(let row)? = mapped(record, as: "VenueName") else { return nil }

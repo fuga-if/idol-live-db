@@ -104,6 +104,14 @@ class CloudKitSyncEngine(context: Context, private val db: AppDatabase) {
             { d, rows, _ -> d.upsertUnitVersions(SyncMappers.unitVersions(rows)) },
             { d, keys -> d.deleteUnitVersions(singlePk(keys)) },
             { d -> d.unitVersionIds() }),
+        "Costume" to StepIo(
+            { d, rows, _ -> d.upsertCostumes(SyncMappers.costumes(rows)) },
+            { d, keys -> d.deleteCostumes(singlePk(keys)) },
+            { d -> d.costumeIds() }),
+        "CostumeWear" to StepIo(
+            { d, rows, _ -> d.upsertCostumeWears(SyncMappers.costumeWears(rows)) },
+            { d, keys -> d.deleteCostumeWears(singlePk(keys)) },
+            { d -> d.costumeWearIds() }),
         "VenueName" to StepIo(
             { d, rows, _ -> d.upsertVenueNames(SyncMappers.venueNames(rows)) },
             { d, keys -> d.deleteVenueNames(singlePk(keys)) },

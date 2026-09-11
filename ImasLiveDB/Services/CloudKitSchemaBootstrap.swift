@@ -35,6 +35,10 @@ enum CloudKitSchemaBootstrap {
             ("UnitVersion", ["unitId": "x", "code": "x", "name": "x", "catchphrase": "x",
                              "logoUrl": "x", "validFrom": "x", "validTo": "x", "sortOrder": 0]),
             ("VenueHall", ["venueId": "x", "name": "x", "capacity": 0]),
+            ("Costume", ["brandId": "x", "name": "x", "nameKana": "x", "unitId": "x",
+                         "idolId": "x", "description": "x", "sourceUrl": "x", "sortOrder": 0]),
+            ("CostumeWear", ["costumeId": "x", "showId": "x", "setlistItemId": "x",
+                             "idolId": "x", "sortOrder": 0]),
         ]
 
         for (typeName, fields) in types {

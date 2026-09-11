@@ -24,6 +24,8 @@ import com.fugaif.imaslivedb.data.db.dao.UserMarkDao
 import com.fugaif.imaslivedb.data.model.Anniversary
 import com.fugaif.imaslivedb.data.model.Venue
 import com.fugaif.imaslivedb.data.model.VenueHall
+import com.fugaif.imaslivedb.data.model.Costume
+import com.fugaif.imaslivedb.data.model.CostumeWear
 import com.fugaif.imaslivedb.data.model.Creator
 import com.fugaif.imaslivedb.data.model.UnitVersion
 import com.fugaif.imaslivedb.data.model.VenueName
@@ -71,9 +73,11 @@ import com.fugaif.imaslivedb.data.model.UserMark
         VenueName::class,
         VenueHall::class,
         UnitVersion::class,
-        Creator::class
+        Creator::class,
+        Costume::class,
+        CostumeWear::class
     ],
-    version = 12,
+    version = 13,
     // 確定スキーマを app/schemas へ JSON で吐く。共有コア (imas-core) が持つ
     // マスタ DDL と突き合わせて、片方だけスキーマを変えた事故を CI で捕まえるため。
     exportSchema = true
@@ -138,7 +142,7 @@ abstract class AppDatabase : RoomDatabase() {
             )
                 // スキーマ変更時は破壊的再構築せず Room Migration を書く (iOS の DatabaseMigrations と対)。
                 // UserMark 等のローカル唯一データを保全するため (.fallbackToDestructiveMigration は使わない)。
-                .addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12)
+                .addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13)
                 .addCallback(seedCallback)
                 .build()
         }
@@ -348,6 +352,43 @@ abstract class AppDatabase : RoomDatabase() {
         val MIGRATION_11_12 = object : Migration(11, 12) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE units ADD COLUMN name_kana TEXT")
+            }
+        }
+
+        /**
+         * 衣装の目録 (costumes) と着用記録 (costume_wears) を足す。
+         *
+         * FK 制約は宣言しない。他のマスタ表と揃えてあり、親が後から届く差分同期で
+         * 子行が 1 件ずつ落ちるのを避けるため (整合はコアのローダが読む時に見る)。
+         */
+        val MIGRATION_12_13 = object : Migration(12, 13) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS costumes (" +
+                        "id TEXT PRIMARY KEY NOT NULL, " +
+                        "brand_id TEXT, " +
+                        "name TEXT NOT NULL, " +
+                        "name_kana TEXT, " +
+                        "unit_id TEXT, " +
+                        "idol_id TEXT, " +
+                        "description TEXT, " +
+                        "source_url TEXT, " +
+                        "sort_order INTEGER NOT NULL DEFAULT 0)"
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS idx_costumes_brand ON costumes(brand_id)")
+
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS costume_wears (" +
+                        "id TEXT PRIMARY KEY NOT NULL, " +
+                        "costume_id TEXT NOT NULL, " +
+                        "show_id TEXT NOT NULL, " +
+                        "setlist_item_id TEXT, " +
+                        "idol_id TEXT, " +
+                        "sort_order INTEGER NOT NULL DEFAULT 0)"
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS idx_costume_wears_costume ON costume_wears(costume_id)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS idx_costume_wears_show ON costume_wears(show_id)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS idx_costume_wears_item ON costume_wears(setlist_item_id)")
             }
         }
     }

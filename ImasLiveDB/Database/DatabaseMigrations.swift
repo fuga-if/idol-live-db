@@ -907,6 +907,49 @@ enum DatabaseMigrations {
             }
         }
 
+        // v29: 衣装の目録と、その公演で着た記録。
+        //
+        // 「この公演で何を着たか」と「この曲のとき何を着ていたか」を答えるための表。
+        // 曲の衣装は**その披露で着ていたもの**なので、曲ではなくセトリ行に紐づける
+        // (同じ曲でも公演が違えば衣装は違う)。
+        //
+        // setlist_item_id / idol_id が NULL なのは欠損ではなく正規の状態
+        // (曲までは特定できていない / その場の全員)。NOT NULL にしてはいけない。
+        migrator.registerMigration("v29_costumes") { db in
+            try db.create(table: "costumes", ifNotExists: true) { t in
+                t.primaryKey("id", .text)
+                t.column("brand_id", .text)
+                t.column("name", .text).notNull()
+                t.column("name_kana", .text)
+                /// この編成のための衣装。共通衣装なら NULL。
+                t.column("unit_id", .text)
+                /// この人のための衣装 (ソロ衣装)。共通衣装なら NULL。
+                t.column("idol_id", .text)
+                t.column("description", .text)
+                /// 出典 (公式)。二次情報しか無い衣装は入れない。
+                t.column("source_url", .text)
+                t.column("sort_order", .integer).notNull().defaults(to: 0)
+            }
+            try db.create(index: "idx_costumes_brand", on: "costumes",
+                          columns: ["brand_id"], ifNotExists: true)
+
+            try db.create(table: "costume_wears", ifNotExists: true) { t in
+                t.primaryKey("id", .text)
+                t.column("costume_id", .text).notNull()
+                    .references("costumes", onDelete: .cascade)
+                t.column("show_id", .text).notNull().references("shows", onDelete: .cascade)
+                t.column("setlist_item_id", .text).references("setlist_items", onDelete: .cascade)
+                t.column("idol_id", .text).references("idols", onDelete: .cascade)
+                t.column("sort_order", .integer).notNull().defaults(to: 0)
+            }
+            try db.create(index: "idx_costume_wears_costume", on: "costume_wears",
+                          columns: ["costume_id"], ifNotExists: true)
+            try db.create(index: "idx_costume_wears_show", on: "costume_wears",
+                          columns: ["show_id"], ifNotExists: true)
+            try db.create(index: "idx_costume_wears_item", on: "costume_wears",
+                          columns: ["setlist_item_id"], ifNotExists: true)
+        }
+
         return migrator
     }
 }

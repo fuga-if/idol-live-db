@@ -415,6 +415,47 @@ DEFINE SCHEMA
         GRANT READ TO "_world"
     );
 
+    RECORD TYPE Costume (
+        "___createTime" TIMESTAMP,
+        "___createdBy"  REFERENCE,
+        "___etag"       STRING,
+        "___modTime"    TIMESTAMP,
+        "___modifiedBy" REFERENCE,
+        "___recordID"   REFERENCE,
+        brandId         STRING QUERYABLE SEARCHABLE SORTABLE,
+        deletedAt       TIMESTAMP QUERYABLE SORTABLE,
+        description     STRING QUERYABLE SEARCHABLE SORTABLE,
+        idolId          STRING QUERYABLE SEARCHABLE SORTABLE,
+        modifiedAt      TIMESTAMP QUERYABLE SORTABLE,
+        name            STRING QUERYABLE SEARCHABLE SORTABLE,
+        nameKana        STRING QUERYABLE SEARCHABLE SORTABLE,
+        sortOrder       INT64 QUERYABLE SORTABLE,
+        sourceUrl       STRING QUERYABLE SEARCHABLE SORTABLE,
+        unitId          STRING QUERYABLE SEARCHABLE SORTABLE,
+        GRANT WRITE TO "_creator",
+        GRANT CREATE TO "_icloud",
+        GRANT READ TO "_world"
+    );
+
+    RECORD TYPE CostumeWear (
+        "___createTime" TIMESTAMP,
+        "___createdBy"  REFERENCE,
+        "___etag"       STRING,
+        "___modTime"    TIMESTAMP,
+        "___modifiedBy" REFERENCE,
+        "___recordID"   REFERENCE,
+        costumeId       STRING QUERYABLE SEARCHABLE SORTABLE,
+        deletedAt       TIMESTAMP QUERYABLE SORTABLE,
+        idolId          STRING QUERYABLE SEARCHABLE SORTABLE,
+        modifiedAt      TIMESTAMP QUERYABLE SORTABLE,
+        setlistItemId   STRING QUERYABLE SEARCHABLE SORTABLE,
+        showId          STRING QUERYABLE SEARCHABLE SORTABLE,
+        sortOrder       INT64 QUERYABLE SORTABLE,
+        GRANT WRITE TO "_creator",
+        GRANT CREATE TO "_icloud",
+        GRANT READ TO "_world"
+    );
+
     RECORD TYPE Creator (
         "___createTime" TIMESTAMP,
         "___createdBy"  REFERENCE,

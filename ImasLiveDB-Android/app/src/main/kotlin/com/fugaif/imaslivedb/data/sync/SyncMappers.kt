@@ -16,6 +16,8 @@ import com.fugaif.imaslivedb.data.model.SongVideo
 import com.fugaif.imaslivedb.data.model.UnitMember
 import com.fugaif.imaslivedb.data.model.Venue
 import com.fugaif.imaslivedb.data.model.VenueHall
+import com.fugaif.imaslivedb.data.model.Costume
+import com.fugaif.imaslivedb.data.model.CostumeWear
 import com.fugaif.imaslivedb.data.model.Creator
 import com.fugaif.imaslivedb.data.model.UnitVersion
 import com.fugaif.imaslivedb.data.model.VenueName
@@ -252,6 +254,40 @@ object SyncMappers {
                 logoUrl = row.logoUrl.emptyToNull(),
                 validFrom = row.validFrom.emptyToNull(),
                 validTo = row.validTo.emptyToNull(),
+                sortOrder = row.sortOrder.toInt()
+            )
+        }
+
+    /** ライブ衣装の目録。 */
+    fun costumes(rows: List<CkRow>): List<Costume> =
+        rows.filterIsInstance<CkRow.Costume>().map { (row) ->
+            Costume(
+                id = row.id,
+                brandId = row.brandId.emptyToNull(),
+                name = row.name,
+                nameKana = row.nameKana.emptyToNull(),
+                unitId = row.unitId.emptyToNull(),
+                idolId = row.idolId.emptyToNull(),
+                description = row.description.emptyToNull(),
+                sourceUrl = row.sourceUrl.emptyToNull(),
+                sortOrder = row.sortOrder.toInt()
+            )
+        }
+
+    /**
+     * 衣装の着用記録。
+     *
+     * setlistItemId / idolId の null は欠損ではない (曲までは特定していない /
+     * その場の全員)。埋めたり捨てたりしないこと。
+     */
+    fun costumeWears(rows: List<CkRow>): List<CostumeWear> =
+        rows.filterIsInstance<CkRow.CostumeWear>().map { (row) ->
+            CostumeWear(
+                id = row.id,
+                costumeId = row.costumeId,
+                showId = row.showId,
+                setlistItemId = row.setlistItemId.emptyToNull(),
+                idolId = row.idolId.emptyToNull(),
                 sortOrder = row.sortOrder.toInt()
             )
         }

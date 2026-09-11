@@ -20,6 +20,8 @@ import com.fugaif.imaslivedb.data.model.SongVideo
 import com.fugaif.imaslivedb.data.model.UnitMember
 import com.fugaif.imaslivedb.data.model.Venue
 import com.fugaif.imaslivedb.data.model.VenueHall
+import com.fugaif.imaslivedb.data.model.Costume
+import com.fugaif.imaslivedb.data.model.CostumeWear
 import com.fugaif.imaslivedb.data.model.Creator
 import com.fugaif.imaslivedb.data.model.UnitVersion
 import com.fugaif.imaslivedb.data.model.VenueName
@@ -54,6 +56,8 @@ interface SyncDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun upsertUnitVersions(rows: List<UnitVersion>)
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun upsertVenueNames(rows: List<VenueName>)
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun upsertVenueHalls(rows: List<VenueHall>)
+    @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun upsertCostumes(rows: List<Costume>)
+    @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun upsertCostumeWears(rows: List<CostumeWear>)
 
     @Query("DELETE FROM brands WHERE id IN (:ids)") suspend fun deleteBrands(ids: List<String>)
     @Query("DELETE FROM idols WHERE id IN (:ids)") suspend fun deleteIdols(ids: List<String>)
@@ -69,6 +73,8 @@ interface SyncDao {
     @Query("DELETE FROM unit_versions WHERE id IN (:ids)") suspend fun deleteUnitVersions(ids: List<String>)
     @Query("DELETE FROM venue_names WHERE id IN (:ids)") suspend fun deleteVenueNames(ids: List<String>)
     @Query("DELETE FROM venue_halls WHERE id IN (:ids)") suspend fun deleteVenueHalls(ids: List<String>)
+    @Query("DELETE FROM costumes WHERE id IN (:ids)") suspend fun deleteCostumes(ids: List<String>)
+    @Query("DELETE FROM costume_wears WHERE id IN (:ids)") suspend fun deleteCostumeWears(ids: List<String>)
 
     // 複合 PK の tombstone。列の並びはコアの syncTableInfo(pkColumns) と同順にしてある
     // (呼び出し側は分解結果を先頭から順に渡すだけでよい)。
@@ -111,4 +117,6 @@ interface SyncDao {
     @Query("SELECT id FROM unit_versions") suspend fun unitVersionIds(): List<String>
     @Query("SELECT id FROM venue_names") suspend fun venueNameIds(): List<String>
     @Query("SELECT id FROM venue_halls") suspend fun venueHallIds(): List<String>
+    @Query("SELECT id FROM costumes") suspend fun costumeIds(): List<String>
+    @Query("SELECT id FROM costume_wears") suspend fun costumeWearIds(): List<String>
 }

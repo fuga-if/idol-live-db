@@ -17,6 +17,7 @@ data/ 配下を読み、検証 → master.sqlite に反映 → CloudKit へ一�
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import shutil
@@ -53,6 +54,7 @@ KIND_TABLES = {
     "units": ["units", "unit_members"],
     "unit_versions": ["unit_versions"],
     "creators": ["creators"],
+    "costumes": ["costumes", "costume_wears"],
 }
 # data/fixes/ で既存レコードを UPDATE 可能なテーブル (id 列を持つ事実情報のみ)
 ALLOWED_FIX_TABLES = {
@@ -232,6 +234,46 @@ def validate(conn):
                 if k not in vcol and k != "note":
                     problems.append(f"{tag}: unit_versions に未知の列 '{k}'")
 
+    for path, data in load("costumes"):
+        kcol = cols(conn, "costumes")
+        for i, c in enumerate(data.get("costumes", [])):
+            tag = f"costumes/{path.name}[{i}]"
+            if not c.get("id") or exists(conn, "costumes", c.get("id", "")):
+                problems.append(f"{tag}: costume id が空 or 既存")
+            if not c.get("name"):
+                problems.append(f"{tag}: name が空")
+            if c.get("brand_id") is not None and c["brand_id"] not in VALID_BRANDS:
+                problems.append(f"{tag}: brand_id 不正")
+            for ref, table in (("unit_id", "units"), ("idol_id", "idols")):
+                if c.get(ref) and not exists(conn, table, c[ref]):
+                    problems.append(f"{tag}: {ref} '{c[ref]}' が存在しない")
+            for k in c:
+                if k not in kcol and k not in ("wears", "note"):
+                    problems.append(f"{tag}: costumes に未知の列 '{k}'")
+            if not c.get("wears"):
+                problems.append(f"{tag}: wears が空 (着た公演が 1 つも無い衣装は入れない)")
+            for j, w in enumerate(c.get("wears", [])):
+                wtag = f"{tag}.wears[{j}]"
+                if not exists(conn, "shows", w.get("show_id", "")):
+                    problems.append(f"{wtag}: show_id '{w.get('show_id')}' が存在しない")
+                # 曲と人は省略してよい (「公演のどこかで全員」が正規の記録)。
+                item_id = w.get("setlist_item_id")
+                if item_id:
+                    row = conn.execute(
+                        "SELECT show_id FROM setlist_items WHERE id = ?", (item_id,)
+                    ).fetchone()
+                    if row is None:
+                        problems.append(f"{wtag}: setlist_item_id '{item_id}' が存在しない")
+                    elif row[0] != w.get("show_id"):
+                        problems.append(
+                            f"{wtag}: setlist_item_id '{item_id}' は別の公演 ({row[0]}) の曲"
+                        )
+                if w.get("idol_id") and not exists(conn, "idols", w["idol_id"]):
+                    problems.append(f"{wtag}: idol_id '{w['idol_id']}' が存在しない")
+                for k in w:
+                    if k not in ("id", "show_id", "setlist_item_id", "idol_id", "note"):
+                        problems.append(f"{wtag}: 未知のキー '{k}'")
+
     for path, data in load("units"):
         ucol = cols(conn, "units")
         for i, u in enumerate(data.get("units", [])):
@@ -271,6 +313,45 @@ def validate(conn):
 
 
 # ---- 反映 -----------------------------------------------------------------
+
+def wear_id(costume_id, show_id, setlist_item_id, idol_id):
+    """着用記録の id。**中身から決定的に決める。**
+
+    同じ投稿を 2 度流しても同じ id になるので、二重登録にならない
+    (曲を別 id で起こし直して二重になった事故の再発を防ぐ)。
+    """
+    key = "|".join([costume_id, show_id, setlist_item_id or "", idol_id or ""])
+    return "cw_" + hashlib.sha1(key.encode("utf-8")).hexdigest()[:16]
+
+
+def wear_rows(conn, costume):
+    """1 着ぶんの `wears` を costume_wears の行に開く。
+
+    sort_order は曲のセトリ位置。曲が特定できていない記録は末尾に置く
+    (公演の一覧を進行順に並べるための並び)。
+    """
+    rows = []
+    for w in costume.get("wears", []):
+        show_id = w.get("show_id")
+        item_id = w.get("setlist_item_id")
+        idol_id = w.get("idol_id")
+        position = None
+        if item_id:
+            r = conn.execute(
+                "SELECT position FROM setlist_items WHERE id = ?", (item_id,)
+            ).fetchone()
+            position = r[0] if r else None
+        rows.append({
+            "id": w.get("id") or wear_id(costume["id"], show_id or "", item_id, idol_id),
+            "costume_id": costume["id"],
+            "show_id": show_id,
+            "setlist_item_id": item_id,
+            "idol_id": idol_id,
+            # 曲が分からない記録は末尾へ。
+            "sort_order": position if position is not None else 9999,
+        })
+    return rows
+
 
 def insert_row(conn, table, row):
     keys = list(row.keys())
@@ -337,6 +418,27 @@ def apply_all(conn):
                 )
         affected |= {"setlist_items", "setlist_performers"}
         print(f"  ✓ setlists/{path.name}: {len(data['songs'])} 曲")
+
+    # 衣装は setlists より後。着用記録がセトリ行を指すため。
+    kcol = cols(conn, "costumes")
+    for path, data in load("costumes"):
+        wear_count = 0
+        for c in data["costumes"]:
+            c.pop("note", None)
+            rows = wear_rows(conn, c)
+            c.pop("wears", None)
+            insert_row(conn, "costumes", {k: v for k, v in c.items() if k in kcol})
+            for w in rows:
+                # 同じ内容を 2 度流しても増えない (id が中身から決まっている)。
+                conn.execute(
+                    "INSERT OR IGNORE INTO costume_wears"
+                    " (id, costume_id, show_id, setlist_item_id, idol_id, sort_order)"
+                    " VALUES (:id, :costume_id, :show_id, :setlist_item_id, :idol_id, :sort_order)",
+                    w,
+                )
+            wear_count += len(rows)
+            affected |= {"costumes", "costume_wears"}
+        print(f"  ✓ costumes/{path.name}: {len(data['costumes'])} 着 / 着用 {wear_count} 件")
 
     ecol, shcol = cols(conn, "events"), cols(conn, "shows")
     for path, data in load("events"):
