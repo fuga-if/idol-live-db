@@ -103,14 +103,14 @@ web_dto! {
 }
 
 web_dto! {
-    /// セトリ行に添える衣装。
+    /// セトリ行に添えるチップ 1 個ぶんの衣装。
     #[derive(Eq)]
     pub struct SetlistCostume {
         pub id: String,
-        pub name: String,
-        /// 誰のための衣装か。共通衣装なら `None`。
-        pub attribution: Option<String>,
-        /// その曲でこの衣装を着ていた人。共通衣装なら `None`。
-        pub wearers_label: Option<String>,
+        /// チップに出す 1 行 (`衣装名` / `衣装名（着ていた人）`)。
+        ///
+        /// **名前と着用者を繋ぐのは Rust の仕事。** 出面で組み直すと、括弧の付け方が
+        /// iOS / Android / Web で割れる (`domain::costume_queries` が唯一の規則)。
+        pub label: String,
     }
 }

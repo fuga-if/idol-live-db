@@ -32,10 +32,9 @@ const { row } = Astro.props;
           <span class="u-row">
             {row.unitLabel && <TagChip text={row.unitLabel} kind="unit" />}
             {row.isCover && <TagChip text="カバー" kind="cover" />}
+            {/* チップの文字列は Rust が組んである (着用者の括弧を付けるかも含めて)。 */}
             {row.costumes.map((c) => (
-              /* 着用者の行は共通衣装だと出ない (「全員」とは書かない)。
-                 どちらにするかは Rust の `wearers_label` が決めている。 */
-              <TagChip text={c.wearersLabel ? `${c.name}（${c.wearersLabel}）` : c.name} kind="costume" />
+              <TagChip text={c.label} kind="costume" />
             ))}
           </span>
         )

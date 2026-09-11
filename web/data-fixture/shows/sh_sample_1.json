@@ -92,9 +92,7 @@
       "costumes": [
         {
           "id": "cos_sample_common",
-          "name": "THE@TER WAVE 共通衣装",
-          "attribution": null,
-          "wearersLabel": null
+          "label": "THE@TER WAVE 共通衣装"
         }
       ]
     },
@@ -115,7 +113,12 @@
       "performers": [],
       "originalArtists": [],
       "isCover": true,
-      "costumes": []
+      "costumes": [
+        {
+          "id": "cos_sample_solo",
+          "label": "ソロステージ衣装（春日未来）"
+        }
+      ]
     }
   ],
   "cast": [

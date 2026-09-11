@@ -359,6 +359,9 @@ pub fn build(raw: RawTables) -> Snapshot {
         });
     }
 
+    let setlist_item_index_by_id: HashMap<String, u32> =
+        setlist_items.iter().enumerate().map(|(i, it)| (it.id.clone(), i as u32)).collect();
+
     // 衣装 → 着用記録。入力順 (sort_order) は「本編の進行順」を表せるようにしてある。
     let costume_index_by_id: HashMap<String, u32> =
         costumes.iter().enumerate().map(|(i, c)| (c.id.clone(), i as u32)).collect();
@@ -541,6 +544,7 @@ pub fn build(raw: RawTables) -> Snapshot {
         idol_index_by_id,
         event_index_by_id,
         show_index_by_id,
+        setlist_item_index_by_id,
         unit_index_by_id,
         brand_index_by_id,
         venue_index_by_id,

@@ -22,7 +22,7 @@
 
 追加も修正も同じツールで扱う。`data/` 配下を読んで検証 → master.sqlite に反映 → CloudKit へ push する。
 
-- **新規追加**: `data/<種類>/*.json` (`songs` / `setlists` / `events` / `idols` / `units`) … INSERT
+- **新規追加**: `data/<種類>/*.json` (`songs` / `setlists` / `events` / `idols` / `units` / `creators` / `unit_versions` / `costumes`) … INSERT
 - **既存レコード修正**: `data/fixes/*.json` … UPDATE (`idols` / `songs` / `events` / `shows` / `units` / `brands`)
 - 形式は各 `data/<種類>/_template.json` / `data/fixes/_template.json` と [`data/README.md`](../data/README.md) 参照。全ファイルに `source` (出典 URL) 必須。
 

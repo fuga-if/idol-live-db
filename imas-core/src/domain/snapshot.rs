@@ -556,6 +556,8 @@ pub struct Snapshot {
     pub idol_index_by_id: HashMap<String, u32>,
     pub event_index_by_id: HashMap<String, u32>,
     pub show_index_by_id: HashMap<String, u32>,
+    /// セトリ行を id で引く索引。行数が多い表なので、id 引きを線形走査にしない。
+    pub setlist_item_index_by_id: HashMap<String, u32>,
     pub unit_index_by_id: HashMap<String, u32>,
     pub brand_index_by_id: HashMap<String, u32>,
     pub venue_index_by_id: HashMap<String, u32>,

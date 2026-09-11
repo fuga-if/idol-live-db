@@ -1630,72 +1630,16 @@ mod tests {
         let _ = std::fs::remove_file(&path);
         {
             let c = Connection::open(&path).unwrap();
+            // 表の形はコアが持つ正本から起こす (ここで DDL を手写しすると、
+            // スキーマを変えたときテストだけ古い形のまま通ってしまう)。
+            c.execute_batch(crate::domain::schema_ddl::MASTER_SCHEMA_SQL).unwrap();
             c.execute_batch(
-                "CREATE TABLE songs (id TEXT PRIMARY KEY, title TEXT NOT NULL, title_kana TEXT,
-                     brand_id TEXT, song_type TEXT, release_date TEXT, duration_sec INTEGER,
-                     composer TEXT, lyricist TEXT, arranger TEXT, cd_series TEXT, cd_title TEXT,
-                     artwork_url TEXT, preview_url TEXT, apple_music_id TEXT,
-                     apple_music_album_id TEXT, isrc TEXT, lyrics_url TEXT, parent_song_id TEXT,
-                     singer_label TEXT, unit_name TEXT, unit_id TEXT, series_group TEXT);
-                 CREATE TABLE idols (id TEXT PRIMARY KEY, brand_id TEXT, name TEXT NOT NULL,
-                     name_kana TEXT, name_romaji TEXT, color TEXT, sort_order INTEGER,
-                     birthday TEXT, blood_type TEXT, height REAL, weight REAL, birth_place TEXT,
-                     age INTEGER, bust REAL, waist REAL, hip REAL, constellation TEXT,
-                     hobbies TEXT, talents TEXT, description TEXT, gender TEXT, handedness TEXT,
-                     family_name TEXT, given_name TEXT, nickname TEXT, debut_date TEXT,
-                     attribute TEXT, is_external INTEGER NOT NULL DEFAULT 0, aliases TEXT);
-                 CREATE TABLE events (id TEXT PRIMARY KEY, brand_id TEXT, name TEXT NOT NULL,
-                     event_type TEXT NOT NULL, is_streaming INTEGER NOT NULL DEFAULT 0,
-                     is_solo INTEGER NOT NULL DEFAULT 1, kind TEXT NOT NULL DEFAULT 'live',
-                     ticket_deadline TEXT, ticket_lottery_date TEXT, ticket_url TEXT,
-                     joint_brand_ids TEXT, ticket_open_date TEXT);
-                 CREATE TABLE shows (id TEXT PRIMARY KEY, event_id TEXT NOT NULL,
-                     name TEXT NOT NULL, date TEXT NOT NULL, venue TEXT, venue_city TEXT,
-                     start_time TEXT, sort_order INTEGER NOT NULL DEFAULT 0, performer_type TEXT,
-                     venue_id TEXT, hall TEXT, stream_platform TEXT);
-                 CREATE TABLE setlist_items (id TEXT PRIMARY KEY, show_id TEXT NOT NULL,
-                     song_id TEXT NOT NULL, position INTEGER NOT NULL, section TEXT, notes TEXT,
-                     unit_name TEXT);
-                 CREATE TABLE units (id TEXT PRIMARY KEY, brand_id TEXT NOT NULL,
-                     name TEXT NOT NULL, is_permanent INTEGER NOT NULL DEFAULT 1, name_alt TEXT,
-                     name_kana TEXT);
-                 CREATE TABLE unit_members (unit_id TEXT NOT NULL, idol_id TEXT NOT NULL);
-                 CREATE TABLE brands (id TEXT PRIMARY KEY, name TEXT NOT NULL,
-                     short_name TEXT NOT NULL, color TEXT, sort_order INTEGER NOT NULL);
-                 CREATE TABLE idol_brands (idol_id TEXT NOT NULL, brand_id TEXT NOT NULL,
-                     is_primary INTEGER NOT NULL DEFAULT 0);
-                 CREATE TABLE creators (id TEXT PRIMARY KEY, name TEXT NOT NULL,
-                     name_kana TEXT NOT NULL, aliases TEXT);
-                 CREATE TABLE venues (id TEXT PRIMARY KEY, name TEXT NOT NULL, name_kana TEXT,
-                     prefecture TEXT, city TEXT, aliases TEXT, capacity INTEGER,
-                     sort_order INTEGER NOT NULL DEFAULT 0);
-                 CREATE TABLE venue_names (id TEXT PRIMARY KEY, venue_id TEXT NOT NULL,
-                     name TEXT NOT NULL, valid_from TEXT, valid_to TEXT);
-                 CREATE TABLE venue_halls (id TEXT PRIMARY KEY, venue_id TEXT NOT NULL,
-                     name TEXT NOT NULL, capacity INTEGER);
-                 CREATE TABLE staff (id TEXT PRIMARY KEY, brand_id TEXT NOT NULL,
-                     name TEXT NOT NULL, name_kana TEXT, name_romaji TEXT, role TEXT,
-                     birthday TEXT, sort_order INTEGER NOT NULL DEFAULT 0);
-                 CREATE TABLE anniversaries (id TEXT PRIMARY KEY, brand_id TEXT NOT NULL,
-                     label TEXT NOT NULL, date TEXT NOT NULL, kind TEXT NOT NULL,
-                     sort_order INTEGER NOT NULL DEFAULT 0);
-                 CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT);
-                 CREATE TABLE song_artists (song_id TEXT NOT NULL, idol_id TEXT NOT NULL,
-                     role TEXT);
-                 CREATE TABLE setlist_performers (setlist_item_id TEXT NOT NULL,
-                     idol_id TEXT NOT NULL);
-                 CREATE TABLE show_cast (show_id TEXT NOT NULL, idol_id TEXT NOT NULL,
-                     cast_role TEXT NOT NULL DEFAULT 'member');
-                 CREATE TABLE costumes (id TEXT PRIMARY KEY, brand_id TEXT, name TEXT NOT NULL,
-                     name_kana TEXT, unit_id TEXT, idol_id TEXT, description TEXT,
-                     source_url TEXT, sort_order INTEGER NOT NULL DEFAULT 0);
-                 CREATE TABLE costume_wears (id TEXT PRIMARY KEY, costume_id TEXT NOT NULL,
-                     show_id TEXT NOT NULL, setlist_item_id TEXT, idol_id TEXT,
-                     sort_order INTEGER NOT NULL DEFAULT 0);
-                 INSERT INTO events (id, name, event_type) VALUES ('ev1', 'ライブ', 'live');
-                 INSERT INTO shows (id, event_id, name, date) VALUES ('sh1', 'ev1', 'DAY1', '2026-01-01');
+                "INSERT INTO events (id, name, event_type) VALUES ('ev1', 'ライブ', 'live');
+                 INSERT INTO shows (id, event_id, name, date, sort_order)
+                     VALUES ('sh1', 'ev1', 'DAY1', '2026-01-01', 0);
                  INSERT INTO songs (id, title, song_type) VALUES ('so1', 'READY!!', 'original');
-                 INSERT INTO idols (id, name, sort_order) VALUES ('id1', '天海春香', 0);
+                 INSERT INTO idols (id, brand_id, name, sort_order)
+                     VALUES ('id1', '765as', '天海春香', 0);
                  INSERT INTO setlist_items (id, show_id, song_id, position)
                      VALUES ('it1', 'sh1', 'so1', 1);
                  INSERT INTO costumes (id, name) VALUES ('c1', '共通衣装');
@@ -1717,7 +1661,7 @@ mod tests {
 
         let by_show = &s.wears_by_show[s.show_index_by_id["sh1"] as usize];
         assert_eq!(by_show.len(), 2);
-        let by_item = &s.wears_by_setlist_item[0];
+        let by_item = &s.wears_by_setlist_item[s.setlist_item_index_by_id["it1"] as usize];
         assert_eq!(by_item.len(), 1, "公演どまりの記録は曲側の索引に入らない");
         assert_eq!(s.costume("c1").unwrap().name, "共通衣装");
     }

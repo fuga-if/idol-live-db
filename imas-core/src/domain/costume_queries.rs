@@ -79,6 +79,11 @@ pub struct SetlistCostumeRecord {
     /// その曲でこの衣装を着ていた人。共通衣装なら空。
     pub idol_names: Vec<String>,
     pub wearers_label: Option<String>,
+    /// セトリ行に出す 1 行 (`衣装名` / `衣装名（着ていた人）`)。
+    ///
+    /// **括弧の付け方を決めるのはここ。** 名前と着用者を受け手側で繋ぎ直すと、
+    /// iOS / Android / Web で括弧も並びも割れる。
+    pub chip_label: String,
 }
 
 /// 衣装が着られた公演 1 つ。
@@ -125,19 +130,14 @@ pub fn show_costumes(snap: &Snapshot, show_id: &str) -> Vec<ShowCostumeRecord> {
     let mut out: Vec<ShowCostumeRecord> = Vec::new();
     for &wi in &snap.wears_by_show[si as usize] {
         let wear = &snap.costume_wears[wi as usize];
-        let entry = match out.iter_mut().find(|e| e.costume.id == snap.costumes[wear.costume as usize].id) {
-            Some(e) => e,
-            None => {
-                out.push(ShowCostumeRecord {
-                    costume: costume_record(snap, &snap.costumes[wear.costume as usize]),
-                    songs: Vec::new(),
-                    somewhere_in_show: false,
-                    idol_names: Vec::new(),
-                    wearers_label: None,
-                });
-                out.last_mut().expect("直前に push した")
-            }
-        };
+        let costume = &snap.costumes[wear.costume as usize];
+        let entry = fold_by_key(&mut out, &costume.id, |e| &e.costume.id, || ShowCostumeRecord {
+            costume: costume_record(snap, costume),
+            songs: Vec::new(),
+            somewhere_in_show: false,
+            idol_names: Vec::new(),
+            wearers_label: None,
+        });
         match wear.setlist_item {
             Some(item) => entry.songs.push(song_record(snap, item)),
             None => entry.somewhere_in_show = true,
@@ -153,28 +153,26 @@ pub fn show_costumes(snap: &Snapshot, show_id: &str) -> Vec<ShowCostumeRecord> {
 
 /// その披露 (セトリ 1 行) で着ていた衣装。
 pub fn setlist_item_costumes(snap: &Snapshot, setlist_item_id: &str) -> Vec<SetlistCostumeRecord> {
-    let Some(index) = snap.setlist_items.iter().position(|it| it.id == setlist_item_id) else {
-        return vec![];
-    };
+    let Some(&index) = snap.setlist_item_index_by_id.get(setlist_item_id) else { return vec![] };
     let mut out: Vec<SetlistCostumeRecord> = Vec::new();
-    for &wi in &snap.wears_by_setlist_item[index] {
+    for &wi in &snap.wears_by_setlist_item[index as usize] {
         let wear = &snap.costume_wears[wi as usize];
         let costume = &snap.costumes[wear.costume as usize];
-        let entry = match out.iter_mut().find(|e| e.costume.id == costume.id) {
-            Some(e) => e,
-            None => {
-                out.push(SetlistCostumeRecord {
-                    costume: costume_record(snap, costume),
-                    idol_names: Vec::new(),
-                    wearers_label: None,
-                });
-                out.last_mut().expect("直前に push した")
-            }
-        };
+        let entry =
+            fold_by_key(&mut out, &costume.id, |e| &e.costume.id, || SetlistCostumeRecord {
+                costume: costume_record(snap, costume),
+                idol_names: Vec::new(),
+                wearers_label: None,
+                chip_label: String::new(),
+            });
         push_wearer(snap, wear, &mut entry.idol_names);
     }
     for e in &mut out {
         e.wearers_label = wearers_label(&e.idol_names);
+        e.chip_label = match &e.wearers_label {
+            Some(w) => format!("{}（{w}）", e.costume.name),
+            None => e.costume.name.clone(),
+        };
     }
     out
 }
@@ -186,23 +184,19 @@ pub fn costume_shows(snap: &Snapshot, costume_id: &str) -> Vec<CostumeShowRecord
     for &wi in &snap.wears_by_costume[ci as usize] {
         let wear = &snap.costume_wears[wi as usize];
         let show = &snap.shows[wear.show as usize];
-        let entry = match out.iter_mut().find(|e| e.show_id == show.id) {
-            Some(e) => e,
-            None => {
-                let event = &snap.events[show.event as usize];
-                out.push(CostumeShowRecord {
-                    show_id: show.id.clone(),
-                    event_id: event.id.clone(),
-                    event_name: event.name.clone(),
-                    show_name: show.name.clone(),
-                    date: show.date.clone(),
-                    venue: show.venue.clone(),
-                    songs: Vec::new(),
-                    somewhere_in_show: false,
-                });
-                out.last_mut().expect("直前に push した")
+        let entry = fold_by_key(&mut out, &show.id, |e| &e.show_id, || {
+            let event = &snap.events[show.event as usize];
+            CostumeShowRecord {
+                show_id: show.id.clone(),
+                event_id: event.id.clone(),
+                event_name: event.name.clone(),
+                show_name: show.name.clone(),
+                date: show.date.clone(),
+                venue: show.venue.clone(),
+                songs: Vec::new(),
+                somewhere_in_show: false,
             }
-        };
+        });
         match wear.setlist_item {
             Some(item) => entry.songs.push(song_record(snap, item)),
             None => entry.somewhere_in_show = true,
@@ -212,6 +206,27 @@ pub fn costume_shows(snap: &Snapshot, costume_id: &str) -> Vec<CostumeShowRecord
         e.songs.sort_by_key(|s| s.position);
     }
     out
+}
+
+/// 既にある行を鍵で探し、無ければ作って返す。
+///
+/// 着用記録は同じ衣装 (同じ公演) を何度も指す — 曲ごと・人ごとに 1 行あるため。
+/// 「何を着たか」の一覧に畳むのはどの問いでも同じ手順なので、ここ 1 箇所に持つ。
+/// 件数は 1 公演ぶん (せいぜい数着) なので線形探索で足りる。
+fn fold_by_key<'a, T>(
+    out: &'a mut Vec<T>,
+    key: &str,
+    key_of: impl Fn(&T) -> &String,
+    make: impl FnOnce() -> T,
+) -> &'a mut T {
+    let at = match out.iter().position(|e| key_of(e) == key) {
+        Some(i) => i,
+        None => {
+            out.push(make());
+            out.len() - 1
+        }
+    };
+    &mut out[at]
 }
 
 fn costume_record(snap: &Snapshot, costume: &Costume) -> CostumeRecord {
@@ -490,13 +505,17 @@ mod tests {
         assert_eq!(got.len(), 2);
         assert_eq!(got[0].wearers_label.as_deref(), Some("天海春香"));
         assert_eq!(got[1].wearers_label.as_deref(), Some("如月千早"));
+        // 括弧の付け方はここで決まる (出面で名前と着用者を繋ぎ直させない)。
+        assert_eq!(got[0].chip_label, "春香ソロ（天海春香）");
     }
 
     /// 共通衣装は「全員」と書かず、着用者の行を出さないこと。
     #[test]
     fn a_shared_costume_has_no_wearers_line() {
         let snap = snapshot(vec![costume("c1", "共通")], vec![wear("w1", 0, 0, Some(0), None, 0)]);
-        assert_eq!(setlist_item_costumes(&snap, "it1")[0].wearers_label, None);
+        let got = setlist_item_costumes(&snap, "it1");
+        assert_eq!(got[0].wearers_label, None);
+        assert_eq!(got[0].chip_label, "共通", "着用者が無ければ括弧も付かない");
     }
 
     /// 着用公演数は公演単位で数えること (1 公演で 2 曲着ても 1)。

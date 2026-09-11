@@ -393,12 +393,10 @@ fn show_page() -> ShowPage {
                 }],
                 original_artists: vec![idol_mirai(), idol_shizuka()],
                 is_cover: false,
+                // 共通衣装は「全員」と書かず、着用者の括弧を付けない。
                 costumes: vec![SetlistCostume {
                     id: "cos_sample_common".to_string(),
-                    name: "THE@TER WAVE 共通衣装".to_string(),
-                    attribution: None,
-                    // 共通衣装は「全員」と書かず、行ごと出さない。
-                    wearers_label: None,
+                    label: "THE@TER WAVE 共通衣装".to_string(),
                 }],
             },
             // 歌唱メンバーが記録されていない行 (実データに多い)。
@@ -411,8 +409,12 @@ fn show_page() -> ShowPage {
                 performers: vec![],
                 original_artists: vec![],
                 is_cover: true,
-                // 衣装の記録が無い行 (実データではこちらが大多数)。
-                costumes: vec![],
+                // 着用者つきの衣装 (名前に括弧で人が付く形)。
+                // 歌唱メンバーが空でも衣装だけ分かることがある。
+                costumes: vec![SetlistCostume {
+                    id: "cos_sample_solo".to_string(),
+                    label: "ソロステージ衣装（春日未来）".to_string(),
+                }],
             },
         ],
         costumes: vec![

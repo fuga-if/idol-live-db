@@ -33,6 +33,7 @@ master.sqlite → CloudKit に一括反映します（直接 CloudKit に書く�
 | `data/units/` | ユニット | `id` `name` `brand_id` `members[]` |
 | `data/creators/` | 作詞・作曲・編曲の作家 | `id` `name` `name_kana` |
 | `data/unit_versions/` | ユニットのバージョン | `id` `unit_id` `name` (+ `code` `catchphrase` `valid_from` `valid_to`) |
+| `data/costumes/` | ライブ衣装と、着た公演 | `id` `name` `wears[]`（`show_id` + 任意で `setlist_item_id` / `idol_id`） |
 
 ## 修正（data/fixes/）
 
@@ -52,10 +53,14 @@ master.sqlite → CloudKit に一括反映します（直接 CloudKit に書く�
   - event: `ev_{slug}` / show: `sh_{slug}_{連番}`
   - setlist_item は自動採番（`{show_id}_{4桁position}`）
 - **performers**（setlist）: `"all"`（= `all_performers` 全員）か `idol_id` 配列
+- **衣装の `wears`**: `setlist_item_id` は分かるときだけ。省くと「この公演のどこか」の記録になる。
+  `idol_id` も省いてよく、省くと「その場の全員」= 共通衣装。同じ曲でユニットごとに
+  衣装が違うときだけ人ごとに書く。**着た公演が 1 つも無い衣装は入れない**
 
 ## 注意
 
 - 事実情報は**必ず公式など一次ソースで確認**してから。根拠は PR 説明欄に書く。
 - `apple_music_id` を入れる曲は `artwork_url` も入れる（一覧のジャケ写は `artwork_url` 直参照）。
 - 楽曲は `original_singers`（原唱者）を必ず入れる（一覧の performer アイコン表示に必要）。
+- 衣装に**画像は載せられない**（版権物を配らない方針）。名前と `source_url` で見分けられるようにする。
 - 対象の id（show_id など）が分からなければアプリで探すか、PR 説明欄でオーナーに相談を。

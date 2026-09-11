@@ -254,12 +254,7 @@ pub fn show_page(ctx: &Ctx, show_id: &str) -> Option<ShowPage> {
             Some(SetlistRow {
                 costumes: costume::setlist_item_costumes(ctx.snap, &e.id)
                     .into_iter()
-                    .map(|c| SetlistCostume {
-                        id: c.costume.id,
-                        name: c.costume.name,
-                        attribution: c.costume.attribution,
-                        wearers_label: c.wearers_label,
-                    })
+                    .map(|c| SetlistCostume { id: c.costume.id, label: c.chip_label })
                     .collect(),
                 id: e.id.clone(),
                 // entries は position 昇順なので、添字がそのまま「何曲目か」になる。
@@ -291,10 +286,8 @@ pub fn show_page(ctx: &Ctx, show_id: &str) -> Option<ShowPage> {
         })
         .collect();
 
-    // 衣装が指すセトリ行を「公演内で何曲目か」に直す。position は全体通しの値で
-    // そのままでは読めないので、画面に出す番号へ写す (SetlistRow と同じ規則)。
-    let number_of: std::collections::HashMap<&str, u32> =
-        setlist.iter().map(|r| (r.id.as_str(), r.number)).collect();
+    // 衣装が指すセトリ行を「公演内で何曲目か」に直す (position は全体通しの値で
+    // そのままでは読めない)。番号の求め方はセトリ行・曲ページと同じ ctx の規則。
     let costumes: Vec<ShowCostume> = costume::show_costumes(ctx.snap, show_id)
         .into_iter()
         .map(|c| ShowCostume {
@@ -306,7 +299,8 @@ pub fn show_page(ctx: &Ctx, show_id: &str) -> Option<ShowPage> {
             where_label: costume_where_label(
                 &c.songs
                     .iter()
-                    .filter_map(|s| number_of.get(s.setlist_item_id.as_str()).copied())
+                    .map(|s| ctx.setlist_number(show_id, s.position))
+                    .filter(|&n| n > 0)
                     .collect::<Vec<_>>(),
                 c.somewhere_in_show,
             ),
@@ -406,23 +400,6 @@ fn show_json_ld(
 /// 1 は重なりを落とすとライブ名だけが残る。2 は**公演名の側が既にライブ名を抱えている**
 /// ので、頭に付け足さない。括弧の中身を削るような加工はしない — 名前の途中を切ると
 /// 別の意味に読める文字列ができる。
-/// 衣装を「どこで着たか」の 1 行にする。
-///
-/// 曲が分かっている番号を並べ、曲まで特定できていない記録があればそれも足す。
-/// **どちらも無い状態は作れない** (着用記録が 1 件も無い衣装はそもそも出てこない)。
-fn costume_where_label(song_numbers: &[u32], somewhere_in_show: bool) -> String {
-    let mut parts: Vec<String> = Vec::new();
-    if !song_numbers.is_empty() {
-        let list =
-            song_numbers.iter().map(|n| n.to_string()).collect::<Vec<_>>().join("・");
-        parts.push(format!("{list} 曲目"));
-    }
-    if somewhere_in_show {
-        parts.push("公演のどこか".to_string());
-    }
-    parts.join(" / ")
-}
-
 fn show_title(event_name: &str, show_name: &str) -> String {
     match distinguishing_show_name(event_name, show_name) {
         // 公演名がライブ名そのもの。日付は description が持つので、ここはライブ名だけ。
@@ -431,6 +408,18 @@ fn show_title(event_name: &str, show_name: &str) -> String {
         Some(rest) if rest.contains(event_name) => rest.to_string(),
         Some(rest) => format!("{event_name} {rest}"),
     }
+}
+
+/// 衣装を「どこで着たか」の 1 行にする。
+///
+/// 曲が分かっている番号を並べ、曲まで特定できていない記録があればそれも足す。
+/// **どちらも無い状態は作れない** (着用記録が 1 件も無い衣装はそもそも出てこない)。
+fn costume_where_label(song_numbers: &[u32], somewhere_in_show: bool) -> String {
+    // 番号の中黒は全角スペースを挟まない (「1・5 曲目」で 1 語に見せたい)。
+    let numbers = song_numbers.iter().map(u32::to_string).collect::<Vec<_>>().join("・");
+    let songs = (!song_numbers.is_empty()).then(|| format!("{numbers} 曲目"));
+    let unplaced = somewhere_in_show.then(|| "公演のどこか".to_string());
+    [songs, unplaced].into_iter().flatten().collect::<Vec<_>>().join(" / ")
 }
 
 /// 「このライブの他の公演」に出すチップ。
