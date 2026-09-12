@@ -44,6 +44,37 @@ pub struct IntroQuizSongRef {
     pub title: String,
 }
 
+/// 出題できるかを判定するのに要る曲の射影。
+#[derive(uniffi::Record, Clone, Debug)]
+pub struct IntroQuizPlayability {
+    pub apple_music_id: Option<String>,
+    pub preview_url: Option<String>,
+    /// 派生曲 (リミックス・別バージョン) の親。入っていれば派生曲。
+    pub parent_song_id: Option<String>,
+}
+
+/// イントロドンの出題に使える曲か。
+///
+/// **`apple_music_id` があるかだけで決めてはいけない。** カタログのフル再生には
+/// Apple Music の契約が要るので、契約が無い端末で `preview_url` も無い曲を出すと
+/// **無音のまま出題される**。これが「イントロが流れない曲がある」の正体で、
+/// 2026-09-12 時点の出荷データでは出題候補 1,826 曲のうち 40 曲がこの状態だった
+/// (App Store のレビューで 2 か月にわたり報告されていた)。
+///
+/// 契約の有無は端末ごとに違うので引数で受ける。契約があればカタログを鳴らせるので
+/// `preview_url` は要らない。
+///
+/// 派生曲を外すのは選択肢の重複を避けるため (同名の別バージョンが並ぶ)。
+pub fn is_quiz_playable(song: &IntroQuizPlayability, has_apple_music_subscription: bool) -> bool {
+    let non_empty = |v: &Option<String>| v.as_deref().is_some_and(|s| !s.is_empty());
+    if non_empty(&song.parent_song_id) {
+        return false;
+    }
+    // 契約があればカタログのフル再生に落とせる。無ければ preview が唯一の音源。
+    non_empty(&song.preview_url)
+        || (has_apple_music_subscription && non_empty(&song.apple_music_id))
+}
+
 /// Swift の String == (正準等価) に合わせた比較キー。NFC 済みならそのまま借用し、
 /// NFD 等の未正規化表現だけ NFC へ正規化して所有する (クイックチェックで確定できない
 /// `Maybe` も正規化側に倒す)。
@@ -114,6 +145,56 @@ pub fn make_choices_batch(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // ---- 出題できるか ----
+
+    fn playability(apple: Option<&str>, preview: Option<&str>, parent: Option<&str>) -> IntroQuizPlayability {
+        IntroQuizPlayability {
+            apple_music_id: apple.map(str::to_string),
+            preview_url: preview.map(str::to_string),
+            parent_song_id: parent.map(str::to_string),
+        }
+    }
+
+    /// **契約が無い端末では preview_url が唯一の音源。**
+    /// apple_music_id だけの曲を出すと無音の出題になる (レビューで報告された不具合)。
+    #[test]
+    fn a_song_with_only_an_apple_music_id_is_silent_without_a_subscription() {
+        let song = playability(Some("123"), None, None);
+        assert!(!is_quiz_playable(&song, false));
+        assert!(is_quiz_playable(&song, true));
+    }
+
+    /// preview_url があれば契約の有無に関係なく鳴らせる。
+    #[test]
+    fn a_preview_url_is_enough_on_its_own() {
+        let song = playability(Some("123"), Some("https://example.test/p.m4a"), None);
+        assert!(is_quiz_playable(&song, false));
+        assert!(is_quiz_playable(&song, true));
+    }
+
+    /// 音源がまったく無い曲は誰にも出さない。
+    #[test]
+    fn a_song_without_any_source_is_never_playable() {
+        let song = playability(None, None, None);
+        assert!(!is_quiz_playable(&song, false));
+        assert!(!is_quiz_playable(&song, true));
+    }
+
+    /// 派生曲は音源があっても出さない (同名の別バージョンが選択肢に並ぶため)。
+    #[test]
+    fn a_variant_song_is_excluded_even_when_it_is_playable() {
+        let song = playability(Some("123"), Some("https://example.test/p.m4a"), Some("parent"));
+        assert!(!is_quiz_playable(&song, true));
+    }
+
+    /// 空文字は「無い」と同じ扱い (DB に '' が混ざっても判定が変わらないこと)。
+    #[test]
+    fn empty_strings_count_as_absent() {
+        assert!(!is_quiz_playable(&playability(Some(""), Some(""), None), true));
+        assert!(is_quiz_playable(&playability(Some("123"), Some(""), Some("")), true));
+    }
+
 
     fn song(id: &str, title: &str) -> IntroQuizSongRef {
         IntroQuizSongRef { id: id.into(), title: title.into() }

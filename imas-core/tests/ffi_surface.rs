@@ -98,6 +98,7 @@ declare_and_call_checksums! {
     uniffi_imas_core_checksum_func_image_template_json,
     uniffi_imas_core_checksum_func_inspect_backup_envelope,
     uniffi_imas_core_checksum_func_intro_quiz_choices_batch,
+    uniffi_imas_core_checksum_func_intro_quiz_playable_indices,
     uniffi_imas_core_checksum_func_jst_is_today_or_later,
     uniffi_imas_core_checksum_func_jst_today,
     uniffi_imas_core_checksum_func_is_character_live,
