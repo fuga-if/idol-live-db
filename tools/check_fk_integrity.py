@@ -8,9 +8,11 @@ check_fk_integrity.py — master.sqlite の参照の壊れを一覧する。
 デフォルトは ImasLiveDB/Resources/master.sqlite を参照。
 """
 
+import re
 import sqlite3
 import sys
 import os
+import unicodedata
 
 DB_PATH = os.path.join(
     os.path.dirname(__file__),
@@ -61,6 +63,11 @@ UNDECLARED_REFS = [
     ("unit_members", "idol_id", "idols"),
     ("idol_brands", "idol_id", "idols"),
     ("song_units", "song_id", "songs"),
+    ("song_units", "unit_id", "units"),
+    # ("songs", "unit_id", "units") はまだ入れられない。合同曲のクレジット
+    # (「S.E.M、Jupiter」など) を そのまま id にした行が 17 件あり、指す先の
+    # ユニットが存在しない (`unit_semjupiter` 等)。合同ユニットを起こすのか
+    # unit_id を空にするのかの判断が要るので、片付いてから有効にする。
 ]
 
 
@@ -84,13 +91,42 @@ def check_undeclared_refs(db_path: str) -> int:
     return total
 
 
+def check_duplicate_units(db_path: str) -> int:
+    """同じブランドに同じ名前のユニットが 2 つ無いか見る。
+
+    ユニットの id は表示クレジットを slug 化して作られてきた
+    (`tools/apply_idol_data.py` の `slugify`)。クレジットは**盤ごとに綴りが揺れる**
+    ので、同じユニットが綴りの数だけ分裂する。実際に 3 組できていた:
+    `315 STARS(インテリ Ver.)` と `315 STARS(インテリVer.)` が別 id になり、
+    さらに `315 STARS(DRAMATIC STARS、…)` は括弧が落ちて
+    `unit_315_starsdramatic_stars` という別ユニットになった (構成員は 3 人だけ)。
+
+    突き合わせは空白と全角/半角を畳んでから行う。分裂はまさにそこで起きるので、
+    素の文字列比較では見つからない。
+    """
+    conn = sqlite3.connect(db_path)
+    groups = {}
+    for uid, brand, name in conn.execute("SELECT id, brand_id, name FROM units"):
+        key = (brand, re.sub(r"[\s\u3000]+", "", unicodedata.normalize("NFKC", name)).lower())
+        groups.setdefault(key, []).append(uid)
+    conn.close()
+
+    dups = {k: v for k, v in groups.items() if len(v) > 1}
+    for (brand, name), ids in sorted(dups.items()):
+        print(f"❌ units に同名が {len(ids)} 件 [{brand}] {name}: {', '.join(sorted(ids))}")
+    if not dups:
+        print("✅ 同名のユニット: 0件")
+    return sum(len(v) for v in dups.values())
+
+
 def main() -> None:
     path = sys.argv[1] if len(sys.argv) > 1 else DB_PATH
     if not os.path.exists(path):
         print(f"ERROR: DB not found: {path}")
         sys.exit(1)
     print(f"Checking: {path}\n")
-    violations = check_fk_integrity(path) + check_undeclared_refs(path)
+    violations = (check_fk_integrity(path) + check_undeclared_refs(path)
+                  + check_duplicate_units(path))
     sys.exit(0 if violations == 0 else 1)
 
 
