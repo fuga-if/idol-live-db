@@ -126,8 +126,9 @@ function generateRecordName(recordType: string): string | null {
  * イベントが slug 版と二重になり、出面に同じライブが 2 つ並んでいた
  * (2026-09-12 に SideM 11th STAGE で 4 レコード / 魂環の人形で 2 レコードを手で消した)。
  *
- * 名前は前後の空白と連続空白だけ畳んで比べる。表記揺れまで吸収しようとすると
- * 「DAY1 / DAY2」のような正当な別レコードまで弾いてしまう。
+ * 投稿名は前後と連続の空白だけ畳み、CloudKit には**完全一致**で問い合わせる。表記揺れまで
+ * 吸収しようとすると「DAY1 / DAY2」のような正当な別レコードまで弾いてしまう。既存側の空白
+ * 揺れは拾えないが、それだけのために全 Event を舐める価値は無い。
  *
  * 照会に失敗したときは**通す**。CloudKit が一時的に落ちている間に投稿を
  * 受け付けられなくなる方が損が大きい (重複は後から消せる)。
@@ -137,16 +138,11 @@ async function findEventWithSameName(
   keyId: string,
   privKeyPem: string
 ): Promise<string | null> {
-  const normalize = (v: string) => v.trim().replace(/\s+/g, " ");
-  const target = normalize(name);
+  const target = name.trim().replace(/\s+/g, " ");
   if (!target) return null;
   const res = await cloudKitQuery("Event", "name", target, keyId, privKeyPem);
   if (!res.ok) return null;
-  for (const rec of res.records ?? []) {
-    const existing = rec.fields?.name?.value;
-    if (typeof existing === "string" && normalize(existing) === target) return rec.recordName;
-  }
-  return null;
+  return res.records?.[0]?.recordName ?? null;
 }
 
 /** 構築済み op から、注入された modifiedAt(ms) を読み出す (履歴の modified_at を CK 実値に揃える)。 */
@@ -303,15 +299,19 @@ export async function handlePostEdits<E extends EditsEnv>(
     let recordName = raw.recordName;
     let generated = false;
     if (op === "create" && !recordName) {
-      // イベントだけ同名チェックを挟む。ここで採番する uuid 形式は、ツールが名前から
-      // 作る slug 形式と衝突しないので、同じライブが 2 レコードになってしまう。
+      // イベントだけ同名チェックを挟む (recordName では重複を止められない: 採番する
+      // uuid 形式は、ツールが名前から作る slug 形式と必ず別物になる)。
       if (recordType === "Event" && typeof fields.name === "string") {
         const dup = await findEventWithSameName(
-          fields.name, env.CLOUDKIT_KEY_ID, env.CLOUDKIT_PRIVATE_KEY);
+          fields.name,
+          env.CLOUDKIT_KEY_ID,
+          env.CLOUDKIT_PRIVATE_KEY
+        );
         if (dup) {
           return error(
             `同じ名前のライブが既にあります (${dup})。追加ではなく、そのライブを編集してください。`,
-            409);
+            409
+          );
         }
       }
       const gen = generateRecordName(recordType);

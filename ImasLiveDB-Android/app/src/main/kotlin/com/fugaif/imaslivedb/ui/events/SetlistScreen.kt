@@ -11,15 +11,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.Spacer
-import com.fugaif.imaslivedb.ui.components.ImasTagChip
 import androidx.compose.foundation.lazy.LazyColumn
-import uniffi.imas_core.ShowCostumeRecord
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -80,6 +78,8 @@ import com.fugaif.imaslivedb.ui.components.CommunityLoginPromptDialog
 import com.fugaif.imaslivedb.ui.components.GradientHeader
 import com.fugaif.imaslivedb.ui.components.ImasEmptyState
 import com.fugaif.imaslivedb.ui.components.ImasLabeledRow
+import com.fugaif.imaslivedb.ui.components.ImasSectionHeader
+import com.fugaif.imaslivedb.ui.components.ImasTagChip
 import com.fugaif.imaslivedb.ui.components.PerformerChip
 import com.fugaif.imaslivedb.ui.edit.SetlistEditScreen
 import com.fugaif.imaslivedb.ui.filtered.ShowFilterKind
@@ -89,6 +89,7 @@ import com.fugaif.imaslivedb.ui.theme.BrandPalette
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasTheme
 import uniffi.imas_core.PerformerNameMode
+import uniffi.imas_core.ShowCostumeRecord
 import com.fugaif.imaslivedb.ui.theme.brandColor
 import com.fugaif.imaslivedb.ui.theme.displayName
 import com.fugaif.imaslivedb.ui.theme.joined
@@ -630,15 +631,13 @@ private fun VenueDateCard(
  */
 @Composable
 private fun CostumeCard(costumes: List<ShowCostumeRecord>, brandId: String?) {
-    Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp).fillMaxWidth()) {
-        Text(
-            "衣装 ・ ${costumes.size} 着",
-            style = MaterialTheme.typography.labelMedium,
-            color = DS.ink2,
-            modifier = Modifier.padding(start = 4.dp, bottom = 6.dp)
-        )
+    Column(Modifier.padding(bottom = 8.dp).fillMaxWidth()) {
+        // 見出しは共通の小見出し (iOS の ImasSectionHeader(tight:) と対)。左右の余白は
+        // コンポーネント側が持つので、ここで重ねて付けない。
+        ImasSectionHeader(title = "衣装 ・ ${costumes.size} 着", tight = true)
         Column(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(DS.surface)
+            Modifier.padding(horizontal = 16.dp).fillMaxWidth()
+                .clip(RoundedCornerShape(14.dp)).background(DS.surface)
         ) {
             costumes.forEachIndexed { index, entry ->
                 if (index > 0) {

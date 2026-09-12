@@ -26,7 +26,7 @@ struct IntroGameSetupView: View {
 
     @State private var session = IntroGameSession()
     @State private var partySession = IntroPartySession()
-    /// Game/Result から「ホームに戻る」「もう一度あそぶ」を受け取るための共有シグナル。
+    /// 結果画面の「ホームに戻る」を Game 経由で受け取るシグナル。
     @State private var exitSignal = IntroDonExitSignal()
     @Environment(\.dismiss) private var dismiss
     @State private var brands: [Brand] = []
@@ -40,8 +40,7 @@ struct IntroGameSetupView: View {
     @State private var rushTimeLimit: TimeInterval = 60
     @State private var isLoading = false
     @State private var showAdvanced = false
-    /// 設定画面から進む先。**遷移先を増やすときもここに case を足すだけにする**
-    /// (navigationDestination を増やすと SwiftUI が 1 つしか見ず、戻れなくなる)。
+    /// 設定画面から進む先 (navigationDestination は下の 1 つだけで捌く)。
     private enum PushedRoute { case game, songFilter, party }
     @State private var pushedRoute: PushedRoute? = nil
     @State private var errorMessage: String? = nil
@@ -128,11 +127,9 @@ struct IntroGameSetupView: View {
         .navigationTitle("設定")
         .navigationBarTitleDisplayMode(.inline)
         // **遷移先はここ 1 つだけ。** 同じ View に navigationDestination(isPresented:) を
-        // 複数置くと SwiftUI は最後の 1 つしか使わず、押しても進まない・戻れない画面ができる。
-        // 実際、ゲーム / 曲フィルター / パーティの 3 つを並べていたせいで、結果画面の
-        // 「もう一度あそぶ」「ホームに戻る」が両方とも無反応になっていた
-        // (dismiss() が別のスロットを閉じようとして空振りする)。App Store のレビューで
-        // 「アプリを落とすしかない」と複数報告された不具合。**ここに 2 つ目を足さないこと。**
+        // 複数重ねるのは Apple が非サポートとしている書き方で、どれが使われるか保証がない
+        // (ゲーム / 曲フィルター / パーティの 3 つを並べていた)。**ここに 2 つ目を足さず、
+        // PushedRoute に case を足すこと。**
         .navigationDestination(isPresented: isPushingRoute) {
             switch pushedRoute {
             case .game:
@@ -154,9 +151,6 @@ struct IntroGameSetupView: View {
                 EmptyView()
             }
         }
-        // 「ホームに戻る」: Game/Result が同じシグナルで自分のdismiss()を呼ぶのに合わせて、
-        // Setup自身もここで実体のあるdismiss() (呼び出し元のHome/SongListが持つ本物のBinding) を
-        // 呼び、3階層まとめて閉じる。「もう一度あそぶ」はSetupより下だけ閉じるのでここでは無視。
         // 「ホームに戻る」: Game が自分を pop してここが見えるようになった後に届く。
         // (隠れている間は SwiftUI が onChange を走らせないので、Game 側で拾わせない)
         .onChange(of: exitSignal.exitToHomeToken) { _, _ in

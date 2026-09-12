@@ -5,13 +5,13 @@ import NukeUI
 /// ステータス(EQ) → 中央の大きな「!」ボタン → ヒント → 操作列 → 回答エリア。
 struct IntroGameView: View {
     @Bindable var session: IntroGameSession
-    /// Setup/Result と共有する「ホームに戻る」「もう一度あそぶ」シグナル。
+    /// 結果画面の「ホームに戻る」を Setup へ伝えるシグナル (この画面は中継するだけ)。
     let exitSignal: IntroDonExitSignal
     @State private var showExitAlert = false
-    /// Result 画面への遷移フラグ。Setupから受け取る `navigateToGame` と同様、実体のある
-    /// `@State` にすることで、Result側の `dismiss()` が確実に1階層分だけpopできるようにする
-    /// (session.phase から直接導出するcomputed bindingは setter が no-op になり、
-    /// dismiss()を呼んでも実際には何もpopされずリザルト後に空白画面になるバグの原因だった)。
+    /// 結果画面 (fullScreenCover) を出しているか。
+    ///
+    /// **実体のある `@State` にすること。** `session.phase` から導出した computed binding は
+    /// setter が no-op になり、閉じたつもりで閉じず結果のあとが空白画面になる。
     @State private var showResult = false
     @State private var autoNextTask: Task<Void, Never>? = nil
     @State private var speechService = SpeechRecognitionService()
@@ -124,12 +124,8 @@ struct IntroGameView: View {
             if newPhase != .answering, speechService.isListening {
                 speechService.stopListening()
             }
-            // finished になったら実体のある @State (showResult) を立てて Result へ遷移する。
-            // session.phase を直接 isPresented の get/set に使うと setter が no-op になり、
-            // Result側の dismiss() が効かず空白画面になるバグの原因だったため、
-            // ここで一度 @State に写して正しく双方向にpopできるようにする。
             // finished 以外へ移ったら必ず倒す。true のまま残すと、次に この画面へ戻った
-            // ときに結果画面がもう一度積まれてしまう (「結果画面が二重に出る」の原因)。
+            // ときに結果画面がもう一度出てしまう (「結果画面が二重に出る」の原因)。
             showResult = (newPhase == .finished)
         }
         // 次の問題に進む (currentIndex 変化) や「もう一度」 (replay) のたびに
