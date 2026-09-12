@@ -121,6 +121,9 @@ def main() -> None:
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--key-file", type=Path, default=DEFAULT_KEY_FILE)
     parser.add_argument("--key-id", default=os.environ.get("CLOUDKIT_KEY_ID", ""))
+    # 既定は同梱 master.sqlite。手元の master.sqlite に無く db/master.sql にだけ在る曲
+    # (既知の乖離分) を押し出すときは、master.sql から起こした DB をここで指す。
+    parser.add_argument("--db", type=Path, default=DB_PATH, help="読み出す SQLite (既定: 同梱 master.sqlite)")
     parser.add_argument("--brand", help="filter by brand_id (e.g. gakuen)")
     parser.add_argument("--ids", help="comma-separated song id allowlist (これだけ push)")
     parser.add_argument("--ids-file", type=Path, help="1 行 1 song id のファイル (--ids と同義)")
@@ -140,7 +143,7 @@ def main() -> None:
         _key_id = args.key_id
         _signing_key = SigningKey.from_pem(args.key_file.read_text())
 
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(args.db)
     conn.row_factory = sqlite3.Row
     where = """WHERE ((apple_music_id IS NOT NULL AND apple_music_id != '')
                    OR (cd_series IS NOT NULL AND cd_series != '')
