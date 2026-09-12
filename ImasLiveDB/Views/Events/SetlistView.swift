@@ -43,6 +43,8 @@ struct SetlistView: View {
     @State private var sheetDestination: DetailDestination?
     @State private var unitIndex: UnitIndex? = nil
     @State private var showAllCastIds: Set<String> = []
+    /// この公演で着られた衣装 (進行順)。畳み方も並びも imas-core が決めている。
+    @State private var costumes: [ShowCostumeRecord] = []
     /// この公演で「ユニット単独曲」として披露されたユニット ID 集合。
     /// 偶然メンバーが揃った合唱曲で誤検出されないよう、unit chip 表示はこの集合内に限定する。
     @State private var activeUnitIds: Set<String> = []
@@ -273,6 +275,21 @@ struct SetlistView: View {
                     ImasLabeledRow(key: "日付", value: show.date, showChevron: true, tappable: true, seed: showBrandHex)
                         .contentShape(Rectangle())
                         .onTapGesture { go(.filteredShows(.date(show.date))) }
+                }
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 0, trailing: 16))
+                .listRowSeparator(.hidden)
+            }
+
+            if !costumes.isEmpty {
+                Section {
+                    ImasSectionHeader(title: "衣装 ・ \(costumes.count) 着", tight: true)
+                    ImasListContainer {
+                        ForEach(Array(costumes.enumerated()), id: \.element.costume.id) { index, entry in
+                            if index > 0 { ImasRowDivider(inset: 16) }
+                            costumeRow(entry)
+                        }
+                    }
                 }
                 .listRowBackground(Color.clear)
                 .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 0, trailing: 16))
@@ -515,6 +532,39 @@ struct SetlistView: View {
         attendanceVersion &+= 1
     }
 
+    /// 衣装 1 着ぶんの行。
+    ///
+    /// **文言はコアが組んだものをそのまま出す。** 「1・5 曲目」「公演のどこか」も
+    /// 「誰が着たか」も `imas-core` の `costume_queries` が決めており、ここで
+    /// 組み直すと Web / Android と表記が割れる。画像は持たない (版権物を配らない)。
+    @ViewBuilder
+    private func costumeRow(_ entry: ShowCostumeRecord) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 8) {
+                Text(entry.costume.name)
+                    .font(.imasScaled(15, weight: .semibold))
+                    .foregroundStyle(DS.ink)
+                if let attribution = entry.costume.attribution {
+                    ImasTagChip(text: attribution, kind: .unit, seed: showBrandHex)
+                }
+                Spacer(minLength: 0)
+            }
+            if let wearers = entry.wearersLabel {
+                Text(wearers)
+                    .font(.imasScaled(12))
+                    .foregroundStyle(DS.ink2)
+            }
+            if let description = entry.costume.description {
+                Text(description)
+                    .font(.imasScaled(12))
+                    .foregroundStyle(DS.ink2)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
     private func loadSetlist() async {
         do {
             let showReading = AppContainer.shared.showReading
@@ -537,6 +587,8 @@ struct SetlistView: View {
 
             // この公演の全出演キャスト集合 (「全員」表記の判定用)
             showAllCastIds = try await showReading.showIdolIds(showId: show.id)
+
+            costumes = try await showReading.showCostumes(showId: show.id)
 
             // この公演で 1-unit exact 一致した = ユニット単独曲として披露された ユニット集合
             activeUnitIds = computeActiveUnitIds(unitIndex: unitIndex)

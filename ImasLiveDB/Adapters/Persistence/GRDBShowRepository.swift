@@ -51,6 +51,13 @@ struct GRDBShowRepository: ShowReading {
         try await database.fetchShowCastIdolsAsync(showId: showId)
     }
 
+    /// 衣装はスナップショット (imas-core) 経由でしか読まない。
+    ///
+    /// GRDB 側に同じ問い合わせを書くと、畳み方と並びの規則が 2 実装になる
+    /// (コアと SQL で「同じ衣装を 1 件に畳む」条件がずれる)。スナップショット
+    /// 未ロードの一瞬だけ空になるが、衣装は補助情報なので出ない方が安全。
+    func showCostumes(showId: String) async throws -> [ShowCostumeRecord] { [] }
+
     func venueDirectory() async throws -> VenueDirectory {
         try await database.fetchVenueDirectoryAsync()
     }

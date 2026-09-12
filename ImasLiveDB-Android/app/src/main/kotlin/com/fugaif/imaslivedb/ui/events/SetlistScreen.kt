@@ -16,7 +16,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.Spacer
+import com.fugaif.imaslivedb.ui.components.ImasTagChip
 import androidx.compose.foundation.lazy.LazyColumn
+import uniffi.imas_core.ShowCostumeRecord
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -274,6 +277,11 @@ fun SetlistScreen(
                                 brandId = uiState.brandId,
                                 onFilteredShowsClick = onFilteredShowsClick
                             )
+                        }
+                        if (uiState.costumes.isNotEmpty()) {
+                            item(key = "costumes") {
+                                CostumeCard(costumes = uiState.costumes, brandId = uiState.brandId)
+                            }
                         }
                         item(key = "mark_bar") {
                             UserMarkBar(
@@ -609,6 +617,54 @@ private fun VenueDateCard(
                 key = "日付", value = show.date, brand = brandId, tappable = true,
                 onClick = { onFilteredShowsClick(ShowFilterKind.DATE, show.date) }
             )
+        }
+    }
+}
+
+/**
+ * その公演で着られた衣装。iOS `SetlistView` の衣装セクションと対。
+ *
+ * **文言はコアが組んだものをそのまま出す。** 「1・5 曲目」「公演のどこか」も
+ * 「誰が着たか」も共有コアの `costume_queries` が決めており、ここで組み直すと
+ * iOS / Web と表記が割れる。画像は持たない (版権物を配らない方針)。
+ */
+@Composable
+private fun CostumeCard(costumes: List<ShowCostumeRecord>, brandId: String?) {
+    Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp).fillMaxWidth()) {
+        Text(
+            "衣装 ・ ${costumes.size} 着",
+            style = MaterialTheme.typography.labelMedium,
+            color = DS.ink2,
+            modifier = Modifier.padding(start = 4.dp, bottom = 6.dp)
+        )
+        Column(
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(DS.surface)
+        ) {
+            costumes.forEachIndexed { index, entry ->
+                if (index > 0) {
+                    HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 16.dp))
+                }
+                Column(Modifier.padding(horizontal = 16.dp, vertical = 10.dp).fillMaxWidth()) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            entry.costume.name,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = DS.ink
+                        )
+                        entry.costume.attribution?.let { attribution ->
+                            Spacer(Modifier.width(8.dp))
+                            ImasTagChip(text = attribution, brand = brandId)
+                        }
+                    }
+                    entry.wearersLabel?.let {
+                        Text(it, style = MaterialTheme.typography.bodySmall, color = DS.ink2)
+                    }
+                    entry.costume.description?.let {
+                        Text(it, style = MaterialTheme.typography.bodySmall, color = DS.ink2)
+                    }
+                }
+            }
         }
     }
 }

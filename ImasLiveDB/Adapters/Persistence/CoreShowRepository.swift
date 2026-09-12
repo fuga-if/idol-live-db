@@ -90,6 +90,12 @@ struct CoreShowRepository: ShowReading {
         }
     }
 
+    func showCostumes(showId: String) async throws -> [ShowCostumeRecord] {
+        try await snapshot.withStore(fallbackTo: { try await fallback.showCostumes(showId: showId) }) { store in
+            try store.showCostumeRecords(showId: showId)
+        }
+    }
+
     func originalArtistIds(songIds: [String]) async throws -> [String: Set<String>] {
         guard !songIds.isEmpty else { return [:] }
         return try await snapshot.withStore(fallbackTo: { try await fallback.originalArtistIds(songIds: songIds) }) { store in

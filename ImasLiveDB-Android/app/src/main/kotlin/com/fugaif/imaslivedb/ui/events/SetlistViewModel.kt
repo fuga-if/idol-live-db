@@ -2,6 +2,7 @@ package com.fugaif.imaslivedb.ui.events
 
 import android.content.Context
 import androidx.lifecycle.ViewModel
+import uniffi.imas_core.ShowCostumeRecord
 import androidx.lifecycle.viewModelScope
 import com.fugaif.imaslivedb.data.model.PerformerRow
 import com.fugaif.imaslivedb.data.model.SetlistRow
@@ -22,7 +23,9 @@ data class SetlistUiState(
     val show: Show? = null,
     val brandId: String? = null,
     val setlist: List<SetlistRow> = emptyList(),
-    val performersByItemId: Map<String, List<PerformerRow>> = emptyMap()
+    val performersByItemId: Map<String, List<PerformerRow>> = emptyMap(),
+    /** この公演で着られた衣装 (進行順)。畳み方も並びも共有コアが決めている。 */
+    val costumes: List<ShowCostumeRecord> = emptyList()
 ) {
     val sections: List<SetlistSection>
         get() {
@@ -56,13 +59,15 @@ class SetlistViewModel : ViewModel() {
             val setlist = module.eventRepository.fetchSetlist(showId)
             // 曲ごとのグループ化と並びは共有コア (showSetlistPerformers) が持つ。
             val performersByItemId = module.eventRepository.fetchPerformersByItem(showId)
+            val costumes = module.eventRepository.fetchShowCostumes(showId)
 
             _uiState.value = SetlistUiState(
                 isLoading = false,
                 show = show,
                 brandId = brandId,
                 setlist = setlist,
-                performersByItemId = performersByItemId
+                performersByItemId = performersByItemId,
+                costumes = costumes
             )
         }
     }

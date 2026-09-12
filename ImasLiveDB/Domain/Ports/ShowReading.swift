@@ -29,6 +29,11 @@ protocol ShowReading: Sendable {
     func searchShows(query: String, limit: Int) async throws -> [ShowWithEventName]
     /// 公演の出演キャストを Idol として取得 (出演者予想の対象一覧用)。
     func showCastIdols(showId: String) async throws -> [Idol]
+    /// その公演で着られた衣装 (進行順)。記録が無ければ空。
+    ///
+    /// 衣装の畳み方 (同じ衣装が複数曲に出たら 1 件にまとめる) と「どこで着たか」の
+    /// 判断は imas-core が持つ。ここは受け取るだけで、画面側で組み直さないこと。
+    func showCostumes(showId: String) async throws -> [ShowCostumeRecord]
     /// 会場マスタ一式 (施設・改名履歴・ホール)。当時名やキャパの解決に使う。
     func venueDirectory() async throws -> VenueDirectory
     /// 指定会場 (venue_id) で公演があったイベントの id 集合 (ライブ一覧の会場絞り込み用)。

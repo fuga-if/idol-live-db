@@ -20,6 +20,7 @@ import com.fugaif.imaslivedb.data.model.VenueHall
 import com.fugaif.imaslivedb.data.model.VenueName
 import com.fugaif.imaslivedb.data.model.ShowCast
 import com.fugaif.imaslivedb.data.model.ShowWithEventName
+import uniffi.imas_core.ShowCostumeRecord
 import uniffi.imas_core.EventDetailRecord
 import uniffi.imas_core.EventListRecord
 import uniffi.imas_core.EventWithDateRecord
@@ -300,6 +301,19 @@ class EventRepository(
             .groupBy { it.setlistItemId }
             .mapValues { (_, rows) -> rows.map { it.toPerformerRow() } }
     }
+
+    /**
+     * その公演で着られた衣装 (進行順)。記録が無ければ空。
+     *
+     * 衣装の畳み方 (同じ衣装が複数曲に出たら 1 件にまとめる) と「どこで着たか」
+     * 「誰が着たか」の文言は共有コア (`costume_queries`) が持つ。画面側で組み直すと
+     * iOS / Web と表記が割れるので、受け取ったものをそのまま出すこと。
+     *
+     * スナップショット未ロード時は空。Room に同じ問い合わせを書くと畳み方が
+     * 2 実装になるため、あえてフォールバックを持たない (衣装は補助情報)。
+     */
+    suspend fun fetchShowCostumes(showId: String): List<ShowCostumeRecord> =
+        snapshots?.query { store -> store.showCostumeRecords(showId) } ?: emptyList()
 
     /**
      * セトリ編集の保存後、サーバ確定値でローカル DB を全置換する (iOS `showWriting.replaceSetlist` と同じ)。
