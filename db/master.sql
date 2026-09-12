@@ -84320,7 +84320,6 @@ INSERT INTO "show_cast" VALUES('sh_シンデレラガールズ_15周年_大型�
 INSERT INTO "show_cast" VALUES('sh_シンデレラガールズ_15周年_大型イベント_2','cg_速水奏','member');
 INSERT INTO "show_cast" VALUES('sh_シンデレラガールズ_15周年_大型イベント_2','cg_関裕美','member');
 CREATE TABLE shows (id TEXT PRIMARY KEY NOT NULL, event_id TEXT NOT NULL, name TEXT NOT NULL, date TEXT NOT NULL, venue TEXT, venue_city TEXT, start_time TEXT, sort_order INTEGER NOT NULL, performer_type TEXT DEFAULT 'cast', venue_id TEXT, hall TEXT, stream_platform TEXT);
-INSERT INTO "shows" VALUES('sh_cinderella_girls_musical_starlight_high_school_0','ev_cinderella_girls_musical_starlight_high_school','DAY1','2026-05-08','森のホール21 (松戸市文化会館) 大ホール','千葉県松戸市','15:20',-1,'cast',NULL,NULL,NULL);
 INSERT INTO "shows" VALUES('sh_e656e30e-e4a6-4f8e-84fe-ab83bc7f7eb8','ev_e8a2e8ce-261b-43f6-829f-d4b041ddf000','リスアニ！LIVE on TOKYO ANIME MUSIC','2026-06-09','TOYOTA ARENA TOKYO','東京都江東区青海１丁目３−３−１','19:00',0,'cast',NULL,NULL,NULL);
 INSERT INTO "shows" VALUES('sh_283_production_solo_live_collection_-master_showpiece-_1','ev_283_production_solo_live_collection_-master_showpiece-','DAY1','2026-09-26','京王アリーナ TOKYO',NULL,NULL,0,'cast','venue_京王アリーナtokyo',NULL,NULL);
 INSERT INTO "shows" VALUES('sh_283_production_solo_live_collection_-master_showpiece-_2','ev_283_production_solo_live_collection_-master_showpiece-','DAY2','2026-09-27','京王アリーナ TOKYO',NULL,NULL,1,'cast','venue_京王アリーナtokyo',NULL,NULL);
@@ -117617,4 +117616,8 @@ INSERT INTO "setlist_performers" VALUES('sh_the_idolmster_sidem_11th_stage_ever_
 INSERT INTO "setlist_performers" VALUES('sh_the_idolmster_sidem_11th_stage_ever_everfter_1_0034','sidem_蒼井悠介');
 INSERT INTO "setlist_performers" VALUES('sh_the_idolmster_sidem_11th_stage_ever_everfter_1_0034','sidem_都築圭');
 INSERT INTO "setlist_performers" VALUES('sh_the_idolmster_sidem_11th_stage_ever_everfter_1_0034','sidem_黒野玄武');
+INSERT INTO "setlist_items" VALUES('sh_the_idolmster_sidem_passionable_reading_show_魂環の人形_1_0001','sh_the_idolmster_sidem_passionable_reading_show_魂環の人形_1','sidem_アニマフォルトゥナ',1,NULL,'映画「魂環の人形」主題歌',NULL);
+INSERT INTO "setlist_items" VALUES('sh_the_idolmster_sidem_passionable_reading_show_魂環の人形_1_0002','sh_the_idolmster_sidem_passionable_reading_show_魂環の人形_1','sidem_beyond_the_dream',2,NULL,'魂環の人形ver.',NULL);
+INSERT INTO "setlist_items" VALUES('sh_the_idolmster_sidem_passionable_reading_show_魂環の人形_2_0001','sh_the_idolmster_sidem_passionable_reading_show_魂環の人形_2','sidem_アニマフォルトゥナ',1,NULL,'映画「魂環の人形」主題歌',NULL);
+INSERT INTO "setlist_items" VALUES('sh_the_idolmster_sidem_passionable_reading_show_魂環の人形_2_0002','sh_the_idolmster_sidem_passionable_reading_show_魂環の人形_2','sidem_beyond_the_dream',2,NULL,'魂環の人形ver.',NULL);
 COMMIT;

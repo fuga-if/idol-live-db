@@ -1,0 +1,21 @@
+{
+ "title": "THE IDOLM@STER SideM PASSIONABLE READING SHOW ～魂環の人形(マリオネット)～ DAY1 -デカルトの影光- (2026-03-14)",
+ "source": "https://idolmaster-official.jp/news/01_18400",
+ "note": "公式まとめ記事の「プログラム」から起こした。朗読劇なので曲は 2 曲だけで、残りは OPENING / 日常パート / 映画本編パート (魂環の人形 -デカルトの影光-) / ENDING。歌唱者は公式が書いていないので入れない (推測しない)。",
+ "show_id": "sh_the_idolmster_sidem_passionable_reading_show_魂環の人形_1",
+ "all_performers": [],
+ "songs": [
+  {
+   "position": 1,
+   "song_id": "sidem_アニマフォルトゥナ",
+   "performers": [],
+   "notes": "映画「魂環の人形」主題歌"
+  },
+  {
+   "position": 2,
+   "song_id": "sidem_beyond_the_dream",
+   "performers": [],
+   "notes": "魂環の人形ver."
+  }
+ ]
+}
