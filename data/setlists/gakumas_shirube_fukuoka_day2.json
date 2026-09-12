@@ -1,0 +1,145 @@
+{
+ "title": "学園アイドルマスター LIVE TOUR -標- 福岡公演 DAY2 (2026-09-06)",
+ "source": "https://www.famitsu.com/article/202609/86888",
+ "note": "公式のセットリスト画像が見つからなかったため、ファミ通のライブリポートから起こした。ソロ 15 曲すべて DB の原唱者 (song_artists role='original') と一致することを機械的に確認済み。",
+ "show_id": "sh_学園アイドルマスター_live_tour_-標-_福岡公演_2",
+ "all_performers": [
+  "gakuen_花海咲季",
+  "gakuen_月村手毬",
+  "gakuen_藤田ことね",
+  "gakuen_篠澤広",
+  "gakuen_雨夜燕"
+ ],
+ "songs": [
+  {
+   "position": 1,
+   "song_id": "gakuen_fighting_my_way",
+   "performers": [
+    "gakuen_花海咲季"
+   ]
+  },
+  {
+   "position": 2,
+   "song_id": "gakuen_luna_say_maybe",
+   "performers": [
+    "gakuen_月村手毬"
+   ]
+  },
+  {
+   "position": 3,
+   "song_id": "gakuen_世界一可愛い私",
+   "performers": [
+    "gakuen_藤田ことね"
+   ]
+  },
+  {
+   "position": 4,
+   "song_id": "gakuen_光景",
+   "performers": [
+    "gakuen_篠澤広"
+   ]
+  },
+  {
+   "position": 5,
+   "song_id": "gakuen_理論武装して",
+   "performers": [
+    "gakuen_雨夜燕"
+   ]
+  },
+  {
+   "position": 6,
+   "song_id": "gakuen_修楽旅行_花海咲季月村手毬藤田ことね雨夜燕篠澤広ver",
+   "performers": "all"
+  },
+  {
+   "position": 7,
+   "song_id": "gakuen_order_fake",
+   "performers": [
+    "gakuen_月村手毬"
+   ]
+  },
+  {
+   "position": 8,
+   "song_id": "gakuen_め",
+   "performers": [
+    "gakuen_篠澤広"
+   ]
+  },
+  {
+   "position": 9,
+   "song_id": "gakuen_boom_boom_pow",
+   "performers": [
+    "gakuen_花海咲季"
+   ]
+  },
+  {
+   "position": 10,
+   "song_id": "gakuen_自己肯定感爆上げしゅきしゅきソング",
+   "performers": [
+    "gakuen_藤田ことね"
+   ]
+  },
+  {
+   "position": 11,
+   "song_id": "gakuen_ねえ言っちゃうよ",
+   "performers": "all"
+  },
+  {
+   "position": 12,
+   "song_id": "gakuen_三分半の創世",
+   "performers": [
+    "gakuen_雨夜燕"
+   ]
+  },
+  {
+   "position": 13,
+   "song_id": "gakuen_ふわふわ",
+   "performers": [
+    "gakuen_藤田ことね"
+   ]
+  },
+  {
+   "position": 14,
+   "song_id": "gakuen_コンテンポラリのダンス",
+   "performers": [
+    "gakuen_篠澤広"
+   ]
+  },
+  {
+   "position": 15,
+   "song_id": "gakuen_unhappy_light",
+   "performers": [
+    "gakuen_月村手毬"
+   ]
+  },
+  {
+   "position": 16,
+   "song_id": "gakuen_wildest_flower",
+   "performers": [
+    "gakuen_花海咲季"
+   ]
+  },
+  {
+   "position": 17,
+   "song_id": "gakuen_クライアイ",
+   "performers": [
+    "gakuen_雨夜燕"
+   ]
+  },
+  {
+   "position": 18,
+   "song_id": "gakuen_標",
+   "performers": "all"
+  },
+  {
+   "position": 19,
+   "song_id": "gakuen_古今東西ちょちょいのちょい",
+   "performers": "all"
+  },
+  {
+   "position": 20,
+   "song_id": "gakuen_初",
+   "performers": "all"
+  }
+ ]
+}
