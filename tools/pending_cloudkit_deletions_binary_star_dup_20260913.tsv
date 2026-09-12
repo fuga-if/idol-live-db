@@ -1,0 +1,7 @@
+# Binary Star の二重登録 (2026-09-13)。同じ会場オリジナル CD の同じ曲が
+# 765as_binary_star と 765as_binarystar の 2 id で入っていた。
+# 披露履歴 3 件を持つ 765as_binarystar を残し、クレジット (パソコン音楽クラブ) と
+# cd_series の系列キーをそちらへ移してから、こちらを消す。
+SongArtist	song_artists-765as_binary_star-765as_三浦あずさ-original
+SongArtist	song_artists-765as_binary_star-765as_秋月律子-original
+Song	765as_binary_star
