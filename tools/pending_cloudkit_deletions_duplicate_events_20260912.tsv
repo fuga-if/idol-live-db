@@ -1,0 +1,12 @@
+# アプリから投稿されて二重登録になったイベント (2026-09-12)。
+# 新規イベントはサーバが ev_<UUID> を採番する (imas-live-api/src/edits.ts:117) が、
+# 同名チェックが無いため、insert_future_events.py が作る slug 版と二重になる。
+# slug 版 (DAY1/DAY2 の公演名・venue_id あり) を残し、UUID 版を消す。
+# 配下の setlist_items / setlist_performers / show_cast は 0 件 (実測)。
+# 依存の深い順 (Show → Event)。
+Show	sh_c12b32d1-c1c2-4697-856b-bed8e75f46a4
+Show	sh_17d0e7bb-ec71-47eb-aa8f-a44886cd0e92
+Event	ev_2bd4cd37-f9d3-4353-8e63-50bb29ce9aea
+Event	ev_099deb92-de26-45ed-9400-4acdd9395e75
+Event	ev_aef83c5d-1fee-47d7-8185-15a62d25bf5e
+Event	ev_bafca9af-8a58-4701-8753-d1166e28d577
