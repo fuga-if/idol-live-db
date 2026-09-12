@@ -1,0 +1,398 @@
+{
+ "title": "THE IDOLM@STER SideM 11th STAGE ～EVER EVER＠FTER～ DAY1 (2026-09-12)",
+ "source": "https://idolmaster-official.jp/news/01_19805.html",
+ "note": "公式まとめ記事のセットリスト画像 (全34曲) から起こした。ユニット表記の行はユニットの構成員に展開。",
+ "show_id": "sh_the_idolmster_sidem_11th_stage_ever_everfter_1",
+ "all_performers": [
+  "sidem_アスランbbⅱ世",
+  "sidem_九十九一希",
+  "sidem_伊瀬谷四季",
+  "sidem_伊集院北斗",
+  "sidem_信玄誠司",
+  "sidem_兜大吾",
+  "sidem_円城寺道流",
+  "sidem_冬美旬",
+  "sidem_北村想楽",
+  "sidem_卯月巻緒",
+  "sidem_古論クリス",
+  "sidem_大河タケル",
+  "sidem_天峰秀",
+  "sidem_天道輝",
+  "sidem_山下次郎",
+  "sidem_岡村直央",
+  "sidem_握野英雄",
+  "sidem_木村龍",
+  "sidem_東雲荘一郎",
+  "sidem_柏木翼",
+  "sidem_桜庭薫",
+  "sidem_榊夏来",
+  "sidem_水嶋咲",
+  "sidem_清澄九郎",
+  "sidem_牙崎漣",
+  "sidem_猫柳キリオ",
+  "sidem_眉見鋭心",
+  "sidem_硲道夫",
+  "sidem_神楽麗",
+  "sidem_神谷幸広",
+  "sidem_秋山隼人",
+  "sidem_秋月涼",
+  "sidem_紅井朱雀",
+  "sidem_花園百々人",
+  "sidem_若里春名",
+  "sidem_華村翔真",
+  "sidem_葛之葉雨彦",
+  "sidem_蒼井享介",
+  "sidem_蒼井悠介",
+  "sidem_都築圭",
+  "sidem_黒野玄武"
+ ],
+ "songs": [
+  {
+   "position": 1,
+   "song_id": "sidem_お菓子なアドベンチャー",
+   "performers": [
+    "sidem_蒼井悠介",
+    "sidem_冬美旬",
+    "sidem_山下次郎"
+   ]
+  },
+  {
+   "position": 2,
+   "song_id": "sidem_chocolate_special",
+   "performers": [
+    "sidem_アスランbbⅱ世",
+    "sidem_卯月巻緒",
+    "sidem_東雲荘一郎",
+    "sidem_水嶋咲",
+    "sidem_神谷幸広"
+   ]
+  },
+  {
+   "position": 3,
+   "song_id": "sidem_miraculous_white_day",
+   "performers": [
+    "sidem_円城寺道流",
+    "sidem_大河タケル",
+    "sidem_牙崎漣"
+   ]
+  },
+  {
+   "position": 4,
+   "song_id": "sidem_いとをかし一彩合彩",
+   "performers": [
+    "sidem_清澄九郎",
+    "sidem_猫柳キリオ",
+    "sidem_華村翔真"
+   ]
+  },
+  {
+   "position": 5,
+   "song_id": "sidem_feeeel_gooood",
+   "performers": [
+    "sidem_蒼井享介",
+    "sidem_蒼井悠介"
+   ]
+  },
+  {
+   "position": 6,
+   "song_id": "sidem_smiles_in_wonderland",
+   "performers": [
+    "sidem_伊瀬谷四季",
+    "sidem_冬美旬",
+    "sidem_榊夏来",
+    "sidem_秋山隼人",
+    "sidem_若里春名"
+   ]
+  },
+  {
+   "position": 7,
+   "song_id": "sidem_流星parade",
+   "performers": [
+    "sidem_天道輝",
+    "sidem_伊集院北斗",
+    "sidem_硲道夫",
+    "sidem_山下次郎"
+   ]
+  },
+  {
+   "position": 8,
+   "song_id": "sidem_ring_ding_wrong",
+   "performers": [
+    "sidem_蒼井享介",
+    "sidem_秋山隼人",
+    "sidem_大河タケル"
+   ]
+  },
+  {
+   "position": 9,
+   "song_id": "sidem_precious_ordinary_days",
+   "performers": [
+    "sidem_神楽麗",
+    "sidem_都築圭"
+   ]
+  },
+  {
+   "position": 10,
+   "song_id": "sidem_タソガレドキbluesy",
+   "performers": [
+    "sidem_紅井朱雀",
+    "sidem_黒野玄武"
+   ]
+  },
+  {
+   "position": 11,
+   "song_id": "sidem_soothing_place",
+   "performers": [
+    "sidem_信玄誠司",
+    "sidem_握野英雄",
+    "sidem_木村龍"
+   ]
+  },
+  {
+   "position": 12,
+   "song_id": "sidem_toward_pole_star",
+   "performers": [
+    "sidem_伊瀬谷四季",
+    "sidem_冬美旬",
+    "sidem_榊夏来",
+    "sidem_秋山隼人",
+    "sidem_若里春名"
+   ]
+  },
+  {
+   "position": 13,
+   "song_id": "sidem_casually",
+   "performers": [
+    "sidem_九十九一希",
+    "sidem_兜大吾",
+    "sidem_秋月涼"
+   ]
+  },
+  {
+   "position": 14,
+   "song_id": "sidem_来来美食",
+   "performers": [
+    "sidem_天峰秀",
+    "sidem_眉見鋭心",
+    "sidem_花園百々人"
+   ]
+  },
+  {
+   "position": 15,
+   "song_id": "sidem_cast_a_spell",
+   "performers": [
+    "sidem_伊集院北斗",
+    "sidem_榊夏来",
+    "sidem_葛之葉雨彦"
+   ]
+  },
+  {
+   "position": 16,
+   "song_id": "sidem_braver_beat",
+   "performers": [
+    "sidem_秋山隼人",
+    "sidem_大河タケル",
+    "sidem_兜大吾"
+   ]
+  },
+  {
+   "position": 17,
+   "song_id": "sidem_all_nor_nothing",
+   "performers": [
+    "sidem_握野英雄",
+    "sidem_華村翔真",
+    "sidem_榊夏来",
+    "sidem_神谷幸広",
+    "sidem_岡村直央",
+    "sidem_北村想楽"
+   ]
+  },
+  {
+   "position": 18,
+   "song_id": "sidem_四心争乱_-天地一指-",
+   "performers": [
+    "sidem_伊集院北斗",
+    "sidem_神楽麗",
+    "sidem_山下次郎",
+    "sidem_九十九一希",
+    "sidem_葛之葉雨彦",
+    "sidem_眉見鋭心"
+   ]
+  },
+  {
+   "position": 19,
+   "song_id": "sidem_幻想のutopia",
+   "performers": [
+    "sidem_天道輝",
+    "sidem_蒼井悠介",
+    "sidem_蒼井享介",
+    "sidem_握野英雄",
+    "sidem_秋山隼人",
+    "sidem_冬美旬",
+    "sidem_榊夏来",
+    "sidem_若里春名",
+    "sidem_紅井朱雀",
+    "sidem_黒野玄武",
+    "sidem_岡村直央",
+    "sidem_硲道夫",
+    "sidem_大河タケル",
+    "sidem_天峰秀",
+    "sidem_花園百々人",
+    "sidem_眉見鋭心"
+   ]
+  },
+  {
+   "position": 20,
+   "song_id": "sidem_安寧のdystopia",
+   "performers": [
+    "sidem_伊集院北斗",
+    "sidem_神楽麗",
+    "sidem_信玄誠司",
+    "sidem_華村翔真",
+    "sidem_清澄九郎",
+    "sidem_伊瀬谷四季",
+    "sidem_神谷幸広",
+    "sidem_卯月巻緒",
+    "sidem_水嶋咲",
+    "sidem_山下次郎",
+    "sidem_兜大吾",
+    "sidem_九十九一希",
+    "sidem_葛之葉雨彦",
+    "sidem_北村想楽"
+   ]
+  },
+  {
+   "position": 21,
+   "song_id": "sidem_stories",
+   "performers": [
+    "sidem_冬美旬",
+    "sidem_黒野玄武",
+    "sidem_卯月巻緒",
+    "sidem_山下次郎",
+    "sidem_北村想楽"
+   ]
+  },
+  {
+   "position": 22,
+   "song_id": "sidem_アニマフォルトゥナ",
+   "performers": [
+    "sidem_天道輝",
+    "sidem_蒼井悠介",
+    "sidem_蒼井享介",
+    "sidem_信玄誠司",
+    "sidem_清澄九郎",
+    "sidem_若里春名",
+    "sidem_紅井朱雀",
+    "sidem_水嶋咲"
+   ]
+  },
+  {
+   "position": 23,
+   "song_id": "sidem_stillnessmovement",
+   "performers": [
+    "sidem_紅井朱雀",
+    "sidem_黒野玄武"
+   ]
+  },
+  {
+   "position": 24,
+   "song_id": "sidem_secret_light",
+   "performers": [
+    "sidem_北村想楽",
+    "sidem_古論クリス",
+    "sidem_葛之葉雨彦",
+    "sidem_天峰秀",
+    "sidem_眉見鋭心",
+    "sidem_花園百々人"
+   ]
+  },
+  {
+   "position": 25,
+   "song_id": "sidem_永遠なる四銃士",
+   "performers": [
+    "sidem_天道輝",
+    "sidem_握野英雄",
+    "sidem_紅井朱雀",
+    "sidem_葛之葉雨彦"
+   ]
+  },
+  {
+   "position": 26,
+   "song_id": "sidem_てのうえで踊るメヌエット",
+   "performers": [
+    "sidem_伊瀬谷四季",
+    "sidem_紅井朱雀",
+    "sidem_北村想楽"
+   ]
+  },
+  {
+   "position": 27,
+   "song_id": "sidem_change_to_chance",
+   "performers": [
+    "sidem_天道輝",
+    "sidem_柏木翼",
+    "sidem_桜庭薫"
+   ]
+  },
+  {
+   "position": 28,
+   "song_id": "sidem_彩リノ歌",
+   "performers": [
+    "sidem_清澄九郎",
+    "sidem_猫柳キリオ",
+    "sidem_華村翔真"
+   ]
+  },
+  {
+   "position": 29,
+   "song_id": "sidem_play_for_fun-tasy",
+   "performers": [
+    "sidem_蒼井享介",
+    "sidem_蒼井悠介"
+   ]
+  },
+  {
+   "position": 30,
+   "song_id": "sidem_trust_me_now",
+   "performers": [
+    "sidem_天峰秀",
+    "sidem_眉見鋭心",
+    "sidem_花園百々人"
+   ]
+  },
+  {
+   "position": 31,
+   "song_id": "sidem_いつかこの瞬間に名前をつけるなら",
+   "performers": [
+    "sidem_蒼井享介",
+    "sidem_蒼井悠介",
+    "sidem_伊瀬谷四季",
+    "sidem_冬美旬",
+    "sidem_榊夏来",
+    "sidem_秋山隼人",
+    "sidem_若里春名"
+   ]
+  },
+  {
+   "position": 32,
+   "song_id": "sidem_true_ends_tapestry",
+   "performers": [
+    "sidem_天道輝",
+    "sidem_若里春名",
+    "sidem_水嶋咲",
+    "sidem_硲道夫",
+    "sidem_眉見鋭心"
+   ]
+  },
+  {
+   "position": 33,
+   "song_id": "sidem_drive_a_live",
+   "performers": "all"
+  },
+  {
+   "position": 34,
+   "song_id": "sidem_growing_smiles",
+   "performers": "all"
+  }
+ ]
+}
