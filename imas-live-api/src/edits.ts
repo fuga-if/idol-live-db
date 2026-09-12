@@ -29,6 +29,7 @@ import {
   buildSoftDelete,
   cloudKitLookup,
   cloudKitModify,
+  cloudKitQuery,
   flattenCkFields,
   type CloudKitOperation,
 } from "./cloudkit";
@@ -115,6 +116,37 @@ function generateRecordName(recordType: string): string | null {
   const prefix = RECORD_NAME_PREFIX[recordType];
   if (!prefix) return null;
   return `${prefix}_${crypto.randomUUID()}`;
+}
+
+/**
+ * 同名のイベントが既に居ないか調べる。
+ *
+ * 新規イベントはここで `ev_<uuid>` を採番するが、ツール側 (insert_future_events.py) は
+ * 名前から `ev_<slug>` を作る。同名チェックが無かったため、アプリから投稿された
+ * イベントが slug 版と二重になり、出面に同じライブが 2 つ並んでいた
+ * (2026-09-12 に SideM 11th STAGE で 4 レコード / 魂環の人形で 2 レコードを手で消した)。
+ *
+ * 名前は前後の空白と連続空白だけ畳んで比べる。表記揺れまで吸収しようとすると
+ * 「DAY1 / DAY2」のような正当な別レコードまで弾いてしまう。
+ *
+ * 照会に失敗したときは**通す**。CloudKit が一時的に落ちている間に投稿を
+ * 受け付けられなくなる方が損が大きい (重複は後から消せる)。
+ */
+async function findEventWithSameName(
+  name: string,
+  keyId: string,
+  privKeyPem: string
+): Promise<string | null> {
+  const normalize = (v: string) => v.trim().replace(/\s+/g, " ");
+  const target = normalize(name);
+  if (!target) return null;
+  const res = await cloudKitQuery("Event", "name", target, keyId, privKeyPem);
+  if (!res.ok) return null;
+  for (const rec of res.records ?? []) {
+    const existing = rec.fields?.name?.value;
+    if (typeof existing === "string" && normalize(existing) === target) return rec.recordName;
+  }
+  return null;
 }
 
 /** 構築済み op から、注入された modifiedAt(ms) を読み出す (履歴の modified_at を CK 実値に揃える)。 */
@@ -271,6 +303,17 @@ export async function handlePostEdits<E extends EditsEnv>(
     let recordName = raw.recordName;
     let generated = false;
     if (op === "create" && !recordName) {
+      // イベントだけ同名チェックを挟む。ここで採番する uuid 形式は、ツールが名前から
+      // 作る slug 形式と衝突しないので、同じライブが 2 レコードになってしまう。
+      if (recordType === "Event" && typeof fields.name === "string") {
+        const dup = await findEventWithSameName(
+          fields.name, env.CLOUDKIT_KEY_ID, env.CLOUDKIT_PRIVATE_KEY);
+        if (dup) {
+          return error(
+            `同じ名前のライブが既にあります (${dup})。追加ではなく、そのライブを編集してください。`,
+            409);
+        }
+      }
       const gen = generateRecordName(recordType);
       if (!gen) return error(`cannot generate recordName for ${recordType}`, 400);
       recordName = gen;
