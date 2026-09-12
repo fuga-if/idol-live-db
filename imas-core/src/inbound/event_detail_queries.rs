@@ -19,7 +19,9 @@ use crate::domain::event_detail_queries::{
     SetlistEntryRecord, SetlistPerformerRecord, ShowRecord, ShowWithEventNameRecord,
     VenueDirectoryRecord,
 };
-use std::collections::HashMap;
+use crate::domain::setlist_lineup::{self, Lineup};
+use crate::domain::setlist_sections;
+use std::collections::{BTreeSet, HashMap};
 
 /// セトリの歌唱者をどの名前で出すか。
 ///
@@ -62,6 +64,63 @@ pub fn performer_name_mode_from_raw(raw: Option<String>) -> PerformerNameMode {
 #[uniffi::export]
 pub fn is_character_live(performer_type: Option<String>) -> bool {
     queries::is_character_live(performer_type.as_deref())
+}
+
+/// セトリ 1 行の歌唱者と原唱者 (オリメン) の関係。Web の公演ページと同じ規則・同じ文言。
+///
+/// 札の見出し (`オリメン 4/5`) と、歌っていない原唱者のうち**その公演には出ている人**
+/// (「いたのに歌わなかった」は出演者一覧からは読めない。公演にいない人は数に任せる)。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct SetlistLineupNote {
+    pub kind: Lineup,
+    /// `オリメン` / `オリメン+α` / `オリメン 4/5` / `オリメン不在`。
+    pub label: String,
+    /// 原唱者の並び順の idol_id。空なら名前の行は出さない。
+    pub absent_in_cast_ids: Vec<String>,
+    /// `absent_in_cast_ids` の前に置く言葉 (`不参加`)。
+    pub missing_label: String,
+}
+
+fn id_set(ids: &[String]) -> BTreeSet<&str> {
+    ids.iter().map(String::as_str).collect()
+}
+
+/// 原唱者 (`song_artists.role = 'original'`、原曲の並び順)・歌唱者・公演の出演者 (`show_cast`)
+/// の idol_id から、行に付ける札。付けない行 (判定できない・ソロ曲を本人が歌う・
+/// 出演者全員で歌う行の部分一致) は `None`。
+///
+/// **スナップショットを要らない純関数として出す。** 3 つの集合は既に受け取っている
+/// (`original_artist_ids_map` / `setlist_performers_by_item` / `show_cast_idol_ids`)。
+#[uniffi::export]
+pub fn setlist_lineup(
+    original_ids: Vec<String>,
+    performer_ids: Vec<String>,
+    cast_ids: Vec<String>,
+) -> Option<SetlistLineupNote> {
+    let original: Vec<&str> = original_ids.iter().map(String::as_str).collect();
+    let performers = id_set(&performer_ids);
+    let cast = id_set(&cast_ids);
+    let full_cast = setlist_lineup::is_full_cast(&cast, &performers);
+    let summary = setlist_lineup::summarize(&original, &performers, &cast, full_cast)?;
+    Some(SetlistLineupNote {
+        kind: summary.lineup,
+        label: summary.label(),
+        absent_in_cast_ids: summary.absent_in_cast.iter().map(|id| id.to_string()).collect(),
+        missing_label: setlist_lineup::MISSING_LABEL.to_string(),
+    })
+}
+
+/// 公演の出演者全員で歌う行なら `全員` の札 (出演者 2 人以上・歌唱者と完全一致)。
+#[uniffi::export]
+pub fn setlist_full_cast_label(performer_ids: Vec<String>, cast_ids: Vec<String>) -> Option<String> {
+    setlist_lineup::is_full_cast(&id_set(&cast_ids), &id_set(&performer_ids))
+        .then(|| setlist_lineup::FULL_CAST_LABEL.to_string())
+}
+
+/// セトリの区切りの見出し。`encore` / `ENCORE` / `アンコール` は 1 つに畳み、空は区切り無し。
+#[uniffi::export]
+pub fn setlist_section_label(raw: Option<String>) -> Option<String> {
+    setlist_sections::section_label(raw.as_deref())
 }
 
 #[uniffi::export]

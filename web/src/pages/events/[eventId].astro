@@ -1,15 +1,15 @@
 ---
 import DetailLayout from "../../layouts/DetailLayout.astro";
 import Section from "../../components/Section.astro";
-import StatTile from "../../components/StatTile.astro";
+import StatStrip from "../../components/StatStrip.astro";
 import ShowRow from "../../components/ShowRow.astro";
 import ListContainer from "../../components/ListContainer.astro";
 import LabeledRow from "../../components/LabeledRow.astro";
 import Chip from "../../components/Chip.astro";
-import ColorDot from "../../components/ColorDot.astro";
-import RefList from "../../components/RefList.astro";
+import BrandMark from "../../components/BrandMark.astro";
+import Performer from "../../components/Performer.astro";
 import EmptyState from "../../components/EmptyState.astro";
-import { meta, page, pathsFor } from "../../lib/data";
+import { page, pathsFor } from "../../lib/data";
 import type { EventPage } from "../../lib/schema/EventPage";
 import TagChip from "../../components/TagChip.astro";
 
@@ -25,34 +25,37 @@ const ticketRows = [
 const hasTicket = ticketRows.some((r) => r.value) || ev.ticket.url;
 ---
 
-<DetailLayout seo={ev.seo} meta={meta()} themeKey={ev.themeKey} app={ev.app}>
+<DetailLayout seo={ev.seo} themeKey={ev.themeKey} app={ev.app} asideAfterMain>
   <section class="hero" slot="hero" aria-labelledby="event-title">
     <div class="hero__body">
-      <p class="hero__eyebrow">{ev.kindLabel}</p>
+      {/* 上の行: ブランドの札 → 種別 → 開催予定。公演ページと同じ並び。 */}
+      <p class="hero__eyebrow">
+        {ev.brand && (
+          <a class="u-underline-hover" href={ev.brand.path}>
+            <BrandMark brand={ev.brand} />
+          </a>
+        )}
+        <span>{ev.kindLabel}</span>
+        {ev.isUpcoming && <Chip text="開催予定" variant="selected" />}
+      </p>
       <h1 class="hero__title" id="event-title">{ev.name}</h1>
       {ev.nameKana && <p class="hero__kana">{ev.nameKana}</p>}
-      <p class="u-muted">
-        {ev.firstDate && <time datetime={ev.firstDate}>{ev.firstDate}</time>}
-        {ev.lastDate && ev.lastDate !== ev.firstDate && (
-          <> 〜 <time datetime={ev.lastDate}>{ev.lastDate}</time></>
-        )}
-      </p>
-      <div class="hero__meta">
-        {ev.isUpcoming && <Chip text="開催予定" variant="selected" />}
-        {ev.brand && <Chip text={ev.brand.name} href={ev.brand.path} variant="themed" themeKey={ev.brand.themeKey} />}
-        {ev.jointBrands.map((b) => (
-          <Chip text={b.name} href={b.path} variant="themed" themeKey={b.themeKey} />
-        ))}
-      </div>
+      {ev.dateDisplay && <p class="hero__date u-num">{ev.dateDisplay}</p>}
+      {
+        (ev.jointBrands.length > 0 || ev.venues.length > 0) && (
+          <div class="hero__meta">
+            {ev.jointBrands.map((b) => (
+              <Chip text={b.name} href={b.path} variant="themed" themeKey={b.themeKey} />
+            ))}
+            {ev.venues.map((v) => (
+              <Chip text={v.name} href={v.path} sub={v.sub} />
+            ))}
+          </div>
+        )
+      }
+      <StatStrip items={ev.statTiles} label="このライブの数" />
     </div>
   </section>
-
-  <div class="stat-grid">
-    <StatTile glyph="▤" value={ev.stats.showCount} label="公演" />
-    <StatTile glyph="≡" value={ev.stats.totalSongs} label="のべ曲数" />
-    <StatTile glyph="♬" value={ev.stats.uniqueSongs} label="異なり曲数" />
-    <StatTile glyph="☺" value={ev.stats.castCount} label="出演者" />
-  </div>
 
   <Section id="event-shows" title="公演" count={ev.shows.length}>
     {
@@ -68,36 +71,28 @@ const hasTicket = ticketRows.some((r) => r.value) || ev.ticket.url;
     }
   </Section>
 
+  {/* 出演者は本体側 (長いのはこちら。脇の 20rem に 36 人 × 2 日を詰めると 8 行に折れる)。 */}
   {
     ev.cast && ev.cast.shows.length > 0 && (
-      <Section slot="aside" id="event-cast" title="出演者">
+      <Section id="event-cast" title="出演者">
         <div class="u-stack">
           {ev.cast.shows.map((cs) => (
             <div class="card card__pad u-stack">
-              <h3 class="section__title">{cs.show.name}</h3>
+              <h3 class="row__title">
+                <a class="u-underline-hover" href={cs.show.path}>{cs.show.name}</a>
+              </h3>
               <ul class="performers">
                 {cs.performers.map((m) => (
-                  <li>
-                    <a class="performer" href={m.ref.path} data-theme={m.ref.themeKey}>
-                      <ColorDot />
-                      {m.ref.name}
-                      {m.isLead && <TagChip text="主演" kind="lead" />}
-                      {m.isGuest && <TagChip text="ゲスト" kind="guest" />}
-                    </a>
+                  <li class="u-row">
+                    <Performer ref={m.ref} />
+                    {m.isLead && <TagChip text="主演" kind="lead" />}
+                    {m.isGuest && <TagChip text="ゲスト" kind="guest" />}
                   </li>
                 ))}
               </ul>
             </div>
           ))}
         </div>
-      </Section>
-    )
-  }
-
-  {
-    ev.venues.length > 0 && (
-      <Section slot="aside" id="event-venues" title="会場">
-        <RefList refs={ev.venues} variant="neutral" withSub label="会場" />
       </Section>
     )
   }

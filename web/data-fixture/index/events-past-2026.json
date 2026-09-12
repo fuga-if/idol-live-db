@@ -5,7 +5,7 @@
   "kind": "pastYear",
   "groups": [
     {
-      "year": "2026",
+      "year": "2026年",
       "events": [
         {
           "ref": {
@@ -17,10 +17,15 @@
             "themeKey": "brand:ml",
             "artworkUrl": null
           },
-          "firstDate": "2026-04-03",
-          "lastDate": "2026-04-04",
-          "shortDate": "26/04",
-          "brand": {
+          "dateBadge": {
+            "iso": "2026-04-03",
+            "year": "2026",
+            "monthDay": "4/3",
+            "weekday": "金",
+            "spoken": "2026年4月3日 金曜日"
+          },
+          "endDisplay": "〜 4/4 (土)",
+          "brandMark": {
             "kind": "brand",
             "id": "ml",
             "name": "アイドルマスター ミリオンライブ!",
@@ -29,15 +34,15 @@
             "themeKey": "brand:ml",
             "artworkUrl": null
           },
+          "venueDisplay": "幕張メッセ",
+          "showCountDisplay": "2 公演",
           "kind": "live",
-          "kindLabel": "ライブ",
-          "showCount": 2,
-          "subtitle": "2026-04-03 〜 2026-04-04 ・ アイドルマスター ミリオンライブ! ・ 2 公演 ・ 幕張メッセ"
+          "kindLabel": null
         }
       ]
     },
     {
-      "year": "2025",
+      "year": "2025年",
       "events": [
         {
           "ref": {
@@ -49,10 +54,15 @@
             "themeKey": "brand:cg",
             "artworkUrl": null
           },
-          "firstDate": "2026-04-03",
-          "lastDate": "2026-04-04",
-          "shortDate": "26/04",
-          "brand": {
+          "dateBadge": {
+            "iso": "2026-04-03",
+            "year": "2026",
+            "monthDay": "4/3",
+            "weekday": "金",
+            "spoken": "2026年4月3日 金曜日"
+          },
+          "endDisplay": "〜 4/4 (土)",
+          "brandMark": {
             "kind": "brand",
             "id": "ml",
             "name": "アイドルマスター ミリオンライブ!",
@@ -61,67 +71,91 @@
             "themeKey": "brand:ml",
             "artworkUrl": null
           },
+          "venueDisplay": "幕張メッセ",
+          "showCountDisplay": "2 公演",
           "kind": "festival",
-          "kindLabel": "フェス",
-          "showCount": 2,
-          "subtitle": "2026-04-03 〜 2026-04-04 ・ アイドルマスター ミリオンライブ! ・ 2 公演 ・ 幕張メッセ"
+          "kindLabel": "フェス"
         }
       ]
     }
   ],
-  "scopeLinks": [
+  "recentPast": null,
+  "recentPastTitle": null,
+  "next": null,
+  "scope": {
+    "label": "今後 / 開催済み",
+    "links": [
+      {
+        "label": "今後のライブ",
+        "path": "/events/upcoming/",
+        "current": false,
+        "themeKey": null,
+        "count": 24
+      },
+      {
+        "label": "開催済み",
+        "path": "/events/past/",
+        "current": false,
+        "themeKey": null,
+        "count": 827
+      },
+      {
+        "label": "カレンダー",
+        "path": "/calendar/",
+        "current": false,
+        "themeKey": null,
+        "count": null
+      }
+    ],
+    "islandKey": null
+  },
+  "filters": [
     {
-      "label": "今後のライブ",
-      "path": "/events/upcoming/",
-      "current": false,
-      "themeKey": null,
-      "count": 24
+      "label": "年",
+      "links": [
+        {
+          "label": "2026",
+          "path": "/events/past/2026/",
+          "current": false,
+          "themeKey": null,
+          "count": 40
+        },
+        {
+          "label": "2025",
+          "path": "/events/past/2025/",
+          "current": false,
+          "themeKey": null,
+          "count": 52
+        }
+      ],
+      "islandKey": null
     },
     {
-      "label": "開催済み",
-      "path": "/events/past/",
-      "current": false,
-      "themeKey": null,
-      "count": 827
-    }
-  ],
-  "brandLinks": [
-    {
-      "label": "すべて",
-      "path": "/events/",
-      "current": false,
-      "themeKey": null,
-      "count": null
-    },
-    {
-      "label": "ミリオンライブ!",
-      "path": "/events/brand/ml/",
-      "current": false,
-      "themeKey": "brand:ml",
-      "count": 210
-    },
-    {
-      "label": "シンデレラガールズ",
-      "path": "/events/brand/cg/",
-      "current": false,
-      "themeKey": "brand:cg",
-      "count": 180
-    }
-  ],
-  "yearLinks": [
-    {
-      "label": "2026",
-      "path": "/events/past/2026/",
-      "current": false,
-      "themeKey": null,
-      "count": 40
-    },
-    {
-      "label": "2025",
-      "path": "/events/past/2025/",
-      "current": false,
-      "themeKey": null,
-      "count": 52
+      "label": "ブランド",
+      "links": [
+        {
+          "label": "すべて",
+          "path": "/events/",
+          "current": false,
+          "themeKey": null,
+          "count": null
+        },
+        {
+          "label": "ミリオンライブ!",
+          "path": "/events/brand/ml/",
+          "current": false,
+          "themeKey": "brand:ml",
+          "count": 210
+        },
+        {
+          "label": "シンデレラガールズ",
+          "path": "/events/brand/cg/",
+          "current": false,
+          "themeKey": "brand:cg",
+          "count": 180
+        }
+      ],
+      "islandKey": null
     }
   ],
   "total": 2,

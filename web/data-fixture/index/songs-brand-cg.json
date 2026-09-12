@@ -26,6 +26,10 @@
       "releaseDate": "2019-03-13",
       "unitLabel": "765MILLION ALLSTARS",
       "artistsLabel": "春日未来",
+      "songTypeLabel": "ユニット曲",
+      "collabLabel": "合同曲",
+      "composerCredit": "作曲 高田暁",
+      "cdCredit": "収録 THE IDOLM@STER LIVE THE@TER PERFORMANCE 01",
       "performanceCount": 12,
       "subtitle": "765MILLION ALLSTARS ・ 春日未来 ・ 2019-03-13"
     },
@@ -42,6 +46,10 @@
       "releaseDate": null,
       "unitLabel": null,
       "artistsLabel": null,
+      "songTypeLabel": null,
+      "collabLabel": null,
+      "composerCredit": null,
+      "cdCredit": null,
       "performanceCount": null,
       "subtitle": null
     }
@@ -66,32 +74,37 @@
   "kanaSections": [
     {
       "label": "さ",
-      "startIndex": 0,
-      "count": 1
+      "startIndex": 0
     },
     {
       "label": "英数",
-      "startIndex": 1,
-      "count": 1
+      "startIndex": 1
     }
   ],
-  "brandLinks": [
+  "filters": [
     {
-      "label": "すべて",
-      "path": "/songs/",
-      "current": false,
-      "themeKey": null,
-      "count": 2040
-    },
-    {
-      "label": "ミリオンライブ!",
-      "path": "/songs/brand/ml/",
-      "current": false,
-      "themeKey": "brand:ml",
-      "count": 600
+      "label": "ブランド",
+      "links": [
+        {
+          "label": "すべて",
+          "path": "/songs/",
+          "current": false,
+          "themeKey": null,
+          "count": 2040
+        },
+        {
+          "label": "ミリオンライブ!",
+          "path": "/songs/brand/ml/",
+          "current": false,
+          "themeKey": "brand:ml",
+          "count": 600
+        }
+      ],
+      "islandKey": "brandIds"
     }
   ],
   "allSongsLink": null,
+  "tagsLink": null,
   "total": 2,
   "seo": {
     "title": "シンデレラガールズ の楽曲 | アイドルライブDB",

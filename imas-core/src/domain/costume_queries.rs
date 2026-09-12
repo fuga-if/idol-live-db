@@ -361,6 +361,8 @@ mod tests {
             unit_id: None,
             series_group: None,
             jasrac_code: None,
+            joint_brand_ids: None,
+            is_collab: false,
         }
     }
 

@@ -33,6 +33,7 @@
 //! ここを 1 段間違えると `imas-core/web/src/...` という別物が生えるので、
 //! 版を上げるときは実際に出力先を目で見て確かめること。
 
+pub mod calls_dashboard;
 pub mod content;
 pub mod dto;
 pub mod emit;
@@ -87,6 +88,10 @@ pub struct Args {
     /// コミュニティ集計 (`db/community.sql`)。無指定なら既定の場所を見る。
     /// ファイルが無ければ集計抜きで書き出す。
     pub community: Option<String>,
+    /// コールガイドの進捗の写し (`db/calls_dashboard.json`、Worker の公開エンドポイントを
+    /// `tools/export_calls_dashboard.py` で写したもの)。無指定なら既定の場所を見る。
+    /// ファイルが無ければページごと出さない。
+    pub calls: Option<String>,
     /// JST の「今日」を固定する (テスト・再現用)。`YYYY-MM-DD`。
     pub today: Option<String>,
     /// 整形して書く (既定は minify)。

@@ -47,7 +47,6 @@ IdolBrand
 SongArtist
 UnitMember
 MetaData
-SongCall
 SongVideo
 ```
 

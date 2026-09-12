@@ -170,7 +170,7 @@ private fun IdolsTab(idols: List<Idol>, onClick: (String) -> Unit) {
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    ImasAvatar(label = idol.name, seed = idol.color, brand = idol.brandId, size = 40.dp)
+                    ImasAvatar(label = idol.shortName, seed = idol.color, brand = idol.brandId, size = 40.dp)
                     Column(Modifier.padding(start = 12.dp)) {
                         Text(idol.name, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink,
                             maxLines = 1, overflow = TextOverflow.Ellipsis)

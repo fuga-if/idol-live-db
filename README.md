@@ -37,7 +37,7 @@ iOS と Android はファイル/コンポーネント構成を意図的に揃え
 | データ種別 | 唯一の正 (source of truth) |
 |---|---|
 | **マスタ** (Brand / Idol / Event / Show / Song / Setlist / Unit) | **CloudKit Public DB** → 差分 sync でローカル GRDB へ |
-| **構造化コミュニティ** (コーレス / 参考動画) | **CloudKit Public DB** |
+| **構造化コミュニティ** (参考動画) | **CloudKit Public DB** |
 | **集計系コミュニティ** (タグ / お気に入り / 投票 / ポール / 予想 / いいね / ランキング) | **Worker の D1 (SQLite)** |
 
 - マスタを CloudKit に置くのは、アプリ更新なしで新規ライブを即時配信でき、無料枠がユーザー数連動で増えるため (ランニングコスト 0)。

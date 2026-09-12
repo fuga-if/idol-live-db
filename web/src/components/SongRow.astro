@@ -1,0 +1,61 @@
+---
+import Artwork from "./Artwork.astro";
+import Count from "./Count.astro";
+import TagChip from "./TagChip.astro";
+import type { SongListItem } from "../lib/schema/SongListItem";
+
+/**
+ * 楽曲一覧の 1 行 — [ジャケ] [曲名 + 札 / ユニット・歌唱アイドル / 作曲・収録] [初出 ・ 回数 ›]。
+ *
+ * 表 (曲 × 属性) は列に幅を配ると曲名が「余り」になり、幅によっては 1 文字ずつ縦に潰れた。
+ * 行に積めば、どの幅でも曲名が先に幅を取り、属性は折り返すだけで済む。
+ * 骨格はライブ・公演の行と同じ `.row` (DatedRow) で、先頭が日付ではなくジャケになるだけ。
+ *
+ * メタは**種類ごとに別の要素**で並べる (文字列で繋がない)。「作曲 …」「収録 …」の語は
+ * Rust (`content::composer_credit` / `cd_credit`) が付けたもので、ここは置くだけ。
+ * 作曲・収録は「読む」より「引く」ための情報なので、幅があるカードでだけ 3 行目に出す (CSS)。
+ */
+interface Props {
+  item: SongListItem;
+}
+const { item } = Astro.props;
+const meta = [item.unitLabel, item.artistsLabel].filter((m): m is string => !!m);
+const credits = [item.composerCredit, item.cdCredit].filter((m): m is string => !!m);
+---
+
+<a class="row song-row" data-theme={item.ref.themeKey} href={item.ref.path}>
+  <span class="row__lead">
+    <Artwork title={item.ref.name} artworkUrl={item.ref.artworkUrl} size="sm" />
+  </span>
+  <span class="row__body">
+    <span class="row__title u-underline-hover">
+      {item.ref.name}
+      {item.songTypeLabel && <TagChip text={item.songTypeLabel} kind="all" />}
+      {/* 合同曲。ブランド別の一覧ではそのブランドの曲に混じって出るので、行で見分けられるように。 */}
+      {item.collabLabel && <TagChip text={item.collabLabel} kind="cover" />}
+    </span>
+    {
+      meta.length > 0 && (
+        <span class="row__meta">
+          {meta.map((m) => (
+            <span class="row__meta-item">{m}</span>
+          ))}
+        </span>
+      )
+    }
+    {
+      credits.length > 0 && (
+        <span class="row__meta song-row__credits">
+          {credits.map((m) => (
+            <span class="row__meta-item">{m}</span>
+          ))}
+        </span>
+      )
+    }
+  </span>
+  <span class="row__trailing">
+    {item.releaseDate && <span class="song-row__date u-num">{item.releaseDate}</span>}
+    <Count value={item.performanceCount} unit="回" strong />
+    <span class="chevron" aria-hidden="true">›</span>
+  </span>
+</a>

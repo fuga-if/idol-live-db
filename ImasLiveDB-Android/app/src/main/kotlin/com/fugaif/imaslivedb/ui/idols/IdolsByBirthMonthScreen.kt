@@ -106,7 +106,7 @@ private fun IdolNameRow(idol: Idol, onClick: () -> Unit) {
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        ImasAvatar(label = idol.name, seed = idol.color, brand = idol.brandId, size = 40.dp)
+        ImasAvatar(label = idol.shortName, seed = idol.color, brand = idol.brandId, size = 40.dp)
         Column(Modifier.weight(1f).padding(start = 12.dp)) {
             Text(
                 idol.name, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink,

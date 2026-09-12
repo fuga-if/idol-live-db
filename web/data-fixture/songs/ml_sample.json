@@ -14,14 +14,27 @@
     "themeKey": "brand:ml",
     "artworkUrl": null
   },
+  "jointBrands": [
+    {
+      "kind": "brand",
+      "id": "cg",
+      "name": "アイドルマスター シンデレラガールズ",
+      "sub": "CG",
+      "path": "/brands/cg/",
+      "themeKey": "brand:cg",
+      "artworkUrl": null
+    }
+  ],
+  "collabLabel": "合同曲",
   "community": {
     "tags": [
       {
         "id": "tag_kawaii",
         "name": "かわいい",
         "count": 12,
-        "color": "#E900E2",
-        "isOfficial": false
+        "themeKey": "tag:tag_kawaii",
+        "isOfficial": false,
+        "path": "/tags/tag_kawaii/"
       }
     ],
     "favorites": 34,
@@ -34,12 +47,15 @@
   },
   "lyrics": {
     "available": false,
-    "note": "歌詞はアプリ『アイドルライブDB』でご覧いただけます（アプリは JASRAC 許諾番号 J260943703 のもとで歌詞を配信しています）。本サイトでは歌詞を掲載していません。",
+    "statusLabel": "JASRAC 許諾待ち",
+    "note": "本サイトでの歌詞の掲載には JASRAC の許諾が別に必要なため、いまは見合わせています。歌詞はアプリ『アイドルライブDB』でご覧いただけます（アプリは JASRAC 許諾番号 J260943703 のもとで歌詞を配信しています）。",
     "licenseNumber": null,
     "licenseNote": null,
-    "sourceUrl": null
+    "sourceUrl": null,
+    "readLabel": null,
+    "callGuide": null
   },
-  "songType": "original",
+  "songTypeLabel": "全体曲",
   "releaseDate": "2019-03-13",
   "durationDisplay": "4:32",
   "credits": [
@@ -101,6 +117,20 @@
     }
   ],
   "performanceCount": 12,
+  "statTiles": [
+    {
+      "glyph": "♪",
+      "value": 12,
+      "label": "回披露",
+      "href": "#song-history"
+    },
+    {
+      "glyph": "☺",
+      "value": 2,
+      "label": "歌唱アイドル",
+      "href": null
+    }
+  ],
   "performanceHistory": [
     {
       "show": {
@@ -122,10 +152,18 @@
         "artworkUrl": null
       },
       "date": "2026-04-03",
-      "shortDate": "26/04",
+      "dateBadge": {
+        "iso": "2026-04-03",
+        "year": "2026",
+        "monthDay": "4/3",
+        "weekday": "金",
+        "spoken": "2026年4月3日 金曜日"
+      },
       "venue": "幕張メッセ",
       "number": 1,
-      "placeDisplay": "DAY1 ・ 幕張メッセ"
+      "placeDisplay": "DAY1 ・ 幕張メッセ",
+      "performersDisplay": "春日未来・最上静香・伊吹翼 ほか 9 人",
+      "ordinalLabel": "12 回目"
     }
   ],
   "frequentSingers": [
@@ -207,7 +245,7 @@
   },
   "seo": {
     "title": "Thank You! | アイドルライブDB",
-    "description": "クレジット・原唱者・披露履歴。",
+    "description": "クレジット・歌唱アイドル・披露履歴。",
     "canonical": "https://idollivedb.fugalabs.uk/songs/ml_sample/",
     "ogImage": "https://idollivedb.fugalabs.uk/og/default.png",
     "robots": "index,follow",

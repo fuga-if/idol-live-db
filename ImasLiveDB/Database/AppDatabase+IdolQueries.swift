@@ -121,12 +121,6 @@ extension AppDatabase {
                 SELECT s.title FROM song_videos sv
                 JOIN songs s ON s.id = sv.song_id WHERE sv.id = ?
                 """)
-        case "SongCall":
-            // call_xxx → song_calls.song_id を辿って曲名を返す。
-            return one("""
-                SELECT s.title FROM song_calls sc
-                JOIN songs s ON s.id = sc.song_id WHERE sc.id = ?
-                """)
         default:
             return nil
         }
@@ -158,7 +152,7 @@ extension AppDatabase {
         }
     }
 
-    /// 編集レコードが属する曲 ID を解決する (SongVideo/SongCall 編集 → 該当曲詳細へ遷移するため)。
+    /// 編集レコードが属する曲 ID を解決する (SongVideo 編集 → 該当曲詳細へ遷移するため)。
     func fetchEditRecordSongIdAsync(recordType: String, recordName: String) async throws -> String? {
         try await dbQueue.read { db in try Self.fetchEditRecordSongIdQuery(db, recordType: recordType, recordName: recordName) }
     }
@@ -170,8 +164,6 @@ extension AppDatabase {
         switch recordType {
         case "SongVideo":
             return one("SELECT song_id FROM song_videos WHERE id = ?")
-        case "SongCall":
-            return one("SELECT song_id FROM song_calls WHERE id = ?")
         default:
             return nil
         }

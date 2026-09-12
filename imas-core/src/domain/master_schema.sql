@@ -67,7 +67,7 @@ CREATE TABLE song_units (
   unit_id TEXT NOT NULL,
   PRIMARY KEY (song_id, unit_id)
 );
-CREATE TABLE songs (id TEXT PRIMARY KEY NOT NULL, title TEXT NOT NULL, title_kana TEXT, brand_id TEXT, song_type TEXT NOT NULL, release_date TEXT, duration_sec INTEGER, composer TEXT, lyricist TEXT, arranger TEXT, cd_series TEXT, cd_title TEXT, artwork_url TEXT, preview_url TEXT, apple_music_id TEXT, apple_music_album_id TEXT, isrc TEXT, lyrics_url TEXT, parent_song_id TEXT, singer_label TEXT, unit_name TEXT, unit_id TEXT, series_group TEXT, jasrac_code TEXT, unit_version_id TEXT);
+CREATE TABLE songs (id TEXT PRIMARY KEY NOT NULL, title TEXT NOT NULL, title_kana TEXT, brand_id TEXT, song_type TEXT NOT NULL, release_date TEXT, duration_sec INTEGER, composer TEXT, lyricist TEXT, arranger TEXT, cd_series TEXT, cd_title TEXT, artwork_url TEXT, preview_url TEXT, apple_music_id TEXT, apple_music_album_id TEXT, isrc TEXT, lyrics_url TEXT, parent_song_id TEXT, singer_label TEXT, unit_name TEXT, unit_id TEXT, series_group TEXT, jasrac_code TEXT, unit_version_id TEXT, joint_brand_ids TEXT, is_collab INTEGER NOT NULL DEFAULT 0);
 CREATE TABLE staff (
     id TEXT PRIMARY KEY NOT NULL,
     brand_id TEXT NOT NULL REFERENCES brands(id),

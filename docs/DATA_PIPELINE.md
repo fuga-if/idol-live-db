@@ -51,6 +51,26 @@ CLOUDKIT_KEY_ID=$KID python3 tools/apply_data.py --apply --push --production --o
 「id は既に存在」で problem 判定になるため、絞らないと自分の変更が push まで到達しない
 (2026-08-28 時点で 732 件が該当)。`--only` はパスではなくファイル名で照合する。
 
+**列を NULL に直す修正は `--push` では伝わらない。** `seed_cloudkit.py` は NULL の列を送らず、
+操作が forceUpdate なので CloudKit 側の旧値がそのまま残り、翌日の cron で `db/master.sql` が
+巻き戻る (2026-09-06、`shows.venue` の NULL 化と `setlist_items.notes` の空文字→NULL で実際に起きた)。
+そういう修正は `--apply` の後、対象を id で絞って forceReplace で送る:
+
+```bash
+CLOUDKIT_KEY_ID=$KID python3 tools/seed_cloudkit.py --production --tables shows --ids-file <event id の一覧> --replace
+```
+
+`--replace` は `--ids/--ids-file` が必須で、`tools/cloudkit_schema.ckdb` と突き合わせて
+「CloudKit だけが持つ列」があるテーブルでは止まる (forceReplace は送らなかった列を消すため)。
+`--ids` の絞り込み列はテーブルごとに違う (`shows` は **event_id**、`setlist_items` は id、
+`song_artists` は song_id)。まとめて直した例: `tools/pending_push_20260906/README.md`。
+
+**複合主キーの列を書き換える修正も、push だけでは伝わらない。** `song_artists` は
+(song_id, idol_id, role) が主キーで、CloudKit の recordName にそのまま入る。role を
+performer → original に直して push すると **original のレコードが増えるだけ**で、旧 performer は
+残り、翌日の export で行が復活する。旧 recordName を `--delete-file` で消すこと
+(例: `tools/pending_cloudkit_deletions_765as_roles_20260906.tsv`)。
+
 **鍵の在り処**: key ID は環境変数にも `~/.zshrc` にも無い。`.claude/skills/sync-new-songs/SKILL.md`
 の冒頭に Production の値が書いてある (このディレクトリは `.git/info/exclude` で
 リポジトリから除外済み)。秘密鍵は `tools/eckey.pem` で、スクリプトが自分で読む。
@@ -58,6 +78,16 @@ CLOUDKIT_KEY_ID=$KID python3 tools/apply_data.py --apply --push --production --o
 **スキーマを足した場合は push の前に**、`tools/cloudkit_schema.ckdb` を
 Development へ `xcrun cktool import-schema` してから Dashboard で Production へ昇格する。
 Production に列が無いうちに push すると弾かれる。
+
+> 2026-09-07: `Song` に `jointBrandIds` / `isCollab` を足した (合同曲)。
+> **Development へは import 済み**。残るは Dashboard の **Deploy Schema Changes** で
+> Production へ昇格するところだけ (import-schema は production を受け付けない仕様)。
+> 昇格前に songs を push すると弾かれる。
+
+`tools/cloudkit_schema.ckdb` は **export-schema の出力そのまま**にしておく
+(並び順まで一致させる)。次に export した人が、本当の差分だけを見られるようにするため。
+手順は「export → その全文に追記 → validate → import」で、**部分適用はしない**
+(既存の定義を落とす)。
 
 スキーマを変えた時 (列追加等) は、ローカル master.sqlite から `sqlite3 ... .dump > db/master.sql` で
 dump を作り直してコミットする (cron はデータのみ更新し、スキーマは db/master.sql 由来のため)。
@@ -105,7 +135,8 @@ git に載せる方は識別子を含む列を一切出力しない。`export_co
 # リリース前に (オーナー)
 bash tools/backup_d1.sh                                  # 完全バックアップ → 手元
 python3 tools/export_community_snapshot.py --remote      # 公開スナップショット → db/community.sql
-git add db/community.sql && git commit -m "data(community): リリース時点のスナップショット"
+python3 tools/export_calls_dashboard.py                  # コールガイド進捗の写し → db/calls_dashboard.json (鍵不要)
+git add db/community.sql db/calls_dashboard.json && git commit -m "data(community): リリース時点のスナップショット"
 
 # 動作確認 (誰でも・鍵不要)
 python3 tools/export_community_snapshot.py --local
@@ -113,6 +144,10 @@ python3 tools/export_community_snapshot.py --local
 # 復元 (災害時)
 npx wrangler d1 execute imas-live-db --remote --file db_backups_local/d1_<日時>.sql
 ```
+
+> `db/calls_dashboard.json` は Web の `/calls/` の素材。本番の鮮度は `web-deploy.yml` の
+> 日次ビルドが export 直前に取り直して担保するので、git 管理分はテスト・ローカルビルド用の
+> 写しでよい (docs/ARCHITECTURE-web.md)。
 
 > `wrangler d1 execute --json` は SQL の NULL を文字列 `"null"` として返し、本物の
 > 文字列 `'null'` と区別できない。スナップショット生成は値の整形を Python でやらず

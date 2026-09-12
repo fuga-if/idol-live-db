@@ -1,5 +1,5 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { handleLyrics } from "../src/routes/lyrics";
+import { handleLyrics, LYRICS_IP_LIMITS } from "../src/routes/lyrics";
 import { handleSongDetail } from "../src/routes/song_detail";
 import { signSessionToken } from "../src/auth";
 import type { RouteContext } from "../src/routes/context";
@@ -31,7 +31,7 @@ const LINES = JSON.stringify([
 interface Scenario {
   /** song_lyrics の 1 行。null なら歌詞未投入。 */
   header?: unknown;
-  /** IP バースト枠の現在値 (30 で上限)。 */
+  /** IP 枠の現在値 (分・日とも同じ値を返す。歌詞は LYRICS_IP_LIMITS.perMinute で上限)。 */
   ipCount?: number;
 }
 
@@ -142,10 +142,20 @@ describe("GET /songs/:id/lyrics の利用ログ", () => {
 
   it("IP バースト上限 (429) では出さない", async () => {
     const logs = spyLogs();
-    const stub = stubD1(responder({ ipCount: 30 }));
+    const stub = stubD1(responder({ ipCount: LYRICS_IP_LIMITS.perMinute }));
     const res = (await handleLyrics(ctxFor(lyricsPath, stub.db, bearer())))!;
     expect(res.status).toBe(429);
     expect(logs.lines).toHaveLength(0);
+  });
+});
+
+describe("GET /lyrics/search は未認証でも通る (Web の出面が使う)", () => {
+  it("未認証で 401 にならない (q が空なら 400 で止まる = 認証の門は無い)", async () => {
+    const stub = stubD1(responder());
+    const ctx = ctxFor("/lyrics/search", stub.db);
+    ctx.url.searchParams.set("q", "   ");
+    const res = (await handleLyrics(ctx))!;
+    expect(res.status).toBe(400);
   });
 });
 

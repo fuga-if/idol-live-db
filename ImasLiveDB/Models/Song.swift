@@ -34,6 +34,14 @@ struct Song: Codable, FetchableRecord, PersistableRecord, Identifiable, Hashable
     /// ユニットは 1 行のままで、版の違いは曲側が指す。ユニット単位のフラグにすると
     /// リブート前後の曲を区別できない。判定は `UnitVersion.code` で行うこと。
     var unitVersionId: String?
+    /// 合同曲 (コラボ曲) で、`brandId` 以外に参加しているブランド (カンマ区切り)。
+    /// `Event.jointBrandIds` と同じ形で、参加ブランド全部の曲一覧に出すために使う。
+    /// **在籍の重なりでは入れない** — ML の曲に 765AS の面々が居るのも、876 の曲に
+    /// 秋月涼が居るのも合同ではない。
+    var jointBrandIds: String?
+    /// シリーズ横断の合同曲か。判断は人が持つ (原唱者のブランドから導くと在籍の重なりを
+    /// 合同と取り違える)。立てるなら `jointBrandIds` も入れる。
+    var isCollab: Bool = false
 
     enum CodingKeys: String, CodingKey {
         case id, title, composer, lyricist, arranger, isrc
@@ -55,9 +63,17 @@ struct Song: Codable, FetchableRecord, PersistableRecord, Identifiable, Hashable
         case unitId = "unit_id"
         case seriesGroup = "series_group"
         case unitVersionId = "unit_version_id"
+        case jointBrandIds = "joint_brand_ids"
+        case isCollab = "is_collab"
     }
 
     var isRemix: Bool { parentSongId != nil }
+
+    /// 参加ブランド (`brandId` が先頭、続いて `jointBrandIds`)。
+    var brandIds: [String] {
+        ([brandId].compactMap { $0 } + (jointBrandIds?.split(separator: ",").map(String.init) ?? []))
+            .filter { !$0.isEmpty }
+    }
 
     /// 日本語表示用の楽曲タイプラベル
     var songTypeLabel: String {

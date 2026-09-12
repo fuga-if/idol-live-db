@@ -6,7 +6,8 @@
 use crate::domain::display_join::year_of;
 use crate::domain::idol_queries::{self, BrandRecord};
 use crate::domain::performance_stats::CoOccurIndex;
-use crate::domain::community::CommunitySnapshot;
+use crate::domain::community::{CommunitySnapshot, TagRow};
+use crate::domain::song_tag_queries::{song_tag_ranking, TagRanking};
 use crate::domain::snapshot::Snapshot;
 use crate::web_export::content::{self, absolute};
 use crate::web_export::dto::*;
@@ -24,6 +25,15 @@ pub const OTHER_BRAND_ID: &str = "other";
 pub type IdolThemeInput = (String, Option<String>, Option<String>);
 /// テーマ表を作る材料: (ブランド id, ブランド色)。
 pub type BrandThemeInput = (String, Option<String>);
+/// タグ id → タグ自身の色 (hex)。色を持つタグだけ。
+pub type TagThemeInput = (String, String);
+
+/// `themes.css` / `themes.json` に載せるテーマ表の材料。
+pub struct ThemeInputs {
+    pub idols: Vec<IdolThemeInput>,
+    pub brands: Vec<BrandThemeInput>,
+    pub tags: Vec<TagThemeInput>,
+}
 
 /// 出力全体で共有する読み取り専用の文脈。
 pub struct Ctx<'a> {
@@ -53,6 +63,9 @@ pub struct Ctx<'a> {
     pub event_dates: Vec<(Option<String>, Option<String>)>,
     /// 「一緒に来る曲」の前計算。全 3,153 曲ぶん出すので 1 度だけ作って使い回す。
     pub co_occur: CoOccurIndex,
+    /// 曲に付いたタグの順位 (タグ一覧・タグごとの曲一覧・楽曲一覧の入口が同じ 1 本を見る)。
+    /// 空ならタグの一覧は作らない。
+    pub tag_ranking: Vec<TagRanking<'a>>,
     /// ブランドごとの件数 (1 パスで数えたもの)。
     brand_counts: BTreeMap<String, super::places::BrandCounts>,
 }
@@ -90,6 +103,8 @@ impl<'a> Ctx<'a> {
         add("units", snap.units.iter().map(|u| u.id.clone()).collect());
         add("venues", snap.venues.iter().map(|v| v.id.clone()).collect());
         add("brands", snap.brands.iter().map(|b| b.id.clone()).collect());
+        // タグ id はコミュニティ由来なので、危険な文字・予約語の検査を他の id と同じ台帳で受ける。
+        add("tags", community.song_tag_vocab.keys().cloned().collect());
 
         // アイドルの主ブランド色。アイドル自身の色が無いときの落とし先で、
         // 優先順位の判断は color_engine::first_valid_hex が持つ。
@@ -133,8 +148,24 @@ impl<'a> Ctx<'a> {
             idol_brand_color,
             event_dates,
             co_occur: CoOccurIndex::build(snap),
+            tag_ranking: song_tag_ranking(community, snap),
             brand_counts: super::places::brand_counts_table(snap),
         }
+    }
+
+    /// タグ 1 つの曲一覧の URL。語彙に無いタグ id を渡すのは組み立ての誤り。
+    pub fn tag_path(&self, tag_id: &str) -> String {
+        let key = self
+            .key("tags", tag_id)
+            .unwrap_or_else(|| panic!("tags に無い id を URL にしようとした: {tag_id:?}"));
+        detail_path("tags", key)
+    }
+
+    /// タグ一覧 (`/tags/`) への導線。タグの付いた曲が 1 曲も無ければ一覧を作らないので `None`。
+    /// 楽曲一覧の入口とタグページの「戻る」が同じ判断を見る。
+    pub fn tags_link(&self, label: &str) -> Option<NavLink> {
+        (!self.tag_ranking.is_empty())
+            .then(|| NavLink::new(label, TAGS_PATH).with_count(self.tag_ranking.len() as u32))
     }
 
     /// ブランドの件数。未知のブランドは 0。
@@ -207,7 +238,7 @@ impl<'a> Ctx<'a> {
     }
 
     /// `themes.css` / `themes.json` に載せるテーマ表の材料。
-    pub fn theme_inputs(&self) -> (Vec<IdolThemeInput>, Vec<BrandThemeInput>) {
+    pub fn theme_inputs(&self) -> ThemeInputs {
         let idols = self
             .snap
             .idols
@@ -221,7 +252,17 @@ impl<'a> Ctx<'a> {
             })
             .collect();
         let brands = self.brands.values().map(|b| (b.id.clone(), b.color.clone())).collect();
-        (idols, brands)
+        // 色を持つタグだけ。同じ id が複数の語彙に居ても 1 つに畳む (並びも id 順で固定)。
+        let tags: BTreeMap<String, String> = [
+            &self.community.song_tag_vocab,
+            &self.community.idol_tag_vocab,
+            &self.community.unit_tag_vocab,
+        ]
+        .into_iter()
+        .flat_map(|vocab| vocab.values())
+        .filter_map(|tag| Some((tag.id.clone(), tag.color.clone()?)))
+        .collect();
+        ThemeInputs { idols, brands, tags: tags.into_iter().collect() }
     }
 
     // -----------------------------------------------------------------------
@@ -239,18 +280,20 @@ impl<'a> Ctx<'a> {
 
     /// ブランド別一覧の URL。**その一覧を作っていない組み合わせでは `None`。**
     ///
-    /// `other` (他フランチャイズの合同ライブ曲) はアイドル一覧しか作らない。既定フィルタが
+    /// `other` (他フランチャイズの合同ライブ曲) の一覧はどれも作らない。既定フィルタが
     /// `other` を含めないというコアの規則と、一覧の入口が存在するという事実が食い違うため
     /// (到達は検索と個別ページから)。この判断がかつて 6 箇所に散っていて、パンくずだけ
     /// 判断を持たずに存在しないページへリンクしていた。
     ///
+    /// **アイドル一覧だけは例外にしていたが、それもやめた。** そこに出るのは
+    /// 「`other` への副次的な所属を持つアイマスのアイドル」6 人だけで、ブランドの
+    /// 列には 765AS や SideM と出る。「その他のアイドル」という見出しの下に
+    /// 765AS の面々が並ぶ画面になっていて、読み手に何も言っていなかった。
+    ///
     /// id を URL に埋めるときは必ず [`url_segment`] を通す。ブランド id は今のところ
     /// すべて ASCII だが、規則を 1 箇所に保たないと将来の id で静かに壊れる。
     pub fn brand_list_path(&self, collection: &str, brand_id: &str) -> Option<String> {
-        if !self.brands.contains_key(brand_id) {
-            return None;
-        }
-        if self.is_other_brand(Some(brand_id)) && collection != "idols" {
+        if !self.brands.contains_key(brand_id) || self.is_other_brand(Some(brand_id)) {
             return None;
         }
         Some(format!("/{collection}/brand/{}/", url_segment(brand_id)))
@@ -497,17 +540,59 @@ pub fn json_ld_graph(entity: serde_json::Value, breadcrumbs: &[Crumb]) -> serde_
 pub use crate::domain::display_join::{join_parts, PARTS_SEPARATOR};
 pub use crate::domain::show_naming::distinguishing_show_name;
 
+/// タグ一覧の入口。
+pub const TAGS_PATH: &str = "/tags/";
+
+/// タグの付く相手。**一覧ページがあるのは曲のタグだけ** (`/tags/<tagId>/`) — どの札が押せるかの
+/// 判断はここ 1 箇所。
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum TagScope {
+    Song,
+    Idol,
+    Unit,
+}
+
+impl TagScope {
+    fn list_path(self, ctx: &Ctx, tag_id: &str) -> Option<String> {
+        match self {
+            Self::Song => Some(ctx.tag_path(tag_id)),
+            Self::Idol | Self::Unit => None,
+        }
+    }
+}
+
+/// タグの札の色。自分の色を持つタグはそのテーマ、持たないタグは `None` で
+/// 囲む要素のテーマ (曲・アイドルの色) を継ぐ。
+/// **hex は出面に渡さない** — インライン style は CSP (`style-src 'self'`) で効かない。
+fn tag_theme_key(tag: &TagRow) -> Option<String> {
+    tag.color.as_deref().map(|_| theme::tag_key(&tag.id))
+}
+
+/// タグの素性を DTO へ。
+pub fn tag_badge(tag: &TagRow) -> TagBadge {
+    TagBadge {
+        id: tag.id.clone(),
+        name: tag.name.clone(),
+        theme_key: tag_theme_key(tag),
+        is_official: tag.is_official,
+    }
+}
+
+/// 札 1 枚。`votes` は付けた人の数 (その相手 1 件ぶん)。
+pub fn tag_chip(ctx: &Ctx, scope: TagScope, tag: &TagRow, votes: i64) -> TagChipDto {
+    TagChipDto {
+        id: tag.id.clone(),
+        name: tag.name.clone(),
+        count: votes.max(0) as u32,
+        theme_key: tag_theme_key(tag),
+        is_official: tag.is_official,
+        path: scope.list_path(ctx, &tag.id),
+    }
+}
+
 /// タグを DTO へ。**上限も並びも domain が決めた形をそのまま**使う。
-pub fn tag_chips(tags: Vec<(&crate::domain::community::TagRow, i64)>) -> Vec<TagChipDto> {
-    tags.into_iter()
-        .map(|(t, count)| TagChipDto {
-            id: t.id.clone(),
-            name: t.name.clone(),
-            count: count.max(0) as u32,
-            color: t.color.clone(),
-            is_official: t.is_official,
-        })
-        .collect()
+pub fn tag_chips(ctx: &Ctx, scope: TagScope, tags: Vec<(&TagRow, i64)>) -> Vec<TagChipDto> {
+    tags.into_iter().map(|(t, votes)| tag_chip(ctx, scope, t, votes)).collect()
 }
 
 /// `<title>` の形。サイト名を 2 回出さない (トップは `home.rs` が別に組む)。

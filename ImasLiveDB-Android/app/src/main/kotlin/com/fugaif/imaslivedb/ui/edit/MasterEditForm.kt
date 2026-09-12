@@ -56,7 +56,7 @@ import com.fugaif.imaslivedb.ui.theme.DS
 // 振る舞いを、Compose 側で 1 箇所にまとめたもの。
 //
 // 新しい UI 言語は持ち込まない: 枠は SetlistEditScreen (Scaffold + TopAppBar +
-// 保存中オーバーレイ + AlertDialog) を、入力欄は CallEditSheet (OutlinedTextField +
+// 保存中オーバーレイ + AlertDialog) を、入力欄は VideoEditSheet (OutlinedTextField +
 // 補足文) をそのまま踏襲する。
 // =============================================================================
 

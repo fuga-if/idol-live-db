@@ -5,6 +5,7 @@
       "light": {
         "accent": "#2681c8",
         "onAccent": "#15161a",
+        "accentInk": "#2681c8",
         "tint": "#f3f6f9",
         "tintStrong": "#dfe9f1",
         "chipBg": "#e9eff4",
@@ -20,6 +21,7 @@
       "dark": {
         "accent": "#4298db",
         "onAccent": "#15161a",
+        "accentInk": "#4298db",
         "tint": "#1d2e3c",
         "tintStrong": "#253f52",
         "chipBg": "#263c4d",
@@ -37,6 +39,7 @@
       "light": {
         "accent": "#f5be15",
         "onAccent": "#15161a",
+        "accentInk": "#f5be15",
         "tint": "#f9f8f3",
         "tintStrong": "#f2edde",
         "chipBg": "#f4f1e9",
@@ -52,6 +55,7 @@
       "dark": {
         "accent": "#f2c12c",
         "onAccent": "#15161a",
+        "accentInk": "#f2c12c",
         "tint": "#3f361a",
         "tintStrong": "#594b1f",
         "chipBg": "#514621",
@@ -69,6 +73,7 @@
       "light": {
         "accent": "#e9960a",
         "onAccent": "#15161a",
+        "accentInk": "#e9960a",
         "tint": "#f9f7f3",
         "tintStrong": "#f2eade",
         "chipBg": "#f4f0e9",
@@ -84,6 +89,7 @@
       "dark": {
         "accent": "#f2a82c",
         "onAccent": "#15161a",
+        "accentInk": "#f2a82c",
         "tint": "#3f311a",
         "tintStrong": "#59431f",
         "chipBg": "#513f21",
@@ -101,6 +107,7 @@
       "light": {
         "accent": "#87878c",
         "onAccent": "#15161a",
+        "accentInk": "#87878c",
         "tint": "#f6f6f6",
         "tintStrong": "#e7e7e9",
         "chipBg": "#eeeeef",
@@ -116,6 +123,7 @@
       "dark": {
         "accent": "#8e8e93",
         "onAccent": "#15161a",
+        "accentInk": "#8e8e93",
         "tint": "#2a2a2f",
         "tintStrong": "#383840",
         "chipBg": "#35353d",

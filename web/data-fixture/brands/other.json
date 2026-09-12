@@ -5,15 +5,7 @@
   "name": "その他",
   "shortName": "その他",
   "themeKey": "neutral",
-  "sectionLinks": [
-    {
-      "label": "アイドル",
-      "path": "/idols/brand/other/",
-      "current": false,
-      "themeKey": null,
-      "count": 12
-    }
-  ],
+  "statTiles": [],
   "idols": [],
   "units": [],
   "recentEvents": [],

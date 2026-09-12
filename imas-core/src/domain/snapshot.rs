@@ -8,7 +8,7 @@
 //! - **user_marks (担当/お気に入り/メモ/回収) は載せない**。ユーザーデータは書き込みが
 //!   頻繁でプラットフォーム側が正。必要な判定は解決済み id 集合を引数で受け取る
 //!   (SongListFiltering と同じ流儀)。
-//! - **song_calls / song_videos も載せない**。コミュニティ投稿はローカル編集経路が
+//! - **song_videos も載せない**。コミュニティ投稿はローカル編集経路が
 //!   スナップショット再ロードを促さない契約 (iOS CoreSnapshotManager の
 //!   SnapshotInvalidatingSongWriting) で確定済みで、載せると「投稿直後に自分の投稿が
 //!   見えない」回帰になる。読み取りは SQL 経路 (fallback) に残す。
@@ -67,6 +67,13 @@ pub struct Song {
     pub unit_id: Option<String>,
     pub series_group: Option<String>,
     pub jasrac_code: Option<String>,
+    /// 合同曲 (コラボ曲) で、`brand_id` 以外に参加しているブランド (カンマ区切り)。
+    /// events の `joint_brand_ids` と同じ形。**在籍の重なりでは入れない** —
+    /// ML の曲に 765AS の面々が居るのも、876 の曲に秋月涼が居るのも合同ではない。
+    pub joint_brand_ids: Option<String>,
+    /// シリーズ横断の合同曲か。判断は人が持つ (原唱者のブランドから導くと、上の
+    /// 「在籍の重なり」を合同と取り違える)。立てるなら `joint_brand_ids` も入れる。
+    pub is_collab: bool,
 }
 
 /// idols 全カラム (Bundle スキーマ基準)。
@@ -74,7 +81,7 @@ pub struct Song {
 /// Phase 2 では一覧・検索に要る主要カラムだけだったが、Phase 3 で idol 詳細
 /// (fetchIdol) とフィルタ (星座・出身地・血液型) が乗るため全カラムに拡張した。
 /// height/weight/bust/waist/hip は REAL 列なので f64 で持つ。
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Idol {
     pub id: String,
     pub brand_id: Option<String>,
@@ -105,6 +112,76 @@ pub struct Idol {
     pub attribute: Option<String>,
     pub is_external: bool,
     pub aliases: Option<String>,
+}
+
+impl Song {
+    /// 参加ブランドを順に (`brand_id` が先頭、続いて `joint_brand_ids`)。
+    pub fn brand_ids(&self) -> impl Iterator<Item = &str> {
+        self.brand_id
+            .as_deref()
+            .into_iter()
+            .chain(self.joint_brand_ids.as_deref().unwrap_or_default().split(','))
+            .filter(|b| !b.is_empty())
+    }
+
+    /// そのブランドの曲一覧に出るか。**合同曲は参加ブランド全部に出る**
+    /// (VOY@GER は 765AS の一覧にもデレマスの一覧にも出る)。
+    pub fn belongs_to_brand(&self, brand_id: &str) -> bool {
+        self.brand_ids().any(|b| b == brand_id)
+    }
+}
+
+/// 表示用の短い名: nickname > given_name > name。空文字は「無い」扱い。
+///
+/// アバターのモノグラム (iOS `ImasAvatar` / Android) に出す文字。Web は丸を置かないので使わない。
+/// **規則はここ 1 つ**で、iOS/Android は `inbound::idol_queries::idol_short_name` 越しに
+/// これを呼ぶ (以前は Swift に同じ規則が手書きされ、Android には無かった)。
+/// 推測はせず、DB の列の値をそのまま信じる。
+pub fn idol_short_name<'a>(
+    name: &'a str,
+    given_name: Option<&'a str>,
+    nickname: Option<&'a str>,
+) -> &'a str {
+    [nickname, given_name]
+        .into_iter()
+        .flatten()
+        .find(|candidate| !candidate.is_empty())
+        .unwrap_or(name)
+}
+
+impl Idol {
+    /// [`idol_short_name`] をこの行に当てたもの。
+    pub fn short_name(&self) -> &str {
+        idol_short_name(&self.name, self.given_name.as_deref(), self.nickname.as_deref())
+    }
+}
+
+#[cfg(test)]
+mod idol_short_name_tests {
+    use super::*;
+
+    fn idol(name: &str, given_name: Option<&str>, nickname: Option<&str>) -> Idol {
+        Idol {
+            name: name.to_string(),
+            given_name: given_name.map(str::to_string),
+            nickname: nickname.map(str::to_string),
+            ..Idol::default()
+        }
+    }
+
+    #[test]
+    fn prefers_nickname_then_given_name_then_name() {
+        assert_eq!(idol("園田海未", Some("海未"), Some("うみちゃん")).short_name(), "うみちゃん");
+        assert_eq!(idol("春日未来", Some("未来"), None).short_name(), "未来");
+        assert_eq!(idol("ジュリア", None, None).short_name(), "ジュリア");
+    }
+
+    #[test]
+    fn treats_an_empty_column_as_missing() {
+        // DB に '' が入っていても「無い」として次の候補へ落ちる (Swift の実装と同じ)。
+        assert_eq!(idol("亜夜", Some(""), Some("")).short_name(), "亜夜");
+        assert_eq!(idol("最上静香", Some("静香"), Some("")).short_name(), "静香");
+    }
 }
 
 /// events 全カラム。
@@ -465,6 +542,10 @@ pub struct Snapshot {
     /// show.date DESC。SQL では同日内が未規定だったので、同日は
     /// (show.sort_order ASC, position ASC) で決定的にしてある。
     pub setlist_items_by_song: Vec<Vec<u32>>,
+    /// setlist_items と同じ添字。その披露がその曲の何回目か (この DB に載っている範囲で
+    /// 最古が 1)。時系列は setlist_items_by_song の並びの逆 (同日内は公演の並び・曲順の昇順)。
+    /// 「初披露」= 1。曲ページの「N 回目」と公演ページの「初披露」札が同じ数を見る。
+    pub ordinal_by_item: Vec<u32>,
     /// setlist_items と同じ添字。その披露の歌唱メンバー (setlist_performers)。
     /// idol の sort_order 順。
     pub performers_by_item: Vec<Vec<u32>>,
@@ -562,6 +643,13 @@ pub struct Snapshot {
     pub brand_index_by_id: HashMap<String, u32>,
     pub venue_index_by_id: HashMap<String, u32>,
     pub costume_index_by_id: HashMap<String, u32>,
+}
+
+impl Song {
+    /// 並べ替え・よみの目次に使う読み。読み仮名が無ければ曲名で代用する (楽曲一覧と同じ規則)。
+    pub fn reading(&self) -> &str {
+        self.title_kana.as_deref().unwrap_or(&self.title)
+    }
 }
 
 impl Snapshot {

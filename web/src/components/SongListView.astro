@@ -1,43 +1,32 @@
 ---
 import ListLayout from "../layouts/ListLayout.astro";
-import SongTable from "./SongTable.astro";
+import SongRow from "./SongRow.astro";
 import ListFilterBar from "./ListFilterBar.astro";
+import KanaIndex from "./KanaIndex.astro";
+import { kanaAnchorId } from "../lib/anchors";
 import ListContainer from "./ListContainer.astro";
 import RankingRow from "./RankingRow.astro";
 import EmptyState from "./EmptyState.astro";
-import { meta } from "../lib/data";
 import type { SongListPage } from "../lib/schema/SongListPage";
-import Count from "./Count.astro";
+import NavLinkLine from "./NavLinkLine.astro";
 
 /** 楽曲一覧 (総合 / ブランド別 / all)。何を載せるかは Rust の SongListFilter が決めている。 */
 interface Props {
   list: SongListPage;
 }
 const { list } = Astro.props;
+const sectionStarts = new Set(list.kanaSections.map((s) => s.startIndex));
 ---
 
 <ListLayout
   seo={list.seo}
-  meta={meta()}
   title={list.title}
   total={list.total}
   themeKey={list.brand?.themeKey}
-  filterLinks={list.brandLinks}
-  filterLabel="ブランドで絞る"
+  filters={list.filters}
   wide
 >
-  {
-    list.kanaSections.length > 0 && (
-      <nav class="link-chips" aria-label="よみで飛ぶ" data-kana-index>
-        {list.kanaSections.map((s) => (
-          <a href={`#kana-${s.startIndex}`}>
-            {s.label}
-            <Count value={s.count} dim />
-          </a>
-        ))}
-      </nav>
-    )
-  }
+  <KanaIndex sections={list.kanaSections} />
 
   {list.queryBase && <ListFilterBar kind="songs" queryBase={list.queryBase} total={list.total} />}
 
@@ -49,9 +38,8 @@ const { list } = Astro.props;
          `.card > li` の content-visibility が効くリストのまま出す (3,153 行)。 */
       <ListContainer as="ul">
         {list.items.map((item, i) => {
-          const section = list.kanaSections.find((s) => s.startIndex === i);
           return (
-            <li id={section ? `kana-${i}` : undefined}>
+            <li id={sectionStarts.has(i) ? kanaAnchorId(i) : undefined}>
               <RankingRow
                 artwork
                 title={item.ref.name}
@@ -65,7 +53,15 @@ const { list } = Astro.props;
         })}
       </ListContainer>
     ) : (
-      <SongTable items={list.items} kanaSections={list.kanaSections} />
+      /* 表ではなく行を積む。列に幅を配ると曲名が「余り」になって潰れる (SongRow 参照)。
+         `data-song-list` は絞り込みの島が器を探す目印。 */
+      <ListContainer as="ul" data-song-list="">
+        {list.items.map((item, i) => (
+          <li id={sectionStarts.has(i) ? kanaAnchorId(i) : undefined} data-song-id={item.ref.id}>
+            <SongRow item={item} />
+          </li>
+        ))}
+      </ListContainer>
     )
   }
 
@@ -74,13 +70,11 @@ const { list } = Astro.props;
        ここに置かないと、派生曲・ライブ限定曲・other ブランドの曲の詳細ページが
        トップからどこからも辿れなくなる (到達性の要)。 */
     list.allSongsLink && (
-      <p class="u-muted">
+      <NavLinkLine link={list.allSongsLink}>
         一覧に出していない曲 (派生曲・ライブ限定・その他ブランド) もあります。
-        <a class="u-underline-hover" href={list.allSongsLink.path}>
-          {list.allSongsLink.label}
-        </a>
-        <Count value={list.allSongsLink.count} dim />
-      </p>
+      </NavLinkLine>
     )
   }
+  {/* みんなが付けたタグから探す入口。タグの付いた曲が無いときは Rust が出さない。 */}
+  {list.tagsLink && <NavLinkLine link={list.tagsLink} />}
 </ListLayout>

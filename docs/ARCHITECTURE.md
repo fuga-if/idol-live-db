@@ -253,6 +253,19 @@ ImasLiveDB/
   ダッシュボード画面・曲一覧フィルタ・**内蔵お知らせも iOS のみ**。Android へ歌詞機能を移植する
   ときに、この節ごと持っていくこと。
 
+### 進捗 (2026-09-07) — アイドルの短縮名をコアへ
+- **短縮名の規則 (nickname > given_name > name) を `imas-core` 1 本に**: `domain/snapshot.rs` の
+  `idol_short_name` が正で、FFI へは `inbound/idol_queries.rs` の `idol_short_name` として出す
+  (`theme_derive` と同じ「純粋な規則を 1 本の関数で出す」形。レコードではなく素の 3 列で受けるので、
+  GRDB / Room から直に引いた行からも引ける)。
+  `Idol.shortName` (Swift) と `Idol.shortName` (Kotlin) は、その呼び出しだけになった。
+- **直した実害**: 規則は Swift に手書きされ、Android には**そもそも無かった**ため、Android の
+  アバターは全部フルネームを丸に詰めていた (「アスラン=ベルゼビュートⅡ世」等)。
+  Android のアイドルのアバター 17 箇所を `idol.shortName` に揃え、iOS と 1:1 にした
+  (ユニットのアバターは対象外)。
+- Web も同じ規則を使う (`web_export/emit/glyph.rs::idol_monogram` が `Idol::short_name` を
+  4 文字までに切る)。**3 プラットフォームで顔の文字が一致する。**
+
 ### レイヤ違反の検査
 - `Domain/` 配下で `import SwiftUI|GRDB|CloudKit` を grep して 0 を保つ。**`tools/check_domain_purity.sh`** が自動チェック (違反で exit 1)。pre-commit / CI 組み込み候補。
 

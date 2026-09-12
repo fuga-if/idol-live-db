@@ -1,13 +1,13 @@
 ---
 import ListLayout from "../../layouts/ListLayout.astro";
 import EntryCard from "../../components/EntryCard.astro";
-import { meta, page, routeData } from "../../lib/data";
+import { page, routeData } from "../../lib/data";
 import type { BrandListPage } from "../../lib/schema/BrandListPage";
 
 const list = page<BrandListPage>(routeData("brandList", "/brands/"));
 ---
 
-<ListLayout seo={list.seo} meta={meta()} title={list.title} total={list.items.length}>
+<ListLayout seo={list.seo} title={list.title} total={list.items.length}>
   <div class="entry-grid">
     {
       list.items.map((b) => (

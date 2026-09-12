@@ -11,7 +11,6 @@ import com.fugaif.imaslivedb.data.model.Show
 import com.fugaif.imaslivedb.data.model.ShowCast
 import com.fugaif.imaslivedb.data.model.Song
 import com.fugaif.imaslivedb.data.model.SongArtist
-import com.fugaif.imaslivedb.data.model.SongCall
 import com.fugaif.imaslivedb.data.model.SongVideo
 import com.fugaif.imaslivedb.data.model.UnitMember
 import com.fugaif.imaslivedb.data.model.Venue
@@ -53,7 +52,7 @@ object SyncMappers {
      * FFI 呼び出しは呼び元スレッドをブロックし、1 ステップで数千件の JSON を読むので
      * Default へ逃がす (sync() は UI スコープから呼ばれる)。
      *
-     * @param nowMillis SongCall / SongVideo の createdAt 欠損時の既定値。
+     * @param nowMillis SongVideo の createdAt 欠損時の既定値。
      *   コアは OS 時刻を取らないので呼び出し側が渡す。
      */
     suspend fun ingest(recordType: String, recordJsons: List<String>, nowMillis: Long): CkIngestBatch =
@@ -69,7 +68,6 @@ object SyncMappers {
             is CkRow.Song -> row.row.id
             is CkRow.Unit -> row.row.id
             is CkRow.SetlistItem -> row.row.id
-            is CkRow.SongCall -> row.row.id
             is CkRow.SongVideo -> row.row.id
             is CkRow.Venue -> row.row.id
             is CkRow.VenueName -> row.row.id
@@ -329,7 +327,10 @@ object SyncMappers {
                 unitId = row.unitId.emptyToNull(),
                 seriesGroup = row.seriesGroup.emptyToNull(),
                 // 読み落とすと、同期のたびに版つきの曲 (sc_beam / sc_iwe) が無印へ戻る。
-                unitVersionId = row.unitVersionId.emptyToNull()
+                unitVersionId = row.unitVersionId.emptyToNull(),
+                // 同じ理由。落とすと合同曲の指定が消え、参加ブランドの曲一覧から落ちる。
+                jointBrandIds = row.jointBrandIds.emptyToNull(),
+                isCollab = row.isCollab
             )
         }
 
@@ -370,14 +371,6 @@ object SyncMappers {
     fun setlistPerformers(rows: List<CkRow>): List<SetlistPerformer> =
         rows.filterIsInstance<CkRow.SetlistPerformer>().map { (row) ->
             SetlistPerformer(row.setlistItemId, row.idolId)
-        }
-
-    fun songCalls(rows: List<CkRow>): List<SongCall> =
-        rows.filterIsInstance<CkRow.SongCall>().map { (row) ->
-            SongCall(
-                row.id, row.songId, row.callText, row.sourceUrl.emptyToNull(),
-                row.createdAt, row.authorDisplayName.emptyToNull()
-            )
         }
 
     fun songVideos(rows: List<CkRow>): List<SongVideo> =

@@ -6,6 +6,7 @@ import type { IdolSongRow } from "./IdolSongRow";
 import type { ProfileRow } from "./ProfileRow";
 import type { Ref } from "./Ref";
 import type { SeoBlock } from "./SeoBlock";
+import type { StatTile } from "./StatTile";
 import type { TagChipDto } from "./TagChipDto";
 import type { VoiceActorRow } from "./VoiceActorRow";
 
@@ -34,4 +35,8 @@ songs: Array<IdolSongRow>,
 /**
  * 歌ったことのある曲。
  */
-performedSongs: Array<IdolPerformedRow>, shows: Array<IdolShowRow>, description: string | null, app: AppOpen, seo: SeoBlock, };
+performedSongs: Array<IdolPerformedRow>, shows: Array<IdolShowRow>, description: string | null, 
+/**
+ * 数の帯 (持ち曲 / ライブで歌った曲 / 出演公演)。ページ内の該当の節へ飛ぶ。
+ */
+statTiles: Array<StatTile>, app: AppOpen, seo: SeoBlock, };

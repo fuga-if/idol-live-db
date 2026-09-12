@@ -153,6 +153,12 @@ pub fn clamp(v: f64, lo: f64, hi: f64) -> f64 {
     }
 }
 
+/// [`to_theme_rgb`] の逆 (0.0–1.0 → 0–255)。導出済みのトークンを `ensure_contrast` 等に
+/// 掛け直すときに使う。
+pub fn theme_to_rgb(c: ThemeRgb) -> Rgb {
+    Rgb { r: c.r * 255.0, g: c.g * 255.0, b: c.b * 255.0 }
+}
+
 /// 0–255 の RGB を `Color` 直前の 0.0–1.0 へ落とす (原本 `ColorMath.color(_ rgb:)`)。
 fn to_theme_rgb(rgb: Rgb) -> ThemeRgb {
     ThemeRgb {

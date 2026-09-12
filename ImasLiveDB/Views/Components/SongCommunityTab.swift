@@ -8,8 +8,6 @@ import NukeUI
 /// タブ単体で完結して読める。
 enum SongCommunityIntent {
     case addTag
-    case createCall
-    case editCall(SongCall)
     case createVideo
     case editVideo(SongVideo)
     case votePenlight
@@ -17,7 +15,7 @@ enum SongCommunityIntent {
     case removeTag(id: String)
 }
 
-/// 楽曲詳細のコミュニティタブ。タグ / 類似曲 / コーレス / 参考動画 / ペンライト投票。
+/// 楽曲詳細のコミュニティタブ。タグ / 類似曲 / 参考動画 / ペンライト投票。
 ///
 /// 表示データは `DetailSheetViewModel` を読むだけ (書かない)。
 /// 画面遷移と、シート表示を伴う操作は閉包で親へ返す。
@@ -37,10 +35,9 @@ struct SongCommunityTab: View {
     var body: some View {
         VStack(spacing: DS.sp5) {
             PollAchievementBadges(entityId: song.id)
-            InlineLoginPrompt(message: "タグ・コーレス・投票にはログインが必要です", seed: seed)
+            InlineLoginPrompt(message: "タグ・動画・投票にはログインが必要です", seed: seed)
             tags
             if !vm.similarTagSongs.isEmpty { similarByTags }
-            calls
             videos
             penlight
         }
@@ -112,61 +109,6 @@ struct SongCommunityTab: View {
                 }
             }
         }
-    }
-
-    // MARK: - コーレス
-
-    @ViewBuilder
-    private var calls: some View {
-        VStack(alignment: .leading, spacing: DS.sp3) {
-            header(title: "コーレス", actionLabel: "コール", systemImage: "megaphone") {
-                AppAnalytics.tap("song_detail.call_action")
-                onIntent(.createCall)
-            }
-            if vm.songCalls.isEmpty {
-                ImasEmptyState(systemImage: "megaphone", title: "コーレスはまだありません",
-                               message: "サビ前のコールなど、現地の盛り上げ方を共有しませんか？",
-                               actionTitle: permission.showEditAffordance ? "コーレスを投稿" : nil,
-                               action: permission.showEditAffordance ? { onIntent(.createCall) } : nil,
-                               seed: seed)
-            } else {
-                ImasListContainer {
-                    ForEach(Array(vm.songCalls.enumerated()), id: \.element.id) { idx, call in
-                        if idx > 0 { ImasRowDivider(inset: DS.sp5) }
-                        callRow(call)
-                    }
-                }
-            }
-        }
-    }
-
-    private func callRow(_ call: SongCall) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            // コーレスは長文で「サビ前のここだけ引用したい」需要があるので、
-            // 全文一括ではなくネイティブの選択バーで部分コピーできるようにする。
-            Text(call.callText)
-                .font(.imasSubhead).foregroundStyle(DS.ink)
-                .fixedSize(horizontal: false, vertical: true)
-                .imasSelectableText()
-            HStack(spacing: DS.sp3) {
-                if let link = URL.safeHTTP(string: call.sourceUrl) {
-                    Link(destination: link) {
-                        Label("出典", systemImage: "link").font(.imasCaption).foregroundStyle(DS.ink2)
-                    }
-                }
-                if let author = call.authorDisplayName {
-                    Text("投稿者: \(author)").font(.imasCaption).foregroundStyle(DS.ink3)
-                }
-                Spacer(minLength: 4)
-                if permission.showEditAffordance {
-                    Button { onIntent(.editCall(call)) } label: {
-                        Image(systemName: "pencil").font(.imasCaption.weight(.semibold)).foregroundStyle(DS.ink2)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
-        .padding(.horizontal, DS.sp5).padding(.vertical, 11)
     }
 
     // MARK: - 参考動画
@@ -320,7 +262,7 @@ struct SongCommunityTab: View {
         .padding(.horizontal, DS.sp5).padding(.vertical, 10)
     }
 
-    /// セクション見出し + 文脈投稿導線 (＋タグ / ＋コール / ▶動画 / ✦投票)。
+    /// セクション見出し + 文脈投稿導線 (＋タグ / ▶動画 / ✦投票)。
     @ViewBuilder
     private func header(title: String, actionLabel: String, systemImage: String, action: @escaping () -> Void) -> some View {
         let t = ImasTheme.derive(seed: seed, scheme: scheme)

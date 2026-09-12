@@ -15,8 +15,8 @@ export function mountSongFilter(root: HTMLElement): void {
 
   const spec: ListFilterSpec<SongFacets> = {
     name: "song filter",
-    container: "[data-song-table] tbody",
-    item: "tr[data-song-id]",
+    container: "[data-song-list]",
+    item: "li[data-song-id]",
     idAttr: "songId",
     fallbackSort: "kana",
     facets: (e) => JSON.parse((e as Engine).facets()) as SongFacets,
@@ -24,7 +24,7 @@ export function mountSongFilter(root: HTMLElement): void {
     sorts: (f) => f.sorts as SortOption[],
     fields: (f): FieldSpec[] => [
       { key: "title", kind: "text", label: "曲名で絞り込み" },
-      { key: "idolIds", kind: "select", label: "原唱者", options: f.idols, multi: true },
+      { key: "idolIds", kind: "select", label: "歌唱アイドル", options: f.idols, multi: true },
       { key: "songwriter", kind: "text", label: "作家名" },
       { key: "liveName", kind: "text", label: "ライブ名" },
       { key: "cdSeries", kind: "select", label: "CD シリーズ", options: f.cdSeries },

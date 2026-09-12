@@ -73,10 +73,8 @@ protocol SongReading: Sendable {
     /// ブランド公式曲の id 集合。
     func brandedSongIds() async throws -> Set<String>
 
-    // MARK: - コミュニティ構造化 (コーレス/参考動画。CloudKit 同期のローカルミラー)
+    // MARK: - コミュニティ構造化 (参考動画。CloudKit 同期のローカルミラー)
 
-    /// この曲のコーレス。
-    func songCalls(songId: String) async throws -> [SongCall]
     /// この曲の参考動画。
     func songVideos(songId: String) async throws -> [SongVideo]
 }

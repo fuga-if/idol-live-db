@@ -1,6 +1,5 @@
 package com.fugaif.imaslivedb.ui.songs
 
-import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -22,7 +21,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Edit
@@ -75,7 +73,6 @@ import com.fugaif.imaslivedb.data.model.CoOccurringSong
 import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.data.model.PerformanceHistoryRow
 import com.fugaif.imaslivedb.data.model.Song
-import com.fugaif.imaslivedb.data.model.SongCall
 import com.fugaif.imaslivedb.data.model.SongVideo
 import com.fugaif.imaslivedb.data.model.SongPerformanceEvidence
 import com.fugaif.imaslivedb.data.model.SongSingerTally
@@ -135,9 +132,7 @@ fun SongDetailScreen(
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
     var showTagPicker by rememberSaveable { mutableStateOf(false) }
-    var showCallSheet by rememberSaveable { mutableStateOf(false) }
     var showPenlightSheet by rememberSaveable { mutableStateOf(false) }
-    var editingCall by remember { mutableStateOf<SongCall?>(null) }
     var currentSongId by rememberSaveable(songId) { mutableStateOf(songId) }
     var tagDetailId by rememberSaveable { mutableStateOf<String?>(null) }
     var showMenu by remember { mutableStateOf(false) }
@@ -157,7 +152,7 @@ fun SongDetailScreen(
 
     // 投稿/編集導線の共通ゲート。iOS DetailSheet.handle(intent) と同じで、
     // 「開く/書き込む」操作は全部ここを通す。
-    // シート側 (CallEditSheet / PenlightVoteSheet) に権限判定は無いので、
+    // シート側 (VideoEditSheet / PenlightVoteSheet) に権限判定は無いので、
     // ここで止めないとフォームに入力させた末に 401/403 で落ちる。
     //
     // BAN 済みは iOS の .ignore と同じく無反応 (onBanned 既定)。この画面の編集導線は
@@ -251,8 +246,6 @@ fun SongDetailScreen(
                 },
                 onOpenTagPicker = { startCommunityEdit { showTagPicker = true } },
                 onTagDetailClick = { tagDetailId = it },
-                onCreateCall = { startCommunityEdit { editingCall = null; showCallSheet = true } },
-                onEditCall = { call -> startCommunityEdit { editingCall = call; showCallSheet = true } },
                 onCreateVideo = { startCommunityEdit { editingVideo = null; showVideoSheet = true } },
                 onEditVideo = { video -> startCommunityEdit { editingVideo = video; showVideoSheet = true } },
                 onOpenPenlightVote = { startCommunityEdit { showPenlightSheet = true } },
@@ -269,15 +262,6 @@ fun SongDetailScreen(
             alreadyAppliedTagIds = uiState.tags.filter { it.mine }.map { it.id }.toSet(),
             onDismiss = { showTagPicker = false },
             onApplied = { viewModel.onTagsApplied() }
-        )
-    }
-
-    if (showCallSheet) {
-        CallEditSheet(
-            songId = currentSongId,
-            existing = editingCall,
-            onDismiss = { showCallSheet = false },
-            onSaved = { viewModel.onCallSaved(it) }
         )
     }
 
@@ -354,8 +338,6 @@ private fun SongSheetContent(
     onToggleTag: (com.fugaif.imaslivedb.data.community.CommunityApi.SongTag) -> Unit,
     onOpenTagPicker: () -> Unit,
     onTagDetailClick: (String) -> Unit,
-    onCreateCall: () -> Unit,
-    onEditCall: (SongCall) -> Unit,
     onCreateVideo: () -> Unit,
     onEditVideo: (SongVideo) -> Unit,
     onOpenPenlightVote: () -> Unit,
@@ -388,7 +370,7 @@ private fun SongSheetContent(
             else -> CommunityTab(
                 state, seed, song.brandId, authState, onSongClick,
                 onToggleTag, onOpenTagPicker, onTagDetailClick,
-                onCreateCall, onEditCall, onCreateVideo, onEditVideo,
+                onCreateVideo, onEditVideo,
                 onOpenPenlightVote, onPollClick
             )
         }
@@ -777,8 +759,6 @@ private fun CommunityTab(
     onToggleTag: (com.fugaif.imaslivedb.data.community.CommunityApi.SongTag) -> Unit,
     onOpenTagPicker: () -> Unit,
     onTagDetailClick: (String) -> Unit,
-    onCreateCall: () -> Unit,
-    onEditCall: (SongCall) -> Unit,
     onCreateVideo: () -> Unit,
     onEditVideo: (SongVideo) -> Unit,
     onOpenPenlightVote: () -> Unit,
@@ -787,7 +767,7 @@ private fun CommunityTab(
     val context = LocalContext.current
     // 権限フラグは認証状態が変わった時だけコアへ問い合わせる。
     // extension property は毎回 EditPermissionRules を RustBuffer に詰めて JNA を跨ぐので、
-    // コーレス 1 件ごと・再コンポーズごとに呼ぶと (要素数ぶんの FFI) スクロール中ずっと積み上がる。
+    // 参考動画 1 件ごと・再コンポーズごとに呼ぶと (要素数ぶんの FFI) スクロール中ずっと積み上がる。
     val canEditHere = remember(authState) { authState.showEditAffordance }
     val needsLogin = remember(authState) { authState.shouldPromptLogin }
     Column(modifier = Modifier.padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -800,7 +780,7 @@ private fun CommunityTab(
                     .clip(RoundedCornerShape(12.dp)).background(DS.fill).padding(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("タグ・コーレス・投票にはログインが必要です", fontSize = 12.5.sp, color = DS.ink2)
+                Text("タグ・動画・投票にはログインが必要です", fontSize = 12.5.sp, color = DS.ink2)
             }
         }
         // タグ (集計系コミュニティ・Worker D1)。タップで自分の投票をトグル、長押しでタグ詳細、+ で全タグから追加。
@@ -878,50 +858,7 @@ private fun CommunityTab(
                 }
             }
         }
-        // コーレス (構造化コミュニティ・CloudKit 直書き。POST /edits 経由で全ユーザーが投稿/編集可能)
-        Column {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                ImasSectionHeader("コーレス", count = "${state.songCalls.size}", modifier = Modifier.weight(1f))
-                if (canEditHere) {
-                    IconButton(onClick = onCreateCall, modifier = Modifier.padding(end = 8.dp)) {
-                        Icon(Icons.Filled.Add, contentDescription = "コーレスを投稿", tint = DS.ink2)
-                    }
-                }
-            }
-            if (state.songCalls.isEmpty()) {
-                ImasEmptyState(Icons.Filled.Campaign, "コーレスはまだありません",
-                    "サビ前のコールなど、現地の盛り上げ方を共有しませんか？", seed = seed, brand = brand)
-            } else {
-                state.songCalls.forEach { call ->
-                    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
-                        // コーレスは長文で「サビ前のここだけ引用したい」需要があるので、
-                        // 全文一括ではなく標準の選択メニューで部分コピーできるようにする。
-                        SelectionContainer {
-                            Text(call.callText, fontSize = 15.sp, color = DS.ink)
-                        }
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(top = 4.dp)) {
-                            if (!call.sourceUrl.isNullOrEmpty()) {
-                                Text(
-                                    "出典", fontSize = 12.sp, color = DS.ink2,
-                                    modifier = Modifier.clickable { openUrl(context, call.sourceUrl) }
-                                )
-                            }
-                            if (!call.authorDisplayName.isNullOrEmpty()) {
-                                Text("投稿者: ${call.authorDisplayName}", fontSize = 12.sp, color = DS.ink3)
-                            }
-                            Box(Modifier.weight(1f))
-                            if (canEditHere) {
-                                IconButton(onClick = { onEditCall(call) }, modifier = Modifier.size(28.dp)) {
-                                    Icon(Icons.Filled.Edit, contentDescription = "コーレスを編集", tint = DS.ink2, modifier = Modifier.size(16.dp))
-                                }
-                            }
-                        }
-                    }
-                    HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 16.dp))
-                }
-            }
-        }
-        // 参考動画 (構造化コミュニティ・CloudKit 直書き。コーレスと同じく全ユーザーが投稿/編集可能)
+        // 参考動画 (構造化コミュニティ・CloudKit 直書き。POST /edits 経由で全ユーザーが投稿/編集可能)
         Column {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 ImasSectionHeader("参考動画", count = "${state.songVideos.size}", modifier = Modifier.weight(1f))
@@ -1075,7 +1012,7 @@ private fun SingersSection(
                         .padding(vertical = 9.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    ImasAvatar(label = row.idol.name, seed = row.idol.color, brand = row.idol.brandId, size = 36.dp)
+                    ImasAvatar(label = row.idol.shortName, seed = row.idol.color, brand = row.idol.brandId, size = 36.dp)
                     Column(Modifier.weight(1f).padding(start = 12.dp)) {
                         Text(row.idol.name, fontSize = 15.sp, color = DS.ink,
                             maxLines = 1, overflow = TextOverflow.Ellipsis)

@@ -19,7 +19,7 @@ import java.net.URLEncoder
  * 契約 (imas-live-api/src/edits.ts, edit_requests.ts, feed.ts, edit_good.ts を実ソースで確認済み):
  * - `POST /edits` はマスタ型 (Event/Show/Song/Idol/SetlistItem/SetlistPerformer/SongArtist/ShowCast) の
  *   create/update/delete を admin のみ受け付ける。一般ユーザーがマスタ op を送ると 422 になる
- *   (コミュニティ型 SongCall/SongVideo だけは一般ユーザーも `/edits` で即時反映)。
+ *   (コミュニティ型 SongVideo だけは一般ユーザーも `/edits` で即時反映)。
  * - 一般ユーザーのマスタ編集は `POST /edit-requests` (GitHub issue 化。CloudKit 未反映・ローカル反映不可)。
  * - [submitMaster] が `AuthService.isAdmin` で自動的にどちらを呼ぶか振り分ける
  *   (iOS `EditService.submitMaster` と同じ分岐)。

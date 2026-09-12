@@ -4,4 +4,8 @@ import type { Ref } from "./Ref";
 /**
  * ユニット一覧の 1 行。
  */
-export type UnitListItem = { ref: Ref, brand: Ref | null, isPermanent: boolean, memberCount: number, songCount: number, };
+export type UnitListItem = { ref: Ref, brand: Ref | null, 
+/**
+ * 例外にだけ付く札 (「公演限定」)。常設が 9 割なので、常設に札を付けても見分けにならない。
+ */
+note: string | null, memberCount: number, songCount: number, };

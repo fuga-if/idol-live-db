@@ -115,11 +115,13 @@ struct Idol: Codable, FetchableRecord, PersistableRecord, Identifiable, Hashable
 // MARK: - shortName
 
 extension Idol {
-    /// 表示用の短縮名。優先順位: nickname > given_name > name。
-    /// アルゴリズム推測は撤廃、DB カラム値を信頼する。
+    /// 表示用の短縮名 (アバターのモノグラム等)。優先順位: nickname > given_name > name。
+    ///
+    /// **規則の正は共有コア** (`imas-core: domain/snapshot.rs` の `idol_short_name`)。
+    /// 以前はここに同じ規則を手書きしていたため、Android には短縮名が無く、Web とも
+    /// 別々に育つ余地があった。`ImasTheme.derive` が `themeDerive` を呼ぶのと同じ形で、
+    /// 判断はコアに置き、ここは呼ぶだけにする。
     var shortName: String {
-        if let nick = nickname, !nick.isEmpty { return nick }
-        if let given = givenName, !given.isEmpty { return given }
-        return name
+        idolShortName(name: name, givenName: givenName, nickname: nickname)
     }
 }

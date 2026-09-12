@@ -40,6 +40,23 @@ web_dto! {
         /// **アプリと同じ 1 本** (`domain::event_detail_queries::performer_name_options`)。
         /// 出面が独自にラベルを持つと、アプリの設定画面と文言がズレる。
         pub performer_name_options: Vec<PerformerNameOptionDto>,
+        /// サイト共通ナビの並び (ヘッダとフッタが同じ 1 本を描く)。
+        ///
+        /// **お題 (`/polls/`) は焼き込んだ集計が空だと書き出されない**ので、
+        /// 出す/出さないを知っているのは JSON を作る側だけ。TS に手書きの一覧を
+        /// 持たせると、その条件を知らないままリンク切れを出す。
+        pub primary_nav: Vec<NavLink>,
+        /// 一覧以外の入口 (検索・このサイトについて)。フッタが描く。
+        /// 全ページのクロームに載るリンクはすべて `meta.json` にある = 到達性の起点。
+        pub utility_nav: Vec<NavLink>,
+        /// フッタの断り書き (非公式表記・載せていないもの)。文面は `content::footer_notes`。
+        pub footer_notes: Vec<String>,
+        /// 歌詞掲載の許諾表示 (`JASRAC 許諾番号 …`)。出面で歌詞を出すときだけ入り、
+        /// フッタが許諾マークの隣に描く (掲示が許諾の条件)。
+        pub lyrics_license_notice: Option<String>,
+        /// 歌詞の中の言葉で曲を探す API (検索ページの「歌詞」が押されたときだけ叩く)。
+        /// 出面で歌詞を出すときだけ入る。TS は URL を組まず、ここに来たものを使う。
+        pub lyrics_search_url: Option<String>,
     }
 }
 
@@ -222,6 +239,59 @@ web_dto! {
     }
 }
 
+impl StatTile {
+    pub fn new(glyph: &str, value: u32, label: &str) -> Self {
+        Self { glyph: glyph.to_string(), value, label: label.to_string(), href: None }
+    }
+
+    pub fn with_href(mut self, href: impl Into<String>) -> Self {
+        self.href = Some(href.into());
+        self
+    }
+}
+
+web_dto! {
+    /// 一覧の頭の切替 1 軸 (ブランド・年・誕生月・都道府県・月…)。
+    ///
+    /// `label` は軸の名で、畳んだメニューの札に「軸 いまの値」と出る語。値は `links`
+    /// (現在地は `NavLink.current`)。どの軸をどの名で、どの順に出すかは Rust が決め、
+    /// Astro は並べるだけ。
+    #[derive(Eq)]
+    pub struct FilterAxis {
+        pub label: String,
+        pub links: Vec<NavLink>,
+        /// 同じ軸を島 (絞り込みバー) も持っているときの、その軸の鍵。
+        ///
+        /// 島が動く環境では**同じ軸が 2 つ並んでしまう**ので、島が起動したら
+        /// こちらを隠す。JS が無い環境ではこのリンクだけが残る (畳んだメニューが
+        /// 唯一の切替になる)。HTML には残るので、リンクとしての到達性も落ちない。
+        pub island_key: Option<String>,
+    }
+}
+
+impl FilterAxis {
+    pub fn new(label: &str, links: Vec<NavLink>) -> Self {
+        Self { label: label.to_string(), links, island_key: None }
+    }
+
+    /// 島の同じ軸 (`FieldSpec.key`) と対にする。
+    pub fn also_in_island(mut self, key: &str) -> Self {
+        self.island_key = Some(key.to_string());
+        self
+    }
+}
+
+/// 値の無い軸 (その一覧を作っていない) は並べない。
+pub fn filter_axes(axes: impl IntoIterator<Item = FilterAxis>) -> Vec<FilterAxis> {
+    axes.into_iter().filter(|a| !a.links.is_empty()).collect()
+}
+
+/// 数の帯にする。**0 は「まだ無い」で情報ではない**ので落とす
+/// (開催前は曲数が全部 0 で、並べても何も言わない)。
+pub fn nonzero_tiles(tiles: impl IntoIterator<Item = StatTile>) -> Vec<StatTile> {
+    tiles.into_iter().filter(|t| t.value > 0).collect()
+}
+
 web_dto! {
     /// 一覧ページ間の切替リンク (ブランド別など)。
     ///
@@ -241,6 +311,9 @@ web_dto! {
 
 impl NavLink {
     /// 押せる切替リンク 1 本。`current` は後から [`mark_current`] でまとめて立てる。
+    ///
+    /// 上部バーの現在地はここでは決めない: ページのパンくず (`seo.breadcrumbs`) に
+    /// このリンクの `path` が含まれていれば現在地 (所属の判断はパンくず 1 箇所)。
     pub fn new(label: &str, path: impl Into<String>) -> Self {
         Self { label: label.to_string(), path: path.into(), current: false, theme_key: None, count: None }
     }
@@ -256,6 +329,16 @@ impl NavLink {
     }
 }
 
+impl Ref {
+    /// 補助表記を落とした形。並ぶ全員が同じブランドの場所 (ブランド詳細・ユニット詳細) で、
+    /// ブランド名を 1 枚ごとに繰り返さないために使う。**判断は JSON を作る側で済ませ**、
+    /// 受け手に「このページでは副題を出すな」という文脈を持たせない。
+    pub fn without_sub(mut self) -> Self {
+        self.sub = None;
+        self
+    }
+}
+
 /// いま見ているページに当たるリンクへ `current` を立てる。
 ///
 /// 各リンクを作るときに `path == current` を書くと、切替リンクを組む場所すべてに
@@ -264,6 +347,43 @@ impl NavLink {
 pub fn mark_current(links: &mut [NavLink], current: &str) {
     for link in links {
         link.current = link.path == current;
+    }
+}
+
+web_dto! {
+    /// 日付ブロック 1 つぶん (行の左端に置く「月日を大きく、曜日と年を小さく」の部品)。
+    ///
+    /// 文字列を切る・曜日を求める判断を受け手に持たせないための型。値の決め方は
+    /// `domain::date_display::date_parts` にあり、ここは詰め替えるだけ。
+    /// 部分日付 (`"2024-08"`) では `month_day` が `"8月"` で `weekday` が無い、
+    /// 解釈できない文字列では `month_day` に原文がそのまま入る (捏造しない)。
+    #[derive(Eq)]
+    pub struct DateBadge {
+        /// `"2026-09-19"`。そのまま `<time datetime>` に入れる。
+        pub iso: String,
+        /// `"2026"`。読めなければ空。
+        pub year: String,
+        /// `"9/19"`。
+        pub month_day: String,
+        /// `"土"`。日まで揃った実在の日付にだけ入る。
+        pub weekday: Option<String>,
+        /// 読み上げ用の 1 本 (`"2026年9月19日 土曜日"`)。見た目の 3 分割は耳では
+        /// 「9/19 土 2026」と聞こえるので、支援技術にはこちらを渡す。
+        pub spoken: String,
+    }
+}
+
+impl DateBadge {
+    /// `yyyy-MM-dd` (部分日付も可) から作る。
+    pub fn from_ymd(date: &str) -> Self {
+        let parts = crate::domain::date_display::date_parts(date);
+        Self {
+            iso: date.to_string(),
+            year: parts.year,
+            month_day: parts.month_day,
+            weekday: parts.weekday.map(str::to_string),
+            spoken: crate::domain::date_display::spoken(date),
+        }
     }
 }
 
@@ -299,6 +419,10 @@ web_dto! {
     pub struct ThemeTokens {
         pub accent: String,
         pub on_accent: String,
+        /// 文字として使ってよいアクセント。`accent` はブランド色そのもので、黄 (ミリオン) や
+        /// 水色 (シャニマス) は白地で 1.7:1 しか無い。文字に使う場面 (数・札・見出し) は
+        /// 必ずこちら (地の色に対して AA を満たすまで寄せてある)。
+        pub accent_ink: String,
         pub tint: String,
         pub tint_strong: String,
         pub chip_bg: String,
@@ -314,6 +438,21 @@ web_dto! {
 }
 
 web_dto! {
+    /// タグの素性 (名前・色・公式か)。札の見た目はこれだけで決まる。
+    /// 曲ページの札 ([`TagChipDto`]) は これに件数と押し先を足したもの。
+    #[derive(Eq)]
+    pub struct TagBadge {
+        pub id: String,
+        pub name: String,
+        /// `themes.css` のキー (`tag:<id>`)。自分の色を持つタグにだけ入る。
+        /// 無ければ `data-theme` を置かず、囲む要素のテーマ (曲・アイドルの色) を継ぐ。
+        pub theme_key: Option<String>,
+        /// 運営が用意したタグか。
+        pub is_official: bool,
+    }
+}
+
+web_dto! {
     /// コミュニティが付けたタグ 1 件。
     ///
     /// **この出面は読むだけ。** 付ける/外すはログインが要るのでアプリへ誘導する。
@@ -323,10 +462,13 @@ web_dto! {
         pub name: String,
         /// 何人が付けたか。
         pub count: u32,
-        /// タグ自身の色 (hex)。無ければ受け手が既定色で出す。
-        pub color: Option<String>,
+        /// `themes.css` のキー (`tag:<id>`)。[`TagBadge::theme_key`] と同じ。
+        pub theme_key: Option<String>,
         /// 運営が用意したタグか。
         pub is_official: bool,
+        /// そのタグの曲一覧 (`/tags/<tagId>/`)。曲のタグにだけ入る
+        /// (アイドル・ユニットのタグに一覧は無いので `None` = 押せない札)。
+        pub path: Option<String>,
     }
 }
 
@@ -362,6 +504,8 @@ web_dto! {
     pub struct LyricsBlock {
         /// この出面で歌詞を出すか。false ならボタンも取得先も出ない。
         pub available: bool,
+        /// 出さないときの状態の札 (`JASRAC 許諾待ち`)。出しているときは `None`。
+        pub status_label: Option<String>,
         /// 出さないときの案内文 (アプリへ誘導する)。
         pub note: String,
         /// 出すときに必ず掲示する許諾番号。
@@ -370,5 +514,46 @@ web_dto! {
         pub license_note: Option<String>,
         /// 歌詞 1 曲の取得先 (絶対 URL)。**1 曲ぶんだけ返る。**
         pub source_url: Option<String>,
+    
+        /// 取りに行くボタンの文言 (`歌詞とコールガイドを読む`)。出さないときは `None`。
+        pub read_label: Option<String>,
+        /// コールガイドの語彙 (記号・札・凡例の語)。出すときだけ。
+        pub call_guide: Option<CallGuideVocabulary>,
+}
+}
+
+web_dto! {
+    /// 手拍子の指示 1 種。行頭に `symbol`、凡例に `label` を出す。
+    #[derive(Eq)]
+    pub struct CallGuideClap {
+        /// Worker が返す `clap` の値 (`back_beat` / `four_on_floor` / `ppph` / `none`)。
+        pub kind: String,
+        pub symbol: String,
+        pub label: String,
     }
+}
+
+web_dto! {
+    /// コールの強調度 1 種。凡例の語。色は出面の CSS が `kind` で引く。
+    #[derive(Eq)]
+    pub struct CallGuideEmphasis {
+        /// Worker が返す `emphasis` の値 (`normal` / `optional` / `performer_request`)。
+        pub kind: String,
+        pub label: String,
+    }
+}
+
+web_dto! {
+    /// コールガイドの語彙。手拍子の記号・強調度の名前は アプリ (`Models/Lyrics.swift`) と同じ語を
+    /// Rust が配り、出面はアンカーの位置とこの語彙を突き合わせて置くだけ。
+    ///
+    /// 出面はコールを**位置で示す** (同時 = 語の真下 / 追っかけ = 語の後ろ) ので、
+    /// アプリの ↳ ①② » の印や「同時」札は持たない。
+    #[derive(Eq)]
+    pub struct CallGuideVocabulary {
+        pub claps: Vec<CallGuideClap>,
+        pub emphases: Vec<CallGuideEmphasis>,
+        /// 歌詞が直されてアンカーがズレたコールの印 (`ズレ`)。
+        pub stale_label: String,
+}
 }

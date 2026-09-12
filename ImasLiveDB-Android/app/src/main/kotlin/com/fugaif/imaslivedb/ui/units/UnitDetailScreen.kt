@@ -235,7 +235,7 @@ private fun MembersBody(state: UnitDetailUiState, onIdolClick: (String) -> Unit)
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier.width(72.dp).clickable { onIdolClick(idol.id) }
                     ) {
-                        ImasAvatar(label = idol.name, seed = idol.color, brand = idol.brandId, size = 56.dp)
+                        ImasAvatar(label = idol.shortName, seed = idol.color, brand = idol.brandId, size = 56.dp)
                         Text(idol.name, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = DS.ink2,
                             textAlign = TextAlign.Center, maxLines = 1, overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.padding(top = 6.dp))

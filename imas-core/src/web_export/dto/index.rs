@@ -4,7 +4,7 @@
 //! 出す。クライアント状態を持たせないというユーザー指示の直接の帰結で、切替 UI は
 //! [`super::common::NavLink`] のリンク集になる。
 
-use super::common::{AppLinks, NavLink, Ref, SeoBlock, StatTile};
+use super::common::{AppLinks, DateBadge, FilterAxis, NavLink, Ref, SeoBlock, StatTile, TagBadge};
 use super::event::ShowSummary;
 use crate::domain::idol_list_filtering::IdolQuery;
 use crate::domain::song_list_queries::SongQuery;
@@ -23,10 +23,17 @@ web_dto! {
         pub kind: EventListKind,
         /// `event_grouping::group_events_by_year` の結果をそのまま写したもの。
         pub groups: Vec<YearGroup>,
-        /// 今後 / 開催済み の切替。
-        pub scope_links: Vec<NavLink>,
-        pub brand_links: Vec<NavLink>,
-        pub year_links: Vec<NavLink>,
+        /// 入口 (`/events/`) だけ: 開催済みのいちばん新しい年の束と、その見出し
+        /// (「開催済み (2026年)」)。`groups` (今後の予定) の下に置く。年の一覧では None。
+        pub recent_past: Option<YearGroup>,
+        pub recent_past_title: Option<String>,
+        /// このページの続き (入口では「開催済みをすべて見る」、年の一覧では 1 つ前の年)。
+        /// 一覧が途中で切れていることをページの末尾で言うための 1 本。
+        pub next: Option<NavLink>,
+        /// 今後 / 開催済み / カレンダー の切替 (帯)。
+        pub scope: FilterAxis,
+        /// 畳んだメニューにする軸: ブランド、開催済みの側では年も。
+        pub filters: Vec<FilterAxis>,
         pub total: u32,
         pub seo: SeoBlock,
     }
@@ -58,29 +65,32 @@ web_dto! {
 
 web_dto! {
     /// ライブ一覧の 1 行。
+    ///
+    /// 日付・ブランド・会場・公演数を**別々の項目**で持つ。行はそれぞれを別の位置
+    /// (日付ブロック / 色付きの札 / 文字 / 数) に置くので、1 本に繋いだ副題は持たない。
+    /// 何を出す・何を落とすの判断はすべてここまでで済んでいて、受け手は置くだけ。
     #[derive(Eq)]
     pub struct EventListItem {
         #[serde(rename = "ref")]
         pub reference: Ref,
-        pub first_date: Option<String>,
-        pub last_date: Option<String>,
-        pub short_date: Option<String>,
-        pub brand: Option<Ref>,
+        /// 行の左端に置く日付ブロック (初日)。日付が無いライブでは `None`。
+        pub date_badge: Option<DateBadge>,
+        /// 期間の終端 (`〜 9/13 (日)`)。**1 日で終わるライブでは `None`**
+        /// (初日と同じ日を 2 度出さない。判断は `date_display::range_end`)。
+        pub end_display: Option<String>,
+        /// 行に出すブランドの札。**ブランド別一覧では `None`** (全行同じ札を並べても
+        /// 見分けに効かない)。
+        pub brand_mark: Option<Ref>,
+        /// 会場をまとめた 1 行 (多いときは畳む)。
+        pub venue_display: Option<String>,
+        /// 公演数 (`2 公演`)。**1 公演なら `None`** (数えるまでもないものに数を付けない)。
+        pub show_count_display: Option<String>,
         /// 種別 (`live` / `festival` / …)。
         pub kind: String,
-        /// 行に出す種別チップ。
-        ///
-        /// **その一覧に 1 種別しか無ければ `None`。** 全部同じ札が並んでも
-        /// 見分けの役に立たず、行あたりの情報が薄くなるだけ
-        /// (トップの「今後のライブ」は 8 行すべて `ライブ` だった)。
-        /// 判断は [`super::super::emit::lists::drop_uniform_kind_labels`]。
+        /// 行に出す種別チップ。**既定の種別 (ライブ) には付かない** — ほぼ全行に同じ札が並んでも
+        /// 見分けにならず、フェス・リリースイベントのような例外だけを言えばよい。
+        /// 判断は `content::kind_chip` 1 箇所。
         pub kind_label: Option<String>,
-        pub show_count: u32,
-        /// 行の副題 (期間・ブランド名・公演数・会場)。空なら `None`。
-        ///
-        /// ブランド名を入れるかは**そのページの文脈**で決まり、作る側が解決済み
-        /// (ブランド別一覧では入らない)。
-        pub subtitle: Option<String>,
     }
 }
 
@@ -111,12 +121,16 @@ web_dto! {
         /// 行を `ref` だけに削った一覧 (`/songs/all/`) には無い。
         pub query_base: Option<SongQuery>,
         pub kana_sections: Vec<KanaSection>,
-        pub brand_links: Vec<NavLink>,
+        /// 畳んだメニューにする軸 (ブランド)。
+        pub filters: Vec<FilterAxis>,
         /// 既定フィルタから外れた曲も含む全件ハブ (`/songs/all/`) への案内。
         ///
         /// `/songs/` にだけ入る。これが無いと、一覧規則で外れた曲 (派生曲・ライブ限定曲・
         /// `other` ブランド) の詳細ページが `/` からどこからも辿れなくなる。
         pub all_songs_link: Option<NavLink>,
+        /// タグから探す入口 (`/tags/`)。`/songs/` にだけ、タグの付いた曲が 1 曲でもあるときに入る
+        /// (タグ一覧はそのときだけ作る)。
+        pub tags_link: Option<NavLink>,
         pub total: u32,
         pub seo: SeoBlock,
     }
@@ -145,10 +159,19 @@ web_dto! {
         pub unit_label: Option<String>,
         /// 原唱者を 1 行に畳んだもの (`join_capped` で「先頭 4 名 ほか N 名」に丸めた形)。
         ///
-        /// `subtitle` にも畳み込まれているが、表形式の一覧は列に分けて出すので
+        /// `subtitle` にも畳み込まれているが、行の 2 行目はユニットと分けて出すので
         /// 独立して持つ。**丸め方を決めるのはここ (Rust) の 1 箇所**で、
         /// 受け手が名前の配列から組み立て直すことはしない。
         pub artists_label: Option<String>,
+        /// 曲種別 (「ソロ曲」「ユニット曲」「全体曲」…)。語は `content::song_type_label`。
+        pub song_type_label: Option<String>,
+        /// 合同曲の札 (`content::SONG_COLLAB_LABEL`)。合同曲でなければ `None`。
+        /// ブランド別の一覧にはそのブランドの曲に混じって出るので、行で見分けられるようにする。
+        pub collab_label: Option<String>,
+        /// 「作曲 <作曲者>」。語は `content::composer_credit`。行の 3 行目 (幅があるときだけ)。
+        pub composer_credit: Option<String>,
+        /// 「収録 <CD 名>」。語は `content::cd_credit`。同上。
+        pub cd_credit: Option<String>,
         /// 披露回数。
         ///
         /// `/songs/all/` (全件ハブ) では **`None`**。あちらは 3,153 行を 1 枚に並べる
@@ -162,6 +185,72 @@ web_dto! {
 }
 
 web_dto! {
+    /// タグ一覧ページ。`/tags/`。曲に付いたコミュニティのタグを、付いている曲の多い順に並べる。
+    ///
+    /// **読むだけ。** タグ付けはログインが要るのでアプリへ誘導する。集計は `db/community.sql`
+    /// を焼き込んだもので、閲覧のたびに D1 は読まない。
+    pub struct TagListPage {
+        pub schema_version: u32,
+        pub path: String,
+        pub title: String,
+        /// 見出しの下の説明。
+        pub lede: String,
+        pub items: Vec<TagListItem>,
+        pub total: u32,
+        pub seo: SeoBlock,
+    }
+}
+
+web_dto! {
+    /// タグ一覧の 1 行。
+    #[derive(Eq)]
+    pub struct TagListItem {
+        pub badge: TagBadge,
+        /// そのタグの曲一覧 (`/tags/<tagId>/`)。
+        pub path: String,
+        pub description: Option<String>,
+        /// 運営が用意したタグに付く札 (`content::TAG_OFFICIAL_LABEL`)。
+        pub official_label: Option<String>,
+        /// 付いている曲の数。
+        pub song_count: u32,
+    }
+}
+
+web_dto! {
+    /// タグ 1 つの曲一覧。`/tags/<tagId>/`。付けた人の多い順。
+    pub struct TagPage {
+        pub schema_version: u32,
+        pub path: String,
+        pub title: String,
+        pub badge: TagBadge,
+        /// タグ自身の説明 (付けた人が書いたもの)。無ければ `None`。
+        pub description: Option<String>,
+        /// 見出しの下の説明 (並び順の断り)。
+        pub lede: String,
+        pub items: Vec<TagSongRow>,
+        pub total: u32,
+        /// タグ一覧 (`/tags/`) へ戻る導線。
+        pub all_tags_link: NavLink,
+        pub seo: SeoBlock,
+    }
+}
+
+web_dto! {
+    /// タグの付いた曲 1 行。
+    #[derive(Eq)]
+    pub struct TagSongRow {
+        #[serde(rename = "ref")]
+        pub reference: Ref,
+        /// 行の副題 (ユニット名・原唱者・リリース日)。楽曲一覧の行と同じ畳み方。
+        pub subtitle: Option<String>,
+        /// 何人が付けたか。
+        pub votes: u32,
+        /// 1 始まりの順位 (同数でも別の順位を振る = 表示の通し番号)。
+        pub rank: u32,
+    }
+}
+
+web_dto! {
     /// かな目次の 1 区画。
     #[derive(Eq)]
     pub struct KanaSection {
@@ -169,7 +258,6 @@ web_dto! {
         pub label: String,
         /// `items` の何番目から始まるか。
         pub start_index: u32,
-        pub count: u32,
     }
 }
 
@@ -188,8 +276,12 @@ web_dto! {
         /// 誕生月別のときだけ入る (1–12)。
         pub birth_month: Option<u32>,
         pub items: Vec<IdolListItem>,
-        pub brand_links: Vec<NavLink>,
-        pub birth_month_links: Vec<NavLink>,
+        /// 表の見出し (名前の列の次から)。全行が空になる列は出さない。
+        pub columns: Vec<IdolColumn>,
+        /// 名前の列。他の列と同じ器にしてあるので、見出しの出し方を分岐させずに済む。
+        pub name_column: IdolColumn,
+        /// 畳んだメニューにする軸 (ブランド・誕生月)。
+        pub filters: Vec<FilterAxis>,
         pub total: u32,
         /// この一覧を組んだときの条件。ブラウザの wasm がこれを土台に
         /// 条件を足して `filter_idol_list` / `sort_idol_list` を回す
@@ -254,14 +346,29 @@ web_dto! {
 }
 
 web_dto! {
+    /// アイドル一覧の表の列 1 つ (名前の列の次から)。
+    #[derive(Eq)]
+    pub struct IdolColumn {
+        pub label: String,
+        /// 数の列 (右に寄せ、等幅で出す)。
+        pub numeric: bool,
+        /// この列で並べ替えられるときの鍵 (`IdolSortKind::key`)。
+        /// `None` の列は押しても何も起きないので、見出しをボタンにしない。
+        pub sort_key: Option<String>,
+    }
+}
+
+web_dto! {
     /// アイドル一覧の 1 行。
     #[derive(Eq)]
     pub struct IdolListItem {
         #[serde(rename = "ref")]
         pub reference: Ref,
-        pub brand: Option<Ref>,
-        pub current_voice_actor: Option<String>,
-        pub birthday_display: Option<String>,
+        /// 名前の下に添える読み。
+        pub name_kana: Option<String>,
+        /// [`IdolListPage::columns`] と**同じ並び**の値。無い列は `None`。
+        /// 並びを受け手に組ませない (見出しと値がずれると別の列の下に値が出る)。
+        pub cells: Vec<Option<String>>,
     }
 }
 
@@ -273,7 +380,10 @@ web_dto! {
         pub title: String,
         pub brand: Option<Ref>,
         pub items: Vec<UnitListItem>,
-        pub brand_links: Vec<NavLink>,
+        /// 楽曲一覧と同じ、よみの目次。`items` はよみ順に並んでいる。
+        pub kana_sections: Vec<KanaSection>,
+        /// 畳んだメニューにする軸 (ブランド)。
+        pub filters: Vec<FilterAxis>,
         pub total: u32,
         pub seo: SeoBlock,
     }
@@ -286,7 +396,8 @@ web_dto! {
         #[serde(rename = "ref")]
         pub reference: Ref,
         pub brand: Option<Ref>,
-        pub is_permanent: bool,
+        /// 例外にだけ付く札 (「公演限定」)。常設が 9 割なので、常設に札を付けても見分けにならない。
+        pub note: Option<String>,
         pub member_count: u32,
         pub song_count: u32,
     }
@@ -301,7 +412,8 @@ web_dto! {
         /// 都道府県別のときだけ入る。空欄の会場は `未分類` に集める。
         pub prefecture: Option<String>,
         pub items: Vec<VenueListItem>,
-        pub prefecture_links: Vec<NavLink>,
+        /// 畳んだメニューにする軸 (都道府県)。
+        pub filters: Vec<FilterAxis>,
         pub total: u32,
         pub seo: SeoBlock,
     }
@@ -365,8 +477,6 @@ web_dto! {
         pub path: String,
         /// ヒーローの 1 行説明。
         pub tagline: String,
-        /// 「非公式ファンメイド」の断り書き。
-        pub disclaimer: String,
         /// 今後のライブ (直近 8 件)。
         pub upcoming: Vec<EventListItem>,
         /// 最近の公演 (直近 8 件)。
@@ -375,8 +485,11 @@ web_dto! {
         pub stat_tiles: Vec<StatTile>,
         pub brands: Vec<BrandListItem>,
         pub app: AppLinks,
-        /// 「今後のライブ」「開催済み」等への入口。
-        pub section_links: Vec<NavLink>,
+        /// 「アプリで、もっと」の説明文。アプリにしか無い機能の並びは `content` が 1 箇所で持つ
+        /// (歌詞を出面で出す/出さないで変わる)。
+        pub app_note: String,
+        /// 「最近の公演」の続き先。公演だけの一覧は無いので、開催済みのライブへ送る。
+        pub recent_shows_more: NavLink,
         pub seo: SeoBlock,
     }
 }
@@ -516,6 +629,14 @@ web_dto! {
         SongListBrand,
         /// `/songs/all/`
         SongListAll,
+        /// `/tags/` — 曲に付いたタグの一覧
+        TagListIndex,
+        /// `/tags/[tagId]/` — `key` = タグ id
+        Tag,
+        /// `/calendar/` — 今月のカレンダー (正規 URL は月のページ)
+        CalendarIndex,
+        /// `/calendar/[month]/` — `key` = `YYYY-MM`
+        CalendarMonth,
 
         /// `/idols/`
         IdolListIndex,
@@ -538,6 +659,8 @@ web_dto! {
         BrandList,
         /// `/polls/`
         PollList,
+        /// `/calls/` — コールガイドの進捗
+        CallGuide,
 
         /// `/events/[id]/`
         Event,

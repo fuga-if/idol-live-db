@@ -18,6 +18,14 @@
       "inSitemap": true
     },
     {
+      "path": "/calls/",
+      "kind": "callGuide",
+      "key": null,
+      "id": null,
+      "data": "index/calls.json",
+      "inSitemap": true
+    },
+    {
       "path": "/search/",
       "kind": "search",
       "key": null,
@@ -138,14 +146,6 @@
       "inSitemap": true
     },
     {
-      "path": "/idols/brand/other/",
-      "kind": "idolListBrand",
-      "key": "other",
-      "id": null,
-      "data": "index/idols-brand-other.json",
-      "inSitemap": false
-    },
-    {
       "path": "/units/",
       "kind": "unitListIndex",
       "key": null,
@@ -167,6 +167,38 @@
       "key": "cg",
       "id": null,
       "data": "index/units-brand-cg.json",
+      "inSitemap": true
+    },
+    {
+      "path": "/tags/",
+      "kind": "tagListIndex",
+      "key": null,
+      "id": null,
+      "data": "index/tags.json",
+      "inSitemap": true
+    },
+    {
+      "path": "/calendar/",
+      "kind": "calendarIndex",
+      "key": null,
+      "id": null,
+      "data": "index/calendar.json",
+      "inSitemap": true
+    },
+    {
+      "path": "/calendar/2026-09/",
+      "kind": "calendarMonth",
+      "key": "2026-09",
+      "id": null,
+      "data": "index/calendar-2026-09.json",
+      "inSitemap": true
+    },
+    {
+      "path": "/tags/tag_kawaii/",
+      "kind": "tag",
+      "key": "tag_kawaii",
+      "id": null,
+      "data": "index/tags-tag_kawaii.json",
       "inSitemap": true
     },
     {
@@ -428,7 +460,6 @@
   ],
   "noindexPaths": [
     "/songs/all/",
-    "/idols/brand/other/",
     "/brands/other/"
   ]
 }

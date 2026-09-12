@@ -67,7 +67,6 @@ final class StubSongReading: SongReading, @unchecked Sendable {
     func songIds(brandId: String, includeCovers: Bool, excludeRemixes: Bool) async throws -> [String] { [] }
     func originalSongIds(forShowCastOf showId: String) async throws -> Set<String> { [] }
     func brandedSongIds() async throws -> Set<String> { [] }
-    func songCalls(songId: String) async throws -> [SongCall] { [] }
     func songVideos(songId: String) async throws -> [SongVideo] { [] }
 }
 

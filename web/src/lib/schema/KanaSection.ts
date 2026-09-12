@@ -11,4 +11,4 @@ label: string,
 /**
  * `items` の何番目から始まるか。
  */
-startIndex: number, count: number, };
+startIndex: number, };

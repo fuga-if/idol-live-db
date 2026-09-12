@@ -102,7 +102,6 @@ pub fn expected_tables() -> Vec<TableSpec> {
               同梱 DB には入れない。壊すと復旧手段が無いので破壊的移行は禁止"),
         spec("personal_tags", LocalOnly, &["entity_type", "entity_id", "tag_name"],
              "マイタグ。端末ローカル専用"),
-        spec("song_calls", Community, &["song_id"], "コールガイド。同期で後から入る"),
         spec("song_videos", Community, &["song_id"], "動画リンク。同期で後から入る"),
         spec("idol_voice_actors", Auxiliary, &["idol_id", "name"],
              "声優履歴。**iOS にしか無い**。Android は Room の entity を持たず、SeedImporter が\

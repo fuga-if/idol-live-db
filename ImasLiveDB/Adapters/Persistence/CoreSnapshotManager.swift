@@ -105,7 +105,7 @@ final class CoreSnapshotManager: Sendable {
 //   「どの書き込みが再ロードを促すか」を観測可能にするため。
 // - 失敗時 (throw) は呼ばない: DB が変わっていないのに全読みを走らせない
 //   (0 件同期で post しない CloudKitSyncEngine と同じ精神)。
-// - スナップショットが読まない表 (song_calls / song_videos。imas-core の sqlite_loader 参照)
+// - スナップショットが読まない表 (song_videos。imas-core の sqlite_loader 参照)
 //   だけの書き込みでも呼ばない。DB 全読みは重く、無関係な編集で走らせない。
 
 struct SnapshotInvalidatingEventWriting: EventWriting {
@@ -162,12 +162,7 @@ struct SnapshotInvalidatingSongWriting: SongWriting {
         invalidate()
     }
 
-    /// song_calls はスナップショット対象外 (sqlite_loader が読まない) なので再ロードは促さない。
-    func upsertSongCalls(_ calls: [SongCall]) async throws {
-        try await base.upsertSongCalls(calls)
-    }
-
-    /// song_videos も同様にスナップショット対象外。
+    /// song_videos はスナップショット対象外 (sqlite_loader が読まない) なので再ロードは促さない。
     func upsertSongVideos(_ videos: [SongVideo]) async throws {
         try await base.upsertSongVideos(videos)
     }

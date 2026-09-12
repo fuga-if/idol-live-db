@@ -33,6 +33,29 @@ if version <= 0:
     sys.exit(1)
 print(f"✅ meta.data_version: {version}")
 PY
+# 公式順ゲート (必須): idols.sort_order はブランドごとの番号帯
+# (brands.sort_order * 1000) で、公式順に並べると必ずブランド順になる。
+# Web のアイドル一覧はこれを前提に「ブランド」の列で並べ替えられるようにしてある
+# (imas-core web_export::emit::lists の idol_columns)。1 人でも帯の外に居ると、
+# その列がブランドの混ざった順に並ぶ。付番は tools/renumber_idol_sort_order.py。
+python3 - "$DB" <<'PY' || { rm -f "$DB"; exit 1; }
+import sqlite3, sys
+conn = sqlite3.connect(sys.argv[1])
+rows = conn.execute("""SELECT i.name, i.brand_id, b.sort_order
+                       FROM idols i JOIN brands b ON b.id = i.brand_id
+                       ORDER BY i.sort_order""").fetchall()
+bad = [(rows[n][0], rows[n][1], rows[n - 1][0], rows[n - 1][1])
+       for n in range(1, len(rows)) if rows[n][2] < rows[n - 1][2]]
+if bad:
+    for name, brand, prev_name, prev_brand in bad[:5]:
+        print(f"❌ 公式順でブランドが戻る: {prev_name} ({prev_brand}) -> {name} ({brand})",
+              file=sys.stderr)
+    print("✗ idols.sort_order がブランド順でない。master.sqlite の同梱を中止 "
+          "(tools/renumber_idol_sort_order.py で付番し直す)。", file=sys.stderr)
+    sys.exit(1)
+print(f"✅ 公式順はブランド順 ({len(rows)} 人)")
+PY
+
 # 内容の指紋 (必須): reseed の判定はこの値の一致/不一致で行う。
 #
 # 版番号 (data_version) は内容とは別に人が管理する数字なので、内容とズレる。実際にズレた:

@@ -366,7 +366,7 @@ fun IdolMultiSelectSheet(
                                         if (current.contains(idol.id)) DS.fill else androidx.compose.ui.graphics.Color.Transparent,
                                         CircleShape
                                     )) {
-                                        ImasAvatar(label = idol.name, seed = idol.color, brand = idol.brandId, size = 56.dp)
+                                        ImasAvatar(label = idol.shortName, seed = idol.color, brand = idol.brandId, size = 56.dp)
                                     }
                                     Icon(
                                         if (current.contains(idol.id)) Icons.Filled.CheckCircle else Icons.Filled.Circle,

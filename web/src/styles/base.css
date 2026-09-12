@@ -62,6 +62,11 @@ ol {
   list-style: none;
 }
 
+dl,
+dd {
+  margin: 0;
+}
+
 img {
   max-width: 100%;
   height: auto;
@@ -73,16 +78,32 @@ a {
   text-decoration: none;
 }
 
-a:hover .u-underline-hover {
+/* リンクの中の見出しに、あるいはリンクそのものに付ける。 */
+a:hover .u-underline-hover,
+a.u-underline-hover:hover {
   text-decoration: underline;
   text-underline-offset: 2px;
+}
+
+/* --- details の見出し ----------------------------------------------------
+   開閉の印 (.chevron) は各部品が自前で置くので、既定の三角は出さない。 */
+summary {
+  list-style: none;
+  cursor: pointer;
+}
+summary::-webkit-details-marker {
+  display: none;
 }
 
 /* フォーカスリングは **テーマ色を使わない**。エンティティ色は 400 通りあり、
    ml (#ffc30b) や学マス (#f39800) のような暖色だと accent 対背景が 1.5〜2.1:1 しか
    なく、キーボード操作中の現在位置が見えなくなる。ニュートラルの ink で描き、
    背景色の外縁を重ねて、どんな面の上でも輪郭が立つようにする。 */
-:focus-visible {
+/* フォーカスリングはここ 1 つ。輪郭を自前で描けない器 (検索欄は input でなく枠に、
+   隠したラジオは label に) もここに並べる。 */
+:focus-visible,
+.search-box__field:focus-within,
+.search-box__modes label:has(input:focus-visible) {
   outline: 2px solid var(--ds-ink);
   outline-offset: 2px;
   box-shadow: 0 0 0 4px var(--ds-bg);
@@ -117,7 +138,24 @@ hr {
   left: 0;
 }
 
-/* --- 版面 ---------------------------------------------------------------- */
+/* --- 版面 ----------------------------------------------------------------
+   上部バー + 本文 + フッタの 1 列。サイドバーは持たない (一覧が 7 本のナビに
+   常時 208px を割くより、表や 2 段組に幅を回した方が本文が読める)。 */
+.shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+.shell__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.shell__body > .main {
+  flex: 1;
+}
+
 .page {
   width: 100%;
   max-width: var(--page-max);
@@ -127,34 +165,50 @@ hr {
 .page--wide {
   max-width: var(--page-wide);
 }
+@media (min-width: 44rem) {
+  .page {
+    padding-inline: var(--sp7);
+  }
+}
 
 .main {
-  padding-block: var(--sp6) var(--sp9);
+  padding-block: var(--sp7) var(--sp9);
   display: flex;
   flex-direction: column;
   gap: var(--sp8);
 }
-
-/* --- サイトナビ ----------------------------------------------------------
-   マークアップは 1 つ。**狭い画面の上部バーを既定**にして、広い画面でだけ
-   サイドバーに組み替える (逆にすると狭い方のクエリが打ち消しだらけになる)。 */
-.shell__body {
-  min-width: 0;
+@media (min-width: 44rem) {
+  .main {
+    padding-block: var(--sp8) 64px;
+    gap: var(--sp9);
+  }
 }
 
+/* --- サイトナビ (上部バー) -------------------------------------------------
+   ブランド / 一覧へのリンク / 検索。広い画面では 1 段、狭い画面では
+   「ブランド + 検索」の下に横スクロールの一覧が来る 2 段。切替は CSS だけ。 */
 .site-nav {
   position: sticky;
   top: 0;
   z-index: 20;
+  border-bottom: 1px solid var(--ds-sep);
+  background: color-mix(in srgb, var(--ds-bg) 86%, transparent);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+}
+.site-nav__inner {
+  max-width: var(--page-wide);
+  margin-inline: auto;
+  padding-inline: var(--sp5);
+  min-height: var(--header-h);
   display: flex;
   align-items: center;
   gap: var(--sp5);
-  min-height: var(--sp9);
-  padding: var(--sp3) var(--sp5);
-  border-bottom: 1px solid var(--ds-sep);
-  background: color-mix(in srgb, var(--ds-bg) 88%, transparent);
-  backdrop-filter: saturate(180%) blur(20px);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
+}
+@media (min-width: 44rem) {
+  .site-nav__inner {
+    padding-inline: var(--sp7);
+  }
 }
 .site-nav__brand {
   display: inline-flex;
@@ -162,33 +216,15 @@ hr {
   gap: var(--sp3);
   font-weight: 700;
   font-size: var(--fs-subhead);
+  letter-spacing: 0.01em;
   white-space: nowrap;
+  flex: none;
 }
 .site-nav__mark {
-  width: 26px;
-  height: 26px;
-  border-radius: var(--r-xs);
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
   flex: none;
-}
-.site-nav__search {
-  order: 1;
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--sp2);
-  padding: var(--sp2) var(--sp4);
-  border-radius: var(--r-pill);
-  background: var(--ds-fill);
-  color: var(--ds-ink2);
-  font-size: var(--fs-footnote);
-  font-weight: 600;
-}
-.site-nav__search:hover {
-  color: var(--ds-ink);
-}
-/* 見出しはサイドバーでだけ意味がある (バーでは項目が横に並ぶので不要)。 */
-.site-nav__label {
-  display: none;
 }
 .site-nav__links {
   min-width: 0;
@@ -196,7 +232,7 @@ hr {
 }
 .site-nav__links ul {
   display: flex;
-  gap: var(--sp2);
+  gap: var(--sp1);
   overflow-x: auto;
   scrollbar-width: none;
   padding-block: var(--sp1);
@@ -206,7 +242,7 @@ hr {
 }
 .site-nav__links a {
   display: block;
-  padding: var(--sp2) var(--sp4);
+  padding: 6px var(--sp4);
   border-radius: var(--r-pill);
   font-size: var(--fs-footnote);
   font-weight: 600;
@@ -221,24 +257,55 @@ hr {
   background: var(--ds-sys);
   color: var(--ds-on-sys);
 }
+.site-nav__search {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp2);
+  padding: 6px var(--sp4);
+  border-radius: var(--r-pill);
+  background: var(--ds-fill);
+  color: var(--ds-ink2);
+  font-size: var(--fs-footnote);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.site-nav__search:hover {
+  color: var(--ds-ink);
+  background: var(--tint-strong);
+}
+.site-nav__search-glyph {
+  font-size: 1.05em;
+  line-height: 1;
+}
 
 /* 狭いとナビが 2 段目に落ちる。1 行に詰めると項目が中途半端に切れて
    「横に流せる」ことが伝わらない。 */
 @media (max-width: 44rem) {
-  .site-nav {
+  .site-nav__inner {
     flex-wrap: wrap;
-    gap: var(--sp3);
-    padding-block: var(--sp3) var(--sp2);
+    gap: var(--sp2) var(--sp3);
+    padding-block: var(--sp3) var(--sp1);
   }
   .site-nav__brand {
     flex: 1;
     min-width: 0;
+  }
+  .site-nav__search {
+    order: 1;
   }
   .site-nav__links {
     order: 2;
     flex-basis: 100%;
     margin-inline: calc(-1 * var(--sp5));
     padding-inline: var(--sp5);
+    /* 右端を透かして「まだ続きがある」と言う (項目が 8 つで、電話の幅には収まらない)。
+       末尾の余白で、いちばん右の項目も透かしの手前まで流し込める。 */
+    mask-image: linear-gradient(to right, currentColor calc(100% - 40px), transparent);
+    -webkit-mask-image: linear-gradient(to right, currentColor calc(100% - 40px), transparent);
+  }
+  .site-nav__links ul {
+    padding-inline-end: 40px;
   }
   :root {
     /* ヘッダが 2 段になるぶん、吸着する年見出しの位置も下げる */
@@ -246,81 +313,53 @@ hr {
   }
 }
 
-/* 広い画面: 一覧が 6 つあり横 1 列では窮屈なので、左のサイドバーに組み替える。 */
-@media (min-width: 60.0625rem) {
-  .shell {
-    display: grid;
-    grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
-    align-items: start;
-  }
-  .site-nav {
-    height: 100vh;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    scrollbar-width: thin;
-    flex-direction: column;
-    align-items: stretch;
-    padding: var(--sp5) var(--sp4);
-    border-right: 1px solid var(--ds-sep);
-    border-bottom: 0;
-    /* 不透明なので、ぼかす下地がない (毎フレームのブラーを払わない)。 */
-    background: var(--ds-bg);
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-  }
-  .site-nav__brand {
-    padding-inline: var(--sp3);
-  }
-  .site-nav__search {
-    order: 0;
-    padding: var(--sp3) var(--sp4);
-    border-radius: var(--r-sm);
-  }
-  .site-nav__label {
-    display: block;
-    font-size: var(--fs-caption2);
-    font-weight: 700;
-    color: var(--ds-ink3);
-    letter-spacing: 0.06em;
-    padding: 0 var(--sp3) var(--sp2);
-  }
-  .site-nav__links ul {
-    flex-direction: column;
-    gap: 1px;
-    overflow-x: visible;
-  }
-  .site-nav__links a {
-    padding: var(--sp3) var(--sp4);
-    border-radius: var(--r-sm);
-  }
-  :root {
-    /* サイドバーなので上部バーが無い = 吸着見出しはビューポート上端でよい。 */
-    --header-h: 0px;
-  }
-}
-
 /* --- サイトフッタ --------------------------------------------------------- */
 .site-footer {
   border-top: 1px solid var(--ds-sep);
   background: var(--ds-surface);
-  padding-block: var(--sp7) var(--sp8);
+  padding-block: var(--sp8) var(--sp8);
   font-size: var(--fs-footnote);
   color: var(--ds-ink2);
 }
+.site-footer__top {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp7) var(--sp9);
+  align-items: flex-start;
+  margin-bottom: var(--sp7);
+}
+.site-footer__brand {
+  flex: 1 1 16rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp3);
+  color: var(--ds-ink);
+}
+.site-footer__brand-name {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp3);
+  font-weight: 700;
+  font-size: var(--fs-callout);
+}
+.site-footer__brand-name img {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+}
 .site-footer__cols {
+  flex: 2 1 30rem;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: var(--sp6);
-  margin-bottom: var(--sp6);
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--sp6) var(--sp8);
 }
 .site-footer h2 {
   font-size: var(--fs-caption);
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   color: var(--ds-ink2);
   margin-bottom: var(--sp3);
   text-transform: uppercase;
-  font-family: var(--font-display);
 }
 .site-footer li + li {
   margin-top: var(--sp2);
@@ -338,6 +377,17 @@ hr {
   display: flex;
   flex-direction: column;
   gap: var(--sp2);
+}
+/* 歌詞の許諾表示。マークは原本のまま、大きさだけ 60px (iOS と同じ 3x 原本を等比で)。 */
+.site-footer__license {
+  display: flex;
+  align-items: center;
+  gap: var(--sp3);
+}
+.site-footer__license img {
+  flex: none;
+  inline-size: 60px;
+  block-size: 60px;
 }
 
 /* --- ユーティリティ ------------------------------------------------------- */
@@ -383,9 +433,47 @@ hr {
   flex-direction: column;
   gap: var(--sp4);
 }
+.u-stack--tight {
+  gap: var(--sp2);
+}
 .u-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--sp2);
+}
+
+/* --- 本文中のリンク ------------------------------------------------------
+   行そのものがリンクの場所 (行・チップ・タイル) は形で分かるが、文の中の 1 語は
+   下線が無いと地の文と見分けが付かない。 */
+.facts__value a,
+.hero__eyebrow a,
+.hero__title a,
+.lede a,
+.u-muted a {
+  text-decoration: underline;
+  text-decoration-color: var(--ds-ink3);
+  text-underline-offset: 3px;
+}
+/* 見出し (大きい字) の下線は細く、薄く。太い字に既定の太さの線を引くと見出しが切れて見える。 */
+.hero__title a {
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+}
+.facts__value a:hover,
+.hero__eyebrow a:hover,
+.hero__title a:hover,
+.lede a:hover,
+.u-muted a:hover {
+  text-decoration-color: currentColor;
+}
+.facts__value a {
+  display: inline-block;
+  padding-block: 3px;
+}
+
+/* ページ内リンク (数の帯 → 節、披露履歴 → セトリの行、よみ目次 → 区画) の着地は、
+   吸着するヘッダの下に隠れない位置。飛び先は id を持つものすべて。 */
+[id] {
+  scroll-margin-top: calc(var(--header-h) + var(--sp4));
 }

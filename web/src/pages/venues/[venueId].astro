@@ -2,12 +2,13 @@
 import DetailLayout from "../../layouts/DetailLayout.astro";
 import Section from "../../components/Section.astro";
 import Chip from "../../components/Chip.astro";
+import Facts from "../../components/Facts.astro";
 import ListContainer from "../../components/ListContainer.astro";
 import LabeledRow from "../../components/LabeledRow.astro";
 import ShowRow from "../../components/ShowRow.astro";
 import RefList from "../../components/RefList.astro";
 import EmptyState from "../../components/EmptyState.astro";
-import { meta, page, pathsFor } from "../../lib/data";
+import { page, pathsFor } from "../../lib/data";
 import type { VenuePage } from "../../lib/schema/VenuePage";
 
 export const getStaticPaths = () => pathsFor("venue", "venueId");
@@ -15,35 +16,16 @@ export const getStaticPaths = () => pathsFor("venue", "venueId");
 const venue = page<VenuePage>(Astro.props.data);
 ---
 
-<DetailLayout seo={venue.seo} meta={meta()} themeKey={venue.themeKey} app={venue.app}>
+<DetailLayout seo={venue.seo} themeKey={venue.themeKey} app={venue.app}>
   <section class="hero" slot="hero" aria-labelledby="venue-title">
     <div class="hero__body">
       {venue.prefecture && <p class="hero__eyebrow">{venue.prefecture}</p>}
       <h1 class="hero__title" id="venue-title">{venue.name}</h1>
       {venue.nameKana && <p class="hero__kana">{venue.nameKana}</p>}
-      <div class="hero__meta">
-        {venue.city && <Chip text={venue.city} />}
-        {venue.capacity && <Chip text={`収容 ${venue.capacity}人`} />}
-      </div>
+      {/* 「基本情報」の行 (所在・収容人数・別名) はどれを出すかを Rust が決めている。 */}
+      <Facts rows={venue.factRows} />
     </div>
   </section>
-
-  {
-    venue.factRows.length > 0 && (
-      <Section slot="aside" id="venue-facts" title="基本情報">
-        <ListContainer>
-          {venue.factRows.map((r) => (
-            <LabeledRow
-              label={r.label}
-              value={r.value}
-              href={r.link}
-              mono={r.style === "monospaced"}
-            />
-          ))}
-        </ListContainer>
-      </Section>
-    )
-  }
 
   {
     venue.halls.length > 0 && (
@@ -76,7 +58,7 @@ const venue = page<VenuePage>(Astro.props.data);
 
   {
     venue.events.length > 0 && (
-      <Section id="venue-events" title="ここで行われたライブ" count={venue.events.length}>
+      <Section slot="aside" id="venue-events" title="ここで行われたライブ" count={venue.events.length}>
         <RefList refs={venue.events} variant="neutral" label="ここで行われたライブ" />
       </Section>
     )

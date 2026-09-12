@@ -60,6 +60,10 @@ pub struct SongDetailRecord {
     pub unit_id: Option<String>,
     pub series_group: Option<String>,
     pub jasrac_code: Option<String>,
+    /// 合同曲で `brand_id` 以外に参加しているブランド (カンマ区切り)。
+    pub joint_brand_ids: Option<String>,
+    /// シリーズ横断の合同曲か。
+    pub is_collab: bool,
 }
 
 impl From<&Song> for SongDetailRecord {
@@ -89,6 +93,8 @@ impl From<&Song> for SongDetailRecord {
             unit_id: s.unit_id.clone(),
             series_group: s.series_group.clone(),
             jasrac_code: s.jasrac_code.clone(),
+            joint_brand_ids: s.joint_brand_ids.clone(),
+            is_collab: s.is_collab,
         }
     }
 }
@@ -96,6 +102,9 @@ impl From<&Song> for SongDetailRecord {
 /// 披露履歴 1 行 (iOS `PerformanceHistoryRow` / setlist_items × shows × events)。
 #[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
 pub struct PerformanceHistoryEntry {
+    /// 何回目の披露か (この DB に載っている範囲で最古が 1 = 初披露)。判断は Snapshot 構築時の
+    /// `ordinal_by_item` で、曲ページの「N 回目」と公演ページの「初披露」札が同じ数を見る。
+    pub ordinal: u32,
     pub show_id: String,
     pub event_id: String,
     pub event_name: String,
@@ -549,6 +558,7 @@ pub fn performance_history(snap: &Snapshot, song_id: &str) -> Vec<PerformanceHis
             let show = &snap.shows[item.show as usize];
             let event = &snap.events[show.event as usize];
             PerformanceHistoryEntry {
+                ordinal: snap.ordinal_by_item[ii as usize],
                 show_id: show.id.clone(),
                 event_id: event.id.clone(),
                 event_name: event.name.clone(),
@@ -560,6 +570,23 @@ pub fn performance_history(snap: &Snapshot, song_id: &str) -> Vec<PerformanceHis
             }
         })
         .collect()
+}
+
+/// 披露履歴の各行に対応する setlist_items の添字 ([`performance_history`] と同じ並び)。
+/// 行ごとの歌唱メンバーを引くのに使う。
+pub fn performance_item_indices<'a>(snap: &'a Snapshot, song_id: &str) -> &'a [u32] {
+    snap.song_index_by_id
+        .get(song_id)
+        .map_or(&[][..], |&si| snap.setlist_items_by_song[si as usize].as_slice())
+}
+
+/// 初披露の札。「この DB に載っている範囲で最古」の意味で、[`performance_ordinal_label`] と同じ基準。
+/// アプリも同じ語を出すので、ここが唯一の置き場。
+pub const FIRST_PERFORMANCE_LABEL: &str = "初披露";
+
+/// 何回目かの言い方 (1 は初披露)。
+pub fn performance_ordinal_label(ordinal: u32) -> String {
+    if ordinal <= 1 { FIRST_PERFORMANCE_LABEL.to_string() } else { format!("{ordinal} 回目") }
 }
 
 /// CD シリーズ別アルバム一覧 (fetchAlbumsAsync)。MIN(release_date) 降順。
@@ -873,6 +900,8 @@ mod tests {
             unit_id: row.get_unwrap("unit_id"),
             series_group: row.get_unwrap("series_group"),
             jasrac_code: row.get_unwrap("jasrac_code"),
+            joint_brand_ids: row.get_unwrap("joint_brand_ids"),
+            is_collab: row.get_unwrap::<_, i64>("is_collab") != 0,
         }
     }
 
@@ -1586,6 +1615,8 @@ mod tests {
             let mut expected: Vec<PerformanceHistoryEntry> = stmt
                 .query_map([song_id], |r| {
                     Ok(PerformanceHistoryEntry {
+                        // 何回目かは SQL に無い (Snapshot 構築時の導出)。下で別に検証する。
+                        ordinal: 0,
                         show_id: r.get_unwrap("show_id"),
                         event_id: r.get_unwrap("event_id"),
                         event_name: r.get_unwrap("event_name"),
@@ -1607,6 +1638,23 @@ mod tests {
                 actual.windows(2).all(|w| w[0].date >= w[1].date),
                 "song={song_id} の履歴が date 降順"
             );
+            // 何回目か: 1..=n の順列で、時系列 (日付 → 公演の並び → 曲順) の昇順に振られている。
+            {
+                let mut ordinals: Vec<u32> = actual.iter().map(|e| e.ordinal).collect();
+                ordinals.sort_unstable();
+                assert_eq!(ordinals, (1..=actual.len() as u32).collect::<Vec<_>>(), "song={song_id} の回数が順列");
+                let mut by_time: Vec<&PerformanceHistoryEntry> = actual.iter().collect();
+                by_time.sort_by(|a, b| {
+                    let show_order = |e: &PerformanceHistoryEntry| snap.shows[snap.show_index_by_id[&e.show_id] as usize].sort_order;
+                    (&a.date, show_order(a), a.position).cmp(&(&b.date, show_order(b), b.position))
+                });
+                assert!(
+                    by_time.windows(2).all(|w| w[0].ordinal < w[1].ordinal),
+                    "song={song_id} の回数が時系列の昇順"
+                );
+            }
+            let actual: Vec<PerformanceHistoryEntry> =
+                actual.into_iter().map(|e| PerformanceHistoryEntry { ordinal: 0, ..e }).collect();
 
             // 同日内の並びは SQL 未規定なので、決定キーに正規化して全カラム照合
             let canon = |v: &mut Vec<PerformanceHistoryEntry>| {

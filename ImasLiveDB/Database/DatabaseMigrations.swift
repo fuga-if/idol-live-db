@@ -907,7 +907,17 @@ enum DatabaseMigrations {
             }
         }
 
-        // v29: 衣装の目録と、その公演で着た記録。
+        // v29: 旧コミュニティ機能「コーレス」(SongCall) の撤去。
+        //
+        // 歌詞行ごとのコールガイド (CallGuide) に置き換わり、レコード型 SongCall は
+        // CloudKit からも同期しなくなった。v3 で対に作った song_videos は参考動画として
+        // 現役なので残す。表を落とせば索引も一緒に消えるが、意図を明示するため先に落とす。
+        migrator.registerMigration("v29_drop_song_calls") { db in
+            try db.execute(sql: "DROP INDEX IF EXISTS idx_song_calls_song")
+            try db.execute(sql: "DROP TABLE IF EXISTS song_calls")
+        }
+
+        // v30: 衣装の目録と、その公演で着た記録。
         //
         // 「この公演で何を着たか」と「この曲のとき何を着ていたか」を答えるための表。
         // 曲の衣装は**その披露で着ていたもの**なので、曲ではなくセトリ行に紐づける
@@ -915,7 +925,7 @@ enum DatabaseMigrations {
         //
         // setlist_item_id / idol_id が NULL なのは欠損ではなく正規の状態
         // (曲までは特定できていない / その場の全員)。NOT NULL にしてはいけない。
-        migrator.registerMigration("v29_costumes") { db in
+        migrator.registerMigration("v30_costumes") { db in
             try db.create(table: "costumes", ifNotExists: true) { t in
                 t.primaryKey("id", .text)
                 t.column("brand_id", .text)

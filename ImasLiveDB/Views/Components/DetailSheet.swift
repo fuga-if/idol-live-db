@@ -210,10 +210,8 @@ struct SongSheetContent: View {
     @State private var showLoginPrompt = false
     @State private var showPenlightVoteSheet = false
     @State private var showTagPicker = false
-    // コーレス (SongCall) / 参考動画 (SongVideo) オープン編集 (確定契約 §4)。
-    /// コーレス投稿/編集シート。nil=非表示, .create=新規, .edit(call)=編集。
-    @State private var callSheet: SongCommunityEditTarget<SongCall>?
-    /// 参考動画投稿/編集シート。
+    // 参考動画 (SongVideo) オープン編集 (確定契約 §4)。
+    /// 参考動画投稿/編集シート。nil=非表示, .create=新規, .edit(video)=編集。
     @State private var videoSheet: SongCommunityEditTarget<SongVideo>?
     /// 未ログインで投稿導線を押した時のログイン誘導。
     @State private var showCommunityLoginPrompt = false
@@ -305,9 +303,6 @@ struct SongSheetContent: View {
             SongTagPicker(songId: song.id, song: SongWithArtists(song: song, artistNames: song.singerLabel ?? "", performerIdols: vm.originalArtists)) {
                 Task { await vm.loadSongTags(song: song) }
             }
-        }
-        .sheet(item: $callSheet) { target in
-            callEditSheet(for: target)
         }
         .sheet(item: $videoSheet) { target in
             videoEditSheet(for: target)
@@ -488,8 +483,6 @@ struct SongSheetContent: View {
     private func handle(_ intent: SongCommunityIntent) {
         switch intent {
         case .addTag:        startCommunityEdit { showTagPicker = true }
-        case .createCall:    startCommunityEdit { callSheet = .create }
-        case .editCall(let call):   startCommunityEdit { callSheet = .edit(call) }
         case .createVideo:   startCommunityEdit { videoSheet = .create }
         case .editVideo(let video): startCommunityEdit { videoSheet = .edit(video) }
         case .votePenlight:  startCommunityEdit { showPenlightVoteSheet = true }
@@ -498,19 +491,7 @@ struct SongSheetContent: View {
         }
     }
 
-    // MARK: - Community edit (コーレス / 参考動画) sheets
-
-    @ViewBuilder
-    private func callEditSheet(for target: SongCommunityEditTarget<SongCall>) -> some View {
-        Group {
-            if let call = target.editing {
-                CallEditView(call: call) { Task { await vm.loadCommunityContent(song: song) } }
-            } else {
-                CallEditView(songId: song.id) { Task { await vm.loadCommunityContent(song: song) } }
-            }
-        }
-        .environment(database)
-    }
+    // MARK: - Community edit (参考動画) sheet
 
     @ViewBuilder
     private func videoEditSheet(for target: SongCommunityEditTarget<SongVideo>) -> some View {

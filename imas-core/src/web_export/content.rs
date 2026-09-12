@@ -3,7 +3,9 @@
 //! 文言を 1 箇所に集めてあるのは、同じ断り書きがページごとに少しずつ違う、という
 //! 事故を防ぐため。**Astro 側に日本語の固定文を書かない** (書くと出典が 2 つになる)。
 
-use super::dto::{AboutLink, AboutSection, AppLinks, AppOpen};
+use super::dto::{
+    AboutLink, AboutSection, AppLinks, AppOpen, CallGuideClap, CallGuideEmphasis, CallGuideVocabulary,
+};
 
 /// サイトの起点。独自ドメインを取るときに変えるのはここと `astro.config` の `site`、
 /// robots.txt の 3 箇所だけで済むようにしてある。
@@ -30,35 +32,307 @@ pub const JASRAC_LICENSE_NUMBER: &str = "J260943703";
 
 /// **この出面で歌詞を出すか。**
 ///
-/// `false` の間、歌詞は 1 文字も配らない (ページにも API 呼び出しにも出てこない)。
+/// **2026-09-08 現在 `false`。Web に歌詞を出すには JASRAC の追加の許諾が要る**と分かったため。
+/// (2026-09-06 に「この Web サイトも許諾 J260943703 の対象か」を確認して問題ないと回答を得たが、
+/// その後、出面は別枠の申請が必要と判明した。)
 ///
-/// ⚠️ **`true` にしてよいのは、JASRAC に「この Web サイトも許諾の対象か」を
-/// 確認してからだけ。** 許諾 (J260943703) はアプリの非商用配信に対して取ったもので、
-/// 同じ許諾が別の出面 (この静的サイト) に及ぶかは許諾書だけでは決まらない。
-/// 実装 (許諾番号の掲示・コピー防止・1 リクエスト 1 曲・回数ログ) は揃えてあるので、
-/// 確認が取れたらここを `true` にするだけで出る。
+/// **開けるときはこの 1 行を `true` にするだけ**。歌詞・コールガイド・案内文・API の呼び出し先は
+/// すべてこの定数から出ているので、他に触る場所は無い (`lyrics_note` / `LyricsBlock` /
+/// `call_guide_vocabulary` が全部ここを見る)。`false` の間は歌詞を 1 文字も配らない
+/// (ページにも JSON にも出てこず、アプリへ案内する断り書きだけになる)。
 ///
-/// もう 1 つの注意: 歌詞 1 曲の取得は D1 の読み取り 1 回で、これは
-/// 「リクエスト回数が数えられること」という許諾の要件そのものなのでキャッシュできない。
-/// D1 無料枠は 2026-09 時点で 96% 消費しているので、公開前に枠の状況も見ること。
+/// 出す側の実装 (許諾番号とマークの掲示・コピー防止・1 リクエスト 1 曲・回数ログ) は
+/// ここに揃っている。**本番で動く条件は API 側にもある** (docs/JASRAC.md §6.5):
+/// 匿名 GET が本番に出ていること、CORS の許可 origin に出面があること、D1 の読み取り枠。
+///
+/// 歌詞 1 曲の取得は D1 の読み取り 1 回で、これは「リクエスト回数が数えられること」
+/// という許諾の要件そのものなのでキャッシュできない。出面は押されたときだけ取りに行き、
+/// 歌詞検索 (索引の全走査で最も枠を食う) は出面に持たない。
 pub const LYRICS_ON_WEB: bool = false;
 
-/// 歌詞についての固定文。
+/// 歌詞を出していないときの状態の札。**「載せない」ではなく「まだ待っている」**と読める
+/// 短い語にする (許諾が下りたら開ける、という状態を出すのがこの札の役目)。
+/// `LYRICS_ON_WEB` を `true` にすると消える。
+pub const LYRICS_PENDING_LABEL: &str = "JASRAC 許諾待ち";
+
+/// 歌詞を出していないときの断り書き。
 ///
-/// **主語がアプリであることを崩さないこと。** JASRAC の許諾を受けて歌詞を
-/// 配信しているのはアプリであって、本サイトではない。ここを「本サイトは
-/// 許諾を受けています」と書くと事実に反する ([`LYRICS_ON_WEB`] が `true` に
-/// なったら、そのときは主語を足すこと)。
-pub const LYRICS_NOTE: &str = "歌詞はアプリ『アイドルライブDB』でご覧いただけます（アプリは JASRAC 許諾番号 J260943703 のもとで歌詞を配信しています）。本サイトでは歌詞を掲載していません。";
+/// **主語がアプリであることを崩さないこと。** この文が出るのは出面が歌詞を配って
+/// いないときで、そのとき JASRAC の許諾のもとで歌詞を配信しているのはアプリだけ。
+/// 許諾番号 J260943703 は**アプリの**もので、この出面のものではない。
+pub const LYRICS_OFF_NOTE: &str = "本サイトでの歌詞の掲載には JASRAC の許諾が別に必要なため、いまは見合わせています。歌詞はアプリ『アイドルライブDB』でご覧いただけます（アプリは JASRAC 許諾番号 J260943703 のもとで歌詞を配信しています）。";
+
+/// 歌詞を取りに行くボタンの文言。使われ方はコールガイド目的が多いので、歌詞だけの
+/// ボタンに見せない (About の説明文もこれを引く)。
+pub const LYRICS_READ_LABEL: &str = "歌詞とコールガイドを読む";
 
 /// 出面で歌詞を出すときの文言。許諾番号を必ず添える (掲示が許諾の条件)。
 pub const LYRICS_ON_WEB_NOTE: &str = "JASRAC 許諾番号 J260943703 のもとで掲載しています。1 曲ずつの表示のみで、まとめての取得はできません。";
+
+/// 今の設定での歌詞の断り書き (曲ページ・About)。
+pub fn lyrics_note() -> &'static str {
+    if LYRICS_ON_WEB {
+        LYRICS_ON_WEB_NOTE
+    } else {
+        LYRICS_OFF_NOTE
+    }
+}
+
+/// 今の設定での状態の札。出しているときは状態を示す必要が無いので `None`。
+pub fn lyrics_status_label() -> Option<String> {
+    (!LYRICS_ON_WEB).then(|| LYRICS_PENDING_LABEL.to_string())
+}
+
+// ---- コールガイド (歌詞行につけるコール) の語彙 -------------------------------
+// アプリ (`ImasLiveDB/Models/Lyrics.swift` / `CallGuideLineViews.swift`) と同じ語・記号。
+// 出面はこれを置くだけで、意味 (どれが手拍子か・何番のアンカーか) は決めない。
+
+/// 手拍子の指示 (Worker の `clap` の値, 記号, 名前)。行頭に記号、凡例に名前。
+pub const CALL_GUIDE_CLAPS: [(&str, &str, &str); 4] = [
+    ("back_beat", "★", "裏拍"),
+    ("four_on_floor", "■", "4つ打ち"),
+    ("ppph", "♠", "PPPH"),
+    ("none", "♥", "コールなし"),
+];
+/// コールの強調度 (Worker の `emphasis` の値, 名前)。`normal` は既定なので凡例に出さない。
+pub const CALL_GUIDE_EMPHASES: [(&str, &str); 3] = [
+    ("normal", "通常"),
+    ("optional", "おこのみで"),
+    ("performer_request", "演者要望"),
+];
+/// 歌詞が直されてアンカーがズレたコールの印。
+pub const CALL_STALE_LABEL: &str = "ズレ";
+
+/// 出面に配るコールガイドの語彙 (上の定数を 1 つに束ねる)。
+pub fn call_guide_vocabulary() -> CallGuideVocabulary {
+    CallGuideVocabulary {
+        claps: CALL_GUIDE_CLAPS
+            .iter()
+            .map(|(kind, symbol, label)| CallGuideClap {
+                kind: kind.to_string(),
+                symbol: symbol.to_string(),
+                label: label.to_string(),
+            })
+            .collect(),
+        emphases: CALL_GUIDE_EMPHASES
+            .iter()
+            .map(|(kind, label)| CallGuideEmphasis { kind: kind.to_string(), label: label.to_string() })
+            .collect(),
+        stale_label: CALL_STALE_LABEL.to_string(),
+    }
+}
+
+/// 歌詞の中の言葉で曲を探す API (検索ページの「歌詞」)。出面で歌詞を出すときだけ。
+/// 応答は曲 id と一致箇所の窓だけで、本文は 1 曲ずつの GET と同じ経路。
+pub fn lyrics_search_url() -> Option<String> {
+    LYRICS_ON_WEB.then(|| format!("{API_ORIGIN}/lyrics/search"))
+}
+
+/// フッタに載せる許諾の表示 (マークの隣の文字)。歌詞を出しているときだけ。
+/// 「お申込みいただいたサイトのトップページ等の見やすい位置に表示」が許諾の条件で、
+/// 全ページ共通のフッタに置けばトップにも載る。
+pub fn lyrics_license_notice() -> Option<String> {
+    LYRICS_ON_WEB.then(|| format!("JASRAC 許諾番号 {JASRAC_LICENSE_NUMBER}"))
+}
+
+/// 載せていないものの断り。歌詞を出しているときは歌詞を含めない。
+fn not_hosted_note() -> &'static str {
+    if LYRICS_ON_WEB {
+        "キャラクター画像・公式ロゴは掲載していません。"
+    } else {
+        "キャラクター画像・公式ロゴ・歌詞は掲載していません。"
+    }
+}
+
+/// フッタの断り書き (全ページ)。**出面の日本語はここが正** — Astro に文面を書かない。
+pub fn footer_notes() -> Vec<String> {
+    vec![
+        SITE_DISCLAIMER.to_string(),
+        format!("{}ジャケット画像は Apple Music の提供によるものです。", not_hosted_note()),
+    ]
+}
+
+/// コールガイドの進捗ページ (`/calls/`) の説明。iOS のダッシュボードと同じ文。
+pub const CALL_GUIDE_INTRO: &str = if LYRICS_ON_WEB {
+    // 出面で読める間は、読み手が得るものを先に言う (進捗表そのものが目的の人は少ない)。
+    "曲ページの「歌詞とコールガイドを読む」を押すと、歌詞の行ごとに「ここでこう叫ぶ」が読めます。それがコールガイドです。書き込みはアプリの歌詞タブから。ここでは進み具合を見られます。"
+} else {
+    "歌詞の行ごとに「ここでこう叫ぶ」を書き込むのがコールガイドです。読み書きはアプリの歌詞タブから。ここでは進み具合だけを見られます。"
+};
+
+/// 「アプリで、もっと」(トップ) と About の説明。機能の並びは [`APP_FEATURES_NOTE`] と同じ 1 箇所。
+pub fn app_note() -> String {
+    format!("{APP_FEATURES_NOTE}このサイトは閲覧と共有に専念しています。")
+}
+
+/// ユニットの種類の言い方。一覧の札 (例外の「公演限定」だけ) と詳細ページで同じ語。
+pub const UNIT_PERMANENT_LABEL: &str = "常設ユニット";
+pub const UNIT_LIMITED_LABEL: &str = "公演限定";
+
+pub fn unit_kind_label(is_permanent: bool) -> &'static str {
+    if is_permanent { UNIT_PERMANENT_LABEL } else { UNIT_LIMITED_LABEL }
+}
+
+// ---- タグ (曲に付いたコミュニティのタグ) の一覧 ----------------------------------
+/// タグ一覧 (`/tags/`) の見出しと、楽曲一覧からの入口の文言。
+pub const TAG_LIST_TITLE: &str = "タグ";
+pub const TAG_LIST_LINK_LABEL: &str = "タグから探す";
+pub const TAG_LIST_LEDE: &str =
+    "アプリの利用者が曲に付けたタグです。付いている曲の多い順。タグ付けはアプリから。";
+pub const TAG_LIST_DESCRIPTION: &str = "アイドルマスターの楽曲に付いたタグの一覧。タグから曲を探せます。";
+/// 運営が用意したタグの札。
+pub const TAG_OFFICIAL_LABEL: &str = "公式";
+/// タグ 1 つの曲一覧 (`/tags/<tagId>/`) の見出し・説明。
+pub fn tag_page_title(name: &str) -> String {
+    format!("「{name}」の曲")
+}
+pub fn tag_page_lede(name: &str) -> String {
+    format!("「{name}」のタグが付いた曲を、付けた人の多い順に並べています。")
+}
+pub fn tag_page_description(name: &str, count: u32) -> String {
+    format!("アイドルマスターの楽曲のうち「{name}」のタグが付いた {count} 曲。")
+}
+
+/// シリーズ横断の合同曲に付ける札。ブランド別の一覧では、そのブランドの曲に混じって出るので
+/// 「これは合同」と言っておく。
+pub const SONG_COLLAB_LABEL: &str = "合同曲";
+
+// ---- アイドル一覧の表 -----------------------------------------------------------
+/// 表の見出し (名前の列の次から)。値の並びは `emit::lists::idol_list_item` が同じ順で作る。
+pub const IDOL_COLUMN_BRAND: &str = "ブランド";
+pub const IDOL_COLUMN_VOICE_ACTOR: &str = "CV";
+pub const IDOL_COLUMN_BIRTHDAY: &str = "誕生日";
+pub const IDOL_COLUMN_AGE: &str = "年齢";
+pub const IDOL_COLUMN_HEIGHT: &str = "身長";
+pub const IDOL_COLUMN_WEIGHT: &str = "体重";
+pub const IDOL_COLUMN_BLOOD: &str = "血液型";
+pub const IDOL_COLUMN_CONSTELLATION: &str = "星座";
+pub const IDOL_COLUMN_BIRTHPLACE: &str = "出身";
+pub const IDOL_COLUMN_ATTRIBUTE: &str = "属性";
+pub const IDOL_COLUMN_DEBUT: &str = "デビュー日";
+pub const IDOL_COLUMN_SONGS: &str = "持ち曲";
+pub const IDOL_COLUMN_SHOWS: &str = "出演";
+/// 名前の列の見出し。
+pub const IDOL_COLUMN_NAME: &str = "名前";
+
+/// デビュー日 (`YYYY-MM-DD`)。年まで出す (誕生日と違い、いつデビューしたかが読みどころ)。
+pub fn idol_debut_display(debut: &str) -> String {
+    match debut.split('-').collect::<Vec<_>>().as_slice() {
+        [y, m, d] => match (m.parse::<i64>(), d.parse::<i64>()) {
+            (Ok(m), Ok(d)) => format!("{y}年{m}月{d}日"),
+            // 数字として読めない形はそのまま出す (原本も同じ)。
+            _ => debut.to_string(),
+        },
+        _ => debut.to_string(),
+    }
+}
+
+pub fn idol_age_display(age: i64) -> String {
+    format!("{age}歳")
+}
+
+pub fn idol_weight_display(weight: f64) -> String {
+    format!("{}kg", weight as i64)
+}
+
+pub fn idol_blood_display(blood_type: &str) -> String {
+    format!("{blood_type}型")
+}
+
+/// ブランド内の属性。`cute` のような英字の分類は先頭だけ大文字にし、
+/// `1年` のように既に日本語のものはそのまま出す (対応表を持つほどの規則性が無い)。
+pub fn idol_attribute_label(attribute: &str) -> String {
+    let mut chars = attribute.chars();
+    match chars.next() {
+        Some(first) if first.is_ascii_alphabetic() => {
+            first.to_ascii_uppercase().to_string() + chars.as_str()
+        }
+        _ => attribute.to_string(),
+    }
+}
+
+// ---- 一覧の頭の切替 -------------------------------------------------------------
+/// 帯 (今後 / 開催済み / カレンダー) の名。読み上げにだけ使う。
+pub const FILTER_SCOPE_EVENTS: &str = "今後 / 開催済み";
+/// 畳んだメニューの軸名。閉じた札に「軸 いまの値」と出る。
+pub const FILTER_AXIS_BRAND: &str = "ブランド";
+pub const FILTER_AXIS_YEAR: &str = "年";
+pub const FILTER_AXIS_BIRTH_MONTH: &str = "誕生月";
+pub const FILTER_AXIS_PREFECTURE: &str = "都道府県";
+pub const FILTER_AXIS_MONTH: &str = "月";
+
+// ---- カレンダー -----------------------------------------------------------------
+pub const CALENDAR_TITLE: &str = "カレンダー";
+pub const CALENDAR_DESCRIPTION: &str = "アイドルマスターのライブ公演・楽曲リリース・誕生日・記念日のカレンダー。";
+pub const CALENDAR_TODAY_LINK: &str = "今月へ";
+/// 日曜始まり (アプリのカレンダーと同じ)。
+pub const CALENDAR_WEEKDAYS: [&str; 7] = ["日", "月", "火", "水", "木", "金", "土"];
+pub const CALENDAR_KIND_SHOW: &str = "公演";
+pub const CALENDAR_KIND_RELEASE: &str = "リリース";
+pub const CALENDAR_KIND_BIRTHDAY: &str = "誕生日";
+pub const CALENDAR_KIND_ANNIVERSARY: &str = "記念日";
+pub const CALENDAR_KIND_TICKET_DEADLINE: &str = "申込締切";
+pub const CALENDAR_KIND_TICKET_LOTTERY: &str = "当落発表";
+pub const CALENDAR_KIND_TICKET_OPEN: &str = "受付開始";
+/// 件数の 1 行での「リリース曲」(予定の札は「リリース」。公演・誕生日・記念日は札と同じ語)。
+pub const CALENDAR_SUMMARY_RELEASES: &str = "リリース曲";
+
+pub fn calendar_month_title(year: i32, month: u32) -> String {
+    format!("{year}年{month}月")
+}
+
+pub fn calendar_month_description(year: i32, month: u32, shows: u32) -> String {
+    format!("{year}年{month}月のアイドルマスターの公演 {shows} 件と、楽曲のリリース・誕生日・記念日の日程。")
+}
+
+/// 月の件数 (数え方は `emit::calendar::month_counts`)。説明文と `calendar_summary` の材料。
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub struct CalendarCounts {
+    pub shows: u32,
+    pub release_songs: u32,
+    pub birthdays: u32,
+    pub anniversaries: u32,
+}
+
+/// この月の件数を 1 行に (`公演 10 ・ リリース曲 35 ・ 誕生日 32 ・ 記念日 3`)。0 は言わない。
+pub fn calendar_summary(c: &CalendarCounts) -> Option<String> {
+    let part = |label: &str, n: u32| (n > 0).then(|| format!("{label} {n}"));
+    crate::domain::display_join::join_parts([
+        part(CALENDAR_KIND_SHOW, c.shows),
+        part(CALENDAR_SUMMARY_RELEASES, c.release_songs),
+        part(CALENDAR_KIND_BIRTHDAY, c.birthdays),
+        part(CALENDAR_KIND_ANNIVERSARY, c.anniversaries),
+    ])
+}
+
+/// 同じ日に出た曲をまとめた札。曲は一覧に全部並べる。
+pub fn calendar_release_label(count: usize) -> String {
+    format!("リリース {count} 曲")
+}
+
+/// 枠に入り切らなかった件数。
+pub fn calendar_overflow_label(count: usize) -> String {
+    format!("+{count}")
+}
+
+/// 記念日の表示 (`アーケード版稼働 21周年`)。当年 (0 周年) は年数を付けない。
+pub fn anniversary_display(label: &str, years: i32) -> String {
+    if years > 0 { format!("{label} {years}周年") } else { label.to_string() }
+}
 
 /// 歌詞・コールガイドを取りに行く API の起点。
 pub const API_ORIGIN: &str = "https://imas-live-api.tokata3011.workers.dev";
 
 /// 「アプリで開く」の説明文 (詳細ページ共通)。
-pub const APP_OPEN_NOTE: &str = "参加記録・投票・歌詞・コール・タグ付けはアプリでご利用いただけます。";
+pub const APP_OPEN_NOTE: &str = APP_FEATURES_NOTE;
+
+/// アプリでしかできないことの並び。歌詞を出面で出すときは「歌詞」を「歌詞検索」に
+/// 言い換える (歌詞そのものは出面にもある)。
+pub const APP_FEATURES_NOTE: &str = if LYRICS_ON_WEB {
+    "参加記録・投票・コールの編集・タグ付けはアプリでご利用いただけます。"
+} else {
+    "参加記録・投票・歌詞・コール・タグ付けはアプリでご利用いただけます。"
+};
 
 /// カスタムスキーム。`DeeplinkRouter` が受けるのは events / shows / polls の 3 種だけ。
 pub const DEEPLINK_SCHEME: &str = "imaslivedb";
@@ -119,7 +393,16 @@ pub fn absolute(path: &str) -> String {
     format!("{SITE_ORIGIN}{path}")
 }
 
-/// ライブ種別の日本語表記。一覧を全種別で出すので、行に付ける見分けが要る。
+/// 既定の種別 (ライブ)。一覧の行で札にしないのはこれだけ (例外の種別だけを言う)。
+pub const DEFAULT_EVENT_KIND: &str = "live";
+
+/// 一覧の行に出す種別の札。既定の種別 (ライブ) には付けない — ほぼ全行に同じ札が並んでも
+/// 見分けにならず、フェス・リリースイベントのような例外だけを言えばよい。
+pub fn kind_chip(kind: &str) -> Option<&'static str> {
+    (kind != DEFAULT_EVENT_KIND).then(|| kind_label(kind))
+}
+
+/// ライブ種別の日本語表記。
 pub fn kind_label(kind: &str) -> &'static str {
     match kind {
         "live" => "ライブ",
@@ -129,6 +412,29 @@ pub fn kind_label(kind: &str) -> &'static str {
         "stream" => "配信",
         _ => "その他",
     }
+}
+
+/// 曲種別の日本語表記 (`songs.song_type` の語彙: solo / unit / all / cover / tie_in)。
+/// 知らない値は捏造せず `None` (受け手は出さない)。
+pub fn song_type_label(song_type: &str) -> Option<&'static str> {
+    match song_type {
+        "solo" => Some("ソロ曲"),
+        "unit" => Some("ユニット曲"),
+        "all" => Some("全体曲"),
+        "cover" => Some("カバー"),
+        "tie_in" => Some("タイアップ"),
+        _ => None,
+    }
+}
+
+/// 楽曲一覧の行に添える作家の記載。「作曲」の語はここだけ (受け手は置くだけ)。
+pub fn composer_credit(name: &str) -> String {
+    format!("作曲 {name}")
+}
+
+/// 楽曲一覧の行に添える収録盤の記載。「収録」の語はここだけ。
+pub fn cd_credit(title: &str) -> String {
+    format!("収録 {title}")
 }
 
 /// 一覧に出す全種別。`event_list_queries` に渡す `kinds` はここを唯一の出典にする
@@ -150,14 +456,24 @@ pub fn about_sections() -> Vec<AboutSection> {
         AboutSection {
             heading: "版権について".to_string(),
             paragraphs: vec![
-                "キャラクター画像・公式ロゴ・歌詞は掲載していません。アイドルは名前の 1 文字を使ったモノグラムで表示しています。".to_string(),
-                "ジャケット画像は Apple Music の配信情報 (songs.artwork_url) を参照しています。".to_string(),
+                format!("{}アイドルは名前と、そのアイドルの色だけで表示しています。", not_hosted_note()),
+                "ジャケット画像は Apple Music が配信しているものを参照しています。".to_string(),
             ],
             links: vec![],
         },
         AboutSection {
             heading: "歌詞について".to_string(),
-            paragraphs: vec![LYRICS_NOTE.to_string()],
+            paragraphs: if LYRICS_ON_WEB {
+                vec![
+                    lyrics_note().to_string(),
+                    format!("曲ページで「{LYRICS_READ_LABEL}」を押すと、その 1 曲の歌詞とコールガイドが表示されます。歌詞の中の言葉から曲を探すには、検索ページの「歌詞」を使ってください。コールガイドの編集はアプリでご利用いただけます。"),
+                ]
+            } else {
+                vec![
+                    lyrics_note().to_string(),
+                    "歌詞の中の言葉から曲を探す検索も、同じ理由で止めています（一致した箇所の前後を返すため、歌詞の掲載と同じ扱いになります）。許諾が得られ次第、どちらも本サイトで開きます。".to_string(),
+                ]
+            },
             links: vec![AboutLink {
                 label: "App Store でアプリを見る".to_string(),
                 href: APP_STORE_URL.to_string(),
@@ -167,7 +483,7 @@ pub fn about_sections() -> Vec<AboutSection> {
         AboutSection {
             heading: "アプリについて".to_string(),
             paragraphs: vec![
-                "参加記録・投票・タグ付け・歌詞・コールはアプリでご利用いただけます。本サイトは閲覧専用です。".to_string(),
+                app_note(),
             ],
             links: vec![
                 AboutLink { label: "X (@idollivedb)".to_string(), href: X_URL.to_string(), external: true },

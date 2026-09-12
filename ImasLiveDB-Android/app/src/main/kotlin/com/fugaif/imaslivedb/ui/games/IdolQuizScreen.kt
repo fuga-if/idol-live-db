@@ -360,7 +360,7 @@ private fun IdolValueBadge(points: Int) {
 @Composable
 private fun IdolSilhouette(idol: Idol, revealed: Boolean) {
     if (revealed) {
-        ImasAvatar(label = idol.name, seed = idol.color, brand = idol.brandId, size = 56.dp)
+        ImasAvatar(label = idol.shortName, seed = idol.color, brand = idol.brandId, size = 56.dp)
     } else {
         Box(
             modifier = Modifier.size(56.dp).clip(CircleShape).background(DS.fill),

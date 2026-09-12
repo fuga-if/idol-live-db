@@ -27,6 +27,7 @@ master.sqlite → CloudKit に一括反映します（直接 CloudKit に書く�
 | フォルダ | 追加するもの | 主なキー |
 |---|---|---|
 | `data/songs/` | 楽曲 | `id` `title` `brand_id` `song_type` `release_date` `original_singers[]` |
+| | 合同曲なら + | `joint_brand_ids` (参加ブランドをカンマ区切り、`brand_id` 以外) `is_collab` |
 | `data/setlists/` | セットリスト | `show_id` `songs[]`（`position` + `title`/`song_id` + `performers`） |
 | `data/events/` | ライブ/イベント + 公演 | `events[]`（`id` `brand_id` `name` `kind` + `shows[]`） |
 | `data/idols/` | アイドル | `id` `name` `brand_id` `brands[]` |

@@ -66,32 +66,20 @@
         "themeKey": "brand:ml",
         "artworkUrl": null
       },
+      "title": "THE IDOLM@STER MILLION LIVE! 10thLIVE TOUR Act-4 ROAD TO MEMORIES 幕張",
+      "showLabel": "DAY1",
       "date": "2026-04-03",
-      "shortDate": "26/04",
-      "venueLabel": "幕張メッセ",
-      "venue": {
-        "kind": "venue",
-        "id": "venue_makuhari",
-        "name": "幕張メッセ",
-        "sub": "千葉県",
-        "path": "/venues/venue_makuhari/",
-        "themeKey": "neutral",
-        "artworkUrl": null
+      "dateBadge": {
+        "iso": "2026-04-03",
+        "year": "2026",
+        "monthDay": "4/3",
+        "weekday": "金",
+        "spoken": "2026年4月3日 金曜日"
       },
+      "venueLabel": null,
       "hall": "イベントホール",
-      "startTime": "17:00",
-      "setlistCount": 23,
-      "streamPlatform": "ニコニコ生放送",
-      "event": {
-        "kind": "event",
-        "id": "ev_sample",
-        "name": "THE IDOLM@STER MILLION LIVE! 10thLIVE TOUR Act-4 ROAD TO MEMORIES 幕張",
-        "sub": "2026",
-        "path": "/events/ev_sample/",
-        "themeKey": "brand:ml",
-        "artworkUrl": null
-      },
-      "subtitle": "DAY1 ・ 幕張メッセ ・ イベントホール ・ 17:00 開演"
+      "startTimeDisplay": "17:00 開演",
+      "setlistCount": 23
     }
   ],
   "app": {

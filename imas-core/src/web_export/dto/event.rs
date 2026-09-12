@@ -1,6 +1,6 @@
 //! ライブ (event) 詳細ページの DTO。
 
-use super::common::{AppOpen, Ref, SeoBlock};
+use super::common::{AppOpen, DateBadge, Ref, SeoBlock, StatTile};
 
 web_dto! {
     /// `/events/<id>/` の中身 (`events/<key>.json`)。
@@ -18,13 +18,16 @@ web_dto! {
         pub kind: String,
         /// 種別チップに出す日本語表記。
         pub kind_label: String,
-        pub first_date: Option<String>,
-        pub last_date: Option<String>,
+        /// 開催期間を曜日つきで 1 本にしたもの (`2026-09-19 (土) 〜 2026-09-20 (日)`)。
+        /// 日付が無ければ `None`。
+        pub date_display: Option<String>,
         /// `first_date >= todayJst`。判定は `event_grouping::group_events_by_year` を
         /// 1 要素で呼んだ結果で、**`>=` をここに書かない** (規則を二重に持たないため)。
         pub is_upcoming: bool,
         pub ticket: TicketInfo,
-        pub stats: EventStats,
+        /// 数の帯 (公演 / のべ曲数 / 異なり曲数 / 出演者)。**0 は落としてある**
+        /// (開催前は曲数が全部 0 で、並べても「まだ無い」以上のことを言わない)。
+        pub stat_tiles: Vec<StatTile>,
         pub shows: Vec<ShowSummary>,
         /// `event_attendance` が `None` を返しうるので `Option`。
         /// v1 の Web は公演ごとの出演者だけを出し、欠席マトリクスは描かない。
@@ -50,40 +53,33 @@ web_dto! {
 }
 
 web_dto! {
-    /// `event_detail_queries::event_stats` の写し。
-    #[derive(Copy, Eq)]
-    pub struct EventStats {
-        pub show_count: u32,
-        pub total_songs: u32,
-        pub unique_songs: u32,
-        pub cast_count: u32,
-    }
-}
-
-web_dto! {
     /// 公演 1 件の要約 (ライブ詳細・会場詳細・トップの「最近の公演」で使い回す)。
+    ///
+    /// **並べる場所によって見出しが変わる。** ライブ詳細の中では公演名が見出しで、
+    /// ライブの外 (トップ・会場) ではライブ名が見出しになり、公演名は [`Self::show_label`]
+    /// として副題へ回る。どちらの文脈かは JSON を作る側 (`emit::events::ShowContext`) が
+    /// 決めていて、TS は来た形を置くだけ。
     #[derive(Eq)]
     pub struct ShowSummary {
         #[serde(rename = "ref")]
         pub reference: Ref,
+        /// 行の見出し (文脈によって公演名かライブ名)。
+        pub title: String,
+        /// 公演名からライブ名と重なる部分を落としたもの (`DAY1`)。ライブ名を見出しにする
+        /// 文脈で副題に置く。ライブ詳細の中 (見出しが公演名) では `None`、
+        /// 公演名がライブ名そのものでも `None` (同じ名前を 2 行続けない)。
+        /// 規則は披露履歴の `placeDisplay` と同じ `distinguishing_show_name`。
+        pub show_label: Option<String>,
         pub date: String,
-        /// `short_year_month::short_year_month(date)` の結果。
-        pub short_date: String,
+        /// 行の左端に置く日付ブロック。
+        pub date_badge: DateBadge,
         /// `shows.venue_label` (会場マスタに紐付かない自由記述もある)。
+        /// **会場詳細の中では `None`** (全行その会場なので繰り返さない)。
         pub venue_label: Option<String>,
-        pub venue: Option<Ref>,
         pub hall: Option<String>,
-        pub start_time: Option<String>,
+        /// `17:30 開演`。
+        pub start_time_display: Option<String>,
         pub setlist_count: u32,
-        pub stream_platform: Option<String>,
-        /// ライブ名 (会場ページなど、ライブの外から公演を並べるときに要る)。
-        pub event: Option<Ref>,
-        /// 行の副題。
-        ///
-        /// **並べる場所によって中身が変わる**: ライブ詳細では親ライブ名が自明なので入らず、
-        /// トップと会場詳細では入る。出し分けは JSON を作る側で済ませてあるので、
-        /// TS は文脈を見ずにそのまま描いてよい ([`Self::event`] の有無と対応する)。
-        pub subtitle: Option<String>,
     }
 }
 

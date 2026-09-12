@@ -349,7 +349,7 @@ private fun IdolRow(
         ImasLeadBar(seedHex = idol.color, brandId = idol.brandId, height = 36.dp)
         Box(Modifier.padding(start = 8.dp)) {
             // entityId を渡すと、ユーザーが取り込んだ画像があればモノグラムの代わりにそれが出る。
-            ImasAvatar(label = idol.name, seed = idol.color, brand = idol.brandId, size = 40.dp,
+            ImasAvatar(label = idol.shortName, seed = idol.color, brand = idol.brandId, size = 40.dp,
                 isPick = isPick, entityId = idol.id)
         }
         Column(Modifier.weight(1f).padding(start = 12.dp)) {
@@ -478,7 +478,7 @@ private fun IdolGridCell(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(4.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        ImasAvatar(label = idol.name, seed = idol.color, brand = idol.brandId, size = 60.dp,
+        ImasAvatar(label = idol.shortName, seed = idol.color, brand = idol.brandId, size = 60.dp,
             isPick = isPick, entityId = idol.id)
         Text(idol.name, fontSize = 12.sp, color = DS.ink, maxLines = 1, overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(top = 2.dp))

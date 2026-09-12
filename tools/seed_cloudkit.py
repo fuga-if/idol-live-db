@@ -15,6 +15,7 @@ Auth:
 import argparse
 import json
 import os
+import re
 import sqlite3
 import sys
 import time
@@ -116,6 +117,36 @@ RECORD_TYPE_MAP = {
     "meta": "MetaData",
 }
 
+# --ids / --ids-file で絞るときに見る列。表に無いテーブルは絞れない (全件 push)。
+# --replace はこの表にあるテーブルにしか使えない (理由は assert_replace_safe)。
+ID_FILTER_COLUMN = {
+    "songs": "id",
+    "song_artists": "song_id",
+    "show_cast": "show_id",
+    "setlist_items": "id",
+    "idols": "id",
+    "setlist_performers": "setlist_item_id",
+    "events": "id",
+    "shows": "event_id",
+    "units": "id",
+}
+
+# 渡す id が「何の id か」。**列名からは決まらない** ので ID_FILTER_COLUMN とは別に持つ:
+# songs.id と song_artists.song_id はどちらも曲 id だが、
+# setlist_items.id と idols.id は同じ "id" でも別物。
+# 同じ空間の表だけをまとめて 1 回の push で絞れる (呼び出し側 apply_data.py がここを読む)。
+SCOPED_ID_SPACE = {
+    "songs": "song",
+    "song_artists": "song",
+    "setlist_items": "setlist_item",
+    "setlist_performers": "setlist_item",
+    "events": "event",
+    "shows": "event",
+    "show_cast": "show",
+    "idols": "idol",
+    "units": "unit",
+}
+
 # ---------------------------------------------------------------------------
 # Schema introspection helpers
 # ---------------------------------------------------------------------------
@@ -197,6 +228,31 @@ def next_modified_ms() -> int:
 NOW_MS = int(datetime.now(timezone.utc).timestamp() * 1000)
 
 
+def sent_columns(
+    col_info: list[dict],
+    pk_cols: list[str],
+    exclude_fields: Optional[set] = None,
+    include_fields: Optional[set] = None,
+) -> list[tuple[dict, str]]:
+    """CloudKit に送る列を (列情報, camelCase 名) で返す。
+
+    - 単一 PK は recordName に使うので送らない
+    - exclude_fields: camelCase フィールド名を除外 (Production に未デプロイな列を飛ばす用途)
+    - include_fields: camelCase フィールド名のホワイトリスト (指定時はそれ以外を飛ばす)
+    """
+    out = []
+    for col in col_info:
+        if len(pk_cols) == 1 and col["name"] == pk_cols[0]:
+            continue
+        ck_name = snake_to_camel(col["name"])
+        if include_fields is not None and ck_name not in include_fields:
+            continue
+        if exclude_fields and ck_name in exclude_fields:
+            continue
+        out.append((col, ck_name))
+    return out
+
+
 def build_fields(
     row: dict,
     col_info: list[dict],
@@ -206,23 +262,14 @@ def build_fields(
 ) -> dict:
     """Convert a SQLite row dict to CloudKit fields dict.
 
-    - exclude_fields: camelCase フィールド名を除外 (Production に未デプロイな列を飛ばす用途)
-    - include_fields: camelCase フィールド名をホワイトリスト (指定時はそれ以外を飛ばす)
+    送る列は sent_columns で決める。値が NULL の列は送らない (forceUpdate では CloudKit 側の
+    値が残る。消したいときは forceReplace = rows_to_operations の replace)。
     """
     fields = {}
-    for col in col_info:
-        raw_name = col["name"]
-        # 単一PKはrecordNameに使うのでフィールドに含めない
-        if len(pk_cols) == 1 and raw_name == pk_cols[0]:
-            continue
-        value = row.get(raw_name)
+    for col, ck_name in sent_columns(col_info, pk_cols, exclude_fields, include_fields):
+        value = row.get(col["name"])
         if value is None:
             continue  # omit NULL fields
-        ck_name = snake_to_camel(raw_name)
-        if include_fields is not None and ck_name not in include_fields:
-            continue
-        if exclude_fields and ck_name in exclude_fields:
-            continue
         ck_type = sql_type_to_cloudkit(col["type"])
         fields[ck_name] = {"value": value, "type": ck_type}
     # Add modifiedAt timestamp (milliseconds since epoch)
@@ -237,8 +284,16 @@ def rows_to_operations(
     pk_cols: list[str],
     exclude_fields: Optional[set] = None,
     include_fields: Optional[set] = None,
+    replace: bool = False,
 ) -> list[dict]:
-    """Convert SQLite rows to CloudKit forceReplace operations."""
+    """Convert SQLite rows to CloudKit upsert operations.
+
+    既定は forceUpdate: 送った列だけを書き換え、送らなかった列は CloudKit 側の値が残る。
+    NULL 列は build_fields が省くので、**ローカルで NULL にした修正は forceUpdate では伝わらない**
+    (翌日の CloudKit → db/master.sql の export で巻き戻る)。
+    replace=True は forceReplace: レコードを送った列だけで置き換えるので NULL 化も伝わる。
+    代わりに送らなかった列は消えるため、CLI では assert_replace_safe を通した対象にしか使わない。
+    """
     record_type = RECORD_TYPE_MAP[table]
     ops = []
     for row in rows:
@@ -246,7 +301,7 @@ def rows_to_operations(
         fields = build_fields(row, col_info, pk_cols, exclude_fields, include_fields)
         ops.append(
             {
-                "operationType": "forceUpdate",
+                "operationType": "forceReplace" if replace else "forceUpdate",
                 "record": {
                     "recordType": record_type,
                     "recordName": record_name,
@@ -255,6 +310,53 @@ def rows_to_operations(
             }
         )
     return ops
+
+
+SCHEMA_PATH = Path(__file__).resolve().parent / "cloudkit_schema.ckdb"
+# CloudKit 側だけが持つ運用列。forceReplace で送らなくても意味が変わらない
+# (deletedAt 無し = 生存、modifiedAt は build_fields が毎回付ける)。
+SCHEMA_MANAGED_FIELDS = {"deletedAt", "modifiedAt"}
+
+
+def schema_fields(record_type: str) -> set[str]:
+    """tools/cloudkit_schema.ckdb (CloudKit コンソールの export) から record type の列名を読む。
+
+    列は `name TYPE ...` の行。システム列は `"___createTime"` のように引用符つき、
+    GRANT 行は大文字始まりなので、小文字始まりの語だけ拾えば列名になる。
+    """
+    text = SCHEMA_PATH.read_text(encoding="utf-8")
+    m = re.search(r"RECORD TYPE %s \((.*?)\n\s*\);" % re.escape(record_type), text, re.S)
+    if not m:
+        raise SystemExit(f"Error: {SCHEMA_PATH.name} に RECORD TYPE {record_type} が無い")
+    return set(re.findall(r"^\s+([a-z]\w*)\s", m.group(1), re.M))
+
+
+def assert_replace_safe(
+    conn: sqlite3.Connection,
+    table: str,
+    exclude_fields: Optional[set],
+    include_fields: Optional[set],
+) -> None:
+    """forceReplace (--replace) がこのテーブルに安全かを、push を始める前に確かめる。
+
+    - id で絞れるテーブルに限る。全件 replace は、ダンプの後に CloudKit 側で入った投稿を
+      「ローカルでは NULL の列」として消してしまう。
+    - CloudKit の列 (システム列と運用列を除く) が、送る列に収まっていること。
+      収まらない列は forceReplace で黙って消えるので止める。
+
+    main が対象テーブル全部をこの順で通してから push を始める (途中のテーブルで止まると
+    その前のテーブルだけ送られた状態になるため)。
+    """
+    if table not in ID_FILTER_COLUMN:
+        raise SystemExit(f"Error: --replace は {table} では使えない (--ids で絞れないテーブル)")
+    col_info, _ = push_columns(conn, table)
+    sent = {ck for _, ck in sent_columns(col_info, get_primary_keys(conn, table), exclude_fields, include_fields)}
+    missing = schema_fields(RECORD_TYPE_MAP[table]) - SCHEMA_MANAGED_FIELDS - sent
+    if missing:
+        raise SystemExit(
+            f"Error: --replace は {table} に使えない。CloudKit 側の列 {sorted(missing)} を"
+            f" ローカルが持っていないので、forceReplace すると消える。"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -365,36 +467,16 @@ def upload_operations(
     return (processed - error_count, error_count)
 
 
-def seed_table(
-    conn: sqlite3.Connection,
-    table: str,
-    dry_run: bool,
-    exclude_fields: Optional[set] = None,
-    include_fields: Optional[set] = None,
-    song_ids: Optional[list] = None,
-) -> tuple[int, int]:
-    """Read a table from SQLite and upload all records to CloudKit.
+def push_columns(conn: sqlite3.Connection, table: str) -> tuple[list[dict], str]:
+    """push する列 (get_column_info の形) と、それを引く SELECT 句。
 
-    song_ids が指定された場合、songs は id、song_artists は song_id でその集合に絞る
-    (新曲だけを full push する用)。それ以外のテーブルでは無視される。
-
-    Returns (succeeded, errors).
+    idols.voice_actors は idol_voice_actors (期間つき履歴) へ移して列を消したが、
+    CloudKit にはしばらく送り続ける。旧アプリの CKRecordMapper は voiceActors を
+    読んでモデルを組み立てており、フィールドが消えると nil になって upsert のたびに
+    ローカル列が NULL 上書きされる = 更新していない人の CV 表示が全部消える。
+    全ユーザーが新版に移ったらこの導出ごと外す。
     """
-    record_type = RECORD_TYPE_MAP[table]
     col_info = get_column_info(conn, table)
-    pk_cols = get_primary_keys(conn, table)
-
-    where, params = "", []
-    if song_ids:
-        id_col = {"songs": "id", "song_artists": "song_id", "show_cast": "show_id", "setlist_items": "id", "idols": "id", "setlist_performers": "setlist_item_id", "events": "id", "shows": "event_id", "units": "id"}.get(table)
-        if id_col:
-            where = f" WHERE {id_col} IN ({','.join('?' for _ in song_ids)})"
-            params = song_ids
-    # idols.voice_actors は idol_voice_actors (期間つき履歴) へ移して列を消したが、
-    # CloudKit にはしばらく送り続ける。旧アプリの CKRecordMapper は voiceActors を
-    # 読んでモデルを組み立てており、フィールドが消えると nil になって upsert のたびに
-    # ローカル列が NULL 上書きされる = 更新していない人の CV 表示が全部消える。
-    # 全ユーザーが新版に移ったらこの導出ごと外す。
     select = "*"
     if table == "idols" and has_table(conn, "idol_voice_actors"):
         select = ("*, (SELECT group_concat(name, ',') FROM idol_voice_actors v"
@@ -402,7 +484,37 @@ def seed_table(
         # get_column_info と同じ形 ({name, type}) にすること。type が無いと
         # rows_to_operations が KeyError で落ちる。
         col_info = col_info + [{"name": "voice_actors", "type": "TEXT"}]
+    return col_info, select
 
+
+def seed_table(
+    conn: sqlite3.Connection,
+    table: str,
+    dry_run: bool,
+    exclude_fields: Optional[set] = None,
+    include_fields: Optional[set] = None,
+    song_ids: Optional[list] = None,
+    replace: bool = False,
+) -> tuple[int, int]:
+    """Read a table from SQLite and upload all records to CloudKit.
+
+    song_ids が指定された場合、songs は id、song_artists は song_id でその集合に絞る
+    (新曲だけを full push する用)。それ以外のテーブルでは無視される。
+
+    replace=True は forceReplace で送る (意味と使いどころは rows_to_operations)。
+    安全かどうかは呼び出し側が assert_replace_safe で先に確かめる。
+
+    Returns (succeeded, errors).
+    """
+    record_type = RECORD_TYPE_MAP[table]
+    col_info, select = push_columns(conn, table)
+    pk_cols = get_primary_keys(conn, table)
+
+    where, params = "", []
+    id_col = ID_FILTER_COLUMN.get(table)
+    if song_ids and id_col:
+        where = f" WHERE {id_col} IN ({','.join('?' for _ in song_ids)})"
+        params = song_ids
     cur = conn.execute(f"SELECT {select} FROM {table}{where}", params)
     cur.row_factory = None
     cols = [d[0] for d in cur.description]
@@ -412,7 +524,7 @@ def seed_table(
         print(f"  (empty table, skipping)")
         return (0, 0)
 
-    ops = rows_to_operations(table, rows, col_info, pk_cols, exclude_fields, include_fields)
+    ops = rows_to_operations(table, rows, col_info, pk_cols, exclude_fields, include_fields, replace)
     return upload_operations(ops, dry_run, record_type)
 
 
@@ -586,6 +698,12 @@ def main() -> None:
         help="1 行 1 song id のファイル (--ids と同義)",
     )
     parser.add_argument(
+        "--replace",
+        action="store_true",
+        help="forceReplace で送る (ローカルで NULL に直した列を CloudKit からも消す)。"
+             "--ids/--ids-file で絞った対象にだけ使える。",
+    )
+    parser.add_argument(
         "--delete-file",
         type=Path,
         help="削除モード: 'RecordType<TAB>recordName' 形式の TSV を読み、該当レコードを "
@@ -672,6 +790,14 @@ def main() -> None:
         print(f"Exclude : {sorted(exclude_fields)}")
     if include_fields:
         print(f"Include : {sorted(include_fields)} (+ modifiedAt)")
+    if args.replace:
+        if not song_ids:
+            print("Error: --replace は --ids / --ids-file で対象を絞ったときだけ使える。", file=sys.stderr)
+            sys.exit(1)
+        # 途中のテーブルで止まると、その前のテーブルだけ送られた状態になる。先に全部確かめる。
+        for table in tables_to_process:
+            assert_replace_safe(conn, table, exclude_fields, include_fields)
+        print("Mode    : forceReplace")
     print()
 
     total_succeeded = 0
@@ -684,7 +810,7 @@ def main() -> None:
         print(f"[{table}] → {record_type} ({row_count} rows)")
         try:
             succeeded, errors = seed_table(
-                conn, table, args.dry_run, exclude_fields, include_fields, song_ids
+                conn, table, args.dry_run, exclude_fields, include_fields, song_ids, replace=args.replace
             )
             total_succeeded += succeeded
             total_errors += errors

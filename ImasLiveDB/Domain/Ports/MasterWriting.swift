@@ -26,6 +26,5 @@ protocol IdolWriting: Sendable {
 protocol SongWriting: Sendable {
     func upsertSongs(_ songs: [Song]) async throws
     func upsertSongArtists(_ songArtists: [SongArtist]) async throws
-    func upsertSongCalls(_ calls: [SongCall]) async throws
     func upsertSongVideos(_ videos: [SongVideo]) async throws
 }

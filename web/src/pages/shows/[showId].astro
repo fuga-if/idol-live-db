@@ -6,56 +6,123 @@ import SetlistRow from "../../components/SetlistRow.astro";
 import RefList from "../../components/RefList.astro";
 import Chip from "../../components/Chip.astro";
 import TagChip from "../../components/TagChip.astro";
+import BrandMark from "../../components/BrandMark.astro";
+import DateBadge from "../../components/DateBadge.astro";
+import Facts from "../../components/Facts.astro";
+import StatStrip from "../../components/StatStrip.astro";
+import Count from "../../components/Count.astro";
 import EmptyState from "../../components/EmptyState.astro";
-import { meta, page, pathsFor } from "../../lib/data";
+import { page, pathsFor } from "../../lib/data";
 import type { ShowPage } from "../../lib/schema/ShowPage";
 
 export const getStaticPaths = () => pathsFor("show", "showId");
 
 const show = page<ShowPage>(Astro.props.data);
+
+// 同じライブの公演の切替 (単日公演では Rust が空を返す)。数本ならヒーローの中の
+// セグメントで置き (DAY1 / DAY2 と行き来するのが一番多い操作)、ツアーのように多いときは
+// 横に並べきれないので前後の公演への送りにし、全部の並びは脇に置く。
+// 何本まで横に並ぶかは純粋に幅の話。
+const MAX_SEGMENTED_SHOWS = 8;
+const siblings = show.siblingShows;
+const siblingsAsSegments = siblings.length > 0 && siblings.length <= MAX_SEGMENTED_SHOWS;
+const siblingsAsPager = siblings.length > MAX_SEGMENTED_SHOWS;
+// 自分は必ず並びの中にいる (Rust が自分も含めて返す)。
+const position = siblings.findIndex((s) => s.id === show.id);
+const prev = siblings[position - 1] ?? null;
+const next = siblings[position + 1] ?? null;
+const setlistCount = show.setlistSections.reduce((n, section) => n + section.rows.length, 0);
 ---
 
-<DetailLayout seo={show.seo} meta={meta()} themeKey={show.themeKey} app={show.app} isCharacterLive={show.isCharacterLive}>
+<DetailLayout
+  seo={show.seo}
+  themeKey={show.themeKey}
+  app={show.app}
+  isCharacterLive={show.isCharacterLive}
+  asideAfterMain
+>
   <section class="hero" slot="hero" aria-labelledby="show-title">
     <div class="hero__body">
-      <p class="hero__eyebrow">
-        <a href={show.event.path}>{show.event.name}</a>
-      </p>
-      <h1 class="hero__title" id="show-title">{show.name}</h1>
-      <p class="u-muted">
-        <time datetime={show.date}>{show.date}</time>
-        {show.startTime && <> ・ 開演 {show.startTime}</>}
-      </p>
-      <div class="hero__meta">
+      {
+        (show.brand || show.isUpcoming) && (
+          <p class="hero__eyebrow">
+            {show.brand && (
+              <a class="u-underline-hover" href={show.brand.path}>
+                <BrandMark brand={show.brand} />
+              </a>
+            )}
+            {show.isUpcoming && <Chip text="開催予定" variant="selected" />}
+          </p>
+        )
+      }
+      {/* 見出しの本体はライブ名 (何のライブかが一番大きい情報)。公演の見分け (`Day2`) は
+          添える札。どちらも Rust が決めた文字列で、ここは並べるだけ。 */}
+      <h1 class="hero__title" id="show-title">
+        <a href={show.event.path}>{show.heading}</a>
+        {show.showLabel && <span class="tag show-label">{show.showLabel}</span>}
+      </h1>
+      <div class="hero__lead">
+        <DateBadge badge={show.dateBadge} size="lg" />
+        <Facts rows={show.factRows} />
         {
-          show.venue ? (
-            <Chip text={show.venue.name} href={show.venue.path} variant="themed" themeKey={show.venue.themeKey} />
-          ) : (
-            show.venueLabel && <Chip text={show.venueLabel} />
+          siblingsAsSegments && (
+            <nav class="segmented" aria-label="このライブの公演">
+              {siblings.map((s) => (
+                <a href={s.path} aria-current={s.id === show.id ? "page" : undefined}>
+                  {s.name}
+                  <Count value={s.sub} dim />
+                </a>
+              ))}
+            </nav>
           )
         }
-        {show.hall && <Chip text={show.hall} />}
-        {show.venueCity && <Chip text={show.venueCity} />}
-        {show.streamPlatform && <Chip text={show.streamPlatform} />}
-        {show.brand && <Chip text={show.brand.name} href={show.brand.path} variant="themed" themeKey={show.brand.themeKey} />}
       </div>
+      {
+        siblingsAsPager && (
+          <nav class="pager" aria-label="このライブの公演">
+            {prev && (
+              <a class="pager__link" rel="prev" href={prev.path}>
+                ‹ {prev.name}
+                <Count value={prev.sub} dim />
+              </a>
+            )}
+            <span class="pager__pos u-num">
+              {position + 1} / {siblings.length} 公演
+            </span>
+            {next && (
+              <a class="pager__link pager__link--next" rel="next" href={next.path}>
+                {next.name}
+                <Count value={next.sub} dim /> ›
+              </a>
+            )}
+          </nav>
+        )
+      }
+      <StatStrip items={show.statTiles} label="この公演の数" />
     </div>
   </section>
 
-  <Section id="show-setlist" title="セットリスト" count={show.setlist.length}>
-    <PerformerNamePref />
+  <Section id="show-setlist" title="セットリスト" count={setlistCount}>
+    <PerformerNamePref slot="tools" />
     {
-      show.setlist.length === 0 ? (
+      setlistCount === 0 ? (
         <EmptyState
           title="セットリストがまだ登録されていません"
           body="GitHub のリポジトリからデータの追加にご協力いただけます。"
         />
       ) : (
-        <ol class="card setlist">
-          {show.setlist.map((row) => (
-            <SetlistRow row={row} />
+        <div class="card setlist">
+          {show.setlistSections.map((section) => (
+            <Fragment>
+              {section.label && <h3 class="setlist__section">{section.label}</h3>}
+              <ol class="setlist__rows" start={section.rows[0]?.number} aria-label={section.label ?? undefined}>
+                {section.rows.map((row) => (
+                  <SetlistRow row={row} />
+                ))}
+              </ol>
+            </Fragment>
           ))}
-        </ol>
+        </div>
       )
     }
   </Section>
@@ -96,9 +163,9 @@ const show = page<ShowPage>(Astro.props.data);
   }
 
   {
-    show.siblingShows.length > 0 && (
-      <Section slot="aside" id="show-siblings" title="このライブの他の公演">
-        <RefList refs={show.siblingShows} variant="neutral" withSub label="他の公演" />
+    siblingsAsPager && (
+      <Section slot="aside" id="show-siblings" title="このライブの公演" count={siblings.length}>
+        <RefList refs={siblings} variant="neutral" withSub label="このライブの公演" />
       </Section>
     )
   }

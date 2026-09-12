@@ -16,6 +16,8 @@ web_dto! {
         pub theme_key: String,
         /// 常設ユニットか (false = ライブ限定などの期間限定)。
         pub is_permanent: bool,
+        /// その言い方 (「常設ユニット」/「公演限定」)。一覧の札と同じ語 (`content::unit_kind_label`)。
+        pub kind_label: String,
         /// コミュニティが付けたタグ (多い順)。焼き込み。
         pub tags: Vec<TagChipDto>,
         pub brand: Option<Ref>,

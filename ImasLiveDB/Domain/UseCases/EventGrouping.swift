@@ -10,7 +10,7 @@ struct YearGroup: Identifiable {
 /// 時系列フィルタ + 年度グルーピング。
 ///
 /// 本体は imas-core (Rust) の `domain/event_grouping.rs`。今後/開催済みの境界判定・
-/// 部分日付 ("YYYY" 等) の桁合わせ・「年度不明」を末尾に置く規則もそちらに記載。
+/// 部分日付 ("YYYY" 等) の桁合わせ・「日程未定」を末尾に置く規則もそちらに記載。
 /// ここは firstDate の射影を 1 回の FFI 呼び出しに渡し、返った index 列を
 /// `events` から引き直して表示用 `YearGroup` に組み立てるだけ (件数によらず 1 呼び出し)。
 ///

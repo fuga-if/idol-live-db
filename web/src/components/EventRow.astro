@@ -1,31 +1,44 @@
 ---
-import LeadRow from "./LeadRow.astro";
-import type { EventListItem } from "../lib/schema/EventListItem";
+import DatedRow from "./DatedRow.astro";
+import BrandMark from "./BrandMark.astro";
 import TagChip from "./TagChip.astro";
+import type { EventListItem } from "../lib/schema/EventListItem";
 /**
  * 一覧の 1 ライブ。
- * 副題は Rust が文脈ごとに組んだ `subtitle` をそのまま置く
- * (ブランド別ページでブランド名を落とすかどうかも emit 側で決まっている)。
+ * 日付は左の日付ブロック、期間の終端・公演数・会場は文字、ブランドは色付きの札、
+ * 種別は右端の札。**何を出すかは全部 Rust が決めた項目**で、ここは置く場所を決めるだけ
+ * (`brandMark` / `kindLabel` / `showCountDisplay` / `endDisplay` は要らない文脈では null で来る)。
  */
 interface Props {
   item: EventListItem;
+  /** 年の見出しの下に並ぶ行では、日付ブロックの年を落とす。 */
+  showYear?: boolean;
 }
-const { item } = Astro.props;
+const { item, showYear = true } = Astro.props;
 ---
 
 <li>
-  <LeadRow
+  <DatedRow
+    badge={item.dateBadge}
+    showYear={showYear}
     title={item.ref.name}
-    subtitle={item.subtitle}
     href={item.ref.path}
     themeKey={item.ref.themeKey}
+    meta={[item.endDisplay, item.showCountDisplay, item.venueDisplay]}
   >
-    {/* 種別チップは「その一覧に 2 種別以上あるとき」だけ Rust が入れる。
-        全部同じ札が並んでも見分けの役に立たないため。 */}
-    {item.kindLabel && (
-      <span slot="trailing" class="u-row">
-        <TagChip text={item.kindLabel} kind="all" />
-      </span>
-    )}
-  </LeadRow>
+    {
+      item.brandMark && (
+        <span slot="meta" class="row__meta-item">
+          <BrandMark brand={item.brandMark} short />
+        </span>
+      )
+    }
+    {
+      item.kindLabel && (
+        <span slot="trailing">
+          <TagChip text={item.kindLabel} kind="all" />
+        </span>
+      )
+    }
+  </DatedRow>
 </li>

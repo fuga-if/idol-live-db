@@ -17,8 +17,7 @@
   "jointBrands": [],
   "kind": "live",
   "kindLabel": "ライブ",
-  "firstDate": "2026-04-03",
-  "lastDate": "2026-04-04",
+  "dateDisplay": "2026-04-03 (金) 〜 2026-04-04 (土)",
   "isUpcoming": true,
   "ticket": {
     "openDate": "2026-02-01",
@@ -26,12 +25,7 @@
     "lotteryDate": null,
     "url": "https://example.com/ticket"
   },
-  "stats": {
-    "showCount": 0,
-    "totalSongs": 0,
-    "uniqueSongs": 0,
-    "castCount": 0
-  },
+  "statTiles": [],
   "shows": [],
   "cast": null,
   "releases": [],

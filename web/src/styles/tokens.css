@@ -23,7 +23,7 @@
      ライトの副次テキストが WCAG AA (4.5:1) を満たさない (bg #F2F2F7 上で 3.8:1)。
      .74 で bg #F2F2F7 上 4.6:1 / surface #FFFFFF 上はさらに上、と余裕を持って超える
      (.72 だと 4.47:1 で境界に張り付く)。ダークは .62 のままで 6:1 超。 */
-  --ds-ink2: rgb(60 60 67 / 0.74);
+  --ds-ink2: rgb(60 60 67 / 0.78);
   /* ink3 はコントラストを満たさないので **文字には使わない** (シェブロン・区切りなど装飾専用)。 */
   --ds-ink3: rgb(60 60 67 / 0.34);
 
@@ -35,10 +35,17 @@
   --ds-on-sys: #ffffff;
   --ds-sys2: rgb(60 60 67 / 0.55);
   --ds-pick: #ff2d78;
+  /* 文字に使う側 (14% の薄い地の上で AA)。--ds-pick は印・線用。 */
+  --ds-pick-ink: #c2185b;
   --ds-favorite: #e8a800;
+  /* 曜日の色。日曜は赤・土曜は青という暦の慣習に合わせる (日付ブロック専用)。 */
+  --ds-sunday: #c5221f;
+  --ds-saturday: #1f5fc4;
 
   /* --- エレベーション (フラット基調なので控えめ) --- */
   --ds-shadow1: 0 1px 2px rgb(18 18 20 / 0.06), 0 0 0 0.5px rgb(60 60 67 / 0.06);
+  /* 浮かせる面 (注目カードのホバー・検索窓)。 */
+  --ds-shadow2: 0 10px 28px rgb(18 18 20 / 0.10), 0 1px 2px rgb(18 18 20 / 0.06);
 
   /* --- スペーシング (4pt グリッド。DS.sp1…sp9) --- */
   --sp1: 2px;
@@ -59,6 +66,10 @@
   --r-xl: 24px;
   --r-pill: 999px;
 
+  /* --- 部品の寸法 --- */
+  /* 行に置く小さいジャケ。表の畳んだ副題の字下げもこれに揃える。 */
+  --artwork-sm: 44px;
+
   /* --- タイポ --- */
   --font-body: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP",
     "Yu Gothic UI", "Meiryo", system-ui, sans-serif;
@@ -74,19 +85,20 @@
   --fs-title2: 1.375rem;    /* 22px */
   --fs-title1: 1.75rem;     /* 28px */
   --fs-large: 2.125rem;     /* 34px */
+  /* トップの見出し。狭い画面では title1、広い画面で large を少し超える。 */
+  --fs-display: clamp(1.875rem, 1.3rem + 2.4vw, 2.5rem);
 
   /* 行間: 和文は欧文より広く取る (Apple の leading の考え方を和文に合わせて調整) */
   --lh-tight: 1.25;
   --lh-snug: 1.4;
   --lh-body: 1.65;
+  --lh-relaxed: 1.9;
 
-  /* 版面 */
-  --sidebar-w: 208px;
-  /* 吸着する年見出しのオフセット。既定は上部バー 1 段ぶん。
-     2 段に折り返す幅と、サイドバーに変わる幅で base.css が上書きする。 */
-  --header-h: 52px;
-  --page-max: 960px;
-  --page-wide: 1180px;
+  /* 版面。ナビは上部バー 1 本 (サイドバーは持たない) なので本文が幅を全部使える。 */
+  /* 吸着する年見出しのオフセット = 上部バーの高さ。2 段に折り返す幅で base.css が上書きする。 */
+  --header-h: 56px;
+  --page-max: 1120px;
+  --page-wide: 1320px;
 
   /* --- エンティティ色の既定 (= neutral)。themes.css が [data-theme] で上書きする --- */
   --accent: #1c1c1e;
@@ -122,9 +134,13 @@
     --ds-on-sys: #1c1c1e;
     --ds-sys2: rgb(235 235 245 / 0.55);
     --ds-pick: #ff5a8c;
+    --ds-pick-ink: #ff5a8c;
     --ds-favorite: #ffc83e;
+    --ds-sunday: #ff8a80;
+    --ds-saturday: #7fb0ff;
 
     --ds-shadow1: 0 1px 2px rgb(0 0 0 / 0.5);
+    --ds-shadow2: 0 10px 28px rgb(0 0 0 / 0.55), 0 1px 2px rgb(0 0 0 / 0.5);
 
     --accent: #ffffff;
     --on-accent: #1c1c1e;

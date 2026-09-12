@@ -315,7 +315,8 @@ pub fn filter_song_indexes(snap: &Snapshot, filter: &SongListFilter) -> Vec<u32>
             }
             if !brand_set.is_empty() {
                 // `brand_id IN (...)`: NULL はどの値とも一致しない。
-                if !s.brand_id.as_deref().is_some_and(|b| brand_set.contains(b)) {
+                // 合同曲は `joint_brand_ids` の側でも当たる (参加ブランド全部の一覧に出す)。
+                if !s.brand_ids().any(|b| brand_set.contains(b)) {
                     return false;
                 }
             } else if !filter.include_other_brand && s.brand_id.as_deref() == Some("other") {
@@ -742,8 +743,17 @@ mod tests {
         }
         if !filter.brand_ids.is_empty() {
             let ph = vec!["?"; filter.brand_ids.len()].join(",");
-            conditions.push(format!("s.brand_id IN ({ph})"));
+            // 合同曲はカンマ区切りの joint_brand_ids 側でも当たる (本体の
+            // `Song::belongs_to_brand` と同じ規則を SQL でも書く)。
+            let joint = filter
+                .brand_ids
+                .iter()
+                .map(|_| "(',' || COALESCE(s.joint_brand_ids, '') || ',') LIKE ?")
+                .collect::<Vec<_>>()
+                .join(" OR ");
+            conditions.push(format!("(s.brand_id IN ({ph}) OR {joint})"));
             args.extend(filter.brand_ids.iter().cloned());
+            args.extend(filter.brand_ids.iter().map(|b| format!("%,{b},%")));
         } else if !filter.include_other_brand {
             conditions.push("s.brand_id IS NOT 'other'".into());
         }

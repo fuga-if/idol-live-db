@@ -1,15 +1,19 @@
 //! ライブ (event) と公演 (show) の詳細ページ。
 
-use super::context::{distinguishing_show_name, join_parts, simple_json_ld, Ctx};
+use super::context::{simple_json_ld, Ctx};
 use crate::domain::costume_queries as costume;
+use crate::domain::date_display::{range_with_weekday, short_with_weekday};
 use crate::domain::event_detail_queries as detail;
 use crate::domain::snapshot::Snapshot;
 use crate::domain::event_grouping::group_events_by_year;
-use crate::domain::short_year_month::short_year_month;
+use crate::domain::setlist_lineup::{is_full_cast, summarize, FULL_CAST_LABEL, MISSING_LABEL};
+use crate::domain::setlist_sections::{group_consecutive, section_label};
+use crate::domain::show_naming::show_identity;
+use crate::domain::song_detail_queries::FIRST_PERFORMANCE_LABEL;
 use crate::web_export::content;
 use crate::web_export::dto::*;
 use crate::web_export::url::url_segment;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 /// ライブ 1 件ぶんのページ。
 pub fn event_page(ctx: &Ctx, event_id: &str) -> Option<EventPage> {
@@ -20,17 +24,19 @@ pub fn event_page(ctx: &Ctx, event_id: &str) -> Option<EventPage> {
     let path = ctx.path(RefKind::Event, event_id);
     let theme_key = ctx.brand_theme(record.brand_id.as_deref());
 
-    let shows: Vec<ShowSummary> = detail::shows_by_event(ctx.snap, event_id)
-        .into_iter()
-        .filter_map(|s| show_summary(ctx, &s, false))
+    let show_records = detail::shows_by_event(ctx.snap, event_id);
+    let shows: Vec<ShowSummary> = show_records
+        .iter()
+        .filter_map(|s| show_summary(ctx, s, ShowContext::InEvent))
         .collect();
 
     // 会場は初出順で重複排除する (公演の並びが日付順なので、時系列の順になる)。
     let mut seen = std::collections::BTreeSet::new();
-    let venues: Vec<Ref> = shows
+    let venues: Vec<Ref> = show_records
         .iter()
-        .filter_map(|s| s.venue.clone())
-        .filter(|v| seen.insert(v.id.clone()))
+        .filter_map(|s| s.venue_id.as_deref())
+        .filter(|id| seen.insert(id.to_string()))
+        .filter_map(|id| ctx.venue_ref(id))
         .collect();
 
     let name = event.name.clone();
@@ -53,23 +59,14 @@ pub fn event_page(ctx: &Ctx, event_id: &str) -> Option<EventPage> {
         kind: record.kind.clone(),
         kind_label: content::kind_label(&record.kind).to_string(),
         is_upcoming: is_upcoming(ctx, first_date.as_deref()),
-        first_date: first_date.clone(),
-        last_date: last_date.clone(),
+        date_display: range_with_weekday(first_date.as_deref(), last_date.as_deref()),
         ticket: TicketInfo {
             open_date: record.ticket_open_date.clone(),
             deadline: record.ticket_deadline.clone(),
             lottery_date: record.ticket_lottery_date.clone(),
             url: record.ticket_url.clone(),
         },
-        stats: {
-            let s = detail::event_stats(ctx.snap, event_id);
-            EventStats {
-                show_count: s.show_count,
-                total_songs: s.total_songs,
-                unique_songs: s.unique_songs,
-                cast_count: s.cast_count,
-            }
-        },
+        stat_tiles: event_stat_tiles(detail::event_stats(ctx.snap, event_id)),
         cast: event_cast(ctx, event_id),
         releases: detail::event_releases(ctx.snap, event_id)
             .into_iter()
@@ -94,6 +91,21 @@ pub fn event_page(ctx: &Ctx, event_id: &str) -> Option<EventPage> {
             breadcrumbs,
         ),
     })
+}
+
+/// ライブの数の帯 (公演 / のべ曲数 / 曲数 (重複なし) / 出演者)。対応する一覧が無いので押せない。
+fn event_stat_tiles(s: detail::EventStatsRecord) -> Vec<StatTile> {
+    nonzero_tiles([
+        StatTile::new("▤", s.show_count, "公演"),
+        StatTile::new("≡", s.total_songs, "のべ曲数"),
+        StatTile::new("♬", s.unique_songs, "曲数 (重複なし)"),
+        StatTile::new("☺", s.cast_count, "出演者"),
+    ])
+}
+
+/// 公演の数の帯 (曲数 / 出演者)。
+fn show_stat_tiles(setlist_count: u32, cast_count: u32) -> Vec<StatTile> {
+    nonzero_tiles([StatTile::new("≡", setlist_count, "曲"), StatTile::new("☺", cast_count, "出演者")])
 }
 
 /// 「今後のライブ」か。
@@ -184,51 +196,48 @@ fn event_cast(ctx: &Ctx, event_id: &str) -> Option<EventCast> {
     Some(EventCast { shows })
 }
 
+/// 公演の要約をどこに並べるか。見出し・副題・会場名の出し方がこれで決まる。
+///
+/// 一覧 JSON はページ単位で吐かれるので、どの文脈かは作る側が知っている
+/// (TS に `showEvent` / `omitVenue` のような prop を持たせない)。
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum ShowContext {
+    /// ライブ詳細の中。ライブ名は自明なので見出しは公演名。
+    InEvent,
+    /// トップの「最近の公演」。公演名だけでは何のライブか分からないので見出しはライブ名。
+    Home,
+    /// 会場詳細。見出しはライブ名、会場名は全行同じなので出さない。
+    AtVenue,
+}
+
 /// 公演 1 件の要約。
 ///
-/// `with_event` は「ライブ名を添えるか」。**副題の出し分けもここで済ませる**:
-/// ライブ詳細ページの中では親ライブ名は自明なので入れず、トップと会場詳細では入れる。
-/// 一覧 JSON はページ単位で吐かれるので、どちらの文脈かは作る側が知っている
-/// (TS に `showEvent` のような prop を持たせない)。
+/// 見出し (`title`) と副題の公演名 (`show_label`) の出し分けはここで済ませる。
+/// 公演名とライブ名の切り分けは [`show_identity`] 1 本 — ライブ詳細の中 (見出しが
+/// ライブ名) では見分けだけ (`Day2`、無ければ日付)、外 (トップ・会場) ではライブ名を
+/// 見出しにして見分けを副題に回す。同じ名前を 2 行続けない。
 pub fn show_summary(
     ctx: &Ctx,
     show: &detail::ShowRecord,
-    with_event: bool,
+    context: ShowContext,
 ) -> Option<ShowSummary> {
-    let event = if with_event { ctx.event_ref(&show.event_id) } else { None };
-    // **公演名は副題に入れない。** 行のタイトルが必ず公演名 (`reference.name`) なので、
-    // 副題にも入れると画面で 2 回出る。副題が担うのは「タイトルだけでは分からないこと」
-    // — どのライブの公演か (一覧の文脈でのみ) と、どこで何時からか。
-    //
-    // ここに公演名を入れていたとき、2 つの副題を持つツアーで扱いが割れていた:
-    // ライブ名の末尾と重なる側だけ公演名が短くなり、同じ一覧の中で行の形が揃わない。
-    // 公演名を落とすと、その非対称ごと消える。
-    // ライブ名も、行タイトル (= 公演名) が既に抱えているなら入れない。
-    // 単日公演では公演名がライブ名と同じことが多く (実データで 394 行)、
-    // そのまま入れると行タイトルと副題の頭がまったく同じ文字列になる。
-    let event_name = event
-        .as_ref()
-        .map(|e| e.name.clone())
-        .filter(|name| !show.name.contains(name.as_str()));
-    let subtitle = join_parts([
-        event_name,
-        show.venue.clone(),
-        show.hall.clone(),
-        show.start_time.as_deref().map(|t| format!("{t} 開演")),
-    ]);
+    let event = ctx.event_ref(&show.event_id)?;
+    let identity = show_identity(&event.name, &show.name, &show.date);
+    let (title, show_label) = match context {
+        ShowContext::InEvent => (identity.short.into_text(), None),
+        ShowContext::Home | ShowContext::AtVenue => (event.name, identity.label),
+    };
     Some(ShowSummary {
         reference: ctx.show_ref(&show.id)?,
+        title,
+        show_label,
         date: show.date.clone(),
-        short_date: short_year_month(&show.date),
-        venue_label: show.venue.clone(),
-        venue: show.venue_id.as_deref().and_then(|v| ctx.venue_ref(v)),
-        hall: show.hall.clone(),
-        start_time: show.start_time.clone(),
+        date_badge: DateBadge::from_ymd(&show.date),
+        venue_label: (context != ShowContext::AtVenue).then(|| show.venue.clone()).flatten(),
+        hall: hall_unless_in(show.hall.as_deref(), show.venue.as_deref()),
+        start_time_display: show.start_time.as_deref().map(|t| format!("{t} 開演")),
         // Eff: セトリ本体を組み直さずに本数だけ数える (前計算済みの索引の長さ)。
         setlist_count: ctx.setlist_len(&show.id),
-        stream_platform: show.stream_platform.clone(),
-        event,
-        subtitle,
     })
 }
 
@@ -242,48 +251,14 @@ pub fn show_page(ctx: &Ctx, show_id: &str) -> Option<ShowPage> {
         .and_then(|e| e.brand_id.clone());
     let path = ctx.path(RefKind::Show, show_id);
 
-    let entries = detail::setlist(ctx.snap, show_id);
-    let performers = detail::setlist_performers_by_item(ctx.snap, show_id);
-    let song_ids: Vec<String> = entries.iter().map(|e| e.song_id.clone()).collect();
-    let originals = detail::original_artist_ids_map(ctx.snap, &song_ids);
-
-    let setlist: Vec<SetlistRow> = entries
-        .iter()
-        .enumerate()
-        .filter_map(|(n, e)| {
-            Some(SetlistRow {
-                costumes: costume::setlist_item_costumes(ctx.snap, &e.id)
-                    .into_iter()
-                    .map(|c| SetlistCostume { id: c.costume.id, label: c.chip_label })
-                    .collect(),
-                id: e.id.clone(),
-                // entries は position 昇順なので、添字がそのまま「何曲目か」になる。
-                number: n as u32 + 1,
-                notes: e.notes.clone(),
-                unit_label: e.unit_name.clone(),
-                song: ctx.song_ref(&e.song_id)?,
-                performers: performers
-                    .get(&e.id)
-                    .map(|list| {
-                        list.iter()
-                            .filter_map(|p| {
-                                Some(PerformerRef {
-                                    reference: ctx.idol_ref(&p.idol_id)?,
-                                    // 「同じ名前を 2 つ配らない」判断はコアに任せる。
-                                    cast_name: detail::distinct_cast_name(p)
-                                        .map(str::to_string),
-                                })
-                            })
-                            .collect()
-                    })
-                    .unwrap_or_default(),
-                original_artists: originals
-                    .get(&e.song_id)
-                    .map(|ids| ids.iter().filter_map(|id| ctx.idol_ref(id)).collect())
-                    .unwrap_or_default(),
-                is_cover: ctx.snap.song(&e.song_id).is_some_and(Snapshot::is_cover),
-            })
-        })
+    // 出演者は登録分に歌唱メンバーを足した和集合 (歌っているなら出ている)。
+    let cast_ids = detail::show_cast_with_performers(ctx.snap, show_id);
+    let cast: BTreeSet<&str> = cast_ids.iter().map(String::as_str).collect();
+    let rows = setlist_rows(ctx, show_id, &cast);
+    let setlist_count = rows.len() as u32;
+    let setlist_sections = group_consecutive(rows)
+        .into_iter()
+        .map(|(label, rows)| SetlistSection { label, rows })
         .collect();
 
     // 衣装が指すセトリ行を「公演内で何曲目か」に直す (position は全体通しの値で
@@ -309,13 +284,15 @@ pub fn show_page(ctx: &Ctx, show_id: &str) -> Option<ShowPage> {
         .collect();
 
     let venue = show.venue_id.as_deref().and_then(|v| ctx.venue_ref(v));
-    let siblings = sibling_shows(ctx, &show.event_id, &event.name);
-    let title = show_title(&event.name, &show.name);
+    let identity = show_identity(&event.name, &show.name, &show.date);
+    let title = identity.title();
+    // 最後の段は見分けだけ (`Day2`)。1 つ前の段がライブ名なので、フルの公演名を置くと
+    // 同じ名前が 2 段続く。
     let breadcrumbs = vec![
         Ctx::crumb("ホーム", "/"),
         Ctx::crumb("ライブ", "/events/"),
         Ctx::crumb(&event.name, &event.path),
-        Ctx::crumb(&show.name, &path),
+        Ctx::crumb(identity.short.text(), &path),
     ];
 
     Some(ShowPage {
@@ -323,28 +300,23 @@ pub fn show_page(ctx: &Ctx, show_id: &str) -> Option<ShowPage> {
         is_character_live: detail::is_character_live(show.performer_type.as_deref()),
         id: show.id.clone(),
         path: path.clone(),
-        name: show.name.clone(),
-        short_date: short_year_month(&show.date),
-        date: show.date.clone(),
+        heading: identity.heading,
+        show_label: identity.label,
+        date_badge: DateBadge::from_ymd(&show.date),
+        is_upcoming: is_upcoming(ctx, Some(&show.date)),
         theme_key: ctx.brand_theme(brand_id.as_deref()),
-        event,
         brand: brand_id.as_deref().and_then(|b| ctx.brand_ref(b)),
-        venue_label: show.venue.clone(),
-        venue_city: show.venue_city.clone(),
-        hall: show.hall.clone(),
-        start_time: show.start_time.clone(),
-        stream_platform: show.stream_platform.clone(),
-        cast: detail::show_cast_idol_ids(ctx.snap, show_id)
-            .iter()
-            .filter_map(|id| ctx.idol_ref(id))
-            .collect(),
+        fact_rows: show_fact_rows(&show, venue.as_ref()),
+        stat_tiles: show_stat_tiles(setlist_count, cast_ids.len() as u32),
+        setlist_sections,
         costumes,
-        sibling_shows: siblings,
+        cast: cast_ids.iter().filter_map(|id| ctx.idol_ref(id)).collect(),
+        sibling_shows: sibling_shows(ctx, &show.event_id, &event.name),
         app: content::app_open_deeplink("show", &url_segment(&show.id)),
         seo: ctx.seo(
             &title,
             &format!(
-                "{}（{}）のセットリスト{}。",
+                "{}（{}{}）のセットリストと出演者。",
                 title,
                 show.date,
                 show.venue.as_deref().map(|v| format!("・{v}")).unwrap_or_default()
@@ -354,8 +326,99 @@ pub fn show_page(ctx: &Ctx, show_id: &str) -> Option<ShowPage> {
             show_json_ld(&title, &path, &show.date, venue.as_ref(), show.venue.as_deref()),
             breadcrumbs,
         ),
-        venue,
-        setlist,
+        event,
+    })
+}
+
+/// セトリの行 (position 昇順) を、区切りの見出しと組にして返す。
+///
+/// 歌唱者・原唱者・出演者の集合の関係 (全員曲か、オリメンが揃っているか、誰がいないか) は
+/// ここで解いて行に付ける。画面側で集合を比べ直さない。
+fn setlist_rows(
+    ctx: &Ctx,
+    show_id: &str,
+    cast: &BTreeSet<&str>,
+) -> Vec<(Option<String>, SetlistRow)> {
+    let entries = detail::setlist(ctx.snap, show_id);
+    let performers = detail::setlist_performers_by_item(ctx.snap, show_id);
+    let song_ids: Vec<String> = entries.iter().map(|e| e.song_id.clone()).collect();
+    let originals = detail::original_artist_ids_map(ctx.snap, &song_ids);
+    // entries と同じ並び (どちらも setlist_items_by_show を position 順に流す)。何回目かは
+    // Snapshot 構築時に決まっている (`ordinal_by_item`)。
+    let item_indices: &[u32] = ctx
+        .snap
+        .show_index_by_id
+        .get(show_id)
+        .map_or(&[], |&s| ctx.snap.setlist_items_by_show[s as usize].as_slice());
+
+    entries
+        .iter()
+        .zip(item_indices)
+        .enumerate()
+        .filter_map(|(n, (e, &item))| {
+            let performers = performers.get(&e.id).map(Vec::as_slice).unwrap_or_default();
+            let performer_ids: BTreeSet<&str> =
+                performers.iter().map(|p| p.idol_id.as_str()).collect();
+            let original_ids: Vec<&str> = originals
+                .get(&e.song_id)
+                .map(|ids| ids.iter().map(String::as_str).collect())
+                .unwrap_or_default();
+            let full_cast = is_full_cast(cast, &performer_ids);
+            let row = SetlistRow {
+                id: e.id.clone(),
+                // entries は position 昇順なので、添字がそのまま「何曲目か」になる。
+                number: n as u32 + 1,
+                notes: e.notes.clone(),
+                unit_label: e.unit_name.clone(),
+                song: ctx.song_ref(&e.song_id)?,
+                performers: performers
+                    .iter()
+                    .filter_map(|p| {
+                        Some(PerformerRef {
+                            reference: ctx.idol_ref(&p.idol_id)?,
+                            // 「同じ名前を 2 つ配らない」判断はコアに任せる。
+                            cast_name: detail::distinct_cast_name(p).map(str::to_string),
+                        })
+                    })
+                    .collect(),
+                full_cast_label: full_cast.then(|| FULL_CAST_LABEL.to_string()),
+                lineup: lineup_note_of(ctx, &original_ids, &performer_ids, cast, full_cast),
+                is_cover: ctx.snap.song(&e.song_id).is_some_and(Snapshot::is_cover),
+                first_performance_label: (ctx.snap.ordinal_by_item[item as usize] == 1)
+                    .then(|| FIRST_PERFORMANCE_LABEL.to_string()),
+                // チップの文字列は Rust が組んである (着用者の括弧を付けるかも含めて)。
+                costumes: costume::setlist_item_costumes(ctx.snap, &e.id)
+                    .into_iter()
+                    .map(|c| SetlistCostume { id: c.costume.id, label: c.chip_label })
+                    .collect(),
+            };
+            Some((section_label(e.section.as_deref()), row))
+        })
+        .collect()
+}
+
+/// オリメンとの関係の札。規則も文言も `domain::setlist_lineup` (アプリと同じ)。
+/// ここは「いたのに歌わなかった人」の id を Ref に解決するだけ。
+fn lineup_note_of(
+    ctx: &Ctx,
+    original: &[&str],
+    performers: &BTreeSet<&str>,
+    cast: &BTreeSet<&str>,
+    full_cast: bool,
+) -> Option<LineupNote> {
+    let summary = summarize(original, performers, cast, full_cast)?;
+    let idols: Vec<Ref> = summary
+        .absent_in_cast
+        .iter()
+        .filter_map(|id| ctx.idol_ref(id))
+        .collect();
+    Some(LineupNote {
+        kind: summary.lineup,
+        label: summary.label(),
+        missing: (!idols.is_empty()).then(|| MissingOriginals {
+            label: MISSING_LABEL.to_string(),
+            idols,
+        }),
     })
 }
 
@@ -384,30 +447,37 @@ fn show_json_ld(
     }
 }
 
-/// 公演ページの `<title>`。**ライブ名がちょうど 1 回だけ出る形**にする。
-///
-/// ここは検索結果・ブラウザのタブ・`og:title` (共有カード) に直接出る文字列で、
-/// サイトの中で最も人目に触れる。素朴に `<ライブ名> <公演名>` と繋ぐと、実データでは
-/// 2 通りの重複が出る:
-///
-/// ```text
-/// 1. 公演名 = ライブ名 (単日公演に多い)
-///      ローソン×アイマスキャンペーン 年忘れシークレットパーティ ローソン×アイマスキャンペーン 年忘れシークレットパーティ
-/// 2. 公演名が括弧書きでライブ名を再掲している (11 件)
-///      24magic 〜…〜 ★オープニング★(THE IDOLM@STER CINDERELLA GIRLS Live Broadcast 24magic 〜…〜)
-/// ```
-///
-/// 1 は重なりを落とすとライブ名だけが残る。2 は**公演名の側が既にライブ名を抱えている**
-/// ので、頭に付け足さない。括弧の中身を削るような加工はしない — 名前の途中を切ると
-/// 別の意味に読める文字列ができる。
-fn show_title(event_name: &str, show_name: &str) -> String {
-    match distinguishing_show_name(event_name, show_name) {
-        // 公演名がライブ名そのもの。日付は description が持つので、ここはライブ名だけ。
-        None => event_name.to_string(),
-        // 公演名が既にライブ名を含んでいる。前に付けると 2 回になる。
-        Some(rest) if rest.contains(event_name) => rest.to_string(),
-        Some(rest) => format!("{event_name} {rest}"),
-    }
+/// 公演の「事実の並び」(開演・会場・ホール・所在地・配信)。値が無い行は出さない。
+/// 日程は日付ブロック (`date_badge`) が持つので、ここには置かない (同じ日付を 2 度出さない)。
+/// 会場はマスタに紐付いていればそのページへ飛べる。名前は自由記述 (`shows.venue`) を
+/// 優先する — マスタ名より細かい (ホール名込み等) ことがあるため。
+fn show_fact_rows(show: &detail::ShowRecord, venue: Option<&Ref>) -> Vec<ProfileRow> {
+    let venue_name = show.venue.clone().or_else(|| venue.map(|v| v.name.clone()));
+    let hall = hall_unless_in(show.hall.as_deref(), venue_name.as_deref());
+    [
+        ("開演", show.start_time.clone(), None),
+        ("会場", venue_name, venue.map(|v| v.path.clone())),
+        ("ホール", hall, None),
+        ("所在地", show.venue_city.clone(), None),
+        ("配信", show.stream_platform.clone(), None),
+    ]
+    .into_iter()
+    .filter_map(|(label, value, link)| {
+        Some(ProfileRow {
+            label: label.to_string(),
+            value: value.filter(|v| !v.is_empty())?,
+            style: "plain".to_string(),
+            link,
+        })
+    })
+    .collect()
+}
+
+/// ホール名が会場名に含まれているなら (「さいたまスーパーアリーナ(アリーナモード)」の
+/// 「アリーナモード」)、ホールの行は同じ語の繰り返しになるので出さない。
+fn hall_unless_in(hall: Option<&str>, venue: Option<&str>) -> Option<String> {
+    let hall = hall.filter(|h| !h.is_empty())?;
+    (!venue.is_some_and(|v| v.contains(hall))).then(|| hall.to_string())
 }
 
 /// 衣装を「どこで着たか」の 1 行にする。
@@ -427,14 +497,9 @@ fn costume_where_label(song_numbers: &[u32], somewhere_in_show: bool) -> String 
 /// 単日公演のライブでは**空**を返す。自分 1 本しか無いところに「他の公演」を出しても
 /// 選べるものが無く、見出しだけが残る。
 ///
-/// 名前はライブ名との重なりを落とした短い形 (`DAY1` / `昼公演` / `ステージ１回目`)。
+/// 名前は見分けだけの短い形 (`DAY1` / `昼公演` / 見分けが無ければ `9/13 (日)`)。
 /// このページの見出しが既にライブ名なので、チップにフルの公演名を並べると同じ文字列が
-/// 何度も出て、肝心の見分けが付かなくなる。落とす規則は披露履歴の `placeDisplay` と同じ。
-///
-/// **公演名がライブ名と丸ごと同じ公演が実データに 38 件ある** (2 日間開催なのに
-/// どちらの公演にも同じ名前が付いている)。重なりを落とすと何も残らないので、
-/// その場合は日付をチップの名前にする — 区別できるのが日付しか無いのだから、
-/// 出すべきものも日付。
+/// 何度も出て、肝心の見分けが付かなくなる。切り方は [`show_identity`]。
 fn sibling_shows(ctx: &Ctx, event_id: &str, event_name: &str) -> Vec<Ref> {
     let shows = detail::shows_by_event(ctx.snap, event_id);
     if shows.len() <= 1 {
@@ -444,17 +509,11 @@ fn sibling_shows(ctx: &Ctx, event_id: &str, event_name: &str) -> Vec<Ref> {
         .iter()
         .filter_map(|s| {
             let mut reference = ctx.show_ref(&s.id)?;
-            match distinguishing_show_name(event_name, &s.name) {
-                Some(short) => {
-                    reference.name = short.to_string();
-                    reference.sub = Some(s.date.clone());
-                }
-                None => {
-                    reference.name = s.date.clone();
-                    // 名前が日付そのものなので、補助表記に日付を重ねない。
-                    reference.sub = None;
-                }
-            }
+            let identity = show_identity(event_name, &s.name, &s.date);
+            // 名前が日付そのもの (見分けが無い) なら、補助表記に日付を重ねない。
+            // 添えるのはページ本体と同じ短い形 (`4/4 (土)`)。ISO を並べると見出しと形が違う。
+            reference.sub = identity.short.is_name().then(|| short_with_weekday(&s.date));
+            reference.name = identity.short.into_text();
             Some(reference)
         })
         .collect()
@@ -468,7 +527,7 @@ fn sibling_shows(ctx: &Ctx, event_id: &str, event_name: &str) -> Vec<Ref> {
 pub fn shows_at_venue(ctx: &Ctx, venue_id: &str) -> Vec<ShowSummary> {
     detail::shows_at_venue(ctx.snap, venue_id)
         .iter()
-        .filter_map(|show| show_summary(ctx, show, true))
+        .filter_map(|show| show_summary(ctx, show, ShowContext::AtVenue))
         .collect()
 }
 
@@ -481,7 +540,7 @@ pub fn shows_at_venue(ctx: &Ctx, venue_id: &str) -> Vec<ShowSummary> {
 pub fn recent_shows(ctx: &Ctx, limit: u32) -> Vec<ShowSummary> {
     detail::recent_shows(ctx.snap, &ctx.today, limit)
         .iter()
-        .filter_map(|show| show_summary(ctx, show, true))
+        .filter_map(|show| show_summary(ctx, show, ShowContext::Home))
         .collect()
 }
 

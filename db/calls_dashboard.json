@@ -1,0 +1,569 @@
+{
+ "callTag": {
+  "tagId": "tag_44Kz44O844Or5puy",
+  "tagName": "コール曲",
+  "tagged": 294,
+  "withCalls": 19,
+  "withoutLyrics": 56
+ },
+ "generatedAt": 1788664622,
+ "recentEdits": [
+  {
+   "at": 1788657327,
+   "by": "万丈",
+   "callCountAfter": 32,
+   "callCountBefore": 0,
+   "callLinesAfter": 19,
+   "callLinesBefore": 0,
+   "id": 24,
+   "songId": "sidem_愛笑華",
+   "summary": "calls 0->32, lines 0->19"
+  },
+  {
+   "at": 1788655382,
+   "by": "万丈",
+   "callCountAfter": 57,
+   "callCountBefore": 0,
+   "callLinesAfter": 49,
+   "callLinesBefore": 0,
+   "id": 23,
+   "songId": "sc_相合学舎",
+   "summary": "calls 0->57, lines 0->49"
+  },
+  {
+   "at": 1788611490,
+   "by": "万丈",
+   "callCountAfter": 6,
+   "callCountBefore": 0,
+   "callLinesAfter": 6,
+   "callLinesBefore": 0,
+   "id": 22,
+   "songId": "sidem_リトルマイシューズ",
+   "summary": "calls 0->6, lines 0->6"
+  },
+  {
+   "at": 1788611307,
+   "by": "万丈",
+   "callCountAfter": 8,
+   "callCountBefore": 0,
+   "callLinesAfter": 8,
+   "callLinesBefore": 0,
+   "id": 21,
+   "songId": "sidem_reversed_masquerade",
+   "summary": "calls 0->8, lines 0->8"
+  },
+  {
+   "at": 1788611167,
+   "by": "万丈",
+   "callCountAfter": 9,
+   "callCountBefore": 0,
+   "callLinesAfter": 9,
+   "callLinesBefore": 0,
+   "id": 20,
+   "songId": "sidem_リビングアイズヒーロー",
+   "summary": "calls 0->9, lines 0->9"
+  },
+  {
+   "at": 1788611053,
+   "by": "万丈",
+   "callCountAfter": 2,
+   "callCountBefore": 0,
+   "callLinesAfter": 2,
+   "callLinesBefore": 0,
+   "id": 19,
+   "songId": "sidem_流星parade",
+   "summary": "calls 0->2, lines 0->2"
+  },
+  {
+   "at": 1788611012,
+   "by": "万丈",
+   "callCountAfter": 2,
+   "callCountBefore": 0,
+   "callLinesAfter": 2,
+   "callLinesBefore": 0,
+   "id": 18,
+   "songId": "sidem_route77",
+   "summary": "calls 0->2, lines 0->2"
+  },
+  {
+   "at": 1788610941,
+   "by": "万丈",
+   "callCountAfter": 17,
+   "callCountBefore": 0,
+   "callLinesAfter": 15,
+   "callLinesBefore": 0,
+   "id": 17,
+   "songId": "sidem_ray_of_light",
+   "summary": "calls 0->17, lines 0->15"
+  },
+  {
+   "at": 1788609652,
+   "by": "万丈",
+   "callCountAfter": 22,
+   "callCountBefore": 0,
+   "callLinesAfter": 22,
+   "callLinesBefore": 0,
+   "id": 16,
+   "songId": "sidem_victory_believer",
+   "summary": "calls 0->22, lines 0->22"
+  },
+  {
+   "at": 1788609412,
+   "by": "万丈",
+   "callCountAfter": 14,
+   "callCountBefore": 0,
+   "callLinesAfter": 14,
+   "callLinesBefore": 0,
+   "id": 15,
+   "songId": "sidem_夢色voyager",
+   "summary": "calls 0->14, lines 0->14"
+  },
+  {
+   "at": 1788609207,
+   "by": "万丈",
+   "callCountAfter": 16,
+   "callCountBefore": 0,
+   "callLinesAfter": 18,
+   "callLinesBefore": 0,
+   "id": 14,
+   "songId": "sidem_reason",
+   "summary": "calls 0->16, lines 0->18"
+  },
+  {
+   "at": 1788608774,
+   "by": "万丈",
+   "callCountAfter": 14,
+   "callCountBefore": 0,
+   "callLinesAfter": 9,
+   "callLinesBefore": 0,
+   "id": 13,
+   "songId": "sidem_study_equal_magic",
+   "summary": "calls 0->14, lines 0->9"
+  },
+  {
+   "at": 1788608512,
+   "by": "万丈",
+   "callCountAfter": 20,
+   "callCountBefore": 0,
+   "callLinesAfter": 15,
+   "callLinesBefore": 0,
+   "id": 12,
+   "songId": "sidem_starlight_celebrate",
+   "summary": "calls 0->20, lines 0->15"
+  },
+  {
+   "at": 1788607921,
+   "by": "万丈",
+   "callCountAfter": 39,
+   "callCountBefore": 0,
+   "callLinesAfter": 34,
+   "callLinesBefore": 0,
+   "id": 11,
+   "songId": "sidem_moon_nightのせいにして",
+   "summary": "calls 0->39, lines 0->34"
+  },
+  {
+   "at": 1788607474,
+   "by": "万丈",
+   "callCountAfter": 21,
+   "callCountBefore": 0,
+   "callLinesAfter": 21,
+   "callLinesBefore": 0,
+   "id": 10,
+   "songId": "sidem_バーニンクールで輝いて",
+   "summary": "calls 0->21, lines 0->21"
+  },
+  {
+   "at": 1788606843,
+   "by": "万丈",
+   "callCountAfter": 39,
+   "callCountBefore": 0,
+   "callLinesAfter": 37,
+   "callLinesBefore": 0,
+   "id": 9,
+   "songId": "sidem_beyond_the_dream",
+   "summary": "calls 0->39, lines 0->37"
+  },
+  {
+   "at": 1788605817,
+   "by": "万丈",
+   "callCountAfter": 50,
+   "callCountBefore": 0,
+   "callLinesAfter": 50,
+   "callLinesBefore": 0,
+   "id": 8,
+   "songId": "ml_my_evolution",
+   "summary": "calls 0->50, lines 0->50"
+  },
+  {
+   "at": 1788604249,
+   "by": "万丈",
+   "callCountAfter": 42,
+   "callCountBefore": 0,
+   "callLinesAfter": 32,
+   "callLinesBefore": 0,
+   "id": 7,
+   "songId": "sidem_笑顔の祭りにゃ福来る",
+   "summary": "calls 0->42, lines 0->32"
+  },
+  {
+   "at": 1788593076,
+   "by": "万丈",
+   "callCountAfter": 10,
+   "callCountBefore": 0,
+   "callLinesAfter": 10,
+   "callLinesBefore": 0,
+   "id": 6,
+   "songId": "765as_i_want",
+   "summary": "calls 0->10, lines 0->10"
+  },
+  {
+   "at": 1788524852,
+   "by": "万丈",
+   "callCountAfter": 5,
+   "callCountBefore": 0,
+   "callLinesAfter": 5,
+   "callLinesBefore": 0,
+   "id": 5,
+   "songId": "cg_イリュージョニスタ",
+   "summary": "calls 0->5, lines 0->5"
+  },
+  {
+   "at": 1788521857,
+   "by": "万丈",
+   "callCountAfter": 36,
+   "callCountBefore": 0,
+   "callLinesAfter": 30,
+   "callLinesBefore": 0,
+   "id": 4,
+   "songId": "cg_yes_party_time",
+   "summary": "calls 0->36, lines 0->30"
+  },
+  {
+   "at": 1788520829,
+   "by": "万丈",
+   "callCountAfter": 16,
+   "callCountBefore": 0,
+   "callLinesAfter": 16,
+   "callLinesBefore": 0,
+   "id": 3,
+   "songId": "cg_unlock_starbeat",
+   "summary": "calls 0->16, lines 0->16"
+  },
+  {
+   "at": 1788520369,
+   "by": "万丈",
+   "callCountAfter": 12,
+   "callCountBefore": 0,
+   "callLinesAfter": 12,
+   "callLinesBefore": 0,
+   "id": 2,
+   "songId": "sidem_ultimate_flame",
+   "summary": "calls 0->12, lines 0->12"
+  },
+  {
+   "at": 1788520204,
+   "by": "万丈",
+   "callCountAfter": 26,
+   "callCountBefore": 0,
+   "callLinesAfter": 26,
+   "callLinesBefore": 0,
+   "id": 1,
+   "songId": "765as_アマテラス",
+   "summary": "calls 0->26, lines 0->26"
+  }
+ ],
+ "songsWithCalls": [
+  {
+   "callCount": 32,
+   "callLines": 19,
+   "songId": "sidem_愛笑華",
+   "updatedAt": 1788657327,
+   "updatedBy": "万丈"
+  },
+  {
+   "callCount": 57,
+   "callLines": 49,
+   "songId": "sc_相合学舎",
+   "updatedAt": 1788655382,
+   "updatedBy": "万丈"
+  },
+  {
+   "callCount": 6,
+   "callLines": 6,
+   "songId": "sidem_リトルマイシューズ",
+   "updatedAt": 1788611490,
+   "updatedBy": "万丈"
+  },
+  {
+   "callCount": 8,
+   "callLines": 8,
+   "songId": "sidem_reversed_masquerade",
+   "updatedAt": 1788611307,
+   "updatedBy": "万丈"
+  },
+  {
+   "callCount": 9,
+   "callLines": 9,
+   "songId": "sidem_リビングアイズヒーロー",
+   "updatedAt": 1788611167,
+   "updatedBy": "万丈"
+  },
+  {
+   "callCount": 2,
+   "callLines": 2,
+   "songId": "sidem_流星parade",
+   "updatedAt": 1788611053,
+   "updatedBy": "万丈"
+  },
+  {
+   "callCount": 2,
+   "callLines": 2,
+   "songId": "sidem_route77",
+   "updatedAt": 1788611012,
+   "updatedBy": "万丈"
+  },
+  {
+   "callCount": 17,
+   "callLines": 15,
+   "songId": "sidem_ray_of_light",
+   "updatedAt": 1788610941,
+   "updatedBy": "万丈"
+  },
+  {
+   "callCount": 22,
+   "callLines": 22,
+   "songId": "sidem_victory_believer",
+   "updatedAt": 1788609652,
+   "updatedBy": "万丈"
+  },
+  {
+   "callCount": 14,
+   "callLines": 14,
+   "songId": "sidem_夢色voyager",
+   "updatedAt": 1788609412,
+   "updatedBy": "万丈"
+  },
+  {
+   "callCount": 16,
+   "callLines": 18,
+   "songId": "sidem_reason",
+   "updatedAt": 1788609207,
+   "updatedBy": "万丈"
+  },
+  {
+   "callCount": 14,
+   "callLines": 9,
+   "songId": "sidem_study_equal_magic",
+   "updatedAt": 1788608774,
+   "updatedBy": "万丈"
+  },
+  {
+   "callCount": 20,
+   "callLines": 15,
+   "songId": "sidem_starlight_celebrate",
+   "updatedAt": 1788608512,
+   "updatedBy": "万丈"
+  },
+  {
+   "callCount": 39,
+   "callLines": 34,
+   "songId": "sidem_moon_nightのせいにして",
+   "updatedAt": 1788607921,
+   "updatedBy": "万丈"
+  },
+  {
+   "callCount": 21,
+   "callLines": 21,
+   "songId": "sidem_バーニンクールで輝いて",
+   "updatedAt": 1788607474,
+   "updatedBy": "万丈"
+  },
+  {
+   "callCount": 39,
+   "callLines": 37,
+   "songId": "sidem_beyond_the_dream",
+   "updatedAt": 1788606843,
+   "updatedBy": "万丈"
+  },
+  {
+   "callCount": 50,
+   "callLines": 50,
+   "songId": "ml_my_evolution",
+   "updatedAt": 1788605817,
+   "updatedBy": "万丈"
+  },
+  {
+   "callCount": 42,
+   "callLines": 32,
+   "songId": "sidem_笑顔の祭りにゃ福来る",
+   "updatedAt": 1788604249,
+   "updatedBy": "万丈"
+  },
+  {
+   "callCount": 10,
+   "callLines": 10,
+   "songId": "765as_i_want",
+   "updatedAt": 1788593076,
+   "updatedBy": "万丈"
+  },
+  {
+   "callCount": 5,
+   "callLines": 5,
+   "songId": "cg_イリュージョニスタ",
+   "updatedAt": 1788524852,
+   "updatedBy": "万丈"
+  },
+  {
+   "callCount": 36,
+   "callLines": 30,
+   "songId": "cg_yes_party_time",
+   "updatedAt": 1788521856,
+   "updatedBy": "万丈"
+  },
+  {
+   "callCount": 16,
+   "callLines": 16,
+   "songId": "cg_unlock_starbeat",
+   "updatedAt": 1788520829,
+   "updatedBy": "万丈"
+  },
+  {
+   "callCount": 12,
+   "callLines": 12,
+   "songId": "sidem_ultimate_flame",
+   "updatedAt": 1788520369,
+   "updatedBy": "万丈"
+  },
+  {
+   "callCount": 26,
+   "callLines": 26,
+   "songId": "765as_アマテラス",
+   "updatedAt": 1788520204,
+   "updatedBy": "万丈"
+  },
+  {
+   "callCount": 62,
+   "callLines": 43,
+   "songId": "765as_the_idolmster",
+   "updatedAt": 1788505691,
+   "updatedBy": "匿名"
+  },
+  {
+   "callCount": 1,
+   "callLines": 1,
+   "songId": "ml_aikane",
+   "updatedAt": 1788436903,
+   "updatedBy": "匿名"
+  },
+  {
+   "callCount": 5,
+   "callLines": 6,
+   "songId": "cg_お願いシンデレラ",
+   "updatedAt": 1788423020,
+   "updatedBy": "匿名"
+  }
+ ],
+ "taggedWithoutCalls": [
+  "ml_born_on_dream_hanabinight",
+  "ml_チョー元気showアイドルchng",
+  "sc_太陽キッス",
+  "sc_進路は超銀河",
+  "765as_乙女よ大志を抱け",
+  "765as_紅白応援v_ビクトリー",
+  "961_realize",
+  "cg_wish_you_happiness",
+  "cg_絶対特権主張しますっ",
+  "ml_brand_new_theater",
+  "ml_flyers",
+  "ml_rat_a_tat",
+  "ml_sparkers",
+  "ml_thank_you",
+  "ml_ランニングハイッ",
+  "ml_推しってほんと",
+  "ml_春風満帆スターティング",
+  "ml_紙心ペン心_-_shishinpenshin_-",
+  "sc_migratory_echoes",
+  "sc_prisism",
+  "sc_timeless_shooting_star",
+  "sc_とある英雄たちの物語",
+  "sc_五ツ座流星群",
+  "sc_快盗vを見逃すな",
+  "sc_迅雷鉄火",
+  "sidem_drive_a_live",
+  "765as_change",
+  "765as_go_my_way",
+  "765as_ready",
+  "765as_top",
+  "765as_キラメキラリ",
+  "765as_夏のbang",
+  "765as_自分restrt",
+  "cg_beyond_the_starlight",
+  "cg_goin",
+  "cg_great_journey",
+  "cg_orange_sapphire",
+  "cg_starry-go-round",
+  "cg_tokimekiエスカレート",
+  "cg_あんずのうた",
+  "cg_メルヘンデビュー",
+  "cg_凸凹スピードスター",
+  "cg_満願成就巫女の神頼み",
+  "cg_無重力シャトル",
+  "cg_純情midnight伝説",
+  "ml_7days_a_week",
+  "ml_bonnes_bonnes_vacances",
+  "ml_cheer_up_hearts_up",
+  "ml_crossing",
+  "ml_eternal_harmony",
+  "ml_union",
+  "ml_アフタースクールパーリータイム",
+  "ml_ジャングルパーティー",
+  "ml_ビッグバンズバリボー",
+  "ml_ピコピコiiko_インベーダー",
+  "ml_絶対的performer",
+  "ml_花ざかりweekend",
+  "ml_頂上決戦ヴィクトリー",
+  "sc_another_rampage",
+  "sc_burn_burn",
+  "sc_cmon_join_us",
+  "sc_koikyun",
+  "sc_live_live_live",
+  "sc_snow_flakes_memories",
+  "sc_spread_the_wings_-19_colors-",
+  "sc_sweetstep",
+  "sc_ハナサカサイサイ",
+  "sc_ハナマルバッジ",
+  "sc_ビーチブレイバー",
+  "sc_乱舞る",
+  "sc_拝啓タイムカプセル",
+  "sidem_dance_in_the_school",
+  "sidem_from_teacher_to_future",
+  "sidem_jokerオールマイティ",
+  "sidem_joyful_heart_maker",
+  "sidem_supreme_stars_",
+  "sidem_いとをかし一彩合彩",
+  "sidem_もふデビうぉんてっど",
+  "sidem_スマイルエンゲージ",
+  "sidem_劇星戦隊ドラスターズ",
+  "sidem_来来美食",
+  "sidem_縁会entertainments",
+  "765as_brave_star",
+  "765as_halftone",
+  "765as_idolheart",
+  "765as_msterpiece",
+  "765as_readychange_special_edition",
+  "765as_relations",
+  "765as_session",
+  "765as_yes",
+  "765as_アイ_need_youfor_wonderful_story",
+  "765as_オーバーマスター",
+  "765as_ザライブ革命でshow",
+  "765as_ジェミー",
+  "765as_チェリー",
+  "765as_ラムネ色_青春",
+  "765as_待ち受けプリンス",
+  "765as_私はアイドル",
+  "765as_私はアイドル_2",
+  "765as_自転車"
+ ]
+}

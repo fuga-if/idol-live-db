@@ -2,7 +2,7 @@
 import type { LyricsBlock } from "../lib/schema/LyricsBlock";
 
 /**
- * 歌詞とコールガイド。
+ * 歌詞とコールガイド。使われ方はコールガイド目的が多いので、ボタンの文言 (Rust) も両方を言う。
  *
  * **出すかどうかを決めるのはここではない。** `imas-core` の
  * `content::LYRICS_ON_WEB` が決めた結果が `lyrics.available` で来る。
@@ -14,8 +14,20 @@ import type { LyricsBlock } from "../lib/schema/LyricsBlock";
  *   静的な HTML には 1 文字も入っていない。
  * - **回数が数えられる。** Worker が 1 リクエストごとに記録する
  *   (年次利用曲目報告の母集団)。だから共有キャッシュにも載せない。
- * - コピーを取りにくくする。選択・右クリック・ドラッグ・印刷を抑える。
+ * - コピーを取りにくくする。選択 (CSS)・コピー・ドラッグ・印刷を抑える。
  *   完全には防げないが「一括ダウンロード不可」の実効性を担保する形にする。
+ *   右クリックと selectstart までは止めない: 読み上げ・辞書・拡大のような支援の道具を
+ *   殺すだけで、ソースを見る人には何の障害にもならない。
+ *
+ * コールは**位置で示す** (実物のコール表と同じ組み方):
+ * - 同時 (歌に被せる) は、アンカーした語の**真下**。追っかけは語の**後ろ** (右端から)。
+ * - 掛かる範囲の無いコール (行末に足したもの) は、その位置 (ふつう行末)。
+ * 歌詞の本文は普通に折り返し、コールは本文の流れに影響しない**重ね書き** (絶対配置) で
+ * 語の真下に置く。語とコールを 1 塊にすると、コールの長さぶん歌詞が広がり、狭い画面では
+ * 語だけが次の行に落ちて読めなくなった。位置は描画後に語の矩形から測って決め、
+ * 画面幅が変わったら測り直す。コールが重なるときは右へずらし、入らなければ段を足す。
+ * 記号・凡例の語は Rust (`content::call_guide_vocabulary`) が `lyrics.callGuide` で配り、
+ * ここは位置 (Unicode スカラー単位の start/end) と突き合わせて置くだけ。
  */
 interface Props {
   lyrics: LyricsBlock;
@@ -25,39 +37,359 @@ const { lyrics } = Astro.props;
 
 {
   lyrics.available && lyrics.sourceUrl ? (
-    <div class="lyrics" data-lyrics data-source={lyrics.sourceUrl}>
+    <div
+      class="lyrics"
+      data-lyrics
+      data-source={lyrics.sourceUrl}
+      data-call-guide={lyrics.callGuide ? JSON.stringify(lyrics.callGuide) : undefined}
+    >
       <p class="lyrics__license">{lyrics.licenseNote}</p>
       <button class="btn" type="button" data-lyrics-load>
-        歌詞を読む
+        {lyrics.readLabel}
       </button>
-      <p class="lyrics__status" data-lyrics-status role="status" hidden />
-      {/* 本文はここに描かれる。サーバから配る HTML には入っていない。 */}
-      <div class="lyrics__body" data-lyrics-body hidden />
+      {/* 最初から木に居る (display:none の live region は最初の変化が読まれないことがある)。 */}
+      <p class="lyrics__status" data-lyrics-status role="status" aria-live="polite" />
+      {/* 本文はここに描かれる。サーバから配る HTML には入っていない。
+          読み込んだらここへフォーカスを移す (押したボタンが消えて焦点が迷子にならない)。 */}
+      <div class="lyrics__body" data-lyrics-body tabindex="-1" aria-labelledby="song-lyrics" hidden />
     </div>
   ) : (
     <div class="card card__pad">
+      {lyrics.statusLabel && <p class="chip lyrics__pending">{lyrics.statusLabel}</p>}
       <p>{lyrics.note}</p>
     </div>
   )
 }
 
 <script>
+  import type { CallGuideVocabulary } from "../lib/schema/CallGuideVocabulary";
+
+  /** Worker が返す歌詞 1 曲。本文はここでしか扱わない。 */
+  interface LyricCall {
+    id: string;
+    /** 行内の位置 (Unicode スカラー単位、end は排他)。start === end は行末 (掛かる範囲が無い)。 */
+    start: number;
+    end: number;
+    text: string;
+    emphasis?: string | null;
+    timing?: string | null;
+    stale?: boolean | null;
+  }
+  interface LyricLine {
+    kind?: string | null;
+    text: string;
+    clap?: string | null;
+    calls?: LyricCall[] | null;
+  }
+
   const root = document.querySelector<HTMLElement>("[data-lyrics]");
   const source = root?.dataset.source;
   if (root && source) {
     const button = root.querySelector<HTMLButtonElement>("[data-lyrics-load]")!;
     const status = root.querySelector<HTMLElement>("[data-lyrics-status]")!;
     const body = root.querySelector<HTMLElement>("[data-lyrics-body]")!;
+    const vocabulary: CallGuideVocabulary | null = root.dataset.callGuide
+      ? (JSON.parse(root.dataset.callGuide) as CallGuideVocabulary)
+      : null;
 
-    // コピーを取りにくくする。選択・コピー・右クリック・ドラッグを止める
-    // (印刷は CSS 側で消す)。完全には防げないが、まとめ取りの手間を上げる。
-    for (const type of ["copy", "cut", "contextmenu", "dragstart", "selectstart"]) {
+    // コピーを取りにくくする。コピー・切り取り・ドラッグを止める (選択は CSS、印刷も CSS)。
+    // 完全には防げないが、まとめ取りの手間を上げる。
+    for (const type of ["copy", "cut", "dragstart"]) {
       body.addEventListener(type, (e) => e.preventDefault());
     }
 
     const say = (text: string) => {
       status.textContent = text;
-      status.hidden = false;
+    };
+
+    const el = (tag: string, className: string, text?: string): HTMLElement => {
+      const node = document.createElement(tag);
+      node.className = className;
+      if (text !== undefined) node.textContent = text;
+      return node;
+    };
+
+    /** 強調度の強さ。同じ範囲に複数のコールがあるとき、行内に敷く色は一番強いものにする。 */
+    const rank = (emphasis: string | null | undefined): number =>
+      emphasis === "performer_request" ? 2 : emphasis === "optional" ? 1 : 0;
+    const hasAnchor = (c: LyricCall): boolean => c.end > c.start;
+    const isOver = (c: LyricCall): boolean => c.timing === "over" && hasAnchor(c);
+
+    /**
+     * コールの置き場所 (スロット)。同時は語の範囲 (真下に置く)、追っかけと行末は
+     * 位置 1 点 (その右に置く)。同じ場所のコールは 1 段にまとめる。
+     */
+    interface Slot {
+      start: number;
+      end: number;
+      calls: LyricCall[];
+    }
+    const slotsOf = (calls: LyricCall[]): Slot[] => {
+      const byKey = new Map<string, Slot>();
+      for (const c of calls) {
+        const start = isOver(c) ? c.start : c.end;
+        const end = isOver(c) ? c.end : c.end;
+        const key = `${start}-${end}`;
+        const slot = byKey.get(key) ?? { start, end, calls: [] };
+        slot.calls.push(c);
+        byKey.set(key, slot);
+      }
+      return [...byKey.values()].sort((a, b) => a.start - b.start || a.end - b.end);
+    };
+
+    /** 行ごとのコールと目印の対。配置は描画後に目印の矩形から決める (`placeCalls`)。 */
+    interface CallSlot {
+      marker: HTMLElement;
+      call: HTMLElement;
+      /** 同時 (語の真下に置く) か。false は追っかけ・行末 (目印の右に置く)。 */
+      over: boolean;
+    }
+    const lineSlots = new WeakMap<HTMLElement, CallSlot[]>();
+
+    /** 1 スロットぶんのコール (複数なら空白で 1 段に並べる)。 */
+    const callRow = (slot: Slot): HTMLElement => {
+      const row = el("span", "lyrics__call");
+      slot.calls.forEach((c, i) => {
+        if (i > 0) row.append(" ");
+        const item = el("span", `lyrics__call-item lyrics__call-item--${c.emphasis ?? "normal"}`, c.text);
+        if (c.stale && hasAnchor(c) && vocabulary) {
+          item.append(" ", el("span", "lyrics__tag", vocabulary.staleLabel));
+        }
+        row.append(item);
+      });
+      return row;
+    };
+
+    /**
+     * 本文。アンカー範囲 (追っかけの分も含む) は薄く色を敷き、スロットの位置に目印
+     * (範囲は mark そのもの、1 点は幅ゼロの span) を置く。コールは重ね書きの層に出し、
+     * 位置は描画後に目印の矩形から決める。重なる範囲は先勝ち。位置はスカラー単位。
+     */
+    const lineContent = (text: string, calls: LyricCall[]): HTMLElement => {
+      const scalars = Array.from(text);
+      const content = el("span", "lyrics__content");
+      const textEl = el("span", "lyrics__text");
+      const overlay = el("span", "lyrics__overlay");
+      const tint = new Map<string, { start: number; end: number; emphasis: string }>();
+      for (const c of calls) {
+        if (!hasAnchor(c)) continue;
+        const key = `${c.start}-${c.end}`;
+        const emphasis = c.emphasis ?? "normal";
+        const current = tint.get(key);
+        if (!current || rank(emphasis) > rank(current.emphasis)) {
+          tint.set(key, { start: c.start, end: c.end, emphasis });
+        }
+      }
+      interface Piece {
+        start: number;
+        end: number;
+        emphasis?: string;
+        slot?: Slot;
+      }
+      const pieces: Piece[] = [...tint.values()];
+      for (const slot of slotsOf(calls)) {
+        const same = pieces.find((p) => p.start === slot.start && p.end === slot.end && !p.slot);
+        if (same && slot.end > slot.start) same.slot = slot;
+        else pieces.push({ start: slot.start, end: slot.end, slot });
+      }
+      pieces.sort((a, b) => a.start - b.start || a.end - b.end);
+
+      const slots: CallSlot[] = [];
+      let cursor = 0;
+      for (const piece of pieces) {
+        const start = Math.min(Math.max(piece.start, cursor), scalars.length);
+        const end = Math.min(Math.max(piece.end, start), scalars.length);
+        if (start > cursor) textEl.append(scalars.slice(cursor, start).join(""));
+        const word = scalars.slice(start, end).join("");
+        let marker: HTMLElement;
+        if (word) {
+          marker = el("mark", "lyrics__anchor", word);
+          marker.dataset.emphasis = piece.emphasis ?? "normal";
+        } else {
+          // 幅ゼロの目印。中身はゼロ幅スペース (空の span は矩形を持たない)。
+          marker = el("span", "lyrics__point", "\u200b");
+        }
+        if (piece.slot) {
+          const call = callRow(piece.slot);
+          overlay.append(call);
+          slots.push({ marker, call, over: piece.slot.end > piece.slot.start });
+        }
+        textEl.append(marker);
+        cursor = end;
+      }
+      if (cursor < scalars.length) textEl.append(scalars.slice(cursor).join(""));
+      content.append(textEl);
+      if (slots.length > 0) {
+        content.dataset.hasCalls = "";
+        content.append(overlay);
+        lineSlots.set(content, slots);
+      }
+      return content;
+    };
+
+    /**
+     * コールの位置を語の矩形から決める。
+     * - 同時: 語の先頭の x、追っかけ・行末: 目印の右端の x。y はその表示行の直下。
+     * - 右端に入らなければ左へ寄せる (語の色で対応は分かる)。行幅より長いコールは行頭から折り返す。
+     * - 同じ表示行で重なるコールは右へずらし、右端に入らなければ 1 段下げる。
+     * - 折り返した段落の途中の行の下に置いたコールが次の行の本文に食い込むなら、その深さぶん
+     *   行送りを広げて (`--band`) 置き直す。行送りは上下に均等に割られるので、行と行の間は
+     *   ちょうど帯のぶん開く (1 回で収まる)。最後の行の下は余白で受ける。
+     * 読み (矩形) と書き (スタイル) は段落ごとにまとめ、1 回の配置の再レイアウトを 2 回に抑える。
+     */
+    const CALL_GAP = 2; // 語の下端とコールの間
+    const AFTER_GAP = 4; // 追っかけ・行末: 目印の右端からの間
+    const SIDE_GAP = 6; // 同じ行に並ぶコール同士の間
+    const LINE_GAP = 4; // 途中の行に置いたコールと、次の行の本文の間
+    interface Box {
+      left: number;
+      right: number;
+      top: number;
+      bottom: number;
+    }
+
+    const placeCalls = (content: HTMLElement, slots: CallSlot[], band: number) => {
+      // 書き: 前回の配置を戻す (画面幅が変わったときに測り直すため)。
+      content.style.setProperty("--band", `${band}px`);
+      content.style.paddingBlockEnd = "";
+      for (const s of slots) {
+        delete s.call.dataset.wrap;
+        s.call.style.maxInlineSize = "";
+      }
+      // 読み: 語の矩形と、コールの自然な幅。
+      const origin = content.getBoundingClientRect();
+      const width = content.clientWidth;
+      const textRects = [...content.querySelector(".lyrics__text")!.getClientRects()];
+      const measured = slots.map((s) => {
+        const rects = s.marker.getClientRects();
+        return {
+          ...s,
+          rect: s.over ? rects[0] : rects[rects.length - 1],
+          width: s.call.offsetWidth,
+          height: 0,
+          left: 0,
+          top: 0,
+        };
+      });
+      // 書き → 読み: 行幅より長いコールは行頭から折り返し、その高さを測る。
+      for (const m of measured) {
+        if (m.width > width) {
+          m.call.dataset.wrap = "";
+          m.call.style.maxInlineSize = `${width}px`;
+          m.width = width;
+        }
+      }
+      for (const m of measured) m.height = m.call.offsetHeight;
+
+      const placed: Box[] = [];
+      let intrusion = 0;
+      let overflow = 0;
+      for (const m of measured) {
+        if (!m.rect) continue;
+        const anchorLeft = (m.over ? m.rect.left : m.rect.right + AFTER_GAP) - origin.left;
+        const fit = (x: number) => Math.max(0, Math.min(x, width - m.width));
+        let left = fit(anchorLeft);
+        let top = m.rect.bottom - origin.top + CALL_GAP;
+        // 同じ行で重なるなら右へ。右端に入らなければ 1 段下げる (毎回右か下へ進むので必ず終わる)。
+        for (;;) {
+          const hit = placed.find(
+            (b) => top < b.bottom && top + m.height > b.top && left < b.right && left + m.width > b.left,
+          );
+          if (!hit) break;
+          if (hit.right + SIDE_GAP + m.width <= width) left = hit.right + SIDE_GAP;
+          else {
+            left = fit(anchorLeft);
+            top = hit.bottom + CALL_GAP;
+          }
+        }
+        placed.push({ left, right: left + m.width, top, bottom: top + m.height });
+        m.left = left;
+        m.top = top;
+        // 後ろの行の本文 (同じ x の範囲) に食い込む深さ。
+        const absLeft = origin.left + left;
+        const absBottom = origin.top + top + m.height;
+        for (const t of textRects) {
+          if (t.top > m.rect.bottom + 1 && t.left < absLeft + m.width && t.right > absLeft) {
+            intrusion = Math.max(intrusion, absBottom + LINE_GAP - t.top);
+          }
+        }
+        overflow = Math.max(overflow, top + m.height - origin.height);
+      }
+      // 書き: 置く。
+      for (const m of measured) {
+        if (m.rect) m.call.style.translate = `${m.left}px ${m.top}px`;
+      }
+      return { intrusion, overflow };
+    };
+
+    let laidOutWidth = -1;
+    const layoutCalls = (force = false): void => {
+      // 自分の余白で高さだけ変わったとき (幅が同じ) は置き直さない。
+      const width = body.clientWidth;
+      if (!force && width === laidOutWidth) return;
+      laidOutWidth = width;
+      for (const content of body.querySelectorAll<HTMLElement>(".lyrics__content[data-has-calls]")) {
+        const slots = lineSlots.get(content);
+        if (!slots) continue;
+        let result = placeCalls(content, slots, 0);
+        if (result.intrusion > 0) result = placeCalls(content, slots, Math.ceil(result.intrusion));
+        content.style.paddingBlockEnd = `${Math.max(0, Math.ceil(result.overflow) + CALL_GAP)}px`;
+      }
+    };
+    let layoutFrame = 0;
+    const scheduleLayout = (force = false) => {
+      window.cancelAnimationFrame(layoutFrame);
+      layoutFrame = window.requestAnimationFrame(() => layoutCalls(force));
+    };
+    // 本文の幅が変わったら測り直す (画面の回転・幅の変更)。resize イベントより後の、
+    // 変わり終わった大きさで呼ばれる。
+    new ResizeObserver(() => scheduleLayout()).observe(body);
+
+
+    /** 凡例。その曲で実際に使われているものだけ (曲ごとに中身が変わる、実物のコール表と同じ)。 */
+    const legend = (lines: LyricLine[]): HTMLElement | null => {
+      if (!vocabulary) return null;
+      const calls = lines.flatMap((l) => l.calls ?? []);
+      const usedEmphases = vocabulary.emphases.filter(
+        (e) => e.kind !== "normal" && calls.some((c) => c.emphasis === e.kind),
+      );
+      const usedClaps = vocabulary.claps.filter((k) => lines.some((l) => l.clap === k.kind));
+      if (usedEmphases.length === 0 && usedClaps.length === 0) return null;
+      const box = el("p", "lyrics__legend");
+      for (const e of usedEmphases) {
+        const item = el("span", "lyrics__legend-item");
+        item.append(el("span", `lyrics__dot lyrics__dot--${e.kind}`), e.label);
+        box.append(item);
+      }
+      for (const k of usedClaps) {
+        const item = el("span", "lyrics__legend-item");
+        item.append(el("span", "lyrics__legend-symbol", k.symbol), k.label);
+        box.append(item);
+      }
+      return box;
+    };
+
+    const render = (lines: LyricLine[]): void => {
+      const nodes: HTMLElement[] = [];
+      const head = legend(lines);
+      if (head) nodes.push(head);
+      // 手拍子の記号は行頭の固定幅の列に置く。ある行だけ本文が右にズレないよう、
+      // 1 行でも指示があれば全行にその列を確保する (アプリと同じ)。
+      const clapColumn = lines.some((l) => l.clap && vocabulary);
+      for (const line of lines) {
+        const calls = line.calls ?? [];
+        const kind = line.kind ?? "lyric";
+        const p = el("p", `lyrics__line lyrics__line--${kind}`);
+        if (clapColumn) {
+          const clap = vocabulary!.claps.find((k) => k.kind === line.clap);
+          const glyph = el("span", "lyrics__clap", clap?.symbol ?? "");
+          if (clap) glyph.setAttribute("aria-label", clap.label);
+          p.append(glyph);
+        }
+        p.append(lineContent(line.text, calls));
+        nodes.push(p);
+      }
+      body.replaceChildren(...nodes);
     };
 
     button.addEventListener("click", async () => {
@@ -67,27 +399,16 @@ const { lyrics } = Astro.props;
         // **1 曲ぶんだけ。** まとめて取る道は用意しない。
         const res = await fetch(source, { headers: { Accept: "application/json" } });
         if (!res.ok) throw new Error(String(res.status));
-        const data = (await res.json()) as {
-          lines: { text: string; kind?: string | null; calls?: { text: string }[] }[];
-        };
-        body.replaceChildren(
-          ...data.lines.map((line) => {
-            const p = document.createElement("p");
-            p.className = "lyrics__line";
-            p.textContent = line.text;
-            // コールガイドは歌詞行の下に添える (アプリと同じ並び)。
-            if (line.calls?.length) {
-              const calls = document.createElement("span");
-              calls.className = "lyrics__calls";
-              calls.textContent = line.calls.map((c) => c.text).join(" ");
-              p.append(calls);
-            }
-            return p;
-          }),
-        );
+        const data = (await res.json()) as { lines: LyricLine[] };
+        render(data.lines);
+        // 位置は見える状態で測る (隠れたままでは矩形が全部 0)。
         body.hidden = false;
-        status.hidden = true;
+        layoutCalls(true);
+        // 書体の読み込みで幅が変わることがあるので、揃ってからもう一度。
+        void document.fonts?.ready.then(() => scheduleLayout(true));
         button.hidden = true;
+        say("歌詞を表示しました。");
+        body.focus();
       } catch (e) {
         say("歌詞を読み込めませんでした。アプリからご覧ください。");
         button.disabled = false;

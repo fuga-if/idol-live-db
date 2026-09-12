@@ -1089,6 +1089,8 @@ mod tests {
                 unit_id: None,
                 series_group: series.map(Into::into),
                 jasrac_code: None,
+                joint_brand_ids: None,
+                is_collab: false,
             }
         }
 

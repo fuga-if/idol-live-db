@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "path": "/tags/",
+  "title": "タグ",
+  "lede": "アプリの利用者が曲に付けたタグです。付いている曲の多い順。タグ付けはアプリから。",
+  "items": [
+    {
+      "badge": {
+        "id": "tag_kawaii",
+        "name": "かわいい",
+        "themeKey": "tag:tag_kawaii",
+        "isOfficial": false
+      },
+      "path": "/tags/tag_kawaii/",
+      "description": "かわいい曲につけるタグ",
+      "officialLabel": null,
+      "songCount": 2
+    }
+  ],
+  "total": 1,
+  "seo": {
+    "title": "タグ | アイドルライブDB",
+    "description": "アイドルマスターの楽曲に付いたタグの一覧。タグから曲を探せます。",
+    "canonical": "https://idollivedb.fugalabs.uk/tags/",
+    "ogImage": "https://idollivedb.fugalabs.uk/og/default.png",
+    "robots": "index,follow",
+    "jsonLd": {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebPage",
+          "name": "タグ",
+          "url": "https://idollivedb.fugalabs.uk/tags/"
+        },
+        {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "item": "https://idollivedb.fugalabs.uk/",
+              "name": "ホーム",
+              "position": 1
+            },
+            {
+              "@type": "ListItem",
+              "item": "https://idollivedb.fugalabs.uk/songs/",
+              "name": "楽曲",
+              "position": 2
+            }
+          ]
+        }
+      ]
+    },
+    "breadcrumbs": [
+      {
+        "name": "ホーム",
+        "path": "/"
+      },
+      {
+        "name": "楽曲",
+        "path": "/songs/"
+      }
+    ]
+  }
+}

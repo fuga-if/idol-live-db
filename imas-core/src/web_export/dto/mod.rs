@@ -40,6 +40,8 @@ macro_rules! web_dto {
 }
 
 pub mod brand;
+pub mod calendar;
+pub mod calls;
 pub mod common;
 pub mod event;
 pub mod idol;
@@ -51,25 +53,34 @@ pub mod unit;
 pub mod venue;
 
 pub use brand::BrandPage;
+pub use calendar::{
+    CalendarBand, CalendarDay, CalendarDayGroup, CalendarItem, CalendarItemKind, CalendarPage, CalendarWeek,
+};
+pub use common::{filter_axes, nonzero_tiles};
+pub use calls::{CallGuideEditRow, CallGuidePage, CallGuideSongRow};
 pub use common::{
-    mark_current, AppLinks, AppOpen, Counts, Crumb, LyricsBlock, NavLink, PenlightSetDto,
+    mark_current, AppLinks, AppOpen, CallGuideClap, CallGuideEmphasis, CallGuideVocabulary, Counts, Crumb,
+    DateBadge, FilterAxis, LyricsBlock, NavLink, PenlightSetDto,
     PerformerNameOptionDto, Ref, RefKind, Robots, SeoBlock, SiteMeta, SongCommunity, StatTile,
-    TagChipDto, ThemePair, ThemeTable, ThemeTokens, SCHEMA_VERSION,
+    TagBadge, TagChipDto, ThemePair, ThemeTable, ThemeTokens, SCHEMA_VERSION,
 };
 pub use event::{
-    EventCast, EventCastMember, EventCastShow, EventPage, EventStats, ReleaseInfo, ShowSummary,
-    TicketInfo,
+    EventCast, EventCastMember, EventCastShow, EventPage, ReleaseInfo, ShowSummary, TicketInfo,
 };
 pub use idol::{IdolPage, IdolPerformedRow, IdolShowRow, IdolSongRow, ProfileRow, VoiceActorRow};
 pub use index::{
     AboutLink, AboutPage, AboutSection, BrandListItem, BrandListPage, EventListItem,
-    EventListKind, EventListPage, HomePage, IdolListItem, IdolListKind, IdolListPage,
+    EventListKind, EventListPage, HomePage, IdolColumn, IdolListItem, IdolListKind, IdolListPage,
     KanaSection, RouteEntry, RouteKind, RoutesFile, SongListItem, SongListKind, SongListPage,
+    TagListItem, TagListPage, TagPage, TagSongRow,
     UnitListItem, UnitListPage, VenueListItem, VenueListPage, YearGroup,
     PollEntryDto, PollListPage, PollSummaryDto,
 };
 pub use search::{FoldCase, FoldParity, SearchManifest, SearchRow, SearchShard, SearchShardMeta};
-pub use show::{PerformerRef, SetlistCostume, SetlistRow, ShowCostume, ShowPage};
+pub use show::{
+    LineupNote, MissingOriginals, PerformerRef, SetlistCostume, SetlistRow, SetlistSection,
+    ShowCostume, ShowPage,
+};
 pub use song::{CoOccurRow, CreditGroup, PerformanceRow, SingerRow, SongPage};
 pub use unit::UnitPage;
 pub use venue::{HallRow, VenueNameRow, VenuePage};

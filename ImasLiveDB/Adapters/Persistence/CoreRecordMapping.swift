@@ -384,7 +384,9 @@ enum CoreRecordMapping {
             singerLabel: record.singerLabel,
             unitName: record.unitName,
             unitId: record.unitId,
-            seriesGroup: record.seriesGroup
+            seriesGroup: record.seriesGroup,
+            jointBrandIds: record.jointBrandIds,
+            isCollab: record.isCollab
         )
     }
 

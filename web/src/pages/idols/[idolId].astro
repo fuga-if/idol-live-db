@@ -4,33 +4,36 @@ import Section from "../../components/Section.astro";
 import Chip from "../../components/Chip.astro";
 import ListContainer from "../../components/ListContainer.astro";
 import LabeledRow from "../../components/LabeledRow.astro";
-import LeadRow from "../../components/LeadRow.astro";
+import DatedRow from "../../components/DatedRow.astro";
+import Count from "../../components/Count.astro";
 import RefList from "../../components/RefList.astro";
+import StatStrip from "../../components/StatStrip.astro";
 import RankingRow from "../../components/RankingRow.astro";
 import EmptyState from "../../components/EmptyState.astro";
-import { meta, page, pathsFor } from "../../lib/data";
-import type { IdolPage } from "../../lib/schema/IdolPage";
-import Count from "../../components/Count.astro";
 import CommunityTags from "../../components/CommunityTags.astro";
+import { page, pathsFor } from "../../lib/data";
+import type { IdolPage } from "../../lib/schema/IdolPage";
 
 export const getStaticPaths = () => pathsFor("idol", "idolId");
 
 const idol = page<IdolPage>(Astro.props.data);
 ---
 
-<DetailLayout seo={idol.seo} meta={meta()} themeKey={idol.themeKey} app={idol.app}>
+{/* 電話ではプロフィール・ユニット (脇) より持ち曲・出演公演 (本体) を先に。 */}
+<DetailLayout seo={idol.seo} themeKey={idol.themeKey} app={idol.app} asideAfterMain>
   <section class="hero" slot="hero" aria-labelledby="idol-title">
     <div class="hero__body">
       {idol.brand && <p class="hero__eyebrow">{idol.brand.name}</p>}
       <h1 class="hero__title" id="idol-title">{idol.name}</h1>
       {idol.nameKana && <p class="hero__kana">{idol.nameKana}</p>}
-      {idol.currentVoiceActor && <p class="u-muted">CV: {idol.currentVoiceActor}</p>}
+      {idol.currentVoiceActor && <p class="lede">CV: {idol.currentVoiceActor}</p>}
       <div class="hero__meta">
         {idol.brands.map((b) => (
           <Chip text={b.name} href={b.path} variant="themed" themeKey={b.themeKey} />
         ))}
       </div>
-      {idol.description && <p>{idol.description}</p>}
+      {idol.description && <p class="lede">{idol.description}</p>}
+      <StatStrip items={idol.statTiles} label="このアイドルの数" />
     </div>
   </section>
 
@@ -90,16 +93,13 @@ const idol = page<IdolPage>(Astro.props.data);
         <ListContainer as="ul">
           {idol.songs.map((s) => (
             <li>
-              <LeadRow
+              {/* 披露回数は Rust が副題に畳んでいる (`N 回披露`)。末尾に重ねて出さない。 */}
+              <DatedRow
                 title={s.song.name}
-                subtitle={s.subtitle}
                 href={s.song.path}
                 themeKey={s.song.themeKey}
-              >
-                {s.performanceCount > 0 && (
-                  <Count slot="trailing" value={s.performanceCount} unit="回" />
-                )}
-              </LeadRow>
+                meta={[s.subtitle]}
+              />
             </li>
           ))}
         </ListContainer>
@@ -136,17 +136,15 @@ const idol = page<IdolPage>(Astro.props.data);
         <ListContainer as="ul">
           {idol.shows.map((s) => (
             <li>
-              <LeadRow
+              <DatedRow
+                badge={s.dateBadge}
                 title={s.event.name}
-                subtitle={s.subtitle}
                 href={s.show.path}
                 themeKey={s.show.themeKey}
+                meta={[s.subtitle]}
               >
-                <span slot="trailing" class="u-row">
-                  <time class="u-num" datetime={s.date}>{s.date}</time>
-                  {s.songCount > 0 && <Count value={s.songCount} unit="曲" />}
-                </span>
-              </LeadRow>
+                {s.songCount > 0 && <Count slot="trailing" strong value={s.songCount} unit="曲" />}
+              </DatedRow>
             </li>
           ))}
         </ListContainer>

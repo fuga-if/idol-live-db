@@ -5,6 +5,37 @@
 
 ---
 
+## 対応状況 (2026-09-06、ブランチ `claude/web-page-high-quality-bfa367`)
+
+§2 の指摘はすべて対応した。§4 の 5 本の線は踏んでいない。
+
+| 指摘 | どう直したか |
+|---|---|
+| 「最近の公演」の主従が逆 | 行の見出しをライブ名、公演名 (`DAY1`) を副題に。Rust が `ShowSummary.show_label` (ライブ名との重なりを落とした公演名) を出す |
+| サイト名が 3 回 | eyebrow を廃止。上部バーのブランドとトップの `<h1>` の 2 箇所だけ |
+| 左サイドバー 208px | **上部バー 1 本**に置き換え (`base.css`)。本文の最大幅を 1120 / 1320px に広げた。並びは `meta.primaryNav` (Rust) |
+| 行が全部同じ | `DatedRow` (日付ブロック + 見出し + メタ + 末尾) を共通骨格に。トップの先頭 1 件は `FeatureEvent` で大きく |
+| 副題が長い 1 本 | 日付は `DateBadge` (月日・曜日・年、Rust の `DateBadge` DTO)、ブランドは色付きの札、会場は `venue_display`、公演数は数、に分解 |
+| 詳細ページも同じ問題 | ヒーローに `Facts` (日程・会場・開演 …) と数の帯。公演ページは `short_name` (`Day2`) を見出しに、同じライブの公演はセグメントで切替 |
+
+Rust に足した形 (`cargo test --features web-export` で TS 型を再生成済み):
+`DateBadge` / `EventListItem.{date_badge,end_display,brand_mark,venue_display,show_count_display}`
+(繋いだ `subtitle` は廃止) / `ShowSummary.{title,show_label,date_badge,start_time_display}`
+(文脈は `emit::events::ShowContext` が決める。`subtitle` 廃止) / `PerformanceRow.date_badge` /
+`IdolShowRow.date_badge` / `EventPage.{date_display,stat_tiles}` / `ShowPage.{short_name,fact_rows}` /
+`BrandPage.stat_tiles` / `SongPage.song_type_label` / `SiteMeta.{primary_nav,utility_nav}`。
+曜日と期間の畳み方は `domain::date_display` (chrono)、主要な一覧の記号・名前・入口は
+`emit::lists::SiteList` が 1 本で持つ。TS 側は `DatedRow` / `Count strong` / `BrandMark` /
+`Facts` (= `ProfileRow`) / `StatStrip` (= `StatTile`) を置くだけ。
+
+トップの検索窓は JS 無しの GET フォームで `/search/?q=` へ飛ぶ (CSP の `form-action` を `'self'` に)。
+
+**残っているもの (UI では直せない)**: §2-2 のデータ側のうち `shows.performer_type` が全件 `cast`
+(入力漏れの疑い、判断待ち)。SideM 11th STAGE の重複は 2026-09-06 に master.sql 側で除去済み
+(CloudKit の削除はオーナー操作待ち、`tools/pending_push_20260906/README.md`)。
+
+---
+
 ## 0. 3 行で
 
 - **見た目と体験がまだ全然ダメ。** 情報は揃っているが、階層・密度・視線誘導が設計されていない。
@@ -69,6 +100,8 @@ npx wrangler deploy # 本番へ
   `ev_2bd4cd37-...` (UUID) と `ev_the_idolmster_sidem_11th_stage_ever_everfter` (slug) の 2 レコード。
   トップの「今後のライブ」に同じ行が 2 つ並ぶ。master データの統合が要る
   (CloudKit の削除も要るので §4-2 を読むこと)。重複はこの 1 件だけ (実測)。
+  → 2026-09-06: 無日付の別綴り 2 件も含めて master.sql から除去済み。CloudKit の物理削除は
+  `tools/pending_cloudkit_deletions_sidem_11th_dup_20260906.tsv` (オーナー操作待ち)。
 - `shows.performer_type` が**全 1198 公演 `cast`**。`character` が 0 件なので、
   歌唱者表示の「公演に合わせる」モードが実質 CV 名固定になっている。入力漏れの疑い。
 
@@ -85,7 +118,7 @@ npx wrangler deploy # 本番へ
 web/src/
   layouts/    BaseLayout / ListLayout / DetailLayout   … 枠。サイドバーもここ
   components/ SiteHeader・Section・LeadRow・EntryCard・Chip・TagChip・
-              Artwork・ColorDot・SetlistRow・SongTable・ListFilterBar …
+              Artwork・ColorDot・SetlistRow・SongRow・ListFilterBar …
   styles/     tokens.css (色・間隔・書体の変数) / components.css (全部の見た目)
   pages/      ルーティング。中身は components に渡すだけ
 ```
@@ -119,6 +152,8 @@ DTO を足したら `cargo test --features web-export` が `web/src/lib/schema/*
 **master.sql から消しただけでは日次 cron で復活する。** CloudKit 側も
 `tools/seed_cloudkit.py --delete-file <TSV>` で消す必要がある (手順は
 `docs/JASRAC.md` ではなく memory / 過去コミット `196ebb6` を参照)。
+同じ理由で、**列を NULL に直した修正も既定の push では戻る** (NULL 列は送られず、forceUpdate は
+送らなかった列を残す)。`seed_cloudkit.py --replace` (forceReplace、`--ids/--ids-file` 必須) で送る。
 
 ### 4-3. ランニングコストはゼロ
 
@@ -130,9 +165,11 @@ assets-only Worker (`main` を書かない) なので静的配信は無料。
 ### 4-4. 歌詞は既定で出さない
 
 `imas-core/src/web_export/content.rs` の `LYRICS_ON_WEB = false`。
-**勝手に `true` にしないこと。** 4 つの前提 (JASRAC への確認 / 本番 API の匿名 GET /
-CORS / D1 枠) が `docs/JASRAC.md` §6.5 に書いてある。UI は実装済みなので、
+**勝手に `true` にしないこと。** Web 出面は**アプリとは別枠の JASRAC の許諾が要る**と
+2026-09-08 に分かって閉じてある (前提は `docs/JASRAC.md` §6.5)。UI は実装済みなので、
 見た目を整える分には触ってよいが、既定値は変えない。
+閉じている間は「JASRAC 許諾待ち」の札とアプリへの案内文が出る (文言は Rust が持つ)。
+**歌詞検索も同じフラグで閉じる** (一致箇所の前後を返すので、掲載と同じ扱い)。
 
 ### 4-5. 版権物を載せない
 
@@ -191,7 +228,15 @@ CORS / D1 枠) が `docs/JASRAC.md` §6.5 に書いてある。UI は実装済�
 
 ---
 
-## 8. 参照
+## 8. レビューの回し方 (2026-09-06 に 1 巡)
+
+UI/UX は**批判的レビューを 4 観点で並列に回して**から直す: IA/導線・ビジュアル・
+アクセシビリティ・文言/ドメイン適合。各観点は「重要度・ページ・証拠 (スクリーンショット)・
+なぜ困るか・直し方 (Rust か Astro/CSS か)」の 10 件以内で返す。1 巡目の指摘と反映は
+`docs/ARCHITECTURE-web.md` の「批判的レビュー 1 巡目の反映」。データ起因の指摘 (重複レコード・
+原唱者ロールの欠け) は Web で直さず、同じ節に宿題として書く。
+
+## 9. 参照
 
 - `docs/ARCHITECTURE-web.md` … 出面の設計 (表示専用・assets-only の理由)
 - `docs/JASRAC.md` §6.5 … 歌詞を出すときの前提 4 つ

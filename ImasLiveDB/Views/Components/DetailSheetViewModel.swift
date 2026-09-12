@@ -5,7 +5,7 @@ import os
 ///
 /// 役割分担 (IdolDetailViewModel / UnitDetailViewModel と同型):
 /// - **VM (ここ)**: 5系統のデータ取得 — 楽曲メタ/歌唱者/披露履歴/回収公演/関連曲 (`songReading`)、
-///   ブランド (`brandReading`)、ジャケ情報 (MusicKit)、コミュニティ (タグ/コーレス/動画/ペンライト/
+///   ブランド (`brandReading`)、ジャケ情報 (MusicKit)、コミュニティ (タグ/動画/ペンライト/
 ///   類似曲, `CommunityAPI`) — と、楽曲情報行 (`infoRows`) / クレジット分割 (`splitCredits`) の整形。
 /// - **View 側**: セグメント・各種シート等の UI 状態、お気に入りトグル (UserMarkService) と
 ///   再生制御 (MusicKitService) の `@Observable` 観測、`songSeed` 由来の配色。
@@ -33,7 +33,6 @@ final class DetailSheetViewModel {
     private(set) var performanceEvidence: SongPerformanceEvidence = .empty
 
     // MARK: - コミュニティ (CommunityAPI + SongReading ミラー)
-    private(set) var songCalls: [SongCall] = []
     private(set) var songVideos: [SongVideo] = []
     private(set) var penlightVotes: PenlightVoteResult?
     private(set) var songTagData: SongTagListResponse?
@@ -97,7 +96,6 @@ final class DetailSheetViewModel {
                 let brands = try await brandReading.brands()
                 brand = brands.first { $0.id == brandId }
             }
-            songCalls = try await songReading.songCalls(songId: song.id)
             songVideos = try await songReading.songVideos(songId: song.id)
             collectedShows = try await songReading.collectedShows(for: song.id)
             relatedSongs = try await songReading.relatedSongs(to: song, limit: 8)
@@ -147,10 +145,9 @@ final class DetailSheetViewModel {
         }
     }
 
-    /// コーレス / 参考動画をローカル DB から再読込する (投稿/編集成功後の反映)。
+    /// 参考動画をローカル DB から再読込する (投稿/編集成功後の反映)。
     func loadCommunityContent(song: Song) async {
         do {
-            songCalls = try await songReading.songCalls(songId: song.id)
             songVideos = try await songReading.songVideos(songId: song.id)
         } catch {
             Logger.database.error("load_failed song_community: \(error.localizedDescription)")

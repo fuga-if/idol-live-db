@@ -23,7 +23,7 @@ import java.io.File
  * seed を ATTACH して「Room と seed の両方に存在するテーブル」だけを、両方に共通する列だけ
  * INSERT OR IGNORE で行コピーする。
  *  - song_units 等 (seed 側のみ / Room エンティティ無し) → スキップ
- *  - user_marks / song_calls / song_videos (Room 側のみ / seed に無い) → 空のまま
+ *  - user_marks / song_videos (Room 側のみ / seed に無い) → 空のまま
  *    (ローカル投稿・CloudKit 同期で埋まる)
  *
  * **どのテーブル・どの列を移すか**の規則は共有コア (`domain::sync_planning`) が持つ

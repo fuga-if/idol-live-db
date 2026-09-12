@@ -4,7 +4,6 @@ import Breadcrumbs from "../components/Breadcrumbs.astro";
 import OpenInApp from "../components/OpenInApp.astro";
 import type { AppOpen } from "../lib/schema/AppOpen";
 import type { SeoBlock } from "../lib/schema/SeoBlock";
-import type { SiteMeta } from "../lib/schema/SiteMeta";
 
 /**
  * 詳細ページ (ライブ / 公演 / 楽曲 / アイドル / ユニット / 会場 / ブランド) の枠。
@@ -15,39 +14,50 @@ import type { SiteMeta } from "../lib/schema/SiteMeta";
  * クレジット / チケット 等)。幅があるときは属性を `aside` スロットに寄せて 2 段組にし、
  * 長い 1 本を主カラムに置く。無ければ 1 段組のまま。
  *
- * DOM の順は 1 段組のときの読む順 (属性 → 本体) に合わせてあり、2 段組では
- * grid の配置だけで右へ送る。属性が本体より先に来る今の順序を変えないため。
+ * DOM の順は 1 段組のときの読む順に合わせ、2 段組では grid の配置だけで右へ送る。
+ * 既定は「属性 → 本体」(プロフィールを読んでから持ち曲へ)。公演ページのように
+ * 本体 (セトリ) が主役で属性 (出演者) が添え物のページは `asideAfterMain` で
+ * 「本体 → 属性」にする — 電話で 74 人の出演者がセトリの前に積まれない。
  */
 interface Props {
   seo: SeoBlock;
-  meta: SiteMeta;
   themeKey?: string;
   app?: AppOpen | null;
   /** キャラライブか。歌唱者の表示モード「公演に合わせる」が見る。 */
   isCharacterLive?: boolean;
+  /** 1 段組のとき、脇 (aside) を本体の後ろに置く。 */
+  asideAfterMain?: boolean;
 }
-const { seo, meta, themeKey, app, isCharacterLive } = Astro.props;
+const { seo, themeKey, app, isCharacterLive, asideAfterMain = false } = Astro.props;
 ---
 
 <BaseLayout
   seo={seo}
-  meta={meta}
   themeKey={themeKey}
   wide={Astro.slots.has("aside")}
   isCharacterLive={isCharacterLive}
 >
-  <Breadcrumbs crumbs={seo.breadcrumbs} />
-  <slot name="hero" />
+  <div class="u-stack">
+    <Breadcrumbs crumbs={seo.breadcrumbs} />
+    <slot name="hero" />
+  </div>
   {
     Astro.slots.has("aside") ? (
       <div class="detail-shell">
         <div class="detail-cols">
-          <aside class="detail-cols__aside">
-            <slot name="aside" />
-          </aside>
+          {!asideAfterMain && (
+            <aside class="detail-cols__aside">
+              <slot name="aside" />
+            </aside>
+          )}
           <div class="detail-cols__main">
             <slot />
           </div>
+          {asideAfterMain && (
+            <aside class="detail-cols__aside">
+              <slot name="aside" />
+            </aside>
+          )}
         </div>
       </div>
     ) : (

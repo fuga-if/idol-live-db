@@ -18,7 +18,7 @@
 /// EventYearGroup と呼ぶ (生成バインディングがアプリと同一モジュールに入るため)。
 #[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
 pub struct EventYearGroup {
-    /// 表示用の年ラベル ("2026年"。日付不明は "年度不明")。
+    /// 表示用の年ラベル ("2026年"。日付不明は "日程未定")。
     pub year: String,
     /// 入力 `first_dates` への添字。グループ内は時系列順
     /// (今後=近い順/昇順、開催済み=新しい順/降順) に並び替え済み。
@@ -26,7 +26,11 @@ pub struct EventYearGroup {
 }
 
 /// 日付不明グループのラベル。年順ソートで常に末尾へ送る。
-const UNKNOWN_YEAR: &str = "年度不明";
+///
+/// 「年度不明」ではなく「日程未定」: ここに入るのは発表済みで日付だけ決まっていない予定
+/// (今後タブにしか現れない) なので、読み手に伝えるべきは「年が分からない」ではなく
+/// 「日程が未定」であること。
+const UNKNOWN_YEAR: &str = "日程未定";
 
 /// 年度キーとして使える日付か (4 桁未満は不明扱い)。
 ///
@@ -35,6 +39,14 @@ const UNKNOWN_YEAR: &str = "年度不明";
 fn year_date_key(date: Option<&str>) -> Option<&str> {
     let d = date?;
     (d.chars().count() >= 4).then_some(d)
+}
+
+/// 日付 → 年のキー (`"2019"`)。日付不明 (4 桁未満・None) は None。
+///
+/// 年グループのラベル (`"2019年"`) はこれに「年」を付けたもの。URL や添字にはラベルを
+/// 逆解析せず、こちらを使う (ラベルの綴りが変わっても鍵は変わらない)。
+pub fn year_key(date: Option<&str>) -> Option<String> {
+    year_date_key(date).map(|d| char_prefix(d, 4).to_string())
 }
 
 /// 先頭 `n` 文字 (バイトでなく文字数)。Swift `String.prefix` と同じ挙動。
@@ -52,7 +64,7 @@ fn char_prefix(s: &str, n: usize) -> &str {
 /// - `upcoming`: true=今後の予定 (近い順/昇順)、false=開催済み (新しい順/降順)。
 /// - `today_key`: 今日 "YYYY-MM-DD"。今後/開催済みの境界 (境界日ちょうどは今後側)。
 ///
-/// 返り値は年度グループの配列。今後=年昇順、開催済み=年降順。「年度不明」は常に末尾。
+/// 返り値は年度グループの配列。今後=年昇順、開催済み=年降順。「日程未定」は常に末尾。
 /// 日付不明 (4 桁未満・None) は開催済みに入れず今後タブにのみ残す (登録途中の予定扱い)。
 pub fn group_events_by_year(
     first_dates: &[Option<String>],
@@ -77,8 +89,8 @@ pub fn group_events_by_year(
     // Swift 原本の「同日・同不明はもとの並びを保つ」挙動を再現できる)。
     let mut year_map: Vec<(String, Vec<u32>)> = Vec::new();
     for (index, date) in time_filtered {
-        let year = match date {
-            Some(d) => format!("{}年", char_prefix(d, 4)),
+        let year = match year_key(date) {
+            Some(key) => format!("{key}年"),
             None => UNKNOWN_YEAR.to_string(),
         };
         match year_map.iter_mut().find(|(y, _)| *y == year) {
@@ -87,7 +99,7 @@ pub fn group_events_by_year(
         }
     }
 
-    // 年の並び: 今後=昇順、開催済み=降順。「年度不明」は常に末尾。
+    // 年の並び: 今後=昇順、開催済み=降順。「日程未定」は常に末尾。
     // ラベルは "YYYY年" 固定形式なので文字列比較がそのまま年の大小になる。
     year_map.sort_by(|(a, _), (b, _)| {
         use std::cmp::Ordering;
@@ -170,18 +182,18 @@ mod tests {
         assert_eq!(groups[0].indices, vec![1, 0]);
     }
 
-    /// 日付未定イベントは今後タブの末尾 (「年度不明」) にのみ現れ、開催済みには出ない。
+    /// 日付未定イベントは今後タブの末尾 (「日程未定」) にのみ現れ、開催済みには出ない。
     #[test]
     fn unknown_date_appears_in_upcoming_at_end_only() {
         // [a=2026-07-01, unknown=None]
         let input = dates(&[Some("2026-07-01"), None]);
 
         let upcoming = group_events_by_year(&input, true, TODAY);
-        assert_eq!(years(&upcoming), vec!["2026年", "年度不明"]); // 年度不明は末尾
+        assert_eq!(years(&upcoming), vec!["2026年", "日程未定"]); // 日程未定は末尾
         assert_eq!(upcoming[1].indices, vec![1]);
 
         let past = group_events_by_year(&input, false, TODAY);
-        assert!(!past.iter().any(|g| g.year == "年度不明")); // 開催済みには出ない
+        assert!(!past.iter().any(|g| g.year == "日程未定")); // 開催済みには出ない
     }
 
     // --- 追加の境界ケース (iOS テストに無い分) ---
@@ -220,7 +232,7 @@ mod tests {
         let input = dates(&[Some("20"), Some("")]);
 
         let upcoming = group_events_by_year(&input, true, TODAY);
-        assert_eq!(years(&upcoming), vec!["年度不明"]);
+        assert_eq!(years(&upcoming), vec!["日程未定"]);
         // グループ内ソートは年キーでなく生の日付 (無ければ "") の昇順なので、
         // "" が "20" より前に来る (Swift 原本 `l.firstDate ?? ""` と同じ挙動)。
         assert_eq!(upcoming[0].indices, vec![1, 0]);

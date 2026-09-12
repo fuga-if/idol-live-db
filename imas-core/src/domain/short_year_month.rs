@@ -10,10 +10,16 @@
 //! 落とす (`"2024-"` は 1 要素扱いで素通し) ため、Rust 側でも空要素を除外して
 //! 同じ判定になるよう揃えている。
 
+/// `"yyyy-MM-dd"` を `-` で分ける。Swift `split(separator:)` と同じく空要素は数えない
+/// (`"2024-"` は 1 要素)。部分日付の切り方をこの crate で 1 つにするための共通部品
+/// (`date_display` も同じ切り方で年月だけの日付を扱う)。
+pub fn ymd_components(date: &str) -> Vec<&str> {
+    date.split('-').filter(|s| !s.is_empty()).collect()
+}
+
 /// `"2024-08-03"` → `"24.08"`。区切れない入力は素通し。
 pub fn short_year_month(date: &str) -> String {
-    // Swift `split(separator: "-")` と同じく空要素は数えない。
-    let comps: Vec<&str> = date.split('-').filter(|s| !s.is_empty()).collect();
+    let comps = ymd_components(date);
     if comps.len() < 2 {
         return date.to_string();
     }

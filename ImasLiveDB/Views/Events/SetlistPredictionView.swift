@@ -22,7 +22,7 @@ struct SetlistPredictionView: View {
     let showId: String
     /// ヘッダ表示用 (show.name そのまま渡す想定)。
     let showName: String
-    /// 投稿導線の文脈色 (公演のブランド色)。他の投稿UI (コーレス/動画/タグ) と揃える。
+    /// 投稿導線の文脈色 (公演のブランド色)。他の投稿UI (動画/タグ) と揃える。
     var seed: String? = nil
 
     /// 「曲を追加」タップ時に親 (SetlistView) の安定した List 上で picker sheet を開いてもらう。
@@ -184,7 +184,7 @@ struct SetlistPredictionView: View {
 
     // MARK: - Header
 
-    /// セクション見出し + 文脈投稿導線。コミュニティ投稿 (タグ/コーレス/動画/投票) の
+    /// セクション見出し + 文脈投稿導線。コミュニティ投稿 (タグ/動画/投票) の
     /// communityHeader と同じ「タイトル + アクセント色の＋投稿ボタン」パターンに揃える。
     private var predictionHeader: some View {
         let t = ImasTheme.derive(seed: seed, scheme: scheme)

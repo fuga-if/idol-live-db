@@ -1,10 +1,11 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
+import Breadcrumbs from "../components/Breadcrumbs.astro";
 import Section from "../components/Section.astro";
 import StatTiles from "../components/StatTiles.astro";
 import ListContainer from "../components/ListContainer.astro";
 import LabeledRow from "../components/LabeledRow.astro";
-import { meta, page, routeData } from "../lib/data";
+import { page, routeData } from "../lib/data";
 import type { AboutPage } from "../lib/schema/AboutPage";
 
 /**
@@ -13,13 +14,14 @@ import type { AboutPage } from "../lib/schema/AboutPage";
  * すべて Rust の `AboutPage.sections` が持つ。ここは並べるだけ。
  */
 const about = page<AboutPage>(routeData("about", "/about/"));
-const site = meta();
-
 ---
 
-<BaseLayout seo={about.seo} meta={site}>
-  <div class="u-stack">
-    <h1 class="hero__title">このサイトについて</h1>
+<BaseLayout seo={about.seo}>
+  <div class="list-head">
+    <Breadcrumbs crumbs={about.seo.breadcrumbs} />
+    <div class="list-head__title">
+      <h1>このサイトについて</h1>
+    </div>
   </div>
 
   <Section id="about-scale" title="収録データ">

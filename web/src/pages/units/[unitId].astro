@@ -5,7 +5,7 @@ import Chip from "../../components/Chip.astro";
 import IdolTile from "../../components/IdolTile.astro";
 import RefList from "../../components/RefList.astro";
 import EmptyState from "../../components/EmptyState.astro";
-import { meta, page, pathsFor } from "../../lib/data";
+import { page, pathsFor } from "../../lib/data";
 import type { UnitPage } from "../../lib/schema/UnitPage";
 import CommunityTags from "../../components/CommunityTags.astro";
 
@@ -14,15 +14,15 @@ export const getStaticPaths = () => pathsFor("unit", "unitId");
 const unit = page<UnitPage>(Astro.props.data);
 ---
 
-<DetailLayout seo={unit.seo} meta={meta()} themeKey={unit.themeKey} app={unit.app}>
+<DetailLayout seo={unit.seo} themeKey={unit.themeKey} app={unit.app}>
   <section class="hero" slot="hero" aria-labelledby="unit-title">
     <div class="hero__body">
       {unit.brand && <p class="hero__eyebrow">{unit.brand.name}</p>}
       <h1 class="hero__title" id="unit-title">{unit.name}</h1>
       {unit.nameKana && <p class="hero__kana">{unit.nameKana}</p>}
-      {unit.nameAlt && <p class="u-muted">別名: {unit.nameAlt}</p>}
+      {unit.nameAlt && <p class="lede">別名: {unit.nameAlt}</p>}
       <div class="hero__meta">
-        <Chip text={unit.isPermanent ? "常設ユニット" : "期間限定"} variant="themed" />
+        <Chip text={unit.kindLabel} variant="themed" />
         {unit.brand && <Chip text={unit.brand.name} href={unit.brand.path} variant="themed" themeKey={unit.brand.themeKey} />}
       </div>
     </div>
@@ -38,7 +38,8 @@ const unit = page<UnitPage>(Astro.props.data);
     )
   }
 
-  <Section slot="aside" id="unit-members" title="メンバー" count={unit.members.length}>
+  {/* メンバーはタイルで幅が要るので脇に寄せず本文に置く (脇の 20rem では 1 列になる)。 */}
+  <Section id="unit-members" title="メンバー" count={unit.members.length}>
     {
       unit.members.length === 0 ? (
         <EmptyState title="メンバーがまだ登録されていません" />

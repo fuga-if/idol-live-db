@@ -18,12 +18,15 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import tempfile
 import json
+import os
 import re
 import shutil
 import sqlite3
 import subprocess
 import sys
+from collections import defaultdict
 import time
 from pathlib import Path
 
@@ -31,6 +34,10 @@ ROOT = Path(__file__).resolve().parent.parent
 DB_PATH = ROOT / "ImasLiveDB" / "Resources" / "master.sqlite"
 DATA_DIR = ROOT / "data"
 SEED_SCRIPT = Path(__file__).resolve().parent / "seed_cloudkit.py"
+
+# 絞り込みの知識は seed_cloudkit.py が持つ。**写さずに読む** (片方だけ古くならないように)。
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from seed_cloudkit import SCOPED_ID_SPACE, TABLE_ORDER as TABLE_PUSH_ORDER  # noqa: E402
 DUMP_PATH = ROOT / "db" / "master.sql"
 
 
@@ -362,7 +369,9 @@ def insert_row(conn, table, row):
 
 
 def apply_all(conn):
-    affected = set()
+    # 表 → その表に渡す id 集合。空集合の表は「全件 push」を意味する
+    # (絞り込む列が無い表・fixes で行を直した表)。
+    affected = defaultdict(set)
     scol = cols(conn, "songs")
 
     ccol = cols(conn, "creators")
@@ -370,7 +379,7 @@ def apply_all(conn):
         for c in data["creators"]:
             c.pop("note", None)
             insert_row(conn, "creators", {k: v for k, v in c.items() if k in ccol})
-            affected.add("creators")
+            affected["creators"]  # 絞る列が無いので全件
         print(f"  ✓ creators/{path.name}: {len(data['creators'])} 件")
 
     # 版は songs より先に入れる。songs.unit_version_id の参照先になるため。
@@ -379,7 +388,7 @@ def apply_all(conn):
         for v in data["unit_versions"]:
             v.pop("note", None)
             insert_row(conn, "unit_versions", {k: val for k, val in v.items() if k in vcol})
-            affected.add("unit_versions")
+            affected["unit_versions"]  # 絞る列が無いので全件
         print(f"  ✓ unit_versions/{path.name}: {len(data['unit_versions'])} 件")
 
     for path, data in load("songs"):
@@ -392,7 +401,8 @@ def apply_all(conn):
                     "INSERT OR IGNORE INTO song_artists (song_id, idol_id, role) VALUES (?,?,'original')",
                     (s["id"], idol),
                 )
-            affected |= {"songs", "song_artists"}
+            affected["songs"].add(s["id"])
+            affected["song_artists"].add(s["id"])
         print(f"  ✓ songs/{path.name}: {len(data['songs'])} 曲")
 
     for path, data in load("setlists"):
@@ -404,6 +414,8 @@ def apply_all(conn):
         for sg in data["songs"]:
             sid = resolve_song(conn, brand_id, sg.get("song_id"), sg.get("title"))
             item_id = f"{show_id}_{int(sg['position']):04d}"
+            affected["setlist_items"].add(item_id)
+            affected["setlist_performers"].add(item_id)
             insert_row(conn, "setlist_items", {
                 "id": item_id, "show_id": show_id, "song_id": sid,
                 "position": sg["position"], "section": sg.get("section"),
@@ -416,7 +428,6 @@ def apply_all(conn):
                     "INSERT OR IGNORE INTO setlist_performers (setlist_item_id, idol_id) VALUES (?,?)",
                     (item_id, idol),
                 )
-        affected |= {"setlist_items", "setlist_performers"}
         print(f"  ✓ setlists/{path.name}: {len(data['songs'])} 曲")
 
     # 衣装は setlists より後。着用記録がセトリ行を指すため。
@@ -447,7 +458,8 @@ def apply_all(conn):
             insert_row(conn, "events", {k: v for k, v in ev.items() if k in ecol})
             for sh in shows:
                 insert_row(conn, "shows", {**{k: v for k, v in sh.items() if k in shcol}, "event_id": ev["id"]})
-            affected |= {"events", "shows"}
+            affected["events"].add(ev["id"])
+            affected["shows"].add(ev["id"])
         print(f"  ✓ events/{path.name}: {len(data['events'])} 件")
 
     icol = cols(conn, "idols")
@@ -461,7 +473,8 @@ def apply_all(conn):
                     "INSERT OR IGNORE INTO idol_brands (idol_id, brand_id, is_primary) VALUES (?,?,?)",
                     (idol["id"], b["brand_id"], b.get("is_primary", 0)),
                 )
-            affected |= {"idols", "idol_brands"}
+            affected["idols"].add(idol["id"])
+            affected["idol_brands"]  # 絞る列が無いので全件
         print(f"  ✓ idols/{path.name}: {len(data['idols'])} 名")
 
     ucol = cols(conn, "units")
@@ -473,7 +486,8 @@ def apply_all(conn):
                 conn.execute(
                     "INSERT OR IGNORE INTO unit_members (unit_id, idol_id) VALUES (?,?)", (u["id"], idol)
                 )
-            affected |= {"units", "unit_members"}
+            affected["units"].add(u["id"])
+            affected["unit_members"]  # 絞る列が無いので全件
         print(f"  ✓ units/{path.name}: {len(data['units'])} 件")
 
     for path, data in load("fixes"):
@@ -481,18 +495,74 @@ def apply_all(conn):
             table, rid, fields = fx["table"], fx["id"], fx["fields"]
             sets = ", ".join(f"{k} = ?" for k in fields)
             conn.execute(f"UPDATE {table} SET {sets} WHERE id = ?", list(fields.values()) + [rid])
-            affected.add(table)
+            # fixes は id 列で 1 行を直すので、その表が id で絞れるならその id だけ押す。
+            if SCOPED_ID_SPACE.get(table):
+                affected[table].add(rid)
+            else:
+                affected[table]
         print(f"  ✓ fixes/{path.name}: {len(data['fixes'])} 件修正")
 
     conn.commit()
     return affected
 
 
-def push_cloudkit(tables, production):
-    cmd = [sys.executable, str(SEED_SCRIPT), "--tables", *sorted(tables)]
-    cmd += ["--production"] if production else ["--environment", "development"]
-    print(f"\n→ CloudKit push: {' '.join(cmd)}")
-    return subprocess.call(cmd)
+def push_cloudkit(affected, production):
+    """触った行だけを CloudKit へ push する。
+
+    **表ごとに、その表の id で絞って押す。** まとめて `--tables a b` と渡すと
+    seed_cloudkit は各表の**全行**を送る。セトリ 17 曲を足すために
+    setlist_items + setlist_performers の全 74,240 行を送っていて、
+    1 本 85 分かかっていた (2026-09-06 実測。CloudKit が 200 件バッチあたり 12.6 秒)。
+
+    全行送信は遅いだけでなく**先祖帰りの危険**がある。手元の master.sqlite が
+    CloudKit より古い行を持っていると、その古い値で上書きしてしまう。
+    触っていない行を送らなければ、そもそも起こらない。
+
+    `--ids` が見る列は表ごとに違う (shows は event_id、show_cast は show_id)。
+    同じ id 空間の表だけをまとめ、空間が違えば別々に押す。
+    絞る列を持たない表 (creators / idol_brands / unit_members 等) は全件のまま。
+    """
+    order = {t: i for i, t in enumerate(TABLE_PUSH_ORDER)}
+    # 「絞れる表」を id 空間ごとにまとめ、「絞れない表」は 1 回にまとめる。
+    groups = defaultdict(lambda: (set(), set()))  # 空間 → (表, id)
+    unscoped = set()
+    for table, ids in affected.items():
+        space = SCOPED_ID_SPACE.get(table)
+        if space and ids:
+            tables, all_ids = groups[space]
+            tables.add(table)
+            all_ids |= ids
+        else:
+            unscoped.add(table)
+
+    runs = []
+    for space, (tables, ids) in groups.items():
+        runs.append((sorted(tables, key=lambda t: order.get(t, 99)), sorted(ids), space))
+    if unscoped:
+        runs.append((sorted(unscoped, key=lambda t: order.get(t, 99)), None, None))
+    runs.sort(key=lambda r: order.get(r[0][0], 99))
+
+    for tables, ids, space in runs:
+        cmd = [sys.executable, str(SEED_SCRIPT), "--tables", *tables]
+        cmd += ["--production"] if production else ["--environment", "development"]
+        tmp = None
+        if ids:
+            # id は日本語やコマンドライン長の問題があるので、ファイルで渡す。
+            tmp = tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False, encoding="utf-8")
+            tmp.write("\n".join(ids))
+            tmp.close()
+            cmd += ["--ids-file", tmp.name]
+            print(f"\n→ CloudKit push ({space}): {' '.join(tables)} / {len(ids)} 件だけ")
+        else:
+            print(f"\n→ CloudKit push: {' '.join(tables)} / 全件 (絞る列が無い表)")
+        try:
+            rc = subprocess.call(cmd)
+        finally:
+            if tmp:
+                os.unlink(tmp.name)
+        if rc != 0:
+            return rc
+    return 0
 
 
 def main():

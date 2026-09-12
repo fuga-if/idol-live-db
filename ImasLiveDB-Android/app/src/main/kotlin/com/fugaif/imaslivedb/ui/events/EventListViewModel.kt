@@ -32,7 +32,7 @@ data class EventListUiState(
     val requireNote: Boolean = false,
     /**
      * 公演がまだ 1 つも登録されていないライブを一覧に出すか。
-     * 既定 OFF は iOS (`events_show_empty`) と同じ。日付が無いイベントは「年度不明」に
+     * 既定 OFF は iOS (`events_show_empty`) と同じ。日付が無いイベントは「日程未定」に
      * まとめて積まれるだけで読めないので、既定では隠す。
      */
     val showEmptyEvents: Boolean = false,

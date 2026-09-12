@@ -1,64 +1,88 @@
 ---
-import type { AppLinks } from "../lib/schema/AppLinks";
+import { meta as siteMeta } from "../lib/data";
 /**
  * サイト共通フッタ。
+ * 一覧の並びはヘッダと同じ `meta.primaryNav` (Rust)。
  * プライバシー / サポート / 利用規約は既存の GitHub Pages にリンクする (複製しない)。
  * 外部リンクも **同一タブ**で開く (target="_blank" を使わない = 戻る操作を奪わない)。
  * したがって `rel="noopener"` は効果が無いので付けない。リファラは
  * `Referrer-Policy: strict-origin-when-cross-origin` (public/_headers) が絞る。
- * 更新日はここに出さない (DECISIONS A17: 日次再ビルドで全 HTML が変わるのを避ける)。
+ * 生成日時はここに出さない (DECISIONS A17: 日次再ビルドで全 HTML が変わるのを避ける)。
+ * 基準日 (`todayJst`) は日次で変わる値だが、「いつ時点のデータか」は閲覧者に要る情報なので出す。
+ * サイト全体のメタ (`meta.json`) はヘッダと同じく自分で読む (ページから受け渡さない)。
+ * 断り書きと歌詞の許諾表示も `meta.json` から (文面と出す/出さないは Rust が決める)。
  */
-interface Props {
-  app: AppLinks;
-}
-const { app } = Astro.props;
+const meta = siteMeta();
+const { app } = meta;
 ---
 
 <footer class="site-footer">
   <div class="page">
-    <div class="site-footer__cols">
-      <nav aria-label="データ">
-        <h2>データ</h2>
-        <ul>
-          <li><a href="/events/">ライブ</a></li>
-          <li><a href="/songs/">楽曲</a></li>
-          <li><a href="/idols/">アイドル</a></li>
-          <li><a href="/units/">ユニット</a></li>
-          <li><a href="/venues/">会場</a></li>
-          <li><a href="/brands/">ブランド</a></li>
-        </ul>
-      </nav>
-      <nav aria-label="このサイトについて">
-        <h2>About</h2>
-        <ul>
-          <li><a href="/about/">このサイトについて</a></li>
-          <li><a href="/search/">検索</a></li>
-          <li>
-            <a href={app.repositoryUrl}>GitHub (データに協力)</a>
-          </li>
-        </ul>
-      </nav>
-      <nav aria-label="アプリ">
-        <h2>App</h2>
-        <ul>
-          <li><a href={app.appStoreUrl}>App Store</a></li>
-          {app.playStoreUrl && <li><a href={app.playStoreUrl}>Google Play</a></li>}
-          {app.xUrl && <li><a href={app.xUrl}>X (お知らせ)</a></li>}
-          <li><a href={app.privacyUrl}>プライバシーポリシー</a></li>
-          <li><a href={app.supportUrl}>サポート</a></li>
-          <li><a href={app.termsUrl}>利用規約</a></li>
-        </ul>
-      </nav>
+    <div class="site-footer__top">
+      <div class="site-footer__brand">
+        <a class="site-footer__brand-name" href="/">
+          <img src="/icon-192.png" alt="" width="28" height="28" loading="lazy" decoding="async" />
+          アイドルライブDB
+        </a>
+        <p class="lede lede--small">
+          データ基準日 <span class="u-num">{meta.todayJst}</span> (JST)
+        </p>
+      </div>
+      <div class="site-footer__cols">
+        <nav aria-label="データ">
+          <h2>データ</h2>
+          <ul>
+            {
+              meta.primaryNav.map((n) => (
+                <li>
+                  <a href={n.path}>{n.label}</a>
+                </li>
+              ))
+            }
+          </ul>
+        </nav>
+        <nav aria-label="このサイトについて">
+          <h2>About</h2>
+          <ul>
+            {
+              meta.utilityNav.map((n) => (
+                <li>
+                  <a href={n.path}>{n.label}</a>
+                </li>
+              ))
+            }
+            <li>
+              <a href={app.repositoryUrl}>GitHub (データに協力)</a>
+            </li>
+          </ul>
+        </nav>
+        <nav aria-label="アプリ">
+          <h2>App</h2>
+          <ul>
+            <li><a href={app.appStoreUrl}>App Store</a></li>
+            {app.playStoreUrl && <li><a href={app.playStoreUrl}>Google Play</a></li>}
+            {app.xUrl && <li><a href={app.xUrl}>X (お知らせ)</a></li>}
+            <li><a href={app.privacyUrl}>プライバシーポリシー</a></li>
+            <li><a href={app.supportUrl}>サポート</a></li>
+            <li><a href={app.termsUrl}>利用規約</a></li>
+          </ul>
+        </nav>
+      </div>
     </div>
     <div class="site-footer__note">
-      <p>
-        本サイトは非公式のファンメイドです。「アイドルマスター」およびブランド名・
-        作品名は株式会社バンダイナムコエンターテインメントおよび各権利者に帰属します。
-      </p>
-      <p>
-        キャラクター画像・公式ロゴ・歌詞は掲載していません。ジャケット画像は
-        Apple Music の提供によるものです。
-      </p>
+      {/* 断り書きの文面は Rust (`content::footer_notes`)。ここに日本語を書かない。 */}
+      {meta.footerNotes.map((note) => <p>{note}</p>)}
+      {
+        meta.lyricsLicenseNotice && (
+          <p class="site-footer__license">
+            {/* JASRAC の許諾マーク。**JASRAC から届いた原本をそのまま置く** (自作・加工・色替え禁止)。
+                「申し込んだサイトの見やすい位置に表示」が許諾の条件で、全ページのフッタに載せる。
+                版権物を持たない方針の唯一の例外で、これは版権物ではなく許諾の証。 */}
+            <img src="/jasrac-mark.png" alt="" width="60" height="60" loading="lazy" decoding="async" />
+            <span>{meta.lyricsLicenseNotice}</span>
+          </p>
+        )
+      }
     </div>
   </div>
 </footer>

@@ -1,31 +1,34 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
 import Section from "../components/Section.astro";
-import StatTiles from "../components/StatTiles.astro";
 import EntryCard from "../components/EntryCard.astro";
 import EventRow from "../components/EventRow.astro";
 import ShowRow from "../components/ShowRow.astro";
+import FeatureEvent from "../components/FeatureEvent.astro";
 import ListContainer from "../components/ListContainer.astro";
 import EmptyState from "../components/EmptyState.astro";
-import { meta, page, routeData } from "../lib/data";
+import SearchBox from "../components/SearchBox.astro";
+import StatStrip from "../components/StatStrip.astro";
+import { page, routeData } from "../lib/data";
 import type { HomePage } from "../lib/schema/HomePage";
-import Count from "../components/Count.astro";
 
+/**
+ * トップ。
+ * 「見せる塊」(ヒーローの検索窓・直近ライブの注目カード) と「並べる塊」(行の一覧) を分ける。
+ * 何を何件出すか・並びは Rust の `HomePage` のまま。先頭 1 件を大きくするのは見せ方の判断。
+ */
 const home = page<HomePage>(routeData("home", "/"));
-const site = meta();
+const [featured, ...restUpcoming] = home.upcoming;
 ---
 
-<BaseLayout seo={home.seo} meta={site}>
-  <section class="hero" aria-labelledby="home-title">
+<BaseLayout seo={home.seo}>
+  <section class="hero hero--home" aria-labelledby="home-title">
     <div class="hero__body">
-      <p class="hero__eyebrow">Idol Live DB</p>
-      <h1 class="hero__title" id="home-title">アイドルライブDB</h1>
-      <p>{home.tagline}</p>
-      <p class="u-row">
-        <a class="btn" href="/search/">検索する</a>
-        <a class="btn btn--ghost" href="/events/upcoming/">今後のライブ</a>
-      </p>
-      <p class="u-dim">{home.disclaimer}</p>
+      <h1 class="hero__title hero__title--display" id="home-title">アイドルライブDB</h1>
+      <p class="lede">{home.tagline}</p>
+      <SearchBox />
+      <StatStrip items={home.statTiles} label="収録データ" />
+      {/* 非公式の断りはフッタ (Rust の footerNotes) が全ページで言う。最初の一画面には置かない。 */}
     </div>
   </section>
 
@@ -37,16 +40,26 @@ const site = meta();
           body="発表され次第このページに載ります。過去の記録は「開催済み」からご覧ください。"
         />
       ) : (
-        <ListContainer as="ul">
-          {home.upcoming.map((e) => (
-            <EventRow item={e} />
-          ))}
-        </ListContainer>
+        <div class="u-stack">
+          {featured && <FeatureEvent item={featured} />}
+          {restUpcoming.length > 0 && (
+            <ListContainer as="ul">
+              {restUpcoming.map((e) => (
+                <EventRow item={e} />
+              ))}
+            </ListContainer>
+          )}
+        </div>
       )
     }
   </Section>
 
-  <Section id="home-recent" title="最近の公演" moreHref="/events/past/">
+  <Section
+    id="home-recent"
+    title="最近の公演"
+    moreHref={home.recentShowsMore.path}
+    moreLabel={home.recentShowsMore.label}
+  >
     {
       home.recentShows.length === 0 ? (
         <EmptyState title="公演の記録がありません" />
@@ -58,10 +71,6 @@ const site = meta();
         </ListContainer>
       )
     }
-  </Section>
-
-  <Section id="home-scale" title="収録データ" moreHref="/about/" moreLabel="このサイトについて">
-    <StatTiles tiles={home.statTiles} />
   </Section>
 
   <Section id="home-brands" title="ブランドから探す" moreHref="/brands/">
@@ -80,21 +89,23 @@ const site = meta();
     </div>
   </Section>
 
-  <Section id="home-app" title="アプリで、もっと">
-    <div class="card card__pad u-stack">
-      <p>
-        参加記録・担当設定・歌詞・コール・投票・タグ付けといった、操作して残していく機能は
-        すべて iOS アプリ側にあります。このサイトは閲覧と共有に専念しています。
-      </p>
-      <p class="u-row">
+  <section class="cta" aria-labelledby="home-app">
+    <img
+      class="cta__icon"
+      src="/icon-192.png"
+      alt=""
+      width="64"
+      height="64"
+      loading="lazy"
+      decoding="async"
+    />
+    <div class="cta__body">
+      <h2 class="cta__title" id="home-app">アプリで、もっと</h2>
+      <p class="lede lede--small">{home.appNote}</p>
+      <p class="cta__actions">
         <a class="btn" href={home.app.appStoreUrl}>App Store で見る</a>
-        <a class="btn btn--ghost" href={home.app.repositoryUrl}>
-          GitHub でデータに協力する
-        </a>
-      </p>
-      <p class="u-dim">
-        データ基準日 <Count value={site.todayJst} /> (JST)
+        <a class="btn btn--ghost" href={home.app.repositoryUrl}>GitHub でデータに協力する</a>
       </p>
     </div>
-  </Section>
+  </section>
 </BaseLayout>

@@ -117,6 +117,15 @@ jobs:
           git add -A -- web/src/lib/schema
           git diff --cached --exit-code -- web/src/lib/schema
 
+      # コールガイドの進捗 (/calls/) はビルド時に写した JSON を焼く。閲覧時には Worker も
+      # D1 も読まない (ランニングコスト 0)。写しは Worker の公開エンドポイントを 1 回 GET する
+      # だけで秘密は要らない。取れなければ git 管理の写し (db/calls_dashboard.json) のまま
+      # 焼き、警告だけ出す (Worker 側の不調で「今日」の更新まで止めない)。
+      - name: Refresh call-guide snapshot
+        run: |
+          python3 tools/export_calls_dashboard.py \
+            || echo "::warning::コールガイドの写しを取れなかったので db/calls_dashboard.json (git 管理分) のまま焼きます"
+
       # web/package.json の "export" スクリプトをそのまま呼ぶ (cargo のコマンド文字列を
       # ここに再掲しない)。CI 専用の --locked は package.json 側に付与されている。
       - name: Export JSON from db/master.sql

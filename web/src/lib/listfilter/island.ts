@@ -54,6 +54,14 @@ export interface ListFilterSpec<F> {
   idAttr: string;
   /** 未指定時の並び (コアの `from_key` の落とし先と同じ鍵)。 */
   fallbackSort: string;
+  /**
+   * 並べ替えを表の列見出しで行う一覧の、その見出しを抱えている要素。
+   *
+   * 指定すると札の列を描かず、**すでに HTML にある `[data-sort-key]` の見出しに
+   * 動きだけを結ぶ** (表計算と同じ手触り)。どの列が押せるかは Rust が決めているので、
+   * ここで列と並びの対応を書き直さない。向きは見出しの矢印が示すので向きボタンは出さない。
+   */
+  sortHeaders?: string;
   /** wasm から選択肢を取る。 */
   facets(engine: Engine): F;
   /** wasm に条件を渡して id 列を得る。 */
@@ -91,10 +99,18 @@ export function mountListFilter<F>(
     container,
     status: must(root, "[data-filter-status]"),
     fields: must(root, "[data-filter-fields]"),
-    sort: must<HTMLSelectElement>(root, "[data-filter-sort]"),
+    sorts: must<HTMLElement>(root, "[data-filter-sorts]"),
     dir: must<HTMLButtonElement>(root, "[data-filter-dir]"),
     reset: must<HTMLButtonElement>(root, "[data-filter-reset]"),
   };
+
+  // 並べ替えの押し場所。表の見出し (指定があれば) か、絞り込みバーの札の列。
+  const headerScope = spec.sortHeaders
+    ? document.querySelector<HTMLElement>(spec.sortHeaders)
+    : null;
+  const sortButtons = (): HTMLButtonElement[] => [
+    ...(headerScope ?? el.sorts).querySelectorAll<HTMLButtonElement>("[data-sort-key]"),
+  ];
 
   // id → 行。wasm は id を返すので、添字で結び付けない
   // (添字で渡すと、配った生テーブルとページの生成が同じ版である前提になる)。
@@ -123,6 +139,8 @@ export function mountListFilter<F>(
       // 軸が確定してから URL を読む (未知の鍵を拾わない)。
       state = readUrl(fields, spec.fallbackSort);
       renderFields();
+      hideDuplicateAxes();
+      bindSortHeaders();
       renderSorts();
       setEnabled(true);
       apply();
@@ -139,20 +157,19 @@ export function mountListFilter<F>(
     timer = window.setTimeout(apply, DEBOUNCE_MS);
   }
 
-  el.sort.addEventListener("change", () => {
-    state.__sort = el.sort.value;
-    state.__ascending = null; // その並びの既定方向に戻す (決めるのはコア)。
-    syncDir();
-    onChange();
-  });
   el.dir.addEventListener("click", () => {
     state.__ascending = !currentAscending();
     syncDir();
+    syncSorts();
     onChange();
   });
   el.reset.addEventListener("click", () => {
-    state = emptyState(fields, state.__sort);
+    // **並べ替えも既定に戻す。** 一覧の既定の並び (アイドルなら公式順) は列見出しに
+    // 対応する列が無いので、ここが唯一の戻り道になる。「クリア」= 開いた直後の状態。
+    state = emptyState(fields, spec.fallbackSort);
     renderFieldValues();
+    syncDir();
+    syncSorts();
     apply();
   });
   window.addEventListener("popstate", () => {
@@ -210,8 +227,9 @@ export function mountListFilter<F>(
 
   function setEnabled(on: boolean): void {
     // 入力欄は素材 (facets) が来てから描くので、ここで触るものは無い。
-    // 器の側 (sort/dir/reset) だけを止めておく。
-    for (const c of [el.sort, el.dir, el.reset]) c.disabled = !on;
+    // 器の側 (sort/dir/reset と列見出し) だけを止めておく。
+    for (const c of [el.dir, el.reset]) c.disabled = !on;
+    for (const b of sortButtons()) b.disabled = !on;
     el.root.dataset.state = on ? "ready" : "loading";
   }
 
@@ -226,12 +244,85 @@ export function mountListFilter<F>(
     el.dir.setAttribute("aria-label", asc ? "昇順（クリックで降順）" : "降順（クリックで昇順）");
   }
 
-  function renderSorts(): void {
-    el.sort.replaceChildren(...sorts.map((o) => option(o.key, o.label)));
-    if (!sorts.some((o) => o.key === state.__sort)) state.__sort = spec.fallbackSort;
-    el.sort.value = state.__sort;
+  /**
+   * その並びにする。**同じところをもう一度押したら向きを反転**する
+   * (札でも表の列見出しでも同じ一押しの手触り)。状態は 1 つ
+   * (`state.__sort` / `state.__ascending`) で、向きボタンとも共有する。
+   */
+  function pickSort(key: string): void {
+    if (state.__sort === key) {
+      state.__ascending = !currentAscending();
+    } else {
+      state.__sort = key;
+      state.__ascending = null; // その並びの既定方向 (決めるのはコア)。
+    }
     syncDir();
+    syncSorts();
+    onChange();
   }
+
+  /**
+   * 表の列見出しに動きを結ぶ。見出しそのものは Astro が出しているので、ここは
+   * 押されたときの反応だけ。**1 回しか呼ばない** (popstate で呼び直すと二重に結ばれる)。
+   */
+  function bindSortHeaders(): void {
+    if (!headerScope) return;
+    // 向きは見出しの矢印が示すので、独立した向きボタンは出さない。
+    el.dir.hidden = true;
+    for (const b of sortButtons()) {
+      b.addEventListener("click", () => pickSort(b.dataset.sortKey!));
+    }
+  }
+
+  /**
+   * 島が同じ軸を持っている畳んだメニューを隠す。**同じ絞り込みを 2 つ並べない。**
+   * 対応は Rust (`FilterAxis.islandKey`) が持つので、ここで軸名を突き合わせない。
+   * HTML には残るので、リンクとしての到達性は落ちない。
+   */
+  function hideDuplicateAxes(): void {
+    const keys = new Set(fields.map((f) => f.key));
+    for (const menu of document.querySelectorAll<HTMLElement>("[data-island-key]")) {
+      if (keys.has(menu.dataset.islandKey!)) menu.hidden = true;
+    }
+  }
+
+  /**
+   * 並べ替えの札。どの並びがあるかは Rust の素材 (`sorts`) が決め、ここは並べるだけ。
+   * 表の列見出しで並べ替える一覧 (`spec.sortHeaders`) では札を出さない。
+   */
+  function renderSorts(): void {
+    if (!sorts.some((o) => o.key === state.__sort)) state.__sort = spec.fallbackSort;
+    if (!headerScope) {
+      el.sorts.replaceChildren(
+        ...sorts.map((o) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "song-filter__sort";
+          button.dataset.sortKey = o.key;
+          button.textContent = o.label;
+          button.addEventListener("click", () => pickSort(o.key));
+          return button;
+        }),
+      );
+    }
+    syncDir();
+    syncSorts();
+  }
+
+  function syncSorts(): void {
+    for (const b of sortButtons()) {
+      const active = b.dataset.sortKey === state.__sort;
+      // 選ばれていない列からは属性ごと外す。空文字で残すと `[data-dir]` が全列に当たる。
+      if (active) b.dataset.dir = currentAscending() ? "asc" : "desc";
+      else delete b.dataset.dir;
+      // 表の列見出しは `aria-sort` が正しい語 (読み上げが「昇順で並んだ列」と言う)。
+      // 札は押した状態を示すだけなので `aria-pressed`。
+      const th = b.closest("th");
+      if (th) th.setAttribute("aria-sort", active ? (currentAscending() ? "ascending" : "descending") : "none");
+      else b.setAttribute("aria-pressed", String(active));
+    }
+  }
+
 
   /** 入力欄。値の集合は wasm (= Snapshot) が出したものをそのまま並べる。 */
   function renderFields(): void {

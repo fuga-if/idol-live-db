@@ -115,6 +115,13 @@ const RANK_STAFF_BIRTHDAY: u8 = 6;
 /// (誕生日系 = 展開した実出現日 / 記念日 = 起点日 / それ以外 = 開始日付)。
 type Keyed = (String, u8, CalendarEntryRecord);
 
+/// 記念日の周年 (出現日の年 − 起点の年)。iOS `Anniversary.anniversaryYears(in:)` と同じ引き算。
+/// 当年は 0。
+pub fn anniversary_years(origin_date: &str, occurs_on: &str) -> i32 {
+    let year = |d: &str| d.get(0..4).and_then(|y| y.parse::<i32>().ok()).unwrap_or(0);
+    year(occurs_on) - year(origin_date)
+}
+
 /// 表示範囲 [start_day, end_day] (JST 日付・両端含む) の全カレンダーエントリ。
 /// SQL 時代の `fetchCalendarEntriesAsync(in:)` 相当。
 pub fn calendar_entries(snap: &Snapshot, start_day: &str, end_day: &str) -> Vec<CalendarEntryRecord> {

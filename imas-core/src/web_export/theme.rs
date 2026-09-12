@@ -8,9 +8,20 @@
 //! 要らなくするため (と、同じトークン列を 400 回 HTML に埋め込まないため)。
 
 use super::dto::{ThemePair, ThemeTable, ThemeTokens, SCHEMA_VERSION};
-use crate::domain::color_engine::{derive, theme_hex, ImasThemeColors};
-use crate::web_export::emit::context::{BrandThemeInput, IdolThemeInput};
+use crate::domain::color_engine::{
+    derive, ensure_contrast, hex_string, hex_to_rgb, theme_hex, theme_to_rgb, ImasThemeColors,
+    ThemeRgb, DEFAULT_MIN_CONTRAST_RATIO,
+};
+use crate::domain::color_match::Rgb;
+use crate::web_export::emit::context::ThemeInputs;
 use std::collections::BTreeMap;
+
+/// 文字が載り得る地のうち、いちばん不利なもの。ライトでは `--ds-fill` を `--ds-surface2` に
+/// 重ねた灰 (これより暗い地に文字は置かない)、ダークではその逆。`web/src/styles/tokens.css`
+/// の値から求めた近似 (そちらを変えたらここも見直す)。ここで保証した比はそれより明るい
+/// (暗い) 地でも保たれる。
+const WORST_LIGHT_SURFACE: &str = "#e3e3e9";
+const WORST_DARK_SURFACE: &str = "#3e3e42";
 
 /// ニュートラル (色を持たないもの全部の受け皿)。
 pub const NEUTRAL_KEY: &str = "neutral";
@@ -25,22 +36,47 @@ pub fn brand_key(brand_id: &str) -> String {
     format!("brand:{brand_id}")
 }
 
+/// コミュニティのタグのテーマキー。色を持つタグにだけ作る
+/// (色の無いタグは囲む要素のテーマを継ぐ = 曲やアイドルの色で出る)。
+pub fn tag_key(tag_id: &str) -> String {
+    format!("tag:{tag_id}")
+}
+
 /// 1 テーマぶんのライト / ダークを導出する。
 ///
 /// **`seed` に渡してよいのは実体の色 (`#rrggbb`) だけ。** ブランド id を渡してはいけない
 /// (`color_engine::first_valid_hex` の doc: `"876"` が `#887766` として通ってしまう)。
 fn pair(seed: Option<&str>, brand: Option<&str>) -> ThemePair {
-    ThemePair { light: tokens(&derive(seed, brand, false)), dark: tokens(&derive(seed, brand, true)) }
+    ThemePair {
+        light: tokens(&derive(seed, brand, false), false),
+        dark: tokens(&derive(seed, brand, true), true),
+    }
 }
 
-fn tokens(c: &ImasThemeColors) -> ThemeTokens {
+/// `fg` を、並べた地のどれに対しても AA を満たすまで寄せる (地は同じ側 — 全部明るい、
+/// または全部暗い — なので、寄せる方向は 1 つで、順に締めれば全部に対して成り立つ)。
+///
+/// 色の**式**はアプリと共通の `color_engine` にしか無い。ここでやるのは、出面が文字を
+/// 置く地 (アプリには無い白い紙の上のチップや見出し) に対する読める保証だけで、
+/// 使うのも同じエンジンの `ensure_contrast` と閾値。
+fn legible(fg: ThemeRgb, backgrounds: &[Rgb]) -> String {
+    let rgb = backgrounds
+        .iter()
+        .fold(theme_to_rgb(fg), |fg, &bg| ensure_contrast(fg, bg, DEFAULT_MIN_CONTRAST_RATIO));
+    hex_string(rgb)
+}
+
+fn tokens(c: &ImasThemeColors, dark: bool) -> ThemeTokens {
+    let page = hex_to_rgb(if dark { WORST_DARK_SURFACE } else { WORST_LIGHT_SURFACE });
     ThemeTokens {
         accent: theme_hex(c.accent),
         on_accent: theme_hex(c.on_accent),
+        accent_ink: legible(c.accent, &[page]),
         tint: theme_hex(c.tint),
         tint_strong: theme_hex(c.tint_strong),
         chip_bg: theme_hex(c.chip_bg),
-        chip_text: theme_hex(c.chip_text),
+        // チップの地と、ヒーローの地 (見出しの小文字) の両方に載る。
+        chip_text: legible(c.chip_text, &[theme_to_rgb(c.chip_bg), theme_to_rgb(c.hero_surface)]),
         ring: theme_hex(c.ring),
         bar: theme_hex(c.bar),
         dot: theme_hex(c.dot),
@@ -51,19 +87,23 @@ fn tokens(c: &ImasThemeColors) -> ThemeTokens {
     }
 }
 
-/// アイドル / ブランド / ニュートラルの全テーマ。
+/// アイドル / ブランド / タグ / ニュートラルの全テーマ。
 ///
-/// `idol_brand_color` はアイドル id → 主ブランドの色。アイドル色が無いときの
-/// 落とし先で、優先順位 (アイドル色 → ブランド色 → ニュートラル) の判断は
-/// `first_valid_hex` が持っているので、ここは候補を並べて渡すだけ。
-pub fn build_table(idols: &[IdolThemeInput], brands: &[BrandThemeInput]) -> ThemeTable {
+/// アイドルの `brand_color` は主ブランドの色。アイドル色が無いときの落とし先で、
+/// 優先順位 (アイドル色 → ブランド色 → ニュートラル) の判断は `first_valid_hex` が
+/// 持っているので、ここは候補を並べて渡すだけ。
+pub fn build_table(inputs: &ThemeInputs) -> ThemeTable {
     let mut themes = BTreeMap::new();
     themes.insert(NEUTRAL_KEY.to_string(), pair(None, None));
-    for (id, color) in brands {
+    for (id, color) in &inputs.brands {
         themes.insert(brand_key(id), pair(None, color.as_deref()));
     }
-    for (id, color, brand_color) in idols {
+    for (id, color, brand_color) in &inputs.idols {
         themes.insert(idol_key(id), pair(color.as_deref(), brand_color.as_deref()));
+    }
+    // タグは自分の色だけで決まる (ブランドに属さない)。
+    for (id, color) in &inputs.tags {
+        themes.insert(tag_key(id), pair(Some(color), None));
     }
     ThemeTable { schema_version: SCHEMA_VERSION, themes }
 }
@@ -74,9 +114,10 @@ pub fn build_table(idols: &[IdolThemeInput], brands: &[BrandThemeInput]) -> Them
 /// (13 個が 2 箇所に手で同期されていた)。1 つの表にして、ずれようが無くする。
 type TokenAccessor = (&'static str, fn(&ThemeTokens) -> &str);
 
-const CSS_TOKENS: [TokenAccessor; 13] = [
+const CSS_TOKENS: [TokenAccessor; 14] = [
     ("accent", |t| &t.accent),
     ("on-accent", |t| &t.on_accent),
+    ("accent-ink", |t| &t.accent_ink),
     ("tint", |t| &t.tint),
     ("tint-strong", |t| &t.tint_strong),
     ("chip-bg", |t| &t.chip_bg),
@@ -146,14 +187,19 @@ fn escape_attr(key: &str) -> std::borrow::Cow<'_, str> {
 mod tests {
     use super::*;
 
+    fn sample_inputs() -> ThemeInputs {
+        ThemeInputs {
+            idols: vec![("ml_x".to_string(), Some("#f39800".to_string()), Some("#ffc30b".to_string()))],
+            brands: vec![("ml".to_string(), Some("#ffc30b".to_string()))],
+            tags: vec![("tag_kawaii".to_string(), "#e900e2".to_string())],
+        }
+    }
+
     #[test]
     fn css_defines_every_token_for_both_schemes() {
-        let table = build_table(
-            &[("ml_x".to_string(), Some("#f39800".to_string()), Some("#ffc30b".to_string()))],
-            &[("ml".to_string(), Some("#ffc30b".to_string()))],
-        );
+        let table = build_table(&sample_inputs());
         let css = build_css(&table);
-        for key in ["neutral", "brand:ml", "idol:ml_x"] {
+        for key in ["neutral", "brand:ml", "idol:ml_x", "tag:tag_kawaii"] {
             let selector = format!("[data-theme=\"{key}\"]{{");
             assert_eq!(css.matches(&selector).count(), 2, "{key} がライト/ダークで 2 回出ていない");
         }
@@ -162,15 +208,20 @@ mod tests {
         }
         assert!(css.contains("@media (prefers-color-scheme: dark)"));
         // 変数の顔ぶれが表と一致すること (表に足したのに CSS に出ない、が起きない)。
-        assert_eq!(css.matches("--").count(), CSS_TOKENS.len() * 3 * 2);
+        assert_eq!(css.matches("--").count(), table.themes.len() * CSS_TOKENS.len() * 2);
     }
 
     #[test]
     fn a_brand_id_is_never_used_as_a_color_seed() {
         // "876" のような id をシードに渡すと #887766 として通ってしまう。
         // ここでは色だけを渡していることを、id 由来の色が出ないことで確かめる。
-        let with_id_as_color = build_table(&[], &[("876".to_string(), Some("#656a75".to_string()))]);
-        let neutral_only = build_table(&[], &[("876".to_string(), None)]);
+        let brands_only = |color: Option<&str>| ThemeInputs {
+            idols: vec![],
+            brands: vec![("876".to_string(), color.map(str::to_string))],
+            tags: vec![],
+        };
+        let with_id_as_color = build_table(&brands_only(Some("#656a75")));
+        let neutral_only = build_table(&brands_only(None));
         assert_ne!(
             with_id_as_color.themes["brand:876"], neutral_only.themes["brand:876"],
             "色の有無でテーマが変わらないのはおかしい"

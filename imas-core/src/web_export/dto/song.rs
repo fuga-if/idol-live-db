@@ -1,6 +1,6 @@
 //! 楽曲 (song) 詳細ページの DTO。
 
-use super::common::{AppOpen, Ref, SeoBlock};
+use super::common::{AppOpen, DateBadge, Ref, SeoBlock, StatTile};
 use super::idol::ProfileRow;
 use super::common::{LyricsBlock, SongCommunity};
 
@@ -17,11 +17,16 @@ web_dto! {
         pub title_kana: Option<String>,
         pub theme_key: String,
         pub brand: Option<Ref>,
+        /// 合同曲で一緒に参加しているブランド (`brand` 以外)。無ければ空。
+        pub joint_brands: Vec<Ref>,
+        /// 合同曲の札 (`content::SONG_COLLAB_LABEL`)。合同曲でなければ `None`。
+        pub collab_label: Option<String>,
         /// コミュニティ集計 (タグ・お気に入り・ペンライト)。焼き込み。
         pub community: SongCommunity,
         /// 歌詞・コールガイドの出し方。**出すかどうかを決めるのは Rust。**
         pub lyrics: LyricsBlock,
-        pub song_type: Option<String>,
+        /// 曲種別の表示名 (`全体曲` / `ソロ曲` …)。語彙に無い値なら `None`。
+        pub song_type_label: Option<String>,
         pub release_date: Option<String>,
         /// `"4:32"`。整形だけなのでここで作る。
         pub duration_display: Option<String>,
@@ -45,6 +50,8 @@ web_dto! {
         /// この曲の派生 (リミックス・ソロver 等)。
         pub variants: Vec<Ref>,
         pub performance_count: u32,
+        /// 数の帯 (披露回数 / 原唱者 / 派生曲)。ページ内の該当の節へ飛ぶ。
+        pub stat_tiles: Vec<StatTile>,
         /// date 降順。
         pub performance_history: Vec<PerformanceRow>,
         pub frequent_singers: Vec<SingerRow>,
@@ -80,12 +87,17 @@ web_dto! {
         pub show: Ref,
         pub event: Ref,
         pub date: String,
-        pub short_date: String,
+        /// 行の左端に置く日付ブロック。
+        pub date_badge: DateBadge,
         pub venue: Option<String>,
         /// その公演で何曲目に披露されたか (1 始まり)。0 は不明。
         pub number: u32,
         /// 1 行で出すときの場所表記 (公演名と会場を `" ・ "` で繋いだもの)。
         pub place_display: String,
+        /// この披露の歌唱メンバー (3 人まで並べて残りは「ほか N 人」)。無ければ None。
+        pub performers_display: Option<String>,
+        /// 「初披露」または「N 回目」(この DB に載っている範囲で、最古から数えて)。
+        pub ordinal_label: String,
     }
 }
 

@@ -406,7 +406,7 @@ private fun Hero(idol: Idol, brandShortName: String?, t: ImasTheme) {
     ) {
         Box(contentAlignment = Alignment.BottomEnd) {
             Box(Modifier.clickable(onClick = pickAvatar)) {
-                ImasAvatar(label = idol.name, seed = idol.color, brand = idol.brandId, size = 72.dp,
+                ImasAvatar(label = idol.shortName, seed = idol.color, brand = idol.brandId, size = 72.dp,
                     isPick = pick, entityId = idol.id)
             }
             // 「押せる」ことが分かるカメラバッジ (iOS の PhotosPicker バッジと対)。

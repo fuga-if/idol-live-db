@@ -1,73 +1,73 @@
 ---
 import Artwork from "./Artwork.astro";
-import ColorDot from "./ColorDot.astro";
+import Fold from "./Fold.astro";
+import { setlistAnchorId } from "../lib/anchors";
 import TagChip from "./TagChip.astro";
+import Performer from "./Performer.astro";
 import type { SetlistRow } from "../lib/schema/SetlistRow";
 /**
- * セトリの 1 行。曲・ジャケ・この披露限りのユニット表記・カバー・歌唱メンバー・衣装。
- * 歌唱メンバーの表示名 (現任 CV による解決) は Rust が済ませている。
+ * セトリの 1 行。[番号] [ジャケ] [曲名 + 注記 / 札 / 歌唱者]。
  *
- * 衣装は**この披露で着ていたもの**で、曲そのものの属性ではない
- * (同じ曲でも公演が違えば衣装は違う)。記録がある行の方が少ないので、
- * 無いときは行ごと出さない。
+ * 札と歌唱者の関係 (全員曲か・オリメンが揃っているか・誰がいなかったか) は Rust が
+ * 解いて行に付けてある。ここは来た形を置くだけで、集合を比べ直さない。
+ *
+ * 衣装も**この披露で着ていたもの**で、曲そのものの属性ではない
+ * (同じ曲でも公演が違えば衣装は違う)。記録がある行の方が少ない。
  */
 interface Props {
   row: SetlistRow;
 }
 const { row } = Astro.props;
+
+// 歌唱者がこの数を超える行は名前を畳む (全員曲は数に関わらず畳む)。
+// 全員曲 (fullCastLabel あり) は人数に関わらず畳む。閾値は Fold が持つ。
 ---
 
-<li class="setlist__row" data-theme={row.song.themeKey}>
+{/* id は披露履歴 (曲ページ) からの飛び先 (`…/#setlist-N`)。番号は Rust が振ったもの。 */}
+<li class="setlist__row" id={setlistAnchorId(row.number)} data-theme={row.song.themeKey}>
   {/* 表示する番号は `row.number` (Rust が公演内で 1 から振ったもの)。
       `row.position` は setlist_items 全体を通した並び順の鍵で、表示用ではない。
       描画側で連番を振らないのは、将来「アンコールは別番号」のような規則が
       入ったときに番号の決め方が 2 実装になるため。 */}
-  <span class="setlist__no">{row.number}</span>
-  <span class="setlist__body">
-    <Artwork title={row.song.name} artworkUrl={row.song.artworkUrl} size="sm" />
-    <span class="setlist__main">
+  <span class="setlist__no u-num">{row.number}</span>
+  <Artwork title={row.song.name} artworkUrl={row.song.artworkUrl} size="sm" />
+  <div class="setlist__main">
+    <p class="setlist__head">
       <a class="setlist__title u-underline-hover" href={row.song.path}>{row.song.name}</a>
-      {
-        (row.unitLabel || row.isCover || row.costumes.length > 0) && (
-          <span class="u-row">
-            {row.unitLabel && <TagChip text={row.unitLabel} kind="unit" />}
-            {row.isCover && <TagChip text="カバー" kind="cover" />}
-            {/* チップの文字列は Rust が組んである (着用者の括弧を付けるかも含めて)。 */}
-            {row.costumes.map((c) => (
-              <TagChip text={c.label} kind="costume" />
-            ))}
-          </span>
-        )
-      }
-      {
-        row.performers.length > 0 && (
+      {row.notes && <span class="setlist__notes">{row.notes}</span>}
+    </p>
+    {
+      (row.unitLabel || row.isCover || row.lineup || row.firstPerformanceLabel) && (
+        <p class="u-row" data-lineup={row.lineup?.kind}>
+          {row.unitLabel && <TagChip text={row.unitLabel} kind="unit" />}
+          {row.isCover && <TagChip text="カバー" kind="cover" />}
+          {row.lineup && <TagChip text={row.lineup.label} kind="lineup" />}
+          {row.firstPerformanceLabel && <TagChip text={row.firstPerformanceLabel} kind="first" />}
+        </p>
+      )
+    }
+    {
+      row.performers.length > 0 && (
+        <Fold label="歌唱者" themeKeys={row.performers.map((p) => p.ref.themeKey)} force={row.fullCastLabel !== null}>
+          {row.fullCastLabel && <TagChip slot="lead" text={row.fullCastLabel} kind="all" />}
           <span class="performers">
             {row.performers.map((p) => (
-              <a
-                class="performer"
-                href={p.ref.path}
-                data-theme={p.ref.themeKey}
-                data-no-cast={p.castName === null ? "true" : undefined}
-              >
-                {/* **両方の名前を持たせ、どちらを出すかは CSS で切り替える。**
-                    表示の規則 (どのモードで何を主/副にするか) は imas-core の
-                    `performer_display_name` が持ち、JS は選ばれたモードを
-                    ルート要素の data 属性に書くだけ。JS が動かない環境や既定の
-                    閲覧者には、サーバが描いたアイドル名がそのまま出る。
-
-                    `castName` が無い = CV 不在 (この判断も Rust 側)。その人は
-                    どのモードでもアイドル名のまま出す。 */}
-                <ColorDot />
-                <span class="performer__names">
-                  <span class="performer__idol">{p.ref.name}</span>
-                  {p.castName && <span class="performer__cast">{p.castName}</span>}
-                </span>
-              </a>
+              <Performer ref={p.ref} castName={p.castName} />
             ))}
           </span>
-        )
-      }
-      {row.notes && <span class="setlist__notes">{row.notes}</span>}
-    </span>
-  </span>
+        </Fold>
+      )
+    }
+    {/* 「いたのに歌わなかった」人は歌唱者の後に控えめに (行の答えは歌唱者の方)。 */}
+    {
+      row.lineup?.missing && (
+        <p class="lineup__missing">
+          <span class="lineup__missing-label">{row.lineup.missing.label}</span>
+          {row.lineup.missing.idols.map((idol) => (
+            <Performer ref={idol} absent />
+          ))}
+        </p>
+      )
+    }
+  </div>
 </li>

@@ -36,6 +36,23 @@ DEFINE SCHEMA
         GRANT READ TO "_world"
     );
 
+    RECORD TYPE Creator (
+        "___createTime" TIMESTAMP,
+        "___createdBy"  REFERENCE,
+        "___etag"       STRING,
+        "___modTime"    TIMESTAMP,
+        "___modifiedBy" REFERENCE,
+        "___recordID"   REFERENCE,
+        aliases         STRING QUERYABLE SEARCHABLE SORTABLE,
+        deletedAt       TIMESTAMP QUERYABLE SORTABLE,
+        modifiedAt      TIMESTAMP QUERYABLE SORTABLE,
+        name            STRING QUERYABLE SEARCHABLE SORTABLE,
+        nameKana        STRING QUERYABLE SEARCHABLE SORTABLE,
+        GRANT WRITE TO "_creator",
+        GRANT CREATE TO "_icloud",
+        GRANT READ TO "_world"
+    );
+
     RECORD TYPE Event (
         "___createTime"   TIMESTAMP,
         "___createdBy"    REFERENCE,
@@ -271,8 +288,10 @@ DEFINE SCHEMA
         composer          STRING QUERYABLE SEARCHABLE SORTABLE,
         deletedAt         TIMESTAMP QUERYABLE SORTABLE,
         durationSec       INT64 QUERYABLE SORTABLE,
+        isCollab          INT64 QUERYABLE SORTABLE,
         isrc              STRING QUERYABLE SEARCHABLE SORTABLE,
         jasracCode        STRING QUERYABLE SEARCHABLE SORTABLE,
+        jointBrandIds     STRING QUERYABLE SEARCHABLE SORTABLE,
         lyricist          STRING QUERYABLE SEARCHABLE SORTABLE,
         lyricsUrl         STRING QUERYABLE SEARCHABLE SORTABLE,
         modifiedAt        TIMESTAMP QUERYABLE SORTABLE,
@@ -359,6 +378,28 @@ DEFINE SCHEMA
         idolId          STRING QUERYABLE SEARCHABLE SORTABLE,
         modifiedAt      TIMESTAMP QUERYABLE SORTABLE,
         unitId          STRING QUERYABLE SEARCHABLE SORTABLE,
+        GRANT WRITE TO "_creator",
+        GRANT CREATE TO "_icloud",
+        GRANT READ TO "_world"
+    );
+
+    RECORD TYPE UnitVersion (
+        "___createTime" TIMESTAMP,
+        "___createdBy"  REFERENCE,
+        "___etag"       STRING,
+        "___modTime"    TIMESTAMP,
+        "___modifiedBy" REFERENCE,
+        "___recordID"   REFERENCE,
+        catchphrase     STRING QUERYABLE SEARCHABLE SORTABLE,
+        code            STRING QUERYABLE SEARCHABLE SORTABLE,
+        deletedAt       TIMESTAMP QUERYABLE SORTABLE,
+        logoUrl         STRING QUERYABLE SEARCHABLE SORTABLE,
+        modifiedAt      TIMESTAMP QUERYABLE SORTABLE,
+        name            STRING QUERYABLE SEARCHABLE SORTABLE,
+        sortOrder       INT64 QUERYABLE SORTABLE,
+        unitId          STRING QUERYABLE SEARCHABLE SORTABLE,
+        validFrom       STRING QUERYABLE SEARCHABLE SORTABLE,
+        validTo         STRING QUERYABLE SEARCHABLE SORTABLE,
         GRANT WRITE TO "_creator",
         GRANT CREATE TO "_icloud",
         GRANT READ TO "_world"
@@ -512,4 +553,3 @@ DEFINE SCHEMA
         GRANT CREATE TO "_icloud",
         GRANT READ TO "_world"
     );
-

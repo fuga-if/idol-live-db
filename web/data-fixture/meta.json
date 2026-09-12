@@ -40,5 +40,85 @@
       "raw": "show",
       "label": "公演に合わせる"
     }
-  ]
+  ],
+  "primaryNav": [
+    {
+      "label": "ライブ",
+      "path": "/events/",
+      "current": false,
+      "themeKey": null,
+      "count": null
+    },
+    {
+      "label": "カレンダー",
+      "path": "/calendar/",
+      "current": false,
+      "themeKey": null,
+      "count": null
+    },
+    {
+      "label": "楽曲",
+      "path": "/songs/",
+      "current": false,
+      "themeKey": null,
+      "count": null
+    },
+    {
+      "label": "アイドル",
+      "path": "/idols/",
+      "current": false,
+      "themeKey": null,
+      "count": null
+    },
+    {
+      "label": "ユニット",
+      "path": "/units/",
+      "current": false,
+      "themeKey": null,
+      "count": null
+    },
+    {
+      "label": "会場",
+      "path": "/venues/",
+      "current": false,
+      "themeKey": null,
+      "count": null
+    },
+    {
+      "label": "ブランド",
+      "path": "/brands/",
+      "current": false,
+      "themeKey": null,
+      "count": null
+    },
+    {
+      "label": "コールガイド",
+      "path": "/calls/",
+      "current": false,
+      "themeKey": null,
+      "count": null
+    }
+  ],
+  "utilityNav": [
+    {
+      "label": "検索",
+      "path": "/search/",
+      "current": false,
+      "themeKey": null,
+      "count": null
+    },
+    {
+      "label": "このサイトについて",
+      "path": "/about/",
+      "current": false,
+      "themeKey": null,
+      "count": null
+    }
+  ],
+  "footerNotes": [
+    "非公式のファンメイドサイトです。株式会社バンダイナムコエンターテインメントおよび関連権利者とは一切関係ありません。",
+    "キャラクター画像・公式ロゴ・歌詞は掲載していません。ジャケット画像は Apple Music の提供によるものです。"
+  ],
+  "lyricsLicenseNotice": null,
+  "lyricsSearchUrl": null
 }

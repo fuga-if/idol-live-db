@@ -16,10 +16,6 @@ export type HomePage = { schemaVersion: number, path: string,
  */
 tagline: string, 
 /**
- * 「非公式ファンメイド」の断り書き。
- */
-disclaimer: string, 
-/**
  * 今後のライブ (直近 8 件)。
  */
 upcoming: Array<EventListItem>, 
@@ -32,6 +28,11 @@ recentShows: Array<ShowSummary>,
  */
 statTiles: Array<StatTile>, brands: Array<BrandListItem>, app: AppLinks, 
 /**
- * 「今後のライブ」「開催済み」等への入口。
+ * 「アプリで、もっと」の説明文。アプリにしか無い機能の並びは `content` が 1 箇所で持つ
+ * (歌詞を出面で出す/出さないで変わる)。
  */
-sectionLinks: Array<NavLink>, seo: SeoBlock, };
+appNote: string, 
+/**
+ * 「最近の公演」の続き先。公演だけの一覧は無いので、開催済みのライブへ送る。
+ */
+recentShowsMore: NavLink, seo: SeoBlock, };

@@ -16,16 +16,20 @@ import { walk } from "../scripts/walk.mjs";
 import { readJson } from "../src/lib/data";
 import type { SearchManifest } from "../src/lib/schema/SearchManifest";
 
+import astroConfig from "../astro.config.mjs";
+
 const SRC = path.resolve("./src");
 const DIST = path.resolve("./dist");
 const CONFIG = path.resolve("./astro.config.mjs");
+/** 自分のホスト (canonical / OGP / sitemap の絶対 URL に出る)。 */
+const SITE_HOST = new URL(astroConfig.site!).host;
 
 /** 生成物 (ts-rs / wasm-pack) は検査対象外。中身は Rust 側が保証する。 */
 const SKIP_DIRS = new Set(["schema", "fold"]);
 
 /** ソースに書いてよい外部ホスト。増やすときは「なぜ必要か」をレビューで問うこと。 */
 const ALLOWED_HOSTS = new Set([
-  "imas-live-web.tokata3011.workers.dev", // 自サイト (canonical / OGP / sitemap の絶対 URL)
+  "idollivedb.fugalabs.uk", // 自サイト (astro.config の site。canonical / OGP / sitemap の絶対 URL)
   "apps.apple.com", // App Store
   "music.apple.com", // Apple Music (曲ページの外部リンク)
   "github.com", // リポジトリ / 生成物のコメント (Aleph-Alpha/ts-rs)
@@ -59,12 +63,15 @@ const rel = (p: string): string => path.relative(path.resolve("."), p);
 /**
  * 実行時に通信してよい島。**増やすときはここに明示する。**
  *
- * どちらも取りに行くのは自分のオリジンに置いた静的 JSON (検索索引 / 絞り込み素材) だけで、
- * API は叩かない。「表示のみ」を守っているかは、この一覧と下の宛先テストで固定する。
+ * 検索と絞り込みが取りに行くのは自分のオリジンに置いた静的 JSON (検索索引 / 生テーブル)
+ * だけで、API は叩かない。歌詞だけは 1 曲ずつ取りに行く経路を持つが、宛先は Rust が
+ * `LyricsBlock.sourceUrl` に入れたものを data 属性で受け取るだけで、TS に URL は無い
+ * (docs/JASRAC.md §6.5)。「表示のみ」を守っているかは、この一覧と下の宛先テストで固定する。
  */
 const FETCH_ALLOWED: Record<string, string> = {
   "src/lib/search/island.ts": "/search/",
-  "src/lib/songfilter/island.ts": "/filters/",
+  "src/lib/listfilter/query.ts": "/snapshot/",
+  "src/components/SongLyrics.astro": "(Rust が出した sourceUrl)",
 };
 
 describe("実行時の通信は同一オリジンだけ", () => {
@@ -76,12 +83,19 @@ describe("実行時の通信は同一オリジンだけ", () => {
     expect(offenders, "fetch は決めた island 以外に置かない").toEqual([]);
   });
 
-  it("絞り込み island は素材の URL を自分で組み立てない", () => {
-    const island = fs.readFileSync(path.join(SRC, "lib/songfilter/island.ts"), "utf8");
-    // 宛先は Rust が出した `filterDataPath` を data 属性で受け取るだけ。
-    // 文字列から URL を組むと、置き場所の決定が Rust と TS の 2 箇所に散る。
-    expect(/fetch\s*\(\s*["'`]/.test(island), "fetch 先をリテラルで書かない").toBe(false);
-    expect(/https?:/.test(island), "絶対 URL を書かない").toBe(false);
+  it("絞り込みの素材は同一オリジンの /snapshot/ だけ", () => {
+    const query = fs.readFileSync(path.join(SRC, "lib/listfilter/query.ts"), "utf8");
+    // 生テーブルの置き場所は 1 定数。絶対 URL を書かない (= 他オリジンへ行かない)。
+    expect(/https?:/.test(query), "絶対 URL を書かない").toBe(false);
+    const target = /TABLES_URL\s*=\s*["'`]([^"'`]+)["'`]/.exec(query)?.[1];
+    expect(target, "生テーブルの置き場所が読み取れない").toBeDefined();
+    expect(target!.startsWith("/snapshot/"), `${target} は /snapshot/ 配下ではない`).toBe(true);
+  });
+
+  it("歌詞は Rust が出した宛先を data 属性で受け取るだけ (URL を組まない)", () => {
+    const lyrics = fs.readFileSync(path.join(SRC, "components/SongLyrics.astro"), "utf8");
+    expect(/fetch\s*\(\s*["'`]/.test(lyrics), "fetch 先をリテラルで書かない").toBe(false);
+    expect(/https?:/.test(lyrics), "絶対 URL を書かない").toBe(false);
   });
 
   it("island の fetch 先は `/search/` 始まりの相対パスだけ", () => {
@@ -141,13 +155,38 @@ describe("ソースに書かれた外部ホスト", () => {
 
 const distExists = fs.existsSync(DIST);
 
+/**
+ * 歌詞の取得先 (Rust が `LyricsBlock.sourceUrl` に入れた Worker の URL)。
+ * 出面で歌詞を出している間は、これだけが配信物に現れてよい Worker の URL で、
+ * 現れてよい場所も `data-source` 属性 (曲ページ) だけ。Rust が出していない間は null。
+ */
+const lyricsSource = ((): { origin: string; attrs: RegExp[] } | null => {
+  const meta = readJson<{ lyricsLicenseNotice: string | null; lyricsSearchUrl: string | null }>("meta.json");
+  if (!meta.lyricsLicenseNotice) return null;
+  const songs = walk(path.resolve("./data/songs"), { include: (p) => p.endsWith(".json") });
+  const first = JSON.parse(fs.readFileSync(songs[0]!, "utf8")) as { lyrics: { sourceUrl: string | null } };
+  const url = new URL(first.lyrics.sourceUrl!);
+  const origin = url.origin.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  // 曲ページの取得先 (1 曲ずつ) と、検索ページの歌詞検索の取得先。この 2 つの data 属性だけ。
+  return {
+    origin: url.origin,
+    attrs: [
+      new RegExp(`data-source="${origin}/songs/[^"]+/lyrics"`, "g"),
+      new RegExp(`data-lyrics-search="${origin}/lyrics/search"`, "g"),
+    ],
+  };
+})();
+
 describe("配信物 (dist)", () => {
-  it.skipIf(!distExists)("HTML と JS に禁止ホストが出てこない", () => {
+  it.skipIf(!distExists)("HTML と JS に禁止ホストが出てこない (歌詞の取得先の data 属性を除く)", () => {
     const files = walk(DIST, { include: (p) => /\.(html|js)$/.test(p) });
     expect(files.length, "dist に HTML/JS が無い").toBeGreaterThan(0);
     const hits: string[] = [];
     for (const f of files) {
-      const text = fs.readFileSync(f, "utf8");
+      // 歌詞の取得先は 1 曲ずつの `data-source` にしか置かない。それ以外の場所に
+      // Worker のホストが出たら、経路が増えている。
+      let text = fs.readFileSync(f, "utf8");
+      for (const attr of lyricsSource?.attrs ?? []) text = text.replace(attr, "");
       for (const w of FORBIDDEN) if (text.includes(w)) hits.push(`${rel(f)}: ${w}`);
     }
     expect(hits).toEqual([]);
@@ -173,8 +212,9 @@ describe("配信物 (dist)", () => {
       ];
       for (const m of subresources) hosts.set(m[1]!, rel(f));
     }
+    // 自分のホストは astro.config の `site` から取る (canonical / OGP の絶対 URL の出典と同じ)。
     const allowed = (h: string): boolean =>
-      h === "imas-live-web.tokata3011.workers.dev" || /^is\d-ssl\.mzstatic\.com$/.test(h);
+      h === SITE_HOST || /^is\d-ssl\.mzstatic\.com$/.test(h);
     expect([...hosts].filter(([h]) => !allowed(h)).map(([h, f]) => `${h} (${f})`)).toEqual([]);
   });
 });

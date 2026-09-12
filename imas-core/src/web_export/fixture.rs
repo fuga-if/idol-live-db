@@ -25,11 +25,17 @@
 use super::content::{self, absolute};
 use super::dto::*;
 use super::emit::context::{json_ld_graph, page_title, simple_json_ld};
+use super::theme;
 use super::url::{detail_path, path_key, reserved_for};
 use super::writer::Writer;
 use super::{Result, Stats, WebExportError};
 use std::path::Path;
-use crate::domain::idol_list_filtering::IdolQuery;
+use super::emit::events::ShowContext;
+use super::emit::context::TAGS_PATH;
+use super::emit::calendar::{month_counts, month_grid, month_path, CALENDAR_PATH};
+use crate::domain::date_display::{range_with_weekday, until_display, with_weekday};
+use crate::domain::setlist_lineup::Lineup;
+use crate::domain::idol_list_filtering::{IdolQuery, IdolSortKind};
 use crate::domain::song_list_queries::{SongListFilter, SongQuery};
 
 const TODAY: &str = "2026-09-04";
@@ -90,6 +96,12 @@ fn fact(label: &str, value: &str, style: &str) -> ProfileRow {
 
 /// 件数タイル 1 枚。
 fn tile(glyph: &str, value: u32, label: &str, href: Option<&str>) -> StatTile {
+    let tile = StatTile::new(glyph, value, label);
+    return match href {
+        Some(href) => tile.with_href(href),
+        None => tile,
+    };
+    #[allow(unreachable_code)]
     StatTile {
         glyph: glyph.to_string(),
         value,
@@ -156,10 +168,13 @@ fn brand_other() -> Ref {
 }
 
 fn idol_mirai() -> Ref {
-    make_ref(RefKind::Idol, "ml_kasuga_mirai", "春日未来", Some("ミリオンライブ!"), "idol:ml_kasuga_mirai")
+    idol_ref("ml_kasuga_mirai", "春日未来")
 }
 fn idol_shizuka() -> Ref {
-    make_ref(RefKind::Idol, "ml_mogami_shizuka", "最上静香", Some("ミリオンライブ!"), "idol:ml_mogami_shizuka")
+    idol_ref("ml_mogami_shizuka", "最上静香")
+}
+fn idol_ref(id: &str, name: &str) -> Ref {
+    make_ref(RefKind::Idol, id, name, Some("ミリオンライブ!"), &super::theme::idol_key(id))
 }
 
 fn song_sample() -> Ref {
@@ -217,6 +232,45 @@ fn venue_broken_id() -> Ref {
 // ページ
 // ---------------------------------------------------------------------------
 
+/// コールガイドの進捗の代表値: ガイドのある曲 / 最近の編集 / 書き手募集中。
+fn call_guide_page() -> CallGuidePage {
+    let path = "/calls/";
+    CallGuidePage {
+        schema_version: SCHEMA_VERSION,
+        path: path.to_string(),
+        title: "コールガイドの進捗".to_string(),
+        intro: content::CALL_GUIDE_INTRO.to_string(),
+        snapshot_note: "2026-09-06 12:34 (JST) 時点の情報です (日次で更新)。".to_string(),
+        stat_tiles: vec![
+            tile("♬", 1, "ガイドあり", None),
+            tile("✎", 1, "書き手募集中", None),
+            tile("#", 3, "コール曲タグ付き", None),
+        ],
+        with_calls: vec![CallGuideSongRow {
+            song: song_sample(),
+            detail: "32 件・19 行".to_string(),
+            updated_display: with_weekday("2026-09-05"),
+            updated_by: "匿名".to_string(),
+        }],
+        with_calls_note: None,
+        recent_edits: vec![CallGuideEditRow {
+            song: song_sample(),
+            label: "コールを付けた (32 件・19 行)".to_string(),
+            at_display: with_weekday("2026-09-05"),
+            by: "匿名".to_string(),
+        }],
+        wanted: vec![song_no_artwork()],
+        wanted_note: Some("ほかに「コール曲」タグの付いた 1 曲は歌詞が未登録のため、ここには並べていません (歌詞が入ってから書けるようになります)。".to_string()),
+        seo: seo(
+            "コールガイドの進捗",
+            "コールガイドがある曲、最近の編集、未整備の曲。",
+            path,
+            Robots::IndexFollow,
+            &[("ホーム", "/")],
+        ),
+    }
+}
+
 fn site_meta() -> SiteMeta {
     SiteMeta {
         schema_version: SCHEMA_VERSION,
@@ -231,6 +285,12 @@ fn site_meta() -> SiteMeta {
             .into_iter()
             .map(|o| PerformerNameOptionDto { raw: o.raw, label: o.label })
             .collect(),
+        // 代表値にはお題が無いので、ナビにも出ない (本番と同じ判断を通す)。
+        primary_nav: super::emit::lists::primary_nav(false, true),
+        utility_nav: super::emit::lists::utility_nav(),
+        footer_notes: content::footer_notes(),
+        lyrics_license_notice: content::lyrics_license_notice(),
+        lyrics_search_url: content::lyrics_search_url(),
     }
 }
 
@@ -244,6 +304,7 @@ fn theme_table() -> ThemeTable {
         ThemeTokens {
             accent: theme_hex(c.accent),
             on_accent: theme_hex(c.on_accent),
+            accent_ink: theme_hex(c.accent),
             tint: theme_hex(c.tint),
             tint_strong: theme_hex(c.tint_strong),
             chip_bg: theme_hex(c.chip_bg),
@@ -287,8 +348,7 @@ fn event_page(reference: &Ref, empty: bool) -> EventPage {
         joint_brands: if empty { vec![] } else { vec![brand_cg()] },
         kind: "live".to_string(),
         kind_label: content::kind_label("live").to_string(),
-        first_date: Some("2026-04-03".to_string()),
-        last_date: Some("2026-04-04".to_string()),
+        date_display: range_with_weekday(Some("2026-04-03"), Some("2026-04-04")),
         is_upcoming: true,
         ticket: TicketInfo {
             open_date: Some("2026-02-01".to_string()),
@@ -296,13 +356,19 @@ fn event_page(reference: &Ref, empty: bool) -> EventPage {
             lottery_date: None,
             url: Some("https://example.com/ticket".to_string()),
         },
-        stats: if empty {
-            EventStats { show_count: 0, total_songs: 0, unique_songs: 0, cast_count: 0 }
+        // 0 の数は落とす規則なので、公演ゼロのライブでは帯そのものが無い。
+        stat_tiles: if empty {
+            vec![]
         } else {
-            EventStats { show_count: 2, total_songs: 46, unique_songs: 41, cast_count: 18 }
+            vec![
+                tile("▤", 2, "公演", None),
+                tile("≡", 46, "のべ曲数", None),
+                tile("♬", 41, "異なり曲数", None),
+                tile("☺", 18, "出演者", None),
+            ]
         },
         // 公演ゼロのライブ (空一覧の確認)。
-        shows: if empty { vec![] } else { vec![show_summary()] },
+        shows: if empty { vec![] } else { vec![show_summary(ShowContext::InEvent)] },
         cast: if empty {
             // event_attendance は None を返しうる。
             None
@@ -345,75 +411,134 @@ fn event_page(reference: &Ref, empty: bool) -> EventPage {
     }
 }
 
-fn show_summary() -> ShowSummary {
+/// 公演の要約。本番と同じ規則で文脈ごとに形が変わる (見出し・副題・会場名)。
+fn show_summary(context: ShowContext) -> ShowSummary {
+    let (title, show_label) = match context {
+        ShowContext::InEvent => ("DAY1".to_string(), None),
+        ShowContext::Home | ShowContext::AtVenue => (event_sample().name, Some("DAY1".to_string())),
+    };
     ShowSummary {
         reference: show_sample(),
+        title,
+        show_label,
         date: "2026-04-03".to_string(),
-        short_date: "26/04".to_string(),
-        venue_label: Some("幕張メッセ".to_string()),
-        venue: Some(venue_sample()),
+        date_badge: DateBadge::from_ymd("2026-04-03"),
+        venue_label: (context != ShowContext::AtVenue).then(|| "幕張メッセ".to_string()),
         hall: Some("イベントホール".to_string()),
-        start_time: Some("17:00".to_string()),
+        start_time_display: Some("17:00 開演".to_string()),
         setlist_count: 23,
-        stream_platform: Some("ニコニコ生放送".to_string()),
-        event: Some(event_sample()),
-        subtitle: Some("DAY1 ・ 幕張メッセ ・ イベントホール ・ 17:00 開演".to_string()),
     }
 }
 
 fn show_page() -> ShowPage {
     let reference = show_sample();
+    let event = event_sample();
     ShowPage {
         schema_version: SCHEMA_VERSION,
         is_character_live: false,
         id: reference.id.clone(),
         path: reference.path.clone(),
-        name: "DAY1".to_string(),
-        date: "2026-04-03".to_string(),
-        short_date: "26/04".to_string(),
+        heading: event.name.clone(),
+        show_label: Some("DAY1".to_string()),
+        date_badge: DateBadge::from_ymd("2026-04-03"),
+        is_upcoming: false,
         theme_key: reference.theme_key.clone(),
-        event: event_sample(),
+        event,
         brand: Some(brand_ml()),
-        venue_label: Some("幕張メッセ".to_string()),
-        venue: Some(venue_sample()),
-        venue_city: Some("千葉市".to_string()),
-        hall: Some("イベントホール".to_string()),
-        start_time: Some("17:00".to_string()),
-        stream_platform: None,
-        setlist: vec![
-            SetlistRow {
-                id: "si_1".to_string(),
-                number: 1,
-                notes: None,
-                unit_label: Some("765MILLION ALLSTARS".to_string()),
-                song: song_sample(),
-                performers: vec![PerformerRef {
-                    reference: idol_mirai(),
-                    cast_name: Some("山崎はるか".to_string()),
-                }],
-                original_artists: vec![idol_mirai(), idol_shizuka()],
-                is_cover: false,
-                // 共通衣装は「全員」と書かず、着用者の括弧を付けない。
-                costumes: vec![SetlistCostume {
-                    id: "cos_sample_common".to_string(),
-                    label: "THE@TER WAVE 共通衣装".to_string(),
-                }],
+        fact_rows: vec![
+            fact("開演", "17:00", "plain"),
+            ProfileRow {
+                label: "会場".to_string(),
+                value: "幕張メッセ".to_string(),
+                style: "plain".to_string(),
+                link: Some(venue_sample().path),
             },
-            // 歌唱メンバーが記録されていない行 (実データに多い)。
-            SetlistRow {
-                id: "si_2".to_string(),
-                number: 2,
-                notes: Some("映像のみ".to_string()),
-                unit_label: None,
-                song: song_no_artwork(),
-                performers: vec![],
-                original_artists: vec![],
-                is_cover: true,
-                // 着用者つきの衣装 (名前に括弧で人が付く形)。
-                // 歌唱メンバーが空でも衣装だけ分かることがある。
-                costumes: vec![SetlistCostume {
-                    id: "cos_sample_solo".to_string(),
-                    label: "ソロステージ衣装（春日未来）".to_string(),
+            fact("ホール", "イベントホール", "plain"),
+            fact("所在地", "千葉市", "plain"),
+        ],
+        stat_tiles: vec![tile("≡", 3, "曲", None), tile("☺", 2, "出演者", None)],
+        setlist_sections: vec![
+            SetlistSection {
+                label: None,
+                rows: vec![
+                    // 原唱者 2 人のうち 1 人だけが歌う行 (オリメン一部・いたのに歌わなかった人付き)。
+                    SetlistRow {
+                        id: "si_1".to_string(),
+                        number: 1,
+                        notes: Some("M@STER VERSION".to_string()),
+                        unit_label: Some("765MILLION ALLSTARS".to_string()),
+                        song: song_sample(),
+                        performers: vec![PerformerRef {
+                            reference: idol_mirai(),
+                            cast_name: Some("山崎はるか".to_string()),
+                        }],
+                        full_cast_label: None,
+                        lineup: Some(LineupNote {
+                            kind: Lineup::Partial,
+                            label: "オリメン 1/2".to_string(),
+                            missing: Some(MissingOriginals {
+                                label: "不参加".to_string(),
+                                idols: vec![idol_shizuka()],
+                            }),
+                        }),
+                        is_cover: false,
+                        first_performance_label: None,
+                        // 共通衣装は「全員」と書かず、着用者の括弧を付けない。
+                        costumes: vec![SetlistCostume {
+                            id: "cos_sample_common".to_string(),
+                            label: "THE@TER WAVE 共通衣装".to_string(),
+                        }],
+                    },
+                    // 歌唱メンバーが記録されていない行 (実データに多い)。
+                    SetlistRow {
+                        id: "si_2".to_string(),
+                        number: 2,
+                        notes: Some("映像のみ".to_string()),
+                        unit_label: None,
+                        song: song_no_artwork(),
+                        performers: vec![],
+                        full_cast_label: None,
+                        lineup: None,
+                        is_cover: true,
+                        // 着用者つきの衣装 (名前に括弧で人が付く形)。
+                        // 歌唱メンバーが空でも衣装だけ分かることがある。
+                        costumes: vec![SetlistCostume {
+                            id: "cos_sample_solo".to_string(),
+                            label: "ソロステージ衣装（春日未来）".to_string(),
+                        }],
+                        first_performance_label: None,
+                    },
+                ],
+            },
+            // アンコール: 出演者全員で歌う行 (名前は畳む)。
+            SetlistSection {
+                label: Some("アンコール".to_string()),
+                rows: vec![SetlistRow {
+                    id: "si_3".to_string(),
+                    number: 3,
+                    notes: None,
+                    unit_label: None,
+                    song: song_sample(),
+                    performers: vec![
+                        PerformerRef {
+                            reference: idol_mirai(),
+                            cast_name: Some("山崎はるか".to_string()),
+                        },
+                        PerformerRef {
+                            reference: idol_shizuka(),
+                            cast_name: Some("田所あずさ".to_string()),
+                        },
+                    ],
+                    full_cast_label: Some("全員".to_string()),
+                    lineup: Some(LineupNote {
+                        kind: Lineup::Original,
+                        label: "オリメン".to_string(),
+                        missing: None,
+                    }),
+                    is_cover: false,
+                    first_performance_label: None,
+                    // 衣装の記録が無い行 (実データではこちらが大多数)。
+                    costumes: vec![],
                 }],
             },
         ],
@@ -427,14 +552,13 @@ fn show_page() -> ShowPage {
                 where_label: "1 曲目".to_string(),
                 wearers_label: None,
             },
-            // 人ごとに違う衣装 (ソロコーナー)。
+            // 人ごとに違う衣装 (ソロコーナー)。曲までは特定できていない記録。
             ShowCostume {
                 id: "cos_sample_solo".to_string(),
                 name: "ソロステージ衣装".to_string(),
                 attribution: Some("春日未来".to_string()),
                 description: None,
                 source_url: None,
-                // 曲までは特定できていない記録。捨てずに「公演のどこか」として残す。
                 where_label: "公演のどこか".to_string(),
                 wearers_label: Some("春日未来".to_string()),
             },
@@ -458,23 +582,20 @@ fn song_page(reference: &Ref, minimal: bool) -> SongPage {
         // 代表値でも本番と同じ判断 (content::LYRICS_ON_WEB) を通す。
         lyrics: LyricsBlock {
             available: content::LYRICS_ON_WEB,
-            note: content::LYRICS_NOTE.to_string(),
+            status_label: content::lyrics_status_label(),
+            note: content::lyrics_note().to_string(),
             license_number: content::LYRICS_ON_WEB
                 .then(|| content::JASRAC_LICENSE_NUMBER.to_string()),
             license_note: content::LYRICS_ON_WEB
                 .then(|| content::LYRICS_ON_WEB_NOTE.to_string()),
             source_url: content::LYRICS_ON_WEB
                 .then(|| format!("{}/songs/ml_mirai/lyrics", content::API_ORIGIN)),
+            read_label: content::LYRICS_ON_WEB.then(|| content::LYRICS_READ_LABEL.to_string()),
+            call_guide: content::LYRICS_ON_WEB.then(content::call_guide_vocabulary),
         },
         // 代表値でもコミュニティ集計が入る形にしておく (器だけ空にしない)。
         community: SongCommunity {
-            tags: vec![TagChipDto {
-                id: "tag_kawaii".to_string(),
-                name: "かわいい".to_string(),
-                count: 12,
-                color: Some("#E900E2".to_string()),
-                is_official: false,
-            }],
+            tags: vec![tag_kawaii_chip()],
             favorites: 34,
             penlight: vec![PenlightSetDto { key: "pink_white".to_string(), count: 5 }],
         },
@@ -484,7 +605,12 @@ fn song_page(reference: &Ref, minimal: bool) -> SongPage {
         title_kana: if minimal { None } else { Some("さんきゅー".to_string()) },
         theme_key: reference.theme_key.clone(),
         brand: Some(brand_ml()),
-        song_type: Some(if minimal { "other".to_string() } else { "original".to_string() }),
+        // 合同曲は参加ブランドを添えて札を出す。ふつうの曲は空 + None。
+        joint_brands: if minimal { vec![] } else { vec![brand_cg()] },
+        collab_label: (!minimal).then(|| content::SONG_COLLAB_LABEL.to_string()),
+        // 種別は実データの語彙 (solo / unit / all / cover / tie_in) から取る。
+        song_type_label: content::song_type_label(if minimal { "cover" } else { "all" })
+            .map(str::to_string),
         release_date: if minimal { None } else { Some("2019-03-13".to_string()) },
         duration_display: if minimal { None } else { Some("4:32".to_string()) },
         credits: if minimal {
@@ -517,6 +643,14 @@ fn song_page(reference: &Ref, minimal: bool) -> SongPage {
         parent: None,
         variants: if minimal { vec![] } else { vec![song_variant()] },
         performance_count: if minimal { 0 } else { 12 },
+        stat_tiles: if minimal {
+            vec![]
+        } else {
+            vec![
+                tile("♪", 12, "回披露", Some("#song-history")),
+                tile("☺", 2, "歌唱アイドル", None),
+            ]
+        },
         performance_history: if minimal {
             vec![]
         } else {
@@ -524,10 +658,12 @@ fn song_page(reference: &Ref, minimal: bool) -> SongPage {
                 show: show_sample(),
                 event: event_sample(),
                 date: "2026-04-03".to_string(),
-                short_date: "26/04".to_string(),
+                date_badge: DateBadge::from_ymd("2026-04-03"),
                 venue: Some("幕張メッセ".to_string()),
                 number: 1,
                 place_display: "DAY1 ・ 幕張メッセ".to_string(),
+                performers_display: Some("春日未来・最上静香・伊吹翼 ほか 9 人".to_string()),
+                ordinal_label: crate::domain::song_detail_queries::performance_ordinal_label(12),
             }]
         },
         frequent_singers: if minimal {
@@ -556,7 +692,7 @@ fn song_page(reference: &Ref, minimal: bool) -> SongPage {
         app: content::app_open_plain(),
         seo: seo(
             &reference.name,
-            "クレジット・原唱者・披露履歴。",
+            "クレジット・歌唱アイドル・披露履歴。",
             &reference.path,
             Robots::IndexFollow,
             &[("ホーム", "/"), ("楽曲", "/songs/")],
@@ -570,20 +706,18 @@ fn song_variant_page() -> SongPage {
     let mut page = song_page(&reference, false);
     page.parent = Some(song_sample());
     page.variants = vec![];
-    page.song_type = Some("live_ver".to_string());
+    page.song_type_label = content::song_type_label("solo").map(str::to_string);
     page
 }
 
 fn idol_page(reference: &Ref) -> IdolPage {
     IdolPage {
         schema_version: SCHEMA_VERSION,
-        tags: vec![TagChipDto {
-            id: "tag_genki".to_string(),
-            name: "元気".to_string(),
-            count: 7,
-            color: None,
-            is_official: true,
-        }],
+        stat_tiles: vec![
+            tile("♪", 2, "持ち曲", Some("#idol-songs")),
+            tile("▤", 1, "出演公演", Some("#idol-shows")),
+        ],
+        tags: vec![tag_genki_chip()],
         id: reference.id.clone(),
         path: reference.path.clone(),
         name: reference.name.clone(),
@@ -637,7 +771,7 @@ fn idol_page(reference: &Ref) -> IdolPage {
             show: show_sample(),
             event: event_sample(),
             date: "2026-04-03".to_string(),
-            short_date: "26/04".to_string(),
+            date_badge: DateBadge::from_ymd("2026-04-03"),
             venue_label: Some("幕張メッセ".to_string()),
             song_count: 7,
             subtitle: Some("DAY1 ・ 幕張メッセ".to_string()),
@@ -657,13 +791,7 @@ fn idol_page(reference: &Ref) -> IdolPage {
 fn unit_page(reference: &Ref, empty: bool) -> UnitPage {
     UnitPage {
         schema_version: SCHEMA_VERSION,
-        tags: vec![TagChipDto {
-            id: "tag_genki".to_string(),
-            name: "元気".to_string(),
-            count: 7,
-            color: None,
-            is_official: true,
-        }],
+        tags: vec![tag_genki_chip()],
         id: reference.id.clone(),
         path: reference.path.clone(),
         name: reference.name.clone(),
@@ -671,6 +799,7 @@ fn unit_page(reference: &Ref, empty: bool) -> UnitPage {
         name_alt: if empty { None } else { Some("Sample Unit".to_string()) },
         theme_key: reference.theme_key.clone(),
         is_permanent: !empty,
+        kind_label: content::unit_kind_label(!empty).to_string(),
         brand: if empty { None } else { Some(brand_ml()) },
         members: if empty { vec![] } else { vec![idol_mirai(), idol_shizuka()] },
         songs: if empty { vec![] } else { vec![song_sample()] },
@@ -724,7 +853,7 @@ fn venue_page(reference: &Ref, minimal: bool) -> VenuePage {
             ]
         },
         events: if minimal { vec![] } else { vec![event_sample()] },
-        shows: if minimal { vec![] } else { vec![show_summary()] },
+        shows: if minimal { vec![] } else { vec![show_summary(ShowContext::AtVenue)] },
         app: content::app_open_plain(),
         seo: seo(
             &reference.name,
@@ -748,19 +877,18 @@ fn brand_page(reference: &Ref, noindex: bool) -> BrandPage {
         units: if noindex { vec![] } else { vec![unit_sample()] },
         recent_events: if noindex { vec![] } else { vec![event_sample()] },
         top_songs: if noindex { vec![] } else { vec![song_sample()] },
-        // `other` (他フランチャイズの合同ライブ曲) は入口を作らない。
-        // `/songs/brand/other/` を作ると「既定フィルタは other を含めない」というコアの
-        // 規則と、一覧の入口が存在するという事実が食い違う。到達はアイドル一覧と
-        // 検索・個別ページからだけにする。
-        section_links: if noindex {
-            // `other` はアイドル一覧しか作らないので、入口も 1 本だけ。
-            vec![nav("アイドル", "/idols/brand/other/", false, None, Some(12))]
+        // `other` (他フランチャイズの合同ライブ曲) は一覧の入口をひとつも作らない。
+        // 作ると「既定フィルタは other を含めない」というコアの規則と、一覧の入口が
+        // 存在するという事実が食い違う。到達は検索と個別ページからだけ
+        // (`Ctx::brand_list_path` が `other` に None を返す)。
+        stat_tiles: if noindex {
+            vec![]
         } else {
             vec![
-                nav("ライブ", "/events/brand/ml/", false, Some("brand:ml"), Some(210)),
-                nav("楽曲", "/songs/brand/ml/", false, Some("brand:ml"), Some(600)),
-                nav("アイドル", "/idols/brand/ml/", false, Some("brand:ml"), Some(52)),
-                nav("ユニット", "/units/brand/ml/", false, Some("brand:ml"), Some(300)),
+                tile("♪", 210, "ライブ", Some("/events/brand/ml/")),
+                tile("♬", 600, "楽曲", Some("/songs/brand/ml/")),
+                tile("☺", 52, "アイドル", Some("/idols/brand/ml/")),
+                tile("❋", 300, "ユニット", Some("/units/brand/ml/")),
             ]
         },
         seo: seo(
@@ -778,14 +906,13 @@ fn brand_page(reference: &Ref, noindex: bool) -> BrandPage {
 fn event_list_item(reference: &Ref, kind: &str) -> EventListItem {
     EventListItem {
         reference: reference.clone(),
-        first_date: Some("2026-04-03".to_string()),
-        last_date: Some("2026-04-04".to_string()),
-        short_date: Some("26/04".to_string()),
-        brand: Some(brand_ml()),
+        date_badge: Some(DateBadge::from_ymd("2026-04-03")),
+        end_display: until_display(Some("2026-04-03"), Some("2026-04-04")),
+        brand_mark: Some(brand_ml()),
+        venue_display: Some("幕張メッセ".to_string()),
+        show_count_display: Some("2 公演".to_string()),
         kind: kind.to_string(),
-        kind_label: Some(content::kind_label(kind).to_string()),
-        show_count: 2,
-        subtitle: Some("2026-04-03 〜 2026-04-04 ・ アイドルマスター ミリオンライブ! ・ 2 公演 ・ 幕張メッセ".to_string()),
+        kind_label: content::kind_chip(kind).map(str::to_string),
     }
 }
 
@@ -800,28 +927,53 @@ fn event_list_page(path: &str, title: &str, kind: EventListKind, empty: bool) ->
         } else {
             vec![
                 YearGroup {
-                    year: "2026".to_string(),
+                    year: "2026年".to_string(),
                     events: vec![event_list_item(&event_sample(), "live")],
                 },
                 YearGroup {
-                    year: "2025".to_string(),
+                    year: "2025年".to_string(),
                     events: vec![event_list_item(&event_weird_id(), "festival")],
                 },
             ]
         },
-        scope_links: vec![
-            nav("今後のライブ", "/events/upcoming/", path == "/events/upcoming/", None, Some(24)),
-            nav("開催済み", "/events/past/", path == "/events/past/", None, Some(827)),
-        ],
-        brand_links: vec![
-            nav("すべて", "/events/", path == "/events/", None, None),
-            nav("ミリオンライブ!", "/events/brand/ml/", path == "/events/brand/ml/", Some("brand:ml"), Some(210)),
-            nav("シンデレラガールズ", "/events/brand/cg/", false, Some("brand:cg"), Some(180)),
-        ],
-        year_links: vec![
-            nav("2026", "/events/past/2026/", false, None, Some(40)),
-            nav("2025", "/events/past/2025/", false, None, Some(52)),
-        ],
+        // 入口だけ開催済みの最新の年を添え、続きへ送る。
+        recent_past: (path == "/events/").then(|| YearGroup {
+            year: "2025年".to_string(),
+            events: vec![event_list_item(&event_weird_id(), "festival")],
+        }),
+        recent_past_title: (path == "/events/").then(|| "開催済み (2025年)".to_string()),
+        next: (path == "/events/")
+            .then(|| nav("開催済みのライブをすべて見る", "/events/past/", false, None, Some(827))),
+        scope: FilterAxis::new(
+            content::FILTER_SCOPE_EVENTS,
+            vec![
+                nav("今後のライブ", "/events/upcoming/", path == "/events/upcoming/", None, Some(24)),
+                nav("開催済み", "/events/past/", path == "/events/past/", None, Some(827)),
+                nav(content::CALENDAR_TITLE, CALENDAR_PATH, false, None, None),
+            ],
+        ),
+        // 本番と同じ規則: 年の軸は開催済みの側だけ。
+        filters: filter_axes([
+            FilterAxis::new(
+                content::FILTER_AXIS_YEAR,
+                if matches!(kind, EventListKind::Past | EventListKind::PastYear) {
+                    vec![
+                        nav("2026", "/events/past/2026/", false, None, Some(40)),
+                        nav("2025", "/events/past/2025/", false, None, Some(52)),
+                    ]
+                } else {
+                    vec![]
+                },
+            ),
+            FilterAxis::new(
+                content::FILTER_AXIS_BRAND,
+                vec![
+                    nav("すべて", "/events/", path == "/events/", None, None),
+                    nav("ミリオンライブ!", "/events/brand/ml/", path == "/events/brand/ml/", Some("brand:ml"), Some(210)),
+                    nav("シンデレラガールズ", "/events/brand/cg/", false, Some("brand:cg"), Some(180)),
+                ],
+            ),
+        ]),
         total: if empty { 0 } else { 2 },
         seo: seo(title, "ライブの一覧。", path, Robots::IndexFollow, &[("ホーム", "/")]),
     }
@@ -834,6 +986,11 @@ fn song_list_page(path: &str, title: &str, kind: SongListKind) -> SongListPage {
             release_date: Some("2019-03-13".to_string()),
             unit_label: Some("765MILLION ALLSTARS".to_string()),
             artists_label: Some("春日未来".to_string()),
+            song_type_label: Some("ユニット曲".to_string()),
+            // 合同曲の札が付く行 (ブランド別の一覧でも見分けられる)。
+            collab_label: Some(content::SONG_COLLAB_LABEL.to_string()),
+            composer_credit: Some("作曲 高田暁".to_string()),
+            cd_credit: Some("収録 THE IDOLM@STER LIVE THE@TER PERFORMANCE 01".to_string()),
             performance_count: Some(12),
             subtitle: Some("765MILLION ALLSTARS ・ 春日未来 ・ 2019-03-13".to_string()),
         },
@@ -843,6 +1000,10 @@ fn song_list_page(path: &str, title: &str, kind: SongListKind) -> SongListPage {
             release_date: None,
             unit_label: None,
             artists_label: None,
+            song_type_label: None,
+            collab_label: None,
+            composer_credit: None,
+            cd_credit: None,
             performance_count: None,
             subtitle: None,
         },
@@ -858,16 +1019,25 @@ fn song_list_page(path: &str, title: &str, kind: SongListKind) -> SongListPage {
         query_base: (!matches!(kind, SongListKind::All))
             .then(|| SongQuery::from_filter(&SongListFilter::default())),
         kana_sections: vec![
-            KanaSection { label: "さ".to_string(), start_index: 0, count: 1 },
-            KanaSection { label: "英数".to_string(), start_index: 1, count: 1 },
+            KanaSection { label: "さ".to_string(), start_index: 0 },
+            KanaSection { label: "英数".to_string(), start_index: 1 },
         ],
         items,
-        brand_links: vec![
-            nav("すべて", "/songs/", path == "/songs/", None, Some(2040)),
-            nav("ミリオンライブ!", "/songs/brand/ml/", path == "/songs/brand/ml/", Some("brand:ml"), Some(600)),
-        ],
+        filters: vec![FilterAxis::new(
+            content::FILTER_AXIS_BRAND,
+            vec![
+                nav("すべて", "/songs/", path == "/songs/", None, Some(2040)),
+                nav("ミリオンライブ!", "/songs/brand/ml/", path == "/songs/brand/ml/", Some("brand:ml"), Some(600)),
+            ],
+        )
+        .also_in_island("brandIds")],
         all_songs_link: if path == "/songs/" {
             Some(nav("派生曲・ライブ限定曲を含む全件", "/songs/all/", false, None, Some(3153)))
+        } else {
+            None
+        },
+        tags_link: if path == "/songs/" {
+            Some(nav(content::TAG_LIST_LINK_LABEL, TAGS_PATH, false, None, Some(1)))
         } else {
             None
         },
@@ -885,6 +1055,25 @@ fn song_list_page(path: &str, title: &str, kind: SongListKind) -> SongListPage {
 
 fn birth_month_path(month: u32) -> String {
     format!("/idols/birth-month/{month}/")
+}
+
+/// 表の 1 行。値は `columns` と同じ並びで渡す (本番と同じ不変条件)。
+fn idol_list_item(
+    reference: Ref,
+    name_kana: &str,
+    voice_actor: &str,
+    birthday: &str,
+    age: &str,
+    height: &str,
+) -> IdolListItem {
+    IdolListItem {
+        reference,
+        name_kana: Some(name_kana.to_string()),
+        cells: [voice_actor, birthday, age, height]
+            .into_iter()
+            .map(|v| Some(v.to_string()))
+            .collect(),
+    }
 }
 
 fn idol_list_page(path: &str, title: &str, kind: IdolListKind, empty: bool) -> IdolListPage {
@@ -918,29 +1107,236 @@ fn idol_list_page(path: &str, title: &str, kind: IdolListKind, empty: bool) -> I
             vec![]
         } else {
             vec![
-                IdolListItem {
-                    reference: idol_mirai(),
-                    brand: Some(brand_ml()),
-                    current_voice_actor: Some("山崎はるか".to_string()),
-                    birthday_display: Some("4月3日".to_string()),
-                },
-                IdolListItem {
-                    reference: idol_shizuka(),
-                    brand: Some(brand_ml()),
-                    current_voice_actor: Some("田所あずさ".to_string()),
-                    birthday_display: Some("6月26日".to_string()),
-                },
+                idol_list_item(idol_mirai(), "かすがみらい", "山崎はるか", "4月3日", "14歳", "156cm"),
+                idol_list_item(idol_shizuka(), "もがみしずか", "田所あずさ", "6月26日", "15歳", "159cm"),
             ]
         },
-        brand_links: vec![
-            nav("すべて", "/idols/", path == "/idols/", None, Some(394)),
-            nav("ミリオンライブ!", "/idols/brand/ml/", path == "/idols/brand/ml/", Some("brand:ml"), Some(52)),
+        // 本番と同じ並び (`emit::lists::idol_columns` から空の列を落としたもの)。
+        columns: [
+            (content::IDOL_COLUMN_VOICE_ACTOR, false, None),
+            (content::IDOL_COLUMN_BIRTHDAY, false, Some(IdolSortKind::Birthday)),
+            (content::IDOL_COLUMN_AGE, true, Some(IdolSortKind::Age)),
+            (content::IDOL_COLUMN_HEIGHT, true, Some(IdolSortKind::Height)),
+        ]
+        .into_iter()
+        .map(|(label, numeric, sort): (&str, bool, Option<IdolSortKind>)| IdolColumn {
+            label: label.to_string(),
+            numeric,
+            sort_key: sort.map(|k| k.key().to_string()),
+        })
+        .collect(),
+        name_column: IdolColumn {
+            label: content::IDOL_COLUMN_NAME.to_string(),
+            numeric: false,
+            sort_key: Some(IdolSortKind::NameKana.key().to_string()),
+        },
+        filters: vec![
+            FilterAxis::new(
+                content::FILTER_AXIS_BRAND,
+                vec![
+                    nav("すべて", "/idols/", path == "/idols/", None, Some(394)),
+                    nav("ミリオンライブ!", "/idols/brand/ml/", path == "/idols/brand/ml/", Some("brand:ml"), Some(52)),
+                ],
+            )
+            .also_in_island("brandIds"),
+            FilterAxis::new(
+                content::FILTER_AXIS_BIRTH_MONTH,
+                (1..=12)
+                    .map(|m| nav(&format!("{m}月"), &birth_month_path(m), path == birth_month_path(m), None, None))
+                    .collect(),
+            )
+            .also_in_island("birthMonth"),
         ],
-        birth_month_links: (1..=12)
-            .map(|m| nav(&format!("{m}月"), &birth_month_path(m), path == birth_month_path(m), None, None))
-            .collect(),
         total: if empty { 0 } else { 2 },
         seo: seo(title, "アイドルの一覧。", path, Robots::IndexFollow, &[("ホーム", "/")]),
+    }
+}
+
+/// 曲のタグの素性。曲ページの札とタグ一覧・タグページで同じもの。
+fn tag_kawaii_badge() -> TagBadge {
+    TagBadge {
+        id: "tag_kawaii".to_string(),
+        name: "かわいい".to_string(),
+        // 色を持つタグ。札は themes.css の `tag:<id>` を data-theme で引く。
+        theme_key: Some(theme::tag_key("tag_kawaii")),
+        is_official: false,
+    }
+}
+
+fn tag_kawaii_path() -> String {
+    detail_path("tags", "tag_kawaii")
+}
+
+/// 曲ページの札。曲のタグなので押せる (一覧がある)。
+fn tag_kawaii_chip() -> TagChipDto {
+    let badge = tag_kawaii_badge();
+    TagChipDto {
+        id: badge.id,
+        name: badge.name,
+        count: 12,
+        theme_key: badge.theme_key,
+        is_official: badge.is_official,
+        path: Some(tag_kawaii_path()),
+    }
+}
+
+/// アイドル・ユニットのタグの札。一覧ページが無いので押せない (path 無し)。
+fn tag_genki_chip() -> TagChipDto {
+    TagChipDto {
+        id: "tag_genki".to_string(),
+        name: "元気".to_string(),
+        count: 7,
+        // 色を持たないタグ。囲む要素のテーマを継ぐので data-theme は置かない。
+        theme_key: None,
+        is_official: true,
+        path: None,
+    }
+}
+
+fn tag_list_page() -> TagListPage {
+    TagListPage {
+        schema_version: SCHEMA_VERSION,
+        path: TAGS_PATH.to_string(),
+        title: content::TAG_LIST_TITLE.to_string(),
+        lede: content::TAG_LIST_LEDE.to_string(),
+        items: vec![TagListItem {
+            badge: tag_kawaii_badge(),
+            path: tag_kawaii_path(),
+            description: Some("かわいい曲につけるタグ".to_string()),
+            official_label: None,
+            song_count: 2,
+        }],
+        total: 1,
+        seo: seo(
+            content::TAG_LIST_TITLE,
+            content::TAG_LIST_DESCRIPTION,
+            TAGS_PATH,
+            Robots::IndexFollow,
+            &[("ホーム", "/"), ("楽曲", "/songs/")],
+        ),
+    }
+}
+
+fn tag_page() -> TagPage {
+    let path = tag_kawaii_path();
+    let title = content::tag_page_title("かわいい");
+    TagPage {
+        schema_version: SCHEMA_VERSION,
+        path: path.clone(),
+        badge: tag_kawaii_badge(),
+        description: Some("かわいい曲につけるタグ".to_string()),
+        lede: content::tag_page_lede("かわいい"),
+        items: vec![
+            TagSongRow {
+                reference: song_sample(),
+                subtitle: Some("765MILLION ALLSTARS ・ 春日未来 ・ 2019-03-13".to_string()),
+                votes: 12,
+                rank: 1,
+            },
+            // 副題もジャケも無い行。
+            TagSongRow { reference: song_no_artwork(), subtitle: None, votes: 1, rank: 2 },
+        ],
+        total: 2,
+        all_tags_link: nav(content::TAG_LIST_TITLE, TAGS_PATH, false, None, Some(1)),
+        seo: seo(
+            &title,
+            &content::tag_page_description("かわいい", 2),
+            &path,
+            Robots::IndexFollow,
+            &[("ホーム", "/"), ("楽曲", "/songs/"), (content::TAG_LIST_TITLE, TAGS_PATH)],
+        ),
+        title,
+    }
+}
+
+/// カレンダー。今月 (`/calendar/`) と月のページで同じ形。2026 年 9 月の枠に、公演・リリース・
+/// 誕生日・記念日・チケットを 1 つずつ置く (色と押し先の有無の組み合わせを網羅する)。
+/// 枠は emit と同じ `month_grid` で組む (代表値だけ別の形にならないように)。
+fn calendar_page(path: &str, key: &str) -> CalendarPage {
+    use std::collections::BTreeMap;
+    let show = || CalendarItem {
+        sub: Some("DAY1 ・ 幕張メッセ".to_string()),
+        path: Some("/shows/sh_sample_1/".to_string()),
+        ..CalendarItem::new(CalendarItemKind::Show, content::CALENDAR_KIND_SHOW, "サンプルライブ", "brand:ml".to_string())
+    };
+    let release = || CalendarItem {
+        refs: vec![song_sample(), song_no_artwork()],
+        ..CalendarItem::new(CalendarItemKind::Release, content::CALENDAR_KIND_RELEASE, content::calendar_release_label(2), "neutral".to_string())
+    };
+    let birthday = || CalendarItem {
+        path: Some("/idols/ml_kasuga_mirai/".to_string()),
+        ..CalendarItem::new(CalendarItemKind::Birthday, content::CALENDAR_KIND_BIRTHDAY, "春日未来", "idol:ml_kasuga_mirai".to_string())
+    };
+    let anniversary = || CalendarItem {
+        path: Some("/brands/ml/".to_string()),
+        ..CalendarItem::new(CalendarItemKind::Anniversary, content::CALENDAR_KIND_ANNIVERSARY, content::anniversary_display("シリーズ開始", 21), "brand:ml".to_string())
+    };
+    let ticket = || CalendarItem {
+        path: Some("/events/ev_sample/".to_string()),
+        ..CalendarItem::new(CalendarItemKind::Ticket, content::CALENDAR_KIND_TICKET_DEADLINE, "サンプルライブ", "brand:ml".to_string())
+    };
+    let band = |starts: bool, ends: bool| CalendarBand {
+        label: "サンプルライブ".to_string(),
+        theme_key: "brand:ml".to_string(),
+        starts,
+        ends,
+        path: Some("/events/ev_sample/".to_string()),
+    };
+    let items: BTreeMap<String, Vec<CalendarItem>> = [
+        ("2026-09-01", vec![ticket()]),
+        ("2026-09-03", vec![release()]),
+        // 4 件 = 枠には 3 件と +1。
+        ("2026-09-05", vec![show(), show(), birthday(), anniversary()]),
+        ("2026-09-06", vec![show()]),
+    ]
+    .into_iter()
+    .map(|(d, v)| (d.to_string(), v))
+    .collect();
+    let bands: BTreeMap<String, Vec<CalendarBand>> = [
+        ("2026-09-01", vec![band(true, false)]),
+        ("2026-09-02", vec![band(false, false)]),
+        ("2026-09-03", vec![band(false, true)]),
+    ]
+    .into_iter()
+    .map(|(d, v)| (d.to_string(), v))
+    .collect();
+    let first = chrono::NaiveDate::from_ymd_opt(2026, 9, 1).expect("実在する日付");
+    let last = chrono::NaiveDate::from_ymd_opt(2026, 9, 30).expect("実在する日付");
+    let weeks = month_grid(first, last, "2026-09-06", &items, &bands);
+    let days: Vec<CalendarDayGroup> = items
+        .into_iter()
+        .map(|(date, items)| CalendarDayGroup { date_badge: DateBadge::from_ymd(&date), items })
+        .collect();
+    // 本番と同じ数え方 (公演 3 ・ リリース曲 2 ・ 誕生日 1 ・ 記念日 1)。
+    let counts = month_counts(&days);
+    let title = content::calendar_month_title(2026, 9);
+    let is_index = path == CALENDAR_PATH;
+    let mut seo = seo(
+        if is_index { content::CALENDAR_TITLE } else { &title },
+        content::CALENDAR_DESCRIPTION,
+        path,
+        Robots::IndexFollow,
+        &[("ホーム", "/"), (content::CALENDAR_TITLE, CALENDAR_PATH)],
+    );
+    if is_index {
+        seo.canonical = absolute(&month_path(key));
+    }
+    CalendarPage {
+        schema_version: SCHEMA_VERSION,
+        path: path.to_string(),
+        title,
+        summary: content::calendar_summary(&counts),
+        prev: None,
+        next: None,
+        today_link: (!is_index).then(|| nav(content::CALENDAR_TODAY_LINK, CALENDAR_PATH, false, None, None)),
+        filters: vec![
+            FilterAxis::new(content::FILTER_AXIS_YEAR, vec![nav("2026", &month_path(key), true, None, Some(3))]),
+            FilterAxis::new(content::FILTER_AXIS_MONTH, vec![nav("9月", &month_path(key), true, None, Some(3))]),
+        ],
+        weekday_labels: content::CALENDAR_WEEKDAYS.iter().map(|w| w.to_string()).collect(),
+        weeks,
+        days,
+        seo,
     }
 }
 
@@ -954,22 +1350,26 @@ fn unit_list_page(path: &str, title: &str) -> UnitListPage {
             UnitListItem {
                 reference: unit_sample(),
                 brand: Some(brand_ml()),
-                is_permanent: true,
+                note: None,
                 member_count: 2,
                 song_count: 1,
             },
             UnitListItem {
                 reference: unit_empty(),
                 brand: None,
-                is_permanent: false,
+                note: Some(content::UNIT_LIMITED_LABEL.to_string()),
                 member_count: 0,
                 song_count: 0,
             },
         ],
-        brand_links: vec![
-            nav("すべて", "/units/", path == "/units/", None, Some(1539)),
-            nav("ミリオンライブ!", "/units/brand/ml/", path == "/units/brand/ml/", Some("brand:ml"), Some(300)),
-        ],
+        kana_sections: vec![KanaSection { label: "あ".to_string(), start_index: 0 }],
+        filters: vec![FilterAxis::new(
+            content::FILTER_AXIS_BRAND,
+            vec![
+                nav("すべて", "/units/", path == "/units/", None, Some(1539)),
+                nav("ミリオンライブ!", "/units/brand/ml/", path == "/units/brand/ml/", Some("brand:ml"), Some(300)),
+            ],
+        )],
         total: 2,
         seo: seo(title, "ユニットの一覧。", path, Robots::IndexFollow, &[("ホーム", "/")]),
     }
@@ -1006,17 +1406,20 @@ fn venue_list_page(path: &str, title: &str, prefecture: Option<&str>) -> VenueLi
                 show_count: 1,
             },
         ],
-        prefecture_links: vec![
-            nav("すべて", "/venues/", path == "/venues/", None, Some(234)),
-            nav("東京都", &pref_path("東京都"), path == pref_path("東京都"), None, Some(105)),
-            nav(
-                UNCLASSIFIED_PREFECTURE,
-                &pref_path(UNCLASSIFIED_PREFECTURE),
-                path == pref_path(UNCLASSIFIED_PREFECTURE),
-                None,
-                Some(35),
-            ),
-        ],
+        filters: vec![FilterAxis::new(
+            content::FILTER_AXIS_PREFECTURE,
+            vec![
+                nav("すべて", "/venues/", path == "/venues/", None, Some(234)),
+                nav("東京都", &pref_path("東京都"), path == pref_path("東京都"), None, Some(105)),
+                nav(
+                    UNCLASSIFIED_PREFECTURE,
+                    &pref_path(UNCLASSIFIED_PREFECTURE),
+                    path == pref_path(UNCLASSIFIED_PREFECTURE),
+                    None,
+                    Some(35),
+                ),
+            ],
+        )],
         total: 2,
         seo: seo(title, "会場の一覧。", path, Robots::IndexFollow, &[("ホーム", "/")]),
     }
@@ -1024,7 +1427,7 @@ fn venue_list_page(path: &str, title: &str, prefecture: Option<&str>) -> VenueLi
 
 fn brand_list_item(reference: &Ref) -> BrandListItem {
     BrandListItem {
-        glyph: reference.sub.as_deref().unwrap_or(&reference.name).chars().take(2).collect(),
+        glyph: super::emit::glyph::brand_glyph(reference.sub.as_deref().unwrap_or(&reference.name)),
         reference: reference.clone(),
         short_name: reference.sub.clone(),
         preview_display: "ライブ 210 ・ 楽曲 600 ・ アイドル 52 ・ ユニット 300".to_string(),
@@ -1046,21 +1449,13 @@ fn home_page() -> HomePage {
         schema_version: SCHEMA_VERSION,
         path: "/".to_string(),
         tagline: content::SITE_TAGLINE.to_string(),
-        disclaimer: content::SITE_DISCLAIMER.to_string(),
         upcoming: vec![event_list_item(&event_sample(), "live")],
-        recent_shows: vec![show_summary()],
+        recent_shows: vec![show_summary(ShowContext::Home)],
+        recent_shows_more: nav("開催済みのライブへ", "/events/past/", false, None, None),
+        app_note: content::app_note(),
         stat_tiles: site_tiles(true, false),
         brands: vec![brand_list_item(&brand_ml()), brand_list_item(&brand_cg())],
         app: content::app_links(),
-        section_links: vec![
-            nav("今後のライブ", "/events/upcoming/", false, None, Some(24)),
-            nav("開催済み", "/events/past/", false, None, Some(827)),
-            nav("楽曲", "/songs/", false, None, Some(2040)),
-            nav("アイドル", "/idols/", false, None, Some(394)),
-            nav("ユニット", "/units/", false, None, Some(1539)),
-            nav("会場", "/venues/", false, None, Some(234)),
-            nav("検索", "/search/", false, None, None),
-        ],
         seo: seo(content::SITE_NAME, content::SITE_TAGLINE, "/", Robots::IndexFollow, &[]),
     }
 }
@@ -1098,6 +1493,7 @@ fn search_row(name: &str, sub: Option<&str>, key: &str, folded: &[&str]) -> Sear
         n: name.to_string(),
         s: sub.map(str::to_string),
         k: key.to_string(),
+        i: None,
         f: folded.join("\u{0001}"),
     }
 }
@@ -1176,6 +1572,7 @@ pub fn emit(dir: &Path, pretty: bool) -> Result<Stats> {
     // --- 一覧 ---
     w.write_json("index/home.json", &home_page())?;
     w.write_json("index/about.json", &about_page())?;
+    w.write_json("index/calls.json", &call_guide_page())?;
     w.write_json("index/events.json", &event_list_page("/events/", "ライブ", EventListKind::Index, false))?;
     w.write_json("index/events-upcoming.json", &event_list_page("/events/upcoming/", "今後のライブ", EventListKind::Upcoming, false))?;
     w.write_json("index/events-past.json", &event_list_page("/events/past/", "開催済みのライブ", EventListKind::Past, false))?;
@@ -1191,11 +1588,6 @@ pub fn emit(dir: &Path, pretty: bool) -> Result<Stats> {
     w.write_json("index/idols.json", &idol_list_page("/idols/", "アイドル", IdolListKind::Index, false))?;
     w.write_json("index/idols-brand-ml.json", &idol_list_page("/idols/brand/ml/", "ミリオンライブ! のアイドル", IdolListKind::Brand, false))?;
     w.write_json("index/idols-brand-cg.json", &idol_list_page("/idols/brand/cg/", "シンデレラガールズ のアイドル", IdolListKind::Brand, false))?;
-    // `other` 配下は noindex にする (非公式サイトが他フランチャイズ名で流入を取らない)。
-    let mut other_idols = idol_list_page("/idols/brand/other/", "その他のアイドル", IdolListKind::Brand, false);
-    other_idols.brand = Some(brand_other());
-    other_idols.seo.robots = Robots::NoindexFollow;
-    w.write_json("index/idols-brand-other.json", &other_idols)?;
     // 誕生月は 12 ページ全部出す。1 枚だけだと月ナビのリンク切れを web 側で踏む。
     // 4 月だけ空にしてあるのは EmptyState の確認用。
     for month in 1..=12u32 {
@@ -1212,6 +1604,10 @@ pub fn emit(dir: &Path, pretty: bool) -> Result<Stats> {
     w.write_json("index/units.json", &unit_list_page("/units/", "ユニット"))?;
     w.write_json("index/units-brand-ml.json", &unit_list_page("/units/brand/ml/", "ミリオンライブ! のユニット"))?;
     w.write_json("index/units-brand-cg.json", &unit_list_page("/units/brand/cg/", "シンデレラガールズ のユニット"))?;
+    w.write_json("index/tags.json", &tag_list_page())?;
+    w.write_json("index/tags-tag_kawaii.json", &tag_page())?;
+    w.write_json("index/calendar.json", &calendar_page(CALENDAR_PATH, "2026-09"))?;
+    w.write_json("index/calendar-2026-09.json", &calendar_page("/calendar/2026-09/", "2026-09"))?;
     w.write_json("index/venues.json", &venue_list_page("/venues/", "会場", None))?;
     for pref in ["東京都", UNCLASSIFIED_PREFECTURE] {
         w.write_json(
@@ -1308,6 +1704,7 @@ fn routes(broken_key: &str) -> RoutesFile {
     let mut routes = vec![
         listing(RouteKind::Home, "/", "index/home.json", true),
         listing(RouteKind::About, "/about/", "index/about.json", true),
+        listing(RouteKind::CallGuide, "/calls/", "index/calls.json", true),
         listing(RouteKind::Search, "/search/", "search/manifest.json", true),
         listing(RouteKind::EventListIndex, "/events/", "index/events.json", true),
         listing(RouteKind::EventListUpcoming, "/events/upcoming/", "index/events-upcoming.json", true),
@@ -1324,10 +1721,13 @@ fn routes(broken_key: &str) -> RoutesFile {
         param_listing(RouteKind::IdolListBrand, "/idols/brand/ml/", "ml", "index/idols-brand-ml.json", true),
         param_listing(RouteKind::IdolListBrand, "/idols/brand/cg/", "cg", "index/idols-brand-cg.json", true),
         // `other` 配下は掲載するが index させない。
-        param_listing(RouteKind::IdolListBrand, "/idols/brand/other/", "other", "index/idols-brand-other.json", false),
         listing(RouteKind::UnitListIndex, "/units/", "index/units.json", true),
         param_listing(RouteKind::UnitListBrand, "/units/brand/ml/", "ml", "index/units-brand-ml.json", true),
         param_listing(RouteKind::UnitListBrand, "/units/brand/cg/", "cg", "index/units-brand-cg.json", true),
+        listing(RouteKind::TagListIndex, TAGS_PATH, "index/tags.json", true),
+        listing(RouteKind::CalendarIndex, CALENDAR_PATH, "index/calendar.json", true),
+        param_listing(RouteKind::CalendarMonth, "/calendar/2026-09/", "2026-09", "index/calendar-2026-09.json", true),
+        param_listing(RouteKind::Tag, &tag_kawaii_path(), "tag_kawaii", "index/tags-tag_kawaii.json", true),
         listing(RouteKind::VenueListIndex, "/venues/", "index/venues.json", true),
         listing(RouteKind::BrandList, "/brands/", "index/brands.json", true),
         detail(RouteKind::Event, "events", "ev_sample", "ev_sample", true),
@@ -1420,6 +1820,9 @@ fn verify(rel: &str, text: &str) -> std::result::Result<(), serde_json::Error> {
         "index" if name == "brands.json" => as_::<BrandListPage>(text),
         "index" if name.starts_with("events") => as_::<EventListPage>(text),
         "index" if name.starts_with("songs") => as_::<SongListPage>(text),
+        "index" if name == "tags.json" => as_::<TagListPage>(text),
+        "index" if name.starts_with("tags-") => as_::<TagPage>(text),
+        "index" if name.starts_with("calendar") => as_::<CalendarPage>(text),
         "index" if name.starts_with("idols") => as_::<IdolListPage>(text),
         "index" if name.starts_with("units") => as_::<UnitListPage>(text),
         "index" if name.starts_with("venues") => as_::<VenueListPage>(text),

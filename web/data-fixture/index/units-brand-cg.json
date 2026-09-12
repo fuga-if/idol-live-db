@@ -31,7 +31,7 @@
         "themeKey": "brand:ml",
         "artworkUrl": null
       },
-      "isPermanent": true,
+      "note": null,
       "memberCount": 2,
       "songCount": 1
     },
@@ -46,25 +46,37 @@
         "artworkUrl": null
       },
       "brand": null,
-      "isPermanent": false,
+      "note": "公演限定",
       "memberCount": 0,
       "songCount": 0
     }
   ],
-  "brandLinks": [
+  "kanaSections": [
     {
-      "label": "すべて",
-      "path": "/units/",
-      "current": false,
-      "themeKey": null,
-      "count": 1539
-    },
+      "label": "あ",
+      "startIndex": 0
+    }
+  ],
+  "filters": [
     {
-      "label": "ミリオンライブ!",
-      "path": "/units/brand/ml/",
-      "current": false,
-      "themeKey": "brand:ml",
-      "count": 300
+      "label": "ブランド",
+      "links": [
+        {
+          "label": "すべて",
+          "path": "/units/",
+          "current": false,
+          "themeKey": null,
+          "count": 1539
+        },
+        {
+          "label": "ミリオンライブ!",
+          "path": "/units/brand/ml/",
+          "current": false,
+          "themeKey": "brand:ml",
+          "count": 300
+        }
+      ],
+      "islandKey": null
     }
   ],
   "total": 2,

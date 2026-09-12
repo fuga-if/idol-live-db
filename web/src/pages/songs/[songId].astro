@@ -3,32 +3,50 @@ import DetailLayout from "../../layouts/DetailLayout.astro";
 import Section from "../../components/Section.astro";
 import Artwork from "../../components/Artwork.astro";
 import Chip from "../../components/Chip.astro";
+import TagChip from "../../components/TagChip.astro";
 import CommunityTags from "../../components/CommunityTags.astro";
 import SongLyrics from "../../components/SongLyrics.astro";
 import RefList from "../../components/RefList.astro";
 import ListContainer from "../../components/ListContainer.astro";
 import LabeledRow from "../../components/LabeledRow.astro";
 import RankingRow from "../../components/RankingRow.astro";
-import LeadRow from "../../components/LeadRow.astro";
-import EmptyState from "../../components/EmptyState.astro";
-import { meta, page, pathsFor } from "../../lib/data";
-import type { SongPage } from "../../lib/schema/SongPage";
+import DatedRow from "../../components/DatedRow.astro";
 import Count from "../../components/Count.astro";
+import Fold from "../../components/Fold.astro";
+import StatStrip from "../../components/StatStrip.astro";
+import { setlistAnchorId } from "../../lib/anchors";
+import EmptyState from "../../components/EmptyState.astro";
+import { page, pathsFor } from "../../lib/data";
+import type { SongPage } from "../../lib/schema/SongPage";
 
 export const getStaticPaths = () => pathsFor("song", "songId");
 
 const song = page<SongPage>(Astro.props.data);
 ---
 
-<DetailLayout seo={song.seo} meta={meta()} themeKey={song.themeKey} app={song.app}>
+{/* 電話では脇 (基本情報・クレジット・その他の歌唱者) より本体 (歌詞・披露履歴) を先に。 */}
+<DetailLayout seo={song.seo} themeKey={song.themeKey} app={song.app} asideAfterMain>
   <section class="hero" slot="hero" aria-labelledby="song-title">
     <Artwork title={song.title} artworkUrl={song.artworkUrl} size="hero" />
     <div class="hero__body">
-      {song.songType && <p class="hero__eyebrow">{song.songType}</p>}
+      {song.songTypeLabel && <p class="hero__eyebrow">{song.songTypeLabel}</p>}
       <h1 class="hero__title" id="song-title">{song.title}</h1>
       {song.titleKana && <p class="hero__kana">{song.titleKana}</p>}
+      {/* 全体曲は 49 人。セトリの行と同じ畳み (色の点 + 人数、開けば全員)。 */}
+      {
+        song.originalArtists.length > 0 && (
+          <Fold label="歌唱アイドル" themeKeys={song.originalArtists.map((r) => r.themeKey)}>
+            <RefList refs={song.originalArtists} label="歌唱アイドル" />
+          </Fold>
+        )
+      }
       <div class="hero__meta">
+        {/* 合同曲はその印を先に。続く札が「参加ブランド」だと読めるようにする。 */}
+        {song.collabLabel && <TagChip text={song.collabLabel} kind="all" />}
         {song.brand && <Chip text={song.brand.name} href={song.brand.path} variant="themed" themeKey={song.brand.themeKey} />}
+        {song.jointBrands.map((b) => (
+          <Chip text={b.name} href={b.path} variant="themed" themeKey={b.themeKey} />
+        ))}
         {song.unit && <Chip text={song.unit.name} href={song.unit.path} variant="themed" themeKey={song.unit.themeKey} />}
         {!song.unit && song.unitLabel && <Chip text={song.unitLabel} />}
         {song.appleMusicUrl && <a class="btn btn--ghost" href={song.appleMusicUrl}>Apple Music</a>}
@@ -40,16 +58,14 @@ const song = page<SongPage>(Astro.props.data);
           </p>
         )
       }
+      <StatStrip items={song.statTiles} label="この曲の数" />
     </div>
   </section>
 
-  {
-    song.originalArtists.length > 0 && (
-      <Section slot="aside" id="song-original" title="原唱者">
-        <RefList refs={song.originalArtists} label="原唱者" />
-      </Section>
-    )
-  }
+  {/* 歌詞とコールガイドはこのページの主目的。111 行の披露履歴の下に置くと見つからない。 */}
+  <Section id="song-lyrics" title="歌詞とコールガイド">
+    <SongLyrics lyrics={song.lyrics} />
+  </Section>
 
   {
     song.factRows.length > 0 && (
@@ -82,8 +98,8 @@ const song = page<SongPage>(Astro.props.data);
 
   {
     song.otherArtists.length > 0 && (
-      <Section slot="aside" id="song-artists" title="その他の歌唱者">
-        <RefList refs={song.otherArtists} variant="neutral" label="その他の歌唱者" />
+      <Section slot="aside" id="song-artists" title="ほかに歌ったアイドル">
+        <RefList refs={song.otherArtists} variant="neutral" label="ほかに歌ったアイドル" />
       </Section>
     )
   }
@@ -96,6 +112,14 @@ const song = page<SongPage>(Astro.props.data);
     )
   }
 
+  {
+    song.related.length > 0 && (
+      <Section slot="aside" id="song-related" title="関連する曲">
+        <RefList refs={song.related} variant="neutral" label="関連する曲" />
+      </Section>
+    )
+  }
+
   <Section id="song-history" title="披露履歴" count={song.performanceCount}>
     {
       song.performanceHistory.length === 0 ? (
@@ -104,17 +128,20 @@ const song = page<SongPage>(Astro.props.data);
         <ListContainer as="ol">
           {song.performanceHistory.map((h) => (
             <li>
-              <LeadRow
+              {/* 飛び先は公演ページのその曲の行 (曲順が分からなければ公演の頭)。
+                  誰が歌ったかは行の中で言う (セトリを目で探さない)。 */}
+              <DatedRow
+                badge={h.dateBadge}
                 title={h.event.name}
-                subtitle={h.placeDisplay}
-                href={h.show.path}
+                href={h.number > 0 ? `${h.show.path}#${setlistAnchorId(h.number)}` : h.show.path}
                 themeKey={h.show.themeKey}
+                meta={[h.placeDisplay, h.performersDisplay]}
               >
                 <span slot="trailing" class="u-row">
-                  <Count value={h.number} unit="曲目" />
-                  <time class="u-num" datetime={h.date}>{h.date}</time>
+                  <span class="u-dim">{h.ordinalLabel}</span>
+                  {h.number > 0 && <Count strong value={h.number} unit="曲目" />}
                 </span>
-              </LeadRow>
+              </DatedRow>
             </li>
           ))}
         </ListContainer>
@@ -167,14 +194,6 @@ const song = page<SongPage>(Astro.props.data);
   }
 
   {
-    song.related.length > 0 && (
-      <Section id="song-related" title="関連する曲">
-        <RefList refs={song.related} variant="neutral" label="関連する曲" />
-      </Section>
-    )
-  }
-
-  {
     (song.community.tags.length > 0 ||
       song.community.favorites > 0 ||
       song.community.penlight.length > 0) && (
@@ -198,7 +217,4 @@ const song = page<SongPage>(Astro.props.data);
     )
   }
 
-  <Section id="song-lyrics" title="歌詞">
-    <SongLyrics lyrics={song.lyrics} />
-  </Section>
 </DetailLayout>

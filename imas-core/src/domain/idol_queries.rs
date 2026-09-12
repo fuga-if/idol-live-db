@@ -492,7 +492,7 @@ fn join_parts(parts: &[Option<String>]) -> Option<String> {
 }
 
 /// `"--04-03"` → `"4月3日"` (前置ゼロを落とす)。`--` 始まりでなければそのまま返す。
-fn birthday_display(birthday: Option<&str>) -> Option<String> {
+pub fn birthday_display(birthday: Option<&str>) -> Option<String> {
     let birthday = birthday?;
     let Some(rest) = birthday.strip_prefix("--") else { return Some(birthday.to_string()) };
     let parts: Vec<&str> = rest.split('-').collect();
@@ -515,7 +515,7 @@ fn birth_month(birthday: Option<&str>) -> Option<u32> {
 ///
 /// 原本は `"\(height)cm"` (Swift の `Double` 既定表記)。Rust の `{}` と一致することは
 /// テストで固定してある。
-fn height_display(height: Option<f64>) -> Option<String> {
+pub fn height_display(height: Option<f64>) -> Option<String> {
     let h = height?;
     Some(if h.fract() == 0.0 { format!("{}cm", h as i64) } else { format!("{h}cm") })
 }

@@ -25,7 +25,6 @@ final class SnapshotInvalidatingWritingTests: XCTestCase {
         var shouldThrow = false
         func upsertSongs(_ songs: [Song]) async throws { if shouldThrow { throw StubError.fail } }
         func upsertSongArtists(_ songArtists: [SongArtist]) async throws { if shouldThrow { throw StubError.fail } }
-        func upsertSongCalls(_ calls: [SongCall]) async throws {}
         func upsertSongVideos(_ videos: [SongVideo]) async throws {}
     }
 
@@ -56,13 +55,12 @@ final class SnapshotInvalidatingWritingTests: XCTestCase {
         XCTAssertEqual(counter.count, 2, "song_artists はスナップショットが読む表なので同様に促すこと")
     }
 
-    func testSongCallsAndVideosDoNotTriggerReload() async throws {
-        // song_calls / song_videos はスナップショット対象外 (imas-core sqlite_loader が読まない)。
+    func testSongVideosDoNotTriggerReload() async throws {
+        // song_videos はスナップショット対象外 (imas-core sqlite_loader が読まない)。
         // 無関係な編集で DB 全読みを走らせないこと。
         let counter = Counter()
         let sut = SnapshotInvalidatingSongWriting(base: StubSongWriting(), invalidate: { counter.bump() })
 
-        try await sut.upsertSongCalls([])
         try await sut.upsertSongVideos([])
         XCTAssertEqual(counter.count, 0)
     }

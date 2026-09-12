@@ -4,8 +4,11 @@
 //! 「今日」は入口で 1 回だけ確定し、以降の upcoming / past の分割はすべてその 1 個から
 //! 決まる (Astro もブラウザも `Date` を触らない)。
 
+pub mod calendar;
+pub mod calls;
 pub mod context;
 pub mod events;
+pub mod glyph;
 pub mod idols;
 pub mod lists;
 pub mod places;
@@ -123,8 +126,17 @@ pub fn run(args: &Args) -> Result<Stats> {
     let community = load_community(community_path(args))
         .map_err(|e| WebExportError::Db(e))?;
 
+    // コールガイドの進捗 (Worker の公開エンドポイントの写し)。無ければページごと出さない。
+    let calls = crate::web_export::calls_dashboard::load(calls_path(args))
+        .map_err(WebExportError::Db)?;
+
     let ctx = Ctx::new(&snap, &community, today, generated_at, content_hash);
-    write_all(&ctx, &out, args.pretty, raw_tables)
+    write_all(&ctx, &out, args.pretty, raw_tables, calls.as_ref())
+}
+
+/// コールガイドの写しの置き場。`--calls` が無ければ `db/calls_dashboard.json` を見る。
+fn calls_path(args: &Args) -> &str {
+    args.calls.as_deref().unwrap_or("db/calls_dashboard.json")
 }
 
 /// コミュニティ集計の置き場。`--community` が無ければ `db/community.sql` を
@@ -203,6 +215,8 @@ fn shippable_song(song: crate::domain::snapshot::Song) -> crate::domain::snapsho
         unit_id,
         series_group,
         jasrac_code,
+        joint_brand_ids,
+        is_collab,
     } = song;
     Song {
         id,
@@ -229,6 +243,9 @@ fn shippable_song(song: crate::domain::snapshot::Song) -> crate::domain::snapsho
         unit_id,
         series_group,
         jasrac_code,
+        // 合同曲の印。どのブランドの一覧に出すかを出面が決めるのに要る。
+        joint_brand_ids,
+        is_collab,
     }
 }
 
@@ -237,13 +254,13 @@ fn write_all(
     out: &std::path::Path,
     pretty: bool,
     raw_tables: RawTables,
+    calls: Option<&crate::web_export::calls_dashboard::Dashboard>,
 ) -> Result<Stats> {
     let mut w = Writer::create(out, pretty)?;
     let mut book = RouteBook::new();
 
     // --- テーマ ---
-    let (idol_inputs, brand_inputs) = ctx.theme_inputs();
-    let table = theme::build_table(&idol_inputs, &brand_inputs);
+    let table = theme::build_table(&ctx.theme_inputs());
     w.write_json("themes.json", &table)?;
     // 単一の themes.css。HTML は data-theme 属性を 1 個置くだけでよくなる。
     w.write_text("themes.css", &theme::build_css(&table))?;
@@ -306,6 +323,12 @@ fn write_all(
     write_lists!(lists::idol_lists(ctx));
     write_lists!(lists::unit_lists(ctx));
     write_lists!(lists::venue_lists(ctx));
+    // タグ。曲に付いたタグが 1 つも無ければ一覧ごと出ない (`/songs/` の入口も同じ判断で消える)。
+    let (tag_index, tag_pages) = lists::tag_lists(ctx);
+    write_lists!(tag_index);
+    write_lists!(tag_pages);
+    // カレンダー (月ごと + 今月の写し)。
+    write_lists!(calendar::calendar_pages(ctx));
 
     let brands = lists::brand_list(ctx);
     w.write_json("index/brands.json", &brands)?;
@@ -314,9 +337,18 @@ fn write_all(
     // お題。焼き込んだ集計が 1 件も無ければページごと出さない
     // (中身の無いページを sitemap に載せない)。
     let polls = lists::poll_list(ctx);
-    if !polls.polls.is_empty() {
+    let has_polls = !polls.polls.is_empty();
+    if has_polls {
         w.write_json("index/polls.json", &polls)?;
         book.listing(RouteKind::PollList, "/polls/", "index/polls.json", true);
+    }
+
+    // コールガイドの進捗。写しがあるときだけ (お題と同じ扱い)。
+    let has_calls = calls.is_some();
+    if let Some(dash) = calls {
+        let page = calls::call_guide_page(ctx, dash);
+        w.write_json("index/calls.json", &page)?;
+        book.listing(RouteKind::CallGuide, calls::PATH, "index/calls.json", true);
     }
 
     // 生テーブル。ブラウザ (wasm) が Snapshot を組み直すための素材。
@@ -354,6 +386,11 @@ fn write_all(
             counts,
             app: crate::web_export::content::app_links(),
             performer_name_options: performer_name_options(),
+            primary_nav: lists::primary_nav(has_polls, has_calls),
+            utility_nav: lists::utility_nav(),
+            footer_notes: crate::web_export::content::footer_notes(),
+            lyrics_license_notice: crate::web_export::content::lyrics_license_notice(),
+            lyrics_search_url: crate::web_export::content::lyrics_search_url(),
         },
     )?;
 

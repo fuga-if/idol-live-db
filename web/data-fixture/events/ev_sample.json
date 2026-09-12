@@ -27,8 +27,7 @@
   ],
   "kind": "live",
   "kindLabel": "ライブ",
-  "firstDate": "2026-04-03",
-  "lastDate": "2026-04-04",
+  "dateDisplay": "2026-04-03 (金) 〜 2026-04-04 (土)",
   "isUpcoming": true,
   "ticket": {
     "openDate": "2026-02-01",
@@ -36,12 +35,32 @@
     "lotteryDate": null,
     "url": "https://example.com/ticket"
   },
-  "stats": {
-    "showCount": 2,
-    "totalSongs": 46,
-    "uniqueSongs": 41,
-    "castCount": 18
-  },
+  "statTiles": [
+    {
+      "glyph": "▤",
+      "value": 2,
+      "label": "公演",
+      "href": null
+    },
+    {
+      "glyph": "≡",
+      "value": 46,
+      "label": "のべ曲数",
+      "href": null
+    },
+    {
+      "glyph": "♬",
+      "value": 41,
+      "label": "異なり曲数",
+      "href": null
+    },
+    {
+      "glyph": "☺",
+      "value": 18,
+      "label": "出演者",
+      "href": null
+    }
+  ],
   "shows": [
     {
       "ref": {
@@ -53,32 +72,20 @@
         "themeKey": "brand:ml",
         "artworkUrl": null
       },
+      "title": "DAY1",
+      "showLabel": null,
       "date": "2026-04-03",
-      "shortDate": "26/04",
+      "dateBadge": {
+        "iso": "2026-04-03",
+        "year": "2026",
+        "monthDay": "4/3",
+        "weekday": "金",
+        "spoken": "2026年4月3日 金曜日"
+      },
       "venueLabel": "幕張メッセ",
-      "venue": {
-        "kind": "venue",
-        "id": "venue_makuhari",
-        "name": "幕張メッセ",
-        "sub": "千葉県",
-        "path": "/venues/venue_makuhari/",
-        "themeKey": "neutral",
-        "artworkUrl": null
-      },
       "hall": "イベントホール",
-      "startTime": "17:00",
-      "setlistCount": 23,
-      "streamPlatform": "ニコニコ生放送",
-      "event": {
-        "kind": "event",
-        "id": "ev_sample",
-        "name": "THE IDOLM@STER MILLION LIVE! 10thLIVE TOUR Act-4 ROAD TO MEMORIES 幕張",
-        "sub": "2026",
-        "path": "/events/ev_sample/",
-        "themeKey": "brand:ml",
-        "artworkUrl": null
-      },
-      "subtitle": "DAY1 ・ 幕張メッセ ・ イベントホール ・ 17:00 開演"
+      "startTimeDisplay": "17:00 開演",
+      "setlistCount": 23
     }
   ],
   "cast": {

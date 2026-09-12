@@ -9,6 +9,7 @@ import type { Ref } from "./Ref";
 import type { SeoBlock } from "./SeoBlock";
 import type { SingerRow } from "./SingerRow";
 import type { SongCommunity } from "./SongCommunity";
+import type { StatTile } from "./StatTile";
 
 /**
  * `/songs/<id>/` の中身。
@@ -18,13 +19,25 @@ import type { SongCommunity } from "./SongCommunity";
  */
 export type SongPage = { schemaVersion: number, id: string, path: string, title: string, titleKana: string | null, themeKey: string, brand: Ref | null, 
 /**
+ * 合同曲で一緒に参加しているブランド (`brand` 以外)。無ければ空。
+ */
+jointBrands: Array<Ref>, 
+/**
+ * 合同曲の札 (`content::SONG_COLLAB_LABEL`)。合同曲でなければ `None`。
+ */
+collabLabel: string | null, 
+/**
  * コミュニティ集計 (タグ・お気に入り・ペンライト)。焼き込み。
  */
 community: SongCommunity, 
 /**
  * 歌詞・コールガイドの出し方。**出すかどうかを決めるのは Rust。**
  */
-lyrics: LyricsBlock, songType: string | null, releaseDate: string | null, 
+lyrics: LyricsBlock, 
+/**
+ * 曲種別の表示名 (`全体曲` / `ソロ曲` …)。語彙に無い値なら `None`。
+ */
+songTypeLabel: string | null, releaseDate: string | null, 
 /**
  * `"4:32"`。整形だけなのでここで作る。
  */
@@ -54,6 +67,10 @@ parent: Ref | null,
  * この曲の派生 (リミックス・ソロver 等)。
  */
 variants: Array<Ref>, performanceCount: number, 
+/**
+ * 数の帯 (披露回数 / 原唱者 / 派生曲)。ページ内の該当の節へ飛ぶ。
+ */
+statTiles: Array<StatTile>, 
 /**
  * date 降順。
  */

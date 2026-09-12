@@ -55,10 +55,11 @@ describe("themes.json", () => {
     expect(themes.themes.neutral).toBeDefined();
   });
 
-  it("全テーマが light / dark の 13 トークンを持つ", () => {
+  it("全テーマが light / dark の 14 トークンを持つ", () => {
     const keys = [
       "accent",
       "onAccent",
+      "accentInk",
       "tint",
       "tintStrong",
       "chipBg",
@@ -124,6 +125,8 @@ describe("routes.json", () => {
       "idolListBirthMonth",
       "unitListBrand",
       "venueListPref",
+      "tag",
+      "calendarMonth",
       "event",
       "show",
       "song",
@@ -180,10 +183,22 @@ describe("検索索引", () => {
   });
 });
 
-describe("絶対制約: 歌詞とプレビュー音源を出力に含めない", () => {
-  const forbidden = /"(lyrics|lyricsUrl|previewUrl|preview_url|lyrics_url)"\s*:/;
+describe("絶対制約: 歌詞の本文とプレビュー音源を出力に含めない", () => {
+  /**
+   * 歌詞は `LyricsBlock` (`lyrics` キー) として「出すか / どこへ取りに行くか / 何を掲示するか」
+   * **だけ**が JSON に載る。本文の行・試聴音源の URL は 1 バイトも入れない
+   * (JASRAC の許諾はアプリの 1 曲ずつのストリーム形式に対するもの。docs/JASRAC.md)。
+   * Rust 側のテスト (T12) と同じ線をこちらでも引く。
+   */
+  const forbidden = /"(previewUrl|preview_url|lyricsUrl|lyrics_url|lyricsText|lyrics_text|lyricsBody|lyrics_body|lines)"\s*:/;
+  // callGuide は記号・札・凡例の語彙 (Rust content::call_guide_vocabulary) で、本文ではない。
+  // `statusLabel` は状態の札 (`JASRAC 許諾待ち`) で、歌詞そのものではない。
+  const LYRICS_BLOCK_KEYS = new Set([
+    "available", "statusLabel", "note", "licenseNumber", "licenseNote", "sourceUrl", "readLabel",
+    "callGuide",
+  ]);
 
-  it("web/data 配下の全 JSON に歌詞・試聴音源のキーが無い", () => {
+  it("web/data 配下の全 JSON に歌詞本文・試聴音源のキーが無い", () => {
     const hits: string[] = [];
     const walk = (dir: string): void => {
       for (const name of fs.readdirSync(dir)) {
@@ -195,5 +210,19 @@ describe("絶対制約: 歌詞とプレビュー音源を出力に含めない",
     };
     walk(DATA);
     expect(hits).toEqual([]);
+  });
+
+  it("曲ページの lyrics は LyricsBlock の器だけで、本文を抱えていない", () => {
+    const dir = path.join(DATA, "songs");
+    const offenders: string[] = [];
+    for (const name of fs.readdirSync(dir)) {
+      if (!name.endsWith(".json")) continue;
+      const page = JSON.parse(fs.readFileSync(path.join(dir, name), "utf8")) as {
+        lyrics?: Record<string, unknown>;
+      };
+      const keys = Object.keys(page.lyrics ?? {});
+      if (keys.length === 0 || keys.some((k) => !LYRICS_BLOCK_KEYS.has(k))) offenders.push(name);
+    }
+    expect(offenders).toEqual([]);
   });
 });

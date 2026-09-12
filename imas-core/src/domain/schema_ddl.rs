@@ -170,6 +170,9 @@ mod room_parity {
     const KNOWN_GAPS: &[(&str, &str, &str)] = &[
         ("idols", "voice_actors", "廃止列。iOS は書き戻すと落ちるので読まない。Android だけが今も持っている"),
         ("songs", "jasrac_code", "JASRAC 許諾が認可待ちのため Android 未追加"),
+        // Kotlin の Song エンティティと MIGRATION_13_14 は入れてある。app/schemas/**.json は
+        // Android ビルド (KSP) の生成物で、このセッションではビルドしない方針のため 13.json の
+        // まま。**次に Android をビルドして 14.json が出たら、この 2 行は消すこと。**
         ("idol_voice_actors", "*", "Android は entity を持たず、SeedImporter が『両方にある表』しか移さないため実機に無い。CV 名検索が Android で効かない原因"),
         ("song_units", "*", "非同期テーブル。Android は持たない"),
     ];

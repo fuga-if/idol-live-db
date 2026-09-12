@@ -1,12 +1,21 @@
 ---
 import ListLayout from "../layouts/ListLayout.astro";
-import IdolTile from "./IdolTile.astro";
 import ListFilterBar from "./ListFilterBar.astro";
 import EmptyState from "./EmptyState.astro";
-import { meta } from "../lib/data";
 import type { IdolListPage } from "../lib/schema/IdolListPage";
 
-/** アイドル一覧 (総合 / ブランド別 / 誕生月別)。is_external の除外規則はコアの中。 */
+/**
+ * アイドル一覧 (総合 / ブランド別 / 誕生月別)。is_external の除外規則はコアの中。
+ *
+ * 属性を見比べる一覧なので表で出す。**どの列をどの順で出すかは Rust**
+ * (`IdolListPage.columns` と `IdolListItem.cells` が同じ並び、全行が空の列は落ちる)ので、
+ * ここは見出しと値を順に置くだけ。並べ替え・絞り込みは島が `tbody` の中の行を入れ替える。
+ *
+ * **並べ替えは列見出しを押す** (表計算と同じ手触り)。押せる列かどうかも、押したときの
+ * 並びの鍵も Rust (`IdolColumn.sortKey`) が決める。鍵の無い列はボタンにしない
+ * (押しても何も起きないものを置かない)。JS が無い環境では素の見出しのままなので、
+ * ボタンは島が起動してから有効になる (`disabled` を外すのは島)。
+ */
 interface Props {
   list: IdolListPage;
 }
@@ -15,14 +24,10 @@ const { list } = Astro.props;
 
 <ListLayout
   seo={list.seo}
-  meta={meta()}
   title={list.title}
   total={list.total}
   themeKey={list.brand?.themeKey}
-  scopeLinks={list.brandLinks}
-  scopeLabel="ブランドで絞る"
-  filterLinks={list.birthMonthLinks}
-  filterLabel="誕生月で絞る"
+  filters={list.filters}
   wide
 >
   <ListFilterBar kind="idols" queryBase={list.queryBase} total={list.total} />
@@ -30,14 +35,45 @@ const { list } = Astro.props;
     list.items.length === 0 ? (
       <EmptyState title="該当するアイドルがいません" body="別のブランドや誕生月に切り替えてみてください。" />
     ) : (
-      <ul class="grid-tiles" data-idol-grid>
-        {list.items.map((item) => (
-          <IdolTile
-            entity={item.ref}
-            sub={item.currentVoiceActor ?? item.birthdayDisplay ?? item.brand?.name}
-          />
-        ))}
-      </ul>
+      <div class="table-wrap">
+        <table class="dtable">
+          <thead data-sort-headers>
+            <tr>
+              {[list.nameColumn, ...list.columns].map((c, i) => (
+                <th
+                  scope="col"
+                  class:list={[i === 0 && "dtable__name", c.numeric && "dtable__num"]}
+                  aria-sort={c.sortKey ? "none" : undefined}
+                >
+                  {c.sortKey ? (
+                    <button class="dtable__sort" type="button" data-sort-key={c.sortKey} disabled>
+                      {c.label}
+                      <span class="dtable__arrow" aria-hidden="true" />
+                    </button>
+                  ) : (
+                    c.label
+                  )}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody data-idol-table>
+            {list.items.map((item) => (
+              <tr data-entity-id={item.ref.id} data-theme={item.ref.themeKey}>
+                <th scope="row" class="dtable__name">
+                  <a class="u-underline-hover" href={item.ref.path}>
+                    {item.ref.name}
+                  </a>
+                  {item.nameKana && <span class="dtable__kana">{item.nameKana}</span>}
+                </th>
+                {item.cells.map((value, i) => (
+                  <td class:list={[list.columns[i]?.numeric && "dtable__num"]}>{value}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     )
   }
 </ListLayout>

@@ -226,7 +226,6 @@ const STEPS_IN_FK_ORDER: &[(&str, &str)] = &[
     ("Costume", "衣装"),
     ("CostumeWear", "衣装の着用"),
     // Phase 6: コミュニティコンテンツ (songs に依存)
-    ("SongCall", "コーレス"),
     ("SongVideo", "参考動画"),
 ];
 
@@ -471,7 +470,6 @@ pub fn table_info(record_type: &str) -> Option<SyncTableInfo> {
         "Creator" => ("creators", &["id"]),
         "VenueHall" => ("venue_halls", &["id"]),
         "Song" => ("songs", &["id"]),
-        "SongCall" => ("song_calls", &["id"]),
         "SongVideo" => ("song_videos", &["id"]),
         "SetlistItem" => ("setlist_items", &["id"]),
         "IdolBrand" => ("idol_brands", &["idol_id", "brand_id"]),
@@ -586,7 +584,7 @@ pub struct SyncCompletion {
     ///
     /// **これが [`startup_plan`] の 24h 判定 ([`SyncModeReason::FullSyncStale`]) を進める
     /// 唯一の書き込み**。落とすと `last_full_sync_epoch` が固定され、24 時間後から毎起動が
-    /// フルになって 17 ステップ全件 (SongArtist ~20k 行) を取り直し続ける。
+    /// フルになって 18 ステップ全件 (SongArtist ~20k 行) を取り直し続ける。
     /// `full_sync_interval_seconds = None` の Android では露見せず iOS だけが静かに劣化する。
     pub should_update_last_full_sync: bool,
     /// そこに書く時刻。`should_update_last_full_sync` が false なら None。
@@ -638,7 +636,7 @@ const SEED_SKIP_TABLES: &[&str] = &["room_master_table", "android_metadata", "sq
 ///
 /// Room がスキーマの真実を握ったまま実データだけ移す方式なので、両方に存在するものだけが
 /// 対象になる。seed 側にしか無いテーブル (song_units 等) は移す先が無いので落とし、
-/// main 側にしか無いテーブル (user_marks / song_calls / song_videos) は空のまま残す
+/// main 側にしか無いテーブル (user_marks / song_videos) は空のまま残す
 /// (ローカル投稿・CloudKit 同期で埋まる)。
 pub fn seed_common_tables(main_tables: &[String], seed_tables: &[String]) -> Vec<String> {
     let seed: HashSet<&str> = seed_tables.iter().map(String::as_str).collect();
@@ -676,7 +674,6 @@ const DEFAULT_PRESERVED_TABLES: &[&str] = &[
     "custom_image_paths",
     "grdb_migrations",
     "meta",
-    "song_calls",
     "song_videos",
     "song_tags",
     "device_song_tag",
@@ -957,7 +954,7 @@ mod tests {
     #[test]
     fn all_steps_keeps_parents_before_children() {
         let steps = all_steps();
-        assert_eq!(steps.len(), 21);
+        assert_eq!(steps.len(), 20);
         let index = |record_type: &str| {
             steps
                 .iter()
@@ -979,7 +976,6 @@ mod tests {
         assert!(index("Show") < index("SetlistItem"));
         assert!(index("Song") < index("SetlistItem"));
         assert!(index("SetlistItem") < index("SetlistPerformer"));
-        assert!(index("Song") < index("SongCall"));
         assert!(index("Song") < index("SongVideo"));
         // 衣装の着用記録は、衣装・公演・セトリ行・アイドルの全部が揃ってから。
         assert!(index("Costume") < index("CostumeWear"));
@@ -1012,7 +1008,6 @@ mod tests {
             "ShowCast",
             "SetlistItem",
             "SetlistPerformer",
-            "SongCall",
         ]);
         let steps: Vec<String> = steps_for(&android)
             .into_iter()
@@ -1033,7 +1028,6 @@ mod tests {
                 "ShowCast",
                 "SetlistItem",
                 "SetlistPerformer",
-                "SongCall",
                 "SongVideo",
             ])
         );
@@ -1667,7 +1661,6 @@ mod tests {
             "custom_image_paths",
             "grdb_migrations",
             "meta",
-            "song_calls",
             "song_videos",
             "song_tags",
             "device_song_tag",
@@ -1683,7 +1676,7 @@ mod tests {
                 Vec::<String>::new()
             );
         }
-        assert_eq!(preserved.len(), 9);
+        assert_eq!(preserved.len(), 8);
     }
 
     #[test]

@@ -15,7 +15,6 @@ import com.fugaif.imaslivedb.data.model.Show
 import com.fugaif.imaslivedb.data.model.ShowCast
 import com.fugaif.imaslivedb.data.model.Song
 import com.fugaif.imaslivedb.data.model.SongArtist
-import com.fugaif.imaslivedb.data.model.SongCall
 import com.fugaif.imaslivedb.data.model.SongVideo
 import com.fugaif.imaslivedb.data.model.UnitMember
 import com.fugaif.imaslivedb.data.model.Venue
@@ -49,7 +48,6 @@ interface SyncDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun upsertShowCasts(rows: List<ShowCast>)
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun upsertSetlistItems(rows: List<SetlistItem>)
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun upsertSetlistPerformers(rows: List<SetlistPerformer>)
-    @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun upsertSongCalls(rows: List<SongCall>)
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun upsertSongVideos(rows: List<SongVideo>)
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun upsertVenues(rows: List<Venue>)
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun upsertCreators(rows: List<Creator>)
@@ -66,7 +64,6 @@ interface SyncDao {
     @Query("DELETE FROM songs WHERE id IN (:ids)") suspend fun deleteSongs(ids: List<String>)
     @Query("DELETE FROM units WHERE id IN (:ids)") suspend fun deleteUnits(ids: List<String>)
     @Query("DELETE FROM setlist_items WHERE id IN (:ids)") suspend fun deleteSetlistItems(ids: List<String>)
-    @Query("DELETE FROM song_calls WHERE id IN (:ids)") suspend fun deleteSongCalls(ids: List<String>)
     @Query("DELETE FROM song_videos WHERE id IN (:ids)") suspend fun deleteSongVideos(ids: List<String>)
     @Query("DELETE FROM venues WHERE id IN (:ids)") suspend fun deleteVenues(ids: List<String>)
     @Query("DELETE FROM creators WHERE id IN (:ids)") suspend fun deleteCreators(ids: List<String>)
@@ -110,7 +107,6 @@ interface SyncDao {
     @Query("SELECT id FROM songs") suspend fun songIds(): List<String>
     @Query("SELECT id FROM units") suspend fun unitIds(): List<String>
     @Query("SELECT id FROM setlist_items") suspend fun setlistItemIds(): List<String>
-    @Query("SELECT id FROM song_calls") suspend fun songCallIds(): List<String>
     @Query("SELECT id FROM song_videos") suspend fun songVideoIds(): List<String>
     @Query("SELECT id FROM venues") suspend fun venueIds(): List<String>
     @Query("SELECT id FROM creators") suspend fun creatorIds(): List<String>

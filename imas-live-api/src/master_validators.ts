@@ -25,7 +25,6 @@ const YOUTUBE_URL_RE =
   /^https:\/\/(?:(?:www\.|m\.)?youtube\.com\/(?:watch\?[^\s]*\bv=|shorts\/|embed\/|live\/)[\w-]+|youtu\.be\/[\w-]+)(?:[?&#][^\s]*)?$/;
 const MAX_STR_DEFAULT = 500;
 const MAX_STR_LONG = 2000;
-const MAX_STR_CALL = 5000; // SongCall.callText (コーレスは長文になりうる)
 
 interface FieldRule {
   type: CKFieldType;
@@ -143,14 +142,9 @@ const FIELD_RULES: Record<string, Record<string, FieldRule>> = {
     idolId: { type: "STRING", required: true, maxLen: 200 },
     castId: { type: "STRING", maxLen: 200 },
   },
-  // コーレス (確定契約 §4)。フィールド名は CKRecordMapper.songCall に厳密一致。
-  // createdAt(TIMESTAMP)/authorDisplayName は allowlist 外 = ユーザーは送れない (createdAt はサーバ注入)。
-  SongCall: {
-    songId: { type: "STRING", required: true, maxLen: 200 },
-    callText: { type: "STRING", required: true, maxLen: MAX_STR_CALL },
-    sourceUrl: { type: "STRING", url: "http", maxLen: MAX_STR_DEFAULT },
-  },
   // 参考動画 (確定契約 §4)。フィールド名は CKRecordMapper.songVideo に厳密一致。
+  // createdAt(TIMESTAMP)/authorDisplayName は allowlist 外 = ユーザーは送れない (createdAt はサーバ注入)。
+  // コーレス (SongCall) は 2026-09-06 に廃止 (歌詞行につけるコールガイドに置き換わった)。
   SongVideo: {
     songId: { type: "STRING", required: true, maxLen: 200 },
     youtubeUrl: { type: "STRING", required: true, url: "youtube", maxLen: MAX_STR_DEFAULT },

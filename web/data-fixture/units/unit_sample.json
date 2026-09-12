@@ -7,13 +7,15 @@
   "nameAlt": "Sample Unit",
   "themeKey": "brand:ml",
   "isPermanent": true,
+  "kindLabel": "常設ユニット",
   "tags": [
     {
       "id": "tag_genki",
       "name": "元気",
       "count": 7,
-      "color": null,
-      "isOfficial": true
+      "themeKey": null,
+      "isOfficial": true,
+      "path": null
     }
   ],
   "brand": {

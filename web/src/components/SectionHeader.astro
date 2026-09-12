@@ -14,4 +14,9 @@ const { title, count, moreHref, moreLabel = "すべて見る", id } = Astro.prop
   <h2 class="section__title" id={id}>{title}</h2>
   {count !== undefined && count !== null && <span class="section__count">{count}</span>}
   {moreHref && <a class="section__more" href={moreHref}>{moreLabel} ›</a>}
+  {Astro.slots.has("tools") && (
+    <div class="section__tools">
+      <slot name="tools" />
+    </div>
+  )}
 </div>

@@ -155,7 +155,7 @@ fun IdolTagDetailScreen(
                             ) {
                                 TagRankBadge(idx + 1)
                                 if (idol != null) {
-                                    ImasAvatar(label = idol.name, seed = idol.color, brand = idol.brandId, size = 32.dp)
+                                    ImasAvatar(label = idol.shortName, seed = idol.color, brand = idol.brandId, size = 32.dp)
                                     Text(
                                         idol.name, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink,
                                         modifier = Modifier.weight(1f).padding(start = 4.dp),

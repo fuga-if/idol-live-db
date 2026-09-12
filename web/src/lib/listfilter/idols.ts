@@ -19,10 +19,14 @@ const BIRTH_MONTHS = Array.from({ length: 12 }, (_, i) => ({
 export function mountIdolFilter(root: HTMLElement): void {
   const spec: ListFilterSpec<IdolFacets> = {
     name: "idol filter",
-    container: "[data-idol-grid]",
-    item: "li[data-entity-id]",
+    // 行は表の中。並べ替えは tbody の直下で入れ替わる。
+    container: "[data-idol-table]",
+    item: "tr[data-entity-id]",
     idAttr: "entityId",
     fallbackSort: "official",
+    // 並べ替えは表の列見出しを押す (表計算と同じ)。どの列が押せるかは Rust の
+    // `IdolColumn.sortKey` が決めていて、ここは押し場所の在り処だけを言う。
+    sortHeaders: "[data-sort-headers]",
     facets: (e) => JSON.parse((e as Engine).idol_facets()) as IdolFacets,
     ids: (e, json) => (e as Engine).idol_ids(json),
     sorts: (f) => f.sorts as SortOption[],
