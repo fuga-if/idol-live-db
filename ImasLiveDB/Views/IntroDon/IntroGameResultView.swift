@@ -2,10 +2,14 @@ import SwiftUI
 
 struct IntroGameResultView: View {
     let session: IntroGameSession
-    /// Setup/Game と共有する「ホームに戻る」「もう一度あそぶ」シグナル。
-    /// このView自身はdismiss()を呼ばず、シグナルを立てるだけにする。実際のpopはSetup/Gameが
-    /// それぞれ自分の(実体のある)dismiss()で行うことで、複数階層をまとめて確実に閉じられる。
-    let exitSignal: IntroDonExitSignal
+    /// 「もう一度あそぶ」/「ホームに戻る」で呼ぶ処理。**この View は画面遷移を持たない。**
+    ///
+    /// 以前は共有シグナルを立てて Game / Setup の `onChange` に拾わせていたが、
+    /// **SwiftUI は push で隠れた View の `onChange` を走らせない** (body は再評価される
+    /// のに onChange だけ来ない) ため、どちらのボタンも無反応だった。押した側から
+    /// 画面を持っている側へ直接渡す。
+    let onReplay: () -> Void
+    let onHome: () -> Void
 
     /// 実際に回答した問題数 (スキップ含む)。正答率の母数。
     /// Rush は候補曲(最大300)を全部出せるわけがないので totalCount ではなく回答数で割る。
@@ -277,7 +281,7 @@ struct IntroGameResultView: View {
                 // Setup画面(積み上げ済み)まで戻すだけ。IntroGameSetupView() を新規pushしていた
                 // 従来実装は Home→Setup→Game→Result→Setup→Game→Result… とスタックが際限なく
                 // 伸びるバグの原因だったため、既存のSetupを再利用する形に変更。
-                exitSignal.requestReplay()
+                onReplay()
             } label: {
                 HStack(spacing: DS.sp3) {
                     Image(systemName: "arrow.counterclockwise")
@@ -297,7 +301,7 @@ struct IntroGameResultView: View {
             Button {
                 AppAnalytics.tap("intro_game_result.go_home")
                 // replay と同じ理由でここでも reset しない (下の画面が空表示に化ける)。
-                exitSignal.requestExitToHome()
+                onHome()
             } label: {
                 Text("ホームに戻る")
                     .font(ID.font(14, weight: .semibold))

@@ -1,23 +1,24 @@
 import SwiftUI
 
-/// イントロドン (ソロ) の Setup → Game → Result 間で共有する「複数階層まとめてpopしたい」シグナル。
+/// イントロドンの結果画面から「ホームに戻る」ときだけ使う、Setup へのシグナル。
 ///
-/// この3画面はそれぞれ別の親が持つ実体のある `@State` Bool (Setup を presentするHome/SongList側の
-/// Bool、Game を presentするSetup側の `navigateToGame`) に紐づく `dismiss()` で確実にpopできる。
-/// 一方で Result → Home のように複数階層をまたいで一気に戻りたい場合、Result 自身の
-/// `dismiss()` を連打しても「自分がpushされた1階層」しか閉じられず、祖先までは連鎖しない。
+/// ## なぜ Game ではなく Setup だけが見るのか
 ///
-/// そこで Setup/Game/Result で同一インスタンスを共有し、Result 側でトークンをインクリメントする
-/// ことで、Setup・Game それぞれが「自分の階層の実体あるdismiss()」を各々呼び出し、結果として
-/// 3階層まとめて閉じる。Bool ではなく単調増加のトークンにしているのは、同じ値→値では
-/// `onChange` が発火せず「もう一度あそぶ」を繰り返した際に2回目以降が届かなくなるのを防ぐため。
+/// **SwiftUI は push で隠れた View の `onChange` を走らせない。** body は新しい値で
+/// 再評価されるのに `onChange` のクロージャだけ呼ばれないため、結果画面を push して
+/// いた頃は Game も Setup も「もう一度あそぶ」「ホームに戻る」を受け取れず、どちらの
+/// ボタンも無反応だった (App Store のレビューで「アプリを落とすしかない」と複数報告)。
+///
+/// いまは結果画面を Game の `fullScreenCover` で出す。Game は presenter として生きた
+/// ままなので、Game 自身の `dismiss()` がそのまま効く。残る 1 段 (Setup → Home) だけを
+/// このシグナルで渡す。Setup は Game が pop された**後**に見えるようになるので、
+/// そのときには `onChange` が正常に届く。
+///
+/// トークンにしてあるのは、同じ値→値では `onChange` が発火せず、2 回目以降の
+/// 「ホームに戻る」が届かなくなるのを防ぐため。
 @Observable
 final class IntroDonExitSignal {
-    /// Result の「ホームに戻る」: Setup・Game・Result をすべて閉じて呼び出し元 (Home 等) まで戻る。
     private(set) var exitToHomeToken = 0
-    /// Result の「もう一度あそぶ」: Game・Result だけを閉じて (積み上げ済みの) Setup まで戻る。
-    private(set) var replayToken = 0
 
     func requestExitToHome() { exitToHomeToken &+= 1 }
-    func requestReplay() { replayToken &+= 1 }
 }

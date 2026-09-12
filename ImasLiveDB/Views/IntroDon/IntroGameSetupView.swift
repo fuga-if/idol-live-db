@@ -12,13 +12,20 @@ struct IntroGameSetupView: View {
     @State private var pickedPool: [Song]? = nil
     @State private var pickedLabel: String? = nil
 
+    /// 遷移中か。子が dismiss() したときに route を倒すための橋渡し。
+    private var isPushingRoute: Binding<Bool> {
+        Binding(
+            get: { pushedRoute != nil },
+            set: { if !$0 { pushedRoute = nil } }
+        )
+    }
+
     /// 実際に使う出題範囲 (アプリ内で選び直したものを優先)。
     private var effectivePool: [Song]? { pickedPool ?? presetPool }
     private var effectiveLabel: String? { pickedLabel ?? presetLabel }
 
     @State private var session = IntroGameSession()
     @State private var partySession = IntroPartySession()
-    @State private var navigateToParty = false
     /// Game/Result から「ホームに戻る」「もう一度あそぶ」を受け取るための共有シグナル。
     @State private var exitSignal = IntroDonExitSignal()
     @Environment(\.dismiss) private var dismiss
@@ -33,8 +40,10 @@ struct IntroGameSetupView: View {
     @State private var rushTimeLimit: TimeInterval = 60
     @State private var isLoading = false
     @State private var showAdvanced = false
-    @State private var showSongFilter = false
-    @State private var navigateToGame = false
+    /// 設定画面から進む先。**遷移先を増やすときもここに case を足すだけにする**
+    /// (navigationDestination を増やすと SwiftUI が 1 つしか見ず、戻れなくなる)。
+    private enum PushedRoute { case game, songFilter, party }
+    @State private var pushedRoute: PushedRoute? = nil
     @State private var errorMessage: String? = nil
     @State private var authStatus: MusicAuthorization.Status = MusicKitService.shared.authorizationStatus
 
@@ -118,29 +127,40 @@ struct IntroGameSetupView: View {
         .background(ID.menuBg.ignoresSafeArea())
         .navigationTitle("設定")
         .navigationBarTitleDisplayMode(.inline)
-        .navigationDestination(isPresented: $navigateToGame) {
-            IntroGameView(session: session, exitSignal: exitSignal)
+        // **遷移先はここ 1 つだけ。** 同じ View に navigationDestination(isPresented:) を
+        // 複数置くと SwiftUI は最後の 1 つしか使わず、押しても進まない・戻れない画面ができる。
+        // 実際、ゲーム / 曲フィルター / パーティの 3 つを並べていたせいで、結果画面の
+        // 「もう一度あそぶ」「ホームに戻る」が両方とも無反応になっていた
+        // (dismiss() が別のスロットを閉じようとして空振りする)。App Store のレビューで
+        // 「アプリを落とすしかない」と複数報告された不具合。**ここに 2 つ目を足さないこと。**
+        .navigationDestination(isPresented: isPushingRoute) {
+            switch pushedRoute {
+            case .game:
+                IntroGameView(session: session, exitSignal: exitSignal)
+            case .songFilter:
+                // 曲一覧でタグ/担当/検索などで絞り込み →「この範囲で出題」で設定に戻りプール反映。
+                SongListView(
+                    selectionMode: true,
+                    onSelectPool: { pool, label in
+                        pickedPool = pool
+                        pickedLabel = label
+                        pushedRoute = nil
+                    }
+                )
+                .environment(database)
+            case .party:
+                IntroPartyGameView(session: partySession)
+            case nil:
+                EmptyView()
+            }
         }
         // 「ホームに戻る」: Game/Result が同じシグナルで自分のdismiss()を呼ぶのに合わせて、
         // Setup自身もここで実体のあるdismiss() (呼び出し元のHome/SongListが持つ本物のBinding) を
         // 呼び、3階層まとめて閉じる。「もう一度あそぶ」はSetupより下だけ閉じるのでここでは無視。
+        // 「ホームに戻る」: Game が自分を pop してここが見えるようになった後に届く。
+        // (隠れている間は SwiftUI が onChange を走らせないので、Game 側で拾わせない)
         .onChange(of: exitSignal.exitToHomeToken) { _, _ in
             dismiss()
-        }
-        .navigationDestination(isPresented: $showSongFilter) {
-            // 曲一覧でタグ/担当/検索などで絞り込み →「この範囲で出題」で設定に戻りプール反映。
-            SongListView(
-                selectionMode: true,
-                onSelectPool: { pool, label in
-                    pickedPool = pool
-                    pickedLabel = label
-                    showSongFilter = false
-                }
-            )
-            .environment(database)
-        }
-        .navigationDestination(isPresented: $navigateToParty) {
-            IntroPartyGameView(session: partySession)
         }
         .task {
             brands = (try? await AppContainer.shared.brandReading.brands()) ?? []
@@ -223,7 +243,7 @@ struct IntroGameSetupView: View {
     private func refineButton(title: String) -> some View {
         Button {
             AppAnalytics.tap("intro_game_setup.refine")
-            showSongFilter = true
+            pushedRoute = .songFilter
         } label: {
             HStack(spacing: DS.sp3) {
                 Image(systemName: "line.3.horizontal.decrease.circle")
@@ -538,7 +558,7 @@ struct IntroGameSetupView: View {
                 if partySession.questions.isEmpty {
                     errorMessage = "対象の曲が見つかりませんでした。ブランドを増やしてお試しください。"
                 } else {
-                    navigateToParty = true
+                    pushedRoute = .party
                 }
             } else {
                 session.settings = settings
@@ -547,7 +567,7 @@ struct IntroGameSetupView: View {
                 if session.questions.isEmpty {
                     errorMessage = "対象の曲が見つかりませんでした。ブランドを増やしてお試しください。"
                 } else {
-                    navigateToGame = true
+                    pushedRoute = .game
                 }
             }
         } catch {

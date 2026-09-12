@@ -35,4 +35,24 @@ enum IntroQuizChoices {
         var generator = SystemRandomNumberGenerator()
         return makeAll(for: answers, pool: pool, wrongCount: wrongCount, using: &generator)
     }
+
+    /// 出題に使える曲だけに絞る。
+    ///
+    /// **「apple_music_id があるか」で絞ってはいけない。** カタログのフル再生には
+    /// Apple Music の契約が要るので、契約が無い端末で preview_url も無い曲を出すと
+    /// 無音のまま出題される (App Store のレビューで報告された「イントロが流れない」)。
+    /// 判定は Rust 側 (`is_quiz_playable`) が持ち、Android と共有する。
+    static func playable(_ songs: [Song], hasAppleMusicSubscription: Bool) -> [Song] {
+        let indices = introQuizPlayableIndices(
+            songs: songs.map {
+                IntroQuizPlayability(
+                    appleMusicId: $0.appleMusicId,
+                    previewUrl: $0.previewUrl,
+                    parentSongId: $0.parentSongId
+                )
+            },
+            hasAppleMusicSubscription: hasAppleMusicSubscription
+        )
+        return indices.map { songs[Int($0)] }
+    }
 }

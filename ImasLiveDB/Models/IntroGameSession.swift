@@ -86,9 +86,16 @@ final class IntroGameSession {
     /// 曲一覧の絞り込みをそのまま出題プールに使う場合のプリセット (nil ならブランド条件でDB取得)。
     @ObservationIgnored var presetPool: [Song]? = nil
 
-    /// IntroDon 出題に使える曲だけに絞る (apple_music_id あり・親曲でない)。
+    /// IntroDon 出題に使える曲だけに絞る。
+    ///
+    /// 条件はコア (`imas-core` の `is_quiz_playable`) が持つ。**ここで書き直さないこと。**
+    /// 以前ここに `apple_music_id があるか` だけを書いていて、Apple Music 未契約の端末では
+    /// preview_url の無い曲が無音のまま出題されていた (レビューで 2 か月報告され続けた)。
     static func playable(_ songs: [Song]) -> [Song] {
-        songs.filter { ($0.appleMusicId?.isEmpty == false) && $0.parentSongId == nil }
+        IntroQuizChoices.playable(
+            songs,
+            hasAppleMusicSubscription: MusicKitService.shared.hasAppleMusicSubscription
+        )
     }
 
     @ObservationIgnored private var rushTimerTask: Task<Void, Never>? = nil
@@ -416,6 +423,12 @@ final class IntroGameSession {
         if score > previousBest {
             UserDefaults.standard.set(score, forKey: key)
         }
+        // ゲーム一覧・連続クリア日数が見るのはこちら。**上のベストスコアとは別の器。**
+        // ここを呼んでいなかったせいで、何度遊んでも一覧が「未プレイ」のままだった
+        // (App Store のレビューで報告済み)。他のゲームは画面側から呼んでいるが、
+        // イントロドンは終了地点が 2 つ (通常 / ラッシュ) とも Session にあるので、
+        // ベストスコア保存と同じ場所に置いて取りこぼしを無くす。
+        GameProgressStore.shared.recordResult(.introDon, score: score, outOf: questions.count)
     }
 
     // MARK: - Best Time (全曲チャレンジ: タイムを競う)

@@ -96,8 +96,26 @@ struct IntroGameView: View {
         } message: {
             Text("設定アプリから「マイク」と「音声認識」の権限を許可してください。")
         }
-        .navigationDestination(isPresented: $showResult) {
-            IntroGameResultView(session: session, exitSignal: exitSignal)
+        // **結果は push しない。** push すると Game が隠れ、SwiftUI が Game の
+        // `onChange` を走らせなくなる (body は再評価されるのに onChange だけ来ない)。
+        // 結果画面のボタンがどれも無反応になり「アプリを落とすしかない」と
+        // App Store のレビューで複数報告された。cover なら Game が presenter の
+        // まま生きているので、自分の dismiss() がそのまま効く。
+        .fullScreenCover(isPresented: $showResult) {
+            IntroGameResultView(
+                session: session,
+                // 積み上げ済みの設定画面まで戻す (設定を変えて遊び直せる)。
+                onReplay: {
+                    showResult = false
+                    dismiss()
+                },
+                onHome: {
+                    showResult = false
+                    // Setup は自分が見えるようになってから onChange を受け取れる。
+                    exitSignal.requestExitToHome()
+                    dismiss()
+                }
+            )
         }
         // 音声判定は「自動起動しない」(本家準拠)。再生中に録音セッションへ切替えると
         // AVAudioSession 競合でクラッシュするため、voice 起動は buzz/マイクタップ時のみ。
@@ -113,17 +131,6 @@ struct IntroGameView: View {
             // finished 以外へ移ったら必ず倒す。true のまま残すと、次に この画面へ戻った
             // ときに結果画面がもう一度積まれてしまう (「結果画面が二重に出る」の原因)。
             showResult = (newPhase == .finished)
-        }
-        // Result の「ホームに戻る」: Setupと同じシグナルを見て、自分(Game)も実体のある
-        // dismiss() (Setupが持つ本物の navigateToGame Binding) を呼び1階層閉じる。
-        // Setup側も同じトークンを見て自分自身を閉じるため、結果的に3階層まとめて閉じる。
-        .onChange(of: exitSignal.exitToHomeToken) { _, _ in
-            dismiss()
-        }
-        // Result の「もう一度あそぶ」: Game だけを閉じ、Setup (積み上げ済み) まで戻す。
-        // Setup はこのトークンを無視するので、Setupより上へは戻らない。
-        .onChange(of: exitSignal.replayToken) { _, _ in
-            dismiss()
         }
         // 次の問題に進む (currentIndex 変化) や「もう一度」 (replay) のたびに
         // PlaybackElapsedLabel を 0 に戻すための token bump。
