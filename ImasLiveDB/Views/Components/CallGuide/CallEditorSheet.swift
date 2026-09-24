@@ -153,7 +153,7 @@ struct CallEditorSheet: View {
 
     private var emphasisSection: some View {
         VStack(alignment: .leading, spacing: DS.sp2) {
-            Text("強調").font(.imasCaption).foregroundStyle(DS.ink2)
+            Text("コールの種類").font(.imasCaption).foregroundStyle(DS.ink2)
             ImasSegmented(options: CallEmphasis.allCases, selection: $emphasis, seed: seed) { $0.label }
             HStack(spacing: DS.sp2) {
                 Circle()
@@ -166,8 +166,8 @@ struct CallEditorSheet: View {
 
     private var emphasisHint: String {
         switch emphasis {
-        case .normal:           return "通常のコール。凡例には出ない。"
-        case .optional:         return "おこのみで（緑）。やってもやらなくてもよい。"
+        case .normal:           return "みんなで入れる基本のコール。"
+        case .optional:         return "おこのみで（緑）。入れても入れなくてもよいコール。"
         case .performerRequest: return "演者要望（赤）。演者から明示的に求められたもの。"
         }
     }
