@@ -8,6 +8,10 @@ Usage:
     # 年次利用曲目報告 (19項目 / SJIS / CRLF / タブ区切り)
     python3 tools/jasrac/build_reports.py annual --license-no J123456789 --month 202608
 
+    # NexTone 管理曲 (works.tsv の rights_org=nextone) の利用曲目と回数
+    python3 tools/jasrac/build_reports.py nextone --published published.txt \
+        --requests-dir data/lyrics_requests --period 202605-202609
+
     # 不足項目の洗い出し
     python3 tools/jasrac/build_reports.py gaps
 
@@ -320,6 +324,54 @@ def cmd_form(args):
     print("\n計 %d件 / %dファイル" % (len(rows), len(chunks)))
 
 
+def filter_published(rows, published_path, label, ledger):
+    """報告の母集団を「実際に歌詞を掲載した曲」に絞る (annual / nextone 共通)。
+
+    ledger は台帳の全行。掲載中なのに台帳に無い曲は、どちらの団体の報告にも出ないので警告する。
+    """
+    if not published_path:
+        print("⚠️ --published を付けていない。台帳の%s全 %d 曲を報告対象にしている。"
+              % (label, len(rows)), file=sys.stderr)
+        return rows
+    with io.open(published_path, encoding="utf-8") as f:
+        allowed = {ln.strip() for ln in f if ln.strip() and not ln.startswith("#")}
+    before = len(rows)
+    rows = [r for r in rows if r.get("song_id") in allowed]
+    print("掲載中の %d 曲に絞った (台帳の%s %d 曲中)" % (len(rows), label, before))
+    missing = allowed - {r.get("song_id") for r in ledger}
+    if missing:
+        print("⚠️ 掲載中だが台帳に無い: %s" % ", ".join(sorted(missing)), file=sys.stderr)
+    return rows
+
+
+def cmd_nextone(args):
+    """NexTone 管理曲の利用曲目と曲別リクエスト回数を UTF-8 TSV で書く。
+
+    ⚠️ NexTone (PlayN) の報告様式はまだ確認していない。これは様式に依らない
+       材料 (どの曲を何回) で、様式が分かったらそれに合わせた書き出しを足す。
+    """
+    ledger = read_works(args.works)
+    rows = [r for r in ledger if W.reports_to_nextone(r)]
+    rows = filter_published(rows, args.published, " NexTone 管理曲", ledger)
+    counts = read_request_counts(args.requests_dir, args.period)
+
+    out = [{
+        "song_id": r["song_id"],
+        "曲名": report_title(r),
+        "作詞": report_name(r, "lyricist"),
+        "作曲": report_name(r, "composer"),
+        "アーティスト": r.get("artist", ""),
+        "リクエスト回数": str(counts.get(r["song_id"], 0)),
+    } for r in rows]
+
+    os.makedirs(OUT_DIR, exist_ok=True)
+    path = os.path.join(OUT_DIR, "nextone_%s_%s.tsv" % (args.license_no, args.period))
+    write_tsv(path, ["song_id", "曲名", "作詞", "作曲", "アーティスト", "リクエスト回数"], out)
+    total = sum(int(r["リクエスト回数"]) for r in out)
+    print("wrote %s" % path)
+    print("  %d 曲 / 合計 %d 回 (%s)" % (len(out), total, args.period))
+
+
 def cmd_annual(args):
     # ファイル名は 許諾番号(10桁) + 報告年月(YYYYMM) + 任意の英数字。
     # 手引きの例 J123456789201207.txt のとおり許諾番号には英字が入りうる。
@@ -330,7 +382,10 @@ def cmd_annual(args):
     if args.suffix and not args.suffix.isalnum():
         sys.exit("ファイル名末尾の任意文字列は英数字のみ: %r" % args.suffix)
 
-    rows = [r for r in read_works(args.works) if r.get("match_status") != "excluded"]
+    # NexTone 管理曲は NexTone に報告するので JASRAC の母集団から外す (二重報告しない)。
+    ledger = read_works(args.works)
+    rows = [r for r in ledger
+            if r.get("match_status") != "excluded" and not W.reports_to_nextone(r)]
 
     # ⚠️ 報告の母集団は「実際に歌詞を掲載した曲」だけ。works.tsv は照合台帳なので
     #    掲載していない曲まで載っている (2,600曲超)。台帳をそのまま出すと
@@ -339,19 +394,7 @@ def cmd_annual(args):
     #      npx wrangler d1 execute imas-live-db --remote \
     #        --command "SELECT song_id FROM song_lyrics WHERE status='published'"
     #    の出力を1行1IDのファイルにして --published に渡す。
-    if args.published:
-        with io.open(args.published, encoding="utf-8") as f:
-            allowed = {ln.strip() for ln in f if ln.strip() and not ln.startswith("#")}
-        before = len(rows)
-        rows = [r for r in rows if r.get("song_id") in allowed]
-        print("掲載中の %d 曲に絞った (台帳 %d 曲中)" % (len(rows), before))
-        missing = allowed - {r.get("song_id") for r in rows}
-        if missing:
-            print("⚠️ 掲載中だが台帳に無い/excluded: %s" % ", ".join(sorted(missing)),
-                  file=sys.stderr)
-    else:
-        print("⚠️ --published を付けていない。台帳の全 %d 曲を報告対象にしている。"
-              % len(rows), file=sys.stderr)
+    rows = filter_published(rows, args.published, " JASRAC 報告分", ledger)
     # 19項目目「リクエスト回数」。--requests-dir を渡したときだけ曲別の実測を使う。
     # 材料は tools/lyrics/collect_request_logs.py が日次で書く TSV。
     request_counts = None
@@ -490,6 +533,17 @@ def main():
                        help="集計期間 YYYYMM-YYYYMM (--requests-dir と対で指定)")
     add_profile_args(p_ann)
     p_ann.set_defaults(func=cmd_annual)
+
+    p_nx = sub.add_parser("nextone", help="NexTone 管理曲の利用曲目と回数 (UTF-8 TSV)")
+    # 許諾 ID000012667 (2026-09-25 許諾、利用期間 2026-05-19〜)。
+    p_nx.add_argument("--license-no", default="ID000012667",
+                      help="NexTone の許諾番号 (既定: ID000012667)")
+    p_nx.add_argument("--published",
+                      help="掲載中の song_id を1行1件で書いたファイル。報告の母集団になる")
+    p_nx.add_argument("--requests-dir", default="data/lyrics_requests",
+                      help="曲別リクエスト回数の日次 TSV があるディレクトリ")
+    p_nx.add_argument("--period", required=True, help="集計期間 YYYYMM-YYYYMM")
+    p_nx.set_defaults(func=cmd_nextone)
 
     p_gap = sub.add_parser("gaps", help="不足項目の洗い出し")
     add_profile_args(p_gap)

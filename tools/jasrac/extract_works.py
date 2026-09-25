@@ -218,6 +218,11 @@ def build_rows(songs, existing):
             print("警告: %s の match_status が不正: %r (unmatched として扱う)"
                   % (s["id"], status), file=sys.stderr)
             status = "unmatched"
+        rights_org = manual.get("rights_org", "")
+        if rights_org not in W.RIGHTS_ORGS:
+            print("警告: %s の rights_org が不正: %r (空欄 = JASRAC として扱う)"
+                  % (s["id"], rights_org), file=sys.stderr)
+            rights_org = ""
 
         out.append({
             "song_id": s["id"],
@@ -240,6 +245,7 @@ def build_rows(songs, existing):
             "jasrac_code": manual.get("jasrac_code", ""),
             "jasrac_title": manual.get("jasrac_title", ""),
             "match_status": status,
+            "rights_org": rights_org,
             "note": manual.get("note", ""),
         })
     return out

@@ -21,6 +21,7 @@ MANUAL_COLS = [
     "jasrac_code",
     "jasrac_title",
     "match_status",
+    "rights_org",
     "note",
 ]
 
@@ -51,6 +52,21 @@ MATCH_STATUSES = {
     "not_found",   # J-WID に見つからない
     "excluded",    # JASRAC 管理外と確認済み。報告母集団から外す
 }
+
+# rights_org の語彙 = 歌詞の利用をどの団体に報告するか。
+# JASRAC と NexTone の両方から許諾を受けているので、曲ごとにどちらかへ振り分ける。
+# 空欄は未確認で、JASRAC に報告する (2026-09 まで全曲 JASRAC 扱いだった流れのまま)。
+RIGHTS_ORGS = {
+    "",          # 未確認 (JASRAC に報告)
+    "jasrac",    # JASRAC 管理と確認済み
+    "nextone",   # NexTone 管理。JASRAC の報告から外し、NexTone の報告に出す
+}
+
+
+def reports_to_nextone(row):
+    """この曲の利用を NexTone に報告するか (False なら JASRAC)。"""
+    return row.get("rights_org") == "nextone"
+
 
 # JASRAC 作品コード: 1桁目=数字 / 2桁目=数字か英大文字 / 3-8桁目=数字 の8文字。
 # 出典: https://j-opus.jasrac.or.jp/opus/popup/sakuhincode_help.html

@@ -208,6 +208,20 @@ NexTone (PlayN) から**許諾番号 `ID000012667`** (サービス名「アイ�
 - 使用料・利用報告の締めはメールに書かれていない。PlayN の許諾詳細を見る。
 
 上の「学マス・876 を draft に戻した」曲は、NexTone 管理と確認できればこの許諾で公開に戻せる。
+公開に戻すのは NexTone の許諾マーク入りビルドが App Store に出てから (fuga 判断)。
+
+**報告の振り分け**: `works.tsv` の `rights_org` 列で曲ごとに団体を決める。
+`nextone` の曲は `annual` (JASRAC) から外れ、`build_reports.py nextone` の出力に入る。
+2026-09-25 時点では学マス・876 の 145 曲を、上の 9/4 のブランド単位の推定どおり `nextone` に
+してある (曲ごとの確認は未。根拠は各行の `note`)。765・シンデレラ等にも NexTone 管理曲が
+混ざっている可能性があり、見つけたらその行を `nextone` にする。
+`nextone` の出力は様式に依らない材料 (曲・作家・曲別回数の UTF-8 TSV) で、
+PlayN の報告様式が分かったらそれに合わせた書き出しを足す。
+
+```bash
+python3 tools/jasrac/build_reports.py nextone --published published.txt \
+    --requests-dir data/lyrics_requests --period 202605-202609
+```
 
 ## 1. まず確認すべきこと — 本当に「非商用配信」か
 
@@ -409,6 +423,7 @@ python3 tools/jasrac/build_reports.py annual --month 202704 \
 | `jasrac_code` | J-WID で確認した8文字の作品コード |
 | `jasrac_title` | J-WID 上の作品名。**埋めると SJIS 変換エラーが解消する** |
 | `match_status` | 下表の5値。誤記は読み込み時に警告 |
+| `rights_org` | どの団体に報告するか。空欄 (未確認 = JASRAC) / `jasrac` / `nextone` |
 | `note` | 判断の根拠メモ |
 
 `match_status` の語彙:
