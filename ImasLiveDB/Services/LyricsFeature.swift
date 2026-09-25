@@ -30,3 +30,17 @@ enum JASRACLicense {
     /// 掲示に使う表記。許諾書の指定は「JASRAC許諾第****************号」。
     static let notice = "JASRAC許諾第\(number)号"
 }
+
+/// NexTone 許諾の掲示物。JASRAC の許諾は JASRAC 管理曲にしか効かないので、
+/// NexTone 管理曲 (学マス・876 に多い) の歌詞はこちらの許諾で出す。
+///
+/// **2026-09-25 許諾** (歌詞・ストリーム形式、利用期間 2026-05-19〜、終了日なし)。
+/// 前提はアプリ内課金が無いこと。Web 版・Android 版も同じ許諾で報告してよいと確認済み。
+/// 条件は「許諾番号を添付の許諾マークと併せてサービス画面上で視認できる任意の箇所に掲載」。
+enum NexToneLicense {
+    /// NexTone の許諾番号は英字2文字 + 数字9桁の11桁。
+    static let number = "ID000012667"
+
+    /// 掲示に使う表記。NexTone の許諾メールの表記 (「許諾番号：ID…」) に合わせる。
+    static let notice = "NexTone許諾番号 \(number)"
+}
