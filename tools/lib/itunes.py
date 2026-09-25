@@ -40,3 +40,16 @@ def artwork_600(result: dict, fallback_60: bool = False) -> str:
     """
     url = result.get("artworkUrl100") or (fallback_60 and result.get("artworkUrl60")) or ""
     return url.replace("100x100bb", "600x600bb")
+
+
+# THE IDOLM@STER.KR (韓国のドラマと Real Girls Project) の盤。アーティスト名・アルバム名に
+# "IDOLM@STER" を含むのでアイマス側の手がかりとして通ってしまうが、765AS の曲と同じ名前の
+# 別曲がある (KR「Dream」と 765AS「DREAM」が 765as_dream の 1 行に混ざっていた)。
+# DB で KR の曲は brand_id='other' に置いてあり、これを指してよいのはその曲だけ。
+KR_MARKERS = ("idolm@ster.kr", "real girls project")
+
+
+def is_kr_release(result: dict) -> bool:
+    """THE IDOLM@STER.KR の盤のトラックか (アーティスト名かアルバム名で見る)。"""
+    blob = f"{result.get('artistName') or ''} {result.get('collectionName') or ''}".lower()
+    return any(m in blob for m in KR_MARKERS)

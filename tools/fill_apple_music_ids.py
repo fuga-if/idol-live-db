@@ -106,8 +106,10 @@ def score(result: dict, title: str, brand_id: str) -> int:
 
 def pick(title: str, brand_id: str, results: list, brand_names: list) -> dict:
     # ハードフィルタ: アイマス側の手がかりが無い候補はスコアを見るまでもなく捨てる
+    # KR の盤は "THE IDOLM@STER" を名乗るので手がかりを通るが、other 以外の曲には付けない。
     candidates = [r for r in results
-                  if has_imas_signal(r.get("artistName") or "", brand_id, brand_names)]
+                  if has_imas_signal(r.get("artistName") or "", brand_id, brand_names)
+                  and (brand_id == "other" or not itunes.is_kr_release(r))]
     if not candidates:
         return None
     scored = [(score(r, title, brand_id), r) for r in candidates]

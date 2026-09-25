@@ -183,6 +183,10 @@ def validate(conn):
                 problems.append(f"{tag}: id が空")
             elif exists(conn, "songs", s["id"]):
                 problems.append(f"{tag}: id '{s['id']}' は既に存在 (新規追加のみ)")
+            elif not s["id"].startswith(f"{s.get('brand_id')}_"):
+                # 他ブランドの接頭辞を借りると、そのブランドの同名曲と id がぶつかる
+                # (KR の曲を 765as_ で入れていて、KR「Dream」が 765as_dream に混ざった)。
+                problems.append(f"{tag}: id '{s['id']}' は brand_id ({s.get('brand_id')}) + '_' で始める")
             for k in s:
                 if k not in scol and k not in ("original_singers", *ANNOTATION_KEYS):
                     problems.append(f"{tag}: 未知の列 '{k}'")

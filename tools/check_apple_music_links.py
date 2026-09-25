@@ -12,6 +12,9 @@
   - その曲の singer_label に載っているアイドル名
   - units / idols / idol_voice_actors に載っている名前
 
+ただし THE IDOLM@STER.KR の盤は、brand_id が other (KR の曲の置き場) でない曲が
+指していれば、手がかりに関係なく落とす。765as_dream が KR の「Dream」を指していた。
+
 アルバム id の食い違いは**見ない**。ベスト盤や GAME VERSION 収録で
 track と album が別になっている曲が 267 件あり、そちらは誤りではないため。
 
@@ -96,6 +99,11 @@ def main():
         res = found.get(str(tid))
         if res is None:
             gone.append((sid, title, tid))
+            continue
+        # KR の盤は "IDOLM@STER" で手がかりを通ってしまうので先に見る。other 以外で指していたら誤り。
+        if brand != "other" and itunes.is_kr_release(res):
+            suspect.append((sid, title, tid, res.get("trackName", ""),
+                            res.get("artistName", ""), res.get("collectionName", "")))
             continue
         blob = normalize((res.get("artistName") or "") + (res.get("collectionName") or ""))
         if any(s in blob for s in signals):

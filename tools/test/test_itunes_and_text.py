@@ -143,6 +143,30 @@ class ITunesClientsTest(unittest.TestCase):
                 call()
 
 
+class KrReleaseTest(unittest.TestCase):
+    """THE IDOLM@STER.KR の盤は 765AS 等の曲に付けない (765as_dream が KR「Dream」を指していた)。"""
+
+    KR = dict(TRACK, trackName="Dream", artistName="Real Girls Project(R.G.P)",
+              collectionName="THE IDOLM@STER.KR MUSIC Episode1 - EP")
+    AS = dict(TRACK, trackName="DREAM", artistName="THE IDOLM@STER",
+              collectionName="THE IDOLM@STER BEST OF 765+876=!! VOL.02")
+
+    def test_detects_kr_releases(self):
+        self.assertTrue(itunes.is_kr_release(self.KR))
+        self.assertTrue(itunes.is_kr_release(dict(TRACK, collectionName="THE IDOLM@STER.KR MUSIC Episode4")))
+        self.assertFalse(itunes.is_kr_release(self.AS))
+        self.assertFalse(itunes.is_kr_release({}))
+
+    def test_fill_does_not_pick_a_kr_track_for_765as(self):
+        kr = dict(self.KR, trackName="DREAM", artistName="THE IDOLM@STER.KR")
+        self.assertIsNone(fill_apple_music_ids.pick("DREAM", "765as", [kr], []))
+        self.assertIs(fill_apple_music_ids.pick("DREAM", "765as", [kr, self.AS], []), self.AS)
+
+    def test_fill_still_picks_it_for_other(self):
+        kr = dict(self.KR, trackName="One for all", artistName="Real Girls Project")
+        self.assertIs(fill_apple_music_ids.pick("One for all", "other", [kr], ["realgirlsproject"]), kr)
+
+
 class ArtworkTest(unittest.TestCase):
     URL100 = "https://example.com/a/100x100bb.jpg"
     URL60 = "https://example.com/a/60x60bb.jpg"

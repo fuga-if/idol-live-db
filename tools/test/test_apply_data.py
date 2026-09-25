@@ -224,6 +224,26 @@ class TitleKanaRequiredTest(PostFixture):
         self.assertEqual(len(self.kana_problems(title_kana="シンキョク")), 1)
 
 
+class SongIdPrefixTest(PostFixture):
+    """新曲の id は brand_id で始める。他ブランドの接頭辞だと同名曲とぶつかる (765as_dream と KR「Dream」)。"""
+
+    def id_problems(self, **extra):
+        post = {"source": "https://example.com/news", "songs": [self.song(title_kana="しんきょく", **extra)]}
+        support.write_json(self.data / "songs" / "post.json", post)
+        conn = sqlite3.connect(str(self.db))
+        try:
+            return [p for p in apply_data.validate(conn) if "で始める" in p]
+        finally:
+            conn.close()
+
+    def test_an_id_with_its_own_brand_passes(self):
+        self.assertEqual(self.id_problems(), [])
+        self.assertEqual(self.id_problems(id="other_kr_dream", brand_id="other"), [])
+
+    def test_an_id_borrowing_another_brand_is_rejected(self):
+        self.assertEqual(len(self.id_problems(id="765as_dream", brand_id="other")), 1)
+
+
 class AddOriginalSingersTest(PostFixture):
     """data/fixes/ の add_original_singers で既存曲に原唱者を足す。"""
 

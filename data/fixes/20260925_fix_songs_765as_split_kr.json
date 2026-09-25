@@ -1,0 +1,16 @@
+{
+ "title": "songs の 765as_dream と 765as_アイ_must_go から THE IDOLM@STER.KR の値を外す",
+ "author": "fuga (project thread 2026-09-25)",
+ "source": ["https://shop.columbia.jp/shop/g/gD6981/", "https://imas-db.jp/song/detail/130.html", "https://itunes.apple.com/lookup?id=1665511839&country=jp"],
+ "note": "KR 側は data/songs/20260925_song_other_kr_split.json で別の曲にした。765as_dream は 20260924_issue149 と同じ内容 (あちらは _applied に移ったが 2026-09-24 の db/master.sql にはまだ KR の値が残っている): BEST OF 765+876=!! VOL.02 収録・Apple Music 配信なしに戻す。作詞 yura Dark は AS 版の正しい表記なので触らない。765as_アイ_must_go は 2023-01-21 に配信された M@STERS OF IDOL WORLD!!2015 名義の単曲 (track 1665511839) に付け替える。NULL を含むので CloudKit へは seed_cloudkit.py --tables songs --ids ... --replace で送る。",
+ "fixes": [
+  {"table": "songs", "id": "765as_dream", "fields": {
+   "cd_series": "THE IDOLM@STER BEST OF 765+876=!! VOL.02",
+   "apple_music_id": null, "apple_music_album_id": null, "artwork_url": null, "preview_url": null}},
+  {"table": "songs", "id": "765as_アイ_must_go", "fields": {
+   "cd_series": "アイ MUST GO! - Single",
+   "apple_music_id": "1665511839", "apple_music_album_id": "1665511829",
+   "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music123/v4/39/8d/39/398d3991-ab9f-3141-4242-d3f9564dd4b4/PA00111826_0_160470_jacket.jpg/600x600bb.jpg",
+   "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview123/v4/02/84/85/028485cc-37d2-c192-d251-64039a7082f6/mzaf_4180355469935738328.plus.aac.p.m4a"}}
+ ]
+}
