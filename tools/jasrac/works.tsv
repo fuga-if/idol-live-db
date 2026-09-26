@@ -8,12 +8,12 @@ song_id	title	work_title	subtitle	lyricist_raw	lyricist_norm	composer_raw	compos
 765as_902pmドラゴンバスター_ファミソン8bit_mix	9:02pm(『ドラゴンバスター』 ファミソン8BIT MIX)	9:02pm	『ドラゴンバスター』 ファミソン8BIT MIX	yura	yura	BNSI(Jesahm)	Jesahm	三浦あずさ、秋月律子	unit	765as	765as_902pm	1	imasdb-14e0b1165c5a			unmatched		
 765as_99_nights	99 Nights	99 Nights		BNSI(MC TC)	MC TC	BNSI(Taku Inoue)	Taku Inoue	星井美希、水瀬伊織、四条貴音	unit	765as			imasdb-247963b2b453			unmatched		
 765as_advance	Advance	Advance		原紗友里・青木瑠璃子	原紗友里;青木瑠璃子	平清十郎[TRYTONELABO]	平清十郎[TRYTONELABO]	原紗友里&青木瑠璃子 from CINDERELLA PARTY!	unit	765as			imasdb-34170c6127b3			unmatched		
-765as_alright	ALRIGHT*	ALRIGHT*		yura	yura	cota	cota	萩原雪歩	solo	765as			imasdb-70fea5d8ce94			unmatched		
-765as_arcadia	arcadia	arcadia		白瀬彩	白瀬彩	上松範康(Elements Garden)	上松範康(Elements Garden)	如月千早	solo	765as			imasdb-9a500d65dab9			unmatched		
-765as_arcadia_-bossa_nova_rearrange_mix-	arcadia -BOSSA NOVA Rearrange Mix-	arcadia	BOSSA NOVA Rearrange Mix	白瀬彩	白瀬彩	上松範康	上松範康	如月千早	solo	765as	765as_arcadia	1	imasdb-3ffe11321b3d			unmatched		
+765as_alright	ALRIGHT*	ALRIGHT*		yura	yura	cota	cota	萩原雪歩	solo	765as			imasdb-70fea5d8ce94			unmatched	nextone	NexTone: 作品コード N00567101 配信=manage (2026-09-16 NexTone 作品検索)
+765as_arcadia	arcadia	arcadia		白瀬彩	白瀬彩	上松範康(Elements Garden)	上松範康(Elements Garden)	如月千早	solo	765as			imasdb-9a500d65dab9			unmatched	nextone	NexTone: 作品コード N00567100 配信=manage (2026-09-16 NexTone 作品検索)
+765as_arcadia_-bossa_nova_rearrange_mix-	arcadia -BOSSA NOVA Rearrange Mix-	arcadia	BOSSA NOVA Rearrange Mix	白瀬彩	白瀬彩	上松範康	上松範康	如月千早	solo	765as	765as_arcadia	1	imasdb-3ffe11321b3d			unmatched	nextone	NexTone: 作品コード N00567100 配信=manage (2026-09-16 NexTone 作品検索)
 765as_avalon	AVALON	AVALON		三浦誠司	三浦誠司	南陽子	南陽子	沼倉愛美	solo	765as			imasdb-520e23842af4			unmatched		
 765as_best_road	BEST ROAD	BEST ROAD		たかはし智秋	たかはし智秋	宮島律子	宮島律子	たかはし智秋	solo	765as			imasdb-d72f1616bf3d			unmatched		
-765as_binarystar	Binary Star	Binary Star						三浦あずさ、秋月律子	unit	765as			imasdb-51b82ac58d3e			unmatched		
+765as_binarystar	Binary Star	Binary Star						三浦あずさ、秋月律子	unit	765as			imasdb-51b82ac58d3e			unmatched		JASRAC 非委託・NexTone 未発見 (2026-09-16)
 765as_brand_new_day	Brand New Day!	Brand New Day!		BNSI(おおくぼひろし)	おおくぼひろし	BNSI(おおくぼひろし)	おおくぼひろし	我那覇響	solo	765as			imasdb-c1331bc0e4e3			unmatched		
 765as_brave_star	BRAVE STAR	BRAVE STAR		宮崎誠	宮崎誠	宮崎誠	宮崎誠	天海春香、如月千早、四条貴音、秋月律子	unit	765as			imasdb-b82b7d05fed4			unmatched		
 765as_change	CHANGE!!!!	CHANGE!!!!		yura	yura	NBGI(内田哲也)	NBGI(内田哲也)	765PRO ALLSTARS	all	765as			imasdb-25f0d4dbcdab			unmatched		
@@ -25,11 +25,11 @@ song_id	title	work_title	subtitle	lyricist_raw	lyricist_norm	composer_raw	compos
 765as_contradiction	Contradiction	Contradiction		kanoko	kanoko	桜庭統	桜庭統	今井麻美、たかはし智秋	unit	765as			imasdb-4bfccb19ca95			unmatched		
 765as_crescent_maze	Crescent Maze	Crescent Maze		BOUNCEBACK	BOUNCEBACK	水野大輔	水野大輔	原由実	solo	765as			imasdb-c2631950088a			unmatched		
 765as_crimson_lovers	CRIMSON LOVERS	CRIMSON LOVERS		只野菜摘	只野菜摘	広川恵一(MONACA)	広川恵一(MONACA)	天海春香、如月千早	unit	765as			imasdb-096ebef32a6d			unmatched		
-765as_crystloud	CRYST@LOUD	CRYST@LOUD		古屋真	古屋真	石濱翔(MONACA)	石濱翔(MONACA)	天海春香、渋谷凛、伊吹翼、天道輝、八宮めぐる	unit	765as			imasdb-687a690944fb			unmatched		
-765as_day_of_the_future	Day of the future	Day of the future		オミ織葉	オミ織葉	Tatsh	Tatsh	星井美希	solo	765as			imasdb-6d84a5443594			unmatched		
+765as_crystloud	CRYST@LOUD	CRYST@LOUD		古屋真	古屋真	石濱翔(MONACA)	石濱翔(MONACA)	天海春香、渋谷凛、伊吹翼、天道輝、八宮めぐる	unit	765as			imasdb-687a690944fb			unmatched	nextone	NexTone: 作品コード N01235160 配信=manage (2026-09-16 NexTone 作品検索)
+765as_day_of_the_future	Day of the future	Day of the future		オミ織葉	オミ織葉	Tatsh	Tatsh	星井美希	solo	765as			imasdb-6d84a5443594			unmatched	nextone	NexTone: 作品コード N00567064 配信=manage (2026-09-16 NexTone 作品検索)
 765as_dead_or_alive	DEAD or ALIVE	DEAD or ALIVE		奥井雅美	奥井雅美	IMAJO	IMAJO	今井麻美、原由実、沼倉愛美	unit	765as			imasdb-3e22baa42b9f			unmatched		
 765as_destiny	destiny	destiny		荘野ジュリ	荘野ジュリ	大野宏明	大野宏明	たかはし智秋	all	765as			imasdb-bfc247af830e			unmatched		
-765as_diamond	DIAMOND	DIAMOND		白瀬彩	白瀬彩	Asu(The New Classics)	Asu(The New Classics)	水瀬伊織	solo	765as			imasdb-a45683ae23f1			unmatched		
+765as_diamond	DIAMOND	DIAMOND		白瀬彩	白瀬彩	Asu(The New Classics)	Asu(The New Classics)	水瀬伊織	solo	765as			imasdb-a45683ae23f1			unmatched	nextone	NexTone: 作品コード N00567071 配信=manage (2026-09-16 NexTone 作品検索)
 765as_do-dai	Do-Dai	Do-Dai		BNSI(mft)	mft	BNSI(中川浩二)	中川浩二	高槻やよい、双海亜美、星井美希	unit	765as			imasdb-f5669c807779			unmatched		
 765as_do-dairemster-a	Do-Dai(REM@STER-A)	Do-Dai	REM@STER-A	NBGI(mft)	NBGI(mft)	NBGI(中川浩二)	NBGI(中川浩二)	星井美希、水瀬伊織	unit	765as	765as_do-dai	1	imasdb-f0f6475d7489			unmatched		
 765as_do-dairemster-b	Do-Dai(REM@STER-B)	Do-Dai	REM@STER-B	NBGI(mft)	NBGI(mft)	NBGI(中川浩二)	NBGI(中川浩二)	如月千早、我那覇響	unit	765as	765as_do-dai	1	imasdb-17639b679cf2			unmatched		
@@ -38,7 +38,7 @@ song_id	title	work_title	subtitle	lyricist_raw	lyricist_norm	composer_raw	compos
 765as_endless_tour	ENDLESS TOUR	ENDLESS TOUR		伊福部崇	伊福部崇	田中俊亮	田中俊亮	春日未来、最上静香、箱崎星梨花	unit	765as			imasdb-984fcca6ee7b			unmatched		
 765as_ever_rising	EVER RISING	EVER RISING		松井洋平	松井洋平	小高光太郎・UiNA	小高光太郎;UiNA	奥空心白、亜夜	unit	765as			imasdb-326ea190af13			unmatched		
 765as_ever_sunny	Ever Sunny	Ever Sunny		花衣(SUPA LOVE)	花衣(SUPA LOVE)	中村瑛彦(SUPA LOVE)	中村瑛彦(SUPA LOVE)	菊地真	solo	765as			imasdb-524ac9042ab3			unmatched		
-765as_excavate	EXCAVATE	EXCAVATE		NanaerikA-PROJECT	NanaerikA-PROJECT	NBGI(慶野由利子)	NBGI(慶野由利子)	萩原雪歩	solo	765as			imasdb-9930b879dd30			unmatched		
+765as_excavate	EXCAVATE	EXCAVATE		NanaerikA-PROJECT	NanaerikA-PROJECT	NBGI(慶野由利子)	NBGI(慶野由利子)	萩原雪歩	solo	765as			imasdb-9930b879dd30			unmatched		JASRAC 非委託・NexTone 未発見 (2026-09-16)
 765as_fate_of_the_world	Fate of the World	Fate of the World		BNSI(kyo)	kyo	BNSI(kyo)	kyo	天海春香、星井美希、如月千早	unit	765as			imasdb-0f5b32796001			unmatched		
 765as_feelingfine	Feeling Fine	Feeling Fine							cover	765as			imasdb-99bb9ee215d4			unmatched		
 765as_first_stage	First Stage	First Stage		中村恵	中村恵	BNSI(佐々木宏人)	佐々木宏人	萩原雪歩	solo	765as			imasdb-e7be4143a86b			unmatched		
@@ -72,37 +72,37 @@ song_id	title	work_title	subtitle	lyricist_raw	lyricist_norm	composer_raw	compos
 765as_hug	HUG	HUG		園田健太郎	園田健太郎	園田健太郎	園田健太郎	我那覇響	solo	765as			imasdb-d35f8de1801a			unmatched		
 765as_i	i	i		中村恵	中村恵	BNSI(佐々木宏人)	佐々木宏人	天海春香	unit	765as			imasdb-9b71d5267662			unmatched		
 765as_i_want	I Want	I Want		BNSI(LindaAI-CUE)	LindaAI-CUE	BNSI(LindaAI-CUE)	LindaAI-CUE	天海春香	solo	765as			imasdb-a345c80b5313			unmatched		
-765as_idol	ID:[OL]	ID:[OL]		yura	yura	上田晃司	上田晃司	音無小鳥	unit	765as			imasdb-857abd7e8659			unmatched		
+765as_idol	ID:[OL]	ID:[OL]		yura	yura	上田晃司	上田晃司	音無小鳥	unit	765as			imasdb-857abd7e8659			unmatched	nextone	NexTone: 作品コード N00567077 配信=manage (2026-09-16 NexTone 作品検索)
 765as_idol_power_rainbow	IDOL POWER RAINBOW	IDOL POWER RAINBOW		有栖川姫子	有栖川姫子	佐々木宏人	佐々木宏人	天海春香、如月千早、星井美希、島村卯月、渋谷凛、本田未央、春日未来、最上静香、伊吹翼	unit	765as			imasdb-ffb78e0758f5			unmatched		
 765as_idolheart	IDOL☆HEART	IDOL☆HEART		yura	yura	滝澤俊輔(TRYTONELABO)	滝澤俊輔(TRYTONELABO)	765PRO ALLSTARS(天海春香、星井美希、如月千早、高槻やよい、萩原雪歩、菊地真、双海亜美、双海真美、水瀬伊織、三浦あずさ、四条貴音、我那覇響、秋月律子)	all	765as			imasdb-49d9d4efd758			unmatched		
 765as_im_so_free	I'm so free!	I'm so free!		佐伯youthK(rhythm zone)	佐伯youthK(rhythm zone)	佐伯youthK(rhythm zone)	佐伯youthK(rhythm zone)	星井美希、三浦あずさ、四条貴音	unit	765as			imasdb-1fce2c79a392			unmatched		
 765as_im_yours	I'm yours	I'm yours		宮崎誠	宮崎誠	宮崎誠	宮崎誠	天海春香	solo	765as			imasdb-212d227b3c81			unmatched		
 765as_in_wonderradio	in WonderRadio	in WonderRadio		伊福部崇	伊福部崇	杉浦”ラフィン”誠一郎	杉浦”ラフィン”誠一郎	沼倉愛美&原由実&浅倉杏美 from THE IDOLM@STER STATION!!!	unit	765as			imasdb-e2027dfaa0f9			unmatched		
-765as_inferno	inferno	inferno		yura Dark	yura Dark	藤末樹	藤末樹	如月千早、萩原雪歩	unit	765as			imasdb-98218e859c4e			unmatched		
+765as_inferno	inferno	inferno		yura Dark	yura Dark	藤末樹	藤末樹	如月千早、萩原雪歩	unit	765as			imasdb-98218e859c4e			unmatched	nextone	NexTone: 作品コード N00567086 配信=manage (2026-09-16 NexTone 作品検索)
 765as_inferno_squaring	inferno SQUARING	inferno SQUARING		yura Dark	yura Dark	藤末樹	藤末樹	如月千早、萩原雪歩	unit	765as			imasdb-c91062c6c325			unmatched		
 765as_inspire	Inspire	Inspire		園田凌士	園田凌士	菊田大介(Elements Garden)	菊田大介(Elements Garden)	今井麻美、たかはし智秋	unit	765as			imasdb-a17428570187			unmatched		
 765as_iremster-a	i(REM@STER-A)	i	REM@STER-A	中村恵	中村恵	NBGI(佐々木宏人)	NBGI(佐々木宏人)	天海春香、高槻やよい	unit	765as	765as_i	1	imasdb-b4f52dbb9c87			unmatched		
 765as_its_alright	It's ALRIGHT!	It's ALRIGHT!		kenko-p	kenko-p	R・O・N	R;O;N	沼倉愛美	solo	765as			imasdb-82b39707b802			unmatched		
-765as_its_show	It's Show	It's Show		yura	yura	藤末樹	藤末樹	如月千早、水瀬伊織、秋月律子、菊地真、萩原雪歩、音無小鳥	unit	765as			imasdb-ba0f4d48f419			unmatched		
+765as_its_show	It's Show	It's Show		yura	yura	藤末樹	藤末樹	如月千早、水瀬伊織、秋月律子、菊地真、萩原雪歩、音無小鳥	unit	765as			imasdb-ba0f4d48f419			unmatched	nextone	NexTone: 作品コード N00567082 配信=manage (2026-09-16 NexTone 作品検索)
 765as_jm-justify_myself-	JM-Justify Myself-	JM-Justify Myself-		柚木美祐	柚木美祐	岸井将	岸井将	たかはし智秋&今井麻美	unit	765as			imasdb-819f2d4a9e95			unmatched		
 765as_jump	J☆U☆M☆P	J☆U☆M☆P		yura	yura	高田龍一	高田龍一	天海春香、高槻やよい、星井美希	unit	765as			imasdb-344290b9753c			unmatched		
 765as_kawaii_ウォーズ	KAWAII ウォーズ	KAWAII ウォーズ		ササキトモコ	ササキトモコ	ササキトモコ	ササキトモコ	田中琴葉、天海春香、菊地真、水瀬伊織、我那覇響、双葉杏、安部菜々、春日未来、大崎甘奈、大崎甜花、詩花、奥空心白	all	765as			imasdb-28eb106896f4			unmatched		
-765as_kiss_-hiroyuki_kawada_remix-	KisS -Hiroyuki Kawada Remix-	KisS	Hiroyuki Kawada Remix	yura Dark	yura Dark	橋本由香利	橋本由香利	765PRO ALLSTARS	all	765as	961_kiss	1	imasdb-678351d145b0			unmatched		
+765as_kiss_-hiroyuki_kawada_remix-	KisS -Hiroyuki Kawada Remix-	KisS	Hiroyuki Kawada Remix	yura Dark	yura Dark	橋本由香利	橋本由香利	765PRO ALLSTARS	all	765as	961_kiss	1	imasdb-678351d145b0			unmatched	nextone	NexTone: 作品コード N00567091 配信=manage (2026-09-16 NexTone 作品検索)
 765as_kosmos_cosmos	Kosmos, Cosmos	Kosmos, Cosmos		遠藤フビト	遠藤フビト	BNEI(内田哲也)	内田哲也	萩原雪歩	solo	765as			imasdb-45fad900fd7e			unmatched		
 765as_kosmos_cosmos_-neo_acoustic_rearrange_mix-	Kosmos, Cosmos -NEO ACOUSTIC Rearrange Mix-	Kosmos, Cosmos	NEO ACOUSTIC Rearrange Mix	遠藤フビト	遠藤フビト	NBGI(内田哲也)	NBGI(内田哲也)	萩原雪歩	solo	765as	765as_kosmos_cosmos	1	imasdb-bc582cb5f480			unmatched		
-765as_labyrinth	Labyrinth	Labyrinth		GeorgeA & NanaerikA-PROJECT	GeorgeA;NanaerikA-PROJECT	NBGI(甲斐敏夫)	NBGI(甲斐敏夫)	高槻やよい	solo	765as			imasdb-4d3131f2ece9			unmatched		
+765as_labyrinth	Labyrinth	Labyrinth		GeorgeA & NanaerikA-PROJECT	GeorgeA;NanaerikA-PROJECT	NBGI(甲斐敏夫)	NBGI(甲斐敏夫)	高槻やよい	solo	765as			imasdb-4d3131f2ece9			unmatched		JASRAC 非委託・NexTone 未発見 (2026-09-16)
 765as_ladycake	Lady☆Cake	Lady☆Cake		三重野瞳	三重野瞳	宮垣憲一郎	宮垣憲一郎	たかはし智秋&今井麻美	unit	765as			imasdb-06da3e0fa34a			unmatched		
-765as_large_size_party	Large Size Party	Large Size Party		瀬良羽美	瀬良羽美	宮島律子	宮島律子	三浦あずさ、四条貴音、如月千早	unit	765as			imasdb-80b0db6cef47			unmatched		
+765as_large_size_party	Large Size Party	Large Size Party		瀬良羽美	瀬良羽美	宮島律子	宮島律子	三浦あずさ、四条貴音、如月千早	unit	765as			imasdb-80b0db6cef47			unmatched	nextone	NexTone: 作品コード N00567046 配信=manage (2026-09-16 NexTone 作品検索)
 765as_lemonade	LEMONADE	LEMONADE		堀込高樹	堀込高樹	堀込高樹	堀込高樹	萩原雪歩、三浦あずさ	unit	765as			imasdb-c2d812b8fab8			unmatched		
 765as_light_year_song	Light Year Song	Light Year Song		BNSI(MCTC)	MCTC	BNSI(Taku Inoue)	Taku Inoue	高槻やよい、菊地真、双海亜美/真美、我那覇響	unit	765as			imasdb-6fdfca98c8a9			unmatched		
 765as_little_match_girl	Little Match Girl	Little Match Girl		ESTi	ESTi	ESTi	ESTi	如月千早、萩原雪歩	unit	765as			imasdb-2650cfa0893b			unmatched		
-765as_live	livE	livE		yura Dark	yura Dark	橋本由香利	橋本由香利	秋月律子	solo	765as			imasdb-54cc318eebf9			unmatched		
+765as_live	livE	livE		yura Dark	yura Dark	橋本由香利	橋本由香利	秋月律子	solo	765as			imasdb-54cc318eebf9			unmatched	nextone	NexTone: 作品コード N00567097 配信=manage (2026-09-16 NexTone 作品検索)
 765as_live_for_love	LIVE for LOVE!	LIVE for LOVE!		畑亜貴	畑亜貴	黒須克彦	黒須克彦	天海春香	solo	765as			imasdb-031c1629b4eb			unmatched		
 765as_lobm	L・O・B・M	L・O・B・M		BNSI(mft)	mft	BNSI(高田龍一)	高田龍一	765PRO ALLSTARS	all	765as			imasdb-65a521e0cade			unmatched		
 765as_look_the_sky	LOOK THE SKY	LOOK THE SKY		yura	yura	藤本記子	藤本記子	三浦あずさ	solo	765as			imasdb-5331c6781e66			unmatched		
 765as_looking_for_love	Looking For Love	Looking For Love		中村恵	中村恵	佐々木宏人	佐々木宏人	天海春香、星井美希	unit	765as			imasdb-a742bc714637			unmatched		
 765as_lost	LOST	LOST		yura-yura Dark	yura-yura Dark	神前暁	神前暁	如月千早、三浦あずさ、水瀬伊織、双海亜美/真美、水谷絵理	unit	765as			imasdb-ce6f8aedac7e			unmatched		
-765as_loveオーダーメイド	LOVEオーダーメイド	LOVEオーダーメイド		三浦誠司	三浦誠司	Akiko Noda	Akiko Noda	秋月律子	solo	765as			imasdb-fbac6bf8437e			unmatched		
+765as_loveオーダーメイド	LOVEオーダーメイド	LOVEオーダーメイド		三浦誠司	三浦誠司	Akiko Noda	Akiko Noda	秋月律子	solo	765as			imasdb-fbac6bf8437e			unmatched	nextone	NexTone: 作品コード N00567074 配信=manage (2026-09-16 NexTone 作品検索)
 765as_lr	L<>R	L<>R		中村恵	中村恵	NBGI(大野木宣幸)	NBGI(大野木宣幸)	双海亜美/真美	solo	765as			imasdb-34b3327fd8b9			unmatched		
 765as_maybe_tomorrow	Maybe TOMORROW	Maybe TOMORROW		イイジマケン	イイジマケン	イイジマケン	イイジマケン	765PRO ALLSTARS	solo	765as			imasdb-f70e98b6a98f			unmatched		
 765as_maybe_tomorrow_petit_specialver	Maybe TOMORROW Petit Special.ver	Maybe TOMORROW Petit Special.ver		イイジマケン	イイジマケン	イイジマケン	イイジマケン	やよ、いお、みうらさん、たかにゃ	unit	765as			imasdb-92c6e3cf8ef9			unmatched		
@@ -140,7 +140,7 @@ song_id	title	work_title	subtitle	lyricist_raw	lyricist_norm	composer_raw	compos
 765as_pingpong_game	PINGPONG GAME	PINGPONG GAME		Gamenrider[서용배(Seo Yong Bae)、박우상(Park Woo Sang)、이상호(Lee Sang Ho)]	Gamenrider[서용배(Seo Yong Bae)、박우상(Park Woo Sang)、이상호(Lee Sang Ho)]	Gamenrider[서용배(Seo Yong Bae)、박우상(Park Woo Sang)、이상호(Lee Sang Ho)]	Gamenrider[서용배(Seo Yong Bae)、박우상(Park Woo Sang)、이상호(Lee Sang Ho)]	Real Girls Project(ソリ、ユキカ、ジウォン、イェウン、スジ)	unit	765as			imasdb-7d01213efe02			unmatched		
 765as_pink_の_february	pink の february	pink の february		只野菜摘	只野菜摘	佐藤和郎	佐藤和郎	今井麻美&たかはし智秋	unit	765as			imasdb-bf82cfedaa7f			unmatched		
 765as_pon_de_beach	Pon De Beach	Pon De Beach		BNSI(MC TC)	MC TC	BNSI(Taku Inoue)	Taku Inoue	我那覇響	solo	765as			imasdb-05a745c87c39			unmatched		
-765as_poplinks_tune	POPLINKS TUNE!!!!!	POPLINKS TUNE!!!!!		BNSI (ミフメイ)	ミフメイ	BNSI (ミフメイ)	ミフメイ	天海春香、島村卯月、春日未来、天道輝、櫻木真乃	unit	765as			imasdb-922b68e33722			unmatched		
+765as_poplinks_tune	POPLINKS TUNE!!!!!	POPLINKS TUNE!!!!!		BNSI (ミフメイ)	ミフメイ	BNSI (ミフメイ)	ミフメイ	天海春香、島村卯月、春日未来、天道輝、櫻木真乃	unit	765as			imasdb-922b68e33722			unmatched	nextone	NexTone: 作品コード N01235158 配信=manage (2026-09-16 NexTone 作品検索)
 765as_princess_snow_white	Princess Snow White	Princess Snow White		yura	yura	山口朗彦	山口朗彦	四条貴音	solo	765as			imasdb-73236958e90a			unmatched		
 765as_pu-ru-ru	Pu-Ru-Ru	Pu-Ru-Ru		yura	yura	神谷礼	神谷礼	萩原雪歩	solo	765as			imasdb-13dff2eaeefa			unmatched		
 765as_qa	Q&A	Q&A		yura	yura	市蔵	市蔵	秋月律子	solo	765as			imasdb-99bde0ab8610			unmatched		
@@ -169,14 +169,14 @@ song_id	title	work_title	subtitle	lyricist_raw	lyricist_norm	composer_raw	compos
 765as_smoky_fruits	SMOKY FRUITS	SMOKY FRUITS		uRy	uRy	uRy	uRy	水瀬伊織、三浦あずさ、双海亜美	unit	765as			imasdb-249802a36dc0			unmatched		
 765as_smoky_thrill	SMOKY THRILL	SMOKY THRILL		BNSI(uRy)	uRy	BNSI(uRy)	uRy	竜宮小町、三浦あずさ、双海亜美	solo	765as			imasdb-edb43623609b			unmatched		
 765as_smoky_thrill_-rio_hamamoto_remix-	SMOKY THRILL -Rio Hamamoto Remix-	SMOKY THRILL	Rio Hamamoto Remix	BNEI(uRy)	uRy	BNEI(uRy)	uRy	双海亜美	solo	765as	765as_smoky_thrill	1	imasdb-619deb613ce7			unmatched		
-765as_start	START!!	START!!		白瀬彩	白瀬彩	宮崎誠	宮崎誠	天海春香	solo	765as			imasdb-5e79f21c542a			unmatched		
+765as_start	START!!	START!!		白瀬彩	白瀬彩	宮崎誠	宮崎誠	天海春香	solo	765as			imasdb-5e79f21c542a			unmatched	nextone	NexTone: 作品コード N00567059 配信=manage (2026-09-16 NexTone 作品検索)
 765as_still_love	Still Love	Still Love		荘野ジュリ	荘野ジュリ	Jin Nakamura	Jin Nakamura	今井麻美	solo	765as			imasdb-eadddb80785d			unmatched		
 765as_strawberry_pain	Strawberry pain	Strawberry pain		石川智晶	石川智晶	石川智晶	石川智晶	沼倉愛美	solo	765as			imasdb-776c55efccaa			unmatched		
 765as_stylish_queen	STYLISH QUEEN★	STYLISH QUEEN★		たかはし智秋	たかはし智秋	上田晃司	上田晃司	たかはし智秋	solo	765as			imasdb-15350217ae4f			unmatched		
 765as_sunshine	sunshine	sunshine		貝田由里子	貝田由里子	内藤匠(SETOFF RECORDS)	内藤匠(SETOFF RECORDS)	たかはし智秋	solo	765as			imasdb-bc615f2b2236			unmatched		
 765as_superstar	SUPERSTAR	SUPERSTAR		辻純更	辻純更	Ryo Fujimura	Ryo Fujimura	浅倉杏美	solo	765as			imasdb-23f800a8a134			unmatched		
 765as_switch_on	SWITCH ON	SWITCH ON		yura	yura	el	el	天海春香	solo	765as			imasdb-5bc51134535a			unmatched		
-765as_tear	tear	tear		貝田由里子	貝田由里子	中山真斗(Elements Garden)	中山真斗(Elements Garden)	菊地真	solo	765as			imasdb-8538de9a2949			unmatched		
+765as_tear	tear	tear		貝田由里子	貝田由里子	中山真斗(Elements Garden)	中山真斗(Elements Garden)	菊地真	solo	765as			imasdb-8538de9a2949			unmatched	nextone	NexTone: 作品コード N00567065 配信=manage (2026-09-16 NexTone 作品検索)
 765as_the_idolmster	THE IDOLM@STER	THE IDOLM@STER		中村恵	中村恵	BNSI(佐々木宏人)	佐々木宏人	天海春香、菊地真、双海亜美、双海真美、星井美希	unit	765as			imasdb-f0c14e49c5f6			unmatched		
 765as_the_idolmster_-rio_hamamoto_remix-	THE IDOLM@STER -Rio Hamamoto Remix-	THE IDOLM@STER	Rio Hamamoto Remix	中村恵	中村恵	BNGI(佐々木宏人)	BNGI(佐々木宏人)	765PRO ALLSTARS	all	765as	765as_the_idolmster	1	imasdb-3bf774c9c5d3			unmatched		
 765as_the_idolmster_2nd-mix	THE IDOLM@STER 2nd-mix	THE IDOLM@STER 2nd-mix		中村恵	中村恵	NBGI(佐々木宏人)	NBGI(佐々木宏人)	天海春香、星井美希、萩原雪歩、我那覇響、四条貴音	unit	765as			imasdb-5993d439d13e			unmatched		
@@ -191,7 +191,7 @@ song_id	title	work_title	subtitle	lyricist_raw	lyricist_norm	composer_raw	compos
 765as_top	ToP!!!!!!!!!!!!!	ToP!!!!!!!!!!!!!		yura	yura	BNSI (佐藤貴文)	佐藤貴文	765PRO ALLSTARS	all	765as			imasdb-a152df839cb4			unmatched		
 765as_tower_of_adventure	Tower of Adventure	Tower of Adventure		UMII.Amyu.NanaerikA-PROJECT	UMII.Amyu.NanaerikA-PROJECT	NBGI(中潟憲雄)	NBGI(中潟憲雄)	秋月律子	solo	765as			imasdb-8dc67bb5830b			unmatched		
 765as_traveler	Traveler	Traveler		原由実/沼倉愛美/今井麻美	原由実/沼倉愛美/今井麻美	MIKOTO	MIKOTO	今井麻美、原由実、沼倉愛美	unit	765as			imasdb-b998cd5a1db8			unmatched		
-765as_trial_dance	TRIAL DANCE	TRIAL DANCE		yura	yura	中西圭三	中西圭三	我那覇響	solo	765as			imasdb-60f30ab395b7			unmatched		
+765as_trial_dance	TRIAL DANCE	TRIAL DANCE		yura	yura	中西圭三	中西圭三	我那覇響	solo	765as			imasdb-60f30ab395b7			unmatched	nextone	NexTone: 作品コード N00567061 配信=manage (2026-09-16 NexTone 作品検索)
 765as_unmei_ライブ	U・N・M・E・I ライブ	U・N・M・E・I ライブ		伊福部崇	伊福部崇	増谷賢	増谷賢	春日未来、最上静香、箱崎星梨花	unit	765as			imasdb-452ad5b2fbc9			unmatched		
 765as_urgent	URGENT!!!	URGENT!!!		Chang Jung	Chang Jung	神前暁	神前暁	たかはし智秋、今井麻美	unit	765as			imasdb-f60fe35e4df5			unmatched		
 765as_urgentニューアレンジ	URGENT!!!(ニュー・アレンジ)	URGENT!!!	ニュー・アレンジ	Chang Jung	Chang Jung	神前暁	神前暁	たかはし智秋、今井麻美	unit	765as	765as_urgent	1	imasdb-5d254c062bdf			unmatched		
@@ -204,16 +204,16 @@ song_id	title	work_title	subtitle	lyricist_raw	lyricist_norm	composer_raw	compos
 765as_we_just_started	We just started	We just started		mft	mft	小野貴光	小野貴光	星井美希、四条貴音、秋月律子	unit	765as			imasdb-745350ff1aa1			unmatched		
 765as_we_just_started_-kakeru_ishihama_remix-	We just started -Kakeru Ishihama Remix-	We just started	Kakeru Ishihama Remix	mft	mft	小野貴光	小野貴光	765PRO ALLSTARS	all	765as	765as_we_just_started	1	imasdb-419d5ce5a8f4			unmatched		
 765as_wedding_bell	WEDDING BELL	WEDDING BELL		yura	yura	川田瑠夏	川田瑠夏	秋月律子	solo	765as			imasdb-5cdd80d1927e			unmatched		
-765as_yes	YES♪	YES♪		yura	yura	若林充	若林充	天海春香、菊地真	unit	765as			imasdb-e7d33ed6a303			unmatched		
-765as_you往my進	YOU往MY進!	YOU往MY進!		mft	mft	白戸佑輔	白戸佑輔	双海亜美	solo	765as			imasdb-b2823a5b429a			unmatched		
+765as_yes	YES♪	YES♪		yura	yura	若林充	若林充	天海春香、菊地真	unit	765as			imasdb-e7d33ed6a303			unmatched	nextone	NexTone: 作品コード N00567084 配信=manage (2026-09-16 NexTone 作品検索)
+765as_you往my進	YOU往MY進!	YOU往MY進!		mft	mft	白戸佑輔	白戸佑輔	双海亜美	solo	765as			imasdb-b2823a5b429a			unmatched	nextone	NexTone: 作品コード N00567072 配信=manage (2026-09-16 NexTone 作品検索)
 765as_zone_of_fortune	zone of fortune	zone of fortune		yura	yura	eba	eba	三浦あずさ	solo	765as			imasdb-431b7200d742			unmatched		
 765as_→→→sp	→→→SP	→→→SP						天海春香、島村卯月、春日未来、天道輝、櫻木真乃、花海咲季	unit	765as			imasdb-2ce5876084f8			unmatched		
 765as_あしたアイシテル	あしたアイシテル	あしたアイシテル		里乃塚玲央	里乃塚玲央	小杉保夫	小杉保夫	たかはし智秋、今井麻美	unit	765as			imasdb-b6f63b45a013			unmatched		
-765as_あったかな雪	あったかな雪	あったかな雪		白瀬彩	白瀬彩	糀谷拓土	糀谷拓土	星井美希、高槻やよい、双海亜美/真美	unit	765as			imasdb-ffbd88f5d116			unmatched		
+765as_あったかな雪	あったかな雪	あったかな雪		白瀬彩	白瀬彩	糀谷拓土	糀谷拓土	星井美希、高槻やよい、双海亜美/真美	unit	765as			imasdb-ffbd88f5d116			unmatched	nextone	NexTone: 作品コード N00567049 配信=manage (2026-09-16 NexTone 作品検索)
 765as_あの日のナミダ	あの日のナミダ	あの日のナミダ		伊那村さちこ	伊那村さちこ	BNSI(Yoshi)	Yoshi	萩原雪歩	solo	765as			imasdb-84e9a56aca06			unmatched		
 765as_ありがとyesterdays	あ・り・が・と・YESTERDAYS	あ・り・が・と・YESTERDAYS		イイジマケン	イイジマケン	イイジマケン	イイジマケン	天海春香、菊地真、星井美希、秋月律子	unit	765as			imasdb-a459ce33793a			unmatched		
 765as_ありがとyesterdays_petit_specialver	あ・り・が・と・YESTERDAYS Petit Special.ver	あ・り・が・と・YESTERDAYS Petit Special.ver		イイジマケン	イイジマケン	イイジマケン	イイジマケン	はるかさん、まこちー、あふぅ、ちっちゃん	unit	765as			imasdb-9a3250f1f0aa			unmatched		
-765as_いっしょ	いっしょ	いっしょ		yura	yura	藤末樹	藤末樹	天海春香、高槻やよい、星井美希、三浦あずさ、双海亜美、双海真美	unit	765as			imasdb-b6d3454a7361			unmatched		
+765as_いっしょ	いっしょ	いっしょ		yura	yura	藤末樹	藤末樹	天海春香、高槻やよい、星井美希、三浦あずさ、双海亜美、双海真美	unit	765as			imasdb-b6d3454a7361			unmatched	nextone	NexTone: 作品コード N00567081 配信=manage (2026-09-16 NexTone 作品検索)
 765as_いっぱいいっぱい	いっぱいいっぱい	いっぱいいっぱい		中村恵	中村恵	BNSI(佐々木宏人)	佐々木宏人	秋月律子	solo	765as			imasdb-4b83852c0416			unmatched		
 765as_うれしあやかし道中記	うれし・あやかし道中記	うれし・あやかし道中記		後藤裕之	後藤裕之	NBGI(川田宏行)	NBGI(川田宏行)	我那覇響	solo	765as			imasdb-0ea67da5f95c			unmatched		
 765as_おとなのはじまり	おとなのはじまり	おとなのはじまり		白瀬彩	白瀬彩	小野貴光	小野貴光	水瀬伊織、高槻やよい、双海亜美/真美	unit	765as			imasdb-04b13d0c4b5c			unmatched		
@@ -258,7 +258,7 @@ song_id	title	work_title	subtitle	lyricist_raw	lyricist_norm	composer_raw	compos
 765as_らららわんだぁらんどとろぴかるremix	ら♪ら♪ら♪わんだぁらんど(とろぴかるremix)	ら♪ら♪ら♪わんだぁらんど	とろぴかるremix	イイジマケン	イイジマケン	イイジマケン	イイジマケン	天海春香&はるかさん、如月千早&ちひゃー、萩原雪歩&ゆきぽ、高槻やよい&やよ、秋月律子&ちっちゃん、三浦あずさ&みうらさん、水瀬伊織&いお、菊地真&まこちー、双海亜美/真美&こあみ・こまみ、星井美希&あふぅ、我那覇響&ちびき、四条貴音&たかにゃ、音無小鳥&ぴよぴよ	solo	765as	765as_らららわんだぁらんど	1	imasdb-d12b4345f8a0			unmatched		
 765as_れでぃおマジかる	れでぃお☆マジかる	れでぃお☆マジかる		イイジマケン	イイジマケン	イイジマケン	イイジマケン	Honey Citrus	unit	765as			imasdb-9d7b99eadb34			unmatched		
 765as_アイ_must_go	アイ MUST GO!	アイ MUST GO!		mft(オノダヒロユキ)	mft(オノダヒロユキ)	BNSI(中川浩二)・小林啓樹	中川浩二;小林啓樹	天海春香、島村卯月、春日未来	unit	765as			imasdb-fbb3a4c2288d			unmatched		
-765as_アイ_need_youfor_wonderful_story	アイ NEED YOU(FOR WONDERFUL STORY)	アイ NEED YOU(FOR WONDERFUL STORY)		mft (オノダヒロユキ)	mft (オノダヒロユキ)	中川浩二 (Bandai Namco Studios Inc.)、小林啓樹	中川浩二 (Bandai Namco Studios Inc.);小林啓樹	THE IDOLM@STER BRILLIANT STARS(天海春香、如月千早、星井美希、島村卯月、渋谷凛、本田未央、春日未来、最上静香、伊吹 翼、天道 輝、桜庭 薫、柏木 翼、櫻木真乃、風野灯織、八宮めぐる、花海咲季、月村手毬、藤田ことね)	all	765as			imasdb-5838e443900b			unmatched		
+765as_アイ_need_youfor_wonderful_story	アイ NEED YOU(FOR WONDERFUL STORY)	アイ NEED YOU(FOR WONDERFUL STORY)		mft (オノダヒロユキ)	mft (オノダヒロユキ)	中川浩二 (Bandai Namco Studios Inc.)、小林啓樹	中川浩二 (Bandai Namco Studios Inc.);小林啓樹	THE IDOLM@STER BRILLIANT STARS(天海春香、如月千早、星井美希、島村卯月、渋谷凛、本田未央、春日未来、最上静香、伊吹 翼、天道 輝、桜庭 薫、柏木 翼、櫻木真乃、風野灯織、八宮めぐる、花海咲季、月村手毬、藤田ことね)	all	765as			imasdb-5838e443900b			unmatched	nextone	NexTone: 作品コード N01480256 配信=manage (2026-09-16 NexTone 作品検索)
 765as_アイシテの呪縛je_vous_aime	アイシテの呪縛〜Je vous aime〜	アイシテの呪縛〜Je vous aime〜		安藤紗々	安藤紗々	白戸佑輔	白戸佑輔	Project LUMINOUS(如月千早、三浦あずさ、秋月律子、四条貴音、神崎蘭子、最上静香、白石紬、白瀬咲耶、杜野凛世、奥空心白)	unit	765as			imasdb-c892b75a1dd7			unmatched		
 765as_アイレデッスカ	アイレデッスカ!?	アイレデッスカ!?		リスナーP有志&ミンゴス(今井麻美)&ちあking(たかはし智秋)	リスナーP有志;ミンゴス(今井麻美);ちあking(たかはし智秋)	松田信男	松田信男	たかはし智秋、今井麻美	unit	765as			imasdb-59b9f02b40cc			unmatched		
 765as_アエイウエオア	アエイウエオア!	アエイウエオア!		志倉千代丸	志倉千代丸	志倉千代丸	志倉千代丸	天海春香、如月千早	unit	765as			imasdb-3d59f0c4e6c0			unmatched		
@@ -276,7 +276,7 @@ song_id	title	work_title	subtitle	lyricist_raw	lyricist_norm	composer_raw	compos
 765as_オハロナイとろぴかる_remix	オハロナイ○*☆とろぴかる Remix	オハロナイ○*☆とろぴかる Remix		イイジマケン	イイジマケン	イイジマケン	イイジマケン	やよい、伊織、響、亜美、真美、律子、真、春香、千早、あずさ、貴音、雪歩、美希	unit	765as			imasdb-81823a485660			unmatched		
 765as_オーバーマスター	オーバーマスター	オーバーマスター		NBGI(mft)	NBGI(mft)	NBGI(中川浩二)	NBGI(中川浩二)	星井美希、我那覇響、四条貴音	unit	765as			imasdb-4ccd162c1cd6			unmatched		
 765as_カンゲキハッピーエコロジー	カンゲキハッピーエコロジー	カンゲキハッピーエコロジー		yura	yura	el	el	高槻やよい	solo	765as			imasdb-d38a62dd6281			unmatched		
-765as_カーテンコール	カーテンコール	カーテンコール		nyanyannya(Team.ねこかん[猫])	nyanyannya(Team.ねこかん[猫])	nyanyannya(Team.ねこかん[猫])	nyanyannya(Team.ねこかん[猫])	菊地真、双海亜美、双海真美、水瀬伊織、三浦あずさ、四条貴音、秋月律子	unit	765as			imasdb-3b447025a6ff			unmatched		
+765as_カーテンコール	カーテンコール	カーテンコール		nyanyannya(Team.ねこかん[猫])	nyanyannya(Team.ねこかん[猫])	nyanyannya(Team.ねこかん[猫])	nyanyannya(Team.ねこかん[猫])	菊地真、双海亜美、双海真美、水瀬伊織、三浦あずさ、四条貴音、秋月律子	unit	765as			imasdb-3b447025a6ff			unmatched	nextone	NexTone: 作品コード N00567131 配信=manage (2026-09-16 NexTone 作品検索)
 765as_キミはメロディ	キミはメロディ	キミはメロディ		遠藤フビト	遠藤フビト	BNSI(内田哲也)	内田哲也	三浦あずさ、四条貴音、如月千早、星井美希、高槻やよい、双海亜美/真美	unit	765as			imasdb-e050eb341266			unmatched		
 765as_キミはメロディ_-ajurika_remix-	キミはメロディ -AJURIKA Remix-	キミはメロディ	AJURIKA Remix	遠藤フビト	遠藤フビト	BNGI(内田哲也)	BNGI(内田哲也)	765PRO ALLSTARS	all	765as	765as_キミはメロディ	1	imasdb-25e8346e59f0			unmatched		
 765as_キミはメロディ_-jazz_rearrange_mix-	キミはメロディ -JAZZ Rearrange Mix-	キミはメロディ	JAZZ Rearrange Mix	遠藤フビト	遠藤フビト	NBGI(内田哲也)	NBGI(内田哲也)	四条貴音	solo	765as	765as_キミはメロディ	1	imasdb-43e0bb6e1e5b			unmatched		
@@ -289,24 +289,24 @@ song_id	title	work_title	subtitle	lyricist_raw	lyricist_norm	composer_raw	compos
 765as_ゲンキトリッパー	ゲンキトリッパー	ゲンキトリッパー		BNSI(おおくぼひろし)	おおくぼひろし	BNSI(おおくぼひろし)	おおくぼひろし	高槻やよい	solo	765as			imasdb-7ab63ace4ab2			unmatched		
 765as_コイココロ	コイ・ココロ	コイ・ココロ		BNSI(トリ音)	トリ音	BNSI(トリ音)	トリ音	三浦あずさ	solo	765as			imasdb-20cfb39450c1			unmatched		
 765as_コーヒー1杯のイマージュ	コーヒー1杯のイマージュ	コーヒー1杯のイマージュ		井筒日美	井筒日美	小野貴光	小野貴光	菊地真、双海亜美/真美、我那覇響	unit	765as			imasdb-09372b36be37			unmatched		
-765as_サニー	サニー	サニー		yura	yura	Funta	Funta	双海亜美/真美、三浦あずさ、水瀬伊織、萩原雪歩、秋月律子	unit	765as			imasdb-f1e0461a51ce			unmatched		
+765as_サニー	サニー	サニー		yura	yura	Funta	Funta	双海亜美/真美、三浦あずさ、水瀬伊織、萩原雪歩、秋月律子	unit	765as			imasdb-f1e0461a51ce			unmatched	nextone	NexTone: 作品コード N00567087 配信=manage (2026-09-16 NexTone 作品検索)
 765as_ザライブ革命でshow	ザ・ライブ革命でSHOW!	ザ・ライブ革命でSHOW!		小金井つくも	小金井つくも	BNSI(佐藤貴文)	佐藤貴文	星井美希、高槻やよい、菊地真、双海亜美、双海真美、四条貴音	unit	765as			imasdb-fe59dad5e767			unmatched		
-765as_シャララ	シャララ	シャララ		yura	yura	川田瑠夏	川田瑠夏	三浦あずさ、秋月律子	unit	765as			imasdb-dbef8cbf3c86			unmatched		
+765as_シャララ	シャララ	シャララ		yura	yura	川田瑠夏	川田瑠夏	三浦あずさ、秋月律子	unit	765as			imasdb-dbef8cbf3c86			unmatched	nextone	NexTone: 作品コード N00567092 配信=manage (2026-09-16 NexTone 作品検索)
 765as_ショッキングな彼	ショッキングな彼	ショッキングな彼		NBGI(mft)	NBGI(mft)	NBGI(中川浩二)	NBGI(中川浩二)	星井美希	solo	765as			imasdb-6a9562116f4d			unmatched		
-765as_ジェミー	ジェミー	ジェミー		mft	mft	田村信二	田村信二	双海真美	solo	765as			imasdb-8a882673e8c1			unmatched		
+765as_ジェミー	ジェミー	ジェミー		mft	mft	田村信二	田村信二	双海真美	solo	765as			imasdb-8a882673e8c1			unmatched	nextone	NexTone: 作品コード N00567058 配信=manage (2026-09-16 NexTone 作品検索)
 765as_スキ	スキ	スキ		只野菜摘	只野菜摘	cota	cota	天海春香、如月千早、双海亜美	unit	765as			imasdb-e570e55caa77			unmatched		
 765as_スタトスタ	スタ→トスタ→	スタ→トスタ→		yura、NBGI(おおくぼひろし)	yura;NBGI(おおくぼひろし)	NBGI(おおくぼひろし)	NBGI(おおくぼひろし)	双海亜美/真美	solo	765as			imasdb-ba54373e5e40			unmatched		
 765as_スタトスタ_-ajurika_remix-	スタ→トスタ→ -AJURIKA Remix-	スタ→トスタ→	AJURIKA Remix	yura、BNGI(おおくぼひろし)	yura;BNGI(おおくぼひろし)	BNGI(おおくぼひろし)	BNGI(おおくぼひろし)	765PRO ALLSTARS	solo	765as	765as_スタトスタ	1	imasdb-ac76432843a9			unmatched		
 765as_ステキハピネス	ステキハピネス	ステキハピネス		mft	mft	BNSI(kyo)	kyo	天海春香	solo	765as			imasdb-bd64dfd03808			unmatched		
 765as_ストレートラブ	ストレートラブ!	ストレートラブ!		中村恵	中村恵	佐々木宏人	佐々木宏人	天海春香、水瀬伊織、菊地真	unit	765as			imasdb-4c81d7f9fe38			unmatched		
-765as_スマイル体操	スマイル体操	スマイル体操		yura	yura	宮崎誠	宮崎誠	高槻やよい	solo	765as			imasdb-29d1e5668887			unmatched		
+765as_スマイル体操	スマイル体操	スマイル体操		yura	yura	宮崎誠	宮崎誠	高槻やよい	solo	765as			imasdb-29d1e5668887			unmatched	nextone	NexTone: 作品コード N00567063 配信=manage (2026-09-16 NexTone 作品検索)
 765as_セクシータイフーン	セクシータイフーン	セクシータイフーン		磯谷佳江	磯谷佳江	BNSI(工藤祐介)	工藤祐介	双海真美	solo	765as			imasdb-2684b3ea1ea5			unmatched		
 765as_ソナー	ソナー	ソナー		BNSI(岡田祥)	岡田祥	BNSI(岡田祥)	岡田祥	水瀬伊織	solo	765as			imasdb-65b3390f44cb			unmatched		
 765as_ターンオンタイム	ターンオンタイム!	ターンオンタイム!		伊福部崇	伊福部崇	三好啓太	三好啓太	春日未来、最上静香、箱崎星梨花	unit	765as			imasdb-b6f436de394b			unmatched		
 765as_ダンスダンスダンス	ダンス・ダンス・ダンス	ダンス・ダンス・ダンス		MC TC	MC TC	TAKU INOUE	TAKU INOUE	高垣楓、如月千早、秋月律子、三浦あずさ、四条貴音、神崎蘭子、最上静香、白石紬、白瀬咲耶、杜野凛世、奥空心白、玲音	all	765as			imasdb-34b1af22cebf			unmatched		
 765as_チアリングレター	チアリングレター	チアリングレター		mft	mft	MIKOTO	MIKOTO	菊地真	solo	765as			imasdb-c6d2097d11f6			unmatched		
-765as_チェリー	チェリー	チェリー		yura	yura	Funta7	Funta7	天海春香、水瀬伊織、我那覇響、秋月律子、菊地真、萩原雪歩	unit	765as			imasdb-e68a9accfd93			unmatched		
-765as_チクタク	チクタク	チクタク		白瀬彩	白瀬彩	Asu [The New Classics]	Asu [The New Classics]	星井美希、萩原雪歩、高槻やよい	unit	765as			imasdb-f9789e008ddc			unmatched		
+765as_チェリー	チェリー	チェリー		yura	yura	Funta7	Funta7	天海春香、水瀬伊織、我那覇響、秋月律子、菊地真、萩原雪歩	unit	765as			imasdb-e68a9accfd93			unmatched	nextone	NexTone: 作品コード N00567050 配信=manage (2026-09-16 NexTone 作品検索)
+765as_チクタク	チクタク	チクタク		白瀬彩	白瀬彩	Asu [The New Classics]	Asu [The New Classics]	星井美希、萩原雪歩、高槻やよい	unit	765as			imasdb-f9789e008ddc			unmatched	nextone	NexTone: 作品コード N00567070 配信=manage (2026-09-16 NexTone 作品検索)
 765as_チャンピオン	チャンピオン	チャンピオン		yura	yura	石塚玲依	石塚玲依	星井美希	solo	765as			imasdb-ce7b81c4621a			unmatched		
 765as_デレぱにぱにック	デレぱにぱにック	デレぱにぱにック		原紗友里・青木瑠璃子	原紗友里;青木瑠璃子	長谷川智樹	長谷川智樹	原紗友里&青木瑠璃子 from CINDERELLA PARTY!	unit	765as			imasdb-af343b13b807			unmatched		
 765as_トリプルangel	トリプルAngel	トリプルAngel		BNSI(佐藤貴文)	佐藤貴文	BNSI(佐藤貴文)	佐藤貴文	双海亜美	solo	765as			imasdb-4b206585e56f			unmatched		
@@ -315,7 +315,7 @@ song_id	title	work_title	subtitle	lyricist_raw	lyricist_norm	composer_raw	compos
 765as_ハニカミファーストバイト_-esti_remix-	ハニカミ!ファーストバイト -ESTi Remix-	ハニカミ!ファーストバイト	ESTi Remix	後藤裕之	後藤裕之	BNSI(中川浩二)	中川浩二	765PRO ALLSTARS	solo	765as	765as_ハニカミファーストバイト	1	imasdb-ee806e2e728c			unmatched		
 765as_ハリキリラリー	ハリキリ★ラリー	ハリキリ★ラリー		NanaerikA-PROJECT	NanaerikA-PROJECT	NBGI(大野木宣幸)	NBGI(大野木宣幸)	菊地真	solo	765as			imasdb-554efb3411db			unmatched		
 765as_ハローランチタイム	ハロー*ランチタイム	ハロー*ランチタイム		イイジマケン	イイジマケン	イイジマケン	イイジマケン	律子、真、春香、千早	unit	765as			imasdb-bdb381aa51f9			unmatched		
-765as_バレンタイン	バレンタイン	バレンタイン		桃井はるこ	桃井はるこ	桃井はるこ	桃井はるこ	星井美希、双海亜美/真美	unit	765as			imasdb-8f39ee368d05			unmatched		
+765as_バレンタイン	バレンタイン	バレンタイン		桃井はるこ	桃井はるこ	桃井はるこ	桃井はるこ	星井美希、双海亜美/真美	unit	765as			imasdb-8f39ee368d05			unmatched	nextone	NexTone: 作品コード N00567080 配信=manage (2026-09-16 NexTone 作品検索)
 765as_ビジョナリー	ビジョナリー	ビジョナリー		BNSI(mft)	mft	BNSI(中川浩二)	中川浩二	高槻やよい、双海亜美/真美、水瀬伊織、我那覇響	unit	765as			imasdb-9755361dbddc			unmatched		
 765as_ビジョナリー_-ajurika_remix-	ビジョナリー -AJURIKA Remix-	ビジョナリー	AJURIKA Remix	BNGI(mft)	BNGI(mft)	BNGI(中川浩二)	BNGI(中川浩二)	765PRO ALLSTARS	all	765as	765as_ビジョナリー	1	imasdb-aae01884b17c			unmatched		
 765as_ピピカリリカ	ピピカ・リリカ	ピピカ・リリカ		烏屋茶房	烏屋茶房	篠崎あやと・烏屋茶房	篠崎あやと;烏屋茶房	高槻やよい	solo	765as			imasdb-24c604876def			unmatched		
@@ -333,27 +333,27 @@ song_id	title	work_title	subtitle	lyricist_raw	lyricist_norm	composer_raw	compos
 765as_マジで	マジで...!?	マジで...!?		BNSI(くぼけん・エトウ	BNSI(くぼけん・エトウ	BNSI(佐藤貴文)	佐藤貴文	765PRO ALLSTARS	all	765as			imasdb-ea699d903d33			unmatched		
 765as_マリオネットの心	マリオネットの心	マリオネットの心		mft	mft	橋本由香利	橋本由香利	星井美希	solo	765as			imasdb-0334ed33c302			unmatched		
 765as_ムーンライトラビリンス	ムーンライト・ラビリンス	ムーンライト・ラビリンス		畑亜貴	畑亜貴	黒須克彦	黒須克彦	橋本みゆき	tie_in	765as			imasdb-4aa16988222d			unmatched		
-765as_メリー	メリー	メリー		yura	yura	Funta	Funta	天海春香、如月千早、高槻やよい、菊地真、星井美希	unit	765as			imasdb-cff30d7cad44			unmatched		
+765as_メリー	メリー	メリー		yura	yura	Funta	Funta	天海春香、如月千早、高槻やよい、菊地真、星井美希	unit	765as			imasdb-cff30d7cad44			unmatched	nextone	NexTone: 作品コード N00567078 配信=manage (2026-09-16 NexTone 作品検索)
 765as_ヨーイドン	ヨーイドン!!	ヨーイドン!!		yura	yura	山田智和	山田智和	菊地真	solo	765as			imasdb-7bd1647e1e9b			unmatched		
-765as_ラブリ	ラ♥ブ♥リ♥	ラ♥ブ♥リ♥		yura	yura	松田信男	松田信男	三浦あずさ	solo	765as			imasdb-c64a99e28681			unmatched		
+765as_ラブリ	ラ♥ブ♥リ♥	ラ♥ブ♥リ♥		yura	yura	松田信男	松田信男	三浦あずさ	solo	765as			imasdb-c64a99e28681			unmatched	nextone	NexTone: 作品コード N00567073 配信=manage (2026-09-16 NexTone 作品検索)
 765as_ラムネ色_青春	ラムネ色 青春	ラムネ色 青春		BNSI(モモキエイジ)	モモキエイジ	田中秀和(MONACA)	田中秀和(MONACA)	765PRO ALLSTARS	all	765as			imasdb-5deb0a6c8d64			unmatched		
 765as_ラムネ色_青春_-crossover_rearrange_mix-	ラムネ色 青春 -CROSSOVER Rearrange Mix-	ラムネ色 青春	CROSSOVER Rearrange Mix	NBGI(モモキエイジ)	NBGI(モモキエイジ)	田中秀和(MONACA)	田中秀和(MONACA)	天海春香、如月千早、秋月律子	unit	765as	765as_ラムネ色_青春	1	imasdb-ef2868c4a7ec			unmatched		
 765as_ラムネ色_青春_-mifumei_remix-	ラムネ色 青春 -mifumei Remix-	ラムネ色 青春	mifumei Remix	BNEI(モモキエイジ)	モモキエイジ	田中秀和	田中秀和	菊地真	unit	765as	765as_ラムネ色_青春	1	imasdb-4a5f926cb74a			unmatched		
-765as_リゾラ	リゾラ	リゾラ		白瀬彩	白瀬彩	柳田しゆ	柳田しゆ	水瀬伊織	solo	765as			imasdb-8399d50d46c5			unmatched		
+765as_リゾラ	リゾラ	リゾラ		白瀬彩	白瀬彩	柳田しゆ	柳田しゆ	水瀬伊織	solo	765as			imasdb-8399d50d46c5			unmatched	nextone	NexTone: 作品コード N00567038 配信=manage (2026-09-16 NexTone 作品検索)
 765as_ロイヤルストレートフラッシュ	ロイヤルストレートフラッシュ	ロイヤルストレートフラッシュ		yura	yura	R・O・N	R;O;N	水瀬伊織	solo	765as			imasdb-105b45260d37			unmatched		
 765as_ローディングの歌	ローディングの歌	ローディングの歌							cover	765as			imasdb-4c50436efe4a			unmatched		
 765as_七彩ボタン	七彩ボタン	七彩ボタン		遠藤フビト	遠藤フビト	BNSI(内田哲也)	内田哲也	水瀬伊織、三浦あずさ、双海亜美	unit	765as			imasdb-fc26edc1f6a4			unmatched		
-765as_乙女よ大志を抱け	乙女よ大志を抱け!!	乙女よ大志を抱け!!		yura	yura	白戸佑輔	白戸佑輔	天海春香	solo	765as			imasdb-c41d1a7c4eb0			unmatched		
-765as_乙女よ大志を抱け_-neo_acoustic_rearrange_mix-	乙女よ大志を抱け!! -NEO ACOUSTIC Rearrange Mix-	乙女よ大志を抱け!!	NEO ACOUSTIC Rearrange Mix	yura	yura	白戸祐輔	白戸祐輔	天海春香	solo	765as	765as_乙女よ大志を抱け	1	imasdb-04ce3a73b1e1			unmatched		
-765as_乙女よ大志を抱け_-takafumi_sato_remix-	乙女よ大志を抱け!! -Takafumi Sato Remix-	乙女よ大志を抱け!!	Takafumi Sato Remix	yura	yura	白土祐輔	白土祐輔	765PRO ALLSTARS	solo	765as	765as_乙女よ大志を抱け	1	imasdb-0d696da086d1			unmatched		
+765as_乙女よ大志を抱け	乙女よ大志を抱け!!	乙女よ大志を抱け!!		yura	yura	白戸佑輔	白戸佑輔	天海春香	solo	765as			imasdb-c41d1a7c4eb0			unmatched	nextone	NexTone: 作品コード N00567094 配信=manage (2026-09-16 NexTone 作品検索)
+765as_乙女よ大志を抱け_-neo_acoustic_rearrange_mix-	乙女よ大志を抱け!! -NEO ACOUSTIC Rearrange Mix-	乙女よ大志を抱け!!	NEO ACOUSTIC Rearrange Mix	yura	yura	白戸祐輔	白戸祐輔	天海春香	solo	765as	765as_乙女よ大志を抱け	1	imasdb-04ce3a73b1e1			unmatched	nextone	NexTone: 作品コード N00567094 配信=manage (2026-09-16 NexTone 作品検索)
+765as_乙女よ大志を抱け_-takafumi_sato_remix-	乙女よ大志を抱け!! -Takafumi Sato Remix-	乙女よ大志を抱け!!	Takafumi Sato Remix	yura	yura	白土祐輔	白土祐輔	765PRO ALLSTARS	solo	765as	765as_乙女よ大志を抱け	1	imasdb-0d696da086d1			unmatched	nextone	NexTone: 作品コード N00567094 配信=manage (2026-09-16 NexTone 作品検索)
 765as_乙女心盗んで	乙女心盗んで!	乙女心盗んで!		中村恵	中村恵	NBGI(大野木宣幸)	NBGI(大野木宣幸)	水瀬伊織	solo	765as			imasdb-a807c4ad54d8			unmatched		
 765as_今_スタート	今 スタート!	今 スタート!		白戸佑輔	白戸佑輔	白戸佑輔	白戸佑輔	如月千早、三浦あずさ、我那覇響	unit	765as			imasdb-707197d0d47f			unmatched		
 765as_仲良しでいようね	仲良しでいようね♡	仲良しでいようね♡		中村恵、cota	中村恵;cota	cota	cota	高槻やよい、水瀬伊織	unit	765as			imasdb-1a4e38894d31			unmatched		
-765as_何度も言えるよ	何度も言えるよ	何度も言えるよ		遠藤フビト	遠藤フビト	川田瑠夏	川田瑠夏	萩原雪歩	solo	765as			imasdb-bfe958f05372			unmatched		
-765as_何度も言えるよ_-takafumi_sato_remix-	何度も言えるよ -Takafumi Sato Remix-	何度も言えるよ	Takafumi Sato Remix	遠藤フビト	遠藤フビト	川田瑠夏	川田瑠夏	765PRO ALLSTARS	solo	765as	765as_何度も言えるよ	1	imasdb-875f585190ae			unmatched		
+765as_何度も言えるよ	何度も言えるよ	何度も言えるよ		遠藤フビト	遠藤フビト	川田瑠夏	川田瑠夏	萩原雪歩	solo	765as			imasdb-bfe958f05372			unmatched	nextone	NexTone: 作品コード N00567057 配信=manage (2026-09-16 NexTone 作品検索)
+765as_何度も言えるよ_-takafumi_sato_remix-	何度も言えるよ -Takafumi Sato Remix-	何度も言えるよ	Takafumi Sato Remix	遠藤フビト	遠藤フビト	川田瑠夏	川田瑠夏	765PRO ALLSTARS	solo	765as	765as_何度も言えるよ	1	imasdb-875f585190ae			unmatched	nextone	NexTone: 作品コード N00567057 配信=manage (2026-09-16 NexTone 作品検索)
 765as_僕たちのresistance	僕たちのResistance	僕たちのResistance		貝田由里子	貝田由里子	BNSI(kyo)	kyo	星井美希、如月千早、高槻やよい、我那覇響	unit	765as			imasdb-2982762a743b			unmatched		
 765as_僕はあなたに恋する	僕はあなたに恋する	僕はあなたに恋する		中村恵	中村恵	佐々木宏人	佐々木宏人	たかはし智秋、今井麻美	unit	765as			imasdb-70f51af1aa3d			unmatched		
-765as_光	光	光		yura	yura	佐伯youthK	佐伯youthK	音無小鳥	solo	765as			imasdb-0773435b371e			unmatched		
+765as_光	光	光		yura	yura	佐伯youthK	佐伯youthK	音無小鳥	solo	765as			imasdb-0773435b371e			unmatched	nextone	NexTone: 作品コード N00567056 配信=manage (2026-09-16 NexTone 作品検索)
 765as_光跡	光跡	光跡		BNSI(渡辺量)	渡辺量	BNSI(中川浩二)	中川浩二	沼倉愛美、原由実、浅倉杏美	unit	765as			imasdb-97cf969374f0			unmatched		
 765as_全力アイドル	全力アイドル	全力アイドル		ササキトモコ	ササキトモコ	ササキトモコ	ササキトモコ	水瀬伊織	solo	765as			imasdb-eb0f538334e2			unmatched		
 765as_全力ドリーミングガールズ	全力★ドリーミングガールズ	全力★ドリーミングガールズ		KOCHO	KOCHO	坂東邑真	坂東邑真	田中摩美々、萩原雪歩、高槻やよい、双海亜美、双海真美、星井美希、諸星きらり、城ヶ崎美嘉、伊吹翼、桜守歌織、小宮果穂、奥空心白、亜夜	all	765as			imasdb-7f9092e0706a			unmatched		
@@ -363,7 +363,7 @@ song_id	title	work_title	subtitle	lyricist_raw	lyricist_norm	composer_raw	compos
 765as_初恋_五章_永遠のクリスマス	初恋 〜五章 永遠のクリスマス〜	初恋 〜五章 永遠のクリスマス〜		yura	yura	高田龍一	高田龍一	如月千早、萩原雪歩	unit	765as			imasdb-467f346dee9d			unmatched		
 765as_初恋_四章_運命のイヴ	初恋 〜四章 運命のイヴ〜	初恋 〜四章 運命のイヴ〜		yura	yura	高田龍一	高田龍一	天海春香、菊地真、双海真美	unit	765as			imasdb-92f6eb212fa4			unmatched		
 765as_前向きで行こう	前向きで行こう♪	前向きで行こう♪		yura	yura	森谷貴晴	森谷貴晴	天海春香	solo	765as			imasdb-37d7255e09c4			unmatched		
-765as_北極星をズラしちゃえ	北極星をズラしちゃえ!	北極星をズラしちゃえ!						双海亜美、双海真美	unit	765as			imasdb-d0228cc88cbb			unmatched		
+765as_北極星をズラしちゃえ	北極星をズラしちゃえ!	北極星をズラしちゃえ!						双海亜美、双海真美	unit	765as			imasdb-d0228cc88cbb			unmatched		JASRAC 非委託・NexTone 未発見 (2026-09-16)
 765as_君が選ぶ道	君が選ぶ道	君が選ぶ道		Maiko Fujita	Maiko Fujita	Maiko Fujita	Maiko Fujita	音無小鳥	solo	765as			imasdb-38871e3d489a			unmatched		
 765as_君のままで	君のままで	君のままで		中塚武	中塚武	中塚武	中塚武	天海春香、萩原雪歩、秋月律子	unit	765as			imasdb-a5377a23d1e8			unmatched		
 765as_咲きませ乙女塾	咲きませ!!乙女塾	咲きませ!!乙女塾		fumi	fumi	渡部チェル	渡部チェル	天海春香、菊地真、双海真美	unit	765as			imasdb-fcb9e953adce			unmatched		
@@ -374,12 +374,12 @@ song_id	title	work_title	subtitle	lyricist_raw	lyricist_norm	composer_raw	compos
 765as_夢見る頃	夢見る頃	夢見る頃		Chang Jung	Chang Jung	大橋恵	大橋恵	今井麻美、たかはし智秋	unit	765as			imasdb-c8f9000f06b3			unmatched		
 765as_天と海の島	天と海の島	天と海の島		yura	yura	園田智也	園田智也	我那覇響	solo	765as			imasdb-2e799a81d4df			unmatched		
 765as_太陽と月	太陽と月	太陽と月		柚木美祐	柚木美祐	BNSI〈Jesahm〉	BNSI〈Jesahm〉	たかはし智秋、今井麻美	unit	765as			imasdb-b6983c2b3036			unmatched		
-765as_太陽のジェラシー	太陽のジェラシー	太陽のジェラシー		森由里子	森由里子	BNSI(椎名豪)	椎名豪	天海春香	solo	765as			imasdb-458489a0175a			unmatched		
-765as_太陽のジェラシーremster-a	太陽のジェラシー(REM@STER-A)	太陽のジェラシー	REM@STER-A	森由里子	森由里子	BNSI(椎名豪)	椎名豪	双海亜美	solo	765as	765as_太陽のジェラシー	1	imasdb-bdaeeb4769b9			unmatched		
-765as_太陽のジェラシーremster-b	太陽のジェラシー(REM@STER-B)	太陽のジェラシー	REM@STER-B	森由里子	森由里子	BNSI(椎名豪)	椎名豪	秋月律子	solo	765as	765as_太陽のジェラシー	1	imasdb-a6b7532be228			unmatched		
-765as_太陽のジェラシーオーダインファミソン8bit_mix	太陽のジェラシー(『オーダイン』ファミソン8BIT MIX)	太陽のジェラシー	『オーダイン』ファミソン8BIT MIX	森由里子	森由里子	BNSI(椎名豪)	椎名豪	天海春香、星井美希	unit	765as	765as_太陽のジェラシー	1	imasdb-70ee188fe34c			unmatched		
+765as_太陽のジェラシー	太陽のジェラシー	太陽のジェラシー		森由里子	森由里子	BNSI(椎名豪)	椎名豪	天海春香	solo	765as			imasdb-458489a0175a			unmatched	nextone	NexTone: 作品コード N00567007 配信=manage (2026-09-16 NexTone 作品検索)
+765as_太陽のジェラシーremster-a	太陽のジェラシー(REM@STER-A)	太陽のジェラシー	REM@STER-A	森由里子	森由里子	BNSI(椎名豪)	椎名豪	双海亜美	solo	765as	765as_太陽のジェラシー	1	imasdb-bdaeeb4769b9			unmatched	nextone	NexTone: 作品コード N00567007 配信=manage (2026-09-16 NexTone 作品検索)
+765as_太陽のジェラシーremster-b	太陽のジェラシー(REM@STER-B)	太陽のジェラシー	REM@STER-B	森由里子	森由里子	BNSI(椎名豪)	椎名豪	秋月律子	solo	765as	765as_太陽のジェラシー	1	imasdb-a6b7532be228			unmatched	nextone	NexTone: 作品コード N00567007 配信=manage (2026-09-16 NexTone 作品検索)
+765as_太陽のジェラシーオーダインファミソン8bit_mix	太陽のジェラシー(『オーダイン』ファミソン8BIT MIX)	太陽のジェラシー	『オーダイン』ファミソン8BIT MIX	森由里子	森由里子	BNSI(椎名豪)	椎名豪	天海春香、星井美希	unit	765as	765as_太陽のジェラシー	1	imasdb-70ee188fe34c			unmatched	nextone	NexTone: 作品コード N00567007 配信=manage (2026-09-16 NexTone 作品検索)
 765as_始めのdont_worry	始めのDon't worry	始めのDon't worry		田村歩美	田村歩美	田村歩美	田村歩美	星井美希、水瀬伊織	unit	765as			imasdb-8688565622fe			unmatched		
-765as_幸	幸	幸		yura	yura	BNSI(小林啓樹)	小林啓樹	音無小鳥	solo	765as			imasdb-8370e6756e3d			unmatched		
+765as_幸	幸	幸		yura	yura	BNSI(小林啓樹)	小林啓樹	音無小鳥	solo	765as			imasdb-8370e6756e3d			unmatched	nextone	NexTone: 作品コード N00567130 配信=manage (2026-09-16 NexTone 作品検索)
 765as_強い女	強い女	強い女		中村恵	中村恵	NBGI(大野木宣幸)	NBGI(大野木宣幸)	天海春香	solo	765as			imasdb-2cf67422067b			unmatched		
 765as_待ち受けプリンス	待ち受けプリンス	待ち受けプリンス		BNSI(佐藤貴文)	佐藤貴文	BNSI(佐藤貴文)	佐藤貴文	高槻やよい、菊地真、水瀬伊織	unit	765as			imasdb-80a4a6992d56			unmatched		
 765as_微熱sos_	微熱S.O.S!!	微熱S.O.S!!		畑亜貴	畑亜貴	黒須克彦	黒須克彦	橋本みゆき	tie_in	765as			imasdb-17e334c228f6			unmatched		
@@ -388,7 +388,7 @@ song_id	title	work_title	subtitle	lyricist_raw	lyricist_norm	composer_raw	compos
 765as_思い出をありがとうremster-b	思い出をありがとう(REM@STER-B)	思い出をありがとう	REM@STER-B	中村恵	中村恵	BNSI(佐々木宏人)	佐々木宏人	三浦あずさ	solo	765as	765as_思い出をありがとう	1	imasdb-15b556a6bc62			unmatched		
 765as_思い出をありがとうトイポップファミソン8bit_mix	思い出をありがとう(『トイポップ』ファミソン8BIT MIX)	思い出をありがとう	『トイポップ』ファミソン8BIT MIX	中村恵	中村恵	BNSI(佐々木宏人)	佐々木宏人	如月千早、水瀬伊織	unit	765as	765as_思い出をありがとう	1	imasdb-9933c83aacab			unmatched		
 765as_恋するtwistshout	恋するTwist&Shout	恋するTwist&Shout		宮崎誠	宮崎誠	宮崎誠	宮崎誠	高槻やよい、秋月律子	unit	765as			imasdb-0dd8fb798ec3			unmatched		
-765as_恋するミカタ	恋するミカタ	恋するミカタ		yura	yura	ファンキー末吉	ファンキー末吉	秋月律子	solo	765as			imasdb-01dd2348aaaf			unmatched		
+765as_恋するミカタ	恋するミカタ	恋するミカタ		yura	yura	ファンキー末吉	ファンキー末吉	秋月律子	solo	765as			imasdb-01dd2348aaaf			unmatched	nextone	NexTone: 作品コード N00567069 配信=manage (2026-09-16 NexTone 作品検索)
 765as_恋だもん初級編	恋だもん〜初級編〜	恋だもん〜初級編〜		畑亜貴	畑亜貴	田代智一	田代智一	天海春香、高槻やよい	unit	765as			imasdb-0c302c4b8ac5			unmatched		
 765as_想い出は永遠に	想い出は永遠に	想い出は永遠に		森由里子	森由里子	高田龍一(MONACA)	高田龍一(MONACA)	音無小鳥	solo	765as			imasdb-b9e6a855ac11			unmatched		
 765as_愛_like_ハンバーガー	愛 LIKE ハンバーガー	愛 LIKE ハンバーガー		白瀬彩	白瀬彩	BNSI(田島勝朗)	田島勝朗	秋月律子、高槻やよい	unit	765as			imasdb-9fc07cc0410d			unmatched		
@@ -405,7 +405,7 @@ song_id	title	work_title	subtitle	lyricist_raw	lyricist_norm	composer_raw	compos
 765as_異次元bigbang	異次元★♥BIGBANG	異次元★♥BIGBANG		UiNA	UiNA	小高光太郎、UiNA	小高光太郎;UiNA	島村卯月、最上静香、月岡恋鐘、高海千歌、上原歩夢、澁谷かのん、日野下花帆	unit	765as			imasdb-6cd3e574fa3e			unmatched		
 765as_白い犬	白い犬	白い犬		中村恵	中村恵	佐々木宏人	佐々木宏人	高槻やよい、秋月律子、双海亜美	unit	765as			imasdb-2ab3b839a5ec			unmatched		
 765as_目が逢う瞬間	目が逢う瞬間	目が逢う瞬間		貝田由里子	貝田由里子	BNSI(Jesahm)	Jesahm	如月千早	solo	765as			imasdb-8f7191d851f9			unmatched		
-765as_眠り姫	眠り姫	眠り姫		森由里子	森由里子	BNSI(椎名豪)	椎名豪	如月千早	solo	765as			imasdb-79a3b461661d			unmatched		
+765as_眠り姫	眠り姫	眠り姫		森由里子	森由里子	BNSI(椎名豪)	椎名豪	如月千早	solo	765as			imasdb-79a3b461661d			unmatched	nextone	NexTone: 作品コード N00567066 配信=manage (2026-09-16 NexTone 作品検索)
 765as_神summer	神SUMMER!!	神SUMMER!!		yura	yura	田中秀和	田中秀和	天海春香、高槻やよい、双海亜美/真美、萩原雪歩、水瀬伊織、四条貴音	unit	765as			imasdb-2458b51da77b			unmatched		
 765as_神さまのbirthday	神さまのBirthday	神さまのBirthday		伊那村さちこ	伊那村さちこ	BNSI(Yoshi)	Yoshi	星井美希、天海春香、如月千早	unit	765as			imasdb-fa3f3620ee77			unmatched		
 765as_禁恋歌	禁恋歌	禁恋歌		中村恵	中村恵	NBGI(中潟憲雄)	NBGI(中潟憲雄)	三浦あずさ	solo	765as			imasdb-a8040c1235f0			unmatched		
@@ -417,8 +417,8 @@ song_id	title	work_title	subtitle	lyricist_raw	lyricist_norm	composer_raw	compos
 765as_私はアイドルremster-a	私はアイドル(REM@STER-A)	私はアイドル(REM@STER-A)		中村恵	中村恵	BNSI(佐々木宏人)	佐々木宏人	高槻やよい	solo	765as			imasdb-3493a2be0d55			unmatched		
 765as_私はアイドルremster-b	私はアイドル♡(REM@STER-B)	私はアイドル♡	REM@STER-B	中村恵	中村恵	BNSI(佐々木宏人)	佐々木宏人	如月千早、音無小鳥、萩原雪歩	unit	765as	765as_私はアイドル	1	imasdb-bcd5e5f06916			unmatched		
 765as_私はアイドルワルキューレの伝説ファミソン8bit_mix	私はアイドル♡(『ワルキューレの伝説』ファミソン8BIT MIX)	私はアイドル♡	『ワルキューレの伝説』ファミソン8BIT MIX	中村恵	中村恵	BNSI(佐々木宏人)	佐々木宏人	天海春香、星井美希	unit	765as	765as_私はアイドル	1	imasdb-1c96f2b10efd			unmatched		
-765as_空	空	空		yura	yura	神前暁	神前暁	音無小鳥	unit	765as			imasdb-a37623681aa7			unmatched		
-765as_笑って	笑って!	笑って!		伊那村さちこ	伊那村さちこ	DY-T	DY-T	天海春香	solo	765as			imasdb-697551669501			unmatched		
+765as_空	空	空		yura	yura	神前暁	神前暁	音無小鳥	unit	765as			imasdb-a37623681aa7			unmatched	nextone	NexTone: 作品コード N00567076 配信=manage (2026-09-16 NexTone 作品検索)
+765as_笑って	笑って!	笑って!		伊那村さちこ	伊那村さちこ	DY-T	DY-T	天海春香	solo	765as			imasdb-697551669501			unmatched	nextone	NexTone: 作品コード N00567052 配信=manage (2026-09-16 NexTone 作品検索)
 765as_約束	約束	約束		森由里子	森由里子	NBGI(中川浩二・小林啓樹)	NBGI(中川浩二・小林啓樹)	如月千早、天海春香、星井美希、高槻やよい、萩原雪歩、菊地真、双海亜美/真美、水瀬伊織、三浦あずさ、四条貴音、我那覇響	all	765as			imasdb-a87103b0fd57			unmatched		
 765as_約束_-hidekazu_tanaka_remix-	約束 -Hidekazu Tanaka Remix-	約束	Hidekazu Tanaka Remix	森由里子	森由里子	BNEI(中川浩二・小林啓樹)	中川浩二;小林啓樹	765PRO ALLSTARS	all	765as	765as_約束	1	imasdb-9176033c6762			unmatched		
 765as_紅白応援v_ビクトリー	紅白応援V (ビクトリー)	紅白応援V (ビクトリー)		BNSI(佐藤貴文)	佐藤貴文	BNSI(佐藤貴文)	佐藤貴文	765PRO ALLSTARS ...and you!(天海春香、星井美希、如月千早、高槻やよい、萩原雪歩、菊地真、双海亜美/真美、水瀬伊織、三浦あずさ、四条貴音、我那覇響、秋月律子)	all	765as			imasdb-a26c26b1b2b9			unmatched		
@@ -427,16 +427,16 @@ song_id	title	work_title	subtitle	lyricist_raw	lyricist_norm	composer_raw	compos
 765as_翼	翼	翼		yura	yura	神前暁(MONACA)	神前暁(MONACA)	音無小鳥	unit	765as			imasdb-abf3c63b70c7			unmatched		
 765as_聖炎の女神	聖炎の女神	聖炎の女神		奥井雅美	奥井雅美	IMAJO(PSYCHIC LOVER)	IMAJO(PSYCHIC LOVER)	四条貴音、秋月律子	unit	765as			imasdb-e4fb2fbe7086			unmatched		
 765as_自分restrt	自分REST@RT	自分REST@RT		佐々木宏人	佐々木宏人	田中秀和	田中秀和	天海春香、星井美希、如月千早、高槻やよい、萩原雪歩、菊地真、双海真美、四条貴音、我那覇響	unit	765as			imasdb-4679cee030f3			unmatched		
-765as_自転車	自転車	自転車		白瀬彩	白瀬彩	伊藤心太郎	伊藤心太郎	菊地真	solo	765as			imasdb-a564be0e27f7			unmatched		
-765as_自転車_-house_rearrange_mix-	自転車 -HOUSE Rearrange Mix-	自転車	HOUSE Rearrange Mix	白瀬彩	白瀬彩	伊藤心太郎	伊藤心太郎	菊地真	solo	765as	765as_自転車	1	imasdb-8f1e9a1a2da2			unmatched		
-765as_花	花	花		yura	yura	藤末樹	藤末樹	音無小鳥	solo	765as			imasdb-37aba6c7c817			unmatched		
+765as_自転車	自転車	自転車		白瀬彩	白瀬彩	伊藤心太郎	伊藤心太郎	菊地真	solo	765as			imasdb-a564be0e27f7			unmatched	nextone	NexTone: 作品コード N00567036 配信=manage (2026-09-16 NexTone 作品検索)
+765as_自転車_-house_rearrange_mix-	自転車 -HOUSE Rearrange Mix-	自転車	HOUSE Rearrange Mix	白瀬彩	白瀬彩	伊藤心太郎	伊藤心太郎	菊地真	solo	765as	765as_自転車	1	imasdb-8f1e9a1a2da2			unmatched	nextone	NexTone: 作品コード N00567036 配信=manage (2026-09-16 NexTone 作品検索)
+765as_花	花	花		yura	yura	藤末樹	藤末樹	音無小鳥	solo	765as			imasdb-37aba6c7c817			unmatched	nextone	NexTone: 作品コード N00567093 配信=manage (2026-09-16 NexTone 作品検索)
 765as_芽吹の季	芽吹の季	芽吹の季		山本真央樹	山本真央樹	山本真央樹	山本真央樹	萩原雪歩	solo	765as			imasdb-0d3da6934148			unmatched		
-765as_蒼い鳥	蒼い鳥	蒼い鳥		森由里子	森由里子	BNSI(椎名豪)	椎名豪	如月千早	solo	765as			imasdb-656b26ea229f			unmatched		
-765as_蒼い鳥_-taku_inoue_remix-	蒼い鳥 -Taku Inoue Remix-	蒼い鳥	Taku Inoue Remix	森由里子	森由里子	BNGI(椎名豪)	BNGI(椎名豪)	765PRO ALLSTARS	solo	765as	765as_蒼い鳥	1	imasdb-85b7ee7bf25e			unmatched		
-765as_蒼い鳥mster_version_tv_arrange	蒼い鳥(M@STER VERSION) ~TV ARRANGE~	蒼い鳥	M@STER VERSION TV ARRANGE	森由里子	森由里子	NBGI(椎名豪)	NBGI(椎名豪)	如月千早	solo	765as		1	imasdb-f0e20e5b5850			unmatched		
-765as_蒼い鳥remster-a	蒼い鳥(REM@STER-A)	蒼い鳥	REM@STER-A	森由里子	森由里子	BNSI(椎名豪)	椎名豪	天海春香	solo	765as	765as_蒼い鳥	1	imasdb-57642d5941c7			unmatched		
-765as_蒼い鳥remster-b	蒼い鳥(REM@STER-B)	蒼い鳥	REM@STER-B	森由里子	森由里子	BNSI(椎名豪)	椎名豪	萩原雪歩	solo	765as	765as_蒼い鳥	1	imasdb-2186751ac0e7			unmatched		
-765as_蒼い鳥ドラゴンスピリットファミソン8bit_mix	蒼い鳥(『ドラゴンスピリット』ファミソン8BIT MIX)	蒼い鳥	『ドラゴンスピリット』ファミソン8BIT MIX	森由里子	森由里子	BNSI(椎名豪)	椎名豪	如月千早	solo	765as	765as_蒼い鳥	1	imasdb-e4197379b5ca			unmatched		
+765as_蒼い鳥	蒼い鳥	蒼い鳥		森由里子	森由里子	BNSI(椎名豪)	椎名豪	如月千早	solo	765as			imasdb-656b26ea229f			unmatched	nextone	NexTone: 作品コード N00567008 配信=manage (2026-09-16 NexTone 作品検索)
+765as_蒼い鳥_-taku_inoue_remix-	蒼い鳥 -Taku Inoue Remix-	蒼い鳥	Taku Inoue Remix	森由里子	森由里子	BNGI(椎名豪)	BNGI(椎名豪)	765PRO ALLSTARS	solo	765as	765as_蒼い鳥	1	imasdb-85b7ee7bf25e			unmatched	nextone	NexTone: 作品コード N00567008 配信=manage (2026-09-16 NexTone 作品検索)
+765as_蒼い鳥mster_version_tv_arrange	蒼い鳥(M@STER VERSION) ~TV ARRANGE~	蒼い鳥	M@STER VERSION TV ARRANGE	森由里子	森由里子	NBGI(椎名豪)	NBGI(椎名豪)	如月千早	solo	765as		1	imasdb-f0e20e5b5850			unmatched	nextone	NexTone: 作品コード N00567008 配信=manage (2026-09-16 NexTone 作品検索)
+765as_蒼い鳥remster-a	蒼い鳥(REM@STER-A)	蒼い鳥	REM@STER-A	森由里子	森由里子	BNSI(椎名豪)	椎名豪	天海春香	solo	765as	765as_蒼い鳥	1	imasdb-57642d5941c7			unmatched	nextone	NexTone: 作品コード N00567008 配信=manage (2026-09-16 NexTone 作品検索)
+765as_蒼い鳥remster-b	蒼い鳥(REM@STER-B)	蒼い鳥	REM@STER-B	森由里子	森由里子	BNSI(椎名豪)	椎名豪	萩原雪歩	solo	765as	765as_蒼い鳥	1	imasdb-2186751ac0e7			unmatched	nextone	NexTone: 作品コード N00567008 配信=manage (2026-09-16 NexTone 作品検索)
+765as_蒼い鳥ドラゴンスピリットファミソン8bit_mix	蒼い鳥(『ドラゴンスピリット』ファミソン8BIT MIX)	蒼い鳥	『ドラゴンスピリット』ファミソン8BIT MIX	森由里子	森由里子	BNSI(椎名豪)	椎名豪	如月千早	solo	765as	765as_蒼い鳥	1	imasdb-e4197379b5ca			unmatched	nextone	NexTone: 作品コード N00567008 配信=manage (2026-09-16 NexTone 作品検索)
 765as_虹のデスティネーション	虹のデスティネーション	虹のデスティネーション		矢野博康	矢野博康	矢野博康	矢野博康	星井美希、萩原雪歩、水瀬伊織、三浦あずさ	unit	765as			imasdb-9449ebb8a149			unmatched		
 765as_虹色ミラクル	虹色ミラクル	虹色ミラクル		森由里子	森由里子	BNSI(中川浩二)	中川浩二	765PRO ALLSTARS	all	765as			imasdb-d5b68611e4d5			unmatched		
 765as_虹色ミラクル_-jazz_fusion_rearrange_mix-	虹色ミラクル -JAZZ FUSION Rearrange Mix-	虹色ミラクル	JAZZ FUSION Rearrange Mix	森由里子	森由里子	NBSI(中川浩二)	NBSI(中川浩二)	萩原雪歩、菊地真、高槻やよい、双海亜美、四条貴音	unit	765as	765as_虹色ミラクル	1	imasdb-e568ceb69f9f			unmatched		
@@ -447,7 +447,7 @@ song_id	title	work_title	subtitle	lyricist_raw	lyricist_norm	composer_raw	compos
 765as_隣に	隣に...	隣に...		貝田由里子	貝田由里子	BNSI(椎名豪)	椎名豪	三浦あずさ	solo	765as			imasdb-83a0ad3863ae			unmatched		
 765as_隣に_-jazz_rearrange_mix-	隣に・・・ -JAZZ Rearrange Mix-	隣に・・・ -JAZZ Rearrange Mix-		貝田由里子	貝田由里子	NBGI(椎名豪)	NBGI(椎名豪)	三浦あずさ	solo	765as			imasdb-5fe22c0d6bed			unmatched		
 765as_静かな夜に願いを	静かな夜に願いを...	静かな夜に願いを...		BNSI(柿埜嘉奈子)	柿埜嘉奈子	BNSI(kyo)	kyo	如月千早	unit	765as			imasdb-e89ce0838f47			unmatched		
-765as_風花	風花	風花		橋本由香利	橋本由香利	橋本由香利	橋本由香利	四条貴音	solo	765as			imasdb-ed10df18ba6a			unmatched		
+765as_風花	風花	風花		橋本由香利	橋本由香利	橋本由香利	橋本由香利	四条貴音	solo	765as			imasdb-ed10df18ba6a			unmatched	nextone	NexTone: 作品コード N00567062 配信=manage (2026-09-16 NexTone 作品検索)
 765as_飛べない鳥は夜に鳴く	飛べない鳥は夜に鳴く	飛べない鳥は夜に鳴く		小金井つくも	小金井つくも	BNSI(佐藤貴文)	佐藤貴文	音無小鳥 featuring 高木順二朗 and you、大塚芳忠)	solo	765as			imasdb-7f05db7bd260			unmatched		
 765as_飛べスカイキッド	飛べ!スカイキッド	飛べ!スカイキッド		中村恵	中村恵	NBGI(小沢純子)	NBGI(小沢純子)	音無小鳥	solo	765as			imasdb-aec1d8708b12			unmatched		
 765as_高速道路	高速道路	高速道路		あさくらあずみ	あさくらあずみ	あさくらあずみ	あさくらあずみ	浅倉杏美、原由実)	solo	765as			imasdb-cbe6e5b4c469			unmatched		
@@ -500,7 +500,7 @@ song_id	title	work_title	subtitle	lyricist_raw	lyricist_norm	composer_raw	compos
 961_bangbang	BANG×BANG	BANG×BANG		yura	yura	吉田勝弥	吉田勝弥	天ヶ瀬冬馬	solo	961			imasdb-27e477dbaf2f			unmatched		
 961_blooming_star	Blooming Star	Blooming Star		霜月はるか	霜月はるか	BNSI (椎名豪)	椎名豪	詩花	solo	961			imasdb-99c896d5d68a			unmatched		
 961_flame	FlaME	FlaME		烏屋茶房	烏屋茶房	橘亮祐	橘亮祐	星井美希、我那覇響、四条貴音	unit	961			imasdb-e35cf62e604c			unmatched		
-961_kiss	KisS	KisS		yura Dark	yura Dark	橋本由香利	橋本由香利	星井美希、我那覇響、四条貴音	unit	961			imasdb-679330fa8e2f			unmatched		
+961_kiss	KisS	KisS		yura Dark	yura Dark	橋本由香利	橋本由香利	星井美希、我那覇響、四条貴音	unit	961			imasdb-679330fa8e2f			unmatched	nextone	NexTone: 作品コード N00567091 配信=manage (2026-09-16 NexTone 作品検索)
 961_on_sunday	On Sunday	On Sunday		藤林聖子	藤林聖子	間瀬公司	間瀬公司	御手洗翔太	solo	961			imasdb-0873998d3282			unmatched		
 961_realize	REALIZE!!!	REALIZE!!!		只野菜摘	只野菜摘	R・O・N	R;O;N	星井美希、我那覇響、四条貴音	unit	961			imasdb-630ae7d68753			unmatched		
 961_shine_my_way	Shine My Way	Shine My Way		霜月はるか	霜月はるか	白澤亮 (ノイジークローク)	白澤亮 (ノイジークローク)	ZWEIGLANZ(玲音、詩花)	unit	961			imasdb-51af161bbb91			unmatched		
@@ -508,7 +508,7 @@ song_id	title	work_title	subtitle	lyricist_raw	lyricist_norm	composer_raw	compos
 961_アライアンススターダスト	アライアンス・スターダスト	アライアンス・スターダスト		Selena Higa・alico	Selena Higa;alico	BNSI(Toaki Usami)	Toaki Usami	ZWEIGLANZ(玲音、詩花)	unit	961			imasdb-3ec06e1f4e4d			unmatched		
 961_アルティメットアイズ	アルティメットアイズ	アルティメットアイズ		Selena Higa	Selena Higa	BNEI(Toaki Usami)	Toaki Usami	玲音	solo	961			imasdb-701c91c8f874			unmatched		
 961_インセインゲーム	インセインゲーム	インセインゲーム		mft	mft	BNSI(中川浩二)	中川浩二	星井美希、我那覇響、四条貴音	unit	961			imasdb-110a8703a540			unmatched		
-961_エクストリームオーバードライブ	エクストリーム・オーバードライブ	エクストリーム・オーバードライブ		篠崎あやと	篠崎あやと	篠崎あやと	篠崎あやと	玲音	solo	961			imasdb-cefa072a9ff5			unmatched		
+961_エクストリームオーバードライブ	エクストリーム・オーバードライブ	エクストリーム・オーバードライブ		篠崎あやと	篠崎あやと	篠崎あやと	篠崎あやと	玲音	solo	961			imasdb-cefa072a9ff5			unmatched		JASRAC 非委託・NexTone 未発見 (2026-09-16)
 961_恋をはじめよう	恋をはじめよう	恋をはじめよう		白瀬彩	白瀬彩	BNSI(Jesahm)	Jesahm	Jupiter	unit	961			imasdb-4e111efaf22d			unmatched		
 961_結晶crystal_dust	結晶〜Crystal Dust〜	結晶〜Crystal Dust〜		白瀬彩	白瀬彩	神津裕之	神津裕之	伊集院北斗	solo	961			imasdb-5a605cce23bf			unmatched		
 961_黒い犬	黒い犬	黒い犬		中村恵	中村恵	佐々木宏人	佐々木宏人	四条貴音、我那覇響、星井美希	unit	961			imasdb-c7174d9de988			unmatched		
@@ -622,8 +622,8 @@ cg_morgana	Morgana	Morgana		烏屋茶房	烏屋茶房	烏屋茶房	烏屋茶房	
 cg_motto	MOTTO!	MOTTO!		烏屋茶房	烏屋茶房	橘亮祐・篠崎あやと	橘亮祐;篠崎あやと	久川凪、西園寺琴歌、桐生つかさ、白菊ほたる、村上巴、関裕美、結城晴	unit	cg			imasdb-03289436179f			unmatched		
 cg_myself	Myself	Myself		馬渕直純	馬渕直純	馬渕直純	馬渕直純	松永涼	solo	cg			imasdb-a8e00b1ff928			unmatched		
 cg_naked_romance	Naked Romance	Naked Romance		BNSI(遠山明孝)	遠山明孝	BNSI(遠山明孝)	遠山明孝	小日向美穂	solo	cg			imasdb-97cc94555dfc			unmatched		
-cg_nation_blue	Nation Blue	Nation Blue		遠山明孝	遠山明孝	遠山明孝	遠山明孝	渋谷凛、高垣楓、神崎蘭子、多田李衣菜、新田美波	unit	cg			imasdb-4df827b42495			unmatched		
-cg_nation_blue_-蒼く蒼く蒼く_remix-	Nation Blue -蒼く蒼く蒼く Remix-	Nation Blue	蒼く蒼く蒼く Remix	遠山明孝	遠山明孝	遠山明孝	遠山明孝	渋谷凛、高垣楓、神崎蘭子、多田李衣菜、新田美波	unit	cg	cg_nation_blue	1	imasdb-da790e9d36df			unmatched		
+cg_nation_blue	Nation Blue	Nation Blue		遠山明孝	遠山明孝	遠山明孝	遠山明孝	渋谷凛、高垣楓、神崎蘭子、多田李衣菜、新田美波	unit	cg			imasdb-4df827b42495			unmatched	nextone	NexTone: 作品コード N00567141 配信=manage (2026-09-16 NexTone 作品検索)
+cg_nation_blue_-蒼く蒼く蒼く_remix-	Nation Blue -蒼く蒼く蒼く Remix-	Nation Blue	蒼く蒼く蒼く Remix	遠山明孝	遠山明孝	遠山明孝	遠山明孝	渋谷凛、高垣楓、神崎蘭子、多田李衣菜、新田美波	unit	cg	cg_nation_blue	1	imasdb-da790e9d36df			unmatched	nextone	NexTone: 作品コード N00567141 配信=manage (2026-09-16 NexTone 作品検索)
 cg_near_to_you	Near to You	Near to You		AJURIKA	AJURIKA	AJURIKA	AJURIKA	宮本フレデリカ、一ノ瀬志希、櫻井桃華、中野有香、五十嵐響子	unit	cg			imasdb-91f29a896386			unmatched		
 cg_near_to_you_-picopico_dnb_remix-	Near to You -PicoPico D'n'B Remix-	Near to You	PicoPico D'n'B Remix	AJURIKA	AJURIKA	AJURIKA	AJURIKA	宮本フレデリカ、一ノ瀬志希、櫻井桃華、中野有香、五十嵐響子	unit	cg	cg_near_to_you	1	imasdb-62cc26d6efc7			unmatched		
 cg_nebula_sky	Nebula Sky	Nebula Sky		AJURIKA	AJURIKA	AJURIKA	AJURIKA	アナスタシア	solo	cg			imasdb-a611e6235430			unmatched		
@@ -649,7 +649,7 @@ cg_numberless	Numberless	Numberless		八城雄太	八城雄太	竹市佳伸	竹�
 cg_o-ku-ri-mo-no_sunday	O-Ku-Ri-Mo-No Sunday!	O-Ku-Ri-Mo-No Sunday!		烏屋茶房	烏屋茶房	烏屋茶房、篠崎あやと	烏屋茶房;篠崎あやと	miroir(久川颯、久川凪)	unit	cg			imasdb-84e4f84a82d1			unmatched		
 cg_o-ku-ri-mo-no_sunday_-ヒゲドライバー_remix-	O-Ku-Ri-Mo-No Sunday! -ヒゲドライバー Remix-	O-Ku-Ri-Mo-No Sunday!	ヒゲドライバー Remix	烏屋茶房	烏屋茶房	烏屋茶房、篠崎あやと	烏屋茶房;篠崎あやと	miroir(久川颯、久川凪)	unit	cg	cg_o-ku-ri-mo-no_sunday	1	imasdb-3dd5d6c15ebf			unmatched		
 cg_one_life	One Life	One Life		ミズノゲンキ	ミズノゲンキ	根本優樹	根本優樹	松永涼	solo	cg			imasdb-e4cc5be16bb2			unmatched		
-cg_orange_sapphire	Orange Sapphire	Orange Sapphire		Funta3	Funta3	Funta7	Funta7	城ヶ崎莉嘉、諸星きらり、城ヶ崎美嘉、本田未央、赤城みりあ	unit	cg			imasdb-09f66c8a5964			unmatched		
+cg_orange_sapphire	Orange Sapphire	Orange Sapphire		Funta3	Funta3	Funta7	Funta7	城ヶ崎莉嘉、諸星きらり、城ヶ崎美嘉、本田未央、赤城みりあ	unit	cg			imasdb-09f66c8a5964			unmatched	nextone	NexTone: 作品コード N00567138 配信=manage (2026-09-16 NexTone 作品検索)
 cg_otahen_アンセム	OTAHEN アンセム	OTAHEN アンセム		BNSI(佐藤貴文)	佐藤貴文	BNSI(佐藤貴文)	佐藤貴文	夢見りあむ	solo	cg			imasdb-164ecfd94b1d			unmatched		
 cg_otahen_アンセム_-massive_new_krew_remix-	OTAHEN アンセム -Massive New Krew Remix-	OTAHEN アンセム	Massive New Krew Remix	BNSI(佐藤貴文)	佐藤貴文	BNSI(佐藤貴文)	佐藤貴文	夢見りあむ	solo	cg	cg_otahen_アンセム	1	imasdb-430f0a062dd9			unmatched		
 cg_packing_her_favorite	Packing Her Favorite	Packing Her Favorite		八城雄太	八城雄太	seibin(ESTIMATE)	seibin(ESTIMATE)	久川颯	solo	cg			imasdb-c1bbb85ecf21			unmatched		
@@ -748,12 +748,12 @@ cg_おねだり_shall_we_-for_kanako_rearrange_mix-	おねだり Shall We 〜? -
 cg_おめざめめーめー	おめざめめーめー	おめざめめーめー		八城雄太	八城雄太	宮崎まゆ(SUPA LOVE)	宮崎まゆ(SUPA LOVE)	遊佐こずえ	solo	cg			imasdb-069156b6405c			unmatched		
 cg_おんなの道は星の道	おんなの道は星の道	おんなの道は星の道		田村武也	田村武也	弦哲也	弦哲也	村上巴	solo	cg			imasdb-f8506f30da11			unmatched		
 cg_お散歩カメラ	お散歩カメラ	お散歩カメラ		イズミカワソラ	イズミカワソラ	イズミカワソラ	イズミカワソラ	高森藍子	solo	cg			imasdb-ef6b477d37de			unmatched		
-cg_お願いシンデレラ	お願い!シンデレラ	お願い!シンデレラ		marhy	marhy	BNSI(内田哲也)	内田哲也	CINDERELLA PROJECT	all	cg			imasdb-ae735cd2a575			unmatched		
-cg_お願いシンデレラ_-_しんげきremix_-	お願い!シンデレラ - しんげきRemix -	お願い!シンデレラ	しんげきRemix	marhy	marhy	BNSI(内田哲也)	内田哲也	島村卯月、小日向美穂	unit	cg	cg_お願いシンデレラ	1	imasdb-bea76f56b43c			unmatched		
-cg_お願いシンデレラ_-jazz_rearrange_mix-	お願い!シンデレラ -JAZZ Rearrange Mix-	お願い!シンデレラ	JAZZ Rearrange Mix	marhy	marhy	NBSI〈内田哲也〉	NBSI〈内田哲也〉	島村卯月、渋谷凛、本田未央	unit	cg	cg_お願いシンデレラ	1	imasdb-c6981f733ceb			unmatched		
-cg_お願いシンデレラ_-山本真央樹_remix-	お願い!シンデレラ -山本真央樹 Remix-	お願い!シンデレラ	山本真央樹 Remix	marhy	marhy	NBSI(内田哲也)	NBSI(内田哲也)	CINDERELLA PROJECT	all	cg	cg_お願いシンデレラ	1	imasdb-14914b7573a7			unmatched		
-cg_お願いシンデレラ_ゴージャストロピカル_ver	お願い!シンデレラ 〜ゴージャス・トロピカル Ver.〜	お願い!シンデレラ 〜ゴージャス・トロピカル Ver.〜		marhy	marhy	BNSI(内田哲也)	内田哲也	島村卯月、遊佐こずえ、早坂美玲、黒埼ちとせ、白雪千夜、佐城雪美、結城晴、久川颯、小関麗奈、的場梨沙、ナターリア、村上巴、南条光、夢見りあむ、久川凪	unit	cg	cg_お願いシンデレラ		imasdb-263968b56d77			unmatched		
-cg_お願いシンデレラハピハピver	お願い!シンデレラ(ハピ☆ハピVer.)	お願い!シンデレラ	ハピ☆ハピVer.	marhy	marhy	NBSI(内田哲也)	NBSI(内田哲也)	CINDERELLA GIRLS for あんきら、双葉杏	solo	cg	cg_お願いシンデレラ	1	imasdb-e244e45b32e4			unmatched		
+cg_お願いシンデレラ	お願い!シンデレラ	お願い!シンデレラ		marhy	marhy	BNSI(内田哲也)	内田哲也	CINDERELLA PROJECT	all	cg			imasdb-ae735cd2a575			unmatched	nextone	NexTone: 作品コード N00567132 配信=manage (2026-09-16 NexTone 作品検索)
+cg_お願いシンデレラ_-_しんげきremix_-	お願い!シンデレラ - しんげきRemix -	お願い!シンデレラ	しんげきRemix	marhy	marhy	BNSI(内田哲也)	内田哲也	島村卯月、小日向美穂	unit	cg	cg_お願いシンデレラ	1	imasdb-bea76f56b43c			unmatched	nextone	NexTone: 作品コード N00567132 配信=manage (2026-09-16 NexTone 作品検索)
+cg_お願いシンデレラ_-jazz_rearrange_mix-	お願い!シンデレラ -JAZZ Rearrange Mix-	お願い!シンデレラ	JAZZ Rearrange Mix	marhy	marhy	NBSI〈内田哲也〉	NBSI〈内田哲也〉	島村卯月、渋谷凛、本田未央	unit	cg	cg_お願いシンデレラ	1	imasdb-c6981f733ceb			unmatched	nextone	NexTone: 作品コード N00567132 配信=manage (2026-09-16 NexTone 作品検索)
+cg_お願いシンデレラ_-山本真央樹_remix-	お願い!シンデレラ -山本真央樹 Remix-	お願い!シンデレラ	山本真央樹 Remix	marhy	marhy	NBSI(内田哲也)	NBSI(内田哲也)	CINDERELLA PROJECT	all	cg	cg_お願いシンデレラ	1	imasdb-14914b7573a7			unmatched	nextone	NexTone: 作品コード N00567132 配信=manage (2026-09-16 NexTone 作品検索)
+cg_お願いシンデレラ_ゴージャストロピカル_ver	お願い!シンデレラ 〜ゴージャス・トロピカル Ver.〜	お願い!シンデレラ 〜ゴージャス・トロピカル Ver.〜		marhy	marhy	BNSI(内田哲也)	内田哲也	島村卯月、遊佐こずえ、早坂美玲、黒埼ちとせ、白雪千夜、佐城雪美、結城晴、久川颯、小関麗奈、的場梨沙、ナターリア、村上巴、南条光、夢見りあむ、久川凪	unit	cg	cg_お願いシンデレラ		imasdb-263968b56d77			unmatched	nextone	NexTone: 作品コード N00567132 配信=manage (2026-09-16 NexTone 作品検索)
+cg_お願いシンデレラハピハピver	お願い!シンデレラ(ハピ☆ハピVer.)	お願い!シンデレラ	ハピ☆ハピVer.	marhy	marhy	NBSI(内田哲也)	NBSI(内田哲也)	CINDERELLA GIRLS for あんきら、双葉杏	solo	cg	cg_お願いシンデレラ	1	imasdb-e244e45b32e4			unmatched	nextone	NexTone: 作品コード N00567132 配信=manage (2026-09-16 NexTone 作品検索)
 cg_かぼちゃ姫	かぼちゃ姫	かぼちゃ姫		ササキトモコ	ササキトモコ	ササキトモコ	ササキトモコ	白坂小梅、久川凪、関裕美、森久保乃々、椎名法子	unit	cg			imasdb-cf91fe8737f8			unmatched		
 cg_がおちゅーさふぁりぱーく	がおちゅー♪さふぁりぱーく!	がおちゅー♪さふぁりぱーく!		八城雄太	八城雄太	山崎真吾 (SUPA LOVE)	山崎真吾 (SUPA LOVE)	がおがおわんだぁ(市原仁奈、三船美優、及川雫、向井拓海)	unit	cg			imasdb-a3fcd8e2301e			unmatched		
 cg_きまぐれcafe_au_lait	き・ま・ぐ・れ☆Cafe au lait!	き・ま・ぐ・れ☆Cafe au lait!		BNSI(Mitsu)	Mitsu	BNSI(Yoshi)	Yoshi	宮本フレデリカ	solo	cg			imasdb-5bee9c5a2700			unmatched		
@@ -803,8 +803,8 @@ cg_よりみちリトルスター	よりみちリトルスター	よりみちリ
 cg_わたぐも	わたぐも	わたぐも		Manami	Manami	Asu	Asu	赤城みりあ	solo	cg			imasdb-c548806b5a46			unmatched		
 cg_アイムアリトルプリンセス_お星さまにお願い	アイム・ア・リトル・プリンセス 〜お星さまにお願い〜	アイム・ア・リトル・プリンセス 〜お星さまにお願い〜		朝倉路	朝倉路	渡部チェル	渡部チェル	古賀小春	solo	cg			imasdb-981fd9173416			unmatched		
 cg_アタシガルール	アタシガルール	アタシガルール		鶴﨑輝一	鶴﨑輝一	鶴﨑輝一	鶴﨑輝一	桐生つかさ	solo	cg			imasdb-5355682220d8			unmatched		
-cg_アタシポンコツアンドロイド	アタシポンコツアンドロイド	アタシポンコツアンドロイド		ササキトモコ	ササキトモコ	ササキトモコ	ササキトモコ	双葉杏、前川みく、島村卯月、小日向美穂、安部菜々	unit	cg			imasdb-73807793bde8			unmatched		
-cg_アタシポンコツアンドロイド_-北谷光浩_remix-	アタシポンコツアンドロイド -北谷光浩 Remix-	アタシポンコツアンドロイド	北谷光浩 Remix	ササキトモコ	ササキトモコ	ササキトモコ	ササキトモコ	双葉杏、前川みく、島村卯月、小日向美穂、安部菜々	unit	cg	cg_アタシポンコツアンドロイド	1	imasdb-38d7d93acf38			unmatched		
+cg_アタシポンコツアンドロイド	アタシポンコツアンドロイド	アタシポンコツアンドロイド		ササキトモコ	ササキトモコ	ササキトモコ	ササキトモコ	双葉杏、前川みく、島村卯月、小日向美穂、安部菜々	unit	cg			imasdb-73807793bde8			unmatched	nextone	NexTone: 作品コード N00567139 配信=manage (2026-09-16 NexTone 作品検索)
+cg_アタシポンコツアンドロイド_-北谷光浩_remix-	アタシポンコツアンドロイド -北谷光浩 Remix-	アタシポンコツアンドロイド	北谷光浩 Remix	ササキトモコ	ササキトモコ	ササキトモコ	ササキトモコ	双葉杏、前川みく、島村卯月、小日向美穂、安部菜々	unit	cg	cg_アタシポンコツアンドロイド	1	imasdb-38d7d93acf38			unmatched	nextone	NexTone: 作品コード N00567139 配信=manage (2026-09-16 NexTone 作品検索)
 cg_アッパレmaharajapaaan	アッパレ♪Mahara★Japaaan!	アッパレ♪Mahara★Japaaan!		fumi	fumi	小野貴光	小野貴光	セクシーギルティ(堀裕子、片桐早苗、及川雫)	unit	cg			imasdb-6c31172aeb76			unmatched		
 cg_アップルパイプリンセス	アップルパイ・プリンセス	アップルパイ・プリンセス		NBSI(MC TC、おおくぼひろし)	NBSI(MC TC、おおくぼひろし)	NBSI(おおくぼひろし)	NBSI(おおくぼひろし)	十時愛梨	solo	cg			imasdb-d31adc56f36f			unmatched		
 cg_アツアツマカロニグラタン	アツアツ♪マカロニグラタン	アツアツ♪マカロニグラタン		ヒゲドライバー	ヒゲドライバー	ヒゲドライバー	ヒゲドライバー	五十嵐響子	solo	cg			imasdb-26f0316349ce			unmatched		
@@ -843,9 +843,9 @@ cg_ショコラティアラ_-before_sunrise_remix-	ショコラ・ティアラ -
 cg_ショコラティアラ_for_miria_rearrange_mix	ショコラ・ティアラ 〜For Miria rearrange MIX〜	ショコラ・ティアラ 〜For Miria rearrange MIX〜		古屋真	古屋真	BNEI(kyo)	kyo	赤城みりあ	solo	cg	cg_ショコラティアラ		imasdb-6804fbfb30e0			unmatched		
 cg_シンデレラno1	シンデレラNo.1	シンデレラNo.1		八城雄太	八城雄太	ヒゲドライバー	ヒゲドライバー	安部菜々、イヴ・サンタクロース、神崎蘭子	unit	cg			imasdb-b5fcda5dc3e9			unmatched		
 cg_ジュビリー	ジュビリー	ジュビリー		TAKU INOUE	TAKU INOUE	TAKU INOUE	TAKU INOUE	星街すいせい、高垣楓	solo	cg			imasdb-43a4a987b6ed			unmatched		
-cg_ススメオトメ_jewel_parade	ススメ☆オトメ 〜jewel parade〜	ススメ☆オトメ 〜jewel parade〜		森由里子	森由里子	田中秀和(MONACA)	田中秀和(MONACA)	渋谷凛、高垣楓、神崎蘭子、多田李衣菜、新田美波	unit	cg			imasdb-dd139bded5eb			unmatched		
-cg_ススメオトメ_jewel_parade_-_しんげきremix_-	ススメ☆オトメ 〜jewel parade〜 - しんげきRemix -	ススメ☆オトメ 〜jewel parade〜	しんげきRemix	森由里子	森由里子	田中秀和(MONACA)	田中秀和(MONACA)	城ヶ崎美嘉、城ヶ崎莉嘉	unit	cg	cg_ススメオトメ_jewel_parade	1	imasdb-031e4c4d75b5			unmatched		
-cg_ススメオトメ_jewel_parade_-blooming_floral_remix-	ススメ☆オトメ 〜jewel parade〜 -Blooming Floral Remix-	ススメ☆オトメ 〜jewel parade〜	Blooming Floral Remix	森由里子	森由里子	田中秀和(MONACA)	田中秀和(MONACA)	CINDERELLA PROJECT	all	cg	cg_ススメオトメ_jewel_parade	1	imasdb-5d6b7a5a8f7d			unmatched		
+cg_ススメオトメ_jewel_parade	ススメ☆オトメ 〜jewel parade〜	ススメ☆オトメ 〜jewel parade〜		森由里子	森由里子	田中秀和(MONACA)	田中秀和(MONACA)	渋谷凛、高垣楓、神崎蘭子、多田李衣菜、新田美波	unit	cg			imasdb-dd139bded5eb			unmatched	nextone	NexTone: 作品コード N00567142 配信=manage (2026-09-16 NexTone 作品検索)
+cg_ススメオトメ_jewel_parade_-_しんげきremix_-	ススメ☆オトメ 〜jewel parade〜 - しんげきRemix -	ススメ☆オトメ 〜jewel parade〜	しんげきRemix	森由里子	森由里子	田中秀和(MONACA)	田中秀和(MONACA)	城ヶ崎美嘉、城ヶ崎莉嘉	unit	cg	cg_ススメオトメ_jewel_parade	1	imasdb-031e4c4d75b5			unmatched	nextone	NexTone: 作品コード N00567142 配信=manage (2026-09-16 NexTone 作品検索)
+cg_ススメオトメ_jewel_parade_-blooming_floral_remix-	ススメ☆オトメ 〜jewel parade〜 -Blooming Floral Remix-	ススメ☆オトメ 〜jewel parade〜	Blooming Floral Remix	森由里子	森由里子	田中秀和(MONACA)	田中秀和(MONACA)	CINDERELLA PROJECT	all	cg	cg_ススメオトメ_jewel_parade	1	imasdb-5d6b7a5a8f7d			unmatched	nextone	NexTone: 作品コード N00567142 配信=manage (2026-09-16 NexTone 作品検索)
 cg_スターライトステージ	スターライトステージ	スターライトステージ		八城雄太	八城雄太	IMAJO・睦月周平	IMAJO;睦月周平	諸星きらり、宮本フレデリカ、荒木比奈、的場梨沙、南条光	unit	cg			imasdb-b1b2ce0ae7e7			unmatched		
 cg_ステップ	ステップ!	ステップ!		Manami[TRYTONELABO]	Manami[TRYTONELABO]	no_my	no_my	本田未央	solo	cg			imasdb-d508cf3e34ba			unmatched		
 cg_ステップスキップ	ステップ&スキップ	ステップ&スキップ		朝倉路	朝倉路	石濱翔(MONACA)	石濱翔(MONACA)	ワンステップス(関裕美、白菊ほたる、森久保乃々)	unit	cg			imasdb-a363b2bdb8de			unmatched		
@@ -931,7 +931,7 @@ cg_夕映えプレゼント	夕映えプレゼント	夕映えプレゼント		�
 cg_夢をのぞいたら	夢をのぞいたら	夢をのぞいたら		佐伯youthK	佐伯youthK	佐伯youthK	佐伯youthK	本田未央、北条加蓮、夢見りあむ、遊佐こずえ、佐城雪美、一ノ瀬志希、鷺沢文香、佐久間まゆ、ナターリア	unit	cg			imasdb-842612445f1d			unmatched		
 cg_夢幻ノ救憐唱_堕チル星ノ調ベ	夢幻ノ救憐唱 〜堕チル星ノ調ベ〜	夢幻ノ救憐唱 〜堕チル星ノ調ベ〜		やいり、烏屋茶房	やいり;烏屋茶房	Powerless	Powerless	神崎蘭子	solo	cg			imasdb-20d07fbd0d9d			unmatched		
 cg_夢色ハーモニー	夢色ハーモニー	夢色ハーモニー		遠藤フビト	遠藤フビト	BNSI(内田哲也)	内田哲也	CINDERELLA PROJECT [島村卯月、渋谷凛、本田未央、双葉杏、三村かな子、城ヶ崎莉嘉、神崎蘭子、前川みく、諸星きらり、多田李衣菜、赤城みりあ、新田美波、緒方智絵里、アナスタシア	all	cg			imasdb-a4a0ad44b081			unmatched		
-cg_大好きのブーケ	大好きのブーケ	大好きのブーケ						五十嵐響子、佐久間まゆ、相葉夕美	unit	cg			imasdb-1ceffbea64ca			unmatched		
+cg_大好きのブーケ	大好きのブーケ	大好きのブーケ						五十嵐響子、佐久間まゆ、相葉夕美	unit	cg			imasdb-1ceffbea64ca			unmatched		JASRAC 非委託・NexTone 未発見 (2026-09-16)
 cg_大阪タコちゃんラブちゃん	大阪タコちゃんラブちゃん	大阪タコちゃんラブちゃん		fumi	fumi	小野貴光	小野貴光	難波笑美	solo	cg			imasdb-f2af30e3bf00			unmatched		
 cg_太陽の絵の具箱	太陽の絵の具箱	太陽の絵の具箱		BNSI(トリ音)	トリ音	BNSI(トリ音)	トリ音	Sonoritia(緒方智絵里、依田芳乃、遊佐こずえ、佐城雪美)	unit	cg			imasdb-e84c094212c6			unmatched		
 cg_小さな恋の密室事件	小さな恋の密室事件	小さな恋の密室事件		BNSI(八城雄太)/BNSI(佐藤貴文)	BNSI(八城雄太)/BNSI(佐藤貴文)	BNSI(佐藤貴文)	佐藤貴文	白坂小梅	solo	cg			imasdb-8f9aaa67d2d7			unmatched		
@@ -996,9 +996,9 @@ cg_読んで甘辛script	読んで!甘辛Script	読んで!甘辛Script		俊龍	�
 cg_谷の底で咲く花は	谷の底で咲く花は	谷の底で咲く花は		八城雄太	八城雄太	岡部啓一(MONACA)	岡部啓一(MONACA)	白菊ほたる	solo	cg			imasdb-6bd51066fffe			unmatched		
 cg_踊りまくろダンシングナイト	踊りまくろ☆ダンシング・ナイト	踊りまくろ☆ダンシング・ナイト		YOFFY(PSYCHIC LOVER)	YOFFY(PSYCHIC LOVER)	YOFFY(PSYCHIC LOVER)	YOFFY(PSYCHIC LOVER)	片桐早苗	solo	cg			imasdb-5837b0df6375			unmatched		
 cg_躍るflagship	躍るFLAGSHIP	躍るFLAGSHIP		只野菜摘	只野菜摘	BNSI(ミフメイ)	ミフメイ	小日向美穂、佐藤心、北条加蓮	unit	cg			imasdb-8add8a143a26			unmatched		
-cg_輝く世界の魔法	輝く世界の魔法	輝く世界の魔法		yura	yura	小西裕子	小西裕子	THE IDOLM@STER CINDERELLA GIRLS!、アナスタシア、高垣楓、輿水幸子、渋谷凛	all	cg			imasdb-786d05bce6bc			unmatched		
-cg_輝く世界の魔法_-magical_step_forward_remix-	輝く世界の魔法 -Magical Step Forward Remix-	輝く世界の魔法	Magical Step Forward Remix	yura	yura	小西裕子	小西裕子	THE IDOLM@STER CINDERELLA GIRLS!、アナスタシア、高垣楓、輿水幸子、渋谷凛	all	cg	cg_輝く世界の魔法	1	imasdb-65b5b34564cb			unmatched		
-cg_輝く世界の魔法_しんげきremix-	輝く世界の魔法 – しんげきRemix-	輝く世界の魔法	しんげきRemix	yura	yura	小西裕子	小西裕子	アナスタシア、渋谷凛	unit	cg		1	imasdb-60063a8e9269			unmatched		
+cg_輝く世界の魔法	輝く世界の魔法	輝く世界の魔法		yura	yura	小西裕子	小西裕子	THE IDOLM@STER CINDERELLA GIRLS!、アナスタシア、高垣楓、輿水幸子、渋谷凛	all	cg			imasdb-786d05bce6bc			unmatched	nextone	NexTone: 作品コード N00567140 配信=manage (2026-09-16 NexTone 作品検索)
+cg_輝く世界の魔法_-magical_step_forward_remix-	輝く世界の魔法 -Magical Step Forward Remix-	輝く世界の魔法	Magical Step Forward Remix	yura	yura	小西裕子	小西裕子	THE IDOLM@STER CINDERELLA GIRLS!、アナスタシア、高垣楓、輿水幸子、渋谷凛	all	cg	cg_輝く世界の魔法	1	imasdb-65b5b34564cb			unmatched	nextone	NexTone: 作品コード N00567140 配信=manage (2026-09-16 NexTone 作品検索)
+cg_輝く世界の魔法_しんげきremix-	輝く世界の魔法 – しんげきRemix-	輝く世界の魔法	しんげきRemix	yura	yura	小西裕子	小西裕子	アナスタシア、渋谷凛	unit	cg		1	imasdb-60063a8e9269			unmatched	nextone	NexTone: 作品コード N00567140 配信=manage (2026-09-16 NexTone 作品検索)
 cg_輝けビートシューター	輝け!ビートシューター	輝け!ビートシューター		YOFFY(PSYCHIC LOVER)	YOFFY(PSYCHIC LOVER)	YOFFY(PSYCHIC LOVER)	YOFFY(PSYCHIC LOVER)	ビートシューター(結城晴、的場梨沙)	unit	cg			imasdb-6105ab6f7e30			unmatched		
 cg_追い風running	追い風Running	追い風Running		ミズノゲンキ	ミズノゲンキ	HONY、Shouya Namai	HONY;Shouya Namai	乙倉悠貴	solo	cg			imasdb-f82be6801668			unmatched		
 cg_銀のイルカと熱い風	銀のイルカと熱い風	銀のイルカと熱い風		森由里子	森由里子	俊龍	俊龍	大槻唯、緒方智絵里、新田美波	unit	cg			imasdb-c3c090961a6c			unmatched		
