@@ -1,0 +1,135 @@
+{
+ "costumes": [
+  {
+   "id": "cos_ml10th_re_prologue_x",
+   "brand_id": "ml",
+   "name": "リ・プロローグ・X",
+   "name_kana": "りぷろろーぐえっくす",
+   "unit_id": null,
+   "idol_id": null,
+   "description": "ミリオンライブ！10周年記念の共通衣装。10thLIVE TOUR ではアンコールの『Crossing!』で着用",
+   "source_url": "https://idolmaster-official.jp/news/01_13306",
+   "source": [
+    "https://idolmaster-official.jp/news/01_13306",
+    "https://idolmaster-official.jp/news/01_11531",
+    "https://www.famitsu.com/news/202304/23300549.html",
+    "https://www.famitsu.com/news/202307/29311423.html",
+    "https://www.famitsu.com/news/202307/30311486.html",
+    "https://www.famitsu.com/news/202402/24335665.html",
+    "https://www.famitsu.com/news/202402/26335689.html"
+   ],
+   "sort_order": 0,
+   "note": "キャストが実物を着たことは公式 (Blu-ray 特典の『実際に使われたものと同じバッジ』)。公演ごとの着用はファミ通のレポートで確認できた分だけ入れた。Act-1 DAY1 は記事で未確認、Act-3 は着用の記述なしのため入れていない",
+   "wears": [
+    { "show_id": "sh_L0817", "setlist_item_id": "sh_L0817_7781" },
+    { "show_id": "sh_L0834", "setlist_item_id": "sh_L0834_8048" },
+    { "show_id": "sh_L0835", "setlist_item_id": "sh_L0835_8078" },
+    { "show_id": "sh_L0884", "setlist_item_id": "sh_L0884_8799" },
+    { "show_id": "sh_L0885", "setlist_item_id": "sh_L0885_8843" }
+   ]
+  },
+  {
+   "id": "cos_ml10th_primary_performer",
+   "brand_id": "ml",
+   "name": "プライマリー・パフォーマー",
+   "name_kana": "ぷらいまりーぱふぉーまー",
+   "unit_id": null,
+   "idol_id": null,
+   "description": "10thLIVE TOUR Act-1 のメイン衣装。1st〜4th ライブの衣装を組み合わせたデザイン",
+   "source_url": "https://x.com/imasml_theater/status/1733321065986965514",
+   "source": [
+    "https://x.com/imasml_theater/status/1733321065986965514",
+    "https://x.com/imasml_theater/status/1773230790966415766",
+    "https://idolmaster-official.jp/news/01_8391",
+    "https://idolmaster-official.jp/news/01_11531",
+    "https://www.famitsu.com/news/202304/23300549.html"
+   ],
+   "sort_order": 1,
+   "note": "公式X『Act-1 に登場したデザインの衣装は後日衣装購入に追加予定』→ 2024/03/28『プライマリー・パフォーマーを追加』の流れとファミ通レポートからの推定 (Act-1＝この衣装、と 1 文で書いた公式文は未発見)。アンコールと一部ユニット曲は別衣装",
+   "wears": [
+    { "show_id": "sh_L0816" },
+    { "show_id": "sh_L0817" }
+   ]
+  },
+  {
+   "id": "cos_ml10th_shining_performer",
+   "brand_id": "ml",
+   "name": "シャイニング・パフォーマー",
+   "name_kana": "しゃいにんぐぱふぉーまー",
+   "unit_id": null,
+   "idol_id": null,
+   "description": "10thLIVE TOUR Act-2 のメイン衣装。過去のライブ衣装をオマージュしたデザインで、タイプ・アイドルごとに少しずつ違う",
+   "source_url": "https://x.com/imasml_theater/status/1733320814169079943",
+   "source": [
+    "https://x.com/imasml_theater/status/1733320814169079943",
+    "https://shop.asobistore.jp/products/detail/188314-3_ml-c001-00-00",
+    "https://idolmaster-official.jp/news/01_9142",
+    "https://idolmaster-official.jp/news/01_11531",
+    "https://www.famitsu.com/news/202307/30311486.html"
+   ],
+   "sort_order": 2,
+   "note": "公式X の 10th ツアー衣装追加告知とファミ通レポートからの推定 (Act-2＝この衣装、と明記した公式文は未発見)。EScape・Jus-2-Mint の曲とアンコールは別衣装",
+   "wears": [
+    { "show_id": "sh_L0834" },
+    { "show_id": "sh_L0835" }
+   ]
+  },
+  {
+   "id": "cos_ml10th_starting_bloom",
+   "brand_id": "ml",
+   "name": "スターティング・ブルーム",
+   "name_kana": "すたーてぃんぐぶるーむ",
+   "unit_id": null,
+   "idol_id": null,
+   "description": "アニメ『アイドルマスター ミリオンライブ！』の MILLIONSTARS 共通ステージ衣装を実物にしたもの。10thLIVE TOUR Act-3 で着用",
+   "source_url": "https://idolmaster-official.jp/news/01_9938",
+   "source": [
+    "https://idolmaster-official.jp/news/01_9938",
+    "https://idolmaster-official.jp/news/01_11531",
+    "https://app.famitsu.com/20231106_2153103/"
+   ],
+   "sort_order": 3,
+   "note": "DAY1 は公式まとめに『スターティング・ブルームに身を包んだ22名』と明記。DAY2 はファミ通App の両日レポートによる",
+   "wears": [
+    { "show_id": "sh_L0850" },
+    { "show_id": "sh_L0851" }
+   ]
+  },
+  {
+   "id": "cos_ml10th_act4_individual",
+   "brand_id": "ml",
+   "name": "10thLIVE TOUR Act-4 個別衣装",
+   "name_kana": null,
+   "unit_id": null,
+   "idol_id": null,
+   "description": "ミリオンライブ！初の個別衣装。MILLIONSTARS 39 人それぞれに違うデザイン",
+   "source_url": "https://idolmaster-official.jp/news/01_10803",
+   "source": [
+    "https://idolmaster-official.jp/news/01_10803",
+    "https://shop.asobistore.jp/products/detail/200141-00-00-00"
+   ],
+   "sort_order": 4,
+   "note": "39 着それぞれの公式名は見つからないので 1 件にまとめた。アンコールはリ・プロローグ・X、4 Luxury の曲はメイクアップ・ファビュラス！",
+   "wears": [
+    { "show_id": "sh_L0884" },
+    { "show_id": "sh_L0885" }
+   ]
+  },
+  {
+   "id": "cos_ml_makeup_fabulous",
+   "brand_id": "ml",
+   "name": "メイクアップ・ファビュラス！",
+   "name_kana": "めいくあっぷふぁびゅらす",
+   "unit_id": "4luxury",
+   "idol_id": null,
+   "description": "4 Luxury のユニット衣装",
+   "source_url": "https://www.famitsu.com/news/202402/26335689.html",
+   "source": ["https://www.famitsu.com/news/202402/26335689.html"],
+   "sort_order": 5,
+   "note": "ファミ通の Act-4 DAY2 レポートによる (公式での記述は未発見)",
+   "wears": [
+    { "show_id": "sh_L0885", "setlist_item_id": "sh_L0885_8817" }
+   ]
+  }
+ ]
+}
