@@ -77,9 +77,10 @@ extension CalendarPeriodBand {
         var spans: [PeriodSpanInput] = []
         for date in weekDays {
             for entry in entriesByDate[calendar.startOfDay(for: date)] ?? [] {
-                guard case .ticketPeriod(let row) = entry, entryById[row.eventId] == nil else { continue }
-                entryById[row.eventId] = (entry, row.eventName)
-                spans.append(PeriodSpanInput(id: row.eventId, start: row.start, end: row.end))
+                // sale_id ベース (1 イベントに複数受付があるとイベント id ベースの帯が潰れていた)。
+                guard case .ticketPeriod(let row) = entry, entryById[row.saleId] == nil else { continue }
+                entryById[row.saleId] = (entry, row.saleName)
+                spans.append(PeriodSpanInput(id: row.saleId, start: row.start, end: row.end))
             }
         }
         guard !spans.isEmpty else { return [] }

@@ -18,6 +18,10 @@ struct EventDetailView: View {
     @State private var editShow: Show?
     /// 新規公演追加 sheet の表示フラグ。
     @State private var showShowCreate = false
+    /// チケット受付の編集対象 (nil = 非表示)。
+    @State private var editTicketSale: TicketSale?
+    /// 新規チケット受付追加 sheet の表示フラグ。
+    @State private var showTicketSaleCreate = false
     /// 未ログイン時のログイン誘導 sheet。ログイン後に `pendingIntent` を再開する。
     @State private var showLoginPrompt = false
     /// ログイン完了後に再開する編集意図。
@@ -30,6 +34,8 @@ struct EventDetailView: View {
         case editEvent
         case editShow(Show)
         case createShow
+        case editTicketSale(TicketSale)
+        case createTicketSale
     }
 
     /// 遷移の単一窓口。sheet 内 (navigate 非 nil) は共有 path に push、standalone は自前 sheet。
@@ -193,6 +199,12 @@ struct EventDetailView: View {
         .sheet(isPresented: $showShowCreate, onDismiss: { Task { await vm.loadData(event: event) } }) {
             ShowEditView(newShowEventId: event.id, suggestedSortOrder: vm.shows.count)
                 .environment(database)
+        }
+        .sheet(item: $editTicketSale, onDismiss: { Task { await vm.reloadTicketSales(eventId: event.id) } }) { sale in
+            TicketSaleEditView(ticketSale: sale, eventShows: vm.shows)
+        }
+        .sheet(isPresented: $showTicketSaleCreate, onDismiss: { Task { await vm.reloadTicketSales(eventId: event.id) } }) {
+            TicketSaleEditView(newSaleEventId: event.id, eventShows: vm.shows, suggestedSortOrder: vm.ticketSales.count)
         }
         .sheet(isPresented: $showLoginPrompt) {
             LoginToEditSheet(onSignedIn: { resumePendingIntent() })
@@ -402,53 +414,23 @@ struct EventDetailView: View {
         }
     }
 
-    /// チケット情報の行種別 (divider を決定論的に挟むため列挙して扱う)。
-    private enum TicketRow: Identifiable {
-        case labeled(key: String, value: String)
-        case link(URL)
-        case placeholder
-        var id: String {
-            switch self {
-            case .labeled(let k, _): return "labeled-\(k)"
-            case .link: return "link"
-            case .placeholder: return "placeholder"
-            }
-        }
-    }
-
-    private var ticketRows: [TicketRow] {
-        var rows: [TicketRow] = []
-        if let deadline = event.ticketDeadline, !deadline.isEmpty {
-            rows.append(.labeled(key: Vocab.ticketDate("ticket_deadline")?.label ?? "", value: deadline))
-        }
-        if let lottery = event.ticketLotteryDate, !lottery.isEmpty {
-            rows.append(.labeled(key: Vocab.ticketDate("ticket_lottery_date")?.label ?? "", value: lottery))
-        }
-        if let url = URL.safeHTTP(string: event.ticketUrl) {
-            rows.append(.link(url))
-        }
-        if rows.isEmpty { rows.append(.placeholder) }
-        return rows
-    }
-
-    /// チケット情報セクション。1 つでも値があれば表示、何もなければ「投稿で追加できる」サインだけ。
+    /// チケット情報セクション: 受付 (`ticket_sales`) の一覧 + イベント全体の案内 URL。
+    /// 受付の判定・並び・表示文字列はすべて共有コアの `TicketSale` (射影) が決め切って返す。
     @ViewBuilder
     private var ticketInfoSection: some View {
-        let hasAny = (event.ticketDeadline?.isEmpty == false)
-            || (event.ticketLotteryDate?.isEmpty == false)
-            || (event.ticketUrl?.isEmpty == false)
-        if hasAny || isFutureEvent {
+        let hasGuideUrl = URL.safeHTTP(string: event.ticketUrl) != nil
+        if !vm.ticketSales.isEmpty || hasGuideUrl || isFutureEvent {
             VStack(alignment: .leading, spacing: DS.sp2) {
                 HStack(alignment: .firstTextBaseline) {
-                    ImasSectionHeader(title: "チケット情報", tight: true)
+                    ImasSectionHeader(title: "チケット受付", tight: true)
                     Spacer(minLength: 12)
                     if EditPermission.showEditAffordance {
                         Button {
-                            start(.editEvent)
+                            start(.createTicketSale)
                         } label: {
                             HStack(spacing: DS.sp2) {
-                                Image(systemName: hasAny ? "pencil" : "plus").font(.imasScaled( 13, weight: .semibold))
-                                Text(hasAny ? "編集" : "登録").font(.imasScaled( 14, weight: .semibold))
+                                Image(systemName: "plus").font(.imasScaled( 13, weight: .semibold))
+                                Text("追加").font(.imasScaled( 14, weight: .semibold))
                             }
                             .foregroundStyle(seedAccent)
                         }
@@ -456,59 +438,108 @@ struct EventDetailView: View {
                     }
                 }
                 .padding(.horizontal, DS.sp5)
-                ImasListContainer {
-                    ForEach(Array(ticketRows.enumerated()), id: \.element.id) { idx, row in
-                        if idx > 0 { ImasRowDivider(inset: DS.sp5) }
-                        ticketRowView(row)
+
+                if vm.ticketSales.isEmpty {
+                    ImasListContainer {
+                        Text("チケット受付は未登録です")
+                            .font(.imasFootnote)
+                            .foregroundStyle(DS.ink3)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, DS.sp4).padding(.vertical, 11)
                     }
+                    .padding(.horizontal, DS.sp5)
+                } else {
+                    ImasListContainer {
+                        ForEach(Array(vm.ticketSales.enumerated()), id: \.element.id) { idx, sale in
+                            if idx > 0 { ImasRowDivider(inset: DS.sp5) }
+                            ticketSaleRow(sale)
+                        }
+                    }
+                    .padding(.horizontal, DS.sp5)
                 }
-                .padding(.horizontal, DS.sp5)
+
+                if let url = URL.safeHTTP(string: event.ticketUrl) {
+                    Link(destination: url) {
+                        HStack(spacing: DS.sp2) {
+                            Image(systemName: "ticket").font(.imasScaled( 15, weight: .semibold))
+                            Text("公式チケットページを開く").font(.imasSubhead.weight(.semibold))
+                            Spacer()
+                            ImasRowChevron()
+                        }
+                        .foregroundStyle(seedAccent)
+                        .padding(.horizontal, DS.sp4).padding(.vertical, 11)
+                        .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.horizontal, DS.sp5)
+                }
             }
         }
     }
 
+    /// 受付 1 件ぶんの行: 段階の札 + 受付名・種別 + 期間/当落 + 対象公演 + 申込リンク。
     @ViewBuilder
-    private func ticketRowView(_ row: TicketRow) -> some View {
-        switch row {
-        case let .labeled(key, value):
-            ImasLabeledRow(key: key, value: value, seed: seed, brand: brandSeed)
-        case let .link(url):
-            Link(destination: url) {
-                HStack(spacing: DS.sp2) {
-                    Image(systemName: "ticket").font(.imasScaled( 15, weight: .semibold))
-                    Text("公式チケットページを開く").font(.imasSubhead.weight(.semibold))
+    private func ticketSaleRow(_ sale: TicketSale) -> some View {
+        Button {
+            if EditPermission.showEditAffordance { start(.editTicketSale(sale)) }
+        } label: {
+            VStack(alignment: .leading, spacing: DS.sp2) {
+                HStack(alignment: .firstTextBaseline, spacing: DS.sp2) {
+                    Text(sale.stageLabel)
+                        .font(.imasCaption.weight(.bold))
+                        .foregroundStyle(ColorMath.onColor(stageColor(sale.stage)))
+                        .padding(.horizontal, DS.sp2).padding(.vertical, 2)
+                        .background(stageColor(sale.stage), in: Capsule())
+                    Text(sale.kindLabel)
+                        .font(.imasCaption)
+                        .foregroundStyle(DS.ink3)
                     Spacer()
+                    if EditPermission.showEditAffordance {
+                        ImasRowChevron()
+                    }
                 }
-                .foregroundStyle(seedAccent)
-                .padding(.horizontal, DS.sp4).padding(.vertical, 11)
-                .background(DS.surface)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-        case .placeholder:
-            if EditPermission.showEditAffordance {
-                Button {
-                    start(.editEvent)
-                } label: {
-                    HStack(spacing: DS.sp2) {
-                        Image(systemName: "plus").font(.imasScaled( 15, weight: .semibold))
-                        Text("チケット情報を登録").font(.imasSubhead.weight(.semibold))
-                        Spacer()
+                Text(sale.name)
+                    .font(.imasSubhead.weight(.semibold))
+                    .foregroundStyle(DS.ink)
+                if let period = sale.periodLabel {
+                    Text(period)
+                        .font(.imasFootnote)
+                        .foregroundStyle(DS.ink2)
+                }
+                if let result = sale.resultLabel {
+                    Text("当落発表 \(result)")
+                        .font(.imasFootnote)
+                        .foregroundStyle(DS.ink2)
+                }
+                if !sale.showLabels.isEmpty {
+                    Text("対象: \(sale.showLabels.joined(separator: "・"))")
+                        .font(.imasFootnote)
+                        .foregroundStyle(DS.ink3)
+                }
+                if let url = URL.safeHTTP(string: sale.url) {
+                    Link(destination: url) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "arrow.up.right.square").font(.imasScaled( 12, weight: .semibold))
+                            Text("申込ページを開く").font(.imasFootnote.weight(.semibold))
+                        }
                     }
                     .foregroundStyle(seedAccent)
-                    .padding(.horizontal, DS.sp4).padding(.vertical, 11)
-                    .background(DS.surface)
-                    .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
-            } else {
-                Text("チケット情報は未登録です")
-                    .font(.imasFootnote)
-                    .foregroundStyle(DS.ink3)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, DS.sp4).padding(.vertical, 11)
-                    .background(DS.surface)
             }
+            .padding(.horizontal, DS.sp4).padding(.vertical, DS.sp3)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    /// 段階の帯色。抽選中/受付中=accent、結果待ち=注意、終了=中立、受付前=中立寄り。
+    private func stageColor(_ stage: TicketSaleStage) -> Color {
+        switch stage {
+        case .open: return seedAccent
+        case .awaitingResult: return DS.warning
+        case .upcoming: return DS.fill
+        case .ended: return DS.fill
         }
     }
 
@@ -543,6 +574,8 @@ struct EventDetailView: View {
         case .editEvent: editEvent = event
         case .editShow(let show): editShow = show
         case .createShow: showShowCreate = true
+        case .editTicketSale(let sale): editTicketSale = sale
+        case .createTicketSale: showTicketSaleCreate = true
         }
     }
 

@@ -23,8 +23,13 @@ enum Vocab {
     static func eventKind(_ raw: String) -> VocabularyTerm? { term(in: table.eventKinds, raw) }
     static func eventType(_ raw: String) -> VocabularyTerm? { term(in: table.eventTypes, raw) }
     static func attendanceType(_ raw: String) -> VocabularyTerm? { term(in: table.attendanceTypes, raw) }
-    /// チケットの日付の語。`value` は events の列名 (`ticket_deadline` 等)。
+    /// チケットの日付の語。`value` は `ticket_sales` の列名 (`starts_at` 等)。
     static func ticketDate(_ column: String) -> VocabularyTerm? { term(in: table.ticketDates, column) }
+    /// チケット受付の種別 (抽選 / 先着 / リセール / 当日券)。`raw` は `ticket_sales.kind` の生値。
+    static func ticketSaleKind(_ raw: String) -> VocabularyTerm? { term(in: table.ticketSaleKinds, raw) }
+    /// チケット受付の段階 (受付前 / 受付中 / 結果待ち / 終了)。実際の画面は `TicketSale.stageLabel`
+    /// (コアが決め切って返す) をそのまま出すので、これは語彙一覧 (Picker 等) 向け。
+    static func ticketSaleStage(_ raw: String) -> VocabularyTerm? { term(in: table.ticketSaleStages, raw) }
 
     private static func term(in terms: [VocabularyTerm], _ value: String?) -> VocabularyTerm? {
         guard let value else { return nil }

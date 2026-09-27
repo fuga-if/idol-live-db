@@ -223,7 +223,7 @@ struct DayEntryRow: View {
         return rowShell(
             seed: nil,
             title: "\(Vocab.table.ticketPeriodLabel) ・ \(row.eventName)",
-            subtitle: range.isEmpty ? "チケット受付期間" : "チケット受付  \(range)",
+            subtitle: "\(row.saleName)" + (range.isEmpty ? "" : "  \(range)"),
             leading: { TicketIconAvatar(systemImage: "calendar.badge.clock", color: ImasTheme.derive(seed: CalendarEntry.ThemeSeed.ticket, scheme: scheme).accent) },
             trailing: { chevron }
         )
@@ -239,10 +239,16 @@ struct DayEntryRow: View {
     /// チケット日程行 (申込締切 / 当落発表)。タップで親イベント詳細へ。
     private func ticketRow(_ row: TicketCalendarRow) -> some View {
         let color: Color = row.kind == .deadline ? DS.danger : ImasTheme.derive(seed: CalendarEntry.ThemeSeed.ticket, scheme: scheme).accent
+        let subtitle: String
+        switch row.kind {
+        case .start: subtitle = row.saleName
+        case .deadline: subtitle = "\(row.saleName) ・ 申込締切"
+        case .lottery: subtitle = "\(row.saleName) ・ 当落発表"
+        }
         return rowShell(
             seed: nil,
             title: "\(row.kind.label) ・ \(row.eventName)",
-            subtitle: row.kind == .deadline ? "チケット申込の締切" : "チケット当落発表",
+            subtitle: subtitle,
             leading: { TicketIconAvatar(systemImage: row.kind.icon, color: color) },
             trailing: { chevron }
         )

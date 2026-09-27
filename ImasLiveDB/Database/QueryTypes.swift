@@ -405,19 +405,32 @@ struct CalendarShowRow: Sendable {
     var eventKind: String?
 }
 
-/// チケット日程の種別 (カレンダーに出す申込締切 / 当落発表)。
+/// チケット日程の種別 (カレンダーに出す受付開始 / 申込締切 / 当落発表)。
 enum TicketDateKind: String, Sendable {
+    case start      // 受付開始 (締切が無い/開始より前の受付だけの単日点)
     case deadline   // 申込締切
     case lottery    // 当落発表
 
-    /// 語はコアの vocabulary (値は events の列名)。
+    /// 語はコアの vocabulary (値は ticket_sales の列名)。
     var label: String {
-        Vocab.ticketDate(self == .deadline ? "ticket_deadline" : "ticket_lottery_date")?.label ?? ""
+        let column: String
+        switch self {
+        case .start: column = "starts_at"
+        case .deadline: column = "ends_at"
+        case .lottery: column = "result_at"
+        }
+        return Vocab.ticketDate(column)?.label ?? ""
     }
-    var icon: String { self == .deadline ? "ticket.fill" : "envelope.open.fill" }
+    var icon: String {
+        switch self {
+        case .start: return "ticket"
+        case .deadline: return "ticket.fill"
+        case .lottery: return "envelope.open.fill"
+        }
+    }
 }
 
-/// カレンダーに出すチケット日程 1 件 (イベントの ticket_deadline / ticket_lottery_date 由来)。
+/// カレンダーに出すチケット日程 1 件 (受付 1 行の受付開始 / 申込締切 / 当落発表のいずれか)。
 struct TicketCalendarRow: Sendable {
     var eventId: String
     var eventName: String
@@ -425,6 +438,10 @@ struct TicketCalendarRow: Sendable {
     var date: String      // YYYY-MM-DD
     var kind: TicketDateKind
     var url: String?
+    /// 由来の受付 id。カレンダー行/通知 id をこれで一意にする (1 イベントに複数受付があるため)。
+    var saleId: String
+    var saleName: String
+    var saleKind: String  // ticket_sales.kind の生値 (lottery / first_come / resale / same_day)
 }
 
 /// カレンダーに「受付期間」を帯で出すための日跨ぎスパン (受付開始 → 申込締切)。
@@ -435,6 +452,9 @@ struct TicketPeriodRow: Sendable {
     var start: String     // 受付開始 YYYY-MM-DD
     var end: String       // 申込締切 YYYY-MM-DD
     var url: String?
+    var saleId: String
+    var saleName: String
+    var saleKind: String
 }
 
 enum CalendarEntry: Identifiable, Hashable, Sendable {
@@ -464,8 +484,9 @@ enum CalendarEntry: Identifiable, Hashable, Sendable {
         case .staffBirthday(let staff, _): return "staffbirthday_\(staff.id)"
         case .anniversary(let ann, _): return "anniversary_\(ann.id)"
         case .personal(let event): return "personal_\(event.id)"
-        case .ticket(let row): return "ticket_\(row.eventId)_\(row.kind.rawValue)"
-        case .ticketPeriod(let row): return "ticketperiod_\(row.eventId)"
+        // sale_id ベース (1 イベントに複数受付があるとイベント id ベースの id が衝突していた)。
+        case .ticket(let row): return "ticket_\(row.saleId)_\(row.kind.rawValue)"
+        case .ticketPeriod(let row): return "ticketperiod_\(row.saleId)"
         }
     }
 

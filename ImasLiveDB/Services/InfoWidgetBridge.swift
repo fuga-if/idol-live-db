@@ -88,21 +88,20 @@ enum InfoWidgetBridge {
 
     // MARK: - チケット締切
 
+    /// 締切一覧の材料・並びはすべて共有コア (`ticketSaleDeadlines`) が決める。
     private static func resolveTicketDeadlines(today: String) async -> [TicketDeadlineInfo] {
-        guard let events = try? await AppContainer.shared.eventReading.events(brandId: nil) else { return [] }
+        guard let deadlines = try? await AppContainer.shared.coreSnapshot.withStore({ store in
+            try store.ticketSaleDeadlines(nowEpochSeconds: JSTDay.nowEpochSeconds(), limit: 5)
+        }) else { return [] }
 
-        return events
-            .compactMap { event -> TicketDeadlineInfo? in
-                guard let deadline = event.ticketDeadline,
-                      deadline >= today else { return nil }
-                return TicketDeadlineInfo(
-                    eventId: event.id,
-                    eventName: event.name,
-                    deadline: deadline
-                )
-            }
-            .sorted { $0.deadline < $1.deadline }
-            .prefix(5)
-            .map { $0 }
+        return deadlines.map { d in
+            TicketDeadlineInfo(
+                eventId: d.eventId,
+                eventName: d.eventName,
+                deadline: d.deadlineDay,
+                saleId: d.saleId,
+                saleName: d.saleName
+            )
+        }
     }
 }

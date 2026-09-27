@@ -21,6 +21,8 @@ final class EventDetailViewModel {
     private(set) var attendedShowIds: Set<String> = []
     /// ヒーロー (開催期間・会場・今後か・参加の札)。コアが組む。参加を付け替えたら組み直す。
     private(set) var hero: EventHeroRecord?
+    /// チケット受付一覧 (段階・並び・表示文字列は共有コアが決め切って返す)。
+    private(set) var ticketSales: [TicketSale] = []
 
     private let eventReading: any EventReading
     private let showReading: any ShowReading
@@ -50,10 +52,20 @@ final class EventDetailViewModel {
             }
             attendance = try await eventReading.eventAttendance(eventId: event.id)
             unitIndex = try await unitReading.unitIndex()
+            ticketSales = try await eventReading.ticketSales(eventId: event.id)
         } catch {
             Logger.database.error("load_failed event_detail: \(error.localizedDescription)")
         }
         await reloadHero(eventId: event.id)
+    }
+
+    /// チケット受付の追加・編集・削除の後に呼ぶ (他は変わっていないので全体は読み直さない)。
+    func reloadTicketSales(eventId: String) async {
+        do {
+            ticketSales = try await eventReading.ticketSales(eventId: eventId)
+        } catch {
+            Logger.database.error("load_failed ticket_sales: \(error.localizedDescription)")
+        }
     }
 
     func recomputeAttendedShows() {

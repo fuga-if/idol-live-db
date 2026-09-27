@@ -306,7 +306,7 @@ struct TicketDeadlineWidgetView: View {
                 Label("チケット締切", systemImage: "ticket")
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(.orange)
-                ForEach(entry.deadlines.prefix(3), id: \.eventId) { item in
+                ForEach(entry.deadlines.prefix(3), id: \.id) { item in
                     HStack(spacing: 6) {
                         Text(shortDate(item.deadline))
                             .font(.system(size: 11, weight: .bold).monospacedDigit())

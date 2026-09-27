@@ -91,12 +91,19 @@ struct TodaySongInfo: Codable, Sendable {
     var brandColorHex: String?
 }
 
-/// チケット締切が近いイベント。
-struct TicketDeadlineInfo: Codable, Sendable {
+/// チケット締切が近い受付。
+struct TicketDeadlineInfo: Codable, Sendable, Identifiable {
     var eventId: String
     var eventName: String
     /// 締切日 (YYYY-MM-DD)
     var deadline: String
+    /// 由来の受付 id。1 イベントに複数受付がありうるため、行の識別はこちらを使う。
+    /// 旧版 (受付単位になる前) の JSON を読んでも落ちないよう任意項目にしてある。
+    var saleId: String? = nil
+    var saleName: String? = nil
+
+    /// `ForEach` 等で使う識別子。saleId が無い旧データはイベント id + 締切日で代替する。
+    var id: String { saleId ?? "\(eventId)_\(deadline)" }
 }
 
 extension NextShowInfo {

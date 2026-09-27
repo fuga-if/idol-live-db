@@ -16,15 +16,17 @@ struct EventEditView: View {
     /// 語彙に無い種別 (または "other") を持つ既存イベントの元の値。
     /// 利用者が種別を選び直さない限り、この値をそのまま送り返す。
     private let unlistedKindRaw: String?
-    @State private var ticketOpenDate: String
-    @State private var ticketDeadline: String
-    @State private var ticketLotteryDate: String
     @State private var ticketUrl: String
     @State private var jointBrandIds: String
     @State private var allBrands: [Brand] = []
     @State private var isSaving = false
     @State private var errorMessage: String?
     @State private var requestSent = false
+    /// チケット受付の一覧 (既存イベント編集時のみ表示。新規作成は先に本体を保存してから)。
+    @State private var ticketSales: [TicketSale] = []
+    @State private var eventShows: [Show] = []
+    @State private var editTicketSale: TicketSale?
+    @State private var showTicketSaleCreate = false
 
     /// 既存編集用。
     init(event: Event) {
@@ -33,9 +35,6 @@ struct EventEditView: View {
         _brandId = State(initialValue: event.brandId ?? "")
         _kind = State(initialValue: event.eventKind)
         self.unlistedKindRaw = event.eventKind == .other ? event.kind : nil
-        _ticketOpenDate = State(initialValue: event.ticketOpenDate ?? "")
-        _ticketDeadline = State(initialValue: event.ticketDeadline ?? "")
-        _ticketLotteryDate = State(initialValue: event.ticketLotteryDate ?? "")
         _ticketUrl = State(initialValue: event.ticketUrl ?? "")
         _jointBrandIds = State(initialValue: event.jointBrandIds ?? "")
     }
@@ -47,9 +46,6 @@ struct EventEditView: View {
         _brandId = State(initialValue: newEventBrandId ?? "")
         _kind = State(initialValue: .live)
         self.unlistedKindRaw = nil
-        _ticketOpenDate = State(initialValue: "")
-        _ticketDeadline = State(initialValue: "")
-        _ticketLotteryDate = State(initialValue: "")
         _ticketUrl = State(initialValue: "")
         _jointBrandIds = State(initialValue: "")
     }
@@ -84,16 +80,52 @@ struct EventEditView: View {
                 .listRowBackground(DS.surface)
                 .listRowSeparatorTint(DS.sep)
                 Section("チケット") {
-                    TextField("受付開始 (YYYY-MM-DD)", text: $ticketOpenDate)
-                    TextField("先行締切 (YYYY-MM-DD)", text: $ticketDeadline)
-                    TextField("当落発表 (YYYY-MM-DD)", text: $ticketLotteryDate)
-                    TextField("URL", text: $ticketUrl)
+                    TextField("案内 URL (イベント全体)", text: $ticketUrl)
                         .keyboardType(.URL)
                         .autocapitalization(.none)
                         .autocorrectionDisabled()
                 }
                 .listRowBackground(DS.surface)
                 .listRowSeparatorTint(DS.sep)
+
+                // 受付の日程・種別・対象公演は ticket_sales 側の個別編集 (TicketSaleEditView) に移った。
+                // 新規イベントは先に本体を保存してから (id が要る)、この画面には出さない。
+                if let original = mode.original {
+                    Section {
+                        if ticketSales.isEmpty {
+                            Text("チケット受付は未登録です")
+                                .foregroundStyle(DS.ink3)
+                        } else {
+                            ForEach(ticketSales) { sale in
+                                Button {
+                                    editTicketSale = sale
+                                } label: {
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        HStack {
+                                            Text(sale.name).foregroundStyle(DS.ink)
+                                            Spacer()
+                                            Text(sale.stageLabel).font(.imasCaption).foregroundStyle(DS.ink2)
+                                        }
+                                        if let period = sale.periodLabel {
+                                            Text(period).font(.imasFootnote).foregroundStyle(DS.ink2)
+                                        }
+                                    }
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        Button {
+                            showTicketSaleCreate = true
+                        } label: {
+                            Label("受付を追加", systemImage: "plus.circle")
+                        }
+                    } header: {
+                        Text("チケット受付")
+                    }
+                    .listRowBackground(DS.surface)
+                    .listRowSeparatorTint(DS.sep)
+                    .task { await loadTicketSales(eventId: original.id) }
+                }
             }
             .scrollContentBackground(.hidden)
             .background(DS.bg.ignoresSafeArea())
@@ -119,8 +151,24 @@ struct EventEditView: View {
             .task {
                 allBrands = (try? await AppContainer.shared.brandReading.brands()) ?? []
             }
+            .sheet(item: $editTicketSale, onDismiss: { Task { if let id = mode.original?.id { await loadTicketSales(eventId: id) } } }) { sale in
+                TicketSaleEditView(ticketSale: sale, eventShows: eventShows)
+            }
+            .sheet(isPresented: $showTicketSaleCreate, onDismiss: { Task { if let id = mode.original?.id { await loadTicketSales(eventId: id) } } }) {
+                if let id = mode.original?.id {
+                    TicketSaleEditView(newSaleEventId: id, eventShows: eventShows, suggestedSortOrder: ticketSales.count)
+                }
+            }
             .trackScreen("event_edit")
         }
+    }
+
+    /// イベント編集画面用のチケット受付一覧 + 対象公演読み込み。
+    private func loadTicketSales(eventId: String) async {
+        async let sales = AppContainer.shared.eventReading.ticketSales(eventId: eventId)
+        async let shows = AppContainer.shared.showReading.shows(eventId: eventId)
+        ticketSales = (try? await sales) ?? []
+        eventShows = (try? await shows) ?? []
     }
 
     private var savingOverlay: some View {
@@ -170,9 +218,6 @@ struct EventEditView: View {
         // update はサーバ側マージ (未送信 = 現状維持)。空にした場合は null 明示送信でクリア。
         let resolvedBrandId = brandId.isEmpty ? nil : brandId
         fields["brandId"] = AnyEncodable.clearable(brandId, original: original?.brandId)
-        fields["ticketOpenDate"] = AnyEncodable.clearable(ticketOpenDate, original: original?.ticketOpenDate)
-        fields["ticketDeadline"] = AnyEncodable.clearable(ticketDeadline, original: original?.ticketDeadline)
-        fields["ticketLotteryDate"] = AnyEncodable.clearable(ticketLotteryDate, original: original?.ticketLotteryDate)
         fields["ticketUrl"] = AnyEncodable.clearable(ticketUrl, original: original?.ticketUrl)
         fields["jointBrandIds"] = AnyEncodable.clearable(jointBrandIds, original: original?.jointBrandIds)
 
@@ -203,9 +248,6 @@ struct EventEditView: View {
                 isStreaming: isStreaming,
                 isSolo: isSolo,
                 kind: kindToSend,
-                ticketOpenDate: ticketOpenDate.isEmpty ? nil : ticketOpenDate,
-                ticketDeadline: ticketDeadline.isEmpty ? nil : ticketDeadline,
-                ticketLotteryDate: ticketLotteryDate.isEmpty ? nil : ticketLotteryDate,
                 ticketUrl: ticketUrl.isEmpty ? nil : ticketUrl,
                 jointBrandIds: jointBrandIds.isEmpty ? nil : jointBrandIds
             )
