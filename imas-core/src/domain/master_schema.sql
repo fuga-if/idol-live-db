@@ -72,6 +72,21 @@ CREATE TABLE show_tickets (
             FOREIGN KEY (show_id) REFERENCES shows(id) ON DELETE CASCADE
         );
 CREATE TABLE shows (id TEXT PRIMARY KEY NOT NULL, event_id TEXT NOT NULL, name TEXT NOT NULL, date TEXT NOT NULL, venue TEXT, venue_city TEXT, start_time TEXT, sort_order INTEGER NOT NULL, performer_type TEXT DEFAULT 'cast', venue_id TEXT, hall TEXT, stream_platform TEXT);
+CREATE TABLE ticket_sales (
+  id TEXT PRIMARY KEY NOT NULL,
+  event_id TEXT NOT NULL,
+  show_ids TEXT,
+  kind TEXT NOT NULL,
+  name TEXT NOT NULL,
+  starts_at TEXT,
+  ends_at TEXT,
+  result_at TEXT,
+  url TEXT,
+  note TEXT,
+  source_url TEXT NOT NULL,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE
+);
 CREATE TABLE song_artists (song_id TEXT NOT NULL, idol_id TEXT NOT NULL, role TEXT NOT NULL DEFAULT 'original', PRIMARY KEY (song_id, idol_id, role));
 CREATE TABLE song_units (
   song_id TEXT NOT NULL,
@@ -137,6 +152,7 @@ CREATE INDEX idx_songs_series_group ON songs(series_group);
 CREATE INDEX idx_songs_unit_version ON songs(unit_version_id);
 CREATE INDEX idx_staff_birthday ON staff(birthday);
 CREATE INDEX idx_staff_brand ON staff(brand_id);
+CREATE INDEX idx_ticket_sales_event ON ticket_sales(event_id);
 CREATE INDEX idx_unit_versions_unit ON unit_versions(unit_id);
 CREATE INDEX idx_venue_halls_venue ON venue_halls(venue_id);
 CREATE INDEX idx_venue_names_venue ON venue_names(venue_id);

@@ -72,7 +72,9 @@ pub fn expected_tables() -> Vec<TableSpec> {
         spec("units", Master, &["id", "name", "name_kana"], "ユニット"),
         spec("unit_members", Master, &["unit_id", "idol_id"], "ユニット所属 (複合 PK)"),
         spec("events", Master, &["id", "name", "brand_id", "kind"],
-             "ライブ。joint_brand_ids を持つと合同ライブ扱い"),
+             "ライブ。joint_brand_ids を持つと合同ライブ扱い。\
+              ticket_open_date / ticket_deadline / ticket_lottery_date は廃止・読まない\
+              (ticket_sales が正)。旧版アプリが CloudKit の Event から読むので列は残す"),
         spec("shows", Master, &["id", "event_id", "date", "venue"], "公演"),
         spec("setlist_items", Master, &["id", "show_id", "song_id", "position"], "セトリ"),
         spec("setlist_performers", Master, &["setlist_item_id", "idol_id"],
@@ -97,6 +99,10 @@ pub fn expected_tables() -> Vec<TableSpec> {
              "公演のチケット価格。席種は自由文字列 (S席 / 立見 / 配信 (アーカイブ付き) …)、\
               kind は live / stream / live_viewing。価格は**税込・手数料抜きの定価**で、\
               is_estimate は公式に出ていない推定値の札。規則は domain/ticket_prices.rs"),
+        spec("ticket_sales", Master, &["id", "event_id", "kind", "name", "source_url"],
+             "チケット受付 (抽選 / 先着 / リセール / 当日券)。1 イベントに複数あり得る。\
+              show_ids が空なら全公演対象。段階 (受付前/中・結果待ち・終了) の判定と\
+              並び・注目受付の選び方は domain/ticket_sales.rs"),
         spec("venues", Master, &["id", "name"], "会場"),
         spec("venue_names", Master, &["venue_id", "name"], "会場の別名・改称"),
         spec("venue_halls", Master, &["venue_id", "name"], "会場内のホール"),

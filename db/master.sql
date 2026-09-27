@@ -112131,6 +112131,21 @@ INSERT INTO "staff" VALUES('staff_misaki_aoba','ml','青羽美咲','あおばみ
 INSERT INTO "staff" VALUES('staff_hazuki_nanakusa','sc','七草はづき','ななくさはづき','Hazuki Nanakusa','283プロダクション事務員 (プロデューサー補佐)','--02-03',6);
 INSERT INTO "staff" VALUES('staff_ken_yamamura','sidem','山村賢','やまむらけん','Ken Yamamura','315プロダクション事務員 (プロデューサーアシスタント、学生アルバイト)','--07-02',7);
 INSERT INTO "staff" VALUES('staff_asari_neo','gakuen','根緒亜紗里','ねおあさり',NULL,'初星学園 プロデューサー科 担任教師',NULL,9);
+CREATE TABLE ticket_sales (
+  id TEXT PRIMARY KEY NOT NULL,
+  event_id TEXT NOT NULL,
+  show_ids TEXT,
+  kind TEXT NOT NULL,
+  name TEXT NOT NULL,
+  starts_at TEXT,
+  ends_at TEXT,
+  result_at TEXT,
+  url TEXT,
+  note TEXT,
+  source_url TEXT NOT NULL,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE
+);
 CREATE TABLE unit_members (unit_id TEXT NOT NULL, idol_id TEXT NOT NULL, PRIMARY KEY (unit_id, idol_id));
 INSERT INTO "unit_members" VALUES('オリジナル_カラーズ_feat_和','cg_成宮由愛');
 INSERT INTO "unit_members" VALUES('オリジナル_カラーズ_feat_和','cg_的場梨沙');
@@ -119502,4 +119517,5 @@ CREATE INDEX idx_creators_name ON creators(name);
 CREATE INDEX idx_venue_halls_venue ON venue_halls(venue_id);
 CREATE INDEX idx_shows_venue_id ON shows(venue_id);
 CREATE INDEX idx_idol_voice_actors_idol ON idol_voice_actors(idol_id);
+CREATE INDEX idx_ticket_sales_event ON ticket_sales(event_id);
 COMMIT;

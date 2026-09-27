@@ -167,6 +167,7 @@ mod room_parity {
         ("idols", "voice_actors", "廃止列。iOS は書き戻すと落ちるので読まない。Android だけが今も持っている"),
         ("songs", "jasrac_code", "アプリでは読まない列で、同期でも配らない (schema_registry::COLUMNS_NOT_SYNCED)"),
         ("song_units", "*", "非同期テーブル。Android は持たない"),
+        ("ticket_sales", "*", "Android 未追随 (C で消す)"),
     ];
 
     fn core_schema() -> BTreeMap<String, BTreeSet<String>> {
