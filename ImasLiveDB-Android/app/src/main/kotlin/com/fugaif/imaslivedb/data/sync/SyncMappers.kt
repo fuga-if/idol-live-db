@@ -19,6 +19,7 @@ import com.fugaif.imaslivedb.data.model.VenueHall
 import com.fugaif.imaslivedb.data.model.Costume
 import com.fugaif.imaslivedb.data.model.CostumeWear
 import com.fugaif.imaslivedb.data.model.Creator
+import com.fugaif.imaslivedb.data.model.TicketSale
 import com.fugaif.imaslivedb.data.model.UnitVersion
 import com.fugaif.imaslivedb.data.model.VenueName
 import kotlinx.coroutines.Dispatchers
@@ -74,6 +75,7 @@ object SyncMappers {
             is CkRow.VenueName -> row.row.id
             is CkRow.VenueHall -> row.row.id
             is CkRow.ShowTicket -> row.row.id
+            is CkRow.TicketSale -> row.row.id
             else -> null
         }
     }
@@ -311,6 +313,29 @@ object SyncMappers {
                 price = row.price,
                 isEstimate = row.isEstimate,
                 note = row.note.emptyToNull(),
+                sortOrder = row.sortOrder
+            )
+        }
+
+    /**
+     * チケット受付。`kind` は生文字列のまま持つ (`ShowTicket` と同じ理由: 判定・並びは
+     * 呼び出し側が共有コアへ渡してから行う)。`kind` と日時はコア (`ck_ingest_web_services_batch`)
+     * が検査しないので、行を落とさず届いた値をそのまま保存する (検査は domain とローダ側)。
+     */
+    fun ticketSales(rows: List<CkRow>): List<TicketSale> =
+        rows.filterIsInstance<CkRow.TicketSale>().map { (row) ->
+            TicketSale(
+                id = row.id,
+                eventId = row.eventId,
+                showIds = row.showIds.emptyToNull(),
+                kind = row.kind,
+                name = row.name,
+                startsAt = row.startsAt.emptyToNull(),
+                endsAt = row.endsAt.emptyToNull(),
+                resultAt = row.resultAt.emptyToNull(),
+                url = row.url.emptyToNull(),
+                note = row.note.emptyToNull(),
+                sourceUrl = row.sourceUrl,
                 sortOrder = row.sortOrder
             )
         }

@@ -23,6 +23,7 @@ import uniffi.imas_core.CkShowCastRow
 import uniffi.imas_core.CkShowRow
 import uniffi.imas_core.CkShowTicketRow
 import uniffi.imas_core.CkSongArtistRow
+import uniffi.imas_core.CkTicketSaleRow
 import uniffi.imas_core.CkSongRow
 import uniffi.imas_core.CkSongVideoRow
 import uniffi.imas_core.CkUnitMemberRow
@@ -69,6 +70,7 @@ class CloudKitIngestCoverageTest {
         "SetlistPerformer" to CkSetlistPerformerRow::class.java,
         "SongVideo" to CkSongVideoRow::class.java,
         "ShowTicket" to CkShowTicketRow::class.java,
+        "TicketSale" to CkTicketSaleRow::class.java,
     )
 
     @Test

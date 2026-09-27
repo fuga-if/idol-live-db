@@ -11,6 +11,7 @@ import com.fugaif.imaslivedb.data.model.Show
 import com.fugaif.imaslivedb.data.model.Song
 import com.fugaif.imaslivedb.data.model.SongArtist
 import com.fugaif.imaslivedb.data.model.SongVideo
+import com.fugaif.imaslivedb.data.model.TicketSale
 
 /**
  * 編集をサーバが反映した (POST /edits が Applied) ときに、その値を端末の DB に写す口。
@@ -31,6 +32,12 @@ class MasterEditRepository(
     suspend fun applyEvent(event: Event) = write { db.syncDao().upsertEvents(listOf(event)) }
 
     suspend fun applyShow(show: Show) = write { db.syncDao().upsertShows(listOf(show)) }
+
+    /** チケット受付の作成・更新。イベント詳細の受付一覧はスナップショット経由で読むので、作り直しが要る。 */
+    suspend fun applyTicketSale(sale: TicketSale) = write { db.syncDao().upsertTicketSales(listOf(sale)) }
+
+    /** チケット受付の削除。 */
+    suspend fun deleteTicketSale(id: String) = write { db.syncDao().deleteTicketSales(listOf(id)) }
 
     /** 曲と、新しく作った曲の原唱者。 */
     suspend fun applySong(song: Song, newArtists: List<SongArtist>) = write {

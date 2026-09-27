@@ -205,6 +205,12 @@ class CloudKitSyncEngine(
             { d, rows, _ -> d.upsertShowTickets(SyncMappers.showTickets(rows)) },
             { d, keys -> deleteInChunks(keys, d::deleteShowTickets) },
             { d -> d.showTicketIds() }),
+        // チケット受付。events にだけ依存するので、イベントが入った後ならいつでもよい
+        // (コアの STEPS_IN_FK_ORDER と同じ理由づけ)。
+        "TicketSale" to StepIo(
+            { d, rows, _ -> d.upsertTicketSales(SyncMappers.ticketSales(rows)) },
+            { d, keys -> deleteInChunks(keys, d::deleteTicketSales) },
+            { d -> d.ticketSaleIds() }),
     )
 
     /**

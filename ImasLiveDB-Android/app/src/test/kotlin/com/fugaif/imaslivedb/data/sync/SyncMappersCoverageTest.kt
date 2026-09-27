@@ -17,6 +17,7 @@ import uniffi.imas_core.CkShowCastRow
 import uniffi.imas_core.CkShowRow
 import uniffi.imas_core.CkShowTicketRow
 import uniffi.imas_core.CkSongArtistRow
+import uniffi.imas_core.CkTicketSaleRow
 import uniffi.imas_core.CkSongRow
 import uniffi.imas_core.CkSongVideoRow
 import uniffi.imas_core.CkUnitMemberRow
@@ -76,6 +77,7 @@ class SyncMappersCoverageTest {
         Case(CkSetlistPerformerRow::class.java, CkRow::SetlistPerformer, SyncMappers::setlistPerformers),
         Case(CkSongVideoRow::class.java, CkRow::SongVideo, SyncMappers::songVideos),
         Case(CkShowTicketRow::class.java, CkRow::ShowTicket, SyncMappers::showTickets),
+        Case(CkTicketSaleRow::class.java, CkRow::TicketSale, SyncMappers::ticketSales),
     )
 
     /** コアが取り込むレコード型のどれにも、写し方が用意されている。 */
