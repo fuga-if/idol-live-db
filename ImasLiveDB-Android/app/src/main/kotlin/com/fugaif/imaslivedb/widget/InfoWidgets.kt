@@ -225,7 +225,7 @@ private fun TicketDeadlineContent(deadlines: List<TicketDeadlineInfo>) {
                     )
                     Spacer(GlanceModifier.width(6.dp))
                     Text(
-                        text = item.eventName,
+                        text = "${item.eventName} ・ ${item.saleName}",
                         style = WidgetTheme.body(WidgetTheme.ink),
                         maxLines = 1,
                         modifier = GlanceModifier.defaultWeight()

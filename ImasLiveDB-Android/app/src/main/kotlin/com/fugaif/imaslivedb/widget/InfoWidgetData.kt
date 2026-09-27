@@ -7,6 +7,7 @@ import com.fugaif.imaslivedb.data.model.JstDay
 import com.fugaif.imaslivedb.di.AppModule
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.time.Instant
 import uniffi.imas_core.nextShowIndex
 
 /** 次のライブ 1 件。 */
@@ -27,8 +28,10 @@ data class TodaySongInfo(
     val brandColorHex: String?
 )
 
-/** チケット締切が近いイベント 1 件。 */
+/** 締切が近いチケット受付 1 件。 */
 data class TicketDeadlineInfo(
+    val saleId: String,
+    val saleName: String,
     val eventId: String,
     val eventName: String,
     /** 締切日 (YYYY-MM-DD)。 */
@@ -125,18 +128,25 @@ object InfoWidgetData {
         }.onFailure { Log.w(TAG, "今日の1曲の取得に失敗", it) }.getOrNull()
     }
 
-    /** 締切が今日以降のイベントを、締切が近い順に [limit] 件。 */
+    /**
+     * 締切が近いチケット受付を [limit] 件。並び・母集団 (今日以降の締切) は共有コアが決める
+     * (`SnapshotStore.ticketSaleDeadlines`)。iOS `InfoWidgetBridge.resolveTicketDeadlines` と同じ経路。
+     */
     suspend fun ticketDeadlines(context: Context, limit: Int = 3): List<TicketDeadlineInfo> =
         withContext(Dispatchers.IO) {
             runCatching {
-                val today = JstDay.today()
-                AppModule.from(context).eventRepository.fetchEvents()
-                    .mapNotNull { event ->
-                        val deadline = event.ticketDeadline?.takeIf { it >= today } ?: return@mapNotNull null
-                        TicketDeadlineInfo(event.id, event.name, deadline)
-                    }
-                    .sortedBy { it.deadline }
-                    .take(limit)
+                val module = AppModule.from(context)
+                module.snapshotStoreProvider.query { store ->
+                    store.ticketSaleDeadlines(Instant.now().epochSecond, limit.toUInt())
+                }.map { d ->
+                    TicketDeadlineInfo(
+                        saleId = d.saleId,
+                        saleName = d.saleName,
+                        eventId = d.eventId,
+                        eventName = d.eventName,
+                        deadline = d.deadlineDay
+                    )
+                }
             }.onFailure { Log.w(TAG, "チケット締切の取得に失敗", it) }.getOrDefault(emptyList())
         }
 }
