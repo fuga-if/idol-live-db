@@ -23,8 +23,9 @@
 
 use crate::domain::snapshot::{
     Anniversary, Brand, Costume, CostumeWear, Creator, Event, EventRelease, Idol, IdolVoiceActor,
-    SetlistItem, Show, Snapshot, Song, Staff, Unit, Venue, VenueHall, VenueName,
+    SetlistItem, Show, Snapshot, Song, Staff, TicketSaleRow, Unit, Venue, VenueHall, VenueName,
 };
+use crate::domain::ticket_sales::ticket_sale_kind_from_raw;
 use rusqlite::{Connection, OpenFlags};
 use std::collections::{BTreeMap, HashMap, HashSet};
 use crate::domain::snapshot_build::{self, RawTables};
@@ -94,6 +95,8 @@ pub fn load_raw_tables(db_path: &str) -> Result<RawTables, String> {
         &idol_index_by_id,
     )?;
 
+    let ticket_sales = load_ticket_sales(&conn, &event_index_by_id)?;
+
     // 結合表は素の行のまま読む (添字への解決と索引構築は domain 側)。
     let song_artists = load_song_artists(&conn)?;
     let setlist_performers = load_setlist_performers(&conn)?;
@@ -121,6 +124,7 @@ pub fn load_raw_tables(db_path: &str) -> Result<RawTables, String> {
         event_releases,
         costumes,
         costume_wears,
+        ticket_sales,
         song_artists,
         setlist_performers,
         show_cast,
@@ -287,10 +291,11 @@ fn load_idols(conn: &Connection) -> Result<Vec<Idol>, String> {
 
 fn load_events(conn: &Connection) -> Result<Vec<Event>, String> {
     let cols = table_columns(conn, "events")?;
+    // ticket_open_date / ticket_deadline / ticket_lottery_date は読まない (廃止。
+    // ticket_sales が正)。列自体は旧版アプリのために DB に残っている。
     let sql = format!(
         "SELECT id, brand_id, name, event_type, is_streaming, is_solo, kind,
-                ticket_open_date, ticket_deadline, ticket_lottery_date, ticket_url,
-                joint_brand_ids, {has_streaming}, {has_live_viewing}, {name_kana}
+                ticket_url, joint_brand_ids, {has_streaming}, {has_live_viewing}, {name_kana}
          FROM events ORDER BY id",
         has_streaming = optional_col(&cols, "has_streaming"),
         has_live_viewing = optional_col(&cols, "has_live_viewing"),
@@ -309,15 +314,12 @@ fn load_events(conn: &Connection) -> Result<Vec<Event>, String> {
                 is_solo: r.get::<_, Option<i64>>(5)?.unwrap_or(1) != 0,
                 // NOT NULL DEFAULT 'live' の既定を NULL にも適用 (防御)。
                 kind: r.get::<_, Option<String>>(6)?.unwrap_or_else(|| "live".to_string()),
-                ticket_open_date: r.get(7)?,
-                ticket_deadline: r.get(8)?,
-                ticket_lottery_date: r.get(9)?,
-                ticket_url: r.get(10)?,
-                joint_brand_ids: r.get(11)?,
+                ticket_url: r.get(7)?,
+                joint_brand_ids: r.get(8)?,
                 // Documents 専用列。列が無い DB では NULL 定数列 → None。
-                has_streaming: r.get::<_, Option<i64>>(12)?.map(|v| v != 0),
-                has_live_viewing: r.get::<_, Option<i64>>(13)?.map(|v| v != 0),
-                name_kana: r.get(14)?,
+                has_streaming: r.get::<_, Option<i64>>(9)?.map(|v| v != 0),
+                has_live_viewing: r.get::<_, Option<i64>>(10)?.map(|v| v != 0),
+                name_kana: r.get(11)?,
             })
         })
         .map_err(|e| e.to_string())?;
@@ -805,6 +807,88 @@ fn load_event_releases(
         });
     }
     Ok(releases)
+}
+
+/// ticket_sales をロードする。
+///
+/// 表が無い DB (この移行より前の Documents DB。Android は Room の移行でしか表を作らない)
+/// では空を返す。宙に浮いた event_id (FK 孤児) と、知らない kind の行はどちらも落とす
+/// (件数だけログしたいところだが、ローダは Result<Vec<_>, String> しか返せないので、
+/// 呼び出し側 (SnapshotStats 等) が要れば別途足す)。`show_ids` は CSV の生 id のまま持つ
+/// (show への添字解決はしない。理由は snapshot.rs の TicketSaleRow doc)。
+fn load_ticket_sales(
+    conn: &Connection,
+    event_index_by_id: &HashMap<String, u32>,
+) -> Result<Vec<TicketSaleRow>, String> {
+    if !table_exists(conn, "ticket_sales")? {
+        return Ok(Vec::new());
+    }
+    let mut stmt = conn
+        .prepare(
+            "SELECT id, event_id, show_ids, kind, name, starts_at, ends_at, result_at,
+                    url, note, source_url, sort_order
+             FROM ticket_sales ORDER BY id",
+        )
+        .map_err(|e| e.to_string())?;
+    type Row = (
+        String,
+        String,
+        Option<String>,
+        String,
+        String,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<i64>,
+    );
+    let rows: Vec<Row> = stmt
+        .query_map([], |r| {
+            Ok((
+                r.get(0)?,
+                r.get(1)?,
+                r.get(2)?,
+                r.get(3)?,
+                r.get(4)?,
+                r.get(5)?,
+                r.get(6)?,
+                r.get(7)?,
+                r.get(8)?,
+                r.get(9)?,
+                r.get(10)?,
+                r.get(11)?,
+            ))
+        })
+        .map_err(|e| e.to_string())?
+        .collect::<Result<_, _>>()
+        .map_err(|e| e.to_string())?;
+    let mut sales = Vec::new();
+    for (id, event_id, show_ids_raw, kind_raw, name, starts_at, ends_at, result_at, url, note, source_url, sort_order) in rows {
+        let Some(&event) = event_index_by_id.get(&event_id) else { continue };
+        let Some(kind) = ticket_sale_kind_from_raw(&kind_raw) else { continue };
+        // 対象公演の生 id は宙に浮いていても捨てない (公演の増減より受付の対象範囲を
+        // 保つ方を優先する。表示側 (show_labels) は解決できなかった id を無視するだけ)。
+        let show_ids: Vec<String> = crate::domain::snapshot::split_csv(show_ids_raw.as_deref())
+            .map(str::to_string)
+            .collect();
+        sales.push(TicketSaleRow {
+            id,
+            event,
+            show_ids,
+            kind,
+            name,
+            starts_at,
+            ends_at,
+            result_at,
+            url,
+            note,
+            source_url: source_url.unwrap_or_default(),
+            sort_order: sort_order.unwrap_or(0),
+        });
+    }
+    Ok(sales)
 }
 
 /// meta 表 (key → value)。value NULL の行は載せない (getValue の観測結果は行なしと同じ)。

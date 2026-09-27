@@ -269,9 +269,10 @@ pub struct Event {
     /// イベント種別 ("live"/"festival"/"release_event"/"radio"/"stream")。
     /// 回収判定の「リアルライブのみ」(live/festival) の絞り込みに使う。
     pub kind: String,
-    pub ticket_open_date: Option<String>,
-    pub ticket_deadline: Option<String>,
-    pub ticket_lottery_date: Option<String>,
+    /// **廃止・読まない。** チケット受付の日程は `ticket_sales` (このスナップショットの
+    /// `ticket_sales` / `ticket_sales_by_event`) が正。DB の列自体は旧版アプリが
+    /// CloudKit の Event レコードから読むために残っている (domain/ck_record_mapping.rs
+    /// の `CkEventRow` はそのまま素通しする)。
     pub ticket_url: Option<String>,
     /// 合同ライブの追加ブランド ID (カンマ区切り)。nil なら単一ブランド。
     pub joint_brand_ids: Option<String>,
@@ -482,6 +483,29 @@ pub struct CostumeWear {
     pub sort_order: i64,
 }
 
+/// ticket_sales 全カラム。event は events Vec の添字。
+///
+/// `show_ids` は生の文字列 id のまま持つ (show 添字への解決はしない)。1 イベントの
+/// 公演数は高々数桁で、行の総数も少ないので、逆引き索引を作るコストに見合わない。
+/// 検査 ([`crate::domain::ticket_sales::validate_draft`]) 以外では文字列のまま
+/// 「対象公演の短い名」を作るのに使う。
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct TicketSaleRow {
+    pub id: String,
+    pub event: u32,
+    /// 空 = 全公演対象。
+    pub show_ids: Vec<String>,
+    pub kind: crate::domain::ticket_sales::TicketSaleKind,
+    pub name: String,
+    pub starts_at: Option<String>,
+    pub ends_at: Option<String>,
+    pub result_at: Option<String>,
+    pub url: Option<String>,
+    pub note: Option<String>,
+    pub source_url: String,
+    pub sort_order: i64,
+}
+
 /// 曲→歌唱者リンク。`idol` は idols Vec の添字。
 #[derive(Debug, Clone)]
 pub struct SongArtistLink {
@@ -598,6 +622,8 @@ pub struct Snapshot {
     pub costumes: Vec<Costume>,
     /// 着用記録。並びはテーブル出現順 (表示順は各逆引き索引)。
     pub costume_wears: Vec<CostumeWear>,
+    /// チケット受付。並びはテーブル出現順 (表示順は `ticket_sales_by_event`)。
+    pub ticket_sales: Vec<TicketSaleRow>,
     /// Documents 専用表。表が無い DB (Bundle) では空。
     pub event_releases: Vec<EventRelease>,
     /// meta 表 (key → value)。value が NULL の行は載せない
@@ -684,6 +710,9 @@ pub struct Snapshot {
     /// (release_date ASC, sort_order ASC) で格納 (fetchEventReleases の表示順。
     /// release_date NULL は先頭 = SQLite ASC と同じ)。
     pub releases_by_event: Vec<Vec<u32>>,
+    /// events と同じ添字。チケット受付 (ticket_sales 添字群) を
+    /// `ticket_sales::sort_sales` と同じ並び (sort_order ASC, starts_at ASC (None 末尾), id ASC) で格納。
+    pub ticket_sales_by_event: Vec<Vec<u32>>,
 
     /// shows と同じ添字。その公演の着用記録 (costume_wears 添字群)。
     /// (sort_order ASC, 添字) — 入力した順 = 本編の進行順に並べられるようにしてある。

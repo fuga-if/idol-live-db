@@ -12,8 +12,8 @@ use std::collections::{BTreeMap, HashMap};
 use crate::domain::snapshot::{
     Anniversary, Brand, BrandMemberLink, Costume, CostumeWear, Creator, Event, EventRelease, Idol,
     IdolBrandLink, IdolSongLink,
-    IdolVoiceActor, SetlistItem, Show, ShowCastLink, Snapshot, Song, SongArtistLink, Staff, Unit,
-    Venue, VenueHall, VenueName,
+    IdolVoiceActor, SetlistItem, Show, ShowCastLink, Snapshot, Song, SongArtistLink, Staff,
+    TicketSaleRow, Unit, Venue, VenueHall, VenueName,
 };
 use crate::domain::text_search_index::TextSearchIndex;
 
@@ -45,6 +45,9 @@ pub struct RawTables {
     pub event_releases: Vec<EventRelease>,
     pub costumes: Vec<Costume>,
     pub costume_wears: Vec<CostumeWear>,
+    /// 後から足した表。古い tables.json (wasm が読む) には無いことがあるので既定値を許す。
+    #[serde(default)]
+    pub ticket_sales: Vec<TicketSaleRow>,
     /// (song_id, idol_id, role)
     pub song_artists: Vec<(String, String, Option<String>)>,
     /// (setlist_item_id, idol_id)
@@ -78,6 +81,7 @@ pub fn build(raw: RawTables) -> Snapshot {
         event_releases,
         costumes,
         costume_wears,
+        ticket_sales,
         song_artists,
         setlist_performers,
         show_cast,
@@ -378,6 +382,20 @@ pub fn build(raw: RawTables) -> Snapshot {
         });
     }
 
+    // ticket_sales → (sort_order ASC, starts_at ASC (None 末尾), id ASC)。
+    // domain::ticket_sales::sort_sales と同じ並び規約 (文字列としての ISO 表記の順で足りる)。
+    let mut ticket_sales_by_event: Vec<Vec<u32>> = vec![Vec::new(); events.len()];
+    for (i, sale) in ticket_sales.iter().enumerate() {
+        ticket_sales_by_event[sale.event as usize].push(i as u32);
+    }
+    for list in &mut ticket_sales_by_event {
+        list.sort_by(|&a, &b| {
+            let (sa, sb) = (&ticket_sales[a as usize], &ticket_sales[b as usize]);
+            (sa.sort_order, sa.starts_at.is_none(), &sa.starts_at, &sa.id)
+                .cmp(&(sb.sort_order, sb.starts_at.is_none(), &sb.starts_at, &sb.id))
+        });
+    }
+
     let setlist_item_index_by_id: HashMap<String, u32> =
         setlist_items.iter().enumerate().map(|(i, it)| (it.id.clone(), i as u32)).collect();
 
@@ -546,6 +564,7 @@ pub fn build(raw: RawTables) -> Snapshot {
         event_releases,
         costumes,
         costume_wears,
+        ticket_sales,
         meta,
         artists_by_song,
         songs_by_idol,
@@ -571,6 +590,7 @@ pub fn build(raw: RawTables) -> Snapshot {
         shows_by_venue_id,
         shows_by_venue_label,
         releases_by_event,
+        ticket_sales_by_event,
         wears_by_show,
         wears_by_setlist_item,
         wears_by_costume,
