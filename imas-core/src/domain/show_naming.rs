@@ -195,6 +195,14 @@ pub fn edit_record_target(
             }
             None => none,
         },
+        // チケット受付 → ライブ名 (最近の編集の見出しに使う)。
+        "TicketSale" => match snap.ticket_sales.iter().find(|s| s.id == record_name) {
+            Some(sale) => EditRecordTarget {
+                title: Some(snap.events[sale.event as usize].name.clone()),
+                show_id: None,
+            },
+            None => none,
+        },
         _ => none,
     }
 }
@@ -307,5 +315,7 @@ mod tests {
         assert_eq!(edit_record_target(snap, "Event", &snap.events[0].id).title, Some(snap.events[0].name.clone()));
         assert_eq!(edit_record_target(snap, "SongVideo", "ytref_x"), EditRecordTarget { title: None, show_id: None });
         assert_eq!(edit_record_target(snap, "Show", "存在しない"), EditRecordTarget { title: None, show_id: None });
+        // ticket_sales は同梱 DB では空。未知の id は素直に none (title/show_id 無し)。
+        assert_eq!(edit_record_target(snap, "TicketSale", "存在しない"), EditRecordTarget { title: None, show_id: None });
     }
 }

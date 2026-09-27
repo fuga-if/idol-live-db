@@ -938,9 +938,9 @@ mod tests {
     #[test]
     fn progress_fraction_matches_ios_step_position() {
         // iOS は全ステップ数を分母にする (SongCall 廃止で -1、衣装 2 つ + チケット価格で +3)。
-        assert_eq!(progress_fraction("ブランド", &[]), Some(1.0 / 21.0));
+        assert_eq!(progress_fraction("ブランド", &[]), Some(1.0 / 22.0));
         assert_eq!(progress_fraction("参考動画", &[]), Some(1.0));
-        assert_eq!(progress_fraction("公演", &[]), Some(10.0 / 21.0));
+        assert_eq!(progress_fraction("公演", &[]), Some(10.0 / 22.0));
         // 未知のラベル (同期中でない) は None。
         assert_eq!(progress_fraction("存在しない", &[]), None);
     }

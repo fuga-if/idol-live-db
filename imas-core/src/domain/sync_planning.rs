@@ -227,6 +227,8 @@ const STEPS_IN_FK_ORDER: &[(&str, &str)] = &[
     ("CostumeWear", "衣装の着用"),
     // 公演のチケット価格。shows にだけ依存するので、公演が入った後ならいつでもよい。
     ("ShowTicket", "チケット価格"),
+    // チケット受付。events にだけ依存 (show_ids は検査しない生の CSV なので FK ではない)。
+    ("TicketSale", "チケット受付"),
     // Phase 6: コミュニティコンテンツ (songs に依存)
     ("SongVideo", "参考動画"),
 ];
@@ -482,6 +484,7 @@ pub fn table_info(record_type: &str) -> Option<SyncTableInfo> {
         "Costume" => ("costumes", &["id"]),
         "CostumeWear" => ("costume_wears", &["id"]),
         "ShowTicket" => ("show_tickets", &["id"]),
+        "TicketSale" => ("ticket_sales", &["id"]),
         _ => return None,
     };
     Some(SyncTableInfo {
@@ -957,7 +960,7 @@ mod tests {
     #[test]
     fn all_steps_keeps_parents_before_children() {
         let steps = all_steps();
-        assert_eq!(steps.len(), 21);
+        assert_eq!(steps.len(), 22);
         let index = |record_type: &str| {
             steps
                 .iter()
@@ -988,6 +991,8 @@ mod tests {
         assert!(index("ImasUnit") < index("Costume"));
         // チケット価格は公演にだけぶら下がる。
         assert!(index("Show") < index("ShowTicket"));
+        // チケット受付は events にだけ依存する。
+        assert!(index("Event") < index("TicketSale"));
         assert_eq!(steps[0].display_name, "ブランド");
     }
 

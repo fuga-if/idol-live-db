@@ -478,6 +478,30 @@ pub struct CkShowTicketRow {
     pub sort_order: i64,
 }
 
+/// ticket_sales
+///
+/// チケット受付。`kind` と日時は**検査しない** (取り込みは寛容にし、検査は domain
+/// (`ticket_sales::validate_draft`) とローダ (未知の kind を落とす) が持つ)。
+/// `sourceUrl` が欠けていても空文字で受け、行ごと捨てない (行を落とすと審査済みの
+/// 出典が消えるより、空欄のまま届いて画面で気づける方が被害が小さい)。
+#[derive(uniffi::Record, Clone, Debug, PartialEq)]
+pub struct CkTicketSaleRow {
+    pub id: String,
+    pub event_id: String,
+    /// カンマ区切りの show id。空/欠損 = 全公演対象。
+    pub show_ids: Option<String>,
+    /// `lottery` / `first_come` / `resale` / `same_day` (のはず。検査しない)。
+    pub kind: String,
+    pub name: String,
+    pub starts_at: Option<String>,
+    pub ends_at: Option<String>,
+    pub result_at: Option<String>,
+    pub url: Option<String>,
+    pub note: Option<String>,
+    pub source_url: String,
+    pub sort_order: i64,
+}
+
 /// unit_versions
 #[derive(uniffi::Record, Clone, Debug, PartialEq)]
 pub struct CkUnitVersionRow {
@@ -644,6 +668,7 @@ pub enum CkRow {
     SetlistPerformer { row: CkSetlistPerformerRow },
     SongVideo { row: CkSongVideoRow },
     ShowTicket { row: CkShowTicketRow },
+    TicketSale { row: CkTicketSaleRow },
 }
 
 /// 1 recordType 分のバッチを「取り込む行 / 削除する recordName / 捨てた recordName」に
@@ -1058,6 +1083,28 @@ pub fn show_ticket(record: &CkRecordInput) -> Option<CkShowTicketRow> {
     })
 }
 
+pub fn ticket_sale(record: &CkRecordInput) -> Option<CkTicketSaleRow> {
+    let f = Fields::new(record);
+    let id = f.entity_id()?;
+    let event_id = f.required("eventId")?;
+    let kind = f.required("kind")?;
+    let name = f.required("name")?;
+    Some(CkTicketSaleRow {
+        id,
+        event_id,
+        show_ids: f.str("showIds"),
+        kind,
+        name,
+        starts_at: f.str("startsAt"),
+        ends_at: f.str("endsAt"),
+        result_at: f.str("resultAt"),
+        url: f.str("url"),
+        note: f.str("note"),
+        source_url: f.str_or_empty("sourceUrl"),
+        sort_order: f.int_value("sortOrder"),
+    })
+}
+
 /// recordType による振り分け。iOS `CloudKitSyncEngine.upsertRecords` の switch と同じ。
 ///
 /// 取り込まない recordType は None:
@@ -1087,6 +1134,7 @@ pub fn map_record(record_type: &str, record: &CkRecordInput, now_millis: i64) ->
         "SetlistPerformer" => setlist_performer(record).map(|row| CkRow::SetlistPerformer { row }),
         "SongVideo" => song_video(record, now_millis).map(|row| CkRow::SongVideo { row }),
         "ShowTicket" => show_ticket(record).map(|row| CkRow::ShowTicket { row }),
+        "TicketSale" => ticket_sale(record).map(|row| CkRow::TicketSale { row }),
         _ => None,
     }
 }
@@ -1121,6 +1169,7 @@ pub const INGESTED_RECORD_TYPES: &[&str] = &[
     "SetlistPerformer",
     "SongVideo",
     "ShowTicket",
+    "TicketSale",
 ];
 
 /// 1 recordType 分のバッチ仕分け。deletedAt の有無で削除/生存に割り、
@@ -1309,6 +1358,73 @@ mod tests {
         // 公演 id と券種名は必須。
         assert!(show_ticket(&rec("t5", &[("name", text("S席")), ("price", int(1))])).is_none());
         assert!(show_ticket(&rec("t6", &[("showId", text("s1")), ("price", int(1))])).is_none());
+    }
+
+    // ---- チケット受付 ----
+
+    #[test]
+    fn ticket_sale_reads_every_column() {
+        let r = rec(
+            "ts1",
+            &[
+                ("eventId", text("ev_10th")),
+                ("showIds", text("sh1,sh2")),
+                ("kind", text("lottery")),
+                ("name", text("先行抽選")),
+                ("startsAt", text("2026-04-01")),
+                ("endsAt", text("2026-04-12 23:59")),
+                ("resultAt", text("2026-04-20")),
+                ("url", text("https://example.com/apply")),
+                ("note", text("会員限定")),
+                ("sourceUrl", text("https://example.com/info")),
+                ("sortOrder", int(1)),
+            ],
+        );
+        let row = ticket_sale(&r).unwrap();
+        assert_eq!(row.id, "ts1");
+        assert_eq!(row.event_id, "ev_10th");
+        assert_eq!(row.show_ids.as_deref(), Some("sh1,sh2"));
+        assert_eq!(row.kind, "lottery");
+        assert_eq!(row.name, "先行抽選");
+        assert_eq!(row.starts_at.as_deref(), Some("2026-04-01"));
+        assert_eq!(row.ends_at.as_deref(), Some("2026-04-12 23:59"));
+        assert_eq!(row.result_at.as_deref(), Some("2026-04-20"));
+        assert_eq!(row.url.as_deref(), Some("https://example.com/apply"));
+        assert_eq!(row.note.as_deref(), Some("会員限定"));
+        assert_eq!(row.source_url, "https://example.com/info");
+        assert_eq!(row.sort_order, 1);
+    }
+
+    /// `eventId` / `kind` / `name` は必須。`sourceUrl` が欠けても行ごとは捨てず、
+    /// 空文字で受ける (寛容な取り込み。検査は domain 側)。
+    #[test]
+    fn ticket_sale_requires_event_kind_and_name_but_not_source_url() {
+        assert!(ticket_sale(&rec("ts2", &[("kind", text("lottery")), ("name", text("抽選"))])).is_none());
+        assert!(ticket_sale(&rec("ts3", &[("eventId", text("e1")), ("name", text("抽選"))])).is_none());
+        assert!(ticket_sale(&rec("ts4", &[("eventId", text("e1")), ("kind", text("lottery"))])).is_none());
+
+        let r = rec("ts5", &[("eventId", text("e1")), ("kind", text("lottery")), ("name", text("抽選"))]);
+        let row = ticket_sale(&r).unwrap();
+        assert_eq!(row.source_url, "");
+        assert_eq!(row.show_ids, None);
+        assert_eq!(row.sort_order, 0);
+    }
+
+    /// 取り込みは kind と日時を検査しない (捨てるのは domain のローダ・検査の役目)。
+    #[test]
+    fn ticket_sale_does_not_validate_kind_or_dates() {
+        let r = rec(
+            "ts6",
+            &[
+                ("eventId", text("e1")),
+                ("kind", text("kind-値")),
+                ("name", text("謎の受付")),
+                ("startsAt", text("来週くらい")),
+            ],
+        );
+        let row = ticket_sale(&r).unwrap();
+        assert_eq!(row.kind, "kind-値");
+        assert_eq!(row.starts_at.as_deref(), Some("来週くらい"));
     }
 
     #[test]
