@@ -137,7 +137,7 @@ struct GamesHubView: View {
                 }
                 Spacer(minLength: 8)
                 NavigationLink {
-                    resumeDestination(s)
+                    QuizResumeDestination(suspended: s)
                 } label: {
                     Text("再開").font(QS.text(15, weight: .bold)).foregroundStyle(QS.bg)
                         .padding(.horizontal, 20).frame(height: 44)
@@ -158,18 +158,6 @@ struct GamesHubView: View {
         .foregroundStyle(QS.ink)
         .padding(.leading, 20).padding(.trailing, 12)
         .frame(minHeight: 68)
-    }
-
-    @ViewBuilder
-    private func resumeDestination(_ s: QuizSuspended) -> some View {
-        switch s.kind {
-        case .idolQuiz: IdolQuizView(selectedBrandIds: Set(s.brandIds), resume: s)
-        case .songSingerQuiz: SongSingerQuizView(selectedBrandIds: Set(s.brandIds), resume: s)
-        case .lyricsQuiz: LyricsQuizResumeView(suspended: s)
-        case .setlistQuiz: SetlistQuizView(selectedBrandIds: Set(s.brandIds), resume: s)
-        case .colorMatch: ColorMatchGameView(resume: s)
-        case .introDon: IntroDonHomeView()
-        }
     }
 
     private struct Line: Shape {
@@ -277,6 +265,23 @@ struct GamesHubView: View {
         case .colorMatch: ColorMatchGameView()
         case .lyricsQuiz: LyricsQuizSetupView()
         case .setlistQuiz: SetlistQuizSetupView()
+        }
+    }
+}
+
+/// 中断したクイズの再開先。ゲーム一覧とプロデュースの「つづきから」で共有する。
+struct QuizResumeDestination: View {
+    let suspended: QuizSuspended
+
+    var body: some View {
+        let s = suspended
+        switch s.kind {
+        case .idolQuiz: IdolQuizView(selectedBrandIds: Set(s.brandIds), resume: s)
+        case .songSingerQuiz: SongSingerQuizView(selectedBrandIds: Set(s.brandIds), resume: s)
+        case .lyricsQuiz: LyricsQuizResumeView(suspended: s)
+        case .setlistQuiz: SetlistQuizView(selectedBrandIds: Set(s.brandIds), resume: s)
+        case .colorMatch: ColorMatchGameView(resume: s)
+        case .introDon: IntroDonHomeView()
         }
     }
 }

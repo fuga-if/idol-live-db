@@ -2,10 +2,10 @@ import os
 import SwiftUI
 
 /// プロデュース (tab4・担当ダッシュボード)。
-/// 新デザインシステムへ移植。担当アイドルのヒーロー横スクロール → あなたの活動グリッド →
-/// 最近見た → 参加したライブ → 入口カード (調べる / みんなの動き) の縦 1 枚構成。
-/// 既存の遷移 (RecentEdits / Calendar / IntroDon / MyPredictions / Leaderboard) と
-/// 統計ブロック (loadStats) は全て維持する。
+/// 担当アイドル → 次のライブ → 投票受付中 → 入口 (あそぶ・みんな・しらべる) →
+/// あなたの記録 → 最近見た の縦 1 枚構成。予定と新しい機能の入口を上に置き、
+/// 記録 (タイル) から先は奥の画面で見る。同じ行き先の入口は 1 か所にする
+/// (マイ予想・投票一覧・参加ライブ一覧はタイル / お題見出しから行く)。
 struct ProduceTabView: View {
     @Environment(AppDatabase.self) private var database
     @Environment(CloudKitSyncEngine.self) private var syncEngine
@@ -30,11 +30,11 @@ struct ProduceTabView: View {
     @State private var voteLog = LocalPollVoteLog.shared
     @State private var contributionLog = LocalContributionLog.shared
 
-    // 参加したライブ。
+    // 参加したライブ (タイル「参加ライブ」の遷移先に渡す)。
     @State private var attendedEvents: [EventWithDate] = []
-
-    // 統計 (既存 StatsView 由来)。「調べる」入口カードのプレビューに使う最新公演。
-    @State private var latestShow: Show?
+    /// 参加予定 / お気に入りの直近の未来公演。無ければカードを出さない。
+    @State private var nextLive: NextLive?
+    @State private var resumeStore = QuizResumeStore.shared
 
     /// 「最近見た」タップ時の詳細遷移先。
     @State private var sheetDestination: DetailDestination?
@@ -53,11 +53,11 @@ struct ProduceTabView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: DS.sp6) {
                     oshiSection
+                    nextLiveSection
                     featuredPollSection
+                    shortcutSection
                     activitySection
                     recentsSection
-                    attendedSection
-                    entrySection
                 }
                 .padding(.horizontal, DS.sp5)
                 .padding(.top, DS.sp4)
@@ -101,6 +101,11 @@ struct ProduceTabView: View {
             .navigationDestination(for: ActivityRoute.self) { route in
                 activityDestination(route)
             }
+            .navigationDestination(for: NextLiveRoute.self) { route in
+                switch route {
+                case .prediction(let show): SetlistView(show: show, opensPrediction: true)
+                }
+            }
             // みんなの投票 (PollListView) は自前スタックを持たず、ここ(親の1スタック)に
             // 遷移先を登録する。これで「一覧→詳細」の2階層目を同じスタック上に push できる。
             .navigationDestination(for: PollRoute.self) { PollRouteView(route: $0) }
@@ -129,41 +134,49 @@ struct ProduceTabView: View {
     @ViewBuilder
     private var featuredPollSection: some View {
         if let poll = activePoll {
-            NavigationLink(value: PollRoute.detail(poll.id)) {
-                VStack(alignment: .leading, spacing: DS.sp3) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "chart.bar.doc.horizontal.fill")
-                        Text("投票受付中").font(.imasCaption.bold())
-                        Spacer()
-                        Text(pollRemainingLabel(poll.endsAt)).font(.imasCaption)
-                    }
-                    .foregroundStyle(.white.opacity(0.95))
+            VStack(alignment: .leading, spacing: DS.sp3) {
+                // 投票一覧は値ベース (PollRoute.list) で push する。クロージャで PollListView() を
+                // 直接 push すると中の値ベース NavigationLink(value: PollRoute.detail) と混ざり、
+                // 詳細へ進むたびに PollList が二重 push される。
+                ImasSectionHeader(title: "投票受付中", seeAll: {
+                    if NavThrottle.allow() { navPath.append(PollRoute.list) }
+                }, tight: true, seeAllTitle: "ほかのお題")
+                NavigationLink(value: PollRoute.detail(poll.id)) {
+                    VStack(alignment: .leading, spacing: DS.sp3) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "chart.bar.doc.horizontal.fill")
+                            Text("お題").font(.imasCaption.bold())
+                            Spacer()
+                            Text(pollRemainingLabel(poll.endsAt)).font(.imasCaption)
+                        }
+                        .foregroundStyle(.white.opacity(0.95))
 
-                    Text(poll.title)
-                        .font(.imasTitle3.weight(.bold))
+                        Text(poll.title)
+                            .font(.imasTitle3.weight(.bold))
+                            .foregroundStyle(.white)
+                            .lineLimit(2)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+
+                        HStack(spacing: DS.sp4) {
+                            Label("\(poll.totalVotes ?? 0)票", systemImage: "hand.thumbsup.fill")
+                            Label("\(poll.entryCount ?? 0)候補", systemImage: "list.number")
+                            Spacer()
+                            Text("投票する").font(.imasSubhead.bold())
+                            Image(systemName: "arrow.right")
+                        }
+                        .font(.imasCaption)
                         .foregroundStyle(.white)
-                        .lineLimit(2)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-
-                    HStack(spacing: DS.sp4) {
-                        Label("\(poll.totalVotes ?? 0)票", systemImage: "hand.thumbsup.fill")
-                        Label("\(poll.entryCount ?? 0)候補", systemImage: "list.number")
-                        Spacer()
-                        Text("投票する").font(.imasSubhead.bold())
-                        Image(systemName: "arrow.right")
                     }
-                    .font(.imasCaption)
-                    .foregroundStyle(.white)
+                    .padding(DS.sp5)
+                    .background(
+                        LinearGradient(colors: [Color(red: 1, green: 0.3, blue: 0.55),
+                                                Color(red: 0.55, green: 0.35, blue: 0.95)],
+                                       startPoint: .topLeading, endPoint: .bottomTrailing),
+                        in: RoundedRectangle(cornerRadius: DS.rLG, style: .continuous)
+                    )
                 }
-                .padding(DS.sp5)
-                .background(
-                    LinearGradient(colors: [Color(red: 1, green: 0.3, blue: 0.55),
-                                            Color(red: 0.55, green: 0.35, blue: 0.95)],
-                                   startPoint: .topLeading, endPoint: .bottomTrailing),
-                    in: RoundedRectangle(cornerRadius: DS.rLG, style: .continuous)
-                )
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
         }
     }
 
@@ -208,7 +221,7 @@ struct ProduceTabView: View {
 
     private var activitySection: some View {
         VStack(alignment: .leading, spacing: DS.sp3) {
-            ImasSectionHeader(title: "あなたの活動", tight: true)
+            ImasSectionHeader(title: "あなたの記録", tight: true)
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: DS.sp3), count: 3), spacing: DS.sp3) {
                 statTileLink(route: .attendedEvents) {
                     ImasStatTile(systemImage: "music.mic", value: numberString(attendedCount), label: "参加ライブ", brand: pickBrandSeed, tappable: true)
@@ -300,163 +313,120 @@ struct ProduceTabView: View {
         }
     }
 
-    // MARK: - 参加したライブ (EventRow 一覧)
+    // MARK: - 次のライブ (参加予定 / お気に入りの直近公演)
+
+    enum NextLiveRoute: Hashable {
+        case prediction(Show)
+    }
 
     @ViewBuilder
-    private var attendedSection: some View {
-        if !attendedEvents.isEmpty {
+    private var nextLiveSection: some View {
+        if let next = nextLive {
             VStack(alignment: .leading, spacing: DS.sp3) {
-                ImasSectionHeader(title: "参加したライブ", count: "\(attendedEvents.count)")
-                ImasListContainer {
-                    ForEach(Array(attendedEvents.prefix(5).enumerated()), id: \.element.id) { index, ew in
-                        if index > 0 {
-                            ImasRowDivider(inset: DS.sp4)
+                ImasSectionHeader(title: "次のライブ", tight: true)
+                NextLiveCard(
+                    next: next,
+                    seed: next.event.brandId.flatMap { brandsById[$0]?.color } ?? pickBrandSeed,
+                    showsCallGuide: LyricsFeature.isAvailable,
+                    onPredict: {
+                        AppAnalytics.tap("produce_tab.next_live_predict")
+                        if NavThrottle.allow() { navPath.append(NextLiveRoute.prediction(next.show)) }
+                    }
+                )
+            }
+        }
+    }
+
+    // MARK: - 入口 (あそぶ / みんな / しらべる)
+
+    private var shortcutSection: some View {
+        VStack(spacing: DS.sp3) {
+            ProduceShortcutGroup(title: "あそぶ") {
+                if let s = resumeStore.latest {
+                    NavigationLink {
+                        QuizResumeDestination(suspended: s)
+                    } label: {
+                        HStack(spacing: 2) {
+                            Text("つづきから: \(gameTitle(s.kind)) " + String(format: "Q.%02d", min(s.plays.count + 1, s.total)))
+                                .lineLimit(1)
+                            Image(systemName: "chevron.right").font(.imasScaled(11, weight: .semibold))
                         }
-                        NavigationLink(value: ew.event) {
-                            ProduceEventRow(
-                                event: ew.event,
-                                dateText: ew.dateRange,
-                                seedHex: ew.event.brandId.flatMap { brandsById[$0]?.color }
-                            )
-                        }
-                        .buttonStyle(.plain)
+                        .font(.imasScaled(13, weight: .medium))
+                        .foregroundStyle(DS.ink2)
+                    }
+                    .buttonStyle(.plain)
+                }
+            } items: {
+                NavigationLink { IntroDonHomeView() } label: {
+                    ProduceShortcutIcon(systemImage: "music.note.list", label: "イントロ", seed: pickBrandSeed)
+                }
+                NavigationLink { LyricsQuizSetupView() } label: {
+                    ProduceShortcutIcon(systemImage: "text.quote", label: "歌詞", seed: pickBrandSeed)
+                }
+                NavigationLink { SetlistQuizSetupView() } label: {
+                    ProduceShortcutIcon(systemImage: "list.number", label: "セトリ当て", seed: pickBrandSeed)
+                }
+                NavigationLink { GamesHubView() } label: {
+                    ProduceShortcutIcon(systemImage: "gamecontroller.fill", label: "すべて", seed: pickBrandSeed)
+                }
+            }
+
+            ProduceShortcutGroup(title: "みんな") {
+                EmptyView()
+            } items: {
+                NavigationLink { RecentEditsView() } label: {
+                    ProduceShortcutIcon(systemImage: "person.2.fill", label: "動き", seed: secondaryBrandSeed)
+                }
+                NavigationLink { TagActivityView() } label: {
+                    ProduceShortcutIcon(systemImage: "flame.fill", label: "タグ", seed: secondaryBrandSeed)
+                }
+                // 歌詞タブと同じ根拠 (JASRAC 許諾) で出し分ける。歌詞が出ないビルドでは
+                // コールガイドを書く場所そのものが無いので、入口も出さない。
+                if LyricsFeature.isAvailable {
+                    NavigationLink { CallGuideDashboardView() } label: {
+                        ProduceShortcutIcon(systemImage: "hands.clap.fill", label: "コール", seed: secondaryBrandSeed)
                     }
                 }
-                if attendedEvents.count > 5 {
-                    NavigationLink {
-                        AttendedEventsListView(events: attendedEvents)
-                    } label: {
-                        Text("全て見る (\(attendedEvents.count)件)")
-                            .font(.imasSubhead.weight(.medium))
-                            .foregroundStyle(DS.sys)
-                            .padding(.horizontal, DS.sp2)
+                // 開催中のお題が無いと上の「ほかのお題」が出ないので、そのときだけここに置く。
+                if activePoll == nil {
+                    NavigationLink(value: PollRoute.list) {
+                        ProduceShortcutIcon(systemImage: "chart.bar.doc.horizontal", label: "お題", seed: secondaryBrandSeed)
                     }
+                }
+                // 編集の協力者に Discord のロールを渡す入口。セッションで本人を確かめるので
+                // ログイン中だけ出す (未ログインで押しても 401 になるだけ)。
+                if AuthService.shared.isSignedIn {
+                    Button {
+                        Task { await openDiscordLink() }
+                    } label: {
+                        ProduceShortcutIcon(systemImage: "rosette", label: "Discord", seed: secondaryBrandSeed,
+                                            isLoading: isLinkingDiscord)
+                    }
+                }
+            }
+
+            ProduceShortcutGroup(title: "しらべる") {
+                EmptyView()
+            } items: {
+                NavigationLink { StatsView() } label: {
+                    ProduceShortcutIcon(systemImage: "chart.bar.xaxis", label: "統計", seed: pickBrandSeed)
+                }
+                NavigationLink { BrandTimelineView(initialBrandId: pickIdols.first?.brandId) } label: {
+                    ProduceShortcutIcon(systemImage: "calendar.day.timeline.left", label: "年表", seed: pickBrandSeed)
                 }
             }
         }
     }
 
-    // MARK: - 入口カード (調べる / みんなの動き) + その他導線
-
-    private var entrySection: some View {
-        VStack(spacing: DS.sp3) {
-            NavigationLink {
-                StatsView()
-            } label: {
-                ImasEntryCard(
-                    systemImage: "chart.bar.xaxis",
-                    title: "調べる",
-                    preview: statsEntryPreview,
-                    brand: pickBrandSeed
-                )
-            }
-            .buttonStyle(.plain)
-
-            NavigationLink {
-                BrandTimelineView(initialBrandId: pickIdols.first?.brandId)
-            } label: {
-                ImasEntryCard(
-                    systemImage: "chart.bar.xaxis",
-                    title: "年表",
-                    preview: "ライブ・楽曲シリーズ・節目を1枚で俯瞰する",
-                    brand: pickBrandSeed
-                )
-            }
-            .buttonStyle(.plain)
-
-            NavigationLink {
-                RecentEditsView()
-            } label: {
-                ImasEntryCard(
-                    systemImage: "person.2.fill",
-                    title: "みんなの動き",
-                    preview: "参考動画・セトリ編集など最近のコミュニティ投稿",
-                    brand: secondaryBrandSeed
-                )
-            }
-            .buttonStyle(.plain)
-
-            // 編集の協力者に Discord のロールを渡す入口。セッションで本人を確かめるので
-            // ログイン中だけ出す (未ログインで押しても 401 になるだけ)。
-            if AuthService.shared.isSignedIn {
-                Button {
-                    Task { await openDiscordLink() }
-                } label: {
-                    ImasEntryCard(
-                        systemImage: "rosette",
-                        title: "Discordでロールを受け取る",
-                        preview: "アプリで10件以上編集すると「データ協力」ロールが付きます",
-                        brand: secondaryBrandSeed,
-                        isLoading: isLinkingDiscord
-                    )
-                }
-                .buttonStyle(.plain)
-            }
-
-            NavigationLink {
-                GamesHubView()
-            } label: {
-                ImasEntryCard(
-                    systemImage: "gamecontroller.fill",
-                    title: "クイズ・ゲーム",
-                    preview: "イントロドン・歌詞クイズ・アイドル当てほか",
-                    brand: pickBrandSeed
-                )
-            }
-            .buttonStyle(.plain)
-
-            NavigationLink {
-                MyPredictionsView()
-            } label: {
-                ImasEntryCard(
-                    systemImage: "checklist",
-                    title: "マイ予想",
-                    preview: predictionCount > 0 ? "投票した予想 \(predictionCount)件" : "セトリを予想して的中を狙おう"
-                )
-            }
-            .buttonStyle(.plain)
-
-            // 値ベース (PollRoute.list) に統一。クロージャベースで直接 PollListView() を
-            // push すると、その中の値ベース NavigationLink(value: PollRoute.detail) と
-            // 混在し、詳細遷移時に navigationDestination が再評価されて PollList が
-            // 二重 push される (Detail の上に List が乗る現象) ため。
-            NavigationLink(value: PollRoute.list) {
-                ImasEntryCard(
-                    systemImage: "chart.bar.doc.horizontal",
-                    title: "みんなの投票",
-                    preview: "お題に推しを投票・ランキング",
-                    brand: pickBrandSeed
-                )
-            }
-            .buttonStyle(.plain)
-
-            // 歌詞タブと同じ根拠 (JASRAC 許諾) で出し分ける。歌詞が出ないビルドでは
-            // コールガイドを書く場所そのものが無いので、入口も出さない。
-            if LyricsFeature.isAvailable {
-                NavigationLink {
-                    CallGuideDashboardView()
-                } label: {
-                    ImasEntryCard(
-                        systemImage: "hands.clap.fill",
-                        title: "コールガイド",
-                        preview: "歌詞行ごとのコールガイド。書かれている曲・最近の編集・書き手募集中の曲",
-                        brand: secondaryBrandSeed
-                    )
-                }
-                .buttonStyle(.plain)
-            }
-
-            NavigationLink {
-                TagActivityView()
-            } label: {
-                ImasEntryCard(
-                    systemImage: "flame.fill",
-                    title: "タグの動き",
-                    preview: "伸びてるタグ・急上昇の曲やアイドルをチェック",
-                    brand: secondaryBrandSeed
-                )
-            }
-            .buttonStyle(.plain)
+    /// つづきからの見出しに出すゲーム名 (ゲーム一覧と同じ呼び方)。
+    private func gameTitle(_ kind: GameKind) -> String {
+        switch kind {
+        case .idolQuiz: "アイドル当て"
+        case .songSingerQuiz: "ソロ曲クイズ"
+        case .lyricsQuiz: "歌詞クイズ"
+        case .setlistQuiz: "セトリ当て"
+        case .introDon: "イントロドン"
+        case .colorMatch: "メンバーカラー合わせ"
         }
     }
 
@@ -484,13 +454,6 @@ struct ProduceTabView: View {
         return nil
     }
 
-    private var statsEntryPreview: String {
-        if let show = latestShow {
-            return "最新公演 \(show.name) ほか"
-        }
-        return "披露回数・お気に入り・出演ランキング…"
-    }
-
     // MARK: - Helpers
 
     private func numberString(_ value: Int) -> String {
@@ -515,7 +478,7 @@ struct ProduceTabView: View {
 
     private func loadAll() async {
         await loadLocal()
-        await loadStats()
+        await loadNextLive()
         await loadServerActivity()
         await loadActivePoll()
     }
@@ -572,11 +535,40 @@ struct ProduceTabView: View {
         }
     }
 
-    private func loadStats() async {
+    /// 参加予定 (公演 / イベントの参加マーク) かお気に入りのイベントのうち、
+    /// 今日以降でいちばん早い公演を 1 件。「今日以降でいちばん早い」はコア (`nextShowIndex`)。
+    private func loadNextLive() async {
+        let c = AppContainer.shared
+        let today = JSTDay.today()
         do {
-            latestShow = try await AppContainer.shared.showReading.latestShow()
+            let attendedShowIds = Set(try await c.markReading.markedEntityIds(entity: .show, kind: .attended))
+            let attendedEventIds = Set(try await c.markReading.markedEntityIds(entity: .event, kind: .attended))
+            let wholeEventIds = attendedEventIds.union(try await c.markReading.markedEntityIds(entity: .event, kind: .favorite))
+            let showEventIds = try await c.showReading.eventIds(forShows: Array(attendedShowIds))
+            // 過去のイベントの公演は読まない (参加済みが数百あっても未来のものだけ開く)。
+            let events = try await c.eventReading.eventsByIds(Array(wholeEventIds.union(showEventIds)))
+                .filter { nextShowIndex(dates: [$0.lastDate ?? $0.firstDate ?? ""], todayKey: today) != nil }
+            var candidates: [(show: Show, event: Event)] = []
+            for ew in events {
+                let whole = wholeEventIds.contains(ew.event.id)
+                for show in try await c.showReading.shows(eventId: ew.event.id)
+                where whole || attendedShowIds.contains(show.id) {
+                    candidates.append((show, ew.event))
+                }
+            }
+            guard let i = nextShowIndex(dates: candidates.map(\.show.date), todayKey: today) else {
+                nextLive = nil
+                return
+            }
+            let (show, event) = candidates[Int(i)]
+            let planned = attendedShowIds.contains(show.id) || attendedEventIds.contains(event.id)
+            // 札の文言 (参加予定・あと3日 / 今日) はコア。お気に入りだけなら参加予定とは言わない。
+            let status = planned
+                ? attendanceStatus(attendedShowDates: [show.date], eventShowDates: [], eventMarked: false, today: today).label
+                : "お気に入り"
+            nextLive = NextLive(show: show, event: event, statusLabel: status)
         } catch {
-            Logger.database.error("load_failed produce_stats: \(error.localizedDescription)")
+            Logger.database.error("load_failed produce_next_live: \(error.localizedDescription)")
         }
     }
 
@@ -664,38 +656,133 @@ private struct HeroIdolCard: View {
     }
 }
 
-// MARK: - ProduceEventRow (参加したライブ行)
+// MARK: - 次のライブ
 
-/// 参加したライブの行。リードバー (合同は虹) + ライブ名 + 日付 + chevron。
-/// 共有の EventRowView が private のため、同等レイアウトをここで構成する。
-private struct ProduceEventRow: View {
+/// 「次のライブ」カードに出す 1 公演。
+struct NextLive: Equatable {
+    let show: Show
     let event: Event
-    var dateText: String? = nil
-    var seedHex: String? = nil
+    /// `参加予定・あと2日` / `お気に入り`。
+    let statusLabel: String
+}
 
-    private var isJoint: Bool { !event.jointBrandIdList.isEmpty }
+/// 次のライブ。札 + ライブ名 + 公演日 と、「セトリを予想」「コールを見る」。
+private struct NextLiveCard: View {
+    let next: NextLive
+    var seed: String?
+    var showsCallGuide: Bool
+    let onPredict: () -> Void
+    @Environment(\.colorScheme) private var scheme
+
+    private var title: String { eventDisplayName(next.event.name) }
+    private var subLine: String {
+        var parts = [next.show.date]
+        if !next.show.name.isEmpty, next.show.name != next.event.name { parts.append(next.show.name) }
+        return parts.joined(separator: " ・ ")
+    }
 
     var body: some View {
-        HStack(spacing: DS.sp3) {
-            ImasLeadBar(seed: seedHex, rainbow: isJoint)
-                .frame(height: 38)
-            VStack(alignment: .leading, spacing: 1) {
-                Text(eventDisplayName(event.name))
-                    .font(.imasSubhead.weight(.semibold))
+        let t = ImasTheme.derive(seed: seed, brand: nil, scheme: scheme)
+        VStack(alignment: .leading, spacing: DS.sp3) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(next.statusLabel)
+                    .font(.imasCaption.weight(.bold))
+                    .foregroundStyle(t.chipText)
+                Text(title)
+                    .font(.imasHeadline.weight(.bold))
                     .foregroundStyle(DS.ink)
+                    .lineLimit(2)
+                Text(subLine)
+                    .font(.imasFootnote)
+                    .foregroundStyle(DS.ink2)
                     .lineLimit(1)
-                if let dateText, !dateText.isEmpty {
-                    Text(dateText)
-                        .font(.imasCaption)
-                        .foregroundStyle(DS.ink2)
-                        .lineLimit(1)
+            }
+            HStack(spacing: DS.sp2) {
+                Button(action: onPredict) {
+                    Text("セトリを予想")
+                        .font(.imasSubhead.weight(.semibold))
+                        .foregroundStyle(t.onAccent)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 9)
+                        .background(t.accent, in: RoundedRectangle(cornerRadius: DS.rSM, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                if showsCallGuide {
+                    NavigationLink {
+                        CallGuideDashboardView()
+                    } label: {
+                        Text("コールを見る")
+                            .font(.imasSubhead.weight(.semibold))
+                            .foregroundStyle(t.chipText)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 9)
+                            .background(t.chipBg, in: RoundedRectangle(cornerRadius: DS.rSM, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
                 }
             }
-            Spacer(minLength: 8)
-            ImasRowChevron()
         }
-        .padding(.horizontal, DS.sp4)
-        .padding(.vertical, DS.sp3)
+        .padding(DS.sp4)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rLG, style: .continuous))
+    }
+}
+
+// MARK: - 入口のまとまり (あそぶ / みんな / しらべる)
+
+/// 見出し 1 行 + アイコン 4 つずつの並び。入口を同じ大きさのカードで縦に積まず、
+/// 種類ごとに 1 枚にまとめる。
+private struct ProduceShortcutGroup<Accessory: View, Items: View>: View {
+    let title: String
+    @ViewBuilder let accessory: () -> Accessory
+    @ViewBuilder let items: () -> Items
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DS.sp3) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(title).font(.imasSubhead.weight(.bold)).foregroundStyle(DS.ink)
+                Spacer(minLength: DS.sp3)
+                accessory()
+            }
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: DS.sp2), count: 4), spacing: DS.sp3) {
+                items()
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(DS.sp4)
+        .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
+    }
+}
+
+/// 入口のアイコン 1 つ。ImasEntryCard と同じ色の角丸アイコン + 短い名前。
+private struct ProduceShortcutIcon: View {
+    let systemImage: String
+    let label: String
+    var seed: String?
+    var isLoading = false
+    @Environment(\.colorScheme) private var scheme
+
+    var body: some View {
+        let t = ImasTheme.derive(seed: seed, brand: nil, scheme: scheme)
+        VStack(spacing: DS.sp2) {
+            ZStack {
+                if isLoading {
+                    ProgressView().controlSize(.small)
+                } else {
+                    Image(systemName: systemImage)
+                        .font(.imasScaled(20, weight: .regular))
+                        .foregroundStyle(t.chipText)
+                }
+            }
+            .frame(width: 44, height: 44)
+            .background(t.chipBg, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            Text(label)
+                .font(.imasCaption)
+                .foregroundStyle(DS.ink2)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        }
+        .frame(maxWidth: .infinity)
         .contentShape(Rectangle())
     }
 }
