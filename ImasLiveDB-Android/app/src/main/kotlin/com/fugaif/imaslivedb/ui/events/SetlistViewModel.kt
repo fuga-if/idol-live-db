@@ -34,7 +34,6 @@ import uniffi.imas_core.SetlistDisplayMode
 import uniffi.imas_core.SetlistDisplayModeOption
 import uniffi.imas_core.SetlistRowMetaRecord
 import uniffi.imas_core.ShowCollectionRecord
-import uniffi.imas_core.ShowCostumeRecord
 import uniffi.imas_core.setlistDisplayModeFromStored
 
 data class SetlistSection(
@@ -50,8 +49,6 @@ data class SetlistUiState(
     val brandId: String? = null,
     val setlist: List<SetlistRow> = emptyList(),
     val performersByItemId: Map<String, List<PerformerRow>> = emptyMap(),
-    /** この公演で着られた衣装 (進行順)。畳み方も並びも共有コアが決めている。 */
-    val costumes: List<ShowCostumeRecord> = emptyList(),
     /**
      * この公演の券種 (マスタ・生の行)。「どんな価格の券があったか」を出す。
      * 絞り込み・並び・価格帯の判断は画面側で共有コア (`ticketsForKind` 等) へ委ねる。
@@ -190,7 +187,6 @@ class SetlistViewModel(app: Application, private val showId: String) : AndroidVi
         val setlist = events.fetchSetlist(showId)
         // 曲ごとのグループ化と並びは共有コア (showSetlistPerformers) が持つ。
         val performersByItemId = events.fetchPerformersByItem(showId)
-        val costumes = events.fetchShowCostumes(showId)
         val tickets = module.showTicketRepository.forShow(showId)
         // 名義も「いつぶりか」も「自分の回収」も共有コアが決める。ここは受け取って配るだけ。
         // 読み直し (設定の切り替え等) が落ちても、同じ公演なら前の答えを残す
@@ -216,7 +212,6 @@ class SetlistViewModel(app: Application, private val showId: String) : AndroidVi
             brandId = brandId,
             setlist = setlist,
             performersByItemId = performersByItemId,
-            costumes = costumes,
             tickets = tickets,
             rowMetaByItemId = rowMeta.rowsByItemId,
             collectionSummary = rowMeta.collection,

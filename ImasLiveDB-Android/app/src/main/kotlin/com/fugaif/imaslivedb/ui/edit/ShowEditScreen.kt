@@ -14,14 +14,20 @@ import com.fugaif.imaslivedb.data.edit.putClearable
 import com.fugaif.imaslivedb.data.model.Show
 import com.fugaif.imaslivedb.di.AppModule
 import kotlinx.coroutines.launch
+import uniffi.imas_core.venueModeOptions
 
 /** 出演形態。iOS `ShowEditView.performerTypes` と同じ 4 択 (空 = 未指定)。 */
 private val PERFORMER_TYPES = listOf(
     "" to "未指定",
     "character" to "character",
     "cast" to "cast",
-    "mixed" to "mixed"
+    "mixed" to "mixed",
+    // MV 上映会など、誰も歌わない公演 (披露回数に数えない)。
+    "screening" to "screening"
 )
+
+/** 会場の形態の選択肢 (保存値と文言は imas-core)。 */
+private val VENUE_MODES = venueModeOptions().map { it.raw to it.label }
 
 /**
  * 公演 (Show) の新規作成 / 編集。iOS `ShowEditView` の移植。
@@ -53,6 +59,7 @@ fun ShowEditScreen(
     var startTime by rememberSaveable(key) { mutableStateOf(original?.startTime ?: "") }
     var sortOrder by rememberSaveable(key) { mutableIntStateOf(original?.sortOrder ?: suggestedSortOrder) }
     var performerType by rememberSaveable(key) { mutableStateOf(original?.performerType ?: "") }
+    var venueMode by rememberSaveable(key) { mutableStateOf(original?.venueMode ?: "") }
 
     var isSaving by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -80,6 +87,7 @@ fun ShowEditScreen(
         fields.putClearable("venueCity", venueCity, original?.venueCity)
         fields.putClearable("startTime", startTime, original?.startTime)
         fields.putClearable("performerType", performerType, original?.performerType)
+        fields.putClearable("venueMode", venueMode, original?.venueMode)
 
         val op = EditApi.EditOperation(
             op = if (isCreate) EditApi.EditOp.CREATE else EditApi.EditOp.UPDATE,
@@ -107,7 +115,8 @@ fun ShowEditScreen(
                     venueCity = venueCity.nonEmptyTrimmed(),
                     startTime = startTime.nonEmptyTrimmed(),
                     sortOrder = sortOrder,
-                    performerType = performerType.nonEmptyTrimmed()
+                    performerType = performerType.nonEmptyTrimmed(),
+                    venueMode = venueMode.nonEmptyTrimmed()
                 )
                 AppModule.from(context).masterEditRepository.applyShow(saved)
             }
@@ -139,6 +148,7 @@ fun ShowEditScreen(
             EditTextField("開演時刻 (HH:mm)", startTime, { startTime = it })
             EditStepperRow("並び順", sortOrder, 0..999) { sortOrder = it }
             EditDropdownField("出演形態", PERFORMER_TYPES, performerType) { performerType = it }
+            EditDropdownField("会場の形態", VENUE_MODES, venueMode) { venueMode = it }
         }
     }
 

@@ -2,7 +2,8 @@
 
 use super::snapshot_store::{SnapshotError, SnapshotStore};
 use crate::domain::costume_queries::{
-    self as queries, CostumeRecord, CostumeShowRecord, SetlistCostumeRecord, ShowCostumeRecord,
+    self as queries, CostumeEventRecord, CostumeRecord, CostumeShowRecord, EventCostumesRecord,
+    SetlistCostumeRecord, ShowCostumeRecord,
 };
 
 #[uniffi::export]
@@ -47,5 +48,23 @@ impl SnapshotStore {
     ) -> Result<Vec<CostumeShowRecord>, SnapshotError> {
         let snap = self.current()?;
         Ok(queries::costume_shows(&snap, &costume_id))
+    }
+
+    /// そのイベントで着られた衣装 (共通・個別に分けて進行順)。
+    pub fn event_costume_records(
+        &self,
+        event_id: String,
+    ) -> Result<EventCostumesRecord, SnapshotError> {
+        let snap = self.current()?;
+        Ok(queries::event_costumes(&snap, &event_id))
+    }
+
+    /// その衣装が着られた公演 (イベントごとに束ねて、イベントは新しい順)。
+    pub fn costume_event_records(
+        &self,
+        costume_id: String,
+    ) -> Result<Vec<CostumeEventRecord>, SnapshotError> {
+        let snap = self.current()?;
+        Ok(queries::costume_events(&snap, &costume_id))
     }
 }

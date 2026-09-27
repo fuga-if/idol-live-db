@@ -4,8 +4,10 @@ use super::context::{simple_json_ld, Ctx};
 use crate::domain::costume_queries as costume;
 use crate::domain::date_display::{range_with_weekday, short_with_weekday};
 use crate::domain::event_detail_queries as detail;
-use crate::domain::performance_gap::{performance_gap, PerformanceGap};
-use crate::domain::screen_composition::{setlist_performance_note_group, RowNoteTone};
+use crate::domain::performance_gap::{is_performance, original_singers, performance_gap};
+use crate::domain::screen_composition::{
+    setlist_public_note_groups, RowNoteTone, SetlistRowNoteGroupRecord,
+};
 use crate::domain::snapshot::Snapshot;
 use crate::domain::event_grouping::group_events_by_year;
 use crate::domain::setlist_lineup::{row_lineup, LineupSummary, FULL_CAST_LABEL, MISSING_LABEL};
@@ -414,7 +416,18 @@ fn setlist_rows(
                 is_cover: ctx.snap.song(&e.song_id).is_some_and(Snapshot::is_cover),
                 first_performance_label: (ctx.snap.ordinal_by_item[item as usize] == 1)
                     .then(|| FIRST_PERFORMANCE_LABEL.to_string()),
-                history: vec![history_group(&performance_gap(ctx.snap, item))],
+                // 上映会の行は披露ではないので履歴を持たない (`ordinal_by_item` も 0)。
+                history: if is_performance(ctx.snap, item) {
+                    setlist_public_note_groups(
+                        &performance_gap(ctx.snap, item),
+                        &original_singers(ctx.snap, item),
+                    )
+                    .into_iter()
+                    .map(history_group)
+                    .collect()
+                } else {
+                    Vec::new()
+                },
                 // チップの文字列は Rust が組んである (着用者の括弧を付けるかも含めて)。
                 costumes: costume::setlist_item_costumes(ctx.snap, &e.id)
                     .into_iter()
@@ -426,9 +439,8 @@ fn setlist_rows(
         .collect()
 }
 
-/// 詳細表示の「披露」の軸。分け方も文言も domain (アプリと同じ)。ここは DTO へ写すだけ。
-fn history_group(gap: &PerformanceGap) -> SetlistNoteGroup {
-    let group = setlist_performance_note_group(gap);
+/// 詳細表示の軸 (`披露` / `歌唱`)。分け方も文言も domain (アプリと同じ)。ここは DTO へ写すだけ。
+fn history_group(group: SetlistRowNoteGroupRecord) -> SetlistNoteGroup {
     SetlistNoteGroup {
         label: group.label,
         notes: group

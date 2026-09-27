@@ -20,6 +20,7 @@
 
 use crate::domain::snapshot::Snapshot;
 use crate::domain::song_detail_queries::performance_ordinal_label;
+use std::collections::HashSet;
 
 /// 行に出すほど珍しいと見なす間隔 (か月)。
 ///
@@ -126,6 +127,66 @@ pub fn performance_gap_filtered(
     }
 }
 
+/// その行は披露か。上映会や配信だけのライブの行は披露でないので、回数も間隔も持たない
+/// ([`crate::domain::snapshot::Show::counts_as_performance`])。**披露でない行に
+/// [`performance_gap`] を当てないこと** — 履歴に居ないので「初披露」に化ける。
+pub fn is_performance(snap: &Snapshot, item: u32) -> bool {
+    snap.shows[snap.setlist_items[item as usize].show as usize].counts_as_performance()
+}
+
+/// 原唱者 (オリメン) 1 人ぶんの、その曲を歌うのが何回目か。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OriginalSingerOrdinal {
+    /// 表示用の短い名 ([`crate::domain::snapshot::Idol::short_name`])。
+    pub name: String,
+    /// この披露がその人にとって何回目か (1 = 初めて歌った)。その公演の時点から数える。
+    pub ordinal: u32,
+}
+
+/// 原唱者のうち、この披露で歌った人の回数。
+///
+/// 曲の通算回数 ([`PerformanceGap::ordinal`]) は**誰が歌っても**増える
+/// (他ブランドのカバー、別ユニットの歌唱)。「オリメンとしては何回目か」は
+/// それとは別の問いなので、歌った原唱者ごとに数える。
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct OriginalSingers {
+    /// その曲の原唱者の人数 (この披露で歌ったかを問わない)。
+    pub original_count: usize,
+    /// この披露で歌った原唱者 (原唱者の並び順)。歌った原唱者がいなければ空。
+    pub sung: Vec<OriginalSingerOrdinal>,
+}
+
+/// その披露 (`setlist_items` の添字) で歌った原唱者それぞれの、その時点での回数。
+/// 数える世界は [`performance_gap`] と同じ (上映会は入らない・同日は公演順)。
+pub fn original_singers(snap: &Snapshot, item: u32) -> OriginalSingers {
+    let row = &snap.setlist_items[item as usize];
+    let mut seen = HashSet::new();
+    let originals: Vec<u32> = snap.artists_by_song[row.song as usize]
+        .iter()
+        .filter(|l| l.role == "original")
+        .map(|l| l.idol)
+        .filter(|&idol| seen.insert(idol))
+        .collect();
+    let performers = &snap.performers_by_item[item as usize];
+    let key = chronological_key(snap, item);
+    let history = &snap.setlist_items_by_song[row.song as usize];
+    let sung = originals
+        .iter()
+        .filter(|idol| performers.contains(idol))
+        .map(|&idol| OriginalSingerOrdinal {
+            name: snap.idols[idol as usize].short_name().to_string(),
+            ordinal: history
+                .iter()
+                .filter(|&&i| {
+                    chronological_key(snap, i) <= key
+                        && snap.performers_by_item[i as usize].contains(&idol)
+                })
+                .count() as u32,
+        })
+        .collect();
+    OriginalSingers { original_count: originals.len(), sung }
+}
+
 /// 古い順に並べるキー。同じ日の昼夜は `shows.sort_order` → セトリ内の `position` の順。
 fn chronological_key(snap: &Snapshot, item: u32) -> (&str, i64, i64, u32) {
     let row = &snap.setlist_items[item as usize];
@@ -230,6 +291,9 @@ mod tests {
         let snap = bundle_snapshot();
         let mut checked = 0usize;
         for item in (0..snap.setlist_items.len() as u32).step_by(37) {
+            if !is_performance(snap, item) {
+                continue;
+            }
             assert_eq!(
                 performance_gap(snap, item).ordinal,
                 snap.ordinal_by_item[item as usize],
@@ -262,6 +326,72 @@ mod tests {
         assert!(alone.is_first);
     }
 
+    /// **上映会 (MV 上映会) は披露に数えない。** 初星文化祭 後夜祭は MV を流しただけで、
+    /// 数えると『Unhappy Light』が「7 回目」になっていた。セトリには並ぶ。
+    #[test]
+    fn a_screening_is_not_a_performance() {
+        let snap = bundle_snapshot();
+        let show = snap.show_index_by_id["sh_L1250"];
+        let items = &snap.setlist_items_by_show[show as usize];
+        assert!(!items.is_empty(), "上映会のセトリ自体は残る");
+        for &item in items {
+            assert!(!is_performance(snap, item));
+            assert_eq!(snap.ordinal_by_item[item as usize], 0, "上映会の行は何回目も持たない");
+            let song = snap.setlist_items[item as usize].song;
+            let history = &snap.setlist_items_by_song[song as usize];
+            assert!(!history.contains(&item), "曲の披露履歴に入らない");
+            assert_eq!(snap.performance_counts[song as usize] as usize, history.len());
+            // 残った披露は 1 から欠けずに数えられている。
+            let mut ordinals: Vec<u32> =
+                history.iter().map(|&i| snap.ordinal_by_item[i as usize]).collect();
+            ordinals.sort_unstable();
+            assert_eq!(ordinals, (1..=history.len() as u32).collect::<Vec<_>>());
+        }
+    }
+
+    /// **会場の舞台が無い配信だけのライブは披露に数えない。** 上水流宇宙の
+    /// BIRTHDAY ONLINE LIVE 2025 (ASOBI STAGE 配信・LV 会場あり) で歌った
+    /// 『ミラーボール・ラブ』が通算 11 回目になっていた。
+    #[test]
+    fn an_online_only_live_is_not_a_performance() {
+        let snap = bundle_snapshot();
+        let show = snap.show_index_by_id["sh_L1153"];
+        assert_eq!(snap.shows[show as usize].venue_mode.as_deref(), Some("online"));
+        for &item in &snap.setlist_items_by_show[show as usize] {
+            assert!(!is_performance(snap, item));
+            assert_eq!(snap.ordinal_by_item[item as usize], 0);
+        }
+        // 次の (会場のある) 披露は、配信の 1 回を数えずに 11 回目。
+        let next = item_of(snap, "cg_ミラーボールラブ", "2026-07-24");
+        assert_eq!(performance_gap(snap, next).ordinal, 11);
+        assert_eq!(performance_gap(snap, next).previous_date.as_deref(), Some("2025-04-11"));
+        // 名前で引く用途 (このライブで歌われた曲) には残る。
+        let song = snap.song_index_by_id["cg_ミラーボールラブ"];
+        assert!(snap.all_setlist_items_by_song[song as usize]
+            .iter()
+            .any(|&i| snap.setlist_items[i as usize].show == show));
+    }
+
+    /// 通算回数はカバーでも増えるが、オリメンの回数は本人が歌った披露だけで数える。
+    /// 『ミラーボール・ラブ』は 2026 年の YAKUDOU で通算 11 回目だが、そこにオリメンは
+    /// いない。2021 年に比奈が歌ったのは比奈にとって 3 回目。
+    #[test]
+    fn originals_count_only_their_own_singing() {
+        let snap = bundle_snapshot();
+        let song = "cg_ミラーボールラブ";
+
+        let cover = item_of(snap, song, "2026-07-24");
+        let singers = original_singers(snap, cover);
+        assert_eq!(singers.original_count, 5);
+        assert!(singers.sung.is_empty(), "オリメンが歌っていない行には何も言わない");
+
+        let hina = original_singers(snap, item_of(snap, song, "2021-12-26"));
+        assert_eq!(
+            hina.sung,
+            vec![OriginalSingerOrdinal { name: "比奈".to_string(), ordinal: 3 }]
+        );
+    }
+
     /// 同じ日の昼夜公演は「0 か月」= 札を出さない (「同日ぶり」とは言わない)。
     #[test]
     fn same_day_shows_get_no_badge() {
@@ -278,3 +408,4 @@ mod tests {
         assert!(!gap.is_first);
     }
 }
+

@@ -34,6 +34,9 @@
 
 // 参加マークの射影は一覧側と同じ型を使う (同じものを 2 つ定義しない)。
 pub use crate::domain::event_list_queries::AttendanceMarkRecord;
+use crate::domain::event_detail_queries::{
+    NON_PERFORMANCE_PERFORMER_TYPES, NON_PERFORMANCE_VENUE_MODES,
+};
 use crate::domain::performance_gap::{months_between, notable_interval_label};
 use crate::domain::snapshot::Snapshot;
 use std::collections::HashSet;
@@ -52,6 +55,21 @@ pub const REAL_LIVE_KINDS: [&str; 2] = ["live", "festival"];
 /// 同じ値を Swift のリテラルで持つと、対象を足したときに片方だけ古いまま残る。
 pub fn collection_real_live_kinds() -> Vec<String> {
     REAL_LIVE_KINDS.iter().map(|k| k.to_string()).collect()
+}
+
+/// 催しがリアルライブでも回収に数えない公演の `shows.performer_type` (上映会) と
+/// `shows.venue_mode` (会場の舞台が無い配信ライブ)。
+///
+/// SQL 経路が `NOT IN` を組むために引く ([`collection_real_live_kinds`] と同じ理由)。
+/// どちらの列も NULL の公演は対象のまま — `NOT IN` に NULL を渡すと全部落ちるので、
+/// 呼び手は `COALESCE(列, '')` で比べること。
+pub fn non_performance_performer_types() -> Vec<String> {
+    NON_PERFORMANCE_PERFORMER_TYPES.iter().map(|t| t.to_string()).collect()
+}
+
+/// [`non_performance_performer_types`] の `venue_mode` 版。
+pub fn non_performance_venue_modes() -> Vec<String> {
+    NON_PERFORMANCE_VENUE_MODES.iter().map(|m| m.to_string()).collect()
 }
 
 /// 回収に数える参加形態 (`user_marks.text_value`)。**空なら形態を問わない。**
@@ -92,9 +110,13 @@ pub fn collection_attended_show_ids(
 }
 
 /// その公演は回収の対象か (リアルライブか)。歌枠・配信番組・ラジオ・リリイベは対象外。
+///
+/// 催しがライブでも、その中の上映会 (MV 上映会など、誰も歌わない公演) は対象外
+/// ([`crate::domain::snapshot::Show::counts_as_performance`])。
 pub fn is_real_live(snap: &Snapshot, show: u32) -> bool {
-    let kind = snap.events[snap.shows[show as usize].event as usize].kind.as_str();
-    REAL_LIVE_KINDS.contains(&kind)
+    let show = &snap.shows[show as usize];
+    let kind = snap.events[show.event as usize].kind.as_str();
+    REAL_LIVE_KINDS.contains(&kind) && show.counts_as_performance()
 }
 
 /// 参加マークの id 列 → 参加した公演 (スナップショット添字) の集合。
@@ -370,12 +392,21 @@ mod tests {
     #[test]
     fn sql_経路に配る値は判定と同じものを指す() {
         let snap = bundle_snapshot();
-        // 催しの種別: collection_real_live_kinds の並びだけが is_real_live を通る。
+        // 催しの種別と公演の区分: collection_real_live_kinds の並びにあり、
+        // non_performance_* のどちらにも当たらない公演だけが is_real_live を通る。
         let kinds = collection_real_live_kinds();
-        for show in (0..snap.shows.len() as u32).step_by(53) {
-            let kind = &snap.events[snap.shows[show as usize].event as usize].kind;
-            assert_eq!(is_real_live(snap, show), kinds.contains(kind), "{kind}");
+        let (types, modes) = (non_performance_performer_types(), non_performance_venue_modes());
+        let mut excluded = 0;
+        for show in 0..snap.shows.len() as u32 {
+            let s = &snap.shows[show as usize];
+            let kind = &snap.events[s.event as usize].kind;
+            let by_sql = kinds.contains(kind)
+                && !types.iter().any(|t| Some(t.as_str()) == s.performer_type.as_deref())
+                && !modes.iter().any(|m| Some(m.as_str()) == s.venue_mode.as_deref());
+            assert_eq!(is_real_live(snap, show), by_sql, "{}", s.id);
+            excluded += usize::from(kinds.contains(kind) && !by_sql);
         }
+        assert!(excluded > 10, "上映会・配信だけのライブが外れている: {excluded}");
         // 参加形態: 絞るときは必ず「現地」が並びに入る (NULL を現地扱いにする規則と揃う)。
         assert_eq!(collection_attendance_types(false), vec!["live".to_string()]);
         assert!(collection_attendance_types(true).is_empty(), "設定 ON では形態を問わない");

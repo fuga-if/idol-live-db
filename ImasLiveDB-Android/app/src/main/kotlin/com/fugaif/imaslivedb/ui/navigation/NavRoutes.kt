@@ -16,6 +16,12 @@ sealed class NavRoutes(val route: String) {
             fun createRoute(showId: String) = "setlist/$showId"
         }
     }
+    data class CostumeShows(val costumeId: String) : NavRoutes("costume_shows/{costumeId}") {
+        companion object {
+            const val ROUTE = "costume_shows/{costumeId}"
+            fun createRoute(costumeId: String) = "costume_shows/$costumeId"
+        }
+    }
     data object SongList : NavRoutes("song_list")
     data class SongDetail(val songId: String) : NavRoutes("song_detail/{songId}") {
         companion object {

@@ -23,6 +23,8 @@ final class EventDetailViewModel {
     private(set) var hero: EventHeroRecord?
     /// チケット受付一覧 (段階・並び・表示文字列は共有コアが決め切って返す)。
     private(set) var ticketSales: [TicketSale] = []
+    /// このイベントで着られた衣装 (共通・個別)。分け方も並びも imas-core。
+    private(set) var costumes: EventCostumesRecord?
 
     private let eventReading: any EventReading
     private let showReading: any ShowReading
@@ -57,6 +59,11 @@ final class EventDetailViewModel {
             Logger.database.error("load_failed event_detail: \(error.localizedDescription)")
         }
         await reloadHero(eventId: event.id)
+        do {
+            costumes = try await showReading.eventCostumes(eventId: event.id)
+        } catch {
+            Logger.database.error("load_failed event_costumes: \(error.localizedDescription)")
+        }
     }
 
     /// チケット受付の追加・編集・削除の後に呼ぶ (他は変わっていないので全体は読み直さない)。

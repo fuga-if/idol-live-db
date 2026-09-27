@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import uniffi.imas_core.EventCostumesRecord
 import uniffi.imas_core.EventHeroRecord
 import uniffi.imas_core.TicketSale
 
@@ -30,7 +31,9 @@ data class EventDetailUiState(
     val ticketSales: List<TicketSale> = emptyList(),
     val ticketUrl: String? = null,
     /** ヒーロー (開催期間 ・ 会場・今後か・参加の札)。組み立ても判定もコア。 */
-    val hero: EventHeroRecord? = null
+    val hero: EventHeroRecord? = null,
+    /** このイベントで着られた衣装 (共通・個別)。分け方も並びも共有コア。 */
+    val costumes: EventCostumesRecord? = null
 ) {
     /** 最初の公演日が今日以降か (チケット情報の節を出すか)。 */
     val isFutureEvent: Boolean get() = hero?.isUpcoming == true
@@ -68,6 +71,7 @@ class EventDetailViewModel : ViewModel() {
             val attendance = repo.fetchEventAttendance(eventId)
             val brand = event?.brandId?.let { repo.fetchBrand(it) }
             val ticketSales = repo.fetchTicketSales(eventId)
+            val costumes = repo.fetchEventCostumes(eventId)
             _uiState.value = EventDetailUiState(
                 isLoading = false,
                 eventName = event?.name ?: "",
@@ -81,7 +85,8 @@ class EventDetailViewModel : ViewModel() {
                 ticketSales = ticketSales,
                 ticketUrl = event?.ticketUrl?.takeIf { it.isNotBlank() },
                 // ヒーローは参加マークに依るので refreshHero が持つ。読み直しで消さない。
-                hero = _uiState.value.hero
+                hero = _uiState.value.hero,
+                costumes = costumes
             )
         }
     }

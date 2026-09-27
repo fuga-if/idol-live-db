@@ -53,5 +53,12 @@ data class Show(
     val sortOrder: Int,
 
     @ColumnInfo(name = "performer_type")
-    val performerType: String?
+    val performerType: String?,
+
+    /**
+     * 会場の形態。null = 観客のいる会場、"online" = 会場の舞台が無い配信だけのライブ、
+     * "closed" = 無観客。披露回数に数えるかの判断は imas-core (`countsAsPerformance`)。
+     */
+    @ColumnInfo(name = "venue_mode")
+    val venueMode: String? = null
 )

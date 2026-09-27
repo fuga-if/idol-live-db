@@ -109,7 +109,6 @@ import uniffi.imas_core.SetlistRowNoteRecord
 import uniffi.imas_core.setlistDisplayModeIsCompact
 import uniffi.imas_core.setlistDisplayModes
 import uniffi.imas_core.ShowCollectionRecord
-import uniffi.imas_core.ShowCostumeRecord
 import uniffi.imas_core.formatYen
 import uniffi.imas_core.ticketKindLabel
 import uniffi.imas_core.ticketPriceRanges
@@ -328,11 +327,6 @@ fun SetlistScreen(
                         if (uiState.tickets.isNotEmpty()) {
                             item(key = "tickets") {
                                 TicketCard(tickets = uiState.tickets, brandId = uiState.brandId)
-                            }
-                        }
-                        if (uiState.costumes.isNotEmpty()) {
-                            item(key = "costumes") {
-                                CostumeCard(costumes = uiState.costumes, brandId = uiState.brandId)
                             }
                         }
                         item(key = "mark_bar") {
@@ -822,52 +816,6 @@ private fun TicketCard(tickets: List<ShowTicket>, brandId: String?) {
                         value = formatYen(ticket.price),
                         brand = brandId
                     )
-                }
-            }
-        }
-    }
-}
-
-/**
- * その公演で着られた衣装。iOS `SetlistView` の衣装セクションと対。
- *
- * **文言はコアが組んだものをそのまま出す。** 「1・5 曲目」「公演のどこか」も
- * 「誰が着たか」も共有コアの `costume_queries` が決めており、ここで組み直すと
- * iOS / Web と表記が割れる。画像は持たない (版権物を配らない方針)。
- */
-@Composable
-private fun CostumeCard(costumes: List<ShowCostumeRecord>, brandId: String?) {
-    Column(Modifier.padding(bottom = 8.dp).fillMaxWidth()) {
-        // 見出しは共通の小見出し (iOS の ImasSectionHeader(tight:) と対)。左右の余白は
-        // コンポーネント側が持つので、ここで重ねて付けない。
-        ImasSectionHeader(title = "衣装 ・ ${costumes.size} 着", tight = true)
-        Column(
-            Modifier.padding(horizontal = 16.dp).fillMaxWidth()
-                .clip(RoundedCornerShape(14.dp)).background(DS.surface)
-        ) {
-            costumes.forEachIndexed { index, entry ->
-                if (index > 0) {
-                    HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 16.dp))
-                }
-                Column(Modifier.padding(horizontal = 16.dp, vertical = 10.dp).fillMaxWidth()) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            entry.costume.name,
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = DS.ink
-                        )
-                        entry.costume.attribution?.let { attribution ->
-                            Spacer(Modifier.width(8.dp))
-                            ImasTagChip(text = attribution, brand = brandId)
-                        }
-                    }
-                    entry.wearersLabel?.let {
-                        Text(it, style = MaterialTheme.typography.bodySmall, color = DS.ink2)
-                    }
-                    entry.costume.description?.let {
-                        Text(it, style = MaterialTheme.typography.bodySmall, color = DS.ink2)
-                    }
                 }
             }
         }

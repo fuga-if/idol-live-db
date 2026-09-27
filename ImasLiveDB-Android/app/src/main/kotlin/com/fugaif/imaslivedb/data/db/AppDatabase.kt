@@ -84,7 +84,7 @@ import com.fugaif.imaslivedb.data.model.UserMark
         IdolVoiceActor::class,
         TicketSale::class
     ],
-    version = 22,
+    version = 23,
     // 確定スキーマを app/schemas へ JSON で吐く。共有コア (imas-core) が持つ
     // マスタ DDL と突き合わせて、片方だけスキーマを変えた事故を CI で捕まえるため。
     exportSchema = true
@@ -529,7 +529,17 @@ abstract class AppDatabase : RoomDatabase() {
         }
 
         /**
-         * v22: チケット受付 (ticket_sales) を足す。共有コア (imas-core) が段階判定・並び・
+         * v22: 公演の会場の形態 (shows.venue_mode) を足す。iOS の v35_shows_venue_mode と対。
+         * 配信だけのライブ ("online") を披露回数から外すのに使う。
+         */
+        val MIGRATION_21_22 = object : Migration(21, 22) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE shows ADD COLUMN venue_mode TEXT")
+            }
+        }
+
+        /**
+         * v23: チケット受付 (ticket_sales) を足す。共有コア (imas-core) が段階判定・並び・
          * 注目受付・期間文字列・検査文言を持ち、この表は CloudKit の写しを保存するだけ。
          *
          * events の ticket_open_date / ticket_deadline / ticket_lottery_date は正本ではなく
@@ -538,7 +548,7 @@ abstract class AppDatabase : RoomDatabase() {
          * FK は宣言しない (show_tickets の v17→v18 / costumes の v14→v15 と同じ理由:
          * 親が後から届く差分同期で子行が 1 件ずつ落ちるのを避ける)。
          */
-        val MIGRATION_21_22 = object : Migration(21, 22) {
+        val MIGRATION_22_23 = object : Migration(22, 23) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(
                     "CREATE TABLE IF NOT EXISTS ticket_sales (" +
@@ -564,7 +574,7 @@ abstract class AppDatabase : RoomDatabase() {
             MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9,
             MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14,
             MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19,
-            MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22
+            MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23
         )
     }
 }

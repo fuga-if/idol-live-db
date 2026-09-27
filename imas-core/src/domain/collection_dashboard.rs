@@ -402,7 +402,8 @@ mod tests {
             .prepare(
                 "SELECT si.song_id, COUNT(*) FROM setlist_items si
                  JOIN shows sh ON sh.id = si.show_id JOIN events e ON e.id = sh.event_id
-                 WHERE e.kind IN ('live','festival') GROUP BY si.song_id",
+                 WHERE e.kind IN ('live','festival') AND COALESCE(sh.performer_type, '') <> 'screening'
+                   AND COALESCE(sh.venue_mode, '') <> 'online' GROUP BY si.song_id",
             )
             .unwrap();
         let counts: HashMap<String, u32> = stmt
@@ -464,7 +465,9 @@ mod tests {
             .prepare(
                 "SELECT DISTINCT e.brand_id, si.song_id FROM setlist_items si
                  JOIN shows sh ON sh.id = si.show_id JOIN events e ON e.id = sh.event_id
-                 WHERE e.kind IN ('live','festival') AND e.brand_id IS NOT NULL",
+                 WHERE e.kind IN ('live','festival') AND e.brand_id IS NOT NULL
+                   AND COALESCE(sh.performer_type, '') <> 'screening'
+                   AND COALESCE(sh.venue_mode, '') <> 'online'",
             )
             .unwrap();
         let mut likely_by_brand: HashMap<String, u32> = HashMap::new();
@@ -477,7 +480,9 @@ mod tests {
         let mut stmt = conn
             .prepare(
                 "SELECT s.id, e.brand_id, s.date FROM shows s JOIN events e ON s.event_id = e.id
-                 WHERE s.date >= ? AND e.kind IN ('live','festival') ORDER BY s.date, s.sort_order, s.id",
+                 WHERE s.date >= ? AND e.kind IN ('live','festival')
+                   AND COALESCE(s.performer_type, '') <> 'screening'
+                   AND COALESCE(s.venue_mode, '') <> 'online' ORDER BY s.date, s.sort_order, s.id",
             )
             .unwrap();
         let mut expected: Vec<(String, u32, String)> = stmt

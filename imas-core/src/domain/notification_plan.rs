@@ -468,6 +468,7 @@ mod tests {
             venue_id: None,
             hall: None,
             stream_platform: None,
+            venue_mode: None,
             has_streaming: None,
             has_live_viewing: None,
         };

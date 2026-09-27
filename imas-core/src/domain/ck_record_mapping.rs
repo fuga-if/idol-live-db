@@ -391,6 +391,9 @@ pub struct CkShowRow {
     pub start_time: Option<String>,
     pub sort_order: i64,
     pub performer_type: Option<String>,
+    /// `shows.venue_mode` (会場の形態)。読み落とすと GRDB / Room が行ごと置き換えるので
+    /// 同期のたびに NULL に戻り、配信だけのライブが披露回数に戻ってくる。
+    pub venue_mode: Option<String>,
 }
 
 /// venues
@@ -828,6 +831,7 @@ pub fn show(record: &CkRecordInput) -> Option<CkShowRow> {
         start_time: f.str("startTime"),
         sort_order: f.int_value("sortOrder"),
         performer_type: f.str("performerType"),
+        venue_mode: f.str("venueMode"),
     })
 }
 
@@ -1771,9 +1775,11 @@ mod tests {
                 ("hall", text("イベントホール")),
                 ("streamPlatform", text("ニコニコ")),
                 ("sortOrder", int(2)),
+                ("venueMode", text("online")),
             ],
         ))
         .unwrap();
+        assert_eq!(s.venue_mode, Some("online".to_string()));
         assert_eq!(s.venue_id, Some("v-makuhari".to_string()));
         assert_eq!(s.hall, Some("イベントホール".to_string()));
         assert_eq!(s.stream_platform, Some("ニコニコ".to_string()));

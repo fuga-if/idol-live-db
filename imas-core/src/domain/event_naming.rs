@@ -25,14 +25,21 @@ pub const EVENT_NAME_PREFIXES: [&str; 12] = [
 /// 落とした後がこれより短くなるなら落とさない (作品名だけのライブ名を空の行にしない)。
 const MIN_SHORT_NAME_CHARS: usize = 2;
 
+/// 残りがこれで始まるなら、落とした作品名は合同ライブの片側。落とすと
+/// 「× MILLION LIVE! CLASH M@TCH!!」のように相手ブランドだけが残るので落とさない。
+const JOINT_CONNECTORS: [char; 4] = ['×', '✕', '＆', '&'];
+
 /// 行に出す短いライブ名。最初に一致した作品名を 1 つ落とし、前後の空白を除く。
-/// 残りが 2 文字未満なら元の名前のまま。
+/// 残りが 2 文字未満か、合同ライブの片側を落とすことになるなら元の名前のまま。
 pub fn event_short_name(name: &str) -> &str {
     let Some(rest) = EVENT_NAME_PREFIXES.iter().find_map(|p| name.strip_prefix(p)) else {
         return name;
     };
     let stripped = rest.trim();
-    if stripped.chars().count() >= MIN_SHORT_NAME_CHARS { stripped } else { name }
+    if stripped.chars().count() < MIN_SHORT_NAME_CHARS || stripped.starts_with(JOINT_CONNECTORS) {
+        return name;
+    }
+    stripped
 }
 
 #[cfg(test)]
@@ -59,5 +66,17 @@ mod tests {
         assert_eq!(event_short_name("THE IDOLM@STER   "), "THE IDOLM@STER   ");
         assert_eq!(event_short_name("MOIW2023"), "MOIW2023");
         assert_eq!(event_short_name(""), "");
+    }
+
+    #[test]
+    fn keeps_joint_event_names_whole() {
+        // 片側だけ落とすと相手ブランドが先頭に残り、どちらの合同か読めなくなる。
+        for name in [
+            "THE IDOLM@STER CINDERELLA GIRLS × MILLION LIVE! CLASH M@TCH!!",
+            "THE IDOLM@STER SideM × SHINY COLORS SPARKLE SHOWDOWN",
+            "THE IDOLM@STER ＆ CINDERELLA GIRLS TALK ＆ LIVE STAGE",
+        ] {
+            assert_eq!(event_short_name(name), name);
+        }
     }
 }

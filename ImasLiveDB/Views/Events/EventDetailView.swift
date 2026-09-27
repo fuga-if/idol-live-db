@@ -157,6 +157,10 @@ struct EventDetailView: View {
         .navigationTitle(event.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            // ヒーローはスクロールせず常に全文を出すので、バーの 1 行タイトルは重複になる。
+            // 合同ライブ名は「THE IDOLM@STER Sid…」と先頭ブランドが省略で消えるだけなので空にする。
+            // navigationTitle 自体は戻るボタンの長押し履歴と VoiceOver のために残す。
+            ToolbarItem(placement: .principal) { Text("").accessibilityHidden(true) }
             ToolbarItem(placement: .topBarTrailing) {
                 // SNS シェア (Universal Links)。リンクを踏むとこのイベント詳細に直接着地する。
                 ShareLink(item: shareEventText(eventId: event.id, eventName: event.name)) {
@@ -376,6 +380,13 @@ struct EventDetailView: View {
             }
 
             ticketInfoSection
+
+            // 衣装。行は衣装単位で、押すとイベントをまたいだ着用公演へ。
+            if let costumes = vm.costumes {
+                EventCostumesSection(costumes: costumes, seed: seed, brand: brandSeed) {
+                    go(.costume($0))
+                }
+            }
 
             // 映像円盤 (BD/DVD) 所有チェック。event_releases があるイベントだけ表示。
             EventReleasesSection(eventId: event.id, seed: seed, brand: brandSeed)

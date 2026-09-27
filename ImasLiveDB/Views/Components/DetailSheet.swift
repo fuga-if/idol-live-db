@@ -25,6 +25,8 @@ enum DetailDestination: Identifiable, Hashable {
     case unitTagDetail(SongTagEntry)
     /// みんなの投票のお題詳細。実体はサーバ側なので id だけ持ち、画面側で取得する。
     case poll(id: String)
+    /// 衣装 1 着の着用公演一覧 (イベントをまたぐ)。
+    case costume(CostumeRecord)
 
     var id: String {
         switch self {
@@ -44,6 +46,7 @@ enum DetailDestination: Identifiable, Hashable {
         case .idolTagDetail(let t): return "idolTagDetail_\(t.id)"
         case .unitTagDetail(let t): return "unitTagDetail_\(t.id)"
         case .poll(let id): return "poll_\(id)"
+        case .costume(let c): return "costume_\(c.id)"
         }
     }
 
@@ -141,6 +144,8 @@ struct DetailContentView: View {
             UnitTagDetailView(tagId: tag.id, tagName: tag.name)
         case .poll(let id):
             PollDetailView(pollId: id)
+        case .costume(let costume):
+            CostumeShowsView(costume: costume, navigate: { navigate($0) })
         }
     }
 

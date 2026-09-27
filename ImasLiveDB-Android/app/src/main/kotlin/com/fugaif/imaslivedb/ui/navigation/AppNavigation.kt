@@ -29,6 +29,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.fugaif.imaslivedb.ui.components.NowPlayingBar
 import com.fugaif.imaslivedb.ui.edit.RecentEditsScreen
+import com.fugaif.imaslivedb.ui.events.CostumeShowsScreen
 import com.fugaif.imaslivedb.ui.events.EventDetailScreen
 import com.fugaif.imaslivedb.ui.events.EventListScreen
 import com.fugaif.imaslivedb.ui.events.SetlistScreen
@@ -588,7 +589,16 @@ private fun NavGraphBuilder.detailRoutes(navController: NavHostController) {
             onIdolClick = { navController.navigate(NavRoutes.IdolDetail.createRoute(it)) },
             onFilteredEventsClick = { kind, value ->
                 navController.navigate(NavRoutes.FilteredEvents.createRoute(kind, value))
-            }
+            },
+            onCostumeClick = { navController.navigate(NavRoutes.CostumeShows.createRoute(it)) }
+        )
+    }
+    composable(NavRoutes.CostumeShows.ROUTE) { backStackEntry ->
+        val costumeId = backStackEntry.arguments?.getString("costumeId") ?: return@composable
+        CostumeShowsScreen(
+            costumeId = costumeId,
+            onBack = { navController.popBackStack() },
+            onShowClick = { navController.navigate(NavRoutes.Setlist.createRoute(it)) }
         )
     }
     composable(NavRoutes.Setlist.ROUTE) { backStackEntry ->

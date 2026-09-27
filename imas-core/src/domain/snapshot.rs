@@ -299,10 +299,24 @@ pub struct Show {
     pub venue_id: Option<String>,
     pub hall: Option<String>,
     pub stream_platform: Option<String>,
+    /// 会場の形態 (`shows.venue_mode`)。NULL = 観客のいる会場。規則は
+    /// [`crate::domain::event_detail_queries::counts_as_performance`]。
+    pub venue_mode: Option<String>,
     /// Documents 専用列 (公演単位の配信有無)。Bundle DB では常に None。
     pub has_streaming: Option<bool>,
     /// Documents 専用列 (公演単位の LV 有無)。Bundle DB では常に None。
     pub has_live_viewing: Option<bool>,
+}
+
+impl Show {
+    /// この公演の曲を披露として数えるか
+    /// ([`crate::domain::event_detail_queries::counts_as_performance`])。
+    pub fn counts_as_performance(&self) -> bool {
+        crate::domain::event_detail_queries::counts_as_performance(
+            self.performer_type.as_deref(),
+            self.venue_mode.as_deref(),
+        )
+    }
 }
 
 /// setlist_items の行。show / song は各 Vec の添字。
@@ -649,10 +663,15 @@ pub struct Snapshot {
     /// songs と同じ添字。披露履歴 (fetchSongPerformanceHistory) の表示順:
     /// show.date DESC。SQL では同日内が未規定だったので、同日は
     /// (show.sort_order ASC, position ASC) で決定的にしてある。
+    /// **披露に数えない公演 (上映会・配信だけのライブ。`Show::counts_as_performance`) の行は入らない**。
     pub setlist_items_by_song: Vec<Vec<u32>>,
+    /// songs と同じ添字。[`Self::setlist_items_by_song`] と同じ並びで、**披露に数えない公演の行も含む**。
+    /// 「このライブで歌われた曲」のような、数えるのでなく引き当てる用途だけに使う。
+    pub all_setlist_items_by_song: Vec<Vec<u32>>,
     /// setlist_items と同じ添字。その披露がその曲の何回目か (この DB に載っている範囲で
     /// 最古が 1)。時系列は setlist_items_by_song の並びの逆 (同日内は公演の並び・曲順の昇順)。
     /// 「初披露」= 1。曲ページの「N 回目」と公演ページの「初披露」札が同じ数を見る。
+    /// 上映会の行は披露でないので 0。
     pub ordinal_by_item: Vec<u32>,
     /// setlist_items と同じ添字。その披露の歌唱メンバー (setlist_performers)。
     /// idol の sort_order 順。

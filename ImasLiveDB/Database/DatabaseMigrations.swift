@@ -1028,11 +1028,21 @@ enum DatabaseMigrations {
             }
         }
 
-        // v35: チケット受付 (ticket_sales)。events.ticket_open_date / ticket_deadline /
+        // v35: shows.venue_mode カラム追加 (会場の形態。配信だけのライブを披露回数から外す)。
+        //
+        // 同梱 master.sqlite は既にこの列を持つので、v31 と同じく確認してから冪等に足す。
+        migrator.registerMigration("v35_shows_venue_mode") { db in
+            let showCols = try Row.fetchAll(db, sql: "PRAGMA table_info(shows)").map { $0["name"] as String? }
+            if !showCols.contains("venue_mode") {
+                try db.execute(sql: "ALTER TABLE shows ADD COLUMN venue_mode TEXT")
+            }
+        }
+
+        // v36: チケット受付 (ticket_sales)。events.ticket_open_date / ticket_deadline /
         // ticket_lottery_date は廃止・読まない (旧版アプリ互換のため列は残置)。
         // FK は前例 (v33_show_tickets) に合わせて付けない (端末の移行は宙に浮いた行を
         // ローダ側で落とす方針。新規インストールは同梱 DB を丸ごとコピーするので FK 付きになる)。
-        migrator.registerMigration("v35_ticket_sales") { db in
+        migrator.registerMigration("v36_ticket_sales") { db in
             try db.create(table: "ticket_sales", ifNotExists: true) { t in
                 t.column("id", .text).primaryKey()
                 t.column("event_id", .text).notNull()

@@ -132,7 +132,7 @@ final class CKRecordMapperCoverageTests: XCTestCase {
                 id: v("id"), eventId: v("eventId"), name: v("name"), date: v("date"), venue: v("venue"),
                 venueId: v("venueId"), hall: v("hall"), streamPlatform: v("streamPlatform"),
                 venueCity: v("venueCity"), startTime: v("startTime"), sortOrder: 13,
-                performerType: v("performerType"))),
+                performerType: v("performerType"), venueMode: v("venueMode"))),
             .venue(row: CkVenueRow(
                 id: v("id"), name: v("name"), nameKana: v("nameKana"), prefecture: v("prefecture"),
                 city: v("city"), aliases: v("aliases"), capacity: 10_000, sortOrder: 14)),

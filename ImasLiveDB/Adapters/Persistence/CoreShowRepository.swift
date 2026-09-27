@@ -128,9 +128,15 @@ struct CoreShowRepository: ShowReading {
         }
     }
 
-    func showCostumes(showId: String) async throws -> [ShowCostumeRecord] {
+    func eventCostumes(eventId: String) async throws -> EventCostumesRecord {
         try await snapshot.withStore { store in
-            try store.showCostumeRecords(showId: showId)
+            try store.eventCostumeRecords(eventId: eventId)
+        }
+    }
+
+    func costumeEvents(costumeId: String) async throws -> [CostumeEventRecord] {
+        try await snapshot.withStore { store in
+            try store.costumeEventRecords(costumeId: costumeId)
         }
     }
 

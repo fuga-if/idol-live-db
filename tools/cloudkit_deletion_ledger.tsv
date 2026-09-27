@@ -13,6 +13,7 @@
 #   summary    何を消すためのものか
 file	created	status	checked	remaining	summary
 pending_cloudkit_deletions_20260720.tsv	2026-07-20	pending	2026-09-23	3/46	誤った原唱者・ユニット構成員とユニット 1 つ (--delete-file を入れたときの最初の削除リスト)
+pending_cloudkit_deletions_agitato_20260927.tsv	2026-09-27	pending	2026-09-27	4/4	Agitato の旧 original 原唱者 4 行 (岩手公演の 4 人と誤って登録)
 pending_cloudkit_deletions_cg15th_20260803.tsv	2026-08-03	pending	2026-09-23	39/39	シンデレラ 15th の旧 show_cast
 pending_cloudkit_deletions_cg_musical_phantom_show_20260913.tsv	2026-09-13	done	2026-09-23	0/1	実在しないミュージカル公演 1 件
 pending_cloudkit_deletions_dup_jiyukei_20260919.tsv	2026-09-19	done	2026-09-23	0/1	自由系*ガール 発売記念イベントの二重登録 (旧 id)

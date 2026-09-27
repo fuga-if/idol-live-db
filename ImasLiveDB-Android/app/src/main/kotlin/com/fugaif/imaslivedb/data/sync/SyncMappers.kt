@@ -206,7 +206,8 @@ object SyncMappers {
                 venueCity = row.venueCity.emptyToNull(),
                 startTime = row.startTime.emptyToNull(),
                 sortOrder = row.sortOrder.toInt(),
-                performerType = row.performerType.emptyToNull()
+                performerType = row.performerType.emptyToNull(),
+                venueMode = row.venueMode.emptyToNull()
             )
         }
 

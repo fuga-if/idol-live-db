@@ -56,6 +56,8 @@ pub struct ShowRecord {
     pub venue_id: Option<String>,
     pub hall: Option<String>,
     pub stream_platform: Option<String>,
+    /// 会場の形態 (`shows.venue_mode`)。NULL = 観客のいる会場。
+    pub venue_mode: Option<String>,
     /// Documents 専用列。Bundle DB では None。
     pub has_streaming: Option<bool>,
     /// Documents 専用列。Bundle DB では None。
@@ -255,6 +257,58 @@ pub fn distinct_cast_name(record: &SetlistPerformerRecord) -> Option<&str> {
 /// これを呼ぶ (同じ比較を 3 箇所に置かない)。
 pub fn is_character_live(performer_type: Option<&str>) -> bool {
     performer_type == Some("character")
+}
+
+/// 歌わない公演 (MV 上映会など) の `shows.performer_type`。
+pub const SCREENING_PERFORMER_TYPE: &str = "screening";
+
+/// 公演が上映会か (舞台で誰も歌わず、映像を流すだけ)。**判定の定義はここ 1 箇所。**
+///
+/// セトリ (流した曲の並び) は持つが、**披露ではない**。披露回数・いつぶり・
+/// 歌唱履歴・回収のどれにも数えない (数えると「MV を流しただけで 7 回目」になる)。
+/// 区分は `performer_type` に持たせる — 「舞台に立つのは誰か (声優 / キャラ / 誰も立たない)」
+/// の軸で、列を足さずに CloudKit までそのまま流れる。
+pub fn is_screening(performer_type: Option<&str>) -> bool {
+    performer_type == Some(SCREENING_PERFORMER_TYPE)
+}
+
+/// 会場の舞台が無い公演 (配信だけのライブ・配信番組・VR 空間) の `shows.venue_mode`。
+/// ライブビューイングの会場があっても、舞台が無ければこれ。
+pub const ONLINE_VENUE_MODE: &str = "online";
+/// 会場の舞台はあるが観客を入れなかった公演 (無観客配信ライブ) の `shows.venue_mode`。
+pub const CLOSED_VENUE_MODE: &str = "closed";
+
+/// 公演の編集画面で選べる会場の形態 1 つ。`raw` が空なら「観客のいる会場」(NULL で保存)。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct VenueModeOption {
+    pub raw: String,
+    pub label: String,
+}
+
+/// 会場の形態の選択肢。**並べるだけにする** — 保存値と文言を各 OS に書き写すと、
+/// 片方だけ古いまま残る。
+pub fn venue_mode_options() -> Vec<VenueModeOption> {
+    [("", "観客のいる会場"), (ONLINE_VENUE_MODE, "配信のみ (会場の舞台なし)"), (CLOSED_VENUE_MODE, "無観客")]
+        .into_iter()
+        .map(|(raw, label)| VenueModeOption { raw: raw.to_string(), label: label.to_string() })
+        .collect()
+}
+
+/// 披露回数に数えない会場の形態。**会場の舞台が無いものだけ** — 無観客ライブは
+/// 舞台でキャストが歌っているので数える。
+pub const NON_PERFORMANCE_VENUE_MODES: [&str; 1] = [ONLINE_VENUE_MODE];
+
+/// 披露回数に数えない出演形態 (上映会)。
+pub const NON_PERFORMANCE_PERFORMER_TYPES: [&str; 1] = [SCREENING_PERFORMER_TYPE];
+
+/// その公演の曲を**披露として数えるか**。**判定の定義はここ 1 箇所。**
+///
+/// 数えないのは上映会 ([`is_screening`]) と、会場の舞台が無い配信だけのライブ
+/// (`venue_mode = online`)。セトリ (流した・歌った曲の並び) は持つが、披露回数・
+/// 何回目・いつぶり・歌唱履歴・回収のどれにも入れない。
+pub fn counts_as_performance(performer_type: Option<&str>, venue_mode: Option<&str>) -> bool {
+    !performer_type.is_some_and(|t| NON_PERFORMANCE_PERFORMER_TYPES.contains(&t))
+        && !venue_mode.is_some_and(|m| NON_PERFORMANCE_VENUE_MODES.contains(&m))
 }
 
 /// 公演 id から引く版。手元に行が無い呼び出し側のため。
@@ -502,6 +556,7 @@ pub(crate) fn show_record_at(snap: &Snapshot, show: u32) -> ShowRecord {
         venue_id: s.venue_id.clone(),
         hall: s.hall.clone(),
         stream_platform: s.stream_platform.clone(),
+        venue_mode: s.venue_mode.clone(),
         has_streaming: s.has_streaming,
         has_live_viewing: s.has_live_viewing,
         is_character_live: is_character_live(s.performer_type.as_deref()),
@@ -1127,6 +1182,7 @@ mod attendance_group_tests {
             venue_id: None,
             hall: None,
             stream_platform: None,
+            venue_mode: None,
             has_streaming: None,
             has_live_viewing: None,
             is_character_live: false,
@@ -1314,7 +1370,7 @@ mod tests {
         let mut stmt = db
             .prepare(
                 "SELECT id, event_id, name, date, venue, venue_city, start_time, sort_order,
-                        performer_type, venue_id, hall, stream_platform
+                        performer_type, venue_id, hall, stream_platform, venue_mode
                  FROM shows WHERE id = ?",
             )
             .unwrap();
@@ -1336,6 +1392,7 @@ mod tests {
                         venue_id: r.get(9)?,
                         hall: r.get(10)?,
                         stream_platform: r.get(11)?,
+                        venue_mode: r.get(12)?,
                         has_streaming: None,
                         has_live_viewing: None,
                         is_character_live: r.get::<_, Option<String>>(8)?.as_deref() == Some("character"),

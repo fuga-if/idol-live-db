@@ -110,6 +110,8 @@ const FIELD_RULES: Record<string, Record<string, FieldRule>> = {
     venueCity: { type: "STRING", maxLen: 100 },
     startTime: { type: "STRING", maxLen: 20 },
     performerType: { type: "STRING", maxLen: 50 },
+    // 会場の形態 (NULL = 観客のいる会場 / online = 会場の舞台なし / closed = 無観客)。
+    venueMode: { type: "STRING", maxLen: 20 },
     sortOrder: { type: "INT64", min: 0 },
   },
   Idol: {
