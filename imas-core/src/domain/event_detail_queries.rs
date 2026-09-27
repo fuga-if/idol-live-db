@@ -74,9 +74,7 @@ pub struct EventDetailRecord {
     pub is_streaming: bool,
     pub is_solo: bool,
     pub kind: String,
-    pub ticket_open_date: Option<String>,
-    pub ticket_deadline: Option<String>,
-    pub ticket_lottery_date: Option<String>,
+    /// **廃止・読まない。** チケット受付の日程は `ticket_sales` が正。
     pub ticket_url: Option<String>,
     pub joint_brand_ids: Option<String>,
     /// Documents 専用列。Bundle DB では None。
@@ -890,9 +888,6 @@ pub fn event_record(snap: &Snapshot, id: &str) -> Option<EventDetailRecord> {
             is_streaming: event.is_streaming,
             is_solo: event.is_solo,
             kind: event.kind.clone(),
-            ticket_open_date: event.ticket_open_date.clone(),
-            ticket_deadline: event.ticket_deadline.clone(),
-            ticket_lottery_date: event.ticket_lottery_date.clone(),
             ticket_url: event.ticket_url.clone(),
             joint_brand_ids: event.joint_brand_ids.clone(),
             has_streaming: event.has_streaming,
@@ -1788,8 +1783,7 @@ mod tests {
         let mut stmt = db
             .prepare(
                 "SELECT id, brand_id, name, event_type, is_streaming, is_solo, kind,
-                        ticket_open_date, ticket_deadline, ticket_lottery_date, ticket_url,
-                        joint_brand_ids
+                        ticket_url, joint_brand_ids
                  FROM events WHERE id = ?",
             )
             .unwrap();
@@ -1806,11 +1800,8 @@ mod tests {
                         is_streaming: r.get::<_, Option<i64>>(4)?.unwrap_or(0) != 0,
                         is_solo: r.get::<_, Option<i64>>(5)?.unwrap_or(1) != 0,
                         kind: r.get::<_, Option<String>>(6)?.unwrap_or_else(|| "live".into()),
-                        ticket_open_date: r.get(7)?,
-                        ticket_deadline: r.get(8)?,
-                        ticket_lottery_date: r.get(9)?,
-                        ticket_url: r.get(10)?,
-                        joint_brand_ids: r.get(11)?,
+                        ticket_url: r.get(7)?,
+                        joint_brand_ids: r.get(8)?,
                         has_streaming: None,
                         has_live_viewing: None,
                         brand_ids: Vec::new(),

@@ -952,9 +952,6 @@ mod tests {
             is_streaming: false,
             is_solo: true,
             kind: "live".into(),
-            ticket_open_date: None,
-            ticket_deadline: None,
-            ticket_lottery_date: None,
             ticket_url: None,
             joint_brand_ids: None,
             has_streaming: None,
@@ -1029,6 +1026,7 @@ mod tests {
             event_releases: vec![],
             costumes: vec![],
             costume_wears: vec![],
+            ticket_sales: vec![],
             song_artists: vec![
                 original("unit", "i1"),
                 original("unit", "i2"),

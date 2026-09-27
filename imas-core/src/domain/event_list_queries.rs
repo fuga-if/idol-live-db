@@ -54,9 +54,8 @@ pub struct EventListRecord {
     /// 互換のため残置。新コードからは参照しない。
     pub is_solo: bool,
     pub kind: String,
-    pub ticket_open_date: Option<String>,
-    pub ticket_deadline: Option<String>,
-    pub ticket_lottery_date: Option<String>,
+    /// **廃止・読まない。** チケット受付の日程は `ticket_sales` が正
+    /// (`SnapshotStore::ticket_sales_for_event` / `ticket_sale_spotlight`)。
     pub ticket_url: Option<String>,
     pub joint_brand_ids: Option<String>,
     /// Documents 専用列。ローダが列の有無を動的検出済み (無い DB では None)。
@@ -80,9 +79,6 @@ impl From<&Event> for EventListRecord {
             is_streaming: e.is_streaming,
             is_solo: e.is_solo,
             kind: e.kind.clone(),
-            ticket_open_date: e.ticket_open_date.clone(),
-            ticket_deadline: e.ticket_deadline.clone(),
-            ticket_lottery_date: e.ticket_lottery_date.clone(),
             ticket_url: e.ticket_url.clone(),
             joint_brand_ids: e.joint_brand_ids.clone(),
             has_streaming: e.has_streaming,
