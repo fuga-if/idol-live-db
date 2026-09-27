@@ -48,6 +48,7 @@ import com.fugaif.imaslivedb.data.model.Song
 import com.fugaif.imaslivedb.data.model.SongArtist
 import com.fugaif.imaslivedb.data.model.SongVideo
 import com.fugaif.imaslivedb.data.model.Staff
+import com.fugaif.imaslivedb.data.model.TicketSale
 import com.fugaif.imaslivedb.data.model.UnitMember
 import com.fugaif.imaslivedb.data.model.UserMark
 
@@ -80,9 +81,10 @@ import com.fugaif.imaslivedb.data.model.UserMark
         CostumeWear::class,
         Expense::class,
         ShowTicket::class,
-        IdolVoiceActor::class
+        IdolVoiceActor::class,
+        TicketSale::class
     ],
-    version = 21,
+    version = 22,
     // 確定スキーマを app/schemas へ JSON で吐く。共有コア (imas-core) が持つ
     // マスタ DDL と突き合わせて、片方だけスキーマを変えた事故を CI で捕まえるため。
     exportSchema = true
@@ -526,12 +528,43 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * v22: チケット受付 (ticket_sales) を足す。共有コア (imas-core) が段階判定・並び・
+         * 注目受付・期間文字列・検査文言を持ち、この表は CloudKit の写しを保存するだけ。
+         *
+         * events の ticket_open_date / ticket_deadline / ticket_lottery_date は正本ではなく
+         * なったが、旧版のアプリがまだ読み書きするので列は残す (Event.kt の注記を参照)。
+         *
+         * FK は宣言しない (show_tickets の v17→v18 / costumes の v14→v15 と同じ理由:
+         * 親が後から届く差分同期で子行が 1 件ずつ落ちるのを避ける)。
+         */
+        val MIGRATION_21_22 = object : Migration(21, 22) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS ticket_sales (" +
+                        "id TEXT NOT NULL PRIMARY KEY, " +
+                        "event_id TEXT NOT NULL, " +
+                        "show_ids TEXT, " +
+                        "kind TEXT NOT NULL, " +
+                        "name TEXT NOT NULL, " +
+                        "starts_at TEXT, " +
+                        "ends_at TEXT, " +
+                        "result_at TEXT, " +
+                        "url TEXT, " +
+                        "note TEXT, " +
+                        "source_url TEXT NOT NULL, " +
+                        "sort_order INTEGER NOT NULL DEFAULT 0)"
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS idx_ticket_sales_event ON ticket_sales(event_id)")
+            }
+        }
+
         /** 登録する移行の全部 (古い順)。本番の builder と移行テストが同じ並びを使う。 */
         val ALL_MIGRATIONS: Array<Migration> = arrayOf(
             MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9,
             MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14,
             MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19,
-            MIGRATION_19_20, MIGRATION_20_21
+            MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22
         )
     }
 }

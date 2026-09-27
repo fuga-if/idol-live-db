@@ -54,6 +54,8 @@ class AppDatabaseMigrationTest {
 
     @Test fun migrates19ToLatest() = assertMigrates(from = 19)
 
+    @Test fun migrates21ToLatest() = assertMigrates(from = 21)
+
     /**
      * v20 で足した声優の表は、上がってきた端末では空。最後に取り込んだ seed の指紋を消して、
      * 次の起動で同梱の seed から入れ直させる (版番号は残す)。
@@ -121,7 +123,7 @@ class AppDatabaseMigrationTest {
 
     private companion object {
         /** `@Database(version = …)` と同じ値。版を上げたらここも上げる。 */
-        const val LATEST = 20
+        const val LATEST = 22
 
         /** 家計簿 (expenses) を作った版 (MIGRATION_16_17)。 */
         const val EXPENSES_SINCE = 17

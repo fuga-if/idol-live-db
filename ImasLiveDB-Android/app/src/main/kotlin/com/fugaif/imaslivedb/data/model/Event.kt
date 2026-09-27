@@ -32,6 +32,11 @@ data class Event(
     @ColumnInfo(name = "kind", defaultValue = "'live'")
     val kind: String = "live",
 
+    // 廃止・読まない・書かない。チケット受付の日程は `ticket_sales` (TicketSale) が正
+    // (SnapshotStore.ticketSalesForEvent / ticketSaleSpotlight)。列は Room の実 DB 照合に
+    // 要るので残す (Room 2.6.1 は宣言と実 DB の列を厳密一致で照合するため、消すと
+    // 移行のたび起動不能になる)。旧版アプリが CloudKit の Event からまだ読み書きするので
+    // 同期 (SyncMappers.events) は引き続きこの列へ写す。
     @ColumnInfo(name = "ticket_open_date")
     val ticketOpenDate: String? = null,
 
