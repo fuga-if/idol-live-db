@@ -1,0 +1,87 @@
+{
+ "title": "今後のライブのチケット案内ページ URL",
+ "source": "各 fixes の source (公式特設サイト)",
+ "fixes": [
+  {
+   "table": "events",
+   "id": "ev_shiny_the_first_refrac7ions_still_blue",
+   "fields": {
+    "ticket_url": "https://idolmaster-official.jp/live_event/REFRAC7IONS_Still_blue/ticket/"
+   },
+   "source": "https://idolmaster-official.jp/live_event/REFRAC7IONS_Still_blue/ticket/",
+   "note": "公式特設のチケット案内ページ"
+  },
+  {
+   "table": "events",
+   "id": "ev_シンデレラガールズ_15周年_大型イベント",
+   "fields": {
+    "ticket_url": "https://idolmaster-official.jp/live_event/cg_15th_for_your_one/"
+   },
+   "source": "https://idolmaster-official.jp/live_event/cg_15th_for_your_one/",
+   "note": "公式特設のチケット案内ページ"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolm@ster_cinderella_girls_15th_anniversary_orchestra_concert_~_シンデレラの演奏会_~",
+   "fields": {
+    "ticket_url": "https://idolmaster-official.jp/live_event/cg_15th_orchestra/ticket/"
+   },
+   "source": "https://idolmaster-official.jp/live_event/cg_15th_orchestra/ticket/",
+   "note": "公式特設のチケット案内ページ"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolm@ster_cinderella_girls_×_million_live_clash_m@tch",
+   "fields": {
+    "ticket_url": "https://idolmaster-official.jp/live_event/deremilli_clashmatch/ticket/"
+   },
+   "source": "https://idolmaster-official.jp/live_event/deremilli_clashmatch/ticket/",
+   "note": "公式特設のチケット案内ページ"
+  },
+  {
+   "table": "events",
+   "id": "ev_765_production_×_961_production_idol_ultimate_once_and_for_all",
+   "fields": {
+    "ticket_url": "https://idolmaster-official.jp/live_event/IUOAFA/"
+   },
+   "source": "https://idolmaster-official.jp/live_event/IUOAFA/",
+   "note": "公式特設のチケット案内ページ"
+  },
+  {
+   "table": "events",
+   "id": "ev_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final",
+   "fields": {
+    "ticket_url": "https://idolmaster-official.jp/live_event/gkmas_livetour_shirube/ticket/final.php"
+   },
+   "source": "https://idolmaster-official.jp/live_event/gkmas_livetour_shirube/ticket/final.php",
+   "note": "公式特設のチケット案内ページ（旧値 https://idolmaster-official.jp/live_event/gkmas_livetour_shirube/）"
+  },
+  {
+   "table": "events",
+   "id": "ev_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~",
+   "fields": {
+    "ticket_url": "https://idolmaster-official.jp/live_event/sidem_fbfes_wsi/ticket/"
+   },
+   "source": "https://idolmaster-official.jp/live_event/sidem_fbfes_wsi/ticket/",
+   "note": "公式特設のチケット案内ページ"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolm@ster_sidem_producer_meeting_~ajewelholic_~",
+   "fields": {
+    "ticket_url": "https://idolmaster-official.jp/live_event/sidem_pm2027/ticket/"
+   },
+   "source": "https://idolmaster-official.jp/live_event/sidem_pm2027/ticket/",
+   "note": "公式特設のチケット案内ページ"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolm@ster_sidem_×_shiny_colors_sparkle_showdown",
+   "fields": {
+    "ticket_url": "https://idolmaster-official.jp/live_event/sidem_shinycolors_ss/ticket/"
+   },
+   "source": "https://idolmaster-official.jp/live_event/sidem_shinycolors_ss/ticket/",
+   "note": "公式特設のチケット案内ページ"
+  }
+ ]
+}
