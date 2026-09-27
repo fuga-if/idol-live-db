@@ -1,13 +1,32 @@
 package com.fugaif.imaslivedb.ui.edit
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.platform.LocalContext
 import com.fugaif.imaslivedb.data.edit.EditApi
 import com.fugaif.imaslivedb.data.edit.putClearable
@@ -15,7 +34,9 @@ import com.fugaif.imaslivedb.data.model.Brand
 import com.fugaif.imaslivedb.data.model.Event
 import com.fugaif.imaslivedb.data.model.Vocab
 import com.fugaif.imaslivedb.di.AppModule
+import com.fugaif.imaslivedb.ui.theme.DS
 import kotlinx.coroutines.launch
+import uniffi.imas_core.TicketSale
 
 /**
  * ライブ (Event) の新規作成 / 編集。iOS `EventEditView` の移植。
@@ -42,9 +63,6 @@ fun EventEditScreen(
     var brandId by rememberSaveable(key) { mutableStateOf(original?.brandId ?: initialBrandId ?: "") }
     var kind by rememberSaveable(key) { mutableStateOf(original?.kind ?: "live") }
     var jointBrandIds by rememberSaveable(key) { mutableStateOf(original?.jointBrandIds ?: "") }
-    var ticketOpenDate by rememberSaveable(key) { mutableStateOf(original?.ticketOpenDate ?: "") }
-    var ticketDeadline by rememberSaveable(key) { mutableStateOf(original?.ticketDeadline ?: "") }
-    var ticketLotteryDate by rememberSaveable(key) { mutableStateOf(original?.ticketLotteryDate ?: "") }
     var ticketUrl by rememberSaveable(key) { mutableStateOf(original?.ticketUrl ?: "") }
 
     var brands by remember { mutableStateOf<List<Brand>>(emptyList()) }
@@ -52,6 +70,17 @@ fun EventEditScreen(
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var requestedIssueUrl by remember { mutableStateOf<String?>(null) }
     var requestSent by remember { mutableStateOf(false) }
+
+    // チケット受付の一覧 (既存イベントのみ)。新規作成中はまだ event_id が無いので出さない。
+    var ticketSales by remember(key) { mutableStateOf<List<TicketSale>>(emptyList()) }
+    var salesReloadToken by remember(key) { mutableIntStateOf(0) }
+    var editingSale by remember { mutableStateOf<TicketSale?>(null) }
+    var creatingSale by remember { mutableStateOf(false) }
+    LaunchedEffect(key, salesReloadToken) {
+        ticketSales = original?.let {
+            runCatching { AppModule.from(context).eventRepository.fetchTicketSales(it.id) }.getOrDefault(emptyList())
+        } ?: emptyList()
+    }
 
     LaunchedEffect(Unit) {
         brands = runCatching { AppModule.from(context).statsRepository.fetchBrands() }.getOrDefault(emptyList())
@@ -81,13 +110,6 @@ fun EventEditScreen(
             "kind" to kind
         )
         fields.putClearable("brandId", brandId, original?.brandId)
-        // 注意: サーバの FIELD_RULES (imas-live-api/src/master_validators.ts) には
-        // ticketOpenDate が無く、一般ユーザーが値を入れると 400 になる。iOS EventEditView も
-        // 同じものを送っているので、ここで勝手に落とすと iOS とフォームがズレる。
-        // 直すのはサーバ側 (allowlist への追加) なので、揃えたまま残す。
-        fields.putClearable("ticketOpenDate", ticketOpenDate, original?.ticketOpenDate)
-        fields.putClearable("ticketDeadline", ticketDeadline, original?.ticketDeadline)
-        fields.putClearable("ticketLotteryDate", ticketLotteryDate, original?.ticketLotteryDate)
         fields.putClearable("ticketUrl", ticketUrl, original?.ticketUrl)
         fields.putClearable("jointBrandIds", jointBrandIds, original?.jointBrandIds)
 
@@ -115,9 +137,6 @@ fun EventEditScreen(
                     isStreaming = isStreaming,
                     isSolo = isSolo,
                     kind = kind,
-                    ticketOpenDate = ticketOpenDate.nonEmptyTrimmed(),
-                    ticketDeadline = ticketDeadline.nonEmptyTrimmed(),
-                    ticketLotteryDate = ticketLotteryDate.nonEmptyTrimmed(),
                     ticketUrl = ticketUrl.nonEmptyTrimmed(),
                     jointBrandIds = jointBrandIds.nonEmptyTrimmed()
                 )
@@ -150,11 +169,20 @@ fun EventEditScreen(
             EditTextField("合同ブランド (カンマ区切り)", jointBrandIds, { jointBrandIds = it })
         }
         EditSection("チケット") {
-            // 語はコアの vocabulary (値は events の列名)。
-            EditTextField("${Vocab.ticketDate("ticket_open_date")?.label} (YYYY-MM-DD)", ticketOpenDate, { ticketOpenDate = it })
-            EditTextField("${Vocab.ticketDate("ticket_deadline")?.label} (YYYY-MM-DD)", ticketDeadline, { ticketDeadline = it })
-            EditTextField("${Vocab.ticketDate("ticket_lottery_date")?.label} (YYYY-MM-DD)", ticketLotteryDate, { ticketLotteryDate = it })
-            EditTextField("URL", ticketUrl, { ticketUrl = it })
+            EditTextField("公式チケットページ URL", ticketUrl, { ticketUrl = it })
+        }
+        if (original != null) {
+            EditSection("チケット受付", footer = "受付ごとの日程・当落・申込リンクは各行から編集します。") {
+                if (ticketSales.isEmpty()) {
+                    Text("受付は未登録です", fontSize = 13.sp, color = DS.ink3)
+                } else {
+                    ticketSales.forEachIndexed { index, sale ->
+                        if (index > 0) HorizontalDivider(color = DS.sep)
+                        TicketSaleSummaryRow(sale, onClick = { editingSale = sale })
+                    }
+                }
+                TextButton(onClick = { creatingSale = true }) { Text("+ 受付を追加") }
+            }
         }
     }
 
@@ -162,6 +190,52 @@ fun EventEditScreen(
 
     if (requestSent) {
         EditRequestSentDialog(requestedIssueUrl) { requestSent = false; onDismiss() }
+    }
+
+    val eventId = original?.id
+    if (creatingSale && eventId != null) {
+        Dialog(onDismissRequest = { creatingSale = false }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+            TicketSaleEditScreen(
+                eventId = eventId,
+                suggestedSortOrder = ticketSales.size,
+                onDismiss = { creatingSale = false },
+                onSaved = { creatingSale = false; salesReloadToken++ }
+            )
+        }
+    }
+
+    val currentEditingSale = editingSale
+    if (currentEditingSale != null && eventId != null) {
+        Dialog(onDismissRequest = { editingSale = null }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+            TicketSaleEditScreen(
+                eventId = eventId,
+                original = currentEditingSale,
+                onDismiss = { editingSale = null },
+                onSaved = { editingSale = null; salesReloadToken++ },
+                onDeleted = { editingSale = null; salesReloadToken++ }
+            )
+        }
+    }
+}
+
+/** チケット受付 1 件の要約行 (種別・段階・期間)。タップで編集を開く。 */
+@Composable
+private fun TicketSaleSummaryRow(sale: TicketSale, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(
+                "${sale.kindLabel} ・ ${sale.name}",
+                fontSize = 15.sp, color = DS.ink, maxLines = 1, overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                listOfNotNull(sale.stageLabel, sale.periodLabel).joinToString(" ・ "),
+                fontSize = 12.sp, color = DS.ink2, maxLines = 1, overflow = TextOverflow.Ellipsis
+            )
+        }
+        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = DS.ink3)
     }
 }
 

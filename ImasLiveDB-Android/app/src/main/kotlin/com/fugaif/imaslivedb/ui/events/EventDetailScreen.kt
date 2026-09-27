@@ -76,7 +76,6 @@ import com.fugaif.imaslivedb.data.model.EventStats
 import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.data.model.Show
 import com.fugaif.imaslivedb.data.model.UserMark
-import com.fugaif.imaslivedb.data.model.Vocab
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.components.AttendanceSwipeRow
 import com.fugaif.imaslivedb.ui.components.CommunityLoginPromptDialog
@@ -698,7 +697,7 @@ private fun LazyListScope.infoSection(
     state.stats?.let { stats ->
         item { StatsGrid(stats, seed, brand) }
     }
-    if (state.ticketDeadline != null || state.ticketLotteryDate != null || state.ticketUrl != null || state.isFutureEvent) {
+    if (state.ticketSales.isNotEmpty() || state.ticketUrl != null || state.isFutureEvent) {
         item { TicketInfoSection(state, seed, brand) }
     }
     if (state.brandShortName != null || firstShowYear(state) != null) {
@@ -724,7 +723,7 @@ private fun StatsGrid(stats: EventStats, seed: String?, brand: String?) {
 private fun TicketInfoSection(state: EventDetailUiState, seed: String?, brand: String?) {
     val uriHandler = LocalUriHandler.current
     val t = ImasTheme.forBrand(seed, brand)
-    val hasAny = state.ticketDeadline != null || state.ticketLotteryDate != null || state.ticketUrl != null
+    val hasAny = state.ticketSales.isNotEmpty() || state.ticketUrl != null
     Column {
         ImasSectionHeader(title = "チケット情報", tight = true)
         Column(
@@ -732,13 +731,9 @@ private fun TicketInfoSection(state: EventDetailUiState, seed: String?, brand: S
                 .clip(RoundedCornerShape(14.dp)).background(DS.surface)
         ) {
             var shown = false
-            state.ticketDeadline?.let {
-                ImasLabeledRow(key = Vocab.ticketDate("ticket_deadline")?.label.orEmpty(), value = it, seed = seed, brand = brand)
-                shown = true
-            }
-            state.ticketLotteryDate?.let {
+            state.ticketSales.forEach { sale ->
                 if (shown) HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 16.dp))
-                ImasLabeledRow(key = Vocab.ticketDate("ticket_lottery_date")?.label.orEmpty(), value = it, seed = seed, brand = brand)
+                TicketSaleRow(sale, seed, brand)
                 shown = true
             }
             state.ticketUrl?.let { url ->
@@ -759,6 +754,40 @@ private fun TicketInfoSection(state: EventDetailUiState, seed: String?, brand: S
                     "チケット情報は未登録です", fontSize = 13.sp, color = DS.ink3,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 11.dp)
                 )
+            }
+        }
+    }
+}
+
+/**
+ * チケット受付 1 件の行。種別・段階・期間・当落・申込リンクをまとめて出す。
+ * 表示文字列 (kindLabel / stageLabel / periodLabel / resultLabel) は共有コアが確定させた
+ * ものをそのまま出す (画面で組み立て直さない)。
+ */
+@Composable
+private fun TicketSaleRow(sale: uniffi.imas_core.TicketSale, seed: String?, brand: String?) {
+    val uriHandler = LocalUriHandler.current
+    val t = ImasTheme.forBrand(seed, brand)
+    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 11.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(sale.kindLabel, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = t.accent)
+            Text(sale.name, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Box(Modifier.weight(1f))
+            Text(sale.stageLabel, fontSize = 12.sp, color = DS.ink2)
+        }
+        if (sale.showLabels.isNotEmpty()) {
+            Text(sale.showLabels.joinToString(" / "), fontSize = 12.sp, color = DS.ink3, modifier = Modifier.padding(top = 2.dp))
+        }
+        sale.periodLabel?.let { Text(it, fontSize = 13.sp, color = DS.ink2, modifier = Modifier.padding(top = 4.dp)) }
+        sale.resultLabel?.let { Text("当落発表 $it", fontSize = 13.sp, color = DS.ink2, modifier = Modifier.padding(top = 2.dp)) }
+        sale.url?.let { url ->
+            Row(
+                modifier = Modifier.padding(top = 6.dp).clickable { uriHandler.openUri(url) },
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Icon(Icons.Filled.ConfirmationNumber, null, tint = t.accent, modifier = Modifier.size(14.dp))
+                Text("申込ページを開く", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = t.accent)
             }
         }
     }
