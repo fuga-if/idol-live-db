@@ -24,6 +24,7 @@ const NON_STRING_FIELDS: Record<string, Record<string, CKFieldType>> = {
   // SongVideo の createdAt は CKRecordMapper が Date で読むため TIMESTAMP
   // (authorDisplayName は STRING なので未掲載で既定の STRING になる)。
   SongVideo: { createdAt: "TIMESTAMP" },
+  TicketSale: { sortOrder: "INT64" },
   Venue: { capacity: "INT64", sortOrder: "INT64" },
   // キャパは施設 (Venue) 既定値をホール構成が上書きするので、両方に持つ。
   VenueHall: { capacity: "INT64" },
@@ -43,6 +44,8 @@ export const OPEN_EDIT_TYPES = new Set([
   "SetlistItem", "SetlistPerformer", "SongArtist", "ShowCast",
   // 参考動画 (SongVideo) もオープン編集 (確定契約 §4)。コーレス (SongCall) は廃止済み。
   "SongVideo",
+  // チケット受付 (旧 Event.ticket* 3 列の後継)。1 イベントに複数の受付があるための独立型。
+  "TicketSale",
 ]);
 
 /** admin 限定の構造マスタ。一般ユーザーは編集不可。 */

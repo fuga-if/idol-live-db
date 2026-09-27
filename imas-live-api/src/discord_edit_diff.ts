@@ -52,6 +52,7 @@ export const RECORD_LABELS: Record<string, string> = {
   SongArtist: "歌唱メンバー",
   ShowCast: "出演者",
   SongVideo: "参考動画",
+  TicketSale: "チケット受付",
 };
 
 const FIELD_LABELS: Record<string, string> = {
@@ -95,6 +96,12 @@ const FIELD_LABELS: Record<string, string> = {
   isSolo: "ソロ",
   isStreaming: "配信あり",
   role: "役割",
+  startsAt: "受付開始",
+  endsAt: "締切",
+  resultAt: "当落発表",
+  sourceUrl: "出典URL",
+  showIds: "対象公演",
+  kind: "受付形式",
 };
 
 /** 名前に読み替える ID の項目。 */

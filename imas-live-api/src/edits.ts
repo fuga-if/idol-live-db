@@ -77,6 +77,8 @@ const RECORD_NAME_PREFIX: Record<string, string> = {
   ShowCast: "sc",
   // 参考動画 (確定契約 §4: SongVideo=ytref_<uuid>)。
   SongVideo: "ytref",
+  // チケット受付 (旧 Event.ticket* 3 列の後継)。
+  TicketSale: "ts",
 };
 
 const MAX_OPS = 1000;        // 1 batch あたりの op 上限

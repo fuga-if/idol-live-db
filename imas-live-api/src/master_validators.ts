@@ -19,6 +19,11 @@ const HEX_RE = /^#[0-9a-fA-F]{6}$/i;
 const HTTP_URL_RE = /^https?:\/\/[^\s]+$/;
 const APPLE_MUSIC_URL_RE = /^https:\/\/music\.apple\.com\//;
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+// ticket_sales の日時列。日付だけ (YYYY-MM-DD) か、日付+時刻 (YYYY-MM-DD HH:MM) を許す
+// (imas-core の解釈と合わせる。時刻無しは domain 側で日の始まり/終わりに正規化する)。
+const TICKET_MOMENT_RE = /^\d{4}-\d{2}-\d{2}(?: \d{2}:\d{2})?$/;
+// ticket_sales.show_ids はカンマ区切りの id (NULL = 全公演)。1 個でも成立する。
+const ID_CSV_RE = /^[\w.-]+(?:,[\w.-]+)*$/;
 const APPLE_MUSIC_ID_RE = /^\d{1,20}$/; // appleMusicId は数値 ID
 // YouTube 動画 URL (watch / youtu.be / shorts / embed)。SongVideo.youtubeUrl 用 (確定契約 §4)。
 const YOUTUBE_URL_RE =
@@ -51,6 +56,9 @@ const FIELD_RULES: Record<string, Record<string, FieldRule>> = {
     // 受付開始・締切・当落は 3 つで 1 組。`ticketOpenDate` だけ規則が無く、
     // 一般ユーザーが受付開始を入れるとイベント編集が丸ごと 400 になっていた
     // (CloudKit にも DB にも列はあり、iOS/Android どちらも送っている)。
+    // 旧版互換: この 3 列は ticket_sales (TicketSale レコード) に置き換わったが、
+    // 旧版のアプリ (App Store 審査中・強制アップデート前) がまだこの 3 列を送ってくる。
+    // 消すと旧版のイベント編集が丸ごと 400 になるので、規則ごと残す。
     ticketOpenDate: { type: "STRING", maxLen: 100 },
     ticketDeadline: { type: "STRING", maxLen: 100 },
     ticketLotteryDate: { type: "STRING", maxLen: 100 },
@@ -153,6 +161,28 @@ const FIELD_RULES: Record<string, Record<string, FieldRule>> = {
     youtubeUrl: { type: "STRING", required: true, url: "youtube", maxLen: MAX_STR_DEFAULT },
     videoTitle: { type: "STRING", maxLen: 300 },
     note: { type: "STRING", maxLen: 1000 },
+  },
+  // チケット受付 (旧 Event.ticketOpenDate/ticketDeadline/ticketLotteryDate の後継)。
+  // 1 イベントに複数の受付 (抽選/先着/リセール/当日券) を持てるようにした独立レコード。
+  // 開始 ≤ 締切 ≤ 当落・日時の形式・showIds の実在は imas-core (validate_ticket_sale_draft) 側の検査で、
+  // ここはオープン編集の入口としてのフィールド allowlist・型・大まかな形式だけを見る。
+  TicketSale: {
+    eventId: { type: "STRING", required: true, maxLen: 200 },
+    // カンマ区切りの show id。空/未指定 = 対象イベントの全公演。
+    showIds: { type: "STRING", pattern: ID_CSV_RE, maxLen: MAX_STR_DEFAULT },
+    kind: {
+      type: "STRING", required: true,
+      enum: ["lottery", "first_come", "resale", "same_day"],
+      maxLen: 30,
+    },
+    name: { type: "STRING", required: true, maxLen: 200 },
+    startsAt: { type: "STRING", pattern: TICKET_MOMENT_RE, maxLen: 20 },
+    endsAt: { type: "STRING", pattern: TICKET_MOMENT_RE, maxLen: 20 },
+    resultAt: { type: "STRING", pattern: TICKET_MOMENT_RE, maxLen: 20 },
+    url: { type: "STRING", url: "http", maxLen: MAX_STR_DEFAULT },
+    note: { type: "STRING", maxLen: 1000 },
+    sourceUrl: { type: "STRING", required: true, url: "http", maxLen: MAX_STR_DEFAULT },
+    sortOrder: { type: "INT64", min: 0 },
   },
 };
 

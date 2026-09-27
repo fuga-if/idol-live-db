@@ -137,3 +137,57 @@ describe("validateMasterEdit — チケット情報 (回帰)", () => {
     })).toMatch(/ticketNopeDate/);
   });
 });
+
+describe("validateMasterEdit — TicketSale (チケット受付)", () => {
+  const base = {
+    eventId: "ev_x", kind: "lottery", name: "先行抽選",
+    sourceUrl: "https://example.com/ticket",
+  };
+
+  it("必須フィールドが揃った create を通す", () => {
+    expect(ok({ recordType: "TicketSale", op: "create", fields: base })).toBeNull();
+  });
+
+  it("日付だけ・日時つきの starts/ends/resultAt をどちらも通す", () => {
+    expect(ok({
+      recordType: "TicketSale", op: "update", recordName: "ts_x",
+      fields: { startsAt: "2026-09-01", endsAt: "2026-09-10 23:59", resultAt: "2026-09-15" },
+    })).toBeNull();
+  });
+
+  it("日時の形式が違えば弾く", () => {
+    expect(ok({
+      recordType: "TicketSale", op: "update", recordName: "ts_x",
+      fields: { endsAt: "2026/09/10" },
+    })).toMatch(/invalid format/);
+  });
+
+  it("kind は 4 種の enum のみ", () => {
+    expect(ok({ recordType: "TicketSale", op: "create", fields: { ...base, kind: "抽選" } }))
+      .toMatch(/must be one of/);
+  });
+
+  it("showIds はカンマ区切りの id の形", () => {
+    expect(ok({
+      recordType: "TicketSale", op: "update", recordName: "ts_x",
+      fields: { showIds: "sh_a_01,sh_a_02" },
+    })).toBeNull();
+    expect(ok({
+      recordType: "TicketSale", op: "update", recordName: "ts_x",
+      fields: { showIds: "sh_a_01, sh_a_02" },
+    })).toMatch(/invalid format/);
+  });
+
+  it("sourceUrl が無い create は必須エラー", () => {
+    const { sourceUrl: _drop, ...rest } = base;
+    expect(ok({ recordType: "TicketSale", op: "create", fields: rest }))
+      .toMatch(/field sourceUrl is required/);
+  });
+
+  it("sourceUrl / url は http(s) 必須", () => {
+    expect(ok({ recordType: "TicketSale", op: "create", fields: { ...base, sourceUrl: "ftp://x" } }))
+      .toMatch(/http\(s\) URL/);
+    expect(ok({ recordType: "TicketSale", op: "create", fields: { ...base, url: "not-a-url" } }))
+      .toMatch(/http\(s\) URL/);
+  });
+});
