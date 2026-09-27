@@ -18,7 +18,6 @@
 //! 絞ったら通算回数も絞った世界のものになる — 片方だけ元の世界の数を出すと、
 //! 「3 回目なのに初披露」のような行ができる。
 
-use crate::domain::event_detail_queries::is_screening;
 use crate::domain::snapshot::Snapshot;
 use crate::domain::song_detail_queries::performance_ordinal_label;
 use std::collections::HashSet;
@@ -128,12 +127,11 @@ pub fn performance_gap_filtered(
     }
 }
 
-/// その行は披露か。上映会 (誰も歌わない公演) の行は披露でないので、回数も間隔も持たない
-/// ([`crate::domain::event_detail_queries::is_screening`])。**披露でない行に
+/// その行は披露か。上映会や配信だけのライブの行は披露でないので、回数も間隔も持たない
+/// ([`crate::domain::snapshot::Show::counts_as_performance`])。**披露でない行に
 /// [`performance_gap`] を当てないこと** — 履歴に居ないので「初披露」に化ける。
 pub fn is_performance(snap: &Snapshot, item: u32) -> bool {
-    let show = &snap.shows[snap.setlist_items[item as usize].show as usize];
-    !is_screening(show.performer_type.as_deref())
+    snap.shows[snap.setlist_items[item as usize].show as usize].counts_as_performance()
 }
 
 /// 原唱者 (オリメン) 1 人ぶんの、その曲を歌うのが何回目か。
@@ -293,6 +291,9 @@ mod tests {
         let snap = bundle_snapshot();
         let mut checked = 0usize;
         for item in (0..snap.setlist_items.len() as u32).step_by(37) {
+            if !is_performance(snap, item) {
+                continue;
+            }
             assert_eq!(
                 performance_gap(snap, item).ordinal,
                 snap.ordinal_by_item[item as usize],
@@ -345,25 +346,41 @@ mod tests {
                 history.iter().map(|&i| snap.ordinal_by_item[i as usize]).collect();
             ordinals.sort_unstable();
             assert_eq!(ordinals, (1..=history.len() as u32).collect::<Vec<_>>());
-            for &idol in &snap.performers_by_item[item as usize] {
-                assert!(
-                    !snap.performed_items_by_idol[idol as usize].contains(&item),
-                    "アイドルの歌唱履歴にも入らない"
-                );
-            }
         }
     }
 
+    /// **会場の舞台が無い配信だけのライブは披露に数えない。** 上水流宇宙の
+    /// BIRTHDAY ONLINE LIVE 2025 (ASOBI STAGE 配信・LV 会場あり) で歌った
+    /// 『ミラーボール・ラブ』が通算 11 回目になっていた。
+    #[test]
+    fn an_online_only_live_is_not_a_performance() {
+        let snap = bundle_snapshot();
+        let show = snap.show_index_by_id["sh_L1153"];
+        assert_eq!(snap.shows[show as usize].venue_mode.as_deref(), Some("online"));
+        for &item in &snap.setlist_items_by_show[show as usize] {
+            assert!(!is_performance(snap, item));
+            assert_eq!(snap.ordinal_by_item[item as usize], 0);
+        }
+        // 次の (会場のある) 披露は、配信の 1 回を数えずに 11 回目。
+        let next = item_of(snap, "cg_ミラーボールラブ", "2026-07-24");
+        assert_eq!(performance_gap(snap, next).ordinal, 11);
+        assert_eq!(performance_gap(snap, next).previous_date.as_deref(), Some("2025-04-11"));
+        // 名前で引く用途 (このライブで歌われた曲) には残る。
+        let song = snap.song_index_by_id["cg_ミラーボールラブ"];
+        assert!(snap.all_setlist_items_by_song[song as usize]
+            .iter()
+            .any(|&i| snap.setlist_items[i as usize].show == show));
+    }
+
     /// 通算回数はカバーでも増えるが、オリメンの回数は本人が歌った披露だけで数える。
-    /// 『ミラーボール・ラブ』は 2025 年の上水流宇宙のソロライブで通算 11 回目だが、
-    /// そこにオリメンはいない。2021 年に比奈が歌ったのは比奈にとって 3 回目。
+    /// 『ミラーボール・ラブ』は 2026 年の YAKUDOU で通算 11 回目だが、そこにオリメンは
+    /// いない。2021 年に比奈が歌ったのは比奈にとって 3 回目。
     #[test]
     fn originals_count_only_their_own_singing() {
         let snap = bundle_snapshot();
         let song = "cg_ミラーボールラブ";
 
-        let cover = item_of(snap, song, "2025-09-12");
-        assert_eq!(performance_gap(snap, cover).ordinal, 11);
+        let cover = item_of(snap, song, "2026-07-24");
         let singers = original_singers(snap, cover);
         assert_eq!(singers.original_count, 5);
         assert!(singers.sung.is_empty(), "オリメンが歌っていない行には何も言わない");

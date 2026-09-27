@@ -78,6 +78,7 @@ const FIELD_LABELS: Record<string, string> = {
   startTime: "開演",
   streamPlatform: "配信",
   performerType: "出演形態",
+  venueMode: "会場の形態",
   position: "曲順",
   section: "セクション",
   songId: "曲",

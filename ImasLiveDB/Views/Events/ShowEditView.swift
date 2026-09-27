@@ -20,6 +20,7 @@ struct ShowEditView: View {
     @State private var startTime: String
     @State private var sortOrder: Int
     @State private var performerType: String
+    @State private var venueMode: String
     @State private var isSaving = false
     @State private var errorMessage: String?
     @State private var requestSent = false
@@ -35,6 +36,7 @@ struct ShowEditView: View {
         _startTime = State(initialValue: show.startTime ?? "")
         _sortOrder = State(initialValue: show.sortOrder)
         _performerType = State(initialValue: show.performerType ?? "")
+        _venueMode = State(initialValue: show.venueMode ?? "")
     }
 
     /// 新規作成用。親イベントと、既存公演数に応じた sortOrder 初期値を受け取る。
@@ -48,9 +50,13 @@ struct ShowEditView: View {
         _startTime = State(initialValue: "")
         _sortOrder = State(initialValue: suggestedSortOrder)
         _performerType = State(initialValue: "")
+        _venueMode = State(initialValue: "")
     }
 
-    private let performerTypes = ["", "character", "cast", "mixed"]
+    /// screening = MV 上映会など、誰も歌わない公演 (披露回数に数えない)。
+    private let performerTypes = ["", "character", "cast", "mixed", "screening"]
+    /// 会場の形態の選択肢 (保存値と文言は imas-core)。
+    private let venueModes = venueModeOptions()
 
     var body: some View {
         NavigationStack {
@@ -70,6 +76,11 @@ struct ShowEditView: View {
                     Picker("出演形態", selection: $performerType) {
                         ForEach(performerTypes, id: \.self) {
                             Text($0.isEmpty ? "未指定" : $0).tag($0)
+                        }
+                    }
+                    Picker("会場の形態", selection: $venueMode) {
+                        ForEach(venueModes, id: \.raw) { option in
+                            Text(option.label).tag(option.raw)
                         }
                     }
                 }
@@ -143,6 +154,7 @@ struct ShowEditView: View {
         fields["venueCity"] = AnyEncodable.clearable(venueCity, original: original?.venueCity)
         fields["startTime"] = AnyEncodable.clearable(startTime, original: original?.startTime)
         fields["performerType"] = AnyEncodable.clearable(performerType, original: original?.performerType)
+        fields["venueMode"] = AnyEncodable.clearable(venueMode, original: original?.venueMode)
 
         let op = EditService.EditOperation(
             op: mode.isCreate ? .create : .update,
@@ -163,17 +175,22 @@ struct ShowEditView: View {
                 errorMessage = "保存に失敗しました (ID 未確定)"
                 return
             }
-            let saved = Show(
-                id: id,
-                eventId: eventId,
-                name: trimmedName,
-                date: trimmedDate,
-                venue: venue.isEmpty ? nil : venue,
-                venueCity: venueCity.isEmpty ? nil : venueCity,
-                startTime: startTime.isEmpty ? nil : startTime,
-                sortOrder: sortOrder,
-                performerType: performerType.isEmpty ? nil : performerType
+            // venueId / hall / streamPlatform はフォームに無い列。元の行から引き継がないと
+            // upsert (行ごと置き換え) で消え、会場の同一性 (venue_id) まで失われる (Android と同じ)。
+            var saved = mode.original ?? Show(
+                id: id, eventId: eventId, name: "", date: "",
+                venue: nil, venueCity: nil, startTime: nil, sortOrder: 0, performerType: nil
             )
+            saved.id = id
+            saved.eventId = eventId
+            saved.name = trimmedName
+            saved.date = trimmedDate
+            saved.venue = venue.isEmpty ? nil : venue
+            saved.venueCity = venueCity.isEmpty ? nil : venueCity
+            saved.startTime = startTime.isEmpty ? nil : startTime
+            saved.sortOrder = sortOrder
+            saved.performerType = performerType.isEmpty ? nil : performerType
+            saved.venueMode = venueMode.isEmpty ? nil : venueMode
             try await AppContainer.shared.showWriting.upsertShows([saved])
             Logger.database.notice("show_\(mode.isCreate ? "created" : "edited", privacy: .public) id=\(id, privacy: .public)")
             dismiss()

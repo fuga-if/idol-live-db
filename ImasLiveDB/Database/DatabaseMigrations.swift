@@ -1028,6 +1028,16 @@ enum DatabaseMigrations {
             }
         }
 
+        // v35: shows.venue_mode カラム追加 (会場の形態。配信だけのライブを披露回数から外す)。
+        //
+        // 同梱 master.sqlite は既にこの列を持つので、v31 と同じく確認してから冪等に足す。
+        migrator.registerMigration("v35_shows_venue_mode") { db in
+            let showCols = try Row.fetchAll(db, sql: "PRAGMA table_info(shows)").map { $0["name"] as String? }
+            if !showCols.contains("venue_mode") {
+                try db.execute(sql: "ALTER TABLE shows ADD COLUMN venue_mode TEXT")
+            }
+        }
+
         return migrator
     }
 }

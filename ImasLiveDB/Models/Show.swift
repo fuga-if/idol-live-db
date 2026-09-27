@@ -22,6 +22,9 @@ struct Show: Codable, FetchableRecord, PersistableRecord, Identifiable, Hashable
     var startTime: String?
     var sortOrder: Int
     var performerType: String?
+    /// 会場の形態。nil = 観客のいる会場、"online" = 会場の舞台が無い配信だけのライブ、
+    /// "closed" = 無観客。披露回数に数えるかの判断は imas-core (`counts_as_performance`)。
+    var venueMode: String? = nil
 
     /// 配信実施の有無。nil=未設定→event 側にフォールバック。
     var hasStreaming: Bool? = nil
@@ -41,6 +44,7 @@ struct Show: Codable, FetchableRecord, PersistableRecord, Identifiable, Hashable
         case startTime = "start_time"
         case sortOrder = "sort_order"
         case performerType = "performer_type"
+        case venueMode = "venue_mode"
         case hasStreaming = "has_streaming"
         case hasLiveViewing = "has_live_viewing"
     }

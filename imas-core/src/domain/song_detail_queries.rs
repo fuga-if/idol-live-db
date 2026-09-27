@@ -1654,7 +1654,8 @@ mod tests {
                        FROM setlist_items si
                        JOIN shows sh ON si.show_id = sh.id
                        JOIN events e ON sh.event_id = e.id
-                      WHERE si.song_id = ?
+                      WHERE si.song_id = ? AND COALESCE(sh.performer_type, '') <> 'screening'
+                        AND COALESCE(sh.venue_mode, '') <> 'online'
                       ORDER BY sh.date DESC",
                 )
                 .unwrap();

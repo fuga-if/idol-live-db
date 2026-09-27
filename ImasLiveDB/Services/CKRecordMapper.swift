@@ -147,7 +147,8 @@ enum CKRecordMapper {
             venueCity: row.venueCity,
             startTime: row.startTime,
             sortOrder: Int(row.sortOrder),
-            performerType: row.performerType
+            performerType: row.performerType,
+            venueMode: row.venueMode
         )
     }
 

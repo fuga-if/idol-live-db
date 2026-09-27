@@ -496,8 +496,7 @@ mod tests {
                  FROM songs s
                  JOIN setlist_items si ON s.id = si.song_id
                  JOIN setlist_performers sp ON si.id = sp.setlist_item_id
-                 JOIN shows sh ON sh.id = si.show_id
-                 WHERE sp.idol_id = ?1 AND COALESCE(sh.performer_type, '') <> 'screening'
+                 WHERE sp.idol_id = ?1
                  GROUP BY s.id
                  ORDER BY perform_count DESC, s.title_kana",
             )
@@ -542,7 +541,7 @@ mod tests {
                  JOIN shows sh ON si.show_id = sh.id
                  JOIN events e ON sh.event_id = e.id
                  JOIN setlist_performers sp ON si.id = sp.setlist_item_id
-                 WHERE si.song_id = ?2 AND sp.idol_id = ?1 AND COALESCE(sh.performer_type, '') <> 'screening'
+                 WHERE si.song_id = ?2 AND sp.idol_id = ?1
                  ORDER BY sh.date DESC",
             )
             .unwrap();

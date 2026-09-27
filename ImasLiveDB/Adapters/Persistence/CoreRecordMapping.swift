@@ -179,6 +179,7 @@ enum CoreRecordMapping {
             startTime: record.startTime,
             sortOrder: Int(record.sortOrder),
             performerType: record.performerType,
+            venueMode: record.venueMode,
             hasStreaming: record.hasStreaming,
             hasLiveViewing: record.hasLiveViewing
         )

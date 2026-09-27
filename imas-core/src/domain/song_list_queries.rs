@@ -440,7 +440,8 @@ pub fn filter_song_indexes(snap: &Snapshot, filter: &SongListFilter) -> Vec<u32>
             }
             if let Some(q) = &live_name_q {
                 // セトリ → show → event と辿り、イベント名が一致する披露が 1 つでもあるか。
-                let matched = snap.setlist_items_by_song[i].iter().any(|&ti| {
+                // 数えない公演 (配信だけのライブ等) で歌われた曲も、名前で引けば当たる。
+                let matched = snap.all_setlist_items_by_song[i].iter().any(|&ti| {
                     let show = &snap.shows[snap.setlist_items[ti as usize].show as usize];
                     q.matches(&snap.events[show.event as usize].name)
                 });
@@ -677,7 +678,10 @@ pub fn collected_counts_by_song(
 
     let mut counts = vec![0u32; snap.songs.len()];
     let mut seen: HashSet<u32> = HashSet::new();
-    for (song, items) in snap.setlist_items_by_song.iter().enumerate() {
+    // 回収 (real_live_only) は披露に数える行だけ。並び替え用は iOS の現行どおり何も絞らない。
+    let by_song =
+        if real_live_only { &snap.setlist_items_by_song } else { &snap.all_setlist_items_by_song };
+    for (song, items) in by_song.iter().enumerate() {
         seen.clear();
         for &item in items {
             let show = snap.setlist_items[item as usize].show;
@@ -1119,7 +1123,8 @@ mod tests {
         let mut stmt = db
             .prepare(
                 "SELECT si.song_id, COUNT(*) FROM setlist_items si JOIN shows sh ON sh.id = si.show_id
-                 WHERE COALESCE(sh.performer_type, '') <> 'screening' GROUP BY si.song_id",
+                 WHERE COALESCE(sh.performer_type, '') <> 'screening'
+                   AND COALESCE(sh.venue_mode, '') <> 'online' GROUP BY si.song_id",
             )
             .unwrap();
         let expected: HashMap<String, u32> = stmt
@@ -1220,6 +1225,8 @@ mod tests {
              JOIN shows sh ON sh.id = si.show_id
              JOIN events e ON e.id = sh.event_id
              WHERE e.kind IN ('live','festival')
+             AND COALESCE(sh.performer_type, '') <> 'screening'
+             AND COALESCE(sh.venue_mode, '') <> 'online'
              AND (
                  si.show_id IN (
                      SELECT entity_id FROM user_marks

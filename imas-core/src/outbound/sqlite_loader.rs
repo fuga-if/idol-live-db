@@ -334,36 +334,45 @@ fn load_shows(
     let sql = format!(
         "SELECT id, event_id, name, date, venue, venue_city, start_time, sort_order,
                 performer_type, venue_id, hall, stream_platform,
-                {has_streaming}, {has_live_viewing}
+                {has_streaming}, {has_live_viewing}, {venue_mode}
          FROM shows ORDER BY id",
         has_streaming = optional_col(&cols, "has_streaming"),
         has_live_viewing = optional_col(&cols, "has_live_viewing"),
+        // 古い端末の Documents DB には列がまだ無いことがある (移行前)。
+        venue_mode = optional_col(&cols, "venue_mode"),
     );
     let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
     let rows = stmt
         .query_map([], |r| {
             Ok((
-                r.get::<_, String>(0)?,
-                r.get::<_, String>(1)?,
-                r.get::<_, String>(2)?,
-                r.get::<_, String>(3)?,
-                r.get::<_, Option<String>>(4)?,
-                r.get::<_, Option<String>>(5)?,
-                r.get::<_, Option<String>>(6)?,
-                r.get::<_, Option<i64>>(7)?,
-                r.get::<_, Option<String>>(8)?,
-                r.get::<_, Option<String>>(9)?,
-                r.get::<_, Option<String>>(10)?,
-                r.get::<_, Option<String>>(11)?,
-                r.get::<_, Option<i64>>(12)?,
-                r.get::<_, Option<i64>>(13)?,
+                (
+                    r.get::<_, String>(0)?,
+                    r.get::<_, String>(1)?,
+                    r.get::<_, String>(2)?,
+                    r.get::<_, String>(3)?,
+                    r.get::<_, Option<String>>(4)?,
+                    r.get::<_, Option<String>>(5)?,
+                    r.get::<_, Option<String>>(6)?,
+                    r.get::<_, Option<i64>>(7)?,
+                ),
+                (
+                    r.get::<_, Option<String>>(8)?,
+                    r.get::<_, Option<String>>(9)?,
+                    r.get::<_, Option<String>>(10)?,
+                    r.get::<_, Option<String>>(11)?,
+                    r.get::<_, Option<i64>>(12)?,
+                    r.get::<_, Option<i64>>(13)?,
+                    r.get::<_, Option<String>>(14)?,
+                ),
             ))
         })
         .map_err(|e| e.to_string())?;
     let mut shows = Vec::new();
     for row in rows {
-        let (id, event_id, name, date, venue, venue_city, start_time, sort_order, performer_type, venue_id, hall, stream_platform, has_streaming, has_live_viewing) =
-            row.map_err(|e| e.to_string())?;
+        let (
+            (id, event_id, name, date, venue, venue_city, start_time, sort_order),
+            (performer_type, venue_id, hall, stream_platform, has_streaming, has_live_viewing, venue_mode),
+        ) = row.map_err(|e| e.to_string())?;
         let Some(&event) = event_index_by_id.get(&event_id) else { continue };
         shows.push(Show {
             id,
@@ -378,6 +387,7 @@ fn load_shows(
             venue_id,
             hall,
             stream_platform,
+            venue_mode,
             has_streaming: has_streaming.map(|v| v != 0),
             has_live_viewing: has_live_viewing.map(|v| v != 0),
         });
@@ -995,7 +1005,8 @@ mod tests {
         let mut stmt =
             c.prepare(
             "SELECT si.song_id, COUNT(*) FROM setlist_items si JOIN shows sh ON sh.id = si.show_id
-             WHERE COALESCE(sh.performer_type, '') <> 'screening' GROUP BY si.song_id",
+             WHERE COALESCE(sh.performer_type, '') <> 'screening'
+                   AND COALESCE(sh.venue_mode, '') <> 'online' GROUP BY si.song_id",
         )
         .unwrap();
         let rows: Vec<(String, i64)> = stmt
@@ -1052,7 +1063,8 @@ mod tests {
                 "SELECT si.id FROM setlist_items si
                  JOIN shows sh ON si.show_id = sh.id
                  JOIN events e ON sh.event_id = e.id
-                 WHERE si.song_id = ?
+                 WHERE si.song_id = ? AND COALESCE(sh.performer_type, '') <> 'screening'
+                   AND COALESCE(sh.venue_mode, '') <> 'online'
                  ORDER BY sh.date DESC",
             )
             .unwrap();
@@ -1447,7 +1459,7 @@ mod tests {
                  CREATE TABLE shows (id TEXT PRIMARY KEY, event_id TEXT NOT NULL,
                      name TEXT NOT NULL, date TEXT NOT NULL, venue TEXT, venue_city TEXT,
                      start_time TEXT, sort_order INTEGER NOT NULL DEFAULT 0, performer_type TEXT,
-                     venue_id TEXT, hall TEXT, stream_platform TEXT,
+                     venue_id TEXT, hall TEXT, stream_platform TEXT, venue_mode TEXT,
                      has_streaming INTEGER, has_live_viewing INTEGER);
                  CREATE TABLE setlist_items (id TEXT PRIMARY KEY, show_id TEXT NOT NULL,
                      song_id TEXT NOT NULL, position INTEGER, section TEXT, notes TEXT,

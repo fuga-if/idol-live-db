@@ -64,11 +64,18 @@ pub fn collection_real_live_kinds() -> Vec<String> {
     collection::collection_real_live_kinds()
 }
 
-/// 催しがリアルライブでも回収に数えない公演の `shows.performer_type` (上映会)。
+/// 披露にも回収にも数えない公演の `shows.performer_type` (上映会)。
 /// SQL 経路が `COALESCE(sh.performer_type, '') NOT IN (…)` を組むために引く。
 #[uniffi::export]
-pub fn collection_excluded_performer_types() -> Vec<String> {
-    collection::collection_excluded_performer_types()
+pub fn non_performance_performer_types() -> Vec<String> {
+    collection::non_performance_performer_types()
+}
+
+/// 披露にも回収にも数えない公演の `shows.venue_mode` (会場の舞台が無い配信ライブ)。
+/// SQL 経路が `COALESCE(sh.venue_mode, '') NOT IN (…)` を組むために引く。
+#[uniffi::export]
+pub fn non_performance_venue_modes() -> Vec<String> {
+    collection::non_performance_venue_modes()
 }
 
 /// 回収に数える参加形態 (`user_marks.text_value`)。**空なら形態を問わない。**
@@ -91,6 +98,12 @@ pub fn performer_display_name_joined(name: PerformerDisplayName) -> String {
 #[uniffi::export]
 pub fn performer_name_options() -> Vec<PerformerNameOption> {
     queries::performer_name_options()
+}
+
+/// 公演の編集画面で選べる会場の形態 (保存値と文言)。
+#[uniffi::export]
+pub fn venue_mode_options() -> Vec<queries::VenueModeOption> {
+    queries::venue_mode_options()
 }
 
 /// 保存値からモードを復元する。未知の値・未設定は既定 (アイドル名)。

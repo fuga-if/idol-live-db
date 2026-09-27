@@ -200,8 +200,9 @@ extension AppDatabase {
     /// 回収対象とするリアルライブの kind (歌枠/配信番組/リリイベ/ラジオ等は除外)。
     /// **どれが対象かは imas-core が持つ** (`collectionRealLiveKinds`)。ここは IN 句にするだけ。
     private static var realLiveKinds: String { sqlList(collectionRealLiveKinds()) }
-    /// 催しがライブでも回収に数えない公演の performer_type (MV 上映会など)。これも imas-core が持つ。
-    private static var excludedPerformerTypes: String { sqlList(collectionExcludedPerformerTypes()) }
+    /// 催しがライブでも回収に数えない公演 (MV 上映会・配信だけのライブ)。これも imas-core が持つ。
+    private static var excludedPerformerTypes: String { sqlList(nonPerformancePerformerTypes()) }
+    private static var excludedVenueModes: String { sqlList(nonPerformanceVenueModes()) }
 
     /// 参加した公演の .attended 種別条件 (現地のみ / 設定により配信も)。
     /// **どの形態を数えるかも imas-core が持つ** (`collectionAttendanceTypes`)。
@@ -257,6 +258,7 @@ extension AppDatabase {
             JOIN events e ON e.id = sh.event_id
             WHERE e.kind IN (\(Self.realLiveKinds))
             AND COALESCE(sh.performer_type, '') NOT IN (\(Self.excludedPerformerTypes))
+            AND COALESCE(sh.venue_mode, '') NOT IN (\(Self.excludedVenueModes))
             AND (
                 sh.id IN (\(Self.attendedIdsSubquery(.show, attendedTypeCondition)))
                 OR sh.event_id IN (\(Self.attendedIdsSubquery(.event, attendedTypeCondition)))

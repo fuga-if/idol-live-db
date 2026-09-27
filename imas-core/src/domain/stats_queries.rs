@@ -360,6 +360,7 @@ mod tests {
              FROM songs s JOIN setlist_items si ON s.id = si.song_id
              JOIN shows sh ON sh.id = si.show_id
              WHERE COALESCE(sh.performer_type, '') <> 'screening'
+                   AND COALESCE(sh.venue_mode, '') <> 'online'
              GROUP BY s.id ORDER BY play_count DESC LIMIT ?",
         )
         .unwrap()
@@ -657,7 +658,7 @@ mod tests {
                  CREATE TABLE shows (id TEXT PRIMARY KEY, event_id TEXT NOT NULL,
                      name TEXT NOT NULL, date TEXT NOT NULL, venue TEXT, venue_city TEXT,
                      start_time TEXT, sort_order INTEGER NOT NULL DEFAULT 0, performer_type TEXT,
-                     venue_id TEXT, hall TEXT, stream_platform TEXT);
+                     venue_id TEXT, hall TEXT, stream_platform TEXT, venue_mode TEXT);
                  CREATE TABLE setlist_items (id TEXT PRIMARY KEY, show_id TEXT NOT NULL,
                      song_id TEXT NOT NULL, position INTEGER, section TEXT, notes TEXT,
                      unit_name TEXT);
