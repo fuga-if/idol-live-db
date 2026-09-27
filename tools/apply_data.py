@@ -28,6 +28,7 @@ import sqlite3
 import subprocess
 import sys
 from collections import defaultdict
+from datetime import datetime
 import time
 from pathlib import Path
 
@@ -150,6 +151,118 @@ def ticket_sale_id(event_id, name):
 def _ticket_moment_bound(value, pad):
     """日付だけの値を比較用に境界時刻へ正規化する (時刻つきならそのまま)。"""
     return value if len(value) > 10 else f"{value} {pad}"
+
+
+def _valid_ticket_moment(value):
+    """TICKET_MOMENT_RE の形式に加え、実在する日時か検査する。
+
+    正規表現は桁数しか見ないので、2026-02-30 や 24:00 のような架空の日時も通ってしまい、
+    imas-core 側では「解釈できない値」として扱われる (H1 と同じく締切が壊れて受付中のまま
+    終わらなくなる)。ここで datetime.strptime に投げて実在性を確かめる。
+    呼び出し側は先に TICKET_MOMENT_RE.match で形式を確認しておくこと。
+    """
+    fmt = "%Y-%m-%d %H:%M" if len(value) > 10 else "%Y-%m-%d"
+    try:
+        datetime.strptime(value, fmt)
+        return True
+    except ValueError:
+        return False
+
+
+def find_ticket_sale_id(conn, event_id, name):
+    """同じ (event_id, name) の既存 ticket_sales 行の id。無ければ None。
+
+    id は apply_data では sha1(event_id + name) から決定的に作るが、アプリ側 (Worker) が
+    作った受付は ts_<uuid> を振るので、id の作り方が食い違う。id の値ではなく中身
+    (event_id, name) で引かないと、アプリで作った受付と同じ名前を後から JSON で入れたときに
+    「既存判定」をすり抜けて二重登録になる (L4)。
+    """
+    row = conn.execute(
+        "SELECT id FROM ticket_sales WHERE event_id = ? AND name = ?", (event_id, name)
+    ).fetchone()
+    return row[0] if row else None
+
+
+_TICKET_SALE_COLS = (
+    "event_id", "kind", "name", "starts_at", "ends_at", "result_at", "source_url", "url", "show_ids",
+)
+
+
+def _merged_ticket_sale_row(conn, rid, fields):
+    """既存の ticket_sales 行に data/fixes/ の fields をかぶせた値。行が無ければ None。
+
+    show_ids は表では CSV 文字列で持つが、投稿・検査では配列で扱う (他のフィールドと
+    形を揃える。fixes の fields で show_ids を渡すときも配列で書く)。ここで CSV → list に開く。
+    """
+    cur = conn.execute(
+        f"SELECT {', '.join(_TICKET_SALE_COLS)} FROM ticket_sales WHERE id = ?", (rid,)
+    ).fetchone()
+    if cur is None:
+        return None
+    row = dict(zip(_TICKET_SALE_COLS, cur))
+    row["show_ids"] = row["show_ids"].split(",") if row["show_ids"] else []
+    for k, v in fields.items():
+        if k in _TICKET_SALE_COLS:
+            row[k] = v
+    return row
+
+
+def ticket_sale_row_problems(tag, row, conn, pending_events, pending_shows):
+    """1 件の ticket_sales 行 (event_id/show_ids/kind/name/starts_at/ends_at/result_at/
+    source_url/url) を検査する。data/ticket_sales/ の新規と data/fixes/ (table: ticket_sales)
+    の両方から呼ぶ (M5: 検査を 1 箇所にまとめ、fixes 側にも同じ検査を効かせる)。
+
+    show_ids はここでは list 前提 (呼び出し側で CSV ⇄ list を変換すること)。
+    """
+    problems = []
+    event_id = row.get("event_id")
+    if not event_id or not (exists(conn, "events", event_id) or event_id in pending_events):
+        problems.append(f"{tag}: event_id '{event_id}' が存在しない")
+    kind = row.get("kind")
+    if kind not in TICKET_SALE_KINDS:
+        problems.append(f"{tag}: kind 不正 ({kind})。許可: {sorted(TICKET_SALE_KINDS)}")
+    if not row.get("name"):
+        problems.append(f"{tag}: name が空")
+
+    show_ids = row.get("show_ids")
+    if show_ids is None:
+        show_ids = []
+    elif not isinstance(show_ids, list):
+        problems.append(f"{tag}: show_ids は配列 (省略/空 = 全公演)")
+        show_ids = []
+    for sid in show_ids:
+        r = conn.execute("SELECT event_id FROM shows WHERE id = ?", (sid,)).fetchone()
+        owner = r[0] if r else pending_shows.get(sid)
+        if owner is None:
+            problems.append(f"{tag}: show_id '{sid}' が存在しない")
+        elif event_id and owner != event_id:
+            problems.append(f"{tag}: show_id '{sid}' は別のイベント ({owner}) の公演")
+
+    moments = {}
+    for field in ("starts_at", "ends_at", "result_at"):
+        v = row.get(field)
+        if v is None:
+            continue
+        if not isinstance(v, str) or not TICKET_MOMENT_RE.match(v) or not _valid_ticket_moment(v):
+            problems.append(f"{tag}: {field} の形式が不正 ({v!r})。'YYYY-MM-DD' か 'YYYY-MM-DD HH:MM'")
+        else:
+            moments[field] = v
+    if not moments:
+        problems.append(f"{tag}: starts_at / ends_at / result_at のいずれかが必要")
+    if "starts_at" in moments and "ends_at" in moments:
+        if _ticket_moment_bound(moments["starts_at"], "00:00") > _ticket_moment_bound(moments["ends_at"], "23:59"):
+            problems.append(f"{tag}: starts_at が ends_at より後になっている")
+    if "ends_at" in moments and "result_at" in moments:
+        if _ticket_moment_bound(moments["ends_at"], "23:59") > _ticket_moment_bound(moments["result_at"], "23:59"):
+            problems.append(f"{tag}: ends_at が result_at より後になっている")
+
+    source_url = row.get("source_url")
+    if not source_url or not re.match(r"^https?://", source_url):
+        problems.append(f"{tag}: source_url は http(s) URL 必須")
+    url = row.get("url")
+    if url and not re.match(r"^https?://", url):
+        problems.append(f"{tag}: url は http(s) URL")
+    return problems
 
 
 # 処理対象を 1 ファイルに絞るときのファイル名 (--only)。
@@ -407,67 +520,31 @@ def validate(conn):
                     if k not in ("id", "show_id", "setlist_item_id", "idol_id", "note"):
                         problems.append(f"{wtag}: 未知のキー '{k}'")
 
+    pending_events, pending_shows = pending_events_and_shows()
+    # ファイルをまたいで重複を見る (L3): 別ファイルに同じ event_id + name があると
+    # --check は通るのに --apply で PK 衝突して途中で落ちていた。
+    ticket_sales_seen = set()
     for path, data in load("ticket_sales"):
         tcol = cols(conn, "ticket_sales") if table_exists(conn, "ticket_sales") else None
-        pending_events, pending_shows = pending_events_and_shows()
-        seen = set()
         for i, t in enumerate(data.get("ticket_sales", [])):
             tag = f"ticket_sales/{path.name}[{i}]"
             event_id = t.get("event_id")
-            if not event_id or not (exists(conn, "events", event_id) or event_id in pending_events):
-                problems.append(f"{tag}: event_id '{event_id}' が存在しない")
-            kind = t.get("kind")
-            if kind not in TICKET_SALE_KINDS:
-                problems.append(f"{tag}: kind 不正 ({kind})。許可: {sorted(TICKET_SALE_KINDS)}")
-            if not t.get("name"):
-                problems.append(f"{tag}: name が空")
-
-            show_ids = t.get("show_ids")
-            if show_ids is None:
-                show_ids = []
-            elif not isinstance(show_ids, list):
-                problems.append(f"{tag}: show_ids は配列 (省略/空 = 全公演)")
-                show_ids = []
-            for sid in show_ids:
-                row = conn.execute("SELECT event_id FROM shows WHERE id = ?", (sid,)).fetchone()
-                owner = row[0] if row else pending_shows.get(sid)
-                if owner is None:
-                    problems.append(f"{tag}: show_id '{sid}' が存在しない")
-                elif event_id and owner != event_id:
-                    problems.append(f"{tag}: show_id '{sid}' は別のイベント ({owner}) の公演")
-
-            moments = {}
-            for field in ("starts_at", "ends_at", "result_at"):
-                v = t.get(field)
-                if v is None:
-                    continue
-                if not isinstance(v, str) or not TICKET_MOMENT_RE.match(v):
-                    problems.append(f"{tag}: {field} の形式が不正 ({v!r})。'YYYY-MM-DD' か 'YYYY-MM-DD HH:MM'")
-                else:
-                    moments[field] = v
-            if not moments:
-                problems.append(f"{tag}: starts_at / ends_at / result_at のいずれかが必要")
-            if "starts_at" in moments and "ends_at" in moments:
-                if _ticket_moment_bound(moments["starts_at"], "00:00") > _ticket_moment_bound(moments["ends_at"], "23:59"):
-                    problems.append(f"{tag}: starts_at が ends_at より後になっている")
-            if "ends_at" in moments and "result_at" in moments:
-                if _ticket_moment_bound(moments["ends_at"], "23:59") > _ticket_moment_bound(moments["result_at"], "23:59"):
-                    problems.append(f"{tag}: ends_at が result_at より後になっている")
-
-            source_url = t.get("source_url")
-            if not source_url or not re.match(r"^https?://", source_url):
-                problems.append(f"{tag}: source_url は http(s) URL 必須")
-            url = t.get("url")
-            if url and not re.match(r"^https?://", url):
-                problems.append(f"{tag}: url は http(s) URL")
+            problems += ticket_sale_row_problems(tag, t, conn, pending_events, pending_shows)
 
             key = (event_id, t.get("name"))
-            if key in seen:
+            if key in ticket_sales_seen:
                 problems.append(f"{tag}: 同じ event_id + name の受付が重複している (name を変えるか 1 件にまとめる)")
-            seen.add(key)
+            ticket_sales_seen.add(key)
             if tcol is not None:
-                if exists(conn, "ticket_sales", ticket_sale_id(event_id or "", t.get("name") or "")):
-                    problems.append(f"{tag}: 同じ event_id + name の受付が既に存在 (直すなら data/fixes/ で)")
+                # id ではなく中身 (event_id, name) で既存を引く (L4): apply_data は id を
+                # sha1(event_id + name) から決めるが、アプリ (Worker) が作った受付は
+                # ts_<uuid> を振るので、id の作り方が食い違う。id で照合すると、アプリで
+                # 作った受付と同じ名前を後から JSON で入れたときに二重登録を見逃す。
+                existing_id = find_ticket_sale_id(conn, event_id, t.get("name"))
+                if existing_id is not None:
+                    problems.append(
+                        f"{tag}: 同じ event_id + name の受付が既に存在 ({existing_id})。直すなら data/fixes/ で"
+                    )
                 for k in t:
                     if k in ("show_ids", *ANNOTATION_KEYS):
                         continue
@@ -520,6 +597,14 @@ def validate(conn):
                         problems.append(f"{tag}: id は変更不可")
                     elif k not in tcol:
                         problems.append(f"{tag}: '{table}' に列 '{k}' が無い")
+                # M5: data/fixes/ で ticket_sales を直すときも、新規投稿と同じ 1 行検査
+                # (kind の値・日時の形式と実在性・前後関係・source_url の http・show_ids の
+                # 配列) を効かせる。今まではここが表・id・列の存在しか見ておらず、
+                # 壊れた値がそのまま UPDATE され CloudKit まで出ていた。
+                if table == "ticket_sales" and rid and exists(conn, table, rid):
+                    merged = _merged_ticket_sale_row(conn, rid, fields)
+                    if merged is not None:
+                        problems += ticket_sale_row_problems(tag, merged, conn, pending_events, pending_shows)
 
     return problems
 
@@ -725,6 +810,11 @@ def apply_all(conn):
         for fx in data["fixes"]:
             table, rid, fields = fx["table"], fx["id"], fx.get("fields") or {}
             if fields:
+                # ticket_sales.show_ids は表では CSV 文字列。fixes は他の新規投稿と同じく
+                # 配列で書けるようにしているので、束縛する直前に CSV へ直す
+                # (M5: list のまま bind すると sqlite3 が束縛エラーで apply が途中で落ちる)。
+                if table == "ticket_sales" and isinstance(fields.get("show_ids"), list):
+                    fields = dict(fields, show_ids=",".join(fields["show_ids"]) or None)
                 sets = ", ".join(f"{k} = ?" for k in fields)
                 conn.execute(f"UPDATE {table} SET {sets} WHERE id = ?", list(fields.values()) + [rid])
             # 原唱者は足すだけ。消すと CloudKit 側に残るので、削除は台帳 (pending_cloudkit_deletions_*) で扱う。

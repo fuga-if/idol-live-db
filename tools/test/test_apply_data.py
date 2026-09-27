@@ -377,6 +377,25 @@ class TicketSalesCheckWithoutTableTest(PostFixture):
         post = {"ticket_sales": [ticket_sale_post(ends_at="2026/04/10")]}
         self.assertTrue(any("ends_at" in p and "形式" in p for p in self.problems(post)))
 
+    def test_a_moment_that_does_not_exist_is_rejected(self):
+        # 形式 (正規表現) は通っても実在しない日時 (M4)。
+        post = {"ticket_sales": [ticket_sale_post(ends_at="2026-02-30")]}
+        self.assertTrue(any("ends_at" in p and "形式" in p for p in self.problems(post)))
+        post = {"ticket_sales": [ticket_sale_post(ends_at="2026-02-28 24:00")]}
+        self.assertTrue(any("ends_at" in p and "形式" in p for p in self.problems(post)))
+
+    def test_a_real_leap_day_is_accepted(self):
+        post = {"ticket_sales": [ticket_sale_post(
+            starts_at="2028-02-01", ends_at="2028-02-29 23:59", result_at="2028-03-05",
+        )]}
+        self.assertEqual(self.problems(post), [])
+
+    def test_order_allows_a_date_only_deadline_after_a_timed_start(self):
+        # starts が同日 18:00・ends が日付だけ (23:59 扱い) なら順序として正しい
+        # (M4: 以前は開始 00:00・締切 00:00 の両側 00:00 比較になっていた core の穴と揃える回帰)。
+        post = {"ticket_sales": [ticket_sale_post(starts_at="2026-04-12 18:00", ends_at="2026-04-12")]}
+        self.assertEqual(self.problems(post), [])
+
     def test_at_least_one_moment_is_required(self):
         post = {"ticket_sales": [ticket_sale_post(starts_at=None, ends_at=None, result_at=None)]}
         self.assertTrue(any("いずれかが必要" in p for p in self.problems(post)))
@@ -446,6 +465,100 @@ class TicketSalesWithTableTest(PostFixture):
         problems = apply_data.validate(conn)
         conn.close()
         self.assertTrue(any("既に存在" in p for p in problems))
+
+    def test_duplicate_event_and_name_is_rejected_across_files(self):
+        # L3: 別ファイルに同じ event_id + name があると、以前はファイルごとに検査していたので
+        # --check を通り抜け、--apply の PK 衝突で途中まで反映した状態で落ちていた。
+        support.write_json(self.data / "ticket_sales" / "a.json", {"ticket_sales": [ticket_sale_post()]})
+        support.write_json(self.data / "ticket_sales" / "b.json", {"ticket_sales": [ticket_sale_post()]})
+        self.assertTrue(any("重複" in p for p in self.validate()))
+
+    def test_an_app_created_sale_with_the_same_name_is_detected_as_existing(self):
+        # L4: アプリ (Worker) が作った受付は ts_<uuid> を振る。apply_data は
+        # sha1(event_id + name) の id で「既存」を引いていたので、id の作り方が違う
+        # アプリ発の行とは中身が同じでも別物として通ってしまい、二重登録になっていた。
+        conn = sqlite3.connect(str(self.db))
+        conn.execute(
+            "INSERT INTO ticket_sales (id, event_id, kind, name, ends_at, source_url) "
+            "VALUES ('ts_11111111-2222-3333-4444-555555555555', 'ev_t', 'lottery', '先行抽選',"
+            " '2026-04-10 23:59', 'https://example.com/news')"
+        )
+        conn.commit()
+        conn.close()
+        post = {"ticket_sales": [ticket_sale_post()]}  # 同じ event_id + name
+        support.write_json(self.data / "ticket_sales" / "post.json", post)
+        problems = self.validate()
+        self.assertTrue(any("既に存在" in p and "ts_1111" in p for p in problems))
+
+
+class TicketSalesFixesTest(PostFixture):
+    """M5: data/fixes/ (table: ticket_sales) にも新規投稿と同じ 1 行検査を効かせる。"""
+
+    def setUp(self):
+        super().setUp()
+        add_ticket_sales_table(self.db)
+        conn = sqlite3.connect(str(self.db))
+        conn.execute(
+            "INSERT INTO ticket_sales (id, event_id, show_ids, kind, name, starts_at, ends_at,"
+            " result_at, source_url) VALUES ('ts_fix', 'ev_t', 'sh_t', 'lottery', '先行抽選',"
+            " '2026-04-01', '2026-04-10 23:59', '2026-04-15', 'https://example.com/news')"
+        )
+        conn.commit()
+        conn.close()
+
+    def fix(self, **fields):
+        support.write_json(self.data / "fixes" / "post.json", {
+            "source": "https://example.com/news",
+            "fixes": [{"table": "ticket_sales", "id": "ts_fix", "fields": fields}],
+        })
+
+    def validate(self):
+        conn = sqlite3.connect(str(self.db))
+        try:
+            return apply_data.validate(conn)
+        finally:
+            conn.close()
+
+    def test_a_valid_fix_passes(self):
+        self.fix(ends_at="2026-04-12 23:59")
+        self.assertEqual(self.validate(), [])
+
+    def test_an_unreal_date_is_rejected_even_as_a_fix(self):
+        # 以前は table・id・列の存在しか見ておらず、"2026/10/19" のような値もそのまま UPDATE
+        # されて CloudKit まで出ていた。
+        self.fix(ends_at="2026/10/19")
+        self.assertTrue(any("ends_at" in p and "形式" in p for p in self.validate()))
+
+    def test_an_invalid_kind_is_rejected(self):
+        self.fix(kind="premium")
+        self.assertTrue(any("kind 不正" in p for p in self.validate()))
+
+    def test_order_is_checked_against_the_existing_row(self):
+        # ends_at だけを直すが、既存の result_at (04-15) より後にしてしまう組み合わせ。
+        self.fix(ends_at="2026-04-20 23:59")
+        self.assertTrue(any("result_at より後" in p for p in self.validate()))
+
+    def test_show_ids_must_be_an_array(self):
+        self.fix(show_ids="sh_t")
+        self.assertTrue(any("配列" in p for p in self.validate()))
+
+    def test_apply_converts_show_ids_array_to_csv(self):
+        # M5: show_ids の配列をそのまま UPDATE に束縛すると sqlite3 が束縛エラーで落ちる。
+        # apply 前に CSV へ直す。
+        self.fix(show_ids=["sh_t", "sh_other"])
+        conn = sqlite3.connect(str(self.db))
+        conn.execute(
+            "INSERT INTO shows (id, event_id, name, date, sort_order)"
+            " VALUES ('sh_other', 'ev_t', 'DAY2', '2026-01-02', 1)"
+        )
+        conn.commit()
+        conn.close()
+        conn = sqlite3.connect(str(self.db))
+        with contextlib.redirect_stdout(io.StringIO()):
+            apply_data.apply_all(conn)
+        show_ids = conn.execute("SELECT show_ids FROM ticket_sales WHERE id = 'ts_fix'").fetchone()[0]
+        conn.close()
+        self.assertEqual(show_ids, "sh_t,sh_other")
 
 
 class TicketSalesApplyRequiresTableTest(PostFixture):
