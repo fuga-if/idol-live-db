@@ -37,10 +37,13 @@ master.sqlite → CloudKit に一括反映します（直接 CloudKit に書く�
 | `data/creators/` | 作詞・作曲・編曲の作家 | `id` `name` `name_kana` |
 | `data/unit_versions/` | ユニットのバージョン | `id` `unit_id` `name` (+ `code` `catchphrase` `valid_from` `valid_to`) |
 | `data/costumes/` | ライブ衣装と、着た公演 | `id` `name` `wears[]`（`show_id` + 任意で `setlist_item_id` / `idol_id`） |
+| `data/ticket_sales/` | チケット受付（抽選・先着・リセール・当日券） | `event_id` `kind` `name` `source_url` + 任意で `show_ids[]` `starts_at`/`ends_at`/`result_at` `url` `note` `sort_order` |
 
 ## 修正（data/fixes/）
 
-既存レコードのフィールドを直す。対象テーブルは `idols / songs / events / shows / units / brands`。
+既存レコードのフィールドを直す。対象テーブルは `idols / songs / events / shows / units / brands / ticket_sales`
+（`venues` `venue_names` `creators` `setlist_items` も対象）。チケット受付の締切延長などは
+`{ "fixes": [ { "table": "ticket_sales", "id": "対象id", "fields": { "ends_at": "2026-04-20 23:59" } } ] }`。
 ```json
 { "fixes": [ { "table": "songs", "id": "対象id", "fields": { "release_date": "2024-09-04" } } ] }
 ```
@@ -72,6 +75,7 @@ master.sqlite → CloudKit に一括反映します（直接 CloudKit に書く�
   - idol: `{brand_id}_{name}`
   - event: `ev_{slug}` / show: `sh_{slug}_{連番}`
   - setlist_item は自動採番（`{show_id}_{4桁position}`）
+  - ticket_sales も自動採番（`event_id` + `name` から決まる。id は書かない）
 - **performers**（setlist）: `"all"`（= `all_performers` 全員）か `idol_id` 配列
 - **衣装の `wears`**: `setlist_item_id` は分かるときだけ。省くと「この公演のどこか」の記録になる。
   `idol_id` も省いてよく、省くと「その場の全員」= 共通衣装。同じ曲でユニットごとに

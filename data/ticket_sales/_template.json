@@ -1,0 +1,20 @@
+{
+ "title": "チケット受付を追加する",
+ "author": "あなたのハンドル名 (任意)",
+ "_help": "1 つのライブ/公演に対する 1 回の受付 (抽選・先着・リセール・当日券) を 1 件として足す。id は event_id + name から自動で決まるので書かなくてよい (同じ投稿を 2 度流しても増えない)。show_ids を省く/空にすると『対象イベントの全公演』の意味になる。starts_at / ends_at / result_at は 'YYYY-MM-DD' か 'YYYY-MM-DD HH:MM' (日本時間)。少なくとも 1 つは必要で、開始 ≤ 締切 ≤ 当落の順であること。既存の受付を直す (締切の延長など) ときは data/fixes/ の table: \"ticket_sales\" を使う。",
+ "ticket_sales": [
+  {
+   "event_id": "ev_example_live_2026",
+   "show_ids": ["sh_example_live_2026_1"],
+   "kind": "lottery",
+   "name": "最速先行抽選",
+   "starts_at": "2026-04-01",
+   "ends_at": "2026-04-12 23:59",
+   "result_at": "2026-04-18",
+   "url": "https://公式のチケット申込ページ",
+   "note": "自由記述。DB には入る (曲の note と同じ扱い)",
+   "source_url": "https://公式の告知ページ",
+   "sort_order": 0
+  }
+ ]
+}
