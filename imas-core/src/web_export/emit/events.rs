@@ -12,7 +12,6 @@ use crate::domain::setlist_lineup::{row_lineup, LineupSummary, FULL_CAST_LABEL, 
 use crate::domain::setlist_sections::{group_consecutive, section_label};
 use crate::domain::show_naming::show_identity;
 use crate::domain::song_detail_queries::FIRST_PERFORMANCE_LABEL;
-use crate::domain::vocabulary;
 use crate::web_export::content;
 use crate::web_export::dto::*;
 use crate::web_export::url::url_segment;
@@ -63,7 +62,7 @@ pub fn event_page(ctx: &Ctx, event_id: &str) -> Option<EventPage> {
         kind_label: content::kind_label(&record.kind).to_string(),
         is_upcoming: is_upcoming(ctx, first_date.as_deref()),
         date_display: range_with_weekday(first_date.as_deref(), last_date.as_deref()),
-        ticket: ticket_info(&record),
+        ticket: ticket_info(ctx, event_id),
         stat_tiles: event_stat_tiles(detail::event_stats(ctx.snap, event_id)),
         cast: event_cast(ctx, event_id),
         releases: detail::event_releases(ctx.snap, event_id)
@@ -614,74 +613,141 @@ pub fn show_ids_by_event(ctx: &Ctx) -> BTreeMap<String, Vec<String>> {
         .collect()
 }
 
-/// チケットの案内。日程も公式の案内も無ければ出さない。
-fn ticket_info(record: &detail::EventDetailRecord) -> Option<TicketInfo> {
-    let dates = ticket_dates(|column| match column {
-        "ticket_open_date" => record.ticket_open_date.as_deref(),
-        "ticket_deadline" => record.ticket_deadline.as_deref(),
-        "ticket_lottery_date" => record.ticket_lottery_date.as_deref(),
-        _ => None,
-    });
-    let url = record.ticket_url.clone().filter(|u| !u.is_empty());
-    (!dates.is_empty() || url.is_some()).then_some(TicketInfo { dates, url })
+/// チケットの案内。受付が 1 つも無く、汎用リンクも無ければ枠ごと出さない。
+fn ticket_info(ctx: &Ctx, event_id: &str) -> Option<TicketInfo> {
+    let now = crate::domain::jst_day::jst_midnight_epoch_seconds(&ctx.today).unwrap_or(0);
+    let sales: Vec<TicketSaleItem> = crate::domain::ticket_sales::sales_for_event(ctx.snap, event_id, now)
+        .into_iter()
+        .map(ticket_sale_item)
+        .collect();
+    let url = ctx.snap.event(event_id).and_then(|e| e.ticket_url.clone()).filter(|u| !u.is_empty());
+    (!sales.is_empty() || url.is_some()).then_some(TicketInfo { sales, url })
 }
 
-/// チケットの日程を語彙の順 (受付開始 → 申込締切 → 当落発表) に、日付のあるものだけ並べる。
-/// `date_of` は `events` の列名 (`vocabulary::Term::value`) からその値を引く。
-pub(crate) fn ticket_dates<'a>(date_of: impl Fn(&str) -> Option<&'a str>) -> Vec<TicketDate> {
-    vocabulary::TICKET_DATES
-        .iter()
-        .filter_map(|term| {
-            let date = date_of(term.value).filter(|d| !d.is_empty())?;
-            Some(TicketDate { label: term.label.to_string(), date: date.to_string() })
-        })
-        .collect()
+/// domain の射影 (`ticket_sales::TicketSale`) を DTO へ。段階・表示文字列は domain が
+/// 決め切ったものをそのまま置く (Web 側で組み立て直さない)。
+fn ticket_sale_item(sale: crate::domain::ticket_sales::TicketSale) -> TicketSaleItem {
+    TicketSaleItem {
+        id: sale.id,
+        name: sale.name,
+        kind_label: sale.kind_label,
+        stage_label: sale.stage_label,
+        shows_label: (!sale.show_labels.is_empty()).then(|| sale.show_labels.join("・")),
+        period: sale.period_label,
+        result: sale.result_label,
+        url: sale.url,
+        note: sale.note,
+        source_url: sale.source_url,
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::domain::community::CommunitySnapshot;
+    use crate::domain::snapshot::{Brand, Event, TicketSaleRow};
+    use crate::domain::snapshot_build::{build, RawTables};
+    use crate::domain::ticket_sales::TicketSaleKind;
 
-    #[test]
-    fn ticket_dates_follow_the_vocabulary_and_skip_blank_columns() {
-        let record = detail::EventDetailRecord {
-            id: "e".into(),
-            brand_id: None,
-            name: "e".into(),
-            event_type: String::new(),
+    fn ticket_test_ctx(event: Event, sales: Vec<TicketSaleRow>) -> (Snapshot, CommunitySnapshot) {
+        let snap = build(RawTables {
+            songs: vec![],
+            idols: vec![],
+            events: vec![event],
+            units: vec![],
+            brands: vec![Brand {
+                id: "cg".into(),
+                name: "cg".into(),
+                short_name: "cg".into(),
+                color: None,
+                sort_order: 0,
+                icon_url: None,
+            }],
+            creators: vec![],
+            venues: vec![],
+            staff: vec![],
+            anniversaries: vec![],
+            meta: Default::default(),
+            shows: vec![],
+            setlist_items: vec![],
+            venue_names: vec![],
+            venue_halls: vec![],
+            idol_voice_actors: vec![],
+            event_releases: vec![],
+            costumes: vec![],
+            costume_wears: vec![],
+            ticket_sales: sales,
+            song_artists: vec![],
+            setlist_performers: vec![],
+            show_cast: vec![],
+            unit_members: vec![],
+            idol_brands: vec![],
+        });
+        (snap, CommunitySnapshot::default())
+    }
+
+    fn event(ticket_url: Option<&str>) -> Event {
+        Event {
+            id: "e1".into(),
+            brand_id: Some("cg".into()),
+            name: "10th LIVE".into(),
+            name_kana: None,
+            event_type: "live".into(),
             is_streaming: false,
-            is_solo: false,
+            is_solo: true,
             kind: "live".into(),
-            ticket_open_date: Some("2026-02-01".into()),
-            ticket_deadline: Some(String::new()),
-            ticket_lottery_date: Some("2026-02-25".into()),
-            ticket_url: None,
+            ticket_url: ticket_url.map(str::to_string),
             joint_brand_ids: None,
             has_streaming: None,
             has_live_viewing: None,
-            brand_ids: vec![],
-            is_joint: false,
-        };
-        let rows = |r: &detail::EventDetailRecord| -> Vec<(String, String)> {
-            ticket_info(r).map(|t| t.dates.into_iter().map(|d| (d.label, d.date)).collect()).unwrap_or_default()
-        };
-        assert_eq!(
-            rows(&record),
-            [("受付開始".to_string(), "2026-02-01".to_string()), ("当落発表".to_string(), "2026-02-25".to_string())]
+        }
+    }
+
+    fn sale(id: &str, name: &str, starts_at: Option<&str>, ends_at: Option<&str>) -> TicketSaleRow {
+        TicketSaleRow {
+            id: id.into(),
+            event: 0,
+            show_ids: vec![],
+            kind: TicketSaleKind::Lottery,
+            name: name.into(),
+            starts_at: starts_at.map(str::to_string),
+            ends_at: ends_at.map(str::to_string),
+            result_at: None,
+            url: Some("https://example.com/apply".into()),
+            note: None,
+            source_url: "https://example.com/info".into(),
+            sort_order: 0,
+        }
+    }
+
+    #[test]
+    fn ticket_info_lists_sales_and_falls_back_to_the_event_url() {
+        let (snap, community) = ticket_test_ctx(
+            event(None),
+            vec![sale("t1", "先行抽選", Some("2026-02-01"), Some("2026-02-20"))],
         );
-        // 3 列とも埋まっていれば語彙の 3 語が全部出る (列の対応に抜けが無い)。
-        let full = detail::EventDetailRecord { ticket_deadline: Some("2026-02-20".into()), ..record.clone() };
-        assert_eq!(rows(&full).len(), vocabulary::TICKET_DATES.len());
-        // 日程も案内も無ければ枠ごと出さない。案内だけならリンクだけ出す。
-        let bare = detail::EventDetailRecord {
-            ticket_open_date: None,
-            ticket_deadline: None,
-            ticket_lottery_date: None,
-            ..record
-        };
-        assert_eq!(ticket_info(&bare), None);
-        let link_only = detail::EventDetailRecord { ticket_url: Some("https://example.com/".into()), ..bare };
-        assert_eq!(ticket_info(&link_only).map(|t| t.dates.len()), Some(0));
+        let ctx = Ctx::new(&snap, &community, "2026-02-05".to_string(), "2026-02-05T00:00:00Z".to_string(), None);
+        let info = ticket_info(&ctx, "e1").expect("受付が 1 件ある");
+        assert_eq!(info.sales.len(), 1);
+        assert_eq!(info.sales[0].name, "先行抽選");
+        assert_eq!(info.sales[0].kind_label, "抽選");
+        assert_eq!(info.sales[0].stage_label, "受付中");
+        assert!(info.sales[0].period.as_deref().unwrap().contains("〜"));
+        assert_eq!(info.sales[0].url.as_deref(), Some("https://example.com/apply"));
+        assert_eq!(info.url, None, "events.ticket_url が無ければ None");
+    }
+
+    #[test]
+    fn ticket_info_is_none_without_sales_or_a_url_but_shows_link_only_events() {
+        let (snap, community) = ticket_test_ctx(event(None), vec![]);
+        let ctx = Ctx::new(&snap, &community, "2026-02-05".to_string(), "2026-02-05T00:00:00Z".to_string(), None);
+        assert_eq!(ticket_info(&ctx, "e1"), None, "受付も案内リンクも無ければ枠ごと出さない");
+
+        let (snap, community) = ticket_test_ctx(event(Some("https://example.com/")), vec![]);
+        let ctx = Ctx::new(&snap, &community, "2026-02-05".to_string(), "2026-02-05T00:00:00Z".to_string(), None);
+        let info = ticket_info(&ctx, "e1").expect("汎用リンクがある");
+        assert!(info.sales.is_empty());
+        assert_eq!(info.url.as_deref(), Some("https://example.com/"));
     }
 
     #[test]

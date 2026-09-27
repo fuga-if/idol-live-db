@@ -66,7 +66,7 @@ pub use common::{
     TagBadge, TagChipDto, ThemePair, ThemeTable, ThemeTokens, SCHEMA_VERSION,
 };
 pub use event::{
-    EventCast, EventCastMember, EventCastShow, EventPage, ReleaseInfo, ShowSummary, TicketDate, TicketInfo,
+    EventCast, EventCastMember, EventCastShow, EventPage, ReleaseInfo, ShowSummary, TicketInfo, TicketSaleItem,
 };
 pub use idol::{IdolPage, IdolPerformedRow, IdolShowRow, IdolSongRow, IdolSongSection, ProfileRow, VoiceActorRow};
 pub use index::{

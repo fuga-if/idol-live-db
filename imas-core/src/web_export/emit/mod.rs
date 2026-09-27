@@ -192,6 +192,10 @@ pub(crate) fn setlist_display_options() -> Vec<SetlistDisplayOptionDto> {
 /// ここを見て配ってよいかを決める。
 fn shippable_tables(mut raw: RawTables) -> RawTables {
     raw.songs = raw.songs.into_iter().map(shippable_song).collect();
+    // チケット受付はブラウザに配らない (画面はサーバ生成の TicketInfo/TicketSaleItem を見る。
+    // 生テーブルまで渡すと、正データ (event_page の TicketInfo) と二重に存在してズレても
+    // 気づけなくなる)。
+    raw.ticket_sales = Vec::new();
     raw
 }
 

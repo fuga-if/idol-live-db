@@ -48,19 +48,31 @@ web_dto! {
     /// チケットの案内 (ライブ詳細の脇)。
     #[derive(Eq)]
     pub struct TicketInfo {
-        /// 日付の入っている日程だけ、受付開始 → 申込締切 → 当落発表 の順。
-        pub dates: Vec<TicketDate>,
+        /// 受付の一覧 (`ticket_sales::sort_sales` と同じ並び)。
+        pub sales: Vec<TicketSaleItem>,
+        /// イベントに紐づく汎用の申込リンク (`events.ticket_url`)。個々の受付の
+        /// リンクは `TicketSaleItem::url` を見る。
         pub url: Option<String>,
     }
 }
 
 web_dto! {
-    /// チケットの日程 1 行。語は `vocabulary::TICKET_DATES` (Q-08g)。
+    /// チケット受付 1 件。段階・表示文字列は domain (`ticket_sales`) が決め切ったものをそのまま置く。
     #[derive(Eq)]
-    pub struct TicketDate {
-        pub label: String,
-        /// `yyyy-MM-dd` (列の値のまま)。
-        pub date: String,
+    pub struct TicketSaleItem {
+        pub id: String,
+        pub name: String,
+        pub kind_label: String,
+        pub stage_label: String,
+        /// 対象公演の短い名を `・` で結んだもの (`DAY1・DAY2`)。全公演対象なら `None`。
+        pub shows_label: Option<String>,
+        /// `"4/1 (水) 12:00 〜 4/12 (日) 23:59"`。
+        pub period: Option<String>,
+        /// `"4/15 (水)"`。当落発表が無ければ `None`。
+        pub result: Option<String>,
+        pub url: Option<String>,
+        pub note: Option<String>,
+        pub source_url: String,
     }
 }
 

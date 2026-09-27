@@ -35,6 +35,23 @@
       "isDefault": false
     }
   ],
+  "setlistDisplayOptions": [
+    {
+      "raw": "simple",
+      "label": "シンプル表示",
+      "isDefault": false
+    },
+    {
+      "raw": "normal",
+      "label": "普通表示",
+      "isDefault": true
+    },
+    {
+      "raw": "detailed",
+      "label": "詳細表示",
+      "isDefault": false
+    }
+  ],
   "primaryNav": [
     {
       "label": "ライブ",

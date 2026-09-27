@@ -130,7 +130,8 @@
               "label": "THE@TER WAVE 共通衣装"
             }
           ],
-          "firstPerformanceLabel": null
+          "firstPerformanceLabel": null,
+          "history": []
         },
         {
           "id": "si_2",
@@ -156,7 +157,8 @@
               "label": "ソロステージ衣装（春日未来）"
             }
           ],
-          "firstPerformanceLabel": null
+          "firstPerformanceLabel": null,
+          "history": []
         }
       ]
     },
@@ -211,7 +213,8 @@
           },
           "isCover": false,
           "costumes": [],
-          "firstPerformanceLabel": null
+          "firstPerformanceLabel": null,
+          "history": []
         }
       ]
     }

@@ -177,15 +177,21 @@ fn collect_month(ctx: &Ctx, first: NaiveDate, last: NaiveDate) -> MonthEntries {
                     ..CalendarItem::new(CalendarItemKind::Anniversary, content::CALENDAR_KIND_ANNIVERSARY, label, theme)
                 })
             }
-            CalendarEntryRecord::Ticket { event_id, event_name, date, kind, .. } => {
+            CalendarEntryRecord::Ticket { event_id, event_name, date, kind, sale_name, .. } => {
                 let (path, theme) = event_link(&event_id);
                 let kind_label = match kind {
+                    // 受付期間帯の開始点と同じ語 ("受付開始")。締切が無いだけで意味は同じ。
+                    CalendarTicketKind::Start => content::CALENDAR_KIND_TICKET_OPEN,
                     CalendarTicketKind::Deadline => content::CALENDAR_KIND_TICKET_DEADLINE,
                     CalendarTicketKind::Lottery => content::CALENDAR_KIND_TICKET_LOTTERY,
                 };
-                (date, CalendarItem { path, ..CalendarItem::new(CalendarItemKind::Ticket, kind_label, event_name, theme) })
+                (date, CalendarItem {
+                    sub: Some(sale_name),
+                    path,
+                    ..CalendarItem::new(CalendarItemKind::Ticket, kind_label, event_name, theme)
+                })
             }
-            CalendarEntryRecord::TicketPeriod { event_id, event_name, start, end, .. } => {
+            CalendarEntryRecord::TicketPeriod { event_id, event_name, start, end, sale_name, .. } => {
                 let (path, theme) = event_link(&event_id);
                 let (Some(s), Some(e)) = (
                     NaiveDate::parse_from_str(&start, "%Y-%m-%d").ok(),
@@ -195,7 +201,7 @@ fn collect_month(ctx: &Ctx, first: NaiveDate, last: NaiveDate) -> MonthEntries {
                 };
                 for day in s.max(first).iter_days().take_while(|d| *d <= e.min(last)) {
                     out.bands.entry(day.to_string()).or_default().push(CalendarBand {
-                        label: event_name.clone(),
+                        label: format!("{event_name} ({sale_name})"),
                         theme_key: theme.clone(),
                         starts: day == s,
                         ends: day == e,
@@ -205,7 +211,11 @@ fn collect_month(ctx: &Ctx, first: NaiveDate, last: NaiveDate) -> MonthEntries {
                 if !(first..=last).contains(&s) {
                     continue;
                 }
-                (start, CalendarItem { path, ..CalendarItem::new(CalendarItemKind::Ticket, content::CALENDAR_KIND_TICKET_OPEN, event_name, theme) })
+                (start, CalendarItem {
+                    sub: Some(sale_name),
+                    path,
+                    ..CalendarItem::new(CalendarItemKind::Ticket, content::CALENDAR_KIND_TICKET_OPEN, event_name, theme)
+                })
             }
         };
         out.items.entry(date).or_default().push(item);

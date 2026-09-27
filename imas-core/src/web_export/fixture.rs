@@ -348,11 +348,18 @@ fn event_page(reference: &Ref, empty: bool) -> EventPage {
         date_display: range_with_weekday(Some("2026-04-03"), Some("2026-04-04")),
         is_upcoming: true,
         ticket: Some(TicketInfo {
-            dates: super::emit::events::ticket_dates(|column| match column {
-                "ticket_open_date" => Some("2026-02-01"),
-                "ticket_deadline" => Some("2026-02-20"),
-                _ => None,
-            }),
+            sales: vec![TicketSaleItem {
+                id: "ts_sample".to_string(),
+                name: "先行抽選".to_string(),
+                kind_label: "抽選".to_string(),
+                stage_label: "受付中".to_string(),
+                shows_label: None,
+                period: Some("2/1 (日) 〜 2/20 (金)".to_string()),
+                result: Some("2/25 (水)".to_string()),
+                url: Some("https://example.com/apply".to_string()),
+                note: None,
+                source_url: "https://example.com/info".to_string(),
+            }],
             url: Some("https://example.com/ticket".to_string()),
         }),
         // 0 の数は落とす規則なので、公演ゼロのライブでは帯そのものが無い。

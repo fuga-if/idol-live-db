@@ -30,14 +30,18 @@
   "dateDisplay": "2026-04-03 (金) 〜 2026-04-04 (土)",
   "isUpcoming": true,
   "ticket": {
-    "dates": [
+    "sales": [
       {
-        "label": "受付開始",
-        "date": "2026-02-01"
-      },
-      {
-        "label": "申込締切",
-        "date": "2026-02-20"
+        "id": "ts_sample",
+        "name": "先行抽選",
+        "kindLabel": "抽選",
+        "stageLabel": "受付中",
+        "showsLabel": null,
+        "period": "2/1 (日) 〜 2/20 (金)",
+        "result": "2/25 (水)",
+        "url": "https://example.com/apply",
+        "note": null,
+        "sourceUrl": "https://example.com/info"
       }
     ],
     "url": "https://example.com/ticket"
