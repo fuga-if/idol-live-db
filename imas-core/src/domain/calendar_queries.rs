@@ -95,6 +95,9 @@ pub enum CalendarEntryRecord {
         sale_id: String,
         sale_name: String,
         sale_kind: crate::domain::ticket_sales::TicketSaleKind,
+        /// 表示文字列 (`"{event_name} ({sale_name})"`、M2)。プラットフォーム側は
+        /// `event_name` / `sale_name` から組み立て直さず、これをそのまま出す。
+        label: String,
     },
     /// チケット受付期間 (受付開始 → 申込締切) の日跨ぎ帯。
     TicketPeriod {
@@ -107,6 +110,8 @@ pub enum CalendarEntryRecord {
         sale_id: String,
         sale_name: String,
         sale_kind: crate::domain::ticket_sales::TicketSaleKind,
+        /// 表示文字列 (`"{event_name} ({sale_name})"`、M2)。
+        label: String,
     },
 }
 
@@ -396,6 +401,7 @@ fn collect_tickets(snap: &Snapshot, start_day: &str, end_day: &str, out: &mut Ve
             let sale_start = sale_day(sale.starts_at.as_deref());
             let sale_end = sale_day(sale.ends_at.as_deref());
             let sale_result = sale_day(sale.result_at.as_deref());
+            let label = crate::domain::ticket_sales::calendar_sale_label(&event.name, &sale.name);
             let ticket = |date: &str, kind: CalendarTicketKind| CalendarEntryRecord::Ticket {
                 event_id: event.id.clone(),
                 event_name: event.name.clone(),
@@ -406,6 +412,7 @@ fn collect_tickets(snap: &Snapshot, start_day: &str, end_day: &str, out: &mut Ve
                 sale_id: sale.id.clone(),
                 sale_name: sale.name.clone(),
                 sale_kind: sale.kind,
+                label: label.clone(),
             };
 
             match (sale_start, sale_end) {
@@ -425,6 +432,7 @@ fn collect_tickets(snap: &Snapshot, start_day: &str, end_day: &str, out: &mut Ve
                                 sale_id: sale.id.clone(),
                                 sale_name: sale.name.clone(),
                                 sale_kind: sale.kind,
+                                label: label.clone(),
                             },
                         ));
                     }
@@ -763,12 +771,14 @@ mod tests {
         let entries = ticket_entries(&snap, "2026-01-01", "2026-12-31");
         assert_eq!(entries.len(), 1);
         match &entries[0] {
-            CalendarEntryRecord::TicketPeriod { start, end, sale_id, sale_name, sale_kind, url, .. } => {
+            CalendarEntryRecord::TicketPeriod { start, end, sale_id, sale_name, sale_kind, url, label, .. } => {
                 assert_eq!((start.as_str(), end.as_str()), ("2026-04-01", "2026-04-12"));
                 assert_eq!(sale_id, "t1");
                 assert_eq!(sale_name, "先行抽選");
                 assert_eq!(*sale_kind, TicketSaleKind::Lottery);
                 assert_eq!(url.as_deref(), Some("https://example.com/apply"));
+                // M2: 表示文字列はコアで組み切る (ライブ名が抜け落ちないようにする)。
+                assert_eq!(label, "10th LIVE (先行抽選)");
             }
             other => panic!("期間帯を期待: {other:?}"),
         }

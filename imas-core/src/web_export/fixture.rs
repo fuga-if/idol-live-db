@@ -352,7 +352,6 @@ fn event_page(reference: &Ref, empty: bool) -> EventPage {
                 id: "ts_sample".to_string(),
                 name: "先行抽選".to_string(),
                 kind_label: "抽選".to_string(),
-                stage_label: "受付中".to_string(),
                 shows_label: None,
                 period: Some("2/1 (日) 〜 2/20 (金)".to_string()),
                 result: Some("2/25 (水)".to_string()),

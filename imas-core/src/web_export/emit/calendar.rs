@@ -191,7 +191,7 @@ fn collect_month(ctx: &Ctx, first: NaiveDate, last: NaiveDate) -> MonthEntries {
                     ..CalendarItem::new(CalendarItemKind::Ticket, kind_label, event_name, theme)
                 })
             }
-            CalendarEntryRecord::TicketPeriod { event_id, event_name, start, end, sale_name, .. } => {
+            CalendarEntryRecord::TicketPeriod { event_id, event_name, start, end, sale_name, label: sale_label, .. } => {
                 let (path, theme) = event_link(&event_id);
                 let (Some(s), Some(e)) = (
                     NaiveDate::parse_from_str(&start, "%Y-%m-%d").ok(),
@@ -199,9 +199,11 @@ fn collect_month(ctx: &Ctx, first: NaiveDate, last: NaiveDate) -> MonthEntries {
                 ) else {
                     continue;
                 };
+                // M2: 帯の文字列はコア (`ticket_sales::calendar_sale_label`) が組み切ったものを
+                // そのまま出す (Web もここで組み直さない)。
                 for day in s.max(first).iter_days().take_while(|d| *d <= e.min(last)) {
                     out.bands.entry(day.to_string()).or_default().push(CalendarBand {
-                        label: format!("{event_name} ({sale_name})"),
+                        label: sale_label.clone(),
                         theme_key: theme.clone(),
                         starts: day == s,
                         ends: day == e,

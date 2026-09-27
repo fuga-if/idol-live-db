@@ -624,14 +624,18 @@ fn ticket_info(ctx: &Ctx, event_id: &str) -> Option<TicketInfo> {
     (!sales.is_empty() || url.is_some()).then_some(TicketInfo { sales, url })
 }
 
-/// domain の射影 (`ticket_sales::TicketSale`) を DTO へ。段階・表示文字列は domain が
+/// domain の射影 (`ticket_sales::TicketSale`) を DTO へ。表示文字列は domain が
 /// 決め切ったものをそのまま置く (Web 側で組み立て直さない)。
+///
+/// L5: 段階の札 (`stage_label`) は出さない。公開は日次 (JST 05:00) 固定で、Web の
+/// 段階判定はその時点で止まったまま一日中変わらない (例えば「12:00 開始」の受付が
+/// その日いっぱい「受付前」と出続ける)。誤解を招くのでここでは落とし、期間・当落の
+/// 日程だけを事実として出す。
 fn ticket_sale_item(sale: crate::domain::ticket_sales::TicketSale) -> TicketSaleItem {
     TicketSaleItem {
         id: sale.id,
         name: sale.name,
         kind_label: sale.kind_label,
-        stage_label: sale.stage_label,
         shows_label: (!sale.show_labels.is_empty()).then(|| sale.show_labels.join("・")),
         period: sale.period_label,
         result: sale.result_label,
@@ -731,7 +735,6 @@ mod tests {
         assert_eq!(info.sales.len(), 1);
         assert_eq!(info.sales[0].name, "先行抽選");
         assert_eq!(info.sales[0].kind_label, "抽選");
-        assert_eq!(info.sales[0].stage_label, "受付中");
         assert!(info.sales[0].period.as_deref().unwrap().contains("〜"));
         assert_eq!(info.sales[0].url.as_deref(), Some("https://example.com/apply"));
         assert_eq!(info.url, None, "events.ticket_url が無ければ None");

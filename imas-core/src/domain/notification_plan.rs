@@ -268,16 +268,22 @@ fn event_plans(snap: &Snapshot, event_ids: &[String], live_week: bool, ticket: b
             for &si in &snap.ticket_sales_by_event[e as usize] {
                 let sale = &snap.ticket_sales[si as usize];
                 let sale_name = &sale.name;
-                if let Some((deadline, _)) =
-                    sale.ends_at.as_deref().and_then(crate::domain::ticket_sales::parse_sale_moment)
-                {
+                // H1: ends_at が無ければ対象公演の最終日を暗黙の締切として使う (段階判定と同じ)。
+                if let Some((deadline, _)) = crate::domain::ticket_sales::effective_deadline(
+                    snap,
+                    e,
+                    &sale.show_ids,
+                    sale.ends_at.as_deref(),
+                ) {
                     let day = deadline - chrono::Duration::days(1);
                     if deadline > today && day > today {
                         plans.push(plan(
                             format!("ticketdl_{}", sale.id),
                             NotificationKind::Ticket,
                             "チケット申込は明日まで！".to_string(),
-                            Some(format!("{sale_name} の申込締切は明日です。お忘れなく！")),
+                            // M1: 本文にライブ名と受付名の両方を入れる (複数のライブを追っている
+                            // 人にも、どの受付の締切かが分かるように)。
+                            Some(format!("{name} の「{sale_name}」の申込締切は明日です")),
                             (day, TICKET_DEADLINE_HOUR * 60),
                             None,
                         ));
@@ -292,7 +298,7 @@ fn event_plans(snap: &Snapshot, event_ids: &[String], live_week: bool, ticket: b
                             format!("lottery_{}", sale.id),
                             NotificationKind::Ticket,
                             "当落発表日です！".to_string(),
-                            Some(format!("{sale_name} の当落発表日。ドキドキしながら確認してみよう！")),
+                            Some(format!("{name} の「{sale_name}」の当落発表日です")),
                             (lottery, h * 60 + m),
                             None,
                         ));
@@ -529,9 +535,26 @@ mod tests {
         let ids: Vec<&str> = plans.iter().map(|p| p.id.as_str()).collect();
         // 締切前日 (t1: 3/31, t2: 4/4) と当落発表 (t1 だけ) の 3 件が受付ごとに独立して出る。
         assert_eq!(ids, ["ticketdl_t1", "ticketdl_t2", "lottery_t1"]);
+        // M1: 本文にライブ名 (event) と受付名 (sale) の両方が入る。複数のライブを追っている
+        // 人にも、どの受付の締切・当落なのかが分かるように。
         assert!(plans[0].body.as_deref().unwrap().contains("先行抽選"));
+        assert!(plans[0].body.as_deref().unwrap().contains("10th LIVE"), "締切の本文にライブ名も入る");
+        assert!(plans[2].body.as_deref().unwrap().contains("10th LIVE"), "当落の本文にもライブ名が入る");
+        assert!(plans[2].body.as_deref().unwrap().contains("先行抽選"));
         assert_eq!((plans[0].date.as_str(), plans[0].hour), ("2026-03-31", TICKET_DEADLINE_HOUR));
         assert_eq!((plans[2].date.as_str(), plans[2].hour), ("2026-04-10", LOTTERY_HOUR));
+    }
+
+    #[test]
+    fn ticket_deadline_notification_uses_the_implicit_deadline_when_ends_at_is_missing() {
+        // H1: ends_at の無い受付でも、対象公演の最終日 (この snapshot の唯一の公演 = 4/20) を
+        // 暗黙の締切として通知の予定表に効かせる (段階判定・ウィジェットと同じ規則)。
+        let snap = ticket_notification_snapshot("2026-04-20", vec![sale_row("t1", "当日券", None, None)]);
+        let today = parse_day("2026-04-10").unwrap();
+        let plans = event_plans(&snap, &["e1".to_string()], false, true, today);
+        assert_eq!(plans.len(), 1);
+        assert_eq!(plans[0].id, "ticketdl_t1");
+        assert_eq!(plans[0].date, "2026-04-19", "最終公演 (4/20) の前日に出す");
     }
 
     #[test]

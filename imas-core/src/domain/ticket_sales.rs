@@ -98,6 +98,16 @@ pub struct TicketSale {
     pub result_label: Option<String>,
 }
 
+/// [`TicketSaleDeadline`] が指す日付の意味 (M3)。ウィジェットの見出し「チケット締切」に
+/// 当落発表が混ざって出ないよう、種別を持たせて両 OS が出し分けられるようにする。
+#[derive(uniffi::Enum, Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum TicketSaleDeadlineKind {
+    /// 申込締切 (受付中の受付の `ends_at`。無ければ H1 の暗黙の締切)。
+    Deadline,
+    /// 当落発表 (結果待ちの受付の `result_at`)。
+    AwaitingResult,
+}
+
 /// ウィジェット・通知の「締切一覧」用の 1 行。
 #[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
 pub struct TicketSaleDeadline {
@@ -106,10 +116,23 @@ pub struct TicketSaleDeadline {
     pub event_id: String,
     pub event_name: String,
     pub brand_color: Option<String>,
+    /// この日付が締切か当落発表か (M3)。ウィジェットの見出し・アイコンを出し分ける材料。
+    pub kind: TicketSaleDeadlineKind,
+    /// `kind` の日本語表記 (`"申込締切"` / `"当落発表"`)。
+    pub kind_label: String,
+    /// ウィジェットにそのまま出す表示文字列 (`"{event_name} ({sale_name})"`、M2/M3 と同じ組み方)。
+    pub label: String,
     /// `YYYY-MM-DD`。
     pub deadline_day: String,
     /// `HH:MM`。時刻の指定が無い日付だけの締切は `None`。
     pub deadline_time: Option<String>,
+}
+
+fn deadline_kind_label(kind: TicketSaleDeadlineKind) -> &'static str {
+    match kind {
+        TicketSaleDeadlineKind::Deadline => "申込締切",
+        TicketSaleDeadlineKind::AwaitingResult => "当落発表",
+    }
 }
 
 /// 編集フォーム → 検査の材料。
@@ -227,7 +250,7 @@ pub fn parse_sale_moment(raw: &str) -> Option<(NaiveDate, Option<(u32, u32)>)> {
     }
 }
 
-type Moment = (NaiveDate, Option<(u32, u32)>);
+pub(crate) type Moment = (NaiveDate, Option<(u32, u32)>);
 
 /// 開始側の既定時刻: 日付だけなら 00:00。
 fn lower_bound(m: Moment) -> NaiveDateTime {
@@ -250,26 +273,46 @@ fn now_naive(now_epoch_seconds: i64) -> NaiveDateTime {
 /// 段階の判定。
 ///
 /// - 受付開始 (`starts_at`) より前 → [`TicketSaleStage::Upcoming`]。
-/// - 開始から締切 (`ends_at`) まで (両端含む) → [`TicketSaleStage::Open`]。
+/// - 開始から締切 (`ends_at`。無ければ `implicit_deadline`) まで (両端含む) →
+///   [`TicketSaleStage::Open`]。
 /// - 締切の後で `result_at` が今より後 (未到来、または当日) → [`TicketSaleStage::AwaitingResult`]。
 /// - それ以外 → [`TicketSaleStage::Ended`]。
-/// - `ends_at` も `result_at` も無ければ、開始済みの受付は締切無しの [`TicketSaleStage::Open`]
-///   として扱う (情報が無いことを終了扱いにしない)。
+/// - `ends_at` (と `implicit_deadline`) も `result_at` も無ければ、開始済みの受付は締切無しの
+///   [`TicketSaleStage::Open`] として扱う (情報が無いことを終了扱いにしない)。
+/// - 開始も締切 (実・暗黙とも) も無く当落発表だけがある受付は、当落日より前を
+///   [`TicketSaleStage::Upcoming`] として扱う (発表日が来るまで「結果待ち」を名乗らない)。
+///
+/// `implicit_deadline` は `ends_at` が無いときに使う暗黙の締切 (対象公演の最終日)。
+/// [`sale_stage_with_implicit_deadline`] が計算して渡す。時刻の指定は無い
+/// (その日の 23:59 として扱われる。[`upper_bound`])。
 pub fn sale_stage(
     now_epoch_seconds: i64,
     starts_at: Option<&str>,
     ends_at: Option<&str>,
     result_at: Option<&str>,
+    implicit_deadline: Option<NaiveDate>,
 ) -> TicketSaleStage {
     let now = now_naive(now_epoch_seconds);
     let start = starts_at.and_then(parse_sale_moment);
-    let end = ends_at.and_then(parse_sale_moment);
+    let end = ends_at.and_then(parse_sale_moment).or_else(|| implicit_deadline.map(|d| (d, None)));
     let result = result_at.and_then(parse_sale_moment);
 
-    if let Some(s) = start {
-        if now < lower_bound(s) {
-            return TicketSaleStage::Upcoming;
+    match start {
+        Some(s) => {
+            if now < lower_bound(s) {
+                return TicketSaleStage::Upcoming;
+            }
         }
+        // 開始も (実・暗黙の) 締切も無く、当落発表だけが決まっている受付: 当落日より前は
+        // 「受付前」として扱う (受付が始まってすらいないのに「結果待ち」と言わない)。
+        None if end.is_none() => {
+            if let Some(r) = result {
+                if now < lower_bound(r) {
+                    return TicketSaleStage::Upcoming;
+                }
+            }
+        }
+        None => {}
     }
     match end {
         Some(e) => {
@@ -283,6 +326,47 @@ pub fn sale_stage(
     match result {
         Some(r) if now < upper_bound(r) => TicketSaleStage::AwaitingResult,
         _ => TicketSaleStage::Ended,
+    }
+}
+
+/// `ends_at` が無いときに使う暗黙の締切 (H1): 対象公演 (`show_ids` が空なら全公演) の
+/// 最終日。対象公演がマスタに 1 件も見つからなければ `None` (これまでどおり締切無しの
+/// [`TicketSaleStage::Open`] に倒れる)。
+fn implicit_deadline_date(snap: &Snapshot, event_index: u32, show_ids: &[String]) -> Option<NaiveDate> {
+    let dates: Box<dyn Iterator<Item = &str>> = if show_ids.is_empty() {
+        Box::new(snap.shows_by_event[event_index as usize].iter().map(|&si| snap.shows[si as usize].date.as_str()))
+    } else {
+        Box::new(show_ids.iter().filter_map(|id| snap.show(id)).map(|s| s.date.as_str()))
+    };
+    dates.filter_map(|d| NaiveDate::parse_from_str(d, "%Y-%m-%d").ok()).max()
+}
+
+/// [`sale_stage`] に H1 の暗黙の締切を添えて呼ぶ。
+fn sale_stage_with_implicit_deadline(
+    snap: &Snapshot,
+    event_index: u32,
+    show_ids: &[String],
+    now_epoch_seconds: i64,
+    starts_at: Option<&str>,
+    ends_at: Option<&str>,
+    result_at: Option<&str>,
+) -> TicketSaleStage {
+    let implicit = if ends_at.is_none() { implicit_deadline_date(snap, event_index, show_ids) } else { None };
+    sale_stage(now_epoch_seconds, starts_at, ends_at, result_at, implicit)
+}
+
+/// `ends_at` を実効の締切として解釈する。値があればそれを、無ければ (H1)
+/// [`implicit_deadline_date`] (対象公演の最終日) を日付だけの締切として使う。
+/// 段階判定・注目受付・通知・ウィジェットが揃ってこれを使い、暗黙の締切の意味を統一する。
+pub fn effective_deadline(
+    snap: &Snapshot,
+    event_index: u32,
+    show_ids: &[String],
+    ends_at: Option<&str>,
+) -> Option<Moment> {
+    match ends_at.and_then(parse_sale_moment) {
+        Some(m) => Some(m),
+        None => implicit_deadline_date(snap, event_index, show_ids).map(|d| (d, None)),
     }
 }
 
@@ -356,6 +440,13 @@ fn moment_label(date: NaiveDate, time: Option<(u32, u32)>) -> String {
     }
 }
 
+/// カレンダーの受付の帯・点に出す表示文字列 (M2)。iOS/Android/Web で組み方がばらけて
+/// ライブ名が抜け落ちる事故があったので、コアで決め切って渡す (Web の
+/// `"{event_name} ({sale_name})"` を正とする)。
+pub fn calendar_sale_label(event_name: &str, sale_name: &str) -> String {
+    format!("{event_name} ({sale_name})")
+}
+
 fn period_label(starts_at: Option<&str>, ends_at: Option<&str>) -> Option<String> {
     match (starts_at, ends_at) {
         (Some(s), Some(e)) => Some(format!("{} 〜 {}", moment_label_from_raw(s), moment_label_from_raw(e))),
@@ -375,8 +466,23 @@ pub fn sort_sales(mut sales: Vec<TicketSale>) -> Vec<TicketSale> {
     sales
 }
 
-fn sort_key(sale: &TicketSale) -> (i64, bool, &str, &str) {
-    (sale.sort_order, sale.starts_at.is_none(), sale.starts_at.as_deref().unwrap_or(""), sale.id.as_str())
+fn sort_key(sale: &TicketSale) -> (i64, bool, NaiveDateTime, &str) {
+    let (missing, at) = moment_sort_key(sale.starts_at.as_deref(), lower_bound);
+    (sale.sort_order, missing, at, sale.id.as_str())
+}
+
+/// 日付だけの値は開始なら 00:00 ([`lower_bound`])、締切・当落なら 23:59 ([`upper_bound`])
+/// として並び替える (L1: 生文字列/0 分の比較をやめ、段階判定と同じ意味の実時刻で揃える)。
+/// 値が無ければ最後 (`(true, _)` は常に `(false, _)` より大きい)。
+fn moment_sort_key(raw: Option<&str>, bound: fn(Moment) -> NaiveDateTime) -> (bool, NaiveDateTime) {
+    match raw.and_then(parse_sale_moment) {
+        Some(m) => (false, bound(m)),
+        None => (true, far_future()),
+    }
+}
+
+fn far_future() -> NaiveDateTime {
+    NaiveDate::from_ymd_opt(9999, 12, 31).expect("有効な日付").and_hms_opt(23, 59, 59).expect("有効な時刻")
 }
 
 /// イベント配下の受付一覧 (並び済み)。
@@ -387,7 +493,7 @@ pub fn sales_for_event(snap: &Snapshot, event_id: &str, now_epoch_seconds: i64) 
     // ここで並べ直す必要は無い (二重にソートしない)。
     snap.ticket_sales_by_event[ei as usize]
         .iter()
-        .map(|&si| to_ticket_sale(snap, event, &snap.ticket_sales[si as usize], now_epoch_seconds))
+        .map(|&si| to_ticket_sale(snap, event, ei, &snap.ticket_sales[si as usize], now_epoch_seconds))
         .collect()
 }
 
@@ -402,28 +508,25 @@ pub fn spotlight(snap: &Snapshot, event_id: &str, now_epoch_seconds: i64) -> Opt
     pick_spotlight(&sales_for_event(snap, event_id, now_epoch_seconds))
 }
 
-fn opt_key(o: &Option<String>) -> (bool, &str) {
-    (o.is_none(), o.as_deref().unwrap_or(""))
-}
-
 fn pick_spotlight(sales: &[TicketSale]) -> Option<TicketSale> {
     let mut open: Vec<&TicketSale> =
         sales.iter().filter(|s| s.stage == TicketSaleStage::Open).collect();
-    open.sort_by_key(|s| opt_key(&s.ends_at));
+    // 締切 (無ければ実質いつまでも受付中なので最後) は「上限 (23:59)」で比べる。
+    open.sort_by_key(|s| moment_sort_key(s.ends_at.as_deref(), upper_bound));
     if let Some(&s) = open.first() {
         return Some(s.clone());
     }
 
     let mut awaiting: Vec<&TicketSale> =
         sales.iter().filter(|s| s.stage == TicketSaleStage::AwaitingResult).collect();
-    awaiting.sort_by_key(|s| opt_key(&s.result_at));
+    awaiting.sort_by_key(|s| moment_sort_key(s.result_at.as_deref(), upper_bound));
     if let Some(&s) = awaiting.first() {
         return Some(s.clone());
     }
 
     let mut upcoming: Vec<&TicketSale> =
         sales.iter().filter(|s| s.stage == TicketSaleStage::Upcoming).collect();
-    upcoming.sort_by_key(|s| opt_key(&s.starts_at));
+    upcoming.sort_by_key(|s| moment_sort_key(s.starts_at.as_deref(), lower_bound));
     upcoming.first().map(|&s| s.clone())
 }
 
@@ -434,57 +537,72 @@ fn pick_spotlight(sales: &[TicketSale]) -> Option<TicketSale> {
 /// 近い順、上限 `limit` 件。
 pub fn deadlines(snap: &Snapshot, now_epoch_seconds: i64, limit: u32) -> Vec<TicketSaleDeadline> {
     struct Row {
-        day: String,
-        time_minutes: u32,
+        at: NaiveDateTime,
         record: TicketSaleDeadline,
     }
     let mut rows: Vec<Row> = Vec::new();
     for (ei, event) in snap.events.iter().enumerate() {
         for &si in &snap.ticket_sales_by_event[ei] {
             let row = &snap.ticket_sales[si as usize];
-            let stage = sale_stage(
+            let stage = sale_stage_with_implicit_deadline(
+                snap,
+                ei as u32,
+                &row.show_ids,
                 now_epoch_seconds,
                 row.starts_at.as_deref(),
                 row.ends_at.as_deref(),
                 row.result_at.as_deref(),
             );
-            let raw = match stage {
-                TicketSaleStage::Open => row.ends_at.as_deref(),
-                TicketSaleStage::AwaitingResult => row.result_at.as_deref(),
-                TicketSaleStage::Upcoming | TicketSaleStage::Ended => None,
+            // Open は締切 (ends_at が無ければ H1 の暗黙の締切)、結果待ちは当落発表。
+            // どちらも「上限 (23:59)」の意味で比較する ([`upper_bound`]、M4/L1 と同じ規約)。
+            // M3: どちらの日付かを `kind` として持たせる (見出し「チケット締切」に当落が
+            // 混ざらないよう、両 OS が種別で出し分けられるようにする)。
+            let (moment, kind) = match stage {
+                TicketSaleStage::Open => (
+                    effective_deadline(snap, ei as u32, &row.show_ids, row.ends_at.as_deref()),
+                    TicketSaleDeadlineKind::Deadline,
+                ),
+                TicketSaleStage::AwaitingResult => (
+                    row.result_at.as_deref().and_then(parse_sale_moment),
+                    TicketSaleDeadlineKind::AwaitingResult,
+                ),
+                TicketSaleStage::Upcoming | TicketSaleStage::Ended => (None, TicketSaleDeadlineKind::Deadline),
             };
-            let Some((date, time)) = raw.and_then(parse_sale_moment) else { continue };
+            let Some((date, time)) = moment else { continue };
             let brand_color = event.brand_id.as_deref().and_then(|b| snap.brand(b)).and_then(|b| b.color.clone());
             let day = date.format("%Y-%m-%d").to_string();
             rows.push(Row {
-                day: day.clone(),
-                time_minutes: time.map_or(0, |(h, m)| h * 60 + m),
+                at: upper_bound((date, time)),
                 record: TicketSaleDeadline {
                     sale_id: row.id.clone(),
                     sale_name: row.name.clone(),
                     event_id: event.id.clone(),
                     event_name: event.name.clone(),
                     brand_color,
+                    kind,
+                    kind_label: deadline_kind_label(kind).to_string(),
+                    label: calendar_sale_label(&event.name, &row.name),
                     deadline_day: day,
                     deadline_time: time.map(|(h, m)| format!("{h:02}:{m:02}")),
                 },
             });
         }
     }
-    rows.sort_by(|a, b| {
-        (a.day.as_str(), a.time_minutes, a.record.sale_id.as_str())
-            .cmp(&(b.day.as_str(), b.time_minutes, b.record.sale_id.as_str()))
-    });
+    rows.sort_by(|a, b| (a.at, a.record.sale_id.as_str()).cmp(&(b.at, b.record.sale_id.as_str())));
     rows.into_iter().take(limit as usize).map(|r| r.record).collect()
 }
 
 fn to_ticket_sale(
     snap: &Snapshot,
     event: &Event,
+    event_index: u32,
     row: &crate::domain::snapshot::TicketSaleRow,
     now_epoch_seconds: i64,
 ) -> TicketSale {
-    let stage = sale_stage(
+    let stage = sale_stage_with_implicit_deadline(
+        snap,
+        event_index,
+        &row.show_ids,
         now_epoch_seconds,
         row.starts_at.as_deref(),
         row.ends_at.as_deref(),
@@ -581,13 +699,15 @@ pub fn validate_draft(draft: &TicketSaleDraft, event_show_ids: &[String]) -> Vec
         issues.push(TicketSaleIssue::NoDates);
     }
 
+    // M4: 前後比較は段階判定と同じ意味で揃える — 開始は下限 (00:00)、締切・当落は上限
+    // (23:59)。日付だけの締切 (23:59 扱い) は、同日の時刻付き開始より前にはならない。
     if let (Some(s), Some(e)) = (start, end) {
-        if lower_bound(e) < lower_bound(s) {
+        if upper_bound(e) < lower_bound(s) {
             issues.push(TicketSaleIssue::EndsBeforeStarts);
         }
     }
     if let (Some(e), Some(r)) = (end, result) {
-        if lower_bound(r) < lower_bound(e) {
+        if upper_bound(r) < upper_bound(e) {
             issues.push(TicketSaleIssue::ResultBeforeEnds);
         }
     }
@@ -679,7 +799,7 @@ mod tests {
     #[test]
     fn date_only_deadline_stays_open_through_the_end_of_that_day() {
         // 締切 (ends_at) が日付だけなら、その日の 23:59 まで Open。
-        let stage = |now| sale_stage(now, Some("2026-04-01"), Some("2026-04-12"), None);
+        let stage = |now| sale_stage(now, Some("2026-04-01"), Some("2026-04-12"), None, None);
         assert_eq!(stage(epoch(2026, 4, 12, 0, 0)), TicketSaleStage::Open, "締切当日の朝はまだ受付中");
         assert_eq!(stage(epoch(2026, 4, 12, 23, 59)), TicketSaleStage::Open, "締切当日の 23:59 もまだ");
         assert_eq!(stage(epoch(2026, 4, 13, 0, 0)), TicketSaleStage::Ended, "翌日になれば終了 (当落予定無し)");
@@ -688,7 +808,7 @@ mod tests {
     #[test]
     fn lottery_result_day_is_awaiting_result_and_ends_the_next_day() {
         // 締切を過ぎていて、当落発表 (result_at) が日付だけなら、その日いっぱいは結果待ち。
-        let stage = |now| sale_stage(now, Some("2026-04-01"), Some("2026-04-05"), Some("2026-04-15"));
+        let stage = |now| sale_stage(now, Some("2026-04-01"), Some("2026-04-05"), Some("2026-04-15"), None);
         assert_eq!(stage(epoch(2026, 4, 10, 12, 0)), TicketSaleStage::AwaitingResult, "締切後・当落前");
         assert_eq!(stage(epoch(2026, 4, 15, 0, 0)), TicketSaleStage::AwaitingResult, "当落発表の当日はまだ結果待ち");
         assert_eq!(stage(epoch(2026, 4, 15, 23, 59)), TicketSaleStage::AwaitingResult, "当落当日の 23:59 も");
@@ -698,7 +818,7 @@ mod tests {
     #[test]
     fn lottery_without_a_result_date_ends_right_after_the_deadline() {
         // result_at が無い抽選は、締切を過ぎた時点で Ended (いつまでも結果待ちにしない)。
-        let stage = |now| sale_stage(now, Some("2026-04-01"), Some("2026-04-05"), None);
+        let stage = |now| sale_stage(now, Some("2026-04-01"), Some("2026-04-05"), None, None);
         assert_eq!(stage(epoch(2026, 4, 5, 23, 59)), TicketSaleStage::Open);
         assert_eq!(stage(epoch(2026, 4, 6, 0, 0)), TicketSaleStage::Ended);
     }
@@ -706,25 +826,85 @@ mod tests {
     #[test]
     fn time_of_day_boundaries_are_exact_to_the_minute() {
         // 時刻付きの締切は分刻みの厳密な境界。
-        let stage = |now| sale_stage(now, None, Some("2026-04-12 23:59"), None);
+        let stage = |now| sale_stage(now, None, Some("2026-04-12 23:59"), None, None);
         assert_eq!(stage(epoch(2026, 4, 12, 23, 59)), TicketSaleStage::Open, "締切の分ちょうどはまだ受付中");
         assert_eq!(stage(epoch(2026, 4, 13, 0, 0)), TicketSaleStage::Ended, "1 分でも過ぎれば終了");
 
         // 開始も時刻付きなら分刻みで判定。
-        let starts = |now| sale_stage(now, Some("2026-04-01 12:00"), Some("2026-04-12"), None);
+        let starts = |now| sale_stage(now, Some("2026-04-01 12:00"), Some("2026-04-12"), None, None);
         assert_eq!(starts(epoch(2026, 4, 1, 11, 59)), TicketSaleStage::Upcoming);
         assert_eq!(starts(epoch(2026, 4, 1, 12, 0)), TicketSaleStage::Open, "開始の分ちょうどから受付中");
     }
 
     #[test]
     fn before_the_start_is_upcoming_regardless_of_other_dates() {
-        let stage = sale_stage(epoch(2026, 3, 1, 0, 0), Some("2026-04-01"), Some("2026-04-12"), Some("2026-04-15"));
+        let stage = sale_stage(epoch(2026, 3, 1, 0, 0), Some("2026-04-01"), Some("2026-04-12"), Some("2026-04-15"), None);
         assert_eq!(stage, TicketSaleStage::Upcoming);
     }
 
     #[test]
     fn no_dates_at_all_defaults_to_open_rather_than_hiding_as_ended() {
-        assert_eq!(sale_stage(epoch(2026, 1, 1, 0, 0), None, None, None), TicketSaleStage::Open);
+        assert_eq!(sale_stage(epoch(2026, 1, 1, 0, 0), None, None, None, None), TicketSaleStage::Open);
+    }
+
+    // ---- H1: ends_at 無し → 対象公演の最終日 23:59 を暗黙の締切に ----
+
+    #[test]
+    fn implicit_deadline_from_shows_ends_the_sale_the_day_after_the_last_show() {
+        // ends_at が無くても、implicit_deadline (対象公演の最終日) を渡せば
+        // その日の 23:59 まで Open、翌日から Ended になる (ends_at が無いことをいつまでも
+        // 「受付中」のまま放置しない)。
+        let last_show = NaiveDate::from_ymd_opt(2026, 9, 20).unwrap();
+        let stage = |now| sale_stage(now, Some("2026-09-15"), None, None, Some(last_show));
+        assert_eq!(stage(epoch(2026, 9, 20, 23, 59)), TicketSaleStage::Open, "最終公演当日はまだ受付中");
+        assert_eq!(stage(epoch(2026, 9, 21, 0, 0)), TicketSaleStage::Ended, "翌日になれば終了");
+    }
+
+    #[test]
+    fn explicit_ends_at_wins_over_the_implicit_deadline() {
+        // ends_at があれば implicit_deadline は無視する (実データが優先)。
+        let last_show = NaiveDate::from_ymd_opt(2026, 9, 20).unwrap();
+        let stage = sale_stage(epoch(2026, 9, 25, 0, 0), None, Some("2026-09-30"), None, Some(last_show));
+        assert_eq!(stage, TicketSaleStage::Open, "公演は終わっていても ends_at がまだ先なら受付中");
+    }
+
+    #[test]
+    fn sale_stage_with_implicit_deadline_derives_it_from_the_snapshot() {
+        // sale_stage_with_implicit_deadline は「対象公演 (show_ids 空なら全公演) の最終日」を
+        // implicit_deadline として自動で引く (H1 の実運用経路)。
+        let events = vec![event("e1", "14th LIVE", Some("cg"))];
+        let shows = vec![
+            show("sh1", 0, "14th LIVE DAY1", "2026-09-19"),
+            show("sh2", 0, "14th LIVE DAY2", "2026-09-20"),
+        ];
+        let snap = test_snapshot(events, shows, vec![]);
+
+        // show_ids 空 = 全公演 → 最終日は DAY2 (9/20)。
+        let stage_all = |now| {
+            sale_stage_with_implicit_deadline(&snap, 0, &[], now, Some("2026-09-01"), None, None)
+        };
+        assert_eq!(stage_all(epoch(2026, 9, 20, 23, 59)), TicketSaleStage::Open);
+        assert_eq!(stage_all(epoch(2026, 9, 21, 0, 0)), TicketSaleStage::Ended);
+
+        // show_ids が DAY1 だけなら最終日は 9/19。
+        let show_ids = vec!["sh1".to_string()];
+        let stage_day1 = |now| {
+            sale_stage_with_implicit_deadline(&snap, 0, &show_ids, now, Some("2026-09-01"), None, None)
+        };
+        assert_eq!(stage_day1(epoch(2026, 9, 19, 23, 59)), TicketSaleStage::Open);
+        assert_eq!(stage_day1(epoch(2026, 9, 20, 0, 0)), TicketSaleStage::Ended, "DAY1 だけなら DAY2 は関係無い");
+    }
+
+    // ---- L2: 当落日だけの受付は当落日より前を Upcoming に ----
+
+    #[test]
+    fn result_only_sale_is_upcoming_before_the_result_day_and_awaiting_on_it() {
+        // 開始も締切 (実・暗黙とも) も無く、当落発表だけが決まっている受付。
+        let stage = |now| sale_stage(now, None, None, Some("2026-04-15"), None);
+        assert_eq!(stage(epoch(2026, 4, 14, 23, 59)), TicketSaleStage::Upcoming, "当落日より前はまだ受付前");
+        assert_eq!(stage(epoch(2026, 4, 15, 0, 0)), TicketSaleStage::AwaitingResult, "当落日当日から結果待ち");
+        assert_eq!(stage(epoch(2026, 4, 15, 23, 59)), TicketSaleStage::AwaitingResult);
+        assert_eq!(stage(epoch(2026, 4, 16, 0, 0)), TicketSaleStage::Ended);
     }
 
     // ---- 並び ----
@@ -798,6 +978,20 @@ mod tests {
         let ended = with_stage(sale("ended", 0, None), TicketSaleStage::Ended, None, None);
         assert_eq!(pick_spotlight(&[ended]), None);
         assert_eq!(pick_spotlight(&[]), None);
+    }
+
+    #[test]
+    fn spotlight_compares_deadlines_as_real_moments_not_raw_strings_or_zero_minutes() {
+        // L1: 日付だけの締切は 23:59 相当のはずなのに、生文字列や「時刻無し=0分」の比較だと
+        // 同日の時刻付き締切より先に来てしまう。実際の NaiveDateTime で比べて正す。
+        let date_only = with_stage(sale("date_only", 0, None), TicketSaleStage::Open, Some("2026-04-12"), None);
+        let with_time = with_stage(sale("with_time", 0, None), TicketSaleStage::Open, Some("2026-04-12 09:00"), None);
+        // 09:00 (with_time) は 23:59 (date_only) より先に締め切るので、こちらを選ぶべき。
+        assert_eq!(
+            pick_spotlight(&[date_only, with_time]).map(|s| s.id),
+            Some("with_time".to_string()),
+            "同日なら時刻付き (早い方) の締切を優先する"
+        );
     }
 
     // ---- Snapshot を使う関数 (sales_for_event / spotlight / deadlines) ----
@@ -974,6 +1168,39 @@ mod tests {
         assert_eq!(deadlines(&snap, now, 1).len(), 1);
     }
 
+    #[test]
+    fn deadlines_uses_the_implicit_deadline_from_shows_when_ends_at_is_missing() {
+        // H1: ends_at の無い受付でも、対象公演の最終日を締切としてウィジェットの一覧に出す
+        // (実データでは締切が無い受付がライブ終了後もいつまでも受付中と表示されていた)。
+        let events = vec![event("e1", "14th LIVE", Some("cg"))];
+        let shows = vec![
+            show("sh1", 0, "14th LIVE DAY1", "2026-09-19"),
+            show("sh2", 0, "14th LIVE DAY2", "2026-09-20"),
+        ];
+        let sales = vec![row(
+            "t1",
+            0,
+            vec![],
+            TicketSaleKind::FirstCome,
+            "一般販売2次(先着)",
+            Some("2026-09-15"),
+            None,
+            None,
+            0,
+        )];
+        let snap = test_snapshot(events, shows, sales);
+
+        // 最終公演 (9/20) の間はまだ Open なので締切一覧に出る。
+        let before = deadlines(&snap, epoch(2026, 9, 20, 12, 0), 10);
+        assert_eq!(before.len(), 1, "最終日 23:59 までは受付中");
+        assert_eq!(before[0].deadline_day, "2026-09-20");
+        assert_eq!(before[0].deadline_time, None);
+
+        // 最終公演の翌日は Ended なので締切一覧から消える。
+        let after = deadlines(&snap, epoch(2026, 9, 21, 0, 0), 10);
+        assert!(after.is_empty(), "対象公演が終われば締切一覧に出続けない");
+    }
+
     // ---- 入力検査 ----
 
     fn draft() -> TicketSaleDraft {
@@ -1061,6 +1288,41 @@ mod tests {
         d3.starts_at = Some("2026-04-01 12:00".into());
         d3.ends_at = Some("2026-04-01 12:00".into());
         assert!(!validate_draft(&d3, &[]).contains(&TicketSaleIssue::EndsBeforeStarts));
+    }
+
+    #[test]
+    fn moment_comparisons_use_lower_bound_for_starts_and_upper_bound_for_deadlines_and_results() {
+        // M4: 開始は下限 (00:00)、締切・当落は上限 (23:59) で比べる。段階判定 (sale_stage) と
+        // 同じ意味にすることで、apply_data.py が通す値をコアの検査も通す。
+        let mut d = draft();
+        d.starts_at = Some("2026-04-12 18:00".into());
+        d.ends_at = Some("2026-04-12".into()); // 日付だけ = 23:59 扱い。18:00 より後なので OK。
+        assert!(!validate_draft(&d, &[]).contains(&TicketSaleIssue::EndsBeforeStarts));
+
+        let mut d2 = draft();
+        d2.ends_at = Some("2026-04-12 18:00".into());
+        d2.result_at = Some("2026-04-12".into()); // 日付だけ = 23:59 扱い。18:00 より後なので OK。
+        assert!(!validate_draft(&d2, &[]).contains(&TicketSaleIssue::ResultBeforeEnds));
+
+        // 逆に、締切の時刻が当落発表の日付だけ (23:59) より後ならまだ問題。
+        let mut d3 = draft();
+        d3.ends_at = Some("2026-04-12".into());
+        d3.result_at = Some("2026-04-11 23:00".into());
+        assert!(validate_draft(&d3, &[]).contains(&TicketSaleIssue::ResultBeforeEnds));
+    }
+
+    #[test]
+    fn nonexistent_calendar_moments_are_bad_moment_not_silently_ignored() {
+        // M4: 実在しない日時 (2026-02-30, 23:60, 24:00) は BadMoment として検査に引っかかる
+        // (正規表現だけの検査 (apply_data.py / Worker) と違い、コアは暦として解釈する)。
+        for bad in ["2026-02-30", "2026-04-12 23:60", "2026-04-12 24:00"] {
+            let mut d = draft();
+            d.starts_at = Some(bad.into());
+            assert!(
+                validate_draft(&d, &[]).contains(&TicketSaleIssue::BadMoment { field: TicketSaleField::StartsAt }),
+                "{bad} は BadMoment になるべき"
+            );
+        }
     }
 
     #[test]

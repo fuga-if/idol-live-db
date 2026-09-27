@@ -35,7 +35,6 @@
         "id": "ts_sample",
         "name": "先行抽選",
         "kindLabel": "抽選",
-        "stageLabel": "受付中",
         "showsLabel": null,
         "period": "2/1 (日) 〜 2/20 (金)",
         "result": "2/25 (水)",

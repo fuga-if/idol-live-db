@@ -113,7 +113,6 @@ const ev = page<EventPage>(Astro.props.data);
               <p class="ticket-sale__head">
                 <span class="ticket-sale__name">{s.name}</span>
                 <TagChip text={s.kindLabel} kind="sale" />
-                <span class="u-muted">{s.stageLabel}</span>
               </p>
               <ListContainer>
                 {s.showsLabel && <LabeledRow label="対象" value={s.showsLabel} />}

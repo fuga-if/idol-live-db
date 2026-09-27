@@ -57,13 +57,16 @@ web_dto! {
 }
 
 web_dto! {
-    /// チケット受付 1 件。段階・表示文字列は domain (`ticket_sales`) が決め切ったものをそのまま置く。
+    /// チケット受付 1 件。表示文字列は domain (`ticket_sales`) が決め切ったものをそのまま置く。
+    ///
+    /// L5: 段階 (`stage_label`) は持たない。Web の公開は日次 (JST 05:00) 固定で、段階は
+    /// 判定した瞬間で止まったまま一日中変わらないので、時々刻々変わる「受付中」等の札を
+    /// 静的ページに出さない (期間・当落の日程だけを事実として出す)。
     #[derive(Eq)]
     pub struct TicketSaleItem {
         pub id: String,
         pub name: String,
         pub kind_label: String,
-        pub stage_label: String,
         /// 対象公演の短い名を `・` で結んだもの (`DAY1・DAY2`)。全公演対象なら `None`。
         pub shows_label: Option<String>,
         /// `"4/1 (水) 12:00 〜 4/12 (日) 23:59"`。
