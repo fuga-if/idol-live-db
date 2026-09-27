@@ -623,15 +623,17 @@ pub struct Snapshot {
     /// songs と同じ添字。披露履歴 (fetchSongPerformanceHistory) の表示順:
     /// show.date DESC。SQL では同日内が未規定だったので、同日は
     /// (show.sort_order ASC, position ASC) で決定的にしてある。
+    /// **上映会 (`event_detail_queries::is_screening`) の行は入らない** — 披露ではないので。
     pub setlist_items_by_song: Vec<Vec<u32>>,
     /// setlist_items と同じ添字。その披露がその曲の何回目か (この DB に載っている範囲で
     /// 最古が 1)。時系列は setlist_items_by_song の並びの逆 (同日内は公演の並び・曲順の昇順)。
     /// 「初披露」= 1。曲ページの「N 回目」と公演ページの「初披露」札が同じ数を見る。
+    /// 上映会の行は披露でないので 0。
     pub ordinal_by_item: Vec<u32>,
     /// setlist_items と同じ添字。その披露の歌唱メンバー (setlist_performers)。
     /// idol の sort_order 順。
     pub performers_by_item: Vec<Vec<u32>>,
-    /// idols と同じ添字。setlist_performers の逆引き (歌った setlist_item 添字群)。
+    /// idols と同じ添字。setlist_performers の逆引き (歌った setlist_item 添字群)。上映会の行は入らない。
     /// setlist_items_by_song と同じ (show.date DESC) 順 — fetchIdolSongHistory /
     /// fetchIdolPerformedSongs が新しい順で走査するため。
     pub performed_items_by_idol: Vec<Vec<u32>>,

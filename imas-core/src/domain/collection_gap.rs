@@ -34,6 +34,7 @@
 
 // 参加マークの射影は一覧側と同じ型を使う (同じものを 2 つ定義しない)。
 pub use crate::domain::event_list_queries::AttendanceMarkRecord;
+use crate::domain::event_detail_queries::{is_screening, SCREENING_PERFORMER_TYPE};
 use crate::domain::performance_gap::{months_between, notable_interval_label};
 use crate::domain::snapshot::Snapshot;
 use std::collections::HashSet;
@@ -52,6 +53,15 @@ pub const REAL_LIVE_KINDS: [&str; 2] = ["live", "festival"];
 /// 同じ値を Swift のリテラルで持つと、対象を足したときに片方だけ古いまま残る。
 pub fn collection_real_live_kinds() -> Vec<String> {
     REAL_LIVE_KINDS.iter().map(|k| k.to_string()).collect()
+}
+
+/// 催しがリアルライブでも回収の対象にならない公演の `shows.performer_type` (上映会)。
+///
+/// SQL 経路が `NOT IN` を組むために引く ([`collection_real_live_kinds`] と同じ理由)。
+/// `performer_type` が NULL の公演は対象のまま — `NOT IN` に NULL を渡すと全部落ちるので、
+/// 呼び手は `COALESCE(performer_type, '')` で比べること。
+pub fn collection_excluded_performer_types() -> Vec<String> {
+    vec![SCREENING_PERFORMER_TYPE.to_string()]
 }
 
 /// 回収に数える参加形態 (`user_marks.text_value`)。**空なら形態を問わない。**
@@ -92,9 +102,13 @@ pub fn collection_attended_show_ids(
 }
 
 /// その公演は回収の対象か (リアルライブか)。歌枠・配信番組・ラジオ・リリイベは対象外。
+///
+/// 催しがライブでも、その中の上映会 (MV 上映会など、誰も歌わない公演) は対象外
+/// ([`crate::domain::event_detail_queries::is_screening`])。
 pub fn is_real_live(snap: &Snapshot, show: u32) -> bool {
-    let kind = snap.events[snap.shows[show as usize].event as usize].kind.as_str();
-    REAL_LIVE_KINDS.contains(&kind)
+    let show = &snap.shows[show as usize];
+    let kind = snap.events[show.event as usize].kind.as_str();
+    REAL_LIVE_KINDS.contains(&kind) && !is_screening(show.performer_type.as_deref())
 }
 
 /// 参加マークの id 列 → 参加した公演 (スナップショット添字) の集合。

@@ -358,6 +358,8 @@ mod tests {
         db.prepare(
             "SELECT s.id, s.title, COUNT(si.id) AS play_count, s.brand_id, s.artwork_url
              FROM songs s JOIN setlist_items si ON s.id = si.song_id
+             JOIN shows sh ON sh.id = si.show_id
+             WHERE COALESCE(sh.performer_type, '') <> 'screening'
              GROUP BY s.id ORDER BY play_count DESC LIMIT ?",
         )
         .unwrap()

@@ -22,10 +22,11 @@ use crate::domain::collection_gap::{
     attended_real_live_shows, collection_gap, is_real_live, show_collection_summary, CollectionGap,
     ShowCollectionRecord,
 };
-use crate::domain::performance_gap::performance_gap;
+use crate::domain::performance_gap::{is_performance, original_singers, performance_gap};
 use crate::domain::performer_label::{setlist_performer_label, SetlistNaming};
 use crate::domain::screen_composition::{
-    setlist_row_note_groups, SetlistDisplayMode, SetlistRowNoteGroupRecord,
+    setlist_public_note_groups, setlist_row_note_groups, SetlistDisplayMode,
+    SetlistRowNoteGroupRecord,
 };
 use crate::domain::setlist_lineup::{row_lineup, RowLineup, SetlistLineupNote};
 use crate::domain::setlist_sections::row_sections;
@@ -191,10 +192,16 @@ pub fn setlist_row_meta(
             });
             let gap = performance_gap(snap, item);
             let mine = collection_gap(snap, item, &attended);
+            // 上映会の行は披露ではないので、世の中から見た軸 (披露・歌唱) を持たない。
+            let public = if is_performance(snap, item) {
+                setlist_public_note_groups(&gap, &original_singers(snap, item))
+            } else {
+                Vec::new()
+            };
             // 参加記録を 1 件も付けていない人に「未回収」を並べても情報にならないので、
             // そのときは回収の対象でない催しと同じ扱いにして自分の事実を伏せる。
             let note_groups =
-                setlist_row_note_groups(display_mode, real_live && has_marks, &gap, &mine);
+                setlist_row_note_groups(display_mode, real_live && has_marks, public, &mine);
             collection_rows.push((song.id.clone(), mine));
 
             SetlistRowMetaRecord {
@@ -267,6 +274,51 @@ mod tests {
             .into_iter()
             .find(|m| m.item_id == item_id)
             .expect("行は返る")
+    }
+
+    /// MV 上映会は披露ではない: 行に披露・歌唱の段を出さず、参加していても
+    /// 回収の段も要約も出さない (MV を見ても曲は回収されない)。
+    #[test]
+    fn 上映会の行には披露も回収も出ない() {
+        let snap = bundle_snapshot();
+        let attended = ["sh_L1250".to_string()];
+        let bundle = setlist_row_meta(
+            snap,
+            "sh_L1250",
+            PerformerNameMode::IdolOnly,
+            SetlistDisplayMode::Detailed,
+            &[],
+            &[],
+        );
+        assert!(!bundle.rows.is_empty());
+        assert!(bundle.rows.iter().all(|r| r.note_groups.is_empty()));
+        // 他の公演の参加記録があって「未回収」を出す人でも、上映会では出ない。
+        let other_show = snap.shows.iter().find(|s| s.id != "sh_L1250").unwrap().id.clone();
+        for marks in [&attended[..], &[other_show][..]] {
+            let bundle = setlist_row_meta(
+                snap,
+                "sh_L1250",
+                PerformerNameMode::IdolOnly,
+                SetlistDisplayMode::Detailed,
+                marks,
+                &[],
+            );
+            assert!(bundle.rows.iter().all(|r| r.note_groups.is_empty()));
+            assert_eq!(bundle.collection, None);
+        }
+    }
+
+    /// カバーで通算が膨らんだ曲に、オリメンにとっての回数を「歌唱」の段で添える。
+    #[test]
+    fn オリメンの回数を歌唱の段で添える() {
+        let meta = meta_of("cg_ミラーボールラブ", "2022-04-02");
+        let axes: Vec<(&str, Vec<&str>)> = meta
+            .note_groups
+            .iter()
+            .map(|g| (g.label.as_str(), g.notes.iter().map(|n| n.text.as_str()).collect()))
+            .collect();
+        assert_eq!(axes[0], ("披露", vec!["6 回目"]));
+        assert_eq!(axes[1], ("歌唱", vec!["友紀・愛海 3 回目"]));
     }
 
     /// 依頼の実例。エミリー スチュアートと徳川まつりの 2 人が歌うが、

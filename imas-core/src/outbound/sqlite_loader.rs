@@ -989,10 +989,15 @@ mod tests {
     #[test]
     fn performance_counts_match_sql_group_by() {
         // 披露回数は SQL 時代 (COUNT(*) GROUP BY song_id) と同じ値になること。
+        // 上映会 (誰も歌わない公演) の行は披露に数えない。
         let s = bundle_snapshot();
         let c = bundle_conn();
         let mut stmt =
-            c.prepare("SELECT song_id, COUNT(*) FROM setlist_items GROUP BY song_id").unwrap();
+            c.prepare(
+            "SELECT si.song_id, COUNT(*) FROM setlist_items si JOIN shows sh ON sh.id = si.show_id
+             WHERE COALESCE(sh.performer_type, '') <> 'screening' GROUP BY si.song_id",
+        )
+        .unwrap();
         let rows: Vec<(String, i64)> = stmt
             .query_map([], |r| Ok((r.get(0)?, r.get(1)?)))
             .unwrap()

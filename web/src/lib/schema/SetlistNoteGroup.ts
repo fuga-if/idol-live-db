@@ -2,7 +2,7 @@
 import type { SetlistNote } from "./SetlistNote";
 
 /**
- * 行に添える事実の軸 1 本 (`披露`)。
+ * 行に添える事実の軸 1 本 (`披露` / `歌唱`)。
  */
 export type SetlistNoteGroup = { 
 /**

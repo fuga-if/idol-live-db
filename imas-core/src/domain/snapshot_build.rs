@@ -15,6 +15,7 @@ use crate::domain::snapshot::{
     IdolVoiceActor, SetlistItem, Show, ShowCastLink, Snapshot, Song, SongArtistLink, Staff, Unit,
     Venue, VenueHall, VenueName,
 };
+use crate::domain::event_detail_queries::is_screening;
 use crate::domain::text_search_index::TextSearchIndex;
 
 /// `Snapshot` を組むのに要る生テーブル一式。
@@ -142,9 +143,15 @@ pub fn build(raw: RawTables) -> Snapshot {
     // setlist_items_by_show: position ASC / setlist_items_by_song: show.date DESC。
     let mut setlist_items_by_show: Vec<Vec<u32>> = vec![Vec::new(); shows.len()];
     let mut setlist_items_by_song: Vec<Vec<u32>> = vec![Vec::new(); songs.len()];
+    // 上映会 (誰も歌わない公演) の行はセトリには並ぶが、曲の披露には数えない。
+    // 披露回数・何回目・履歴・歌唱履歴・回収は全部この索引から出るので、ここで外せば揃う。
+    let is_performance =
+        |item: &SetlistItem| !is_screening(shows[item.show as usize].performer_type.as_deref());
     for (i, item) in setlist_items.iter().enumerate() {
         setlist_items_by_show[item.show as usize].push(i as u32);
-        setlist_items_by_song[item.song as usize].push(i as u32);
+        if is_performance(item) {
+            setlist_items_by_song[item.song as usize].push(i as u32);
+        }
     }
     for list in &mut setlist_items_by_show {
         list.sort_by_key(|&i| (setlist_items[i as usize].position, i));
@@ -200,7 +207,9 @@ pub fn build(raw: RawTables) -> Snapshot {
                 continue;
             };
             performers_by_item[ti as usize].push(ii);
-            performed_items_by_idol[ii as usize].push(ti);
+            if is_performance(&setlist_items[ti as usize]) {
+                performed_items_by_idol[ii as usize].push(ti);
+            }
         }
     }
     for list in &mut performers_by_item {

@@ -1117,7 +1117,10 @@ mod tests {
     fn performance_count_map_matches_sql() {
         let db = bundle_conn();
         let mut stmt = db
-            .prepare("SELECT song_id, COUNT(*) FROM setlist_items GROUP BY song_id")
+            .prepare(
+                "SELECT si.song_id, COUNT(*) FROM setlist_items si JOIN shows sh ON sh.id = si.show_id
+                 WHERE COALESCE(sh.performer_type, '') <> 'screening' GROUP BY si.song_id",
+            )
             .unwrap();
         let expected: HashMap<String, u32> = stmt
             .query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, u32>(1)?)))

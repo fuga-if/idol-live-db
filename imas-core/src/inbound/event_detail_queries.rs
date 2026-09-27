@@ -64,6 +64,13 @@ pub fn collection_real_live_kinds() -> Vec<String> {
     collection::collection_real_live_kinds()
 }
 
+/// 催しがリアルライブでも回収に数えない公演の `shows.performer_type` (上映会)。
+/// SQL 経路が `COALESCE(sh.performer_type, '') NOT IN (…)` を組むために引く。
+#[uniffi::export]
+pub fn collection_excluded_performer_types() -> Vec<String> {
+    collection::collection_excluded_performer_types()
+}
+
 /// 回収に数える参加形態 (`user_marks.text_value`)。**空なら形態を問わない。**
 /// SQL 経路が `text_value IS NULL OR text_value IN (…)` を組むために引く。
 #[uniffi::export]

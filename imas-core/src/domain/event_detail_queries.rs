@@ -259,6 +259,19 @@ pub fn is_character_live(performer_type: Option<&str>) -> bool {
     performer_type == Some("character")
 }
 
+/// 歌わない公演 (MV 上映会など) の `shows.performer_type`。
+pub const SCREENING_PERFORMER_TYPE: &str = "screening";
+
+/// 公演が上映会か (舞台で誰も歌わず、映像を流すだけ)。**判定の定義はここ 1 箇所。**
+///
+/// セトリ (流した曲の並び) は持つが、**披露ではない**。披露回数・いつぶり・
+/// 歌唱履歴・回収のどれにも数えない (数えると「MV を流しただけで 7 回目」になる)。
+/// 区分は `performer_type` に持たせる — 「舞台に立つのは誰か (声優 / キャラ / 誰も立たない)」
+/// の軸で、列を足さずに CloudKit までそのまま流れる。
+pub fn is_screening(performer_type: Option<&str>) -> bool {
+    performer_type == Some(SCREENING_PERFORMER_TYPE)
+}
+
 /// 公演 id から引く版。手元に行が無い呼び出し側のため。
 pub fn show_is_character_live(snap: &Snapshot, show_id: &str) -> bool {
     snap.show_index_by_id
