@@ -71,4 +71,27 @@ sqlite3 "$DB" "INSERT INTO meta (key, value) VALUES ('content_hash', '$CONTENT_H
                ON CONFLICT(key) DO UPDATE SET value = excluded.value;"
 echo "✅ meta.content_hash: ${CONTENT_HASH:0:12}…"
 
+# ticket_sales ゲート (必須): 同梱の DB にチケット受付が 1 件も入らないままリリースすると、
+# 差分同期 (modifiedAt > lastSync) しか届く道が無い既存ユーザーには永久に届かない
+# (docs/DATA_PIPELINE.md の M6。届けるには Production へのスキーマ昇格 → apply_data --push
+# --production → 日次 export で db/master.sql に反映、の順が必要)。中身がまだ無いのに
+# リリースを進めてしまう事故を防ぐため、ここで検知して止める。
+python3 - "$DB" <<'PY' || { rm -f "$DB"; exit 1; }
+import sqlite3, sys
+conn = sqlite3.connect(sys.argv[1])
+row = conn.execute(
+    "SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name = 'ticket_sales'"
+).fetchone()
+if row[0] == 0:
+    print("✅ ticket_sales 表がまだ無い (imas-core 側の DDL 反映待ち)。ゲート対象外")
+    sys.exit(0)
+count = conn.execute("SELECT count(*) FROM ticket_sales").fetchone()[0]
+if count == 0:
+    print("✗ ticket_sales が 0 行。Production へのスキーマ昇格・push・日次 export が済んで "
+          "db/master.sql に反映されるまでリリースしない (docs/DATA_PIPELINE.md 参照)。",
+          file=sys.stderr)
+    sys.exit(1)
+print(f"✅ ticket_sales: {count} 行")
+PY
+
 echo "✓ $DB を db/master.sql から再生成"

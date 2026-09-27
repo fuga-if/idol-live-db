@@ -303,6 +303,25 @@ SHINY COLORS MUSIC DAWN 等) が含まれる。**ここに 1 を入れてから�
 `tools/build_db.sh` は FK 整合性に加えて `data_version` と `content_hash` の存在も検証し、
 どちらか欠けていれば master.sqlite の生成を失敗させる。
 
+### `ticket_sales` ゲート (リリース前提)
+
+チケット受付 (`ticket_sales`) は差分同期 (`modifiedAt > lastSync`) でしか届かない。**push
+より後に一度でも同期した端末には、その回の差分では届かず、次に届く道は reseed だけ**
+(reseed は `content_hash` / `data_version` の不一致でしか起きない)。そのため、同梱の
+`master.sqlite` に `ticket_sales` の行が 1 件も無いままリリースすると、その世代のユーザーには
+チケット受付機能が永久に (次の reseed が起きるまで) 表示されない。
+
+届けるには次の順を守ること:
+
+1. CloudKit Production へ `TicketSale` のスキーマを昇格する。
+2. `CLOUDKIT_KEY_ID=... python3 tools/apply_data.py --apply --push --production` で行を出す。
+3. `tools/export_cloudkit.py` の日次 cron が `db/master.sql` に反映し、`data_version` が上がる。
+4. その `db/master.sql` を確認してからリリースする。
+
+`tools/build_db.sh` は上記のゲートとして、`ticket_sales` 表が存在するのに 0 行なら
+master.sqlite の生成を失敗させる (表そのものがまだ無い = imas-core 側の DDL 反映待ちのときは
+対象外)。
+
 ## コミュニティデータ (D1) のバックアップ / スナップショット
 
 マスタ (CloudKit) は日次 cron で `db/master.sql` に落ちるので失っても戻せる。
