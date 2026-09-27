@@ -631,7 +631,8 @@ a.chip:hover {
 /* 全員曲と衣装。他の札 (ユニット表記・カバー・初披露) がアクセント色を使うので、
    こちらは地の色で置く。同じ行に並ぶので、色まで同じだと種類の違いが読めない。 */
 .tag--all,
-.tag--costume {
+.tag--costume,
+.tag--sale {
   background: var(--ds-fill);
   color: var(--ds-ink2);
 }
@@ -697,6 +698,25 @@ a.chip:hover {
 .costume + .costume {
   padding-block-start: var(--sp3);
   border-block-start: 1px solid var(--ds-sep);
+}
+
+/* --- チケット受付 (公演ページの脇) -----------------------------------------
+   1 件 = 1 カード。日程・当落・対象公演の言い方は domain (`ticket_sales`) が
+   組み切った文字列をそのまま出す。 */
+.ticket-sale__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--sp2);
+  min-inline-size: 0;
+  margin: 0;
+}
+.ticket-sale__name {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.ticket-sale__note {
+  margin: 0;
 }
 
 /* --- 歌詞 -----------------------------------------------------------------

@@ -103,13 +103,34 @@ const ev = page<EventPage>(Astro.props.data);
   }
 
   {
-    /* 日程の語 (受付開始 / 申込締切 / 当落発表) と、出すかどうかは Rust が決める。 */
+    /* 受付 1 件 = 1 カード。段階・日程・当落・対象公演の文言は domain (`ticket_sales`) が
+       組み切ったものをそのまま出す。 */
     ev.ticket && (
-      <Section slot="aside" id="event-ticket" title="チケット">
-        <ListContainer>
-          {ev.ticket.dates.map((d) => <LabeledRow label={d.label} value={d.date} mono />)}
-          {ev.ticket.url && <LabeledRow label="公式情報" value="チケット情報" href={ev.ticket.url} />}
-        </ListContainer>
+      <Section slot="aside" id="event-ticket" title="チケット" count={ev.ticket.sales.length || undefined}>
+        <div class="u-stack">
+          {ev.ticket.sales.map((s) => (
+            <div class="card card__pad u-stack">
+              <p class="ticket-sale__head">
+                <span class="ticket-sale__name">{s.name}</span>
+                <TagChip text={s.kindLabel} kind="sale" />
+                <span class="u-muted">{s.stageLabel}</span>
+              </p>
+              <ListContainer>
+                {s.showsLabel && <LabeledRow label="対象" value={s.showsLabel} />}
+                {s.period && <LabeledRow label="期間" value={s.period} mono />}
+                {s.result && <LabeledRow label="当落発表" value={s.result} mono />}
+                {s.url && <LabeledRow label="申込" value="申込ページ" href={s.url} />}
+                <LabeledRow label="出典" value="出典を見る" href={s.sourceUrl} />
+              </ListContainer>
+              {s.note && <p class="ticket-sale__note">{s.note}</p>}
+            </div>
+          ))}
+          {ev.ticket.url && (
+            <ListContainer>
+              <LabeledRow label="公式情報" value="チケット情報" href={ev.ticket.url} />
+            </ListContainer>
+          )}
+        </div>
       </Section>
     )
   }
