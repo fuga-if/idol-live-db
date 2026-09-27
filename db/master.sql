@@ -15774,9 +15774,9 @@ INSERT INTO "setlist_items" VALUES('sh_the_idolm@ster_million_live_14thlive_2_00
 INSERT INTO "setlist_items" VALUES('sh_the_idolm@ster_million_live_14thlive_2_0034','sh_the_idolm@ster_million_live_14thlive_2','961_kiss',34,NULL,NULL,NULL);
 INSERT INTO "setlist_items" VALUES('sh_the_idolm@ster_million_live_14thlive_2_0035','sh_the_idolm@ster_million_live_14thlive_2','ml_cherry_colored_love',35,NULL,NULL,NULL);
 INSERT INTO "setlist_items" VALUES('sh_the_idolm@ster_million_live_14thlive_2_0036','sh_the_idolm@ster_million_live_14thlive_2','ml_present',36,NULL,NULL,NULL);
-INSERT INTO "setlist_items" VALUES('sh_the_idolm@ster_million_live_14thlive_2_0037','sh_the_idolm@ster_million_live_14thlive_2','ml_ドレスコード最上級',37,NULL,NULL,NULL);
-INSERT INTO "setlist_items" VALUES('sh_the_idolm@ster_million_live_14thlive_2_0038','sh_the_idolm@ster_million_live_14thlive_2','ml_合言葉はスタートアップ',38,NULL,NULL,NULL);
-INSERT INTO "setlist_items" VALUES('sh_the_idolm@ster_million_live_14thlive_2_0039','sh_the_idolm@ster_million_live_14thlive_2','ml_春風満帆スターティング',39,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_the_idolm@ster_million_live_14thlive_2_0037','sh_the_idolm@ster_million_live_14thlive_2','ml_ドレスコード最上級',37,'アンコール',NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_the_idolm@ster_million_live_14thlive_2_0038','sh_the_idolm@ster_million_live_14thlive_2','ml_合言葉はスタートアップ',38,'アンコール',NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_the_idolm@ster_million_live_14thlive_2_0039','sh_the_idolm@ster_million_live_14thlive_2','ml_春風満帆スターティング',39,'ダブルアンコール',NULL,NULL);
 INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_岩手公演_1_0001','sh_学園アイドルマスター_live_tour_-標-_岩手公演_1','gakuen_superlative',1,NULL,NULL,NULL);
 INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_岩手公演_1_0002','sh_学園アイドルマスター_live_tour_-標-_岩手公演_1','gakuen_love_joy',2,NULL,NULL,NULL);
 INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_岩手公演_1_0003','sh_学園アイドルマスター_live_tour_-標-_岩手公演_1','gakuen_憧れをいっぱい',3,NULL,NULL,NULL);
