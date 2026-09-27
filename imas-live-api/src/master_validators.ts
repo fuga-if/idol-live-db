@@ -23,7 +23,10 @@ const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 // (imas-core の解釈と合わせる。時刻無しは domain 側で日の始まり/終わりに正規化する)。
 const TICKET_MOMENT_RE = /^\d{4}-\d{2}-\d{2}(?: \d{2}:\d{2})?$/;
 // ticket_sales.show_ids はカンマ区切りの id (NULL = 全公演)。1 個でも成立する。
-const ID_CSV_RE = /^[\w.-]+(?:,[\w.-]+)*$/;
+// id には @ や日本語 (第2弾 等) を含むものが実在する (JS の \w は ASCII だけなので
+// [\w.-] だと 65/1219 件の show id が弾かれ、iOS/Android が毎回 showIds を送る更新が
+// 常に 400 になっていた)。区切りのカンマと空白さえ含まなければ通す。
+const ID_CSV_RE = /^[^,\s]+(?:,[^,\s]+)*$/;
 const APPLE_MUSIC_ID_RE = /^\d{1,20}$/; // appleMusicId は数値 ID
 // YouTube 動画 URL (watch / youtu.be / shorts / embed)。SongVideo.youtubeUrl 用 (確定契約 §4)。
 const YOUTUBE_URL_RE =
@@ -42,6 +45,35 @@ interface FieldRule {
   appleMusicId?: boolean;
   min?: number;
   max?: number;
+  // TICKET_MOMENT_RE の形式に加え、実在する日時か (2026-02-30 や 24:00 等を弾く) も見る。
+  ticketMoment?: boolean;
+}
+
+/**
+ * ticket_sales の日時が実在するか。TICKET_MOMENT_RE (形式) を先に通した値を渡すこと。
+ * 正規表現は桁数しか見ないので、2026-02-30 や 24:00 / 23:60 のような架空の日時も通ってしまう
+ * (apply_data.py / imas-core と同じ穴。ここでは datetime 相当の範囲検査で弾く)。
+ */
+function isRealTicketMoment(value: string): boolean {
+  const m = /^(\d{4})-(\d{2})-(\d{2})(?: (\d{2}):(\d{2}))?$/.exec(value);
+  if (!m) return false;
+  const year = Number(m[1]);
+  const month = Number(m[2]);
+  const day = Number(m[3]);
+  if (month < 1 || month > 12) return false;
+  const daysInMonth = new Date(year, month, 0).getDate(); // month は 1-indexed のまま渡してよい
+  if (day < 1 || day > daysInMonth) return false;
+  if (m[4] !== undefined) {
+    const hour = Number(m[4]);
+    const minute = Number(m[5]);
+    if (hour > 23 || minute > 59) return false;
+  }
+  return true;
+}
+
+/** 日付だけの値を比較用に境界時刻へ正規化する (時刻つきならそのまま)。apply_data.py と同じ規則。 */
+function ticketMomentBound(value: string, pad: string): string {
+  return value.length > 10 ? value : `${value} ${pad}`;
 }
 
 // 各オープン編集型の編集可能フィールド (ここに無いフィールドは一般ユーザーは送れない)。
@@ -176,9 +208,9 @@ const FIELD_RULES: Record<string, Record<string, FieldRule>> = {
       maxLen: 30,
     },
     name: { type: "STRING", required: true, maxLen: 200 },
-    startsAt: { type: "STRING", pattern: TICKET_MOMENT_RE, maxLen: 20 },
-    endsAt: { type: "STRING", pattern: TICKET_MOMENT_RE, maxLen: 20 },
-    resultAt: { type: "STRING", pattern: TICKET_MOMENT_RE, maxLen: 20 },
+    startsAt: { type: "STRING", pattern: TICKET_MOMENT_RE, ticketMoment: true, maxLen: 20 },
+    endsAt: { type: "STRING", pattern: TICKET_MOMENT_RE, ticketMoment: true, maxLen: 20 },
+    resultAt: { type: "STRING", pattern: TICKET_MOMENT_RE, ticketMoment: true, maxLen: 20 },
     url: { type: "STRING", url: "http", maxLen: MAX_STR_DEFAULT },
     note: { type: "STRING", maxLen: 1000 },
     sourceUrl: { type: "STRING", required: true, url: "http", maxLen: MAX_STR_DEFAULT },
@@ -199,6 +231,7 @@ function validateField(field: string, value: unknown, rule: FieldRule): string |
   if (value === "") return null; // 空文字は「クリア」として許可
   if (rule.maxLen && value.length > rule.maxLen) return `${field} exceeds ${rule.maxLen} chars`;
   if (rule.pattern && !rule.pattern.test(value)) return `${field} has invalid format`;
+  if (rule.ticketMoment && !isRealTicketMoment(value)) return `${field} is not a real date/time`;
   if (rule.enum && !rule.enum.includes(value)) return `${field} must be one of: ${rule.enum.join(", ")}`;
   if (rule.hex && !HEX_RE.test(value)) return `${field} must be #RRGGBB`;
   if (rule.appleMusicId && !APPLE_MUSIC_ID_RE.test(value)) return `${field} must be a numeric Apple Music ID`;
@@ -262,5 +295,25 @@ export function validateMasterEdit(input: MasterEditInput, isAdmin: boolean): st
       if (v === undefined || v === null || v === "") return `field ${k} is required to create ${recordType}`;
     }
   }
+
+  // startsAt ≤ endsAt ≤ resultAt。日付だけの値は開始側 00:00・締切/当落側 23:59 で比べる
+  // (imas-core / apply_data.py と同じ規則)。1 回の編集に複数フィールドが同時に来たときだけ
+  // 見られる (update で片方だけ送る編集は imas-core 側の draft 検査が最終防波堤)。
+  if (recordType === "TicketSale") {
+    const starts = fields.startsAt;
+    const ends = fields.endsAt;
+    const result = fields.resultAt;
+    if (typeof starts === "string" && starts && typeof ends === "string" && ends) {
+      if (ticketMomentBound(starts, "00:00") > ticketMomentBound(ends, "23:59")) {
+        return "startsAt is after endsAt";
+      }
+    }
+    if (typeof ends === "string" && ends && typeof result === "string" && result) {
+      if (ticketMomentBound(ends, "23:59") > ticketMomentBound(result, "23:59")) {
+        return "endsAt is after resultAt";
+      }
+    }
+  }
+
   return null;
 }

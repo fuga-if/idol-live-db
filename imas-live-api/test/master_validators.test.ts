@@ -178,6 +178,58 @@ describe("validateMasterEdit — TicketSale (チケット受付)", () => {
     })).toMatch(/invalid format/);
   });
 
+  it("showIds は @ や日本語を含む id も通す (H2 回帰)", () => {
+    expect(ok({
+      recordType: "TicketSale", op: "update", recordName: "ts_x",
+      fields: { showIds: "sh_the_idolm@ster_million_live_14thlive_1" },
+    })).toBeNull();
+    expect(ok({
+      recordType: "TicketSale", op: "update", recordName: "ts_x",
+      fields: { showIds: "sh_cinderella_girls_musical_第2弾_3,sh_a_02" },
+    })).toBeNull();
+    // カンマと空白は今も区切りとして特別扱いする。
+    expect(ok({
+      recordType: "TicketSale", op: "update", recordName: "ts_x",
+      fields: { showIds: "sh_a_01 ,sh_a_02" },
+    })).toMatch(/invalid format/);
+  });
+
+  it("実在しない日時は弾く (2026-02-30 / 24:00 / 23:60)", () => {
+    expect(ok({
+      recordType: "TicketSale", op: "update", recordName: "ts_x",
+      fields: { endsAt: "2026-02-30" },
+    })).toMatch(/not a real date\/time/);
+    expect(ok({
+      recordType: "TicketSale", op: "update", recordName: "ts_x",
+      fields: { endsAt: "2026-02-28 24:00" },
+    })).toMatch(/not a real date\/time/);
+    expect(ok({
+      recordType: "TicketSale", op: "update", recordName: "ts_x",
+      fields: { endsAt: "2026-02-28 23:60" },
+    })).toMatch(/not a real date\/time/);
+    // うるう年の 2/29 は実在する。
+    expect(ok({
+      recordType: "TicketSale", op: "update", recordName: "ts_x",
+      fields: { endsAt: "2028-02-29" },
+    })).toBeNull();
+  });
+
+  it("startsAt/endsAt/resultAt の前後関係を検査する (日付だけは 00:00/23:59 で比較)", () => {
+    // 締切が日付だけ (23:59 扱い) なら、開始が同日 18:00 でも順序として正しい。
+    expect(ok({
+      recordType: "TicketSale", op: "update", recordName: "ts_x",
+      fields: { startsAt: "2026-04-12 18:00", endsAt: "2026-04-12" },
+    })).toBeNull();
+    expect(ok({
+      recordType: "TicketSale", op: "update", recordName: "ts_x",
+      fields: { startsAt: "2026-04-12", endsAt: "2026-04-01" },
+    })).toMatch(/startsAt is after endsAt/);
+    expect(ok({
+      recordType: "TicketSale", op: "update", recordName: "ts_x",
+      fields: { endsAt: "2026-04-28", resultAt: "2026-04-15" },
+    })).toMatch(/endsAt is after resultAt/);
+  });
+
   it("sourceUrl が無い create は必須エラー", () => {
     const { sourceUrl: _drop, ...rest } = base;
     expect(ok({ recordType: "TicketSale", op: "create", fields: rest }))
