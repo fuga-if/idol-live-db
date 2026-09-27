@@ -14,7 +14,8 @@ final class CalendarPeriodBandTests: XCTestCase {
         let tuesday = weekDays[2]
         let entry = CalendarEntry.ticketPeriod(TicketPeriodRow(
             eventId: "ev1", eventName: "ライブ", brandColor: nil,
-            start: "2026-09-22", end: "2026-09-24", url: nil))
+            start: "2026-09-22", end: "2026-09-24", url: nil,
+            saleId: "ts1", saleName: "先行抽選", saleKind: "lottery"))
 
         let bands = CalendarPeriodBand.pack(
             weekDays: weekDays, entriesByDate: [calendar.startOfDay(for: tuesday): [entry]],

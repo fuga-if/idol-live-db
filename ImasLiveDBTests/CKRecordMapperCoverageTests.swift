@@ -28,7 +28,7 @@ final class CKRecordMapperCoverageTests: XCTestCase {
     func testEveryRecordTypeHasASample() {
         let names = Set(samples(flag: true).map(caseName))
         XCTAssertEqual(names.count, samples(flag: true).count, "同じレコード型のサンプルが重なっている")
-        XCTAssertEqual(names.count, 21)
+        XCTAssertEqual(names.count, 22)
     }
 
     func testEveryFieldReachesTheModel() {
@@ -62,6 +62,7 @@ final class CKRecordMapperCoverageTests: XCTestCase {
         case .setlistPerformer: "setlistPerformer"
         case .songVideo: "songVideo"
         case .showTicket: "showTicket"
+        case .ticketSale: "ticketSale"
         }
     }
 
@@ -180,12 +181,16 @@ final class CKRecordMapperCoverageTests: XCTestCase {
             .showTicket(row: CkShowTicketRow(
                 id: v("id"), showId: v("showId"), kind: v("kind"), name: v("name"), price: 6_600,
                 isEstimate: flag, note: v("note"), sortOrder: 18)),
+            .ticketSale(row: CkTicketSaleRow(
+                id: v("id"), eventId: v("eventId"), showIds: v("showIds"), kind: v("kind"), name: v("name"),
+                startsAt: v("startsAt"), endsAt: v("endsAt"), resultAt: v("resultAt"), url: v("url"),
+                note: v("note"), sourceUrl: v("sourceUrl"), sortOrder: 19)),
         ]
     }
 
-    // MARK: - CKRecord → モデル (21 型を 1 件ずつ)
+    // MARK: - CKRecord → モデル (22 型を 1 件ずつ)
 
-    /// 21 型それぞれ、サンプルの行と同じ値を載せた CKRecord を型名つきで取り込み、
+    /// 22 型それぞれ、サンプルの行と同じ値を載せた CKRecord を型名つきで取り込み、
     /// モデルまで届くこと。`mapped(_:as:)` に渡す型名を打ち間違えると、その型の同期が
     /// 黙って全件落ちる (nil で warning ログが出るだけ) ので、ここで捕まえる。
     func testEveryRecordTypeIsIngestedFromACKRecord() {
@@ -302,6 +307,7 @@ final class CKRecordMapperCoverageTests: XCTestCase {
         case .setlistPerformer: CKRecordMapper.setlistPerformer(from: rec)
         case .songVideo: CKRecordMapper.songVideo(from: rec)
         case .showTicket: CKRecordMapper.showTicket(from: rec)
+        case .ticketSale: CKRecordMapper.ticketSale(from: rec)
         }
     }
 

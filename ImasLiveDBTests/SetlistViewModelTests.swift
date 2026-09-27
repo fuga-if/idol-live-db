@@ -99,6 +99,8 @@ final class SetlistViewModelTests: XCTestCase {
         }
         func eventsByIds(_ ids: [String]) async throws -> [EventWithDate] { [] }
         func eventReleases(eventId: String) async throws -> [EventRelease] { [] }
+        func ticketSales(eventId: String) async throws -> [TicketSale] { [] }
+        func ticketSaleSpotlight(eventId: String) async throws -> TicketSale? { nil }
     }
 
     // MARK: - Fixtures
