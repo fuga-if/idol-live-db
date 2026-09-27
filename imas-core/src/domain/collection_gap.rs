@@ -37,7 +37,7 @@ pub use crate::domain::event_list_queries::AttendanceMarkRecord;
 use crate::domain::event_detail_queries::{
     NON_PERFORMANCE_PERFORMER_TYPES, NON_PERFORMANCE_VENUE_MODES,
 };
-use crate::domain::performance_gap::{months_between, notable_interval_label};
+use crate::domain::performance_gap::{months_between, since_label};
 use crate::domain::snapshot::Snapshot;
 use std::collections::HashSet;
 
@@ -162,6 +162,9 @@ pub struct CollectionGap {
     pub previous_date: Option<String>,
     /// 前の回収からの間隔 (か月)。
     pub months_since: Option<u32>,
+    /// 前の回収からの間隔の札 (`2 年ぶり` / `1 日ぶり`)。言い方は披露の「いつぶり」と同じ
+    /// ([`since_label`])。初回収・未参加・同日では `None`。
+    pub since_label: Option<String>,
     /// これまでに回収した回数 (公演の異なり数)。**参加の有無によらず「今」から見た数**
     /// (参加した行では、その行より後の回収も入る)。0 なら一度も回収していない。
     /// 「その公演時点で何回目か」を知りたいときは [`Self::ordinal`] を見ること。
@@ -181,9 +184,9 @@ pub fn collection_ordinal_label(ordinal: u32) -> String {
     }
 }
 
-/// 前の回収からの間隔の言い回し。線引きは披露の「3 年 10 か月ぶり」と同じ (1 年以上)。
+/// 前の回収からの間隔の言い回し。披露の「いつぶり」と同じく、直近でも出す。
 pub fn collection_interval_label(gap: &CollectionGap) -> Option<String> {
-    gap.months_since.and_then(notable_interval_label)
+    gap.since_label.clone()
 }
 
 /// その披露 (`setlist_items` の添字) を、自分の参加記録から見る。
@@ -216,9 +219,11 @@ pub fn collection_gap(snap: &Snapshot, item: u32, attended: &HashSet<u32>) -> Co
     let date = &snap.shows[here as usize].date;
     let months_since =
         previous_date.as_deref().map(|prev| months_between(prev, date).unwrap_or(0));
+    let label = previous_date.as_deref().and_then(|prev| since_label(prev, date));
     let ordinal = position as u32 + 1;
     CollectionGap {
         attended: true,
+        since_label: label,
         ordinal,
         ordinal_label: Some(collection_ordinal_label(ordinal)),
         is_first: ordinal == 1,
@@ -496,11 +501,17 @@ mod tests {
         assert_eq!(collection_ordinal_label(1), "初回収");
         assert_eq!(collection_ordinal_label(2), "2 回目");
 
-        let with_gap = CollectionGap { months_since: Some(46), ..CollectionGap::default() };
+        let with_gap = CollectionGap {
+            since_label: since_label("2022-11-13", "2026-09-19"),
+            ..CollectionGap::default()
+        };
         assert_eq!(collection_interval_label(&with_gap).as_deref(), Some("3 年 10 か月ぶり"));
-        // 1 年未満の間隔は言わない。
-        let recent = CollectionGap { months_since: Some(11), ..CollectionGap::default() };
-        assert_eq!(collection_interval_label(&recent), None);
+        // 1 年未満の間隔も言う (披露と同じ)。
+        let recent = CollectionGap {
+            since_label: since_label("2026-09-26", "2026-09-27"),
+            ..CollectionGap::default()
+        };
+        assert_eq!(collection_interval_label(&recent).as_deref(), Some("1 日ぶり"));
         assert_eq!(collection_interval_label(&CollectionGap::default()), None);
     }
 
