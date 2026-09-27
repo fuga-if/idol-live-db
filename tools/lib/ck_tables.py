@@ -34,6 +34,8 @@ TABLE_ORDER = [
     "costume_wears",
     # チケット価格は shows にだけぶら下がる。公演の後ならどこでもよい。
     "show_tickets",
+    # チケット受付 (旧 events.ticket_* 3 列の後継)。events を指すので show_tickets の後でよい。
+    "ticket_sales",
     "meta",
 ]
 
@@ -60,6 +62,7 @@ RECORD_TYPE_MAP = {
     "costumes": "Costume",
     "costume_wears": "CostumeWear",
     "show_tickets": "ShowTicket",
+    "ticket_sales": "TicketSale",
     "meta": "MetaData",
 }
 
@@ -77,6 +80,7 @@ ID_FILTER_COLUMN = {
     "units": "id",
     "costumes": "id",
     "costume_wears": "costume_id",
+    "ticket_sales": "event_id",
 }
 
 # 渡す id が「何の id か」。**列名からは決まらない** ので ID_FILTER_COLUMN とは別に持つ:
@@ -95,6 +99,9 @@ SCOPED_ID_SPACE = {
     "units": "unit",
     "costumes": "costume",
     "costume_wears": "costume",
+    # events / shows と同じ空間。イベント丸ごとの反映 (受付追加もセトリ追加も同じ event_id)
+    # を 1 回の push にまとめられる。
+    "ticket_sales": "event",
 }
 
 

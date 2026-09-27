@@ -72,12 +72,18 @@ KIND_TABLES = {
     "unit_versions": ["unit_versions"],
     "creators": ["creators"],
     "costumes": ["costumes", "costume_wears"],
+    # チケット受付 (旧 events.ticket_open_date/ticket_deadline/ticket_lottery_date の後継)。
+    # id は事前に振らず、event_id + name から決定的に作る (wear_id と同じ考え方)。
+    "ticket_sales": ["ticket_sales"],
 }
 # data/fixes/ で既存レコードを UPDATE 可能なテーブル (id 列を持つ事実情報のみ)
 ALLOWED_FIX_TABLES = {
     "idols", "songs", "events", "shows", "units", "brands", "venues", "venue_names", "creators",
-    "setlist_items",
+    "setlist_items", "ticket_sales",
 }
+
+TICKET_SALE_KINDS = {"lottery", "first_come", "resale", "same_day"}
+TICKET_MOMENT_RE = re.compile(r"^\d{4}-\d{2}-\d{2}(?: \d{2}:\d{2})?$")
 # 読みの表は fixes ではなく専用の投入口 (data/creators/) から入れる。
 
 # 出典。投稿はファイルの先頭か各項目に source (URL か一次ソースの名前。複数なら並び) を
@@ -95,6 +101,55 @@ def cols(conn, table):
 
 def exists(conn, table, rec_id):
     return conn.execute(f"SELECT 1 FROM {table} WHERE id = ?", (rec_id,)).fetchone() is not None
+
+
+def table_exists(conn, table):
+    """master.sqlite (= db/master.sql) にその表があるか。
+
+    ticket_sales は imas-core 側の DDL 反映を待たずにこのファイルをマージできるようにする
+    (罠: 表が無い間も --check は中身の検証をしたい。--apply は表が無ければ諦める)。
+    """
+    return conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?", (table,)
+    ).fetchone() is not None
+
+
+def pending_events_and_shows():
+    """同じバッチで data/events, data/shows から新規に足される event/show の id。
+
+    ticket_sales はまだ master.sqlite に無いイベント・公演も参照できる
+    (受付の告知がイベント本体と同じ PR で来ることもある。resolve_song の pending と同じ考え方)。
+    戻り値: (event_id の集合, {show_id: event_id})
+    """
+    events = set()
+    shows = {}
+    for _, data in load("events"):
+        for ev in data.get("events", []):
+            if ev.get("id"):
+                events.add(ev["id"])
+            for sh in ev.get("shows", []):
+                if sh.get("id"):
+                    shows[sh["id"]] = ev.get("id")
+    for _, data in load("shows"):
+        for sh in data.get("shows", []):
+            if sh.get("id"):
+                shows[sh["id"]] = sh.get("event_id")
+    return events, shows
+
+
+def ticket_sale_id(event_id, name):
+    """ticket_sales.id。**中身 (event_id + name) から決定的に決める。**
+
+    衣装の wear_id と同じ考え方: 同じ投稿を 2 度流しても同じ id になるので、
+    二重登録にならない。ユーザーは id を書かなくてよい。
+    """
+    key = f"{event_id}\t{name}"
+    return "ts_" + hashlib.sha1(key.encode("utf-8")).hexdigest()[:12]
+
+
+def _ticket_moment_bound(value, pad):
+    """日付だけの値を比較用に境界時刻へ正規化する (時刻つきならそのまま)。"""
+    return value if len(value) > 10 else f"{value} {pad}"
 
 
 # 処理対象を 1 ファイルに絞るときのファイル名 (--only)。
@@ -352,6 +407,73 @@ def validate(conn):
                     if k not in ("id", "show_id", "setlist_item_id", "idol_id", "note"):
                         problems.append(f"{wtag}: 未知のキー '{k}'")
 
+    for path, data in load("ticket_sales"):
+        tcol = cols(conn, "ticket_sales") if table_exists(conn, "ticket_sales") else None
+        pending_events, pending_shows = pending_events_and_shows()
+        seen = set()
+        for i, t in enumerate(data.get("ticket_sales", [])):
+            tag = f"ticket_sales/{path.name}[{i}]"
+            event_id = t.get("event_id")
+            if not event_id or not (exists(conn, "events", event_id) or event_id in pending_events):
+                problems.append(f"{tag}: event_id '{event_id}' が存在しない")
+            kind = t.get("kind")
+            if kind not in TICKET_SALE_KINDS:
+                problems.append(f"{tag}: kind 不正 ({kind})。許可: {sorted(TICKET_SALE_KINDS)}")
+            if not t.get("name"):
+                problems.append(f"{tag}: name が空")
+
+            show_ids = t.get("show_ids")
+            if show_ids is None:
+                show_ids = []
+            elif not isinstance(show_ids, list):
+                problems.append(f"{tag}: show_ids は配列 (省略/空 = 全公演)")
+                show_ids = []
+            for sid in show_ids:
+                row = conn.execute("SELECT event_id FROM shows WHERE id = ?", (sid,)).fetchone()
+                owner = row[0] if row else pending_shows.get(sid)
+                if owner is None:
+                    problems.append(f"{tag}: show_id '{sid}' が存在しない")
+                elif event_id and owner != event_id:
+                    problems.append(f"{tag}: show_id '{sid}' は別のイベント ({owner}) の公演")
+
+            moments = {}
+            for field in ("starts_at", "ends_at", "result_at"):
+                v = t.get(field)
+                if v is None:
+                    continue
+                if not isinstance(v, str) or not TICKET_MOMENT_RE.match(v):
+                    problems.append(f"{tag}: {field} の形式が不正 ({v!r})。'YYYY-MM-DD' か 'YYYY-MM-DD HH:MM'")
+                else:
+                    moments[field] = v
+            if not moments:
+                problems.append(f"{tag}: starts_at / ends_at / result_at のいずれかが必要")
+            if "starts_at" in moments and "ends_at" in moments:
+                if _ticket_moment_bound(moments["starts_at"], "00:00") > _ticket_moment_bound(moments["ends_at"], "23:59"):
+                    problems.append(f"{tag}: starts_at が ends_at より後になっている")
+            if "ends_at" in moments and "result_at" in moments:
+                if _ticket_moment_bound(moments["ends_at"], "23:59") > _ticket_moment_bound(moments["result_at"], "23:59"):
+                    problems.append(f"{tag}: ends_at が result_at より後になっている")
+
+            source_url = t.get("source_url")
+            if not source_url or not re.match(r"^https?://", source_url):
+                problems.append(f"{tag}: source_url は http(s) URL 必須")
+            url = t.get("url")
+            if url and not re.match(r"^https?://", url):
+                problems.append(f"{tag}: url は http(s) URL")
+
+            key = (event_id, t.get("name"))
+            if key in seen:
+                problems.append(f"{tag}: 同じ event_id + name の受付が重複している (name を変えるか 1 件にまとめる)")
+            seen.add(key)
+            if tcol is not None:
+                if exists(conn, "ticket_sales", ticket_sale_id(event_id or "", t.get("name") or "")):
+                    problems.append(f"{tag}: 同じ event_id + name の受付が既に存在 (直すなら data/fixes/ で)")
+                for k in t:
+                    if k in ("show_ids", *ANNOTATION_KEYS):
+                        continue
+                    if k not in tcol:
+                        problems.append(f"{tag}: ticket_sales に未知の列 '{k}'")
+
     for path, data in load("units"):
         ucol = cols(conn, "units")
         for i, u in enumerate(data.get("units", [])):
@@ -584,6 +706,21 @@ def apply_all(conn):
             affected["unit_members"]  # 絞る列が無いので全件
         print(f"  ✓ units/{path.name}: {len(data['units'])} 件")
 
+    tscol = cols(conn, "ticket_sales")  # 呼び出し側 (main) が事前に表の存在を確かめている
+    for path, data in load("ticket_sales"):
+        for t in data["ticket_sales"]:
+            t.pop("source", None)
+            show_ids = t.pop("show_ids", None) or []
+            event_id, name = t["event_id"], t["name"]
+            row = {k: v for k, v in t.items() if k in tscol}
+            row["id"] = ticket_sale_id(event_id, name)
+            row["show_ids"] = ",".join(show_ids) if show_ids else None
+            row.setdefault("sort_order", 0)
+            insert_row(conn, "ticket_sales", row)
+            # 対象イベントの範囲で絞って push する (events/shows と同じ id 空間)。
+            affected["ticket_sales"].add(event_id)
+        print(f"  ✓ ticket_sales/{path.name}: {len(data['ticket_sales'])} 件")
+
     for path, data in load("fixes"):
         for fx in data["fixes"]:
             table, rid, fields = fx["table"], fx["id"], fx.get("fields") or {}
@@ -718,6 +855,17 @@ def main():
     if not args.apply:
         print("\n(--check のみ。投入するには --apply)")
         return
+
+    if load("ticket_sales") and not table_exists(conn, "ticket_sales"):
+        # imas-core 側の DDL (db/master.sql の ticket_sales 表) がまだこの master.sqlite に
+        # 無い。表を作ってしまうと db/master.sql の正本と食い違うので、ここでは作らずに諦める。
+        print(
+            "\n✗ ticket_sales 表が master.sqlite に無い"
+            " (imas-core 側の DDL がこの db/master.sql にまだ反映されていない)。"
+            " --apply を中止します。db/master.sql の更新を待つか pull し直してください。",
+            file=sys.stderr,
+        )
+        sys.exit(1)
 
     backup = Path(args.db).with_suffix(f".sqlite.bak_{int(time.time())}")
     shutil.copy2(args.db, backup)

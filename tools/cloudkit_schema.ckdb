@@ -431,6 +431,31 @@ DEFINE SCHEMA
         GRANT READ TO "_world"
     );
 
+    RECORD TYPE TicketSale (
+        "___createTime" TIMESTAMP,
+        "___createdBy"  REFERENCE,
+        "___etag"       STRING,
+        "___modTime"    TIMESTAMP,
+        "___modifiedBy" REFERENCE,
+        "___recordID"   REFERENCE,
+        deletedAt       TIMESTAMP QUERYABLE SORTABLE,
+        endsAt          STRING QUERYABLE SEARCHABLE SORTABLE,
+        eventId         STRING QUERYABLE SEARCHABLE SORTABLE,
+        kind            STRING QUERYABLE SEARCHABLE SORTABLE,
+        modifiedAt      TIMESTAMP QUERYABLE SORTABLE,
+        name            STRING QUERYABLE SEARCHABLE SORTABLE,
+        note            STRING QUERYABLE SEARCHABLE SORTABLE,
+        resultAt        STRING QUERYABLE SEARCHABLE SORTABLE,
+        showIds         STRING QUERYABLE SEARCHABLE SORTABLE,
+        sortOrder       INT64 QUERYABLE SORTABLE,
+        sourceUrl       STRING QUERYABLE SEARCHABLE SORTABLE,
+        startsAt        STRING QUERYABLE SEARCHABLE SORTABLE,
+        url             STRING QUERYABLE SEARCHABLE SORTABLE,
+        GRANT WRITE TO "_creator",
+        GRANT CREATE TO "_icloud",
+        GRANT READ TO "_world"
+    );
+
     RECORD TYPE UnitMember (
         "___createTime" TIMESTAMP,
         "___createdBy"  REFERENCE,

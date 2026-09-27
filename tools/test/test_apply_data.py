@@ -287,6 +287,214 @@ class AddOriginalSingersTest(PostFixture):
         self.assertTrue(any("空は不可" in p for p in self.validate()))
 
 
+TICKET_SALES_DDL = (
+    "CREATE TABLE ticket_sales ("
+    " id TEXT PRIMARY KEY NOT NULL, event_id TEXT NOT NULL, show_ids TEXT, kind TEXT NOT NULL,"
+    " name TEXT NOT NULL, starts_at TEXT, ends_at TEXT, result_at TEXT, url TEXT, note TEXT,"
+    " source_url TEXT NOT NULL, sort_order INTEGER NOT NULL DEFAULT 0,"
+    " FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE);"
+    "CREATE INDEX idx_ticket_sales_event ON ticket_sales(event_id);"
+)
+
+
+def add_ticket_sales_table(db_path):
+    """ticket_sales 表を足す (db/master.sql に無くてもテストできるように、独立して用意する)。
+
+    db/master.sql に既に表があるときは何もしない (fixture_db が schema_only 経由で既に持っている)。
+    """
+    conn = sqlite3.connect(str(db_path))
+    try:
+        if not apply_data.table_exists(conn, "ticket_sales"):
+            conn.executescript(TICKET_SALES_DDL)
+            conn.commit()
+    finally:
+        conn.close()
+
+
+def drop_ticket_sales_table(db_path):
+    """『まだ imas-core 側の DDL が db/master.sql に無い』状態を作る (罠固有のテスト用)。"""
+    conn = sqlite3.connect(str(db_path))
+    try:
+        conn.executescript("DROP INDEX IF EXISTS idx_ticket_sales_event; DROP TABLE IF EXISTS ticket_sales;")
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def ticket_sale_post(**extra):
+    return dict({
+        "event_id": "ev_t", "show_ids": ["sh_t"], "kind": "lottery", "name": "先行抽選",
+        "starts_at": "2026-04-01", "ends_at": "2026-04-10 23:59", "result_at": "2026-04-15",
+        "url": "https://example.com/apply", "source_url": "https://example.com/news",
+    }, **extra)
+
+
+class TicketSalesCheckWithoutTableTest(PostFixture):
+    """罠: db/master.sql の DDL 反映を待たずにこのファイルをマージできる。
+
+    ticket_sales 表がまだ無い master.sqlite でも --check は中身を検証できる
+    (未知列チェックと重複 id チェックだけは表が要るので諦める)。
+    """
+
+    def setUp(self):
+        super().setUp()
+        drop_ticket_sales_table(self.db)
+
+    def problems(self, post):
+        support.write_json(self.data / "ticket_sales" / "post.json", post)
+        conn = sqlite3.connect(str(self.db))
+        try:
+            return apply_data.validate(conn)
+        finally:
+            conn.close()
+
+    def test_a_valid_post_passes_even_without_the_table(self):
+        post = {"ticket_sales": [ticket_sale_post()]}
+        self.assertEqual(self.problems(post), [])
+
+    def test_unknown_event_is_rejected(self):
+        post = {"ticket_sales": [ticket_sale_post(event_id="ev_nope")]}
+        self.assertTrue(any("event_id" in p for p in self.problems(post)))
+
+    def test_show_id_belonging_to_a_different_event_is_rejected(self):
+        # sh_other は別イベントの公演として登録する。
+        conn = sqlite3.connect(str(self.db))
+        conn.executescript(
+            "INSERT INTO events (id, brand_id, name, event_type) VALUES ('ev_other', 'ml', '別公演', 'live');"
+            "INSERT INTO shows (id, event_id, name, date, sort_order)"
+            " VALUES ('sh_other', 'ev_other', 'DAY1', '2026-01-01', 0);"
+        )
+        conn.commit()
+        conn.close()
+        post = {"ticket_sales": [ticket_sale_post(show_ids=["sh_other"])]}
+        self.assertTrue(any("別のイベント" in p for p in self.problems(post)))
+
+    def test_unknown_kind_is_rejected(self):
+        post = {"ticket_sales": [ticket_sale_post(kind="premium")]}
+        self.assertTrue(any("kind 不正" in p for p in self.problems(post)))
+
+    def test_bad_moment_format_is_rejected(self):
+        post = {"ticket_sales": [ticket_sale_post(ends_at="2026/04/10")]}
+        self.assertTrue(any("ends_at" in p and "形式" in p for p in self.problems(post)))
+
+    def test_at_least_one_moment_is_required(self):
+        post = {"ticket_sales": [ticket_sale_post(starts_at=None, ends_at=None, result_at=None)]}
+        self.assertTrue(any("いずれかが必要" in p for p in self.problems(post)))
+
+    def test_order_must_be_starts_ends_result(self):
+        # シンデレラガールズミュージカルの実例 (当落 04-15 が締切 04-28 より前) の回帰。
+        post = {"ticket_sales": [ticket_sale_post(ends_at="2026-04-28", result_at="2026-04-15")]}
+        self.assertTrue(any("result_at より後" in p for p in self.problems(post)))
+
+    def test_source_url_must_be_http(self):
+        post = {"ticket_sales": [ticket_sale_post(source_url="not-a-url")]}
+        self.assertTrue(any("source_url" in p for p in self.problems(post)))
+
+    def test_a_valid_post_without_show_ids_means_every_show(self):
+        post = {"ticket_sales": [ticket_sale_post(show_ids=None)]}
+        self.assertEqual(self.problems(post), [])
+
+
+class TicketSalesWithTableTest(PostFixture):
+    """ticket_sales 表がある状態 (imas-core 側の DDL 反映後) の検証と反映。"""
+
+    def setUp(self):
+        super().setUp()
+        add_ticket_sales_table(self.db)
+
+    def validate(self):
+        conn = sqlite3.connect(str(self.db))
+        try:
+            return apply_data.validate(conn)
+        finally:
+            conn.close()
+
+    def test_unknown_column_is_rejected_once_the_table_exists(self):
+        post = {"ticket_sales": [ticket_sale_post(nope_field="x")]}
+        support.write_json(self.data / "ticket_sales" / "post.json", post)
+        self.assertTrue(any("未知の列" in p for p in self.validate()))
+
+    def test_duplicate_event_and_name_is_rejected_within_a_batch(self):
+        post = {"ticket_sales": [ticket_sale_post(), ticket_sale_post()]}
+        support.write_json(self.data / "ticket_sales" / "post.json", post)
+        self.assertTrue(any("重複" in p for p in self.validate()))
+
+    def test_apply_inserts_a_deterministic_id_scoped_by_event(self):
+        post = {"ticket_sales": [ticket_sale_post()]}
+        support.write_json(self.data / "ticket_sales" / "post.json", post)
+        conn = sqlite3.connect(str(self.db))
+        conn.execute("PRAGMA foreign_keys = ON")
+        with contextlib.redirect_stdout(io.StringIO()):
+            affected = apply_data.apply_all(conn)
+        row = conn.execute(
+            "SELECT id, event_id, show_ids, kind, name, source_url, sort_order FROM ticket_sales"
+        ).fetchone()
+        conn.close()
+        self.assertEqual(row[1:], ("ev_t", "sh_t", "lottery", "先行抽選", "https://example.com/news", 0))
+        self.assertTrue(row[0].startswith("ts_"))
+        self.assertEqual(affected["ticket_sales"], {"ev_t"})
+
+    def test_reposting_the_same_sale_is_rejected_as_already_existing(self):
+        # id は event_id + name から決まるので、同じ内容の 2 回目の投稿は「既存」として --check で弾く
+        # (曲を別 id で起こし直して二重登録になった事故と同じ再発防止)。
+        post = {"ticket_sales": [ticket_sale_post()]}
+        support.write_json(self.data / "ticket_sales" / "post.json", post)
+        conn = sqlite3.connect(str(self.db))
+        conn.execute("PRAGMA foreign_keys = ON")
+        with contextlib.redirect_stdout(io.StringIO()):
+            apply_data.apply_all(conn)
+        problems = apply_data.validate(conn)
+        conn.close()
+        self.assertTrue(any("既に存在" in p for p in problems))
+
+
+class TicketSalesApplyRequiresTableTest(PostFixture):
+    """--apply は表が無ければ作らずエラーにする (imas-core の DDL 反映待ち)。
+
+    main() は DATA_DIR をモジュール変数で読むので、実リポジトリの data/ を巻き込まないよう
+    subprocess ではなく直接呼び (setUp で DATA_DIR を差し替え済み)、argv だけ差し替える。
+    """
+
+    def setUp(self):
+        super().setUp()
+        drop_ticket_sales_table(self.db)
+
+    def run_main(self, *argv):
+        saved_argv = sys.argv
+        sys.argv = ["apply_data.py", *argv]
+        out, err = io.StringIO(), io.StringIO()
+        try:
+            with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                try:
+                    apply_data.main()
+                    code = 0
+                except SystemExit as e:
+                    code = e.code or 0
+        finally:
+            sys.argv = saved_argv
+        return code, out.getvalue(), err.getvalue()
+
+    def test_apply_dash_dash_check_only_passes_without_the_table(self):
+        post = {"ticket_sales": [ticket_sale_post()]}
+        support.write_json(self.data / "ticket_sales" / "post.json", post)
+        code, out, err = self.run_main("--check", "--db", str(self.db))
+        self.assertEqual(code, 0, err)
+        self.assertIn("全件妥当", out)
+
+    def test_apply_is_refused_without_the_table(self):
+        post = {"ticket_sales": [ticket_sale_post()]}
+        support.write_json(self.data / "ticket_sales" / "post.json", post)
+        code, _out, err = self.run_main("--apply", "--db", str(self.db))
+        self.assertNotEqual(code, 0)
+        self.assertIn("ticket_sales 表が master.sqlite に無い", err)
+        # 諦めるだけで、表を作ったりはしない。
+        conn = sqlite3.connect(str(self.db))
+        try:
+            self.assertFalse(apply_data.table_exists(conn, "ticket_sales"))
+        finally:
+            conn.close()
+
+
 class AppliedPostsTest(unittest.TestCase):
     def test_posts_moved_to_applied_are_not_read(self):
         with tempfile.TemporaryDirectory() as tmp:
