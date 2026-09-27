@@ -35,7 +35,9 @@ import uniffi.imas_core.ShowRecord
 import uniffi.imas_core.AttendanceMarkRecord
 import uniffi.imas_core.TimelineBarRecord
 import uniffi.imas_core.EventHeroRecord
+import uniffi.imas_core.TicketSale
 import com.fugaif.imaslivedb.data.model.JstDay
+import java.time.Instant
 
 /**
  * [EventRepository.fetchSetlistRowMeta] の結果。行の添え物と、公演の頭に出す
@@ -349,14 +351,24 @@ class EventRepository(
      */
     suspend fun fetchShowCostumes(showId: String): List<ShowCostumeRecord> =
         snapshots.query { store -> store.showCostumeRecords(showId) }
+
+    /**
+     * そのイベントのチケット受付一覧。段階・並び・期間文字列・当落文字列はすべてコアが
+     * 決め切って渡すので、ここでは組み立てない (画面はそのまま出す)。
+     */
+    suspend fun fetchTicketSales(eventId: String): List<TicketSale> =
+        snapshots.query { store -> store.ticketSalesForEvent(eventId, Instant.now().epochSecond) }
+
+    /** 一番近い注目受付 1 件 (無ければ null)。イベント詳細のヒーロー相当に使う。 */
+    suspend fun fetchTicketSaleSpotlight(eventId: String): TicketSale? =
+        snapshots.query { store -> store.ticketSaleSpotlight(eventId, Instant.now().epochSecond) }
 }
 
 // ---- コアの射影 → Room エンティティ (列は 1:1) ----
 
 private fun EventListRecord.toEvent(): Event = Event(
     id = id, brandId = brandId, name = name, eventType = eventType, isStreaming = isStreaming,
-    isSolo = isSolo, kind = kind, ticketOpenDate = ticketOpenDate, ticketDeadline = ticketDeadline,
-    ticketLotteryDate = ticketLotteryDate, ticketUrl = ticketUrl, jointBrandIds = jointBrandIds
+    isSolo = isSolo, kind = kind, ticketUrl = ticketUrl, jointBrandIds = jointBrandIds
 )
 
 /**
@@ -372,8 +384,7 @@ private fun EventWithDateRecord.toEventWithDateRange(): EventWithDateRange = Eve
 
 private fun EventDetailRecord.toEvent(): Event = Event(
     id = id, brandId = brandId, name = name, eventType = eventType, isStreaming = isStreaming,
-    isSolo = isSolo, kind = kind, ticketOpenDate = ticketOpenDate, ticketDeadline = ticketDeadline,
-    ticketLotteryDate = ticketLotteryDate, ticketUrl = ticketUrl, jointBrandIds = jointBrandIds
+    isSolo = isSolo, kind = kind, ticketUrl = ticketUrl, jointBrandIds = jointBrandIds
 )
 
 private fun ShowRecord.toShow(): Show = Show(

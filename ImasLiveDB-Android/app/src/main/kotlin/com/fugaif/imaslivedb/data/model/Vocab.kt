@@ -30,6 +30,12 @@ object Vocab {
     fun eventType(raw: String): VocabularyTerm? = table.eventTypes.firstOrNull { it.value == raw }
     fun attendanceType(raw: String): VocabularyTerm? = table.attendanceTypes.firstOrNull { it.value == raw }
 
-    /** チケットの日付の語。`column` は events の列名 (`ticket_deadline` 等)。 */
+    /** チケットの日付の語。`column` は events の列名 (`ticket_deadline` 等)。廃止列の表示にだけ残る。 */
     fun ticketDate(column: String): VocabularyTerm? = table.ticketDates.firstOrNull { it.value == column }
+
+    /** チケット受付の種別 (抽選 / 先着 / リセール / 当日券)。編集フォームの選択肢に使う。 */
+    fun ticketSaleKind(raw: String): VocabularyTerm? = table.ticketSaleKinds.firstOrNull { it.value == raw }
+
+    /** チケット受付の段階 (受付前 / 受付中 / 結果待ち / 終了)。 */
+    fun ticketSaleStage(raw: String): VocabularyTerm? = table.ticketSaleStages.firstOrNull { it.value == raw }
 }
