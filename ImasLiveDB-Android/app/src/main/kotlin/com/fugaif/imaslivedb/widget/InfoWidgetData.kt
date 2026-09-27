@@ -28,14 +28,20 @@ data class TodaySongInfo(
     val brandColorHex: String?
 )
 
-/** 締切が近いチケット受付 1 件。 */
+/** 締切または当落発表が近いチケット受付 1 件 (M3)。 */
 data class TicketDeadlineInfo(
     val saleId: String,
     val saleName: String,
     val eventId: String,
     val eventName: String,
     /** 締切日 (YYYY-MM-DD)。 */
-    val deadline: String
+    val deadline: String,
+    /** この日付が締切か当落発表か。見出し・アイコンの出し分けに使う。 */
+    val kind: uniffi.imas_core.TicketSaleDeadlineKind,
+    /** `kind` の日本語表記 (`"申込締切"` / `"当落発表"`)。 */
+    val kindLabel: String,
+    /** コアが組んだ表示文字列 (`"{event_name} ({sale_name})"`)。そのまま出す。 */
+    val label: String
 )
 
 /**
@@ -144,7 +150,10 @@ object InfoWidgetData {
                         saleName = d.saleName,
                         eventId = d.eventId,
                         eventName = d.eventName,
-                        deadline = d.deadlineDay
+                        deadline = d.deadlineDay,
+                        kind = d.kind,
+                        kindLabel = d.kindLabel,
+                        label = d.label
                     )
                 }
             }.onFailure { Log.w(TAG, "チケット締切の取得に失敗", it) }.getOrDefault(emptyList())

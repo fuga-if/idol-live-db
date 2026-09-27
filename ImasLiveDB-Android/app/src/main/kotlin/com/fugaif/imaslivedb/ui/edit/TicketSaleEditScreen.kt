@@ -107,9 +107,12 @@ fun TicketSaleEditScreen(
         return normalizeTicketSaleMoment(trimmed) ?: trimmed
     }
 
+    // Set は保存のたびに並びが変わりうる (L6)。公演の並び順 (shows の取得順) で並べてから送る。
+    fun orderedShowIds(): List<String> = shows.map { it.id }.filter { selectedShowIds.contains(it) }
+
     fun buildDraft(): TicketSaleDraft = TicketSaleDraft(
         eventId = eventId,
-        showIds = selectedShowIds.toList(),
+        showIds = orderedShowIds(),
         kind = kindOf(kindRaw),
         name = name.trim(),
         startsAt = normalizedMoment(startsAt),

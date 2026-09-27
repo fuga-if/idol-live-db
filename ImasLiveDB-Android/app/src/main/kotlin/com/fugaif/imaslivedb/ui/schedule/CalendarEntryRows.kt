@@ -120,7 +120,8 @@ private fun TicketRow(row: TicketCalendarRow, trailing: (@Composable () -> Unit)
             TicketDateKind.LOTTERY -> Icons.Filled.MailOutline
             TicketDateKind.START -> Icons.Filled.DateRange
         },
-        label = "${row.kind.label} ・ ${row.saleName}",
+        // ライブ名が分かるように、コアが組んだ label (`"{event_name} ({sale_name})"`) をそのまま使う (M2)。
+        label = "${row.kind.label} ・ ${row.label}",
         sub = when (row.kind) {
             TicketDateKind.DEADLINE -> "チケット申込の締切"
             TicketDateKind.LOTTERY -> "チケット当落発表"
@@ -144,7 +145,7 @@ private fun TicketPeriodRowView(
     IconEntryRow(
         accent = TicketColor,
         icon = Icons.Filled.DateRange,
-        label = "${Vocab.table.ticketPeriodLabel} ・ ${row.saleName}",
+        label = "${Vocab.table.ticketPeriodLabel} ・ ${row.label}",
         sub = if (range.isEmpty()) "チケット受付期間" else "チケット受付  $range",
         brand = row.brandColor?.let(::hexToColor) ?: Color.Gray,
         trailing = trailing,

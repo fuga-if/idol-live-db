@@ -56,12 +56,15 @@ enum class TicketDateKind {
     DEADLINE,
     LOTTERY;
 
-    /** 語はコアの vocabulary。START は events の廃止列に対応が無いので固定文言にする。 */
+    /**
+     * 語はコアの vocabulary (`TICKET_DATES`)。列名は `ticket_sales` の実列
+     * (`starts_at` / `ends_at` / `result_at`) で引く (H3: 廃止済みの `events` 列名では引けない)。
+     */
     val label: String
         get() = when (this) {
-            START -> "受付開始"
-            DEADLINE -> Vocab.ticketDate("ticket_deadline")?.label.orEmpty()
-            LOTTERY -> Vocab.ticketDate("ticket_lottery_date")?.label.orEmpty()
+            START -> Vocab.ticketDate("starts_at")?.label.orEmpty()
+            DEADLINE -> Vocab.ticketDate("ends_at")?.label.orEmpty()
+            LOTTERY -> Vocab.ticketDate("result_at")?.label.orEmpty()
         }
 }
 
@@ -77,7 +80,12 @@ data class TicketCalendarRow(
     val url: String?,
     val saleId: String,
     val saleName: String,
-    val saleKind: uniffi.imas_core.TicketSaleKind
+    val saleKind: uniffi.imas_core.TicketSaleKind,
+    /**
+     * コアが組んだ表示文字列 (`"{event_name} ({sale_name})"`, M2)。
+     * ライブ名を出すのに Kotlin 側で組み立て直さず、これをそのまま使う。
+     */
+    val label: String
 )
 
 /** カレンダー用: チケット受付期間 (受付開始 → 申込締切) の日跨ぎスパン。 */
@@ -92,5 +100,7 @@ data class TicketPeriodRow(
     val url: String?,
     val saleId: String,
     val saleName: String,
-    val saleKind: uniffi.imas_core.TicketSaleKind
+    val saleKind: uniffi.imas_core.TicketSaleKind,
+    /** コアが組んだ表示文字列 (`"{event_name} ({sale_name})"`, M2)。 */
+    val label: String
 )

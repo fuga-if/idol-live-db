@@ -156,7 +156,8 @@ class CalendarRepository(
                         url = record.url,
                         saleId = record.saleId,
                         saleName = record.saleName,
-                        saleKind = record.saleKind
+                        saleKind = record.saleKind,
+                        label = record.label
                     )
                 )
 
@@ -171,7 +172,8 @@ class CalendarRepository(
                         url = record.url,
                         saleId = record.saleId,
                         saleName = record.saleName,
-                        saleKind = record.saleKind
+                        saleKind = record.saleKind,
+                        label = record.label
                     )
                 )
             }

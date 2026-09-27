@@ -213,23 +213,33 @@ private fun TicketDeadlineContent(deadlines: List<TicketDeadlineInfo>) {
             Text(text = "チケット締切", style = WidgetTheme.caption(WidgetTheme.warning), maxLines = 1)
             Spacer(GlanceModifier.height(6.dp))
             deadlines.forEach { item ->
+                // M3: 見出しは「チケット締切」のままだが、行ごとに締切か当落発表かを
+                // kindLabel で出し分ける (結果待ちの当落日を締切と誤読させない)。
+                val accent = if (item.kind == uniffi.imas_core.TicketSaleDeadlineKind.AWAITING_RESULT) {
+                    WidgetTheme.ink2
+                } else {
+                    WidgetTheme.warning
+                }
                 Row(
                     modifier = GlanceModifier.fillMaxWidth(),
                     verticalAlignment = Alignment.Vertical.CenterVertically
                 ) {
                     Text(
                         text = shortDate(item.deadline),
-                        style = WidgetTheme.body(WidgetTheme.warning, bold = true),
+                        style = WidgetTheme.body(accent, bold = true),
                         maxLines = 1,
                         modifier = GlanceModifier.width(40.dp)
                     )
                     Spacer(GlanceModifier.width(6.dp))
-                    Text(
-                        text = "${item.eventName} ・ ${item.saleName}",
-                        style = WidgetTheme.body(WidgetTheme.ink),
-                        maxLines = 1,
-                        modifier = GlanceModifier.defaultWeight()
-                    )
+                    Column(modifier = GlanceModifier.defaultWeight()) {
+                        Text(
+                            // ライブ名が分かるように、コアが組んだ label をそのまま使う (M2/M3)。
+                            text = item.label,
+                            style = WidgetTheme.body(WidgetTheme.ink),
+                            maxLines = 1
+                        )
+                        Text(text = item.kindLabel, style = WidgetTheme.caption(accent), maxLines = 1)
+                    }
                 }
                 Spacer(GlanceModifier.height(4.dp))
             }
