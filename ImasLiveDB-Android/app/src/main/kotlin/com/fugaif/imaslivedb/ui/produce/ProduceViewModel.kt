@@ -5,9 +5,12 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.fugaif.imaslivedb.data.community.CommunityApi
 import com.fugaif.imaslivedb.data.community.DiscordLinkService
+import com.fugaif.imaslivedb.data.model.Event
 import com.fugaif.imaslivedb.data.model.EventWithDateRange
 import com.fugaif.imaslivedb.data.model.Idol
-import com.fugaif.imaslivedb.data.model.Song
+import com.fugaif.imaslivedb.data.model.JstDay
+import com.fugaif.imaslivedb.data.model.Show
+import com.fugaif.imaslivedb.data.model.UserMark
 import com.fugaif.imaslivedb.di.AppModule
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -17,8 +20,10 @@ import uniffi.imas_core.ExpenseEntry
 import uniffi.imas_core.LedgerFilter
 import uniffi.imas_core.LedgerLinkage
 import uniffi.imas_core.LedgerPeriod
+import uniffi.imas_core.attendanceStatus
 import uniffi.imas_core.buildLedgerSummary
 import uniffi.imas_core.formatYen
+import uniffi.imas_core.nextShowIndex
 import uniffi.imas_core.votesRemaining
 
 /** 「最近見た」チップ 1 件 (id を名前まで解決したもの)。 */
@@ -33,12 +38,20 @@ data class FeaturedPoll(
     val remainingLabel: String
 )
 
+/** 「次のライブ」カードに出す 1 公演。 */
+data class NextLive(
+    val show: Show,
+    val event: Event,
+    /** `参加予定・あと2日` / `お気に入り`。 */
+    val statusLabel: String
+)
+
 data class ProduceUiState(
     val pickedIdols: List<Idol> = emptyList(),
-    val favoriteIdols: List<Idol> = emptyList(),
-    val favoriteSongs: List<Song> = emptyList(),
-    /** 参加したライブ (開催日降順)。上位数件をインラインに出し、超過分は一覧へ。 */
+    /** 参加したライブ (開催日降順)。件数をタイル「参加ライブ」に出す。 */
     val attendedEvents: List<EventWithDateRange> = emptyList(),
+    /** 参加予定 / お気に入りの直近の未来公演。無ければカードを出さない。 */
+    val nextLive: NextLive? = null,
     /** お気に入りの合計 (曲 + アイドル + ライブ)。内訳はお気に入り一覧側のタブ。 */
     val favoriteCount: Int = 0,
     val collectedCount: Int = 0,
@@ -81,9 +94,10 @@ class ProduceViewModel(app: Application) : AndroidViewModel(app) {
             // 「参加ライブ」はイベント参加 ∪ 公演参加→所属イベント を重複なしで取った一覧で、
             // 件数もこの一覧の長さにする (タイルの数字と一覧の行数が食い違わない)。
             val attended = module.eventRepository.fetchAttendedEvents()
+            val favoriteEvents = module.eventRepository.fetchFavoriteEvents()
             val favoriteCount = marks.favoriteSongIds().size +
                 marks.favoriteIdolIds().size +
-                module.eventRepository.fetchFavoriteEvents().size
+                favoriteEvents.size
             // 合計はコアに出させる (画面で足し算しない)。
             val expenses = module.expenseRepository.getAll().map {
                 ExpenseEntry(
@@ -97,9 +111,8 @@ class ProduceViewModel(app: Application) : AndroidViewModel(app) {
             ).total
             _uiState.value = _uiState.value.copy(
                 pickedIdols = marks.pickedIdols(),
-                favoriteIdols = marks.favoriteIdols(),
-                favoriteSongs = marks.favoriteSongs(),
                 attendedEvents = attended,
+                nextLive = resolveNextLive(attended, favoriteEvents),
                 favoriteCount = favoriteCount,
                 collectedCount = module.songRepository.fetchCollectedSongIds().size,
                 masteryCount = marks.masteryLevels().size,
@@ -136,6 +149,38 @@ class ProduceViewModel(app: Application) : AndroidViewModel(app) {
 
     fun clearDiscordError() {
         _uiState.value = _uiState.value.copy(discordErrorMessage = null)
+    }
+
+    /**
+     * 参加予定 (公演 / イベントの参加マーク) かお気に入りのイベントのうち、今日以降でいちばん早い公演。
+     * 「今日以降でいちばん早い」はコア (`nextShowIndex`)、札の文言もコア (`attendanceStatus`)。
+     * 過去のイベントの公演は読まない (参加済みが数百あっても未来のものだけ開く)。
+     */
+    private suspend fun resolveNextLive(
+        attended: List<EventWithDateRange>,
+        favorites: List<EventWithDateRange>
+    ): NextLive? {
+        val today = JstDay.today()
+        val favoriteIds = favorites.map { it.event.id }.toSet()
+        val upcoming = (attended + favorites).distinctBy { it.event.id }
+            .filter { nextShowIndex(listOf(it.lastDate ?: it.firstDate ?: ""), today) != null }
+        val candidates = mutableListOf<Triple<Show, Event, Boolean>>()
+        for (ew in upcoming) {
+            val shows = module.eventRepository.fetchShows(ew.event.id)
+            val attendedShows = marks.attendedShowIds(shows.map { it.id })
+            val eventAttended = marks.isOn(UserMark.EVENT, ew.event.id, UserMark.ATTENDED)
+            val whole = eventAttended || ew.event.id in favoriteIds
+            for (show in shows) {
+                if (whole || show.id in attendedShows) {
+                    candidates += Triple(show, ew.event, eventAttended || show.id in attendedShows)
+                }
+            }
+        }
+        val i = nextShowIndex(candidates.map { it.first.date }, today) ?: return null
+        val (show, event, planned) = candidates[i.toInt()]
+        // お気に入りだけなら参加予定とは言わない。
+        val label = if (planned) attendanceStatus(listOf(show.date), emptyList(), false, today).label else "お気に入り"
+        return NextLive(show, event, label)
     }
 
     /** 保存されているのは id だけなので、表示のたびにローカルのカタログで名前を引く。 */

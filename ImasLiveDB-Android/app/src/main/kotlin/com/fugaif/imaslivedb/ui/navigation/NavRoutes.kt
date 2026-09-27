@@ -12,8 +12,10 @@ sealed class NavRoutes(val route: String) {
     }
     data class Setlist(val showId: String) : NavRoutes("setlist/{showId}") {
         companion object {
-            const val ROUTE = "setlist/{showId}"
-            fun createRoute(showId: String) = "setlist/$showId"
+            /** `predict=true` で予想タブから開く (省略時はセットリスト)。 */
+            const val ROUTE = "setlist/{showId}?predict={predict}"
+            fun createRoute(showId: String, predict: Boolean = false) =
+                if (predict) "setlist/$showId?predict=true" else "setlist/$showId"
         }
     }
     data class CostumeShows(val costumeId: String) : NavRoutes("costume_shows/{costumeId}") {

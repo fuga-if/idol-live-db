@@ -24,10 +24,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.ListAlt
+import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.EventAvailable
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FormatListNumbered
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.HowToVote
@@ -35,7 +34,6 @@ import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Sell
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SportsEsports
@@ -46,7 +44,6 @@ import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -74,19 +71,15 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.fugaif.imaslivedb.data.model.EventWithDateRange
+import com.fugaif.imaslivedb.data.games.GameKind
 import com.fugaif.imaslivedb.data.model.Idol
-import com.fugaif.imaslivedb.data.model.Song
 import com.fugaif.imaslivedb.di.AppModule
-import com.fugaif.imaslivedb.ui.components.ImasLeadBar
 import com.fugaif.imaslivedb.ui.components.ImasSectionHeader
 import com.fugaif.imaslivedb.ui.components.ImasStatTile
+import com.fugaif.imaslivedb.ui.theme.AppPreferences
 import com.fugaif.imaslivedb.ui.theme.DS
-import com.fugaif.imaslivedb.ui.theme.brandColor
+import com.fugaif.imaslivedb.ui.theme.ImasTheme
 import com.fugaif.imaslivedb.ui.theme.hexToColor
-
-/** インラインに並べる「参加したライブ」の件数。超えたぶんは一覧へ送る。 */
-private const val ATTENDED_INLINE_LIMIT = 5
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -110,6 +103,11 @@ fun ProduceScreen(
     onNavigateToTagList: () -> Unit,
     onNavigateToTagActivity: () -> Unit,
     onNavigateToGamesHub: () -> Unit,
+    onNavigateToIntroDon: () -> Unit,
+    onNavigateToSetlistQuizSetup: () -> Unit,
+    onResumeQuiz: (GameKind) -> Unit,
+    /** 「次のライブ」→ その公演のセトリ画面を予想タブで。 */
+    onPredictSetlist: (String) -> Unit,
     viewModel: ProduceViewModel = viewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -118,6 +116,9 @@ fun ProduceScreen(
     val context = LocalContext.current
     val authState by AppModule.from(context).authService.state.collectAsState()
     val uriHandler = LocalUriHandler.current
+    val suspended by AppModule.from(context).quizResumeStore.sessions.collectAsStateWithLifecycle()
+    // いちばん最近中断したクイズ (ゲーム一覧の「つづきから」と同じもの)。
+    val resume = suspended.values.maxByOrNull { it.savedAt }
     // 発行できた Discord 認可 URL はブラウザへ渡して消す (1 回限りなので開き直さない)。
     LaunchedEffect(state.discordLinkUrl) {
         val url = state.discordLinkUrl ?: return@LaunchedEffect
@@ -138,9 +139,9 @@ fun ProduceScreen(
         Column(
             modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState())
         ) {
-            if (state.pickedIdols.isEmpty() && state.favoriteIdols.isEmpty() && state.favoriteSongs.isEmpty()) {
+            if (state.pickedIdols.isEmpty()) {
                 Text(
-                    "アイドルや楽曲の詳細画面で ♥ を押すと、担当・お気に入りがここに並びます",
+                    "アイドル詳細の「担当」マークを付けると、ここに並びます",
                     modifier = Modifier.fillMaxWidth().padding(24.dp),
                     color = DS.ink3,
                     style = MaterialTheme.typography.bodyMedium
@@ -148,16 +149,76 @@ fun ProduceScreen(
             }
             IdolSection("担当", state.pickedIdols, DS.pick, onNavigateToIdol)
 
+            state.nextLive?.let { next ->
+                ImasSectionHeader("次のライブ", tight = true)
+                NextLiveCard(next, seed = state.pickSeed, onPredict = { onPredictSetlist(next.show.id) })
+            }
+
             state.featuredPoll?.let { poll ->
+                // 投票一覧 (ほかのお題) へはこの見出しから。
+                ImasSectionHeader("投票受付中", tight = true, onSeeAll = onNavigateToPolls, seeAllTitle = "ほかのお題")
                 FeaturedPollCard(poll = poll, onClick = { onNavigateToPollDetail(poll.id) })
             }
+
+            ShortcutGroup(
+                "あそぶ",
+                accessory = {
+                    resume?.let { s ->
+                        val title = gameTitle(s.kind)
+                        Row(
+                            Modifier.clickable { onResumeQuiz(s.kind) },
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                "つづきから: $title " + "Q.%02d".format(s.currentNumber),
+                                fontSize = 13.sp, fontWeight = FontWeight.Medium, color = DS.ink2, maxLines = 1
+                            )
+                            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = DS.ink2, modifier = Modifier.size(14.dp))
+                        }
+                    }
+                },
+                items = listOf(
+                    Shortcut(Icons.AutoMirrored.Filled.QueueMusic, "イントロ", onNavigateToIntroDon),
+                    Shortcut(Icons.Filled.FormatListNumbered, "セトリ当て", onNavigateToSetlistQuizSetup),
+                    Shortcut(Icons.Filled.SportsEsports, "すべて", onNavigateToGamesHub)
+                ),
+                seed = state.pickSeed
+            )
+            ShortcutGroup(
+                "みんな",
+                items = buildList {
+                    add(Shortcut(Icons.Filled.History, "動き", onNavigateToEditHistory))
+                    add(Shortcut(Icons.Filled.LocalFireDepartment, "タグ", onNavigateToTagActivity))
+                    // iOS のコールガイドの位置。Android には歌詞が無いので、ここからしか行けないタグ一覧を置く。
+                    add(Shortcut(Icons.Filled.Sell, "タグ一覧", onNavigateToTagList))
+                    // 開催中のお題が無いと上の「ほかのお題」が出ないので、そのときだけここに置く。
+                    if (state.featuredPoll == null) add(Shortcut(Icons.Filled.HowToVote, "お題", onNavigateToPolls))
+                    // 編集の協力者に Discord のロールを渡す入口。セッションで本人を確かめるので
+                    // ログイン中だけ出す (未ログインで押しても 401 になるだけ)。
+                    if (authState.isSignedIn) {
+                        add(Shortcut(Icons.Filled.WorkspacePremium, "Discord", viewModel::requestDiscordLink, state.isLinkingDiscord))
+                    }
+                },
+                seed = state.pickSeed
+            )
+            ShortcutGroup(
+                "しらべる",
+                items = listOf(
+                    Shortcut(Icons.Filled.BarChart, "統計", onNavigateToStats),
+                    // 年表は担当アイドルのブランドから開く (見たい歴史はたいてい担当の歴史)。
+                    Shortcut(Icons.Filled.Timeline, "年表", { onNavigateToTimeline(state.pickedIdols.firstOrNull()?.brandId) })
+                ),
+                seed = state.pickSeed
+            )
 
             ActivitySection(state = state,
                 onAttendedClick = onNavigateToAttendedEvents,
                 onFavoritesClick = onNavigateToFavorites,
                 onContributionsClick = onNavigateToMyContributions,
                 onVotesClick = onNavigateToMyVotes,
-                onCollectedClick = onNavigateToCollectedSongs
+                onCollectedClick = onNavigateToCollectedSongs,
+                onMasteryClick = onNavigateToMastery,
+                onLedgerClick = onNavigateToLedger
             )
 
             RecentsSection(
@@ -170,67 +231,6 @@ fun ProduceScreen(
                     }
                 }
             )
-
-            AttendedSection(
-                events = state.attendedEvents,
-                onEventClick = onNavigateToEvent,
-                onSeeAll = onNavigateToAttendedEvents
-            )
-
-            IdolSection("お気に入りアイドル", state.favoriteIdols, DS.favorite, onNavigateToIdol)
-            if (state.favoriteSongs.isNotEmpty()) {
-                SectionTitle("お気に入り曲")
-                state.favoriteSongs.forEach { song ->
-                    SongLine(song) { onNavigateToSong(song.id) }
-                }
-            }
-
-            HorizontalDivider(color = DS.sep, modifier = Modifier.padding(top = 8.dp))
-            HubRow(Icons.Filled.Favorite, "お気に入り一覧", "曲・アイドル・ライブ", DS.ink2, state.favoriteCount, onNavigateToFavorites)
-            HorizontalDivider(color = DS.sep)
-            HubRow(Icons.Filled.EventAvailable, "参加したライブ", "", DS.ink2, state.attendedCount, onNavigateToAttendedEvents)
-            HorizontalDivider(color = DS.sep)
-            HubRow(Icons.Filled.MusicNote, "回収した楽曲", "現地で聴けた曲だけの一覧", DS.ink2, state.collectedCount, onNavigateToCollectedSongs)
-            HorizontalDivider(color = DS.sep)
-            HubRow(Icons.Filled.BarChart, "習熟度", "どこまで覚えたかをシリーズ・ユニット別に", DS.ink2, state.masteryCount, onNavigateToMastery)
-            HorizontalDivider(color = DS.sep)
-            // 件数ではなく金額を出す — 「いくら使ったか」は件数では読めない。
-            HubRow(Icons.Filled.AttachMoney, "収支", "使った額 ${state.ledgerTotalLabel}", DS.ink2, null, onNavigateToLedger)
-            HorizontalDivider(color = DS.sep)
-            // 年表は担当アイドルのブランドから開く (見たい歴史はたいてい担当の歴史)。
-            // 担当がいなければブランド指定なしで開き、年表側が先頭ブランドを選ぶ。
-            HubRow(Icons.Filled.Timeline, "年表", "ライブ・楽曲シリーズ・節目を1枚で俯瞰する", DS.ink2, null, onClick = {
-                onNavigateToTimeline(state.pickedIdols.firstOrNull()?.brandId)
-            })
-            HorizontalDivider(color = DS.sep)
-            HubRow(Icons.Filled.HowToVote, "投票・予想", "タグ・ペンライト・ポール", DS.ink2, null, onNavigateToPolls)
-            HorizontalDivider(color = DS.sep)
-            HubRow(Icons.Filled.Sell, "みんなのタグ", "楽曲タグの作成・閲覧", DS.ink2, null, onNavigateToTagList)
-            HorizontalDivider(color = DS.sep)
-            HubRow(Icons.Filled.LocalFireDepartment, "タグの動き", "伸びてるタグ・急上昇の曲やアイドルをチェック", DS.ink2, null, onNavigateToTagActivity)
-            HorizontalDivider(color = DS.sep)
-            HubRow(Icons.AutoMirrored.Filled.ListAlt, "マイ投稿・編集履歴", "", DS.ink2, state.contributionCount, onNavigateToMyContributions)
-            HorizontalDivider(color = DS.sep)
-            HubRow(Icons.Filled.HowToVote, "投票履歴", "", DS.ink2, state.voteCount, onNavigateToMyVotes)
-            HorizontalDivider(color = DS.sep)
-            HubRow(Icons.Filled.History, "みんなの編集履歴", "", DS.ink2, null, onNavigateToEditHistory)
-            HorizontalDivider(color = DS.sep)
-            // 編集の協力者に Discord のロールを渡す入口。セッションで本人を確かめるので
-            // ログイン中だけ出す (未ログインで押しても 401 になるだけ)。
-            if (authState.isSignedIn) {
-                HubRow(
-                    Icons.Filled.WorkspacePremium, "Discordでロールを受け取る",
-                    "アプリで10件以上編集すると「データ協力」ロールが付きます", DS.ink2, null,
-                    onClick = viewModel::requestDiscordLink,
-                    loading = state.isLinkingDiscord
-                )
-                HorizontalDivider(color = DS.sep)
-            }
-            HubRow(Icons.Filled.SportsEsports, "ゲーム", "クイズ・イントロ当てクイズ", DS.ink2, null, onNavigateToGamesHub)
-            HorizontalDivider(color = DS.sep)
-            HubRow(Icons.Filled.BarChart, "統計", "ブランド別・年別・ランキング", DS.ink2, null, onNavigateToStats)
-            HorizontalDivider(color = DS.sep)
-            HubRow(Icons.Filled.Settings, "設定・マイ", "", DS.ink2, null, onNavigateToSettings)
             Spacer(Modifier.height(24.dp))
         }
     }
@@ -271,7 +271,7 @@ private fun FeaturedPollCard(poll: FeaturedPoll, onClick: () -> Unit) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Filled.HowToVote, null, tint = Color.White, modifier = Modifier.size(15.dp))
             Text(
-                "投票受付中", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White,
+                "お題", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White,
                 modifier = Modifier.padding(start = 6.dp)
             )
             Spacer(Modifier.weight(1f))
@@ -303,7 +303,7 @@ private fun PollMeta(icon: ImageVector, text: String) {
 }
 
 /**
- * 「あなたの活動」。件数タイルを 3 列で並べ、押すとそれぞれの一覧へ。
+ * 「あなたの記録」。件数タイルを 3 列で並べ、押すとそれぞれの一覧へ。
  *
  * iOS はここに「予想」タイルも置くが、Android にはまだ「マイ予想」の一覧 (/me/predictions) が無い
  * (セトリ予想そのものは公演のセトリ画面にある)。常に 0 で行き先も無いタイルを出すと
@@ -316,17 +316,22 @@ private fun ActivitySection(
     onFavoritesClick: () -> Unit,
     onContributionsClick: () -> Unit,
     onVotesClick: () -> Unit,
-    onCollectedClick: () -> Unit
+    onCollectedClick: () -> Unit,
+    onMasteryClick: () -> Unit,
+    onLedgerClick: () -> Unit
 ) {
     val tiles = listOf(
-        ActivityTile(Icons.Filled.Mic, state.attendedCount, "参加ライブ", onAttendedClick),
-        ActivityTile(Icons.Filled.Star, state.favoriteCount, "お気に入り", onFavoritesClick),
-        ActivityTile(Icons.AutoMirrored.Filled.ListAlt, state.contributionCount, "投稿", onContributionsClick),
-        ActivityTile(Icons.Filled.HowToVote, state.voteCount, "投票", onVotesClick),
-        ActivityTile(Icons.Filled.MusicNote, state.collectedCount, "回収", onCollectedClick)
+        ActivityTile(Icons.Filled.Mic, "${state.attendedCount}", "参加ライブ", onAttendedClick),
+        ActivityTile(Icons.Filled.Star, "${state.favoriteCount}", "お気に入り", onFavoritesClick),
+        ActivityTile(Icons.AutoMirrored.Filled.ListAlt, "${state.contributionCount}", "投稿", onContributionsClick),
+        ActivityTile(Icons.Filled.HowToVote, "${state.voteCount}", "投票", onVotesClick),
+        ActivityTile(Icons.Filled.MusicNote, "${state.collectedCount}", "回収", onCollectedClick),
+        ActivityTile(Icons.Filled.BarChart, "${state.masteryCount}", "習熟度", onMasteryClick),
+        // 件数ではなく金額を出す — 「いくら使ったか」は件数では読めない。
+        ActivityTile(Icons.Filled.AttachMoney, state.ledgerTotalLabel, "収支", onLedgerClick)
     )
     Column {
-        ImasSectionHeader("あなたの活動", tight = true)
+        ImasSectionHeader("あなたの記録", tight = true)
         // LazyVerticalGrid は縦スクロールの中に入れられない (高さが決まらない) ので、
         // 3 個ずつの Row に割って並べる。件数が固定なので行数も決まる。
         tiles.chunked(3).forEach { row ->
@@ -337,7 +342,7 @@ private fun ActivitySection(
                 row.forEach { tile ->
                     ImasStatTile(
                         icon = tile.icon,
-                        value = tile.value.toString(),
+                        value = tile.value,
                         label = tile.label,
                         seed = state.pickSeed,
                         tappable = true,
@@ -354,7 +359,7 @@ private fun ActivitySection(
 
 private data class ActivityTile(
     val icon: ImageVector,
-    val value: Int,
+    val value: String,
     val label: String,
     val onClick: () -> Unit
 )
@@ -399,55 +404,6 @@ private fun RecentsSection(recents: List<RecentChip>, onClick: (RecentChip) -> U
     }
 }
 
-/** 参加したライブを上位数件だけ直接並べる。超えたぶんは「全て見る」で一覧へ。 */
-@Composable
-private fun AttendedSection(
-    events: List<EventWithDateRange>,
-    onEventClick: (String) -> Unit,
-    onSeeAll: () -> Unit
-) {
-    if (events.isEmpty()) return
-    Column {
-        ImasSectionHeader(
-            "参加したライブ",
-            count = "${events.size}",
-            onSeeAll = if (events.size > ATTENDED_INLINE_LIMIT) onSeeAll else null
-        )
-        events.take(ATTENDED_INLINE_LIMIT).forEach { ew ->
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.fillMaxWidth()
-                    .clickable { onEventClick(ew.event.id) }
-                    .padding(horizontal = 16.dp, vertical = 10.dp)
-            ) {
-                ImasLeadBar(
-                    brandId = ew.event.brandId, height = 38.dp,
-                    rainbow = ew.isJoint
-                )
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        ew.event.name, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink,
-                        maxLines = 2, overflow = TextOverflow.Ellipsis
-                    )
-                    ew.dateRange?.let { Text(it, fontSize = 12.sp, color = DS.ink2) }
-                }
-                Icon(
-                    Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = DS.ink3,
-                    modifier = Modifier.size(16.dp)
-                )
-            }
-        }
-        if (events.size > ATTENDED_INLINE_LIMIT) {
-            Text(
-                "全て見る (${events.size}件)",
-                fontSize = 14.sp, fontWeight = FontWeight.Medium, color = DS.sys,
-                modifier = Modifier.clickable(onClick = onSeeAll).padding(horizontal = 16.dp, vertical = 8.dp)
-            )
-        }
-    }
-}
-
 @Composable
 private fun IdolSection(title: String, idols: List<Idol>, accent: Color, onClick: (String) -> Unit) {
     if (idols.isEmpty()) return
@@ -478,24 +434,6 @@ private fun IdolSection(title: String, idols: List<Idol>, accent: Color, onClick
 }
 
 @Composable
-private fun SongLine(song: Song, onClick: () -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier.size(width = 4.dp, height = 32.dp).clip(CircleShape).background(brandColor(song.brandId))
-        )
-        Text(
-            song.title,
-            style = MaterialTheme.typography.bodyMedium,
-            color = DS.ink,
-            modifier = Modifier.padding(start = 12.dp)
-        )
-    }
-}
-
-@Composable
 private fun SectionTitle(title: String) {
     Text(
         title,
@@ -506,42 +444,115 @@ private fun SectionTitle(title: String) {
     )
 }
 
-/**
- * ハブ行。[count] を渡すと右端に件数を出す — 開く前に「中身があるか」が分かると、
- * 空の一覧を開いて戻るだけの往復が減る。件数の概念が無い行 (設定・ゲーム等) は null。
- */
+/** 次のライブ。札 + ライブ名 + 公演日 と「セトリを予想」。iOS の「コールを見る」は歌詞が無いので出さない。 */
 @Composable
-private fun HubRow(
-    icon: ImageVector,
-    title: String,
-    subtitle: String,
-    accent: Color,
-    count: Int?,
-    onClick: () -> Unit,
-    /** true なら右端の矢印をくるくるに替えて押せなくする (押してから外へ飛ぶまでの待ち)。 */
-    loading: Boolean = false
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth().clickable(enabled = !loading, onClick = onClick).padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically
+private fun NextLiveCard(next: NextLive, seed: String?, onPredict: () -> Unit) {
+    val t = ImasTheme.forBrand(seed, next.event.brandId)
+    val sub = buildList {
+        add(next.show.date)
+        if (next.show.name.isNotEmpty() && next.show.name != next.event.name) add(next.show.name)
+    }.joinToString(" ・ ")
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .clip(RoundedCornerShape(18.dp))
+            .background(DS.surface)
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Icon(icon, contentDescription = null, tint = accent, modifier = Modifier.size(22.dp))
-        Column(modifier = Modifier.weight(1f).padding(start = 14.dp)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge, color = DS.ink)
-            if (subtitle.isNotEmpty()) {
-                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = DS.ink3)
-            }
-        }
-        if (count != null) {
+        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text(next.statusLabel, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = t.chipText)
             Text(
-                "$count", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = DS.ink2,
-                modifier = Modifier.padding(end = 6.dp)
+                AppPreferences.eventDisplayName(next.event.name), fontSize = 17.sp, fontWeight = FontWeight.Bold,
+                color = DS.ink, maxLines = 2, overflow = TextOverflow.Ellipsis
             )
+            Text(sub, fontSize = 13.sp, color = DS.ink2, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
-        if (loading) {
-            CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = DS.ink3)
-        } else {
-            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = DS.ink3, modifier = Modifier.size(18.dp))
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(10.dp))
+                .background(t.accent)
+                .clickable(onClick = onPredict)
+                .padding(vertical = 9.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text("セトリを予想", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = t.onAccent)
         }
     }
+}
+
+/** 入口 1 つ。[loading] の間はアイコンをくるくるに替えて押せなくする。 */
+private data class Shortcut(
+    val icon: ImageVector,
+    val label: String,
+    val onClick: () -> Unit,
+    val loading: Boolean = false
+)
+
+/**
+ * 入口のまとまり (あそぶ / みんな / しらべる)。見出し 1 行 + アイコン 4 つずつの並び。
+ * 入口を同じ大きさの行で縦に積まず、種類ごとに 1 枚にまとめる。
+ */
+@Composable
+private fun ShortcutGroup(
+    title: String,
+    items: List<Shortcut>,
+    seed: String?,
+    accessory: @Composable () -> Unit = {}
+) {
+    val t = ImasTheme.forBrand(seed, null)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(DS.surface)
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(title, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = DS.ink)
+            Spacer(Modifier.weight(1f))
+            accessory()
+        }
+        items.chunked(4).forEach { row ->
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                row.forEach { item ->
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(10.dp))
+                            .clickable(enabled = !item.loading, onClick = item.onClick)
+                            .padding(vertical = 4.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier.size(44.dp).clip(RoundedCornerShape(12.dp)).background(t.chipBg),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (item.loading) {
+                                CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = t.chipText)
+                            } else {
+                                Icon(item.icon, null, tint = t.chipText, modifier = Modifier.size(22.dp))
+                            }
+                        }
+                        Text(item.label, fontSize = 12.sp, color = DS.ink2, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                }
+                repeat(4 - row.size) { Spacer(Modifier.weight(1f)) }
+            }
+        }
+    }
+}
+
+/** つづきからに出すゲーム名 (ゲーム一覧と同じ呼び方)。 */
+private fun gameTitle(kind: GameKind): String = when (kind) {
+    GameKind.idolQuiz -> "アイドル当て"
+    GameKind.songSingerQuiz -> "ソロ曲クイズ"
+    GameKind.setlistQuiz -> "セトリ当て"
+    GameKind.introDon -> "イントロドン"
+    GameKind.colorMatch -> "メンバーカラー合わせ"
 }
