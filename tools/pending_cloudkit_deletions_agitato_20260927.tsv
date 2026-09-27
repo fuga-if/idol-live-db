@@ -1,0 +1,6 @@
+# Agitato の原唱者を 花海咲季・花海佑芽・葛城リーリヤ に訂正 (2026-09-27, ユーザー指摘)。
+# 旧 original の 4 行。db/master.sql からは消したが、CloudKit から消さないと翌日の cron で復活する。
+SongArtist	song_artists-gakuen_agitato-gakuen_倉本千奈-original
+SongArtist	song_artists-gakuen_agitato-gakuen_十王星南-original
+SongArtist	song_artists-gakuen_agitato-gakuen_秦谷美鈴-original
+SongArtist	song_artists-gakuen_agitato-gakuen_紫雲清夏-original
