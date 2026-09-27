@@ -1,0 +1,1067 @@
+{
+ "title": "events の旧 1 組 (受付開始/締切/当落) を受付表へ移す。公式ページで受付を全部拾い直した",
+ "source": "各行の source_url は公式特設のチケットページ (消えたものは公式の後継ページ)",
+ "ticket_sales": [
+  {
+   "event_id": "ev_the_idolm@ster_million_live_14thlive",
+   "show_ids": [],
+   "kind": "first_come",
+   "name": "一般販売2次(先着)",
+   "starts_at": "2026-09-15 18:00",
+   "url": "https://asobiticket2.asobistore.jp/receptions/0f7717d2-345a-4050-92d8-8c78333d12bb",
+   "note": "受付期間は各公演前日23:00まで(公演日ごとに終了日時が異なる)。アリーナ前方席・9月20日(日)全席指定席は取扱なし。お一人様1公演2枚まで。",
+   "source_url": "https://idolmaster-official.jp/live_event/million14th/ticket/",
+   "sort_order": 0
+  },
+  {
+   "event_id": "ev_the_idolm@ster_million_live_14thlive",
+   "show_ids": [],
+   "kind": "first_come",
+   "name": "一般販売(先着)",
+   "starts_at": "2026-08-30 12:00",
+   "ends_at": "2026-09-12 23:59",
+   "url": "https://asobiticket2.asobistore.jp/receptions/c9c63d2b-37d4-4ab2-9fa2-ac246ffd6140",
+   "note": "アリーナ前方席は取扱なし。2026年9月10日0:00以降の支払いはクレジットカードのみ。お一人様1公演2枚まで。",
+   "source_url": "https://idolmaster-official.jp/live_event/million14th/ticket/",
+   "sort_order": 2
+  },
+  {
+   "event_id": "ev_the_idolm@ster_million_live_14thlive",
+   "show_ids": [
+    "sh_the_idolm@ster_million_live_14thlive_1"
+   ],
+   "kind": "resale",
+   "name": "リセール(2026年9月19日(土)公演)",
+   "starts_at": "2026-08-30 15:00",
+   "ends_at": "2026-09-13 09:59",
+   "url": "https://asobiticket2.asobistore.jp/receptions/a0433994-acfe-4ec0-90e0-560c9c1315d8",
+   "note": "ASOBI TICKET公式リセール。2026年9月11日0:00以降の支払いはクレジットカードのみ。",
+   "source_url": "https://idolmaster-official.jp/live_event/million14th/ticket/",
+   "sort_order": 3
+  },
+  {
+   "event_id": "ev_the_idolm@ster_million_live_14thlive",
+   "show_ids": [
+    "sh_the_idolm@ster_million_live_14thlive_2"
+   ],
+   "kind": "resale",
+   "name": "リセール(2026年9月20日(日)公演)",
+   "starts_at": "2026-08-30 15:00",
+   "ends_at": "2026-09-13 09:59",
+   "url": "https://asobiticket2.asobistore.jp/receptions/53a30a58-2c64-4b12-a996-45342355f7da",
+   "note": "ASOBI TICKET公式リセール。2026年9月11日0:00以降の支払いはクレジットカードのみ。",
+   "source_url": "https://idolmaster-official.jp/live_event/million14th/ticket/",
+   "sort_order": 4
+  },
+  {
+   "event_id": "ev_the_idolm@ster_million_live_14thlive",
+   "show_ids": [],
+   "kind": "lottery",
+   "name": "アソビストア一般会員2次先行",
+   "starts_at": "2026-07-31 12:00",
+   "ends_at": "2026-08-16 23:59",
+   "result_at": "2026-08-27 13:00",
+   "url": "https://asobiticket2.asobistore.jp/receptions/4ae0912e-6d1c-40cc-8c20-09350730afe6",
+   "note": "アリーナ前方席は取扱なし。入金期間は当落発表〜(明記なし、通例数日以内)。お一人様1公演2枚まで。",
+   "source_url": "https://idolmaster-official.jp/live_event/million14th/ticket/",
+   "sort_order": 5
+  },
+  {
+   "event_id": "ev_the_idolm@ster_million_live_14thlive",
+   "show_ids": [],
+   "kind": "lottery",
+   "name": "アソビストア一般会員先行",
+   "starts_at": "2026-07-10 12:00",
+   "ends_at": "2026-07-30 23:59",
+   "result_at": "2026-08-11 13:00",
+   "url": "https://asobiticket2.asobistore.jp/receptions/f2324f8b-60bf-4a14-b5af-9628a844d9e6",
+   "note": "入金期間2026-08-11 13:00〜2026-08-15 23:59。お一人様1公演2枚まで。",
+   "source_url": "https://idolmaster-official.jp/live_event/million14th/ticket/",
+   "sort_order": 6
+  },
+  {
+   "event_id": "ev_the_idolm@ster_million_live_14thlive",
+   "show_ids": [],
+   "kind": "lottery",
+   "name": "アソビストアプレミアム会員先行",
+   "starts_at": "2026-06-13 21:00",
+   "ends_at": "2026-06-24 23:59",
+   "result_at": "2026-07-04 13:00",
+   "url": "https://asobiticket2.asobistore.jp/receptions/3bb155de-803d-4d8f-afad-d2ff3a6208c2",
+   "note": "アソビストアプレミアム12か月会員限定。入金期間2026-07-04 13:00〜2026-07-08 23:59。お一人様1公演2枚まで。",
+   "source_url": "https://idolmaster-official.jp/live_event/million14th/ticket/",
+   "sort_order": 7
+  },
+  {
+   "event_id": "ev_cinderella_girls_concept_xr_live_pop_n_toybox",
+   "show_ids": [],
+   "kind": "first_come",
+   "name": "一般販売（先着2次）(現地チケット ステージサイド席)",
+   "starts_at": "2026-08-08 12:00",
+   "url": "https://asobiticket2.asobistore.jp/receptions/1e13b1e5-290d-443c-b23a-a7130dd167cd",
+   "note": "受付期間は各公演前日23:00までで公演日ごとに終了日時が異なる。特典付きチケット・3公演通し券の取扱なし。",
+   "source_url": "https://idolmaster-official.jp/live_event/cg_ptb/",
+   "sort_order": 0
+  },
+  {
+   "event_id": "ev_cinderella_girls_concept_xr_live_pop_n_toybox",
+   "show_ids": [],
+   "kind": "first_come",
+   "name": "一般販売（先着）",
+   "starts_at": "2026-07-18 12:00",
+   "ends_at": "2026-08-05 23:59",
+   "url": "https://asobiticket2.asobistore.jp/receptions/74202226-1dff-480d-87b9-5f95f170e46e",
+   "note": "特典付きチケット・3公演通し券の取扱なし。2026年8月3日0:00以降の支払いはクレジットカードのみ。",
+   "source_url": "https://idolmaster-official.jp/live_event/cg_ptb/",
+   "sort_order": 2
+  },
+  {
+   "event_id": "ev_cinderella_girls_concept_xr_live_pop_n_toybox",
+   "show_ids": [
+    "sh_cinderella_girls_concept_xr_live_pop_n_toybox_1"
+   ],
+   "kind": "resale",
+   "name": "リセール(8月13日(木) 夕方公演)",
+   "starts_at": "2026-07-18 15:00",
+   "ends_at": "2026-08-06 09:59",
+   "url": "https://asobiticket2.asobistore.jp/receptions/c1c78571-249b-4a72-b0dc-d0c6083ea632",
+   "note": "ASOBI TICKET公式リセール。2026年8月4日0:00以降の支払いはクレジットカードのみ。",
+   "source_url": "https://idolmaster-official.jp/live_event/cg_ptb/",
+   "sort_order": 3
+  },
+  {
+   "event_id": "ev_cinderella_girls_concept_xr_live_pop_n_toybox",
+   "show_ids": [
+    "sh_cinderella_girls_concept_xr_live_pop_n_toybox_2"
+   ],
+   "kind": "resale",
+   "name": "リセール(8月14日(金) 昼公演)",
+   "starts_at": "2026-07-18 15:00",
+   "ends_at": "2026-08-06 09:59",
+   "url": "https://asobiticket2.asobistore.jp/receptions/9fdee12a-164c-460d-8aa4-e102743131f7",
+   "note": "ASOBI TICKET公式リセール。2026年8月4日0:00以降の支払いはクレジットカードのみ。",
+   "source_url": "https://idolmaster-official.jp/live_event/cg_ptb/",
+   "sort_order": 4
+  },
+  {
+   "event_id": "ev_cinderella_girls_concept_xr_live_pop_n_toybox",
+   "show_ids": [
+    "sh_cinderella_girls_concept_xr_live_pop_n_toybox_3"
+   ],
+   "kind": "resale",
+   "name": "リセール(8月14日(金) 夜公演)",
+   "starts_at": "2026-07-18 15:00",
+   "ends_at": "2026-08-06 09:59",
+   "url": "https://asobiticket2.asobistore.jp/receptions/9d843fc6-dc5a-4df9-964d-fbcdfa38bea0",
+   "note": "ASOBI TICKET公式リセール。2026年8月4日0:00以降の支払いはクレジットカードのみ。",
+   "source_url": "https://idolmaster-official.jp/live_event/cg_ptb/",
+   "sort_order": 5
+  },
+  {
+   "event_id": "ev_cinderella_girls_concept_xr_live_pop_n_toybox",
+   "show_ids": [
+    "sh_cinderella_girls_concept_xr_live_pop_n_toybox_1",
+    "sh_cinderella_girls_concept_xr_live_pop_n_toybox_2",
+    "sh_cinderella_girls_concept_xr_live_pop_n_toybox_3"
+   ],
+   "kind": "resale",
+   "name": "リセール(8月13日(木)夕方・14日(金)昼・夜 3公演通しチケット)",
+   "starts_at": "2026-07-18 15:00",
+   "ends_at": "2026-08-06 09:59",
+   "url": "https://asobiticket2.asobistore.jp/receptions/8b2a46a5-b51b-4f4d-92c5-6e7cfc36d79a",
+   "note": "ASOBI TICKET公式リセール。3公演通しチケット専用の申込URL。2026年8月4日0:00以降の支払いはクレジットカードのみ。",
+   "source_url": "https://idolmaster-official.jp/live_event/cg_ptb/",
+   "sort_order": 6
+  },
+  {
+   "event_id": "ev_cinderella_girls_concept_xr_live_pop_n_toybox",
+   "show_ids": [
+    "sh_cinderella_girls_concept_xr_live_pop_n_toybox_4"
+   ],
+   "kind": "resale",
+   "name": "リセール(8月15日(土) 夕方公演)",
+   "starts_at": "2026-07-18 15:00",
+   "ends_at": "2026-08-06 09:59",
+   "url": "https://asobiticket2.asobistore.jp/receptions/9c06c2a3-58d2-4288-ac44-72e832c63ca8",
+   "note": "ASOBI TICKET公式リセール。2026年8月4日0:00以降の支払いはクレジットカードのみ。",
+   "source_url": "https://idolmaster-official.jp/live_event/cg_ptb/",
+   "sort_order": 7
+  },
+  {
+   "event_id": "ev_cinderella_girls_concept_xr_live_pop_n_toybox",
+   "show_ids": [
+    "sh_cinderella_girls_concept_xr_live_pop_n_toybox_5"
+   ],
+   "kind": "resale",
+   "name": "リセール(8月16日(日) 昼公演)",
+   "starts_at": "2026-07-18 15:00",
+   "ends_at": "2026-08-06 09:59",
+   "url": "https://asobiticket2.asobistore.jp/receptions/b2e5c567-574c-49cb-9162-00598e5e3f1c",
+   "note": "ASOBI TICKET公式リセール。2026年8月4日0:00以降の支払いはクレジットカードのみ。",
+   "source_url": "https://idolmaster-official.jp/live_event/cg_ptb/",
+   "sort_order": 8
+  },
+  {
+   "event_id": "ev_cinderella_girls_concept_xr_live_pop_n_toybox",
+   "show_ids": [
+    "sh_cinderella_girls_concept_xr_live_pop_n_toybox_6"
+   ],
+   "kind": "resale",
+   "name": "リセール(8月16日(日) 夜公演)",
+   "starts_at": "2026-07-18 15:00",
+   "ends_at": "2026-08-06 09:59",
+   "url": "https://asobiticket2.asobistore.jp/receptions/81916657-e1dd-4a83-9b4a-716f9f01036d",
+   "note": "ASOBI TICKET公式リセール。2026年8月4日0:00以降の支払いはクレジットカードのみ。",
+   "source_url": "https://idolmaster-official.jp/live_event/cg_ptb/",
+   "sort_order": 9
+  },
+  {
+   "event_id": "ev_cinderella_girls_concept_xr_live_pop_n_toybox",
+   "show_ids": [
+    "sh_cinderella_girls_concept_xr_live_pop_n_toybox_4",
+    "sh_cinderella_girls_concept_xr_live_pop_n_toybox_5",
+    "sh_cinderella_girls_concept_xr_live_pop_n_toybox_6"
+   ],
+   "kind": "resale",
+   "name": "リセール(8月15日(土)夕方・16日(日)昼・夜 3公演通しチケット)",
+   "starts_at": "2026-07-18 15:00",
+   "ends_at": "2026-08-06 09:59",
+   "url": "https://asobiticket2.asobistore.jp/receptions/1d00d9d5-3d95-41de-b5ee-97f3ecc3fb7d",
+   "note": "ASOBI TICKET公式リセール。3公演通しチケット専用の申込URL。2026年8月4日0:00以降の支払いはクレジットカードのみ。",
+   "source_url": "https://idolmaster-official.jp/live_event/cg_ptb/",
+   "sort_order": 10
+  },
+  {
+   "event_id": "ev_cinderella_girls_concept_xr_live_pop_n_toybox",
+   "show_ids": [],
+   "kind": "lottery",
+   "name": "アソビストア一般会員先行（通し券）",
+   "starts_at": "2026-05-30 12:00",
+   "ends_at": "2026-06-28 23:59",
+   "result_at": "2026-07-11 13:00",
+   "url": "https://asobiticket2.asobistore.jp/receptions/e0798ca1-7d11-4b30-8b6c-ce3956b9c0ae",
+   "note": "3公演通しチケット向けの先行抽選。入金期間2026-07-11 13:00〜2026-07-15 23:59。",
+   "source_url": "https://idolmaster-official.jp/live_event/cg_ptb/",
+   "sort_order": 11
+  },
+  {
+   "event_id": "ev_cinderella_girls_concept_xr_live_pop_n_toybox",
+   "show_ids": [],
+   "kind": "lottery",
+   "name": "アソビストア一般会員先行（各日券）",
+   "starts_at": "2026-05-30 12:00",
+   "ends_at": "2026-06-28 23:59",
+   "result_at": "2026-07-11 13:00",
+   "url": "https://asobiticket2.asobistore.jp/receptions/6d6cf08c-f40f-4459-8ce9-a0979b0fa02e",
+   "note": "各公演単日券向けの先行抽選。入金期間2026-07-11 13:00〜2026-07-15 23:59。",
+   "source_url": "https://idolmaster-official.jp/live_event/cg_ptb/",
+   "sort_order": 12
+  },
+  {
+   "event_id": "ev_cinderella_girls_concept_xr_live_pop_n_toybox",
+   "show_ids": [],
+   "kind": "lottery",
+   "name": "アソビストアプレミアム会員先行（通し券）",
+   "starts_at": "2026-03-19 12:00",
+   "ends_at": "2026-04-19 23:59",
+   "result_at": "2026-05-02 13:00",
+   "url": "https://asobiticket2.asobistore.jp/receptions/dda61d1b-d07f-4fb0-920c-126306a9d73c",
+   "note": "アソビストアプレミアム12か月会員限定、3公演通しチケット向け。入金期間2026-05-02 13:00〜2026-05-06 23:59。",
+   "source_url": "https://idolmaster-official.jp/live_event/cg_ptb/",
+   "sort_order": 13
+  },
+  {
+   "event_id": "ev_cinderella_girls_concept_xr_live_pop_n_toybox",
+   "show_ids": [],
+   "kind": "lottery",
+   "name": "アソビストアプレミアム会員先行（各日券）",
+   "starts_at": "2026-03-19 12:00",
+   "ends_at": "2026-04-19 23:59",
+   "result_at": "2026-05-02 13:00",
+   "url": "https://asobiticket2.asobistore.jp/receptions/c9471d4c-3eff-415a-ad21-1873577d869e",
+   "note": "アソビストアプレミアム12か月会員限定、各公演単日券向け。入金期間2026-05-02 13:00〜2026-05-06 23:59。",
+   "source_url": "https://idolmaster-official.jp/live_event/cg_ptb/",
+   "sort_order": 14
+  },
+  {
+   "event_id": "ev_cinderella_girls_concept_xr_live_pop_n_toybox",
+   "show_ids": [],
+   "kind": "first_come",
+   "name": "xRライブストリーミングチケット",
+   "starts_at": "2026-07-18 12:00",
+   "ends_at": "2026-09-13 21:00",
+   "url": "https://asobistage.asobistore.jp/event/cinderella_cg_ptb/ticket",
+   "note": "配信視聴チケット(現地チケットとは別枠)。3公演通し/各公演単位の券種あり。終了予定時刻は「予定」表記。",
+   "source_url": "https://idolmaster-official.jp/live_event/cg_ptb/",
+   "sort_order": 15
+  },
+  {
+   "event_id": "ev_学園アイドルマスター_live_tour_-標-_岩手公演",
+   "show_ids": [],
+   "kind": "first_come",
+   "name": "岩手公演 一般販売（先着）",
+   "starts_at": "2026-09-05 12:00",
+   "ends_at": "2026-09-09 23:59",
+   "url": "https://asobiticket2.asobistore.jp/receptions/d6d0b33e-0ae8-45ad-a1d0-6c81ad728f9e",
+   "note": "2026年9月7日0:00以降の支払いはクレジットカードのみ。",
+   "source_url": "https://idolmaster-official.jp/live_event/gkmas_livetour_shirube/ticket/regional.php",
+   "sort_order": 0
+  },
+  {
+   "event_id": "ev_学園アイドルマスター_live_tour_-標-_岩手公演",
+   "show_ids": [
+    "sh_学園アイドルマスター_live_tour_-標-_岩手公演_1"
+   ],
+   "kind": "resale",
+   "name": "岩手公演 公式リセール(9月22日(火)公演)",
+   "starts_at": "2026-09-05 15:00",
+   "ends_at": "2026-09-10 09:59",
+   "url": "https://asobiticket2.asobistore.jp/receptions/a036f361-c1de-4561-8fff-47aa0815fca1",
+   "note": "ASOBI TICKET公式リセール。2026年9月8日0:00以降の支払いはクレジットカードのみ。",
+   "source_url": "https://idolmaster-official.jp/live_event/gkmas_livetour_shirube/ticket/regional.php",
+   "sort_order": 1
+  },
+  {
+   "event_id": "ev_学園アイドルマスター_live_tour_-標-_岩手公演",
+   "show_ids": [
+    "sh_学園アイドルマスター_live_tour_-標-_岩手公演_2"
+   ],
+   "kind": "resale",
+   "name": "岩手公演 公式リセール(9月23日(水)公演)",
+   "starts_at": "2026-09-05 15:00",
+   "ends_at": "2026-09-10 09:59",
+   "url": "https://asobiticket2.asobistore.jp/receptions/3e3f8bf7-6b9f-44b9-a4c1-dfbb11935e9f",
+   "note": "ASOBI TICKET公式リセール。2026年9月8日0:00以降の支払いはクレジットカードのみ。",
+   "source_url": "https://idolmaster-official.jp/live_event/gkmas_livetour_shirube/ticket/regional.php",
+   "sort_order": 2
+  },
+  {
+   "event_id": "ev_学園アイドルマスター_live_tour_-標-_岩手公演",
+   "show_ids": [],
+   "kind": "lottery",
+   "name": "アソビストア一般会員2次先行",
+   "starts_at": "2026-06-23 12:00",
+   "ends_at": "2026-07-05 23:59",
+   "result_at": "2026-07-18 13:00",
+   "url": "https://asobiticket2.asobistore.jp/receptions/0b570b88-6751-49ab-9c1d-6bb154b30aeb",
+   "note": "福井・福岡・岩手の全公演共通の受付。入金期間2026-07-18 13:00〜2026-07-22 23:59。お一人様1公演2枚まで。",
+   "source_url": "https://idolmaster-official.jp/live_event/gkmas_livetour_shirube/ticket/regional.php",
+   "sort_order": 3
+  },
+  {
+   "event_id": "ev_学園アイドルマスター_live_tour_-標-_岩手公演",
+   "show_ids": [],
+   "kind": "lottery",
+   "name": "アソビストア一般会員先行",
+   "starts_at": "2026-05-14 12:00",
+   "ends_at": "2026-05-31 23:59",
+   "result_at": "2026-06-17 13:00",
+   "url": "https://asobiticket2.asobistore.jp/receptions/7536e82f-6444-44a2-b9f4-71d938ad4885",
+   "note": "福井・福岡・岩手の全公演共通の受付。入金期間2026-06-17 13:00〜2026-06-21 23:59。お一人様1公演2枚まで。",
+   "source_url": "https://idolmaster-official.jp/live_event/gkmas_livetour_shirube/ticket/regional.php",
+   "sort_order": 4
+  },
+  {
+   "event_id": "ev_学園アイドルマスター_live_tour_-標-_岩手公演",
+   "show_ids": [],
+   "kind": "lottery",
+   "name": "アソビストアプレミアム会員先行",
+   "starts_at": "2026-03-27 15:00",
+   "ends_at": "2026-04-19 23:59",
+   "result_at": "2026-05-09 13:00",
+   "url": "https://asobiticket2.asobistore.jp/receptions/8bff0ea3-4309-4585-ad75-73166f5cf6e3",
+   "note": "福井・福岡・岩手の全公演共通の受付。プレミアム12か月会員限定。入金期間2026-05-09 13:00〜2026-05-13 23:59。顔認証手数料1枚220円。",
+   "source_url": "https://idolmaster-official.jp/live_event/gkmas_livetour_shirube/ticket/regional.php",
+   "sort_order": 5
+  },
+  {
+   "event_id": "ev_学園アイドルマスター_live_tour_-標-_福岡公演",
+   "show_ids": [],
+   "kind": "first_come",
+   "name": "福岡公演 一般販売（先着）",
+   "starts_at": "2026-08-22 13:00",
+   "ends_at": "2026-08-26 23:59",
+   "url": "https://asobiticket2.asobistore.jp/receptions/8dc8d3eb-0671-443a-80a3-078af7ff3ba5",
+   "note": "2026年8月24日0:00以降の支払いはクレジットカードのみ。立見指定は福岡公演のみ設定。",
+   "source_url": "https://idolmaster-official.jp/live_event/gkmas_livetour_shirube/ticket/regional.php",
+   "sort_order": 0
+  },
+  {
+   "event_id": "ev_学園アイドルマスター_live_tour_-標-_福岡公演",
+   "show_ids": [
+    "sh_学園アイドルマスター_live_tour_-標-_福岡公演_1"
+   ],
+   "kind": "resale",
+   "name": "福岡公演 公式リセール(9月5日(土)公演)",
+   "starts_at": "2026-08-22 15:00",
+   "ends_at": "2026-08-27 09:59",
+   "url": "https://asobiticket2.asobistore.jp/receptions/476b4a0b-325e-4ac7-9ea5-8b9cdc34ecdc",
+   "note": "ASOBI TICKET公式リセール。2026年8月25日0:00以降の支払いはクレジットカードのみ。",
+   "source_url": "https://idolmaster-official.jp/live_event/gkmas_livetour_shirube/ticket/regional.php",
+   "sort_order": 1
+  },
+  {
+   "event_id": "ev_学園アイドルマスター_live_tour_-標-_福岡公演",
+   "show_ids": [
+    "sh_学園アイドルマスター_live_tour_-標-_福岡公演_2"
+   ],
+   "kind": "resale",
+   "name": "福岡公演 公式リセール(9月6日(日)公演)",
+   "starts_at": "2026-08-22 15:00",
+   "ends_at": "2026-08-27 09:59",
+   "url": "https://asobiticket2.asobistore.jp/receptions/4c9f4825-ec50-45eb-9630-f01c99781965",
+   "note": "ASOBI TICKET公式リセール。2026年8月25日0:00以降の支払いはクレジットカードのみ。",
+   "source_url": "https://idolmaster-official.jp/live_event/gkmas_livetour_shirube/ticket/regional.php",
+   "sort_order": 2
+  },
+  {
+   "event_id": "ev_学園アイドルマスター_live_tour_-標-_福岡公演",
+   "show_ids": [],
+   "kind": "lottery",
+   "name": "アソビストア一般会員2次先行",
+   "starts_at": "2026-06-23 12:00",
+   "ends_at": "2026-07-05 23:59",
+   "result_at": "2026-07-18 13:00",
+   "url": "https://asobiticket2.asobistore.jp/receptions/0b570b88-6751-49ab-9c1d-6bb154b30aeb",
+   "note": "福井・福岡・岩手の全公演共通の受付。入金期間2026-07-18 13:00〜2026-07-22 23:59。お一人様1公演2枚まで。",
+   "source_url": "https://idolmaster-official.jp/live_event/gkmas_livetour_shirube/ticket/regional.php",
+   "sort_order": 3
+  },
+  {
+   "event_id": "ev_学園アイドルマスター_live_tour_-標-_福岡公演",
+   "show_ids": [],
+   "kind": "lottery",
+   "name": "アソビストア一般会員先行",
+   "starts_at": "2026-05-14 12:00",
+   "ends_at": "2026-05-31 23:59",
+   "result_at": "2026-06-17 13:00",
+   "url": "https://asobiticket2.asobistore.jp/receptions/7536e82f-6444-44a2-b9f4-71d938ad4885",
+   "note": "福井・福岡・岩手の全公演共通の受付。入金期間2026-06-17 13:00〜2026-06-21 23:59。お一人様1公演2枚まで。",
+   "source_url": "https://idolmaster-official.jp/live_event/gkmas_livetour_shirube/ticket/regional.php",
+   "sort_order": 4
+  },
+  {
+   "event_id": "ev_学園アイドルマスター_live_tour_-標-_福岡公演",
+   "show_ids": [],
+   "kind": "lottery",
+   "name": "アソビストアプレミアム会員先行",
+   "starts_at": "2026-03-27 15:00",
+   "ends_at": "2026-04-19 23:59",
+   "result_at": "2026-05-09 13:00",
+   "url": "https://asobiticket2.asobistore.jp/receptions/8bff0ea3-4309-4585-ad75-73166f5cf6e3",
+   "note": "福井・福岡・岩手の全公演共通の受付。プレミアム12か月会員限定。入金期間2026-05-09 13:00〜2026-05-13 23:59。顔認証手数料1枚220円。",
+   "source_url": "https://idolmaster-official.jp/live_event/gkmas_livetour_shirube/ticket/regional.php",
+   "sort_order": 5
+  },
+  {
+   "event_id": "ev_学園アイドルマスター_live_tour_-標-_福井公演",
+   "show_ids": [],
+   "kind": "first_come",
+   "name": "福井公演 一般販売（先着）",
+   "starts_at": "2026-07-25 12:00",
+   "ends_at": "2026-08-04 23:59",
+   "url": "https://asobiticket2.asobistore.jp/receptions/c8102b2b-1191-4f7b-aff6-0ee05a55fc25",
+   "note": "2026年8月2日0:00以降の支払いはクレジットカードのみ。",
+   "source_url": "https://idolmaster-official.jp/live_event/gkmas_livetour_shirube/ticket/regional.php",
+   "sort_order": 0
+  },
+  {
+   "event_id": "ev_学園アイドルマスター_live_tour_-標-_福井公演",
+   "show_ids": [
+    "sh_学園アイドルマスター_live_tour_-標-_福井公演_1"
+   ],
+   "kind": "resale",
+   "name": "福井公演 公式リセール(8月20日(木)公演)",
+   "starts_at": "2026-07-25 15:00",
+   "ends_at": "2026-08-05 09:59",
+   "url": "https://asobiticket2.asobistore.jp/receptions/b95176ea-e465-41cf-aaa8-32ce3ae570bc",
+   "note": "ASOBI TICKET公式リセール。2026年8月3日0:00以降の支払いはクレジットカードのみ。",
+   "source_url": "https://idolmaster-official.jp/live_event/gkmas_livetour_shirube/ticket/regional.php",
+   "sort_order": 1
+  },
+  {
+   "event_id": "ev_学園アイドルマスター_live_tour_-標-_福井公演",
+   "show_ids": [
+    "sh_学園アイドルマスター_live_tour_-標-_福井公演_2"
+   ],
+   "kind": "resale",
+   "name": "福井公演 公式リセール(8月21日(金)公演)",
+   "starts_at": "2026-07-25 15:00",
+   "ends_at": "2026-08-05 09:59",
+   "url": "https://asobiticket2.asobistore.jp/receptions/91f37032-13a3-48bb-a360-4ebaa9cf85f1",
+   "note": "ASOBI TICKET公式リセール。2026年8月3日0:00以降の支払いはクレジットカードのみ。",
+   "source_url": "https://idolmaster-official.jp/live_event/gkmas_livetour_shirube/ticket/regional.php",
+   "sort_order": 2
+  },
+  {
+   "event_id": "ev_学園アイドルマスター_live_tour_-標-_福井公演",
+   "show_ids": [],
+   "kind": "lottery",
+   "name": "アソビストア一般会員2次先行",
+   "starts_at": "2026-06-23 12:00",
+   "ends_at": "2026-07-05 23:59",
+   "result_at": "2026-07-18 13:00",
+   "url": "https://asobiticket2.asobistore.jp/receptions/0b570b88-6751-49ab-9c1d-6bb154b30aeb",
+   "note": "福井・福岡・岩手の全公演共通の受付。入金期間2026-07-18 13:00〜2026-07-22 23:59。お一人様1公演2枚まで。",
+   "source_url": "https://idolmaster-official.jp/live_event/gkmas_livetour_shirube/ticket/regional.php",
+   "sort_order": 3
+  },
+  {
+   "event_id": "ev_学園アイドルマスター_live_tour_-標-_福井公演",
+   "show_ids": [],
+   "kind": "lottery",
+   "name": "アソビストア一般会員先行",
+   "starts_at": "2026-05-14 12:00",
+   "ends_at": "2026-05-31 23:59",
+   "result_at": "2026-06-17 13:00",
+   "url": "https://asobiticket2.asobistore.jp/receptions/7536e82f-6444-44a2-b9f4-71d938ad4885",
+   "note": "福井・福岡・岩手の全公演共通の受付。入金期間2026-06-17 13:00〜2026-06-21 23:59。お一人様1公演2枚まで。",
+   "source_url": "https://idolmaster-official.jp/live_event/gkmas_livetour_shirube/ticket/regional.php",
+   "sort_order": 4
+  },
+  {
+   "event_id": "ev_学園アイドルマスター_live_tour_-標-_福井公演",
+   "show_ids": [],
+   "kind": "lottery",
+   "name": "アソビストアプレミアム会員先行",
+   "starts_at": "2026-03-27 15:00",
+   "ends_at": "2026-04-19 23:59",
+   "result_at": "2026-05-09 13:00",
+   "url": "https://asobiticket2.asobistore.jp/receptions/8bff0ea3-4309-4585-ad75-73166f5cf6e3",
+   "note": "福井・福岡・岩手の全公演共通の受付。プレミアム12か月会員限定。入金期間2026-05-09 13:00〜2026-05-13 23:59。顔認証手数料1枚220円。",
+   "source_url": "https://idolmaster-official.jp/live_event/gkmas_livetour_shirube/ticket/regional.php",
+   "sort_order": 5
+  },
+  {
+   "event_id": "ev_cinderella_girls_musical_starlight_high_school",
+   "show_ids": [],
+   "kind": "lottery",
+   "name": "アソビストアプレミアム会員先行（抽選）",
+   "starts_at": "2026-03-11 21:00",
+   "ends_at": "2026-03-22 23:59",
+   "result_at": "2026-04-01 13:00",
+   "url": "https://asobiticket2.asobistore.jp/receptions/467535d7-618a-44cd-950d-67996cb1c1d6",
+   "note": "入金期間2026-04-01 13:00~04-05 23:59。枚数制限:1公演2枚まで(複数公演申込可)。アソビストアプレミアム12か月会員限定。",
+   "source_url": "https://idolmaster-official.jp/live_event/cg_musical_sh/",
+   "sort_order": 0
+  },
+  {
+   "event_id": "ev_cinderella_girls_musical_starlight_high_school",
+   "show_ids": [],
+   "kind": "lottery",
+   "name": "アソビストア一般会員先行（抽選）",
+   "starts_at": "2026-03-23 12:00",
+   "ends_at": "2026-04-05 23:59",
+   "result_at": "2026-04-15 13:00",
+   "url": "https://asobiticket2.asobistore.jp/receptions/dd680a05-ccee-4b72-8041-7442b60f4175",
+   "note": "入金期間2026-04-15 13:00~04-19 23:59。枚数制限:1公演2枚まで(複数公演申込可)。",
+   "source_url": "https://idolmaster-official.jp/live_event/cg_musical_sh/",
+   "sort_order": 1
+  },
+  {
+   "event_id": "ev_cinderella_girls_musical_starlight_high_school",
+   "show_ids": [],
+   "kind": "first_come",
+   "name": "見切れ席/一般販売（先着）",
+   "starts_at": "2026-04-25 12:00",
+   "ends_at": "2026-04-28 23:59",
+   "url": "https://asobiticket2.asobistore.jp/receptions/91322a11-9fbc-4d7c-a987-d57ff60679e7",
+   "note": "枚数制限:1公演2枚まで(複数公演申込可)。予定枚数に達し次第終了。",
+   "source_url": "https://idolmaster-official.jp/live_event/cg_musical_sh/",
+   "sort_order": 2
+  },
+  {
+   "event_id": "ev_cinderella_girls_musical_starlight_high_school",
+   "show_ids": [
+    "sh_cinderella_girls_musical_starlight_high_school_1"
+   ],
+   "kind": "resale",
+   "name": "公式リセール（5/9夜公演）",
+   "starts_at": "2026-04-25 15:00",
+   "ends_at": "2026-04-29 09:59",
+   "url": "https://asobiticket2.asobistore.jp/receptions/c3f43de6-9f89-4a08-9ae9-8499f85dbf4c",
+   "note": "ASOBI TICKET公式リセール。",
+   "source_url": "https://idolmaster-official.jp/live_event/cg_musical_sh/",
+   "sort_order": 3
+  },
+  {
+   "event_id": "ev_cinderella_girls_musical_starlight_high_school",
+   "show_ids": [
+    "sh_cinderella_girls_musical_starlight_high_school_2"
+   ],
+   "kind": "resale",
+   "name": "公式リセール（5/10昼公演）",
+   "starts_at": "2026-04-25 15:00",
+   "ends_at": "2026-04-29 09:59",
+   "url": "https://asobiticket2.asobistore.jp/receptions/a719ecd3-c32d-452f-a79a-10fda4a91933",
+   "note": "ASOBI TICKET公式リセール。",
+   "source_url": "https://idolmaster-official.jp/live_event/cg_musical_sh/",
+   "sort_order": 4
+  },
+  {
+   "event_id": "ev_cinderella_girls_musical_starlight_high_school",
+   "show_ids": [
+    "sh_cinderella_girls_musical_starlight_high_school_3"
+   ],
+   "kind": "resale",
+   "name": "公式リセール（5/10夜公演）",
+   "starts_at": "2026-04-25 15:00",
+   "ends_at": "2026-04-29 09:59",
+   "url": "https://asobiticket2.asobistore.jp/receptions/011cedbf-a1dd-4379-ba3c-30423b22d425",
+   "note": "ASOBI TICKET公式リセール。",
+   "source_url": "https://idolmaster-official.jp/live_event/cg_musical_sh/",
+   "sort_order": 5
+  },
+  {
+   "event_id": "ev_cinderella_girls_musical_starlight_high_school",
+   "show_ids": [
+    "sh_cinderella_girls_musical_starlight_high_school_2",
+    "sh_cinderella_girls_musical_starlight_high_school_3"
+   ],
+   "kind": "first_come",
+   "name": "一般発売2次（先着）",
+   "starts_at": "2026-05-02 13:00",
+   "ends_at": "2026-05-09 23:00",
+   "url": "https://asobiticket2.asobistore.jp/receptions/a7cbce6a-0a3d-45b8-871b-f1e9115819f9",
+   "note": "対象は見切れ席(5/10昼・夜公演)。5/9公演の全席種・S/A席は完売のため対象外。枚数制限:1公演2枚まで(複数公演申込可)。",
+   "source_url": "https://idolmaster-official.jp/live_event/cg_musical_sh/",
+   "sort_order": 6
+  },
+  {
+   "event_id": "ev_cinderella_girls_musical_starlight_high_school",
+   "show_ids": [
+    "sh_cinderella_girls_musical_starlight_high_school_2"
+   ],
+   "kind": "same_day",
+   "name": "当日券発売（先着）（5/10昼公演）",
+   "starts_at": "2026-05-10 00:00",
+   "ends_at": "2026-05-10 12:00",
+   "url": "https://asobiticket2.asobistore.jp/receptions/756121f8-9d47-4c61-876b-b95715ef21d5",
+   "note": "見切れ席12,000円。枚数制限:1公演1枚まで(複数公演申込可)。WEB販売のみ。",
+   "source_url": "https://idolmaster-official.jp/live_event/cg_musical_sh/",
+   "sort_order": 7
+  },
+  {
+   "event_id": "ev_cinderella_girls_musical_starlight_high_school",
+   "show_ids": [
+    "sh_cinderella_girls_musical_starlight_high_school_3"
+   ],
+   "kind": "same_day",
+   "name": "当日券発売（先着）（5/10夜公演）",
+   "starts_at": "2026-05-10 00:00",
+   "ends_at": "2026-05-10 17:00",
+   "url": "https://asobiticket2.asobistore.jp/receptions/756121f8-9d47-4c61-876b-b95715ef21d5",
+   "note": "見切れ席12,000円。枚数制限:1公演1枚まで(複数公演申込可)。WEB販売のみ。",
+   "source_url": "https://idolmaster-official.jp/live_event/cg_musical_sh/",
+   "sort_order": 8
+  },
+  {
+   "event_id": "ev_cinderella_girls_musical_第2弾",
+   "show_ids": [],
+   "kind": "first_come",
+   "name": "一般販売2次（先着）",
+   "starts_at": "2026-07-01 18:00",
+   "ends_at": "2026-07-04 23:00",
+   "url": "https://asobiticket2.asobistore.jp/receptions/01942d80-a6b2-471d-ace4-48f6f3aa360d",
+   "note": "7/4公演全席種・7/5昼夜のS席は完売のため対象外。予定枚数に達し次第終了。",
+   "source_url": "https://idolmaster-official.jp/live_event/cg_musical_dd/",
+   "sort_order": 0
+  },
+  {
+   "event_id": "ev_cinderella_girls_musical_第2弾",
+   "show_ids": [
+    "sh_cinderella_girls_musical_第2弾_1"
+   ],
+   "kind": "same_day",
+   "name": "当日券販売（先着）（DAY1夜公演）",
+   "starts_at": "2026-07-04 00:00",
+   "ends_at": "2026-07-04 18:00",
+   "url": "https://asobiticket2.asobistore.jp/receptions/cb8b4f3f-4ea2-4e4d-ad76-aec690061ef0",
+   "note": "A席12,500円/見切れ席12,000円。7/4公演全席種・7/5昼夜のS席は完売のため対象外。枚数制限:1公演1枚まで(複数公演申込可)。",
+   "source_url": "https://idolmaster-official.jp/live_event/cg_musical_dd/",
+   "sort_order": 1
+  },
+  {
+   "event_id": "ev_cinderella_girls_musical_第2弾",
+   "show_ids": [
+    "sh_cinderella_girls_musical_第2弾_2"
+   ],
+   "kind": "same_day",
+   "name": "当日券販売（先着）（DAY2昼公演）",
+   "starts_at": "2026-07-05 00:00",
+   "ends_at": "2026-07-05 12:00",
+   "url": "https://asobiticket2.asobistore.jp/receptions/cb8b4f3f-4ea2-4e4d-ad76-aec690061ef0",
+   "note": "A席12,500円/見切れ席12,000円。7/4公演全席種・7/5昼夜のS席は完売のため対象外。枚数制限:1公演1枚まで(複数公演申込可)。",
+   "source_url": "https://idolmaster-official.jp/live_event/cg_musical_dd/",
+   "sort_order": 2
+  },
+  {
+   "event_id": "ev_cinderella_girls_musical_第2弾",
+   "show_ids": [
+    "sh_cinderella_girls_musical_第2弾_3"
+   ],
+   "kind": "same_day",
+   "name": "当日券販売（先着）（DAY2夜公演）",
+   "starts_at": "2026-07-05 00:00",
+   "ends_at": "2026-07-05 17:00",
+   "url": "https://asobiticket2.asobistore.jp/receptions/cb8b4f3f-4ea2-4e4d-ad76-aec690061ef0",
+   "note": "A席12,500円/見切れ席12,000円。7/4公演全席種・7/5昼夜のS席は完売のため対象外。枚数制限:1公演1枚まで(複数公演申込可)。",
+   "source_url": "https://idolmaster-official.jp/live_event/cg_musical_dd/",
+   "sort_order": 3
+  },
+  {
+   "event_id": "ev_cinderella_girls_musical_第2弾",
+   "show_ids": [],
+   "kind": "first_come",
+   "name": "見切れ席/一般販売(先着)",
+   "starts_at": "2026-06-13 12:00",
+   "ends_at": "2026-06-27 23:59",
+   "url": "https://asobiticket2.asobistore.jp/receptions/9b05f1f8-6ddd-41bc-abd8-a1743365e15a",
+   "note": "枚数制限:1公演2枚まで(複数公演申込可)。",
+   "source_url": "https://idolmaster-official.jp/live_event/cg_musical_dd/",
+   "sort_order": 4
+  },
+  {
+   "event_id": "ev_cinderella_girls_musical_第2弾",
+   "show_ids": [
+    "sh_cinderella_girls_musical_第2弾_1"
+   ],
+   "kind": "resale",
+   "name": "公式リセール（DAY1夜公演）",
+   "starts_at": "2026-06-13 15:00",
+   "ends_at": "2026-06-28 09:59",
+   "url": "https://asobiticket2.asobistore.jp/receptions/619c2e00-7682-4c95-ad1e-ef920a5a3fc1",
+   "note": "ASOBI TICKET公式リセール。",
+   "source_url": "https://idolmaster-official.jp/live_event/cg_musical_dd/",
+   "sort_order": 5
+  },
+  {
+   "event_id": "ev_cinderella_girls_musical_第2弾",
+   "show_ids": [
+    "sh_cinderella_girls_musical_第2弾_2"
+   ],
+   "kind": "resale",
+   "name": "公式リセール（DAY2昼公演）",
+   "starts_at": "2026-06-13 15:00",
+   "ends_at": "2026-06-28 09:59",
+   "url": "https://asobiticket2.asobistore.jp/receptions/be292f0a-fa1b-4379-95e7-914dc024b713",
+   "note": "ASOBI TICKET公式リセール。",
+   "source_url": "https://idolmaster-official.jp/live_event/cg_musical_dd/",
+   "sort_order": 6
+  },
+  {
+   "event_id": "ev_cinderella_girls_musical_第2弾",
+   "show_ids": [
+    "sh_cinderella_girls_musical_第2弾_3"
+   ],
+   "kind": "resale",
+   "name": "公式リセール（DAY2夜公演）",
+   "starts_at": "2026-06-13 15:00",
+   "ends_at": "2026-06-28 09:59",
+   "url": "https://asobiticket2.asobistore.jp/receptions/2d8db74c-c945-470e-b583-75b543de90bf",
+   "note": "ASOBI TICKET公式リセール。",
+   "source_url": "https://idolmaster-official.jp/live_event/cg_musical_dd/",
+   "sort_order": 7
+  },
+  {
+   "event_id": "ev_cinderella_girls_musical_第2弾",
+   "show_ids": [],
+   "kind": "lottery",
+   "name": "アソビストアプレミアム会員先行（抽選）",
+   "starts_at": "2026-04-30 18:00",
+   "ends_at": "2026-05-17 23:59",
+   "result_at": "2026-05-27 13:00",
+   "url": "https://asobiticket2.asobistore.jp/receptions/ebc39090-5127-4f2e-ad88-c7aa249d7b22",
+   "note": "入金期間2026-05-27 13:00~05-31 23:59。枚数制限:1公演2枚まで(複数公演申込可)。プレミアム12か月会員限定。",
+   "source_url": "https://idolmaster-official.jp/live_event/cg_musical_dd/",
+   "sort_order": 8
+  },
+  {
+   "event_id": "ev_cinderella_girls_musical_第2弾",
+   "show_ids": [],
+   "kind": "lottery",
+   "name": "アソビストア一般会員先行（抽選）",
+   "starts_at": "2026-05-18 12:00",
+   "ends_at": "2026-05-27 23:59",
+   "result_at": "2026-06-06 13:00",
+   "url": "https://asobiticket2.asobistore.jp/receptions/ef87930f-a1ae-447d-897c-e530bb0cc3ff",
+   "note": "入金期間2026-06-06 13:00~06-10 23:59。枚数制限:1公演2枚まで(複数公演申込可)。",
+   "source_url": "https://idolmaster-official.jp/live_event/cg_musical_dd/",
+   "sort_order": 9
+  },
+  {
+   "event_id": "ev_学園アイドルマスター_the_2nd_period_h_i_f選抜試験_セレクション",
+   "show_ids": [],
+   "kind": "first_come",
+   "name": "完全見切れ席 追加販売(先着)",
+   "starts_at": "2026-05-03 12:00",
+   "ends_at": "2026-05-10 23:59",
+   "url": "https://asobiticket2.asobistore.jp/receptions/6620502a-952d-4797-bc6a-4aedd0d1ffeb",
+   "note": "完全見切れ席のみの取り扱い。予定枚数に達し次第終了。",
+   "source_url": "https://idolmaster-official.jp/live_event/gkmas_2ndperiod/ticket/",
+   "sort_order": 0
+  },
+  {
+   "event_id": "ev_学園アイドルマスター_the_2nd_period_h_i_f選抜試験_セレクション",
+   "show_ids": [],
+   "kind": "first_come",
+   "name": "一般販売(先着)＜現地チケット 見切れ席・完全見切れ席＞",
+   "starts_at": "2026-04-11 12:00",
+   "ends_at": "2026-05-05 23:59",
+   "url": "https://asobiticket2.asobistore.jp/receptions/39f088d7-f3b6-4e0b-b492-7fbd5cdebce5",
+   "note": "一般指定席の取り扱いはなし。枚数制限:1公演2枚まで(複数日程申込可)。",
+   "source_url": "https://idolmaster-official.jp/live_event/gkmas_2ndperiod/ticket/",
+   "sort_order": 1
+  },
+  {
+   "event_id": "ev_学園アイドルマスター_the_2nd_period_h_i_f選抜試験_セレクション",
+   "show_ids": [
+    "sh_学園アイドルマスター_the_2nd_period_h_i_f選抜試験_セレクション_1"
+   ],
+   "kind": "resale",
+   "name": "公式リセール（5/16公演）",
+   "starts_at": "2026-04-11 15:00",
+   "ends_at": "2026-05-06 09:59",
+   "url": "https://asobiticket2.asobistore.jp/receptions/78cda912-9344-400c-ab29-fbd604a8a068",
+   "note": "ASOBI TICKET公式リセール。",
+   "source_url": "https://idolmaster-official.jp/live_event/gkmas_2ndperiod/ticket/",
+   "sort_order": 2
+  },
+  {
+   "event_id": "ev_学園アイドルマスター_the_2nd_period_h_i_f選抜試験_セレクション",
+   "show_ids": [
+    "sh_学園アイドルマスター_the_2nd_period_h_i_f選抜試験_セレクション_2"
+   ],
+   "kind": "resale",
+   "name": "公式リセール（5/17公演）",
+   "starts_at": "2026-04-11 15:00",
+   "ends_at": "2026-05-06 09:59",
+   "url": "https://asobiticket2.asobistore.jp/receptions/a6dce180-cc50-48b8-b8d5-94722d5e0f83",
+   "note": "ASOBI TICKET公式リセール。",
+   "source_url": "https://idolmaster-official.jp/live_event/gkmas_2ndperiod/ticket/",
+   "sort_order": 3
+  },
+  {
+   "event_id": "ev_学園アイドルマスター_the_2nd_period_h_i_f選抜試験_セレクション",
+   "show_ids": [],
+   "kind": "lottery",
+   "name": "アソビストア一般会員2次先行（抽選）",
+   "starts_at": "2026-02-14 12:00",
+   "ends_at": "2026-03-08 23:59",
+   "result_at": "2026-03-26 13:00",
+   "url": "https://asobiticket2.asobistore.jp/receptions/1f8c0de7-df7b-414c-90de-d296032e73e2",
+   "note": "入金期間2026-03-26 13:00~03-30 23:59。枚数制限:1公演2枚まで(複数日程申込可)。",
+   "source_url": "https://idolmaster-official.jp/live_event/gkmas_2ndperiod/ticket/",
+   "sort_order": 4
+  },
+  {
+   "event_id": "ev_学園アイドルマスター_the_2nd_period_h_i_f選抜試験_セレクション",
+   "show_ids": [],
+   "kind": "lottery",
+   "name": "アソビストア一般会員先行（抽選）",
+   "starts_at": "2025-12-20 20:00",
+   "ends_at": "2026-01-18 23:59",
+   "result_at": "2026-01-30 13:00",
+   "url": "https://asobiticket2.asobistore.jp/receptions/f2efb006-2d35-4b1a-91f7-16f40798d3c5",
+   "note": "入金期間2026-01-30 13:00~02-03 23:59。枚数制限:1公演2枚まで(複数日程申込可)。",
+   "source_url": "https://idolmaster-official.jp/live_event/gkmas_2ndperiod/ticket/",
+   "sort_order": 5
+  },
+  {
+   "event_id": "ev_学園アイドルマスター_the_2nd_period_h_i_f選抜試験_セレクション",
+   "show_ids": [],
+   "kind": "lottery",
+   "name": "アソビストアプレミアム会員先行（抽選）",
+   "starts_at": "2025-11-15",
+   "ends_at": "2025-11-30",
+   "result_at": "2025-12-12",
+   "url": "https://asobiticket2.asobistore.jp/receptions/ae442948-f0cb-4955-ace3-9fbc630c1fc6",
+   "note": "入金期間2025-12-12 13:00~12-16 23:59。枚数制限:1公演2枚まで(複数日程申込可)。プレミアム12か月会員限定。",
+   "source_url": "https://idolmaster-official.jp/live_event/gkmas_2ndperiod/ticket/",
+   "sort_order": 6
+  },
+  {
+   "event_id": "ev_学園アイドルマスター_the_2nd_period_hatsuboshi_idol_festival",
+   "show_ids": [],
+   "kind": "first_come",
+   "name": "一般販売(先着)",
+   "starts_at": "2026-05-02 12:00",
+   "ends_at": "2026-05-26 23:59",
+   "url": "https://asobiticket2.asobistore.jp/receptions/03dc6acd-6364-4590-823e-4ec6f17f4ee2",
+   "note": "先着順。5/24以降のお支払いはクレジットカードのみ。",
+   "source_url": "https://idolmaster-official.jp/live_event/gkmas_2ndperiod/ticket/",
+   "sort_order": 0
+  },
+  {
+   "event_id": "ev_学園アイドルマスター_the_2nd_period_hatsuboshi_idol_festival",
+   "show_ids": [
+    "sh_学園アイドルマスター_the_2nd_period_hatsuboshi_idol_festival_1"
+   ],
+   "kind": "resale",
+   "name": "公式リセール（6/6公演）",
+   "starts_at": "2026-05-02 15:00",
+   "ends_at": "2026-05-27 09:59",
+   "url": "https://asobiticket2.asobistore.jp/receptions/5d552f77-a8d5-4c7a-ae58-3996c17188f3",
+   "note": "ASOBI TICKET公式リセール。",
+   "source_url": "https://idolmaster-official.jp/live_event/gkmas_2ndperiod/ticket/",
+   "sort_order": 1
+  },
+  {
+   "event_id": "ev_学園アイドルマスター_the_2nd_period_hatsuboshi_idol_festival",
+   "show_ids": [
+    "sh_学園アイドルマスター_the_2nd_period_hatsuboshi_idol_festival_2"
+   ],
+   "kind": "resale",
+   "name": "公式リセール（6/7公演）",
+   "starts_at": "2026-05-02 15:00",
+   "ends_at": "2026-05-27 09:59",
+   "url": "https://asobiticket2.asobistore.jp/receptions/5c0b8a15-c174-4a74-bec2-54feffc9aad9",
+   "note": "ASOBI TICKET公式リセール。",
+   "source_url": "https://idolmaster-official.jp/live_event/gkmas_2ndperiod/ticket/",
+   "sort_order": 2
+  },
+  {
+   "event_id": "ev_学園アイドルマスター_the_2nd_period_hatsuboshi_idol_festival",
+   "show_ids": [],
+   "kind": "lottery",
+   "name": "アソビストア一般会員2次先行（抽選）",
+   "starts_at": "2026-02-14 12:00",
+   "ends_at": "2026-03-08 23:59",
+   "result_at": "2026-03-26 13:00",
+   "url": "https://asobiticket2.asobistore.jp/receptions/33c51969-034a-42d4-a51c-d3762b591f10",
+   "note": "入金期間2026-03-26 13:00~03-30 23:59。枚数制限:1公演2枚まで(複数日程申込可)。",
+   "source_url": "https://idolmaster-official.jp/live_event/gkmas_2ndperiod/ticket/",
+   "sort_order": 3
+  },
+  {
+   "event_id": "ev_学園アイドルマスター_the_2nd_period_hatsuboshi_idol_festival",
+   "show_ids": [],
+   "kind": "lottery",
+   "name": "アソビストア一般会員先行（抽選）",
+   "starts_at": "2025-12-20 20:00",
+   "ends_at": "2026-01-18 23:59",
+   "result_at": "2026-01-30 13:00",
+   "url": "https://asobiticket2.asobistore.jp/receptions/4c940e04-2d66-4d36-9c9b-c5d401b08d4c",
+   "note": "入金期間2026-01-30 13:00~02-03 23:59。枚数制限:1公演2枚まで(複数日程申込可)。",
+   "source_url": "https://idolmaster-official.jp/live_event/gkmas_2ndperiod/ticket/",
+   "sort_order": 4
+  },
+  {
+   "event_id": "ev_学園アイドルマスター_the_2nd_period_hatsuboshi_idol_festival",
+   "show_ids": [],
+   "kind": "lottery",
+   "name": "アソビストアプレミアム会員先行（抽選）",
+   "starts_at": "2025-11-15",
+   "ends_at": "2025-11-30",
+   "result_at": "2025-12-12",
+   "url": "https://asobiticket2.asobistore.jp/receptions/48b362bd-6f4d-4494-af76-8fb2a1cfedb4",
+   "note": "入金期間2025-12-12 13:00~12-16 23:59。枚数制限:1公演2枚まで(複数日程申込可)。プレミアム12か月会員限定。",
+   "source_url": "https://idolmaster-official.jp/live_event/gkmas_2ndperiod/ticket/",
+   "sort_order": 5
+  },
+  {
+   "event_id": "ev_the_idolm@ster_20th_anniversary_more_re@lity_live_idol_world_super_festival_2026",
+   "show_ids": [],
+   "kind": "first_come",
+   "name": "追加販売（先着）",
+   "starts_at": "2026-06-27 12:00",
+   "ends_at": "2026-07-19 23:59",
+   "url": "https://asobiticket2.asobistore.jp/receptions/a5de645d-e61f-4756-bf1e-59a981716fcc",
+   "note": "立見指定11,500円/ステージサイド席10,500円。枚数制限:1公演2枚まで(複数公演申込可)。",
+   "source_url": "https://idolmaster-official.jp/live_event/mr_idolworld2026/#ticket",
+   "sort_order": 0
+  },
+  {
+   "event_id": "ev_the_idolm@ster_20th_anniversary_more_re@lity_live_idol_world_super_festival_2026",
+   "show_ids": [
+    "sh_the_idolm@ster_20th_anniversary_more_re@lity_live_idol_world_super_festival_2026_1"
+   ],
+   "kind": "resale",
+   "name": "リセール（DAY1 7/24公演）",
+   "starts_at": "2026-06-27 15:00",
+   "ends_at": "2026-07-20 09:59",
+   "url": "https://asobiticket2.asobistore.jp/receptions/a4e19d9e-6157-4e8d-9075-d670e8d676a8",
+   "note": "ASOBI TICKET公式リセール。",
+   "source_url": "https://idolmaster-official.jp/live_event/mr_idolworld2026/#ticket",
+   "sort_order": 1
+  },
+  {
+   "event_id": "ev_the_idolm@ster_20th_anniversary_more_re@lity_live_idol_world_super_festival_2026",
+   "show_ids": [
+    "sh_the_idolm@ster_20th_anniversary_more_re@lity_live_idol_world_super_festival_2026_2"
+   ],
+   "kind": "resale",
+   "name": "リセール（DAY2 7/25公演）",
+   "starts_at": "2026-06-27 15:00",
+   "ends_at": "2026-07-20 09:59",
+   "url": "https://asobiticket2.asobistore.jp/receptions/dfb5f65b-39ad-470a-9605-5764c11ca38a",
+   "note": "ASOBI TICKET公式リセール。",
+   "source_url": "https://idolmaster-official.jp/live_event/mr_idolworld2026/#ticket",
+   "sort_order": 2
+  },
+  {
+   "event_id": "ev_the_idolm@ster_20th_anniversary_more_re@lity_live_idol_world_super_festival_2026",
+   "show_ids": [
+    "sh_the_idolm@ster_20th_anniversary_more_re@lity_live_idol_world_super_festival_2026_3"
+   ],
+   "kind": "resale",
+   "name": "リセール（DAY3 7/26公演）",
+   "starts_at": "2026-06-27 15:00",
+   "ends_at": "2026-07-20 09:59",
+   "url": "https://asobiticket2.asobistore.jp/receptions/da8aabcd-020d-40bb-a5b2-137965a635c7",
+   "note": "ASOBI TICKET公式リセール。",
+   "source_url": "https://idolmaster-official.jp/live_event/mr_idolworld2026/#ticket",
+   "sort_order": 3
+  },
+  {
+   "event_id": "ev_the_idolm@ster_20th_anniversary_more_re@lity_live_idol_world_super_festival_2026",
+   "show_ids": [],
+   "kind": "resale",
+   "name": "リセール（3公演通し券）",
+   "starts_at": "2026-06-27 15:00",
+   "ends_at": "2026-07-20 09:59",
+   "url": "https://asobiticket2.asobistore.jp/receptions/5b025323-106e-4405-bcae-0a25ee2908a1",
+   "note": "ASOBI TICKET公式リセール。3公演通し券のリセール。",
+   "source_url": "https://idolmaster-official.jp/live_event/mr_idolworld2026/#ticket",
+   "sort_order": 4
+  },
+  {
+   "event_id": "ev_the_idolm@ster_20th_anniversary_more_re@lity_live_idol_world_super_festival_2026",
+   "show_ids": [],
+   "kind": "first_come",
+   "name": "一般販売（先着）",
+   "starts_at": "2026-06-20 12:00",
+   "ends_at": "2026-07-19 23:59",
+   "url": "https://asobiticket2.asobistore.jp/receptions/f46caa45-5e8c-43fc-ad92-4ca8170d8725",
+   "note": "現地通常チケット12,000円。枚数制限:1公演2枚まで(複数公演申込可)。",
+   "source_url": "https://idolmaster-official.jp/live_event/mr_idolworld2026/#ticket",
+   "sort_order": 5
+  },
+  {
+   "event_id": "ev_the_idolm@ster_20th_anniversary_more_re@lity_live_idol_world_super_festival_2026",
+   "show_ids": [],
+   "kind": "lottery",
+   "name": "アソビストア一般会員先行抽選受付",
+   "starts_at": "2026-04-19 20:00",
+   "ends_at": "2026-04-27 23:59",
+   "result_at": "2026-05-12 13:00",
+   "url": "https://asobiticket2.asobistore.jp/receptions/36955b35-cca5-4b53-b69a-8ed101c3c6f3",
+   "note": "入金期間2026-05-12 13:00~05-16 23:59。枚数制限:1公演2枚まで(複数公演申込可)。",
+   "source_url": "https://idolmaster-official.jp/live_event/mr_idolworld2026/#ticket",
+   "sort_order": 6
+  },
+  {
+   "event_id": "ev_the_idolm@ster_20th_anniversary_more_re@lity_live_idol_world_super_festival_2026",
+   "show_ids": [],
+   "kind": "lottery",
+   "name": "アソビストアプレミアム会員先行抽選受付",
+   "starts_at": "2025-12-14 20:00",
+   "ends_at": "2026-01-18 23:59",
+   "result_at": "2026-01-30 13:00",
+   "url": "https://asobiticket2.asobistore.jp/receptions/d7c6bdbb-e0cf-46b4-86a9-100660208e11",
+   "note": "入金期間2026-01-30 13:00~02-03 23:59。枚数制限:1公演2枚まで(複数公演申込可)。限定グッズ付き通し券等複数種あり。",
+   "source_url": "https://idolmaster-official.jp/live_event/mr_idolworld2026/#ticket",
+   "sort_order": 7
+  }
+ ]
+}
