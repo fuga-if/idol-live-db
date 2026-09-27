@@ -19,8 +19,6 @@ final class SetlistViewModel {
     private(set) var idolsById: [String: Idol] = [:]
 
     // MARK: - 添え物
-    /// この公演で着られた衣装 (進行順)。畳み方も並びも imas-core が決めている。
-    private(set) var costumes: [ShowCostumeRecord] = []
     /// この公演の券種 (マスタ)。
     private(set) var tickets: [ShowTicket] = []
     /// brand_id → イメージカラー hex。曲のフォールバックジャケ/チップ色のシード。
@@ -72,7 +70,6 @@ final class SetlistViewModel {
     /// 画面を開いたとき・編集から戻ったときに読む。単位ごとに失敗を閉じ込める。
     func load(show: Show) async {
         await loadSetlist(showId: show.id)
-        await loadCostumes(showId: show.id)
         await loadTickets(showId: show.id)
         await loadBrands()
         await loadEvent(eventId: show.eventId)
@@ -136,14 +133,6 @@ final class SetlistViewModel {
             idolsById = Dictionary(uniqueKeysWithValues: idols.map { ($0.id, $0) })
         } catch {
             Logger.database.error("load_failed setlist_idols: \(error.localizedDescription)")
-        }
-    }
-
-    private func loadCostumes(showId: String) async {
-        do {
-            costumes = try await showReading.showCostumes(showId: showId)
-        } catch {
-            Logger.database.error("load_failed setlist_costumes: \(error.localizedDescription)")
         }
     }
 

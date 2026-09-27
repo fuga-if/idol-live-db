@@ -50,11 +50,13 @@ protocol ShowReading: Sendable {
     /// 公演の券種と価格 (チケット代の記録・セトリ画面の価格表示)。
     /// 券種はスナップショットに載らないので、実装は端末の DB を読む。
     func tickets(showId: String) async throws -> [ShowTicket]
-    /// その公演で着られた衣装 (進行順)。記録が無ければ空。
+    /// そのイベントで着られた衣装 (共通・個別に分けて進行順)。記録が無ければ両方空。
     ///
-    /// 衣装の畳み方 (同じ衣装が複数曲に出たら 1 件にまとめる) と「どこで着たか」の
-    /// 判断は imas-core が持つ。ここは受け取るだけで、画面側で組み直さないこと。
-    func showCostumes(showId: String) async throws -> [ShowCostumeRecord]
+    /// 衣装の畳み方 (同じ衣装が複数曲・複数公演に出たら 1 件にまとめる)・共通と個別の
+    /// 分け方・「どの公演で着たか」の 1 行は imas-core が持つ。画面側で組み直さないこと。
+    func eventCostumes(eventId: String) async throws -> EventCostumesRecord
+    /// その衣装が着られた公演 (イベントごとに束ね、イベントは新しい順)。
+    func costumeEvents(costumeId: String) async throws -> [CostumeEventRecord]
     /// 会場マスタ一式 (施設・改名履歴・ホール)。当時名やキャパの解決に使う。
     func venueDirectory() async throws -> VenueDirectory
     /// 指定会場 (venue_id) で公演があったイベントの id 集合 (ライブ一覧の会場絞り込み用)。

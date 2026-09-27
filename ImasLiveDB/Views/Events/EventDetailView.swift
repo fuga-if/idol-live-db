@@ -369,6 +369,13 @@ struct EventDetailView: View {
 
             ticketInfoSection
 
+            // 衣装。行は衣装単位で、押すとイベントをまたいだ着用公演へ。
+            if let costumes = vm.costumes {
+                EventCostumesSection(costumes: costumes, seed: seed, brand: brandSeed) {
+                    go(.costume($0))
+                }
+            }
+
             // 映像円盤 (BD/DVD) 所有チェック。event_releases があるイベントだけ表示。
             EventReleasesSection(eventId: event.id, seed: seed, brand: brandSeed)
 

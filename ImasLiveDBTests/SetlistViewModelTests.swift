@@ -17,7 +17,6 @@ final class SetlistViewModelTests: XCTestCase {
         var rows: [SetlistRow] = []
         var failSetlist = false
         var failPerformers = false
-        var failCostumes = false
         var ticketsToReturn: [ShowTicket] = []
         var rowMetaAnswers = RowMetaAnswers()
 
@@ -30,10 +29,10 @@ final class SetlistViewModelTests: XCTestCase {
             return [:]
         }
         func originalArtistIds(songIds: [String]) async throws -> [String: Set<String>] { [:] }
-        func showCostumes(showId: String) async throws -> [ShowCostumeRecord] {
-            if failCostumes { throw FakeError.boom }
-            return []
+        func eventCostumes(eventId: String) async throws -> EventCostumesRecord {
+            EventCostumesRecord(shared: [], individual: [])
         }
+        func costumeEvents(costumeId: String) async throws -> [CostumeEventRecord] { [] }
         func tickets(showId: String) async throws -> [ShowTicket] { ticketsToReturn }
         func venueDirectory() async throws -> VenueDirectory { .empty }
 
@@ -143,17 +142,15 @@ final class SetlistViewModelTests: XCTestCase {
 
     // MARK: - Tests
 
-    /// 衣装と出演者が読めなくても、セトリ・券種・ブランド色・イベント名は出る。
+    /// 出演者が読めなくても、セトリ・券種・ブランド色・イベント名は出る。
     func testOneFailedUnitDoesNotHideTheOthers() async {
         var shows = FakeShowReading(rows: [row("i1", song: "s1")], ticketsToReturn: [ticket])
-        shows.failCostumes = true
         shows.failPerformers = true
         let vm = makeVM(shows: shows)
 
         await vm.load(show: show)
 
         XCTAssertEqual(vm.setlist.map(\.id), ["i1"])
-        XCTAssertTrue(vm.costumes.isEmpty)
         XCTAssertEqual(vm.tickets.map(\.id), ["t1"])
         XCTAssertEqual(vm.brandNameById["ml"], "ミリオン")
         XCTAssertEqual(vm.showBrandHex, "FFC30B")

@@ -121,6 +121,8 @@ fun EventDetailScreen(
      * [com.fugaif.imaslivedb.ui.filtered.EventFilterKind] の定義に従う)。
      */
     onFilteredEventsClick: (String, String) -> Unit = { _, _ -> },
+    /** 情報タブの衣装行から、その衣装の着用公演一覧へ (引数は costume id)。 */
+    onCostumeClick: (String) -> Unit = {},
     viewModel: EventDetailViewModel = viewModel(key = eventId)
 ) {
     val context = LocalContext.current
@@ -267,7 +269,7 @@ fun EventDetailScreen(
                             onAttendanceChange = { scope.launch { reloadAttendance() } }
                         )
                         1 -> castSection(uiState, seed, brand, onIdolClick)
-                        else -> infoSection(uiState, seed, brand, brandId, onFilteredEventsClick)
+                        else -> infoSection(uiState, seed, brand, brandId, onFilteredEventsClick, onCostumeClick)
                     }
                 }
             }
@@ -695,13 +697,18 @@ private fun LazyListScope.infoSection(
     seed: String?,
     brand: String?,
     brandId: String?,
-    onFilteredEventsClick: (String, String) -> Unit
+    onFilteredEventsClick: (String, String) -> Unit,
+    onCostumeClick: (String) -> Unit
 ) {
     state.stats?.let { stats ->
         item { StatsGrid(stats, seed, brand) }
     }
     if (state.ticketDeadline != null || state.ticketLotteryDate != null || state.ticketUrl != null || state.isFutureEvent) {
         item { TicketInfoSection(state, seed, brand) }
+    }
+    // 衣装。行は衣装単位で、押すとイベントをまたいだ着用公演へ。
+    state.costumes?.let { costumes ->
+        item(key = "costumes") { EventCostumesSection(costumes, brandId, onCostumeClick) }
     }
     if (state.brandShortName != null || firstShowYear(state) != null) {
         item { MetaSection(state, seed, brand, brandId, onFilteredEventsClick) }

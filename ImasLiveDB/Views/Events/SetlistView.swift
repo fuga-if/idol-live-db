@@ -30,7 +30,6 @@ struct SetlistView: View {
     private var idolsById: [String: Idol] { model.idolsById }
     private var rowMetaByItemId: [String: SetlistRowMetaRecord] { model.rowMetaByItemId }
     private var collectionSummary: ShowCollectionRecord? { model.collectionSummary }
-    private var costumes: [ShowCostumeRecord] { model.costumes }
     private var tickets: [ShowTicket] { model.tickets }
     private var brandHexById: [String: String] { model.brandHexById }
     private var brandNameById: [String: String] { model.brandNameById }
@@ -354,21 +353,6 @@ struct SetlistView: View {
                 .listRowSeparator(.hidden)
             }
 
-            if !costumes.isEmpty {
-                Section {
-                    ImasSectionHeader(title: "衣装 ・ \(costumes.count) 着", tight: true)
-                    ImasListContainer {
-                        ForEach(Array(costumes.enumerated()), id: \.element.costume.id) { index, entry in
-                            if index > 0 { ImasRowDivider(inset: 16) }
-                            costumeRow(entry)
-                        }
-                    }
-                }
-                .listRowBackground(Color.clear)
-                .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 0, trailing: 16))
-                .listRowSeparator(.hidden)
-            }
-
             Section {
                 UserMarkBar(
                     entity: .show,
@@ -645,39 +629,6 @@ struct SetlistView: View {
                 .listRowSeparator(.hidden)
             }
         }
-    }
-
-    /// 衣装 1 着ぶんの行。
-    ///
-    /// **文言はコアが組んだものをそのまま出す。** 「1・5 曲目」「公演のどこか」も
-    /// 「誰が着たか」も `imas-core` の `costume_queries` が決めており、ここで
-    /// 組み直すと Web / Android と表記が割れる。画像は持たない (版権物を配らない)。
-    @ViewBuilder
-    private func costumeRow(_ entry: ShowCostumeRecord) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 8) {
-                Text(entry.costume.name)
-                    .font(.imasScaled(15, weight: .semibold))
-                    .foregroundStyle(DS.ink)
-                if let attribution = entry.costume.attribution {
-                    ImasTagChip(text: attribution, kind: .unit, seed: showBrandHex)
-                }
-                Spacer(minLength: 0)
-            }
-            if let wearers = entry.wearersLabel {
-                Text(wearers)
-                    .font(.imasScaled(12))
-                    .foregroundStyle(DS.ink2)
-            }
-            if let description = entry.costume.description {
-                Text(description)
-                    .font(.imasScaled(12))
-                    .foregroundStyle(DS.ink2)
-            }
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func loadSetlist() async {

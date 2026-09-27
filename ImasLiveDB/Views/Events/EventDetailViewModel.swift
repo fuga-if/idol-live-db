@@ -21,6 +21,8 @@ final class EventDetailViewModel {
     private(set) var attendedShowIds: Set<String> = []
     /// ヒーロー (開催期間・会場・今後か・参加の札)。コアが組む。参加を付け替えたら組み直す。
     private(set) var hero: EventHeroRecord?
+    /// このイベントで着られた衣装 (共通・個別)。分け方も並びも imas-core。
+    private(set) var costumes: EventCostumesRecord?
 
     private let eventReading: any EventReading
     private let showReading: any ShowReading
@@ -54,6 +56,11 @@ final class EventDetailViewModel {
             Logger.database.error("load_failed event_detail: \(error.localizedDescription)")
         }
         await reloadHero(eventId: event.id)
+        do {
+            costumes = try await showReading.eventCostumes(eventId: event.id)
+        } catch {
+            Logger.database.error("load_failed event_costumes: \(error.localizedDescription)")
+        }
     }
 
     func recomputeAttendedShows() {

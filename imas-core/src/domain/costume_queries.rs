@@ -5,6 +5,8 @@
 //! 2 つの問いに答えるために作った:
 //! 1. **この公演ではどんな衣装が着られたか** ([`show_costumes`])
 //! 2. **この曲のとき何を着ていたか** ([`setlist_item_costumes`])
+//! 3. **このライブ (イベント) ではどんな衣装が着られたか** ([`event_costumes`])
+//! 4. **この衣装はどの公演で着られたか** ([`costume_events`])
 //!
 //! 「曲の衣装」は**その披露で着ていたもの**であって、曲そのものの属性ではない。
 //! 同じ曲でも公演が違えば衣装は違う。だから衣装は曲ではなくセトリ行に紐づく。
@@ -98,10 +100,43 @@ pub struct CostumeShowRecord {
     /// その公演でこの衣装が出た曲 (分かっているものだけ)。
     pub songs: Vec<CostumeSongRecord>,
     pub somewhere_in_show: bool,
+    /// 着た曲の 1 行 (`曲名・曲名`)。曲まで分かっていなければ `None`。
+    pub songs_label: Option<String>,
+}
+
+/// イベント 1 つで着られた衣装の一覧。
+///
+/// 共通・ユニット衣装 (`shared`) と、1 人ずつの個別衣装 (`individual`) を分けて返す。
+/// 個別衣装は 1 公演で数十着になる (ミリオン 10th Act-4 は 39 着) ので、
+/// 出面では 1 行に畳んで開く形にする。その区別を受け手に判定させないためにここで分ける。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct EventCostumesRecord {
+    pub shared: Vec<EventCostumeRecord>,
+    pub individual: Vec<EventCostumeRecord>,
+}
+
+/// イベントの衣装 1 着ぶん。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct EventCostumeRecord {
+    pub costume: CostumeRecord,
+    /// このイベントのどの公演で着たか (`DAY1・DAY2`)。公演が 1 つだけのイベントでは
+    /// 書くまでもないので `None`。全公演で着ていれば (3 公演以上のとき) `全公演`。
+    pub worn_in_label: Option<String>,
+}
+
+/// 衣装が着られたイベント 1 つと、その中の公演。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct CostumeEventRecord {
+    pub event_id: String,
+    pub event_name: String,
+    /// 公演は日付の古い順 (イベントの中の進行順)。
+    pub shows: Vec<CostumeShowRecord>,
 }
 
 /// 着用者の列を 1 行に畳むときの上限。セトリ行に添える想定なので短く切る。
 const WEARERS_SHOWN: usize = 3;
+/// 着た公演の列を 1 行に畳むときの上限。
+const SHOWS_SHOWN: usize = 3;
 
 /// 全衣装を表示順で返す。`brand_id` を渡すとそのブランドの衣装だけ。
 ///
@@ -195,6 +230,7 @@ pub fn costume_shows(snap: &Snapshot, costume_id: &str) -> Vec<CostumeShowRecord
                 venue: show.venue.clone(),
                 songs: Vec::new(),
                 somewhere_in_show: false,
+                songs_label: None,
             }
         });
         match wear.setlist_item {
@@ -204,8 +240,81 @@ pub fn costume_shows(snap: &Snapshot, costume_id: &str) -> Vec<CostumeShowRecord
     }
     for e in &mut out {
         e.songs.sort_by_key(|s| s.position);
+        let titles: Vec<&str> = e.songs.iter().map(|s| s.title.as_str()).collect();
+        e.songs_label = (!titles.is_empty()).then(|| titles.join("・"));
     }
     out
+}
+
+/// その衣装が着られた公演を、イベントごとに束ねて返す。
+/// イベントは新しい順、イベントの中の公演は古い順 (DAY1 → DAY2)。
+pub fn costume_events(snap: &Snapshot, costume_id: &str) -> Vec<CostumeEventRecord> {
+    let mut out: Vec<CostumeEventRecord> = Vec::new();
+    for show in costume_shows(snap, costume_id) {
+        let entry = fold_by_key(&mut out, &show.event_id, |e| &e.event_id, || CostumeEventRecord {
+            event_id: show.event_id.clone(),
+            event_name: show.event_name.clone(),
+            shows: Vec::new(),
+        });
+        entry.shows.push(show);
+    }
+    for e in &mut out {
+        // costume_shows は新しい順なので、イベントの中だけ進行順に戻す。
+        e.shows.reverse();
+    }
+    out
+}
+
+/// そのイベントで着られた衣装。共通・ユニット衣装と個別衣装に分け、
+/// それぞれ公演の進行順 (最初に出てきた順) に並べる。
+pub fn event_costumes(snap: &Snapshot, event_id: &str) -> EventCostumesRecord {
+    let empty = EventCostumesRecord { shared: vec![], individual: vec![] };
+    let Some(&ei) = snap.event_index_by_id.get(event_id) else { return empty };
+    let shows = &snap.shows_by_event[ei as usize];
+    // 衣装ごとに、着た公演の添字 (shows_by_event の並び) を積む。
+    let mut worn: Vec<(u32, Vec<usize>)> = Vec::new();
+    for (pos, &si) in shows.iter().enumerate() {
+        for &wi in &snap.wears_by_show[si as usize] {
+            let costume = snap.costume_wears[wi as usize].costume;
+            let at = match worn.iter().position(|(c, _)| *c == costume) {
+                Some(i) => i,
+                None => {
+                    worn.push((costume, Vec::new()));
+                    worn.len() - 1
+                }
+            };
+            if worn[at].1.last() != Some(&pos) {
+                worn[at].1.push(pos);
+            }
+        }
+    }
+    let mut out = empty;
+    for (ci, positions) in worn {
+        let costume = &snap.costumes[ci as usize];
+        let record = EventCostumeRecord {
+            costume: costume_record(snap, costume),
+            worn_in_label: worn_in_label(snap, shows, &positions),
+        };
+        if costume.idol_id.is_some() {
+            out.individual.push(record);
+        } else {
+            out.shared.push(record);
+        }
+    }
+    out
+}
+
+/// 「どの公演で着たか」の 1 行。公演が 1 つのイベントでは出さない。
+fn worn_in_label(snap: &Snapshot, shows: &[u32], positions: &[usize]) -> Option<String> {
+    if shows.len() <= 1 {
+        return None;
+    }
+    if positions.len() == shows.len() && shows.len() >= SHOWS_SHOWN {
+        return Some("全公演".to_string());
+    }
+    let names: Vec<&str> =
+        positions.iter().map(|&p| snap.shows[shows[p] as usize].name.as_str()).collect();
+    join_capped(&names, "・", SHOWS_SHOWN, "公演")
 }
 
 /// 既にある行を鍵で探し、無ければ作って返す。
@@ -314,7 +423,7 @@ mod tests {
             staff: vec![],
             anniversaries: vec![],
             meta: Default::default(),
-            shows: vec![show("sh1", "2024-01-01"), show("sh2", "2025-01-01")],
+            shows: vec![show("sh1", "DAY1", "2024-01-01"), show("sh2", "DAY2", "2025-01-01")],
             setlist_items: vec![
                 item("it1", 0, 0, 1),
                 item("it2", 0, 1, 2),
@@ -423,11 +532,11 @@ mod tests {
         }
     }
 
-    fn show(id: &str, date: &str) -> Show {
+    fn show(id: &str, name: &str, date: &str) -> Show {
         Show {
             id: id.into(),
             event: 0,
-            name: "DAY1".into(),
+            name: name.into(),
             date: date.into(),
             venue: None,
             venue_city: None,
@@ -550,6 +659,50 @@ mod tests {
         );
         let got = costume_shows(&snap, "c1");
         assert_eq!(got.iter().map(|s| s.date.as_str()).collect::<Vec<_>>(), ["2025-01-01", "2024-01-01"]);
+    }
+
+    /// イベントの衣装は共通と個別に分かれ、着た公演の名前が添わること。
+    #[test]
+    fn event_costumes_split_shared_and_individual_with_show_labels() {
+        let mut solo = costume("c2", "春香ソロ");
+        solo.idol_id = Some("i1".into());
+        let snap = snapshot(
+            vec![costume("c1", "共通"), solo],
+            vec![
+                wear("w1", 0, 0, Some(0), None, 0),
+                wear("w2", 0, 0, Some(1), None, 1),
+                wear("w3", 0, 1, Some(2), None, 0),
+                wear("w4", 1, 1, None, Some(0), 1),
+            ],
+        );
+        let got = event_costumes(&snap, "e1");
+        assert_eq!(got.shared.len(), 1);
+        assert_eq!(got.shared[0].worn_in_label.as_deref(), Some("DAY1・DAY2"));
+        assert_eq!(got.individual.len(), 1);
+        assert_eq!(got.individual[0].costume.attribution.as_deref(), Some("天海春香"));
+        assert_eq!(got.individual[0].worn_in_label.as_deref(), Some("DAY2"));
+        assert!(event_costumes(&snap, "nope").shared.is_empty());
+    }
+
+    /// 着用公演はイベントで束ね、イベントの中は古い順・曲名の 1 行が付くこと。
+    #[test]
+    fn costume_events_group_shows_by_event_oldest_first() {
+        let snap = snapshot(
+            vec![costume("c1", "共通")],
+            vec![
+                wear("w1", 0, 0, Some(1), None, 0),
+                wear("w2", 0, 0, Some(0), None, 1),
+                wear("w3", 0, 1, None, None, 0),
+            ],
+        );
+        let got = costume_events(&snap, "c1");
+        assert_eq!(got.len(), 1);
+        assert_eq!(got[0].event_name, "10th");
+        let shows = &got[0].shows;
+        assert_eq!(shows.iter().map(|s| s.date.as_str()).collect::<Vec<_>>(), ["2024-01-01", "2025-01-01"]);
+        assert_eq!(shows[0].songs_label.as_deref(), Some("READY!!・CHANGE!!!!"));
+        assert_eq!(shows[1].songs_label, None);
+        assert!(shows[1].somewhere_in_show);
     }
 
     /// 未知の id では空を返すこと (落とさない)。

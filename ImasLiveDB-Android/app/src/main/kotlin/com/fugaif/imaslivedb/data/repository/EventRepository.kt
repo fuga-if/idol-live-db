@@ -25,7 +25,9 @@ import com.fugaif.imaslivedb.data.model.Vocab
 import uniffi.imas_core.PerformerNameMode
 import uniffi.imas_core.SetlistDisplayMode
 import uniffi.imas_core.SetlistRowMetaRecord
-import uniffi.imas_core.ShowCostumeRecord
+import uniffi.imas_core.CostumeEventRecord
+import uniffi.imas_core.CostumeRecord
+import uniffi.imas_core.EventCostumesRecord
 import uniffi.imas_core.EventDetailRecord
 import uniffi.imas_core.EventListRecord
 import uniffi.imas_core.EventWithDateRecord
@@ -341,14 +343,22 @@ class EventRepository(
     }
 
     /**
-     * その公演で着られた衣装 (進行順)。記録が無ければ空。
+     * そのイベントで着られた衣装 (共通・個別に分けて進行順)。記録が無ければ両方空。
      *
-     * 衣装の畳み方 (同じ衣装が複数曲に出たら 1 件にまとめる) と「どこで着たか」
-     * 「誰が着たか」の文言は共有コア (`costume_queries`) が持つ。画面側で組み直すと
-     * iOS / Web と表記が割れるので、受け取ったものをそのまま出すこと。
+     * 衣装の畳み方 (同じ衣装が複数曲・複数公演に出たら 1 件にまとめる)・共通と個別の
+     * 分け方・「どの公演で着たか」の 1 行は共有コア (`costume_queries`) が持つ。
+     * 画面側で組み直すと iOS と表記が割れるので、受け取ったものをそのまま出すこと。
      */
-    suspend fun fetchShowCostumes(showId: String): List<ShowCostumeRecord> =
-        snapshots.query { store -> store.showCostumeRecords(showId) }
+    suspend fun fetchEventCostumes(eventId: String): EventCostumesRecord =
+        snapshots.query { store -> store.eventCostumeRecords(eventId) }
+
+    /** 衣装 1 着の見出し。未知 id は null。 */
+    suspend fun fetchCostume(costumeId: String): CostumeRecord? =
+        snapshots.query { store -> store.costumeRecord(costumeId) }
+
+    /** その衣装が着られた公演 (イベントごとに束ね、イベントは新しい順)。 */
+    suspend fun fetchCostumeEvents(costumeId: String): List<CostumeEventRecord> =
+        snapshots.query { store -> store.costumeEventRecords(costumeId) }
 }
 
 // ---- コアの射影 → Room エンティティ (列は 1:1) ----
