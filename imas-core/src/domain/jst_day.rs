@@ -34,6 +34,18 @@ pub fn jst_is_today_or_later(date: String, now_epoch_seconds: i64) -> bool {
     !date.is_empty() && date.as_str() >= jst_today(now_epoch_seconds).as_str()
 }
 
+/// [`jst_today`] の逆変換: `"yyyy-MM-dd"` の JST 00:00 を epoch 秒に。
+///
+/// Web 出面はバイト一致の再現性のため実時刻でなく `--today` (日付) だけを持つ
+/// (`web_export::emit::mod` の doc)。チケット受付の段階判定 ([`crate::domain::ticket_sales`])
+/// はどこかの epoch 秒を要るので、その日の JST 00:00 を「その日の代表時刻」として使う。
+/// 読めない日付は `None`。
+pub fn jst_midnight_epoch_seconds(day: &str) -> Option<i64> {
+    let date = chrono::NaiveDate::parse_from_str(day, "%Y-%m-%d").ok()?;
+    let midnight_naive = date.and_hms_opt(0, 0, 0)?;
+    Some(midnight_naive.and_utc().timestamp() - JST_OFFSET_SECONDS as i64)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -59,6 +71,17 @@ mod tests {
     #[test]
     fn empty_date_is_not_upcoming() {
         assert!(!jst_is_today_or_later("".into(), JULY26_10AM_JST));
+    }
+
+    #[test]
+    fn midnight_epoch_round_trips_with_jst_today() {
+        // 2026-07-26 00:00:00 JST = 2026-07-25 15:00:00 UTC。
+        assert_eq!(jst_midnight_epoch_seconds("2026-07-26"), Some(1784991600));
+        assert_eq!(jst_today(jst_midnight_epoch_seconds("2026-07-26").unwrap()), "2026-07-26");
+        // 1 秒前ならまだ前日 (境界の確認)。
+        assert_eq!(jst_today(jst_midnight_epoch_seconds("2026-07-26").unwrap() - 1), "2026-07-25");
+        assert_eq!(jst_midnight_epoch_seconds("読めない"), None);
+        assert_eq!(jst_midnight_epoch_seconds("2026-02-30"), None, "実在しない日付");
     }
 
     #[test]

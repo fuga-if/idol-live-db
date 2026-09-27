@@ -71,11 +71,28 @@ pub const ATTENDANCE_TYPES: [Term; 3] = [
     term("live_viewing", "LV", "ライブビューイング"),
 ];
 
-/// チケットの日程 (`events` の 3 列)。語は Q-08g で「受付開始 / 申込締切 / 当落発表」に決めた。
+/// チケットの日程 (カレンダーの点・帯の種別)。語は Q-08g で「受付開始 / 申込締切 / 当落発表」に
+/// 決めた。value は `ticket_sales` の列名 (`starts_at` / `ends_at` / `result_at`)。
 pub const TICKET_DATES: [Term; 3] = [
-    term("ticket_open_date", "受付開始", "受付開始"),
-    term("ticket_deadline", "申込締切", "申込締切"),
-    term("ticket_lottery_date", "当落発表", "当落発表"),
+    term("starts_at", "受付開始", "受付開始"),
+    term("ends_at", "申込締切", "申込締切"),
+    term("result_at", "当落発表", "当落発表"),
+];
+
+/// チケット受付の種別 (`ticket_sales.kind`)。
+pub const TICKET_SALE_KINDS: [Term; 4] = [
+    term("lottery", "抽選", "抽選"),
+    term("first_come", "先着", "先着"),
+    term("resale", "リセール", "リセール"),
+    term("same_day", "当日券", "当日券"),
+];
+
+/// チケット受付の段階 (受付前 / 受付中 / 結果待ち / 終了)。
+pub const TICKET_SALE_STAGES: [Term; 4] = [
+    term("upcoming", "受付前", "受付前"),
+    term("open", "受付中", "受付中"),
+    term("awaiting_result", "結果待ち", "結果待ち"),
+    term("ended", "終了", "終了"),
 ];
 
 /// 受付開始 → 申込締切 の期間の呼び名 (カレンダーの帯)。
@@ -166,9 +183,13 @@ pub struct Vocabulary {
     pub event_types: Vec<VocabularyTerm>,
     /// 参加形態 3 種 (券の形態も同じ語)。
     pub attendance_types: Vec<VocabularyTerm>,
-    /// チケットの日程 3 つ (value は `events` の列名)。
+    /// チケットの日程 3 つ (value は `ticket_sales` の列名)。
     pub ticket_dates: Vec<VocabularyTerm>,
     pub ticket_period_label: String,
+    /// チケット受付の種別 4 種 (抽選 / 先着 / リセール / 当日券)。
+    pub ticket_sale_kinds: Vec<VocabularyTerm>,
+    /// チケット受付の段階 4 種 (受付前 / 受付中 / 結果待ち / 終了)。
+    pub ticket_sale_stages: Vec<VocabularyTerm>,
     pub song_tag_categories: Vec<VocabularyTerm>,
     pub idol_tag_categories: Vec<VocabularyTerm>,
     pub unit_tag_categories: Vec<VocabularyTerm>,
@@ -187,6 +208,8 @@ pub fn vocabulary() -> Vocabulary {
         attendance_types: terms(&ATTENDANCE_TYPES),
         ticket_dates: terms(&TICKET_DATES),
         ticket_period_label: TICKET_PERIOD_LABEL.to_string(),
+        ticket_sale_kinds: terms(&TICKET_SALE_KINDS),
+        ticket_sale_stages: terms(&TICKET_SALE_STAGES),
         song_tag_categories: terms(&SONG_TAG_CATEGORIES),
         idol_tag_categories: terms(&IDOL_TAG_CATEGORIES),
         unit_tag_categories: terms(&UNIT_TAG_CATEGORIES),
@@ -232,6 +255,8 @@ mod tests {
             ("event_types", &v.event_types),
             ("attendance_types", &v.attendance_types),
             ("ticket_dates", &v.ticket_dates),
+            ("ticket_sale_kinds", &v.ticket_sale_kinds),
+            ("ticket_sale_stages", &v.ticket_sale_stages),
             ("song_tag_categories", &v.song_tag_categories),
             ("idol_tag_categories", &v.idol_tag_categories),
             ("unit_tag_categories", &v.unit_tag_categories),

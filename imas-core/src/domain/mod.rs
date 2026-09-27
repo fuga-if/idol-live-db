@@ -12,6 +12,7 @@ pub mod snapshot_build;
 pub mod kamisabi_cards;
 pub mod ledger;
 pub mod ticket_prices;
+pub mod ticket_sales;
 pub mod mastery;
 pub mod song_list_queries;
 pub mod song_tag_queries;
