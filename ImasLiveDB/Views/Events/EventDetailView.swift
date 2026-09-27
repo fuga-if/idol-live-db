@@ -151,6 +151,10 @@ struct EventDetailView: View {
         .navigationTitle(event.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            // ヒーローはスクロールせず常に全文を出すので、バーの 1 行タイトルは重複になる。
+            // 合同ライブ名は「THE IDOLM@STER Sid…」と先頭ブランドが省略で消えるだけなので空にする。
+            // navigationTitle 自体は戻るボタンの長押し履歴と VoiceOver のために残す。
+            ToolbarItem(placement: .principal) { Text("").accessibilityHidden(true) }
             ToolbarItem(placement: .topBarTrailing) {
                 // SNS シェア (Universal Links)。リンクを踏むとこのイベント詳細に直接着地する。
                 ShareLink(item: shareEventText(eventId: event.id, eventName: event.name)) {

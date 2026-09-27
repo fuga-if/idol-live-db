@@ -192,7 +192,9 @@ fun EventDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(uiState.eventName, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                // ヒーローは固定で常に全文を出すので、バーには出さない (iOS と同じ)。
+                // 1 行に詰めると合同ライブ名の先頭ブランドが省略で消えるだけになる。
+                title = {},
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "戻る")
