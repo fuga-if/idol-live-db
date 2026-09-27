@@ -82,6 +82,59 @@ class RefreshTableTest(unittest.TestCase):
         _, log = self.refresh()
         self.assertNotIn("行 → ", log)
 
+    def test_an_unknown_record_type_leaves_the_table_untouched(self):
+        # M7: RECORD_TYPE_MAP に表を足してからマージすると、Production への昇格より先に
+        # 日次 export が走ることがある。CloudKit が "unknown type" を返す間は、その表だけ
+        # 据え置いて (DELETE もしない) 他の表の export を続けたい。
+        self.given_local_brands(3)
+        saved = export_cloudkit.query_all
+        self.addCleanup(setattr, export_cloudkit, "query_all", saved)
+
+        def raise_unknown(record_type):
+            raise export_cloudkit.UnknownRecordTypeError(record_type)
+
+        export_cloudkit.query_all = raise_unknown
+        inserted, log = self.refresh()
+        self.assertEqual(inserted, 3)  # 据え置いた既存の行数を返す
+        self.assertIn("未昇格", log)
+        rows = self.conn.execute("SELECT count(*) FROM brands").fetchone()[0]
+        self.assertEqual(rows, 3)  # DELETE していない
+
+
+
+class QueryAllTest(unittest.TestCase):
+    """query_all (実体は _ck.query_all の薄いラッパ) の HTTPError → UnknownRecordTypeError 変換。"""
+
+    def setUp(self):
+        import requests
+        self.requests = requests
+
+    def _http_error(self, status, body):
+        resp = self.requests.Response()
+        resp.status_code = status
+        resp._content = body.encode("utf-8")
+        return self.requests.exceptions.HTTPError(response=resp)
+
+    def test_an_unknown_type_error_is_converted(self):
+        from lib import cloudkit as _ck
+        saved = _ck.query_all
+        self.addCleanup(setattr, _ck, "query_all", saved)
+        _ck.query_all = lambda *a, **k: (_ for _ in ()).throw(
+            self._http_error(400, '{"serverErrorCode":"BAD_REQUEST","reason":"unknown type: TicketSale"}')
+        )
+        with self.assertRaises(export_cloudkit.UnknownRecordTypeError):
+            export_cloudkit.query_all("TicketSale")
+
+    def test_an_unrelated_http_error_is_not_swallowed(self):
+        from lib import cloudkit as _ck
+        saved = _ck.query_all
+        self.addCleanup(setattr, _ck, "query_all", saved)
+        _ck.query_all = lambda *a, **k: (_ for _ in ()).throw(
+            self._http_error(500, '{"reason":"internal server error"}')
+        )
+        with self.assertRaises(self.requests.exceptions.HTTPError):
+            export_cloudkit.query_all("Brand")
+
 
 class ExportMainTest(unittest.TestCase):
     """main を通しで回す。CloudKit の中身は、正本の行を seed と同じ規則でレコードにしたもの。"""

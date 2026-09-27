@@ -27,6 +27,8 @@ import sqlite3
 import sys
 from pathlib import Path
 
+import requests
+
 import seed_cloudkit as sk  # 同ディレクトリ。鍵のセッション・テーブルマップを再利用
 from lib import cloudkit as _ck
 from lib import masterdb
@@ -48,9 +50,25 @@ def camel_to_snake(name: str) -> str:
     return re.sub(r"([A-Z])", r"_\1", name).lower()
 
 
+class UnknownRecordTypeError(RuntimeError):
+    """CloudKit にその recordType がまだ無い (スキーマ未昇格)。
+
+    RECORD_TYPE_MAP に表を足してからマージすると、Production へのスキーマ昇格 (CloudKit
+    Dashboard での型のデプロイ) より先に日次 export が走ることがある。その間 CloudKit は
+    "unknown type" の 400 を返すので、その表だけ据え置いて export 全体は続行させる
+    (refresh_table 側の catch 用)。
+    """
+
+
 def query_all(record_type: str) -> list[dict]:
     """指定 RecordType の全レコードを、init_session の鍵で読む (実体は lib/cloudkit.py)。"""
-    return _ck.query_all(sk.BASE_URL + sk.QUERY_PATH, record_type, post=sk.get_json)
+    try:
+        return _ck.query_all(sk.BASE_URL + sk.QUERY_PATH, record_type, post=sk.get_json)
+    except requests.exceptions.HTTPError as e:
+        body = e.response.text if e.response is not None else ""
+        if "unknown type" in body.lower():
+            raise UnknownRecordTypeError(record_type) from e
+        raise
 
 
 def record_to_row(conn, table, rec, pk_cols, table_cols):
@@ -79,9 +97,16 @@ def refresh_table(conn, table):
     record_type = sk.RECORD_TYPE_MAP[table]
     table_cols = {c["name"] for c in sk.get_column_info(conn, table)}
     pk_cols = sk.get_primary_keys(conn, table)
-    recs = query_all(record_type)
-
     before = conn.execute(f"SELECT count(*) FROM {table}").fetchone()[0]
+    try:
+        recs = query_all(record_type)
+    except UnknownRecordTypeError:
+        # M7: 昇格待ちの表 (今は ticket_sales) はここで打ち切り、既存の行をそのまま残す
+        # (DELETE より前に return するので既存行は無傷)。他の表の export は続ける。
+        print(f"  {table:<22} ⚠ CloudKit に recordType '{record_type}' がまだ無い (未昇格) → "
+              f"{before} 行を据え置いて続行", file=sys.stderr)
+        return before
+
     conn.execute(f"DELETE FROM {table}")
     inserted = soft_deleted = 0
     dropped = []  # (recordName, 理由)。入れられなかった行は全部出す
