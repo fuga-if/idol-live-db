@@ -223,8 +223,12 @@ fn monday_plans(now: Moment, seed: u64) -> Vec<PlannedNotificationRecord> {
         .collect()
 }
 
-/// ライブ 1 週間前 (初日の 7 日前 10:00)・申込締切の前日 18:00・当落発表の当日 9:00。
-/// 初日が今日より後のイベントだけ。近い順 (同じ時刻は識別子の順)。
+/// ライブ 1 週間前 (初日の 7 日前 10:00)・受付ごとの申込締切の前日 18:00・当落発表の当日 9:00。
+///
+/// ライブ 1 週間前は初日が今日より後のイベントだけ (ツアー中は出さない)。チケットは
+/// **「初日が今日以前なら飛ばす」を効かせない** — ツアー中にも新しい受付 (リセール等) が
+/// 出ることがあるため、受付自身の日時だけで判断する ([`crate::domain::ticket_sales`] が
+/// 段階を持つ表を正としているのと対称)。近い順 (同じ時刻は識別子の順)。
 fn event_plans(snap: &Snapshot, event_ids: &[String], live_week: bool, ticket: bool, today: NaiveDate) -> Vec<PlannedNotificationRecord> {
     if !live_week && !ticket {
         return Vec::new();
@@ -235,55 +239,64 @@ fn event_plans(snap: &Snapshot, event_ids: &[String], live_week: bool, ticket: b
     let mut plans: Vec<PlannedNotificationRecord> = Vec::new();
     for e in events {
         let event = &snap.events[e as usize];
-        let Some(first) = snap.shows_by_event[e as usize]
-            .iter()
-            .map(|&s| snap.shows[s as usize].date.as_str())
-            .min()
-            .and_then(parse_day)
-        else {
-            continue;
-        };
-        if first <= today {
-            continue;
-        }
         let name = &event.name;
+
         if live_week {
-            let day = first - chrono::Duration::days(7);
-            if day > today {
-                plans.push(plan(
-                    format!("live_{}", event.id),
-                    NotificationKind::LiveWeek,
-                    "もうすぐライブ！".to_string(),
-                    Some(format!("{name} まであと1週間！準備はOK？")),
-                    (day, LIVE_WEEK_HOUR * 60),
-                    None,
-                ));
-            }
-        }
-        if ticket {
-            if let Some(deadline) = event.ticket_deadline.as_deref().and_then(parse_day) {
-                let day = deadline - chrono::Duration::days(1);
-                if deadline > today && day > today {
-                    plans.push(plan(
-                        format!("ticketdl_{}", event.id),
-                        NotificationKind::Ticket,
-                        "チケット申込は明日まで！".to_string(),
-                        Some(format!("{name} のチケット申込締切は明日です。お忘れなく！")),
-                        (day, TICKET_DEADLINE_HOUR * 60),
-                        None,
-                    ));
+            if let Some(first) = snap.shows_by_event[e as usize]
+                .iter()
+                .map(|&s| snap.shows[s as usize].date.as_str())
+                .min()
+                .and_then(parse_day)
+            {
+                if first > today {
+                    let day = first - chrono::Duration::days(7);
+                    if day > today {
+                        plans.push(plan(
+                            format!("live_{}", event.id),
+                            NotificationKind::LiveWeek,
+                            "もうすぐライブ！".to_string(),
+                            Some(format!("{name} まであと1週間！準備はOK？")),
+                            (day, LIVE_WEEK_HOUR * 60),
+                            None,
+                        ));
+                    }
                 }
             }
-            if let Some(lottery) = event.ticket_lottery_date.as_deref().and_then(parse_day) {
-                if lottery > today {
-                    plans.push(plan(
-                        format!("lottery_{}", event.id),
-                        NotificationKind::Ticket,
-                        "当落発表日です！".to_string(),
-                        Some(format!("{name} の当落発表日。ドキドキしながら確認してみよう！")),
-                        (lottery, LOTTERY_HOUR * 60),
-                        None,
-                    ));
+        }
+
+        if ticket {
+            for &si in &snap.ticket_sales_by_event[e as usize] {
+                let sale = &snap.ticket_sales[si as usize];
+                let sale_name = &sale.name;
+                if let Some((deadline, _)) =
+                    sale.ends_at.as_deref().and_then(crate::domain::ticket_sales::parse_sale_moment)
+                {
+                    let day = deadline - chrono::Duration::days(1);
+                    if deadline > today && day > today {
+                        plans.push(plan(
+                            format!("ticketdl_{}", sale.id),
+                            NotificationKind::Ticket,
+                            "チケット申込は明日まで！".to_string(),
+                            Some(format!("{sale_name} の申込締切は明日です。お忘れなく！")),
+                            (day, TICKET_DEADLINE_HOUR * 60),
+                            None,
+                        ));
+                    }
+                }
+                if let Some((lottery, lottery_time)) =
+                    sale.result_at.as_deref().and_then(crate::domain::ticket_sales::parse_sale_moment)
+                {
+                    if lottery > today {
+                        let (h, m) = lottery_time.unwrap_or((LOTTERY_HOUR, 0));
+                        plans.push(plan(
+                            format!("lottery_{}", sale.id),
+                            NotificationKind::Ticket,
+                            "当落発表日です！".to_string(),
+                            Some(format!("{sale_name} の当落発表日。ドキドキしながら確認してみよう！")),
+                            (lottery, h * 60 + m),
+                            None,
+                        ));
+                    }
                 }
             }
         }
@@ -411,6 +424,138 @@ mod tests {
         // 1 週間を切っていれば出さない。初日を過ぎたイベントも出さない。
         assert!(event_plans(snap, std::slice::from_ref(&id), true, true, first - chrono::Duration::days(7)).iter().all(|p| p.kind != NotificationKind::LiveWeek));
         assert!(event_plans(snap, &[id], true, true, first).is_empty());
+    }
+
+    /// チケット受付ごとの通知を検証するための最小スナップショット。
+    /// 公演の初日を `first_show_date` に置き、`today` をそれより後にできるようにする
+    /// (「ツアー中の新しい受付」を再現するため)。
+    fn ticket_notification_snapshot(
+        first_show_date: &str,
+        sales: Vec<crate::domain::snapshot::TicketSaleRow>,
+    ) -> Snapshot {
+        use crate::domain::snapshot::{Brand, Event, Show};
+        use crate::domain::snapshot_build::{build, RawTables};
+        let event = Event {
+            id: "e1".into(),
+            brand_id: None,
+            name: "10th LIVE".into(),
+            name_kana: None,
+            event_type: "live".into(),
+            is_streaming: false,
+            is_solo: true,
+            kind: "live".into(),
+            ticket_url: None,
+            joint_brand_ids: None,
+            has_streaming: None,
+            has_live_viewing: None,
+        };
+        let show = Show {
+            id: "sh1".into(),
+            event: 0,
+            name: "DAY1".into(),
+            date: first_show_date.into(),
+            venue: None,
+            venue_city: None,
+            start_time: None,
+            sort_order: 0,
+            performer_type: None,
+            venue_id: None,
+            hall: None,
+            stream_platform: None,
+            has_streaming: None,
+            has_live_viewing: None,
+        };
+        build(RawTables {
+            songs: vec![],
+            idols: vec![],
+            events: vec![event],
+            units: vec![],
+            brands: vec![Brand { id: "cg".into(), name: "cg".into(), short_name: "cg".into(), color: None, sort_order: 0, icon_url: None }],
+            creators: vec![],
+            venues: vec![],
+            staff: vec![],
+            anniversaries: vec![],
+            meta: Default::default(),
+            shows: vec![show],
+            setlist_items: vec![],
+            venue_names: vec![],
+            venue_halls: vec![],
+            idol_voice_actors: vec![],
+            event_releases: vec![],
+            costumes: vec![],
+            costume_wears: vec![],
+            ticket_sales: sales,
+            song_artists: vec![],
+            setlist_performers: vec![],
+            show_cast: vec![],
+            unit_members: vec![],
+            idol_brands: vec![],
+        })
+    }
+
+    fn sale_row(
+        id: &str,
+        name: &str,
+        ends_at: Option<&str>,
+        result_at: Option<&str>,
+    ) -> crate::domain::snapshot::TicketSaleRow {
+        crate::domain::snapshot::TicketSaleRow {
+            id: id.into(),
+            event: 0,
+            show_ids: vec![],
+            kind: crate::domain::ticket_sales::TicketSaleKind::Lottery,
+            name: name.into(),
+            starts_at: None,
+            ends_at: ends_at.map(str::to_string),
+            result_at: result_at.map(str::to_string),
+            url: None,
+            note: None,
+            source_url: "https://example.com".into(),
+            sort_order: 0,
+        }
+    }
+
+    #[test]
+    fn ticket_notifications_are_per_sale_with_the_sale_name_in_the_body() {
+        let snap = ticket_notification_snapshot(
+            "2026-04-20",
+            vec![
+                sale_row("t1", "先行抽選", Some("2026-04-01"), Some("2026-04-10")),
+                sale_row("t2", "一般先着", Some("2026-04-05"), None),
+            ],
+        );
+        let today = parse_day("2026-03-01").unwrap();
+        let plans = event_plans(&snap, &["e1".to_string()], false, true, today);
+        let ids: Vec<&str> = plans.iter().map(|p| p.id.as_str()).collect();
+        // 締切前日 (t1: 3/31, t2: 4/4) と当落発表 (t1 だけ) の 3 件が受付ごとに独立して出る。
+        assert_eq!(ids, ["ticketdl_t1", "ticketdl_t2", "lottery_t1"]);
+        assert!(plans[0].body.as_deref().unwrap().contains("先行抽選"));
+        assert_eq!((plans[0].date.as_str(), plans[0].hour), ("2026-03-31", TICKET_DEADLINE_HOUR));
+        assert_eq!((plans[2].date.as_str(), plans[2].hour), ("2026-04-10", LOTTERY_HOUR));
+    }
+
+    #[test]
+    fn ticket_notifications_ignore_the_first_show_has_passed_rule() {
+        // ライブ 1 週間前と違い、チケットは初日を過ぎたツアー中でも受付自身の日時だけで判断する
+        // (リセール等、ツアー中に新しい受付が出ることがあるため)。
+        let snap = ticket_notification_snapshot("2026-01-01", vec![sale_row("t1", "リセール", Some("2026-06-10"), None)]);
+        let today = parse_day("2026-05-01").unwrap(); // 初日 (1/1) はとっくに過ぎている
+        let plans = event_plans(&snap, &["e1".to_string()], false, true, today);
+        assert_eq!(plans.len(), 1);
+        assert_eq!(plans[0].id, "ticketdl_t1");
+
+        // ライブ 1 週間前は初日を過ぎていれば出さない (対称性の確認)。
+        assert!(event_plans(&snap, &["e1".to_string()], true, false, today).is_empty());
+    }
+
+    #[test]
+    fn ticket_deadline_time_of_day_is_used_when_present() {
+        let snap = ticket_notification_snapshot("2026-04-20", vec![sale_row("t1", "先行抽選", Some("2026-04-01 23:59"), None)]);
+        let plans = event_plans(&snap, &["e1".to_string()], false, true, parse_day("2026-03-01").unwrap());
+        assert_eq!(plans.len(), 1);
+        // 通知自体は前日 18:00 に出す (時刻付きでも「前日」の判断基準日は締切当日)。
+        assert_eq!(plans[0].date, "2026-03-31");
+        assert_eq!(plans[0].hour, TICKET_DEADLINE_HOUR);
     }
 
     #[test]
