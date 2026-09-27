@@ -8,8 +8,9 @@
    "kind": "first_come",
    "name": "一般販売2次(先着)",
    "starts_at": "2026-09-15 18:00",
+   "ends_at": "2026-09-19 23:00",
    "url": "https://asobiticket2.asobistore.jp/receptions/0f7717d2-345a-4050-92d8-8c78333d12bb",
-   "note": "受付期間は各公演前日23:00まで(公演日ごとに終了日時が異なる)。アリーナ前方席・9月20日(日)全席指定席は取扱なし。お一人様1公演2枚まで。",
+   "note": "受付期間は各公演前日23:00まで(公演日ごとに終了日時が異なる)。アリーナ前方席・9月20日(日)全席指定席は取扱なし。お一人様1公演2枚まで。ends_at は show_ids 未指定 (全公演) のため最終公演 (9/20) の前日23:00。",
    "source_url": "https://idolmaster-official.jp/live_event/million14th/ticket/",
    "sort_order": 0
   },
