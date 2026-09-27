@@ -479,58 +479,63 @@ struct EventDetailView: View {
     }
 
     /// 受付 1 件ぶんの行: 段階の札 + 受付名・種別 + 期間/当落 + 対象公演 + 申込リンク。
+    ///
+    /// M8: 以前は行全体が `Button` で、その `label` の中に申込リンクの `Link` が入れ子に
+    /// なっていた。SwiftUI では外側の `Button` がタップを取ってしまい、申込リンクが実質
+    /// 押せなくなる。編集への導線は行末の別ボタン (鉛筆アイコン) に分け、`Link` は
+    /// どの `Button` の外にも置く。
     @ViewBuilder
     private func ticketSaleRow(_ sale: TicketSale) -> some View {
-        Button {
-            if EditPermission.showEditAffordance { start(.editTicketSale(sale)) }
-        } label: {
-            VStack(alignment: .leading, spacing: DS.sp2) {
-                HStack(alignment: .firstTextBaseline, spacing: DS.sp2) {
-                    Text(sale.stageLabel)
-                        .font(.imasCaption.weight(.bold))
-                        .foregroundStyle(ColorMath.onColor(stageColor(sale.stage)))
-                        .padding(.horizontal, DS.sp2).padding(.vertical, 2)
-                        .background(stageColor(sale.stage), in: Capsule())
-                    Text(sale.kindLabel)
-                        .font(.imasCaption)
-                        .foregroundStyle(DS.ink3)
-                    Spacer()
-                    if EditPermission.showEditAffordance {
+        VStack(alignment: .leading, spacing: DS.sp2) {
+            HStack(alignment: .firstTextBaseline, spacing: DS.sp2) {
+                Text(sale.stageLabel)
+                    .font(.imasCaption.weight(.bold))
+                    .foregroundStyle(ColorMath.onColor(stageColor(sale.stage)))
+                    .padding(.horizontal, DS.sp2).padding(.vertical, 2)
+                    .background(stageColor(sale.stage), in: Capsule())
+                Text(sale.kindLabel)
+                    .font(.imasCaption)
+                    .foregroundStyle(DS.ink3)
+                Spacer()
+                if EditPermission.showEditAffordance {
+                    Button {
+                        start(.editTicketSale(sale))
+                    } label: {
                         ImasRowChevron()
                     }
-                }
-                Text(sale.name)
-                    .font(.imasSubhead.weight(.semibold))
-                    .foregroundStyle(DS.ink)
-                if let period = sale.periodLabel {
-                    Text(period)
-                        .font(.imasFootnote)
-                        .foregroundStyle(DS.ink2)
-                }
-                if let result = sale.resultLabel {
-                    Text("当落発表 \(result)")
-                        .font(.imasFootnote)
-                        .foregroundStyle(DS.ink2)
-                }
-                if !sale.showLabels.isEmpty {
-                    Text("対象: \(sale.showLabels.joined(separator: "・"))")
-                        .font(.imasFootnote)
-                        .foregroundStyle(DS.ink3)
-                }
-                if let url = URL.safeHTTP(string: sale.url) {
-                    Link(destination: url) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "arrow.up.right.square").font(.imasScaled( 12, weight: .semibold))
-                            Text("申込ページを開く").font(.imasFootnote.weight(.semibold))
-                        }
-                    }
-                    .foregroundStyle(seedAccent)
+                    .buttonStyle(.plain)
                 }
             }
-            .padding(.horizontal, DS.sp4).padding(.vertical, DS.sp3)
-            .contentShape(Rectangle())
+            Text(sale.name)
+                .font(.imasSubhead.weight(.semibold))
+                .foregroundStyle(DS.ink)
+            if let period = sale.periodLabel {
+                Text(period)
+                    .font(.imasFootnote)
+                    .foregroundStyle(DS.ink2)
+            }
+            if let result = sale.resultLabel {
+                Text("当落発表 \(result)")
+                    .font(.imasFootnote)
+                    .foregroundStyle(DS.ink2)
+            }
+            if !sale.showLabels.isEmpty {
+                Text("対象: \(sale.showLabels.joined(separator: "・"))")
+                    .font(.imasFootnote)
+                    .foregroundStyle(DS.ink3)
+            }
+            if let url = URL.safeHTTP(string: sale.url) {
+                Link(destination: url) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "arrow.up.right.square").font(.imasScaled( 12, weight: .semibold))
+                        Text("申込ページを開く").font(.imasFootnote.weight(.semibold))
+                    }
+                }
+                .foregroundStyle(seedAccent)
+            }
         }
-        .buttonStyle(.plain)
+        .padding(.horizontal, DS.sp4).padding(.vertical, DS.sp3)
+        .contentShape(Rectangle())
     }
 
     /// 段階の帯色。抽選中/受付中=accent、結果待ち=注意、終了=中立、受付前=中立寄り。

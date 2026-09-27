@@ -213,10 +213,17 @@ struct TicketSaleEditView: View {
         return trimmed.isEmpty ? nil : trimmed
     }
 
+    /// 選択済み公演 id を、集合の反復順ではなく公演の並び順 (`eventShows` の順) で並べる。
+    /// 集合のまま送ると保存のたびに `show_ids` の並びが変わり、無駄な差分通知や表示順の
+    /// 揺れ (L6) を起こす。
+    private var orderedSelectedShowIds: [String] {
+        eventShows.map(\.id).filter { selectedShowIds.contains($0) }
+    }
+
     private func draft() -> TicketSaleDraft {
         TicketSaleDraft(
             eventId: eventId,
-            showIds: Array(selectedShowIds),
+            showIds: orderedSelectedShowIds,
             kind: kind,
             name: name.trimmingCharacters(in: .whitespaces),
             startsAt: normalizedOrNil(startsAt),

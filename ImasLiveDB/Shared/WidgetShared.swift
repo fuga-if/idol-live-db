@@ -101,6 +101,14 @@ struct TicketDeadlineInfo: Codable, Sendable, Identifiable {
     /// 旧版 (受付単位になる前) の JSON を読んでも落ちないよう任意項目にしてある。
     var saleId: String? = nil
     var saleName: String? = nil
+    /// この日付が締切か当落発表か (`TicketSaleDeadlineKind` の生値、"deadline" / "awaitingResult")。
+    /// M3: 見出し「チケット締切」の下に当落発表が締切として混ざらないよう出し分ける材料。
+    /// アプリと拡張の版がずれても読めるよう任意項目にしてある。
+    var kind: String? = nil
+    /// `kind` の日本語表記 (「申込締切」/「当落発表」)。
+    var kindLabel: String? = nil
+    /// ウィジェットにそのまま出す表示文字列 (`"{event_name} ({sale_name})"`)。
+    var label: String? = nil
 
     /// `ForEach` 等で使う識別子。saleId が無い旧データはイベント id + 締切日で代替する。
     var id: String { saleId ?? "\(eventId)_\(deadline)" }
@@ -123,6 +131,16 @@ extension TicketDeadlineInfo {
     func isOpen(from now: Date) -> Bool {
         (WidgetDay.daysUntil(deadline, from: now) ?? 0) >= 0
     }
+
+    /// 当落発表の日付か (M3)。`kind` が無い旧データは締切として扱う (従来どおりの見た目)。
+    var isAwaitingResult: Bool { kind == "awaitingResult" }
+
+    /// ウィジェットの見出しに出す語 (「申込締切」/「当落発表」)。`kindLabel` が無い旧データは
+    /// 従来どおり「チケット締切」固定の見出しに委ねるため nil のままにする。
+    var resolvedKindLabel: String? { kindLabel }
+
+    /// ウィジェットにそのまま出す表示文字列。`label` が無い旧データは event 名にフォールバックする。
+    var displayLabel: String { label ?? eventName }
 }
 
 /// アプリ側が書き出し、ウィジェット拡張が読み取る情報スナップショット。

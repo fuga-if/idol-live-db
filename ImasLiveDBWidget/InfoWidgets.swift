@@ -310,12 +310,23 @@ struct TicketDeadlineWidgetView: View {
                     HStack(spacing: 6) {
                         Text(shortDate(item.deadline))
                             .font(.system(size: 11, weight: .bold).monospacedDigit())
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(item.isAwaitingResult ? Color.secondary : Color.orange)
                             .frame(minWidth: 32, alignment: .leading)
-                        Text(item.eventName)
+                        // M3: label はコアが組んだ "{event_name} ({sale_name})"。1 件のライブに
+                        // 受付が複数あっても行が区別でき、見出しでライブ名も分かる。
+                        Text(item.displayLabel)
                             .font(.system(size: 11))
                             .foregroundStyle(.primary)
                             .lineLimit(1)
+                        // M3: 見出し「チケット締切」の下に当落発表の行が締切と見分けられずに
+                        // 混ざらないよう、当落発表の行だけ種別の語を添える。
+                        if item.isAwaitingResult, let kindLabel = item.resolvedKindLabel {
+                            Text(kindLabel)
+                                .font(.system(size: 9, weight: .semibold))
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                                .fixedSize()
+                        }
                     }
                 }
             }

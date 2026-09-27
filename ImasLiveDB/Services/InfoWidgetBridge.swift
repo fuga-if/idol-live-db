@@ -100,8 +100,20 @@ enum InfoWidgetBridge {
                 eventName: d.eventName,
                 deadline: d.deadlineDay,
                 saleId: d.saleId,
-                saleName: d.saleName
+                saleName: d.saleName,
+                kind: Self.deadlineKindRaw(d.kind),
+                kindLabel: d.kindLabel,
+                label: d.label
             )
+        }
+    }
+
+    /// `TicketSaleDeadlineKind` を JSON に書ける生値 ("deadline" / "awaitingResult") にする。
+    /// アプリ・拡張の両方で同じ文字列を読めるよう、Codable の enum ではなく String で運ぶ (M3)。
+    private static func deadlineKindRaw(_ kind: TicketSaleDeadlineKind) -> String {
+        switch kind {
+        case .deadline: return "deadline"
+        case .awaitingResult: return "awaitingResult"
         }
     }
 }

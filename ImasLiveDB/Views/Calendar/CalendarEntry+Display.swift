@@ -79,7 +79,10 @@ extension CalendarPeriodBand {
             for entry in entriesByDate[calendar.startOfDay(for: date)] ?? [] {
                 // sale_id ベース (1 イベントに複数受付があるとイベント id ベースの帯が潰れていた)。
                 guard case .ticketPeriod(let row) = entry, entryById[row.saleId] == nil else { continue }
-                entryById[row.saleId] = (entry, row.saleName)
+                // M2: 帯の見出しはコアが組んだ label ("{event_name} ({sale_name})") をそのまま出す。
+                // sale_name 単体だと同じブランド色の帯が汎用名 (「一般会員先行」等) ばかりになり、
+                // どのライブの受付か行の見出しで判別できなくなる。
+                entryById[row.saleId] = (entry, row.label)
                 spans.append(PeriodSpanInput(id: row.saleId, start: row.start, end: row.end))
             }
         }

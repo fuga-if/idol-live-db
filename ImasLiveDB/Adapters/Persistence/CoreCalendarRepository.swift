@@ -84,7 +84,7 @@ struct CoreCalendarRepository: CalendarReading {
         case let .anniversary(anniversaryId, occursOn):
             return anniversaries[anniversaryId].map { .anniversary($0, occursOn: occursOn) }
 
-        case let .ticket(eventId, eventName, brandColor, date, kind, url, saleId, saleName, saleKind):
+        case let .ticket(eventId, eventName, brandColor, date, kind, url, saleId, saleName, saleKind, label):
             return .ticket(TicketCalendarRow(
                 eventId: eventId,
                 eventName: eventName,
@@ -94,10 +94,11 @@ struct CoreCalendarRepository: CalendarReading {
                 url: url,
                 saleId: saleId,
                 saleName: saleName,
-                saleKind: ticketSaleKindRaw(kind: saleKind)
+                saleKind: ticketSaleKindRaw(kind: saleKind),
+                label: label
             ))
 
-        case let .ticketPeriod(eventId, eventName, brandColor, start, end, url, saleId, saleName, saleKind):
+        case let .ticketPeriod(eventId, eventName, brandColor, start, end, url, saleId, saleName, saleKind, label):
             return .ticketPeriod(TicketPeriodRow(
                 eventId: eventId,
                 eventName: eventName,
@@ -107,7 +108,8 @@ struct CoreCalendarRepository: CalendarReading {
                 url: url,
                 saleId: saleId,
                 saleName: saleName,
-                saleKind: ticketSaleKindRaw(kind: saleKind)
+                saleKind: ticketSaleKindRaw(kind: saleKind),
+                label: label
             ))
         }
     }

@@ -442,6 +442,8 @@ struct TicketCalendarRow: Sendable {
     var saleId: String
     var saleName: String
     var saleKind: String  // ticket_sales.kind の生値 (lottery / first_come / resale / same_day)
+    /// 表示文字列 (`"{event_name} ({sale_name})"`、コアの `calendar_sale_label` が組む。M2)。
+    var label: String
 }
 
 /// カレンダーに「受付期間」を帯で出すための日跨ぎスパン (受付開始 → 申込締切)。
@@ -455,6 +457,8 @@ struct TicketPeriodRow: Sendable {
     var saleId: String
     var saleName: String
     var saleKind: String
+    /// 表示文字列 (`"{event_name} ({sale_name})"`、コアの `calendar_sale_label` が組む。M2)。
+    var label: String
 }
 
 enum CalendarEntry: Identifiable, Hashable, Sendable {
