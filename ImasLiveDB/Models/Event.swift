@@ -78,13 +78,17 @@ struct Event: Codable, FetchableRecord, PersistableRecord, Identifiable, Hashabl
     /// イベント種別。5カテゴリ（EventKind）のいずれか。DBでは文字列で保持。
     var kind: String
 
-    /// チケット先行受付の開始日 (YYYY-MM-DD)。締切とセットで「受付期間」をカレンダーに帯表示するために使う。
+    /// **廃止・読まない・書かない。** チケット受付の日程は `ticket_sales` が正
+    /// (`EventReading.ticketSales(eventId:)` / `ticketSaleSpotlight(eventId:)`)。
+    /// 列自体は旧版アプリが CloudKit の `Event` レコードから読むため CloudKit 側には残しており、
+    /// `CKRecordMapper.event(_:)` はこの値をそのまま素通しする (書き換えない)。
+    /// 新しい画面・編集フォームからはこのプロパティを一切参照しないこと。
     var ticketOpenDate: String?
-    /// チケット先行受付の締切日 (YYYY-MM-DD or 自由記述)
+    /// **廃止・読まない・書かない。** 上記と同じ。
     var ticketDeadline: String?
-    /// 当落発表日 (YYYY-MM-DD)
+    /// **廃止・読まない・書かない。** 上記と同じ。
     var ticketLotteryDate: String?
-    /// 公式チケットページ URL
+    /// 公式チケットページ URL (受付の個別ページではなく、イベント全体の案内 URL)。現役。
     var ticketUrl: String?
 
     /// 合同ライブの追加ブランド ID をカンマ区切りで持つ (例: "ml" / "ml,cg")。

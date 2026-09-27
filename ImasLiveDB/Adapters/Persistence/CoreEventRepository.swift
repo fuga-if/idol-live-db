@@ -120,6 +120,18 @@ struct CoreEventRepository: EventReading {
         }
     }
 
+    func ticketSales(eventId: String) async throws -> [TicketSale] {
+        try await snapshot.withStore { store in
+            try store.ticketSalesForEvent(eventId: eventId, nowEpochSeconds: JSTDay.nowEpochSeconds())
+        }
+    }
+
+    func ticketSaleSpotlight(eventId: String) async throws -> TicketSale? {
+        try await snapshot.withStore { store in
+            try store.ticketSaleSpotlight(eventId: eventId, nowEpochSeconds: JSTDay.nowEpochSeconds())
+        }
+    }
+
     // MARK: - 参加マーク由来 (user_marks はスナップショットに無い)
 
     func attendedEventsWithDate() async throws -> [EventWithDate] {

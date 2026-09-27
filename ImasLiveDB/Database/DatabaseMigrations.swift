@@ -1028,6 +1028,29 @@ enum DatabaseMigrations {
             }
         }
 
+        // v35: チケット受付 (ticket_sales)。events.ticket_open_date / ticket_deadline /
+        // ticket_lottery_date は廃止・読まない (旧版アプリ互換のため列は残置)。
+        // FK は前例 (v33_show_tickets) に合わせて付けない (端末の移行は宙に浮いた行を
+        // ローダ側で落とす方針。新規インストールは同梱 DB を丸ごとコピーするので FK 付きになる)。
+        migrator.registerMigration("v35_ticket_sales") { db in
+            try db.create(table: "ticket_sales", ifNotExists: true) { t in
+                t.column("id", .text).primaryKey()
+                t.column("event_id", .text).notNull()
+                t.column("show_ids", .text)
+                t.column("kind", .text).notNull()
+                t.column("name", .text).notNull()
+                t.column("starts_at", .text)
+                t.column("ends_at", .text)
+                t.column("result_at", .text)
+                t.column("url", .text)
+                t.column("note", .text)
+                t.column("source_url", .text).notNull()
+                t.column("sort_order", .integer).notNull().defaults(to: 0)
+            }
+            try db.create(index: "idx_ticket_sales_event", on: "ticket_sales",
+                          columns: ["event_id"], ifNotExists: true)
+        }
+
         return migrator
     }
 }

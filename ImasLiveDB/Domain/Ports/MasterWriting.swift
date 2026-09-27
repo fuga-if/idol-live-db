@@ -22,6 +22,11 @@ protocol IdolWriting: Sendable {
     func upsertIdols(_ idols: [Idol]) async throws
 }
 
+protocol TicketSaleWriting: Sendable {
+    func upsertTicketSales(_ sales: [TicketSaleRecord]) async throws
+    func deleteTicketSales(ids: [String]) async throws
+}
+
 protocol SongWriting: Sendable {
     func upsertSongs(_ songs: [Song]) async throws
     func upsertSongArtists(_ songArtists: [SongArtist]) async throws

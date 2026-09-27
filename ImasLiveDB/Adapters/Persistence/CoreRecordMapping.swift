@@ -104,9 +104,10 @@ enum CoreRecordMapping {
             isStreaming: record.isStreaming,
             isSolo: record.isSolo,
             kind: record.kind,
-            ticketOpenDate: record.ticketOpenDate,
-            ticketDeadline: record.ticketDeadline,
-            ticketLotteryDate: record.ticketLotteryDate,
+            // 廃止・読まない。チケット受付の日程は ticket_sales が正 (EventReading.ticketSales)。
+            ticketOpenDate: nil,
+            ticketDeadline: nil,
+            ticketLotteryDate: nil,
             ticketUrl: record.ticketUrl,
             jointBrandIds: record.jointBrandIds,
             hasStreaming: record.hasStreaming,
@@ -123,9 +124,10 @@ enum CoreRecordMapping {
             isStreaming: record.isStreaming,
             isSolo: record.isSolo,
             kind: record.kind,
-            ticketOpenDate: record.ticketOpenDate,
-            ticketDeadline: record.ticketDeadline,
-            ticketLotteryDate: record.ticketLotteryDate,
+            // 廃止・読まない。チケット受付の日程は ticket_sales が正 (EventReading.ticketSales)。
+            ticketOpenDate: nil,
+            ticketDeadline: nil,
+            ticketLotteryDate: nil,
             ticketUrl: record.ticketUrl,
             jointBrandIds: record.jointBrandIds,
             hasStreaming: record.hasStreaming,
@@ -414,6 +416,12 @@ enum CoreRecordMapping {
         return orderedIds.compactMap { byId[$0] }.map(idol(from:))
     }
 }
+
+// MARK: - コア射影への Identifiable 付与
+
+/// `TicketSale` (コアの画面用射影) は `id: String` を既に持つので、
+/// `.sheet(item:)` 等で使えるよう `Identifiable` を足すだけで済む。
+extension TicketSale: Identifiable {}
 
 // MARK: - スナップショットで答える
 

@@ -18,6 +18,11 @@ enum JSTDay {
         jstToday(nowEpochSeconds: Int64(now.timeIntervalSince1970.rounded(.down)))
     }
 
+    /// コアの `now_epoch_seconds` 引数に渡す「今」。チケット受付の段階判定などで使う。
+    static func nowEpochSeconds(now: Date = Date()) -> Int64 {
+        Int64(now.timeIntervalSince1970.rounded(.down))
+    }
+
     /// `"yyyy-MM-dd"` を JST のその日の 0 時として読む。読めなければ nil。
     /// 公演日・誕生日・記念日などを、カレンダーの日付として並べるときに使う。
     static func date(_ day: String) -> Date? {

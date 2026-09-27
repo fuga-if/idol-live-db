@@ -37,4 +37,8 @@ protocol EventReading: Sendable {
     func eventsByIds(_ ids: [String]) async throws -> [EventWithDate]
     /// イベントの映像円盤 (Blu-ray / DVD) 一覧。
     func eventReleases(eventId: String) async throws -> [EventRelease]
+    /// チケット受付の一覧 (段階・並び・表示文字列は共有コアが決め切って返す)。
+    func ticketSales(eventId: String) async throws -> [TicketSale]
+    /// 「今いちばん近い」注目受付 1 件 (選び方は共有コア)。
+    func ticketSaleSpotlight(eventId: String) async throws -> TicketSale?
 }

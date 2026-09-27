@@ -87,6 +87,7 @@ final class AppContainer: Sendable {
         showWriting = SnapshotInvalidatingShowWriting(base: GRDBShowWriting(database: .shared), invalidate: invalidate)
         idolWriting = SnapshotInvalidatingIdolWriting(base: GRDBIdolWriting(database: .shared), invalidate: invalidate)
         songWriting = SnapshotInvalidatingSongWriting(base: GRDBSongWriting(database: .shared), invalidate: invalidate)
+        ticketSaleWriting = SnapshotInvalidatingTicketSaleWriting(base: GRDBTicketSaleWriting(database: .shared), invalidate: invalidate)
 
         // 起動時ロード。上の `.shared` 参照が DB を開き終えている (Bundle DB → Documents コピー含む)
         // ので、この時点で master.sqlite は存在する。ロードが終わるまでの読み取りは、ロードを待つ。
@@ -194,4 +195,5 @@ final class AppContainer: Sendable {
     let showWriting: any ShowWriting
     let idolWriting: any IdolWriting
     let songWriting: any SongWriting
+    let ticketSaleWriting: any TicketSaleWriting
 }

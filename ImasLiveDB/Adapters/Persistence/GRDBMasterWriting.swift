@@ -21,6 +21,12 @@ struct GRDBIdolWriting: IdolWriting {
     func upsertIdols(_ idols: [Idol]) async throws { try await database.upsertIdolsAsync(idols) }
 }
 
+struct GRDBTicketSaleWriting: TicketSaleWriting {
+    let database: AppDatabase
+    func upsertTicketSales(_ sales: [TicketSaleRecord]) async throws { try await database.upsertTicketSalesAsync(sales) }
+    func deleteTicketSales(ids: [String]) async throws { try await database.deleteTicketSalesAsync(ids: ids) }
+}
+
 struct GRDBSongWriting: SongWriting {
     let database: AppDatabase
     func upsertSongs(_ songs: [Song]) async throws { try await database.upsertSongsAsync(songs) }

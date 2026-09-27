@@ -64,6 +64,19 @@ extension AppDatabase {
     func upsertCostumes(_ rows: [Costume]) throws { try upsertChunked(rows) }
     func upsertCostumeWears(_ rows: [CostumeWear]) throws { try upsertChunked(rows) }
     func upsertShowTickets(_ rows: [ShowTicketRecord]) throws { try upsertChunked(rows) }
+    func upsertTicketSales(_ rows: [TicketSaleRecord]) throws { try upsertChunked(rows) }
+    func upsertTicketSalesAsync(_ rows: [TicketSaleRecord]) async throws { try await upsertChunkedAsync(rows) }
+
+    /// モデレーター編集の削除 (soft delete ではなく端末の即時反映用)。サーバ確定後に呼ぶ。
+    func deleteTicketSalesAsync(ids: [String]) async throws {
+        guard !ids.isEmpty else { return }
+        try await dbQueue.write { db in
+            try db.execute(
+                sql: "DELETE FROM ticket_sales WHERE id IN (\(ids.map { _ in "?" }.joined(separator: ", ")))",
+                arguments: StatementArguments(ids)
+            )
+        }
+    }
     func upsertShows(_ shows: [Show]) throws { try upsertChunked(shows) }
     func upsertShowsAsync(_ shows: [Show]) async throws { try await upsertChunkedAsync(shows) }
     func upsertSongs(_ songs: [Song]) throws { try upsertChunked(songs) }

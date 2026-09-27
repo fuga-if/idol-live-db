@@ -34,6 +34,7 @@ enum CKRecordMapper {
         case .costume(let row): costume(row)
         case .costumeWear(let row): costumeWear(row)
         case .showTicket(let row): showTicket(row)
+        case .ticketSale(let row): ticketSale(row)
         case .venueName(let row): venueName(row)
         case .venueHall(let row): venueHall(row)
         case .song(let row): song(row)
@@ -245,6 +246,21 @@ enum CKRecordMapper {
     static func showTicket(from record: CKRecord) -> ShowTicketRecord? {
         guard case .showTicket(let row)? = mapped(record, as: "ShowTicket") else { return nil }
         return showTicket(row)
+    }
+
+    /// チケット受付。`kind` と日時は取り込み側では検査しない (寛容に受け、検査は domain と
+    /// ローダが持つ)。`showIds` はカンマ区切りの文字列のまま保存する (core 側で分解する)。
+    static func ticketSale(_ row: CkTicketSaleRow) -> TicketSaleRecord {
+        return TicketSaleRecord(
+            id: row.id, eventId: row.eventId, showIds: row.showIds, kind: row.kind, name: row.name,
+            startsAt: row.startsAt, endsAt: row.endsAt, resultAt: row.resultAt, url: row.url,
+            note: row.note, sourceUrl: row.sourceUrl, sortOrder: row.sortOrder
+        )
+    }
+
+    static func ticketSale(from record: CKRecord) -> TicketSaleRecord? {
+        guard case .ticketSale(let row)? = mapped(record, as: "TicketSale") else { return nil }
+        return ticketSale(row)
     }
 
     /// 会場名と有効期間。表示を「公演日時点の名前」にするために使う。

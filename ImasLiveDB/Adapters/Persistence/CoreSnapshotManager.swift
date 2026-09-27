@@ -193,6 +193,21 @@ struct SnapshotInvalidatingIdolWriting: IdolWriting {
     }
 }
 
+struct SnapshotInvalidatingTicketSaleWriting: TicketSaleWriting {
+    let base: any TicketSaleWriting
+    let invalidate: @Sendable () -> Void
+
+    func upsertTicketSales(_ sales: [TicketSaleRecord]) async throws {
+        try await base.upsertTicketSales(sales)
+        invalidate()
+    }
+
+    func deleteTicketSales(ids: [String]) async throws {
+        try await base.deleteTicketSales(ids: ids)
+        invalidate()
+    }
+}
+
 struct SnapshotInvalidatingSongWriting: SongWriting {
     let base: any SongWriting
     let invalidate: @Sendable () -> Void
