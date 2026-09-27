@@ -534,8 +534,9 @@ private fun blockId(entry: CalendarEntry): String = when (entry) {
     is CalendarEntry.Birthday -> "bd-${entry.row.id}"
     is CalendarEntry.StaffBirthday -> "sbd-${entry.row.id}"
     is CalendarEntry.Anniversary -> "ann-${entry.row.id}-${entry.date}"
-    is CalendarEntry.Ticket -> "tk-${entry.row.eventId}-${entry.date}"
-    is CalendarEntry.TicketPeriod -> "tp-${entry.row.eventId}"
+    // 1 つのライブに受付が複数あっても衝突しないよう、event_id ではなく sale_id を鍵にする。
+    is CalendarEntry.Ticket -> "tk-${entry.row.saleId}-${entry.date}"
+    is CalendarEntry.TicketPeriod -> "tp-${entry.row.saleId}"
 }
 
 /**

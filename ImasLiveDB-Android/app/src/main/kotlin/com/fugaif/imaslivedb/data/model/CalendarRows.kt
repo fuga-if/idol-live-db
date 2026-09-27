@@ -46,16 +46,26 @@ data class CalAnniversaryRow(
     @ColumnInfo(name = "kind") val kind: String
 )
 
-/** チケット日程の種別 (カレンダーに出す申込締切 / 当落発表)。iOS `TicketDateKind` の移植。 */
-enum class TicketDateKind(private val column: String) {
-    DEADLINE("ticket_deadline"),
-    LOTTERY("ticket_lottery_date");
+/**
+ * チケット日程の種別 (カレンダーに出す受付開始 / 申込締切 / 当落発表)。
+ * コアの `CalendarTicketKind` の移植 (iOS `TicketDateKind` と対応)。
+ */
+enum class TicketDateKind {
+    /** 受付開始 (締切が無い/開始より前の受付だけの単日点)。 */
+    START,
+    DEADLINE,
+    LOTTERY;
 
-    /** 語はコアの vocabulary (値は events の列名)。 */
-    val label: String get() = Vocab.ticketDate(column)?.label.orEmpty()
+    /** 語はコアの vocabulary。START は events の廃止列に対応が無いので固定文言にする。 */
+    val label: String
+        get() = when (this) {
+            START -> "受付開始"
+            DEADLINE -> Vocab.ticketDate("ticket_deadline")?.label.orEmpty()
+            LOTTERY -> Vocab.ticketDate("ticket_lottery_date")?.label.orEmpty()
+        }
 }
 
-/** カレンダー用: チケット日程 1 件 (events の ticket_deadline / ticket_lottery_date 由来)。 */
+/** カレンダー用: チケット日程 1 件 (`ticket_sales` の 1 行につき、期間帯にならない日程)。 */
 data class TicketCalendarRow(
     val eventId: String,
     val eventName: String,
@@ -63,7 +73,11 @@ data class TicketCalendarRow(
     /** YYYY-MM-DD */
     val date: String,
     val kind: TicketDateKind,
-    val url: String?
+    /** 申込リンク (`ticket_sales.url`)。 */
+    val url: String?,
+    val saleId: String,
+    val saleName: String,
+    val saleKind: uniffi.imas_core.TicketSaleKind
 )
 
 /** カレンダー用: チケット受付期間 (受付開始 → 申込締切) の日跨ぎスパン。 */
@@ -75,5 +89,8 @@ data class TicketPeriodRow(
     val start: String,
     /** 申込締切 YYYY-MM-DD */
     val end: String,
-    val url: String?
+    val url: String?,
+    val saleId: String,
+    val saleName: String,
+    val saleKind: uniffi.imas_core.TicketSaleKind
 )

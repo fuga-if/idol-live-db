@@ -77,8 +77,8 @@ fun CalendarEntry.barLabel(): String = when (this) {
     is CalendarEntry.StaffBirthday -> row.name
     // 月セルは狭いので「ラベル」だけ。N周年は日詳細で見せる。
     is CalendarEntry.Anniversary -> row.label
-    is CalendarEntry.Ticket -> "${row.kind.label}・${AppPreferences.eventDisplayName(row.eventName)}"
-    is CalendarEntry.TicketPeriod -> "受付・${AppPreferences.eventDisplayName(row.eventName)}"
+    is CalendarEntry.Ticket -> "${row.kind.label}・${row.saleName}"
+    is CalendarEntry.TicketPeriod -> "受付・${row.saleName}"
 }
 
 /**

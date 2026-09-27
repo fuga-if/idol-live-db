@@ -149,10 +149,14 @@ class CalendarRepository(
                         brandColor = record.brandColor,
                         date = record.date,
                         kind = when (record.kind) {
+                            CalendarTicketKind.START -> TicketDateKind.START
                             CalendarTicketKind.DEADLINE -> TicketDateKind.DEADLINE
                             CalendarTicketKind.LOTTERY -> TicketDateKind.LOTTERY
                         },
-                        url = record.url
+                        url = record.url,
+                        saleId = record.saleId,
+                        saleName = record.saleName,
+                        saleKind = record.saleKind
                     )
                 )
 
@@ -164,7 +168,10 @@ class CalendarRepository(
                         brandColor = record.brandColor,
                         start = record.start,
                         end = record.end,
-                        url = record.url
+                        url = record.url,
+                        saleId = record.saleId,
+                        saleName = record.saleName,
+                        saleKind = record.saleKind
                     )
                 )
             }
