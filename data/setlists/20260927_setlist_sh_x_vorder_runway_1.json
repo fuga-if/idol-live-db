@@ -1,0 +1,12 @@
+{
+ "title": "X VORDER RUNWAY のセトリ (765 出演部分)",
+ "author": "Claude (オーナー依頼)",
+ "source": "https://game.watch.impress.co.jp/docs/kikaku/2143578.html",
+ "note": "公式のセトリ発表がまだ無いので、現地取材の GAME Watch 記事のセットリスト表を出典にした。全 18 曲 (+OpeningAct) のうち 765 が歌った 2 曲だけ入れる (他社フェスの既存の入れ方に合わせ、position は 765 部分の通し番号)。GO MY WAY!! は全体の M6、交錯 OMNIVERSE は M18。外部の歌唱者は notes に書く。",
+ "show_id": "sh_x_vorder_runway_1",
+ "all_performers": ["765as_天海春香", "765as_如月千早", "765as_星井美希"],
+ "songs": [
+  {"position": 1, "song_id": "765as_go_my_way", "performers": "all", "notes": "KAWAII CLUB・赤見かるび・橘ひなの・花譜と歌唱"},
+  {"position": 2, "song_id": "765as_交錯_omniverse", "performers": "all", "notes": "出演者全員で歌唱"}
+ ]
+}
