@@ -21,11 +21,26 @@
    "sort_order": 0,
    "note": "キャストが実物を着たことは公式 (Blu-ray 特典の『実際に使われたものと同じバッジ』)。公演ごとの着用はファミ通のレポートで確認できた分だけ入れた。Act-1 DAY1 は記事で未確認、Act-3 は着用の記述なしのため入れていない",
    "wears": [
-    { "show_id": "sh_L0817", "setlist_item_id": "sh_L0817_7781" },
-    { "show_id": "sh_L0834", "setlist_item_id": "sh_L0834_8048" },
-    { "show_id": "sh_L0835", "setlist_item_id": "sh_L0835_8078" },
-    { "show_id": "sh_L0884", "setlist_item_id": "sh_L0884_8799" },
-    { "show_id": "sh_L0885", "setlist_item_id": "sh_L0885_8843" }
+    {
+     "show_id": "sh_L0817",
+     "setlist_item_id": "sh_L0817_7781"
+    },
+    {
+     "show_id": "sh_L0834",
+     "setlist_item_id": "sh_L0834_8048"
+    },
+    {
+     "show_id": "sh_L0835",
+     "setlist_item_id": "sh_L0835_8078"
+    },
+    {
+     "show_id": "sh_L0884",
+     "setlist_item_id": "sh_L0884_8799"
+    },
+    {
+     "show_id": "sh_L0885",
+     "setlist_item_id": "sh_L0885_8843"
+    }
    ]
   },
   {
@@ -47,8 +62,12 @@
    "sort_order": 1,
    "note": "公式X『Act-1 に登場したデザインの衣装は後日衣装購入に追加予定』→ 2024/03/28『プライマリー・パフォーマーを追加』の流れとファミ通レポートからの推定 (Act-1＝この衣装、と 1 文で書いた公式文は未発見)。アンコールと一部ユニット曲は別衣装",
    "wears": [
-    { "show_id": "sh_L0816" },
-    { "show_id": "sh_L0817" }
+    {
+     "show_id": "sh_L0816"
+    },
+    {
+     "show_id": "sh_L0817"
+    }
    ]
   },
   {
@@ -70,8 +89,12 @@
    "sort_order": 2,
    "note": "公式X の 10th ツアー衣装追加告知とファミ通レポートからの推定 (Act-2＝この衣装、と明記した公式文は未発見)。EScape・Jus-2-Mint の曲とアンコールは別衣装",
    "wears": [
-    { "show_id": "sh_L0834" },
-    { "show_id": "sh_L0835" }
+    {
+     "show_id": "sh_L0834"
+    },
+    {
+     "show_id": "sh_L0835"
+    }
    ]
   },
   {
@@ -91,28 +114,12 @@
    "sort_order": 3,
    "note": "DAY1 は公式まとめに『スターティング・ブルームに身を包んだ22名』と明記。DAY2 はファミ通App の両日レポートによる",
    "wears": [
-    { "show_id": "sh_L0850" },
-    { "show_id": "sh_L0851" }
-   ]
-  },
-  {
-   "id": "cos_ml10th_act4_individual",
-   "brand_id": "ml",
-   "name": "10thLIVE TOUR Act-4 個別衣装",
-   "name_kana": null,
-   "unit_id": null,
-   "idol_id": null,
-   "description": "ミリオンライブ！初の個別衣装。MILLIONSTARS 39 人それぞれに違うデザイン",
-   "source_url": "https://idolmaster-official.jp/news/01_10803",
-   "source": [
-    "https://idolmaster-official.jp/news/01_10803",
-    "https://shop.asobistore.jp/products/detail/200141-00-00-00"
-   ],
-   "sort_order": 4,
-   "note": "39 着それぞれの公式名は見つからないので 1 件にまとめた。アンコールはリ・プロローグ・X、4 Luxury の曲はメイクアップ・ファビュラス！",
-   "wears": [
-    { "show_id": "sh_L0884" },
-    { "show_id": "sh_L0885" }
+    {
+     "show_id": "sh_L0850"
+    },
+    {
+     "show_id": "sh_L0851"
+    }
    ]
   },
   {
@@ -124,11 +131,1087 @@
    "idol_id": null,
    "description": "4 Luxury のユニット衣装",
    "source_url": "https://www.famitsu.com/news/202402/26335689.html",
-   "source": ["https://www.famitsu.com/news/202402/26335689.html"],
+   "source": [
+    "https://www.famitsu.com/news/202402/26335689.html"
+   ],
    "sort_order": 5,
    "note": "ファミ通の Act-4 DAY2 レポートによる (公式での記述は未発見)",
    "wears": [
-    { "show_id": "sh_L0885", "setlist_item_id": "sh_L0885_8817" }
+    {
+     "show_id": "sh_L0885",
+     "setlist_item_id": "sh_L0885_8817"
+    }
+   ]
+  },
+  {
+   "id": "cos_ml_card1163",
+   "brand_id": "ml",
+   "name": "Go・フューチャー",
+   "name_kana": null,
+   "unit_id": null,
+   "idol_id": "ml_春日未来",
+   "description": "ミリシタ SSR カードの衣装。10thLIVE TOUR Act-4 の個別衣装として実物が作られた",
+   "source_url": "https://twitter.com/imasml_theater/status/1761722963139924211",
+   "source": [
+    "https://twitter.com/imasml_theater/status/1761722963139924211",
+    "https://imas-history.hatenablog.com/entry/2022/04/08/170431",
+    "https://mltd.matsurihi.me/cards/1163"
+   ],
+   "sort_order": 10,
+   "note": "Act-4 の個別衣装がミリシタの SSR 衣装であることは公式X (39ガシャ DAY2 告知) で確認。誰がどの衣装かは公式テキストが無く、非公式の衣装記録とカード DB で照合した",
+   "wears": [
+    {
+     "show_id": "sh_L0884",
+     "idol_id": "ml_春日未来"
+    },
+    {
+     "show_id": "sh_L0885",
+     "idol_id": "ml_春日未来"
+    }
+   ]
+  },
+  {
+   "id": "cos_ml_card105",
+   "brand_id": "ml",
+   "name": "ミスティックオーロラ",
+   "name_kana": null,
+   "unit_id": null,
+   "idol_id": "ml_最上静香",
+   "description": "ミリシタ SSR カードの衣装。10thLIVE TOUR Act-4 の個別衣装として実物が作られた",
+   "source_url": "https://twitter.com/imasml_theater/status/1761722963139924211",
+   "source": [
+    "https://twitter.com/imasml_theater/status/1761722963139924211",
+    "https://imas-history.hatenablog.com/entry/2022/04/08/170431",
+    "https://mltd.matsurihi.me/cards/105"
+   ],
+   "sort_order": 11,
+   "note": "Act-4 の個別衣装がミリシタの SSR 衣装であることは公式X (39ガシャ DAY2 告知) で確認。誰がどの衣装かは公式テキストが無く、非公式の衣装記録とカード DB で照合した",
+   "wears": [
+    {
+     "show_id": "sh_L0885",
+     "idol_id": "ml_最上静香"
+    }
+   ]
+  },
+  {
+   "id": "cos_ml_card106",
+   "brand_id": "ml",
+   "name": "リトルテンプテーション",
+   "name_kana": null,
+   "unit_id": null,
+   "idol_id": "ml_伊吹翼",
+   "description": "ミリシタ SSR カードの衣装。10thLIVE TOUR Act-4 の個別衣装として実物が作られた",
+   "source_url": "https://twitter.com/imasml_theater/status/1761722963139924211",
+   "source": [
+    "https://twitter.com/imasml_theater/status/1761722963139924211",
+    "https://imas-history.hatenablog.com/entry/2022/04/08/170431",
+    "https://mltd.matsurihi.me/cards/106"
+   ],
+   "sort_order": 12,
+   "note": "Act-4 の個別衣装がミリシタの SSR 衣装であることは公式X (39ガシャ DAY2 告知) で確認。誰がどの衣装かは公式テキストが無く、非公式の衣装記録とカード DB で照合した",
+   "wears": [
+    {
+     "show_id": "sh_L0884",
+     "idol_id": "ml_伊吹翼"
+    },
+    {
+     "show_id": "sh_L0885",
+     "idol_id": "ml_伊吹翼"
+    }
+   ]
+  },
+  {
+   "id": "cos_ml_card1312",
+   "brand_id": "ml",
+   "name": "マイ・トゥルーセルフ",
+   "name_kana": null,
+   "unit_id": null,
+   "idol_id": "ml_田中琴葉",
+   "description": "ミリシタ SSR カードの衣装。10thLIVE TOUR Act-4 の個別衣装として実物が作られた",
+   "source_url": "https://twitter.com/imasml_theater/status/1761722963139924211",
+   "source": [
+    "https://twitter.com/imasml_theater/status/1761722963139924211",
+    "https://imas-history.hatenablog.com/entry/2022/04/08/170431",
+    "https://mltd.matsurihi.me/cards/1312"
+   ],
+   "sort_order": 13,
+   "note": "Act-4 の個別衣装がミリシタの SSR 衣装であることは公式X (39ガシャ DAY2 告知) で確認。誰がどの衣装かは公式テキストが無く、非公式の衣装記録とカード DB で照合した",
+   "wears": [
+    {
+     "show_id": "sh_L0885",
+     "idol_id": "ml_田中琴葉"
+    }
+   ]
+  },
+  {
+   "id": "cos_ml_card1857",
+   "brand_id": "ml",
+   "name": "スコーチング・サンレイ",
+   "name_kana": null,
+   "unit_id": null,
+   "idol_id": "ml_島原エレナ",
+   "description": "ミリシタ SSR カードの衣装。10thLIVE TOUR Act-4 の個別衣装として実物が作られた",
+   "source_url": "https://twitter.com/imasml_theater/status/1761722963139924211",
+   "source": [
+    "https://twitter.com/imasml_theater/status/1761722963139924211",
+    "https://imas-history.hatenablog.com/entry/2022/04/08/170431",
+    "https://mltd.matsurihi.me/cards/1857"
+   ],
+   "sort_order": 14,
+   "note": "Act-4 の個別衣装がミリシタの SSR 衣装であることは公式X (39ガシャ DAY2 告知) で確認。誰がどの衣装かは公式テキストが無く、非公式の衣装記録とカード DB で照合した",
+   "wears": [
+    {
+     "show_id": "sh_L0884",
+     "idol_id": "ml_島原エレナ"
+    },
+    {
+     "show_id": "sh_L0885",
+     "idol_id": "ml_島原エレナ"
+    }
+   ]
+  },
+  {
+   "id": "cos_ml_card148",
+   "brand_id": "ml",
+   "name": "ブルースカイファンタジア",
+   "name_kana": null,
+   "unit_id": null,
+   "idol_id": "ml_佐竹美奈子",
+   "description": "ミリシタ SSR カードの衣装。10thLIVE TOUR Act-4 の個別衣装として実物が作られた",
+   "source_url": "https://twitter.com/imasml_theater/status/1761722963139924211",
+   "source": [
+    "https://twitter.com/imasml_theater/status/1761722963139924211",
+    "https://imas-history.hatenablog.com/entry/2022/04/08/170431",
+    "https://mltd.matsurihi.me/cards/148"
+   ],
+   "sort_order": 15,
+   "note": "Act-4 の個別衣装がミリシタの SSR 衣装であることは公式X (39ガシャ DAY2 告知) で確認。誰がどの衣装かは公式テキストが無く、非公式の衣装記録とカード DB で照合した",
+   "wears": [
+    {
+     "show_id": "sh_L0884",
+     "idol_id": "ml_佐竹美奈子"
+    },
+    {
+     "show_id": "sh_L0885",
+     "idol_id": "ml_佐竹美奈子"
+    }
+   ]
+  },
+  {
+   "id": "cos_ml_card118",
+   "brand_id": "ml",
+   "name": "ガーリッシュディスコッティ",
+   "name_kana": null,
+   "unit_id": null,
+   "idol_id": "ml_所恵美",
+   "description": "ミリシタ SSR カードの衣装。10thLIVE TOUR Act-4 の個別衣装として実物が作られた",
+   "source_url": "https://twitter.com/imasml_theater/status/1761722963139924211",
+   "source": [
+    "https://twitter.com/imasml_theater/status/1761722963139924211",
+    "https://imas-history.hatenablog.com/entry/2022/04/08/170431",
+    "https://mltd.matsurihi.me/cards/118"
+   ],
+   "sort_order": 16,
+   "note": "Act-4 の個別衣装がミリシタの SSR 衣装であることは公式X (39ガシャ DAY2 告知) で確認。誰がどの衣装かは公式テキストが無く、非公式の衣装記録とカード DB で照合した",
+   "wears": [
+    {
+     "show_id": "sh_L0884",
+     "idol_id": "ml_所恵美"
+    },
+    {
+     "show_id": "sh_L0885",
+     "idol_id": "ml_所恵美"
+    }
+   ]
+  },
+  {
+   "id": "cos_ml_card1053",
+   "brand_id": "ml",
+   "name": "イルミネーション・コスモス",
+   "name_kana": null,
+   "unit_id": null,
+   "idol_id": "ml_徳川まつり",
+   "description": "ミリシタ SSR カードの衣装。10thLIVE TOUR Act-4 の個別衣装として実物が作られた",
+   "source_url": "https://twitter.com/imasml_theater/status/1761722963139924211",
+   "source": [
+    "https://twitter.com/imasml_theater/status/1761722963139924211",
+    "https://imas-history.hatenablog.com/entry/2022/04/08/170431",
+    "https://mltd.matsurihi.me/cards/1053"
+   ],
+   "sort_order": 17,
+   "note": "Act-4 の個別衣装がミリシタの SSR 衣装であることは公式X (39ガシャ DAY2 告知) で確認。誰がどの衣装かは公式テキストが無く、非公式の衣装記録とカード DB で照合した",
+   "wears": [
+    {
+     "show_id": "sh_L0885",
+     "idol_id": "ml_徳川まつり"
+    }
+   ]
+  },
+  {
+   "id": "cos_ml_card115",
+   "brand_id": "ml",
+   "name": "ハピネスクローバー",
+   "name_kana": null,
+   "unit_id": null,
+   "idol_id": "ml_箱崎星梨花",
+   "description": "ミリシタ SSR カードの衣装。10thLIVE TOUR Act-4 の個別衣装として実物が作られた",
+   "source_url": "https://twitter.com/imasml_theater/status/1761722963139924211",
+   "source": [
+    "https://twitter.com/imasml_theater/status/1761722963139924211",
+    "https://imas-history.hatenablog.com/entry/2022/04/08/170431",
+    "https://mltd.matsurihi.me/cards/115"
+   ],
+   "sort_order": 18,
+   "note": "Act-4 の個別衣装がミリシタの SSR 衣装であることは公式X (39ガシャ DAY2 告知) で確認。誰がどの衣装かは公式テキストが無く、非公式の衣装記録とカード DB で照合した",
+   "wears": [
+    {
+     "show_id": "sh_L0884",
+     "idol_id": "ml_箱崎星梨花"
+    },
+    {
+     "show_id": "sh_L0885",
+     "idol_id": "ml_箱崎星梨花"
+    }
+   ]
+  },
+  {
+   "id": "cos_ml_card1679",
+   "brand_id": "ml",
+   "name": "ニャン×∞×ニャン！！",
+   "name_kana": null,
+   "unit_id": null,
+   "idol_id": "ml_野々原茜",
+   "description": "ミリシタ SSR カードの衣装。10thLIVE TOUR Act-4 の個別衣装として実物が作られた",
+   "source_url": "https://twitter.com/imasml_theater/status/1761722963139924211",
+   "source": [
+    "https://twitter.com/imasml_theater/status/1761722963139924211",
+    "https://imas-history.hatenablog.com/entry/2022/04/08/170431",
+    "https://mltd.matsurihi.me/cards/1679"
+   ],
+   "sort_order": 19,
+   "note": "Act-4 の個別衣装がミリシタの SSR 衣装であることは公式X (39ガシャ DAY2 告知) で確認。誰がどの衣装かは公式テキストが無く、非公式の衣装記録とカード DB で照合した",
+   "wears": [
+    {
+     "show_id": "sh_L0884",
+     "idol_id": "ml_野々原茜"
+    },
+    {
+     "show_id": "sh_L0885",
+     "idol_id": "ml_野々原茜"
+    }
+   ]
+  },
+  {
+   "id": "cos_ml_card1580",
+   "brand_id": "ml",
+   "name": "ダイスキ♡ダーリン",
+   "name_kana": null,
+   "unit_id": null,
+   "idol_id": "ml_望月杏奈",
+   "description": "ミリシタ SSR カードの衣装。10thLIVE TOUR Act-4 の個別衣装として実物が作られた",
+   "source_url": "https://twitter.com/imasml_theater/status/1761722963139924211",
+   "source": [
+    "https://twitter.com/imasml_theater/status/1761722963139924211",
+    "https://imas-history.hatenablog.com/entry/2022/04/08/170431",
+    "https://mltd.matsurihi.me/cards/1580"
+   ],
+   "sort_order": 20,
+   "note": "Act-4 の個別衣装がミリシタの SSR 衣装であることは公式X (39ガシャ DAY2 告知) で確認。誰がどの衣装かは公式テキストが無く、非公式の衣装記録とカード DB で照合した",
+   "wears": [
+    {
+     "show_id": "sh_L0884",
+     "idol_id": "ml_望月杏奈"
+    },
+    {
+     "show_id": "sh_L0885",
+     "idol_id": "ml_望月杏奈"
+    }
+   ]
+  },
+  {
+   "id": "cos_ml_card1135",
+   "brand_id": "ml",
+   "name": "カラフルトレジャー",
+   "name_kana": null,
+   "unit_id": null,
+   "idol_id": "ml_伴田路子",
+   "description": "ミリシタ SSR カードの衣装。10thLIVE TOUR Act-4 の個別衣装として実物が作られた",
+   "source_url": "https://twitter.com/imasml_theater/status/1761722963139924211",
+   "source": [
+    "https://twitter.com/imasml_theater/status/1761722963139924211",
+    "https://imas-history.hatenablog.com/entry/2022/04/08/170431",
+    "https://mltd.matsurihi.me/cards/1135"
+   ],
+   "sort_order": 21,
+   "note": "Act-4 の個別衣装がミリシタの SSR 衣装であることは公式X (39ガシャ DAY2 告知) で確認。誰がどの衣装かは公式テキストが無く、非公式の衣装記録とカード DB で照合した",
+   "wears": [
+    {
+     "show_id": "sh_L0884",
+     "idol_id": "ml_伴田路子"
+    },
+    {
+     "show_id": "sh_L0885",
+     "idol_id": "ml_伴田路子"
+    }
+   ]
+  },
+  {
+   "id": "cos_ml_card1504",
+   "brand_id": "ml",
+   "name": "ウィンディ・プレフェス",
+   "name_kana": null,
+   "unit_id": null,
+   "idol_id": "ml_七尾百合子",
+   "description": "ミリシタ SSR カードの衣装。10thLIVE TOUR Act-4 の個別衣装として実物が作られた",
+   "source_url": "https://twitter.com/imasml_theater/status/1761722963139924211",
+   "source": [
+    "https://twitter.com/imasml_theater/status/1761722963139924211",
+    "https://imas-history.hatenablog.com/entry/2022/04/08/170431",
+    "https://mltd.matsurihi.me/cards/1504"
+   ],
+   "sort_order": 22,
+   "note": "Act-4 の個別衣装がミリシタの SSR 衣装であることは公式X (39ガシャ DAY2 告知) で確認。誰がどの衣装かは公式テキストが無く、非公式の衣装記録とカード DB で照合した",
+   "wears": [
+    {
+     "show_id": "sh_L0884",
+     "idol_id": "ml_七尾百合子"
+    },
+    {
+     "show_id": "sh_L0885",
+     "idol_id": "ml_七尾百合子"
+    }
+   ]
+  },
+  {
+   "id": "cos_ml_card189",
+   "brand_id": "ml",
+   "name": "スターリーインビテーション",
+   "name_kana": null,
+   "unit_id": null,
+   "idol_id": "ml_高山紗代子",
+   "description": "ミリシタ SSR カードの衣装。10thLIVE TOUR Act-4 の個別衣装として実物が作られた",
+   "source_url": "https://twitter.com/imasml_theater/status/1761722963139924211",
+   "source": [
+    "https://twitter.com/imasml_theater/status/1761722963139924211",
+    "https://imas-history.hatenablog.com/entry/2022/04/08/170431",
+    "https://mltd.matsurihi.me/cards/189"
+   ],
+   "sort_order": 23,
+   "note": "Act-4 の個別衣装がミリシタの SSR 衣装であることは公式X (39ガシャ DAY2 告知) で確認。誰がどの衣装かは公式テキストが無く、非公式の衣装記録とカード DB で照合した",
+   "wears": [
+    {
+     "show_id": "sh_L0884",
+     "idol_id": "ml_高山紗代子"
+    },
+    {
+     "show_id": "sh_L0885",
+     "idol_id": "ml_高山紗代子"
+    }
+   ]
+  },
+  {
+   "id": "cos_ml_card948",
+   "brand_id": "ml",
+   "name": "Calling! 「A・R・I・S・A!」",
+   "name_kana": null,
+   "unit_id": null,
+   "idol_id": "ml_松田亜利沙",
+   "description": "ミリシタ SSR カードの衣装。10thLIVE TOUR Act-4 の個別衣装として実物が作られた",
+   "source_url": "https://twitter.com/imasml_theater/status/1761722963139924211",
+   "source": [
+    "https://twitter.com/imasml_theater/status/1761722963139924211",
+    "https://imas-history.hatenablog.com/entry/2022/04/08/170431",
+    "https://mltd.matsurihi.me/cards/948"
+   ],
+   "sort_order": 24,
+   "note": "Act-4 の個別衣装がミリシタの SSR 衣装であることは公式X (39ガシャ DAY2 告知) で確認。誰がどの衣装かは公式テキストが無く、非公式の衣装記録とカード DB で照合した",
+   "wears": [
+    {
+     "show_id": "sh_L0885",
+     "idol_id": "ml_松田亜利沙"
+    }
+   ]
+  },
+  {
+   "id": "cos_ml_card497",
+   "brand_id": "ml",
+   "name": "ブリリアント・マーチ",
+   "name_kana": null,
+   "unit_id": null,
+   "idol_id": "ml_高坂海美",
+   "description": "ミリシタ SSR カードの衣装。10thLIVE TOUR Act-4 の個別衣装として実物が作られた",
+   "source_url": "https://twitter.com/imasml_theater/status/1761722963139924211",
+   "source": [
+    "https://twitter.com/imasml_theater/status/1761722963139924211",
+    "https://imas-history.hatenablog.com/entry/2022/04/08/170431",
+    "https://mltd.matsurihi.me/cards/497"
+   ],
+   "sort_order": 25,
+   "note": "Act-4 の個別衣装がミリシタの SSR 衣装であることは公式X (39ガシャ DAY2 告知) で確認。誰がどの衣装かは公式テキストが無く、非公式の衣装記録とカード DB で照合した",
+   "wears": [
+    {
+     "show_id": "sh_L0885",
+     "idol_id": "ml_高坂海美"
+    }
+   ]
+  },
+  {
+   "id": "cos_ml_card170",
+   "brand_id": "ml",
+   "name": "プリティパーティー♪",
+   "name_kana": null,
+   "unit_id": null,
+   "idol_id": "ml_中谷育",
+   "description": "ミリシタ SSR カードの衣装。10thLIVE TOUR Act-4 の個別衣装として実物が作られた",
+   "source_url": "https://twitter.com/imasml_theater/status/1761722963139924211",
+   "source": [
+    "https://twitter.com/imasml_theater/status/1761722963139924211",
+    "https://imas-history.hatenablog.com/entry/2022/04/08/170431",
+    "https://mltd.matsurihi.me/cards/170"
+   ],
+   "sort_order": 26,
+   "note": "Act-4 の個別衣装がミリシタの SSR 衣装であることは公式X (39ガシャ DAY2 告知) で確認。誰がどの衣装かは公式テキストが無く、非公式の衣装記録とカード DB で照合した",
+   "wears": [
+    {
+     "show_id": "sh_L0884",
+     "idol_id": "ml_中谷育"
+    },
+    {
+     "show_id": "sh_L0885",
+     "idol_id": "ml_中谷育"
+    }
+   ]
+  },
+  {
+   "id": "cos_ml_card266",
+   "brand_id": "ml",
+   "name": "ル・シエル・エターナル",
+   "name_kana": null,
+   "unit_id": null,
+   "idol_id": "ml_天空橋朋花",
+   "description": "ミリシタ SSR カードの衣装。10thLIVE TOUR Act-4 の個別衣装として実物が作られた",
+   "source_url": "https://twitter.com/imasml_theater/status/1761722963139924211",
+   "source": [
+    "https://twitter.com/imasml_theater/status/1761722963139924211",
+    "https://imas-history.hatenablog.com/entry/2022/04/08/170431",
+    "https://mltd.matsurihi.me/cards/266"
+   ],
+   "sort_order": 27,
+   "note": "Act-4 の個別衣装がミリシタの SSR 衣装であることは公式X (39ガシャ DAY2 告知) で確認。誰がどの衣装かは公式テキストが無く、非公式の衣装記録とカード DB で照合した",
+   "wears": [
+    {
+     "show_id": "sh_L0884",
+     "idol_id": "ml_天空橋朋花"
+    },
+    {
+     "show_id": "sh_L0885",
+     "idol_id": "ml_天空橋朋花"
+    }
+   ]
+  },
+  {
+   "id": "cos_ml_card2168",
+   "brand_id": "ml",
+   "name": "おもひで巡繰",
+   "name_kana": null,
+   "unit_id": null,
+   "idol_id": "ml_エミリースチュアート",
+   "description": "ミリシタ SSR カードの衣装。10thLIVE TOUR Act-4 の個別衣装として実物が作られた",
+   "source_url": "https://twitter.com/imasml_theater/status/1761722963139924211",
+   "source": [
+    "https://twitter.com/imasml_theater/status/1761722963139924211",
+    "https://imas-history.hatenablog.com/entry/2022/04/08/170431",
+    "https://mltd.matsurihi.me/cards/2168"
+   ],
+   "sort_order": 28,
+   "note": "Act-4 の個別衣装がミリシタの SSR 衣装であることは公式X (39ガシャ DAY2 告知) で確認。誰がどの衣装かは公式テキストが無く、非公式の衣装記録とカード DB で照合した",
+   "wears": [
+    {
+     "show_id": "sh_L0884",
+     "idol_id": "ml_エミリースチュアート"
+    },
+    {
+     "show_id": "sh_L0885",
+     "idol_id": "ml_エミリースチュアート"
+    }
+   ]
+  },
+  {
+   "id": "cos_ml_card162",
+   "brand_id": "ml",
+   "name": "チョコリエールローゼ",
+   "name_kana": null,
+   "unit_id": null,
+   "idol_id": "ml_北沢志保",
+   "description": "ミリシタ SSR カードの衣装。10thLIVE TOUR Act-4 の個別衣装として実物が作られた",
+   "source_url": "https://twitter.com/imasml_theater/status/1761722963139924211",
+   "source": [
+    "https://twitter.com/imasml_theater/status/1761722963139924211",
+    "https://imas-history.hatenablog.com/entry/2022/04/08/170431",
+    "https://mltd.matsurihi.me/cards/162"
+   ],
+   "sort_order": 29,
+   "note": "Act-4 の個別衣装がミリシタの SSR 衣装であることは公式X (39ガシャ DAY2 告知) で確認。誰がどの衣装かは公式テキストが無く、非公式の衣装記録とカード DB で照合した",
+   "wears": [
+    {
+     "show_id": "sh_L0884",
+     "idol_id": "ml_北沢志保"
+    },
+    {
+     "show_id": "sh_L0885",
+     "idol_id": "ml_北沢志保"
+    }
+   ]
+  },
+  {
+   "id": "cos_ml_card1604",
+   "brand_id": "ml",
+   "name": "トゥ・ザ・ハートビート",
+   "name_kana": null,
+   "unit_id": null,
+   "idol_id": "ml_舞浜歩",
+   "description": "ミリシタ SSR カードの衣装。10thLIVE TOUR Act-4 の個別衣装として実物が作られた",
+   "source_url": "https://twitter.com/imasml_theater/status/1761722963139924211",
+   "source": [
+    "https://twitter.com/imasml_theater/status/1761722963139924211",
+    "https://imas-history.hatenablog.com/entry/2022/04/08/170431",
+    "https://mltd.matsurihi.me/cards/1604"
+   ],
+   "sort_order": 30,
+   "note": "Act-4 の個別衣装がミリシタの SSR 衣装であることは公式X (39ガシャ DAY2 告知) で確認。誰がどの衣装かは公式テキストが無く、非公式の衣装記録とカード DB で照合した",
+   "wears": [
+    {
+     "show_id": "sh_L0885",
+     "idol_id": "ml_舞浜歩"
+    }
+   ]
+  },
+  {
+   "id": "cos_ml_card151",
+   "brand_id": "ml",
+   "name": "ラブリーフルーティア",
+   "name_kana": null,
+   "unit_id": null,
+   "idol_id": "ml_木下ひなた",
+   "description": "ミリシタ SSR カードの衣装。10thLIVE TOUR Act-4 の個別衣装として実物が作られた",
+   "source_url": "https://twitter.com/imasml_theater/status/1761722963139924211",
+   "source": [
+    "https://twitter.com/imasml_theater/status/1761722963139924211",
+    "https://imas-history.hatenablog.com/entry/2022/04/08/170431",
+    "https://mltd.matsurihi.me/cards/151"
+   ],
+   "sort_order": 31,
+   "note": "Act-4 の個別衣装がミリシタの SSR 衣装であることは公式X (39ガシャ DAY2 告知) で確認。誰がどの衣装かは公式テキストが無く、非公式の衣装記録とカード DB で照合した",
+   "wears": [
+    {
+     "show_id": "sh_L0884",
+     "idol_id": "ml_木下ひなた"
+    },
+    {
+     "show_id": "sh_L0885",
+     "idol_id": "ml_木下ひなた"
+    }
+   ]
+  },
+  {
+   "id": "cos_ml_card143",
+   "brand_id": "ml",
+   "name": "フラワーリングパレード",
+   "name_kana": null,
+   "unit_id": null,
+   "idol_id": "ml_矢吹可奈",
+   "description": "ミリシタ SSR カードの衣装。10thLIVE TOUR Act-4 の個別衣装として実物が作られた",
+   "source_url": "https://twitter.com/imasml_theater/status/1761722963139924211",
+   "source": [
+    "https://twitter.com/imasml_theater/status/1761722963139924211",
+    "https://imas-history.hatenablog.com/entry/2022/04/08/170431",
+    "https://mltd.matsurihi.me/cards/143"
+   ],
+   "sort_order": 32,
+   "note": "Act-4 の個別衣装がミリシタの SSR 衣装であることは公式X (39ガシャ DAY2 告知) で確認。誰がどの衣装かは公式テキストが無く、非公式の衣装記録とカード DB で照合した",
+   "wears": [
+    {
+     "show_id": "sh_L0884",
+     "idol_id": "ml_矢吹可奈"
+    },
+    {
+     "show_id": "sh_L0885",
+     "idol_id": "ml_矢吹可奈"
+    }
+   ]
+  },
+  {
+   "id": "cos_ml_card196",
+   "brand_id": "ml",
+   "name": "レオパルドチェッカー",
+   "name_kana": null,
+   "unit_id": null,
+   "idol_id": "ml_横山奈緒",
+   "description": "ミリシタ SSR カードの衣装。10thLIVE TOUR Act-4 の個別衣装として実物が作られた",
+   "source_url": "https://twitter.com/imasml_theater/status/1761722963139924211",
+   "source": [
+    "https://twitter.com/imasml_theater/status/1761722963139924211",
+    "https://imas-history.hatenablog.com/entry/2022/04/08/170431",
+    "https://mltd.matsurihi.me/cards/196"
+   ],
+   "sort_order": 33,
+   "note": "Act-4 の個別衣装がミリシタの SSR 衣装であることは公式X (39ガシャ DAY2 告知) で確認。誰がどの衣装かは公式テキストが無く、非公式の衣装記録とカード DB で照合した",
+   "wears": [
+    {
+     "show_id": "sh_L0884",
+     "idol_id": "ml_横山奈緒"
+    },
+    {
+     "show_id": "sh_L0885",
+     "idol_id": "ml_横山奈緒"
+    }
+   ]
+  },
+  {
+   "id": "cos_ml_card1360",
+   "brand_id": "ml",
+   "name": "スターダストマスカレード+",
+   "name_kana": null,
+   "unit_id": null,
+   "idol_id": "ml_二階堂千鶴",
+   "description": "ミリシタ SSR カードの衣装。10thLIVE TOUR Act-4 の個別衣装として実物が作られた",
+   "source_url": "https://twitter.com/imasml_theater/status/1761722963139924211",
+   "source": [
+    "https://twitter.com/imasml_theater/status/1761722963139924211",
+    "https://imas-history.hatenablog.com/entry/2022/04/08/170431",
+    "https://mltd.matsurihi.me/cards/1360"
+   ],
+   "sort_order": 34,
+   "note": "Act-4 の個別衣装がミリシタの SSR 衣装であることは公式X (39ガシャ DAY2 告知) で確認。誰がどの衣装かは公式テキストが無く、非公式の衣装記録とカード DB で照合した",
+   "wears": [
+    {
+     "show_id": "sh_L0884",
+     "idol_id": "ml_二階堂千鶴"
+    },
+    {
+     "show_id": "sh_L0885",
+     "idol_id": "ml_二階堂千鶴"
+    }
+   ]
+  },
+  {
+   "id": "cos_ml_card1518",
+   "brand_id": "ml",
+   "name": "オリジナリティプラス",
+   "name_kana": null,
+   "unit_id": null,
+   "idol_id": "ml_馬場このみ",
+   "description": "ミリシタ SSR カードの衣装。10thLIVE TOUR Act-4 の個別衣装として実物が作られた",
+   "source_url": "https://twitter.com/imasml_theater/status/1761722963139924211",
+   "source": [
+    "https://twitter.com/imasml_theater/status/1761722963139924211",
+    "https://imas-history.hatenablog.com/entry/2022/04/08/170431",
+    "https://mltd.matsurihi.me/cards/1518"
+   ],
+   "sort_order": 35,
+   "note": "Act-4 の個別衣装がミリシタの SSR 衣装であることは公式X (39ガシャ DAY2 告知) で確認。誰がどの衣装かは公式テキストが無く、非公式の衣装記録とカード DB で照合した",
+   "wears": [
+    {
+     "show_id": "sh_L0885",
+     "idol_id": "ml_馬場このみ"
+    }
+   ]
+  },
+  {
+   "id": "cos_ml_card855",
+   "brand_id": "ml",
+   "name": "チアフル♪スマイル！",
+   "name_kana": null,
+   "unit_id": null,
+   "idol_id": "ml_大神環",
+   "description": "ミリシタ SSR カードの衣装。10thLIVE TOUR Act-4 の個別衣装として実物が作られた",
+   "source_url": "https://twitter.com/imasml_theater/status/1761722963139924211",
+   "source": [
+    "https://twitter.com/imasml_theater/status/1761722963139924211",
+    "https://imas-history.hatenablog.com/entry/2022/04/08/170431",
+    "https://mltd.matsurihi.me/cards/855"
+   ],
+   "sort_order": 36,
+   "note": "Act-4 の個別衣装がミリシタの SSR 衣装であることは公式X (39ガシャ DAY2 告知) で確認。誰がどの衣装かは公式テキストが無く、非公式の衣装記録とカード DB で照合した",
+   "wears": [
+    {
+     "show_id": "sh_L0884",
+     "idol_id": "ml_大神環"
+    },
+    {
+     "show_id": "sh_L0885",
+     "idol_id": "ml_大神環"
+    }
+   ]
+  },
+  {
+   "id": "cos_ml_card132",
+   "brand_id": "ml",
+   "name": "フローラルアクア",
+   "name_kana": null,
+   "unit_id": null,
+   "idol_id": "ml_豊川風花",
+   "description": "ミリシタ SSR カードの衣装。10thLIVE TOUR Act-4 の個別衣装として実物が作られた",
+   "source_url": "https://twitter.com/imasml_theater/status/1761722963139924211",
+   "source": [
+    "https://twitter.com/imasml_theater/status/1761722963139924211",
+    "https://imas-history.hatenablog.com/entry/2022/04/08/170431",
+    "https://mltd.matsurihi.me/cards/132"
+   ],
+   "sort_order": 37,
+   "note": "Act-4 の個別衣装がミリシタの SSR 衣装であることは公式X (39ガシャ DAY2 告知) で確認。誰がどの衣装かは公式テキストが無く、非公式の衣装記録とカード DB で照合した",
+   "wears": [
+    {
+     "show_id": "sh_L0884",
+     "idol_id": "ml_豊川風花"
+    },
+    {
+     "show_id": "sh_L0885",
+     "idol_id": "ml_豊川風花"
+    }
+   ]
+  },
+  {
+   "id": "cos_ml_card1629",
+   "brand_id": "ml",
+   "name": "バタフライ・エフェクト",
+   "name_kana": null,
+   "unit_id": null,
+   "idol_id": "ml_宮尾美也",
+   "description": "ミリシタ SSR カードの衣装。10thLIVE TOUR Act-4 の個別衣装として実物が作られた",
+   "source_url": "https://twitter.com/imasml_theater/status/1761722963139924211",
+   "source": [
+    "https://twitter.com/imasml_theater/status/1761722963139924211",
+    "https://imas-history.hatenablog.com/entry/2022/04/08/170431",
+    "https://mltd.matsurihi.me/cards/1629"
+   ],
+   "sort_order": 38,
+   "note": "Act-4 の個別衣装がミリシタの SSR 衣装であることは公式X (39ガシャ DAY2 告知) で確認。誰がどの衣装かは公式テキストが無く、非公式の衣装記録とカード DB で照合した",
+   "wears": [
+    {
+     "show_id": "sh_L0884",
+     "idol_id": "ml_宮尾美也"
+    },
+    {
+     "show_id": "sh_L0885",
+     "idol_id": "ml_宮尾美也"
+    }
+   ]
+  },
+  {
+   "id": "cos_ml_card247",
+   "brand_id": "ml",
+   "name": "アクションスピリッツ",
+   "name_kana": null,
+   "unit_id": null,
+   "idol_id": "ml_福田のり子",
+   "description": "ミリシタ SSR カードの衣装。10thLIVE TOUR Act-4 の個別衣装として実物が作られた",
+   "source_url": "https://twitter.com/imasml_theater/status/1761722963139924211",
+   "source": [
+    "https://twitter.com/imasml_theater/status/1761722963139924211",
+    "https://imas-history.hatenablog.com/entry/2022/04/08/170431",
+    "https://mltd.matsurihi.me/cards/247"
+   ],
+   "sort_order": 39,
+   "note": "Act-4 の個別衣装がミリシタの SSR 衣装であることは公式X (39ガシャ DAY2 告知) で確認。誰がどの衣装かは公式テキストが無く、非公式の衣装記録とカード DB で照合した",
+   "wears": [
+    {
+     "show_id": "sh_L0884",
+     "idol_id": "ml_福田のり子"
+    },
+    {
+     "show_id": "sh_L0885",
+     "idol_id": "ml_福田のり子"
+    }
+   ]
+  },
+  {
+   "id": "cos_ml_card773",
+   "brand_id": "ml",
+   "name": "シークレット・“LOVE”",
+   "name_kana": null,
+   "unit_id": null,
+   "idol_id": "ml_真壁瑞希",
+   "description": "ミリシタ SSR カードの衣装。10thLIVE TOUR Act-4 の個別衣装として実物が作られた",
+   "source_url": "https://twitter.com/imasml_theater/status/1761722963139924211",
+   "source": [
+    "https://twitter.com/imasml_theater/status/1761722963139924211",
+    "https://imas-history.hatenablog.com/entry/2022/04/08/170431",
+    "https://mltd.matsurihi.me/cards/773"
+   ],
+   "sort_order": 40,
+   "note": "Act-4 の個別衣装がミリシタの SSR 衣装であることは公式X (39ガシャ DAY2 告知) で確認。誰がどの衣装かは公式テキストが無く、非公式の衣装記録とカード DB で照合した",
+   "wears": [
+    {
+     "show_id": "sh_L0884",
+     "idol_id": "ml_真壁瑞希"
+    },
+    {
+     "show_id": "sh_L0885",
+     "idol_id": "ml_真壁瑞希"
+    }
+   ]
+  },
+  {
+   "id": "cos_ml_card205",
+   "brand_id": "ml",
+   "name": "クラシカルローズ",
+   "name_kana": null,
+   "unit_id": null,
+   "idol_id": "ml_篠宮可憐",
+   "description": "ミリシタ SSR カードの衣装。10thLIVE TOUR Act-4 の個別衣装として実物が作られた",
+   "source_url": "https://twitter.com/imasml_theater/status/1761722963139924211",
+   "source": [
+    "https://twitter.com/imasml_theater/status/1761722963139924211",
+    "https://imas-history.hatenablog.com/entry/2022/04/08/170431",
+    "https://mltd.matsurihi.me/cards/205"
+   ],
+   "sort_order": 41,
+   "note": "Act-4 の個別衣装がミリシタの SSR 衣装であることは公式X (39ガシャ DAY2 告知) で確認。誰がどの衣装かは公式テキストが無く、非公式の衣装記録とカード DB で照合した",
+   "wears": [
+    {
+     "show_id": "sh_L0884",
+     "idol_id": "ml_篠宮可憐"
+    },
+    {
+     "show_id": "sh_L0885",
+     "idol_id": "ml_篠宮可憐"
+    }
+   ]
+  },
+  {
+   "id": "cos_ml_card269",
+   "brand_id": "ml",
+   "name": "チャーミングフラッター",
+   "name_kana": null,
+   "unit_id": null,
+   "idol_id": "ml_百瀬莉緒",
+   "description": "ミリシタ SSR カードの衣装。10thLIVE TOUR Act-4 の個別衣装として実物が作られた",
+   "source_url": "https://twitter.com/imasml_theater/status/1761722963139924211",
+   "source": [
+    "https://twitter.com/imasml_theater/status/1761722963139924211",
+    "https://imas-history.hatenablog.com/entry/2022/04/08/170431",
+    "https://mltd.matsurihi.me/cards/269"
+   ],
+   "sort_order": 42,
+   "note": "Act-4 の個別衣装がミリシタの SSR 衣装であることは公式X (39ガシャ DAY2 告知) で確認。誰がどの衣装かは公式テキストが無く、非公式の衣装記録とカード DB で照合した",
+   "wears": [
+    {
+     "show_id": "sh_L0884",
+     "idol_id": "ml_百瀬莉緒"
+    },
+    {
+     "show_id": "sh_L0885",
+     "idol_id": "ml_百瀬莉緒"
+    }
+   ]
+  },
+  {
+   "id": "cos_ml_card1985",
+   "brand_id": "ml",
+   "name": "パーフェクト・ムーブメント",
+   "name_kana": null,
+   "unit_id": null,
+   "idol_id": "ml_永吉昴",
+   "description": "ミリシタ SSR カードの衣装。10thLIVE TOUR Act-4 の個別衣装として実物が作られた",
+   "source_url": "https://twitter.com/imasml_theater/status/1761722963139924211",
+   "source": [
+    "https://twitter.com/imasml_theater/status/1761722963139924211",
+    "https://imas-history.hatenablog.com/entry/2022/04/08/170431",
+    "https://mltd.matsurihi.me/cards/1985"
+   ],
+   "sort_order": 43,
+   "note": "Act-4 の個別衣装がミリシタの SSR 衣装であることは公式X (39ガシャ DAY2 告知) で確認。誰がどの衣装かは公式テキストが無く、非公式の衣装記録とカード DB で照合した",
+   "wears": [
+    {
+     "show_id": "sh_L0884",
+     "idol_id": "ml_永吉昴"
+    },
+    {
+     "show_id": "sh_L0885",
+     "idol_id": "ml_永吉昴"
+    }
+   ]
+  },
+  {
+   "id": "cos_ml_card230",
+   "brand_id": "ml",
+   "name": "フラワリー・ブリーズ",
+   "name_kana": null,
+   "unit_id": null,
+   "idol_id": "ml_北上麗花",
+   "description": "ミリシタ SSR カードの衣装。10thLIVE TOUR Act-4 の個別衣装として実物が作られた",
+   "source_url": "https://twitter.com/imasml_theater/status/1761722963139924211",
+   "source": [
+    "https://twitter.com/imasml_theater/status/1761722963139924211",
+    "https://imas-history.hatenablog.com/entry/2022/04/08/170431",
+    "https://mltd.matsurihi.me/cards/230"
+   ],
+   "sort_order": 44,
+   "note": "Act-4 の個別衣装がミリシタの SSR 衣装であることは公式X (39ガシャ DAY2 告知) で確認。誰がどの衣装かは公式テキストが無く、非公式の衣装記録とカード DB で照合した",
+   "wears": [
+    {
+     "show_id": "sh_L0884",
+     "idol_id": "ml_北上麗花"
+    },
+    {
+     "show_id": "sh_L0885",
+     "idol_id": "ml_北上麗花"
+    }
+   ]
+  },
+  {
+   "id": "cos_ml_card1882",
+   "brand_id": "ml",
+   "name": "トライアングル⇒サークル",
+   "name_kana": null,
+   "unit_id": null,
+   "idol_id": "ml_周防桃子",
+   "description": "ミリシタ SSR カードの衣装。10thLIVE TOUR Act-4 の個別衣装として実物が作られた",
+   "source_url": "https://twitter.com/imasml_theater/status/1761722963139924211",
+   "source": [
+    "https://twitter.com/imasml_theater/status/1761722963139924211",
+    "https://imas-history.hatenablog.com/entry/2022/04/08/170431",
+    "https://mltd.matsurihi.me/cards/1882"
+   ],
+   "sort_order": 45,
+   "note": "Act-4 の個別衣装がミリシタの SSR 衣装であることは公式X (39ガシャ DAY2 告知) で確認。誰がどの衣装かは公式テキストが無く、非公式の衣装記録とカード DB で照合した",
+   "wears": [
+    {
+     "show_id": "sh_L0884",
+     "idol_id": "ml_周防桃子"
+    },
+    {
+     "show_id": "sh_L0885",
+     "idol_id": "ml_周防桃子"
+    }
+   ]
+  },
+  {
+   "id": "cos_ml_card1030",
+   "brand_id": "ml",
+   "name": "ミーティア・ブライトスター",
+   "name_kana": null,
+   "unit_id": null,
+   "idol_id": "ml_ジュリア",
+   "description": "ミリシタ SSR カードの衣装。10thLIVE TOUR Act-4 の個別衣装として実物が作られた",
+   "source_url": "https://twitter.com/imasml_theater/status/1761722963139924211",
+   "source": [
+    "https://twitter.com/imasml_theater/status/1761722963139924211",
+    "https://imas-history.hatenablog.com/entry/2022/04/08/170431",
+    "https://mltd.matsurihi.me/cards/1030"
+   ],
+   "sort_order": 46,
+   "note": "Act-4 の個別衣装がミリシタの SSR 衣装であることは公式X (39ガシャ DAY2 告知) で確認。誰がどの衣装かは公式テキストが無く、非公式の衣装記録とカード DB で照合した",
+   "wears": [
+    {
+     "show_id": "sh_L0884",
+     "idol_id": "ml_ジュリア"
+    },
+    {
+     "show_id": "sh_L0885",
+     "idol_id": "ml_ジュリア"
+    }
+   ]
+  },
+  {
+   "id": "cos_ml_card107",
+   "brand_id": "ml",
+   "name": "ラピスラズリ・ノスタルジア",
+   "name_kana": null,
+   "unit_id": null,
+   "idol_id": "ml_白石紬",
+   "description": "ミリシタ SSR カードの衣装。10thLIVE TOUR Act-4 の個別衣装として実物が作られた",
+   "source_url": "https://twitter.com/imasml_theater/status/1761722963139924211",
+   "source": [
+    "https://twitter.com/imasml_theater/status/1761722963139924211",
+    "https://imas-history.hatenablog.com/entry/2022/04/08/170431",
+    "https://mltd.matsurihi.me/cards/107"
+   ],
+   "sort_order": 47,
+   "note": "Act-4 の個別衣装がミリシタの SSR 衣装であることは公式X (39ガシャ DAY2 告知) で確認。誰がどの衣装かは公式テキストが無く、非公式の衣装記録とカード DB で照合した",
+   "wears": [
+    {
+     "show_id": "sh_L0884",
+     "idol_id": "ml_白石紬"
+    },
+    {
+     "show_id": "sh_L0885",
+     "idol_id": "ml_白石紬"
+    }
+   ]
+  },
+  {
+   "id": "cos_ml_card108",
+   "brand_id": "ml",
+   "name": "エスペランスノーツ",
+   "name_kana": null,
+   "unit_id": null,
+   "idol_id": "ml_桜守歌織",
+   "description": "ミリシタ SSR カードの衣装。10thLIVE TOUR Act-4 の個別衣装として実物が作られた",
+   "source_url": "https://twitter.com/imasml_theater/status/1761722963139924211",
+   "source": [
+    "https://twitter.com/imasml_theater/status/1761722963139924211",
+    "https://imas-history.hatenablog.com/entry/2022/04/08/170431",
+    "https://mltd.matsurihi.me/cards/108"
+   ],
+   "sort_order": 48,
+   "note": "Act-4 の個別衣装がミリシタの SSR 衣装であることは公式X (39ガシャ DAY2 告知) で確認。誰がどの衣装かは公式テキストが無く、非公式の衣装記録とカード DB で照合した",
+   "wears": [
+    {
+     "show_id": "sh_L0884",
+     "idol_id": "ml_桜守歌織"
+    },
+    {
+     "show_id": "sh_L0885",
+     "idol_id": "ml_桜守歌織"
+    }
+   ]
+  },
+  {
+   "id": "cos_ml_card642",
+   "brand_id": "ml",
+   "name": "ビスクドール・ノワール",
+   "name_kana": null,
+   "unit_id": "chrono-lexica",
+   "idol_id": null,
+   "description": "Chrono-Lexica のイベントユニット衣装",
+   "source_url": "https://twitter.com/imasml_theater/status/1761722963139924211",
+   "source": [
+    "https://twitter.com/imasml_theater/status/1761722963139924211",
+    "https://imas-history.hatenablog.com/entry/2022/04/08/170431",
+    "https://mltd.matsurihi.me/cards/642"
+   ],
+   "sort_order": 60,
+   "note": "Act-4 で個別衣装から衣装替えして着用 (公式X の『衣装替えで着用されたイベントユニット衣装』の注記。誰が何を着たかは非公式の衣装記録による)",
+   "wears": [
+    {
+     "show_id": "sh_L0884",
+     "idol_id": "ml_七尾百合子"
+    }
+   ]
+  },
+  {
+   "id": "cos_ml_card866",
+   "brand_id": "ml",
+   "name": "カモミール・ウィスパー",
+   "name_kana": null,
+   "unit_id": "fleuranges",
+   "idol_id": null,
+   "description": "Fleuranges のイベントユニット衣装",
+   "source_url": "https://twitter.com/imasml_theater/status/1761722963139924211",
+   "source": [
+    "https://twitter.com/imasml_theater/status/1761722963139924211",
+    "https://imas-history.hatenablog.com/entry/2022/04/08/170431",
+    "https://mltd.matsurihi.me/cards/866"
+   ],
+   "sort_order": 61,
+   "note": "Act-4 で個別衣装から衣装替えして着用 (公式X の『衣装替えで着用されたイベントユニット衣装』の注記。誰が何を着たかは非公式の衣装記録による)",
+   "wears": [
+    {
+     "show_id": "sh_L0884",
+     "idol_id": "ml_木下ひなた"
+    }
    ]
   }
  ]
