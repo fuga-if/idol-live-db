@@ -1,0 +1,162 @@
+{
+ "title": "配信停止した旧 id のファミソン8BIT 収録曲を出し直しアルバムの id に張り替える (daily-health-check)",
+ "_help": "daily-health-check の apple_music_id 死活 (2026-09-28)。master.sqlite に反映し CloudKit Production に push。",
+ "_sources": [
+  "https://itunes.apple.com/lookup?id=1891972485&country=jp&entity=song (album: ファミソン8BIT☆アイドルマスター02)",
+  "https://itunes.apple.com/lookup?id=1891975128&country=jp&entity=song (album: ファミソン8BIT☆アイドルマスター03)",
+  "https://itunes.apple.com/lookup?id=1891976011&country=jp&entity=song (album: ファミソン8BIT☆アイドルマスター04)",
+  "https://itunes.apple.com/lookup?id=1891977022&country=jp&entity=song (album: ファミソン8BIT☆アイドルマスター05)"
+ ],
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "765as_902pmドラゴンバスター_ファミソン8bit_mix",
+   "fields": {
+    "apple_music_id": "1891975378",
+    "apple_music_album_id": "1891975128",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/c6/5a/c9/c65ac9ec-79db-c0fc-f1af-4c03869033ac/4560248018121_Cover.jpg/600x600bb.jpg"
+   },
+   "note": "旧 apple_music_id 1677725019 は lookup(country=JP) で resultCount=0。同アルバムの出し直し ファミソン8BIT☆アイドルマスター03 で曲名・歌唱者 (三浦あずさ & 秋月律子) が一致する候補が 1 件"
+  },
+  {
+   "table": "songs",
+   "id": "765as_first_stageゼビウスファミソン8bit_mix",
+   "fields": {
+    "apple_music_id": "1891976023",
+    "apple_music_album_id": "1891976011",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/fb/19/7c/fb197ce5-852a-0342-6af7-df17deff76fc/4560248018138_Cover.jpg/600x600bb.jpg"
+   },
+   "note": "旧 apple_music_id 1677720361 は lookup(country=JP) で resultCount=0。同アルバムの出し直し ファミソン8BIT☆アイドルマスター04 で曲名・歌唱者 (菊地 真 & 萩原雪歩) が一致する候補が 1 件"
+  },
+  {
+   "table": "songs",
+   "id": "765as_go_my_waydream_match_mix",
+   "fields": {
+    "apple_music_id": "1891977045",
+    "apple_music_album_id": "1891977022",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/0f/3c/92/0f3c92d2-a610-958c-0dc4-496433778aaf/4560248018145_Cover.jpg/600x600bb.jpg"
+   },
+   "note": "旧 apple_music_id 1677719883 は lookup(country=JP) で resultCount=0。同アルバムの出し直し ファミソン8BIT☆アイドルマスター05 で曲名・歌唱者 (如月千早 & 水瀬伊織) が一致する候補が 1 件"
+  },
+  {
+   "table": "songs",
+   "id": "765as_here_we_goディグダグiiファミソン8bit_mix",
+   "fields": {
+    "apple_music_id": "1891977033",
+    "apple_music_album_id": "1891977022",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/0f/3c/92/0f3c92d2-a610-958c-0dc4-496433778aaf/4560248018145_Cover.jpg/600x600bb.jpg"
+   },
+   "note": "旧 apple_music_id 1677719619 は lookup(country=JP) で resultCount=0。同アルバムの出し直し ファミソン8BIT☆アイドルマスター05 で曲名・歌唱者 (如月千早 & 水瀬伊織) が一致する候補が 1 件"
+  },
+  {
+   "table": "songs",
+   "id": "765as_my_best_friendイシターの復活ファミソン8bit_mix",
+   "fields": {
+    "apple_music_id": "1891976020",
+    "apple_music_album_id": "1891976011",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/fb/19/7c/fb197ce5-852a-0342-6af7-df17deff76fc/4560248018138_Cover.jpg/600x600bb.jpg"
+   },
+   "note": "旧 apple_music_id 1677720351 は lookup(country=JP) で resultCount=0。同アルバムの出し直し ファミソン8BIT☆アイドルマスター04 で曲名・歌唱者 (菊地 真 & 萩原雪歩) が一致する候補が 1 件"
+  },
+  {
+   "table": "songs",
+   "id": "765as_relationsギャプラスファミソン8bit_mix",
+   "fields": {
+    "apple_music_id": "1891972508",
+    "apple_music_album_id": "1891972485",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/6b/97/d9/6b97d97d-3137-db5a-01ad-fc914dae3798/4560248018114_Cover.jpg/600x600bb.jpg"
+   },
+   "note": "旧 apple_music_id 1677720008 は lookup(country=JP) で resultCount=0。同アルバムの出し直し ファミソン8BIT☆アイドルマスター02 で曲名・歌唱者 (天海春香 & 星井美希) が一致する候補が 1 件"
+  },
+  {
+   "table": "songs",
+   "id": "765as_relationsdigno-pop_mix",
+   "fields": {
+    "apple_music_id": "1891976027",
+    "apple_music_album_id": "1891976011",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/fb/19/7c/fb197ce5-852a-0342-6af7-df17deff76fc/4560248018138_Cover.jpg/600x600bb.jpg"
+   },
+   "note": "旧 apple_music_id 1677720593 は lookup(country=JP) で resultCount=0。同アルバムの出し直し ファミソン8BIT☆アイドルマスター04 で曲名・歌唱者 (菊地 真 & 萩原雪歩) が一致する候補が 1 件"
+  },
+  {
+   "table": "songs",
+   "id": "765as_the_idolmsterたろすけバスターnw_mix",
+   "fields": {
+    "apple_music_id": "1891972659",
+    "apple_music_album_id": "1891972485",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/6b/97/d9/6b97d97d-3137-db5a-01ad-fc914dae3798/4560248018114_Cover.jpg/600x600bb.jpg"
+   },
+   "note": "旧 apple_music_id 1677720015 は lookup(country=JP) で resultCount=0。同アルバムの出し直し ファミソン8BIT☆アイドルマスター02 で曲名・歌唱者 (天海春香 & 星井美希) が一致する候補が 1 件"
+  },
+  {
+   "table": "songs",
+   "id": "765as_エージェント夜を往くローリングサンダーファミソン8bit_mix",
+   "fields": {
+    "apple_music_id": "1891976025",
+    "apple_music_album_id": "1891976011",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/fb/19/7c/fb197ce5-852a-0342-6af7-df17deff76fc/4560248018138_Cover.jpg/600x600bb.jpg"
+   },
+   "note": "旧 apple_music_id 1677720372 は lookup(country=JP) で resultCount=0。同アルバムの出し直し ファミソン8BIT☆アイドルマスター04 で曲名・歌唱者 (菊地 真 & 萩原雪歩) が一致する候補が 1 件"
+  },
+  {
+   "table": "songs",
+   "id": "765as_ポジティブスカイキッドmix",
+   "fields": {
+    "apple_music_id": "1891975383",
+    "apple_music_album_id": "1891975128",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/c6/5a/c9/c65ac9ec-79db-c0fc-f1af-4c03869033ac/4560248018121_Cover.jpg/600x600bb.jpg"
+   },
+   "note": "旧 apple_music_id 1677725237 は lookup(country=JP) で resultCount=0。同アルバムの出し直し ファミソン8BIT☆アイドルマスター03 で曲名・歌唱者 (三浦あずさ & 秋月律子) が一致する候補が 1 件"
+  },
+  {
+   "table": "songs",
+   "id": "765as_まっすぐフェリオスファミソン8bit_mix",
+   "fields": {
+    "apple_music_id": "1891975370",
+    "apple_music_album_id": "1891975128",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/c6/5a/c9/c65ac9ec-79db-c0fc-f1af-4c03869033ac/4560248018121_Cover.jpg/600x600bb.jpg"
+   },
+   "note": "旧 apple_music_id 1677724867 は lookup(country=JP) で resultCount=0。同アルバムの出し直し ファミソン8BIT☆アイドルマスター03 で曲名・歌唱者 (三浦あずさ & 秋月律子) が一致する候補が 1 件"
+  },
+  {
+   "table": "songs",
+   "id": "765as_太陽のジェラシーオーダインファミソン8bit_mix",
+   "fields": {
+    "apple_music_id": "1891972502",
+    "apple_music_album_id": "1891972485",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/6b/97/d9/6b97d97d-3137-db5a-01ad-fc914dae3798/4560248018114_Cover.jpg/600x600bb.jpg"
+   },
+   "note": "旧 apple_music_id 1677719999 は lookup(country=JP) で resultCount=0。同アルバムの出し直し ファミソン8BIT☆アイドルマスター02 で曲名・歌唱者 (天海春香 & 星井美希) が一致する候補が 1 件"
+  },
+  {
+   "table": "songs",
+   "id": "765as_思い出をありがとうトイポップファミソン8bit_mix",
+   "fields": {
+    "apple_music_id": "1891977028",
+    "apple_music_album_id": "1891977022",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/0f/3c/92/0f3c92d2-a610-958c-0dc4-496433778aaf/4560248018145_Cover.jpg/600x600bb.jpg"
+   },
+   "note": "旧 apple_music_id 1677719599 は lookup(country=JP) で resultCount=0。同アルバムの出し直し ファミソン8BIT☆アイドルマスター05 で曲名・歌唱者 (如月千早 & 水瀬伊織) が一致する候補が 1 件"
+  },
+  {
+   "table": "songs",
+   "id": "765as_蒼い鳥ドラゴンスピリットファミソン8bit_mix",
+   "fields": {
+    "apple_music_id": "1891977040",
+    "apple_music_album_id": "1891977022",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/0f/3c/92/0f3c92d2-a610-958c-0dc4-496433778aaf/4560248018145_Cover.jpg/600x600bb.jpg"
+   },
+   "note": "旧 apple_music_id 1677719876 は lookup(country=JP) で resultCount=0。同アルバムの出し直し ファミソン8BIT☆アイドルマスター05 で曲名・歌唱者 (如月千早) が一致する候補が 1 件"
+  },
+  {
+   "table": "songs",
+   "id": "765as_魔法をかけて妖怪道中記ファミソン8bit_mix",
+   "fields": {
+    "apple_music_id": "1891975372",
+    "apple_music_album_id": "1891975128",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/c6/5a/c9/c65ac9ec-79db-c0fc-f1af-4c03869033ac/4560248018121_Cover.jpg/600x600bb.jpg"
+   },
+   "note": "旧 apple_music_id 1677725002 は lookup(country=JP) で resultCount=0。同アルバムの出し直し ファミソン8BIT☆アイドルマスター03 で曲名・歌唱者 (三浦あずさ & 秋月律子) が一致する候補が 1 件"
+  }
+ ]
+}
