@@ -1558,6 +1558,7 @@ INSERT INTO "events" VALUES('ev_vα-liv_special_stage_in_illustar','876','vα-li
 INSERT INTO "events" VALUES('ev_vδlzdramatic_stars_collaboration_live_劇的演舞','sidem','VΔLZ×DRAMATIC STARS COLLABORATION LIVE 〜劇的演舞〜','live',1,1,'live',NULL,NULL,NULL,NULL,NULL,'げきてきえんぶー');
 INSERT INTO "events" VALUES('ev_web番組今井麻美と中村繪里子のprestarthe_idolmster_49','765as','Web番組「今井麻美と中村繪里子のPreStar」THE IDOLM@STER 4/9','broadcast',1,1,'live',NULL,NULL,NULL,NULL,NULL,'ばんぐみいまいあさみとなかむらえりこの');
 INSERT INTO "events" VALUES('ev_web番組今井麻美と中村繪里子のprestarスペシャル_アイドルマスターロケテ記念今年もお世話になりましたプリスタープチライブ','765as','Web番組「今井麻美と中村繪里子のPreStar」スペシャル アイドルマスターロケテ記念＆今年もお世話になりましたプリスタープチライブ','broadcast',1,1,'live',NULL,NULL,NULL,NULL,NULL,'ばんぐみいまいあさみとなかむらえりこのすぺしゃるあいどるますたーろけてきねんことしもおせわになりましたぷりすたーぷちらいぶ');
+INSERT INTO "events" VALUES('ev_x_vorder_runway','765as','X VORDER RUNWAY','external_event',0,0,'festival',NULL,NULL,NULL,NULL,NULL,'くろすぼーだーらんうぇい');
 INSERT INTO "events" VALUES('ev_xbox_live_the_party_26回最終回','765as','Xbox Live The Party 26回(最終回)','broadcast',1,1,'live',NULL,NULL,NULL,NULL,NULL,'かいさいしゅうかい');
 INSERT INTO "events" VALUES('ev_xr_artists_super_fes_2022','other','xR ARTISTS SUPER FES 2022','external_event',1,1,'live',NULL,NULL,NULL,NULL,NULL,NULL);
 INSERT INTO "events" VALUES('ev_こころの歌人たち第3回弦哲也','cg','こころの歌人たち（第3回）弦哲也','broadcast',0,1,'live',NULL,NULL,NULL,NULL,NULL,'こころのうたびとたちだいかいげんてつや');
@@ -12795,6 +12796,8 @@ INSERT INTO "setlist_items" VALUES('sh_L0267_2279','sh_L0267','ll_bokura_wa_ima_
 INSERT INTO "setlist_items" VALUES('sh_L0267_2289','sh_L0267','ll_sore_wa_bokutachi_no_kiseki',900000,'μ''s',NULL,'μ''s');
 INSERT INTO "setlist_items" VALUES('sh_L0267_2290','sh_L0267','ll_yume_no_tobira',900001,'μ''s',NULL,'μ''s');
 INSERT INTO "setlist_items" VALUES('sh_L0267_2291','sh_L0267','ll_kira_kira_sensation',900002,'μ''s',NULL,'μ''s');
+INSERT INTO "setlist_items" VALUES('sh_x_vorder_runway_1_0001','sh_x_vorder_runway_1','765as_go_my_way',1,NULL,'KAWAII CLUB・赤見かるび・橘ひなの・花譜と歌唱',NULL);
+INSERT INTO "setlist_items" VALUES('sh_x_vorder_runway_1_0002','sh_x_vorder_runway_1','765as_交錯_omniverse',2,NULL,'出演者全員で歌唱',NULL);
 INSERT INTO "setlist_items" VALUES('sli_sh_L_ml_11th_day1_01','sh_L_ml_11th_day1','ml_impressionlocomotion',1,NULL,NULL,NULL);
 INSERT INTO "setlist_items" VALUES('sli_sh_L_ml_11th_day1_02','sh_L_ml_11th_day1','ml_fruity_love',2,NULL,NULL,NULL);
 INSERT INTO "setlist_items" VALUES('sli_sh_L_ml_11th_day1_03','sh_L_ml_11th_day1','ml_紙心ペン心_-_shishinpenshin_-',3,NULL,NULL,NULL);
@@ -45001,6 +45004,12 @@ INSERT INTO "setlist_performers" VALUES('sh_L0267_2291','lovelive_西木野真�
 INSERT INTO "setlist_performers" VALUES('sh_L0267_2291','lovelive_東條希');
 INSERT INTO "setlist_performers" VALUES('sh_L0267_2291','lovelive_小泉花陽');
 INSERT INTO "setlist_performers" VALUES('sh_L0267_2291','lovelive_矢澤にこ');
+INSERT INTO "setlist_performers" VALUES('sh_x_vorder_runway_1_0001','765as_天海春香');
+INSERT INTO "setlist_performers" VALUES('sh_x_vorder_runway_1_0001','765as_如月千早');
+INSERT INTO "setlist_performers" VALUES('sh_x_vorder_runway_1_0001','765as_星井美希');
+INSERT INTO "setlist_performers" VALUES('sh_x_vorder_runway_1_0002','765as_天海春香');
+INSERT INTO "setlist_performers" VALUES('sh_x_vorder_runway_1_0002','765as_如月千早');
+INSERT INTO "setlist_performers" VALUES('sh_x_vorder_runway_1_0002','765as_星井美希');
 INSERT INTO "setlist_performers" VALUES('sli_sh_L_ml_11th_day1_01','ml_伴田路子');
 INSERT INTO "setlist_performers" VALUES('sli_sh_L_ml_11th_day1_01','ml_最上静香');
 INSERT INTO "setlist_performers" VALUES('sli_sh_L_ml_11th_day1_01','ml_野々原茜');
@@ -87939,6 +87948,7 @@ INSERT INTO "shows" VALUES('sh_the_idolmster_sidem_11th_stage_ever_everfter_1','
 INSERT INTO "shows" VALUES('sh_the_idolmster_sidem_11th_stage_ever_everfter_2','ev_the_idolmster_sidem_11th_stage_ever_everfter','DAY2','2026-09-13','TOYOTA ARENA TOKYO','東京都江東区',NULL,2,'cast','venue_toyotaarenatokyo',NULL,NULL,NULL);
 INSERT INTO "shows" VALUES('sh_the_idolmster_sidem_passionable_reading_show_魂環の人形_1','ev_the_idolmster_sidem_passionable_reading_show_魂環の人形','DAY1 -デカルトの影光-','2026-03-14','幕張イベントホール','千葉県','17:00',1,'cast','venue_幕張メッセ','幕張イベントホール',NULL,NULL);
 INSERT INTO "shows" VALUES('sh_the_idolmster_sidem_passionable_reading_show_魂環の人形_2','ev_the_idolmster_sidem_passionable_reading_show_魂環の人形','DAY2 -テセウスの少年-','2026-03-15','幕張イベントホール','千葉県','16:00',2,'cast','venue_幕張メッセ','幕張イベントホール',NULL,NULL);
+INSERT INTO "shows" VALUES('sh_x_vorder_runway_1','ev_x_vorder_runway','X VORDER RUNWAY','2026-09-27','幕張メッセ','千葉県千葉市','15:30',1,'cast','venue_幕張メッセ','国際展示場1〜3ホール','SPWN',NULL);
 INSERT INTO "shows" VALUES('sh_シンデレラガールズ_15周年_大型イベント_1','ev_シンデレラガールズ_15周年_大型イベント','DAY1','2026-11-28','Kアリーナ横浜',NULL,'17:00',0,'cast','venue_kアリーナ横浜',NULL,NULL,NULL);
 INSERT INTO "shows" VALUES('sh_シンデレラガールズ_15周年_大型イベント_2','ev_シンデレラガールズ_15周年_大型イベント','DAY2','2026-11-29','Kアリーナ横浜',NULL,'17:00',1,'cast','venue_kアリーナ横浜',NULL,NULL,NULL);
 INSERT INTO "shows" VALUES('sh_the_idolm@ster_million_live_13thlive_1','ev_the_idolm@ster_million_live_13thlive','DAY1 (高山紗代子主演)','2026-05-05','有明アリーナ',NULL,NULL,0,'cast','venue_有明アリーナ',NULL,NULL,NULL);
@@ -88036,6 +88046,9 @@ INSERT INTO "shows" VALUES('sh_athome_xr_live_apple_of_my_アイ_3','ev_athome_x
 INSERT INTO "shows" VALUES('sh_the_idolm@ster_shiny_colors_orchestra_concert_-radiant_chord-_1','ev_the_idolm@ster_shiny_colors_orchestra_concert_-radiant_chord-','昼公演','2027-03-22','パシフィコ横浜 国立大ホール',NULL,NULL,0,'cast',NULL,NULL,NULL,NULL);
 INSERT INTO "shows" VALUES('sh_the_idolm@ster_shiny_colors_orchestra_concert_-radiant_chord-_2','ev_the_idolm@ster_shiny_colors_orchestra_concert_-radiant_chord-','夜公演','2027-03-22','パシフィコ横浜 国立大ホール',NULL,NULL,1,'cast',NULL,NULL,NULL,NULL);
 CREATE TABLE song_artists (song_id TEXT NOT NULL, idol_id TEXT NOT NULL, role TEXT NOT NULL DEFAULT 'original', PRIMARY KEY (song_id, idol_id, role));
+INSERT INTO "song_artists" VALUES('765as_交錯_omniverse','765as_天海春香','original');
+INSERT INTO "song_artists" VALUES('765as_交錯_omniverse','765as_如月千早','original');
+INSERT INTO "song_artists" VALUES('765as_交錯_omniverse','765as_星井美希','original');
 INSERT INTO "song_artists" VALUES('765as_蒼い鳥','765as_如月千早','original');
 INSERT INTO "song_artists" VALUES('765as_first_stage','765as_萩原雪歩','original');
 INSERT INTO "song_artists" VALUES('765as_here_we_go','765as_水瀬伊織','original');
@@ -109479,6 +109492,7 @@ INSERT INTO "song_units" VALUES('sidem_friendly_smile','unit_315_starsメンタ�
 INSERT INTO "song_units" VALUES('sidem_glorious_rod','unit_315_stars');
 INSERT INTO "song_units" VALUES('sidem_reason','unit_315_stars');
 CREATE TABLE songs (id TEXT PRIMARY KEY NOT NULL, title TEXT NOT NULL, title_kana TEXT, brand_id TEXT, song_type TEXT NOT NULL, release_date TEXT, duration_sec INTEGER, composer TEXT, lyricist TEXT, arranger TEXT, cd_series TEXT, cd_title TEXT, artwork_url TEXT, preview_url TEXT, apple_music_id TEXT, apple_music_album_id TEXT, isrc TEXT, lyrics_url TEXT, parent_song_id TEXT, singer_label TEXT, unit_name TEXT, unit_id TEXT, series_group TEXT, jasrac_code TEXT, unit_version_id TEXT, joint_brand_ids TEXT, is_collab INTEGER NOT NULL DEFAULT 0, has_kamisabi_card INTEGER NOT NULL DEFAULT 0, note TEXT);
+INSERT INTO "songs" VALUES('765as_交錯_omniverse','交錯 OMNIVERSE','こうさくおむにばーす','765as','cover','2026-08-27',NULL,'田中公平','藤林聖子','中村博','交錯 OMNIVERSE - Single',NULL,'https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/40/b8/ab/40b8abab-8dbe-6528-ca9f-8ea05461588a/8721554200013.png/600x600bb.jpg',NULL,'6805534211','6805534210',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,0,NULL);
 INSERT INTO "songs" VALUES('sc_beam','BEAM','びーむ','sc','unit',NULL,NULL,'小久保祐希、Eunsol(1008)、N1K0','鈴木静那','Eunsol(1008)',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'アルストロメリア','unit_アルストロメリア',NULL,NULL,'unit_アルストロメリア__axe8',NULL,0,0,NULL);
 INSERT INTO "songs" VALUES('sc_iwe','I＝WE','あいうぃー','sc','unit',NULL,NULL,'Kotaro Egami (SUPA LOVE)','渡邊亜希子','Kotaro Egami (SUPA LOVE)',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'イルミネーションスターズ','unit_イルミネーションスターズ',NULL,NULL,'unit_イルミネーションスターズ__axe8',NULL,0,0,NULL);
 INSERT INTO "songs" VALUES('765as_蒼い鳥','蒼い鳥','あおいとり','765as','solo','2005-07-26',NULL,'BNSI(椎名豪)','森由里子','BNSI(椎名豪)','THE IDOLM@STER 765PRO ALLSTARS+ GRE@TEST BEST! -COOL&BITTER!-',NULL,'https://is1-ssl.mzstatic.com/image/thumb/Music112/v4/21/d5/28/21d528d7-7cb6-e2e9-3f2a-6eeb37652832/COCX-38073.jpg/600x600bb.jpg','https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview122/v4/91/8d/70/918d7092-eaf3-9982-842d-59bcae395ade/mzaf_13586430457615396689.plus.aac.p.m4a','1659369317','1659369256','','https://www.uta-net.com/song/273980/',NULL,'如月千早',NULL,NULL,'765PRO ALLSTARS+ GRE@TEST BEST',NULL,NULL,NULL,0,0,NULL);
