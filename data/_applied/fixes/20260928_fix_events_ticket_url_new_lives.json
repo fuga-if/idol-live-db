@@ -1,0 +1,16 @@
+{
+ "title": "9/26〜28 に発表されたライブ 3 件の ticket_url を特設サイトで埋める",
+ "_help": "特設サイトに /ticket/ ページは無く (404)、券種・受付は特設サイトと告知ニュースに載っている。",
+ "source": "https://idolmaster-official.jp/news/01_20020 / https://idolmaster-official.jp/news/01_19982 / https://idolmaster-official.jp/news/01_19969",
+ "fixes": [
+  {"table": "events", "id": "ev_athome_xr_live_apple_of_my_アイ",
+   "fields": {"ticket_url": "https://idolmaster-official.jp/live_event/cg_apai/"},
+   "note": "公式ニュース 01_20020 の「イベント公式サイト」"},
+  {"table": "events", "id": "ev_the_idolm@ster_shiny_colors_orchestra_concert_-radiant_chord-",
+   "fields": {"ticket_url": "https://idolmaster-official.jp/live_event/shinycolors_orchestra_RC/"},
+   "note": "公式ニュース 01_19982 の「公式サイト」"},
+  {"table": "events", "id": "ev_283_production_live_performance_noctchill",
+   "fields": {"ticket_url": "https://idolmaster-official.jp/live_event/283_noctchill/"},
+   "note": "公式ニュース 01_19969 の「公式サイト」"}
+ ]
+}
