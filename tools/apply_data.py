@@ -609,8 +609,11 @@ def apply_all(conn):
     return affected
 
 
-def push_cloudkit(affected, production):
+def push_cloudkit(affected, production, db_path):
     """触った行だけを CloudKit へ push する。
+
+    `db_path` は --apply で書いた DB。seed_cloudkit に渡さないと既定の master.sqlite を
+    読むので、--db で別の DB に入れたときに何も送らないまま「完了」になる。
 
     **表ごとに、その表の id で絞って押す。** まとめて `--tables a b` と渡すと
     seed_cloudkit は各表の**全行**を送る。セトリ 17 曲を足すために
@@ -646,7 +649,7 @@ def push_cloudkit(affected, production):
     runs.sort(key=lambda r: order.get(r[0][0], 99))
 
     for tables, ids, space in runs:
-        cmd = [sys.executable, str(SEED_SCRIPT), "--tables", *tables]
+        cmd = [sys.executable, str(SEED_SCRIPT), "--db", str(db_path), "--tables", *tables]
         cmd += ["--production"] if production else ["--environment", "development"]
         tmp = None
         if ids:
@@ -727,7 +730,7 @@ def main():
     print(f"対象テーブル: {sorted(affected)}")
 
     if args.push:
-        rc = push_cloudkit(affected, args.production)
+        rc = push_cloudkit(affected, args.production, args.db)
         if rc != 0:
             sys.exit(rc)
         print("✓ CloudKit push 完了")

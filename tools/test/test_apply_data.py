@@ -90,17 +90,18 @@ class ApplyCostumesTest(unittest.TestCase):
                 with open(cmd[cmd.index("--ids-file") + 1], encoding="utf-8") as f:
                     ids = f.read().split()
             tables = cmd[cmd.index("--tables") + 1:cmd.index("--environment")]
-            runs.append((tables, ids))
+            runs.append((tables, ids, cmd[cmd.index("--db") + 1]))
             return 0
 
         saved = apply_data.subprocess.call
         apply_data.subprocess.call = fake_call
         try:
             with contextlib.redirect_stdout(io.StringIO()):
-                self.assertEqual(apply_data.push_cloudkit(affected, production=False), 0)
+                self.assertEqual(apply_data.push_cloudkit(affected, production=False, db_path="/tmp/applied.sqlite"), 0)
         finally:
             apply_data.subprocess.call = saved
-        self.assertEqual(runs, [(["costumes", "costume_wears"], ["cos_t"])])
+        # --db で書いた DB を seed_cloudkit にも渡す (渡さないと既定の master.sqlite を送る)
+        self.assertEqual(runs, [(["costumes", "costume_wears"], ["cos_t"], "/tmp/applied.sqlite")])
 
 
 class CheckWithoutThirdPartyModulesTest(unittest.TestCase):
