@@ -135,6 +135,8 @@ fun SetlistScreen(
      * [com.fugaif.imaslivedb.ui.filtered.EventFilterKind] の定義に従う。ここでは常に `BRAND`)。
      */
     onFilteredEventsClick: (String, String) -> Unit = { _, _ -> },
+    /** true なら予想タブで開く (プロデュースの「次のライブ」→「セトリを予想」)。 */
+    opensPrediction: Boolean = false,
     viewModel: SetlistViewModel = viewModel(key = showId, factory = SetlistViewModel.factory(showId))
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -170,7 +172,7 @@ fun SetlistScreen(
 
     var menuOpen by remember { mutableStateOf(false) }
     // 未来の公演で予想と実セトリが両方あるときの内部タブ (0 = セットリスト, 1 = 予想)。
-    var contentTab by rememberSaveable(showId) { mutableStateOf(0) }
+    var contentTab by rememberSaveable(showId) { mutableStateOf(if (opensPrediction) 1 else 0) }
     var showAttendanceDialog by remember { mutableStateOf(false) }
     var showEditDialog by remember { mutableStateOf(false) }
     var showHistorySheet by remember { mutableStateOf(false) }

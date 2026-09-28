@@ -17,20 +17,23 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AttachMoney
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.FormatListNumbered
 import androidx.compose.material.icons.filled.Groups
-import androidx.compose.material.icons.filled.Headphones
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.QueueMusic
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Sell
+import androidx.compose.material.icons.filled.SportsEsports
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -89,9 +92,24 @@ object HelpCatalog {
         body = listOf(
             HelpItem("年別リストで時系列に追える", "1000公演以上を年で分けて表示。新しい順なので、最新のライブから過去まで一気に俯瞰できます。"),
             HelpItem("ブランドでフィルタ", "右上の絞り込みボタンから、765AS / シンデレラ / ミリオン / SideM / シャニ / 学マス / ヴイアラ など特定ブランドだけに絞れます。"),
-            HelpItem("種別 (live / stream / event / other) で絞れる", "本ライブ・配信・イベント・その他を切り替え可能。配信中心の活動だけ追いたい時に便利。"),
+            HelpItem("ライブの種別で見分ける", "周年ライブ・オーケストラ・他社イベント・リリースイベント・バースデーライブなどの種別が付いています。絞り込みで種別ごとに外すこともできます。"),
             HelpItem("詳細でセトリ・出演者・チケット情報を確認", "ライブをタップすると、公演日ごとのセトリ、出演アイドル、参考動画、チケット情報まで確認できます。"),
-            HelpItem("参加したライブを記録", "詳細画面から「参加した」をオンにすると、マイページの参加カウントに加算されます。"),
+            HelpItem("参加したライブを記録", "公演の行を右にスワイプすると、その場で参加 (現地 / 配信 / LV) を登録できます。詳細画面からも付けられ、マイページの参加カウントに加算されます。"),
+            HelpItem("衣装と着用公演", "イベント詳細の「情報」タブに、そのイベントで着た衣装がまとまっています。衣装を開くと、ほかのイベントも含めてその衣装を着た公演と曲をたどれます。"),
+            HelpItem("開催前のセトリ予想", "開催前の公演では、みんなの予想に加えて、過去のセトリから推定した「機械予測」が出ます。気になる曲はそのまま自分の予想に入れられます。"),
+        )
+    ),
+    HelpSection(
+        icon = Icons.Filled.FormatListNumbered,
+        tint = "#FF6B3D",
+        title = "セットリストの見方",
+        summary = "曲ごとの「いつぶり」や自分の回収を、セトリの行で確かめられます。",
+        body = listOf(
+            HelpItem("シンプル / 普通 / 詳細 の 3 つの表示", "セトリ右上の「その他」メニューから選べます。シンプルは曲名と歌った人だけ、詳細は自分の回収まで行に出します。"),
+            HelpItem("「初披露」「3 年 10 か月ぶり」", "その曲が前にいつ歌われたかを出します。数えるのはその公演の時点なので、昔のライブを開くと当時の間隔が出ます。1 か月未満は「12 日ぶり」のように日数で出します。"),
+            HelpItem("自分の回収を重ねる", "詳細表示では「初回収」「回収 3 回目」「未回収」が行に出て、セトリの上に「この公演で 12 曲回収」のような要約が出ます。"),
+            HelpItem("オリメンにとって何回目か", "カバーや別ユニットで歌われた曲には、歌った本人にとって何回目か (オリメン 4 回目 など) を添えます。"),
+            HelpItem("数えない公演", "会場の舞台が無い配信だけのライブと MV 上映会は、セトリには並びますが、披露回数・いつぶり・回収には数えません。"),
         )
     ),
     HelpSection(
@@ -105,6 +123,9 @@ object HelpCatalog {
             HelpItem("歌唱履歴で深掘り", "曲詳細から「どのライブで何回歌われたか」を一覧表示。担当曲の披露頻度がわかります。"),
             HelpItem("オリジナルメンバーを表示", "曲のアイコン群はオリジナル歌唱メンバー (ライブ歌唱者ではなく)。ユニット曲はユニット名で表示されます。"),
             HelpItem("回収済 / 未回収で絞り込み", "マイマークで「回収済」を付けた曲だけ、または未回収だけを表示できます。"),
+            HelpItem("並びはリリース日順", "既定はリリース日の新しい順です。件数の行にある並び替えメニューから、披露回数順などにすぐ切り替えられます。"),
+            HelpItem("曲の補足", "曲名の下に、その曲についての補足が出ます。ログインすれば曲詳細から補足を書いたり直したりできます。"),
+            HelpItem("KAMISABI の収録曲", "絞り込みで「KAMISABI収録曲のみ」を選ぶと収録曲だけになります。カードの所持も記録でき、収録率が分かります。"),
         )
     ),
     HelpSection(
@@ -116,7 +137,7 @@ object HelpCatalog {
             HelpItem("リスト / グリッド 切り替え", "上部の切り替えボタンで、密な一覧 (リスト) と画像中心のグリッドを切り替えられます。"),
             HelpItem("アイドル名 ↔ CV 名 で表示切替", "絞り込みパネルから「CV名で表示」に切り替えると、 声優名で一覧化されます。"),
             HelpItem("属性で絞り込み", "キュート/クール/パッション (CG)、 Fairy/Angel/Princess (ML)、 1年/3年 (学マス) などブランドごとの属性で絞れます。"),
-            HelpItem("アイドル詳細で担当曲・出演ライブを確認", "アイドルをタップすると、担当曲リスト・出演ライブ・誕生日・カラーが見られます。"),
+            HelpItem("アイドル詳細で担当曲・出演ライブを確認", "アイドルをタップすると、担当曲・出演ライブ・誕生日・カラーが見られます。担当曲はソロ・ユニット・全体曲・カバーの小タブで切り替えられます。"),
             HelpItem("別名 (aliases) も検索対象", "ロコ ↔ 伴田路子 のような別名表記も内部で同一アイドルとして紐づいています。"),
         )
     ),
@@ -130,6 +151,29 @@ object HelpCatalog {
             HelpItem("回収済 (持ってる) 楽曲", "曲詳細から「回収済」を付けると、自分のコレクション管理ができます。楽曲一覧で「回収済のみ」表示も可能。"),
             HelpItem("参加ライブ", "ライブ詳細から「参加した」を付けると、マイページに参加履歴が積み上がります。"),
             HelpItem("マイマークは端末に保存", "ローカル保存されるので、ログインなしで使えます。機種変更のときは 設定 → バックアップ の引き継ぎコードで移せます。"),
+        )
+    ),
+    HelpSection(
+        icon = Icons.Filled.AttachMoney,
+        tint = "#16A34A",
+        title = "収支（家計簿）",
+        summary = "チケット代・交通費・グッズ代など、アイマスに使ったお金を記録できます。",
+        body = listOf(
+            HelpItem("プロデュースタブの「収支」から", "日付と金額と費目 (チケット・交通・宿・グッズ・課金 など) で記録します。月別・年別の合計と費目ごとの内訳が出ます。"),
+            HelpItem("公演に紐づける", "支出を公演に紐づけると、「この遠征でいくら使ったか」と 1 公演あたりの額が分かります。課金や通販は紐づけずに同じ帳簿へ入れられます。"),
+            HelpItem("チケット代を自動で聞く", "参加を付けたとき、チケット価格が分かっている公演ならその額で記録するかを確認します。過去の参加から、まだ記録していないチケット代をまとめて取り込むこともできます。"),
+            HelpItem("端末の中だけに保存", "収支はサーバーに送らず、端末の中だけに保存します。"),
+        )
+    ),
+    HelpSection(
+        icon = Icons.Filled.BarChart,
+        tint = "#0EA5E9",
+        title = "習熟度",
+        summary = "曲ごとの覚え具合を付けて、シリーズやユニットごとにどこまで覚えたかを確かめられます。",
+        body = listOf(
+            HelpItem("プロデュースタブの「習熟度」から", "シリーズ・ユニット・年代ごとに曲がまとまっていて、あと何曲覚えればいいかが分かります。"),
+            HelpItem("1 タップで段階を上げる", "曲の行から 1 タップで段階を上げられます。右にスワイプでも上げられ、下げたり特定の段へ飛ばすのは長押しのピッカーから選べます。"),
+            HelpItem("段階は自分で決める", "設定の「習熟度」で、段の数 (2〜4 段) と呼び名を変えられます。呼び名を変えても、付けた記録はそのまま残ります。"),
         )
     ),
     HelpSection(
@@ -169,26 +213,27 @@ object HelpCatalog {
         )
     ),
     HelpSection(
-        icon = Icons.Filled.Headphones,
+        icon = Icons.Filled.SportsEsports,
         tint = "#FF2D55",
-        title = "イントロドン",
-        summary = "曲のイントロを聴いて曲名を当てるクイズ。",
+        title = "クイズ・ゲーム",
+        summary = "プロデュースタブの「クイズ・ゲーム」で 5 種類のクイズが遊べます。",
         body = listOf(
-            HelpItem("配信のある曲で遊べる", "出題は 30 秒のプレビュー再生です。配信のある曲だけが出題対象になります。"),
-            HelpItem("ブランド・難易度を選択", "ブランド絞り込みや、再生秒数で難易度調整できます。"),
-            HelpItem("4 択で回答", "曲名の 4 択から選びます。パーティ対戦なら 1 台を 2 人で分けて早押しできます。"),
-            HelpItem("ベストスコアを記録", "ブランドごとに自己ベストが残ります。"),
+            HelpItem("5 種類のクイズ", "アイドル当て・ソロ曲クイズ・セトリ当て・イントロドン・メンバーカラー合わせがあります。"),
+            HelpItem("セトリ当て", "実際の公演のセトリの空欄に入る曲を 4 択で当てます。"),
+            HelpItem("累計ポイントと「つづきから」", "遊ぶほどポイントが貯まります。途中でやめても「つづきから」で再開できます。結果は画像にしてシェアできます。"),
+            HelpItem("イントロドンは配信のある曲で遊べる", "出題は 30 秒のプレビュー再生です。配信のある曲だけが出題対象になります。"),
+            HelpItem("ブランド・難易度を選択", "出題するブランドを選べます。イントロドンは再生秒数で難易度を調整できます。"),
         )
     ),
     HelpSection(
         icon = Icons.Filled.Search,
         tint = "#8E8E93",
         title = "検索",
-        summary = "「このタブを絞り込む」検索と、「全体を横断する」検索の 2 種類があります。",
+        summary = "ライブ・楽曲・アイドルの各一覧の検索欄から、その場で絞り込めます。",
         body = listOf(
-            HelpItem("タブ内検索 = この一覧を絞り込む", "ライブ / 楽曲 / アイドル 各タブの検索バーは、いま表示中の一覧 (適用中の絞り込みも含む) をその場で絞り込みます。"),
-            HelpItem("全体検索 = 横断して探す", "右上の虫眼鏡から、楽曲・アイドル・ライブをまとめて横断検索できます。タブをまたいで一気に目的の項目へ飛べます。"),
-            HelpItem("見つからなければ全体検索へ", "タブ内検索で結果が無いときは「全体から検索」ボタンが出ます。同じ語句のまま 1 タップで横断検索に切り替えられます。"),
+            HelpItem("一覧の中で絞り込む", "ライブ / 楽曲 / アイドル 各タブの検索欄は、いま表示中の一覧をその場で絞り込みます。ブランドの絞り込みや並び順と組み合わせられます。"),
+            HelpItem("何で探すかを切り替える", "楽曲は曲名・アイドル名・作詞作曲者、アイドルはアイドル名と CV 名を切り替えて探せます。打っている間、それぞれ何件当たるかが出ます。"),
+            HelpItem("ほかのタブの件数", "「ライブに 8」のように、同じ語がほかのタブで何件当たるかも出ます。押すとそのタブへ移って同じ語で絞り込みます。"),
             HelpItem("アイドル別名にも対応", "「ロコ」と検索しても「伴田路子」がヒット。シャニやミリの別名表記も内部で名寄せ済み。"),
         )
     ),

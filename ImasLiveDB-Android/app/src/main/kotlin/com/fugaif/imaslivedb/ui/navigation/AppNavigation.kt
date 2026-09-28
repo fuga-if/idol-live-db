@@ -275,7 +275,11 @@ internal fun NavGraphBuilder.produceNavGraph(navController: NavHostController) {
             onNavigateToEditHistory = { navController.navigate(NavRoutes.EditHistory.route) },
             onNavigateToTagList = { navController.navigate(NavRoutes.TagList.route) },
             onNavigateToTagActivity = { navController.navigate(NavRoutes.TagActivity.route) },
-            onNavigateToGamesHub = { navController.navigate(NavRoutes.GamesHub.route) }
+            onNavigateToGamesHub = { navController.navigate(NavRoutes.GamesHub.route) },
+            onNavigateToIntroDon = { navController.navigate(NavRoutes.IntroDonHome.route) },
+            onNavigateToSetlistQuizSetup = { navController.navigate(NavRoutes.GamesSetlistQuizSetup.route) },
+            onResumeQuiz = { navController.navigate(NavRoutes.GamesResume.createRoute(it)) },
+            onPredictSetlist = { navController.navigate(NavRoutes.Setlist.createRoute(it, predict = true)) }
         )
     }
     composable(ROUTE_COLLECTED_SONGS) {
@@ -601,10 +605,14 @@ private fun NavGraphBuilder.detailRoutes(navController: NavHostController) {
             onShowClick = { navController.navigate(NavRoutes.Setlist.createRoute(it)) }
         )
     }
-    composable(NavRoutes.Setlist.ROUTE) { backStackEntry ->
+    composable(
+        NavRoutes.Setlist.ROUTE,
+        arguments = listOf(navArgument("predict") { type = NavType.BoolType; defaultValue = false })
+    ) { backStackEntry ->
         val showId = backStackEntry.arguments?.getString("showId") ?: return@composable
         SetlistScreen(
             showId = showId,
+            opensPrediction = backStackEntry.arguments?.getBoolean("predict") ?: false,
             onBack = { navController.popBackStack() },
             onSongClick = { navController.navigate(NavRoutes.SongDetail.createRoute(it)) },
             onIdolClick = { navController.navigate(NavRoutes.IdolDetail.createRoute(it)) },

@@ -411,6 +411,8 @@ struct ImasSectionHeader: View {
     var seeAll: (() -> Void)? = nil
     /// tight = 小さめのサブ見出し (実画面の sheadTight)。
     var tight: Bool = false
+    /// seeAll の文言。行き先が「一覧の全件」でないとき (例: ほかのお題) に替える。
+    var seeAllTitle: String = "すべて見る"
 
     var body: some View {
         HStack(alignment: .firstTextBaseline) {
@@ -426,7 +428,7 @@ struct ImasSectionHeader: View {
             if let seeAll {
                 Button(action: seeAll) {
                     HStack(spacing: 2) {
-                        Text("すべて見る").font(.imasScaled( 14, weight: .medium))
+                        Text(seeAllTitle).font(.imasScaled( 14, weight: .medium))
                         Image(systemName: "chevron.right").font(.imasScaled( 12, weight: .semibold))
                     }
                     .foregroundStyle(DS.ink2)

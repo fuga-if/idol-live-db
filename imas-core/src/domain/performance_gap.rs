@@ -22,13 +22,6 @@ use crate::domain::snapshot::Snapshot;
 use crate::domain::song_detail_queries::performance_ordinal_label;
 use std::collections::HashSet;
 
-/// 行に出すほど珍しいと見なす間隔 (か月)。
-///
-/// 実データ (13,312 披露) の内訳は「6 か月未満 55% / 6〜11 か月 12% / 1 年以上 18% /
-/// 初披露 15%」。6 か月で線を引くと半分近い行に札が付いて、ただの賑やかしになる。
-/// 1 年で引くと、札が付くのは 1/3 (うち半分は初披露) で、目に留まる。
-pub const NOTABLE_GAP_MONTHS: u32 = 12;
-
 /// その披露の「何回目か」と「いつぶりか」。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PerformanceGap {
@@ -41,8 +34,8 @@ pub struct PerformanceGap {
     pub previous_date: Option<String>,
     /// 前回からの間隔 (か月)。初披露なら `None`。同日 (昼夜公演) は `Some(0)`。
     pub months_since: Option<u32>,
-    /// 行に出す札 (`3 年 10 か月ぶり`)。[`NOTABLE_GAP_MONTHS`] に届かない間隔と
-    /// 初披露では `None` (初披露は `ordinal_label` が言う)。
+    /// 行に出す札 (`3 年 10 か月ぶり` / `1 日ぶり`)。**間隔が短くても出す** (直近の披露も
+    /// 知りたい)。同日 (昼夜公演) と初披露では `None` (初披露は `ordinal_label` が言う)。
     pub since_label: Option<String>,
 }
 
@@ -83,9 +76,36 @@ pub fn interval_label(months: u32) -> Option<String> {
     }
 }
 
-/// 行に出す札。[`NOTABLE_GAP_MONTHS`] に届かない間隔では出さない。
-pub fn notable_interval_label(months: u32) -> Option<String> {
-    (months >= NOTABLE_GAP_MONTHS).then(|| interval_label(months)).flatten()
+/// `YYYY-MM-DD` 2 つの間の日数。日付として読めない入力と逆順は `None`。
+fn days_between(from: &str, to: &str) -> Option<u32> {
+    let (fy, fm, fd) = parse_ymd(from)?;
+    let (ty, tm, td) = parse_ymd(to)?;
+    u32::try_from(days_from_civil(ty, tm, td) - days_from_civil(fy, fm, fd)).ok()
+}
+
+/// 1970-01-01 からの日数 (先発グレゴリオ暦)。
+fn days_from_civil(y: i32, m: i32, d: i32) -> i64 {
+    let y = i64::from(if m <= 2 { y - 1 } else { y });
+    let era = y.div_euclid(400);
+    let yoe = y - era * 400;
+    let m = i64::from(m);
+    let doy = (153 * (if m > 2 { m - 3 } else { m + 9 }) + 2) / 5 + i64::from(d) - 1;
+    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+    era * 146_097 + doe - 719_468
+}
+
+/// 行に出す「いつぶり」の札。前回の日 → 今回の日で決める。
+///
+/// 1 か月以上は [`interval_label`] (`3 年 10 か月ぶり`)、1 か月未満は日数 (`1 日ぶり`)。
+/// 同日 (昼夜公演) は `None` — 「0 日ぶり」とは言わない。
+pub fn since_label(previous_date: &str, date: &str) -> Option<String> {
+    match months_between(previous_date, date) {
+        Some(months) if months > 0 => interval_label(months),
+        _ => match days_between(previous_date, date)? {
+            0 => None,
+            days => Some(format!("{days} 日ぶり")),
+        },
+    }
 }
 
 /// その披露 (`setlist_items` の添字) の、その時点から見た回数と間隔。
@@ -116,6 +136,7 @@ pub fn performance_gap_filtered(
     let date = &snap.shows[snap.setlist_items[item as usize].show as usize].date;
     let months_since =
         previous_date.as_deref().map(|prev| months_between(prev, date).unwrap_or(0));
+    let label = previous_date.as_deref().and_then(|prev| since_label(prev, date));
     let ordinal = position as u32 + 1;
     PerformanceGap {
         ordinal,
@@ -123,7 +144,7 @@ pub fn performance_gap_filtered(
         is_first: ordinal == 1,
         previous_date,
         months_since,
-        since_label: months_since.and_then(notable_interval_label),
+        since_label: label,
     }
 }
 
@@ -235,11 +256,15 @@ mod tests {
         assert_eq!(interval_label(0), None, "「0 か月ぶり」とは言わない");
     }
 
-    /// 行に出すのは 1 年から。半年ぶりまで札にすると、ライブの半分の行に札が付く。
+    /// 直近の披露にも札を出す。1 か月未満は日数で言い、同日だけは言わない。
     #[test]
-    fn only_a_year_or_more_earns_a_badge() {
-        assert_eq!(notable_interval_label(11), None);
-        assert_eq!(notable_interval_label(12).as_deref(), Some("1 年ぶり"));
+    fn recent_performances_get_a_badge_too() {
+        assert_eq!(since_label("2025-09-27", "2026-08-27").as_deref(), Some("11 か月ぶり"));
+        assert_eq!(since_label("2026-09-01", "2026-09-27").as_deref(), Some("26 日ぶり"));
+        assert_eq!(since_label("2026-08-31", "2026-09-27").as_deref(), Some("27 日ぶり"));
+        assert_eq!(since_label("2024-02-28", "2024-03-01").as_deref(), Some("2 日ぶり"));
+        assert_eq!(since_label("2026-09-26", "2026-09-27").as_deref(), Some("1 日ぶり"));
+        assert_eq!(since_label("2026-09-27", "2026-09-27"), None, "同日は言わない");
     }
 
     // ---- 実データ ----

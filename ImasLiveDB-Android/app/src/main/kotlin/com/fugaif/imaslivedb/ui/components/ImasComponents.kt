@@ -210,7 +210,9 @@ fun ImasSectionHeader(
     count: String? = null,
     tight: Boolean = false,
     onSeeAll: (() -> Unit)? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    /** [onSeeAll] の文言。行き先が「一覧の全件」でないとき (例: ほかのお題) に替える。 */
+    seeAllTitle: String = "すべて見る"
 ) {
     Row(
         modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
@@ -228,7 +230,7 @@ fun ImasSectionHeader(
         Box(Modifier.weight(1f))
         if (onSeeAll != null) {
             Row(Modifier.clickable(onClick = onSeeAll), verticalAlignment = Alignment.CenterVertically) {
-                Text("すべて見る", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = DS.ink2)
+                Text(seeAllTitle, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = DS.ink2)
                 Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = DS.ink2, modifier = Modifier.size(16.dp))
             }
         }

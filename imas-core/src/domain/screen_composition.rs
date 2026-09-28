@@ -405,6 +405,7 @@ mod setlist_row_note_tests {
             is_first: attended && ordinal == 1,
             previous_date: None,
             months_since: months,
+            since_label: months.and_then(crate::domain::performance_gap::interval_label),
             collected_count: collected,
         }
     }
@@ -470,15 +471,15 @@ mod setlist_row_note_tests {
         );
     }
 
-    /// 1 年に満たない間隔では「いつぶり」を言わない (回数だけ)。
+    /// 短い間隔でも「いつぶり」を言う (直近の披露も知りたい)。
     #[test]
-    fn 短い間隔は言わない() {
-        let g = groups(true, &gap(false, "9 回目", None), &mine(true, 2, 2, Some(3)));
+    fn 短い間隔も言う() {
+        let g = groups(true, &gap(false, "9 回目", Some("3 か月ぶり")), &mine(true, 2, 2, Some(3)));
         assert_eq!(
             axes(&g),
             vec![
-                ("披露", vec!["9 回目"], vec![RowNoteTone::Value]),
-                ("回収", vec!["2 回目"], vec![RowNoteTone::Mine]),
+                ("披露", vec!["9 回目", "3 か月ぶり"], vec![RowNoteTone::Value, RowNoteTone::Detail]),
+                ("回収", vec!["2 回目", "3 か月ぶり"], vec![RowNoteTone::Mine, RowNoteTone::Detail]),
             ]
         );
     }

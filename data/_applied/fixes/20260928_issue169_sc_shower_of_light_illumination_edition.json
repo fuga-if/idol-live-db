@@ -1,0 +1,19 @@
+{
+ "title": "Shower of light の Apple Music リンクを歌唱ユニット (イルミネーションスターズ) 盤に揃える (#169)",
+ "_help": "同じ音源が 2 つの盤に収録されている。歌唱ユニット側の盤を指す。preview_url もその盤のトラックから引き直した。",
+ "source": "https://itunes.apple.com/lookup?id=1787242273&country=jp (Shower of light / イルミネーションスターズ / 【イルミネーションスターズ盤】 - EP / isStreamable=true) / https://itunes.apple.com/lookup?id=1787242272&entity=song&country=jp (同 EP の 1 曲目)",
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "sc_shower_of_light",
+   "fields": {
+    "apple_music_id": "1787242273",
+    "apple_music_album_id": "1787242272",
+    "cd_series": "THE IDOLM@STER SHINY COLORS Song for Prism Shower of light / 快盗Vを見逃すな【イルミネーションスターズ盤】 - EP",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/d7/d0/ae/d7d0ae30-0611-9c35-1bc5-5a3f4031a713/4540774246342.png/600x600bb.jpg",
+    "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/a3/3a/ae/a33aae14-5165-3ba9-9422-3375e19fc98f/mzaf_13104762975060426901.plus.aac.p.m4a"
+   },
+   "note": "旧値は【放課後クライマックスガールズ盤】の 1787242366 (こちらも同じ Shower of light)。投稿の preview_url 空欄は採らず、新しいトラックの試聴 URL を入れた"
+  }
+ ]
+}

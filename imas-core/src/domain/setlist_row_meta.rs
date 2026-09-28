@@ -317,7 +317,7 @@ mod tests {
             .iter()
             .map(|g| (g.label.as_str(), g.notes.iter().map(|n| n.text.as_str()).collect()))
             .collect();
-        assert_eq!(axes[0], ("披露", vec!["6 回目"]));
+        assert_eq!(axes[0], ("披露", vec!["6 回目", "3 か月ぶり"]));
         assert_eq!(axes[1], ("歌唱", vec!["友紀・愛海 3 回目"]));
     }
 

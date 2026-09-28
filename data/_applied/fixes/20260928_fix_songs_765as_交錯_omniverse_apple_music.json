@@ -1,0 +1,17 @@
+{
+ "title": "交錯 OMNIVERSE の cd_series を埋める (fill_artwork_urls)",
+ "_help": "daily-data-crawl (A) の記録。master.sqlite に反映し CloudKit Production に push 済み。",
+ "_sources": [
+  "https://itunes.apple.com/lookup?id=6805534210&country=jp (album: 交錯 OMNIVERSE - Single)"
+ ],
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "765as_交錯_omniverse",
+   "fields": {
+    "cd_series": "交錯 OMNIVERSE - Single"
+   },
+   "note": "apple_music_id 6805534211 / album 6805534210 / artwork_url は既存値のまま。空だった cd_series だけ埋まった"
+  }
+ ]
+}

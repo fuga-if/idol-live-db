@@ -21,7 +21,14 @@ struct SetlistView: View {
     /// nil の時 (タブ内 standalone) は従来どおり自前 sheet。
     var navigate: ((DetailDestination) -> Void)? = nil
     /// 予想/実セトリ両方ある時の内部タブ (0=セットリスト / 1=予想)。
-    @State private var contentTab = 0
+    /// 「次のライブ」の「セトリを予想」からは 1 で開く。
+    @State private var contentTab: Int
+
+    init(show: Show, navigate: ((DetailDestination) -> Void)? = nil, opensPrediction: Bool = false) {
+        self.show = show
+        self.navigate = navigate
+        _contentTab = State(initialValue: opensPrediction ? 1 : 0)
+    }
     /// 読み込み (単位ごとに失敗を独立させてある)。表示は下の同じ名前の値から読む。
     @State private var model = SetlistViewModel()
     private var setlist: [SetlistRow] { model.setlist }
