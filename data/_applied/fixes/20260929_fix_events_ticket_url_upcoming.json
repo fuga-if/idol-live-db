@@ -1,0 +1,25 @@
+{
+ "title": "開催予定ライブ 6 件の空欄 ticket_url を公式の特設 TICKET ページで埋める",
+ "_help": "公式ポータルのスケジュール (CMS API の event_url) に載る特設サイト。/ticket/ があるものはそのページ、無いもの (15th PARTY は 404) は特設トップ。",
+ "source": "https://idolmaster-official.jp/schedule/01_19498.html / 01_19348 / 01_19909 / 01_19725 / 01_19880 / 01_19879",
+ "fixes": [
+  {"table": "events", "id": "ev_シンデレラガールズ_15周年_大型イベント",
+   "fields": {"ticket_url": "https://idolmaster-official.jp/live_event/cg_15th_for_your_one/"},
+   "note": "スケジュール 01_19498 の event_url。/ticket/ は 404 で、券種は特設トップに載っている"},
+  {"table": "events", "id": "ev_shiny_the_first_refrac7ions_still_blue",
+   "fields": {"ticket_url": "https://idolmaster-official.jp/live_event/REFRAC7IONS_Still_blue/ticket/"},
+   "note": "スケジュール 01_19348 の特設サイトの TICKET ページ"},
+  {"table": "events", "id": "ev_the_idolm@ster_cinderella_girls_15th_anniversary_orchestra_concert_~_シンデレラの演奏会_~",
+   "fields": {"ticket_url": "https://idolmaster-official.jp/live_event/cg_15th_orchestra/ticket/"},
+   "note": "スケジュール 01_19909 の特設サイトの TICKET ページ"},
+  {"table": "events", "id": "ev_the_idolm@ster_cinderella_girls_×_million_live_clash_m@tch",
+   "fields": {"ticket_url": "https://idolmaster-official.jp/live_event/deremilli_clashmatch/ticket/"},
+   "note": "スケジュール 01_19725 の特設サイトの TICKET ページ"},
+  {"table": "events", "id": "ev_the_idolm@ster_sidem_producer_meeting_~ajewelholic_~",
+   "fields": {"ticket_url": "https://idolmaster-official.jp/live_event/sidem_pm2027/ticket/"},
+   "note": "スケジュール 01_19880 の特設サイトの TICKET ページ"},
+  {"table": "events", "id": "ev_the_idolm@ster_sidem_×_shiny_colors_sparkle_showdown",
+   "fields": {"ticket_url": "https://idolmaster-official.jp/live_event/sidem_shinycolors_ss/ticket/"},
+   "note": "スケジュール 01_19879 の特設サイトの TICKET ページ"}
+ ]
+}

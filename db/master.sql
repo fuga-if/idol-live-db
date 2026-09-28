@@ -84451,6 +84451,7 @@ INSERT INTO "show_cast" VALUES('sh_L1210','765as_四条貴音','member');
 INSERT INTO "show_cast" VALUES('sh_L1210','765as_三浦あずさ','member');
 INSERT INTO "show_cast" VALUES('sh_L1210','765as_我那覇響','member');
 INSERT INTO "show_cast" VALUES('sh_L1210','765as_亜夜','member');
+INSERT INTO "show_cast" VALUES('sh_L1210','961_奥空心白','member');
 INSERT INTO "show_cast" VALUES('sh_L1210','765as_如月千早','member');
 INSERT INTO "show_cast" VALUES('sh_L1212','gakuen_篠澤広','member');
 INSERT INTO "show_cast" VALUES('sh_L1219','sc_月岡恋鐘','member');
