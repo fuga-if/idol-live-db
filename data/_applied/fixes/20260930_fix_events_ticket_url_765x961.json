@@ -1,0 +1,10 @@
+{
+ "title": "765×961 IDOL ULTIMATE の空欄 ticket_url を公式特設で埋める",
+ "_help": "特設サイトの TICKET 節 (/ticket/ は無く、券種と受付は特設トップに載っている)。",
+ "source": "https://idolmaster-official.jp/news/01_20034",
+ "fixes": [
+  {"table": "events", "id": "ev_765_production_×_961_production_idol_ultimate_once_and_for_all",
+   "fields": {"ticket_url": "https://idolmaster-official.jp/live_event/IUOAFA/"},
+   "note": "ニュース 01_20034 の「イベント公式サイトはこちら」のリンク先。券種と受付は特設トップの TICKET 節"}
+ ]
+}

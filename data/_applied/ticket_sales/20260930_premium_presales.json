@@ -1,0 +1,10 @@
+{
+ "title": "9/26〜28 に始まったアソビストアプレミアム会員先行 4 件 (シャニマスオケ Radiant Chord・ノクチル単独・あぷあい公演)",
+ "source": "各行の source_url は公式特設のページ",
+ "ticket_sales": [
+  {"event_id": "ev_the_idolm@ster_shiny_colors_orchestra_concert_-radiant_chord-", "show_ids": [], "kind": "lottery", "name": "アソビストアプレミアム会員先行", "starts_at": "2026-09-26 20:00", "ends_at": "2026-10-18 23:59", "result_at": "2026-10-31 13:00", "url": "https://asobiticket2.asobistore.jp/receptions/8abc291c-dae2-4684-99e2-de68149135de", "note": "「アソビストアプレミアム12か月会員」限定。お一人様1公演につき2枚まで(複数公演申込可)。入金期間は2026年10月31日13:00〜11月4日23:59。", "source_url": "https://idolmaster-official.jp/live_event/shinycolors_orchestra_RC/", "sort_order": 0},
+  {"event_id": "ev_283_production_live_performance_noctchill", "show_ids": [], "kind": "lottery", "name": "アソビストアプレミアム会員先行", "starts_at": "2026-09-27 19:00", "ends_at": "2026-10-12 23:59", "result_at": "2026-10-24 13:00", "url": "https://asobiticket2.asobistore.jp/receptions/4ad7d118-abd3-43f0-9814-d17780eb9393", "note": "「アソビストアプレミアム12か月会員」限定。お一人様1公演につき2枚まで(複数公演申込可)。入金期間は2026年10月24日13:00〜10月28日23:59。", "source_url": "https://idolmaster-official.jp/live_event/283_noctchill/", "sort_order": 0},
+  {"event_id": "ev_283_production_live_performance_noctchill", "show_ids": [], "kind": "lottery", "name": "アソビストアプレミアム会員先行【ティーン割】", "starts_at": "2026-09-27 19:00", "ends_at": "2026-10-12 23:59", "result_at": "2026-10-24 13:00", "url": "https://asobiticket2.asobistore.jp/receptions/fe92f593-859d-48b9-a170-b3599a2f843c", "note": "ティーン割チケット(小学生〜20歳未満)の受付。「アソビストアプレミアム12か月会員」限定。お一人様1公演につき2枚まで(複数公演申込可)。入金期間は2026年10月24日13:00〜10月28日23:59。", "source_url": "https://idolmaster-official.jp/live_event/283_noctchill/", "sort_order": 1},
+  {"event_id": "ev_athome_xr_live_apple_of_my_アイ", "show_ids": [], "kind": "lottery", "name": "アソビストアプレミアム会員先行", "starts_at": "2026-09-28 21:30", "ends_at": "2026-10-18 23:59", "result_at": "2026-10-31 13:00", "url": "https://asobiticket2.asobistore.jp/receptions/d6491799-d79c-4c61-a182-22b7ba6041b5", "note": "お一人様1公演につき2枚まで(複数公演申込可)。入金期間は2026年10月31日13:00〜11月4日23:59。", "source_url": "https://idolmaster-official.jp/live_event/cg_apai/", "sort_order": 0}
+ ]
+}
