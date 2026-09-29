@@ -218,6 +218,20 @@ NexTone (PlayN) から**許諾番号 `ID000012667`** (サービス名「アイ�
 `nextone` の出力は様式に依らない材料 (曲・作家・曲別回数の UTF-8 TSV) で、
 PlayN の報告様式が分かったらそれに合わせた書き出しを足す。
 
+2026-09-16 の NexTone 作品検索で配信=manage と確認できた 765as 58 / cg 17 / 961 1 の
+76 曲も `nextone` にした (作品コードは各行の `note`)。
+
+**2026-09-29 に公開へ戻した** (NexTone マーク入りの iOS 2.3.0 が App Store に出たため)。
+published 2,464 → 2,681 (同時期に投入された新規分を含む) / draft 379 → 173。
+
+- 9/4 に draft にした学マス・876 の 140 曲のうち 136 曲 (gakuen 106 / 876 30)。
+  残り 4 曲 (`gakuen_春と光` `gakuen_いつかのわたし` `gakuen_重なる夜空の痕跡に`
+  `gakuen_修楽旅行_…ver`) は歌詞の行だけあって曲マスタに無いので draft のまま。
+- 9/16 に NexTone 管理と確認した 76 曲。
+- JASRAC 非委託かつ NexTone で見つからなかった 6 曲 (`765as_binarystar` `765as_excavate`
+  `765as_labyrinth` `765as_北極星をズラしちゃえ` `961_エクストリームオーバードライブ`
+  `cg_大好きのブーケ`) は同日 draft にした。NexTone を人手で引いて確認できたら戻す。
+
 ```bash
 python3 tools/jasrac/build_reports.py nextone --published published.txt \
     --requests-dir data/lyrics_requests --period 202605-202609
