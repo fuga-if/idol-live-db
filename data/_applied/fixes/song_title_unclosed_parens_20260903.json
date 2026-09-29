@@ -1,0 +1,118 @@
+{
+ "title": "曲名の閉じ括弧が欠けている 13 曲を、公式のリリース表記に直す",
+ "_help": "`songs.title` の括弧の開閉が釣り合っていない曲が 13 件あった。内訳は、閉じ括弧が丸ごと落ちているもの 1 件 (`My Best Friend(REM@STER-B`) と、開きが全角 `（` なのに閉じが半角 `)` になっている ML のリミックス 12 件。どれも同じアルバムの姉妹曲は正しい表記で入っており、この 13 件だけが崩れている。",
+ "_why_it_matters": "曲名は Song レコードとして CloudKit にも載る表示名で、検索の照合 (`imas-core` の text_search_index.rs `FoldedNeedle`) は小文字化・カタカナ→ひらがな・濁点合成しか畳まない。括弧の全角/半角は畳まれないので、半角で `(y0c1e Remix)` と打っても全角の曲には当たらない。また `tools/link_song_variants.py` の SUFFIX は閉じ括弧が無いと末尾の修飾を剥がせず、`My Best Friend(REM@STER-B` は版違い判定から漏れる (12 件の全角開き+半角閉じは、開きも閉じも全角/半角の両方を受ける文字クラスなので規則自体は当たっていた)。",
+ "_sources": [
+  "THE IDOLM@STER LIVE THE@TER HARMONY Remix 03 (LACZ-10104 / 2022.03.14) バンダイナムコミュージックライブ カタログ https://catalog.bandainamcomusiclive.co.jp/release/70029/",
+  "THE IDOLM@STER MASTER LIVE 03 Do-Dai (COCX-34771 / 2008.05.14) 日本コロムビア公式 — My Best Friend(REM@STER-A) 等が半角 https://columbia.jp/prod-info/COCX-34771/",
+  "THE IDOLM@STER MASTER LIVE ENCORE (COCX-35274 / 2008.10.29) 日本コロムビア公式 — GO MY WAY!!(REM@STER-B) 等が半角 https://columbia.jp/prod-info/COCX-35274/",
+  "THE IDOLM@STER MASTER LIVE 02 REM@STER-B (COCX-34770 / 2008.04.16) 日本コロムビア公式 — この 1 枚だけ全角 https://columbia.jp/prod-info/COCX-34770/"
+ ],
+ "_note_on_remster": "REM@STER 系の公式表記はコロムビアの盤ごとに割れている。REM@STER を含む公式商品ページ 12 枚から トラック名を機械抽出すると、半角 `(REM@STER-x)` が 30 件・全角 `（REM@STER-x）` が 7 件で、全角 7 件はすべて MASTER LIVE 02 REM@STER-B (COCX-34770) の 1 枚に集まっている。しかもその 7 曲の -A 版は別の盤でいずれも半角。曲ごとの区別ではなく 1 枚の組版のゆれなので、公式の多数派 = DB の既存 37 曲と同じ半角を正とする。",
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "765as_my_best_friendremster-b",
+   "fields": {
+    "title": "My Best Friend(REM@STER-B)"
+   },
+   "note": "MASTER LIVE 02 REM@STER-B の 7 曲目 (水瀬伊織)。閉じ括弧が丸ごと欠落していた。公式は 12 枚中 11 枚が半角なので、DB の REM@STER 37 曲と同じ半角・スペースなしで閉じる"
+  },
+  {
+   "table": "songs",
+   "id": "ml_ホントウノワタシy0c1e_remix",
+   "fields": {
+    "title": "ホントウノワタシ (y0c1e Remix)"
+   },
+   "note": "HARMONY Remix 03 M-1 (田中琴葉)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_ジレるハートに火をつけて4sk_remix",
+   "fields": {
+    "title": "ジレるハートに火をつけて (4sk Remix)"
+   },
+   "note": "HARMONY Remix 03 M-2 (灼熱少女)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_フローズンワードy0c1e_remix",
+   "fields": {
+    "title": "フローズン・ワード (y0c1e Remix)"
+   },
+   "note": "HARMONY Remix 03 M-3 (所恵美)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_my_style_our_styleko3_remix",
+   "fields": {
+    "title": "MY STYLE! OUR STYLE!!!! (KO3 Remix)"
+   },
+   "note": "HARMONY Remix 03 M-4 (周防桃子)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_up10sionpleeeeeeeeeasegetty_remix",
+   "fields": {
+    "title": "Up!10sion♪Pleeeeeeeeease! (Getty Remix)"
+   },
+   "note": "HARMONY Remix 03 M-5 (松田亜利沙)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_bouncing_smiledj_wildparty_remix",
+   "fields": {
+    "title": "BOUNCING♪ SMILE! (DJ WILDPARTY Remix)"
+   },
+   "note": "HARMONY Remix 03 M-6 (大神環)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_home_sweet_friendshipbatsu_remix",
+   "fields": {
+    "title": "HOME, SWEET FRIENDSHIP (Batsu Remix)"
+   },
+   "note": "HARMONY Remix 03 M-7 (リコッタ)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_初恋バタフライnarumi_helvetica_remix",
+   "fields": {
+    "title": "初恋バタフライ (NARUMI HELVETICA Remix)"
+   },
+   "note": "HARMONY Remix 03 M-8 (宮尾美也)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_恋愛ロードランナーyuzen_remix",
+   "fields": {
+    "title": "恋愛ロードランナー (yuzen Remix)"
+   },
+   "note": "HARMONY Remix 03 M-9 (高坂海美)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_super_loverhylen_remix",
+   "fields": {
+    "title": "Super Lover (Hylen Remix)"
+   },
+   "note": "HARMONY Remix 03 M-10 (横山奈緒)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_キミがいて夢になるfu_mou_remix",
+   "fields": {
+    "title": "キミがいて夢になる (fu_mou Remix)"
+   },
+   "note": "HARMONY Remix 03 M-11 (天海春香)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_求ム_vs_マイフューチャーdj_genki_remix",
+   "fields": {
+    "title": "求ム VS マイ・フューチャー (DJ Genki Remix)"
+   },
+   "note": "HARMONY Remix 03 M-12 (福田のり子)"
+  }
+ ]
+}

@@ -1,0 +1,10 @@
+---
+import CalendarView from "../../components/CalendarView.astro";
+import { page, pathsFor } from "../../lib/data";
+import type { CalendarPage } from "../../lib/schema/CalendarPage";
+/** 月ごとのカレンダー。どの月を作るかは routes.json (Rust) が決めている。 */
+export const getStaticPaths = () => pathsFor("calendarMonth", "month");
+const cal = page<CalendarPage>(Astro.props.data);
+---
+
+<CalendarView page={cal} />

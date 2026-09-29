@@ -1,0 +1,20 @@
+{
+ "title": "songs の ml_waking_up_my_heart に配信情報を入れる",
+ "author": "LLM 提案 (propose_fix)",
+ "source": "https://itunes.apple.com/lookup?id=6803788161&country=jp",
+ "note": "出典: iTunes Lookup API (collectionId=6803788161)\n引用: \"Waking Up My Heart - Single\" / \"百瀬莉緒 (CV.山口立花子)\" / releaseDate \"2026-09-21T07:00:00Z\"\n14thLIVE DAY2 初披露曲の配信開始に伴う追記。artwork_url は artworkUrl100 の 100x100bb を 600x600bb に置換。singer_label は既存慣習どおりアイドル名のみ (CV 表記を落とす)。duration_sec は既存 3,065 曲中 3 曲しか入っていない慣習に合わせて空のまま。cd_title はシングル配信のみで CD 未発売のため空のまま。",
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "ml_waking_up_my_heart",
+   "fields": {
+    "apple_music_id": "6803788162",
+    "apple_music_album_id": "6803788161",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/e4/52/ad/e452ad18-2ad4-2e5a-e3ae-a74853b9418b/4540774750320.png/600x600bb.jpg",
+    "release_date": "2026-09-21",
+    "cd_series": "Waking Up My Heart - Single",
+    "singer_label": "百瀬莉緒"
+   }
+  }
+ ]
+}

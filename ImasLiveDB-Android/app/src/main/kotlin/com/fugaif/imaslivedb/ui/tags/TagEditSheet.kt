@@ -2,6 +2,8 @@ package com.fugaif.imaslivedb.ui.tags
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -10,8 +12,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
@@ -28,16 +28,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.fugaif.imaslivedb.data.auth.startCommunityEdit
 import com.fugaif.imaslivedb.data.community.CommunityApi
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.theme.DS
 import kotlinx.coroutines.launch
+import uniffi.imas_core.InputField
+import uniffi.imas_core.inputClamp
 
 /** 既存タグの説明文/カテゴリ/色を編集するシート。iOS TagEditSheet の移植。 */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun TagEditSheet(
     tag: CommunityApi.CommunityTag,
+    domain: TagDomain = TagDomain.SONG,
     onDismiss: () -> Unit,
     onSaved: (CommunityApi.CommunityTag) -> Unit
 ) {
@@ -48,7 +52,6 @@ fun TagEditSheet(
     var description by remember { mutableStateOf(tag.description ?: "") }
     var category by remember { mutableStateOf(tag.category ?: "") }
     var color by remember { mutableStateOf(tag.color ?: "") }
-    var categoryMenuExpanded by remember { mutableStateOf(false) }
     var isSaving by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
@@ -65,7 +68,7 @@ fun TagEditSheet(
 
             OutlinedTextField(
                 value = description,
-                onValueChange = { description = it },
+                onValueChange = { description = inputClamp(InputField.TAG_DESCRIPTION, it) },
                 label = { Text("説明文") },
                 minLines = 4,
                 modifier = Modifier.fillMaxWidth()
@@ -73,17 +76,10 @@ fun TagEditSheet(
 
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("カテゴリ", fontSize = 13.sp, color = DS.ink2)
-                Row {
-                    TextButton(onClick = { categoryMenuExpanded = true }) {
-                        Text(tagCategoryLabel(category).ifEmpty { "なし" })
-                    }
-                    DropdownMenu(expanded = categoryMenuExpanded, onDismissRequest = { categoryMenuExpanded = false }) {
-                        TAG_CATEGORIES.forEach { (value, label) ->
-                            DropdownMenuItem(text = { Text(label) }, onClick = {
-                                category = value
-                                categoryMenuExpanded = false
-                            })
-                        }
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    CategoryChip(label = "なし", selected = category.isEmpty()) { category = "" }
+                    tagCategoryOptions(domain).filter { it.first.isNotEmpty() }.forEach { (value, label) ->
+                        CategoryChip(label = label, selected = category == value) { category = value }
                     }
                 }
             }
@@ -103,25 +99,30 @@ fun TagEditSheet(
                     onClick = {
                         errorMessage = null
                         val module = AppModule.from(context)
-                        if (!module.authService.state.value.isSignedIn) {
-                            errorMessage = "タグの編集にはサインインが必要です(設定画面からサインインしてください)"
-                            return@Button
-                        }
-                        isSaving = true
-                        scope.launch {
-                            val api = module.communityApi
-                            val updated = api.updateTag(
-                                id = tag.id,
-                                description = description,
-                                category = category,
-                                color = color
-                            )
-                            isSaving = false
-                            if (updated != null) {
-                                onSaved(updated)
-                                onDismiss()
-                            } else {
-                                errorMessage = "保存に失敗しました"
+                        // 権限判定はコア (edit_permission_rules) に集約。未ログインは誘導、
+                        // BAN 済みは理由を出す — このシートはタグ一覧/詳細からも開けて
+                        // 導線を隠しきれないので、無反応にすると原因が分からない。
+                        module.authService.state.value.startCommunityEdit(
+                            promptLogin = {
+                                errorMessage = "タグの編集にはサインインが必要です(設定画面からサインインしてください)"
+                            },
+                            onBanned = { errorMessage = "この操作は制限されています。" }
+                        ) {
+                            isSaving = true
+                            scope.launch {
+                                val api = module.communityApi
+                                val updated = when (domain) {
+                                    TagDomain.SONG -> api.updateTag(id = tag.id, description = description, category = category, color = color)
+                                    TagDomain.IDOL -> api.updateIdolTagOption(id = tag.id, description = description, category = category, color = color)
+                                    TagDomain.UNIT -> api.updateUnitTagOption(id = tag.id, description = description, category = category, color = color)
+                                }
+                                isSaving = false
+                                if (updated != null) {
+                                    onSaved(updated)
+                                    onDismiss()
+                                } else {
+                                    errorMessage = "保存に失敗しました"
+                                }
                             }
                         }
                     },

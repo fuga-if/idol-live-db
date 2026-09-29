@@ -1,0 +1,174 @@
+{
+ "title": "作家の読み仮名を裏取りして訂正する",
+ "_help": "表記から起こした読みを、公式プロフィール・Wikipedia・本人の X アカウント等で突き合わせて訂正した。担当曲数の多い順に 72 名を確認し、21 名で誤りが見つかった(人名の読みは推測が効かない: 高田暁=たかだきょう / 石濱翔=いしはまかける / 坂部剛=さかべごう など)。",
+ "fixes": [
+  {
+   "table": "creators",
+   "id": "cr_76282ff619f7",
+   "fields": {
+    "name_kana": "たかだきょう"
+   },
+   "note": "検索で裏取りして訂正 (誤: たかだあきら)"
+  },
+  {
+   "table": "creators",
+   "id": "cr_4f0b2872a5b8",
+   "fields": {
+    "name_kana": "くわばらさとる"
+   },
+   "note": "検索で裏取りして訂正 (誤: くわばらひじり)"
+  },
+  {
+   "table": "creators",
+   "id": "cr_7447a2cf527c",
+   "fields": {
+    "name_kana": "たぐまともあり"
+   },
+   "note": "検索で裏取りして訂正 (誤: たくまともあり)"
+  },
+  {
+   "table": "creators",
+   "id": "cr_80a28506af0d",
+   "fields": {
+    "name_kana": "しらとゆうすけ"
+   },
+   "note": "検索で裏取りして訂正 (誤: しろとゆうすけ)"
+  },
+  {
+   "table": "creators",
+   "id": "cr_865dd3727a50",
+   "fields": {
+    "name_kana": "しらとゆうすけ"
+   },
+   "note": "検索で裏取りして訂正 (誤: しろとゆうすけ)"
+  },
+  {
+   "table": "creators",
+   "id": "cr_807673a22a57",
+   "fields": {
+    "name_kana": "しらとゆうすけ"
+   },
+   "note": "検索で裏取りして訂正 (誤: しらどゆうすけ)"
+  },
+  {
+   "table": "creators",
+   "id": "cr_34459093acb6",
+   "fields": {
+    "name_kana": "かわたたかひろ"
+   },
+   "note": "検索で裏取りして訂正 (誤: かわだたかひろ)"
+  },
+  {
+   "table": "creators",
+   "id": "cr_3d21ebb9e91b",
+   "fields": {
+    "name_kana": "かわたたかひろじゅん"
+   },
+   "note": "検索で裏取りして訂正 (誤: かわだたかひろじゅん)"
+  },
+  {
+   "table": "creators",
+   "id": "cr_26d314f2c849",
+   "fields": {
+    "name_kana": "おだかこうたろう"
+   },
+   "note": "検索で裏取りして訂正 (誤: こだかこうたろう)"
+  },
+  {
+   "table": "creators",
+   "id": "cr_6f3f6d8f9a28",
+   "fields": {
+    "name_kana": "きただにみつひろ"
+   },
+   "note": "検索で裏取りして訂正 (誤: きたたにみつひろ)"
+  },
+  {
+   "table": "creators",
+   "id": "cr_9768dec2d150",
+   "fields": {
+    "name_kana": "ひびのひろふみ"
+   },
+   "note": "検索で裏取りして訂正 (誤: ひびのひろし)"
+  },
+  {
+   "table": "creators",
+   "id": "cr_4dd3ffc4e33a",
+   "fields": {
+    "name_kana": "いしはまかける"
+   },
+   "note": "検索で裏取りして訂正 (誤: いしはましょう)"
+  },
+  {
+   "table": "creators",
+   "id": "cr_fb22884a8144",
+   "fields": {
+    "name_kana": "つるさきこういち"
+   },
+   "note": "検索で裏取りして訂正 (誤: つるさきてるかず)"
+  },
+  {
+   "table": "creators",
+   "id": "cr_4af2dec55f94",
+   "fields": {
+    "name_kana": "さかべごう"
+   },
+   "note": "検索で裏取りして訂正 (誤: さかべつよし)"
+  },
+  {
+   "table": "creators",
+   "id": "cr_32a18fba9d8a",
+   "fields": {
+    "name_kana": "かなやましゅうじ"
+   },
+   "note": "検索で裏取りして訂正 (誤: かなやまひでし)"
+  },
+  {
+   "table": "creators",
+   "id": "cr_704be57d17ba",
+   "fields": {
+    "name_kana": "いしぐろごう"
+   },
+   "note": "検索で裏取りして訂正 (誤: いしぐろつよし)"
+  },
+  {
+   "table": "creators",
+   "id": "cr_ac7a8c276643",
+   "fields": {
+    "name_kana": "まつだあきと"
+   },
+   "note": "検索で裏取りして訂正 (誤: まつだあきひと)"
+  },
+  {
+   "table": "creators",
+   "id": "cr_e5820c57bd6c",
+   "fields": {
+    "name_kana": "こばやしけいき"
+   },
+   "note": "検索で裏取りして訂正 (誤: こばやしひろき)"
+  },
+  {
+   "table": "creators",
+   "id": "cr_2205086269bc",
+   "fields": {
+    "name_kana": "つじじゅんこ"
+   },
+   "note": "検索で裏取りして訂正 (誤: つじすみさら)"
+  },
+  {
+   "table": "creators",
+   "id": "cr_e19e0de82549",
+   "fields": {
+    "name_kana": "ふじわらあやと"
+   },
+   "note": "検索で裏取りして訂正 (誤: ふじわらあやほ)"
+  },
+  {
+   "table": "creators",
+   "id": "cr_aeda8332a3d8",
+   "fields": {
+    "name_kana": "かわだひろゆき"
+   },
+   "note": "検索で裏取りして訂正 (誤: かわたひろゆき)"
+  }
+ ]
+}

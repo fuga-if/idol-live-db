@@ -1,0 +1,21 @@
+{
+ "title": "曲「修楽旅行 (倉本千奈・紫雲清夏・秦谷美鈴・十王星南 ver.)」(gakuen) の追加",
+ "author": "LLM 提案 (propose_song)",
+ "source": "https://gakuen.idolmaster-official.jp/",
+ "note": "出典: https://gakuen.idolmaster-official.jp/\n引用: \"学園アイドルマスター LIVE TOUR -標- 岩手公演 セットリスト DAY1 2026.09.22 TUE / 5. 修楽旅行 伊藤 舞音・湊 みや・春咲 暖・陽高 真白\"\n公式セットリスト画像より。修楽旅行は公演の出演メンバーごとに版が分かれており、既存の 2 版 (gakuen_修楽旅行_有村麻央葛城リーリヤ花海佑芽姫崎莉波ver / gakuen_修楽旅行_花海咲季月村手毬藤田ことね雨夜燕篠澤広ver) と同じ規則で岩手公演版を立てる。どちらも parent_song_id を持たない独立曲で、release_date はライブ初披露日 (福井 2026-08-20 / 福岡 2026-09-05) が入っているのでそれに合わせた。タイトルのメンバーの並びはセットリスト画像の表記順 (声優名 伊藤舞音・湊みや・春咲暖・陽高真白) に合わせている。公式の楽曲表記が判明したら直すこと。",
+ "songs": [
+  {
+   "id": "gakuen_修楽旅行_倉本千奈紫雲清夏秦谷美鈴十王星南ver",
+   "title": "修楽旅行 (倉本千奈・紫雲清夏・秦谷美鈴・十王星南 ver.)",
+   "brand_id": "gakuen",
+   "song_type": "unit",
+   "release_date": "2026-09-22",
+   "original_singers": [
+    "gakuen_倉本千奈",
+    "gakuen_紫雲清夏",
+    "gakuen_秦谷美鈴",
+    "gakuen_十王星南"
+   ]
+  }
+ ]
+}

@@ -1,0 +1,18 @@
+{
+ "title": "765×961 IDOL ULTIMATE ONCE AND FOR ALL に第三公演を足す",
+ "author": "daily-data-crawl",
+ "_help": "公式の公演詳細発表で 2 日間 3 公演と判明。第一/第二公演の公演名・開演時刻の修正は data/fixes/20260921_iuoafa_shows.json。",
+ "shows": [
+  {
+   "id": "sh_765_production_×_961_production_idol_ultimate_once_and_for_all_3",
+   "event_id": "ev_765_production_×_961_production_idol_ultimate_once_and_for_all",
+   "name": "第三公演 IF:THE DAY OF JUDGMENT",
+   "date": "2027-07-25",
+   "venue": "京王アリーナ TOKYO",
+   "venue_id": "venue_京王アリーナtokyo",
+   "start_time": "18:00",
+   "sort_order": 2,
+   "note": "公式: 2027年7月25日(日) 第三公演 IF:THE DAY OF JUDGMENT 開場17:00 / 開演18:00 (https://idolmaster-official.jp/news/01_19816.html)"
+  }
+ ]
+}

@@ -9,7 +9,7 @@ struct InboxView: View {
         NavigationStack {
             Group {
                 if AnnouncementCatalog.all.isEmpty {
-                    ContentUnavailableView("お知らせはありません", systemImage: "bell.slash")
+                    ImasEmptyState(systemImage: "bell.slash", title: "お知らせはありません")
                 } else {
                     List {
                         ForEach(AnnouncementCatalog.all) { a in
@@ -46,12 +46,12 @@ struct InboxView: View {
     }
 
     private func row(_ a: Announcement) -> some View {
-        HStack(spacing: 12) {
+        HStack(spacing: DS.sp4) {
             Image(systemName: a.icon)
                 .font(.imasTitle3)
-                .foregroundStyle(.white)
+                .foregroundStyle(ColorMath.onColor(a.tint))
                 .frame(width: 38, height: 38)
-                .background(a.tint.gradient, in: RoundedRectangle(cornerRadius: 10))
+                .background(a.tint.gradient, in: RoundedRectangle(cornerRadius: DS.rSM))
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 6) {
                     if !store.isRead(a.id) {
@@ -67,11 +67,11 @@ struct InboxView: View {
                     .foregroundStyle(DS.ink2)
                     .lineLimit(2)
                 Text(a.date)
-                    .font(.imasScaled(11))
+                    .font(.imasCaption2)
                     .foregroundStyle(DS.ink3)
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, DS.sp2)
     }
 }
 
@@ -81,14 +81,14 @@ private struct AnnouncementDetailView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: DS.sp5) {
                 Image(systemName: announcement.icon)
                     .font(.imasScaled(40, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(ColorMath.onColor(announcement.tint))
                     .frame(width: 76, height: 76)
                     .background(announcement.tint.gradient, in: RoundedRectangle(cornerRadius: 19))
 
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: DS.sp2) {
                     Text(announcement.title).font(.imasTitle2)
                     Text(announcement.date).font(.imasCaption).foregroundStyle(DS.ink2)
                 }
@@ -109,12 +109,12 @@ private struct AnnouncementDetailView: View {
                             .frame(maxWidth: .infinity)
                             .padding()
                             .background(announcement.tint.gradient, in: RoundedRectangle(cornerRadius: DS.rMD))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(ColorMath.onColor(announcement.tint))
                     }
-                    .padding(.top, 4)
+                    .padding(.top, DS.sp2)
                 }
             }
-            .padding(16)
+            .padding(DS.sp5)
         }
         .scrollContentBackground(.hidden)
         .background(DS.bg)

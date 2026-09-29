@@ -13,25 +13,22 @@ note:
 """
 
 import argparse
-import json
 import sqlite3
 import sys
 import time
-import urllib.request
 from pathlib import Path
 from typing import Optional
+
+from lib import itunes
 
 DB = Path(__file__).parent.parent / "ImasLiveDB/Resources/master.sqlite"
 
 
 def itunes_lookup(track_id: str) -> Optional[dict]:
-    url = f"https://itunes.apple.com/lookup?id={track_id}&country=jp"
-    req = urllib.request.Request(url, headers={"User-Agent": "ImasLiveDB-artwork/1.0"})
     try:
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            data = json.load(resp)
-            r = data.get("results", [])
-            return r[0] if r else None
+        r = itunes.results("lookup", {"id": track_id, "country": "jp"},
+                           user_agent="ImasLiveDB-artwork/1.0", timeout=10)
+        return r[0] if r else None
     except Exception as e:
         print(f"  ERROR: lookup {track_id} failed: {e}", file=sys.stderr)
         return None
@@ -62,7 +59,7 @@ def main():
         if not result:
             print(f"  ✗ {row['id']}: not found in iTunes ({row['apple_music_id']})")
             continue
-        artwork = (result.get("artworkUrl100") or "").replace("100x100bb", "600x600bb")
+        artwork = itunes.artwork_600(result)
         album_id = result.get("collectionId")
         album_name = result.get("collectionName")
         if not artwork and not album_id:

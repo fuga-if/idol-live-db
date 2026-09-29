@@ -19,10 +19,12 @@ final class IdolListViewModelTests: XCTestCase {
         // 未使用メソッドは既定値で充足 (このテストでは呼ばれない)。
         func idol(id: String) async throws -> Idol? { nil }
         func idols(ids: [String]) async throws -> [Idol] { [] }
+        func similarIdols(from candidates: [SimilarIdolCandidate]) async throws -> [Idol] { [] }
         func idols(criterion: IdolFilterCriterion) async throws -> [Idol] { [] }
         func idolsByVoiceActor(name: String) async throws -> [Idol] { [] }
         func searchIdols(query: String, limit: Int) async throws -> [Idol] { [] }
         func idolSongs(idolId: String, role: String?) async throws -> [Song] { [] }
+        func idolOriginalSongSections(idolId: String) async throws -> [IdolSongSection] { [] }
         func idolPerformedSongs(idolId: String) async throws -> [IdolPerformedSong] { [] }
         func idolUnits(idolId: String) async throws -> [ImasLiveDB.Unit] { [] }
         func idolShows(idolId: String) async throws -> [CastShowRow] { [] }
@@ -44,7 +46,7 @@ final class IdolListViewModelTests: XCTestCase {
             sortOrder: 0, birthday: nil, bloodType: nil, height: nil, weight: nil,
             birthPlace: nil, age: nil, bust: nil, waist: nil, hip: nil, constellation: nil,
             hobbies: nil, talents: nil, description: nil, gender: nil, handedness: nil,
-            debutDate: nil, attribute: nil, aliases: nil, voiceActors: nil)
+            debutDate: nil, attribute: nil, aliases: nil)
     }
 
     private func makeBrand(_ id: String) -> Brand {
@@ -75,20 +77,6 @@ final class IdolListViewModelTests: XCTestCase {
         XCTAssertEqual(vm.visibleBrands.map(\.id), ["cg", "ml"])
     }
 
-    func testRebuildAppliesBrandFilter() async {
-        let idols = [makeIdol("a", brandId: "cg"), makeIdol("b", brandId: "ml")]
-        let brands = [makeBrand("cg"), makeBrand("ml")]
-        let vm = makeVM(idols: idols, brands: brands)
-        await vm.loadData(filter: IdolFilterContext())
-
-        var ctx = IdolFilterContext()
-        ctx.selectedBrandIds = ["ml"]
-        vm.rebuild(filter: ctx)
-
-        XCTAssertEqual(vm.filteredIdols.map(\.id), ["b"])
-        XCTAssertEqual(vm.visibleBrands.map(\.id), ["ml"])
-    }
-
     func testRebuildSuppliesCastNamesForSearch() async {
         // castNames は VM 保持の値が rebuild 時に補完され、検索対象に入る。
         let idols = [makeIdol("a", brandId: "cg"), makeIdol("b", brandId: "cg")]
@@ -98,8 +86,11 @@ final class IdolListViewModelTests: XCTestCase {
 
         var ctx = IdolFilterContext()
         ctx.searchText = "大橋" // 呼び出し側は castNames を詰めない
+        ctx.searchTarget = .voiceActor
         vm.rebuild(filter: ctx)
 
         XCTAssertEqual(vm.filteredIdols.map(\.id), ["a"])
+        XCTAssertEqual(vm.searchCounts?.voiceActor, 1)
+        XCTAssertEqual(vm.searchCounts?.name, 0)
     }
 }

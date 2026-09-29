@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "imas-live-db": {
+      "command": "imas-core/target/release/imas-mcp",
+      "args": ["--stdio"]
+    }
+  }
+}

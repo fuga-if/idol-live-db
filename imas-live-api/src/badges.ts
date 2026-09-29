@@ -20,7 +20,7 @@ const TIERS: Array<{ tier: BadgeTier; min: number }> = [
 ];
 
 /** 編集件数から tier を判定する (Good 累計ではなく編集件数が主指標)。 */
-export function calcTier(editCount: number): BadgeTier {
+function calcTier(editCount: number): BadgeTier {
   for (const { tier, min } of TIERS) {
     if (editCount >= min) return tier;
   }

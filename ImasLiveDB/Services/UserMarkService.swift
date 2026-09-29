@@ -13,6 +13,14 @@ final class UserMarkService {
     /// SwiftUI 再描画トリガ。bool/note を読む View は依存登録、書き込み時に bump する。
     private var version: Int = 0
 
+    /// 変更のたびに増える番号。**重い集計を `.task(id:)` で回す画面が依存に混ぜる**ための口。
+    ///
+    /// マークを読むと `version` への依存が登録されて body が再評価される。習熟度の
+    /// ヒートマップのように「2,000 曲を射影して FFI に渡す」画面が body の中で集計すると、
+    /// 無関係なマーク変更や 1 打鍵ごとに全部やり直しになる。値だけ取り出して
+    /// `.task(id:)` の鍵に混ぜれば、**本当に変わったときだけ**組み直せる。
+    var changeToken: Int { version }
+
     /// bool 系マーク (collected/favorite/myPick/attended) のインメモリ集合。
     /// キーは "entity|kind|id"。一覧の各行トグルが body 評価のたびに同期 SQLite を引いて
     /// メインスレッドをブロックしていたのを、O(1) のメモリ参照に置き換えるためのキャッシュ。
@@ -30,11 +38,13 @@ final class UserMarkService {
         // iCloud バックアップから非破壊で復元 (再インストール/機種変対策)。ローカルは消さない。
         restoreFromBackup()
         reloadBoolMarks()
+        reloadMastery()
         refreshAutoCollected()
         // 他端末での変更を受信したら非破壊マージ + キャッシュ更新。
         UserMarkBackup.shared.startObserving { [weak self] in
             self?.restoreFromBackup()
             self?.reloadBoolMarks()
+            self?.reloadMastery()
             self?.refreshAutoCollected()
             self?.version &+= 1
         }
@@ -53,20 +63,39 @@ final class UserMarkService {
         }
     }
 
-    /// ローカル全マークを iCloud KVS にミラーする (デバウンス)。マーク変更後に呼ぶ。
+    /// ローカルのマークを iCloud KVS にミラーする (デバウンス)。マーク変更後に呼ぶ。
     private func scheduleBackup() {
         backupTask?.cancel()
         backupTask = Task { [weak self] in
             try? await Task.sleep(for: .seconds(1))
             guard !Task.isCancelled, let self else { return }
-            if let marks = try? self.db.allUserMarks() {
-                UserMarkBackup.shared.backup(marks)
-            }
+            self.backupMarks()
+        }
+    }
+
+    /// 載せるのは付いている行だけ (`UserMark.meaningful`)。解除済みの行は復元しても何も
+    /// 変わらないうえ、KVS の 1 値 1MB の枠を食う。キーと Payload の形は変えない。
+    private func backupMarks() {
+        if let marks = try? db.allUserMarks() {
+            UserMarkBackup.shared.backup(UserMark.meaningful(marks))
         }
     }
 
     private static func markKey(_ entity: UserMarkEntity, _ kind: UserMarkKind, _ id: String) -> String {
         "\(entity.rawValue)|\(kind.rawValue)|\(id)"
+    }
+
+    /// このサービスを経由せず DB へ直接書いた後に、メモリ側を実体へ合わせ直す。
+    ///
+    /// バックアップ取り込みは `AppDatabase.restoreUserMarksIfAbsent` で DB を直接更新するため、
+    /// ここを呼ばないと担当/参加がメモリ集合に載らず「復元したのに戻ってこない」ように見える
+    /// (実データは入っており、アプリを再起動すると現れる)。投票だけ戻って見えたのは、
+    /// あちらが自前のメモリ状態を更新していたため。
+    func reloadAfterExternalWrite() {
+        reloadBoolMarks()
+        reloadMastery()
+        refreshAutoCollected()
+        version &+= 1
     }
 
     /// 全 bool 系マークを DB から読み直してメモリ集合を再構築する (起動時に1回)。
@@ -101,14 +130,7 @@ final class UserMarkService {
         }
         // 楽曲お気に入りはコミュニティ集計にも背景送信（失敗時はキューに積む）
         if kind == .favorite && entity == .song {
-            Task {
-                do {
-                    try await CommunityAPI.shared.toggleFavorite(songId: id, value: value)
-                } catch {
-                    logger.warning("toggleFavorite failed, enqueuing: songId=\(id) error=\(error.localizedDescription)")
-                    PendingCommunityActions.shared.enqueue(songId: id, value: value)
-                }
-            }
+            Task { await PendingCommunityActions.shared.send(songId: id, value: value) }
         }
         version &+= 1
         scheduleBackup()
@@ -116,6 +138,99 @@ final class UserMarkService {
 
     func toggle(_ kind: UserMarkKind, entity: UserMarkEntity, id: String) throws {
         try setBool(kind, entity: entity, id: id, value: !bool(kind, entity: entity, id: id))
+    }
+
+    // MARK: - 習熟度 (段階)
+
+    /// 曲の習熟度。0 = 未設定。
+    ///
+    /// bool 系と同じ理由でメモリに持つ: 一覧の各行が body 評価のたびに同期 SQLite を
+    /// 引くとメインスレッドが詰まる。書き込みは全てここを通るので整合する。
+    private var masteryById: [String: UInt8] = [:]
+
+    /// 段階の定義。段数を変えると既存の記録の寄せ先が変わるので、
+    /// 変更は `setScale` からだけ行う (規則は core の `remapMasteryLevel`)。
+    private(set) var scale: MasteryScale = MasteryScale.standard
+
+    private static let scaleDefaultsKey = "mastery_scale_labels_v1"
+
+    private func reloadMastery() {
+        var map: [String: UInt8] = [:]
+        if let rows = try? db.fetchAllUserMarks(kind: .mastery) {
+            for mark in rows where mark.entityType == UserMarkEntity.song.rawValue {
+                guard let raw = mark.textValue, let level = UInt8(raw), level > 0 else { continue }
+                map[mark.entityId] = level
+            }
+        }
+        masteryById = map
+        if let saved = UserDefaults.standard.stringArray(forKey: Self.scaleDefaultsKey), !saved.isEmpty {
+            scale = MasteryScale(labels: saved)
+        }
+    }
+
+    func mastery(songId: String) -> UInt8 {
+        _ = version
+        return masteryById[songId] ?? 0
+    }
+
+    /// 1 曲の段階を決める。0 で未設定に戻す (行ごと消す)。
+    func setMastery(songId: String, level: UInt8) throws {
+        let clamped = min(level, scale.steps)
+        if clamped == 0 {
+            try db.upsertUserMarkText(entity: .song, id: songId, kind: .mastery, text: nil)
+            masteryById.removeValue(forKey: songId)
+        } else {
+            try db.upsertUserMarkText(entity: .song, id: songId, kind: .mastery, text: String(clamped))
+            masteryById[songId] = clamped
+        }
+        version &+= 1
+        scheduleBackup()
+    }
+
+    /// 一括更新。まとめて書いて再描画は 1 回だけにする
+    /// (1 曲ずつ `setMastery` を呼ぶと、数百曲で同数の再描画が走る)。
+    func setMastery(songIds: [String], level: UInt8) throws {
+        guard !songIds.isEmpty else { return }
+        let clamped = min(level, scale.steps)
+        let text: String? = clamped == 0 ? nil : String(clamped)
+        for id in songIds {
+            try db.upsertUserMarkText(entity: .song, id: id, kind: .mastery, text: text)
+            if clamped == 0 { masteryById.removeValue(forKey: id) } else { masteryById[id] = clamped }
+        }
+        version &+= 1
+        scheduleBackup()
+    }
+
+    /// 段階の定義を差し替える。段を減らしたぶんは **1 つ下へ寄せる** (記録は消さない)。
+    /// 寄せ先の規則は core が持つ。
+    func setScale(_ next: MasteryScale) throws {
+        let old = scale.steps
+        let new = next.steps
+        scale = next
+        UserDefaults.standard.set(next.labels, forKey: Self.scaleDefaultsKey)
+        if new < old {
+            for (songId, level) in masteryById {
+                let moved = remapMasteryLevel(level: level, oldSteps: old, newSteps: new)
+                if moved != level {
+                    try db.upsertUserMarkText(entity: .song, id: songId, kind: .mastery,
+                                              text: moved == 0 ? nil : String(moved))
+                    if moved == 0 { masteryById.removeValue(forKey: songId) } else { masteryById[songId] = moved }
+                }
+            }
+            scheduleBackup()
+        }
+        version &+= 1
+    }
+
+    /// 段階ごとの曲数 (設定画面の右に出す数字)。index 0 が LV.1。
+    func masteryCounts() -> [Int] {
+        _ = version
+        var counts = [Int](repeating: 0, count: Int(scale.steps))
+        for level in masteryById.values {
+            let i = Int(level) - 1
+            if i >= 0 && i < counts.count { counts[i] += 1 }
+        }
+        return counts
     }
 
     func note(entity: UserMarkEntity, id: String) -> String? {
@@ -166,14 +281,20 @@ final class UserMarkService {
 
     /// 参加種別を設定する。nil で不参加 (マーク解除)。
     func setAttendance(entity: UserMarkEntity, id: String, type: AttendanceType?) throws {
-        if let type {
-            try db.upsertUserMark(entity: entity, id: id, kind: .attended, boolValue: true)
-            try db.upsertUserMarkText(entity: entity, id: id, kind: .attended, text: type.rawValue)
-            updateBoolCache(entity, .attended, id, true)
-        } else {
-            try db.upsertUserMark(entity: entity, id: id, kind: .attended, boolValue: false)
-            try db.upsertUserMarkText(entity: entity, id: id, kind: .attended, text: nil)
-            updateBoolCache(entity, .attended, id, false)
+        try db.setAttendanceMark(entity: entity, id: id, type: type)
+        updateBoolCache(entity, .attended, id, type != nil)
+        // 参加ライブの登録は「一区切りついた瞬間」なのでレビュー依頼の好機に数える。
+        // 取り消しは数えない (良い体験ではないので)。
+        if type != nil { ReviewPrompt.noteMilestone() }
+        // 付けた直後だけ「チケット代を記録しますか」を出す土台にする。
+        // ここに出す条件 (価格が分かっているか / もう記録済みか) は持たせない —
+        // DB を引く判断なので、受け取った画面側 (TicketPromptCenter) が決める。
+        if entity == .show, let type {
+            NotificationCenter.default.post(
+                name: .attendanceMarked,
+                object: nil,
+                userInfo: [AttendanceMarkedKey.showId: id, AttendanceMarkedKey.type: type.rawValue]
+            )
         }
         refreshAutoCollected()
         version &+= 1
@@ -212,27 +333,6 @@ final class UserMarkService {
     func autoCollectedSongIds() -> Set<String> {
         _ = version
         return collectedIds
-    }
-
-    // MARK: - 診断 / 手動バックアップ (デバッグ用)
-
-    /// ローカル DB の全マーク件数。
-    func localMarkCount() -> Int { (try? db.allUserMarks().count) ?? 0 }
-
-    /// iCloud(KVS) に保存されているマーク件数。
-    func iCloudBackupCount() -> Int { UserMarkBackup.shared.backedUpCount() }
-
-    /// 今すぐ iCloud にバックアップ (デバウンスせず即実行)。
-    func backupNow() {
-        if let marks = try? db.allUserMarks() { UserMarkBackup.shared.backup(marks) }
-    }
-
-    /// iCloud から非破壊復元を試みる (デバッグ/手動トリガ)。
-    func restoreNow() {
-        restoreFromBackup()
-        reloadBoolMarks()
-        refreshAutoCollected()
-        version &+= 1
     }
 
     // MARK: - App Active

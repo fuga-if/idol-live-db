@@ -1,0 +1,9 @@
+---
+import TimelineView from "../../../components/TimelineView.astro";
+import { page, pathsFor } from "../../../lib/data";
+import type { TimelinePage } from "../../../lib/schema/TimelinePage";
+export const getStaticPaths = () => pathsFor("timelineBrand", "brandId");
+const data = page<TimelinePage>(Astro.props.data);
+---
+
+<TimelineView page={data} />

@@ -1,0 +1,20 @@
+{
+ "title": "songs の ml_パルティシオン を修正",
+ "author": "LLM 提案 (propose_fix)",
+ "source": "https://music.apple.com/jp/album/6803787112",
+ "note": "出典: https://music.apple.com/jp/album/6803787112\n引用: \"パルティシオン - Single / 徳川まつり (CV.諏訪彩花) & エミリー スチュアート (CV.郁原ゆう) / 2026年9月20日\"\n2026-09-20 配信開始。iTunes Lookup API (artistId 経由) で取得。duration_sec は既存 3,065 曲中 3 曲しか入っていない慣習に合わせて入れない。cd_title は空のまま (Single は cd_series にアルバム名を入れる既存の形)。singer_label は Apple Music のクレジット順に合わせた。",
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "ml_パルティシオン",
+   "fields": {
+    "apple_music_album_id": "6803787112",
+    "apple_music_id": "6803787113",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/8c/ee/4d/8cee4ddb-7ff3-1b0c-cfec-af0c3c05aa41/4540774749980.png/600x600bb.jpg",
+    "cd_series": "パルティシオン - Single",
+    "release_date": "2026-09-20",
+    "singer_label": "徳川まつり、エミリー スチュアート"
+   }
+  }
+ ]
+}

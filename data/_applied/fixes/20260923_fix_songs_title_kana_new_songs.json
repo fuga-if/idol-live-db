@@ -1,0 +1,106 @@
+{
+ "title": "新曲 14 曲の title_kana を埋める",
+ "author": "daily-data-crawl 2026-09-23",
+ "source": "derived:曲名 (かな・英語の曲名は表記から、修楽旅行 ver. は既存の兄弟行 しゅうがくりょこう に合わせた)",
+ "note": "既存の慣習に合わせて、ひらがな・約物と ver. 表記は落とす・英語は読みをひらがなで。漢字の読みが公式で確認できない 泡沫に染まる / 海奏ララバイ は入れていない。",
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "cg_すりーぷすきっぷ",
+   "fields": {
+    "title_kana": "すりーぷすきっぷ"
+   }
+  },
+  {
+   "table": "songs",
+   "id": "ml_glowtogether",
+   "fields": {
+    "title_kana": "ぐろうとぅげざー"
+   }
+  },
+  {
+   "table": "songs",
+   "id": "sidem_もふパでいりゅ～じょん",
+   "fields": {
+    "title_kana": "もふぱでいりゅーじょん"
+   }
+  },
+  {
+   "table": "songs",
+   "id": "ml_ひととせ結び",
+   "fields": {
+    "title_kana": "ひととせむすび"
+   }
+  },
+  {
+   "table": "songs",
+   "id": "ml_ネバーエンドワンダーランド",
+   "fields": {
+    "title_kana": "ねばーえんどわんだーらんど"
+   }
+  },
+  {
+   "table": "songs",
+   "id": "ml_パルティシオン",
+   "fields": {
+    "title_kana": "ぱるてぃしおん"
+   }
+  },
+  {
+   "table": "songs",
+   "id": "ml_if_i",
+   "fields": {
+    "title_kana": "いふあい"
+   }
+  },
+  {
+   "table": "songs",
+   "id": "ml_present",
+   "fields": {
+    "title_kana": "ぷれぜんと"
+   }
+  },
+  {
+   "table": "songs",
+   "id": "ml_waking_up_my_heart",
+   "fields": {
+    "title_kana": "うぇいきんぐあっぷまいはーと"
+   }
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_agitato",
+   "fields": {
+    "title_kana": "あじたーと"
+   }
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_修楽旅行_倉本千奈紫雲清夏秦谷美鈴十王星南ver",
+   "fields": {
+    "title_kana": "しゅうがくりょこう"
+   }
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_ワタシカワイイアヒルノコ",
+   "fields": {
+    "title_kana": "わたしかわいいあひるのこ"
+   }
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_roar",
+   "fields": {
+    "title_kana": "ろあー"
+   }
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_private_glitter",
+   "fields": {
+    "title_kana": "ぷらいべーとぐりったー"
+   }
+  }
+ ]
+}

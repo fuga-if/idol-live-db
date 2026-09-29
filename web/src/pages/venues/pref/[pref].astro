@@ -1,0 +1,10 @@
+---
+import VenueListView from "../../../components/VenueListView.astro";
+import { page, pathsFor } from "../../../lib/data";
+import type { VenueListPage } from "../../../lib/schema/VenueListPage";
+/** 都道府県は数値 index ではなく文字列 (DECISIONS A13)。空は「未分類」で 1 ページ。 */
+export const getStaticPaths = () => pathsFor("venueListPref", "pref");
+const list = page<VenueListPage>(Astro.props.data);
+---
+
+<VenueListView list={list} />

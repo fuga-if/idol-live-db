@@ -1,5 +1,6 @@
 package com.fugaif.imaslivedb.ui.events
 
+import com.fugaif.imaslivedb.ui.components.ReadableWidth
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -7,16 +8,20 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.StarBorder
-import androidx.compose.material.icons.filled.VideocamOff
+import androidx.compose.material.icons.filled.Place
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
@@ -24,10 +29,14 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,16 +45,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fugaif.imaslivedb.data.model.EventWithDateRange
-import com.fugaif.imaslivedb.data.model.UserMark
-import com.fugaif.imaslivedb.ui.components.BrandFilterChips
-import com.fugaif.imaslivedb.ui.components.BrandFilterItem
 import com.fugaif.imaslivedb.ui.components.ImasEmptyState
 import com.fugaif.imaslivedb.ui.components.ImasLeadBar
+import com.fugaif.imaslivedb.ui.components.EventAttendanceSwipeRow
 import com.fugaif.imaslivedb.ui.components.ImasListSkeleton
+import com.fugaif.imaslivedb.ui.components.ImasRemovableChip
 import com.fugaif.imaslivedb.ui.components.ImasSegmented
-import com.fugaif.imaslivedb.ui.components.MarkToggleAction
+import com.fugaif.imaslivedb.ui.components.NameFilterField
 import com.fugaif.imaslivedb.ui.components.SkeletonThumb
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.navigation.TopLevelTab
+import com.fugaif.imaslivedb.ui.search.CrossTabCountChips
+import com.fugaif.imaslivedb.ui.search.CrossTabSearch
+import com.fugaif.imaslivedb.di.AppModule
+import com.fugaif.imaslivedb.data.model.JstDay
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -56,11 +69,55 @@ fun EventListScreen(
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
 
+    var showVenuePicker by remember { mutableStateOf(false) }
+    var showFilterSheet by remember { mutableStateOf(false) }
+
     LaunchedEffect(Unit) { viewModel.load(context) }
+
+    if (showVenuePicker) {
+        VenuePickerSheet(
+            directory = uiState.venueDirectory,
+            selected = uiState.venue,
+            onSelect = { viewModel.selectVenue(context, it) },
+            onDismiss = { showVenuePicker = false }
+        )
+    }
+
+    if (showFilterSheet) {
+        EventFilterSheet(
+            brands = uiState.brands,
+            currentBrandIds = uiState.selectedBrandIds,
+            currentExcludedKinds = uiState.excludedKinds,
+            currentAttendanceFilter = uiState.attendanceFilter,
+            currentRequireFavorite = uiState.requireFavorite,
+            currentRequireNote = uiState.requireNote,
+            currentShowEmptyEvents = uiState.showEmptyEvents,
+            currentHideStreaming = uiState.hideStreaming,
+            onDismiss = { showFilterSheet = false },
+            onApply = { brandIds, kinds, attendance, favorite, note, showEmpty, hideStreaming ->
+                viewModel.applyFilterSheet(brandIds, kinds, attendance, favorite, note, showEmpty, hideStreaming)
+                showFilterSheet = false
+            }
+        )
+    }
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("ライブ") })
+            TopAppBar(
+                title = { Text("ライブ") },
+                actions = {
+                    BadgedBox(
+                        badge = {
+                            if (uiState.activeFilterCount > 0) Badge { Text("${uiState.activeFilterCount}") }
+                        },
+                        modifier = Modifier.padding(end = 8.dp)
+                    ) {
+                        IconButton(onClick = { showFilterSheet = true }) {
+                            Icon(Icons.Filled.FilterList, contentDescription = "フィルター")
+                        }
+                    }
+                }
+            )
         }
     ) { innerPadding ->
         Column(modifier = Modifier.padding(innerPadding)) {
@@ -71,15 +128,33 @@ fun EventListScreen(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp)
             )
 
-            // Brand filter chips
-            val brandItems = uiState.brands.map { BrandFilterItem(it.id, it.shortName) }
-            BrandFilterChips(
-                brands = brandItems,
-                selectedBrandId = uiState.selectedBrandId,
-                onBrandSelected = { viewModel.selectBrand(it) }
+            // 一覧そのものを絞る欄。虫眼鏡のシート (横断検索) だと結果がそこで完結してしまい、
+            // ブランド絞り込みや期間フィルタと合わせられない。
+            NameFilterField(
+                prompt = "ライブ名で絞り込み",
+                value = uiState.searchText,
+                onValueChange = { viewModel.setSearchText(it) }
+            )
+            // 同じ語が曲・アイドルに何件あるか (虫眼鏡を畳んだ代わりの導線)。
+            CrossTabCountChips(query = uiState.searchText, from = TopLevelTab.Events)
+            // 「他のタブに N 件」から飛んで来たら、その語で絞り込む。
+            // 当たりが開催済みにしか無いなら、そちらへ着地する。件数を見せて誘って
+            // おいて 0 件の画面を出すのは、この導線の趣旨に反する。
+            LaunchedEffect(CrossTabSearch.generation) {
+                val handed = CrossTabSearch.take(TopLevelTab.Events) ?: return@LaunchedEffect
+                viewModel.setSearchText(handed)
+                val sides = AppModule.from(context).searchRepository
+                    .eventSearchSides(handed, JstDay.today())
+                if (sides.second > sides.first) viewModel.selectTimeFilter(1)
+            }
+
+            ActiveFilterChipRow(
+                uiState = uiState,
+                viewModel = viewModel,
+                onClearVenue = { viewModel.selectVenue(context, null) }
             )
 
-            // "配信を除く" toggle + count
+            // 会場チップ + 件数。会場だけは専用ピッカーを開くのでフィルタシートに畳まず一覧に残す。
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -87,21 +162,37 @@ fun EventListScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 FilterChip(
-                    selected = uiState.hideStreaming,
-                    onClick = { viewModel.toggleHideStreaming() },
-                    label = { Text("配信を除く", style = MaterialTheme.typography.labelMedium) },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Filled.VideocamOff,
-                            contentDescription = null
+                    selected = uiState.venue != null,
+                    onClick = { showVenuePicker = true },
+                    label = {
+                        Text(
+                            uiState.venueDirectory.venue(uiState.venue)?.name ?: "会場",
+                            style = MaterialTheme.typography.labelMedium,
+                            maxLines = 1
                         )
+                    },
+                    leadingIcon = {
+                        Icon(imageVector = Icons.Filled.Place, contentDescription = null)
+                    },
+                    trailingIcon = if (uiState.venue != null) {
+                        {
+                            Icon(
+                                imageVector = Icons.Filled.Clear,
+                                contentDescription = "会場絞り込みを解除",
+                                modifier = Modifier
+                                    .size(18.dp)
+                                    .clickable { viewModel.selectVenue(context, null) }
+                            )
+                        }
+                    } else {
+                        null
                     }
                 )
                 Spacer(modifier = Modifier.weight(1f))
                 Text(
-                    text = "${uiState.filteredEvents.size}件",
+                    text = "${uiState.filteredCount}件",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = DS.ink2
                 )
             }
 
@@ -120,21 +211,107 @@ fun EventListScreen(
                     }
                 )
             } else {
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    uiState.groupedByYear.forEach { group ->
-                        stickyHeader(key = group.year) {
-                            YearSectionHeader(year = group.year)
-                        }
-                        items(group.events, key = { it.event.id }) { ew ->
-                            EventRow(
-                                eventWithDate = ew,
-                                onClick = { onEventClick(ew.event.id) }
-                            )
-                            HorizontalDivider(modifier = Modifier.padding(start = 72.dp))
+                // 広い画面では本文幅を抑える (iOS の readableContentMargins と対)。
+                ReadableWidth { readable ->
+                    LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = readable) {
+                        uiState.groupedByYear.forEach { group ->
+                            stickyHeader(key = group.year) {
+                                YearSectionHeader(year = group.year)
+                            }
+                            items(group.events, key = { it.event.id }) { ew ->
+                                // 行の右スワイプで参加登録 (イベントは公演を複数束ねるので、
+                                // 既存の EventAttendanceSheet をそのまま開く)。
+                                EventAttendanceSwipeRow(
+                                    eventId = ew.event.id,
+                                    brand = ew.event.brandId
+                                ) {
+                                    EventRow(
+                                        eventWithDate = ew,
+                                        onClick = { onEventClick(ew.event.id) }
+                                    )
+                                }
+                                HorizontalDivider(modifier = Modifier.padding(start = 72.dp))
+                            }
                         }
                     }
                 }
             }
+        }
+    }
+}
+
+/**
+ * 適用中フィルタの removable チップ列 (iOS EventListView.activeFilterChips 相当)。
+ * ブランド / 除外種別 / 参加状態 / お気に入り / メモ / 空イベント / 会場 / 検索語 を
+ * 横スクロールで一覧し、× で個別解除する。
+ */
+@Composable
+private fun ActiveFilterChipRow(
+    uiState: EventListUiState,
+    viewModel: EventListViewModel,
+    onClearVenue: () -> Unit
+) {
+    val hasChips = uiState.selectedBrandIds.isNotEmpty() ||
+        uiState.excludedKinds.isNotEmpty() ||
+        uiState.attendanceFilter != "all" ||
+        uiState.requireFavorite ||
+        uiState.requireNote ||
+        uiState.showEmptyEvents ||
+        uiState.hideStreaming ||
+        uiState.venue != null ||
+        uiState.appliedSearchText.isNotEmpty()
+    if (!hasChips) return
+
+    val brandNames = remember(uiState.brands) { uiState.brands.associate { it.id to it.shortName } }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        if (uiState.appliedSearchText.isNotEmpty()) {
+            ImasRemovableChip(
+                text = "「${uiState.appliedSearchText}」",
+                onRemove = viewModel::clearSearchText
+            )
+        }
+        // 並びは選択順でなくソート済みで固定する。押すたびにチップが入れ替わると押し損ねる。
+        uiState.selectedBrandIds.sorted().forEach { id ->
+            ImasRemovableChip(
+                text = brandNames[id] ?: id,
+                onRemove = { viewModel.toggleBrand(id) }
+            )
+        }
+        uiState.excludedKinds.sorted().forEach { kind ->
+            ImasRemovableChip(
+                text = "除外: ${eventKindLabel(kind)}",
+                onRemove = { viewModel.removeExcludedKind(kind) }
+            )
+        }
+        when (uiState.attendanceFilter) {
+            "attended" -> ImasRemovableChip(text = "参加済み", onRemove = viewModel::clearAttendanceFilter)
+            "not_attended" -> ImasRemovableChip(text = "未参加", onRemove = viewModel::clearAttendanceFilter)
+            else -> {}
+        }
+        if (uiState.requireFavorite) {
+            ImasRemovableChip(text = "お気に入り", onRemove = viewModel::clearFavoriteFilter)
+        }
+        if (uiState.requireNote) {
+            ImasRemovableChip(text = "メモあり", onRemove = viewModel::clearNoteFilter)
+        }
+        if (uiState.showEmptyEvents) {
+            ImasRemovableChip(text = "空イベントも表示", onRemove = viewModel::clearShowEmptyEvents)
+        }
+        if (uiState.hideStreaming) {
+            ImasRemovableChip(text = "配信を除く", onRemove = viewModel::toggleHideStreaming)
+        }
+        uiState.venue?.let { venueId ->
+            ImasRemovableChip(
+                text = uiState.venueDirectory.venue(venueId)?.name ?: venueId,
+                onRemove = onClearVenue
+            )
         }
     }
 }
@@ -144,20 +321,27 @@ private fun YearSectionHeader(year: String) {
     Text(
         text = year,
         style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        color = DS.ink2,
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 6.dp)
     )
 }
 
+/**
+ * ライブ一覧の 1 行。ブランド色のリードバー + ライブ名 + 日付レンジ。
+ * 参加登録は行のスワイプ ([EventAttendanceSwipeRow]) から。
+ *
+ * ★お気に入りトグルは行から撤去済み (2026-09、iOS と同じ)。お気に入り自体は
+ * 詳細画面・お気に入り一覧・絞り込みに残るので機能は消えていない。
+ */
 @Composable
 private fun EventRow(
     eventWithDate: EventWithDateRange,
     onClick: () -> Unit
 ) {
     val event = eventWithDate.event
-    val isJoint = event.jointBrandIdList.isNotEmpty()
+    val isJoint = eventWithDate.isJoint
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -166,7 +350,7 @@ private fun EventRow(
             .padding(horizontal = 16.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        ImasLeadBar(brand = event.brandId, height = 38.dp, rainbow = isJoint)
+        ImasLeadBar(brandId = event.brandId, height = 38.dp, rainbow = isJoint)
 
         Column(modifier = Modifier.weight(1f)) {
             Text(
@@ -181,16 +365,5 @@ private fun EventRow(
                 Text(text = d, style = MaterialTheme.typography.bodySmall, color = DS.ink2)
             }
         }
-
-        Spacer(modifier = Modifier.width(4.dp))
-        MarkToggleAction(
-            entityType = UserMark.EVENT,
-            entityId = event.id,
-            kind = UserMark.FAVORITE,
-            activeIcon = Icons.Filled.Star,
-            inactiveIcon = Icons.Filled.StarBorder,
-            activeTint = DS.favorite,
-            contentDescription = "お気に入り"
-        )
     }
 }

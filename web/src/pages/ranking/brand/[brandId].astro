@@ -1,0 +1,9 @@
+---
+import RankingView from "../../../components/RankingView.astro";
+import { page, pathsFor } from "../../../lib/data";
+import type { RankingPage } from "../../../lib/schema/RankingPage";
+export const getStaticPaths = () => pathsFor("rankingBrand", "brandId");
+const data = page<RankingPage>(Astro.props.data);
+---
+
+<RankingView page={data} />

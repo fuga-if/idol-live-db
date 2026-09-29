@@ -1,0 +1,13 @@
+---
+/** ImasMetricBadge の Web 版。 */
+interface Props {
+  value: number | string;
+  unit?: string;
+  muted?: boolean;
+}
+const { value, unit = "回", muted = false } = Astro.props;
+---
+
+<span class:list={["metric", muted && "metric--muted"]}>
+  {value}{unit && <span class="metric__unit">{unit}</span>}
+</span>

@@ -11,15 +11,6 @@ private func parseDate(_ s: String) -> Date? {
     return f.date(from: s)
 }
 
-/// 今日から date (YYYY-MM-DD) までの日数差。今日が 0、明日が 1。
-private func daysUntil(_ dateStr: String) -> Int? {
-    guard let target = parseDate(dateStr) else { return nil }
-    let cal = Calendar.current
-    let today = cal.startOfDay(for: Date())
-    let targetDay = cal.startOfDay(for: target)
-    return cal.dateComponents([.day], from: today, to: targetDay).day
-}
-
 /// "YYYY-MM-DD" → "M/d" 表示形式。
 private func shortDate(_ s: String) -> String {
     guard let d = parseDate(s) else { return s }
@@ -57,17 +48,19 @@ struct NextLiveProvider: TimelineProvider {
     }
 
     func getSnapshot(in context: Context, completion: @escaping (NextLiveEntry) -> Void) {
-        completion(NextLiveEntry(date: Date(), info: InfoWidgetSnapshot.load()?.nextShow))
+        completion(Self.entry(now: Date()))
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<NextLiveEntry>) -> Void) {
-        let snapshot = InfoWidgetSnapshot.load()
-        let entry = NextLiveEntry(date: Date(), info: snapshot?.nextShow)
-        // 翌日 0:00 に更新(日付が変わると「あと N 日」が変わるため)
-        let nextMidnight = Calendar.current.nextDate(
-            after: Date(), matching: DateComponents(hour: 0, minute: 0), matchingPolicy: .nextTime
-        ) ?? Date(timeIntervalSinceNow: 3600)
-        completion(Timeline(entries: [entry], policy: .after(nextMidnight)))
+        let now = Date()
+        // 翌日 0:00 (JST) に更新 (日付が変わると「あと N 日」が変わるため)
+        completion(Timeline(entries: [Self.entry(now: now)], policy: .after(WidgetDay.nextMidnight(after: now))))
+    }
+
+    /// 今日作ったスナップショットの、まだ始まっていないライブだけを出す。
+    private static func entry(now: Date) -> NextLiveEntry {
+        let next = InfoWidgetSnapshot.loadCurrent(now: now)?.nextShow
+        return NextLiveEntry(date: now, info: next.flatMap { $0.isUpcoming(from: now) ? $0 : nil })
     }
 }
 
@@ -78,7 +71,7 @@ struct NextLiveWidgetView: View {
     var body: some View {
         if let info = entry.info {
             let accent = hexColor(info.brandColorHex, fallback: .pink)
-            let days = daysUntil(info.firstDate)
+            let days = info.daysUntilFirstShow(from: entry.date)
             ZStack(alignment: .bottomLeading) {
                 LinearGradient(
                     colors: [accent.opacity(0.85), accent.opacity(0.5)],
@@ -137,6 +130,8 @@ struct NextLiveWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: "NextLiveWidget", provider: NextLiveProvider()) { entry in
             NextLiveWidgetView(entry: entry)
+                // 省スペースのウィジェットはアクセシビリティ特大でレイアウトが破綻するため上限クランプ。
+                .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                 .containerBackground(.fill.tertiary, for: .widget)
         }
         .configurationDisplayName("次のライブ")
@@ -164,18 +159,18 @@ struct TodaySongProvider: TimelineProvider {
     }
 
     func getSnapshot(in context: Context, completion: @escaping (TodaySongEntry) -> Void) {
-        let info = InfoWidgetSnapshot.load()?.todaySong
-        completion(TodaySongEntry(date: Date(), info: info, artworkData: loadArtwork(info?.artworkUrl)))
+        completion(entry(now: Date()))
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<TodaySongEntry>) -> Void) {
-        let snapshot = InfoWidgetSnapshot.load()
-        let info = snapshot?.todaySong
-        let entry = TodaySongEntry(date: Date(), info: info, artworkData: loadArtwork(info?.artworkUrl))
-        let nextMidnight = Calendar.current.nextDate(
-            after: Date(), matching: DateComponents(hour: 0, minute: 0), matchingPolicy: .nextTime
-        ) ?? Date(timeIntervalSinceNow: 3600)
-        completion(Timeline(entries: [entry], policy: .after(nextMidnight)))
+        let now = Date()
+        completion(Timeline(entries: [entry(now: now)], policy: .after(WidgetDay.nextMidnight(after: now))))
+    }
+
+    /// 今日作ったスナップショットの曲だけを出す (昨日の曲を「今日の1曲」として出さない)。
+    private func entry(now: Date) -> TodaySongEntry {
+        let info = InfoWidgetSnapshot.loadCurrent(now: now)?.todaySong
+        return TodaySongEntry(date: now, info: info, artworkData: loadArtwork(info?.artworkUrl))
     }
 
     private func loadArtwork(_ urlStr: String?) -> Data? {
@@ -260,6 +255,7 @@ struct TodaySongWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: "TodaySongWidget", provider: TodaySongProvider()) { entry in
             TodaySongWidgetView(entry: entry)
+                .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                 .containerBackground(.fill.tertiary, for: .widget)
         }
         .configurationDisplayName("今日の1曲")
@@ -284,17 +280,18 @@ struct TicketDeadlineProvider: TimelineProvider {
     }
 
     func getSnapshot(in context: Context, completion: @escaping (TicketDeadlineEntry) -> Void) {
-        let deadlines = InfoWidgetSnapshot.load()?.ticketDeadlines ?? []
-        completion(TicketDeadlineEntry(date: Date(), deadlines: deadlines))
+        completion(Self.entry(now: Date()))
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<TicketDeadlineEntry>) -> Void) {
-        let deadlines = InfoWidgetSnapshot.load()?.ticketDeadlines ?? []
-        let entry = TicketDeadlineEntry(date: Date(), deadlines: deadlines)
-        let nextMidnight = Calendar.current.nextDate(
-            after: Date(), matching: DateComponents(hour: 0, minute: 0), matchingPolicy: .nextTime
-        ) ?? Date(timeIntervalSinceNow: 3600)
-        completion(Timeline(entries: [entry], policy: .after(nextMidnight)))
+        let now = Date()
+        completion(Timeline(entries: [Self.entry(now: now)], policy: .after(WidgetDay.nextMidnight(after: now))))
+    }
+
+    /// 今日作ったスナップショットの、締切が過ぎていないものだけを出す。
+    private static func entry(now: Date) -> TicketDeadlineEntry {
+        let deadlines = InfoWidgetSnapshot.loadCurrent(now: now)?.ticketDeadlines ?? []
+        return TicketDeadlineEntry(date: now, deadlines: deadlines.filter { $0.isOpen(from: now) })
     }
 }
 
@@ -350,6 +347,7 @@ struct TicketDeadlineWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: "TicketDeadlineWidget", provider: TicketDeadlineProvider()) { entry in
             TicketDeadlineWidgetView(entry: entry)
+                .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                 .containerBackground(.fill.tertiary, for: .widget)
         }
         .configurationDisplayName("チケット締切")

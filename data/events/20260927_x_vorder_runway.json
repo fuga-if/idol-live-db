@@ -1,0 +1,21 @@
+{
+ "title": "X VORDER RUNWAY (2026-09-27 幕張メッセ) を追加",
+ "author": "Claude (オーナー依頼)",
+ "source": ["https://xvorder-runway.com/", "https://x.com/X_VORDER_RUNWAY/status/2104068127189266708"],
+ "note": "Award 主催の他社フェス (ファッションショー×音楽ライブ)。アイマスからは 765 の天海春香・如月千早・星井美希がバーチャルで出演。開演 15:30 は公式サイト、会場は公式サイトの「幕張メッセ 展示ホール1〜3」(ホール4は物販)。配信は SPWN。",
+ "events": [
+  {
+   "id": "ev_x_vorder_runway",
+   "brand_id": "765as",
+   "name": "X VORDER RUNWAY",
+   "name_kana": "くろすぼーだーらんうぇい",
+   "event_type": "external_event",
+   "kind": "festival",
+   "is_streaming": 0,
+   "is_solo": 0,
+   "shows": [
+    {"id": "sh_x_vorder_runway_1", "name": "X VORDER RUNWAY", "date": "2026-09-27", "venue": "幕張メッセ", "venue_city": "千葉県千葉市", "venue_id": "venue_幕張メッセ", "hall": "国際展示場1〜3ホール", "start_time": "15:30", "stream_platform": "SPWN", "sort_order": 1}
+   ]
+  }
+ ]
+}

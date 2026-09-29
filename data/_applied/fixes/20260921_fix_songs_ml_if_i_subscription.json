@@ -1,0 +1,20 @@
+{
+ "title": "songs の ml_if_i に配信情報を入れる",
+ "author": "LLM 提案 (propose_fix)",
+ "source": "https://music.apple.com/jp/album/if-i/6803787541?i=6803787543",
+ "note": "出典: iTunes Lookup API (collectionId=6803787541)\n引用: \"If I… - Single\" / \"馬場このみ (CV.髙橋ミナミ)\" / releaseDate \"2026-09-21T07:00:00Z\"\n14thLIVE DAY2 初披露曲の配信開始に伴う追記。Apple Music 側の表記は三点リーダの \"If I…\" で、公式サイトのピリオド 3 つ \"If I...\" と食い違う。songs.title は公式サイト表記のまま据え置き、cd_series だけ Apple Music の表記をそのまま入れる。artwork_url は artworkUrl100 の 100x100bb を 600x600bb に置換。singer_label は既存慣習どおりアイドル名のみ。",
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "ml_if_i",
+   "fields": {
+    "apple_music_id": "6803787543",
+    "apple_music_album_id": "6803787541",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/92/ab/6d/92ab6d62-9a61-0b11-a781-d60b2ae98fa5/4540774750313.png/600x600bb.jpg",
+    "release_date": "2026-09-21",
+    "cd_series": "If I… - Single",
+    "singer_label": "馬場このみ"
+   }
+  }
+ ]
+}

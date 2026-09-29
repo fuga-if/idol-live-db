@@ -1,0 +1,29 @@
+---
+/**
+ * ImasChip の Web 版。Web は表示専用なので削除 (×) もトグルもない。
+ * `href` を渡すと単なるリンクになる (選択状態はページ側 = URL が表す)。
+ */
+interface Props {
+  text: string;
+  /** 添字 (公演の日付など)。**何を入れるかは Rust の `Ref.sub`** が決める。 */
+  sub?: string | null;
+  variant?: "neutral" | "themed" | "selected";
+  themeKey?: string;
+  href?: string;
+  title?: string;
+}
+const {
+  text,
+  sub,
+  variant = "neutral",
+  themeKey,
+  href,
+  title,
+} = Astro.props;
+const Tag = href ? "a" : "span";
+const variantClass = variant === "neutral" ? "" : `chip--${variant}`;
+---
+
+<Tag class:list={["chip", variantClass]} data-theme={themeKey} href={href} title={title}>
+  <slot name="icon" />{text}{sub && <span class="chip__sub">{sub}</span>}
+</Tag>

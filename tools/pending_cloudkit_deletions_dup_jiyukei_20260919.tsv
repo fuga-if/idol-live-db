@@ -1,0 +1,4 @@
+# 2026-09-19: 自由系*ガール 発売記念イベントの二重登録を解消。
+# tools/future_events.json は「Tokyo自由系*ガール」表記で、insert_future_events.py は name を slugify して id にするため
+# 旧 id (Tokyo 無し) と新 id (Tokyo 有り) の 2 行になった。shows が付いている新 id 側を残し、旧 id を削除する。
+Event	ev_the_idolm@ster_shiny_colors_song_for_prism_自由系_ガール_my_time_発売記念イベント

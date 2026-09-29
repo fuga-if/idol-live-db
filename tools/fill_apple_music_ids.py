@@ -11,16 +11,21 @@ Usage:
   1. 完全一致 (trackName == title) を優先
   2. ヒット曲の artistName が ブランド関連キーワードを含むものを優先
   3. 上位 5 件から最良候補を選び、 不一致なら skip (ログだけ出して触らない)
+
+ハードフィルタ (誤マッチ防止):
+  artistName に「そのブランドのアイドル名 / ユニット名 / 声優名 / ブランドキーワード」の
+  いずれも含まれない候補は、 スコアに関わらず不採用。 曲名が完全一致しただけの
+  無関係アーティスト (例: 'Paradox / This is LAST') を弾くため。
 """
 
 import argparse
-import json
 import sqlite3
 import sys
 import time
-import urllib.parse
-import urllib.request
 from pathlib import Path
+
+from lib import itunes
+from lib.text import drop_spaces_lower as normalize
 
 DB = Path(__file__).parent.parent / "ImasLiveDB/Resources/master.sqlite"
 
@@ -44,18 +49,37 @@ BRAND_KEYWORDS = {
 CV_MARKERS = ["(CV.", "(CV:", "(CV ", "CV.", "CV:"]
 
 
+def load_brand_names(conn, brand_id: str) -> list:
+    """そのブランドのアイドル名 / ユニット名 / 声優名を集める (artistName 照合用)。"""
+    names = set()
+    for sql, params in (
+        ("SELECT name FROM idols WHERE brand_id = ?", (brand_id,)),
+        ("SELECT name FROM units WHERE brand_id = ?", (brand_id,)),
+        ("SELECT va.name FROM idol_voice_actors va "
+         "JOIN idols i ON i.id = va.idol_id WHERE i.brand_id = ?", (brand_id,)),
+    ):
+        for (name,) in conn.execute(sql, params):
+            n = normalize(name)
+            if len(n) >= 3:      # 2 文字以下は誤ヒットしやすいので除外
+                names.add(n)
+    return sorted(names)
+
+
+def has_imas_signal(artist: str, brand_id: str, brand_names: list) -> bool:
+    """artistName にアイマス側の手がかり (ブランド語 / アイドル / ユニット / 声優) があるか。"""
+    a = normalize(artist)
+    if not a:
+        return False
+    for k in BRAND_KEYWORDS.get(brand_id, []):
+        if normalize(k) in a:
+            return True
+    return any(n in a for n in brand_names)
+
+
 def itunes_search(term: str) -> list:
-    url = "https://itunes.apple.com/search?" + urllib.parse.urlencode({
-        "term": term,
-        "entity": "song",
-        "country": "jp",
-        "limit": 10,
-    })
-    req = urllib.request.Request(url, headers={"User-Agent": "ImasLiveDB/1.0"})
     try:
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            data = json.load(resp)
-            return data.get("results", [])
+        return itunes.results("search", itunes.song_search(term, 10),
+                              user_agent="ImasLiveDB/1.0", timeout=10)
     except Exception as e:
         print(f"  ERROR: itunes lookup failed: {e}", file=sys.stderr)
         return []
@@ -80,10 +104,15 @@ def score(result: dict, title: str, brand_id: str) -> int:
     return s
 
 
-def pick(title: str, brand_id: str, results: list) -> dict:
-    if not results:
+def pick(title: str, brand_id: str, results: list, brand_names: list) -> dict:
+    # ハードフィルタ: アイマス側の手がかりが無い候補はスコアを見るまでもなく捨てる
+    # KR の盤は "THE IDOLM@STER" を名乗るので手がかりを通るが、other 以外の曲には付けない。
+    candidates = [r for r in results
+                  if has_imas_signal(r.get("artistName") or "", brand_id, brand_names)
+                  and (brand_id == "other" or not itunes.is_kr_release(r))]
+    if not candidates:
         return None
-    scored = [(score(r, title, brand_id), r) for r in results]
+    scored = [(score(r, title, brand_id), r) for r in candidates]
     scored.sort(key=lambda x: -x[0])
     best_score, best = scored[0]
     return best if best_score >= 60 else None
@@ -119,34 +148,42 @@ def main():
 
     matched = 0
     updated = 0
+    brand_names_cache = {}
     cur = conn.cursor()
     for row in rows:
         title, brand, release = row["title"], row["brand_id"], row["release_date"]
         # クエリ: title + ブランドキーワード 1 個 (artist hint)
         kw = BRAND_KEYWORDS.get(brand, [""])[0]
         term = f"{title} {kw}".strip()
+        if brand not in brand_names_cache:
+            brand_names_cache[brand] = load_brand_names(conn, brand)
+        brand_names = brand_names_cache[brand]
         results = itunes_search(term)
-        chosen = pick(title, brand, results)
+        chosen = pick(title, brand, results, brand_names)
         if not chosen:
             # フォールバック: title 単独で再検索
             time.sleep(0.5)
             results = itunes_search(title)
-            chosen = pick(title, brand, results)
+            chosen = pick(title, brand, results, brand_names)
         if chosen:
             track_id = chosen.get("trackId")
-            artwork = (chosen.get("artworkUrl100") or "").replace("100x100bb", "600x600bb")
+            artwork = itunes.artwork_600(chosen)
             album_id = chosen.get("collectionId")
             album_name = chosen.get("collectionName")
             print(f"  ✓ {brand}/{row['id']}: '{title}' -> {track_id} ({chosen.get('trackName')} / {chosen.get('artistName')})")
             matched += 1
             if args.apply and track_id:
-                # apple_music_id と一緒に artwork_url / apple_music_album_id / cd_series も上書き。
-                # cd_series が古いアルバム名のまま残るとUIで「別ブランドのアルバム」に見える事故が起きる。
+                # apple_music_id と一緒に artwork_url / apple_music_album_id も入れる。
+                # cd_series は「今が空のときだけ」入れる: 対象行は apple_music_id が無い行なので、
+                # そこに入っている cd_series は機械が付けた値ではなく手で入れた系列キー
+                # (会場限定 CD の "…#twinlive_nakayoshi" 等) しかありえない。以前は無条件に
+                # Apple のアルバム名で上書きしていて、配信化された会場限定 CD の系列キーを
+                # 毎日潰しては CloudKit にまで push していた。
                 cur.execute(
                     """UPDATE songs SET apple_music_id=?,
                        artwork_url = ?,
                        apple_music_album_id = ?,
-                       cd_series = ?
+                       cd_series = CASE WHEN IFNULL(cd_series, '') = '' THEN ? ELSE cd_series END
                        WHERE id=?""",
                     (str(track_id), artwork or None, str(album_id) if album_id else None, album_name, row["id"]),
                 )

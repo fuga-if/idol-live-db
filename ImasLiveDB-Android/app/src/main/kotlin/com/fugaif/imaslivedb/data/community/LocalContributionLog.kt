@@ -15,7 +15,6 @@ class LocalContributionLog(context: Context) {
 
     enum class Kind(val label: String) {
         SETLIST_EDIT("セトリ編集"),
-        CALL_RESPONSE("コーレス"),
         VIDEO("動画"),
         TAG("タグ"),
     }

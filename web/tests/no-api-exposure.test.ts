@@ -1,0 +1,247 @@
+/**
+ * 「API の引き方が Web から見えない」ことを機械的に固定する。
+ *
+ * このサイトは完全に静的で、実行時の通信は **同一オリジンの `/search/*.json` と wasm だけ**。
+ * 既存の Worker (`imas-live-api`) や CloudKit / iTunes Search の存在を、
+ * ソースにも配信物にも一切書かない。
+ *
+ * ここが赤くなるのは「うっかり実データ API を叩くコードを足した」ときなので、
+ * 直し方は endpoint を隠すことではなく **足したコードを消すこと**。
+ * データはビルド時に Rust (`web-export`) が JSON に落としてある。
+ */
+import { describe, expect, it } from "vitest";
+import fs from "node:fs";
+import path from "node:path";
+import { walk } from "../scripts/walk.mjs";
+import { dataRoot, readJson } from "../src/lib/data";
+import type { SearchManifest } from "../src/lib/schema/SearchManifest";
+
+import astroConfig from "../astro.config.mjs";
+
+const SRC = path.resolve("./src");
+const DIST = path.resolve("./dist");
+const CONFIG = path.resolve("./astro.config.mjs");
+/** 自分のホスト (canonical / OGP / sitemap の絶対 URL に出る)。 */
+const SITE_HOST = new URL(astroConfig.site!).host;
+
+/** 生成物 (ts-rs / wasm-pack) は検査対象外。中身は Rust 側が保証する。 */
+const SKIP_DIRS = new Set(["schema", "fold"]);
+
+/** ソースに書いてよい外部ホスト。増やすときは「なぜ必要か」をレビューで問うこと。 */
+const ALLOWED_HOSTS = new Set([
+  "idollivedb.fugaapp.site", // 自サイト (astro.config の site。canonical / OGP / sitemap の絶対 URL)
+  "apps.apple.com", // App Store
+  "music.apple.com", // Apple Music (曲ページの外部リンク)
+  "github.com", // リポジトリ / 生成物のコメント (Aleph-Alpha/ts-rs)
+  "fuga-if.github.io", // プライバシー・サポート・利用規約 (既存 GitHub Pages)
+  "polyformproject.org", // ライセンス
+  "ogp.me", // OGP の名前空間
+  "schema.org", // JSON-LD の @context
+  "www.w3.org",
+  "docs.astro.build",
+  "astro.build",
+]);
+
+/** 出てはいけないホスト / 語。データ取得経路が推測できるものを名指しで禁じる。 */
+const FORBIDDEN = [
+  "imas-live-api", // 既存 Worker (共有リンクの着地・投票 API)
+  "workers.dev/app/", // その Worker のルート
+  "icloud.com",
+  "apple-cloudkit.com",
+  "api.apple-cloudkit.com",
+  "itunes.apple.com", // iTunes Search API (データ補完に使っている経路)
+  "music765plus",
+  "sparql",
+];
+
+const srcFiles = walk(SRC, {
+  include: (p) => /\.(ts|astro|css|mjs)$/.test(p),
+  skipDir: (name) => SKIP_DIRS.has(name),
+});
+const rel = (p: string): string => path.relative(path.resolve("."), p);
+
+/**
+ * 実行時に通信してよい島。**増やすときはここに明示する。**
+ *
+ * 検索と絞り込みが取りに行くのは自分のオリジンに置いた静的 JSON (検索索引 / 生テーブル)
+ * だけで、API は叩かない。歌詞だけは 1 曲ずつ取りに行く経路を持つが、宛先は Rust が
+ * `LyricsBlock.sourceUrl` に入れたものを data 属性で受け取るだけで、TS に URL は無い
+ * (docs/JASRAC.md §6.5)。「表示のみ」を守っているかは、この一覧と下の宛先テストで固定する。
+ */
+const FETCH_ALLOWED: Record<string, string> = {
+  "src/lib/search/island.ts": "/search/",
+  "src/lib/listfilter/query.ts": "/snapshot/",
+  "src/components/SongLyrics.astro": "(Rust が出した sourceUrl)",
+};
+
+describe("実行時の通信は同一オリジンだけ", () => {
+  it("fetch を書いてよいのは決めた island だけ", () => {
+    const offenders = srcFiles
+      .filter((f) => /\bfetch\s*\(/.test(fs.readFileSync(f, "utf8")))
+      .map(rel)
+      .filter((f) => !(f in FETCH_ALLOWED));
+    expect(offenders, "fetch は決めた island 以外に置かない").toEqual([]);
+  });
+
+  it("絞り込みの素材は同一オリジンの /snapshot/ だけ", () => {
+    const query = fs.readFileSync(path.join(SRC, "lib/listfilter/query.ts"), "utf8");
+    // 生テーブルの置き場所は 1 定数。絶対 URL を書かない (= 他オリジンへ行かない)。
+    expect(/https?:/.test(query), "絶対 URL を書かない").toBe(false);
+    const target = /TABLES_URL\s*=\s*["'`]([^"'`]+)["'`]/.exec(query)?.[1];
+    expect(target, "生テーブルの置き場所が読み取れない").toBeDefined();
+    expect(target!.startsWith("/snapshot/"), `${target} は /snapshot/ 配下ではない`).toBe(true);
+  });
+
+  it("歌詞は Rust が出した宛先を data 属性で受け取るだけ (URL を組まない)", () => {
+    const lyrics = fs.readFileSync(path.join(SRC, "components/SongLyrics.astro"), "utf8");
+    expect(/fetch\s*\(\s*["'`]/.test(lyrics), "fetch 先をリテラルで書かない").toBe(false);
+    expect(/https?:/.test(lyrics), "絶対 URL を書かない").toBe(false);
+  });
+
+  it("island の fetch 先は `/search/` 始まりの相対パスだけ", () => {
+    const island = fs.readFileSync(path.join(SRC, "lib/search/island.ts"), "utf8");
+    const targets = [...island.matchAll(/fetchJson<[^>]*>\(\s*(["'`])([^"'`]*)\1/g)].map(
+      (m) => m[2]!,
+    );
+    expect(targets.length, "fetch 先が 1 つも読み取れていない").toBeGreaterThan(0);
+    for (const t of targets) {
+      expect(t.startsWith("/search/"), `${t} は /search/ 配下ではない`).toBe(true);
+    }
+    // 変数経由の URL 組み立て (manifest の path) も、シャードの path が
+    // /search/ 始まりであることをフィクスチャ側のテストで固定してある。
+    expect(/fetch\s*\(\s*["'`]https?:/.test(island)).toBe(false);
+  });
+
+  it("XHR / WebSocket / EventSource / sendBeacon を使わない", () => {
+    const banned = [
+      "XMLHttpRequest",
+      "new WebSocket",
+      "EventSource",
+      "navigator.sendBeacon",
+      "importScripts",
+    ];
+    const hits: string[] = [];
+    for (const f of srcFiles) {
+      const text = fs.readFileSync(f, "utf8");
+      for (const b of banned) if (text.includes(b)) hits.push(`${rel(f)}: ${b}`);
+    }
+    expect(hits).toEqual([]);
+  });
+});
+
+describe("ソースに書かれた外部ホスト", () => {
+  const files = [...srcFiles, CONFIG];
+
+  it("allowlist 外のホストが無い", () => {
+    const found = new Map<string, string>();
+    for (const f of files) {
+      for (const m of fs.readFileSync(f, "utf8").matchAll(/https?:\/\/([A-Za-z0-9.-]+)/g)) {
+        const host = m[1]!;
+        if (!ALLOWED_HOSTS.has(host)) found.set(host, rel(f));
+      }
+    }
+    expect([...found].map(([h, f]) => `${h} (${f})`)).toEqual([]);
+  });
+
+  it("禁止語が 1 つも無い", () => {
+    const hits: string[] = [];
+    for (const f of files) {
+      const text = fs.readFileSync(f, "utf8");
+      for (const w of FORBIDDEN) if (text.includes(w)) hits.push(`${rel(f)}: ${w}`);
+    }
+    expect(hits).toEqual([]);
+  });
+});
+
+const distExists = fs.existsSync(DIST);
+
+/**
+ * 歌詞の取得先 (Rust が `LyricsBlock.sourceUrl` に入れた Worker の URL)。
+ * 出面で歌詞を出している間は、これだけが配信物に現れてよい Worker の URL で、
+ * 現れてよい場所も `data-source` 属性 (曲ページ) だけ。Rust が出していない間は null。
+ */
+const lyricsSource = ((): { origin: string; attrs: RegExp[] } | null => {
+  const meta = readJson<{ lyricsLicenseNotice: string | null; lyricsSearchUrl: string | null }>("meta.json");
+  if (!meta.lyricsLicenseNotice) return null;
+  const songs = walk(path.join(dataRoot(), "songs"), { include: (p) => p.endsWith(".json") });
+  const first = JSON.parse(fs.readFileSync(songs[0]!, "utf8")) as { lyrics: { sourceUrl: string | null } };
+  const url = new URL(first.lyrics.sourceUrl!);
+  const origin = url.origin.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  // 曲ページの取得先 (1 曲ずつ) と、検索ページの歌詞検索の取得先。この 2 つの data 属性だけ。
+  return {
+    origin: url.origin,
+    attrs: [
+      new RegExp(`data-source="${origin}/songs/[^"]+/lyrics"`, "g"),
+      new RegExp(`data-lyrics-search="${origin}/lyrics/search"`, "g"),
+    ],
+  };
+})();
+
+describe("配信物 (dist)", () => {
+  it.skipIf(!distExists)("HTML と JS に禁止ホストが出てこない (歌詞の取得先の data 属性を除く)", () => {
+    const files = walk(DIST, { include: (p) => /\.(html|js)$/.test(p) });
+    expect(files.length, "dist に HTML/JS が無い").toBeGreaterThan(0);
+    const hits: string[] = [];
+    for (const f of files) {
+      // 歌詞の取得先は 1 曲ずつの `data-source` にしか置かない。それ以外の場所に
+      // Worker のホストが出たら、経路が増えている。
+      let text = fs.readFileSync(f, "utf8");
+      for (const attr of lyricsSource?.attrs ?? []) text = text.replace(attr, "");
+      for (const w of FORBIDDEN) if (text.includes(w)) hits.push(`${rel(f)}: ${w}`);
+    }
+    expect(hits).toEqual([]);
+  });
+
+  /**
+   * ブラウザが**自動で取りに行く**先 (サブリソース) だけを縛る。
+   *
+   * `<a href>` の行き先は公式サイト・チケット・映像商品などデータ由来の外部リンクで、
+   * DB に入り得るホストを列挙することはできないし、列挙する意味も無い
+   * (踏むかどうかは人が決める)。一方サブリソースは**ページを開いただけで発火する**
+   * ので、自分と Apple Music の CDN 以外が混ざったら事故。CSP と同じ線を張る。
+   */
+  it.skipIf(!distExists)("自動で取りに行く先は自分と Apple Music CDN だけ", () => {
+    const files = walk(DIST, { include: (p) => p.endsWith(".html") });
+    const hosts = new Map<string, string>();
+    for (const f of files) {
+      const text = fs.readFileSync(f, "utf8");
+      const subresources = [
+        ...text.matchAll(/\ssrc=["']https?:\/\/([A-Za-z0-9.-]+)/g),
+        ...text.matchAll(/<link\b[^>]*?\shref=["']https?:\/\/([A-Za-z0-9.-]+)/g),
+        ...text.matchAll(/\ssrcset=["']https?:\/\/([A-Za-z0-9.-]+)/g),
+      ];
+      for (const m of subresources) hosts.set(m[1]!, rel(f));
+    }
+    // 自分のホストは astro.config の `site` から取る (canonical / OGP の絶対 URL の出典と同じ)。
+    const allowed = (h: string): boolean =>
+      h === SITE_HOST || /^is\d-ssl\.mzstatic\.com$/.test(h);
+    expect([...hosts].filter(([h]) => !allowed(h)).map(([h, f]) => `${h} (${f})`)).toEqual([]);
+  });
+});
+
+describe("配信ヘッダ (CSP)", () => {
+  /**
+   * ブラウザが自分以外と通信してよい宛先 (connect-src) は、Rust が `meta.json` に出した
+   * `connectOrigins` だけ。歌詞を出していない間は空 (歌詞 API の Worker を許さない)。
+   * _headers はビルドが組む (scripts/headers.mjs) ので、手で足した宛先はここで落ちる。
+   */
+  it.skipIf(!distExists)("connect-src は自分と、Rust が出した宛先だけ", () => {
+    const headers = fs.readFileSync(path.join(DIST, "_headers"), "utf8");
+    const csp = /Content-Security-Policy: (.*)/.exec(headers)?.[1];
+    expect(csp, "_headers に CSP が無い").toBeDefined();
+    const connect = /connect-src ([^;]*)/.exec(csp!)?.[1]?.trim().split(/\s+/);
+    const meta = readJson<{ connectOrigins: string[]; lyricsSearchUrl: string | null }>("meta.json");
+    expect(connect).toEqual(["'self'", ...meta.connectOrigins]);
+    if (meta.lyricsSearchUrl === null) expect(meta.connectOrigins).toEqual([]);
+  });
+});
+
+describe("検索索引の参照", () => {
+  it("manifest の path が同一オリジンの相対パス", () => {
+    const manifest = readJson<SearchManifest>("search/manifest.json");
+    for (const s of manifest.shards) {
+      expect(s.url.startsWith("/search/"), `${s.url} が /search/ 始まりでない`).toBe(true);
+      expect(/^https?:/.test(s.url), `${s.url} が絶対 URL`).toBe(false);
+    }
+  });
+});

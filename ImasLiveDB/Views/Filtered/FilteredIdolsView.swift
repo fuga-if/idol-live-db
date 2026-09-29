@@ -12,12 +12,11 @@ struct FilteredIdolsView: View {
     var body: some View {
         Group {
             if isLoading {
-                ProgressView()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                ImasLoadingState()
             } else if idols.isEmpty {
-                ContentUnavailableView(
-                    "アイドルが見つかりません",
-                    systemImage: "person.2"
+                ImasEmptyState(
+                    systemImage: "person.2",
+                    title: "アイドルが見つかりません"
                 )
             } else {
                 List {

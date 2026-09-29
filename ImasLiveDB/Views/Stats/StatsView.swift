@@ -42,6 +42,8 @@ struct StatsView: View {
     @State private var allUncollectedCache: [UncollectedSong] = []
 
     private enum UncollectedScope: Int { case myPick, all }
+    /// 「イベント名を省略」の設定 (既定 ON)。省略した名前はコアが返す。
+    @AppStorage(eventNameAbbreviateKey) private var abbreviateEventNames = true
 
     var body: some View {
         NavigationStack {
@@ -92,7 +94,7 @@ struct StatsView: View {
                 .frame(width: 92, height: 92)
 
                 VStack(alignment: .leading, spacing: DS.sp3) {
-                    HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    HStack(alignment: .firstTextBaseline, spacing: DS.sp2) {
                         Text("\(overallCollected)")
                             .font(.imasDisplay(30, weight: .bold))
                             .foregroundStyle(DS.ink)
@@ -168,7 +170,7 @@ struct StatsView: View {
             ImasLeadBar(seed: chance.brandColor)
                 .frame(maxHeight: .infinity)
             VStack(alignment: .leading, spacing: DS.sp2) {
-                Text("\(displayDate(chance.show.date)) ・ \(eventDisplayName(chance.eventName))")
+                Text("\(displayDate(chance.show.date)) ・ \(abbreviateEventNames ? chance.eventShortName : chance.eventName)")
                     .font(.imasDisplay(12, weight: .semibold))
                     .foregroundStyle(DS.ink3)
                     .lineLimit(1)
@@ -188,7 +190,7 @@ struct StatsView: View {
                 }
             }
             Spacer(minLength: 0)
-            VStack(spacing: 2) {
+            VStack(spacing: DS.sp1) {
                 ImasMetricBadge(value: "\(chance.likelyCount)", unit: "曲", seed: chance.brandColor)
                 Text("過去に披露")
                     .font(.imasScaled( 10, weight: .medium))
@@ -218,7 +220,7 @@ struct StatsView: View {
                 .onChange(of: uncollectedScope) { _, _ in applyUncollectedScope() }
 
             if isLoadingDashboard {
-                HStack { Spacer(); ProgressView(); Spacer() }
+                ImasInlineLoading()
                     .padding(.vertical, DS.sp6)
             } else if uncollectedSongs.isEmpty {
                 ImasEmptyState(
@@ -240,7 +242,7 @@ struct StatsView: View {
                         }
                         .buttonStyle(.plain)
                         if index < shown.count - 1 {
-                            Divider().overlay(DS.sep).padding(.leading, 70)
+                            ImasRowDivider(inset: 70)
                         }
                     }
                 }
@@ -260,12 +262,11 @@ struct StatsView: View {
         HStack(spacing: DS.sp4) {
             ImasArtwork(
                 title: item.song.title,
-                seed: item.song.brandId,
-                brand: item.song.brandId,
+                seed: BrandColors.hex(for: item.song.brandId),
                 size: 44,
                 imageURL: artworkURL(item.song.artworkUrl)
             )
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: DS.sp1) {
                 Text(item.song.title)
                     .font(.imasSubhead.weight(.semibold))
                     .foregroundStyle(DS.ink)
@@ -286,21 +287,21 @@ struct StatsView: View {
     private func frequencyBadge(_ item: UncollectedSong) -> some View {
         let fg: Color
         let bg: Color
-        switch item.playCount {
-        case 10...:
+        switch item.frequency {
+        case .staple:
             fg = DS.warning
             bg = DS.warning.opacity(0.14)
-        case 3...:
+        case .sometimes:
             fg = DS.ink2
             bg = DS.fill
-        default:
+        case .rare, .never:
             fg = DS.ink3
             bg = DS.fill
         }
-        return VStack(alignment: .trailing, spacing: 2) {
+        return VStack(alignment: .trailing, spacing: DS.sp1) {
             Text(item.frequencyLabel)
                 .font(.imasScaled( 11, weight: .semibold))
-                .padding(.horizontal, 8).padding(.vertical, 2)
+                .padding(.horizontal, DS.sp3).padding(.vertical, DS.sp1)
                 .foregroundStyle(fg)
                 .background(bg, in: Capsule())
             if item.playCount > 0 {
@@ -387,9 +388,7 @@ struct StatsView: View {
 
             if isLoadingFavorites {
                 HStack {
-                    Spacer()
-                    ProgressView()
-                    Spacer()
+                    ImasLoadingState()
                 }
                 .padding(.vertical, DS.sp6)
             } else if favoritesRanking.isEmpty {
@@ -417,7 +416,7 @@ struct StatsView: View {
                         }
                         .buttonStyle(.plain)
                         if index < favoritesRanking.count - 1 {
-                            Divider().overlay(DS.sep).padding(.leading, 52)
+                            ImasRowDivider(inset: 52)
                         }
                     }
                 }
@@ -437,7 +436,7 @@ struct StatsView: View {
                     ForEach(Array(songPlayCounts.enumerated()), id: \.offset) { index, item in
                         ImasRankingRow(
                             rank: index + 1,
-                            lead: .artwork(title: item.title, imageURL: nil),
+                            lead: .artwork(title: item.title, imageURL: artworkURL(item.artworkUrl)),
                             title: item.title,
                             sub: brandShortName(for: item.brandId),
                             metric: "\(item.playCount)",
@@ -445,7 +444,7 @@ struct StatsView: View {
                             brand: brandHex(for: item.brandId)
                         )
                         if index < songPlayCounts.count - 1 {
-                            Divider().overlay(DS.sep).padding(.leading, 52)
+                            ImasRowDivider(inset: 52)
                         }
                     }
                 }
@@ -470,7 +469,7 @@ struct StatsView: View {
                             unit: "人"
                         )
                         if index < castShowCounts.count - 1 {
-                            Divider().overlay(DS.sep).padding(.leading, 52)
+                            ImasRowDivider(inset: 52)
                         }
                     }
                 }
@@ -575,83 +574,36 @@ struct StatsView: View {
         await loadFavoritesRanking()
     }
 
-    /// 回収ダッシュボードの重い集計をまとめてバックグラウンドで実行する。
-    /// autoCollectedSongIds / 担当 idol は MainActor の UserMarkService から取り、
-    /// branded 全曲スキャン等の重処理は detached task で回す。
+    /// 回収ダッシュボード。組み立てはコア (`collection_dashboard`) が 1 回で行う。
+    /// 回収済みの曲と担当は端末ローカルの印 (UserMarkService) から渡す。
     private func loadDashboard() async {
         isLoadingDashboard = true
         defer { isLoadingDashboard = false }
-
-        let collected = UserMarkService.shared.autoCollectedSongIds()
-        let pickIdolIds = Set(UserMarkService.shared.allMarked(kind: .myPick, entity: .idol))
-        let today = Self.todayString()
-        let db = database
-
-        let result: DashboardResult? = await Task.detached(priority: .userInitiated) {
-            do {
-                let branded = try db.fetchBrandedSongIds()
-                let brandProg = try db.fetchBrandCollectionProgress(collectedIds: collected)
-                let pickSongIds = try db.fetchSongIdsWithAnyArtist(idolIds: pickIdolIds)
-
-                // 未回収リストのスコープ別母集合
-                let pickUncollected = try db.fetchUncollectedSongs(candidateIds: pickSongIds, collectedIds: collected)
-                let allUncollected = try db.fetchUncollectedSongs(candidateIds: branded, collectedIds: collected)
-
-                // 「聴けるかも」は全体の未回収 ID を母集合にする。
-                let allUncollectedIds = Set(allUncollected.map(\.id))
-                let chances = try db.fetchUpcomingCatchChances(uncollectedIds: allUncollectedIds, today: today)
-
-                let pickCollectedCount = pickSongIds.intersection(collected).count
-                return DashboardResult(
-                    overallCollected: branded.intersection(collected).count,
-                    overallTotal: branded.count,
-                    brandProgress: brandProg,
-                    pickUncollected: pickUncollected,
-                    allUncollected: allUncollected,
-                    myPickCollected: pickCollectedCount,
-                    myPickTotal: pickSongIds.count,
-                    catchChances: chances
-                )
-            } catch {
-                Logger.database.error("load_failed dashboard: \(error.localizedDescription)")
-                return nil
-            }
-        }.value
-
-        guard let result else { return }
-        overallCollected = result.overallCollected
-        overallTotal = result.overallTotal
-        brandProgress = result.brandProgress
-        pickUncollectedCache = result.pickUncollected
-        allUncollectedCache = result.allUncollected
-        myPickCollected = result.myPickCollected
-        myPickTotal = result.myPickTotal
-        catchChances = result.catchChances
-        applyUncollectedScope()
+        do {
+            let dashboard = try await AppContainer.shared.statsReading.collectionDashboard(
+                collectedSongIds: UserMarkService.shared.autoCollectedSongIds(),
+                pickIdolIds: Set(UserMarkService.shared.allMarked(kind: .myPick, entity: .idol)),
+                today: JSTDay.today(),
+                chanceLimit: Self.catchChanceLimit)
+            overallCollected = dashboard.overallCollected
+            overallTotal = dashboard.overallTotal
+            brandProgress = dashboard.brandProgress
+            pickUncollectedCache = dashboard.pickUncollected
+            allUncollectedCache = dashboard.allUncollected
+            myPickCollected = dashboard.myPickCollected
+            myPickTotal = dashboard.myPickTotal
+            catchChances = dashboard.catchChances
+            applyUncollectedScope()
+        } catch {
+            Logger.database.error("load_failed dashboard: \(error.localizedDescription)")
+        }
     }
+
+    /// 「この公演で聴けるかも」に並べる公演の数。
+    private static let catchChanceLimit = 8
 
     private func applyUncollectedScope() {
         uncollectedSongs = uncollectedScope == .myPick ? pickUncollectedCache : allUncollectedCache
-    }
-
-    private struct DashboardResult: Sendable {
-        let overallCollected: Int
-        let overallTotal: Int
-        let brandProgress: [BrandCollectionProgress]
-        let pickUncollected: [UncollectedSong]
-        let allUncollected: [UncollectedSong]
-        let myPickCollected: Int
-        let myPickTotal: Int
-        let catchChances: [UpcomingCatchChance]
-    }
-
-    /// "yyyy-MM-dd" 形式の今日。 公演日 (TEXT) との文字列比較に使う。
-    private static func todayString() -> String {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "en_US_POSIX")
-        f.timeZone = TimeZone(identifier: "Asia/Tokyo")
-        f.dateFormat = "yyyy-MM-dd"
-        return f.string(from: Date())
     }
 
     private func loadFavoritesRanking() async {

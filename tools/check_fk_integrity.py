@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-check_fk_integrity.py — master.sqlite の外部キー制約違反を一覧する。
+check_fk_integrity.py — master.sqlite の参照の壊れを一覧する。
 
 使い方:
     python3 tools/check_fk_integrity.py [path/to/master.sqlite]
@@ -8,9 +8,11 @@ check_fk_integrity.py — master.sqlite の外部キー制約違反を一覧す�
 デフォルトは ImasLiveDB/Resources/master.sqlite を参照。
 """
 
+import re
 import sqlite3
 import sys
 import os
+import unicodedata
 
 DB_PATH = os.path.join(
     os.path.dirname(__file__),
@@ -41,13 +43,94 @@ def check_fk_integrity(db_path: str) -> int:
     return len(violations)
 
 
+# FK 制約が宣言されていない親子の対 (子テーブル, 子の列, 親テーブル)。
+#
+# `PRAGMA foreign_key_check` は **宣言された FK しか見ない**。setlist_items は
+# `song_id TEXT NOT NULL` と書いてあるだけで REFERENCES が無いので、指す先の曲が
+# 消えても違反として出てこない。実際にすり抜けた: 二重登録の統合で曲を消したとき、
+# 子の付け替えが CloudKit に届かず 9 行が宙に浮いたまま同梱 DB に入っていた。
+#
+# 宙に浮いた行は**経路によって扱いが違う**のが厄介で、コアのスナップショットは
+# 読み込み時に落とすが SQL 経路は残す。同じセトリの曲数が画面によって食い違う。
+UNDECLARED_REFS = [
+    ("setlist_items", "song_id", "songs"),
+    ("setlist_items", "show_id", "shows"),
+    ("setlist_performers", "setlist_item_id", "setlist_items"),
+    ("song_artists", "song_id", "songs"),
+    ("show_cast", "show_id", "shows"),
+    ("shows", "event_id", "events"),
+    ("unit_members", "unit_id", "units"),
+    ("unit_members", "idol_id", "idols"),
+    ("idol_brands", "idol_id", "idols"),
+    ("song_units", "song_id", "songs"),
+    ("song_units", "unit_id", "units"),
+    # songs.unit_id は「空文字 = ユニットの実体に紐づかない」を正規の値として使う
+    # (「S.E.M＆Jupiter」のような複数ユニットの併記はここが空で、表示は unit_name)。
+    # LEFT JOIN の条件が値の有無を見ないので、空文字を弾くのは check_undeclared_refs 側。
+    ("songs", "unit_id", "units"),
+]
+
+
+def check_undeclared_refs(db_path: str) -> int:
+    """FK 宣言の無い参照の壊れを出力し、件数を返す。
+
+    空文字は「参照しない」であって壊れではないので除く。songs.unit_id が実際そうで、
+    ユニットの実体に紐づかない曲 (複数ユニットの併記、企画もの) はここが空になる。
+    """
+    conn = sqlite3.connect(db_path)
+    total = 0
+    for child, col, parent in UNDECLARED_REFS:
+        rows = conn.execute(
+            f"SELECT c.{col}, count(*) FROM {child} c"
+            f" LEFT JOIN {parent} p ON p.id = c.{col}"
+            f" WHERE c.{col} IS NOT NULL AND c.{col} <> '' AND p.id IS NULL"
+            f" GROUP BY c.{col}"
+        ).fetchall()
+        for value, n in rows:
+            total += n
+            print(f"❌ {child}.{col} → {parent} に無い: {value} ({n} 行)")
+    conn.close()
+    if total == 0:
+        print("✅ 宣言の無い参照の壊れ: 0件")
+    return total
+
+
+def check_duplicate_units(db_path: str) -> int:
+    """同じブランドに同じ名前のユニットが 2 つ無いか見る。
+
+    ユニットの id は表示クレジットを slug 化して作られてきた
+    (`tools/apply_idol_data.py` の `slugify`)。クレジットは**盤ごとに綴りが揺れる**
+    ので、同じユニットが綴りの数だけ分裂する。実際に 3 組できていた:
+    `315 STARS(インテリ Ver.)` と `315 STARS(インテリVer.)` が別 id になり、
+    さらに `315 STARS(DRAMATIC STARS、…)` は括弧が落ちて
+    `unit_315_starsdramatic_stars` という別ユニットになった (構成員は 3 人だけ)。
+
+    突き合わせは空白と全角/半角を畳んでから行う。分裂はまさにそこで起きるので、
+    素の文字列比較では見つからない。
+    """
+    conn = sqlite3.connect(db_path)
+    groups = {}
+    for uid, brand, name in conn.execute("SELECT id, brand_id, name FROM units"):
+        key = (brand, re.sub(r"[\s\u3000]+", "", unicodedata.normalize("NFKC", name)).lower())
+        groups.setdefault(key, []).append(uid)
+    conn.close()
+
+    dups = {k: v for k, v in groups.items() if len(v) > 1}
+    for (brand, name), ids in sorted(dups.items()):
+        print(f"❌ units に同名が {len(ids)} 件 [{brand}] {name}: {', '.join(sorted(ids))}")
+    if not dups:
+        print("✅ 同名のユニット: 0件")
+    return sum(len(v) for v in dups.values())
+
+
 def main() -> None:
     path = sys.argv[1] if len(sys.argv) > 1 else DB_PATH
     if not os.path.exists(path):
         print(f"ERROR: DB not found: {path}")
         sys.exit(1)
     print(f"Checking: {path}\n")
-    violations = check_fk_integrity(path)
+    violations = (check_fk_integrity(path) + check_undeclared_refs(path)
+                  + check_duplicate_units(path))
     sys.exit(0 if violations == 0 else 1)
 
 

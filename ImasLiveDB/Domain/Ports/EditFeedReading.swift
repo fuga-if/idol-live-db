@@ -7,10 +7,21 @@ import Foundation
 ///
 /// ⚠️ Domain 規約: このファイルは `SwiftUI` / `GRDB` / `CloudKit` を import しない。
 protocol EditFeedReading: Sendable {
-    /// セトリ系レコード (Show/ShowSetlist/SetlistItem/SetlistPerformer) → 該当公演 id。
-    func editRecordShowId(recordType: String, recordName: String) async throws -> String?
-    /// 楽曲系コミュニティレコード (SongVideo/SongCall) → 該当楽曲 id。
+    /// 一覧のレコードの表示用タイトルと、セトリ系レコードの公演 id をまとめて引く
+    /// (行ごとに 2 回引かない)。解決できないレコードは結果に入らない。
+    func editRecordTargets(_ keys: [EditRecordKey]) async throws -> [EditRecordKey: EditRecordResolution]
+    /// 楽曲系コミュニティレコード (SongVideo) → 該当楽曲 id。
     func editRecordSongId(recordType: String, recordName: String) async throws -> String?
-    /// レコードの表示用タイトル。
-    func editRecordTitle(recordType: String, recordName: String) async throws -> String?
+}
+
+/// 編集されたレコードの鍵。
+struct EditRecordKey: Hashable, Sendable {
+    let recordType: String
+    let recordName: String
+}
+
+/// レコードの表示用タイトルと、セトリ系なら属する公演 id。
+struct EditRecordResolution: Sendable {
+    let title: String?
+    let showId: String?
 }

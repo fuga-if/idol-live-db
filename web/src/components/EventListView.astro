@@ -1,0 +1,44 @@
+---
+import ListLayout from "../layouts/ListLayout.astro";
+import YearGroups from "./YearGroups.astro";
+import YearGroupSection from "./YearGroupSection.astro";
+import Count from "./Count.astro";
+import type { EventListPage } from "../lib/schema/EventListPage";
+
+/**
+ * ライブ一覧 (総合 / 今後 / 開催済み / 年別 / ブランド別)。
+ * 「今後と開催済みをどう分けるか」「どの年にまとめるか」は Rust の event_grouping が
+ * 決めていて、ここは groups をそのまま並べるだけ。
+ */
+interface Props {
+  list: EventListPage;
+}
+const { list } = Astro.props;
+---
+
+<ListLayout
+  seo={list.seo}
+  title={list.title}
+  total={list.total}
+  scope={list.scope}
+  filters={list.filters}
+>
+  <YearGroups groups={list.groups} empty={list.empty} />
+  {/* 入口だけ: 開催済みの最新の年。見出しの文字も Rust。 */}
+  {
+    list.recentPast && list.recentPastTitle && (
+      <YearGroupSection title={list.recentPastTitle} group={list.recentPast} />
+    )
+  }
+  {/* 一覧が途中で切れているとき、続き (開催済みをすべて / 1 つ前の年) へ。 */}
+  {
+    list.next && (
+      <p class="list-next">
+        <a class="section__more" href={list.next.path}>
+          {list.next.label}
+          {list.next.count !== null && <Count value={list.next.count} dim />} ›
+        </a>
+      </p>
+    )
+  }
+</ListLayout>

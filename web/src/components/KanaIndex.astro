@@ -1,0 +1,24 @@
+---
+import { kanaAnchorId } from "../lib/anchors";
+import type { KanaSection } from "../lib/schema/KanaSection";
+/**
+ * よみの目次 (曲・ユニット共通)。区画の切り方は Rust の `KanaSection`。
+ * 飛び先の印なので、札にせず文字だけの細い列にする (一覧の頭に札を増やさない)。
+ */
+interface Props {
+  sections: readonly KanaSection[];
+}
+const { sections } = Astro.props;
+---
+
+{
+  sections.length > 0 && (
+    <nav class="u-row link-row" aria-label="よみで飛ぶ" data-kana-index>
+      {sections.map((s) => (
+        <a class="u-underline-hover" href={`#${kanaAnchorId(s.startIndex)}`}>
+          {s.label}
+        </a>
+      ))}
+    </nav>
+  )
+}

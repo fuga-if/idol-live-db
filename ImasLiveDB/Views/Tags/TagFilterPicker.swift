@@ -44,7 +44,7 @@ struct TagFilterPicker: View {
                 }
                 Section {
                     if isLoading {
-                        HStack { Spacer(); ProgressView(); Spacer() }
+                        ImasInlineLoading()
                             .listRowBackground(Color.clear)
                     } else if tags.isEmpty {
                         Text("タグがありません").foregroundStyle(DS.ink2)
@@ -55,7 +55,7 @@ struct TagFilterPicker: View {
                                 AppAnalytics.tap("tag_filter.toggle_tag")
                                 toggle(tag)
                             } label: {
-                                HStack(spacing: 8) {
+                                HStack(spacing: DS.sp3) {
                                     // 検索していない時は人気順そのものなので順位バッジを出す。
                                     if query.isEmpty {
                                         TagRankBadge(rank: idx + 1)
@@ -71,8 +71,7 @@ struct TagFilterPicker: View {
                                         Text("\(uses)曲").font(.imasCaption).foregroundStyle(DS.ink2)
                                     }
                                     if isSelected(tag) {
-                                        Image(systemName: "checkmark.circle.fill")
-                                            .foregroundStyle(Color.accentColor)
+                                        ImasSelectionMark(isSelected: true, color: tag.color.map { Color(hexColor: $0) })
                                     }
                                 }
                             }
@@ -111,6 +110,6 @@ struct TagFilterPicker: View {
     private func load() async {
         isLoading = true
         defer { isLoading = false }
-        tags = (try? await CommunityAPI.shared.tags(search: query, sort: "popular", limit: 100)) ?? []
+        tags = (try? await AppContainer.shared.communityTagReading.tags(search: query, category: "", sort: "popular", limit: 100, offset: 0)) ?? []
     }
 }

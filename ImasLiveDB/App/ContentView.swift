@@ -2,24 +2,27 @@ import SwiftUI
 import UIKit
 
 extension Notification.Name {
-    /// 全タブ共通で発火させる「全体検索を開く」通知。
-    /// 各タブの toolbar `globe` ボタンが post し、 ContentView の sheet が拾う。
-    static let openGlobalSearch = Notification.Name("openGlobalSearch")
     /// 全タブ共通で発火させる「設定・マイページを開く」通知。
     /// 各タブの toolbar 歯車が post し、ContentView の sheet が拾う。
     static let openSettings = Notification.Name("openSettings")
 }
 
+
 struct ContentView: View {
-    @State private var selectedTab: Int = {
-        if let raw = ProcessInfo.processInfo.environment["INITIAL_TAB"], let idx = Int(raw) {
-            return idx
+    @State private var selection: AppDestination = {
+        if let raw = ProcessInfo.processInfo.environment["INITIAL_TAB"], let idx = Int(raw),
+           let tab = RootTab(rawValue: idx) {
+            return tab.destination
         }
-        return 0
+        return .schedule
     }()
-    @State private var showSearch = false
-    /// 個別検索から引き継いだ全体検索の初期クエリ。
-    @State private var searchQuery = ""
+    /// 行き先の一覧 (並び・見出し・タブバーに載るか) はコアが決める。
+    private let navSections = appNavigationSections(lyricsAvailable: LyricsFeature.isAvailable)
+    private var primaryItems: [NavItem] { navSections.flatMap(\.items).filter(\.inTabBar) }
+    /// サイドバーだけに出る見出し。狭い画面ではタブバーに載らない。
+    private var secondarySections: [NavSection] { navSections.filter { $0.title != nil } }
+    /// タブを跨いだ検索の引き継ぎ (「他のタブに N 件」を押されたとき)。
+    @State private var crossTab = CrossTabSearch.shared
     /// 設定・マイページ sheet (全タブ共通)。
     @State private var showSettings = false
     /// deeplink (Universal Links / imaslivedb://) で開く詳細 sheet。
@@ -42,6 +45,8 @@ struct ContentView: View {
 
     @Environment(AppDatabase.self) private var database
     @Environment(CloudKitSyncEngine.self) private var syncEngine
+    /// レビュー依頼。OS が出すかどうかを決めるので、呼んでも出ないことがある。
+    @Environment(\.requestReview) private var requestReview
 
     /// アプリ全体のアクセント tint。担当テーマ有効時のみ色を返し、無効時は nil
     /// (= 既定の AccentColor アセットにフォールバック)。
@@ -49,60 +54,64 @@ struct ContentView: View {
         themeOshiColorHex.isEmpty ? nil : Color(hexString: themeOshiColorHex)
     }
 
-    /// TabBar のアクティブ tint だけ .label にする (.tint(.primary) を View 階層に
-    /// かけると配下の Color.accentColor まで上書きされて chip 系が真っ白になるため、
-    /// SwiftUI の .tint() ではなく UITabBar.appearance() を使う。
-    init() {
+    /// 届いたリンク。アプリのルートが受けて渡してくる (受け口は 1 つ)。開いたら nil に戻す。
+    @Binding private var incomingURL: URL?
+
+    /// TabBar のアクティブ tint だけ .label にする。`.tint(.primary)` を View 階層にかけると
+    /// 配下の tint 依存表示 (Toggle・Link 等の標準コントロール) まで巻き添えになるため、
+    /// SwiftUI の `.tint()` ではなく UITabBar.appearance() を使う。
+    /// (chip 系は既に Color.accentColor をやめ ImasTheme 由来に統一済みなので影響しない)
+    init(incomingURL: Binding<URL?> = .constant(nil)) {
+        _incomingURL = incomingURL
         UITabBar.appearance().tintColor = .label
     }
 
     var body: some View {
-        TabView(selection: $selectedTab) {
-            // 確定 IA: スケジュール / ライブ / 楽曲 / アイドル / プロデュース。
-            // スケジュールがデフォルト着地点。マイ/設定はプロデュース右上の歯車から開く。
-            CalendarView()
-                .syncStatusBarInset()
-                .tabItem { Label("スケジュール", systemImage: "calendar") }
-                .tag(0)
-            EventListView()
-                .syncStatusBarInset()
-                .tabItem { Label("ライブ", systemImage: "music.mic") }
-                .tag(1)
-            SongListView()
-                .syncStatusBarInset()
-                .tabItem { Label("楽曲", systemImage: "music.note.list") }
-                .tag(2)
-            IdolListView()
-                .syncStatusBarInset()
-                .tabItem { Label("アイドル", systemImage: "person.3") }
-                .tag(3)
-            ProduceTabView()
-                .syncStatusBarInset()
-                .tabItem { Label("プロデュース", systemImage: "star.fill") }
-                .tag(4)
-        }
+        rootTabs
+            .background { destinationShortcuts }
         .tint(themeTint)
-        .task { AppAnalytics.screen(Self.tabName(selectedTab)) }
-        .onChange(of: selectedTab) { _, tab in AppAnalytics.screen(Self.tabName(tab)) }
+        // 再生中バーの引き直し。View ごとに持たせると 5 タブで 5 回引くので、
+        // 状態が変わったとき 1 回だけここで回す。
+        .task(id: MusicKitService.shared.playbackKey) { await NowPlayingModel.shared.refresh() }
+        .task {
+            AppAnalytics.screen(selection.analyticsKey)
+            // 一覧やピッカーは Idol の配列しか持たないので、CV 名は辞書から引く。
+            // 行ごとに DB を叩くと N+1 になる (300件程度なのでまとめて持つ)。
+            await VoiceActorDirectory.shared.load()
+            ReviewPrompt.registerLaunch()
+            // 聞くのは「参加ライブを登録した次に立ち上げたとき」になる。作業の途中や
+            // 登録直後に被せず、落ち着いてタブ画面を見ている場面で1度だけ出す。
+            // 条件を満たしていなければ ReviewPrompt 側が false を返して何も起きない。
+            if ReviewPrompt.shouldAsk() {
+                AppAnalytics.tap("review_prompt.shown")
+                requestReview()
+            }
+        }
+        .onChange(of: selection) { _, dest in AppAnalytics.screen(dest.analyticsKey) }
+        // 「他のタブに N 件」を押されたら、そのタブへ移る。語の受け渡しは
+        // 移った先の一覧が `CrossTabSearch.take(for:)` で拾う。
+        .onChange(of: crossTab.target) { _, target in
+            if let target { selection = target.destination }
+        }
         .environment(\.imasTextScale, textScale)
         // アプリ既定フォントを imas (スケール対応) にする。これで明示フォント未指定の Text や
         // Picker/Toggle 等コントロールのラベルも文字サイズ設定に追従する。
         // (ナビタイトル/タブバー等の UIKit chrome は OS 管轄なので対象外)
         .environment(\.font, .imasBody)
-        .onReceive(NotificationCenter.default.publisher(for: .openGlobalSearch)) { note in
-            searchQuery = (note.object as? String) ?? ""
-            showSearch = true
-        }
         .onReceive(NotificationCenter.default.publisher(for: .openSettings)) { _ in
             showSettings = true
         }
-        .sheet(isPresented: $showSearch, onDismiss: presentPendingDeeplink) {
-            GlobalSearchView(initialQuery: searchQuery)
-        }
+        // 参加を付けた直後の「チケット代を記録しますか」。参加登録の入口は
+        // 一覧のスワイプ・公演の参加シート・セトリ画面と複数あるので、
+        // 出すのは**アプリのルート 1 箇所**にまとめる。
+        .ticketExpensePrompt()
         .sheet(isPresented: $showSettings, onDismiss: presentPendingDeeplink) {
             MyPageView().environment(database).environment(syncEngine)
         }
-        .onOpenURL { url in
+        // 起動直後に届いたものも、開いている間に届いたものも、ここで 1 度だけ開く。
+        .task(id: incomingURL) {
+            guard let url = incomingURL else { return }
+            incomingURL = nil
             handleDeeplink(url)
         }
         .sheet(item: $deeplinkDestination, onDismiss: presentPendingDeeplink) { dest in
@@ -124,24 +133,46 @@ struct ContentView: View {
         }
     }
 
-    /// deeplink (Universal Links / imaslivedb://) を解決して該当ページへ遷移する。
-    /// 対象外 URL は無視、未知 ID / DB エラーはアラート (クラッシュ・空白画面にしない)。
-    /// アナリティクス用のタブ識別子 (確定 IA: 0=スケジュール / 1=ライブ / 2=楽曲 / 3=アイドル / 4=プロデュース)。
-    private static func tabName(_ tab: Int) -> String {
-        switch tab {
-        case 0: return "schedule"
-        case 1: return "events"
-        case 2: return "songs"
-        case 3: return "idols"
-        case 4: return "produce"
-        default: return "tab_\(tab)"
+    // MARK: - 行き先 (タブバー / サイドバー)
+
+    /// 狭い画面はタブバー、広い画面 (iPad / Mac) はサイドバーになる。
+    /// 中身はどちらも同じ画面 — サイドバーだけに出る行き先も、狭い画面では
+    /// プロデュースの入口カードから開くのと同じ View を使う (出し方を iPhone と揃える)。
+    @ViewBuilder
+    private var rootTabs: some View {
+        if #available(iOS 18, *) {
+            AdaptiveRootTabs(selection: $selection, primary: primaryItems, secondary: secondarySections)
+        } else {
+            TabView(selection: $selection) {
+                ForEach(primaryItems, id: \.destination) { item in
+                    DestinationScreen(destination: item.destination)
+                        .tabItem { Label(item.label, systemImage: item.destination.systemImage) }
+                        .tag(item.destination)
+                }
+            }
         }
     }
 
+    /// ハードウェアキーボードの ⌘1〜⌘5。番号の割り当てはコアが決める。
+    private var destinationShortcuts: some View {
+        ForEach(navSections.flatMap(\.items).filter { $0.shortcutDigit != nil }, id: \.destination) { item in
+            Button(item.label) { selection = item.destination }
+                .keyboardShortcut(KeyEquivalent(Character(String(item.shortcutDigit!))), modifiers: .command)
+        }
+        .opacity(0)
+        .accessibilityHidden(true)
+    }
+
+    /// deeplink (Universal Links / imaslivedb://) を解決して該当ページへ遷移する。
+    /// 対象外 URL は無視、未知 ID / DB エラーはアラート (クラッシュ・空白画面にしない)。
     private func handleDeeplink(_ url: URL) {
         guard let link = DeeplinkRouter.parse(url) else { return }
-        // 着地タブはライブ (Events)。
-        selectedTab = 1
+        // 着地タブは対象の住所に合わせる (イベント/公演=ライブ、お題=プロデュース)。
+        // シートを閉じた後に「元居た場所」として自然な一覧が残るようにする。
+        selection = switch link {
+        case .poll: .produce
+        default: .events
+        }
         let destination: DetailDestination?
         do {
             destination = try DeeplinkRouter.destination(for: link, database: database)
@@ -154,9 +185,8 @@ struct ContentView: View {
             return
         }
         pendingDeeplinkDestination = destination
-        if showSearch || showSettings {
+        if showSettings {
             // 開いている sheet を閉じる → onDismiss → presentPendingDeeplink で提示する。
-            showSearch = false
             showSettings = false
         } else {
             presentPendingDeeplink()
@@ -189,38 +219,74 @@ struct SettingsToolbarButton: View {
     }
 }
 
-/// 各タブ最上位の toolbar に置く「全体検索」ボタン。
-/// タブ内検索 (このタブの一覧を絞り込む) とは役割が異なり、楽曲/アイドル/ライブを横断して探す。
-struct GlobalSearchToolbarButton: View {
+/// 行き先 1 つぶんの画面。タブバーでもサイドバーでも同じものを出す。
+private struct DestinationScreen: View {
+    let destination: AppDestination
+
     var body: some View {
-        Button {
-            NotificationCenter.default.post(name: .openGlobalSearch, object: nil)
-        } label: {
-            Image(systemName: "sparkle.magnifyingglass")
+        switch destination {
+        case .schedule: CalendarView().bottomBarsInset()
+        case .events: EventListView().bottomBarsInset()
+        case .songs: SongListView().bottomBarsInset()
+        case .idols: IdolListView().bottomBarsInset()
+        case .produce: ProduceTabView().bottomBarsInset()
+        // StatsView は自前の NavigationStack を持つ (プロデュースから push しても同じ)。
+        case .stats: StatsView().bottomBarsInset()
+        case .timeline: NavigationStack { BrandTimelineView() }.bottomBarsInset()
+        case .polls:
+            NavigationStack {
+                PollListView()
+                    .navigationDestination(for: PollRoute.self) { PollRouteView(route: $0) }
+            }
+            .bottomBarsInset()
+        case .callGuide: NavigationStack { CallGuideDashboardView() }.bottomBarsInset()
+        case .communityActivity: NavigationStack { RecentEditsView() }.bottomBarsInset()
+        case .tagActivity: NavigationStack { TagActivityView() }.bottomBarsInset()
+        case .games: NavigationStack { GamesHubView() }.bottomBarsInset()
         }
-        .accessibilityLabel("全体検索")
-        .accessibilityHint("楽曲・アイドル・ライブを横断して検索します")
     }
 }
 
-/// タブ内検索で結果が無い時に表示する空状態。同じ語句で「全体検索」へ 1 タップで橋渡しする。
-/// (タブ内検索=この一覧の絞り込み、全体検索=横断検索、という役割の違いを自然な導線で繋ぐ)
-struct InTabSearchEmptyView: View {
-    let query: String
+/// iOS 18 以降のルート。狭い画面はタブバー、広い画面はサイドバーに自動で切り替わる。
+@available(iOS 18, *)
+private struct AdaptiveRootTabs: View {
+    @Binding var selection: AppDestination
+    let primary: [NavItem]
+    let secondary: [NavSection]
+    @Environment(\.horizontalSizeClass) private var sizeClass
+
+    /// サイドバーだけの行き先は狭い画面では載せない。`defaultVisibility(.hidden)` だけだと
+    /// iPhone のタブバーが 5 枠を超えたと数えて「その他」に畳み、プロデュースが隠れる。
+    private var sidebarSections: [NavSection] { sizeClass == .compact ? [] : secondary }
 
     var body: some View {
-        ContentUnavailableView {
-            Label("見つかりません", systemImage: "magnifyingglass")
-        } description: {
-            Text("「\(query)」はこのタブにありません")
-        } actions: {
-            Button {
-                NotificationCenter.default.post(name: .openGlobalSearch, object: query)
-            } label: {
-                Label("全体から検索", systemImage: "sparkle.magnifyingglass")
+        TabView(selection: $selection) {
+            ForEach(primary, id: \.destination) { item in
+                tab(item)
             }
-            .buttonStyle(.borderedProminent)
+            ForEach(sidebarSections, id: \.title) { section in
+                TabSection(section.title ?? "") {
+                    ForEach(section.items, id: \.destination) { item in
+                        tab(item).defaultVisibility(.hidden, for: .tabBar)
+                    }
+                }
+            }
         }
-        .onAppear { AppAnalytics.event("search_empty") }
+        .tabViewStyle(.sidebarAdaptable)
+        // 広い画面は最初からサイドバーで開く (タブバーへの切替はツールバーのボタンで残る)。
+        .defaultAdaptableTabBarPlacement(.sidebar)
+        // iPad の画面分割などで狭くなったとき、サイドバーだけの行き先に居たら
+        // 同じ画面の入口があるプロデュースへ戻す (空の選択を残さない)。
+        .onChange(of: sizeClass) { _, newValue in
+            if newValue == .compact, !primary.contains(where: { $0.destination == selection }) {
+                selection = .produce
+            }
+        }
+    }
+
+    private func tab(_ item: NavItem) -> some TabContent<AppDestination> {
+        Tab(item.label, systemImage: item.destination.systemImage, value: item.destination) {
+            DestinationScreen(destination: item.destination)
+        }
     }
 }

@@ -1,0 +1,9 @@
+{
+ "title": "events の ev_灯里愛夏_birthday_online_live_2026 の分類を前例に揃える",
+ "author": "daily-data-crawl 2026-09-23",
+ "source": "https://idolmaster-official.jp/news/01_19896",
+ "note": "insert_future_events.py は event_type / is_streaming を入れないため、同シリーズの ev_上水流宇宙_birthday_online_live_2026 (birthday / 1) に揃える。公式の開催場所は ①ASOBI STAGE (配信) ②ユナイテッド・シネマ アクアシティお台場 (LV)。",
+ "fixes": [
+  {"table": "events", "id": "ev_灯里愛夏_birthday_online_live_2026", "fields": {"event_type": "birthday", "is_streaming": 1}}
+ ]
+}

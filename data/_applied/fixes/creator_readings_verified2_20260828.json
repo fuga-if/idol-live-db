@@ -1,0 +1,46 @@
+{
+ "title": "作家の読み仮名を裏取りして訂正する (第2次)",
+ "_help": "担当曲数の多い順に検証を継続し、追加で見つかった誤りを直す。",
+ "fixes": [
+  {
+   "table": "creators",
+   "id": "cr_83a7ead90dc1",
+   "fields": {
+    "name_kana": "やまさきひろこ"
+   },
+   "note": "検索で裏取りして訂正 (誤: やまざきひろこ)"
+  },
+  {
+   "table": "creators",
+   "id": "cr_142f44fbe244",
+   "fields": {
+    "name_kana": "ふじすえみき"
+   },
+   "note": "検索で裏取りして訂正 (誤: ふじすえたつき)"
+  },
+  {
+   "table": "creators",
+   "id": "cr_be2af21ccdec",
+   "fields": {
+    "name_kana": "わたなべしお"
+   },
+   "note": "検索で裏取りして訂正 (誤: わたべしお)"
+  },
+  {
+   "table": "creators",
+   "id": "cr_e8c06c18a43d",
+   "fields": {
+    "name_kana": "ささきひろし"
+   },
+   "note": "検索で裏取りして訂正 (誤: ささきゆう)"
+  },
+  {
+   "table": "creators",
+   "id": "cr_0bd36eaf6ecc",
+   "fields": {
+    "name_kana": "わたなべちぇる"
+   },
+   "note": "検索で裏取りして訂正 (誤: わたべちぇる)"
+  }
+ ]
+}

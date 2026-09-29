@@ -1,0 +1,442 @@
+{
+ "title": "複数人で歌う曲なのに song_type が solo になっているものを直す",
+ "author": "Claude (オーナー依頼: Decided がソロ扱い)",
+ "source": [
+  "derived:songs.singer_label と song_artists(role=original) の人数",
+  "THE IDOLM@STER LIVE THE@TER DREAMERS 02〜06 の CD クレジット",
+  "https://ja.wikipedia.org/wiki/THE_IDOLM@STER_LIVE_THE@TER_DREAMERS"
+ ],
+ "_help": "solo なのに原唱者が 2 人以上、または singer_label が複数人/ユニット名のものを洗い出した。双海亜美／真美 (1 枠として歌う) と、リミックス盤のアルバムアーティスト表記 (765PRO ALLSTARS) だけのものは solo のまま。原唱者が足りない曲は add_original_singers で足す (Funny Logic・わんだぁらんどの 亜美／真美 はスタ→トスタ→ と同じく 2 人とも入れる)",
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "ml_成長chulover",
+   "fields": {
+    "song_type": "unit"
+   },
+   "note": "LIVE THE@TER DREAMERS のデュエット曲。singer_label も原唱者も 2 人"
+  },
+  {
+   "table": "songs",
+   "id": "ml_エスケープ",
+   "fields": {
+    "song_type": "unit"
+   },
+   "note": "LIVE THE@TER DREAMERS のデュエット曲。singer_label も原唱者も 2 人"
+  },
+  {
+   "table": "songs",
+   "id": "ml_eternal_spiral",
+   "fields": {
+    "song_type": "unit"
+   },
+   "note": "LIVE THE@TER DREAMERS のデュエット曲。singer_label も原唱者も 2 人"
+  },
+  {
+   "table": "songs",
+   "id": "ml_piece_of_cake",
+   "fields": {
+    "song_type": "unit"
+   },
+   "note": "LIVE THE@TER DREAMERS のデュエット曲。singer_label も原唱者も 2 人"
+  },
+  {
+   "table": "songs",
+   "id": "ml_persona_voice",
+   "fields": {
+    "song_type": "unit"
+   },
+   "note": "LIVE THE@TER DREAMERS のデュエット曲。singer_label も原唱者も 2 人"
+  },
+  {
+   "table": "songs",
+   "id": "ml_cut_cut_cut",
+   "fields": {
+    "song_type": "unit"
+   },
+   "note": "LIVE THE@TER DREAMERS のデュエット曲。singer_label も原唱者も 2 人"
+  },
+  {
+   "table": "songs",
+   "id": "ml_smiling_crescent",
+   "fields": {
+    "song_type": "unit"
+   },
+   "note": "LIVE THE@TER DREAMERS のデュエット曲。singer_label も原唱者も 2 人"
+  },
+  {
+   "table": "songs",
+   "id": "ml_decided",
+   "fields": {
+    "song_type": "unit"
+   },
+   "note": "LIVE THE@TER DREAMERS のデュエット曲。singer_label も原唱者も 2 人"
+  },
+  {
+   "table": "songs",
+   "id": "ml_hello_your_angel",
+   "fields": {
+    "song_type": "unit"
+   },
+   "note": "LIVE THE@TER DREAMERS のデュエット曲。singer_label も原唱者も 2 人"
+  },
+  {
+   "table": "songs",
+   "id": "ml_gf",
+   "fields": {
+    "song_type": "unit"
+   },
+   "note": "LIVE THE@TER DREAMERS のデュエット曲。singer_label も原唱者も 2 人"
+  },
+  {
+   "table": "songs",
+   "id": "ml_little_trip_around_the_world",
+   "fields": {
+    "song_type": "unit"
+   },
+   "note": "LIVE THE@TER DREAMERS のデュエット曲。singer_label も原唱者も 2 人"
+  },
+  {
+   "table": "songs",
+   "id": "ml_melody_in_scape",
+   "fields": {
+    "song_type": "unit"
+   },
+   "note": "LIVE THE@TER DREAMERS のデュエット曲。singer_label も原唱者も 2 人"
+  },
+  {
+   "table": "songs",
+   "id": "ml_fruity_love",
+   "fields": {
+    "song_type": "unit"
+   },
+   "note": "LIVE THE@TER DREAMERS のデュエット曲。singer_label も原唱者も 2 人"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夜に輝く星座のように",
+   "fields": {
+    "song_type": "unit"
+   },
+   "note": "LIVE THE@TER DREAMERS のデュエット曲。singer_label も原唱者も 2 人"
+  },
+  {
+   "table": "songs",
+   "id": "ml_秘密のメモリーズ",
+   "fields": {
+    "song_type": "unit"
+   },
+   "note": "LIVE THE@TER DREAMERS のデュエット曲。singer_label も原唱者も 2 人"
+  },
+  {
+   "table": "songs",
+   "id": "ml_たしかな足跡",
+   "fields": {
+    "song_type": "unit"
+   },
+   "note": "LIVE THE@TER DREAMERS のデュエット曲。singer_label も原唱者も 2 人"
+  },
+  {
+   "table": "songs",
+   "id": "ml_beat_the_world",
+   "fields": {
+    "song_type": "unit"
+   },
+   "note": "LIVE THE@TER DREAMERS のデュエット曲。singer_label も原唱者も 2 人"
+  },
+  {
+   "table": "songs",
+   "id": "ml_emergence_vibe",
+   "fields": {
+    "song_type": "unit"
+   },
+   "note": "LIVE THE@TER DREAMERS のデュエット曲。singer_label も原唱者も 2 人"
+  },
+  {
+   "table": "songs",
+   "id": "ml_dreamscape",
+   "fields": {
+    "song_type": "unit"
+   },
+   "note": "LIVE THE@TER DREAMERS のデュエット曲。singer_label も原唱者も 2 人"
+  },
+  {
+   "table": "songs",
+   "id": "ml_アライブファクター",
+   "fields": {
+    "song_type": "unit"
+   },
+   "note": "LIVE THE@TER DREAMERS のデュエット曲。singer_label も原唱者も 2 人"
+  },
+  {
+   "table": "songs",
+   "id": "ml_ジャングルパーティー",
+   "fields": {
+    "song_type": "unit"
+   },
+   "note": "LIVE THE@TER DREAMERS のデュエット曲。singer_label も原唱者も 2 人"
+  },
+  {
+   "table": "songs",
+   "id": "ml_ハルカナミライ",
+   "fields": {
+    "song_type": "unit"
+   },
+   "note": "LIVE THE@TER DREAMERS のデュエット曲。singer_label も原唱者も 2 人"
+  },
+  {
+   "table": "songs",
+   "id": "ml_深層マーメイド",
+   "fields": {
+    "song_type": "unit"
+   },
+   "note": "LIVE THE@TER DREAMERS のデュエット曲。singer_label も原唱者も 2 人"
+  },
+  {
+   "table": "songs",
+   "id": "ml_your_home_town",
+   "fields": {
+    "song_type": "unit",
+    "singer_label": "木下ひなた×双海亜美",
+    "cd_series": "THE IDOLM@STER LIVE THE@TER DREAMERS 05 - EP"
+   },
+   "note": "LTD 05 のデュエット (木下ひなた×双海亜美)。LIVE THE@TER BEST 扱い・木下ひなたのソロになっていた",
+   "source": "https://ja.wikipedia.org/wiki/THE_IDOLM@STER_LIVE_THE@TER_DREAMERS",
+   "add_original_singers": [
+    "765as_双海亜美"
+   ]
+  },
+  {
+   "table": "songs",
+   "id": "ml_understand_understand",
+   "fields": {
+    "cd_series": "THE IDOLM@STER LIVE THE@TER DREAMERS 06 - EP"
+   },
+   "note": "LTD 06 のデュエット (高坂海美×田中琴葉)。song_type は unit で正しいが、収録 CD が LIVE THE@TER BEST になっていた",
+   "source": "https://ja.wikipedia.org/wiki/THE_IDOLM@STER_LIVE_THE@TER_DREAMERS"
+  },
+  {
+   "table": "songs",
+   "id": "cg_happy2_days",
+   "fields": {
+    "song_type": "unit"
+   },
+   "note": "CANDY ISLAND のユニット曲。unit_id も原唱者 (複数) も入っている。同じ表記の cg_memories は unit"
+  },
+  {
+   "table": "songs",
+   "id": "cg_lets_go_happy",
+   "fields": {
+    "song_type": "unit"
+   },
+   "note": "凸レーション のユニット曲。unit_id も原唱者 (複数) も入っている。同じ表記の cg_memories は unit"
+  },
+  {
+   "table": "songs",
+   "id": "cg_できたてevo_revo_generation",
+   "fields": {
+    "song_type": "unit"
+   },
+   "note": "new generations のユニット曲。unit_id も原唱者 (複数) も入っている。同じ表記の cg_memories は unit"
+  },
+  {
+   "table": "songs",
+   "id": "cg_wonder_goes_on",
+   "fields": {
+    "song_type": "unit"
+   },
+   "note": "＊(Asterisk) のユニット曲。unit_id も原唱者 (複数) も入っている。同じ表記の cg_memories は unit"
+  },
+  {
+   "table": "songs",
+   "id": "cg_この空の下",
+   "fields": {
+    "song_type": "unit"
+   },
+   "note": "LOVE LAIKA のユニット曲。unit_id も原唱者 (複数) も入っている。同じ表記の cg_memories は unit"
+  },
+  {
+   "table": "songs",
+   "id": "cg_心もよう",
+   "fields": {
+    "song_type": "unit"
+   },
+   "note": "new generations のユニット曲。unit_id も原唱者 (複数) も入っている。同じ表記の cg_memories は unit"
+  },
+  {
+   "table": "songs",
+   "id": "765as_てがみうた",
+   "fields": {
+    "song_type": "unit"
+   },
+   "note": "今井麻美＆たかはし智秋 のデュエット (RADIO シリーズ)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_高速道路",
+   "fields": {
+    "song_type": "unit"
+   },
+   "note": "浅倉杏美・原由実 のデュエット (STATION!!!)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_funny_logic",
+   "fields": {
+    "song_type": "unit"
+   },
+   "note": "高槻やよい・双海亜美/真美 のデュエット (MASTER PRIMAL DANCIN' BLUE)",
+   "add_original_singers": [
+    "765as_双海亜美",
+    "765as_双海真美"
+   ]
+  },
+  {
+   "table": "songs",
+   "id": "cg_ジュビリー",
+   "fields": {
+    "song_type": "unit"
+   },
+   "note": "星街すいせい×高垣楓 のコラボデュエット"
+  },
+  {
+   "table": "songs",
+   "id": "cg_お願いシンデレラハピハピver",
+   "fields": {
+    "song_type": "unit"
+   },
+   "note": "CINDERELLA GIRLS for あんきら (双葉杏・諸星きらり) 版",
+   "add_original_singers": [
+    "cg_諸星きらり"
+   ]
+  },
+  {
+   "table": "songs",
+   "id": "765as_らららわんだぁらんど",
+   "fields": {
+    "song_type": "all"
+   },
+   "note": "765PRO ALLSTARS 13 人とぷちどるの全員曲",
+   "add_original_singers": [
+    "765as_天海春香",
+    "765as_如月千早",
+    "765as_萩原雪歩",
+    "765as_高槻やよい",
+    "765as_秋月律子",
+    "765as_三浦あずさ",
+    "765as_水瀬伊織",
+    "765as_菊地真",
+    "765as_双海真美",
+    "765as_星井美希",
+    "765as_我那覇響",
+    "765as_四条貴音"
+   ]
+  },
+  {
+   "table": "songs",
+   "id": "765as_らららわんだぁらんどとろぴかるremix",
+   "fields": {
+    "song_type": "all"
+   },
+   "note": "ら♪ら♪ら♪わんだぁらんど の Remix。原曲と同じく全員曲",
+   "add_original_singers": [
+    "765as_天海春香",
+    "765as_如月千早",
+    "765as_萩原雪歩",
+    "765as_高槻やよい",
+    "765as_秋月律子",
+    "765as_三浦あずさ",
+    "765as_水瀬伊織",
+    "765as_菊地真",
+    "765as_双海真美",
+    "765as_星井美希",
+    "765as_我那覇響",
+    "765as_四条貴音"
+   ]
+  },
+  {
+   "table": "songs",
+   "id": "765as_smoky_thrill",
+   "fields": {
+    "song_type": "unit",
+    "singer_label": "竜宮小町",
+    "unit_name": "竜宮小町",
+    "unit_id": "竜宮小町"
+   },
+   "note": "竜宮小町 (水瀬伊織・三浦あずさ・双海亜美) の曲",
+   "source": "https://www.uta-net.com/song/125289/",
+   "add_original_singers": [
+    "765as_水瀬伊織",
+    "765as_双海亜美"
+   ]
+  },
+  {
+   "table": "songs",
+   "id": "765as_ハニカミファーストバイト",
+   "fields": {
+    "song_type": "unit",
+    "singer_label": "竜宮小町",
+    "unit_name": "竜宮小町",
+    "unit_id": "竜宮小町"
+   },
+   "note": "竜宮小町の曲。アニメ 8 話 ED",
+   "source": [
+    "https://imas-db.jp/song/detail/171.html",
+    "https://recochoku.jp/song/S21189157/"
+   ],
+   "add_original_singers": [
+    "765as_水瀬伊織",
+    "765as_双海亜美"
+   ]
+  },
+  {
+   "table": "songs",
+   "id": "cg_私色ギフト",
+   "fields": {
+    "song_type": "unit",
+    "singer_label": "凸レーション with 城ヶ崎美嘉",
+    "unit_name": "凸レーション",
+    "unit_id": "凸レーション"
+   },
+   "note": "アニメ 2nd Season 17 話 ED の書き下ろし (カバーではない)。凸レーション (莉嘉・きらり・みりあ) with 城ヶ崎美嘉",
+   "source": [
+    "https://cinderellagirls.idolmaster-official.jp/discography/cocc-17062/",
+    "https://www.uta-net.com/movie/196017/"
+   ],
+   "add_original_singers": [
+    "cg_諸星きらり",
+    "cg_赤城みりあ",
+    "cg_城ヶ崎美嘉"
+   ]
+  },
+  {
+   "table": "songs",
+   "id": "cg_heart_voice",
+   "fields": {
+    "song_type": "unit",
+    "singer_label": "CANDY ISLAND with 輿水幸子",
+    "unit_name": "CANDY ISLAND",
+    "unit_id": "unit_candy_island"
+   },
+   "note": "アニメ 2nd Season 18 話 ED の書き下ろし (カバーではない)。CANDY ISLAND (杏・かな子・智絵里) with 輿水幸子",
+   "source": [
+    "https://cinderellagirls.idolmaster-official.jp/discography/cocc-17062/",
+    "https://dere-ken.com/?p=27616"
+   ],
+   "add_original_singers": [
+    "cg_三村かな子",
+    "cg_緒方智絵里",
+    "cg_輿水幸子"
+   ]
+  },
+  {
+   "table": "songs",
+   "id": "765as_maybe_tomorrow",
+   "fields": {
+    "singer_label": "水瀬伊織"
+   },
+   "note": "Twelve Seasons! Vol.9 収録の水瀬伊織のソロ版。solo のままで正しく、表記だけ 765PRO ALLSTARS になっていた",
+   "source": "https://www.uta-net.com/song/148330/"
+  }
+ ]
+}

@@ -1,0 +1,179 @@
+name: iOS Guard
+
+# iOS のビルドとユニットテスト。
+#
+# テストがローカル実行の記憶に頼っていたので CI に置いた。
+# 公開リポジトリなので macOS runner も無料枠。secret は使わず、証明書での署名もしない
+# (アドホック署名でシミュレータ向けにビルドする。CODE_SIGNING_ALLOWED=NO が使えない
+# 理由は Test の段)。
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'ImasLiveDB/**'
+      - 'ImasLiveDBTests/**'
+      - 'ImasLiveDBWidget/**'
+      - 'imas-core/**'
+      - 'imas-text-fold/**'
+      - 'project.yml'
+      - '.github/workflows/ios-guard.yml'
+  pull_request:
+    paths:
+      - 'ImasLiveDB/**'
+      - 'ImasLiveDBTests/**'
+      - 'ImasLiveDBWidget/**'
+      - 'imas-core/**'
+      - 'imas-text-fold/**'
+      - 'project.yml'
+      - '.github/workflows/ios-guard.yml'
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Install xcodegen
+        run: brew install xcodegen
+
+      # xcodegen が build/imas-core/swift/imas_core.swift を sources に要求するので、
+      # プロジェクト生成の前にコアをビルドする。これが無いと
+      # 「Target "ImasLiveDB" has a missing source directory」で落ちる。
+      # --ios-only で Android 側 (NDK が要る) を飛ばす。
+      - name: Install Rust iOS targets
+        run: rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            imas-core/target
+          key: ${{ runner.os }}-imas-core-${{ hashFiles('imas-core/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-imas-core-
+
+      - name: Build imas-core (iOS only)
+        run: bash imas-core/build.sh --ios-only
+
+      # 同梱 master.sqlite は gitignore で各自生成する運用 (docs/DATA_PIPELINE.md)。
+      # FK 整合性ゲートも兼ねるので CI でも同じ手順で作る。
+      - name: Build master.sqlite from db/master.sql
+        run: bash tools/build_db.sh
+
+      # GoogleService-Info.plist は Firebase の秘匿ファイルで gitignore 対象。
+      # CI には存在しないが、バンドルへの参照は project.yml に残るためビルドが落ちる。
+      # 解析を有効化しないダミーを置いて通す (AppAnalytics は値が不正なら no-op)。
+      - name: Place placeholder GoogleService-Info.plist
+        run: |
+          PLIST=ImasLiveDB/Resources/GoogleService-Info.plist
+          if [ ! -f "$PLIST" ]; then
+            cat > "$PLIST" <<'PLISTEOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>API_KEY</key><string>ci-placeholder</string>
+            <key>GCM_SENDER_ID</key><string>000000000000</string>
+            <key>BUNDLE_ID</key><string>com.fugaif.ImasLiveDB</string>
+            <key>PROJECT_ID</key><string>ci-placeholder</string>
+            <key>GOOGLE_APP_ID</key><string>1:000000000000:ios:0000000000000000</string>
+            <key>IS_ANALYTICS_ENABLED</key><false/>
+          </dict>
+          </plist>
+          PLISTEOF
+          fi
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      # 利用可能なシミュレータは runner イメージによって変わるので、
+      # 名前を決め打ちせず実在する iPhone を 1 台選ぶ。
+      - name: Pick a simulator
+        id: sim
+        run: |
+          xcrun simctl list devices available --json > /tmp/sims.json
+          python3 tools/pick_simulator.py /tmp/sims.json >> "$GITHUB_OUTPUT"
+          cat "$GITHUB_OUTPUT"
+
+      # シミュレータを先に起動しきっておく。冷えた状態で `xcodebuild test` を始めると、
+      # シミュレータの初期化とアプリの起動が重なり、テストホストが
+      # 「Early unexpected exit, operation never finished bootstrapping」で落ちることがある。
+      # runner は開発機より遅いぶんこの窓が広い。
+      - name: Boot the simulator first
+        run: |
+          xcrun simctl boot "${{ steps.sim.outputs.udid }}" || true
+          xcrun simctl bootstatus "${{ steps.sim.outputs.udid }}" -b
+
+      # 署名はアドホック ("-") にする。runner に Apple Developer の証明書は無いので
+      # DEVELOPMENT_TEAM を空にして自動プロビジョニングを止める。
+      # ⚠️ CODE_SIGNING_ALLOWED=NO は使えない。署名が無いと Keychain (KeychainStore /
+      #    Firebase Installations) が SecItemCopyMatching -34018 で失敗しテストが落ちる。
+      # ⚠️ `| tail -60` にしない。テストが途中でアプリごと落ちたとき、原因は
+      #    クラッシュログ側にあって末尾 60 行には出てこない。結果は xcresult に
+      #    入るので、落ちたときだけ artifact に上げて中身を見られるようにする。
+      - name: Test
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -scheme ImasLiveDB \
+            -destination "id=${{ steps.sim.outputs.udid }}" \
+            -resultBundlePath TestResults.xcresult \
+            -test-timeouts-enabled YES \
+            -maximum-test-execution-time-allowance 300 \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGN_STYLE=Manual \
+            DEVELOPMENT_TEAM="" \
+            PROVISIONING_PROFILE_SPECIFIER="" \
+            > xcodebuild.log 2>&1 || {
+              echo "::group::失敗したテストと理由"
+              grep -nE "error:|Restarting after|Fatal|Assertion|Exception|Test Case .* failed|crashed" \
+                xcodebuild.log | tail -80
+              echo "::endgroup::"
+              echo "::group::末尾 120 行"
+              tail -120 xcodebuild.log
+              echo "::endgroup::"
+              exit 1
+            }
+          tail -20 xcodebuild.log
+
+      # テストホストが起動中に SIGTRAP で落ちると、原因（強制アンラップ・境界外・
+      # precondition のどれか）はシミュレータのクラッシュレポート (.ips) にしか出ない。
+      # xcodebuild のログにも xcresult にも入らないので、ここで拾って中身をログに出す。
+      - name: Collect simulator crash logs
+        if: failure()
+        run: |
+          mkdir -p crashlogs
+          # ブートしたシミュレータと共有ドメインの両方の DiagnosticReports を漁る。
+          for base in \
+            "$HOME/Library/Developer/CoreSimulator/Devices/${{ steps.sim.outputs.udid }}/data/Library/Logs/DiagnosticReports" \
+            "$HOME/Library/Logs/DiagnosticReports"; do
+            [ -d "$base" ] || continue
+            find "$base" -type f \( -name "ImasLiveDB*.ips" -o -name "ImasLiveDB*.crash" \) \
+              -exec cp {} crashlogs/ \; 2>/dev/null || true
+          done
+          echo "=== 集めたクラッシュレポート ==="
+          ls -la crashlogs/ || echo "(なし)"
+          echo "::group::クラッシュレポートの中身（スタックトレース）"
+          for f in crashlogs/*; do
+            [ -f "$f" ] || continue
+            echo "───── $f ─────"
+            # .ips は 1 行目が JSON メタ、2 行目以降が本体 JSON。両方そのまま出す。
+            cat "$f"
+            echo
+          done
+          echo "::endgroup::"
+
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcresult
+          path: |
+            TestResults.xcresult
+            xcodebuild.log
+            crashlogs
+          retention-days: 7

@@ -1,0 +1,202 @@
+{
+ "title": "ミリオンライブ！のディスコグラフィ (Wikipedia) から拾った補足: ライブ書き下ろし曲・ラジオ主題歌・シリーズ合同曲・ミリシタの企画曲",
+ "source": "https://ja.wikipedia.org/wiki/%E3%82%A2%E3%82%A4%E3%83%89%E3%83%AB%E3%83%9E%E3%82%B9%E3%82%BF%E3%83%BC_%E3%83%9F%E3%83%AA%E3%82%AA%E3%83%B3%E3%83%A9%E3%82%A4%E3%83%96!%E3%81%AE%E3%83%87%E3%82%A3%E3%82%B9%E3%82%B3%E3%82%B0%E3%83%A9%E3%83%95%E3%82%A3",
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "ml_colors_on_canvas",
+   "fields": {
+    "note": "ミリオンライブ！ 11thLIVE DAY1「Atelier ROCOMOTION!!」 のための書き下ろし曲"
+   }
+  },
+  {
+   "table": "songs",
+   "id": "ml_君と同じ物語",
+   "fields": {
+    "note": "ミリオンライブ！ 11thLIVE DAY2「百合咲き誇るレムリア」 のための書き下ろし曲"
+   }
+  },
+  {
+   "table": "songs",
+   "id": "ml_irodori",
+   "fields": {
+    "note": "ミリオンライブ！ 12thLIVE DAY1「ありのままに。」 のための書き下ろし曲"
+   }
+  },
+  {
+   "table": "songs",
+   "id": "ml_enjoyfeel",
+   "fields": {
+    "note": "ミリオンライブ！ 12thLIVE DAY2「Let's Sing!」 のための書き下ろし曲"
+   }
+  },
+  {
+   "table": "songs",
+   "id": "ml_sparkers",
+   "fields": {
+    "note": "ミリオンライブ！ 13thLIVE DAY1「全力援走」 のための書き下ろし曲"
+   }
+  },
+  {
+   "table": "songs",
+   "id": "ml_ムーンライトプロムナード",
+   "fields": {
+    "note": "ミリオンライブ！ 13thLIVE DAY2「Grand bal masqué」 のための書き下ろし曲"
+   }
+  },
+  {
+   "table": "songs",
+   "id": "ml_ひととせ結び",
+   "fields": {
+    "note": "ミリオンライブ！ 14thLIVE DAY1「夢咲くワンダーミラージュ」 のための書き下ろし曲"
+   }
+  },
+  {
+   "table": "songs",
+   "id": "ml_ネバーエンドワンダーランド",
+   "fields": {
+    "note": "ミリオンライブ！ 14thLIVE DAY1「夢咲くワンダーミラージュ」 のための書き下ろし曲"
+   }
+  },
+  {
+   "table": "songs",
+   "id": "ml_パルティシオン",
+   "fields": {
+    "note": "ミリオンライブ！ 14thLIVE DAY1「夢咲くワンダーミラージュ」 のための書き下ろし曲"
+   }
+  },
+  {
+   "table": "songs",
+   "id": "ml_if_i",
+   "fields": {
+    "note": "ミリオンライブ！ 14thLIVE DAY2「Blooming Sign」 のための書き下ろし曲"
+   }
+  },
+  {
+   "table": "songs",
+   "id": "ml_waking_up_my_heart",
+   "fields": {
+    "note": "ミリオンライブ！ 14thLIVE DAY2「Blooming Sign」 のための書き下ろし曲"
+   }
+  },
+  {
+   "table": "songs",
+   "id": "ml_present",
+   "fields": {
+    "note": "ミリオンライブ！ 14thLIVE DAY2「Blooming Sign」 のための書き下ろし曲"
+   }
+  },
+  {
+   "table": "songs",
+   "id": "765as_unmei_ライブ",
+   "fields": {
+    "note": "ラジオ「THE IDOLM@STER MillionRADIO」テーマソング"
+   }
+  },
+  {
+   "table": "songs",
+   "id": "765as_ターンオンタイム",
+   "fields": {
+    "note": "ラジオ「THE IDOLM@STER MillionRADIO」テーマソング"
+   }
+  },
+  {
+   "table": "songs",
+   "id": "765as_endless_tour",
+   "fields": {
+    "note": "ラジオ「THE IDOLM@STER MillionRADIO」テーマソング"
+   }
+  },
+  {
+   "table": "songs",
+   "id": "765as_second_livingroom",
+   "fields": {
+    "note": "ラジオ「THE IDOLM@STER MillionRADIO」テーマソング"
+   }
+  },
+  {
+   "table": "songs",
+   "id": "765as_さんぶんのいち",
+   "fields": {
+    "note": "ラジオ「THE IDOLM@STER MillionRADIO」テーマソング"
+   }
+  },
+  {
+   "table": "songs",
+   "id": "765as_reward_sweets",
+   "fields": {
+    "note": "ラジオ「THE IDOLM@STER MillionRADIO」テーマソング"
+   }
+  },
+  {
+   "table": "songs",
+   "id": "765as_idol_power_rainbow",
+   "fields": {
+    "note": "THE IDOLM@STER M@STERS OF IDOL WORLD!!2014 テーマソング"
+   }
+  },
+  {
+   "table": "songs",
+   "id": "765as_アイ_must_go",
+   "fields": {
+    "note": "THE IDOLM@STER M@STERS OF IDOL WORLD!!2015 テーマソング"
+   }
+  },
+  {
+   "table": "songs",
+   "id": "765as_なんどでも笑おう",
+   "fields": {
+    "note": "アイドルマスターシリーズ 15 周年記念曲"
+   }
+  },
+  {
+   "table": "songs",
+   "id": "765as_voyger",
+   "fields": {
+    "note": "アイドルマスターシリーズ 2021 年イメージソング"
+   }
+  },
+  {
+   "table": "songs",
+   "id": "765as_異次元bigbang",
+   "fields": {
+    "note": "異次元フェス アイドルマスター★♥ラブライブ！歌合戦 テーマソング"
+   }
+  },
+  {
+   "table": "songs",
+   "id": "ml_カーテシーフラワー",
+   "fields": {
+    "note": "ミリシタ アドバンストコミュ「聖ミリオン女学園」楽曲"
+   }
+  },
+  {
+   "table": "songs",
+   "id": "ml_聖ミリオン女学園校歌",
+   "fields": {
+    "note": "ミリシタ アドバンストコミュ「聖ミリオン女学園」楽曲"
+   }
+  },
+  {
+   "table": "songs",
+   "id": "ml_花びらメモリーズ",
+   "fields": {
+    "note": "ミリシタ アドバンストコミュ「聖ミリオン女学園」楽曲"
+   }
+  },
+  {
+   "table": "songs",
+   "id": "ml_唸れミリオンアーマー",
+   "fields": {
+    "note": "ミリシタ イベント「アイドル戦記ミリオンアーマー」楽曲"
+   }
+  },
+  {
+   "table": "songs",
+   "id": "ml_lullaby_for_armors",
+   "fields": {
+    "note": "ミリシタ イベント「アイドル戦記ミリオンアーマー」楽曲"
+   }
+  }
+ ]
+}

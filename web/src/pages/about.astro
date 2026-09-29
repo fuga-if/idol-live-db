@@ -1,0 +1,51 @@
+---
+import ListLayout from "../layouts/ListLayout.astro";
+import Section from "../components/Section.astro";
+import StatTiles from "../components/StatTiles.astro";
+import ListContainer from "../components/ListContainer.astro";
+import LabeledRow from "../components/LabeledRow.astro";
+import { page, routeData } from "../lib/data";
+import type { AboutPage } from "../lib/schema/AboutPage";
+
+/**
+ * このサイトについて。
+ * 見出し・本文・リンク (非公式表記 / 版権方針 / JASRAC の文言 / ライセンス) は
+ * すべて Rust の `AboutPage.sections` が持つ。ここは並べるだけ。
+ */
+const about = page<AboutPage>(routeData("about", "/about/"));
+---
+
+<ListLayout seo={about.seo} title="このサイトについて">
+
+  <Section id="about-scale" title="収録データ">
+    <StatTiles tiles={about.statTiles} />
+  </Section>
+
+  {
+    about.sections.map((s, i) => (
+      <Section id={`about-s${i}`} title={s.heading}>
+        <div class="card card__pad u-stack">
+          {s.paragraphs.map((p) => (
+            <p>{p}</p>
+          ))}
+          {s.links.length > 0 && (
+            <p class="u-row">
+              {s.links.map((l) => (
+                <a class="btn btn--ghost" href={l.href}>{l.label}</a>
+              ))}
+            </p>
+          )}
+        </div>
+      </Section>
+    ))
+  }
+
+  <Section id="about-freshness" title="データの更新">
+    <ListContainer>
+      <LabeledRow label="基準日 (JST)" value={about.todayJst} mono />
+      <LabeledRow label="生成日時" value={about.generatedAt} mono />
+      {about.dataVersion && <LabeledRow label="データ版" value={about.dataVersion} mono />}
+      {about.contentHash && <LabeledRow label="内容ハッシュ" value={about.contentHash} mono />}
+    </ListContainer>
+  </Section>
+</ListLayout>

@@ -1,0 +1,9 @@
+---
+import CalendarView from "../../components/CalendarView.astro";
+import { page, routeData } from "../../lib/data";
+import type { CalendarPage } from "../../lib/schema/CalendarPage";
+/** 今月のカレンダー (月のページの写し。正規 URL は月のページ)。 */
+const cal = page<CalendarPage>(routeData("calendarIndex", "/calendar/"));
+---
+
+<CalendarView page={cal} />

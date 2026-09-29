@@ -1,0 +1,124 @@
+{
+ "title": "公演 sh_学園アイドルマスター_live_tour_-標-_岩手公演_1 のセットリスト追加",
+ "author": "LLM 提案 (propose_setlist)",
+ "source": "https://gakuen.idolmaster-official.jp/",
+ "note": "出典: https://gakuen.idolmaster-official.jp/\n引用: \"学園アイドルマスター LIVE TOUR -標- 岩手公演 セットリスト / トーサイクラシックホール岩手 (岩手県民会館) 大ホール / DAY1 2026.09.22 TUE / 1. Superlative 春咲 暖 / 2. Love & Joy 湊 みや / 3. 憧れをいっぱい 伊藤 舞音 / 4. 小さな野望 陽高 真白 / 5. 修楽旅行 伊藤 舞音・湊 みや・春咲 暖・陽高 真白 / 6. Ride on Beat 湊 みや / 7. Choo Choo Choo 陽高 真白 / 8. 海奏ララバイ 春咲 暖 / 9. ワタシカワイイアヒルノコ 伊藤 舞音 / 10. Cosmetic 陽高 真白 / 11. たいせつなもの 春咲 暖 / 12. カクシタワタシ 湊 みや / 13. Wonder Scale 伊藤 舞音 / 14. 古今東西ちょちょいのちょい 伊藤 舞音・湊 みや・春咲 暖・陽高 真白 / 15. 標 (同) / 16. Agitato (同) / 17. 初 (同)\"\n公式セットリスト画像より。画像の歌唱者は声優名表記なのでアイドル名に置き換えている (伊藤舞音=倉本千奈 / 湊みや=紫雲清夏 / 春咲暖=秦谷美鈴 / 陽高真白=十王星南、idol_voice_actors と一致)。5 の修楽旅行は公演の出演メンバーごとに版が分かれるため岩手公演版を新規に立てた。8 海奏ララバイ・9 ワタシカワイイアヒルノコ・16 Agitato はこの公演が初披露。",
+ "show_id": "sh_学園アイドルマスター_live_tour_-標-_岩手公演_1",
+ "all_performers": [
+  "gakuen_倉本千奈",
+  "gakuen_紫雲清夏",
+  "gakuen_秦谷美鈴",
+  "gakuen_十王星南"
+ ],
+ "songs": [
+  {
+   "position": 1,
+   "song_id": "gakuen_superlative",
+   "performers": [
+    "gakuen_秦谷美鈴"
+   ]
+  },
+  {
+   "position": 2,
+   "song_id": "gakuen_love_joy",
+   "performers": [
+    "gakuen_紫雲清夏"
+   ]
+  },
+  {
+   "position": 3,
+   "song_id": "gakuen_憧れをいっぱい",
+   "performers": [
+    "gakuen_倉本千奈"
+   ]
+  },
+  {
+   "position": 4,
+   "song_id": "gakuen_小さな野望",
+   "performers": [
+    "gakuen_十王星南"
+   ]
+  },
+  {
+   "position": 5,
+   "song_id": "gakuen_修楽旅行_倉本千奈紫雲清夏秦谷美鈴十王星南ver",
+   "performers": "all"
+  },
+  {
+   "position": 6,
+   "song_id": "gakuen_ride_on_beat",
+   "performers": [
+    "gakuen_紫雲清夏"
+   ]
+  },
+  {
+   "position": 7,
+   "song_id": "gakuen_choo_choo_choo",
+   "performers": [
+    "gakuen_十王星南"
+   ]
+  },
+  {
+   "position": 8,
+   "song_id": "gakuen_海奏ララバイ",
+   "performers": [
+    "gakuen_秦谷美鈴"
+   ]
+  },
+  {
+   "position": 9,
+   "song_id": "gakuen_ワタシカワイイアヒルノコ",
+   "performers": [
+    "gakuen_倉本千奈"
+   ]
+  },
+  {
+   "position": 10,
+   "song_id": "gakuen_cosmetic",
+   "performers": [
+    "gakuen_十王星南"
+   ]
+  },
+  {
+   "position": 11,
+   "song_id": "gakuen_たいせつなもの",
+   "performers": [
+    "gakuen_秦谷美鈴"
+   ]
+  },
+  {
+   "position": 12,
+   "song_id": "gakuen_カクシタワタシ",
+   "performers": [
+    "gakuen_紫雲清夏"
+   ]
+  },
+  {
+   "position": 13,
+   "song_id": "gakuen_wonder_scale",
+   "performers": [
+    "gakuen_倉本千奈"
+   ]
+  },
+  {
+   "position": 14,
+   "song_id": "gakuen_古今東西ちょちょいのちょい",
+   "performers": "all"
+  },
+  {
+   "position": 15,
+   "song_id": "gakuen_標",
+   "performers": "all"
+  },
+  {
+   "position": 16,
+   "song_id": "gakuen_agitato",
+   "performers": "all"
+  },
+  {
+   "position": 17,
+   "song_id": "gakuen_初",
+   "performers": "all"
+  }
+ ]
+}

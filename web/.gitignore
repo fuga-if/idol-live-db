@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.astro/
+.cache/
+.wrangler/
+
+# web-export (Rust) の出力。`npm run export` が再生成する
+data/
+# wasm-pack の出力。Vite が glue の new URL(...) を解決して
+# content-hash 付きのアセットとして dist に出す。
+src/lib/fold/

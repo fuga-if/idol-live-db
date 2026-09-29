@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "path": "/brands/",
+  "title": "ブランド",
+  "items": [
+    {
+      "ref": {
+        "kind": "brand",
+        "id": "ml",
+        "name": "アイドルマスター ミリオンライブ!",
+        "sub": "ML",
+        "path": "/brands/ml/",
+        "themeKey": "brand:ml",
+        "artworkUrl": null
+      },
+      "shortName": "ML",
+      "glyph": "ML",
+      "previewDisplay": "ライブ 210 ・ 楽曲 600 ・ アイドル 52 ・ ユニット 300"
+    },
+    {
+      "ref": {
+        "kind": "brand",
+        "id": "cg",
+        "name": "アイドルマスター シンデレラガールズ",
+        "sub": "CG",
+        "path": "/brands/cg/",
+        "themeKey": "brand:cg",
+        "artworkUrl": null
+      },
+      "shortName": "CG",
+      "glyph": "CG",
+      "previewDisplay": "ライブ 210 ・ 楽曲 600 ・ アイドル 52 ・ ユニット 300"
+    },
+    {
+      "ref": {
+        "kind": "brand",
+        "id": "other",
+        "name": "その他",
+        "sub": "その他",
+        "path": "/brands/other/",
+        "themeKey": "neutral",
+        "artworkUrl": null
+      },
+      "shortName": "その他",
+      "glyph": "その他",
+      "previewDisplay": "ライブ 210 ・ 楽曲 600 ・ アイドル 52 ・ ユニット 300"
+    }
+  ],
+  "seo": {
+    "title": "ブランド | アイドルライブDB",
+    "description": "ブランドの一覧。",
+    "canonical": "https://idollivedb.fugaapp.site/brands/",
+    "ogImage": "https://idollivedb.fugaapp.site/og/default.png",
+    "robots": "index,follow",
+    "jsonLd": {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebPage",
+          "name": "ブランド",
+          "url": "https://idollivedb.fugaapp.site/brands/"
+        },
+        {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "item": "https://idollivedb.fugaapp.site/",
+              "name": "ホーム",
+              "position": 1
+            }
+          ]
+        }
+      ]
+    },
+    "breadcrumbs": [
+      {
+        "name": "ホーム",
+        "path": "/"
+      }
+    ]
+  }
+}

@@ -1,0 +1,35 @@
+---
+import type { Ref } from "../lib/schema/Ref";
+/**
+ * 歌唱者 1 人 — 名前の下にアイドル色の線。並べるとペンライトの帯のように見え、
+ * 誰が・何人歌ったかが色で分かる (版権物ゼロなので、色だけが「顔」)。
+ *
+ * **両方の名前を持たせ、どちらを出すかは CSS で切り替える。** 表示の規則
+ * (どのモードで何を主/副にするか) は imas-core の `performer_display_name` が持ち、
+ * JS は選ばれたモードをルート要素の data 属性に書くだけ。JS が動かない環境や
+ * 既定の閲覧者には、サーバが描いたアイドル名がそのまま出る。
+ *
+ * `castName` が無い = CV 不在 (この判断も Rust 側)。その人はどのモードでも
+ * アイドル名のまま出す。
+ *
+ * `absent`: 原唱者だがこの行では歌っていない人。線を破線に、文字を薄くする。
+ */
+interface Props {
+  ref: Ref;
+  castName?: string | null;
+  absent?: boolean;
+}
+const { ref, castName = null, absent = false } = Astro.props;
+---
+
+<a
+  class:list={["performer", absent && "performer--absent"]}
+  href={ref.path}
+  data-theme={ref.themeKey}
+  data-no-cast={castName === null ? "true" : undefined}
+>
+  <span class="performer__names">
+    <span class="performer__idol">{ref.name}</span>
+    {castName && <span class="performer__cast">{castName}</span>}
+  </span>
+</a>

@@ -6,7 +6,6 @@ import SwiftUI
 /// SetlistPredictionView 内の各曲行から展開して表示する。
 /// 候補アイドル = その公演の show_cast に登録されたキャスト。
 struct PerformerPredictionView: View {
-    @Environment(AppDatabase.self) private var database
     @Environment(\.colorScheme) private var scheme
 
     let showId: String
@@ -100,8 +99,8 @@ struct PerformerPredictionView: View {
     private func load() async {
         isLoading = true
         errorMessage = nil
-        // castIdols は @MainActor 上の同期 DB 読み取り。async let と組み合わせず順次呼ぶ。
-        castIdols = (try? database.fetchShowCastIdols(showId: showId)) ?? []
+        // 出演キャストはポート経由でオフメイン取得。予想データ取得と順次呼ぶ。
+        castIdols = (try? await AppContainer.shared.showReading.showCastIdols(showId: showId)) ?? []
         performers = (try? await predictionService.fetchPerformers(showId: showId, songId: songId)) ?? []
         isLoading = false
     }

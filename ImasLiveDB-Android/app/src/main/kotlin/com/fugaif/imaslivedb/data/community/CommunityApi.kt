@@ -1,24 +1,63 @@
 package com.fugaif.imaslivedb.data.community
 
-import android.content.Context
 import android.util.Log
-import com.fugaif.imaslivedb.data.auth.AuthService
+import com.fugaif.imaslivedb.data.net.WorkerHttpClient
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
-import java.net.HttpURLConnection
-import java.net.URL
 import java.net.URLEncoder
 
 /** 集計系コミュニティ (タグ / ペンライト投票 / お題) の Worker D1 クライアント。iOS CommunityAPI の移植。
- *  authService がサインイン済みなら Authorization: Bearer を全リクエストに付与する
+ *  サインイン済みなら Authorization: Bearer を全リクエストに付与する ([WorkerHttpClient])
  *  (投票系エンドポイントはサーバ側で認証必須。タグ/ペンライト等は未指定でも動く匿名 read/write)。 */
-class CommunityApi(private val appContext: Context, private val authService: AuthService) {
+class CommunityApi(private val http: WorkerHttpClient) {
 
     data class SongTag(val id: String, val name: String, val color: String?, val voteCount: Int, val mine: Boolean)
-    data class PollSummary(val id: String, val title: String, val targetType: String)
+    data class IdolTag(val id: String, val name: String, val color: String?, val voteCount: Int, val mine: Boolean)
+    data class UnitTag(val id: String, val name: String, val color: String?, val voteCount: Int, val mine: Boolean)
+    data class PollSummary(
+        val id: String,
+        val title: String,
+        val targetType: String,
+        /** サーバのお題ステータス ("active"/"removed" 等)。締切済みでも status は active のまま。 */
+        val status: String = "active",
+        /** 締切日時 (epoch millis)。未知/欠損なら Long.MAX_VALUE (常に「開催中」扱い)。 */
+        val endsAtMs: Long = Long.MAX_VALUE,
+        /** 全候補の票の合計。 */
+        val totalVotes: Int = 0,
+        val candidateScope: PollCandidateScope = PollCandidateScope.ALL,
+        val scopeBrandIds: List<String> = emptyList(),
+        val scopeEntityIds: List<String> = emptyList(),
+        /** いま 1 位の曲/アイドル/ユニットの ID。まだ票が無ければ null。 */
+        val topEntityId: String? = null,
+    ) {
+        /** iOS Poll.isActive の移植: サーバが active かつ締切前。 */
+        val isActive: Boolean get() = status == "active" && endsAtMs > System.currentTimeMillis()
+
+        /** iOS Poll.statusLabel の移植。 */
+        val statusLabel: String get() = pollStatusLabel(isActive, endsAtMs)
+    }
     data class PollEntry(val entityId: String, val voteCount: Int, val mine: Boolean)
+    /** 終了お題の優勝者 1 件 (殿堂)。iOS PollResult の移植。 */
+    data class PollResult(
+        val pollId: String,
+        val title: String,
+        val targetType: String,
+        val endsAtMs: Long,
+        val entityId: String,
+        val voteCount: Int
+    )
+    /**
+     * お題作成の結果。作成は認証・レート制限 (1日◯件) の対象で、失敗理由を
+     * 出し分けないと利用者が「なぜ作れないか」分からないので、タグ作成 ([TagCreateResult])
+     * と同じく成功/上限/その他エラーを型で分ける。
+     */
+    sealed class PollCreateResult {
+        data class Success(val poll: PollSummary) : PollCreateResult()
+        object RateLimited : PollCreateResult()
+        data class Error(val message: String?) : PollCreateResult()
+    }
     /**
      * 投票候補の絞り込みスコープ。
      * - `all`: 既存挙動 (全曲/全アイドルから自由選択)
@@ -40,6 +79,7 @@ class CommunityApi(private val appContext: Context, private val authService: Aut
     data class PollDetail(
         val id: String,
         val title: String,
+        val description: String? = null,
         val targetType: String,
         val totalVotes: Int,
         val entries: List<PollEntry>,
@@ -52,24 +92,47 @@ class CommunityApi(private val appContext: Context, private val authService: Aut
         val status: String = "active",
         /** 締切日時 (epoch millis)。未知/パース不可なら Long.MAX_VALUE (常に「開催中」扱い)。 */
         val endsAtMs: Long = Long.MAX_VALUE,
+        /**
+         * 呼び出した人のお題か (削除の導線を出す判定)。サーバが認証から決める
+         * (作成者の uid との比較を端末でしない。created_by は後でサーバから消える)。
+         */
+        val isOwnPoll: Boolean = false,
     ) {
         /** iOS Poll.isActive の移植: サーバが active かつ締切前。 */
         val isActive: Boolean get() = status == "active" && endsAtMs > System.currentTimeMillis()
 
         /** iOS Poll.statusLabel の移植。 */
-        val statusLabel: String get() {
-            if (!isActive) return "終了"
-            val days = ((endsAtMs - System.currentTimeMillis()) / 86_400_000L)
-            return if (days <= 0) "本日締切" else "残り${days}日"
-        }
+        val statusLabel: String get() = pollStatusLabel(isActive, endsAtMs)
     }
     /** 投票/取消のレスポンス (対象 entity の確定票数 + 自分の合計投票数)。 */
     data class PollVoteResult(val entityId: String, val voteCount: Int, val myVoteCount: Int)
+    /** 指定エンティティ(曲/アイドル)が終了お題で取った順位実績 (上位3位まで)。 */
+    data class PollAchievement(
+        val pollId: String,
+        val title: String,
+        val targetType: String,
+        val endsAtMs: Long,
+        val voteCount: Int,
+        val rank: Int
+    ) {
+        val rankLabel: String get() = if (rank == 1) "優勝" else "第${rank}位"
+    }
     data class PenlightSet(val key: String, val colors: List<String>, val count: Int)
     data class PenlightResult(val topSets: List<PenlightSet>, val totalVotes: Int)
     data class PenlightPaletteEntry(val colorHex: String?, val name: String, val sortOrder: Int, val note: String?)
     /** タグが似ている楽曲 (songId, 共有タグ数)。この曲が好きな人向けのおすすめ算出に使う。 */
-    data class SimilarSongEntry(val songId: String, val sharedTags: Int)
+    /**
+     * タグが似ている楽曲。[score] は減衰つき Jaccard 係数による近さ (0〜1) で、おすすめの抽選重みに使う。
+     * サーバが旧実装のままだと返ってこないので null 許容 (新アプリが旧 Worker に当たる期間がある)。
+     */
+    data class SimilarSongEntry(val songId: String, val sharedTags: Int, val score: Double? = null) {
+        /** 抽選に使う重み。score が無い旧サーバでは共有タグ数で代用する。 */
+        val pickWeight: Double get() = score ?: sharedTags.toDouble()
+    }
+    /** タグが似ているアイドル (idolId, 共有タグ数)。この人が好きな人向けのおすすめ算出に使う。 */
+    data class SimilarIdolEntry(val idolId: String, val sharedTags: Int)
+    /** タグが似ているユニット (unitId, 共有タグ数)。このユニットが好きな人向けのおすすめ算出に使う。 */
+    data class SimilarUnitEntry(val unitId: String, val sharedTags: Int)
 
     data class CommunityTag(
         val id: String,
@@ -81,7 +144,14 @@ class CommunityApi(private val appContext: Context, private val authService: Aut
         val totalUses: Int
     )
     data class TagSongEntry(val songId: String, val voteCount: Int)
+    data class TagIdolEntry(val idolId: String, val voteCount: Int)
+    data class TagUnitEntry(val unitId: String, val voteCount: Int)
+    /** 曲タグ (tags マスタ) の詳細。アイドルタグは idol_tag_master に分離済みなのでここには出ない (→ IdolTagDetail)。 */
     data class TagDetail(val tag: CommunityTag, val songs: List<TagSongEntry>)
+    /** アイドルタグ (idol_tag_master) の詳細。曲タグとは別プールなので songs を持たない。 */
+    data class IdolTagDetail(val tag: CommunityTag, val idols: List<TagIdolEntry>)
+    /** ユニットタグ (unit_tag_master) の詳細。曲/アイドルタグとは別プール。 */
+    data class UnitTagDetail(val tag: CommunityTag, val units: List<TagUnitEntry>)
     data class TagHistoryEntry(
         val descriptionAfter: String?,
         val descriptionBefore: String?,
@@ -120,6 +190,58 @@ class CommunityApi(private val appContext: Context, private val authService: Aut
     suspend fun applySongTags(songId: String, tagIds: List<String>): List<String> = withContext(Dispatchers.IO) {
         if (tagIds.isEmpty()) return@withContext emptyList()
         val json = sendJson("POST", "/songs/${enc(songId)}/tags", JSONObject().put("tag_ids", JSONArray(tagIds)))
+            ?: return@withContext emptyList()
+        val arr = json.optJSONArray("applied_tag_ids") ?: JSONArray()
+        (0 until arr.length()).map { arr.getString(it) }
+    }
+
+    /** GET /idols/{id}/tags — タグ一覧 (件数 + 自分が付けたか)。song 版と対のメソッド。 */
+    suspend fun idolTags(idolId: String): List<IdolTag> = withContext(Dispatchers.IO) {
+        val json = get("/idols/${enc(idolId)}/tags") ?: return@withContext emptyList()
+        val mine = json.optJSONArray("my_tag_ids")?.let { a -> (0 until a.length()).map { a.getString(it) }.toSet() } ?: emptySet()
+        val tags = json.optJSONArray("tags") ?: JSONArray()
+        (0 until tags.length()).map { i ->
+            val t = tags.getJSONObject(i)
+            IdolTag(t.getString("id"), t.optString("name"), t.strOrNull("color"),
+                t.optInt("vote_count"), mine.contains(t.getString("id")))
+        }
+    }
+
+    /** DELETE /idols/{id}/tags/{tagId} — 自分のタグ投票を外す。 */
+    suspend fun removeIdolTag(idolId: String, tagId: String): Boolean = withContext(Dispatchers.IO) {
+        send("DELETE", "/idols/${enc(idolId)}/tags/${enc(tagId)}", null)
+    }
+
+    /** POST /idols/{id}/tags — 複数タグをまとめてアイドルに適用 (タグ追加ピッカーの「追加」)。 */
+    suspend fun applyIdolTags(idolId: String, tagIds: List<String>): List<String> = withContext(Dispatchers.IO) {
+        if (tagIds.isEmpty()) return@withContext emptyList()
+        val json = sendJson("POST", "/idols/${enc(idolId)}/tags", JSONObject().put("tag_ids", JSONArray(tagIds)))
+            ?: return@withContext emptyList()
+        val arr = json.optJSONArray("applied_tag_ids") ?: JSONArray()
+        (0 until arr.length()).map { arr.getString(it) }
+    }
+
+    /** GET /units/{id}/tags — タグ一覧 (件数 + 自分が付けたか)。idol 版と対のメソッド。 */
+    suspend fun unitTags(unitId: String): List<UnitTag> = withContext(Dispatchers.IO) {
+        val json = get("/units/${enc(unitId)}/tags") ?: return@withContext emptyList()
+        val mine = json.optJSONArray("my_tag_ids")?.let { a -> (0 until a.length()).map { a.getString(it) }.toSet() } ?: emptySet()
+        val tags = json.optJSONArray("tags") ?: JSONArray()
+        (0 until tags.length()).map { i ->
+            val t = tags.getJSONObject(i)
+            UnitTag(t.getString("id"), t.optString("name"), t.strOrNull("color"),
+                t.optInt("vote_count"), mine.contains(t.getString("id")))
+        }
+    }
+
+    /** DELETE /units/{id}/tags/{tagId} — 自分のタグ投票を外す。 */
+    suspend fun removeUnitTag(unitId: String, tagId: String): Boolean = withContext(Dispatchers.IO) {
+        send("DELETE", "/units/${enc(unitId)}/tags/${enc(tagId)}", null)
+    }
+
+    /** POST /units/{id}/tags — 複数タグをまとめてユニットに適用 (タグ追加ピッカーの「追加」)。 */
+    suspend fun applyUnitTags(unitId: String, tagIds: List<String>): List<String> = withContext(Dispatchers.IO) {
+        if (tagIds.isEmpty()) return@withContext emptyList()
+        val json = sendJson("POST", "/units/${enc(unitId)}/tags", JSONObject().put("tag_ids", JSONArray(tagIds)))
             ?: return@withContext emptyList()
         val arr = json.optJSONArray("applied_tag_ids") ?: JSONArray()
         (0 until arr.length()).map { arr.getString(it) }
@@ -198,6 +320,156 @@ class CommunityApi(private val appContext: Context, private val authService: Aut
         send("POST", "/tags/${enc(id)}/report", body)
     }
 
+    // --- アイドルタグカタログ (idol_tag_master — 曲タグ (tags) とは別プール) ---
+
+    /** GET /idol-tags — 全アイドルタグ検索/一覧。tags() の idol_tag_master 版。 */
+    suspend fun idolTagCatalog(search: String = "", category: String = "", sort: String = "popular", limit: Int = 1000): List<CommunityTag> =
+        withContext(Dispatchers.IO) {
+            val query = buildString {
+                append("?sort=").append(enc(sort)).append("&limit=").append(limit)
+                if (search.isNotEmpty()) append("&search=").append(enc(search))
+                if (category.isNotEmpty()) append("&category=").append(enc(category))
+            }
+            val json = get("/idol-tags$query") ?: return@withContext emptyList()
+            val arr = json.optJSONArray("tags") ?: JSONArray()
+            (0 until arr.length()).map { parseTagListItem(arr.getJSONObject(it)) }
+        }
+
+    /** POST /idol-tags — 新規アイドルタグ作成。createTag() の idol_tag_master 版。 */
+    suspend fun createIdolTagOption(name: String, description: String? = null, category: String? = null, color: String? = null): TagCreateResult =
+        withContext(Dispatchers.IO) {
+            val body = JSONObject().put("name", name)
+            description?.let { body.put("description", it) }
+            category?.let { body.put("category", it) }
+            color?.let { body.put("color", it) }
+            val (code, json) = sendJsonWithStatus("POST", "/idol-tags", body, allowedExtra = setOf(409))
+            when {
+                code == 429 -> TagCreateResult.RateLimited
+                json?.optJSONObject("tag") != null ->
+                    TagCreateResult.Success(parseTagFull(json.getJSONObject("tag")), alreadyExisted = code == 409)
+                else -> TagCreateResult.Error(null)
+            }
+        }
+
+    /** GET /idol-tags/{id} — アイドルタグ詳細 + 付いたアイドル一覧 (票数降順)。 */
+    suspend fun idolTagDetail(id: String): IdolTagDetail? = withContext(Dispatchers.IO) {
+        val json = get("/idol-tags/${enc(id)}") ?: return@withContext null
+        val tagObj = json.optJSONObject("tag") ?: return@withContext null
+        val idolsArr = json.optJSONArray("idols") ?: JSONArray()
+        val idols = (0 until idolsArr.length()).map {
+            val i = idolsArr.getJSONObject(it)
+            TagIdolEntry(i.optString("idol_id"), i.optInt("vote_count"))
+        }
+        IdolTagDetail(parseTagFull(tagObj), idols)
+    }
+
+    /** PUT /idol-tags/{id} — 説明文・カテゴリ・色を更新。 */
+    suspend fun updateIdolTagOption(id: String, description: String? = null, category: String? = null, color: String? = null): CommunityTag? =
+        withContext(Dispatchers.IO) {
+            val body = JSONObject()
+            description?.let { body.put("description", it) }
+            category?.let { body.put("category", it) }
+            color?.let { body.put("color", it) }
+            val json = sendJson("PUT", "/idol-tags/${enc(id)}", body) ?: return@withContext null
+            json.optJSONObject("tag")?.let { parseTagFull(it) }
+        }
+
+    /** GET /idol-tags/{id}/history — 説明文の編集履歴。 */
+    suspend fun idolTagOptionHistory(id: String): List<TagHistoryEntry> = withContext(Dispatchers.IO) {
+        val arr = getArray("/idol-tags/${enc(id)}/history") ?: return@withContext emptyList()
+        (0 until arr.length()).map {
+            val o = arr.getJSONObject(it)
+            TagHistoryEntry(
+                descriptionAfter = o.strOrNull("description_after"),
+                descriptionBefore = o.strOrNull("description_before"),
+                editedBy = o.optString("edited_by"),
+                editedAt = o.optLong("edited_at")
+            )
+        }
+    }
+
+    /** POST /idol-tags/{id}/report — 不適切なアイドルタグを通報。 */
+    suspend fun reportIdolTagOption(id: String, reason: String? = null): Boolean = withContext(Dispatchers.IO) {
+        val body = JSONObject()
+        reason?.let { body.put("reason", it) }
+        send("POST", "/idol-tags/${enc(id)}/report", body)
+    }
+
+    // --- ユニットタグカタログ (unit_tag_master — 曲/アイドルタグとは別プール) ---
+
+    /** GET /unit-tags — 全ユニットタグ検索/一覧。tags()/idolTagCatalog() の unit_tag_master 版。 */
+    suspend fun unitTagCatalog(search: String = "", category: String = "", sort: String = "popular", limit: Int = 1000): List<CommunityTag> =
+        withContext(Dispatchers.IO) {
+            val query = buildString {
+                append("?sort=").append(enc(sort)).append("&limit=").append(limit)
+                if (search.isNotEmpty()) append("&search=").append(enc(search))
+                if (category.isNotEmpty()) append("&category=").append(enc(category))
+            }
+            val json = get("/unit-tags$query") ?: return@withContext emptyList()
+            val arr = json.optJSONArray("tags") ?: JSONArray()
+            (0 until arr.length()).map { parseTagListItem(arr.getJSONObject(it)) }
+        }
+
+    /** POST /unit-tags — 新規ユニットタグ作成。createIdolTagOption() の unit_tag_master 版。 */
+    suspend fun createUnitTagOption(name: String, description: String? = null, category: String? = null, color: String? = null): TagCreateResult =
+        withContext(Dispatchers.IO) {
+            val body = JSONObject().put("name", name)
+            description?.let { body.put("description", it) }
+            category?.let { body.put("category", it) }
+            color?.let { body.put("color", it) }
+            val (code, json) = sendJsonWithStatus("POST", "/unit-tags", body, allowedExtra = setOf(409))
+            when {
+                code == 429 -> TagCreateResult.RateLimited
+                json?.optJSONObject("tag") != null ->
+                    TagCreateResult.Success(parseTagFull(json.getJSONObject("tag")), alreadyExisted = code == 409)
+                else -> TagCreateResult.Error(null)
+            }
+        }
+
+    /** GET /unit-tags/{id} — ユニットタグ詳細 + 付いたユニット一覧 (票数降順)。 */
+    suspend fun unitTagDetail(id: String): UnitTagDetail? = withContext(Dispatchers.IO) {
+        val json = get("/unit-tags/${enc(id)}") ?: return@withContext null
+        val tagObj = json.optJSONObject("tag") ?: return@withContext null
+        val unitsArr = json.optJSONArray("units") ?: JSONArray()
+        val units = (0 until unitsArr.length()).map {
+            val u = unitsArr.getJSONObject(it)
+            TagUnitEntry(u.optString("unit_id"), u.optInt("vote_count"))
+        }
+        UnitTagDetail(parseTagFull(tagObj), units)
+    }
+
+    /** PUT /unit-tags/{id} — 説明文・カテゴリ・色を更新。 */
+    suspend fun updateUnitTagOption(id: String, description: String? = null, category: String? = null, color: String? = null): CommunityTag? =
+        withContext(Dispatchers.IO) {
+            val body = JSONObject()
+            description?.let { body.put("description", it) }
+            category?.let { body.put("category", it) }
+            color?.let { body.put("color", it) }
+            val json = sendJson("PUT", "/unit-tags/${enc(id)}", body) ?: return@withContext null
+            json.optJSONObject("tag")?.let { parseTagFull(it) }
+        }
+
+    /** GET /unit-tags/{id}/history — 説明文の編集履歴。 */
+    suspend fun unitTagOptionHistory(id: String): List<TagHistoryEntry> = withContext(Dispatchers.IO) {
+        val arr = getArray("/unit-tags/${enc(id)}/history") ?: return@withContext emptyList()
+        (0 until arr.length()).map {
+            val o = arr.getJSONObject(it)
+            TagHistoryEntry(
+                descriptionAfter = o.strOrNull("description_after"),
+                descriptionBefore = o.strOrNull("description_before"),
+                editedBy = o.optString("edited_by"),
+                editedAt = o.optLong("edited_at")
+            )
+        }
+    }
+
+    /** POST /unit-tags/{id}/report — 不適切なユニットタグを通報。 */
+    suspend fun reportUnitTagOption(id: String, reason: String? = null): Boolean = withContext(Dispatchers.IO) {
+        val body = JSONObject()
+        reason?.let { body.put("reason", it) }
+        send("POST", "/unit-tags/${enc(id)}/report", body)
+    }
+
     private fun parseTagListItem(o: JSONObject): CommunityTag = CommunityTag(
         id = o.optString("id"),
         name = o.optString("name"),
@@ -245,17 +517,154 @@ class CommunityApi(private val appContext: Context, private val authService: Aut
         }.sortedBy { it.sortOrder }
     }
 
-    /** GET /songs/{id}/similar — タグが似ている楽曲 (共有タグ数の降順、ユーザー非依存の集計)。 */
-    suspend fun similarSongsByTags(songId: String, limit: Int = 10): List<SimilarSongEntry> = withContext(Dispatchers.IO) {
+    /**
+     * GET /songs/{id}/similar — タグが似ている楽曲 (近い順の**候補**、ユーザー非依存の集計)。
+     *
+     * 実際に画面に出す数件はクライアント側で重み付き抽選する ([WeightedSampling]) ため、
+     * 表示数より多めに取っておく。サーバ応答は決定的なのでエッジキャッシュが効く。
+     * 上限いっぱい (50) を取るのは、タグが疎でスコアの同点が大量に出るため
+     * (本番実測でタグ 6 個の曲に候補 581 曲、最高スコアだけで 6 曲以上が同点)。
+     */
+    suspend fun similarSongsByTags(songId: String, limit: Int = 50): List<SimilarSongEntry> = withContext(Dispatchers.IO) {
         val json = get("/songs/${enc(songId)}/similar?limit=$limit") ?: return@withContext emptyList()
         val arr = json.optJSONArray("songs") ?: JSONArray()
         (0 until arr.length()).map { i ->
             val o = arr.getJSONObject(i)
-            SimilarSongEntry(o.optString("song_id"), o.optInt("shared_tags"))
+            SimilarSongEntry(
+                o.optString("song_id"),
+                o.optInt("shared_tags"),
+                if (o.has("score") && !o.isNull("score")) o.optDouble("score") else null
+            )
         }
     }
 
+    /** GET /idols/{id}/similar — タグが似ているアイドル (共有タグ数の降順、ユーザー非依存の集計)。song 版と対のメソッド。 */
+    suspend fun similarIdolsByTags(idolId: String, limit: Int = 10): List<SimilarIdolEntry> = withContext(Dispatchers.IO) {
+        val json = get("/idols/${enc(idolId)}/similar?limit=$limit") ?: return@withContext emptyList()
+        val arr = json.optJSONArray("idols") ?: JSONArray()
+        (0 until arr.length()).map { i ->
+            val o = arr.getJSONObject(i)
+            SimilarIdolEntry(o.optString("idol_id"), o.optInt("shared_tags"))
+        }
+    }
+
+    /** GET /units/{id}/similar — タグが似ているユニット (共有タグ数の降順、ユーザー非依存の集計)。idol 版と対のメソッド。 */
+    suspend fun similarUnitsByTags(unitId: String, limit: Int = 10): List<SimilarUnitEntry> = withContext(Dispatchers.IO) {
+        val json = get("/units/${enc(unitId)}/similar?limit=$limit") ?: return@withContext emptyList()
+        val arr = json.optJSONArray("units") ?: JSONArray()
+        (0 until arr.length()).map { i ->
+            val o = arr.getJSONObject(i)
+            SimilarUnitEntry(o.optString("unit_id"), o.optInt("shared_tags"))
+        }
+    }
+
+    /** タグ付けの盛り上がりの対象領域 (曲タグ / アイドルタグ)。iOS TagActivityDomain の移植。 */
+    enum class TagActivityDomain(val raw: String) {
+        SONG("song"), IDOL("idol");
+        companion object {
+            fun fromRaw(s: String?): TagActivityDomain? = entries.firstOrNull { it.raw == s }
+        }
+    }
+    /** 直近のタグ付けイベント1件。曲/アイドル名は entityId を元にクライアント側のローカル DB で解決する。 */
+    data class TagActivityEvent(
+        val domain: TagActivityDomain,
+        val entityId: String,
+        val tagId: String,
+        val tagName: String,
+        val tagColor: String?,
+        val tagCategory: String?,
+        val createdAtMs: Long
+    )
+    /** 直近 window_days 日間で伸びているタグ。 */
+    data class TagActivityTrend(
+        val domain: TagActivityDomain,
+        val tagId: String,
+        val tagName: String,
+        val tagColor: String?,
+        val tagCategory: String?,
+        val recentCount: Int,
+        val totalCount: Int
+    )
+    /** 直近 window_days 日間で特定の曲/アイドルにタグが急増した組み合わせ。 */
+    data class TagActivityRise(
+        val domain: TagActivityDomain,
+        val entityId: String,
+        val tagId: String,
+        val tagName: String,
+        val tagColor: String?,
+        val recentCount: Int
+    )
+    data class TagActivityResponse(
+        val windowDays: Int,
+        val recent: List<TagActivityEvent>,
+        val trendingTags: List<TagActivityTrend>,
+        val risingEntities: List<TagActivityRise>
+    )
+
+    /** GET /tags/activity — タグ付けの盛り上がり (直近フィード/トレンドタグ/急上昇コンテンツ)。ユーザー非依存の集計。 */
+    suspend fun tagActivity(windowDays: Int = 7): TagActivityResponse? = withContext(Dispatchers.IO) {
+        val json = get("/tags/activity?window_days=$windowDays") ?: return@withContext null
+        val recentArr = json.optJSONArray("recent") ?: JSONArray()
+        val recent = (0 until recentArr.length()).mapNotNull { i ->
+            val o = recentArr.getJSONObject(i)
+            val domain = TagActivityDomain.fromRaw(o.optString("domain")) ?: return@mapNotNull null
+            TagActivityEvent(
+                domain = domain,
+                entityId = o.optString("entity_id"),
+                tagId = o.optString("tag_id"),
+                tagName = o.optString("tag_name"),
+                tagColor = o.strOrNull("tag_color"),
+                tagCategory = o.strOrNull("tag_category"),
+                createdAtMs = epochSecToMs(o.optLong("created_at"))
+            )
+        }
+        val trendArr = json.optJSONArray("trending_tags") ?: JSONArray()
+        val trendingTags = (0 until trendArr.length()).mapNotNull { i ->
+            val o = trendArr.getJSONObject(i)
+            val domain = TagActivityDomain.fromRaw(o.optString("domain")) ?: return@mapNotNull null
+            TagActivityTrend(
+                domain = domain,
+                tagId = o.optString("tag_id"),
+                tagName = o.optString("tag_name"),
+                tagColor = o.strOrNull("tag_color"),
+                tagCategory = o.strOrNull("tag_category"),
+                recentCount = o.optInt("recent_count"),
+                totalCount = o.optInt("total_count")
+            )
+        }
+        val riseArr = json.optJSONArray("rising_entities") ?: JSONArray()
+        val risingEntities = (0 until riseArr.length()).mapNotNull { i ->
+            val o = riseArr.getJSONObject(i)
+            val domain = TagActivityDomain.fromRaw(o.optString("domain")) ?: return@mapNotNull null
+            TagActivityRise(
+                domain = domain,
+                entityId = o.optString("entity_id"),
+                tagId = o.optString("tag_id"),
+                tagName = o.optString("tag_name"),
+                tagColor = o.strOrNull("tag_color"),
+                recentCount = o.optInt("recent_count")
+            )
+        }
+        TagActivityResponse(
+            windowDays = json.optInt("window_days", windowDays),
+            recent = recent,
+            trendingTags = trendingTags,
+            risingEntities = risingEntities
+        )
+    }
+
     data class FavoriteRankingDto(val songId: String, val count: Int)
+
+    /**
+     * POST /favorites/toggle — 曲のお気に入りの付け外しを、みんなの集計に送る (端末単位で重複を除く)。
+     * 失敗は例外にする (送り直しの判断は [FavoriteAggregation])。
+     */
+    suspend fun toggleFavorite(songId: String, value: Boolean): Unit = withContext(Dispatchers.IO) {
+        val response = http.request(
+            "POST", "/favorites/toggle", JSONObject().put("song_id", songId).put("value", value)
+        )
+        check(response.isSuccess) { "favorites/toggle -> HTTP ${response.code}" }
+    }
 
     /** GET /favorites/ranking — お気に入りの曲別集計 (曲メタは呼び出し側でローカルカタログから解決する)。 */
     suspend fun favoritesRanking(): List<FavoriteRankingDto> = withContext(Dispatchers.IO) {
@@ -266,16 +675,98 @@ class CommunityApi(private val appContext: Context, private val authService: Aut
         }
     }
 
-    /** 進行中/最近のポール一覧 (/polls/results は poll ごとに首位 entity を返すので poll_id で集約)。 */
-    suspend fun polls(): List<PollSummary> = withContext(Dispatchers.IO) {
-        val arr = getArray("/polls/results") ?: return@withContext emptyList()
-        val seen = HashSet<String>()
-        (0 until arr.length()).mapNotNull { i ->
+    /**
+     * GET /polls?status= — お題一覧。
+     * status は "active" (開催中) / "past" (締切済み)。サーバ側で締切日時と突き合わせて出し分けるので、
+     * クライアントは 2 本のリストを status で切り替えるだけでよい (iOS PollListViewModel と同じ契約)。
+     *
+     * 通信失敗は null、「お題が 0 件」は空リストで返す。ここを両方 emptyList にすると、
+     * 引っ張って更新が一度失敗しただけで表示中の一覧が消える (iOS も両者を区別している)。
+     */
+    suspend fun polls(status: String = "active"): List<PollSummary>? = withContext(Dispatchers.IO) {
+        val arr = getArray("/polls?status=${enc(status)}") ?: return@withContext null
+        (0 until arr.length()).mapNotNull { i -> parsePollSummary(arr.getJSONObject(i)) }
+    }
+
+    /** GET /polls/results — 終了お題の優勝者一覧 (殿堂)。認証不要の公開集計。通信失敗は null。 */
+    suspend fun pollResults(): List<PollResult>? = withContext(Dispatchers.IO) {
+        val arr = getArray("/polls/results") ?: return@withContext null
+        (0 until arr.length()).map { i ->
             val o = arr.getJSONObject(i)
-            val id = o.optString("poll_id")
-            if (id.isEmpty() || !seen.add(id)) null
-            else PollSummary(id, o.optString("title"), o.optString("target_type"))
+            PollResult(
+                pollId = o.optString("poll_id"),
+                title = o.optString("title"),
+                targetType = o.optString("target_type"),
+                endsAtMs = epochSecToMs(o.optLong("ends_at")),
+                entityId = o.optString("entity_id"),
+                voteCount = o.optInt("vote_count"),
+            )
         }
+    }
+
+    /**
+     * POST /polls — 新しいお題を作成 (認証必須)。iOS `CommunityVoting.createPoll` と同じ body。
+     *
+     * スコープ外の ID はサーバが弾くので送らない (brand スコープなら scope_brand_ids だけ、
+     * manual スコープなら scope_entity_ids だけ)。
+     */
+    suspend fun createPoll(
+        title: String,
+        description: String?,
+        targetType: String,
+        days: Int,
+        candidateScope: PollCandidateScope,
+        scopeBrandIds: List<String>?,
+        scopeEntityIds: List<String>?
+    ): PollCreateResult = withContext(Dispatchers.IO) {
+        val body = JSONObject()
+            .put("title", title)
+            .put("description", description ?: JSONObject.NULL)
+            .put("target_type", targetType)
+            .put("days", days)
+            .put("candidate_scope", candidateScope.raw)
+        if (candidateScope == PollCandidateScope.BRAND && scopeBrandIds != null) {
+            body.put("scope_brand_ids", JSONArray(scopeBrandIds))
+        }
+        if (candidateScope == PollCandidateScope.MANUAL && scopeEntityIds != null) {
+            body.put("scope_entity_ids", JSONArray(scopeEntityIds))
+        }
+        // 429 も body を読む: サーバは上限到達を JSON で返すので、通信失敗と区別して案内する。
+        val (code, json) = sendJsonWithStatus("POST", "/polls", body, allowedExtra = setOf(429))
+        when {
+            code == 429 -> PollCreateResult.RateLimited
+            code in 200..299 && json != null ->
+                parsePollSummary(json)?.let { PollCreateResult.Success(it) }
+                    ?: PollCreateResult.Error(null)
+            // 401/403 は「作れない理由」が利用者側にある唯一のケースなので個別に案内する。
+            // それ以外 (通信断・5xx) はサーバが本文を返さないこともあるので呼び出し側の既定文言に任せる。
+            code == 401 -> PollCreateResult.Error("お題の作成にはサインインが必要です")
+            code == 403 -> PollCreateResult.Error("この操作は制限されています。")
+            else -> PollCreateResult.Error(null)
+        }
+    }
+
+    /** DELETE /polls/{id} — お題を削除 (作成者本人 or 管理者のみ。それ以外はサーバが 403)。 */
+    suspend fun deletePoll(id: String): Boolean = withContext(Dispatchers.IO) {
+        send("DELETE", "/polls/${enc(id)}", null)
+    }
+
+    /** GET /polls と POST /polls は同じ poll オブジェクトを返すので、パースを 1 か所に寄せる。 */
+    private fun parsePollSummary(o: JSONObject): PollSummary? {
+        val id = o.optString("id")
+        if (id.isEmpty()) return null
+        return PollSummary(
+            id = id,
+            title = o.optString("title"),
+            targetType = o.optString("target_type"),
+            status = o.strOrNull("status") ?: "active",
+            endsAtMs = epochSecToMs(o.optLong("ends_at")),
+            totalVotes = o.optInt("total_votes"),
+            candidateScope = PollCandidateScope.fromRaw(o.strOrNull("candidate_scope")),
+            scopeBrandIds = o.optJSONArray("scope_brand_ids")?.toStringList().orEmpty(),
+            scopeEntityIds = o.optJSONArray("scope_entity_ids")?.toStringList().orEmpty(),
+            topEntityId = o.strOrNull("top_entity_id"),
+        )
     }
 
     /** GET /polls/{id} — ポール詳細 (選択肢 + 票数 + 自分の投票)。 */
@@ -290,6 +781,7 @@ class CommunityApi(private val appContext: Context, private val authService: Aut
         PollDetail(
             id = poll.optString("id"),
             title = poll.optString("title"),
+            description = poll.strOrNull("description"),
             targetType = poll.optString("target_type"),
             totalVotes = poll.optInt("total_votes"),
             entries = entries,
@@ -298,25 +790,32 @@ class CommunityApi(private val appContext: Context, private val authService: Aut
             scopeEntityIds = poll.optJSONArray("scope_entity_ids")?.toStringList().orEmpty(),
             myVoteCount = poll.optInt("my_vote_count"),
             status = poll.strOrNull("status") ?: "active",
-            endsAtMs = parseEndsAt(poll.optString("ends_at")),
+            endsAtMs = epochSecToMs(poll.optLong("ends_at")),
+            isOwnPoll = poll.optBoolean("is_own_poll", false),
         )
+    }
+
+    /** GET /polls/achievements/{entityId} — 終了お題での順位実績 (上位3位まで)。 */
+    suspend fun pollAchievements(entityId: String): List<PollAchievement> = withContext(Dispatchers.IO) {
+        val arr = getArray("/polls/achievements/${enc(entityId)}") ?: return@withContext emptyList()
+        (0 until arr.length()).map { i ->
+            val o = arr.getJSONObject(i)
+            PollAchievement(
+                pollId = o.optString("poll_id"),
+                title = o.optString("title"),
+                targetType = o.optString("target_type"),
+                endsAtMs = epochSecToMs(o.optLong("ends_at")),
+                voteCount = o.optInt("vote_count"),
+                rank = o.optInt("rnk"),
+            )
+        }
     }
 
     private fun JSONArray.toStringList(): List<String> =
         (0 until length()).map { optString(it) }.filter { it.isNotEmpty() }
 
-    /** SQLite datetime ("YYYY-MM-DD HH:MM:SS", UTC想定) をエポックミリ秒へ。サーバ (Worker) 側の
-     *  `new Date(ends_at.replace(" ", "T") + "Z")` と同じ解釈にする。 */
-    private fun parseEndsAt(raw: String): Long {
-        if (raw.isEmpty()) return Long.MAX_VALUE
-        return try {
-            val iso = raw.replace(" ", "T")
-            val withZone = if (iso.endsWith("Z") || Regex("[+-]\\d{2}:?\\d{2}$").containsMatchIn(iso)) iso else "${iso}Z"
-            java.time.Instant.parse(withZone).toEpochMilli()
-        } catch (e: Exception) {
-            Long.MAX_VALUE
-        }
-    }
+    /** サーバは ends_at を epoch 秒の数値で返す (`CAST(strftime('%s', ...) AS INTEGER)`)。0/欠損は Long.MAX_VALUE (常に「開催中」扱い)。 */
+    private fun epochSecToMs(sec: Long): Long = if (sec <= 0) Long.MAX_VALUE else sec * 1000L
 
     /** POST /polls/{id}/votes — entity に投票 (新規候補も可。サーバが未存在なら作る)。 */
     suspend fun votePoll(pollId: String, entityId: String): PollVoteResult? = withContext(Dispatchers.IO) {
@@ -348,25 +847,10 @@ class CommunityApi(private val appContext: Context, private val authService: Aut
     private fun JSONObject.strOrNull(key: String): String? =
         if (isNull(key)) null else optString(key).ifEmpty { null }
 
-    private fun open(method: String, path: String): HttpURLConnection {
-        val conn = (URL(BASE + path).openConnection() as HttpURLConnection).apply {
-            requestMethod = method
-            connectTimeout = 15_000
-            readTimeout = 15_000
-            setRequestProperty("Content-Type", "application/json")
-            setRequestProperty("X-Device-Id", DeviceIdentity.get(appContext))
-            authService.sessionToken?.let { setRequestProperty("Authorization", "Bearer $it") }
-        }
-        return conn
-    }
-
     private fun get(path: String): JSONObject? {
         return try {
-            val conn = open("GET", path)
-            val code = conn.responseCode
-            val text = (if (code in 200..299) conn.inputStream else conn.errorStream)?.bufferedReader()?.use { it.readText() }
-            conn.disconnect()
-            if (code in 200..299 && !text.isNullOrEmpty()) JSONObject(text) else null
+            val response = http.request("GET", path)
+            if (response.isSuccess && !response.body.isNullOrEmpty()) JSONObject(response.body) else null
         } catch (e: Exception) {
             Log.w(TAG, "GET $path failed: ${e.message}"); null
         }
@@ -374,11 +858,8 @@ class CommunityApi(private val appContext: Context, private val authService: Aut
 
     private fun getArray(path: String): JSONArray? {
         return try {
-            val conn = open("GET", path)
-            val code = conn.responseCode
-            val text = (if (code in 200..299) conn.inputStream else conn.errorStream)?.bufferedReader()?.use { it.readText() }
-            conn.disconnect()
-            if (code in 200..299 && !text.isNullOrEmpty()) JSONArray(text) else null
+            val response = http.request("GET", path)
+            if (response.isSuccess && !response.body.isNullOrEmpty()) JSONArray(response.body) else null
         } catch (e: Exception) {
             Log.w(TAG, "GET[] $path failed: ${e.message}"); null
         }
@@ -386,14 +867,7 @@ class CommunityApi(private val appContext: Context, private val authService: Aut
 
     private fun send(method: String, path: String, body: JSONObject?): Boolean {
         return try {
-            val conn = open(method, path)
-            if (body != null) {
-                conn.doOutput = true
-                conn.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
-            }
-            val code = conn.responseCode
-            conn.disconnect()
-            code in 200..299
+            http.request(method, path, body).isSuccess
         } catch (e: Exception) {
             Log.w(TAG, "$method $path failed: ${e.message}"); false
         }
@@ -402,16 +876,9 @@ class CommunityApi(private val appContext: Context, private val authService: Aut
     /** send と同じだがレスポンス body を JSON として返す (投票結果の票数反映に使う)。 */
     private fun sendJson(method: String, path: String, body: JSONObject?): JSONObject? {
         return try {
-            val conn = open(method, path)
-            if (body != null) {
-                conn.doOutput = true
-                conn.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
-            }
-            val code = conn.responseCode
-            val text = (if (code in 200..299) conn.inputStream else conn.errorStream)?.bufferedReader()?.use { it.readText() }
-            conn.disconnect()
-            if (code !in 200..299) Log.w(TAG, "$method $path -> HTTP $code body=$text")
-            if (code in 200..299 && !text.isNullOrEmpty()) JSONObject(text) else null
+            val response = http.request(method, path, body)
+            if (!response.isSuccess) Log.w(TAG, "$method $path -> HTTP ${response.code} body=${response.body}")
+            if (response.isSuccess && !response.body.isNullOrEmpty()) JSONObject(response.body) else null
         } catch (e: Exception) {
             Log.w(TAG, "$method $path failed: ${e.message}"); null
         }
@@ -423,17 +890,10 @@ class CommunityApi(private val appContext: Context, private val authService: Aut
         method: String, path: String, body: JSONObject?, allowedExtra: Set<Int> = emptySet()
     ): Pair<Int, JSONObject?> {
         return try {
-            val conn = open(method, path)
-            if (body != null) {
-                conn.doOutput = true
-                conn.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
-            }
-            val code = conn.responseCode
-            val ok = code in 200..299 || code in allowedExtra
-            val text = (if (ok) conn.inputStream else conn.errorStream)?.bufferedReader()?.use { it.readText() }
-            conn.disconnect()
-            if (!ok) Log.w(TAG, "$method $path -> HTTP $code body=$text")
-            code to (if (ok && !text.isNullOrEmpty()) JSONObject(text) else null)
+            val response = http.request(method, path, body)
+            val ok = response.isSuccess || response.code in allowedExtra
+            if (!ok) Log.w(TAG, "$method $path -> HTTP ${response.code} body=${response.body}")
+            response.code to (if (ok && !response.body.isNullOrEmpty()) JSONObject(response.body) else null)
         } catch (e: Exception) {
             Log.w(TAG, "$method $path failed: ${e.message}")
             -1 to null
@@ -441,7 +901,13 @@ class CommunityApi(private val appContext: Context, private val authService: Aut
     }
 
     companion object {
-        private const val BASE = "https://imas-live-api.tokata3011.workers.dev"
         private const val TAG = "CommunityApi"
     }
+}
+
+/** お題の状態の札 (iOS Poll.statusLabel の移植)。一覧と詳細で同じ文言にする。 */
+private fun pollStatusLabel(isActive: Boolean, endsAtMs: Long): String {
+    if (!isActive) return "終了"
+    val days = ((endsAtMs - System.currentTimeMillis()) / 86_400_000L)
+    return if (days <= 0) "本日締切" else "残り${days}日"
 }

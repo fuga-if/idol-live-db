@@ -1,0 +1,8 @@
+---
+import EventListView from "../../components/EventListView.astro";
+import { page, routeData } from "../../lib/data";
+import type { EventListPage } from "../../lib/schema/EventListPage";
+const list = page<EventListPage>(routeData("eventListUpcoming", "/events/upcoming/"));
+---
+
+<EventListView list={list} />

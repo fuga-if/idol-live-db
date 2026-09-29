@@ -17,14 +17,30 @@ import kotlinx.coroutines.flow.asStateFlow
 data class PlaybackState(
     val isPlaying: Boolean = false,
     val nowPlayingUrl: String? = null,
-    val nowPlayingTitle: String? = null
-)
+    /**
+     * 鳴っている曲の `songs.id`。
+     *
+     * **曲名で持ってはいけない。**「私はアイドル♡ (M@STER VERSION)」のように
+     * 同名で歌唱者の違う録音が実在するので、曲名で同一性を見ると別バージョンの
+     * ジャケと名義が出る。再生中バーの引き当てもここを使う。
+     */
+    val nowPlayingSongId: String? = null
+) {
+    /**
+     * この曲が今このアプリで鳴っているか。
+     *
+     * 「isPlaying かつ id 一致」という同じ式を画面ごとに書くと、キーを変えるときに
+     * 全部を手で直す羽目になる (iOS で実際に 5 箇所直した)。突き合わせ方はここ 1 つ。
+     */
+    fun isPlaying(songId: String): Boolean = isPlaying && nowPlayingSongId == songId
+}
 
 /**
  * Singleton audio preview manager backed by ExoPlayer (Media3).
  * Handles audio focus, and exposes [playbackState] as a [StateFlow].
  *
- * Must be initialised via [init] before use (call from Application.onCreate).
+ * [init] で Context を受け取っておき、ExoPlayer は初めて鳴らすときに作る
+ * (プロセスはウィジェットや通知からも起動するので、鳴らさないプロセスで作らない)。
  * Mirrors iOS MusicKitService.shared preview logic.
  */
 object AudioPreviewManager {
@@ -32,17 +48,21 @@ object AudioPreviewManager {
     private val _playbackState = MutableStateFlow(PlaybackState())
     val playbackState: StateFlow<PlaybackState> = _playbackState.asStateFlow()
 
+    private var appContext: Context? = null
     private var player: ExoPlayer? = null
     private var audioManager: AudioManager? = null
     private var focusRequest: AudioFocusRequest? = null
     private var focusChangeListener: AudioManager.OnAudioFocusChangeListener? = null
 
-    /**
-     * Initialise ExoPlayer and AudioManager.
-     * Call once from [android.app.Application.onCreate].
-     */
+    /** Context だけを受け取る (軽い)。Call once from [android.app.Application.onCreate]. */
     fun init(context: Context) {
-        if (player != null) return
+        appContext = context.applicationContext
+    }
+
+    /** ExoPlayer と AudioManager を初めて要るときに作る。鳴らす操作 (メインスレッド) から呼ぶ。 */
+    private fun ensurePlayer(): ExoPlayer? {
+        player?.let { return it }
+        val context = appContext ?: return null
 
         audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
 
@@ -69,6 +89,7 @@ object AudioPreviewManager {
                     }
                 })
             }
+        return player
     }
 
     /**
@@ -76,13 +97,13 @@ object AudioPreviewManager {
      * - If [url] matches the currently playing track → pause/stop.
      * - Otherwise → start playing the new URL.
      */
-    fun togglePreview(url: String, title: String) {
+    fun togglePreview(url: String, songId: String) {
         val current = _playbackState.value
         if (current.nowPlayingUrl == url && current.isPlaying) {
             stop()
             return
         }
-        playUrl(url, title)
+        playUrl(url, songId)
     }
 
     /** Pause playback without clearing the media item (position is kept, use [resume] to continue). */
@@ -112,14 +133,14 @@ object AudioPreviewManager {
 
     // --- Private helpers ---
 
-    private fun playUrl(url: String, title: String) {
-        val exo = player ?: return
+    private fun playUrl(url: String, songId: String) {
+        val exo = ensurePlayer() ?: return
         if (!requestAudioFocus()) return
 
         _playbackState.value = PlaybackState(
             isPlaying = false,
             nowPlayingUrl = url,
-            nowPlayingTitle = title
+            nowPlayingSongId = songId
         )
 
         exo.stop()

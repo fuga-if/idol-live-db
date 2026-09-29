@@ -1,0 +1,232 @@
+{
+  "schemaVersion": 1,
+  "path": "/idols/birth-month/9/",
+  "title": "9月生まれのアイドル",
+  "kind": "birthMonth",
+  "brand": null,
+  "items": [
+    {
+      "ref": {
+        "kind": "idol",
+        "id": "ml_kasuga_mirai",
+        "name": "春日未来",
+        "sub": "ミリオンライブ!",
+        "path": "/idols/ml_kasuga_mirai/",
+        "themeKey": "idol:ml_kasuga_mirai",
+        "artworkUrl": null
+      },
+      "nameKana": "かすがみらい",
+      "cells": [
+        "山崎はるか",
+        "4月3日",
+        "14歳",
+        "156cm"
+      ]
+    },
+    {
+      "ref": {
+        "kind": "idol",
+        "id": "ml_mogami_shizuka",
+        "name": "最上静香",
+        "sub": "ミリオンライブ!",
+        "path": "/idols/ml_mogami_shizuka/",
+        "themeKey": "idol:ml_mogami_shizuka",
+        "artworkUrl": null
+      },
+      "nameKana": "もがみしずか",
+      "cells": [
+        "田所あずさ",
+        "6月26日",
+        "15歳",
+        "159cm"
+      ]
+    }
+  ],
+  "columns": [
+    {
+      "label": "CV",
+      "numeric": false,
+      "sortKey": null
+    },
+    {
+      "label": "誕生日",
+      "numeric": false,
+      "sortKey": "birthday"
+    },
+    {
+      "label": "年齢",
+      "numeric": true,
+      "sortKey": "age"
+    },
+    {
+      "label": "身長",
+      "numeric": true,
+      "sortKey": "height"
+    }
+  ],
+  "nameColumn": {
+    "label": "名前",
+    "numeric": false,
+    "sortKey": "kana"
+  },
+  "filters": [
+    {
+      "label": "ブランド",
+      "links": [
+        {
+          "label": "すべて",
+          "path": "/idols/",
+          "current": false,
+          "themeKey": null,
+          "count": 394
+        },
+        {
+          "label": "ミリオンライブ!",
+          "path": "/idols/brand/ml/",
+          "current": false,
+          "themeKey": "brand:ml",
+          "count": 52
+        }
+      ],
+      "islandKey": "brandIds"
+    },
+    {
+      "label": "誕生月",
+      "links": [
+        {
+          "label": "1月",
+          "path": "/idols/birth-month/1/",
+          "current": false,
+          "themeKey": null,
+          "count": null
+        },
+        {
+          "label": "2月",
+          "path": "/idols/birth-month/2/",
+          "current": false,
+          "themeKey": null,
+          "count": null
+        },
+        {
+          "label": "3月",
+          "path": "/idols/birth-month/3/",
+          "current": false,
+          "themeKey": null,
+          "count": null
+        },
+        {
+          "label": "4月",
+          "path": "/idols/birth-month/4/",
+          "current": false,
+          "themeKey": null,
+          "count": null
+        },
+        {
+          "label": "5月",
+          "path": "/idols/birth-month/5/",
+          "current": false,
+          "themeKey": null,
+          "count": null
+        },
+        {
+          "label": "6月",
+          "path": "/idols/birth-month/6/",
+          "current": false,
+          "themeKey": null,
+          "count": null
+        },
+        {
+          "label": "7月",
+          "path": "/idols/birth-month/7/",
+          "current": false,
+          "themeKey": null,
+          "count": null
+        },
+        {
+          "label": "8月",
+          "path": "/idols/birth-month/8/",
+          "current": false,
+          "themeKey": null,
+          "count": null
+        },
+        {
+          "label": "9月",
+          "path": "/idols/birth-month/9/",
+          "current": true,
+          "themeKey": null,
+          "count": null
+        },
+        {
+          "label": "10月",
+          "path": "/idols/birth-month/10/",
+          "current": false,
+          "themeKey": null,
+          "count": null
+        },
+        {
+          "label": "11月",
+          "path": "/idols/birth-month/11/",
+          "current": false,
+          "themeKey": null,
+          "count": null
+        },
+        {
+          "label": "12月",
+          "path": "/idols/birth-month/12/",
+          "current": false,
+          "themeKey": null,
+          "count": null
+        }
+      ],
+      "islandKey": "birthMonth"
+    }
+  ],
+  "total": 2,
+  "queryBase": {
+    "brandIds": [],
+    "attribute": null,
+    "birthMonth": null,
+    "searchText": "",
+    "voiceActor": "",
+    "sort": "",
+    "ascending": null
+  },
+  "fixedAxes": [
+    "birthMonth"
+  ],
+  "empty": null,
+  "seo": {
+    "title": "9月生まれのアイドル | アイドルライブDB",
+    "description": "アイドルの一覧。",
+    "canonical": "https://idollivedb.fugaapp.site/idols/birth-month/9/",
+    "ogImage": "https://idollivedb.fugaapp.site/og/default.png",
+    "robots": "index,follow",
+    "jsonLd": {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebPage",
+          "name": "9月生まれのアイドル",
+          "url": "https://idollivedb.fugaapp.site/idols/birth-month/9/"
+        },
+        {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "item": "https://idollivedb.fugaapp.site/",
+              "name": "ホーム",
+              "position": 1
+            }
+          ]
+        }
+      ]
+    },
+    "breadcrumbs": [
+      {
+        "name": "ホーム",
+        "path": "/"
+      }
+    ]
+  }
+}

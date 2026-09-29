@@ -28,6 +28,7 @@ class MyVotesViewModel(app: Application) : AndroidViewModel(app) {
     private val api = AppModule.from(app).communityApi
     private val songRepo = AppModule.from(app).songRepository
     private val idolRepo = AppModule.from(app).idolRepository
+    private val unitRepo = AppModule.from(app).unitRepository
     private val voteLog = AppModule.from(app).localPollVoteLog
 
     private val _uiState = MutableStateFlow(MyVotesUiState())
@@ -47,6 +48,7 @@ class MyVotesViewModel(app: Application) : AndroidViewModel(app) {
                 val choices = entityIds.sorted().map { id ->
                     val label = when (detail.targetType) {
                         "idol" -> idolRepo.fetchIdol(id)?.name ?: "(削除済み)"
+                        "unit" -> unitRepo.fetchUnit(id)?.displayName ?: "(削除済み)"
                         else -> songRepo.fetchSong(id)?.title ?: "(削除済み)"
                     }
                     MyVoteChoice(id, label)

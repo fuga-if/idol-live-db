@@ -1,0 +1,8 @@
+---
+import TimelineView from "../../components/TimelineView.astro";
+import { page, routeData } from "../../lib/data";
+import type { TimelinePage } from "../../lib/schema/TimelinePage";
+const data = page<TimelinePage>(routeData("timeline", "/timeline/"));
+---
+
+<TimelineView page={data} />

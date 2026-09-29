@@ -1,0 +1,86 @@
+name: Android Guard
+
+# Android のビルドとユニットテスト。
+#
+# iOS の変更は 1:1 で Android に横展開する運用 (CONTRIBUTING.md §3) なのに、
+# 横展開が壊れていないかを機械的に確認する手段が無かった。実際 import 1 行の
+# 欠落で develop がビルド不能になっていたことがある。
+#
+# 公開リポジトリなので ubuntu runner は無料枠。secret は使わない
+# (CLOUDKIT_API_TOKEN 未設定でも seed DB からビルドできる設計)。
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'ImasLiveDB-Android/**'
+      - 'db/master.sql'
+      - 'imas-core/**'
+      - 'imas-text-fold/**'
+      - '.github/workflows/android-guard.yml'
+  pull_request:
+    paths:
+      - 'ImasLiveDB-Android/**'
+      - 'db/master.sql'
+      - 'imas-core/**'
+      - 'imas-text-fold/**'
+      - '.github/workflows/android-guard.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      # Gradle 8.11.1 は JDK 25 未対応。21 に固定する。
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # app/build.gradle.kts の generateSeedDb が db/master.sql から
+      # 同梱 seed を作るのに sqlite3 を使う。
+      - name: Ensure sqlite3
+        run: sqlite3 --version
+
+      # UniFFI 生成の Kotlin バインディングと jniLibs は git 管理外で、ビルド時に作る。
+      # これが無いと Kotlin のコンパイルが「Symbol not found for SongRecord」等で
+      # 大量に落ちる (原因が UniFFI だと分かりにくいエラーになる)。
+      # --android-only で iOS 側 (xcframework・Xcode が要る) を飛ばす。
+      - name: Install Rust Android targets
+        run: |
+          rustup target add aarch64-linux-android x86_64-linux-android
+          cargo install cargo-ndk --locked
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            imas-core/target
+          key: ${{ runner.os }}-imas-core-${{ hashFiles('imas-core/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-imas-core-
+
+      - name: Build imas-core (Android only)
+        env:
+          ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_LATEST_HOME }}
+        run: bash imas-core/build.sh --android-only
+
+      - name: Build (debug)
+        working-directory: ImasLiveDB-Android
+        run: ./gradlew --no-daemon assembleDebug
+
+      # release だけが R8 (minify) と lintVital を通る。keep 漏れで落ちるのは release だけで、
+      # debug のビルドでは捕まらない。署名の鍵は CI に無いので、未署名の APK まで作る。
+      - name: Build (release, unsigned)
+        working-directory: ImasLiveDB-Android
+        run: ./gradlew --no-daemon assembleRelease
+
+      - name: Unit tests
+        working-directory: ImasLiveDB-Android
+        run: ./gradlew --no-daemon test

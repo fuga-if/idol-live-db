@@ -24,11 +24,17 @@
 //        delete は fields=null (ソフト削除。deletedAt/modifiedAt のみ注入)。
 //   失敗時: CloudKit 失敗 → 502 (edit_batch は cloudkit_ok=0 のまま、edit_history は書かない)
 
+import { getAuthUser } from "./auth";
+import { checkRateLimit } from "./rate_limit";
+import type { RouteContext } from "./routes/context";
+import { requireActiveUser } from "./routes/guards";
+import { checkIsAdmin, upsertUser } from "./users";
 import {
   buildForceUpdate,
   buildSoftDelete,
   cloudKitLookup,
   cloudKitModify,
+  cloudKitQuery,
   flattenCkFields,
   type CloudKitOperation,
 } from "./cloudkit";
@@ -47,38 +53,6 @@ import {
   fetchShowSetlistSnapshot,
 } from "./setlist_snapshot";
 import { maskDisplayName } from "./feed";
-
-// ---------------------------------------------------------------------------
-// 依存注入: index.ts の makeResponders / checkIsAdmin / getAuthUser / upsertUser に依存するため
-// ハンドラはこれらをまとめた deps を受け取る (index.ts のクロージャパターンに合わせる)。
-// ---------------------------------------------------------------------------
-
-// edits.ts は index.ts の具象 Env を直接知らないため、必要最小フィールドを EditsEnv とし、
-// 注入される各ヘルパは具象 Env を保持できるよう env 型を generic <E extends EditsEnv> で貫通させる
-// (具象 Env が APPLE_BUNDLE_ID 等の追加必須フィールドを持っていても型整合する)。
-export interface EditsEnv {
-  DB: D1Database;
-  CLOUDKIT_KEY_ID: string;
-  CLOUDKIT_PRIVATE_KEY: string;
-}
-
-export interface EditsDeps<E extends EditsEnv> {
-  /** Bearer から認証ユーザーを得る (未認証 null)。 */
-  getAuthUser: (request: Request, env: E) => Promise<{ uid: string; email?: string } | null>;
-  /** users 行を保証する (FK 違反による履歴孤児を防ぐ)。 */
-  upsertUser: (env: E, uid: string, name?: string, picture?: string) => Promise<void>;
-  /** admin 判定 (構造マスタ編集・フィールド allowlist 免除)。 */
-  checkIsAdmin: (env: E, uid: string) => Promise<boolean>;
-  /** レート制限判定 (action='edit')。 */
-  checkRateLimit: (
-    db: D1Database,
-    uid: string,
-    action: string
-  ) => Promise<{ allowed: boolean; used: number; limit: number; reset_at: string }>;
-  json: (data: unknown, status?: number) => Response;
-  error: (message: string, status?: number) => Response;
-  rateLimitResponse: (used: number, limit: number, resetAt: string) => Response;
-}
 
 // ---------------------------------------------------------------------------
 // 入力 DTO
@@ -101,12 +75,11 @@ const RECORD_NAME_PREFIX: Record<string, string> = {
   SetlistPerformer: "slp",
   SongArtist: "sa",
   ShowCast: "sc",
-  // コーレス / 参考動画 (確定契約 §4: SongCall=call_<uuid>, SongVideo=ytref_<uuid>)。
-  SongCall: "call",
+  // 参考動画 (確定契約 §4: SongVideo=ytref_<uuid>)。
   SongVideo: "ytref",
 };
 
-const MAX_OPS = 1000;        // 1 batch あたりの op 上限 (既存 /admin/cloudkit/save 踏襲)
+const MAX_OPS = 1000;        // 1 batch あたりの op 上限
 const MAX_BODY_BYTES = 2_000_000;
 const MAX_FIELD_STR = 50_000;
 const CK_CHUNK = 200;        // cloudKitModify の 1 リクエストあたり op 数
@@ -115,6 +88,33 @@ function generateRecordName(recordType: string): string | null {
   const prefix = RECORD_NAME_PREFIX[recordType];
   if (!prefix) return null;
   return `${prefix}_${crypto.randomUUID()}`;
+}
+
+/**
+ * 同名のイベントが既に居ないか調べる。
+ *
+ * 新規イベントはここで `ev_<uuid>` を採番するが、ツール側 (insert_future_events.py) は
+ * 名前から `ev_<slug>` を作る。同名チェックが無かったため、アプリから投稿された
+ * イベントが slug 版と二重になり、出面に同じライブが 2 つ並んでいた
+ * (2026-09-12 に SideM 11th STAGE で 4 レコード / 魂環の人形で 2 レコードを手で消した)。
+ *
+ * 投稿名は前後と連続の空白だけ畳み、CloudKit には**完全一致**で問い合わせる。表記揺れまで
+ * 吸収しようとすると「DAY1 / DAY2」のような正当な別レコードまで弾いてしまう。既存側の空白
+ * 揺れは拾えないが、それだけのために全 Event を舐める価値は無い。
+ *
+ * 照会に失敗したときは**通す**。CloudKit が一時的に落ちている間に投稿を
+ * 受け付けられなくなる方が損が大きい (重複は後から消せる)。
+ */
+async function findEventWithSameName(
+  name: string,
+  keyId: string,
+  privKeyPem: string
+): Promise<string | null> {
+  const target = name.trim().replace(/\s+/g, " ");
+  if (!target) return null;
+  const res = await cloudKitQuery("Event", "name", target, keyId, privKeyPem);
+  if (!res.ok) return null;
+  return res.records?.[0]?.recordName ?? null;
 }
 
 /** 構築済み op から、注入された modifiedAt(ms) を読み出す (履歴の modified_at を CK 実値に揃える)。 */
@@ -194,15 +194,11 @@ function showIdOfSetlistOp(
 // POST /edits
 // ---------------------------------------------------------------------------
 
-export async function handlePostEdits<E extends EditsEnv>(
-  request: Request,
-  env: E,
-  deps: EditsDeps<E>
-): Promise<Response> {
-  const { json, error, rateLimitResponse } = deps;
+export async function handlePostEdits(ctx: RouteContext): Promise<Response> {
+  const { request, env, json, error, rateLimitResponse } = ctx;
 
   // (1) auth
-  const user = await deps.getAuthUser(request, env);
+  const user = await getAuthUser(request, env);
   if (!user) return error("Unauthorized", 401);
 
   // body パース + サイズ/件数ガード
@@ -219,22 +215,26 @@ export async function handlePostEdits<E extends EditsEnv>(
   if (ops.length > MAX_OPS) return error(`too many ops (max ${MAX_OPS})`, 413);
 
   // (2)(3) ban + rate を並列確認
-  const [dbUser, rl] = await Promise.all([
-    env.DB.prepare("SELECT is_banned FROM users WHERE id = ?")
-      .bind(user.uid)
-      .first<{ is_banned: number }>(),
-    deps.checkRateLimit(env.DB, user.uid, "edit"),
+  const [inactive, rl] = await Promise.all([
+    requireActiveUser(ctx, user),
+    checkRateLimit(env.DB, user.uid, "edit"),
   ]);
-  if (dbUser?.is_banned) return error("Banned", 403);
+  if (inactive) return inactive;
   if (!rl.allowed) return rateLimitResponse(rl.used, rl.limit, rl.reset_at);
 
-  const isAdmin = await deps.checkIsAdmin(env, user.uid);
+  const isAdmin = await checkIsAdmin(env, user.uid);
+
+  // コーレス (SongCall) は 2026-09-06 に廃止。旧アプリからの投稿は「終了」と分かる形で返す
+  // (下の一般ユーザー判定に落ちると「マスタは申請経由」という無関係な文言になる)。
+  if (ops.some((o) => o?.recordType === "SongCall")) {
+    return error("コーレス投稿は終了しました。コールは歌詞タブのコールガイドに書いてください", 410);
+  }
 
   // マスタ事実 (Song/Idol/Event/Show/Setlist 等) の直接編集は管理者のみ。
   // 一般ユーザーは /edit-requests (GitHub issue 化 → 人手で取り込み) に回す。
-  // コミュニティ投稿 (コーレス SongCall / 参考動画 SongVideo) は従来どおり全員オープン。
+  // コミュニティ投稿 (参考動画 SongVideo) は従来どおり全員オープン。
   if (!isAdmin) {
-    const COMMUNITY_TYPES = new Set(["SongCall", "SongVideo"]);
+    const COMMUNITY_TYPES = new Set(["SongVideo"]);
     const masterOp = ops.find((o) => !COMMUNITY_TYPES.has(String(o?.recordType ?? "")));
     if (masterOp) {
       return error(
@@ -271,6 +271,21 @@ export async function handlePostEdits<E extends EditsEnv>(
     let recordName = raw.recordName;
     let generated = false;
     if (op === "create" && !recordName) {
+      // イベントだけ同名チェックを挟む (recordName では重複を止められない: 採番する
+      // uuid 形式は、ツールが名前から作る slug 形式と必ず別物になる)。
+      if (recordType === "Event" && typeof fields.name === "string") {
+        const dup = await findEventWithSameName(
+          fields.name,
+          env.CLOUDKIT_KEY_ID,
+          env.CLOUDKIT_PRIVATE_KEY
+        );
+        if (dup) {
+          return error(
+            `同じ名前のライブが既にあります (${dup})。追加ではなく、そのライブを編集してください。`,
+            409
+          );
+        }
+      }
       const gen = generateRecordName(recordType);
       if (!gen) return error(`cannot generate recordName for ${recordType}`, 400);
       recordName = gen;
@@ -278,10 +293,10 @@ export async function handlePostEdits<E extends EditsEnv>(
     }
     if (!recordName) return error("recordName is required for update/delete", 400);
 
-    // SongCall/SongVideo の createdAt はサーバ権威で注入する (確定契約 §4: allowlist 外なので
+    // SongVideo の createdAt はサーバ権威で注入する (確定契約 §4: allowlist 外なので
     // ユーザーは送れない。validateMasterEdit 通過後に注入し CloudKit/履歴へ確定値として残す)。
     // 編集者匿名性 (§1) のため authorDisplayName は注入しない。
-    if (op === "create" && (recordType === "SongCall" || recordType === "SongVideo")) {
+    if (op === "create" && recordType === "SongVideo") {
       fields.createdAt = Date.now();
     }
 
@@ -352,6 +367,33 @@ export async function handlePostEdits<E extends EditsEnv>(
         if (typeof sid === "string") itemIdToShowId.set(name, sid);
       }
     }
+
+    // SetlistPerformer.idolId の実在検証。ここを飛ばすと、存在しない idolId を指す行が
+    // そのまま CloudKit へ書かれ、他ユーザー端末の増分同期で INSERT 時に FK 違反
+    // (setlist_performers.idol_id REFERENCES idols(id)) を起こしてクラッシュ/同期停止する
+    // (delete op は破棄済みの参照でも問題ないため対象外)。
+    const idolIdsToCheck = new Set<string>();
+    for (const n of normalized) {
+      if (n.recordType !== "SetlistPerformer" || n.op === "delete") continue;
+      const idolId =
+        (typeof n.fields.idolId === "string" && n.fields.idolId) ||
+        (beforeMap.get(n.recordName)?.idolId as string | undefined);
+      if (idolId) idolIdsToCheck.add(idolId);
+    }
+    if (idolIdsToCheck.size > 0) {
+      const idolLookup = await cloudKitLookup(
+        [...idolIdsToCheck],
+        env.CLOUDKIT_KEY_ID,
+        env.CLOUDKIT_PRIVATE_KEY
+      );
+      if (!idolLookup.ok) return error(`cloudkit_lookup_error: ${idolLookup.error}`, 502);
+      const foundIdolIds = new Set(idolLookup.records?.keys() ?? []);
+      for (const idolId of idolIdsToCheck) {
+        if (!foundIdolIds.has(idolId)) {
+          return error(`SetlistPerformer references unknown idolId: ${idolId}`, 400);
+        }
+      }
+    }
   }
 
   // CloudKit op を構築 (create/update → forceUpdate, delete → soft delete)。
@@ -418,22 +460,19 @@ export async function handlePostEdits<E extends EditsEnv>(
 
   // FK 孤児防止: edit_batch.editor_id が users(id) を NOT NULL 参照するため、
   // CloudKit 書き込み前に users 行を保証する (RedTeam High)。
-  await deps.upsertUser(env, user.uid, user.email);
+  await upsertUser(env, user.uid);
 
-  // (6) edit_batch を cloudkit_ok=0 で先行 INSERT
+  // (6) edit_batch を cloudkit_ok=0 で先行 INSERT。
+  //     失敗 (D1 の障害) はここで拾わず、index.ts の共通の 500 に任せる。D1 のエラー文は
+  //     スキーマの情報を含むので応答に出さず、request id と一緒にログへ残す。
   const batchOp = deriveBatchOp(normalized);
   const summary = buildSummary(entries, body?.summary);
-  let batchId: number;
-  try {
-    batchId = await createEditBatch(env.DB, {
-      editorId: user.uid,
-      op: batchOp,
-      source: "app",
-      summary,
-    });
-  } catch (e: any) {
-    return error(`failed to create edit batch: ${String(e?.message ?? e)}`, 500);
-  }
+  const batchId = await createEditBatch(env.DB, {
+    editorId: user.uid,
+    op: batchOp,
+    source: "app",
+    summary,
+  });
 
   // (7) CloudKit へ反映 (200 件ずつ chunk)。1 chunk でも失敗したら 502。
   //     edit_batch は cloudkit_ok=0 のまま残り、edit_history は書かない (= 反映成功時のみ履歴記録)。
@@ -499,14 +538,12 @@ export async function handlePostEdits<E extends EditsEnv>(
 // GET /master/:recordType/:recordName/history
 // ---------------------------------------------------------------------------
 
-export async function handleGetRecordHistory<E extends EditsEnv>(
+export async function handleGetRecordHistory(
+  ctx: RouteContext,
   recordType: string,
-  recordName: string,
-  url: URL,
-  env: E,
-  deps: Pick<EditsDeps<E>, "json" | "error">
+  recordName: string
 ): Promise<Response> {
-  const { json } = deps;
+  const { url, env, json } = ctx;
   const limit = parsePositiveInt(url.searchParams.get("limit"), 30);
   const rows = await getRecordHistory(env.DB, recordType, recordName, limit);
   // 一覧では変更フィールド名のみの要約 + フル diff を併せて返す (RedTeam Medium: 応答肥大対策の一次表現)。

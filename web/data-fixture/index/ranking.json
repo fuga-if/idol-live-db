@@ -1,0 +1,173 @@
+{
+  "schemaVersion": 1,
+  "path": "/ranking/",
+  "title": "ランキング",
+  "lede": "記録されたセットリストと出演者から数えています。自分の回収率や、まだ生で聴けていない曲はアプリの「調べる」で。",
+  "scope": {
+    "label": "ブランド",
+    "links": [
+      {
+        "label": "すべて",
+        "path": "/ranking/",
+        "current": true,
+        "themeKey": null,
+        "count": null
+      },
+      {
+        "label": "ミリオンライブ!",
+        "path": "/ranking/brand/ml/",
+        "current": false,
+        "themeKey": "brand:ml",
+        "count": null
+      }
+    ],
+    "islandKey": null
+  },
+  "songs": [
+    {
+      "rank": 1,
+      "ref": {
+        "kind": "song",
+        "id": "ml_sample",
+        "name": "Thank You!",
+        "sub": "765MILLION ALLSTARS",
+        "path": "/songs/ml_sample/",
+        "themeKey": "brand:ml",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music/sample/600x600bb.jpg"
+      },
+      "value": 42,
+      "unit": "回",
+      "sharePermille": 1000
+    },
+    {
+      "rank": 2,
+      "ref": {
+        "kind": "song",
+        "id": "ml_no_artwork",
+        "name": "ジャケットの無い曲",
+        "sub": null,
+        "path": "/songs/ml_no_artwork/",
+        "themeKey": "brand:ml",
+        "artworkUrl": null
+      },
+      "value": 3,
+      "unit": "回",
+      "sharePermille": 71
+    }
+  ],
+  "idols": [
+    {
+      "rank": 1,
+      "ref": {
+        "kind": "idol",
+        "id": "ml_kasuga_mirai",
+        "name": "春日未来",
+        "sub": "ミリオンライブ!",
+        "path": "/idols/ml_kasuga_mirai/",
+        "themeKey": "idol:ml_kasuga_mirai",
+        "artworkUrl": null
+      },
+      "value": 120,
+      "unit": "公演",
+      "sharePermille": 1000
+    },
+    {
+      "rank": 2,
+      "ref": {
+        "kind": "idol",
+        "id": "ml_mogami_shizuka",
+        "name": "最上静香",
+        "sub": "ミリオンライブ!",
+        "path": "/idols/ml_mogami_shizuka/",
+        "themeKey": "idol:ml_mogami_shizuka",
+        "artworkUrl": null
+      },
+      "value": 118,
+      "unit": "公演",
+      "sharePermille": 983
+    }
+  ],
+  "brandSongs": [
+    {
+      "rank": null,
+      "ref": {
+        "kind": "brand",
+        "id": "ml",
+        "name": "アイドルマスター ミリオンライブ!",
+        "sub": "ML",
+        "path": "/brands/ml/",
+        "themeKey": "brand:ml",
+        "artworkUrl": null
+      },
+      "value": 600,
+      "unit": "曲",
+      "sharePermille": 1000
+    },
+    {
+      "rank": null,
+      "ref": {
+        "kind": "brand",
+        "id": "cg",
+        "name": "アイドルマスター シンデレラガールズ",
+        "sub": "CG",
+        "path": "/brands/cg/",
+        "themeKey": "brand:cg",
+        "artworkUrl": null
+      },
+      "value": 450,
+      "unit": "曲",
+      "sharePermille": 750
+    }
+  ],
+  "years": [
+    {
+      "year": "2025",
+      "short": "25",
+      "value": 40,
+      "sharePermille": 1000,
+      "isPlanned": false
+    },
+    {
+      "year": "2026",
+      "short": "26",
+      "value": 12,
+      "sharePermille": 300,
+      "isPlanned": true
+    }
+  ],
+  "yearsNote": "2026年以降は発表済みの予定を含みます。",
+  "seo": {
+    "title": "ランキング | アイドルライブDB",
+    "description": "ランキング。",
+    "canonical": "https://idollivedb.fugaapp.site/ranking/",
+    "ogImage": "https://idollivedb.fugaapp.site/og/default.png",
+    "robots": "index,follow",
+    "jsonLd": {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebPage",
+          "name": "ランキング",
+          "url": "https://idollivedb.fugaapp.site/ranking/"
+        },
+        {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "item": "https://idollivedb.fugaapp.site/",
+              "name": "ホーム",
+              "position": 1
+            }
+          ]
+        }
+      ]
+    },
+    "breadcrumbs": [
+      {
+        "name": "ホーム",
+        "path": "/"
+      }
+    ]
+  }
+}

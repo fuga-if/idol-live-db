@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "path": "/search/",
+  "title": "検索",
+  "lede": "楽曲・アイドル・ライブ・会場を名前でまとめて探します。ひらがな / カタカナ / 英字の大小の違いはアプリと同じ規則で吸収します。",
+  "limitPerKind": 30,
+  "lyricsMinChars": 2,
+  "seo": {
+    "title": "検索 | アイドルライブDB",
+    "description": "アイマスの楽曲・アイドル・ライブ・会場を名前で検索します。ひらがな / カタカナ / 英字の違いは自動で吸収します。",
+    "canonical": "https://idollivedb.fugaapp.site/search/",
+    "ogImage": "https://idollivedb.fugaapp.site/og/default.png",
+    "robots": "index,follow",
+    "jsonLd": {},
+    "breadcrumbs": [
+      {
+        "name": "ホーム",
+        "path": "/"
+      },
+      {
+        "name": "検索",
+        "path": "/search/"
+      }
+    ]
+  }
+}

@@ -1,0 +1,347 @@
+{
+ "title": "公演 sh_283_production_solo_live_collection_-master_showpiece-_1 のセットリスト追加",
+ "author": "Claude (公式セトリ画像から起こした)",
+ "source": "https://idolmaster-official.jp/news/01_19897",
+ "note": "出典: https://idolmaster-official.jp/news/01_19897 (「DAY1ご来場・ご視聴いただきありがとうございました！本日のセットリスト＆告知内容まとめ」) に掲載のセットリスト画像より。画像は 30 枠で、08 は Maestria & Tradizione メドレー (7 曲)、23 は Art & Couleurs メドレー (7 曲)。DB ではメドレー内の曲を 1 曲ずつ position に展開し、section にメドレー名を入れている (全 42 行)。歌唱者は声優名(役名)表記なので役名のアイドルに置き換えた。杜野凛世・八宮めぐる・有栖川夏葉・桑山千雪・月岡恋鐘・白瀬咲耶・浅倉透はメドレーとソロで 2 回歌唱。",
+ "show_id": "sh_283_production_solo_live_collection_-master_showpiece-_1",
+ "all_performers": [
+  "sc_市川雛菜",
+  "sc_郁田はるき",
+  "sc_大崎甘奈",
+  "sc_櫻木真乃",
+  "sc_芹沢あさひ",
+  "sc_幽谷霧子",
+  "sc_鈴木羽那",
+  "sc_白瀬咲耶",
+  "sc_有栖川夏葉",
+  "sc_杜野凛世",
+  "sc_浅倉透",
+  "sc_桑山千雪",
+  "sc_月岡恋鐘",
+  "sc_八宮めぐる",
+  "sc_大崎甜花",
+  "sc_緋田美琴",
+  "sc_園田智代子",
+  "sc_黛冬優子",
+  "sc_三峰結華",
+  "sc_福丸小糸",
+  "sc_西城樹里",
+  "sc_和泉愛依",
+  "sc_斑鳩ルカ",
+  "sc_七草にちか",
+  "sc_樋口円香",
+  "sc_田中摩美々",
+  "sc_小宮果穂",
+  "sc_風野灯織"
+ ],
+ "songs": [
+  {
+   "position": 1,
+   "song_id": "sc_ハートフルデイ_ハートフルミー",
+   "performers": [
+    "sc_市川雛菜"
+   ]
+  },
+  {
+   "position": 2,
+   "song_id": "sc_hsv色空間",
+   "performers": [
+    "sc_郁田はるき"
+   ]
+  },
+  {
+   "position": 3,
+   "song_id": "sc_どっちみちlove",
+   "performers": [
+    "sc_大崎甘奈"
+   ]
+  },
+  {
+   "position": 4,
+   "song_id": "sc_magical_forest",
+   "performers": [
+    "sc_櫻木真乃"
+   ]
+  },
+  {
+   "position": 5,
+   "song_id": "sc_ワタシグラビティ",
+   "performers": [
+    "sc_芹沢あさひ"
+   ]
+  },
+  {
+   "position": 6,
+   "song_id": "sc_カラースプレーとうさぎさん",
+   "performers": [
+    "sc_幽谷霧子"
+   ]
+  },
+  {
+   "position": 7,
+   "song_id": "sc_imaginary",
+   "performers": [
+    "sc_鈴木羽那"
+   ]
+  },
+  {
+   "position": 8,
+   "song_id": "sc_千夜アリア",
+   "performers": [
+    "sc_白瀬咲耶"
+   ],
+   "section": "Maestria & Tradizione メドレー"
+  },
+  {
+   "position": 9,
+   "song_id": "sc_damascus_cocktail",
+   "performers": [
+    "sc_有栖川夏葉"
+   ],
+   "section": "Maestria & Tradizione メドレー"
+  },
+  {
+   "position": 10,
+   "song_id": "sc_常咲の庭",
+   "performers": [
+    "sc_杜野凛世"
+   ],
+   "section": "Maestria & Tradizione メドレー"
+  },
+  {
+   "position": 11,
+   "song_id": "sc_statice",
+   "performers": [
+    "sc_浅倉透"
+   ],
+   "section": "Maestria & Tradizione メドレー"
+  },
+  {
+   "position": 12,
+   "song_id": "sc_darling_you",
+   "performers": [
+    "sc_桑山千雪"
+   ],
+   "section": "Maestria & Tradizione メドレー"
+  },
+  {
+   "position": 13,
+   "song_id": "sc_アポイントシグナル",
+   "performers": [
+    "sc_月岡恋鐘"
+   ],
+   "section": "Maestria & Tradizione メドレー"
+  },
+  {
+   "position": 14,
+   "song_id": "sc_harebare",
+   "performers": [
+    "sc_八宮めぐる"
+   ],
+   "section": "Maestria & Tradizione メドレー"
+  },
+  {
+   "position": 15,
+   "song_id": "sc_odette",
+   "performers": [
+    "sc_大崎甜花"
+   ]
+  },
+  {
+   "position": 16,
+   "song_id": "sc_crying_diamond",
+   "performers": [
+    "sc_緋田美琴"
+   ]
+  },
+  {
+   "position": 17,
+   "song_id": "sc_ナイススパイス研究会",
+   "performers": [
+    "sc_園田智代子"
+   ]
+  },
+  {
+   "position": 18,
+   "song_id": "sc_ガガリズム",
+   "performers": [
+    "sc_黛冬優子"
+   ]
+  },
+  {
+   "position": 19,
+   "song_id": "sc_最上級パンチライン",
+   "performers": [
+    "sc_三峰結華"
+   ]
+  },
+  {
+   "position": 20,
+   "song_id": "sc_here_for_you",
+   "performers": [
+    "sc_福丸小糸"
+   ]
+  },
+  {
+   "position": 21,
+   "song_id": "sc_パラボラ",
+   "performers": [
+    "sc_西城樹里"
+   ]
+  },
+  {
+   "position": 22,
+   "song_id": "sc_月とネオンと薄紅と",
+   "performers": [
+    "sc_杜野凛世"
+   ]
+  },
+  {
+   "position": 23,
+   "song_id": "sc_take_ur_time",
+   "performers": [
+    "sc_八宮めぐる"
+   ]
+  },
+  {
+   "position": 24,
+   "song_id": "sc_be-witched",
+   "performers": [
+    "sc_有栖川夏葉"
+   ]
+  },
+  {
+   "position": 25,
+   "song_id": "sc_sweet_boozy",
+   "performers": [
+    "sc_桑山千雪"
+   ]
+  },
+  {
+   "position": 26,
+   "song_id": "sc_恋するクオリア",
+   "performers": [
+    "sc_月岡恋鐘"
+   ]
+  },
+  {
+   "position": 27,
+   "song_id": "sc_lights_on_me",
+   "performers": [
+    "sc_白瀬咲耶"
+   ]
+  },
+  {
+   "position": 28,
+   "song_id": "sc_paradox",
+   "performers": [
+    "sc_浅倉透"
+   ]
+  },
+  {
+   "position": 29,
+   "song_id": "sc_ありったけの輝きで",
+   "performers": [
+    "sc_櫻木真乃"
+   ],
+   "section": "Art & Couleurs メドレー"
+  },
+  {
+   "position": 30,
+   "song_id": "sc_星をめざして",
+   "performers": [
+    "sc_芹沢あさひ"
+   ],
+   "section": "Art & Couleurs メドレー"
+  },
+  {
+   "position": 31,
+   "song_id": "sc_あおぞらサイダー",
+   "performers": [
+    "sc_市川雛菜"
+   ],
+   "section": "Art & Couleurs メドレー"
+  },
+  {
+   "position": 32,
+   "song_id": "sc_sweet_memories",
+   "performers": [
+    "sc_大崎甘奈"
+   ],
+   "section": "Art & Couleurs メドレー"
+  },
+  {
+   "position": 33,
+   "song_id": "sc_雪月風花",
+   "performers": [
+    "sc_幽谷霧子"
+   ],
+   "section": "Art & Couleurs メドレー"
+  },
+  {
+   "position": 34,
+   "song_id": "sc_無垢",
+   "performers": [
+    "sc_鈴木羽那"
+   ],
+   "section": "Art & Couleurs メドレー"
+  },
+  {
+   "position": 35,
+   "song_id": "sc_夢模様キャンバス",
+   "performers": [
+    "sc_郁田はるき"
+   ],
+   "section": "Art & Couleurs メドレー"
+  },
+  {
+   "position": 36,
+   "song_id": "sc_hold_on_me",
+   "performers": [
+    "sc_和泉愛依"
+   ]
+  },
+  {
+   "position": 37,
+   "song_id": "sc_hell-o",
+   "performers": [
+    "sc_斑鳩ルカ"
+   ]
+  },
+  {
+   "position": 38,
+   "song_id": "sc_unstoppable",
+   "performers": [
+    "sc_七草にちか"
+   ]
+  },
+  {
+   "position": 39,
+   "song_id": "sc_ダミーガール",
+   "performers": [
+    "sc_樋口円香"
+   ]
+  },
+  {
+   "position": 40,
+   "song_id": "sc_正解な不正解",
+   "performers": [
+    "sc_田中摩美々"
+   ]
+  },
+  {
+   "position": 41,
+   "song_id": "sc_ハグルマヒマワリ",
+   "performers": [
+    "sc_小宮果穂"
+   ]
+  },
+  {
+   "position": 42,
+   "song_id": "sc_embers_glow",
+   "performers": [
+    "sc_風野灯織"
+   ]
+  }
+ ]
+}

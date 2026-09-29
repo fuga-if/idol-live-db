@@ -1,0 +1,206 @@
+{
+ "title": "作家の読み仮名を出典付きで再確認して訂正する (第6陣)",
+ "_help": "出典を記録していなかった 26 件の引き直し。25 件が確定、1 件 (淵ヶ谷増二) は出典が真っ向から矛盾したため現状維持。賀佐泰洋は Wikipedia の「かさ」に対し所属事務所・本人サイト・SNS がいずれも Gasa で、事務所+本人名義を採った。",
+ "fixes": [
+  {
+   "table": "creators",
+   "id": "cr_f690eefa1e72",
+   "fields": {
+    "name_kana": "わたなべみき"
+   },
+   "note": "裏取りして訂正 (誤: わたなべみらい)。出典 https://ja.wikipedia.org/wiki/渡辺未来"
+  },
+  {
+   "table": "creators",
+   "id": "cr_5ca7c9a1c4f6",
+   "fields": {
+    "name_kana": "ふじばやししょうこ"
+   },
+   "note": "裏取りして訂正 (誤: ふじばやしせいこ)。出典 https://ja.wikipedia.org/wiki/藤林聖子"
+  },
+  {
+   "table": "creators",
+   "id": "cr_c7818ae4efd5",
+   "fields": {
+    "name_kana": "かなさきまさし"
+   },
+   "note": "裏取りして訂正 (誤: かなさきしんじ)。出典 https://supalove.com/category/introduction/kanasaki-masashi/"
+  },
+  {
+   "table": "creators",
+   "id": "cr_3852097e0bf0",
+   "fields": {
+    "name_kana": "りりしゃ"
+   },
+   "note": "裏取りして訂正 (誤: りりさ)。出典 https://www.tunecore.co.jp/artists/ririsya"
+  },
+  {
+   "table": "creators",
+   "id": "cr_669bdf0f16d2",
+   "fields": {
+    "name_kana": "すみやしょうへい"
+   },
+   "note": "裏取りして訂正 (誤: すみたにしょうへい)。出典 https://shouhei-sumiya.com/"
+  },
+  {
+   "table": "creators",
+   "id": "cr_27f59e3bcb9f",
+   "fields": {
+    "name_kana": "うめぼりあつし"
+   },
+   "note": "裏取りして訂正 (誤: うめぼりじゅん)。出典 https://ja.wikipedia.org/wiki/梅堀淳"
+  },
+  {
+   "table": "creators",
+   "id": "cr_59481f8af456",
+   "fields": {
+    "name_kana": "おさだなおゆき"
+   },
+   "note": "裏取りして訂正 (誤: ながたなおゆき)。出典 https://ja.wikipedia.org/wiki/長田直之"
+  },
+  {
+   "table": "creators",
+   "id": "cr_ec20b157682a",
+   "fields": {
+    "name_kana": "わたなべやすし"
+   },
+   "note": "裏取りして訂正 (誤: わたなべたいじ)。出典 https://ja.wikipedia.org/wiki/渡辺泰司"
+  },
+  {
+   "table": "creators",
+   "id": "cr_b58461700cc0",
+   "fields": {
+    "name_kana": "ひきえゆういちろう"
+   },
+   "note": "裏取りして訂正 (誤: ひおきえゆういちろう)。出典 https://www.scoop.co.jp/creator/detail.php?cd=45"
+  },
+  {
+   "table": "creators",
+   "id": "cr_199b65a643e5",
+   "fields": {
+    "name_kana": "さわだそうり"
+   },
+   "note": "裏取りして訂正 (誤: さわだそかり)。出典 https://ja.wikipedia.org/wiki/澤田空海理"
+  },
+  {
+   "table": "creators",
+   "id": "cr_a6675df87410",
+   "fields": {
+    "name_kana": "にしこおりたかひろ"
+   },
+   "note": "裏取りして訂正 (誤: にしきおりたかひろ)。出典 https://www.star-jam.com/trytonelabo/view/15"
+  },
+  {
+   "table": "creators",
+   "id": "cr_441cf5bfc08e",
+   "fields": {
+    "name_kana": "ときさわなお"
+   },
+   "note": "裏取りして訂正 (誤: ときざわなお)。出典 https://ja.wikipedia.org/wiki/鴇沢直"
+  },
+  {
+   "table": "creators",
+   "id": "cr_28e84171ac37",
+   "fields": {
+    "name_kana": "おおがみまさこ"
+   },
+   "note": "裏取りして訂正 (誤: おおうえまさこ)。出典 https://imas-db.jp/song/creator/29.html"
+  },
+  {
+   "table": "creators",
+   "id": "cr_14a2ce873754",
+   "fields": {
+    "name_kana": "いけだけんと"
+   },
+   "note": "裏取りして訂正 (誤: いけだたけひと)。出典 https://vgmdb.net/artist/26046"
+  },
+  {
+   "table": "creators",
+   "id": "cr_6f35ae17a79f",
+   "fields": {
+    "name_kana": "がさやすひろ"
+   },
+   "note": "裏取りして訂正 (誤: かさやすひろ)。出典 https://supalove.com/category/introduction/gasa-yasuhiro/"
+  },
+  {
+   "table": "creators",
+   "id": "cr_aab73d80100a",
+   "fields": {
+    "name_kana": "ながねひろふみ"
+   },
+   "note": "裏取りして訂正 (誤: ながねひろし)。出典 https://vgmdb.net/artist/46375"
+  },
+  {
+   "table": "creators",
+   "id": "cr_5ae4953fa08f",
+   "fields": {
+    "name_kana": "おがやしんご"
+   },
+   "note": "裏取りして訂正 (誤: こがやしんご)。出典 https://vgmdb.net/artist/27765"
+  },
+  {
+   "table": "creators",
+   "id": "cr_72431c9be09a",
+   "fields": {
+    "name_kana": "いしかわけいじゅ"
+   },
+   "note": "裏取りして訂正 (誤: いしかわけいき)。出典 https://ja.wikipedia.org/wiki/石川恵樹"
+  },
+  {
+   "table": "creators",
+   "id": "cr_ec583745a06a",
+   "fields": {
+    "name_kana": "みやかわだん"
+   },
+   "note": "裏取りして訂正 (誤: みやがわだん)。出典 https://ja.wikipedia.org/wiki/宮川弾"
+  },
+  {
+   "table": "creators",
+   "id": "cr_17a8d5144beb",
+   "fields": {
+    "name_kana": "やまさきひかる"
+   },
+   "note": "裏取りして訂正 (誤: やまざきひかる)。出典 https://www.arte-refact.com/creator/hikaru_yamasaki/"
+  },
+  {
+   "table": "creators",
+   "id": "cr_bac4f99d0bd2",
+   "fields": {
+    "name_kana": "よしかわかな"
+   },
+   "note": "裏取りして訂正 (誤: よしかわそう)。出典 https://imas-db.jp/song/creator/260.html"
+  },
+  {
+   "table": "creators",
+   "id": "cr_f98c310c435f",
+   "fields": {
+    "name_kana": "はるかずあや"
+   },
+   "note": "裏取りして訂正 (誤: はるかずふみ)。出典 https://ja.wikipedia.org/wiki/春和文"
+  },
+  {
+   "table": "creators",
+   "id": "cr_cdefcd895518",
+   "fields": {
+    "name_kana": "むてきでっどすねいく"
+   },
+   "note": "裏取りして訂正 (誤: むてきでっどすねーく)。出典 https://ja.wikipedia.org/wiki/MUTEKI_DEAD_SNAKE"
+  },
+  {
+   "table": "creators",
+   "id": "cr_d79ada1d1bb9",
+   "fields": {
+    "name_kana": "こすもあっとぼうそうぴー"
+   },
+   "note": "裏取りして訂正 (誤: こすもぼうそうぴー)。出典 https://ja.wikipedia.org/wiki/CosMo@暴走P"
+  },
+  {
+   "table": "creators",
+   "id": "cr_df35d8ad3288",
+   "fields": {
+    "name_kana": "いちくら"
+   },
+   "note": "裏取りして訂正 (誤: いちぞう)。出典 https://imas-db.jp/song/creator/274.html"
+  }
+ ]
+}

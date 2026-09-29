@@ -1,0 +1,17 @@
+{
+ "title": "songs の ml_ネバーエンドワンダーランド を修正",
+ "author": "LLM 提案 (propose_fix)",
+ "source": "https://idolmaster-official.jp/live_event/million14th/",
+ "note": "出典: https://idolmaster-official.jp/live_event/million14th/\n引用: \"「ネバーエンド・ワンダーランド」 作詞：松井洋平 作曲：星銀乃丈 編曲：山田英嵩(F.M.F)、星銀乃丈\"\n14thLIVE DAY1 で初披露された 3 曲の楽曲情報公開画像より。作曲・編曲が同一人物の曲は画像の「作曲・編曲：X」表記どおり両方に同じ名前を入れている。CD タイトル・発売日は未発表 (Lantis 公式にも未掲載) のため空のまま。",
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "ml_ネバーエンドワンダーランド",
+   "fields": {
+    "arranger": "山田英嵩(F.M.F)、星銀乃丈",
+    "composer": "星銀乃丈",
+    "lyricist": "松井洋平"
+   }
+  }
+ ]
+}

@@ -1,0 +1,109 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Section from "../components/Section.astro";
+import EntryCard from "../components/EntryCard.astro";
+import EventRow from "../components/EventRow.astro";
+import ShowRow from "../components/ShowRow.astro";
+import FeatureEvent from "../components/FeatureEvent.astro";
+import ListContainer from "../components/ListContainer.astro";
+import EmptyState from "../components/EmptyState.astro";
+import SearchBox from "../components/SearchBox.astro";
+import StatStrip from "../components/StatStrip.astro";
+import { meta, page, routeData } from "../lib/data";
+import type { HomePage } from "../lib/schema/HomePage";
+
+/**
+ * トップ。
+ * 「見せる塊」(ヒーローの検索窓・直近ライブの注目カード) と「並べる塊」(行の一覧) を分ける。
+ * 何を何件出すか・並びは Rust の `HomePage` のまま。先頭 1 件を大きくするのは見せ方の判断。
+ */
+const home = page<HomePage>(routeData("home", "/"));
+const [featured, ...restUpcoming] = home.upcoming;
+---
+
+<BaseLayout seo={home.seo}>
+  <section class="home-hero" aria-labelledby="home-title">
+    <div class="home-hero__body">
+      <p class="home-hero__date u-num">{home.todayDisplay}</p>
+      <h1 class="home-hero__title" id="home-title">
+        {home.headline.map((line) => <span>{line}</span>)}
+      </h1>
+      <p class="lede">{home.tagline}</p>
+      <SearchBox />
+      <StatStrip items={home.statTiles} label="収録データ" />
+      {/* 非公式の断りはフッタ (Rust の footerNotes) が全ページで言う。最初の一画面には置かない。 */}
+    </div>
+    {featured && <FeatureEvent item={featured} countdown={home.nextCountdown} />}
+  </section>
+
+  <Section id="home-upcoming" title="これからのライブ" moreHref="/events/upcoming/">
+    {
+      home.upcomingEmpty ? (
+        <EmptyState {...home.upcomingEmpty} />
+      ) : (
+        restUpcoming.length > 0 && (
+          <ListContainer as="ul">
+            {restUpcoming.map((e) => (
+              <EventRow item={e} />
+            ))}
+          </ListContainer>
+        )
+      )
+    }
+  </Section>
+
+  <Section
+    id="home-recent"
+    title="最近の公演"
+    moreHref={home.recentShowsMore.path}
+    moreLabel={home.recentShowsMore.label}
+  >
+    {
+      home.recentShowsEmpty ? (
+        <EmptyState {...home.recentShowsEmpty} />
+      ) : (
+        <ListContainer as="ul">
+          {home.recentShows.map((s) => (
+            <ShowRow show={s} />
+          ))}
+        </ListContainer>
+      )
+    }
+  </Section>
+
+  <Section id="home-brands" title="ブランドから探す" moreHref="/brands/">
+    <div class="entry-grid">
+      {
+        home.brands.map((b) => (
+          <EntryCard
+            glyph={b.glyph}
+            title={b.ref.name}
+            preview={b.previewDisplay}
+            href={b.ref.path}
+            themeKey={b.ref.themeKey}
+          />
+        ))
+      }
+    </div>
+  </Section>
+
+  <section class="cta" aria-labelledby="home-app">
+    <img
+      class="cta__icon"
+      src="/logo-mark.png"
+      alt=""
+      width="64"
+      height="64"
+      loading="lazy"
+      decoding="async"
+    />
+    <div class="cta__body">
+      <h2 class="cta__title" id="home-app">アプリで、もっと</h2>
+      <p class="lede lede--small">{home.appNote}</p>
+      <p class="cta__actions">
+        <a class="btn" href={home.app.appStoreUrl}>App Store で見る</a>
+        <a class="btn btn--ghost" href={home.app.repositoryUrl}>GitHub でデータに協力する</a>
+      </p>
+    </div>
+  </section>
+</BaseLayout>

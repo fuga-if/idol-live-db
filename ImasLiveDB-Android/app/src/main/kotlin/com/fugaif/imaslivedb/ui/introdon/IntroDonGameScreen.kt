@@ -1,7 +1,6 @@
 package com.fugaif.imaslivedb.ui.introdon
 
 import android.app.Application
-import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -9,7 +8,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -64,6 +62,8 @@ import coil3.compose.SubcomposeAsyncImage
 import com.fugaif.imaslivedb.data.games.GameKind
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.player.AudioPreviewManager
+import com.fugaif.imaslivedb.ui.share.IntroDonShareSheet
+import com.fugaif.imaslivedb.ui.share.IntroShareLine
 import com.fugaif.imaslivedb.ui.theme.DS
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -73,6 +73,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
+import uniffi.imas_core.IntroDonShareInput
+import uniffi.imas_core.IntroDonShareMode
+import uniffi.imas_core.shareIntroDonText
+import uniffi.imas_core.IntroScore
+import uniffi.imas_core.introQuestionCount
+import uniffi.imas_core.introScoreAfterAnswer
 
 // =============================================================================
 // イントロドン本編 (ノーマル/ラッシュ/全曲チャレンジ)。iOS IntroGameView + IntroGameSession
@@ -104,6 +110,10 @@ data class IntroDonGameUiState(
     val totalCount: Int get() = questions.size
 }
 
+/** コアに渡す今の点とコンボ。 */
+private val IntroDonGameUiState.introScore: IntroScore
+    get() = IntroScore(score.toUInt(), combo.toUInt(), bestCombo.toUInt())
+
 class IntroDonGameViewModel(app: Application, private val settings: IntroDonSettings) : AndroidViewModel(app) {
     private val songRepository = AppModule.from(app).songRepository
     private val progressStore = AppModule.from(app).gameProgressStore
@@ -131,15 +141,16 @@ class IntroDonGameViewModel(app: Application, private val settings: IntroDonSett
         viewModelScope.launch {
             _uiState.value = IntroDonGameUiState(phase = IntroDonPhase.LOADING)
             val pool = songRepository.fetchIntroDonSongs(settings.selectedBrandIds)
-            if (pool.size < 4) {
+            // 始められるか (4 曲の門) と何問出すかはコア。
+            val count = introQuestionCount(settings.mode.sessionKind, pool.size.toUInt(), settings.questionCount.toUInt())
+            if (count == null) {
                 _uiState.value = _uiState.value.copy(
                     phase = IntroDonPhase.LOADING,
                     errorMessage = "対象の曲が見つかりませんでした。ブランドを増やしてお試しください。"
                 )
                 return@launch
             }
-            val count = if (isFast) pool.size else settings.questionCount
-            val questions = buildIntroDonQuestions(pool, count)
+            val questions = buildIntroDonQuestions(pool, count.toInt())
             _uiState.value = IntroDonGameUiState(
                 phase = IntroDonPhase.PLAYING,
                 questions = questions,
@@ -175,7 +186,7 @@ class IntroDonGameViewModel(app: Application, private val settings: IntroDonSett
         val url = question.previewUrl
         AudioPreviewManager.stop()
         if (url.isNullOrEmpty()) return
-        AudioPreviewManager.togglePreview(url, question.title)
+        AudioPreviewManager.togglePreview(url, question.id)
         if (isFast) return // 押すまで/次の問題まで流し続ける。自動停止しない。
         playJob = viewModelScope.launch {
             val started = withTimeoutOrNull(3_000) {
@@ -235,12 +246,12 @@ class IntroDonGameViewModel(app: Application, private val settings: IntroDonSett
         if (s.phase != IntroDonPhase.PLAYING && s.phase != IntroDonPhase.ANSWERING) return
         stopPlayback()
         val correct = title == q.title
-        val newCombo = if (correct) s.combo + 1 else 0
+        // 点とコンボの数え方はコア。
+        val next = introScoreAfterAnswer(s.introScore, correct)
         val records = s.records + IntroDonAnswerRecord(q.id, q.title, title, correct)
         val updated = s.copy(
             selectedTitle = title, isCorrect = correct,
-            score = s.score + if (correct) 1 else 0,
-            combo = newCombo, bestCombo = maxOf(s.bestCombo, newCombo),
+            score = next.score.toInt(), combo = next.combo.toInt(), bestCombo = next.bestCombo.toInt(),
             records = records, flashTick = s.flashTick + 1, flashCorrect = correct
         )
         _uiState.value = updated
@@ -252,7 +263,12 @@ class IntroDonGameViewModel(app: Application, private val settings: IntroDonSett
         val q = s.currentQuestion ?: return
         stopPlayback()
         val records = s.records + IntroDonAnswerRecord(q.id, q.title, null, false)
-        _uiState.value = s.copy(selectedTitle = null, isCorrect = false, combo = 0, records = records)
+        val next = introScoreAfterAnswer(s.introScore, false)
+        _uiState.value = s.copy(
+            selectedTitle = null, isCorrect = false,
+            score = next.score.toInt(), combo = next.combo.toInt(), bestCombo = next.bestCombo.toInt(),
+            records = records
+        )
         if (isFast) advanceFast() else _uiState.value = _uiState.value.copy(phase = IntroDonPhase.REVEALED)
     }
 
@@ -634,9 +650,10 @@ private fun IntroDonResultBody(
     onReplay: () -> Unit,
     onExit: () -> Unit
 ) {
-    val context = LocalContext.current
     val answered = state.records.size
     val percentage = if (answered > 0) state.score * 100 / answered else 0
+    // 結果カード (画像) のシェアシート。従来のテキストは画像に添える本文として残す。
+    var showShareCard by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
@@ -682,19 +699,12 @@ private fun IntroDonResultBody(
 
         IntroDonActionButton(title = "もう一度") { onReplay() }
 
-        val shareText = shareText(settings, state, percentage, answered)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(14.dp))
                 .background(DS.surface)
-                .clickable {
-                    val intent = Intent(Intent.ACTION_SEND).apply {
-                        type = "text/plain"
-                        putExtra(Intent.EXTRA_TEXT, shareText)
-                    }
-                    context.startActivity(Intent.createChooser(intent, null))
-                }
+                .clickable { showShareCard = true }
                 .padding(vertical = 14.dp),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
@@ -709,6 +719,24 @@ private fun IntroDonResultBody(
         ) {
             Text("ホームに戻る", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = DS.ink2)
         }
+    }
+
+    if (showShareCard) {
+        val isAllSongs = settings.mode == IntroDonMode.ALL_SONGS
+        val secs = (state.elapsedMs / 1000).toInt()
+        IntroDonShareSheet(
+            modeLabel = introDonModeLabel(settings),
+            score = state.score,
+            total = answered,
+            percentage = percentage,
+            // タイムを競うのは全曲チャレンジだけ。他モードは行ごと出さない。
+            timeText = if (isAllSongs) String.format("%d:%02d", secs / 60, secs % 60) else null,
+            bestCombo = state.bestCombo,
+            // 全曲チャレンジは曲数が多すぎて内訳が無意味なのでサマリのみ。
+            lines = if (isAllSongs) emptyList() else state.records.map { IntroShareLine(it.title, it.correct) },
+            shareText = shareText(settings, state, answered),
+            onDismiss = { showShareCard = false }
+        )
     }
 }
 
@@ -761,18 +789,27 @@ private fun RecordRow(index: Int, record: IntroDonAnswerRecord) {
     }
 }
 
-private fun shareText(settings: IntroDonSettings, state: IntroDonGameUiState, percentage: Int, answered: Int): String {
-    val modeLabel = when (settings.mode) {
-        IntroDonMode.ALL_SONGS -> "全曲チャレンジ"
-        IntroDonMode.RUSH -> "ラッシュ ${settings.rushTimeLimitSec}秒"
-        else -> "ノーマル"
-    }
-    val base = if (settings.mode == IntroDonMode.ALL_SONGS) {
-        val secs = (state.elapsedMs / 1000).toInt()
-        "🎵イントロドン 全曲チャレンジ ${secs / 60}:${(secs % 60).toString().padStart(2, '0')}・正答率$percentage% (${state.score}/$answered)"
-    } else {
-        "🎵イントロドン($modeLabel)で ${state.score}/$answered 正解！(正答率$percentage%)"
-    }
-    val combo = if (state.bestCombo >= 2) " 最大${state.bestCombo}連続🔥" else ""
-    return base + combo + "\n#イントロドン #アイマス"
+/** シェア文とシェアカードで同じモード表記を使うための 1 箇所。 */
+private fun introDonModeLabel(settings: IntroDonSettings): String = when (settings.mode) {
+    IntroDonMode.ALL_SONGS -> "全曲チャレンジ"
+    IntroDonMode.RUSH -> "ラッシュ ${settings.rushTimeLimitSec}秒"
+    else -> "ノーマル"
 }
+
+/** 結果のシェア文。文面 (タイムの丸め・正答率・連続正解) はコアが作る (iOS と同じ)。 */
+private fun shareText(settings: IntroDonSettings, state: IntroDonGameUiState, answered: Int): String =
+    shareIntroDonText(
+        IntroDonShareInput(
+            mode = when (settings.mode) {
+                IntroDonMode.NORMAL -> IntroDonShareMode.NORMAL
+                IntroDonMode.RUSH -> IntroDonShareMode.RUSH
+                IntroDonMode.ALL_SONGS -> IntroDonShareMode.ALL_SONGS
+                IntroDonMode.PARTY -> IntroDonShareMode.PARTY
+            },
+            score = state.score,
+            answered = answered,
+            bestCombo = state.bestCombo,
+            elapsedSeconds = state.elapsedMs / 1000.0,
+            rushTimeLimitSeconds = settings.rushTimeLimitSec.toDouble()
+        )
+    )

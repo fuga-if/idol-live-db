@@ -3,12 +3,15 @@ import Foundation
 /// 楽曲マスタの読み取りポート (driven port)。
 ///
 /// Presentation はこのポートに依存し、永続化の具象 (`AppDatabase` / GRDB) を知らない。
-/// 実装は `Adapters/Persistence/GRDBSongRepository`。
+/// 実装は `Adapters/Persistence/CoreSongRepository` (共有コアのスナップショット)。
 ///
 /// ⚠️ Domain 規約: このファイルは `SwiftUI` / `GRDB` / `CloudKit` を import しない。
 protocol SongReading: Sendable {
     /// フィルタ + ソート済みの一覧 (アーティスト名つき)。
     func songs(filter: SongSearchFilter, sortOrder: SongSortOrder, ascending: Bool?) async throws -> [SongWithArtists]
+    /// 習熟度の分母にする曲 (曲名かな順)。どの曲を数えるか (リミックス・別バージョン・
+    /// other ブランド・ライブ履歴しか無い曲を除く) はコア (`mastery_song_filter`)。
+    func masterySongs() async throws -> [Song]
     /// 単一楽曲。
     func song(id: String) async throws -> Song?
     /// id 集合に該当する楽曲。
@@ -19,8 +22,12 @@ protocol SongReading: Sendable {
     func songPerformerIdolsMap(songIds: [String]) async throws -> [String: [Idol]]
     /// song_id → 回収数。
     func songCollectedCounts() async throws -> [String: Int]
-    /// 検索サジェスト。
-    func songSuggestions(query: String, limit: Int) async throws -> [SearchSuggestionItem]
+    /// song_id → 全公演での披露回数。
+    ///
+    /// 「披露回数順 / 回収率順」で並べたときに、その順の**根拠**を行にも出すために使う。
+    /// 並べ替え自体は `songs(filter:sortOrder:ascending:)` の中で完結しているが、
+    /// 数値を捨てているので順番だけ見せられて理由が見えない状態だった。
+    func songPerformanceCounts() async throws -> [String: Int]
     /// ライブ名/曲名検索。
     func searchSongs(query: String, limit: Int) async throws -> [Song]
 
@@ -32,6 +39,12 @@ protocol SongReading: Sendable {
     func songArtists(songId: String, role: String?) async throws -> [Idol]
     /// 関連曲 (同シリーズ/同ユニット等)。
     func relatedSongs(to song: Song, limit: Int) async throws -> [Song]
+    /// 一覧に出す資格のある曲だけを id で引く (派生曲・その他ブランドを落とす)。
+    /// 歌詞検索のようにサーバから id だけ返る経路で、一覧と同じ見え方に揃えるために使う。
+    func listableSongs(ids: [String]) async throws -> [Song]
+    /// 同じ曲の別バージョン (ソロ Ver. / Remix 等) を、自分を除いて返す。
+    /// 一覧は派生曲を隠すので、ここが唯一の到達手段になる。
+    func variantSongs(of song: Song) async throws -> [Song]
     /// この曲を回収した公演 (イベント名つき)。
     func collectedShows(for songId: String) async throws -> [ShowWithEventName]
     /// フィルタ条件 (ブランド/シリーズ/曲ID集合等) で絞った楽曲。
@@ -58,10 +71,16 @@ protocol SongReading: Sendable {
     /// ブランド公式曲の id 集合。
     func brandedSongIds() async throws -> Set<String>
 
-    // MARK: - コミュニティ構造化 (コーレス/参考動画。CloudKit 同期のローカルミラー)
+    // MARK: - KAMISABI (音楽カードゲーム)
 
-    /// この曲のコーレス。
-    func songCalls(songId: String) async throws -> [SongCall]
+    /// 所持コンプ。**分母の規則はコア一本** (KAMISABI はブランドごとの別商品なので、
+    /// `brandId` が nil のときの合算は「商品の分母」ではないことに注意 — 呼び出し側の
+    /// `KamisabiCompletion` の使い方はコアのドキュメントコメントに従うこと)。
+    /// `ownedSongIds` は `user_marks` がスナップショットに無いための持ち込み引数。
+    func kamisabiCompletion(brandId: String?, ownedSongIds: [String]) async throws -> KamisabiCompletion
+
+    // MARK: - コミュニティ構造化 (参考動画。CloudKit 同期のローカルミラー)
+
     /// この曲の参考動画。
     func songVideos(songId: String) async throws -> [SongVideo]
 }

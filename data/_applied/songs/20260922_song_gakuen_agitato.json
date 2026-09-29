@@ -1,0 +1,20 @@
+{
+ "title": "曲「Agitato」(gakuen) の追加",
+ "author": "LLM 提案 (propose_song)",
+ "source": "https://gakuen.idolmaster-official.jp/",
+ "note": "出典: https://gakuen.idolmaster-official.jp/\n引用: \"学園アイドルマスター LIVE TOUR -標- 岩手公演 セットリスト DAY1 2026.09.22 TUE / 16. Agitato 伊藤 舞音・湊 みや・春咲 暖・陽高 真白\"\n公式セットリスト画像より。2026-09-22 の岩手公演 DAY1 で初披露された新曲で、同日時点で配信・CD の発表が無いため release_date は入れていない。作詞・作曲・編曲も未発表。配信情報が出たら propose_fix で release_date / cd_series / 作家を入れること。歌唱は出演 4 名 (声優表記: 伊藤舞音・湊みや・春咲暖・陽高真白)。",
+ "songs": [
+  {
+   "id": "gakuen_agitato",
+   "title": "Agitato",
+   "brand_id": "gakuen",
+   "song_type": "unit",
+   "original_singers": [
+    "gakuen_倉本千奈",
+    "gakuen_紫雲清夏",
+    "gakuen_秦谷美鈴",
+    "gakuen_十王星南"
+   ]
+  }
+ ]
+}

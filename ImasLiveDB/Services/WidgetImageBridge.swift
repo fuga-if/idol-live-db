@@ -49,7 +49,9 @@ enum WidgetImageBridge {
                     names.append(name)
                 }
                 let brandName = brandById[idol.brandId]?.shortName
-                entries.append(OshiWidgetEntry(id: src.id, name: idol.name, colorHex: idol.color, images: names, brandName: brandName))
+                entries.append(OshiWidgetEntry(
+                    id: src.id, name: idol.name, colorHex: idol.color,
+                    images: names, brandName: brandName, nameKana: idol.nameKana))
             }
             if let data = try? JSONEncoder().encode(OshiWidgetCatalog(idols: entries)) {
                 try? data.write(to: catalogURL)

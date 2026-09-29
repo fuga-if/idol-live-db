@@ -32,7 +32,7 @@ struct EventReleasesSection: View {
 
                     ImasListContainer {
                         ForEach(Array(releases.enumerated()), id: \.element.id) { index, release in
-                            if index > 0 { Divider().overlay(DS.sep).padding(.leading, 72) }
+                            if index > 0 { ImasRowDivider(inset: 72) }
                             releaseRow(release, theme: t)
                         }
                     }
@@ -83,10 +83,11 @@ struct EventReleasesSection: View {
 
             Spacer(minLength: 4)
 
-            // 所有トグル
+            // 所有トグル。アイコンは `UserMarkKind.owned` の見た目を直参照する
+            // (ここで独自に決め打つと、KAMISABI カード所持と二重管理になって食い違う)。
             Button { toggleOwned(release) } label: {
-                VStack(spacing: 2) {
-                    Image(systemName: owned ? "opticaldisc.fill" : "opticaldisc")
+                VStack(spacing: DS.sp1) {
+                    Image(systemName: owned ? UserMarkKind.owned.activeIcon : UserMarkKind.owned.icon)
                         .font(.imasTitle3)
                     Text(owned ? "所有" : "未所有")
                         .font(.imasScaled(10, weight: .semibold))
@@ -112,6 +113,8 @@ struct EventReleasesSection: View {
             default:
                 ZStack {
                     DS.fill
+                    // ジャケ画像が無いときの「円盤である」ことを示す挿絵。所有トグル (上の
+                    // `UserMarkKind.owned` 参照) とは無関係なので固定で opticaldisc のまま。
                     Image(systemName: "opticaldisc")
                         .font(.imasTitle3)
                         .foregroundStyle(DS.ink3)
@@ -123,7 +126,7 @@ struct EventReleasesSection: View {
     }
 
     private func load() async {
-        let list = (try? AppDatabase.shared.fetchEventReleases(eventId: eventId)) ?? []
+        let list = (try? await AppContainer.shared.eventReading.eventReleases(eventId: eventId)) ?? []
         releases = list
         ownedIds = Set(list.filter { markService.bool(.owned, entity: .release, id: $0.id) }.map(\.id))
     }
@@ -131,7 +134,11 @@ struct EventReleasesSection: View {
     private func toggleOwned(_ release: EventRelease) {
         let now = !ownedIds.contains(release.id)
         AppAnalytics.tap("event_release.toggle_owned")
-        try? markService.setBool(.owned, entity: .release, id: release.id, value: now)
+        do {
+            try markService.setBool(.owned, entity: .release, id: release.id, value: now)
+        } catch {
+            LocalWriteFailure.report(error, action: "所有の記録")
+        }
         if now { ownedIds.insert(release.id) } else { ownedIds.remove(release.id) }
     }
 }

@@ -1,0 +1,8 @@
+# 実在しない公演 (2026-09-13)。
+# CINDERELLA GIRLS MUSICAL STARLIGHT HIGH SCHOOL! は公式が「2026年5月9日(土)・10日(日)
+# 森のホール21 大ホール / 全3公演」と書いており (idolmaster-official.jp/news/01_18827.html)、
+# 5/8 の公演は無い。DB 側の 5/9 夜・5/10 昼・5/10 夜の 3 公演はセトリ 23 曲ずつ入っていて正しい。
+# この 5/8 "DAY1" だけ setlist_items / show_cast / setlist_performers が 0 件で、
+# 参照も shows.id 以外に無い (実測)。発表当初の日程がそのまま残ったものと見られる。
+# master.sqlite と db/master.sql からは削除済み。CloudKit から消さないと日次 cron で復活する。
+Show	sh_cinderella_girls_musical_starlight_high_school_0

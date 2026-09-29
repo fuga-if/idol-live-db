@@ -1,0 +1,1526 @@
+//! Web 出面エクスポータの結合テスト (`--features web-export` でのみ走る)。
+//!
+//! ここで守りたいのは 3 つ:
+//! 1. **スキーマが壊れていない** — 書いた JSON がそのまま DTO に戻せる
+//! 2. **出力が再現する** — 同じ入力で 2 回流すとバイト一致する (差分レビューが成立する条件)
+//! 3. **載せてはいけないものが載っていない** — 歌詞とプレビュー音源
+
+use imas_core::domain::setlist_lineup::Lineup;
+use imas_core::domain::show_naming::distinguishing_show_name;
+use imas_core::web_export::dto::*;
+use imas_core::web_export::url::{is_safe_segment, path_key, reserved_for, url_segment};
+use imas_core::web_export::{fixture, Args};
+use std::path::{Path, PathBuf};
+
+// 実データ DB は lib のテストと同じものを読む (db/master.sql から復元。IMAS_CORE_TEST_DB で差し替え)。
+#[path = "../src/test_support/test_db.rs"]
+mod test_db;
+
+/// テスト用の一時ディレクトリ。`Drop` で消す。
+struct TempDir(PathBuf);
+
+impl TempDir {
+    fn new(tag: &str) -> Self {
+        let dir = std::env::temp_dir().join(format!(
+            "imas-web-export-{tag}-{}-{:?}",
+            std::process::id(),
+            std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()
+        ));
+        Self(dir)
+    }
+    fn path(&self) -> &Path {
+        &self.0
+    }
+}
+
+impl Drop for TempDir {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.0);
+    }
+}
+
+fn emit_fixture(tag: &str) -> TempDir {
+    let dir = TempDir::new(tag);
+    fixture::emit(dir.path(), true).expect("emit_fixture が失敗した");
+    dir
+}
+
+/// ディレクトリ以下の JSON を (相対パス, 本文) で集める。
+fn read_all(root: &Path) -> Vec<(String, String)> {
+    fn walk(root: &Path, dir: &Path, out: &mut Vec<(String, String)>) {
+        for entry in std::fs::read_dir(dir).unwrap() {
+            let path = entry.unwrap().path();
+            if path.is_dir() {
+                walk(root, &path, out);
+            } else if path.extension().is_some_and(|e| e == "json") {
+                let rel = path.strip_prefix(root).unwrap().to_string_lossy().into_owned();
+                out.push((rel, std::fs::read_to_string(&path).unwrap()));
+            }
+        }
+    }
+    let mut out = Vec::new();
+    walk(root, root, &mut out);
+    out.sort();
+    out
+}
+
+// ---------------------------------------------------------------------------
+// T1: URL 規約
+// ---------------------------------------------------------------------------
+
+#[test]
+fn t1_url_rules_survive_the_ids_that_actually_exist() {
+    // 実データに居る形をそのまま。日本語・@・×・'・( ) は「安全」で、生のまま置く。
+    for id in [
+        "ml_kasuga_mirai",
+        "ev_the_idolm@ster_×_ふたご",
+        "venue_grandpeacepalace(慶熙大学,ソウル)",
+        "o'hare",
+        "song_9:02pm".trim_end_matches("9:02pm"), // ":" を含む形は下で別途
+    ] {
+        if id.is_empty() {
+            continue;
+        }
+        assert_eq!(path_key(id, &[], "x"), id, "安全な id は素通しになるはず: {id}");
+    }
+
+    // 危険な文字・予約語・`.`・空・長すぎは落とす。
+    for id in ["a/b", "a%b", "a?b", "a#b", "a:b", "a\\b", "a\"b", "a<b", "a|b", ".", "..", ""] {
+        assert!(!is_safe_segment(id, &[]), "危険な id を安全と判定した: {id:?}");
+        assert!(!path_key(id, &[], "x").contains(['/', '%', '?', '#', ':', '\\']));
+    }
+    assert_ne!(path_key("upcoming", reserved_for("events"), "ev"), "upcoming");
+    assert_ne!(path_key("all", reserved_for("songs"), "song"), "all");
+
+    // encode は JS の encodeURIComponent と完全一致 (検索 island が同じ href を組むため)。
+    assert_eq!(url_segment("ev_the_idolm@ster_×_ふたご"), "ev_the_idolm%40ster_%C3%97_%E3%81%B5%E3%81%9F%E3%81%94");
+    assert_eq!(url_segment("aA0-_.!~*'()"), "aA0-_.!~*'()");
+}
+
+// ---------------------------------------------------------------------------
+// T7 / T10: スキーマの往復
+// ---------------------------------------------------------------------------
+
+#[test]
+fn t7_every_emitted_json_deserializes_back_into_its_dto() {
+    let dir = emit_fixture("roundtrip");
+    let stats = fixture::check(dir.path()).expect("--fixture-check が落ちた");
+    assert!(stats.files >= 30, "書き出したファイルが少なすぎる: {}", stats.files);
+}
+
+// ---------------------------------------------------------------------------
+// T12 (DECISIONS A7): 歌詞とプレビュー音源を出さない
+// ---------------------------------------------------------------------------
+
+#[test]
+fn t12_no_lyrics_or_preview_audio_anywhere_in_the_output() {
+    let dir = emit_fixture("forbidden");
+
+    /// 歌詞まわりで許すキー。どれも**本文ではない**:
+    /// - `lyricsNote` … 歌詞の断り書き
+    /// - `lyrics` … 出すか / 許諾番号 / 取得先だけを持つブロック (中身は下で固定する)
+    /// - `lyricsLicenseNotice` … フッタの許諾表示 (`JASRAC 許諾番号 …`)
+    /// - `lyricsSearchUrl` … 歌詞検索の取得先 (URL であって本文ではない)
+    /// - `lyricsMinChars` … 歌詞を探す最小文字数 (数であって本文ではない)
+    const ALLOWED: [&str; 5] =
+        ["lyricsNote", "lyrics", "lyricsLicenseNotice", "lyricsSearchUrl", "lyricsMinChars"];
+
+    /// `lyrics` ブロックに入ってよいキー。**ここに `lines` や `text` が増えたら落ちる。**
+    /// 歌詞本文は D1 にしか置けない (まとめて取れないことが JASRAC 許諾の条件)。
+    /// `callGuide` はコールガイドの語彙 (記号・札・凡例の語。`content::call_guide_vocabulary`) で、
+    /// 歌詞にもコールの本文にも触れない。
+    /// `statusLabel` は状態の札 (`JASRAC 許諾待ち`) で、歌詞そのものではない。
+    const LYRICS_BLOCK_KEYS: [&str; 7] = [
+        "available",
+        "statusLabel",
+        "note",
+        "licenseNote",
+        "sourceUrl",
+        "readLabel",
+        "callGuide",
+    ];
+
+    fn walk(rel: &str, value: &serde_json::Value) {
+        match value {
+            serde_json::Value::Object(map) => {
+                for (key, child) in map {
+                    let lower = key.to_lowercase();
+                    if lower.contains("lyric") {
+                        assert!(
+                            ALLOWED.contains(&key.as_str()),
+                            "{rel}: 歌詞まわりのキーは {ALLOWED:?} 以外を出さない ({key})"
+                        );
+                        if key == "lyrics" {
+                            let block = child.as_object().expect("lyrics はオブジェクト");
+                            let mut keys: Vec<&str> =
+                                block.keys().map(String::as_str).collect();
+                            keys.sort_unstable();
+                            let mut want = LYRICS_BLOCK_KEYS;
+                            want.sort_unstable();
+                            assert_eq!(
+                                keys, want,
+                                "{rel}: lyrics ブロックの中身が変わっている (本文を入れていないか)"
+                            );
+                        }
+                    }
+                    // 禁じたいのは**プレビュー音源**であって「preview」という語ではない。
+                    // 一覧カードの紹介文 (`previewDisplay`) のような無関係なキーまで
+                    // 落とすと、正しい命名を避けるためだけに名前を歪めることになる。
+                    assert!(
+                        !lower.contains("previewurl") && !lower.contains("preview_url"),
+                        "{rel}: プレビュー音源のキーを出してはいけない ({key})"
+                    );
+                    walk(rel, child);
+                }
+            }
+            serde_json::Value::Array(items) => items.iter().for_each(|v| walk(rel, v)),
+            serde_json::Value::String(s) => {
+                assert!(
+                    !s.contains("audio-ssl.itunes.apple.com") && !s.contains(".m4a"),
+                    "{rel}: プレビュー音源の URL を出してはいけない ({s})"
+                );
+            }
+            _ => {}
+        }
+    }
+
+    for (rel, text) in read_all(dir.path()) {
+        walk(&rel, &serde_json::from_str(&text).unwrap());
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 代表値が「端」を含んでいること (web-coder がここで崩れ方を見る)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn fixture_covers_the_boundary_cases_the_web_needs() {
+    let dir = emit_fixture("boundary");
+    let read = |rel: &str| std::fs::read_to_string(dir.path().join(rel)).unwrap();
+
+    // 日本語 + @ + × を含む id → percent-encode された path が出ている。
+    let weird: EventPage =
+        serde_json::from_str(&read("events/ev_the_idolm@ster_×_ふたご.json")).unwrap();
+    assert!(weird.path.contains("%40") && weird.path.contains("%C3%97"), "{}", weird.path);
+    assert!(weird.path.ends_with('/'));
+
+    // 危険な id → フォールバック slug に落ち、path に生の "/" が残らない。
+    let routes: RoutesFile = serde_json::from_str(&read("routes.json")).unwrap();
+    let broken = routes
+        .routes
+        .iter()
+        .find(|r| r.id.as_deref() == Some("venue_donalde.stephensconventioncenter/hyattregencyo'hare"))
+        .expect("フォールバック slug の会場が代表値に無い");
+    assert_ne!(broken.key.as_deref(), broken.id.as_deref(), "危険な id なのに key が生のまま");
+    assert_eq!(broken.path.matches('/').count(), 3, "{}", broken.path); // /venues/<key>/
+
+    // params を取るルートには必ず key が入っている (getStaticPaths がそれだけで書けること)。
+    for entry in &routes.routes {
+        let takes_param = matches!(
+            entry.kind,
+            RouteKind::EventListPastYear
+                | RouteKind::EventListBrand
+                | RouteKind::SongListBrand
+                | RouteKind::IdolListBrand
+                | RouteKind::IdolListBirthMonth
+                | RouteKind::UnitListBrand
+                | RouteKind::RankingBrand
+                | RouteKind::TimelineBrand
+                | RouteKind::VenueListPref
+                | RouteKind::Tag
+                | RouteKind::CalendarMonth
+                | RouteKind::Event
+                | RouteKind::Show
+                | RouteKind::Song
+                | RouteKind::Idol
+                | RouteKind::Unit
+                | RouteKind::Venue
+                | RouteKind::Brand
+        );
+        assert_eq!(
+            entry.key.is_some(),
+            takes_param,
+            "{:?} ({}) の key の有無が params の有無と食い違う",
+            entry.kind,
+            entry.path
+        );
+        // key は URL に percent-encode して現れる (組み立て規則を TS に持たせないための担保)。
+        if let Some(key) = &entry.key {
+            assert!(
+                entry.path.contains(&url_segment(key)),
+                "{} が key {key:?} を含んでいない",
+                entry.path
+            );
+        }
+    }
+
+    // noindex の一覧が routes.noindexPaths に出ている (Astro の sitemap filter 用)。
+    assert!(routes.noindex_paths.contains(&"/songs/all/".to_string()));
+    assert!(routes.noindex_paths.contains(&"/brands/other/".to_string()));
+    assert!(routes.noindex_paths.iter().all(|p| p.starts_with('/') && p.ends_with('/')));
+
+    // ジャケ無しの曲。
+    let no_art: SongPage = serde_json::from_str(&read("songs/ml_no_artwork.json")).unwrap();
+    assert!(no_art.artwork_url.is_none());
+    // 曲に deeplink は無い (DeeplinkRouter が受けるのは events / shows / polls だけ)。
+    assert!(no_art.app.deeplink.is_none());
+    // 歌詞の断り書きは必ず出る。出さない設定 (LYRICS_ON_WEB=false) では
+    // 取得先も許諾番号も配らず、案内文だけになる。
+    assert!(no_art.lyrics.note.contains("J260943703"));
+    if no_art.lyrics.available {
+        assert!(no_art.lyrics.source_url.is_some(), "出すなら取得先が要る");
+        assert!(no_art.lyrics.license_note.is_some(), "出すなら許諾番号の掲示が要る");
+    } else {
+        assert!(no_art.lyrics.source_url.is_none(), "出さないなら取得先を配らない");
+        assert!(no_art.lyrics.license_note.is_none());
+    }
+
+    // 歌唱メンバーが空のセトリ行。
+    let show: ShowPage = serde_json::from_str(&read("shows/sh_sample_1.json")).unwrap();
+    let rows: Vec<&SetlistRow> = show.setlist_sections.iter().flat_map(|s| s.rows.iter()).collect();
+    assert!(rows.iter().any(|r| r.performers.is_empty()), "performers 空の行が無い");
+    assert!(rows.iter().any(|r| r.lineup.as_ref().is_some_and(|l| l.missing.is_some())), "不参加の名前が付いた行が無い");
+    assert!(rows.iter().any(|r| r.full_cast_label.is_some()), "全員曲の行が無い");
+    assert!(show.setlist_sections.iter().any(|s| s.label.is_some()), "区切り付きの塊が無い");
+    // event / show には deeplink がある。
+    assert!(show.app.deeplink.as_deref().is_some_and(|d| d.starts_with("imaslivedb://shows/")));
+
+    // 60 文字級の長い名前。
+    let long: EventPage = serde_json::from_str(&read("events/ev_sample.json")).unwrap();
+    assert!(long.name.chars().count() >= 60, "長い名前の代表値が短い: {}", long.name.chars().count());
+
+    // 空の一覧・空の詳細。
+    let empty_list: EventListPage = serde_json::from_str(&read("index/events-brand-ml.json")).unwrap();
+    assert!(empty_list.groups.is_empty() && empty_list.total == 0);
+    let empty_event: EventPage = serde_json::from_str(&read("events/ev_empty.json")).unwrap();
+    assert!(empty_event.shows.is_empty() && empty_event.cast.is_none());
+    let empty_unit: UnitPage = serde_json::from_str(&read("units/unit_empty.json")).unwrap();
+    assert!(empty_unit.members.is_empty() && empty_unit.songs.is_empty());
+}
+
+#[test]
+fn every_ref_path_in_the_fixture_is_a_known_route() {
+    let dir = emit_fixture("reachable");
+    let routes: RoutesFile =
+        serde_json::from_str(&std::fs::read_to_string(dir.path().join("routes.json")).unwrap())
+            .unwrap();
+    let known: std::collections::BTreeSet<&str> =
+        routes.routes.iter().map(|r| r.path.as_str()).collect();
+
+    // JSON を機械的に舐めて、あらゆる "path" の値がルート台帳に載っていることを見る。
+    // (Ref だけでなく NavLink / Crumb / RouteEntry も同じキー名で持たせてあるので
+    //  これ 1 本でリンク切れが拾える。)
+    fn collect(value: &serde_json::Value, out: &mut Vec<String>) {
+        match value {
+            serde_json::Value::Object(map) => {
+                for (k, v) in map {
+                    if k == "path" {
+                        if let Some(s) = v.as_str() {
+                            out.push(s.to_string());
+                        }
+                    }
+                    collect(v, out);
+                }
+            }
+            serde_json::Value::Array(items) => items.iter().for_each(|v| collect(v, out)),
+            _ => {}
+        }
+    }
+
+    let mut missing = Vec::new();
+    for (rel, text) in read_all(dir.path()) {
+        // search/*.json の path はシャードの取得先 (/search/songs.json) でページではない。
+        if rel.starts_with("search/") {
+            continue;
+        }
+        let mut paths = Vec::new();
+        collect(&serde_json::from_str(&text).unwrap(), &mut paths);
+        for p in paths {
+            if !known.contains(p.as_str()) {
+                missing.push(format!("{rel} → {p}"));
+            }
+        }
+    }
+    assert!(missing.is_empty(), "ルート台帳に無いリンクがある:\n{}", missing.join("\n"));
+}
+
+/// 代表値にも `themes.css` が出ていること。
+///
+/// web が読むのは JSON ではなく CSS の方で、無いと `copyGeneratedAssets` が警告して
+/// スキップし、**フィクスチャで開発した画面だけが全ページ無彩色**になる
+/// (`/themes.css` も 404 になる)。実データ側にしか無い出力があると、代表値で組んだ
+/// 画面が実データで初めて違って見える。
+#[test]
+fn the_fixture_ships_the_same_theme_css_as_the_real_export() {
+    let dir = emit_fixture("themes");
+    let css = std::fs::read_to_string(dir.path().join("themes.css"))
+        .expect("data-fixture に themes.css が無い");
+    let table: ThemeTable =
+        serde_json::from_str(&std::fs::read_to_string(dir.path().join("themes.json")).unwrap())
+            .unwrap();
+
+    assert!(!table.themes.is_empty());
+    for key in table.themes.keys() {
+        // ライトとダークで 1 回ずつ。
+        assert_eq!(
+            css.matches(&format!("[data-theme=\"{key}\"]{{")).count(),
+            2,
+            "{key} のセレクタがライト/ダークで 2 回出ていない"
+        );
+    }
+    assert!(css.contains("@media (prefers-color-scheme: dark)"));
+}
+
+#[test]
+fn schema_version_is_stamped_on_every_top_level_document() {
+    let dir = emit_fixture("schema-version");
+    for (rel, text) in read_all(dir.path()) {
+        let value: serde_json::Value = serde_json::from_str(&text).unwrap();
+        assert_eq!(
+            value.get("schemaVersion").and_then(|v| v.as_u64()),
+            Some(SCHEMA_VERSION as u64),
+            "{rel} に schemaVersion が無い (TS ローダが版を確かめられない)"
+        );
+    }
+}
+
+/// ts-rs の生成物と、手書きの barrel が食い違っていないか。
+///
+/// **ts-rs は消えた型の `.ts` を削除しない。**`ShowIdolIds` を廃止したとき、
+/// 生成物だけが残って web の型一覧に古い型が並び続けていた (web 側は barrel を
+/// 使わず個別 import しているので、あちらでは気付けない)。ここが唯一の検知点。
+#[test]
+fn the_generated_schema_files_and_the_barrel_agree() {
+    let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../web/src/lib/schema");
+    let mut generated: Vec<String> = std::fs::read_dir(&dir)
+        .unwrap_or_else(|e| panic!("{} が読めない: {e}", dir.display()))
+        .filter_map(|entry| {
+            let path = entry.ok()?.path();
+            let stem = path.file_stem()?.to_str()?.to_string();
+            (path.extension()? == "ts" && stem != "index").then_some(stem)
+        })
+        .collect();
+    generated.sort();
+    assert!(generated.len() > 60, "生成物が少なすぎる: {}", generated.len());
+
+    let barrel = std::fs::read_to_string(dir.join("index.ts")).expect("index.ts が読めない");
+    let mut exported: Vec<String> = barrel
+        .lines()
+        .filter_map(|line| {
+            let rest = line.strip_prefix("export type { ")?;
+            Some(rest.split(' ').next()?.to_string())
+        })
+        .collect();
+    exported.sort();
+
+    let missing: Vec<&String> = generated.iter().filter(|n| !exported.contains(n)).collect();
+    let stale: Vec<&String> = exported.iter().filter(|n| !generated.contains(n)).collect();
+    assert!(
+        missing.is_empty() && stale.is_empty(),
+        "schema/*.ts と index.ts が食い違っている\n\
+         barrel に無い型: {missing:?}\n\
+         生成物が無いのに barrel にある型 (消し忘れ): {stale:?}\n\
+         → 型を増減したら `cargo test --features web-export` で再生成し、\
+         消えた型の .ts を削除して index.ts を更新すること。"
+    );
+
+    // 生成物に「Rust 側に無い型」が残っていないこと。DTO の一覧と突き合わせる。
+    for name in &generated {
+        assert!(
+            barrel.contains(&format!("from \"./{name}\"")),
+            "{name}.ts が barrel から参照されていない"
+        );
+    }
+}
+
+#[test]
+fn run_rejects_ambiguous_or_incomplete_arguments() {
+    // 引数の取り違えは「黙って空を書く」ではなく、引数エラー (exit 1) で落とす。
+    let cases = [
+        // 入力がない。
+        Args { out: Some(PathBuf::from("y")), ..Args::default() },
+        // --sql と --db の両方。どちらを正とすべきか決められない。
+        Args {
+            sql: Some(PathBuf::from("x")),
+            db: Some(PathBuf::from("z")),
+            out: Some(PathBuf::from("y")),
+            ..Args::default()
+        },
+        // 出力先がない。
+        Args { db: Some(PathBuf::from("z")), ..Args::default() },
+    ];
+    for args in cases {
+        let err = imas_core::web_export::run(&args).unwrap_err();
+        assert_eq!(err.exit_code(), 1, "{err}");
+    }
+}
+
+// ===========================================================================
+// 実データ (db/master.sql から復元した DB。test_db 参照) を通した検査
+//
+// ここだけ重い (フル出力に 1 分強)。既定の `cargo test --locked` には feature が
+// 付かないので走らず、`--features web-export` のときだけ走る。
+// ===========================================================================
+
+mod real {
+    use super::*;
+    use imas_core::domain::snapshot::Snapshot;
+    use imas_core::domain::text_search_index::prepare_needle;
+    use imas_core::outbound::sqlite_loader::load_snapshot;
+    use imas_core::web_export::emit::context::Ctx;
+    use imas_core::web_export::emit::search;
+    use imas_core::web_export::url::{
+        fallback_reason, path_key, reserved_for,
+    };
+    use std::collections::{BTreeMap, BTreeSet, HashSet};
+    use std::sync::OnceLock;
+
+    /// 出力を固定するための「今日」。実時刻を使うと結果が日ごとに変わる。
+    const TODAY: &str = "2026-09-04";
+
+    /// スナップショットは全テストで共有する (不変なので安全・ロードを 1 回にする)。
+    fn snap() -> &'static Snapshot {
+        static SNAP: OnceLock<Snapshot> = OnceLock::new();
+        SNAP.get_or_init(|| {
+            load_snapshot(test_db::path()).expect("実データ DB からスナップショットを組める")
+        })
+    }
+
+    fn ctx() -> Ctx<'static> {
+        // 集計は空で組む (ここで見たいのはページの形で、コミュニティの値ではない)。
+        static COMMUNITY: OnceLock<imas_core::domain::community::CommunitySnapshot> =
+            OnceLock::new();
+        Ctx::new(
+            snap(),
+            COMMUNITY.get_or_init(Default::default),
+            TODAY.to_string(),
+            format!("{TODAY}T00:00:00Z"),
+            None,
+        )
+    }
+
+    /// フル出力を 1 回だけ作り、複数のテストで共有する (毎回作ると 1 分 × テスト数になる)。
+    fn exported() -> &'static TempDir {
+        static DIR: OnceLock<TempDir> = OnceLock::new();
+        DIR.get_or_init(|| {
+            let dir = TempDir::new("real");
+            let args = Args {
+                db: Some(PathBuf::from(test_db::path())),
+                out: Some(dir.path().to_path_buf()),
+                today: Some(TODAY.to_string()),
+                // コールガイドの写し (リポジトリに置いてある正本)。
+                calls: Some("../db/calls_dashboard.json".to_string()),
+                ..Args::default()
+            };
+            imas_core::web_export::run(&args).expect("実データの export が失敗した");
+            dir
+        })
+    }
+
+    // -----------------------------------------------------------------------
+    // T2: URL の安全化
+    // -----------------------------------------------------------------------
+
+    /// フォールバック slug に落ちてよい id。**データ側を直すべきもの**の一覧で、
+    /// 直ったらここから消す (O3: id 変更は CloudKit の PK 変更を伴うので別タスク)。
+    const KNOWN_BROKEN_IDS: [&str; 2] = [
+        "venue_donalde.stephensconventioncenter/hyattregencyo'hare(rosemont,il,usa)",
+        "venue_grandpeacepalace(慶熙大学,ソウル/韓国)",
+    ];
+
+    #[test]
+    fn t2_only_the_known_broken_ids_fall_back_to_a_slug() {
+        // 件数ではなく **どの id か** を固定する。数だけ見ていると、危険な id が
+        // 1 件消えて別の 1 件が増えたときに気付けない (前者はデータ修正、
+        // 後者は放置してよい別の話)。
+        let collections = all_collections();
+        let mut unexpected: Vec<String> = Vec::new();
+        let mut seen_known: Vec<&str> = Vec::new();
+        for (collection, ids) in &collections {
+            for id in ids {
+                let Some(reason) = fallback_reason(id, reserved_for(collection)) else { continue };
+                match KNOWN_BROKEN_IDS.iter().find(|known| *known == id) {
+                    Some(known) => seen_known.push(known),
+                    None => unexpected.push(format!("{collection}: {id:?} ({reason:?})")),
+                }
+            }
+        }
+
+        assert!(
+            unexpected.is_empty(),
+            "許可していない id がフォールバック slug に落ちている:\n{}\n\
+             危険な文字を含むならデータ側 (db/master.sql) を直す。\
+             長すぎるだけなら MAX_SEGMENT_BYTES を見直すか、この allowlist に足す。",
+            unexpected.join("\n")
+        );
+        seen_known.sort_unstable();
+        seen_known.dedup();
+        assert_eq!(
+            seen_known.len(),
+            KNOWN_BROKEN_IDS.len(),
+            "allowlist に載っているのに実データに無い id がある (直ったなら消すこと): {seen_known:?}"
+        );
+
+        // 長さ超過は 0 件であること (上限を下げたら真っ先にここが落ちる)。
+        let ctx = ctx();
+        assert_eq!(ctx.fallback_too_long, 0, "長すぎてフォールバックした id がある");
+        assert_eq!(ctx.fallback_unsafe, KNOWN_BROKEN_IDS.len());
+    }
+
+    /// 全コレクションの id 一覧。
+    fn all_collections() -> Vec<(&'static str, Vec<String>)> {
+        vec![
+            ("events", snap().events.iter().map(|e| e.id.clone()).collect()),
+            ("shows", snap().shows.iter().map(|s| s.id.clone()).collect()),
+            ("songs", snap().songs.iter().map(|s| s.id.clone()).collect()),
+            ("idols", snap().idols.iter().map(|i| i.id.clone()).collect()),
+            ("units", snap().units.iter().map(|u| u.id.clone()).collect()),
+            ("venues", snap().venues.iter().map(|v| v.id.clone()).collect()),
+            ("brands", snap().brands.iter().map(|b| b.id.clone()).collect()),
+        ]
+    }
+
+    #[test]
+    fn t2b_path_keys_are_unique_within_every_collection() {
+        // フォールバック名は fnv1a64 の**上位 32bit しか使っていない**ので、
+        // 衝突は理論上ありうる。実データで起きていないことを固定する
+        // (起きたら URL が 1 本消えるが、ビルドは通ってしまう)。
+        for (collection, ids) in all_collections() {
+            let mut seen: BTreeMap<String, String> = BTreeMap::new();
+            for id in ids {
+                let key = path_key(&id, reserved_for(collection), collection);
+                if let Some(other) = seen.insert(key.clone(), id.clone()) {
+                    panic!("{collection} で path_key が衝突: {other:?} と {id:?} → {key:?}");
+                }
+            }
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // T5 / T6: 検索
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn t5_folded_fields_are_exactly_what_prepare_needle_produces() {
+        // 索引の accessor が「畳み済みの中身」をそのまま返していること。
+        // ここがずれると、配った索引とアプリの索引が別物になる。
+        let mut checked = 0;
+        for (i, song) in snap().songs.iter().enumerate().take(100) {
+            let sources: Vec<&str> = [Some(song.title.as_str()), song.title_kana.as_deref()]
+                .into_iter()
+                .flatten()
+                .filter(|s| !s.is_empty())
+                .collect();
+            let folded = snap().song_search[i].folded_fields();
+            assert_eq!(folded.len(), sources.len(), "曲 {} のフィールド数", song.id);
+            for (actual, source) in folded.iter().zip(&sources) {
+                assert_eq!(actual, &prepare_needle(source), "曲 {} の {source:?}", song.id);
+                checked += 1;
+            }
+        }
+        assert!(checked > 100, "確かめたフィールドが少なすぎる: {checked}");
+    }
+
+    #[test]
+    fn t6_browser_side_matching_agrees_with_the_core_index() {
+        // ブラウザは `row.f.includes(fold(q))` の 1 行しか実行しない。
+        // それがコアの `TextSearchIndex::matches` と同じ集合を返すことを、
+        // 実データ全件 × 代表クエリで確かめる。
+        let ctx = ctx();
+        let shards = search::shards(&ctx);
+        let songs = shards.iter().find(|s| s.file == "songs").expect("曲シャードが無い");
+        assert_eq!(songs.shard.rows.len(), snap().songs.len());
+
+        let queries = [
+            "はるか", "ハルカ", "HARUKA", "haruka", "Thank", "THANK", "thank you",
+            "おねがい", "オネガイ", "しんでれら", "ラ", "ら", "が", "か\u{3099}",
+            "ミライ", "みらい", "@", "!", "M@STER", "m@ster", "ー", "・", "★",
+            "ΑΣ", "σ", "", " ", "9", "live", "ゆめ", "夢",
+        ];
+        for query in queries {
+            let needle = prepare_needle(query);
+            let expected: BTreeSet<usize> = snap()
+                .song_search
+                .iter()
+                .enumerate()
+                .filter(|(_, index)| index.matches(&needle))
+                .map(|(i, _)| i)
+                .collect();
+
+            // ブラウザ側の式をそのまま書く (畳んだ検索語の部分一致 1 本)。
+            let folded_query = String::from_utf8(needle.clone()).unwrap();
+            let actual: BTreeSet<usize> = songs
+                .shard
+                .rows
+                .iter()
+                .enumerate()
+                .filter(|(_, row)| folded_query.is_empty() || row.f.contains(&folded_query))
+                .map(|(i, _)| i)
+                .collect();
+
+            assert_eq!(
+                actual, expected,
+                "検索語 {query:?} で、ブラウザ側の照合とコアの索引が食い違った"
+            );
+        }
+    }
+
+    #[test]
+    fn t6b_the_field_separator_never_leaks_into_the_index_text() {
+        // 区切り (U+0001) が本文に混ざると、フィールド境界をまたぐ偽陽性を防ぐ仕掛けが
+        // 無効になる (`f.includes(q)` が別フィールドをまたいで当たる)。
+        //
+        // 「連結を解いたら索引のフィールド列に戻る」ことを実データ全件で見る。
+        // これが成り立つ限り、本文に区切りは 1 つも混ざっていない。
+        let ctx = ctx();
+        let mut checked = 0usize;
+        for shard in search::shards(&ctx) {
+            let indexes = match shard.shard.kind {
+                RefKind::Song => &snap().song_search,
+                RefKind::Idol => &snap().idol_search,
+                RefKind::Event => &snap().event_search,
+                RefKind::Venue => &snap().venue_search,
+                other => panic!("知らないシャード: {other:?}"),
+            };
+            assert_eq!(shard.shard.rows.len(), indexes.len(), "{} の行数", shard.file);
+            for (row, index) in shard.shard.rows.iter().zip(indexes) {
+                let fields: Vec<&str> = if row.f.is_empty() {
+                    // 索引が空 (曲名もよみも空) の行。split は [""] を返すので特別扱い。
+                    Vec::new()
+                } else {
+                    row.f.split(search::SEP).collect()
+                };
+                assert_eq!(
+                    fields,
+                    index.folded_str_fields(),
+                    "{}: 連結を解いても索引のフィールド列に戻らない ({:?})",
+                    shard.file,
+                    row.n
+                );
+                assert!(
+                    !row.n.contains(search::SEP),
+                    "{}: 表示名に区切り文字が入っている ({:?})",
+                    shard.file,
+                    row.n
+                );
+                checked += 1;
+            }
+        }
+        assert!(checked > 4_000, "確かめた行が少なすぎる: {checked}");
+    }
+
+    // -----------------------------------------------------------------------
+    // L-7: マスタの分類値
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn l7_event_kinds_and_release_types_stay_within_the_known_set() {
+        // 未知の値が入ると、表示名の写像 (content::kind_label) が黙って
+        // 「その他」「リリース」に落ちる。ラベルが消えたことは画面を見ないと
+        // 気付けないので、値の集合の方をここで固定する。
+        let kinds: BTreeSet<&str> = snap().events.iter().map(|e| e.kind.as_str()).collect();
+        let known: BTreeSet<&str> =
+            ["live", "festival", "release_event", "other", "radio", "stream"].into_iter().collect();
+        assert!(
+            kinds.is_subset(&known),
+            "知らない events.kind がある: {:?}\n\
+             content::kind_label と lists::all_event_kinds の両方に足すこと \
+             (all_event_kinds に足し忘れると一覧から静かに消える)。",
+            kinds.difference(&known).collect::<Vec<_>>()
+        );
+
+        let types: BTreeSet<&str> =
+            snap().event_releases.iter().map(|r| r.product_type.as_str()).collect();
+        let known_types: BTreeSet<&str> =
+            ["bluray", "dvd", "cd", "digital"].into_iter().collect();
+        assert!(
+            types.is_subset(&known_types),
+            "知らない event_releases.product_type がある: {:?}\n\
+             emit::events::release_kind_label に足すこと。",
+            types.difference(&known_types).collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn l1_kana_index_places_every_listed_song_in_a_real_row() {
+        // かな目次で「その他」に落ちる曲が増えていないか。`ゔ` や小書きの `ゕゖ` は
+        // ひらがなの並びの末尾にあるので、範囲を素直に書くと取りこぼす。
+        let dir = exported();
+        let songs: SongListPage = serde_json::from_str(
+            &std::fs::read_to_string(dir.path().join("index/songs.json")).unwrap(),
+        )
+        .unwrap();
+        let sections = &songs.kana_sections;
+        let total = songs.items.len() as u32;
+        // 区画は items の並び順に沿って連続している。大きさは持たず、次の区画の開始位置
+        // (最後は行数) との差がその区画の行数。
+        assert_eq!(sections.first().map(|s| s.start_index), Some(0), "先頭の区画が 0 から始まっていない");
+        let next_starts = sections.iter().skip(1).map(|s| s.start_index).chain(std::iter::once(total));
+        let sizes: Vec<u32> = sections
+            .iter()
+            .zip(next_starts)
+            .map(|(section, next_start)| {
+                assert!(next_start > section.start_index, "区画 {} が空か、並びが逆", section.label);
+                next_start - section.start_index
+            })
+            .collect();
+        let other: u32 = sections.iter().zip(&sizes).filter(|(s, _)| s.label == "その他").map(|(_, n)| n).sum();
+        // 記号始まりの曲名は実在するので 0 にはならないが、行の取りこぼしがあると跳ね上がる。
+        assert!(
+            f64::from(other) / f64::from(total) < 0.15,
+            "「その他」が多すぎる ({other}/{total})。かなの範囲に抜けがある可能性"
+        );
+    }
+
+    #[test]
+    fn l2_every_idol_row_fills_every_column_of_the_table() {
+        // 一覧は表。見出しと値の並びがずれると、別の列の値が別の見出しの下に出る。
+        let dir = exported();
+        let idols: IdolListPage = serde_json::from_str(
+            &std::fs::read_to_string(dir.path().join("index/idols.json")).unwrap(),
+        )
+        .unwrap();
+        assert!(!idols.items.is_empty());
+        assert!(!idols.columns.is_empty());
+        for item in &idols.items {
+            assert_eq!(
+                item.cells.len(),
+                idols.columns.len(),
+                "{} の値の数が見出しと違う",
+                item.reference.name
+            );
+        }
+        // 値が全部空の列は出さない (表がスカスカにならない)。
+        for (i, column) in idols.columns.iter().enumerate() {
+            assert!(
+                idols.items.iter().any(|item| item.cells[i].is_some()),
+                "「{}」の列は全行が空",
+                column.label
+            );
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // T8 / T11 / T12: 出力全体
+    // -----------------------------------------------------------------------
+
+    /// JSON を舐めて、リンクとして書かれている `path` を全部集める。
+    fn collect_paths(value: &serde_json::Value, out: &mut Vec<String>) {
+        match value {
+            serde_json::Value::Object(map) => {
+                for (k, v) in map {
+                    if k == "path" {
+                        if let Some(s) = v.as_str() {
+                            out.push(s.to_string());
+                        }
+                    }
+                    collect_paths(v, out);
+                }
+            }
+            serde_json::Value::Array(items) => items.iter().for_each(|v| collect_paths(v, out)),
+            _ => {}
+        }
+    }
+
+    #[test]
+    fn t8_every_page_is_reachable_from_the_top_and_no_link_dangles() {
+        let dir = exported();
+        let root = dir.path();
+        let routes: RoutesFile =
+            serde_json::from_str(&std::fs::read_to_string(root.join("routes.json")).unwrap())
+                .unwrap();
+        let known: BTreeMap<&str, &RouteEntry> =
+            routes.routes.iter().map(|r| (r.path.as_str(), r)).collect();
+        assert!(routes.routes.len() > 7_000, "ルートが少なすぎる: {}", routes.routes.len());
+
+        // 1) すべてのリンクがルート台帳に載っていること (リンク切れゼロ)。
+        let mut links: BTreeMap<String, Vec<String>> = BTreeMap::new();
+        let mut dangling: Vec<String> = Vec::new();
+        for entry in &routes.routes {
+            let data = root.join(&entry.data);
+            let text = std::fs::read_to_string(&data)
+                .unwrap_or_else(|e| panic!("{} が読めない: {e}", entry.data));
+            let mut paths = Vec::new();
+            collect_paths(&serde_json::from_str(&text).unwrap(), &mut paths);
+            for p in &paths {
+                if !known.contains_key(p.as_str()) {
+                    dangling.push(format!("{} → {p}", entry.path));
+                }
+            }
+            links.insert(entry.path.clone(), paths);
+        }
+        // 全ページのクローム (ヘッダ / フッタ) に載るナビは `meta.json` にある。
+        // どのページからも押せるので、起点 `/` の出リンクとして数える。
+        let meta: SiteMeta =
+            serde_json::from_str(&std::fs::read_to_string(root.join("meta.json")).unwrap()).unwrap();
+        for nav in meta.primary_nav.iter().chain(&meta.utility_nav) {
+            if !known.contains_key(nav.path.as_str()) {
+                dangling.push(format!("meta.json → {}", nav.path));
+            }
+            links.entry("/".to_string()).or_default().push(nav.path.clone());
+        }
+        assert!(
+            dangling.is_empty(),
+            "ルート台帳に無いリンクが {} 本ある (先頭 10 件):\n{}",
+            dangling.len(),
+            dangling.iter().take(10).cloned().collect::<Vec<_>>().join("\n")
+        );
+
+        // 2) `/` から全ページに辿り着けること。
+        //    辿り着けないページは、検索エンジンにも人にも見つけられない。
+        let mut seen: HashSet<&str> = HashSet::new();
+        let mut stack = vec!["/"];
+        seen.insert("/");
+        while let Some(current) = stack.pop() {
+            for next in links.get(current).into_iter().flatten() {
+                if let Some((path, _)) = known.get_key_value(next.as_str()) {
+                    if seen.insert(path) {
+                        stack.push(path);
+                    }
+                }
+            }
+        }
+        let unreachable: Vec<&str> =
+            known.keys().filter(|p| !seen.contains(*p)).copied().take(10).collect();
+        assert!(
+            unreachable.is_empty(),
+            "`/` から辿り着けないページがある (先頭 10 件): {unreachable:?}"
+        );
+    }
+
+    /// 公演ページ全部 (1,198 件・30 MB)。読むのは 1 回だけで、公演を見る検査は皆これを使う。
+    fn show_pages() -> &'static [ShowPage] {
+        static SHOWS: OnceLock<Vec<ShowPage>> = OnceLock::new();
+        SHOWS.get_or_init(|| {
+            let dir = exported().path();
+            let routes: RoutesFile =
+                serde_json::from_str(&std::fs::read_to_string(dir.join("routes.json")).unwrap())
+                    .unwrap();
+            routes
+                .routes
+                .iter()
+                .filter(|r| r.kind == RouteKind::Show)
+                .map(|entry| {
+                    serde_json::from_str(&std::fs::read_to_string(dir.join(&entry.data)).unwrap())
+                        .unwrap()
+                })
+                .collect()
+        })
+    }
+
+    #[test]
+    fn call_guide_page_is_baked_from_the_dashboard_snapshot() {
+        // Worker の写し (db/calls_dashboard.json) から `/calls/` を焼く。曲は Ref に解決され、
+        // 消えた曲は落ちる。ナビにも入る (到達性)。歌詞やコール本文は写しに無いので載らない。
+        let dir = exported();
+        let routes: RoutesFile =
+            serde_json::from_str(&std::fs::read_to_string(dir.path().join("routes.json")).unwrap())
+                .unwrap();
+        let entry = routes
+            .routes
+            .iter()
+            .find(|r| r.kind == RouteKind::CallGuide)
+            .expect("/calls/ が routes.json に無い");
+        assert_eq!(entry.path, "/calls/");
+        let page: CallGuidePage =
+            serde_json::from_str(&std::fs::read_to_string(dir.path().join(&entry.data)).unwrap())
+                .unwrap();
+        assert!(!page.with_calls.is_empty(), "ガイドのある曲が 1 曲も無い");
+        for row in &page.with_calls {
+            assert!(row.song.path.starts_with("/songs/"), "{}", row.song.name);
+            assert!(row.detail.contains("件"), "{}", row.detail);
+        }
+        assert!(page.wanted.len() <= 100);
+        assert_eq!(page.stat_tiles.len(), 3);
+        let meta: SiteMeta =
+            serde_json::from_str(&std::fs::read_to_string(dir.path().join("meta.json")).unwrap())
+                .unwrap();
+        assert!(meta.primary_nav.iter().any(|n| n.path == "/calls/"), "ナビに /calls/ が無い");
+        // 歌詞検索の取得先は歌詞と一蓮托生 (`content::LYRICS_ON_WEB`)。閉じているときは
+        // 取得先ごと出さない — URL だけ残っていると「押せないのに在り処は分かる」形になる。
+        assert_eq!(
+            meta.lyrics_search_url.is_some(),
+            imas_core::web_export::content::LYRICS_ON_WEB,
+            "歌詞検索の取得先が LYRICS_ON_WEB と食い違っている"
+        );
+    }
+
+    #[test]
+    fn show_headings_lead_with_the_event_name() {
+        // 公演ページの見出しはライブ名。`Day2` は添え物で、見出しにライブ名を繰り返さない。
+        // 公演名がライブ名を丸ごと含む稀な形だけ、公演名そのものが見出しになる (添えは無い)。
+        let mut labelled = 0usize;
+        for page in show_pages() {
+            match &page.show_label {
+                Some(label) => {
+                    labelled += 1;
+                    assert_eq!(page.heading, page.event.name, "{}", page.path);
+                    // 見分けにライブ名が残っていない (幅違い `IDOLM＠STER` / `IDOLM@STER` も含めて)。
+                    // 残っていれば、もう一度切ると短くなる。
+                    assert_eq!(
+                        distinguishing_show_name(&page.event.name, label),
+                        Some(label.as_str()),
+                        "{}: 添え {label:?} がライブ名と重なっている",
+                        page.path
+                    );
+                    // パンくずの最後の段は見分けだけ (ライブ名の段の直後にフル名を繰り返さない)。
+                    assert_eq!(
+                        page.seo.breadcrumbs.last().map(|c| c.name.as_str()),
+                        Some(label.as_str()),
+                        "{}",
+                        page.path
+                    );
+                }
+                None => assert!(
+                    page.heading.contains(page.event.name.as_str()),
+                    "{}: 見出し {:?} にライブ名が無い",
+                    page.path,
+                    page.heading
+                ),
+            }
+            assert!(page.seo.title.starts_with(page.heading.as_str()), "{}", page.path);
+        }
+        assert!(labelled > 500, "添え付きの公演が少なすぎる: {labelled}");
+    }
+
+    #[test]
+    fn setlist_sections_fold_encore_spellings_and_keep_the_running_order() {
+        // 区切り (アンコール等) は塊で届く。綴り揺れは 1 つの見出しに畳み、通し番号は
+        // 塊をまたいで 1 から続く。隣り合う塊の見出しは必ず違う (同じなら 1 つの塊)。
+        let mut encore = 0usize;
+        let mut raw_spellings: Vec<String> = Vec::new();
+        for page in show_pages() {
+            let count: u32 = page.setlist_sections.iter().map(|s| s.rows.len() as u32).sum();
+            let numbers: Vec<u32> = page
+                .setlist_sections
+                .iter()
+                .flat_map(|s| s.rows.iter().map(|r| r.number))
+                .collect();
+            assert_eq!(numbers, (1..=count).collect::<Vec<_>>(), "{}", page.path);
+            for pair in page.setlist_sections.windows(2) {
+                assert_ne!(pair[0].label, pair[1].label, "{}: 同じ見出しの塊が隣り合っている", page.path);
+            }
+            for label in page.setlist_sections.iter().filter_map(|s| s.label.as_deref()) {
+                if label.eq_ignore_ascii_case("encore") {
+                    raw_spellings.push(page.path.clone());
+                }
+                if label == "アンコール" {
+                    encore += 1;
+                }
+            }
+        }
+        assert!(raw_spellings.is_empty(), "encore の綴りが畳まれていない: {raw_spellings:?}");
+        assert!(encore >= 10, "アンコールの塊が少なすぎる: {encore}");
+    }
+
+    #[test]
+    fn lineup_notes_name_only_absentees_who_were_at_the_show() {
+        // 「オリメン 4/5」の札が数を持ち、名前で示すのは「その公演に出ているのに歌って
+        // いない原唱者」だけ。公演にいない人は出演者一覧で分かるので並べない。
+        // 出演者全員で歌う行 (全員) に「一部」は付かない (新メンバー追加や欠席で部分一致に
+        // なるだけで、カバーではない)。
+        let (mut partial, mut full_cast, mut noted, mut named) = (0usize, 0usize, 0usize, 0usize);
+        for page in show_pages() {
+            let cast_ids: Vec<&str> = page.cast.iter().map(|c| c.id.as_str()).collect();
+            for row in page.setlist_sections.iter().flat_map(|s| s.rows.iter()) {
+                let performer_ids: Vec<&str> =
+                    row.performers.iter().map(|p| p.reference.id.as_str()).collect();
+                if row.full_cast_label.is_some() {
+                    full_cast += 1;
+                    assert!(row.performers.len() >= 2, "{}: 1 人で「全員」", page.path);
+                }
+                let Some(note) = &row.lineup else { continue };
+                noted += 1;
+                assert!(!row.performers.is_empty(), "{}: 歌唱者が無いのに札がある", page.path);
+                if note.kind == Lineup::Partial {
+                    partial += 1;
+                    let (present, total) = note
+                        .label
+                        .strip_prefix("オリメン ")
+                        .and_then(|r| r.split_once('/'))
+                        .map(|(p, t)| (p.parse::<usize>().unwrap(), t.parse::<usize>().unwrap()))
+                        .unwrap_or_else(|| panic!("{}: 一部の札が数を持たない {:?}", page.path, note.label));
+                    assert!(0 < present && present < total, "{}: {:?}", page.path, note.label);
+                    assert!(row.full_cast_label.is_none(), "{}: 全員曲に一部が付いた", page.path);
+                }
+                let Some(missing) = &note.missing else { continue };
+                named += 1;
+                assert!(
+                    matches!(note.kind, Lineup::Partial | Lineup::Cover),
+                    "{}: 揃っている ({:?}) のに不参加がある",
+                    page.path,
+                    note.kind
+                );
+                assert!(!missing.idols.is_empty(), "{}: 不参加が空のまま付いている", page.path);
+                for idol in &missing.idols {
+                    assert!(
+                        cast_ids.contains(&idol.id.as_str()),
+                        "{}: 公演に出ていない人が不参加に入っている ({})",
+                        page.path,
+                        idol.name
+                    );
+                    assert!(
+                        !performer_ids.contains(&idol.id.as_str()),
+                        "{}: 歌っている人が不参加に入っている ({})",
+                        page.path,
+                        idol.name
+                    );
+                }
+            }
+        }
+        assert!(partial > 100, "オリメン一部の行が少なすぎる: {partial}");
+        assert!(full_cast > 100, "全員曲の行が少なすぎる: {full_cast}");
+        assert!(noted > partial, "札の付いた行が少なすぎる: {noted}");
+        assert!(named > 100, "不参加の名前が付いた行が少なすぎる: {named}");
+        assert!(named < partial, "一部の行の全部に名前が付いている (公演にいない人まで並べている)");
+    }
+
+    #[test]
+    fn sibling_show_chips_are_short_and_absent_on_single_show_events() {
+        // 「このライブの他の公演」は 2 本以上あるときだけ出す。単日公演で出すと
+        // 自分 1 本しか並ばず、選べないものの見出しだけが残る。
+        //
+        // チップの名前はライブ名との重なりを落とした短い形。ページ見出しが既に
+        // ライブ名なので、フルの公演名を並べると同じ文字列が繰り返されて
+        // 肝心の見分け (DAY1 / 昼公演 / ステージ１回目) が読めなくなる。
+        let mut with_siblings = 0usize;
+        let mut single_show = 0usize;
+        let mut repeated_event_name: Vec<String> = Vec::new();
+        for page in show_pages() {
+            if page.sibling_shows.is_empty() {
+                single_show += 1;
+                continue;
+            }
+            with_siblings += 1;
+            assert!(
+                page.sibling_shows.len() >= 2,
+                "{}: 兄弟公演が 1 件だけ出ている",
+                page.path
+            );
+            for sibling in &page.sibling_shows {
+                if sibling.name.starts_with(page.event.name.as_str()) {
+                    repeated_event_name.push(format!("{} → {:?}", page.path, sibling.name));
+                }
+                // 日付はチップだけで分かること。公演名がライブ名と丸ごと同じで
+                // 名前が日付 (`9/13 (日)` / 部分日付なら `8月`) になっている公演は、
+                // それ自体が日付なので sub は要らない。
+                let name_is_a_date = sibling.name.contains('/') || sibling.name.ends_with('月');
+                assert!(
+                    sibling.sub.is_some() || name_is_a_date,
+                    "{}: 兄弟公演 {:?} から日付が分からない",
+                    page.path,
+                    sibling.name
+                );
+            }
+        }
+
+        assert!(
+            repeated_event_name.is_empty(),
+            "兄弟公演の名前がライブ名で始まっている {} 件 (先頭 10 件):\n{}",
+            repeated_event_name.len(),
+            repeated_event_name.iter().take(10).cloned().collect::<Vec<_>>().join("\n")
+        );
+        // 実データには単日公演も複数公演も両方ある。片方だけになっていたら
+        // この検査が空回りしているので、両方を踏んでいることを確かめる。
+        assert!(single_show > 100, "単日公演が少なすぎる: {single_show}");
+        assert!(with_siblings > 100, "複数公演のライブが少なすぎる: {with_siblings}");
+    }
+
+    /// 文字列の中に「同じ十分長い部分文字列が隣り合って 2 回出る」箇所があれば返す。
+    fn consecutive_repeat(text: &str) -> Option<String> {
+        const MIN_CHARS: usize = 8;
+        let chars: Vec<char> = text.chars().collect();
+        // 前半と後半が一致する連続部分を探す (区切りの空白は許す)。
+        for len in (MIN_CHARS..=chars.len() / 2).rev() {
+            for start in 0..=chars.len().saturating_sub(len * 2) {
+                let first: String = chars[start..start + len].iter().collect();
+                let rest: String = chars[start + len..].iter().collect();
+                if rest.trim_start().starts_with(first.trim()) && !first.trim().is_empty() {
+                    return Some(first);
+                }
+            }
+        }
+        None
+    }
+
+    #[test]
+    fn show_titles_never_repeat_the_event_name() {
+        // `<title>` は検索結果・ブラウザのタブ・og:title に直接出る。公演名はライブ名を
+        // 丸ごと含んでいることが多く、素朴に連結すると一番見られる場所で同じ長い名前が
+        // 2 回並ぶ。チップやパンくずと同じ「重なりを落とす」規則を通す。
+        let mut doubled: Vec<String> = Vec::new();
+        let mut checked = 0usize;
+        for page in show_pages() {
+            let event_name = page.event.name.as_str();
+            // 短いライブ名 (「1st」等) は公演名に偶然含まれうるので、十分に長いものだけ見る。
+            if event_name.chars().count() >= 8 && page.seo.title.matches(event_name).count() > 1 {
+                doubled.push(format!("{} → {:?}", page.path, page.seo.title));
+            }
+            // 同じ文字列が 2 回続く形 (`<名前> <名前>`) は、区切りに何が挟まっていても不可。
+            if let Some(repeat) = consecutive_repeat(&page.seo.title) {
+                doubled.push(format!("{} → 連続する繰り返し {repeat:?}", page.path));
+            }
+            assert!(
+                page.seo.title.contains(event_name) || event_name.is_empty(),
+                "{}: title にライブ名が入っていない ({:?})",
+                page.path,
+                page.seo.title
+            );
+            checked += 1;
+        }
+        assert!(checked > 1_000, "確かめた公演が少なすぎる: {checked}");
+        assert!(
+            doubled.is_empty(),
+            "title がライブ名を 2 回含む公演が {} 件 (先頭 10 件):\n{}",
+            doubled.len(),
+            doubled.iter().take(10).cloned().collect::<Vec<_>>().join("\n")
+        );
+    }
+
+    #[test]
+    fn show_rows_lead_with_the_show_name_only_inside_the_event_page() {
+        // 公演行の見出しは、ライブ詳細の中では公演名、外 (トップ・会場) ではライブ名。
+        // 外では公演名が `show_label` として副題に回り、見出しと同じ文字列を繰り返さない。
+        // 会場詳細では全行が同じ会場なので会場名を出さない。
+        //
+        // 3 種類の置き場すべてを見る。1 箇所だけ直しても、同じ型を別のページで
+        // 組み直したときに戻る。
+        let dir = exported();
+        let root = dir.path();
+        let routes: RoutesFile =
+            serde_json::from_str(&std::fs::read_to_string(root.join("routes.json")).unwrap())
+                .unwrap();
+        let read = |rel: &str| std::fs::read_to_string(root.join(rel)).unwrap();
+
+        let mut offenders: Vec<String> = Vec::new();
+        let mut checked = 0usize;
+        // 短い公演名 (「DAY1」等) は会場名やライブ名に偶然含まれうるので、
+        // 独立した語として出ているときだけを見る。素直に部分一致で足りる長さに絞る。
+        let repeats = |title: &str, label: &str| label.chars().count() >= 4 && title.contains(label);
+
+        for entry in &routes.routes {
+            match entry.kind {
+                RouteKind::Event => {
+                    let page: EventPage = serde_json::from_str(&read(&entry.data)).unwrap();
+                    let rows: &[ShowSummary] = &page.shows;
+                    // 見出しがライブ名のページなので、行は見分けだけ (`DAY1` / 日付)。
+                    // ライブ名で始まらず (重なりを落としてある)、副題も持たない。
+                    // 公演名がライブ名を途中に含む稀な形は公演名のまま出る (括弧の中を削らない)。
+                    let event_name = page.name.as_str();
+                    for s in rows {
+                        checked += 1;
+                        let repeats_event = event_name.chars().count() >= 8 && s.title.starts_with(event_name);
+                        if s.title.is_empty() || repeats_event || s.show_label.is_some() {
+                            offenders.push(format!(
+                                "{}: ライブ詳細の行がライブ名を繰り返している: {:?} / {:?}",
+                                page.path, s.title, s.show_label
+                            ));
+                        }
+                    }
+                }
+                RouteKind::Venue => {
+                    let page: VenuePage = serde_json::from_str(&read(&entry.data)).unwrap();
+                    for s in &page.shows {
+                        checked += 1;
+                        if s.venue_label.is_some() {
+                            offenders.push(format!(
+                                "{}: 会場詳細の行が会場名を繰り返している: {:?}",
+                                page.path, s.venue_label
+                            ));
+                        }
+                        if s.show_label.as_deref().is_some_and(|l| repeats(&s.title, l)) {
+                            offenders.push(format!(
+                                "{}: 副題 {:?} が見出し {:?} に含まれている",
+                                page.path, s.show_label, s.title
+                            ));
+                        }
+                    }
+                }
+                RouteKind::Home => {
+                    let page: HomePage = serde_json::from_str(&read(&entry.data)).unwrap();
+                    for s in &page.recent_shows {
+                        checked += 1;
+                        if s.show_label.as_deref().is_some_and(|l| repeats(&s.title, l)) {
+                            offenders.push(format!(
+                                "{}: 副題 {:?} が見出し {:?} に含まれている",
+                                page.path, s.show_label, s.title
+                            ));
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        assert!(checked > 2_000, "確かめた公演行が少なすぎる: {checked}");
+        assert!(
+            offenders.is_empty(),
+            "見出しと副題の規則を破る行 {} 件 (先頭 10 件):\n{}",
+            offenders.len(),
+            offenders.iter().take(10).cloned().collect::<Vec<_>>().join("\n")
+        );
+    }
+
+    #[test]
+    fn past_venue_names_only_appear_where_a_venue_was_actually_renamed() {
+        // `venue_names` は現在の名前も 1 行として持つので、素直に配ると 234 会場中
+        // 233 会場で「旧称」の見出しの下に現在名が 1 つ並ぶ (期間も両端が空で `—`)。
+        // 旧称として意味があるのは名前が変わったことがある会場だけ。
+        let dir = exported();
+        let root = dir.path();
+        let routes: RoutesFile =
+            serde_json::from_str(&std::fs::read_to_string(root.join("routes.json")).unwrap())
+                .unwrap();
+
+        let mut with_past: Vec<String> = Vec::new();
+        let mut checked = 0usize;
+        for entry in routes.routes.iter().filter(|r| r.kind == RouteKind::Venue) {
+            let page: VenuePage = serde_json::from_str(
+                &std::fs::read_to_string(root.join(&entry.data)).unwrap(),
+            )
+            .unwrap();
+            checked += 1;
+            if page.past_names.is_empty() {
+                continue;
+            }
+            with_past.push(page.name.clone());
+            for row in &page.past_names {
+                assert_ne!(
+                    row.name, page.name,
+                    "{}: 旧称に現在名が混ざっている",
+                    page.path
+                );
+                // 旧称の行は「いつまでの名前か」が分かること。分からない行を出しても
+                // 読み手には何も伝わらない。
+                assert!(
+                    row.period_display.is_some(),
+                    "{}: 旧称 {:?} に期間が無い",
+                    page.path,
+                    row.name
+                );
+            }
+        }
+
+        assert!(checked > 200, "確かめた会場が少なすぎる: {checked}");
+        assert_eq!(
+            with_past,
+            vec!["京王アリーナTOKYO".to_string()],
+            "旧称を持つ会場が変わった。データに改名が増えたなら期待値を更新してよい"
+        );
+    }
+
+    #[test]
+    fn about_credits_the_display_font_and_ships_its_licence() {
+        // OFL はライセンス文の同梱を求める。About から辿れて、実体が配布物にあること。
+        let dir = exported();
+        let about: AboutPage = serde_json::from_str(
+            &std::fs::read_to_string(dir.path().join("index/about.json")).unwrap(),
+        )
+        .unwrap();
+        let section = about
+            .sections
+            .iter()
+            .find(|s| s.heading == "書体")
+            .expect("About に「書体」の節が無い");
+        assert!(
+            section.paragraphs.iter().any(|p| p.contains("SIL Open Font License")),
+            "ライセンス名が本文に無い"
+        );
+        let link = section
+            .links
+            .iter()
+            .find(|l| l.href == "/fonts/OFL.txt")
+            .expect("OFL 全文へのリンクが無い");
+        assert!(link.href.starts_with('/'), "同梱物なので自サイトの path で指す");
+
+        // 配布物にライセンス文が実在すること (リンク切れは OFL 違反になる)。
+        let ofl = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../web/public/fonts/OFL.txt");
+        let text = std::fs::read_to_string(&ofl)
+            .unwrap_or_else(|e| panic!("{} が読めない: {e}", ofl.display()));
+        assert!(text.contains("SIL OPEN FONT LICENSE"), "OFL.txt の中身がライセンス文でない");
+    }
+
+    #[test]
+    fn t11_output_stays_inside_the_cloudflare_limits() {
+        let dir = exported();
+        let mut files = 0usize;
+        let mut largest = (0u64, String::new());
+        fn walk(dir: &Path, files: &mut usize, largest: &mut (u64, String)) {
+            for entry in std::fs::read_dir(dir).unwrap() {
+                let path = entry.unwrap().path();
+                if path.is_dir() {
+                    walk(&path, files, largest);
+                } else {
+                    *files += 1;
+                    // 生テーブルだけは別枠で見る (下の tables を参照)。
+                    if path.file_name().is_some_and(|n| n == "tables.json") {
+                        continue;
+                    }
+                    let size = path.metadata().unwrap().len();
+                    if size > largest.0 {
+                        *largest = (size, path.display().to_string());
+                    }
+                }
+            }
+        }
+        walk(dir.path(), &mut files, &mut largest);
+
+        // Cloudflare Workers Static Assets は 20,000 ファイル / 1 ファイル 25MiB。
+        // 手前で落として、上限に触れる前に気付けるようにする。
+        //
+        // ページ用の JSON と、生テーブル 1 枚 (snapshot/tables.json) は性格が違うので
+        // 別々に見る。生テーブルは全行を配る前提の 1 枚で、桁が 3 つ違う。
+        // 一緒くたに一番大きい 1 個だけ見ると、ページ側が太っても生テーブルの陰で
+        // 気付けなくなる。
+        assert!(files < 18_000, "ファイルが多すぎる: {files}");
+        assert!(
+            largest.0 < 2 * 1024 * 1024,
+            "1 ファイルが大きすぎる: {} ({} バイト)",
+            largest.1,
+            largest.0
+        );
+        // 生テーブル。全行を配るので大きいが、配信時は gzip/brotli が効いて 1/8 程度。
+        // 25MiB の半分を上限にしておき、データが倍増しても手前で気付けるようにする。
+        let tables = dir.path().join("snapshot/tables.json").metadata().unwrap().len();
+        assert!(tables < 12 * 1024 * 1024, "生テーブルが大きすぎる: {tables} バイト");
+    }
+
+    #[test]
+    fn t9_two_runs_of_the_real_export_are_byte_identical() {
+        // 差分レビューが成立する条件。HashMap をそのまま serde していたり、
+        // 生成時刻を実時刻から取っていたりすると、ここで落ちる。
+        let a = exported();
+        let b = TempDir::new("real-again");
+        let args = Args {
+            db: Some(PathBuf::from(test_db::path())),
+            out: Some(b.path().to_path_buf()),
+            today: Some(TODAY.to_string()),
+            // 共有の出力 (exported) と同じ入力にする (写しの有無で顔ぶれが変わる)。
+            calls: Some("../db/calls_dashboard.json".to_string()),
+            ..Args::default()
+        };
+        imas_core::web_export::run(&args).unwrap();
+
+        // 代表的な 1 枚ずつではなく、全ファイルのハッシュで比べる。
+        fn digest(root: &Path) -> BTreeMap<String, u64> {
+            fn walk(root: &Path, dir: &Path, out: &mut BTreeMap<String, u64>) {
+                for entry in std::fs::read_dir(dir).unwrap() {
+                    let path = entry.unwrap().path();
+                    if path.is_dir() {
+                        walk(root, &path, out);
+                    } else {
+                        let rel = path.strip_prefix(root).unwrap().display().to_string();
+                        let bytes = std::fs::read(&path).unwrap();
+                        out.insert(rel, imas_core::web_export::url::fnv1a64(&String::from_utf8_lossy(&bytes)));
+                    }
+                }
+            }
+            let mut out = BTreeMap::new();
+            walk(root, root, &mut out);
+            out
+        }
+        let (x, y) = (digest(a.path()), digest(b.path()));
+        assert_eq!(x.keys().collect::<Vec<_>>(), y.keys().collect::<Vec<_>>(), "顔ぶれが違う");
+        let diff: Vec<&String> = x.iter().filter(|(k, v)| y.get(*k) != Some(v)).map(|(k, _)| k).collect();
+        assert!(diff.is_empty(), "2 回の実行で内容が違うファイル: {:?}", &diff[..diff.len().min(10)]);
+    }
+
+    #[test]
+    fn t12_the_real_output_carries_no_lyrics_or_preview_audio() {
+        let dir = exported();
+        let mut checked = 0;
+        fn walk(dir: &Path, checked: &mut usize) {
+            for entry in std::fs::read_dir(dir).unwrap() {
+                let path = entry.unwrap().path();
+                if path.is_dir() {
+                    walk(&path, checked);
+                    continue;
+                }
+                if path.extension().is_some_and(|e| e == "json") {
+                    let text = std::fs::read_to_string(&path).unwrap();
+                    // キー名で見る (値に "lyrics" を含む曲名がありうるため)。
+                    //
+                    // snake_case も見るのは、生テーブル (snapshot/tables.json) が
+                    // DTO ではなく行型をそのまま serde するから。camelCase だけ
+                    // 見ていた頃は、試聴音源 URL が itunes のホスト名で偶然
+                    // 引っかかっていただけで、歌詞の在り処は素通りだった。
+                    // `"lyrics"` は入れない。**本文ではなく**「出すか / 許諾番号 /
+                    // 取得先」だけのブロックのキーで、中身は
+                    // t12_no_lyrics_or_preview_audio_anywhere_in_the_output が
+                    // キー名まで固定して守っている。
+                    for forbidden in [
+                        "\"previewUrl\"",
+                        "\"lyricsUrl\"",
+                        "\"preview_url\"",
+                        "\"lyrics_url\"",
+                    ] {
+                        assert!(
+                            !text.contains(forbidden),
+                            "{}: {forbidden} を出してはいけない",
+                            path.display()
+                        );
+                    }
+                    assert!(
+                        !text.contains("audio-ssl.itunes.apple.com"),
+                        "{}: プレビュー音源の URL を出してはいけない",
+                        path.display()
+                    );
+                    *checked += 1;
+                }
+            }
+        }
+        walk(dir.path(), &mut checked);
+        assert!(checked > 7_000, "検査したファイルが少なすぎる: {checked}");
+
+        // 生テーブルは唯一「DB の行そのまま」を配るファイルなので、名指しでも見る。
+        // 上の walk に含まれてはいるが、ここが素通りすると JASRAC 許諾の条件
+        // (歌詞は D1 だけ) と試聴音源の非配布が同時に破れる。
+        let tables = std::fs::read_to_string(dir.path().join("snapshot/tables.json")).unwrap();
+        for forbidden in ["preview_url", "lyrics_url", "audio-ssl.itunes.apple.com"] {
+            assert!(
+                !tables.contains(forbidden),
+                "生テーブルに {forbidden} が載っている (emit::shippable_tables を見ること)"
+            );
+        }
+    }
+
+    #[test]
+    fn themes_css_covers_every_idol_brand_and_neutral() {
+        let dir = exported();
+        let css = std::fs::read_to_string(dir.path().join("themes.css")).unwrap();
+        // アイドル 394 + ブランド 9 + neutral = 404 テーマ × ライト/ダーク。
+        let expected = snap().idols.len() + snap().brands.len() + 1;
+        assert_eq!(
+            css.matches("[data-theme=").count(),
+            expected * 2,
+            "テーマ数がアイドル + ブランド + neutral と合わない"
+        );
+        assert!(css.contains("@media (prefers-color-scheme: dark)"));
+        // 変数名は web 側の tokens.css と噛み合っている必要がある。
+        for name in ["--accent:", "--on-accent:", "--tint-strong:", "--hero-surface:"] {
+            assert!(css.contains(name), "{name} が出ていない");
+        }
+    }
+
+    #[test]
+    fn fold_parity_fixture_covers_real_data_and_the_known_traps() {
+        let dir = exported();
+        let parity: FoldParity =
+            serde_json::from_str(&std::fs::read_to_string(dir.path().join("parity/fold.json")).unwrap())
+                .unwrap();
+        assert!(parity.cases.len() > 2_000, "パリティケースが少なすぎる: {}", parity.cases.len());
+        // 期待値はコアの畳み込みそのものであること。
+        for case in parity.cases.iter().take(500) {
+            assert_eq!(
+                case.output,
+                String::from_utf8(prepare_needle(&case.input)).unwrap(),
+                "{:?} の期待値がコアの畳み込みと違う",
+                case.input
+            );
+        }
+        // JS の toLowerCase() が落ちる語末 Σ は必ず入れておく。
+        let sigma = parity.cases.iter().find(|c| c.input == "ΑΣ").expect("ΑΣ が入っていない");
+        assert_eq!(sigma.output, "ασ");
+    }
+}

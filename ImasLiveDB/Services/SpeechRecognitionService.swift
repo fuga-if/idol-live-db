@@ -46,9 +46,8 @@ final class SpeechRecognitionService {
     @ObservationIgnored private var resolved = false
 
     @ObservationIgnored private var targetTitle = ""
-    @ObservationIgnored private var targetVariants: [String] = []
-    @ObservationIgnored private var targetLatinVariants: [String] = []
-    @ObservationIgnored private var minTargetLen = 2
+    /// 照合に使う正解の綴り。選び方も照合もコア (`voice_answer_targets` / `voice_answer_matches`)。
+    @ObservationIgnored private var targets: VoiceAnswerTargets?
     @ObservationIgnored private var timerStartDate: Date?
 
     @ObservationIgnored private let jaRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "ja-JP"))
@@ -198,16 +197,12 @@ final class SpeechRecognitionService {
         rebuildTask?.cancel(); rebuildTask = nil
         normalizeCache.removeAll(); readingCache.removeAll(); latinCache.removeAll()
 
-        let clean = stripParentheses(targetTitle)
-        var variants = Set<String>(); var latinVars = Set<String>()
-        let n = normalize(clean); if n.count >= 2 { variants.insert(n) }
-        let kana = toKatakana(n); if kana != n && kana.count >= 2 { variants.insert(kana) }
-        let romaji = toRomaji(n); if romaji != n && romaji.count >= 2 { variants.insert(romaji) }
-        let jp = normalize(japaneseReading(clean)); if jp.count >= 2 { variants.insert(jp) }
-        let l = toLatin(clean); if l.count >= 2 { latinVars.insert(l) }
-        targetVariants = Array(variants)
-        targetLatinVariants = Array(latinVars)
-        minTargetLen = (targetVariants + targetLatinVariants).map(\.count).min() ?? 2
+        // 曲名の飾りを落とすのはコア、綴りの変換 (かな・ローマ字・読み・ラテン文字) は OS。
+        let clean = voiceStripTitleDecorations(title: targetTitle)
+        let n = normalize(clean)
+        targets = voiceAnswerTargets(
+            normalized: n, katakana: toKatakana(n), romaji: toRomaji(n),
+            reading: normalize(japaneseReading(clean)), latin: toLatin(clean))
 
         let useEnglish = !containsJapanese(clean) && isLikelyEnglish(clean)
         speechRecognizer = useEnglish ? enRecognizer : jaRecognizer
@@ -249,7 +244,7 @@ final class SpeechRecognitionService {
         req.shouldReportPartialResults = true
         req.taskHint = .search
         req.addsPunctuation = false
-        req.contextualStrings = [stripParentheses(targetTitle)]
+        req.contextualStrings = [voiceStripTitleDecorations(title: targetTitle)]
 
         do {
             let session = AVAudioSession.sharedInstance()
@@ -398,39 +393,18 @@ final class SpeechRecognitionService {
 
     // MARK: - Match checking
 
+    /// 聞き取りが更新されるたびに 1 回。変換した聞き取りを詰めて、当たりかはコアに訊く。
     private func checkMatch(text: String) {
-        guard !resolved else { return }
-        let input = normalize(text)
-        guard input.count >= max(minTargetLen * 7 / 10, 3) else { return }
-
-        for target in targetVariants where target.count >= 3 {
-            if input.contains(target) || sequentialMatch(input: input, target: target) { resolveCorrect(text); return }
-        }
-        if containsKanji(text), let reading = readingNormalized(text), reading != input {
-            for target in targetVariants where target.count >= 3 {
-                if reading.contains(target) || sequentialMatch(input: reading, target: target) { resolveCorrect(text); return }
-            }
-        }
-        if !accumulatedText.isEmpty {
-            let combinedRaw = accumulatedText + text
-            let combined = normalize(combinedRaw)
-            for target in targetVariants where target.count >= 3 {
-                if combined.contains(target) || sequentialMatch(input: combined, target: target) { resolveCorrect(text); return }
-            }
-            if containsKanji(combinedRaw), let reading = readingNormalized(combinedRaw), reading != combined {
-                for target in targetVariants where target.count >= 3 {
-                    if reading.contains(target) || sequentialMatch(input: reading, target: target) { resolveCorrect(text); return }
-                }
-            }
-        }
-        if !targetLatinVariants.isEmpty {
-            let inputLatin = latinCached(text)
-            let combinedLatin = accumulatedText.isEmpty ? inputLatin : latinCached(accumulatedText + text)
-            for target in targetLatinVariants where target.count >= 3 {
-                if inputLatin.contains(target) || sequentialMatch(input: inputLatin, target: target) { resolveCorrect(text); return }
-                if combinedLatin != inputLatin && combinedLatin.contains(target) { resolveCorrect(text); return }
-            }
-        }
+        guard !resolved, let targets else { return }
+        let combinedRaw = accumulatedText.isEmpty ? nil : accumulatedText + text
+        let heard = VoiceHeard(
+            normalized: normalize(text),
+            reading: voiceNeedsReading(text: text) ? readingNormalized(text) : nil,
+            combined: combinedRaw.map(normalize),
+            combinedReading: combinedRaw.flatMap { voiceNeedsReading(text: $0) ? readingNormalized($0) : nil },
+            latin: latinCached(text),
+            combinedLatin: combinedRaw.map(latinCached))
+        if voiceAnswerMatches(targets: targets, heard: heard) { resolveCorrect(text) }
     }
 
     private func resolveCorrect(_ spoken: String) {
@@ -443,19 +417,6 @@ final class SpeechRecognitionService {
         cb?(title)
     }
 
-    private func sequentialMatch(input: String, target: String) -> Bool {
-        guard target.count >= 2, input.count >= max(target.count * 6 / 10, 2) else { return false }
-        var matched = 0
-        var idx = input.startIndex
-        for char in target {
-            while idx < input.endIndex {
-                if input[idx] == char { matched += 1; idx = input.index(after: idx); break }
-                idx = input.index(after: idx)
-            }
-        }
-        return matched >= target.count * 7 / 10
-    }
-
     // MARK: - String helpers
 
     private func latinCached(_ text: String) -> String {
@@ -466,10 +427,6 @@ final class SpeechRecognitionService {
     private func readingNormalized(_ text: String) -> String? {
         if let c = readingCache[text] { return c.isEmpty ? nil : c }
         let r = normalize(japaneseReading(text)); readingCache[text] = r; return r.isEmpty ? nil : r
-    }
-
-    private func containsKanji(_ text: String) -> Bool {
-        text.unicodeScalars.contains { $0.value >= 0x4E00 && $0.value <= 0x9FFF }
     }
 
     private func containsJapanese(_ text: String) -> Bool {
@@ -535,20 +492,6 @@ final class SpeechRecognitionService {
         CFStringTransform(m, nil, "Latin-ASCII" as CFString, false)
         return (m as String).lowercased().unicodeScalars
             .filter { CharacterSet.alphanumerics.contains($0) }.map(String.init).joined()
-    }
-
-    private func stripParentheses(_ text: String) -> String {
-        var result = text.replacingOccurrences(of: "@", with: "a").replacingOccurrences(of: "＠", with: "a")
-        for pattern in ["\\(.*?\\)", "（.*?）", "\\[.*?\\]", "【.*?】", "〜.*?〜", "~.*?~",
-                        "\\s*[/／]\\s*.*$", "\\s*[:：]\\s*.*$", "\\s*-\\s*.*$",
-                        "(?i)\\s*feat\\.?\\s.*$", "(?i)\\s*ft\\.?\\s.*$", "(?i)\\s*with\\s.*$"] {
-            result = result.replacingOccurrences(of: pattern, with: "", options: .regularExpression)
-        }
-        result = String(result.unicodeScalars.filter { scalar in
-            let v = scalar.value
-            return v < 0x2600 || (v >= 0x3040 && v <= 0x9FFF) || (v >= 0xFF00 && v <= 0xFF9F)
-        })
-        return result.trimmingCharacters(in: .whitespaces)
     }
 
     private func isLikelyEnglish(_ text: String) -> Bool {

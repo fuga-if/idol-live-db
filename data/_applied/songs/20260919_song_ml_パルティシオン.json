@@ -1,0 +1,19 @@
+{
+ "title": "曲「パルティシオン」(ml) の追加",
+ "author": "LLM 提案 (propose_song)",
+ "source": "https://idolmaster-official.jp/live_event/million14th/",
+ "note": "出典: https://idolmaster-official.jp/live_event/million14th/\n引用: \"32. パルティシオン ♪郁原ゆう/諏訪彩花\"\n2026-09-19 THE IDOLM@STER MILLION LIVE! 14thLIVE DAY1 〜夢咲くワンダーミラージュ〜 で初披露。逐語引用は公式セットリスト画像 (DAY1) の該当行。作詞/作曲/編曲・収録 CD・配信日は未発表のため空。原唱者はライブでの歌唱者から仮置きしており、音源が出て名義が違えば直すこと。",
+ "songs": [
+  {
+   "id": "ml_パルティシオン",
+   "title": "パルティシオン",
+   "brand_id": "ml",
+   "song_type": "unit",
+   "original_singers": [
+    "ml_エミリースチュアート",
+    "ml_徳川まつり"
+   ],
+   "note": "\n\n【名義について】Charlotte・Charlotte (エミリー スチュアート / 徳川まつり の 2 人ユニット) の曲ではなく、ツイン主演の 2 人に向けて贈られた曲。ユニット名義ではないので unit_id / unit_name は 意図して空にしている (同じ 2 人の『だってあなたはプリンセス』『ミラージュ・ミラー』は unit_id=unit_charlottecharlotte を持つ)。song_type=unit は「複数人で歌う」区分であって ユニット名義の意味ではない。音源が出て公式クレジットが分かったら singer_label を入れること。"
+  }
+ ]
+}

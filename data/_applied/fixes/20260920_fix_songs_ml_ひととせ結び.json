@@ -1,0 +1,20 @@
+{
+ "title": "songs の ml_ひととせ結び を修正",
+ "author": "LLM 提案 (propose_fix)",
+ "source": "https://music.apple.com/jp/album/6803787499",
+ "note": "出典: https://music.apple.com/jp/album/6803787499\n引用: \"ひととせ結び - Single / エミリー スチュアート (CV.郁原ゆう) / 2026年9月20日\"\n2026-09-20 配信開始。iTunes Lookup API (artistId 経由) で取得。duration_sec は既存 3,065 曲中 3 曲しか入っていない慣習に合わせて入れない。cd_title は空のまま (Single は cd_series にアルバム名を入れる既存の形)。singer_label は Apple Music のクレジット順に合わせた。",
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "ml_ひととせ結び",
+   "fields": {
+    "apple_music_album_id": "6803787499",
+    "apple_music_id": "6803787501",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/d1/a6/b9/d1a6b977-6c4b-c6c4-8e2b-c7830e4f3bb7/4540774750009.png/600x600bb.jpg",
+    "cd_series": "ひととせ結び - Single",
+    "release_date": "2026-09-20",
+    "singer_label": "エミリー スチュアート"
+   }
+  }
+ ]
+}

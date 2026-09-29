@@ -1,0 +1,28 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import EntryCard from "../components/EntryCard.astro";
+import SearchBox from "../components/SearchBox.astro";
+import { meta } from "../lib/data";
+
+/**
+ * 404。レコードに対応しないページなので、文面と入口は `meta.json` の `notFound` (Rust)。
+ * Cloudflare 側の `not_found_handling: "404-page"` がこの HTML を 404 で返す。
+ */
+const notFound = meta().notFound;
+---
+
+<BaseLayout seo={notFound.seo}>
+  <section class="hero" aria-labelledby="nf-title">
+    <div class="hero__body">
+      <p class="hero__eyebrow">{notFound.eyebrow}</p>
+      <h1 class="hero__title" id="nf-title">{notFound.title}</h1>
+      <p class="lede">
+        {notFound.lede}
+      </p>
+      <SearchBox />
+    </div>
+  </section>
+  <div class="entry-grid">
+    {notFound.entries.map((e) => <EntryCard glyph={e.glyph} title={e.title} preview={e.preview} href={e.path} />)}
+  </div>
+</BaseLayout>

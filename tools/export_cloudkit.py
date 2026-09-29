@@ -11,7 +11,12 @@ seed_cloudkit.py の逆向き。CloudKit の全マスタレコードを query �
         --key-file tools/eckey.pem
 
 スキーマと非同期テーブル(meta / song_units 等)は既存の db/master.sql から引き継ぎ、
-CloudKit に存在するテーブルだけ中身を入れ替える。
+CloudKit に存在するテーブルだけ中身を入れ替える (PRESERVED_TABLES 参照)。
+
+マスタに実差分があった回だけ meta.data_version を +1 する。アプリの reseed の判定は
+同梱 DB の content_hash (tools/build_db.sh が書く) が主で、data_version は同梱側に
+指紋が無いときの代わりと、設定画面の「データバージョン」の表示に使う。差分判定は
+data_version 行を除いて比較する (バンプ自体が差分になる循環を避けるため)。
 """
 from __future__ import annotations
 
@@ -22,11 +27,20 @@ import sqlite3
 import sys
 from pathlib import Path
 
-import seed_cloudkit as sk  # 同ディレクトリ。署名・query・テーブルマップを再利用
+import seed_cloudkit as sk  # 同ディレクトリ。鍵のセッション・テーブルマップを再利用
+from lib import cloudkit as _ck
+from lib import masterdb
 
 ROOT = Path(__file__).resolve().parent.parent
 DUMP_PATH = ROOT / "db" / "master.sql"
 DB_PATH = ROOT / "ImasLiveDB" / "Resources" / "master.sqlite"
+
+# CloudKit に RecordType はあるが、master としては既存 dump 側が正のテーブル。
+# meta は RECORD_TYPE_MAP に載っているので、外さないと refresh_table の
+# DELETE FROM meta で消える。CloudKit 側に MetaData レコードは無いため
+# 空のまま dump され、bundle 側 data_version が 0 になる (build_db.sh の
+# data_version ゲートで同梱が止まる)。
+PRESERVED_TABLES = {"meta"}
 
 
 def camel_to_snake(name: str) -> str:
@@ -35,36 +49,8 @@ def camel_to_snake(name: str) -> str:
 
 
 def query_all(record_type: str) -> list[dict]:
-    """指定 RecordType の全レコードを continuationMarker でページング取得。
-
-    フィルタ無しクエリは recordName 順を要求するが recordName は queryable でない。
-    modifiedAt は iOS 差分同期 (modifiedAt > lastSync) が使うため必ず queryable なので、
-    modifiedAt > 0 でフィルタ＆ソートして全件を列挙する (全レコードに modifiedAt が入る)。
-    """
-    url = sk.BASE_URL + sk.QUERY_PATH
-    out, cursor = [], None
-    while True:
-        payload = {
-            "query": {
-                "recordType": record_type,
-                "filterBy": [{
-                    "fieldName": "modifiedAt",
-                    "comparator": "GREATER_THAN",
-                    "fieldValue": {"value": 0, "type": "TIMESTAMP"},
-                }],
-                "sortBy": [{"fieldName": "modifiedAt", "ascending": True}],
-            },
-            "resultsLimit": 200,
-        }
-        if cursor:
-            payload["continuationMarker"] = cursor
-        result = sk.get_json(url, payload)
-        out.extend(result.get("records", []))
-        # CloudKit は次ページがある時だけ continuationMarker を返す (無ければ最終ページ)
-        cursor = result.get("continuationMarker")
-        if not cursor:
-            break
-    return out
+    """指定 RecordType の全レコードを、init_session の鍵で読む (実体は lib/cloudkit.py)。"""
+    return _ck.query_all(sk.BASE_URL + sk.QUERY_PATH, record_type, post=sk.get_json)
 
 
 def record_to_row(conn, table, rec, pk_cols, table_cols):
@@ -82,18 +68,33 @@ def record_to_row(conn, table, rec, pk_cols, table_cols):
     return {k: v for k, v in row.items() if k in table_cols}
 
 
+# 表の行数がこの割合 (%) 以上減ったら警告する (0 行になったときも含む)。
+# 止めはしない (終了コードも書き込み先も変えない)。push し忘れた行が、CloudKit の分で
+# 表を置き換えたときに黙って消えるのを、ログで気づけるようにするため。
+# 比較は整数で行う (浮動小数だと 70 → 63 のようなちょうど 10% 減が漏れる)。
+SHRINK_WARN_PERCENT = 10
+
+
 def refresh_table(conn, table):
     record_type = sk.RECORD_TYPE_MAP[table]
     table_cols = {c["name"] for c in sk.get_column_info(conn, table)}
     pk_cols = sk.get_primary_keys(conn, table)
     recs = query_all(record_type)
 
+    before = conn.execute(f"SELECT count(*) FROM {table}").fetchone()[0]
     conn.execute(f"DELETE FROM {table}")
-    inserted = skipped = 0
+    inserted = soft_deleted = 0
+    dropped = []  # (recordName, 理由)。入れられなかった行は全部出す
     for r in recs:
+        # soft delete (deletedAt) 済みレコードは「削除」なので master に再取込しない。
+        # master 側テーブルに deleted_at 列が無いため、取り込むと生存レコードとして
+        # 復活してしまう (是正で消したはずの誤データが cron で蘇る事故の防止)。
+        if _ck.is_soft_deleted(r):
+            soft_deleted += 1
+            continue
         row = record_to_row(conn, table, r, pk_cols, table_cols)
         if not row:
-            skipped += 1
+            dropped.append((r.get("recordName"), "表の列に当たるフィールドが無い"))
             continue
         keys = list(row.keys())
         try:
@@ -103,11 +104,16 @@ def refresh_table(conn, table):
             )
             inserted += 1
         except sqlite3.IntegrityError as e:
-            skipped += 1
-            if skipped <= 5:
-                print(f"    skip {table} {r.get('recordName')}: {e}", file=sys.stderr)
-    note = f" (skip {skipped})" if skipped else ""
+            dropped.append((r.get("recordName"), str(e)))
+    note = f" (skip {len(dropped)})" if dropped else ""
+    if soft_deleted:
+        note += f" (soft-deleted {soft_deleted})"
     print(f"  {table:<22} CloudKit {len(recs):>6} → 反映 {inserted:>6}{note}")
+    for name, reason in dropped:
+        print(f"    skip {table} {name}: {reason}", file=sys.stderr)
+    if before and (before - inserted) * 100 >= before * SHRINK_WARN_PERCENT:
+        print(f"  ⚠️ {table}: {before} 行 → {inserted} 行。CloudKit に push していない行が"
+              f"消えていないか確かめること", file=sys.stderr)
     return inserted
 
 
@@ -119,16 +125,60 @@ def build_conn_from_dump() -> sqlite3.Connection:
     if DB_PATH.exists():
         DB_PATH.unlink()
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(DB_PATH)
-    conn.executescript(DUMP_PATH.read_text(encoding="utf-8"))
-    return conn
+    masterdb.restore(DUMP_PATH, DB_PATH)
+    return sqlite3.connect(DB_PATH)
 
 
-def write_dump(conn):
-    DUMP_PATH.parent.mkdir(parents=True, exist_ok=True)
-    with open(DUMP_PATH, "w", encoding="utf-8") as f:
-        for line in conn.iterdump():
-            f.write(line + "\n")
+# 正本の書き出しの形は masterdb に 1 つだけ置く (他のツールと同じ形で書く)。
+dump_text = masterdb.dump_text
+
+
+_DATA_VERSION_RE = re.compile(
+    r"""^INSERT INTO ["']?meta["']?\s+VALUES\('data_version'.*$\n?""", re.M
+)
+
+
+def data_only(dump: str) -> str:
+    """data_version 行を除いた dump。バンプ自体が差分を生む循環を避けて比較するため。"""
+    return _DATA_VERSION_RE.sub("", dump)
+
+
+def comparable(sql_text: str) -> str:
+    """dump テキストを比較可能な正規形にする。
+
+    db/master.sql には 2 系統の形式が混在する。オーナーが手で作り直した回は
+    sqlite3 CLI の .dump (テーブル名クォート無し・sqlite_master 順)、cron の回は
+    iterdump (クォート有り・別順) で、生テキスト比較だと常に「差分あり」になる。
+    一度 DB に読み込んで同じ iterdump に通し、書式と行順を揃えてから比べる。
+    """
+    conn = sqlite3.connect(":memory:")
+    try:
+        conn.executescript(sql_text)
+        return data_only(dump_text(conn))
+    finally:
+        conn.close()
+
+
+def read_data_version(conn) -> int:
+    row = conn.execute("SELECT value FROM meta WHERE key = 'data_version'").fetchone()
+    return int(row[0]) if row and str(row[0]).isdigit() else 0
+
+
+def bump_data_version(conn) -> int:
+    """data_version を +1 する。
+
+    reseed の判定は content_hash が主で、data_version は同梱側に指紋が無いときの
+    代わりに比べる (imas-core domain/sync_planning.rs の reseed_needed)。その経路では、
+    ここを上げないと db/master.sql まで来たデータが既存ユーザーに届かない。
+    """
+    new = read_data_version(conn) + 1
+    conn.execute(
+        "INSERT INTO meta (key, value) VALUES ('data_version', ?) "
+        "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+        (str(new),),
+    )
+    conn.commit()
+    return new
 
 
 def main():
@@ -146,17 +196,41 @@ def main():
         sys.exit(1)
     sk.init_session(args.key_id, Path(args.key_file))
 
+    before = DUMP_PATH.read_text(encoding="utf-8") if DUMP_PATH.exists() else ""
+
     conn = build_conn_from_dump()
     conn.execute("PRAGMA foreign_keys = OFF")
     print(f"CloudKit ({env}) から master を取得:")
     total = 0
     for table in sk.TABLE_ORDER:
+        if table in PRESERVED_TABLES:
+            continue
         if table in sk.RECORD_TYPE_MAP and sk.get_column_info(conn, table):
             total += refresh_table(conn, table)
     conn.commit()
-    write_dump(conn)
+
+    after = dump_text(conn)
+    if data_only(after) != comparable(before):
+        new_version = bump_data_version(conn)
+        after = dump_text(conn)
+        print(f"\nマスタに差分あり → data_version {new_version - 1} → {new_version}")
+    else:
+        print(f"\nマスタに差分なし → data_version {read_data_version(conn)} 据え置き")
+
+    # data_version が落ちた dump を出すと、build_db.sh の data_version ゲートで同梱が
+    # 止まる (指紋の無い経路では reseed も bundle=0 で止まる)。書き出す前にここで落とす。
+    if read_data_version(conn) <= 0:
+        print("✗ meta.data_version が無い/不正。db/master.sql を書き換えず中止。", file=sys.stderr)
+        conn.close()
+        sys.exit(1)
+
+    DUMP_PATH.parent.mkdir(parents=True, exist_ok=True)
+    DUMP_PATH.write_text(after, encoding="utf-8")
     conn.close()
-    print(f"\n✓ {total} 行を db/master.sql に書き出し")
+    # 作り直した master.sqlite の指紋を、書き出した正本に合わせる (build_db.sh と同じ値)。
+    # 書き出しの後に入れる (前に入れると dump に入り、毎回差分になる)。
+    masterdb.stamp_content_hash(DB_PATH, DUMP_PATH)
+    print(f"✓ {total} 行を db/master.sql に書き出し")
 
 
 if __name__ == "__main__":

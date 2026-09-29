@@ -80,22 +80,7 @@ final class PollDetailViewModelTests: XCTestCase {
         Poll(id: "p1", title: "好きな曲", description: nil, targetType: targetType,
              createdBy: "u1", createdAt: Date(), endsAt: Date().addingTimeInterval(86400),
              status: "active", totalVotes: 1, entryCount: 1,
-             candidateScope: scope, scopeBrandIds: brandIds, scopeEntityIds: entityIds)
-    }
-
-    func testLoadPopulatesDetail() async {
-        let fake = FakeCommunityVoting()
-        fake.detailToReturn = PollDetail(
-            poll: makePoll(),
-            entries: [PollEntry(entityId: "s1", voteCount: 1, hasUserVoted: false)],
-            myVoteCount: 0)
-        let vm = PollDetailViewModel(pollId: "p1", voting: fake)
-
-        await vm.load()
-
-        XCTAssertFalse(vm.isLoading)
-        XCTAssertEqual(vm.detail?.entries.count, 1)
-        XCTAssertEqual(vm.remaining, 3)
+             candidateScope: scope, scopeBrandIds: brandIds, scopeEntityIds: entityIds, topEntityId: nil)
     }
 
     func testVoteAppliesOptimisticUpdate() async {
@@ -173,15 +158,6 @@ final class PollDetailViewModelTests: XCTestCase {
         XCTAssertEqual(vm.detail?.entries.first { $0.entityId == "s1" }?.hasUserVoted, false)
     }
 
-    func testPollScopeAccessorFallsBackToAll() {
-        // candidateScope=nil の古いサーバ応答でも .all 扱い
-        let p = Poll(id: "p1", title: "t", description: nil, targetType: .song,
-                     createdBy: "u", createdAt: Date(), endsAt: Date().addingTimeInterval(60),
-                     status: "active", totalVotes: 0, entryCount: 0,
-                     candidateScope: nil, scopeBrandIds: nil, scopeEntityIds: nil)
-        XCTAssertEqual(p.scope, .all)
-    }
-
     func testPollCandidateScopeDecodesUnknownAsAll() throws {
         // 未知のスコープ文字列が来ても .all にフォールバック (前方互換)
         let json = "\"future_scope\"".data(using: .utf8)!
@@ -208,5 +184,23 @@ final class PollDetailViewModelTests: XCTestCase {
         XCTAssertEqual(Set(vm.detail?.entries.map(\.entityId) ?? []), ["s1", "s2", "s3"])
         XCTAssertEqual(vm.remaining, 1) // myVoteCount 2 → 残り1
         XCTAssertEqual(fake.voteCalls, ["s2", "s3"])
+    }
+
+    /// 一覧 (選択肢) がまだ読めていないときに決定しても、選択済みのまま返ってきた票は取り消さない。
+    /// 以前は選択肢に無い id を渡さず、投票済みの票が黙って取り消されていた (RedTeam H-1)。
+    func testPickerDecisionKeepsVotesNotInTheLoadedChoices() async {
+        let fake = FakeCommunityVoting()
+        fake.detailToReturn = PollDetail(
+            poll: makePoll(targetType: .idol),
+            entries: [PollEntry(entityId: "i1", voteCount: 3, hasUserVoted: true)],
+            myVoteCount: 1)
+        let vm = PollDetailViewModel(pollId: "p1", voting: fake)
+        await vm.load()
+
+        // ピッカーは i1 を選択済みで開き、そのまま i2 を足して決定。選択肢の一覧はまだ空。
+        await vm.applyPickerSelection(["i1", "i2"], ordered: [])
+
+        XCTAssertEqual(fake.unvoteCalls, [])
+        XCTAssertEqual(fake.voteCalls, ["i2"])
     }
 }

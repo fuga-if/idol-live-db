@@ -1,5 +1,5 @@
 # Xcode
-*.xcodeproj/
+*.xcodeproj/*
 *.xcworkspace/
 xcuserdata/
 DerivedData/
@@ -20,6 +20,14 @@ build/
 .swiftpm/
 Packages/
 Package.resolved
+# iOS の SPM 依存の版は追跡する (Q-13 / D-IOS-13)。CI・手元・リリースで同じ版を組むため。
+!ImasLiveDB.xcodeproj/project.xcworkspace/
+ImasLiveDB.xcodeproj/project.xcworkspace/*
+!ImasLiveDB.xcodeproj/project.xcworkspace/xcshareddata/
+ImasLiveDB.xcodeproj/project.xcworkspace/xcshareddata/*
+!ImasLiveDB.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/
+ImasLiveDB.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/*
+!ImasLiveDB.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
 
 # macOS
 .DS_Store
@@ -28,7 +36,7 @@ Package.resolved
 
 # SQLite generated
 ImasLiveDB/Resources/master.sqlite
-# Android: db/master.sql からビルド時生成する seed (generateSeedDb タスク)
+# Android: 古いクローンに残った seed の生成物を誤って追跡しないためのガード (いまの seed はビルド出力に作る)
 ImasLiveDB-Android/app/src/main/assets/master_seed.sqlite
 
 # Secrets
@@ -82,3 +90,53 @@ Gemfile.lock
 
 # AI エージェント用の作業ガイド (ローカル管理・追跡外)
 CLAUDE.md
+
+# xcodegen/実行時に生成される空の作業用 DB (正は db/master.sql)
+db/master.sqlite
+
+# JASRAC 提出物の生成物 (許諾番号を含むので追跡しない)
+tools/jasrac/out/
+
+# 歌詞の作業場。JASRAC 許諾は「一括ダウンロードできない形での配信」が条件なので
+# 歌詞本文は公開リポジトリに絶対に入れない。
+/lyrics_local/
+tools/lyrics/node_modules
+# lyrics-ocr のビルド生成物 (make で作る。Makefile の clean が消す)
+tools/lyrics/bin/
+# 照合レポート。歌詞本文の抜粋が載るので公開リポジトリに入れない
+tools/lyrics/out/
+
+# imas-core (Rust) のビルド生成物。imas-core/build.sh が再生成する。
+# 共有 target へのシンボリックリンクにしていることがあるので、末尾スラッシュを付けない
+# (付けるとディレクトリにしか一致せず、リンクが ?? で出る)
+imas-core/target
+# Android のビルド出力も共有置き場へのリンクにする (tools/link_shared_build_dirs.sh)。
+# build/ は末尾スラッシュでリンクに一致しないので、名指しで無視する
+ImasLiveDB-Android/build
+ImasLiveDB-Android/app/build
+# imas-text-fold (畳み込み規則の crate) のビルド生成物
+imas-text-fold/target/
+# tools/ の Python スクリプトを import/実行したときに出るバイトコード
+__pycache__/
+*.pyc
+
+# 読み突き合わせの作業ファイル (再生成できる。state は途中再開用)
+tools/readings/crosscheck.tsv
+tools/readings/crosscheck_state.json
+tools/readings/state.json
+
+# Web 出面 (web/) のビルド生成物。web-export bin / astro build / wasm-pack が再生成する。
+# web/data-fixture/ と web/src/lib/schema/ は commit 対象 (生成物だが正として扱う) なので含めない。
+web/data/
+web/.cache/
+web/dist/
+web/src/lib/fold/
+web/node_modules/
+web/wasm/*/target/
+web/wasm/*/pkg/
+
+# 並列エージェント用の共有 cargo ビルドキャッシュ (数GB)
+target-shared/
+
+# 空文字列正規化作業の一時ファイル (再生成できる)
+.normalize-empty-strings/

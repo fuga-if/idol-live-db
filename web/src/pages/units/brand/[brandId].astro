@@ -1,0 +1,9 @@
+---
+import UnitListView from "../../../components/UnitListView.astro";
+import { page, pathsFor } from "../../../lib/data";
+import type { UnitListPage } from "../../../lib/schema/UnitListPage";
+export const getStaticPaths = () => pathsFor("unitListBrand", "brandId");
+const list = page<UnitListPage>(Astro.props.data);
+---
+
+<UnitListView list={list} />

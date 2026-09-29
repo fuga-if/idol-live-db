@@ -1,0 +1,201 @@
+/* =============================================================================
+ * ImasLiveDB Web — ファウンデーション・トークン
+ * 正: ImasLiveDB/DesignSystem/DesignTokens.swift (DS)。値はそこからの写し。
+ *
+ * ★ hex リテラルを書いてよいのはこのファイルだけ。★
+ *   エンティティ色 (accent/tint/chip/… の 13 トークン) は Rust が出す
+ *   public/themes.css が [data-theme="…"] で供給する。ここに書くのはその
+ *   「themes.css が読めなかったときも壊れない」ニュートラル既定値のみ。
+ * ========================================================================== */
+
+:root {
+  color-scheme: light dark;
+
+  /* --- ニュートラル階調 -------------------------------------------------------
+     2026-09 の刷新で「公演パンフの紙面」に寄せた。地は生成りの紙色、面は白、文字は
+     わずかに紫がかった墨。色 (ブランド・アイドル) は themes.css だけが持ち、ここは無彩に近い。
+     ink2 は bg #F4F2ED 上で 6.2:1 / surface #FFFFFF 上で 6.9:1 (WCAG AA を余裕で超える)。 */
+  --ds-bg: #f4f2ed;
+  --ds-surface: #ffffff;
+  --ds-surface2: #faf8f4;
+  --ds-fill: #ece9e2;
+  --ds-sep: #ebe7df;
+  --ds-ink: #18171c;
+  --ds-ink2: #5b5863;
+  /* 面の輪郭 (ヘッダの下線・検索欄の枠)。行の区切り (--ds-sep) より一段濃い。 */
+  --ds-line: #e3dfd6;
+  /* フッタ (墨の帯)。明暗どちらでも暗い地。 */
+  --footer-bg: #18171c;
+  --footer-ink: #ffffff;
+  --footer-ink2: #cfcbd6;
+  --footer-line: #4a4750;
+  --footer-plate: #ffffff;
+  /* グラフの棒 (過ぎた年など、目立たせない側)。 */
+  --chart-bar: #c9c3b8;
+  /* ink3 はコントラストを満たさないので **文字には使わない** (シェブロン・区切りなど装飾専用)。 */
+  --ds-ink3: rgb(24 23 28 / 0.3);
+
+  /* --- セマンティック --- */
+  --ds-success: #2fa84f;
+  --ds-warning: #e08600;
+  --ds-danger: #e5342b;
+  --ds-sys: #18171c;
+  --ds-on-sys: #ffffff;
+  --ds-sys2: rgb(60 60 67 / 0.55);
+  --ds-pick: #ff2d78;
+  /* 文字に使う側 (14% の薄い地の上で AA)。--ds-pick は印・線用。 */
+  --ds-pick-ink: #c2185b;
+  --ds-favorite: #e8a800;
+  /* 曜日の色。日曜は赤・土曜は青という暦の慣習に合わせる (日付ブロック専用)。 */
+  --ds-sunday: #c5221f;
+  --ds-saturday: #1f5fc4;
+
+  /* --- エレベーション (フラット基調なので控えめ) --- */
+  /* 紙の上に白い面を置くだけで段差は足りる。影は輪郭を締める程度に留める。 */
+  --ds-shadow1: 0 0 0 1px rgb(24 23 28 / 0.035);
+  /* 浮かせる面 (次のライブの札・ホバー)。 */
+  --ds-shadow2: 0 12px 32px rgb(24 23 28 / 0.08), 0 1px 2px rgb(24 23 28 / 0.06);
+
+  /* --- スペーシング (4pt グリッド。DS.sp1…sp9) --- */
+  --sp1: 2px;
+  --sp2: 4px;
+  --sp3: 8px;
+  --sp4: 12px;
+  --sp5: 16px;
+  --sp6: 20px;
+  --sp7: 24px;
+  --sp8: 32px;
+  --sp9: 44px;
+
+  /* --- 角丸 (DS.rXS…rPill) --- */
+  --r-xs: 6px;
+  --r-sm: 10px;
+  --r-md: 16px;
+  --r-lg: 20px;
+  --r-xl: 28px;
+  --r-pill: 999px;
+
+  /* --- 部品の寸法 --- */
+  /* 行に置く小さいジャケ。表の畳んだ副題の字下げもこれに揃える。 */
+  --artwork-sm: 44px;
+
+  /* --- タイポ --- */
+  --font-body: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN",
+    "Noto Sans JP", "Yu Gothic UI", "Meiryo", system-ui, sans-serif;
+  /* 数字と欧文の札 (日付・曲番号・件数)。細身で、紙面の数字が詰まって見える。 */
+  --font-display: "Barlow Condensed", var(--font-body);
+  /* 見出しは Zen Kaku Gothic New の 900 (fonts.css。unicode-range 分割で出る字の分だけ届く)。
+     本文は各 OS の和文ゴシックのまま (ヒラギノ / Noto Sans CJK / 游ゴシック)。 */
+  --font-heading: "Zen Kaku Gothic New", var(--font-body);
+  --fw-heading: 900;
+
+  --fs-caption2: 0.6875rem; /* 11px */
+  --fs-caption: 0.75rem;    /* 12px */
+  --fs-footnote: 0.8125rem; /* 13px */
+  --fs-subhead: 0.9375rem;  /* 15px */
+  --fs-callout: 1rem;       /* 16px */
+  --fs-body: 1.0625rem;     /* 17px */
+  --fs-title3: 1.25rem;     /* 20px */
+  --fs-title2: 1.375rem;    /* 22px */
+  --fs-title1: 1.75rem;     /* 28px */
+  --fs-large: 2.125rem;     /* 34px */
+  /* トップの見出し。狭い画面では title1、広い画面で large を少し超える。 */
+  --fs-display: clamp(2rem, 1.2rem + 3.2vw, 3.5rem);
+
+  /* 行間: 和文は欧文より広く取る (Apple の leading の考え方を和文に合わせて調整) */
+  --lh-tight: 1.25;
+  --lh-snug: 1.4;
+  --lh-body: 1.65;
+  --lh-relaxed: 1.9;
+
+  /* 版面。ナビは上部バー 1 本 (サイドバーは持たない) なので本文が幅を全部使える。 */
+  /* 吸着する年見出しのオフセット = 上部バーの高さ。2 段に折り返す幅で base.css が上書きする。 */
+  --header-h: 72px;
+  --page-max: 1200px;
+  /* 表や 2 段組の広い版面も、ヘッダ・本文と同じ左端に揃える (紙面の版面は 1 つ)。 */
+  --page-wide: 1200px;
+
+  /* --- エンティティ色の既定 (= neutral)。themes.css が [data-theme] で上書きする --- */
+  --accent: #1c1c1e;
+  --on-accent: #ffffff;
+  --tint: rgb(60 60 67 / 0.10);
+  --tint-strong: rgb(60 60 67 / 0.18);
+  --chip-bg: rgb(60 60 67 / 0.10);
+  --chip-text: #1c1c1e;
+  --ring: rgb(60 60 67 / 0.20);
+  --bar: rgb(60 60 67 / 0.45);
+  --dot: #1c1c1e;
+  --grad-from: rgb(60 60 67 / 0.14);
+  --grad-to: rgb(60 60 67 / 0.04);
+  --separator: rgb(60 60 67 / 0.16);
+  --hero-surface: #f7f7fa;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* 夜の紙面: 真っ黒ではなく墨色の地に、一段明るい面。ink2 は bg 上で 8:1。 */
+    --ds-bg: #121114;
+    --ds-surface: #1c1b20;
+    --ds-surface2: #25242a;
+    --ds-fill: #2b2a31;
+    --ds-sep: #2e2d34;
+    --ds-ink: #f4f2ed;
+    --ds-ink2: #b3afba;
+    --ds-line: #34333a;
+    --footer-bg: #0b0a0d;
+    --chart-bar: #4a4750;
+    --ds-ink3: rgb(244 242 237 / 0.3);
+
+    --ds-success: #34d364;
+    --ds-warning: #ffb23e;
+    --ds-danger: #ff5247;
+    --ds-sys: #f4f2ed;
+    --ds-on-sys: #18171c;
+    --ds-sys2: rgb(235 235 245 / 0.55);
+    --ds-pick: #ff5a8c;
+    --ds-pick-ink: #ff5a8c;
+    --ds-favorite: #ffc83e;
+    --ds-sunday: #ff8a80;
+    --ds-saturday: #7fb0ff;
+
+    --ds-shadow1: 0 0 0 1px rgb(255 255 255 / 0.04);
+    --ds-shadow2: 0 10px 28px rgb(0 0 0 / 0.55), 0 1px 2px rgb(0 0 0 / 0.5);
+
+    --accent: #ffffff;
+    --on-accent: #1c1c1e;
+    --tint: rgb(235 235 245 / 0.12);
+    --tint-strong: rgb(235 235 245 / 0.20);
+    --chip-bg: rgb(235 235 245 / 0.12);
+    --chip-text: #ffffff;
+    --ring: rgb(235 235 245 / 0.22);
+    --bar: rgb(235 235 245 / 0.45);
+    --dot: #ffffff;
+    --grad-from: rgb(235 235 245 / 0.14);
+    --grad-to: rgb(235 235 245 / 0.04);
+    --separator: rgb(84 84 88 / 0.42);
+    --hero-surface: #1c1c1e;
+  }
+}
+
+/* Barlow Condensed (SIL OFL 1.1、public/fonts/OFL.txt) — latin サブセットを自己ホスト。
+   日本語は unicode-range から外れて必ず --font-body に落ちる。 */
+@font-face {
+  font-family: "Barlow Condensed";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/BarlowCondensed-SemiBold.latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Barlow Condensed";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/BarlowCondensed-Bold.latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}

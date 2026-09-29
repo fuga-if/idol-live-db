@@ -1,0 +1,18 @@
+{
+ "title": "songs の gakuen_ワタシカワイイアヒルノコ に配信情報を入れる",
+ "author": "daily-data-crawl (fill_apple_music_ids good-match)",
+ "source": "https://music.apple.com/jp/album/6812579485?i=6812579487",
+ "note": "出典: iTunes Lookup API (trackId=6812579487 / collectionId=6812579485)。2026-09-23 の日次クロールで fill_apple_music_ids.py --apply が good-match として埋めた値をそのまま記録。CloudKit Production へ反映済み (sync_song_apple_music.py --ids)。",
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "gakuen_ワタシカワイイアヒルノコ",
+   "fields": {
+    "apple_music_id": "6812579487",
+    "apple_music_album_id": "6812579485",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/d4/bb/9e/d4bb9eeb-4d70-1fc3-e5c0-85f55540c31b/PA00227832_0_254791_jacket.jpg/600x600bb.jpg",
+    "cd_series": "ワタシカワイイアヒルノコ - Single"
+   }
+  }
+ ]
+}

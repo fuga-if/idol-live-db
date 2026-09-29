@@ -7,6 +7,7 @@ import UIKit
 /// 公演 / CDリリース / 誕生日 を ImasLeadBar + アイコン/アバター + タイトル/サブ で描画する。
 struct DayEntryRow: View {
     @Environment(AppDatabase.self) private var database
+    @Environment(\.colorScheme) private var scheme
     let entry: CalendarEntry
     /// タップ時に親へ詳細遷移先を通知する。親が sheet / nav で受ける。
     let onSelect: (DetailDestination) -> Void
@@ -50,17 +51,17 @@ struct DayEntryRow: View {
                 releaseRow(songs: songs)
             }
             .buttonStyle(.plain)
-        case .birthday(let idol):
+        case .birthday(let idol, _):
             Button {
                 onSelect(.idol(idol))
             } label: {
                 birthdayRow(idol: idol)
             }
             .buttonStyle(.plain)
-        case .staffBirthday(let staff):
+        case .staffBirthday(let staff, _):
             // 事務員は専用詳細画面が無いのでタップ無効 (View だけ)。
             staffBirthdayRow(staff: staff)
-        case .anniversary(let ann):
+        case .anniversary(let ann, _):
             // 記念日も詳細導線無し。タップ無効。
             anniversaryRow(ann)
         case .personal(let event):
@@ -109,7 +110,7 @@ struct DayEntryRow: View {
             ImasLeadBar(seed: seed)
                 .frame(height: 36)
             leading()
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: DS.sp1) {
                 Text(title)
                     .font(.imasSubhead.weight(.semibold))
                     .foregroundStyle(DS.ink)
@@ -173,11 +174,12 @@ struct DayEntryRow: View {
             title: "\(staff.name) 誕生日",
             subtitle: staff.role,
             leading: {
+                let t = ImasTheme.derive(seed: CalendarEntry.ThemeSeed.staffBirthday, scheme: scheme)
                 Image(systemName: "person.text.rectangle.fill")
                     .font(.imasScaled(16, weight: .semibold))
-                    .foregroundStyle(.pink)
+                    .foregroundStyle(t.chipText)
                     .frame(width: 36, height: 36)
-                    .background(Color.pink.opacity(0.16), in: Circle())
+                    .background(t.chipBg, in: Circle())
             },
             trailing: { BirthdayGiftChip(seed: nil) }
         )
@@ -204,11 +206,12 @@ struct DayEntryRow: View {
             title: title,
             subtitle: subtitle,
             leading: {
+                let t = ImasTheme.derive(seed: CalendarEntry.ThemeSeed.anniversary, scheme: scheme)
                 Image(systemName: icon)
                     .font(.imasScaled(16, weight: .semibold))
-                    .foregroundStyle(.teal)
+                    .foregroundStyle(t.chipText)
                     .frame(width: 36, height: 36)
-                    .background(Color.teal.opacity(0.16), in: Circle())
+                    .background(t.chipBg, in: Circle())
             },
             trailing: { EmptyView() }
         )
@@ -219,9 +222,9 @@ struct DayEntryRow: View {
         let range = [Self.md(row.start), Self.md(row.end)].compactMap { $0 }.joined(separator: " 〜 ")
         return rowShell(
             seed: nil,
-            title: "受付期間 ・ \(row.eventName)",
+            title: "\(Vocab.table.ticketPeriodLabel) ・ \(row.eventName)",
             subtitle: range.isEmpty ? "チケット受付期間" : "チケット受付  \(range)",
-            leading: { TicketIconAvatar(systemImage: "calendar.badge.clock", color: .indigo) },
+            leading: { TicketIconAvatar(systemImage: "calendar.badge.clock", color: ImasTheme.derive(seed: CalendarEntry.ThemeSeed.ticket, scheme: scheme).accent) },
             trailing: { chevron }
         )
     }
@@ -235,7 +238,7 @@ struct DayEntryRow: View {
 
     /// チケット日程行 (申込締切 / 当落発表)。タップで親イベント詳細へ。
     private func ticketRow(_ row: TicketCalendarRow) -> some View {
-        let color: Color = row.kind == .deadline ? DS.danger : .indigo
+        let color: Color = row.kind == .deadline ? DS.danger : ImasTheme.derive(seed: CalendarEntry.ThemeSeed.ticket, scheme: scheme).accent
         return rowShell(
             seed: nil,
             title: "\(row.kind.label) ・ \(row.eventName)",
@@ -259,7 +262,7 @@ struct DayEntryRow: View {
                 .foregroundStyle(event.color)
                 .frame(width: 36, height: 36)
                 .background(event.color.opacity(0.16), in: Circle())
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: DS.sp1) {
                 Text(event.title)
                     .font(.imasSubhead.weight(.semibold))
                     .foregroundStyle(DS.ink)
@@ -278,16 +281,16 @@ struct DayEntryRow: View {
     }
 
     private var chevron: some View {
-        Image(systemName: "chevron.right")
-            .font(.imasScaled( 13, weight: .semibold))
-            .foregroundStyle(DS.ink3)
+        ImasRowChevron()
     }
+
 }
 
 // MARK: - 日詳細 sheet (detent プレゼン用に保持。共有行 DayEntryRow を再利用)
 
 struct CalendarDayDetailView: View {
     @Environment(AppDatabase.self) private var database
+    @Environment(\.colorScheme) private var scheme
     let entries: [CalendarEntry]
     let selectedDate: Date
     /// 親に「この sheet を閉じてから詳細 sheet を開いてほしい」と通知するコールバック。
@@ -382,23 +385,32 @@ struct CalendarDayDetailView: View {
 
     @ViewBuilder
     private func entryRow(for entry: CalendarEntry) -> some View {
-        DayEntryRow(entry: entry, onSelect: onSelect, onSelectPersonal: onSelectPersonal, displayDate: selectedDate)
-            .environment(database)
-            .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
-            .listRowBackground(DS.surface)
-            .listRowSeparatorTint(DS.sep)
-            // 公演行だけ「カレンダーに追加」スワイプアクションを付ける
-            .swipeActions(edge: .leading, allowsFullSwipe: false) {
-                if case .show(let row) = entry {
-                    Button {
-                        AppAnalytics.tap("calendar_day.calendar_add")
-                        exportTarget = CalendarShowEntry(showRow: row)
-                    } label: {
-                        Label("カレンダー", systemImage: "calendar.badge.plus")
-                    }
-                    .tint(.green)
-                }
+        Group {
+            if case .show(let row) = entry {
+                // 公演行だけ参加登録のスワイプを付ける (右)。カレンダー追加 (左) と規則を共有。
+                DayEntryRow(entry: entry, onSelect: onSelect, onSelectPersonal: onSelectPersonal, displayDate: selectedDate)
+                    .environment(database)
+                    .attendanceSwipe(show: row.show)
+            } else {
+                DayEntryRow(entry: entry, onSelect: onSelect, onSelectPersonal: onSelectPersonal, displayDate: selectedDate)
+                    .environment(database)
             }
+        }
+        .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+        .listRowBackground(DS.surface)
+        .listRowSeparatorTint(DS.sep)
+        // 公演行だけ「カレンダーに追加」スワイプアクションを付ける
+        .swipeActions(edge: .leading, allowsFullSwipe: false) {
+            if case .show(let row) = entry {
+                Button {
+                    AppAnalytics.tap("calendar_day.calendar_add")
+                    exportTarget = CalendarShowEntry(showRow: row)
+                } label: {
+                    Label("カレンダー", systemImage: "calendar.badge.plus")
+                }
+                .tint(DS.success)
+            }
+        }
     }
 
     // MARK: - カレンダーエクスポート実行
@@ -448,7 +460,7 @@ struct CalendarDayDetailView: View {
 
     private var dayHeader: some View {
         HStack(alignment: .center, spacing: DS.sp4) {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: DS.sp1) {
                 Text(selectedDate.formatted(.dateTime.year().month(.wide).day()))
                     .font(.imasTitle3.weight(.bold))
                     .foregroundStyle(DS.ink)
@@ -490,10 +502,10 @@ struct CalendarDayDetailView: View {
                 summaryBadge(count: releaseCount, systemImage: "opticaldisc", color: DS.warning)
             }
             if birthdayCount > 0 {
-                summaryBadge(count: birthdayCount, systemImage: "gift", color: .pink)
+                summaryBadge(count: birthdayCount, systemImage: "gift", color: ImasTheme.derive(seed: CalendarEntry.ThemeSeed.staffBirthday, scheme: scheme).accent)
             }
             if anniversaryCount > 0 {
-                summaryBadge(count: anniversaryCount, systemImage: "sparkles", color: .teal)
+                summaryBadge(count: anniversaryCount, systemImage: "sparkles", color: ImasTheme.derive(seed: CalendarEntry.ThemeSeed.anniversary, scheme: scheme).accent)
             }
             if ticketCount > 0 {
                 summaryBadge(count: ticketCount, systemImage: "ticket", color: DS.danger)

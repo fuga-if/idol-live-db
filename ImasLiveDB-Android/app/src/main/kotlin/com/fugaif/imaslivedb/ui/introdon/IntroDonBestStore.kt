@@ -1,6 +1,8 @@
 package com.fugaif.imaslivedb.ui.introdon
 
 import android.content.Context
+import uniffi.imas_core.introIsNewBestScore
+import uniffi.imas_core.introIsNewBestTime
 
 /**
  * イントロドンの自己ベスト記録 (モード別スコア・全曲チャレンジのベストタイム)。
@@ -26,7 +28,7 @@ class IntroDonBestStore(context: Context) {
     fun submitScore(settings: IntroDonSettings, score: Int): Boolean {
         val key = scoreKey(settings)
         val prev = prefs.getInt(key, 0)
-        return if (score > prev) {
+        return if (introIsNewBestScore(score.coerceAtLeast(0).toUInt(), prev.coerceAtLeast(0).toUInt())) {
             prefs.edit().putInt(key, score).apply()
             true
         } else {
@@ -34,13 +36,11 @@ class IntroDonBestStore(context: Context) {
         }
     }
 
-    fun bestTimeMs(settings: IntroDonSettings): Long = prefs.getLong(timeKey(settings), 0L)
-
     /** elapsedMs が自己ベスト (より短い) なら更新して true を返す。 */
     fun submitTime(settings: IntroDonSettings, elapsedMs: Long): Boolean {
         val key = timeKey(settings)
         val prev = prefs.getLong(key, 0L)
-        return if (elapsedMs > 0 && (prev == 0L || elapsedMs < prev)) {
+        return if (elapsedMs > 0 && introIsNewBestTime(elapsedMs.toDouble(), prev.toDouble())) {
             prefs.edit().putLong(key, elapsedMs).apply()
             true
         } else {

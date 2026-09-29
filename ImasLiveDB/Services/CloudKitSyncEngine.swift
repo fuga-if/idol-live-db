@@ -6,6 +6,15 @@ import UIKit
 
 private let logger = Logger(subsystem: "com.fugaif.ImasLiveDB", category: "CloudKitSync")
 
+extension Notification.Name {
+    /// CloudKit の差分取り込みが完了し、ローカルのマスタ DB (master.sqlite) が実際に変わった。
+    /// 共有コア (imas-core) のスナップショット再ロードなど「ローカルマスタ由来のキャッシュ」の
+    /// 無効化フックとして使う。発行はこのエンジンのみ (0 件同期では発行しない)。
+    /// なお sync を通らないローカル編集 (モデレーター .applied 経路等) の無効化は、この通知では
+    /// なく `SnapshotInvalidating*Writing` デコレータ (CoreSnapshotManager.swift) が担う。
+    static let masterDataDidSync = Notification.Name("masterDataDidSync")
+}
+
 /// CloudKitとローカルGRDB間の同期を管理
 @Observable
 final class CloudKitSyncEngine: @unchecked Sendable {
@@ -36,12 +45,6 @@ final class CloudKitSyncEngine: @unchecked Sendable {
 
         /// 全件再同期が必要なことを示すエラー状態
         static let requiresFullResync = SyncState.error("全件再同期が必要です")
-    }
-
-    /// CloudKitレコードタイプと同期順序の定義
-    private struct SyncStep: Sendable {
-        let recordType: String
-        let displayName: String
     }
 
     // MARK: - Properties
@@ -78,7 +81,25 @@ final class CloudKitSyncEngine: @unchecked Sendable {
     private static let maxRetries = 3
 
     /// 同期の再入防止 (フォアグラウンド復帰トリガと起動 sync が重ならないように)。
-    private var running = false
+    /// OSAllocatedUnfairLock でcheck-and-setをatomicにし、複数の同期起点 (起動時 /
+    /// フォアグラウンド復帰 / 手動更新) がほぼ同時に呼ばれても二重同期にならないようにする
+    /// (非アトミックなBoolだと両方が `running == false` を見て通過しうる)。
+    /// クラス自体はMainActor隔離しない(重いGRDB書き込みをメインに載せないため)ので、
+    /// ロックはグローバルActor分離とは独立した単純な排他制御として使う。
+    private let runningLock = OSAllocatedUnfairLock(initialState: false)
+
+    /// 再入防止の atomic な取得。既に走っていれば false (この呼び出しはスキップすべき)。
+    private func beginRunningIfIdle() -> Bool {
+        runningLock.withLock { running in
+            if running { return false }
+            running = true
+            return true
+        }
+    }
+
+    private func endRunning() {
+        runningLock.withLock { running in running = false }
+    }
 
     // フルsyncの途中再開用。中断 (バックグラウンド suspend 等) されても、
     // 完了済みステップを覚えておき、次回は残りのステップだけ取得する。
@@ -90,30 +111,13 @@ final class CloudKitSyncEngine: @unchecked Sendable {
         UserDefaults.standard.object(forKey: pendingFullStartKey) != nil
     }
 
-    /// 同期順序（外部キー依存関係を考慮）
-    private let syncSteps: [SyncStep] = [
-        // Phase 1: 独立テーブル
-        SyncStep(recordType: "Brand", displayName: "ブランド"),
-        // Phase 2: brandsのみ依存
-        SyncStep(recordType: "Idol", displayName: "アイドル"),
-        SyncStep(recordType: "Event", displayName: "イベント"),
-        SyncStep(recordType: "ImasUnit", displayName: "ユニット"),
-        // Phase 3: 上記に依存 (CastMember/IdolCast は廃止)
-        SyncStep(recordType: "IdolBrand", displayName: "アイドル×ブランド"),
-        SyncStep(recordType: "Show", displayName: "公演"),
-        SyncStep(recordType: "Song", displayName: "楽曲"),
-        SyncStep(recordType: "UnitMember", displayName: "ユニットメンバー"),
-        // Phase 4: さらに上に依存
-        SyncStep(recordType: "SongArtist", displayName: "楽曲アーティスト"),
-        SyncStep(recordType: "ShowCast", displayName: "公演キャスト"),
-        SyncStep(recordType: "SetlistItem", displayName: "セトリ"),
-        // Phase 5: setlist_itemsに依存
-        SyncStep(recordType: "SetlistPerformer", displayName: "セトリ出演者"),
-        // Phase 6: コミュニティコンテンツ（songsに依存）
-        SyncStep(recordType: "SongCall", displayName: "コーレス"),
-        SyncStep(recordType: "SongVideo", displayName: "参考動画"),
-    ]
-
+    /// 同期順序 (外部キー依存関係を考慮)。
+    ///
+    /// 並びはコア (imas-core `domain/sync_planning.rs` の `STEPS_IN_FK_ORDER`) が持つ。
+    /// ここに写しを置くと、片方だけステップを足したときに静かにずれる
+    /// (順序が崩れると、親未着の子行が FK 違反で 1 件ずつ捨てられ、次のフル同期まで
+    /// 復活しない)。空を渡すと全ステップが FK 依存順で返る。
+    private let syncSteps: [SyncStep] = syncStepsInOrder(availableRecordTypes: [])
     // MARK: - Public Methods
 
     /// フルSync — 全データをダウンロード（初回 or 強制リフレッシュ）
@@ -185,11 +189,20 @@ final class CloudKitSyncEngine: @unchecked Sendable {
     // MARK: - Private
 
     private func performSync(database: AppDatabase, modifiedSince: Date?) async {
-        // 再入防止: 既に走っている同期があれば何もしない (二重 fetch を避ける)。
-        if running { logger.info("[Sync] skip: already running"); return }
-        running = true
-        defer { running = false }
+        // 再入防止 (atomic): MainActor で check-and-set し、既に走っていればスキップ。
+        // 重い DB 書き込み (GRDB DatabaseQueue の blocking write) を MainActor に載せないため、
+        // ガードだけ MainActor に隔離し、本体は非隔離のまま実行する。
+        guard beginRunningIfIdle() else {
+            logger.info("[Sync] skip: already running")
+            return
+        }
+        await performSyncBody(database: database, modifiedSince: modifiedSince)
+        endRunning()
+    }
 
+    /// performSync の本体。再入ガード取得後にのみ呼ばれる。内部の早期 return はここから返り、
+    /// 呼び出し元 performSync が確実に endRunning() を実行する (ガードのリークを防ぐ)。
+    private func performSyncBody(database: AppDatabase, modifiedSince: Date?) async {
         // iCloudアカウント確認
         do {
             let status = try await CloudKitService.shared.accountStatus()
@@ -232,6 +245,8 @@ final class CloudKitSyncEngine: @unchecked Sendable {
 
         var totalFetched = 0
         var fetchedByType: [String: Int] = [:]
+        // 2026-09-06 に廃止した SongCall の途中再開キーが残っている端末がある。一度だけ捨てる。
+        ud.removeObject(forKey: "sync_ckpt_SongCall")
         for step in syncSteps {
             // フルsync再開: 完了済みステップはスキップ。
             if isFullSync && doneSteps.contains(step.recordType) { continue }
@@ -244,35 +259,77 @@ final class CloudKitSyncEngine: @unchecked Sendable {
                 // ステップ内チャンクループ: バッチ毎に upsert + チェックポイント保存。
                 // 巨大ステップ (SongArtist ~20k 等) が途中中断されても、保存した modifiedAt
                 // から再開できる (= 全件取り直さない)。
+                // このステップを epoch から全件取得するか (= フルsync かつ checkpoint 途中再開でない)。
+                // orphan 掃除は「完走した全件パス」でのみ安全に行える (途中再開だと seen が不完全)。
+                let stepStartedFromEpoch = isFullSync && ud.object(forKey: ckptKey) == nil
                 var start = (ud.object(forKey: ckptKey) as? Double).map { Date(timeIntervalSince1970: $0) }
                     ?? modifiedSince ?? Date(timeIntervalSince1970: 0)
                 var seen = Set<String>()
+                // 現在のクエリ (modifiedAt > start) を cursor で読み切るためのカーソル。
+                var cursor: CKQueryOperation.Cursor?
+                // 「今の start で張り直したクエリ」で見た新規件数と最大 modifiedAt。
+                // cursor を跨いで累積し、クエリを読み切った時点で判定する。
+                var addedSinceRestart = 0
+                var maxDateSinceRestart: Date?
                 while true {
-                    let records = try await fetchChunkWithRetry(type: step.recordType, after: start)
-                    if records.isEmpty { break }
+                    let (records, nextCursor) = try await fetchChunkWithRetry(
+                        type: step.recordType, after: start, continuing: cursor
+                    )
 
                     let before = seen.count
                     for r in records { seen.insert(r.recordID.recordName) }
-                    let added = seen.count - before
+                    addedSinceRestart += seen.count - before
 
-                    // deletedAt フィールドで生存/削除を分割
-                    let deleted = records.filter { CKRecordMapper.deletedAt(from: $0) != nil }
-                    let alive = records.filter { CKRecordMapper.deletedAt(from: $0) == nil }
-                    if !alive.isEmpty {
-                        try upsertRecords(alive, type: step.recordType, database: database)
-                    }
-                    // 削除伝搬は soft delete (deletedAt) 経由のみ。
-                    if !deleted.isEmpty {
-                        let ids = deleted.map { $0.recordID.recordName }
-                        try database.deleteRecords(recordType: step.recordType, ids: ids)
-                    }
-                    totalFetched += records.count
-                    fetchedByType[step.recordType, default: 0] += records.count
+                    if !records.isEmpty {
+                        // deletedAt フィールドで生存/削除を分割
+                        let deleted = records.filter { CKRecordMapper.deletedAt(from: $0) != nil }
+                        let alive = records.filter { CKRecordMapper.deletedAt(from: $0) == nil }
+                        if !alive.isEmpty {
+                            try upsertRecords(alive, type: step.recordType, database: database)
+                        }
+                        // 削除伝搬は soft delete (deletedAt) 経由のみ。
+                        if !deleted.isEmpty {
+                            let ids = deleted.map { $0.recordID.recordName }
+                            try database.deleteRecords(recordType: step.recordType, ids: ids)
+                        }
+                        totalFetched += records.count
+                        fetchedByType[step.recordType, default: 0] += records.count
 
-                    guard let maxDate = records.compactMap({ $0["modifiedAt"] as? Date }).max() else { break }
-                    ud.set(maxDate.timeIntervalSince1970, forKey: ckptKey)   // 途中チェックポイント
-                    if added == 0 { break }                                 // 新規ゼロ = 取得完了
+                        if let maxDate = records.compactMap({ $0["modifiedAt"] as? Date }).max() {
+                            maxDateSinceRestart = max(maxDateSinceRestart ?? maxDate, maxDate)
+                            ud.set(maxDate.timeIntervalSince1970, forKey: ckptKey)   // 途中チェックポイント
+                        }
+                    }
+
+                    if let nextCursor {
+                        // クエリにまだ続きがある → 同じ cursor で読み切る。
+                        // (単一 modifiedAt がチャンク超でも取りこぼさない。start 張り直しでは
+                        //  同じ先頭チャンクを再取得して新規ゼロで打ち切られ欠落するのを防ぐ。)
+                        cursor = nextCursor
+                        continue
+                    }
+
+                    // このクエリ (modifiedAt > start) を完全に読み切った。
+                    guard let maxDate = maxDateSinceRestart else { break }  // 1件も取れなかった = 完了
+                    if addedSinceRestart == 0 { break }                    // 張り直しても新規ゼロ = 全件取得済み
+                    // 境界 (同一 modifiedAt) を取りこぼさないよう -1ms して再クエリ。重複は seen で dedup。
+                    cursor = nil
                     start = maxDate.addingTimeInterval(-0.001)
+                    addedSinceRestart = 0
+                    maxDateSinceRestart = nil
+                }
+
+                // フル再取得 (epoch から全件) を完走したステップに限り、CloudKit 側で
+                // tombstone 無しに物理削除されたレコードをローカルからも掃除する (safety net)。
+                // deleteOrphans は単一 PK ("id") テーブルのみ・validIds 空なら no-op。seen には
+                // alive/deleted 双方の recordName が入っており、deleted は別途物理削除済みなので
+                // valid 扱いでも害はない。掃除対象は「CloudKit から消えたのにローカルに残る」孤児のみ。
+                if stepStartedFromEpoch {
+                    do {
+                        try database.deleteOrphans(recordType: step.recordType, validIds: seen)
+                    } catch {
+                        logger.error("[Sync] deleteOrphans(\(step.recordType)) failed: \(error.localizedDescription)")
+                    }
                 }
 
                 // ステップ完了: チェックポイント削除 + (フルsync) 完了ステップを記録。
@@ -348,14 +405,27 @@ final class CloudKitSyncEngine: @unchecked Sendable {
             lastSyncSummary = summary
             state = .completed(syncStartDate)
         }
+
+        // マスタが実際に変わった時だけ、共有コア (imas-core) のスナップショット再ロード等を促す。
+        // 0 件の差分 sync (フォアグラウンド復帰のたびに走る) で毎回 DB 全読みが走るのを避ける。
+        // エラー中断時は発行しない: 取り込み済みの断片はあり得るが、次に成功した sync が拾い直す。
+        if totalFetched > 0 {
+            NotificationCenter.default.post(name: .masterDataDidSync, object: nil)
+        }
     }
 
     /// リトライ付きチャンク fetch (modifiedAt > after を最大数ページ分)。途中再開ループで使う。
-    private func fetchChunkWithRetry(type: String, after startDate: Date) async throws -> [CKRecord] {
+    /// `continuing` に前回 cursor を渡すと同じクエリの続きを取得する (単一 modifiedAt がチャンク超でも
+    /// 取りこぼさない)。戻り cursor が非 nil ならまだ続きがある。
+    private func fetchChunkWithRetry(
+        type: String,
+        after startDate: Date,
+        continuing cursor: CKQueryOperation.Cursor? = nil
+    ) async throws -> (records: [CKRecord], cursor: CKQueryOperation.Cursor?) {
         var lastError: Error?
         for attempt in 0..<Self.maxRetries {
             do {
-                return try await CloudKitService.shared.fetchChunk(type: type, after: startDate)
+                return try await CloudKitService.shared.fetchChunk(type: type, after: startDate, continuing: cursor)
             } catch let ckError as CKError {
                 switch ckError.code {
                 case .networkUnavailable, .networkFailure, .serviceUnavailable, .zoneBusy, .requestRateLimited:
@@ -399,6 +469,22 @@ final class CloudKitSyncEngine: @unchecked Sendable {
             break
         case "IdolBrand":
             try database.upsertIdolBrands(mapped(CKRecordMapper.idolBrand))
+        case "Venue":
+            try database.upsertVenues(mapped(CKRecordMapper.venue))
+        case "Creator":
+            try database.upsertCreators(mapped(CKRecordMapper.creator))
+        case "UnitVersion":
+            try database.upsertUnitVersions(mapped(CKRecordMapper.unitVersion))
+        case "Costume":
+            try database.upsertCostumes(mapped(CKRecordMapper.costume))
+        case "CostumeWear":
+            try database.upsertCostumeWears(mapped(CKRecordMapper.costumeWear))
+        case "ShowTicket":
+            try database.upsertShowTickets(mapped(CKRecordMapper.showTicket))
+        case "VenueName":
+            try database.upsertVenueNames(mapped(CKRecordMapper.venueName))
+        case "VenueHall":
+            try database.upsertVenueHalls(mapped(CKRecordMapper.venueHall))
         case "Show":
             try database.upsertShows(mapped(CKRecordMapper.show))
         case "Song":
@@ -413,8 +499,6 @@ final class CloudKitSyncEngine: @unchecked Sendable {
             try database.upsertSetlistItems(mapped(CKRecordMapper.setlistItem))
         case "SetlistPerformer":
             try database.upsertSetlistPerformers(mapped(CKRecordMapper.setlistPerformer))
-        case "SongCall":
-            try database.upsertSongCalls(mapped(CKRecordMapper.songCall))
         case "SongVideo":
             try database.upsertSongVideos(mapped(CKRecordMapper.songVideo))
         default:

@@ -9,6 +9,4 @@ protocol DiagnosticsReading: Sendable {
     func metaValue(forKey key: String) async throws -> String?
     /// テーブル件数などの DB 統計。
     func databaseStats() async throws -> DatabaseStats
-    /// CloudKit 同期の診断情報。
-    func syncDiagnostics() async throws -> SyncDiagnostics
 }

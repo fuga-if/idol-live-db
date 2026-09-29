@@ -2,16 +2,18 @@ import SwiftUI
 
 struct IntroGameResultView: View {
     let session: IntroGameSession
-    @Environment(\.dismiss) private var dismiss
+    /// 「もう一度あそぶ」/「ホームに戻る」で呼ぶ処理。**この View は画面遷移を持たない。**
+    ///
+    /// 以前は共有シグナルを立てて Game / Setup の `onChange` に拾わせていたが、
+    /// **SwiftUI は push で隠れた View の `onChange` を走らせない** (body は再評価される
+    /// のに onChange だけ来ない) ため、どちらのボタンも無反応だった。押した側から
+    /// 画面を持っている側へ直接渡す。
+    let onReplay: () -> Void
+    let onHome: () -> Void
 
     /// 実際に回答した問題数 (スキップ含む)。正答率の母数。
     /// Rush は候補曲(最大300)を全部出せるわけがないので totalCount ではなく回答数で割る。
     private var answered: Int { session.records.count }
-
-    private var percentage: Int {
-        guard answered > 0 else { return 0 }
-        return session.score * 100 / answered
-    }
 
     private func timeString(_ t: TimeInterval) -> String {
         let s = Int(t.rounded())
@@ -30,274 +32,115 @@ struct IntroGameResultView: View {
     /// 結果カードを画像化してシェア (本家宣伝フッター付き)。
     private func shareResultImage() {
         // 全曲チャレンジは曲数が多すぎて内訳が無意味なのでサマリ+タイムのみ。
-        let lines = session.isAllSongsChallenge
+        let rows = session.isAllSongsChallenge
             ? []
-            : session.records.map { IntroShareLine(title: $0.title, correct: $0.correct) }
-        let card = IntroResultShareCard(
-            modeLabel: modeLabel,
-            score: session.score,
-            total: answered,
-            percentage: percentage,
-            timeText: session.isAllSongsChallenge ? timeString(session.elapsedTime) : nil,
-            bestCombo: session.bestCombo,
-            lines: lines
-        )
-        let image = IntroShareImageRenderer.render(size: CGSize(width: 1080, height: 1350)) { card }
-        IntroShareImageRenderer.share(image: image, text: shareText)
+            : session.records.enumerated().map { i, r in
+                QuizShareRow(number: i + 1, title: r.title, hex: nil, isCorrect: r.correct)
+            }
+        QuizShareCard(title: "イントロドン", subtitle: modeLabel, result: result, rows: rows,
+                      longestStreak: session.bestCombo, isNewBest: session.isNewBest,
+                      extraStat: session.isAllSongsChallenge ? ("タイム", timeString(session.elapsedTime)) : nil,
+                      footer: .introQuiz)
+            .share(text: shareText)
     }
 
-    /// シェア用テキスト (本家アプリの宣伝も兼ねる)。
+    /// シェア用テキスト (本家アプリの宣伝も兼ねる)。文面はコアが作る。
     private var shareText: String {
-        let pct = percentage
-        let base: String
-        if session.isAllSongsChallenge {
-            base = "🎵イントロドン 全曲チャレンジ \(timeString(session.elapsedTime))・正答率\(pct)% (\(session.score)/\(answered))"
-        } else {
-            switch session.settings.mode {
-            case .rush:
-                let secs = Int(session.settings.rushTimeLimit)
-                base = "🎵イントロドン・ラッシュ \(secs)秒で \(session.score)問正解！(正答率\(pct)%)"
-            case .party:
-                base = "🎵イントロドン パーティ対戦であそんだよ！"
-            case .allSongs, .normal:
-                base = "🎵イントロドンで \(session.score)/\(answered) 正解！(正答率\(pct)%)"
-            }
+        shareIntroDonText(input: IntroDonShareInput(
+            mode: shareMode,
+            score: Int32(clamping: session.score),
+            answered: Int32(clamping: answered),
+            bestCombo: Int32(clamping: session.bestCombo),
+            elapsedSeconds: session.elapsedTime,
+            rushTimeLimitSeconds: session.settings.rushTimeLimit))
+    }
+
+    /// シェア文の種類。全曲チャレンジかどうかは、設定の mode ではなくセッションの状態で決まる。
+    private var shareMode: IntroDonShareMode {
+        if session.isAllSongsChallenge { return .allSongs }
+        switch session.settings.mode {
+        case .rush: return .rush
+        case .party: return .party
+        case .allSongs, .normal: return .normal
         }
-        let combo = session.bestCombo >= 2 ? " 最大\(session.bestCombo)連続🔥" : ""
-        return base + combo + "\n#イントロドン #アイマス"
+    }
+
+    /// 他のクイズと同じ形の結果 (グレード・一言)。点は正解数、分母は回答した数。
+    private var result: QuizSessionResult {
+        quizAccuracyResult(points: UInt32(clamping: session.score), outOf: UInt32(clamping: answered),
+                           correct: UInt32(clamping: session.score), questions: UInt32(clamping: answered))
+    }
+
+    private var slots: [QuizPenlight] {
+        let results: [Color?] = session.records.enumerated().map { i, r in r.correct ? QS.penlight(i) : nil }
+        return QuizPenlight.slots(results: results, total: results.count, answering: false)
+    }
+
+    private var misses: [QuizMissItem] {
+        session.records.enumerated()
+            .filter { !$0.element.correct }
+            .prefix(30)
+            .map { i, r in
+                QuizMissItem(id: r.id + "-\(i)", number: i + 1, title: r.title, hex: nil,
+                             picked: r.selectedTitle ?? "スキップ")
+            }
     }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                scoreHero
-                    .padding(.horizontal, 20)
-                    .padding(.top, 24)
-
-                if session.isAllSongsChallenge && session.newBestTimeAchieved {
-                    banner(icon: "stopwatch.fill", text: "ベストタイム更新！", tag: "NEW TIME")
-                        .padding(.horizontal, 20)
-                        .padding(.top, 12)
-                } else if session.isNewBest {
-                    bestBanner
-                        .padding(.horizontal, 20)
-                        .padding(.top, 12)
-                }
-
-                Spacer().frame(height: 28)
-
-                IDSectionLabel(text: "全問の結果")
-                    .padding(.horizontal, 20)
-                Spacer().frame(height: 12)
-                questionsLog
-                    .padding(.horizontal, 20)
-
-                Spacer().frame(height: 28)
-
-                actionButtons
-                    .padding(.horizontal, 20)
-
-                Spacer().frame(height: 40)
+        NavigationStack {
+            QuizStageScaffold(title: "イントロドン · \(modeLabel)", header: .result(total: answered),
+                              onClose: {
+                                  AppAnalytics.tap("intro_game_result.go_home")
+                                  // ⚠️ ここで session.reset() を呼ばない (下の画面が空表示に化ける)。
+                                  onHome()
+                              },
+                              trailing: {
+                                  QuizStageRoundButton(systemImage: "square.and.arrow.up", label: "結果を画像でシェア") {
+                                      AppAnalytics.tap("intro_game_result.share")
+                                      shareResultImage()
+                                  }
+                              }) {
+                // 全曲チャレンジはタイムを競う。
+                if session.isAllSongsChallenge { timeTile }
+                QuizStageResultView(
+                    result: result, kind: .introDon,
+                    isNewBest: session.isNewBest, previousBest: session.previousBestScore,
+                    slots: slots, longestStreak: session.bestCombo, misses: misses,
+                    onReplay: {
+                        AppAnalytics.tap("intro_game_result.replay")
+                        // ⚠️ ここで session.reset() を呼んではいけない。
+                        // この結果画面はまだ画面上にあるので、記録が消えた瞬間に 0/0・履歴なしへ
+                        // 描き変わってしまう (「空の結果画面が後から出てくる」の原因)。
+                        // 次の対局の初期化は IntroGameSession.generateQuestions が全部やる。
+                        // Setup画面(積み上げ済み)まで戻すだけ。
+                        onReplay()
+                    },
+                    onClose: {
+                        AppAnalytics.tap("intro_game_result.go_home")
+                        onHome()
+                    })
             }
         }
-        .background(ID.menuBg.ignoresSafeArea())
-        .navigationTitle("結果")
-        .navigationBarTitleDisplayMode(.inline)
-        .navigationBarBackButtonHidden(true)
         .trackScreen("intro_game_result")
     }
 
-    private var scoreHero: some View {
-        VStack(spacing: 20) {
-            // Score number
-            VStack(spacing: 4) {
-                HStack(alignment: .lastTextBaseline, spacing: 4) {
-                    Text("\(session.score)")
-                        .font(ID.font(64, weight: .black))
-                        .foregroundColor(ID.menuText)
-                    Text("/ \(answered)")
-                        .font(ID.font(22, weight: .bold))
-                        .foregroundColor(ID.menuTextSecondary)
-                        .padding(.bottom, 6)
-                }
-
-                Text("正答率 \(percentage)%")
-                    .font(ID.font(16, weight: .bold))
-                    .foregroundColor(ID.menuTextSecondary)
-
-                // 全曲チャレンジはタイムを競う。
-                if session.isAllSongsChallenge {
-                    Label(timeString(session.elapsedTime), systemImage: "stopwatch")
-                        .font(ID.font(15, weight: .bold))
-                        .foregroundColor(ID.menuText)
-                        .monospacedDigit()
-                        .padding(.top, 2)
-                }
-            }
-
-            // Grade badge
-            gradeBadge
-        }
-        .frame(maxWidth: .infinity)
-        .padding(32)
-        .background(ID.menuCardSubtle)
-        .clipShape(IDCorner())
-        .shadow(color: Color.black.opacity(0.08), radius: 12, y: 6)
-    }
-
-    private var gradeBadge: some View {
-        let (label, color) = gradeInfo
-        return Text(label)
-            .font(ID.font(14, weight: .bold))
-            .foregroundColor(color)
-            .padding(.horizontal, 20)
-            .padding(.vertical, 8)
-            .background(color.opacity(0.12))
-            .clipShape(IDCorner(radius: 10))
-    }
-
-    private var gradeInfo: (String, Color) {
-        switch percentage {
-        case 100:   return ("パーフェクト! 🎵", ID.accentGold)
-        case 80...: return ("すごい！",         ID.correct)
-        case 60...: return ("なかなか！",        ID.accentBlue)
-        case 40...: return ("もう少し！",        Color.orange)
-        default:    return ("練習あるのみ！",    ID.incorrect)
-        }
-    }
-
-    private var bestBanner: some View {
-        banner(icon: "star.fill", text: "ベストスコア更新！", tag: "NEW BEST")
-    }
-
-    private func banner(icon: String, text: String, tag: String) -> some View {
-        HStack(spacing: 10) {
-            Image(systemName: icon)
-                .foregroundColor(ID.accentGold)
-                .font(.imasScaled( 16))
-            Text(text)
-                .font(ID.font(14, weight: .bold))
-                .foregroundColor(ID.menuText)
-            Spacer()
-            Text(tag)
-                .font(ID.font(10, weight: .bold))
-                .tracking(1.5)
-                .foregroundColor(ID.accentGold)
-        }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 14)
-        .background(ID.accentGold.opacity(0.10))
-        .clipShape(IDCorner(radius: 14))
-        .overlay(
-            IDCorner(radius: 14)
-                .stroke(ID.accentGold.opacity(0.30), lineWidth: 1)
-        )
-    }
-
-    private var questionsLog: some View {
-        VStack(spacing: 0) {
-            ForEach(Array(session.records.enumerated()), id: \.element.id) { index, record in
-                recordRow(index: index, record: record)
-
-                if index < session.records.count - 1 {
-                    Rectangle()
-                        .fill(ID.menuDivider)
-                        .frame(height: 1)
-                        .padding(.horizontal, 16)
-                }
-            }
-        }
-        .background(ID.menuCardSubtle)
-        .clipShape(IDCorner(radius: 16))
-    }
-
-    private func recordRow(index: Int, record: IntroAnswerRecord) -> some View {
-        HStack(spacing: 12) {
-            Text("\(index + 1)")
-                .font(ID.font(11, weight: .bold))
-                .monospacedDigit()
-                .foregroundColor(ID.menuTextSecondary)
-                .frame(width: 22, alignment: .trailing)
-
-            Image(systemName: record.correct ? "checkmark.circle.fill" : "xmark.circle.fill")
-                .foregroundColor(record.correct ? ID.correct : ID.incorrect)
-                .font(.imasScaled( 16))
-
+    private var timeTile: some View {
+        HStack(alignment: .lastTextBaseline) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(record.title)
-                    .font(ID.font(13, weight: .semibold))
-                    .foregroundColor(ID.menuText)
-                    .lineLimit(1)
-
-                if !record.correct {
-                    Text(record.selectedTitle.map { "回答: \($0)" } ?? "スキップ")
-                        .font(.imasScaled(11))
-                        .minimumScaleFactor(0.8)
-                        .foregroundColor(ID.menuTextSecondary)
-                        .lineLimit(1)
-                }
+                Text("タイム").font(QS.text(12, weight: .bold)).foregroundStyle(QS.dim)
+                Text(timeString(session.elapsedTime)).font(QS.num(40)).foregroundStyle(QS.ink)
             }
-
             Spacer()
+            if session.newBestTimeAchieved {
+                Text("ベストタイム更新")
+                    .font(QS.text(13, weight: .black))
+                    .foregroundStyle(QS.stamp)
+                    .padding(.horizontal, 10).padding(.vertical, 4)
+                    .background(QS.paper, in: RoundedRectangle(cornerRadius: 8))
+                    .rotationEffect(.degrees(-4))
+            }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-    }
-
-    private var actionButtons: some View {
-        VStack(spacing: 12) {
-            Button {
-                AppAnalytics.tap("intro_game_result.share")
-                shareResultImage()
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "square.and.arrow.up")
-                        .font(.imasScaled( 15, weight: .semibold))
-                    Text("結果を画像でシェア")
-                        .font(ID.font(16, weight: .bold))
-                }
-                .foregroundColor(ID.menuText)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 15)
-                .background(ID.menuCardSubtle)
-                .clipShape(IDCorner())
-                .overlay(IDCorner().stroke(ID.menuDivider, lineWidth: 1))
-            }
-            .idPress()
-
-            NavigationLink {
-                IntroGameSetupView()
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "arrow.counterclockwise")
-                        .font(.imasScaled( 15, weight: .semibold))
-                    Text("もう一度あそぶ")
-                        .font(ID.font(17, weight: .bold))
-                }
-                .foregroundColor(ID.menuCardDarkText)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
-                .background(ID.menuCardDark)
-                .clipShape(IDCorner())
-                .shadow(color: Color.black.opacity(0.15), radius: 10, y: 4)
-            }
-            .idPress()
-
-            Button {
-                AppAnalytics.tap("intro_game_result.go_home")
-                session.reset()
-                dismiss()
-                dismiss()
-            } label: {
-                Text("ホームに戻る")
-                    .font(ID.font(14, weight: .semibold))
-                    .foregroundColor(ID.menuTextSecondary)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(ID.menuCardSubtle)
-                    .clipShape(IDCorner(radius: 14))
-            }
-            .idPress()
-        }
+        .padding(.horizontal, 16).padding(.vertical, 12)
+        .background(QS.panel, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 }

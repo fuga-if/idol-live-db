@@ -6,7 +6,8 @@
     "moduleResolution": "Bundler",
     "types": ["@cloudflare/workers-types"],
     "strict": true,
-    "noUnusedLocals": false,
+    // ルート切り出しで import が取り残されがちなので、未使用は CI で落とす。
+    "noUnusedLocals": true,
     "noUnusedParameters": false,
     "noImplicitReturns": true,
     "skipLibCheck": true,

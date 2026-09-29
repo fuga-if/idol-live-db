@@ -103,3 +103,7 @@ lint/tmp/
 
 *.keystore
 *.jks
+
+# imas-core (Rust) の生成物。imas-core/build.sh が再生成する
+app/src/main/jniLibs/
+app/src/main/kotlin/uniffi/

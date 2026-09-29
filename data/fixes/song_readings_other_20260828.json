@@ -1,0 +1,1622 @@
+{
+ "title": "読みが空だった曲に読み仮名を入れる",
+ "_help": "アイマスのライブで披露されたが、アイマス楽曲として登録されていない曲 (他作品・カバー・ゲーム主題歌・声優本人名義)。読みが空だと、かなでは一切引けない。漢字を含むものは JOYSOUND の曲名ルビ検索・Love Live Wiki・公式ディスコグラフィで裏取りした。カタカナ/英字だけのものは表記から起こしている。ゆめの羅針盤 は 羅針盤 に「コンパス」のルビが振られており、ゆめのらしんばん ではない。",
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "765as_かたちあるもの",
+   "fields": {
+    "title_kana": "かたちあるもの"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "765as_さんぽ",
+   "fields": {
+    "title_kana": "さんぽ"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "765as_じょいふる",
+   "fields": {
+    "title_kana": "じょいふる"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "765as_ね〜え",
+   "fields": {
+    "title_kana": "ねえ"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "765as_ふたりのもじぴったんじゅもんをあげるよ",
+   "fields": {
+    "title_kana": "ふたりのもじぴったんじゅもんをあげるよ"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "765as_らびゅらびゅ",
+   "fields": {
+    "title_kana": "らびゅらびゅ"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "765as_アンインストール",
+   "fields": {
+    "title_kana": "あんいんすとーる"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "765as_ジングルベル",
+   "fields": {
+    "title_kana": "じんぐるべる"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "765as_タッチ",
+   "fields": {
+    "title_kana": "たっち"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "765as_チキンライス",
+   "fields": {
+    "title_kana": "ちきんらいす"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "765as_ノンタンといっしょ「dancingびびでな・すてっぷ」",
+   "fields": {
+    "title_kana": "のんたんといっしょだんしんぐびびでなすてっぷ"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "765as_フレンズ",
+   "fields": {
+    "title_kana": "ふれんず"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_いーゔぃるらゔぁ",
+   "fields": {
+    "title_kana": "いーゔぃるらゔぁ"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_およげたいやきくん",
+   "fields": {
+    "title_kana": "およげたいやきくん"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_ともに",
+   "fields": {
+    "title_kana": "ともに"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_どうせ",
+   "fields": {
+    "title_kana": "どうせ"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_まぼろしのほし",
+   "fields": {
+    "title_kana": "まぼろしのほし"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_もってけセーラーふく",
+   "fields": {
+    "title_kana": "もってけせーらーふく"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_アイロニ",
+   "fields": {
+    "title_kana": "あいろに"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_アコガレスカイ",
+   "fields": {
+    "title_kana": "あこがれすかい"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_インフェルノ",
+   "fields": {
+    "title_kana": "いんふぇるの"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_エンジェルドリーム",
+   "fields": {
+    "title_kana": "えんじぇるどりーむ"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_シルエット",
+   "fields": {
+    "title_kana": "しるえっと"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_シンデレラ・マジック・ステージ",
+   "fields": {
+    "title_kana": "しんでれらまじっくすてーじ"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_チュチュ・バレリーナ",
+   "fields": {
+    "title_kana": "ちゅちゅばれりーな"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_チューリングラブ",
+   "fields": {
+    "title_kana": "ちゅーりんぐらぶ"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_ツキアカリのミチシルベ",
+   "fields": {
+    "title_kana": "つきあかりのみちしるべ"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_トアルトワ",
+   "fields": {
+    "title_kana": "とあるとわ"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_トライアングラー",
+   "fields": {
+    "title_kana": "とらいあんぐらー"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_ドーナツホール",
+   "fields": {
+    "title_kana": "どーなつほーる"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_ビビデバ",
+   "fields": {
+    "title_kana": "びびでば"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_ファタール",
+   "fields": {
+    "title_kana": "ふぁたーる"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_フィアンセ・シンドローム",
+   "fields": {
+    "title_kana": "ふぃあんせしんどろーむ"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_ブラックロックシューター",
+   "fields": {
+    "title_kana": "ぶらっくろっくしゅーたー"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_プライド",
+   "fields": {
+    "title_kana": "ぷらいど"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_マトリョシカ",
+   "fields": {
+    "title_kana": "まとりょしか"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_メタモルフォシス",
+   "fields": {
+    "title_kana": "めたもるふぉしす"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_ユメヲカケル",
+   "fields": {
+    "title_kana": "ゆめをかける"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_ラピスラズリ",
+   "fields": {
+    "title_kana": "らぴすらずり"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_ルララルララ",
+   "fields": {
+    "title_kana": "るららるらら"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_ロメオ",
+   "fields": {
+    "title_kana": "ろめお"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_ワンダーモモ",
+   "fields": {
+    "title_kana": "わんだーもも"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "ll_aion_no_uta",
+   "fields": {
+    "title_kana": "あいおんのうた"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://love-live.fandom.com/wiki/Aion_no_Uta"
+  },
+  {
+   "table": "songs",
+   "id": "ll_alternate",
+   "fields": {
+    "title_kana": "おるたねいと"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://love-live.fandom.com/wiki/Alternate"
+  },
+  {
+   "table": "songs",
+   "id": "ll_aozora_jumping_heart",
+   "fields": {
+    "title_kana": "あおぞらじゃんぴんぐはーと"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://love-live.fandom.com/wiki/Aozora_Jumping_Heart"
+  },
+  {
+   "table": "songs",
+   "id": "ll_audrey",
+   "fields": {
+    "title_kana": "おーどりー"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://love-live.fandom.com/wiki/Audrey"
+  },
+  {
+   "table": "songs",
+   "id": "ll_bokura_wa_ima_no_naka_de",
+   "fields": {
+    "title_kana": "ぼくらはいまのなかで"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://love-live.fandom.com/wiki/Bokura_wa_Ima_no_Naka_de"
+  },
+  {
+   "table": "songs",
+   "id": "ll_cotton_candy_eieio",
+   "fields": {
+    "title_kana": "こっとんきゃんでぃえいえいおー"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://love-live.fandom.com/wiki/Cotton_Candy_Ei-Ei-Oh!"
+  },
+  {
+   "table": "songs",
+   "id": "ll_do_do_do",
+   "fields": {
+    "title_kana": "どどど"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://love-live.fandom.com/wiki/Do!_Do!_Do!"
+  },
+  {
+   "table": "songs",
+   "id": "ll_eien_no_euphoria",
+   "fields": {
+    "title_kana": "えいえんのゆーふぉりあ"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://love-live.fandom.com/wiki/Eien_no_Euphoria"
+  },
+  {
+   "table": "songs",
+   "id": "ll_fortune_movie",
+   "fields": {
+    "title_kana": "ふぉーちゅんむーびー"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://love-live.fandom.com/wiki/Fortune_Movie"
+  },
+  {
+   "table": "songs",
+   "id": "ll_fukashina_blue",
+   "fields": {
+    "title_kana": "ふかしなぶるー"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://love-live.fandom.com/wiki/Fukashi_na_Blue"
+  },
+  {
+   "table": "songs",
+   "id": "ll_genyou_yakou",
+   "fields": {
+    "title_kana": "げんようやこう"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://love-live.fandom.com/wiki/Genyou_Yakou"
+  },
+  {
+   "table": "songs",
+   "id": "ll_hakuchu_a_la_mode",
+   "fields": {
+    "title_kana": "はくちゅーあらもーど"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://love-live.fandom.com/wiki/Hakuchuu_à_la_Mode"
+  },
+  {
+   "table": "songs",
+   "id": "ll_ketsui_no_hikari",
+   "fields": {
+    "title_kana": "けついのひかり"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://love-live.fandom.com/wiki/Ketsui_no_Hikari"
+  },
+  {
+   "table": "songs",
+   "id": "ll_kirari_hirari",
+   "fields": {
+    "title_kana": "きらりひらりまうさくら"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://love-live.fandom.com/wiki/Kirari_Hirari_Mau_Sakura"
+  },
+  {
+   "table": "songs",
+   "id": "ll_meccha_going",
+   "fields": {
+    "title_kana": "めっちゃごーいんぐ"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://love-live.fandom.com/wiki/Meccha_Going!!"
+  },
+  {
+   "table": "songs",
+   "id": "ll_mirai_no_bokura",
+   "fields": {
+    "title_kana": "みらいのぼくらはしってるよ"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://love-live.fandom.com/wiki/Mirai_no_Bokura_wa_Shitteru_yo"
+  },
+  {
+   "table": "songs",
+   "id": "ll_mitaiken_horizon",
+   "fields": {
+    "title_kana": "みたいけんほらいずん"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://love-live.fandom.com/wiki/Mitaiken_HORIZON"
+  },
+  {
+   "table": "songs",
+   "id": "ll_muteki_kyu_believer",
+   "fields": {
+    "title_kana": "むてききゅうびりーばー"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://love-live.fandom.com/wiki/Muteki-kyuu*Believer"
+  },
+  {
+   "table": "songs",
+   "id": "ll_my_mai_tonight",
+   "fields": {
+    "title_kana": "まいまいとぅないと"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://love-live.fandom.com/wiki/MY_Mai☆TONIGHT"
+  },
+  {
+   "table": "songs",
+   "id": "ll_nijiiro_passions",
+   "fields": {
+    "title_kana": "にじいろぱっしょんず"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://love-live.fandom.com/wiki/Nijiiro_Passions!"
+  },
+  {
+   "table": "songs",
+   "id": "ll_nonfiction_hero_show",
+   "fields": {
+    "title_kana": "のんふぃくしょんひーろーしょー"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://love-live.fandom.com/wiki/Nonfiction_Hero_Show"
+  },
+  {
+   "table": "songs",
+   "id": "ll_ryoran_victory_road",
+   "fields": {
+    "title_kana": "りょうらんびくとりーろーど"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://love-live.fandom.com/wiki/Ryouran!_Victory_Road"
+  },
+  {
+   "table": "songs",
+   "id": "ll_sore_wa_bokutachi_no_kiseki",
+   "fields": {
+    "title_kana": "それはぼくたちのきせき"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://love-live.fandom.com/wiki/Sore_wa_Bokutachi_no_Kiseki"
+  },
+  {
+   "table": "songs",
+   "id": "ll_star_sengen",
+   "fields": {
+    "title_kana": "すたーせんげん"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://love-live.fandom.com/wiki/Star_Sengen"
+  },
+  {
+   "table": "songs",
+   "id": "ll_tokonatsu_sunshine",
+   "fields": {
+    "title_kana": "とこなつさんしゃいん"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://love-live.fandom.com/wiki/Tokonatsu☆Sunshine"
+  },
+  {
+   "table": "songs",
+   "id": "ll_tsunagaru_connect",
+   "fields": {
+    "title_kana": "つながるこねくと"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://love-live.fandom.com/wiki/Tsunagaru_Connect"
+  },
+  {
+   "table": "songs",
+   "id": "ll_vitamin_summer",
+   "fields": {
+    "title_kana": "びたみんさまー"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://love-live.fandom.com/wiki/Vitamin_SUMMER!"
+  },
+  {
+   "table": "songs",
+   "id": "ll_watashi_no_symphony",
+   "fields": {
+    "title_kana": "わたしのしんふぉにー"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://love-live.fandom.com/wiki/Watashi_no_Symphony"
+  },
+  {
+   "table": "songs",
+   "id": "ll_watcha_gonna_do",
+   "fields": {
+    "title_kana": "わちゅごなどぅー"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://love-live.fandom.com/wiki/Wachu_Gonna_Do"
+  },
+  {
+   "table": "songs",
+   "id": "ll_yume_no_compass",
+   "fields": {
+    "title_kana": "ゆめのこんぱす"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://love-live.fandom.com/wiki/Yume_no_Compass"
+  },
+  {
+   "table": "songs",
+   "id": "ll_yume_no_tobira",
+   "fields": {
+    "title_kana": "ゆめのとびら"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://love-live.fandom.com/wiki/Yume_no_Tobira"
+  },
+  {
+   "table": "songs",
+   "id": "other_おわらない僕らのmusic",
+   "fields": {
+    "title_kana": "おわらないぼくらのみゅーじっく"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "other_アイドルマスターシンデレラガールズアイドルマスター劇伴",
+   "fields": {
+    "title_kana": "あいどるますたーしんでれらがーるずあいどるますたーげきばん"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "other_トウキョウ・ブラー",
+   "fields": {
+    "title_kana": "とうきょうぶらー"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://helloproject.fandom.com/wiki/Tokyo_Blur_/_Naimono_Love_/_Oaiko"
+  },
+  {
+   "table": "songs",
+   "id": "other_プライド・ブライト",
+   "fields": {
+    "title_kana": "ぷらいどぶらいと"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://helloproject.fandom.com/wiki/Pride_Bright_/_FUNKY_FLUSHIN%27"
+  },
+  {
+   "table": "songs",
+   "id": "other_ラジオ体操第一",
+   "fields": {
+    "title_kana": "らじおたいそうだいいち"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://ja.wikipedia.org/wiki/ラジオ体操"
+  },
+  {
+   "table": "songs",
+   "id": "other_禁断少女",
+   "fields": {
+    "title_kana": "きんだんしょうじょ"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://helloproject.fandom.com/wiki/Juice%3DJuice_2_-%C2%A1Una_m%C3%A1s!-"
+  },
+  {
+   "table": "songs",
+   "id": "sc_レッド・ルーラー",
+   "fields": {
+    "title_kana": "れっどるーらー"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "sc_合縁事変",
+   "fields": {
+    "title_kana": "あいえんじへん"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://virtualyoutuber.fandom.com/wiki/La%2B_Darknesss/Discography"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_浮世の演舞",
+   "fields": {
+    "title_kana": "うきよのえんぶ"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://virtualyoutuber.fandom.com/wiki/Genzuki_Tojiro/Discography"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_黎明の轍",
+   "fields": {
+    "title_kana": "れいめいのわだち"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://virtualyoutuber.fandom.com/wiki/Genzuki_Tojiro/Discography"
+  },
+  {
+   "table": "songs",
+   "id": "765as_acacia",
+   "fields": {
+    "title_kana": "あかしあ"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "765as_attention",
+   "fields": {
+    "title_kana": "あてんしょん"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "765as_because_of_you",
+   "fields": {
+    "title_kana": "びこーずおぶゆー"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "765as_believe",
+   "fields": {
+    "title_kana": "びりーぶ"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "765as_eversince",
+   "fields": {
+    "title_kana": "えばーしんす"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "765as_isthislove",
+   "fields": {
+    "title_kana": "いずでぃすらぶ"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "765as_lets_get_started",
+   "fields": {
+    "title_kana": "れっつげっとすたーてっど"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "765as_lost_in_the_summer",
+   "fields": {
+    "title_kana": "ろすといんざさまー"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "765as_not_endbut_and_",
+   "fields": {
+    "title_kana": "のっとえんどばっとあんど"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "765as_one_for_all",
+   "fields": {
+    "title_kana": "わんふぉーおーる"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "765as_squall",
+   "fields": {
+    "title_kana": "すこーる"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "765as_super_girl_magic",
+   "fields": {
+    "title_kana": "すーぱーがーるまじっく"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "765as_town",
+   "fields": {
+    "title_kana": "たうん"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "765as_wanna_be_your_star",
+   "fields": {
+    "title_kana": "わなびーゆあすたー"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "765as_wearetheworld",
+   "fields": {
+    "title_kana": "うぃーあーざわーるど"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_adamas",
+   "fields": {
+    "title_kana": "あだます"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_andone",
+   "fields": {
+    "title_kana": "あんどわん"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_angelicangel",
+   "fields": {
+    "title_kana": "えんじぇりっくえんじぇる"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://love-live.fandom.com/wiki/Angelic_Angel"
+  },
+  {
+   "table": "songs",
+   "id": "876_beyondtheway",
+   "fields": {
+    "title_kana": "びよんどざうぇい"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_cando",
+   "fields": {
+    "title_kana": "きゃんどぅ"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://www.joysound.com/web/search/song?match=1&keyword=キャンドゥ"
+  },
+  {
+   "table": "songs",
+   "id": "876_catchafire",
+   "fields": {
+    "title_kana": "きゃっちあふぁいあ"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_catchthemoment",
+   "fields": {
+    "title_kana": "きゃっちざもーめんと"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_catsmeow",
+   "fields": {
+    "title_kana": "きゃっつみゃう"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_championgirl",
+   "fields": {
+    "title_kana": "ちゃんぴおんがーる"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_chickchicklove",
+   "fields": {
+    "title_kana": "ちっくちっくらぶ"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_eternalrose",
+   "fields": {
+    "title_kana": "えたーなるろーず"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_fashioncheck",
+   "fields": {
+    "title_kana": "ふぁっしょんちぇっく"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_godknows",
+   "fields": {
+    "title_kana": "ごっどのうず"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_going",
+   "fields": {
+    "title_kana": "ごーいんぐ"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_haiironokokoro",
+   "fields": {
+    "title_kana": "はいいろのこころ"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://www.joysound.com/web/search/song?match=1&keyword=Haiiro"
+  },
+  {
+   "table": "songs",
+   "id": "876_hellomorning",
+   "fields": {
+    "title_kana": "はろーもーにんぐ"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_holymoly",
+   "fields": {
+    "title_kana": "ほーりーもーりー"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://www.joysound.com/web/search/song?match=1&keyword=ホーリーモーリー"
+  },
+  {
+   "table": "songs",
+   "id": "876_ignite",
+   "fields": {
+    "title_kana": "いぐないと"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_iii",
+   "fields": {
+    "title_kana": "あいあいあい"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://www.joysound.com/web/search/song?match=1&keyword=アイアイアイ"
+  },
+  {
+   "table": "songs",
+   "id": "876_justbefriends",
+   "fields": {
+    "title_kana": "じゃすとびーふれんず"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_kickback",
+   "fields": {
+    "title_kana": "きっくばっく"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_koiwazurai",
+   "fields": {
+    "title_kana": "こいわずらい"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_lifelikealive",
+   "fields": {
+    "title_kana": "らいふらいくあらいぶ"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_looptheloop",
+   "fields": {
+    "title_kana": "るーぷざるーぷ"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_luckytrain",
+   "fields": {
+    "title_kana": "らっきーとれいん"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://www.joysound.com/web/search/song?match=1&keyword=ラッキートレイン"
+  },
+  {
+   "table": "songs",
+   "id": "876_magnet",
+   "fields": {
+    "title_kana": "まぐねっと"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_makesomenoise",
+   "fields": {
+    "title_kana": "めいくさむのいず"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_manimani",
+   "fields": {
+    "title_kana": "まにまに"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://www.joysound.com/web/search/song?match=1&keyword=マニマニ"
+  },
+  {
+   "table": "songs",
+   "id": "876_mistylove",
+   "fields": {
+    "title_kana": "みすてぃーらぶ"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_mrmusic",
+   "fields": {
+    "title_kana": "みすたーみゅーじっく"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_mystar",
+   "fields": {
+    "title_kana": "まいすたー"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_nda",
+   "fields": {
+    "title_kana": "えぬでぃーえー"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_peekaboo",
+   "fields": {
+    "title_kana": "ぴーかぶー"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://www.joysound.com/web/search/song?match=1&keyword=ピーカブー"
+  },
+  {
+   "table": "songs",
+   "id": "876_popcorndreaming",
+   "fields": {
+    "title_kana": "ぽっぷこーんどりーみんぐ"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://www.joysound.com/web/search/song?match=1&keyword=ポップコーンドリーミング"
+  },
+  {
+   "table": "songs",
+   "id": "876_popenemy",
+   "fields": {
+    "title_kana": "ぽっぷえねみー"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_preciousnight",
+   "fields": {
+    "title_kana": "ぷれしゃすないと"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_readysteady",
+   "fields": {
+    "title_kana": "れでぃーすてでぃー"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_reawakerfeatfelixofstraykids",
+   "fields": {
+    "title_kana": "りあうぇいかーふぃーちゃりんぐふぇりっくすおぶすとれいきっず"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://www.joysound.com/web/search/song?match=1&keyword=リアウェイカー"
+  },
+  {
+   "table": "songs",
+   "id": "876_shininglights",
+   "fields": {
+    "title_kana": "しゃいにんぐらいつ"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_shininmagic",
+   "fields": {
+    "title_kana": "しゃいにんまじっく"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_stayme",
+   "fields": {
+    "title_kana": "すていみー"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_stellarstellar",
+   "fields": {
+    "title_kana": "すてらすてら"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://www.joysound.com/web/search/song?match=1&keyword=ステラステラ"
+  },
+  {
+   "table": "songs",
+   "id": "876_sweetillusion",
+   "fields": {
+    "title_kana": "すいーといりゅーじょん"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_swingalong",
+   "fields": {
+    "title_kana": "すいんぐあろんぐ"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_syncmylights",
+   "fields": {
+    "title_kana": "しんくまいらいつ"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_trapoflove",
+   "fields": {
+    "title_kana": "とらっぷおぶらぶ"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_wakeup",
+   "fields": {
+    "title_kana": "うぇいくあっぷ"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "876_whereisthelove",
+   "fields": {
+    "title_kana": "うぇあいずざらぶ"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://www.joysound.com/web/search/song?match=1&keyword=ウェアイズザラブ"
+  },
+  {
+   "table": "songs",
+   "id": "876_whereveryouare",
+   "fields": {
+    "title_kana": "うぇあえばーゆーあー"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://www.joysound.com/web/search/song?match=1&keyword=ウェアエバーユーアー"
+  },
+  {
+   "table": "songs",
+   "id": "876_youaremycurse",
+   "fields": {
+    "title_kana": "ゆーあーまいかーす"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "cg_ezdodance",
+   "fields": {
+    "title_kana": "いーじーどぅだんす"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://www.joysound.com/web/search/song?match=1&keyword=イージードゥダンス"
+  },
+  {
+   "table": "songs",
+   "id": "cg_godknows",
+   "fields": {
+    "title_kana": "ごっどのうず"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "cg_hotlimit",
+   "fields": {
+    "title_kana": "ほっとりみっと"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "cg_lovepeach",
+   "fields": {
+    "title_kana": "らぶあんどぴーち"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "cg_mysweetheart",
+   "fields": {
+    "title_kana": "まいすいーとはーと"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "ll_butterfly",
+   "fields": {
+    "title_kana": "ばたふらい"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "ll_chase",
+   "fields": {
+    "title_kana": "ちぇいす"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "ll_colorful_dreams_smiles",
+   "fields": {
+    "title_kana": "からふるどりーむずからふるすまいるず"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://www.joysound.com/web/search/song?match=1&keyword=カラフルドリームズ"
+  },
+  {
+   "table": "songs",
+   "id": "ll_dancing_raspberry",
+   "fields": {
+    "title_kana": "だんしんぐらずべりー"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://www.joysound.com/web/search/song?match=1&keyword=ダンシングラズベリー"
+  },
+  {
+   "table": "songs",
+   "id": "ll_day1",
+   "fields": {
+    "title_kana": "でいわん"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://www.joysound.com/web/search/song?match=1&keyword=デイワン"
+  },
+  {
+   "table": "songs",
+   "id": "ll_dream_believers",
+   "fields": {
+    "title_kana": "どりーむびりーばーず"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "ll_dream_with_you",
+   "fields": {
+    "title_kana": "どりーむうぃずゆー"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "ll_dreamy_color",
+   "fields": {
+    "title_kana": "どりーみーからー"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "ll_eutopia",
+   "fields": {
+    "title_kana": "ゆーとぴあ"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://www.joysound.com/web/search/song?match=1&keyword=ユートピア"
+  },
+  {
+   "table": "songs",
+   "id": "ll_guilty_night_guilty_kiss",
+   "fields": {
+    "title_kana": "ぎるてぃないとぎるてぃきす"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "ll_happy_nyan_days",
+   "fields": {
+    "title_kana": "はっぴーにゃんでいず"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "ll_holiday_holiday",
+   "fields": {
+    "title_kana": "ほりでーほりでー"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "ll_jump_into_the_new_world",
+   "fields": {
+    "title_kana": "じゃんぷいんとぅざにゅーわーるど"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "ll_just_believe",
+   "fields": {
+    "title_kana": "じゃすとびりーぶ"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "ll_kira_kira_sensation",
+   "fields": {
+    "title_kana": "きらきらせんせーしょん"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "ll_knot",
+   "fields": {
+    "title_kana": "のっと"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "ll_love_u_my_friends",
+   "fields": {
+    "title_kana": "らぶゆーまいふれんず"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "ll_miracle_new_story",
+   "fields": {
+    "title_kana": "みらくるにゅーすとーりー"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "ll_mix_shake",
+   "fields": {
+    "title_kana": "みっくすしぇいく"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "ll_no_brand_girls",
+   "fields": {
+    "title_kana": "のーぶらんどがーるず"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "ll_on_your_mark",
+   "fields": {
+    "title_kana": "おんゆあまーく"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "ll_snow_halation",
+   "fields": {
+    "title_kana": "すのーはれーしょん"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "ll_tokimeki_runners",
+   "fields": {
+    "title_kana": "ときめきらんなーず"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "ll_toy_doll",
+   "fields": {
+    "title_kana": "といどーる"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "ll_tragic_drops",
+   "fields": {
+    "title_kana": "とらじっくどろっぷす"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://www.joysound.com/web/search/song?match=1&keyword=トラジックドロップス"
+  },
+  {
+   "table": "songs",
+   "id": "ll_vivid_world",
+   "fields": {
+    "title_kana": "びびっどわーるど"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "ll_water_blue_new_world",
+   "fields": {
+    "title_kana": "うぉーたーぶるーにゅーわーるど"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "ll_we_will",
+   "fields": {
+    "title_kana": "うぃーうぃる"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "ll_wonderful_rush",
+   "fields": {
+    "title_kana": "わんだふるらっしゅ"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "other_bloomy",
+   "fields": {
+    "title_kana": "ぶるーみー"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://www.joysound.com/web/search/song?match=1&keyword=ブルーミー"
+  },
+  {
+   "table": "songs",
+   "id": "other_boomboombombbayea",
+   "fields": {
+    "title_kana": "ぶーむぶーむぼむばいえー"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "other_choicechance",
+   "fields": {
+    "title_kana": "ちょいすあんどちゃんす"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "other_diveout",
+   "fields": {
+    "title_kana": "だいぶあうと"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "other_fiestafiesta",
+   "fields": {
+    "title_kana": "ふぃえすたふぃえすた"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://www.joysound.com/web/search/song?match=1&keyword=フィエスタフィエスタ"
+  },
+  {
+   "table": "songs",
+   "id": "other_getmylove",
+   "fields": {
+    "title_kana": "げっとまいらぶ"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "other_givemeashake",
+   "fields": {
+    "title_kana": "ぎぶみーあしぇいく"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://www.joysound.com/web/search/song?match=1&keyword=ギブミーアシェイク"
+  },
+  {
+   "table": "songs",
+   "id": "other_lightning",
+   "fields": {
+    "title_kana": "らいとにんぐ"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "other_lovinme",
+   "fields": {
+    "title_kana": "らびんみー"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://www.joysound.com/web/search/song?match=1&keyword=ラビンミー"
+  },
+  {
+   "table": "songs",
+   "id": "other_rideontime",
+   "fields": {
+    "title_kana": "らいどおんたいむ"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "other_seventies",
+   "fields": {
+    "title_kana": "せぶんてぃーず"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://www.joysound.com/web/search/song?match=1&keyword=セブンティーズ"
+  },
+  {
+   "table": "songs",
+   "id": "other_survivaldance〜nonocrymore〜",
+   "fields": {
+    "title_kana": "さばいばるだんすのーのーくらいもあ"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "other_toratoratora",
+   "fields": {
+    "title_kana": "とらとらとら"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典が取れず、表記から機械的に起こしたもの"
+  },
+  {
+   "table": "songs",
+   "id": "other_vavavoom",
+   "fields": {
+    "title_kana": "ばばぶーむ"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://www.joysound.com/web/search/song?match=1&keyword=ヴァヴァヴーム"
+  },
+  {
+   "table": "songs",
+   "id": "sc_inthisunstableworld",
+   "fields": {
+    "title_kana": "いんでぃすあんすていぶるわーるど"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://www.joysound.com/web/search/song?match=1&keyword=インディスアンステイブルワールド"
+  },
+  {
+   "table": "songs",
+   "id": "sc_strawberrytrapper",
+   "fields": {
+    "title_kana": "すとろべりーとらっぱー"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://www.joysound.com/web/search/song?match=1&keyword=ストロベリートラッパー"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_shinysunnystep",
+   "fields": {
+    "title_kana": "しゃいにーさにーすてっぷ"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://www.joysound.com/web/search/song?match=1&keyword=シャイニーサニーステップ"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_shootingdelta",
+   "fields": {
+    "title_kana": "しゅーてぃんぐでるた"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://www.joysound.com/web/search/song?match=1&keyword=シューティングデルタ"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_universe",
+   "fields": {
+    "title_kana": "ゆにばーす"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://www.joysound.com/web/search/song?match=1&keyword=ユニバース"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_wanderland",
+   "fields": {
+    "title_kana": "わんだーらんど"
+   },
+   "note": "読みが空だった曲に読みを入れる。出典 https://www.joysound.com/web/search/song?match=1&keyword=ワンダーランド"
+  }
+ ]
+}

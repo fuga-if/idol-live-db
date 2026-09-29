@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  API 30 以下向けのレガシー Auto Backup ルール (android:fullBackupContent)。
+  data_extraction_rules.xml (API 31+) の cloud-backup と同じものを除外する
+  (imas_auth_secure と、取り込んだキャラクター画像)。
+-->
+<full-backup-content>
+    <exclude domain="sharedpref" path="imas_auth_secure.xml" />
+    <exclude domain="file" path="custom_images/" />
+    <exclude domain="file" path="custom_images_units/" />
+    <exclude domain="file" path="custom_images_brands/" />
+</full-backup-content>

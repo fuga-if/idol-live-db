@@ -1,0 +1,46 @@
+{
+ "title": "曲名の読み仮名を裏取りして訂正する (第5陣)",
+ "_help": "検証チャンクの結果を保存し忘れて未反映だったぶん。炎ノ鳥=ひのとり / 悠久星涼=ゆうきゅうのほしすずし のような訓読み・当て字と、英語の音写違い。",
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "765as_炎ノ鳥",
+   "fields": {
+    "title_kana": "ひのとり"
+   },
+   "note": "炎ノ鳥=ひのとり。「ほのおのとり」は誤り。出典 https://dic.nicovideo.jp/a/%E7%82%8E%E3%83%8E%E9%B3%A5"
+  },
+  {
+   "table": "songs",
+   "id": "cg_悠久星涼",
+   "fields": {
+    "title_kana": "ゆうきゅうのほしすずし"
+   },
+   "note": "訓読み。「ゆうきゅうせいりょう」は誤り。出典 https://dic.nicovideo.jp/a/%E6%82%A0%E4%B9%85%E6%98%9F%E6%B6%BC"
+  },
+  {
+   "table": "songs",
+   "id": "cg_あの子が街に来なサンタ",
+   "fields": {
+    "title_kana": "あのこがまちにきなさんた"
+   },
+   "note": "来な=きな (命令形)。「こな」は誤り。出典 https://dic.nicovideo.jp/a/%E3%81%82%E3%81%AE%E5%AD%90%E3%81%8C%E8%A1%97%E3%81%AB%E6%9D%A5%E3%81%AA%E3%82%B5%E3%83%B3%E3%82%BF"
+  },
+  {
+   "table": "songs",
+   "id": "ml_retale",
+   "fields": {
+    "title_kana": "りてーる"
+   },
+   "note": "ReTale=リテール。「りている」は誤り。出典 https://dic.pixiv.net/a/ReTale"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_tick_tack_voice",
+   "fields": {
+    "title_kana": "てぃっくたっくぼいす"
+   },
+   "note": "Tick=ティック。「ちく」は誤り。出典 https://dic.nicovideo.jp/a/tick%20tack%20voice"
+  }
+ ]
+}

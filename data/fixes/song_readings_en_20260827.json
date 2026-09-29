@@ -1,0 +1,5174 @@
+{
+ "title": "英字タイトルの曲に読み仮名を入れる (かな入力で引けるようにする)",
+ "_help": "出典サイト imas-db.jp は song id 4000 までで、そこに「よみ」欄が無い曲は取得しようがない。英字は打った通りでも引けるが、読みがあると「かふぇぱれーど」でも当たるようになる。表記から発音を起こした。",
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "765as_live_for_love",
+   "fields": {
+    "title_kana": "らいぶふぉーらぶ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_advance",
+   "fields": {
+    "title_kana": "あどばんす"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_café_parade",
+   "fields": {
+    "title_kana": "かふぇぱれーど"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_à_la_carte_freedom",
+   "fields": {
+    "title_kana": "あらかるとふりーだむ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_miracle_night",
+   "fields": {
+    "title_kana": "みらくるないと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_smoky_fruits",
+   "fields": {
+    "title_kana": "すもーきーふるーつ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_wonderful_tactics",
+   "fields": {
+    "title_kana": "わんだふるたくてぃくす"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_sweep_your_gloom",
+   "fields": {
+    "title_kana": "すうぃーぷゆあぐるーむ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_pingpong_game",
+   "fields": {
+    "title_kana": "ぴんぽんげーむ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_go_ahead_smile",
+   "fields": {
+    "title_kana": "ごーあへっどすまいる"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_road_to_the_future",
+   "fields": {
+    "title_kana": "ろーどとぅざふゅーちゃー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_flowing_freedom",
+   "fields": {
+    "title_kana": "ふろーいんぐふりーだむ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_brave_star",
+   "fields": {
+    "title_kana": "ぶれいぶすたー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_crimson_lovers",
+   "fields": {
+    "title_kana": "くりむぞんらばーず"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_genesis_contact",
+   "fields": {
+    "title_kana": "じぇねしすこんたくと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_back_flipemotion",
+   "fields": {
+    "title_kana": "ばっくふりっぷえもーしょん"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_a_cup_of_happiness",
+   "fields": {
+    "title_kana": "あかっぷおぶはぴねす"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_blooming_days",
+   "fields": {
+    "title_kana": "ぶるーみんぐでいず"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_reason",
+   "fields": {
+    "title_kana": "りーずん"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_light_year_song",
+   "fields": {
+    "title_kana": "らいといやーそんぐ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_funny_logic",
+   "fields": {
+    "title_kana": "ふぁにーろじっく"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_halloweencode",
+   "fields": {
+    "title_kana": "はろうぃんこーど"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_cherish_bouquet",
+   "fields": {
+    "title_kana": "ちぇりっしゅぶーけ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_genuine_feelings",
+   "fields": {
+    "title_kana": "じぇにゅいんふぃーりんぐす"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_learning_message",
+   "fields": {
+    "title_kana": "らーにんぐめっせーじ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_hanamaru_life",
+   "fields": {
+    "title_kana": "はなまるらいふ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_tomorrow_diamond",
+   "fields": {
+    "title_kana": "とぅもろーだいあもんど"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_from_teacher_to_future",
+   "fields": {
+    "title_kana": "ふろむてぃーちゃーとぅふゅーちゃー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_virgin_love",
+   "fields": {
+    "title_kana": "ばーじんらぶ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_after_the_rain",
+   "fields": {
+    "title_kana": "あふたーざれいん"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_trinity_field",
+   "fields": {
+    "title_kana": "とりにてぃふぃーるど"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_dive_to_gravitation",
+   "fields": {
+    "title_kana": "だいぶとぅぐらびてーしょん"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_over_again",
+   "fields": {
+    "title_kana": "おーばーあげいん"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_snowlove",
+   "fields": {
+    "title_kana": "すのーらぶ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_aikane",
+   "fields": {
+    "title_kana": "あいかね"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_art_needs_heart_beats",
+   "fields": {
+    "title_kana": "あーとにーずはーとびーつ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_enterpleasure",
+   "fields": {
+    "title_kana": "えんたーぷれじゃー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_precious_tone",
+   "fields": {
+    "title_kana": "ぷれしゃすとーん"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_worldwide_ambitions",
+   "fields": {
+    "title_kana": "わーるどわいどあんびしょんず"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_this_is_it",
+   "fields": {
+    "title_kana": "でぃすいずいっと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_sunsetcolors",
+   "fields": {
+    "title_kana": "さんせっとからーず"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_always",
+   "fields": {
+    "title_kana": "おーるうぇいず"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_white_again",
+   "fields": {
+    "title_kana": "ほわいとあげいん"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_frost",
+   "fields": {
+    "title_kana": "ふろすと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_angelic_parade",
+   "fields": {
+    "title_kana": "えんじぇりっくぱれーど"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_top",
+   "fields": {
+    "title_kana": "とっぷ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "961_blooming_star",
+   "fields": {
+    "title_kana": "ぶるーみんぐすたー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_princess_be_ambitious",
+   "fields": {
+    "title_kana": "ぷりんせすびーあんびしゃす"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_vertex_meister",
+   "fields": {
+    "title_kana": "ばーてっくすまいすたー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_shyshining",
+   "fields": {
+    "title_kana": "しゃいしゃいにんぐ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_lemonade",
+   "fields": {
+    "title_kana": "れもねーど"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_arrive_to_star",
+   "fields": {
+    "title_kana": "あらいぶとぅすたー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_glorious_rod",
+   "fields": {
+    "title_kana": "ぐろーりあすろーど"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_happy_new_yeah",
+   "fields": {
+    "title_kana": "はっぴーにゅーいやー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_border_line",
+   "fields": {
+    "title_kana": "ぼーだーらいん"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_silent_joker",
+   "fields": {
+    "title_kana": "さいれんとじょーかー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_reversed_masquerade",
+   "fields": {
+    "title_kana": "りばーすとますかれーど"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_tones_destiny",
+   "fields": {
+    "title_kana": "とーんずですてぃにー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_symphonic_brave",
+   "fields": {
+    "title_kana": "しんふぉにっくぶれいぶ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_eternal_fantasia",
+   "fields": {
+    "title_kana": "えたーなるふぁんたじあ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_inferno_squaring",
+   "fields": {
+    "title_kana": "いんふぇるのすくえありんぐ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_we_are_one",
+   "fields": {
+    "title_kana": "うぃーあーわん"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_home_is_a_coming_now",
+   "fields": {
+    "title_kana": "ほーむいざかみんぐなう"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_oli_oli_disco",
+   "fields": {
+    "title_kana": "おりおりでぃすこ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_swing_your_leaves",
+   "fields": {
+    "title_kana": "すうぃんぐゆありーぶす"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_cupids",
+   "fields": {
+    "title_kana": "きゅーぴっず"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_compass_gripper",
+   "fields": {
+    "title_kana": "こんぱすぐりっぱー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_everlasting",
+   "fields": {
+    "title_kana": "えばーらすてぃんぐ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_secretplayfuldrive",
+   "fields": {
+    "title_kana": "しーくれっとぷれいふるどらいぶ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_take3_2_1_space",
+   "fields": {
+    "title_kana": "ているすりーつーわんすぺーす"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_hearty",
+   "fields": {
+    "title_kana": "はーてぃ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_right_way_soul_mate",
+   "fields": {
+    "title_kana": "らいとうぇいそうるめいと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_ray_of_light",
+   "fields": {
+    "title_kana": "れいおぶらいと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_vast_world",
+   "fields": {
+    "title_kana": "ばーすとわーるど"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_last_kiss",
+   "fields": {
+    "title_kana": "らすときす"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_sister",
+   "fields": {
+    "title_kana": "しすたー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_harurunrun",
+   "fields": {
+    "title_kana": "はるるんるん"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_spring_screaming",
+   "fields": {
+    "title_kana": "すぷりんぐすくりーみんぐ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_dreaming_of_you",
+   "fields": {
+    "title_kana": "どりーみんぐおぶゆー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_voyage",
+   "fields": {
+    "title_kana": "ぼやーじゅ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_melty_fantasia",
+   "fields": {
+    "title_kana": "めるてぃふぁんたじあ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_spread_the_wings",
+   "fields": {
+    "title_kana": "すぷれっどざうぃんぐす"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_tomorrow_program",
+   "fields": {
+    "title_kana": "とぅもろーぷろぐらむ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_meet_the_world",
+   "fields": {
+    "title_kana": "みーとざわーるど"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_multicolored_sky",
+   "fields": {
+    "title_kana": "まるちからーどすかい"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_proust_effect",
+   "fields": {
+    "title_kana": "ぷるーすとえふぇくと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_idescape_from_utopia",
+   "fields": {
+    "title_kana": "あいでぃー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_baile_apasionado",
+   "fields": {
+    "title_kana": "ばいれあぱしおなーど"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_union",
+   "fields": {
+    "title_kana": "ゆにおん"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_if",
+   "fields": {
+    "title_kana": "いふ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_red_zone",
+   "fields": {
+    "title_kana": "れっどぞーん"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_315_steelo",
+   "fields": {
+    "title_kana": "さいこーすてぃーろ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_stage_bye_stage",
+   "fields": {
+    "title_kana": "すてーじばいすてーじ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_born_on_dream_hanabinight",
+   "fields": {
+    "title_kana": "ぼーんおんどりーむ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_private_sign",
+   "fields": {
+    "title_kana": "ぷらいべーとさいん"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_trust_me",
+   "fields": {
+    "title_kana": "とらすとみー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_dear_my_dreamers",
+   "fields": {
+    "title_kana": "でぃあまいどりーまーず"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_pretty_liar",
+   "fields": {
+    "title_kana": "ぷりてぃらいあー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_dreaming_star",
+   "fields": {
+    "title_kana": "どりーみんぐすたー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_aloha_happy_creator",
+   "fields": {
+    "title_kana": "あろははぴーくりえいたー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_lets_go",
+   "fields": {
+    "title_kana": "れっつごー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_starry-go-round",
+   "fields": {
+    "title_kana": "すたーりーごーらうんど"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_friendly_smile",
+   "fields": {
+    "title_kana": "ふれんどりーすまいる"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_sunshine_see_may",
+   "fields": {
+    "title_kana": "さんしゃいんしーめい"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_lets_get_a_chance",
+   "fields": {
+    "title_kana": "れっつげったちゃんす"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_hallo_freunde",
+   "fields": {
+    "title_kana": "はろーふろいんで"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_snow_flakes_memories",
+   "fields": {
+    "title_kana": "すのーふれいくすめもりーず"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_palette",
+   "fields": {
+    "title_kana": "ぱれっと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_purelykindly",
+   "fields": {
+    "title_kana": "ぴゅありーあんどかいんどりー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_needle_light",
+   "fields": {
+    "title_kana": "にーどるらいと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_fascinate",
+   "fields": {
+    "title_kana": "ふぁしねいと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_ambitious_eve",
+   "fields": {
+    "title_kana": "あんびしゃすいゔ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_to_you_for_me",
+   "fields": {
+    "title_kana": "とぅゆーふぉーみー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_i_didi_will",
+   "fields": {
+    "title_kana": "あいでぃっどあいうぃる"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_sugaring_off_party",
+   "fields": {
+    "title_kana": "しゅがりんぐおふぱーてぃー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_justice_or_voice",
+   "fields": {
+    "title_kana": "じゃすてぃすおあぼいす"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_o-ku-ri-mo-no_sunday",
+   "fields": {
+    "title_kana": "おくりものさんでー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_wandering_dream_chaser",
+   "fields": {
+    "title_kana": "わんだりんぐどりーむちぇいさー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_we_can_go_now",
+   "fields": {
+    "title_kana": "うぃーきゃんごーなう"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_episode_tiara",
+   "fields": {
+    "title_kana": "えぴそーどてぃあら"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_get_lol_get_lol_song",
+   "fields": {
+    "title_kana": "げっとろるげっとろるそんぐ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_live_in_your_smile",
+   "fields": {
+    "title_kana": "らいぶいんゆあすまいる"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_dream_journey",
+   "fields": {
+    "title_kana": "どりーむじゃーにー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_max_beat",
+   "fields": {
+    "title_kana": "まっくすびーと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_neo_theory_fantasy",
+   "fields": {
+    "title_kana": "ねおせおりーふぁんたじー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_leader",
+   "fields": {
+    "title_kana": "りーだー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_takamariclimaxxx",
+   "fields": {
+    "title_kana": "たかまりくらいまっくす"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_white_vows",
+   "fields": {
+    "title_kana": "ほわいとばうず"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_clover_days",
+   "fields": {
+    "title_kana": "くろーばーでいず"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers",
+   "fields": {
+    "title_kana": "ふらいやーず"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_music_journey",
+   "fields": {
+    "title_kana": "みゅーじっくじゃーにー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_pride_star",
+   "fields": {
+    "title_kana": "ぷらいどすたー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_dans_lobscurité",
+   "fields": {
+    "title_kana": "だんろぷすきゅりて"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_my_pen_light_smile",
+   "fields": {
+    "title_kana": "まいぺんらいとすまいる"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_love_addiction",
+   "fields": {
+    "title_kana": "らぶあでぃくしょん"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_comic_cosmic",
+   "fields": {
+    "title_kana": "こみっくこずみっく"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_transcending_the_world",
+   "fields": {
+    "title_kana": "とらんせんでぃんぐざわーるど"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_true_colors",
+   "fields": {
+    "title_kana": "とぅるーからーず"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_gossip_club",
+   "fields": {
+    "title_kana": "ごしっぷくらぶ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_girl_meets_wonder",
+   "fields": {
+    "title_kana": "がーるみーつわんだー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_dreamy_dream",
+   "fields": {
+    "title_kana": "どりーみーどりーむ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_world_changer",
+   "fields": {
+    "title_kana": "わーるどちぇんじゃー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_all_nor_nothing",
+   "fields": {
+    "title_kana": "おーるのあなっしんぐ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_secret_daybreak",
+   "fields": {
+    "title_kana": "しーくれっとでいぶれいく"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_cherry_colored_love",
+   "fields": {
+    "title_kana": "ちぇりーからーどらぶ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_your_nobility",
+   "fields": {
+    "title_kana": "ゆあのびりてぃ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_blessing",
+   "fields": {
+    "title_kana": "ぶれっしんぐ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_fermata_in_rapsodia",
+   "fields": {
+    "title_kana": "ふぇるまーたいんらぷそでぃあ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_futurity_smile",
+   "fields": {
+    "title_kana": "ふゅーちゃりてぃすまいる"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_sweetstep",
+   "fields": {
+    "title_kana": "すうぃーとすてっぷ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_asterisk",
+   "fields": {
+    "title_kana": "あすたりすく"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_waving_flags",
+   "fields": {
+    "title_kana": "うぇいびんぐふらっぐす"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_fine_day_find_way",
+   "fields": {
+    "title_kana": "ふぁいんでいふぁいんどうぇい"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_departure_from_the_life",
+   "fields": {
+    "title_kana": "でぃぱーちゃーふろむざらいふ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_unlock_starbeat",
+   "fields": {
+    "title_kana": "あんろっくすたーびーと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_welcome_to_japan",
+   "fields": {
+    "title_kana": "うぇるかむとぅじゃぱん"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_gaze_and_gaze",
+   "fields": {
+    "title_kana": "げいずあんどげいず"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_great_journey",
+   "fields": {
+    "title_kana": "ぐれいとじゃーにー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_super_duper",
+   "fields": {
+    "title_kana": "すーぱーでゅーぱー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_athanasia",
+   "fields": {
+    "title_kana": "あさなしあ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_great_sympathy",
+   "fields": {
+    "title_kana": "ぐれいとしんぱしー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_present_for_you_a_day_in_the_café",
+   "fields": {
+    "title_kana": "ぷれぜんとふぉーゆー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_evolution",
+   "fields": {
+    "title_kana": "えぼりゅーしょん"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_make_new_legend",
+   "fields": {
+    "title_kana": "めいくにゅーれじぇんど"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_bet_your_intuition",
+   "fields": {
+    "title_kana": "べっとゆあいんちゅいしょん"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_sing_the_prologue",
+   "fields": {
+    "title_kana": "しんぐざぷろろーぐ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_hang_in_there",
+   "fields": {
+    "title_kana": "はんぐいんぜあ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_endless_tour",
+   "fields": {
+    "title_kana": "えんどれすつあー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_dye_the_sky",
+   "fields": {
+    "title_kana": "だいざすかい"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_twinkle_way",
+   "fields": {
+    "title_kana": "とぅいんくるうぇい"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_claw_my_heart",
+   "fields": {
+    "title_kana": "くろーまいはーと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_mermaid_fermata",
+   "fields": {
+    "title_kana": "まーめいどふぇるまーた"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_season_in_the_five",
+   "fields": {
+    "title_kana": "しーずんいんざふぁいぶ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_singing_explorers",
+   "fields": {
+    "title_kana": "しんぎんぐえくすぷろーらーず"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_new_me_continued",
+   "fields": {
+    "title_kana": "にゅーみーこんてぃにゅーど"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_special_wonderful_smile",
+   "fields": {
+    "title_kana": "すぺしゃるわんだふるすまいる"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map",
+   "fields": {
+    "title_kana": "ぐろうまっぷ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_driving_my_way",
+   "fields": {
+    "title_kana": "どらいびんぐまいうぇい"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_avenue_illusion",
+   "fields": {
+    "title_kana": "あべにゅーいりゅーじょん"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_proof_of_oneself",
+   "fields": {
+    "title_kana": "ぷるーふおぶわんせるふ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_parade_damour",
+   "fields": {
+    "title_kana": "ぱれーどだむーる"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_hide_attack",
+   "fields": {
+    "title_kana": "はいどあんどあたっく"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_joker",
+   "fields": {
+    "title_kana": "じょーかー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_destined_rival",
+   "fields": {
+    "title_kana": "ですてぃんどらいばる"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_im_yours",
+   "fields": {
+    "title_kana": "あいむゆあーず"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_deep_deep_blue",
+   "fields": {
+    "title_kana": "でぃーぷでぃーぷぶるー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_go_just_go",
+   "fields": {
+    "title_kana": "ごーじゃすとごー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_happy_funny_lucky",
+   "fields": {
+    "title_kana": "はっぴーふぁにーらっきー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_brand_new",
+   "fields": {
+    "title_kana": "ぶらんどにゅー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_next_stage",
+   "fields": {
+    "title_kana": "ねくすとすてーじ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_hungry",
+   "fields": {
+    "title_kana": "はんぐりー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_black_reverie",
+   "fields": {
+    "title_kana": "ぶらっくれゔりー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_the_villains_night",
+   "fields": {
+    "title_kana": "ざゔぃらんずないと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_blackparty",
+   "fields": {
+    "title_kana": "ぶらっくぱーてぃー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_braver_beat",
+   "fields": {
+    "title_kana": "ぶれいばーびーと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_radiant_letter",
+   "fields": {
+    "title_kana": "れいでぃあんとれたー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_delicious_delivery",
+   "fields": {
+    "title_kana": "でりしゃすでりばりー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_ever_sunny",
+   "fields": {
+    "title_kana": "えばーさにー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_hug",
+   "fields": {
+    "title_kana": "はぐ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_my_evolution",
+   "fields": {
+    "title_kana": "まいえぼりゅーしょん"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_anniversary",
+   "fields": {
+    "title_kana": "あにばーさりー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_never_ends",
+   "fields": {
+    "title_kana": "ねばーえんず"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_secret_ornament",
+   "fields": {
+    "title_kana": "しーくれっとおーなめんと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "961_shine_my_way",
+   "fields": {
+    "title_kana": "しゃいんまいうぇい"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_sweet_memories",
+   "fields": {
+    "title_kana": "すうぃーとめもりーず"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_wish_you_happiness",
+   "fields": {
+    "title_kana": "うぃっしゅゆーはぴねす"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_attacca_scenery",
+   "fields": {
+    "title_kana": "あたっかしーなりー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_smiles_in_wonderland",
+   "fields": {
+    "title_kana": "すまいるずいんわんだーらんど"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_poplinks_tune",
+   "fields": {
+    "title_kana": "ぽっぷりんくすちゅーん"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_retale",
+   "fields": {
+    "title_kana": "りている"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_life_is_harmony",
+   "fields": {
+    "title_kana": "らいふいずはーもにー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_evil_live",
+   "fields": {
+    "title_kana": "いーぶるらいぶ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_going_my_way",
+   "fields": {
+    "title_kana": "ごーいんぐまいうぇい"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_milky_mode",
+   "fields": {
+    "title_kana": "みるきーもーど"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_yell_of_delight",
+   "fields": {
+    "title_kana": "いぇるおぶでぃらいと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_focus_on_your_life",
+   "fields": {
+    "title_kana": "ふぉーかすおんゆあらいふ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_harebare",
+   "fields": {
+    "title_kana": "はればれ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_damascus_cocktail",
+   "fields": {
+    "title_kana": "だますかすかくてる"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_velvet_quiet",
+   "fields": {
+    "title_kana": "ゔぇるゔぇっとくわいえっと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_statice",
+   "fields": {
+    "title_kana": "すたちす"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_sos",
+   "fields": {
+    "title_kana": "えすおーえす"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_darling_you",
+   "fields": {
+    "title_kana": "だーりんぐゆー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_good_new_morning",
+   "fields": {
+    "title_kana": "ぐっどにゅーもーにんぐ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_solar_way",
+   "fields": {
+    "title_kana": "そーらーうぇい"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_resonance",
+   "fields": {
+    "title_kana": "れぞなんす"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_color_days",
+   "fields": {
+    "title_kana": "からーでいず"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_happys_birthday",
+   "fields": {
+    "title_kana": "はっぴーずばーすでー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_hopes_journey",
+   "fields": {
+    "title_kana": "ほーぷすじゃーにー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_oh_my_god",
+   "fields": {
+    "title_kana": "おーまいごっど"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_he4dshot",
+   "fields": {
+    "title_kana": "へっどしょっと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_absolute_run",
+   "fields": {
+    "title_kana": "あぶそりゅーとらん"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_prisism",
+   "fields": {
+    "title_kana": "ぷりずむ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_just_us_justice",
+   "fields": {
+    "title_kana": "じゃすたすじゃすてぃす"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_abyss_of_conflict",
+   "fields": {
+    "title_kana": "あびすおぶこんふりくと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_everyday_stars",
+   "fields": {
+    "title_kana": "えぶりでいすたーず"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_beat_of_the_night",
+   "fields": {
+    "title_kana": "びーとおぶざないと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_hungry_bambi",
+   "fields": {
+    "title_kana": "はんぐりーばんび"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_coming_smile",
+   "fields": {
+    "title_kana": "かみんぐすまいる"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_be_proud",
+   "fields": {
+    "title_kana": "びーぷらうど"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you",
+   "fields": {
+    "title_kana": "はーもにーふぉーゆー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_home_sweet_home",
+   "fields": {
+    "title_kana": "ほーむすうぃーとほーむ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_growing_smiles",
+   "fields": {
+    "title_kana": "ぐろーいんぐすまいるず"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_diamond_joker",
+   "fields": {
+    "title_kana": "だいあもんどじょーかー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_secret_mirage",
+   "fields": {
+    "title_kana": "しーくれっとみらーじゅ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_voyger",
+   "fields": {
+    "title_kana": "ぼいじゃー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_session",
+   "fields": {
+    "title_kana": "せっしょん"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_were_the_one",
+   "fields": {
+    "title_kana": "うぃあざわん"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_another_rampage",
+   "fields": {
+    "title_kana": "あなざーらんぺーじ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_timeless_shooting_star",
+   "fields": {
+    "title_kana": "たいむれすしゅーてぃんぐすたー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_drastic_melody",
+   "fields": {
+    "title_kana": "どらすてぃっくめろでぃ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_fly_and_fly",
+   "fields": {
+    "title_kana": "ふらいあんどふらい"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_happysteppingdreaming",
+   "fields": {
+    "title_kana": "はっぴーすてっぴんぐどりーみんぐ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_purple_sky",
+   "fields": {
+    "title_kana": "ぱーぷるすかい"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_kawaii_of_the_world",
+   "fields": {
+    "title_kana": "かわいいおぶざわーるど"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_everlasting",
+   "fields": {
+    "title_kana": "えばーらすてぃんぐ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_grtitude",
+   "fields": {
+    "title_kana": "ぐらてぃちゅーど"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_not_alone",
+   "fields": {
+    "title_kana": "のっとあろーん"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_ever_rising",
+   "fields": {
+    "title_kana": "えばーらいじんぐ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "961_1st_call",
+   "fields": {
+    "title_kana": "ふぁーすとこーる"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_lets_sail_away",
+   "fields": {
+    "title_kana": "れっつせいるあうぇい"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_stories",
+   "fields": {
+    "title_kana": "すとーりーず"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_plus_1_good_day",
+   "fields": {
+    "title_kana": "ぷらすわんぐっどでい"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_dual_style_idol",
+   "fields": {
+    "title_kana": "でゅあるすたいるあいどる"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_pavé_étoiles",
+   "fields": {
+    "title_kana": "ぱゔぇえとわーる"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_paradox_of_love",
+   "fields": {
+    "title_kana": "ぱらどっくすおぶらぶ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_time_before_time",
+   "fields": {
+    "title_kana": "たいむびふぉーたいむ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_soothing_place",
+   "fields": {
+    "title_kana": "すーずぃんぐぷれいす"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_shamrock_vivace",
+   "fields": {
+    "title_kana": "しゃむろっくびばーちぇ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_date_parade",
+   "fields": {
+    "title_kana": "でーとぱれーど"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_teatime_cliché",
+   "fields": {
+    "title_kana": "てぃーたいむくりしぇ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_red_hot_beat",
+   "fields": {
+    "title_kana": "れっどほっとびーと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_anywhere",
+   "fields": {
+    "title_kana": "えにうぇあ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_true_horizon",
+   "fields": {
+    "title_kana": "とぅるーほらいずん"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_myself",
+   "fields": {
+    "title_kana": "まいせるふ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_demolish",
+   "fields": {
+    "title_kana": "でもりっしゅ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_secret_utopia",
+   "fields": {
+    "title_kana": "しーくれっとゆーとぴあ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_permafrost",
+   "fields": {
+    "title_kana": "ぱーまふろすと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_idolheart",
+   "fields": {
+    "title_kana": "あいどるはーと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_killermission",
+   "fields": {
+    "title_kana": "きらーみっしょん"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_love_is_game",
+   "fields": {
+    "title_kana": "らぶいずげーむ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_cross_the_future",
+   "fields": {
+    "title_kana": "くろすざふゅーちゃー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_beautiful_believer",
+   "fields": {
+    "title_kana": "びゅーてぃふるびりーばー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_collier_de_perles",
+   "fields": {
+    "title_kana": "こりえどぺるる"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_daybreak_age",
+   "fields": {
+    "title_kana": "でいぶれいくえいじ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_new_bright_stars",
+   "fields": {
+    "title_kana": "にゅーぶらいとすたーず"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_infinite_octave",
+   "fields": {
+    "title_kana": "いんふぃにっとおくたーぶ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_gemstone",
+   "fields": {
+    "title_kana": "じぇむすとーん"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_reflective_illumination_night",
+   "fields": {
+    "title_kana": "りふれくてぃぶいるみねーしょんないと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_packing_her_favorite",
+   "fields": {
+    "title_kana": "ぱっきんぐはーふぇいばりっと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_felice",
+   "fields": {
+    "title_kana": "ふぇりーちぇ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_moonrise_belief",
+   "fields": {
+    "title_kana": "むーんらいずびりーふ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_know_only",
+   "fields": {
+    "title_kana": "のうおんりー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_cheer_up_hearts_up",
+   "fields": {
+    "title_kana": "ちあーあっぷはーつあっぷ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_super_funky_piece",
+   "fields": {
+    "title_kana": "すーぱーふぁんきーぴーす"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_play_go_round",
+   "fields": {
+    "title_kana": "ぷれいごーらうんど"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_its_me",
+   "fields": {
+    "title_kana": "いっつみー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_no_one_knows",
+   "fields": {
+    "title_kana": "のーわんのうず"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_made_in_",
+   "fields": {
+    "title_kana": "めいどいん"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_sign_of_hope",
+   "fields": {
+    "title_kana": "さいんおぶほーぷ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_our_colorful_stage",
+   "fields": {
+    "title_kana": "あわーからふるすてーじ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_sunrise_dreamer",
+   "fields": {
+    "title_kana": "さんらいずどりーまー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_lets_go_all_the_way",
+   "fields": {
+    "title_kana": "れっつごーおーるざうぇい"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_dont_u_worry",
+   "fields": {
+    "title_kana": "どんとゆーわりー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_route77",
+   "fields": {
+    "title_kana": "るーとせぶんてぃせぶん"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_catch_me_if_you_can",
+   "fields": {
+    "title_kana": "きゃっちみーいふゆーきゃん"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_heat_beat_identity",
+   "fields": {
+    "title_kana": "ひーとびーとあいでんてぃてぃ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_scorebook_memories",
+   "fields": {
+    "title_kana": "すこあぶっくめもりーず"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_like_a_rolling_donuts",
+   "fields": {
+    "title_kana": "らいくあろーりんぐどーなつ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_trust_me_now",
+   "fields": {
+    "title_kana": "とらすとみーなう"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_go_next",
+   "fields": {
+    "title_kana": "ごーねくすと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_hundreds_color",
+   "fields": {
+    "title_kana": "はんどれっずからー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_karma",
+   "fields": {
+    "title_kana": "かるま"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_very_berry_love",
+   "fields": {
+    "title_kana": "べりーべりーらぶ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_give_me_some_more",
+   "fields": {
+    "title_kana": "ぎぶみーさむもあ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_inner_dignity",
+   "fields": {
+    "title_kana": "いんなーでぃぐにてぃ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_casually",
+   "fields": {
+    "title_kana": "かじゅあり"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_tracing_defender",
+   "fields": {
+    "title_kana": "とれーしんぐでぃふぇんだー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_motto",
+   "fields": {
+    "title_kana": "もっと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_contrastet",
+   "fields": {
+    "title_kana": "こんとらすてっと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_multiple_entertainment_show",
+   "fields": {
+    "title_kana": "まるちぷるえんたーていんめんとしょー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_overdrive_emotion",
+   "fields": {
+    "title_kana": "おーばーどらいぶえもーしょん"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_king_of_spade",
+   "fields": {
+    "title_kana": "きんぐおぶすぺーど"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_uniqu3_voices",
+   "fields": {
+    "title_kana": "ゆにーくぼいしず"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_espada",
+   "fields": {
+    "title_kana": "えすぱーだ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_catch_the_breeze",
+   "fields": {
+    "title_kana": "きゃっちざぶりーず"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_possession_mind",
+   "fields": {
+    "title_kana": "ぽぜっしょんまいんど"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_key_to_the_dream",
+   "fields": {
+    "title_kana": "きーとぅざどりーむ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_growingroovin",
+   "fields": {
+    "title_kana": "ぐろーいんぐるーびん"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_i_do",
+   "fields": {
+    "title_kana": "あいどぅ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_walking_on_the_square",
+   "fields": {
+    "title_kana": "うぉーきんぐおんざすくえあ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_change_to_chance",
+   "fields": {
+    "title_kana": "ちぇんじとぅちゃんす"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_take_a_stump",
+   "fields": {
+    "title_kana": "ていくあすたんぷ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_before_long_delight",
+   "fields": {
+    "title_kana": "びふぉーろんぐでぃらいと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_delight",
+   "fields": {
+    "title_kana": "でぃらいと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_fashionable",
+   "fields": {
+    "title_kana": "ふぁっしょなぶる"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_bouncy_girl",
+   "fields": {
+    "title_kana": "ばうんしーがーる"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_arrowhead",
+   "fields": {
+    "title_kana": "あろーへっど"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_bullet_ride",
+   "fields": {
+    "title_kana": "ばれっとらいど"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_dance_in_the_school",
+   "fields": {
+    "title_kana": "だんすいんざすくーる"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_spacy_paradise",
+   "fields": {
+    "title_kana": "すぺいしーぱらだいす"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_tomorrow_gazer",
+   "fields": {
+    "title_kana": "とぅもろーげいざー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_greeting_charm",
+   "fields": {
+    "title_kana": "ぐりーてぃんぐちゃーむ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_reflection_breakers",
+   "fields": {
+    "title_kana": "りふれくしょんぶれいかーず"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_resolution",
+   "fields": {
+    "title_kana": "れぞりゅーしょん"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_determined_soul",
+   "fields": {
+    "title_kana": "でぃたーみんどそうる"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_from_genius",
+   "fields": {
+    "title_kana": "ふろむじーにあす"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_majoram_therapie",
+   "fields": {
+    "title_kana": "まじょらむてらぴー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_discord_area",
+   "fields": {
+    "title_kana": "でぃすこーどえりあ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_reach_the_sky",
+   "fields": {
+    "title_kana": "りーちざすかい"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_sing_a_wing_song",
+   "fields": {
+    "title_kana": "しんぐあうぃんぐそんぐ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_platinum_mask",
+   "fields": {
+    "title_kana": "ぷらちなますく"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_make_up_magic",
+   "fields": {
+    "title_kana": "めいくあっぷまじっく"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_journey_joy_blend",
+   "fields": {
+    "title_kana": "じゃーにーじょいぶれんど"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_give_me_fusion",
+   "fields": {
+    "title_kana": "ぎぶみーふゅーじょん"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_joyful_heart_maker",
+   "fields": {
+    "title_kana": "じょいふるはーとめーかー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_rainy_memories",
+   "fields": {
+    "title_kana": "れいにーめもりーず"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_supersonic_booster",
+   "fields": {
+    "title_kana": "すーぱーそにっくぶーすたー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_crystloud",
+   "fields": {
+    "title_kana": "くりすたらうど"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_go_for_it",
+   "fields": {
+    "title_kana": "ごーふぉーいっと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_dreamy_anniversary",
+   "fields": {
+    "title_kana": "どりーみーあにばーさりー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_watchword",
+   "fields": {
+    "title_kana": "うぉっちわーど"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_crossing",
+   "fields": {
+    "title_kana": "くろっしんぐ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_the_symphonic_daylight",
+   "fields": {
+    "title_kana": "ざしんふぉにっくでいらいと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_resonate_blessing",
+   "fields": {
+    "title_kana": "れぞねいとぶれっしんぐ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_smiling_platter",
+   "fields": {
+    "title_kana": "すまいりんぐぷらったー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_sweet_diamant",
+   "fields": {
+    "title_kana": "すうぃーとでぃあまん"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_isosceles",
+   "fields": {
+    "title_kana": "あいそせりーず"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_like_twinkling_stars",
+   "fields": {
+    "title_kana": "らいくとぅいんくりんぐすたーず"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_flash_light",
+   "fields": {
+    "title_kana": "ふらっしゅらいと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_mirror_of_truth",
+   "fields": {
+    "title_kana": "みらーおぶとぅるーす"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_second_livingroom",
+   "fields": {
+    "title_kana": "せかんどりびんぐるーむ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_starry_night",
+   "fields": {
+    "title_kana": "すたーりーないと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_precious_love",
+   "fields": {
+    "title_kana": "ぷれしゃすらぶ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_toward_pole_star",
+   "fields": {
+    "title_kana": "とぅわーどぽーるすたー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_forward_march",
+   "fields": {
+    "title_kana": "ふぉわーどまーち"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_shine_in_the_sky",
+   "fields": {
+    "title_kana": "しゃいんいんざすかい"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_one_to_dream",
+   "fields": {
+    "title_kana": "わんとぅどりーむ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_sparkle_sign",
+   "fields": {
+    "title_kana": "すぱーくるさいん"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_tick_tack_voice",
+   "fields": {
+    "title_kana": "ちくたっくぼいす"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_tricolor_rendezvous",
+   "fields": {
+    "title_kana": "とりころーるらんでぶー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_yell_song",
+   "fields": {
+    "title_kana": "いぇるそんぐ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_sash_of_smile",
+   "fields": {
+    "title_kana": "さっしゅおぶすまいる"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_brightest_white",
+   "fields": {
+    "title_kana": "ぶらいてすとほわいと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_shiny_stories",
+   "fields": {
+    "title_kana": "しゃいにーすとーりーず"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_unsung_heroes",
+   "fields": {
+    "title_kana": "あんさんぐひーろーず"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_nightwear",
+   "fields": {
+    "title_kana": "ないとうぇあ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_ace",
+   "fields": {
+    "title_kana": "えーす"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_eclipse_of_the_heart",
+   "fields": {
+    "title_kana": "いくりぷすおぶざはーと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_radiance_of_heart",
+   "fields": {
+    "title_kana": "れいでぃあんすおぶはーと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_youre",
+   "fields": {
+    "title_kana": "ゆあ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_saillightsail",
+   "fields": {
+    "title_kana": "せいるらいとせいる"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_calling",
+   "fields": {
+    "title_kana": "こーりんぐ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_night_time_wander",
+   "fields": {
+    "title_kana": "ないとたいむわんだー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_love_letter",
+   "fields": {
+    "title_kana": "らぶれたー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_next_chapter",
+   "fields": {
+    "title_kana": "ねくすとちゃぷたー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_dramatic_anthem",
+   "fields": {
+    "title_kana": "どらまてぃっくあんせむ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_imitation_ghost",
+   "fields": {
+    "title_kana": "いみてーしょんごーすと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_look_up_to_the_sky",
+   "fields": {
+    "title_kana": "るっくあっぷとぅざすかい"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_burn_burn",
+   "fields": {
+    "title_kana": "ばーんばーん"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_beside_emotion",
+   "fields": {
+    "title_kana": "びーさいどえもーしょん"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_quod_erat_demonstrandum",
+   "fields": {
+    "title_kana": "くおっどえらとでもんすとらんどぅむ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_life_is_beautiful",
+   "fields": {
+    "title_kana": "らいふいずびゅーてぃふる"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_fireworks_-wanna_be_a_star-",
+   "fields": {
+    "title_kana": "ふぁいあーわーくす"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_start_up_stand_up",
+   "fields": {
+    "title_kana": "すたーとあっぷすたんどあっぷ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_reflection",
+   "fields": {
+    "title_kana": "りふれくしょん"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_rat_a_tat",
+   "fields": {
+    "title_kana": "らったたっと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_dance_in_the_light",
+   "fields": {
+    "title_kana": "だんすいんざらいと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_wet",
+   "fields": {
+    "title_kana": "うぇっと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_star_impression",
+   "fields": {
+    "title_kana": "すたーいんぷれっしょん"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_catch_my_feeling",
+   "fields": {
+    "title_kana": "きゃっちまいふぃーりんぐ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_little_more",
+   "fields": {
+    "title_kana": "りとるもあ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_hardcore_toyworld",
+   "fields": {
+    "title_kana": "はーどこあといわーるど"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_d-ark_l-ilys_grin",
+   "fields": {
+    "title_kana": "だーくりりーずぐりん"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_forbidden_paradise",
+   "fields": {
+    "title_kana": "ふぉびどぅんぱらだいす"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_sweetest_bite",
+   "fields": {
+    "title_kana": "すうぃーてすとばいと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_starting",
+   "fields": {
+    "title_kana": "すたーてぃんぐ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_beginning_tomorrow",
+   "fields": {
+    "title_kana": "びぎにんぐとぅもろー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_my_starry_song",
+   "fields": {
+    "title_kana": "まいすたーりーそんぐ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_gift_sign",
+   "fields": {
+    "title_kana": "ぎふとさいん"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_refrain_reltion",
+   "fields": {
+    "title_kana": "りふれいんりれーしょん"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_white_story",
+   "fields": {
+    "title_kana": "ほわいとすとーりー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_halloween_game",
+   "fields": {
+    "title_kana": "はろうぃんげーむ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_hands_claps",
+   "fields": {
+    "title_kana": "はんずあんどくらっぷす"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_secret_light",
+   "fields": {
+    "title_kana": "しーくれっとらいと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_teeenagegroovin",
+   "fields": {
+    "title_kana": "てぃーんえいじぐるーびん"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_winter_and_window",
+   "fields": {
+    "title_kana": "うぃんたーあんどうぃんどう"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_face_the_world",
+   "fields": {
+    "title_kana": "ふぇいすざわーるど"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_amber_color_oasis",
+   "fields": {
+    "title_kana": "あんばーからーおあしす"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_come_to_you",
+   "fields": {
+    "title_kana": "かむとぅゆー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_heartmade_cookies",
+   "fields": {
+    "title_kana": "はーとめいどくっきーず"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_dear_you_cheers",
+   "fields": {
+    "title_kana": "でぃあゆーちあーず"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_brightest_awaking",
+   "fields": {
+    "title_kana": "ぶらいてすとあうぇいきんぐ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_stay_tuned_orbit",
+   "fields": {
+    "title_kana": "すていちゅーんどおーびっと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_one_star",
+   "fields": {
+    "title_kana": "わんすたー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_happier",
+   "fields": {
+    "title_kana": "はっぴあ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_halftone",
+   "fields": {
+    "title_kana": "はーふとーん"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_sunriser",
+   "fields": {
+    "title_kana": "さんらいざー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_fantastic_discotheque",
+   "fields": {
+    "title_kana": "ふぁんたすてぃっくでぃすこてーく"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_gotcha",
+   "fields": {
+    "title_kana": "がっちゃ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_clock_hands",
+   "fields": {
+    "title_kana": "くろっくはんず"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_vsbelievers",
+   "fields": {
+    "title_kana": "ばーさすびりーばーず"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_godspeed_ignition",
+   "fields": {
+    "title_kana": "ごっどすぴーどいぐにっしょん"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_azur",
+   "fields": {
+    "title_kana": "あじゅーる"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_feeeel_gooood",
+   "fields": {
+    "title_kana": "ふぃーるぐっど"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_fighting_my_way",
+   "fields": {
+    "title_kana": "ふぁいてぃんぐまいうぇい"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_luna_say_maybe",
+   "fields": {
+    "title_kana": "るなせいめいびー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_clumsy_trick",
+   "fields": {
+    "title_kana": "くらむじーとりっく"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_tame-lie-one-step",
+   "fields": {
+    "title_kana": "ためらいわんすてっぷ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_wonder_scale",
+   "fields": {
+    "title_kana": "わんだーすけーる"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_fluorite",
+   "fields": {
+    "title_kana": "ふるおらいと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_dynamite_fever_megamix",
+   "fields": {
+    "title_kana": "だいなまいとふぃーばーめがみっくす"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_campus_mode",
+   "fields": {
+    "title_kana": "きゃんぱすもーど"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_upper_dog",
+   "fields": {
+    "title_kana": "あっぱーどっぐ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_poppin_planet",
+   "fields": {
+    "title_kana": "ぽっぴんぷらねっと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_migratory_echoes",
+   "fields": {
+    "title_kana": "まいぐらとりーえこーず"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_links",
+   "fields": {
+    "title_kana": "りんくす"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_the_rolling_riceball",
+   "fields": {
+    "title_kana": "ざろーりんぐらいすぼーる"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_yellow_big_bang",
+   "fields": {
+    "title_kana": "いえろーびっぐばん"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_enishi",
+   "fields": {
+    "title_kana": "えにし"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_merry_warm_bodies",
+   "fields": {
+    "title_kana": "めりーうぉーむぼでぃーず"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_illuminate",
+   "fields": {
+    "title_kana": "いるみねいと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_boom_boom_pow",
+   "fields": {
+    "title_kana": "ぶーむぶーむぱう"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_precious_ordinary_days",
+   "fields": {
+    "title_kana": "ぷれしゃすおーでぃなりーでいず"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week",
+   "fields": {
+    "title_kana": "せぶんでいずあうぃーく"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_after_run",
+   "fields": {
+    "title_kana": "あふたーらん"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_open_the_new_world",
+   "fields": {
+    "title_kana": "おーぷんざにゅーわーるど"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_midnight_parade",
+   "fields": {
+    "title_kana": "みっどないとぱれーど"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_candy_universe",
+   "fields": {
+    "title_kana": "きゃんでぃゆにばーす"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_poison_berry_daughters",
+   "fields": {
+    "title_kana": "ぽいずんべりーどーたーず"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_gather_round",
+   "fields": {
+    "title_kana": "ぎゃざーらうんど"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_daydream_love",
+   "fields": {
+    "title_kana": "でいどりーむらぶ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_hypernova",
+   "fields": {
+    "title_kana": "はいぱーのゔぁ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_amazing_moment",
+   "fields": {
+    "title_kana": "あめいじんぐもーめんと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_wake_up",
+   "fields": {
+    "title_kana": "うぇいくあっぷ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_believe_clover",
+   "fields": {
+    "title_kana": "びりーぶくろーばー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_lifes_side_menu",
+   "fields": {
+    "title_kana": "らいふずさいどめにゅー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_eterniteen_age",
+   "fields": {
+    "title_kana": "えたーにてぃーんえいじ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_nothing_to_lose",
+   "fields": {
+    "title_kana": "なっしんぐとぅるーず"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_mellow_mellow",
+   "fields": {
+    "title_kana": "めろうめろう"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_cyber_parkour",
+   "fields": {
+    "title_kana": "さいばーぱるくーる"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_ego",
+   "fields": {
+    "title_kana": "えご"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_howling_over_the_world",
+   "fields": {
+    "title_kana": "はうりんぐおーばーざわーるど"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_unhappy_light",
+   "fields": {
+    "title_kana": "あんはっぴーらいと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_live_live_live",
+   "fields": {
+    "title_kana": "らいぶらいぶらいぶ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_with_you",
+   "fields": {
+    "title_kana": "うぃずゆー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "961_flame",
+   "fields": {
+    "title_kana": "ふれいむ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_fantasia_for_the_girls",
+   "fields": {
+    "title_kana": "ふぁんたじあふぉーざがーるず"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_heads_or_tails",
+   "fields": {
+    "title_kana": "へっずおあているず"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_luv",
+   "fields": {
+    "title_kana": "らぶ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_fragile_heart",
+   "fields": {
+    "title_kana": "ふらじゃいるはーと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_ephemeral_aяrow",
+   "fields": {
+    "title_kana": "えふぇめらるあろー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_future_designer",
+   "fields": {
+    "title_kana": "ふゅーちゃーでざいなー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_feel_jewel_dream",
+   "fields": {
+    "title_kana": "ふぃーるじゅえるどりーむ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_monochromatic",
+   "fields": {
+    "title_kana": "ものくろまてぃっく"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_top_secret",
+   "fields": {
+    "title_kana": "とっぷしーくれっと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_kira_kira",
+   "fields": {
+    "title_kana": "きらきら"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_sky_survive",
+   "fields": {
+    "title_kana": "すかいさばいぶ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_snowflake",
+   "fields": {
+    "title_kana": "すのーふれいく"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_star_over_star",
+   "fields": {
+    "title_kana": "すたーおーばーすたー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_delight_excursion",
+   "fields": {
+    "title_kana": "でぃらいとえくすかーしょん"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_pomegranate",
+   "fields": {
+    "title_kana": "ぽめぐらねっと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_shower_of_light",
+   "fields": {
+    "title_kana": "しゃわーおぶらいと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_colors_on_canvas",
+   "fields": {
+    "title_kana": "からーずおんきゃんばす"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_cmon_join_us",
+   "fields": {
+    "title_kana": "かもんじょいなす"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_choo_choo_choo",
+   "fields": {
+    "title_kana": "ちゅーちゅーちゅー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_ride_on_beat",
+   "fields": {
+    "title_kana": "らいどおんびーと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_darkness",
+   "fields": {
+    "title_kana": "だーくねす"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_stellar_light",
+   "fields": {
+    "title_kana": "すてらーらいと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_cleanclean_up",
+   "fields": {
+    "title_kana": "くりーんくりーんあっぷ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_vivamente",
+   "fields": {
+    "title_kana": "びばめんて"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_panoramas_fanfare",
+   "fields": {
+    "title_kana": "ぱのらまずふぁんふぁーれ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_white_night_white_wish",
+   "fields": {
+    "title_kana": "ほわいとないとほわいとうぃっしゅ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_we_wish_your_smile",
+   "fields": {
+    "title_kana": "うぃーうぃっしゅゆあすまいる"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_prize_pinata",
+   "fields": {
+    "title_kana": "ぷらいずぴにゃーた"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_13",
+   "fields": {
+    "title_kana": "さんぶんのいち"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_cosmetic",
+   "fields": {
+    "title_kana": "こすめてぃっく"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_magic_of_princess",
+   "fields": {
+    "title_kana": "まじっくおぶぷりんせす"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_best_wishes",
+   "fields": {
+    "title_kana": "べすとうぃっしーず"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_starry_place",
+   "fields": {
+    "title_kana": "すたーりーぷれいす"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_all_alone",
+   "fields": {
+    "title_kana": "おーるあろーん"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_super_kick_rap",
+   "fields": {
+    "title_kana": "すーぱーきっくあんどらっぷ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_play_for_fun-tasy",
+   "fields": {
+    "title_kana": "ぷれいふぉーふぁんたじー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_real_mind_shakes",
+   "fields": {
+    "title_kana": "りあるまいんどしぇいくす"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_lullaby_for_armors",
+   "fields": {
+    "title_kana": "ららばいふぉーあーまーず"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_ultimate_flame",
+   "fields": {
+    "title_kana": "あるてぃめっとふれいむ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_sweet_magic",
+   "fields": {
+    "title_kana": "すうぃーとまじっく"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_the_last_pride",
+   "fields": {
+    "title_kana": "ざらすとぷらいど"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "961_realize",
+   "fields": {
+    "title_kana": "りありあいず"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_the_radical_joker",
+   "fields": {
+    "title_kana": "ざらでぃかるじょーかー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_mixxxxxed",
+   "fields": {
+    "title_kana": "みっくすど"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_reward_sweets",
+   "fields": {
+    "title_kana": "りわーどすうぃーつ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_endless_dance",
+   "fields": {
+    "title_kana": "えんどれすだんす"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_our_chant",
+   "fields": {
+    "title_kana": "あわーちゃんと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "876_breaker",
+   "fields": {
+    "title_kana": "ぶれいかー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "876_scarlet_rose",
+   "fields": {
+    "title_kana": "すかーれっとろーず"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_iv",
+   "fields": {
+    "title_kana": "あいぶい"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_fired_up",
+   "fields": {
+    "title_kana": "ふぁいあーどあっぷ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_stillnessmovement",
+   "fields": {
+    "title_kana": "すてぃるねすむーぶめんと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_happy_starting",
+   "fields": {
+    "title_kana": "はっぴーすたーてぃんぐ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_chocolate_special",
+   "fields": {
+    "title_kana": "ちょこれーとすぺしゃる"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_marble_heart",
+   "fields": {
+    "title_kana": "まーぶるはーと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_bestest",
+   "fields": {
+    "title_kana": "べすてすと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "876_cq",
+   "fields": {
+    "title_kana": "しーきゅー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "876_field_on_me",
+   "fields": {
+    "title_kana": "ふぃーるどおんみー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "876_dye_bad_day",
+   "fields": {
+    "title_kana": "だいばっどでい"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "876_shooting_star",
+   "fields": {
+    "title_kana": "しゅーてぃんぐすたー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_fading_stars",
+   "fields": {
+    "title_kana": "ふぇいでぃんぐすたーず"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_try_it_now",
+   "fields": {
+    "title_kana": "とらいいっとなう"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_around_find_world",
+   "fields": {
+    "title_kana": "あらうんどふぁいんどわーるど"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_dear_my_light",
+   "fields": {
+    "title_kana": "でぃあまいらいと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_cosmo_cosme",
+   "fields": {
+    "title_kana": "こすもこすめ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_supernova",
+   "fields": {
+    "title_kana": "すーぱーのゔぁ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_miraculous_white_day",
+   "fields": {
+    "title_kana": "みらきゅらすほわいとでー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_morgana",
+   "fields": {
+    "title_kana": "もるがーな"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_the_cute",
+   "fields": {
+    "title_kana": "ざきゅーと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_bright_sunny_day",
+   "fields": {
+    "title_kana": "ぶらいとさにーでい"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_future_transit",
+   "fields": {
+    "title_kana": "ふゅーちゃーとらんじっと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_numberless",
+   "fields": {
+    "title_kana": "なんばーれす"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_meteoric_swarm",
+   "fields": {
+    "title_kana": "めておりっくすうぉーむ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_ill_show_you",
+   "fields": {
+    "title_kana": "あいるしょーゆー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_grand-new_universe",
+   "fields": {
+    "title_kana": "ぐらんどにゅーゆにばーす"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_clash_of_colors",
+   "fields": {
+    "title_kana": "くらっしゅおぶからーず"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_superlative",
+   "fields": {
+    "title_kana": "すーぱーらてぃぶ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_star-mine",
+   "fields": {
+    "title_kana": "すたーまいん"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_well_find_a_way",
+   "fields": {
+    "title_kana": "うぃるふぁいんどあうぇい"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_sunny_day_perfect_day",
+   "fields": {
+    "title_kana": "さにーでいぱーふぇくとでい"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_sugar_flavor",
+   "fields": {
+    "title_kana": "しゅがーふれいばー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_pioneer_impact",
+   "fields": {
+    "title_kana": "ぱいおにあいんぱくと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_break_chain",
+   "fields": {
+    "title_kana": "ぶれいくちぇーん"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_coffret_comet",
+   "fields": {
+    "title_kana": "こふれこめっと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_supreme_stars_",
+   "fields": {
+    "title_kana": "すぷりーむすたーず"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_luvliminal_image",
+   "fields": {
+    "title_kana": "らぶりみなるいめーじ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_love_joy",
+   "fields": {
+    "title_kana": "らぶあんどじょい"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "876_beyond_my_destiny",
+   "fields": {
+    "title_kana": "びよんどまいですてぃにー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_get_over",
+   "fields": {
+    "title_kana": "げっとおーばー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_koikyun",
+   "fields": {
+    "title_kana": "こいきゅん"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "876_berry_berry_lady",
+   "fields": {
+    "title_kana": "べりーべりーれでぃ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_hug_a_nice_day",
+   "fields": {
+    "title_kana": "はぐあないすでい"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_summer_night_paradise",
+   "fields": {
+    "title_kana": "さまーないとぱらだいす"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_shimmer",
+   "fields": {
+    "title_kana": "しまー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_supremacy",
+   "fields": {
+    "title_kana": "すぷれましー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_rewriting",
+   "fields": {
+    "title_kana": "りらいてぃんぐ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_queen_of_the_pirates",
+   "fields": {
+    "title_kana": "くいーんおぶざぱいれーつ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_everafter",
+   "fields": {
+    "title_kana": "えばーあふたー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_lets_go_ichi-no-ni",
+   "fields": {
+    "title_kana": "れっつごーいちのに"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_swing_it",
+   "fields": {
+    "title_kana": "すうぃんぐいっと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_sparkle",
+   "fields": {
+    "title_kana": "すぱーくる"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "876_zerogravity",
+   "fields": {
+    "title_kana": "ぜろぐらびてぃ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_36c_ubu",
+   "fields": {
+    "title_kana": "さんじゅうろくどゆーびーゆー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_crown_us_king",
+   "fields": {
+    "title_kana": "くらうんあすきんぐ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_wonderlanders_party",
+   "fields": {
+    "title_kana": "わんだーらんだーずぱーてぃー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_irodori",
+   "fields": {
+    "title_kana": "いろどり"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_enjoyfeel",
+   "fields": {
+    "title_kana": "えんじょいあんどふぃーる"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_flower_knows",
+   "fields": {
+    "title_kana": "ふらわーのうず"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_borderline",
+   "fields": {
+    "title_kana": "ぼーだーらいん"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "876_no8",
+   "fields": {
+    "title_kana": "なんばーえいと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "876_glass",
+   "fields": {
+    "title_kana": "ぐらす"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_texting_you",
+   "fields": {
+    "title_kana": "てきすてぃんぐゆー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_sleepless_nights",
+   "fields": {
+    "title_kana": "すりーぷれすないつ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_neon_sphere",
+   "fields": {
+    "title_kana": "ねおんすふぃあ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_break_all_time",
+   "fields": {
+    "title_kana": "ぶれいくおーるたいむ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_cast_a_spell",
+   "fields": {
+    "title_kana": "きゃすとあすぺる"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_atmosphere",
+   "fields": {
+    "title_kana": "あともすふぃあ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_karma",
+   "fields": {
+    "title_kana": "かるま"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_faithtofaith",
+   "fields": {
+    "title_kana": "ふぇいすとぅふぇいす"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_naraku",
+   "fields": {
+    "title_kana": "ならく"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_earnest",
+   "fields": {
+    "title_kana": "あーねすと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_once_upon_a_secret",
+   "fields": {
+    "title_kana": "わんすあぽんあしーくれっと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_lets_have",
+   "fields": {
+    "title_kana": "れっつはぶ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_especially_angel",
+   "fields": {
+    "title_kana": "えすぺしゃりーえんじぇる"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_oh_yeah",
+   "fields": {
+    "title_kana": "おーいえー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_datetoday",
+   "fields": {
+    "title_kana": "でーととぅでい"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_super_duper_dreamer",
+   "fields": {
+    "title_kana": "すーぱーでゅーぱーどりーまー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_yellow",
+   "fields": {
+    "title_kana": "いえろー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_search_right",
+   "fields": {
+    "title_kana": "さーちらいと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_lit_up_my_sky",
+   "fields": {
+    "title_kana": "りっとあっぷまいすかい"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "876_tri-angle_drive",
+   "fields": {
+    "title_kana": "とらいあんぐるどらいぶ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_beast_mode",
+   "fields": {
+    "title_kana": "びーすともーど"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "876_nova_chro",
+   "fields": {
+    "title_kana": "のゔぁくろ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_white_starlit_night",
+   "fields": {
+    "title_kana": "ほわいとすたーりっとないと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_duckling_soars",
+   "fields": {
+    "title_kana": "だっくりんぐそーず"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_prima_princess",
+   "fields": {
+    "title_kana": "ぷりまぷりんせす"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_wildest_flower",
+   "fields": {
+    "title_kana": "わいるですとふらわー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_re_rainbow",
+   "fields": {
+    "title_kana": "りーれいんぼー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_maybe_tomorrow_petit_specialver",
+   "fields": {
+    "title_kana": "めいびーとぅもろー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_readychange_special_edition",
+   "fields": {
+    "title_kana": "れでぃあんどちぇんじ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_the_idolmster_2nd-mix",
+   "fields": {
+    "title_kana": "あいどるますたーせかんどみっくす"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_one_live_one_love",
+   "fields": {
+    "title_kana": "わんらいぶわんらぶ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_sparkers",
+   "fields": {
+    "title_kana": "すぱーかーず"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_veil",
+   "fields": {
+    "title_kana": "ゔぇいる"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_mystage",
+   "fields": {
+    "title_kana": "まいすてーじ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_motto",
+   "fields": {
+    "title_kana": "もっと"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_《town》",
+   "fields": {
+    "title_kana": "たうん"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_feelingfine",
+   "fields": {
+    "title_kana": "ふぃーりんぐふぁいん"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_sunhighgold",
+   "fields": {
+    "title_kana": "さんはいごーるど"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_mytime",
+   "fields": {
+    "title_kana": "まいたいむ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_→→→sp",
+   "fields": {
+    "title_kana": "えすぴー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_binarystar",
+   "fields": {
+    "title_kana": "ばいなりーすたー"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_poppinparapong",
+   "fields": {
+    "title_kana": "ぽっぴんぱらぽん"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_cookiedough",
+   "fields": {
+    "title_kana": "くっきーどう"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_one_round_world",
+   "fields": {
+    "title_kana": "わんらうんどわーるど"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_awakened",
+   "fields": {
+    "title_kana": "あうぇいくんど"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_remain_viable",
+   "fields": {
+    "title_kana": "りめいんばいあぶる"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_olympus_god_stars",
+   "fields": {
+    "title_kana": "おりんぽすごっどすたーず"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_ring_ding_wrong",
+   "fields": {
+    "title_kana": "りんぐでぃんぐろんぐ"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_lespoir",
+   "fields": {
+    "title_kana": "れすぽわーる"
+   },
+   "note": "英字タイトルの読み。発音をかなにした (既存 1,882 曲と同じ規約: 全ひらがな・記号は落とす・副題は落とす)"
+  }
+ ]
+}

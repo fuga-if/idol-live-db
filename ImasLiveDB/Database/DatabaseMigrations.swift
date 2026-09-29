@@ -2,12 +2,38 @@ import Foundation
 import GRDB
 import os
 
+/// GRDB マイグレーション定義。
+///
+/// ## マイグレーションを追加する時の規約 (重要)
+///
+/// **v23 以降は「マイグレーション本体を冪等に書く」。**
+/// 追加するカラム/テーブルが既にあるかを `PRAGMA table_info` や `ifNotExists:` で
+/// 確かめてから実行する (v23_event_show_formats や v27_venues が手本)。
+/// この方式なら、同梱 master.sqlite が既にそのスキーマを持っていても安全に空振りする。
+///
+/// **`AppDatabase.seedMigrationHistoryIfNeeded` への追記は不要。**
+/// あちらは v1〜v22 で使っていた旧方式 (同梱 DB のスキーマを嗅ぎつけて
+/// `grdb_migrations` に識別子を事前挿入し、マイグレーションを丸ごとスキップさせる) で、
+/// 互換のため残してあるだけ。新規マイグレーションで旧方式を選ぶと、事前挿入の条件を
+/// 書き忘れた時に**新規インストールが起動時にクラッシュする** (v19 で実際に起き、
+/// Apple 審査 reject の原因になった)。
+///
+/// ## 共通の絶対ルール
+///
+/// - **破壊的マイグレーション (DB 削除・作り直し) は使わない。**
+///   `user_marks` (担当/お気に入り/メモ/参加済み) はクラウドに無い端末ローカル唯一
+///   データで、消すと復旧手段が無い。
+/// - マスタテーブルは drop+recreate して CloudKit 再同期に委ねてよいが、
+///   ローカル唯一データは必ず保全する。
+/// - **スキーマを変えたら Android (Room `Migration`) にも対で書く。**
+///   詳細は docs/ARCHITECTURE.md「データの所在・同期・マイグレーション」。
 enum DatabaseMigrations {
+    /// 各移行は、終わるたびに DB 全体の外部キーを検査する (GRDB の既定)。
+    ///
+    /// Debug でも切らない。以前は Debug だけ検査を外していて、外部キーを破る行があると
+    /// Release でだけ起動時に落ちた。CI のテストは Debug で走るので、捕まえられなかった。
     static var migrator: DatabaseMigrator {
         var migrator = DatabaseMigrator()
-        #if DEBUG
-        migrator = migrator.disablingDeferredForeignKeyChecks()
-        #endif
 
         migrator.registerMigration("v1_create_tables") { db in
             // brands
@@ -22,7 +48,10 @@ enum DatabaseMigrations {
             // idols
             try db.create(table: "idols") { t in
                 t.primaryKey("id", .text)
-                t.belongsTo("brand", inTable: "brands").notNull()
+                // 列名は snake_case で明示する。GRDB の belongsTo は列を `brandId` で作るので、
+                // 下の索引 (brand_id) が「no such column」で落ち、空の DB からの生成が
+                // 必ず失敗していた (同梱 DB がある通常の起動は v1 を飛ばすので踏まなかった)。
+                t.column("brand_id", .text).notNull().references("brands")
                 t.column("name", .text).notNull()
                 t.column("name_kana", .text)
                 t.column("name_romaji", .text)
@@ -79,7 +108,7 @@ enum DatabaseMigrations {
             // units
             try db.create(table: "units") { t in
                 t.primaryKey("id", .text)
-                t.belongsTo("brand", inTable: "brands").notNull()
+                t.column("brand_id", .text).notNull().references("brands")
                 t.column("name", .text).notNull()
                 t.column("is_permanent", .boolean).notNull().defaults(to: true)
             }
@@ -102,7 +131,7 @@ enum DatabaseMigrations {
             // shows
             try db.create(table: "shows") { t in
                 t.primaryKey("id", .text)
-                t.belongsTo("event", inTable: "events").notNull()
+                t.column("event_id", .text).notNull().references("events")
                 t.column("name", .text).notNull()
                 t.column("date", .text).notNull()
                 t.column("venue", .text)
@@ -464,7 +493,19 @@ enum DatabaseMigrations {
         // - cast / idol_cast テーブルを DROP
         // Bundle DB は seed 時に reseed されるのでこの migration は既存ユーザの Documents DB のみ対象。
         migrator.registerMigration("v19_drop_cast") { db in
-            try db.execute(sql: "ALTER TABLE idols ADD COLUMN voice_actors TEXT")
+            // ⚠️ ここで「テーブルがある」前提を置かないこと。
+            // Bundle DB は cast/idol_cast を持たないので、`AppDatabase` 側の pre-populate が
+            // この migration を「適用済み」に印を付けて飛ばしている。その判定が一度壊れて
+            // (idols.voice_actors 列の有無を見ていたが、声優履歴テーブルへの移行でその列を
+            // 落としたため成立しなくなった)、新規インストールが全部
+            // 「no such table: idol_cast」で起動クラッシュした。
+            // 起動クラッシュは審査 reject に直結するので、印の付け忘れだけを頼りにしない。
+            let hasLegacyCast = try db.tableExists("idol_cast") && db.tableExists("cast")
+            guard hasLegacyCast else { return }
+
+            if try !db.columns(in: "idols").contains(where: { $0.name == "voice_actors" }) {
+                try db.execute(sql: "ALTER TABLE idols ADD COLUMN voice_actors TEXT")
+            }
 
             // idol_cast / cast から voice_actors を集計 (現役を先頭、過去はその後)
             let rows = try Row.fetchAll(db, sql: """
@@ -739,6 +780,262 @@ enum DatabaseMigrations {
             }
             try db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_anniversaries_brand ON anniversaries(brand_id)")
             try db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_anniversaries_date ON anniversaries(date)")
+        }
+
+        // v26: 個人用タグ (personal_tags)。コミュニティタグ (共有マスタ・サーバー同期・投票制) とは別に、
+        // ユーザーが自由入力で付ける私用の分類 (例:「聞いた」) を完全ローカル専用で保存する。
+        // サーバー(Worker)には一切送信しない。同一 (entity_type, entity_id, tag_name) は複合PKで重複排除。
+        migrator.registerMigration("v26_personal_tags") { db in
+            try db.create(table: "personal_tags", ifNotExists: true) { t in
+                t.column("entity_type", .text).notNull()
+                t.column("entity_id", .text).notNull()
+                t.column("tag_name", .text).notNull()
+                t.column("created_at", .text).notNull()
+                t.primaryKey(["entity_type", "entity_id", "tag_name"])
+            }
+            try db.create(
+                index: "idx_personal_tags_entity",
+                on: "personal_tags",
+                columns: ["entity_type", "entity_id"],
+                ifNotExists: true
+            )
+        }
+
+        // 会場を ID で管理する。
+        //
+        // それまで `shows.venue` は自由文字列で、同じ会場が最大 14 通りに割れていた
+        // (幕張メッセ = `千葉・幕張メッセイベントホール` / `幕張イベントホール` / `幕張メッセ` …)。
+        // 名前が変わる会場もある (武蔵野の森総合スポーツプラザ → 京王アリーナTOKYO) ため、
+        // 名前ではなく ID で同一性を持たせて履歴が分断されないようにする。
+        migrator.registerMigration("v27_venues") { db in
+            // 施設。ホールは venue_halls 側に分けるので、ここは「建物」の単位。
+            try db.create(table: "venues", ifNotExists: true) { t in
+                t.primaryKey("id", .text)
+                /// 現行名。過去公演の表示には venue_names の当時名を使う。
+                t.column("name", .text).notNull()
+                t.column("name_kana", .text)
+                t.column("prefecture", .text)
+                t.column("city", .text)
+                /// 検索用の別名 (改行区切り)。旧名・通称を入れる。
+                t.column("aliases", .text)
+                /// 施設の代表キャパ (最大構成)。構成で変わる場合は venue_halls が優先。
+                t.column("capacity", .integer)
+                t.column("sort_order", .integer).notNull().defaults(to: 0)
+            }
+
+            // 改名履歴。表示は「公演日時点の名前」なので有効期間で引く。
+            // valid_from が NULL = 開業時から / valid_to が NULL = 現在も。
+            try db.create(table: "venue_names", ifNotExists: true) { t in
+                t.primaryKey("id", .text)
+                t.column("venue_id", .text).notNull().references("venues", onDelete: .cascade)
+                t.column("name", .text).notNull()
+                t.column("valid_from", .text)
+                t.column("valid_to", .text)
+            }
+            try db.create(index: "idx_venue_names_venue", on: "venue_names",
+                          columns: ["venue_id"], ifNotExists: true)
+
+            // ホール/構成。キャパは構成で変わる
+            // (さいたまスーパーアリーナ: スタジアム37,000 / アリーナ22,500) ため施設と分ける。
+            try db.create(table: "venue_halls", ifNotExists: true) { t in
+                t.primaryKey("id", .text)
+                t.column("venue_id", .text).notNull().references("venues", onDelete: .cascade)
+                t.column("name", .text).notNull()
+                t.column("capacity", .integer)
+            }
+            try db.create(index: "idx_venue_halls_venue", on: "venue_halls",
+                          columns: ["venue_id"], ifNotExists: true)
+
+            // shows 側。venue (生文字列) は当時名のフォールバックとして残す
+            // (venue_id が未解決の公演でも表示が壊れないようにするため)。
+            //
+            // バンドルの master.sqlite は「この migration 適用後の DB」を dump して作るので、
+            // 新規インストールではカラムが既に存在する。無条件 ALTER だと duplicate column で
+            // 起動時に落ちるため、他の migration と同じくカラム存在チェックで挟む。
+            let showCols = try Row.fetchAll(db, sql: "PRAGMA table_info(shows)").map { $0["name"] as String? }
+            if !showCols.contains("venue_id") {
+                try db.execute(sql: "ALTER TABLE shows ADD COLUMN venue_id TEXT")
+            }
+            // ホール名。venue_halls.name と突き合わせてキャパを引く。
+            if !showCols.contains("hall") {
+                try db.execute(sql: "ALTER TABLE shows ADD COLUMN hall TEXT")
+            }
+            // 配信プラットフォーム (ASOBI STAGE 等)。配信は会場ではないのでここへ逃がす。
+            if !showCols.contains("stream_platform") {
+                try db.execute(sql: "ALTER TABLE shows ADD COLUMN stream_platform TEXT")
+            }
+            try db.create(index: "idx_shows_venue_id", on: "shows",
+                          columns: ["venue_id"], ifNotExists: true)
+        }
+
+        // v28: 声優を期間つきの履歴テーブルへ移す。
+        //
+        // 旧 idols.voice_actors は "現役,過去CV" のカンマ区切りで期間を持てず、交代すると
+        // 前任者が消えていた (九十九一希の初代 徳武竜也が実際に消えていた)。
+        // さらに「同時に複数」「改名」「表記ゆれ」「舞台版キャスト」が同居していた。
+        //
+        // ⚠️ 旧列はここでは**消さない**。消すと、まだ新しい bundle を受け取っていない
+        //    端末で backfill の材料が無くなる。列は空のまま放置され、次の reseed で
+        //    テーブルごと入れ替わる。
+        migrator.registerMigration("v28_idol_voice_actors") { db in
+            try db.create(table: "idol_voice_actors", ifNotExists: true) { t in
+                t.primaryKey("id", .text)
+                t.column("idol_id", .text).notNull().references("idols", onDelete: .cascade)
+                t.column("name", .text).notNull()
+                /// 担当開始日。初代はキャラの実装日 (idols.debut_date)。
+                t.column("valid_from", .text)
+                /// 担当終了日。NULL なら現任。
+                t.column("valid_to", .text)
+            }
+            try db.create(index: "idx_idol_voice_actors_idol", on: "idol_voice_actors",
+                          columns: ["idol_id"], ifNotExists: true)
+
+            // 既存端末を空にしないための繋ぎ。旧列の先頭 (= 現役) だけを現任として写す。
+            // 正確な履歴は bundle の reseed で上書きされる。
+            let idolCols = try db.columns(in: "idols").map(\.name)
+            guard idolCols.contains("voice_actors") else { return }
+            let rows = try Row.fetchAll(db, sql: """
+                SELECT id, voice_actors, debut_date FROM idols
+                 WHERE IFNULL(voice_actors,'') != ''
+                """)
+            for row in rows {
+                let idolId: String = row["id"]
+                let raw: String = row["voice_actors"]
+                guard let first = raw.split(separator: ",").first else { continue }
+                let name = first.trimmingCharacters(in: .whitespaces)
+                guard !name.isEmpty else { continue }
+                try db.execute(sql: """
+                    INSERT OR IGNORE INTO idol_voice_actors (id, idol_id, name, valid_from, valid_to)
+                    VALUES (?, ?, ?, ?, NULL)
+                    """, arguments: ["\(idolId)__\(name)", idolId, name, row["debut_date"] as String?])
+            }
+        }
+
+        // v29: 旧コミュニティ機能「コーレス」(SongCall) の撤去。
+        //
+        // 歌詞行ごとのコールガイド (CallGuide) に置き換わり、レコード型 SongCall は
+        // CloudKit からも同期しなくなった。v3 で対に作った song_videos は参考動画として
+        // 現役なので残す。表を落とせば索引も一緒に消えるが、意図を明示するため先に落とす。
+        migrator.registerMigration("v29_drop_song_calls") { db in
+            try db.execute(sql: "DROP INDEX IF EXISTS idx_song_calls_song")
+            try db.execute(sql: "DROP TABLE IF EXISTS song_calls")
+        }
+
+        // v30: 衣装の目録と、その公演で着た記録。
+        //
+        // 「この公演で何を着たか」と「この曲のとき何を着ていたか」を答えるための表。
+        // 曲の衣装は**その披露で着ていたもの**なので、曲ではなくセトリ行に紐づける
+        // (同じ曲でも公演が違えば衣装は違う)。
+        //
+        // setlist_item_id / idol_id が NULL なのは欠損ではなく正規の状態
+        // (曲までは特定できていない / その場の全員)。NOT NULL にしてはいけない。
+        migrator.registerMigration("v30_costumes") { db in
+            try db.create(table: "costumes", ifNotExists: true) { t in
+                t.primaryKey("id", .text)
+                t.column("brand_id", .text)
+                t.column("name", .text).notNull()
+                t.column("name_kana", .text)
+                /// この編成のための衣装。共通衣装なら NULL。
+                t.column("unit_id", .text)
+                /// この人のための衣装 (ソロ衣装)。共通衣装なら NULL。
+                t.column("idol_id", .text)
+                t.column("description", .text)
+                /// 出典 (公式)。二次情報しか無い衣装は入れない。
+                t.column("source_url", .text)
+                t.column("sort_order", .integer).notNull().defaults(to: 0)
+            }
+            try db.create(index: "idx_costumes_brand", on: "costumes",
+                          columns: ["brand_id"], ifNotExists: true)
+
+            try db.create(table: "costume_wears", ifNotExists: true) { t in
+                t.primaryKey("id", .text)
+                t.column("costume_id", .text).notNull()
+                    .references("costumes", onDelete: .cascade)
+                t.column("show_id", .text).notNull().references("shows", onDelete: .cascade)
+                t.column("setlist_item_id", .text).references("setlist_items", onDelete: .cascade)
+                t.column("idol_id", .text).references("idols", onDelete: .cascade)
+                t.column("sort_order", .integer).notNull().defaults(to: 0)
+            }
+            try db.create(index: "idx_costume_wears_costume", on: "costume_wears",
+                          columns: ["costume_id"], ifNotExists: true)
+            try db.create(index: "idx_costume_wears_show", on: "costume_wears",
+                          columns: ["show_id"], ifNotExists: true)
+            try db.create(index: "idx_costume_wears_item", on: "costume_wears",
+                          columns: ["setlist_item_id"], ifNotExists: true)
+        }
+
+        // v31: songs.has_kamisabi_card カラム追加。
+        //
+        // 音楽カードゲーム「KAMISABI」(バンダイナムコミュージックライブ/Lantis, 2026) にこの曲の
+        // カードが収録されているか。カード番号は非公表・ノーマル/レアは版違いなので、
+        // 「この曲のカードがあるか」の真偽値 1 本で足りる。
+        // 同梱 master.sqlite は既にこの列を持つので `PRAGMA table_info` で確認してから
+        // 冪等に足す (v6 の songs 列追加と同じ書き方)。
+        migrator.registerMigration("v31_songs_kamisabi_card") { db in
+            let songsColumns = try Row.fetchAll(db, sql: "PRAGMA table_info(songs)").map { $0["name"] as String? }
+            if !songsColumns.contains("has_kamisabi_card") {
+                try db.execute(sql: "ALTER TABLE songs ADD COLUMN has_kamisabi_card INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        // アイマス関連の収支 (家計簿)。**端末ローカル唯一データ**で、
+        // クラウドにもサーバにも無い (user_marks / personal_tags と同じ扱い)。
+        // 金額は円の整数。小数で持つと集計のたびに誤差が乗る。
+        // show_id が入っていればその公演の遠征費、NULL なら単独の支出 (課金・通販)。
+        // 費目は domain/ledger.rs の英字キー (ラベルを変えても記録が迷子にならない)。
+        migrator.registerMigration("v32_expenses") { db in
+            try db.create(table: "expenses", ifNotExists: true) { t in
+                t.column("id", .text).primaryKey()
+                t.column("date", .text).notNull()
+                t.column("category", .text).notNull()
+                t.column("amount", .integer).notNull()
+                t.column("show_id", .text)
+                t.column("event_id", .text)
+                t.column("note", .text)
+                t.column("updated_at", .text).notNull()
+            }
+            // 期間の集計と公演別の集計がそれぞれ全表走査にならないように。
+            try db.create(index: "idx_expenses_date", on: "expenses", columns: ["date"], ifNotExists: true)
+            try db.create(index: "idx_expenses_show", on: "expenses", columns: ["show_id"], ifNotExists: true)
+        }
+
+        // 公演のチケット価格 (マスタ)。同期で後から入るので器だけ作る。
+        // 端末ローカルの収支 (expenses) と違い**みんなで共有する事実**。
+        // 席種は自由文字列 (S席 / 立見 / 配信 (アーカイブ付き) …)、機械で扱うのは
+        // kind (live / stream / live_viewing) だけ。規則は domain/ticket_prices.rs。
+        migrator.registerMigration("v33_show_tickets") { db in
+            try db.create(table: "show_tickets", ifNotExists: true) { t in
+                t.column("id", .text).primaryKey()
+                t.column("show_id", .text).notNull()
+                t.column("kind", .text).notNull().defaults(to: "live")
+                t.column("name", .text).notNull()
+                t.column("price", .integer).notNull()
+                t.column("is_estimate", .integer).notNull().defaults(to: 0)
+                t.column("note", .text)
+                t.column("sort_order", .integer).notNull().defaults(to: 0)
+            }
+            try db.create(index: "idx_show_tickets_show", on: "show_tickets",
+                          columns: ["show_id"], ifNotExists: true)
+        }
+
+        // v34: songs.note カラム追加 (曲の補足、自由文)。
+        //
+        // 同梱 master.sqlite は既にこの列を持つので、v31 と同じく確認してから冪等に足す。
+        migrator.registerMigration("v34_songs_note") { db in
+            let songsColumns = try Row.fetchAll(db, sql: "PRAGMA table_info(songs)").map { $0["name"] as String? }
+            if !songsColumns.contains("note") {
+                try db.execute(sql: "ALTER TABLE songs ADD COLUMN note TEXT")
+            }
+        }
+
+        // v35: shows.venue_mode カラム追加 (会場の形態。配信だけのライブを披露回数から外す)。
+        //
+        // 同梱 master.sqlite は既にこの列を持つので、v31 と同じく確認してから冪等に足す。
+        migrator.registerMigration("v35_shows_venue_mode") { db in
+            let showCols = try Row.fetchAll(db, sql: "PRAGMA table_info(shows)").map { $0["name"] as String? }
+            if !showCols.contains("venue_mode") {
+                try db.execute(sql: "ALTER TABLE shows ADD COLUMN venue_mode TEXT")
+            }
         }
 
         return migrator

@@ -32,6 +32,7 @@ struct SongEditView: View {
     @State private var arranger: String
     @State private var releaseDate: String
     @State private var singerLabel: String
+    @State private var note: String
     @State private var isrc: String
     @State private var durationSecText: String
     @State private var allBrands: [Brand] = []
@@ -46,7 +47,8 @@ struct SongEditView: View {
     @State private var errorMessage: String?
     @State private var requestSent = false
 
-    private let songTypes = ["solo", "unit", "all", "original"]
+    /// 選べる曲種別 (値と語はコアの vocabulary。マスタにある 5 種)。
+    private let songTypes = Vocab.table.songTypes
 
     /// 既存編集用。
     init(song: Song) {
@@ -68,6 +70,7 @@ struct SongEditView: View {
         _arranger = State(initialValue: song.arranger ?? "")
         _releaseDate = State(initialValue: song.releaseDate ?? "")
         _singerLabel = State(initialValue: song.singerLabel ?? "")
+        _note = State(initialValue: song.note ?? "")
         _isrc = State(initialValue: song.isrc ?? "")
         _durationSecText = State(initialValue: song.durationSec.map(String.init) ?? "")
     }
@@ -92,6 +95,7 @@ struct SongEditView: View {
         _arranger = State(initialValue: "")
         _releaseDate = State(initialValue: "")
         _singerLabel = State(initialValue: "")
+        _note = State(initialValue: "")
         _isrc = State(initialValue: "")
         _durationSecText = State(initialValue: "")
     }
@@ -110,7 +114,7 @@ struct SongEditView: View {
                         ForEach(allBrands) { Text($0.name).tag($0.id) }
                     }
                     Picker("種別", selection: $songType) {
-                        ForEach(songTypes, id: \.self) { Text(songTypeLabel($0)).tag($0) }
+                        ForEach(songTypes, id: \.value) { Text($0.shortLabel).tag($0.value) }
                     }
                     TextField("ユニット名", text: $unitName)
                 }
@@ -129,6 +133,7 @@ struct SongEditView: View {
                         .keyboardType(.numbersAndPunctuation)
                         .autocapitalization(.none).autocorrectionDisabled()
                     TextField("歌唱表記 (例: 春香・千早)", text: $singerLabel)
+                    TextField("補足 (例: ミリシタ 1 周年記念楽曲)", text: $note)
                     TextField("再生時間 (秒)", text: $durationSecText)
                         .keyboardType(.numberPad)
                 }
@@ -194,7 +199,7 @@ struct SongEditView: View {
             } message: { Text(errorMessage ?? "") }
             .editRequestSentAlert(isPresented: $requestSent, onDismiss: { dismiss() })
             .sheet(isPresented: $showArtistPicker) {
-                IdolMultiPickerView(selected: artistIdolIds, idols: allIdols) { newSelection in
+                IdolPickerView(title: "歌唱アイドル", idols: allIdols, selected: artistIdolIds) { newSelection in
                     artistIdolIds = newSelection
                     showArtistPicker = false
                 }
@@ -230,9 +235,7 @@ struct SongEditView: View {
                             .multilineTextAlignment(.leading)
                     }
                     Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.imasCaption)
-                        .foregroundStyle(DS.ink3)
+                    ImasRowChevron()
                 }
             }
             .buttonStyle(.plain)
@@ -252,20 +255,10 @@ struct SongEditView: View {
             .joined(separator: " / ")
     }
 
-    private func songTypeLabel(_ type: String) -> String {
-        switch type {
-        case "solo": return "ソロ"
-        case "unit": return "ユニット"
-        case "all": return "全体曲"
-        case "original": return "オリジナル"
-        default: return type
-        }
-    }
-
     private var savingOverlay: some View {
         ZStack {
             Color.black.opacity(0.3).ignoresSafeArea()
-            ProgressView("保存中…").padding(24)
+            ProgressView("保存中…").padding(DS.sp7)
                 .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
         }
     }
@@ -332,6 +325,7 @@ struct SongEditView: View {
         songFields["arranger"] = AnyEncodable.clearable(arranger, original: original?.arranger)
         songFields["releaseDate"] = AnyEncodable.clearable(trimmedReleaseDate, original: original?.releaseDate)
         songFields["singerLabel"] = AnyEncodable.clearable(singerLabel, original: original?.singerLabel)
+        songFields["note"] = AnyEncodable.clearable(note, original: original?.note)
         songFields["isrc"] = AnyEncodable.clearable(isrc, original: original?.isrc)
         if let v = parsedDuration {
             songFields["durationSec"] = AnyEncodable(v)
@@ -434,6 +428,7 @@ struct SongEditView: View {
         song.arranger = nonEmpty(arranger)
         song.releaseDate = nonEmpty(releaseDate)
         song.singerLabel = nonEmpty(singerLabel)
+        song.note = nonEmpty(note)
         song.isrc = nonEmpty(isrc)
         song.durationSec = Int(durationSecText.trimmingCharacters(in: .whitespaces))
         return song

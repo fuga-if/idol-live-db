@@ -1,0 +1,18 @@
+---
+import type { NavLink } from "../lib/schema/NavLink";
+import Count from "./Count.astro";
+/**
+ * 案内の 1 行 — [前置きの文] リンク (件数)。一覧の末尾に置く「ほかも見る」の形。
+ * 何を案内するか (文言・件数・行き先) は Rust の NavLink がそのまま来る。
+ */
+interface Props {
+  link: NavLink;
+}
+const { link } = Astro.props;
+---
+
+<p class="u-muted">
+  <slot />
+  <a class="u-underline-hover" href={link.path}>{link.label}</a>
+  <Count value={link.count} dim />
+</p>

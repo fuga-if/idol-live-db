@@ -3,7 +3,7 @@ import Foundation
 /// イベント (ライブ/公演) のマスタ読み取りポート (driven port)。
 ///
 /// Presentation はこのポートに依存し、永続化の具象 (`AppDatabase` / GRDB) を知らない。
-/// マスタ読みなので read 専用。実装は `Adapters/Persistence/GRDBEventRepository`。
+/// マスタ読みなので read 専用。実装は `Adapters/Persistence/CoreEventRepository` (共有コアのスナップショット)。
 ///
 /// ⚠️ Domain 規約: このファイルは `SwiftUI` / `GRDB` / `CloudKit` を import しない。
 protocol EventReading: Sendable {
@@ -22,6 +22,9 @@ protocol EventReading: Sendable {
     func eventStats(eventId: String) async throws -> EventStats
     /// 参加状況 (現地/配信などの集計)。
     func eventAttendance(eventId: String) async throws -> EventAttendance?
+    /// イベント詳細のヒーロー (開催期間・会場・今後か・参加の札)。組み方はコア (`event_hero`)。
+    /// 参加マークは OS が持つので、公演単位の参加 id とイベント単位のマークの有無を渡す。
+    func eventHero(eventId: String, attendedShowIds: [String], eventMarked: Bool, today: String) async throws -> EventHeroRecord?
     /// フィルタ条件で絞った、日付つきイベント。
     func eventsWithDate(criterion: EventFilterCriterion, includeEmpty: Bool) async throws -> [EventWithDate]
     /// イベント名の一覧 (フィルタ補完用)。
@@ -30,4 +33,8 @@ protocol EventReading: Sendable {
     func attendedEventsWithDate() async throws -> [EventWithDate]
     /// 参加イベントを現地/配信/LVの3集合に分類 (混在は複数に含む)。
     func attendedEventTypeSets() async throws -> (live: Set<String>, stream: Set<String>, liveViewing: Set<String>)
+    /// 指定 id 群のイベント (日付つき・お気に入り一覧用)。
+    func eventsByIds(_ ids: [String]) async throws -> [EventWithDate]
+    /// イベントの映像円盤 (Blu-ray / DVD) 一覧。
+    func eventReleases(eventId: String) async throws -> [EventRelease]
 }

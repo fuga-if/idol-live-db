@@ -14,10 +14,44 @@
     // ALLOWED_ORIGINS: Web フロントエンドの Origin をカンマ区切りで列挙。
     // iOS ネイティブは Origin ヘッダを送らないため、空文字列でも動作する。
     // 例: "https://yourapp.example.com,https://admin.example.com"
-    "ALLOWED_ORIGINS": ""
+    // localhost は出面の手元プレビュー (astro dev = 4321 / dist の静的配信 = 4323) から歌詞を
+    // 引くため。Bearer/Cookie を使わない API なので、localhost を許しても他サイトからは使えない。
+    // fugaapp.site への移行期間中は新旧どちらの Origin から叩かれても歌詞が死なないよう、
+    // 両方を許可する (移行完了後にフェーズ4で旧 origin を落とす。docs/subdomain-migration-plan.md §6)。
+    "ALLOWED_ORIGINS": "https://idollivedb.fugaapp.site,https://idollivedb.fugalabs.uk,http://localhost:4321,http://localhost:4323",
+    // Android Sign in with Google (Credential Manager) の ID トークン検証用 aud。
+    // 秘密情報ではない (公開して問題ない値) ので vars でよい。クライアントシークレットは
+    // ID トークン署名検証方式では不要なため一切保持しない。
+    "GOOGLE_WEB_CLIENT_ID": "612236234738-q1ku8tnnf4ce9jm1q006jp45k6mmmluc.apps.googleusercontent.com",
+    // Discord (routes/discord.ts のロール受け取り・discord_digest.ts の #更新通知)。
+    // ID と Interactions の公開鍵は秘密ではない。Bot トークンと OAuth のシークレットは
+    // wrangler secret put DISCORD_BOT_TOKEN / DISCORD_CLIENT_SECRET / GITHUB_OAUTH_CLIENT_SECRET。
+    "DISCORD_APPLICATION_ID": "1552698081047347330",
+    "DISCORD_PUBLIC_KEY": "0f9121367f904cbd07591504037473e28cd0a1ffbeb556f6bc8cb700077af5d5",
+    "DISCORD_GUILD_ID": "1530435001231868076",
+    "DISCORD_DATA_ROLE_ID": "1552703794733645986",
+    "DISCORD_CONTRIBUTOR_ROLE_ID": "1552703793081090259",
+    "DISCORD_UPDATES_CHANNEL_ID": "1552704747939565681",
+    "DISCORD_POLL_RESULTS_CHANNEL_ID": "1541819917370654851",
+    "DISCORD_LIVE_CHANNEL_ID": "1552704776884719676",
+    "DISCORD_ANNOUNCE_CHANNEL_ID": "1530435001974526074",
+    "DISCORD_DEV_CHANNEL_ID": "1552866674783559751",
+    // GitHub OAuth App (コントリビューター申請で、マージ済み PR があるかを確かめる)。
+    "GITHUB_OAUTH_CLIENT_ID": "Ov23lio6NtB4KRE8A4St"
+  },
+  // Workers Logs。歌詞の利用ログ (event=lyrics_read) を拾う唯一の経路なので、
+  // sampling は 1 (間引くと JASRAC 報告のリクエスト回数が実数より少なくなる)。
+  // 保持期間は無料プランで 3 日なので、日次バッチが 3 日以上止まるとその分は
+  // 取り返せない (docs/JASRAC.md「リクエスト回数の集計」)。
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
   },
   // CLOUDKIT_KEY_ID and CLOUDKIT_PRIVATE_KEY are set via wrangler secret
   "triggers": {
-    "crons": ["*/5 * * * *"]
+    // "*/5 * * * *": インデックスの効いた軽い掃除 (api_rate_limits / transfer_codes)。
+    // "17 15 * * *": 重い掃除 (rate_limits の 7 日超削除)。日次で十分なので分けてある。
+    //                src/index.ts の DAILY_CRON と必ず一致させること。
+    "crons": ["*/5 * * * *", "17 15 * * *"]
   }
 }

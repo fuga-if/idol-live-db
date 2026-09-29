@@ -1,0 +1,76 @@
+---
+import ListLayout from "../../layouts/ListLayout.astro";
+import Section from "../../components/Section.astro";
+import StatStrip from "../../components/StatStrip.astro";
+import ListContainer from "../../components/ListContainer.astro";
+import Artwork from "../../components/Artwork.astro";
+import DatedRow from "../../components/DatedRow.astro";
+import RefList from "../../components/RefList.astro";
+import EmptyState from "../../components/EmptyState.astro";
+import { optionalPage, page } from "../../lib/data";
+import type { CallGuidePage } from "../../lib/schema/CallGuidePage";
+
+/**
+ * コールガイドの進捗。
+ *
+ * **読むだけ。** 書き込みはアプリから。中身は Worker の公開エンドポイントを日次で
+ * 写した JSON を Rust が焼き込んだもので、閲覧のたびに API は呼ばない。
+ * 3 区画 (ガイドのある曲 / 最近の編集 / 書き手募集中) は iOS のダッシュボードと同じ。
+ */
+export const getStaticPaths = () => optionalPage("callGuide", "/calls/");
+
+const guide = page<CallGuidePage>(Astro.props.data);
+---
+
+<ListLayout seo={guide.seo} title={guide.title}>
+  <div slot="lede" class="u-stack">
+    <p class="lede lede--wide">{guide.intro}</p>
+    <p class="u-muted">{guide.snapshotNote}</p>
+    <StatStrip items={guide.statTiles} label="コールガイドの数" />
+  </div>
+
+  <Section id="calls-with" title="コールガイドがある曲" count={guide.withCalls.length}>
+    {
+      guide.withCallsEmpty ? (
+        <EmptyState {...guide.withCallsEmpty} />
+      ) : (
+        <ListContainer as="ul">
+          {guide.withCalls.map((row) => (
+            <li>
+              <DatedRow title={row.song.name} href={row.song.path} themeKey={row.song.themeKey} meta={[row.updatedBy]}>
+                <Artwork slot="lead" title={row.song.name} artworkUrl={row.song.artworkUrl} size="sm" />
+                <span slot="meta" class="row__meta-item u-num">{row.detail}</span>
+                <span slot="trailing" class="u-num">{row.updatedDisplay}</span>
+              </DatedRow>
+            </li>
+          ))}
+        </ListContainer>
+      )
+    }
+    {guide.withCallsNote && <p class="u-dim">{guide.withCallsNote}</p>}
+  </Section>
+
+  <Section id="calls-recent" title="最近の編集" count={guide.recentEdits.length}>
+    {
+      guide.recentEditsEmpty ? (
+        <EmptyState {...guide.recentEditsEmpty} />
+      ) : (
+        <ListContainer as="ul">
+          {guide.recentEdits.map((row) => (
+            <li>
+              <DatedRow title={row.song.name} href={row.song.path} themeKey={row.song.themeKey} meta={[row.label, row.by]}>
+                <span slot="trailing" class="u-num">{row.atDisplay}</span>
+              </DatedRow>
+            </li>
+          ))}
+        </ListContainer>
+      )
+    }
+  </Section>
+
+  <Section id="calls-wanted" title="書き手募集中" count={guide.wanted.length}>
+    <p class="u-muted">{guide.wantedLede}</p>
+    {guide.wantedEmpty ? <EmptyState {...guide.wantedEmpty} /> : <RefList refs={guide.wanted} label="未整備の曲" />}
+    {guide.wantedNote && <p class="u-dim">{guide.wantedNote}</p>}
+  </Section>
+</ListLayout>

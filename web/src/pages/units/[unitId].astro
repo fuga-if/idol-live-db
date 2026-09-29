@@ -1,0 +1,65 @@
+---
+import DetailLayout from "../../layouts/DetailLayout.astro";
+import Section from "../../components/Section.astro";
+import Chip from "../../components/Chip.astro";
+import IdolTile from "../../components/IdolTile.astro";
+import RefList from "../../components/RefList.astro";
+import EmptyState from "../../components/EmptyState.astro";
+import { page, pathsFor } from "../../lib/data";
+import type { UnitPage } from "../../lib/schema/UnitPage";
+import CommunityTags from "../../components/CommunityTags.astro";
+
+export const getStaticPaths = () => pathsFor("unit", "unitId");
+
+const unit = page<UnitPage>(Astro.props.data);
+---
+
+<DetailLayout seo={unit.seo} themeKey={unit.themeKey} app={unit.app}>
+  <section class="hero" slot="hero" aria-labelledby="unit-title">
+    <div class="hero__body">
+      {unit.brand && <p class="hero__eyebrow">{unit.brand.name}</p>}
+      <h1 class="hero__title" id="unit-title">{unit.name}</h1>
+      {unit.nameKana && <p class="hero__kana">{unit.nameKana}</p>}
+      {unit.nameAlt && <p class="lede">別名: {unit.nameAlt}</p>}
+      <div class="hero__meta">
+        <Chip text={unit.kindLabel} variant="themed" />
+        {unit.brand && <Chip text={unit.brand.name} href={unit.brand.path} variant="themed" themeKey={unit.brand.themeKey} />}
+      </div>
+    </div>
+  </section>
+
+  {
+    unit.tags.length > 0 && (
+      <Section id="unit-tags" title="みんなのタグ">
+        <div class="card card__pad">
+          <CommunityTags tags={unit.tags} />
+        </div>
+      </Section>
+    )
+  }
+
+  {/* メンバーはタイルで幅が要るので脇に寄せず本文に置く (脇の 20rem では 1 列になる)。 */}
+  <Section id="unit-members" title="メンバー" count={unit.members.length}>
+    {
+      unit.membersEmpty ? (
+        <EmptyState {...unit.membersEmpty} />
+      ) : (
+        <ul class="grid-tiles">
+          {unit.members.map((m) => (
+            <IdolTile entity={m} />
+          ))}
+        </ul>
+      )
+    }
+  </Section>
+
+  <Section id="unit-songs" title="ユニット曲" count={unit.songs.length}>
+    {
+      unit.songsEmpty ? (
+        <EmptyState {...unit.songsEmpty} />
+      ) : (
+        <RefList refs={unit.songs} label="ユニット曲" />
+      )
+    }
+  </Section>
+</DetailLayout>

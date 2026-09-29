@@ -14,7 +14,6 @@ protocol EventWriting: Sendable {
 
 protocol ShowWriting: Sendable {
     func upsertShows(_ shows: [Show]) async throws
-    func upsertSetlistItems(_ items: [SetlistItem]) async throws
     /// 公演のセトリ (曲 + 出演者) を丸ごと置き換える。
     func replaceSetlist(showId: String, items: [SetlistItem], performers: [SetlistPerformer]) async throws
 }
@@ -26,6 +25,5 @@ protocol IdolWriting: Sendable {
 protocol SongWriting: Sendable {
     func upsertSongs(_ songs: [Song]) async throws
     func upsertSongArtists(_ songArtists: [SongArtist]) async throws
-    func upsertSongCalls(_ calls: [SongCall]) async throws
     func upsertSongVideos(_ videos: [SongVideo]) async throws
 }

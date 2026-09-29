@@ -1,0 +1,39 @@
+---
+import Chip from "./Chip.astro";
+import type { Ref } from "../lib/schema/Ref";
+/**
+ * Ref の並びをチップのリンク列にする (原唱者・ユニット・派生曲・関連曲 など)。
+ * 空なら何も描かない (空のときの案内が要る節は、呼び出し側が Rust の `EmptyText` で出す)。
+ */
+interface Props {
+  refs: readonly Ref[];
+  variant?: "neutral" | "themed";
+  /**
+   * `Ref.sub` を添字として見せるか。**中身は Rust が決めていて、ここで選ぶのは
+   * 「この一覧で添字まで見せる密度にするか」だけ**。
+   * 既定 off なのは、原唱者 60 人の一覧でブランド名が 60 回並ぶと読めなくなるため。
+   */
+  withSub?: boolean;
+  label?: string;
+}
+const { refs, variant = "themed", withSub = false, label } = Astro.props;
+---
+
+{
+  refs.length === 0 ? null : (
+    <ul class="u-row" aria-label={label}>
+      {refs.map((r) => (
+        <li>
+          <Chip
+            text={r.name}
+            href={r.path}
+            variant={variant}
+            themeKey={r.themeKey}
+            sub={withSub ? r.sub : undefined}
+            title={r.sub ?? undefined}
+          />
+        </li>
+      ))}
+    </ul>
+  )
+}

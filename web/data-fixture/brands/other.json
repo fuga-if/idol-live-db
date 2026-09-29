@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "id": "other",
+  "path": "/brands/other/",
+  "name": "その他",
+  "shortName": "その他",
+  "themeKey": "neutral",
+  "statTiles": [],
+  "idols": [],
+  "idolsEmpty": {
+    "title": "アイドルが登録されていません",
+    "body": null
+  },
+  "units": [],
+  "recentEvents": [],
+  "topSongs": [],
+  "seo": {
+    "title": "その他 | アイドルライブDB",
+    "description": "ブランドのアイドル・ユニット・ライブ・楽曲。",
+    "canonical": "https://idollivedb.fugaapp.site/brands/other/",
+    "ogImage": "https://idollivedb.fugaapp.site/og/default.png",
+    "robots": "noindex,follow",
+    "jsonLd": {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebPage",
+          "name": "その他",
+          "url": "https://idollivedb.fugaapp.site/brands/other/"
+        },
+        {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "item": "https://idollivedb.fugaapp.site/",
+              "name": "ホーム",
+              "position": 1
+            },
+            {
+              "@type": "ListItem",
+              "item": "https://idollivedb.fugaapp.site/brands/",
+              "name": "ブランド",
+              "position": 2
+            }
+          ]
+        }
+      ]
+    },
+    "breadcrumbs": [
+      {
+        "name": "ホーム",
+        "path": "/"
+      },
+      {
+        "name": "ブランド",
+        "path": "/brands/"
+      }
+    ]
+  }
+}

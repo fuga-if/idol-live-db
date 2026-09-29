@@ -21,7 +21,6 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items as lazyGridItems
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Circle
@@ -62,10 +61,12 @@ import com.fugaif.imaslivedb.ui.components.BrandFilterChips
 import com.fugaif.imaslivedb.ui.components.BrandFilterItem
 import com.fugaif.imaslivedb.ui.components.ImasAvatar
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.theme.ImasTheme
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import com.fugaif.imaslivedb.ui.components.rememberSearchFiltered
 
 data class IdolPickerUiState(
     val idols: List<Idol> = emptyList(),
@@ -82,7 +83,7 @@ class IdolPickerViewModel(app: Application) : AndroidViewModel(app) {
 
     init {
         viewModelScope.launch {
-            val idols = runCatching { idolRepo.fetchIdols(null) }.getOrDefault(emptyList())
+            val idols = runCatching { idolRepo.fetchIdols() }.getOrDefault(emptyList())
             val brands = runCatching { statsRepo.fetchBrands() }.getOrDefault(emptyList())
             _uiState.value = IdolPickerUiState(idols = idols, brands = brands, isLoading = false)
         }
@@ -112,12 +113,21 @@ fun IdolPollCandidatePicker(
     var selectedBrandId by remember { mutableStateOf<String?>(null) }
     var displayMode by remember { mutableStateOf(PickerDisplayMode.GRID) }
 
-    val filtered = remember(state.idols, query, selectedBrandId) {
-        val q = query.trim().lowercase()
-        state.idols.filter { idol ->
-            (selectedBrandId == null || idol.brandId == selectedBrandId) &&
-                (q.isEmpty() || idol.name.lowercase().contains(q) || idol.nameKana?.lowercase()?.contains(q) == true)
-        }
+    // 数百件を一気にスクロールするピッカー。行ごとに derive すると、その間ずっと 1 行 1 回
+    // FFI を跨ぐ。行が組まれる前に母集団ぶんを 1 往復で温め、行はメモに当てる。
+    // 鍵を filtered ではなく母集団にするのは、行が引く色が絞り込みで変わらないため
+    // (打鍵のたびに温め直しても新しい組は 1 件も無い)。
+    remember(state.idols) {
+        ImasTheme.prewarm(state.idols.map { it.color to it.brandId })
+    }
+
+    // 語で絞ってからブランドで絞る (索引は母集団全体で組んであるため)。並びは入力順のまま。
+    // CV 名・別名でも引けるようにする (声優名で探すのは主要な導線)。
+    val matched = rememberSearchFiltered(state.idols, query) {
+        listOf(it.name, it.nameKana, it.currentVoiceActor, it.aliases)
+    }
+    val filtered = remember(matched, selectedBrandId) {
+        matched.filter { selectedBrandId == null || it.brandId == selectedBrandId }
     }
     val grouped = remember(filtered, state.brands) {
         state.brands.mapNotNull { brand ->
@@ -163,7 +173,7 @@ fun IdolPollCandidatePicker(
             OutlinedTextField(
                 value = query,
                 onValueChange = { query = it },
-                placeholder = { Text("アイドル名で検索") },
+                placeholder = { Text("アイドル名 / CV名で検索") },
                 leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
                 trailingIcon = {
                     if (query.isNotEmpty()) {
@@ -227,10 +237,15 @@ fun IdolPollCandidatePicker(
                 Button(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text("キャンセル") }
                 Button(
                     onClick = {
-                        val newIds = (selection - alreadySelected).toList().take(remaining)
-                        onConfirm(newIds)
+                        // 選択は選択肢の表示順 (ブランド順 → 一覧の並び) で返す。
+                        // 何を入れて何を取り消すか・残りの票数での打ち切りはコア (planVoteSelection)。
+                        val ordered = state.brands
+                            .flatMap { brand -> state.idols.filter { it.brandId == brand.id } }
+                            .map { it.id }
+                            .filter { it in selection }
+                        onConfirm(ordered + (selection - ordered.toSet()))
                     },
-                    enabled = (selection - alreadySelected).isNotEmpty(),
+                    enabled = selection != alreadySelected,
                     modifier = Modifier.weight(1f)
                 ) { Text("決定") }
             }
@@ -246,7 +261,7 @@ private fun IdolGridCell(idol: Idol, isSelected: Boolean, onClick: () -> Unit) {
     ) {
         Box(contentAlignment = Alignment.BottomEnd) {
             Box(modifier = Modifier.background(if (isSelected) DS.fill else Color.Transparent, CircleShape)) {
-                ImasAvatar(label = idol.name, seed = idol.color, brand = idol.brandId, size = 56.dp)
+                ImasAvatar(label = idol.shortName, seed = idol.color, brand = idol.brandId, size = 56.dp)
             }
             Icon(
                 if (isSelected) Icons.Filled.CheckCircle else Icons.Filled.Circle,
@@ -269,7 +284,7 @@ private fun IdolListRow(idol: Idol, isSelected: Boolean, onClick: () -> Unit) {
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        ImasAvatar(label = idol.name, seed = idol.color, brand = idol.brandId, size = 40.dp)
+        ImasAvatar(label = idol.shortName, seed = idol.color, brand = idol.brandId, size = 40.dp)
         Column(Modifier.weight(1f).padding(start = 12.dp)) {
             Text(idol.name, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink,
                 maxLines = 1, overflow = TextOverflow.Ellipsis)

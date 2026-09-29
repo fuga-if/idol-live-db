@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "id": "ev_empty",
+  "path": "/events/ev_empty/",
+  "name": "公演未定のライブ",
+  "nameKana": "さんぷるらいぶ",
+  "themeKey": "neutral",
+  "brand": {
+    "kind": "brand",
+    "id": "ml",
+    "name": "アイドルマスター ミリオンライブ!",
+    "sub": "ML",
+    "path": "/brands/ml/",
+    "themeKey": "brand:ml",
+    "artworkUrl": null
+  },
+  "jointBrands": [],
+  "kind": "live",
+  "kindLabel": "ライブ",
+  "dateDisplay": "2026-04-03 (金) 〜 2026-04-04 (土)",
+  "isUpcoming": true,
+  "ticket": {
+    "dates": [
+      {
+        "label": "受付開始",
+        "date": "2026-02-01"
+      },
+      {
+        "label": "申込締切",
+        "date": "2026-02-20"
+      }
+    ],
+    "url": "https://example.com/ticket"
+  },
+  "statTiles": [],
+  "shows": [],
+  "showsEmpty": {
+    "title": "公演がまだ登録されていません",
+    "body": null
+  },
+  "cast": null,
+  "releases": [],
+  "venues": [],
+  "app": {
+    "title": "アプリ「アイドルライブDB」",
+    "appStoreUrl": "https://apps.apple.com/jp/app/id6763342297",
+    "deeplink": "imaslivedb://events/ev_empty",
+    "note": "参加記録・投票・歌詞・コール・タグ付けはアプリでご利用いただけます。"
+  },
+  "seo": {
+    "title": "公演未定のライブ | アイドルライブDB",
+    "description": "ライブの公演・セットリスト・出演者。",
+    "canonical": "https://idollivedb.fugaapp.site/events/ev_empty/",
+    "ogImage": "https://idollivedb.fugaapp.site/og/default.png",
+    "robots": "index,follow",
+    "jsonLd": {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebPage",
+          "name": "公演未定のライブ",
+          "url": "https://idollivedb.fugaapp.site/events/ev_empty/"
+        },
+        {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "item": "https://idollivedb.fugaapp.site/",
+              "name": "ホーム",
+              "position": 1
+            },
+            {
+              "@type": "ListItem",
+              "item": "https://idollivedb.fugaapp.site/events/",
+              "name": "ライブ",
+              "position": 2
+            }
+          ]
+        }
+      ]
+    },
+    "breadcrumbs": [
+      {
+        "name": "ホーム",
+        "path": "/"
+      },
+      {
+        "name": "ライブ",
+        "path": "/events/"
+      }
+    ]
+  }
+}

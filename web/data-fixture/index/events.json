@@ -1,0 +1,240 @@
+{
+  "schemaVersion": 1,
+  "path": "/events/",
+  "title": "ライブ",
+  "kind": "index",
+  "groups": [
+    {
+      "year": "2026年",
+      "events": [
+        {
+          "ref": {
+            "kind": "event",
+            "id": "ev_sample",
+            "name": "THE IDOLM@STER MILLION LIVE! 10thLIVE TOUR Act-4 ROAD TO MEMORIES 幕張",
+            "sub": "2026",
+            "path": "/events/ev_sample/",
+            "themeKey": "brand:ml",
+            "artworkUrl": null
+          },
+          "dateBadge": {
+            "iso": "2026-04-03",
+            "year": "2026",
+            "monthDay": "4/3",
+            "weekday": "金",
+            "spoken": "2026年4月3日 金曜日"
+          },
+          "endDisplay": "〜 4/4 (土)",
+          "brandMark": {
+            "kind": "brand",
+            "id": "ml",
+            "name": "アイドルマスター ミリオンライブ!",
+            "sub": "ML",
+            "path": "/brands/ml/",
+            "themeKey": "brand:ml",
+            "artworkUrl": null
+          },
+          "venueDisplay": "幕張メッセ",
+          "showCountDisplay": "2 公演",
+          "kind": "live",
+          "kindLabel": null
+        }
+      ],
+      "months": [
+        {
+          "number": "9",
+          "unit": "月",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "year": "2025年",
+      "events": [
+        {
+          "ref": {
+            "kind": "event",
+            "id": "ev_the_idolm@ster_×_ふたご",
+            "name": "THE IDOLM@STER × ふたご星",
+            "sub": "2025",
+            "path": "/events/ev_the_idolm%40ster_%C3%97_%E3%81%B5%E3%81%9F%E3%81%94/",
+            "themeKey": "brand:cg",
+            "artworkUrl": null
+          },
+          "dateBadge": {
+            "iso": "2026-04-03",
+            "year": "2026",
+            "monthDay": "4/3",
+            "weekday": "金",
+            "spoken": "2026年4月3日 金曜日"
+          },
+          "endDisplay": "〜 4/4 (土)",
+          "brandMark": {
+            "kind": "brand",
+            "id": "ml",
+            "name": "アイドルマスター ミリオンライブ!",
+            "sub": "ML",
+            "path": "/brands/ml/",
+            "themeKey": "brand:ml",
+            "artworkUrl": null
+          },
+          "venueDisplay": "幕張メッセ",
+          "showCountDisplay": "2 公演",
+          "kind": "festival",
+          "kindLabel": "フェス"
+        }
+      ],
+      "months": [
+        {
+          "number": "9",
+          "unit": "月",
+          "count": 1
+        }
+      ]
+    }
+  ],
+  "recentPast": {
+    "year": "2025年",
+    "events": [
+      {
+        "ref": {
+          "kind": "event",
+          "id": "ev_the_idolm@ster_×_ふたご",
+          "name": "THE IDOLM@STER × ふたご星",
+          "sub": "2025",
+          "path": "/events/ev_the_idolm%40ster_%C3%97_%E3%81%B5%E3%81%9F%E3%81%94/",
+          "themeKey": "brand:cg",
+          "artworkUrl": null
+        },
+        "dateBadge": {
+          "iso": "2026-04-03",
+          "year": "2026",
+          "monthDay": "4/3",
+          "weekday": "金",
+          "spoken": "2026年4月3日 金曜日"
+        },
+        "endDisplay": "〜 4/4 (土)",
+        "brandMark": {
+          "kind": "brand",
+          "id": "ml",
+          "name": "アイドルマスター ミリオンライブ!",
+          "sub": "ML",
+          "path": "/brands/ml/",
+          "themeKey": "brand:ml",
+          "artworkUrl": null
+        },
+        "venueDisplay": "幕張メッセ",
+        "showCountDisplay": "2 公演",
+        "kind": "festival",
+        "kindLabel": "フェス"
+      }
+    ],
+    "months": [
+      {
+        "number": "9",
+        "unit": "月",
+        "count": 1
+      }
+    ]
+  },
+  "recentPastTitle": "開催済み (2025年)",
+  "next": {
+    "label": "開催済みのライブをすべて見る",
+    "path": "/events/past/",
+    "current": false,
+    "themeKey": null,
+    "count": 827
+  },
+  "scope": {
+    "label": "今後 / 開催済み",
+    "links": [
+      {
+        "label": "今後のライブ",
+        "path": "/events/upcoming/",
+        "current": false,
+        "themeKey": null,
+        "count": 24
+      },
+      {
+        "label": "開催済み",
+        "path": "/events/past/",
+        "current": false,
+        "themeKey": null,
+        "count": 827
+      },
+      {
+        "label": "カレンダー",
+        "path": "/calendar/",
+        "current": false,
+        "themeKey": null,
+        "count": null
+      }
+    ],
+    "islandKey": null
+  },
+  "filters": [
+    {
+      "label": "ブランド",
+      "links": [
+        {
+          "label": "すべて",
+          "path": "/events/",
+          "current": true,
+          "themeKey": null,
+          "count": null
+        },
+        {
+          "label": "ミリオンライブ!",
+          "path": "/events/brand/ml/",
+          "current": false,
+          "themeKey": "brand:ml",
+          "count": 210
+        },
+        {
+          "label": "シンデレラガールズ",
+          "path": "/events/brand/cg/",
+          "current": false,
+          "themeKey": "brand:cg",
+          "count": 180
+        }
+      ],
+      "islandKey": null
+    }
+  ],
+  "total": 2,
+  "empty": null,
+  "seo": {
+    "title": "ライブ | アイドルライブDB",
+    "description": "ライブの一覧。",
+    "canonical": "https://idollivedb.fugaapp.site/events/",
+    "ogImage": "https://idollivedb.fugaapp.site/og/default.png",
+    "robots": "index,follow",
+    "jsonLd": {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebPage",
+          "name": "ライブ",
+          "url": "https://idollivedb.fugaapp.site/events/"
+        },
+        {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "item": "https://idollivedb.fugaapp.site/",
+              "name": "ホーム",
+              "position": 1
+            }
+          ]
+        }
+      ]
+    },
+    "breadcrumbs": [
+      {
+        "name": "ホーム",
+        "path": "/"
+      }
+    ]
+  }
+}

@@ -1,0 +1,9 @@
+{
+ "title": "songs の 765as_恋だもん初級編 に歌詞ページの URL を入れる (issue #135)",
+ "author": "daily-data-crawl 2026-09-24 (GitHub issue #135)",
+ "source": "https://www.uta-net.com/song/71505/",
+ "note": "リンク先の曲名 (恋だもん～初級編～) と歌唱 (天海春香・高槻やよい) が一致することを確認。",
+ "fixes": [
+  {"table": "songs", "id": "765as_恋だもん初級編", "fields": {"lyrics_url": "https://www.uta-net.com/song/71505/"}}
+ ]
+}

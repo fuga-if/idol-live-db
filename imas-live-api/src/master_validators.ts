@@ -6,7 +6,6 @@
 // admin はフィールド allowlist を免除 (構造マスタの保守のため)。
 
 import {
-  ckFieldType,
   isKnownRecordType,
   ADMIN_ONLY_TYPES,
   NO_CREATE_TYPES,
@@ -26,7 +25,6 @@ const YOUTUBE_URL_RE =
   /^https:\/\/(?:(?:www\.|m\.)?youtube\.com\/(?:watch\?[^\s]*\bv=|shorts\/|embed\/|live\/)[\w-]+|youtu\.be\/[\w-]+)(?:[?&#][^\s]*)?$/;
 const MAX_STR_DEFAULT = 500;
 const MAX_STR_LONG = 2000;
-const MAX_STR_CALL = 5000; // SongCall.callText (コーレスは長文になりうる)
 
 interface FieldRule {
   type: CKFieldType;
@@ -50,6 +48,10 @@ const FIELD_RULES: Record<string, Record<string, FieldRule>> = {
     eventType: { type: "STRING", maxLen: 100 },
     isSolo: { type: "INT64", min: 0, max: 1 },
     isStreaming: { type: "INT64", min: 0, max: 1 },
+    // 受付開始・締切・当落は 3 つで 1 組。`ticketOpenDate` だけ規則が無く、
+    // 一般ユーザーが受付開始を入れるとイベント編集が丸ごと 400 になっていた
+    // (CloudKit にも DB にも列はあり、iOS/Android どちらも送っている)。
+    ticketOpenDate: { type: "STRING", maxLen: 100 },
     ticketDeadline: { type: "STRING", maxLen: 100 },
     ticketLotteryDate: { type: "STRING", maxLen: 100 },
     ticketUrl: { type: "STRING", url: "http", maxLen: MAX_STR_DEFAULT },
@@ -60,9 +62,16 @@ const FIELD_RULES: Record<string, Record<string, FieldRule>> = {
     eventId: { type: "STRING", required: true, maxLen: 200 },
     date: { type: "STRING", pattern: ISO_DATE_RE },
     venue: { type: "STRING", maxLen: 200 },
+    // venueId は会場マスタへの参照。表示名は Venue/VenueName 側から解決するので、
+    // venue (生文字列) は会場が特定できない公演のフォールバックとして残している。
+    venueId: { type: "STRING", maxLen: 200 },
+    hall: { type: "STRING", maxLen: 200 },
+    streamPlatform: { type: "STRING", maxLen: 200 },
     venueCity: { type: "STRING", maxLen: 100 },
     startTime: { type: "STRING", maxLen: 20 },
     performerType: { type: "STRING", maxLen: 50 },
+    // 会場の形態 (NULL = 観客のいる会場 / online = 会場の舞台なし / closed = 無観客)。
+    venueMode: { type: "STRING", maxLen: 20 },
     sortOrder: { type: "INT64", min: 0 },
   },
   Idol: {
@@ -111,6 +120,9 @@ const FIELD_RULES: Record<string, Record<string, FieldRule>> = {
     releaseDate: { type: "STRING", pattern: ISO_DATE_RE },
     singerLabel: { type: "STRING", maxLen: 300 },
     isrc: { type: "STRING", maxLen: 20 },
+    // 曲の補足 (「ミリシタ 1 周年記念楽曲」など)。曲詳細の曲名の下に 1 文で出す自由文。
+    // 利用者からの投稿が主な入口なので、長文にならないよう短めに切る。
+    note: { type: "STRING", maxLen: 200 },
   },
   SetlistItem: {
     showId: { type: "STRING", required: true, maxLen: 200 },
@@ -135,14 +147,9 @@ const FIELD_RULES: Record<string, Record<string, FieldRule>> = {
     idolId: { type: "STRING", required: true, maxLen: 200 },
     castId: { type: "STRING", maxLen: 200 },
   },
-  // コーレス (確定契約 §4)。フィールド名は CKRecordMapper.songCall に厳密一致。
-  // createdAt(TIMESTAMP)/authorDisplayName は allowlist 外 = ユーザーは送れない (createdAt はサーバ注入)。
-  SongCall: {
-    songId: { type: "STRING", required: true, maxLen: 200 },
-    callText: { type: "STRING", required: true, maxLen: MAX_STR_CALL },
-    sourceUrl: { type: "STRING", url: "http", maxLen: MAX_STR_DEFAULT },
-  },
   // 参考動画 (確定契約 §4)。フィールド名は CKRecordMapper.songVideo に厳密一致。
+  // createdAt(TIMESTAMP)/authorDisplayName は allowlist 外 = ユーザーは送れない (createdAt はサーバ注入)。
+  // コーレス (SongCall) は 2026-09-06 に廃止 (歌詞行につけるコールガイドに置き換わった)。
   SongVideo: {
     songId: { type: "STRING", required: true, maxLen: 200 },
     youtubeUrl: { type: "STRING", required: true, url: "youtube", maxLen: MAX_STR_DEFAULT },

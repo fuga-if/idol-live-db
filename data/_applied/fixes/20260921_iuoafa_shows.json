@@ -1,0 +1,30 @@
+{
+ "title": "765×961 IDOL ULTIMATE ONCE AND FOR ALL の公演名・開演時刻・会場 id を入れる",
+ "author": "daily-data-crawl",
+ "_help": "公演名がイベント名のままだった。3 本目の追加は data/events/20260921_iuoafa_third_show.json。",
+ "fixes": [
+  {
+   "table": "shows",
+   "id": "sh_765_production_×_961_production_idol_ultimate_once_and_for_all_1",
+   "fields": {
+    "name": "第一公演 TO:STARLIT OF PROMISE",
+    "start_time": "18:00",
+    "venue_id": "venue_京王アリーナtokyo",
+    "sort_order": 0
+   },
+   "note": "公式: 2027年7月24日(土) 第一公演 TO:STARLIT OF PROMISE 開場17:00 / 開演18:00 (https://idolmaster-official.jp/news/01_19816.html)"
+  },
+  {
+   "table": "shows",
+   "id": "sh_765_production_×_961_production_idol_ultimate_once_and_for_all_2",
+   "fields": {
+    "name": "第二公演 BE:STELLA OF ABSOLUTE",
+    "date": "2027-07-25",
+    "start_time": "12:00",
+    "venue_id": "venue_京王アリーナtokyo",
+    "sort_order": 1
+   },
+   "note": "公式: 2027年7月25日(日) 第二公演 BE:STELLA OF ABSOLUTE 開場11:00 / 開演12:00 (https://idolmaster-official.jp/news/01_19816.html)"
+  }
+ ]
+}

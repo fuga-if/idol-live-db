@@ -1,0 +1,111 @@
+name: schema-guard
+
+# CloudKit スキーマ (tools/cloudkit_schema.ckdb) を変える PR の門番と、マージ後の TODO 起票。
+#
+# なぜマージで自動適用しないのか:
+#   - CloudKit の Production スキーマは足すことしかできず、流したら戻せない。
+#     develop へのマージはリリースではないので、そこで本番の形を確定させたくない。
+#   - cktool の import-schema は Development しか受け付けない。Production への昇格は
+#     Dashboard の Deploy Schema Changes (人の操作) が仕様上の唯一の道。
+#   - 端末の SQLite 側は、アプリ起動時に imas-core の ensure_master_schema が
+#     追加のみで冪等に寄せる。こちらは既に「マージすれば勝手に反映される」。
+# だから CI は「流しても安全な形か」を PR で機械的に落とし、マージ後はオーナーの
+# 手順を Issue に起こすところまでやる。
+#
+# ⚠️ secret は一切使わない (CloudKit の鍵は environment "cloudkit" 側にだけある)。
+on:
+  pull_request:
+    paths:
+      - "tools/cloudkit_schema.ckdb"
+      - "tools/check_ckdb_schema.py"
+      - ".github/workflows/schema-guard.yml"
+  push:
+    branches: [develop]
+    paths:
+      - "tools/cloudkit_schema.ckdb"
+      - "imas-live-api/migrations/**"
+
+jobs:
+  check:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Check ckdb is additive only
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: python3 tools/check_ckdb_schema.py --base "$BASE_SHA" --summary "$GITHUB_STEP_SUMMARY"
+
+  # develop に入ったら、オーナーが本番へ反映するまでの TODO を Issue にする。
+  # 反映そのものは人がやる (上の理由)。忘れて「ckdb に足したから済み」にならないように。
+  # Worker の D1 migration も同じ扱い: 本番では流さずに「適用済み」と記録すべきものがあり
+  # (imas-live-api/README.md「D1 migration 適用」)、Worker のデプロイと順序を合わせる必要もある。
+  track:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Summarize the change
+        env:
+          BEFORE: ${{ github.event.before }}
+          SHA: ${{ github.sha }}
+        run: |
+          : > body.md
+          # force push などで前のコミットが無いときは比べようがないので、何もしない
+          if ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            echo "前のコミット ($BEFORE) が無いので比較しない"; exit 0
+          fi
+          if ! git diff --quiet "$BEFORE" "$SHA" -- tools/cloudkit_schema.ckdb; then
+            python3 tools/check_ckdb_schema.py --base "$BEFORE" --summary body.md
+          fi
+          added=$(git diff --name-only --diff-filter=A "$BEFORE" "$SHA" -- 'imas-live-api/migrations/*.sql')
+          if [ -n "$added" ]; then
+            {
+              echo "## D1 migration の追加"
+              echo
+              for f in $added; do echo "- \`$f\`"; done
+              echo
+              echo "### マージ後にオーナーがやること"
+              echo
+              echo '1. `cd imas-live-api && npx wrangler d1 migrations list imas-live-db --remote` で未適用を確認'
+              echo '2. README「D1 migration 適用」の「本番では流さないもの」が並んでいないか確認'
+              echo '3. `npx wrangler d1 migrations apply imas-live-db --remote` → Worker をデプロイ'
+            } >> body.md
+          fi
+          cat body.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Open a tracking issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.sha }}
+          REPO: ${{ github.repository }}
+        run: |
+          if ! grep -q "マージ後にオーナーがやること" body.md; then
+            echo "追加項目なし。Issue は作らない"; exit 0
+          fi
+          printf '\n---\n対象コミット: https://github.com/%s/commit/%s\n\n本番へ反映したら close してください。\n' "$REPO" "$SHA" >> body.md
+          gh issue create --repo "$REPO" \
+            --title "本番スキーマ反映待ち (${SHA:0:7})" \
+            --body-file body.md \
+            --assignee "${{ github.repository_owner }}"

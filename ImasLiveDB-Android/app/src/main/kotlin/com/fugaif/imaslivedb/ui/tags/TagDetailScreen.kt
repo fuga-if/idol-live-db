@@ -45,7 +45,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fugaif.imaslivedb.ui.components.SongRow
 import com.fugaif.imaslivedb.ui.theme.DS
 
-/** タグ詳細。iOS TagDetailView の移植 (説明 + 付いた曲ランキング + 編集/履歴/通報)。 */
+/** 曲タグ詳細。iOS TagDetailView の移植 (説明 + 付いた曲ランキング + 編集/履歴/通報)。
+ * アイドルタグは idol_tag_master に分離済みなので IdolTagDetailScreen 側にある。 */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TagDetailScreen(
@@ -156,7 +157,7 @@ fun TagDetailScreen(
                                 TagRankBadge(idx + 1)
                                 if (song != null) {
                                     SongRow(
-                                        title = song.title,
+                                        title = song.title, songId = song.id,
                                         artistNames = song.singerLabel ?: "",
                                         unitName = song.unitName,
                                         artworkUrl = song.artworkUrl,

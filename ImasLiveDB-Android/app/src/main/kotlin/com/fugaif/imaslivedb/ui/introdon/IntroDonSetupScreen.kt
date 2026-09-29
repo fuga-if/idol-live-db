@@ -87,14 +87,14 @@ data class IntroDonSetupUiState(
 
 class IntroDonSetupViewModel(app: Application) : AndroidViewModel(app) {
     private val songRepository = AppModule.from(app).songRepository
-    private val brandDao = AppModule.from(app).database.brandDao()
+    private val stats = AppModule.from(app).statsRepository
 
     private val _uiState = MutableStateFlow(IntroDonSetupUiState())
     val uiState: StateFlow<IntroDonSetupUiState> = _uiState.asStateFlow()
 
     init {
         viewModelScope.launch {
-            val brands = brandDao.fetchBrands()
+            val brands = stats.fetchBrands()
             _uiState.value = _uiState.value.copy(brands = brands)
             estimatePool()
         }

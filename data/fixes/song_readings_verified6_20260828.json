@@ -1,0 +1,286 @@
+{
+ "title": "曲名の読み仮名を裏取りして訂正する (第6陣) と「ゔ」の統一",
+ "_help": "外部の かな表記 DB との機械照合で食い違った日本語題 38 件を 1 件ずつ裁定した結果。当方が誤っていた 10 件と、表記ゆれの統一。先方が誤っていた 25 件 (Bluesy→ブルーシー / Big Star→ビックスター / Script→スプリクト / 碧空→あおぞら / 行こう→ゆこう) は当方のまま据え置いた。",
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "765as_エージェント夜を往く",
+   "fields": {
+    "title_kana": "えーじぇんとよるをゆく"
+   },
+   "note": "往く=ゆく。出典 https://dic.nicovideo.jp/a/%E3%82%A8%E3%83%BC%E3%82%B8%E3%82%A7%E3%83%B3%E3%83%88%E5%A4%9C%E3%82%92%E5%BE%80%E3%81%8F"
+  },
+  {
+   "table": "songs",
+   "id": "765as_エージェント夜を往くローリングサンダーファミソン8bit_mix",
+   "fields": {
+    "title_kana": "えーじぇんとよるをゆく"
+   },
+   "note": "派生曲。親 765as_エージェント夜を往く に追随 (往く=ゆく)。出典 https://dic.nicovideo.jp/a/%E3%82%A8%E3%83%BC%E3%82%B8%E3%82%A7%E3%83%B3%E3%83%88%E5%A4%9C%E3%82%92%E5%BE%80%E3%81%8F"
+  },
+  {
+   "table": "songs",
+   "id": "765as_エージェント夜を往くhoover_acid_mix",
+   "fields": {
+    "title_kana": "えーじぇんとよるをゆく"
+   },
+   "note": "派生曲。親 765as_エージェント夜を往く に追随 (往く=ゆく)。出典 https://dic.nicovideo.jp/a/%E3%82%A8%E3%83%BC%E3%82%B8%E3%82%A7%E3%83%B3%E3%83%88%E5%A4%9C%E3%82%92%E5%BE%80%E3%81%8F"
+  },
+  {
+   "table": "songs",
+   "id": "765as_エージェント夜を往くremster-a",
+   "fields": {
+    "title_kana": "えーじぇんとよるをゆく"
+   },
+   "note": "派生曲。親 765as_エージェント夜を往く に追随 (往く=ゆく)。出典 https://dic.nicovideo.jp/a/%E3%82%A8%E3%83%BC%E3%82%B8%E3%82%A7%E3%83%B3%E3%83%88%E5%A4%9C%E3%82%92%E5%BE%80%E3%81%8F"
+  },
+  {
+   "table": "songs",
+   "id": "765as_エージェント夜を往くremster-b",
+   "fields": {
+    "title_kana": "えーじぇんとよるをゆく"
+   },
+   "note": "派生曲。親 765as_エージェント夜を往く に追随 (往く=ゆく)。出典 https://dic.nicovideo.jp/a/%E3%82%A8%E3%83%BC%E3%82%B8%E3%82%A7%E3%83%B3%E3%83%88%E5%A4%9C%E3%82%92%E5%BE%80%E3%81%8F"
+  },
+  {
+   "table": "songs",
+   "id": "765as_天と海の島",
+   "fields": {
+    "title_kana": "てんとうみのしま"
+   },
+   "note": "天=てん。12曲の頭文字が「かえってきましたぷちどる」になる仕掛けで、この曲は「て」の位置。出典 https://ja.wikipedia.org/wiki/PETIT_IDOLM@STER_Twelve_Campaigns!"
+  },
+  {
+   "table": "songs",
+   "id": "cg_-legne-_仇なす剣_光の旋律",
+   "fields": {
+    "title_kana": "えんげるあだなすつるぎひかりのしらべ"
+   },
+   "note": "LEGNE=ENGEL の逆綴り。旋律は歌詞ルビどおり しらべ。出典 https://utaten.com/lyric/sa15050851/"
+  },
+  {
+   "table": "songs",
+   "id": "cg_nornotes_of_revolution革命についての覚書",
+   "fields": {
+    "title_kana": "のーつおぶれぼりゅーしょんかくめいについてのおぼえがき"
+   },
+   "note": "N.O.R. を「のあ」と誤読し、副題も脱落していた。出典 https://dic.nicovideo.jp/a/N.O.R."
+  },
+  {
+   "table": "songs",
+   "id": "cg_sweet_witches_night_6人目はだぁれ",
+   "fields": {
+    "title_kana": "すいーとうぃっちーずないとろくにんめはだぁれ"
+   },
+   "note": "副題が丸ごと脱落。Witches も うぃっちーず。出典 https://dic.nicovideo.jp/a/Sweet%20Witches%27%20Night"
+  },
+  {
+   "table": "songs",
+   "id": "cg_twinくるっテール",
+   "fields": {
+    "title_kana": "とぅいんくるってーる"
+   },
+   "note": "Twin=とぅいん (Twinkle の語呂)。出典 https://dic.nicovideo.jp/a/Twin%E2%98%86%E3%81%8F%E3%82%8B%E3%81%A3%E2%98%85%E3%83%86%E3%83%BC%E3%83%AB"
+  },
+  {
+   "table": "songs",
+   "id": "ml_君との明日を願うから",
+   "fields": {
+    "title_kana": "きみとのあすをねがうから"
+   },
+   "note": "明日=あす。出典 https://dic.nicovideo.jp/a/%E5%90%9B%E3%81%A8%E3%81%AE%E6%98%8E%E6%97%A5%E3%82%92%E9%A1%98%E3%81%86%E3%81%8B%E3%82%89"
+  },
+  {
+   "table": "songs",
+   "id": "ml_恋花",
+   "fields": {
+    "title_kana": "こいはな"
+   },
+   "note": "こいはな。ニコニコ大百科が同名異曲を読み分けて明記。出典 https://dic.nicovideo.jp/a/%E6%81%8B%E8%8A%B1"
+  },
+  {
+   "table": "songs",
+   "id": "ml_恋花snails_house_remix",
+   "fields": {
+    "title_kana": "こいはな"
+   },
+   "note": "派生曲。親 ml_恋花 に追随 (こいはな。ニコニコ大百科が同名異曲を読み分けて明記)。出典 https://dic.nicovideo.jp/a/%E6%81%8B%E8%8A%B1"
+  },
+  {
+   "table": "songs",
+   "id": "ml_想いはcarnaval",
+   "fields": {
+    "title_kana": "おもいはかるなばる"
+   },
+   "note": "Carnaval=カルナバル。ドラマパートでもそう発話。出典 https://dic.nicovideo.jp/a/%E6%83%B3%E3%81%84%E3%81%AFCarnaval"
+  },
+  {
+   "table": "songs",
+   "id": "ml_想いはcarnavalチバニャン_remix",
+   "fields": {
+    "title_kana": "おもいはかるなばる"
+   },
+   "note": "派生曲。親 ml_想いはcarnaval に追随 (Carnaval=カルナバル。ドラマパートでもそう発話)。出典 https://dic.nicovideo.jp/a/%E6%83%B3%E3%81%84%E3%81%AFCarnaval"
+  },
+  {
+   "table": "songs",
+   "id": "ml_満腹至極フルコォス",
+   "fields": {
+    "title_kana": "まんぷくしごくふるこぉす"
+   },
+   "note": "至極=しごく。出典 https://dic.nicovideo.jp/a/%E6%BA%80%E8%85%B9%E8%87%B3%E6%A5%B5%E3%83%95%E3%83%AB%E3%82%B3%E3%82%A9%E3%82%B9"
+  },
+  {
+   "table": "songs",
+   "id": "sc_ambitious_eve",
+   "fields": {
+    "title_kana": "あんびしゃすいぶ"
+   },
+   "note": "読みの「ゔ」をば行に統一する。読みは検索キーで、IME で berubetto と打つ人に当てたい。3,117 曲中この 19 曲だけが「ゔ」で、残りは全てば行だった。"
+  },
+  {
+   "table": "songs",
+   "id": "cg_ヒーローヴァーサスレイナンジョー",
+   "fields": {
+    "title_kana": "ひーろーばーさすれいなんじょー"
+   },
+   "note": "読みの「ゔ」をば行に統一する。読みは検索キーで、IME で berubetto と打つ人に当てたい。3,117 曲中この 19 曲だけが「ゔ」で、残りは全てば行だった。"
+  },
+  {
+   "table": "songs",
+   "id": "sc_black_reverie",
+   "fields": {
+    "title_kana": "ぶらっくれぶりー"
+   },
+   "note": "読みの「ゔ」をば行に統一する。読みは検索キーで、IME で berubetto と打つ人に当てたい。3,117 曲中この 19 曲だけが「ゔ」で、残りは全てば行だった。"
+  },
+  {
+   "table": "songs",
+   "id": "cg_the_villains_night",
+   "fields": {
+    "title_kana": "ざびらんずないと"
+   },
+   "note": "読みの「ゔ」をば行に統一する。読みは検索キーで、IME で berubetto と打つ人に当てたい。3,117 曲中この 19 曲だけが「ゔ」で、残りは全てば行だった。"
+  },
+  {
+   "table": "songs",
+   "id": "765as_velvet_quiet",
+   "fields": {
+    "title_kana": "べるべっとくわいえっと"
+   },
+   "note": "読みの「ゔ」をば行に統一する。読みは検索キーで、IME で berubetto と打つ人に当てたい。3,117 曲中この 19 曲だけが「ゔ」で、残りは全てば行だった。"
+  },
+  {
+   "table": "songs",
+   "id": "765as_アイシテの呪縛je_vous_aime",
+   "fields": {
+    "title_kana": "あいしてのじゅばくじゅぶぜーむ"
+   },
+   "note": "読みの「ゔ」をば行に統一する。読みは検索キーで、IME で berubetto と打つ人に当てたい。3,117 曲中この 19 曲だけが「ゔ」で、残りは全てば行だった。"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_pavé_étoiles",
+   "fields": {
+    "title_kana": "ぱべえとわーる"
+   },
+   "note": "読みの「ゔ」をば行に統一する。読みは検索キーで、IME で berubetto と打つ人に当てたい。3,117 曲中この 19 曲だけが「ゔ」で、残りは全てば行だった。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_criminally_dinner_正餐とイーヴルナイフ",
+   "fields": {
+    "title_kana": "くりみなりーでぃなーせいさんといーぶるないふ"
+   },
+   "note": "読みの「ゔ」をば行に統一する。読みは検索キーで、IME で berubetto と打つ人に当てたい。3,117 曲中この 19 曲だけが「ゔ」で、残りは全てば行だった。"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_アイヴイ",
+   "fields": {
+    "title_kana": "あいぶい"
+   },
+   "note": "読みの「ゔ」をば行に統一する。読みは検索キーで、IME で berubetto と打つ人に当てたい。3,117 曲中この 19 曲だけが「ゔ」で、残りは全てば行だった。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_hypernova",
+   "fields": {
+    "title_kana": "はいぱーのば"
+   },
+   "note": "読みの「ゔ」をば行に統一する。読みは検索キーで、IME で berubetto と打つ人に当てたい。3,117 曲中この 19 曲だけが「ゔ」で、残りは全てば行だった。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_iv",
+   "fields": {
+    "title_kana": "いぶ"
+   },
+   "note": "読みの「ゔ」をば行に統一する。読みは検索キーで、IME で berubetto と打つ人に当てたい。3,117 曲中この 19 曲だけが「ゔ」で、残りは全てば行だった。"
+  },
+  {
+   "table": "songs",
+   "id": "876_ヴヴヴ",
+   "fields": {
+    "title_kana": "ぶぶぶ"
+   },
+   "note": "読みの「ゔ」をば行に統一する。読みは検索キーで、IME で berubetto と打つ人に当てたい。3,117 曲中この 19 曲だけが「ゔ」で、残りは全てば行だった。"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_supernova",
+   "fields": {
+    "title_kana": "すーぱーのば"
+   },
+   "note": "読みの「ゔ」をば行に統一する。読みは検索キーで、IME で berubetto と打つ人に当てたい。3,117 曲中この 19 曲だけが「ゔ」で、残りは全てば行だった。"
+  },
+  {
+   "table": "songs",
+   "id": "ml_頂上決戦ヴィクトリー",
+   "fields": {
+    "title_kana": "ちょうじょうけっせんびくとりー"
+   },
+   "note": "読みの「ゔ」をば行に統一する。読みは検索キーで、IME で berubetto と打つ人に当てたい。3,117 曲中この 19 曲だけが「ゔ」で、残りは全てば行だった。"
+  },
+  {
+   "table": "songs",
+   "id": "sc_銀翼のアヴニール_-become_the_brave-",
+   "fields": {
+    "title_kana": "ぎんよくのあぶにーるびかむざぶれいぶ"
+   },
+   "note": "読みの「ゔ」をば行に統一する。読みは検索キーで、IME で berubetto と打つ人に当てたい。3,117 曲中この 19 曲だけが「ゔ」で、残りは全てば行だった。"
+  },
+  {
+   "table": "songs",
+   "id": "sc_放っておかないファイヴァーズ",
+   "fields": {
+    "title_kana": "ほうっておかないふぁいばーず"
+   },
+   "note": "読みの「ゔ」をば行に統一する。読みは検索キーで、IME で berubetto と打つ人に当てたい。3,117 曲中この 19 曲だけが「ゔ」で、残りは全てば行だった。"
+  },
+  {
+   "table": "songs",
+   "id": "876_nova_chro",
+   "fields": {
+    "title_kana": "のばくろ"
+   },
+   "note": "読みの「ゔ」をば行に統一する。読みは検索キーで、IME で berubetto と打つ人に当てたい。3,117 曲中この 19 曲だけが「ゔ」で、残りは全てば行だった。"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_veil",
+   "fields": {
+    "title_kana": "べいる"
+   },
+   "note": "読みの「ゔ」をば行に統一する。読みは検索キーで、IME で berubetto と打つ人に当てたい。3,117 曲中この 19 曲だけが「ゔ」で、残りは全てば行だった。"
+  },
+  {
+   "table": "songs",
+   "id": "876_いーゔぃるらゔぁ",
+   "fields": {
+    "title_kana": "いーびるらば"
+   },
+   "note": "読みの「ゔ」をば行に統一する。読みは検索キーで、IME で berubetto と打つ人に当てたい。3,117 曲中この 19 曲だけが「ゔ」で、残りは全てば行だった。"
+  }
+ ]
+}

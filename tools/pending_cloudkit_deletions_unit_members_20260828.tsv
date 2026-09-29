@@ -1,0 +1,9 @@
+# SHHis (シーズ) の unit_members 重複。id 正規化前の 'shhis' / 'unit_SHHis' を指したまま
+# CloudKit に残っていた 3 行。正しい unit_シーズ には両名とも既に居るので、これは重複。
+#
+# units に FK 制約が無いため PRAGMA foreign_key_check では捕まらず、同梱 DB に入っていた。
+# コアのスナップショットは読み込み時に落とすが SQL 経路は残すので、経路によって
+# ユニットのメンバー数が食い違う。
+UnitMember	unit_members-shhis-sc_七草にちか
+UnitMember	unit_members-unit_SHHis-sc_七草にちか
+UnitMember	unit_members-unit_SHHis-sc_緋田美琴

@@ -1,0 +1,48 @@
+name: tools-guard
+
+# tools/ の Python のユニットテストと構文検査。
+#
+# tools/ には db/master.sql や CloudKit に書き込む経路があるのに、テストが CI で
+# 1 度も走っていなかった。
+#
+# ⚠️ secret は一切使わない。テストは一時ディレクトリと一時 DB だけを触り、
+#    通信は偽物に差し替えてある (外には出ない)。
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'tools/**'
+      - '.github/workflows/tools-guard.yml'
+  pull_request:
+    paths:
+      - 'tools/**'
+      - '.github/workflows/tools-guard.yml'
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      # refresh-data.yml と同じ版。手元 (macOS の 3.9) で動くかは構文検査の側で見る。
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Syntax check
+        run: python3 tools/check_python_syntax.py
+
+      # test_*.py を置いたディレクトリを全部拾う。ディレクトリを足したときに
+      # ここへの書き足しを忘れて「テストはあるのに CI で走らない」に戻らないように。
+      - name: Unit tests
+        run: |
+          for dir in $(git ls-files -- ':(glob)tools/**/test_*.py' | xargs -n1 dirname | sort -u); do
+            echo "::group::$dir"
+            python3 -m unittest discover -s "$dir" -p 'test_*.py'
+            echo "::endgroup::"
+          done

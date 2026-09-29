@@ -20,8 +20,21 @@ final class IdolListViewModel {
     /// 初回ロード中 (スケルトン表示用)。初回完了で false。
     private(set) var isLoading = true
 
+    /// ブランド ID → ブランドカラー hex。
+    /// 通しリストの行やテーマの下ごしらえは 1 件ずつブランド色を引くので、
+    /// `brands.first(where:)` の線形探索を件数ぶん繰り返さないようロード時に辞書へ畳む。
+    private(set) var brandColorById: [String: String] = [:]
+
+    /// 読み込んだ元データ (idols/brands) の版。**絞り込みでは動かず、再ロードでのみ増える。**
+    /// 全件から作る派生物 (テーマの下ごしらえ等) を作り直すべきかの判定に使う。
+    private(set) var dataVersion = 0
+
     // フィルタ済み派生結果
     private(set) var filteredIdols: [Idol] = []
+    /// idol id → 行に添える指標 (並び順が公式順・五十音のときは空)。文言はコア。
+    private(set) var metricLabels: [String: String] = [:]
+    /// 検索語をアイドル名 / CV 名として引いたときの件数 (検索語が空なら nil)。
+    private(set) var searchCounts: IdolSearchTargetCounts?
     private(set) var groupedByBrand: [String: [Idol]] = [:]
     private(set) var visibleBrands: [Brand] = []
 
@@ -39,32 +52,55 @@ final class IdolListViewModel {
         self.brandReading = brandReading
     }
 
-    func loadData(filter: IdolFilterContext) async {
+    func loadData(filter: IdolFilterContext, sortOrder: IdolSortOrder = .official, ascending: Bool? = nil) async {
         defer { isLoading = false }
         do {
             async let b = brandReading.brands()
             async let i = idolReading.idols(brandId: nil)
             async let c = idolReading.idolCastNames()
             (brands, idols, castNames) = try await (b, i, c)
-            rebuild(filter: filter)
+            // 先勝ち。`brands.first(where:)` が返していたのと同じブランドを引くため。
+            brandColorById = Dictionary(
+                brands.compactMap { brand -> (String, String)? in
+                    guard let color = brand.color else { return nil }
+                    return (brand.id, color)
+                },
+                uniquingKeysWith: { first, _ in first })
+            dataVersion += 1
+            rebuild(filter: filter, sortOrder: sortOrder, ascending: ascending)
         } catch {
             Logger.database.error("load_failed idols: \(error.localizedDescription)")
         }
+    }
+
+    /// 通しリスト (ブランド別セクションが無い並び) の行が引くブランド色。
+    func brandColor(for idol: Idol) -> String? {
+        brandColorById[idol.brandId]
     }
 
     func refreshPickIds() {
         pickIds = Set(UserMarkService.shared.allMarked(kind: .myPick, entity: .idol))
     }
 
-    /// 絞り込み + ブランド別グループ化を再計算する。
+    /// 絞り込み + 並び替え + ブランド別グループ化を再計算する。
     /// `filter.castNames` は呼び出し側で詰めなくてもよい (ここで VM 保持の値を補完する)。
-    func rebuild(filter: IdolFilterContext) {
+    ///
+    /// 公式順以外を選んだときはブランドの区切りを外し、通しの 1 リストにする
+    /// (`visibleBrands` を空にすることで View 側が通し表示に切り替わる)。
+    func rebuild(filter: IdolFilterContext, sortOrder: IdolSortOrder = .official, ascending: Bool? = nil) {
         var ctx = filter
         ctx.castNames = castNames
 
-        let result = filterIdols(idols, ctx)
+        let (result, labels) = sortIdolsWithMetrics(filterIdols(idols, ctx), by: sortOrder, ascending: ascending)
         filteredIdols = result
+        metricLabels = labels
+        searchCounts = ctx.searchText.isEmpty ? nil : idolSearchCounts(idols, ctx)
 
+        guard sortOrder.keepsBrandGrouping else {
+            groupedByBrand = [:]
+            visibleBrands = []
+            return
+        }
         // grouped に載るのは必ず 1 件以上なので、キー有無で表示ブランドを判定できる。
         let grouped = Dictionary(grouping: result, by: \.brandId)
         groupedByBrand = grouped

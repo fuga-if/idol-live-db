@@ -1,5 +1,6 @@
 import os
 import SwiftUI
+import UniformTypeIdentifiers
 import UserNotifications
 
 struct MyPageView: View {
@@ -7,10 +8,31 @@ struct MyPageView: View {
     @Environment(CloudKitSyncEngine.self) private var syncEngine
     @Environment(\.dismiss) private var dismiss
     @AppStorage("defaultBrandId") private var defaultBrandId: String = ""
-    /// 文字サイズ (極小 0.7 / 小 0.85 / 中 1.0)。密度の高いセトリ等を読みやすくする。
+    /// 文字サイズ (極小 0.7 / 小 0.85 / 中 1.0 / 大 1.15 / 特大 1.3)。OS の Dynamic Type に
+    /// 乗算で併用するアプリ内倍率。中(1.0) を境に縮小・拡大の両方向へ調整できる。
     @AppStorage("text_scale") private var textScale: Double = 1.0
+    private static let textScaleOptions: [Double] = [0.7, 0.85, 1.0, 1.15, 1.3]
+    /// 歌唱者の表示サンプル (実データの 1 人)。設定を切り替えた見え方をその場で見せる。
+    private static let performerNameSample = PerformerRow(
+        id: "sample",
+        name: "下田麻美",
+        idolColor: nil,
+        idolName: "双海亜美"
+    )
+    private static let textScaleLabels = ["極小", "小", "中", "大", "特大"]
+    private var textScaleIndex: Binding<Int> {
+        Binding(
+            // 既存ユーザーの保存値 (0.7/0.85/1.0) はそのまま該当インデックスに載る。
+            // 未知値のフォールバックは「中」(1.0)。
+            get: { Self.textScaleOptions.firstIndex(of: textScale) ?? Self.textScaleOptions.firstIndex(of: 1.0) ?? 2 },
+            set: { textScale = Self.textScaleOptions[$0] }
+        )
+    }
     /// イベント名の作品名プレフィックスを省略表示するか (既定 ON)。OFF でフル表示。
     @AppStorage("event_name_abbreviate") private var abbreviateEventNames: Bool = true
+    /// セトリの歌唱者をどの名前で出すか (既定=アイドル名)。
+    /// 保存するのはコアが決めた `raw` の文字列 (序数で保存しない)。
+    @AppStorage(PerformerNamePref.storageKey) private var performerNameRaw = PerformerNamePref.defaultRaw
     /// 曲一覧の「この絞り込みでイントロドン」導線を隠すか (曲一覧側の×と同じキー)。
     @AppStorage("songlist_introdon_bar_hidden") private var introDonBarHidden: Bool = false
     /// 回収に配信参加も含めるか (既定=現地のみ)。地方勢など配信中心の人向け。
@@ -28,22 +50,17 @@ struct MyPageView: View {
     @AppStorage("notif_ticket") private var notifTicket: Bool = true
     @AppStorage("notif_monday") private var notifMonday: Bool = true
     /// 現在の通知認可状態。View の onAppear で更新する。
+    /// データ取得はすべて VM 側 (ポート注入)。View は UI 状態だけ持つ。
+    @State private var vm = MyPageViewModel()
     @State private var notifAuthStatus: UNAuthorizationStatus = .notDetermined
     /// 担当(推し)に設定済みのアイドル一覧 (テーマ選択用)。
-    @State private var pickIdols: [Idol] = []
-    @State private var schemaVersion: String = "..."
-    @State private var dataVersion: String = "..."
-    @State private var dbStats: DatabaseStats?
-    @State private var brands: [Brand] = []
     @State private var imageURL: String = ""
     @State private var importer = BulkImageImporter()
     @State private var showImageImport = false
     @State private var brandImageURL: String = ""
     @State private var showBrandImageImport = false
-    @State private var idolTemplateURL: URL?
-    @State private var brandTemplateURL: URL?
-    @State private var syncDiagnostics: SyncDiagnostics?
-    @State private var ckQueryProbeResult: String?
+    @State private var unitImageURL: String = ""
+    @State private var showUnitImageImport = false
     @State private var showDeleteAccountConfirm = false
     @State private var isDeletingAccount = false
     @State private var deleteAccountErrorMessage: String?
@@ -52,6 +69,21 @@ struct MyPageView: View {
     @State private var editingName = ""
     @State private var isSavingName = false
     @State private var nameErrorMessage: String?
+
+    // MARK: - バックアップ/引き継ぎコード
+    /// 復元時に端末IDも引き継ぐか (上級者向け・既定OFF)。同一端末からの復元でない限りOFFのままにすべき。
+    @AppStorage("backup_restore_device_id") private var restoreDeviceIdOnImport: Bool = false
+    @State private var isCreatingTransferCode = false
+    @State private var transferCode: String?
+    @State private var transferCodeExpiresAt: Date?
+    @State private var transferCodeErrorMessage: String?
+    @State private var importCodeInput = ""
+    @State private var isImportingByCode = false
+    @State private var backupFileURL: URL?
+    @State private var exportErrorMessage: String?
+    @State private var showBackupFileImporter = false
+    @State private var importResultMessage: String?
+    @State private var importErrorMessage: String?
 
     // admin モデレーション導線。確定契約 §1 で公開フィードは editorId を返さない
     // (編集者匿名性) ため、admin は対象ユーザー ID を直接指定してモデレーション画面を開く。
@@ -71,7 +103,7 @@ struct MyPageView: View {
         // この画面は「設定」。参加ライブ/貢献バッジ/編集履歴 等の個人アクティビティは
         // プロデュースタブ「あなたの活動」と重複するため、ここには置かない。
         accountSection
-        if AuthService.shared.isAdmin {
+        if AuthService.shared.adminCapabilities.canModerateUsers {
             adminSection
         }
     }
@@ -80,7 +112,8 @@ struct MyPageView: View {
     private var lowerSections: some View {
         settingsSection
         dataSyncSection
-        if let stats = dbStats {
+        dataBackupSection
+        if let stats = vm.dbStats {
             dataStatsSection(stats)
         }
         creditsSection
@@ -139,19 +172,37 @@ struct MyPageView: View {
             } message: {
                 Text("ブランド名(または short_name / id)と画像URLのJSONファイルのURLを入力してください。\n形式: {\"765AS\": \"画像URL\", ...}")
             }
+            .alert("ユニット画像インポート", isPresented: $showUnitImageImport) {
+                TextField("JSON URL", text: $unitImageURL)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                Button("インポート") {
+                    Task {
+                        await importer.importUnitImagesFromURL(unitImageURL, database: database)
+                    }
+                }
+                Button("キャンセル", role: .cancel) {}
+            } message: {
+                Text("ユニット名(または id)と画像URLのJSONファイルのURLを入力してください。\n形式: {\"S.E.M\": \"画像URL\", ...}")
+            }
             .sheet(isPresented: $showHelp) {
                 HelpView()
             }
             .alert("表示名を変更", isPresented: $showEditName) {
                 TextField("表示名", text: $editingName)
                     .textInputAutocapitalization(.never)
+                    .onChange(of: editingName) { _, new in
+                        // 上限と数え方 (コードポイント) はコア。無制限に打てるとサーバ側で弾かれる。
+                        let clamped = InputLimits.clamp(.displayName, new)
+                        if clamped != new { editingName = clamped }
+                    }
                 Button("保存") {
                     Task { await saveDisplayName() }
                 }
-                .disabled(editingName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSavingName)
+                .disabled(!InputLimits.isAcceptable(.displayName, editingName) || isSavingName)
                 Button("キャンセル", role: .cancel) {}
             } message: {
-                Text("コミュニティ投稿で表示される名前です (40文字以内)")
+                Text("コミュニティ投稿で表示される名前です (\(InputLimits.max(.displayName))文字以内)")
             }
             .alert("表示名の保存に失敗", isPresented: Binding(
                 get: { nameErrorMessage != nil },
@@ -198,15 +249,53 @@ struct MyPageView: View {
             } message: {
                 Text(deleteAccountErrorMessage ?? "")
             }
+            .alert("引き継ぎコードの発行に失敗しました", isPresented: Binding(
+                get: { transferCodeErrorMessage != nil },
+                set: { if !$0 { transferCodeErrorMessage = nil } }
+            )) {
+                Button("OK", role: .cancel) { transferCodeErrorMessage = nil }
+            } message: {
+                Text(transferCodeErrorMessage ?? "")
+            }
+            .alert("バックアップの保存に失敗しました", isPresented: Binding(
+                get: { exportErrorMessage != nil },
+                set: { if !$0 { exportErrorMessage = nil } }
+            )) {
+                Button("OK", role: .cancel) { exportErrorMessage = nil }
+            } message: {
+                Text(exportErrorMessage ?? "")
+            }
+            .fileImporter(isPresented: $showBackupFileImporter, allowedContentTypes: [.json]) { result in
+                switch result {
+                case .success(let url):
+                    Task { await importBackupFromFile(url) }
+                case .failure(let error):
+                    importErrorMessage = error.localizedDescription
+                }
+            }
+            .alert(
+                importErrorMessage != nil ? "復元に失敗しました" : "復元しました",
+                isPresented: Binding(
+                    get: { importResultMessage != nil || importErrorMessage != nil },
+                    set: { if !$0 { importResultMessage = nil; importErrorMessage = nil } }
+                )
+            ) {
+                Button("OK", role: .cancel) {
+                    importResultMessage = nil
+                    importErrorMessage = nil
+                }
+            } message: {
+                Text(importErrorMessage ?? importResultMessage ?? "")
+            }
             .overlay {
                 if importer.isImporting {
-                    VStack(spacing: 16) {
+                    VStack(spacing: DS.sp5) {
                         ProgressView(value: importer.progress)
                             .frame(width: 200)
                         Text(importer.statusMessage)
                             .font(.imasCaption)
                     }
-                    .padding(24)
+                    .padding(DS.sp7)
                     .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
                 }
             }
@@ -224,7 +313,7 @@ struct MyPageView: View {
                     Image(systemName: "person.crop.circle.fill")
                         .font(.imasTitle2)
                         .foregroundStyle(DS.ink2)
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: DS.sp1) {
                         HStack(spacing: 6) {
                             Text(AuthService.shared.userName ?? "ユーザー")
                                 .font(.imasHeadline)
@@ -247,7 +336,7 @@ struct MyPageView: View {
                         #if DEBUG
                         if let uid = AuthService.shared.userId {
                             Text("ID: \(uid)")
-                                .font(.imasScaled(11).monospaced())
+                                .font(.imasCaption2.monospaced())
                                 .foregroundStyle(DS.ink3)
                                 .lineLimit(1)
                                 .truncationMode(.middle)
@@ -266,13 +355,13 @@ struct MyPageView: View {
                 }
                 .disabled(isDeletingAccount)
             } else {
-                VStack(spacing: 8) {
+                VStack(spacing: DS.sp3) {
                     Text("ログインするとライブ・セトリ・楽曲データの編集や Good ができます")
                         .font(.imasCaption)
                         .foregroundStyle(DS.ink2)
                     AppleSignInButton()
                 }
-                .padding(.vertical, 4)
+                .padding(.vertical, DS.sp2)
             }
         }
         .listRowBackground(DS.surface)
@@ -293,10 +382,15 @@ struct MyPageView: View {
             } label: {
                 Label("ユーザーをモデレーション", systemImage: "person.badge.shield.checkmark")
             }
+            NavigationLink {
+                PlayabilityCheckView()
+            } label: {
+                Label("再生可否チェック (Apple Music)", systemImage: "music.note.list")
+            }
         } header: {
             Text("管理者")
         } footer: {
-            Text("対象ユーザー ID を指定して編集履歴の確認・BAN・一括取り消しを行います。")
+            Text("対象ユーザー ID を指定して編集履歴の確認・BAN・一括取り消し、 全曲のサブスク再生可否チェック等を行います。")
         }
         .listRowBackground(DS.surface)
         .listRowSeparatorTint(DS.sep)
@@ -309,6 +403,7 @@ struct MyPageView: View {
         helpSection
         generalSettingsSection
         collectionSettingsSection
+        masterySection
         notificationSection
         themeSection
         imageImportSection
@@ -333,16 +428,14 @@ struct MyPageView: View {
         Section("設定") {
             Picker("デフォルトブランド", selection: $defaultBrandId) {
                 Text("すべて").tag("")
-                ForEach(brands) { brand in
+                ForEach(vm.brands) { brand in
                     Text(brand.shortName).tag(brand.id)
                 }
             }
-            Picker("文字サイズ", selection: $textScale) {
-                Text("極小").tag(0.7)
-                Text("小").tag(0.85)
-                Text("中").tag(1.0)
+            VStack(alignment: .leading, spacing: DS.sp2) {
+                Text("文字サイズ")
+                ImasSegmented(labels: Self.textScaleLabels, selection: textScaleIndex)
             }
-            .pickerStyle(.segmented)
             // プレビュー: 選んだサイズで実際の見え方を即確認できる (設定画面のラベル自体は
             // システム既定フォントなので変化しないため、ここで反映後の文字を見せる)。
             VStack(alignment: .leading, spacing: 3) {
@@ -356,7 +449,22 @@ struct MyPageView: View {
                     .font(.imasCaption)
                     .foregroundStyle(DS.ink2)
             }
-            .padding(.vertical, 2)
+            .padding(.vertical, DS.sp1)
+
+            // 選択肢はコアが出す (順も文言もアプリ 1 本)。
+            Picker("セトリの歌唱者", selection: $performerNameRaw) {
+                ForEach(PerformerNamePref.options, id: \.raw) { option in
+                    Text(option.label).tag(option.raw)
+                }
+            }
+            // 設定値で見え方が変わるサンプル。声優ライブの 1 人分をそのまま出す。
+            Text(
+                Self.performerNameSample
+                    .displayName(PerformerNamePref.mode(performerNameRaw), isCharacterLive: false)
+                    .joined
+            )
+                .font(.imasCaption)
+                .foregroundStyle(DS.ink2)
 
             Toggle("ライブ名を省略表示", isOn: $abbreviateEventNames)
             // 設定値で見え方が変わるサンプル。ON なら作品名プレフィックスを省く。
@@ -390,19 +498,43 @@ struct MyPageView: View {
         .listRowSeparatorTint(DS.sep)
     }
 
+    /// 習熟度の段階。ラベルの好みは人によるので、既定 (聞いた / 覚えた / 完璧) を
+    /// 触れるようにしてある。保存は序数なのでラベルを直しても記録は壊れない。
+    @ViewBuilder
+    private var masterySection: some View {
+        Section {
+            NavigationLink {
+                MasteryScaleSettingsView()
+            } label: {
+                HStack {
+                    Label("習熟度の段階", systemImage: "chart.bar")
+                    Spacer()
+                    Text(UserMarkService.shared.scale.labels.joined(separator: " / "))
+                        .font(.imasCaption).foregroundStyle(DS.ink3).lineLimit(1)
+                }
+            }
+        } header: {
+            Text("習熟度")
+        } footer: {
+            Text("段の数と名前を変えられます。段を減らすと、その段の曲は 1 つ下に移ります (記録は消えません)。")
+        }
+        .listRowBackground(DS.surface)
+        .listRowSeparatorTint(DS.sep)
+    }
+
     @ViewBuilder
     private var themeSection: some View {
         Section {
             Toggle("担当の色をテーマに使う", isOn: $useOshiColor)
             if useOshiColor {
-                if pickIdols.isEmpty {
+                if vm.pickIdols.isEmpty {
                     Text("アイドル詳細で担当(推し)に設定すると、ここで色を選べます。")
                         .font(.imasCaption)
                         .foregroundStyle(DS.ink2)
                 } else {
                     Picker("テーマにする担当", selection: $themeOshiIdolId) {
-                        ForEach(pickIdols) { idol in
-                            HStack(spacing: 8) {
+                        ForEach(vm.pickIdols) { idol in
+                            HStack(spacing: DS.sp3) {
                                 Circle()
                                     .fill(Color(hexString: idol.color))
                                     .frame(width: 14, height: 14)
@@ -433,7 +565,7 @@ struct MyPageView: View {
             } label: {
                 Label("キャラクター画像をインポート", systemImage: "photo.on.rectangle.angled")
             }
-            if let url = idolTemplateURL {
+            if let url = vm.idolTemplateURL {
                 ShareLink(item: url) {
                     Label("型紙 JSON をダウンロード (アイドル)", systemImage: "square.and.arrow.down")
                         .font(.imasCaption)
@@ -447,9 +579,23 @@ struct MyPageView: View {
             } label: {
                 Label("ブランド画像をインポート", systemImage: "tag")
             }
-            if let url = brandTemplateURL {
+            if let url = vm.brandTemplateURL {
                 ShareLink(item: url) {
                     Label("型紙 JSON をダウンロード (ブランド)", systemImage: "square.and.arrow.down")
+                        .font(.imasCaption)
+                        .foregroundStyle(DS.ink2)
+                }
+            }
+
+            Button {
+                AppAnalytics.tap("my_page.unit_image_import")
+                showUnitImageImport = true
+            } label: {
+                Label("ユニット画像をインポート", systemImage: "person.3")
+            }
+            if let url = vm.unitTemplateURL {
+                ShareLink(item: url) {
+                    Label("型紙 JSON をダウンロード (ユニット)", systemImage: "square.and.arrow.down")
                         .font(.imasCaption)
                         .foregroundStyle(DS.ink2)
                 }
@@ -465,7 +611,7 @@ struct MyPageView: View {
                     ForEach(importer.failures) { f in
                         VStack(alignment: .leading, spacing: 1) {
                             Text(f.key).font(.imasCaption).bold()
-                            Text(f.reason).font(.imasScaled(11)).foregroundStyle(DS.ink2)
+                            Text(f.reason).font(.imasCaption2).foregroundStyle(DS.ink2)
                         }
                     }
                 } label: {
@@ -491,6 +637,13 @@ struct MyPageView: View {
     }
 
     // MARK: - Notification Section
+
+    private func rescheduleNotifications(turnedOn: Bool) {
+        Task {
+            await NotificationService.shared.rescheduleAll(
+                database: database, reason: turnedOn ? .refresh : .settingTurnedOff)
+        }
+    }
 
     @ViewBuilder
     private var notificationSection: some View {
@@ -518,21 +671,13 @@ struct MyPageView: View {
                 }
             default:
                 Toggle("担当アイドルの誕生日", isOn: $notifOshiBirthday)
-                    .onChange(of: notifOshiBirthday) {
-                        Task { await NotificationService.shared.rescheduleAll(database: database) }
-                    }
+                    .onChange(of: notifOshiBirthday) { _, isOn in rescheduleNotifications(turnedOn: isOn) }
                 Toggle("ライブ1週間前", isOn: $notifLiveWeek)
-                    .onChange(of: notifLiveWeek) {
-                        Task { await NotificationService.shared.rescheduleAll(database: database) }
-                    }
+                    .onChange(of: notifLiveWeek) { _, isOn in rescheduleNotifications(turnedOn: isOn) }
                 Toggle("チケット締切・当落通知", isOn: $notifTicket)
-                    .onChange(of: notifTicket) {
-                        Task { await NotificationService.shared.rescheduleAll(database: database) }
-                    }
+                    .onChange(of: notifTicket) { _, isOn in rescheduleNotifications(turnedOn: isOn) }
                 Toggle("月曜が近いことを知らせる (日曜 20:00)", isOn: $notifMonday)
-                    .onChange(of: notifMonday) {
-                        Task { await NotificationService.shared.rescheduleAll(database: database) }
-                    }
+                    .onChange(of: notifMonday) { _, isOn in rescheduleNotifications(turnedOn: isOn) }
             }
         } header: {
             Text("通知")
@@ -581,23 +726,23 @@ struct MyPageView: View {
             .disabled(isSyncing)
 
             #if DEBUG
-            LabeledContent("スキーマバージョン", value: schemaVersion)
-            LabeledContent("データバージョン", value: dataVersion)
+            LabeledContent("スキーマバージョン", value: vm.schemaVersion)
+            LabeledContent("データバージョン", value: vm.dataVersion)
 
             if let summary = syncEngine.lastSyncSummary {
                 DisclosureGroup {
                     LabeledContent("modifiedSince", value: summary.modifiedSinceLabel)
-                        .font(.imasScaled(11))
+                        .font(.imasCaption2)
                     LabeledContent("総取得件数", value: "\(summary.totalFetched)")
-                        .font(.imasScaled(11))
+                        .font(.imasCaption2)
                     if summary.fetchedByType.isEmpty {
                         Text("(各 RecordType 0 件)")
-                            .font(.imasScaled(11))
+                            .font(.imasCaption2)
                             .foregroundStyle(DS.ink2)
                     } else {
                         ForEach(summary.fetchedByType.sorted { $0.key < $1.key }, id: \.key) { (k, v) in
                             LabeledContent(k, value: "\(v)")
-                                .font(.imasScaled(11))
+                                .font(.imasCaption2)
                         }
                     }
                 } label: {
@@ -608,43 +753,109 @@ struct MyPageView: View {
             #endif
 
             #if DEBUG
-            if let diag = syncDiagnostics {
-                DisclosureGroup {
-                    LabeledContent("@ events", value: "\(diag.eventsAt)").font(.imasScaled(11))
-                    LabeledContent("@ shows", value: "\(diag.showsAt)").font(.imasScaled(11))
-                    LabeledContent("@ setlist_items", value: "\(diag.setlistItemsAt)").font(.imasScaled(11))
-                    LabeledContent("ML 13thLIVE event", value: diag.ml13thLiveExists ? "✅" : "❌").font(.imasScaled(11))
-                    LabeledContent("ML 13thLIVE shows", value: "\(diag.ml13thShowsCount)").font(.imasScaled(11))
-                    LabeledContent("ML 13thLIVE items", value: "\(diag.ml13thSetlistItemsCount)").font(.imasScaled(11))
-                    LabeledContent("SC 8th name", value: diag.sc8thName ?? "(nil)").font(.imasScaled(11))
-                    LabeledContent("SC 8th kind", value: diag.sc8thKind ?? "(nil)").font(.imasScaled(11))
-                    LabeledContent("SC 8th shows", value: "\(diag.sc8thShowsCount)").font(.imasScaled(11))
-
-                    if let probe = ckQueryProbeResult {
-                        LabeledContent("CK Query probe (showId)", value: probe).font(.imasScaled(11))
-                    }
-                    Button {
-                        Task { await probeCKQuery() }
-                    } label: {
-                        Label("CK Query probe", systemImage: "play.circle")
-                            .font(.imasScaled(11))
-                    }
-                    LabeledContent("reseed 結果", value: AppDatabase.lastReseedStatus)
-                        .font(.imasScaled(11))
-                        .textSelection(.enabled)
-                        .contextMenu {
-                            Button {
-                                UIPasteboard.general.string = AppDatabase.lastReseedStatus
-                            } label: {
-                                Label("コピー", systemImage: "doc.on.doc")
-                            }
+            DisclosureGroup {
+                LabeledContent("reseed 結果", value: AppDatabase.lastReseedStatus)
+                    .font(.imasCaption2)
+                    .textSelection(.enabled)
+                    .contextMenu {
+                        Button {
+                            UIPasteboard.general.string = AppDatabase.lastReseedStatus
+                        } label: {
+                            Label("コピー", systemImage: "doc.on.doc")
                         }
-                } label: {
-                    Label("@ 診断", systemImage: "stethoscope")
-                        .font(.imasCaption)
-                }
+                    }
+            } label: {
+                Label("診断", systemImage: "stethoscope")
+                    .font(.imasCaption)
             }
             #endif
+        }
+        .listRowBackground(DS.surface)
+        .listRowSeparatorTint(DS.sep)
+    }
+
+    // MARK: - Data Backup Section
+
+    @ViewBuilder
+    private var dataBackupSection: some View {
+        Section {
+            if let code = transferCode {
+                VStack(alignment: .leading, spacing: DS.sp2) {
+                    Text(code)
+                        .font(.imasScaled(28, weight: .bold, design: .monospaced))
+                        .textSelection(.enabled)
+                    if let expiresAt = transferCodeExpiresAt {
+                        Text("24時間有効・1回のみ使用可能です (期限: \(expiresAt.formatted(date: .abbreviated, time: .shortened)))")
+                            .font(.imasCaption)
+                            .foregroundStyle(DS.ink2)
+                    }
+                    Button {
+                        UIPasteboard.general.string = code
+                    } label: {
+                        Label("コピー", systemImage: "doc.on.doc")
+                    }
+                    .font(.imasCaption)
+                }
+                .padding(.vertical, DS.sp2)
+            }
+            Button {
+                AppAnalytics.tap("my_page.backup_create_transfer_code")
+                Task { await createTransferCode() }
+            } label: {
+                if isCreatingTransferCode {
+                    HStack {
+                        ProgressView()
+                        Text("発行中...")
+                    }
+                } else {
+                    Label("引き継ぎコードを発行する", systemImage: "arrow.up.doc")
+                }
+            }
+            .disabled(isCreatingTransferCode)
+
+            HStack {
+                TextField("引き継ぎコード", text: $importCodeInput)
+                    .textInputAutocapitalization(.characters)
+                    .autocorrectionDisabled()
+                Button {
+                    AppAnalytics.tap("my_page.backup_import_by_code")
+                    Task { await importByCode() }
+                } label: {
+                    if isImportingByCode {
+                        ProgressView()
+                    } else {
+                        Text("復元")
+                    }
+                }
+                .disabled(isImportingByCode || importCodeInput.trimmingCharacters(in: .whitespaces).isEmpty)
+            }
+
+            Button {
+                AppAnalytics.tap("my_page.backup_export_file")
+                exportBackupFile()
+            } label: {
+                Label("ファイルに保存する", systemImage: "square.and.arrow.up")
+            }
+            if let url = backupFileURL {
+                ShareLink(item: url) {
+                    Label("バックアップファイルを共有", systemImage: "square.and.arrow.up.on.square")
+                        .font(.imasCaption)
+                        .foregroundStyle(DS.ink2)
+                }
+            }
+
+            Button {
+                AppAnalytics.tap("my_page.backup_import_file")
+                showBackupFileImporter = true
+            } label: {
+                Label("ファイルから復元する", systemImage: "square.and.arrow.down")
+            }
+
+            Toggle("復元時に端末IDも引き継ぐ(上級者向け・通常はOFF)", isOn: $restoreDeviceIdOnImport)
+        } header: {
+            Text("バックアップ")
+        } footer: {
+            Text("担当/お気に入りはiCloudで自動バックアップされていますが、これは投票履歴・端末IDも含めた手動バックアップです。機種変更やAndroid版への移行、iCloudが使えない場合にご利用ください。同一端末からの復元でない場合は「端末IDも引き継ぐ」はオフのままにしてください。引き継ぎコードの発行・復元にはログインが必要です。ファイル保存はログイン不要です。")
         }
         .listRowBackground(DS.surface)
         .listRowSeparatorTint(DS.sep)
@@ -718,9 +929,9 @@ struct MyPageView: View {
 
     private var syncStateColor: Color {
         switch syncEngine.state {
-        case .idle: return .secondary
-        case .syncing: return .accentColor
-        case .completed: return .green
+        case .idle: return DS.ink2
+        case .syncing: return DS.sys
+        case .completed: return DS.success
         case .error:
             return syncEngine.state == .requiresFullResync ? .orange : .red
         }
@@ -759,95 +970,93 @@ struct MyPageView: View {
         }
     }
 
+    // MARK: - Backup / Transfer Code
+
+    private func createTransferCode() async {
+        isCreatingTransferCode = true
+        defer { isCreatingTransferCode = false }
+        do {
+            let json = try BackupExportImportService.buildEnvelopeJSON(database: database)
+            let (code, expiresAt) = try await BackupTransferClient.createTransferCode(payloadJSON: json)
+            transferCode = code
+            transferCodeExpiresAt = expiresAt
+        } catch {
+            transferCodeErrorMessage = error.localizedDescription
+        }
+    }
+
+    private func importByCode() async {
+        let code = importCodeInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !code.isEmpty else { return }
+        isImportingByCode = true
+        defer { isImportingByCode = false }
+        do {
+            let json = try await BackupTransferClient.fetchTransferCode(code)
+            applyBackupImport(json: json)
+            importCodeInput = ""
+        } catch {
+            importErrorMessage = error.localizedDescription
+        }
+    }
+
+    private func exportBackupFile() {
+        do {
+            backupFileURL = try BackupExportImportService.exportToFile(database: database)
+        } catch {
+            exportErrorMessage = error.localizedDescription
+        }
+    }
+
+    private func importBackupFromFile(_ url: URL) async {
+        let accessed = url.startAccessingSecurityScopedResource()
+        defer { if accessed { url.stopAccessingSecurityScopedResource() } }
+        do {
+            let json = try String(contentsOf: url, encoding: .utf8)
+            applyBackupImport(json: json)
+        } catch {
+            importErrorMessage = error.localizedDescription
+        }
+    }
+
+    /// 引き継ぎコード復元・ファイル復元の共通処理。結果/エラーをアラート用の State に反映する。
+    private func applyBackupImport(json: String) {
+        do {
+            let result = try BackupExportImportService.importEnvelopeJSON(
+                json, database: database, restoreDeviceId: restoreDeviceIdOnImport
+            )
+            importResultMessage = backupImportSummary(
+                addedMarks: result.addedMarks,
+                addedVotes: result.addedVotes,
+                addedPersonalTags: result.addedPersonalTags,
+                addedExpenses: result.addedExpenses,
+                skippedMarks: result.skippedMarks,
+                deviceIdRestored: result.deviceIdRestored
+            )
+        } catch {
+            importErrorMessage = error.localizedDescription
+        }
+    }
+
     // MARK: - Data Loading
 
     private func loadAll() async {
-        do {
-            let diagnostics = AppContainer.shared.diagnosticsReading
-            schemaVersion = try await diagnostics.metaValue(forKey: "schema_version") ?? "不明"
-            dataVersion = try await diagnostics.metaValue(forKey: "data_version") ?? "不明"
-            dbStats = try await diagnostics.databaseStats()
-            syncDiagnostics = try await diagnostics.syncDiagnostics()
-            brands = try await AppContainer.shared.brandReading.brands()
-            let pickIds = try await AppContainer.shared.markReading.markedEntityIds(entity: .idol, kind: .myPick)
-            pickIdols = try await AppContainer.shared.idolReading.idols(ids: pickIds)
-            syncThemeColor()
-        } catch {
-            Logger.database.error("load_failed settings: \(error.localizedDescription)")
-        }
-
-        await regenerateImportTemplates()
+        await vm.load()
+        syncThemeColor()
     }
 
     /// 担当テーマ色を現在の選択から再計算し、ContentView 参照用 hex を更新する。
-    /// 無効時は空にする。選択未設定なら先頭の担当を既定にする。
+    /// 解決規則は `resolveOshiTheme` (Domain/UseCases) 側でテスト済み。
     private func syncThemeColor() {
-        guard useOshiColor else {
-            themeOshiColorHex = ""
-            return
+        let resolved = resolveOshiTheme(
+            isEnabled: useOshiColor,
+            currentIdolId: themeOshiIdolId,
+            picks: vm.pickIdols
+        )
+        if let idolId = resolved.idolId {
+            themeOshiIdolId = idolId
         }
-        if themeOshiIdolId.isEmpty || !pickIdols.contains(where: { $0.id == themeOshiIdolId }) {
-            themeOshiIdolId = pickIdols.first?.id ?? ""
-        }
-        themeOshiColorHex = pickIdols.first { $0.id == themeOshiIdolId }?.color ?? ""
+        themeOshiColorHex = resolved.colorHex
     }
-
-    private func regenerateImportTemplates() async {
-        do {
-            let idols = try await AppContainer.shared.idolReading.idols(brandId: nil)
-            let idolMapping = idols.map { ($0.name, "") }
-            idolTemplateURL = try Self.writeJSONTemplate(
-                pairs: idolMapping,
-                fileName: "idol_images_template.json"
-            )
-
-            let brandMapping = brands.map { ($0.shortName, "") }
-            brandTemplateURL = try Self.writeJSONTemplate(
-                pairs: brandMapping,
-                fileName: "brand_images_template.json"
-            )
-        } catch {
-            Logger.database.error("template_generation_failed: \(error.localizedDescription)")
-        }
-    }
-
-    private static func writeJSONTemplate(pairs: [(String, String)], fileName: String) throws -> URL {
-        var lines: [String] = ["{"]
-        for (i, (key, value)) in pairs.enumerated() {
-            let comma = i < pairs.count - 1 ? "," : ""
-            lines.append("  \(jsonEscape(key)): \(jsonEscape(value))\(comma)")
-        }
-        lines.append("}")
-        let json = lines.joined(separator: "\n")
-
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
-        try json.data(using: .utf8)?.write(to: url, options: .atomic)
-        return url
-    }
-
-    private static func jsonEscape(_ s: String) -> String {
-        let data = (try? JSONSerialization.data(withJSONObject: [s], options: [])) ?? Data()
-        let arrayString = String(data: data, encoding: .utf8) ?? "[\"\"]"
-        return String(arrayString.dropFirst().dropLast())
-    }
-
-    private func probeCKQuery() async {
-        ckQueryProbeResult = "実行中..."
-        do {
-            let recs = try await CloudKitService.shared.debugFetchSetlistItemsByShowId("sh_the_idolm@ster_million_live_13thlive_1")
-            ckQueryProbeResult = "showId query: \(recs.count) 件"
-            // ついでにそれを upsert してみる
-            let mapped = recs.compactMap { CKRecordMapper.setlistItem(from: $0) }
-            if !mapped.isEmpty {
-                try await AppContainer.shared.showWriting.upsertSetlistItems(mapped)
-                syncDiagnostics = try await AppContainer.shared.diagnosticsReading.syncDiagnostics()
-                ckQueryProbeResult = (ckQueryProbeResult ?? "") + " / upsert \(mapped.count) 件"
-            }
-        } catch {
-            ckQueryProbeResult = "エラー: \(error.localizedDescription)"
-        }
-    }
-
 }
 
 // MARK: - ModerationUserID

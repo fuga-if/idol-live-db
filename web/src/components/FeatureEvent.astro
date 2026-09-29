@@ -1,0 +1,70 @@
+---
+import DateBadge from "./DateBadge.astro";
+import BrandMark from "./BrandMark.astro";
+import type { EventListItem } from "../lib/schema/EventListItem";
+import type { Countdown } from "../lib/schema/Countdown";
+/**
+ * 注目カード — 一覧の先頭 1 件を大きく見せる (トップの「今後のライブ」)。
+ * 材料は行と同じ `EventListItem`。並び (どれが先頭か) は Rust が決めた順のまま。
+ */
+interface Props {
+  item: EventListItem;
+  /** 次のライブまでの残り日数 (トップの「NEXT LIVE」)。無ければ日付を大きく出す。 */
+  countdown?: Countdown | null;
+}
+const { item, countdown } = Astro.props;
+---
+
+<a class="feature" data-theme={item.ref.themeKey} href={item.ref.path}>
+  <span class="feature__head">
+    <span class="feature__kicker">NEXT LIVE</span>
+    {item.brandMark && <span class="feature__brand"><BrandMark brand={item.brandMark} short /></span>}
+  </span>
+  {
+    countdown ? (
+      <span class="feature__countdown" aria-label={countdown.spoken}>
+        {countdown.lead && <span aria-hidden="true">{countdown.lead}</span>}
+        <b class="u-num" aria-hidden="true">{countdown.value}</b>
+        {countdown.unit && <span aria-hidden="true">{countdown.unit}</span>}
+      </span>
+    ) : (
+      item.dateBadge && <DateBadge badge={item.dateBadge} size="lg" />
+    )
+  }
+  <span class="feature__title">{item.ref.name}</span>
+  <dl class="feature__facts">
+    {
+      item.dateBadge && (
+        <div>
+          <dt>日程</dt>
+          <dd>
+            <span class="u-num">{item.dateBadge.monthDay}</span>
+            {item.dateBadge.weekday && <span> ({item.dateBadge.weekday})</span>}
+            {item.endDisplay && <span class="u-num"> {item.endDisplay}</span>}
+            {item.showCountDisplay && <span class="feature__shows">{item.showCountDisplay}</span>}
+          </dd>
+        </div>
+      )
+    }
+    {
+      item.venueDisplay && (
+        <div>
+          <dt>会場</dt>
+          <dd>{item.venueDisplay}</dd>
+        </div>
+      )
+    }
+    {
+      item.kindLabel && (
+        <div>
+          <dt>種別</dt>
+          <dd>{item.kindLabel}</dd>
+        </div>
+      )
+    }
+  </dl>
+  <span class="feature__go">
+    ライブを見る
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+  </span>
+</a>

@@ -41,6 +41,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.fugaif.imaslivedb.data.model.AttendanceType
 import com.fugaif.imaslivedb.data.model.EventWithDateRange
 import com.fugaif.imaslivedb.data.repository.AttendedEventTypeSets
 import com.fugaif.imaslivedb.di.AppModule
@@ -65,7 +66,8 @@ data class AttendedEventsUiState(
 )
 
 class AttendedEventsViewModel(app: Application) : AndroidViewModel(app) {
-    private val marks = AppModule.from(app).userMarkRepository
+    private val module = AppModule.from(app)
+    private val marks = module.userMarkRepository
 
     private val _uiState = MutableStateFlow(AttendedEventsUiState())
     val uiState: StateFlow<AttendedEventsUiState> = _uiState.asStateFlow()
@@ -75,16 +77,19 @@ class AttendedEventsViewModel(app: Application) : AndroidViewModel(app) {
     fun load() {
         viewModelScope.launch {
             _uiState.value = AttendedEventsUiState(
-                events = marks.attendedEvents(),
-                typeSets = marks.attendedEventTypeSets(),
+                events = module.eventRepository.fetchAttendedEvents(),
+                typeSets = module.eventRepository.fetchAttendedEventTypeSets(),
                 isLoading = false
             )
         }
     }
 }
 
-private enum class AttendanceFilter(val label: String) {
-    ALL("すべて"), LIVE("現地"), STREAM("配信"), LIVE_VIEWING("LV")
+private enum class AttendanceFilter(private val type: AttendanceType?) {
+    ALL(null), LIVE(AttendanceType.LIVE), STREAM(AttendanceType.STREAM), LIVE_VIEWING(AttendanceType.LIVE_VIEWING);
+
+    /** 形態の語はコアの vocabulary ([AttendanceType.label])。 */
+    val label: String get() = type?.label ?: "すべて"
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -164,7 +169,7 @@ fun AttendedEventsScreen(
                                 .clickable { onEventClick(ew.event.id) }
                                 .padding(horizontal = 16.dp, vertical = 10.dp)
                         ) {
-                            ImasLeadBar(brand = ew.event.brandId, height = 38.dp, rainbow = ew.event.jointBrandIdList.isNotEmpty())
+                            ImasLeadBar(brandId = ew.event.brandId, height = 38.dp, rainbow = ew.isJoint)
                             Column(Modifier.weight(1f)) {
                                 Text(
                                     text = ew.event.name,

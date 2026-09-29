@@ -1,30 +1,30 @@
 import SwiftUI
-import GRDB
 
 // MARK: - EventSearchPickerView
 
 struct EventSearchPickerView: View {
-    @Environment(AppDatabase.self) private var database
     @Environment(\.dismiss) private var dismiss
     let onSelect: (Event) -> Void
 
     @State private var query = ""
     @State private var results: [Event] = []
+    /// 検索デバウンス用の世代 ID (SongSearchPickerView.scheduleLoad と同方式)。
+    @State private var searchToken = 0
 
     var body: some View {
         NavigationStack {
             List {
                 if results.isEmpty && !query.isEmpty {
-                    EmptyStateCard(
-                        icon: "magnifyingglass",
+                    ImasEmptyState(
+                        systemImage: "magnifyingglass",
                         title: "見つかりません",
                         message: "「\(query)」に一致するイベントがありません"
                     )
                     .listRowBackground(Color.clear)
                     .listRowInsets(EdgeInsets())
                 } else if results.isEmpty && query.isEmpty {
-                    EmptyStateCard(
-                        icon: "calendar",
+                    ImasEmptyState(
+                        systemImage: "calendar",
                         title: "イベントを検索",
                         message: "イベント名を入力して検索してください"
                     )
@@ -38,33 +38,31 @@ struct EventSearchPickerView: View {
                         onSelect(event)
                         dismiss()
                     } label: {
-                        HStack(spacing: 12) {
+                        HStack(spacing: DS.sp4) {
                             Circle()
-                                .fill(Color.purple.opacity(0.12))
+                                .fill(DS.fill)
                                 .frame(width: 36, height: 36)
                                 .overlay {
                                     Image(systemName: "calendar")
-                                        .foregroundStyle(.purple)
+                                        .foregroundStyle(DS.sys)
                                         .font(.imasCaption)
                                 }
 
-                            VStack(alignment: .leading, spacing: 2) {
+                            VStack(alignment: .leading, spacing: DS.sp1) {
                                 Text(eventDisplayName(event.name))
                                     .font(.imasSubhead)
                                     .fontWeight(.medium)
                                     .foregroundStyle(DS.ink)
                                 if let brandId = event.brandId {
                                     Text(brandId)
-                                        .font(.imasScaled(11))
+                                        .font(.imasCaption2)
                                         .foregroundStyle(DS.ink2)
                                 }
                             }
 
                             Spacer()
 
-                            Image(systemName: "chevron.right")
-                                .font(.imasCaption)
-                                .foregroundStyle(DS.ink3)
+                            ImasRowChevron()
                         }
                     }
                     .accessibilityLabel(event.name)
@@ -84,12 +82,24 @@ struct EventSearchPickerView: View {
                 }
             }
             .onChange(of: query) { _, newValue in
-                Task { await performSearch(query: newValue) }
+                scheduleSearch(query: newValue)
             }
             .task {
                 results = (try? await AppContainer.shared.eventReading.events(brandId: nil)) ?? []
             }
             .trackScreen("event_search_picker")
+        }
+    }
+
+    /// 入力中の連打を抑える簡易デバウンス + 古い検索結果が新しい入力を上書きしないための
+    /// 世代ガード。
+    private func scheduleSearch(query: String) {
+        searchToken += 1
+        let token = searchToken
+        Task {
+            try? await Task.sleep(nanoseconds: 200_000_000)
+            guard token == searchToken else { return }
+            await performSearch(query: query)
         }
     }
 

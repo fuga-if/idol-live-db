@@ -1,0 +1,32 @@
+import Foundation
+
+/// `TimelineReading` ポートの共有コア (imas-core インメモリスナップショット) アダプタ。
+/// スナップショットがまだなら、ロードを待ってから答える (`CoreSnapshotManager.withStore`)。
+struct CoreTimelineRepository: TimelineReading {
+    let snapshot: CoreSnapshotManager
+
+    func timelineBars(brandId: String?) async throws -> [TimelineBar] {
+        try await snapshot.withStore { store in
+            try store.timelineBars(brandId: brandId).map { record in
+                let bar = CoreRecordMapping.timelineBar(from: record)
+                // イベント帯のラベルだけ表示用の作品名省略を掛け直す。
+                // core は events.name の正式名称のまま返す (省略の可否は UserDefaults 設定に
+                // 依存し、共有コアからは読めないため)。以前の SQL 経路はフェッチ時に掛けていたので、
+                // ここで揃えないと年表のイベント名だけフル表記に戻る回帰になる。
+                guard case .event = bar.target else { return bar }
+                return TimelineBar(
+                    id: bar.id,
+                    lane: bar.lane,
+                    title: eventDisplayName(bar.title),
+                    start: bar.start,
+                    end: bar.end,
+                    marks: bar.marks,
+                    seedHex: bar.seedHex,
+                    categoryKey: bar.categoryKey,
+                    badge: bar.badge,
+                    target: bar.target
+                )
+            }
+        }
+    }
+}

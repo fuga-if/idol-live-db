@@ -9,6 +9,7 @@ import SwiftUI
 struct ProduceTabView: View {
     @Environment(AppDatabase.self) private var database
     @Environment(CloudKitSyncEngine.self) private var syncEngine
+    private var userMarks: UserMarkService { UserMarkService.shared }
 
     // 担当アイドル (マイピック)。各カードが自色をまとうヒーロー。
     @State private var pickIdols: [Idol] = []
@@ -17,14 +18,17 @@ struct ProduceTabView: View {
 
     // あなたの活動サマリ。
     @State private var attendedCount: Int = 0
-    @State private var editCount: Int = 0
-    @State private var receivedGoodCount: Int = 0
     @State private var predictionCount: Int = 0
-    @State private var favoriteCount: Int = 0
+    @State private var favoriteCount: Int = 0    // 曲+アイドル+ライブの合計
     @State private var collectedCount: Int = 0
-    /// お気に入り / 記録曲タイルのタップ遷移先で表示する楽曲ID。
-    @State private var favoriteSongIds: [String] = []
+    /// 習熟度を 1 段でも付けた曲数 (タイルの数字)。集計は core、ここは件数だけ。
+    private var masteryCount: Int { userMarks.masteryCounts().reduce(0, +) }
+    /// 収支の合計。タイルには金額を出す — 件数では「いくら使ったか」が読めない。
+    @State private var ledgerTotal: Int64 = 0
     @State private var collectedSongIds: [String] = []
+    // ローカル履歴 (投稿・投票) は @Observable で参照するだけでカウントが見える。
+    @State private var voteLog = LocalPollVoteLog.shared
+    @State private var contributionLog = LocalContributionLog.shared
 
     // 参加したライブ。
     @State private var attendedEvents: [EventWithDate] = []
@@ -39,6 +43,10 @@ struct ProduceTabView: View {
     @State private var activePoll: Poll?
     @State private var showInbox = false
     @State private var inboxStore = AnnouncementStore.shared
+    /// Discord ロール受け取り: 認可 URL を発行してもらっている間 true (二度押し防止 + くるくる)。
+    @State private var isLinkingDiscord = false
+    @State private var discordErrorMessage: String?
+    @Environment(\.openURL) private var openURL
 
     var body: some View {
         NavigationStack(path: $navPath) {
@@ -76,6 +84,14 @@ struct ProduceTabView: View {
             .sheet(isPresented: $showInbox) {
                 InboxView()
             }
+            .alert("エラー", isPresented: Binding(
+                get: { discordErrorMessage != nil },
+                set: { if !$0 { discordErrorMessage = nil } }
+            )) {
+                Button("OK") { discordErrorMessage = nil }
+            } message: {
+                Text(discordErrorMessage ?? "")
+            }
             .navigationDestination(for: Idol.self) { idol in
                 IdolDetailView(idol: idol)
             }
@@ -87,16 +103,7 @@ struct ProduceTabView: View {
             }
             // みんなの投票 (PollListView) は自前スタックを持たず、ここ(親の1スタック)に
             // 遷移先を登録する。これで「一覧→詳細」の2階層目を同じスタック上に push できる。
-            .navigationDestination(for: PollRoute.self) { route in
-                switch route {
-                case .list:
-                    PollListView()
-                case let .detail(pollId):
-                    PollDetailView(pollId: pollId)
-                case .hallOfFame:
-                    PollHallOfFameView()
-                }
-            }
+            .navigationDestination(for: PollRoute.self) { PollRouteView(route: $0) }
             .sheet(item: $sheetDestination) { dest in
                 DetailSheetView(destination: dest)
                     .environment(database)
@@ -191,7 +198,7 @@ struct ProduceTabView: View {
                         }
                     }
                     .padding(.horizontal, 1)
-                    .padding(.vertical, 2)
+                    .padding(.vertical, DS.sp1)
                 }
             }
         }
@@ -206,20 +213,26 @@ struct ProduceTabView: View {
                 statTileLink(route: .attendedEvents) {
                     ImasStatTile(systemImage: "music.mic", value: numberString(attendedCount), label: "参加ライブ", brand: pickBrandSeed, tappable: true)
                 }
-                statTileLink(route: .myEdits) {
-                    ImasStatTile(systemImage: "square.and.pencil", value: numberString(editCount), label: "編集", brand: pickBrandSeed, tappable: true)
-                }
-                statTileLink(route: .myEdits) {
-                    ImasStatTile(systemImage: "hands.clap.fill", value: numberString(receivedGoodCount), label: "受Good", brand: pickBrandSeed, tappable: true)
-                }
                 statTileLink(route: .myPredictions) {
                     ImasStatTile(systemImage: "sparkles", value: numberString(predictionCount), label: "予想", brand: pickBrandSeed, tappable: true)
                 }
-                statTileLink(route: .favoriteSongs) {
+                statTileLink(route: .favorites) {
                     ImasStatTile(systemImage: "star.fill", value: numberString(favoriteCount), label: "お気に入り", brand: pickBrandSeed, tappable: true)
                 }
+                statTileLink(route: .myContributions) {
+                    ImasStatTile(systemImage: "square.and.pencil", value: numberString(contributionLog.total), label: "投稿", brand: pickBrandSeed, tappable: true)
+                }
+                statTileLink(route: .myVotes) {
+                    ImasStatTile(systemImage: "chart.bar.doc.horizontal", value: numberString(voteLog.votedPollCount), label: "投票", brand: pickBrandSeed, tappable: true)
+                }
                 statTileLink(route: .collectedSongs) {
-                    ImasStatTile(systemImage: "music.note", value: numberString(collectedCount), label: "記録曲", brand: pickBrandSeed, tappable: true)
+                    ImasStatTile(systemImage: "music.note", value: numberString(collectedCount), label: "回収", brand: pickBrandSeed, tappable: true)
+                }
+                statTileLink(route: .mastery) {
+                    ImasStatTile(systemImage: "chart.bar.fill", value: numberString(masteryCount), label: "習熟度", brand: pickBrandSeed, tappable: true)
+                }
+                statTileLink(route: .ledger) {
+                    ImasStatTile(systemImage: "yensign.circle.fill", value: formatYen(amount: ledgerTotal), label: "収支", brand: pickBrandSeed, tappable: true)
                 }
             }
         }
@@ -227,17 +240,20 @@ struct ProduceTabView: View {
 
     /// あなたの活動タイルの遷移先。値ベース push にして二重 push をスロットルで防ぐ。
     enum ActivityRoute: Hashable {
-        case attendedEvents, myEdits, myPredictions, favoriteSongs, collectedSongs
+        case attendedEvents, myPredictions, favorites, myVotes, myContributions, collectedSongs, mastery, ledger
     }
 
     @ViewBuilder
     private func activityDestination(_ route: ActivityRoute) -> some View {
         switch route {
         case .attendedEvents: AttendedEventsListView(events: attendedEvents)
-        case .myEdits: MyEditsView()
         case .myPredictions: MyPredictionsView()
-        case .favoriteSongs: songListDestination(ids: favoriteSongIds, title: "お気に入りの楽曲")
-        case .collectedSongs: songListDestination(ids: collectedSongIds, title: "記録した楽曲")
+        case .favorites: FavoritesListView().environment(database)
+        case .myVotes: MyVotesView().environment(database)
+        case .myContributions: MyContributionsView()
+        case .collectedSongs: songListDestination(ids: collectedSongIds, title: "回収した楽曲")
+        case .mastery: MasteryView().environment(database)
+        case .ledger: LedgerView().environment(database)
         }
     }
 
@@ -278,7 +294,7 @@ struct ProduceTabView: View {
                                 .buttonStyle(.plain)
                         }
                     }
-                    .padding(.vertical, 2)
+                    .padding(.vertical, DS.sp1)
                 }
             }
         }
@@ -294,7 +310,7 @@ struct ProduceTabView: View {
                 ImasListContainer {
                     ForEach(Array(attendedEvents.prefix(5).enumerated()), id: \.element.id) { index, ew in
                         if index > 0 {
-                            Divider().background(DS.sep).padding(.leading, DS.sp4)
+                            ImasRowDivider(inset: DS.sp4)
                         }
                         NavigationLink(value: ew.event) {
                             ProduceEventRow(
@@ -337,16 +353,45 @@ struct ProduceTabView: View {
             .buttonStyle(.plain)
 
             NavigationLink {
+                BrandTimelineView(initialBrandId: pickIdols.first?.brandId)
+            } label: {
+                ImasEntryCard(
+                    systemImage: "chart.bar.xaxis",
+                    title: "年表",
+                    preview: "ライブ・楽曲シリーズ・節目を1枚で俯瞰する",
+                    brand: pickBrandSeed
+                )
+            }
+            .buttonStyle(.plain)
+
+            NavigationLink {
                 RecentEditsView()
             } label: {
                 ImasEntryCard(
                     systemImage: "person.2.fill",
                     title: "みんなの動き",
-                    preview: "コーレス・参考動画など最近のコミュニティ投稿",
+                    preview: "参考動画・セトリ編集など最近のコミュニティ投稿",
                     brand: secondaryBrandSeed
                 )
             }
             .buttonStyle(.plain)
+
+            // 編集の協力者に Discord のロールを渡す入口。セッションで本人を確かめるので
+            // ログイン中だけ出す (未ログインで押しても 401 になるだけ)。
+            if AuthService.shared.isSignedIn {
+                Button {
+                    Task { await openDiscordLink() }
+                } label: {
+                    ImasEntryCard(
+                        systemImage: "rosette",
+                        title: "Discordでロールを受け取る",
+                        preview: "アプリで10件以上編集すると「データ協力」ロールが付きます",
+                        brand: secondaryBrandSeed,
+                        isLoading: isLinkingDiscord
+                    )
+                }
+                .buttonStyle(.plain)
+            }
 
             NavigationLink {
                 GamesHubView()
@@ -354,7 +399,7 @@ struct ProduceTabView: View {
                 ImasEntryCard(
                     systemImage: "gamecontroller.fill",
                     title: "クイズ・ゲーム",
-                    preview: "イントロドン・アイドル当て・カラー合わせ",
+                    preview: "イントロドン・歌詞クイズ・アイドル当てほか",
                     brand: pickBrandSeed
                 )
             }
@@ -371,10 +416,11 @@ struct ProduceTabView: View {
             }
             .buttonStyle(.plain)
 
-            NavigationLink {
-                PollListView()
-                    .environment(database)
-            } label: {
+            // 値ベース (PollRoute.list) に統一。クロージャベースで直接 PollListView() を
+            // push すると、その中の値ベース NavigationLink(value: PollRoute.detail) と
+            // 混在し、詳細遷移時に navigationDestination が再評価されて PollList が
+            // 二重 push される (Detail の上に List が乗る現象) ため。
+            NavigationLink(value: PollRoute.list) {
                 ImasEntryCard(
                     systemImage: "chart.bar.doc.horizontal",
                     title: "みんなの投票",
@@ -383,6 +429,49 @@ struct ProduceTabView: View {
                 )
             }
             .buttonStyle(.plain)
+
+            // 歌詞タブと同じ根拠 (JASRAC 許諾) で出し分ける。歌詞が出ないビルドでは
+            // コールガイドを書く場所そのものが無いので、入口も出さない。
+            if LyricsFeature.isAvailable {
+                NavigationLink {
+                    CallGuideDashboardView()
+                } label: {
+                    ImasEntryCard(
+                        systemImage: "hands.clap.fill",
+                        title: "コールガイド",
+                        preview: "歌詞行ごとのコールガイド。書かれている曲・最近の編集・書き手募集中の曲",
+                        brand: secondaryBrandSeed
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+
+            NavigationLink {
+                TagActivityView()
+            } label: {
+                ImasEntryCard(
+                    systemImage: "flame.fill",
+                    title: "タグの動き",
+                    preview: "伸びてるタグ・急上昇の曲やアイドルをチェック",
+                    brand: secondaryBrandSeed
+                )
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    /// Worker から 1 回限りの Discord 認可 URL をもらってブラウザで開く。
+    /// ロール付与の結果は Worker のページが出すので、ここは開くところまで。
+    private func openDiscordLink() async {
+        guard !isLinkingDiscord else { return }
+        AppAnalytics.tap("produce_tab.discord_link")
+        isLinkingDiscord = true
+        defer { isLinkingDiscord = false }
+        do {
+            let url = try await DiscordLinkService.authorizeURL()
+            openURL(url)
+        } catch {
+            discordErrorMessage = DiscordLinkService.errorMessage(for: error)
         }
     }
 
@@ -438,7 +527,7 @@ struct ProduceTabView: View {
         let polls = (try? await AppContainer.shared.communityVoting.polls(status: "active")) ?? []
         // 全票(3票)使い切ったお題はバナーに出さない。残票のあるものだけ対象。
         // (匿名は myVoteCount=nil=0 扱いなので常に対象)
-        let votable = polls.filter { ($0.myVoteCount ?? 0) < 3 }
+        let votable = polls.filter { CommunityVoteLimit.remaining(myVoteCount: $0.myVoteCount ?? 0) > 0 }
         // 未投票を優先、その中からランダム。全部投票済みなら非表示 (nil)。
         let unvoted = votable.filter { ($0.myVoteCount ?? 0) == 0 }
         activePoll = (unvoted.isEmpty ? votable : unvoted).randomElement()
@@ -461,10 +550,23 @@ struct ProduceTabView: View {
             collectedSongIds = Array(try await mark.autoCollectedSongIds())
             collectedCount = collectedSongIds.count
 
-            favoriteSongIds = try await mark.markedEntityIds(entity: .song, kind: .favorite)
+            // お気に入りは曲・アイドル・ライブの全種別合算 (FavoritesListView 側で内訳タブ)。
+            let songFav = try await mark.markedEntityIds(entity: .song, kind: .favorite).count
             let idolFav = try await mark.markedEntityIds(entity: .idol, kind: .favorite).count
             let eventFav = try await mark.markedEntityIds(entity: .event, kind: .favorite).count
-            favoriteCount = favoriteSongIds.count + idolFav + eventFav
+            favoriteCount = songFav + idolFav + eventFav
+
+            // 合計はコアに出させる (画面で足し算しない)。
+            let expenses = try await AppContainer.shared.ledgerReading.expenses().map {
+                ExpenseEntry(id: $0.id, date: $0.date, category: $0.categoryValue,
+                             amount: $0.amount, showId: $0.showId, eventId: $0.eventId,
+                             showLabel: nil, note: $0.note)
+            }
+            ledgerTotal = buildLedgerSummary(
+                entries: expenses,
+                period: .all,
+                filter: LedgerFilter(year: "", categories: [], linkage: .all, eventId: "")
+            ).total
         } catch {
             Logger.database.error("load_failed produce_local: \(error.localizedDescription)")
         }
@@ -478,17 +580,12 @@ struct ProduceTabView: View {
         }
     }
 
-    /// サーバー指標 (編集数 / 受 Good / 予想数)。未ログインなら 0。
+    /// サーバー指標 (予想数)。未ログインなら 0。
+    /// 編集数 / 受Good は UI 上で出さなくなったため取得を停止 (badges API は別画面で必要なら再開)。
     private func loadServerActivity() async {
         guard AuthService.shared.isSignedIn else {
-            editCount = 0
-            receivedGoodCount = 0
             predictionCount = 0
             return
-        }
-        if let badges = await BadgeService.shared.currentUserBadges() {
-            editCount = badges.editCount
-            receivedGoodCount = badges.goodsReceived
         }
         if let predictions = try? await PredictionService.shared.myPredictions() {
             predictionCount = predictions.count
@@ -523,7 +620,7 @@ private struct HeroIdolCard: View {
                         .foregroundStyle(DS.ink2)
                         .lineLimit(1)
                     ImasChip(text: "担当", systemImage: "heart.fill", style: .themed, seed: idol.color, brand: brandColor)
-                        .padding(.top, 2)
+                        .padding(.top, DS.sp1)
                 }
                 Spacer(minLength: 0)
             }
@@ -562,7 +659,7 @@ private struct HeroIdolCard: View {
     private var metaLine: String {
         var parts: [String] = []
         if !brandName.isEmpty { parts.append(brandName) }
-        if let cv = idol.currentVoiceActor, !cv.isEmpty { parts.append("CV \(cv)") }
+        if let cv = VoiceActorDirectory.shared.current(for: idol.id), !cv.isEmpty { parts.append("CV \(cv)") }
         return parts.joined(separator: " ・ ")
     }
 }
@@ -595,9 +692,7 @@ private struct ProduceEventRow: View {
                 }
             }
             Spacer(minLength: 8)
-            Image(systemName: "chevron.right")
-                .font(.imasScaled( 13, weight: .semibold))
-                .foregroundStyle(DS.ink3)
+            ImasRowChevron()
         }
         .padding(.horizontal, DS.sp4)
         .padding(.vertical, DS.sp3)

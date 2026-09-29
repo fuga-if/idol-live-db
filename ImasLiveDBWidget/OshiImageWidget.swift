@@ -29,12 +29,22 @@ struct OshiEntityQuery: EntityQuery, EntityStringQuery {
         let ids = Set(identifiers)
         return WidgetShared.loadCatalog().filter { ids.contains($0.id) }.map(Self.entity)
     }
-    /// ピッカーの検索文字列でアイドル名・ブランド名を部分一致フィルタ。
+    /// ピッカーの検索文字列で、アイドル名・**読み**・ブランド名を部分一致フィルタ。
+    ///
+    /// ここだけは本体アプリと照合規則が違う。アプリ側は全部コア
+    /// (`domain/text_search_index.rs`) に寄せていて、ひらがな↔カタカナも畳むが、
+    /// ウィジェット拡張はコアを link していない (静的ライブラリが 70MB あり、
+    /// メモリ上限の厳しい拡張にピッカーの検索欄 1 つのために持ち込むのは割に合わない)。
+    /// 代わりに**読みをカタログに載せて**渡してある。ユーザーが打つのはひらがなで、
+    /// 読みもひらがななので、実用上の穴 (「みき」で星井美希が出ない) はこれで塞がる。
     func entities(matching string: String) async throws -> [OshiEntity] {
         let q = string.lowercased()
         guard !q.isEmpty else { return WidgetShared.loadCatalog().map(Self.entity) }
         return WidgetShared.loadCatalog()
-            .filter { $0.name.lowercased().contains(q) || ($0.brandName?.lowercased().contains(q) ?? false) }
+            .filter { entry in
+                [entry.name, entry.nameKana, entry.brandName]
+                    .contains { $0?.lowercased().contains(q) == true }
+            }
             .map(Self.entity)
     }
     func suggestedEntities() async throws -> [OshiEntity] {
@@ -195,6 +205,8 @@ struct OshiImageWidget: Widget {
     var body: some WidgetConfiguration {
         AppIntentConfiguration(kind: "OshiImageWidget", intent: SelectOshiIntent.self, provider: OshiProvider()) { entry in
             OshiImageWidgetView(entry: entry)
+                // 画像主体の省スペースウィジェット。プレースホルダ文言の暴走を防ぐため上限クランプ。
+                .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                 .containerBackground(.fill.tertiary, for: .widget)
         }
         .configurationDisplayName("担当の画像（タップで切替）")
@@ -208,6 +220,7 @@ struct OshiLauncherWidget: Widget {
     var body: some WidgetConfiguration {
         AppIntentConfiguration(kind: "OshiLauncherWidget", intent: SelectOshiIntent.self, provider: OshiProvider()) { entry in
             OshiLauncherWidgetView(entry: entry)
+                .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                 .containerBackground(.fill.tertiary, for: .widget)
         }
         .configurationDisplayName("担当の画像（タップでアプリ）")

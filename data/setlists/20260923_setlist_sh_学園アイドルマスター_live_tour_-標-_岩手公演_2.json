@@ -1,0 +1,124 @@
+{
+ "title": "公演 sh_学園アイドルマスター_live_tour_-標-_岩手公演_2 のセットリスト追加",
+ "author": "LLM 提案 (propose_setlist)",
+ "source": "https://idolmaster-official.jp/news/01_19877.html",
+ "note": "出典: https://idolmaster-official.jp/news/01_19877.html\n引用: \"学園アイドルマスター LIVE TOUR -標- 岩手公演 セットリスト / トーサイクラシックホール岩手 (岩手県民会館) 大ホール / DAY2 2026.09.23 WED / 1. 日々、発見的ステップ！ 伊藤 舞音 / 2. Tame-Lie-One-Step 湊 みや / 3. ヨルニテ 春咲 暖 / 4. Our Chant 陽高 真白 / 5. 修楽旅行 伊藤 舞音・湊 みや・春咲 暖・陽高 真白 / 6. ツキノカメ 春咲 暖 / 7. 空と約束 伊藤 舞音 / 8. Roar 陽高 真白 / 9. Private Glitter 湊 みや / 10. Kira Kira 湊 みや / 11. ときめきのソルフェージュ 伊藤 舞音 / 12. 赤裸々 陽高 真白 / 13. VEIL 春咲 暖 / 14. 古今東西ちょちょいのちょい (4名) / 15. 標 (4名) / 16. Agitato (4名) / 17. Campus mode!! (4名)\"\n公式ニュース記事 (岩手公演 DAY2 の告知まとめ) に掲載されたセットリスト画像より。歌唱者は声優名表記なのでアイドル名に置き換えている (伊藤舞音=倉本千奈 / 湊みや=紫雲清夏 / 春咲暖=秦谷美鈴 / 陽高真白=十王星南)。8 Roar・9 Private Glitter はこの公演でサプライズ初披露 (9/24 0 時配信)。5 修楽旅行 と 16 Agitato は DAY1 と共通。DAY1 と重なるのはこの 2 曲だけで、ソロ 13 曲はすべて入れ替わっている。",
+ "show_id": "sh_学園アイドルマスター_live_tour_-標-_岩手公演_2",
+ "all_performers": [
+  "gakuen_倉本千奈",
+  "gakuen_紫雲清夏",
+  "gakuen_秦谷美鈴",
+  "gakuen_十王星南"
+ ],
+ "songs": [
+  {
+   "position": 1,
+   "song_id": "gakuen_日々発見的ステップ",
+   "performers": [
+    "gakuen_倉本千奈"
+   ]
+  },
+  {
+   "position": 2,
+   "song_id": "gakuen_tame-lie-one-step",
+   "performers": [
+    "gakuen_紫雲清夏"
+   ]
+  },
+  {
+   "position": 3,
+   "song_id": "gakuen_ヨルニテ",
+   "performers": [
+    "gakuen_秦谷美鈴"
+   ]
+  },
+  {
+   "position": 4,
+   "song_id": "gakuen_our_chant",
+   "performers": [
+    "gakuen_十王星南"
+   ]
+  },
+  {
+   "position": 5,
+   "song_id": "gakuen_修楽旅行_倉本千奈紫雲清夏秦谷美鈴十王星南ver",
+   "performers": "all"
+  },
+  {
+   "position": 6,
+   "song_id": "gakuen_ツキノカメ",
+   "performers": [
+    "gakuen_秦谷美鈴"
+   ]
+  },
+  {
+   "position": 7,
+   "song_id": "gakuen_空と約束",
+   "performers": [
+    "gakuen_倉本千奈"
+   ]
+  },
+  {
+   "position": 8,
+   "song_id": "gakuen_roar",
+   "performers": [
+    "gakuen_十王星南"
+   ]
+  },
+  {
+   "position": 9,
+   "song_id": "gakuen_private_glitter",
+   "performers": [
+    "gakuen_紫雲清夏"
+   ]
+  },
+  {
+   "position": 10,
+   "song_id": "gakuen_kira_kira",
+   "performers": [
+    "gakuen_紫雲清夏"
+   ]
+  },
+  {
+   "position": 11,
+   "song_id": "gakuen_ときめきのソルフェージュ",
+   "performers": [
+    "gakuen_倉本千奈"
+   ]
+  },
+  {
+   "position": 12,
+   "song_id": "gakuen_赤裸々",
+   "performers": [
+    "gakuen_十王星南"
+   ]
+  },
+  {
+   "position": 13,
+   "song_id": "gakuen_veil",
+   "performers": [
+    "gakuen_秦谷美鈴"
+   ]
+  },
+  {
+   "position": 14,
+   "song_id": "gakuen_古今東西ちょちょいのちょい",
+   "performers": "all"
+  },
+  {
+   "position": 15,
+   "song_id": "gakuen_標",
+   "performers": "all"
+  },
+  {
+   "position": 16,
+   "song_id": "gakuen_agitato",
+   "performers": "all"
+  },
+  {
+   "position": 17,
+   "song_id": "gakuen_campus_mode",
+   "performers": "all"
+  }
+ ]
+}

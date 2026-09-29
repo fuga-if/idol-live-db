@@ -1,0 +1,30 @@
+{
+ "title": "学マス 9/24 配信の Roar / Private Glitter に配信情報を入れる",
+ "_help": "fill_apple_music_ids は曲名の一般語で洋楽に負けて弾いた。iTunes Search で artistName=初星学園 & <原唱者> の本体トラック (Instrumental でない) を確認。",
+ "_sources": [
+  "https://itunes.apple.com/lookup?id=6812580000&country=jp (Roar / 初星学園 & 十王星南 / Roar - Single / isStreamable=true)",
+  "https://itunes.apple.com/lookup?id=6812579828&country=jp (Private Glitter / 初星学園 & 紫雲清夏 / Private Glitter - Single / isStreamable=true)"
+ ],
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "gakuen_roar",
+   "fields": {
+    "apple_music_id": "6812580000",
+    "apple_music_album_id": "6812579993",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/9e/94/37/9e9437c2-0a98-7257-bba0-1ed8a5849cec/PA00227831_0_254787_jacket.jpg/600x600bb.jpg",
+    "cd_series": "Roar - Single"
+   }
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_private_glitter",
+   "fields": {
+    "apple_music_id": "6812579828",
+    "apple_music_album_id": "6812579632",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/35/d1/ef/35d1ef50-b71b-62fe-ca0c-2d594cf225dd/PA00227830_0_254771_jacket.jpg/600x600bb.jpg",
+    "cd_series": "Private Glitter - Single"
+   }
+  }
+ ]
+}

@@ -1,0 +1,24 @@
+# VOY@GER に入っていた別編成の原唱者 (2026-09-13)。
+# THE IDOLM@STER FIVE STARS!!!!! は曲ごとにメンバーが変わる名義で、
+# 公式 (lantis.jp/sidem/releaseinfo/release_LACM-24164.html) の Starring by は
+#   765PRO ALLSTARS：天海春香 / 菊地 真 / 四条貴音
+#   CINDERELLA GIRLS：塩見周子 / 新田美波 / 久川 颯
+#   MILLIONSTARS：高坂海美 / 白石 紬 / 望月杏奈
+#   315 STARS：鷹城恭二 / 黒野玄武 / 古論クリス
+#   シャイニーカラーズ：有栖川夏葉 / 黛 冬優子 / 浅倉 透
+# の 15 人。DB の 29 人には「なんどでも笑おう」(2019) の 14 人が混ざっていた。
+# master.sqlite / db/master.sql からは削除済み。CloudKit から消さないと日次 cron で復活する。
+SongArtist	song_artists-765as_voyger-765as_如月千早-original
+SongArtist	song_artists-765as_voyger-765as_星井美希-original
+SongArtist	song_artists-765as_voyger-cg_島村卯月-original
+SongArtist	song_artists-765as_voyger-cg_本田未央-original
+SongArtist	song_artists-765as_voyger-cg_渋谷凛-original
+SongArtist	song_artists-765as_voyger-ml_伊吹翼-original
+SongArtist	song_artists-765as_voyger-ml_春日未来-original
+SongArtist	song_artists-765as_voyger-ml_最上静香-original
+SongArtist	song_artists-765as_voyger-sc_八宮めぐる-original
+SongArtist	song_artists-765as_voyger-sc_櫻木真乃-original
+SongArtist	song_artists-765as_voyger-sc_風野灯織-original
+SongArtist	song_artists-765as_voyger-sidem_天道輝-original
+SongArtist	song_artists-765as_voyger-sidem_柏木翼-original
+SongArtist	song_artists-765as_voyger-sidem_桜庭薫-original

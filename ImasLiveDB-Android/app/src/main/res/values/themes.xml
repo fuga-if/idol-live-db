@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Base application theme. Compose handles most theming, this is the window background only. -->
-    <style name="Theme.ImasLiveDB" parent="android:Theme.Material.Light.NoActionBar" />
+    <!-- 画面の見た目は Compose 側が持つ。ここはウィンドウ背景だけの担当。
+         DayNight にしておかないと、ダークモードでも起動時だけ白い板が出てから
+         Compose の暗い画面に切り替わる (iOS の「初回起動が真っ黒」と同じ性質の問題)。
+         Android 12 以降は起動時にランチャーアイコンが自動で出るので、
+         背景色を合わせるだけで iOS の起動画面と同じ見え方になる。 -->
+    <style name="Theme.ImasLiveDB" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/window_background</item>
+    </style>
 </resources>

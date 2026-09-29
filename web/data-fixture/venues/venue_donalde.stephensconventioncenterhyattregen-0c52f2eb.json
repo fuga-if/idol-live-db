@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "id": "venue_donalde.stephensconventioncenter/hyattregencyo'hare",
+  "path": "/venues/venue_donalde.stephensconventioncenterhyattregen-0c52f2eb/",
+  "name": "Donald E. Stephens Convention Center / Hyatt Regency O'Hare",
+  "nameKana": null,
+  "themeKey": "neutral",
+  "prefecture": null,
+  "locationDisplay": null,
+  "capacity": null,
+  "halls": [],
+  "pastNames": [],
+  "factRows": [],
+  "events": [],
+  "shows": [],
+  "showsEmpty": {
+    "title": "公演の記録がありません",
+    "body": null
+  },
+  "app": {
+    "title": "アプリ「アイドルライブDB」",
+    "appStoreUrl": "https://apps.apple.com/jp/app/id6763342297",
+    "deeplink": null,
+    "note": "参加記録・投票・歌詞・コール・タグ付けはアプリでご利用いただけます。"
+  },
+  "seo": {
+    "title": "Donald E. Stephens Convention Center / Hyatt Regency O'Hare | アイドルライブDB",
+    "description": "この会場で行われたライブと公演。",
+    "canonical": "https://idollivedb.fugaapp.site/venues/venue_donalde.stephensconventioncenterhyattregen-0c52f2eb/",
+    "ogImage": "https://idollivedb.fugaapp.site/og/default.png",
+    "robots": "index,follow",
+    "jsonLd": {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebPage",
+          "name": "Donald E. Stephens Convention Center / Hyatt Regency O'Hare",
+          "url": "https://idollivedb.fugaapp.site/venues/venue_donalde.stephensconventioncenterhyattregen-0c52f2eb/"
+        },
+        {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "item": "https://idollivedb.fugaapp.site/",
+              "name": "ホーム",
+              "position": 1
+            },
+            {
+              "@type": "ListItem",
+              "item": "https://idollivedb.fugaapp.site/venues/",
+              "name": "会場",
+              "position": 2
+            }
+          ]
+        }
+      ]
+    },
+    "breadcrumbs": [
+      {
+        "name": "ホーム",
+        "path": "/"
+      },
+      {
+        "name": "会場",
+        "path": "/venues/"
+      }
+    ]
+  }
+}

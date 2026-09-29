@@ -1,0 +1,28 @@
+{
+ "title": "本物の曲が空スタブの派生曲にされていたのを外し、電音部の3曲に名義を入れる",
+ "_help": "`parent_song_id` が入っている曲は派生 (リミックス・別バージョン) 扱いになり、曲一覧・今日の1曲・カレンダー・統計・クイズのすべてから既定で除外される (`imas-core` の song_list_queries.rs / daily_pick.rs)。ところが親子が逆に付いた行が 2 件あり、原唱者もジャケ写もある本物の曲が、名義も配信IDも無い空のスタブの子になっていた。結果としてアプリ上で見えなくなっていた。",
+ "_how_it_happened": "親側はどちらも `brand_id='other'`・原唱者0件・apple_music_id なしで、セトリ 1 行から作られた仮の曲。曲名が『Bloomy』『Fly High』と末尾の `!` を欠いており、`!` を無視して突き合わせると本物と一致してしまう。版違いを見つける仕組みが、素の曲名に近い方を親と判断したものと思われる。",
+ "_why_not_merge": "スタブ側は別の曲なので統合しない。『Bloomy』が出てくる MaiNote Festival 2025 にシャイニーカラーズは出演しておらず (セトリの内訳は other 17 / ml 8 / cg 6 / sidem 1)、『Dive Out』『Bloomy』『Lightning』が連続して並ぶ。この3曲は電音部のユニット Divermy のシングル3枚で、アルストロメリアの『Bloomy!』とは無関係。`765as_flyhigh` も `song_type='cover'` で、本物の『Fly High!』とは別物。親子関係だけを外し、スタブはそのまま残す。",
+ "_sources": [
+  "Dive Out - Single - Divermy & 電音部 https://music.apple.com/jp/album/dive-out-single/1739525946",
+  "Bloomy - Divermy (MILIA/RARA/RIRI/KONA/YOO) & 電音部 https://s.awa.fm/track/cf30ad19fb9144a98c12",
+  "Lightning / Divermy (MILIA/RARA/RIRI/KONA/YOO), 電音部 https://ototoy.jp/_/default/p/2256710"
+ ],
+ "fixes": [
+  { "table": "songs", "id": "sc_bloomy", "fields": { "parent_song_id": null },
+    "note": "アルストロメリア『Bloomy!』(2019-07-19)。セトリ11件・原唱者25件・ジャケ写あり。親にされていた other_bloomy はセトリ1件・原唱者0件の空スタブ" },
+
+  { "table": "songs", "id": "765as_fly_high", "fields": { "parent_song_id": null },
+    "note": "『Fly High!』セトリ2件・原唱者1件。親にされていた 765as_flyhigh は brand=other・song_type=cover の空スタブ" },
+
+  { "table": "songs", "id": "other_bloomy",
+    "fields": { "singer_label": "Divermy（MILIA、RARA、RIRI、KONA、YOO）" },
+    "note": "電音部。名義が空だったせいでアルストロメリアの『Bloomy!』と取り違えられていた" },
+  { "table": "songs", "id": "other_diveout",
+    "fields": { "singer_label": "Divermy（MILIA、RARA、RIRI、KONA、YOO）" },
+    "note": "電音部。MaiNote Festival 2025 で Bloomy / Lightning と連続して披露" },
+  { "table": "songs", "id": "other_lightning",
+    "fields": { "singer_label": "Divermy（MILIA、RARA、RIRI、KONA、YOO）" },
+    "note": "電音部。同上" }
+ ]
+}

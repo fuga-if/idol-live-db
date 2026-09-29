@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ダークモードの起動背景。Light 固定のままだと起動のたびに白く光ってから暗転する。 -->
+    <color name="window_background">#000000</color>
+</resources>

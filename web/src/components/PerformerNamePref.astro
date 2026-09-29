@@ -1,0 +1,57 @@
+---
+import { meta } from "../lib/data";
+
+/**
+ * セトリの歌唱者をどの名前で出すかの切り替え。
+ *
+ * **選択肢は Rust が出す。** 順も保存値も文言も `meta.json` の
+ * `performerNameOptions` (= `imas-core` の `performer_name_options`) そのままで、
+ * ここは `<option>` に置くだけ。アプリの設定画面と同じ 1 本を見ている。
+ *
+ * **表示の好みだけを持つ。** サーバには送らず、ログインも要らない
+ * (この出面は書き込まない・状態をサーバに持たない、という原則は崩さない)。
+ * 選択は localStorage に残り、次の訪問でも効く。
+ *
+ * JS が動かない環境では出さない (押しても何も起きないものを置かない)。
+ * 器は `hidden` で描いておき、島が起動したときに外す。
+ */
+const options = meta().performerNameOptions;
+---
+
+<div class="perf-pref" data-performer-pref hidden>
+  <label class="perf-pref__label" for="performer-name">歌唱者の表示</label>
+  <select class="song-filter__select" id="performer-name" data-performer-select>
+    {
+      options.map((o) => (
+        <option value={o.raw} selected={o.isDefault}>
+          {o.label}
+        </option>
+      ))
+    }
+  </select>
+</div>
+
+<script>
+  import { readMode, writeMode } from "../lib/prefs/performerName";
+
+  const root = document.querySelector<HTMLElement>("[data-performer-pref]");
+  const select = root?.querySelector<HTMLSelectElement>("[data-performer-select]");
+  if (root && select) {
+    // 選べる値は Rust が描いた <option> がそのまま名簿になる。既定は `selected` の付いた 1 つ。
+    // JS 側にモードの一覧も既定も持たない。
+    const known = [...select.options].map((o) => o.value);
+    const fallback = [...select.options].find((o) => o.defaultSelected)?.value ?? known[0] ?? "";
+    // モードは body に置く。切り替えの実体は CSS 側 (components.css) で、
+    // どちらの名前を見せるかだけが変わる。
+    const apply = (mode: string) => {
+      document.body.dataset.performerName = mode;
+      select.value = mode;
+    };
+    apply(readMode(known, fallback));
+    select.addEventListener("change", () => {
+      writeMode(select.value, fallback);
+      apply(select.value);
+    });
+    root.hidden = false;
+  }
+</script>

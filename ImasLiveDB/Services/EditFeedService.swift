@@ -272,11 +272,12 @@ actor EditFeedService {
         recordName: String,
         limit: Int = 30
     ) async throws -> [RecordHistoryEntry] {
-        let type = recordType.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? recordType
-        let name = recordName.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? recordName
+        // recordType/recordName は raw のまま渡す。APIClient の URLComponents (path セグメント)
+        // が既に 1 回エンコードするため、ここで addingPercentEncoding を被せると二重エンコードになり、
+        // サーバ側の decodeURIComponent 1 回では戻りきらず別キー扱いになる (他の呼び出し箇所と同じ形)。
         let resp: RecordHistoryResponse = try await APIClient.shared.request(
             "GET",
-            path: "/master/\(type)/\(name)/history",
+            path: "/master/\(recordType)/\(recordName)/history",
             query: ["limit": "\(limit)"],
             // 認証不要 (公開履歴) だが、可用時はトークンを乗せる (将来の本人判定余地)。
             authorized: true

@@ -1,0 +1,214 @@
+{
+ "title": "曲名の読み仮名を裏取りして訂正する (第7陣・英字題)",
+ "_help": "外部の かな表記 DB との機械照合で食い違った英字題 151 件を 1 件ずつ裁定した結果。当方が誤っていた 19 件。多くは綴りに引きずられた誤読 (LOOK→ろっく / WIND→わいるど / -scape→すぺーす / bloody→ぶるーでぃー) と、外国語の黙字 (仏 bonnes / pièce montée)。先方が誤っていた 131 件は当方のまま据え置いた。",
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "765as_here_we_go",
+   "fields": {
+    "title_kana": "ひあうぃーごー"
+   },
+   "note": "Here we go が縮んでいた。かな表記 DB との機械照合 + ニコニコ大百科 / Wiktionary での裁定"
+  },
+  {
+   "table": "songs",
+   "id": "765as_here_we_goディグダグiiファミソン8bit_mix",
+   "fields": {
+    "title_kana": "ひあうぃーごー"
+   },
+   "note": "派生曲。親 765as_here_we_go に追随 (Here we go が縮んでいた)。かな表記 DB との機械照合 + ニコニコ大百科 / Wiktionary での裁定"
+  },
+  {
+   "table": "songs",
+   "id": "765as_here_we_goremster-a",
+   "fields": {
+    "title_kana": "ひあうぃーごー"
+   },
+   "note": "派生曲。親 765as_here_we_go に追随 (Here we go が縮んでいた)。かな表記 DB との機械照合 + ニコニコ大百科 / Wiktionary での裁定"
+  },
+  {
+   "table": "songs",
+   "id": "765as_here_we_goremster-b",
+   "fields": {
+    "title_kana": "ひあうぃーごー"
+   },
+   "note": "派生曲。親 765as_here_we_go に追随 (Here we go が縮んでいた)。かな表記 DB との機械照合 + ニコニコ大百科 / Wiktionary での裁定"
+  },
+  {
+   "table": "songs",
+   "id": "765as_excavate",
+   "fields": {
+    "title_kana": "えくすかべいと"
+   },
+   "note": "ex-CA-vate の /kə/ を「け」と誤読。かな表記 DB との機械照合 + ニコニコ大百科 / Wiktionary での裁定"
+  },
+  {
+   "table": "songs",
+   "id": "765as_mythmaker",
+   "fields": {
+    "title_kana": "みすめいかー"
+   },
+   "note": "maker /ˈmeɪkər/。かな表記 DB との機械照合 + ニコニコ大百科 / Wiktionary での裁定"
+  },
+  {
+   "table": "songs",
+   "id": "765as_mythmaker_-taku_inoue_remix-",
+   "fields": {
+    "title_kana": "みすめいかー"
+   },
+   "note": "派生曲。親 765as_mythmaker に追随 (maker /ˈmeɪkər/)。かな表記 DB との機械照合 + ニコニコ大百科 / Wiktionary での裁定"
+  },
+  {
+   "table": "songs",
+   "id": "765as_look_the_sky",
+   "fields": {
+    "title_kana": "るっくざすかい"
+   },
+   "note": "LOOK を rock と誤読。かな表記 DB との機械照合 + ニコニコ大百科 / Wiktionary での裁定"
+  },
+  {
+   "table": "songs",
+   "id": "961_realize",
+   "fields": {
+    "title_kana": "りあらいず"
+   },
+   "note": "「り」が 1 つ余分だった。かな表記 DB との機械照合 + ニコニコ大百科 / Wiktionary での裁定"
+  },
+  {
+   "table": "songs",
+   "id": "cg_bloody_festa",
+   "fields": {
+    "title_kana": "ぶらっでぃーふぇすた"
+   },
+   "note": "bloody /ˈblʌdi/ を bloo-dy と誤読。かな表記 DB との機械照合 + ニコニコ大百科 / Wiktionary での裁定"
+  },
+  {
+   "table": "songs",
+   "id": "cg_evil_live",
+   "fields": {
+    "title_kana": "いーびるらいぶ"
+   },
+   "note": "evil の -vil は びる (devil=デビル と同型)。かな表記 DB との機械照合 + ニコニコ大百科 / Wiktionary での裁定"
+  },
+  {
+   "table": "songs",
+   "id": "cg_harurunrun",
+   "fields": {
+    "title_kana": "はるらんらん"
+   },
+   "note": "RUN は英語の run。「るんるん」ではない。かな表記 DB との機械照合 + ニコニコ大百科 / Wiktionary での裁定"
+  },
+  {
+   "table": "songs",
+   "id": "ml_bonnes_bonnes_vacances",
+   "fields": {
+    "title_kana": "ぼんぼんばかんす"
+   },
+   "note": "仏 bonnes の語末 -es は黙字。かな表記 DB との機械照合 + ニコニコ大百科 / Wiktionary での裁定"
+  },
+  {
+   "table": "songs",
+   "id": "ml_come_on_a_tea_party",
+   "fields": {
+    "title_kana": "かもなてぃーぱーてぃー"
+   },
+   "note": "\"a\" が丸ごと欠落していた。かな表記 DB との機械照合 + ニコニコ大百科 / Wiktionary での裁定"
+  },
+  {
+   "table": "songs",
+   "id": "ml_dreamscape",
+   "fields": {
+    "title_kana": "どりーむすけーぷ"
+   },
+   "note": "-scape /skeɪp/ を space と誤読。かな表記 DB との機械照合 + ニコニコ大百科 / Wiktionary での裁定"
+  },
+  {
+   "table": "songs",
+   "id": "ml_find_your_wind",
+   "fields": {
+    "title_kana": "ふぁいんどゆあうぃんど"
+   },
+   "note": "WIND を wild と誤読。かな表記 DB との機械照合 + ニコニコ大百科 / Wiktionary での裁定"
+  },
+  {
+   "table": "songs",
+   "id": "ml_find_your_wind_teddyloid_remix",
+   "fields": {
+    "title_kana": "ふぁいんどゆあうぃんど"
+   },
+   "note": "派生曲。親 ml_find_your_wind に追随 (WIND を wild と誤読)。かな表記 DB との機械照合 + ニコニコ大百科 / Wiktionary での裁定"
+  },
+  {
+   "table": "songs",
+   "id": "ml_good-sleep_baby",
+   "fields": {
+    "title_kana": "ぐっどすりーぷべいびー"
+   },
+   "note": "題は英語 Good-Sleep。「ぐっすり」は俗称。かな表記 DB との機械照合 + ニコニコ大百科 / Wiktionary での裁定"
+  },
+  {
+   "table": "songs",
+   "id": "ml_good-sleep_babydj_wildparty_remix",
+   "fields": {
+    "title_kana": "ぐっどすりーぷべいびー"
+   },
+   "note": "派生曲。親 ml_good-sleep_baby に追随 (題は英語 Good-Sleep。「ぐっすり」は俗称)。かな表記 DB との機械照合 + ニコニコ大百科 / Wiktionary での裁定"
+  },
+  {
+   "table": "songs",
+   "id": "ml_why",
+   "fields": {
+    "title_kana": "わい"
+   },
+   "note": "WHY /waɪ/ を「ふぁい」と誤読。かな表記 DB との機械照合 + ニコニコ大百科 / Wiktionary での裁定"
+  },
+  {
+   "table": "songs",
+   "id": "ml_why_nyankobrq_remix",
+   "fields": {
+    "title_kana": "わい"
+   },
+   "note": "派生曲。親 ml_why に追随 (WHY /waɪ/ を「ふぁい」と誤読)。かな表記 DB との機械照合 + ニコニコ大百科 / Wiktionary での裁定"
+  },
+  {
+   "table": "songs",
+   "id": "sc_black_reverie",
+   "fields": {
+    "title_kana": "ぶらっくれべりー"
+   },
+   "note": "reverie は 3 音節。1 音節脱落していた。かな表記 DB との機械照合 + ニコニコ大百科 / Wiktionary での裁定"
+  },
+  {
+   "table": "songs",
+   "id": "sc_resonance",
+   "fields": {
+    "title_kana": "れぞなんすぷらす"
+   },
+   "note": "⁺ は発音される記号なので落とせない。かな表記 DB との機械照合 + ニコニコ大百科 / Wiktionary での裁定"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_legacy_of_spirit",
+   "fields": {
+    "title_kana": "れがしーおぶすぴりっと"
+   },
+   "note": "legacy /ˈlɛɡəsi/ を「れじぇんしー」と誤読。かな表記 DB との機械照合 + ニコニコ大百科 / Wiktionary での裁定"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_piece_montee",
+   "fields": {
+    "title_kana": "ぴえすもんて"
+   },
+   "note": "仏 pièce montée。montée は もんて。かな表記 DB との機械照合 + ニコニコ大百科 / Wiktionary での裁定"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_yell_of_delight",
+   "fields": {
+    "title_kana": "えーるおぶでぃらいと"
+   },
+   "note": "Yell は定着語の エール。同ブランドの `Yell Song` も えーるそんぐ に揃える。かな表記 DB との機械照合 + ニコニコ大百科 / Wiktionary での裁定"
+  }
+ ]
+}

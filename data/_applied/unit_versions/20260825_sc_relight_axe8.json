@@ -1,0 +1,54 @@
+{
+ "title": "Project“ReLight”AXE8 — アルストロメリア / イルミネーションスターズの版",
+ "_help": "ロゴ・キャッチコピー・曲調が変わってもユニット自体は同一の企画。units は 1 行のまま据え置き、版をここに内包させる。どの版の曲かは songs.unit_version_id が指す。判定は code='AXE8' で行い、name の文字列一致には頼らない。キャッチコピーは新ロゴ告知画像の「旧」「新」から読み取ったもので、本文の記載ではない。valid_from / valid_to の 2026-08-25 は発表日を境界として置いた推定値。logo_url は空のまま (公式が出しているのは告知スライドであってロゴ素材ではないため)。",
+ "unit_versions": [
+  {
+   "id": "unit_アルストロメリア__default",
+   "unit_id": "unit_アルストロメリア",
+   "code": null,
+   "name": "オリジナル",
+   "catchphrase": "花ざかり、私達の幸福論",
+   "logo_url": null,
+   "valid_from": null,
+   "valid_to": "2026-08-25",
+   "sort_order": 0,
+   "note": "リブート前。キャッチコピーは新ロゴ告知画像の「旧」から読み取り。valid_to は発表日を境界に置いた推定"
+  },
+  {
+   "id": "unit_アルストロメリア__axe8",
+   "unit_id": "unit_アルストロメリア",
+   "code": "AXE8",
+   "name": "Project“ReLight”AXE8",
+   "catchphrase": "未来さえ憧れる、私達の花",
+   "logo_url": null,
+   "valid_from": "2026-08-25",
+   "valid_to": null,
+   "sort_order": 1,
+   "note": "キャッチコピーは新ロゴ告知画像の「新」から読み取り。valid_from は発表日を境界に置いた推定"
+  },
+  {
+   "id": "unit_イルミネーションスターズ__default",
+   "unit_id": "unit_イルミネーションスターズ",
+   "code": null,
+   "name": "オリジナル",
+   "catchphrase": "瞳に輝く、無限の可能性",
+   "logo_url": null,
+   "valid_from": null,
+   "valid_to": "2026-08-25",
+   "sort_order": 0,
+   "note": "リブート前。キャッチコピーは新ロゴ告知画像の「旧」から読み取り。valid_to は発表日を境界に置いた推定"
+  },
+  {
+   "id": "unit_イルミネーションスターズ__axe8",
+   "unit_id": "unit_イルミネーションスターズ",
+   "code": "AXE8",
+   "name": "Project“ReLight”AXE8",
+   "catchphrase": "Wish your illumination. /灯をともして",
+   "logo_url": null,
+   "valid_from": "2026-08-25",
+   "valid_to": null,
+   "sort_order": 1,
+   "note": "キャッチコピーは新ロゴ告知画像の「新」から読み取り。valid_from は発表日を境界に置いた推定"
+  }
+ ]
+}

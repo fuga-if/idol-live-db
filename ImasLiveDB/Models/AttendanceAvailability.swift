@@ -1,27 +1,16 @@
 import Foundation
 
-/// ある公演/イベントで「実在した参加形態だけ」を出し分けるための解決ロジック。
-/// 開催形態フラグは show 単位 + event フォールバック。
+/// 公演/イベントで提示する参加形態の選択肢。
 ///
-/// 方針:
-/// - 現地 (.live): 常に選択可 (無観客配信のみの例外は別途 has_local を足す余地あり、現状は常時)。
-/// - 配信 (.stream): デフォルト選択可。明示的に false のときだけ隠す (配信は一般的なため)。
-/// - LV (.liveViewing): 明示的に true のときだけ出す (例外的形態なので opt-in)。
+/// 方針: 3形態 (現地 / 配信 / LV) を全ライブで常時提示する。
+/// - フラグでフィルタしない理由: LV や配信の開催情報は欠落しやすく、出し漏れより
+///   「過去にLV参加したのに記録できない」方が体験上のダメージが大きい。
+///   3つ並んでいても誤選択は稀で、ユーザが自分の参加形態を選べる方が自由度が高い。
+/// - shows/events の has_streaming / has_live_viewing 列はデータとしては残すが、
+///   選択肢の出し分けには使わない (将来のフィルタや統計表示の余地として保持)。
 enum AttendanceAvailability {
-    /// show 優先・event フォールバックで解決した Bool? を返す。
-    private static func resolve(_ showValue: Bool?, _ eventValue: Bool?) -> Bool? {
-        showValue ?? eventValue
-    }
-
     static func options(show: Show?, event: Event?) -> [AttendanceType] {
-        var opts: [AttendanceType] = [.live]
-
-        let stream = resolve(show?.hasStreaming, event?.hasStreaming)
-        if stream != false { opts.append(.stream) }   // 既定で許可、明示 false のみ非表示
-
-        let lv = resolve(show?.hasLiveViewing, event?.hasLiveViewing)
-        if lv == true { opts.append(.liveViewing) }    // 明示 true のみ
-
-        return opts
+        // 3形態を常に提示する。
+        [.live, .stream, .liveViewing]
     }
 }

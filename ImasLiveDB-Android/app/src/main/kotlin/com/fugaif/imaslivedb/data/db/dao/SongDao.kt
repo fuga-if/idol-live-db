@@ -5,11 +5,7 @@ import androidx.room.Query
 import androidx.room.RawQuery
 import androidx.sqlite.db.SupportSQLiteQuery
 import com.fugaif.imaslivedb.data.model.Idol
-import com.fugaif.imaslivedb.data.model.PerformanceHistoryRow
 import com.fugaif.imaslivedb.data.model.Song
-import com.fugaif.imaslivedb.data.model.SoloOriginalSingerRow
-import com.fugaif.imaslivedb.data.model.SongPerfCount
-import com.fugaif.imaslivedb.data.model.SongPlayCount
 
 @Dao
 interface SongDao {
@@ -20,168 +16,13 @@ interface SongDao {
     @Query("SELECT * FROM songs WHERE id IN (:ids)")
     suspend fun fetchSongsByIds(ids: List<String>): List<Song>
 
+    /**
+     * スナップショット (共有コア) が返した idol id 列を Idol 実体へ引き直すための一括取得。
+     * 並びはコアが返した id 列が正なので、呼び出し側 (SongRepository) で並べ直す。
+     */
+    @Query("SELECT * FROM idols WHERE id IN (:ids)")
+    suspend fun fetchIdolsByIds(ids: List<String>): List<Idol>
+
     @RawQuery
     suspend fun fetchSongsRaw(query: SupportSQLiteQuery): List<Song>
-
-    @Query("""
-        SELECT i.* FROM idols i
-        JOIN song_artists sa ON i.id = sa.idol_id
-        WHERE sa.song_id = :songId
-        ORDER BY i.sort_order
-    """)
-    suspend fun fetchSongArtists(songId: String): List<Idol>
-
-    @Query("""
-        SELECT i.* FROM idols i
-        JOIN song_artists sa ON i.id = sa.idol_id
-        WHERE sa.song_id = :songId AND sa.role = :role
-        ORDER BY i.sort_order
-    """)
-    suspend fun fetchSongArtistsByRole(songId: String, role: String): List<Idol>
-
-    @Query("""
-        SELECT sh.id AS show_id, e.id AS event_id,
-               e.name AS event_name, sh.name AS show_name, sh.date, sh.venue,
-               si.position, si.section
-        FROM setlist_items si
-        JOIN shows sh ON si.show_id = sh.id
-        JOIN events e ON sh.event_id = e.id
-        WHERE si.song_id = :songId
-        ORDER BY sh.date DESC
-    """)
-    suspend fun fetchSongPerformanceHistory(songId: String): List<PerformanceHistoryRow>
-
-    /**
-     * 現地回収済み公演一覧 (参加したリアルライブでこの曲が披露された公演)。
-     * iOS AppDatabase.fetchCollectedShows と同じ判定 (show/event 単位の attended マーク)。
-     */
-    @Query(
-        """
-        SELECT DISTINCT sh.id AS show_id, e.id AS event_id,
-               e.name AS event_name, sh.name AS show_name, sh.date, sh.venue,
-               si.position, si.section
-        FROM setlist_items si
-        JOIN shows sh ON si.show_id = sh.id
-        JOIN events e ON sh.event_id = e.id
-        WHERE si.song_id = :songId
-        AND (
-            sh.id IN (
-                SELECT entity_id FROM user_marks
-                WHERE entity_type = 'show' AND kind = 'attended' AND bool_value = 1
-            )
-            OR sh.event_id IN (
-                SELECT entity_id FROM user_marks
-                WHERE entity_type = 'event' AND kind = 'attended' AND bool_value = 1
-            )
-        )
-        ORDER BY sh.date DESC
-        """
-    )
-    suspend fun fetchCollectedShows(songId: String): List<PerformanceHistoryRow>
-
-    @Query("SELECT series_group FROM songs WHERE id = :songId LIMIT 1")
-    suspend fun fetchSeriesGroup(songId: String): String?
-
-    @Query("SELECT * FROM songs WHERE series_group = :seriesGroup")
-    suspend fun fetchSongsBySeriesGroup(seriesGroup: String): List<Song>
-
-    @Query("""
-        SELECT DISTINCT s.* FROM songs s
-        JOIN song_artists sa ON s.id = sa.song_id
-        WHERE sa.role = 'original' AND sa.idol_id IN (
-            SELECT idol_id FROM song_artists WHERE song_id = :songId AND role = 'original'
-        )
-    """)
-    suspend fun fetchSongsSharingOriginalArtist(songId: String): List<Song>
-
-    @Query("""
-        SELECT s.id, s.title, COUNT(si.id) AS play_count, s.brand_id
-        FROM songs s
-        JOIN setlist_items si ON s.id = si.song_id
-        GROUP BY s.id
-        ORDER BY play_count DESC
-        LIMIT :limit
-    """)
-    suspend fun fetchSongPlayCountRanking(limit: Int = 20): List<SongPlayCount>
-
-    @Query("SELECT song_id, COUNT(*) as cnt FROM setlist_items GROUP BY song_id")
-    suspend fun fetchSongPerfCounts(): List<SongPerfCount>
-
-    /**
-     * song_id → 現地回収回数 (参加したリアルライブ(live/festival)で披露された distinct 公演数)。
-     * iOS AppDatabase.fetchSongCollectedCounts と同一クエリ。参加種別は既定(現地のみ)固定
-     * (iOS の配信含む設定トグルは Android 未移植)。
-     */
-    @Query(
-        """
-        SELECT si.song_id AS song_id, COUNT(DISTINCT si.show_id) AS cnt
-        FROM setlist_items si
-        JOIN shows sh ON sh.id = si.show_id
-        JOIN events e ON e.id = sh.event_id
-        WHERE e.kind IN ('live', 'festival')
-        AND (
-            si.show_id IN (
-                SELECT entity_id FROM user_marks
-                WHERE entity_type = 'show' AND kind = 'attended' AND bool_value = 1
-                  AND (text_value IS NULL OR text_value = 'live')
-            ) OR si.show_id IN (
-                SELECT id FROM shows WHERE event_id IN (
-                    SELECT entity_id FROM user_marks
-                    WHERE entity_type = 'event' AND kind = 'attended' AND bool_value = 1
-                )
-            )
-        )
-        GROUP BY si.song_id
-        """
-    )
-    suspend fun fetchSongCollectedCounts(): List<SongPerfCount>
-
-    /** 指定アイドルのいずれかが歌唱者にいる song_id 集合 (担当マーク由来の「担当」表示用)。 */
-    @Query("SELECT DISTINCT song_id FROM song_artists WHERE idol_id IN (:idolIds)")
-    suspend fun fetchSongIdsWithAnyArtist(idolIds: List<String>): List<String>
-
-    @Query("""
-        SELECT DISTINCT cd_series FROM songs
-        WHERE cd_series IS NOT NULL AND cd_series != ''
-        ORDER BY cd_series
-    """)
-    suspend fun fetchCdSeriesList(): List<String>
-
-    @Query("SELECT name FROM events ORDER BY name")
-    suspend fun fetchEventNames(): List<String>
-
-    @Query("SELECT * FROM songs WHERE unit_id = :unitId ORDER BY release_date")
-    suspend fun fetchUnitSongs(unitId: String): List<Song>
-
-    @Query("""
-        SELECT s.* FROM songs s
-        JOIN song_artists sa ON s.id = sa.song_id
-        WHERE sa.idol_id = :idolId
-        ORDER BY s.release_date DESC
-    """)
-    suspend fun fetchIdolSongs(idolId: String): List<Song>
-
-    @Query("""
-        SELECT s.* FROM songs s
-        JOIN song_artists sa ON s.id = sa.song_id
-        WHERE sa.idol_id = :idolId AND sa.role = :role
-        ORDER BY s.release_date DESC
-    """)
-    suspend fun fetchIdolSongsByRole(idolId: String, role: String): List<Song>
-
-    @Query("""
-        SELECT * FROM songs
-        WHERE (title LIKE :pattern OR title_kana LIKE :pattern)
-        LIMIT 20
-    """)
-    suspend fun searchSongs(pattern: String): List<Song>
-
-    /** ソロ曲クイズ用: ソロ曲 (リミックス除く) と原唱アイドルの対応。song_id 単位で複数行になり得る (原唱が複数人の曲)。 */
-    @Query("""
-        SELECT s.id AS song_id, sa.idol_id AS idol_id
-        FROM songs s
-        JOIN song_artists sa ON s.id = sa.song_id
-        WHERE s.song_type = 'solo' AND s.parent_song_id IS NULL AND sa.role = 'original'
-    """)
-    suspend fun fetchSoloOriginalSingers(): List<SoloOriginalSingerRow>
 }

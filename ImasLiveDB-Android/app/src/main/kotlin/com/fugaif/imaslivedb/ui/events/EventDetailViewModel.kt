@@ -3,6 +3,7 @@ package com.fugaif.imaslivedb.ui.events
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.fugaif.imaslivedb.data.model.EventAttendance
 import com.fugaif.imaslivedb.data.model.EventStats
 import com.fugaif.imaslivedb.data.model.Show
 import com.fugaif.imaslivedb.di.AppModule
@@ -10,8 +11,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
+import uniffi.imas_core.EventCostumesRecord
+import uniffi.imas_core.EventHeroRecord
 
 data class EventDetailUiState(
     val isLoading: Boolean = true,
@@ -22,29 +23,19 @@ data class EventDetailUiState(
     val isJoint: Boolean = false,
     /** ブランドのテーマシード色 (hex)。合同ライブは中立にするため画面側で isJoint と合わせて使う。 */
     val brandColorHex: String? = null,
+    /** 主ブランドの ID。画面の部品の `brand` に渡す (部品がマスタの色へ引く)。 */
+    val brandId: String? = null,
     val brandShortName: String? = null,
     val ticketDeadline: String? = null,
     val ticketLotteryDate: String? = null,
-    val ticketUrl: String? = null
+    val ticketUrl: String? = null,
+    /** ヒーロー (開催期間 ・ 会場・今後か・参加の札)。組み立ても判定もコア。 */
+    val hero: EventHeroRecord? = null,
+    /** このイベントで着られた衣装 (共通・個別)。分け方も並びも共有コア。 */
+    val costumes: EventCostumesRecord? = null
 ) {
-    /** 開催日レンジ ・ 会場 (ヒーローのサブ行)。 */
-    val heroSub: String
-        get() {
-            val dates = shows.map { it.date }.filter { it.isNotEmpty() }
-            val datePart = if (dates.isNotEmpty()) {
-                if (dates.first() == dates.last()) dates.first() else "${dates.first()}–${dates.last()}"
-            } else null
-            val venue = shows.mapNotNull { it.venue }.distinct().sorted().firstOrNull()
-            return listOfNotNull(datePart, venue).joinToString(" ・ ")
-        }
-
-    /** 最初の公演日が今日以降かどうか (チケット情報セクションの表示判定・参加予定チップに使う)。 */
-    val isFutureEvent: Boolean
-        get() {
-            val firstDate = shows.firstOrNull()?.date ?: return false
-            val today = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
-            return firstDate >= today
-        }
+    /** 最初の公演日が今日以降か (チケット情報の節を出すか)。 */
+    val isFutureEvent: Boolean get() = hero?.isUpcoming == true
 }
 
 class EventDetailViewModel : ViewModel() {
@@ -52,28 +43,49 @@ class EventDetailViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(EventDetailUiState())
     val uiState: StateFlow<EventDetailUiState> = _uiState.asStateFlow()
 
+    private var heroRequest: Triple<String, Set<String>, Boolean>? = null
+
+    /**
+     * ヒーローを引き直す (参加マークが変わったとき)。参加の札はマークに依るので、
+     * 画面が持つ今のマークを渡す。
+     */
+    fun refreshHero(context: Context, eventId: String, attendedShowIds: Set<String>, eventMarked: Boolean) {
+        heroRequest = Triple(eventId, attendedShowIds, eventMarked)
+        viewModelScope.launch {
+            val hero = AppModule.from(context).eventRepository.fetchEventHero(eventId, attendedShowIds, eventMarked)
+            if (heroRequest == Triple(eventId, attendedShowIds, eventMarked)) {
+                _uiState.value = _uiState.value.copy(hero = hero)
+            }
+        }
+    }
+
     fun load(context: Context, eventId: String) {
         viewModelScope.launch {
             val module = AppModule.from(context)
             val repo = module.eventRepository
-            val event = repo.fetchEvent(eventId)
+            val eventInfo = repo.fetchEventInfo(eventId)
+            val event = eventInfo?.event
             val shows = repo.fetchShows(eventId)
             val stats = repo.fetchEventStats(eventId)
-            val castRows = repo.fetchEventShowCast(eventId)
-            val brandRoster = event?.brandId?.let { repo.fetchBrandRoster(it) } ?: emptyList()
+            val attendance = repo.fetchEventAttendance(eventId)
             val brand = event?.brandId?.let { repo.fetchBrand(it) }
+            val costumes = repo.fetchEventCostumes(eventId)
             _uiState.value = EventDetailUiState(
                 isLoading = false,
                 eventName = event?.name ?: "",
                 shows = shows,
                 stats = stats,
-                attendance = EventAttendance.build(shows, brandRoster, castRows),
-                isJoint = !event?.jointBrandIds.isNullOrBlank(),
+                attendance = attendance,
+                isJoint = eventInfo?.isJoint == true,
                 brandColorHex = brand?.color,
+                brandId = brand?.id,
                 brandShortName = brand?.shortName,
                 ticketDeadline = event?.ticketDeadline?.takeIf { it.isNotBlank() },
                 ticketLotteryDate = event?.ticketLotteryDate?.takeIf { it.isNotBlank() },
-                ticketUrl = event?.ticketUrl?.takeIf { it.isNotBlank() }
+                ticketUrl = event?.ticketUrl?.takeIf { it.isNotBlank() },
+                // ヒーローは参加マークに依るので refreshHero が持つ。読み直しで消さない。
+                hero = _uiState.value.hero,
+                costumes = costumes
             )
         }
     }

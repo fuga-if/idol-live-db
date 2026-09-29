@@ -17,13 +17,13 @@ struct RecentItem: Codable, Identifiable, Hashable, Sendable {
 }
 
 /// 最近見たイベント/曲/アイドルをローカル (UserDefaults) に記録する。
-/// サーバ非依存・端末ローカルのみ。新しい順・同一項目は先頭へ繰り上げ・上限件数で打ち切り。
+/// サーバ非依存・端末ローカルのみ。並べ方 (新しい順・同一項目は先頭へ・上限) はコアの
+/// `recents_after_visit` が決める。ここは鍵 (`kind:id`) と名前の対応と保存だけ。
 @Observable @MainActor
 final class RecentsService {
     static let shared = RecentsService()
 
     private let storageKey = "recent_items_v1"
-    private let maxCount = 20
 
     private(set) var items: [RecentItem] = []
 
@@ -33,8 +33,9 @@ final class RecentsService {
     func record(kind: RecentKind, id: String, name: String) {
         guard !id.isEmpty, !name.isEmpty else { return }
         let item = RecentItem(kind: kind, entityId: id, name: name)
-        let deduped = items.filter { $0.id != item.id }
-        items = Array(([item] + deduped).prefix(maxCount))
+        var byKey = Dictionary(items.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        byKey[item.id] = item
+        items = recentsAfterVisit(currentKeys: items.map(\.id), visitedKey: item.id).compactMap { byKey[$0] }
         save()
     }
 

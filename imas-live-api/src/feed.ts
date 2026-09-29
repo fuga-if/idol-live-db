@@ -11,18 +11,8 @@
 // edit_batch JOIN で 1 行に畳む際の代表 record_type/record_name は edit_history の先頭行から取る。
 // summary は edit_batch.summary (サーバ機械生成) をそのまま使う。
 
-export interface FeedEnv {
-  DB: D1Database;
-}
-
-// 具象 Env (APPLE_BUNDLE_ID 等を持つ) と型整合させるため env 型を generic <E extends FeedEnv> で貫通させる
-// (edits.ts の EditsDeps と同じパターン)。
-export interface FeedDeps<E extends FeedEnv> {
-  /** Bearer から認証ユーザーを得る (未認証 null)。匿名でも閲覧可、自分の Good 状態付与にのみ使用。 */
-  getAuthUser: (request: Request, env: E) => Promise<{ uid: string; email?: string } | null>;
-  json: (data: unknown, status?: number) => Response;
-  error: (message: string, status?: number) => Response;
-}
+import { getAuthUser } from "./auth";
+import type { RouteContext } from "./routes/context";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -102,13 +92,8 @@ function toFeedItem(r: FeedRow, viewerUid: string) {
 // GET /edits — 最近の編集フィード
 // ---------------------------------------------------------------------------
 
-export async function handleGetFeed<E extends FeedEnv>(
-  request: Request,
-  url: URL,
-  env: E,
-  deps: FeedDeps<E>
-): Promise<Response> {
-  const { json } = deps;
+export async function handleGetFeed(ctx: RouteContext): Promise<Response> {
+  const { request, url, env, json } = ctx;
   const { limit, offset, page } = parseFeedPaging(url);
 
   // 任意フィルタ
@@ -117,7 +102,7 @@ export async function handleGetFeed<E extends FeedEnv>(
   const brandId = url.searchParams.get("brand_id");
 
   // 認証は任意。あれば has_user_good を付与。
-  const authUser = await deps.getAuthUser(request, env);
+  const authUser = await getAuthUser(request, env);
   const uid = authUser?.uid ?? "";
 
   // 各 batch の代表 record_type / record_name は edit_history の最小 id (= 最初の op) を採用。
@@ -188,14 +173,9 @@ export async function handleGetFeed<E extends FeedEnv>(
 // GET /me/edits — 自分の編集 batch 一覧 (本人 revert 用)
 // ---------------------------------------------------------------------------
 
-export async function handleGetMyEdits<E extends FeedEnv>(
-  request: Request,
-  url: URL,
-  env: E,
-  deps: FeedDeps<E>
-): Promise<Response> {
-  const { json, error } = deps;
-  const authUser = await deps.getAuthUser(request, env);
+export async function handleGetMyEdits(ctx: RouteContext): Promise<Response> {
+  const { request, url, env, json, error } = ctx;
+  const authUser = await getAuthUser(request, env);
   if (!authUser) return error("Unauthorized", 401);
 
   const { limit, offset, page } = parseFeedPaging(url);

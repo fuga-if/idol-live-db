@@ -5,7 +5,6 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.fugaif.imaslivedb.data.model.AllPerformerRow
-import com.fugaif.imaslivedb.data.model.PerformerRow
 import com.fugaif.imaslivedb.data.model.SetlistItem
 import com.fugaif.imaslivedb.data.model.SetlistPerformer
 import com.fugaif.imaslivedb.data.model.SetlistRow
@@ -25,14 +24,6 @@ interface SetlistDao {
     suspend fun fetchSetlist(showId: String): List<SetlistRow>
 
     @Query("""
-        SELECT i.id AS id, i.name AS name, i.color AS idol_color, i.name AS idol_name, i.id AS idol_id
-        FROM setlist_performers sp
-        JOIN idols i ON sp.idol_id = i.id
-        WHERE sp.setlist_item_id = :setlistItemId
-    """)
-    suspend fun fetchPerformers(setlistItemId: String): List<PerformerRow>
-
-    @Query("""
         SELECT sp.setlist_item_id AS setlist_item_id,
                i.id AS cast_id, i.name AS name, i.color AS idol_color, i.name AS idol_name, i.id AS idol_id
         FROM setlist_items si
@@ -41,10 +32,6 @@ interface SetlistDao {
         WHERE si.show_id = :showId
     """)
     suspend fun fetchAllPerformers(showId: String): List<AllPerformerRow>
-
-    /** ある SetlistItem が属する showId (編集フィードの対象タイトル解決用)。 */
-    @Query("SELECT show_id FROM setlist_items WHERE id = :itemId LIMIT 1")
-    suspend fun fetchShowIdForItem(itemId: String): String?
 
     // --- オープン編集 (セトリ編集) のローカル楽観反映用書き込み ---
 

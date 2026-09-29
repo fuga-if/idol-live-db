@@ -1,0 +1,15 @@
+{
+ "title": "events の ev_アイドルマスター_ミリオンライブ_シアターデイズ_10周年記念ライブ を修正",
+ "author": "LLM 提案 (propose_fix)",
+ "source": "https://youtu.be/vZrpnqsQ4v8",
+ "note": "出典: https://youtu.be/vZrpnqsQ4v8\n引用: \"「アイドルマスター ミリオンライブ！ シアターデイズ」10周年記念ライブが2027年6月26日(土)、27日(日)に開催決定！ ／ ■会場 Kアリーナ横浜 ／ ■出演 765 MILLIONSTARS\"\n10 周年を冠した記念公演なので anniversary (docs/DATA_PIPELINE.md の判定規則)。insert_future_events.py は event_type を空で入れるため、投入後に別途入れている。 公式の説明文は開催概要が「2026年6月26日(土)」だが、曜日が合うのは 2027 年 (2026-06-26 は金曜)。",
+ "fixes": [
+  {
+   "table": "events",
+   "id": "ev_アイドルマスター_ミリオンライブ_シアターデイズ_10周年記念ライブ",
+   "fields": {
+    "event_type": "anniversary"
+   }
+  }
+ ]
+}

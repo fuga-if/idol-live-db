@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  シェアカード画像の受け渡し口。
+  cacheDir/share_cards だけを content:// として公開する (ShareCardFiles と対)。
+  cacheDir はアプリ専用領域で他アプリから直接は読めないため、共有先に渡すには
+  FileProvider で content:// に化かして一時的な読み取り権限を付ける必要がある。
+  公開範囲は「渡したいファイルが入っている 1 ディレクトリ」に限る (root-path は使わない)。
+-->
+<paths>
+    <cache-path name="share_cards" path="share_cards/" />
+</paths>

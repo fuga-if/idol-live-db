@@ -1,0 +1,21 @@
+{
+ "title": "曲「今度いつきみに会えるのかな」(765as・如月千早のカバー) の追加",
+ "author": "Claude (オーナー依頼)",
+ "source": "https://idolmaster-official.jp/news/01_19947.html",
+ "note": "出典: https://idolmaster-official.jp/news/01_19947.html (2026-09-24)\n公式ニュースより: マクドナルド「月見バーガー」の WEBCM で、いまだけ月見食べ美の楽曲「今度いつきみに会えるのかな」を如月千早がカバー。表記は「今度いつきみに会えるのかな covered by 如月千早」、作詞・作曲・編曲・音楽プロデューサーはヤマモトショウ、歌は如月千早。原曲はアイマス外 (いまだけ月見食べ美、2025年) なので song_type は cover。CM 用の音源で、配信・CD の告知は無いので release_date / apple_music_id は入れない (songs.release_date は配信日の欄)。",
+ "songs": [
+  {
+   "id": "765as_今度いつきみに会えるのかな",
+   "title": "今度いつきみに会えるのかな",
+   "title_kana": "こんどいつきみにあえるのかな",
+   "brand_id": "765as",
+   "song_type": "cover",
+   "composer": "ヤマモトショウ",
+   "lyricist": "ヤマモトショウ",
+   "arranger": "ヤマモトショウ",
+   "original_singers": [
+    "765as_如月千早"
+   ]
+  }
+ ]
+}

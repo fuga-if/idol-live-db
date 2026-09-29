@@ -1,0 +1,17 @@
+{
+ "title": "songs の ml_パルティシオン を修正",
+ "author": "LLM 提案 (propose_fix)",
+ "source": "https://idolmaster-official.jp/live_event/million14th/",
+ "note": "出典: https://idolmaster-official.jp/live_event/million14th/\n引用: \"「パルティシオン」 作詞：月丘りあ子 作曲・編曲：KOH\"\n14thLIVE DAY1 で初披露された 3 曲の楽曲情報公開画像より。作曲・編曲が同一人物の曲は画像の「作曲・編曲：X」表記どおり両方に同じ名前を入れている。CD タイトル・発売日は未発表 (Lantis 公式にも未掲載) のため空のまま。",
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "ml_パルティシオン",
+   "fields": {
+    "arranger": "KOH",
+    "composer": "KOH",
+    "lyricist": "月丘りあ子"
+   }
+  }
+ ]
+}

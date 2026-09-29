@@ -1,0 +1,19 @@
+{
+ "title": "songs の gakuen_修楽旅行_倉本千奈紫雲清夏秦谷美鈴十王星南ver に配信情報を入れる",
+ "author": "daily-data-crawl 2026-09-23",
+ "source": "https://music.apple.com/jp/album/6812232327?i=6812232340",
+ "note": "iTunes lookup で trackName・artistName (初星学園, 倉本千奈, 紫雲清夏, 十王星南 & 秦谷美鈴)・isStreamable=true を確認。fill_apple_music_ids は top match が [Instrumental] 版で弾いたため手で埋める。Apple の曲名は 十王星南・秦谷美鈴 の順で DB の title とメンバー順が違う (title は据え置き、要確認として残す)。",
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "gakuen_修楽旅行_倉本千奈紫雲清夏秦谷美鈴十王星南ver",
+   "fields": {
+    "apple_music_id": "6812232340",
+    "apple_music_album_id": "6812232327",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/cf/03/0b/cf030bf7-3574-5ede-d18b-a4e563cb58f8/PA00227833_0_254743_jacket.jpg/600x600bb.jpg",
+    "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/a6/1b/a3/a61ba35a-277d-a7f1-a188-2c6d48c021bc/mzaf_13580885052790919610.plus.aac.p.m4a",
+    "cd_series": "修楽旅行 (倉本千奈・紫雲清夏・十王星南・秦谷美鈴 ver.) - Single"
+   }
+  }
+ ]
+}

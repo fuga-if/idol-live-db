@@ -1,0 +1,422 @@
+{
+ "title": "リミックス50曲の括弧を公式表記(半角+開き括弧前スペース)に揃える",
+ "_help": "ML のリミックス曲で `songs.title` の括弧が公式表記とずれていた。内訳は全角 `（…）` で囲んでいるもの 48 曲と、半角だが開き括弧の前のスペースが無いもの 2 曲 (`アニマル☆ステイション！(YUC'e Remix)` `キラメキ進行形(Giga Remix)`)。同じアルバム群の残り 84 曲は既に公式どおり半角+スペースで入っている。",
+ "_why_it_matters": "検索の照合 (`imas-core` の text_search_index.rs `FoldedNeedle`) が畳むのは小文字化・カタカナ→ひらがな・濁点合成だけで、括弧の全角/半角は畳まない。半角で `(y0c1e Remix)` と打っても全角の曲には当たらないため、同じアルバムの中で当たる曲と当たらない曲が割れていた。",
+ "_evidence": "バンダイナムコミュージックライブ (Lantis) 公式カタログの PERFORMANCE Remix CD Vol.1〜6 と HARMONY Remix 01〜05 の全 11 枚・計 133 トラックを機械抽出して検算した結果、全角括弧を使っているトラックは 0 件、開き括弧の直前にスペースが無いトラックも 0 件。公式表記は `<曲名> (<リミキサー> Remix)` で一貫している。",
+ "_scope": "括弧と、その直前のスペースだけを直す。公式ページには他にも DB と違う箇所があるが、これらは今回触らない: (1) `Good-Sleep, Baby♡` `DÉ DÉ MOUSE` `Café Parade` が公式ページ側では `?` に化けている (CMS が CP932 を経由して文字を落としている) ため、公式表記をそのまま採ると DB を壊す。(2) `Be my Boy`→`Be My Boy`、`Maria trap`→`Maria Trap`、`微笑んだから、気づいたんだ`→`微笑んだから、気づいたんだ。`、`恋花` のリミキサー名 `Snail's House`→`Ujico*` (同一人物の別名義) といった括弧以外の相違。これらは別途 1 件ずつ判断する。",
+ "_sources": [
+  "THE IDOLM@STER LIVE THE@TER PERFORMANCE Remix CD Vol.1 (LACZ-10046 / 2021.01.23) https://catalog.bandainamcomusiclive.co.jp/release/69364/",
+  "同 Vol.2 (LACZ-10047 / 2021.01.23) https://catalog.bandainamcomusiclive.co.jp/release/69365/",
+  "同 Vol.3 (LACZ-10053 / 2021.02.26) https://catalog.bandainamcomusiclive.co.jp/release/69420/",
+  "同 Vol.4 (LACZ-10054 / 2021.02.26) https://catalog.bandainamcomusiclive.co.jp/release/69422/",
+  "同 Vol.5 (LACZ-10055 / 2021.03.26) https://catalog.bandainamcomusiclive.co.jp/release/69447/",
+  "同 Vol.6 (LACZ-10056 / 2021.03.26) https://catalog.bandainamcomusiclive.co.jp/release/69448/",
+  "THE IDOLM@STER LIVE THE@TER HARMONY Remix 01 (LACZ-10102 / 2022.03.14) https://catalog.bandainamcomusiclive.co.jp/release/70027/",
+  "同 Remix 02 (LACZ-10103) https://catalog.bandainamcomusiclive.co.jp/release/70028/",
+  "同 Remix 03 (LACZ-10104) https://catalog.bandainamcomusiclive.co.jp/release/70029/",
+  "同 Remix 04 (LACZ-10105) https://catalog.bandainamcomusiclive.co.jp/release/70030/",
+  "同 Remix 05 (LACZ-10106) https://catalog.bandainamcomusiclive.co.jp/release/70031/"
+ ],
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "ml_be_my_boynyankobrq_remix",
+   "fields": {
+    "title": "Be my Boy (nyankobrq Remix)"
+   },
+   "note": "PERFORMANCE Remix CD Vol.3 [LACZ-10053] の公式表記「Be My Boy (nyankobrq Remix)」。括弧のみ半角化 (他の文字は据え置き)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_bigバルーンko3_remix",
+   "fields": {
+    "title": "Bigバルーン◎ (KO3 Remix)"
+   },
+   "note": "PERFORMANCE Remix CD Vol.4 [LACZ-10054] の公式表記「Bigバルーン◎ (KO3 Remix)」。括弧のみ半角化 (他の文字は据え置き)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_fly_to_everywheregetty_remix",
+   "fields": {
+    "title": "FLY TO EVERYWHERE (Getty Remix)"
+   },
+   "note": "PERFORMANCE Remix CD Vol.3 [LACZ-10053] の公式表記「FLY TO EVERYWHERE (Getty Remix)」。括弧のみ半角化 (他の文字は据え置き)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_fu-wa-du-waチバニャン_remix",
+   "fields": {
+    "title": "Fu-Wa-Du-Wa (チバニャン Remix)"
+   },
+   "note": "PERFORMANCE Remix CD Vol.5 [LACZ-10055] の公式表記「Fu-Wa-Du-Wa (チバニャン Remix)」。括弧のみ半角化 (他の文字は据え置き)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_greedy_girlケンモチヒデフミ_remix",
+   "fields": {
+    "title": "GREEDY GIRL (ケンモチヒデフミ Remix)"
+   },
+   "note": "PERFORMANCE Remix CD Vol.6 [LACZ-10056] の公式表記「GREEDY GIRL (ケンモチヒデフミ Remix)」。括弧のみ半角化 (他の文字は据え置き)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_get_my_shinin_dé_dé_mouse_remix",
+   "fields": {
+    "title": "Get My Shinin’ (DÉ DÉ MOUSE Remix)"
+   },
+   "note": "PERFORMANCE Remix CD Vol.6 [LACZ-10056] の公式表記「Get My Shinin' (D? D? MOUSE Remix)」。括弧のみ半角化 (他の文字は据え置き)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_good-sleep_babydj_wildparty_remix",
+   "fields": {
+    "title": "Good-Sleep, Baby♡ (DJ WILDPARTY Remix)"
+   },
+   "note": "PERFORMANCE Remix CD Vol.4 [LACZ-10054] の公式表記「Good-Sleep, Baby? (DJ WILDPARTY Remix)」。括弧のみ半角化 (他の文字は据え置き)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_helloコンチェルトチバニャン_remix",
+   "fields": {
+    "title": "Helloコンチェルト (チバニャン Remix)"
+   },
+   "note": "PERFORMANCE Remix CD Vol.5 [LACZ-10055] の公式表記「Helloコンチェルト (チバニャン Remix)」。括弧のみ半角化 (他の文字は据え置き)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_impressionlocomotiontaku_takahashi_remix",
+   "fields": {
+    "title": "IMPRESSION→LOCOMOTION！ (☆Taku Takahashi Remix)"
+   },
+   "note": "PERFORMANCE Remix CD Vol.6 [LACZ-10056] の公式表記「IMPRESSION→LOCOMOTION! (☆Taku Takahashi Remix)」。括弧のみ半角化 (他の文字は据え置き)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_legend_girlsfu_mou_remix",
+   "fields": {
+    "title": "Legend Girls!! (fu_mou Remix)"
+   },
+   "note": "PERFORMANCE Remix CD Vol.4 [LACZ-10054] の公式表記「Legend Girls!! (fu_mou Remix)」。括弧のみ半角化 (他の文字は据え置き)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_maria_traptanchiky_remix",
+   "fields": {
+    "title": "Maria trap (Tanchiky Remix)"
+   },
+   "note": "PERFORMANCE Remix CD Vol.3 [LACZ-10053] の公式表記「Maria Trap (Tanchiky Remix)」。括弧のみ半角化 (他の文字は据え置き)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_pretty_dreamerチバニャン_remix",
+   "fields": {
+    "title": "PRETTY DREAMER (チバニャン Remix)"
+   },
+   "note": "PERFORMANCE Remix CD Vol.5 [LACZ-10055] の公式表記「PRETTY DREAMER (チバニャン Remix)」。括弧のみ半角化 (他の文字は据え置き)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_rebelliontanchiky_remix",
+   "fields": {
+    "title": "Rebellion (Tanchiky Remix)"
+   },
+   "note": "PERFORMANCE Remix CD Vol.3 [LACZ-10053] の公式表記「Rebellion (Tanchiky Remix)」。括弧のみ半角化 (他の文字は据え置き)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_snow_whitedé_dé_mouse_remix",
+   "fields": {
+    "title": "Snow White (DÉ DÉ MOUSE Remix)"
+   },
+   "note": "PERFORMANCE Remix CD Vol.6 [LACZ-10056] の公式表記「Snow White (D? D? MOUSE Remix)」。括弧のみ半角化 (他の文字は据え置き)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_thank_yousnails_house_remix",
+   "fields": {
+    "title": "Thank You! (Snail's House Remix)"
+   },
+   "note": "PERFORMANCE Remix CD Vol.3 [LACZ-10053] の公式表記「Thank You! (Snail's House Remix)」。括弧のみ半角化 (他の文字は据え置き)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_thank_youy0c1e_remix",
+   "fields": {
+    "title": "Thank You! (y0c1e Remix)"
+   },
+   "note": "PERFORMANCE Remix CD Vol.4 [LACZ-10054] の公式表記「Thank You! (y0c1e Remix)」。括弧のみ半角化 (他の文字は据え置き)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_thank_youtaku_takahashi_remix",
+   "fields": {
+    "title": "Thank You! (☆Taku Takahashi Remix)"
+   },
+   "note": "PERFORMANCE Remix CD Vol.6 [LACZ-10056] の公式表記「Thank You! (☆Taku Takahashi Remix)」。括弧のみ半角化 (他の文字は据え置き)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_thank_youチバニャン_remix",
+   "fields": {
+    "title": "Thank You! (チバニャン Remix)"
+   },
+   "note": "PERFORMANCE Remix CD Vol.5 [LACZ-10055] の公式表記「Thank You! (チバニャン Remix)」。括弧のみ半角化 (他の文字は据え置き)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_welcomey0c1e_remix",
+   "fields": {
+    "title": "Welcome!! (y0c1e Remix)"
+   },
+   "note": "HARMONY Remix 03 [LACZ-10104] の公式表記「Welcome!! (y0c1e Remix)」。括弧のみ半角化 (他の文字は据え置き)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_あのね聞いてほしいことがあるんだdé_dé_mouse_remix",
+   "fields": {
+    "title": "あのね、聞いてほしいことがあるんだ (DÉ DÉ MOUSE Remix)"
+   },
+   "note": "PERFORMANCE Remix CD Vol.6 [LACZ-10056] の公式表記「あのね、聞いてほしいことがあるんだ (D? D? MOUSE Remix)」。括弧のみ半角化 (他の文字は据え置き)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_ちいさな恋の足音dé_dé_mouse_remix",
+   "fields": {
+    "title": "ちいさな恋の足音 (DÉ DÉ MOUSE Remix)"
+   },
+   "note": "PERFORMANCE Remix CD Vol.6 [LACZ-10056] の公式表記「ちいさな恋の足音 (D? D? MOUSE Remix)」。括弧のみ半角化 (他の文字は据え置き)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_アニマルステイションyuce_remix",
+   "fields": {
+    "title": "アニマル☆ステイション！ (YUC'e Remix)"
+   },
+   "note": "HARMONY Remix 04 [LACZ-10105] の公式表記「アニマル☆ステイション！ (YUC'e Remix)」。括弧のみ半角化 (他の文字は据え置き)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_オリジナル声になってdé_dé_mouse_remix",
+   "fields": {
+    "title": "オリジナル声になって (DÉ DÉ MOUSE Remix)"
+   },
+   "note": "PERFORMANCE Remix CD Vol.6 [LACZ-10056] の公式表記「オリジナル声になって (D? D? MOUSE Remix)」。括弧のみ半角化 (他の文字は据え置き)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_オレンジの空の下チバニャン_remix",
+   "fields": {
+    "title": "オレンジの空の下 (チバニャン Remix)"
+   },
+   "note": "PERFORMANCE Remix CD Vol.5 [LACZ-10055] の公式表記「オレンジの空の下 (チバニャン Remix)」。括弧のみ半角化 (他の文字は据え置き)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_カワラナイモノdj_wildparty_remix",
+   "fields": {
+    "title": "カワラナイモノ (DJ WILDPARTY Remix)"
+   },
+   "note": "PERFORMANCE Remix CD Vol.4 [LACZ-10054] の公式表記「カワラナイモノ (DJ WILDPARTY Remix)」。括弧のみ半角化 (他の文字は据え置き)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_キラメキ進行形giga_remix",
+   "fields": {
+    "title": "キラメキ進行形 (Giga Remix)"
+   },
+   "note": "PERFORMANCE Remix CD Vol.2 [LACZ-10047] の公式表記「キラメキ進行形 (Giga Remix)」。括弧のみ半角化 (他の文字は据え置き)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_ココロがかえる場所ケンモチヒデフミ_remix",
+   "fields": {
+    "title": "ココロがかえる場所 (ケンモチヒデフミ Remix)"
+   },
+   "note": "PERFORMANCE Remix CD Vol.6 [LACZ-10056] の公式表記「ココロがかえる場所 (ケンモチヒデフミ Remix)」。括弧のみ半角化 (他の文字は据え置き)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_スマイルいちばん4sk_remix",
+   "fields": {
+    "title": "スマイルいちばん (4sk Remix)"
+   },
+   "note": "PERFORMANCE Remix CD Vol.4 [LACZ-10054] の公式表記「スマイルいちばん (4sk Remix)」。括弧のみ半角化 (他の文字は据え置き)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_トキメキの音符になってnyankobrq_remix",
+   "fields": {
+    "title": "トキメキの音符になって (nyankobrq Remix)"
+   },
+   "note": "PERFORMANCE Remix CD Vol.3 [LACZ-10053] の公式表記「トキメキの音符になって (nyankobrq Remix)」。括弧のみ半角化 (他の文字は据え置き)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_ハッピーラッキージェットマシーンkan_takahiko_remix",
+   "fields": {
+    "title": "ハッピー☆ラッキー☆ジェットマシーン (KAN TAKAHIKO Remix)"
+   },
+   "note": "PERFORMANCE Remix CD Vol.4 [LACZ-10054] の公式表記「ハッピー☆ラッキー☆ジェットマシーン (KAN TAKAHIKO Remix)」。括弧のみ半角化 (他の文字は据え置き)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_ハッピ_エフェクト_チバニャン_remix",
+   "fields": {
+    "title": "ハッピ～ エフェクト！ (チバニャン Remix)"
+   },
+   "note": "PERFORMANCE Remix CD Vol.5 [LACZ-10055] の公式表記「ハッピ～ エフェクト! (チバニャン Remix)」。括弧のみ半角化 (他の文字は据え置き)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_ハミングロードチバニャン_remix",
+   "fields": {
+    "title": "ハミングロード (チバニャン Remix)"
+   },
+   "note": "PERFORMANCE Remix CD Vol.5 [LACZ-10055] の公式表記「ハミングロード (チバニャン Remix)」。括弧のみ半角化 (他の文字は据え置き)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_ハートウォーミングdé_dé_mouse_remix",
+   "fields": {
+    "title": "ハートウォーミング (DÉ DÉ MOUSE Remix)"
+   },
+   "note": "PERFORMANCE Remix CD Vol.6 [LACZ-10056] の公式表記「ハートウォーミング (D? D? MOUSE Remix)」。括弧のみ半角化 (他の文字は据え置き)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_ビギナーズストライクチバニャン_remix",
+   "fields": {
+    "title": "ビギナーズ☆ストライク (チバニャン Remix)"
+   },
+   "note": "PERFORMANCE Remix CD Vol.5 [LACZ-10055] の公式表記「ビギナーズ☆ストライク (チバニャン Remix)」。括弧のみ半角化 (他の文字は据え置き)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_フェスタイルミネーションgetty_remix",
+   "fields": {
+    "title": "フェスタ・イルミネーション (Getty Remix)"
+   },
+   "note": "PERFORMANCE Remix CD Vol.3 [LACZ-10053] の公式表記「フェスタ・イルミネーション (Getty Remix)」。括弧のみ半角化 (他の文字は据え置き)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_プライヴェイトロードショウplayback_weekdayy0c1e_remix",
+   "fields": {
+    "title": "プライヴェイト・ロードショウ (playback, Weekday) (y0c1e Remix)"
+   },
+   "note": "PERFORMANCE Remix CD Vol.4 [LACZ-10054] の公式表記「プライヴェイト・ロードショウ (playback, Weekday) (y0c1e Remix)」。括弧のみ半角化 (他の文字は据え置き)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_ホップステップレインボウ4sk_remix",
+   "fields": {
+    "title": "ホップ♪ステップ♪レインボウ♪ (4sk Remix)"
+   },
+   "note": "PERFORMANCE Remix CD Vol.4 [LACZ-10054] の公式表記「ホップ♪ステップ♪レインボウ♪ (4sk Remix)」。括弧のみ半角化 (他の文字は据え置き)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_マイペースマイウェイdé_dé_mouse_remix",
+   "fields": {
+    "title": "マイペース☆マイウェイ (DÉ DÉ MOUSE Remix)"
+   },
+   "note": "PERFORMANCE Remix CD Vol.6 [LACZ-10056] の公式表記「マイペース☆マイウェイ (D? D? MOUSE Remix)」。括弧のみ半角化 (他の文字は据え置き)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_ライアールージュgetty_remix",
+   "fields": {
+    "title": "ライアー・ルージュ (Getty Remix)"
+   },
+   "note": "PERFORMANCE Remix CD Vol.3 [LACZ-10053] の公式表記「ライアー・ルージュ (Getty Remix)」。括弧のみ半角化 (他の文字は据え置き)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_君想いbirthdayチバニャン_remix",
+   "fields": {
+    "title": "君想いBirthday (チバニャン Remix)"
+   },
+   "note": "PERFORMANCE Remix CD Vol.5 [LACZ-10055] の公式表記「君想いBirthday (チバニャン Remix)」。括弧のみ半角化 (他の文字は据え置き)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_嘆きのfractionnor_remix",
+   "fields": {
+    "title": "嘆きのFRACTION (Nor Remix)"
+   },
+   "note": "PERFORMANCE Remix CD Vol.3 [LACZ-10053] の公式表記「嘆きのFRACTION (Nor Remix)」。括弧のみ半角化 (他の文字は据え置き)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_微笑み日和チバニャン_remix",
+   "fields": {
+    "title": "微笑み日和 (チバニャン Remix)"
+   },
+   "note": "PERFORMANCE Remix CD Vol.5 [LACZ-10055] の公式表記「微笑み日和 (チバニャン Remix)」。括弧のみ半角化 (他の文字は据え置き)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_微笑んだから気づいたんだkan_takahiko_remix",
+   "fields": {
+    "title": "微笑んだから、気づいたんだ (KAN TAKAHIKO Remix)"
+   },
+   "note": "PERFORMANCE Remix CD Vol.4 [LACZ-10054] の公式表記「微笑んだから、気づいたんだ。 (KAN TAKAHIKO Remix)」。括弧のみ半角化 (他の文字は据え置き)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_恋のlesson初級編チバニャン_remix",
+   "fields": {
+    "title": "恋のLesson初級編 (チバニャン Remix)"
+   },
+   "note": "PERFORMANCE Remix CD Vol.5 [LACZ-10055] の公式表記「恋のLesson初級編 (チバニャン Remix)」。括弧のみ半角化 (他の文字は据え置き)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_恋花snails_house_remix",
+   "fields": {
+    "title": "恋花 (Snail's House Remix)"
+   },
+   "note": "PERFORMANCE Remix CD Vol.3 [LACZ-10053] の公式表記「恋花 (Ujico* Remix)」。括弧のみ半角化 (他の文字は据え置き)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_想いはcarnavalチバニャン_remix",
+   "fields": {
+    "title": "想いはCarnaval (チバニャン Remix)"
+   },
+   "note": "PERFORMANCE Remix CD Vol.5 [LACZ-10055] の公式表記「想いはCarnaval (チバニャン Remix)」。括弧のみ半角化 (他の文字は据え置き)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_朝焼けのクレッシェンドkan_takahiko_remix",
+   "fields": {
+    "title": "朝焼けのクレッシェンド (KAN TAKAHIKO Remix)"
+   },
+   "note": "PERFORMANCE Remix CD Vol.4 [LACZ-10054] の公式表記「朝焼けのクレッシェンド (KAN TAKAHIKO Remix)」。括弧のみ半角化 (他の文字は据え置き)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_素敵なキセキkan_takahiko_remix",
+   "fields": {
+    "title": "素敵なキセキ (KAN TAKAHIKO Remix)"
+   },
+   "note": "PERFORMANCE Remix CD Vol.4 [LACZ-10054] の公式表記「素敵なキセキ (KAN TAKAHIKO Remix)」。括弧のみ半角化 (他の文字は据え置き)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_追憶のサンドグラスsky_delta_remix",
+   "fields": {
+    "title": "追憶のサンドグラス (sky_delta Remix)"
+   },
+   "note": "PERFORMANCE Remix CD Vol.3 [LACZ-10053] の公式表記「追憶のサンドグラス (sky_delta Remix)」。括弧のみ半角化 (他の文字は据え置き)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_透明なプロローグsnails_house_remix",
+   "fields": {
+    "title": "透明なプロローグ (Snail's House Remix)"
+   },
+   "note": "PERFORMANCE Remix CD Vol.3 [LACZ-10053] の公式表記「透明なプロローグ (Snail's House Remix)」。括弧のみ半角化 (他の文字は据え置き)"
+  }
+ ]
+}

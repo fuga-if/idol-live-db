@@ -16,16 +16,12 @@ enum EventKind: String, Codable, Sendable, CaseIterable {
     case releaseEvent = "release_event"
     case radio
     case stream
+    /// 知らない種別の受け皿 (語彙の `other`)。コアは知らない種別をこれに寄せて絞る (Q-08l)。
+    case other
 
-    /// UI 表示用の短いラベル
+    /// UI 表示用の短いラベル (語はコアの vocabulary)。
     var displayLabel: String {
-        switch self {
-        case .live:         return "ライブ"
-        case .festival:     return "フェス"
-        case .releaseEvent: return "リリイベ"
-        case .radio:        return "ラジオ"
-        case .stream:       return "配信"
-        }
+        Vocab.eventKind(rawValue)?.shortLabel ?? rawValue
     }
 
     /// SF Symbol
@@ -36,7 +32,33 @@ enum EventKind: String, Codable, Sendable, CaseIterable {
         case .releaseEvent: return "opticaldisc"
         case .radio:        return "radio"
         case .stream:       return "play.tv"
+        case .other:        return "ellipsis.circle"
         }
+    }
+}
+
+/// 催しの性格 (`events.event_type`)。「初恋は、オケマスを除けば 10 年ぶり」「AS の周年では
+/// 9th のみ」のような**除外・限定**を機械で出すための軸。
+///
+/// どの催しがどれかを決める規則は **imas-core 側**にある (docs/DATA_PIPELINE.md
+/// 「events の種別 (event_type)」)。ここにあるのは画面に出す文言だけ。
+/// 未分類のイベントは空文字なので `nil` になる。
+///
+/// 配信があったかどうかは**この軸ではない** (`shows.streamPlatform` が持つ)。
+/// 「バースデー」と「配信」は直交するので、876 の BIRTHDAY ONLINE LIVE は birthday かつ配信。
+/// 規模 (ミニライブかどうか) も軸に**しない** — 理由は docs/DATA_PIPELINE.md。
+enum EventType: String, Codable, Sendable, CaseIterable {
+    case anniversary
+    case orchestra
+    case externalEvent = "external_event"
+    case birthday
+    case releaseEvent = "release_event"
+    case broadcast
+    case live
+
+    /// UI 表示用の短いラベル (語はコアの vocabulary)。
+    var displayLabel: String {
+        Vocab.eventType(rawValue)?.shortLabel ?? rawValue
     }
 }
 
@@ -46,6 +68,8 @@ struct Event: Codable, FetchableRecord, PersistableRecord, Identifiable, Hashabl
     var id: String
     var brandId: String?
     var name: String
+    /// ライブ名の読み。漢字のライブ名をかなで引けるようにする (曲・アイドルと同じ扱い)。
+    var nameKana: String?
     var eventType: String
     /// 互換のため残置。新コードからは参照しない。
     var isStreaming: Bool
@@ -81,22 +105,15 @@ struct Event: Codable, FetchableRecord, PersistableRecord, Identifiable, Hashabl
             .filter { !$0.isEmpty }
     }
 
-    /// primary brand_id または joint_brand_ids のいずれかが selected に含まれるか。
-    /// selected が空のときは常に true (= フィルタ無し)。
-    func matchesBrandFilter(_ selected: Set<String>) -> Bool {
-        guard !selected.isEmpty else { return true }
-        if let primary = brandId, selected.contains(primary) { return true }
-        return jointBrandIdList.contains(where: selected.contains)
-    }
-
-    /// `kind` 文字列を列挙型として返す。未知値は `.live` にフォールバック。
-    var eventKind: EventKind { EventKind(rawValue: kind) ?? .live }
+    /// `kind` 文字列を列挙型として返す。未知値は `.other` (コアの語彙と同じ寄せ方)。
+    var eventKind: EventKind { EventKind(rawValue: kind) ?? .other }
 
     /// 既存呼び出し（CloudKit 等）との互換のため `kind` をデフォルト値付きにした明示 init。
     init(
         id: String,
         brandId: String?,
         name: String,
+        nameKana: String? = nil,
         eventType: String,
         isStreaming: Bool,
         isSolo: Bool,
@@ -112,6 +129,7 @@ struct Event: Codable, FetchableRecord, PersistableRecord, Identifiable, Hashabl
         self.id = id
         self.brandId = brandId
         self.name = name
+        self.nameKana = nameKana
         self.eventType = eventType
         self.isStreaming = isStreaming
         self.isSolo = isSolo
@@ -140,6 +158,7 @@ struct Event: Codable, FetchableRecord, PersistableRecord, Identifiable, Hashabl
         case jointBrandIds = "joint_brand_ids"
         case hasStreaming = "has_streaming"
         case hasLiveViewing = "has_live_viewing"
+        case nameKana = "name_kana"
     }
 
     // MARK: - Associations

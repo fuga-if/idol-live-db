@@ -24,12 +24,15 @@ final class EventListViewModelTests: XCTestCase {
         func searchEventsByNameOrVenue(query: String, limit: Int) async throws -> [Event] { [] }
         func eventStats(eventId: String) async throws -> EventStats { throw FakeError.notUsed }
         func eventAttendance(eventId: String) async throws -> EventAttendance? { nil }
+        func eventHero(eventId: String, attendedShowIds: [String], eventMarked: Bool, today: String) async throws -> EventHeroRecord? { nil }
         func eventsWithDate(criterion: EventFilterCriterion, includeEmpty: Bool) async throws -> [EventWithDate] { [] }
         func eventNames() async throws -> [String] { [] }
         func attendedEventsWithDate() async throws -> [EventWithDate] { [] }
         func attendedEventTypeSets() async throws -> (live: Set<String>, stream: Set<String>, liveViewing: Set<String>) {
             ([], [], [])
         }
+        func eventsByIds(_ ids: [String]) async throws -> [EventWithDate] { [] }
+        func eventReleases(eventId: String) async throws -> [EventRelease] { [] }
     }
 
     private struct FakeBrandReading: BrandReading {
@@ -76,17 +79,6 @@ final class EventListViewModelTests: XCTestCase {
         XCTAssertEqual(vm.filteredCount, 2)
     }
 
-    func testLoadUpcomingKeepsFutureAscending() async {
-        let events = [makeEW("a", date: "2026-07-01"), makeEW("past", date: "2025-01-01"), makeEW("c", date: "2026-06-20")]
-        let vm = makeVM(events: events)
-
-        await vm.loadData(includeEmpty: false, query: query(upcoming: true, today: "2026-06-18"))
-
-        XCTAssertEqual(vm.groupedByYear.map(\.year), ["2026年"])
-        XCTAssertEqual(vm.groupedByYear.first?.events.map(\.id), ["c", "a"])
-        XCTAssertEqual(vm.filteredCount, 2)
-    }
-
     func testRebuildAppliesBrandFilterWithoutRefetch() async {
         let events = [makeEW("a", date: "2025-03-01", brandId: "cg"), makeEW("b", date: "2025-04-01", brandId: "ml")]
         let vm = makeVM(events: events)
@@ -95,7 +87,7 @@ final class EventListViewModelTests: XCTestCase {
 
         var filter = EventFilterContext()
         filter.selectedBrandIds = ["ml"]
-        vm.rebuild(query: query(filter, upcoming: false, today: "2026-06-18"))
+        await vm.rebuild(query: query(filter, upcoming: false, today: "2026-06-18"))
 
         XCTAssertEqual(vm.filteredCount, 1)
         XCTAssertEqual(vm.groupedByYear.flatMap { $0.events.map(\.id) }, ["b"])

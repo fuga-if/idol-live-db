@@ -1,0 +1,8 @@
+---
+import IdolListView from "../../components/IdolListView.astro";
+import { page, routeData } from "../../lib/data";
+import type { IdolListPage } from "../../lib/schema/IdolListPage";
+const list = page<IdolListPage>(routeData("idolListIndex", "/idols/"));
+---
+
+<IdolListView list={list} />

@@ -28,48 +28,50 @@ final class AuthService {
     private let isAdminKey = "imas_is_admin"
     private let isBannedKey = "imas_is_banned"
 
-    // sessionToken (Worker 発行 HS256) の期待 claim 値。Worker 側
-    // SESSION_JWT_ISSUER / SESSION_JWT_AUDIENCE と一致させる。
-    private static let sessionTokenIssuer = "imas-live-db"
-    private static let sessionTokenAudience = "imas-live-db-ios"
-    private static let sessionTokenAlg = "HS256"
+    // トークンの判定 (claim の検証・期限・再発行の要否・応答の採否・リトライ) は
+    // imas-core `domain/auth_rules.rs` が持つ。ここは Keychain と通信と状態の反映だけ。
 
-    /// API リクエスト時の Authorization 用ヘッダ値。
-    /// sessionToken (30 日有効) を優先、フォールバックで identityToken (10 分有効)。
+    /// API リクエスト時の Authorization 用ヘッダ値 (sessionToken 優先、無ければ identityToken)。
+    /// 有効性は見ない (送信前に止めると 401 → 自動リフレッシュ → 再送が死ぬ)。
     var bearerToken: String? {
-        sessionToken ?? identityToken
+        authBearerToken(sessionToken: sessionToken, identityToken: identityToken)
     }
+
+    /// admin に開く操作。`isAdmin` を直に読まず、能力ごとに問う。
+    var adminCapabilities: AdminCapabilities {
+        authAdminCapabilities(isAdmin: isAdmin)
+    }
+
+    private static var nowEpochSeconds: Int64 { Int64(Date().timeIntervalSince1970) }
 
     private init() {
         // 旧バージョンが UserDefaults に保存していた場合は Keychain に移送して
         // UserDefaults 側を削除する (Critical: バックアップから token 流出を塞ぐ)。
         Self.migrateFromUserDefaultsIfNeeded(keys: [userIdKey, userNameKey, identityTokenKey, sessionTokenKey, isAdminKey, isBannedKey])
 
-        if let savedId = KeychainStore.get(userIdKey) {
-            userId = savedId
-            userName = KeychainStore.get(userNameKey)
-            if let token = KeychainStore.get(identityTokenKey), !Self.isJWTExpired(token) {
-                identityToken = token
-            }
-            if let session = KeychainStore.get(sessionTokenKey) {
-                if Self.isValidSessionToken(session) {
-                    sessionToken = session
-                    // 期限が近ければ起動時に先回りで更新しておく。
-                    if Self.isSessionTokenNearExpiry(session) {
-                        Task { await refreshSession() }
-                    }
-                } else if Self.isRefreshableSessionToken(session) {
-                    // 期限切れでも形・iss/aud が妥当なら Apple 再認証なしで再発行を試みる
-                    // (Keychain からは消さず保持しておく)。
-                    Task { await refreshSession() }
-                } else {
-                    // claims が不正で再発行も不可なら Keychain から消す。
-                    KeychainStore.delete(key: sessionTokenKey)
-                }
-            }
-            isAdmin = (KeychainStore.get(isAdminKey) == "1")
-            isBanned = (KeychainStore.get(isBannedKey) == "1")
-            isSignedIn = true
+        let savedId = KeychainStore.get(userIdKey)
+        let restored = authRestoreStoredState(
+            stored: StoredAuthState(
+                userId: savedId,
+                identityToken: KeychainStore.get(identityTokenKey),
+                sessionToken: KeychainStore.get(sessionTokenKey),
+                isAdminFlag: KeychainStore.get(isAdminKey),
+                isBannedFlag: KeychainStore.get(isBannedKey)),
+            nowEpochSeconds: Self.nowEpochSeconds)
+        guard restored.isSignedIn else { return }
+        userId = savedId
+        userName = KeychainStore.get(userNameKey)
+        identityToken = restored.identityToken
+        sessionToken = restored.sessionToken
+        isAdmin = restored.isAdmin
+        isBanned = restored.isBanned
+        isSignedIn = true
+        if restored.shouldDeleteStoredSessionToken {
+            KeychainStore.delete(key: sessionTokenKey)
+        }
+        if restored.shouldRefreshSession {
+            // 期限が近い / 切れているが再発行できる形 → Apple 再認証なしで再発行を試みる。
+            Task { await refreshSession() }
         }
     }
 
@@ -79,7 +81,7 @@ final class AuthService {
         let ud = UserDefaults.standard
         for key in keys {
             guard let raw = ud.object(forKey: key) else { continue }
-            let value: String? = (raw as? String) ?? (raw as? Bool).map { $0 ? "1" : "0" }
+            let value: String? = (raw as? String) ?? (raw as? Bool).map { authStoredFlagValue(flag: $0) }
             if let v = value, KeychainStore.get(key) == nil {
                 KeychainStore.set(v, forKey: key)
             }
@@ -102,14 +104,11 @@ final class AuthService {
                 KeychainStore.set(token, forKey: identityTokenKey)
             }
 
-            if let fullName = credential.fullName {
-                let name = [fullName.familyName, fullName.givenName]
-                    .compactMap { $0 }
-                    .joined(separator: " ")
-                if !name.isEmpty {
-                    userName = name
-                    KeychainStore.set(name, forKey: userNameKey)
-                }
+            if let name = authDisplayNameFromAppleName(
+                familyName: credential.fullName?.familyName,
+                givenName: credential.fullName?.givenName) {
+                userName = name
+                KeychainStore.set(name, forKey: userNameKey)
             }
 
             if let email = credential.email {
@@ -147,6 +146,10 @@ final class AuthService {
         // 残すとサインアウト後/別アカウント切替後に前ユーザーの状態が最大 TTL 分漏れる。
         SetlistLikeService.shared.clearCache()
         PredictionService.shared.clearCache()
+        // ローカル永続の投票履歴・投稿履歴も user 依存。残すと別アカウント切替後に
+        // 前ユーザーの投票済み/投稿累計が漏れるので破棄する。
+        LocalPollVoteLog.shared.clear()
+        LocalContributionLog.shared.clear()
     }
 
     /// App Store Review Guideline 5.1.1(v) 対応:
@@ -192,7 +195,7 @@ final class AuthService {
     /// 編集導線を即座に畳む (サーバ側 refreshMe を待たずに best-effort 反映)。
     func markBannedFromServer() {
         isBanned = true
-        KeychainStore.set("1", forKey: isBannedKey)
+        KeychainStore.set(authStoredFlagValue(flag: true), forKey: isBannedKey)
     }
 
     /// Apple identityToken をサーバへ送って 1 年有効の sessionToken を発行・保存する。
@@ -210,40 +213,62 @@ final class AuthService {
             let displayName: String?
             let expiresIn: Int
         }
-        for attempt in 0..<3 {
+        var attempt: UInt32 = 0
+        while true {
+            let outcome: TokenExchangeOutcome
             do {
                 let resp: Resp = try await APIClient.shared.request(
                     "POST",
                     path: "/auth/login",
                     body: Body(identityToken: token, displayName: userName)
                 )
-                // defense-in-depth: サーバ署名は API 側で検証済みだが、想定外の token を
-                // そのまま保持するのを防ぐためクライアントでも claim チェック。
-                guard Self.isValidSessionToken(resp.sessionToken) else {
+                // 再ログイン時 Apple は fullName を返さないので、サーバが返す正準 display_name で
+                // userName を復元する (空なら既存名を保つ。規則はコア)。
+                guard adoptSession(SessionResponse(
+                    sessionToken: resp.sessionToken, isAdmin: resp.isAdmin,
+                    displayName: resp.displayName)) else {
                     Logger.auth.error("session_token_rejected_invalid_claims")
                     return
                 }
-                sessionToken = resp.sessionToken
-                isAdmin = resp.isAdmin
-                KeychainStore.set(resp.sessionToken, forKey: sessionTokenKey)
-                KeychainStore.set(resp.isAdmin ? "1" : "0", forKey: isAdminKey)
-                // 再ログイン時 Apple は fullName を返さないので、サーバが返す正準 display_name で
-                // userName を復元する。これが無いとサインアウト→再ログインで表示名が空になる。
-                if let name = resp.displayName, !name.isEmpty {
-                    userName = name
-                    KeychainStore.set(name, forKey: userNameKey)
-                }
                 Logger.auth.notice("session_token_issued isAdmin=\(resp.isAdmin, privacy: .public)")
-                return
+                outcome = .succeeded
             } catch APIClientError.notAuthorized {
                 // identityToken が無効 (期限切れ等) ならリトライしても無駄。
                 Logger.auth.error("session_token_exchange_unauthorized")
-                return
+                outcome = .unauthorized
             } catch {
                 Logger.auth.error("session_token_exchange_failed (attempt \(attempt + 1)): \(error.localizedDescription, privacy: .public)")
-                try? await Task.sleep(nanoseconds: 1_500_000_000)
+                outcome = .failed
             }
+            guard case .retryAfter(let delayMillis) = authTokenExchangeRetry(attempt: attempt, outcome: outcome) else {
+                return
+            }
+            try? await Task.sleep(for: .milliseconds(delayMillis))
+            attempt += 1
         }
+    }
+
+    /// `/auth/login` `/auth/refresh` が返したセッションを採用する。採用したら true。
+    /// 採否と、何を書き換えるか (None = 変更しない) はコアが決める。
+    private func adoptSession(_ response: SessionResponse) -> Bool {
+        let adoption = authAdoptSessionResponse(response: response, nowEpochSeconds: Self.nowEpochSeconds)
+        guard adoption.accepted else { return false }
+        if let token = adoption.sessionToken {
+            sessionToken = token
+            KeychainStore.set(token, forKey: sessionTokenKey)
+        }
+        if let admin = adoption.isAdmin {
+            isAdmin = admin
+            KeychainStore.set(authStoredFlagValue(flag: admin), forKey: isAdminKey)
+        }
+        if let name = adoption.displayName {
+            userName = name
+            KeychainStore.set(name, forKey: userNameKey)
+        }
+        if let signedIn = adoption.isSignedIn {
+            isSignedIn = signedIn
+        }
+        return true
     }
 
     // MARK: - Sliding refresh (Apple 再認証なしの自動再ログイン)
@@ -267,8 +292,8 @@ final class AuthService {
     }
 
     private func performSessionRefresh() async -> Bool {
-        let candidate = sessionToken ?? KeychainStore.get(sessionTokenKey)
-        guard let token = candidate, Self.isRefreshableSessionToken(token) else { return false }
+        guard let token = authSessionRefreshCandidate(
+            inMemoryToken: sessionToken, storedToken: KeychainStore.get(sessionTokenKey)) else { return false }
         struct Resp: Decodable {
             let sessionToken: String
             let uid: String
@@ -279,15 +304,12 @@ final class AuthService {
             let resp: Resp = try await APIClient.shared.requestWithBearer(
                 "POST", path: "/auth/refresh", bearer: token
             )
-            guard Self.isValidSessionToken(resp.sessionToken) else {
+            // 401 で落としたサインイン状態も、採用できたらここで戻る (isSignedIn)。
+            guard adoptSession(SessionResponse(
+                sessionToken: resp.sessionToken, isAdmin: resp.isAdmin, displayName: nil)) else {
                 Logger.auth.error("session_refresh_rejected_invalid_claims")
                 return false
             }
-            sessionToken = resp.sessionToken
-            isAdmin = resp.isAdmin
-            isSignedIn = true
-            KeychainStore.set(resp.sessionToken, forKey: sessionTokenKey)
-            KeychainStore.set(resp.isAdmin ? "1" : "0", forKey: isAdminKey)
             Logger.auth.notice("session_refreshed")
             return true
         } catch {
@@ -312,11 +334,14 @@ final class AuthService {
         }
         do {
             let me: Me = try await APIClient.shared.request("GET", path: "/auth/me", authorized: true)
-            isAdmin = me.isAdmin
-            isBanned = me.isBanned
-            KeychainStore.set(me.isAdmin ? "1" : "0", forKey: isAdminKey)
-            KeychainStore.set(me.isBanned ? "1" : "0", forKey: isBannedKey)
-            if let name = me.displayName, userName != name {
+            let refresh = authApplyMeResponse(
+                me: MeResponse(isAdmin: me.isAdmin, isBanned: me.isBanned, displayName: me.displayName),
+                currentDisplayName: userName)
+            isAdmin = refresh.isAdmin
+            isBanned = refresh.isBanned
+            KeychainStore.set(authStoredFlagValue(flag: refresh.isAdmin), forKey: isAdminKey)
+            KeychainStore.set(authStoredFlagValue(flag: refresh.isBanned), forKey: isBannedKey)
+            if let name = refresh.displayName {
                 userName = name
                 KeychainStore.set(name, forKey: userNameKey)
             }
@@ -328,96 +353,39 @@ final class AuthService {
         }
     }
 
-    /// refresh 可能な形か (署名は検証できないので alg/iss/aud/exp の有無だけ確認)。
-    /// 実際の猶予判定はサーバ /auth/refresh が署名込みで行う。
-    private static func isRefreshableSessionToken(_ token: String) -> Bool {
-        guard let header = decodeJWTHeader(token),
-              (header["alg"] as? String) == sessionTokenAlg,
-              let payload = decodeJWTPayload(token),
-              (payload["iss"] as? String) == sessionTokenIssuer,
-              (payload["aud"] as? String) == sessionTokenAudience,
-              (payload["exp"] as? TimeInterval) != nil else {
-            return false
-        }
-        return true
-    }
-
-    /// 有効だが期限が近い (既定 7 日以内) か。起動時の先回り更新に使う。
-    private static func isSessionTokenNearExpiry(_ token: String, within seconds: TimeInterval = 60 * 60 * 24 * 7) -> Bool {
-        guard let payload = decodeJWTPayload(token), let exp = payload["exp"] as? TimeInterval else { return false }
-        return Date(timeIntervalSince1970: exp).timeIntervalSinceNow < seconds
-    }
-
-    private static func isJWTExpired(_ token: String) -> Bool {
-        guard let payload = decodeJWTPayload(token),
-              let exp = payload["exp"] as? TimeInterval else { return true }
-        return Date(timeIntervalSince1970: exp).timeIntervalSinceNow < 60
-    }
-
-    /// sessionToken の claim 検証 (defense-in-depth)。
-    /// 期待: alg=HS256 / iss=imas-live-db / aud=imas-live-db-ios / exp > now+60s。
-    /// サーバ署名は API 側で検証済みなので、ここでは header/payload を decode して
-    /// 値だけ照合する。
-    private static func isValidSessionToken(_ token: String) -> Bool {
-        guard let header = decodeJWTHeader(token),
-              let alg = header["alg"] as? String, alg == sessionTokenAlg,
-              let payload = decodeJWTPayload(token),
-              let iss = payload["iss"] as? String, iss == sessionTokenIssuer,
-              let aud = payload["aud"] as? String, aud == sessionTokenAudience,
-              let exp = payload["exp"] as? TimeInterval,
-              Date(timeIntervalSince1970: exp).timeIntervalSinceNow > 60 else {
-            return false
-        }
-        return true
-    }
-
-    private static func decodeJWTHeader(_ token: String) -> [String: Any]? {
-        decodeJWTSegment(token, index: 0)
-    }
-
-    private static func decodeJWTPayload(_ token: String) -> [String: Any]? {
-        decodeJWTSegment(token, index: 1)
-    }
-
-    /// JWT (header.payload.signature) の 0=header / 1=payload セグメントを取り出して JSON decode する。
-    private static func decodeJWTSegment(_ token: String, index: Int) -> [String: Any]? {
-        let parts = token.split(separator: ".")
-        guard parts.count == 3, parts.indices.contains(index) else { return nil }
-        return decodeBase64URLJSON(String(parts[index]))
-    }
-
-    private static func decodeBase64URLJSON(_ segment: String) -> [String: Any]? {
-        var s = segment.replacingOccurrences(of: "-", with: "+")
-                       .replacingOccurrences(of: "_", with: "/")
-        while s.count % 4 != 0 { s += "=" }
-        guard let data = Data(base64Encoded: s),
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            return nil
-        }
-        return json
-    }
-
     func checkCredentialState() async {
         guard let userId else { return }
         let provider = ASAuthorizationAppleIDProvider()
         do {
-            let state = try await provider.credentialState(forUserID: userId)
-            switch state {
-            case .authorized:
-                break
-            case .revoked:
-                try? await Task.sleep(nanoseconds: 2_000_000_000)
-                let retryState = try await provider.credentialState(forUserID: userId)
-                if retryState == .revoked {
+            var isRecheck = false
+            while true {
+                let state = try await provider.credentialState(forUserID: userId)
+                switch authCredentialCheckAction(state: Self.appleCredentialState(state), isRecheck: isRecheck) {
+                case .keepSession:
+                    return
+                case .signOut:
                     signOut()
+                    return
+                case .recheckAfter(let delayMillis):
+                    // 端末が一時的に revoked を返すことがあるので、少し待って問い合わせ直す。
+                    try? await Task.sleep(for: .milliseconds(delayMillis))
+                    isRecheck = true
                 }
-            case .notFound, .transferred:
-                signOut()
-            @unknown default:
-                signOut()
             }
         } catch {
             Logger.auth.error("credential_state_check_failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    private static func appleCredentialState(
+        _ state: ASAuthorizationAppleIDProvider.CredentialState
+    ) -> AppleCredentialState {
+        switch state {
+        case .authorized: .authorized
+        case .revoked: .revoked
+        case .notFound: .notFound
+        case .transferred: .transferred
+        @unknown default: .unknown
         }
     }
 }

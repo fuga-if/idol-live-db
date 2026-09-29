@@ -1,29 +1,44 @@
 package com.fugaif.imaslivedb.data.repository
 
 import com.fugaif.imaslivedb.data.community.CommunityApi
+import com.fugaif.imaslivedb.data.core.SnapshotStoreProvider
 import com.fugaif.imaslivedb.data.db.AppDatabase
+import com.fugaif.imaslivedb.data.model.JstDay
 import com.fugaif.imaslivedb.data.model.Brand
-import com.fugaif.imaslivedb.data.model.BrandCollectionProgress
 import com.fugaif.imaslivedb.data.model.BrandSongCount
-import com.fugaif.imaslivedb.data.model.CollectionDashboard
 import com.fugaif.imaslivedb.data.model.DatabaseStats
 import com.fugaif.imaslivedb.data.model.FavoriteRankingEntry
-import com.fugaif.imaslivedb.data.model.UncollectedSong
-import com.fugaif.imaslivedb.data.model.UpcomingCatchChance
 import com.fugaif.imaslivedb.data.model.YearlyShowCount
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
+import uniffi.imas_core.CollectionDashboardRecord
 
-class StatsRepository(private val db: AppDatabase, private val communityApi: CommunityApi) {
+/**
+ * 統計・回収ダッシュボードの読み取り口。
+ *
+ * カタログ側の集計 (ブランド別曲数・年別公演数・回収ダッシュボード) は共有コア (imas-core) の
+ * スナップショットが答える (SQL の代わりの経路は持たない)。
+ * 参加マーク (user_marks) はスナップショットに含まれないので、解決済みの id 集合を
+ * 呼び出し側 (UserMarkRepository) から受け取り、コアへは引数で渡す。
+ */
+class StatsRepository(
+    private val db: AppDatabase,
+    private val communityApi: CommunityApi,
+    private val snapshots: SnapshotStoreProvider
+) {
 
-    suspend fun fetchBrands(): List<Brand> {
-        return db.brandDao().fetchBrands()
-    }
+    suspend fun fetchBrands(): List<Brand> =
+        snapshots.query { store -> store.brandRecords().map { it.toBrand() } }
 
-    suspend fun fetchBrandSongCounts(): List<BrandSongCount> {
-        return db.brandDao().fetchBrandSongCounts()
-    }
+    suspend fun fetchBrandSongCounts(): List<BrandSongCount> =
+        snapshots.query { store ->
+            store.brandSongCounts().map {
+                BrandSongCount(id = it.id, shortName = it.shortName, color = it.color, songCount = it.songCount.toInt())
+            }
+        }
 
+    /**
+     * DB 統計 (行数)。コアは件数だけを返す API を持たず (SnapshotStats はロード時の戻り値で
+     * 後から引けない)、Room 経路のまま。
+     */
     suspend fun fetchDatabaseStats(): DatabaseStats {
         return DatabaseStats(
             songCount = db.statsDao().fetchSongCount(),
@@ -33,117 +48,53 @@ class StatsRepository(private val db: AppDatabase, private val communityApi: Com
         )
     }
 
-    suspend fun fetchYearlyShowCounts(): List<YearlyShowCount> {
-        return db.statsDao().fetchYearlyShowCounts()
-    }
+    suspend fun fetchYearlyShowCounts(): List<YearlyShowCount> =
+        snapshots.query { store ->
+            store.yearlyShowCounts().map { YearlyShowCount(year = it.year, showCount = it.showCount.toInt()) }
+        }
 
+    /**
+     * meta の値 (schema_version / data_version)。設定画面が「いまローカル DB がどの版か」を
+     * 見せる診断値なので、同期完了から reload 完了までひと世代古い値を返し得る
+     * スナップショットではなく Room を直接読む (コアに metaValue はある)。
+     */
     suspend fun fetchMetaValue(key: String): String? {
         return db.metaDao().fetchMetaValue(key)
     }
 
     // MARK: - 最新の動き
 
-    suspend fun fetchLatestShowSongCount(showId: String): Int = db.statsDao().fetchSetlistCount(showId)
+    /**
+     * 「最新の動き」に出す最新公演のセトリ曲数。**Room 経路のまま残す。**
+     *
+     * コアの showSetlist は songs と解決できた項目だけを返す (song_id が孤児の
+     * setlist_items を読み飛ばす) ので、その size は元 SQL の
+     * `COUNT(*) FROM setlist_items WHERE show_id = ?` と母集合が一致しない。
+     * 孤児行がある公演で曲数が静かに少なく出るため、件数だけはコアに寄せない。
+     */
+    suspend fun fetchLatestShowSongCount(showId: String): Int {
+        return db.statsDao().fetchSetlistCount(showId)
+    }
 
-    // MARK: - Collection Dashboard (iOS StatsView.loadDashboard の移植)
+    // MARK: - Collection Dashboard
 
     /**
-     * 回収ダッシュボードの重い集計をまとめて実行する。
-     * collectedIds / pickIdolIds は呼び出し側 (UserMarkRepository) から取得して渡す。
+     * 回収ダッシュボード (全体・ブランド別の回収率、担当/全体の未回収曲と披露頻度、
+     * 「この公演で聴けるかも」)。1 画面 = 1 FFI で、集計・並び・閾値は全部コア
+     * (collectionDashboard)。collectedIds / pickIdolIds は呼び出し側 (UserMarkRepository) が解決して渡す。
      */
-    suspend fun fetchCollectionDashboard(collectedIds: Set<String>, pickIdolIds: Set<String>): CollectionDashboard {
-        val statsDao = db.statsDao()
-        val branded = statsDao.fetchBrandedSongIds().toSet()
-        val brandProgress = fetchBrandCollectionProgress(collectedIds)
-        val pickSongIds = if (pickIdolIds.isEmpty()) emptySet() else statsDao.fetchSongIdsWithAnyArtist(pickIdolIds.toList()).toSet()
-
-        val pickUncollected = fetchUncollectedSongs(pickSongIds, collectedIds)
-        val allUncollected = fetchUncollectedSongs(branded, collectedIds)
-
-        val allUncollectedIds = allUncollected.map { it.song.id }.toSet()
-        val chances = fetchUpcomingCatchChances(allUncollectedIds, today())
-
-        val pickCollectedCount = pickSongIds.intersect(collectedIds).size
-        return CollectionDashboard(
-            overallCollected = branded.intersect(collectedIds).size,
-            overallTotal = branded.size,
-            brandProgress = brandProgress,
-            pickUncollected = pickUncollected,
-            allUncollected = allUncollected,
-            myPickCollected = pickCollectedCount,
-            myPickTotal = pickSongIds.size,
-            catchChances = chances
-        )
-    }
-
-    /** ブランドごとの現地回収進捗 (回収済み曲数 / そのブランド全曲数)。 */
-    private suspend fun fetchBrandCollectionProgress(collectedIds: Set<String>): List<BrandCollectionProgress> {
-        val statsDao = db.statsDao()
-        val brandTotals = statsDao.fetchBrandTotals()
-        val collectedByBrand = mutableMapOf<String, Int>()
-        if (collectedIds.isNotEmpty()) {
-            statsDao.fetchBrandIdsForSongs(collectedIds.toList()).forEach { bid ->
-                collectedByBrand[bid] = (collectedByBrand[bid] ?: 0) + 1
-            }
-        }
-        return brandTotals.map { row ->
-            BrandCollectionProgress(
-                brandId = row.id,
-                shortName = row.shortName,
-                color = row.color,
-                collected = collectedByBrand[row.id] ?: 0,
-                total = row.total
+    suspend fun fetchCollectionDashboard(collectedIds: Set<String>, pickIdolIds: Set<String>): CollectionDashboardRecord =
+        snapshots.query { store ->
+            store.collectionDashboard(
+                collectedIds.toList(), pickIdolIds.toList(), JstDay.today(), CATCH_CHANCE_LIMIT.toUInt()
             )
         }
-    }
-
-    /** 未回収曲一覧。candidateIds のうち collectedIds に無い曲を、披露回数つきで返す (披露回数の多い順)。 */
-    private suspend fun fetchUncollectedSongs(candidateIds: Set<String>, collectedIds: Set<String>): List<UncollectedSong> {
-        val targetIds = candidateIds - collectedIds
-        if (targetIds.isEmpty()) return emptyList()
-        val songs = db.songDao().fetchSongsByIds(targetIds.toList())
-        val playCounts = db.statsDao().fetchLifetimePlayCounts(targetIds.toList())
-            .associate { it.songId to it.cnt }
-        return songs
-            .map { UncollectedSong(song = it, playCount = playCounts[it.id] ?: 0) }
-            .sortedWith(compareByDescending<UncollectedSong> { it.playCount }.thenByDescending { it.song.titleKana ?: "" })
-    }
-
-    /** 「この公演で未回収が聴けるかも」候補。今日以降の公演のうち、親ブランドが過去に未回収曲を披露した数が多い順。 */
-    private suspend fun fetchUpcomingCatchChances(uncollectedIds: Set<String>, today: String, limit: Int = 8): List<UpcomingCatchChance> {
-        if (uncollectedIds.isEmpty()) return emptyList()
-        val statsDao = db.statsDao()
-        val uncollectedByBrand = mutableMapOf<String, Int>()
-        statsDao.fetchBrandSongHits(uncollectedIds.toList()).forEach { row ->
-            val bid = row.brandId ?: return@forEach
-            uncollectedByBrand[bid] = (uncollectedByBrand[bid] ?: 0) + 1
-        }
-        if (uncollectedByBrand.isEmpty()) return emptyList()
-
-        return statsDao.fetchUpcomingRealLiveShows(today)
-            .mapNotNull { row ->
-                val likely = uncollectedByBrand[row.brandId] ?: return@mapNotNull null
-                if (likely <= 0) return@mapNotNull null
-                UpcomingCatchChance(
-                    show = row.toShow(),
-                    eventName = row.eventName,
-                    brandId = row.brandId,
-                    brandColor = row.brandColor,
-                    likelyCount = likely
-                )
-            }
-            .sortedWith(compareByDescending<UpcomingCatchChance> { it.likelyCount }.thenByDescending { it.show.date })
-            .take(limit)
-    }
-
-    /** "yyyy-MM-dd" 形式の今日 (Asia/Tokyo)。公演日 (TEXT) との文字列比較に使う。 */
-    private fun today(): String =
-        DateTimeFormatter.ofPattern("yyyy-MM-dd").format(java.time.LocalDate.now(ZoneId.of("Asia/Tokyo")))
 
     // MARK: - コミュニティの熱量 (お気に入りランキング)
 
     suspend fun fetchFavoritesRanking(brandId: String?, limit: Int = 20): List<FavoriteRankingEntry> {
         val dtos = communityApi.favoritesRanking()
+        // 曲メタの引き当ては hydration (Room が正)。ランキング自体は端末外データなのでコア対象外。
         val songs = db.songDao().fetchSongsByIds(dtos.map { it.songId }).associateBy { it.id }
         return dtos
             .map { dto ->
@@ -158,5 +109,10 @@ class StatsRepository(private val db: AppDatabase, private val communityApi: Com
             }
             .filter { brandId == null || it.brandId == brandId }
             .take(limit)
+    }
+
+    private companion object {
+        /** 「この公演で聴けるかも」に出す公演の数。 */
+        const val CATCH_CHANCE_LIMIT = 8
     }
 }

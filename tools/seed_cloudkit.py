@@ -13,29 +13,54 @@ Auth:
 """
 
 import argparse
-import json
 import os
 import sqlite3
 import sys
 import time
-import requests
-import hashlib
-import base64
-from ecdsa import SigningKey
-from ecdsa.util import sigencode_der
-import urllib.request
-import urllib.error
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
+
+_TOOLS_DIR = str(Path(__file__).resolve().parent)
+if _TOOLS_DIR not in sys.path:
+    sys.path.insert(0, _TOOLS_DIR)
+
+# 表の知識・レコードの組み立て・通信は lib/ に置いてある。手元のスクリプトがこの
+# ファイルの名前で import しているので、ここからも同じ名前で読めるようにしておく
+# (名前を消したり変えたりしない)。
+from lib import cloudkit as _ck  # noqa: E402
+from lib.ck_records import (  # noqa: E402,F401
+    SCHEMA_MANAGED_FIELDS,
+    SCHEMA_PATH,
+    assert_replace_safe,
+    build_fields,
+    get_column_info,
+    get_primary_keys,
+    has_table,
+    make_record_name,
+    next_modified_ms,
+    push_columns,
+    rows_to_operations,
+    schema_fields,
+    sent_columns,
+    snake_to_camel,
+    sql_type_to_cloudkit,
+)
+from lib.ck_tables import (  # noqa: E402,F401
+    ID_FILTER_COLUMN,
+    RECORD_TYPE_MAP,
+    SCOPED_ID_SPACE,
+    TABLE_ORDER,
+    scope_id,
+)
 
 
 # ---------------------------------------------------------------------------
 # Config
 # ---------------------------------------------------------------------------
 
-BASE_URL = "https://api.apple-cloudkit.com"
-CONTAINER = "iCloud.com.fugaif.ImasLiveDB"
+BASE_URL = _ck.BASE_URL
+CONTAINER = _ck.CONTAINER
 ENVIRONMENT = "development"
 DB_PATH = Path(__file__).parent.parent / "ImasLiveDB" / "Resources" / "master.sqlite"
 
@@ -46,242 +71,40 @@ QUERY_PATH = ""
 
 def _build_paths(env: str) -> None:
     global MODIFY_PATH, QUERY_PATH
-    MODIFY_PATH = f"/database/1/{CONTAINER}/{env}/public/records/modify"
-    QUERY_PATH = f"/database/1/{CONTAINER}/{env}/public/records/query"
+    MODIFY_PATH = _ck.records_path(env, "modify")
+    QUERY_PATH = _ck.records_path(env, "query")
 
 
 _build_paths(ENVIRONMENT)
 
-BATCH_SIZE = 200
-MAX_RETRIES = 5
-INITIAL_BACKOFF = 1.0  # seconds
+BATCH_SIZE = _ck.BATCH_SIZE
+MAX_RETRIES = _ck.MAX_RETRIES
+INITIAL_BACKOFF = _ck.INITIAL_BACKOFF  # seconds
 DEFAULT_KEY_FILE = Path(__file__).parent / "eckey.pem"
-
-# ---------------------------------------------------------------------------
-# Record type mapping (SQL table → CloudKit record type)
-# ---------------------------------------------------------------------------
-
-TABLE_ORDER = [
-    "brands",
-    "idols",
-    "events",
-    "units",
-    "songs",
-    "shows",
-    "idol_brands",
-    "unit_members",
-    "song_artists",
-    "setlist_items",
-    "setlist_performers",
-    "show_cast",
-    "meta",
-]
-
-RECORD_TYPE_MAP = {
-    "brands": "Brand",
-    "songs": "Song",
-    "events": "Event",
-    "shows": "Show",
-    "setlist_items": "SetlistItem",
-    "setlist_performers": "SetlistPerformer",
-    "cast": "CastMember",
-    "idols": "Idol",
-    "idol_cast": "IdolCast",
-    "idol_brands": "IdolBrand",
-    "units": "ImasUnit",
-    "unit_members": "UnitMember",
-    "song_artists": "SongArtist",
-    "show_cast": "ShowCast",
-    "meta": "MetaData",
-}
-
-# ---------------------------------------------------------------------------
-# Schema introspection helpers
-# ---------------------------------------------------------------------------
-
-def get_column_info(conn: sqlite3.Connection, table: str) -> list[dict]:
-    """Return list of {name, type} for each column in table."""
-    cur = conn.execute(f"PRAGMA table_info({table})")
-    return [{"name": row[1], "type": row[2].upper()} for row in cur.fetchall()]
-
-
-def snake_to_camel(name: str) -> str:
-    """Convert snake_case to camelCase."""
-    parts = name.split("_")
-    return parts[0] + "".join(p.capitalize() for p in parts[1:])
-
-
-def sql_type_to_cloudkit(sql_type: str) -> str:
-    """Map SQLite affinity to CloudKit field type."""
-    if "INT" in sql_type:
-        return "INT64"
-    if "REAL" in sql_type or "FLOAT" in sql_type or "DOUBLE" in sql_type:
-        return "DOUBLE"
-    # TEXT, BLOB, and anything else → STRING
-    return "STRING"
-
-
-# ---------------------------------------------------------------------------
-# Primary key helpers
-# ---------------------------------------------------------------------------
-
-def get_primary_keys(conn: sqlite3.Connection, table: str) -> list[str]:
-    """Return list of primary key column names for the table."""
-    cur = conn.execute(f"PRAGMA table_info({table})")
-    pks = [(row[5], row[1]) for row in cur.fetchall() if row[5] > 0]
-    pks.sort()
-    return [name for _, name in pks]
-
-
-def make_record_name(table: str, row: dict, pk_cols: list[str]) -> str:
-    """Build a stable CloudKit record name from primary key values."""
-    if len(pk_cols) == 1:
-        return str(row[pk_cols[0]])
-    # Composite PK: prefix with table abbreviation to avoid collisions
-    parts = [table] + [str(row[col]) for col in pk_cols]
-    return "-".join(parts)
-
-
-# ---------------------------------------------------------------------------
-# Record building
-# ---------------------------------------------------------------------------
-
-# モジュール読込時の基準時刻 (ms)。record ごとに +1ms ずつずらして使う。
-# modifiedAt は「呼び出し時の実時刻 ms」 をベースに単調増加でユニークに割り当てる。
-# プロセス開始時刻固定だと、 seed 実行中にユーザ端末側が incremental sync を完了して
-# lastSync を更新した場合、 seed 完了後の sync で「lastSync > 全レコードの modifiedAt」
-# となって新規 push がまるごと拾えなくなる ( "modifiedAt > lastSync" で 0 件)。
-# 実時刻ベースに切り替えることで「push されたレコードは push 時刻以降」 が保証され、
-# 任意のタイミングでアプリが incremental sync しても取りこぼされない。
-_last_returned_ms = 0
-
-
-def next_modified_ms() -> int:
-    global _last_returned_ms
-    now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
-    if now_ms <= _last_returned_ms:
-        now_ms = _last_returned_ms + 1
-    _last_returned_ms = now_ms
-    return now_ms
-
 
 # 互換のため NOW_MS は seed 全体で 1 つの代表値を持つが、 個別 push では next_modified_ms()
 # を使うので影響なし (event_merges 等で modifiedAt をその場で複数 push する箇所のみ参照)。
 NOW_MS = int(datetime.now(timezone.utc).timestamp() * 1000)
 
 
-def build_fields(
-    row: dict,
-    col_info: list[dict],
-    pk_cols: list[str],
-    exclude_fields: Optional[set] = None,
-    include_fields: Optional[set] = None,
-) -> dict:
-    """Convert a SQLite row dict to CloudKit fields dict.
-
-    - exclude_fields: camelCase フィールド名を除外 (Production に未デプロイな列を飛ばす用途)
-    - include_fields: camelCase フィールド名をホワイトリスト (指定時はそれ以外を飛ばす)
-    """
-    fields = {}
-    for col in col_info:
-        raw_name = col["name"]
-        # 単一PKはrecordNameに使うのでフィールドに含めない
-        if len(pk_cols) == 1 and raw_name == pk_cols[0]:
-            continue
-        value = row.get(raw_name)
-        if value is None:
-            continue  # omit NULL fields
-        ck_name = snake_to_camel(raw_name)
-        if include_fields is not None and ck_name not in include_fields:
-            continue
-        if exclude_fields and ck_name in exclude_fields:
-            continue
-        ck_type = sql_type_to_cloudkit(col["type"])
-        fields[ck_name] = {"value": value, "type": ck_type}
-    # Add modifiedAt timestamp (milliseconds since epoch)
-    fields["modifiedAt"] = {"value": next_modified_ms(), "type": "TIMESTAMP"}
-    return fields
-
-
-def rows_to_operations(
-    table: str,
-    rows: list[dict],
-    col_info: list[dict],
-    pk_cols: list[str],
-    exclude_fields: Optional[set] = None,
-    include_fields: Optional[set] = None,
-) -> list[dict]:
-    """Convert SQLite rows to CloudKit forceReplace operations."""
-    record_type = RECORD_TYPE_MAP[table]
-    ops = []
-    for row in rows:
-        record_name = make_record_name(table, row, pk_cols)
-        fields = build_fields(row, col_info, pk_cols, exclude_fields, include_fields)
-        ops.append(
-            {
-                "operationType": "forceUpdate",
-                "record": {
-                    "recordType": record_type,
-                    "recordName": record_name,
-                    "fields": fields,
-                },
-            }
-        )
-    return ops
-
-
 # ---------------------------------------------------------------------------
-# CloudKit S2S Auth (manual implementation)
+# CloudKit S2S Auth (実体は lib/cloudkit.py)
 # ---------------------------------------------------------------------------
 
-_signing_key = None
+_signing_key = None  # lib.cloudkit.Signer。init_session で作る
 _key_id = ""
 
 
 def init_session(key_id: str, key_file: Path) -> None:
     global _signing_key, _key_id
     _key_id = key_id
-    _signing_key = SigningKey.from_pem(key_file.read_text())
+    _signing_key = _ck.load_signer(key_id, key_file)
     print(f"  [auth] CloudKit S2S auth initialized")
 
 
-def _sign_request(body: bytes, subpath: str) -> dict:
-    """Generate CloudKit S2S auth headers."""
-    from datetime import datetime, timezone
-    date_str = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    body_hash = base64.b64encode(hashlib.sha256(body).digest()).decode()
-    message = f"{date_str}:{body_hash}:{subpath}"
-    signature = base64.b64encode(_signing_key.sign(message.encode(), hashfunc=hashlib.sha256, sigencode=sigencode_der)).decode()
-    return {
-        "Content-Type": "application/json",
-        "X-Apple-CloudKit-Request-KeyID": _key_id,
-        "X-Apple-CloudKit-Request-ISO8601Date": date_str,
-        "X-Apple-CloudKit-Request-SignatureV1": signature,
-    }
-
-
 def post_json(url: str, payload: dict, auth=None) -> dict:
-    """POST JSON to url with retry/backoff on 429.
-
-    CloudKit API は recordName に非 ASCII 文字 (全角仮名・異体字 等) を含む場合、
-    `\\uXXXX` 形式の escape よりも UTF-8 raw を期待するため ensure_ascii=False。
-    """
-    body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
-    # Extract subpath from URL for signing
-    subpath = url.replace(BASE_URL, "")
-    headers = _sign_request(body, subpath) if _signing_key else {"Content-Type": "application/json"}
-    for attempt in range(MAX_RETRIES):
-        resp = requests.post(url, data=body, headers=headers)
-        if resp.status_code == 200:
-            return resp.json()
-        if resp.status_code == 429:
-            wait = INITIAL_BACKOFF * (2 ** attempt)
-            print(f"  [rate limit] sleeping {wait:.1f}s before retry {attempt + 1}/{MAX_RETRIES}")
-            time.sleep(wait)
-        else:
-            print(f"  [HTTP {resp.status_code}] {resp.text[:500]}", file=sys.stderr)
-            resp.raise_for_status()
-    raise RuntimeError("Max retries exceeded for CloudKit request")
+    """init_session の鍵で署名して POST する (429 は待って再署名し、やり直す)。"""
+    return _ck.post_json(url, payload, _signing_key)
 
 
 def get_json(url: str, payload: dict, auth=None) -> dict:
@@ -296,46 +119,11 @@ def get_json(url: str, payload: dict, auth=None) -> dict:
 def upload_operations(
     ops: list[dict], dry_run: bool, label: str
 ) -> tuple[int, int]:
-    """Upload operations in batches. Returns (succeeded_count, error_count)."""
-    total = len(ops)
-    processed = 0
-    error_count = 0
-    url = BASE_URL + MODIFY_PATH
+    """Upload operations in batches. Returns (succeeded_count, error_count).
 
-    for batch_start in range(0, total, BATCH_SIZE):
-        batch = ops[batch_start : batch_start + BATCH_SIZE]
-        if dry_run:
-            print(f"  [dry-run] would upload {len(batch)} records (batch starting at {batch_start})")
-            processed += len(batch)
-            continue
-
-        if batch_start > 0:
-            time.sleep(1.0)
-        payload = {"operations": batch}
-        try:
-            result = post_json(url, payload)
-        except Exception as e:
-            # CloudKit がまれに "could not find handler for endpoint" 404 を返す
-            # (連続リクエストでのスロットリングらしき挙動)。少し待って1回だけ再試行する。
-            print(f"  [warn] batch upload failed, retrying once: {e}", file=sys.stderr)
-            time.sleep(3.0)
-            try:
-                result = post_json(url, payload)
-            except Exception as e2:
-                print(f"  [error] batch upload failed after retry: {e2}", file=sys.stderr)
-                raise
-
-        errors = [r for r in result.get("records", []) if "serverErrorCode" in r]
-        if errors:
-            error_count += len(errors)
-            print(f"  [warn] {len(errors)} record errors in batch:", file=sys.stderr)
-            for err in errors[:3]:
-                print(f"    {err}", file=sys.stderr)
-
-        processed += len(batch)
-        print(f"  uploaded {processed}/{total} {label} records")
-
-    return (processed - error_count, error_count)
+    送り先は _build_paths で決めた環境 (呼んだ時点の MODIFY_PATH)。
+    """
+    return _ck.upload_operations(ops, BASE_URL + MODIFY_PATH, dry_run, label, post=post_json)
 
 
 def seed_table(
@@ -345,35 +133,86 @@ def seed_table(
     exclude_fields: Optional[set] = None,
     include_fields: Optional[set] = None,
     song_ids: Optional[list] = None,
+    replace: bool = False,
 ) -> tuple[int, int]:
     """Read a table from SQLite and upload all records to CloudKit.
 
     song_ids が指定された場合、songs は id、song_artists は song_id でその集合に絞る
     (新曲だけを full push する用)。それ以外のテーブルでは無視される。
 
+    replace=True は forceReplace で送る (意味と使いどころは rows_to_operations)。
+    安全かどうかは呼び出し側が assert_replace_safe で先に確かめる。
+
     Returns (succeeded, errors).
     """
     record_type = RECORD_TYPE_MAP[table]
-    col_info = get_column_info(conn, table)
+    col_info, select = push_columns(conn, table)
     pk_cols = get_primary_keys(conn, table)
 
     where, params = "", []
-    if song_ids:
-        id_col = {"songs": "id", "song_artists": "song_id", "show_cast": "show_id", "setlist_items": "id", "idols": "id", "setlist_performers": "setlist_item_id"}.get(table)
-        if id_col:
-            where = f" WHERE {id_col} IN ({','.join('?' for _ in song_ids)})"
-            params = song_ids
-    cur = conn.execute(f"SELECT * FROM {table}{where}", params)
+    id_col = ID_FILTER_COLUMN.get(table)
+    if song_ids and id_col:
+        where = f" WHERE {id_col} IN ({','.join('?' for _ in song_ids)})"
+        params = song_ids
+    cur = conn.execute(f"SELECT {select} FROM {table}{where}", params)
     cur.row_factory = None
     cols = [d[0] for d in cur.description]
     rows = [dict(zip(cols, row)) for row in cur.fetchall()]
 
     if not rows:
-        print(f"  (empty table, skipping)")
+        if where:
+            # 渡した id が 1 つも当たらないのは、id の種類の取り違えが多い
+            # (shows は event_id で絞る、など)。黙って 0 件で終わらせない。
+            print(f"  ⚠️ {table}: --ids で絞ったら 0 行 ({id_col} に渡した {len(song_ids)} 件の"
+                  f" id が 1 つも無い)。id の種類と表の組み合わせを確かめること", file=sys.stderr)
+        else:
+            print(f"  (empty table, skipping)")
         return (0, 0)
 
-    ops = rows_to_operations(table, rows, col_info, pk_cols, exclude_fields, include_fields)
+    ops = rows_to_operations(table, rows, col_info, pk_cols, exclude_fields, include_fields, replace)
     return upload_operations(ops, dry_run, record_type)
+
+
+# ---------------------------------------------------------------------------
+# Delete logic (誤データ是正用)
+# ---------------------------------------------------------------------------
+
+def delete_records(pairs: list[tuple[str, str]], dry_run: bool) -> tuple[int, int]:
+    """(recordType, recordName) のリストを CloudKit から物理削除する。
+
+    物理削除は差分同期 (modifiedAt > lastSync) では既存クライアントに伝わらないが、
+    - 日次 cron の export_cloudkit.py に誤レコードが再流入しなくなる
+    - クライアントはフル同期完走時の CloudKitSyncEngine の deleteOrphans が掃除する
+    - マスタテーブルは bundle data_version bump の reseed でも上書きされる
+    の 3 経路で収束する。soft delete (deletedAt) は export が生存扱いで再取込して
+    しまうため、マスタ誤データの是正には物理削除を使う。
+    """
+    known_types = set(RECORD_TYPE_MAP.values())
+    unknown = sorted({t for t, _ in pairs if t not in known_types})
+    if unknown:
+        raise SystemExit(f"Error: unknown record type(s) in delete file: {', '.join(unknown)}")
+    ops = [
+        {
+            "operationType": "forceDelete",
+            "record": {"recordType": rtype, "recordName": rname},
+        }
+        for rtype, rname in pairs
+    ]
+    return upload_operations(ops, dry_run, "delete")
+
+
+def parse_delete_file(path: Path) -> list[tuple[str, str]]:
+    """'RecordType<TAB>recordName' 形式の TSV を読む (空行・#コメント行は無視)。"""
+    pairs = []
+    for i, line in enumerate(path.read_text().splitlines(), 1):
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        parts = line.split("\t")
+        if len(parts) != 2 or not parts[0] or not parts[1]:
+            raise SystemExit(f"Error: {path}:{i} は 'RecordType<TAB>recordName' 形式ではない: {line!r}")
+        pairs.append((parts[0], parts[1]))
+    return pairs
 
 
 # ---------------------------------------------------------------------------
@@ -381,27 +220,12 @@ def seed_table(
 # ---------------------------------------------------------------------------
 
 def cloudkit_count(record_type: str) -> int:
-    """Query CloudKit for all records of a type and return count."""
-    url = BASE_URL + QUERY_PATH
-    payload = {
-        "query": {"recordType": record_type},
-        "resultsLimit": 1,
-        "desiredKeys": [],  # fetch no fields, just count
-    }
-    # CloudKit doesn't have a COUNT endpoint; use resultsLimit+cursor pagination
-    # For verification we do a real count by paginating.
-    count = 0
-    cursor = None
-    while True:
-        if cursor:
-            payload["continuationMarker"] = cursor
-        result = get_json(url, payload)
-        records = result.get("records", [])
-        count += len(records)
-        cursor = result.get("moreComing") and result.get("continuationMarker")
-        if not cursor:
-            break
-    return count
+    """CloudKit にある record type の件数 (soft delete 済みは数えない = export と同じ)。
+
+    CloudKit には件数を返す口が無いので、query_all と同じ条件 (modifiedAt > 0) で
+    全ページをめくって数える。フィルタも並びも無い query は CloudKit が受け付けない。
+    """
+    return _ck.count_live(BASE_URL + QUERY_PATH, record_type, post=get_json)
 
 
 def verify(conn: sqlite3.Connection) -> None:
@@ -503,6 +327,24 @@ def main() -> None:
         type=Path,
         help="1 行 1 song id のファイル (--ids と同義)",
     )
+    parser.add_argument(
+        "--replace",
+        action="store_true",
+        help="forceReplace で送る (ローカルで NULL に直した列を CloudKit からも消す)。"
+             "--ids/--ids-file で絞った対象にだけ使える。",
+    )
+    parser.add_argument(
+        "--delete-file",
+        type=Path,
+        help="削除モード: 'RecordType<TAB>recordName' 形式の TSV を読み、該当レコードを "
+             "CloudKit から物理削除 (forceDelete)。誤データ是正用。他のシード処理は行わない。"
+             "クライアント側はフル同期完走時の deleteOrphans が掃除する前提。",
+    )
+    parser.add_argument(
+        "--yes",
+        action="store_true",
+        help="--delete-file の実削除を確認なしで実行 (指定が無ければ dry-run 以外は中断)",
+    )
     args = parser.parse_args()
 
     song_ids: list[str] = []
@@ -528,6 +370,24 @@ def main() -> None:
             print(f"Error: key file not found at {key_file}", file=sys.stderr)
             sys.exit(1)
         init_session(args.key_id, key_file)
+
+    # 削除モード: シードは行わず、TSV のレコードを物理削除して終了する。
+    if args.delete_file:
+        pairs = parse_delete_file(args.delete_file)
+        print(f"=== CloudKit Record Deletion [{'DRY-RUN' if args.dry_run else 'LIVE'}] ===")
+        print(f"Container: {CONTAINER} / {env} / public")
+        print(f"Targets  : {len(pairs)} records from {args.delete_file}")
+        by_type: dict[str, int] = {}
+        for rtype, _ in pairs:
+            by_type[rtype] = by_type.get(rtype, 0) + 1
+        for rtype, n in sorted(by_type.items()):
+            print(f"  {rtype:<20} {n}")
+        if not args.dry_run and not args.yes:
+            print("Error: 実削除には --yes が必要 (安全ガード)。まず --dry-run で内容確認を。", file=sys.stderr)
+            sys.exit(1)
+        succeeded, errors = delete_records(pairs, args.dry_run)
+        print(f"\nDone. {succeeded} deleted / {errors} errors")
+        sys.exit(1 if errors else 0)
 
     db_path = Path(args.db)
     if not db_path.exists():
@@ -560,6 +420,14 @@ def main() -> None:
         print(f"Exclude : {sorted(exclude_fields)}")
     if include_fields:
         print(f"Include : {sorted(include_fields)} (+ modifiedAt)")
+    if args.replace:
+        if not song_ids:
+            print("Error: --replace は --ids / --ids-file で対象を絞ったときだけ使える。", file=sys.stderr)
+            sys.exit(1)
+        # 途中のテーブルで止まると、その前のテーブルだけ送られた状態になる。先に全部確かめる。
+        for table in tables_to_process:
+            assert_replace_safe(conn, table, exclude_fields, include_fields)
+        print("Mode    : forceReplace")
     print()
 
     total_succeeded = 0
@@ -572,7 +440,7 @@ def main() -> None:
         print(f"[{table}] → {record_type} ({row_count} rows)")
         try:
             succeeded, errors = seed_table(
-                conn, table, args.dry_run, exclude_fields, include_fields, song_ids
+                conn, table, args.dry_run, exclude_fields, include_fields, song_ids, replace=args.replace
             )
             total_succeeded += succeeded
             total_errors += errors
@@ -599,6 +467,10 @@ def main() -> None:
             print("(--verify skipped: no auth configured)", file=sys.stderr)
 
     conn.close()
+    # レコード単位のエラーが 1 件でもあれば失敗として終わる (一部だけ送れた push を
+    # 「成功」として先へ進めない)。
+    if total_errors:
+        sys.exit(1)
 
 
 if __name__ == "__main__":

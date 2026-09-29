@@ -1,0 +1,578 @@
+/* =============================================================================
+ * base.css — リセット / 版面 / ヘッダ・フッタ / ユーティリティ
+ * 色は必ず tokens.css の変数を通す (hex 直書き禁止)。
+ * ========================================================================== */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+body {
+  margin: 0;
+  /* 詳細ページの帯 (.detail-band) が 100vw で伸びるぶん、縦スクロールバーの幅だけ横にはみ出す。 */
+  overflow-x: clip;
+  background: var(--ds-bg);
+  color: var(--ds-ink);
+  font-family: var(--font-body);
+  font-size: var(--fs-callout);
+  line-height: var(--lh-body);
+  -webkit-font-smoothing: antialiased;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  line-break: strict;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-heading);
+  margin: 0;
+  line-height: var(--lh-tight);
+  font-weight: var(--fw-heading);
+  letter-spacing: 0.005em;
+}
+
+p {
+  margin: 0;
+}
+
+ul,
+ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+dl,
+dd {
+  margin: 0;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* リンクの中の見出しに、あるいはリンクそのものに付ける。 */
+a:hover .u-underline-hover,
+a.u-underline-hover:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* --- details の見出し ----------------------------------------------------
+   開閉の印 (.chevron) は各部品が自前で置くので、既定の三角は出さない。 */
+summary {
+  list-style: none;
+  cursor: pointer;
+}
+summary::-webkit-details-marker {
+  display: none;
+}
+
+/* フォーカスリングは **テーマ色を使わない**。エンティティ色は 400 通りあり、
+   ml (#ffc30b) や学マス (#f39800) のような暖色だと accent 対背景が 1.5〜2.1:1 しか
+   なく、キーボード操作中の現在位置が見えなくなる。ニュートラルの ink で描き、
+   背景色の外縁を重ねて、どんな面の上でも輪郭が立つようにする。 */
+/* フォーカスリングはここ 1 つ。輪郭を自前で描けない器 (検索欄は input でなく枠に、
+   隠したラジオは label に) もここに並べる。 */
+:focus-visible,
+.search-box__field:focus-within,
+.search-box__modes label:has(input:focus-visible) {
+  outline: 2px solid var(--ds-ink);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px var(--ds-bg);
+  border-radius: var(--r-xs);
+}
+
+/* UA の `[hidden]{display:none}` は作者スタイル (.empty{display:flex} 等) に負けるので、
+   ここで明示的に勝たせる。JS が hidden を付ける要素が消えなくなる事故を防ぐ。 */
+[hidden] {
+  display: none !important;
+}
+
+hr {
+  border: 0;
+  border-top: 1px solid var(--ds-sep);
+  margin: var(--sp6) 0;
+}
+
+/* --- スキップリンク ------------------------------------------------------- */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
+  padding: var(--sp3) var(--sp5);
+  background: var(--ds-surface);
+  color: var(--ds-ink);
+  border-radius: 0 0 var(--r-sm) 0;
+  box-shadow: var(--ds-shadow1);
+}
+.skip-link:focus {
+  left: 0;
+}
+
+/* --- 版面 ----------------------------------------------------------------
+   上部バー + 本文 + フッタの 1 列。サイドバーは持たない (一覧が 7 本のナビに
+   常時 208px を割くより、表や 2 段組に幅を回した方が本文が読める)。 */
+.shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+.shell__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.shell__body > .main {
+  flex: 1;
+}
+
+.page {
+  width: 100%;
+  max-width: var(--page-max);
+  margin-inline: auto;
+  padding-inline: var(--sp5);
+}
+.page--wide {
+  max-width: var(--page-wide);
+}
+@media (min-width: 44rem) {
+  .page {
+    padding-inline: var(--sp7);
+  }
+}
+
+.main {
+  --main-pad-top: var(--sp6);
+  padding-block: var(--main-pad-top) var(--sp9);
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+@media (min-width: 44rem) {
+  .main {
+    --main-pad-top: var(--sp8);
+    padding-block: var(--main-pad-top) 80px;
+    gap: 64px;
+  }
+}
+
+/* --- サイトナビ (上部バー) -------------------------------------------------
+   広い画面: ロゴ / 一覧 (8 項目) / 検索欄 の 1 段。狭い画面: ロゴと虫眼鏡だけ
+   (一覧は下のタブバー)。検索は入力欄の形をした **リンク** (/search/ で本物の入力欄が待つ)。
+   どのページからでも「ここに打てば探せる」と見えることが大事。 */
+.site-nav {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  border-bottom: 1px solid var(--ds-line);
+  background: color-mix(in srgb, var(--ds-bg) 90%, transparent);
+  backdrop-filter: saturate(160%) blur(16px);
+  -webkit-backdrop-filter: saturate(160%) blur(16px);
+}
+.site-nav__inner {
+  /* 本文 (.page) と同じ幅・同じ左端。ロゴと見出しの頭が縦に揃う。 */
+  max-width: var(--page-max);
+  margin-inline: auto;
+  padding-inline: var(--sp5);
+  min-height: var(--header-h);
+  display: flex;
+  align-items: center;
+  gap: var(--sp5) 28px;
+}
+@media (min-width: 44rem) {
+  .site-nav__inner {
+    padding-inline: var(--sp7);
+  }
+}
+.site-nav__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-heading);
+  font-weight: var(--fw-heading);
+  font-size: 1.1875rem;
+  white-space: nowrap;
+  flex: none;
+}
+.site-nav__mark {
+  width: 30px;
+  height: 30px;
+  flex: none;
+}
+.site-nav__links {
+  min-width: 0;
+  flex: none;
+}
+.site-nav__links ul {
+  display: flex;
+  gap: 2px;
+}
+.site-nav__links a {
+  display: block;
+  padding: 8px 12px;
+  border-radius: var(--r-pill);
+  font-size: var(--fs-subhead);
+  font-weight: 500;
+  color: var(--ds-ink);
+  white-space: nowrap;
+}
+.site-nav__links a:hover {
+  background: var(--ds-fill);
+}
+.site-nav__links a[aria-current="page"] {
+  background: var(--ds-sys);
+  color: var(--ds-on-sys);
+}
+.site-nav__search {
+  margin-inline-start: auto;
+  flex: 0 1 264px;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 var(--sp5);
+  border-radius: var(--r-pill);
+  border: 1px solid var(--ds-line);
+  background: var(--ds-surface);
+  color: var(--ds-ink2);
+  font-size: var(--fs-footnote);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.site-nav__search:hover {
+  color: var(--ds-ink);
+  border-color: var(--ds-ink3);
+}
+.site-nav__search[aria-current="page"] {
+  border: 1.5px solid var(--ds-ink);
+  color: var(--ds-ink);
+}
+.site-nav__search-glyph {
+  flex: none;
+  color: var(--ds-ink);
+}
+.site-nav__search-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 8 項目 + ロゴ + 検索欄が 1 段に入らない幅では、検索を虫眼鏡の丸に畳む。 */
+@media (max-width: 78rem) {
+  .site-nav__search {
+    flex: none;
+    inline-size: 44px;
+    padding: 0;
+    justify-content: center;
+  }
+  .site-nav__search-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+/* さらに狭いと一覧は下のタブバーへ。上はロゴと虫眼鏡だけ。 */
+@media (max-width: 62rem) {
+  :root {
+    --header-h: 56px;
+  }
+  .site-nav__links {
+    display: none;
+  }
+  .site-nav__brand {
+    font-size: 1.0625rem;
+  }
+  .site-nav__mark {
+    width: 28px;
+    height: 28px;
+  }
+  .site-nav__search {
+    border: 0;
+    background: transparent;
+  }
+}
+
+/* --- タブバー (狭い画面の下) ----------------------------------------------
+   アプリと同じ場所に同じ入口。メニューは details で開くシート (JS なし)。 */
+.tabbar {
+  display: none;
+}
+@media (max-width: 62rem) {
+  .tabbar {
+    display: block;
+    position: fixed;
+    inset-inline: 0;
+    inset-block-end: 0;
+    z-index: 30;
+    background: color-mix(in srgb, var(--ds-surface) 94%, transparent);
+    backdrop-filter: saturate(160%) blur(16px);
+    -webkit-backdrop-filter: saturate(160%) blur(16px);
+    border-top: 1px solid var(--ds-line);
+    padding-block-end: env(safe-area-inset-bottom);
+  }
+  /* 本文の末尾 (フッタ) がタブバーの下に隠れないように。 */
+  .shell {
+    padding-block-end: calc(64px + env(safe-area-inset-bottom));
+  }
+}
+.tabbar__tabs {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  max-inline-size: 36rem;
+  margin-inline: auto;
+}
+.tabbar__tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 4px 10px;
+  font-size: var(--fs-caption2);
+  font-weight: 700;
+  color: var(--ds-ink2);
+  white-space: nowrap;
+}
+.tabbar__tab[aria-current="page"],
+.tabbar__menu[open] > .tabbar__tab {
+  color: var(--ds-ink);
+}
+.tabbar__menu > summary {
+  list-style: none;
+}
+/* メニューのシート: タブバーの上に、下から生える。 */
+.tabbar__sheet {
+  position: fixed;
+  inset-inline: 0;
+  inset-block-end: calc(60px + env(safe-area-inset-bottom));
+  max-block-size: calc(100dvh - 140px);
+  overflow-y: auto;
+  padding: var(--sp3) var(--sp5) var(--sp5);
+  background: var(--ds-surface);
+  border-top: 1px solid var(--ds-line);
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+  box-shadow: 0 -12px 32px rgb(0 0 0 / 0.12);
+}
+.tabbar__sheet-list a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-block-size: 52px;
+  font-size: var(--fs-callout);
+  font-weight: 700;
+}
+.tabbar__sheet-list li + li {
+  border-top: 1px solid var(--ds-sep);
+}
+.tabbar__sheet-list a[aria-current="page"] {
+  color: var(--ds-ink);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+/* --- サイトフッタ ---------------------------------------------------------
+   紙面の奥付: 墨の帯。明暗どちらのテーマでも暗い地に明るい字。 */
+.site-footer {
+  background: var(--footer-bg);
+  color: var(--footer-ink2);
+  padding-block: 56px var(--sp8);
+  font-size: var(--fs-footnote);
+  line-height: var(--lh-relaxed);
+}
+.site-footer__top {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp8) var(--sp9);
+  align-items: flex-start;
+}
+.site-footer__brand {
+  flex: 1 1 22rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp4);
+}
+.site-footer__brand-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-heading);
+  font-weight: var(--fw-heading);
+  font-size: var(--fs-title3);
+  color: var(--footer-ink);
+}
+.site-footer__brand-name img {
+  width: 26px;
+  height: 26px;
+}
+.site-footer__notes {
+  max-inline-size: 36em;
+  font-size: var(--fs-caption);
+}
+.site-footer__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp3);
+  margin-top: var(--sp2);
+}
+.site-footer__cols {
+  flex: 1 1 26rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  gap: var(--sp6) var(--sp7);
+}
+.site-footer h2 {
+  font-family: var(--font-body);
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--footer-ink2);
+  margin-bottom: var(--sp2);
+}
+.site-footer li a {
+  display: inline-block;
+  padding-block: 3px;
+  color: var(--footer-ink);
+}
+.site-footer a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+/* 歌詞の許諾表示。マークは原本のまま、大きさだけ 60px (iOS と同じ 3x 原本を等比で)。
+   暗い帯の上でも原本の色で見えるよう、白い台紙に載せる。 */
+.site-footer__license {
+  display: flex;
+  align-items: center;
+  gap: var(--sp4);
+  margin-top: var(--sp8);
+  padding-top: var(--sp5);
+  border-top: 1px solid var(--footer-line);
+  font-size: var(--fs-caption);
+}
+.site-footer__license img {
+  flex: none;
+  inline-size: 60px;
+  block-size: 60px;
+  padding: 4px;
+  border-radius: var(--r-xs);
+  background: var(--footer-plate);
+}
+
+/* --- ユーティリティ ------------------------------------------------------- */
+.u-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+/* 細身の数字。和文の中で同じ大きさだと痩せて見えるので、ひと回り上げる。 */
+.u-num {
+  font-family: var(--font-display);
+  font-size: 1.1em;
+  letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+.u-clamp1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.u-clamp2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.u-muted {
+  color: var(--ds-ink2);
+}
+/* 弱い強調。**文字なので ink3 ではなく ink2** (ink3 は AA を満たさない)。 */
+.u-dim {
+  color: var(--ds-ink2);
+}
+.u-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp4);
+}
+.u-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp2);
+}
+
+/* --- 本文中のリンク ------------------------------------------------------
+   行そのものがリンクの場所 (行・チップ・タイル) は形で分かるが、文の中の 1 語は
+   下線が無いと地の文と見分けが付かない。 */
+.facts__value a,
+.lede a,
+.u-muted a {
+  text-decoration: underline;
+  text-decoration-color: var(--ds-ink3);
+  text-underline-offset: 3px;
+}
+/* 見出し (大きい字) のリンクは普段は線を引かない (表紙の題字が切れて見える)。触れたときだけ細く。 */
+.hero__title a:hover {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.14em;
+}
+.facts__value a:hover,
+.lede a:hover,
+.u-muted a:hover {
+  text-decoration-color: currentColor;
+}
+.facts__value a {
+  display: inline-block;
+  padding-block: 3px;
+}
+
+/* ページ内リンク (数の帯 → 節、披露履歴 → セトリの行、よみ目次 → 区画) の着地は、
+   吸着するヘッダの下に隠れない位置。飛び先は id を持つものすべて。 */
+[id] {
+  scroll-margin-top: calc(var(--header-h) + var(--sp4));
+}

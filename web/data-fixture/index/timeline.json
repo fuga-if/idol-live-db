@@ -1,0 +1,163 @@
+{
+  "schemaVersion": 1,
+  "path": "/timeline/",
+  "title": "年表",
+  "lede": "節目・ライブ・楽曲を 1 本の時間軸に並べました。点を押すとそのライブへ。",
+  "scope": {
+    "label": "ブランド",
+    "links": [
+      {
+        "label": "すべて",
+        "path": "/timeline/",
+        "current": true,
+        "themeKey": null,
+        "count": null
+      },
+      {
+        "label": "ミリオンライブ!",
+        "path": "/timeline/brand/ml/",
+        "current": false,
+        "themeKey": "brand:ml",
+        "count": null
+      }
+    ],
+    "islandKey": null
+  },
+  "chart": {
+    "width": 1100.0,
+    "height": 260.0,
+    "gutter": 76.0,
+    "rulerHeight": 26.0,
+    "years": [
+      {
+        "year": 2025,
+        "label": "2025",
+        "x": 76.0,
+        "width": 512.0,
+        "labelX": 332.0
+      },
+      {
+        "year": 2026,
+        "label": "2026",
+        "x": 588.0,
+        "width": 512.0,
+        "labelX": 844.0
+      }
+    ],
+    "lanes": [
+      {
+        "label": "節目",
+        "y": 26.0,
+        "height": 60.0,
+        "labelY": 48.0
+      },
+      {
+        "label": "ライブ",
+        "y": 86.0,
+        "height": 40.0,
+        "labelY": 111.0
+      },
+      {
+        "label": "楽曲",
+        "y": 126.0,
+        "height": 134.0,
+        "labelY": 148.0
+      }
+    ],
+    "milestones": [
+      {
+        "x": 600.0,
+        "y": 44.0,
+        "dateDisplay": "2026.1.10",
+        "label": "アニメ放映開始",
+        "themeKey": "brand:ml",
+        "textX": 608.0,
+        "flip": false,
+        "dateY": 48.0,
+        "labelY": 63.0
+      }
+    ],
+    "lives": [
+      {
+        "x": 900.0,
+        "y": 110.0,
+        "r": 5.5,
+        "path": "/events/ev_sample/",
+        "title": "サンプル (2026.9.26)",
+        "featured": true,
+        "themeKey": "brand:ml"
+      }
+    ],
+    "releases": [
+      {
+        "year": 2025,
+        "count": 12,
+        "x": 86.0,
+        "y": 138.0,
+        "width": 492.0,
+        "height": 96.0,
+        "labelX": 332.0,
+        "labelY": 247.0
+      }
+    ],
+    "todayX": 960.0
+  },
+  "legend": [
+    {
+      "label": "節目",
+      "note": "ゲーム・アニメの始まり。"
+    }
+  ],
+  "yearLivesTitle": "2026年のライブ",
+  "yearLives": [
+    {
+      "dateDisplay": "9.26",
+      "event": {
+        "kind": "event",
+        "id": "ev_sample",
+        "name": "THE IDOLM@STER MILLION LIVE! 10thLIVE TOUR Act-4 ROAD TO MEMORIES 幕張",
+        "sub": "2026",
+        "path": "/events/ev_sample/",
+        "themeKey": "brand:ml",
+        "artworkUrl": null
+      },
+      "chip": "周年ライブ"
+    }
+  ],
+  "yearMilestonesTitle": "2026年の節目",
+  "yearMilestones": [],
+  "seo": {
+    "title": "年表 | アイドルライブDB",
+    "description": "年表。",
+    "canonical": "https://idollivedb.fugaapp.site/timeline/",
+    "ogImage": "https://idollivedb.fugaapp.site/og/default.png",
+    "robots": "index,follow",
+    "jsonLd": {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebPage",
+          "name": "年表",
+          "url": "https://idollivedb.fugaapp.site/timeline/"
+        },
+        {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "item": "https://idollivedb.fugaapp.site/",
+              "name": "ホーム",
+              "position": 1
+            }
+          ]
+        }
+      ]
+    },
+    "breadcrumbs": [
+      {
+        "name": "ホーム",
+        "path": "/"
+      }
+    ]
+  }
+}

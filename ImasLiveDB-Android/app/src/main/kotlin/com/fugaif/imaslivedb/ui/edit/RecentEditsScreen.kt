@@ -63,6 +63,9 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.fugaif.imaslivedb.data.auth.shouldPromptLogin
+import com.fugaif.imaslivedb.data.auth.showEditAffordance
+import com.fugaif.imaslivedb.data.auth.startCommunityEdit
 import com.fugaif.imaslivedb.data.edit.EditApi
 import com.fugaif.imaslivedb.data.model.ShowWithEventName
 import com.fugaif.imaslivedb.di.AppModule
@@ -70,9 +73,7 @@ import com.fugaif.imaslivedb.ui.components.ImasEmptyState
 import com.fugaif.imaslivedb.ui.components.ImasSegmented
 import com.fugaif.imaslivedb.ui.theme.DS
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import uniffi.imas_core.relativeTimes
 
 /**
  * 「最近の編集」= コミュニティのオープン編集機能。iOS `RecentEditsView` の移植。
@@ -81,21 +82,29 @@ import java.util.Locale
  * 契約 (imas-live-api を実ソースで確認済み): マスタ (Song/Show/Idol/Event/Setlist系) の直接反映は
  * admin 限定。一般ユーザーがここから編集すると `POST /edit-requests` で GitHub issue 化され、
  * このフィードには載らない (CloudKit 未反映のため)。フィードに載るのは admin の直接編集と
- * コミュニティ投稿 (コーレス/参考動画。別画面) のみ。
+ * コミュニティ投稿 (参考動画。別画面) のみ。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RecentEditsScreen(onBack: () -> Unit, viewModel: RecentEditsViewModel = viewModel()) {
+fun RecentEditsScreen(onBack: (() -> Unit)?, viewModel: RecentEditsViewModel = viewModel()) {
     val state by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     val authService = remember { AppModule.from(context).authService }
     val authState by authService.state.collectAsState()
+    // 権限フラグは認証状態が変わった時だけコアへ問い合わせる。extension property は 1 回ごとに
+    // EditPermissionRules を RustBuffer へ詰め直して JNA を跨ぐので、FAB や本文の再コンポーズの
+    // たびに呼ぶと積み上がる (詳細は data/auth/EditPermission.kt のヘッダ)。
+    val canEditHere = remember(authState) { authState.showEditAffordance }
+    val needsLogin = remember(authState) { authState.shouldPromptLogin }
     val scope = rememberCoroutineScope()
     fun signIn() { scope.launch { authService.signIn(context) } }
 
     var tab by remember { mutableStateOf(0) }
     var showProposeSheet by remember { mutableStateOf(false) }
     var showShowPicker by remember { mutableStateOf(false) }
+    // 新規作成 (曲 / ライブ)。既存の修正は各詳細画面が入口なので、ここは create だけ持つ。
+    var showSongCreate by remember { mutableStateOf(false) }
+    var showEventCreate by remember { mutableStateOf(false) }
     var editingShow by remember { mutableStateOf<ShowWithEventName?>(null) }
     var historyEntry by remember { mutableStateOf<EditApi.EditFeedEntry?>(null) }
     var revertTarget by remember { mutableStateOf<EditApi.EditFeedEntry?>(null) }
@@ -108,7 +117,10 @@ fun RecentEditsScreen(onBack: () -> Unit, viewModel: RecentEditsViewModel = view
                 TopAppBar(
                     title = { Text(if (tab == 1) "自分の編集" else "最近の編集", fontWeight = FontWeight.Bold) },
                     navigationIcon = {
-                        IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "戻る") }
+                        // サイドバーの根として開いたときは戻る先が無いので出さない。
+                        onBack?.let { back ->
+                            IconButton(onClick = back) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "戻る") }
+                        }
                     }
                 )
                 ImasSegmented(
@@ -120,20 +132,21 @@ fun RecentEditsScreen(onBack: () -> Unit, viewModel: RecentEditsViewModel = view
             }
         },
         floatingActionButton = {
-            ExtendedFloatingActionButton(onClick = {
-                if (!authState.isSignedIn) {
-                    viewModel.requestLogin()
-                } else {
-                    showProposeSheet = true
+            // BAN 済みには「編集を提案」自体を出さない (押しても 403 になるだけ)。判定はコア。
+            if (canEditHere) {
+                ExtendedFloatingActionButton(onClick = {
+                    authState.startCommunityEdit(promptLogin = viewModel::requestLogin) {
+                        showProposeSheet = true
+                    }
+                }) {
+                    Icon(Icons.Filled.Add, contentDescription = null)
+                    Text("編集を提案", modifier = Modifier.padding(start = 6.dp))
                 }
-            }) {
-                Icon(Icons.Filled.Add, contentDescription = null)
-                Text("編集を提案", modifier = Modifier.padding(start = 6.dp))
             }
         }
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
-            if (tab == 1 && !authState.isSignedIn) {
+            if (tab == 1 && needsLogin) {
                 Column(Modifier.fillMaxSize().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Spacer(Modifier.height(40.dp))
                     ImasEmptyState(Icons.Filled.Person, "ログインが必要です", "自分の編集履歴を見るにはログインしてください。")
@@ -151,10 +164,15 @@ fun RecentEditsScreen(onBack: () -> Unit, viewModel: RecentEditsViewModel = view
                     )
                 }
             } else {
+                // 相対時刻の言い回しはコア。一覧ぶんを 1 回で引く (行ごとに呼ばない)。
+                val times = remember(state.entries) {
+                    relativeTimes(state.entries.map { it.createdAt }, System.currentTimeMillis())
+                }
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                     itemsIndexed(state.entries, key = { _, entry -> entry.batchId }) { index, entry ->
                         val (gooded, goodCount) = viewModel.goodState(entry)
                         EditFeedCard(
+                            timeText = times.getOrElse(index) { "" },
                             entry = entry,
                             gooded = gooded,
                             goodCount = goodCount,
@@ -206,8 +224,36 @@ fun RecentEditsScreen(onBack: () -> Unit, viewModel: RecentEditsViewModel = view
     if (showProposeSheet) {
         ProposeEditTypeSheet(
             onDismiss = { showProposeSheet = false },
-            onPickSetlist = { showProposeSheet = false; showShowPicker = true }
+            onPickSetlist = { showProposeSheet = false; showShowPicker = true },
+            onPickNewSong = { showProposeSheet = false; showSongCreate = true },
+            onPickNewEvent = { showProposeSheet = false; showEventCreate = true }
         )
+    }
+
+    // 編集フォームはフルスクリーン Dialog に載せる (セトリ編集と同じ出し方)。
+    // 中身は必ず Scaffold なので、システムバーに保存ボタンが潜り込むことはない。
+    if (showSongCreate) {
+        Dialog(
+            onDismissRequest = { showSongCreate = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            SongEditScreen(
+                onDismiss = { showSongCreate = false },
+                onSaved = { showSongCreate = false; viewModel.refresh() }
+            )
+        }
+    }
+
+    if (showEventCreate) {
+        Dialog(
+            onDismissRequest = { showEventCreate = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            EventEditScreen(
+                onDismiss = { showEventCreate = false },
+                onSaved = { showEventCreate = false; viewModel.refresh() }
+            )
+        }
     }
 
     if (showShowPicker) {
@@ -237,7 +283,11 @@ fun RecentEditsScreen(onBack: () -> Unit, viewModel: RecentEditsViewModel = view
 
     val currentHistoryEntry = historyEntry
     if (currentHistoryEntry != null) {
-        RecordHistorySheet(entry = currentHistoryEntry, onDismiss = { historyEntry = null })
+        RecordHistorySheet(
+            recordType = currentHistoryEntry.recordType,
+            recordName = currentHistoryEntry.recordName,
+            onDismiss = { historyEntry = null }
+        )
     }
 
     val currentRevertTarget = revertTarget
@@ -265,7 +315,12 @@ fun RecentEditsScreen(onBack: () -> Unit, viewModel: RecentEditsViewModel = view
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ProposeEditTypeSheet(onDismiss: () -> Unit, onPickSetlist: () -> Unit) {
+private fun ProposeEditTypeSheet(
+    onDismiss: () -> Unit,
+    onPickSetlist: () -> Unit,
+    onPickNewSong: () -> Unit,
+    onPickNewEvent: () -> Unit
+) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
@@ -273,24 +328,28 @@ private fun ProposeEditTypeSheet(onDismiss: () -> Unit, onPickSetlist: () -> Uni
                 "編集の種類を選択", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = DS.ink,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)
             )
-            Row(
-                modifier = Modifier.fillMaxWidth()
-                    .clickable(onClick = onPickSetlist)
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Box(
-                    modifier = Modifier.height(40.dp).background(DS.fill, CircleShape).padding(horizontal = 10.dp),
-                    contentAlignment = Alignment.Center
-                ) { Icon(Icons.Filled.QueueMusic, contentDescription = null, tint = DS.ink2) }
-                Column {
-                    Text("セトリを編集", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink)
-                    Text("公演の楽曲・出演者の追加/修正/削除", fontSize = 12.sp, color = DS.ink2)
-                }
-            }
+            ProposeEditTypeRow(
+                icon = Icons.Filled.QueueMusic,
+                title = "セトリを編集",
+                subtitle = "公演の楽曲・出演者の追加/修正/削除",
+                onClick = onPickSetlist
+            )
+            ProposeEditTypeRow(
+                icon = Icons.Filled.MusicNote,
+                title = "曲を追加",
+                subtitle = "まだ登録されていない楽曲を作る",
+                onClick = onPickNewSong
+            )
+            ProposeEditTypeRow(
+                icon = Icons.Filled.Event,
+                title = "ライブを追加",
+                subtitle = "まだ登録されていないライブ・イベントを作る",
+                onClick = onPickNewEvent
+            )
+            // 既存レコードの修正はそれぞれの詳細画面が入口 (どれを直すのか選ばせる画面を
+            // ここに二重で作らない)。公演の追加も親ライブが決まっていないと作れない。
             Text(
-                "他の編集タイプ (曲情報・アイドル情報・イベント/公演情報) は今後追加予定です。",
+                "既存の楽曲・アイドル・ライブの修正、公演の追加は、それぞれの詳細画面から行えます。",
                 fontSize = 11.sp, color = DS.ink3,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
             )
@@ -298,18 +357,50 @@ private fun ProposeEditTypeSheet(onDismiss: () -> Unit, onPickSetlist: () -> Uni
     }
 }
 
+@Composable
+private fun ProposeEditTypeRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Box(
+            modifier = Modifier.height(40.dp).background(DS.fill, CircleShape).padding(horizontal = 10.dp),
+            contentAlignment = Alignment.Center
+        ) { Icon(icon, contentDescription = null, tint = DS.ink2) }
+        Column {
+            Text(title, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink)
+            Text(subtitle, fontSize = 12.sp, color = DS.ink2)
+        }
+    }
+}
+
+/**
+ * 1 レコードの変更履歴 (`GET /master/:recordType/:recordName/history`)。
+ *
+ * このフィードの行からだけでなく、曲/ライブ/公演/アイドルの各詳細の「編集履歴」からも開く。
+ * 呼び出し側が持っているのは編集対象そのもの (id と型) なので、フィード行ではなく
+ * recordType / recordName を受け取る形にしてある。
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun RecordHistorySheet(entry: EditApi.EditFeedEntry, onDismiss: () -> Unit) {
+fun RecordHistorySheet(recordType: String, recordName: String, onDismiss: () -> Unit) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val context = LocalContext.current
     var history by remember { mutableStateOf<List<EditApi.RecordHistoryEntry>?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
 
-    LaunchedEffect(entry.recordType, entry.recordName) {
+    LaunchedEffect(recordType, recordName) {
         val editApi = AppModule.from(context).editApi
         try {
-            history = editApi.recordHistory(entry.recordType, entry.recordName)
+            history = editApi.recordHistory(recordType, recordName)
         } catch (e: Exception) {
             error = "変更履歴の取得に失敗しました"
         }
@@ -319,7 +410,7 @@ private fun RecordHistorySheet(entry: EditApi.EditFeedEntry, onDismiss: () -> Un
         Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
             Text("変更履歴", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = DS.ink)
             Text(
-                EditFeedFormat.recordTypeLabel(entry.recordType),
+                EditFeedFormat.recordTypeLabel(recordType),
                 fontSize = 12.sp, color = DS.ink2, modifier = Modifier.padding(bottom = 8.dp)
             )
             when {
@@ -329,12 +420,14 @@ private fun RecordHistorySheet(entry: EditApi.EditFeedEntry, onDismiss: () -> Un
                 }
                 history!!.isEmpty() -> Text("履歴がありません", fontSize = 13.sp, color = DS.ink2, modifier = Modifier.padding(16.dp))
                 else -> {
-                    history!!.forEach { h ->
+                    // 相対時刻の言い回しはコア。一覧ぶんを 1 回で引き、一覧が変わるまで使い回す。
+                    val times = remember(history) { relativeTimes(history!!.map { it.createdAt }, System.currentTimeMillis()) }
+                    history!!.forEachIndexed { i, h ->
                         Column(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 val (label, color) = EditFeedFormat.opDesign(h.op)
                                 Text(label, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = color)
-                                Text(EditFeedFormat.relativeTime(h.createdAt), fontSize = 11.sp, color = DS.ink3)
+                                Text(times[i], fontSize = 11.sp, color = DS.ink3)
                                 if (h.reverted) Text("(差戻し済み)", fontSize = 11.sp, color = DS.ink3)
                             }
                             if (h.changedFields.isNotEmpty()) {
@@ -352,6 +445,7 @@ private fun RecordHistorySheet(entry: EditApi.EditFeedEntry, onDismiss: () -> Un
 
 @Composable
 private fun EditFeedCard(
+    timeText: String,
     entry: EditApi.EditFeedEntry,
     gooded: Boolean,
     goodCount: Int,
@@ -391,7 +485,7 @@ private fun EditFeedCard(
                         )
                     }
                     Spacer(Modifier.weight(1f))
-                    Text(EditFeedFormat.relativeTime(entry.createdAt), fontSize = 11.sp, color = DS.ink2)
+                    Text(timeText, fontSize = 11.sp, color = DS.ink2)
                 }
                 Text(
                     recordTitle ?: EditFeedFormat.recordTypeLabel(entry.recordType),
@@ -506,6 +600,8 @@ private object EditFeedFormat {
         "SetlistPerformer" -> "セトリ出演者"
         "SongArtist" -> "楽曲アーティスト"
         "ShowCast" -> "出演キャスト"
+        // 2026-09-06 に廃止した投稿型。過去の履歴だけが残る。
+        "SongCall" -> "コーレス (終了)"
         else -> type
     }
 
@@ -516,17 +612,5 @@ private object EditFeedFormat {
         "revert" -> "差戻し" to DS.warning
         "snapshot" -> "セトリ更新" to Color(0xFF2FB8A8)
         else -> op to DS.ink3
-    }
-
-    fun relativeTime(epochMs: Long): String {
-        val now = System.currentTimeMillis()
-        val diffSec = (now - epochMs) / 1000
-        return when {
-            diffSec < 60 -> "今"
-            diffSec < 3600 -> "${diffSec / 60}分前"
-            diffSec < 86_400 -> "${diffSec / 3600}時間前"
-            diffSec < 86_400 * 30 -> "${diffSec / 86_400}日前"
-            else -> SimpleDateFormat("yyyy/MM/dd", Locale.JAPAN).format(Date(epochMs))
-        }
     }
 }

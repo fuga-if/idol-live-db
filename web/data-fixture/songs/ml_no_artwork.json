@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "id": "ml_no_artwork",
+  "path": "/songs/ml_no_artwork/",
+  "title": "ジャケットの無い曲",
+  "titleKana": null,
+  "themeKey": "brand:ml",
+  "brand": {
+    "kind": "brand",
+    "id": "ml",
+    "name": "アイドルマスター ミリオンライブ!",
+    "sub": "ML",
+    "path": "/brands/ml/",
+    "themeKey": "brand:ml",
+    "artworkUrl": null
+  },
+  "jointBrands": [],
+  "collabLabel": null,
+  "kamisabiLabel": null,
+  "note": null,
+  "community": {
+    "tags": [
+      {
+        "id": "tag_kawaii",
+        "name": "かわいい",
+        "count": 12,
+        "themeKey": "tag:tag_kawaii",
+        "isOfficial": false,
+        "path": "/tags/tag_kawaii/"
+      }
+    ],
+    "favorites": 34,
+    "penlight": [
+      {
+        "key": "pink_white",
+        "count": 5
+      }
+    ]
+  },
+  "hasCommunity": true,
+  "lyrics": {
+    "available": false,
+    "statusLabel": "JASRAC 許諾待ち",
+    "note": "本サイトでの歌詞の掲載には JASRAC の許諾が別に必要なため、いまは見合わせています。歌詞はアプリ『アイドルライブDB』でご覧いただけます（アプリは JASRAC 許諾番号 J260943703 のもとで歌詞を配信しています）。",
+    "licenseNote": null,
+    "sourceUrl": null,
+    "readLabel": null,
+    "callGuide": null
+  },
+  "songTypeLabel": "カバー",
+  "releaseDate": null,
+  "credits": [],
+  "artworkUrl": null,
+  "appleMusicUrl": null,
+  "originalArtists": [],
+  "otherArtists": [],
+  "unit": null,
+  "unitLabel": null,
+  "parentNote": null,
+  "variants": [],
+  "performanceCount": 0,
+  "statTiles": [],
+  "performanceHistory": [],
+  "historyEmpty": {
+    "title": "ライブでの披露記録がありません",
+    "body": null
+  },
+  "frequentSingers": [],
+  "coOccurring": [],
+  "related": [],
+  "factRows": [],
+  "app": {
+    "title": "アプリ「アイドルライブDB」",
+    "appStoreUrl": "https://apps.apple.com/jp/app/id6763342297",
+    "deeplink": null,
+    "note": "参加記録・投票・歌詞・コール・タグ付けはアプリでご利用いただけます。"
+  },
+  "seo": {
+    "title": "ジャケットの無い曲 | アイドルライブDB",
+    "description": "クレジット・歌唱アイドル・披露履歴。",
+    "canonical": "https://idollivedb.fugaapp.site/songs/ml_no_artwork/",
+    "ogImage": "https://idollivedb.fugaapp.site/og/default.png",
+    "robots": "index,follow",
+    "jsonLd": {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebPage",
+          "name": "ジャケットの無い曲",
+          "url": "https://idollivedb.fugaapp.site/songs/ml_no_artwork/"
+        },
+        {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "item": "https://idollivedb.fugaapp.site/",
+              "name": "ホーム",
+              "position": 1
+            },
+            {
+              "@type": "ListItem",
+              "item": "https://idollivedb.fugaapp.site/songs/",
+              "name": "楽曲",
+              "position": 2
+            }
+          ]
+        }
+      ]
+    },
+    "breadcrumbs": [
+      {
+        "name": "ホーム",
+        "path": "/"
+      },
+      {
+        "name": "楽曲",
+        "path": "/songs/"
+      }
+    ]
+  }
+}

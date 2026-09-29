@@ -1,0 +1,37 @@
+---
+import type { StatTile } from "../lib/schema/StatTile";
+/**
+ * 数を横一列に並べる (ヒーロー直下・ライブやブランドの頭)。タイルより軽い。
+ * **どの数を何の順で出すかは Rust の `StatTile` が決める。** 記号 (`glyph`) は
+ * この密度では出さない (タイル版 `StatTiles` が出す)。
+ */
+interface Props {
+  items: readonly StatTile[];
+  label?: string;
+}
+const { items, label } = Astro.props;
+---
+
+{
+  items.length > 0 && (
+    <ul class="stat-strip" aria-label={label}>
+      {items.map((t) =>
+        t.href ? (
+          <li>
+            <a class="stat-strip__item" href={t.href}>
+              <span class="stat-strip__value u-num">{t.value}</span>
+              {t.label}
+            </a>
+          </li>
+        ) : (
+          <li>
+            <span class="stat-strip__item">
+              <span class="stat-strip__value u-num">{t.value}</span>
+              {t.label}
+            </span>
+          </li>
+        ),
+      )}
+    </ul>
+  )
+}

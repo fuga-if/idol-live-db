@@ -35,15 +35,19 @@ struct RecentEditsView: View {
     /// Good の楽観更新オーバーレイ。サーバ確定値が来るまで UI 即時反映する。
     /// editId -> 上書き済みの (gooded, count)。未操作の行はここに無く entry の値をそのまま使う。
     @State private var goodOverrides: [Int: (gooded: Bool, count: Int)] = [:]
+    /// Good/取消の連打防止ガード。処理中の entry.id を保持する。
+    @State private var goodInFlight: Set<Int> = []
 
     private let limit = 20
 
     var body: some View {
-        ScrollView {
+        let times = EditFeedFormat.relativeTimes(entries.map { ($0.id, $0.createdDate) })
+        return ScrollView {
             LazyVStack(spacing: 10) {
                 ForEach(entries) { entry in
                     EditFeedCard(
                         entry: entry,
+                        timeLabel: times[entry.id] ?? "",
                         gooded: isGooded(entry),
                         goodCount: goodCount(entry),
                         isOwn: entry.isOwnEdit,
@@ -60,23 +64,22 @@ struct RecentEditsView: View {
                 }
 
                 if isLoadingMore {
-                    ProgressView()
-                        .padding(.vertical, 12)
+                    ImasInlineLoading()
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            .padding(.horizontal, DS.sp5)
+            .padding(.vertical, DS.sp4)
         }
         .background(DS.bg)
         .navigationTitle(mineOnly ? "自分の編集" : "最近の編集")
         .overlay {
             if isLoading && entries.isEmpty {
                 ProgressView("読み込み中...")
-                    .padding(24)
+                    .padding(DS.sp7)
                     .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
             } else if entries.isEmpty && !isLoading {
-                EmptyStateCard(
-                    icon: "square.and.pencil",
+                ImasEmptyState(
+                    systemImage: "square.and.pencil",
                     title: "まだ編集がありません",
                     message: mineOnly
                         ? "ライブ・楽曲・セトリを編集すると、ここに履歴が残ります。"
@@ -139,17 +142,17 @@ struct RecentEditsView: View {
         }
     }
 
-    /// 対象レコードの可読タイトル + 該当ページ遷移先をローカル DB から解決する。
+    /// 対象レコードの可読タイトル + 該当ページ遷移先を解決する (タイトルと公演はまとめて 1 回)。
     private func resolveTitles(for items: [EditFeedEntry]) async {
-        let editFeed = AppContainer.shared.editFeedReading
-        for e in items where recordTitles[e.id] == nil {
-            if let t = try? await editFeed.editRecordTitle(recordType: e.recordType, recordName: e.recordName),
-               !t.isEmpty {
+        let pending = items.filter { recordTitles[$0.id] == nil || destinations[$0.id] == nil }
+        let targets = (try? await AppContainer.shared.editFeedReading.editRecordTargets(
+            pending.map { EditRecordKey(recordType: $0.recordType, recordName: $0.recordName) })) ?? [:]
+        for e in pending {
+            let target = targets[EditRecordKey(recordType: e.recordType, recordName: e.recordName)]
+            if recordTitles[e.id] == nil, let t = target?.title, !t.isEmpty {
                 recordTitles[e.id] = t
             }
-        }
-        for e in items where destinations[e.id] == nil {
-            if let dest = await resolveDestination(for: e) {
+            if destinations[e.id] == nil, let dest = await resolveDestination(for: e, showId: target?.showId) {
                 destinations[e.id] = dest
             }
         }
@@ -157,7 +160,7 @@ struct RecentEditsView: View {
 
     /// 編集レコード → 該当ページ (曲/アイドル/ライブ/セトリ) の遷移先を解決する。
     /// セトリ系 (Show/ShowSetlist/SetlistItem/SetlistPerformer) は該当公演のセトリへ。
-    private func resolveDestination(for entry: EditFeedEntry) async -> DetailDestination? {
+    private func resolveDestination(for entry: EditFeedEntry, showId: String?) async -> DetailDestination? {
         let songReading = AppContainer.shared.songReading
         let showReading = AppContainer.shared.showReading
         let editFeed = AppContainer.shared.editFeedReading
@@ -169,11 +172,10 @@ struct RecentEditsView: View {
         case "Event":
             if let event = try? await AppContainer.shared.eventReading.event(id: entry.recordName) { return .event(event) }
         case "Show", "ShowSetlist", "SetlistItem", "SetlistPerformer":
-            if let showId = (try? await editFeed.editRecordShowId(recordType: entry.recordType, recordName: entry.recordName)) ?? nil,
-               let show = try? await showReading.show(id: showId) {
+            if let showId, let show = try? await showReading.show(id: showId) {
                 return .show(show)
             }
-        case "SongVideo", "SongCall":
+        case "SongVideo":
             if let songId = (try? await editFeed.editRecordSongId(recordType: entry.recordType, recordName: entry.recordName)) ?? nil,
                let song = try? await songReading.song(id: songId) {
                 return .song(song)
@@ -205,22 +207,32 @@ struct RecentEditsView: View {
         guard hasMore, !isLoadingMore else { return }
         isLoadingMore = true
         defer { isLoadingMore = false }
-        let next = page + 1
+        var next = page
         do {
-            let result = try await EditFeedService.shared.fetchEdits(
-                page: next, limit: limit, brandId: brandId, mine: mineOnly
-            )
-            // 重複防止 (id 既出はスキップ)。
-            let existing = Set(entries.map(\.id))
-            let fresh = result.items.filter { !existing.contains($0.id) }
-            entries.append(contentsOf: fresh)
-            await resolveTitles(for: fresh)
-            page = next
-            hasMore = result.items.count >= limit
+            // 重複が多いページ (fresh が空) でも、まだ次ページがある限り自動的に
+            // 進める。entries が変化しないと末尾付近の onAppear が再発火せず
+            // 無限スクロールが詰まってしまうため、ここでループして次を取りに行く。
+            while true {
+                next += 1
+                let result = try await EditFeedService.shared.fetchEdits(
+                    page: next, limit: limit, brandId: brandId, mine: mineOnly
+                )
+                let existing = Set(entries.map(\.id))
+                let fresh = result.items.filter { !existing.contains($0.id) }
+                entries.append(contentsOf: fresh)
+                await resolveTitles(for: fresh)
+                page = next
+                // 生の受信件数が limit 未満の時だけ「もう次が無い」と判定する
+                // (重複除去後の件数で判定すると、全件重複ページで誤って
+                // hasMore=false になってしまう)。
+                hasMore = result.items.count >= limit
+                if !fresh.isEmpty || !hasMore { break }
+            }
         } catch {
-            // 追加読み込み失敗はサイレント (アラートで邪魔しない)。
+            // 一過性の通信エラーではページネーションを恒久停止させない。
+            // hasMore は変更せず、エラー表示のみに留めて再試行の余地を残す。
             Logger.community.error("edits_load_more_failed: \(error.localizedDescription)")
-            hasMore = false
+            errorMessage = errorText(error)
         }
     }
 
@@ -235,6 +247,11 @@ struct RecentEditsView: View {
         // 自分の編集には Good 不可 (自己賞賛防止)。UI 上もボタンは出ないが二重ガード。
         // 本人判定はサーバ算出の isOwnEdit を権威とする (契約 §1)。
         guard !entry.isOwnEdit else { return }
+        // 連打防止: 同一 entry の Good/取消が並行発火すると表示が一時的にサーバ状態と
+        // ずれるため、処理中はこの entry への操作を弾く。
+        guard !goodInFlight.contains(entry.id) else { return }
+        goodInFlight.insert(entry.id)
+        defer { goodInFlight.remove(entry.id) }
 
         let currentlyGooded = isGooded(entry)
         let currentCount = goodCount(entry)
@@ -273,6 +290,8 @@ struct RecentEditsView: View {
 
 private struct EditFeedCard: View {
     let entry: EditFeedEntry
+    /// 相対時刻 (一覧がまとめて作る)。
+    let timeLabel: String
     let gooded: Bool
     let goodCount: Int
     let isOwn: Bool
@@ -287,10 +306,10 @@ private struct EditFeedCard: View {
     let onToggleGood: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: DS.sp3) {
             // 上半分タップで該当ページ (該当ページが無いレコードは変更履歴) へ。
             Button(action: onOpen) {
-                HStack(alignment: .top, spacing: 12) {
+                HStack(alignment: .top, spacing: DS.sp4) {
                     EditRecordIcon(recordType: entry.recordType)
 
                     VStack(alignment: .leading, spacing: 6) {
@@ -301,8 +320,8 @@ private struct EditFeedCard: View {
                                 .lineLimit(1)
                             EditOpBadge(op: entry.op)
                             Spacer(minLength: 4)
-                            Text(EditFeedFormat.relativeTime(entry.createdDate))
-                                .font(.imasScaled(11))
+                            Text(timeLabel)
+                                .font(.imasCaption2)
                                 .foregroundStyle(DS.ink2)
                         }
 
@@ -314,7 +333,7 @@ private struct EditFeedCard: View {
                                 .fixedSize(horizontal: false, vertical: true)
                                 .multilineTextAlignment(.leading)
                             Image(systemName: "chevron.right")
-                                .font(.imasScaled(11).weight(.semibold))
+                                .font(.imasCaption2.weight(.semibold))
                                 .foregroundStyle(DS.ink3)
                         }
 
@@ -335,7 +354,7 @@ private struct EditFeedCard: View {
             goodRow
         }
         .padding(14)
-        .background(DS.surface, in: RoundedRectangle(cornerRadius: 14))
+        .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rMD))
     }
 
     @ViewBuilder
@@ -355,11 +374,11 @@ private struct EditFeedCard: View {
                         Text(goodCount > 0 ? "\(goodCount)" : "Good")
                             .font(.imasCaption.weight(.semibold))
                     }
-                    .foregroundStyle(gooded ? AnyShapeStyle(.pink) : AnyShapeStyle(DS.ink2))
-                    .padding(.horizontal, 12)
+                    .foregroundStyle(gooded ? AnyShapeStyle(DS.pick) : AnyShapeStyle(DS.ink2))
+                    .padding(.horizontal, DS.sp4)
                     .padding(.vertical, 6)
                     .background(
-                        (gooded ? Color.pink : Color.secondary).opacity(0.12),
+                        (gooded ? DS.pick : DS.ink3).opacity(0.12),
                         in: Capsule()
                     )
                 }
@@ -370,7 +389,7 @@ private struct EditFeedCard: View {
             if isOwn, goodCount > 0 {
                 Label("\(goodCount)", systemImage: "hands.clap.fill")
                     .font(.imasCaption)
-                    .foregroundStyle(.pink)
+                    .foregroundStyle(DS.pick)
             }
 
             Spacer(minLength: 4)
@@ -388,7 +407,7 @@ private struct EditFeedCard: View {
                 .buttonStyle(.plain)
             }
         }
-        .padding(.top, 2)
+        .padding(.top, DS.sp1)
     }
 }
 
@@ -411,9 +430,10 @@ struct EditHistoryTarget: Identifiable, Hashable {
 
 private struct EditRecordIcon: View {
     let recordType: String
+    @Environment(\.colorScheme) private var scheme
 
     var body: some View {
-        let design = EditFeedFormat.recordTypeDesign(recordType)
+        let design = EditFeedFormat.recordTypeDesign(recordType, scheme: scheme)
         Circle()
             .fill(design.color.opacity(0.15))
             .frame(width: 40, height: 40)
@@ -434,10 +454,10 @@ private struct EditOpBadge: View {
     var body: some View {
         let (label, color) = EditFeedFormat.opDesign(op)
         Text(label)
-            .font(.imasScaled(11).weight(.semibold))
+            .font(.imasCaption2.weight(.semibold))
             .foregroundStyle(color)
             .padding(.horizontal, 7)
-            .padding(.vertical, 2)
+            .padding(.vertical, DS.sp1)
             .background(color.opacity(0.15), in: Capsule())
     }
 }
@@ -447,18 +467,24 @@ private struct EditOpBadge: View {
 /// record_type / op の表示メタ + 相対時刻整形を 1 箇所に集約。
 /// (旧 SubmissionTypeInfo を撤去したため、フィード専用に最小マッピングを持つ。)
 enum EditFeedFormat {
-    static func recordTypeDesign(_ type: String) -> (icon: String, color: Color) {
+    /// アイコンは種別ごとの意味のある固定シンボル、色は分類キー(record_type)から
+    /// `ImasTheme.derive(categoryKey:)` で安定導出する (種別が増えても手書きパレット不要)。
+    static func recordTypeDesign(_ type: String, scheme: ColorScheme) -> (icon: String, color: Color) {
+        (recordTypeIcon(type), ImasTheme.derive(categoryKey: type, scheme: scheme).accent)
+    }
+
+    static func recordTypeIcon(_ type: String) -> String {
         switch type {
-        case "Event":            return ("calendar", .purple)
-        case "Show":             return ("music.mic", .indigo)
-        case "Song":             return ("music.note", .pink)
-        case "Idol":             return ("person.fill", .blue)
+        case "Event":            return "calendar"
+        case "Show":             return "music.mic"
+        case "Song":             return "music.note"
+        case "Idol":             return "person.fill"
         case "SetlistItem", "ShowSetlist":
-            return ("music.note.list", .teal)
-        case "SetlistPerformer": return ("person.2.fill", .teal)
-        case "SongArtist":       return ("music.quarternote.3", .green)
-        case "ShowCast":         return ("person.3.fill", .orange)
-        default:                 return ("doc.text", .gray)
+            return "music.note.list"
+        case "SetlistPerformer": return "person.2.fill"
+        case "SongArtist":       return "music.quarternote.3"
+        case "ShowCast":         return "person.3.fill"
+        default:                 return "doc.text"
         }
     }
 
@@ -473,27 +499,37 @@ enum EditFeedFormat {
         case "SetlistPerformer": return "セトリ出演者"
         case "SongArtist":       return "楽曲アーティスト"
         case "ShowCast":         return "出演キャスト"
+        // 2026-09-06 に廃止した投稿型。過去の履歴だけが残る。
+        case "SongCall":         return "コーレス (終了)"
         default:                 return type
         }
     }
 
     static func opDesign(_ op: String) -> (label: String, color: Color) {
         switch op {
-        case "create":            return ("追加", .green)
-        case "update", "replace": return ("更新", .blue)
-        case "delete":            return ("削除", .red)
-        case "revert":            return ("差戻し", .orange)
+        case "create":            return ("追加", DS.success)
+        case "update", "replace": return ("更新", DS.sys2)
+        case "delete":            return ("削除", DS.danger)
+        case "revert":            return ("差戻し", DS.warning)
         case "snapshot":          return ("セトリ更新", .teal)
-        default:                  return (op, .gray)
+        default:                  return (op, DS.ink3)
         }
     }
 
-    static func relativeTime(_ date: Date) -> String {
-        // RelativeDateTimeFormatter は non-Sendable のため static 共有を避け都度生成する
-        // (生成コストは軽微。呼び出しは UI 描画時のみ)。
-        let f = RelativeDateTimeFormatter()
-        f.locale = Locale(identifier: "ja_JP")
-        f.unitsStyle = .short
-        return f.localizedString(for: date, relativeTo: .now)
+    /// 「たった今」「N分前」「N時間前」「N日前」、1 か月以上前は JST の日付。言い回しはコアの
+    /// `relative_time` (Android と同じ)。
+    static func relativeTime(_ date: Date, now: Date = .now) -> String {
+        ImasLiveDB.relativeTime(epochMs: epochMillis(date), nowMs: epochMillis(now))
+    }
+
+    /// 一覧の相対時刻をまとめて 1 回で作る (`relative_times`。行ごとに FFI を呼ばない)。
+    static func relativeTimes<ID: Hashable>(_ items: [(id: ID, date: Date)], now: Date = .now) -> [ID: String] {
+        guard !items.isEmpty else { return [:] }
+        let labels = ImasLiveDB.relativeTimes(epochMs: items.map { epochMillis($0.date) }, nowMs: epochMillis(now))
+        return Dictionary(zip(items.map(\.id), labels), uniquingKeysWith: { first, _ in first })
+    }
+
+    private static func epochMillis(_ date: Date) -> Int64 {
+        Int64((date.timeIntervalSince1970 * 1000).rounded(.down))
     }
 }

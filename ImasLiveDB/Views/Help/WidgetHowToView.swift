@@ -43,7 +43,7 @@ struct WidgetHowToView: View {
 
                 tips
             }
-            .padding(16)
+            .padding(DS.sp5)
         }
         .scrollContentBackground(.hidden)
         .background(DS.bg)
@@ -68,11 +68,11 @@ struct WidgetHowToView: View {
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 8)
+        .padding(.vertical, DS.sp3)
     }
 
     private var tips: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: DS.sp3) {
             Label("画像を足した・消した時は、アプリを一度開くとウィジェットも更新されます。", systemImage: "arrow.triangle.2.circlepath")
             Label("ロック画面ウィジェットは仕様上フルカラー写真を出せません（ホーム画面向けの機能です）。", systemImage: "lock.iphone")
         }
@@ -98,7 +98,7 @@ struct WidgetHowToView: View {
             LinearGradient(colors: [pink.opacity(0.85), purple.opacity(0.85)],
                            startPoint: .topLeading, endPoint: .bottomTrailing)
             Image(systemName: "person.fill")
-                .font(.system(size: 52, weight: .regular))
+                .font(.imasScaled(52, weight: .regular))
                 .foregroundStyle(.white.opacity(0.9))
                 .offset(y: 6)
         }
@@ -109,7 +109,7 @@ struct WidgetHowToView: View {
             phoneFrame { imageFill }
                 .frame(width: 92, height: 92)
             Image(systemName: "plus.circle.fill")
-                .font(.system(size: 30))
+                .font(.imasScaled(30))
                 .symbolRenderingMode(.palette)
                 .foregroundStyle(.white, .green)
                 .offset(x: 6, y: 6)
@@ -118,7 +118,7 @@ struct WidgetHowToView: View {
 
     private var homeAddArt: some View {
         ZStack(alignment: .topLeading) {
-            LazyVGrid(columns: Array(repeating: GridItem(.fixed(34), spacing: 8), count: 3), spacing: 8) {
+            LazyVGrid(columns: Array(repeating: GridItem(.fixed(34), spacing: DS.sp3), count: 3), spacing: DS.sp3) {
                 ForEach(0..<6, id: \.self) { _ in
                     RoundedRectangle(cornerRadius: 9, style: .continuous)
                         .fill(DS.fill)
@@ -127,7 +127,7 @@ struct WidgetHowToView: View {
             }
             .frame(width: 122)
             Image(systemName: "plus.circle.fill")
-                .font(.system(size: 26))
+                .font(.imasScaled(26))
                 .symbolRenderingMode(.palette)
                 .foregroundStyle(.white, purple)
                 .offset(x: -10, y: -10)
@@ -142,7 +142,7 @@ struct WidgetHowToView: View {
                 Text("担当").font(.imasSubhead).foregroundStyle(DS.ink)
                 Spacer()
             }
-            .padding(.horizontal, 12).padding(.vertical, 8)
+            .padding(.horizontal, DS.sp4).padding(.vertical, DS.sp3)
             .background(DS.fill, in: Capsule())
             .frame(width: 150)
             phoneFrame { imageFill }.frame(width: 64, height: 64)
@@ -150,14 +150,14 @@ struct WidgetHowToView: View {
     }
 
     private var editArt: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: DS.sp4) {
             phoneFrame { imageFill }.frame(width: 70, height: 70)
             Image(systemName: "arrow.right").foregroundStyle(DS.ink3)
             HStack(spacing: 6) {
                 Image(systemName: "slider.horizontal.3")
                 Text("編集").font(.imasCaption.bold())
             }
-            .padding(.horizontal, 12).padding(.vertical, 8)
+            .padding(.horizontal, DS.sp4).padding(.vertical, DS.sp3)
             .background(DS.fill, in: Capsule())
         }
     }
@@ -166,7 +166,7 @@ struct WidgetHowToView: View {
         ZStack(alignment: .bottomTrailing) {
             phoneFrame { imageFill }.frame(width: 92, height: 92)
             Image(systemName: "hand.tap.fill")
-                .font(.system(size: 26))
+                .font(.imasScaled(26))
                 .foregroundStyle(.white)
                 .padding(7)
                 .background(.black.opacity(0.4), in: Circle())
@@ -174,7 +174,7 @@ struct WidgetHowToView: View {
         }
         .overlay(alignment: .topTrailing) {
             Image(systemName: "arrow.triangle.2.circlepath")
-                .font(.system(size: 20, weight: .bold))
+                .font(.imasScaled(20, weight: .bold))
                 .foregroundStyle(pink)
                 .offset(x: 10, y: -4)
         }
@@ -190,7 +190,7 @@ private struct StepCard<Art: View>: View {
     @ViewBuilder let art: () -> Art
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: DS.sp4) {
             HStack(spacing: 10) {
                 Text("\(number)")
                     .font(.imasDisplay(15, weight: .bold))
@@ -213,7 +213,7 @@ private struct StepCard<Art: View>: View {
                 .foregroundStyle(DS.ink2)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(16)
+        .padding(DS.sp5)
         .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rLG))
     }
 }

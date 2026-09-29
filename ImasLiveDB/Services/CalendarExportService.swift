@@ -52,7 +52,14 @@ final class CalendarExportService: Sendable {
         case .authorized, .writeOnly, .fullAccess:
             return true
         case .notDetermined:
-            return try await store.requestWriteOnlyAccessToEvents()
+            // 同上。非 Sendable な EKEventStore を await 越しに持ち回らない。
+            let store = self.store
+            return try await withCheckedThrowingContinuation { continuation in
+                store.requestWriteOnlyAccessToEvents { granted, error in
+                    if let error { continuation.resume(throwing: error) }
+                    else { continuation.resume(returning: granted) }
+                }
+            }
         case .denied, .restricted:
             return false
         @unknown default:
@@ -119,8 +126,9 @@ final class CalendarExportService: Sendable {
 
     // MARK: - Private helpers
 
+    /// 予定のタイトルは公演の正式な呼び名 (ライブ名と重なる部分は 2 度出さない)。組み方はコア。
     private func buildTitle(show: Show, event: Event) -> String {
-        show.name.isEmpty ? event.name : "\(event.name) \(show.name)"
+        showDisplayTitle(eventName: event.name, showName: show.name, date: show.date)
     }
 
     private func buildNotes(show: Show, event: Event) -> String {

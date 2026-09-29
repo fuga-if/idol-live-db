@@ -1,0 +1,80 @@
+---
+import DetailLayout from "../../layouts/DetailLayout.astro";
+import Section from "../../components/Section.astro";
+import Chip from "../../components/Chip.astro";
+import Facts from "../../components/Facts.astro";
+import ListContainer from "../../components/ListContainer.astro";
+import LabeledRow from "../../components/LabeledRow.astro";
+import ShowRow from "../../components/ShowRow.astro";
+import RefList from "../../components/RefList.astro";
+import EmptyState from "../../components/EmptyState.astro";
+import { page, pathsFor } from "../../lib/data";
+import type { VenuePage } from "../../lib/schema/VenuePage";
+
+export const getStaticPaths = () => pathsFor("venue", "venueId");
+
+const venue = page<VenuePage>(Astro.props.data);
+---
+
+<DetailLayout seo={venue.seo} themeKey={venue.themeKey} app={venue.app}>
+  <section class="hero" slot="hero" aria-labelledby="venue-title">
+    <div class="hero__body">
+      {venue.prefecture && <p class="hero__eyebrow">{venue.prefecture}</p>}
+      <h1 class="hero__title" id="venue-title">{venue.name}</h1>
+      {venue.nameKana && <p class="hero__kana">{venue.nameKana}</p>}
+      {/* 「基本情報」の行 (所在・収容人数・別名) はどれを出すかを Rust が決めている。 */}
+      <Facts rows={venue.factRows} />
+    </div>
+  </section>
+
+  {
+    venue.halls.length > 0 && (
+      <Section slot="aside" id="venue-halls" title="ホール">
+        {/* 収容人数が分かっているホールは 39 行中 6 行だけ。ラベル + 値の行にすると
+            26 会場中 21 会場で値の列が全部「—」になり、何も伝えない列ができる。
+            ホール名の一覧に、分かっているものだけ人数を添える形にする。 */}
+        <ul class="u-row" aria-label="ホール">
+          {venue.halls.map((h) => (
+            <li>
+              <Chip text={h.name} sub={h.capacityDisplay} />
+            </li>
+          ))}
+        </ul>
+      </Section>
+    )
+  }
+
+  {
+    venue.pastNames.length > 0 && (
+      <Section slot="aside" id="venue-names" title="旧称">
+        <ListContainer>
+          {venue.pastNames.map((n) => (
+            <LabeledRow label={n.name} value={n.periodDisplay ?? "—"} mono />
+          ))}
+        </ListContainer>
+      </Section>
+    )
+  }
+
+  {
+    venue.events.length > 0 && (
+      <Section slot="aside" id="venue-events" title="ここで行われたライブ" count={venue.events.length}>
+        <RefList refs={venue.events} variant="neutral" label="ここで行われたライブ" />
+      </Section>
+    )
+  }
+
+  <Section id="venue-shows" title="公演" count={venue.shows.length}>
+    {
+      venue.showsEmpty ? (
+        <EmptyState {...venue.showsEmpty} />
+      ) : (
+        <ListContainer as="ul">
+          {venue.shows.map((s) => (
+            <ShowRow show={s} />
+          ))}
+        </ListContainer>
+      )
+    }
+  </Section>
+</DetailLayout>

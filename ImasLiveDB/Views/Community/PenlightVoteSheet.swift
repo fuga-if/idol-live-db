@@ -29,10 +29,10 @@ struct PenlightVoteSheet: View {
 
                         if palette.isEmpty {
                             Section {
-                                ContentUnavailableView(
-                                    "カラーを取得できません",
+                                ImasEmptyState(
                                     systemImage: "exclamationmark.triangle",
-                                    description: Text("通信状況を確認して再度お試しください")
+                                    title: "カラーを取得できません",
+                                    message: "通信状況を確認して再度お試しください"
                                 )
                             }
                             .listRowBackground(DS.surface)
@@ -40,7 +40,7 @@ struct PenlightVoteSheet: View {
                         }
 
                         Section("カラーを選択") {
-                            LazyVGrid(columns: [GridItem(.adaptive(minimum: 80))], spacing: 12) {
+                            LazyVGrid(columns: [GridItem(.adaptive(minimum: 80))], spacing: DS.sp4) {
                                 ForEach(palette.filter { $0.colorHex != nil }) { entry in
                                     if let hex = entry.colorHex {
                                         PenlightColorChip(
@@ -57,7 +57,7 @@ struct PenlightVoteSheet: View {
                                     }
                                 }
                             }
-                            .padding(.vertical, 8)
+                            .padding(.vertical, DS.sp3)
                         }
                         .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                         .listRowBackground(DS.surface)
@@ -157,7 +157,7 @@ private struct PenlightColorChip: View {
             AppAnalytics.tap("penlight_vote.color_toggle")
             onTap()
         } label: {
-            VStack(spacing: 4) {
+            VStack(spacing: DS.sp2) {
                 ZStack(alignment: .topTrailing) {
                     RoundedRectangle(cornerRadius: 8)
                         .fill(Color(hexColor: hexColor))
@@ -165,16 +165,16 @@ private struct PenlightColorChip: View {
                         .overlay(
                             RoundedRectangle(cornerRadius: 8)
                                 .stroke(
-                                    isSelected ? Color.accentColor : Color.gray.opacity(0.3),
+                                    isSelected ? DS.sys : DS.sep,
                                     lineWidth: isSelected ? 3 : 1
                                 )
                         )
                     if entry.note != nil {
                         Image(systemName: "info.circle.fill")
-                            .font(.imasScaled(11))
+                            .font(.imasCaption2)
                             .foregroundStyle(.white.opacity(0.9))
                             .shadow(radius: 1)
-                            .padding(4)
+                            .padding(DS.sp2)
                             .onTapGesture { showNote.toggle() }
                     }
                     if isSelected {

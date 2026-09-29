@@ -1,0 +1,46 @@
+{
+ "title": "THE IDOLM@STER.KR の「Dream」「アイ MUST GO!」(Real Girls Project) を 765AS の曲から分けて追加",
+ "author": "fuga (project thread 2026-09-25)",
+ "source": ["https://itunes.apple.com/lookup?id=1224072559&country=jp", "https://itunes.apple.com/lookup?id=1277565456&country=jp"],
+ "note": "KR の曲は id が 765as_ で始まる (765as_one_for_all 等) ため、KR の「Dream」は AS の DREAM (765as_dream) に、KR の「アイ MUST GO!」(R.G.P のカバー) は 765as_アイ_must_go に重なり、Apple Music・ジャケット・試聴・収録 CD だけが KR 側になっていた。KR 側を other_kr_ で別の曲にする。Apple Music の値は各 track の lookup そのまま。KR「Dream」の作詞・作曲・編曲は一次ソースで確かめられなかったので空。AS 側は data/fixes/20260925_fix_songs_765as_split_kr.json で直す。",
+ "songs": [
+  {
+   "id": "other_kr_dream",
+   "title": "Dream",
+   "title_kana": "どりーむ",
+   "brand_id": "other",
+   "song_type": "unit",
+   "release_date": "2016-08-25",
+   "unit_id": "unit_real_girls_project",
+   "unit_name": "Real Girls Project",
+   "singer_label": "Real Girls Project（スジ、イェウン、ジスル、ミント、ハソ、ヨンジュ、ジェイン、ソリ、ユキカ、ジウォン）",
+   "series_group": "THE IDOLM@STER.KR MUSIC",
+   "cd_series": "THE IDOLM@STER.KR MUSIC Episode1 - EP",
+   "apple_music_id": "1224072559",
+   "apple_music_album_id": "1224072470",
+   "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/8c/23/36/8c23360c-f581-eb06-3346-0585fb1c6471/TypeA.jpg/600x600bb.jpg",
+   "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/cb/6b/0a/cb6b0a09-2dd9-5843-f974-68af9d4fb5be/mzaf_15954301912720755495.plus.aac.p.m4a"
+  },
+  {
+   "id": "other_kr_アイ_must_go",
+   "title": "アイ MUST GO！",
+   "title_kana": "あいますとごー",
+   "brand_id": "other",
+   "song_type": "cover",
+   "release_date": "2017-06-30",
+   "composer": "BNSI（中川浩二）・小林啓樹",
+   "lyricist": "mft（オノダヒロユキ）",
+   "arranger": "小林啓樹",
+   "parent_song_id": "765as_アイ_must_go",
+   "unit_id": "unit_real_girls_project",
+   "unit_name": "Real Girls Project",
+   "singer_label": "Real Girls Project",
+   "series_group": "THE IDOLM@STER.KR MUSIC",
+   "cd_series": "THE IDOLM@STER.KR MUSIC Episode3 - Single",
+   "apple_music_id": "1277565456",
+   "apple_music_album_id": "1277565454",
+   "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music118/v4/cd/16/13/cd161309-da84-146c-4242-bc9d9d6bbd1f/Episode3.jpg/600x600bb.jpg",
+   "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/8d/22/a6/8d22a646-0164-b9e4-2ccc-097acd0eb80c/mzaf_16099530433918110305.plus.aac.p.m4a"
+  }
+ ]
+}

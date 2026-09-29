@@ -1,6 +1,10 @@
 package com.fugaif.imaslivedb.ui.introdon
 
 import com.fugaif.imaslivedb.data.model.Song
+import kotlin.random.Random
+import uniffi.imas_core.IntroQuizSongRef
+import uniffi.imas_core.IntroSessionKind
+import uniffi.imas_core.introQuizChoicesBatch
 
 /**
  * イントロドンのゲームモード。iOS IntroGameMode の移植。
@@ -15,6 +19,14 @@ enum class IntroDonMode(val label: String, val icon: String) {
 
 /** 高速形式 (押すまで流す・選択肢常時・即次へ)。Rush と 全曲チャレンジ。 */
 val IntroDonMode.isFast: Boolean get() = this == IntroDonMode.RUSH || this == IntroDonMode.ALL_SONGS
+
+/** 1 ゲームの規則 (問題数など) をコアに問うときの種類。 */
+val IntroDonMode.sessionKind: IntroSessionKind
+    get() = when (this) {
+        IntroDonMode.RUSH -> IntroSessionKind.RUSH
+        IntroDonMode.ALL_SONGS -> IntroSessionKind.ALL_SONGS
+        IntroDonMode.NORMAL, IntroDonMode.PARTY -> IntroSessionKind.STANDARD
+    }
 
 data class IntroDonSettings(
     val mode: IntroDonMode = IntroDonMode.NORMAL,
@@ -42,26 +54,44 @@ data class IntroDonAnswerRecord(
 
 enum class IntroDonPhase { LOADING, PLAYING, ANSWERING, REVEALED, FINISHED }
 
-/** イントロドン出題に使える曲だけに絞る (preview_url あり・親曲でない)。リポジトリ側で既に絞っているが二重防御。 */
-fun introDonPlayable(songs: List<Song>): List<Song> =
-    songs.filter { !it.previewUrl.isNullOrEmpty() && it.parentSongId == null }
-
-private fun makeChoices(song: Song, pool: List<Song>): List<String> {
-    val wrongs = pool.filter { it.id != song.id && it.title != song.title }.shuffled().take(3).map { it.title }
-    return (wrongs + song.title).shuffled()
-}
+/**
+ * 出題曲それぞれの選択肢 (正解 1 + 不正解 [wrongCount]) をまとめて生成する。
+ * 戻り値は [answers] と同順・同数。候補が足りない設問はその分だけ少ない選択肢になる
+ * (正解は必ず含む)。
+ *
+ * 規則本体は imas-core (Rust) の `domain/intro_quiz_choices.rs` にあり、iOS の
+ * `IntroQuizChoices` と同じ実装を共有する。なぜタイトルでユニーク化するか (同名異曲対策)
+ * 等の設計意図もそちらに記載。ここが担うのは「シードの調達」と「[Song] → (id, title) 射影」
+ * だけ。出題ごとにループで FFI を呼ばないよう、1 ゲームぶんを 1 呼び出しで生成する
+ * (バッチのみを公開し、設問単位の呼び口は置かない)。
+ *
+ * @param random シード調達源。テストから固定乱数を差せるようにするための注入点。
+ */
+fun introDonChoicesAll(
+    answers: List<Song>,
+    pool: List<Song>,
+    wrongCount: Int = 3,
+    random: Random = Random.Default
+): List<List<String>> = introQuizChoicesBatch(
+    answers = answers.map { IntroQuizSongRef(id = it.id, title = it.title) },
+    pool = pool.map { IntroQuizSongRef(id = it.id, title = it.title) },
+    // 負の wrongCount は 0 (正解のみ) に丸める。境界の型合わせのみで判定はしない。
+    wrongCount = wrongCount.coerceAtLeast(0).toUInt(),
+    seed = random.nextLong().toULong(),
+)
 
 /** プール曲から出題数分をランダム抽出し、選択肢付きの出題リストを組む。 */
 fun buildIntroDonQuestions(pool: List<Song>, count: Int): List<IntroDonQuestion> {
     val picked = pool.shuffled().take(count)
-    return picked.map { song ->
+    // 選択肢は 1 ゲームぶんまとめて 1 回の FFI 呼び出しで生成する (出題ごとのループ呼び出しにしない)。
+    return picked.zip(introDonChoicesAll(picked, pool)).map { (song, choices) ->
         IntroDonQuestion(
             id = song.id,
             title = song.title,
             brandId = song.brandId,
             previewUrl = song.previewUrl,
             artworkUrl = song.artworkUrl,
-            choices = makeChoices(song, pool)
+            choices = choices
         )
     }
 }

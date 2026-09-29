@@ -1,0 +1,49 @@
+---
+import Artwork from "./Artwork.astro";
+import type { ShowForecast } from "../lib/schema/ShowForecast";
+/**
+ * セトリ予想 (開催前の公演)。順位も確率も理由の語も Rust (アプリと同じモデル) が決める。
+ * 行の形はランキングの行 (`rank-row`) と同じで、棒は確率そのもの (100 が端)。
+ */
+interface Props {
+  forecast: ShowForecast;
+}
+const { forecast } = Astro.props;
+---
+
+<div class="u-stack forecast">
+  <p class="u-muted forecast__lede">{forecast.lede}</p>
+  {forecast.notes.map((n) => <p class="forecast__note">{n}</p>)}
+  <ol class="card rank-list">
+    {
+      forecast.songs.map((row) => (
+        <li>
+          <a class:list={["rank-row", row.rank <= 3 && "rank-row--top"]} href={row.song.path} data-theme={row.song.themeKey}>
+            <span class="rank-row__rank u-num">{row.rank}</span>
+            <span class="rank-row__lead">
+              <Artwork title={row.song.name} artworkUrl={row.song.artworkUrl} size="sm" />
+            </span>
+            <span class="rank-row__name">
+              <span class="rank-row__title u-clamp1 u-underline-hover">{row.song.name}</span>
+              {row.song.sub && <span class="rank-row__sub u-clamp1">{row.song.sub}</span>}
+              {row.reasons.length > 0 && (
+                <span class="forecast__reasons">
+                  {row.reasons.map((r) => (
+                    <span class="forecast__reason">{r}</span>
+                  ))}
+                </span>
+              )}
+            </span>
+            <svg class="rank-row__bar" viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true">
+              <rect class="rank-row__track" width="100" height="10"></rect>
+              <rect class="rank-row__fill" width={row.percent} height="10"></rect>
+            </svg>
+            <span class="rank-row__value">
+              <b class="u-num">{row.percent}</b>%
+            </span>
+          </a>
+        </li>
+      ))
+    }
+  </ol>
+</div>

@@ -1,0 +1,38 @@
+{
+ "title": "読み仮名の裏取り中に見つかった、読み以外の誤りを直す",
+ "_help": "作家名・会場名の読みを 1 件ずつ裏取りしていて表面化した、値そのものの誤り。読みの訂正は別ファイル (creator_readings_verified*.json / venue_readings_verified_*.json)。",
+ "fixes": [
+  {
+   "table": "venues",
+   "id": "venue_曳船文化センター",
+   "fields": {
+    "name": "曳舟文化センター"
+   },
+   "note": "墨田区の施設。正しくは「曳舟」(船ではなく舟)。墨田区公式 https://www.city.sumida.lg.jp/sisetu_info/tamokuteki/hikibunec.html / 施設公式 https://www.hikifune-bunka.jp/access/ 。読み (ひきふねぶんかせんたー) は元から正しい。"
+  },
+  {
+   "table": "venue_names",
+   "id": "venue_曳船文化センター__曳船文化センター",
+   "fields": {
+    "name": "曳舟文化センター"
+   },
+   "note": "venues.name と同じ誤り。改名履歴ではなく現行名の行なので同じ値に揃える。"
+  },
+  {
+   "table": "shows",
+   "id": "sh_L0009",
+   "fields": {
+    "venue": "東京・曳舟文化センター"
+   },
+   "note": "venue_id が指す会場名の誤り (曳船→曳舟) が、公演の会場表記にも入っていた。"
+  },
+  {
+   "table": "songs",
+   "id": "cg_無重力シャトル",
+   "fields": {
+    "arranger": "玉屋2060%(Wienners)"
+   },
+   "note": "編曲欄の末尾に「／クレジットは作曲・編曲」という編集注記が混ざっていて、作家名を人ごとに割る処理が「クレジットは作曲」「編曲」という架空の作家 2 人を作っていた。日本コロムビアの公式ページ https://columbia.jp/idolmaster/COCC-17692.html は「作詞・作曲：北川悠仁　編曲：玉屋2060%（Wienners）」で、注記を外した値が公式どおり。"
+  }
+ ]
+}

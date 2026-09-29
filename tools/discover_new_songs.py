@@ -3,10 +3,10 @@
 master.sqlite に未登録の新曲を検出 → songs テーブルに追加するスキル支援スクリプト。
 
 Usage:
-    python3 Scripts/discover_new_songs.py --dry-run
-    python3 Scripts/discover_new_songs.py --apply
-    python3 Scripts/discover_new_songs.py --apply --brand sc
-    python3 Scripts/discover_new_songs.py --apply --since 2025-01-01
+    python3 tools/discover_new_songs.py --dry-run
+    python3 tools/discover_new_songs.py --apply
+    python3 tools/discover_new_songs.py --apply --brand sc
+    python3 tools/discover_new_songs.py --apply --since 2025-01-01
 
 挙動:
   - ブランド別に seed term (ユニット名等) で iTunes API を叩き、 配信曲を収集
@@ -23,15 +23,14 @@ Usage:
 """
 
 import argparse
-import json
 import re
 import sqlite3
 import sys
 import time
-import urllib.parse
-import urllib.request
 from pathlib import Path
 from typing import Optional
+
+from lib import itunes
 
 DB = Path(__file__).parent.parent / "ImasLiveDB/Resources/master.sqlite"
 
@@ -45,7 +44,8 @@ BRAND_SEEDS: dict[str, list[str]] = {
     "sidem":  ["アイドルマスター SideM", "SideM ST@RTING LINE", "DRAMATIC STARS"],
     "sc":     ["シャイニーカラーズ", "ストレイライト", "ノクチル", "アルストロメリア",
               "イルミネーションスターズ", "アンティーカ", "放課後クライマックスガールズ",
-              "SHHis", "コメティック"],
+              "SHHis", "コメティック", "No 1 feel alone", "彼岸流", "Fumage",
+              "Sonic Heart", "Σ Desire", "I'm a Cutie Finder"],
     "gakuen": ["学園アイドルマスター", "初星学園", "GAKUMAS"],
 }
 
@@ -61,7 +61,9 @@ BRAND_KEYWORDS = {
               "C.FIRST", "ピアレスガーベラ", "S.E.M", "THE 虎牙道"],
     "sc":     ["シャイニーカラーズ", "Shiny Colors", "283", "ストレイライト", "ノクチル",
               "アルストロメリア", "イルミネーションスターズ", "アンティーカ",
-              "放課後クライマックスガールズ", "SHHis", "コメティック", "ザ・ふたりトラベラー"],
+              "放課後クライマックスガールズ", "SHHis", "コメティック", "ザ・ふたりトラベラー",
+              "No 1 feel alone", "彼岸流", "Fumage", "Sonic Heart", "Desire",
+              "Cutie Finder"],
     "gakuen": ["学園アイドルマスター", "学マス", "GAKUMAS", "初星学園"],
 }
 
@@ -72,17 +74,9 @@ EXCLUDE_PATTERN = re.compile(
 
 
 def itunes_search(term: str, limit: int = 200) -> list:
-    url = "https://itunes.apple.com/search?" + urllib.parse.urlencode({
-        "term": term,
-        "entity": "song",
-        "country": "jp",
-        "limit": limit,
-    })
-    req = urllib.request.Request(url, headers={"User-Agent": "ImasLiveDB-discover/1.0"})
     try:
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            data = json.load(resp)
-            return data.get("results", [])
+        return itunes.results("search", itunes.song_search(term, limit),
+                              user_agent="ImasLiveDB-discover/1.0", timeout=15)
     except Exception as e:
         print(f"  ERROR: itunes lookup '{term}' failed: {e}", file=sys.stderr)
         return []
@@ -179,7 +173,7 @@ def main():
                     print(f"  SKIP (id conflict): {title}")
                     continue
             rel = normalize_release(r.get("releaseDate"))
-            art = (r.get("artworkUrl100") or "").replace("100x100bb", "600x600bb")
+            art = itunes.artwork_600(r)
             print(f"  + {song_id}: '{title}' ({rel}) -> {r.get('trackId')}")
             grand_total += 1
             if args.apply:

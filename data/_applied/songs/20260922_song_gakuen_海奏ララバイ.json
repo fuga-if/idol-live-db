@@ -1,0 +1,21 @@
+{
+ "title": "曲「海奏ララバイ」(gakuen) の追加",
+ "author": "LLM 提案 (propose_song)",
+ "source": "https://nex-tone.link/VmAguTa",
+ "note": "出典: https://nex-tone.link/VmAguTa\n引用: \"秦谷美鈴の新曲「海奏ララバイ」明日9月23日（水）よりサブスク配信、DL販売開始🎧 💿海奏ララバイ 作詞：nakotanmaru 作曲・編曲：PIKASONIC ▷nex-tone.link/VmAguTa\"\n学園アイドルマスター LIVE TOUR -標- 岩手公演 DAY1 (2026-09-22) のセットリスト画像で 8 曲目に秦谷美鈴 (CV 春咲暖) が歌唱。ライブ初披露が配信開始の前日にあたる。",
+ "songs": [
+  {
+   "id": "gakuen_海奏ララバイ",
+   "title": "海奏ララバイ",
+   "brand_id": "gakuen",
+   "song_type": "solo",
+   "release_date": "2026-09-23",
+   "composer": "PIKASONIC",
+   "lyricist": "nakotanmaru",
+   "arranger": "PIKASONIC",
+   "original_singers": [
+    "gakuen_秦谷美鈴"
+   ]
+  }
+ ]
+}

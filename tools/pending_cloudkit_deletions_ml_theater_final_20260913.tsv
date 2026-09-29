@@ -1,0 +1,26 @@
+# MILLION THE@TER SEASON FINAL の 3 曲に入っていた過剰な原唱者 (2026-09-13)。
+# カタログ LACA-25038 のトラック別クレジット (class="track-artist") は各曲 5 人:
+#   Supersonic Booster!  秋月律子 / 七尾百合子 / 北上麗花 / 島原エレナ / 馬場このみ
+#   オレンジ・エピソード      佐竹美奈子 / 北沢志保 / 天海春香 / 舞浜 歩 / 松田亜利沙
+#   Like twinkling STARS 篠宮可憐 / 双海真美 / 四条貴音 / エミリー スチュアート / 豊川風花
+# DB は ShineLight / EmotionLight / FantasticLight のチーム全員を入れた上に
+# 765AS のゲストを足していて 10〜12 人になっていた。各チームから 5 人ずつ選抜された曲。
+# master.sqlite / db/master.sql からは削除済み。CloudKit から消さないと日次 cron で復活する。
+SongArtist	song_artists-ml_supersonic_booster-ml_ジュリア-original
+SongArtist	song_artists-ml_supersonic_booster-ml_望月杏奈-original
+SongArtist	song_artists-ml_supersonic_booster-ml_木下ひなた-original
+SongArtist	song_artists-ml_supersonic_booster-ml_真壁瑞希-original
+SongArtist	song_artists-ml_supersonic_booster-ml_高坂海美-original
+SongArtist	song_artists-ml_オレンジエピソード-ml_天空橋朋花-original
+SongArtist	song_artists-ml_オレンジエピソード-ml_永吉昴-original
+SongArtist	song_artists-ml_オレンジエピソード-ml_白石紬-original
+SongArtist	song_artists-ml_オレンジエピソード-ml_矢吹可奈-original
+SongArtist	song_artists-ml_オレンジエピソード-ml_福田のり子-original
+SongArtist	song_artists-ml_オレンジエピソード-ml_高山紗代子-original
+SongArtist	song_artists-ml_like_twinkling_stars-ml_中谷育-original
+SongArtist	song_artists-ml_like_twinkling_stars-ml_所恵美-original
+SongArtist	song_artists-ml_like_twinkling_stars-ml_春日未来-original
+SongArtist	song_artists-ml_like_twinkling_stars-ml_最上静香-original
+SongArtist	song_artists-ml_like_twinkling_stars-ml_桜守歌織-original
+SongArtist	song_artists-ml_like_twinkling_stars-ml_百瀬莉緒-original
+SongArtist	song_artists-ml_like_twinkling_stars-ml_野々原茜-original

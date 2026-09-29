@@ -1,0 +1,102 @@
+{
+ "title": "曲名の読み仮名を裏取りして訂正する (第3陣)",
+ "_help": "数字や記号を語呂で読ませる題が中心 (283=ツバサ / 36℃ U･B･U=うぶ / ♡=ラブ / Get lol!=げろ)。素直に読んでいて全部外していた。",
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "cg_夢幻ノ救憐唱_堕チル星ノ調ベ",
+   "fields": {
+    "title_kana": "ゆめのきりえおちるほしのしらべ"
+   },
+   "note": "夢幻ノ救憐唱=ゆめのきりえ (当て字)。出典 https://dic.nicovideo.jp/a/%E5%A4%A2%E5%B9%BB%E3%83%8E%E6%95%91%E6%86%90%E5%94%B1"
+  },
+  {
+   "table": "songs",
+   "id": "sc_283体操",
+   "fields": {
+    "title_kana": "つばさたいそう"
+   },
+   "note": "283=ツバサ (シャニマスの事務所番号)。「にーはちさん」は誤り。出典 https://fujiwarahaji.me/music/sc/5075"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_幸燦燦と",
+   "fields": {
+    "title_kana": "さちさんさんと"
+   },
+   "note": "幸=さち。「こう」は誤り。出典 https://fujiwarahaji.me/music/sidem/8512"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_冠菊",
+   "fields": {
+    "title_kana": "かむろぎく"
+   },
+   "note": "冠菊=かむろぎく。「かんぎく」は誤り。出典 https://fujiwarahaji.me/music/gakuen/9504"
+  },
+  {
+   "table": "songs",
+   "id": "cg_happy_new_yeah",
+   "fields": {
+    "title_kana": "はっぴーにゅーいえー"
+   },
+   "note": "Yeah=イエー。Year ではない。出典 https://fujiwarahaji.me/music/cg/900"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_cupids",
+   "fields": {
+    "title_kana": "らぶきゅーぴっず"
+   },
+   "note": "冒頭の ♡ をラブと読む。出典 https://fujiwarahaji.me/music/sidem/8721"
+  },
+  {
+   "table": "songs",
+   "id": "ml_born_on_dream_hanabinight",
+   "fields": {
+    "title_kana": "ぼーんおんどりーむはなびないと"
+   },
+   "note": "副題が抜けていた。出典 https://fujiwarahaji.me/music/ml/2793"
+  },
+  {
+   "table": "songs",
+   "id": "ml_get_lol_get_lol_song",
+   "fields": {
+    "title_kana": "げろげろそんぐ"
+   },
+   "note": "Get lol! を「げろ」と読ませる語呂。出典 https://fujiwarahaji.me/music/ml/3085"
+  },
+  {
+   "table": "songs",
+   "id": "sc_パステルカラー_パスカラカラー",
+   "fields": {
+    "title_kana": "ぱすてるからーぱすからからー"
+   },
+   "note": "末尾の長音が抜けていた。出典 https://dic.nicovideo.jp/a/%E3%83%91%E3%82%B9%E3%83%86%E3%83%AB%E3%82%AB%E3%83%A9%E3%83%BC"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_yell_song",
+   "fields": {
+    "title_kana": "えーるそんぐ"
+   },
+   "note": "Yell=エール。「いぇる」は誤り。出典 https://fujiwarahaji.me/music/sidem/8564"
+  },
+  {
+   "table": "songs",
+   "id": "ml_iv",
+   "fields": {
+    "title_kana": "いゔ"
+   },
+   "note": "I.V.=イヴ。「あいぶい」は誤り。出典 https://fujiwarahaji.me/music/ml/10483"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_36c_ubu",
+   "fields": {
+    "title_kana": "さんじゅうろくどうぶ"
+   },
+   "note": "U･B･U=ウブ。「ゆーびーゆー」は誤り。出典 https://fujiwarahaji.me/music/gakuen/11401"
+  }
+ ]
+}

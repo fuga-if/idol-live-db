@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "kind": "idol",
+  "sep": "\u0001",
+  "pathPrefix": "/idols/",
+  "rows": [
+    {
+      "n": "春日未来",
+      "s": "ミリオンライブ!",
+      "k": "ml_kasuga_mirai",
+      "f": "春日未来\u0001かすがみらい"
+    },
+    {
+      "n": "最上静香",
+      "s": "ミリオンライブ!",
+      "k": "ml_mogami_shizuka",
+      "f": "最上静香\u0001もがみしずか"
+    }
+  ]
+}

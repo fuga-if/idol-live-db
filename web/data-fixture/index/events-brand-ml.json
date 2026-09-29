@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "path": "/events/brand/ml/",
+  "title": "ミリオンライブ! のライブ",
+  "kind": "brand",
+  "groups": [],
+  "recentPast": null,
+  "recentPastTitle": null,
+  "next": null,
+  "scope": {
+    "label": "今後 / 開催済み",
+    "links": [
+      {
+        "label": "今後のライブ",
+        "path": "/events/upcoming/",
+        "current": false,
+        "themeKey": null,
+        "count": 24
+      },
+      {
+        "label": "開催済み",
+        "path": "/events/past/",
+        "current": false,
+        "themeKey": null,
+        "count": 827
+      },
+      {
+        "label": "カレンダー",
+        "path": "/calendar/",
+        "current": false,
+        "themeKey": null,
+        "count": null
+      }
+    ],
+    "islandKey": null
+  },
+  "filters": [
+    {
+      "label": "ブランド",
+      "links": [
+        {
+          "label": "すべて",
+          "path": "/events/",
+          "current": false,
+          "themeKey": null,
+          "count": null
+        },
+        {
+          "label": "ミリオンライブ!",
+          "path": "/events/brand/ml/",
+          "current": true,
+          "themeKey": "brand:ml",
+          "count": 210
+        },
+        {
+          "label": "シンデレラガールズ",
+          "path": "/events/brand/cg/",
+          "current": false,
+          "themeKey": "brand:cg",
+          "count": 180
+        }
+      ],
+      "islandKey": null
+    }
+  ],
+  "total": 0,
+  "empty": {
+    "title": "該当するライブがありません",
+    "body": "別の年やブランドに切り替えるか、検索からお探しください。"
+  },
+  "seo": {
+    "title": "ミリオンライブ! のライブ | アイドルライブDB",
+    "description": "ライブの一覧。",
+    "canonical": "https://idollivedb.fugaapp.site/events/brand/ml/",
+    "ogImage": "https://idollivedb.fugaapp.site/og/default.png",
+    "robots": "index,follow",
+    "jsonLd": {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebPage",
+          "name": "ミリオンライブ! のライブ",
+          "url": "https://idollivedb.fugaapp.site/events/brand/ml/"
+        },
+        {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "item": "https://idollivedb.fugaapp.site/",
+              "name": "ホーム",
+              "position": 1
+            }
+          ]
+        }
+      ]
+    },
+    "breadcrumbs": [
+      {
+        "name": "ホーム",
+        "path": "/"
+      }
+    ]
+  }
+}

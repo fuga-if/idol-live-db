@@ -37,7 +37,7 @@ git show --stat HEAD             # 変更ファイル
 | `Views/Events/EventListView.swift` / `EventDetailView` / `SetlistView` | `ui/events/EventListScreen.kt` / `EventDetailScreen.kt` / `SetlistScreen.kt` |
 | `Views/Units/UnitDetailView.swift` | `ui/units/UnitDetailScreen.kt` |
 | 統計 | `ui/stats/StatsScreen.kt` (ImasStatBar/ImasRankingRow) |
-| 検索 / 設定 | `ui/search/SearchScreen.kt` / `ui/settings/SettingsScreen.kt` |
+| 検索 / 設定 | `ui/search/CrossTabSearch.kt` / `ui/settings/SettingsScreen.kt` |
 | ポール/予想 | `ui/polls/PollsScreen.kt` + `data/community/CommunityApi.kt` |
 | `Services/CloudKitSyncEngine.swift` / `CKRecordMapper.swift` | `data/sync/CloudKitSyncEngine.kt` / `SyncMappers.kt` / `CloudKitClient.kt` |
 | `Services/CommunityAPI.swift` | `data/community/CommunityApi.kt` |
@@ -51,15 +51,17 @@ git show --stat HEAD             # 変更ファイル
 - **色は必ず `ImasTheme.derive(seed=アイドル色, brand=ブランド色)` から**。`DS.ink/ink2/ink3/surface/fill/sep/pick/favorite` を直接。素の `Color`/`MaterialTheme.colorScheme.primary` は使わない。
 - **CloudKit フィールドは camelCase** (`brandId`), **Worker D1 の JSON は snake_case** (`vote_count`, `my_tag_ids`, `top_sets`)。マッパーで取り違えない。
 - **ViewModel は `_uiState.value` を直読みする関数を Composable から呼ばない** (Compose が依存追跡できず空表示になる)。**収集した `state` から純粋に算出**する。
-- スキーマ(`@Entity`/`@Database`)を変えたら **version を上げる**。`fallbackToDestructiveMigration` で DB が消えるが、`CloudKitSyncEngine` は **brandCount==0 なら強制フル同期**するので再投入される。
+- スキーマ(`@Entity`/`@Database`)を変えたら **version を上げて Room `Migration` を書く** (iOS の `DatabaseMigrations` と対)。破壊的再構築はしない: 担当/お気に入り等は端末にしか無く、消えると戻らないため。
 
 ## 3. CloudKit/スキーマを変えた場合 (新カラム等)
 
-iOS の `CKRecordMapper` にフィールドが増えたら Android も:
-1. `data/model/*.kt` の `@Entity` にカラム追加。
-2. `data/db/AppDatabase.kt` の `version` を +1。
-3. `SyncMappers.kt` のマッパーに `r.str("camelField")` 追加。
-4. (新テーブルなら) `SyncDao` に upsert、`CloudKitSyncEngine` の `steps` にステップ追加、`AppDatabase` の entities に登録。
+レコード ↔ 行の変換規則は iOS/Android 共通で、共有コア `imas-core/src/domain/ck_record_mapping.rs` にある (iOS の `CKRecordMapper` も Android の `SyncMappers.kt` もそれを呼ぶだけ)。フィールドを増やすときは:
+1. `ck_record_mapping.rs` に変換を足す (両 OS に効く)。
+2. Android の `data/model/*.kt` の `@Entity` にカラム追加。
+3. `data/db/AppDatabase.kt` の `version` を +1 し、`Migration` を `ALL_MIGRATIONS` に足す。
+4. (新テーブルなら) `SyncDao` に upsert、`CloudKitSyncEngine` にステップ追加、`AppDatabase` の entities に登録。
+
+どこを触るかの全体表は `CONTRIBUTING.md` の「5. スキーマ (DB の構造) を変えたいとき」にある。
 
 ## 4. ビルド & 実機検証 (必須)
 
@@ -84,7 +86,7 @@ adb shell am start -n com.fugaif.imaslivedb/.MainActivity
 
 ## 5. コミット
 
-- **mainに直接コミット** (PR/ブランチ無し)。1機能=1コミット。
+- **develop に直接コミットしてよい** (オーナーの方針。PR は不要)。1機能=1コミット。
 - keystore / token / 認証情報は `local.properties` (git管理外)。`*.keystore` は `.gitignore` 済。
 - リリース: `local.properties` に `RELEASE_STORE_FILE/PASSWORD/KEY_ALIAS/KEY_PASSWORD` + `app/release.keystore`。
   `versionCode` を上げて `./gradlew assembleRelease` で署名済みAPK。

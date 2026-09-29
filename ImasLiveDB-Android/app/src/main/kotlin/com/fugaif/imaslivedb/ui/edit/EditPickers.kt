@@ -57,17 +57,19 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fugaif.imaslivedb.data.model.Brand
 import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.data.model.ShowWithEventName
-import com.fugaif.imaslivedb.data.model.Song
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.components.BrandFilterChips
 import com.fugaif.imaslivedb.ui.components.BrandFilterItem
 import com.fugaif.imaslivedb.ui.components.ImasAvatar
 import com.fugaif.imaslivedb.ui.components.ImasEmptyState
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.theme.ImasTheme
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import com.fugaif.imaslivedb.ui.components.rememberSearchFiltered
+import uniffi.imas_core.PickedSongRecord
 
 // ---------------------------------------------------------------------------
 // Show picker (セトリ編集の対象公演を選ぶ)
@@ -164,40 +166,31 @@ fun ShowSearchPickerSheet(
 
 class SongPickerViewModel(app: Application) : AndroidViewModel(app) {
     private val songRepo = AppModule.from(app).songRepository
-    private val _results = MutableStateFlow<List<Song>>(emptyList())
-    val results: StateFlow<List<Song>> = _results.asStateFlow()
+    /** null = 読み込み中。 */
+    private val _songs = MutableStateFlow<List<PickedSongRecord>?>(null)
+    val songs: StateFlow<List<PickedSongRecord>?> = _songs.asStateFlow()
 
     init {
-        viewModelScope.launch { _results.value = songRepo.fetchSongs().map { it.song } }
-    }
-
-    fun search(query: String) {
-        viewModelScope.launch {
-            val filter = com.fugaif.imaslivedb.data.model.SongSearchFilter(
-                title = query.ifBlank { null },
-                excludeLiveOnly = false
-            )
-            _results.value = songRepo.fetchSongs(filter).map { it.song }.take(50)
-        }
+        viewModelScope.launch { _songs.value = songRepo.fetchSongsForPicker() }
     }
 }
 
-/** 曲を 1 件選ぶだけの軽量ピッカー (iOS `SongSearchPickerView` の単一選択版)。 */
+/**
+ * 曲を 1 件選ぶだけの軽量ピッカー (iOS `SongPickerView` と同じ)。
+ *
+ * 母集団は全曲 (派生曲も選べる)。絞り込みはコアの索引で、読みでも引ける。
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SongPickerSheet(
     onDismiss: () -> Unit,
-    onSelect: (Song) -> Unit,
+    onSelect: (PickedSongRecord) -> Unit,
     viewModel: SongPickerViewModel = viewModel()
 ) {
-    val results by viewModel.results.collectAsState()
+    val songs by viewModel.songs.collectAsState()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var query by remember { mutableStateOf("") }
-
-    LaunchedEffect(query) {
-        kotlinx.coroutines.delay(200)
-        viewModel.search(query)
-    }
+    val results = rememberSearchFiltered(songs.orEmpty(), query) { listOf(it.title, it.titleKana) }
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(modifier = Modifier.fillMaxWidth().fillMaxHeight(0.9f)) {
@@ -218,7 +211,11 @@ fun SongPickerSheet(
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)
             )
-            if (results.isEmpty()) {
+            if (songs == null) {
+                Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            } else if (results.isEmpty()) {
                 ImasEmptyState(Icons.Filled.MusicNote, "見つかりません", "「$query」に一致する楽曲がありません")
             } else {
                 LazyColumn(modifier = Modifier.fillMaxWidth().weight(1f)) {
@@ -258,20 +255,26 @@ class IdolMultiSelectViewModel(app: Application) : AndroidViewModel(app) {
 
     init {
         viewModelScope.launch {
-            val idols = runCatching { idolRepo.fetchIdols(null) }.getOrDefault(emptyList())
+            val idols = runCatching { idolRepo.fetchIdols() }.getOrDefault(emptyList())
             val brands = runCatching { statsRepo.fetchBrands() }.getOrDefault(emptyList())
             _uiState.value = IdolMultiPickerUiState(idols = idols, brands = brands, isLoading = false)
         }
     }
 }
 
-/** セトリ 1 行の出演者を選ぶ。既存選択の解除も含め自由にトグルできる (お題ピッカーと違い一方通行ではない)。 */
+/**
+ * アイドルを複数選ぶ。既存選択の解除も含め自由にトグルできる (お題ピッカーと違い一方通行ではない)。
+ *
+ * セトリ 1 行の出演者と、曲の歌唱アイドル (SongArtist role=original) の両方で使うので、
+ * 見出しだけ [title] で差し替える。中身は同じ母集団・同じ絞り込みでよい。
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun IdolMultiSelectSheet(
     selected: Set<String>,
     onDismiss: () -> Unit,
     onConfirm: (Set<String>) -> Unit,
+    title: String = "出演者を選択",
     viewModel: IdolMultiSelectViewModel = viewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -281,12 +284,20 @@ fun IdolMultiSelectSheet(
     var query by remember { mutableStateOf("") }
     var selectedBrandId by remember { mutableStateOf<String?>(null) }
 
-    val filtered = remember(state.idols, query, selectedBrandId) {
-        val q = query.trim().lowercase()
-        state.idols.filter { idol ->
-            (selectedBrandId == null || idol.brandId == selectedBrandId) &&
-                (q.isEmpty() || idol.name.lowercase().contains(q) || idol.nameKana?.lowercase()?.contains(q) == true)
-        }
+    // 数百件を一気にスクロールするピッカー。行ごとに derive すると、その間ずっと 1 行 1 回
+    // FFI を跨ぐ。行が組まれる前に母集団ぶんを 1 往復で温め、行はメモに当てる。
+    // 鍵を filtered ではなく母集団にするのは、行が引く色が絞り込みで変わらないため
+    // (打鍵のたびに温め直しても新しい組は 1 件も無い)。
+    remember(state.idols) {
+        ImasTheme.prewarm(state.idols.map { it.color to it.brandId })
+    }
+
+    // 語で絞ってからブランドで絞る (索引は母集団全体で組んであるため)。並びは入力順のまま。
+    val matched = rememberSearchFiltered(state.idols, query) {
+        listOf(it.name, it.nameKana, it.currentVoiceActor, it.aliases)
+    }
+    val filtered = remember(matched, selectedBrandId) {
+        matched.filter { selectedBrandId == null || it.brandId == selectedBrandId }
     }
     val grouped = remember(filtered, state.brands) {
         state.brands.mapNotNull { brand ->
@@ -302,7 +313,7 @@ fun IdolMultiSelectSheet(
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(modifier = Modifier.fillMaxWidth().fillMaxHeight(0.92f)) {
             Text(
-                "出演者を選択 (${current.size})",
+                "$title (${current.size})",
                 fontSize = 17.sp, fontWeight = FontWeight.Bold, color = DS.ink,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
             )
@@ -350,7 +361,7 @@ fun IdolMultiSelectSheet(
                                         if (current.contains(idol.id)) DS.fill else androidx.compose.ui.graphics.Color.Transparent,
                                         CircleShape
                                     )) {
-                                        ImasAvatar(label = idol.name, seed = idol.color, brand = idol.brandId, size = 56.dp)
+                                        ImasAvatar(label = idol.shortName, seed = idol.color, brand = idol.brandId, size = 56.dp)
                                     }
                                     Icon(
                                         if (current.contains(idol.id)) Icons.Filled.CheckCircle else Icons.Filled.Circle,

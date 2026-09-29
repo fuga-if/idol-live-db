@@ -1,15 +1,12 @@
 package com.fugaif.imaslivedb.data.edit
 
-import android.content.Context
 import android.util.Log
 import com.fugaif.imaslivedb.data.auth.AuthService
-import com.fugaif.imaslivedb.data.community.DeviceIdentity
+import com.fugaif.imaslivedb.data.net.WorkerHttpClient
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
-import java.net.HttpURLConnection
-import java.net.URL
 import java.net.URLEncoder
 
 /**
@@ -19,12 +16,12 @@ import java.net.URLEncoder
  * 契約 (imas-live-api/src/edits.ts, edit_requests.ts, feed.ts, edit_good.ts を実ソースで確認済み):
  * - `POST /edits` はマスタ型 (Event/Show/Song/Idol/SetlistItem/SetlistPerformer/SongArtist/ShowCast) の
  *   create/update/delete を admin のみ受け付ける。一般ユーザーがマスタ op を送ると 422 になる
- *   (コミュニティ型 SongCall/SongVideo だけは一般ユーザーも `/edits` で即時反映)。
+ *   (コミュニティ型 SongVideo だけは一般ユーザーも `/edits` で即時反映)。
  * - 一般ユーザーのマスタ編集は `POST /edit-requests` (GitHub issue 化。CloudKit 未反映・ローカル反映不可)。
  * - [submitMaster] が `AuthService.isAdmin` で自動的にどちらを呼ぶか振り分ける
  *   (iOS `EditService.submitMaster` と同じ分岐)。
  */
-class EditApi(private val appContext: Context, private val authService: AuthService) {
+class EditApi(private val http: WorkerHttpClient, private val authService: AuthService) {
 
     enum class EditOp(val raw: String) { CREATE("create"), UPDATE("update"), DELETE("delete") }
 
@@ -50,7 +47,17 @@ class EditApi(private val appContext: Context, private val authService: AuthServ
     }
 
     data class EditResult(val recordType: String?, val recordName: String, val op: String, val ok: Boolean)
-    data class EditResponse(val ok: Boolean, val batchId: Int?, val results: List<EditResult>)
+
+    data class EditResponse(val ok: Boolean, val batchId: Int?, val results: List<EditResult>) {
+        /**
+         * この batch の主対象 (= ops[0]) についてサーバが確定させた recordName。
+         * create を recordName 省略で送った時はサーバ採番 ID がここに入るので、
+         * ローカル upsert は送信値ではなく必ずこちらを使う (契約 #3)。
+         * iOS `EditService.EditResponse.primaryRecordName(fallback:)` と同じ。
+         */
+        fun primaryRecordName(fallback: String? = null): String? =
+            results.firstOrNull()?.recordName ?: fallback
+    }
     data class EditRequestResponse(val ok: Boolean, val issueNumber: Int?, val issueUrl: String?)
 
     /** マスタ編集の結末。admin は直接反映、一般ユーザーは修正リクエスト (issue) 送信。 */
@@ -275,31 +282,20 @@ class EditApi(private val appContext: Context, private val authService: AuthServ
     /** 成功時は JSON を返し、失敗時は契約に沿った [ApiException] を投げる (CommunityApi と違い、
      *  呼び出し側が 401/403/429 を UI 分岐 [ログイン誘導 / BAN / レート制限] できるようにする)。 */
     private suspend fun request(method: String, path: String, body: JSONObject?): JSONObject = withContext(Dispatchers.IO) {
-        val conn = try {
-            (URL(BASE + path).openConnection() as HttpURLConnection).apply {
-                requestMethod = method
-                connectTimeout = 15_000
-                readTimeout = 15_000
-                setRequestProperty("Content-Type", "application/json")
-                setRequestProperty("X-Device-Id", DeviceIdentity.get(appContext))
-                authService.sessionToken?.let { setRequestProperty("Authorization", "Bearer $it") }
-            }
-        } catch (e: Exception) {
-            throw ApiException.Transport(e.message ?: "connection failed")
-        }
         try {
-            if (body != null) {
-                conn.doOutput = true
-                conn.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
-            }
-            val code = conn.responseCode
-            val text = (if (code in 200..299) conn.inputStream else conn.errorStream)
-                ?.bufferedReader()?.use { it.readText() }
-            if (code !in 200..299) {
+            val response = http.request(method, path, body)
+            val code = response.code
+            val text = response.body
+            if (!response.isSuccess) {
                 Log.w(TAG, "$method $path -> HTTP $code body=$text")
                 throw when (code) {
                     401 -> ApiException.NotAuthorized
-                    403 -> ApiException.Banned
+                    403 -> {
+                        // 編集 API の 403 は BAN。次回起動の /auth/me を待たず認証状態へ反映して
+                        // 編集導線をその場で畳む (iOS EditService の markBannedFromServer と同じ)。
+                        authService.markBannedFromServer()
+                        ApiException.Banned
+                    }
                     429 -> ApiException.RateLimited()
                     else -> ApiException.Server(code, text ?: "")
                 }
@@ -309,14 +305,28 @@ class EditApi(private val appContext: Context, private val authService: AuthServ
             throw e
         } catch (e: Exception) {
             throw ApiException.Transport(e.message ?: "request failed")
-        } finally {
-            conn.disconnect()
         }
     }
 
     companion object {
         private const val TAG = "EditApi"
-        private const val BASE = "https://imas-live-api.tokata3011.workers.dev"
+    }
+}
+
+/**
+ * 「入力が空になったらクリア、元から空なら送らない」フィールドの詰め方。
+ * iOS `AnyEncodable.clearable(_:original:)` と同じ 3 分岐で、update のサーバ側マージ
+ * (未送信 = 現状維持 / null 明示 = クリア) を利用する。
+ *
+ * 元値が無いのに null を送ると「変更なし」が「クリア」として編集履歴に残ってしまうので、
+ * 空 → 空 の時は**キーごと落とす**のが要点。
+ */
+fun MutableMap<String, Any?>.putClearable(key: String, raw: String, original: String?) {
+    val trimmed = raw.trim()
+    when {
+        trimmed.isNotEmpty() -> this[key] = trimmed
+        !original.isNullOrEmpty() -> this[key] = null
+        else -> Unit
     }
 }
 

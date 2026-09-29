@@ -51,8 +51,8 @@ class TagDetailViewModel : ViewModel() {
         }
         val songs = module.songRepository.fetchSongsByIds(detail.songs.map { it.songId })
         val songsById = songs.associateBy { it.id }
-        val rows = detail.songs.map { TagSongRankRow(it.songId, it.voteCount, songsById[it.songId]) }
-        _uiState.value = _uiState.value.copy(isLoading = false, tag = detail.tag, songs = rows)
+        val songRows = detail.songs.map { TagSongRankRow(it.songId, it.voteCount, songsById[it.songId]) }
+        _uiState.value = _uiState.value.copy(isLoading = false, tag = detail.tag, songs = songRows)
     }
 
     fun onTagUpdated(tag: CommunityApi.CommunityTag) {

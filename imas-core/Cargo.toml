@@ -1,0 +1,88 @@
+[package]
+name = "imas-core"
+version = "0.1.0"
+edition = "2021"
+description = "ImasLiveDB の共有ドメインコア (iOS / Android 共通ロジック)"
+
+[lib]
+name = "imas_core"
+# staticlib: iOS xcframework 用 / cdylib: Android .so + バインディング生成用
+crate-type = ["lib", "staticlib", "cdylib"]
+
+# バインディングの生成 (build.sh) でだけ使う。uniffi の cli (clap / askama / goblin など) を
+# ライブラリ本体の依存から外すため、bindgen feature を要求する。
+[[bin]]
+name = "uniffi-bindgen"
+path = "src/bin/uniffi-bindgen.rs"
+required-features = ["bindgen"]
+
+# Web 出面 (静的サイト) の JSON エクスポータ。
+# required-features を付けるのは build.sh が `cargo build --release --target aarch64-apple-ios`
+# 等を **--lib 無し**で叩くため (build.sh:57,78-80)。既定 off にしておかないと
+# iOS/Android のクロスビルドがこの bin まで巻き込む。
+[[bin]]
+name = "web-export"
+path = "src/bin/web-export/main.rs"
+required-features = ["web-export"]
+
+# アイドルライブ DB を LLM から引く MCP サーバ / CLI。web-export と同じ理由で
+# required-features を付ける (付けないと iOS/Android のクロスビルドが巻き込む)。
+[[bin]]
+name = "imas-mcp"
+path = "src/bin/imas-mcp/main.rs"
+required-features = ["agent"]
+
+# 同じ理由で integration test も feature ゲートする。付けないと既存 core-guard の
+# `cargo test --locked` (feature 無し) が web_export.rs のコンパイルで落ちる。
+[[test]]
+name = "web_export"
+path = "tests/web_export.rs"
+required-features = ["web-export"]
+
+[features]
+# Web 出面の静的エクスポート。既定 off。
+web-export = ["dep:ts-rs"]
+# LLM 向けツール面 (MCP サーバ / CLI)。ツールのカタログと応答の組み立て (src/agent/) と bin。既定 off。
+# テストは `cargo test --features agent` で走る (core-guard が既定の cargo test と並べて流す)。
+agent = []
+# uniffi-bindgen の bin (build.sh がバインディングを作るときだけ使う)。既定 off。
+bindgen = ["uniffi/cli"]
+
+[dependencies]
+uniffi = { version = "0.32.0" }
+chrono = { version = "0.4.45", default-features = false, features = ["std", "clock"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+# タイトル/ID 比較を Swift の String == (Unicode 正準等価) に合わせるための NFC 正規化
+unicode-normalization = "0.1.25"
+thiserror = "2.0.20"
+
+# 検索の畳み込み規則の実体。ブラウザ (wasm) でも同じ規則を使うために切り出してある。
+# 依存ゼロ・std のみなので、iOS/Android には静的リンクでそのまま入る。
+imas-text-fold = { path = "../imas-text-fold" }
+
+# TS 型の生成 (web-export feature 限定)。DTO と web/src/lib/schema/*.ts の
+# ドリフトを CI で落とすために使う。
+# serde-json-impl は入れない: SeoBlock.json_ld の TS 型は #[ts(type = ...)] で
+# 直接与える (impl に任せると JsonValue.ts が imas-core/bindings/ に落ち、
+# 生成された .ts が web/ の外を import してしまう)。
+ts-rs = { version = "12", optional = true }
+
+# SQLite の実体は 1 プロセス 1 つに保つ:
+# - Apple (iOS/macOS): system libsqlite3 とリンク。bundled を静的リンクすると
+#   sqlite3_* シンボルが system より先に解決され、GRDB の呼び出しまで同梱 3.51 に
+#   乗っ取られる (実測: FK pragma の挙動差で MasterReseedTests が落ちた)。
+# - それ以外 (Android): NDK は libsqlite3 を公開しないので bundled が正。
+[target.'cfg(target_vendor = "apple")'.dependencies]
+rusqlite = { version = "0.40.2" }
+
+# - wasm: SQLite を持ち込まない。ブラウザは Snapshot を受け取って domain を回すだけで、
+#   DB を開く経路 (outbound::sqlite_loader) を使わない。ここを除外しないと
+#   sqlite-wasm-rs が依存に入り、ビルドすら通らない。
+[target.'cfg(all(not(target_vendor = "apple"), not(target_family = "wasm")))'.dependencies]
+rusqlite = { version = "0.40.2", features = ["bundled"] }
+
+[profile.release]
+# FFI 境界を跨ぐ薄い層なので LTO でバイナリを絞る
+lto = true
+codegen-units = 1

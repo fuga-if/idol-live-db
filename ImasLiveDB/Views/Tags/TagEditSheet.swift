@@ -3,6 +3,7 @@ import SwiftUI
 struct TagEditSheet: View {
     @Environment(\.dismiss) private var dismiss
     let tag: CommunityTag
+    var domain: TagDomain = .song
 
     @State private var description: String
     @State private var selectedCategory: String
@@ -10,10 +11,9 @@ struct TagEditSheet: View {
     @State private var isSaving = false
     @State private var errorMessage: String?
 
-    private let categories = [("", "なし"), ("mood", "ムード"), ("scene", "シーン"), ("special", "特別"), ("free", "フリー")]
-
-    init(tag: CommunityTag) {
+    init(tag: CommunityTag, domain: TagDomain = .song) {
         self.tag = tag
+        self.domain = domain
         _description = State(initialValue: tag.description ?? "")
         _selectedCategory = State(initialValue: tag.category?.rawValue ?? "")
         _selectedColor = State(initialValue: tag.color?.rawValue ?? "")
@@ -21,46 +21,57 @@ struct TagEditSheet: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section("説明文") {
-                    TextEditor(text: $description)
-                        .scrollContentBackground(.hidden)
-                        .background(DS.surface)
-                        .frame(minHeight: 140)
-                        .font(.imasBody)
-                }
-                .listRowBackground(DS.surface)
-                .listRowSeparatorTint(DS.sep)
-
-                Section("カテゴリ") {
-                    Picker("カテゴリ", selection: $selectedCategory) {
-                        ForEach(categories, id: \.0) { cat in
-                            Text(cat.1).tag(cat.0)
+            ScrollView {
+                VStack(alignment: .leading, spacing: DS.sp6) {
+                    VStack(alignment: .leading, spacing: DS.sp3) {
+                        ImasSectionHeader(title: "説明文", tight: true)
+                        ImasListContainer {
+                            TextField("どんな時に使うタグか", text: $description, axis: .vertical)
+                                .font(.imasSubhead)
+                                .foregroundStyle(DS.ink)
+                                .lineLimit(3...6)
+                                .padding(.horizontal, DS.sp4)
+                                .padding(.vertical, DS.sp3)
+                                .onChange(of: description) { _, new in
+                                    let clamped = InputLimits.clamp(.tagDescription, new)
+                                    if clamped != new { description = clamped }
+                                }
                         }
                     }
-                    .pickerStyle(.menu)
-                }
-                .listRowBackground(DS.surface)
-                .listRowSeparatorTint(DS.sep)
 
-                Section("色") {
-                    TagColorPicker(selectedHex: $selectedColor)
-                }
-                .listRowBackground(DS.surface)
-                .listRowSeparatorTint(DS.sep)
-
-                if let errorMessage {
-                    Section {
-                        Text(errorMessage)
-                            .foregroundStyle(DS.danger)
-                            .font(.imasCaption)
+                    VStack(alignment: .leading, spacing: DS.sp3) {
+                        ImasSectionHeader(title: "カテゴリ", tight: true)
+                        FlowLayout(spacing: DS.sp2) {
+                            categoryChip(value: "", label: Vocab.table.tagCategoryNoneLabel)
+                            ForEach(TagCategoryOptions.options(for: domain), id: \.value) { cat in
+                                categoryChip(value: cat.value, label: cat.label)
+                            }
+                        }
                     }
-                    .listRowBackground(DS.surface)
+
+                    VStack(alignment: .leading, spacing: DS.sp3) {
+                        ImasSectionHeader(title: "色", tight: true)
+                        ImasListContainer {
+                            TagColorPicker(selectedHex: $selectedColor)
+                                .padding(.horizontal, DS.sp4)
+                                .padding(.vertical, DS.sp3)
+                        }
+                    }
+
+                    if let errorMessage {
+                        Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
+                            .font(.imasFootnote)
+                            .foregroundStyle(DS.danger)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
+                .padding(.horizontal, DS.sp5)
+                .padding(.top, DS.sp4)
+                .padding(.bottom, DS.sp7)
             }
-            .scrollContentBackground(.hidden)
             .background(DS.bg.ignoresSafeArea())
-            .navigationTitle("タグを編集")
+            .scrollContentBackground(.hidden)
+            .navigationTitle("「\(tag.name)」を編集")
             .navigationBarTitleDisplayMode(.inline)
             .trackScreen("tag_edit")
             .toolbar {
@@ -79,16 +90,28 @@ struct TagEditSheet: View {
         }
     }
 
+    private func categoryChip(value: String, label: String) -> some View {
+        ImasFilterChip(text: label, isSelected: selectedCategory == value) {
+            selectedCategory = value
+        }
+    }
+
     private func save() async {
         isSaving = true
         defer { isSaving = false }
         do {
-            _ = try await CommunityAPI.shared.updateTag(
-                id: tag.id,
-                description: description.isEmpty ? nil : description,
-                category: selectedCategory.isEmpty ? nil : selectedCategory,
-                color: selectedColor.isEmpty ? nil : selectedColor
-            )
+            let desc = description.isEmpty ? nil : description
+            let cat = selectedCategory.isEmpty ? nil : selectedCategory
+            let color = selectedColor.isEmpty ? nil : selectedColor
+            let writing = AppContainer.shared.communityTagWriting
+            switch domain {
+            case .song:
+                _ = try await writing.updateTag(id: tag.id, description: desc, category: cat, color: color)
+            case .idol:
+                _ = try await writing.updateIdolTag(id: tag.id, description: desc, category: cat, color: color)
+            case .unit:
+                _ = try await writing.updateUnitTag(id: tag.id, description: desc, category: cat, color: color)
+            }
             dismiss()
         } catch let error as CommunityAPIError {
             errorMessage = error.errorDescription ?? "保存に失敗しました"

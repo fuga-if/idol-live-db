@@ -1,6 +1,6 @@
 // ck_schema.ts — CloudKit Public DB スキーマの型情報の単一ソース。
 //
-// Scripts/cloudkit_schema.ckdb から導出。buildForceUpdate の型付けと
+// tools/cloudkit_schema.ckdb から導出。buildForceUpdate の型付けと
 // master_validators の検証はこの 1 ファイルを正とする。
 // CloudKit には BOOL 型が無く、真偽値フィールド (isSolo 等) は INT64(0/1)。
 
@@ -21,10 +21,12 @@ const NON_STRING_FIELDS: Record<string, Record<string, CKFieldType>> = {
   Show: { sortOrder: "INT64" },
   Song: { durationSec: "INT64" },
   SetlistItem: { position: "INT64" },
-  // SongCall/SongVideo の createdAt は CKRecordMapper が Date で読むため TIMESTAMP
+  // SongVideo の createdAt は CKRecordMapper が Date で読むため TIMESTAMP
   // (authorDisplayName は STRING なので未掲載で既定の STRING になる)。
-  SongCall: { createdAt: "TIMESTAMP" },
   SongVideo: { createdAt: "TIMESTAMP" },
+  Venue: { capacity: "INT64", sortOrder: "INT64" },
+  // キャパは施設 (Venue) 既定値をホール構成が上書きするので、両方に持つ。
+  VenueHall: { capacity: "INT64" },
 };
 
 const COMMON_TIMESTAMP_FIELDS = new Set(["modifiedAt", "deletedAt"]);
@@ -39,13 +41,16 @@ export function ckFieldType(recordType: string, field: string): CKFieldType {
 export const OPEN_EDIT_TYPES = new Set([
   "Event", "Show", "Idol", "Song",
   "SetlistItem", "SetlistPerformer", "SongArtist", "ShowCast",
-  // コーレス (SongCall) / 参考動画 (SongVideo) もオープン編集 (確定契約 §4)。
-  "SongCall", "SongVideo",
+  // 参考動画 (SongVideo) もオープン編集 (確定契約 §4)。コーレス (SongCall) は廃止済み。
+  "SongVideo",
 ]);
 
 /** admin 限定の構造マスタ。一般ユーザーは編集不可。 */
 export const ADMIN_ONLY_TYPES = new Set([
   "Brand", "IdolBrand", "IdolCast", "ImasUnit", "UnitMember", "CastMember", "MetaData", "Users",
+  // 会場マスタは ID が公演の同一性を支える基盤なので、一般ユーザーには開けない。
+  // 公演側 (Show.venueId) から既存会場を選ぶのは OPEN_EDIT の Show 経由で可能。
+  "Venue", "VenueName", "VenueHall",
 ]);
 
 /** 一般ユーザーが create できない型 (既存編集のみ)。Idol は新規作成スコープ外。 */

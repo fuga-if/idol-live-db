@@ -1,0 +1,340 @@
+{
+ "title": "公演 sh_the_idolm@ster_million_live_14thlive_1 のセットリスト追加",
+ "author": "LLM 提案 (propose_setlist)",
+ "source": "https://idolmaster-official.jp/live_event/million14th/",
+ "note": "出典: https://idolmaster-official.jp/live_event/million14th/\n引用: \"THE IDOLM@STER MILLION LIVE! 14thLIVE DAY1　夢咲くワンダーミラージュ / 2026/9/19(土)　16:30開場 / 17:30開演　@国立代々木競技場 第一体育館\"\n公式セットリスト画像 (DAY1) より全 35 曲。歌唱者は画像の声優名を、この公演の出演者 16 名からアイドルに対応づけた。33〜35 の「ミリオンスターズ」は出演者全員として all で入れている。画像に本編/アンコールの区切りの記載が無いため section は付けていない。14 / 29 / 32 は同日初披露の新曲で、同時に曲マスタへ仮登録している (作詞作曲等は未発表)。",
+ "show_id": "sh_the_idolm@ster_million_live_14thlive_1",
+ "all_performers": [
+  "ml_伊吹翼",
+  "ml_エミリースチュアート",
+  "ml_木下ひなた",
+  "ml_桜守歌織",
+  "ml_白石紬",
+  "ml_高山紗代子",
+  "ml_田中琴葉",
+  "ml_天空橋朋花",
+  "ml_徳川まつり",
+  "ml_豊川風花",
+  "ml_中谷育",
+  "ml_野々原茜",
+  "ml_箱崎星梨花",
+  "ml_福田のり子",
+  "ml_宮尾美也",
+  "ml_矢吹可奈"
+ ],
+ "songs": [
+  {
+   "position": 1,
+   "song_id": "ml_絵羽模様",
+   "performers": [
+    "ml_箱崎星梨花",
+    "ml_天空橋朋花",
+    "ml_木下ひなた",
+    "ml_豊川風花",
+    "ml_宮尾美也",
+    "ml_白石紬",
+    "ml_桜守歌織"
+   ]
+  },
+  {
+   "position": 2,
+   "song_id": "ml_little_trip_around_the_world",
+   "performers": [
+    "ml_中谷育",
+    "ml_木下ひなた"
+   ]
+  },
+  {
+   "position": 3,
+   "song_id": "765as_初恋_一章_片想いの桜",
+   "performers": [
+    "ml_高山紗代子",
+    "ml_桜守歌織"
+   ]
+  },
+  {
+   "position": 4,
+   "song_id": "ml_hug_a_nice_day",
+   "performers": [
+    "ml_野々原茜",
+    "ml_矢吹可奈",
+    "ml_豊川風花",
+    "ml_白石紬"
+   ]
+  },
+  {
+   "position": 5,
+   "song_id": "ml_微笑み日和",
+   "performers": [
+    "ml_エミリースチュアート",
+    "ml_箱崎星梨花",
+    "ml_宮尾美也"
+   ]
+  },
+  {
+   "position": 6,
+   "song_id": "ml_オレンジノキオク",
+   "performers": [
+    "ml_伊吹翼",
+    "ml_田中琴葉",
+    "ml_豊川風花",
+    "ml_福田のり子"
+   ]
+  },
+  {
+   "position": 7,
+   "song_id": "765as_風花",
+   "performers": [
+    "ml_エミリースチュアート",
+    "ml_天空橋朋花",
+    "ml_桜守歌織"
+   ]
+  },
+  {
+   "position": 8,
+   "song_id": "ml_鉄の羽のエクソダス",
+   "performers": [
+    "ml_箱崎星梨花",
+    "ml_中谷育",
+    "ml_福田のり子"
+   ]
+  },
+  {
+   "position": 9,
+   "song_id": "ml_君だけの欠片",
+   "performers": [
+    "ml_エミリースチュアート",
+    "ml_徳川まつり"
+   ]
+  },
+  {
+   "position": 10,
+   "song_id": "ml_百花は月下に散りぬるを",
+   "performers": [
+    "ml_エミリースチュアート",
+    "ml_天空橋朋花",
+    "ml_白石紬"
+   ]
+  },
+  {
+   "position": 11,
+   "song_id": "765as_アマテラス",
+   "performers": [
+    "ml_エミリースチュアート",
+    "ml_伊吹翼",
+    "ml_野々原茜",
+    "ml_木下ひなた"
+   ]
+  },
+  {
+   "position": 12,
+   "song_id": "ml_オレンジエピソード",
+   "performers": [
+    "ml_高山紗代子",
+    "ml_矢吹可奈",
+    "ml_福田のり子"
+   ]
+  },
+  {
+   "position": 13,
+   "song_id": "ml_はなしらべ",
+   "performers": [
+    "ml_エミリースチュアート",
+    "ml_白石紬",
+    "ml_桜守歌織"
+   ]
+  },
+  {
+   "position": 14,
+   "song_id": "ml_ひととせ結び",
+   "performers": [
+    "ml_エミリースチュアート"
+   ]
+  },
+  {
+   "position": 15,
+   "song_id": "ml_ミラージュミラー",
+   "performers": [
+    "ml_エミリースチュアート",
+    "ml_徳川まつり"
+   ]
+  },
+  {
+   "position": 16,
+   "song_id": "ml_フェスタイルミネーション",
+   "performers": [
+    "ml_徳川まつり",
+    "ml_伊吹翼",
+    "ml_田中琴葉",
+    "ml_野々原茜",
+    "ml_高山紗代子",
+    "ml_中谷育",
+    "ml_矢吹可奈",
+    "ml_福田のり子"
+   ]
+  },
+  {
+   "position": 17,
+   "song_id": "765as_go_my_way",
+   "performers": [
+    "ml_徳川まつり",
+    "ml_天空橋朋花",
+    "ml_宮尾美也"
+   ]
+  },
+  {
+   "position": 18,
+   "song_id": "ml_プリンセスアラモード",
+   "performers": [
+    "ml_徳川まつり",
+    "ml_伊吹翼",
+    "ml_中谷育",
+    "ml_矢吹可奈"
+   ]
+  },
+  {
+   "position": 19,
+   "song_id": "ml_girl_meets_wonder",
+   "performers": [
+    "ml_徳川まつり",
+    "ml_箱崎星梨花",
+    "ml_野々原茜",
+    "ml_木下ひなた",
+    "ml_白石紬"
+   ]
+  },
+  {
+   "position": 20,
+   "song_id": "ml_pretty_dreamer",
+   "performers": [
+    "ml_伊吹翼",
+    "ml_矢吹可奈",
+    "ml_豊川風花"
+   ]
+  },
+  {
+   "position": 21,
+   "song_id": "ml_瞳の中のシリウス",
+   "performers": [
+    "ml_徳川まつり",
+    "ml_豊川風花",
+    "ml_宮尾美也"
+   ]
+  },
+  {
+   "position": 22,
+   "song_id": "ml_stellar_light",
+   "performers": [
+    "ml_箱崎星梨花",
+    "ml_高山紗代子",
+    "ml_桜守歌織"
+   ]
+  },
+  {
+   "position": 23,
+   "song_id": "ml_シャルウィーダンス",
+   "performers": [
+    "ml_徳川まつり",
+    "ml_エミリースチュアート"
+   ]
+  },
+  {
+   "position": 24,
+   "song_id": "ml_episode_tiara",
+   "performers": [
+    "ml_徳川まつり",
+    "ml_エミリースチュアート",
+    "ml_田中琴葉",
+    "ml_高山紗代子",
+    "ml_矢吹可奈",
+    "ml_福田のり子"
+   ]
+  },
+  {
+   "position": 25,
+   "song_id": "765as_魔法をかけて",
+   "performers": [
+    "ml_徳川まつり",
+    "ml_天空橋朋花",
+    "ml_木下ひなた"
+   ]
+  },
+  {
+   "position": 26,
+   "song_id": "ml_メメントモメントルルルルル",
+   "performers": [
+    "ml_箱崎星梨花",
+    "ml_野々原茜",
+    "ml_宮尾美也"
+   ]
+  },
+  {
+   "position": 27,
+   "song_id": "ml_diamond_joker",
+   "performers": [
+    "ml_徳川まつり",
+    "ml_伊吹翼",
+    "ml_豊川風花",
+    "ml_桜守歌織"
+   ]
+  },
+  {
+   "position": 28,
+   "song_id": "ml_カーニヴァルジャパネスク",
+   "performers": [
+    "ml_徳川まつり",
+    "ml_野々原茜",
+    "ml_高山紗代子",
+    "ml_中谷育",
+    "ml_福田のり子",
+    "ml_白石紬"
+   ]
+  },
+  {
+   "position": 29,
+   "song_id": "ml_ネバーエンドワンダーランド",
+   "performers": [
+    "ml_徳川まつり"
+   ]
+  },
+  {
+   "position": 30,
+   "song_id": "ml_だってあなたはプリンセス",
+   "performers": [
+    "ml_エミリースチュアート",
+    "ml_徳川まつり"
+   ]
+  },
+  {
+   "position": 31,
+   "song_id": "ml_わたしは花あなたは太陽",
+   "performers": [
+    "ml_エミリースチュアート",
+    "ml_徳川まつり"
+   ]
+  },
+  {
+   "position": 32,
+   "song_id": "ml_パルティシオン",
+   "performers": [
+    "ml_エミリースチュアート",
+    "ml_徳川まつり"
+   ]
+  },
+  {
+   "position": 33,
+   "song_id": "ml_prima_princess",
+   "performers": "all"
+  },
+  {
+   "position": 34,
+   "song_id": "ml_ドレスコード最上級",
+   "performers": "all"
+  },
+  {
+   "position": 35,
+   "song_id": "ml_eternal_harmony",
+   "performers": "all"
+  }
+ ]
+}

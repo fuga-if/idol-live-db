@@ -1,0 +1,17 @@
+{
+ "title": "songs の ml_present を修正",
+ "author": "LLM 提案 (propose_fix)",
+ "source": "https://idolmaster-official.jp/live_event/million14th/",
+ "note": "出典: https://idolmaster-official.jp/live_event/million14th/\n引用: \"「Present」 作詞：大山恭子 作曲・編曲：柿迫ヒカル\"\n14thLIVE DAY2 で初披露された 3 曲の楽曲情報公開画像より。区切りは画像の表記 (中黒) に合わせた。作詞作曲編曲が同一人物の曲は画像の「作詞作曲編曲：X」表記どおり 3 欄すべてに同じ名前を入れている。CD タイトル・配信日は未発表 (Apple Music にも未掲載) のため空のまま。",
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "ml_present",
+   "fields": {
+    "arranger": "柿迫ヒカル",
+    "composer": "柿迫ヒカル",
+    "lyricist": "大山恭子"
+   }
+  }
+ ]
+}

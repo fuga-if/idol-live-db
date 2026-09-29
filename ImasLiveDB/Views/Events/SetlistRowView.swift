@@ -2,20 +2,35 @@ import SwiftUI
 
 struct SetlistRowView: View {
     @Environment(AppDatabase.self) private var database
+    @Environment(\.colorScheme) private var scheme
     /// 文字サイズ設定。曲名 (生 .system) のスケールに使い、変更時の行再評価の依存源も兼ねる。
     @AppStorage("text_scale") private var textScale: Double = 1.0
     let item: SetlistRow
     var displayNumber: Int? = nil
     var performers: [PerformerRow] = []
     var idolsById: [String: Idol] = [:]
-    var unitIndex: UnitIndex? = nil
-    /// この公演に出演する全 cast_id (= show_cast)。performer 集合がこれと一致したら「全員」表記。
-    var showAllCastIds: Set<String> = []
-    /// この公演でユニット単独曲を披露したユニット ID。
-    /// 偶然メンバーが揃った合唱曲に過剰マッチするのを防ぐ。
-    var activeUnitIds: Set<String> = []
+    /// ユニット名のチップに出す名前。**どのユニット名を出すかは imas-core が決める**
+    /// (その披露の名義 → 曲の名義 → 顔ぶれ推論)。空ならチップを出さない。
+    var unitNames: [String] = []
+    /// 公演の出演者全員で歌う行か (「全員」表記)。判定も imas-core。
+    var isFullCast: Bool = false
+    /// この披露についての事実を、軸 (`披露` / `回収`) ごとにまとめたもの。
+    /// **軸の分け方も、ラベルも、順も、どれを強く見せるか (`tone`) も imas-core が決める**
+    /// ので、ここは受け取った順に並べるだけ。詳細表示以外では必ず空で来る。
+    ///
+    /// 丸い札にはしない。曲の属性 (カバー・ユニット名) と同じ形で並べると 1 行に丸が
+    /// 5 つ並び、「・」で繋いだ 1 行にしても並列に並ぶだけで構造にならない。
+    /// 軸の名前を左に固定幅で置き、値を右に流す。
+    var noteGroups: [SetlistRowNoteGroupRecord] = []
+    /// 歌唱者をどの名前で出すか (親が AppStorage から解決して渡す)。
+    var performerName: PerformerNameMode = .idolOnly
+    /// `shows.performer_type == "character"`。
+    ///
+    /// 以前は既定値のまま誰も渡しておらず、キャラライブ分岐が死んでいた。
     var isCharacterLive: Bool = false
-    var coverType: CoverType = .unknown
+    /// オリメンの札 (`オリメン` / `オリメン+α` / `オリメン 4/5` / `オリメン不在`)。
+    /// 付けるか・文言はコア (`SetlistRowMetaRecord.lineup`) が決める。nil = 付けない。
+    var lineup: SetlistLineupNote? = nil
     /// 担当アイドル ID。 performer に含まれていれば担当認知 (アバターの二重輪) に委ねる。
     var myPickIdolIds: Set<String> = []
     /// 公演 ID (post-vote like で使う)。
@@ -54,25 +69,16 @@ struct SetlistRowView: View {
         performers.compactMap { $0.idolId.flatMap { idolsById[$0] } }
     }
 
-    /// 公演に出ている全キャストが歌唱している = 「全員」表記対象。
-    /// show_cast が 1 件以上あって、performer の cast 集合がそれと完全一致した時のみ true。
-    private var isAllPerformers: Bool {
-        guard !showAllCastIds.isEmpty, showAllCastIds.count >= 2 else { return false }
-        // PerformerRow.id は cast_id (fetchAllPerformers SQL での alias)
-        let performerCastIds = Set(performers.map(\.id))
-        return performerCastIds == showAllCastIds
-    }
-
-    /// performer 集合からユニット名を逆引き。セトリでは偶然メンバー揃った
-    /// だけの subset マッチ (TintMe 等) を避けるため、exact match (単独 or
-    /// 2-3 unit の和集合一致) のみ採用。合同曲は両方の unit が返る。
-    private var matchingUnits: [Unit] {
-        guard let unitIndex else { return [] }
-        let perfIds = Set(performerIdols.map(\.id))
-        let candidates = unitIndex.exactMatchingUnits(for: perfIds, requireSongs: true)
-        // activeUnitIds が空の場合 (e.g., プレビュー / 1曲のみのライブ) はフィルタしない
-        if activeUnitIds.isEmpty { return candidates }
-        return candidates.filter { activeUnitIds.contains($0.id) }
+    /// アイドルと表示名を 1 組にした並び。**解決はここ 1 箇所**で、
+    /// チップもシートもこれを見る (同じ人の名前を 2 度解決しない)。
+    private var resolvedPerformers: [ResolvedPerformer] {
+        performers.compactMap { row in
+            guard let idol = row.idolId.flatMap({ idolsById[$0] }) else { return nil }
+            return ResolvedPerformer(
+                idol: idol,
+                name: row.displayName(performerName, isCharacterLive: isCharacterLive)
+            )
+        }
     }
 
     /// フォールバック色シード。曲のブランド色。
@@ -86,7 +92,9 @@ struct SetlistRowView: View {
             Button {
                 guard let showId, !likeBusy else { return }
                 // 未ログインは投票不可 → 親にログイン誘導を依頼 (黙って失敗させない)。
-                guard AuthService.shared.isSignedIn, AuthService.shared.bearerToken != nil else {
+                // bearerToken の事前チェックはしない (セッション更新中の窓で bearerToken == nil に
+                // なる瞬間があり、401 の自動リフレッシュを潰して誤ってログイン誘導してしまうため)。
+                guard AuthService.shared.isSignedIn else {
                     onRequireLogin?(); return
                 }
                 likeBusy = true
@@ -125,17 +133,15 @@ struct SetlistRowView: View {
         .padding(.top, 6)
     }
 
-    /// カバー/一部カバーを ImasTagChip にマップ (オリメン一致は表示しない)。
+    /// オリメンの札を ImasTagChip に写す。色の出し分けは種類だけで決める (文言はコア)。
     private var coverTag: (text: String, kind: ImasTagChip.Kind)? {
-        // 公演の出演者全員で歌う全体曲は、原曲メンバーと完全一致しなくても
-        // (新メンバー追加・一部欠席で部分一致になるだけで) カバーではない。
-        // この場合「一部カバー」表記を抑制する (全員アンセムの通常パターン)。
-        if isAllPerformers, case .partial = coverType { return nil }
-        switch coverType {
-        case .original, .originalPlus, .unknown: return nil
-        case .partial: return ("一部カバー", .partial)
-        case .cover: return ("カバー", .cover)
+        guard let lineup else { return nil }
+        let kind: ImasTagChip.Kind = switch lineup.kind {
+        case .original, .originalPlus: .unit
+        case .partial: .partial
+        case .cover: .cover
         }
+        return (lineup.label, kind)
     }
 
     private var artworkURL: URL? {
@@ -160,7 +166,7 @@ struct SetlistRowView: View {
                 .font(.imasDisplay(13))
                 .foregroundStyle(DS.ink3)
                 .frame(width: 22, alignment: .trailing)
-                .padding(.top, 12)
+                .padding(.top, DS.sp4)
 
             // ジャケ (画像/プレビュー対応。フォールバックは曲のブランド色ソリッド)。
             // 文字サイズ設定に合わせて縮小し、行全体のサイズ感を揃える。
@@ -168,7 +174,7 @@ struct SetlistRowView: View {
                 url: artworkURL,
                 size: 44 * CGFloat(textScale),
                 previewURL: previewURL,
-                songTitle: item.songTitle,
+                songTitle: item.songTitle, songId: item.songId,
                 seed: seed
             )
 
@@ -192,10 +198,13 @@ struct SetlistRowView: View {
                 // List セル内に複数ボタンが同居するため .borderless でタップをスコープ。
                 .buttonStyle(.borderless)
 
-                // カバー種別 + 歌唱者 (ユニット / 全員 / アバター) を 1 行にまとめる。
+                // 「この曲が何か」(カバー・ユニット・歌唱者) の行。
                 if hasMeta {
                     metaRow
                 }
+
+                // 「この披露はどうだったか」(披露の履歴・自分の回収) の段。
+                noteGroupsBlock
 
                 if let notes = item.notes {
                     Text(notes)
@@ -221,7 +230,7 @@ struct SetlistRowView: View {
                 RoundedRectangle(cornerRadius: 1.5, style: .continuous)
                     .fill(DS.pick.opacity(0.7))
                     .frame(width: 3)
-                    .padding(.vertical, 8)
+                    .padding(.vertical, DS.sp3)
             }
         }
         .contentShape(Rectangle())
@@ -250,7 +259,7 @@ struct SetlistRowView: View {
         .sheet(isPresented: $showPerformersSheet) {
             PerformerDetailSheet(
                 songTitle: item.songTitle,
-                idols: performerIdols
+                performers: resolvedPerformers
             ) { dest in
                 showPerformersSheet = false
                 go(dest)
@@ -259,15 +268,22 @@ struct SetlistRowView: View {
         }
     }
 
-    /// メタ行に出すものがあるか (カバー種別チップ or 歌唱者表現)。無ければ行ごと省く。
+    /// メタ行に出すものがあるか (カバー種別チップ or 履歴の札 or 歌唱者表現)。無ければ行ごと省く。
     private var hasMeta: Bool {
-        coverTag != nil || !matchingUnits.isEmpty || isAllPerformers || !performers.isEmpty
+        coverTag != nil || !unitNames.isEmpty || isFullCast || !performers.isEmpty
     }
 
-    /// カバー種別チップ + 歌唱者 (ユニット / 全員 / アバター) を横一列に。
+    /// **この曲が何か**の行 — カバー種別チップ + 歌唱者 (ユニット / 全員 / アバター)。
+    ///
+    /// 披露の履歴と自分の回収はここに入れない ([`notesLine`])。同じ形の札で混ぜると
+    /// 「カバー」と「4 回目」が同じ重みに見えて、行が札の羅列になる。
+    ///
+    /// 横一列 (HStack) ではなく回り込み (FlowLayout) にしてある。幅が足りないとき、
+    /// HStack は**札の中の文字を折り返す**ので「1 年 1 か月 / ぶり」と割れて読めなくなる。
+    /// 回り込みなら札ごと次の行に落ちる (札は ideal size で置かれるので中では折れない)。
     @ViewBuilder
     private var metaRow: some View {
-        HStack(alignment: .center, spacing: 6) {
+        FlowLayout(spacing: 6) {
             if let tag = coverTag {
                 ImasTagChip(text: tag.text, kind: tag.kind, seed: seed)
             }
@@ -275,14 +291,90 @@ struct SetlistRowView: View {
         }
     }
 
+    /// **この披露についての事実**の段 (詳細表示のときだけ来る)。
+    ///
+    /// ```text
+    /// ────────────────────────
+    /// 披露   3 回目   2 年 6 か月ぶり
+    /// 回収   初回収
+    /// ```
+    ///
+    /// 歌唱者との間にヘアラインを 1 本引いて、「この曲が何か」と「この披露がどうだったか」を
+    /// 別のブロックとして読ませる。軸の名前は固定幅で左に置くので、39 曲のセトリでも
+    /// 同じ位置に同じ軸が来る (縦に流し読みできる)。
+    @ViewBuilder
+    private var noteGroupsBlock: some View {
+        if !noteGroups.isEmpty {
+            VStack(alignment: .leading, spacing: 3) {
+                Rectangle()
+                    .fill(DS.sep)
+                    .frame(height: 0.5)
+                    .padding(.top, 3)
+                    .padding(.bottom, 2)
+                ForEach(noteGroups, id: \.label) { group in
+                    HStack(alignment: .firstTextBaseline, spacing: 10) {
+                        Text(group.label)
+                            .font(.imasCaption2)
+                            .kerning(0.4)
+                            .foregroundStyle(DS.ink3)
+                            .frame(width: 26, alignment: .leading)
+                        Self.notesText(group.notes, accent: accent)
+                            .font(.imasCaption)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+        }
+    }
+
+    private var accent: Color { ImasTheme.derive(seed: seed, scheme: scheme).accent }
+
+    /// 1 つの軸の値を 1 本の `Text` に連結する。
+    /// 連結した `Text` は普通の文として折り返すので、幅が足りなくても語の途中で割れない。
+    private static func notesText(_ notes: [SetlistRowNoteRecord], accent: Color) -> Text {
+        notes.enumerated().reduce(Text("")) { acc, pair in
+            let (index, note) = pair
+            return acc + (index == 0 ? Text("") : Text("  ")) + noteText(note, accent: accent)
+        }
+    }
+
+    /// 事実 1 つの見え方。**判断はしない** — core が付けた `tone` に対応表を当てるだけ。
+    ///
+    /// 色だけで意味を分けると、色が見分けづらい人には全部同じ文字列に見える。
+    /// 自分の記録 (回収 / 未回収) には印を付けて、色に頼らず分かるようにする。
+    private static func noteText(_ note: SetlistRowNoteRecord, accent: Color) -> Text {
+        switch note.tone {
+        case .value:
+            return Text(note.text).font(.imasCaption.weight(.medium)).foregroundColor(DS.ink)
+        case .detail:
+            return Text(note.text).foregroundColor(DS.ink3)
+        case .debut:
+            return Text(note.text).font(.imasCaption.weight(.semibold)).foregroundColor(accent)
+        case .mine:
+            // 印は細いチェックマークだけ。塗りつぶしのシールはこの大きさだとシール然として
+            // 行から浮く (行に貼るのは「済み」の合図であって、賞ではない)。
+            return Text(Image(systemName: "checkmark"))
+                .font(.imasCaption2.weight(.semibold))
+                .foregroundColor(DS.successInk)
+                + Text(" ")
+                + Text(note.text).font(.imasCaption.weight(.semibold)).foregroundColor(DS.successInk)
+        case .missing:
+            return Text(Image(systemName: "circle.dotted"))
+                .font(.imasCaption2)
+                .foregroundColor(DS.ink3)
+                + Text(" ")
+                + Text(note.text).foregroundColor(DS.ink2)
+        }
+    }
+
     @ViewBuilder
     private var performerMeta: some View {
-        if !matchingUnits.isEmpty {
-            // ユニット単独曲: ユニット名チップ
-            ForEach(matchingUnits) { unit in
-                ImasTagChip(text: unit.name, kind: .unit, seed: seed)
+        if !unitNames.isEmpty {
+            // ユニット名義の行: ユニット名チップ
+            ForEach(unitNames, id: \.self) { name in
+                ImasTagChip(text: name, kind: .unit, seed: seed)
             }
-        } else if isAllPerformers {
+        } else if isFullCast {
             ImasTagChip(text: "全員", kind: .all, seed: seed)
                 .contentShape(Rectangle())
                 .onTapGesture { showPerformersSheet = true }
@@ -293,9 +385,12 @@ struct SetlistRowView: View {
                 }
             } else {
                 // アイドル情報なし → テキスト chip フォールバック
-                FlowLayout(spacing: 4) {
+                FlowLayout(spacing: DS.sp2) {
                     ForEach(performers) { performer in
-                        PerformerChip(performer: performer, isCharacterLive: isCharacterLive)
+                        PerformerChip(
+                            name: performer.displayName(performerName, isCharacterLive: isCharacterLive),
+                            colorHex: performer.idolColor
+                        )
                     }
                 }
             }
@@ -304,36 +399,22 @@ struct SetlistRowView: View {
 }
 
 private struct PerformerChip: View {
-    let performer: PerformerRow
-    var isCharacterLive: Bool = false
-
-    /// キャラライブならアイドル名、声優ライブならCV名を表示
-    private var displayName: String {
-        if isCharacterLive {
-            return performer.idolName ?? performer.name
-        }
-        return performer.name
-    }
-
-    /// サブテキスト（キャラライブならCV名、声優ライブならアイドル名）
-    private var subName: String? {
-        if isCharacterLive {
-            return performer.idolName != nil ? "CV:\(performer.name)" : nil
-        }
-        return performer.idolName
-    }
+    /// 解決済みの表示名。**どちらを出すかの規則は imas-core が持つ**ので、
+    /// ここは受け取った主/副を並べるだけ (chip の中で解決し直さない)。
+    let name: PerformerDisplayName
+    let colorHex: String?
 
     var body: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: DS.sp2) {
             Circle()
-                .fill(Color(hexString: performer.idolColor, default: DS.ink3))
+                .fill(Color(hexString: colorHex, default: DS.ink3))
                 .frame(width: 6, height: 6)
             VStack(alignment: .leading, spacing: 0) {
-                Text(displayName)
+                Text(name.primary)
                     .font(.imasCaption)
                     .foregroundStyle(DS.ink)
                     .lineLimit(1)
-                if let sub = subName {
+                if let sub = name.secondary {
                     Text(sub)
                         .font(.imasCaption)
                         .foregroundStyle(DS.ink2)

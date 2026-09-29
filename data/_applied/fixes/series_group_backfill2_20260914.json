@@ -1,0 +1,678 @@
+{
+ "title": "series_group の穴埋め その2 (Remix CD / ぷちます! / 会場限定 ほか)",
+ "author": "fuga-if",
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "ml_detective_high_恋探偵物語_giga_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER PERFORMANCE Remix"
+   },
+   "note": "LTP Remix CD の取りこぼし。同日に LTP_Remix01/02/06 が登録済みで、原曲37曲が LIVE THE@TER PERFORMANCE。Thank You! (Snail's House Remix) は LTP Remix CD 03 収録 (cd_series: 空 / 2021-01-23)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_チョー元気showアイドルchng_giga_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER PERFORMANCE Remix"
+   },
+   "note": "LTP Remix CD の取りこぼし。同日に LTP_Remix01/02/06 が登録済みで、原曲37曲が LIVE THE@TER PERFORMANCE。Thank You! (Snail's House Remix) は LTP Remix CD 03 収録 (cd_series: 空 / 2021-01-23)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_デコレーションドリミンッ_toriena_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER PERFORMANCE Remix"
+   },
+   "note": "LTP Remix CD の取りこぼし。同日に LTP_Remix01/02/06 が登録済みで、原曲37曲が LIVE THE@TER PERFORMANCE。Thank You! (Snail's House Remix) は LTP Remix CD 03 収録 (cd_series: 空 / 2021-01-23)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_be_my_boynyankobrq_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER PERFORMANCE Remix"
+   },
+   "note": "LTP Remix CD の取りこぼし。同日に LTP_Remix01/02/06 が登録済みで、原曲37曲が LIVE THE@TER PERFORMANCE。Thank You! (Snail's House Remix) は LTP Remix CD 03 収録 (cd_series: 空 / 2021-02-26)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_bigバルーンko3_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER PERFORMANCE Remix"
+   },
+   "note": "LTP Remix CD の取りこぼし。同日に LTP_Remix01/02/06 が登録済みで、原曲37曲が LIVE THE@TER PERFORMANCE。Thank You! (Snail's House Remix) は LTP Remix CD 03 収録 (cd_series: 空 / 2021-02-26)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_fly_to_everywheregetty_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER PERFORMANCE Remix"
+   },
+   "note": "LTP Remix CD の取りこぼし。同日に LTP_Remix01/02/06 が登録済みで、原曲37曲が LIVE THE@TER PERFORMANCE。Thank You! (Snail's House Remix) は LTP Remix CD 03 収録 (cd_series: 空 / 2021-02-26)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_good-sleep_babydj_wildparty_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER PERFORMANCE Remix"
+   },
+   "note": "LTP Remix CD の取りこぼし。同日に LTP_Remix01/02/06 が登録済みで、原曲37曲が LIVE THE@TER PERFORMANCE。Thank You! (Snail's House Remix) は LTP Remix CD 03 収録 (cd_series: 空 / 2021-02-26)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_legend_girlsfu_mou_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER PERFORMANCE Remix"
+   },
+   "note": "LTP Remix CD の取りこぼし。同日に LTP_Remix01/02/06 が登録済みで、原曲37曲が LIVE THE@TER PERFORMANCE。Thank You! (Snail's House Remix) は LTP Remix CD 03 収録 (cd_series: 空 / 2021-02-26)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_maria_traptanchiky_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER PERFORMANCE Remix"
+   },
+   "note": "LTP Remix CD の取りこぼし。同日に LTP_Remix01/02/06 が登録済みで、原曲37曲が LIVE THE@TER PERFORMANCE。Thank You! (Snail's House Remix) は LTP Remix CD 03 収録 (cd_series: 空 / 2021-02-26)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_rebelliontanchiky_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER PERFORMANCE Remix"
+   },
+   "note": "LTP Remix CD の取りこぼし。同日に LTP_Remix01/02/06 が登録済みで、原曲37曲が LIVE THE@TER PERFORMANCE。Thank You! (Snail's House Remix) は LTP Remix CD 03 収録 (cd_series: 空 / 2021-02-26)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_thank_yousnails_house_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER PERFORMANCE Remix"
+   },
+   "note": "LTP Remix CD の取りこぼし。同日に LTP_Remix01/02/06 が登録済みで、原曲37曲が LIVE THE@TER PERFORMANCE。Thank You! (Snail's House Remix) は LTP Remix CD 03 収録 (cd_series: 空 / 2021-02-26)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_thank_youy0c1e_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER PERFORMANCE Remix"
+   },
+   "note": "LTP Remix CD の取りこぼし。同日に LTP_Remix01/02/06 が登録済みで、原曲37曲が LIVE THE@TER PERFORMANCE。Thank You! (Snail's House Remix) は LTP Remix CD 03 収録 (cd_series: 空 / 2021-02-26)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_カワラナイモノdj_wildparty_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER PERFORMANCE Remix"
+   },
+   "note": "LTP Remix CD の取りこぼし。同日に LTP_Remix01/02/06 が登録済みで、原曲37曲が LIVE THE@TER PERFORMANCE。Thank You! (Snail's House Remix) は LTP Remix CD 03 収録 (cd_series: 空 / 2021-02-26)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_スマイルいちばん4sk_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER PERFORMANCE Remix"
+   },
+   "note": "LTP Remix CD の取りこぼし。同日に LTP_Remix01/02/06 が登録済みで、原曲37曲が LIVE THE@TER PERFORMANCE。Thank You! (Snail's House Remix) は LTP Remix CD 03 収録 (cd_series: 空 / 2021-02-26)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_トキメキの音符になってnyankobrq_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER PERFORMANCE Remix"
+   },
+   "note": "LTP Remix CD の取りこぼし。同日に LTP_Remix01/02/06 が登録済みで、原曲37曲が LIVE THE@TER PERFORMANCE。Thank You! (Snail's House Remix) は LTP Remix CD 03 収録 (cd_series: 空 / 2021-02-26)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_ハッピーラッキージェットマシーンkan_takahiko_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER PERFORMANCE Remix"
+   },
+   "note": "LTP Remix CD の取りこぼし。同日に LTP_Remix01/02/06 が登録済みで、原曲37曲が LIVE THE@TER PERFORMANCE。Thank You! (Snail's House Remix) は LTP Remix CD 03 収録 (cd_series: 空 / 2021-02-26)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_フェスタイルミネーションgetty_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER PERFORMANCE Remix"
+   },
+   "note": "LTP Remix CD の取りこぼし。同日に LTP_Remix01/02/06 が登録済みで、原曲37曲が LIVE THE@TER PERFORMANCE。Thank You! (Snail's House Remix) は LTP Remix CD 03 収録 (cd_series: 空 / 2021-02-26)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_プライヴェイトロードショウplayback_weekdayy0c1e_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER PERFORMANCE Remix"
+   },
+   "note": "LTP Remix CD の取りこぼし。同日に LTP_Remix01/02/06 が登録済みで、原曲37曲が LIVE THE@TER PERFORMANCE。Thank You! (Snail's House Remix) は LTP Remix CD 03 収録 (cd_series: 空 / 2021-02-26)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_ホップステップレインボウ4sk_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER PERFORMANCE Remix"
+   },
+   "note": "LTP Remix CD の取りこぼし。同日に LTP_Remix01/02/06 が登録済みで、原曲37曲が LIVE THE@TER PERFORMANCE。Thank You! (Snail's House Remix) は LTP Remix CD 03 収録 (cd_series: 空 / 2021-02-26)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_ライアールージュgetty_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER PERFORMANCE Remix"
+   },
+   "note": "LTP Remix CD の取りこぼし。同日に LTP_Remix01/02/06 が登録済みで、原曲37曲が LIVE THE@TER PERFORMANCE。Thank You! (Snail's House Remix) は LTP Remix CD 03 収録 (cd_series: 空 / 2021-02-26)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_嘆きのfractionnor_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER PERFORMANCE Remix"
+   },
+   "note": "LTP Remix CD の取りこぼし。同日に LTP_Remix01/02/06 が登録済みで、原曲37曲が LIVE THE@TER PERFORMANCE。Thank You! (Snail's House Remix) は LTP Remix CD 03 収録 (cd_series: 空 / 2021-02-26)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_微笑んだから気づいたんだkan_takahiko_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER PERFORMANCE Remix"
+   },
+   "note": "LTP Remix CD の取りこぼし。同日に LTP_Remix01/02/06 が登録済みで、原曲37曲が LIVE THE@TER PERFORMANCE。Thank You! (Snail's House Remix) は LTP Remix CD 03 収録 (cd_series: 空 / 2021-02-26)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_恋花snails_house_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER PERFORMANCE Remix"
+   },
+   "note": "LTP Remix CD の取りこぼし。同日に LTP_Remix01/02/06 が登録済みで、原曲37曲が LIVE THE@TER PERFORMANCE。Thank You! (Snail's House Remix) は LTP Remix CD 03 収録 (cd_series: 空 / 2021-02-26)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_朝焼けのクレッシェンドkan_takahiko_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER PERFORMANCE Remix"
+   },
+   "note": "LTP Remix CD の取りこぼし。同日に LTP_Remix01/02/06 が登録済みで、原曲37曲が LIVE THE@TER PERFORMANCE。Thank You! (Snail's House Remix) は LTP Remix CD 03 収録 (cd_series: 空 / 2021-02-26)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_素敵なキセキkan_takahiko_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER PERFORMANCE Remix"
+   },
+   "note": "LTP Remix CD の取りこぼし。同日に LTP_Remix01/02/06 が登録済みで、原曲37曲が LIVE THE@TER PERFORMANCE。Thank You! (Snail's House Remix) は LTP Remix CD 03 収録 (cd_series: 空 / 2021-02-26)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_追憶のサンドグラスsky_delta_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER PERFORMANCE Remix"
+   },
+   "note": "LTP Remix CD の取りこぼし。同日に LTP_Remix01/02/06 が登録済みで、原曲37曲が LIVE THE@TER PERFORMANCE。Thank You! (Snail's House Remix) は LTP Remix CD 03 収録 (cd_series: 空 / 2021-02-26)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_透明なプロローグsnails_house_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER PERFORMANCE Remix"
+   },
+   "note": "LTP Remix CD の取りこぼし。同日に LTP_Remix01/02/06 が登録済みで、原曲37曲が LIVE THE@TER PERFORMANCE。Thank You! (Snail's House Remix) は LTP Remix CD 03 収録 (cd_series: 空 / 2021-02-26)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_fu-wa-du-waチバニャン_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER PERFORMANCE Remix"
+   },
+   "note": "LTP Remix CD の取りこぼし。同日に LTP_Remix01/02/06 が登録済みで、原曲37曲が LIVE THE@TER PERFORMANCE。Thank You! (Snail's House Remix) は LTP Remix CD 03 収録 (cd_series: 空 / 2021-03-26)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_greedy_girlケンモチヒデフミ_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER PERFORMANCE Remix"
+   },
+   "note": "LTP Remix CD の取りこぼし。同日に LTP_Remix01/02/06 が登録済みで、原曲37曲が LIVE THE@TER PERFORMANCE。Thank You! (Snail's House Remix) は LTP Remix CD 03 収録 (cd_series: 空 / 2021-03-26)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_get_my_shinin_dé_dé_mouse_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER PERFORMANCE Remix"
+   },
+   "note": "LTP Remix CD の取りこぼし。同日に LTP_Remix01/02/06 が登録済みで、原曲37曲が LIVE THE@TER PERFORMANCE。Thank You! (Snail's House Remix) は LTP Remix CD 03 収録 (cd_series: 空 / 2021-03-26)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_helloコンチェルトチバニャン_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER PERFORMANCE Remix"
+   },
+   "note": "LTP Remix CD の取りこぼし。同日に LTP_Remix01/02/06 が登録済みで、原曲37曲が LIVE THE@TER PERFORMANCE。Thank You! (Snail's House Remix) は LTP Remix CD 03 収録 (cd_series: 空 / 2021-03-26)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_impressionlocomotiontaku_takahashi_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER PERFORMANCE Remix"
+   },
+   "note": "LTP Remix CD の取りこぼし。同日に LTP_Remix01/02/06 が登録済みで、原曲37曲が LIVE THE@TER PERFORMANCE。Thank You! (Snail's House Remix) は LTP Remix CD 03 収録 (cd_series: 空 / 2021-03-26)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_pretty_dreamerチバニャン_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER PERFORMANCE Remix"
+   },
+   "note": "LTP Remix CD の取りこぼし。同日に LTP_Remix01/02/06 が登録済みで、原曲37曲が LIVE THE@TER PERFORMANCE。Thank You! (Snail's House Remix) は LTP Remix CD 03 収録 (cd_series: 空 / 2021-03-26)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_snow_whitedé_dé_mouse_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER PERFORMANCE Remix"
+   },
+   "note": "LTP Remix CD の取りこぼし。同日に LTP_Remix01/02/06 が登録済みで、原曲37曲が LIVE THE@TER PERFORMANCE。Thank You! (Snail's House Remix) は LTP Remix CD 03 収録 (cd_series: 空 / 2021-03-26)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_thank_youtaku_takahashi_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER PERFORMANCE Remix"
+   },
+   "note": "LTP Remix CD の取りこぼし。同日に LTP_Remix01/02/06 が登録済みで、原曲37曲が LIVE THE@TER PERFORMANCE。Thank You! (Snail's House Remix) は LTP Remix CD 03 収録 (cd_series: 空 / 2021-03-26)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_thank_youチバニャン_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER PERFORMANCE Remix"
+   },
+   "note": "LTP Remix CD の取りこぼし。同日に LTP_Remix01/02/06 が登録済みで、原曲37曲が LIVE THE@TER PERFORMANCE。Thank You! (Snail's House Remix) は LTP Remix CD 03 収録 (cd_series: 空 / 2021-03-26)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_あのね聞いてほしいことがあるんだdé_dé_mouse_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER PERFORMANCE Remix"
+   },
+   "note": "LTP Remix CD の取りこぼし。同日に LTP_Remix01/02/06 が登録済みで、原曲37曲が LIVE THE@TER PERFORMANCE。Thank You! (Snail's House Remix) は LTP Remix CD 03 収録 (cd_series: 空 / 2021-03-26)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_ちいさな恋の足音dé_dé_mouse_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER PERFORMANCE Remix"
+   },
+   "note": "LTP Remix CD の取りこぼし。同日に LTP_Remix01/02/06 が登録済みで、原曲37曲が LIVE THE@TER PERFORMANCE。Thank You! (Snail's House Remix) は LTP Remix CD 03 収録 (cd_series: 空 / 2021-03-26)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_オリジナル声になってdé_dé_mouse_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER PERFORMANCE Remix"
+   },
+   "note": "LTP Remix CD の取りこぼし。同日に LTP_Remix01/02/06 が登録済みで、原曲37曲が LIVE THE@TER PERFORMANCE。Thank You! (Snail's House Remix) は LTP Remix CD 03 収録 (cd_series: 空 / 2021-03-26)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_オレンジの空の下チバニャン_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER PERFORMANCE Remix"
+   },
+   "note": "LTP Remix CD の取りこぼし。同日に LTP_Remix01/02/06 が登録済みで、原曲37曲が LIVE THE@TER PERFORMANCE。Thank You! (Snail's House Remix) は LTP Remix CD 03 収録 (cd_series: 空 / 2021-03-26)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_ココロがかえる場所ケンモチヒデフミ_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER PERFORMANCE Remix"
+   },
+   "note": "LTP Remix CD の取りこぼし。同日に LTP_Remix01/02/06 が登録済みで、原曲37曲が LIVE THE@TER PERFORMANCE。Thank You! (Snail's House Remix) は LTP Remix CD 03 収録 (cd_series: 空 / 2021-03-26)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_ハッピ_エフェクト_チバニャン_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER PERFORMANCE Remix"
+   },
+   "note": "LTP Remix CD の取りこぼし。同日に LTP_Remix01/02/06 が登録済みで、原曲37曲が LIVE THE@TER PERFORMANCE。Thank You! (Snail's House Remix) は LTP Remix CD 03 収録 (cd_series: 空 / 2021-03-26)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_ハミングロードチバニャン_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER PERFORMANCE Remix"
+   },
+   "note": "LTP Remix CD の取りこぼし。同日に LTP_Remix01/02/06 が登録済みで、原曲37曲が LIVE THE@TER PERFORMANCE。Thank You! (Snail's House Remix) は LTP Remix CD 03 収録 (cd_series: 空 / 2021-03-26)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_ハートウォーミングdé_dé_mouse_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER PERFORMANCE Remix"
+   },
+   "note": "LTP Remix CD の取りこぼし。同日に LTP_Remix01/02/06 が登録済みで、原曲37曲が LIVE THE@TER PERFORMANCE。Thank You! (Snail's House Remix) は LTP Remix CD 03 収録 (cd_series: 空 / 2021-03-26)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_ビギナーズストライクチバニャン_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER PERFORMANCE Remix"
+   },
+   "note": "LTP Remix CD の取りこぼし。同日に LTP_Remix01/02/06 が登録済みで、原曲37曲が LIVE THE@TER PERFORMANCE。Thank You! (Snail's House Remix) は LTP Remix CD 03 収録 (cd_series: 空 / 2021-03-26)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_マイペースマイウェイdé_dé_mouse_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER PERFORMANCE Remix"
+   },
+   "note": "LTP Remix CD の取りこぼし。同日に LTP_Remix01/02/06 が登録済みで、原曲37曲が LIVE THE@TER PERFORMANCE。Thank You! (Snail's House Remix) は LTP Remix CD 03 収録 (cd_series: 空 / 2021-03-26)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_君想いbirthdayチバニャン_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER PERFORMANCE Remix"
+   },
+   "note": "LTP Remix CD の取りこぼし。同日に LTP_Remix01/02/06 が登録済みで、原曲37曲が LIVE THE@TER PERFORMANCE。Thank You! (Snail's House Remix) は LTP Remix CD 03 収録 (cd_series: 空 / 2021-03-26)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_微笑み日和チバニャン_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER PERFORMANCE Remix"
+   },
+   "note": "LTP Remix CD の取りこぼし。同日に LTP_Remix01/02/06 が登録済みで、原曲37曲が LIVE THE@TER PERFORMANCE。Thank You! (Snail's House Remix) は LTP Remix CD 03 収録 (cd_series: 空 / 2021-03-26)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_恋のlesson初級編チバニャン_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER PERFORMANCE Remix"
+   },
+   "note": "LTP Remix CD の取りこぼし。同日に LTP_Remix01/02/06 が登録済みで、原曲37曲が LIVE THE@TER PERFORMANCE。Thank You! (Snail's House Remix) は LTP Remix CD 03 収録 (cd_series: 空 / 2021-03-26)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_想いはcarnavalチバニャン_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER PERFORMANCE Remix"
+   },
+   "note": "LTP Remix CD の取りこぼし。同日に LTP_Remix01/02/06 が登録済みで、原曲37曲が LIVE THE@TER PERFORMANCE。Thank You! (Snail's House Remix) は LTP Remix CD 03 収録 (cd_series: 空 / 2021-03-26)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_bouncing_smiledj_wildparty_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER HARMONY Remix"
+   },
+   "note": "LTH Remix CD 03 相当。同日に LTH_Remix01/02/04/05 が登録済み(03が欠番)で、原曲11曲が LIVE THE@TER HARMONY (cd_series: 空 / 2022-03-14)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_home_sweet_friendshipbatsu_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER HARMONY Remix"
+   },
+   "note": "LTH Remix CD 03 相当。同日に LTH_Remix01/02/04/05 が登録済み(03が欠番)で、原曲11曲が LIVE THE@TER HARMONY (cd_series: 空 / 2022-03-14)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_my_style_our_styleko3_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER HARMONY Remix"
+   },
+   "note": "LTH Remix CD 03 相当。同日に LTH_Remix01/02/04/05 が登録済み(03が欠番)で、原曲11曲が LIVE THE@TER HARMONY (cd_series: 空 / 2022-03-14)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_super_loverhylen_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER HARMONY Remix"
+   },
+   "note": "LTH Remix CD 03 相当。同日に LTH_Remix01/02/04/05 が登録済み(03が欠番)で、原曲11曲が LIVE THE@TER HARMONY (cd_series: 空 / 2022-03-14)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_up10sionpleeeeeeeeeasegetty_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER HARMONY Remix"
+   },
+   "note": "LTH Remix CD 03 相当。同日に LTH_Remix01/02/04/05 が登録済み(03が欠番)で、原曲11曲が LIVE THE@TER HARMONY (cd_series: 空 / 2022-03-14)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_wow_i_need_シンギングモンキー_歌唱拳_toriena_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER HARMONY Remix"
+   },
+   "note": "LTH Remix CD 03 相当。同日に LTH_Remix01/02/04/05 が登録済み(03が欠番)で、原曲11曲が LIVE THE@TER HARMONY (cd_series: 空 / 2022-03-14)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_welcomey0c1e_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER HARMONY Remix"
+   },
+   "note": "LTH Remix CD 03 相当。同日に LTH_Remix01/02/04/05 が登録済み(03が欠番)で、原曲11曲が LIVE THE@TER HARMONY (cd_series: 空 / 2022-03-14)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_キミがいて夢になるfu_mou_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER HARMONY Remix"
+   },
+   "note": "LTH Remix CD 03 相当。同日に LTH_Remix01/02/04/05 が登録済み(03が欠番)で、原曲11曲が LIVE THE@TER HARMONY (cd_series: 空 / 2022-03-14)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_ジレるハートに火をつけて4sk_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER HARMONY Remix"
+   },
+   "note": "LTH Remix CD 03 相当。同日に LTH_Remix01/02/04/05 が登録済み(03が欠番)で、原曲11曲が LIVE THE@TER HARMONY (cd_series: 空 / 2022-03-14)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_フローズンワードy0c1e_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER HARMONY Remix"
+   },
+   "note": "LTH Remix CD 03 相当。同日に LTH_Remix01/02/04/05 が登録済み(03が欠番)で、原曲11曲が LIVE THE@TER HARMONY (cd_series: 空 / 2022-03-14)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_プリティッニャンニャンッ_beatnine_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER HARMONY Remix"
+   },
+   "note": "LTH Remix CD 03 相当。同日に LTH_Remix01/02/04/05 が登録済み(03が欠番)で、原曲11曲が LIVE THE@TER HARMONY (cd_series: 空 / 2022-03-14)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_ホントウノワタシy0c1e_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER HARMONY Remix"
+   },
+   "note": "LTH Remix CD 03 相当。同日に LTH_Remix01/02/04/05 が登録済み(03が欠番)で、原曲11曲が LIVE THE@TER HARMONY (cd_series: 空 / 2022-03-14)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_初恋バタフライnarumi_helvetica_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER HARMONY Remix"
+   },
+   "note": "LTH Remix CD 03 相当。同日に LTH_Remix01/02/04/05 が登録済み(03が欠番)で、原曲11曲が LIVE THE@TER HARMONY (cd_series: 空 / 2022-03-14)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_恋愛ロードランナーyuzen_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER HARMONY Remix"
+   },
+   "note": "LTH Remix CD 03 相当。同日に LTH_Remix01/02/04/05 が登録済み(03が欠番)で、原曲11曲が LIVE THE@TER HARMONY (cd_series: 空 / 2022-03-14)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_求ム_vs_マイフューチャーdj_genki_remix",
+   "fields": {
+    "series_group": "LIVE THE@TER HARMONY Remix"
+   },
+   "note": "LTH Remix CD 03 相当。同日に LTH_Remix01/02/04/05 が登録済み(03が欠番)で、原曲11曲が LIVE THE@TER HARMONY (cd_series: 空 / 2022-03-14)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_ぷちどるのうた",
+   "fields": {
+    "series_group": "PETIT IDOLM@STER"
+   },
+   "note": "ぷちます! 作品の音源。既存 PETIT IDOLM@STER (2012-11〜2014-08) と同じ作品・同じ期間 (cd_series: ぷちます！のCDその他#DramaCD1 / 2011-04-27)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_ありがとyesterdays_petit_specialver",
+   "fields": {
+    "series_group": "PETIT IDOLM@STER"
+   },
+   "note": "ぷちます! 作品の音源。既存 PETIT IDOLM@STER (2012-11〜2014-08) と同じ作品・同じ期間 (cd_series: アニメ「ぷちます! -プチ・アイドルマスター-」あ・り・が・と・YESTERDAYS - EP / 2013-03-27)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_today_with_me_petit_specialver",
+   "fields": {
+    "series_group": "PETIT IDOLM@STER"
+   },
+   "note": "ぷちます! 作品の音源。既存 PETIT IDOLM@STER (2012-11〜2014-08) と同じ作品・同じ期間 (cd_series: アニメ「ぷちます! -プチ・アイドルマスター-」TODAY with ME - EP / 2013-04-24)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_maybe_tomorrow_petit_specialver",
+   "fields": {
+    "series_group": "PETIT IDOLM@STER"
+   },
+   "note": "ぷちます! 作品の音源。既存 PETIT IDOLM@STER (2012-11〜2014-08) と同じ作品・同じ期間 (cd_series: アニメ「ぷちます! -プチ・アイドルマスター-」Maybe TOMORROW - EP / 2013-05-29)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_おんぷ",
+   "fields": {
+    "series_group": "PETIT IDOLM@STER"
+   },
+   "note": "ぷちます! 作品の音源。既存 PETIT IDOLM@STER (2012-11〜2014-08) と同じ作品・同じ期間 (cd_series: アニメ「ぷちます! -プチ・アイドルマスター-」♪(おんぷ)/音無小鳥 - Single / 2014-03-22)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_1人ぼっちの歌",
+   "fields": {
+    "series_group": "PETIT IDOLM@STER"
+   },
+   "note": "ぷちます! 作品の音源。既存 PETIT IDOLM@STER (2012-11〜2014-08) と同じ作品・同じ期間 (cd_series: アニメ「ぷちます!! -プチプチ・アイドルマスター-」1人ぼっちの歌/プロデューサー - Single / 2014-04-16)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_オハロナイとろぴかる_remix",
+   "fields": {
+    "series_group": "PETIT IDOLM@STER"
+   },
+   "note": "ぷちます! 作品の音源。既存 PETIT IDOLM@STER (2012-11〜2014-08) と同じ作品・同じ期間 (cd_series: ぷちます！のCDシリーズ#ぷちます!!ED / 2014-05-28)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_輝夜",
+   "fields": {
+    "series_group": "ライブ会場限定CD"
+   },
+   "note": "会場限定CD。既存の dual twin live tour 盤と同じ括り (cd_series: 如月千早武道館単独公演「OathONE」（会場オリジナルCD） / 2026-01-24)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_binarystar",
+   "fields": {
+    "series_group": "ライブ会場限定CD"
+   },
+   "note": "会場限定CD。既存の dual twin live tour 盤と同じ括り (cd_series: 765PRO ALLSTARS dual twin live tour「つみまつよるまち」（会場オリジナルCD） / 2026-08-06)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_北極星をズラしちゃえ",
+   "fields": {
+    "series_group": "ライブ会場限定CD"
+   },
+   "note": "会場限定CD。既存の dual twin live tour 盤と同じ括り (cd_series: 765PRO ALLSTARS dual twin live tour「ふたごぼしのつばさ」（会場オリジナルCD） / 2026-08-06)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_fourremix-a",
+   "fields": {
+    "series_group": "THE IDOLM@STER RADIO"
+   },
+   "note": "アイマスラジオのCD。既存 THE IDOLM@STER RADIO と同じ番組の音源 (cd_series: アイマスラジオ（フロンティアワークス）のCD#Vocal Collection 02 / 2010-04-21)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_virgin_load",
+   "fields": {
+    "series_group": "THE IDOLM@STER RADIO"
+   },
+   "note": "アイマスラジオのCD。既存 THE IDOLM@STER RADIO と同じ番組の音源 (cd_series: アイマスラジオ（フロンティアワークス）のCD#Vocal Collection 02 / 2010-04-21)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_仲良しでいようね",
+   "fields": {
+    "series_group": "THE IDOLM@STER RADIO"
+   },
+   "note": "アイマスラジオのCD。既存 THE IDOLM@STER RADIO と同じ番組の音源 (cd_series: アイマスラジオ（フロンティアワークス）のCD#Vocal Collection 02 / 2010-04-21)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_live_for_love",
+   "fields": {
+    "series_group": "XENOGLOSSIA"
+   },
+   "note": "TVアニメ XENOGLOSSIA 関連の3曲 (BEST COLLECTION / 弥生式らじお主題歌シングル) (cd_series: 恋だもん 〜初級編〜 (TVアニメ『アイドルマスター XENOGLOSSIA』\"春香とやよいの弥生式らじお\"主題歌) - Single / 2007-03-09)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_恋だもん初級編",
+   "fields": {
+    "series_group": "XENOGLOSSIA"
+   },
+   "note": "TVアニメ XENOGLOSSIA 関連の3曲 (BEST COLLECTION / 弥生式らじお主題歌シングル) (cd_series: 恋だもん 〜初級編〜 (TVアニメ『アイドルマスター XENOGLOSSIA』\"春香とやよいの弥生式らじお\"主題歌) - Single / 2007-03-09)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_夏空のブローチ",
+   "fields": {
+    "series_group": "XENOGLOSSIA"
+   },
+   "note": "TVアニメ XENOGLOSSIA 関連の3曲 (BEST COLLECTION / 弥生式らじお主題歌シングル) (cd_series: TVアニメ『アイドルマスター XENOGLOSSIA』BEST COLLECTION / 2007-07-17)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_ストレートラブ",
+   "fields": {
+    "series_group": "THE IDOLM@STER Eternal Prism"
+   },
+   "note": "Eternal Prism Premium CD に収録された3曲 (2008-12〜2009-02) (cd_series: THE IDOLM@STER Eternal Prism Premium CD / 2008-12-25)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_白い犬",
+   "fields": {
+    "series_group": "THE IDOLM@STER Eternal Prism"
+   },
+   "note": "Eternal Prism Premium CD に収録された3曲 (2008-12〜2009-02) (cd_series: THE IDOLM@STER Eternal Prism Premium CD / 2009-01-23)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_melted_snow",
+   "fields": {
+    "series_group": "THE IDOLM@STER Eternal Prism"
+   },
+   "note": "Eternal Prism Premium CD に収録された3曲 (2008-12〜2009-02) (cd_series: THE IDOLM@STER Eternal Prism Premium CD / 2009-02-25)"
+  }
+ ]
+}

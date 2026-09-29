@@ -14,17 +14,18 @@ struct TagDetailView: View {
     @State private var alertError: CommunityAPIError?
     @State private var songCache: [String: Song] = [:]
     @State private var nextDestination: DetailDestination?
+    @Environment(\.colorScheme) private var scheme
 
     var body: some View {
         List {
             if isLoading {
-                HStack { Spacer(); ProgressView(); Spacer() }
+                ImasInlineLoading()
                     .listRowBackground(Color.clear)
             } else if let detail {
                 // タグ情報セクション
                 Section {
                     VStack(alignment: .leading, spacing: 10) {
-                        HStack(spacing: 8) {
+                        HStack(spacing: DS.sp3) {
                             if let hexColor = detail.tag.color {
                                 RoundedRectangle(cornerRadius: 4)
                                     .fill(Color(hexColor: hexColor))
@@ -37,7 +38,7 @@ struct TagDetailView: View {
                             if let cat = detail.tag.category {
                                 Text(categoryLabel(cat.rawValue))
                                     .font(.imasCaption)
-                                    .padding(.horizontal, 8)
+                                    .padding(.horizontal, DS.sp3)
                                     .padding(.vertical, 3)
                                     .background(categoryColor(cat.rawValue).opacity(0.2))
                                     .foregroundStyle(categoryColor(cat.rawValue))
@@ -49,6 +50,7 @@ struct TagDetailView: View {
                             Text(desc)
                                 .font(.imasBody)
                                 .foregroundStyle(DS.ink)
+                                .imasSelectableText()
                         } else {
                             Text("説明なし")
                                 .font(.imasBody)
@@ -81,19 +83,18 @@ struct TagDetailView: View {
                     Section("「\(detail.tag.name)」な曲ランキング（\(detail.songs.count)曲）") {
                         ForEach(Array(detail.songs.enumerated()), id: \.element.id) { idx, entry in
                             if let song = songCache[entry.songId] {
-                                Button { nextDestination = .song(song) } label: {
-                                    HStack(spacing: DS.sp2) {
-                                        TagRankBadge(rank: idx + 1)
-                                        SongTitleRow(song: song, subtitle: song.singerLabel, showsChevron: false)
-                                        Text("\(entry.voteCount)票")
-                                            .font(.imasCaption.monospacedDigit())
-                                            .foregroundStyle(DS.ink2)
-                                        Image(systemName: "chevron.right")
-                                            .font(.imasCaption)
-                                            .foregroundStyle(DS.ink3)
-                                    }
+                                // Button でラップすると内側のジャケ写プレビュー再生タップが
+                                // 吸われるため、行全体は onTapGesture で遷移を受ける。
+                                HStack(spacing: DS.sp2) {
+                                    TagRankBadge(rank: idx + 1)
+                                    SongTitleRow(song: song, subtitle: song.singerLabel, showsChevron: false)
+                                    Text("\(entry.voteCount)票")
+                                        .font(.imasCaption.monospacedDigit())
+                                        .foregroundStyle(DS.ink2)
+                                    ImasRowChevron()
                                 }
-                                .buttonStyle(.plain)
+                                .contentShape(Rectangle())
+                                .onTapGesture { nextDestination = .song(song) }
                             } else {
                                 HStack(spacing: DS.sp2) {
                                     TagRankBadge(rank: idx + 1)
@@ -112,9 +113,7 @@ struct TagDetailView: View {
                     }
                 } else {
                     Section {
-                        Text("まだこのタグが付いた曲はありません")
-                            .foregroundStyle(DS.ink2)
-                            .font(.imasCaption)
+                        ImasEmptyState(systemImage: "tag", title: "まだこのタグが付いた曲はありません")
                             .listRowBackground(DS.surface)
                             .listRowSeparatorTint(DS.sep)
                     }
@@ -186,7 +185,7 @@ struct TagDetailView: View {
 
     private func reportTag() async {
         do {
-            try await CommunityAPI.shared.reportTag(id: tagId)
+            try await AppContainer.shared.communityTagWriting.reportTag(id: tagId, reason: nil)
             reportSuccessAlert = true
         } catch let error as CommunityAPIError {
             alertError = error
@@ -198,7 +197,7 @@ struct TagDetailView: View {
     private func loadDetail() async {
         isLoading = true
         defer { isLoading = false }
-        detail = try? await CommunityAPI.shared.tag(id: tagId)
+        detail = try? await AppContainer.shared.communityTagReading.tag(id: tagId)
         if let songs = detail?.songs {
             // N+1 を避けてIN句で一括取得し、O(1)辞書化。表示順序は ForEach(detail.songs) が維持。
             let missingIds = songs.map(\.songId).filter { songCache[$0] == nil }
@@ -211,22 +210,12 @@ struct TagDetailView: View {
     }
 
     private func categoryLabel(_ cat: String) -> String {
-        switch cat {
-        case "mood": return "ムード"
-        case "scene": return "シーン"
-        case "special": return "特別"
-        case "free": return "フリー"
-        default: return cat
-        }
+        TagCategoryOptions.song.first { $0.value == cat }?.label ?? cat
     }
 
+    /// 4種のタグカテゴリを見分けやすく塗り分ける。カテゴリは実体色を持たないので
+    /// `ImasTheme.derive(categoryKey:)` で安定した色を導出する (増えても手書きパレット不要)。
     private func categoryColor(_ cat: String) -> Color {
-        switch cat {
-        case "mood": return .purple
-        case "scene": return .blue
-        case "special": return .orange
-        case "free": return .green
-        default: return .secondary
-        }
+        ImasTheme.derive(categoryKey: cat, scheme: scheme).accent
     }
 }

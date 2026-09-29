@@ -1,0 +1,59 @@
+{
+ "title": "補足の残り 6 曲 (Welcome!! / Dreaming! / Crossing! / Spread the Wings!! / シャニアニ OP 2 曲)",
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "ml_crossing",
+   "fields": {
+    "note": "ミリオンライブ！ 10 周年記念楽曲"
+   },
+   "source": "https://idolmaster-official.jp/news/01_7633",
+   "note": "公式ポータル: 「アイドルマスター ミリオンライブ！10周年記念楽曲『Crossing!』」"
+  },
+  {
+   "table": "songs",
+   "id": "sc_spread_the_wings",
+   "fields": {
+    "note": "シャニマス テーマソング"
+   },
+   "source": "https://idolmaster.jp/blog/?p=40374",
+   "note": "公式ブログ: 「出演アイドル16名全員で歌うテーマソング「Spread the Wings!!」」"
+  },
+  {
+   "table": "songs",
+   "id": "sc_ツバサグラビティ",
+   "fields": {
+    "note": "TVアニメ『アイドルマスター シャイニーカラーズ』 OP テーマ"
+   },
+   "source": "https://shinycolors.lantis.jp/releaseinfo/lacm-24508/",
+   "note": "Lantis: アニメ『アイドルマスター シャイニーカラーズ』オープニング主題歌「ツバサグラビティ」"
+  },
+  {
+   "table": "songs",
+   "id": "sc_プリズムフレア",
+   "fields": {
+    "note": "TVアニメ『アイドルマスター シャイニーカラーズ』 2nd season OP テーマ"
+   },
+   "source": "https://shinycolors.lantis.jp/releaseinfo/lacm-24580/",
+   "note": "Lantis: アニメ『アイドルマスター シャイニーカラーズ 2nd season』オープニング主題歌「プリズムフレア」"
+  },
+  {
+   "table": "songs",
+   "id": "ml_welcome",
+   "fields": {
+    "note": "ミリマス 1 周年記念楽曲"
+   },
+   "source": "オーナー (fuga) が示した周年曲の一覧 (2026-09-24、プロジェクトのスレッド)。公式ページには「テーマソング」とだけある",
+   "note": "オーナーの判断で表の文言どおりに入れる"
+  },
+  {
+   "table": "songs",
+   "id": "ml_dreaming",
+   "fields": {
+    "note": "ミリマス 2 周年記念楽曲"
+   },
+   "source": "オーナー (fuga) が示した周年曲の一覧 (2026-09-24、プロジェクトのスレッド)。公式ページには「テーマソング」とだけある",
+   "note": "オーナーの判断で表の文言どおりに入れる"
+  }
+ ]
+}

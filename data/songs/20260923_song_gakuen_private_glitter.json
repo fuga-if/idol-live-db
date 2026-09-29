@@ -1,0 +1,21 @@
+{
+ "title": "曲「Private Glitter」(gakuen) の追加",
+ "author": "LLM 提案 (propose_song)",
+ "source": "https://idolmaster-official.jp/news/01_19877.html",
+ "note": "出典: https://idolmaster-official.jp/news/01_19877.html\n引用: \"💿Private Glitter 作詞：みさつん 作曲・編曲：ユウフジシマ サブスク配信＆DL販売はこちら！\"\n公式ニュース記事 (岩手公演 DAY2 の告知まとめ) より。セットリスト画像で 9 曲目に紫雲清夏 (CV 湊みや) が歌唱。9月24日(木)0時より配信開始。",
+ "songs": [
+  {
+   "id": "gakuen_private_glitter",
+   "title": "Private Glitter",
+   "brand_id": "gakuen",
+   "song_type": "solo",
+   "release_date": "2026-09-24",
+   "composer": "ユウフジシマ",
+   "lyricist": "みさつん",
+   "arranger": "ユウフジシマ",
+   "original_singers": [
+    "gakuen_紫雲清夏"
+   ]
+  }
+ ]
+}

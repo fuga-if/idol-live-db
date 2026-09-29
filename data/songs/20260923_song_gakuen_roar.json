@@ -1,0 +1,21 @@
+{
+ "title": "曲「Roar」(gakuen) の追加",
+ "author": "LLM 提案 (propose_song)",
+ "source": "https://idolmaster-official.jp/news/01_19877.html",
+ "note": "出典: https://idolmaster-official.jp/news/01_19877.html\n引用: \"新曲情報！ 本日のLIVE TOUR –標- 岩手公演 day2にて、新曲をサプライズ披露しました！ 楽曲はこのあと、9月24日(木)0時より配信スタート！ 💿Roar 作詞・作曲・編曲：BOYHOOD (Digz, Inc. Group)\"\n公式ニュース記事 (岩手公演 DAY2 の告知まとめ) より。セットリスト画像で 8 曲目に十王星南 (CV 陽高真白) が歌唱。作詞・作曲・編曲が同一名義なので 3 欄に同じ値を入れている。同記事によればこの曲は『初星学園 Conceptual Single Collection Vol.3』(倉本千奈・紫雲清夏・秦谷美鈴・十王星南の新曲を収録) にも入る予定だが、発売日が未発表なので cd_series は入れていない。",
+ "songs": [
+  {
+   "id": "gakuen_roar",
+   "title": "Roar",
+   "brand_id": "gakuen",
+   "song_type": "solo",
+   "release_date": "2026-09-24",
+   "composer": "BOYHOOD (Digz, Inc. Group)",
+   "lyricist": "BOYHOOD (Digz, Inc. Group)",
+   "arranger": "BOYHOOD (Digz, Inc. Group)",
+   "original_singers": [
+    "gakuen_十王星南"
+   ]
+  }
+ ]
+}

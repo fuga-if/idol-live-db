@@ -1,0 +1,9 @@
+{
+ "title": "songs の gakuen_真っ白いページと水彩の主人公 の編曲者表記を作家マスタに揃える (issue #116)",
+ "author": "daily-data-crawl 2026-09-23 (GitHub issue #116)",
+ "source": ["https://gakuen-label.idolmaster-official.jp/discography/ltv_g0vm-fb1", "https://x.com/gkmas_official/status/2042445213055271004"],
+ "note": "公式クレジットは「編曲：半田 翼」。同じ作家は creators マスタ (cr_78b0ef98bf46) と他 59 曲で「半田翼」表記なので、作家の名寄せが効くようにこちらに揃える。",
+ "fixes": [
+  {"table": "songs", "id": "gakuen_真っ白いページと水彩の主人公", "fields": {"arranger": "半田翼"}}
+ ]
+}

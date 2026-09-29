@@ -18,6 +18,15 @@ packages:
     url: https://github.com/firebase/firebase-ios-sdk
     from: "11.0.0"
 
+# 版はここ 1 箇所だけ。ターゲットごとに書くと必ずずれる — 実際、fastlane の
+# 書き戻しが `sub!` (最初の 1 件だけ置換) だったため、本体が 53 に上がっても
+# ウィジェット拡張は 46 のまま取り残されていた (App Store 提出時に
+# 「app extension の CFBundleVersion は本体と一致していること」で弾かれる)。
+settings:
+  base:
+    MARKETING_VERSION: "2.3.0"
+    CURRENT_PROJECT_VERSION: "59"
+
 targets:
   ImasLiveDB:
     type: application
@@ -42,9 +51,15 @@ targets:
       - path: ImasLiveDB/Resources/v7_event_kind_data.sql
         buildPhase: resources
       - path: ImasLiveDB/Resources/GoogleService-Info.plist
+        # gitignore 対象 (Firebase の秘匿ファイル) なので CI や新規 clone には無い。
+        # master.sqlite と同じく optional にしておかないと xcodegen が spec 検証で落ちる。
+        optional: true
         buildPhase: resources
       - path: ImasLiveDB/PrivacyInfo.xcprivacy
         buildPhase: resources
+      # imas-core (Rust) の UniFFI 生成バインディング。imas-core/build.sh が再生成する
+      - path: build/imas-core/swift/imas_core.swift
+        group: ImasCore
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
@@ -52,8 +67,6 @@ targets:
         CODE_SIGN_STYLE: Automatic
         PRODUCT_BUNDLE_IDENTIFIER: com.fugaif.ImasLiveDB
         PRODUCT_NAME: ImasLiveDB
-        MARKETING_VERSION: "1.8.0"
-        CURRENT_PROJECT_VERSION: "42"
         INFOPLIST_KEY_CFBundleDisplayName: アイドルライブDB
         INFOPLIST_KEY_CFBundleDevelopmentRegion: ja
         INFOPLIST_KEY_CFBundleAllowMixedLocalizations: YES
@@ -66,7 +79,6 @@ targets:
         INFOPLIST_KEY_NSCalendarsWriteOnlyAccessUsageDescription: "ライブの予定をカレンダーに追加するために使用します"
         INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription: "お手持ちのカレンダーの予定をアプリ内のスケジュールに重ねて表示するために使用します"
         INFOPLIST_KEY_NSSpeechRecognitionUsageDescription: "発声した曲名をテキスト化してクイズに回答するために使用します"
-        INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
         INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
@@ -85,6 +97,13 @@ targets:
     info:
       path: ImasLiveDB/Info.plist
       properties:
+        # 起動画面。無地の自動生成 (UILaunchScreen_Generation) だとダークモードで
+        # 真っ黒になり、初回起動の DB 準備中に「壊れた?」と不安にさせるため、
+        # アプリアイコンを中央に置いた画面にする。背景はアプリ本体と同じ色。
+        UILaunchScreen:
+          UIImageName: LaunchLogo
+          UIImageRespectsSafeAreaInsets: true
+          UIColorName: LaunchBackground
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         CFBundleURLTypes:
@@ -115,6 +134,12 @@ targets:
         product: NukeUI
       - package: Firebase
         product: FirebaseAnalytics
+      # imas-core (Rust): imas-core/build.sh で生成。
+      # Apple では rusqlite が system SQLite とリンクするため libsqlite3 を明示
+      # (bundled を静的リンクすると GRDB まで同梱 SQLite に乗っ取られる — Cargo.toml 参照)
+      - framework: build/imas-core/ImasCore.xcframework
+        embed: false
+      - sdk: libsqlite3.tbd
       - target: ImasLiveDBWidget
     scheme:
       testTargets:
@@ -148,8 +173,6 @@ targets:
         CODE_SIGN_STYLE: Automatic
         PRODUCT_BUNDLE_IDENTIFIER: com.fugaif.ImasLiveDB.widget
         PRODUCT_NAME: ImasLiveDBWidget
-        MARKETING_VERSION: "1.8.0"
-        CURRENT_PROJECT_VERSION: "42"
         INFOPLIST_KEY_CFBundleDisplayName: 担当ウィジェット
         SWIFT_VERSION: "6.0"
         SWIFT_STRICT_CONCURRENCY: complete

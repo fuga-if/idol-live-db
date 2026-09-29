@@ -1,0 +1,11 @@
+{
+ "title": "songs の 765as_dream の収録 CD と配信情報を直す (issue #143 #144 #149)",
+ "author": "daily-data-crawl 2026-09-24 (GitHub issue #143 #144 #149)",
+ "source": ["https://shop.columbia.jp/shop/g/gD6981/", "https://itunes.apple.com/lookup?id=1224072559&country=jp"],
+ "note": "DREAM (萩原雪歩・秋月律子・星井美希・四条貴音・秋月涼) の収録は THE IDOLM@STER BEST OF 765+876=!! VOL.02。付いていた Apple Music (1224072559) は THE IDOLM@STER.KR の Real Girls Project「Dream」で別の曲。原曲は Apple Music で配信されていないので配信情報は空にする。CloudKit へは --replace で送る (NULL 化)。",
+ "fixes": [
+  {"table": "songs", "id": "765as_dream", "fields": {
+   "cd_series": "THE IDOLM@STER BEST OF 765+876=!! VOL.02",
+   "apple_music_id": null, "apple_music_album_id": null, "artwork_url": null, "preview_url": null}}
+ ]
+}

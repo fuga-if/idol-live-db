@@ -1,0 +1,17 @@
+{
+ "title": "上水流宇宙 BIRTHDAY ONLINE LIVE 2026 のセトリ 8 曲",
+ "author": "daily-data-crawl 2026-09-23",
+ "source": ["https://idolmaster-official.jp/news/01_19841", "公式ニュース掲載の MUSIC SETLIST 画像 (/idolmaster/jp/article/011/2026/09/LvOamKUOWoSwL1cg8u01QTNlUJdDjTEZ.jpeg)"],
+ "note": "公式のセットリスト画像のとおり。カバー曲は 2025 年版と同じく原曲の id を使う。M06 フラワーガールは四条貴音との歌唱 (画像の表記どおり)。",
+ "show_id": "sh_上水流宇宙_birthday_online_live_2026_1",
+ "songs": [
+  {"position": 1, "song_id": "ml_star_impression", "performers": ["876_上水流宇宙"]},
+  {"position": 2, "song_id": "876_公転周期", "performers": ["876_上水流宇宙"]},
+  {"position": 3, "song_id": "gakuen_一体いつから", "performers": ["876_上水流宇宙"]},
+  {"position": 4, "song_id": "ml_beat_the_world", "performers": ["876_上水流宇宙", "876_灯里愛夏", "876_サラ_レトラ_オリヴェイラ_ウタガワ"]},
+  {"position": 5, "song_id": "cg_躍るflagship", "performers": ["876_上水流宇宙"]},
+  {"position": 6, "song_id": "765as_フラワーガール", "performers": ["876_上水流宇宙", "765as_四条貴音"]},
+  {"position": 7, "song_id": "876_nova_chro", "performers": ["876_上水流宇宙"]},
+  {"position": 8, "song_id": "876_zerogravity", "performers": ["876_上水流宇宙"]}
+ ]
+}

@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "id": "unit_empty",
+  "path": "/units/unit_empty/",
+  "name": "からっぽユニット",
+  "nameKana": null,
+  "nameAlt": null,
+  "themeKey": "neutral",
+  "kindLabel": "公演限定",
+  "tags": [
+    {
+      "id": "tag_genki",
+      "name": "元気",
+      "count": 7,
+      "themeKey": null,
+      "isOfficial": true,
+      "path": null
+    }
+  ],
+  "brand": null,
+  "members": [],
+  "membersEmpty": {
+    "title": "メンバーがまだ登録されていません",
+    "body": null
+  },
+  "songs": [],
+  "songsEmpty": {
+    "title": "ユニット曲がまだ登録されていません",
+    "body": null
+  },
+  "app": {
+    "title": "アプリ「アイドルライブDB」",
+    "appStoreUrl": "https://apps.apple.com/jp/app/id6763342297",
+    "deeplink": null,
+    "note": "参加記録・投票・歌詞・コール・タグ付けはアプリでご利用いただけます。"
+  },
+  "seo": {
+    "title": "からっぽユニット | アイドルライブDB",
+    "description": "メンバーとユニット曲。",
+    "canonical": "https://idollivedb.fugaapp.site/units/unit_empty/",
+    "ogImage": "https://idollivedb.fugaapp.site/og/default.png",
+    "robots": "index,follow",
+    "jsonLd": {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebPage",
+          "name": "からっぽユニット",
+          "url": "https://idollivedb.fugaapp.site/units/unit_empty/"
+        },
+        {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "item": "https://idollivedb.fugaapp.site/",
+              "name": "ホーム",
+              "position": 1
+            },
+            {
+              "@type": "ListItem",
+              "item": "https://idollivedb.fugaapp.site/units/",
+              "name": "ユニット",
+              "position": 2
+            }
+          ]
+        }
+      ]
+    },
+    "breadcrumbs": [
+      {
+        "name": "ホーム",
+        "path": "/"
+      },
+      {
+        "name": "ユニット",
+        "path": "/units/"
+      }
+    ]
+  }
+}

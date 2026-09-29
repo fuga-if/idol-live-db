@@ -13,6 +13,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import com.fugaif.imaslivedb.data.local.localWrite
 import com.fugaif.imaslivedb.di.AppModule
 import kotlinx.coroutines.launch
 
@@ -39,7 +40,8 @@ fun MarkToggleAction(
     }
     IconButton(onClick = {
         scope.launch {
-            on = AppModule.from(ctx).userMarkRepository.toggle(entityType, entityId, kind)
+            localWrite("マークの切り替え") { AppModule.from(ctx).userMarkRepository.toggle(entityType, entityId, kind) }
+                ?.let { on = it }
         }
     }) {
         Icon(

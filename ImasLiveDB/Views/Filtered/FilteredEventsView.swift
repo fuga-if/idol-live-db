@@ -13,12 +13,11 @@ struct FilteredEventsView: View {
     var body: some View {
         Group {
             if isLoading {
-                ProgressView()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                ImasLoadingState()
             } else if eventsWithDate.isEmpty {
-                ContentUnavailableView(
-                    "ライブが見つかりません",
-                    systemImage: "music.mic"
+                ImasEmptyState(
+                    systemImage: "music.mic",
+                    title: "ライブが見つかりません"
                 )
             } else {
                 List {
@@ -27,7 +26,11 @@ struct FilteredEventsView: View {
                             Button { navigate(.event(ew.event)) } label: {
                                 EventNameRow(
                                     event: ew.event,
-                                    subtitle: [ew.event.eventType, ew.firstDate].compactMap { $0 }.joined(separator: "  ")
+                                    // 種別は生の内部値ではなくラベルで出す。未分類なら日付だけ。
+                                    subtitle: [
+                                        EventType(rawValue: ew.event.eventType)?.displayLabel,
+                                        ew.firstDate,
+                                    ].compactMap { $0 }.joined(separator: "  ")
                                 )
                             }
                             .buttonStyle(.plain)

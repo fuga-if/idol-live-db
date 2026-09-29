@@ -1,0 +1,21 @@
+{
+ "title": "曲「ワタシカワイイアヒルノコ」(gakuen) の追加",
+ "author": "LLM 提案 (propose_song)",
+ "source": "https://nex-tone.link/biHdFdDxD",
+ "note": "出典: https://nex-tone.link/biHdFdDxD\n引用: \"💿ワタシカワイイアヒルノコ 作詞：八城雄太 作曲・編曲：椿山日南子(Dream Monster) ▷nex-tone.link/biHdFdDxD この後0時より配信スタート\"\n学園アイドルマスター LIVE TOUR -標- 岩手公演 DAY1 (2026-09-22) のセットリスト画像で 9 曲目に倉本千奈 (CV 伊藤舞音) が歌唱。配信開始は同日 0 時。NexTone の配信ページのアーティスト表記は「初星学園」。",
+ "songs": [
+  {
+   "id": "gakuen_ワタシカワイイアヒルノコ",
+   "title": "ワタシカワイイアヒルノコ",
+   "brand_id": "gakuen",
+   "song_type": "solo",
+   "release_date": "2026-09-22",
+   "composer": "椿山日南子(Dream Monster)",
+   "lyricist": "八城雄太",
+   "arranger": "椿山日南子(Dream Monster)",
+   "original_singers": [
+    "gakuen_倉本千奈"
+   ]
+  }
+ ]
+}

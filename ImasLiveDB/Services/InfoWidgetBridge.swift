@@ -2,16 +2,20 @@ import Foundation
 import WidgetKit
 
 /// 情報ウィジェット(次のライブ / 今日の1曲 / チケット締切)用のスナップショットを
-/// App Group コンテナへ書き出す。ウィジェット拡張はアプリの GRDB を読めないため、
+/// App Group コンテナへ書き出す。ウィジェット拡張はアプリの DB もコアも読めないため、
 /// アプリ側がここで計算して JSON を置き、拡張はそれを読むだけにする。
-/// 起動時・DB 更新後に呼ぶ。
+///
+/// 呼ぶのは、起動時・フォアグラウンド復帰時・スナップショットの読み直し後
+/// (CloudKit 同期やローカル編集でマスタが変わったとき)。ウィジェットは作った日 (JST) 以外の
+/// スナップショットを出さないので、アプリを開けば当日の内容に戻る。
 enum InfoWidgetBridge {
     /// 情報スナップショットを計算して App Group へ保存し、タイムラインを更新する。
-    static func sync(database: AppDatabase) async {
-        let today = Self.dateKey()
-        async let nextShow = Self.resolveNextShow(database: database, today: today)
-        async let todaySong = Self.resolveTodaySong(database: database, today: today)
-        async let deadlines = Self.resolveTicketDeadlines(database: database, today: today)
+    static func sync() async {
+        // 公演日・締切と比べる「今日」はアプリ本体と同じ JST。
+        let today = JSTDay.today()
+        async let nextShow = resolveNextShow(today: today)
+        async let todaySong = resolveTodaySong()
+        async let deadlines = resolveTicketDeadlines(today: today)
 
         let snapshot = InfoWidgetSnapshot(
             nextShow: await nextShow,
@@ -25,8 +29,9 @@ enum InfoWidgetBridge {
 
     // MARK: - 次のライブ
 
-    private static func resolveNextShow(database: AppDatabase, today: String) async -> NextShowInfo? {
-        guard let events = try? database.fetchEventsWithFirstDate(
+    private static func resolveNextShow(today: String) async -> NextShowInfo? {
+        let container = AppContainer.shared
+        guard let events = try? await container.eventReading.eventsWithFirstDate(
             brandId: nil, includeEmpty: false, liveOnly: false, kinds: [.live, .festival]
         ) else { return nil }
 
@@ -37,7 +42,7 @@ enum InfoWidgetBridge {
         guard let next = upcoming.first, let firstDate = next.firstDate else { return nil }
 
         // ブランドカラーを取得
-        let brands = (try? database.fetchBrands()) ?? []
+        let brands = (try? await container.brandReading.brands()) ?? []
         let brandColor = brands.first(where: { $0.id == next.event.brandId })?.color
 
         return NextShowInfo(
@@ -48,41 +53,43 @@ enum InfoWidgetBridge {
         )
     }
 
-    // MARK: - 今日の1曲 (DailySongVoteSheet と同じロジック)
+    // MARK: - 今日の1曲 (DailyPickSheet の曲の日と同じ曲)
+    //
+    // ウィジェットは曲だけを出す。アプリの起動シートは日で曲とアイドルを入れ替えるが、
+    // 「今日の1曲」ウィジェットに求められているのは曲なので追随させない。
+    // 曲の日にシートを開いたときは、ここで選ばれた曲と必ず同じ曲が並ぶ:
+    // 候補列 (コアの dailyPickSongIds) も番号 (DailyPick) も日付キーもシートと同じものを使う。
+    // 日付キーはシートと同じ端末ローカル日 (日替わりは「その人の 1 日」が単位。JST の「今日」とは別)。
 
-    private static func resolveTodaySong(database: AppDatabase, today: String) async -> TodaySongInfo? {
-        let brands = ((try? database.fetchBrands()) ?? [])
+    private static func resolveTodaySong() async -> TodaySongInfo? {
+        let container = AppContainer.shared
+        let dayKey = DailyPick.dayKey()
+        let brands = ((try? await container.brandReading.brands()) ?? [])
             .filter { $0.id != "other" }
             .sorted { $0.sortOrder < $1.sortOrder }
 
-        // 各ブランドから決定論的に1曲選ぶ(DailySongVoteSheet.stableIndex と同じアルゴリズム)
-        var chosen: (brand: Brand, songId: String)?
+        // 最初に候補があるブランドの 1 曲を代表として使う (ウィジェットは 1 曲のみ)。
         for brand in brands {
-            guard let ids = try? database.fetchSongIds(brandId: brand.id, includeCovers: false, excludeRemixes: true),
-                  !ids.isEmpty else { continue }
-            let idx = stableIndex(today + "|" + brand.id, mod: ids.count)
-            // 最初に見つかったブランドの1曲を代表として使う(ウィジェットは1曲のみ)
-            chosen = (brand, ids[idx])
-            break
+            guard let ids = try? await container.songReading.songIds(
+                brandId: brand.id, includeCovers: false, excludeRemixes: true
+            ), !ids.isEmpty else { continue }
+            let index = DailyPick.songIndex(dayKey: dayKey, brandId: brand.id, count: ids.count)
+            guard let song = try? await container.songReading.song(id: ids[index]) else { return nil }
+            return TodaySongInfo(
+                songId: song.id,
+                title: song.title,
+                artistLabel: song.singerLabel,
+                artworkUrl: song.artworkUrl,
+                brandColorHex: brand.color
+            )
         }
-        guard let pick = chosen else { return nil }
-
-        guard let song = try? database.fetchSong(id: pick.songId) else { return nil }
-        let brandColor = pick.brand.color
-
-        return TodaySongInfo(
-            songId: song.id,
-            title: song.title,
-            artistLabel: song.singerLabel,
-            artworkUrl: song.artworkUrl,
-            brandColorHex: brandColor
-        )
+        return nil
     }
 
     // MARK: - チケット締切
 
-    private static func resolveTicketDeadlines(database: AppDatabase, today: String) async -> [TicketDeadlineInfo] {
-        guard let events = try? database.fetchEvents(brandId: nil) else { return [] }
+    private static func resolveTicketDeadlines(today: String) async -> [TicketDeadlineInfo] {
+        guard let events = try? await AppContainer.shared.eventReading.events(brandId: nil) else { return [] }
 
         return events
             .compactMap { event -> TicketDeadlineInfo? in
@@ -97,21 +104,5 @@ enum InfoWidgetBridge {
             .sorted { $0.deadline < $1.deadline }
             .prefix(5)
             .map { $0 }
-    }
-
-    // MARK: - ユーティリティ
-
-    /// 端末ローカルの YYYY-MM-DD。DailySongVoteSheet.dayKey() と同一実装。
-    static func dateKey(_ date: Date = Date()) -> String {
-        let c = Calendar.current.dateComponents([.year, .month, .day], from: date)
-        return String(format: "%04d-%02d-%02d", c.year ?? 0, c.month ?? 0, c.day ?? 0)
-    }
-
-    /// 文字列 → [0, mod) の安定インデックス (FNV-1a)。DailySongVoteSheet.stableIndex() と同一。
-    private static func stableIndex(_ s: String, mod: Int) -> Int {
-        guard mod > 0 else { return 0 }
-        var h: UInt64 = 1469598103934665603
-        for b in s.utf8 { h = (h ^ UInt64(b)) &* 1099511628211 }
-        return Int(h % UInt64(mod))
     }
 }

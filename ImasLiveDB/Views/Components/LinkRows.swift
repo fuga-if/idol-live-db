@@ -1,8 +1,8 @@
 import SwiftUI
 
 /// アイドル名表示の統一行レイアウト。
-/// 色ドット + 名前 + (サブタイトル) + chevron。
-/// Button や NavigationLink でラップしてもテキスト色が青に染まらない (foregroundStyle(.primary) を明示)。
+/// アバター写真 + 名前 + (サブタイトル) + chevron。
+/// Button や NavigationLink でラップしてもテキスト色が青に染まらない (foregroundStyle(DS.ink) を明示)。
 struct IdolNameRow: View {
     let idol: Idol
     var subtitle: String? = nil
@@ -10,27 +10,27 @@ struct IdolNameRow: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            ColorDotView(hex: idol.color, size: 10)
-            VStack(alignment: .leading, spacing: 2) {
+            IdolAvatarView(idol: idol, size: 36)
+            VStack(alignment: .leading, spacing: DS.sp1) {
                 Text(idol.name)
                     .font(.imasSubhead)
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(DS.ink)
                     .lineLimit(1)
                 if let subtitle, !subtitle.isEmpty {
                     Text(subtitle)
-                        .font(.imasScaled(11))
-                        .foregroundStyle(.secondary)
+                        .font(.imasCaption2)
+                        .foregroundStyle(DS.ink2)
                         .lineLimit(1)
                 }
             }
             Spacer(minLength: 8)
             if showsChevron {
-                Image(systemName: "chevron.right")
-                    .font(.imasCaption)
-                    .foregroundStyle(.tertiary)
+                ImasRowChevron()
             }
         }
         .contentShape(Rectangle())
+        .imasCopyable([CopyItem("アイドル名をコピー", idol.name, key: "idol_name"),
+                       CopyItem("よみをコピー", idol.nameKana, key: "kana")])
     }
 }
 
@@ -42,35 +42,73 @@ struct SongTitleRow: View {
     var showsChevron: Bool = true
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: DS.sp4) {
             songArtwork
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: DS.sp1) {
                 Text(song.title)
                     .font(.imasBody)
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(DS.ink)
                     .lineLimit(1)
                 if let label = subtitle ?? song.unitName ?? song.singerLabel,
                    !label.isEmpty {
                     Text(label)
-                        .font(.imasScaled(11))
-                        .foregroundStyle(.secondary)
+                        .font(.imasCaption2)
+                        .foregroundStyle(DS.ink2)
                         .lineLimit(1)
                 }
             }
             Spacer(minLength: 8)
             if showsChevron {
-                Image(systemName: "chevron.right")
-                    .font(.imasCaption)
-                    .foregroundStyle(.tertiary)
+                ImasRowChevron()
             }
         }
         .contentShape(Rectangle())
+        .imasCopyable([CopyItem("曲名をコピー", song.title, key: "song_title"),
+                       CopyItem("よみをコピー", song.titleKana, key: "kana"),
+                       CopyItem("歌唱者をコピー", song.singerLabel, key: "artists")])
     }
 
     private var songArtwork: some View {
         let size: CGFloat = 36
         let url = song.artworkUrl.flatMap { URL(string: $0) }
-        return ArtworkImageView(url: url, size: size, previewURL: nil, songTitle: song.title)
+        return ArtworkImageView(url: url, size: size, previewURL: previewURL, songTitle: song.title, songId: song.id)
+    }
+
+    /// タップでプレビュー再生できるよう song.previewUrl を渡す (SongRowView と同じ配線)。
+    private var previewURL: URL? {
+        guard let dbUrl = song.previewUrl else { return nil }
+        return URL(string: dbUrl)
+    }
+}
+
+/// ユニット名表示の統一行レイアウト。
+/// アバター (person.3.fill モノグラム) + 名前 + (サブタイトル) + chevron。
+struct UnitNameRow: View {
+    let unit: Unit
+    var subtitle: String? = nil
+    var showsChevron: Bool = true
+
+    var body: some View {
+        HStack(spacing: 10) {
+            UnitAvatarView(unit: unit, size: 36)
+            VStack(alignment: .leading, spacing: DS.sp1) {
+                Text(unit.displayName)
+                    .font(.imasSubhead)
+                    .foregroundStyle(DS.ink)
+                    .lineLimit(1)
+                if let subtitle, !subtitle.isEmpty {
+                    Text(subtitle)
+                        .font(.imasCaption2)
+                        .foregroundStyle(DS.ink2)
+                        .lineLimit(1)
+                }
+            }
+            Spacer(minLength: 8)
+            if showsChevron {
+                ImasRowChevron()
+            }
+        }
+        .contentShape(Rectangle())
     }
 }
 
@@ -83,25 +121,24 @@ struct EventNameRow: View {
     var body: some View {
         HStack(spacing: 10) {
             BrandColorBar(brandId: event.brandId)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: DS.sp1) {
                 Text(eventDisplayName(event.name))
                     .font(.imasSubhead)
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(DS.ink)
                     .lineLimit(2)
                 if let subtitle, !subtitle.isEmpty {
                     Text(subtitle)
-                        .font(.imasScaled(11))
-                        .foregroundStyle(.secondary)
+                        .font(.imasCaption2)
+                        .foregroundStyle(DS.ink2)
                         .lineLimit(1)
                 }
             }
             Spacer(minLength: 8)
             if showsChevron {
-                Image(systemName: "chevron.right")
-                    .font(.imasCaption)
-                    .foregroundStyle(.tertiary)
+                ImasRowChevron()
             }
         }
         .contentShape(Rectangle())
+        .imasCopyable(event.name, label: "ライブ名をコピー", key: "event_name")
     }
 }

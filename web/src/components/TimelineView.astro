@@ -1,0 +1,132 @@
+---
+import ListLayout from "../layouts/ListLayout.astro";
+import Section from "./Section.astro";
+import type { TimelinePage } from "../lib/schema/TimelinePage";
+/**
+ * 年表 (全体 / ブランドごと)。節目・ライブ・楽曲の 3 段を 1 枚の SVG に置く。
+ * 座標も文字も Rust (`domain::timeline_chart`) が決め、ここは属性に置くだけ。
+ * 狭い画面では図だけが横にスクロールする (最小幅は CSS)。
+ */
+interface Props {
+  page: TimelinePage;
+}
+const { page: p } = Astro.props;
+const c = p.chart;
+---
+
+<ListLayout seo={p.seo} title={p.title} scope={p.scope}>
+  <p slot="lede" class="lede lede--wide">{p.lede}</p>
+
+  <figure class="card timeline-chart">
+    <div class="timeline-chart__scroll">
+      <svg
+        class="timeline-chart__svg"
+        viewBox={`0 0 ${c.width} ${c.height}`}
+        width={c.width}
+        height={c.height}
+        role="img"
+        aria-label={p.title}
+      >
+        {
+          c.years.map((y) => (
+            <g class="tl-year">
+              <line x1={y.x} y1="0" x2={y.x} y2={c.height} />
+              <text x={y.labelX} y="17" text-anchor="middle">
+                {y.label}
+              </text>
+            </g>
+          ))
+        }
+        {
+          c.lanes.map((l) => (
+            <g class="tl-lane">
+              <line x1="0" y1={l.y} x2={c.width} y2={l.y} />
+              <text x="0" y={l.labelY}>
+                {l.label}
+              </text>
+            </g>
+          ))
+        }
+        {c.todayX !== null && <line class="tl-today" x1={c.todayX} y1="0" x2={c.todayX} y2={c.height} />}
+        {
+          c.releases.map((r) => (
+            <g class="tl-release">
+              <rect x={r.x} y={r.y} width={r.width} height={r.height} rx="2" />
+              <text x={r.labelX} y={r.labelY} text-anchor="middle">
+                {r.count}
+              </text>
+            </g>
+          ))
+        }
+        {
+          c.lives.map((l) => (
+            <a href={l.path} data-theme={l.themeKey}>
+              <circle class:list={["tl-live", l.featured && "tl-live--featured"]} cx={l.x} cy={l.y} r={l.r}>
+                <title>{l.title}</title>
+              </circle>
+            </a>
+          ))
+        }
+        {
+          c.milestones.map((m) => (
+            <g class="tl-milestone" data-theme={m.themeKey ?? undefined}>
+              <circle cx={m.x} cy={m.y} r="4" />
+              <text class="tl-milestone__date" x={m.textX} y={m.dateY} text-anchor={m.flip ? "end" : "start"}>
+                {m.dateDisplay}
+              </text>
+              <text class="tl-milestone__label" x={m.textX} y={m.labelY} text-anchor={m.flip ? "end" : "start"}>
+                {m.label}
+              </text>
+            </g>
+          ))
+        }
+      </svg>
+    </div>
+    <figcaption>
+      <dl class="tl-legend">
+        {
+          p.legend.map((l) => (
+            <div>
+              <dt>{l.label}</dt>
+              <dd>{l.note}</dd>
+            </div>
+          ))
+        }
+      </dl>
+    </figcaption>
+  </figure>
+
+  <div class="rank-grid">
+    {
+      p.yearLives.length > 0 && (
+        <Section id="timeline-lives" title={p.yearLivesTitle} count={p.yearLives.length}>
+          <ul class="card tl-list">
+            {p.yearLives.map((row) => (
+              <li>
+                <a class="tl-list__row" href={row.event.path} data-theme={row.event.themeKey}>
+                  <span class="tl-list__date u-num">{row.dateDisplay}</span>
+                  <span class="tl-list__name u-underline-hover">{row.event.name}</span>
+                  {row.chip && <span class="tl-list__chip">{row.chip}</span>}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </Section>
+      )
+    }
+    {
+      p.yearMilestones.length > 0 && (
+        <Section id="timeline-milestones" title={p.yearMilestonesTitle} count={p.yearMilestones.length}>
+          <ul class="card tl-list">
+            {p.yearMilestones.map((row) => (
+              <li class="tl-list__row">
+                <span class="tl-list__date u-num">{row.dateDisplay}</span>
+                <span class="tl-list__name">{row.label}</span>
+              </li>
+            ))}
+          </ul>
+        </Section>
+      )
+    }
+  </div>
+</ListLayout>

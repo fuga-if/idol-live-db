@@ -40,8 +40,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.fugaif.imaslivedb.data.auth.startCommunityEdit
 import com.fugaif.imaslivedb.data.community.CommunityApi
 import com.fugaif.imaslivedb.di.AppModule
+import com.fugaif.imaslivedb.ui.share.TagShareCompletionPane
 import com.fugaif.imaslivedb.ui.theme.DS
 import kotlinx.coroutines.launch
 
@@ -68,6 +70,9 @@ fun SongTagPickerSheet(
     var isApplying by remember { mutableStateOf(false) }
     var showCreateSheet by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    // 適用に成功したタグ。非 null になるとシート内容が「完了 + カードでシェア」へ切り替わる。
+    // シートを重ねずに中身を差し替えるのは、シートが 2 枚積み上がるのを避けるため (iOS も同じ形)。
+    var appliedTags by remember { mutableStateOf<List<CommunityApi.CommunityTag>?>(null) }
 
     val trimmedQuery = query.trim()
     val exactMatchExists = tags.any { it.name == trimmedQuery }
@@ -81,6 +86,11 @@ fun SongTagPickerSheet(
     }
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+        val applied = appliedTags
+        if (applied != null) {
+            TagShareCompletionPane(songId = songId, appliedTags = applied, onClose = onDismiss)
+            return@ModalBottomSheet
+        }
         Column(
             modifier = Modifier.fillMaxWidth().heightIn(min = 320.dp).verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp).padding(bottom = 24.dp),
@@ -137,20 +147,24 @@ fun SongTagPickerSheet(
                     onClick = {
                         errorMessage = null
                         val module = AppModule.from(context)
-                        if (!module.authService.state.value.isSignedIn) {
-                            errorMessage = "タグの追加にはサインインが必要です(設定画面からサインインしてください)"
-                            return@Button
-                        }
-                        isApplying = true
-                        scope.launch {
-                            val api = module.communityApi
-                            val ok = runCatching { api.applySongTags(songId, selected.toList()) }.getOrNull()
-                            isApplying = false
-                            if (ok != null) {
-                                onApplied()
-                                onDismiss()
-                            } else {
-                                errorMessage = "タグの追加に失敗しました"
+                        // 権限判定はコア (edit_permission_rules) に集約。未ログインは誘導、
+                        // BAN 済みは何も起きない (押せる導線自体が出ていない)。
+                        module.authService.state.value.startCommunityEdit(
+                            promptLogin = {
+                                errorMessage = "タグの追加にはサインインが必要です(設定画面からサインインしてください)"
+                            }
+                        ) {
+                            isApplying = true
+                            scope.launch {
+                                val api = module.communityApi
+                                val ok = runCatching { api.applySongTags(songId, selected.toList()) }.getOrNull()
+                                isApplying = false
+                                if (ok != null) {
+                                    onApplied()
+                                    appliedTags = tags.filter { it.id in selected }
+                                } else {
+                                    errorMessage = "タグの追加に失敗しました"
+                                }
                             }
                         }
                     },

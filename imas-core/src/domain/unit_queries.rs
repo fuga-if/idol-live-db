@@ -1,0 +1,759 @@
+//! ユニット系クエリ (UnitReading ポートの移送)。
+//!
+//! SQL 時代の対応:
+//! - iOS `AppDatabase+StatsQueries.fetchUnitIndexQuery` (セトリのユニット逆引き索引。
+//!   メモ化されていた重い索引だが、スナップショット構築時の前計算 (members_by_unit /
+//!   songs_by_unit) をそのまま射影するので毎回呼んでも軽い)
+//! - iOS `AppDatabase+StatsQueries.fetchAllUnitsQuery` / `fetchUnitQuery` /
+//!   `fetchUnitMembersQuery` / `fetchUnitSongsQuery`
+//! - iOS `AppDatabase+IdolQueries.fetchPerformedUnitIdsQuery`
+//!   (イベント内で「ユニット単独曲」として披露されたユニットの逆引き)
+//!
+//! `fetchUnitIdsWithSongs` 相当は Phase 2 で idol_song_queries::unit_ids_with_songs が
+//! 移送済み (FFI: SnapshotStore::unit_ids_with_songs)。二重 export しない。
+//!
+//! SQL の暗黙挙動をコードで明示して固定する:
+//! - ORDER BY の NULL 位置: SQLite は ASC で NULL 先頭。Rust の `Option` は
+//!   `None < Some` なのでそのまま一致する (songs_by_unit の release_date ASC)。
+//! - 文字列比較はスキーマに COLLATE 指定がなく BINARY (バイト列比較)。Rust の `str` の
+//!   `Ord` と同じ。
+//! - SQL で未規定だった同順位・集合出力の並びは、スナップショットの添字を最終キーに
+//!   して決定的にする (プラットフォーム間で同一結果を返すのが共有コアの目的)。
+//! - songs.unit_id の FK 孤児 (units に実在しない id) は返さない。Phase 2 の
+//!   unit_ids_with_songs と同じ意図的差分で、呼び出し側 (UnitIndex の逆引き・
+//!   曲あり/なし分割) は units 由来の実在 id としか突き合わせないため観測不能。
+
+use crate::domain::snapshot::Snapshot;
+use std::collections::HashSet;
+
+/// units 1 行ぶんの射影 (iOS GRDB `Unit` の全カラム)。
+///
+/// 名前を iOS 側 (`Unit`) と揃えていないのは意図的: 生成バインディングがアプリと
+/// 同一モジュールに入るため、既存 Swift struct と衝突する (Phase 2 の前例と同じ判断)。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct UnitRecord {
+    pub id: String,
+    pub brand_id: String,
+    pub name: String,
+    pub is_permanent: bool,
+    pub name_alt: Option<String>,
+    /// 読み。一覧・ピッカーの綴りに入れて かなで引けるようにするために運ぶ。
+    pub name_kana: Option<String>,
+}
+
+/// unit_members 1 行ぶんの射影 (`SELECT unit_id, idol_id FROM unit_members` の行)。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct UnitMemberLinkRecord {
+    pub unit_id: String,
+    pub idol_id: String,
+}
+
+/// `fetchUnitIndexQuery` の 3 クエリぶんをまとめた射影 (FFI 1 呼び出し = 1 ユーザー操作)。
+/// プラットフォーム側はこれから UnitIndex (memberIds / byIdol の Map) を組み立てる。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct UnitIndexRecord {
+    /// 全ユニット。並びはスナップショット順 (= id 順。ローダが主キー順に読む)。
+    /// UnitIndex.exactMatchingUnits は units の並び順で先勝ちするため、順序に意味がある。
+    pub units: Vec<UnitRecord>,
+    /// unit_members の全行。元 SQL は ORDER BY なし (Swift 側は Set に落とすので
+    /// 順序は無観測)。ここでは (unit 添字, メンバー sort_order) 順で決定的にしてある。
+    pub member_links: Vec<UnitMemberLinkRecord>,
+    /// 曲を持つ unit_id (`SELECT DISTINCT unit_id FROM songs WHERE unit_id IS NOT NULL
+    /// AND unit_id != ''`)。FK 孤児は含まない (モジュール docs の意図的差分)。
+    /// 並びは unit のスナップショット添字順。
+    pub song_unit_ids: Vec<String>,
+}
+
+fn record(snap: &Snapshot, unit_index: u32) -> UnitRecord {
+    let u = &snap.units[unit_index as usize];
+    UnitRecord {
+        id: u.id.clone(),
+        brand_id: u.brand_id.clone(),
+        name: u.name.clone(),
+        is_permanent: u.is_permanent,
+        name_alt: u.name_alt.clone(),
+        name_kana: u.name_kana.clone(),
+    }
+}
+
+/// ユニット逆引き索引の材料一式 (iOS `fetchUnitIndexQuery` 相当)。
+pub fn unit_index_data(snap: &Snapshot) -> UnitIndexRecord {
+    let units: Vec<UnitRecord> = (0..snap.units.len() as u32).map(|i| record(snap, i)).collect();
+    let member_links = snap
+        .members_by_unit
+        .iter()
+        .enumerate()
+        .flat_map(|(ui, members)| {
+            members.iter().map(move |&ii| UnitMemberLinkRecord {
+                unit_id: snap.units[ui].id.clone(),
+                idol_id: snap.idols[ii as usize].id.clone(),
+            })
+        })
+        .collect();
+    let song_unit_ids = snap
+        .songs_by_unit
+        .iter()
+        .enumerate()
+        .filter(|(_, songs)| !songs.is_empty())
+        .map(|(ui, _)| snap.units[ui].id.clone())
+        .collect();
+    UnitIndexRecord { units, member_links, song_unit_ids }
+}
+
+/// 単一ユニット (iOS `fetchUnitQuery` = `Unit.fetchOne(db, key: id)` 相当)。
+pub fn unit_by_id(snap: &Snapshot, id: &str) -> Option<UnitRecord> {
+    snap.unit_index_by_id.get(id).map(|&ui| record(snap, ui))
+}
+
+pub fn all_units(snap: &Snapshot) -> Vec<UnitRecord> {
+    snap.unit_order.iter().map(|&ui| record(snap, ui)).collect()
+}
+
+/// 所属メンバーの idol_id 列 (iOS `fetchUnitMembersQuery` 相当)。
+///
+/// 元 SQL:
+/// ```sql
+/// SELECT i.* FROM idols i JOIN unit_members um ON i.id = um.idol_id
+/// WHERE um.unit_id = ? ORDER BY i.sort_order
+/// ```
+/// 実体化 (Idol Record) はプラットフォーム側の責務。並びは members_by_unit の
+/// 前計算 (sort_order ASC, NULL 先頭・同値は添字)。未知 id は空 (SQL の 0 行)。
+pub fn unit_member_idol_ids(snap: &Snapshot, unit_id: &str) -> Vec<String> {
+    let Some(&ui) = snap.unit_index_by_id.get(unit_id) else { return vec![] };
+    snap.members_by_unit[ui as usize]
+        .iter()
+        .map(|&ii| snap.idols[ii as usize].id.clone())
+        .collect()
+}
+
+/// ユニット持ち曲の song_id 列 (iOS `fetchUnitSongsQuery` 相当)。
+///
+/// 元 SQL: `SELECT * FROM songs WHERE unit_id = ? ORDER BY release_date`。
+/// 並びは songs_by_unit の前計算 (release_date ASC, NULL 先頭・同日は添字)。
+pub fn unit_song_ids(snap: &Snapshot, unit_id: &str) -> Vec<String> {
+    let Some(&ui) = snap.unit_index_by_id.get(unit_id) else { return vec![] };
+    snap.songs_by_unit[ui as usize]
+        .iter()
+        .map(|&si| snap.songs[si as usize].id.clone())
+        .collect()
+}
+
+/// イベント内で「ユニット単独曲」として披露されたユニット id 集合
+/// (iOS `fetchPerformedUnitIdsQuery` 相当)。
+///
+/// 元実装は 2 本の SQL + Swift 集合演算:
+/// 1. イベント配下の各 setlist_item の歌唱 idol 集合 (setlist_performers)
+/// 2. 曲ありユニット (EXISTS songs.unit_id = u.id) の member 集合 (unit_members)
+/// 3. 「歌唱集合 (2 人以上) == member 集合 (2 人以上)」の完全一致ユニットを採用
+///
+/// 戻りは Swift 側が Set<String> にするため元は順序未規定。ここでは unit の
+/// スナップショット添字順で決定的に返す。未知 event_id は空。
+pub fn performed_unit_ids(snap: &Snapshot, event_id: &str) -> Vec<String> {
+    let Some(&e) = snap.event_index_by_id.get(event_id) else { return vec![] };
+
+    // step 1: 各披露の歌唱メンバー集合。重複行を潰した上で 2 人未満は
+    // ユニット成立し得ないので落とす (元実装の `perfSet.count >= 2` と同値)。
+    let mut perf_sets: Vec<HashSet<u32>> = Vec::new();
+    for &sh in &snap.shows_by_event[e as usize] {
+        for &item in &snap.setlist_items_by_show[sh as usize] {
+            let set: HashSet<u32> =
+                snap.performers_by_item[item as usize].iter().copied().collect();
+            if set.len() >= 2 {
+                perf_sets.push(set);
+            }
+        }
+    }
+    if perf_sets.is_empty() {
+        return vec![];
+    }
+
+    // step 2-3: 曲ありユニットの member 集合と完全一致するものを採用。
+    let mut matched: Vec<String> = Vec::new();
+    for (ui, members) in snap.members_by_unit.iter().enumerate() {
+        if snap.songs_by_unit[ui].is_empty() || members.len() < 2 {
+            continue;
+        }
+        let member_set: HashSet<u32> = members.iter().copied().collect();
+        // unit_members の重複行で見かけの人数が 2 以上でも実質 1 人なら不成立。
+        if member_set.len() < 2 {
+            continue;
+        }
+        if perf_sets.contains(&member_set) {
+            matched.push(snap.units[ui].id.clone());
+        }
+    }
+    matched
+}
+
+/// 出演者の集合を、互いに重ならないユニットで覆う (大きいユニットから貪欲に)。
+/// 例: 放クラ 5 人 + ストレイライト 3 人 → [放クラ, ストレイライト]。どのユニットにも
+/// 入らない人は残る (返さない)。iOS `UnitIndex.coveringUnits` から移したもの。
+///
+/// 候補にするのは `allowed` に入っていて、曲を持ち、メンバーが 2 人以上で、メンバーが
+/// **全員**まだ残っている人の中にいるユニット。いちばん大きいものを採って、そのメンバーを
+/// 残りから外し、採れるものが無くなるまで繰り返す。同じ大きさならユニットの並び
+/// (スナップショット順) で先のもの — iOS は Set を回していて、同じ大きさのユニットの
+/// どちらを採るかが起動ごとに変わりえた。返すのは採った順のユニットの添字。
+pub fn covering_units(snap: &Snapshot, present: &HashSet<u32>, allowed: &HashSet<u32>) -> Vec<u32> {
+    let mut remaining = present.clone();
+    let mut chosen = Vec::new();
+    loop {
+        let best = (0..snap.units.len() as u32)
+            .filter(|ui| allowed.contains(ui) && !snap.songs_by_unit[*ui as usize].is_empty())
+            .filter_map(|ui| {
+                let members: HashSet<u32> =
+                    snap.members_by_unit[ui as usize].iter().copied().collect();
+                (members.len() >= 2 && members.is_subset(&remaining)).then_some((ui, members))
+            })
+            // 大きい方、同じなら先の添字 (max_by_key は同値で後のものを返すので添字を反転して比べる)。
+            .max_by_key(|(ui, members)| (members.len(), std::cmp::Reverse(*ui)));
+        let Some((ui, members)) = best else { break };
+        chosen.push(ui);
+        remaining.retain(|idol| !members.contains(idol));
+        if remaining.is_empty() {
+            break;
+        }
+    }
+    chosen
+}
+
+/// 歌唱者の顔ぶれが「曲を持つユニット」1〜3 個の和集合と**ちょうど一致**するときの、
+/// そのユニット (スナップショット添字・units の並び順)。一致しなければ空。
+///
+/// 部分一致 (ユニットのメンバーが全員いるが他の人も歌っている) は採らない。採ると
+/// 全員曲でたまたまメンバーが揃っただけの行にユニット名が付く。
+///
+/// # なぜコアにあるか (回帰: 2026-09-19)
+///
+/// 元は iOS `UnitIndex.exactMatchingUnits` にだけあった。セトリの名義を決める規則の
+/// 一部なので、[`crate::domain::performer_label::setlist_performer_label`] と同じ場所で
+/// 持たないと、Android へ移すときに写経になる。**これは推論**なので、曲が名義を
+/// 持っている行では使われない (順番はあちらの docs)。
+///
+/// `restrict_to` は「その公演でユニット単独曲として披露されたユニット」に絞るための門
+/// (空なら絞らない)。**候補の段階で絞る** — iOS は一致を求めた後で絞っていたため、
+/// 2 ユニット合同の片方だけが門を通った行で「片方のユニット名だけ」が出ていた。
+pub fn exact_matching_units(
+    snap: &Snapshot,
+    performers: &HashSet<u32>,
+    restrict_to: &HashSet<u32>,
+) -> Vec<u32> {
+    if performers.len() < 2 {
+        return vec![];
+    }
+    let candidates: Vec<(u32, HashSet<u32>)> = (0..snap.units.len() as u32)
+        .filter(|&ui| !snap.songs_by_unit[ui as usize].is_empty())
+        .filter(|&ui| restrict_to.is_empty() || restrict_to.contains(&ui))
+        .filter_map(|ui| {
+            let members: HashSet<u32> = snap.members_by_unit[ui as usize].iter().copied().collect();
+            // 1 人ユニット (と unit_members の重複行で人数が水増しされた行) は成立しない。
+            (members.len() >= 2 && members.is_subset(performers)).then_some((ui, members))
+        })
+        .collect();
+
+    if let Some((ui, _)) = candidates.iter().find(|(_, m)| m.len() == performers.len()) {
+        return vec![*ui];
+    }
+    // 2 ユニット合同 → 3 ユニット合同。候補は全員 performers の部分集合なので、
+    // 和集合の人数が performers と同じなら中身も一致する。
+    for i in 0..candidates.len() {
+        for j in (i + 1)..candidates.len() {
+            let pair: HashSet<u32> = candidates[i].1.union(&candidates[j].1).copied().collect();
+            if pair.len() == performers.len() {
+                return vec![candidates[i].0, candidates[j].0];
+            }
+            for k in (j + 1)..candidates.len() {
+                if pair.union(&candidates[k].1).count() == performers.len() {
+                    return vec![candidates[i].0, candidates[j].0, candidates[k].0];
+                }
+            }
+        }
+    }
+    vec![]
+}
+
+/// [`exact_matching_units`] の名前版 (名義を組む側が欲しいのは名前だけ)。
+pub fn exact_matching_unit_names(
+    snap: &Snapshot,
+    performers: &HashSet<u32>,
+    restrict_to: &HashSet<u32>,
+) -> Vec<String> {
+    exact_matching_units(snap, performers, restrict_to)
+        .into_iter()
+        .map(|ui| snap.units[ui as usize].name.clone())
+        .collect()
+}
+
+#[cfg(test)]
+mod tests {
+
+    /// 回帰 (2026-08-28): ユニット検索だけ かなを畳んでいなかった。
+    ///
+    /// Swift/Kotlin 側が `displayName.localizedCaseInsensitiveContains` を直に
+    /// 呼んでいて、曲・アイドル・ライブが「あるすとろめりあ」で当たるのに
+    /// ユニットだけ当たらない、という説明の付かない差になっていた。
+    /// 一覧の絞り込みは `TextSearchCatalog` (= `text_search_index`) を通す約束で、
+    /// ここでは**実データのユニット名がその規則で引ける**ことだけを押さえる
+    /// (両プラットフォームとも一覧は「曲ありユニット」に絞ってから畳むので、
+    /// 全ユニットを返す絞り込み関数はコアに置かない)。
+    #[test]
+    fn unit_names_fold_kana_under_the_shared_match_rule() {
+        use crate::domain::text_search_index::match_range;
+        let snap = bundle_snapshot();
+        let katakana = snap
+            .units
+            .iter()
+            .find(|u| {
+                u.name.chars().count() >= 4
+                    && u.name.chars().all(|c| ('\u{30A0}'..='\u{30FF}').contains(&c))
+            })
+            .expect("カタカナだけのユニットが 1 つはある");
+        let hiragana: String = katakana
+            .name
+            .chars()
+            .map(|c| {
+                if ('\u{30A1}'..='\u{30F6}').contains(&c) {
+                    char::from_u32(c as u32 - 0x60).unwrap()
+                } else {
+                    c
+                }
+            })
+            .collect();
+        assert!(match_range(&katakana.name, &katakana.name).is_some());
+        assert!(
+            match_range(&katakana.name, &hiragana).is_some(),
+            "「{hiragana}」で「{}」に当たらない",
+            katakana.name
+        );
+    }
+
+    /// 漢字のユニット名が**読み経由で**引けること。
+    ///
+    /// `units.name_kana` を足すまで、「あたらよづき」と打っても「可惜夜月」には
+    /// 辿り着けなかった。曲・アイドル・会場・ライブ・作家は読みを持つのに
+    /// ユニットだけ持たない、という取り残しだった。
+    ///
+    /// 読みは全行には入れていない (一覧に出る 27 件のうち出典が取れた 24 件だけ)。
+    /// ここが見るのは「入っている行は、その読みで名前に辿り着ける」ことと、
+    /// 読みが**漢字を含む名前にしか付いていない**こと。カタカナ名に読みを足しても
+    /// 引ける語が増えないので、増えていたら投入の仕方を間違えている。
+    #[test]
+    fn kanji_unit_names_are_reachable_through_their_reading() {
+        use crate::domain::text_search_index::match_range;
+        let snap = bundle_snapshot();
+        let with_kana: Vec<&crate::domain::snapshot::Unit> = snap
+            .units
+            .iter()
+            .filter(|u| u.name_kana.as_deref().is_some_and(|k| !k.is_empty()))
+            .collect();
+        assert!(with_kana.len() >= 20, "読みが入った行が少なすぎる: {}", with_kana.len());
+
+        for u in &with_kana {
+            let kana = u.name_kana.as_deref().unwrap();
+            assert!(
+                match_range(kana, kana).is_some(),
+                "「{}」の読み「{kana}」が自分自身に当たらない",
+                u.name
+            );
+            assert!(
+                u.name.chars().any(|c| ('\u{4E00}'..='\u{9FFF}').contains(&c)),
+                "漢字を含まない「{}」に読みが入っている (引ける語が増えない)",
+                u.name
+            );
+        }
+
+        // 実例。素朴に読むと外すもの (でこれーしょん / ゆうづつひ / きみどり) を含める。
+        for (name, kana) in [
+            ("可惜夜月", "あたらよづき"),
+            ("凸レーション", "でこれーしょん"),
+            ("夕星灯", "ゆうづつひ"),
+            ("≡君彩≡", "きみどり"),
+        ] {
+            let u = snap.units.iter().find(|u| u.name == name).expect(name);
+            assert_eq!(u.name_kana.as_deref(), Some(kana), "{name} の読み");
+        }
+    }
+
+    use super::*;
+
+    use crate::test_support::{bundle_conn, bundle_snapshot};
+    use rusqlite::Connection;
+    use std::collections::{HashMap, HashSet};
+
+    fn query_strings(db: &Connection, sql: &str, params: &[&str]) -> Vec<String> {
+        let mut stmt = db.prepare(sql).expect("元 SQL は妥当");
+        stmt.query_map(rusqlite::params_from_iter(params.iter()), |r| r.get::<_, String>(0))
+            .expect("元 SQL を実行できる")
+            .collect::<Result<_, _>>()
+            .expect("行を読める")
+    }
+
+    /// ORDER BY キーが同値の区間を集合として比較する等価判定 (song_list_queries と同旨)。
+    /// SQLite のソータは安定でなく同値区間の並びは未規定のため、キー列の一致 +
+    /// 同値区間のメンバー一致を等価とみなす。
+    fn assert_matches_up_to_ties<K>(
+        label: &str,
+        actual: &[String],
+        expected: &[String],
+        key: impl Fn(&String) -> K,
+    ) where
+        K: PartialEq + std::fmt::Debug,
+    {
+        assert_eq!(actual.len(), expected.len(), "{label}: 件数");
+        let mut start = 0;
+        while start < expected.len() {
+            let k = key(&expected[start]);
+            let mut end = start;
+            while end < expected.len() && key(&expected[end]) == k {
+                end += 1;
+            }
+            let expected_group: HashSet<&String> = expected[start..end].iter().collect();
+            let actual_group: HashSet<&String> = actual[start..end].iter().collect();
+            assert_eq!(actual_group, expected_group, "{label}: キー {k:?} の同順位グループ");
+            start = end;
+        }
+    }
+
+    // ---- 照合テスト (元 SQL との等価性保証) ----
+
+    #[test]
+    fn unit_index_matches_sql() {
+        let db = bundle_conn();
+        let data = unit_index_data(bundle_snapshot());
+
+        // units: fetchAll (`SELECT * FROM units`) と全カラム逐語一致。元 SQL は ORDER BY なし
+        // (行順) だったが、同順位は id 順に揃えた (Q-07) ので、並びの基準は ORDER BY id。
+        let mut stmt = db
+            .prepare("SELECT id, brand_id, name, is_permanent, name_alt, name_kana FROM units ORDER BY id")
+            .unwrap();
+        let expected_rows: Vec<UnitRecord> = stmt
+            .query_map([], |r| {
+                Ok(UnitRecord {
+                    id: r.get(0)?,
+                    brand_id: r.get(1)?,
+                    name: r.get(2)?,
+                    is_permanent: r.get::<_, i64>(3)? != 0,
+                    name_alt: r.get(4)?,
+                    name_kana: r.get(5)?,
+                })
+            })
+            .unwrap()
+            .collect::<Result<_, _>>()
+            .unwrap();
+        assert!(expected_rows.len() >= 100, "units は 3 桁以上ある前提");
+        assert_eq!(data.units, expected_rows, "units の並び (id 順) と全カラム");
+
+        // member_links: 元 SQL の全行と集合一致 (Swift 側は Set 構築なので順序無観測)。
+        let mut stmt = db.prepare("SELECT unit_id, idol_id FROM unit_members").unwrap();
+        let expected_links: Vec<(String, String)> = stmt
+            .query_map([], |r| Ok((r.get(0)?, r.get(1)?)))
+            .unwrap()
+            .collect::<Result<_, _>>()
+            .unwrap();
+        let expected_set: HashSet<(String, String)> = expected_links.iter().cloned().collect();
+        let actual_set: HashSet<(String, String)> = data
+            .member_links
+            .iter()
+            .map(|l| (l.unit_id.clone(), l.idol_id.clone()))
+            .collect();
+        assert_eq!(actual_set, expected_set, "unit_members の (unit_id, idol_id) 集合");
+        // 行数も一致 = FK 孤児・重複行による差分が bundle に無いことの確認。
+        assert_eq!(data.member_links.len(), expected_links.len(), "unit_members の行数");
+
+        // song_unit_ids: 元 SQL の DISTINCT 集合と一致 (FK 孤児は units 実在分に限る)。
+        let raw: HashSet<String> = query_strings(
+            &db,
+            "SELECT DISTINCT unit_id FROM songs WHERE unit_id IS NOT NULL AND unit_id != ''",
+            &[],
+        )
+        .into_iter()
+        .collect();
+        let existing: HashSet<String> = query_strings(
+            &db,
+            "SELECT DISTINCT unit_id FROM songs
+             WHERE unit_id IS NOT NULL AND unit_id != ''
+               AND unit_id IN (SELECT id FROM units)",
+            &[],
+        )
+        .into_iter()
+        .collect();
+        let actual: HashSet<String> = data.song_unit_ids.iter().cloned().collect();
+        assert!(!actual.is_empty());
+        assert_eq!(actual, existing, "曲ありユニット集合 (units 実在分)");
+        // 意図的差分の観測不能性: 孤児 id は units のどの id とも一致しないので、
+        // UnitIndex 側の突き合わせ (unitsWithSongs.contains(unit.id)) では差が出ない。
+        let unit_ids: HashSet<String> = data.units.iter().map(|u| u.id.clone()).collect();
+        for orphan in raw.difference(&existing) {
+            assert!(!unit_ids.contains(orphan), "孤児 {orphan} は units に居ないはず");
+        }
+    }
+
+    #[test]
+    fn all_units_matches_sql() {
+        let db = bundle_conn();
+        let expected = query_strings(&db, "SELECT id FROM units ORDER BY brand_id, name", &[]);
+        assert!(!expected.is_empty());
+        let actual: Vec<String> = all_units(bundle_snapshot()).iter().map(|u| u.id.clone()).collect();
+        // ORDER BY キー (brand_id, name) ごとの同順位グループで比較。
+        let key_of: HashMap<String, (String, String)> = bundle_snapshot()
+            .units
+            .iter()
+            .map(|u| (u.id.clone(), (u.brand_id.clone(), u.name.clone())))
+            .collect();
+        assert_matches_up_to_ties("all_units", &actual, &expected, |id| key_of[id].clone());
+    }
+
+    #[test]
+    fn unit_and_members_match_sql() {
+        let db = bundle_conn();
+        // メンバー 2 人以上のユニットを実データから拾う (データ更新に強くする)。
+        let sample = query_strings(
+            &db,
+            "SELECT unit_id FROM unit_members GROUP BY unit_id
+             HAVING COUNT(*) >= 2 ORDER BY unit_id LIMIT 5",
+            &[],
+        );
+        assert_eq!(sample.len(), 5);
+        for unit_id in &sample {
+            // fetchUnitQuery: 全カラム一致。
+            let expected = db
+                .query_row(
+                    "SELECT id, brand_id, name, is_permanent, name_alt, name_kana FROM units WHERE id = ?1",
+                    [unit_id],
+                    |r| {
+                        Ok(UnitRecord {
+                            id: r.get(0)?,
+                            brand_id: r.get(1)?,
+                            name: r.get(2)?,
+                            is_permanent: r.get::<_, i64>(3)? != 0,
+                            name_alt: r.get(4)?,
+                            name_kana: r.get(5)?,
+                        })
+                    },
+                )
+                .unwrap();
+            assert_eq!(unit_by_id(bundle_snapshot(), unit_id), Some(expected), "unit {unit_id}");
+
+            // fetchUnitMembersQuery: ORDER BY i.sort_order (同値は未規定 → up to ties)。
+            let expected_members = query_strings(
+                &db,
+                "SELECT i.id FROM idols i JOIN unit_members um ON i.id = um.idol_id
+                 WHERE um.unit_id = ?1 ORDER BY i.sort_order",
+                &[unit_id],
+            );
+            assert!(expected_members.len() >= 2);
+            let actual_members = unit_member_idol_ids(bundle_snapshot(), unit_id);
+            let sort_key = |id: &String| {
+                bundle_snapshot().idols[bundle_snapshot().idol_index_by_id[id] as usize].sort_order
+            };
+            assert_matches_up_to_ties(
+                &format!("members of {unit_id}"),
+                &actual_members,
+                &expected_members,
+                sort_key,
+            );
+        }
+        assert_eq!(unit_by_id(bundle_snapshot(), "存在しないunit"), None);
+    }
+
+    #[test]
+    fn unit_songs_match_sql() {
+        let db = bundle_conn();
+        // 曲 3 曲以上のユニット (units 実在) を実データから拾う。
+        let sample = query_strings(
+            &db,
+            "SELECT unit_id FROM songs
+             WHERE unit_id IS NOT NULL AND unit_id != ''
+               AND unit_id IN (SELECT id FROM units)
+             GROUP BY unit_id HAVING COUNT(*) >= 3 ORDER BY unit_id LIMIT 5",
+            &[],
+        );
+        assert_eq!(sample.len(), 5);
+        for unit_id in &sample {
+            let expected = query_strings(
+                &db,
+                "SELECT id FROM songs WHERE unit_id = ?1 ORDER BY release_date",
+                &[unit_id],
+            );
+            assert!(expected.len() >= 3);
+            let actual = unit_song_ids(bundle_snapshot(), unit_id);
+            let release_key = |id: &String| {
+                bundle_snapshot().songs[bundle_snapshot().song_index_by_id[id] as usize].release_date.clone()
+            };
+            assert_matches_up_to_ties(
+                &format!("songs of {unit_id}"),
+                &actual,
+                &expected,
+                release_key,
+            );
+        }
+    }
+
+    /// iOS `fetchPerformedUnitIdsQuery` の 2 本の SQL + Swift 集合演算の写経を
+    /// rusqlite 上で実行し、その結果 (Set) と一致することを確認する。
+    fn run_original_performed_unit_ids(db: &Connection, event_id: &str) -> HashSet<String> {
+        // step 1: イベント配下の各 setlist_item の歌唱 idol 集合。
+        let mut stmt = db
+            .prepare(
+                "SELECT si.id AS item_id, sp.idol_id AS idol_id
+                 FROM setlist_items si
+                 JOIN shows sh ON sh.id = si.show_id
+                 JOIN setlist_performers sp ON sp.setlist_item_id = si.id
+                 WHERE sh.event_id = ?1",
+            )
+            .unwrap();
+        let mut perf_by_item: HashMap<String, HashSet<String>> = HashMap::new();
+        let rows = stmt
+            .query_map([event_id], |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?)))
+            .unwrap();
+        for row in rows {
+            let (item, idol) = row.unwrap();
+            perf_by_item.entry(item).or_default().insert(idol);
+        }
+        if perf_by_item.is_empty() {
+            return HashSet::new();
+        }
+        // step 2: 曲ありユニットの member 集合。
+        let mut stmt = db
+            .prepare(
+                "SELECT um.unit_id AS uid, um.idol_id AS iid
+                 FROM unit_members um
+                 JOIN units u ON u.id = um.unit_id
+                 WHERE EXISTS (SELECT 1 FROM songs s WHERE s.unit_id = u.id)",
+            )
+            .unwrap();
+        let mut members_by_unit: HashMap<String, HashSet<String>> = HashMap::new();
+        let rows = stmt
+            .query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?)))
+            .unwrap();
+        for row in rows {
+            let (uid, iid) = row.unwrap();
+            members_by_unit.entry(uid).or_default().insert(iid);
+        }
+        // step 3: 完全一致 (1-unit exact)。
+        let mut matched = HashSet::new();
+        for perf_set in perf_by_item.values().filter(|s| s.len() >= 2) {
+            for (uid, members) in &members_by_unit {
+                if members.len() >= 2 && members == perf_set {
+                    matched.insert(uid.clone());
+                }
+            }
+        }
+        matched
+    }
+
+    #[test]
+    fn performed_unit_ids_match_sql() {
+        let db = bundle_conn();
+        // ユニット持ち曲が 2 人以上で披露されたイベント = 完全一致が出やすい母集団。
+        let events = query_strings(
+            &db,
+            "SELECT DISTINCT sh.event_id FROM setlist_items si
+             JOIN shows sh ON sh.id = si.show_id
+             JOIN songs s ON s.id = si.song_id
+             WHERE s.unit_id IS NOT NULL AND s.unit_id != ''
+               AND (SELECT COUNT(DISTINCT sp.idol_id) FROM setlist_performers sp
+                    WHERE sp.setlist_item_id = si.id) >= 2
+             ORDER BY sh.event_id LIMIT 8",
+            &[],
+        );
+        assert!(!events.is_empty(), "ユニット曲披露イベントが bundle に存在する前提");
+        let mut nonempty = 0usize;
+        for event_id in &events {
+            let expected = run_original_performed_unit_ids(&db, event_id);
+            let actual: HashSet<String> =
+                performed_unit_ids(bundle_snapshot(), event_id).into_iter().collect();
+            assert_eq!(actual, expected, "event {event_id}");
+            if !expected.is_empty() {
+                nonempty += 1;
+            }
+        }
+        // 全件空だと照合が退化する — 少なくとも 1 件は実際にユニットが立っていること。
+        assert!(nonempty >= 1, "検証対象の {} イベント全てが空集合", events.len());
+
+        // 戻り順の決定性: unit のスナップショット添字順。
+        for event_id in &events {
+            let ids = performed_unit_ids(bundle_snapshot(), event_id);
+            let indexes: Vec<u32> =
+                ids.iter().map(|id| bundle_snapshot().unit_index_by_id[id]).collect();
+            let mut sorted = indexes.clone();
+            sorted.sort_unstable();
+            assert_eq!(indexes, sorted, "event {event_id} の戻り順");
+        }
+    }
+
+    // ---- 単体 (SQL 非依存の境界ケース) ----
+
+    #[test]
+    fn unit_index_projections_are_consistent() {
+        let data = unit_index_data(bundle_snapshot());
+        // member_links の unit_id / idol_id は必ず units / idols に実在する
+        // (ローダが FK 孤児を読み飛ばす契約の再確認)。
+        let unit_ids: HashSet<&str> = data.units.iter().map(|u| u.id.as_str()).collect();
+        for link in &data.member_links {
+            assert!(unit_ids.contains(link.unit_id.as_str()));
+            assert!(bundle_snapshot().idol_index_by_id.contains_key(&link.idol_id));
+        }
+        // song_unit_ids ⊆ units、かつ各ユニットの unit_song_ids は非空。
+        for uid in &data.song_unit_ids {
+            assert!(unit_ids.contains(uid.as_str()));
+            assert!(!unit_song_ids(bundle_snapshot(), uid).is_empty());
+        }
+        // unitsWithSongs 由来の分割 (曲あり/なし) が Phase 2 の
+        // unit_ids_with_songs と同じ答えになる (二重実装の等価性)。
+        let all_ids: Vec<String> = data.units.iter().map(|u| u.id.clone()).collect();
+        let via_phase2 =
+            crate::domain::idol_song_queries::unit_ids_with_songs(bundle_snapshot(), &all_ids);
+        let expected: HashSet<String> = data.song_unit_ids.iter().cloned().collect();
+        let actual: HashSet<String> = via_phase2.into_iter().collect();
+        assert_eq!(actual, expected);
+    }
+}
+
+#[cfg(test)]
+mod covering_tests {
+    use super::*;
+    use crate::domain::event_detail_queries::event_attendance;
+    use crate::test_support::bundle_snapshot;
+
+    /// 実データの全イベントで、覆い方が規則どおりか: 重ならない・メンバー全員が出演者・
+    /// そのイベントで歌唱されたユニットだけ・大きい順・残りにはもう入るユニットが無い。
+    #[test]
+    fn covering_units_are_disjoint_maximal_and_performed() {
+        let snap = bundle_snapshot();
+        let mut covered_events = 0usize;
+        for event in &snap.events {
+            let Some(record) = event_attendance(snap, &event.id) else { continue };
+            if record.covering_unit_ids.is_empty() {
+                continue;
+            }
+            covered_events += 1;
+            let performed: HashSet<String> = performed_unit_ids(snap, &event.id).into_iter().collect();
+            // 覆う対象は「出た人 ∩ 母集団」(R-C-01)。
+            let population: HashSet<&String> = record.brand_idol_ids.iter().collect();
+            let mut remaining: HashSet<u32> = record
+                .presence_by_show
+                .values()
+                .flatten()
+                .filter(|id| population.contains(id))
+                .map(|id| snap.idol_index_by_id[id])
+                .collect();
+            let mut previous_size = usize::MAX;
+            for unit_id in &record.covering_unit_ids {
+                assert!(performed.contains(unit_id), "{}: 歌唱されていない {unit_id}", event.id);
+                let ui = snap.unit_index_by_id[unit_id];
+                let members: HashSet<u32> = snap.members_by_unit[ui as usize].iter().copied().collect();
+                assert!(members.is_subset(&remaining), "{}: {unit_id} が重なる", event.id);
+                assert!(members.len() <= previous_size, "{}: 大きい順でない", event.id);
+                previous_size = members.len();
+                remaining.retain(|i| !members.contains(i));
+            }
+            // もう入るユニットが無い (貪欲に採り切っている)。
+            let allowed: HashSet<u32> = performed.iter().map(|id| snap.unit_index_by_id[id]).collect();
+            assert!(covering_units(snap, &remaining, &allowed).is_empty(), "{}", event.id);
+            // 何度呼んでも同じ。
+            assert_eq!(event_attendance(snap, &event.id).unwrap().covering_unit_ids, record.covering_unit_ids);
+        }
+        assert!(covered_events > 10, "ユニットで覆えるイベントが少なすぎる: {covered_events}");
+    }
+}

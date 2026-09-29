@@ -46,7 +46,7 @@ struct EventAttendanceSheet: View {
                 Section {
                     ForEach(shows) { show in
                         VStack(alignment: .leading, spacing: DS.sp3) {
-                            VStack(alignment: .leading, spacing: 2) {
+                            VStack(alignment: .leading, spacing: DS.sp1) {
                                 Text(show.name)
                                     .font(.imasSubhead).foregroundStyle(DS.ink).lineLimit(1)
                                 Text([show.venue, show.date].compactMap { $0 }.joined(separator: " ・ "))
@@ -60,7 +60,7 @@ struct EventAttendanceSheet: View {
                                 Spacer(minLength: 0)
                             }
                         }
-                        .padding(.vertical, 2)
+                        .padding(.vertical, DS.sp1)
                     }
                 } header: {
                     Text("公演ごとに選ぶ")
@@ -108,7 +108,11 @@ struct EventAttendanceSheet: View {
     }
 
     private func set(show: Show, type: AttendanceType?) {
-        try? markService.setAttendance(entity: .show, id: show.id, type: type)
+        do {
+            try markService.setAttendance(entity: .show, id: show.id, type: type)
+        } catch {
+            LocalWriteFailure.report(error, action: "参加の記録")
+        }
         if let type { attendance[show.id] = type } else { attendance.removeValue(forKey: show.id) }
         onChange()
     }
@@ -116,7 +120,11 @@ struct EventAttendanceSheet: View {
     private func toggleAllLive() {
         let target: AttendanceType? = allLive ? nil : .live
         for show in shows {
-            try? markService.setAttendance(entity: .show, id: show.id, type: target)
+            do {
+                try markService.setAttendance(entity: .show, id: show.id, type: target)
+            } catch {
+                LocalWriteFailure.report(error, action: "参加の記録")
+            }
         }
         reload()
         onChange()

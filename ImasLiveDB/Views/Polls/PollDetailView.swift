@@ -3,16 +3,26 @@ import SwiftUI
 /// お題詳細・ランキング・投票。
 struct PollDetailView: View {
     @Environment(AppDatabase.self) private var database
+    @Environment(\.dismiss) private var dismiss
     @State private var vm: PollDetailViewModel
     @State private var showVotePicker = false
     @State private var showLogin = false
+    /// 削除ボタンタップ→即実行を防ぐ確認ダイアログの表示状態。
+    @State private var showDeleteConfirm = false
+    /// 未ログイン時のログイン誘導シートを初回表示でのみ出すためのガード
+    /// (pull-to-refresh のたびに再ポップしないように)。
+    @State private var didPromptLogin = false
     /// ランキングの曲/アイドルをタップで開く詳細シート。
     @State private var sheetDestination: DetailDestination?
 
     // 投票用アイドル一覧（アイドルお題時に事前ロード）。master 参照なので View 側に残す。
     @State private var allIdols: [Idol] = []
+    // 投票用ユニット一覧（ユニットお題時に事前ロード）。
+    @State private var allUnits: [Unit] = []
     /// スコープ表示用のブランド辞書 (brand スコープ時のみ使う)。
     @State private var brandsById: [String: Brand] = [:]
+    /// 自分が投票した候補の表示名 (シェア文面用)。entityId は不透明キーなので master で解決する。
+    @State private var myVoteNames: [String] = []
 
     init(pollId: String) {
         _vm = State(initialValue: PollDetailViewModel(pollId: pollId, voting: AppContainer.shared.communityVoting))
@@ -23,8 +33,7 @@ struct PollDetailView: View {
     var body: some View {
         Group {
             if vm.isLoading {
-                ProgressView()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                ImasLoadingState()
             } else if let detail = vm.detail {
                 contentView(detail: detail)
             } else {
@@ -45,11 +54,40 @@ struct PollDetailView: View {
                 .environment(database)
         }
         .toolbar {
+            if let poll {
+                ToolbarItem(placement: .topBarTrailing) {
+                    // お題そのもののシェア (「このお題に投票しよう！」)。投票有無に関係なく常に出す。
+                    SocialShareMenu(payload: .pollInvite(poll: poll), analyticsKey: "poll_detail.share_poll") {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+                    .accessibilityLabel("このお題をシェア")
+                }
+            }
             if let poll, canDelete(poll: poll) {
                 ToolbarItem(placement: .topBarTrailing) {
                     deleteButton(poll: poll)
                 }
             }
+        }
+        // 自分の票が変わるたびに表示名を解決し直す (シェア文面の候補名に使う)。
+        .task(id: myVotedEntityIds) { await loadMyVoteNames() }
+        .alert("エラー", isPresented: Binding(
+            get: { vm.deleteErrorMessage != nil },
+            set: { if !$0 { vm.deleteErrorMessage = nil } }
+        )) {
+            Button("OK") { vm.deleteErrorMessage = nil }
+        } message: {
+            Text(vm.deleteErrorMessage ?? "")
+        }
+        .confirmationDialog(
+            "このお題を削除しますか？",
+            isPresented: $showDeleteConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("削除", role: .destructive) { performDelete() }
+            Button("キャンセル", role: .cancel) {}
+        } message: {
+            Text("ランキング・投票データも一緒に削除され、元に戻せません。")
         }
     }
 
@@ -62,6 +100,8 @@ struct PollDetailView: View {
                 pollHeader(poll: detail.poll)
                 rankingSection(detail: detail)
                 voteSection(detail: detail)
+                // 自分の投票のシェアは締切後も残す (結果が出てからの方が話題になる)。
+                myVoteShareBar(poll: detail.poll)
             }
             .padding(.horizontal, DS.sp5)
             .padding(.vertical, DS.sp4)
@@ -85,7 +125,7 @@ struct PollDetailView: View {
             }
 
             HStack(spacing: DS.sp2) {
-                ImasChip(text: poll.targetType == .song ? "曲" : "アイドル")
+                ImasChip(text: poll.targetType.label)
                 ImasChip(text: poll.statusLabel)
             }
 
@@ -118,7 +158,7 @@ struct PollDetailView: View {
                         }
                     }
                 }
-                .padding(.top, 2)
+                .padding(.top, DS.sp1)
             }
         case .manual:
             let count = poll.scopeEntityIds?.count ?? 0
@@ -128,15 +168,72 @@ struct PollDetailView: View {
                     .foregroundStyle(DS.ink3)
                 ImasChip(text: "候補\(count)件から選択")
             }
-            .padding(.top, 2)
+            .padding(.top, DS.sp1)
         }
+    }
+
+    // MARK: - Share
+
+    /// 自分が投票した候補の entityId (ランキング順)。シェア文面と名前解決のキー。
+    private var myVotedEntityIds: [String] {
+        vm.detail?.entries.filter(\.hasUserVoted).map(\.entityId) ?? []
+    }
+
+    /// 「〇〇に投票しました！」のシェア内容。名前が1つも解決できていなければ nil。
+    private func myVotePayload(poll: Poll) -> SharePayload? {
+        guard !myVoteNames.isEmpty else { return nil }
+        return sharePollVotesPayload(pollId: poll.id, pollTitle: poll.title, entityNames: myVoteNames)
+    }
+
+    @ViewBuilder
+    private func myVoteShareBar(poll: Poll) -> some View {
+        if let payload = myVotePayload(poll: poll) {
+            HStack(spacing: DS.sp2) {
+                Text("あなたの投票 \(myVoteNames.count)/\(CommunityVoteLimit.perTarget)")
+                    .font(.imasCaption)
+                    .foregroundStyle(DS.ink3)
+                Spacer(minLength: 8)
+                SocialShareMenu(payload: payload, analyticsKey: "poll_detail.share_votes") {
+                    SocialShareChipLabel(title: "投票をシェア")
+                }
+                .accessibilityLabel("自分の投票をシェア")
+            }
+        }
+    }
+
+    /// entityId (不透明キー) を master から表示名に解決する。解決できない候補は落とす
+    /// (シェア文面に生 ID が出るより、その候補が抜けている方がマシ)。
+    private func loadMyVoteNames() async {
+        let ids = myVotedEntityIds
+        guard !ids.isEmpty, let targetType = vm.poll?.targetType else {
+            myVoteNames = []
+            return
+        }
+        // マイ投票一覧 (MyVotesView) と同じくバッチ解決する。1件ずつ await すると票数分の
+        // ラウンドトリップになるうえ、名前の出どころが2系統に割れる。
+        let namesById: [String: String]
+        switch targetType {
+        case .song:
+            let songs = (try? await AppContainer.shared.songReading.songs(ids: ids)) ?? []
+            namesById = Dictionary(uniqueKeysWithValues: songs.map { ($0.id, $0.title) })
+        case .idol:
+            let idols = (try? await AppContainer.shared.idolReading.idols(ids: ids)) ?? []
+            namesById = Dictionary(uniqueKeysWithValues: idols.map { ($0.id, $0.name) })
+        case .unit:
+            let units = (try? await AppContainer.shared.unitReading.allUnits()) ?? []
+            namesById = Dictionary(uniqueKeysWithValues: units.map { ($0.id, $0.displayName) })
+        }
+        myVoteNames = ids.compactMap { namesById[$0] }
     }
 
     // MARK: - Ranking
 
     private func rankingSection(detail: PollDetail) -> some View {
         VStack(alignment: .leading, spacing: DS.sp3) {
-            ImasSectionHeader(title: "ランキング", count: detail.entries.isEmpty ? nil : "\(detail.entries.count)曲")
+            ImasSectionHeader(
+                title: "ランキング",
+                count: detail.entries.isEmpty ? nil : "\(detail.entries.count)\(entryCountUnit(for: detail.poll.targetType))"
+            )
 
             if detail.entries.isEmpty {
                 ImasEmptyState(systemImage: "chart.bar", title: "まだ票がありません", message: "最初の一票を入れましょう！")
@@ -144,7 +241,7 @@ struct PollDetailView: View {
                 ImasListContainer {
                     ForEach(Array(detail.entries.enumerated()), id: \.element.id) { index, entry in
                         if index > 0 {
-                            Divider().background(DS.sep).padding(.leading, 56)
+                            ImasRowDivider(inset: 56)
                         }
                         PollEntryRow(
                             rank: index + 1,
@@ -180,7 +277,7 @@ struct PollDetailView: View {
                 }
 
                 // ランキングの各行で直接投票できるので、このボタンは「新しい候補を追加」専用。
-                Text("👍 上のランキングをタップで投票/取消（残り\(remaining)/3）")
+                Text("👍 上のランキングをタップで投票/取消（残り\(remaining)/\(CommunityVoteLimit.perTarget)）")
                     .font(.imasFootnote)
                     .foregroundStyle(DS.ink2)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -193,7 +290,9 @@ struct PollDetailView: View {
                     } label: {
                         HStack {
                             Image(systemName: "plus.circle.fill")
-                            Text(remaining > 0 ? "候補を追加して投票（残り\(remaining)/3）" : "投票済み（3/3）")
+                            Text(remaining > 0
+                                 ? "候補を追加して投票（残り\(remaining)/\(CommunityVoteLimit.perTarget)）"
+                                 : "投票済み（\(CommunityVoteLimit.perTarget)/\(CommunityVoteLimit.perTarget)）")
                                 .font(.imasSubhead.weight(.semibold))
                         }
                         .frame(maxWidth: .infinity)
@@ -206,57 +305,100 @@ struct PollDetailView: View {
                 }
             }
             .sheet(isPresented: $showVotePicker) {
-                votePicker(detail: detail, remaining: remaining)
+                votePicker(detail: detail)
             }
         }
         // 終了済みの場合は投票 UI なし（ランキングのみ表示）
     }
 
     @ViewBuilder
-    private func votePicker(detail: PollDetail, remaining: Int) -> some View {
+    private func votePicker(detail: PollDetail) -> some View {
         let scope = detail.poll.scope
         let brandIds = scope == .brand ? Set(detail.poll.scopeBrandIds ?? []) : nil
-        if detail.poll.targetType == .song {
+        switch detail.poll.targetType {
+        case .song:
+            // 投票済みの曲は除き、残票分だけ入れる (選び方はコアの planVoteSelection)。
             SongSearchPickerView(restrictedBrandIds: brandIds) { songs in
                 showVotePicker = false
-                let ids = Array(songs.prefix(remaining)).map(\.id)
-                Task { await vm.voteForEntities(ids) }
+                let plan = planVoteSelection(
+                    alreadyVoted: detail.entries.filter(\.hasUserVoted).map(\.entityId),
+                    selectedInOrder: songs.map(\.id),
+                    myVoteCount: UInt32(clamping: detail.myVoteCount), unvoteDeselected: false)
+                Task { await vm.voteForEntities(plan.toVote) }
             }
             .environment(database)
-        } else {
+        case .idol:
             let pickIdols: [Idol] = {
                 if let allowed = brandIds {
                     return allIdols.filter { allowed.contains($0.brandId) }
                 }
                 return allIdols
             }()
-            IdolMultiPickerView(
-                selected: Set(detail.entries.filter(\.hasUserVoted).map(\.entityId)),
-                idols: pickIdols
+            IdolPickerView(
+                title: "投票する",
+                idols: pickIdols,
+                selected: Set(detail.entries.filter(\.hasUserVoted).map(\.entityId))
             ) { selectedIds in
                 showVotePicker = false
-                let alreadyVoted = Set(detail.entries.filter(\.hasUserVoted).map(\.entityId))
-                let newIds = Array(Array(selectedIds.subtracting(alreadyVoted)).prefix(remaining))
-                Task { await vm.voteForEntities(newIds) }
+                Task { await vm.applyPickerSelection(selectedIds, ordered: pickIdols.map(\.id)) }
             }
             .environment(database)
+        case .unit:
+            let pickUnits: [Unit] = {
+                if let allowed = brandIds {
+                    return allUnits.filter { allowed.contains($0.brandId) }
+                }
+                return allUnits
+            }()
+            UnitMultiPickerView(
+                selected: Set(detail.entries.filter(\.hasUserVoted).map(\.entityId)),
+                units: pickUnits
+            ) { selectedIds in
+                showVotePicker = false
+                Task { await vm.applyPickerSelection(selectedIds, ordered: pickUnits.map(\.id)) }
+            }
+        }
+    }
+
+
+    /// ランキング件数表示の単位。お題の対象種別で数え方の助数詞が変わる (曲/人/組)。
+    private func entryCountUnit(for targetType: PollTargetType) -> String {
+        switch targetType {
+        case .song: return "曲"
+        case .idol: return "人"
+        case .unit: return "組"
         }
     }
 
     // MARK: - Delete
 
+    /// 自分のお題かはサーバ (`is_own_poll`) が決める。admin はどのお題でも消せる。
     private func canDelete(poll: Poll) -> Bool {
-        guard let userId = AuthService.shared.userId else { return false }
-        return AuthService.shared.isAdmin || poll.createdBy == userId
+        AuthService.shared.isAdmin || poll.isOwnPoll == true
     }
 
     private func deleteButton(poll: Poll) -> some View {
         Button(role: .destructive) {
             AppAnalytics.tap("poll_detail.delete")
-            // ナビゲーションスタックを戻る（dismiss はここでは不可なのでフラグ等で制御）
-            Task { await vm.delete() }
+            showDeleteConfirm = true
         } label: {
-            Image(systemName: "trash")
+            if vm.isDeleting {
+                ProgressView()
+            } else {
+                Image(systemName: "trash")
+            }
+        }
+        .disabled(vm.isDeleting)
+        .accessibilityLabel("このお題を削除")
+    }
+
+    private func performDelete() {
+        Task {
+            if await vm.delete() {
+                // 削除成功時のみ pop。一覧側は PollListView の再表示時 (.onAppear) の
+                // 再ロードで自動的に消える。
+                dismiss()
+            }
         }
     }
 
@@ -269,13 +411,19 @@ struct PollDetailView: View {
         if vm.poll?.targetType == .idol {
             allIdols = (try? await AppContainer.shared.idolReading.idols(brandId: nil)) ?? []
         }
+        if vm.poll?.targetType == .unit {
+            allUnits = (try? await AppContainer.shared.unitReading.unitsWithSongs()) ?? []
+        }
         if vm.poll?.scope == .brand, brandsById.isEmpty {
             let list = (try? await AppContainer.shared.brandReading.brands()) ?? []
             brandsById = Dictionary(uniqueKeysWithValues: list.map { ($0.id, $0) })
         }
         // アクティブなお題を未ログインで開いたら、表示時点でログイン誘導 (投票はログイン必須)。
         // 「投票しようとして初めてログイン判定」を避け、最初に意図を明示する。
-        if vm.poll?.isActive == true, !AuthService.shared.isSignedIn {
+        // ただし初回のみ (didPromptLogin) — さもないと refreshable/再 loadDetail のたびに
+        // ログインシートが再ポップしてしまう。
+        if vm.poll?.isActive == true, !AuthService.shared.isSignedIn, !didPromptLogin {
+            didPromptLogin = true
             showLogin = true
             AppAnalytics.event("login_prompt", ["where": "poll"])
         }
@@ -301,6 +449,7 @@ private struct PollEntryRow: View {
 
     @State private var resolvedSong: Song?
     @State private var resolvedIdol: Idol?
+    @State private var resolvedUnit: Unit?
     @State private var isBusy = false
 
     /// 未投票だが残票が無い (この候補にはこれ以上投票できない)。
@@ -314,14 +463,14 @@ private struct PollEntryRow: View {
             TagRankBadge(rank: rank)
                 .frame(width: 30, alignment: .center)
 
-            Button {
-                openDetail()
-            } label: {
-                entityView
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .disabled(detailDestination == nil)
+            // Button でラップすると内側のジャケ写プレビュー再生タップが吸われてしまう
+            // (SongListView と同じ iOS 18 の button-in-button 問題)。行全体は
+            // onTapGesture で遷移を受け、ジャケ写の再生タップは独立して機能させる。
+            entityView
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    if detailDestination != nil { openDetail() }
+                }
 
             Spacer(minLength: 8)
 
@@ -348,6 +497,7 @@ private struct PollEntryRow: View {
                     }
                     .buttonStyle(.plain)
                     .disabled(voteDisabled || lockedByOther)
+                    .accessibilityLabel(entry.hasUserVoted ? "投票を取消" : "投票")
                 } else if entry.hasUserVoted {
                     Image(systemName: "hand.thumbsup.fill")
                         .foregroundStyle(DS.ink3)
@@ -366,6 +516,8 @@ private struct PollEntryRow: View {
             SongTitleRow(song: song, showsChevron: true)
         } else if targetType == .idol, let idol = resolvedIdol {
             IdolNameRow(idol: idol, showsChevron: true)
+        } else if targetType == .unit, let unit = resolvedUnit {
+            UnitNameRow(unit: unit, showsChevron: true)
         } else {
             Text(entry.entityId)
                 .font(.imasSubhead.weight(.semibold))
@@ -374,10 +526,11 @@ private struct PollEntryRow: View {
         }
     }
 
-    /// 解決済みの曲/アイドルから詳細遷移先を作る (未解決なら nil)。
+    /// 解決済みの曲/アイドル/ユニットから詳細遷移先を作る (未解決なら nil)。
     private var detailDestination: DetailDestination? {
         if targetType == .song, let song = resolvedSong { return .song(song) }
         if targetType == .idol, let idol = resolvedIdol { return .idol(idol) }
+        if targetType == .unit, let unit = resolvedUnit { return .unit(unit) }
         return nil
     }
 
@@ -388,10 +541,13 @@ private struct PollEntryRow: View {
     }
 
     private func resolveEntity() async {
-        if targetType == .song {
+        switch targetType {
+        case .song:
             resolvedSong = try? await AppContainer.shared.songReading.song(id: entry.entityId)
-        } else {
+        case .idol:
             resolvedIdol = try? await AppContainer.shared.idolReading.idol(id: entry.entityId)
+        case .unit:
+            resolvedUnit = try? await AppContainer.shared.unitReading.unit(id: entry.entityId)
         }
     }
 }

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct TagHistoryView: View {
     let tagId: String
+    var domain: TagDomain = .song
 
     @State private var history: [TagHistoryEntry] = []
     @State private var isLoading = true
@@ -9,7 +10,7 @@ struct TagHistoryView: View {
     var body: some View {
         List {
             if isLoading {
-                HStack { Spacer(); ProgressView(); Spacer() }
+                ImasInlineLoading()
                     .listRowBackground(Color.clear)
             } else if history.isEmpty {
                 Text("編集履歴はありません")
@@ -25,7 +26,7 @@ struct TagHistoryView: View {
                                 .foregroundStyle(DS.ink2)
                             Spacer()
                             Text(String(entry.editedBy.prefix(8)) + "...")
-                                .font(.imasScaled(11))
+                                .font(.imasCaption2)
                                 .foregroundStyle(DS.ink3)
                         }
                         if let desc = entry.description, !desc.isEmpty {
@@ -39,7 +40,7 @@ struct TagHistoryView: View {
                                 .italic()
                         }
                     }
-                    .padding(.vertical, 4)
+                    .padding(.vertical, DS.sp2)
                     .listRowBackground(DS.surface)
                     .listRowSeparatorTint(DS.sep)
                 }
@@ -57,6 +58,14 @@ struct TagHistoryView: View {
     private func loadHistory() async {
         isLoading = true
         defer { isLoading = false }
-        history = (try? await CommunityAPI.shared.tagHistory(id: tagId)) ?? []
+        let reading = AppContainer.shared.communityTagReading
+        switch domain {
+        case .song:
+            history = (try? await reading.tagHistory(id: tagId)) ?? []
+        case .idol:
+            history = (try? await reading.idolTagHistory(id: tagId)) ?? []
+        case .unit:
+            history = (try? await reading.unitTagHistory(id: tagId)) ?? []
+        }
     }
 }

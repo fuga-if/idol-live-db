@@ -1,0 +1,24 @@
+{
+ "title": "曲「交錯 OMNIVERSE」(X VORDER RUNWAY テーマソング) の追加",
+ "author": "Claude (オーナー依頼)",
+ "source": ["https://prtimes.jp/main/html/rd/p/000000104.000022741.html", "https://www.moguravr.com/x-vorder-runway-theme-song-mv-kousaku-omniverse/", "iTunes Search API (trackId 6805534211)"],
+ "note": "X VORDER RUNWAY の公式テーマソング。全出演者で歌う曲で、765 からは天海春香・如月千早・星井美希が参加。作詞 藤林聖子・作曲 田中公平・編曲 中村博 (PR TIMES)。アイマス外の曲を 765 のアイドルが歌うので、今度いつきみに会えるのかなと同じく song_type は cover。配信日 2026-08-27、配信名義は X VORDER RUNWAY (iTunes)。",
+ "songs": [
+  {
+   "id": "765as_交錯_omniverse",
+   "title": "交錯 OMNIVERSE",
+   "title_kana": "こうさくおむにばーす",
+   "brand_id": "765as",
+   "song_type": "cover",
+   "release_date": "2026-08-27",
+   "composer": "田中公平",
+   "lyricist": "藤林聖子",
+   "arranger": "中村博",
+   "apple_music_id": "6805534211",
+   "apple_music_album_id": "6805534210",
+   "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/40/b8/ab/40b8abab-8dbe-6528-ca9f-8ea05461588a/8721554200013.png/600x600bb.jpg",
+   "note": "X VORDER RUNWAY 公式テーマソング",
+   "original_singers": ["765as_天海春香", "765as_如月千早", "765as_星井美希"]
+  }
+ ]
+}

@@ -1,0 +1,64 @@
+---
+import DateBadge from "./DateBadge.astro";
+import type { DateBadge as DateBadgeData } from "../lib/schema/DateBadge";
+/**
+ * 行の共通骨格 — [先頭: 日付ブロック / ジャケ] [見出し + メタ] [末尾スロット + ›]。
+ * ライブ・公演・披露履歴・出演公演・楽曲・ユニット・会場・コールガイドの行がすべてこれを使う
+ * (検索の島が DOM で組む行も、同じクラスで同じ骨格にしてある)。
+ *
+ * メタは**種類ごとに別の要素**で並べる (文字列で繋がない)。何を出すかは
+ * 呼び出し側が Rust の項目をそのまま渡し、無いもの (null) はここで飛ばす。
+ * 先頭は日付ブロック (`badge`) か、`lead` スロット (曲のジャケ)。どちらも無い行
+ * (ユニット・会場) は先頭を空けず、色のリードバーで所属を示す。
+ */
+interface Props {
+  badge?: DateBadgeData | null;
+  /** 年の見出しの下に並ぶ行では、日付ブロックの年を落とす。 */
+  showYear?: boolean;
+  /** 見出しの文字。文字でないもの (色付きの札など) を置く行は `title` スロットで差し替える。 */
+  title?: string;
+  href: string;
+  themeKey?: string;
+  /** 見出しの下に並べる文字。null / 空は飛ばす。 */
+  meta?: readonly (string | null | undefined)[];
+  /** 行の種類のクラス (`song-row`)。幅に応じた出し分けは CSS がこれで持つ。 */
+  variant?: string;
+}
+const { badge, showYear = true, title, href, themeKey, meta = [], variant } = Astro.props;
+const metaItems = meta.filter((m): m is string => typeof m === "string" && m !== "");
+const showMeta = Astro.slots.has("meta") || metaItems.length > 0;
+const hasLead = Astro.slots.has("lead");
+---
+
+<a class:list={["row", variant, !badge && !hasLead && "row--bar"]} data-theme={themeKey} href={href}>
+  {
+    hasLead ? (
+      <span class="row__lead">
+        <slot name="lead" />
+      </span>
+    ) : (
+      badge && (
+        <span class="row__lead">
+          <DateBadge badge={badge} showYear={showYear} />
+        </span>
+      )
+    )
+  }
+  <span class="row__body">
+    <span class="row__title u-underline-hover"><slot name="title">{title}</slot></span>
+    {
+      showMeta && (
+        <span class="row__meta">
+          <slot name="meta" />
+          {metaItems.map((m) => (
+            <span class="row__meta-item">{m}</span>
+          ))}
+        </span>
+      )
+    }<slot name="body" />
+  </span>
+  <span class="row__trailing">
+    <slot name="trailing" />
+    <span class="chevron" aria-hidden="true">›</span>
+  </span>
+</a>

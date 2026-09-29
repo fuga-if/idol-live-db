@@ -27,6 +27,9 @@ import {
   type CloudKitOperation,
 } from "./cloudkit";
 import { SHOW_SETLIST_TYPE, fetchShowSetlistSnapshot } from "./setlist_snapshot";
+import { getAuthUser } from "./auth";
+import { checkIsAdmin } from "./users";
+import type { RouteContext } from "./routes/context";
 
 const CK_CHUNK = 200; // cloudKitModify の 1 リクエストあたり op 数 (/edits と同じ)
 
@@ -213,6 +216,10 @@ function buildRevertOpsForEntry(row: HistoryRow): CloudKitOperation[] | null {
     if (!before) return null; // before が無いスナップショットは復元不能
     return buildSnapshotRevertOps(before as SnapshotShape, after as SnapshotShape | null);
   }
+
+  // コーレス (SongCall) は 2026-09-06 に廃止。過去の履歴を差し戻しても、どのクライアントも
+  // 読まない型へ書くだけなので、逆適用不能として扱う。
+  if (row.record_type === "SongCall") return null;
 
   switch (row.op) {
     case "create":
@@ -573,15 +580,8 @@ export async function revertUserEdits(
 }
 
 // ---------------------------------------------------------------------------
-// HTTP ハンドラ (index.ts のクロージャ deps を注入する。edits.ts と同じパターン)。
+// HTTP ハンドラ (routes/edits.ts と routes/admin.ts から呼ぶ)
 // ---------------------------------------------------------------------------
-
-export interface RevertDeps<E extends RevertEnv> {
-  getAuthUser: (request: Request, env: E) => Promise<{ uid: string; email?: string } | null>;
-  checkIsAdmin: (env: E, uid: string) => Promise<boolean>;
-  json: (data: unknown, status?: number) => Response;
-  error: (message: string, status?: number) => Response;
-}
 
 /** RevertOutcome を HTTP ステータスに対応付ける (本人/admin revert 共通)。 */
 function outcomeStatus(outcome: RevertOutcome): number {
@@ -606,15 +606,10 @@ function outcomeStatus(outcome: RevertOutcome): number {
 // POST /edits/:batchId/revert — 本人 (自分の batch のみ) または admin が 1 batch を revert
 // ---------------------------------------------------------------------------
 
-export async function handlePostRevertBatch<E extends RevertEnv>(
-  request: Request,
-  env: E,
-  deps: RevertDeps<E>,
-  batchIdRaw: string
-): Promise<Response> {
-  const { json, error } = deps;
+export async function handlePostRevertBatch(ctx: RouteContext, batchIdRaw: string): Promise<Response> {
+  const { request, env, json, error } = ctx;
 
-  const user = await deps.getAuthUser(request, env);
+  const user = await getAuthUser(request, env);
   if (!user) return error("Unauthorized", 401);
 
   const batchId = parseInt(batchIdRaw, 10);
@@ -632,7 +627,7 @@ export async function handlePostRevertBatch<E extends RevertEnv>(
     return error("invalid json body", 400);
   }
 
-  const isAdmin = await deps.checkIsAdmin(env, user.uid);
+  const isAdmin = await checkIsAdmin(env, user.uid);
 
   // 対象 batch の所有者確認 (本人 or admin のみ)。
   const owner = await env.DB.prepare("SELECT editor_id FROM edit_batch WHERE id = ?")
@@ -661,16 +656,12 @@ export async function handlePostRevertBatch<E extends RevertEnv>(
 // POST /admin/revert-user — admin が 1 ユーザーの全編集を一括 revert
 // ---------------------------------------------------------------------------
 
-export async function handlePostAdminRevertUser<E extends RevertEnv>(
-  request: Request,
-  env: E,
-  deps: RevertDeps<E>
-): Promise<Response> {
-  const { json, error } = deps;
+export async function handlePostAdminRevertUser(ctx: RouteContext): Promise<Response> {
+  const { request, env, json, error } = ctx;
 
-  const user = await deps.getAuthUser(request, env);
+  const user = await getAuthUser(request, env);
   if (!user) return error("Unauthorized", 401);
-  if (!(await deps.checkIsAdmin(env, user.uid))) return error("Forbidden", 403);
+  if (!(await checkIsAdmin(env, user.uid))) return error("Forbidden", 403);
 
   // 確定契約 §2: body は camelCase 直受け { userId, since?, alsoBan?, dryRun? } (+ force=競合無視)。
   let body:
@@ -730,18 +721,12 @@ interface AdminUserEditRow {
   op_count: number;
 }
 
-export async function handleGetAdminUserEdits<E extends RevertEnv>(
-  request: Request,
-  url: URL,
-  env: E,
-  deps: RevertDeps<E>,
-  userId: string
-): Promise<Response> {
-  const { json, error } = deps;
+export async function handleGetAdminUserEdits(ctx: RouteContext, userId: string): Promise<Response> {
+  const { request, url, env, json, error } = ctx;
 
-  const user = await deps.getAuthUser(request, env);
+  const user = await getAuthUser(request, env);
   if (!user) return error("Unauthorized", 401);
-  if (!(await deps.checkIsAdmin(env, user.uid))) return error("Forbidden", 403);
+  if (!(await checkIsAdmin(env, user.uid))) return error("Forbidden", 403);
 
   const limit = clampInt(url.searchParams.get("limit"), 50, 1, 200);
   const offset = clampInt(url.searchParams.get("offset"), 0, 0, 1_000_000);

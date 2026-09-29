@@ -1,6 +1,5 @@
 package com.fugaif.imaslivedb.ui.events
 
-import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -31,9 +30,12 @@ import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -63,12 +65,21 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.fugaif.imaslivedb.data.auth.showEditAffordance
+import com.fugaif.imaslivedb.data.auth.startCommunityEdit
+import com.fugaif.imaslivedb.data.model.EventAttendance
+import com.fugaif.imaslivedb.data.model.Event
 import com.fugaif.imaslivedb.data.model.EventStats
 import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.data.model.Show
 import com.fugaif.imaslivedb.data.model.UserMark
+import com.fugaif.imaslivedb.data.model.Vocab
 import com.fugaif.imaslivedb.di.AppModule
+import com.fugaif.imaslivedb.ui.components.AttendanceSwipeRow
+import com.fugaif.imaslivedb.ui.components.CommunityLoginPromptDialog
 import com.fugaif.imaslivedb.ui.components.ImasAvatar
 import com.fugaif.imaslivedb.ui.components.ImasEmptyState
 import com.fugaif.imaslivedb.ui.components.ImasLabeledRow
@@ -77,11 +88,18 @@ import com.fugaif.imaslivedb.ui.components.ImasSectionHeader
 import com.fugaif.imaslivedb.ui.components.ImasSegmented
 import com.fugaif.imaslivedb.ui.components.ImasStatTile
 import com.fugaif.imaslivedb.ui.components.ImasTagChip
+import com.fugaif.imaslivedb.ui.edit.EventEditScreen
+import com.fugaif.imaslivedb.ui.edit.RecordHistorySheet
+import com.fugaif.imaslivedb.ui.edit.ShowEditScreen
+import com.fugaif.imaslivedb.ui.filtered.EventFilterKind
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasTheme
 import kotlinx.coroutines.launch
 import java.time.LocalDate
-import java.time.temporal.ChronoUnit
+import com.fugaif.imaslivedb.ui.share.SocialShare
+import uniffi.imas_core.shareEventText
+import uniffi.imas_core.AttendanceState
+import com.fugaif.imaslivedb.data.local.localWrite
 
 /**
  * イベント詳細。iOS EventDetailView の構成を 1:1 で写す。
@@ -89,9 +107,7 @@ import java.time.temporal.ChronoUnit
  * ImasSegmented で [公演・セトリ][出演][情報] に切り替える。
  *
  * 披露ユニット表示 (unit 被覆判定) は Setlist 側の担当範囲と重複するため対象外。
- * ブランド/年度行はタップ遷移なし (Android 側にブランド絞り込み付き遷移経路が未整備)。
- * チケット編集・イベント編集・BD/DVD所有チェックは Android に対応する基盤 (編集権限/event_releases 同期) が
- * まだ無いため対象外。
+ * BD/DVD所有チェックは Android に event_releases の同期が無いため対象外。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -100,31 +116,87 @@ fun EventDetailScreen(
     onBack: () -> Unit,
     onShowClick: (String) -> Unit,
     onIdolClick: (String) -> Unit,
+    /**
+     * 情報タブのブランド/年度行から「同じ条件のライブ一覧」へ (kind, value は
+     * [com.fugaif.imaslivedb.ui.filtered.EventFilterKind] の定義に従う)。
+     */
+    onFilteredEventsClick: (String, String) -> Unit = { _, _ -> },
+    /** 情報タブの衣装行から、その衣装の着用公演一覧へ (引数は costume id)。 */
+    onCostumeClick: (String) -> Unit = {},
     viewModel: EventDetailViewModel = viewModel(key = eventId)
 ) {
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
 
-    LaunchedEffect(eventId) { viewModel.load(context, eventId) }
+    // 編集後の読み直しトリガ。編集は「保存中…」の裏で DB を書き換えるので、
+    // 画面に残っている旧値を捨てて引き直す (VM の load は public なのでそのまま呼べる)。
+    var reloadToken by remember(eventId) { mutableIntStateOf(0) }
+
+    LaunchedEffect(eventId, reloadToken) { viewModel.load(context, eventId) }
 
     var segment by rememberSaveable(eventId) { mutableIntStateOf(0) }
     val seed: String? = if (uiState.isJoint) null else uiState.brandColorHex
-    val brand = uiState.brandColorHex
-    val t = ImasTheme.derive(seed, brand, dark = true)
+    // 画面の部品に渡す brand はブランド ID (部品がマスタの色へ引く)。
+    val brand = uiState.brandId
+    val t = ImasTheme.derive(seed, uiState.brandColorHex, dark = true)
+
+    // ブランド行の行き先には brand_id が要るが、UiState が持つのは表示名と色だけ。
+    // この画面の担当範囲外である ViewModel を変えずに済ませるため、ここで 1 回だけ引く
+    // (スナップショット経路なのでメモリ内の参照で終わる)。
+    // 編集フォームには Event レコードそのものが要るので、同じ 1 回で受けておく。
+    var eventRecord by remember(eventId) { mutableStateOf<Event?>(null) }
+    var brandId by remember(eventId) { mutableStateOf<String?>(null) }
+    LaunchedEffect(eventId, reloadToken) {
+        val event = AppModule.from(context).eventRepository.fetchEvent(eventId)
+        eventRecord = event
+        brandId = event?.brandId?.takeIf { it.isNotEmpty() }
+    }
+
+    var showMenu by remember { mutableStateOf(false) }
+    var showEventEdit by remember { mutableStateOf(false) }
+    var showEventHistory by remember { mutableStateOf(false) }
+    var showCreate by remember { mutableStateOf(false) }
+    var editingShow by remember { mutableStateOf<Show?>(null) }
+    var historyShow by remember { mutableStateOf<Show?>(null) }
+    var showLoginPrompt by remember { mutableStateOf(false) }
+    val authState by AppModule.from(context).authService.state.collectAsState()
+    // 権限フラグは認証状態が変わった時だけコアへ問い合わせる (詳細は data/auth/EditPermission.kt)。
+    val canEditHere = remember(authState) { authState.showEditAffordance }
+
+    // 投稿/編集導線の共通ゲート。未ログインはログイン誘導へ、BAN 済みは無反応 (優先順はコアが持つ)。
+    fun startEdit(present: () -> Unit) =
+        authState.startCommunityEdit(promptLogin = { showLoginPrompt = true }, present = present)
 
     val marks = remember { AppModule.from(context).userMarkRepository }
     val scope = rememberCoroutineScope()
     var favOn by remember(eventId) { mutableStateOf(false) }
-    var attendOn by remember(eventId) { mutableStateOf(false) }
+    // 参加は公演単位で持つ (行っていない公演まで回収率に数えないため)。
+    // イベント単位の attended は旧データの互換としてだけ見る。
+    var attendedShowIds by remember(eventId) { mutableStateOf<Set<String>>(emptySet()) }
+    var legacyEventAttended by remember(eventId) { mutableStateOf(false) }
+    var showAttendanceSheet by remember(eventId) { mutableStateOf(false) }
+    val attendOn = attendedShowIds.isNotEmpty() || legacyEventAttended
+
+    suspend fun reloadAttendance() {
+        attendedShowIds = marks.attendedShowIds(uiState.shows.map { it.id })
+    }
+
     LaunchedEffect(eventId) {
         favOn = marks.isOn(UserMark.EVENT, eventId, UserMark.FAVORITE)
-        attendOn = marks.isOn(UserMark.EVENT, eventId, UserMark.ATTENDED)
+        legacyEventAttended = marks.isOn(UserMark.EVENT, eventId, UserMark.ATTENDED)
+    }
+    LaunchedEffect(uiState.shows) { reloadAttendance() }
+    // 参加の札・開催期間はマークに依るので、マークが変わるたびにコアへ問い直す。
+    LaunchedEffect(eventId, attendedShowIds, legacyEventAttended, reloadToken) {
+        viewModel.refreshHero(context, eventId, attendedShowIds, legacyEventAttended)
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(uiState.eventName, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                // ヒーローは固定で常に全文を出すので、バーには出さない (iOS と同じ)。
+                // 1 行に詰めると合同ライブ名の先頭ブランドが省略で消えるだけになる。
+                title = {},
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "戻る")
@@ -132,20 +204,31 @@ fun EventDetailScreen(
                 },
                 actions = {
                     IconButton(onClick = {
-                        val text = buildString {
-                            append(uiState.eventName)
-                            if (uiState.heroSub.isNotEmpty()) {
-                                append("\n")
-                                append(uiState.heroSub)
-                            }
-                        }
-                        val intent = Intent(Intent.ACTION_SEND).apply {
-                            type = "text/plain"
-                            putExtra(Intent.EXTRA_TEXT, text)
-                        }
-                        context.startActivity(Intent.createChooser(intent, null))
+                        // 文面と URL はコアが作る (iOS と同じ: イベント名 + イベントへのリンク)。
+                        SocialShare.shareText(context, shareEventText(eventId, uiState.eventName))
                     }) {
                         Icon(Icons.Filled.Share, contentDescription = "このイベントをシェア")
+                    }
+                    IconButton(onClick = { showMenu = true }) {
+                        Icon(Icons.Filled.MoreVert, contentDescription = "その他")
+                    }
+                    DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                        // BAN 済みには編集導線を出さない (押しても 403 になるだけ)。判定はコア。
+                        if (canEditHere) {
+                            DropdownMenuItem(
+                                text = { Text("このライブを編集") },
+                                onClick = { showMenu = false; startEdit { showEventEdit = true } },
+                                enabled = eventRecord != null
+                            )
+                            DropdownMenuItem(
+                                text = { Text("公演を追加") },
+                                onClick = { showMenu = false; startEdit { showCreate = true } }
+                            )
+                        }
+                        DropdownMenuItem(
+                            text = { Text("編集履歴") },
+                            onClick = { showMenu = false; showEventHistory = true }
+                        )
                     }
                 }
             )
@@ -162,8 +245,13 @@ fun EventDetailScreen(
             Column(Modifier.fillMaxSize().padding(innerPadding)) {
                 Hero(
                     state = uiState, t = t, favOn = favOn, attendOn = attendOn,
-                    onFavToggle = { scope.launch { favOn = marks.toggle(UserMark.EVENT, eventId, UserMark.FAVORITE) } },
-                    onAttendToggle = { scope.launch { attendOn = marks.toggle(UserMark.EVENT, eventId, UserMark.ATTENDED) } }
+                    onFavToggle = {
+                        scope.launch {
+                            localWrite("お気に入りの切り替え") { marks.toggle(UserMark.EVENT, eventId, UserMark.FAVORITE) }
+                                ?.let { favOn = it }
+                        }
+                    },
+                    onAttendToggle = { showAttendanceSheet = true }
                 )
                 ImasSegmented(
                     labels = listOf("公演・セトリ", "出演", "情報"),
@@ -173,36 +261,102 @@ fun EventDetailScreen(
                 )
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                     when (segment) {
-                        0 -> showsSection(uiState, seed, brand, onShowClick)
+                        0 -> showsSection(
+                            uiState, seed, brand, onShowClick,
+                            canEdit = canEditHere,
+                            onEditShow = { show -> startEdit { editingShow = show } },
+                            onShowHistory = { show -> historyShow = show },
+                            onAttendanceChange = { scope.launch { reloadAttendance() } }
+                        )
                         1 -> castSection(uiState, seed, brand, onIdolClick)
-                        else -> infoSection(uiState, seed, brand)
+                        else -> infoSection(uiState, seed, brand, brandId, onFilteredEventsClick, onCostumeClick)
                     }
                 }
             }
         }
     }
+
+    if (showAttendanceSheet) {
+        EventAttendanceSheet(
+            shows = uiState.shows,
+            seed = seed,
+            brand = brand,
+            onDismiss = { showAttendanceSheet = false },
+            onChange = { scope.launch { reloadAttendance() } }
+        )
+    }
+
+    // 編集フォームはフルスクリーン Dialog に載せる (RecentEditsScreen → SetlistEditScreen と同じ)。
+    val editingEvent = eventRecord
+    if (showEventEdit && editingEvent != null) {
+        Dialog(
+            onDismissRequest = { showEventEdit = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            EventEditScreen(
+                original = editingEvent,
+                onDismiss = { showEventEdit = false },
+                onSaved = { showEventEdit = false; reloadToken++ }
+            )
+        }
+    }
+
+    if (showCreate) {
+        Dialog(
+            onDismissRequest = { showCreate = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            ShowEditScreen(
+                eventId = eventId,
+                // 既存公演数を初期の並び順にする (末尾に足すのが普通なので)。
+                suggestedSortOrder = uiState.shows.size,
+                onDismiss = { showCreate = false },
+                onSaved = { showCreate = false; reloadToken++ }
+            )
+        }
+    }
+
+    val currentEditingShow = editingShow
+    if (currentEditingShow != null) {
+        Dialog(
+            onDismissRequest = { editingShow = null },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            ShowEditScreen(
+                original = currentEditingShow,
+                eventId = currentEditingShow.eventId,
+                onDismiss = { editingShow = null },
+                onSaved = { editingShow = null; reloadToken++ }
+            )
+        }
+    }
+
+    if (showEventHistory) {
+        RecordHistorySheet(
+            recordType = "Event",
+            recordName = eventId,
+            onDismiss = { showEventHistory = false }
+        )
+    }
+
+    val currentHistoryShow = historyShow
+    if (currentHistoryShow != null) {
+        RecordHistorySheet(
+            recordType = "Show",
+            recordName = currentHistoryShow.id,
+            onDismiss = { historyShow = null }
+        )
+    }
+
+    if (showLoginPrompt) {
+        CommunityLoginPromptDialog(
+            message = "ライブ・公演の編集にはログインが必要です。",
+            onDismiss = { showLoginPrompt = false }
+        )
+    }
 }
 
 // MARK: - Hero
-
-private data class AttendanceStatusUi(val label: String, val planned: Boolean)
-
-/** 参加マーク(イベント単位)と公演日から「参加予定 (あとN日) / 参加済み」を導く。 */
-private fun attendanceStatus(state: EventDetailUiState, marked: Boolean): AttendanceStatusUi? {
-    if (!marked) return null
-    val today = LocalDate.now()
-    val futureDates = state.shows.map { it.date }
-        .filter { it.isNotEmpty() }
-        .mapNotNull { runCatching { LocalDate.parse(it) }.getOrNull() }
-        .filter { !it.isBefore(today) }
-    val nearest = futureDates.minOrNull()
-    return if (nearest != null) {
-        val days = ChronoUnit.DAYS.between(today, nearest)
-        AttendanceStatusUi(if (days <= 0) "参加予定・今日" else "参加予定・あと${days}日", planned = true)
-    } else {
-        AttendanceStatusUi("参加済み", planned = false)
-    }
-}
 
 @Composable
 private fun Hero(
@@ -233,12 +387,13 @@ private fun Hero(
         }
         Spacer(Modifier.height(10.dp))
         Text(state.eventName, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = DS.ink)
-        if (state.heroSub.isNotEmpty()) {
+        val subLine = state.hero?.subLine.orEmpty()
+        if (subLine.isNotEmpty()) {
             Spacer(Modifier.height(6.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Filled.CalendarMonth, null, tint = DS.ink2, modifier = Modifier.size(14.dp))
                 Spacer(Modifier.width(4.dp))
-                Text(state.heroSub, fontSize = 13.sp, color = DS.ink2)
+                Text(subLine, fontSize = 13.sp, color = DS.ink2)
                 if (state.isJoint) Text(" ・ 合同", fontSize = 13.sp, color = t.accent)
             }
         }
@@ -247,24 +402,26 @@ private fun Hero(
             HeroToggle("お気に入り", favOn, DS.favorite, onFavToggle)
             HeroToggle("参加", attendOn, t.accent, onAttendToggle)
         }
-        attendanceStatus(state, attendOn)?.let { status ->
+        // 参加の札 (参加予定・あと N 日 / 参加済み) の判定と文言はコア。
+        state.hero?.attendance?.takeIf { it.state != AttendanceState.NONE }?.let { attendance ->
+            val planned = attendance.state == AttendanceState.PLANNED
             Spacer(Modifier.height(10.dp))
             Row(
                 modifier = Modifier.clip(RoundedCornerShape(50.dp))
-                    .background(if (status.planned) t.accent else DS.fill)
+                    .background(if (planned) t.accent else DS.fill)
                     .padding(horizontal = 12.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    if (status.planned) Icons.Filled.Schedule else Icons.Filled.CheckCircle,
+                    if (planned) Icons.Filled.Schedule else Icons.Filled.CheckCircle,
                     contentDescription = null,
-                    tint = if (status.planned) t.onAccent else DS.ink2,
+                    tint = if (planned) t.onAccent else DS.ink2,
                     modifier = Modifier.size(13.dp)
                 )
                 Spacer(Modifier.width(6.dp))
                 Text(
-                    status.label, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
-                    color = if (status.planned) t.onAccent else DS.ink2
+                    attendance.label, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+                    color = if (planned) t.onAccent else DS.ink2
                 )
             }
         }
@@ -293,7 +450,11 @@ private fun LazyListScope.showsSection(
     state: EventDetailUiState,
     seed: String?,
     brand: String?,
-    onShowClick: (String) -> Unit
+    onShowClick: (String) -> Unit,
+    canEdit: Boolean,
+    onEditShow: (Show) -> Unit,
+    onShowHistory: (Show) -> Unit,
+    onAttendanceChange: () -> Unit
 ) {
     item { ImasSectionHeader(title = "公演 ・ ${state.shows.size} 公演 → セトリへ", tight = true) }
     if (state.shows.isEmpty()) {
@@ -306,21 +467,42 @@ private fun LazyListScope.showsSection(
         }
     } else {
         items(state.shows, key = { it.id }) { show ->
-            ShowRow(show, seed, brand, state.isJoint) { onShowClick(show.id) }
+            // 行の右スワイプで参加登録 (EventListScreen・カレンダーと同じ規則)。
+            AttendanceSwipeRow(showId = show.id, showName = show.name, onChange = onAttendanceChange) {
+                ShowRow(
+                    show, seed, brand, state.isJoint,
+                    canEdit = canEdit,
+                    onEdit = { onEditShow(show) },
+                    onHistory = { onShowHistory(show) },
+                    onClick = { onShowClick(show.id) }
+                )
+            }
             HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 16.dp))
         }
     }
 }
 
 @Composable
-private fun ShowRow(show: Show, seed: String?, brand: String?, rainbow: Boolean, onClick: () -> Unit) {
+private fun ShowRow(
+    show: Show,
+    seed: String?,
+    brand: String?,
+    rainbow: Boolean,
+    canEdit: Boolean,
+    onEdit: () -> Unit,
+    onHistory: () -> Unit,
+    onClick: () -> Unit
+) {
+    // 公演そのものの編集はセトリ画面ではなくこの行から入る (セトリ画面は別担当)。
+    // 行タップはこれまで通りセトリへ。編集/履歴は ⋯ に畳んで誤爆を避ける。
+    var menuOpen by remember { mutableStateOf(false) }
     Row(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+            .padding(start = 16.dp, end = 4.dp, top = 10.dp, bottom = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        ImasLeadBar(seed = seed, brand = brand, height = 36.dp, rainbow = rainbow)
+        ImasLeadBar(seedHex = seed ?: brand, height = 36.dp, rainbow = rainbow)
         Column(Modifier.weight(1f)) {
             Text(
                 show.name, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink,
@@ -332,6 +514,24 @@ private fun ShowRow(show: Show, seed: String?, brand: String?, rainbow: Boolean,
             )
         }
         Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = DS.ink3, modifier = Modifier.size(16.dp))
+        Box {
+            IconButton(onClick = { menuOpen = true }) {
+                Icon(Icons.Filled.MoreVert, contentDescription = "公演の操作", tint = DS.ink3,
+                    modifier = Modifier.size(18.dp))
+            }
+            DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                if (canEdit) {
+                    DropdownMenuItem(
+                        text = { Text("公演を編集") },
+                        onClick = { menuOpen = false; onEdit() }
+                    )
+                }
+                DropdownMenuItem(
+                    text = { Text("編集履歴") },
+                    onClick = { menuOpen = false; onHistory() }
+                )
+            }
+        }
     }
 }
 
@@ -381,7 +581,7 @@ private fun LazyListScope.castSection(
     if (attendance.isFullAttendance) {
         item { FullAttendanceBanner(attendance) }
     }
-    items(attendance.grouped(), key = { it.id }) { group ->
+    items(attendance.groups, key = { it.id }) { group ->
         Column {
             ImasSectionHeader(title = "${group.label} ・ ${group.idols.size}名", tight = true)
             AvatarGrid(
@@ -402,7 +602,7 @@ private fun RoleSection(
     brand: String?,
     onIdolClick: (String) -> Unit
 ) {
-    val t = ImasTheme.derive(seed, brand, dark = true)
+    val t = ImasTheme.forBrand(seed, brand)
     if (attendance.shows.size > 1) {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
             attendance.shows.forEachIndexed { idx, show ->
@@ -492,15 +692,26 @@ private fun AvatarGrid(
 
 // MARK: - Panel 2: 情報
 
-private fun LazyListScope.infoSection(state: EventDetailUiState, seed: String?, brand: String?) {
+private fun LazyListScope.infoSection(
+    state: EventDetailUiState,
+    seed: String?,
+    brand: String?,
+    brandId: String?,
+    onFilteredEventsClick: (String, String) -> Unit,
+    onCostumeClick: (String) -> Unit
+) {
     state.stats?.let { stats ->
         item { StatsGrid(stats, seed, brand) }
     }
     if (state.ticketDeadline != null || state.ticketLotteryDate != null || state.ticketUrl != null || state.isFutureEvent) {
         item { TicketInfoSection(state, seed, brand) }
     }
+    // 衣装。行は衣装単位で、押すとイベントをまたいだ着用公演へ。
+    state.costumes?.let { costumes ->
+        item(key = "costumes") { EventCostumesSection(costumes, brandId, onCostumeClick) }
+    }
     if (state.brandShortName != null || firstShowYear(state) != null) {
-        item { MetaSection(state, seed, brand) }
+        item { MetaSection(state, seed, brand, brandId, onFilteredEventsClick) }
     }
 }
 
@@ -521,7 +732,7 @@ private fun StatsGrid(stats: EventStats, seed: String?, brand: String?) {
 @Composable
 private fun TicketInfoSection(state: EventDetailUiState, seed: String?, brand: String?) {
     val uriHandler = LocalUriHandler.current
-    val t = ImasTheme.derive(seed, brand, dark = true)
+    val t = ImasTheme.forBrand(seed, brand)
     val hasAny = state.ticketDeadline != null || state.ticketLotteryDate != null || state.ticketUrl != null
     Column {
         ImasSectionHeader(title = "チケット情報", tight = true)
@@ -531,12 +742,12 @@ private fun TicketInfoSection(state: EventDetailUiState, seed: String?, brand: S
         ) {
             var shown = false
             state.ticketDeadline?.let {
-                ImasLabeledRow(key = "申込期限", value = it, seed = seed, brand = brand)
+                ImasLabeledRow(key = Vocab.ticketDate("ticket_deadline")?.label.orEmpty(), value = it, seed = seed, brand = brand)
                 shown = true
             }
             state.ticketLotteryDate?.let {
                 if (shown) HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 16.dp))
-                ImasLabeledRow(key = "当落発表", value = it, seed = seed, brand = brand)
+                ImasLabeledRow(key = Vocab.ticketDate("ticket_lottery_date")?.label.orEmpty(), value = it, seed = seed, brand = brand)
                 shown = true
             }
             state.ticketUrl?.let { url ->
@@ -563,19 +774,35 @@ private fun TicketInfoSection(state: EventDetailUiState, seed: String?, brand: S
 }
 
 @Composable
-private fun MetaSection(state: EventDetailUiState, seed: String?, brand: String?) {
+private fun MetaSection(
+    state: EventDetailUiState,
+    seed: String?,
+    brand: String?,
+    brandId: String?,
+    onFilteredEventsClick: (String, String) -> Unit
+) {
     Column(
         Modifier.padding(horizontal = 16.dp, vertical = 8.dp).fillMaxWidth()
             .clip(RoundedCornerShape(14.dp)).background(DS.surface)
     ) {
         var shown = false
-        state.brandShortName?.let {
-            ImasLabeledRow(key = "ブランド", value = it, seed = seed, brand = brand)
+        state.brandShortName?.let { name ->
+            // brand_id がまだ解決できていない間は押せない普通の行にしておく
+            // (押せる見た目だけ出して何も起きない方が悪い)。
+            ImasLabeledRow(
+                key = "ブランド", value = name, seed = seed, brand = brand,
+                tappable = brandId != null,
+                onClick = brandId?.let { id -> { onFilteredEventsClick(EventFilterKind.BRAND, id) } }
+            )
             shown = true
         }
         firstShowYear(state)?.let { year ->
             if (shown) HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 16.dp))
-            ImasLabeledRow(key = "年度", value = "${year}年", seed = seed, brand = brand)
+            ImasLabeledRow(
+                key = "年度", value = "${year}年", seed = seed, brand = brand,
+                tappable = true,
+                onClick = { onFilteredEventsClick(EventFilterKind.YEAR, year.toString()) }
+            )
         }
     }
 }

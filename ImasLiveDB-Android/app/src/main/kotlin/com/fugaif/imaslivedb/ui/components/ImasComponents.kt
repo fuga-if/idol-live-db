@@ -6,6 +6,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -17,9 +19,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -32,7 +39,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
 import coil3.compose.SubcomposeAsyncImage
+import com.fugaif.imaslivedb.data.image.CustomImageStore
+import com.fugaif.imaslivedb.data.image.GalleryKind
+import com.fugaif.imaslivedb.data.model.Idol
+import com.fugaif.imaslivedb.di.AppModule
+import com.fugaif.imaslivedb.ui.theme.BrandColors
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasTheme
 
@@ -41,7 +54,27 @@ import com.fugaif.imaslivedb.ui.theme.ImasTheme
 // SF Symbol は ImageVector へ、Nuke は Coil へ置換。色は ImasTheme(seed) から導出。
 // =============================================================================
 
-/** アイドル等の円形アバター。画像があれば表示、無ければ tint 面 + モノグラム。 */
+/**
+ * ユーザーが端末に取り込んだカスタム画像 (プライマリ 1 枚) を返す。無ければ null。
+ *
+ * [CustomImageStore.galleryVersion] を購読しているので、追加・削除・アイコン変更を
+ * したその場でアバターが差し替わる (iOS が `galleryVersion` を読んで再描画するのと同じ)。
+ * 参照解決自体はメモリキャッシュ済みの manifest を見るだけで、描画中にディスクは読まない。
+ */
+@Composable
+fun rememberCustomImage(entityId: String?, kind: GalleryKind = GalleryKind.IDOL): java.io.File? {
+    if (entityId == null) return null
+    val store = AppModule.from(LocalContext.current).customImageStore
+    val version by store.galleryVersion.collectAsState()
+    return remember(entityId, kind, version) { store.primaryImageFile(entityId, kind) }
+}
+
+/**
+ * アイドル等の円形アバター。画像があれば表示、無ければ tint 面 + モノグラム。
+ *
+ * [entityId] を渡すと、ユーザーが取り込んだカスタム画像 (あれば) を [imageUrl] より優先して出す。
+ * 「誰の」画像かはこの id でしか引けないので、アイドル/ユニットのアバターには必ず渡すこと。
+ */
 @Composable
 fun ImasAvatar(
     label: String,
@@ -49,12 +82,17 @@ fun ImasAvatar(
     brand: String? = null,
     size: Dp = 40.dp,
     isPick: Boolean = false,
-    imageUrl: String? = null
+    imageUrl: String? = null,
+    entityId: String? = null,
+    entityKind: GalleryKind = GalleryKind.IDOL
 ) {
-    val t = ImasTheme.derive(seed, brand, dark = true)
-    val ringInset = if (isPick) 5.5.dp else 0.dp
+    val t = ImasTheme.forBrand(seed, brand)
+    // ローカル取り込み画像が最優先。File のまま渡せば Coil が file:// として読む。
+    val model: Any? = rememberCustomImage(entityId, entityKind) ?: imageUrl
+    // 占有スペースは isPick に関わらず常に一定 (担当リング分の size + 11.dp) にする。
+    // isPick で外形が変わると一覧/グリッド/詳細でレイアウトが崩れるため (リングは中央に重ねて描画するのみ)。
     Box(
-        modifier = Modifier.size(size + ringInset * 2),
+        modifier = Modifier.size(size + 11.dp),
         contentAlignment = Alignment.Center
     ) {
         if (isPick) {
@@ -67,9 +105,9 @@ fun ImasAvatar(
                 .border(1.5.dp, t.ring, CircleShape),
             contentAlignment = Alignment.Center
         ) {
-            if (imageUrl != null) {
+            if (model != null) {
                 SubcomposeAsyncImage(
-                    model = imageUrl, contentDescription = label,
+                    model = model, contentDescription = label,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.size(size).clip(CircleShape),
                     loading = { Monogram(label, t, size) },
@@ -104,7 +142,7 @@ fun ImasArtwork(
     size: Dp = 56.dp,
     imageUrl: String? = null
 ) {
-    val t = ImasTheme.derive(seed, brand, dark = true)
+    val t = ImasTheme.forBrand(seed, brand)
     val radius = maxOf(8.dp, size * 0.16f)
     Box(
         modifier = Modifier.size(size).clip(RoundedCornerShape(radius)),
@@ -135,9 +173,19 @@ private fun ArtworkFallback(title: String, t: ImasTheme, size: Dp) {
     }
 }
 
-/** 一覧の控えめなエンティティ色マーカー (行頭の細い縦バー)。 */
+/**
+ * 一覧の控えめなエンティティ色マーカー (行頭の細い縦バー)。
+ *
+ * [seedHex] はエンティティ固有色。[brandId] はマスタのブランド色へ解決し ([BrandColors])、
+ * seedが無い場合のフォールバックとして使う。
+ */
 @Composable
-fun ImasLeadBar(seed: String? = null, brand: String? = null, height: Dp = 40.dp, rainbow: Boolean = false) {
+fun ImasLeadBar(
+    seedHex: String? = null,
+    brandId: String? = null,
+    height: Dp = 40.dp,
+    rainbow: Boolean = false
+) {
     val background = if (rainbow) {
         androidx.compose.ui.graphics.Brush.verticalGradient(
             listOf(
@@ -146,7 +194,7 @@ fun ImasLeadBar(seed: String? = null, brand: String? = null, height: Dp = 40.dp,
             )
         )
     } else {
-        val t = ImasTheme.derive(seed, brand, dark = true)
+        val t = ImasTheme.forBrand(seedHex, brandId)
         androidx.compose.ui.graphics.SolidColor(t.bar)
     }
     Box(
@@ -200,7 +248,7 @@ fun ImasStatTile(
     onClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
-    val t = ImasTheme.derive(seed, brand, dark = true)
+    val t = ImasTheme.forBrand(seed, brand)
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(14.dp))
@@ -241,7 +289,7 @@ fun ImasMetricBadge(value: String, unit: String = "", emphasized: Boolean = true
 /** 横棒の統計バー (ラベル + バー + 値)。 */
 @Composable
 fun ImasStatBar(label: String, value: String, percent: Double, seed: String? = null, brand: String? = null) {
-    val t = ImasTheme.derive(seed, brand, dark = true)
+    val t = ImasTheme.forBrand(seed, brand)
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp, horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -266,7 +314,7 @@ fun ImasRankingRow(
     sub: String? = null, seed: String? = null, brand: String? = null,
     onClick: (() -> Unit)? = null, lead: @Composable () -> Unit
 ) {
-    val t = ImasTheme.derive(seed, brand, dark = true)
+    val t = ImasTheme.forBrand(seed, brand)
     Row(
         modifier = Modifier.fillMaxWidth()
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
@@ -311,7 +359,14 @@ fun ImasSegmented(
     }
 }
 
-/** よみ / CV / 会場 等の key-value 行。 */
+/**
+ * よみ / CV / 会場 等の key-value 行。
+ *
+ * [copyable] が true (既定) なら長押しで値をコピーできる。この行は
+ * 「外部で検索したり貼りたくなる値」の表示に使われるので、コピーは画面ごとに
+ * 付け外しするものではなく既定の性質にする (iOS の ImasLabeledRow と 1:1)。
+ * 呼び出し側で別の長押しメニューを出す行だけ false にする。
+ */
 @Composable
 fun ImasLabeledRow(
     key: String,
@@ -319,29 +374,46 @@ fun ImasLabeledRow(
     showSwatch: Boolean = false,
     mono: Boolean = false,
     tappable: Boolean = false,
+    copyable: Boolean = true,
     seed: String? = null,
     brand: String? = null,
     onClick: (() -> Unit)? = null
 ) {
-    val t = ImasTheme.derive(seed, brand, dark = true)
-    Row(
-        modifier = Modifier.fillMaxWidth()
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-            .background(DS.surface)
-            .padding(horizontal = 16.dp, vertical = 11.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Text(key, fontSize = 15.sp, color = DS.ink2)
-        Box(Modifier.weight(1f))
-        if (showSwatch) Box(Modifier.size(16.dp).clip(CircleShape).background(t.accent))
-        Text(
-            value,
-            fontSize = 15.sp,
-            color = if (tappable) t.accent else DS.ink,
-            maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.End
+    val t = ImasTheme.forBrand(seed, brand)
+    val row: @Composable () -> Unit = {
+        Row(
+            modifier = Modifier.fillMaxWidth()
+                .background(DS.surface)
+                .padding(horizontal = 16.dp, vertical = 11.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(key, fontSize = 15.sp, color = DS.ink2)
+            Box(Modifier.weight(1f))
+            if (showSwatch) Box(Modifier.size(16.dp).clip(CircleShape).background(t.accent))
+            Text(
+                value,
+                fontSize = 15.sp,
+                color = if (tappable) t.accent else DS.ink,
+                maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.End
+            )
+            if (tappable) Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = t.accent, modifier = Modifier.size(13.dp))
+        }
+    }
+
+    if (copyable) {
+        // 省略表示 (Ellipsis) されていても原文 (value) を渡すので全文がコピーできる。
+        Copyable(
+            items = listOf(CopyItem("${key}をコピー", value)),
+            modifier = Modifier.fillMaxWidth(),
+            onClick = onClick,
+            content = row
         )
-        if (tappable) Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = t.accent, modifier = Modifier.size(13.dp))
+    } else {
+        Box(
+            Modifier.fillMaxWidth()
+                .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+        ) { row() }
     }
 }
 
@@ -356,9 +428,12 @@ fun ImasChip(
     style: ImasChipStyle = ImasChipStyle.NEUTRAL,
     seed: String? = null,
     brand: String? = null,
+    /** 実体色そのもの (ブランド色 Color 等)。指定すると seed/brand より優先する。 */
+    color: Color? = null,
     onClick: (() -> Unit)? = null
 ) {
-    val t = ImasTheme.derive(seed, brand, dark = true)
+    val t = if (color != null) ImasTheme.derive(color, dark = true)
+            else ImasTheme.forBrand(seed, brand)
     val (bg, fg) = when (style) {
         ImasChipStyle.THEMED -> t.chipBg to t.chipText
         ImasChipStyle.SELECTED -> t.accent to t.onAccent
@@ -395,9 +470,11 @@ fun ImasEmptyState(
     title: String,
     message: String? = null,
     seed: String? = null,
-    brand: String? = null
+    brand: String? = null,
+    actionTitle: String? = null,
+    onAction: (() -> Unit)? = null
 ) {
-    val t = ImasTheme.derive(seed, brand, dark = true)
+    val t = ImasTheme.forBrand(seed, brand)
     Column(
         modifier = Modifier.fillMaxWidth().padding(vertical = 30.dp, horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -410,13 +487,18 @@ fun ImasEmptyState(
         if (message != null) {
             Text(message, fontSize = 13.5.sp, color = DS.ink2, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 6.dp))
         }
+        if (actionTitle != null && onAction != null) {
+            androidx.compose.material3.Button(onClick = onAction, modifier = Modifier.padding(top = 14.dp)) {
+                Text(actionTitle)
+            }
+        }
     }
 }
 
 /** 役割/種別を示す小さめのピルバッジ (主演・ゲスト・ユニット名等)。 */
 @Composable
 fun ImasTagChip(text: String, seed: String? = null, brand: String? = null, outlined: Boolean = false) {
-    val t = ImasTheme.derive(seed, brand, dark = true)
+    val t = ImasTheme.forBrand(seed, brand)
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(999.dp))
@@ -432,5 +514,76 @@ fun ImasTagChip(text: String, seed: String? = null, brand: String? = null, outli
             fontWeight = FontWeight.Bold,
             color = if (outlined) t.accent else t.onAccent
         )
+    }
+}
+
+/** 「投票の優勝経験」バッジ。1位は王冠+金塗り、2〜3位はロゼット+アウトライン。iOS ImasAwardChip の移植。 */
+@Composable
+fun ImasAwardChip(title: String, rank: Int) {
+    val isWinner = rank == 1
+    val rankLabel = if (isWinner) "優勝" else "第${rank}位"
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .clip(RoundedCornerShape(999.dp))
+            .background(if (isWinner) DS.warning else DS.warning.copy(alpha = 0.14f))
+            .padding(horizontal = 10.dp, vertical = 5.dp)
+    ) {
+        Icon(
+            if (isWinner) Icons.Filled.EmojiEvents else Icons.Filled.WorkspacePremium,
+            contentDescription = null,
+            tint = if (isWinner) Color.White else DS.warning,
+            modifier = Modifier.size(14.dp)
+        )
+        Text(
+            "$title $rankLabel",
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = if (isWinner) Color.White else DS.warning,
+            modifier = Modifier.padding(start = 4.dp),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+/**
+ * アバター + 名前のグリッド表示。原曲アイドル・歌唱アイドル一覧 (SongDetailScreen) と
+ * タグが似ているアイドル (IdolDetailScreen) で共用する。
+ * [badge] は idolId -> 共有タグ数 のマップ。渡すと名前の下に「タグN個一致」を表示する。
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun IdolGridSection(
+    title: String,
+    idols: List<Idol>,
+    onIdolClick: (String) -> Unit,
+    badge: Map<String, Int>? = null
+) {
+    Column {
+        ImasSectionHeader(title, count = "${idols.size}")
+        FlowRow(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            idols.forEach { idol ->
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.width(64.dp).clickable { onIdolClick(idol.id) }
+                ) {
+                    ImasAvatar(label = idol.shortName, seed = idol.color, brand = idol.brandId, size = 52.dp,
+                        entityId = idol.id)
+                    Text(idol.name, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = DS.ink2,
+                        textAlign = TextAlign.Center, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(top = 6.dp))
+                    val b = badge?.get(idol.id)
+                    if (b != null) {
+                        Text("タグ${b}個一致", fontSize = 10.sp, color = DS.ink3,
+                            textAlign = TextAlign.Center, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                }
+            }
+        }
     }
 }

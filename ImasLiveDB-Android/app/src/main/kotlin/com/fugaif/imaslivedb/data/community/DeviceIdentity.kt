@@ -21,4 +21,11 @@ object DeviceIdentity {
         cached = id
         return id
     }
+
+    /** バックアップ復元 (上級者向け「端末IDも引き継ぐ」) 専用。既存の device_id を上書きする。 */
+    fun restore(context: Context, value: String) {
+        val prefs = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        prefs.edit().putString(KEY, value).apply()
+        cached = value
+    }
 }

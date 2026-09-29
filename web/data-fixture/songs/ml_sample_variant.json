@@ -1,0 +1,292 @@
+{
+  "schemaVersion": 1,
+  "id": "ml_sample_variant",
+  "path": "/songs/ml_sample_variant/",
+  "title": "Thank You! (Live ver.)",
+  "titleKana": "さんきゅー",
+  "themeKey": "brand:ml",
+  "brand": {
+    "kind": "brand",
+    "id": "ml",
+    "name": "アイドルマスター ミリオンライブ!",
+    "sub": "ML",
+    "path": "/brands/ml/",
+    "themeKey": "brand:ml",
+    "artworkUrl": null
+  },
+  "jointBrands": [
+    {
+      "kind": "brand",
+      "id": "cg",
+      "name": "アイドルマスター シンデレラガールズ",
+      "sub": "CG",
+      "path": "/brands/cg/",
+      "themeKey": "brand:cg",
+      "artworkUrl": null
+    }
+  ],
+  "collabLabel": "合同曲",
+  "kamisabiLabel": "KAMISABI 収録",
+  "note": "ミリシタ 1 周年記念楽曲",
+  "community": {
+    "tags": [
+      {
+        "id": "tag_kawaii",
+        "name": "かわいい",
+        "count": 12,
+        "themeKey": "tag:tag_kawaii",
+        "isOfficial": false,
+        "path": "/tags/tag_kawaii/"
+      }
+    ],
+    "favorites": 34,
+    "penlight": [
+      {
+        "key": "pink_white",
+        "count": 5
+      }
+    ]
+  },
+  "hasCommunity": true,
+  "lyrics": {
+    "available": false,
+    "statusLabel": "JASRAC 許諾待ち",
+    "note": "本サイトでの歌詞の掲載には JASRAC の許諾が別に必要なため、いまは見合わせています。歌詞はアプリ『アイドルライブDB』でご覧いただけます（アプリは JASRAC 許諾番号 J260943703 のもとで歌詞を配信しています）。",
+    "licenseNote": null,
+    "sourceUrl": null,
+    "readLabel": null,
+    "callGuide": null
+  },
+  "songTypeLabel": "ソロ曲",
+  "releaseDate": "2019-03-13",
+  "credits": [
+    {
+      "role": "作詞",
+      "display": "山崎寛子"
+    },
+    {
+      "role": "作曲",
+      "display": "睦月周平 / EFFY"
+    }
+  ],
+  "artworkUrl": null,
+  "appleMusicUrl": "https://music.apple.com/jp/song/1451234567",
+  "originalArtists": [
+    {
+      "kind": "idol",
+      "id": "ml_kasuga_mirai",
+      "name": "春日未来",
+      "sub": "ミリオンライブ!",
+      "path": "/idols/ml_kasuga_mirai/",
+      "themeKey": "idol:ml_kasuga_mirai",
+      "artworkUrl": null
+    },
+    {
+      "kind": "idol",
+      "id": "ml_mogami_shizuka",
+      "name": "最上静香",
+      "sub": "ミリオンライブ!",
+      "path": "/idols/ml_mogami_shizuka/",
+      "themeKey": "idol:ml_mogami_shizuka",
+      "artworkUrl": null
+    }
+  ],
+  "otherArtists": [],
+  "unit": {
+    "kind": "unit",
+    "id": "unit_sample",
+    "name": "サンプルユニット",
+    "sub": "ミリオンライブ!",
+    "path": "/units/unit_sample/",
+    "themeKey": "brand:ml",
+    "artworkUrl": null
+  },
+  "unitLabel": "765MILLION ALLSTARS",
+  "parentNote": {
+    "before": "この曲は ",
+    "link": {
+      "kind": "song",
+      "id": "ml_sample",
+      "name": "Thank You!",
+      "sub": "765MILLION ALLSTARS",
+      "path": "/songs/ml_sample/",
+      "themeKey": "brand:ml",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music/sample/600x600bb.jpg"
+    },
+    "after": " の派生曲です。"
+  },
+  "variants": [],
+  "performanceCount": 12,
+  "statTiles": [
+    {
+      "glyph": "♪",
+      "value": 12,
+      "label": "回披露",
+      "href": "#song-history"
+    },
+    {
+      "glyph": "☺",
+      "value": 2,
+      "label": "歌唱アイドル",
+      "href": null
+    }
+  ],
+  "performanceHistory": [
+    {
+      "show": {
+        "kind": "show",
+        "id": "sh_sample_1",
+        "name": "DAY1",
+        "sub": "2026-04-03",
+        "path": "/shows/sh_sample_1/",
+        "themeKey": "brand:ml",
+        "artworkUrl": null
+      },
+      "event": {
+        "kind": "event",
+        "id": "ev_sample",
+        "name": "THE IDOLM@STER MILLION LIVE! 10thLIVE TOUR Act-4 ROAD TO MEMORIES 幕張",
+        "sub": "2026",
+        "path": "/events/ev_sample/",
+        "themeKey": "brand:ml",
+        "artworkUrl": null
+      },
+      "date": "2026-04-03",
+      "dateBadge": {
+        "iso": "2026-04-03",
+        "year": "2026",
+        "monthDay": "4/3",
+        "weekday": "金",
+        "spoken": "2026年4月3日 金曜日"
+      },
+      "venue": "幕張メッセ",
+      "number": 1,
+      "placeDisplay": "DAY1 ・ 幕張メッセ",
+      "performersDisplay": "春日未来・最上静香・伊吹翼 ほか 9 人",
+      "ordinalLabel": "12 回目"
+    }
+  ],
+  "historyEmpty": null,
+  "frequentSingers": [
+    {
+      "idol": {
+        "kind": "idol",
+        "id": "ml_kasuga_mirai",
+        "name": "春日未来",
+        "sub": "ミリオンライブ!",
+        "path": "/idols/ml_kasuga_mirai/",
+        "themeKey": "idol:ml_kasuga_mirai",
+        "artworkUrl": null
+      },
+      "times": 8,
+      "total": 12
+    }
+  ],
+  "coOccurring": [
+    {
+      "song": {
+        "kind": "song",
+        "id": "ml_sample_variant",
+        "name": "Thank You! (Live ver.)",
+        "sub": "派生曲",
+        "path": "/songs/ml_sample_variant/",
+        "themeKey": "brand:ml",
+        "artworkUrl": null
+      },
+      "together": 5
+    }
+  ],
+  "related": [
+    {
+      "kind": "song",
+      "id": "ml_sample_variant",
+      "name": "Thank You! (Live ver.)",
+      "sub": "派生曲",
+      "path": "/songs/ml_sample_variant/",
+      "themeKey": "brand:ml",
+      "artworkUrl": null
+    }
+  ],
+  "factRows": [
+    {
+      "label": "リリース",
+      "value": "2019-03-13",
+      "style": "monospaced",
+      "link": null
+    },
+    {
+      "label": "収録",
+      "value": "Thank You!",
+      "style": "plain",
+      "link": null
+    },
+    {
+      "label": "シリーズ",
+      "value": "THE IDOLM@STER MILLION THE@TER WAVE",
+      "style": "plain",
+      "link": null
+    },
+    {
+      "label": "再生時間",
+      "value": "4:32",
+      "style": "monospaced",
+      "link": null
+    },
+    {
+      "label": "JASRAC 作品コード",
+      "value": "123-4567-8",
+      "style": "monospaced",
+      "link": null
+    }
+  ],
+  "app": {
+    "title": "アプリ「アイドルライブDB」",
+    "appStoreUrl": "https://apps.apple.com/jp/app/id6763342297",
+    "deeplink": null,
+    "note": "参加記録・投票・歌詞・コール・タグ付けはアプリでご利用いただけます。"
+  },
+  "seo": {
+    "title": "Thank You! (Live ver.) | アイドルライブDB",
+    "description": "クレジット・歌唱アイドル・披露履歴。",
+    "canonical": "https://idollivedb.fugaapp.site/songs/ml_sample_variant/",
+    "ogImage": "https://idollivedb.fugaapp.site/og/default.png",
+    "robots": "index,follow",
+    "jsonLd": {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebPage",
+          "name": "Thank You! (Live ver.)",
+          "url": "https://idollivedb.fugaapp.site/songs/ml_sample_variant/"
+        },
+        {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "item": "https://idollivedb.fugaapp.site/",
+              "name": "ホーム",
+              "position": 1
+            },
+            {
+              "@type": "ListItem",
+              "item": "https://idollivedb.fugaapp.site/songs/",
+              "name": "楽曲",
+              "position": 2
+            }
+          ]
+        }
+      ]
+    },
+    "breadcrumbs": [
+      {
+        "name": "ホーム",
+        "path": "/"
+      },
+      {
+        "name": "楽曲",
+        "path": "/songs/"
+      }
+    ]
+  }
+}

@@ -1,14 +1,28 @@
 name: Refresh master data
 
 # CloudKit (source of truth) → db/master.sql を日次でエクスポートし、
-# 変化があれば自動コミット。コントリビューターが常に最新データに対して
-# tools/apply_data.py --check / apply_corrections.py --check を回せるようにする。
+# 変化があれば bot/data-refresh に保存する。コントリビューターが常に最新データに対して
+# tools/apply_data.py --check を回せるようにする。
+#
+# 取り出し・検査・保存は別のジョブにしてある:
+#   - export: 鍵を持ち、CloudKit から取り出して artifact に置くだけ (contents: read)。
+#   - check : 鍵を持たない。取り出した db/master.sql で FK ゲート (tools/build_db.sh) を回し、
+#             落ちたらワークフローを赤くして、違反の一覧を job summary に出す。
+#   - save  : 鍵を持たない (contents: write)。check が緑なら bot/data-refresh、赤なら
+#             bot/data-refresh-broken に push する。検査に落ちた写しも保存はする
+#             (以前は保存もしなかったので、git 上の写しが何日も古いまま止まった) が、
+#             オーナーが PR にする bot/data-refresh には載せない。GITHUB_TOKEN の push では
+#             PR の core-guard が走らないので、壊れた写しを PR の head にしないため。
+#   3 つのジョブは export が出した db/master.sql の sha256 で同じものか確かめる。
 #
 # ⚠️ セキュリティ前提 (設定は docs/DATA_PIPELINE.md 参照):
-#   - CloudKit 鍵は environment "cloudkit" の secret に置き、deployment branch を main 限定にする
-#     → feature ブランチ / PR で走る他ワークフローからは鍵を取得できない
-#   - main の branch protection + .github/ の CODEOWNERS でワークフロー改ざんを防ぐ
-#   - schedule は常に main で走るので、鍵に触れるのはこの自動エクスポートだけになる
+#   - CloudKit 鍵は environment "cloudkit" の secret に置き、deployment branch を
+#     main と develop に絞る → feature ブランチ / PR で走る他ワークフローからは鍵を取得できない
+#     (schedule はリポジトリの既定ブランチ develop にあるこのファイルで起動する。
+#     workflow_dispatch も、鍵を使えるのは main / develop から起動したときだけ)
+#   - 鍵を使うのは export ジョブだけ。check ジョブは secret を使わない
+#   - develop / main の branch protection + .github/ の CODEOWNERS でワークフロー改ざんを防ぐ
+#     (schedule が読むのは develop のこのファイルなので、develop の保護が要)
 
 on:
   schedule:
@@ -21,24 +35,26 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  refresh:
+  export:
     runs-on: ubuntu-latest
-    environment: cloudkit          # ← main 限定の environment secret を使う
+    environment: cloudkit          # ← 鍵を置いた environment secret を使う
     permissions:
-      contents: write              # db/master.sql のコミットに必要
+      contents: read
+    outputs:
+      sha256: ${{ steps.digest.outputs.sha256 }}
     steps:
-      # main / develop はどちらも保護ブランチ (PR+オーナー承認必須) なので bot は直接 push できない。
-      # bot 専用ブランチ bot/data-refresh に出し、オーナーが develop への PR でレビュー&マージする。
       - uses: actions/checkout@v4
         with:
           ref: develop
+          persist-credentials: false
 
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
+      # 鍵を扱うジョブなので、入れるものの版を固定する。
       - name: Install deps
-        run: pip install requests ecdsa
+        run: pip install requests==2.32.5 ecdsa==0.19.2
 
       - name: Write CloudKit key
         env:
@@ -52,9 +68,94 @@ jobs:
         run: |
           python3 tools/export_cloudkit.py --production --key-file tools/eckey.pem
 
-      - name: Commit if changed
+      - name: Remove CloudKit key
+        if: always()
+        run: rm -f tools/eckey.pem
+
+      - name: Digest
+        id: digest
+        run: echo "sha256=$(sha256sum db/master.sql | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+
+      - name: Hand the export to the check and save jobs
+        uses: actions/upload-artifact@v4
+        with:
+          name: master-sql
+          path: db/master.sql
+          retention-days: 7
+
+  check:
+    needs: export
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: develop
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: master-sql
+          path: db
+
+      - name: Verify the artifact is the export
+        env:
+          EXPECTED: ${{ needs.export.outputs.sha256 }}
+        run: echo "$EXPECTED  db/master.sql" | sha256sum --check
+
+      # 同梱される master.sqlite を生成し、外部キー整合性を検証する。
+      # FK 違反があると初回起動 reseed が全ロールバックし、ユーザーに無言で旧データが残る。
+      - name: FK integrity gate
+        run: bash tools/build_db.sh
+
+      # build_db.sh は落ちると DB を消すので、一覧は別の一時 DB で取り直す。
+      - name: List the violations in the job summary
+        if: failure()
         run: |
-          rm -f tools/eckey.pem
+          sqlite3 "$RUNNER_TEMP/check.sqlite" < db/master.sql
+          {
+            echo '## db/master.sql の検査に落ちた'
+            echo 'bot/data-refresh-broken に保存した (bot/data-refresh には載せない)。CloudKit 側を直してから取り込む。'
+            echo '```'
+            python3 tools/check_fk_integrity.py "$RUNNER_TEMP/check.sqlite" || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  save:
+    needs: [export, check]
+    if: always() && needs.export.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write              # bot ブランチへの push に必要
+    steps:
+      # main / develop はどちらも保護ブランチ (PR+オーナー承認必須) なので bot は直接 push できない。
+      # bot 専用ブランチに出し、オーナーが bot/data-refresh → develop の PR でレビュー&マージする。
+      - uses: actions/checkout@v4
+        with:
+          ref: develop
+          persist-credentials: false
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: master-sql
+          path: db
+
+      - name: Verify the artifact is the export
+        env:
+          EXPECTED: ${{ needs.export.outputs.sha256 }}
+        run: echo "$EXPECTED  db/master.sql" | sha256sum --check
+
+      - name: Push to the bot branch if changed
+        env:
+          BRANCH: ${{ needs.check.result == 'success' && 'bot/data-refresh' || 'bot/data-refresh-broken' }}
+          GITHUB_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
           if git diff --quiet -- db/master.sql; then
             echo "変化なし"
             exit 0
@@ -63,6 +164,6 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add db/master.sql
           git commit -m "chore(data): refresh db/master.sql ($(date -u +%Y-%m-%d))"
-          # bot 専用ブランチへ (develop は保護ブランチで直接 push 不可)。
-          # オーナーが bot/data-refresh → develop の PR でレビュー&マージする。
-          git push --force origin HEAD:bot/data-refresh
+          # checkout で資格情報を残していないので、push のときだけ token を渡す。
+          git push --force "https://x-access-token:${GITHUB_TOKEN}@github.com/${REPO}.git" "HEAD:${BRANCH}"
+          echo "::notice::${BRANCH} に保存した"

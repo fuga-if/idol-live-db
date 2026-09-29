@@ -3,7 +3,7 @@ import Foundation
 /// アイドル(キャスト)マスタの読み取りポート (driven port)。
 ///
 /// Presentation はこのポートに依存し、永続化の具象 (`AppDatabase` / GRDB) を知らない。
-/// 実装は `Adapters/Persistence/GRDBIdolRepository`。
+/// 実装は `Adapters/Persistence/CoreIdolRepository` (共有コアのスナップショット)。
 ///
 /// ⚠️ Domain 規約: このファイルは `SwiftUI` / `GRDB` / `CloudKit` を import しない。
 protocol IdolReading: Sendable {
@@ -13,6 +13,9 @@ protocol IdolReading: Sendable {
     func idol(id: String) async throws -> Idol?
     /// id 集合に該当するアイドル。
     func idols(ids: [String]) async throws -> [Idol]
+    /// タグが似ているアイドルの候補 (サーバの並び) から、手元に居て外部ゲストでない人を
+    /// 表示する数だけ選ぶ。選び方はコア (`pick_similar_idols`)。並びはサーバの並びのまま。
+    func similarIdols(from candidates: [SimilarIdolCandidate]) async throws -> [Idol]
     /// フィルタ条件で絞ったアイドル。
     func idols(criterion: IdolFilterCriterion) async throws -> [Idol]
     /// idol_id → キャスト(声優)名。
@@ -26,6 +29,9 @@ protocol IdolReading: Sendable {
 
     /// アイドルが歌唱に関わる曲 (role 指定で絞り込み: "original" 等)。
     func idolSongs(idolId: String, role: String?) async throws -> [Song]
+    /// アイドルの原曲を「ソロ曲/ユニット曲/全体曲/その他」に節分けしたもの。0 件の節は含まない。
+    /// 節分け・見出し・順序は共有コアが決める (`idol_original_song_sections`)。
+    func idolOriginalSongSections(idolId: String) async throws -> [IdolSongSection]
     /// アイドルがライブで披露した曲 (披露履歴つき)。
     func idolPerformedSongs(idolId: String) async throws -> [IdolPerformedSong]
     /// 所属ユニット。

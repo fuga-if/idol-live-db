@@ -23,12 +23,16 @@ actor CommunityAPI {
     private var tagDetailCache: [String: (detail: TagDetailResponse, at: Date)] = [:]
     private let tagDetailCacheTTL: TimeInterval = 300
 
-    /// タグ類似曲 (/songs/:id/similar) の TTL キャッシュ。song_id 単位。
-    /// 曲詳細を開くたびに毎回ネットワークを叩いていた。レスポンスは完全にユーザー非依存
-    /// (共有タグ数の集計のみ) で、タグ分布で決まり変化が非常に緩やかなので長めの TTL で安全。
-    /// 自分のタグ付け/取消で類似関係が変わりうるので、その曲のエントリは無効化する。
-    private var similarSongsCache: [String: (response: SimilarSongsResponse, at: Date)] = [:]
-    private let similarSongsCacheTTL: TimeInterval = 600
+    /// タグ類似アイドル (/idols/:id/similar) の TTL キャッシュ。idol_id 単位。
+    /// レスポンスは完全にユーザー非依存 (共有タグ数の集計のみ) で、タグ分布で決まり
+    /// 変化が非常に緩やかなので長めの TTL で安全。自分のタグ付け/取消で類似関係が
+    /// 変わりうるので、そのアイドルのエントリは無効化する。
+    private var similarIdolsCache: [String: (response: SimilarIdolsResponse, at: Date)] = [:]
+    private let similarIdolsCacheTTL: TimeInterval = 600
+
+    /// タグ類似ユニット (/units/:id/similar) の TTL キャッシュ。unit_id 単位。similarIdolsCache と同じ理由・同じ TTL。
+    private var similarUnitsCache: [String: (response: SimilarUnitsResponse, at: Date)] = [:]
+    private let similarUnitsCacheTTL: TimeInterval = 600
 
     /// ペンライト投票集計 (/penlight/votes/:id) の TTL キャッシュ。song_id 単位。
     /// レスポンスに my_vote (自分の投票) が含まれるため **ユーザー固有** であり、
@@ -45,16 +49,62 @@ actor CommunityAPI {
     private var songTagsCache: [String: (response: SongTagListResponse, at: Date)] = [:]
     private let songTagsCacheTTL: TimeInterval = 120
 
+    /// アイドルタグ一覧 (/idols/:id/tags) の TTL キャッシュ。song 版と同じ理由・同じ TTL。
+    private var idolTagsCache: [String: (response: IdolTagListResponse, at: Date)] = [:]
+    private let idolTagsCacheTTL: TimeInterval = 120
+
+    /// ユニットタグ一覧 (/units/:id/tags) の TTL キャッシュ。idol 版と同じ理由・同じ TTL。
+    private var unitTagsCache: [String: (response: UnitTagListResponse, at: Date)] = [:]
+    private let unitTagsCacheTTL: TimeInterval = 120
+
+    /// アイドルタグマスタ一覧 (/idol-tags) の TTL キャッシュ。tagsCache (曲タグマスタ) と同じ理由・同じ TTL。
+    private var idolTagCatalogCache: [String: (tags: [CommunityTag], at: Date)] = [:]
+
+    /// アイドルタグマスタ詳細 (/idol-tags/:id) の TTL キャッシュ。tagDetailCache と同じ理由・同じ TTL。
+    private var idolTagDetailCache: [String: (detail: IdolTagDetailResponse, at: Date)] = [:]
+
+    /// ユニットタグマスタ一覧 (/unit-tags) の TTL キャッシュ。idolTagCatalogCache と同じ理由・同じ TTL。
+    private var unitTagCatalogCache: [String: (tags: [CommunityTag], at: Date)] = [:]
+
+    /// ユニットタグマスタ詳細 (/unit-tags/:id) の TTL キャッシュ。idolTagDetailCache と同じ理由・同じ TTL。
+    private var unitTagDetailCache: [String: (detail: UnitTagDetailResponse, at: Date)] = [:]
+
+    /// タグ活動サマリ (/tags/activity) の TTL キャッシュ。完全にユーザー非依存 (自分のタグ付けの有無に
+    /// 関わらず同じ集計) なので、エッジキャッシュ (10分) に合わせて端末側も同程度の TTL でよい。
+    private var tagActivityCache: (response: TagActivityResponse, at: Date)?
+    private let tagActivityCacheTTL: TimeInterval = 600
+
     /// タグ一覧・タグ詳細の両キャッシュを無効化する (タグ作成/付与/取消で件数・票数が変わるため)。
-    /// あわせて、その曲のタグ集計に依存する曲タグ一覧・類似曲キャッシュも song 単位で無効化する。
-    private func invalidateTagsCache(songId: String? = nil) {
+    /// あわせて、その曲/アイドル/ユニットのタグ集計に依存するタグ一覧・類似コンテンツキャッシュも単位で無効化する。
+    private func invalidateTagsCache(songId: String? = nil, idolId: String? = nil, unitId: String? = nil) {
         tagsCache.removeAll()
         tagDetailCache.removeAll()
         if let songId {
             songTagsCache[songId] = nil
-            // 自分のタグ付けは類似関係 (共有タグ) を変えうるので、その曲の類似キャッシュも捨てる。
-            similarSongsCache[songId] = nil
         }
+        if let idolId {
+            idolTagsCache[idolId] = nil
+            // 自分のタグ付けは類似関係 (共有タグ) を変えうるので、そのアイドルの類似キャッシュも捨てる。
+            similarIdolsCache[idolId] = nil
+        }
+        if let unitId {
+            unitTagsCache[unitId] = nil
+            // 自分のタグ付けは類似関係 (共有タグ) を変えうるので、そのユニットの類似キャッシュも捨てる。
+            similarUnitsCache[unitId] = nil
+        }
+    }
+
+    /// アイドルタグマスタ (idol_tag_master) 一覧・詳細キャッシュを無効化する。曲タグ側とはプールが
+    /// 別なので invalidateTagsCache とは独立に管理する。
+    private func invalidateIdolTagCatalogCache() {
+        idolTagCatalogCache.removeAll()
+        idolTagDetailCache.removeAll()
+    }
+
+    /// ユニットタグマスタ (unit_tag_master) 一覧・詳細キャッシュを無効化する。他プールとは独立に管理する。
+    private func invalidateUnitTagCatalogCache() {
+        unitTagCatalogCache.removeAll()
+        unitTagDetailCache.removeAll()
     }
 
     // MARK: - Favorites
@@ -210,15 +260,228 @@ actor CommunityAPI {
         return response
     }
 
-    /// タグが似ている楽曲 (この曲が好きな人にはこれもおすすめ)。共有タグ数の多い順。
-    func similarSongsByTags(songId: String, limit: Int = 10) async throws -> SimilarSongsResponse {
-        // limit は呼び出し側で固定 (DetailSheet=既定)。同一 song の再オープンを即時化するため
-        // song_id 単位でキャッシュ。完全にユーザー非依存なので長め TTL でよい。
-        if let hit = similarSongsCache[songId], Date().timeIntervalSince(hit.at) < similarSongsCacheTTL {
+    func applyIdolTags(idolId: String, tagIds: [String]) async throws {
+        struct Body: Encodable { let tagIds: [String] }
+        let _: IdolTagApplyResponse = try await APIClient.shared.request(
+            "POST", path: "/idols/\(idolId)/tags",
+            body: Body(tagIds: tagIds)
+        )
+        // 自分のタグ付けで my_tag_ids・票数が変わるので該当 idol も無効化。
+        invalidateTagsCache(idolId: idolId)
+    }
+
+    func removeIdolTag(idolId: String, tagId: String) async throws {
+        try await APIClient.shared.requestVoid(
+            "DELETE", path: "/idols/\(idolId)/tags/\(tagId)"
+        )
+        // 自分のタグ取消で my_tag_ids・票数が変わるので該当 idol も無効化。
+        invalidateTagsCache(idolId: idolId)
+    }
+
+    func idolTags(idolId: String) async throws -> IdolTagListResponse {
+        if let hit = idolTagsCache[idolId], Date().timeIntervalSince(hit.at) < idolTagsCacheTTL {
             return hit.response
         }
-        let response: SimilarSongsResponse = try await APIClient.shared.request("GET", path: "/songs/\(songId)/similar?limit=\(limit)")
-        similarSongsCache[songId] = (response, Date())
+        // レスポンスに my_tag_ids (ユーザー固有) を含むため per-device メモリキャッシュのみ。
+        let response: IdolTagListResponse = try await APIClient.shared.request("GET", path: "/idols/\(idolId)/tags")
+        idolTagsCache[idolId] = (response, Date())
+        return response
+    }
+
+    // MARK: - Unit Tags
+
+    func applyUnitTags(unitId: String, tagIds: [String]) async throws {
+        struct Body: Encodable { let tagIds: [String] }
+        let _: UnitTagApplyResponse = try await APIClient.shared.request(
+            "POST", path: "/units/\(unitId)/tags",
+            body: Body(tagIds: tagIds)
+        )
+        // 自分のタグ付けで my_tag_ids・票数が変わるので該当 unit も無効化。
+        invalidateTagsCache(unitId: unitId)
+    }
+
+    func removeUnitTag(unitId: String, tagId: String) async throws {
+        try await APIClient.shared.requestVoid(
+            "DELETE", path: "/units/\(unitId)/tags/\(tagId)"
+        )
+        // 自分のタグ取消で my_tag_ids・票数が変わるので該当 unit も無効化。
+        invalidateTagsCache(unitId: unitId)
+    }
+
+    func unitTags(unitId: String) async throws -> UnitTagListResponse {
+        if let hit = unitTagsCache[unitId], Date().timeIntervalSince(hit.at) < unitTagsCacheTTL {
+            return hit.response
+        }
+        // レスポンスに my_tag_ids (ユーザー固有) を含むため per-device メモリキャッシュのみ。
+        let response: UnitTagListResponse = try await APIClient.shared.request("GET", path: "/units/\(unitId)/tags")
+        unitTagsCache[unitId] = (response, Date())
+        return response
+    }
+
+    // MARK: - Idol Tag Catalog (idol_tag_master — 曲タグとは別プール)
+
+    /// アイドルタグを新規作成する。/tags (曲タグマスタ) とは別の /idol-tags エンドポイント。
+    func createIdolTag(name: String, description: String? = nil, category: String? = nil, color: String? = nil) async throws -> CommunityTag {
+        var body: [String: String] = ["name": name]
+        if let description { body["description"] = description }
+        if let category { body["category"] = category }
+        if let color { body["color"] = color }
+        let response: TagCreateResponse = try await APIClient.shared.request(
+            "POST", path: "/idol-tags", body: body, treatConflictAsSuccess: true
+        )
+        invalidateIdolTagCatalogCache()
+        return response.tag
+    }
+
+    func idolTagCatalog(search: String = "", category: String = "", sort: String = "popular", limit: Int = 1000, offset: Int = 0) async throws -> [CommunityTag] {
+        let cacheKey = "\(sort)|\(limit)|\(offset)|\(category)|\(search)"
+        if let hit = idolTagCatalogCache[cacheKey], Date().timeIntervalSince(hit.at) < tagsCacheTTL {
+            return hit.tags
+        }
+        var query: [String: String] = [
+            "sort": sort,
+            "limit": "\(limit)",
+            "offset": "\(offset)"
+        ]
+        if !search.isEmpty { query["search"] = search }
+        if !category.isEmpty { query["category"] = category }
+        let response: TagsListResponse = try await APIClient.shared.request("GET", path: "/idol-tags", query: query)
+        idolTagCatalogCache[cacheKey] = (response.tags, Date())
+        return response.tags
+    }
+
+    func idolTagDetail(id: String) async throws -> IdolTagDetailResponse {
+        if let hit = idolTagDetailCache[id], Date().timeIntervalSince(hit.at) < tagDetailCacheTTL {
+            return hit.detail
+        }
+        let detail: IdolTagDetailResponse = try await APIClient.shared.request("GET", path: "/idol-tags/\(id)")
+        idolTagDetailCache[id] = (detail, Date())
+        return detail
+    }
+
+    func updateIdolTag(id: String, description: String? = nil, category: String? = nil, color: String? = nil) async throws -> CommunityTag {
+        var body: [String: String] = [:]
+        if let description { body["description"] = description }
+        if let category { body["category"] = category }
+        if let color { body["color"] = color }
+        let response: [String: CommunityTag] = try await APIClient.shared.request("PUT", path: "/idol-tags/\(id)", body: body)
+        guard let tag = response["tag"] else { throw URLError(.badServerResponse) }
+        invalidateIdolTagCatalogCache()
+        return tag
+    }
+
+    func idolTagHistory(id: String) async throws -> [TagHistoryEntry] {
+        return try await APIClient.shared.request("GET", path: "/idol-tags/\(id)/history")
+    }
+
+    func reportIdolTag(id: String, reason: String? = nil) async throws {
+        var body: [String: String] = [:]
+        if let reason { body["reason"] = reason }
+        try await APIClient.shared.requestVoid(
+            "POST", path: "/idol-tags/\(id)/report",
+            body: body
+        )
+    }
+
+    // MARK: - Unit Tag Catalog (unit_tag_master — 曲/アイドルタグとは別プール)
+
+    /// ユニットタグを新規作成する。/tags・/idol-tags とは別の /unit-tags エンドポイント。
+    func createUnitTag(name: String, description: String? = nil, category: String? = nil, color: String? = nil) async throws -> CommunityTag {
+        var body: [String: String] = ["name": name]
+        if let description { body["description"] = description }
+        if let category { body["category"] = category }
+        if let color { body["color"] = color }
+        let response: TagCreateResponse = try await APIClient.shared.request(
+            "POST", path: "/unit-tags", body: body, treatConflictAsSuccess: true
+        )
+        invalidateUnitTagCatalogCache()
+        return response.tag
+    }
+
+    func unitTagCatalog(search: String = "", category: String = "", sort: String = "popular", limit: Int = 1000, offset: Int = 0) async throws -> [CommunityTag] {
+        let cacheKey = "\(sort)|\(limit)|\(offset)|\(category)|\(search)"
+        if let hit = unitTagCatalogCache[cacheKey], Date().timeIntervalSince(hit.at) < tagsCacheTTL {
+            return hit.tags
+        }
+        var query: [String: String] = [
+            "sort": sort,
+            "limit": "\(limit)",
+            "offset": "\(offset)"
+        ]
+        if !search.isEmpty { query["search"] = search }
+        if !category.isEmpty { query["category"] = category }
+        let response: TagsListResponse = try await APIClient.shared.request("GET", path: "/unit-tags", query: query)
+        unitTagCatalogCache[cacheKey] = (response.tags, Date())
+        return response.tags
+    }
+
+    func unitTagDetail(id: String) async throws -> UnitTagDetailResponse {
+        if let hit = unitTagDetailCache[id], Date().timeIntervalSince(hit.at) < tagDetailCacheTTL {
+            return hit.detail
+        }
+        let detail: UnitTagDetailResponse = try await APIClient.shared.request("GET", path: "/unit-tags/\(id)")
+        unitTagDetailCache[id] = (detail, Date())
+        return detail
+    }
+
+    func updateUnitTag(id: String, description: String? = nil, category: String? = nil, color: String? = nil) async throws -> CommunityTag {
+        var body: [String: String] = [:]
+        if let description { body["description"] = description }
+        if let category { body["category"] = category }
+        if let color { body["color"] = color }
+        let response: [String: CommunityTag] = try await APIClient.shared.request("PUT", path: "/unit-tags/\(id)", body: body)
+        guard let tag = response["tag"] else { throw URLError(.badServerResponse) }
+        invalidateUnitTagCatalogCache()
+        return tag
+    }
+
+    func unitTagHistory(id: String) async throws -> [TagHistoryEntry] {
+        return try await APIClient.shared.request("GET", path: "/unit-tags/\(id)/history")
+    }
+
+    func reportUnitTag(id: String, reason: String? = nil) async throws {
+        var body: [String: String] = [:]
+        if let reason { body["reason"] = reason }
+        try await APIClient.shared.requestVoid(
+            "POST", path: "/unit-tags/\(id)/report",
+            body: body
+        )
+    }
+
+    /// タグが似ているアイドル (このアイドルが好きな人にはこれもおすすめ)。共有タグ数の多い順。
+    func similarIdolsByTags(idolId: String, limit: Int = 10) async throws -> SimilarIdolsResponse {
+        if let hit = similarIdolsCache[idolId], Date().timeIntervalSince(hit.at) < similarIdolsCacheTTL {
+            return hit.response
+        }
+        let response: SimilarIdolsResponse = try await APIClient.shared.request(
+            "GET", path: "/idols/\(idolId)/similar", query: ["limit": "\(limit)"]
+        )
+        similarIdolsCache[idolId] = (response, Date())
+        return response
+    }
+
+    /// タグが似ているユニット (このユニットが好きな人にはこれもおすすめ)。共有タグ数の多い順。
+    /// アイドルと異なり is_external 相当の除外概念が無いため、クライアント側フィルタは不要。
+    func similarUnitsByTags(unitId: String, limit: Int = 10) async throws -> SimilarUnitsResponse {
+        if let hit = similarUnitsCache[unitId], Date().timeIntervalSince(hit.at) < similarUnitsCacheTTL {
+            return hit.response
+        }
+        let response: SimilarUnitsResponse = try await APIClient.shared.request(
+            "GET", path: "/units/\(unitId)/similar", query: ["limit": "\(limit)"]
+        )
+        similarUnitsCache[unitId] = (response, Date())
+        return response
+    }
+
+    /// タグ付けの盛り上がり (直近フィード/トレンドタグ/急上昇コンテンツ)。ユーザー非依存の集計。
+    func tagActivity(windowDays: Int = 7) async throws -> TagActivityResponse {
+        if let hit = tagActivityCache, Date().timeIntervalSince(hit.at) < tagActivityCacheTTL {
+            return hit.response
+        }
+        let response: TagActivityResponse = try await APIClient.shared.request(
+            "GET", path: "/tags/activity", query: ["window_days": "\(windowDays)"]
+        )
+        tagActivityCache = (response, Date())
         return response
     }
 
@@ -323,3 +586,9 @@ typealias CommunityAPIError = APIClientError
 /// `CommunityVoting` (Domain の口) への適合。既存の poll 系メソッドがそのまま witness になる。
 /// Presentation はこの actor 具象ではなく `any CommunityVoting` に依存する。
 extension CommunityAPI: CommunityVoting {}
+
+/// `CommunityTagReading` / `CommunityTagWriting` (Domain の口) への適合。既存のタグ系メソッドが
+/// そのまま witness になる (プロトコル側はデフォルト引数を持てないため、呼び出し側で明示指定する)。
+/// Presentation はこの actor 具象ではなく `any CommunityTagReading` / `any CommunityTagWriting` に依存する。
+extension CommunityAPI: CommunityTagReading {}
+extension CommunityAPI: CommunityTagWriting {}

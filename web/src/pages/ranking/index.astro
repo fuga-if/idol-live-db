@@ -1,0 +1,8 @@
+---
+import RankingView from "../../components/RankingView.astro";
+import { page, routeData } from "../../lib/data";
+import type { RankingPage } from "../../lib/schema/RankingPage";
+const data = page<RankingPage>(routeData("ranking", "/ranking/"));
+---
+
+<RankingView page={data} />

@@ -23,14 +23,15 @@ struct EditHistoryView: View {
     @State private var errorMessage: String?
 
     var body: some View {
-        ScrollView {
+        let times = EditFeedFormat.relativeTimes(entries.map { ($0.id, $0.createdDate) })
+        return ScrollView {
             LazyVStack(spacing: 10) {
                 ForEach(entries) { entry in
-                    HistoryRow(entry: entry, recordType: recordType)
+                    HistoryRow(entry: entry, recordType: recordType, timeLabel: times[entry.id] ?? "")
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            .padding(.horizontal, DS.sp5)
+            .padding(.vertical, DS.sp4)
         }
         .background(DS.bg)
         .navigationTitle("編集履歴")
@@ -38,20 +39,20 @@ struct EditHistoryView: View {
         .overlay {
             if isLoading && entries.isEmpty {
                 ProgressView("読み込み中...")
-                    .padding(24)
+                    .padding(DS.sp7)
                     .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
             } else if entries.isEmpty && !isLoading && errorMessage == nil {
-                EmptyStateCard(
-                    icon: "clock.arrow.circlepath",
+                ImasEmptyState(
+                    systemImage: "clock.arrow.circlepath",
                     title: "編集履歴はありません",
                     message: "このデータがまだ一度も編集されていないか、編集が反映待ちです。"
                 )
             } else if let errorMessage, entries.isEmpty {
-                EmptyStateCard(
-                    icon: "exclamationmark.triangle",
+                ImasEmptyState(
+                    systemImage: "exclamationmark.triangle",
                     title: "読み込みに失敗しました",
                     message: errorMessage,
-                    actionLabel: "再試行",
+                    actionTitle: "再試行",
                     action: { Task { await reload() } }
                 )
             }
@@ -84,9 +85,11 @@ struct EditHistoryView: View {
 private struct HistoryRow: View {
     let entry: RecordHistoryEntry
     let recordType: String
+    /// 相対時刻 (一覧がまとめて作る)。
+    let timeLabel: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: DS.sp3) {
             // 編集者 + op バッジ + 相対時刻
             HStack(spacing: 6) {
                 Text(entry.editorDisplayLabel)
@@ -98,31 +101,31 @@ private struct HistoryRow: View {
                 }
                 if entry.reverted {
                     Text("差戻し済み")
-                        .font(.imasScaled(11).weight(.semibold))
+                        .font(.imasCaption2.weight(.semibold))
                         .foregroundStyle(DS.ink2)
                         .padding(.horizontal, 7)
-                        .padding(.vertical, 2)
+                        .padding(.vertical, DS.sp1)
                         .background(DS.fill, in: Capsule())
                 }
                 Spacer(minLength: 4)
-                Text(EditFeedFormat.relativeTime(entry.createdDate))
-                    .font(.imasScaled(11))
+                Text(timeLabel)
+                    .font(.imasCaption2)
                     .foregroundStyle(DS.ink2)
             }
 
             diffBody
         }
         .padding(14)
-        .background(DS.surface, in: RoundedRectangle(cornerRadius: 14))
+        .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rMD))
     }
 
     private var sourceBadge: some View {
         Text(entry.source == "admin" ? "運営" : "巻き戻し")
-            .font(.imasScaled(11).weight(.semibold))
-            .foregroundStyle(.orange)
+            .font(.imasCaption2.weight(.semibold))
+            .foregroundStyle(DS.warning)
             .padding(.horizontal, 7)
-            .padding(.vertical, 2)
-            .background(Color.orange.opacity(0.15), in: Capsule())
+            .padding(.vertical, DS.sp1)
+            .background(DS.warning.opacity(0.15), in: Capsule())
     }
 
     @ViewBuilder
@@ -175,7 +178,7 @@ private struct FieldDiffRow: View {
     let after: JSONValue?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: DS.sp1) {
             Text(label)
                 .font(.imasCaption.weight(.semibold))
                 .foregroundStyle(DS.ink2)
@@ -186,7 +189,7 @@ private struct FieldDiffRow: View {
                     .strikethrough(true, color: DS.ink3)
                     .lineLimit(2)
                 Image(systemName: "arrow.right")
-                    .font(.imasScaled(11))
+                    .font(.imasCaption2)
                     .foregroundStyle(DS.ink3)
                 Text(after?.displayString ?? "(なし)")
                     .font(.imasCaption.weight(.medium))
@@ -195,7 +198,7 @@ private struct FieldDiffRow: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(8)
+        .padding(DS.sp3)
         .background(DS.surface2, in: RoundedRectangle(cornerRadius: 8))
     }
 }

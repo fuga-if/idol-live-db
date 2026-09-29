@@ -1,0 +1,185 @@
+---
+import DetailLayout from "../../layouts/DetailLayout.astro";
+import Section from "../../components/Section.astro";
+import PerformerNamePref from "../../components/PerformerNamePref.astro";
+import SetlistDisplayPref from "../../components/SetlistDisplayPref.astro";
+import SetlistRow from "../../components/SetlistRow.astro";
+import RefList from "../../components/RefList.astro";
+import Chip from "../../components/Chip.astro";
+import TagChip from "../../components/TagChip.astro";
+import BrandMark from "../../components/BrandMark.astro";
+import DateBadge from "../../components/DateBadge.astro";
+import Facts from "../../components/Facts.astro";
+import StatStrip from "../../components/StatStrip.astro";
+import Count from "../../components/Count.astro";
+import EmptyState from "../../components/EmptyState.astro";
+import Pager from "../../components/Pager.astro";
+import ForecastList from "../../components/ForecastList.astro";
+import { page, pathsFor } from "../../lib/data";
+import type { ShowPage } from "../../lib/schema/ShowPage";
+
+export const getStaticPaths = () => pathsFor("show", "showId");
+
+const show = page<ShowPage>(Astro.props.data);
+
+// 同じライブの公演の切替。帯 (数本) か前後への送り (ツアーのように多いとき) か、
+// 単日公演で無しかは Rust が本数で決めている (`siblingNav`)。送りのときは全部の並びを脇に置く。
+const siblings = show.siblingShows;
+const siblingsAsSegments = show.siblingNav === "segments";
+const siblingsAsPager = show.siblingNav === "pager";
+// 自分は必ず並びの中にいる (Rust が自分も含めて返す)。
+const position = siblings.findIndex((s) => s.id === show.id);
+const prev = siblings[position - 1] ?? null;
+const next = siblings[position + 1] ?? null;
+const setlistCount = show.setlistSections.reduce((n, section) => n + section.rows.length, 0);
+---
+
+<DetailLayout
+  seo={show.seo}
+  themeKey={show.themeKey}
+  app={show.app}
+  isCharacterLive={show.isCharacterLive}
+  asideAfterMain
+>
+  <section class="hero hero--show" slot="hero" aria-labelledby="show-title">
+    <div class="hero__body">
+      {
+        (show.brand || show.isUpcoming) && (
+          <p class="hero__eyebrow">
+            {show.brand && (
+              <a class="hero__brand" href={show.brand.path}>
+                <BrandMark brand={show.brand} />
+              </a>
+            )}
+            {show.isUpcoming && <Chip text="開催予定" variant="selected" />}
+          </p>
+        )
+      }
+      {/* 見出しの本体はライブ名 (何のライブかが一番大きい情報)。公演の見分け (`Day2`) は
+          その下に添える (公演の切替タブがあるときはタブが言うので出さない)。 */}
+      <h1 class="hero__title" id="show-title">
+        <a href={show.event.path}>{show.heading}</a>
+      </h1>
+      {show.showLabel && !siblingsAsSegments && <p class="hero__sub">{show.showLabel}</p>}
+      <div class="hero__line">
+        <span class="hero__line-item">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"></rect><path d="M3 10h18M8 3v4M16 3v4"></path></svg>
+          <DateBadge badge={show.dateBadge} size="inline" />
+        </span>
+        <Facts rows={show.factRows} variant="inline" />
+      </div>
+      {
+        siblingsAsPager && (
+          <Pager label="このライブの公演" prev={prev?.path} next={next?.path} numeric>
+            <Fragment slot="prev">
+              {prev?.name}{" "}
+              <Count value={prev?.sub} dim />
+            </Fragment>
+            {position + 1} / {siblings.length} 公演
+            <Fragment slot="next">
+              {next?.name}{" "}
+              <Count value={next?.sub} dim />
+            </Fragment>
+          </Pager>
+        )
+      }
+      {
+        siblingsAsSegments && (
+          <nav class="band-tabs" aria-label="このライブの公演">
+            {siblings.map((s) => (
+              <a href={s.path} aria-current={s.id === show.id ? "page" : undefined}>
+                <span class="band-tabs__name u-clamp2">{s.name}</span>
+                {s.sub && <span class="band-tabs__sub u-num">{s.sub}</span>}
+              </a>
+            ))}
+          </nav>
+        )
+      }
+    </div>
+  </section>
+
+  {
+    show.statTiles.length > 0 && (
+      <div slot="aside" class="stat-card">
+        <StatStrip items={show.statTiles} label="この公演の数" />
+      </div>
+    )
+  }
+
+  <Section id="show-setlist" title="セットリスト" count={setlistCount}>
+    {/* セトリがある公演だけ。空のセトリに詳しさの切替を置いても何も変わらない。 */}
+    <div class="setlist-prefs" slot="tools">
+      {!show.setlistEmpty && <SetlistDisplayPref />}
+      <PerformerNamePref />
+    </div>
+    {
+      show.setlistEmpty ? (
+        <EmptyState {...show.setlistEmpty} />
+      ) : (
+        <div class="card setlist">
+          {show.setlistSections.map((section) => (
+            <Fragment>
+              {section.label && <h3 class="setlist__section">{section.label}</h3>}
+              <ol class="setlist__rows" start={section.rows[0]?.number} aria-label={section.label ?? undefined}>
+                {section.rows.map((row) => (
+                  <SetlistRow row={row} />
+                ))}
+              </ol>
+            </Fragment>
+          ))}
+        </div>
+      )
+    }
+  </Section>
+
+  {
+    show.forecast && (
+      <Section id="show-forecast" title={show.forecast.title}>
+        <ForecastList forecast={show.forecast} />
+      </Section>
+    )
+  }
+
+  {
+    show.cast.length > 0 && (
+      <Section slot="aside" id="show-cast" title="出演者" count={show.cast.length}>
+        <RefList refs={show.cast} label="出演者" />
+      </Section>
+    )
+  }
+
+  {
+    show.costumes.length > 0 && (
+      <Section slot="aside" id="show-costumes" title="衣装" count={show.costumes.length}>
+        <ul class="costumes">
+          {show.costumes.map((c) => (
+            <li class="costume">
+              <span class="costume__head">
+                <span class="costume__name">{c.name}</span>
+                {c.attribution && <TagChip text={c.attribution} kind="costume" />}
+              </span>
+              <span class="costume__meta u-muted">
+                {/* 「どこで着たか」の文は Rust が組んでいる (区切りも言い方も 1 か所)。 */}
+                <span>{c.whereLabel}</span>
+                {c.description && <span>{c.description}</span>}
+                {c.sourceUrl && (
+                  <a class="u-underline-hover" href={c.sourceUrl}>
+                    出典
+                  </a>
+                )}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </Section>
+    )
+  }
+
+  {
+    siblingsAsPager && (
+      <Section slot="aside" id="show-siblings" title="このライブの公演" count={siblings.length}>
+        <RefList refs={siblings} variant="neutral" withSub label="このライブの公演" />
+      </Section>
+    )
+  }
+</DetailLayout>

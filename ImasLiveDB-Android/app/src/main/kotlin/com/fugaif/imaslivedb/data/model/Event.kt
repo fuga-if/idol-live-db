@@ -16,6 +16,10 @@ data class Event(
     @ColumnInfo(name = "name")
     val name: String,
 
+    /** ライブ名の読み。漢字のライブ名をかなで引けるようにする (曲・アイドルと同じ扱い)。 */
+    @ColumnInfo(name = "name_kana")
+    val nameKana: String? = null,
+
     @ColumnInfo(name = "event_type")
     val eventType: String,
 
@@ -42,8 +46,4 @@ data class Event(
 
     @ColumnInfo(name = "joint_brand_ids")
     val jointBrandIds: String? = null
-) {
-    /** `joint_brand_ids` をリストにして返す。null/空文字列は空リスト。 */
-    val jointBrandIdList: List<String>
-        get() = jointBrandIds?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() } ?: emptyList()
-}
+)

@@ -1,0 +1,133 @@
+{
+  "schemaVersion": 1,
+  "id": "venue_makuhari",
+  "path": "/venues/venue_makuhari/",
+  "name": "幕張メッセ",
+  "nameKana": "まくはりめっせ",
+  "themeKey": "neutral",
+  "prefecture": "千葉県",
+  "locationDisplay": "千葉県 千葉市美浜区",
+  "capacity": 9000,
+  "halls": [
+    {
+      "name": "イベントホール",
+      "capacity": 9000,
+      "capacityDisplay": "9000人"
+    }
+  ],
+  "pastNames": [
+    {
+      "name": "日本コンベンションセンター",
+      "periodDisplay": "〜 1999-03-31"
+    }
+  ],
+  "factRows": [
+    {
+      "label": "所在",
+      "value": "千葉県 千葉市美浜区",
+      "style": "plain",
+      "link": null
+    },
+    {
+      "label": "収容人数",
+      "value": "9000人",
+      "style": "monospaced",
+      "link": null
+    },
+    {
+      "label": "別名",
+      "value": "幕張",
+      "style": "plain",
+      "link": null
+    }
+  ],
+  "events": [
+    {
+      "kind": "event",
+      "id": "ev_sample",
+      "name": "THE IDOLM@STER MILLION LIVE! 10thLIVE TOUR Act-4 ROAD TO MEMORIES 幕張",
+      "sub": "2026",
+      "path": "/events/ev_sample/",
+      "themeKey": "brand:ml",
+      "artworkUrl": null
+    }
+  ],
+  "shows": [
+    {
+      "ref": {
+        "kind": "show",
+        "id": "sh_sample_1",
+        "name": "DAY1",
+        "sub": "2026-04-03",
+        "path": "/shows/sh_sample_1/",
+        "themeKey": "brand:ml",
+        "artworkUrl": null
+      },
+      "title": "THE IDOLM@STER MILLION LIVE! 10thLIVE TOUR Act-4 ROAD TO MEMORIES 幕張",
+      "showLabel": "DAY1",
+      "date": "2026-04-03",
+      "dateBadge": {
+        "iso": "2026-04-03",
+        "year": "2026",
+        "monthDay": "4/3",
+        "weekday": "金",
+        "spoken": "2026年4月3日 金曜日"
+      },
+      "venueLabel": null,
+      "hall": "イベントホール",
+      "startTimeDisplay": "17:00 開演",
+      "setlistCount": 23
+    }
+  ],
+  "showsEmpty": null,
+  "app": {
+    "title": "アプリ「アイドルライブDB」",
+    "appStoreUrl": "https://apps.apple.com/jp/app/id6763342297",
+    "deeplink": null,
+    "note": "参加記録・投票・歌詞・コール・タグ付けはアプリでご利用いただけます。"
+  },
+  "seo": {
+    "title": "幕張メッセ | アイドルライブDB",
+    "description": "この会場で行われたライブと公演。",
+    "canonical": "https://idollivedb.fugaapp.site/venues/venue_makuhari/",
+    "ogImage": "https://idollivedb.fugaapp.site/og/default.png",
+    "robots": "index,follow",
+    "jsonLd": {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebPage",
+          "name": "幕張メッセ",
+          "url": "https://idollivedb.fugaapp.site/venues/venue_makuhari/"
+        },
+        {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "item": "https://idollivedb.fugaapp.site/",
+              "name": "ホーム",
+              "position": 1
+            },
+            {
+              "@type": "ListItem",
+              "item": "https://idollivedb.fugaapp.site/venues/",
+              "name": "会場",
+              "position": 2
+            }
+          ]
+        }
+      ]
+    },
+    "breadcrumbs": [
+      {
+        "name": "ホーム",
+        "path": "/"
+      },
+      {
+        "name": "会場",
+        "path": "/venues/"
+      }
+    ]
+  }
+}

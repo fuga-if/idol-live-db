@@ -1,0 +1,14 @@
+{
+ "title": "Bloomy! の読み仮名を入れる",
+ "_help": "親が brand_id=other のため継承できなかった 1 曲。表記から起こした。",
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "sc_bloomy",
+   "fields": {
+    "title_kana": "ぶるーみー"
+   },
+   "note": "英字タイトルの読み。親 (other_bloomy) は対象外なので継承できない"
+  }
+ ]
+}

@@ -18,7 +18,7 @@ struct IDActionButton: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 8) {
+            HStack(spacing: DS.sp3) {
                 if isLoading {
                     ProgressView()
                         .tint(foregroundColor)
@@ -34,7 +34,7 @@ struct IDActionButton: View {
             }
             .foregroundColor(foregroundColor)
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
+            .padding(.vertical, DS.sp5)
             .background(backgroundColor)
             .clipShape(IDCorner())
             .shadow(color: shadowColor, radius: 12, y: 4)
@@ -188,7 +188,7 @@ struct IDModeCard: View {
     var body: some View {
         Button(action: action) {
             HStack {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: DS.sp2) {
                     if let label {
                         Text(label)
                             .font(ID.font(11, weight: .bold))
@@ -201,7 +201,7 @@ struct IDModeCard: View {
                         .foregroundColor(style.textColor)
                     if let description {
                         Text(description)
-                            .font(.imasScaled( 12))
+                            .font(.imasCaption)
                             .foregroundColor(style.labelColor)
                     }
                 }
@@ -210,68 +210,12 @@ struct IDModeCard: View {
                     .font(.imasScaled( 28))
                     .foregroundColor(style.labelColor)
             }
-            .padding(.horizontal, 24)
+            .padding(.horizontal, DS.sp7)
             .padding(.vertical, 26)
             .background(style.bg)
             .clipShape(IDCorner())
         }
         .idPress()
-    }
-}
-
-// MARK: - IDAnswerReveal  (IntroAnswerReveal 相当)
-
-struct IDAnswerReveal: View {
-    let title: String
-    let choices: [String]
-    let correctTitle: String
-    let selectedTitle: String?
-
-    var body: some View {
-        VStack(spacing: 8) {
-            ForEach(choices, id: \.self) { choice in
-                revealRow(choice)
-            }
-        }
-    }
-
-    private func revealRow(_ choice: String) -> some View {
-        let isCorrect   = choice == correctTitle
-        let wasSelected = choice == selectedTitle
-
-        let tint: Color
-        let bg: Color
-        let icon: String
-        if isCorrect {
-            tint = ID.correct
-            bg   = ID.correct.opacity(0.15)
-            icon = "checkmark.circle.fill"
-        } else if wasSelected {
-            tint = ID.incorrect
-            bg   = ID.incorrect.opacity(0.12)
-            icon = "xmark.circle.fill"
-        } else {
-            tint = ID.t2
-            bg   = ID.surfaceDarkSubtle
-            icon = "circle"
-        }
-
-        return HStack(spacing: 10) {
-            Image(systemName: icon)
-                .font(.imasScaled( 17, weight: .semibold))
-                .foregroundColor(tint)
-
-            Text(choice)
-                .font(.imasScaled( 14, weight: isCorrect ? .semibold : .regular))
-                .foregroundColor(tint)
-                .lineLimit(2)
-
-            Spacer()
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 11)
-        .background(bg)
-        .clipShape(IDCorner(radius: 10))
     }
 }
 
@@ -282,19 +226,19 @@ struct IDSectionLabel: View {
     var hint: String? = nil
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
+        HStack(alignment: .firstTextBaseline, spacing: DS.sp3) {
             Text(text)
                 .font(ID.font(11, weight: .bold))
                 .tracking(2)
                 .foregroundColor(ID.menuTextMuted)
             if let hint {
                 Text(hint)
-                    .font(.imasScaled(11))
+                    .font(.imasCaption2)
                     .minimumScaleFactor(0.8)
                     .foregroundColor(ID.menuTextMuted.opacity(0.7))
             }
             Spacer()
         }
-        .padding(.top, 4)
+        .padding(.top, DS.sp2)
     }
 }

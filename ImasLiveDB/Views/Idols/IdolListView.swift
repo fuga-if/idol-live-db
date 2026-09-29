@@ -26,18 +26,52 @@ struct IdolListView: View {
         IdolDisplayMode(rawValue: displayModeRaw) ?? .idolName
     }
     @State private var selectedBrandIds: Set<String> = []
+    /// `selectedBrandIds` に一度でも変化があったか (デフォルトブランドの自動適用も含む)。
+    /// true になった後は `onAppear` でのデフォルトブランド再適用を行わない
+    /// (ユーザーが明示的にブランドフィルタを解除した状態で、タブ再訪時に無言で
+    /// デフォルトが復活するのを防ぐため)。
+    @State private var hasUserInteractedWithBrandFilter = false
     @State private var selectedAttribute: String? = nil
     @AppStorage("idols_require_my_pick") private var requireMyPick: Bool = false
     @AppStorage("idols_require_favorite") private var requireFavorite: Bool = false
     @AppStorage("idols_require_note") private var requireNote: Bool = false
+    /// 並び順。公式順以外はブランドの区切りを外した通し表示になる。
+    @AppStorage("idols_sort_order") private var sortOrderRaw: String = IdolSortOrder.official.rawValue
+    /// nil = sortOrder の既定方向、true=昇順、false=降順。
+    @AppStorage("idols_sort_ascending") private var sortAscendingRaw: Int = 0
     @State private var collapsedBrands: Set<String> = []
     @State private var sheetIdol: Idol?
     @State private var showFilterSheet = false
     @State private var searchText = ""
-    @State private var isSearching = false
+    /// 検索欄の語をアイドル名 / CV 名のどちらとして引くか。
+    @AppStorage("idols_search_target") private var searchTargetRaw: String = IdolSearchTarget.name.rawValue
+    /// タブを跨いだ検索の引き継ぎ (「他のタブに N 件」の受け側)。
+    @State private var crossTab = CrossTabSearch.shared
+    /// 一覧タブ (0=アイドル, 1=ユニット)。
+    @State private var listTab = 0
+    /// ユニットタブの ViewModel。ここで hoist して `UnitListContent` に注入することで、
+    /// タブ切替で `UnitListContent` が再生成されても検索語・ロード済みデータ・スクロール位置を保持する。
+    @State private var unitVM = UnitListViewModel()
+
+    private var searchTarget: IdolSearchTarget {
+        IdolSearchTarget(rawValue: searchTargetRaw) ?? .name
+    }
 
     private var idolListMode: IdolListMode {
         IdolListMode(rawValue: idolListModeRaw) ?? .list
+    }
+
+    private var sortOrder: IdolSortOrder {
+        IdolSortOrder(rawValue: sortOrderRaw) ?? .official
+    }
+
+    /// AppStorage は Optional<Bool> を持てないので Int で三値を表す (0=既定 / 1=昇順 / 2=降順)。
+    private var sortAscending: Bool? {
+        switch sortAscendingRaw {
+        case 1: return true
+        case 2: return false
+        default: return nil
+        }
     }
 
     private var activeFilterCount: Int {
@@ -53,8 +87,10 @@ struct IdolListView: View {
     }
 
     /// 絞り込み状態をまとめた識別子（task(id:) 用。selectedBrandIds 等の変化でのみ再計算）。
+    /// 再計算 (`task(id:)`) のトリガーキー。並び順もここに含める
+    /// (含め忘れると、フィルタシートで並び順を変えても一覧が旧い並びのまま残る)。
     private var filterKey: String {
-        "\(brandsKey)_\(selectedAttribute ?? "")_\(requireMyPick)_\(requireFavorite)_\(requireNote)"
+        "\(brandsKey)_\(selectedAttribute ?? "")_\(requireMyPick)_\(requireFavorite)_\(requireNote)_\(sortOrderRaw)_\(sortAscendingRaw)"
     }
 
     private var filterBadgeCount: Int {
@@ -78,100 +114,249 @@ struct IdolListView: View {
             actions.append(ListToolbarAction(id: "clear", title: "フィルタを解除",
                                              systemImage: "xmark.circle", isDestructive: true) {
                 AppAnalytics.tap("idol_list.filter_clear")
-                selectedBrandIds = []
-                selectedAttribute = nil
-                displayModeRaw = IdolDisplayMode.idolName.rawValue
+                clearAllFilters()
             })
         }
         return actions
     }
 
+    /// 全フィルタを解除する。`activeFilterCount`/`filterBadgeCount` が数える全項目
+    /// (ブランド/属性/表示形式 + 担当/お気に入り/メモ) を漏れなくリセットする。
+    /// ユーザーの明示的な操作なので、以後 `onAppear` のデフォルトブランド再適用は行わない。
+    private func clearAllFilters() {
+        selectedBrandIds = []
+        selectedAttribute = nil
+        displayModeRaw = IdolDisplayMode.idolName.rawValue
+        requireMyPick = false
+        requireFavorite = false
+        requireNote = false
+    }
+
     var body: some View {
         NavigationStack(path: $navPath) {
             VStack(spacing: 0) {
-                if isSearching {
-                    InTabSearchField(prompt: "アイドル・CV名で検索", text: $searchText, isSearching: $isSearching)
+                listTabBar
+                Group {
+                    if listTab == 0 {
+                        idolBody
+                    } else {
+                        // ユニット側は自前でナビバーの絞り込み欄とツールバーを持つ
+                        // (こちらの `standardListToolbar` は `idolBody` に付いていて、
+                        // アイドルタブが表示されている間しか木に居ないため)。
+                        UnitListContent(vm: unitVM)
+                    }
                 }
+            }
+        }
+    }
 
-                if vm.isLoading {
-                    ScrollView {
-                        if idolListMode == .grid {
-                            ImasGridSkeleton(columns: 4, count: 16)
-                        } else {
-                            ImasListSkeleton(rows: 12, thumb: .circle).padding(.top, DS.sp3)
-                        }
+    /// 一覧タブ (アイドル/ユニット)。ナビゲーションタイトル下・検索バー上に固定表示する。
+    private var listTabBar: some View {
+        ImasSegmented(labels: ["アイドル", "ユニット"], selection: $listTab)
+            .padding(.horizontal, DS.sp5)
+            .padding(.top, DS.sp3)
+            .padding(.bottom, DS.sp2)
+    }
+
+    @ViewBuilder
+    private var idolBody: some View {
+        VStack(spacing: 0) {
+            searchTargetBar
+            // 同じ語が曲・ライブに何件あるか (虫眼鏡を畳んだ代わりの導線)。
+            CrossTabCountChips(query: searchText, from: .idols)
+            if vm.isLoading {
+                ScrollView {
+                    if idolListMode == .grid {
+                        ImasGridSkeleton(columns: 4, count: 16)
+                    } else {
+                        ImasListSkeleton(rows: 12, thumb: .circle).padding(.top, DS.sp3)
                     }
-                    .scrollDisabled(true)
-                } else if !searchText.isEmpty && vm.filteredIdols.isEmpty {
-                    InTabSearchEmptyView(query: searchText)
-                } else if idolListMode == .grid {
-                    IdolGridView(
-                        idols: vm.filteredIdols,
-                        brands: vm.visibleBrands,
-                        pickIds: vm.pickIds
-                    ) { idol in
-                        sheetIdol = idol
-                    }
+                }
+                .scrollDisabled(true)
+            } else if !searchText.isEmpty && vm.filteredIdols.isEmpty {
+                Spacer()
+                if let other = otherSearchTarget, count(for: other) > 0 {
+                    // もう片方でなら当たる。分けたせいで引けなくなったように見せない。
+                    ImasEmptyState(
+                        systemImage: "line.3.horizontal.decrease",
+                        title: "\(searchTarget.rawValue)には見つかりません",
+                        message: "「\(searchText)」は\(other.rawValue)で \(count(for: other)) 人見つかります",
+                        actionTitle: "\(other.rawValue)で探す",
+                        action: { selectSearchTarget(other) }
+                    )
                 } else {
-                    listBody
+                    ImasEmptyState(
+                        systemImage: "line.3.horizontal.decrease",
+                        title: "絞り込み結果がありません",
+                        message: "「\(searchText)」に一致するアイドルがいません",
+                        actionTitle: "絞り込みを解除",
+                        action: { searchText = "" }
+                    )
                 }
-            }
-            .background(DS.bg.ignoresSafeArea())
-            .navigationTitle("アイドル")
-            .navigationBarTitleDisplayMode(.large)
-            .onChange(of: searchText) { _, _ in
-                vm.rebuild(filter: filterContext)
-            }
-            .toolbar {
-                standardListToolbar(
-                    onSearch: {
-                        AppAnalytics.tap("idol_list.search_open")
-                        isSearching = true
-                    },
-                    filterBadge: filterBadgeCount,
-                    onFilter: {
-                        AppAnalytics.tap("idol_list.filter")
-                        showFilterSheet = true
-                    },
-                    menuActions: idolMenuActions
+                Spacer()
+            } else if vm.filteredIdols.isEmpty {
+                Spacer()
+                ImasEmptyState(
+                    systemImage: "line.3.horizontal.decrease.circle",
+                    title: "該当するアイドルがいません",
+                    message: "フィルタ条件を変更するか、フィルタを解除してください。",
+                    actionTitle: activeFilterCount > 0 ? "フィルタを解除" : nil,
+                    action: activeFilterCount > 0 ? {
+                        AppAnalytics.tap("idol_list.filter_clear")
+                        clearAllFilters()
+                    } : nil
                 )
+                Spacer()
+            } else if idolListMode == .grid {
+                IdolGridView(
+                    idols: vm.filteredIdols,
+                    brands: vm.visibleBrands,
+                    pickIds: vm.pickIds,
+                    metricLabels: vm.metricLabels,
+                    flatHeader: sortOrder.keepsBrandGrouping
+                        ? nil
+                        : "\(sortOrder.rawValue)順 ・ \(vm.filteredIdols.count)人"
+                ) { idol in
+                    sheetIdol = idol
+                }
+            } else {
+                listBody
             }
-            .navigationDestination(for: Idol.self) { idol in
-                IdolDetailView(idol: idol)
+        }
+        // 行/セルが引くテーマは、一覧が組まれる前にここで 1 回の FFI にまとめて温める。
+        // リスト表示とグリッド表示のどちらに切り替わってもここを通るので、温めは所有者である
+        // この画面が持ち、下の `IdolGridView`/`listBody` 側では行わない。
+        .imasThemePrewarm(population: vm.dataVersion, seeds: rowThemeSeeds)
+        .background(DS.bg.ignoresSafeArea())
+        // 絞り込み欄がナビバーの中にあるので `.searchable` のキャンセルボタンが無い。
+        // スクロールでキーボードを閉じられないと、打った後に一覧が半分隠れたままになる。
+        .scrollDismissesKeyboard(.immediately)
+        .navigationTitle("アイドル")
+        // 絞り込みフィールドはナビバーの中 (standardListToolbar の principal)。
+        // 大タイトルを出すと 2 行になってしまうので inline 固定。
+        .navigationBarTitleDisplayMode(.inline)
+        .onChange(of: searchText) { _, _ in
+            vm.rebuild(filter: filterContext, sortOrder: sortOrder, ascending: sortAscending)
+        }
+        .onChange(of: searchTargetRaw) { _, _ in
+            vm.rebuild(filter: filterContext, sortOrder: sortOrder, ascending: sortAscending)
+        }
+        // 「他のタブに N 件」から飛んで来たら、その語で絞り込む。
+        .onChange(of: crossTab.target, initial: true) { _, _ in
+            if let handed = crossTab.take(for: .idols) { searchText = handed }
+        }
+        .toolbar {
+            // 検索は一覧そのものを絞る。虫眼鏡のシートは結果がそこで完結してしまい、
+            // ブランド絞り込みや並び順と合わせられなかった。
+            standardListToolbar(
+                filterBadge: filterBadgeCount,
+                onFilter: {
+                    AppAnalytics.tap("idol_list.filter")
+                    showFilterSheet = true
+                },
+                menuActions: idolMenuActions
+            ) {
+                ListSearchField(prompt: "アイドル名・CV名", text: $searchText)
             }
-            .sheet(item: $sheetIdol) { idol in
-                DetailSheetView(destination: .idol(idol))
-                    .environment(database)
-            }
-            .sheet(isPresented: $showFilterSheet) {
-                IdolFilterSheet(
-                    selectedBrandIds: $selectedBrandIds,
-                    selectedAttribute: $selectedAttribute,
-                    displayMode: Binding(
-                        get: { displayMode },
-                        set: { displayModeRaw = $0.rawValue }
-                    ),
-                    showCV: $showCV,
-                    requireMyPick: $requireMyPick,
-                    requireFavorite: $requireFavorite,
-                    requireNote: $requireNote
-                )
+        }
+        .navigationDestination(for: Idol.self) { idol in
+            IdolDetailView(idol: idol)
+        }
+        .sheet(item: $sheetIdol) { idol in
+            DetailSheetView(destination: .idol(idol))
                 .environment(database)
-                .presentationDetents([.medium, .large])
+        }
+        .sheet(isPresented: $showFilterSheet) {
+            IdolFilterSheet(
+                sortOrder: Binding(
+                    get: { sortOrder },
+                    set: { sortOrderRaw = $0.rawValue }
+                ),
+                sortAscending: Binding(
+                    get: { sortAscending },
+                    set: { sortAscendingRaw = $0 == nil ? 0 : ($0! ? 1 : 2) }
+                ),
+                selectedBrandIds: $selectedBrandIds,
+                selectedAttribute: $selectedAttribute,
+                displayMode: Binding(
+                    get: { displayMode },
+                    set: { displayModeRaw = $0.rawValue }
+                ),
+                showCV: $showCV,
+                requireMyPick: $requireMyPick,
+                requireFavorite: $requireFavorite,
+                requireNote: $requireNote
+            )
+            .environment(database)
+            .presentationDetents([.medium, .large])
+        }
+        .task { await vm.loadData(filter: filterContext, sortOrder: sortOrder, ascending: sortAscending) }
+        // フィルタ変化時のみ再計算
+        .task(id: filterKey) {
+            vm.refreshPickIds()
+            vm.rebuild(filter: filterContext, sortOrder: sortOrder, ascending: sortAscending)
+        }
+        .onChange(of: selectedBrandIds) { _, _ in
+            hasUserInteractedWithBrandFilter = true
+        }
+        .onAppear {
+            if !defaultBrandId.isEmpty && selectedBrandIds.isEmpty && !hasUserInteractedWithBrandFilter {
+                selectedBrandIds = [defaultBrandId]
             }
-            .task { await vm.loadData(filter: filterContext) }
-            // フィルタ変化時のみ再計算
-            .task(id: filterKey) {
-                vm.refreshPickIds()
-                vm.rebuild(filter: filterContext)
+            vm.refreshPickIds()
+        }
+        .trackScreen("idol_list")
+    }
+
+    /// 公式順以外の並びで使う「ブランドの区切りを外した通しリスト」。
+    ///
+    /// 身長順・年齢順はブランドを跨いで初めて意味を持つ指標なので、セクションで割らない。
+    /// 各行には並び替えのキー値を併記して、何順に並んでいるか行から読めるようにする。
+    private var flatListSection: some View {
+        VStack(alignment: .leading, spacing: DS.sp3) {
+            HStack {
+                Text("\(sortOrder.rawValue)順")
+                    .font(.imasScaled(13, weight: .semibold))
+                    .foregroundStyle(DS.ink2)
+                Spacer()
+                Text("\(vm.filteredIdols.count)人")
+                    .font(.imasCaption)
+                    .foregroundStyle(DS.ink3)
             }
-            .onAppear {
-                if !defaultBrandId.isEmpty && selectedBrandIds.isEmpty {
-                    selectedBrandIds = [defaultBrandId]
+            .padding(.horizontal, DS.sp2)
+
+            ImasListContainer {
+                ForEach(Array(vm.filteredIdols.enumerated()), id: \.element.id) { index, idol in
+                    if index > 0 { ImasRowDivider(inset: 69) }
+                    NavigationLink(value: idol) {
+                        IdolRowView(
+                            idol: idol,
+                            // 通しリストにはブランド別セクションが無いので、行ごとに引く。
+                            brandColor: vm.brandColor(for: idol),
+                            isPick: vm.pickIds.contains(idol.id),
+                            displayName: displayName(for: idol),
+                            secondary: secondaryText(for: idol),
+                            cvLine: cvText(for: idol),
+                            metric: vm.metricLabels[idol.id]
+                        )
+                    }
+                    .buttonStyle(.plain)
                 }
-                vm.refreshPickIds()
             }
-            .trackScreen("idol_list")
+        }
+        .padding(.horizontal, DS.sp5)
+    }
+
+    /// 行が引くテーマのシード一式。リードバーは brand フォールバック付き、
+    /// アバターと指標バッジはアイドル色単独で導出するので、両方の組を挙げる。
+    /// 行に導出させると人数ぶん FFI 境界を跨ぐため、一覧を組む前に 1 回で温める。
+    ///
+    /// 絞り込み後ではなく **全件** を挙げるのは、絞り込み結果が常にその部分集合だから。
+    /// 絞り込み後を渡すと母集団が打鍵のたびに変わり、既に温め済みのものを毎回数え直すことになる。
+    private func rowThemeSeeds() -> [ThemeSeedRequest] {
+        vm.idols.flatMap { idol in
+            [ThemeSeedRequest(seed: idol.color, brand: vm.brandColor(for: idol)),
+             ThemeSeedRequest(seed: idol.color, brand: nil)]
         }
     }
 
@@ -180,6 +365,9 @@ struct IdolListView: View {
     private var listBody: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: DS.sp6, pinnedViews: []) {
+                if !sortOrder.keepsBrandGrouping {
+                    flatListSection
+                }
                 ForEach(vm.visibleBrands) { brand in
                     let group = vm.groupedByBrand[brand.id] ?? []
                     VStack(alignment: .leading, spacing: DS.sp3) {
@@ -189,7 +377,10 @@ struct IdolListView: View {
                         if !collapsedBrands.contains(brand.id) {
                             ImasListContainer {
                                 ForEach(Array(group.enumerated()), id: \.element.id) { index, idol in
-                                    if index > 0 { Divider().overlay(DS.sep).padding(.leading, 58) }
+                                    // IdolAvatarView の外形フレームは isPick に関わらず一定 (担当リング込み
+                                    // サイズ) になったため、テキスト開始位置は常に旧・担当時相当分右へ寄る。
+                                    // 旧インセット (58) にリング分の増分 (+11) を足して追従させる。
+                                    if index > 0 { ImasRowDivider(inset: 69) }
                                     NavigationLink(value: idol) {
                                         IdolRowView(
                                             idol: idol,
@@ -197,7 +388,8 @@ struct IdolListView: View {
                                             isPick: vm.pickIds.contains(idol.id),
                                             displayName: displayName(for: idol),
                                             secondary: secondaryText(for: idol),
-                                            cvLine: cvText(for: idol)
+                                            cvLine: cvText(for: idol),
+                                            metric: vm.metricLabels[idol.id]
                                         )
                                     }
                                     .buttonStyle(.plain)
@@ -213,7 +405,7 @@ struct IdolListView: View {
         }
         .refreshable {
             await syncEngine.performIncrementalSync(database: database)
-            await vm.loadData(filter: filterContext)
+            await vm.loadData(filter: filterContext, sortOrder: sortOrder, ascending: sortAscending)
         }
     }
 
@@ -242,6 +434,36 @@ struct IdolListView: View {
         }
     }
 
+    // MARK: - Search Target
+
+    /// 検索語を打っている間だけ出す「アイドル名 / CV名」の切替。件数を添えて、
+    /// 今の切替で 0 件でももう片方に居ることが一目で分かるようにする。
+    @ViewBuilder
+    private var searchTargetBar: some View {
+        if !searchText.isEmpty, vm.searchCounts != nil {
+            ImasSegmented(
+                options: IdolSearchTarget.allCases,
+                selection: Binding(get: { searchTarget }, set: { selectSearchTarget($0) })
+            ) { target in "\(target.rawValue) \(count(for: target))" }
+                .padding(.horizontal, DS.sp5)
+                .padding(.vertical, DS.sp2)
+        }
+    }
+
+    private var otherSearchTarget: IdolSearchTarget? {
+        IdolSearchTarget.allCases.first { $0 != searchTarget }
+    }
+
+    private func count(for target: IdolSearchTarget) -> Int {
+        guard let counts = vm.searchCounts else { return 0 }
+        return Int(target == .name ? counts.name : counts.voiceActor)
+    }
+
+    private func selectSearchTarget(_ target: IdolSearchTarget) {
+        AppAnalytics.tap("idol_list.search_target")
+        searchTargetRaw = target.rawValue
+    }
+
     // MARK: - Filter Context
 
     /// View 側の選択状態 + マーク集合 (UserMarkService 参照は @Observable 観測のため View 文脈) を
@@ -251,7 +473,8 @@ struct IdolListView: View {
         var ctx = IdolFilterContext(
             selectedBrandIds: selectedBrandIds,
             selectedAttribute: selectedAttribute,
-            searchText: searchText)
+            searchText: searchText,
+            searchTarget: searchTarget)
         if requireMyPick {
             ctx.requireMyPick = true
             ctx.myPickIds = Set(markService.allMarked(kind: .myPick, entity: .idol))
@@ -297,6 +520,9 @@ private struct IdolRowView: View {
     let displayName: String
     var secondary: String? = nil
     var cvLine: String? = nil
+    /// 並び替えのキー値 (「17歳」「158cm」等)。並び順が公式順/五十音順のときは nil。
+    /// 何順で並んでいるか行から読めないと、並び替えても意味が分からないため出す。
+    var metric: String? = nil
 
     var body: some View {
         HStack(spacing: DS.sp3) {
@@ -326,63 +552,20 @@ private struct IdolRowView: View {
 
             Spacer(minLength: DS.sp2)
 
-            MyPickToggleButton(id: idol.id)
-            FavoriteToggleButton(entity: .idol, id: idol.id)
+            if let metric {
+                ImasMetricBadge(value: metric, unit: "", seed: idol.color)
+                    .padding(.trailing, DS.sp1)
+            }
 
-            Image(systemName: "chevron.right")
-                .font(.imasScaled( 14, weight: .semibold))
-                .foregroundStyle(DS.ink3)
+            MyPickToggleButton(id: idol.id)
+
+            ImasRowChevron()
                 .padding(.trailing, DS.sp2)
         }
         .padding(.vertical, DS.sp3)
         .padding(.leading, DS.sp2)
         .contentShape(Rectangle())
-    }
-}
-
-// MARK: - Idol Search Screen
-
-private struct IdolSearchScreen: View {
-    let idols: [Idol]
-    let castNames: [String: String]
-    @Binding var sheetIdol: Idol?
-
-    var body: some View {
-        SearchScreen(
-            prompt: "アイドル・CV名で検索",
-            historyScope: .idols,
-            searchAction: { query in
-                let lower = query.lowercased()
-                return idols.filter { idol in
-                    idol.name.lowercased().contains(lower) ||
-                    idol.nameKana?.lowercased().contains(lower) == true ||
-                    (castNames[idol.id] ?? "").lowercased().contains(lower)
-                }
-            },
-            suggestionsAction: { query in
-                let lower = query.lowercased()
-                return idols
-                    .filter {
-                        $0.name.lowercased().contains(lower) ||
-                        $0.nameKana?.lowercased().contains(lower) == true ||
-                        (castNames[$0.id] ?? "").lowercased().contains(lower)
-                    }
-                    .prefix(8)
-                    .map { idol in
-                        SearchSuggestionItem(
-                            text: idol.name,
-                            subtitle: castNames[idol.id].map { "CV: \($0)" },
-                            icon: "person.fill"
-                        )
-                    }
-            }
-        ) { idol in
-            Button {
-                sheetIdol = idol
-            } label: {
-                IdolNameRow(idol: idol, subtitle: idol.nameKana)
-            }
-            .buttonStyle(.plain)
-        }
+        .imasCopyable([CopyItem("アイドル名をコピー", idol.name, key: "idol_name"),
+                       CopyItem("よみをコピー", idol.nameKana, key: "kana")])
     }
 }

@@ -16,4 +16,11 @@
     <string name="label_cast">キャスト</string>
     <string name="label_date">開催日</string>
     <string name="label_venue">会場</string>
+
+    <!-- ウィジェット一覧に出す説明文。android:description は @string/… しか受け付けない -->
+    <string name="widget_desc_oshi_image">担当アイドルの取り込んだ画像をホーム画面に出します。タップで次の画像に切り替わります。</string>
+    <string name="widget_desc_oshi_launcher">担当アイドルの取り込んだ画像をホーム画面に出します。タップするとアプリが開きます。</string>
+    <string name="widget_desc_next_live">次のライブまでの日数を表示します。</string>
+    <string name="widget_desc_today_song">日替わりで1曲をジャケット付きで表示します。</string>
+    <string name="widget_desc_ticket_deadline">締切が近いチケットの先行受付を表示します。</string>
 </resources>

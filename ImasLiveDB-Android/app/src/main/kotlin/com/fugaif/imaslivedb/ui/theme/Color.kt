@@ -22,23 +22,14 @@ object DS {
     val success = Color(0xFF34D364)
     val warning = Color(0xFFFFB23E)
     val danger = Color(0xFFFF5247)
+    /** システムクロムは「ほぼ無彩」。色は常にエンティティ側から来る → けばけばしさ回避 (iOS DS.sys 相当)。 */
+    val sys = ink
     val onSys = Color(0xFF1C1C1E)
 
     // マイマーク
     val pick = Color(0xFFFF5A8C)
     val favorite = Color(0xFFFFC83E)
 }
-
-// Brand color constants
-val Brand765AS = Color(0xFFFE0000)
-val Brand961 = Color(0xFF520000)
-val Brand876 = Color(0xFF6EC6C8)
-val BrandCG = Color(0xFF2681C8)
-val BrandML = Color(0xFFFFC30B)
-val BrandSideM = Color(0xFF0FBE94)
-val BrandSC = Color(0xFF6BB6B9)
-val BrandGakuen = Color(0xFFFF6699)
-val BrandValiv = Color(0xFF7F51DC)
 
 /**
  * Convert a hex color string (with or without leading #) to a Compose Color.
@@ -59,15 +50,5 @@ fun hexToColor(hex: String): Color {
 }
 
 /** Return the brand color for a given brandId string, or Gray if unknown. */
-fun brandColor(brandId: String?): Color = when (brandId) {
-    "765as" -> Brand765AS
-    "961" -> Brand961
-    "876" -> Brand876
-    "cg" -> BrandCG
-    "ml" -> BrandML
-    "sidem" -> BrandSideM
-    "sc" -> BrandSC
-    "gakuen" -> BrandGakuen
-    "valiv" -> BrandValiv
-    else -> Color.Gray
-}
+fun brandColor(brandId: String?): Color =
+    BrandColors.hex(brandId)?.let(::hexToColor) ?: Color.Gray

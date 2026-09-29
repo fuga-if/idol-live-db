@@ -84,7 +84,11 @@ struct UserMarkBar: View {
                 icon: isOn ? kind.activeIcon : kind.icon,
                 label: kind.label, isOn: isOn, theme: t, a11y: kind.label
             ) {
-                try? markService.toggle(kind, entity: entity, id: entityId)
+                do {
+                    try markService.toggle(kind, entity: entity, id: entityId)
+                } catch {
+                    LocalWriteFailure.report(error, action: "\(kind.label)の切り替え")
+                }
             }
         }
     }

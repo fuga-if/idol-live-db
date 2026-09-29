@@ -19,34 +19,26 @@ Usage:
 
 --ids / --ids-file を指定すると、その song id だけを push する (modifiedAt の全件 bump を避ける)。
 daily-data-crawl ルーティンが「今日補完した行だけ」を反映するのに使う。
+
+署名・送信・429 の待ち・エラーの数え方は tools/lib/cloudkit.py (seed_cloudkit.py と共有)。
+レコード単位のエラーが 1 件でもあれば exit 1。
 """
 
 from __future__ import annotations
 
 import argparse
-import base64
-import hashlib
-import json
 import os
 import sqlite3
 import sys
-import time
-from datetime import datetime, timezone
 from pathlib import Path
 
-import requests
-from ecdsa import SigningKey
-from ecdsa.util import sigencode_der
+from lib import cloudkit as ck
+from lib.ck_records import next_modified_ms
 
-
-BASE_URL = "https://api.apple-cloudkit.com"
-CONTAINER = "iCloud.com.fugaif.ImasLiveDB"
 DB_PATH = Path(__file__).resolve().parent.parent / "ImasLiveDB" / "Resources" / "master.sqlite"
 DEFAULT_KEY_FILE = Path(__file__).resolve().parent / "eckey.pem"
 
 BATCH_SIZE = 100
-MAX_RETRIES = 5
-INITIAL_BACKOFF = 1.0
 
 FIELD_MAP = {
     "apple_music_id": ("appleMusicId", "STRING"),
@@ -56,43 +48,6 @@ FIELD_MAP = {
     "cd_series": ("cdSeries", "STRING"),
 }
 
-_signing_key = None
-_key_id = ""
-
-
-def sign_headers(body: bytes, subpath: str) -> dict:
-    date_str = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    body_hash = base64.b64encode(hashlib.sha256(body).digest()).decode()
-    message = f"{date_str}:{body_hash}:{subpath}"
-    signature = base64.b64encode(
-        _signing_key.sign(message.encode(), hashfunc=hashlib.sha256, sigencode=sigencode_der)
-    ).decode()
-    return {
-        "Content-Type": "application/json",
-        "X-Apple-CloudKit-Request-KeyID": _key_id,
-        "X-Apple-CloudKit-Request-ISO8601Date": date_str,
-        "X-Apple-CloudKit-Request-SignatureV1": signature,
-    }
-
-
-def post_modify(env: str, payload: dict) -> dict:
-    subpath = f"/database/1/{CONTAINER}/{env}/public/records/modify"
-    url = BASE_URL + subpath
-    body = json.dumps(payload).encode("utf-8")
-    headers = sign_headers(body, subpath)
-    for attempt in range(MAX_RETRIES):
-        resp = requests.post(url, data=body, headers=headers)
-        if resp.status_code == 200:
-            return resp.json()
-        if resp.status_code == 429:
-            wait = INITIAL_BACKOFF * (2 ** attempt)
-            print(f"  rate-limited; sleeping {wait:.1f}s", file=sys.stderr)
-            time.sleep(wait)
-            headers = sign_headers(body, subpath)
-            continue
-        resp.raise_for_status()
-    raise RuntimeError("max retries exceeded")
-
 
 def build_operation(song_id: str, row: sqlite3.Row) -> dict:
     fields: dict = {}
@@ -101,10 +56,7 @@ def build_operation(song_id: str, row: sqlite3.Row) -> dict:
         if val in (None, ""):
             continue
         fields[ck_name] = {"value": val, "type": ck_type}
-    fields["modifiedAt"] = {
-        "value": int(datetime.now(timezone.utc).timestamp() * 1000),
-        "type": "TIMESTAMP",
-    }
+    fields["modifiedAt"] = {"value": next_modified_ms(), "type": "TIMESTAMP"}
     return {
         "operationType": "forceUpdate",
         "record": {
@@ -115,12 +67,15 @@ def build_operation(song_id: str, row: sqlite3.Row) -> dict:
     }
 
 
-def main() -> None:
+def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--env", choices=["development", "production"], default="development")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--key-file", type=Path, default=DEFAULT_KEY_FILE)
     parser.add_argument("--key-id", default=os.environ.get("CLOUDKIT_KEY_ID", ""))
+    # 既定は同梱 master.sqlite。手元の master.sqlite に無く db/master.sql にだけ在る曲
+    # (既知の乖離分) を押し出すときは、master.sql から起こした DB をここで指す。
+    parser.add_argument("--db", type=Path, default=DB_PATH, help="読み出す SQLite (既定: 同梱 master.sqlite)")
     parser.add_argument("--brand", help="filter by brand_id (e.g. gakuen)")
     parser.add_argument("--ids", help="comma-separated song id allowlist (これだけ push)")
     parser.add_argument("--ids-file", type=Path, help="1 行 1 song id のファイル (--ids と同義)")
@@ -134,13 +89,10 @@ def main() -> None:
 
     if not args.dry_run and not args.key_id:
         print("Error: --key-id (or CLOUDKIT_KEY_ID env) required", file=sys.stderr)
-        sys.exit(1)
-    if not args.dry_run:
-        global _signing_key, _key_id
-        _key_id = args.key_id
-        _signing_key = SigningKey.from_pem(args.key_file.read_text())
+        return 1
+    signer = None if args.dry_run else ck.load_signer(args.key_id, args.key_file)
 
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(args.db)
     conn.row_factory = sqlite3.Row
     where = """WHERE ((apple_music_id IS NOT NULL AND apple_music_id != '')
                    OR (cd_series IS NOT NULL AND cd_series != '')
@@ -158,27 +110,14 @@ def main() -> None:
     print(f"target songs: {len(rows)}  env={args.env}  {scope}")
 
     ops = [build_operation(row["id"], row) for row in rows]
-    total_success = 0
-    total_failure = 0
-
-    for i in range(0, len(ops), BATCH_SIZE):
-        batch = ops[i : i + BATCH_SIZE]
-        if args.dry_run:
-            print(f"  [dry-run] batch {i // BATCH_SIZE + 1}: {len(batch)} records")
-            total_success += len(batch)
-            continue
-        resp = post_modify(args.env, {"operations": batch})
-        for r in resp.get("records", []):
-            if r.get("serverErrorCode"):
-                total_failure += 1
-                print(f"  ✗ {r.get('recordName')}: {r.get('serverErrorCode')} / {r.get('reason')}", file=sys.stderr)
-            else:
-                total_success += 1
-        print(f"  batch {i // BATCH_SIZE + 1}/{(len(ops) + BATCH_SIZE - 1) // BATCH_SIZE}: OK {total_success}  FAIL {total_failure}")
-        time.sleep(0.2)
+    url = ck.BASE_URL + ck.records_path(args.env, "modify")
+    total_success, total_failure = ck.upload_operations(
+        ops, url, args.dry_run, "Song", post=lambda u, p: ck.post_json(u, p, signer),
+        batch_size=BATCH_SIZE, pause=0.2)
 
     print(f"\ndone. success={total_success}  failure={total_failure}")
+    return 1 if total_failure else 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

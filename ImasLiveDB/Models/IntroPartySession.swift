@@ -18,6 +18,8 @@ final class IntroPartySession {
         case buzzed     // 誰かが押して回答中
         case revealed   // 答え開示
         case finished
+        /// 出題プールが不足 (4曲未満) 等で開始不能。.loading のまま固着させないための終端フェーズ。
+        case error
     }
 
     struct Player: Sendable {
@@ -68,13 +70,21 @@ final class IntroPartySession {
     func generateQuestions(database: AppDatabase) async throws {
         phase = .loading
         audio.preferFull = settings.playback == .full
-        let pool = try presetPool.map { IntroGameSession.playable($0) }
-            ?? database.fetchIntroDonSongs(brandIds: settings.selectedBrandIds)
-        guard pool.count >= 4 else {
+        let pool = try IntroGameSession.questionPool(
+            preset: presetPool, brandIds: settings.selectedBrandIds, database: database,
+            hasAppleMusicSubscription: MusicKitService.shared.hasAppleMusicSubscription)
+        // 始めてよいか (候補が 4 曲以上) と問題数はコア。
+        guard let count = introQuestionCount(
+            kind: .standard, poolSize: UInt32(clamping: pool.count),
+            requested: UInt32(clamping: settings.questionCount)) else {
             questions = []
+            // .loading のまま固着させない (再戦ボタン等が読み込み中表示のまま止まる不具合対策)。
+            phase = .error
             return
         }
-        questions = Array(pool.shuffled().prefix(settings.questionCount)).map { song in
+        let picked = Array(pool.shuffled().prefix(Int(count)))
+        // 選択肢は 1 ゲームぶんまとめて 1 回の FFI 呼び出しで生成する (出題ごとのループ呼び出しにしない)。
+        questions = zip(picked, IntroQuizChoices.makeAll(for: picked, pool: pool)).map { song, choices in
             IntroGameQuestion(
                 id: song.id,
                 title: song.title,
@@ -82,24 +92,13 @@ final class IntroPartySession {
                 appleMusicId: song.appleMusicId ?? "",
                 previewUrl: song.previewUrl,
                 artworkUrl: song.artworkUrl,
-                choices: makeChoices(for: song, pool: pool)
+                choices: choices
             )
         }
         currentIndex = 0
         scores = [0, 0]
         phase = .playing
         await playCurrentIntro()
-    }
-
-    private func makeChoices(for song: Song, pool: [Song]) -> [String] {
-        let wrongs = pool
-            .filter { $0.id != song.id && $0.title != song.title }
-            .shuffled()
-            .prefix(3)
-            .map(\.title)
-        var choices = wrongs + [song.title]
-        choices.shuffle()
-        return choices
     }
 
     // MARK: - Playback (共通エンジンに委譲)
@@ -115,7 +114,7 @@ final class IntroPartySession {
     }
 
     func stopPlayback() { audio.stop() }
-    func continueIntro() { audio.continuePlaying() }
+    func continueIntroHeld() { audio.continuePlaying() }
     func pauseHeldIntro() { audio.pauseHeld() }
     func replayIntro() async { await playCurrentIntro() }
 

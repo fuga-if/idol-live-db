@@ -66,36 +66,16 @@ struct EventDetailView: View {
         return Int(show.date.prefix(4))
     }
 
-    /// 未来イベントかどうか（最初の公演日が今日以降）
-    private var isFutureEvent: Bool {
-        guard let firstShow = vm.shows.first else { return false }
-        let today = ISO8601DateFormatter.string(
-            from: Date(),
-            timeZone: .current,
-            formatOptions: .withFullDate
-        )
-        return firstShow.date >= today
-    }
+    /// 未来イベントかどうか (最初の公演が今日以降)。判定はコアのヒーロー。
+    private var isFutureEvent: Bool { vm.hero?.isUpcoming ?? false }
 
-    /// 参加マーク済み公演の日付から導く「参加予定 (あとN日) / 参加済み」状態。
-    /// 公演単位の `.attended` を集約し、最も早い未来公演があれば予定扱いにする。
+    /// 「参加予定 (あとN日) / 参加済み」の札。決め方と文言はコアのヒーロー。
     private var attendanceStatus: AttendanceStatus {
-        let dates = vm.shows.filter { vm.attendedShowIds.contains($0.id) }.map(\.date)
-        return AttendanceStatus.derive(attendedShowDates: dates)
+        vm.hero.map { AttendanceStatus($0.attendance) } ?? .none
     }
 
-    /// ヒーローのサブ行 (日付レンジ ・ 会場)。
-    private var heroSub: String {
-        let dates = vm.shows.map(\.date).filter { !$0.isEmpty }
-        let datePart: String?
-        if let first = dates.first, let last = dates.last {
-            datePart = first == last ? first : "\(first)–\(last)"
-        } else {
-            datePart = nil
-        }
-        let venues = Array(Set(vm.shows.compactMap(\.venue))).sorted()
-        return [datePart, venues.first].compactMap { $0 }.joined(separator: " ・ ")
-    }
+    /// ヒーローのサブ行 (開催期間 ・ 会場)。組み方はコア。
+    private var heroSub: String { vm.hero?.subLine ?? "" }
 
     var body: some View {
         let t = ImasTheme.derive(seed: seed, brand: brandSeed, scheme: scheme)
@@ -125,7 +105,7 @@ struct EventDetailView: View {
                             .font(.imasScaled(13, weight: .semibold))
                     }
                     .foregroundStyle(attendanceStatus.isPlanned ? t.onAccent : DS.ink2)
-                    .padding(.horizontal, 12)
+                    .padding(.horizontal, DS.sp4)
                     .padding(.vertical, 6)
                     .background(
                         attendanceStatus.isPlanned ? AnyShapeStyle(t.accent) : AnyShapeStyle(DS.fill),
@@ -147,17 +127,23 @@ struct EventDetailView: View {
             .background(DS.bg)
             .imasTheme(seed: seed, brand: brandSeed)
 
-            // 内部だけスクロール
-            ScrollView {
-                Group {
-                    switch segment {
-                    case 0: showsPanel
-                    case 1: castPanel
-                    default: infoPanel
+            // 内部だけスクロール。公演一覧 (segment 0) だけ List (スワイプ参加登録に必要)、
+            // 他パネルは従来通り ScrollView。
+            Group {
+                if segment == 0 {
+                    showsList
+                } else {
+                    ScrollView {
+                        Group {
+                            switch segment {
+                            case 1: castPanel
+                            default: infoPanel
+                            }
+                        }
+                        .padding(.top, DS.sp3)
+                        .padding(.bottom, DS.sp7)
                     }
                 }
-                .padding(.top, DS.sp3)
-                .padding(.bottom, DS.sp7)
             }
             .imasTheme(seed: seed, brand: brandSeed)
         }
@@ -165,14 +151,13 @@ struct EventDetailView: View {
         .navigationTitle(event.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            // ヒーローはスクロールせず常に全文を出すので、バーの 1 行タイトルは重複になる。
+            // 合同ライブ名は「THE IDOLM@STER Sid…」と先頭ブランドが省略で消えるだけなので空にする。
+            // navigationTitle 自体は戻るボタンの長押し履歴と VoiceOver のために残す。
+            ToolbarItem(placement: .principal) { Text("").accessibilityHidden(true) }
             ToolbarItem(placement: .topBarTrailing) {
                 // SNS シェア (Universal Links)。リンクを踏むとこのイベント詳細に直接着地する。
-                ShareLink(
-                    item: DeeplinkBuilder.shareText(
-                        name: event.name,
-                        url: DeeplinkBuilder.eventURL(id: event.id)
-                    )
-                ) {
+                ShareLink(item: shareEventText(eventId: event.id, eventName: event.name)) {
                     Image(systemName: "square.and.arrow.up")
                 }
                 .accessibilityLabel("このイベントをシェア")
@@ -219,6 +204,7 @@ struct EventDetailView: View {
         .sheet(isPresented: $showAttendanceSheet) {
             EventAttendanceSheet(shows: vm.shows, event: event, seed: seed, brand: brandSeed) {
                 vm.recomputeAttendedShows()
+                Task { await vm.reloadHero(eventId: event.id) }
             }
         }
         .task { await vm.loadData(event: event) }
@@ -245,6 +231,7 @@ struct EventDetailView: View {
                 .font(.imasTitle2.weight(.bold))
                 .foregroundStyle(DS.ink)
                 .fixedSize(horizontal: false, vertical: true)
+                .imasCopyable(event.name, label: "ライブ名をコピー", key: "event_name")
 
             if !heroSub.isEmpty {
                 HStack(spacing: 6) {
@@ -268,9 +255,13 @@ struct EventDetailView: View {
 
     // MARK: - Panel 0: 公演・セトリ
 
+    /// ⚠️ ここは **List でなければならない**。行をスワイプしての参加登録 (`attendanceSwipe`)
+    /// は List の行にしか効かず、ScrollView + LazyVStack に付けても無言で消える
+    /// (習熟度画面のスワイプが同じ理由で一度死んでいる)。見出し・追加ボタン・空状態も
+    /// 同じ理由で List の行として差す (`plainRow`)。
     @ViewBuilder
-    private var showsPanel: some View {
-        VStack(alignment: .leading, spacing: DS.sp3) {
+    private var showsList: some View {
+        List {
             HStack {
                 ImasSectionHeader(title: "公演 ・ \(vm.shows.count) 公演 → セトリへ", tight: true)
                 Spacer(minLength: 8)
@@ -285,56 +276,48 @@ struct EventDetailView: View {
                     }
                 }
             }
-            .padding(.horizontal, DS.sp5)
+            .plainRow(background: DS.bg)
 
             if vm.shows.isEmpty {
-                ImasListContainer {
-                    ImasEmptyState(
-                        systemImage: "music.mic",
-                        title: "公演がまだありません",
-                        message: EditPermission.showEditAffordance ? "「追加」から公演を登録できます" : nil,
-                        actionTitle: EditPermission.showEditAffordance ? "公演を追加" : nil,
-                        action: EditPermission.showEditAffordance ? { start(.createShow) } : nil,
-                        seed: seed, brand: brandSeed
-                    )
-                }
-                .padding(.horizontal, DS.sp5)
+                ImasEmptyState(
+                    systemImage: "music.mic",
+                    title: "公演がまだありません",
+                    message: EditPermission.showEditAffordance ? "「追加」から公演を登録できます" : nil,
+                    actionTitle: EditPermission.showEditAffordance ? "公演を追加" : nil,
+                    action: EditPermission.showEditAffordance ? { start(.createShow) } : nil,
+                    seed: seed, brand: brandSeed
+                )
+                .plainRow(background: DS.bg)
             } else {
-                ImasListContainer {
-                    ForEach(Array(vm.shows.enumerated()), id: \.element.id) { idx, show in
-                        if idx > 0 { Divider().overlay(DS.sep).padding(.leading, DS.sp5) }
-                        showRow(show)
-                    }
+                ForEach(vm.shows) { show in
+                    showRow(show)
+                        .listRowInsets(EdgeInsets(top: 0, leading: DS.sp5, bottom: 0, trailing: DS.sp5))
+                        .listRowBackground(DS.surface)
+                        .listRowSeparatorTint(DS.sep)
+                        .attendanceSwipe(show: show, event: event) {
+                            vm.recomputeAttendedShows()
+                            Task { await vm.reloadHero(eventId: event.id) }
+                        }
                 }
-                .padding(.horizontal, DS.sp5)
             }
         }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .background(DS.bg)
+        .environment(\.defaultMinListRowHeight, 0)
     }
 
     @ViewBuilder
     private func showRow(_ show: Show) -> some View {
         Button { openShow(show) } label: {
-            HStack(spacing: DS.sp3) {
-                ImasLeadBar(seed: seed, brand: brandSeed, rainbow: isJoint)
-                    .frame(height: 36)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(show.name)
-                        .font(.imasSubhead.weight(.semibold))
-                        .foregroundStyle(DS.ink)
-                        .lineLimit(1)
-                    Text([show.venue, show.date].compactMap { $0 }.joined(separator: " ・ "))
-                        .font(.imasCaption)
-                        .foregroundStyle(DS.ink2)
-                        .lineLimit(1)
-                }
-                Spacer(minLength: 8)
-                Image(systemName: "chevron.right")
-                    .font(.imasScaled( 14, weight: .semibold))
-                    .foregroundStyle(DS.ink3)
-            }
-            .padding(.horizontal, DS.sp4)
-            .padding(.vertical, DS.sp3)
-            .contentShape(Rectangle())
+            ImasLeadRow(
+                title: show.name,
+                subtitle: [show.venue, show.date].compactMap { $0 }.joined(separator: " ・ "),
+                seed: seed,
+                brand: brandSeed,
+                rainbow: isJoint,
+                titleLineLimit: 1
+            )
         }
         .buttonStyle(.plain)
         .contextMenu {
@@ -356,7 +339,6 @@ struct EventDetailView: View {
             AttendancePanel(
                 attendance: attendance,
                 unitIndex: vm.unitIndex,
-                performedUnitIds: vm.performedUnitIds,
                 seed: seed,
                 brandSeed: brandSeed,
                 navigate: { go($0) }
@@ -387,6 +369,13 @@ struct EventDetailView: View {
 
             ticketInfoSection
 
+            // 衣装。行は衣装単位で、押すとイベントをまたいだ着用公演へ。
+            if let costumes = vm.costumes {
+                EventCostumesSection(costumes: costumes, seed: seed, brand: brandSeed) {
+                    go(.costume($0))
+                }
+            }
+
             // 映像円盤 (BD/DVD) 所有チェック。event_releases があるイベントだけ表示。
             EventReleasesSection(eventId: event.id, seed: seed, brand: brandSeed)
 
@@ -406,7 +395,7 @@ struct EventDetailView: View {
                         .buttonStyle(.plain)
                     }
                     if let year = firstShowYear {
-                        if vm.brand != nil { Divider().overlay(DS.sep).padding(.leading, DS.sp5) }
+                        if vm.brand != nil { ImasRowDivider(inset: DS.sp5) }
                         Button {
                             go(.filteredEvents(.year(year)))
                         } label: {
@@ -441,10 +430,10 @@ struct EventDetailView: View {
     private var ticketRows: [TicketRow] {
         var rows: [TicketRow] = []
         if let deadline = event.ticketDeadline, !deadline.isEmpty {
-            rows.append(.labeled(key: "申込期限", value: deadline))
+            rows.append(.labeled(key: Vocab.ticketDate("ticket_deadline")?.label ?? "", value: deadline))
         }
         if let lottery = event.ticketLotteryDate, !lottery.isEmpty {
-            rows.append(.labeled(key: "当落発表", value: lottery))
+            rows.append(.labeled(key: Vocab.ticketDate("ticket_lottery_date")?.label ?? "", value: lottery))
         }
         if let url = URL.safeHTTP(string: event.ticketUrl) {
             rows.append(.link(url))
@@ -468,7 +457,7 @@ struct EventDetailView: View {
                         Button {
                             start(.editEvent)
                         } label: {
-                            HStack(spacing: 4) {
+                            HStack(spacing: DS.sp2) {
                                 Image(systemName: hasAny ? "pencil" : "plus").font(.imasScaled( 13, weight: .semibold))
                                 Text(hasAny ? "編集" : "登録").font(.imasScaled( 14, weight: .semibold))
                             }
@@ -480,7 +469,7 @@ struct EventDetailView: View {
                 .padding(.horizontal, DS.sp5)
                 ImasListContainer {
                     ForEach(Array(ticketRows.enumerated()), id: \.element.id) { idx, row in
-                        if idx > 0 { Divider().overlay(DS.sep).padding(.leading, DS.sp5) }
+                        if idx > 0 { ImasRowDivider(inset: DS.sp5) }
                         ticketRowView(row)
                     }
                 }
@@ -594,8 +583,6 @@ private struct EventStatsTiles: View {
 private struct AttendancePanel: View {
     let attendance: EventAttendance
     let unitIndex: UnitIndex?
-    /// この event のセトリで歌唱された unit_id 集合。
-    let performedUnitIds: Set<String>
     var seed: String?
     var brandSeed: String?
     let navigate: (DetailDestination) -> Void
@@ -606,19 +593,14 @@ private struct AttendancePanel: View {
         Set(attendance.presentIdols.map(\.id))
     }
 
-    /// performer 集合を unit で被覆した結果 (実際に歌唱されたユニットのみ)。
+    /// 出演者を覆う、歌唱されたユニット (選び方はコア)。
     private var coveredUnits: [Unit] {
-        guard let unitIndex, !performedUnitIds.isEmpty else { return [] }
-        return unitIndex.coveringUnits(
-            for: presentIds,
-            requireSongs: true,
-            restrictTo: performedUnitIds
-        ).units
+        guard let units = unitIndex?.units else { return [] }
+        let byId = Dictionary(units.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        return attendance.coveringUnitIds.compactMap { byId[$0] }
     }
 
-    private var groups: [EventAttendance.Group] {
-        attendance.grouped()
-    }
+    private var groups: [EventAttendance.Group] { attendance.groups }
 
     /// 主演アイドル (出演者集合に含まれるもののみ)。
     private var leadIdols: [Idol] {
@@ -777,7 +759,7 @@ private struct AttendancePanel: View {
             Text("DAY\(index + 1)")
                 .font(.imasCaption.weight(.bold))
                 .foregroundStyle(DS.onSys)
-                .padding(.horizontal, 8).padding(.vertical, 3)
+                .padding(.horizontal, DS.sp3).padding(.vertical, 3)
                 .background(panelAccent, in: Capsule())
             if let d = shortDate(show.date) {
                 Text(d).font(.imasCaption.weight(.medium)).foregroundStyle(DS.ink2)
@@ -798,8 +780,10 @@ private struct AttendancePanel: View {
                 Button {
                     navigate(.idol(idol))
                 } label: {
-                    VStack(spacing: 4) {
-                        IdolAvatarView(idol: idol, size: 56)
+                    VStack(spacing: DS.sp2) {
+                        // isPick は使わず roleAvatarRing で独自の accent リングを重ねるため、
+                        // 担当リング分の外形余白は予約しない (可視アバターぴったりの size に戻す)。
+                        IdolAvatarView(idol: idol, size: 56, reservesPickRing: false)
                             .overlay { roleAvatarRing(show: ringAccent) }
                         ImasTagChip(text: chipText, kind: chipKind, seed: seed, brand: brandSeed)
                         Text(idol.shortName)
@@ -855,7 +839,7 @@ private struct AttendancePanel: View {
                 Button {
                     navigate(.idol(idol))
                 } label: {
-                    VStack(spacing: 4) {
+                    VStack(spacing: DS.sp2) {
                         IdolAvatarView(idol: idol, size: 48)
                             .grayscale(absent ? 0.5 : 0)
                             .opacity(absent ? 0.45 : 1)

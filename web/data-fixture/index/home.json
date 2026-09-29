@@ -1,0 +1,182 @@
+{
+  "schemaVersion": 1,
+  "path": "/",
+  "headline": [
+    "アイマスのライブを、",
+    "セトリから引ける。"
+  ],
+  "tagline": "アイマスのライブ・公演・セットリスト・楽曲・アイドルを横断して調べられるデータベースです。",
+  "todayDisplay": "2026.09.24 THU",
+  "nextCountdown": {
+    "lead": "あと",
+    "value": "2",
+    "unit": "日",
+    "spoken": "あと2日"
+  },
+  "upcoming": [
+    {
+      "ref": {
+        "kind": "event",
+        "id": "ev_sample",
+        "name": "THE IDOLM@STER MILLION LIVE! 10thLIVE TOUR Act-4 ROAD TO MEMORIES 幕張",
+        "sub": "2026",
+        "path": "/events/ev_sample/",
+        "themeKey": "brand:ml",
+        "artworkUrl": null
+      },
+      "dateBadge": {
+        "iso": "2026-04-03",
+        "year": "2026",
+        "monthDay": "4/3",
+        "weekday": "金",
+        "spoken": "2026年4月3日 金曜日"
+      },
+      "endDisplay": "〜 4/4 (土)",
+      "brandMark": {
+        "kind": "brand",
+        "id": "ml",
+        "name": "アイドルマスター ミリオンライブ!",
+        "sub": "ML",
+        "path": "/brands/ml/",
+        "themeKey": "brand:ml",
+        "artworkUrl": null
+      },
+      "venueDisplay": "幕張メッセ",
+      "showCountDisplay": "2 公演",
+      "kind": "live",
+      "kindLabel": null
+    }
+  ],
+  "upcomingEmpty": null,
+  "recentShows": [
+    {
+      "ref": {
+        "kind": "show",
+        "id": "sh_sample_1",
+        "name": "DAY1",
+        "sub": "2026-04-03",
+        "path": "/shows/sh_sample_1/",
+        "themeKey": "brand:ml",
+        "artworkUrl": null
+      },
+      "title": "THE IDOLM@STER MILLION LIVE! 10thLIVE TOUR Act-4 ROAD TO MEMORIES 幕張",
+      "showLabel": "DAY1",
+      "date": "2026-04-03",
+      "dateBadge": {
+        "iso": "2026-04-03",
+        "year": "2026",
+        "monthDay": "4/3",
+        "weekday": "金",
+        "spoken": "2026年4月3日 金曜日"
+      },
+      "venueLabel": "幕張メッセ",
+      "hall": "イベントホール",
+      "startTimeDisplay": "17:00 開演",
+      "setlistCount": 23
+    }
+  ],
+  "recentShowsEmpty": null,
+  "statTiles": [
+    {
+      "glyph": "♪",
+      "value": 851,
+      "label": "ライブ",
+      "href": "/events/"
+    },
+    {
+      "glyph": "▤",
+      "value": 1341,
+      "label": "公演",
+      "href": "/events/past/"
+    },
+    {
+      "glyph": "♬",
+      "value": 3153,
+      "label": "楽曲",
+      "href": "/songs/"
+    },
+    {
+      "glyph": "☺",
+      "value": 394,
+      "label": "アイドル",
+      "href": "/idols/"
+    },
+    {
+      "glyph": "❋",
+      "value": 1539,
+      "label": "ユニット",
+      "href": "/units/"
+    },
+    {
+      "glyph": "⌂",
+      "value": 234,
+      "label": "会場",
+      "href": "/venues/"
+    }
+  ],
+  "brands": [
+    {
+      "ref": {
+        "kind": "brand",
+        "id": "ml",
+        "name": "アイドルマスター ミリオンライブ!",
+        "sub": "ML",
+        "path": "/brands/ml/",
+        "themeKey": "brand:ml",
+        "artworkUrl": null
+      },
+      "shortName": "ML",
+      "glyph": "ML",
+      "previewDisplay": "ライブ 210 ・ 楽曲 600 ・ アイドル 52 ・ ユニット 300"
+    },
+    {
+      "ref": {
+        "kind": "brand",
+        "id": "cg",
+        "name": "アイドルマスター シンデレラガールズ",
+        "sub": "CG",
+        "path": "/brands/cg/",
+        "themeKey": "brand:cg",
+        "artworkUrl": null
+      },
+      "shortName": "CG",
+      "glyph": "CG",
+      "previewDisplay": "ライブ 210 ・ 楽曲 600 ・ アイドル 52 ・ ユニット 300"
+    }
+  ],
+  "app": {
+    "appStoreUrl": "https://apps.apple.com/jp/app/id6763342297",
+    "playStoreUrl": null,
+    "xUrl": "https://x.com/idollivedb",
+    "privacyUrl": "https://fuga-if.github.io/imas-live-privacy/privacy.html",
+    "supportUrl": "https://fuga-if.github.io/imas-live-privacy/support.html",
+    "termsUrl": "https://fuga-if.github.io/imas-live-privacy/terms.html",
+    "repositoryUrl": "https://github.com/fuga-if/idol-live-db"
+  },
+  "appNote": "参加記録・投票・歌詞・コール・タグ付けはアプリでご利用いただけます。このサイトは閲覧と共有に専念しています。",
+  "recentShowsMore": {
+    "label": "開催済みのライブへ",
+    "path": "/events/past/",
+    "current": false,
+    "themeKey": null,
+    "count": null
+  },
+  "seo": {
+    "title": "アイドルライブDB — アイマス ライブ・セトリ データベース",
+    "description": "アイマスのライブ・公演・セットリスト・楽曲・アイドルを横断して調べられるデータベースです。",
+    "canonical": "https://idollivedb.fugaapp.site/",
+    "ogImage": "https://idollivedb.fugaapp.site/og/default.png",
+    "robots": "index,follow",
+    "jsonLd": {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebPage",
+          "name": "アイドルライブDB",
+          "url": "https://idollivedb.fugaapp.site/"
+        }
+      ]
+    },
+    "breadcrumbs": []
+  }
+}

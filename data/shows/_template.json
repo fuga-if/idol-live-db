@@ -1,0 +1,19 @@
+{
+ "title": "既存のライブに公演を足す (例: ツアーの追加公演)",
+ "author": "あなたのハンドル名 (任意)",
+ "_help": "event はもうある前提で、公演 (show) だけを足す。ライブ自体が無いなら data/events/ を使う。既存公演の直しは data/fixes/。show id 規則: sh_{event id から ev_ を外したもの}_{連番}。",
+ "source": "出典 (必須)。公式の告知ページの URL か、CD のクレジットなど一次ソースの名前。DB に既にある値から導いたものは derived:<何から導いたか> と書く (関係の無い URL を付けない)。複数なら並べる。項目ごとに違うなら各項目に source を書いてもよい",
+ "shows": [
+  {
+   "id": "sh_example_live_2026_3",
+   "event_id": "ev_example_live_2026",
+   "name": "DAY3",
+   "date": "2026-06-08",
+   "venue": "会場名",
+   "venue_id": "venue_会場名",
+   "start_time": "17:00",
+   "sort_order": 2,
+   "note": "なぜこの公演があると言えるかの根拠 (公式の告知 URL 等)"
+  }
+ ]
+}

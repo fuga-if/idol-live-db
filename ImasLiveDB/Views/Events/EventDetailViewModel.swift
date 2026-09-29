@@ -17,10 +17,12 @@ final class EventDetailViewModel {
     private(set) var brand: Brand?
     private(set) var attendance: EventAttendance?
     private(set) var unitIndex: UnitIndex?
-    /// この event のセトリで歌唱された unit_id 集合 (出演者ユニット表示の許可リスト)。
-    private(set) var performedUnitIds: Set<String> = []
     /// 参加済みの公演 ID (UserMarkBar の参加 ON 判定・シート反映後の再計算用)。
     private(set) var attendedShowIds: Set<String> = []
+    /// ヒーロー (開催期間・会場・今後か・参加の札)。コアが組む。参加を付け替えたら組み直す。
+    private(set) var hero: EventHeroRecord?
+    /// このイベントで着られた衣装 (共通・個別)。分け方も並びも imas-core。
+    private(set) var costumes: EventCostumesRecord?
 
     private let eventReading: any EventReading
     private let showReading: any ShowReading
@@ -50,9 +52,14 @@ final class EventDetailViewModel {
             }
             attendance = try await eventReading.eventAttendance(eventId: event.id)
             unitIndex = try await unitReading.unitIndex()
-            performedUnitIds = try await unitReading.performedUnitIds(eventId: event.id)
         } catch {
             Logger.database.error("load_failed event_detail: \(error.localizedDescription)")
+        }
+        await reloadHero(eventId: event.id)
+        do {
+            costumes = try await showReading.eventCostumes(eventId: event.id)
+        } catch {
+            Logger.database.error("load_failed event_costumes: \(error.localizedDescription)")
         }
     }
 
@@ -60,5 +67,17 @@ final class EventDetailViewModel {
         attendedShowIds = Set(shows.map(\.id).filter {
             UserMarkService.shared.bool(.attended, entity: .show, id: $0)
         })
+    }
+
+    /// 参加の札は参加マークで変わるので、付け替えた後にも呼ぶ。
+    func reloadHero(eventId: String) async {
+        do {
+            hero = try await eventReading.eventHero(
+                eventId: eventId, attendedShowIds: Array(attendedShowIds),
+                eventMarked: UserMarkService.shared.bool(.attended, entity: .event, id: eventId),
+                today: JSTDay.today())
+        } catch {
+            Logger.database.error("load_failed event_hero: \(error.localizedDescription)")
+        }
     }
 }

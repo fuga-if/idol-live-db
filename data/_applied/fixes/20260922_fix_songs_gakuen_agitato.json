@@ -1,0 +1,15 @@
+{
+ "title": "songs の gakuen_agitato を修正",
+ "author": "LLM 提案 (propose_fix)",
+ "source": "https://gakuen.idolmaster-official.jp/",
+ "note": "出典: https://gakuen.idolmaster-official.jp/\n引用: \"学園アイドルマスター LIVE TOUR -標- 岩手公演 セットリスト DAY1 2026.09.22 TUE / 16. Agitato 伊藤 舞音・湊 みや・春咲 暖・陽高 真白\"\n既存の学マス曲は singer_label に歌唱者名を入れている (Cosmetic→十王星南、修楽旅行の各版→メンバー名の読点区切り)。同じ形にそろえる。声優名ではなくアイドル名で入れる。",
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "gakuen_agitato",
+   "fields": {
+    "singer_label": "倉本千奈、紫雲清夏、秦谷美鈴、十王星南"
+   }
+  }
+ ]
+}

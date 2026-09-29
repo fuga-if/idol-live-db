@@ -11,8 +11,7 @@ struct PollHallOfFameView: View {
     var body: some View {
         Group {
             if vm.isLoading {
-                ProgressView()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                ImasLoadingState()
             } else if let loadError = vm.loadError {
                 ImasEmptyState(
                     systemImage: "exclamationmark.triangle",
@@ -30,7 +29,7 @@ struct PollHallOfFameView: View {
                     ImasListContainer {
                         ForEach(Array(vm.results.enumerated()), id: \.element.id) { index, result in
                             if index > 0 {
-                                Divider().background(DS.sep).padding(.leading, DS.sp5)
+                                ImasRowDivider(inset: DS.sp5)
                             }
                             Button {
                                 AppAnalytics.tap("poll_hall_of_fame.view_result")
@@ -62,13 +61,18 @@ struct PollHallOfFameView: View {
     }
 
     private func navigate(_ result: PollResult) async {
-        if result.targetType == .song {
+        switch result.targetType {
+        case .song:
             if let song = try? await AppContainer.shared.songReading.song(id: result.entityId) {
                 destination = .song(song)
             }
-        } else {
+        case .idol:
             if let idol = try? await AppContainer.shared.idolReading.idol(id: result.entityId) {
                 destination = .idol(idol)
+            }
+        case .unit:
+            if let unit = try? await AppContainer.shared.unitReading.unit(id: result.entityId) {
+                destination = .unit(unit)
             }
         }
     }
@@ -81,13 +85,14 @@ private struct HallOfFameRow: View {
 
     @State private var resolvedSong: Song?
     @State private var resolvedIdol: Idol?
+    @State private var resolvedUnit: Unit?
 
     var body: some View {
         HStack(spacing: DS.sp3) {
             Image(systemName: "crown.fill")
-                .font(.imasScaled(16))
+                .font(.imasCallout)
                 .foregroundStyle(
-                    LinearGradient(colors: [.orange, .yellow],
+                    LinearGradient(colors: [DS.warning, .yellow],
                                    startPoint: .top, endPoint: .bottom)
                 )
                 .frame(width: 30, alignment: .center)
@@ -105,7 +110,7 @@ private struct HallOfFameRow: View {
             VStack(alignment: .trailing, spacing: DS.sp2) {
                 Text("優勝")
                     .font(.imasCaption.weight(.bold))
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(DS.warning)
                 Text("\(result.voteCount)票")
                     .font(.imasCaption.monospacedDigit())
                     .foregroundStyle(DS.ink3)
@@ -119,15 +124,22 @@ private struct HallOfFameRow: View {
 
     @ViewBuilder
     private var entityView: some View {
-        if result.targetType == .song {
+        switch result.targetType {
+        case .song:
             if let song = resolvedSong {
                 SongTitleRow(song: song, showsChevron: false)
             } else {
                 fallbackName
             }
-        } else {
+        case .idol:
             if let idol = resolvedIdol {
                 IdolNameRow(idol: idol, showsChevron: false)
+            } else {
+                fallbackName
+            }
+        case .unit:
+            if let unit = resolvedUnit {
+                UnitNameRow(unit: unit, showsChevron: false)
             } else {
                 fallbackName
             }
@@ -142,10 +154,13 @@ private struct HallOfFameRow: View {
     }
 
     private func resolveEntity() async {
-        if result.targetType == .song {
+        switch result.targetType {
+        case .song:
             resolvedSong = try? await AppContainer.shared.songReading.song(id: result.entityId)
-        } else {
+        case .idol:
             resolvedIdol = try? await AppContainer.shared.idolReading.idol(id: result.entityId)
+        case .unit:
+            resolvedUnit = try? await AppContainer.shared.unitReading.unit(id: result.entityId)
         }
     }
 }

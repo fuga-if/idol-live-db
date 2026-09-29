@@ -61,9 +61,10 @@ final class PredictionService {
 
     /// 自分が投票した予想一覧 (新しい順)。曲/公演メタは呼び出し側が local カタログで解決する。
     func myPredictions() async throws -> [MyPredictionDTO] {
-        guard AuthService.shared.bearerToken != nil else {
-            throw PredictionError.unauthorized
-        }
+        // bearerToken の事前チェックはしない。vote()/unvote() と同じ理由 (401 自動リフレッシュに委ねる)。
+        // トークンが期限切れ (nil) でも isSignedIn は true のまま残ることがあり、ここで弾くと
+        // APIClient の 401→sliding refresh 経路に乗らず、セッション更新中の窓で誤って
+        // 「未ログイン」エラーになる。authorized: true で送れば未トークン→401→refresh→リトライで自己回復する。
         return try await APIClient.shared.request(
             "GET",
             path: "/me/predictions",
@@ -84,12 +85,18 @@ final class PredictionService {
             let songId: String
             enum CodingKeys: String, CodingKey { case songId = "song_id" }
         }
-        let result: PredictionVoteResult = try await APIClient.shared.request(
-            "POST",
-            path: "/shows/\(showId)/predictions",
-            body: Body(songId: songId),
-            authorized: true
-        )
+        let result: PredictionVoteResult
+        do {
+            result = try await APIClient.shared.request(
+                "POST",
+                path: "/shows/\(showId)/predictions",
+                body: Body(songId: songId),
+                authorized: true
+            )
+        } catch let APIClientError.server(status, _) where status == 409 {
+            // 3票上限 (サーバ生文字列 "vote limit") を専用和文に握り替える (8人上限と同じ流儀)。
+            throw PredictionError.voteLimitReached
+        }
         invalidate(showId: showId)
         return result
     }
@@ -180,6 +187,7 @@ enum PredictionError: LocalizedError {
     case unauthorized
     case rateLimited
     case tooManyPerformers
+    case voteLimitReached
     case notFound
     case invalidResponse
     case serverError(String)
@@ -192,6 +200,8 @@ enum PredictionError: LocalizedError {
             return "投票の制限に達しました。明日またお試しください"
         case .tooManyPerformers:
             return "1曲につき予想できるのは8人までです"
+        case .voteLimitReached:
+            return "1公演につき投票できるのは\(CommunityVoteLimit.perTarget)曲までです"
         case .notFound:
             return "対象が見つかりませんでした"
         case .invalidResponse:
@@ -199,5 +209,16 @@ enum PredictionError: LocalizedError {
         case .serverError(let msg):
             return "サーバーエラー: \(msg)"
         }
+    }
+}
+
+// MARK: - SetlistPredictionVoting
+
+/// `SetlistPredictionVoting` を `PredictionService` に繋ぐ口。
+/// `PredictionService` は main actor にいるので、合成ルート (nonisolated) から
+/// `.shared` を掴まずに済むよう、呼ばれたときに引く。
+struct PredictionServiceVoting: SetlistPredictionVoting {
+    func vote(showId: String, songId: String) async throws -> PredictionVoteResult {
+        try await PredictionService.shared.vote(showId: showId, songId: songId)
     }
 }

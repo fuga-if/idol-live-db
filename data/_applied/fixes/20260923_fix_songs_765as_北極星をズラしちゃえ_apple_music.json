@@ -1,0 +1,18 @@
+{
+ "title": "songs の 765as_北極星をズラしちゃえ に配信情報を入れる",
+ "author": "daily-data-crawl 2026-09-23",
+ "source": "https://music.apple.com/jp/album/6798493317?i=6798493438",
+ "note": "iTunes lookup: trackName '北極星をズラしちゃえ!' (DB は全角！、約物差のみ)・artistName '双海亜美 (CV: 下田麻美) & 双海真美 (CV: 下田麻美)'・isStreamable=true。fill_apple_music_ids は約物差でスコア不足により弾いた。cd_series は会場限定CDの系列キーなので触らない。",
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "765as_北極星をズラしちゃえ",
+   "fields": {
+    "apple_music_id": "6798493438",
+    "apple_music_album_id": "6798493317",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/57/a9/b7/57a9b786-201c-eecc-10c9-18fc1c821c97/COKM-46683.jpg/600x600bb.jpg",
+    "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/bc/e1/f3/bce1f396-64aa-f2ea-4bae-b299d56cac9f/mzaf_14454642269242175677.plus.aac.p.m4a"
+   }
+  }
+ ]
+}

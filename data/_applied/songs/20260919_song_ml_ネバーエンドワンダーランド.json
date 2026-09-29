@@ -1,0 +1,17 @@
+{
+ "title": "曲「ネバーエンド・ワンダーランド」(ml) の追加",
+ "author": "LLM 提案 (propose_song)",
+ "source": "https://idolmaster-official.jp/live_event/million14th/",
+ "note": "出典: https://idolmaster-official.jp/live_event/million14th/\n引用: \"29. ネバーエンド・ワンダーランド ♪諏訪彩花\"\n2026-09-19 THE IDOLM@STER MILLION LIVE! 14thLIVE DAY1 〜夢咲くワンダーミラージュ〜 で初披露。逐語引用は公式セットリスト画像 (DAY1) の該当行。作詞/作曲/編曲・収録 CD・配信日は未発表のため空。原唱者はライブでの歌唱者から仮置きしており、音源が出て名義が違えば直すこと。",
+ "songs": [
+  {
+   "id": "ml_ネバーエンドワンダーランド",
+   "title": "ネバーエンド・ワンダーランド",
+   "brand_id": "ml",
+   "song_type": "solo",
+   "original_singers": [
+    "ml_徳川まつり"
+   ]
+  }
+ ]
+}

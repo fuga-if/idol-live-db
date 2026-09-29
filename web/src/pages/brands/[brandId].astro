@@ -1,0 +1,63 @@
+---
+import DetailLayout from "../../layouts/DetailLayout.astro";
+import Section from "../../components/Section.astro";
+import StatStrip from "../../components/StatStrip.astro";
+import IdolTile from "../../components/IdolTile.astro";
+import RefList from "../../components/RefList.astro";
+import EmptyState from "../../components/EmptyState.astro";
+import { page, pathsFor } from "../../lib/data";
+import type { BrandPage } from "../../lib/schema/BrandPage";
+
+export const getStaticPaths = () => pathsFor("brand", "brandId");
+
+const brand = page<BrandPage>(Astro.props.data);
+---
+
+<DetailLayout seo={brand.seo} themeKey={brand.themeKey}>
+  <section class="hero" slot="hero" aria-labelledby="brand-title">
+    <div class="hero__body">
+      {brand.shortName && <p class="hero__eyebrow">{brand.shortName}</p>}
+      <h1 class="hero__title" id="brand-title">{brand.name}</h1>
+      {/* 件数つきの入口 (ライブ / 楽曲 / アイドル / ユニット)。押せる数の帯として置く。 */}
+      <StatStrip items={brand.statTiles} label="このブランドの一覧" />
+    </div>
+  </section>
+
+  <Section id="brand-idols" title="アイドル" count={brand.idols.length}>
+    {
+      brand.idolsEmpty ? (
+        <EmptyState {...brand.idolsEmpty} />
+      ) : (
+        <ul class="grid-tiles">
+          {brand.idols.map((i) => (
+            <IdolTile entity={i} />
+          ))}
+        </ul>
+      )
+    }
+  </Section>
+
+  {
+    brand.recentEvents.length > 0 && (
+      <Section id="brand-events" title="最近のライブ">
+        <RefList refs={brand.recentEvents} variant="neutral" withSub label="最近のライブ" />
+      </Section>
+    )
+  }
+
+  {
+    brand.topSongs.length > 0 && (
+      <Section id="brand-songs" title="よく披露される曲">
+        <RefList refs={brand.topSongs} label="よく披露される曲" />
+      </Section>
+    )
+  }
+
+  {
+    brand.units.length > 0 && (
+      <Section id="brand-units" title="ユニット" count={brand.units.length}>
+        <RefList refs={brand.units} variant="neutral" label="ユニット" />
+      </Section>
+    )
+  }
+</DetailLayout>

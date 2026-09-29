@@ -1,0 +1,886 @@
+{
+ "title": "series_group の穴埋め (CDシリーズ軸の前提整備)",
+ "author": "fuga-if",
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "765as_crimson_lovers",
+   "fields": {
+    "series_group": "MASTER PRIMAL"
+   },
+   "note": "同シリーズの他盤は MASTER PRIMAL 登録済み (cd_series: THE IDOLM@STER MASTER PRIMAL ROCKIN' RED)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_the_idolmster",
+   "fields": {
+    "series_group": "STARLIT SEASON"
+   },
+   "note": "同シリーズの他曲は STARLIT SEASON 登録済み (cd_series: THE IDOLM@STER STARLIT SEASON 01)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_binary_star",
+   "fields": {
+    "series_group": "ライブ会場限定CD"
+   },
+   "note": "会場限定CDの他盤と同じ括り (cd_series: 765PRO_ALLSTARSライブ会場限定CD_2#dual_twin_live_tsumimatsu)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_sunhighgold",
+   "fields": {
+    "series_group": "CINDERELLA MASTER"
+   },
+   "note": "同一 cd_series の他4曲が CINDERELLA MASTER 登録済み (cd_series: THE IDOLM@STER CINDERELLA MASTER SERIES GAME VERSION SONG COLLECTION Vol. 2)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_poppin_para_pong",
+   "fields": {
+    "series_group": "ライブ会場限定CD"
+   },
+   "note": "会場限定CDの他盤と同じ括り (cd_series: CINDERELLA_GIRLSのライブ会場限定CD#popn_toybox)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_ダンスダンスダンス_-ミフメイ_remix-",
+   "fields": {
+    "series_group": "ライブ会場限定CD"
+   },
+   "note": "会場限定CDの他盤と同じ括り (cd_series: CINDERELLA_GIRLSのライブ会場限定CD#to_dnce_to_fes)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_welcome_レジェンドデイズver",
+   "fields": {
+    "series_group": "LIVE THE@TER HARMONY"
+   },
+   "note": "同一 cd_series の他4曲が LIVE THE@TER HARMONY 登録済み (cd_series: THE IDOLM@STER LIVE THE@TER HARMONY 01)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow_エンジェルスターズver",
+   "fields": {
+    "series_group": "MILLION THE@TER"
+   },
+   "note": "既存 MILLION THE@TER の cd_series は全て MILLION THE@TER SEASON 系 (cd_series: THE IDOLM@STER MILLION THE@TER SEASON 夢にかけるRainbow - EP)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow_フェアリースターズver",
+   "fields": {
+    "series_group": "MILLION THE@TER"
+   },
+   "note": "既存 MILLION THE@TER の cd_series は全て MILLION THE@TER SEASON 系 (cd_series: THE IDOLM@STER MILLION THE@TER SEASON 夢にかけるRainbow - EP)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow_プリンセススターズver",
+   "fields": {
+    "series_group": "MILLION THE@TER"
+   },
+   "note": "既存 MILLION THE@TER の cd_series は全て MILLION THE@TER SEASON 系 (cd_series: THE IDOLM@STER MILLION THE@TER SEASON 夢にかけるRainbow - EP)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_brand_new_theater_765proallstarsver",
+   "fields": {
+    "series_group": "MILLION THE@TER GENERATION"
+   },
+   "note": "同シリーズの他巻は登録済み (cd_series: THE IDOLM@STER MILLION THE@TER GENERATION 18 765PRO ALLSTARS - Single)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_brand_new_theater_brandnewyearver",
+   "fields": {
+    "series_group": "MILLION THE@TER VARIETY"
+   },
+   "note": "同シリーズの他巻は登録済み (cd_series: THE IDOLM@STER MILLION THE@TER VARIETY 02)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_fermata_in_rapsodia",
+   "fields": {
+    "series_group": "MILLION THE@TER WAVE"
+   },
+   "note": "同シリーズの他巻は登録済み (cd_series: THE IDOLM@STER MILLION THE@TER WAVE 05 ARCANA - Single)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_pleasureforever",
+   "fields": {
+    "series_group": "ST@RTING LINE"
+   },
+   "note": "同シリーズの他巻は登録済み (cd_series: THE IDOLM@STER SideM ST@RTING LINE-05 W - Single)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_supreme_stars__インテリver",
+   "fields": {
+    "series_group": "SideM 10th ANNIVERSARY P@SSION"
+   },
+   "note": "同シリーズの他巻は登録済み (cd_series: THE IDOLM@STER SideM 10th ANNIVERSARY P@SSION 17 SUPREME STARS !!! - EP)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_supreme_stars__フィジカルver",
+   "fields": {
+    "series_group": "SideM 10th ANNIVERSARY P@SSION"
+   },
+   "note": "同シリーズの他巻は登録済み (cd_series: THE IDOLM@STER SideM 10th ANNIVERSARY P@SSION 17 SUPREME STARS !!! - EP)"
+  },
+  {
+   "table": "songs",
+   "id": "sidem_supreme_stars__メンタルver",
+   "fields": {
+    "series_group": "SideM 10th ANNIVERSARY P@SSION"
+   },
+   "note": "同シリーズの他巻は登録済み (cd_series: THE IDOLM@STER SideM 10th ANNIVERSARY P@SSION 17 SUPREME STARS !!! - EP)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_beast_mode_game_size",
+   "fields": {
+    "series_group": "Song for Prism"
+   },
+   "note": "cd_series が Song for Prism を名乗る配信EP群 (cd_series: THE IDOLM@STER SHINY COLORS Song for Prism SUPER DUPER DREAMER / BEAST MODE - EP)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_kawaiiめたもる交響曲_game_size",
+   "fields": {
+    "series_group": "Song for Prism"
+   },
+   "note": "cd_series が Song for Prism を名乗る配信EP群 (cd_series: THE IDOLM@STER SHINY COLORS Song for Prism カウントダウンラブ / KAWAII♡めたもる交響曲 - EP)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_karma_game_size",
+   "fields": {
+    "series_group": "Song for Prism"
+   },
+   "note": "cd_series が Song for Prism を名乗る配信EP群 (cd_series: THE IDOLM@STER SHINY COLORS Song for Prism Karma / Naraku - EP)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_mytime_game_size",
+   "fields": {
+    "series_group": "Song for Prism"
+   },
+   "note": "cd_series が Song for Prism を名乗る配信EP群 (cd_series: THE IDOLM@STER SHINY COLORS Song for Prism Tokyo自由系*ガール / My time - EP)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_naraku_game_size",
+   "fields": {
+    "series_group": "Song for Prism"
+   },
+   "note": "cd_series が Song for Prism を名乗る配信EP群 (cd_series: THE IDOLM@STER SHINY COLORS Song for Prism Karma / Naraku - EP)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_oh_yeah_game_size",
+   "fields": {
+    "series_group": "Song for Prism"
+   },
+   "note": "cd_series が Song for Prism を名乗る配信EP群 (cd_series: THE IDOLM@STER SHINY COLORS Song for Prism ボーダーレス・ノンストレス / Oh Yeah!! - EP)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_queen_of_the_pirates_game_size",
+   "fields": {
+    "series_group": "Song for Prism"
+   },
+   "note": "cd_series が Song for Prism を名乗る配信EP群 (cd_series: THE IDOLM@STER SHINY COLORS Song for Prism QUEEN OF THE PIRATES / キラピコ.exe / Sleepless Nights / アイノウ)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_super_duper_dreamer_game_size",
+   "fields": {
+    "series_group": "Song for Prism"
+   },
+   "note": "cd_series が Song for Prism を名乗る配信EP群 (cd_series: THE IDOLM@STER SHINY COLORS Song for Prism SUPER DUPER DREAMER / BEAST MODE - EP)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_sleepless_nights_game_size",
+   "fields": {
+    "series_group": "Song for Prism"
+   },
+   "note": "cd_series が Song for Prism を名乗る配信EP群 (cd_series: THE IDOLM@STER SHINY COLORS Song for Prism QUEEN OF THE PIRATES / キラピコ.exe / Sleepless Nights / アイノウ)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_tokyo自由系ガール_game_size",
+   "fields": {
+    "series_group": "Song for Prism"
+   },
+   "note": "cd_series が Song for Prism を名乗る配信EP群 (cd_series: THE IDOLM@STER SHINY COLORS Song for Prism Tokyo自由系*ガール / My time - EP)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_アイノウ_game_size",
+   "fields": {
+    "series_group": "Song for Prism"
+   },
+   "note": "cd_series が Song for Prism を名乗る配信EP群 (cd_series: THE IDOLM@STER SHINY COLORS Song for Prism QUEEN OF THE PIRATES / キラピコ.exe / Sleepless Nights / アイノウ)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_カウントダウンラブ_game_size",
+   "fields": {
+    "series_group": "Song for Prism"
+   },
+   "note": "cd_series が Song for Prism を名乗る配信EP群 (cd_series: THE IDOLM@STER SHINY COLORS Song for Prism カウントダウンラブ / KAWAII♡めたもる交響曲 - EP)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_キラピコexe_game_size",
+   "fields": {
+    "series_group": "Song for Prism"
+   },
+   "note": "cd_series が Song for Prism を名乗る配信EP群 (cd_series: THE IDOLM@STER SHINY COLORS Song for Prism QUEEN OF THE PIRATES / キラピコ.exe / Sleepless Nights / アイノウ)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_ボーダーレスノンストレス_game_size",
+   "fields": {
+    "series_group": "Song for Prism"
+   },
+   "note": "cd_series が Song for Prism を名乗る配信EP群 (cd_series: THE IDOLM@STER SHINY COLORS Song for Prism ボーダーレス・ノンストレス / Oh Yeah!! - EP)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_散花-sanka-_game_size",
+   "fields": {
+    "series_group": "Song for Prism"
+   },
+   "note": "cd_series が Song for Prism を名乗る配信EP群 (cd_series: THE IDOLM@STER SHINY COLORS Song for Prism 散花-sanka- / 紅花-benibana- - EP)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_紅花-benibana-_game_size",
+   "fields": {
+    "series_group": "Song for Prism"
+   },
+   "note": "cd_series が Song for Prism を名乗る配信EP群 (cd_series: THE IDOLM@STER SHINY COLORS Song for Prism 散花-sanka- / 紅花-benibana- - EP)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_be-witched",
+   "fields": {
+    "series_group": "HOPEFUL FE@THERS"
+   },
+   "note": "-Sol-/-Stella-/-Luna- の3枚31曲。COLORFUL FE@THERS と同じ命名体系 (cd_series: THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Sol-)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_crying_diamond",
+   "fields": {
+    "series_group": "HOPEFUL FE@THERS"
+   },
+   "note": "-Sol-/-Stella-/-Luna- の3枚31曲。COLORFUL FE@THERS と同じ命名体系 (cd_series: THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Stella-)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_embers_glow",
+   "fields": {
+    "series_group": "HOPEFUL FE@THERS"
+   },
+   "note": "-Sol-/-Stella-/-Luna- の3枚31曲。COLORFUL FE@THERS と同じ命名体系 (cd_series: THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Luna-)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_hell-o",
+   "fields": {
+    "series_group": "HOPEFUL FE@THERS"
+   },
+   "note": "-Sol-/-Stella-/-Luna- の3枚31曲。COLORFUL FE@THERS と同じ命名体系 (cd_series: THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Luna-)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_hsv色空間",
+   "fields": {
+    "series_group": "HOPEFUL FE@THERS"
+   },
+   "note": "-Sol-/-Stella-/-Luna- の3枚31曲。COLORFUL FE@THERS と同じ命名体系 (cd_series: THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Sol-)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_here_for_you",
+   "fields": {
+    "series_group": "HOPEFUL FE@THERS"
+   },
+   "note": "-Sol-/-Stella-/-Luna- の3枚31曲。COLORFUL FE@THERS と同じ命名体系 (cd_series: THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Luna-)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_hold_on_me",
+   "fields": {
+    "series_group": "HOPEFUL FE@THERS"
+   },
+   "note": "-Sol-/-Stella-/-Luna- の3枚31曲。COLORFUL FE@THERS と同じ命名体系 (cd_series: THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Luna-)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_imaginary",
+   "fields": {
+    "series_group": "HOPEFUL FE@THERS"
+   },
+   "note": "-Sol-/-Stella-/-Luna- の3枚31曲。COLORFUL FE@THERS と同じ命名体系 (cd_series: THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Stella-)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_lights_on_me",
+   "fields": {
+    "series_group": "HOPEFUL FE@THERS"
+   },
+   "note": "-Sol-/-Stella-/-Luna- の3枚31曲。COLORFUL FE@THERS と同じ命名体系 (cd_series: THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Sol-)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_magical_forest",
+   "fields": {
+    "series_group": "HOPEFUL FE@THERS"
+   },
+   "note": "-Sol-/-Stella-/-Luna- の3枚31曲。COLORFUL FE@THERS と同じ命名体系 (cd_series: THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Stella-)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_odette",
+   "fields": {
+    "series_group": "HOPEFUL FE@THERS"
+   },
+   "note": "-Sol-/-Stella-/-Luna- の3枚31曲。COLORFUL FE@THERS と同じ命名体系 (cd_series: THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Luna-)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_paradox",
+   "fields": {
+    "series_group": "HOPEFUL FE@THERS"
+   },
+   "note": "-Sol-/-Stella-/-Luna- の3枚31曲。COLORFUL FE@THERS と同じ命名体系 (cd_series: THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Sol-)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_solar_way_-10_colors-",
+   "fields": {
+    "series_group": "HOPEFUL FE@THERS"
+   },
+   "note": "-Sol-/-Stella-/-Luna- の3枚31曲。COLORFUL FE@THERS と同じ命名体系 (cd_series: THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Sol-)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_sweet_boozy",
+   "fields": {
+    "series_group": "HOPEFUL FE@THERS"
+   },
+   "note": "-Sol-/-Stella-/-Luna- の3枚31曲。COLORFUL FE@THERS と同じ命名体系 (cd_series: THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Sol-)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_take_ur_time",
+   "fields": {
+    "series_group": "HOPEFUL FE@THERS"
+   },
+   "note": "-Sol-/-Stella-/-Luna- の3枚31曲。COLORFUL FE@THERS と同じ命名体系 (cd_series: THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Sol-)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_unstoppable",
+   "fields": {
+    "series_group": "HOPEFUL FE@THERS"
+   },
+   "note": "-Sol-/-Stella-/-Luna- の3枚31曲。COLORFUL FE@THERS と同じ命名体系 (cd_series: THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Sol-)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_どっちみちlove",
+   "fields": {
+    "series_group": "HOPEFUL FE@THERS"
+   },
+   "note": "-Sol-/-Stella-/-Luna- の3枚31曲。COLORFUL FE@THERS と同じ命名体系 (cd_series: THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Stella-)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_カラースプレーとうさぎさん",
+   "fields": {
+    "series_group": "HOPEFUL FE@THERS"
+   },
+   "note": "-Sol-/-Stella-/-Luna- の3枚31曲。COLORFUL FE@THERS と同じ命名体系 (cd_series: THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Luna-)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_ガガリズム",
+   "fields": {
+    "series_group": "HOPEFUL FE@THERS"
+   },
+   "note": "-Sol-/-Stella-/-Luna- の3枚31曲。COLORFUL FE@THERS と同じ命名体系 (cd_series: THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Sol-)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_ダミーガール",
+   "fields": {
+    "series_group": "HOPEFUL FE@THERS"
+   },
+   "note": "-Sol-/-Stella-/-Luna- の3枚31曲。COLORFUL FE@THERS と同じ命名体系 (cd_series: THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Stella-)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_ナイススパイス研究会",
+   "fields": {
+    "series_group": "HOPEFUL FE@THERS"
+   },
+   "note": "-Sol-/-Stella-/-Luna- の3枚31曲。COLORFUL FE@THERS と同じ命名体系 (cd_series: THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Stella-)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_ハグルマヒマワリ",
+   "fields": {
+    "series_group": "HOPEFUL FE@THERS"
+   },
+   "note": "-Sol-/-Stella-/-Luna- の3枚31曲。COLORFUL FE@THERS と同じ命名体系 (cd_series: THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Stella-)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_ハートフルデイ_ハートフルミー",
+   "fields": {
+    "series_group": "HOPEFUL FE@THERS"
+   },
+   "note": "-Sol-/-Stella-/-Luna- の3枚31曲。COLORFUL FE@THERS と同じ命名体系 (cd_series: THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Sol-)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_パラボラ",
+   "fields": {
+    "series_group": "HOPEFUL FE@THERS"
+   },
+   "note": "-Sol-/-Stella-/-Luna- の3枚31曲。COLORFUL FE@THERS と同じ命名体系 (cd_series: THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Sol-)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_プラニスフィア_planisphere_-9_colors-",
+   "fields": {
+    "series_group": "HOPEFUL FE@THERS"
+   },
+   "note": "-Sol-/-Stella-/-Luna- の3枚31曲。COLORFUL FE@THERS と同じ命名体系 (cd_series: THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Stella-)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_リフレクトサイン_-9_colors-",
+   "fields": {
+    "series_group": "HOPEFUL FE@THERS"
+   },
+   "note": "-Sol-/-Stella-/-Luna- の3枚31曲。COLORFUL FE@THERS と同じ命名体系 (cd_series: THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Luna-)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_ワタシグラビティ",
+   "fields": {
+    "series_group": "HOPEFUL FE@THERS"
+   },
+   "note": "-Sol-/-Stella-/-Luna- の3枚31曲。COLORFUL FE@THERS と同じ命名体系 (cd_series: THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Stella-)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_恋するクオリア",
+   "fields": {
+    "series_group": "HOPEFUL FE@THERS"
+   },
+   "note": "-Sol-/-Stella-/-Luna- の3枚31曲。COLORFUL FE@THERS と同じ命名体系 (cd_series: THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Stella-)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_最上級パンチライン",
+   "fields": {
+    "series_group": "HOPEFUL FE@THERS"
+   },
+   "note": "-Sol-/-Stella-/-Luna- の3枚31曲。COLORFUL FE@THERS と同じ命名体系 (cd_series: THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Luna-)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_月とネオンと薄紅と",
+   "fields": {
+    "series_group": "HOPEFUL FE@THERS"
+   },
+   "note": "-Sol-/-Stella-/-Luna- の3枚31曲。COLORFUL FE@THERS と同じ命名体系 (cd_series: THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Luna-)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_正解な不正解",
+   "fields": {
+    "series_group": "HOPEFUL FE@THERS"
+   },
+   "note": "-Sol-/-Stella-/-Luna- の3枚31曲。COLORFUL FE@THERS と同じ命名体系 (cd_series: THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Luna-)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_color_days",
+   "fields": {
+    "series_group": "-28 colors- COLLECTION"
+   },
+   "note": "全体曲を集めた8曲のコンピ盤 (cd_series: THE IDOLM@STER SHINY COLORS -28 colors- COLLECTION)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_dye_the_sky",
+   "fields": {
+    "series_group": "-28 colors- COLLECTION"
+   },
+   "note": "全体曲を集めた8曲のコンピ盤 (cd_series: THE IDOLM@STER SHINY COLORS -28 colors- COLLECTION)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_lets_get_a_chance",
+   "fields": {
+    "series_group": "-28 colors- COLLECTION"
+   },
+   "note": "全体曲を集めた8曲のコンピ盤 (cd_series: THE IDOLM@STER SHINY COLORS -28 colors- COLLECTION)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_resonance",
+   "fields": {
+    "series_group": "-28 colors- COLLECTION"
+   },
+   "note": "全体曲を集めた8曲のコンピ盤 (cd_series: THE IDOLM@STER SHINY COLORS -28 colors- COLLECTION)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_snow_flakes_memories",
+   "fields": {
+    "series_group": "-28 colors- COLLECTION"
+   },
+   "note": "全体曲を集めた8曲のコンピ盤 (cd_series: THE IDOLM@STER SHINY COLORS -28 colors- COLLECTION)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_sweetstep",
+   "fields": {
+    "series_group": "-28 colors- COLLECTION"
+   },
+   "note": "全体曲を集めた8曲のコンピ盤 (cd_series: THE IDOLM@STER SHINY COLORS -28 colors- COLLECTION)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_いつか_shiny_days",
+   "fields": {
+    "series_group": "-28 colors- COLLECTION"
+   },
+   "note": "全体曲を集めた8曲のコンピ盤 (cd_series: THE IDOLM@STER SHINY COLORS -28 colors- COLLECTION)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_シャイノグラフィ",
+   "fields": {
+    "series_group": "-28 colors- COLLECTION"
+   },
+   "note": "全体曲を集めた8曲のコンピ盤 (cd_series: THE IDOLM@STER SHINY COLORS -28 colors- COLLECTION)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_future_designer",
+   "fields": {
+    "series_group": "Over the prism"
+   },
+   "note": "2024年に各ユニット1曲ずつ配信された6曲の群 (cd_series: Over the prism)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_with_you",
+   "fields": {
+    "series_group": "Over the prism"
+   },
+   "note": "2024年に各ユニット1曲ずつ配信された6曲の群 (cd_series: Over the prism)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_さあ舞い上がれ",
+   "fields": {
+    "series_group": "Over the prism"
+   },
+   "note": "2024年に各ユニット1曲ずつ配信された6曲の群 (cd_series: Over the prism)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_星の数だけ",
+   "fields": {
+    "series_group": "Over the prism"
+   },
+   "note": "2024年に各ユニット1曲ずつ配信された6曲の群 (cd_series: Over the prism)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_未来へのsign",
+   "fields": {
+    "series_group": "Over the prism"
+   },
+   "note": "2024年に各ユニット1曲ずつ配信された6曲の群 (cd_series: Over the prism)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_橙より未来",
+   "fields": {
+    "series_group": "Over the prism"
+   },
+   "note": "2024年に各ユニット1曲ずつ配信された6曲の群 (cd_series: Over the prism)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_once_upon_a_secret",
+   "fields": {
+    "series_group": "283 Production MUSICAL Performance"
+   },
+   "note": "舞台『騎士団のヴェール』の楽曲集6曲 (cd_series: 283 Production MUSICAL Performance 騎士団のヴェール – Veil of Order – Music Collection)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_メモワールアンタクト",
+   "fields": {
+    "series_group": "283 Production MUSICAL Performance"
+   },
+   "note": "舞台『騎士団のヴェール』の楽曲集6曲 (cd_series: 283 Production MUSICAL Performance 騎士団のヴェール – Veil of Order – Music Collection)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_月影のアンシェネ",
+   "fields": {
+    "series_group": "283 Production MUSICAL Performance"
+   },
+   "note": "舞台『騎士団のヴェール』の楽曲集6曲 (cd_series: 283 Production MUSICAL Performance 騎士団のヴェール – Veil of Order – Music Collection)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_運命前夜",
+   "fields": {
+    "series_group": "283 Production MUSICAL Performance"
+   },
+   "note": "舞台『騎士団のヴェール』の楽曲集6曲 (cd_series: 283 Production MUSICAL Performance 騎士団のヴェール – Veil of Order – Music Collection)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_銀翼のアレジアンス_-blade_of_truth-",
+   "fields": {
+    "series_group": "283 Production MUSICAL Performance"
+   },
+   "note": "舞台『騎士団のヴェール』の楽曲集6曲 (cd_series: 283 Production MUSICAL Performance 騎士団のヴェール – Veil of Order – Music Collection)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_銀翼のアヴニール_-become_the_brave-",
+   "fields": {
+    "series_group": "283 Production MUSICAL Performance"
+   },
+   "note": "舞台『騎士団のヴェール』の楽曲集6曲 (cd_series: 283 Production MUSICAL Performance 騎士団のヴェール – Veil of Order – Music Collection)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_candy_universe",
+   "fields": {
+    "series_group": "Happy Surprise Trick!"
+   },
+   "note": "2024-07-05 同時配信のシャッフルユニット5曲 (cd_series: Happy Surprise Trick!)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_midnight_parade",
+   "fields": {
+    "series_group": "Happy Surprise Trick!"
+   },
+   "note": "2024-07-05 同時配信のシャッフルユニット5曲 (cd_series: Happy Surprise Trick!)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_open_the_new_world",
+   "fields": {
+    "series_group": "Happy Surprise Trick!"
+   },
+   "note": "2024-07-05 同時配信のシャッフルユニット5曲 (cd_series: Happy Surprise Trick!)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_poison_berry_daughters",
+   "fields": {
+    "series_group": "Happy Surprise Trick!"
+   },
+   "note": "2024-07-05 同時配信のシャッフルユニット5曲 (cd_series: Happy Surprise Trick!)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_ねぇねぇねぇ",
+   "fields": {
+    "series_group": "Happy Surprise Trick!"
+   },
+   "note": "2024-07-05 同時配信のシャッフルユニット5曲 (cd_series: Happy Surprise Trick!)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_lit_up_my_sky",
+   "fields": {
+    "series_group": "シャニマス大感謝祭!"
+   },
+   "note": "-Sol-/-Luna-/-Stella- の3枚5曲 (cd_series: THE IDOLM@STER SHINY COLORS シャニマス大感謝祭! ～283スポーツフェスティバル～ -Luna- - EP)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_キズナシェアリング",
+   "fields": {
+    "series_group": "シャニマス大感謝祭!"
+   },
+   "note": "-Sol-/-Luna-/-Stella- の3枚5曲 (cd_series: THE IDOLM@STER SHINY COLORS シャニマス大感謝祭! ～283スポーツフェスティバル～ -Stella- - EP)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_感謝のコントレイル",
+   "fields": {
+    "series_group": "シャニマス大感謝祭!"
+   },
+   "note": "-Sol-/-Luna-/-Stella- の3枚5曲 (cd_series: THE IDOLM@STER SHINY COLORS シャニマス大感謝祭! ～283スポーツフェスティバル～ -Luna- - EP)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_感謝のコントレイル_game_size",
+   "fields": {
+    "series_group": "シャニマス大感謝祭!"
+   },
+   "note": "-Sol-/-Luna-/-Stella- の3枚5曲 (cd_series: THE IDOLM@STER SHINY COLORS シャニマス大感謝祭! ～283スポーツフェスティバル～ -Sol- - EP)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_永遠色アーチ",
+   "fields": {
+    "series_group": "シャニマス大感謝祭!"
+   },
+   "note": "-Sol-/-Luna-/-Stella- の3枚5曲 (cd_series: THE IDOLM@STER SHINY COLORS シャニマス大感謝祭! ～283スポーツフェスティバル～ -Sol- - EP)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_one_live_one_love",
+   "fields": {
+    "series_group": "283 Production XXXX Performance"
+   },
+   "note": "舞台『S/N-GUL4R1TY』の楽曲集 (cd_series: 283 Production XXXX Performance XXX= S/N-GUL4R1TY MUSIC COLLECTION - EP)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_one_live_one_love_game_size",
+   "fields": {
+    "series_group": "283 Production XXXX Performance"
+   },
+   "note": "舞台『S/N-GUL4R1TY』の楽曲集 (cd_series: 283 Production XXXX Performance XXX= S/N-GUL4R1TY MUSIC COLLECTION - EP)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_one_live_one_love_mortal_remix",
+   "fields": {
+    "series_group": "283 Production XXXX Performance"
+   },
+   "note": "舞台『S/N-GUL4R1TY』の楽曲集 (cd_series: 283 Production XXXX Performance XXX= S/N-GUL4R1TY MUSIC COLLECTION - EP)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_ambitious_eve",
+   "fields": {
+    "series_group": "STARLIT SEASON"
+   },
+   "note": "765AS 側と同じ STARLIT SEASON シリーズ (cd_series: THE IDOLM@STER STARLIT SEASON 03)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_multicolored_sky",
+   "fields": {
+    "series_group": "STARLIT SEASON"
+   },
+   "note": "765AS 側と同じ STARLIT SEASON シリーズ (cd_series: THE IDOLM@STER STARLIT SEASON 02)"
+  },
+  {
+   "table": "songs",
+   "id": "sc_spread_the_wings",
+   "fields": {
+    "series_group": "STARLIT SEASON"
+   },
+   "note": "765AS 側と同じ STARLIT SEASON シリーズ (cd_series: THE IDOLM@STER STARLIT SEASON 01)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_fate_of_the_world",
+   "fields": {
+    "series_group": "劇場版 THE IDOLM@STER MOVIE 輝きの向こう側へ!"
+   },
+   "note": "同一作品のサントラ・主題歌・挿入歌 (cd_series: 劇場版『THE IDOLM@STER MOVIE 輝きの向こう側へ!』 オリジナル・サウンドトラック【通常盤】)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_go_my_wayremster-b",
+   "fields": {
+    "series_group": "劇場版 THE IDOLM@STER MOVIE 輝きの向こう側へ!"
+   },
+   "note": "同一作品のサントラ・主題歌・挿入歌 (cd_series: 劇場版『THE IDOLM@STER MOVIE 輝きの向こう側へ!』 オリジナル・サウンドトラック【通常盤】)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_msterpiece",
+   "fields": {
+    "series_group": "劇場版 THE IDOLM@STER MOVIE 輝きの向こう側へ!"
+   },
+   "note": "同一作品のサントラ・主題歌・挿入歌 (cd_series: 劇場版『THE IDOLM@STER MOVIE 輝きの向こう側へ!』主題歌 M@STERPIECE - Single)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_msterpiece_-club_bossa_nova_rearrange_mix-",
+   "fields": {
+    "series_group": "劇場版 THE IDOLM@STER MOVIE 輝きの向こう側へ!"
+   },
+   "note": "同一作品のサントラ・主題歌・挿入歌 (cd_series: 劇場版『THE IDOLM@STER MOVIE 輝きの向こう側へ!』主題歌 M@STERPIECE 【通常盤】 - EP)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_まっすぐremster-a",
+   "fields": {
+    "series_group": "劇場版 THE IDOLM@STER MOVIE 輝きの向こう側へ!"
+   },
+   "note": "同一作品のサントラ・主題歌・挿入歌 (cd_series: 劇場版『THE IDOLM@STER MOVIE 輝きの向こう側へ!』 オリジナル・サウンドトラック【通常盤】)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_ラムネ色_青春",
+   "fields": {
+    "series_group": "劇場版 THE IDOLM@STER MOVIE 輝きの向こう側へ!"
+   },
+   "note": "同一作品のサントラ・主題歌・挿入歌 (cd_series: 劇場版『THE IDOLM@STER MOVIE 輝きの向こう側へ!』 オリジナル・サウンドトラック【通常盤】)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_君が選ぶ道",
+   "fields": {
+    "series_group": "劇場版 THE IDOLM@STER MOVIE 輝きの向こう側へ!"
+   },
+   "note": "同一作品のサントラ・主題歌・挿入歌 (cd_series: 劇場版『THE IDOLM@STER MOVIE 輝きの向こう側へ!』主題歌 M@STERPIECE - Single)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_待ち受けプリンス",
+   "fields": {
+    "series_group": "劇場版 THE IDOLM@STER MOVIE 輝きの向こう側へ!"
+   },
+   "note": "同一作品のサントラ・主題歌・挿入歌 (cd_series: 劇場版『THE IDOLM@STER MOVIE 輝きの向こう側へ！』シリーズ#ラムネ色 青春)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_私たちはずっとでしょう",
+   "fields": {
+    "series_group": "劇場版 THE IDOLM@STER MOVIE 輝きの向こう側へ!"
+   },
+   "note": "同一作品のサントラ・主題歌・挿入歌 (cd_series: 劇場版『THE IDOLM@STER MOVIE 輝きの向こう側へ!』 オリジナル・サウンドトラック【通常盤】)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_虹色ミラクル",
+   "fields": {
+    "series_group": "劇場版 THE IDOLM@STER MOVIE 輝きの向こう側へ!"
+   },
+   "note": "同一作品のサントラ・主題歌・挿入歌 (cd_series: 劇場版『THE IDOLM@STER MOVIE 輝きの向こう側へ!』 オリジナル・サウンドトラック【通常盤】)"
+  }
+ ]
+}

@@ -1,0 +1,49 @@
+---
+import { meta } from "../lib/data";
+
+/**
+ * セトリの詳しさの切り替え (シンプル表示 / 普通表示 / 詳細表示)。
+ *
+ * **選択肢は Rust が出す** (`meta.json` の `setlistDisplayOptions` =
+ * `imas-core` の `setlist_display_modes`)。アプリの切替と同じ順・保存値・文言。
+ *
+ * 行は全モードぶんの中身を描いてあり、切り替えの実体は CSS 側
+ * (components.css の `data-setlist-display`)。ここはモードを body に置くだけ。
+ * JS が動かない環境では出さない (押しても何も起きないものを置かない)。
+ */
+const options = meta().setlistDisplayOptions;
+---
+
+<div class="perf-pref" data-setlist-pref hidden>
+  <label class="perf-pref__label" for="setlist-display">表示</label>
+  <select class="song-filter__select" id="setlist-display" data-setlist-select>
+    {
+      options.map((o) => (
+        <option value={o.raw} selected={o.isDefault}>
+          {o.label}
+        </option>
+      ))
+    }
+  </select>
+</div>
+
+<script>
+  import { readMode, writeMode } from "../lib/prefs/setlistDisplay";
+
+  const root = document.querySelector<HTMLElement>("[data-setlist-pref]");
+  const select = root?.querySelector<HTMLSelectElement>("[data-setlist-select]");
+  if (root && select) {
+    const known = [...select.options].map((o) => o.value);
+    const fallback = [...select.options].find((o) => o.defaultSelected)?.value ?? known[0] ?? "";
+    const apply = (mode: string) => {
+      document.body.dataset.setlistDisplay = mode;
+      select.value = mode;
+    };
+    apply(readMode(known, fallback));
+    select.addEventListener("change", () => {
+      writeMode(select.value, fallback);
+      apply(select.value);
+    });
+    root.hidden = false;
+  }
+</script>

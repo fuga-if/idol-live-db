@@ -1,0 +1,175 @@
+{
+  "schemaVersion": 1,
+  "path": "/about/",
+  "statTiles": [
+    {
+      "glyph": "♪",
+      "value": 851,
+      "label": "ライブ",
+      "href": null
+    },
+    {
+      "glyph": "▤",
+      "value": 1341,
+      "label": "公演",
+      "href": null
+    },
+    {
+      "glyph": "♬",
+      "value": 3153,
+      "label": "楽曲",
+      "href": null
+    },
+    {
+      "glyph": "☺",
+      "value": 394,
+      "label": "アイドル",
+      "href": null
+    },
+    {
+      "glyph": "❋",
+      "value": 1539,
+      "label": "ユニット",
+      "href": null
+    },
+    {
+      "glyph": "⌂",
+      "value": 234,
+      "label": "会場",
+      "href": null
+    },
+    {
+      "glyph": "≡",
+      "value": 13762,
+      "label": "セトリ項目",
+      "href": null
+    }
+  ],
+  "dataVersion": "2026090401",
+  "contentHash": "6c41f0e2b9d4a7c8",
+  "generatedAt": "2026-09-04T00:00:00Z",
+  "todayJst": "2026-09-04",
+  "app": {
+    "appStoreUrl": "https://apps.apple.com/jp/app/id6763342297",
+    "playStoreUrl": null,
+    "xUrl": "https://x.com/idollivedb",
+    "privacyUrl": "https://fuga-if.github.io/imas-live-privacy/privacy.html",
+    "supportUrl": "https://fuga-if.github.io/imas-live-privacy/support.html",
+    "termsUrl": "https://fuga-if.github.io/imas-live-privacy/terms.html",
+    "repositoryUrl": "https://github.com/fuga-if/idol-live-db"
+  },
+  "sections": [
+    {
+      "heading": "このサイトについて",
+      "paragraphs": [
+        "非公式のファンメイドサイトです。株式会社バンダイナムコエンターテインメントおよび関連権利者とは一切関係ありません。",
+        "アイマスのライブ・公演・セットリスト・楽曲・アイドルを横断して調べられるデータベースです。"
+      ],
+      "links": []
+    },
+    {
+      "heading": "版権について",
+      "paragraphs": [
+        "キャラクター画像・公式ロゴ・歌詞は掲載していません。アイドルは名前と、そのアイドルの色だけで表示しています。",
+        "ジャケット画像は Apple Music が配信しているものを参照しています。"
+      ],
+      "links": []
+    },
+    {
+      "heading": "歌詞について",
+      "paragraphs": [
+        "本サイトでの歌詞の掲載には JASRAC の許諾が別に必要なため、いまは見合わせています。歌詞はアプリ『アイドルライブDB』でご覧いただけます（アプリは JASRAC 許諾番号 J260943703 のもとで歌詞を配信しています）。",
+        "歌詞の中の言葉から曲を探す検索も、同じ理由で止めています（一致した箇所の前後を返すため、歌詞の掲載と同じ扱いになります）。許諾が得られ次第、どちらも本サイトで開きます。"
+      ],
+      "links": [
+        {
+          "label": "App Store でアプリを見る",
+          "href": "https://apps.apple.com/jp/app/id6763342297"
+        }
+      ]
+    },
+    {
+      "heading": "アプリについて",
+      "paragraphs": [
+        "参加記録・投票・歌詞・コール・タグ付けはアプリでご利用いただけます。このサイトは閲覧と共有に専念しています。"
+      ],
+      "links": [
+        {
+          "label": "X (@idollivedb)",
+          "href": "https://x.com/idollivedb"
+        },
+        {
+          "label": "プライバシーポリシー",
+          "href": "https://fuga-if.github.io/imas-live-privacy/privacy.html"
+        },
+        {
+          "label": "サポート",
+          "href": "https://fuga-if.github.io/imas-live-privacy/support.html"
+        },
+        {
+          "label": "利用規約",
+          "href": "https://fuga-if.github.io/imas-live-privacy/terms.html"
+        }
+      ]
+    },
+    {
+      "heading": "書体",
+      "paragraphs": [
+        "見出しの書体 Chakra Petch は SIL Open Font License 1.1 のもとで利用しています。",
+        "本文は端末に入っている書体 (ヒラギノ角ゴ / Noto Sans JP 等) を使っています。"
+      ],
+      "links": [
+        {
+          "label": "SIL Open Font License 1.1 (全文)",
+          "href": "/fonts/OFL.txt"
+        }
+      ]
+    },
+    {
+      "heading": "データの貢献",
+      "paragraphs": [
+        "セットリストや楽曲情報の誤りは GitHub からご指摘いただけます。データは公開リポジトリで管理しています。"
+      ],
+      "links": [
+        {
+          "label": "GitHub リポジトリ",
+          "href": "https://github.com/fuga-if/idol-live-db"
+        }
+      ]
+    }
+  ],
+  "seo": {
+    "title": "このサイトについて | アイドルライブDB",
+    "description": "非公式・版権・ライセンス・アプリ。",
+    "canonical": "https://idollivedb.fugaapp.site/about/",
+    "ogImage": "https://idollivedb.fugaapp.site/og/default.png",
+    "robots": "index,follow",
+    "jsonLd": {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebPage",
+          "name": "このサイトについて",
+          "url": "https://idollivedb.fugaapp.site/about/"
+        },
+        {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "item": "https://idollivedb.fugaapp.site/",
+              "name": "ホーム",
+              "position": 1
+            }
+          ]
+        }
+      ]
+    },
+    "breadcrumbs": [
+      {
+        "name": "ホーム",
+        "path": "/"
+      }
+    ]
+  }
+}

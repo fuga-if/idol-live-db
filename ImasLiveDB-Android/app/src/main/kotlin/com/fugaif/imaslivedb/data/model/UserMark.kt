@@ -32,5 +32,19 @@ data class UserMark(
         const val FAVORITE = "favorite"   // お気に入り
         const val ATTENDED = "attended"   // 参加
         const val MEMO = "memo"
+        const val OWNED = "owned"         // 所持 (KAMISABI カード等の収集物)
+        /** 楽曲の習熟度。text_value に序数 "1".."8" を入れる (ラベルは設定側)。 */
+        const val MASTERY = "mastery"
     }
 }
+
+/**
+ * `user_marks` の (entity_id, text_value) だけの射影。
+ * 参加形態 (live/stream/live_viewing) を保ったまま共有コアの
+ * `uniffi.imas_core.AttendanceMarkRecord` へ詰め替えるための Room クエリ結果型
+ * ([com.fugaif.imaslivedb.data.db.dao.UserMarkDao.attendedMarks])。
+ */
+data class AttendanceMarkProjection(
+    @ColumnInfo(name = "entity_id") val entityId: String,
+    @ColumnInfo(name = "text_value") val textValue: String?
+)

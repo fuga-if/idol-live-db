@@ -1,0 +1,25 @@
+---
+import type { FilterAxis } from "../lib/schema/FilterAxis";
+import Count from "./Count.astro";
+/**
+ * 2〜3 択の切替の帯 (ImasSegmented の Web 版)。今後 / 開催済み / カレンダー など。
+ * 切替は静的ページへのリンクで (ユーザー指示: 一覧のフィルタは静的ページとして分ける)、
+ * 軸の名も、どれが現在地かも Rust (`FilterAxis` / `NavLink.current`) が出す。
+ * 値の多い軸は FilterMenu。
+ */
+interface Props {
+  axis: FilterAxis;
+}
+const { axis } = Astro.props;
+---
+
+<nav aria-label={axis.label} class="segmented">
+  {
+    axis.links.map((l) => (
+      <a href={l.path} aria-current={l.current ? "page" : undefined}>
+        {l.label}
+        <Count value={l.count} dim />
+      </a>
+    ))
+  }
+</nav>

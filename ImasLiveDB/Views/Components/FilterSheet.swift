@@ -55,7 +55,7 @@ struct BrandFilterSection: View {
         } header: {
             Text("ブランド")
         } footer: {
-            Text("複数選択可能").font(.imasScaled(11)).foregroundStyle(.tertiary)
+            Text("複数選択可能").font(.imasCaption2).foregroundStyle(DS.ink3)
         }
     }
 }
@@ -74,7 +74,13 @@ struct BrandIconCell: View {
     @State private var imageService = CustomImageService.shared
 
     private var background: Color {
-        color.map { Color(hexString: $0) } ?? .accentColor
+        color.map { Color(hexString: $0) } ?? DS.sys
+    }
+
+    /// 選択中の円の上の文字色。ブランド色の円なら白、色の無い「全て」は円が `DS.sys`
+    /// (ダークモードでは白) なので、その反転の `DS.onSys` にする (白地に白文字で消えていた)。
+    private var selectedForeground: Color {
+        color == nil ? DS.onSys : .white
     }
 
     private var fontSize: CGFloat {
@@ -92,10 +98,10 @@ struct BrandIconCell: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 4) {
+            VStack(spacing: DS.sp2) {
                 iconView
                 Text(label)
-                    .font(.imasScaled(11))
+                    .font(.imasCaption2)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
                     .foregroundStyle(isSelected ? .primary : .secondary)
@@ -108,10 +114,15 @@ struct BrandIconCell: View {
     @ViewBuilder
     private var iconView: some View {
         if let url = customImageURL, let uiImage = UIImage(contentsOfFile: url.path) {
+            // ブランドロゴは横長のロックアップも来る。 .fill だと両端が切れて
+            // 判別できなくなるので .fit で円の中に収める (下地はブランド色)。
+            // 配布しているブランド画像は「円 + 四隅透過」なので余白なしでちょうど収まる。
+            // 下地の円は、ユーザーが独自に横長画像を入れたときに絵が浮かないための保険。
             Image(uiImage: uiImage)
                 .resizable()
-                .scaledToFill()
+                .scaledToFit()
                 .frame(width: 48, height: 48)
+                .background(background.opacity(isSelected ? 0.18 : 0.10), in: Circle())
                 .clipShape(Circle())
                 .overlay(
                     Circle()
@@ -129,7 +140,7 @@ struct BrandIconCell: View {
                     )
                 Text(iconText)
                     .font(.imasScaled( fontSize, weight: .heavy, design: .rounded))
-                    .foregroundStyle(isSelected ? .white : background)
+                    .foregroundStyle(isSelected ? selectedForeground : background)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
                     .frame(maxWidth: 42)
@@ -144,6 +155,9 @@ struct EventFilterSheet: View {
     @Environment(AppDatabase.self) private var database
     @Environment(\.dismiss) private var dismiss
 
+    /// 会場絞り込み (venue_id。空 = 絞り込みなし)。
+    /// 名前ではなく ID で持つので、会場が改名しても絞り込みが外れない。
+    @Binding var venue: String
     @Binding var selectedBrandIds: Set<String>
     /// 除外する EventKind の rawValue を CSV で保持
     @Binding var excludedKindsRaw: String
@@ -154,20 +168,40 @@ struct EventFilterSheet: View {
     @Binding var requireNote: Bool
 
     @State private var brands: [Brand] = []
+    @State private var venueDirectory: VenueDirectory = .empty
+    /// 選択中の会場 (venue_id)。nil = 未選択。
+    @State private var localVenue: String?
     @State private var localBrandIds: Set<String> = []
     @State private var localExcluded: Set<EventKind> = []
     @State private var localShowEmpty: Bool = false
     @State private var localAttendance: String = "all"
     @State private var localFavorite: Bool = false
     @State private var localNote: Bool = false
+    /// `.task` での初期値復元が済んだか。会場ピッカーを push → pop すると `.task` が
+    /// 再実行され、選んだばかりの localVenue を「適用前の venue (空)」で上書きして
+    /// 選択が消える。復元は 1 度きりにする (IdolFilterSheet の didRestore と同じ対策)。
+    @State private var didRestore = false
 
     var body: some View {
         NavigationStack {
             List {
+                Section {
+                    NavigationLink {
+                        VenuePickerView(directory: venueDirectory, selected: $localVenue)
+                    } label: {
+                        Text(selectedVenueLabel)
+                            .foregroundStyle(localVenue == nil ? DS.ink2 : DS.ink)
+                    }
+                } header: {
+                    Text("会場")
+                } footer: {
+                    Text("その会場で公演があったライブに絞ります")
+                }
+
                 BrandFilterSection(brands: brands, selectedBrandIds: $localBrandIds)
 
                 Section {
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 88), spacing: 8)], spacing: 8) {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 88), spacing: DS.sp3)], spacing: DS.sp3) {
                         ForEach(EventKind.allCases, id: \.rawValue) { kind in
                             EventKindChip(
                                 kind: kind,
@@ -193,74 +227,41 @@ struct EventFilterSheet: View {
                 }
 
                 Section("参加状態") {
-                    Picker("参加", selection: $localAttendance) {
-                        Text("すべて").tag("all")
-                        Text("参加済み").tag("attended")
-                        Text("未参加").tag("not_attended")
+                    ImasSegmented(options: ["all", "attended", "not_attended"], selection: $localAttendance) {
+                        switch $0 {
+                        case "attended": "参加済み"
+                        case "not_attended": "未参加"
+                        default: "すべて"
+                        }
                     }
-                    .pickerStyle(.segmented)
+                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                 }
 
                 Section("マイマーク") {
                     Toggle(isOn: $localFavorite) {
                         Label("お気に入りのみ", systemImage: "star.fill")
-                            .foregroundStyle(.yellow)
+                            .foregroundStyle(DS.favorite)
                     }
                     Toggle(isOn: $localNote) {
                         Label("メモがあるイベントのみ", systemImage: "note.text")
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(DS.warning)
                     }
                 }
 
                 Section("表示設定") {
                     Toggle("セトリ情報がないイベントも表示", isOn: $localShowEmpty)
-                        .tint(.green)
+                        .tint(DS.success)
                 }
 
-                if !localBrandIds.isEmpty || !localExcluded.isEmpty || localShowEmpty || localAttendance != "all" || localFavorite || localNote {
-                    Section {
-                        Button(role: .destructive) {
-                            AppAnalytics.tap("filter_sheet.reset")
-                            localBrandIds = []
-                            localExcluded = []
-                            localShowEmpty = false
-                            localAttendance = "all"
-                            localFavorite = false
-                            localNote = false
-                        } label: {
-                            Label("リセット", systemImage: "arrow.counterclockwise")
-                        }
-                    }
-                }
             }
-            .navigationTitle("フィルタ")
-            .navigationBarTitleDisplayMode(.inline)
+            .imasFilterSheetChrome()
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("リセット") {
-                        AppAnalytics.tap("filter_sheet.reset")
-                        localBrandIds = []
-                        localExcluded = []
-                        localShowEmpty = false
-                        localAttendance = "all"
-                        localFavorite = false
-                        localNote = false
-                    }
-                    .disabled(localBrandIds.isEmpty && localExcluded.isEmpty && !localShowEmpty && localAttendance == "all" && !localFavorite && !localNote)
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("適用") {
-                        AppAnalytics.tap("filter_sheet.apply")
-                        selectedBrandIds = localBrandIds
-                        excludedKindsRaw = localExcluded.map(\.rawValue).sorted().joined(separator: ",")
-                        showEmptyEvents = localShowEmpty
-                        attendanceFilter = localAttendance
-                        requireFavorite = localFavorite
-                        requireNote = localNote
-                        dismiss()
-                    }
-                    .fontWeight(.bold)
-                }
+                filterSheetToolbar(
+                    analyticsPrefix: "event_filter",
+                    canReset: hasActiveFilters,
+                    onReset: reset,
+                    onApply: apply
+                )
             }
             .task {
                 do {
@@ -268,6 +269,9 @@ struct EventFilterSheet: View {
                 } catch {
                     Logger.database.error("load_failed brands (FilterSheet/event): \(error.localizedDescription)")
                 }
+                venueDirectory = (try? await AppContainer.shared.showReading.venueDirectory()) ?? .empty
+                guard !didRestore else { return }
+                localVenue = venue.isEmpty ? nil : venue
                 localBrandIds = selectedBrandIds
                 localExcluded = Set(excludedKindsRaw.split(separator: ",")
                     .compactMap { EventKind(rawValue: String($0)) })
@@ -275,9 +279,43 @@ struct EventFilterSheet: View {
                 localAttendance = attendanceFilter
                 localFavorite = requireFavorite
                 localNote = requireNote
+                didRestore = true
             }
             .trackScreen("event_filter_sheet")
         }
+    }
+
+    /// 選択中の会場ラベル。ID から現行名 + 都道府県を引く。
+    private var selectedVenueLabel: String {
+        guard let localVenue, let v = venueDirectory.venue(id: localVenue) else { return "選択なし" }
+        return v.displayNameWithArea
+    }
+
+    private var hasActiveFilters: Bool {
+        localVenue != nil
+            || !localBrandIds.isEmpty || !localExcluded.isEmpty || localShowEmpty
+            || localAttendance != "all" || localFavorite || localNote
+    }
+
+    private func reset() {
+        localVenue = nil
+        localBrandIds = []
+        localExcluded = []
+        localShowEmpty = false
+        localAttendance = "all"
+        localFavorite = false
+        localNote = false
+    }
+
+    private func apply() {
+        venue = localVenue ?? ""
+        selectedBrandIds = localBrandIds
+        excludedKindsRaw = localExcluded.map(\.rawValue).sorted().joined(separator: ",")
+        showEmptyEvents = localShowEmpty
+        attendanceFilter = localAttendance
+        requireFavorite = localFavorite
+        requireNote = localNote
+        dismiss()
     }
 }
 
@@ -288,26 +326,13 @@ struct EventKindChip: View {
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
-            HStack(spacing: 6) {
-                Image(systemName: kind.iconName)
-                    .font(.imasCaption)
-                Text(kind.displayLabel)
-                    .font(.imasCaption)
-                    .fontWeight(.medium)
-            }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 8)
-            .frame(maxWidth: .infinity)
-            .background(isOn ? Color.accentColor : Color(.systemGray5))
-            .foregroundStyle(isOn ? .white : .secondary)
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-            .overlay(
-                RoundedRectangle(cornerRadius: 8)
-                    .strokeBorder(isOn ? .clear : Color(.systemGray4), lineWidth: 1)
-            )
-        }
-        .buttonStyle(.plain)
+        ImasFilterChip(
+            text: kind.displayLabel,
+            systemImage: kind.iconName,
+            isSelected: isOn,
+            fillsWidth: true,
+            action: action
+        )
         .accessibilityLabel("\(kind.displayLabel) \(isOn ? "表示" : "除外")")
     }
 }
@@ -328,6 +353,9 @@ struct IdolFilterSheet: View {
     @Environment(AppDatabase.self) private var database
     @Environment(\.dismiss) private var dismiss
 
+    @Binding var sortOrder: IdolSortOrder
+    /// nil = sortOrder の既定方向、true=昇順、false=降順。
+    @Binding var sortAscending: Bool?
     @Binding var selectedBrandIds: Set<String>
     @Binding var selectedAttribute: String?
     @Binding var displayMode: IdolDisplayMode
@@ -337,11 +365,19 @@ struct IdolFilterSheet: View {
     @Binding var requireNote: Bool
 
     @State private var brands: [Brand] = []
+    @State private var localSortOrder: IdolSortOrder = .official
+    @State private var localSortAscending: Bool?
     @State private var localBrandIds: Set<String> = []
     @State private var localAttribute: String?
+    @State private var localDisplayMode: IdolDisplayMode = .idolName
+    @State private var localShowCV: Bool = false
     @State private var localMyPick: Bool = false
     @State private var localFavorite: Bool = false
     @State private var localNote: Bool = false
+    /// `.task` での初期値復元が完了するまでは true。復元中の localBrandIds 代入で
+    /// onChange(of: localBrandIds) が誤発火し、復元直後の localAttribute を
+    /// リセットしてしまうのを防ぐためのガード。
+    @State private var didRestore = false
 
     /// 属性チップは「単一ブランドが選択されている」場合のみ表示。
     /// 0 件 or 複数ブランドではブランド共通のサブ属性が無いので空。
@@ -354,21 +390,45 @@ struct IdolFilterSheet: View {
         NavigationStack {
             List {
                 Section("表示形式") {
-                    Picker("名前表示", selection: $displayMode) {
-                        ForEach(IdolDisplayMode.allCases, id: \.self) { mode in
-                            Text(mode.rawValue).tag(mode)
-                        }
-                    }
-                    .pickerStyle(.segmented)
+                    ImasSegmented(options: IdolDisplayMode.allCases, selection: $localDisplayMode) { $0.rawValue }
+                        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
 
                     // アイドル名表示のとき、CV 名を別行で併記するか。CV 名表示中は CV がタイトルなので無効。
-                    Toggle("CV名を併記", isOn: $showCV)
-                        .disabled(displayMode == .cvName)
+                    Toggle("CV名を併記", isOn: $localShowCV)
+                        .disabled(localDisplayMode == .cvName)
+                }
+
+                Section {
+                    Picker("並び順", selection: $localSortOrder) {
+                        ForEach(IdolSortOrder.allCases, id: \.rawValue) { order in
+                            Text(order.rawValue).tag(order)
+                        }
+                    }
+                    .pickerStyle(.menu)
+
+                    // 方向 toggle (nil なら並び順ごとの既定を表示値にする)
+                    Picker("方向", selection: Binding(
+                        get: { localSortAscending ?? localSortOrder.defaultAscending },
+                        set: { localSortAscending = $0 }
+                    )) {
+                        Label(localSortOrder.ascendingLabel, systemImage: "arrow.up").tag(true)
+                        Label(localSortOrder.descendingLabel, systemImage: "arrow.down").tag(false)
+                    }
+                    .pickerStyle(.segmented)
+                } header: {
+                    Text("並び順")
+                } footer: {
+                    if !localSortOrder.keepsBrandGrouping {
+                        Text("ブランドの区切りを外して通しで並べます")
+                    }
                 }
 
                 BrandFilterSection(brands: brands, selectedBrandIds: $localBrandIds)
                     .onChange(of: localBrandIds) { _, _ in
-                        // ブランド変更時は属性絞り込みリセット
+                        // ブランド変更時は属性絞り込みリセット。
+                        // ただし .task による初期値復元中はスキップ (復元した
+                        // localAttribute を巻き添えで消してしまうため)。
+                        guard didRestore else { return }
                         localAttribute = nil
                     }
 
@@ -388,59 +448,27 @@ struct IdolFilterSheet: View {
                 Section("マイマーク") {
                     Toggle(isOn: $localMyPick) {
                         Label("担当のみ", systemImage: "heart.fill")
-                            .foregroundStyle(.pink)
+                            .foregroundStyle(DS.pick)
                     }
                     Toggle(isOn: $localFavorite) {
                         Label("お気に入りのみ", systemImage: "star.fill")
-                            .foregroundStyle(.yellow)
+                            .foregroundStyle(DS.favorite)
                     }
                     Toggle(isOn: $localNote) {
                         Label("メモがあるアイドルのみ", systemImage: "note.text")
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(DS.warning)
                     }
                 }
 
-                if !localBrandIds.isEmpty || localAttribute != nil || localMyPick || localFavorite || localNote {
-                    Section {
-                        Button(role: .destructive) {
-                            AppAnalytics.tap("filter_sheet.reset")
-                            localBrandIds = []
-                            localAttribute = nil
-                            localMyPick = false
-                            localFavorite = false
-                            localNote = false
-                        } label: {
-                            Label("リセット", systemImage: "arrow.counterclockwise")
-                        }
-                    }
-                }
             }
-            .navigationTitle("フィルタ")
-            .navigationBarTitleDisplayMode(.inline)
+            .imasFilterSheetChrome()
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("リセット") {
-                        AppAnalytics.tap("filter_sheet.reset")
-                        localBrandIds = []
-                        localAttribute = nil
-                        localMyPick = false
-                        localFavorite = false
-                        localNote = false
-                    }
-                    .disabled(localBrandIds.isEmpty && localAttribute == nil && !localMyPick && !localFavorite && !localNote)
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("適用") {
-                        AppAnalytics.tap("filter_sheet.apply")
-                        selectedBrandIds = localBrandIds
-                        selectedAttribute = localAttribute
-                        requireMyPick = localMyPick
-                        requireFavorite = localFavorite
-                        requireNote = localNote
-                        dismiss()
-                    }
-                    .fontWeight(.bold)
-                }
+                filterSheetToolbar(
+                    analyticsPrefix: "idol_filter",
+                    canReset: hasActiveFilters,
+                    onReset: reset,
+                    onApply: apply
+                )
             }
             .task {
                 do {
@@ -448,31 +476,56 @@ struct IdolFilterSheet: View {
                 } catch {
                     Logger.database.error("load_failed brands (FilterSheet/idol): \(error.localizedDescription)")
                 }
+                localSortOrder = sortOrder
+                localSortAscending = sortAscending
                 localBrandIds = selectedBrandIds
                 localAttribute = selectedAttribute
+                localDisplayMode = displayMode
+                localShowCV = showCV
                 localMyPick = requireMyPick
                 localFavorite = requireFavorite
                 localNote = requireNote
+                didRestore = true
             }
             .trackScreen("idol_filter_sheet")
         }
     }
 
+    private var hasActiveFilters: Bool {
+        localSortOrder != .official || localSortAscending != nil
+            || !localBrandIds.isEmpty || localAttribute != nil || localDisplayMode != .idolName
+            || localShowCV || localMyPick || localFavorite || localNote
+    }
+
+    private func reset() {
+        localSortOrder = .official
+        localSortAscending = nil
+        localBrandIds = []
+        localAttribute = nil
+        localDisplayMode = .idolName
+        localShowCV = false
+        localMyPick = false
+        localFavorite = false
+        localNote = false
+    }
+
+    private func apply() {
+        sortOrder = localSortOrder
+        sortAscending = localSortAscending
+        selectedBrandIds = localBrandIds
+        selectedAttribute = localAttribute
+        displayMode = localDisplayMode
+        showCV = localShowCV
+        requireMyPick = localMyPick
+        requireFavorite = localFavorite
+        requireNote = localNote
+        dismiss()
+    }
+
     private func attributeChip(value: String?, label: String) -> some View {
-        let isSelected = localAttribute == value
-        return Button {
+        ImasFilterChip(text: label, isSelected: localAttribute == value) {
             localAttribute = value
-        } label: {
-            Text(label)
-                .font(.imasCaption)
-                .fontWeight(.medium)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(isSelected ? Color.accentColor : Color(.systemGray5))
-                .foregroundStyle(isSelected ? .white : .primary)
-                .clipShape(Capsule())
         }
-        .buttonStyle(.plain)
     }
 }
 
@@ -499,7 +552,7 @@ struct TagFilterSheet: View {
             List {
                 Section("カテゴリ") {
                     ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
+                        HStack(spacing: DS.sp3) {
                             ForEach(categories, id: \.value) { cat in
                                 categoryChip(value: cat.value, label: cat.label)
                             }
@@ -509,47 +562,21 @@ struct TagFilterSheet: View {
                 }
 
                 Section("並び順") {
-                    Picker("並び順", selection: $localSort) {
-                        ForEach(sortOptions, id: \.value) { opt in
-                            Text(opt.label).tag(opt.value)
-                        }
+                    ImasSegmented(options: sortOptions.map(\.value), selection: $localSort) { value in
+                        sortOptions.first { $0.value == value }?.label ?? value
                     }
-                    .pickerStyle(.segmented)
                     .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                 }
 
-                if !localCategory.isEmpty {
-                    Section {
-                        Button(role: .destructive) {
-                            AppAnalytics.tap("filter_sheet.reset")
-                            localCategory = ""
-                            localSort = "popular"
-                        } label: {
-                            Label("リセット", systemImage: "arrow.counterclockwise")
-                        }
-                    }
-                }
             }
-            .navigationTitle("フィルタ")
-            .navigationBarTitleDisplayMode(.inline)
+            .imasFilterSheetChrome()
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("リセット") {
-                        AppAnalytics.tap("filter_sheet.reset")
-                        localCategory = ""
-                        localSort = "popular"
-                    }
-                    .disabled(localCategory.isEmpty && localSort == "popular")
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("適用") {
-                        AppAnalytics.tap("filter_sheet.apply")
-                        selectedCategory = localCategory
-                        selectedSort = localSort
-                        dismiss()
-                    }
-                    .fontWeight(.bold)
-                }
+                filterSheetToolbar(
+                    analyticsPrefix: "tag_filter",
+                    canReset: hasActiveFilters,
+                    onReset: reset,
+                    onApply: apply
+                )
             }
             .onAppear {
                 localCategory = selectedCategory
@@ -559,21 +586,25 @@ struct TagFilterSheet: View {
         }
     }
 
+    private var hasActiveFilters: Bool {
+        !localCategory.isEmpty || localSort != "popular"
+    }
+
+    private func reset() {
+        localCategory = ""
+        localSort = "popular"
+    }
+
+    private func apply() {
+        selectedCategory = localCategory
+        selectedSort = localSort
+        dismiss()
+    }
+
     private func categoryChip(value: String, label: String) -> some View {
-        let isSelected = localCategory == value
-        return Button {
+        ImasFilterChip(text: label, isSelected: localCategory == value) {
             localCategory = value
-        } label: {
-            Text(label)
-                .font(.imasCaption)
-                .fontWeight(.medium)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(isSelected ? Color.accentColor : Color(.systemGray5))
-                .foregroundStyle(isSelected ? .white : .primary)
-                .clipShape(Capsule())
         }
-        .buttonStyle(.plain)
     }
 }
 
@@ -592,10 +623,10 @@ struct FilterBarButton: View {
                       : "line.3.horizontal.decrease.circle")
                 if activeCount > 0 {
                     Text("\(activeCount)")
-                        .font(.imasScaled(11).weight(.bold))
+                        .font(.imasCaption2.weight(.bold))
                         .foregroundStyle(.white)
                         .frame(width: 16, height: 16)
-                        .background(.red)
+                        .background(DS.danger)
                         .clipShape(Circle())
                         .offset(x: 6, y: -6)
                 }

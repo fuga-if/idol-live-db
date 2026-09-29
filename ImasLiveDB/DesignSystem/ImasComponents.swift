@@ -19,10 +19,24 @@ struct ImasAvatar: View {
     var size: CGFloat = 40
     var isPick: Bool = false
     var imageURL: URL? = nil
+    /// true (既定) のとき、担当リング込みの外形サイズ (`size + ringPadding*2`) を isPick の値に
+    /// 関わらず常に予約する (担当/非担当混在の一覧・グリッドでの占有スペース統一が目的)。
+    /// 呼び出し元が独自に `.overlay(Circle())` 等でリングを重ねており、`isPick` を使わない場合は
+    /// false を指定して外形を可視アバターぴったり (`size`) に戻すこと。さもないと呼び出し元の
+    /// リングが可視アバターから浮いて見える。
+    var reservesPickRing: Bool = true
 
     @Environment(\.colorScheme) private var scheme
 
-    private var ringInset: CGFloat { isPick ? 5.5 : 0 }
+    /// 可視アバター (直径 size) と外形フレームの間の片側余白。isPick=false のときもこの余白ぶん
+    /// 外形フレームを広く取ることで、担当/非担当が混在する一覧・グリッドでコンポーネントの
+    /// 占有スペースを一致させる。isPick=false でオーバーレイ (編集ボタン等) を可視アバターの
+    /// 真の縁に合わせたい呼び出し元は、このオフセット分を補正すること。
+    static let ringPadding: CGFloat = 5.5
+
+    /// 担当リング込みの外形サイズ。isPick の値に関わらず常にこの枠を占有する
+    /// (reservesPickRing=false の呼び出し元は可視アバターぴったりの size に戻す)。
+    private var outerSize: CGFloat { reservesPickRing ? size + Self.ringPadding * 2 : size }
 
     var body: some View {
         let t = ImasTheme.derive(seed: seed, brand: brand, scheme: scheme)
@@ -38,7 +52,7 @@ struct ImasAvatar: View {
                 .clipShape(Circle())
                 .overlay(Circle().strokeBorder(t.ring, lineWidth: 1.5))
         }
-        .frame(width: size + ringInset * 2, height: size + ringInset * 2)
+        .frame(width: outerSize, height: outerSize)
         .accessibilityLabel(label)
     }
 
@@ -139,6 +153,86 @@ struct ImasLeadBar: View {
     }
 }
 
+// MARK: - リードバー付きの一覧行
+
+/// 一覧行の末尾に出す「>」。
+///
+/// 41 箇所が 12pt regular / 12pt semibold / 12pt bold / 13pt semibold / 14pt semibold /
+/// 16pt semibold と 6 通りに散らばっていた。 最多だった 12pt regular と次点の
+/// 13pt semibold の中間を採り、 グリフとして視認しやすい **13pt semibold** に統一する。
+struct ImasRowChevron: View {
+    var body: some View {
+        Image(systemName: "chevron.right")
+            .font(.imasScaled(13, weight: .semibold))
+            .foregroundStyle(DS.ink3)
+    }
+}
+
+/// `ImasLeadBar` + 見出し + 副題 + 末尾スロット、という一覧行の共通レイアウト。
+///
+/// イベント一覧・イベント詳細の公演行・会場での公演一覧が、それぞれ手書きで同じ形を
+/// 作っていて、間隔 (8/12)・余白 (14/9 と DS.sp4/sp3)・バー高 (36/38/40)・副題フォント
+/// (imasCaption と imasScaled(11)) が画面ごとにズレていた。 寸法をここに一本化する。
+///
+/// 末尾はお気に入りトグルだったり「>」だったりするのでスロットにしている。
+/// 「>」だけで良い場合は trailing を省略できる。
+struct ImasLeadRow<Trailing: View>: View {
+    let title: String
+    var subtitle: String? = nil
+    /// リードバーの色。 seed = エンティティ由来 hex、 brand = ブランド色 hex
+    /// (ブランド ID ではない。ID から引くなら `BrandColors.hex(for:)`)。
+    var seed: String? = nil
+    var brand: String? = nil
+    /// 合同ライブ等で虹色にする。
+    var rainbow: Bool = false
+    var titleLineLimit: Int = 2
+    @ViewBuilder var trailing: () -> Trailing
+
+    var body: some View {
+        HStack(spacing: DS.sp4) {
+            ImasLeadBar(seed: seed, brand: brand, rainbow: rainbow)
+                .frame(height: 36)
+
+            VStack(alignment: .leading, spacing: DS.sp1) {
+                Text(title)
+                    .font(.imasSubhead.weight(.semibold))
+                    .foregroundStyle(DS.ink)
+                    .lineLimit(titleLineLimit)
+                if let subtitle, !subtitle.isEmpty {
+                    Text(subtitle)
+                        .font(.imasCaption)
+                        .foregroundStyle(DS.ink2)
+                        .lineLimit(1)
+                }
+            }
+
+            Spacer(minLength: DS.sp3)
+
+            trailing()
+        }
+        .padding(.horizontal, DS.sp4)
+        .padding(.vertical, DS.sp3)
+        .contentShape(Rectangle())
+    }
+}
+
+extension ImasLeadRow where Trailing == ImasRowChevron {
+    init(
+        title: String,
+        subtitle: String? = nil,
+        seed: String? = nil,
+        brand: String? = nil,
+        rainbow: Bool = false,
+        titleLineLimit: Int = 2
+    ) {
+        self.init(
+            title: title, subtitle: subtitle, seed: seed, brand: brand,
+            rainbow: rainbow, titleLineLimit: titleLineLimit,
+            trailing: { ImasRowChevron() }
+        )
+    }
+}
+
 // MARK: - Chip / FilterChip
 
 enum ImasChipStyle { case themed, selected, neutral }
@@ -177,10 +271,18 @@ struct ImasChip: View {
     var style: ImasChipStyle = .neutral
     var seed: String? = nil
     var brand: String? = nil
+    /// 実体色そのものを表現したい場面 (ユーザーが選んだ任意色等) 用の明示オーバーライド。
+    /// 指定すると `seed`/`brand` より優先され、この `Color` をシードに導出する
+    /// (素の `Color` をそのまま塗るのではなく、通常の seed/brand と同じ WCAG コントラスト
+    /// 計算を経由するので、選択色がどんな明るさでも前景色が自動で読める側に倒れる)。
+    var color: Color? = nil
+    /// グリッド内で幅を揃えたいとき true。塗りごと広げるため `.background` より前に効かせる。
+    var fillsWidth: Bool = false
     @Environment(\.colorScheme) private var scheme
 
     var body: some View {
-        let t = ImasTheme.derive(seed: seed, brand: brand, scheme: scheme)
+        let t = color.map { ImasTheme.derive(colorSeed: $0, scheme: scheme) }
+            ?? ImasTheme.derive(seed: seed, brand: brand, scheme: scheme)
         let (bg, fg): (Color, Color) = {
             switch style {
             case .themed:   return (t.chipBg, t.chipText)
@@ -193,9 +295,81 @@ struct ImasChip: View {
             Text(text).font(.imasScaled( 13.5, weight: .semibold))
         }
         .padding(.horizontal, 13).padding(.vertical, 7)
+        .frame(maxWidth: fillsWidth ? .infinity : nil)
         .foregroundStyle(fg)
         .background(bg, in: Capsule())
         .lineLimit(1)
+    }
+}
+
+// MARK: - FilterChip (選択トグルできるチップ)
+
+/// 押して on/off できるチップ。フィルタ・カテゴリ・種別・タグの選択に使う「唯一の正」。
+///
+/// 以前は画面ごとに 19 種の自前実装があり、角丸 (8 と Capsule)・フォント (`.imasCaption` と
+/// 13.5pt)・余白 (10/8・12/6・13/7) がバラバラだった。さらに選択色に `Color.accentColor` を
+/// 直に塗っていたため、DS の「色は常にエンティティ側から来る」原則も崩れていた。
+/// 見た目は `ImasChip` と完全に同一 (同じ Capsule・タイポ・余白) で、押下と選択状態だけを足す。
+struct ImasFilterChip: View {
+    let text: String
+    var systemImage: String? = nil
+    let isSelected: Bool
+    /// 配色シード。エンティティ色 (アイドル/ブランド/タグ) があれば渡す。
+    var seed: String? = nil
+    var brand: String? = nil
+    /// 実体色そのもの (ユーザーが選んだタグ色等)。`ImasChip` と同じく WCAG 計算を通す。
+    var color: Color? = nil
+    /// グリッド内で幅を揃えたいとき true。
+    var fillsWidth: Bool = false
+    var isDisabled: Bool = false
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            ImasChip(
+                text: text,
+                systemImage: systemImage,
+                style: isSelected ? .selected : .neutral,
+                seed: seed,
+                brand: brand,
+                color: color,
+                fillsWidth: fillsWidth
+            )
+        }
+        .buttonStyle(.plain)
+        .disabled(isDisabled)
+        .opacity(isDisabled ? 0.55 : 1)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+}
+
+// MARK: - SelectionMark (選択チェック)
+
+/// ピッカー・複数選択リストのチェックマーク。
+/// システムの `Color.accentColor` を直に塗らず、エンティティ色 (seed/brand) から導出する
+/// ── DS の原則「システムクロムはほぼ無彩、色は常にエンティティ側から来る」に従う。
+/// seed が無い場面では `DS.sys` に落ちる。
+struct ImasSelectionMark: View {
+    let isSelected: Bool
+    var seed: String? = nil
+    var brand: String? = nil
+    /// 実体色そのもの (ユーザーが選んだタグ色等)。指定すると seed/brand より優先する。
+    var color: Color? = nil
+    var size: CGFloat = 16
+    @Environment(\.colorScheme) private var scheme
+
+    var body: some View {
+        let accent: Color = {
+            if let color { return ImasTheme.derive(colorSeed: color, scheme: scheme).accent }
+            if seed != nil || brand != nil {
+                return ImasTheme.derive(seed: seed, brand: brand, scheme: scheme).accent
+            }
+            return DS.sys
+        }()
+        Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+            .font(.imasScaled(size, weight: .semibold))
+            .foregroundStyle(isSelected ? accent : DS.ink3)
+            .accessibilityHidden(true)
     }
 }
 
@@ -312,6 +486,10 @@ struct ImasStatTile: View {
             }
             HStack(alignment: .firstTextBaseline, spacing: 3) {
                 Text(value).font(.imasDisplay(26, weight: .bold)).foregroundStyle(DS.ink)
+                    // 金額のように桁が伸びる値でも**折り返さない**。2 行になると
+                    // タイルの高さが揃わず、グリッドが階段状に崩れる。
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
                 if let unit { Text(unit).font(.imasFootnote).foregroundStyle(DS.ink3) }
             }
             Text(label).font(.imasScaled( 12.5, weight: .medium)).foregroundStyle(DS.ink2)
@@ -331,6 +509,8 @@ struct ImasEntryCard: View {
     var preview: String? = nil
     var seed: String? = nil
     var brand: String? = nil
+    /// true なら右端の chevron をくるくるに替える (押してから外へ飛ぶまでの待ち)。
+    var isLoading: Bool = false
     @Environment(\.colorScheme) private var scheme
 
     var body: some View {
@@ -346,7 +526,11 @@ struct ImasEntryCard: View {
                 if let preview { Text(preview).font(.imasFootnote).foregroundStyle(DS.ink2).lineLimit(2) }
             }
             Spacer(minLength: 8)
-            Image(systemName: "chevron.right").font(.imasScaled( 16, weight: .semibold)).foregroundStyle(DS.ink3)
+            if isLoading {
+                ProgressView().controlSize(.small)
+            } else {
+                Image(systemName: "chevron.right").font(.imasScaled( 16, weight: .semibold)).foregroundStyle(DS.ink3)
+            }
         }
         .padding(16)
         .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
@@ -362,6 +546,8 @@ struct ImasStatBar: View {
     let percent: Double
     var seed: String? = nil
     var brand: String? = nil
+    /// 右端の値の幅。金額のように桁が伸びる値は広げる (既定の 44pt だと折り返す)。
+    var valueWidth: CGFloat = 44
     @Environment(\.colorScheme) private var scheme
 
     var body: some View {
@@ -380,7 +566,10 @@ struct ImasStatBar: View {
             }
             .frame(height: 8)
             Text(value).font(.imasDisplay(13, weight: .semibold)).foregroundStyle(DS.ink2)
-                .frame(width: 44, alignment: .trailing)
+                // 値は**折り返さない**。2 行になると帯と高さが合わず、行が飛び飛びに見える。
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .frame(width: valueWidth, alignment: .trailing)
         }
         .padding(.vertical, 8)
     }
@@ -425,24 +614,43 @@ struct ImasRankingRow: View {
 
 // MARK: - Segmented (詳細画面の内部セグメント)
 
-struct ImasSegmented: View {
-    let labels: [String]
-    @Binding var selection: Int
+/// セグメント切替。選択肢は `Int` インデックスに限らず、任意の `Hashable`
+/// (enum・String タグ等) を直接 `selection` に束縛できる (`options:`/`label:` イニシャライザ)。
+/// 最も多い「ラベル配列 + インデックス選択」の場合は下の `labels:` イニシャライザで
+/// 従来通り書ける (内部的にはこちらも `Selection == Int` の特殊形)。
+struct ImasSegmented<Selection: Hashable>: View {
+    let options: [Selection]
+    @Binding var selection: Selection
+    let label: (Selection) -> String
     var seed: String? = nil
     var brand: String? = nil
     @Environment(\.colorScheme) private var scheme
 
+    init(options: [Selection], selection: Binding<Selection>, seed: String? = nil, brand: String? = nil,
+         label: @escaping (Selection) -> String) {
+        self.options = options
+        self._selection = selection
+        self.label = label
+        self.seed = seed
+        self.brand = brand
+    }
+
     var body: some View {
         let t = ImasTheme.derive(seed: seed, brand: brand, scheme: scheme)
         HStack(spacing: 2) {
-            ForEach(Array(labels.enumerated()), id: \.offset) { idx, label in
-                let on = idx == selection
+            ForEach(options, id: \.self) { option in
+                let on = option == selection
                 Button {
-                    withAnimation(.easeInOut(duration: 0.15)) { selection = idx }
+                    withAnimation(.easeInOut(duration: 0.15)) { selection = option }
                 } label: {
-                    Text(label)
+                    Text(label(option))
                         .font(.imasScaled( 13.5, weight: .semibold))
                         .foregroundStyle(on ? DS.ink : DS.ink2)
+                        // 4 タブ (楽曲詳細) や大きめの Dynamic Type でも「コミュニティ」等が
+                        // 途中で切れないよう、1 行のまま少しだけ縮める。
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                        .padding(.horizontal, 2)   // 4 タブ時に端の文字が枠に貼り付かないように
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 6)
                         .background(on ? AnyShapeStyle(DS.surface) : AnyShapeStyle(.clear),
@@ -454,6 +662,13 @@ struct ImasSegmented: View {
         .padding(2)
         .background(DS.fill, in: RoundedRectangle(cornerRadius: DS.rSM, style: .continuous))
         .accentEnvironment(t)
+    }
+}
+
+extension ImasSegmented where Selection == Int {
+    /// ラベル配列 + インデックス選択の簡易イニシャライザ (既存呼び出し元はこちらのまま動く)。
+    init(labels: [String], selection: Binding<Int>, seed: String? = nil, brand: String? = nil) {
+        self.init(options: Array(labels.indices), selection: selection, seed: seed, brand: brand) { labels[$0] }
     }
 }
 
@@ -502,11 +717,26 @@ struct ImasLabeledRow: View {
     var tappable: Bool = false
     /// タップで省略を解除して全文を改行表示する (特技など長文向け)。
     /// 遷移/コピー等の action を持つ行とは併用しない想定。
+    ///
+    /// なお `expandable` を立てても、値が 1 行に収まっている行では
+    /// トグル (chevron) もタップ操作も出さない。展開する中身が無いのに
+    /// 「開けそうな見た目」を出すと、押しても何も起きない行が並んでしまうため。
     var expandable: Bool = false
+    /// 長押しで値をコピーできるようにする (既定 ON)。
+    ///
+    /// この行は「よみ」「CV」「作曲」「会場」など**外部で検索したり貼りたくなる値**の
+    /// 表示に使われるので、コピーは画面ごとに付け外しするものではなく既定の性質にする。
+    /// 呼び出し側で別の contextMenu を出す行だけ false にする (メニューが競合するため)。
+    var copyable: Bool = true
     var seed: String? = nil
     var brand: String? = nil
     @Environment(\.colorScheme) private var scheme
     @State private var expanded = false
+    /// 値が実際に省略されている (= 展開する中身がある) か。実測して決める。
+    @State private var isTruncated = false
+
+    /// トグルを出すか。省略が起きている時、または展開済み (畳む導線が要る) 時だけ。
+    private var showsToggle: Bool { expandable && (isTruncated || expanded) }
 
     var body: some View {
         let t = ImasTheme.derive(seed: seed, brand: brand, scheme: scheme)
@@ -522,9 +752,13 @@ struct ImasLabeledRow: View {
                 .lineLimit(expandable ? (expanded ? nil : 1) : 1)
                 .truncationMode(.tail)
                 .multilineTextAlignment(.trailing)
+                .truncationDetector(isTruncated: $isTruncated,
+                                    text: value,
+                                    font: mono ? .imasDisplay(15) : .imasSubhead,
+                                    enabled: expandable)
             if showChevron {
                 Image(systemName: "chevron.right").font(.imasScaled( 13, weight: .semibold)).foregroundStyle(tappable ? t.accent : DS.ink3)
-            } else if expandable {
+            } else if showsToggle {
                 Image(systemName: "chevron.down")
                     .font(.imasScaled( 11, weight: .semibold)).foregroundStyle(DS.ink3)
                     .rotationEffect(.degrees(expanded ? 180 : 0))
@@ -534,15 +768,101 @@ struct ImasLabeledRow: View {
         .background(DS.surface)
         .contentShape(Rectangle())
 
-        if expandable {
-            row.onTapGesture { withAnimation(.easeInOut(duration: 0.2)) { expanded.toggle() } }
+        // 省略されている値も原文 (`value`) を渡すので、全文がコピーできる。
+        let copyableRow = row.imasCopyable(
+            copyable ? [CopyItem("\(key)をコピー", value, key: "labeled_row")] : [])
+
+        if showsToggle {
+            copyableRow.onTapGesture { withAnimation(.easeInOut(duration: 0.2)) { expanded.toggle() } }
         } else {
-            row
+            copyableRow
+        }
+    }
+}
+
+// MARK: - 省略検出
+
+private extension View {
+    /// 1 行表示のテキストが実際に省略されているかを実測して `isTruncated` に反映する。
+    ///
+    /// 与えられた幅 (制約後) と、同じ文字列を折り返さずに描いたときの自然幅を比べる。
+    /// iOS 17 が下限のため `onGeometryChange` (iOS 18+) は使わず GeometryReader で測る。
+    /// 測定用のテキストは `hidden()` + `accessibilityHidden` で、表示にも読み上げにも出さない。
+    func truncationDetector(isTruncated: Binding<Bool>, text: String, font: Font, enabled: Bool) -> some View {
+        background {
+            if enabled {
+                GeometryReader { available in
+                    Text(text)
+                        .font(font)
+                        .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
+                        .hidden()
+                        .accessibilityHidden(true)
+                        .background {
+                            GeometryReader { natural in
+                                Color.clear
+                                    .task(id: natural.size.width) {
+                                        // 端数で誤検知しないよう 0.5pt の余裕を見る。
+                                        isTruncated.wrappedValue = natural.size.width > available.size.width + 0.5
+                                    }
+                            }
+                        }
+                }
+            }
         }
     }
 }
 
 // MARK: - EmptyState (投稿導線つき)
+
+// MARK: - 区切り線
+
+/// 一覧行のあいだの区切り線。 色は `DS.sep` に固定する。
+///
+/// 各画面が `Divider().overlay(DS.sep)` を手書きしていて、 `.overlay` を忘れた
+/// 素の `Divider()` がシステム色のまま混ざっていた (同じ一覧の中で線の色が違う)。
+///
+/// `inset` は行の内容に合わせた左の食い込み。 アバターやサムネのぶんだけ線を
+/// 下げたい場合に使う (画面ごとに 48/52/66/69/70/72 と実測値が入る)。
+struct ImasRowDivider: View {
+    var inset: CGFloat = 0
+    var body: some View {
+        Divider()
+            .overlay(DS.sep)
+            .padding(.leading, inset)
+    }
+}
+
+// MARK: - ローディング
+
+/// 画面・シート本体の読み込み中。 空いている領域いっぱいに出して中央に置く。
+///
+/// 各画面が `ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)` を
+/// 手書きしていて、 付ける修飾子が画面ごとに違っていた (何も付けず左上に寄るものもあった)。
+/// 空状態が `ImasEmptyState` に集約されているのと対になる存在。
+struct ImasLoadingState: View {
+    var body: some View {
+        ProgressView()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+/// 一覧の途中やセクション内の読み込み中。 行 1 つ分の高さで横中央に置く。
+///
+/// `HStack { Spacer(); ProgressView(); Spacer() }` の置き換え。 上下の余白が
+/// 呼び出し側でまちまちだったので既定を持たせ、 必要なら `padding` で調整する。
+struct ImasInlineLoading: View {
+    /// テーマ色の背景に置く場合の色。 既定 (nil) はシステム標準。
+    /// ゲーム系のように背景が濃い画面では既定色が沈むので明示する。
+    var tint: Color? = nil
+
+    var body: some View {
+        ProgressView()
+            .tint(tint)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, DS.sp5)
+    }
+}
 
 struct ImasEmptyState: View {
     let systemImage: String
@@ -589,6 +909,20 @@ private extension View {
     func accentEnvironment(_ t: ImasTheme) -> some View { self }
 }
 
+// MARK: - List の行装飾
+
+extension View {
+    /// List の中で「カードではない帯」を出す行装飾 (見出し・要約・空状態用)。
+    ///
+    /// `swipeActions` は List の行にしか効かないため、見出しや要約も List の行として
+    /// 差さざるを得ない画面 (習熟度の 2 画面など) で使う。
+    func plainRow(background: Color) -> some View {
+        listRowInsets(EdgeInsets(top: 0, leading: DS.sp5, bottom: DS.sp5, trailing: DS.sp5))
+            .listRowBackground(background)
+            .listRowSeparator(.hidden)
+    }
+}
+
 // MARK: - inset-grouped リスト風コンテナ
 
 /// iOS inset grouped を模した角丸サーフェス。中の行は `Divider().overlay(DS.sep)` で区切る。
@@ -600,5 +934,35 @@ struct ImasListContainer<Content: View>: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
             .clipShape(RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
+    }
+}
+
+// MARK: - 広い画面での本文幅
+
+extension DS {
+    /// 広い画面 (iPad / Mac) で一覧の本文が伸びきらない幅。Web の本文段と揃える。
+    static let readableContentWidth: CGFloat = 880
+}
+
+extension View {
+    /// 一覧 (List / ScrollView) の本文を `DS.readableContentWidth` に収め、左右の余りを
+    /// 余白にする。ナビバーや背景は全幅のまま、スクロールも画面全体で効く
+    /// (`frame(maxWidth:)` で縮めると余白部分でスクロールできなくなる)。
+    /// 狭い画面では余りが出ないので何も変わらない。
+    ///
+    /// ⚠️ 余白は配下のスクロールビューにも伝わる。横スクロールのチップ列などを
+    /// 含む階層ではなく、縦の一覧そのものに付けること。
+    func readableContentMargins() -> some View {
+        modifier(ReadableContentMargins())
+    }
+}
+
+private struct ReadableContentMargins: ViewModifier {
+    @State private var width: CGFloat = 0
+
+    func body(content: Content) -> some View {
+        content
+            .contentMargins(.horizontal, max(0, (width - DS.readableContentWidth) / 2), for: .scrollContent)
+            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
     }
 }

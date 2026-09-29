@@ -1,0 +1,54 @@
+---
+import ListLayout from "../layouts/ListLayout.astro";
+import SearchBox from "../components/SearchBox.astro";
+import { meta, page, routeData } from "../lib/data";
+import type { SearchPage } from "../lib/schema/SearchPage";
+
+/**
+ * 検索 — 横断検索の島が動くページ。
+ *
+ * ページを探すためのナビゲーション補助であって、状態を持つ機能ではない:
+ * 島はフォームの送信を止め、履歴も書かず、結果に色も付けない。
+ * JS が無効なら素の GET フォームとして送信され (`?q=`)、下の一覧リンクだけが見える。
+ * 見出し・説明・`<head>` は Rust の `SearchPage` (歌詞検索を出すかで言うことが変わる)。
+ */
+const search = page<SearchPage>(routeData("search", "/search/"));
+const site = meta();
+---
+
+<ListLayout seo={search.seo} title={search.title}>
+  <p slot="lede" class="u-muted">
+    {search.lede}
+  </p>
+  <SearchBox slot="lede" island placeholder="例: 未来 / HARUKA / 武道館" />
+
+  {/* 件数と文字数の上限は面ごとの定数としてコアにある (domain::search_limits)。 */}
+  <div class="search-panel" data-limit-per-kind={search.limitPerKind} data-lyrics-min-chars={search.lyricsMinChars}>
+    <p class="search-status" id="search-status" data-search-status aria-live="polite">
+      検索の準備をしています…
+    </p>
+    <div
+      class="search-results"
+      id="search-results"
+      role="region"
+      aria-label="検索結果"
+      data-search-results
+    >
+    </div>
+  </div>
+
+  <div class="empty" data-search-fallback>
+    <p class="empty__title">JavaScript を有効にすると、その場で結果が出ます</p>
+    <p class="empty__body">
+      無効のままでも、下の一覧からすべてのページに辿り着けます。
+    </p>
+  </div>
+
+  <nav class="u-row link-row" aria-label="一覧から辿る">
+    {site.primaryNav.map((l) => <a class="u-underline-hover" href={l.path}>{l.label}の一覧</a>)}
+  </nav>
+</ListLayout>
+
+<script>
+  import "../lib/search/island";
+</script>

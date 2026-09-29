@@ -18,8 +18,18 @@ enum AppAnalytics {
 
     /// アプリ起動時に1度呼ぶ。`GoogleService-Info.plist` がある時だけ Firebase を有効化する
     /// (無ければ計測は OSLog のみで no-op。クラッシュさせない)。
+    ///
+    /// テスト実行中は有効化しない。テストの起動を計測に混ぜたくないのが第一の理由。
+    /// 加えて **CI では `GoogleService-Info.plist` がダミー**で (秘匿ファイルなので gitignore、
+    /// ワークフローがプレースホルダを置いている)、その値で `FirebaseApp.configure()` を
+    /// 呼ぶと `FIRInstallations` が NSException を投げて**テストが起動前に abort する**。
+    /// Swift から ObjC の例外は捕まえられないので、呼ばないことでしか防げない。
     static func start() {
         #if canImport(FirebaseAnalytics)
+        guard !ProcessInfo.processInfo.isRunningTests else {
+            logger.info("analytics: テスト実行中 → 計測は OSLog のみ")
+            return
+        }
         if Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist") != nil {
             FirebaseApp.configure()
             logger.info("analytics: Firebase configured")

@@ -1,0 +1,86 @@
+---
+import ListLayout from "../layouts/ListLayout.astro";
+import Section from "./Section.astro";
+import RankBar from "./RankBar.astro";
+import type { RankingPage } from "../lib/schema/RankingPage";
+/**
+ * ランキング (全体 / ブランドごと)。数えるのは Rust (アプリの「調べる」と同じ関数)。
+ * 年ごとの公演数は縦の棒。棒の高さも「予定を含む年」の印も Rust が決める。
+ */
+interface Props {
+  page: RankingPage;
+}
+const { page: p } = Astro.props;
+---
+
+<ListLayout seo={p.seo} title={p.title} scope={p.scope}>
+  <p slot="lede" class="lede lede--wide">{p.lede}</p>
+
+  <div class="rank-grid">
+    {
+      p.songs.length > 0 && (
+        <Section id="rank-songs" title="よく披露される曲">
+          <ol class="card rank-list">
+            {p.songs.map((row) => (
+              <li>
+                <RankBar row={row} artwork />
+              </li>
+            ))}
+          </ol>
+        </Section>
+      )
+    }
+    {
+      p.idols.length > 0 && (
+        <Section id="rank-idols" title="出演公演が多いアイドル">
+          <ol class="card rank-list">
+            {p.idols.map((row) => (
+              <li>
+                <RankBar row={row} />
+              </li>
+            ))}
+          </ol>
+        </Section>
+      )
+    }
+  </div>
+
+  <div class:list={["rank-grid", p.brandSongs.length > 0 && "rank-grid--chart"]}>
+    {
+      p.brandSongs.length > 0 && (
+        <Section id="rank-brands" title="ブランド別の楽曲数">
+          <ul class="card rank-list rank-list--plain">
+            {p.brandSongs.map((row) => (
+              <li>
+                <RankBar row={row} short />
+              </li>
+            ))}
+          </ul>
+        </Section>
+      )
+    }
+    {
+      p.years.length > 0 && (
+        <Section id="rank-years" title="年ごとの公演数">
+          <figure class="card year-chart">
+            <ol class="year-chart__cols">
+              {p.years.map((y) => (
+                <li class:list={["year-chart__col", y.isPlanned && "year-chart__col--planned"]}>
+                  <span class="year-chart__value u-num">{y.value}</span>
+                  <svg class="year-chart__bar" viewBox="0 0 10 1000" preserveAspectRatio="none" aria-hidden="true">
+                    <rect x="0" y={1000 - y.sharePermille} width="10" height={y.sharePermille}></rect>
+                  </svg>
+                  <span class="year-chart__year u-num">
+                    <span class="u-visually-hidden">{y.year}</span>
+                    <span aria-hidden="true">{y.short}</span>
+                  </span>
+                </li>
+              ))}
+            </ol>
+            {p.yearsNote && <figcaption class="u-muted">{p.yearsNote}</figcaption>}
+          </figure>
+        </Section>
+      )
+    }
+  </div>
+</ListLayout>

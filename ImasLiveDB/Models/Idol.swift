@@ -48,11 +48,6 @@ struct Idol: Codable, FetchableRecord, PersistableRecord, Identifiable, Hashable
     /// 検索や画像インポートのキーマッチでも matched キーとして使う。
     var aliases: String?
 
-    /// 担当声優のカンマ区切り。 先頭が現役、 以降は過去 CV (古い順)。
-    /// 例: "中村繪里子" / "下田麻美" / "M・A・O,伊藤美来" (旧→現)。
-    /// Cast テーブル廃止により idol 単体で声優情報を保持する設計に移行済み。
-    var voiceActors: String?
-
     enum CodingKeys: String, CodingKey {
         case id, name, color, birthday, height, weight, age, bust, waist, hip
         case constellation, hobbies, talents, description, gender, handedness, nickname
@@ -68,7 +63,6 @@ struct Idol: Codable, FetchableRecord, PersistableRecord, Identifiable, Hashable
         case attribute
         case isExternal = "is_external"
         case aliases
-        case voiceActors = "voice_actors"
     }
 
     /// `aliases` カラムをカンマ区切りで分割した配列。空白 trim 済み。
@@ -76,15 +70,6 @@ struct Idol: Codable, FetchableRecord, PersistableRecord, Identifiable, Hashable
         guard let aliases, !aliases.isEmpty else { return [] }
         return aliases.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
     }
-
-    /// 担当声優一覧 (先頭が現役、 以降は過去 CV 古い順)。
-    var voiceActorList: [String] {
-        guard let voiceActors, !voiceActors.isEmpty else { return [] }
-        return voiceActors.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
-    }
-
-    /// 現役声優名 (リストの先頭)。
-    var currentVoiceActor: String? { voiceActorList.first }
 
     // MARK: - Computed
 
@@ -94,27 +79,6 @@ struct Idol: Codable, FetchableRecord, PersistableRecord, Identifiable, Hashable
         let parts = birthday.dropFirst(2).split(separator: "-")
         guard parts.count == 2, let m = Int(parts[0]), let d = Int(parts[1]) else { return birthday }
         return "\(m)月\(d)日"
-    }
-
-    /// 身長表示
-    var heightDisplay: String? {
-        guard let height else { return nil }
-        return height.truncatingRemainder(dividingBy: 1) == 0
-            ? "\(Int(height))cm" : "\(height)cm"
-    }
-
-    /// スリーサイズ表示
-    var threeSizeDisplay: String? {
-        guard let bust, let waist, let hip else { return nil }
-        return "B\(Int(bust)) W\(Int(waist)) H\(Int(hip))"
-    }
-
-    /// 誕生月（"--MM-DD" 形式から取得）
-    var birthMonth: Int? {
-        guard let birthday, birthday.hasPrefix("--") else { return nil }
-        let parts = birthday.dropFirst(2).split(separator: "-")
-        guard let first = parts.first, let month = Int(first) else { return nil }
-        return month
     }
 
     // MARK: - Associations
@@ -130,11 +94,13 @@ struct Idol: Codable, FetchableRecord, PersistableRecord, Identifiable, Hashable
 // MARK: - shortName
 
 extension Idol {
-    /// 表示用の短縮名。優先順位: nickname > given_name > name。
-    /// アルゴリズム推測は撤廃、DB カラム値を信頼する。
+    /// 表示用の短縮名 (アバターのモノグラム等)。優先順位: nickname > given_name > name。
+    ///
+    /// **規則の正は共有コア** (`imas-core: domain/snapshot.rs` の `idol_short_name`)。
+    /// 以前はここに同じ規則を手書きしていたため、Android には短縮名が無く、Web とも
+    /// 別々に育つ余地があった。`ImasTheme.derive` が `themeDerive` を呼ぶのと同じ形で、
+    /// 判断はコアに置き、ここは呼ぶだけにする。
     var shortName: String {
-        if let nick = nickname, !nick.isEmpty { return nick }
-        if let given = givenName, !given.isEmpty { return given }
-        return name
+        idolShortName(name: name, givenName: givenName, nickname: nickname)
     }
 }

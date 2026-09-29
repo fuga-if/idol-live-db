@@ -17,6 +17,10 @@ final class PollDetailViewModel {
     /// いずれかの投票/取消が進行中。連打・複数候補同時タップを直列化するガード。
     private(set) var isVoting = false
     var errorMessage: String?
+    /// お題削除の進行中フラグ (連打防止)。投票の連打ガード (isVoting) とは独立に扱う。
+    private(set) var isDeleting = false
+    /// 削除失敗時のエラーメッセージ。投票エラー (errorMessage) とは表示箇所が異なるため分離する。
+    var deleteErrorMessage: String?
 
     /// View の init (nonisolated) から生成できるよう init も nonisolated にする。
     nonisolated init(pollId: String, voting: any CommunityVoting) {
@@ -26,8 +30,8 @@ final class PollDetailViewModel {
 
     var poll: Poll? { detail?.poll }
 
-    /// 残り投票可能数 (1人3票まで)。
-    var remaining: Int { detail.map { max(0, 3 - $0.myVoteCount) } ?? 0 }
+    /// 残り投票可能数 (上限は CommunityVoteLimit が正)。
+    var remaining: Int { detail.map { CommunityVoteLimit.remaining(myVoteCount: $0.myVoteCount) } ?? 0 }
 
     func load() async {
         isLoading = true
@@ -64,8 +68,50 @@ final class PollDetailViewModel {
         }
     }
 
-    func delete() async {
-        try? await voting.deletePoll(id: pollId)
+    /// ピッカーで選択解除された既投票の候補をまとめて取り消す (曲/アイドル共通の entityId 配列)。
+    func unvoteForEntities(_ entityIds: [String]) async {
+        await mutate(errorText: "取消できませんでした") {
+            for id in entityIds {
+                let result = try await self.voting.unvotePoll(pollId: self.pollId, entityId: id)
+                self.applyVote(entityId: id, voteCount: result.voteCount, hasUserVoted: false, myVoteCount: result.myVoteCount)
+                LocalPollVoteLog.shared.removeVote(pollId: self.pollId, entityId: id)
+            }
+        }
+    }
+
+    /// アイドル/ユニットのピッカーの決定。選択差分から投票/取消をまとめて発火する。
+    /// 何を入れて何を取り消すかはコア (`planVoteSelection`)。選択は選択肢の表示順で渡し、
+    /// 選択肢に無い選択済みの id (一覧の読み込み前・絞り込みの外) も落とさず後ろに付ける。
+    /// 落とすと「外された」と読まれて、投票済みの票が黙って取り消される。
+    func applyPickerSelection(_ selectedIds: Set<String>, ordered: [String]) async {
+        guard let detail else { return }
+        let selectedInOrder = ordered.filter(selectedIds.contains)
+            + selectedIds.subtracting(ordered).sorted()
+        let plan = planVoteSelection(
+            alreadyVoted: detail.entries.filter(\.hasUserVoted).map(\.entityId),
+            selectedInOrder: selectedInOrder,
+            myVoteCount: UInt32(clamping: detail.myVoteCount), unvoteDeselected: true)
+        if !plan.toUnvote.isEmpty { await unvoteForEntities(plan.toUnvote) }
+        if !plan.toVote.isEmpty { await voteForEntities(plan.toVote) }
+    }
+
+    /// お題を削除する。成否を返す (呼び出し元は成功時のみ pop する)。
+    /// 連打防止のため isDeleting でガードし、失敗時は deleteErrorMessage にメッセージを立てる。
+    @discardableResult
+    func delete() async -> Bool {
+        guard !isDeleting else { return false }
+        isDeleting = true
+        defer { isDeleting = false }
+        deleteErrorMessage = nil
+        do {
+            try await voting.deletePoll(id: pollId)
+            AppAnalytics.event("poll_delete")
+            return true
+        } catch {
+            deleteErrorMessage = (error as? APIClientError)?.errorDescription ?? "削除に失敗しました。時間をおいて再試行してください。"
+            AppAnalytics.event("poll_delete_failed")
+            return false
+        }
     }
 
     // MARK: - Private

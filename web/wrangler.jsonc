@@ -1,0 +1,35 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // assets-only Worker: "main" を書かない。静的アセット配信は無料・リクエスト無制限・
+  // Worker 呼び出しは 0 回 (Web の絶対制約「ランニングコスト 0」。docs/ARCHITECTURE-web.md §2)。
+  // imas-live-api/wrangler.jsonc とは別ファイル・別 Worker 名。既存 Worker の設定・
+  // ルート・cron には一切触れない。
+  "name": "imas-live-web",
+  "compatibility_date": "2026-09-01",
+  // 独自ドメイン 1 本に寄せる。workers.dev を残すと同じ内容が 2 つの URL で引けて
+  // 検索評価が割れる (canonical は打っているが、そもそも 1 本の方が単純)。
+  "workers_dev": false,
+  // Custom Domain。zone は同じアカウントの Cloudflare 管理下にあるので、
+  // DNS レコードと証明書は wrangler が用意する。apex は別のものが動いているので
+  // サブドメインを使う。
+  //
+  // 2026-09 fugalabs.uk → fugaapp.site 移行。正規 URL は idollivedb.fugaapp.site 側
+  //（SITE_ORIGIN / astro の site / robots がこれを指す）。
+  //
+  // **旧ホストをこの配列から外さないこと。** 恒久 301（Cloudflare Redirect Rule）の
+  // 受け口として要る。また、ダッシュボードで Custom Domain を足しても、この配列に
+  // 書いていなければ次の `wrangler deploy` で配列の内容に上書きされて消える。
+  "routes": [
+    { "pattern": "idollivedb.fugaapp.site", "custom_domain": true },
+    { "pattern": "idollivedb.fugalabs.uk", "custom_domain": true },
+  ],
+  "assets": {
+    "directory": "./dist",
+    // astro.config.mjs の trailingSlash:"always" と対にする。
+    // /events/xxx を叩かれたら /events/xxx/ へ 308 で寄せ、URL を 1 本化する。
+    "html_handling": "force-trailing-slash",
+    // 未知パスは dist/404.html を 404 で返す。
+    "not_found_handling": "404-page"
+  },
+  "observability": { "enabled": false }
+}

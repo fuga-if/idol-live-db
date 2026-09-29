@@ -21,7 +21,8 @@ struct AttendedEventsListView: View {
     private var showsLiveViewingTab: Bool { !liveViewingSet.isEmpty }
 
     private var segmentLabels: [String] {
-        showsLiveViewingTab ? ["すべて", "現地", "配信", "LV"] : ["すべて", "現地", "配信"]
+        let types: [AttendanceType] = showsLiveViewingTab ? [.live, .stream, .liveViewing] : [.live, .stream]
+        return ["すべて"] + types.map(\.label)
     }
 
     private var filteredEvents: [EventWithDate] {

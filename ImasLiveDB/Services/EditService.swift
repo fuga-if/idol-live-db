@@ -219,7 +219,7 @@ final class EditService {
     /// マスタ編集の送信。admin は直接反映、一般ユーザーは修正リクエスト(issue)に回す。
     /// 呼び出し側は outcome で「ローカル楽観更新するか」「リクエスト受付表示にするか」を分岐する。
     func submitMaster(ops: [EditOperation], summary: String? = nil) async throws -> MasterEditOutcome {
-        if AuthService.shared.isAdmin {
+        if AuthService.shared.adminCapabilities.canApplyMasterEditDirectly {
             return .applied(try await submit(ops: ops, summary: summary))
         } else {
             return .requested(try await submitRequest(ops: ops, summary: summary))

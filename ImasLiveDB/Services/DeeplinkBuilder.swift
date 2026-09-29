@@ -11,18 +11,18 @@ enum DeeplinkBuilder {
     static let customScheme = "imaslivedb"
 
     /// イベント詳細への共有 URL (https://…/app/events/{eventId})。
-    /// `appending(components:)` が ID を URL エンコードする (TEXT PK は ASCII だが念のため)。
-    static func eventURL(id: String) -> URL {
-        universalLinkBase.appending(components: "app", "events", id)
-    }
+    ///
+    /// 組み立て (ID の `@` を `%40` にする等) はコアが持つ。`@` を生で残すと、SNS の
+    /// リンク検出がメールアドレスの境界と誤認して URL をそこで切る。
+    static func eventURL(id: String) -> URL { url(shareEventUrl(id: id)) }
 
     /// 公演セトリへの共有 URL (https://…/app/shows/{showId})。
-    static func showURL(id: String) -> URL {
-        universalLinkBase.appending(components: "app", "shows", id)
-    }
+    static func showURL(id: String) -> URL { url(shareShowUrl(id: id)) }
 
-    /// SNS シェア文。イベント名/公演名 + URL のシンプルな形式。
-    static func shareText(name: String, url: URL) -> String {
-        "\(name)\n\(url.absoluteString)"
+    /// みんなの投票のお題への共有 URL (https://…/app/polls/{pollId})。
+    static func pollURL(id: String) -> URL { url(sharePollUrl(id: id)) }
+
+    private static func url(_ string: String) -> URL {
+        URL(string: string) ?? universalLinkBase
     }
 }

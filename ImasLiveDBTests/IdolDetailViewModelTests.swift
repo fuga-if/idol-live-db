@@ -13,10 +13,12 @@ final class IdolDetailViewModelTests: XCTestCase {
 
     private struct FakeIdolReading: IdolReading {
         var unitsToReturn: [ImasLiveDB.Unit] = []
+        var sectionsToReturn: [IdolSongSection] = []
 
         func idolUnits(idolId: String) async throws -> [ImasLiveDB.Unit] { unitsToReturn }
         // 詳細ロードで呼ばれるが本テストでは空で十分。
         func idolSongs(idolId: String, role: String?) async throws -> [Song] { [] }
+        func idolOriginalSongSections(idolId: String) async throws -> [IdolSongSection] { sectionsToReturn }
         func idolPerformedSongs(idolId: String) async throws -> [IdolPerformedSong] { [] }
         func idolShows(idolId: String) async throws -> [CastShowRow] { [] }
 
@@ -24,6 +26,7 @@ final class IdolDetailViewModelTests: XCTestCase {
         func idols(brandId: String?) async throws -> [Idol] { [] }
         func idol(id: String) async throws -> Idol? { nil }
         func idols(ids: [String]) async throws -> [Idol] { [] }
+        func similarIdols(from candidates: [SimilarIdolCandidate]) async throws -> [Idol] { [] }
         func idols(criterion: IdolFilterCriterion) async throws -> [Idol] { [] }
         func idolCastNames() async throws -> [String: String] { [:] }
         func idolsByVoiceActor(name: String) async throws -> [Idol] { [] }
@@ -47,7 +50,6 @@ final class IdolDetailViewModelTests: XCTestCase {
         func unit(id: String) async throws -> ImasLiveDB.Unit? { nil }
         func unitMembers(unitId: String) async throws -> [Idol] { [] }
         func unitSongs(unitId: String) async throws -> [Song] { [] }
-        func performedUnitIds(eventId: String) async throws -> Set<String> { [] }
         func allUnits() async throws -> [ImasLiveDB.Unit] { [] }
     }
 
@@ -68,7 +70,7 @@ final class IdolDetailViewModelTests: XCTestCase {
             sortOrder: 0, birthday: nil, bloodType: nil, height: nil, weight: nil,
             birthPlace: nil, age: nil, bust: nil, waist: nil, hip: nil, constellation: nil,
             hobbies: nil, talents: nil, description: nil, gender: nil, handedness: nil,
-            debutDate: nil, attribute: nil, aliases: nil, voiceActors: nil)
+            debutDate: nil, attribute: nil, aliases: nil)
     }
 
     // MARK: - Tests
@@ -86,6 +88,22 @@ final class IdolDetailViewModelTests: XCTestCase {
         XCTAssertEqual(vm.units.map(\.id), ["u1", "u2", "u3"])
         XCTAssertEqual(vm.unitsWithSongs.map(\.id), ["u1", "u3"])
         XCTAssertEqual(vm.unitsWithoutSongs.map(\.id), ["u2"])
+    }
+
+    func testInitialSongSectionHeadingIsTheFirstNonEmptySection() async {
+        let sections = [
+            IdolSongSection(heading: "ソロ曲", shortHeading: "ソロ", songs: [makeStubSong("s1")]),
+            IdolSongSection(heading: "カバー", shortHeading: "カバー", songs: [makeStubSong("s2")]),
+        ]
+        let vm = IdolDetailViewModel(
+            idolReading: FakeIdolReading(sectionsToReturn: sections),
+            brandReading: FakeBrandReading(),
+            unitReading: FakeUnitReading())
+
+        await vm.loadDetails(idol: makeIdol("i", brandId: "cg"))
+
+        // 小タブで初めに選ぶのは、コアが返した節の先頭 (曲がある最初の枠)。
+        XCTAssertEqual(vm.initialSongSectionHeading, "ソロ曲")
     }
 
     func testLoadResolvesBrandByIdolBrandId() async {

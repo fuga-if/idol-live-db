@@ -40,8 +40,13 @@ struct SeatEditorSheet: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("保存") {
                         AppAnalytics.tap("seat_editor.save")
-                        try? markService.setSeat(entity: entity, id: entityId, text: draft)
-                        dismiss()
+                        do {
+                            try markService.setSeat(entity: entity, id: entityId, text: draft)
+                            dismiss()
+                        } catch {
+                            // 書けなかったら閉じない (入れた座席を捨てずに、もう一度押せるように)。
+                            LocalWriteFailure.report(error, action: "座席の保存")
+                        }
                     }
                     .fontWeight(.semibold)
                 }

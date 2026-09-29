@@ -1,0 +1,12 @@
+---
+import SongListView from "../../components/SongListView.astro";
+import { page, routeData } from "../../lib/data";
+import type { SongListPage } from "../../lib/schema/SongListPage";
+/**
+ * 一覧規則 (SongListFilter の既定) から外れる曲のためのハブ (DECISIONS A8)。
+ * `seo.robots` は Rust が noindex にしている。
+ */
+const list = page<SongListPage>(routeData("songListAll", "/songs/all/"));
+---
+
+<SongListView list={list} />

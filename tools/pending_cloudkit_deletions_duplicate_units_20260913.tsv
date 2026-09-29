@@ -1,0 +1,46 @@
+# 表示クレジットから id を作ったせいで分裂したユニット (2026-09-13)。
+# `315 STARS(インテリ Ver.)` と `315 STARS(インテリVer.)` のように盤ごとの綴りの揺れが
+# そのまま別 id になり、`315 STARS（DRAMATIC STARS、…）` は括弧が落ちて
+# `unit_315_starsdramatic_stars` (構成員 3 人) という別ユニットになっていた。
+# 残す側へ曲と song_units を付け替えたので、この 3 ユニットと配下の unit_members は不要。
+# master.sqlite / db/master.sql からは削除済み。CloudKit から消さないと日次 cron で復活する。
+ImasUnit	unit_315_starsdramatic_stars
+UnitMember	unit_members-unit_315_starsdramatic_stars-sidem_天道輝
+UnitMember	unit_members-unit_315_starsdramatic_stars-sidem_柏木翼
+UnitMember	unit_members-unit_315_starsdramatic_stars-sidem_桜庭薫
+ImasUnit	unit_315_starsインテリver
+UnitMember	unit_members-unit_315_starsインテリver-sidem_九十九一希
+UnitMember	unit_members-unit_315_starsインテリver-sidem_伊集院北斗
+UnitMember	unit_members-unit_315_starsインテリver-sidem_冬美旬
+UnitMember	unit_members-unit_315_starsインテリver-sidem_古論クリス
+UnitMember	unit_members-unit_315_starsインテリver-sidem_天峰秀
+UnitMember	unit_members-unit_315_starsインテリver-sidem_山下次郎
+UnitMember	unit_members-unit_315_starsインテリver-sidem_岡村直央
+UnitMember	unit_members-unit_315_starsインテリver-sidem_握野英雄
+UnitMember	unit_members-unit_315_starsインテリver-sidem_東雲荘一郎
+UnitMember	unit_members-unit_315_starsインテリver-sidem_桜庭薫
+UnitMember	unit_members-unit_315_starsインテリver-sidem_榊夏来
+UnitMember	unit_members-unit_315_starsインテリver-sidem_猫柳キリオ
+UnitMember	unit_members-unit_315_starsインテリver-sidem_硲道夫
+UnitMember	unit_members-unit_315_starsインテリver-sidem_神楽麗
+UnitMember	unit_members-unit_315_starsインテリver-sidem_葛之葉雨彦
+UnitMember	unit_members-unit_315_starsインテリver-sidem_蒼井享介
+UnitMember	unit_members-unit_315_starsインテリver-sidem_鷹城恭二
+UnitMember	unit_members-unit_315_starsインテリver-sidem_黒野玄武
+ImasUnit	unit_315_starsメンタルver
+UnitMember	unit_members-unit_315_starsメンタルver-sidem_ピエール
+UnitMember	unit_members-unit_315_starsメンタルver-sidem_信玄誠司
+UnitMember	unit_members-unit_315_starsメンタルver-sidem_北村想楽
+UnitMember	unit_members-unit_315_starsメンタルver-sidem_卯月巻緒
+UnitMember	unit_members-unit_315_starsメンタルver-sidem_姫野かのん
+UnitMember	unit_members-unit_315_starsメンタルver-sidem_御手洗翔太
+UnitMember	unit_members-unit_315_starsメンタルver-sidem_柏木翼
+UnitMember	unit_members-unit_315_starsメンタルver-sidem_清澄九郎
+UnitMember	unit_members-unit_315_starsメンタルver-sidem_神谷幸広
+UnitMember	unit_members-unit_315_starsメンタルver-sidem_秋月涼
+UnitMember	unit_members-unit_315_starsメンタルver-sidem_舞田類
+UnitMember	unit_members-unit_315_starsメンタルver-sidem_花園百々人
+UnitMember	unit_members-unit_315_starsメンタルver-sidem_若里春名
+UnitMember	unit_members-unit_315_starsメンタルver-sidem_華村翔真
+UnitMember	unit_members-unit_315_starsメンタルver-sidem_蒼井悠介
+UnitMember	unit_members-unit_315_starsメンタルver-sidem_都築圭

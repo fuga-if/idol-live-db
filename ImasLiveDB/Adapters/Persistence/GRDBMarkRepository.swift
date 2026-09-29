@@ -5,10 +5,10 @@ struct GRDBMarkRepository: MarkReading {
     let database: AppDatabase
 
     func markedEntityIds(entity: UserMarkEntity, kind: UserMarkKind) async throws -> [String] {
-        try database.fetchMarkedEntityIds(entity: entity, kind: kind)
+        try await database.fetchMarkedEntityIdsAsync(entity: entity, kind: kind)
     }
 
     func autoCollectedSongIds() async throws -> Set<String> {
-        try database.fetchAutoCollectedSongIds()
+        try await database.fetchAutoCollectedSongIdsAsync()
     }
 }

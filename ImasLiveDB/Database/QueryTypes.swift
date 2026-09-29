@@ -1,4 +1,5 @@
 import Foundation
+import os
 import GRDB
 
 // MARK: - Show Query Types
@@ -48,13 +49,21 @@ struct EventWithDate: Sendable, Identifiable, Hashable {
     var firstDate: String?
     var lastDate: String?
 
-    /// 表示用の開催日。複数日なら "first〜last"、単日なら first のみ。
-    var dateRange: String? {
-        guard let first = firstDate, !first.isEmpty else { return nil }
-        if let last = lastDate, !last.isEmpty, last != first {
-            return "\(first)〜\(last)"
-        }
-        return first
+    /// 表示用の開催期間 (曜日つき・複数日は ` 〜 ` で結ぶ。Web と同じ)。組み方はコアの
+    /// `date_range_display`。一覧の行ごとに FFI を呼ばないよう、日付の組ごとに覚える。
+    var dateRange: String? { EventDateRanges.display(first: firstDate, last: lastDate) }
+}
+
+private enum EventDateRanges {
+    private struct Key: Hashable { let first: String?; let last: String? }
+    private static let cache = OSAllocatedUnfairLock<[Key: String?]>(initialState: [:])
+
+    static func display(first: String?, last: String?) -> String? {
+        let key = Key(first: first, last: last)
+        if let cached = cache.withLock({ $0[key] }) { return cached }
+        let value = dateRangeDisplay(first: first, last: last)
+        cache.withLock { $0[key] = .some(value) }
+        return value
     }
 }
 
@@ -69,21 +78,6 @@ struct EventStats: Codable, FetchableRecord, Sendable {
         case totalSongs = "total_songs"
         case uniqueSongs = "unique_songs"
         case castCount = "cast_count"
-    }
-}
-
-struct EventCastRow: Codable, FetchableRecord, Identifiable, Sendable {
-    var id: String
-    var name: String
-    var idolColor: String?
-    var idolName: String?
-    var idolId: String?
-
-    enum CodingKeys: String, CodingKey {
-        case id, name
-        case idolColor = "idol_color"
-        case idolName = "idol_name"
-        case idolId = "idol_id"
     }
 }
 
@@ -155,11 +149,16 @@ struct SongPlayCount: Codable, FetchableRecord, Identifiable, Sendable {
     var title: String
     var playCount: Int
     var brandId: String?
+    /// 一覧のジャケは `songs.artwork_url` の直参照が正本 (URL を組み立てない)。
+    /// **ここに無いと画面は出しようがない** — 実際、この型にだけ無かったせいで
+    /// 回収率ダッシュボードの披露回数ランキングだけジャケが出ていなかった。
+    var artworkUrl: String?
 
     enum CodingKeys: String, CodingKey {
         case id, title
         case playCount = "play_count"
         case brandId = "brand_id"
+        case artworkUrl = "artwork_url"
     }
 }
 
@@ -245,40 +244,34 @@ struct UncollectedSong: Identifiable, Sendable {
     let song: Song
     /// この曲がリアルライブで披露された累計回数 (全ユーザ共通の客観値)。
     let playCount: Int
-
-    /// 披露頻度のラベル。閾値はざっくり: 10+ 定番 / 3+ ときどき / 1+ レア / 0 未披露。
-    var frequencyLabel: String {
-        switch playCount {
-        case 10...: return "定番"
-        case 3...:  return "ときどき"
-        case 1...:  return "レア"
-        default:    return "未披露"
-        }
-    }
+    /// 披露頻度の区分とその文言。閾値は imas-core (`PlayFrequency`) が持つ。
+    let frequency: PlayFrequency
+    let frequencyLabel: String
 }
 
-/// 未来公演ごとの「未回収が聴けるかも」スコア。
-/// score = この公演の親イベント (シリーズ) が過去に未回収曲を披露した延べ回数。
+/// 未来公演ごとの「未回収が聴けるかも」。
 struct UpcomingCatchChance: Identifiable, Sendable {
     var id: String { show.id }
     let show: Show
     let eventName: String
+    /// 「イベント名を省略」が ON のときに出す名前 (省略の規則は imas-core)。
+    let eventShortName: String
     let brandId: String?
     let brandColor: String?
     /// 過去の同系統セトリに登場した「自分の未回収曲」の異なり数。
     let likelyCount: Int
 }
 
-struct SyncDiagnostics: Sendable, Equatable {
-    var eventsAt: Int
-    var showsAt: Int
-    var setlistItemsAt: Int
-    var ml13thLiveExists: Bool
-    var ml13thShowsCount: Int
-    var ml13thSetlistItemsCount: Int
-    var sc8thName: String?
-    var sc8thKind: String?
-    var sc8thShowsCount: Int
+/// 回収ダッシュボード 1 画面ぶん (imas-core `collection_dashboard` の写し)。
+struct CollectionDashboard: Sendable {
+    let overallCollected: Int
+    let overallTotal: Int
+    let brandProgress: [BrandCollectionProgress]
+    let myPickCollected: Int
+    let myPickTotal: Int
+    let pickUncollected: [UncollectedSong]
+    let allUncollected: [UncollectedSong]
+    let catchChances: [UpcomingCatchChance]
 }
 
 struct YearlyShowCount: Codable, FetchableRecord, Identifiable, Sendable {
@@ -291,16 +284,6 @@ struct YearlyShowCount: Codable, FetchableRecord, Identifiable, Sendable {
         case year
         case showCount = "show_count"
     }
-}
-
-// MARK: - Search
-
-struct SearchResults: Sendable {
-    var songs: [Song]
-    var idols: [Idol]
-    var events: [Event]
-
-    var isEmpty: Bool { songs.isEmpty && idols.isEmpty && events.isEmpty }
 }
 
 // MARK: - Song List Row
@@ -355,6 +338,18 @@ struct IdolPerformedSong: Identifiable, Sendable {
     var id: String { song.id }
     var song: Song
     var performCount: Int
+}
+
+/// アイドル詳細「楽曲（原曲）」の 1 節 (ソロ曲/ユニット曲/全体曲/カバー/その他)。
+/// 節分け・見出し・並びは共有コア (`idol_original_song_sections`) が決める
+/// (親曲を持つ派生曲の除外、カバーの独立節化も含む)。
+/// 見出しは節ごとに異なるので Identifiable の id・小タブの選択値にそのまま使える。
+struct IdolSongSection: Identifiable, Sendable {
+    var id: String { heading }
+    var heading: String
+    /// 小タブに出す短い見出し (「ソロ」等)。件数と組み合わせて「ソロ 12」のように使う。
+    var shortHeading: String
+    var songs: [Song]
 }
 
 enum IdolFilterCriterion: Hashable, Sendable {
@@ -415,7 +410,10 @@ enum TicketDateKind: String, Sendable {
     case deadline   // 申込締切
     case lottery    // 当落発表
 
-    var label: String { self == .deadline ? "申込締切" : "当落発表" }
+    /// 語はコアの vocabulary (値は events の列名)。
+    var label: String {
+        Vocab.ticketDate(self == .deadline ? "ticket_deadline" : "ticket_lottery_date")?.label ?? ""
+    }
     var icon: String { self == .deadline ? "ticket.fill" : "envelope.open.fill" }
 }
 
@@ -442,11 +440,13 @@ struct TicketPeriodRow: Sendable {
 enum CalendarEntry: Identifiable, Hashable, Sendable {
     case show(CalendarShowRow)
     case release(date: String, songs: [Song])
-    case birthday(Idol)
+    /// 誕生日。`occursOn` は表示範囲の中の実際の日 (`YYYY-MM-DD`)。月日の展開
+    /// (非閏年の 2/29 は 2/28) はコアの `calendar_entries` が済ませている。
+    case birthday(Idol, occursOn: String)
     /// 「アイドル本人ではない関係者」(事務員・社長・幹部) の誕生日。
-    case staffBirthday(Staff)
+    case staffBirthday(Staff, occursOn: String)
     /// ブランド/アプリ記念日 (サービス開始・アプリ稼働・アニメ放映 等)。N周年表示用。
-    case anniversary(Anniversary)
+    case anniversary(Anniversary, occursOn: String)
     /// 端末カレンダーから取り込んだマイ予定 (アプリ内表示のみ。DB には保存しない)
     case personal(PersonalCalendarEvent)
     /// チケット日程 (申込締切 / 当落発表)。
@@ -460,9 +460,9 @@ enum CalendarEntry: Identifiable, Hashable, Sendable {
         switch self {
         case .show(let row): return "show_\(row.show.id)"
         case .release(let date, let songs): return "release_\(date)_\(songs.map(\.id).sorted().joined(separator: "_"))"
-        case .birthday(let idol): return "birthday_\(idol.id)"
-        case .staffBirthday(let staff): return "staffbirthday_\(staff.id)"
-        case .anniversary(let ann): return "anniversary_\(ann.id)"
+        case .birthday(let idol, _): return "birthday_\(idol.id)"
+        case .staffBirthday(let staff, _): return "staffbirthday_\(staff.id)"
+        case .anniversary(let ann, _): return "anniversary_\(ann.id)"
         case .personal(let event): return "personal_\(event.id)"
         case .ticket(let row): return "ticket_\(row.eventId)_\(row.kind.rawValue)"
         case .ticketPeriod(let row): return "ticketperiod_\(row.eventId)"
@@ -486,11 +486,11 @@ enum CalendarEntry: Identifiable, Hashable, Sendable {
         switch self {
         case .show(let row): return row.show.date
         case .release(let date, _): return date
-        case .birthday(let idol):
+        case .birthday(let idol, _):
             return idol.birthday ?? ""
-        case .staffBirthday(let staff):
+        case .staffBirthday(let staff, _):
             return staff.birthday ?? ""
-        case .anniversary(let ann):
+        case .anniversary(let ann, _):
             return ann.date
         case .personal(let event):
             return event.start.formatted(.iso8601.year().month().day().dateSeparator(.dash))
@@ -543,6 +543,9 @@ struct SongSearchFilter: Sendable {
     /// セトリ追加で生まれただけの曲 (カバー・歌枠等) をカタログから隠す。
     /// apple_music_id 未補完でもメタを持つ正規曲は出す (配信有無では切らない)。
     var excludeLiveOnly: Bool = false
+    /// 音楽カードゲーム「KAMISABI」の収録曲だけに絞るか。既定 false (絞らない)。
+    /// 判定はコア (`SongListFilter.kamisabiOnly`) に渡すだけで、Swift 側では判定しない。
+    var kamisabiOnly: Bool = false
 
     init(brandIds: Set<String> = [],
          title: String? = nil,
@@ -645,23 +648,15 @@ enum SongSortOrder: String, CaseIterable, Sendable {
         case .releaseDate, .performanceCount, .collectedCount, .collectedRate: return false
         }
     }
-}
 
-/// 楽曲一覧のソート方向。 SongSortOrder と直交させて、 UI から昇降を反転できるようにする。
-enum SongSortDirection: String, CaseIterable, Sendable {
-    case ascending = "昇順"
-    case descending = "降順"
-}
-
-// MARK: - Event Absence Info
-
-struct EventAbsenceInfo: Sendable {
-    let totalIdols: Int
-    let presentIdols: [Idol]
-    let absentIdols: [Idol]
-
-    var brandTotal: Int { totalIdols }
-    var isFullAttendance: Bool { absentIdols.isEmpty && totalIdols > 0 }
+    /// 一覧行に披露回数を出すか。
+    ///
+    /// 披露回数そのもので並べている時と、その比 (回収率) で並べている時。
+    /// 数値を出さないと「なぜこの順なのか」が行から読み取れない。
+    /// 現地回収回数順は行の ✓N バッジが既に根拠になっているので要らない。
+    var showsPerformanceCount: Bool {
+        self == .performanceCount || self == .collectedRate
+    }
 }
 
 // MARK: - Event Attendance (show-level)
@@ -726,77 +721,19 @@ struct EventAttendance: Sendable {
         return brandIdols.filter { ids.contains($0.id) }
     }
 
-    /// 日付カテゴリでアイドルをグループ化。
-    /// 複数日公演なら「全日」「特定日のみ」「欠席」を、
-    /// 単一日公演なら「出席」「欠席」のみを返す。
+    /// 出演状況の塊 (「全日」「DAY1・DAY3 のみ」「欠席」、単日公演は「出演」「欠席」)。
+    /// 塊の切り方・見出し・並びはコア (`EventAttendanceRecord.groups`)。
     struct Group: Identifiable {
         let id: String
         let label: String
         let idols: [Idol]
     }
 
-    func grouped() -> [Group] {
-        guard !brandIdols.isEmpty else { return [] }
-        let allShowIds = shows.map(\.id)
-        let totalDays = allShowIds.count
+    var groups: [Group] = []
 
-        // 各 idol がどの show に出たか
-        var showsByIdol: [String: [String]] = [:]  // 出演した show_id の list (順序付き)
-        for show in shows {
-            let ids = presenceByShow[show.id] ?? []
-            for iid in ids {
-                showsByIdol[iid, default: []].append(show.id)
-            }
-        }
-
-        // グループ別
-        // - "全日" (全 show に出演)
-        // - "\(日付)のみ" or "\(ラベル)のみ"
-        // - "欠席"
-        var byKey: [(order: Int, label: String, idols: [Idol])] = []
-        var added: [String: Int] = [:]  // label → index
-
-        func bucket(label: String, order: Int, idol: Idol) {
-            if let idx = added[label] {
-                byKey[idx].idols.append(idol)
-            } else {
-                byKey.append((order, label, [idol]))
-                added[label] = byKey.count - 1
-            }
-        }
-
-        let showLabelById: [String: String] = Dictionary(uniqueKeysWithValues: shows.enumerated().map { idx, sh in
-            // 複数日公演なら DAY番号、単一ならただ日付
-            if totalDays > 1 {
-                return (sh.id, "DAY\(idx + 1)")
-            }
-            return (sh.id, sh.name)
-        })
-
-        let showIndexById: [String: Int] = Dictionary(
-            uniqueKeysWithValues: shows.enumerated().map { ($0.element.id, $0.offset) }
-        )
-
-        for idol in brandIdols {
-            let attended = showsByIdol[idol.id] ?? []
-            if attended.isEmpty {
-                bucket(label: "欠席", order: 999, idol: idol)
-            } else if attended.count == totalDays {
-                bucket(label: totalDays > 1 ? "全日" : "出演", order: 0, idol: idol)
-            } else {
-                let labels = attended.compactMap { showLabelById[$0] }
-                let combined = labels.joined(separator: "・")
-                // 「DAY1 のみ」→「DAY2 のみ」→ … の順を安定化させるため、
-                // 出演開始日 (= attended の最小 show index) を主キーに、出演日数を副キーに使う。
-                let firstIdx = attended.compactMap { showIndexById[$0] }.min() ?? 0
-                let order = 100 + firstIdx * 10 + attended.count
-                bucket(label: "\(combined) のみ", order: order, idol: idol)
-            }
-        }
-
-        byKey.sort { $0.order < $1.order }
-        return byKey.map { Group(id: $0.label, label: $0.label, idols: $0.idols) }
-    }
+    /// 出演者を覆う、このイベントで歌唱されたユニット (採った順)。選び方はコア
+    /// (`EventAttendanceRecord.coveringUnitIds`: 2 人以上・曲あり・大きい順の貪欲)。
+    var coveringUnitIds: [String] = []
 }
 
 // MARK: - GridCardItem Conformance
@@ -805,7 +742,7 @@ extension AlbumSummary: GridCardItem {
     var title: String { cdSeries }
     var subtitle: String? {
         var parts: [String] = ["\(songCount)曲"]
-        if let year = displayYear { parts.append(year) }
+        if let year = yearDisplay { parts.append(year) }
         return parts.joined(separator: " / ")
     }
     var placeholderSystemImage: String { "music.note" }
@@ -815,7 +752,7 @@ extension SeriesSummary: GridCardItem {
     var title: String { name }
     var subtitle: String? {
         var parts: [String] = ["\(cdCount)枚 / \(songCount)曲"]
-        if let years = yearRange { parts.append("· \(years)") }
+        if let years = yearDisplay { parts.append("· \(years)") }
         return parts.joined(separator: " ")
     }
     var placeholderSystemImage: String { "rectangle.stack.fill" }
@@ -831,8 +768,8 @@ struct AlbumSummary: Identifiable, Hashable, Sendable {
     let earliestDate: String?  // "YYYY-MM-DD"
     let latestDate: String?
     let brandIds: [String]  // このアルバムに含まれる曲のブランド（複数ブランド混在の可能性）
-
-    var displayYear: String? { earliestDate.flatMap { String($0.prefix(4)) } }
+    /// 札に出す年の幅 (`2019` / `2019 – 2021`)。組み方はコア。
+    let yearDisplay: String?
 }
 
 // MARK: - Series Summary (CDシリーズグループ単位)
@@ -846,16 +783,6 @@ struct SeriesSummary: Identifiable, Hashable, Sendable {
     let latestDate: String?
     let artworkUrl: String?   // 代表ジャケット（最古CDのもの）
     let brandIds: [String]
-
-    var yearRange: String? {
-        let from = earliestDate.flatMap { String($0.prefix(4)) }
-        let to = latestDate.flatMap { String($0.prefix(4)) }
-        switch (from, to) {
-        case let (f?, t?) where f == t: return f
-        case let (f?, t?): return "\(f) – \(t)"
-        case let (f?, nil): return f
-        case let (nil, t?): return t
-        default: return nil
-        }
-    }
+    /// 札に出す年の幅 (`2019` / `2019 – 2021`)。組み方はコア。
+    let yearDisplay: String?
 }

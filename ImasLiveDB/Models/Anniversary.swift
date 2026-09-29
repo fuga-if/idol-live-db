@@ -42,6 +42,10 @@ enum AnniversaryKind: String, CaseIterable {
     case animeStart = "anime_start"
     case movieRelease = "movie_release"
     case cdDebut = "cd_debut"
+    /// サービス終了。年表では「いつまで動いていたか」を示す重要な節目になる。
+    case serviceEnd = "service_end"
+    /// 受賞・記録達成。ギネス世界記録など、シリーズの節目になった出来事。
+    case award = "award"
 
     /// 表示アイコン (SF Symbol)。
     var systemImage: String {
@@ -51,6 +55,8 @@ enum AnniversaryKind: String, CaseIterable {
         case .animeStart: return "tv"
         case .movieRelease: return "film"
         case .cdDebut: return "opticaldisc"
+        case .serviceEnd: return "moon.zzz"
+        case .award: return "trophy"
         }
     }
 }

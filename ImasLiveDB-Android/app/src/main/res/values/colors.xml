@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 起動時のウィンドウ背景。アプリ本体の背景 (DS.bg) と同じ値にして、
+         Compose が描き始めるまでの一瞬に別の色が挟まらないようにする。 -->
+    <color name="window_background">#F2F2F7</color>
+</resources>

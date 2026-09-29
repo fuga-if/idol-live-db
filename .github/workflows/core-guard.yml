@@ -1,0 +1,75 @@
+name: core-guard
+
+# 共有コア (imas-core) のテスト。
+# ここには「同梱 DB のスキーマが台帳どおりか」の突き合わせも入っている
+# (schema_registry)。iOS/Android のどちらか片方にだけスキーマ変更を入れた事故を
+# ここで捕まえるのが狙い。
+on:
+  pull_request:
+    paths:
+      - "imas-core/**"
+      - "imas-text-fold/**"
+      - "web/wasm/imas-query-wasm/**"
+      - "db/master.sql"
+      # 下の Build master.sqlite の段で実行している (壊れたら FK ゲートが黙って外れる)
+      - "tools/build_db.sh"
+      - "tools/check_fk_integrity.py"
+      - "ImasLiveDB-Android/app/schemas/**"
+      - ".github/workflows/core-guard.yml"
+  push:
+    branches: [develop, main]
+    paths:
+      - "imas-core/**"
+      - "imas-text-fold/**"
+      - "web/wasm/imas-query-wasm/**"
+      - "db/master.sql"
+      - "tools/build_db.sh"
+      - "tools/check_fk_integrity.py"
+      - "ImasLiveDB-Android/app/schemas/**"
+      - ".github/workflows/core-guard.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Install Rust
+        run: rustup toolchain install stable --profile minimal
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            imas-core/target
+            imas-text-fold/target
+            web/wasm/imas-query-wasm/target
+          key: cargo-${{ runner.os }}-${{ hashFiles('imas-core/Cargo.lock', 'imas-text-fold/Cargo.lock', 'web/wasm/imas-query-wasm/Cargo.lock') }}
+
+      # テストは同梱 master.sqlite を読む (スキーマ突き合わせ・実データ照合)。
+      # gitignore 対象なので db/master.sql から作る。
+      - name: Build master.sqlite from db/master.sql
+        run: bash tools/build_db.sh
+
+      - name: Test
+        working-directory: imas-core
+        run: cargo test --locked
+
+      # agent feature は既定 off なので、これを足さないと src/agent/** と
+      # bin/imas-mcp が CI で 1 度もコンパイルされない (壊れても緑のまま)。
+      - name: Test (agent feature)
+        working-directory: imas-core
+        run: cargo test --locked --features agent
+
+      # 畳み込み規則と一覧の絞り込み wasm は、imas-core とは別の Cargo プロジェクト。
+      # 上の cargo test には入らないので、ここで個別に走らせる。
+      - name: Test (imas-text-fold)
+        run: cargo test --locked --manifest-path imas-text-fold/Cargo.toml
+
+      # 同梱 master.sqlite を読む (上の Build master.sqlite の段で作ったもの)。
+      - name: Test (imas-query-wasm)
+        run: cargo test --locked --manifest-path web/wasm/imas-query-wasm/Cargo.toml

@@ -4,21 +4,21 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.fugaif.imaslivedb.data.model.Brand
-import com.fugaif.imaslivedb.data.model.BrandCollectionProgress
 import com.fugaif.imaslivedb.data.model.BrandSongCount
 import com.fugaif.imaslivedb.data.model.CastShowCount
 import com.fugaif.imaslivedb.data.model.DatabaseStats
 import com.fugaif.imaslivedb.data.model.FavoriteRankingEntry
 import com.fugaif.imaslivedb.data.model.Show
 import com.fugaif.imaslivedb.data.model.SongPlayCount
-import com.fugaif.imaslivedb.data.model.UncollectedSong
-import com.fugaif.imaslivedb.data.model.UpcomingCatchChance
 import com.fugaif.imaslivedb.data.model.YearlyShowCount
 import com.fugaif.imaslivedb.di.AppModule
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import uniffi.imas_core.BrandCollectionProgressRecord
+import uniffi.imas_core.CatchChanceRecord
+import uniffi.imas_core.UncollectedSongRecord
 
 /** 未回収リストのスコープ (iOS UncollectedScope の移植)。 */
 enum class UncollectedScope { MY_PICK, ALL }
@@ -29,16 +29,16 @@ data class StatsUiState(
     // 回収サマリー + ブランド別回収率
     val overallCollected: Int = 0,
     val overallTotal: Int = 0,
-    val brandProgress: List<BrandCollectionProgress> = emptyList(),
+    val brandProgress: List<BrandCollectionProgressRecord> = emptyList(),
 
     // この公演で聴けるかも
-    val catchChances: List<UpcomingCatchChance> = emptyList(),
+    val catchChances: List<CatchChanceRecord> = emptyList(),
 
     // まだ生で聴けていない曲
     val isLoadingDashboard: Boolean = true,
     val uncollectedScope: UncollectedScope = UncollectedScope.MY_PICK,
-    val pickUncollected: List<UncollectedSong> = emptyList(),
-    val allUncollected: List<UncollectedSong> = emptyList(),
+    val pickUncollected: List<UncollectedSongRecord> = emptyList(),
+    val allUncollected: List<UncollectedSongRecord> = emptyList(),
     val myPickCollected: Int = 0,
     val myPickTotal: Int = 0,
 
@@ -60,7 +60,7 @@ data class StatsUiState(
     val castShowCounts: List<CastShowCount> = emptyList(),
     val databaseStats: DatabaseStats? = null
 ) {
-    val uncollectedSongs: List<UncollectedSong>
+    val uncollectedSongs: List<UncollectedSongRecord>
         get() = if (uncollectedScope == UncollectedScope.MY_PICK) pickUncollected else allUncollected
 }
 
@@ -116,17 +116,17 @@ class StatsViewModel(app: Application) : AndroidViewModel(app) {
     private fun loadDashboard() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoadingDashboard = true)
-            val collectedIds = userMarkRepo.autoCollectedSongIds()
+            val collectedIds = songRepo.fetchCollectedSongIds()
             val pickIdolIds = userMarkRepo.pickedIdolIds()
             val dashboard = statsRepo.fetchCollectionDashboard(collectedIds, pickIdolIds)
             _uiState.value = _uiState.value.copy(
-                overallCollected = dashboard.overallCollected,
-                overallTotal = dashboard.overallTotal,
+                overallCollected = dashboard.overallCollected.toInt(),
+                overallTotal = dashboard.overallTotal.toInt(),
                 brandProgress = dashboard.brandProgress,
                 pickUncollected = dashboard.pickUncollected,
                 allUncollected = dashboard.allUncollected,
-                myPickCollected = dashboard.myPickCollected,
-                myPickTotal = dashboard.myPickTotal,
+                myPickCollected = dashboard.myPickCollected.toInt(),
+                myPickTotal = dashboard.myPickTotal.toInt(),
                 catchChances = dashboard.catchChances,
                 isLoadingDashboard = false
             )

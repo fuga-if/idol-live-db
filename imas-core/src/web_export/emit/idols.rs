@@ -1,0 +1,285 @@
+//! アイドル (idol) とユニット (unit) の詳細ページ。
+
+use super::context::{distinguishing_show_name, join_parts, simple_json_ld, Ctx, TagScope};
+use crate::domain::idol_queries;
+use crate::domain::idol_song_queries;
+use crate::domain::screen_composition::{idol_profile_rows, RowAction, RowStyle};
+use crate::domain::unit_queries;
+use crate::web_export::content;
+use crate::web_export::dto::*;
+
+pub fn idol_page(ctx: &Ctx, idol_id: &str) -> Option<IdolPage> {
+    let idol = ctx.snap.idol(idol_id)?;
+    let record = idol_queries::IdolRecord::from(idol);
+    let &index = ctx.snap.idol_index_by_id.get(idol_id)?;
+    let path = ctx.path(RefKind::Idol, idol_id);
+    let brand_id = record.brand_id.clone();
+
+    // 所属ブランド (primary 先頭)。掛け持ちのアイドルが居る。
+    let brands: Vec<Ref> = ctx.snap.brands_by_idol[index as usize]
+        .iter()
+        .filter_map(|link| ctx.brand_ref(&ctx.snap.brands[link.brand as usize].id))
+        .collect();
+
+    let breadcrumbs = {
+        let mut crumbs = vec![Ctx::crumb("ホーム", "/"), Ctx::crumb("アイドル", "/idols/")];
+        if let Some(brand) = brand_id.as_deref().and_then(|b| ctx.brand_ref(b)) {
+            if let Some(list) = ctx.brand_list_path("idols", &brand.id) {
+                crumbs.push(Ctx::crumb(&brand.name, &list));
+            }
+        }
+        crumbs.push(Ctx::crumb(&record.name, &path));
+        crumbs
+    };
+
+    let voice_actor = idol_queries::current_voice_actor_name(ctx.snap, idol_id);
+
+    // 長い一覧 3 本。数の帯 (上から各節へ飛ぶ) が長さを見るので、先に組む。
+    // 持ち曲 = 原唱者として名を連ねる曲。歌っただけの曲は「ライブで歌った曲」に居る
+    // (両方の役で載る曲が 2 行になり、カバーが持ち曲に混ざっていた)。
+    let song_row = |s: idol_song_queries::IdolSongRecord| -> Option<IdolSongRow> {
+        let performance_count = ctx
+            .snap
+            .song_index_by_id
+            .get(&s.song_id)
+            .map(|&i| ctx.snap.performance_counts[i as usize])
+            .unwrap_or(0);
+        let song = ctx.song_ref(&s.song_id)?;
+        Some(IdolSongRow {
+            subtitle: join_parts([
+                song.sub.clone(),
+                s.release_date.clone(),
+                (performance_count > 0).then(|| format!("{performance_count} 回披露")),
+            ]),
+            song,
+            role: Some(s.role),
+            release_date: s.release_date,
+            performance_count,
+        })
+    };
+    // 棚分け (ソロ / ユニット / 全体曲 / カバー / その他) はアプリの持ち歌と同じ関数。
+    // 派生曲 (ソロ ver 違いなど) は棚に並べない (オーナー方針。親曲のページの「派生曲」に居る)。
+    let song_sections: Vec<IdolSongSection> = idol_song_queries::idol_original_song_sections(ctx.snap, idol_id)
+        .into_iter()
+        .map(|sec| IdolSongSection {
+            anchor: format!("idol-songs-{}", section_slug(sec.kind)),
+            heading: sec.heading,
+            short_heading: sec.short_heading,
+            songs: sec.songs.into_iter().filter_map(song_row).collect(),
+        })
+        .filter(|sec| !sec.songs.is_empty())
+        .collect();
+    let song_count: usize = song_sections.iter().map(|s| s.songs.len()).sum();
+    let performed_songs: Vec<IdolPerformedRow> = idol_song_queries::idol_performed_songs(ctx.snap, idol_id)
+            .into_iter()
+            .filter_map(|s| {
+                let song = ctx.song_ref(&s.song_id)?;
+                Some(IdolPerformedRow {
+                    // 回数は行の右の数 (`times`) が言う。副題にも書くと同じ数が 2 回並ぶ。
+                    subtitle: song.sub.clone(),
+                    song,
+                    times: s.perform_count,
+                })
+            })
+            .collect();
+    let shows: Vec<IdolShowRow> = idol_shows(ctx, idol_id, index);
+
+    Some(IdolPage {
+        schema_version: SCHEMA_VERSION,
+        stat_tiles: nonzero_tiles([
+            StatTile::new("♪", song_count as u32, "持ち曲").with_href("#idol-songs"),
+            StatTile::new("♬", performed_songs.len() as u32, "ライブで歌った曲").with_href("#idol-performed"),
+            StatTile::new("▤", shows.len() as u32, "出演公演").with_href("#idol-shows"),
+        ]),
+        tags: super::context::tag_chips(ctx, TagScope::Idol, ctx.community.idol_tags(&record.id)),
+        id: record.id.clone(),
+        path: path.clone(),
+        name: record.name.clone(),
+        name_kana: record.name_kana.clone(),
+        theme_key: ctx.idol_theme(idol_id),
+        brand: brand_id.as_deref().and_then(|b| ctx.brand_ref(b)),
+        brands,
+        profile_rows: profile_rows(&record),
+        voice_actor_history: voice_actor_history(ctx, idol_id, voice_actor.as_deref()),
+        current_voice_actor: voice_actor,
+        units: idol_queries::idol_units(ctx.snap, idol_id)
+            .iter()
+            .filter_map(|u| ctx.unit_ref(&u.id))
+            .collect(),
+        songs_empty: content::empty_text(song_count == 0, content::EMPTY_IDOL_SONGS, None),
+        song_sections,
+        performed_songs,
+        shows,
+        description: record.description.clone(),
+        app: content::app_open_plain(),
+        seo: ctx.seo(
+            &record.name,
+            &format!(
+                "{}のプロフィール・CV・所属ユニット・持ち曲・出演したライブ。",
+                record.name
+            ),
+            &path,
+            brand_id.as_deref(),
+            simple_json_ld("WebPage", &record.name, &path),
+            breadcrumbs,
+        ),
+    })
+}
+
+/// 棚のページ内リンクの鍵。
+fn section_slug(kind: idol_song_queries::IdolSongSectionKind) -> &'static str {
+    use idol_song_queries::IdolSongSectionKind as K;
+    match kind {
+        K::Solo => "solo",
+        K::Unit => "unit",
+        K::All => "all",
+        K::Cover => "cover",
+        K::Other => "other",
+    }
+}
+
+/// プロフィール行。
+///
+/// 「何を並べるか」は `screen_composition::idol_profile_rows`、「値をどう作るか」は
+/// `idol_queries::idol_profile_input` が持つ。ここは `RowAction` を Web の形
+/// (リンクか、リンクでないか) に写すだけ。
+fn profile_rows(record: &idol_queries::IdolRecord) -> Vec<ProfileRow> {
+    idol_profile_rows(&idol_queries::idol_profile_input(record))
+        .into_iter()
+        .map(|row| ProfileRow {
+            label: row.label,
+            value: row.value,
+            style: match row.style {
+                RowStyle::Plain => "plain",
+                RowStyle::Monospaced => "monospaced",
+                RowStyle::ColorSwatch => "colorSwatch",
+            }
+            .to_string(),
+            link: match row.action {
+                RowAction::FilterByBirthMonth { month } => {
+                    Some(format!("/idols/birth-month/{month}/"))
+                }
+                // Web は書き込みも状態も持たないので、写しボタンも開閉も作らない。
+                RowAction::CopyValue | RowAction::ToggleExpansion | RowAction::None => None,
+            },
+        })
+        .collect()
+}
+
+/// 在任期間の表記。片側しか無ければその側だけを出す。どちらも無ければ行に出さない。
+pub fn period_display(start: Option<&str>, end: Option<&str>) -> Option<String> {
+    match (start.filter(|s| !s.is_empty()), end.filter(|s| !s.is_empty())) {
+        (None, None) => None,
+        (Some(s), None) => Some(format!("{s} 〜")),
+        (None, Some(e)) => Some(format!("〜 {e}")),
+        (Some(s), Some(e)) => Some(format!("{s} 〜 {e}")),
+    }
+}
+
+/// 出演公演の行。
+///
+/// 「その公演で歌った曲数」を公演ごとに求めると、公演の全セトリ項目から HashSet を
+/// 作り直すことになる (アイドル 394 人 × 出演公演で 1 万回超)。**アイドルの
+/// 披露項目を 1 度だけ集合にして**、公演ごとに数え上げる。
+fn idol_shows(ctx: &Ctx, idol_id: &str, idol_index: u32) -> Vec<IdolShowRow> {
+    let sung: std::collections::HashSet<u32> =
+        ctx.snap.performed_items_by_idol[idol_index as usize].iter().copied().collect();
+    idol_queries::idol_shows(ctx.snap, idol_id)
+        .into_iter()
+        .filter_map(|s| {
+            let song_count = ctx
+                .snap
+                .show_index_by_id
+                .get(&s.show_id)
+                .map_or(0, |&show| {
+                    ctx.snap.setlist_items_by_show[show as usize]
+                        .iter()
+                        .filter(|i| sung.contains(i))
+                        .count() as u32
+                });
+            // 行のタイトルがライブ名なので、公演名から重なる部分を落とす
+            // (披露履歴の placeDisplay と同じ規則)。
+            let show_label =
+                distinguishing_show_name(&s.event_name, &s.show_name).map(str::to_string);
+            Some(IdolShowRow {
+                subtitle: join_parts([show_label, s.venue.clone()]),
+                show: ctx.show_ref(&s.show_id)?,
+                event: ctx.event_ref(&s.event_id)?,
+                date_badge: DateBadge::from_ymd(&s.date),
+                date: s.date,
+                venue_label: s.venue,
+                song_count,
+            })
+        })
+        .collect()
+}
+
+/// CV の履歴。**交代があったときだけ出す** — 1 人だけなら現任の行
+/// (`current_voice_actor`) と同じことしか言わないので、節ごと出さない (空で返す)。
+fn voice_actor_history(ctx: &Ctx, idol_id: &str, current: Option<&str>) -> Vec<VoiceActorRow> {
+    let history = idol_queries::voice_actor_history(ctx.snap, idol_id);
+    if history.len() < 2 {
+        return vec![];
+    }
+    history
+        .into_iter()
+        .map(|v| {
+            let period = period_display(v.valid_from.as_deref(), v.valid_to.as_deref());
+            let is_current = current == Some(v.name.as_str()) && v.valid_to.is_none();
+            VoiceActorRow {
+                label: content::voice_actor_label(is_current).to_string(),
+                display: join_parts([Some(v.name.clone()), period]).unwrap_or_else(|| v.name.clone()),
+                name: v.name,
+            }
+        })
+        .collect()
+}
+
+pub fn unit_page(ctx: &Ctx, unit_id: &str) -> Option<UnitPage> {
+    let record = unit_queries::unit_by_id(ctx.snap, unit_id)?;
+    let path = ctx.path(RefKind::Unit, unit_id);
+    let breadcrumbs = {
+        let mut crumbs = vec![Ctx::crumb("ホーム", "/"), Ctx::crumb("ユニット", "/units/")];
+        if let Some(brand) = ctx.brand_ref(&record.brand_id) {
+            if let Some(list) = ctx.brand_list_path("units", &brand.id) {
+                crumbs.push(Ctx::crumb(&brand.name, &list));
+            }
+        }
+        crumbs.push(Ctx::crumb(&record.name, &path));
+        crumbs
+    };
+
+    // 並ぶ全員が同じブランドなので、補助表記 (ブランド名) は落とす。
+    let members: Vec<Ref> = unit_queries::unit_member_idol_ids(ctx.snap, unit_id)
+        .iter()
+        .filter_map(|id| ctx.idol_ref(id).map(Ref::without_sub))
+        .collect();
+    let songs: Vec<Ref> =
+        unit_queries::unit_song_ids(ctx.snap, unit_id).iter().filter_map(|id| ctx.song_ref(id)).collect();
+
+    Some(UnitPage {
+        schema_version: SCHEMA_VERSION,
+        tags: super::context::tag_chips(ctx, TagScope::Unit, ctx.community.unit_tags(&record.id)),
+        id: record.id.clone(),
+        path: path.clone(),
+        name: record.name.clone(),
+        name_kana: record.name_kana.clone(),
+        name_alt: record.name_alt.clone(),
+        theme_key: ctx.brand_theme(Some(&record.brand_id)),
+        kind_label: content::unit_kind_label(record.is_permanent).to_string(),
+        brand: ctx.brand_ref(&record.brand_id),
+        members_empty: content::empty_text(members.is_empty(), content::EMPTY_UNIT_MEMBERS, None),
+        members,
+        songs_empty: content::empty_text(songs.is_empty(), content::EMPTY_UNIT_SONGS, None),
+        songs,
+        app: content::app_open_plain(),
+        seo: ctx.seo(
+            &record.name,
+            &format!("{}のメンバーとユニット曲。", record.name),
+            &path,
+            Some(&record.brand_id),
+            simple_json_ld("MusicGroup", &record.name, &path),
+            breadcrumbs,
+        ),
+    })
+}

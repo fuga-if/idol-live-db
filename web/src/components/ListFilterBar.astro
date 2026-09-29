@@ -1,0 +1,64 @@
+---
+import type { IdolQuery } from "../lib/schema/IdolQuery";
+import type { SongQuery } from "../lib/schema/SongQuery";
+
+/**
+ * 一覧の絞り込み・並べ替えの操作面 (曲・アイドル共通)。
+ *
+ * 中身 (軸と値) は Rust が出した素材から island が描く。ここが持つのは器だけで、
+ * **どんな軸があるかをこのファイルは知らない**。
+ *
+ * JS が動かない環境では操作できないので、その場合はそもそも出さない
+ * (押しても何も起きないものを置かない)。器は `hidden` で出しておき、JS が外す。
+ *
+ * 島を起動するのは「絞り込み・並べ替え」を押したとき (か URL に条件があるとき) で、
+ * それまでは入力欄の器 (`data-filter-controls`) を畳んでおく (Q-14)。
+ */
+interface Props {
+  /** どの一覧か。島の実装をこれで選ぶ。 */
+  kind: "songs" | "idols";
+  /** 島の絞り込みの土台。Rust が `*ListPage.queryBase` で出す (ページの行を必ず含む条件)。 */
+  queryBase: SongQuery | IdolQuery;
+  /** ページが値を決めている軸 (島に出さない)。Rust の `*ListPage.fixedAxes`。 */
+  fixedAxes: readonly string[];
+  total: number;
+}
+const { kind, queryBase, fixedAxes, total } = Astro.props;
+---
+
+<section
+  class="song-filter"
+  data-list-filter
+  data-filter-kind={kind}
+  data-query-base={JSON.stringify(queryBase)}
+  data-fixed-axes={JSON.stringify(fixedAxes)}
+  data-state="idle"
+  hidden
+>
+  <button class="song-filter__open" type="button" data-filter-open>絞り込み・並べ替え</button>
+  <div class="song-filter__controls" data-filter-controls hidden>
+    <div class="song-filter__fields" data-filter-fields></div>
+    <div class="song-filter__row">
+      {/* 並べ替えの札。中身 (どの並びがあるか) は island が Rust の素材から描く。 */}
+      <div class="song-filter__sorts" role="group" aria-label="並べ替え" data-filter-sorts></div>
+      <button class="song-filter__dir" type="button" data-filter-dir aria-label="昇順" disabled>↑</button>
+      <button class="song-filter__reset" type="button" data-filter-reset disabled>クリア</button>
+    </div>
+  </div>
+  <p class="song-filter__status" data-filter-status aria-live="polite">{total} 件</p>
+</section>
+
+<script>
+  const root = document.querySelector<HTMLElement>("[data-list-filter]");
+  if (root) {
+    root.hidden = false;
+    // 一覧ごとの設定は動的 import で分ける (曲のページにアイドルの設定を配らない)。
+    if (root.dataset.filterKind === "idols") {
+      const { mountIdolFilter } = await import("../lib/listfilter/idols");
+      mountIdolFilter(root);
+    } else {
+      const { mountSongFilter } = await import("../lib/listfilter/songs");
+      mountSongFilter(root);
+    }
+  }
+</script>

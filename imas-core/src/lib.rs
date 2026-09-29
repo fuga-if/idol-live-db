@@ -1,0 +1,33 @@
+//! ImasLiveDB 共有ドメインコア。
+//!
+//! iOS (Swift) / Android (Kotlin) から UniFFI 経由で呼ばれる。
+//! 構成は howtocodeit.com の Hexagonal in Rust に倣う (docs/SHARED_CORE_STUDY.md §7.5 の読み替え付き):
+//!   - `domain/`  … 純粋ロジック + テスト。OS SDK / UI / DB エンジンに依存しない
+//!   - `inbound/` … `#[uniffi::export]` の API 面 (= driving adapter との境界)。委譲のみ
+//! FFI 境界の設計規約は README.md 参照 (1 操作 1 呼び出し、射影で渡して index で返す)。
+
+uniffi::setup_scaffolding!();
+
+pub mod domain;
+// FFI 入口 (uniffi)。DB アダプタに依存するので wasm には持ち込まない。
+// ブラウザ向けの入口は別クレート (web/wasm/) が domain を直接呼ぶ。
+#[cfg(not(target_family = "wasm"))]
+pub mod inbound;
+// DB アダプタ (SQLite)。wasm には持ち込まない — ブラウザは Snapshot を受け取って
+// domain を回すだけで、DB を開く経路を使わない。
+#[cfg(not(target_family = "wasm"))]
+pub mod outbound;
+
+// 実データを読むテストの入口 (DB の置き場所と、共有のスナップショット)。
+#[cfg(test)]
+pub(crate) mod test_support;
+
+// LLM 向けツール面 (MCP / CLI)。ツールのカタログと応答の組み立て、入出力のアダプタ。
+// 既定 off の feature で、iOS/Android のビルドには一切入らない (uniffi も通らない)。
+#[cfg(feature = "agent")]
+pub mod agent;
+
+// Web 出面 (静的サイト) の JSON エクスポータ。既定 off の feature で、
+// iOS/Android のビルドには一切入らない (uniffi も通らない)。
+#[cfg(feature = "web-export")]
+pub mod web_export;

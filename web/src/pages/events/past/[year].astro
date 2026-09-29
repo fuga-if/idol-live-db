@@ -1,0 +1,9 @@
+---
+import EventListView from "../../../components/EventListView.astro";
+import { page, pathsFor } from "../../../lib/data";
+import type { EventListPage } from "../../../lib/schema/EventListPage";
+export const getStaticPaths = () => pathsFor("eventListPastYear", "year");
+const list = page<EventListPage>(Astro.props.data);
+---
+
+<EventListView list={list} />

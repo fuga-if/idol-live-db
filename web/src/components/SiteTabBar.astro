@@ -1,0 +1,71 @@
+---
+import { meta } from "../lib/data";
+import type { Crumb } from "../lib/schema/Crumb";
+/**
+ * 狭い画面の下のタブバー (アプリと同じ位置に同じ入口)。広い画面では出さない (base.css)。
+ *
+ * タブに出すのは ホーム / ライブ / 楽曲 / アイドル の 4 つと「メニュー」。
+ * メニューは `<details>` で開く一覧 (JS なし)。中身は Rust の `primaryNav` と `utilityNav`
+ * をそのまま並べる。タブの 3 つの一覧も `primaryNav` から path で拾い、文言は Rust のもの。
+ * 現在地はヘッダと同じくパンくずで決める。
+ */
+interface Props {
+  crumbs: readonly Crumb[];
+}
+const { crumbs } = Astro.props;
+const { primaryNav, utilityNav } = meta();
+const here = new Set(crumbs.map((c) => c.path));
+const isHome = crumbs.length <= 1;
+const ICONS: Record<string, string> = {
+  "/": '<path d="M4 11l8-7 8 7v9a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"></path>',
+  "/events/": '<rect x="3" y="5" width="18" height="16" rx="3"></rect><path d="M3 10h18M8 3v4M16 3v4"></path>',
+  "/songs/": '<path d="M9 18V5l11-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="17" cy="16" r="3"></circle>',
+  "/idols/": '<circle cx="12" cy="8" r="4"></circle><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"></path>',
+};
+const tabs = [
+  { label: "ホーム", path: "/", current: isHome },
+  ...["/events/", "/songs/", "/idols/"].flatMap((p) => {
+    const n = primaryNav.find((x) => x.path === p);
+    return n ? [{ label: n.label, path: n.path, current: here.has(n.path) }] : [];
+  }),
+];
+const tabPaths = new Set(tabs.map((t) => t.path));
+const menuCurrent = !isHome && !tabs.some((t) => t.current);
+---
+
+<nav class="tabbar" aria-label="メイン">
+  <ul class="tabbar__tabs">
+    {
+      tabs.map((t) => (
+        <li>
+          <a class="tabbar__tab" href={t.path} aria-current={t.current ? "page" : undefined}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICONS[t.path]} />
+            {t.label}
+          </a>
+        </li>
+      ))
+    }
+    <li>
+      <details class="tabbar__menu">
+        <summary class="tabbar__tab" aria-current={menuCurrent ? "page" : undefined}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"></path></svg>
+          メニュー
+        </summary>
+        <div class="tabbar__sheet">
+          <ul class="tabbar__sheet-list">
+            {
+              [...primaryNav.filter((n) => !tabPaths.has(n.path)), ...utilityNav].map((n) => (
+                <li>
+                  <a href={n.path} aria-current={here.has(n.path) ? "page" : undefined}>
+                    {n.label}
+                    <span class="chevron" aria-hidden="true">›</span>
+                  </a>
+                </li>
+              ))
+            }
+          </ul>
+        </div>
+      </details>
+    </li>
+  </ul>
+</nav>

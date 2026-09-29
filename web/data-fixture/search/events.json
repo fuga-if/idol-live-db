@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "kind": "event",
+  "sep": "\u0001",
+  "pathPrefix": "/events/",
+  "rows": [
+    {
+      "n": "THE IDOLM@STER MILLION LIVE! 10thLIVE TOUR Act-4 ROAD TO MEMORIES 幕張",
+      "s": "2026",
+      "k": "ev_sample",
+      "f": "the idolm@ster million live! 10thlive tour act-4 road to memories 幕張"
+    },
+    {
+      "n": "THE IDOLM@STER × ふたご星",
+      "s": "2025",
+      "k": "ev_the_idolm@ster_×_ふたご",
+      "f": "the idolm@ster × ふたご星"
+    }
+  ]
+}

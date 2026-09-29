@@ -62,6 +62,9 @@ struct OshiWidgetEntry: Codable, Identifiable, Hashable {
     let images: [String]
     /// ブランド表示名 (ピッカーの副題・絞り込み用)。旧カタログ互換のため optional。
     var brandName: String? = nil
+    /// 読み。ウィジェット設定のピッカーを かなで引くために持つ。
+    /// 旧カタログ互換のため optional (無い間は名前だけで当たる)。
+    var nameKana: String? = nil
 }
 
 struct OshiWidgetCatalog: Codable {
@@ -96,12 +99,31 @@ struct TicketDeadlineInfo: Codable, Sendable {
     var deadline: String
 }
 
+extension NextShowInfo {
+    /// 初日まであと何日か (今日が 0)。日付が読めなければ nil。
+    func daysUntilFirstShow(from now: Date) -> Int? {
+        WidgetDay.daysUntil(firstDate, from: now)
+    }
+
+    /// 初日が過ぎていないか。過ぎたものは出さない (「あと-2日」を出さない)。
+    func isUpcoming(from now: Date) -> Bool {
+        (daysUntilFirstShow(from: now) ?? 0) >= 0
+    }
+}
+
+extension TicketDeadlineInfo {
+    /// 締切が過ぎていないか。日付として読めない締切 (自由記述) は落とさない。
+    func isOpen(from now: Date) -> Bool {
+        (WidgetDay.daysUntil(deadline, from: now) ?? 0) >= 0
+    }
+}
+
 /// アプリ側が書き出し、ウィジェット拡張が読み取る情報スナップショット。
 struct InfoWidgetSnapshot: Codable, Sendable {
     var nextShow: NextShowInfo?
     var todaySong: TodaySongInfo?
     var ticketDeadlines: [TicketDeadlineInfo]
-    /// スナップショット生成日 (YYYY-MM-DD)。当日以外なら stale 扱い。
+    /// スナップショット生成日 (JST の YYYY-MM-DD)。当日以外なら stale 扱い。
     var generatedDate: String
 
     static func load() -> InfoWidgetSnapshot? {
@@ -111,10 +133,60 @@ struct InfoWidgetSnapshot: Codable, Sendable {
         return try? JSONDecoder().decode(InfoWidgetSnapshot.self, from: data)
     }
 
+    /// 今日 (JST) 作ったものだけを返す。アプリを開かない日が続いても、古い内容
+    /// (過ぎたライブや締切) を出し続けない。
+    static func loadCurrent(now: Date = Date()) -> InfoWidgetSnapshot? {
+        load().flatMap { $0.isCurrent(now: now) ? $0 : nil }
+    }
+
+    func isCurrent(now: Date) -> Bool {
+        generatedDate == WidgetDay.key(now)
+    }
+
     func save() {
         guard let url = WidgetShared.infoSnapshotURL,
               let data = try? JSONEncoder().encode(self)
         else { return }
         try? data.write(to: url)
+    }
+}
+
+// MARK: - ウィジェットの「今日」(JST)
+
+/// ウィジェットの日付の基準。アプリ本体の「今日」(`JSTDay` = コアの jst_today) と同じく
+/// **JST で切る** (端末の地域設定に左右されない)。
+///
+/// ウィジェット拡張はコアをリンクしない。リンクすると拡張の実行ファイルが 5MB あまり
+/// 増える (Release・arm64 で計測: strip 後 0.30MB → 5.65MB) ので、日付の表記と日数だけを
+/// ここで出す。表記がコアと食い違わないことはアプリのテスト (`WidgetDayTests`) が見る。
+enum WidgetDay {
+    static let timeZone = TimeZone(identifier: "Asia/Tokyo")!
+
+    private static var calendar: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        return calendar
+    }
+
+    /// `date` の JST の日付 ("yyyy-MM-dd")。
+    static func key(_ date: Date) -> String {
+        let c = calendar.dateComponents([.year, .month, .day], from: date)
+        return String(format: "%04d-%02d-%02d", c.year ?? 0, c.month ?? 0, c.day ?? 0)
+    }
+
+    /// `now` の JST の日付から `day` ("yyyy-MM-dd") までの日数。今日が 0、昨日が -1。
+    /// 日付として読めなければ nil。
+    static func daysUntil(_ day: String, from now: Date) -> Int? {
+        let parts = day.split(separator: "-").compactMap { Int($0) }
+        guard parts.count == 3,
+              let target = calendar.date(from: DateComponents(year: parts[0], month: parts[1], day: parts[2]))
+        else { return nil }
+        return calendar.dateComponents([.day], from: calendar.startOfDay(for: now), to: target).day
+    }
+
+    /// `now` の次の JST の 0 時。日付が変わると「あと N 日」と古さの判定が変わるので、そこで引き直す。
+    static func nextMidnight(after now: Date) -> Date {
+        calendar.nextDate(after: now, matching: DateComponents(hour: 0, minute: 0), matchingPolicy: .nextTime)
+            ?? now.addingTimeInterval(3600)
     }
 }

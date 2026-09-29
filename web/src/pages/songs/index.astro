@@ -1,0 +1,8 @@
+---
+import SongListView from "../../components/SongListView.astro";
+import { page, routeData } from "../../lib/data";
+import type { SongListPage } from "../../lib/schema/SongListPage";
+const list = page<SongListPage>(routeData("songListIndex", "/songs/"));
+---
+
+<SongListView list={list} />

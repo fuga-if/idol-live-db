@@ -28,11 +28,13 @@ struct MyEditsView: View {
     private let limit = 20
 
     var body: some View {
-        ScrollView {
+        let times = EditFeedFormat.relativeTimes(entries.map { ($0.id, $0.createdDate) })
+        return ScrollView {
             LazyVStack(spacing: 10) {
                 ForEach(entries) { entry in
                     MyEditRow(
                         entry: entry,
+                        timeLabel: times[entry.id] ?? "",
                         isReverted: isReverted(entry),
                         isReverting: revertingId == entry.id,
                         onRevert: { revertTarget = entry }
@@ -41,12 +43,11 @@ struct MyEditsView: View {
                 }
 
                 if isLoadingMore {
-                    ProgressView()
-                        .padding(.vertical, 12)
+                    ImasInlineLoading()
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            .padding(.horizontal, DS.sp5)
+            .padding(.vertical, DS.sp4)
         }
         .background(DS.bg)
         .navigationTitle("自分の編集")
@@ -55,11 +56,11 @@ struct MyEditsView: View {
         .overlay {
             if isLoading && entries.isEmpty {
                 ProgressView("読み込み中...")
-                    .padding(24)
+                    .padding(DS.sp7)
                     .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
             } else if entries.isEmpty && !isLoading {
-                EmptyStateCard(
-                    icon: "square.and.pencil",
+                ImasEmptyState(
+                    systemImage: "square.and.pencil",
                     title: "まだ編集がありません",
                     message: "ライブ・楽曲・セトリを編集すると、ここに履歴が残り、後から取り消せます。"
                 )
@@ -191,12 +192,14 @@ struct MyEditsView: View {
 
 private struct MyEditRow: View {
     let entry: EditFeedEntry
+    /// 相対時刻 (一覧がまとめて作る)。
+    let timeLabel: String
     let isReverted: Bool
     let isReverting: Bool
     let onRevert: () -> Void
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: DS.sp4) {
             EditTypeIcon(recordType: entry.recordType)
 
             VStack(alignment: .leading, spacing: 6) {
@@ -204,15 +207,15 @@ private struct MyEditRow: View {
                     OpBadge(op: entry.op)
                     if isReverted {
                         Text("差戻し済み")
-                            .font(.imasScaled(11).weight(.semibold))
+                            .font(.imasCaption2.weight(.semibold))
                             .foregroundStyle(DS.ink2)
                             .padding(.horizontal, 7)
-                            .padding(.vertical, 2)
+                            .padding(.vertical, DS.sp1)
                             .background(DS.fill, in: Capsule())
                     }
                     Spacer(minLength: 4)
-                    Text(EditFeedFormat.relativeTime(entry.createdDate))
-                        .font(.imasScaled(11))
+                    Text(timeLabel)
+                        .font(.imasCaption2)
                         .foregroundStyle(DS.ink2)
                 }
 
@@ -226,7 +229,7 @@ private struct MyEditRow: View {
             }
         }
         .padding(14)
-        .background(DS.surface, in: RoundedRectangle(cornerRadius: 14))
+        .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rMD))
     }
 
     @ViewBuilder
@@ -235,7 +238,7 @@ private struct MyEditRow: View {
             if entry.goodCount > 0 {
                 Label("\(entry.goodCount)", systemImage: "hands.clap.fill")
                     .font(.imasCaption)
-                    .foregroundStyle(.pink)
+                    .foregroundStyle(DS.pick)
             }
             Spacer()
             if isReverting {
@@ -250,10 +253,10 @@ private struct MyEditRow: View {
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
-                .tint(.red)
+                .tint(DS.danger)
             }
         }
-        .padding(.top, 2)
+        .padding(.top, DS.sp1)
     }
 }
 
@@ -262,9 +265,10 @@ private struct MyEditRow: View {
 /// record_type のアイコンチップ (RecentEditsView の EditRecordIcon と同一の見た目)。
 struct EditTypeIcon: View {
     let recordType: String
+    @Environment(\.colorScheme) private var scheme
 
     var body: some View {
-        let design = EditFeedFormat.recordTypeDesign(recordType)
+        let design = EditFeedFormat.recordTypeDesign(recordType, scheme: scheme)
         Circle()
             .fill(design.color.opacity(0.15))
             .frame(width: 40, height: 40)
@@ -284,10 +288,10 @@ struct OpBadge: View {
     var body: some View {
         let (label, color) = EditFeedFormat.opDesign(op)
         Text(label)
-            .font(.imasScaled(11).weight(.semibold))
+            .font(.imasCaption2.weight(.semibold))
             .foregroundStyle(color)
             .padding(.horizontal, 7)
-            .padding(.vertical, 2)
+            .padding(.vertical, DS.sp1)
             .background(color.opacity(0.15), in: Capsule())
     }
 }

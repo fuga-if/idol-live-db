@@ -6,6 +6,8 @@ import Foundation
 enum Deeplink: Equatable {
     case event(id: String)
     case show(id: String)
+    /// みんなの投票のお題 (`/app/polls/{id}`)。実体はサーバ側なので local DB 解決は不要。
+    case poll(id: String)
 }
 
 /// deeplink URL の解析と、ローカル DB を引いた遷移先 (DetailDestination) への解決。
@@ -37,6 +39,7 @@ enum DeeplinkRouter {
         switch kind {
         case "events": return .event(id: id)
         case "shows": return .show(id: id)
+        case "polls": return .poll(id: id)
         default: return nil
         }
     }
@@ -50,6 +53,10 @@ enum DeeplinkRouter {
             return try database.fetchEvent(id: id).map(DetailDestination.event)
         case .show(let id):
             return try database.fetchShow(id: id).map(DetailDestination.show)
+        case .poll(let id):
+            // お題は API 側にしか存在しないので local 解決はしない。存在しない ID は
+            // PollDetailView 側が「読み込みに失敗しました」を出す。
+            return .poll(id: id)
         }
     }
 }

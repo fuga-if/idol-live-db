@@ -1,0 +1,49 @@
+---
+import Head from "../components/Head.astro";
+import SiteHeader from "../components/SiteHeader.astro";
+import SiteFooter from "../components/SiteFooter.astro";
+import SiteTabBar from "../components/SiteTabBar.astro";
+import JsonLd from "../components/JsonLd.astro";
+import { meta } from "../lib/data";
+import type { SeoBlock } from "../lib/schema/SeoBlock";
+import "../styles/fonts.css";
+import "../styles/tokens.css";
+import "../styles/base.css";
+import "../styles/components.css";
+
+/**
+ * 全ページの外枠。
+ * - テーマは `data-theme` 属性 1 個で当てる (実体は Rust が出す public/themes.css)。
+ *   ライト / ダークの切替は prefers-color-scheme のみ。トグル UI は作らない。
+ * - ブラウザ JS は探す/絞るための島だけ。ここでは 1 行も読み込まない。
+ * - ナビは広い画面で上部バー 1 段、狭い画面で上部バー (ロゴ + 検索) と下のタブバー。切り替えは CSS のみ。
+ */
+interface Props {
+  seo: SeoBlock;
+  themeKey?: string;
+  wide?: boolean;
+  isCharacterLive?: boolean;
+}
+const { seo, themeKey = "neutral", wide = false, isCharacterLive } = Astro.props;
+---
+
+<html lang="ja" prefix="og: https://ogp.me/ns#">
+  <head>
+    <Head seo={seo} siteName={meta().siteName} />
+    <link rel="stylesheet" href="/themes.css" />
+    <JsonLd data={seo.jsonLd} />
+  </head>
+  <body data-theme={themeKey} data-character-live={isCharacterLive ? "true" : undefined}>
+    <a class="skip-link" href="#main">本文へスキップ</a>
+    <div class="shell">
+      <SiteHeader crumbs={seo.breadcrumbs} />
+      <div class="shell__body">
+        <main id="main" class:list={["page", wide && "page--wide", "main"]}>
+          <slot />
+        </main>
+        <SiteFooter />
+      </div>
+      <SiteTabBar crumbs={seo.breadcrumbs} />
+    </div>
+  </body>
+</html>

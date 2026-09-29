@@ -13,11 +13,11 @@ struct LoginToEditSheet: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 20) {
+            VStack(spacing: DS.sp6) {
                 Image(systemName: "square.and.pencil")
                     .font(.imasScaled( 44))
                     .foregroundStyle(.tint)
-                    .padding(.top, 32)
+                    .padding(.top, DS.sp8)
 
                 Text("ログインして編集に参加")
                     .font(.imasTitle3.bold())
@@ -26,7 +26,7 @@ struct LoginToEditSheet: View {
                     .font(.imasSubhead)
                     .foregroundStyle(DS.ink2)
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal, 8)
+                    .padding(.horizontal, DS.sp3)
 
                 VStack(alignment: .leading, spacing: 10) {
                     pointRow("bolt.fill", "編集は承認待ちなし。すぐ全員に反映されます")
@@ -97,7 +97,7 @@ struct InlineLoginPrompt: View {
                     Spacer(minLength: 8)
                     Text("ログイン")
                         .font(.imasFootnote.weight(.bold))
-                        .padding(.horizontal, 12).padding(.vertical, 6)
+                        .padding(.horizontal, DS.sp4).padding(.vertical, 6)
                         .foregroundStyle(t.onAccent)
                         .background(t.accent, in: Capsule())
                 }

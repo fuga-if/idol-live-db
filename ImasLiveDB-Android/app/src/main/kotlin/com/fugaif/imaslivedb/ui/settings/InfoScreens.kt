@@ -180,3 +180,49 @@ private fun FaqItem(question: String, answer: String) {
         Text("A. $answer", fontSize = 15.sp, color = DS.ink2)
     }
 }
+
+/**
+ * オープンソースライセンス一覧 (iOS `MyPageView` の OSS ライセンス節に対応)。
+ *
+ * 収録の基準は「アプリの配布物に実際に入るもの」= `app/build.gradle.kts` の
+ * `implementation` 依存。ビルドやテストにしか使わない依存 (`debugImplementation` /
+ * `testImplementation`) は配布されないので載せない。
+ * 依存を足したらここも足すこと — 生成ツールを入れていないので同期は手動。
+ */
+@Composable
+fun OssLicensesScreen(onBack: () -> Unit) {
+    InfoScreenScaffold(title = "オープンソースライセンス", onBack = onBack) {
+        Text(
+            "本アプリは以下のオープンソースソフトウェアを利用しています。各ライセンスの全文は" +
+                "それぞれのプロジェクトの配布物に含まれます。",
+            fontSize = 13.sp,
+            color = DS.ink2
+        )
+        LicenseItem("AndroidX (Core / Lifecycle / Activity / Navigation / Security / Credentials)", "Google", APACHE_2)
+        LicenseItem("Jetpack Compose (UI / Material 3 / Material Icons)", "Google", APACHE_2)
+        LicenseItem("Room", "Google", APACHE_2)
+        LicenseItem("Glance (App Widget)", "Google", APACHE_2)
+        LicenseItem("Media3 / ExoPlayer", "Google", APACHE_2)
+        LicenseItem("Google Identity Services (googleid)", "Google", APACHE_2)
+        LicenseItem("Coil", "Coil Contributors", APACHE_2)
+        LicenseItem("OkHttp", "Square, Inc.", APACHE_2)
+        LicenseItem("Kotlin / kotlinx.coroutines", "JetBrains", APACHE_2)
+        // JNA だけライセンスが違う。UniFFI が生成するバインディングが要求する実行時依存。
+        LicenseItem("JNA (Java Native Access)", "JNA Contributors", "Apache License 2.0 / LGPL 2.1 のデュアルライセンス")
+        LicenseItem(
+            "imas-core",
+            "本アプリの一部 (Rust)",
+            "iOS 版と共有する自作のコアライブラリです。外部ライセンスはありません。"
+        )
+    }
+}
+
+private const val APACHE_2 = "Apache License 2.0"
+
+@Composable
+private fun LicenseItem(name: String, owner: String, license: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(name, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink)
+        Text("$owner ・ $license", fontSize = 12.sp, color = DS.ink2)
+    }
+}

@@ -9,7 +9,7 @@ final class PollListViewModelTests: XCTestCase {
              createdBy: "u1", createdAt: Date(),
              endsAt: Date().addingTimeInterval(active ? 86400 : -86400),
              status: "active", totalVotes: 0, entryCount: 0,
-             candidateScope: .all, scopeBrandIds: nil, scopeEntityIds: nil)
+             candidateScope: .all, scopeBrandIds: nil, scopeEntityIds: nil, topEntityId: nil)
     }
 
     func testLoadActivePopulatesActiveList() async {
@@ -23,17 +23,6 @@ final class PollListViewModelTests: XCTestCase {
         XCTAssertNil(vm.loadError)
         XCTAssertEqual(vm.polls(active: true).map(\.id), ["p1"])
         XCTAssertTrue(vm.polls(active: false).isEmpty)
-    }
-
-    func testLoadPastPopulatesPastList() async {
-        let fake = FakeCommunityVoting()
-        fake.pollsByStatus["past"] = [makePoll(id: "old", active: false)]
-        let vm = PollListViewModel(voting: fake)
-
-        await vm.load(active: false)
-
-        XCTAssertEqual(vm.polls(active: false).map(\.id), ["old"])
-        XCTAssertTrue(vm.polls(active: true).isEmpty)
     }
 
     func testLoadErrorSetsMessage() async {

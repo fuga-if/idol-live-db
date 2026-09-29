@@ -1,0 +1,38 @@
+---
+/**
+ * 前後への送り (カレンダーの前後の月・ツアーの前後の公演)。
+ *
+ * 行き先があるときだけ矢印付きのリンクを出し、真ん中に今の位置を置く。
+ * 前後に何と書くか (名前・添える数) と位置の文字は、呼び出し側がスロットで渡す
+ * (`prev` / `next` / 既定のスロット)。どこへ送るかは Rust が決めた path。
+ */
+interface Props {
+  /** 読み上げ用の名前 (`前後の月`)。 */
+  label: string;
+  prev?: string | null;
+  next?: string | null;
+  /** 位置が数だけのとき (`26 / 48 公演`) は等幅数字で揃える。 */
+  numeric?: boolean;
+}
+const { label, prev, next, numeric = false } = Astro.props;
+---
+
+<nav class="pager" aria-label={label}>
+  {
+    prev && (
+      <a class="pager__link" rel="prev" href={prev}>
+        ‹ <slot name="prev" />
+      </a>
+    )
+  }
+  <span class:list={["pager__pos", numeric && "u-num"]}>
+    <slot />
+  </span>
+  {
+    next && (
+      <a class="pager__link pager__link--next" rel="next" href={next}>
+        <slot name="next" /> ›
+      </a>
+    )
+  }
+</nav>

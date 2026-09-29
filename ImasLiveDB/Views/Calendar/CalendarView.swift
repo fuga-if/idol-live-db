@@ -132,20 +132,20 @@ struct CalendarView: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        AppAnalytics.tap("calendar.daily_song")
+                        AppAnalytics.tap("calendar.daily_pick")
                         showDailySong = true
                     } label: {
-                        Image(systemName: "music.note.house.fill")
+                        // その日どちらが出るかはコアが決める。押す前に分かるよう見た目も揃える。
+                        Image(systemName: DailyPickSheet.symbol(for: DailyPickSheet.defaultKind()))
                     }
-                    .accessibilityLabel("今日の1曲")
-                    .accessibilityHint("各ブランドの日替わり1曲を試聴・タグ投票します")
+                    .accessibilityLabel(DailyPickSheet.title(for: DailyPickSheet.defaultKind()))
+                    .accessibilityHint("各ブランドの日替わりピックにタグを付けて投票します")
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    GlobalSearchToolbarButton()
                 }
             }
             .sheet(isPresented: $showDailySong) {
-                DailySongVoteSheet().environment(database)
+                DailyPickSheet().environment(database)
             }
             .sheet(item: $sheetDestination) { dest in
                 DetailSheetView(destination: dest)
@@ -294,9 +294,9 @@ struct CalendarView: View {
             HStack(spacing: DS.sp3) {
                 CalendarFilterChip(label: "公演", systemImage: "music.mic", color: Color(hexString: "#3E6DD6"), isOn: $showShows)
                 CalendarFilterChip(label: "リリース", systemImage: "opticaldisc", color: DS.warning, isOn: $showReleases)
-                CalendarFilterChip(label: "誕生日", systemImage: "gift", color: .pink, isOn: $showBirthdays)
-                CalendarFilterChip(label: "事務員", systemImage: "person.text.rectangle", color: .pink, isOn: $showStaffBirthdays)
-                CalendarFilterChip(label: "記念日", systemImage: "sparkles", color: .teal, isOn: $showAnniversaries)
+                CalendarFilterChip(label: "誕生日", systemImage: "gift", color: DS.pick, isOn: $showBirthdays)
+                CalendarFilterChip(label: "事務員", systemImage: "person.text.rectangle", color: DS.pick, isOn: $showStaffBirthdays)
+                CalendarFilterChip(label: "記念日", systemImage: "sparkles", color: DS.sys, isOn: $showAnniversaries)
                 CalendarFilterChip(label: "チケット", systemImage: "ticket", color: DS.danger, isOn: $showTickets)
                 CalendarFilterChip(label: "マイ予定", systemImage: "person.crop.circle", color: DS.sys, isOn: $showPersonal)
             }
@@ -379,12 +379,12 @@ struct CalendarView: View {
             // 単曲 → 曲詳細 / 複数曲 → その日の日詳細シートで一覧から選ばせる
             if songs.count == 1, let song = songs.first {
                 sheetDestination = .song(song)
-            } else if let date = AppDatabase.parseDate(dateStr) {
+            } else if let date = JSTDay.date(dateStr) {
                 daySheet = DaySheet(date: calendar.startOfDay(for: date))
             } else if let first = songs.first {
                 sheetDestination = .song(first)
             }
-        case .birthday(let idol):
+        case .birthday(let idol, _):
             sheetDestination = .idol(idol)
         case .staffBirthday:
             // 事務員はアイドル詳細を持たないため、その日の日詳細シートを開く。
@@ -452,13 +452,27 @@ struct CalendarView: View {
         } else {
             List {
                 ForEach(entries) { entry in
-                    DayEntryRow(
-                        entry: entry,
-                        onSelect: { dest in sheetDestination = dest },
-                        onSelectPersonal: { event in personalDetail = event },
-                        displayDate: selectedDate
-                    )
-                    .environment(database)
+                    Group {
+                        if case .show(let row) = entry {
+                            // 公演行だけ参加登録のスワイプを付ける (CalendarDayDetailView と同じ規則)。
+                            DayEntryRow(
+                                entry: entry,
+                                onSelect: { dest in sheetDestination = dest },
+                                onSelectPersonal: { event in personalDetail = event },
+                                displayDate: selectedDate
+                            )
+                            .environment(database)
+                            .attendanceSwipe(show: row.show)
+                        } else {
+                            DayEntryRow(
+                                entry: entry,
+                                onSelect: { dest in sheetDestination = dest },
+                                onSelectPersonal: { event in personalDetail = event },
+                                displayDate: selectedDate
+                            )
+                            .environment(database)
+                        }
+                    }
                     .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
                     .listRowBackground(DS.surface)
                     .listRowSeparatorTint(DS.sep)
@@ -527,8 +541,8 @@ struct CalendarView: View {
 
     /// [start, end] (両端含む) を interval 内にクリップした日付一覧。
     private func coveredDays(start: String, end: String, in interval: DateInterval) -> [Date] {
-        guard let startDate = AppDatabase.parseDate(start),
-              let endDate = AppDatabase.parseDate(end),
+        guard let startDate = JSTDay.date(start),
+              let endDate = JSTDay.date(end),
               endDate >= startDate else { return [] }
         // interval.end は排他境界なので前日までを対象にする。
         let lastInclusive = calendar.date(byAdding: .day, value: -1, to: interval.end) ?? interval.end
@@ -543,56 +557,23 @@ struct CalendarView: View {
         return days
     }
 
-    /// "--MM-DD" の月日を interval 内の年に展開して Date を返す (誕生日系の共通処理)。
-    private func monthDayDate(_ monthDay: String?, in interval: DateInterval) -> Date? {
-        guard let monthDay, monthDay.hasPrefix("--") else { return nil }
-        let parts = monthDay.dropFirst(2).split(separator: "-")
-        guard parts.count == 2, let month = Int(parts[0]), let day = Int(parts[1]) else { return nil }
-        var jstCalendar = Calendar(identifier: .gregorian)
-        jstCalendar.timeZone = TimeZone(identifier: "Asia/Tokyo")!
-        let year = jstCalendar.component(.year, from: interval.start)
-        if let date = jstCalendar.date(from: DateComponents(year: year, month: month, day: day)) { return date }
-        if month == 2 && day == 29 {
-            return jstCalendar.date(from: DateComponents(year: year, month: 2, day: 28))
-        }
-        return nil
-    }
-
     private func entryDate(_ entry: CalendarEntry, in interval: DateInterval) -> Date? {
         switch entry {
         case .show(let row):
-            return AppDatabase.parseDate(row.show.date)
+            return JSTDay.date(row.show.date)
         case .release(let dateStr, _):
-            return AppDatabase.parseDate(dateStr)
-        case .birthday(let idol):
-            return monthDayDate(idol.birthday, in: interval)
-        case .staffBirthday(let staff):
-            return monthDayDate(staff.birthday, in: interval)
-        case .anniversary(let ann):
-            // 起点日 YYYY-MM-DD を interval の年に展開。起点より前の年は出さない。
-            guard let start = AppDatabase.parseDate(ann.date) else { return nil }
-            let parts = ann.date.split(separator: "-")
-            guard parts.count == 3,
-                  let month = Int(parts[1]),
-                  let day = Int(parts[2]) else { return nil }
-            var jstCalendar = Calendar(identifier: .gregorian)
-            jstCalendar.timeZone = TimeZone(identifier: "Asia/Tokyo")!
-            let intervalYear = jstCalendar.component(.year, from: interval.start)
-            for y in [intervalYear, intervalYear + 1] {
-                if let date = jstCalendar.date(from: DateComponents(year: y, month: month, day: day)),
-                   date >= start, date >= interval.start, date <= interval.end {
-                    return date
-                }
-            }
-            return nil
+            return JSTDay.date(dateStr)
+        case .birthday(_, let occursOn), .staffBirthday(_, let occursOn), .anniversary(_, let occursOn):
+            // 月日の展開 (非閏年の 2/29 は 2/28・起点より前の年は出さない) はコアが済ませている。
+            return JSTDay.date(occursOn)
         case .personal(let event):
             // マイ予定は groupPersonalByDate で別管理 (ここには通常来ない)
             return event.start
         case .ticket(let row):
-            return AppDatabase.parseDate(row.date)
+            return JSTDay.date(row.date)
         case .ticketPeriod(let row):
             // 帯は groupByDate で被覆日へ展開済み。アンカーは開始日。
-            return AppDatabase.parseDate(row.start)
+            return JSTDay.date(row.start)
         }
     }
 }
@@ -614,19 +595,12 @@ private struct CalendarFilterChip: View {
     @Binding var isOn: Bool
 
     var body: some View {
-        Button {
-            isOn.toggle()
-        } label: {
-            HStack(spacing: 6) {
-                Image(systemName: systemImage).font(.imasScaled( 13, weight: .semibold))
-                Text(label).font(.imasScaled( 13.5, weight: .semibold))
-            }
-            .padding(.horizontal, 13)
-            .padding(.vertical, 7)
-            .foregroundStyle(isOn ? ColorMath.onColor(color) : DS.ink2)
-            .background(isOn ? AnyShapeStyle(color) : AnyShapeStyle(DS.fill), in: Capsule())
-        }
-        .buttonStyle(.plain)
+        ImasFilterChip(
+            text: label,
+            systemImage: systemImage,
+            isSelected: isOn,
+            color: color
+        ) { isOn.toggle() }
         .accessibilityLabel(label)
         .accessibilityValue(isOn ? "表示" : "非表示")
     }

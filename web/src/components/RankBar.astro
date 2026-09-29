@@ -1,0 +1,36 @@
+---
+import Artwork from "./Artwork.astro";
+import ColorDot from "./ColorDot.astro";
+import type { RankRow } from "../lib/schema/RankRow";
+/**
+ * ランキングの 1 行: 順位 + (曲ならジャケ) + 名前 + 棒 + 数。
+ * 棒の長さ (`sharePermille`) も順位も Rust が決める。棒は SVG の rect で描く
+ * (CSP で style 属性が使えないので、長さは属性で渡す)。色は行の `data-theme` の accent。
+ */
+interface Props {
+  row: RankRow;
+  /** 先頭にジャケを出すか。曲の行だけ true。 */
+  artwork?: boolean;
+  /** 名前に補助表記 (ref.sub) ではなく短い名を使う (ブランドの行)。 */
+  short?: boolean;
+}
+const { row, artwork = false, short = false } = Astro.props;
+const r = row.ref;
+const name = short ? (r.sub ?? r.name) : r.name;
+---
+
+<a class:list={["rank-row", row.rank !== null && row.rank <= 3 && "rank-row--top"]} href={r.path} data-theme={r.themeKey}>
+  {row.rank !== null && <span class="rank-row__rank u-num">{row.rank}</span>}
+  <span class="rank-row__lead">
+    {artwork ? <Artwork title={r.name} artworkUrl={r.artworkUrl} size="sm" /> : <ColorDot />}
+  </span>
+  <span class="rank-row__name">
+    <span class="rank-row__title u-clamp1 u-underline-hover">{name}</span>
+    {!short && r.sub && <span class="rank-row__sub u-clamp1">{r.sub}</span>}
+  </span>
+  <svg class="rank-row__bar" viewBox="0 0 1000 10" preserveAspectRatio="none" aria-hidden="true">
+    <rect class="rank-row__track" width="1000" height="10"></rect>
+    <rect class="rank-row__fill" width={row.sharePermille} height="10"></rect>
+  </svg>
+  <span class="rank-row__value"><b class="u-num">{row.value}</b>{row.unit}</span>
+</a>

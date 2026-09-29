@@ -13,6 +13,10 @@ struct WeekTimeGridView: View {
     let onSelectEntry: (CalendarEntry) -> Void
     /// 終日レーンの "+n" タップ → 親が日詳細シートを開く。
     let onShowDay: (Date) -> Void
+    @Environment(\.colorScheme) private var scheme
+
+    /// チケット受付期間帯の装飾テーマ seed (iOS system indigo 相当。CalendarDayDetailView のチケット行と揃える)。
+    private static let ticketSeed = "#5856D6"
 
     private let cal = Calendar.current
     private let today = Calendar.current.startOfDay(for: Date())
@@ -136,7 +140,7 @@ struct WeekTimeGridView: View {
             ForEach(Array(weekDays.enumerated()), id: \.offset) { idx, date in
                 let isToday = cal.isDate(date, inSameDayAs: today)
                 let isSelected = cal.isDate(date, inSameDayAs: selectedDate)
-                VStack(spacing: 2) {
+                VStack(spacing: DS.sp1) {
                     Text(weekdaySymbols[idx])
                         .font(.imasScaled( 10, weight: .semibold))
                         .foregroundStyle(isToday ? DS.ink : DS.ink3)
@@ -178,6 +182,7 @@ struct WeekTimeGridView: View {
         let bands = weekPeriodBands
         let laneCount = CalendarPeriodBand.laneCount(of: bands)
         let h = BandMetric.height, gap = BandMetric.gap
+        let ticketAccent = ImasTheme.derive(seed: Self.ticketSeed, scheme: scheme).accent
         ZStack(alignment: .topLeading) {
             ForEach(bands) { band in
                 let x = Metric.gutterWidth + CGFloat(band.startCol) * dayWidth
@@ -187,13 +192,13 @@ struct WeekTimeGridView: View {
                 } label: {
                     Text("受付 \(band.name)")
                         .font(.imasScaled( 10, weight: .semibold))
-                        .foregroundStyle(ColorMath.onColor(.indigo))
+                        .foregroundStyle(ColorMath.onColor(ticketAccent))
                         .lineLimit(1)
                         .truncationMode(.tail)
                         .padding(.horizontal, 6)
                         .frame(width: max(0, w - 2), height: h, alignment: .leading)
                         .background(
-                            Color.indigo,
+                            ticketAccent,
                             in: UnevenRoundedRectangle(
                                 topLeadingRadius: band.roundLeading ? 4 : 0,
                                 bottomLeadingRadius: band.roundLeading ? 4 : 0,
@@ -234,7 +239,7 @@ struct WeekTimeGridView: View {
     @ViewBuilder
     private func allDayCell(for date: Date) -> some View {
         let entries = allDayEntries(on: date)
-        VStack(spacing: 2) {
+        VStack(spacing: DS.sp1) {
             ForEach(entries.prefix(maxAllDayBands)) { entry in
                 Button {
                     onSelectEntry(entry)
@@ -251,7 +256,7 @@ struct WeekTimeGridView: View {
                         .font(.imasDisplay(9, weight: .semibold))
                         .foregroundStyle(DS.ink2)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 2)
+                        .padding(.horizontal, DS.sp1)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -366,8 +371,8 @@ struct WeekTimeGridView: View {
                     Text("+\(item.count)")
                         .font(.imasDisplay(9, weight: .bold))
                         .foregroundStyle(DS.onSys)
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 2)
+                        .padding(.horizontal, DS.sp2)
+                        .padding(.vertical, DS.sp1)
                         .background(DS.sys, in: Capsule())
                 }
                 .buttonStyle(.plain)
@@ -391,10 +396,10 @@ struct WeekTimeGridView: View {
                     .font(.imasDisplay(9, weight: .medium))
                     .opacity(0.85)
             }
-            .foregroundStyle(block.entry.accentInk)
-            .padding(4)
+            .foregroundStyle(block.entry.accentInk(scheme: scheme))
+            .padding(DS.sp2)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .background(block.entry.accentColor, in: RoundedRectangle(cornerRadius: 5, style: .continuous))
+            .background(block.entry.accentColor(scheme: scheme), in: RoundedRectangle(cornerRadius: 5, style: .continuous))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -404,9 +409,9 @@ struct WeekTimeGridView: View {
         switch entry {
         case .show(let row): return row.eventName
         case .release(_, let songs): return songs.first?.title ?? "リリース"
-        case .birthday(let idol): return idol.name
-        case .staffBirthday(let staff): return staff.name
-        case .anniversary(let ann): return ann.label
+        case .birthday(let idol, _): return idol.name
+        case .staffBirthday(let staff, _): return staff.name
+        case .anniversary(let ann, _): return ann.label
         case .personal(let event): return event.title
         case .ticket(let row): return "\(row.kind.label)・\(row.eventName)"
         case .ticketPeriod(let row): return "受付・\(row.eventName)"
@@ -463,9 +468,9 @@ struct WeekTimeGridView: View {
     private func timedMinutes(of entry: CalendarEntry, on date: Date) -> (start: Int, end: Int)? {
         switch entry {
         case .show(let row):
-            guard let start = Self.parseTimeMinutes(row.show.startTime) else { return nil }
-            // 終了時刻データは無いため仮に 2 時間ぶんの高さで描画する
-            return (start, min(start + Metric.defaultShowDurationMinutes, 24 * 60))
+            // 公演の欄 (開始から 2 時間・24:00 で止める。開始時刻が無ければ終日) はコア。
+            guard let block = showTimeBlock(startTime: row.show.startTime) else { return nil }
+            return (Int(block.startMinutes), Int(block.endMinutes))
         case .release, .birthday, .staffBirthday, .anniversary, .ticket, .ticketPeriod:
             return nil
         case .personal(let event):
@@ -479,15 +484,6 @@ struct WeekTimeGridView: View {
             let endMin = Int(end.timeIntervalSince(dayStart) / 60)
             return (startMin, max(endMin, startMin + 15))
         }
-    }
-
-    /// "HH:MM" → 0:00 からの経過分。
-    static func parseTimeMinutes(_ time: String?) -> Int? {
-        guard let time else { return nil }
-        let parts = time.split(separator: ":")
-        guard parts.count == 2, let h = Int(parts[0]), let m = Int(parts[1]),
-              (0..<24).contains(h), (0..<60).contains(m) else { return nil }
-        return h * 60 + m
     }
 
     // MARK: - 重なりレイアウト
@@ -507,33 +503,21 @@ struct WeekTimeGridView: View {
     }
 
     /// 同時刻の重なりを最大 2 列に振り分け、収まらない分を +n に集約する。
+    /// 置き方 (並べ順・列・半分幅・溢れ) はコアの `week_timed_layout` (日ごとに 1 回)。
     private func layoutTimedBlocks(_ blocks: [TimedBlock]) -> (visible: [TimedBlock], overflow: [OverflowBadge]) {
-        let sorted = blocks.sorted { ($0.startMinutes, $0.endMinutes) < ($1.startMinutes, $1.endMinutes) }
-        var visible: [TimedBlock] = []
-        var hidden: [TimedBlock] = []
-        var laneEnds = [Int.min, Int.min]  // 各レーンの最終終了分
-
-        for var block in sorted {
-            if let lane = laneEnds.firstIndex(where: { $0 <= block.startMinutes }) {
-                block.lane = lane
-                laneEnds[lane] = block.endMinutes
-                visible.append(block)
-            } else {
-                hidden.append(block)
-            }
+        let layout = weekTimedLayout(blocks: blocks.map {
+            TimedBlockInput(startMinutes: UInt32(clamping: $0.startMinutes),
+                            endMinutes: UInt32(clamping: $0.endMinutes))
+        })
+        let visible = layout.placements.map { placement -> TimedBlock in
+            var block = blocks[Int(placement.index)]
+            block.lane = Int(placement.lane)
+            block.isHalfWidth = placement.halfWidth
+            return block
         }
-
-        // 他の可視ブロックと時間帯が重なるものだけ半分幅にする
-        for i in visible.indices {
-            let a = visible[i]
-            visible[i].isHalfWidth = visible.contains { b in
-                b.id != a.id && a.startMinutes < b.endMinutes && b.startMinutes < a.endMinutes
-            }
+        let overflow = layout.overflow.map {
+            OverflowBadge(startMinutes: Int($0.startMinutes), count: Int($0.count))
         }
-
-        let overflow = Dictionary(grouping: hidden, by: \.startMinutes)
-            .map { OverflowBadge(startMinutes: $0.key, count: $0.value.count) }
-            .sorted { $0.startMinutes < $1.startMinutes }
         return (visible, overflow)
     }
 }

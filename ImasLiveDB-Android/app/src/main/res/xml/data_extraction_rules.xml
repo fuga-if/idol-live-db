@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android 12+ (API 31+) 用のバックアップ/デバイス間転送ルール。
+  imas_auth_secure (AuthService の EncryptedSharedPreferences) は AndroidKeyStore に
+  紐づく鍵で暗号化されており、鍵は端末外に持ち出せない。バックアップに含めても復元先では
+  復号不能なゴミになるだけなので、両方から明示的に除外する (iOS 側の Keychain 相当の扱い)。
+
+  取り込んだキャラクター画像 (CustomImageStore の filesDir/custom_images*) はクラウドの
+  バックアップから外す。画像は端末から出さない設計で、Auto Backup の上限 (25MB) を
+  画像だけで超えると、DB や設定を含むバックアップ全体が取られなくなる。
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="sharedpref" path="imas_auth_secure.xml" />
+        <exclude domain="file" path="custom_images/" />
+        <exclude domain="file" path="custom_images_units/" />
+        <exclude domain="file" path="custom_images_brands/" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="sharedpref" path="imas_auth_secure.xml" />
+    </device-transfer>
+</data-extraction-rules>

@@ -1,0 +1,62 @@
+---
+import ListLayout from "../../layouts/ListLayout.astro";
+import ListContainer from "../../components/ListContainer.astro";
+import RankingRow from "../../components/RankingRow.astro";
+import TagChip from "../../components/TagChip.astro";
+import { optionalPage, page } from "../../lib/data";
+import type { PollListPage } from "../../lib/schema/PollListPage";
+
+/**
+ * みんなのお題。
+ *
+ * **読むだけ。** 投票にはログインが要るので、この出面には操作を置かない。
+ * 中身は D1 の集計を焼き込んだもので、閲覧のたびに D1 は読まない。
+ * 「締切前か」も Rust が `ends_at` と出面の「今日」から決め、添える語 (`endsLabel`) まで出す。
+ */
+export const getStaticPaths = () => optionalPage("pollList", "/polls/");
+
+const list = page<PollListPage>(Astro.props.data);
+---
+
+<ListLayout seo={list.seo} title={list.title} total={list.total}>
+  <p slot="lede" class="u-muted">
+    {list.lede}
+  </p>
+
+  {
+    list.polls.map((poll) => (
+      <section class="poll" aria-labelledby={`poll-${poll.id}`}>
+        <div class="poll__head">
+          <h2 class="poll__title" id={`poll-${poll.id}`}>{poll.title}</h2>
+          <p class="u-row polls__meta">
+            <TagChip text={poll.targetLabel} kind="all" />
+            <span class="u-muted u-num">{poll.totalVotes} 票</span>
+            {poll.endsOn && (
+              <span class="u-muted">
+                {poll.endsLabel} <time class="u-num" datetime={poll.endsOn}>{poll.endsOn}</time>
+              </span>
+            )}
+          </p>
+          {poll.description && <p class="lede lede--small">{poll.description}</p>}
+        </div>
+        <ListContainer as="ol">
+          {poll.entries.map((entry) => (
+            <li>
+              <RankingRow
+                rank={entry.rank}
+                artwork={entry.ref.kind === "song"}
+                artworkUrl={entry.ref.artworkUrl}
+                title={entry.ref.name}
+                sub={entry.ref.sub}
+                metric={entry.votes}
+                unit="票"
+                href={entry.ref.path}
+                themeKey={entry.ref.themeKey}
+              />
+            </li>
+          ))}
+        </ListContainer>
+      </section>
+    ))
+  }
+</ListLayout>

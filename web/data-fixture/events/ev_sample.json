@@ -1,0 +1,214 @@
+{
+  "schemaVersion": 1,
+  "id": "ev_sample",
+  "path": "/events/ev_sample/",
+  "name": "THE IDOLM@STER MILLION LIVE! 10thLIVE TOUR Act-4 ROAD TO MEMORIES 幕張",
+  "nameKana": "さんぷるらいぶ",
+  "themeKey": "brand:ml",
+  "brand": {
+    "kind": "brand",
+    "id": "ml",
+    "name": "アイドルマスター ミリオンライブ!",
+    "sub": "ML",
+    "path": "/brands/ml/",
+    "themeKey": "brand:ml",
+    "artworkUrl": null
+  },
+  "jointBrands": [
+    {
+      "kind": "brand",
+      "id": "cg",
+      "name": "アイドルマスター シンデレラガールズ",
+      "sub": "CG",
+      "path": "/brands/cg/",
+      "themeKey": "brand:cg",
+      "artworkUrl": null
+    }
+  ],
+  "kind": "live",
+  "kindLabel": "ライブ",
+  "dateDisplay": "2026-04-03 (金) 〜 2026-04-04 (土)",
+  "isUpcoming": true,
+  "ticket": {
+    "dates": [
+      {
+        "label": "受付開始",
+        "date": "2026-02-01"
+      },
+      {
+        "label": "申込締切",
+        "date": "2026-02-20"
+      }
+    ],
+    "url": "https://example.com/ticket"
+  },
+  "statTiles": [
+    {
+      "glyph": "▤",
+      "value": 2,
+      "label": "公演",
+      "href": null
+    },
+    {
+      "glyph": "≡",
+      "value": 46,
+      "label": "のべ曲数",
+      "href": null
+    },
+    {
+      "glyph": "♬",
+      "value": 41,
+      "label": "異なり曲数",
+      "href": null
+    },
+    {
+      "glyph": "☺",
+      "value": 18,
+      "label": "出演者",
+      "href": null
+    }
+  ],
+  "shows": [
+    {
+      "ref": {
+        "kind": "show",
+        "id": "sh_sample_1",
+        "name": "DAY1",
+        "sub": "2026-04-03",
+        "path": "/shows/sh_sample_1/",
+        "themeKey": "brand:ml",
+        "artworkUrl": null
+      },
+      "title": "DAY1",
+      "showLabel": null,
+      "date": "2026-04-03",
+      "dateBadge": {
+        "iso": "2026-04-03",
+        "year": "2026",
+        "monthDay": "4/3",
+        "weekday": "金",
+        "spoken": "2026年4月3日 金曜日"
+      },
+      "venueLabel": "幕張メッセ",
+      "hall": "イベントホール",
+      "startTimeDisplay": "17:00 開演",
+      "setlistCount": 23
+    }
+  ],
+  "showsEmpty": null,
+  "cast": {
+    "shows": [
+      {
+        "show": {
+          "kind": "show",
+          "id": "sh_sample_1",
+          "name": "DAY1",
+          "sub": "2026-04-03",
+          "path": "/shows/sh_sample_1/",
+          "themeKey": "brand:ml",
+          "artworkUrl": null
+        },
+        "performers": [
+          {
+            "ref": {
+              "kind": "idol",
+              "id": "ml_kasuga_mirai",
+              "name": "春日未来",
+              "sub": "ミリオンライブ!",
+              "path": "/idols/ml_kasuga_mirai/",
+              "themeKey": "idol:ml_kasuga_mirai",
+              "artworkUrl": null
+            },
+            "isLead": true,
+            "isGuest": false
+          },
+          {
+            "ref": {
+              "kind": "idol",
+              "id": "ml_mogami_shizuka",
+              "name": "最上静香",
+              "sub": "ミリオンライブ!",
+              "path": "/idols/ml_mogami_shizuka/",
+              "themeKey": "idol:ml_mogami_shizuka",
+              "artworkUrl": null
+            },
+            "isLead": false,
+            "isGuest": true
+          }
+        ]
+      }
+    ]
+  },
+  "releases": [
+    {
+      "id": "rel_sample",
+      "title": "Blu-ray BOX",
+      "kind": "bluray",
+      "kindLabel": "Blu-ray",
+      "releaseDate": "2026-10-01",
+      "url": null,
+      "display": "Blu-ray BOX (2026-10-01)"
+    }
+  ],
+  "venues": [
+    {
+      "kind": "venue",
+      "id": "venue_makuhari",
+      "name": "幕張メッセ",
+      "sub": "千葉県",
+      "path": "/venues/venue_makuhari/",
+      "themeKey": "neutral",
+      "artworkUrl": null
+    }
+  ],
+  "app": {
+    "title": "アプリ「アイドルライブDB」",
+    "appStoreUrl": "https://apps.apple.com/jp/app/id6763342297",
+    "deeplink": "imaslivedb://events/ev_sample",
+    "note": "参加記録・投票・歌詞・コール・タグ付けはアプリでご利用いただけます。"
+  },
+  "seo": {
+    "title": "THE IDOLM@STER MILLION LIVE! 10thLIVE TOUR Act-4 ROAD TO MEMORIES 幕張 | アイドルライブDB",
+    "description": "ライブの公演・セットリスト・出演者。",
+    "canonical": "https://idollivedb.fugaapp.site/events/ev_sample/",
+    "ogImage": "https://idollivedb.fugaapp.site/og/default.png",
+    "robots": "index,follow",
+    "jsonLd": {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebPage",
+          "name": "THE IDOLM@STER MILLION LIVE! 10thLIVE TOUR Act-4 ROAD TO MEMORIES 幕張",
+          "url": "https://idollivedb.fugaapp.site/events/ev_sample/"
+        },
+        {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "item": "https://idollivedb.fugaapp.site/",
+              "name": "ホーム",
+              "position": 1
+            },
+            {
+              "@type": "ListItem",
+              "item": "https://idollivedb.fugaapp.site/events/",
+              "name": "ライブ",
+              "position": 2
+            }
+          ]
+        }
+      ]
+    },
+    "breadcrumbs": [
+      {
+        "name": "ホーム",
+        "path": "/"
+      },
+      {
+        "name": "ライブ",
+        "path": "/events/"
+      }
+    ]
+  }
+}

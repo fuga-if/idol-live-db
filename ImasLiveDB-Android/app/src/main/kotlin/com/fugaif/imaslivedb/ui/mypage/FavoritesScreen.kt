@@ -65,7 +65,8 @@ data class FavoritesUiState(
 )
 
 class FavoritesViewModel(app: Application) : AndroidViewModel(app) {
-    private val marks = AppModule.from(app).userMarkRepository
+    private val module = AppModule.from(app)
+    private val marks = module.userMarkRepository
 
     private val _uiState = MutableStateFlow(FavoritesUiState())
     val uiState: StateFlow<FavoritesUiState> = _uiState.asStateFlow()
@@ -77,7 +78,7 @@ class FavoritesViewModel(app: Application) : AndroidViewModel(app) {
             _uiState.value = FavoritesUiState(
                 songs = marks.favoriteSongs(),
                 idols = marks.favoriteIdols(),
-                events = marks.favoriteEvents(),
+                events = module.eventRepository.fetchFavoriteEvents(),
                 isLoading = false
             )
         }
@@ -144,7 +145,7 @@ private fun SongsTab(songs: List<Song>, onClick: (String) -> Unit) {
     LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(vertical = 4.dp)) {
         items(songs, key = { it.id }) { song ->
             SongRow(
-                title = song.title,
+                title = song.title, songId = song.id,
                 artistNames = "",
                 unitName = song.unitName,
                 artworkUrl = song.artworkUrl,
@@ -170,7 +171,7 @@ private fun IdolsTab(idols: List<Idol>, onClick: (String) -> Unit) {
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    ImasAvatar(label = idol.name, seed = idol.color, brand = idol.brandId, size = 40.dp)
+                    ImasAvatar(label = idol.shortName, seed = idol.color, brand = idol.brandId, size = 40.dp)
                     Column(Modifier.padding(start = 12.dp)) {
                         Text(idol.name, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink,
                             maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -198,7 +199,7 @@ private fun EventsTab(events: List<EventWithDateRange>) {
                 horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp),
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp)
             ) {
-                ImasLeadBar(brand = ew.event.brandId, height = 38.dp, rainbow = ew.event.jointBrandIdList.isNotEmpty())
+                ImasLeadBar(brandId = ew.event.brandId, height = 38.dp, rainbow = ew.isJoint)
                 Column(Modifier.weight(1f)) {
                     Text(
                         text = ew.event.name,

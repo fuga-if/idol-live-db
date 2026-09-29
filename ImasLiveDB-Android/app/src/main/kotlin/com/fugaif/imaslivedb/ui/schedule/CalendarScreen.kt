@@ -2,27 +2,27 @@ package com.fugaif.imaslivedb.ui.schedule
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -36,28 +36,32 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.fugaif.imaslivedb.data.model.CalReleaseRow
+import com.fugaif.imaslivedb.data.model.CalendarEntry
+import com.fugaif.imaslivedb.ui.components.AttendanceSwipeRow
+import com.fugaif.imaslivedb.ui.components.ImasSegmented
 import com.fugaif.imaslivedb.ui.theme.DS
-import com.fugaif.imaslivedb.ui.theme.brandColor
 import java.time.LocalDate
-import androidx.compose.foundation.layout.width
-import androidx.compose.ui.graphics.vector.ImageVector
 
-private val ShowColor = Color(0xFF3E6DD6)
-private val ReleaseColor = DS.warning
-private val BirthdayColor = DS.pick
-private val StaffColor = Color(0xFFE91E63)
-private val AnniversaryColor = Color(0xFF26A69A)
+/**
+ * 月表示の縦空間配分。グリッドはフィット型なので、ここで決めた高さに必ず 6 行が収まる
+ * (iOS `CalendarView.MonthLayout` と同値)。
+ */
+private const val MONTH_GRID_FRACTION = 0.62f
+
+/** タブレット等の大画面でグリッドだけが間延びしないための上限。 */
+private val MonthGridMaxHeight = 520.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -65,12 +69,12 @@ fun CalendarScreen(
     onNavigateToShow: (String) -> Unit,
     onNavigateToSong: (String) -> Unit,
     onNavigateToIdol: (String) -> Unit,
-    onNavigateToSearch: () -> Unit,
+    onNavigateToEvent: (String) -> Unit,
     onNavigateToSettings: () -> Unit,
     viewModel: CalendarViewModel = viewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    // 同期完了でカレンダーを再読込 (初回 full sync 完了直後にドットを反映)。
+    // 同期完了でカレンダーを再読込 (初回 full sync 完了直後に予定を反映)。
     val ctx = androidx.compose.ui.platform.LocalContext.current
     val syncState by com.fugaif.imaslivedb.di.AppModule.from(ctx).syncEngine.state.collectAsStateWithLifecycle()
     androidx.compose.runtime.LaunchedEffect(syncState) {
@@ -78,19 +82,20 @@ fun CalendarScreen(
             viewModel.reload()
         }
     }
+
+    // 「今日」は VM が JST で確定させたもの (端末ローカルだと海外で丸の位置が 1 日ずれる)。
     val ym = state.yearMonth
-    val today = viewModel.today()
-    val isCurrentMonth = today.year == ym.year && today.monthValue == ym.monthValue
-    val selectedDay = state.selectedDay ?: if (isCurrentMonth) today.dayOfMonth else null
+    val isCurrentMonth = ym == java.time.YearMonth.from(state.today)
+    val selectedDate = state.selectedDate ?: if (isCurrentMonth) state.today else null
+
+    // 日詳細シートの対象日 (null = 非表示)。
+    var daySheetDate by remember { mutableStateOf<LocalDate?>(null) }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("スケジュール", fontWeight = FontWeight.Bold) },
                 actions = {
-                    IconButton(onClick = onNavigateToSearch) {
-                        Icon(Icons.Filled.Search, contentDescription = "検索")
-                    }
                     IconButton(onClick = onNavigateToSettings) {
                         Icon(Icons.Filled.Settings, contentDescription = "設定・マイ")
                     }
@@ -99,107 +104,200 @@ fun CalendarScreen(
         }
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-            // フィルタチップ
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                CalFilterChip("公演", ShowColor, state.showShows) { viewModel.toggleShows() }
-                CalFilterChip("リリース", ReleaseColor, state.showReleases) { viewModel.toggleReleases() }
-                CalFilterChip("誕生日", BirthdayColor, state.showBirthdays) { viewModel.toggleBirthdays() }
-                CalFilterChip("事務員", StaffColor, state.showStaffBirthdays) { viewModel.toggleStaffBirthdays() }
-                CalFilterChip("記念日", AnniversaryColor, state.showAnniversaries) { viewModel.toggleAnniversaries() }
-            }
+            FilterBar(state, viewModel)
 
-            // 月ナビ
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = { viewModel.goToMonth(-1) }) {
-                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "前の月")
-                }
-                Text(
-                    "${ym.year}年 ${ym.monthValue}月",
-                    modifier = Modifier.weight(1f),
-                    textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                IconButton(onClick = { viewModel.goToMonth(1) }) {
-                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "次の月")
-                }
-                // 月/週 切替
-                Box(
-                    modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(DS.fill)
-                        .clickable { viewModel.toggleWeekMode() }.padding(horizontal = 10.dp, vertical = 4.dp)
-                ) {
-                    Text(if (state.weekMode) "週" else "月", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = DS.ink)
-                }
-            }
-
-            // 曜日ヘッダ
-            Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)) {
-                val labels = listOf("日", "月", "火", "水", "木", "金", "土")
-                labels.forEachIndexed { i, d ->
-                    Text(
-                        d,
-                        modifier = Modifier.weight(1f),
-                        textAlign = TextAlign.Center,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = when (i) { 0 -> BirthdayColor; 6 -> ShowColor; else -> DS.ink2 }
-                    )
-                }
-            }
-
-            // 月グリッド / 週ストリップ
             if (state.weekMode) {
-                WeekStrip(
-                    ym = ym, today = today, selectedDay = selectedDay ?: 1,
-                    dotsProvider = { viewModel.dotsFor(it) },
-                    onSelect = { viewModel.selectDay(it) }
+                WeekTimeGrid(
+                    state = state,
+                    // 週表示は必ず基準日を持つ (toggleWeekMode が入れる)。念のため今日で受ける。
+                    anchor = selectedDate ?: state.today,
+                    onSelectDate = { viewModel.selectDate(it) },
+                    onSelectEntry = { openEntry(it, onNavigateToShow, onNavigateToSong, onNavigateToIdol, onNavigateToEvent) },
+                    onShowDay = { daySheetDate = it },
+                    onWeekDelta = { viewModel.goToWeek(it, selectedDate ?: state.today) },
+                    modifier = Modifier.weight(1f)
                 )
             } else {
-                MonthGrid(
-                    ym = ym, today = today, selectedDay = selectedDay,
-                    dotsProvider = { viewModel.dotsFor(it) },
-                    onSelect = { viewModel.selectDay(it) }
+                MonthNavRow(
+                    title = "${ym.year}年 ${ym.monthValue}月",
+                    onPrev = { viewModel.goToMonth(-1) },
+                    onNext = { viewModel.goToMonth(1) }
+                )
+                WeekdayHeader()
+                MonthPane(
+                    state = state,
+                    selectedDate = selectedDate,
+                    onSelectDate = { viewModel.selectDate(it) },
+                    onShowDay = { daySheetDate = it },
+                    onMonthDelta = { viewModel.goToMonth(it) },
+                    onNavigateToShow = onNavigateToShow,
+                    onNavigateToSong = onNavigateToSong,
+                    onNavigateToIdol = onNavigateToIdol,
+                    onNavigateToEvent = onNavigateToEvent,
+                    modifier = Modifier.weight(1f)
                 )
             }
+        }
+    }
 
-            // 選択日のエントリ
-            val entries = selectedDay?.let { viewModel.entriesFor(it) } ?: emptyList()
-            DaySectionHeader(ym, selectedDay)
-            LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 16.dp)) {
+    daySheetDate?.let { date ->
+        DayDetailSheet(
+            state = state,
+            date = date,
+            onDismiss = { daySheetDate = null },
+            onNavigateToShow = { daySheetDate = null; onNavigateToShow(it) },
+            onNavigateToSong = { daySheetDate = null; onNavigateToSong(it) },
+            onNavigateToIdol = { daySheetDate = null; onNavigateToIdol(it) },
+            onNavigateToEvent = { daySheetDate = null; onNavigateToEvent(it) }
+        )
+    }
+}
+
+/** 週グリッドのブロック/帯タップ → 既存の詳細画面へ (行タップと同じ行き先に揃える)。 */
+private fun openEntry(
+    entry: CalendarEntry,
+    onNavigateToShow: (String) -> Unit,
+    onNavigateToSong: (String) -> Unit,
+    onNavigateToIdol: (String) -> Unit,
+    onNavigateToEvent: (String) -> Unit
+) {
+    when (entry) {
+        is CalendarEntry.Show -> onNavigateToShow(entry.row.showId)
+        is CalendarEntry.Release -> entry.songs.firstOrNull()?.let { onNavigateToSong(it.id) }
+        is CalendarEntry.Birthday -> onNavigateToIdol(entry.row.id)
+        is CalendarEntry.Ticket -> onNavigateToEvent(entry.row.eventId)
+        is CalendarEntry.TicketPeriod -> onNavigateToEvent(entry.row.eventId)
+        // 事務員誕生日と記念日は専用の詳細画面を持たないので遷移しない。
+        is CalendarEntry.StaffBirthday, is CalendarEntry.Anniversary -> Unit
+    }
+}
+
+/** カテゴリ chip + 月/週 切替 (iOS `CalendarView.topBar` と同じ並び)。 */
+@Composable
+private fun FilterBar(state: CalendarUiState, viewModel: CalendarViewModel) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(
+            modifier = Modifier.weight(1f).horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            CalFilterChip("公演", ShowColor, state.showShows) { viewModel.toggleShows() }
+            CalFilterChip("リリース", ReleaseColor, state.showReleases) { viewModel.toggleReleases() }
+            CalFilterChip("誕生日", BirthdayColor, state.showBirthdays) { viewModel.toggleBirthdays() }
+            CalFilterChip("事務員", StaffColor, state.showStaffBirthdays) { viewModel.toggleStaffBirthdays() }
+            CalFilterChip("記念日", AnniversaryColor, state.showAnniversaries) { viewModel.toggleAnniversaries() }
+            CalFilterChip("チケット", TicketColor, state.showTickets) { viewModel.toggleTickets() }
+        }
+        ImasSegmented(
+            labels = listOf("月", "週"),
+            selection = if (state.weekMode) 1 else 0,
+            onSelect = { index -> if ((index == 1) != state.weekMode) viewModel.toggleWeekMode() },
+            // 高さは中身に任せる (固定するとアプリ内の文字サイズ倍率でラベルが切れる)。
+            modifier = Modifier.padding(start = 8.dp).width(78.dp)
+        )
+    }
+}
+
+@Composable
+private fun MonthNavRow(title: String, onPrev: () -> Unit, onNext: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconButton(onClick = onPrev) {
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "前の月")
+        }
+        Text(
+            title,
+            modifier = Modifier.weight(1f),
+            textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold
+        )
+        IconButton(onClick = onNext) {
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "次の月")
+        }
+    }
+}
+
+@Composable
+private fun WeekdayHeader() {
+    Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)) {
+        listOf("日", "月", "火", "水", "木", "金", "土").forEachIndexed { i, d ->
+            Text(
+                d,
+                modifier = Modifier.weight(1f),
+                textAlign = TextAlign.Center,
+                style = MaterialTheme.typography.labelSmall,
+                color = when (i) { 0 -> BirthdayColor; 6 -> ShowColor; else -> DS.ink2 }
+            )
+        }
+    }
+}
+
+/**
+ * 月グリッド + 選択日リスト。
+ *
+ * 利用可能高を測ってグリッドに固定割合を割り付ける (グリッド側はフィット型なので、
+ * 与えた高さに 6 行が必ず収まる)。残りは選択日リストが取り、リストは内部スクロールする
+ * ためあふれない。
+ */
+@Composable
+private fun MonthPane(
+    state: CalendarUiState,
+    selectedDate: LocalDate?,
+    onSelectDate: (LocalDate) -> Unit,
+    onShowDay: (LocalDate) -> Unit,
+    onMonthDelta: (Long) -> Unit,
+    onNavigateToShow: (String) -> Unit,
+    onNavigateToSong: (String) -> Unit,
+    onNavigateToIdol: (String) -> Unit,
+    onNavigateToEvent: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        val gridHeight = minOf(maxHeight * MONTH_GRID_FRACTION, MonthGridMaxHeight)
+        Column(modifier = Modifier.fillMaxSize()) {
+            MonthCalendar(
+                state = state,
+                onSelectDate = onSelectDate,
+                onShowDay = onShowDay,
+                onMonthDelta = onMonthDelta,
+                modifier = Modifier.fillMaxWidth().height(gridHeight).padding(horizontal = 6.dp)
+            )
+
+            val entries = selectedDate?.let { state.entriesOn(it) } ?: emptyList()
+            if (selectedDate != null) {
+                DaySectionHeader(selectedDate, entries.size) { onShowDay(selectedDate) }
+            }
+            LazyColumn(modifier = Modifier.weight(1f), contentPadding = PaddingValues(bottom = 16.dp)) {
                 items(entries) { entry ->
-                    when (entry) {
-                        is CalEntry.Show -> EntryRow(ShowColor, entry.row.eventName, entry.row.showName,
-                            brandColor(entry.row.brandId)) { onNavigateToShow(entry.row.showId) }
-                        is CalEntry.Birthday -> EntryRow(BirthdayColor, "誕生日", entry.row.name,
-                            brandColor(entry.row.brandId)) { onNavigateToIdol(entry.row.id) }
-                        is CalEntry.Release -> ReleaseRows(entry.rows, onNavigateToSong)
-                        is CalEntry.StaffBirthday -> IconEntryRow(
-                            accent = StaffColor,
-                            icon = Icons.Filled.Person,
-                            label = "${entry.row.name} 誕生日",
-                            sub = entry.row.role ?: "",
-                            brand = brandColor(entry.row.brandId)
-                        )
-                        is CalEntry.AnniversaryEntry -> {
-                            val title = if (entry.years == 0) "${entry.row.label} (初日)"
-                                        else "${entry.years}周年 ・ ${entry.row.label}"
-                            val startYear = entry.row.date.take(4)
-                            IconEntryRow(
-                                accent = AnniversaryColor,
-                                icon = Icons.Filled.AutoAwesome,
-                                label = title,
-                                sub = "${startYear} 起点",
-                                brand = brandColor(entry.row.brandId)
+                    // 公演行だけ右スワイプで参加登録 (日詳細シートと同じ規則)。
+                    if (entry is CalendarEntry.Show) {
+                        AttendanceSwipeRow(showId = entry.row.showId, showName = entry.row.showName) {
+                            CalendarEntryRow(
+                                entry = entry,
+                                showDetail = state.showDetails[entry.row.showId],
+                                onNavigateToShow = onNavigateToShow,
+                                onNavigateToSong = onNavigateToSong,
+                                onNavigateToIdol = onNavigateToIdol,
+                                onNavigateToEvent = onNavigateToEvent
                             )
                         }
+                    } else {
+                        CalendarEntryRow(
+                            entry = entry,
+                            showDetail = null,
+                            onNavigateToShow = onNavigateToShow,
+                            onNavigateToSong = onNavigateToSong,
+                            onNavigateToIdol = onNavigateToIdol,
+                            onNavigateToEvent = onNavigateToEvent
+                        )
                     }
                 }
-                if (selectedDay != null && entries.isEmpty()) {
+                if (selectedDate != null && entries.isEmpty()) {
                     item {
                         Text(
                             "この日の記録はありません",
@@ -215,174 +313,43 @@ fun CalendarScreen(
     }
 }
 
+/** 選択日の小見出し。タップで日詳細シート (種別サマリと直行ボタン) を開く。 */
 @Composable
-private fun MonthGrid(
-    ym: java.time.YearMonth,
-    today: LocalDate,
-    selectedDay: Int?,
-    dotsProvider: (Int) -> Set<Int>,
-    onSelect: (Int) -> Unit
-) {
-    val firstDow = LocalDate.of(ym.year, ym.monthValue, 1).dayOfWeek.value % 7 // 日=0
-    val daysInMonth = ym.lengthOfMonth()
-    val cells = firstDow + daysInMonth
-    val rows = (cells + 6) / 7
-    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)) {
-        for (r in 0 until rows) {
-            Row(modifier = Modifier.fillMaxWidth()) {
-                for (c in 0 until 7) {
-                    val cellIndex = r * 7 + c
-                    val day = cellIndex - firstDow + 1
-                    Box(modifier = Modifier.weight(1f).aspectRatio(1f), contentAlignment = Alignment.Center) {
-                        if (day in 1..daysInMonth) {
-                            DayCell(
-                                day = day,
-                                isToday = today.year == ym.year && today.monthValue == ym.monthValue && today.dayOfMonth == day,
-                                isSelected = selectedDay == day,
-                                dots = dotsProvider(day),
-                                onClick = { onSelect(day) }
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun WeekStrip(
-    ym: java.time.YearMonth,
-    today: LocalDate,
-    selectedDay: Int,
-    dotsProvider: (Int) -> Set<Int>,
-    onSelect: (Int) -> Unit
-) {
-    val firstDow = LocalDate.of(ym.year, ym.monthValue, 1).dayOfWeek.value % 7
-    val daysInMonth = ym.lengthOfMonth()
-    val cellIndex = firstDow + selectedDay - 1
-    val weekStart = (cellIndex / 7) * 7
-    Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp)) {
-        for (c in 0 until 7) {
-            val day = weekStart + c - firstDow + 1
-            Box(modifier = Modifier.weight(1f).aspectRatio(1f), contentAlignment = Alignment.Center) {
-                if (day in 1..daysInMonth) {
-                    DayCell(
-                        day = day,
-                        isToday = today.year == ym.year && today.monthValue == ym.monthValue && today.dayOfMonth == day,
-                        isSelected = selectedDay == day,
-                        dots = dotsProvider(day),
-                        onClick = { onSelect(day) }
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun DayCell(day: Int, isToday: Boolean, isSelected: Boolean, dots: Set<Int>, onClick: () -> Unit) {
-    Column(
+private fun DaySectionHeader(date: LocalDate, count: Int, onOpenSheet: () -> Unit) {
+    Row(
         modifier = Modifier
-            .size(40.dp)
-            .clip(RoundedCornerShape(10.dp))
-            .background(if (isSelected) DS.surface2 else Color.Transparent)
-            .clickable(onClick = onClick),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Box(
-            modifier = Modifier.size(24.dp)
-                .clip(CircleShape)
-                .background(if (isToday) DS.ink else Color.Transparent),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                "$day",
-                style = MaterialTheme.typography.bodySmall,
-                color = if (isToday) DS.onSys else DS.ink,
-                fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal
-            )
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.height(6.dp)) {
-            dots.forEach { kind ->
-                Box(
-                    modifier = Modifier.size(5.dp).clip(CircleShape).background(
-                        when (kind) {
-                            0 -> ShowColor; 1 -> ReleaseColor; 2 -> BirthdayColor
-                            3 -> StaffColor; else -> AnniversaryColor
-                        }
-                    )
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun DaySectionHeader(ym: java.time.YearMonth, day: Int?) {
-    if (day == null) return
-    Text(
-        "${ym.monthValue}月${day}日",
-        modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 8.dp, bottom = 4.dp),
-        style = MaterialTheme.typography.titleSmall,
-        fontWeight = FontWeight.Bold,
-        color = DS.ink2
-    )
-}
-
-/** アイコン付きエントリ行 (事務員誕生日・記念日など、詳細画面なしのエントリ用)。 */
-@Composable
-private fun IconEntryRow(accent: Color, icon: ImageVector, label: String, sub: String, brand: Color) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            .fillMaxWidth()
+            .clickable(onClick = onOpenSheet)
+            .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(modifier = Modifier.size(width = 4.dp, height = 36.dp).clip(RoundedCornerShape(2.dp)).background(brand))
-        Spacer(Modifier.size(12.dp))
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = accent,
-            modifier = Modifier.size(18.dp)
+        Text(
+            "${date.monthValue}月${date.dayOfMonth}日",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+            color = DS.ink2,
+            modifier = Modifier.weight(1f)
         )
-        Spacer(Modifier.width(8.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(label, style = MaterialTheme.typography.bodyMedium, color = DS.ink, maxLines = 2)
-            if (sub.isNotEmpty()) {
-                Text(sub, style = MaterialTheme.typography.labelSmall, color = DS.ink2, maxLines = 1)
-            }
-        }
-    }
-}
-
-@Composable
-private fun EntryRow(accent: Color, label: String, title: String, brand: Color, onClick: () -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(modifier = Modifier.size(width = 4.dp, height = 36.dp).clip(RoundedCornerShape(2.dp)).background(brand))
-        Spacer(Modifier.size(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(label, style = MaterialTheme.typography.labelSmall, color = accent, fontWeight = FontWeight.Bold)
-            Text(title, style = MaterialTheme.typography.bodyMedium, color = DS.ink, maxLines = 2)
-        }
-    }
-}
-
-@Composable
-private fun ReleaseRows(rows: List<CalReleaseRow>, onSong: (String) -> Unit) {
-    Column {
-        rows.forEach { song ->
-            EntryRow(ReleaseColor, "リリース", song.title, brandColor(song.brandId)) { onSong(song.id) }
+        if (count > 0) {
+            Text("$count 件", fontSize = 12.sp, color = DS.ink3)
+            Icon(
+                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = "この日の詳細",
+                tint = DS.ink3,
+                modifier = Modifier.size(18.dp)
+            )
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun CalFilterChip(label: String, color: Color, selected: Boolean, onClick: () -> Unit) {
+private fun CalFilterChip(
+    label: String,
+    color: androidx.compose.ui.graphics.Color,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
     FilterChip(
         selected = selected,
         onClick = onClick,

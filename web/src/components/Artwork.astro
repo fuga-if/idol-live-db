@@ -1,0 +1,37 @@
+---
+/**
+ * ImasArtwork の Web 版。
+ * 画像は `songs.artwork_url` (Apple Music CDN) のみ。無ければアクセント面 + 曲名。
+ * フォールバック面は常に敷いておくので、画像が出なくてもレイアウトが崩れない。
+ */
+interface Props {
+  title: string;
+  artworkUrl?: string | null;
+  size?: "sm" | "md" | "hero";
+}
+const { title, artworkUrl, size = "md" } = Astro.props;
+const px = { sm: 44, md: 56, hero: 160 }[size];
+const sizeClass = size === "md" ? "" : `artwork--${size}`;
+// ヒーローのジャケは折り返しの上にあり、そのページの LCP そのもの。
+// 遅延させると初期表示が目に見えて遅くなるので、ここだけ先に取りに行かせる。
+const isHero = size === "hero";
+---
+
+<span class:list={["artwork", sizeClass]}>
+  {/* 画像が無いときだけ曲名を描く。画像の上に敷いたままだと、
+      見えていない文字を読み上げが拾って曲名が二重に読まれる。 */}
+  {!artworkUrl && <span class="artwork__fallback">{title}</span>}
+  {
+    artworkUrl && (
+      <img
+        src={artworkUrl}
+        alt=""
+        width={px}
+        height={px}
+        loading={isHero ? "eager" : "lazy"}
+        fetchpriority={isHero ? "high" : undefined}
+        decoding="async"
+      />
+    )
+  }
+</span>

@@ -229,19 +229,155 @@ struct SimilarSongsResponse: Decodable, Sendable {
 struct SimilarSongEntry: Decodable, Identifiable, Hashable, Sendable {
     var id: String { songId }
     let songId: String
-    /// この曲と共有しているタグ数 (近さの指標)。
+    /// この曲と共有しているタグ数 (バッジ表示用)。
+    let sharedTags: Int
+    /// 減衰つき Jaccard 係数による近さ (0〜1)。おすすめの抽選重みに使う。
+    ///
+    /// サーバ側が旧実装のままだと返ってこないので optional。
+    /// 未配信の Worker と新しいアプリが同時に存在しうる (審査期間など)。
+    let score: Double?
+
+    /// 抽選に使う重み。`score` が無い旧サーバでは共有タグ数で代用する
+    /// (人気バイアスは残るが、少なくとも「近い順」ではある)。
+    var pickWeight: Double { score ?? Double(sharedTags) }
+}
+
+/// GET /idols/:id/similar — タグが似ているアイドル。
+struct SimilarIdolsResponse: Decodable, Sendable {
+    let idolId: String
+    let idols: [SimilarIdolEntry]
+}
+
+struct SimilarIdolEntry: Decodable, Identifiable, Hashable, Sendable {
+    var id: String { idolId }
+    let idolId: String
+    /// このアイドルと共有しているタグ数 (近さの指標)。
     let sharedTags: Int
 }
 
+/// 曲タグ (tags マスタ) の詳細。アイドルタグは idol_tag_master に分離済みなのでここには出ない
+/// (→ `IdolTagDetailResponse` / `CommunityAPI.idolTagDetail(id:)`)。
 struct TagDetailResponse: Decodable, Sendable {
     let tag: CommunityTag
     let songs: [TagSongEntry]
+}
+
+/// アイドルタグ (idol_tag_master) の詳細。曲タグとは別プールなので `songs` を持たない。
+struct IdolTagDetailResponse: Decodable, Sendable {
+    let tag: CommunityTag
+    let idols: [TagIdolEntry]
+}
+
+/// ユニットタグ (unit_tag_master) の詳細。曲/アイドルタグとも別プール。
+struct UnitTagDetailResponse: Decodable, Sendable {
+    let tag: CommunityTag
+    let units: [TagUnitEntry]
 }
 
 struct TagSongEntry: Codable, Identifiable, Hashable, Sendable {
     var id: String { songId }
     let songId: String
     let voteCount: Int
+}
+
+struct TagIdolEntry: Codable, Identifiable, Hashable, Sendable {
+    var id: String { idolId }
+    let idolId: String
+    let voteCount: Int
+}
+
+struct TagUnitEntry: Codable, Identifiable, Hashable, Sendable {
+    var id: String { unitId }
+    let unitId: String
+    let voteCount: Int
+}
+
+struct IdolTagListResponse: Decodable, Sendable {
+    let tags: [SongTagEntry]
+    let myTagIds: [String]
+}
+
+struct UnitTagListResponse: Decodable, Sendable {
+    let tags: [SongTagEntry]
+    let myTagIds: [String]
+}
+
+struct IdolTagApplyResponse: Decodable, Sendable {
+    let idolId: String
+    let appliedTagIds: [String]
+}
+
+struct UnitTagApplyResponse: Decodable, Sendable {
+    let unitId: String
+    let appliedTagIds: [String]
+}
+
+/// GET /units/:id/similar — タグが似ているユニット。
+struct SimilarUnitsResponse: Decodable, Sendable {
+    let unitId: String
+    let units: [SimilarUnitEntry]
+}
+
+struct SimilarUnitEntry: Decodable, Identifiable, Hashable, Sendable {
+    var id: String { unitId }
+    let unitId: String
+    /// このユニットと共有しているタグ数 (近さの指標)。
+    let sharedTags: Int
+}
+
+// MARK: - Tag Activity (盛り上がり)
+
+/// タグ付けの対象ドメイン (曲/アイドル)。GET /tags/activity は両方を横断して返す。
+enum TagActivityDomain: String, Codable, Sendable {
+    case song
+    case idol
+}
+
+/// GET /tags/activity レスポンス。新規テーブル無しで device_song_tag / device_idol_tag の
+/// タイムスタンプ付きイベントログから直近フィード・トレンドを算出したもの。
+struct TagActivityResponse: Decodable, Sendable {
+    let windowDays: Int
+    let recent: [TagActivityEvent]
+    let trendingTags: [TagActivityTrend]
+    let risingEntities: [TagActivityRise]
+}
+
+/// 直近のタグ付けイベント1件。曲/アイドル名は entityId を元にクライアント側のローカル DB で解決する。
+struct TagActivityEvent: Decodable, Identifiable, Sendable {
+    let domain: TagActivityDomain
+    let entityId: String
+    let tagId: String
+    let tagName: String
+    let tagColor: HexColor?
+    let tagCategory: TagCategory?
+    let createdAt: Date
+
+    var id: String { "\(domain.rawValue)_\(entityId)_\(tagId)_\(createdAt.timeIntervalSince1970)" }
+}
+
+/// 直近 window_days 日間で伸びているタグ。
+struct TagActivityTrend: Decodable, Identifiable, Sendable {
+    let domain: TagActivityDomain
+    let tagId: String
+    let tagName: String
+    let tagColor: HexColor?
+    let tagCategory: TagCategory?
+    let recentCount: Int
+    let totalCount: Int
+
+    var id: String { "\(domain.rawValue)_\(tagId)" }
+}
+
+/// 直近 window_days 日間で特定の曲/アイドルにタグが急増した組み合わせ。
+struct TagActivityRise: Decodable, Identifiable, Sendable {
+    let domain: TagActivityDomain
+    let entityId: String
+    let tagId: String
+    let tagName: String
+    let tagColor: HexColor?
+    let recentCount: Int
+
+    var id: String { "\(domain.rawValue)_\(entityId)_\(tagId)" }
 }
 
 struct TagHistoryEntry: Codable, Identifiable, Hashable, Sendable {
@@ -264,9 +400,38 @@ struct SongTagApplyResponse: Decodable, Sendable {
 
 // MARK: - Community Polls
 
+/// コミュニティ投票の 1人あたり票数上限と残り票数。
+/// 「みんなの投票」(お題1件) と「セトリ予想」(公演1件) で同じ上限。値と数え方はコア
+/// (`vote_limit_per_target` / `votes_remaining`、サーバの VOTE_LIMIT と同値)。
+enum CommunityVoteLimit {
+    static let perTarget = Int(voteLimitPerTarget())
+
+    /// 残り票数 (0 未満にしない)。
+    static func remaining(myVoteCount: Int) -> Int {
+        Int(votesRemaining(myVoteCount: UInt32(clamping: max(0, myVoteCount))))
+    }
+}
+
 enum PollTargetType: String, Codable, Sendable {
     case song
     case idol
+    case unit
+
+    /// 未知の値が来ても安全に `.song` フォールバック (前方互換)。
+    /// サーバが新ケースを返し始めた瞬間に既存クライアントのデコードが全滅しないようにするため。
+    init(from decoder: Decoder) throws {
+        let raw = try decoder.singleValueContainer().decode(String.self)
+        self = PollTargetType(rawValue: raw) ?? .song
+    }
+
+    /// UI 表示用の日本語ラベル。
+    var label: String {
+        switch self {
+        case .song: return "曲"
+        case .idol: return "アイドル"
+        case .unit: return "ユニット"
+        }
+    }
 }
 
 /// 投票候補の絞り込みスコープ。
@@ -290,7 +455,8 @@ struct Poll: Codable, Identifiable, Hashable, Sendable {
     let title: String
     let description: String?
     let targetType: PollTargetType
-    let createdBy: String
+    /// 作成者 uid。サーバは `is_own_poll` に移ったので、判定には使わない (後でサーバから消える)。
+    let createdBy: String?
     let createdAt: Date
     let endsAt: Date
     let status: String
@@ -304,6 +470,10 @@ struct Poll: Codable, Identifiable, Hashable, Sendable {
     let scopeBrandIds: [String]?
     /// `candidateScope == .manual` のときの候補エンティティ ID 群。それ以外は nil。
     let scopeEntityIds: [String]?
+    /// 現在1位の曲/アイドルの entity_id (無投票なら nil)。一覧行のサムネイルに使う。
+    let topEntityId: String?
+    /// 呼び出した人のお題か (削除の導線を出す判定)。サーバが認証から決める。古いサーバでは nil。
+    var isOwnPoll: Bool? = nil
 
     /// nil 時のフォールバックを内包したアクセサ。
     var scope: PollCandidateScope { candidateScope ?? .all }
@@ -356,28 +526,4 @@ struct PollAchievement: Codable, Identifiable, Sendable {
 struct TagsListResponse: Decodable, Sendable {
     let tags: [CommunityTag]
     let total: Int
-}
-
-// MARK: - Penlight / Tag Ack Types
-
-struct PenlightVoteAck: Decodable, Sendable {
-    let songId: String
-    let colorSetKey: String
-    let count: Int
-}
-
-struct PenlightCancelAck: Decodable, Sendable {
-    let songId: String
-    let cancelled: Bool
-}
-
-struct TagRemoveAck: Decodable, Sendable {
-    let songId: String
-    let tagId: String
-    let removed: Bool
-}
-
-struct TagReportAck: Decodable, Sendable {
-    let ok: Bool
-    let totalReports: Int
 }

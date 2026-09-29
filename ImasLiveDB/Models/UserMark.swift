@@ -21,12 +21,9 @@ enum AttendanceType: String, Codable, CaseIterable, Sendable {
     case stream      // 配信参加
     case liveViewing = "live_viewing" // ライブビューイング参加
 
+    /// 語はコアの vocabulary (券の形態も同じ語)。
     var label: String {
-        switch self {
-        case .live:        return "現地"
-        case .stream:      return "配信"
-        case .liveViewing: return "LV"
-        }
+        Vocab.attendanceType(rawValue)?.shortLabel ?? rawValue
     }
 
     var icon: String {
@@ -48,6 +45,9 @@ enum UserMarkKind: String, Codable, CaseIterable, Sendable {
     case note
     case seat
     case owned
+    /// 楽曲の習熟度 (段階)。`text_value` に序数 "0".."8" を入れる。
+    /// bool 系マークと違って**順序がある**ので、ラベルはユーザー設定から引く。
+    case mastery
 
     var label: String {
         switch self {
@@ -58,6 +58,7 @@ enum UserMarkKind: String, Codable, CaseIterable, Sendable {
         case .note:      return "メモ"
         case .seat:      return "座席"
         case .owned:     return "所有"
+        case .mastery:   return "習熟度"
         }
     }
 
@@ -69,7 +70,10 @@ enum UserMarkKind: String, Codable, CaseIterable, Sendable {
         case .attended:  return "person.crop.circle.badge.checkmark"
         case .note:      return "note.text"
         case .seat:      return "chair"
-        case .owned:     return "opticaldisc"
+        // 円盤 (release) だけでなくカード (song) にも付くようになったため、
+        // 円盤専用の見た目 (opticaldisc) から「所有物」を表す中立なアイコンに変更。
+        case .owned:     return "shippingbox"
+        case .mastery:   return "chart.bar"
         }
     }
 
@@ -81,7 +85,8 @@ enum UserMarkKind: String, Codable, CaseIterable, Sendable {
         case .attended:  return "person.crop.circle.badge.checkmark"
         case .note:      return "note.text.badge.plus"
         case .seat:      return "chair.fill"
-        case .owned:     return "opticaldisc.fill"
+        case .owned:     return "shippingbox.fill"
+        case .mastery:   return "chart.bar.fill"
         }
     }
 
@@ -94,6 +99,7 @@ enum UserMarkKind: String, Codable, CaseIterable, Sendable {
         case .note:      return .orange
         case .seat:      return .teal
         case .owned:     return .purple
+        case .mastery:   return .indigo
         }
     }
 
@@ -105,7 +111,11 @@ enum UserMarkKind: String, Codable, CaseIterable, Sendable {
         case .attended:  return [.event, .show]
         case .note:      return [.song, .idol, .event, .show]
         case .seat:      return [.show, .event]
-        case .owned:     return [.release]
+        // 円盤所有と同じ器を KAMISABI カード所持にも使う。`user_marks` は CloudKit には
+        // 乗らない (端末ローカル唯一データ) が、`UserMarkBackup` 経由の iCloud KVS
+        // バックアップ (機種変・再インストール復元用) はそのまま効く。
+        case .owned:     return [.release, .song]
+        case .mastery:   return [.song]
         }
     }
 }
@@ -138,5 +148,20 @@ struct UserMark: Codable, FetchableRecord, PersistableRecord, Sendable {
         case boolValue  = "bool_value"
         case textValue  = "text_value"
         case updatedAt  = "updated_at"
+    }
+
+    /// バックアップとコアに渡す射影。
+    var backupRecord: BackupUserMarkRecord {
+        BackupUserMarkRecord(
+            entityType: entityType, entityId: entityId, kind: kind,
+            boolValue: boolValue, textValue: textValue, updatedAt: updatedAt)
+    }
+
+    /// 付いている行だけを残す (フラグが立っているか、空白以外の文字がある)。
+    ///
+    /// 規則はコア (`backupMeaningfulMarkIndices`) 1 本で、iCloud KVS に載せる行と同じ。
+    /// 習熟度・メモ・座席はフラグを立てずに中身を文字で持つので、フラグだけで絞ると落ちる。
+    static func meaningful(_ marks: [UserMark]) -> [UserMark] {
+        backupMeaningfulMarkIndices(marks: marks.map(\.backupRecord)).map { marks[Int($0)] }
     }
 }

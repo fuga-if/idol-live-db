@@ -3,6 +3,8 @@ package com.fugaif.imaslivedb.data.model
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.fugaif.imaslivedb.data.core.VoiceActorDirectory
+import uniffi.imas_core.idolShortName
 
 @Entity(tableName = "idols")
 data class Idol(
@@ -102,13 +104,22 @@ data class Idol(
     @ColumnInfo(name = "voice_actors")
     val voiceActors: String? = null
 ) {
-    /** 表示用の短縮名。優先順位: nickname > given_name > name。 */
+    /**
+     * 表示用の短縮名 (アバターのモノグラム等)。優先順位: nickname > given_name > name。
+     *
+     * **規則の正は共有コア** (imas-core: domain/snapshot.rs の idol_short_name)。
+     * iOS の `Idol.shortName` と同じ 1 本を呼ぶ。
+     */
     val shortName: String
-        get() = nickname?.takeIf { it.isNotEmpty() }
-            ?: givenName?.takeIf { it.isNotEmpty() }
-            ?: name
+        get() = idolShortName(name, givenName, nickname)
 
-    /** 現役 CV 名 (voiceActors 先頭)。 */
+    /**
+     * 現任の声優名。居なければ・まだ読めなければ null。
+     *
+     * 声優は `idol_voice_actors` の期間つき履歴が正で、現任の選び方はコア
+     * ([VoiceActorDirectory] 経由の `idolCastNames`。iOS と同じ)。[voiceActors] 列は
+     * seed に無い派生列で reseed のたびに NULL になるので、表示にも検索にも使わない。
+     */
     val currentVoiceActor: String?
-        get() = voiceActors?.split(",")?.firstOrNull()?.trim()?.takeIf { it.isNotEmpty() }
+        get() = VoiceActorDirectory.current(id)
 }

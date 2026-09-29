@@ -1,0 +1,15 @@
+{
+ "title": "events の ev_アイドルマスター6911時の回13時の回15時30分の回 を修正",
+ "author": "LLM 提案 (propose_fix)",
+ "source": "https://game.watch.impress.co.jp/docs/20050219/aou_n.htm",
+ "note": "出典: https://game.watch.impress.co.jp/docs/20050219/aou_n.htm\n引用: \"「アイドルマスター6/9(きゅうぶんのろく)」／11時・13時・15時30分の3回／主催: 全日本アミューズメント施設営業者協会連合会\"\nAOU2005 アミューズメント・エキスポ (2005-02-19 / 幕張メッセ) のナムコブースで行われたステージ。主催は全日本アミューズメント施設営業者協会連合会で、アイマス側が開いた公演ではないため external_event。「6/9」は出演声優が 9 人中 6 人であることを指すタイトルで、日付ではない (落合祐里香・中村繪里子・下田麻美・たかはし智秋・仁後真耶子・若林直美)。記事の 3 回のステージと開始時刻、披露曲が DB の shows / setlist_items と一致する。これまで event_type の初期値 live が残っていたが、未分類を live に倒すと 自社公演として数えられてしまうため (docs/DATA_PIPELINE.md)、実際の種別に直した。",
+ "fixes": [
+  {
+   "table": "events",
+   "id": "ev_アイドルマスター6911時の回13時の回15時30分の回",
+   "fields": {
+    "event_type": "external_event"
+   }
+  }
+ ]
+}

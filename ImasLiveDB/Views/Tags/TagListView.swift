@@ -3,18 +3,17 @@ import SwiftUI
 /// タグ画面の push 遷移先。値ベース push にして二重 push をスロットルで防ぐ。
 enum TagRoute: Hashable {
     case detail(id: String, name: String)
-    case search
 }
 
 struct TagListView: View {
     @State private var navPath = NavigationPath()
-    @State private var tags: [CommunityTag] = []
+    @State private var vm = TagListViewModel()
     @State private var selectedCategory = ""
     @State private var selectedSort = "popular"
-    @State private var isLoading = false
     @State private var showCreateSheet = false
     @State private var showFilterSheet = false
-    @State private var loadTask: Task<Void, Never>?
+    /// 一覧の名前絞り込み。タグは全件 (limit 1000) を取得済みなのでクライアント側で絞る。
+    @State private var nameFilter = ""
 
     private let categories: [(value: String, label: String)] = [
         ("", "全て"), ("mood", "ムード"), ("scene", "シーン"), ("special", "特別"), ("free", "フリー")
@@ -24,22 +23,44 @@ struct TagListView: View {
     ]
 
     private var activeFilterCount: Int {
-        selectedCategory.isEmpty ? 0 : 1
+        (selectedCategory.isEmpty ? 0 : 1) + (nameFilter.isEmpty ? 0 : 1)
+    }
+
+    /// 名前絞り込み用の索引。`vm.tags` が入れ替わった時だけ組み直す。
+    /// 照合はコア (`domain/text_search_index.rs`) に一任するので、他の一覧と同じく
+    /// ひらがな↔カタカナを畳む (タグ名はユーザーが打つ自由文字列なので揺れが大きい)。
+    @State private var catalog: TextSearchCatalog?
+
+    /// 名前絞り込み適用後のタグ。名前・説明の部分一致で絞る。
+    private var filteredTags: [CommunityTag] {
+        let trimmed = nameFilter.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return vm.tags }
+        // 索引が無い間は絞り込まない (黙って 0 件にする方が悪い)。
+        guard let catalog else { return vm.tags }
+        return catalog.filter(vm.tags, needle: trimmed)
     }
 
     var body: some View {
         NavigationStack(path: $navPath) {
             List {
-                if isLoading {
-                    HStack { Spacer(); ProgressView(); Spacer() }
+                Section {
+                    NameFilterField(prompt: "タグ名で絞り込み", text: $nameFilter)
+                        .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 8, trailing: 16))
+                }
+                .listRowBackground(Color.clear)
+
+                if vm.isLoading {
+                    ImasInlineLoading()
                         .listRowBackground(Color.clear)
-                } else if tags.isEmpty {
-                    Text("タグはまだありません")
-                        .foregroundStyle(DS.ink2)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                        .listRowBackground(Color.clear)
+                } else if filteredTags.isEmpty {
+                    ImasEmptyState(
+                        systemImage: nameFilter.isEmpty ? "tag" : "line.3.horizontal.decrease",
+                        title: nameFilter.isEmpty ? "タグはまだありません" : "絞り込み結果がありません",
+                        message: nameFilter.isEmpty ? nil : "「\(nameFilter)」に一致するタグがありません"
+                    )
+                    .listRowBackground(Color.clear)
                 } else {
-                    ForEach(Array(tags.enumerated()), id: \.element.id) { idx, tag in
+                    ForEach(Array(filteredTags.enumerated()), id: \.element.id) { idx, tag in
                         NavigationLink(value: TagRoute.detail(id: tag.id, name: tag.name)) {
                             // 人気ソート時は順位を出して「人気ランキング」として見せる。
                             TagRowView(tag: tag, rank: selectedSort == "popular" ? idx + 1 : nil)
@@ -55,20 +76,20 @@ struct TagListView: View {
             .navigationTitle("タグ")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    HStack(spacing: 8) {
-                        NavigationLink(value: TagRoute.search) {
-                            Image(systemName: "magnifyingglass")
-                        }
-
+                    HStack(spacing: DS.sp3) {
                         FilterBarButton(activeCount: activeFilterCount) {
                             showFilterSheet = true
                         }
 
-                        Button {
-                            AppAnalytics.tap("tag_list.create")
-                            showCreateSheet = true
-                        } label: {
-                            Image(systemName: "plus")
+                        // 未サインイン時は押しても汎用エラーになりログイン導線も出ないため、
+                        // PollListView と同様にボタン自体を出し分ける。
+                        if AuthService.shared.isSignedIn {
+                            Button {
+                                AppAnalytics.tap("tag_list.create")
+                                showCreateSheet = true
+                            } label: {
+                                Image(systemName: "plus")
+                            }
                         }
                     }
                 }
@@ -85,12 +106,12 @@ struct TagListView: View {
                 switch route {
                 case let .detail(id, name):
                     TagDetailView(tagId: id, tagName: name)
-                case .search:
-                    TagSearchScreen()
                 }
             }
             .sheet(isPresented: $showCreateSheet) {
-                TagCreateSheet()
+                TagCreateSheet(onCreated: { newTag in
+                    vm.insertCreated(newTag)
+                })
             }
             .sheet(isPresented: $showFilterSheet) {
                 TagFilterSheet(
@@ -100,42 +121,17 @@ struct TagListView: View {
                     selectedSort: $selectedSort
                 )
                 .presentationDetents([.medium, .large])
-                .onDisappear { scheduleLoadTags(debounce: false) }
+                .onDisappear { vm.scheduleLoad(category: selectedCategory, sort: selectedSort, debounce: false) }
             }
-            .task { await loadTags() }
-            .onChange(of: selectedCategory) { _, _ in scheduleLoadTags(debounce: false) }
-            .onChange(of: selectedSort) { _, _ in scheduleLoadTags(debounce: false) }
+            .task { await vm.load(category: selectedCategory, sort: selectedSort) }
+            // タグは category / sort を変えるたびに読み直す。索引もそれに追随させる
+            // (id 列を鍵にするので、件数が同じで中身だけ入れ替わっても組み直る)。
+            .onChange(of: vm.tags.map(\.id), initial: true) { _, _ in
+                catalog = TextSearchCatalog(fieldsPerItem: vm.tags.map { [$0.name, $0.description] })
+            }
+            .onChange(of: selectedCategory) { _, _ in vm.scheduleLoad(category: selectedCategory, sort: selectedSort, debounce: false) }
+            .onChange(of: selectedSort) { _, _ in vm.scheduleLoad(category: selectedCategory, sort: selectedSort, debounce: false) }
             .trackScreen("tag_list")
-        }
-    }
-
-    private func scheduleLoadTags(debounce: Bool) {
-        loadTask?.cancel()
-        loadTask = Task {
-            if debounce {
-                try? await Task.sleep(for: .milliseconds(200))
-                guard !Task.isCancelled else { return }
-            }
-            await loadTags()
-        }
-    }
-
-    private func loadTags() async {
-        isLoading = true
-        defer { isLoading = false }
-        do {
-            try Task.checkCancellation()
-            let result = try await CommunityAPI.shared.tags(
-                search: "",
-                category: selectedCategory,
-                sort: selectedSort
-            )
-            try Task.checkCancellation()
-            tags = result
-        } catch is CancellationError {
-            // キャンセル済み
-        } catch {
-            tags = []
         }
     }
 }
@@ -146,7 +142,7 @@ struct TagRowView: View {
     var rank: Int? = nil
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: DS.sp2) {
             HStack(spacing: 6) {
                 if let rank {
                     TagRankBadge(rank: rank)
@@ -162,10 +158,10 @@ struct TagRowView: View {
                     .accessibilityLabel("タグ: \(tag.name)")
                 if let cat = tag.category {
                     Text(cat.rawValue)
-                        .font(.imasScaled(11))
+                        .font(.imasCaption2)
                         .foregroundStyle(DS.ink2)
                         .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
+                        .padding(.vertical, DS.sp1)
                         .background(DS.fill)
                         .clipShape(Capsule())
                 }
@@ -183,7 +179,7 @@ struct TagRowView: View {
                     .lineLimit(1)
             }
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, DS.sp1)
     }
 }
 
@@ -199,7 +195,7 @@ struct TagRankBadge: View {
             .font(.imasCaption.bold().monospacedDigit())
             .foregroundStyle(textColor)
             .frame(minWidth: 22)
-            .padding(.vertical, 2)
+            .padding(.vertical, DS.sp1)
             .padding(.horizontal, 5)
             .background(bgColor, in: Capsule())
             .accessibilityLabel("\(rank)位")
@@ -216,28 +212,4 @@ struct TagRankBadge: View {
 
     private var textColor: Color { medalColor ?? DS.ink2 }
     private var bgColor: Color { (medalColor ?? DS.ink3).opacity(0.16) }
-}
-
-// MARK: - Tag Search Screen
-
-private struct TagSearchScreen: View {
-    var body: some View {
-        SearchScreen(
-            prompt: "タグを検索",
-            historyScope: .submissions,
-            searchAction: { query in
-                (try? await CommunityAPI.shared.tags(search: query, category: "", sort: "popular")) ?? []
-            },
-            suggestionsAction: { query in
-                let results = (try? await CommunityAPI.shared.tags(search: query, category: "", sort: "popular")) ?? []
-                return results.prefix(8).map { tag in
-                    SearchSuggestionItem(text: tag.name, subtitle: tag.description, icon: "tag")
-                }
-            }
-        ) { tag in
-            NavigationLink(value: TagRoute.detail(id: tag.id, name: tag.name)) {
-                TagRowView(tag: tag)
-            }
-        }
-    }
 }

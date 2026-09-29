@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "path": "/units/brand/ml/",
+  "title": "ミリオンライブ! のユニット",
+  "brand": {
+    "kind": "brand",
+    "id": "ml",
+    "name": "アイドルマスター ミリオンライブ!",
+    "sub": "ML",
+    "path": "/brands/ml/",
+    "themeKey": "brand:ml",
+    "artworkUrl": null
+  },
+  "items": [
+    {
+      "ref": {
+        "kind": "unit",
+        "id": "unit_sample",
+        "name": "サンプルユニット",
+        "sub": "ミリオンライブ!",
+        "path": "/units/unit_sample/",
+        "themeKey": "brand:ml",
+        "artworkUrl": null
+      },
+      "brand": {
+        "kind": "brand",
+        "id": "ml",
+        "name": "アイドルマスター ミリオンライブ!",
+        "sub": "ML",
+        "path": "/brands/ml/",
+        "themeKey": "brand:ml",
+        "artworkUrl": null
+      },
+      "note": null,
+      "memberCount": 2,
+      "songCount": 1
+    },
+    {
+      "ref": {
+        "kind": "unit",
+        "id": "unit_empty",
+        "name": "からっぽユニット",
+        "sub": null,
+        "path": "/units/unit_empty/",
+        "themeKey": "neutral",
+        "artworkUrl": null
+      },
+      "brand": null,
+      "note": "公演限定",
+      "memberCount": 0,
+      "songCount": 0
+    }
+  ],
+  "kanaSections": [
+    {
+      "label": "あ",
+      "startIndex": 0
+    }
+  ],
+  "filters": [
+    {
+      "label": "ブランド",
+      "links": [
+        {
+          "label": "すべて",
+          "path": "/units/",
+          "current": false,
+          "themeKey": null,
+          "count": 1539
+        },
+        {
+          "label": "ミリオンライブ!",
+          "path": "/units/brand/ml/",
+          "current": true,
+          "themeKey": "brand:ml",
+          "count": 300
+        }
+      ],
+      "islandKey": null
+    }
+  ],
+  "total": 2,
+  "empty": null,
+  "seo": {
+    "title": "ミリオンライブ! のユニット | アイドルライブDB",
+    "description": "ユニットの一覧。",
+    "canonical": "https://idollivedb.fugaapp.site/units/brand/ml/",
+    "ogImage": "https://idollivedb.fugaapp.site/og/default.png",
+    "robots": "index,follow",
+    "jsonLd": {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebPage",
+          "name": "ミリオンライブ! のユニット",
+          "url": "https://idollivedb.fugaapp.site/units/brand/ml/"
+        },
+        {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "item": "https://idollivedb.fugaapp.site/",
+              "name": "ホーム",
+              "position": 1
+            }
+          ]
+        }
+      ]
+    },
+    "breadcrumbs": [
+      {
+        "name": "ホーム",
+        "path": "/"
+      }
+    ]
+  }
+}

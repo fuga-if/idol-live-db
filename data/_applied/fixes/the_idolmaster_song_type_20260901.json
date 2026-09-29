@@ -1,0 +1,8 @@
+{
+ "title": "THE IDOLM@STER を全体曲にする",
+ "_help": "765AS の代表的な全体曲。Dreaming! と同じ性質で、CD ごとに歌唱メンバーが変わるだけで結局は全員が歌う。原唱者として登録されているのは 5 人だが、全体曲かどうかは登録人数では決まらない。",
+ "fixes": [
+  { "table": "songs", "id": "765as_the_idolmster", "fields": { "song_type": "all" },
+    "note": "765AS の代表的な全体曲 (オーナー判断)" }
+ ]
+}

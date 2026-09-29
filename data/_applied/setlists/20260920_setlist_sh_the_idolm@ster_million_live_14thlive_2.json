@@ -1,0 +1,371 @@
+{
+ "title": "公演 sh_the_idolm@ster_million_live_14thlive_2 のセットリスト追加",
+ "author": "LLM 提案 (propose_setlist)",
+ "source": "https://idolmaster-official.jp/live_event/million14th/",
+ "note": "出典: https://idolmaster-official.jp/live_event/million14th/\n引用: \"THE IDOLM@STER MILLION LIVE! 14thLIVE DAY2 Blooming Sign / 2026/9/20(日)　15:30開場 / 16:30開演　@国立代々木競技場 第一体育館\"\n公式セットリスト画像 (DAY2) より全 39 曲。歌唱者は画像の声優名をこの公演の出演者 15 名からアイドルに対応づけた (中村温姫 = ロコ = ml_伴田路子)。37〜39 の「ミリオンスターズ」は出演者全員として all で入れている。画像に本編/アンコールの区切りの記載が無いため section は付けていない。16 / 32 / 36 は同日初披露の新曲で、同時に曲マスタへ仮登録している (配信前のため作詞作曲等は空)。6 の「俠気乱舞」は画像の表記が「侠気乱舞」だが DB の表記 (異体字) を正とした。",
+ "show_id": "sh_the_idolm@ster_million_live_14thlive_2",
+ "all_performers": [
+  "ml_ジュリア",
+  "ml_伴田路子",
+  "ml_佐竹美奈子",
+  "ml_北上麗花",
+  "ml_北沢志保",
+  "ml_周防桃子",
+  "ml_島原エレナ",
+  "ml_所恵美",
+  "ml_春日未来",
+  "ml_最上静香",
+  "ml_横山奈緒",
+  "ml_永吉昴",
+  "ml_百瀬莉緒",
+  "ml_真壁瑞希",
+  "ml_馬場このみ"
+ ],
+ "songs": [
+  {
+   "position": 1,
+   "song_id": "ml_水中キャンディ",
+   "performers": [
+    "ml_馬場このみ"
+   ]
+  },
+  {
+   "position": 2,
+   "song_id": "765as_ジェミー",
+   "performers": [
+    "ml_馬場このみ",
+    "ml_周防桃子"
+   ]
+  },
+  {
+   "position": 3,
+   "song_id": "ml_to",
+   "performers": [
+    "ml_馬場このみ",
+    "ml_最上静香",
+    "ml_北沢志保"
+   ]
+  },
+  {
+   "position": 4,
+   "song_id": "765as_idol",
+   "performers": [
+    "ml_馬場このみ",
+    "ml_春日未来",
+    "ml_北上麗花"
+   ]
+  },
+  {
+   "position": 5,
+   "song_id": "ml_パンとフィルム",
+   "performers": [
+    "ml_馬場このみ",
+    "ml_所恵美",
+    "ml_ジュリア"
+   ]
+  },
+  {
+   "position": 6,
+   "song_id": "ml_俠気乱舞",
+   "performers": [
+    "ml_馬場このみ",
+    "ml_伴田路子",
+    "ml_横山奈緒",
+    "ml_周防桃子"
+   ]
+  },
+  {
+   "position": 7,
+   "song_id": "ml_オーディナリィクローバー",
+   "performers": [
+    "ml_馬場このみ",
+    "ml_最上静香",
+    "ml_佐竹美奈子",
+    "ml_真壁瑞希",
+    "ml_永吉昴"
+   ]
+  },
+  {
+   "position": 8,
+   "song_id": "765as_光",
+   "performers": [
+    "ml_馬場このみ"
+   ]
+  },
+  {
+   "position": 9,
+   "song_id": "765as_change",
+   "performers": [
+    "ml_馬場このみ",
+    "ml_春日未来",
+    "ml_最上静香",
+    "ml_島原エレナ",
+    "ml_佐竹美奈子",
+    "ml_所恵美",
+    "ml_伴田路子",
+    "ml_北沢志保",
+    "ml_横山奈緒",
+    "ml_真壁瑞希",
+    "ml_永吉昴",
+    "ml_北上麗花",
+    "ml_周防桃子",
+    "ml_ジュリア"
+   ]
+  },
+  {
+   "position": 10,
+   "song_id": "ml_深層マーメイド",
+   "performers": [
+    "ml_馬場このみ",
+    "ml_百瀬莉緒"
+   ]
+  },
+  {
+   "position": 11,
+   "song_id": "ml_red_zone",
+   "performers": [
+    "ml_春日未来",
+    "ml_島原エレナ",
+    "ml_真壁瑞希",
+    "ml_ジュリア"
+   ]
+  },
+  {
+   "position": 12,
+   "song_id": "ml_its_me",
+   "performers": [
+    "ml_所恵美",
+    "ml_横山奈緒",
+    "ml_北上麗花"
+   ]
+  },
+  {
+   "position": 13,
+   "song_id": "765as_隣に",
+   "performers": [
+    "ml_馬場このみ"
+   ]
+  },
+  {
+   "position": 14,
+   "song_id": "ml_dear",
+   "performers": [
+    "ml_馬場このみ"
+   ]
+  },
+  {
+   "position": 15,
+   "song_id": "ml_legend_girls",
+   "performers": [
+    "ml_馬場このみ",
+    "ml_春日未来",
+    "ml_最上静香",
+    "ml_伴田路子",
+    "ml_北沢志保",
+    "ml_永吉昴"
+   ]
+  },
+  {
+   "position": 16,
+   "song_id": "ml_if_i",
+   "performers": [
+    "ml_馬場このみ"
+   ]
+  },
+  {
+   "position": 17,
+   "song_id": "ml_why",
+   "performers": [
+    "ml_百瀬莉緒"
+   ]
+  },
+  {
+   "position": 18,
+   "song_id": "ml_真夏のダイヤ",
+   "performers": [
+    "ml_百瀬莉緒",
+    "ml_島原エレナ",
+    "ml_所恵美"
+   ]
+  },
+  {
+   "position": 19,
+   "song_id": "ml_海風とカスタネット",
+   "performers": [
+    "ml_横山奈緒",
+    "ml_真壁瑞希",
+    "ml_周防桃子"
+   ]
+  },
+  {
+   "position": 20,
+   "song_id": "ml_no_curry_no_life",
+   "performers": [
+    "ml_佐竹美奈子",
+    "ml_永吉昴",
+    "ml_北上麗花"
+   ]
+  },
+  {
+   "position": 21,
+   "song_id": "ml_texting_you",
+   "performers": [
+    "ml_百瀬莉緒",
+    "ml_所恵美",
+    "ml_北沢志保"
+   ]
+  },
+  {
+   "position": 22,
+   "song_id": "765as_lemonade",
+   "performers": [
+    "ml_百瀬莉緒",
+    "ml_伴田路子",
+    "ml_横山奈緒",
+    "ml_永吉昴"
+   ]
+  },
+  {
+   "position": 23,
+   "song_id": "ml_be_my_boy",
+   "performers": [
+    "ml_百瀬莉緒",
+    "ml_所恵美"
+   ]
+  },
+  {
+   "position": 24,
+   "song_id": "ml_花ざかりweekend",
+   "performers": [
+    "ml_馬場このみ",
+    "ml_百瀬莉緒",
+    "ml_北上麗花",
+    "ml_ジュリア"
+   ]
+  },
+  {
+   "position": 25,
+   "song_id": "ml_border_line",
+   "performers": [
+    "ml_最上静香",
+    "ml_北沢志保",
+    "ml_周防桃子"
+   ]
+  },
+  {
+   "position": 26,
+   "song_id": "765as_ラブリ",
+   "performers": [
+    "ml_百瀬莉緒",
+    "ml_佐竹美奈子",
+    "ml_ジュリア"
+   ]
+  },
+  {
+   "position": 27,
+   "song_id": "ml_ゲキテキムテキ恋したい",
+   "performers": [
+    "ml_百瀬莉緒",
+    "ml_伴田路子",
+    "ml_横山奈緒"
+   ]
+  },
+  {
+   "position": 28,
+   "song_id": "ml_luvliminal_image",
+   "performers": [
+    "ml_最上静香",
+    "ml_島原エレナ",
+    "ml_北沢志保"
+   ]
+  },
+  {
+   "position": 29,
+   "song_id": "ml_ラビットファー",
+   "performers": [
+    "ml_百瀬莉緒",
+    "ml_春日未来",
+    "ml_伴田路子",
+    "ml_周防桃子"
+   ]
+  },
+  {
+   "position": 30,
+   "song_id": "ml_dance_in_the_light",
+   "performers": [
+    "ml_百瀬莉緒",
+    "ml_島原エレナ",
+    "ml_佐竹美奈子",
+    "ml_永吉昴",
+    "ml_ジュリア"
+   ]
+  },
+  {
+   "position": 31,
+   "song_id": "ml_週末だけのハーレクイン",
+   "performers": [
+    "ml_百瀬莉緒",
+    "ml_横山奈緒",
+    "ml_真壁瑞希"
+   ]
+  },
+  {
+   "position": 32,
+   "song_id": "ml_waking_up_my_heart",
+   "performers": [
+    "ml_百瀬莉緒"
+   ]
+  },
+  {
+   "position": 33,
+   "song_id": "ml_夜と明かりと",
+   "performers": [
+    "ml_馬場このみ",
+    "ml_百瀬莉緒"
+   ]
+  },
+  {
+   "position": 34,
+   "song_id": "961_kiss",
+   "performers": [
+    "ml_馬場このみ",
+    "ml_百瀬莉緒"
+   ]
+  },
+  {
+   "position": 35,
+   "song_id": "ml_cherry_colored_love",
+   "performers": [
+    "ml_馬場このみ",
+    "ml_百瀬莉緒",
+    "ml_春日未来",
+    "ml_島原エレナ",
+    "ml_真壁瑞希",
+    "ml_北上麗花"
+   ]
+  },
+  {
+   "position": 36,
+   "song_id": "ml_present",
+   "performers": [
+    "ml_馬場このみ",
+    "ml_百瀬莉緒"
+   ]
+  },
+  {
+   "position": 37,
+   "song_id": "ml_ドレスコード最上級",
+   "performers": "all"
+  },
+  {
+   "position": 38,
+   "song_id": "ml_合言葉はスタートアップ",
+   "performers": "all"
+  },
+  {
+   "position": 39,
+   "song_id": "ml_春風満帆スターティング",
+   "performers": "all"
+  }
+ ]
+}

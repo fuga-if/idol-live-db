@@ -1,0 +1,20 @@
+{
+ "title": "songs の ml_present に配信情報を入れる",
+ "author": "LLM 提案 (propose_fix)",
+ "source": "https://itunes.apple.com/lookup?id=6803787401&country=jp",
+ "note": "出典: iTunes Lookup API (collectionId=6803787401)\n引用: \"Present - Single\" / \"馬場このみ (CV.髙橋ミナミ) & 百瀬莉緒 (CV.山口立花子)\" / releaseDate \"2026-09-21T07:00:00Z\"\n14thLIVE DAY2 初披露曲の配信開始に伴う追記。artwork_url は artworkUrl100 の 100x100bb を 600x600bb に置換。singer_label は Apple Music のクレジット順 (馬場このみ → 百瀬莉緒) をそのまま、既存慣習どおりアイドル名のみで入れる。同日初披露の If I... はまだ Apple Music に無いため今回は対象外。",
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "ml_present",
+   "fields": {
+    "apple_music_id": "6803787403",
+    "apple_music_album_id": "6803787401",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/7f/22/2a/7f222a81-7588-912c-1786-82d8b90c7e33/4540774750306.png/600x600bb.jpg",
+    "release_date": "2026-09-21",
+    "cd_series": "Present - Single",
+    "singer_label": "馬場このみ、百瀬莉緒"
+   }
+  }
+ ]
+}

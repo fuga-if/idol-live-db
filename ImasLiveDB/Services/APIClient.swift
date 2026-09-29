@@ -47,6 +47,26 @@ enum APIClientError: LocalizedError, Sendable {
 actor APIClient {
     static let shared = APIClient()
 
+    /// **歌詞を含むレスポンス専用**のクライアント。ディスクにも共有メモリキャッシュにも残さない。
+    ///
+    /// ⚠️ JASRAC 許諾の条件 (ユーザが一括ダウンロードできない形式での配信) により、歌詞は
+    /// プロセス内メモリ以外のどこにも置けない。`shared` は `URLSession.shared` を使っており、
+    /// これは**ディスク上の `URLCache`** を持つので、歌詞を含む応答をそこで叩くと本文が
+    /// Caches ディレクトリに書き出されてしまう。歌詞が混ざる経路
+    /// (`LyricsAPI` / `SongDetailAPI`) は必ずこちらを通すこと。
+    ///
+    /// `.ephemeral` は元よりディスクを使わないが、意図が読めるようキャッシュ類は明示的に潰す。
+    /// 認証・401 自動リフレッシュ・エラー分類は `shared` と同じ実装を共有する
+    /// (差し替えているのは `URLSession` だけ)。
+    static let noDiskCache: APIClient = {
+        let config = URLSessionConfiguration.ephemeral
+        config.urlCache = nil
+        config.requestCachePolicy = .reloadIgnoringLocalAndRemoteCacheData
+        config.httpCookieStorage = nil
+        config.urlCredentialStorage = nil
+        return APIClient(session: URLSession(configuration: config))
+    }()
+
     private let session: URLSession
     private let decoder: JSONDecoder
     private let encoder: JSONEncoder

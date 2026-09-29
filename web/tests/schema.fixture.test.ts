@@ -1,0 +1,187 @@
+/**
+ * フィクスチャ (と実データ) が ts-rs 生成の型を満たすかの検査。
+ *
+ * Rust 側は `--fixture-check` で「フィクスチャを DTO にデシリアライズできるか」を見る。
+ * こちらはその裏返しで、**TS の型で読めるか**と、**Web が前提にしている不変条件**を見る:
+ *   - routes.json の全 path が対応する JSON を持つ (リンク切れ = 空ページを防ぐ)
+ *   - 各ページ JSON の schemaVersion が data.ts のゲートと一致する
+ *   - href に入れる path が完成形 (先頭 / と末尾 /) である
+ *   - 歌詞・プレビュー音源のキーが出力に混ざっていない (絶対制約)
+ */
+import { describe, expect, it } from "vitest";
+import fs from "node:fs";
+import path from "node:path";
+import { SCHEMA_VERSION, dataRoot, readJson } from "../src/lib/data";
+import type { RoutesFile } from "../src/lib/schema/RoutesFile";
+import type { ThemeTable } from "../src/lib/schema/ThemeTable";
+import type { SearchManifest } from "../src/lib/schema/SearchManifest";
+import type { SearchShard } from "../src/lib/schema/SearchShard";
+
+const DATA = dataRoot();
+// 読みと schemaVersion 検査は本番と同じ入口 (src/lib/data.ts) を通す。
+// テストだけ別の読み方をしていると、入口を直したときにテストが追随しない。
+const read = readJson;
+
+const routes = read<RoutesFile>("routes.json");
+
+describe("themes.json", () => {
+  const themes = read<ThemeTable>("themes.json");
+
+  it("全テーマが light / dark の 14 トークンを持つ", () => {
+    const keys = [
+      "accent",
+      "onAccent",
+      "accentInk",
+      "tint",
+      "tintStrong",
+      "chipBg",
+      "chipText",
+      "ring",
+      "bar",
+      "dot",
+      "gradFrom",
+      "gradTo",
+      "separator",
+      "heroSurface",
+    ] as const;
+    for (const [name, pair] of Object.entries(themes.themes)) {
+      for (const mode of ["light", "dark"] as const) {
+        for (const k of keys) {
+          expect(pair[mode][k], `${name}.${mode}.${k}`).toMatch(/^#[0-9a-fA-F]{6}$/);
+        }
+      }
+    }
+  });
+});
+
+describe("routes.json", () => {
+  it("path が完成形 (先頭 / と末尾 /) — TS 側で URL を組み立てないための前提", () => {
+    for (const r of routes.routes) {
+      expect(r.path.startsWith("/"), r.path).toBe(true);
+      expect(r.path.endsWith("/"), r.path).toBe(true);
+    }
+  });
+
+  it("path が重複しない", () => {
+    const seen = new Set(routes.routes.map((r) => r.path));
+    expect(seen.size).toBe(routes.routes.length);
+  });
+
+  it("全ルートの data が実在し、schemaVersion が一致する", () => {
+    const missing: string[] = [];
+    const stale: string[] = [];
+    for (const r of routes.routes) {
+      const file = path.join(DATA, r.data);
+      if (!fs.existsSync(file)) {
+        missing.push(`${r.path} -> ${r.data}`);
+        continue;
+      }
+      const v = (JSON.parse(fs.readFileSync(file, "utf8")) as { schemaVersion?: number })
+        .schemaVersion;
+      if (v !== SCHEMA_VERSION) stale.push(`${r.data} (${v})`);
+    }
+    expect(missing).toEqual([]);
+    expect(stale).toEqual([]);
+  });
+
+  it("params を取る kind には key があり、詳細ページには id がある", () => {
+    const paramKinds = new Set([
+      "eventListPastYear",
+      "eventListBrand",
+      "songListBrand",
+      "idolListBrand",
+      "idolListBirthMonth",
+      "unitListBrand",
+      "venueListPref",
+      "tag",
+      "calendarMonth",
+      "event",
+      "show",
+      "song",
+      "idol",
+      "unit",
+      "venue",
+      "brand",
+    ]);
+    for (const r of routes.routes) {
+      if (paramKinds.has(r.kind)) {
+        expect(r.key, `${r.kind} ${r.path} に key がない`).toBeTruthy();
+      }
+    }
+  });
+
+  it("noindexPaths が routes に実在する path だけを指す", () => {
+    const all = new Set(routes.routes.map((r) => r.path));
+    for (const p of routes.noindexPaths) {
+      expect(all.has(p), `${p} が routes.json に無い`).toBe(true);
+    }
+  });
+});
+
+describe("検索索引", () => {
+  const manifest = read<SearchManifest>("search/manifest.json");
+
+  it("シャードが実在し、見出しラベルを持つ", () => {
+    expect(manifest.shards.length).toBeGreaterThan(0);
+    for (const s of manifest.shards) {
+      expect(s.label, `${s.kind} に label が無い`).toBeTruthy();
+      expect(fs.existsSync(path.join(DATA, s.url.replace(/^\//, "")))).toBe(true);
+    }
+  });
+
+  it("行の href が組めて、pathPrefix が完成形である", () => {
+    for (const s of manifest.shards) {
+      const shard = read<SearchShard>(s.url.replace(/^\//, ""));
+      expect(shard.pathPrefix.startsWith("/")).toBe(true);
+      expect(shard.pathPrefix.endsWith("/")).toBe(true);
+      expect(shard.sep.length).toBeGreaterThan(0);
+      for (const row of shard.rows) {
+        expect(row.k.length, `${shard.kind} の行に k が無い`).toBeGreaterThan(0);
+      }
+    }
+  });
+});
+
+describe("絶対制約: 歌詞の本文とプレビュー音源を出力に含めない", () => {
+  /**
+   * 歌詞は `LyricsBlock` (`lyrics` キー) として「出すか / どこへ取りに行くか / 何を掲示するか」
+   * **だけ**が JSON に載る。本文の行・試聴音源の URL は 1 バイトも入れない
+   * (JASRAC の許諾はアプリの 1 曲ずつのストリーム形式に対するもの。docs/JASRAC.md)。
+   * Rust 側のテスト (T12) と同じ線をこちらでも引く。
+   */
+  const forbidden = /"(previewUrl|preview_url|lyricsUrl|lyrics_url|lyricsText|lyrics_text|lyricsBody|lyrics_body|lines)"\s*:/;
+  // callGuide は記号・札・凡例の語彙 (Rust content::call_guide_vocabulary) で、本文ではない。
+  // `statusLabel` は状態の札 (`JASRAC 許諾待ち`) で、歌詞そのものではない。
+  const LYRICS_BLOCK_KEYS = new Set([
+    "available", "statusLabel", "note", "licenseNote", "sourceUrl", "readLabel",
+    "callGuide",
+  ]);
+
+  it("web/data 配下の全 JSON に歌詞本文・試聴音源のキーが無い", () => {
+    const hits: string[] = [];
+    const walk = (dir: string): void => {
+      for (const name of fs.readdirSync(dir)) {
+        const full = path.join(dir, name);
+        if (fs.statSync(full).isDirectory()) walk(full);
+        else if (name.endsWith(".json") && forbidden.test(fs.readFileSync(full, "utf8")))
+          hits.push(full);
+      }
+    };
+    walk(DATA);
+    expect(hits).toEqual([]);
+  });
+
+  it("曲ページの lyrics は LyricsBlock の器だけで、本文を抱えていない", () => {
+    const dir = path.join(DATA, "songs");
+    const offenders: string[] = [];
+    for (const name of fs.readdirSync(dir)) {
+      if (!name.endsWith(".json")) continue;
+      const page = JSON.parse(fs.readFileSync(path.join(dir, name), "utf8")) as {
+        lyrics?: Record<string, unknown>;
+      };
+      const keys = Object.keys(page.lyrics ?? {});
+      if (keys.length === 0 || keys.some((k) => !LYRICS_BLOCK_KEYS.has(k))) offenders.push(name);
+    }
+    expect(offenders).toEqual([]);
+  });
+});

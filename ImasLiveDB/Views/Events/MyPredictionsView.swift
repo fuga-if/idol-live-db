@@ -25,40 +25,41 @@ struct MyPredictionsView: View {
     var body: some View {
         Group {
             if isLoading {
-                ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+                ImasLoadingState()
             } else if !isSignedIn {
-                ContentUnavailableView(
-                    "ログインが必要です",
+                ImasEmptyState(
                     systemImage: "person.crop.circle.badge.questionmark",
-                    description: Text("Apple Sign In すると、投票した予想がここにまとまります")
+                    title: "ログインが必要です",
+                    message: "Apple Sign In すると、投票した予想がここにまとまります"
                 )
             } else if groups.isEmpty {
-                ContentUnavailableView(
-                    "まだ予想していません",
+                ImasEmptyState(
                     systemImage: "music.note.list",
-                    description: Text("未来公演のセトリ予想で投票すると、ここに表示されます")
+                    title: "まだ予想していません",
+                    message: "未来公演のセトリ予想で投票すると、ここに表示されます"
                 )
             } else {
                 List {
                     ForEach(groups) { group in
                         Section {
                             ForEach(group.entries) { entry in
-                                Button { sheetDestination = .song(entry.song) } label: {
-                                    HStack(spacing: DS.sp2) {
-                                        SongTitleRow(song: entry.song, showsChevron: false)
-                                        Label("\(entry.voteCount)", systemImage: "hand.thumbsup.fill")
-                                            .font(.imasCaption)
-                                            .foregroundStyle(DS.ink2)
-                                    }
+                                // Button でラップすると内側のジャケ写プレビュー再生タップが
+                                // 吸われるため、行全体は onTapGesture で遷移を受ける。
+                                HStack(spacing: DS.sp2) {
+                                    SongTitleRow(song: entry.song, showsChevron: false)
+                                    Label("\(entry.voteCount)", systemImage: "hand.thumbsup.fill")
+                                        .font(.imasCaption)
+                                        .foregroundStyle(DS.ink2)
                                 }
-                                .buttonStyle(.plain)
+                                .contentShape(Rectangle())
+                                .onTapGesture { sheetDestination = .song(entry.song) }
                             }
                         } header: {
                             Button { sheetDestination = .show(group.show) } label: {
                                 HStack {
                                     Text(group.show.name).textCase(nil)
                                     Spacer()
-                                    Text(group.show.date).foregroundStyle(.secondary)
+                                    Text(group.show.date).foregroundStyle(DS.ink2)
                                 }
                             }
                             .buttonStyle(.plain)

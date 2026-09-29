@@ -9,6 +9,20 @@ enum PollRoute: Hashable {
     case hallOfFame
 }
 
+/// `PollRoute` の行き先。プロデュースのスタックとサイドバーの「みんなの投票」の
+/// 2 箇所が同じ振り分けを使う。
+struct PollRouteView: View {
+    let route: PollRoute
+
+    var body: some View {
+        switch route {
+        case .list: PollListView()
+        case let .detail(pollId): PollDetailView(pollId: pollId)
+        case .hallOfFame: PollHallOfFameView()
+        }
+    }
+}
+
 /// みんなの投票 — お題一覧。[開催中 / 終了] タブ切替。
 struct PollListView: View {
     @State private var segmentIndex = 0
@@ -26,9 +40,7 @@ struct PollListView: View {
                     .padding(.vertical, DS.sp3)
 
                 if vm.isLoading && currentPolls.isEmpty {
-                    Spacer()
-                    ProgressView()
-                    Spacer()
+                    ImasLoadingState()
                 } else if !currentPolls.isEmpty {
                     // 既にデータがあれば、リロードが一時的に失敗してもリストは消さない
                     // (引っ張って更新が通信エラーで全消えになる UX を防ぐ)。
@@ -53,12 +65,14 @@ struct PollListView: View {
             }
             .background(DS.bg.ignoresSafeArea())
             .navigationTitle("みんなの投票")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     NavigationLink(value: PollRoute.hallOfFame) {
                         Image(systemName: "crown.fill")
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(DS.warning)
                     }
+                    .accessibilityLabel("殿堂を見る")
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     if AuthService.shared.isSignedIn {
@@ -68,6 +82,7 @@ struct PollListView: View {
                         } label: {
                             Image(systemName: "plus")
                         }
+                        .accessibilityLabel("お題を作成")
                     } else {
                         EmptyView()
                     }
@@ -81,7 +96,9 @@ struct PollListView: View {
                     vm.insertCreated(newPoll)
                 }
             }
-            .task { await vm.load(active: segmentIndex == 0) }
+            // .task ではなく .onAppear にして、詳細画面 (削除・投票) から戻ってきた際にも
+            // 再ロードされるようにする (削除したお題が一覧から消える等)。
+            .onAppear { Task { await vm.load(active: segmentIndex == 0) } }
             .onChange(of: segmentIndex) { _, _ in Task { await vm.load(active: segmentIndex == 0) } }
             .refreshable { await vm.load(active: segmentIndex == 0) }
             .trackScreen("poll_list")
@@ -98,12 +115,16 @@ struct PollListView: View {
             ImasListContainer {
                 ForEach(currentPolls) { poll in
                     if poll.id != currentPolls.first?.id {
-                        Divider().background(DS.sep).padding(.leading, DS.sp5)
+                        ImasRowDivider(inset: DS.sp5)
                     }
                     NavigationLink(value: PollRoute.detail(poll.id)) {
                         PollRowView(poll: poll)
                     }
                     .buttonStyle(.plain)
+                    // 一覧から直接お題を拡散できるように (詳細を開かずに誘える)。
+                    .contextMenu {
+                        SocialShareMenuItems(payload: .pollInvite(poll: poll), analyticsKey: "poll_list.share")
+                    }
                 }
             }
             .padding(.horizontal, DS.sp5)
@@ -117,6 +138,17 @@ struct PollListView: View {
 
 private struct PollRowView: View {
     let poll: Poll
+    @Environment(\.colorScheme) private var scheme
+
+    @State private var topSong: Song?
+    @State private var topIdol: Idol?
+    @State private var topUnit: Unit?
+
+    /// 曲/アイドルで安定して塗り分けるアクセント (両者に固有色は無いので categoryKey 由来)。
+    /// 1位の実写が引ければそちらを優先するので、これは無投票時のフォールバックのみで使う。
+    private var accent: Color {
+        ImasTheme.derive(categoryKey: poll.targetType.rawValue, scheme: scheme).accent
+    }
 
     @ViewBuilder
     private var scopeBadge: some View {
@@ -125,8 +157,37 @@ private struct PollRowView: View {
         }
     }
 
+    /// 先頭サムネイル。1位が解決できていれば曲ジャケ/アイドル写真の「実写」、
+    /// まだ無投票 (topEntityId なし) ならジャンルアイコンにフォールバックする。
+    @ViewBuilder
+    private var thumbnail: some View {
+        if poll.targetType == .song, let topSong {
+            ImasArtwork(title: topSong.title, size: 42, imageURL: topSong.artworkUrl.flatMap(URL.init))
+        } else if poll.targetType == .idol, let topIdol {
+            IdolAvatarView(idol: topIdol, size: 42)
+        } else if poll.targetType == .unit, let topUnit {
+            UnitAvatarView(unit: topUnit, size: 42)
+        } else {
+            Image(systemName: thumbnailFallbackIcon)
+                .font(.imasTitle3)
+                .foregroundStyle(ColorMath.onColor(accent))
+                .frame(width: 42, height: 42)
+                .background(accent.gradient, in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+        }
+    }
+
+    private var thumbnailFallbackIcon: String {
+        switch poll.targetType {
+        case .song: return "music.note"
+        case .idol: return "person.fill"
+        case .unit: return "person.3.fill"
+        }
+    }
+
     var body: some View {
         HStack(spacing: DS.sp3) {
+            thumbnail
+
             VStack(alignment: .leading, spacing: DS.sp2) {
                 Text(poll.title)
                     .font(.imasSubhead.weight(.semibold))
@@ -134,7 +195,6 @@ private struct PollRowView: View {
                     .lineLimit(2)
 
                 HStack(spacing: DS.sp2) {
-                    ImasChip(text: poll.targetType == .song ? "曲" : "アイドル")
                     scopeBadge
                     Text(poll.statusLabel)
                         .font(.imasCaption)
@@ -147,13 +207,24 @@ private struct PollRowView: View {
                 }
             }
             Spacer(minLength: 8)
-            Image(systemName: "chevron.right")
-                .font(.imasScaled( 13, weight: .semibold))
-                .foregroundStyle(DS.ink3)
+            ImasRowChevron()
         }
         .padding(.horizontal, DS.sp4)
         .padding(.vertical, DS.sp3)
         .contentShape(Rectangle())
+        .task { await resolveTopEntity() }
+    }
+
+    private func resolveTopEntity() async {
+        guard let topEntityId = poll.topEntityId else { return }
+        switch poll.targetType {
+        case .song:
+            topSong = try? await AppContainer.shared.songReading.song(id: topEntityId)
+        case .idol:
+            topIdol = try? await AppContainer.shared.idolReading.idol(id: topEntityId)
+        case .unit:
+            topUnit = try? await AppContainer.shared.unitReading.unit(id: topEntityId)
+        }
     }
 }
 

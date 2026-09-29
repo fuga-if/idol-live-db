@@ -5,8 +5,8 @@
 # import すると Presentation/Adapters への依存が逆流し「なんちゃってレイヤー」になる。
 # 詳細は docs/ARCHITECTURE.md「レイヤ違反の検査」。
 #
-# 使い方: Scripts/check_domain_purity.sh   (リポジトリルートから)
-# pre-commit / CI に組み込む候補。違反があれば exit 1。
+# 使い方: bash tools/check_domain_purity.sh   (リポジトリルートから)
+# CI (.github/workflows/architecture-guard.yml) で走る。違反があれば exit 1。
 set -euo pipefail
 
 DOMAIN_DIR="ImasLiveDB/Domain"

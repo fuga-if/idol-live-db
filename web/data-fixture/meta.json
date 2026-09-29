@@ -1,0 +1,168 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-09-04T00:00:00Z",
+  "todayJst": "2026-09-04",
+  "dataVersion": "2026090401",
+  "contentHash": "6c41f0e2b9d4a7c8e5f1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f7",
+  "app": {
+    "appStoreUrl": "https://apps.apple.com/jp/app/id6763342297",
+    "playStoreUrl": null,
+    "xUrl": "https://x.com/idollivedb",
+    "privacyUrl": "https://fuga-if.github.io/imas-live-privacy/privacy.html",
+    "supportUrl": "https://fuga-if.github.io/imas-live-privacy/support.html",
+    "termsUrl": "https://fuga-if.github.io/imas-live-privacy/terms.html",
+    "repositoryUrl": "https://github.com/fuga-if/idol-live-db"
+  },
+  "performerNameOptions": [
+    {
+      "raw": "idol",
+      "label": "アイドル名",
+      "isDefault": true
+    },
+    {
+      "raw": "cast",
+      "label": "CV名",
+      "isDefault": false
+    },
+    {
+      "raw": "both",
+      "label": "アイドル名 + CV名",
+      "isDefault": false
+    },
+    {
+      "raw": "show",
+      "label": "公演に合わせる",
+      "isDefault": false
+    }
+  ],
+  "primaryNav": [
+    {
+      "label": "ライブ",
+      "path": "/events/",
+      "current": false,
+      "themeKey": null,
+      "count": null
+    },
+    {
+      "label": "カレンダー",
+      "path": "/calendar/",
+      "current": false,
+      "themeKey": null,
+      "count": null
+    },
+    {
+      "label": "楽曲",
+      "path": "/songs/",
+      "current": false,
+      "themeKey": null,
+      "count": null
+    },
+    {
+      "label": "アイドル",
+      "path": "/idols/",
+      "current": false,
+      "themeKey": null,
+      "count": null
+    },
+    {
+      "label": "ユニット",
+      "path": "/units/",
+      "current": false,
+      "themeKey": null,
+      "count": null
+    },
+    {
+      "label": "会場",
+      "path": "/venues/",
+      "current": false,
+      "themeKey": null,
+      "count": null
+    },
+    {
+      "label": "ブランド",
+      "path": "/brands/",
+      "current": false,
+      "themeKey": null,
+      "count": null
+    },
+    {
+      "label": "コールガイド",
+      "path": "/calls/",
+      "current": false,
+      "themeKey": null,
+      "count": null
+    }
+  ],
+  "utilityNav": [
+    {
+      "label": "検索",
+      "path": "/search/",
+      "current": false,
+      "themeKey": null,
+      "count": null
+    },
+    {
+      "label": "ランキング",
+      "path": "/ranking/",
+      "current": false,
+      "themeKey": null,
+      "count": null
+    },
+    {
+      "label": "年表",
+      "path": "/timeline/",
+      "current": false,
+      "themeKey": null,
+      "count": null
+    },
+    {
+      "label": "このサイトについて",
+      "path": "/about/",
+      "current": false,
+      "themeKey": null,
+      "count": null
+    }
+  ],
+  "footerNotes": [
+    "非公式のファンメイドサイトです。株式会社バンダイナムコエンターテインメントおよび関連権利者とは一切関係ありません。",
+    "キャラクター画像・公式ロゴ・歌詞は掲載していません。ジャケット画像は Apple Music の提供によるものです。"
+  ],
+  "lyricsLicenseNotice": null,
+  "lyricsSearchUrl": null,
+  "connectOrigins": [],
+  "siteName": "アイドルライブDB",
+  "notFound": {
+    "eyebrow": "404",
+    "title": "ページが見つかりません",
+    "lede": "URL が変わったか、そのデータがまだ登録されていない可能性があります。 検索するか、下の入口からお探しください。",
+    "entries": [
+      {
+        "glyph": "♪",
+        "title": "ライブ",
+        "preview": "今後の予定と開催済みの記録",
+        "path": "/events/"
+      },
+      {
+        "glyph": "♬",
+        "title": "楽曲",
+        "preview": "クレジット・歌唱アイドル・披露履歴",
+        "path": "/songs/"
+      },
+      {
+        "glyph": "☺",
+        "title": "アイドル",
+        "preview": "プロフィール・持ち曲・出演履歴",
+        "path": "/idols/"
+      }
+    ],
+    "seo": {
+      "title": "ページが見つかりません | アイドルライブDB",
+      "description": "お探しのページは見つかりませんでした。検索か一覧からお探しください。",
+      "canonical": "https://idollivedb.fugaapp.site/404.html",
+      "ogImage": "https://idollivedb.fugaapp.site/og/default.png",
+      "robots": "noindex,follow",
+      "jsonLd": {},
+      "breadcrumbs": []
+    }
+  }
+}

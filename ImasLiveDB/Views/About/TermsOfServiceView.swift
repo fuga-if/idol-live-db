@@ -3,7 +3,7 @@ import SwiftUI
 struct TermsOfServiceView: View {
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: DS.sp6) {
                 Group {
                     termsSection(
                         title: "免責・権利表記",
@@ -59,10 +59,10 @@ struct TermsOfServiceView: View {
 
                 Text("最終更新日: 2026年4月23日")
                     .font(.imasCaption)
-                    .foregroundStyle(.secondary)
-                    .padding(.top, 8)
+                    .foregroundStyle(DS.ink2)
+                    .padding(.top, DS.sp3)
             }
-            .padding(20)
+            .padding(DS.sp6)
         }
         .navigationTitle("利用規約")
         .navigationBarTitleDisplayMode(.inline)
@@ -70,12 +70,12 @@ struct TermsOfServiceView: View {
     }
 
     private func termsSection(title: String, content: String) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: DS.sp3) {
             Text(title)
                 .font(.imasHeadline)
             Text(content)
                 .font(.imasSubhead)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(DS.ink2)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }

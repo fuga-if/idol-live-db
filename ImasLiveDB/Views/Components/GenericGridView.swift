@@ -19,7 +19,7 @@ struct GenericGridView<Item: GridCardItem>: View {
     let emptySystemImage: String
     let onSelect: (Item) -> Void
 
-    private let columns = [GridItem(.adaptive(minimum: 150, maximum: 220), spacing: 16)]
+    private let columns = [GridItem(.adaptive(minimum: 150, maximum: 220), spacing: DS.sp5)]
 
     init(
         items: [Item],
@@ -38,14 +38,12 @@ struct GenericGridView<Item: GridCardItem>: View {
     var body: some View {
         ScrollView {
             if isLoading {
-                ProgressView()
-                    .frame(maxWidth: .infinity)
-                    .padding(.top, 60)
+                ImasInlineLoading()
             } else if items.isEmpty {
-                ContentUnavailableView(emptyTitle, systemImage: emptySystemImage)
+                ImasEmptyState(systemImage: emptySystemImage, title: emptyTitle)
                     .padding(.top, 60)
             } else {
-                LazyVGrid(columns: columns, spacing: 16) {
+                LazyVGrid(columns: columns, spacing: DS.sp5) {
                     ForEach(items) { item in
                         Button { onSelect(item) } label: {
                             GridCardView(item: item)
@@ -53,9 +51,9 @@ struct GenericGridView<Item: GridCardItem>: View {
                         .buttonStyle(.plain)
                     }
                 }
-                .padding(.horizontal, 16)
-                .padding(.top, 16)
-                .padding(.bottom, 24)
+                .padding(.horizontal, DS.sp5)
+                .padding(.top, DS.sp5)
+                .padding(.bottom, DS.sp7)
             }
         }
         .clipped()
@@ -72,7 +70,7 @@ struct GridCardView<Item: GridCardItem>: View {
             artworkSection
                 .frame(maxWidth: .infinity)
                 .aspectRatio(1, contentMode: .fit)
-                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .clipShape(RoundedRectangle(cornerRadius: DS.rSM))
                 .shadow(color: .black.opacity(0.15), radius: 4, y: 2)
 
             Text(item.title)
@@ -84,7 +82,7 @@ struct GridCardView<Item: GridCardItem>: View {
             if let subtitle = item.subtitle {
                 Text(subtitle)
                     .font(.imasCaption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(DS.ink2)
             }
         }
     }
@@ -107,20 +105,20 @@ struct GridCardView<Item: GridCardItem>: View {
     private var placeholderView: some View {
         ZStack {
             LinearGradient(
-                colors: [Color(.systemGray4), Color(.systemGray5)],
+                colors: [DS.fill, DS.surface2],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
             VStack(spacing: 6) {
                 Image(systemName: item.placeholderSystemImage)
                     .font(.imasScaled( 28))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(DS.ink2)
                 Text(item.title)
-                    .font(.imasScaled(11))
-                    .foregroundStyle(.secondary)
+                    .font(.imasCaption2)
+                    .foregroundStyle(DS.ink2)
                     .multilineTextAlignment(.center)
                     .lineLimit(3)
-                    .padding(.horizontal, 8)
+                    .padding(.horizontal, DS.sp3)
             }
         }
     }

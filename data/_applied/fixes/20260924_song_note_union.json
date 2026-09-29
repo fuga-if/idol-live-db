@@ -1,0 +1,14 @@
+{
+ "title": "UNION!! に「ミリシタ 1 周年記念楽曲」の補足を入れる",
+ "source": "https://www.lantis.jp/imas/release_LACM-14641.html",
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "ml_union",
+   "fields": {
+    "note": "ミリシタ 1 周年記念楽曲"
+   },
+   "note": "Lantis の商品ページ (LACM-14641) に「1周年記念の新曲」とある"
+  }
+ ]
+}

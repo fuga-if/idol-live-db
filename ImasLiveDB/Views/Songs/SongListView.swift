@@ -1,10 +1,68 @@
 import os
 import SwiftUI
 
+/// 一覧の検索対象。歌詞以外はすべて手元 (`TextSearchCatalog`) で判定する。
+///
+/// スコープを混ぜて「すべて」で探す案は捨てた。短い語ほど壊れるからで、
+/// 「愛」で曲名を探したいのにアイドル名にも作曲者名にも「愛」は入っている。
+/// 結果は常に 1 スコープぶんにして、**他のスコープに何件あるかだけ知らせる**
+/// (`SongListView.scopeSuggestionBar`)。混ざらないので「どれで引っかかったか」も
+/// 起きず、見落としもしない。
+enum SongSearchMode: String, CaseIterable, Hashable {
+    case title, performer, creator, lyrics
+
+    /// 画面に出してよい検索対象。
+    ///
+    /// 歌詞は JASRAC の許諾 (`LyricsFeature`) に従う。サーバ側も未公開の曲は
+    /// `status=draft` で一般ユーザーに返さないが、それは「配信されない」保証であって
+    /// 「アプリに導線が無い」保証ではない。`SongDetailTab.available` /
+    /// `UnifiedSearchScope.available` と同じ流儀で、ここでも導線ごと消す。
+    static var available: [SongSearchMode] {
+        allCases.filter { $0 != .lyrics || LyricsFeature.isAvailable }
+    }
+
+    /// 手元のデータだけで判定できるか。
+    ///
+    /// 歌詞だけが D1 への問い合わせなので、打鍵ごとに動かせず件数も出せない
+    /// (数えるだけでクエリを 1 本消費する)。それ以外は既に読み込み済みの
+    /// `songs` から作った索引を舐めるだけで、2,000 曲でも 1 打鍵 0.1ms で終わる。
+    var isLocal: Bool { self != .lyrics }
+
+    /// 手元で判定できる対象。件数を出せるのはこれだけ。
+    static let localScopes: [SongSearchMode] = allCases.filter(\.isLocal)
+
+    /// 切り替えチップとメニューに出す文言。
+    ///
+    /// `.title` は表示形式で実際に絞る対象が変わる (曲 / アルバム / シリーズ) ので、
+    /// 固定で「曲名」とは書けない。アルバム表示なのにチップが「曲名」だと、
+    /// 何を打てばいいのか分からなくなる。
+    func label(in listMode: SongListMode) -> String {
+        switch self {
+        case .title:     listMode.nameFilterLabel
+        // 「アイドル」ではなく「歌唱」。ほかの 3 つ (曲名 / 作詞作曲 / 歌詞) が
+        // **何と照合するか**を指すのに、ここだけ実体の名前だった。
+        // タブ移動のチップ (`CrossTabCountChips`) も「アイドルに N」を出すので、
+        // 同じ列に「アイドル」が 2 つ並んで、別の動作が同じ語に見えていた。
+        case .performer: "歌唱"
+        case .creator:   "作詞作曲"
+        case .lyrics:    "歌詞"
+        }
+    }
+}
+
 enum SongListMode: String, CaseIterable {
     case songs
     case albums
     case series
+
+    /// 名前絞り込みが絞る対象。検索欄の頭のチップに出す。
+    var nameFilterLabel: String {
+        switch self {
+        case .songs:  "曲名"
+        case .albums: "アルバム名"
+        case .series: "シリーズ名"
+        }
+    }
 }
 
 struct SongListView: View {
@@ -12,13 +70,15 @@ struct SongListView: View {
     @Environment(CloudKitSyncEngine.self) private var syncEngine
     @State private var vm = SongListViewModel()
     @State private var filter = SongSearchFilter()
-    @State private var sortOrder: SongSortOrder = .titleKana
+    @State private var sortOrder: SongSortOrder = .listDefault
     /// nil = sortOrder のデフォルト方向、 true=昇順、 false=降順
     @State private var sortAscending: Bool? = nil
     @State private var showFilter = false
     @State private var sheetDestination: DetailDestination?
-    @State private var searchText = ""
-    @State private var isSearching = false
+    @State private var searchText = SongListView.initialSearchText()
+    /// 曲名で絞るか、歌詞で絞るか。歌詞はサーバに問い合わせる。
+    @State private var searchMode: SongSearchMode = .title
+    @State private var lyricsSearching = false
     /// 新規曲作成 sheet。
     @State private var showSongCreate = false
     /// 未ログイン時のログイン誘導 sheet。
@@ -29,10 +89,18 @@ struct SongListView: View {
     @AppStorage("songs_show_other_brand") private var showOtherBrand = false
     /// ライブ履歴のみのファントム曲 (セトリにしか無いカバー等) を一覧から隠す。既定 ON。
     @AppStorage("songs_exclude_live_only") private var excludeLiveOnly = true
+    /// 「KAMISABI収録曲のみ」。判定はコアに渡すだけ。`showOtherBrand`/`excludeLiveOnly` と違い
+    /// これは「既定の見せ方」ではなく一時的な絞り込みなので `@AppStorage` にしない
+    /// (Android 側もインメモリで再起動すると消える。ここだけ永続化すると挙動が食い違う)。
+    @State private var kamisabiOnly = false
     /// マイマーク絞り込み (担当/お気に入り/メモ)。 旧 MyMarks タブの統合後継。
     @State private var myMarkFilter = SongMyMarkFilter()
     /// コミュニティタグ絞り込み (複数指定可)。選択タグ全てが付いた曲 (AND) に絞る。
     @State private var selectedTags: [CommunityTag] = []
+    /// 「コールガイドがある曲のみ」。
+    /// ⚠️ `@AppStorage` にしないこと。通信が要る絞り込みが起動直後から効いていると、
+    /// オフライン起動時に理由の分からない空一覧になる。
+    @State private var callGuideOnly = false
     @State private var showTagPicker = false
     @State private var showIntroDon = false
     /// 曲一覧の「この絞り込みでイントロドン」導線の表示/非表示 (設定アプリから戻せる)。
@@ -57,15 +125,12 @@ struct SongListView: View {
             collectFilter: collectFilter,
             myMarkFilter: myMarkFilter,
             selectedTagCount: selectedTags.count,
-            searchText: searchText)
-    }
-
-    private var searchPrompt: String {
-        switch listMode {
-        case .songs: "曲名で検索"
-        case .albums: "アルバム名で検索"
-        case .series: "シリーズ名で検索"
-        }
+            callGuideOnly: callGuideOnly,
+            kamisabiOnly: kamisabiOnly,
+            // 歌詞モードの入力は手元で絞れる語ではない。そのまま渡すと再ロードのたびに
+            // 曲名で絞り直され、歌詞で当たった曲まで落ちる。
+            searchText: searchMode.isLocal ? searchText : "",
+            searchScope: searchMode)
     }
 
     /// 現在の UI 状態で曲リストを即時再ロードする（チップ解除などフィルタ変更の共通導線）。
@@ -74,26 +139,87 @@ struct SongListView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        // selectionMode = true (イントロドン設定画面から push されてくるケース) では、
+        // 親が既に NavigationStack を持っているため自前で持つとネストになり、
+        // タイトルバー領域が二重表示されて空白が大きく出る + 戻る操作が2回分働く。
+        // root 用途 (タブの root) でだけ自前 NavigationStack を使う。
+        if selectionMode {
+            content
+        } else {
+            NavigationStack {
+                content
+            }
+        }
+    }
+
+    /// 歌詞検索を投げて、結果で一覧を絞る。一致箇所のスニペットは行に出すため保持する。
+    private func runLyricsSearchIfNeeded() {
+        guard searchMode == .lyrics else { return }
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return }
+        lyricsSearching = true
+        Task {
+            defer { lyricsSearching = false }
+            do {
+                let hits = try await AppContainer.shared.lyricsSearchReading
+                    .searchLyrics(query: simpleLyricsQuery(raw: query))
+                vm.applyFilter(searchText: "", scope: .lyrics,
+                               lyricsHits: Dictionary(hits.map { ($0.songId, $0.snippets) },
+                                                      uniquingKeysWith: { a, _ in a }))
+            } catch {
+                Logger.database.error("lyrics_list_search_failed: \(error.localizedDescription)")
+                vm.applyFilter(searchText: "", scope: .lyrics, lyricsHits: [:])
+            }
+        }
+    }
+
+    /// 入力か対象が変わったときの絞り込み直し。
+    ///
+    /// 歌詞は打鍵ごとに投げない (D1 の読み取りを打鍵数で消費しないため)。確定するまでは
+    /// 前回の結果を捨てて、古い結果が残らないようにする。
+    private func searchInputChanged() {
+        vm.applyFilter(searchText: searchMode.isLocal ? searchText : "",
+                       scope: searchMode,
+                       lyricsHits: .some(nil))
+    }
+
+    @ViewBuilder
+    private var content: some View {
             VStack(spacing: 0) {
-                if isSearching {
-                    InTabSearchField(prompt: searchPrompt, text: $searchText, isSearching: $isSearching)
-                }
+                scopeSuggestionBar
+                // 同じ語がアイドル・ライブに何件あるか。スコープ切替の直下に置くのは、
+                // 「打った語の行き先」という点で利用者にとって同じ判断だから。
+                CrossTabCountChips(query: searchText, from: .songs)
                 removableFilterBar
+                tagFilterErrorBanner
+                callGuideFilterErrorBanner
+                kamisabiCompletionBanner
                 introDonLaunchBar
                 listContent
                     .refreshable {
                         await syncEngine.performIncrementalSync(database: database)
-                        await vm.load(loadRequest)
+                        await vm.scheduleLoad(loadRequest, debounce: false).value
                     }
             }
             .background(DS.bg)
-            .onChange(of: searchText) { _, _ in vm.recomputeDisplayed(searchText: searchText) }
+            // 絞り込み欄がナビバーの中にあるので `.searchable` のキャンセルボタンが無い。
+            // スクロールでキーボードを閉じられないと、打った後に一覧が半分隠れたままになる。
+            .scrollDismissesKeyboard(.immediately)
+            .onChange(of: searchText) { _, _ in searchInputChanged() }
+                .onChange(of: searchMode) { _, _ in
+                    searchInputChanged()
+                    // 対象を切り替えたのは明示的な操作なので、入力が残っているならその場で引き直す。
+                    // 打鍵のたびに投げるわけではないので D1 の読み取りは無駄にならない。
+                    runLyricsSearchIfNeeded()
+                }
                 .navigationTitle("楽曲")
-                .navigationBarTitleDisplayMode(.large)
+                // 絞り込みフィールドをナビバー内に置くので、タイトルは常に inline。
+                // (.large だと大タイトル 52pt + バーの 2 行になり、畳んだ意味が無くなる)
+                .navigationBarTitleDisplayMode(.inline)
                 .toolbar { toolbarContent }
                 .sheet(isPresented: $showFilter) {
                     SongFilterView(
+                        nameFilter: $searchText,
                         filter: $filter,
                         sortOrder: $sortOrder,
                         sortAscending: $sortAscending,
@@ -101,7 +227,9 @@ struct SongListView: View {
                         collectFilter: $collectFilter,
                         myMarkFilter: $myMarkFilter,
                         showOtherBrand: $showOtherBrand,
-                        excludeLiveOnly: $excludeLiveOnly
+                        excludeLiveOnly: $excludeLiveOnly,
+                        callGuideOnly: $callGuideOnly,
+                        kamisabiOnly: $kamisabiOnly
                     )
                     .environment(database)
                     .presentationDetents([.medium, .large])
@@ -134,7 +262,7 @@ struct SongListView: View {
                 // 行アイコン用のマーク集合だけ軽く更新する (他タブでのお気に入り変更を反映)。
                 .task {
                     if vm.songs.isEmpty || isMarkDependentFilterActive {
-                        await vm.load(loadRequest)
+                        await vm.scheduleLoad(loadRequest, debounce: false).value
                     } else {
                         await vm.refreshMarkDisplays()
                     }
@@ -142,8 +270,15 @@ struct SongListView: View {
                 .onChange(of: filter.brandIds) { _, _ in reload() }
                 .onChange(of: showOtherBrand) { _, _ in reload() }
                 .onChange(of: excludeLiveOnly) { _, _ in reload() }
+                .onChange(of: kamisabiOnly) { _, _ in reload() }
+                // 集合の解決に通信が要るので、他のトグルと違って解決を待ってから引き直す。
+                .onChange(of: callGuideOnly) { _, enabled in
+                    Task {
+                        await vm.resolveCallGuideFilter(enabled)
+                        reload()
+                    }
+                }
                 .trackScreen("song_list")
-        }
     }
 
     /// 新規曲作成導線。ログイン済みなら作成 sheet、未ログインならログイン誘導。
@@ -155,12 +290,86 @@ struct SongListView: View {
         }
     }
 
+    /// 「ほかのスコープにも当たりがある」ことを知らせる行。
+    ///
+    /// スコープを混ぜないので結果は常に 1 種類ぶんで、「曲名だけで絞りたかったのに」も
+    /// 「どれで引っかかったか分からない」も起きない。代わりに見落とす恐れがあるので、
+    /// 件数だけ出して 1 タップで移れるようにする。
+    ///
+    /// 歌詞に件数が付かないのは、数えるだけで D1 のクエリを 1 本消費するから。
+    /// 誘い文句だけ置いて、押したときに初めて投げる。
+    /// 起動時に入れておく検索語。通常は空。
+    ///
+    /// DEBUG では `INITIAL_SEARCH` で埋められる。検索欄に文字が入っている状態
+    /// (スコープ切替のチップ列・「別のタブ」の件数) は、打たないと出ない一方で
+    /// シミュレータには文字入力の口が無く、スクショが撮れなかった。
+    /// `SCREENSHOT_MODE` / `INITIAL_TAB` / `DAILY_PICK_KIND` と同じ流儀。
+    static func initialSearchText() -> String {
+        #if DEBUG
+        return ProcessInfo.processInfo.environment["INITIAL_SEARCH"] ?? ""
+        #else
+        return ""
+        #endif
+    }
+
+    @ViewBuilder
+    private var scopeSuggestionBar: some View {
+        let suggestions = scopeSuggestions
+        if !suggestions.isEmpty || showsLyricsSuggestion {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: DS.sp3) {
+                    Text("ほかに")
+                        .font(.imasCaption)
+                        .foregroundStyle(DS.ink3)
+                    ForEach(suggestions, id: \.scope) { item in
+                        scopeChip(label: "\(item.scope.label(in: listMode)) \(item.count)件",
+                                  scope: item.scope)
+                    }
+                    if showsLyricsSuggestion {
+                        scopeChip(label: "歌詞で探す", scope: .lyrics)
+                    }
+                }
+                .padding(.horizontal, DS.sp5)
+                .padding(.vertical, DS.sp2)
+            }
+        }
+    }
+
+    /// 表示中でないスコープのうち、1 件以上当たるもの。
+    ///
+    /// 件数は VM が絞り込みと同じ走査で出したものを読むだけ。ここで数えると
+    /// `body` 評価のたびに 2,000 曲を走査することになる。
+    private var scopeSuggestions: [(scope: SongSearchMode, count: Int)] {
+        SongSearchMode.localScopes.compactMap { scope in
+            guard let count = vm.otherScopeCounts[scope], count > 0 else { return nil }
+            return (scope, count)
+        }
+    }
+
+    /// 歌詞の誘いは、入力があって歌詞を見ていないときだけ。件数は出さない。
+    private var showsLyricsSuggestion: Bool {
+        LyricsFeature.isAvailable && searchMode != .lyrics && !searchText.isEmpty
+    }
+
+    private func scopeChip(label: String, scope: SongSearchMode) -> some View {
+        // 見た目は下のフィルタチップ列 (`removableFilterBar`) と揃える。
+        // 自前で組むと同じ VStack に並ぶチップだけ字送りと余白がずれる。
+        ImasFilterChip(text: label, isSelected: false) {
+            AppAnalytics.tap("song_list.scope_suggestion")
+            searchMode = scope
+        }
+    }
+
     /// 適用中フィルタの removable チップ列 (デザインの filters セクション)。
     /// マイマーク / 回収 / 表示形式 / タグ を横スクロールで一覧し、各チップ右の × で個別解除。
     /// いま表示中の曲でイントロドンを始める導線 (絞り込みバーの直下)。
     /// 絞り込み/検索している時のみ・4曲以上・非表示でないとき表示。
     @ViewBuilder
     private var introDonLaunchBar: some View {
+        // 出題範囲はあいまい候補 (`vm.fuzzySongs`) を含めない。「もしかして」は
+        // 目で見て選んでもらうための提案なので、黙って出題母集団に混ぜると
+        // 打った覚えのない曲が出る。範囲は打った通りに当たった曲だけ。
+        // (そのため選択モードでは一覧側にも候補を出さない → `songsListContent`)
         let playable = IntroGameSession.playable(vm.displayedSongs.map(\.song)).count
         if selectionMode {
             // イントロドン設定から「絞り込んで出題」で来た選択モード。
@@ -176,19 +385,22 @@ struct SongListView: View {
 
     @ViewBuilder
     private func selectionConfirmBar(playable: Int) -> some View {
+        // 呼び元 (IntroGameSetupView) が onSelectPool 内で showSongFilter = false を実行する
+        // ことで navigationDestination が解除されて 1 回戻る。ここで追加で dismissSelf() を
+        // 呼ぶと 2 回戻りになる (= 設定画面を更に飛び越えて IntroDonHome まで戻る) ため、
+        // dismiss はせず onSelectPool だけ呼ぶ。
         Button {
             AppAnalytics.tap("song_list.introdon_select")
             onSelectPool?(vm.displayedSongs.map(\.song), selectionRangeLabel)
-            dismissSelf()
         } label: {
-            HStack(spacing: 8) {
+            HStack(spacing: DS.sp3) {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.imasScaled(15, weight: .bold))
                 Text("この範囲で出題")
                     .font(.imasSubhead.weight(.bold))
                 Text("\(playable)曲")
                     .font(.imasCaption)
-                    .foregroundStyle(playable >= 4 ? .white.opacity(0.85) : Color.white.opacity(0.85))
+                    .opacity(0.85)
                 Spacer(minLength: 0)
                 if playable < 4 {
                     Text("4曲以上必要")
@@ -197,11 +409,14 @@ struct SongListView: View {
                 Image(systemName: "chevron.right")
                     .font(.imasScaled(12, weight: .bold))
             }
-            .foregroundStyle(.white)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            // DS.sys はシステムのテキスト色 (ダーク=白 / ライト=黒)。背景にこれを使うと、
+            // 上に乗せる文字色は必ず DS.onSys (反転色) でなければならない。
+            // 旧コードは固定 .white を載せており、ダークモードで「白背景白文字」になっていた。
+            .padding(.horizontal, DS.sp5)
+            .padding(.vertical, DS.sp4)
             .frame(maxWidth: .infinity)
-            .background(playable >= 4 ? DS.sys : Color.secondary)
+            .foregroundStyle(playable >= 4 ? DS.onSys : Color.white)
+            .background(playable >= 4 ? AnyShapeStyle(DS.sys) : AnyShapeStyle(Color.secondary))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -216,14 +431,14 @@ struct SongListView: View {
                 AppAnalytics.tap("song_list.introdon")
                 showIntroDon = true
             } label: {
-                HStack(spacing: 8) {
+                HStack(spacing: DS.sp3) {
                     Image(systemName: "music.note.list")
                         .font(.imasScaled( 14, weight: .bold))
                     Text("この絞り込みでイントロドン")
                         .font(.imasSubhead.weight(.bold))
                     Text("\(playable)曲")
                         .font(.imasCaption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(DS.ink2)
                     Spacer(minLength: 0)
                 }
                 .foregroundStyle(DS.sys)
@@ -237,7 +452,7 @@ struct SongListView: View {
             } label: {
                 Image(systemName: "xmark")
                     .font(.imasScaled( 12, weight: .bold))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(DS.ink2)
                     .padding(.leading, 10)
                     .contentShape(Rectangle())
             }
@@ -257,12 +472,83 @@ struct SongListView: View {
         return "曲一覧の絞り込み"
     }
 
+    /// タグ絞り込みの取得に失敗した (オフライン等) ことを知らせるバナー。
+    /// 「タグに合致する曲が0件」との誤読を避けるため、`resolveTagFilter` は失敗時に一覧を
+    /// 空にせず本フラグだけ立てる。ここでその状態をユーザーに明示する。
+    @ViewBuilder
+    private var tagFilterErrorBanner: some View {
+        if vm.tagFilterError {
+            HStack(spacing: 6) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.imasCaption)
+                    .foregroundStyle(DS.warning)
+                Text("タグ絞り込みの取得に失敗しました。表示中の一覧にはタグ条件が反映されていません。")
+                    .font(.imasCaption)
+                    .foregroundStyle(DS.ink2)
+            }
+            .padding(.horizontal, DS.sp5)
+            .padding(.vertical, DS.sp2)
+        }
+    }
+
+    /// コールガイド絞り込みの取得に失敗した (オフライン等) ことを知らせるバナー。
+    /// タグ側と同じく、失敗時は絞り込みを適用しないので一覧は絞られていない。
+    @ViewBuilder
+    private var callGuideFilterErrorBanner: some View {
+        if vm.callGuideFilterError {
+            callGuideBanner("exclamationmark.triangle.fill", DS.warning,
+                            "コールガイドの情報を取得できませんでした。表示中の一覧にはコールガイド条件が反映されていません。")
+        } else if callGuideOnly && listMode == .songs && vm.callGuideFilterTruncated {
+            // サーバは 200 件で打ち切る。201 曲目以降が黙って消えるのではなく、
+            // 「何で絞っているか」を名乗る。
+            callGuideBanner("info.circle.fill", DS.ink3,
+                            "最近更新された 200 曲で絞り込んでいます。")
+        }
+    }
+
+    private func callGuideBanner(_ systemImage: String, _ tint: Color, _ text: String) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: systemImage)
+                .font(.imasCaption)
+                .foregroundStyle(tint)
+            Text(text)
+                .font(.imasCaption)
+                .foregroundStyle(DS.ink2)
+        }
+        .padding(.horizontal, DS.sp5)
+        .padding(.vertical, DS.sp2)
+    }
+
+    /// KAMISABI 収録曲だけに絞り込んでいる間だけ出す所持コンプ。
+    ///
+    /// **分母は `vm.songs`/`vm.displayedSongs` を数えない。** KAMISABI はブランドごとの
+    /// 別商品 (ML 50 曲 / SideM 50 曲 / シャニ 50 曲) で、150 は「1 商品の収録数」ではない。
+    /// 表示中の一覧 (ブランド/マイマーク/検索語で動く) を分母にすると、絞り込むたびに
+    /// 違う意味の数字になってしまう。分母の規則はコア一本 (`vm.kamisabiCompletion` は
+    /// `SnapshotStore.kamisabiCompletion` の値そのまま) なので、検索語を打って表示行数が
+    /// 減っても分母はブレない — それが正しい挙動 (「収録 50 曲中 7 曲所持」は検索とは無関係)。
+    @ViewBuilder
+    private var kamisabiCompletionBanner: some View {
+        if kamisabiOnly, listMode == .songs, !vm.isLoading, let completion = vm.kamisabiCompletion {
+            HStack(spacing: 6) {
+                Image(systemName: UserMarkKind.owned.activeIcon)
+                    .font(.imasCaption)
+                    .foregroundStyle(DS.ink2)
+                Text(kamisabiCompletionLabel(completion: completion))
+                    .font(.imasCaption.weight(.semibold))
+                    .foregroundStyle(DS.ink2)
+            }
+            .padding(.horizontal, DS.sp5)
+            .padding(.vertical, DS.sp2)
+        }
+    }
+
     @ViewBuilder
     private var removableFilterBar: some View {
         let chips = activeFilterChips
         if !chips.isEmpty {
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
+                HStack(spacing: DS.sp3) {
                     ForEach(chips) { chip in
                         ImasRemovableChip(text: chip.label, onRemove: chip.remove)
                     }
@@ -297,6 +583,16 @@ struct SongListView: View {
             chips.append(.init(id: "collected", label: "現地回収済") { collectFilter = .all; reload() })
         case .uncollected:
             chips.append(.init(id: "uncollected", label: "未回収") { collectFilter = .all; reload() })
+        }
+        // アルバム/シリーズ表示ではこの絞り込みは効かない (曲行を絞る条件なので)。
+        // 効いていない条件をチップに出すと、外しても件数が変わらず理由が分からなくなる。
+        if callGuideOnly, listMode == .songs {
+            // 解除の後始末 (集合を捨てて引き直す) は `onChange(of: callGuideOnly)` が担う。
+            chips.append(.init(id: "call_guide", label: "コールガイドあり") { callGuideOnly = false })
+        }
+        if kamisabiOnly, listMode == .songs {
+            // 解除の後始末 (再読み込み) は `onChange(of: kamisabiOnly)` が担う。
+            chips.append(.init(id: "kamisabi", label: "KAMISABI収録") { kamisabiOnly = false })
         }
         if let series = filter.seriesGroup, !series.isEmpty {
             chips.append(.init(id: "series", label: series) { filter.seriesGroup = nil; reload() })
@@ -347,17 +643,52 @@ struct SongListView: View {
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         standardListToolbar(
-            onSearch: {
-                AppAnalytics.tap("song_list.search_open")
-                isSearching = true
-            },
             filterBadge: filterBadgeCount,
             onFilter: {
                 AppAnalytics.tap("song_list.filter")
                 showFilter = true
             },
             menuActions: songMenuActions
-        )
+        ) {
+            // 何を絞るかはチップが示すので、プレースホルダは動詞だけでいい。
+            // 「曲名⌄ 曲名で絞り込み」と二重に書くと、狭い欄が更に読みにくくなる。
+            ListSearchField(
+                prompt: searchMode == .lyrics ? "一節を入力" : "絞り込み",
+                text: $searchText,
+                onSubmit: runLyricsSearchIfNeeded
+            ) {
+                searchModeChip
+            }
+        }
+    }
+
+    /// 入力欄の頭に差す 曲名 / 歌詞 の切り替え。
+    ///
+    /// `.searchScopes` の全幅セグメントだと行を 1 本余分に食い、畳んだヘッダーが元に戻る。
+    /// 入力欄の中のチップなら、何を探しているかを見せたまま 1 行に収まる。
+    ///
+    private var searchModeChip: some View {
+        Menu {
+            Picker("検索対象", selection: $searchMode) {
+                ForEach(SongSearchMode.available, id: \.self) {
+                    Text($0.label(in: listMode)).tag($0)
+                }
+            }
+        } label: {
+            HStack(spacing: 1) {
+                Text(searchMode.label(in: listMode))
+                    .font(.imasCaption.weight(.semibold))
+                Image(systemName: "chevron.down")
+                    .font(.imasScaled(8, weight: .semibold))
+            }
+            .foregroundStyle(DS.ink2)
+            .padding(.horizontal, DS.sp2)
+            .padding(.vertical, 2)
+            .background(DS.surface, in: Capsule())
+            .lineLimit(1)
+            .fixedSize()
+        }
+        .accessibilityLabel("検索対象: \(searchMode.label(in: listMode))")
     }
 
     private var songMenuActions: [ListToolbarAction] {
@@ -388,12 +719,17 @@ struct SongListView: View {
 
     private func resetAllFilters() {
         filter = SongSearchFilter()
-        sortOrder = .titleKana
+        sortOrder = .listDefault
         sortAscending = nil
         listMode = .songs
         collectFilter = .all
         myMarkFilter = SongMyMarkFilter()
         selectedTags = []
+        // `callGuideOnly` を false にすると `onChange` が別 Task で解除+reload を回すので、
+        // ここでは触らない。結果として reload は 2 回走るが、どちらも同じ条件で同じ一覧を
+        // 引き直すだけなので実害は無い (解除の後始末を 2 箇所に書く方が壊れやすい)。
+        callGuideOnly = false
+        kamisabiOnly = false
         Task {
             await vm.resolveTagFilter([])
             reload()
@@ -417,6 +753,8 @@ struct SongListView: View {
         if listMode != .songs { count += 1 }
         if collectFilter != .all { count += 1 }
         if !selectedTags.isEmpty { count += 1 }
+        if callGuideOnly, listMode == .songs { count += 1 }
+        if kamisabiOnly, listMode == .songs { count += 1 }
         count += myMarkFilter.activeCount
         return count
     }
@@ -425,7 +763,9 @@ struct SongListView: View {
 
     private var songsListContent: some View {
         Group {
-            if vm.isLoading {
+            // 歌詞検索中もスケルトンにする。前の結果を消した直後は絞り込み無しの状態
+            // (= 全曲) なので、そのまま出すと 1,991 件が一瞬めくれてから絞られる。
+            if vm.isLoading || lyricsSearching {
                 ScrollView {
                     ImasListSkeleton(rows: 12, thumb: .square)
                         .padding(.top, DS.sp3)
@@ -433,32 +773,67 @@ struct SongListView: View {
                 .scrollDisabled(true)
                 .background(DS.bg)
             } else if vm.songs.isEmpty && filter.activeFilterCount > 0 {
-                ContentUnavailableView.search(text: "条件に一致する楽曲")
+                ImasEmptyState(
+                    systemImage: "line.3.horizontal.decrease",
+                    title: "条件に一致する楽曲がありません",
+                    message: "フィルタ条件を変更するか、フィルタを解除してください。"
+                )
             } else {
                 let display = vm.displayedSongs
-                if !searchText.isEmpty && display.isEmpty {
-                    InTabSearchEmptyView(query: searchText)
+                // あいまい候補しか無い状態 (打ち間違い・かな入力) を「0 件」と言わない。
+                // それを拾うためのあいまい検索なので、空状態はどちらも空のときだけ。
+                //
+                // ただし選択モードでは候補を出さない。確定ボタンが呼び元へ渡す母集団は
+                // `vm.displayedSongs` (= 打った通りに当たった曲) だけなので、候補を並べると
+                // 見えている行と件数が出題範囲と食い違い、押した瞬間に黙って除外される。
+                let fuzzy: [SongWithArtists] = selectionMode ? [] : vm.fuzzySongs
+                if !searchText.isEmpty && display.isEmpty && fuzzy.isEmpty {
+                    ImasEmptyState(
+                        systemImage: "line.3.horizontal.decrease",
+                        title: "絞り込み結果がありません",
+                        message: "「\(searchText)」に一致する楽曲がありません"
+                    )
                 } else {
                     VStack(spacing: 0) {
-                        countSortBar(count: display.count)
-                        songsList(display)
+                        countSortBar(count: display.count + fuzzy.count)
+                        songsList(display, fuzzy: fuzzy)
                     }
                 }
             }
         }
+        // 空状態は自分では縦に伸びないので、そのままだと上下に白帯を残して
+        // 画面の真ん中に浮く (スコープの件数チップまで一緒に下がる)。
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    /// 件数 + ソートコントロール (デザインの csort 行)。ソートボタンはフィルタシートを開く。
+    /// 件数 + ソートコントロール (デザインの csort 行)。
+    ///
+    /// 並び替えはその場のメニューで切り替える。フィルタシートを開かせると、並びだけ
+    /// 変えたい時に絞り込み全体を掻き分けることになる (シート側にも同じ項目は残す)。
     private func countSortBar(count: Int) -> some View {
         HStack {
             (Text("\(count)").font(.imasDisplay(15, weight: .bold)).foregroundStyle(DS.ink)
                 + Text(" 件").font(.imasFootnote).foregroundStyle(DS.ink2))
             Spacer()
-            Button {
-                showFilter = true
+            Menu {
+                Picker("並び順", selection: Binding(
+                    get: { sortOrder },
+                    set: { changeSortOrder($0) }
+                )) {
+                    ForEach(SongSortOrder.allCases, id: \.rawValue) { order in
+                        Text(order.rawValue).tag(order)
+                    }
+                }
+                Picker("方向", selection: Binding(
+                    get: { effectiveSortAscending },
+                    set: { changeSortAscending($0) }
+                )) {
+                    Label("昇順", systemImage: "arrow.up").tag(true)
+                    Label("降順", systemImage: "arrow.down").tag(false)
+                }
             } label: {
                 HStack(spacing: 5) {
-                    Image(systemName: "arrow.up.arrow.down")
+                    Image(systemName: effectiveSortAscending ? "arrow.up" : "arrow.down")
                         .font(.imasScaled( 13, weight: .semibold))
                         .foregroundStyle(DS.ink2)
                     Text(sortOrder.rawValue)
@@ -472,40 +847,99 @@ struct SongListView: View {
                 .background(DS.fill, in: RoundedRectangle(cornerRadius: DS.rSM, style: .continuous))
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("並び替え: \(sortOrder.rawValue)")
+            .accessibilityLabel("並び替え: \(sortOrder.rawValue)、\(effectiveSortAscending ? "昇順" : "降順")")
         }
         .padding(.horizontal, DS.sp5)
         .padding(.top, DS.sp2)
         .padding(.bottom, DS.sp2)
+        // 下の一覧 (`readableContentMargins`) と左右を揃える。
+        .frame(maxWidth: DS.readableContentWidth)
+        .frame(maxWidth: .infinity)
     }
 
-    private func songsList(_ display: [SongWithArtists]) -> some View {
+    private var effectiveSortAscending: Bool { sortAscending ?? sortOrder.defaultAscending }
+
+    /// 軸を変えたら方向はその軸の既定に戻す。前の軸で選んだ向きを持ち越すと、
+    /// 「披露回数順」が少ない順から始まるような、選んだ直後に意図と逆の並びになる。
+    private func changeSortOrder(_ order: SongSortOrder) {
+        guard order != sortOrder else { return }
+        AppAnalytics.tap("song_list.quick_sort")
+        sortOrder = order
+        sortAscending = nil
+        reload()
+    }
+
+    private func changeSortAscending(_ ascending: Bool) {
+        guard ascending != effectiveSortAscending else { return }
+        AppAnalytics.tap("song_list.quick_sort_direction")
+        sortAscending = ascending
+        reload()
+    }
+
+    /// 並び順の根拠として行に出す指標。その順で並べていない時は出さない。
+    ///
+    /// 出しっぱなしにすると、どの並びでも同じ情報が載って「今は何で並んでいるか」の
+    /// 手掛かりにならない。並びを変えた時だけ増える方が、変えた結果として読める。
+    private func rowMetric(for songId: String) -> SongRowMetric? {
+        let total = vm.performanceCounts[songId] ?? 0
+        switch sortOrder {
+        case .performanceCount:
+            return .performances(total)
+        case .collectedRate:
+            return .collectRate(collected: vm.collectedCounts[songId] ?? 0, total: total)
+        case .titleKana, .releaseDate, .collectedCount:
+            // 現地回収回数順は行の ✓N バッジが既に根拠になっている。
+            return nil
+        }
+    }
+
+    private func songsList(_ display: [SongWithArtists], fuzzy: [SongWithArtists]) -> some View {
         List {
-            ForEach(display) { item in
-                // iOS 18 では Button label 内に Button (再生ボタン等) を
-                // 入れ子にすると tap が両方とも吸われて反応領域が狭くなる。
-                // 行全体は onTapGesture で受け、内側の再生ボタンは独立して機能させる。
-                SongRowView(
-                    item: item,
-                    collectedCount: vm.collectedCounts[item.song.id],
-                    isFavorite: vm.favoriteSongIds.contains(item.song.id),
-                    isMyPick: vm.myPickSongIds.contains(item.song.id),
-                    hasNote: vm.notedSongIds.contains(item.song.id),
-                    onCollectedTap: { sheetDestination = .songHistory(item.song) },
-                    tagVoteCount: selectedTags.count == 1 ? vm.tagVoteCounts[item.song.id] : nil
-                )
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    sheetDestination = .song(item.song)
-                }
-                .listRowInsets(EdgeInsets(top: 0, leading: DS.sp5, bottom: 0, trailing: DS.sp5))
-                .listRowBackground(DS.surface)
-                .listRowSeparatorTint(DS.sep)
+            ForEach(display) { songRow($0) }
+            if !fuzzy.isEmpty {
+                // 打った通りではない候補なので、区切って理由を書く。黙って下に足すと
+                // 「なぜこの曲が出ているのか」が読めず、一致の精度を疑わせる。
+                ImasSectionHeader(title: "もしかして", tight: true)
+                    .padding(.top, DS.sp4)
+                    .padding(.bottom, DS.sp2)
+                    .listRowInsets(EdgeInsets(top: 0, leading: DS.sp5, bottom: 0, trailing: DS.sp5))
+                    .listRowBackground(DS.bg)
+                    .listRowSeparator(.hidden)
+                ForEach(fuzzy) { songRow($0) }
             }
         }
         .listStyle(.plain)
+        .readableContentMargins()
         .scrollContentBackground(.hidden)
         .background(DS.bg)
+    }
+
+    private func songRow(_ item: SongWithArtists) -> some View {
+        // iOS 18 では Button label 内に Button (再生ボタン等) を
+        // 入れ子にすると tap が両方とも吸われて反応領域が狭くなる。
+        // 行全体は onTapGesture で受け、内側の再生ボタンは独立して機能させる。
+        SongRowView(
+            item: item,
+            collectedCount: vm.collectedCounts[item.song.id],
+            isMyPick: vm.myPickSongIds.contains(item.song.id),
+            hasNote: vm.notedSongIds.contains(item.song.id),
+            masteryLevel: UserMarkService.shared.mastery(songId: item.song.id),
+            onCollectedTap: { sheetDestination = .songHistory(item.song) },
+            tagVoteCount: selectedTags.count == 1 ? vm.tagVoteCounts[item.song.id] : nil,
+            lyricsSnippets: vm.lyricsHits?[item.song.id] ?? [],
+            searchMatch: searchText.isEmpty
+                ? nil : SongRowMatch(text: searchText, scope: searchMode,
+                                           described: vm.matchDescriptions[item.song.id]),
+            metric: rowMetric(for: item.song.id)
+        )
+        .contentShape(Rectangle())
+        .onTapGesture {
+            sheetDestination = .song(item.song)
+        }
+        .masterySwipe(songId: item.song.id)
+        .listRowInsets(EdgeInsets(top: 0, leading: DS.sp5, bottom: 0, trailing: DS.sp5))
+        .listRowBackground(DS.surface)
+        .listRowSeparatorTint(DS.sep)
     }
 
     // MARK: - Data
@@ -515,35 +949,5 @@ struct SongListView: View {
     private var isMarkDependentFilterActive: Bool {
         myMarkFilter.requireFavorite || myMarkFilter.requireNote || myMarkFilter.requireMyPick
             || collectFilter != .all
-    }
-}
-
-// MARK: - Song Search Screen
-
-private struct SongSearchScreen: View {
-    let prompt: String
-    let filter: SongSearchFilter
-    @Binding var sheetDestination: DetailDestination?
-
-    var body: some View {
-        SearchScreen(
-            prompt: prompt,
-            historyScope: .songs,
-            searchAction: { query in
-                var f = filter
-                f.title = query
-                return (try? await AppContainer.shared.songReading.songs(filter: f, sortOrder: .titleKana, ascending: nil)) ?? []
-            },
-            suggestionsAction: { query in
-                (try? await AppContainer.shared.songReading.songSuggestions(query: query, limit: 8)) ?? []
-            }
-        ) { item in
-            Button {
-                sheetDestination = .song(item.song)
-            } label: {
-                SongRowView(item: item)
-            }
-            .buttonStyle(.plain)
-        }
     }
 }

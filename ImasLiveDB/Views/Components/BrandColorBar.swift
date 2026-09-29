@@ -2,7 +2,6 @@ import SwiftUI
 
 /// イベントカード左端のブランドカラーバー
 struct BrandColorBar: View {
-    @Environment(AppDatabase.self) private var database
     let brandId: String?
 
     var body: some View {
@@ -12,7 +11,7 @@ struct BrandColorBar: View {
     }
 
     private var brandColor: Color {
-        guard let hex = BrandPalette.hex(for: brandId) else { return .gray }
+        guard let hex = BrandColors.hex(for: brandId) else { return .gray }
         return Color(hexString: hex)
     }
 }

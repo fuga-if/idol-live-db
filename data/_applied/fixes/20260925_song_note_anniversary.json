@@ -1,0 +1,210 @@
+{
+ "title": "周年記念楽曲・テーマ曲・TVアニメ楽曲の補足 (songs.note)",
+ "_sources": [
+  "https://idolmaster-official.jp/news/01_7978",
+  "https://idolmaster-official.jp/news/01_8686",
+  "https://millionlive-anime.idolmaster-official.jp/music/",
+  "https://www.lantis.jp/imas/release_LACA-15678.html",
+  "https://www.lantis.jp/imas/release_LACA-25057.html",
+  "https://www.lantis.jp/imas/release_LACA-25105.html",
+  "https://www.lantis.jp/imas/release_LACA-25167.html",
+  "https://www.lantis.jp/imas/release_LACA-25271.html",
+  "https://www.lantis.jp/imas/release_LACM-14080.html",
+  "https://www.lantis.jp/imas/release_LACM-14891.html",
+  "https://www.lantis.jp/imas/release_LACM-14900.html",
+  "https://www.lantis.jp/imas/release_LACM-24151.html",
+  "https://www.lantis.jp/imas/release_LACM-24294.html",
+  "https://www.lantis.jp/imas/release_LACM-24420.html"
+ ],
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "ml_thank_you",
+   "fields": {
+    "note": "ミリオンライブ！ テーマ曲"
+   },
+   "source": "https://www.lantis.jp/imas/release_LACM-14080.html",
+   "note": "「テーマ曲は50人全員が歌うグランドオープニング」"
+  },
+  {
+   "table": "songs",
+   "id": "ml_brand_new_theater",
+   "fields": {
+    "note": "ミリシタ テーマソング"
+   },
+   "source": "https://www.lantis.jp/imas/release_LACA-15678.html",
+   "note": "「52人全員で歌うテーマソング『Brand New Theater!』」"
+  },
+  {
+   "table": "songs",
+   "id": "ml_flyers",
+   "fields": {
+    "note": "ミリシタ 2 周年記念楽曲"
+   },
+   "source": "https://www.lantis.jp/imas/release_LACM-14891.html",
+   "note": "「ミリシタ2周年記念の新全体曲」"
+  },
+  {
+   "table": "songs",
+   "id": "ml_glow_map",
+   "fields": {
+    "note": "ミリシタ 3 周年記念楽曲"
+   },
+   "source": "https://www.lantis.jp/imas/release_LACM-14900.html",
+   "note": "「3周年を記念した…新全体曲」"
+  },
+  {
+   "table": "songs",
+   "id": "ml_harmony_4_you",
+   "fields": {
+    "note": "ミリシタ 4 周年記念楽曲"
+   },
+   "source": "https://www.lantis.jp/imas/release_LACM-24151.html",
+   "note": "「シアターデイズ』4周年記念楽曲」"
+  },
+  {
+   "table": "songs",
+   "id": "ml_夢にかけるrainbow",
+   "fields": {
+    "note": "ミリシタ 5 周年記念楽曲"
+   },
+   "source": "https://www.lantis.jp/imas/release_LACM-24294.html",
+   "note": "「シアターデイズ』5周年記念楽曲」"
+  },
+  {
+   "table": "songs",
+   "id": "ml_グッドサイン",
+   "fields": {
+    "note": "ミリシタ 6 周年記念楽曲"
+   },
+   "source": "https://www.lantis.jp/imas/release_LACA-25057.html",
+   "note": "「シアターデイズ』6周年記念楽曲」"
+  },
+  {
+   "table": "songs",
+   "id": "ml_7days_a_week",
+   "fields": {
+    "note": "ミリシタ 7 周年記念楽曲"
+   },
+   "source": "https://www.lantis.jp/imas/release_LACA-25105.html",
+   "note": "「シアターデイズ』7周年記念楽曲」"
+  },
+  {
+   "table": "songs",
+   "id": "ml_蝶々むすび",
+   "fields": {
+    "note": "ミリシタ 8 周年記念楽曲"
+   },
+   "source": "https://www.lantis.jp/imas/release_LACA-25167.html",
+   "note": "「ゲーム８周年記念楽曲」"
+  },
+  {
+   "table": "songs",
+   "id": "ml_ドレスコード最上級",
+   "fields": {
+    "note": "ミリシタ 9 周年記念楽曲"
+   },
+   "source": "https://www.lantis.jp/imas/release_LACA-25271.html",
+   "note": "「シアターデイズ』9周年記念楽曲」"
+  },
+  {
+   "table": "songs",
+   "id": "ml_rat_a_tat",
+   "fields": {
+    "note": "TVアニメ『アイドルマスター ミリオンライブ！』 OP テーマ"
+   },
+   "source": "https://idolmaster-official.jp/news/01_8686",
+   "note": "「オープニング主題歌：『Rat A Tat!!!』」"
+  },
+  {
+   "table": "songs",
+   "id": "ml_セブンカウント",
+   "fields": {
+    "note": "TVアニメ『アイドルマスター ミリオンライブ！』 プロローグイメージソング"
+   },
+   "source": "https://www.lantis.jp/imas/release_LACM-24420.html",
+   "note": "「アニメプロローグイメージソング『セブンカウント』」"
+  },
+  {
+   "table": "songs",
+   "id": "ml_star_impression",
+   "fields": {
+    "note": "TVアニメ『アイドルマスター ミリオンライブ！』 MILLIONSTARS Team1st 楽曲"
+   },
+   "source": "https://millionlive-anime.idolmaster-official.jp/music/",
+   "note": "アニメ公式 MUSIC に「MILLIONSTARS Team1st」の CD として掲載"
+  },
+  {
+   "table": "songs",
+   "id": "ml_海風とカスタネット",
+   "fields": {
+    "note": "TVアニメ『アイドルマスター ミリオンライブ！』 MILLIONSTARS Team2nd 楽曲"
+   },
+   "source": "https://millionlive-anime.idolmaster-official.jp/music/",
+   "note": "アニメ公式 MUSIC に「MILLIONSTARS Team2nd」の CD として掲載"
+  },
+  {
+   "table": "songs",
+   "id": "ml_オレンジノキオク",
+   "fields": {
+    "note": "TVアニメ『アイドルマスター ミリオンライブ！』 MILLIONSTARS Team3rd 楽曲"
+   },
+   "source": "https://millionlive-anime.idolmaster-official.jp/music/",
+   "note": "アニメ公式 MUSIC に「MILLIONSTARS Team3rd」の CD として掲載"
+  },
+  {
+   "table": "songs",
+   "id": "ml_catch_my_feeling",
+   "fields": {
+    "note": "TVアニメ『アイドルマスター ミリオンライブ！』 MILLIONSTARS Team4th 楽曲"
+   },
+   "source": "https://millionlive-anime.idolmaster-official.jp/music/",
+   "note": "アニメ公式 MUSIC に「MILLIONSTARS Team4th」の CD として掲載"
+  },
+  {
+   "table": "songs",
+   "id": "ml_バトンタッチ",
+   "fields": {
+    "note": "TVアニメ『アイドルマスター ミリオンライブ！』 MILLIONSTARS Team5th 楽曲"
+   },
+   "source": "https://millionlive-anime.idolmaster-official.jp/music/",
+   "note": "アニメ公式 MUSIC に「MILLIONSTARS Team5th」の CD として掲載"
+  },
+  {
+   "table": "songs",
+   "id": "ml_unknown_boxの開き方",
+   "fields": {
+    "note": "TVアニメ『アイドルマスター ミリオンライブ！』 MILLIONSTARS Team6th 楽曲"
+   },
+   "source": "https://millionlive-anime.idolmaster-official.jp/music/",
+   "note": "アニメ公式 MUSIC に「MILLIONSTARS Team6th」の CD として掲載"
+  },
+  {
+   "table": "songs",
+   "id": "ml_トワラー",
+   "fields": {
+    "note": "TVアニメ『アイドルマスター ミリオンライブ！』 MILLIONSTARS Team7th 楽曲"
+   },
+   "source": "https://millionlive-anime.idolmaster-official.jp/music/",
+   "note": "アニメ公式 MUSIC に「MILLIONSTARS Team7th」の CD として掲載"
+  },
+  {
+   "table": "songs",
+   "id": "ml_refrain_reltion",
+   "fields": {
+    "note": "TVアニメ『アイドルマスター ミリオンライブ！』 MILLIONSTARS Team8th 楽曲"
+   },
+   "source": "https://millionlive-anime.idolmaster-official.jp/music/",
+   "note": "アニメ公式 MUSIC に「MILLIONSTARS Team8th」の CD として掲載"
+  },
+  {
+   "table": "songs",
+   "id": "sc_shiny_stories",
+   "fields": {
+    "note": "シャニマス 5 周年記念楽曲"
+   },
+   "source": "https://idolmaster-official.jp/news/01_7978",
+   "note": "「真乃、にちか、ルカの３人で歌う５周年記念楽曲『Shiny Stories』」"
+  }
+ ]
+}

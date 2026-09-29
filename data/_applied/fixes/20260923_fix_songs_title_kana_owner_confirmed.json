@@ -1,0 +1,10 @@
+{
+ "title": "海奏ララバイ / 泡沫に染まる の title_kana を入れる",
+ "author": "daily-data-crawl 2026-09-23",
+ "source": "オーナー確認 (2026-09-23): 海奏=かいそう、泡沫=うたかた",
+ "note": "公式で読みを確認できず保留していた 2 曲。オーナーの確認で確定。",
+ "fixes": [
+  {"table": "songs", "id": "gakuen_海奏ララバイ", "fields": {"title_kana": "かいそうららばい"}},
+  {"table": "songs", "id": "sc_泡沫に染まる", "fields": {"title_kana": "うたかたにそまる"}}
+ ]
+}
