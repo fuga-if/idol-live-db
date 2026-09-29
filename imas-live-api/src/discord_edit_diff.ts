@@ -19,6 +19,18 @@ export interface HistoryRow {
   after_json: string | null;
 }
 
+export interface ChangeField {
+  label: string;
+  before: string | null;
+  after: string | null;
+  /** 値が ID (名前に読み替える)。 */
+  ref: boolean;
+  /** 値をリンクにするときの URL (参考動画の YouTube など)。 */
+  url?: string;
+  /** 「＋ 追加したもの」「－ 消したもの」の形で出す (紐付けの追加・削除)。 */
+  mark?: boolean;
+}
+
 /** 1 レコード (またはセトリ 1 公演) ぶんの変化。 */
 export interface Change {
   /** 見出しの種類 (曲・公演…)。 */
@@ -31,12 +43,14 @@ export interface Change {
   /** 「追加」「削除」など、項目の差分が無いときの一言。 */
   verb: string | null;
   /** 項目ごとの差分 [項目名, 変更前, 変更後]。値が ID のものは ref=true。 */
-  fields: Array<{ label: string; before: string | null; after: string | null; ref: boolean }>;
+  fields: ChangeField[];
   /** セトリの追加・削除曲 (songId)。 */
   addedSongs: string[];
   removedSongs: string[];
   reordered: boolean;
   performerDelta: { added: number; removed: number };
+  /** 埋め込みの右上に出す画像 (参考動画のサムネイル)。 */
+  thumbnail?: string;
 }
 
 export const RECORD_LABELS: Record<string, string> = {
@@ -103,6 +117,57 @@ const FIELD_LABELS: Record<string, string> = {
   sourceUrl: "出典URL",
   showIds: "対象公演",
   kind: "受付形式",
+  youtubeUrl: "動画URL",
+  videoTitle: "動画タイトル",
+};
+
+/** YouTube の URL から動画 ID (watch / youtu.be / shorts / embed / live)。 */
+export function youtubeId(url: string): string | null {
+  const m = url.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/|live\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+  return m ? m[1] : null;
+}
+
+function short(text: string, max: number): string {
+  return text.length > max ? `${text.slice(0, max)}…` : text;
+}
+
+interface ChildRecord {
+  parent: string;
+  parentKey: string;
+  what: string;
+  /** 追加・削除したものの出し方。ref=true なら text は ID (名前に読み替える)。 */
+  item: (f: Record<string, unknown>) => { text: string | null; ref: boolean; url?: string; thumbnail?: string };
+}
+
+const CHILD_RECORDS: Record<string, ChildRecord> = {
+  SongArtist: { parent: "Song", parentKey: "songId", what: "歌唱メンバー", item: (f) => ({ text: asText(f.idolId), ref: true }) },
+  ShowCast: { parent: "Show", parentKey: "showId", what: "出演者", item: (f) => ({ text: asText(f.idolId), ref: true }) },
+  // セトリのスナップショットが無い batch (古い版のアプリ) の 1 曲ずつの追加・削除。
+  SetlistItem: { parent: "Show", parentKey: "showId", what: "セトリの曲", item: (f) => ({ text: asText(f.songId), ref: true }) },
+  SongVideo: {
+    parent: "Song",
+    parentKey: "songId",
+    what: "参考動画",
+    item: (f) => {
+      const url = asText(f.youtubeUrl);
+      const id = url ? youtubeId(url) : null;
+      return {
+        text: asText(f.videoTitle) ?? url,
+        ref: false,
+        ...(url?.startsWith("https://") ? { url } : {}),
+        ...(id ? { thumbnail: `https://i.ytimg.com/vi/${id}/hqdefault.jpg` } : {}),
+      };
+    },
+  },
+  TicketSale: {
+    parent: "Event",
+    parentKey: "eventId",
+    what: "チケット受付",
+    item: (f) => {
+      const url = asText(f.url);
+      return { text: asText(f.name), ref: false, ...(url?.startsWith("https://") ? { url } : {}) };
+    },
+  },
 };
 
 /** 名前に読み替える ID の項目。 */
@@ -176,16 +241,33 @@ function recordChange(row: HistoryRow): Change {
   const label = RECORD_LABELS[row.record_type] ?? row.record_type;
   const merged = { ...(before ?? {}), ...(after ?? {}) };
 
-  // 紐付けのレコード (歌唱メンバー・出演者) は「曲 X に Y を追加」の形にする。
-  if (row.record_type === "SongArtist" || row.record_type === "ShowCast") {
-    const parentType = row.record_type === "SongArtist" ? "Song" : "Show";
-    const parentId = asText(merged[row.record_type === "SongArtist" ? "songId" : "showId"]) ?? row.record_name;
-    const c = emptyChange(RECORD_LABELS[parentType], parentId, pageUrl(parentType, parentId));
-    const idol = asText(merged.idolId);
-    const what = row.record_type === "SongArtist" ? "歌唱メンバー" : "出演者";
-    if (row.op === "delete") c.fields.push({ label: what, before: idol, after: null, ref: true });
-    else if (row.op === "create" || !before) c.fields.push({ label: what, before: null, after: idol, ref: true });
-    else c.verb = `${what}を修正`;
+  // 親を持つレコード (歌唱メンバー・出演者・参考動画・チケット受付・セトリの曲) は、
+  // 自分の ID ではなく親 (曲・公演・イベント) の名前で「曲 X に Y を追加」の形にする。
+  const child = CHILD_RECORDS[row.record_type];
+  if (child) {
+    const parentId = asText(merged[child.parentKey]) ?? row.record_name;
+    const c = emptyChange(RECORD_LABELS[child.parent], parentId, pageUrl(child.parent, parentId));
+    const item = child.item(merged);
+    if (item.thumbnail) c.thumbnail = item.thumbnail;
+    const field = (before: string | null, after: string | null): ChangeField => ({
+      label: child.what, before, after, ref: item.ref, mark: true, ...(item.url ? { url: item.url } : {}),
+    });
+    if (row.op === "delete") c.fields.push(field(item.text, null));
+    else if (row.op === "create" || !before) c.fields.push(field(null, item.text));
+    else {
+      for (const [key, value] of Object.entries(after ?? {})) {
+        if (SKIP_FIELDS.has(key) || key.startsWith("___") || key === child.parentKey) continue;
+        const bv = asText(before[key]);
+        const av = asText(value);
+        if (bv === av) continue;
+        const name = item.ref ? null : item.text;
+        c.fields.push({
+          label: `${child.what}${name ? `「${short(name, 30)}」` : ""}の${FIELD_LABELS[key] ?? key}`,
+          before: bv, after: av, ref: REF_FIELDS.has(key),
+        });
+      }
+      if (c.fields.length === 0) c.verb = `${child.what}を修正`;
+    }
     return c;
   }
 

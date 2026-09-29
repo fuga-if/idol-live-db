@@ -17,7 +17,7 @@
 
 import { cloudKitLookup } from "./cloudkit";
 import { postChannelMessage } from "./discord";
-import { buildChanges, referencedIds, RECORD_LABELS as EDIT_RECORD_LABELS, type Change, type HistoryRow } from "./discord_edit_diff";
+import { buildChanges, referencedIds, RECORD_LABELS as EDIT_RECORD_LABELS, type Change, type ChangeField, type HistoryRow } from "./discord_edit_diff";
 import type { Env } from "./env";
 
 const WEB_BASE = "https://idollivedb.fugaapp.site";
@@ -126,11 +126,17 @@ function short(text: string, max = 60): string {
 function editEmbed(changes: Change[], nameOf: (id: string) => string): unknown {
   const header = (c: Change) => `${c.label}「${c.name ?? nameOf(c.nameId)}」`;
   const value = (v: string | null, ref: boolean) => (v === null ? "（なし）" : md(short(ref ? nameOf(v) : v)));
+  // 参考動画などは値をリンクにする (タイトルが無ければ URL をそのまま出して Discord にリンクさせる)。
+  const itemText = (f: ChangeField, v: string | null) => {
+    if (v === null || !f.url) return value(v, f.ref);
+    const url = f.url.replace(/\)/g, "%29");
+    return v === f.url ? url : `[${md(short(v))}](${url})`;
+  };
   const body = (c: Change): string[] => {
     const lines: string[] = [];
     for (const f of c.fields) {
-      if ((f.label === "歌唱メンバー" || f.label === "出演者") && (f.before === null || f.after === null)) {
-        lines.push(`・${f.label}：${f.after !== null ? "＋" : "－"} ${value(f.after ?? f.before, f.ref)}`);
+      if (f.mark && (f.before === null || f.after === null)) {
+        lines.push(`・${f.label}：${f.after !== null ? "＋" : "－"} ${itemText(f, f.after ?? f.before)}`);
       } else {
         lines.push(`・${f.label}：${value(f.before, f.ref)} → ${value(f.after, f.ref)}`);
       }
@@ -144,15 +150,25 @@ function editEmbed(changes: Change[], nameOf: (id: string) => string): unknown {
     if (!lines.length && c.label === "セトリ") lines.push("・曲の内容を修正");
     return lines;
   };
+  /** 「曲 X に参考動画を追加」のように、紐付けの追加 (または削除) だけの編集の見出し。 */
+  const markTitle = (c: Change): string | null => {
+    if (!c.fields.length || !c.fields.every((f) => f.mark && f.label === c.fields[0].label)) return null;
+    if (c.fields.every((f) => f.before === null)) return `${header(c)}に${c.fields[0].label}を追加`;
+    if (c.fields.every((f) => f.after === null)) return `${header(c)}から${c.fields[0].label}を削除`;
+    return null;
+  };
+  const thumbnail = changes.find((c) => c.thumbnail)?.thumbnail;
 
   if (changes.length === 1) {
     const c = changes[0];
-    const title = c.verb && c.verb !== "更新" && !c.fields.length ? `${header(c)}を${c.verb}` : `${header(c)}の編集`;
+    const title =
+      markTitle(c) ?? (c.verb && c.verb !== "更新" && !c.fields.length ? `${header(c)}を${c.verb}` : `${header(c)}の編集`);
     return {
       title: `📝 ${title}`.slice(0, 256),
       ...(c.url ? { url: c.url } : {}),
       ...(body(c).length ? { description: body(c).join("\n").slice(0, 4000) } : {}),
       color: EDIT_EMBED_COLOR,
+      ...(thumbnail ? { thumbnail: { url: thumbnail } } : {}),
     };
   }
   const blocks = changes.slice(0, CHANGE_LIMIT).map((c) => {
@@ -165,6 +181,7 @@ function editEmbed(changes: Change[], nameOf: (id: string) => string): unknown {
     title: `📝 データの編集（${changes.length}件）`,
     description: (blocks.join("\n") + more).slice(0, 4000),
     color: EDIT_EMBED_COLOR,
+    ...(thumbnail ? { thumbnail: { url: thumbnail } } : {}),
   };
 }
 

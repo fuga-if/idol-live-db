@@ -364,6 +364,53 @@ describe("#更新通知 のまとめ投稿 (5 分 cron)", () => {
     expect(JSON.stringify(posted)).not.toContain(UID);
   });
 
+  it("参考動画・チケット受付は内部 ID ではなく、どの曲・イベントへの追加かと動画のリンク・サムネイルを出す", async () => {
+    await insertUser(UID);
+    await runScheduled(cron, digestEnv()); // 位置を覚えるだけ
+    const addBatch = async (summary: string) => {
+      await exec(
+        "INSERT INTO edit_batch (editor_id, source, op, summary, cloudkit_ok, created_at) VALUES (?, 'app', 'update', ?, 1, ?)",
+        UID, summary, Date.now()
+      );
+      return Number((await row<{ id: number }>("SELECT MAX(id) AS id FROM edit_batch"))!.id);
+    };
+    const hist = (batch: number, type: string, name: string, op: string, before: unknown, after: unknown) =>
+      exec(
+        "INSERT INTO edit_history (batch_id, record_type, record_name, op, before_json, after_json, modified_at, created_at) VALUES (?, ?, ?, ?, ?, ?, 0, 0)",
+        batch, type, name, op, before === null ? null : JSON.stringify(before), after === null ? null : JSON.stringify(after)
+      );
+
+    const b1 = await addBatch("SongVideo.create x1");
+    await hist(b1, "SongVideo", "ytref_98753fbd", "create", null,
+      { songId: "s1", youtubeUrl: "https://www.youtube.com/watch?v=abcdefghijk", videoTitle: "MV [公式]" });
+    const b2 = await addBatch("SongVideo.delete x1");
+    await hist(b2, "SongVideo", "ytref_2", "delete", { songId: "s2", youtubeUrl: "https://youtu.be/ABCDEFGHIJK" }, null);
+    const b3 = await addBatch("TicketSale.create x1");
+    await hist(b3, "TicketSale", "ts_1", "create", null, { eventId: "e1", kind: "lottery", name: "一般抽選" });
+
+    let posted: any = null;
+    fetchMock.get(DISCORD).intercept({ path: `/api/v10/channels/${CHANNEL}/messages`, method: "POST" })
+      .reply(200, (opts) => {
+        posted = JSON.parse(String(opts.body));
+        return {};
+      });
+    await runScheduled(cron, digestEnv());
+
+    expect(posted.embeds[0]).toEqual({
+      title: "📝 曲「s1」に参考動画を追加",
+      url: "https://idollivedb.fugaapp.site/songs/s1/",
+      description: "・参考動画：＋ [MV \\[公式\\]](https://www.youtube.com/watch?v=abcdefghijk)",
+      color: 0x4a8fe7,
+      thumbnail: { url: "https://i.ytimg.com/vi/abcdefghijk/hqdefault.jpg" },
+    });
+    expect(posted.embeds[1].title).toBe("📝 曲「s2」から参考動画を削除");
+    expect(posted.embeds[1].description).toBe("・参考動画：－ https://youtu.be/ABCDEFGHIJK");
+    expect(posted.embeds[2].title).toBe("📝 イベント「e1」にチケット受付を追加");
+    expect(posted.embeds[2].url).toBe("https://idollivedb.fugaapp.site/events/e1/");
+    expect(posted.embeds[2].description).toBe("・チケット受付：＋ 一般抽選");
+    expect(JSON.stringify(posted)).not.toContain("ytref_");
+  });
+
   it("Bot トークンが無ければ何もしない", async () => {
     await runScheduled(cron, makeEnv());
     expect(await rows("SELECT * FROM discord_digest_cursors")).toEqual([]);
