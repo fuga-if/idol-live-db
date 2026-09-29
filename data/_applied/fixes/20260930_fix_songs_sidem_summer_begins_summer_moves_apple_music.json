@@ -1,0 +1,10 @@
+{
+ "title": "新曲 Summer Begins, Summer Moves のアルバム情報を fill_artwork_urls で補完 (記録用・反映済み)",
+ "source": "iTunes lookup 6806177415 / 6806177414",
+ "fixes": [
+  {"table": "songs", "id": "sidem_summer_begins_summer_moves",
+   "fields": {"apple_music_album_id": "6806177414",
+              "cd_series": "THE IDOLM@STER SideM ～P@SSION CHALLENGE We are 315!～ MONTHLY THEME SONG 11 F-LAGS - EP"},
+   "note": "sync_song_apple_music.py --env production --ids sidem_summer_begins_summer_moves で push 済み"}
+ ]
+}
