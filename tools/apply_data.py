@@ -895,15 +895,21 @@ def push_cloudkit(affected, production):
     return 0
 
 
-def notify_discord(db_path):
-    """本番に入れた分を Discord の運営追加チャンネルに知らせる。失敗しても止めない。"""
+def notify_discord(db_path, backup_path=None):
+    """本番に入れた分を Discord の運営追加チャンネルに知らせる。失敗しても止めない。
+
+    backup_path (反映前のバックアップ) があれば、修正の変更前の値も出す。
+    """
     from lib import discord_notify
 
     conn = sqlite3.connect(db_path)
+    before = sqlite3.connect(backup_path) if backup_path and Path(backup_path).exists() else None
     try:
-        lines = discord_notify.build_report(conn, load)
+        lines = discord_notify.build_report(conn, load, before)
     finally:
         conn.close()
+        if before is not None:
+            before.close()
     if discord_notify.post_report(lines):
         print("✓ Discord に追加のお知らせを投稿")
     elif lines:
@@ -970,7 +976,7 @@ def main():
             sys.exit(rc)
         print("✓ CloudKit push 完了")
         if args.production:
-            notify_discord(args.db)
+            notify_discord(args.db, backup)
     else:
         print("\n(master.sqlite のみ反映。CloudKit へ出すには --push --production)")
     print("\n反映したファイルは data/_applied/<種類>/ へ移す (git mv。apply_data は読まない)。")
