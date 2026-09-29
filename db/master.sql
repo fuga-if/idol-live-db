@@ -84860,6 +84860,8 @@ INSERT INTO "show_cast" VALUES('sh_283_production_solo_live_collection_-master_s
 INSERT INTO "show_cast" VALUES('sh_283_production_solo_live_collection_-master_showpiece-_2','sc_黛冬優子','member');
 INSERT INTO "show_cast" VALUES('sh_283_production_solo_live_collection_-master_showpiece-_2','sc_福丸小糸','member');
 INSERT INTO "show_cast" VALUES('sh_283_production_solo_live_collection_-master_showpiece-_2','sc_緋田美琴','member');
+INSERT INTO "show_cast" VALUES('sh_283_production_solo_live_collection_-master_showpiece-_2','sc_園田智代子','member');
+INSERT INTO "show_cast" VALUES('sh_283_production_solo_live_collection_-master_showpiece-_2','sc_大崎甘奈','member');
 INSERT INTO "show_cast" VALUES('sh_L0437','765as_天海春香','member');
 INSERT INTO "show_cast" VALUES('sh_L0438','765as_天海春香','member');
 INSERT INTO "show_cast" VALUES('sh_L0439','765as_天海春香','member');
