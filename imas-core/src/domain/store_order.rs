@@ -131,7 +131,80 @@ pub fn parse_store_orders(
         .collect();
     // AI にまとめさせた JSON (取り込み用の形式) も同じ箱で受ける。
     orders.extend(parse_ai_json(text, today, candidates, existing_notes));
+    // マイページの購入履歴一覧。明細 (メール・JSON) で読めた注文は、品名のある方を採る。
+    for order in parse_order_history(&normalized, existing_notes) {
+        if !orders.iter().any(|o| o.order_number == order.order_number) {
+            orders.push(order);
+        }
+    }
     orders
+}
+
+// ---------------------------------------------------------------------------
+// マイページの購入履歴一覧
+// ---------------------------------------------------------------------------
+//
+// `https://shop.asobistore.jp/mypage/orderhistory/` の表をコピーしたもの:
+//
+//   ご注文番号  注文日  合計金額  状態  お問合せ番号  お支払方法  詳細
+//   A10232026092201582  2026/09/22  13,200円  出荷完了  366559599195  クレジットカード  詳 細
+//
+// 列はタブ区切りのことも、端末によっては 1 セル 1 行のこともあるので、
+// **セルを順に並べて「注文番号 → 日付 → 金額 → 状態」の並びを探す**。
+// 品名は一覧に無いので、状態から費目を推す (発送のある注文 = グッズ、
+// 発送の無い「購入済」= 視聴チケットなどのデジタル商品)。
+
+/// 購入履歴一覧から注文を読む。キャンセルした注文は入れない。
+fn parse_order_history(text: &str, existing_notes: &[String]) -> Vec<StoreOrder> {
+    let cells: Vec<&str> = text
+        .split(['\t', '\n'])
+        .map(str::trim)
+        .filter(|c| !c.is_empty())
+        .collect();
+    let mut orders = Vec::new();
+    let mut i = 0;
+    while i + 3 < cells.len() {
+        let (number, date, amount, status) = (cells[i], cells[i + 1], cells[i + 2], cells[i + 3]);
+        let parsed = is_order_number(number)
+            .then(|| Some((parse_date(date)?, parse_yen(amount).filter(|a| *a > 0)?)))
+            .flatten();
+        let Some((date, total)) = parsed else {
+            i += 1;
+            continue;
+        };
+        i += 4;
+        if status.contains("キャンセル") {
+            continue;
+        }
+        let digital = status.contains("購入済");
+        let item = StoreOrderItem {
+            name: if digital { "デジタル商品の注文 (明細なし)" } else { "グッズの注文 (明細なし)" }.into(),
+            quantity: 1,
+            unit_price: total,
+            subtotal: total,
+            category: if digital { ExpenseCategory::Ticket } else { ExpenseCategory::Goods },
+            included: true,
+        };
+        orders.push(finish_order(
+            STORE_ASOBI.to_string(),
+            number.to_string(),
+            date,
+            vec![item],
+            total,
+            total,
+            &[],
+            existing_notes,
+        ));
+    }
+    orders
+}
+
+/// 注文番号らしいか (`A10232026092201582` / `175107202163693924-0`)。
+/// 数字を 10 桁以上含み、英数字とハイフンだけ。お問合せ番号 (数字だけ) と
+/// 取り違えないよう、呼び手は「次のセルが日付」まで見る。
+fn is_order_number(cell: &str) -> bool {
+    cell.chars().all(|c| c.is_ascii_alphanumeric() || c == '-')
+        && cell.chars().filter(|c| c.is_ascii_digit()).count() >= 10
 }
 
 /// 注文 1 件を帳簿の下書きにする。含める品目を費目ごとにまとめ、
@@ -917,6 +990,45 @@ THE IDOLM@STER SHINY COLORS 7thLIVE ペンライト：1×4,400円=4,400円
             assert!(!link.url.contains(' ') && !link.url.contains('+'));
             assert_eq!(link.needs_paste, !link.url.contains("?q="));
         }
+    }
+
+    const HISTORY: &str = "購入履歴一覧
+ご注文番号\t注文日\t合計金額\t状態\tお問合せ番号\tお支払方法\t詳細
+A10232026092702209\t2026/09/27\t4,260円\t商品準備中\t\tクレジットカード\t詳 細
+175107202163693924-0\t2026/09/23\t11,000円\t購入済\t\tクレジットカード\t詳 細
+A10232026092201582\t2026/09/22\t13,200円\t出荷完了\t366559599195\tクレジットカード\t詳 細
+A10232025080308352\t2025/08/03\t16,500円\tキャンセル\t\tクレジットカード\t詳 細
+";
+
+    #[test]
+    fn reads_order_history_table() {
+        let notes = vec!["アソビストア 注文番号 A10232026092201582\nx".to_string()];
+        let orders = parse_store_orders(HISTORY, "2026-09-30", &[], &notes);
+        assert_eq!(orders.len(), 3, "キャンセルは入れない");
+        assert_eq!(orders[0].order_number, "A10232026092702209");
+        assert_eq!(orders[0].date, "2026-09-27");
+        assert_eq!(orders[0].paid_total, 4_260);
+        assert_eq!(orders[0].items[0].category, ExpenseCategory::Goods);
+        assert_eq!(orders[1].items[0].category, ExpenseCategory::Ticket);
+        assert!(orders[2].already_recorded);
+        let d = store_order_expenses(&orders[0], None, None);
+        assert_eq!(d[0].amount, 4_260);
+        assert_eq!(d[0].note, "アソビストア 注文番号 A10232026092702209\nグッズの注文 (明細なし)");
+    }
+
+    #[test]
+    fn reads_order_history_one_cell_per_line() {
+        let text = HISTORY.replace('\t', "\n");
+        assert_eq!(parse_store_orders(&text, "2026-09-30", &[], &[]).len(), 3);
+    }
+
+    #[test]
+    fn mail_wins_over_history_for_the_same_order() {
+        let mail = TICKET_MAIL.replace("100000000000000001-0", "175107202163693924-0");
+        let orders = parse_store_orders(&format!("{mail}\n{HISTORY}"), "2026-09-30", &[], &[]);
+        let same: Vec<_> = orders.iter().filter(|o| o.order_number == "175107202163693924-0").collect();
+        assert_eq!(same.len(), 1);
+        assert!(same[0].items[0].name.contains("視聴チケット"));
     }
 
     #[test]

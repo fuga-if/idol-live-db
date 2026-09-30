@@ -148,7 +148,7 @@ struct StoreOrderImportView: View {
     private var pasteSection: some View {
         Section {
             VStack(alignment: .leading, spacing: DS.sp4) {
-                Text("AI の結果か、アソビストアから届く「購入完了のご連絡」メールの本文を貼り付けてください。")
+                Text("AI の結果、アソビストアのマイページの「購入履歴一覧」の表、または「購入完了のご連絡」メールの本文を貼り付けてください。")
                     .font(.imasFootnote).foregroundStyle(DS.ink2)
                 PasteButton(payloadType: String.self) { strings in
                     let pasted = strings.joined(separator: "\n")

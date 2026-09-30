@@ -133,7 +133,7 @@ fun StoreOrderImportSheet(
                 Text("貼り付け", fontSize = 12.sp, color = DS.ink2)
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    "AI の結果か、アソビストアから届く「購入完了のご連絡」メールの本文を貼り付けてください。",
+                    "AI の結果、アソビストアのマイページの「購入履歴一覧」の表、または「購入完了のご連絡」メールの本文を貼り付けてください。",
                     fontSize = 13.sp, color = DS.ink2
                 )
                 Spacer(Modifier.height(12.dp))
