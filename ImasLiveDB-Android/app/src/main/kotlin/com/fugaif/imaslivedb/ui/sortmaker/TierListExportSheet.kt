@@ -1,0 +1,413 @@
+package com.fugaif.imaslivedb.ui.sortmaker
+
+import android.content.Context
+import android.graphics.Bitmap
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.layer.drawLayer
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.graphics.ImageBitmap
+import com.fugaif.imaslivedb.data.games.TierDef
+import com.fugaif.imaslivedb.data.games.TierListBoard
+import com.fugaif.imaslivedb.ui.share.SHARE_CARD_SCALE
+import com.fugaif.imaslivedb.ui.share.ShareCardArtwork
+import com.fugaif.imaslivedb.ui.share.ShareCardFiles
+import com.fugaif.imaslivedb.ui.share.ShareCardFooter
+import com.fugaif.imaslivedb.ui.share.ShareCardSaveResult
+import com.fugaif.imaslivedb.ui.share.ShareInk
+import com.fugaif.imaslivedb.ui.share.SocialShare
+import com.fugaif.imaslivedb.ui.share.rememberShareCardCapture
+import com.fugaif.imaslivedb.ui.share.rememberShareCardPalette
+import com.fugaif.imaslivedb.ui.theme.BrandColors
+import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.theme.ImasTheme
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.android.awaitFrame
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
+import uniffi.imas_core.TierListShareTier
+import uniffi.imas_core.tierListShareText
+import coil3.SingletonImageLoader
+import coil3.request.ImageRequest
+import coil3.request.SuccessResult
+import coil3.request.allowHardware
+import coil3.toBitmap
+
+// =============================================================================
+// 並べ終えたティアー表を「全部入りの 1 枚」にして、写真に保存 / シェアする。
+// iOS TierListExport.swift の移植。
+//
+// 画像は段ごとに、ジャケ (曲) かメンバーカラーのモノグラム (アイドル) を全部並べる。
+// 件数で縦に伸びる (横幅は SNS で縮んでも読める 1080px 固定)。
+// 焼き込みは画像の非同期読み込みを待たないので、ジャケは先に小さく読んでから焼く。
+// =============================================================================
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TierListExportSheet(
+    board: TierListBoard,
+    items: Map<String, SortMakerItem>,
+    onDismiss: () -> Unit
+) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var thumbnails by remember { mutableStateOf<Map<String, ImageBitmap>?>(null) }
+    var bitmap by remember { mutableStateOf<Bitmap?>(null) }
+    var saveMessage by remember { mutableStateOf<String?>(null) }
+    val capture = rememberShareCardCapture()
+
+    LaunchedEffect(board.id) {
+        thumbnails = loadThumbnails(context, board, items)
+    }
+
+    val loadedThumbnails = thumbnails
+    if (loadedThumbnails != null && bitmap == null) {
+        // 見えない位置で 1 回だけ組んで焼く (画面に出す前に完成させる)。
+        HiddenCapture(capture = capture) {
+            TierListBoardImage(board = board, items = items, thumbnails = loadedThumbnails)
+        }
+        LaunchedEffect(board.id, loadedThumbnails) {
+            // 2 フレーム待って確実に描画させてから焼く。
+            awaitFrame()
+            awaitFrame()
+            bitmap = capture.toBitmap()
+        }
+    }
+
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), containerColor = DS.bg) {
+        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("画像にする", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = DS.ink, modifier = Modifier.weight(1f))
+                Text("閉じる", fontSize = 15.sp, color = DS.ink2, modifier = Modifier.clickable(onClick = onDismiss).padding(4.dp))
+            }
+
+            val bmp = bitmap
+            if (bmp != null) {
+                Image(
+                    bitmap = bmp.asImageBitmap(), contentDescription = null, contentScale = ContentScale.FillWidth,
+                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+                )
+            } else {
+                Column(
+                    modifier = Modifier.fillMaxWidth().height(320.dp),
+                    verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    CircularProgressIndicator()
+                    Spacer(Modifier.height(12.dp))
+                    Text("画像を作っています…", fontSize = 12.sp, color = DS.ink3)
+                }
+            }
+
+            if (board.unplacedIds.isNotEmpty()) {
+                Text("未分類の ${board.unplacedIds.size} 件は画像に入りません。", fontSize = 12.sp, color = DS.ink3)
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                val accent = ImasTheme.derive(null, null, dark = true).accent
+                Row(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(if (bmp != null) accent else accent.copy(alpha = 0.4f))
+                        .clickable(enabled = bmp != null) {
+                            scope.launch {
+                                val b = bitmap ?: return@launch
+                                when (ShareCardFiles.saveToPictures(context, b, "tier_list")) {
+                                    ShareCardSaveResult.Saved -> saveMessage = "写真に保存しました"
+                                    ShareCardSaveResult.Failed -> saveMessage = "保存できませんでした。もう一度試してください。"
+                                    ShareCardSaveResult.NeedsDocumentPicker -> saveMessage = "写真に保存しました"
+                                }
+                            }
+                        }
+                        .padding(vertical = 14.dp),
+                    horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Filled.Download, null, tint = DS.surface, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("写真に保存", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = DS.surface)
+                }
+                Row(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(DS.fill)
+                        .clickable(enabled = bmp != null) {
+                            scope.launch { bitmap?.let { ShareCardFiles.share(context, it, "tier_list") } }
+                        }
+                        .padding(vertical = 14.dp),
+                    horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Filled.Share, null, tint = DS.ink, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("シェア", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = DS.ink)
+                }
+            }
+
+            Text(
+                "テキストでシェア", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink2,
+                modifier = Modifier.clickable {
+                    SocialShare.shareText(context, shareText(board, items))
+                }.padding(vertical = 6.dp)
+            )
+        }
+    }
+
+    if (saveMessage != null) {
+        AlertDialog(
+            onDismissRequest = { saveMessage = null },
+            title = { Text(saveMessage ?: "") },
+            confirmButton = { Text("OK", modifier = Modifier.clickable { saveMessage = null }.padding(12.dp)) }
+        )
+    }
+}
+
+/** 文面はコアが組む (空の段を飛ばす・1 段 5 件まで)。 */
+private fun shareText(board: TierListBoard, items: Map<String, SortMakerItem>): String = tierListShareText(
+    title = board.displayTitle, scopeLabel = board.scopeLabel,
+    tiers = board.tiers.map { t -> TierListShareTier(label = t.label, names = board.idsInTier(t.id).mapNotNull { items[it]?.title }) }
+)
+
+/** 段に載っている曲のジャケを小さく読む (数百枚でも重くならない大きさ、同時 8 枚まで)。 */
+private suspend fun loadThumbnails(context: Context, board: TierListBoard, items: Map<String, SortMakerItem>): Map<String, ImageBitmap> {
+    val targets = board.itemIds.mapNotNull { id ->
+        if (board.tierIndexOf(id) == null) return@mapNotNull null
+        val song = (items[id] as? SortMakerItem.SongItem)?.song ?: return@mapNotNull null
+        val url = song.artworkUrl?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
+        id to url
+    }
+    if (targets.isEmpty()) return emptyMap()
+    val semaphore = Semaphore(8)
+    return coroutineScope {
+        targets.map { (id, url) ->
+            async {
+                semaphore.withPermit { loadThumbnail(context, url)?.let { id to it } }
+            }
+        }.awaitAll().filterNotNull().toMap()
+    }
+}
+
+private suspend fun loadThumbnail(context: Context, url: String): ImageBitmap? {
+    val request = ImageRequest.Builder(context)
+        .data(ShareCardArtwork.highResolution(url))
+        .size(144, 144)
+        .allowHardware(false)
+        .build()
+    val result = runCatching { SingletonImageLoader.get(context).execute(request) }.getOrNull()
+    return (result as? SuccessResult)?.image?.toBitmap()?.asImageBitmap()
+}
+
+/** 見えない位置に組んで、描いた内容だけ [capture] に録る (画面には出さない)。 */
+@Composable
+private fun HiddenCapture(capture: com.fugaif.imaslivedb.ui.share.ShareCardCapture, content: @Composable () -> Unit) {
+    Box(Modifier.size(0.dp).clipToBounds()) {
+        CompositionLocalProvider(LocalDensity provides Density(density = SHARE_CARD_SCALE, fontScale = 1f)) {
+            Box(
+                Modifier
+                    .width(540.dp)
+                    .wrapContentHeight()
+                    .drawWithContent {
+                        capture.layer.record { this@drawWithContent.drawContent() }
+                        drawLayer(capture.layer)
+                    }
+            ) { content() }
+        }
+    }
+}
+
+// =============================================================================
+// 書き出す 1 枚。near-black の地に、見出し → 段ごとの行 → フッター。
+// 色は固定色、文字は固定 sp (端末の文字サイズ倍率がかかると枠からあふれるため)。
+// 版権の都合でアイドルの絵は載せず、メンバーカラーのモノグラムにする。
+// =============================================================================
+
+private val LABEL_WIDTH = 76.dp
+private val CELL = 62.dp
+private val GAP = 6.dp
+
+@Composable
+private fun TierListBoardImage(board: TierListBoard, items: Map<String, SortMakerItem>, thumbnails: Map<String, ImageBitmap>) {
+    Column(
+        modifier = Modifier
+            .width(540.dp)
+            .background(ShareInk.nearBlack)
+            .padding(horizontal = 24.dp)
+            .padding(top = 28.dp, bottom = 22.dp)
+    ) {
+        ExportHeader(board)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 18.dp)
+                .clip(RoundedCornerShape(10.dp)),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            board.tiers.forEach { tier -> ExportRow(tier, board, items, thumbnails) }
+        }
+        Box(Modifier.padding(top = 22.dp)) {
+            ShareCardFooter(ink = Color.White.copy(alpha = 0.62f), rule = Color.White.copy(alpha = 0.16f))
+        }
+    }
+}
+
+@Composable
+private fun ExportHeader(board: TierListBoard) {
+    val accent = rememberShareCardPalette(seed = board.tiers.firstOrNull()?.colorSeed).accent
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Box(Modifier.width(18.dp).height(3.dp).background(accent))
+            Text("TIER LIST", fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp, color = Color.White.copy(alpha = 0.75f))
+        }
+        Text(
+            board.displayTitle, fontSize = 32.sp, fontWeight = FontWeight.Black, color = Color.White,
+            maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 4.dp)
+        )
+        Text(board.scopeLabel, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = Color.White.copy(alpha = 0.55f), maxLines = 1)
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ExportRow(tier: TierDef, board: TierListBoard, items: Map<String, SortMakerItem>, thumbnails: Map<String, ImageBitmap>) {
+    val ids = board.idsInTier(tier.id)
+    val accent = rememberShareCardPalette(seed = tier.colorSeed).accent
+    val onAccent = ImasTheme.onColor(accent)
+    Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
+        Text(
+            tier.label, fontSize = if (tier.label.length <= 2) 30.sp else 14.sp, fontWeight = FontWeight.Black,
+            color = onAccent, textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis,
+            modifier = Modifier
+                .padding(horizontal = 4.dp)
+                .width(LABEL_WIDTH)
+                .fillMaxHeight()
+                .background(accent)
+                .wrapContentHeight()
+        )
+        FlowRow(
+            modifier = Modifier
+                .weight(1f)
+                .defaultMinSize(minHeight = CELL + 22.dp + GAP * 2)
+                .background(Color.White.copy(alpha = 0.06f))
+                .padding(GAP),
+            horizontalArrangement = Arrangement.spacedBy(GAP),
+            verticalArrangement = Arrangement.spacedBy(GAP)
+        ) {
+            ids.forEach { id -> ExportTile(id, items, thumbnails) }
+        }
+    }
+}
+
+@Composable
+private fun ExportTile(id: String, items: Map<String, SortMakerItem>, thumbnails: Map<String, ImageBitmap>) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        ExportVisual(id, items, thumbnails)
+        Text(
+            items[id]?.title ?: "", fontSize = 9.sp, fontWeight = FontWeight.SemiBold, color = Color.White.copy(alpha = 0.85f),
+            maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.width(CELL)
+        )
+    }
+}
+
+@Composable
+private fun ExportVisual(id: String, items: Map<String, SortMakerItem>, thumbnails: Map<String, ImageBitmap>) {
+    when (val item = items[id]) {
+        is SortMakerItem.SongItem -> {
+            val thumb = thumbnails[id]
+            if (thumb != null) {
+                Image(
+                    bitmap = thumb, contentDescription = null, contentScale = ContentScale.Crop,
+                    modifier = Modifier.size(CELL).clip(RoundedCornerShape(6.dp))
+                )
+            } else {
+                val fallback = rememberShareCardPalette(seed = BrandColors.hex(item.song.brandId)).accentDeep
+                Box(
+                    Modifier.size(CELL).clip(RoundedCornerShape(6.dp)).background(fallback),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        item.song.title, fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.85f),
+                        textAlign = TextAlign.Center, maxLines = 3, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(4.dp)
+                    )
+                }
+            }
+        }
+        is SortMakerItem.IdolItem -> {
+            val palette = rememberShareCardPalette(seed = item.idol.color)
+            val shortName = item.idol.shortName
+            Box(
+                Modifier
+                    .size(CELL)
+                    .clip(CircleShape)
+                    .background(palette.accentDeep)
+                    .border(2.dp, palette.accent, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    shortName, fontSize = if (shortName.length >= 3) 14.sp else 19.sp, fontWeight = FontWeight.Black,
+                    color = palette.accent, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(6.dp)
+                )
+            }
+        }
+        null -> Box(Modifier.size(CELL).clip(RoundedCornerShape(6.dp)).background(Color.White.copy(alpha = 0.1f)))
+    }
+}

@@ -41,6 +41,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fugaif.imaslivedb.data.games.SortMakerSubject
+import com.fugaif.imaslivedb.data.games.TierDef
 import com.fugaif.imaslivedb.data.games.TierListBoard
 import com.fugaif.imaslivedb.di.AppModule
 import uniffi.imas_core.tierListAssignFromRanking
@@ -67,15 +68,17 @@ fun SortMakerResultScreen(
     val rows = remember(state) { model.rankedItems() }
     var showShare by rememberSaveable { mutableStateOf(false) }
     var confirmRestart by rememberSaveable { mutableStateOf(false) }
-    var confirmOverwriteTier by rememberSaveable { mutableStateOf(false) }
 
+    // ティアー表は何枚でも保存できるので、新しい 1 枚として作る (上書き確認はしない)。
     fun makeTierList() {
+        val defaultTiers = TierDef.defaults()
         // 振り分け規則はコア (tierListAssignFromRanking)。ここでは順位を渡すだけ。
-        val tiers = tierListAssignFromRanking(rows.map { it.first.toUInt() })
-        val placements = rows.mapIndexed { i, (_, item) -> item.id to tiers[i].toInt() }.toMap()
+        val tierIndices = tierListAssignFromRanking(rows.map { it.first.toUInt() })
+        val placements = rows.mapIndexed { i, (_, item) -> item.id to defaultTiers[tierIndices[i].toInt()].id }.toMap()
         val board = TierListBoard(
             subject = subject,
             itemIds = rows.map { it.second.id },
+            tiers = defaultTiers,
             placements = placements,
             scopeLabel = state.session.scopeLabel,
             suggested = placements
@@ -108,9 +111,7 @@ fun SortMakerResultScreen(
         Actions(
             canUndo = model.canUndo,
             onShare = { showShare = true },
-            onMakeTierList = {
-                if (AppModule.from(context).tierListStore.board(subject) != null) confirmOverwriteTier = true else makeTierList()
-            },
+            onMakeTierList = { makeTierList() },
             onUndoLast = { model.undo() },
             onPlayAgain = { confirmRestart = true }
         )
@@ -148,21 +149,6 @@ fun SortMakerResultScreen(
         )
     }
 
-    if (confirmOverwriteTier) {
-        AlertDialog(
-            onDismissRequest = { confirmOverwriteTier = false },
-            title = { Text("作りかけのティアー表を、この結果のたたき台で置き換えますか？") },
-            confirmButton = {
-                Text(
-                    "置き換える", color = DS.warning,
-                    modifier = Modifier.clickable { confirmOverwriteTier = false; makeTierList() }.padding(12.dp)
-                )
-            },
-            dismissButton = {
-                Text("キャンセル", color = DS.ink2, modifier = Modifier.clickable { confirmOverwriteTier = false }.padding(12.dp))
-            }
-        )
-    }
 }
 
 // MARK: - 表彰台

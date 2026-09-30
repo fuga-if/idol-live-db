@@ -1,8 +1,10 @@
 package com.fugaif.imaslivedb.ui.sortmaker
 
 import android.content.Context
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,6 +13,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -22,6 +25,9 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.ui.text.style.TextOverflow
+import com.fugaif.imaslivedb.ui.components.ImasListContainer
+import com.fugaif.imaslivedb.ui.components.ImasSectionHeader
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -235,8 +241,9 @@ fun SortMakerSetupScreen(
     val sortMakerSessions by AppModule.from(context).sortMakerStore.sessions.collectAsStateWithLifecycle()
     val tierBoards by AppModule.from(context).tierListStore.boards.collectAsStateWithLifecycle()
     val savedSession = sortMakerSessions[subject]
-    val savedBoard = tierBoards[subject]
+    val boardsForSubject = remember(tierBoards, subject) { tierBoards.filter { it.subject == subject } }
     var confirmRestart by rememberSaveable { mutableStateOf(false) }
+    var deletingBoard by remember { mutableStateOf<TierListBoard?>(null) }
     var showIdolPicker by rememberSaveable { mutableStateOf(false) }
 
     androidx.compose.runtime.LaunchedEffect(subject, purpose) {
@@ -252,9 +259,7 @@ fun SortMakerSetupScreen(
         },
         bottomBar = {
             StartBar(canStart = state.canStart(purpose), purpose = purpose) {
-                if (purpose == SortMakerPurpose.TIER && savedBoard != null) {
-                    confirmRestart = true
-                } else if (purpose == SortMakerPurpose.SORT && savedSession != null && (savedSession.isFinished || savedSession.answers.isNotEmpty())) {
+                if (purpose == SortMakerPurpose.SORT && savedSession != null && (savedSession.isFinished || savedSession.answers.isNotEmpty())) {
                     confirmRestart = true
                 } else if (purpose == SortMakerPurpose.TIER) {
                     onOpenTier(viewModel.startTier())
@@ -276,8 +281,8 @@ fun SortMakerSetupScreen(
             HeaderCard(subject, purpose)
             if (purpose == SortMakerPurpose.SORT) {
                 savedSession?.let { saved -> SavedCard(saved) { onPlay(saved) } }
-            } else {
-                savedBoard?.let { saved -> SavedBoardCard(saved) { onOpenTier(saved) } }
+            } else if (boardsForSubject.isNotEmpty()) {
+                SavedBoardsSection(boards = boardsForSubject, onOpen = { onOpenTier(it) }, onRequestDelete = { deletingBoard = it })
             }
             BrandSection(state) { viewModel.updateScope(state.scope.copy(brandIds = it)) }
             if (subject == SortMakerSubject.SONG) {
@@ -303,13 +308,7 @@ fun SortMakerSetupScreen(
         AlertDialog(
             onDismissRequest = { confirmRestart = false },
             title = {
-                Text(
-                    when {
-                        purpose == SortMakerPurpose.TIER -> "今のティアー表を消して作り直しますか？"
-                        savedSession?.isFinished == true -> "前回の結果を消して新しく始めますか？"
-                        else -> "前回の続きを消して最初から始めますか？"
-                    }
-                )
+                Text(if (savedSession?.isFinished == true) "前回の結果を消して新しく始めますか？" else "前回の続きを消して最初から始めますか？")
             },
             confirmButton = {
                 Text(
@@ -318,13 +317,34 @@ fun SortMakerSetupScreen(
                     modifier = Modifier
                         .clickable {
                             confirmRestart = false
-                            if (purpose == SortMakerPurpose.TIER) onOpenTier(viewModel.startTier()) else onPlay(viewModel.start())
+                            onPlay(viewModel.start())
                         }
                         .padding(12.dp)
                 )
             },
             dismissButton = {
                 Text("キャンセル", color = DS.ink2, modifier = Modifier.clickable { confirmRestart = false }.padding(12.dp))
+            }
+        )
+    }
+
+    deletingBoard?.let { board ->
+        AlertDialog(
+            onDismissRequest = { deletingBoard = null },
+            title = { Text("「${board.displayTitle}」を削除しますか？") },
+            confirmButton = {
+                Text(
+                    "削除", color = DS.warning,
+                    modifier = Modifier
+                        .clickable {
+                            AppModule.from(context).tierListStore.delete(board.id)
+                            deletingBoard = null
+                        }
+                        .padding(12.dp)
+                )
+            },
+            dismissButton = {
+                Text("キャンセル", color = DS.ink2, modifier = Modifier.clickable { deletingBoard = null }.padding(12.dp))
             }
         )
     }
@@ -371,14 +391,14 @@ private fun HeaderCard(subject: SortMakerSubject, purpose: SortMakerPurpose) {
         }
         Column {
             Text(
-                if (purpose == SortMakerPurpose.SORT) "2つから好きな方を選ぶだけ" else "S〜Dの段に振り分ける",
+                if (purpose == SortMakerPurpose.SORT) "2つから好きな方を選ぶだけ" else "段に振り分けて1枚の画像に",
                 fontSize = 17.sp, fontWeight = FontWeight.Bold, color = DS.ink
             )
             Text(
                 if (purpose == SortMakerPurpose.SORT)
                     "対戦を重ねると、あなたの${if (subject == SortMakerSubject.SONG) "好きな曲" else "好きなアイドル"}ランキングができあがります。途中でやめても続きから遊べます。"
                 else
-                    "選んだ対象がぜんぶ未分類に並びます。ソートメーカーの結果からたたき台を作ることもできます。",
+                    "選んだ対象がぜんぶ未分類に並びます。段の数・名前・色は自由に変えられ、何枚でも端末に保存できます。",
                 fontSize = 12.sp, color = DS.ink3
             )
         }
@@ -435,29 +455,42 @@ private fun SavedCard(s: SortMakerSession, onOpen: () -> Unit) {
     }
 }
 
+/** 端末に保存してあるティアー表 (新しく触ったものから)。タップで開き、長押しで削除。 */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun SavedBoardCard(b: TierListBoard, onOpen: () -> Unit) {
-    val placed = b.itemIds.size - b.unplacedIds.size
-    Row(
-        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(DS.surface).padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text("つくりかけのティアー表", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = DS.ink3)
-            Text("$placed / ${b.itemIds.size} 振り分け済み", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = DS.ink)
-            Text(b.scopeLabel, fontSize = 12.sp, color = DS.ink3, maxLines = 1)
+private fun SavedBoardsSection(boards: List<TierListBoard>, onOpen: (TierListBoard) -> Unit, onRequestDelete: (TierListBoard) -> Unit) {
+    val fmt = remember { java.text.SimpleDateFormat("yyyy/MM/dd HH:mm", java.util.Locale.getDefault()) }
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        ImasSectionHeader(title = "保存したティアー表", count = "${boards.size}")
+        ImasListContainer {
+            boards.forEachIndexed { i, b ->
+                if (i > 0) {
+                    Box(Modifier.fillMaxWidth().background(DS.surface).padding(start = 16.dp)) {
+                        Box(Modifier.fillMaxWidth().height(0.5.dp).background(DS.sep))
+                    }
+                }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 60.dp)
+                        .background(DS.surface)
+                        .combinedClickable(onClick = { onOpen(b) }, onLongClick = { onRequestDelete(b) })
+                        .padding(horizontal = 16.dp, vertical = 10.dp)
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(b.displayTitle, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(
+                            "${b.placedCount} / ${b.itemIds.size} 振り分け済み · ${fmt.format(java.util.Date(b.savedAt))}",
+                            fontSize = 12.sp, color = DS.ink3, maxLines = 1, overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = DS.ink3, modifier = Modifier.size(18.dp))
+                }
+            }
         }
-        val accent = ImasTheme.derive(null, null, dark = true).accent
-        Box(
-            modifier = Modifier
-                .clip(CircleShape)
-                .background(accent)
-                .clickable(onClick = onOpen)
-                .padding(horizontal = 20.dp, vertical = 10.dp)
-        ) {
-            Text("開く", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = DS.surface)
-        }
+        Text("長押しで削除できます。", fontSize = 12.sp, color = DS.ink3)
     }
 }
 

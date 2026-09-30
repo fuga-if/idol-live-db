@@ -135,10 +135,11 @@ sealed class NavRoutes(val route: String) {
             fun createRoute(subject: String) = "games_tierlist_setup/$subject"
         }
     }
-    data class GamesTierListEdit(val subject: String) : NavRoutes("games_tierlist_edit/{subject}") {
+    /** boardId: `TierListBoard.id` (UUID)。 */
+    data class GamesTierListEdit(val boardId: String) : NavRoutes("games_tierlist_edit/{boardId}") {
         companion object {
-            const val ROUTE = "games_tierlist_edit/{subject}"
-            fun createRoute(subject: String) = "games_tierlist_edit/$subject"
+            const val ROUTE = "games_tierlist_edit/{boardId}"
+            fun createRoute(boardId: String) = "games_tierlist_edit/$boardId"
         }
     }
     data object GamesIdolQuizSetup : NavRoutes("games_idolquiz_setup")

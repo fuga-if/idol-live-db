@@ -179,7 +179,7 @@ fun GamesHubScreen(
 @Composable
 private fun SortMakerSection(
     sessions: Map<SortMakerSubject, SortMakerSession>,
-    tierBoards: Map<SortMakerSubject, TierListBoard>,
+    tierBoards: List<TierListBoard>,
     onOpenSort: (SortMakerSubject) -> Unit,
     onOpenTier: (SortMakerSubject) -> Unit
 ) {
@@ -199,14 +199,14 @@ private fun SortMakerSection(
                 Box(Modifier.fillMaxWidth().background(DS.surface).padding(start = 68.dp)) {
                     Box(Modifier.fillMaxWidth().height(0.5.dp).background(DS.sep))
                 }
-                TierListRow(subject, tierBoards[subject]) { onOpenTier(subject) }
+                TierListRow(subject, tierBoards.count { it.subject == subject }) { onOpenTier(subject) }
             }
         }
     }
 }
 
 @Composable
-private fun TierListRow(subject: SortMakerSubject, board: TierListBoard?, onClick: () -> Unit) {
+private fun TierListRow(subject: SortMakerSubject, savedCount: Int, onClick: () -> Unit) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -226,7 +226,7 @@ private fun TierListRow(subject: SortMakerSubject, board: TierListBoard?, onClic
         Column(verticalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.weight(1f)) {
             Text(subject.tierTitle, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = DS.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(
-                board?.let { "${it.itemIds.size - it.unplacedIds.size} / ${it.itemIds.size} 振り分け済み" } ?: "S〜Dの段に振り分けて見せ合う",
+                if (savedCount > 0) "保存 ${savedCount}件" else "段に振り分けて1枚の画像に",
                 fontSize = 13.sp, color = DS.ink3, maxLines = 1, overflow = TextOverflow.Ellipsis
             )
         }

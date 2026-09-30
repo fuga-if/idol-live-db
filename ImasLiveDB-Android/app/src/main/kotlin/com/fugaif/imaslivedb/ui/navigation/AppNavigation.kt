@@ -527,7 +527,7 @@ internal fun NavGraphBuilder.produceNavGraph(navController: NavHostController) {
                 onPlayAgain = {
                     navController.popBackStack(NavRoutes.GamesSortMakerSetup.createRoute(subject.key), false)
                 },
-                onOpenTierList = { navController.navigate(NavRoutes.GamesTierListEdit.createRoute(subject.key)) }
+                onOpenTierList = { navController.navigate(NavRoutes.GamesTierListEdit.createRoute(it.id)) }
             )
         }
     }
@@ -538,13 +538,13 @@ internal fun NavGraphBuilder.produceNavGraph(navController: NavHostController) {
             purpose = SortMakerPurpose.TIER,
             onBack = { navController.popBackStack() },
             onPlay = {},
-            onOpenTier = { navController.navigate(NavRoutes.GamesTierListEdit.createRoute(subject.key)) }
+            onOpenTier = { navController.navigate(NavRoutes.GamesTierListEdit.createRoute(it.id)) }
         )
     }
     composable(NavRoutes.GamesTierListEdit.ROUTE) { backStackEntry ->
-        val subject = SortMakerSubject.fromKey(backStackEntry.arguments?.getString("subject")) ?: SortMakerSubject.SONG
+        val boardId = backStackEntry.arguments?.getString("boardId") ?: ""
         val context = LocalContext.current
-        val board = remember(subject) { AppModule.from(context).tierListStore.board(subject) }
+        val board = remember(boardId) { AppModule.from(context).tierListStore.find(boardId) }
         if (board == null) {
             LaunchedEffect(Unit) { navController.popBackStack() }
         } else {
