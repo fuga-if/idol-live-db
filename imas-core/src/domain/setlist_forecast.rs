@@ -74,8 +74,10 @@ pub enum ForecastReason {
     SungPreviousDay,
     /// 同じイベントの前の日程 (前日ではない) で歌った。
     SungEarlierInEvent,
-    /// 原唱者が全員出演する。
+    /// 原唱者が全員出演する (ソロ曲には付けない。本人が出るのは候補に残る前提なので理由にならない)。
     FullOriginalCast,
+    /// 出演者のソロ曲のうち、その人のソロ曲でいちばん歌われている。
+    SoloSignature,
     /// 発売から 1 年以内で、まだライブで歌われていない。
     NewUnperformed,
     /// 直前のライブ (ツアーの前の公演を含む) でも歌った。
@@ -98,6 +100,7 @@ impl ForecastReason {
             Self::SungPreviousDay => "前日に歌った",
             Self::SungEarlierInEvent => "この公演の前の日程で歌った",
             Self::FullOriginalCast => "オリメン全員出演",
+            Self::SoloSignature => "本人のソロ曲でいちばん歌われている",
             Self::NewUnperformed => "未披露の新曲",
             Self::SungAtPreviousLive => "前回のライブでも歌った",
             Self::AllSongStaple => "全体曲の定番",
@@ -240,6 +243,8 @@ struct Row {
     kind: SongKind,
     lineup: Option<Lineup>,
     new_within_year: bool,
+    /// 出演者の中でのソロ曲の順位 ([`Feature::SoloRank`] と同じ値)。
+    solo_rank: Option<u8>,
     sung_previous: bool,
     earlier_in_event: bool,
 }
@@ -736,7 +741,8 @@ impl ForecastPrep {
             if lineup == Some(Lineup::Full) && self.is_newest_of_singers(song, date) {
                 features.push(Feature::NewestOfSinger(kind));
             }
-            if let Some(&r) = solo_rank.get(&song) {
+            let solo_rank = solo_rank.get(&song).copied();
+            if let Some(r) = solo_rank {
                 features.push(Feature::SoloRank(r));
             }
             let earlier_in_event = contains_sorted(&earlier, song);
@@ -752,6 +758,7 @@ impl ForecastPrep {
                 kind,
                 lineup,
                 new_within_year,
+                solo_rank,
                 sung_previous: sung_previous || sung_tour,
                 earlier_in_event,
             });
@@ -811,7 +818,11 @@ impl ForecastPrep {
                 ForecastReason::SungEarlierInEvent
             });
         }
-        if row.lineup == Some(Lineup::Full) {
+        if row.kind == SongKind::Solo {
+            if row.solo_rank == Some(0) && row.past_events > 0 {
+                reasons.push(ForecastReason::SoloSignature);
+            }
+        } else if row.lineup == Some(Lineup::Full) {
             reasons.push(ForecastReason::FullOriginalCast);
         }
         if row.new_within_year {
@@ -1088,6 +1099,15 @@ mod tests {
 
         let solo = row(&rows, &snap, "solo");
         assert!(solo.features.contains(&Feature::SoloRank(0)));
+        // 本人が出るのはソロ曲が候補に残る前提なので、「オリメン全員出演」は理由に出さない。
+        assert_eq!(solo.lineup, Some(Lineup::Full));
+        let solo_reasons = prep.reasons(solo, &context, prep.show_day[snap.show_index_by_id["t2"] as usize].unwrap());
+        assert!(!solo_reasons.contains(&ForecastReason::FullOriginalCast), "{solo_reasons:?}");
+        assert_eq!(
+            solo_reasons.contains(&ForecastReason::SoloSignature),
+            solo.past_events > 0,
+            "披露のあるいちばん上のソロ曲だけに付く: {solo_reasons:?}"
+        );
 
         // 公演日より後に出る曲は候補にしない。
         let future = snap.song_index_by_id["future"];
